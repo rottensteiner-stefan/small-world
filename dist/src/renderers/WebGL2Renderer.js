@@ -1,4 +1,4 @@
-import { Mesh } from './Mesh.js';
+import { Mesh } from "./Mesh.js";
 export class WebGL2Renderer {
     gl;
     prog;
@@ -41,6 +41,10 @@ export class WebGL2Renderer {
             this.gl.drawElements(this.gl.LINES, m.count, this.gl.UNSIGNED_SHORT, 0);
         }
     }
-    setSize(w, h) { this.gl.canvas.width = w * devicePixelRatio; this.gl.canvas.height = h * devicePixelRatio; this.gl.viewport(0, 0, w * devicePixelRatio, h * devicePixelRatio); }
+    setSize(w, h) {
+        this.gl.canvas.width = w * devicePixelRatio;
+        this.gl.canvas.height = h * devicePixelRatio;
+        this.gl.viewport(0, 0, w * devicePixelRatio, h * devicePixelRatio);
+    }
 }
 //# sourceMappingURL=WebGL2Renderer.js.map

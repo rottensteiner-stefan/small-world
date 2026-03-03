@@ -8,7 +8,10 @@ export class Triangle {
         this.p3 = p3;
     }
     getPrimitiveData() {
-        return { vertices: new Float32Array([...this.p1, ...this.p2, ...this.p3]), indices: new Uint16Array([0, 1, 1, 2, 2, 0]) };
+        return {
+            vertices: new Float32Array([...this.p1, ...this.p2, ...this.p3]),
+            indices: new Uint16Array([0, 1, 1, 2, 2, 0]),
+        };
     }
 }
 //# sourceMappingURL=Triangle.js.map

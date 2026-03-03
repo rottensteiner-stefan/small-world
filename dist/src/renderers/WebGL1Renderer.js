@@ -1,5 +1,5 @@
-import { WireframeVS_100, WireframeFS_100 } from './shaders/WireframeShader.js';
-import { Mesh } from './Mesh.js';
+import { WireframeVS_100, WireframeFS_100 } from "./shaders/WireframeShader.js";
+import { Mesh } from "./Mesh.js";
 export class WebGL1Renderer {
     gl;
     prog;
@@ -8,7 +8,8 @@ export class WebGL1Renderer {
     uC;
     cache = new Map();
     async initialize(canvas) {
-        this.gl = (canvas.getContext("webgl") || canvas.getContext("experimental-webgl"));
+        this.gl = (canvas.getContext("webgl") ||
+            canvas.getContext("experimental-webgl"));
         const vs = this.gl.createShader(this.gl.VERTEX_SHADER);
         this.gl.shaderSource(vs, WireframeVS_100);
         this.gl.compileShader(vs);
@@ -40,6 +41,10 @@ export class WebGL1Renderer {
             this.gl.drawElements(this.gl.LINES, m.count, this.gl.UNSIGNED_SHORT, 0);
         }
     }
-    setSize(w, h) { this.gl.canvas.width = w * devicePixelRatio; this.gl.canvas.height = h * devicePixelRatio; this.gl.viewport(0, 0, w * devicePixelRatio, h * devicePixelRatio); }
+    setSize(w, h) {
+        this.gl.canvas.width = w * devicePixelRatio;
+        this.gl.canvas.height = h * devicePixelRatio;
+        this.gl.viewport(0, 0, w * devicePixelRatio, h * devicePixelRatio);
+    }
 }
 //# sourceMappingURL=WebGL1Renderer.js.map

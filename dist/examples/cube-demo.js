@@ -1,16 +1,16 @@
-import { SmallWorld } from '../src/core/SmallWorld.js';
-import { Scene } from '../src/core/Scene.js';
-import { Object3D } from '../src/core/Object3D.js';
-import { Cube } from '../src/geometry/Cube.js';
-import { Sphere } from '../src/geometry/Sphere.js';
-import { Camera, CameraStrategy } from '../src/core/Camera.js';
-import { PerspectiveProjection } from '../src/math/projections/PerspectiveProjection.js';
-import { Matrix4 } from '../src/math/Matrix4.js';
-import { Input, Keys } from '../src/core/Input.js';
+import { SmallWorld } from "../src/core/SmallWorld.js";
+import { Scene } from "../src/core/Scene.js";
+import { Object3D } from "../src/core/Object3D.js";
+import { Cube } from "../src/geometry/Cube.js";
+import { Sphere } from "../src/geometry/Sphere.js";
+import { Camera, CameraStrategy } from "../src/core/Camera.js";
+import { PerspectiveProjection } from "../src/math/projections/PerspectiveProjection.js";
+import { Matrix4 } from "../src/math/Matrix4.js";
+import { Input, Keys } from "../src/core/Input.js";
 async function start() {
     Input.init();
     const sw = new SmallWorld();
-    await sw.init('./config/small-world.json');
+    await sw.init("./config/small-world.json");
     sw.activeRenderer.setSize(window.innerWidth, window.innerHeight);
     const scene = new Scene();
     const player = new Object3D();
