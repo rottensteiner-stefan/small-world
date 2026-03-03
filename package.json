@@ -1,0 +1,14 @@
+{
+  "name": "smallworld-engine",
+  "version": "0.8.18",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "npm run build && npx serve ."
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "serve": "^14.0.0",
+    "@webgpu/types": "^0.1.40"
+  }
+}
