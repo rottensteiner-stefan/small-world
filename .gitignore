@@ -1,6 +1,9 @@
 # IDE
 .idea
 
+# Code
+node_modules/
+
 # Misc develop stuff
 extend_smallworld.sh
 setup_smallworld.sh
