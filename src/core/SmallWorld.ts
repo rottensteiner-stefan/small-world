@@ -1,14 +1,44 @@
 import { RendererFactory } from "../renderers/RendererFactory.js";
 import { Input } from "./Input.js";
+
+export interface EngineConfig {
+  rendererType: string;
+  canvasId: string;
+  debug: boolean;
+  worldSize: number;
+}
+
 export class SmallWorld {
   private _renderer: any;
-  public async init(p: string) {
-    const c = await (await fetch(p)).json();
-    Input.debug = c.debug;
+  private _config!: EngineConfig;
+
+  public async init(path: string) {
+    const response = await fetch(path);
+    const loadedConfig = await response.json();
+
+    // Default-Werte setzen, falls in JSON nicht vorhanden
+    this._config = {
+      rendererType: loadedConfig.rendererType || "BEST",
+      canvasId: loadedConfig.canvasId || "viewport",
+      debug: loadedConfig.debug ?? true,
+      worldSize: loadedConfig.worldSize || 100,
+    };
+
+    Input.debug = this._config.debug;
+
     RendererFactory.init();
-    this._renderer = RendererFactory.create(c.rendererType);
-    await this._renderer.initialize(document.getElementById(c.canvasId));
+    this._renderer = RendererFactory.create(this._config.rendererType);
+    await this._renderer.initialize(document.getElementById(this._config.canvasId));
+
+    if (this._config.debug) {
+      console.log("%c[SmallWorld] Config Loaded:", "color: #0f0; font-weight: bold", this._config);
+    }
   }
+
+  public get config(): EngineConfig {
+    return this._config;
+  }
+
   public get activeRenderer() {
     return this._renderer;
   }

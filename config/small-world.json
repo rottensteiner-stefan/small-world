@@ -1,5 +1,6 @@
 {
   "rendererType": "BEST",
   "canvasId": "viewport",
-  "debug": true
+  "debug": true,
+  "worldSize": 120
 }
