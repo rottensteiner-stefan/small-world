@@ -1,3 +1,29 @@
+export enum Keys {
+    W = "KeyW",
+    A = "KeyA",
+    S = "KeyS",
+    D = "KeyD",
+    Digit1 = "Digit1",
+    Digit2 = "Digit2",
+    Digit3 = "Digit3",
+    Digit4 = "Digit4",
+    Digit5 = "Digit5",
+    Digit6 = "Digit6",
+    Digit7 = "Digit7",
+    Digit8 = "Digit8",
+    Digit9 = "Digit9",
+    Digit0 = "Digit0",
+    Space = "Space",
+    ShiftLeft = "ShiftLeft",
+    ControlLeft = "ControlLeft",
+    AltLeft = "AltLeft",
+    Escape = "Escape",
+    ArrowUp = "ArrowUp",
+    ArrowDown = "ArrowDown",
+    ArrowLeft = "ArrowLeft",
+    ArrowRight = "ArrowRight"
+}
+
 export class Input {
     private static keys = new Map<string, boolean>();
     public static mouse = { x: 0, y: 0, dx: 0, dy: 0, right: false };
@@ -16,11 +42,11 @@ export class Input {
     }
 
     // DIE VERMISSTE METHODE
-    public static isPressed(code: string): boolean {
+    public static isPressed(code: string | Keys): boolean {
         return this.keys.get(code) === true;
     }
 
-    public static getAxis(neg: string, pos: string): number {
+    public static getAxis(neg: string | Keys, pos: string | Keys): number {
         let v = 0;
         if(this.isPressed(neg)) v -= 1;
         if(this.isPressed(pos)) v += 1;

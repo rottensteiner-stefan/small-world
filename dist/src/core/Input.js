@@ -1,3 +1,29 @@
+export var Keys;
+(function (Keys) {
+    Keys["W"] = "KeyW";
+    Keys["A"] = "KeyA";
+    Keys["S"] = "KeyS";
+    Keys["D"] = "KeyD";
+    Keys["Digit1"] = "Digit1";
+    Keys["Digit2"] = "Digit2";
+    Keys["Digit3"] = "Digit3";
+    Keys["Digit4"] = "Digit4";
+    Keys["Digit5"] = "Digit5";
+    Keys["Digit6"] = "Digit6";
+    Keys["Digit7"] = "Digit7";
+    Keys["Digit8"] = "Digit8";
+    Keys["Digit9"] = "Digit9";
+    Keys["Digit0"] = "Digit0";
+    Keys["Space"] = "Space";
+    Keys["ShiftLeft"] = "ShiftLeft";
+    Keys["ControlLeft"] = "ControlLeft";
+    Keys["AltLeft"] = "AltLeft";
+    Keys["Escape"] = "Escape";
+    Keys["ArrowUp"] = "ArrowUp";
+    Keys["ArrowDown"] = "ArrowDown";
+    Keys["ArrowLeft"] = "ArrowLeft";
+    Keys["ArrowRight"] = "ArrowRight";
+})(Keys || (Keys = {}));
 export class Input {
     static keys = new Map();
     static mouse = { x: 0, y: 0, dx: 0, dy: 0, right: false };
