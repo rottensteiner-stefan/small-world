@@ -6,7 +6,7 @@ import { Sphere } from '../src/geometry/Sphere.js';
 import { Camera, CameraStrategy } from '../src/core/Camera.js';
 import { PerspectiveProjection } from '../src/math/projections/PerspectiveProjection.js';
 import { Matrix4 } from '../src/math/Matrix4.js';
-import { Input } from '../src/core/Input.js';
+import { Input, Keys } from '../src/core/Input.js';
 
 async function start() {
     Input.init();
@@ -35,13 +35,13 @@ async function start() {
     function loop() {
         // 1. Input abfragen
         const speed = 0.2;
-        player.position[0] += Input.getAxis("KeyA", "KeyD") * speed;
-        player.position[2] += Input.getAxis("KeyW", "KeyS") * speed;
+        player.position[0] += Input.getAxis(Keys.A, Keys.D) * speed;
+        player.position[2] += Input.getAxis(Keys.W, Keys.S) * speed;
 
         // 2. Strategie umschalten (JETZT GEFIXT)
-        if (Input.isPressed("Digit1")) cam.strategy = CameraStrategy.FIXED;
-        if (Input.isPressed("Digit2")) cam.strategy = CameraStrategy.STIFF;
-        if (Input.isPressed("Digit3")) cam.strategy = CameraStrategy.SMOOTH;
+        if (Input.isPressed(Keys.Digit1)) cam.strategy = CameraStrategy.FIXED;
+        if (Input.isPressed(Keys.Digit2)) cam.strategy = CameraStrategy.STIFF;
+        if (Input.isPressed(Keys.Digit3)) cam.strategy = CameraStrategy.SMOOTH;
 
         // 3. Kamera Update
         let dx = 0, dy = 0;
