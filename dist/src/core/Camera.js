@@ -1,4 +1,4 @@
-import { Matrix4 } from '../math/Matrix4.js';
+import { Matrix4 } from "../math/Matrix4.js";
 export var CameraStrategy;
 (function (CameraStrategy) {
     CameraStrategy[CameraStrategy["FIXED"] = 0] = "FIXED";

@@ -1,8 +1,14 @@
 {
   "compilerOptions": {
-    "target": "ES2022", "module": "ESNext", "moduleResolution": "node",
-    "outDir": "./dist", "rootDir": "./", "strict": true, "sourceMap": true,
-    "esModuleInterop": true, "types": ["@webgpu/types"]
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "outDir": "./dist",
+    "rootDir": "./",
+    "strict": true,
+    "sourceMap": true,
+    "esModuleInterop": true,
+    "types": ["@webgpu/types"]
   },
   "include": ["src/**/*", "examples/**/*"]
 }

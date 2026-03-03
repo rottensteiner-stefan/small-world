@@ -1,6 +1,8 @@
 export class Matrix4 {
     data = new Float32Array(16);
-    constructor() { this.identity(); }
+    constructor() {
+        this.identity();
+    }
     identity() {
         const d = this.data;
         d.fill(0);
@@ -43,7 +45,7 @@ export class Matrix4 {
         d[5] = f;
         d[10] = (near + far) * rInv;
         d[11] = -1;
-        d[14] = (2 * near * far) * rInv;
+        d[14] = 2 * near * far * rInv;
     }
     static orthographic(l, r, b, t, n, f, out) {
         const d = out.data;
@@ -60,8 +62,15 @@ export class Matrix4 {
         const d = out.data;
         const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
         const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
-        const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
-        const norm = (a) => { const l = Math.sqrt(a[0] * a[0] + a[1] * a[1] + a[2] * a[2]); return l > 0 ? [a[0] / l, a[1] / l, a[2] / l] : [0, 0, 0]; };
+        const cross = (a, b) => [
+            a[1] * b[2] - a[2] * b[1],
+            a[2] * b[0] - a[0] * b[2],
+            a[0] * b[1] - a[1] * b[0],
+        ];
+        const norm = (a) => {
+            const l = Math.sqrt(a[0] * a[0] + a[1] * a[1] + a[2] * a[2]);
+            return l > 0 ? [a[0] / l, a[1] / l, a[2] / l] : [0, 0, 0];
+        };
         const z = norm(sub(eye, target)), x = norm(cross(up, z)), y = cross(z, x);
         d[0] = x[0];
         d[4] = x[1];

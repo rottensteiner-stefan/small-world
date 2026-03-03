@@ -8,9 +8,9 @@ export class Sphere {
     getPrimitiveData() {
         const v = [], i = [];
         for (let y = 0; y <= this.s; y++) {
-            const lat = y * Math.PI / this.s, sinL = Math.sin(lat), cosL = Math.cos(lat);
+            const lat = (y * Math.PI) / this.s, sinL = Math.sin(lat), cosL = Math.cos(lat);
             for (let x = 0; x <= this.s; x++) {
-                const lon = x * 2 * Math.PI / this.s;
+                const lon = (x * 2 * Math.PI) / this.s;
                 v.push(Math.cos(lon) * sinL * this.r, cosL * this.r, Math.sin(lon) * sinL * this.r);
             }
         }

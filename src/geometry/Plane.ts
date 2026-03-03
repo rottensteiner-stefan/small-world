@@ -1,1 +1,25 @@
-export class Plane { constructor(public w:number, public h:number, public s:number) {} getPrimitiveData() { const v:number[] = [], i:number[] = []; for (let y=0; y<=this.s; y++) for (let x=0; x<=this.s; x++) v.push(x*(this.w/this.s)-this.w/2, 0, y*(this.h/this.s)-this.h/2); for (let y=0; y<=this.s; y++) for (let x=0; x<this.s; x++) { const s = y*(this.s+1)+x; i.push(s, s+1); } for (let x=0; x<=this.s; x++) for (let y=0; y<this.s; y++) { const s = y*(this.s+1)+x; i.push(s, s+(this.s+1)); } return { vertices: new Float32Array(v), indices: new Uint16Array(i) }; } }
+export class Plane {
+  constructor(
+    public w: number,
+    public h: number,
+    public s: number,
+  ) {}
+  getPrimitiveData() {
+    const v: number[] = [],
+      i: number[] = [];
+    for (let y = 0; y <= this.s; y++)
+      for (let x = 0; x <= this.s; x++)
+        v.push(x * (this.w / this.s) - this.w / 2, 0, y * (this.h / this.s) - this.h / 2);
+    for (let y = 0; y <= this.s; y++)
+      for (let x = 0; x < this.s; x++) {
+        const s = y * (this.s + 1) + x;
+        i.push(s, s + 1);
+      }
+    for (let x = 0; x <= this.s; x++)
+      for (let y = 0; y < this.s; y++) {
+        const s = y * (this.s + 1) + x;
+        i.push(s, s + (this.s + 1));
+      }
+    return { vertices: new Float32Array(v), indices: new Uint16Array(i) };
+  }
+}
