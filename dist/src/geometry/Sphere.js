@@ -8,7 +8,7 @@ export class Sphere {
         this.widthSegments = widthSegments;
         this.heightSegments = heightSegments;
     }
-    getPrimitiveData() {
+    getGeometryData() {
         const vertices = [];
         const indices = [];
         for (let y = 0; y <= this.heightSegments; y++) {

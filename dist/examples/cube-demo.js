@@ -22,14 +22,14 @@ async function start() {
     const hud = new HUD(sw.config.showHUD);
     await hud.init();
     const grid = new Object3D();
-    grid.geometry = new Grid(WORLD_SIZE, 50).getPrimitiveData();
+    grid.geometry = new Grid(WORLD_SIZE, 50).getGeometryData();
     grid.color = Color.DARKSLATEGRAY;
     scene.add(grid);
     const player = new Object3D();
-    player.geometry = new Cube(1.5).getPrimitiveData();
+    player.geometry = new Cube(1.5).getGeometryData();
     player.color = Color.ORANGE;
     scene.add(player);
-    const sData = new Sphere(0.6, 12).getPrimitiveData();
+    const sData = new Sphere(0.6, 12).getGeometryData();
     for (let i = 0; i < 30; i++) {
         const s = new Object3D();
         s.geometry = sData;
