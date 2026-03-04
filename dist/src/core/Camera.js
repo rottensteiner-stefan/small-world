@@ -1,5 +1,5 @@
-import { Matrix4 } from '../math/Matrix4.js';
-import { Vector3D } from '../math/Vector3D.js';
+import { Matrix4 } from "../math/Matrix4.js";
+import { Vector3D } from "../math/Vector3D.js";
 export var CameraStrategy;
 (function (CameraStrategy) {
     CameraStrategy[CameraStrategy["FIXED"] = 0] = "FIXED";

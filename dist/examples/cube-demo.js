@@ -10,6 +10,7 @@ import { PerspectiveProjection } from "../src/math/projections/PerspectiveProjec
 import { Matrix4 } from "../src/math/Matrix4.js";
 import { Input } from "../src/core/Input.js";
 import { Vector3D } from "../src/math/Vector3D.js";
+import { HUD } from "../src/core/HUD.js"; // NEU
 async function start() {
     Input.init();
     const sw = new SmallWorld();
@@ -18,9 +19,11 @@ async function start() {
     const LIMIT = WORLD_SIZE / 2;
     sw.activeRenderer.setSize(window.innerWidth, window.innerHeight);
     const scene = new Scene();
+    // HUD INITIALISIEREN
+    const hud = new HUD(sw.config.showHUD);
     const grid = new Object3D();
     grid.geometry = new Grid(WORLD_SIZE, 50).getPrimitiveData();
-    grid.color = Color.GRAY;
+    grid.color = Color.DARKSLATEGRAY;
     scene.add(grid);
     const player = new Object3D();
     player.geometry = new Cube(1.5).getPrimitiveData();
@@ -36,11 +39,22 @@ async function start() {
     }
     const cam = new Camera(new PerspectiveProjection(Math.PI / 4, window.innerWidth / window.innerHeight, 0.1, 200));
     const vM = new Matrix4(), vpM = new Matrix4();
+    // FPS Variablen
+    let lastTime = performance.now();
+    let frameCount = 0;
+    let currentFps = 0;
     function loop() {
-        const speed = 0.2;
+        // FPS BERECHNUNG
+        frameCount++;
+        const now = performance.now();
+        if (now - lastTime >= 1000) {
+            currentFps = frameCount;
+            frameCount = 0;
+            lastTime = now;
+        }
+        const speed = 0.25;
         const move = new Vector3D(Input.getAxis("KeyA", "KeyD"), 0, Input.getAxis("KeyW", "KeyS")).scale(speed);
         player.position.add(move);
-        // Boundary check
         const margin = 0.75;
         if (player.position.x > LIMIT - margin)
             player.position.x = LIMIT - margin;
@@ -64,6 +78,8 @@ async function start() {
         cam.update(player.position, dx, dy);
         Input.mouse.dx = 0;
         Input.mouse.dy = 0;
+        // HUD UPDATE
+        hud.update(currentFps, CameraStrategy[cam.strategy], player.position.x, player.position.z);
         scene.update();
         Matrix4.lookAt(cam.position, cam.target, cam.up, vM);
         cam.getViewProjection(vM, vpM);
