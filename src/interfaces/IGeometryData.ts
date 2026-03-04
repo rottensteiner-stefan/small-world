@@ -1,4 +1,4 @@
-export interface GeometryData {
+export interface IGeometryData {
   vertices: Float32Array;
   indices: Uint16Array;
 }
