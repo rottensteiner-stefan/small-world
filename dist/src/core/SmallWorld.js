@@ -1,6 +1,6 @@
-import { RendererFactory } from '../renderers/RendererFactory.js';
-import { Input } from './Input.js';
-import { ColorUtils } from './ColorUtils.js';
+import { RendererFactory } from "../renderers/RendererFactory.js";
+import { Input } from "./Input.js";
+import { ColorUtils } from "./ColorUtils.js";
 export class SmallWorld {
     _renderer;
     _config;
@@ -13,7 +13,7 @@ export class SmallWorld {
             debug: loadedConfig.debug ?? true,
             worldSize: loadedConfig.worldSize || 100,
             skyColor: ColorUtils.fromCSS(loadedConfig.skyColor || "#000000"),
-            showHUD: loadedConfig.showHUD ?? false
+            showHUD: loadedConfig.showHUD ?? false,
         };
         Input.debug = this._config.debug;
         RendererFactory.init();
@@ -21,7 +21,11 @@ export class SmallWorld {
         await this._renderer.initialize(document.getElementById(this._config.canvasId));
         this._renderer.setClearColor(this._config.skyColor);
     }
-    get config() { return this._config; }
-    get activeRenderer() { return this._renderer; }
+    get config() {
+        return this._config;
+    }
+    get activeRenderer() {
+        return this._renderer;
+    }
 }
 //# sourceMappingURL=SmallWorld.js.map

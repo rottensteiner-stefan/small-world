@@ -1,29 +1,47 @@
 export class HUD {
-    element;
+    enabled;
+    root = null;
+    fpsEl = null;
+    camEl = null;
+    posXEl = null;
+    posYEl = null;
+    posZEl = null;
     constructor(enabled) {
-        this.element = document.createElement("div");
-        this.element.style.position = "absolute";
-        this.element.style.top = "10px";
-        this.element.style.left = "10px";
-        this.element.style.color = "#00ff00";
-        this.element.style.fontFamily = "monospace";
-        this.element.style.fontSize = "14px";
-        this.element.style.backgroundColor = "rgba(0, 0, 0, 0.5)";
-        this.element.style.padding = "10px";
-        this.element.style.borderRadius = "5px";
-        this.element.style.pointerEvents = "none";
-        this.element.style.display = enabled ? "block" : "none";
-        document.body.appendChild(this.element);
+        this.enabled = enabled;
     }
-    update(fps, strategy, posX, posZ) {
-        this.element.innerHTML = `
-      <div><b>SmallWorld v0.8.34</b></div>
-      <hr style="border:0; border-top:1px solid #00ff0033"/>
-      <div>FPS: ${fps}</div>
-      <div>CAM: ${strategy}</div>
-      <div>POS: X: ${posX.toFixed(2)} | Z: ${posZ.toFixed(2)}</div>
-      <div style="font-size: 10px; margin-top: 5px; color: #888">Tasten [1,2,3] Kamera ändern</div>
-    `;
+    async init() {
+        if (!this.enabled)
+            return;
+        try {
+            const response = await fetch("./resources/hud.template.html");
+            const html = await response.text();
+            const container = document.createElement("div");
+            container.innerHTML = html;
+            document.body.appendChild(container);
+            this.root = document.getElementById("sw-hud-root");
+            this.fpsEl = document.getElementById("hud-fps");
+            this.camEl = document.getElementById("hud-cam");
+            this.posXEl = document.getElementById("hud-pos-x");
+            this.posYEl = document.getElementById("hud-pos-y");
+            this.posZEl = document.getElementById("hud-pos-z");
+        }
+        catch (e) {
+            console.error("[HUD] Failed to load template:", e);
+        }
+    }
+    update(fps, strategy, x, y, z) {
+        if (!this.enabled || !this.root)
+            return;
+        if (this.fpsEl)
+            this.fpsEl.textContent = `${fps} FPS`;
+        if (this.camEl)
+            this.camEl.textContent = strategy;
+        if (this.posXEl)
+            this.posXEl.textContent = x.toFixed(1);
+        if (this.posYEl)
+            this.posYEl.textContent = y.toFixed(1);
+        if (this.posZEl)
+            this.posZEl.textContent = z.toFixed(1);
     }
 }
 //# sourceMappingURL=HUD.js.map

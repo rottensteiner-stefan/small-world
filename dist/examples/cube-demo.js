@@ -10,7 +10,7 @@ import { PerspectiveProjection } from "../src/math/projections/PerspectiveProjec
 import { Matrix4 } from "../src/math/Matrix4.js";
 import { Input } from "../src/core/Input.js";
 import { Vector3D } from "../src/math/Vector3D.js";
-import { HUD } from "../src/core/HUD.js"; // NEU
+import { HUD } from "../src/core/HUD.js";
 async function start() {
     Input.init();
     const sw = new SmallWorld();
@@ -19,8 +19,8 @@ async function start() {
     const LIMIT = WORLD_SIZE / 2;
     sw.activeRenderer.setSize(window.innerWidth, window.innerHeight);
     const scene = new Scene();
-    // HUD INITIALISIEREN
     const hud = new HUD(sw.config.showHUD);
+    await hud.init();
     const grid = new Object3D();
     grid.geometry = new Grid(WORLD_SIZE, 50).getPrimitiveData();
     grid.color = Color.DARKSLATEGRAY;
@@ -39,12 +39,10 @@ async function start() {
     }
     const cam = new Camera(new PerspectiveProjection(Math.PI / 4, window.innerWidth / window.innerHeight, 0.1, 200));
     const vM = new Matrix4(), vpM = new Matrix4();
-    // FPS Variablen
     let lastTime = performance.now();
     let frameCount = 0;
     let currentFps = 0;
     function loop() {
-        // FPS BERECHNUNG
         frameCount++;
         const now = performance.now();
         if (now - lastTime >= 1000) {
@@ -78,8 +76,8 @@ async function start() {
         cam.update(player.position, dx, dy);
         Input.mouse.dx = 0;
         Input.mouse.dy = 0;
-        // HUD UPDATE
-        hud.update(currentFps, CameraStrategy[cam.strategy], player.position.x, player.position.z);
+        // UPDATE HUD MIT X, Y, Z
+        hud.update(currentFps, CameraStrategy[cam.strategy], player.position.x, player.position.y, player.position.z);
         scene.update();
         Matrix4.lookAt(cam.position, cam.target, cam.up, vM);
         cam.getViewProjection(vM, vpM);
