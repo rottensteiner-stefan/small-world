@@ -1,25 +1,56 @@
 export class Plane {
+  /**
+   * Erzeugt eine flache Ebene (XZ-Ausrichtung).
+   * @param width Die Breite der Ebene (X-Achse).
+   * @param depth Die Tiefe der Ebene (Z-Achse).
+   * @param widthSegments Unterteilungen in der Breite.
+   * @param depthSegments Unterteilungen in der Tiefe.
+   */
   constructor(
-    public w: number,
-    public h: number,
-    public s: number,
+    public width: number = 1,
+    public depth: number = 1,
+    public widthSegments: number = 1,
+    public depthSegments: number = 1,
   ) {}
-  getPrimitiveData() {
-    const v: number[] = [],
-      i: number[] = [];
-    for (let y = 0; y <= this.s; y++)
-      for (let x = 0; x <= this.s; x++)
-        v.push(x * (this.w / this.s) - this.w / 2, 0, y * (this.h / this.s) - this.h / 2);
-    for (let y = 0; y <= this.s; y++)
-      for (let x = 0; x < this.s; x++) {
-        const s = y * (this.s + 1) + x;
-        i.push(s, s + 1);
+
+  public getPrimitiveData() {
+    const vertices: number[] = [];
+    const indices: number[] = [];
+
+    const halfWidth = this.width / 2;
+    const halfDepth = this.depth / 2;
+
+    const segmentWidth = this.width / this.widthSegments;
+    const segmentDepth = this.depth / this.depthSegments;
+
+    // Erzeuge Vertices
+    for (let z = 0; z <= this.depthSegments; z++) {
+      const zPos = z * segmentDepth - halfDepth;
+      for (let x = 0; x <= this.widthSegments; x++) {
+        const xPos = x * segmentWidth - halfWidth;
+        vertices.push(xPos, 0, zPos);
       }
-    for (let x = 0; x <= this.s; x++)
-      for (let y = 0; y < this.s; y++) {
-        const s = y * (this.s + 1) + x;
-        i.push(s, s + (this.s + 1));
+    }
+
+    // Erzeuge Indizes für das Wireframe (Gitter-Linien)
+    for (let z = 0; z <= this.depthSegments; z++) {
+      for (let x = 0; x <= this.widthSegments; x++) {
+        const current = z * (this.widthSegments + 1) + x;
+
+        // Horizontale Linie
+        if (x < this.widthSegments) {
+          indices.push(current, current + 1);
+        }
+        // Vertikale Linie
+        if (z < this.depthSegments) {
+          indices.push(current, current + (this.widthSegments + 1));
+        }
       }
-    return { vertices: new Float32Array(v), indices: new Uint16Array(i) };
+    }
+
+    return {
+      vertices: new Float32Array(vertices),
+      indices: new Uint16Array(indices),
+    };
   }
 }
