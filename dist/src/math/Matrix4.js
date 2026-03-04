@@ -1,7 +1,9 @@
-import { Vector3D } from './Vector3D.js';
+import { Vector3D } from "./Vector3D.js";
 export class Matrix4 {
     data = new Float32Array(16);
-    constructor() { this.identity(); }
+    constructor() {
+        this.identity();
+    }
     identity() {
         const d = this.data;
         d.fill(0);
@@ -44,7 +46,7 @@ export class Matrix4 {
         d[5] = f;
         d[10] = (near + far) * rInv;
         d[11] = -1;
-        d[14] = (2 * near * far) * rInv;
+        d[14] = 2 * near * far * rInv;
     }
     // DER FIX: Die zurückgekehrte orthographic-Methode
     static orthographic(l, r, b, t, n, f, out) {

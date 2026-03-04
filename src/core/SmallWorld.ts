@@ -1,14 +1,15 @@
 import { RendererFactory } from "../renderers/RendererFactory.js";
 import { Input } from "./Input.js";
-import { Color } from "./Color.js";
 import { ColorUtils } from "./ColorUtils.js";
+import { Color } from "./Color.js";
 
 export interface EngineConfig {
   rendererType: string;
   canvasId: string;
   debug: boolean;
   worldSize: number;
-  skyColor: Color; // Als Color Objekt
+  skyColor: Color;
+  showHUD: boolean;
 }
 
 export class SmallWorld {
@@ -25,6 +26,7 @@ export class SmallWorld {
       debug: loadedConfig.debug ?? true,
       worldSize: loadedConfig.worldSize || 100,
       skyColor: ColorUtils.fromCSS(loadedConfig.skyColor || "#000000"),
+      showHUD: loadedConfig.showHUD ?? false,
     };
 
     Input.debug = this._config.debug;
@@ -32,13 +34,7 @@ export class SmallWorld {
     RendererFactory.init();
     this._renderer = RendererFactory.create(this._config.rendererType);
     await this._renderer.initialize(document.getElementById(this._config.canvasId));
-
-    // Himmel setzen
     this._renderer.setClearColor(this._config.skyColor);
-
-    if (this._config.debug) {
-      console.log("%c[SmallWorld] Celestial Update v0.8.27 ready", "color: #0ff");
-    }
   }
 
   public get config(): EngineConfig {
