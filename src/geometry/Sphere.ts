@@ -1,14 +1,15 @@
 import { Vector3D } from "../math/Vector3D.js";
 import { IGeometryData } from "../interfaces/IGeometryData.js";
+import { IGeometry } from "../interfaces/IGeometry.js";
 
-export class Sphere {
+export class Sphere implements IGeometry{
   constructor(
     public radius: number = 1,
     public widthSegments: number = 16,
     public heightSegments: number = 12,
   ) {}
 
-  public getPrimitiveData(): IGeometryData {
+  public getGeometryData(): IGeometryData {
     const vertices: number[] = [];
     const indices: number[] = [];
     for (let y = 0; y <= this.heightSegments; y++) {

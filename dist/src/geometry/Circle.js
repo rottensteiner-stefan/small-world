@@ -5,21 +5,15 @@ export class Circle {
         this.radius = radius;
         this.segments = segments;
     }
-    getPrimitiveData() {
-        const vertices = [];
-        const indices = [];
-        for (let i = 0; i < this.segments; i++) {
-            const theta = (i / this.segments) * Math.PI * 2;
-            const x = Math.cos(theta) * this.radius;
-            const z = Math.sin(theta) * this.radius;
-            vertices.push(x, 0, z);
-            // Verbinde diesen Punkt mit dem nächsten
-            indices.push(i, (i + 1) % this.segments);
+    getGeometryData() {
+        const v = [];
+        const i = [];
+        for (let n = 0; n < this.segments; n++) {
+            const theta = (n / this.segments) * Math.PI * 2;
+            v.push(Math.cos(theta) * this.radius, 0, Math.sin(theta) * this.radius);
+            i.push(n, (n + 1) % this.segments);
         }
-        return {
-            vertices: new Float32Array(vertices),
-            indices: new Uint16Array(indices),
-        };
+        return { vertices: new Float32Array(v), indices: new Uint16Array(i) };
     }
 }
 //# sourceMappingURL=Circle.js.map
