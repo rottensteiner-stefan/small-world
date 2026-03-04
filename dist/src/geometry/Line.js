@@ -1,22 +1,29 @@
+import { Vector3D } from "../math/Vector3D.js";
 export class Line {
     start;
-    dir;
-    len;
-    constructor(start, dir, len) {
+    end;
+    /**
+     * Erzeugt eine einfache Linien-Geometrie.
+     * @param start Der Startpunkt als Vector3D.
+     * @param end Der Endpunkt als Vector3D.
+     */
+    constructor(start = new Vector3D(0, 0, 0), end = new Vector3D(0, 1, 0)) {
         this.start = start;
-        this.dir = dir;
-        this.len = len;
+        this.end = end;
     }
     getPrimitiveData() {
-        const end = [
-            this.start[0] + this.dir[0] * this.len,
-            this.start[1] + this.dir[1] * this.len,
-            this.start[2] + this.dir[2] * this.len,
-        ];
-        return {
-            vertices: new Float32Array([...this.start, ...end]),
-            indices: new Uint16Array([0, 1]),
-        };
+        // Wir flachen die Vektoren für die GPU in ein Float32Array ab
+        const vertices = new Float32Array([
+            this.start.x,
+            this.start.y,
+            this.start.z,
+            this.end.x,
+            this.end.y,
+            this.end.z,
+        ]);
+        // Eine Linie verbindet Punkt 0 mit Punkt 1
+        const indices = new Uint16Array([0, 1]);
+        return { vertices, indices };
     }
 }
 //# sourceMappingURL=Line.js.map

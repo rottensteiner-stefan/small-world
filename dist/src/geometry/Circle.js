@@ -1,19 +1,25 @@
 export class Circle {
-    r;
-    s;
-    constructor(r, s = 32) {
-        this.r = r;
-        this.s = s;
+    radius;
+    segments;
+    constructor(radius = 1, segments = 32) {
+        this.radius = radius;
+        this.segments = segments;
     }
     getPrimitiveData() {
-        const v = [];
-        const i = [];
-        for (let s = 0; s < this.s; s++) {
-            const rad = (s / this.s) * Math.PI * 2;
-            v.push(Math.cos(rad) * this.r, 0, Math.sin(rad) * this.r);
-            i.push(s, (s + 1) % this.s);
+        const vertices = [];
+        const indices = [];
+        for (let i = 0; i < this.segments; i++) {
+            const theta = (i / this.segments) * Math.PI * 2;
+            const x = Math.cos(theta) * this.radius;
+            const z = Math.sin(theta) * this.radius;
+            vertices.push(x, 0, z);
+            // Verbinde diesen Punkt mit dem nächsten
+            indices.push(i, (i + 1) % this.segments);
         }
-        return { vertices: new Float32Array(v), indices: new Uint16Array(i) };
+        return {
+            vertices: new Float32Array(vertices),
+            indices: new Uint16Array(indices),
+        };
     }
 }
 //# sourceMappingURL=Circle.js.map

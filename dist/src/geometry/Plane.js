@@ -1,28 +1,54 @@
 export class Plane {
-    w;
-    h;
-    s;
-    constructor(w, h, s) {
-        this.w = w;
-        this.h = h;
-        this.s = s;
+    width;
+    depth;
+    widthSegments;
+    depthSegments;
+    /**
+     * Erzeugt eine flache Ebene (XZ-Ausrichtung).
+     * @param width Die Breite der Ebene (X-Achse).
+     * @param depth Die Tiefe der Ebene (Z-Achse).
+     * @param widthSegments Unterteilungen in der Breite.
+     * @param depthSegments Unterteilungen in der Tiefe.
+     */
+    constructor(width = 1, depth = 1, widthSegments = 1, depthSegments = 1) {
+        this.width = width;
+        this.depth = depth;
+        this.widthSegments = widthSegments;
+        this.depthSegments = depthSegments;
     }
     getPrimitiveData() {
-        const v = [], i = [];
-        for (let y = 0; y <= this.s; y++)
-            for (let x = 0; x <= this.s; x++)
-                v.push(x * (this.w / this.s) - this.w / 2, 0, y * (this.h / this.s) - this.h / 2);
-        for (let y = 0; y <= this.s; y++)
-            for (let x = 0; x < this.s; x++) {
-                const s = y * (this.s + 1) + x;
-                i.push(s, s + 1);
+        const vertices = [];
+        const indices = [];
+        const halfWidth = this.width / 2;
+        const halfDepth = this.depth / 2;
+        const segmentWidth = this.width / this.widthSegments;
+        const segmentDepth = this.depth / this.depthSegments;
+        // Erzeuge Vertices
+        for (let z = 0; z <= this.depthSegments; z++) {
+            const zPos = z * segmentDepth - halfDepth;
+            for (let x = 0; x <= this.widthSegments; x++) {
+                const xPos = x * segmentWidth - halfWidth;
+                vertices.push(xPos, 0, zPos);
             }
-        for (let x = 0; x <= this.s; x++)
-            for (let y = 0; y < this.s; y++) {
-                const s = y * (this.s + 1) + x;
-                i.push(s, s + (this.s + 1));
+        }
+        // Erzeuge Indizes für das Wireframe (Gitter-Linien)
+        for (let z = 0; z <= this.depthSegments; z++) {
+            for (let x = 0; x <= this.widthSegments; x++) {
+                const current = z * (this.widthSegments + 1) + x;
+                // Horizontale Linie
+                if (x < this.widthSegments) {
+                    indices.push(current, current + 1);
+                }
+                // Vertikale Linie
+                if (z < this.depthSegments) {
+                    indices.push(current, current + (this.widthSegments + 1));
+                }
             }
-        return { vertices: new Float32Array(v), indices: new Uint16Array(i) };
+        }
+        return {
+            vertices: new Float32Array(vertices),
+            indices: new Uint16Array(indices),
+        };
     }
 }
 //# sourceMappingURL=Plane.js.map
