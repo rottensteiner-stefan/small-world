@@ -1,6 +1,6 @@
-import { RendererFactory } from '../renderers/RendererFactory.js';
-import { Input } from './Input.js';
-import { ColorUtils } from './ColorUtils.js';
+import { RendererFactory } from "../renderers/RendererFactory.js";
+import { Input } from "./Input.js";
+import { ColorUtils } from "./ColorUtils.js";
 export class SmallWorld {
     _renderer;
     _config;
@@ -12,7 +12,7 @@ export class SmallWorld {
             canvasId: loadedConfig.canvasId || "viewport",
             debug: loadedConfig.debug ?? true,
             worldSize: loadedConfig.worldSize || 100,
-            skyColor: ColorUtils.fromCSS(loadedConfig.skyColor || "#000000")
+            skyColor: ColorUtils.fromCSS(loadedConfig.skyColor || "#000000"),
         };
         Input.debug = this._config.debug;
         RendererFactory.init();
@@ -24,7 +24,11 @@ export class SmallWorld {
             console.log("%c[SmallWorld] Celestial Update v0.8.27 ready", "color: #0ff");
         }
     }
-    get config() { return this._config; }
-    get activeRenderer() { return this._renderer; }
+    get config() {
+        return this._config;
+    }
+    get activeRenderer() {
+        return this._renderer;
+    }
 }
 //# sourceMappingURL=SmallWorld.js.map

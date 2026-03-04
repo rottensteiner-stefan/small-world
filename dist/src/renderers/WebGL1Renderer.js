@@ -1,5 +1,5 @@
-import { WireframeVS_100, WireframeFS_100 } from './shaders/WireframeShader.js';
-import { Mesh } from './Mesh.js';
+import { WireframeVS_100, WireframeFS_100 } from "./shaders/WireframeShader.js";
+import { Mesh } from "./Mesh.js";
 export class WebGL1Renderer {
     gl;
     prog;
@@ -8,7 +8,8 @@ export class WebGL1Renderer {
     uC;
     cache = new Map();
     async initialize(canvas) {
-        this.gl = (canvas.getContext("webgl") || canvas.getContext("experimental-webgl"));
+        this.gl = (canvas.getContext("webgl") ||
+            canvas.getContext("experimental-webgl"));
         const vs = this.gl.createShader(this.gl.VERTEX_SHADER);
         this.gl.shaderSource(vs, WireframeVS_100);
         this.gl.compileShader(vs);

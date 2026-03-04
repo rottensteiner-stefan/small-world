@@ -1,8 +1,7 @@
+import { Vector3D } from './Vector3D.js';
 export class Matrix4 {
     data = new Float32Array(16);
-    constructor() {
-        this.identity();
-    }
+    constructor() { this.identity(); }
     identity() {
         const d = this.data;
         d.fill(0);
@@ -12,11 +11,11 @@ export class Matrix4 {
         d[15] = 1;
         return this;
     }
-    static translate(x, y, z, out) {
+    static translate(v, out) {
         out.identity();
-        out.data[12] = x;
-        out.data[13] = y;
-        out.data[14] = z;
+        out.data[12] = v.x;
+        out.data[13] = v.y;
+        out.data[14] = v.z;
     }
     static rotateY(r, out) {
         const s = Math.sin(r), c = Math.cos(r);
@@ -45,8 +44,9 @@ export class Matrix4 {
         d[5] = f;
         d[10] = (near + far) * rInv;
         d[11] = -1;
-        d[14] = 2 * near * far * rInv;
+        d[14] = (2 * near * far) * rInv;
     }
+    // DER FIX: Die zurückgekehrte orthographic-Methode
     static orthographic(l, r, b, t, n, f, out) {
         const d = out.data;
         d.fill(0);
@@ -60,30 +60,27 @@ export class Matrix4 {
     }
     static lookAt(eye, target, up, out) {
         const d = out.data;
-        const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
-        const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
-        const cross = (a, b) => [
-            a[1] * b[2] - a[2] * b[1],
-            a[2] * b[0] - a[0] * b[2],
-            a[0] * b[1] - a[1] * b[0],
-        ];
-        const norm = (a) => {
-            const l = Math.sqrt(a[0] * a[0] + a[1] * a[1] + a[2] * a[2]);
-            return l > 0 ? [a[0] / l, a[1] / l, a[2] / l] : [0, 0, 0];
-        };
-        const z = norm(sub(eye, target)), x = norm(cross(up, z)), y = cross(z, x);
-        d[0] = x[0];
-        d[4] = x[1];
-        d[8] = x[2];
-        d[12] = -dot(x, eye);
-        d[1] = y[0];
-        d[5] = y[1];
-        d[9] = y[2];
-        d[13] = -dot(y, eye);
-        d[2] = z[0];
-        d[6] = z[1];
-        d[10] = z[2];
-        d[14] = -dot(z, eye);
+        const z = eye.clone().sub(target);
+        const zL = z.length();
+        if (zL > 0)
+            z.scale(1 / zL);
+        const x = new Vector3D(up.y * z.z - up.z * z.y, up.z * z.x - up.x * z.z, up.x * z.y - up.y * z.x);
+        const xL = x.length();
+        if (xL > 0)
+            x.scale(1 / xL);
+        const y = new Vector3D(z.y * x.z - z.z * x.y, z.z * x.x - z.x * x.z, z.x * x.y - z.y * x.x);
+        d[0] = x.x;
+        d[4] = x.y;
+        d[8] = x.z;
+        d[12] = -x.dot(eye);
+        d[1] = y.x;
+        d[5] = y.y;
+        d[9] = y.z;
+        d[13] = -y.dot(eye);
+        d[2] = z.x;
+        d[6] = z.y;
+        d[10] = z.z;
+        d[14] = -z.dot(eye);
         d[15] = 1;
     }
 }
