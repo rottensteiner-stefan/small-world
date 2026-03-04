@@ -1,18 +1,19 @@
 import { Matrix4 } from '../math/Matrix4.js';
+import { Vector3D } from '../math/Vector3D.js';
 import { Color } from './Color.js';
 export class Object3D {
-    position = [0, 0, 0];
-    rotation = [0, 0, 0];
-    scale = [1, 1, 1];
-    color = Color.WHITE; // Jetzt als Instanz
+    position = new Vector3D(0, 0, 0);
+    rotation = new Vector3D(0, 0, 0);
+    scale = new Vector3D(1, 1, 1);
+    color = Color.WHITE;
     geometry = null;
     modelMatrix = new Matrix4();
     static tM = new Matrix4();
     static rM = new Matrix4();
     updateMatrix() {
-        Matrix4.translate(this.position[0], this.position[1], this.position[2], this.modelMatrix);
-        if (this.rotation[1] !== 0) {
-            Matrix4.rotateY(this.rotation[1], Object3D.rM);
+        Matrix4.translate(this.position, this.modelMatrix);
+        if (this.rotation.y !== 0) {
+            Matrix4.rotateY(this.rotation.y, Object3D.rM);
             Matrix4.multiply(this.modelMatrix, Object3D.rM, Object3D.tM);
             this.modelMatrix.data.set(Object3D.tM.data);
         }

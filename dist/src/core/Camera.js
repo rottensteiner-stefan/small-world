@@ -1,4 +1,5 @@
-import { Matrix4 } from "../math/Matrix4.js";
+import { Matrix4 } from '../math/Matrix4.js';
+import { Vector3D } from '../math/Vector3D.js';
 export var CameraStrategy;
 (function (CameraStrategy) {
     CameraStrategy[CameraStrategy["FIXED"] = 0] = "FIXED";
@@ -7,9 +8,9 @@ export var CameraStrategy;
 })(CameraStrategy || (CameraStrategy = {}));
 export class Camera {
     projection;
-    position = [0, 10, 20];
-    target = [0, 0, 0];
-    up = [0, 1, 0];
+    position = new Vector3D(0, 10, 20);
+    target = new Vector3D(0, 0, 0);
+    up = new Vector3D(0, 1, 0);
     strategy = CameraStrategy.SMOOTH;
     theta = 0;
     phi = 0.6;
@@ -19,7 +20,6 @@ export class Camera {
         this.projection = projection;
     }
     update(playerPos, dx, dy) {
-        // Orbit-Input verarbeiten
         if (dx !== 0 || dy !== 0) {
             this.theta -= dx * 0.01;
             this.phi += dy * 0.01;
@@ -29,26 +29,23 @@ export class Camera {
             if (this.phi < -limit)
                 this.phi = -limit;
         }
-        // Target an Spieler binden (außer bei FIXED)
         if (this.strategy !== CameraStrategy.FIXED) {
-            this.target[0] = playerPos[0];
-            this.target[1] = playerPos[1];
-            this.target[2] = playerPos[2];
+            this.target.x = playerPos.x;
+            this.target.y = playerPos.y;
+            this.target.z = playerPos.z;
         }
-        // Gewünschte Ideal-Position berechnen
-        const idealX = this.target[0] + this.radius * Math.sin(this.theta) * Math.cos(this.phi);
-        const idealY = this.target[1] + this.radius * Math.sin(this.phi);
-        const idealZ = this.target[2] + this.radius * Math.cos(this.theta) * Math.cos(this.phi);
-        // Strategie anwenden
+        const idealX = this.target.x + this.radius * Math.sin(this.theta) * Math.cos(this.phi);
+        const idealY = this.target.y + this.radius * Math.sin(this.phi);
+        const idealZ = this.target.z + this.radius * Math.cos(this.theta) * Math.cos(this.phi);
         if (this.strategy === CameraStrategy.STIFF) {
-            this.position[0] = idealX;
-            this.position[1] = idealY;
-            this.position[2] = idealZ;
+            this.position.x = idealX;
+            this.position.y = idealY;
+            this.position.z = idealZ;
         }
         else if (this.strategy === CameraStrategy.SMOOTH) {
-            this.position[0] += (idealX - this.position[0]) * this.lerpFactor;
-            this.position[1] += (idealY - this.position[1]) * this.lerpFactor;
-            this.position[2] += (idealZ - this.position[2]) * this.lerpFactor;
+            this.position.x += (idealX - this.position.x) * this.lerpFactor;
+            this.position.y += (idealY - this.position.y) * this.lerpFactor;
+            this.position.z += (idealZ - this.position.z) * this.lerpFactor;
         }
     }
     getViewProjection(v, out) {

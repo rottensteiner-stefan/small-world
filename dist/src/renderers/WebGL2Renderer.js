@@ -1,5 +1,5 @@
-import { WireframeVS_300, WireframeFS_300 } from './shaders/WireframeShader.js';
-import { Mesh } from './Mesh.js';
+import { WireframeVS_300, WireframeFS_300 } from "./shaders/WireframeShader.js";
+import { Mesh } from "./Mesh.js";
 export class WebGL2Renderer {
     gl;
     prog;
