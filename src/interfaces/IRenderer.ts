@@ -1,6 +1,9 @@
 import { Scene } from "../core/Scene.js";
+import { Color } from "../core/Color.js";
+
 export interface IRenderer {
-  initialize(c: HTMLCanvasElement): Promise<void>;
-  render(s: Scene, vp: Float32Array): void;
-  setSize(w: number, h: number): void;
+  initialize(canvas: HTMLCanvasElement): Promise<void>;
+  render(scene: Scene, vpMatrix: Float32Array): void;
+  setSize(width: number, height: number): void;
+  setClearColor(color: Color): void; // Verbindlich für alle
 }
