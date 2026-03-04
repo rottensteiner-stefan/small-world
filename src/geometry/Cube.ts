@@ -1,69 +1,39 @@
+import { IGeometryData } from "../interfaces/IGeometryData.js";
+
 export class Cube {
-  /**
-   * Erzeugt eine Cube-Geometrie (Wireframe).
-   * @param size Die Kantenlänge des Würfels.
-   */
   constructor(public size: number = 1) {}
 
-  public getPrimitiveData() {
+  public getPrimitiveData(): IGeometryData {
     const halfSize = this.size / 2;
-
-    // Eckpunkte des Würfels (8 Punkte)
     const vertices = new Float32Array([
       -halfSize,
       -halfSize,
-      halfSize, // 0
+      halfSize,
       halfSize,
       -halfSize,
-      halfSize, // 1
       halfSize,
       halfSize,
-      halfSize, // 2
+      halfSize,
+      halfSize,
       -halfSize,
       halfSize,
-      halfSize, // 3
-      -halfSize,
-      -halfSize,
-      -halfSize, // 4
       halfSize,
       -halfSize,
-      -halfSize, // 5
-      halfSize,
-      halfSize,
-      -halfSize, // 6
+      -halfSize,
       -halfSize,
       halfSize,
-      -halfSize, // 7
+      -halfSize,
+      -halfSize,
+      halfSize,
+      halfSize,
+      -halfSize,
+      -halfSize,
+      halfSize,
+      -halfSize,
     ]);
-
-    // Linien-Indizes für das Wireframe
     const indices = new Uint16Array([
-      0,
-      1,
-      1,
-      2,
-      2,
-      3,
-      3,
-      0, // Vorderseite
-      4,
-      5,
-      5,
-      6,
-      6,
-      7,
-      7,
-      4, // Rückseite
-      0,
-      4,
-      1,
-      5,
-      2,
-      6,
-      3,
-      7, // Verbindungen
+      0, 1, 1, 2, 2, 3, 3, 0, 4, 5, 5, 6, 6, 7, 7, 4, 0, 4, 1, 5, 2, 6, 3, 7,
     ]);
-
     return { vertices, indices };
   }
 }

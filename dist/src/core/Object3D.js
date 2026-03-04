@@ -1,12 +1,12 @@
-import { Matrix4 } from "../math/Matrix4.js";
-import { Vector3D } from "../math/Vector3D.js";
-import { Color } from "./Color.js";
+import { Matrix4 } from '../math/Matrix4.js';
+import { Vector3D } from '../math/Vector3D.js';
+import { Color } from './Color.js';
 export class Object3D {
     position = new Vector3D(0, 0, 0);
     rotation = new Vector3D(0, 0, 0);
     scale = new Vector3D(1, 1, 1);
     color = Color.WHITE;
-    geometry = null;
+    geometry = null; // Stark typisiert
     modelMatrix = new Matrix4();
     static tM = new Matrix4();
     static rM = new Matrix4();
