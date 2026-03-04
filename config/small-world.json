@@ -2,5 +2,6 @@
   "rendererType": "BEST",
   "canvasId": "viewport",
   "debug": true,
-  "worldSize": 120
+  "worldSize": 100,
+  "skyColor": "skyblue"
 }

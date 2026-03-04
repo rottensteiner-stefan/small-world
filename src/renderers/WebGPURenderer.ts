@@ -1,8 +1,13 @@
-export class WebGPURenderer {
+import { IRenderer } from "../interfaces/IRenderer.js";
+import { Color } from "../core/Color.js";
+
+export class WebGPURenderer implements IRenderer {
   private device!: GPUDevice;
   private ctx!: GPUCanvasContext;
   private pipe!: GPURenderPipeline;
+  private clearValue = { r: 0, g: 0, b: 0, a: 1 };
   private cache = new Map<any, any>();
+
   public async initialize(canvas: HTMLCanvasElement) {
     const adp = await navigator.gpu.requestAdapter();
     this.device = await adp!.requestDevice();
@@ -10,11 +15,11 @@ export class WebGPURenderer {
     this.ctx.configure({ device: this.device, format: navigator.gpu.getPreferredCanvasFormat() });
     const mod = this.device.createShaderModule({
       code: `
-            struct U { vp: mat4x4<f32>, model: mat4x4<f32>, color: vec4<f32> };
-            @group(0) @binding(0) var<uniform> u: U;
-            @vertex fn vs_main(@location(0) p: vec3<f32>) -> @builtin(position) vec4<f32> { return u.vp * u.model * vec4<f32>(p, 1.0); }
-            @fragment fn fs_main() -> @location(0) vec4<f32> { return u.color; }
-        `,
+      struct U { vp: mat4x4<f32>, model: mat4x4<f32>, color: vec4<f32> };
+      @group(0) @binding(0) var<uniform> u: U;
+      @vertex fn vs_main(@location(0) p: vec3<f32>) -> @builtin(position) vec4<f32> { return u.vp * u.model * vec4<f32>(p, 1.0); }
+      @fragment fn fs_main() -> @location(0) vec4<f32> { return u.color; }
+    `,
     });
     this.pipe = this.device.createRenderPipeline({
       layout: "auto",
@@ -33,6 +38,11 @@ export class WebGPURenderer {
       primitive: { topology: "line-list" },
     });
   }
+
+  public setClearColor(color: Color): void {
+    this.clearValue = { r: color.r, g: color.g, b: color.b, a: color.a };
+  }
+
   public render(scene: any, vp: Float32Array) {
     const enc = this.device.createCommandEncoder();
     const p = enc.beginRenderPass({
@@ -41,7 +51,7 @@ export class WebGPURenderer {
           view: this.ctx.getCurrentTexture().createView(),
           loadOp: "clear",
           storeOp: "store",
-          clearValue: [0, 0, 0, 1],
+          clearValue: this.clearValue,
         },
       ],
     });
@@ -70,7 +80,6 @@ export class WebGPURenderer {
         res = { uBuf, bG, vb, ib, cnt: o.geometry.indices.length };
         this.cache.set(o, res);
       }
-      // Fix: Benutze .buffer, .byteOffset und .byteLength um SharedArrayBuffer Errors zu vermeiden
       this.device.queue.writeBuffer(res.uBuf, 0, vp.buffer, vp.byteOffset, vp.byteLength);
       this.device.queue.writeBuffer(
         res.uBuf,
@@ -79,13 +88,13 @@ export class WebGPURenderer {
         o.modelMatrix.data.byteOffset,
         o.modelMatrix.data.byteLength,
       );
-      const colorData = new Float32Array(o.color);
+      const colorArr = new Float32Array(o.color.toArray());
       this.device.queue.writeBuffer(
         res.uBuf,
         128,
-        colorData.buffer,
-        colorData.byteOffset,
-        colorData.byteLength,
+        colorArr.buffer,
+        colorArr.byteOffset,
+        colorArr.byteLength,
       );
       p.setBindGroup(0, res.bG);
       p.setVertexBuffer(0, res.vb);
@@ -95,6 +104,7 @@ export class WebGPURenderer {
     p.end();
     this.device.queue.submit([enc.finish()]);
   }
+
   public setSize(w: number, h: number) {
     this.ctx.canvas.width = w * devicePixelRatio;
     this.ctx.canvas.height = h * devicePixelRatio;

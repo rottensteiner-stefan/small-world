@@ -1,4 +1,5 @@
-import { Mesh } from "./Mesh.js";
+import { WireframeVS_300, WireframeFS_300 } from './shaders/WireframeShader.js';
+import { Mesh } from './Mesh.js';
 export class WebGL2Renderer {
     gl;
     prog;
@@ -9,12 +10,10 @@ export class WebGL2Renderer {
     async initialize(canvas) {
         this.gl = canvas.getContext("webgl2", { antialias: true });
         const vs = this.gl.createShader(this.gl.VERTEX_SHADER);
-        this.gl.shaderSource(vs, `#version 300 es
-        in vec3 a_position; uniform mat4 u_vp; uniform mat4 u_model; void main() { gl_Position = u_vp * u_model * vec4(a_position, 1.0); }`);
+        this.gl.shaderSource(vs, WireframeVS_300);
         this.gl.compileShader(vs);
         const fs = this.gl.createShader(this.gl.FRAGMENT_SHADER);
-        this.gl.shaderSource(fs, `#version 300 es
-        precision highp float; uniform vec4 u_color; out vec4 c; void main() { c = u_color; }`);
+        this.gl.shaderSource(fs, WireframeFS_300);
         this.gl.compileShader(fs);
         this.prog = this.gl.createProgram();
         this.gl.attachShader(this.prog, vs);
@@ -24,6 +23,9 @@ export class WebGL2Renderer {
         this.uM = this.gl.getUniformLocation(this.prog, "u_model");
         this.uC = this.gl.getUniformLocation(this.prog, "u_color");
         this.gl.enable(this.gl.DEPTH_TEST);
+    }
+    setClearColor(color) {
+        this.gl.clearColor(color.r, color.g, color.b, color.a);
     }
     render(scene, vp) {
         this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
@@ -37,14 +39,14 @@ export class WebGL2Renderer {
             }
             m.bind(0);
             this.gl.uniformMatrix4fv(this.uM, false, o.modelMatrix.data);
-            this.gl.uniform4fv(this.uC, o.color);
+            this.gl.uniform4fv(this.uC, o.color.toArray());
             this.gl.drawElements(this.gl.LINES, m.count, this.gl.UNSIGNED_SHORT, 0);
         }
     }
     setSize(w, h) {
         this.gl.canvas.width = w * devicePixelRatio;
         this.gl.canvas.height = h * devicePixelRatio;
-        this.gl.viewport(0, 0, w * devicePixelRatio, h * devicePixelRatio);
+        this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
     }
 }
 //# sourceMappingURL=WebGL2Renderer.js.map

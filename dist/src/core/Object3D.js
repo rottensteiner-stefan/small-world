@@ -1,8 +1,10 @@
-import { Matrix4 } from "../math/Matrix4.js";
+import { Matrix4 } from '../math/Matrix4.js';
+import { Color } from './Color.js';
 export class Object3D {
     position = [0, 0, 0];
     rotation = [0, 0, 0];
-    color = [0, 1, 0, 1];
+    scale = [1, 1, 1];
+    color = Color.WHITE; // Jetzt als Instanz
     geometry = null;
     modelMatrix = new Matrix4();
     static tM = new Matrix4();
