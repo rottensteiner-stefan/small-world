@@ -1,11 +1,14 @@
-export class Grid {
+import { ObjectGeometry } from "./ObjectGeometry.js";
+export class Grid extends ObjectGeometry {
     size;
     divisions;
     constructor(size = 20, divisions = 20) {
+        super();
         this.size = size;
         this.divisions = divisions;
+        this.generateGeometryData();
     }
-    getGeometryData() {
+    generateGeometryData() {
         const v = [];
         const i = [];
         const step = this.size / this.divisions;
@@ -20,10 +23,8 @@ export class Grid {
             i.push(index, index + 1);
             index += 2;
         }
-        return {
-            vertices: new Float32Array(v),
-            indices: new Uint16Array(i),
-        };
+        this.vertices = new Float32Array(v);
+        this.indices = new Uint16Array(i);
     }
 }
 //# sourceMappingURL=Grid.js.map

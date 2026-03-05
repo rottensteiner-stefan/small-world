@@ -11,79 +11,52 @@
     border-radius: 8px;
     border: 1px solid rgba(0, 255, 0, 0.2);
     pointer-events: none;
-    user-select: none;
-    min-width: 220px;
+    min-width: 240px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
   }
-
-  .hud-title {
-    font-weight: bold;
-    color: #fff;
-    margin-bottom: 5px;
-    display: flex;
-    justify-content: space-between;
-  }
-
   .hud-line {
     margin: 4px 0;
     display: flex;
     justify-content: space-between;
   }
-
   .hud-label {
     color: #888;
-    margin-right: 10px;
+    margin-right: 8px;
   }
   .hud-value {
     color: #0f0;
     font-weight: bold;
   }
-
-  .hud-divider {
-    border: 0;
-    border-top: 1px solid rgba(0, 255, 0, 0.2);
-    margin: 8px 0;
+  .hud-score {
+    color: #ffff00;
+    font-size: 18px;
+    text-shadow: 0 0 5px #ff0;
   }
-
-  .hud-footer {
-    font-size: 10px;
-    color: #555;
-    text-align: center;
-    margin-top: 5px;
-  }
-
-  .coord-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 5px;
-    text-align: right;
-  }
-  .coord-val {
-    color: #0f0;
+  .coord-box {
+    display: flex;
+    gap: 8px;
   }
 </style>
-
 <div id="sw-hud-root">
-  <div class="hud-title">
-    <span>SmallWorld</span>
-    <span style="font-size: 10px; color: #444">v0.8.36</span>
-  </div>
-  <hr class="hud-divider" />
+  <div style="font-weight: bold; color: #fff">SmallWorld v0.8.57</div>
+  <hr style="border: 0; border-top: 1px solid #0f03; margin: 8px 0" />
   <div class="hud-line">
-    <span class="hud-label">Performance:</span>
-    <span id="hud-fps" class="hud-value">0 FPS</span>
+    <span class="hud-label">FPS:</span><span id="hud-fps" class="hud-value">0</span>
   </div>
   <div class="hud-line">
-    <span class="hud-label">Camera:</span>
-    <span id="hud-cam" class="hud-value">-</span>
+    <span class="hud-label">CAM:</span><span id="hud-cam" class="hud-value">-</span>
   </div>
   <div class="hud-line">
-    <span class="hud-label">Position:</span>
-    <div class="coord-grid">
-      <span>X:<span id="hud-pos-x" class="coord-val">0</span></span>
-      <span>Y:<span id="hud-pos-y" class="coord-val">0</span></span>
-      <span>Z:<span id="hud-pos-z" class="coord-val">0</span></span>
+    <span class="hud-label">POS:</span>
+    <div class="coord-box">
+      <span>X:<span id="hud-pos-x" class="hud-value">0</span></span>
+      <span>Y:<span id="hud-pos-y" class="hud-value">0</span></span>
+      <span>Z:<span id="hud-pos-z" class="hud-value">0</span></span>
     </div>
   </div>
-  <div class="hud-footer">KEY [1,2,3] TO CHANGE CAM</div>
+  <hr style="border: 0; border-top: 1px solid #0f03; margin: 8px 0" />
+  <div class="hud-line">
+    <span class="hud-label">COLLECTED:</span>
+    <span id="hud-score" class="hud-score">0 / 0</span>
+  </div>
 </div>

@@ -13,11 +13,28 @@ export class Matrix4 {
         d[15] = 1;
         return this;
     }
+    /**
+     * Erzeugt eine Translationsmatrix basierend auf einem Vector3D.
+     */
     static translate(v, out) {
         out.identity();
         out.data[12] = v.x;
         out.data[13] = v.y;
         out.data[14] = v.z;
+    }
+    static scale(s, out) {
+        out.identity();
+        out.data[0] = s;
+        out.data[5] = s;
+        out.data[10] = s;
+    }
+    static rotateX(r, out) {
+        const s = Math.sin(r), c = Math.cos(r);
+        out.identity();
+        out.data[5] = c;
+        out.data[6] = s;
+        out.data[9] = -s;
+        out.data[10] = c;
     }
     static rotateY(r, out) {
         const s = Math.sin(r), c = Math.cos(r);
@@ -26,6 +43,14 @@ export class Matrix4 {
         out.data[2] = -s;
         out.data[8] = s;
         out.data[10] = c;
+    }
+    static rotateZ(r, out) {
+        const s = Math.sin(r), c = Math.cos(r);
+        out.identity();
+        out.data[0] = c;
+        out.data[1] = s;
+        out.data[4] = -s;
+        out.data[5] = c;
     }
     static multiply(a, b, out) {
         const ae = a.data, be = b.data, te = out.data;
@@ -38,6 +63,14 @@ export class Matrix4 {
             te[i * 4 + 3] = b0 * a03 + b1 * a13 + b2 * a23 + b3 * a33;
         }
     }
+    transformVector(v) {
+        const d = this.data;
+        const x = v.x, y = v.y, z = v.z;
+        v.x = d[0] * x + d[4] * y + d[8] * z + d[12];
+        v.y = d[1] * x + d[5] * y + d[9] * z + d[13];
+        v.z = d[2] * x + d[6] * y + d[10] * z + d[14];
+        return v;
+    }
     static perspective(fov, aspect, near, far, out) {
         const f = 1.0 / Math.tan(fov / 2), rInv = 1.0 / (near - far);
         const d = out.data;
@@ -48,7 +81,6 @@ export class Matrix4 {
         d[11] = -1;
         d[14] = 2 * near * far * rInv;
     }
-    // DER FIX: Die zurückgekehrte orthographic-Methode
     static orthographic(l, r, b, t, n, f, out) {
         const d = out.data;
         d.fill(0);
