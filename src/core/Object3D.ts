@@ -2,14 +2,17 @@ import { Matrix4 } from "../math/Matrix4.js";
 import { Vector3D } from "../math/Vector3D.js";
 import { Color } from "./Color.js";
 import { IGeometryData } from "../interfaces/IGeometryData.js";
+import { IBoundingVolume } from "../interfaces/IBoundingVolume.js";
 
 export class Object3D {
   public position: Vector3D = new Vector3D(0, 0, 0);
   public rotation: Vector3D = new Vector3D(0, 0, 0);
   public scale: Vector3D = new Vector3D(1, 1, 1);
   public color: Color = Color.WHITE;
-  public geometry: IGeometryData | null = null; // Stark typisiert
+  public geometry: IGeometryData | null = null;
+  public bounds: IBoundingVolume | null = null; // NEU: Physische Grenze
   public modelMatrix = new Matrix4();
+
   private static tM = new Matrix4();
   private static rM = new Matrix4();
 

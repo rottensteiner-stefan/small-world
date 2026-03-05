@@ -1,23 +1,35 @@
 export class Vector3D {
-  constructor(public x: number = 0, public y: number = 0, public z: number = 0) {}
+  constructor(
+    public x: number = 0,
+    public y: number = 0,
+    public z: number = 0,
+  ) {}
 
   public set(x: number, y: number, z: number): this {
-    this.x = x; this.y = y; this.z = z;
+    this.x = x;
+    this.y = y;
+    this.z = z;
     return this;
   }
 
   public add(v: Vector3D): this {
-    this.x += v.x; this.y += v.y; this.z += v.z;
+    this.x += v.x;
+    this.y += v.y;
+    this.z += v.z;
     return this;
   }
 
   public sub(v: Vector3D): this {
-    this.x -= v.x; this.y -= v.y; this.z -= v.z;
+    this.x -= v.x;
+    this.y -= v.y;
+    this.z -= v.z;
     return this;
   }
 
   public scale(s: number): this {
-    this.x *= s; this.y *= s; this.z *= s;
+    this.x *= s;
+    this.y *= s;
+    this.z *= s;
     return this;
   }
 

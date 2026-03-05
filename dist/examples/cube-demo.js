@@ -11,12 +11,15 @@ import { Matrix4 } from "../src/math/Matrix4.js";
 import { Input } from "../src/core/Input.js";
 import { Vector3D } from "../src/math/Vector3D.js";
 import { HUD } from "../src/core/HUD.js";
+import { BoundingSphere } from "../src/physics/BoundingSphere.js";
+import { BoundingBox } from "../src/physics/BoundingBox.js";
+import { Collision } from "../src/physics/Collision.js";
+import { Keys } from "../src/constants/Keys.js";
 async function start() {
     Input.init();
     const sw = new SmallWorld();
     await sw.init("./config/small-world.json");
     const WORLD_SIZE = sw.config.worldSize;
-    const LIMIT = WORLD_SIZE / 2;
     sw.activeRenderer.setSize(window.innerWidth, window.innerHeight);
     const scene = new Scene();
     const hud = new HUD(sw.config.showHUD);
@@ -26,58 +29,57 @@ async function start() {
     grid.color = Color.DARKSLATEGRAY;
     scene.add(grid);
     const player = new Object3D();
-    player.geometry = new Cube(1.5).getGeometryData();
+    const playerSize = 1.5;
+    player.geometry = new Cube(playerSize).getGeometryData();
     player.color = Color.ORANGE;
     scene.add(player);
-    const sData = new Sphere(0.6, 12).getGeometryData();
-    for (let i = 0; i < 30; i++) {
+    const spheres = [];
+    const TOTAL_SPHERES = 30;
+    const sGeo = new Sphere(0.6).getGeometryData();
+    for (let i = 0; i < TOTAL_SPHERES; i++) {
         const s = new Object3D();
-        s.geometry = sData;
+        s.geometry = sGeo;
         s.position = new Vector3D(Math.random() * 40 - 20, 0, Math.random() * 40 - 20);
         s.color = Color.DODGERBLUE;
+        s.bounds = new BoundingSphere(s.position, 0.6);
         scene.add(s);
+        spheres.push(s);
     }
     const cam = new Camera(new PerspectiveProjection(Math.PI / 4, window.innerWidth / window.innerHeight, 0.1, 200));
     const vM = new Matrix4(), vpM = new Matrix4();
-    let lastTime = performance.now();
-    let frameCount = 0;
-    let currentFps = 0;
+    let score = 0;
+    let lastTime = performance.now(), frameCount = 0, fps = 0;
     function loop() {
         frameCount++;
         const now = performance.now();
         if (now - lastTime >= 1000) {
-            currentFps = frameCount;
+            fps = frameCount;
             frameCount = 0;
             lastTime = now;
         }
-        const speed = 0.25;
-        const move = new Vector3D(Input.getAxis("KeyA", "KeyD"), 0, Input.getAxis("KeyW", "KeyS")).scale(speed);
+        const move = new Vector3D(Input.getAxis(Keys.A, Keys.D), 0, Input.getAxis(Keys.W, Keys.S)).scale(0.25);
         player.position.add(move);
-        const margin = 0.75;
-        if (player.position.x > LIMIT - margin)
-            player.position.x = LIMIT - margin;
-        if (player.position.x < -LIMIT + margin)
-            player.position.x = -LIMIT + margin;
-        if (player.position.z > LIMIT - margin)
-            player.position.z = LIMIT - margin;
-        if (player.position.z < -LIMIT + margin)
-            player.position.z = -LIMIT + margin;
-        if (Input.isPressed("Digit1"))
-            cam.strategy = CameraStrategy.FIXED;
-        if (Input.isPressed("Digit2"))
-            cam.strategy = CameraStrategy.STIFF;
-        if (Input.isPressed("Digit3"))
-            cam.strategy = CameraStrategy.SMOOTH;
-        let dx = 0, dy = 0;
-        if (Input.mouse.right) {
-            dx = Input.mouse.dx;
-            dy = Input.mouse.dy;
+        const h = playerSize / 2;
+        player.bounds = new BoundingBox(new Vector3D(player.position.x - h, -h, player.position.z - h), new Vector3D(player.position.x + h, h, player.position.z + h));
+        for (let i = spheres.length - 1; i >= 0; i--) {
+            const s = spheres[i];
+            if (s.bounds && Collision.test(player.bounds, s.bounds)) {
+                scene.remove(s);
+                spheres.splice(i, 1);
+                score++;
+            }
         }
-        cam.update(player.position, dx, dy);
+        if (Input.isPressed(Keys.D1))
+            cam.strategy = CameraStrategy.FIXED;
+        if (Input.isPressed(Keys.D2))
+            cam.strategy = CameraStrategy.STIFF;
+        if (Input.isPressed(Keys.D3))
+            cam.strategy = CameraStrategy.SMOOTH;
+        cam.update(player.position, Input.mouse.right ? Input.mouse.dx : 0, Input.mouse.right ? Input.mouse.dy : 0);
         Input.mouse.dx = 0;
         Input.mouse.dy = 0;
-        // UPDATE HUD MIT X, Y, Z
-        hud.update(currentFps, CameraStrategy[cam.strategy], player.position.x, player.position.y, player.position.z);
+        // --- FIX: Jetzt mit allen 7 Argumenten inkl. Y-Position ---
+        hud.update(fps, CameraStrategy[cam.strategy], player.position.x, player.position.y, player.position.z, score, TOTAL_SPHERES);
         scene.update();
         Matrix4.lookAt(cam.position, cam.target, cam.up, vM);
         cam.getViewProjection(vM, vpM);

@@ -2,9 +2,11 @@ import { Vector3D } from "./Vector3D.js";
 
 export class Matrix4 {
   public data = new Float32Array(16);
+
   constructor() {
     this.identity();
   }
+
   public identity(): Matrix4 {
     const d = this.data;
     d.fill(0);
@@ -13,6 +15,16 @@ export class Matrix4 {
     d[10] = 1;
     d[15] = 1;
     return this;
+  }
+
+  /**
+   * Erzeugt eine Translationsmatrix basierend auf einem Vector3D.
+   */
+  public static translate(v: Vector3D, out: Matrix4): void {
+    out.identity();
+    out.data[12] = v.x;
+    out.data[13] = v.y;
+    out.data[14] = v.z;
   }
 
   public static scale(s: number, out: Matrix4): void {
@@ -84,7 +96,6 @@ export class Matrix4 {
     }
   }
 
-  /** Transformiert einen Vector3D (w=1) mit dieser Matrix */
   public transformVector(v: Vector3D): Vector3D {
     const d = this.data;
     const x = v.x,

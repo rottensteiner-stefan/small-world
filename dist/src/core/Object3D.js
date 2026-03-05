@@ -6,7 +6,8 @@ export class Object3D {
     rotation = new Vector3D(0, 0, 0);
     scale = new Vector3D(1, 1, 1);
     color = Color.WHITE;
-    geometry = null; // Stark typisiert
+    geometry = null;
+    bounds = null; // NEU: Physische Grenze
     modelMatrix = new Matrix4();
     static tM = new Matrix4();
     static rM = new Matrix4();

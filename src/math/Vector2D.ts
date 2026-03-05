@@ -1,23 +1,30 @@
 export class Vector2D {
-  constructor(public x: number = 0, public y: number = 0) {}
+  constructor(
+    public x: number = 0,
+    public y: number = 0,
+  ) {}
 
   public set(x: number, y: number): this {
-    this.x = x; this.y = y;
+    this.x = x;
+    this.y = y;
     return this;
   }
 
   public add(v: Vector2D): this {
-    this.x += v.x; this.y += v.y;
+    this.x += v.x;
+    this.y += v.y;
     return this;
   }
 
   public sub(v: Vector2D): this {
-    this.x -= v.x; this.y -= v.y;
+    this.x -= v.x;
+    this.y -= v.y;
     return this;
   }
 
   public scale(s: number): this {
-    this.x *= s; this.y *= s;
+    this.x *= s;
+    this.y *= s;
     return this;
   }
 

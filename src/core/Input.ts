@@ -1,28 +1,4 @@
-export enum Keys {
-  W = "KeyW",
-  A = "KeyA",
-  S = "KeyS",
-  D = "KeyD",
-  Digit1 = "Digit1",
-  Digit2 = "Digit2",
-  Digit3 = "Digit3",
-  Digit4 = "Digit4",
-  Digit5 = "Digit5",
-  Digit6 = "Digit6",
-  Digit7 = "Digit7",
-  Digit8 = "Digit8",
-  Digit9 = "Digit9",
-  Digit0 = "Digit0",
-  Space = "Space",
-  ShiftLeft = "ShiftLeft",
-  ControlLeft = "ControlLeft",
-  AltLeft = "AltLeft",
-  Escape = "Escape",
-  ArrowUp = "ArrowUp",
-  ArrowDown = "ArrowDown",
-  ArrowLeft = "ArrowLeft",
-  ArrowRight = "ArrowRight",
-}
+import { Keys } from "../constants/Keys";
 
 export class Input {
   private static keys = new Map<string, boolean>();

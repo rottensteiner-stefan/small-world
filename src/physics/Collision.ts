@@ -35,9 +35,14 @@ export class Collision {
   }
 
   private static boxBox(b1: BoundingBox, b2: BoundingBox): boolean {
-    return (b1.min.x <= b2.max.x && b1.max.x >= b2.min.x) &&
-           (b1.min.y <= b2.max.y && b1.max.y >= b2.min.y) &&
-           (b1.min.z <= b2.max.z && b1.max.z >= b2.min.z);
+    return (
+      b1.min.x <= b2.max.x &&
+      b1.max.x >= b2.min.x &&
+      b1.min.y <= b2.max.y &&
+      b1.max.y >= b2.min.y &&
+      b1.min.z <= b2.max.z &&
+      b1.max.z >= b2.min.z
+    );
   }
 
   private static sphereBox(s: BoundingSphere, b: BoundingBox): boolean {
@@ -45,8 +50,8 @@ export class Collision {
     const closest = new Vector3D(
       Math.max(b.min.x, Math.min(s.center.x, b.max.x)),
       Math.max(b.min.y, Math.min(s.center.y, b.max.y)),
-      Math.max(b.min.z, Math.min(s.center.z, b.max.z))
+      Math.max(b.min.z, Math.min(s.center.z, b.max.z)),
     );
-    return closest.distanceToSq(s.center) <= (s.radius * s.radius);
+    return closest.distanceToSq(s.center) <= s.radius * s.radius;
   }
 }
