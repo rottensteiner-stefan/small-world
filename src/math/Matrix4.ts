@@ -5,7 +5,6 @@ export class Matrix4 {
   constructor() {
     this.identity();
   }
-
   public identity(): Matrix4 {
     const d = this.data;
     d.fill(0);
@@ -16,11 +15,21 @@ export class Matrix4 {
     return this;
   }
 
-  public static translate(v: Vector3D, out: Matrix4): void {
+  public static scale(s: number, out: Matrix4): void {
     out.identity();
-    out.data[12] = v.x;
-    out.data[13] = v.y;
-    out.data[14] = v.z;
+    out.data[0] = s;
+    out.data[5] = s;
+    out.data[10] = s;
+  }
+
+  public static rotateX(r: number, out: Matrix4): void {
+    const s = Math.sin(r),
+      c = Math.cos(r);
+    out.identity();
+    out.data[5] = c;
+    out.data[6] = s;
+    out.data[9] = -s;
+    out.data[10] = c;
   }
 
   public static rotateY(r: number, out: Matrix4): void {
@@ -31,6 +40,16 @@ export class Matrix4 {
     out.data[2] = -s;
     out.data[8] = s;
     out.data[10] = c;
+  }
+
+  public static rotateZ(r: number, out: Matrix4): void {
+    const s = Math.sin(r),
+      c = Math.cos(r);
+    out.identity();
+    out.data[0] = c;
+    out.data[1] = s;
+    out.data[4] = -s;
+    out.data[5] = c;
   }
 
   public static multiply(a: Matrix4, b: Matrix4, out: Matrix4): void {
@@ -65,6 +84,18 @@ export class Matrix4 {
     }
   }
 
+  /** Transformiert einen Vector3D (w=1) mit dieser Matrix */
+  public transformVector(v: Vector3D): Vector3D {
+    const d = this.data;
+    const x = v.x,
+      y = v.y,
+      z = v.z;
+    v.x = d[0] * x + d[4] * y + d[8] * z + d[12];
+    v.y = d[1] * x + d[5] * y + d[9] * z + d[13];
+    v.z = d[2] * x + d[6] * y + d[10] * z + d[14];
+    return v;
+  }
+
   public static perspective(
     fov: number,
     aspect: number,
@@ -83,7 +114,6 @@ export class Matrix4 {
     d[14] = 2 * near * far * rInv;
   }
 
-  // DER FIX: Die zurückgekehrte orthographic-Methode
   public static orthographic(
     l: number,
     r: number,
@@ -109,7 +139,6 @@ export class Matrix4 {
     const z = eye.clone().sub(target);
     const zL = z.length();
     if (zL > 0) z.scale(1 / zL);
-
     const x = new Vector3D(
       up.y * z.z - up.z * z.y,
       up.z * z.x - up.x * z.z,
@@ -117,9 +146,7 @@ export class Matrix4 {
     );
     const xL = x.length();
     if (xL > 0) x.scale(1 / xL);
-
     const y = new Vector3D(z.y * x.z - z.z * x.y, z.z * x.x - z.x * x.z, z.x * x.y - z.y * x.x);
-
     d[0] = x.x;
     d[4] = x.y;
     d[8] = x.z;

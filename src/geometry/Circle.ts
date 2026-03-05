@@ -1,13 +1,13 @@
-import { IGeometryData } from "../interfaces/IGeometryData.js";
-import { IGeometry } from "../interfaces/IGeometry.js";
-
-export class Circle implements IGeometry{
+import { ObjectGeometry } from "./ObjectGeometry.js";
+export class Circle extends ObjectGeometry {
   constructor(
     public radius: number = 1,
     public segments: number = 32,
-  ) {}
-
-  public getGeometryData(): IGeometryData {
+  ) {
+    super();
+    this.generateGeometryData();
+  }
+  protected generateGeometryData(): void {
     const v: number[] = [];
     const i: number[] = [];
     for (let n = 0; n < this.segments; n++) {
@@ -15,6 +15,7 @@ export class Circle implements IGeometry{
       v.push(Math.cos(theta) * this.radius, 0, Math.sin(theta) * this.radius);
       i.push(n, (n + 1) % this.segments);
     }
-    return { vertices: new Float32Array(v), indices: new Uint16Array(i) };
+    this.vertices = new Float32Array(v);
+    this.indices = new Uint16Array(i);
   }
 }
