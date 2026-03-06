@@ -13,9 +13,32 @@ export class Matrix4 {
         d[15] = 1;
         return this;
     }
-    /**
-     * Erzeugt eine Translationsmatrix basierend auf einem Vector3D.
-     */
+    compose(pos, rot, scale) {
+        const mTranslate = new Matrix4();
+        Matrix4.translate(pos, mTranslate);
+        const mRotX = new Matrix4();
+        Matrix4.rotateX(rot.x, mRotX);
+        const mRotY = new Matrix4();
+        Matrix4.rotateY(rot.y, mRotY);
+        const mRotZ = new Matrix4();
+        Matrix4.rotateZ(rot.z, mRotZ);
+        const mScale = new Matrix4();
+        Matrix4.scale(scale.x, mScale);
+        const temp = new Matrix4();
+        Matrix4.multiply(mTranslate, mRotY, temp);
+        Matrix4.multiply(temp, mRotX, temp);
+        Matrix4.multiply(temp, mRotZ, temp);
+        Matrix4.multiply(temp, mScale, this);
+        return this;
+    }
+    transformVector(v) {
+        const d = this.data;
+        const x = v.x, y = v.y, z = v.z;
+        v.x = d[0] * x + d[4] * y + d[8] * z + d[12];
+        v.y = d[1] * x + d[5] * y + d[9] * z + d[13];
+        v.z = d[2] * x + d[6] * y + d[10] * z + d[14];
+        return v;
+    }
     static translate(v, out) {
         out.identity();
         out.data[12] = v.x;
@@ -62,14 +85,6 @@ export class Matrix4 {
             te[i * 4 + 2] = b0 * a02 + b1 * a12 + b2 * a22 + b3 * a32;
             te[i * 4 + 3] = b0 * a03 + b1 * a13 + b2 * a23 + b3 * a33;
         }
-    }
-    transformVector(v) {
-        const d = this.data;
-        const x = v.x, y = v.y, z = v.z;
-        v.x = d[0] * x + d[4] * y + d[8] * z + d[12];
-        v.y = d[1] * x + d[5] * y + d[9] * z + d[13];
-        v.z = d[2] * x + d[6] * y + d[10] * z + d[14];
-        return v;
     }
     static perspective(fov, aspect, near, far, out) {
         const f = 1.0 / Math.tan(fov / 2), rInv = 1.0 / (near - far);

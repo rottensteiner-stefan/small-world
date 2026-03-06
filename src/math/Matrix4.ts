@@ -17,9 +17,37 @@ export class Matrix4 {
     return this;
   }
 
-  /**
-   * Erzeugt eine Translationsmatrix basierend auf einem Vector3D.
-   */
+  public compose(pos: Vector3D, rot: Vector3D, scale: Vector3D): this {
+    const mTranslate = new Matrix4();
+    Matrix4.translate(pos, mTranslate);
+    const mRotX = new Matrix4();
+    Matrix4.rotateX(rot.x, mRotX);
+    const mRotY = new Matrix4();
+    Matrix4.rotateY(rot.y, mRotY);
+    const mRotZ = new Matrix4();
+    Matrix4.rotateZ(rot.z, mRotZ);
+    const mScale = new Matrix4();
+    Matrix4.scale(scale.x, mScale);
+
+    const temp = new Matrix4();
+    Matrix4.multiply(mTranslate, mRotY, temp);
+    Matrix4.multiply(temp, mRotX, temp);
+    Matrix4.multiply(temp, mRotZ, temp);
+    Matrix4.multiply(temp, mScale, this);
+    return this;
+  }
+
+  public transformVector(v: Vector3D): Vector3D {
+    const d = this.data;
+    const x = v.x,
+      y = v.y,
+      z = v.z;
+    v.x = d[0] * x + d[4] * y + d[8] * z + d[12];
+    v.y = d[1] * x + d[5] * y + d[9] * z + d[13];
+    v.z = d[2] * x + d[6] * y + d[10] * z + d[14];
+    return v;
+  }
+
   public static translate(v: Vector3D, out: Matrix4): void {
     out.identity();
     out.data[12] = v.x;
@@ -94,17 +122,6 @@ export class Matrix4 {
       te[i * 4 + 2] = b0 * a02 + b1 * a12 + b2 * a22 + b3 * a32;
       te[i * 4 + 3] = b0 * a03 + b1 * a13 + b2 * a23 + b3 * a33;
     }
-  }
-
-  public transformVector(v: Vector3D): Vector3D {
-    const d = this.data;
-    const x = v.x,
-      y = v.y,
-      z = v.z;
-    v.x = d[0] * x + d[4] * y + d[8] * z + d[12];
-    v.y = d[1] * x + d[5] * y + d[9] * z + d[13];
-    v.z = d[2] * x + d[6] * y + d[10] * z + d[14];
-    return v;
   }
 
   public static perspective(

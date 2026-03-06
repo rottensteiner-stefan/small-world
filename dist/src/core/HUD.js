@@ -1,5 +1,6 @@
 export class HUD {
     enabled;
+    root = null;
     fpsEl = null;
     camEl = null;
     posXEl = null;
@@ -18,6 +19,7 @@ export class HUD {
             const container = document.createElement("div");
             container.innerHTML = html;
             document.body.appendChild(container);
+            this.root = document.getElementById("sw-hud-root");
             this.fpsEl = document.getElementById("hud-fps");
             this.camEl = document.getElementById("hud-cam");
             this.posXEl = document.getElementById("hud-pos-x");
@@ -29,8 +31,16 @@ export class HUD {
             console.error("[HUD] Failed to load template:", e);
         }
     }
+    /**
+     * Schaltet die Sichtbarkeit des HUDs um.
+     */
+    setVisible(visible) {
+        if (this.root) {
+            this.root.style.display = visible ? "block" : "none";
+        }
+    }
     update(fps, cam, x, y, z, score, total) {
-        if (!this.enabled)
+        if (!this.enabled || !this.root || this.root.style.display === "none")
             return;
         if (this.fpsEl)
             this.fpsEl.textContent = fps.toString();
