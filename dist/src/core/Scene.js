@@ -1,25 +1,16 @@
-export class Scene {
-    _children = [];
-    add(object) {
-        this._children.push(object);
-    }
-    /**
-     * Entfernt ein Objekt aus der Szene.
-     * @param object Das zu entfernende Object3D
-     */
-    remove(object) {
-        const index = this._children.indexOf(object);
-        if (index !== -1) {
-            this._children.splice(index, 1);
-        }
+import { Object3D } from "./Object3D.js";
+/**
+ * Die Scene ist jetzt der Wurzelknoten (Root) deines Universums.
+ * Sie muss nicht mehr händisch über Kinder iterieren, da updateMatrixWorld
+ * rekursiv alle Ebenen der Hierarchie erreicht.
+ */
+export class Scene extends Object3D {
+    constructor() {
+        super("ROOT_SCENE");
     }
     update() {
-        for (const child of this._children) {
-            child.updateMatrix();
-        }
-    }
-    get children() {
-        return this._children;
+        // Berechnet die Welt-Matrizen für die gesamte Hierarchie
+        this.updateMatrixWorld();
     }
 }
 //# sourceMappingURL=Scene.js.map

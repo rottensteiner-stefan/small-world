@@ -1,4 +1,5 @@
 export class HUD {
+  private root: HTMLElement | null = null;
   private fpsEl: HTMLElement | null = null;
   private camEl: HTMLElement | null = null;
   private posXEl: HTMLElement | null = null;
@@ -17,6 +18,7 @@ export class HUD {
       container.innerHTML = html;
       document.body.appendChild(container);
 
+      this.root = document.getElementById("sw-hud-root");
       this.fpsEl = document.getElementById("hud-fps");
       this.camEl = document.getElementById("hud-cam");
       this.posXEl = document.getElementById("hud-pos-x");
@@ -25,6 +27,15 @@ export class HUD {
       this.scoreEl = document.getElementById("hud-score");
     } catch (e) {
       console.error("[HUD] Failed to load template:", e);
+    }
+  }
+
+  /**
+   * Schaltet die Sichtbarkeit des HUDs um.
+   */
+  public setVisible(visible: boolean): void {
+    if (this.root) {
+      this.root.style.display = visible ? "block" : "none";
     }
   }
 
@@ -37,7 +48,7 @@ export class HUD {
     score: number,
     total: number,
   ) {
-    if (!this.enabled) return;
+    if (!this.enabled || !this.root || this.root.style.display === "none") return;
     if (this.fpsEl) this.fpsEl.textContent = fps.toString();
     if (this.camEl) this.camEl.textContent = cam;
     if (this.posXEl) this.posXEl.textContent = x.toFixed(1);
