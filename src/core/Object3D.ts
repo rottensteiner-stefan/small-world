@@ -1,9 +1,15 @@
-import { Matrix4 } from "../math/Matrix4.js";
 import { Vector3D } from "../math/Vector3D.js";
+import { Matrix4 } from "../math/Matrix4.js";
+import { Color } from "./Color.js";
 
 export class Object3D {
   public readonly uuid: string = crypto.randomUUID();
   public name: string = "";
+
+  // Rendering Daten
+  public geometry: any = null;
+  public bounds: any = null;
+  public color: Color = Color.WHITE;
 
   public position: Vector3D = new Vector3D(0, 0, 0);
   public rotation: Vector3D = new Vector3D(0, 0, 0);
@@ -35,21 +41,15 @@ export class Object3D {
     }
   }
 
-  /**
-   * Berechnet die Matrizen rekursiv für den gesamten Baum.
-   */
   public updateMatrixWorld(force: boolean = false): void {
-    // 1. Lokale Matrix aus Pos/Rot/Scale bauen
     this.localMatrix.compose(this.position, this.rotation, this.scale);
 
-    // 2. Welt-Matrix berechnen
     if (this.parent === null) {
       this.worldMatrix.data.set(this.localMatrix.data);
     } else {
       Matrix4.multiply(this.parent.worldMatrix, this.localMatrix, this.worldMatrix);
     }
 
-    // 3. Kinder anweisen, sich ebenfalls zu aktualisieren
     for (const child of this.children) {
       child.updateMatrixWorld(force);
     }

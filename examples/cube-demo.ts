@@ -1,6 +1,6 @@
 import { SmallWorld } from "../src/core/SmallWorld.js";
 import { Scene } from "../src/core/Scene.js";
-import { Mesh } from "../src/core/Mesh.js";
+import { Object3D } from "../src/core/Object3D.js";
 import { Color } from "../src/core/Color.js";
 import { Cube } from "../src/geometry/Cube.js";
 import { Sphere } from "../src/geometry/Sphere.js";
@@ -20,36 +20,39 @@ async function start() {
   Input.init();
   const sw = new SmallWorld();
   await sw.init("./config/small-world.json");
-  const WORLD_SIZE = sw.config.worldSize;
+  const WORLD_SIZE = sw.config.worldSize || 40;
 
   sw.activeRenderer.setSize(window.innerWidth, window.innerHeight);
   const scene = new Scene();
-  const hud = new HUD(sw.config.showHUD);
+  const hud = new HUD(sw.config.showHUD !== false);
   await hud.init();
 
-  // 1. Grid als Mesh
-  const grid = new Mesh(new Grid(WORLD_SIZE, 50).getGeometryData(), Color.DARKSLATEGRAY, "Grid");
+  const grid = new Object3D("Grid");
+  grid.geometry = new Grid(WORLD_SIZE, 50).getGeometryData();
+  grid.color = Color.DARKSLATEGRAY;
   scene.add(grid);
 
-  // 2. Spieler als Mesh
   const playerSize = 1.5;
-  const player = new Mesh(new Cube(playerSize).getGeometryData(), Color.ORANGE, "Player");
+  const player = new Object3D("Player");
+  player.geometry = new Cube(playerSize).getGeometryData();
+  player.color = Color.ORANGE;
   scene.add(player);
 
-  // --- NEU: DER MOND (Parent-Child Demo) ---
-  // Dieser Mond wird an den PLAYER gehängt, nicht an die Scene!
-  const moon = new Mesh(new Sphere(0.4, 8, 6).getGeometryData(), Color.LIGHTSTEELBLUE, "Moon");
-  moon.position.set(3, 1, 0); // 3 Einheiten rechts vom Spieler
-  player.add(moon); // Hier passiert die Magie der Hierarchie
-  // -----------------------------------------
+  // Der Mond
+  const moon = new Object3D("Moon");
+  moon.geometry = new Sphere(0.4).getGeometryData();
+  moon.color = Color.YELLOW;
+  player.add(moon); // Mond an den Spieler hängen
 
-  const spheres: Mesh[] = [];
+  const spheres: Object3D[] = [];
   const TOTAL_SPHERES = 30;
   const sGeo = new Sphere(0.6).getGeometryData();
 
   const createSpheres = () => {
     for (let i = 0; i < TOTAL_SPHERES; i++) {
-      const s = new Mesh(sGeo, Color.DODGERBLUE, `Sphere_${i}`);
+      const s = new Object3D(`Sphere_${i}`);
+      s.geometry = sGeo;
+      s.color = Color.DODGERBLUE;
       s.position = new Vector3D(Math.random() * 40 - 20, 0, Math.random() * 40 - 20);
       s.bounds = new BoundingSphere(s.position, 0.6);
       scene.add(s);
@@ -68,7 +71,7 @@ async function start() {
     lastTime = performance.now(),
     frameCount = 0,
     fps = 0,
-    hudVisible = sw.config.showHUD,
+    hudVisible = sw.config.showHUD !== false,
     tabWasPressed = false;
 
   function loop() {
@@ -80,16 +83,11 @@ async function start() {
       lastTime = now;
     }
 
-    // Steuerung
     const speed = Input.isPressed(Keys.SHIFT_L) ? 0.6 : 0.25;
     player.position.add(
       new Vector3D(Input.getAxis(Keys.A, Keys.D), 0, Input.getAxis(Keys.W, Keys.S)).scale(speed),
     );
 
-    // Mond-Rotation (relativ zum Spieler!)
-    moon.rotation.y += 0.05;
-
-    // HUD Toggle
     const tabDown = Input.isPressed(Keys.TAB);
     if (tabDown && !tabWasPressed) {
       hudVisible = !hudVisible;
@@ -97,7 +95,6 @@ async function start() {
     }
     tabWasPressed = tabDown;
 
-    // Reset
     if (Input.isPressed(Keys.R)) {
       spheres.forEach((s) => scene.remove(s));
       spheres.length = 0;
@@ -105,14 +102,12 @@ async function start() {
       createSpheres();
     }
 
-    // Player Bounds Update (AABB)
     const h = playerSize / 2;
     player.bounds = new BoundingBox(
       new Vector3D(player.position.x - h, -h, player.position.z - h),
       new Vector3D(player.position.x + h, h, player.position.z + h),
     );
 
-    // Kollisions-Check
     for (let i = spheres.length - 1; i >= 0; i--) {
       const s = spheres[i];
       if (s.bounds && Collision.test(player.bounds as BoundingBox, s.bounds)) {
@@ -122,7 +117,6 @@ async function start() {
       }
     }
 
-    // Kamera
     if (Input.isPressed(Keys.D1)) cam.strategy = CameraStrategy.FIXED;
     if (Input.isPressed(Keys.D2)) cam.strategy = CameraStrategy.STIFF;
     if (Input.isPressed(Keys.D3)) cam.strategy = CameraStrategy.SMOOTH;
@@ -145,13 +139,18 @@ async function start() {
       TOTAL_SPHERES,
     );
 
-    // --- SCENE GRAPH UPDATE ---
+    // Mond Animation
+    const time = now * 0.002;
+    moon.position.x = Math.cos(time) * 3;
+    moon.position.z = Math.sin(time) * 3;
+
+    // Gesamte Hierarchie aktualisieren
     scene.update();
-    // --------------------------
 
     Matrix4.lookAt(cam.position, cam.target, cam.up, vM);
     cam.getViewProjection(vM, vpM);
     sw.activeRenderer.render(scene, vpM.data);
+
     requestAnimationFrame(loop);
   }
   loop();

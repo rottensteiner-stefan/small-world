@@ -1,17 +1,24 @@
 import { Object3D } from "./Object3D.js";
 
-/**
- * Die Scene ist jetzt der Wurzelknoten (Root) deines Universums.
- * Sie muss nicht mehr händisch über Kinder iterieren, da updateMatrixWorld
- * rekursiv alle Ebenen der Hierarchie erreicht.
- */
-export class Scene extends Object3D {
-  constructor() {
-    super("ROOT_SCENE");
+export class Scene {
+  public objects: Object3D[] = [];
+
+  public add(obj: Object3D): void {
+    this.objects.push(obj);
+  }
+
+  public remove(obj: Object3D): void {
+    const index = this.objects.indexOf(obj);
+    if (index !== -1) {
+      this.objects.splice(index, 1);
+    }
   }
 
   public update(): void {
-    // Berechnet die Welt-Matrizen für die gesamte Hierarchie
-    this.updateMatrixWorld();
+    for (const obj of this.objects) {
+      if (obj.updateMatrixWorld) {
+        obj.updateMatrixWorld(true);
+      }
+    }
   }
 }
