@@ -1,16 +1,17 @@
 {
   "name": "smallworld-engine",
-  "version": "0.8.22",
+  "version": "0.8.25",
   "type": "module",
   "scripts": {
     "build": "tsc",
     "format": "prettier --write .",
-    "start": "npm run build && npx serve ."
+    "start": "npm run build && npx serve .",
+    "prebuild": "node scripts/update-version.js"
   },
   "devDependencies": {
-    "typescript": "^5.0.0",
-    "serve": "^14.0.0",
+    "@webgpu/types": "^0.1.40",
     "prettier": "^3.2.0",
-    "@webgpu/types": "^0.1.40"
+    "serve": "^14.0.0",
+    "typescript": "^5.0.0"
   }
 }
