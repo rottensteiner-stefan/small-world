@@ -75,7 +75,7 @@ export class WebGPURenderer {
                 this.cache.set(o, res);
             }
             this.device.queue.writeBuffer(res.uBuf, 0, vp.buffer, vp.byteOffset, vp.byteLength);
-            this.device.queue.writeBuffer(res.uBuf, 64, o.modelMatrix.data.buffer, o.modelMatrix.data.byteOffset, o.modelMatrix.data.byteLength);
+            this.device.queue.writeBuffer(res.uBuf, 64, o.worldMatrix.data.buffer, o.worldMatrix.data.byteOffset, o.worldMatrix.data.byteLength);
             const colorArr = new Float32Array(o.color.toArray());
             this.device.queue.writeBuffer(res.uBuf, 128, colorArr.buffer, colorArr.byteOffset, colorArr.byteLength);
             p.setBindGroup(0, res.bG);

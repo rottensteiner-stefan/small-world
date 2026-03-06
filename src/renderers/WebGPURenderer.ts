@@ -84,9 +84,9 @@ export class WebGPURenderer implements IRenderer {
       this.device.queue.writeBuffer(
         res.uBuf,
         64,
-        o.modelMatrix.data.buffer,
-        o.modelMatrix.data.byteOffset,
-        o.modelMatrix.data.byteLength,
+        o.worldMatrix.data.buffer,
+        o.worldMatrix.data.byteOffset,
+        o.worldMatrix.data.byteLength,
       );
       const colorArr = new Float32Array(o.color.toArray());
       this.device.queue.writeBuffer(
