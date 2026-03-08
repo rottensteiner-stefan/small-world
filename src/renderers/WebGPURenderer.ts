@@ -1,6 +1,7 @@
 import { Scene } from "../core/Scene.js";
+import { IRenderer } from "../interfaces/IRenderer";
 
-export class WebGPURenderer {
+export class WebGPURenderer implements IRenderer {
   private device!: GPUDevice;
   private context!: GPUCanvasContext;
   private format!: GPUTextureFormat;

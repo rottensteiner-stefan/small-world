@@ -1,46 +1,59 @@
+import { DEFAULT_RENDERER } from "./Engine.js";
 import { RendererFactory } from "../renderers/RendererFactory.js";
-import { Input } from "./Input.js";
-import { ColorUtils } from "./ColorUtils.js";
-import { Color } from "./Color.js";
+import { IRenderer } from "../interfaces/IRenderer.js";
+import { RendererType } from "../enums/RendererType";
 
-export interface EngineConfig {
-  rendererType: string;
+export interface WorldConfig {
+  rendererType?: RendererType | string;
   canvasId: string;
-  debug: boolean;
-  worldSize: number;
-  skyColor: Color;
-  showHUD: boolean;
+  debug?: boolean;
+  worldSize?: number;
+  skyColor?: string;
+  showHUD?: boolean;
 }
 
 export class SmallWorld {
-  private _renderer: any;
-  private _config!: EngineConfig;
+  public config!: WorldConfig;
+  public activeRenderer!: IRenderer;
 
-  public async init(path: string) {
-    const response = await fetch(path);
-    const loadedConfig = await response.json();
+  constructor() {}
 
-    this._config = {
-      rendererType: loadedConfig.rendererType || "BEST",
-      canvasId: loadedConfig.canvasId || "viewport",
-      debug: loadedConfig.debug ?? true,
-      worldSize: loadedConfig.worldSize || 100,
-      skyColor: ColorUtils.fromCSS(loadedConfig.skyColor || "#000000"),
-      showHUD: loadedConfig.showHUD ?? false,
-    };
+  /**
+   * Initialisiert die Engine durch Laden der Konfigurationsdatei
+   * @param configPath Pfad zur JSON-Konfiguration
+   */
+  public async init(configPath: string): Promise<void> {
+    try {
+      const response = await fetch(configPath);
+      if (!response.ok) {
+        throw new Error(`Konfigurationsdatei nicht gefunden: ${configPath}`);
+      }
 
-    Input.debug = this._config.debug;
+      this.config = await response.json();
 
-    RendererFactory.init();
-    this._renderer = RendererFactory.create(this._config.rendererType);
-    await this._renderer.initialize(document.getElementById(this._config.canvasId));
-    this._renderer.setClearColor(this._config.skyColor);
-  }
+      // --- Robustheits-Check für den Renderer ---
+      if (!this.config.rendererType) {
+        console.warn(
+          `[SmallWorld] Kein rendererType in Config gefunden. Nutze Default: ${DEFAULT_RENDERER}`,
+        );
+        this.config.rendererType = DEFAULT_RENDERER;
+      }
 
-  public get config(): EngineConfig {
-    return this._config;
-  }
-  public get activeRenderer() {
-    return this._renderer;
+      // Canvas aus dem DOM holen
+      const canvas = document.getElementById(this.config.canvasId) as HTMLCanvasElement;
+      if (!canvas) {
+        throw new Error(`Canvas mit ID '${this.config.canvasId}' wurde nicht im DOM gefunden.`);
+      }
+
+      // --- Factory übernimmt die komplette Arbeit ---
+      this.activeRenderer = await RendererFactory.create(this.config.rendererType, canvas);
+
+      if (this.config.debug) {
+        console.log(`[SmallWorld] Engine initialisiert mit Renderer: ${this.config.rendererType}`);
+      }
+    } catch (e) {
+      console.error("[SmallWorld] Kritischer Fehler bei der Initialisierung:", e);
+      throw e;
+    }
   }
 }

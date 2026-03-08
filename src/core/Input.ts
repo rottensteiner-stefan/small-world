@@ -1,4 +1,4 @@
-import { Keys } from "../constants/Keys";
+import { Keys } from "../enums/Keys.js";
 
 export class Input {
   private static keys = new Map<string, boolean>();
