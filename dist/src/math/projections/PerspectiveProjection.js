@@ -13,11 +13,7 @@ export class PerspectiveProjection extends Projection {
         this.far = far;
         this.update();
     }
-    update() {
-        Matrix4.perspective(this.fov, this.aspect, this.near, this.far, this.matrix);
-    }
-    getMatrix() {
-        return this.matrix;
-    }
+    update() { Matrix4.perspective(this.fov, this.aspect, this.near, this.far, this.matrix); }
+    getMatrix() { return this.matrix; }
 }
 //# sourceMappingURL=PerspectiveProjection.js.map

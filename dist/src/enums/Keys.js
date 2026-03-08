@@ -1,6 +1,5 @@
 export var Keys;
 (function (Keys) {
-    // Navigation & System
     Keys["UP"] = "ArrowUp";
     Keys["DOWN"] = "ArrowDown";
     Keys["LEFT"] = "ArrowLeft";
@@ -10,14 +9,12 @@ export var Keys;
     Keys["ESCAPE"] = "Escape";
     Keys["TAB"] = "Tab";
     Keys["BACKSPACE"] = "Backspace";
-    // Modifier (Links & Rechts getrennt)
     Keys["SHIFT_L"] = "ShiftLeft";
     Keys["SHIFT_R"] = "ShiftRight";
     Keys["CTRL_L"] = "ControlLeft";
     Keys["CTRL_R"] = "ControlRight";
     Keys["ALT_L"] = "AltLeft";
     Keys["ALT_R"] = "AltRight";
-    // Ziffern 0-9
     Keys["D0"] = "Digit0";
     Keys["D1"] = "Digit1";
     Keys["D2"] = "Digit2";
@@ -28,7 +25,6 @@ export var Keys;
     Keys["D7"] = "Digit7";
     Keys["D8"] = "Digit8";
     Keys["D9"] = "Digit9";
-    // Alphabet A-Z
     Keys["A"] = "KeyA";
     Keys["B"] = "KeyB";
     Keys["C"] = "KeyC";

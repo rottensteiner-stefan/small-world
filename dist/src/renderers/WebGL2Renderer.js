@@ -24,21 +24,21 @@ export class WebGL2Renderer {
         this.uC = this.gl.getUniformLocation(this.prog, "u_color");
         this.gl.enable(this.gl.DEPTH_TEST);
     }
-    setClearColor(color) {
-        this.gl.clearColor(color.r, color.g, color.b, color.a);
-    }
+    setClearColor(color) { this.gl.clearColor(color.r, color.g, color.b, color.a); }
     render(scene, vp) {
         this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
         this.gl.useProgram(this.prog);
         this.gl.uniformMatrix4fv(this.uVP, false, vp);
-        for (const o of scene.children) {
+        for (const o of scene.objects) {
+            if (o.isVisible === false)
+                continue;
             let m = this.cache.get(o.geometry);
             if (!m) {
                 m = new Mesh(this.gl, o.geometry);
                 this.cache.set(o.geometry, m);
             }
             m.bind(0);
-            this.gl.uniformMatrix4fv(this.uM, false, o.modelMatrix.data);
+            this.gl.uniformMatrix4fv(this.uM, false, o.worldMatrix.data);
             this.gl.uniform4fv(this.uC, o.color.toArray());
             this.gl.drawElements(this.gl.LINES, m.count, this.gl.UNSIGNED_SHORT, 0);
         }

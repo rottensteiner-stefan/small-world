@@ -1,1 +1,1 @@
-{"version":3,"file":"IBoundingVolume.js","sourceRoot":"","sources":["../../../src/interfaces/IBoundingVolume.ts"],"names":[],"mappings":"AAEA,MAAM,CAAN,IAAY,YAGX;AAHD,WAAY,YAAY;IACtB,mDAAM,CAAA;IACN,6CAAG,CAAA;AACL,CAAC,EAHW,YAAY,KAAZ,YAAY,QAGvB"}
+{"version":3,"file":"IBoundingVolume.js","sourceRoot":"","sources":["../../../src/interfaces/IBoundingVolume.ts"],"names":[],"mappings":"AACA,MAAM,CAAN,IAAY,YAA4B;AAAxC,WAAY,YAAY;IAAG,mDAAM,CAAA;IAAE,6CAAG,CAAA;AAAC,CAAC,EAA5B,YAAY,KAAZ,YAAY,QAAgB"}
