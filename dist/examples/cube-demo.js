@@ -15,6 +15,7 @@ import { BoundingSphere } from "../src/physics/BoundingSphere.js";
 import { BoundingBox } from "../src/physics/BoundingBox.js";
 import { Collision } from "../src/physics/Collision.js";
 import { Keys } from "../src/enums/Keys.js";
+import { FrustumCuller } from "../src/core/FrustumCuller.js";
 async function start() {
     Input.init();
     const sw = new SmallWorld();
@@ -37,7 +38,7 @@ async function start() {
     const moon = new Object3D("Moon");
     moon.geometry = new Sphere(0.4).getGeometryData();
     moon.color = Color.YELLOW;
-    player.add(moon); // Mond an den Spieler hängen
+    player.add(moon);
     const spheres = [];
     const TOTAL_SPHERES = 30;
     const sGeo = new Sphere(0.6).getGeometryData();
@@ -97,15 +98,20 @@ async function start() {
         cam.update(player.position, Input.mouse.right ? Input.mouse.dx : 0, Input.mouse.right ? Input.mouse.dy : 0);
         Input.mouse.dx = 0;
         Input.mouse.dy = 0;
-        hud.update(fps, CameraStrategy[cam.strategy], player.position.x, player.position.y, player.position.z, score, TOTAL_SPHERES);
         // Mond Animation
         const time = now * 0.002;
         moon.position.x = Math.cos(time) * 3;
         moon.position.z = Math.sin(time) * 3;
-        // Gesamte Hierarchie aktualisieren
+        // 1. Zuerst die Matrizen aller Objekte aktualisieren
         scene.update();
+        // 2. Kamera-Matrizen berechnen
         Matrix4.lookAt(cam.position, cam.target, cam.up, vM);
         cam.getViewProjection(vM, vpM);
+        // 3. Frustum Culling ausführen und Anzahl der sichtbaren Objekte speichern
+        const visibleCount = FrustumCuller.cull(scene, vpM);
+        // 4. Jetzt erst das HUD aktualisieren (mit dem neuen visibleCount Parameter)
+        hud.update(fps, CameraStrategy[cam.strategy], player.position.x, player.position.y, player.position.z, score, TOTAL_SPHERES, visibleCount);
+        // 5. Zum Schluss alles zeichnen
         sw.activeRenderer.render(scene, vpM.data);
         requestAnimationFrame(loop);
     }

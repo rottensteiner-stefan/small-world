@@ -4,7 +4,6 @@ import { Color } from "./Color.js";
 export class Object3D {
     uuid = crypto.randomUUID();
     name = "";
-    // Rendering Daten
     geometry = null;
     bounds = null;
     color = Color.WHITE;
@@ -15,13 +14,13 @@ export class Object3D {
     worldMatrix = new Matrix4();
     parent = null;
     children = [];
-    constructor(name = "") {
-        this.name = name;
-    }
+    // NEU: Culling Flags
+    isVisible = true;
+    frustumCulled = true;
+    constructor(name = "") { this.name = name; }
     add(child) {
-        if (child.parent) {
+        if (child.parent)
             child.parent.remove(child);
-        }
         child.parent = this;
         this.children.push(child);
     }

@@ -7,8 +7,6 @@ export class BoundingSphere {
         this.center = center;
         this.radius = radius;
     }
-    getBroadRadius() {
-        return this.radius;
-    }
+    getBroadRadius() { return this.radius; }
 }
 //# sourceMappingURL=BoundingSphere.js.map

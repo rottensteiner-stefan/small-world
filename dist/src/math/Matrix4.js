@@ -1,9 +1,7 @@
 import { Vector3D } from "./Vector3D.js";
 export class Matrix4 {
     data = new Float32Array(16);
-    constructor() {
-        this.identity();
-    }
+    constructor() { this.identity(); }
     identity() {
         this.data.fill(0);
         this.data[0] = 1;
@@ -12,7 +10,6 @@ export class Matrix4 {
         this.data[15] = 1;
         return this;
     }
-    // Sichere Compose-Methode (T * R * S)
     compose(pos, rot, scale) {
         const t = new Matrix4();
         Matrix4.translate(pos, t);
@@ -26,7 +23,6 @@ export class Matrix4 {
         s.data[0] = scale.x;
         s.data[5] = scale.y;
         s.data[10] = scale.z;
-        // Reihenfolge: Translation * RotationY * RotationX * RotationZ * Scale
         Matrix4.multiply(t, ry, this);
         Matrix4.multiply(this, rx, this);
         Matrix4.multiply(this, rz, this);
@@ -69,7 +65,6 @@ export class Matrix4 {
         out.data[4] = -s;
         out.data[5] = c;
     }
-    // DIE KORRIGIERTE MULTIPLIKATION
     static multiply(a, b, out) {
         const ae = a.data, be = b.data, te = out.data;
         const a00 = ae[0], a01 = ae[1], a02 = ae[2], a03 = ae[3];
