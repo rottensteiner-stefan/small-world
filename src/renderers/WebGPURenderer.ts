@@ -1,6 +1,6 @@
 import { Scene } from "../core/Scene.js";
-import { IRenderer } from "../interfaces/IRenderer";
-
+import { IRenderer } from "../interfaces/IRenderer.js";
+import { Color } from "../core/Color.js";
 export class WebGPURenderer implements IRenderer {
   private device!: GPUDevice;
   private context!: GPUCanvasContext;
@@ -52,12 +52,8 @@ export class WebGPURenderer implements IRenderer {
     this.createDepthTexture();
   }
 
-  public setClearColor(color: any): void {
-    if (color && typeof color.toArray === "function") {
-      this.clearColor = color.toArray();
-    } else if (color && color.r !== undefined) {
-      this.clearColor = [color.r, color.g, color.b, color.a !== undefined ? color.a : 1.0];
-    }
+  public setClearColor(color: Color): void {
+    this.clearColor = color.toArray();
   }
 
   private createDepthTexture() {

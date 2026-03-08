@@ -3,6 +3,6 @@
   "canvasId": "viewport",
   "debug": true,
   "worldSize": 100,
-  "skyColor": "skyblue",
+  "skyColor": "midnightblue",
   "showHUD": true
 }

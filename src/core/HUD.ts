@@ -1,4 +1,4 @@
-import { ENGINE_VERSION } from './Engine.js';
+import { ENGINE_VERSION } from "./Engine.js";
 
 export class HUD {
   private root: HTMLElement | null = null;
@@ -33,7 +33,6 @@ export class HUD {
       this.posYEl = document.getElementById("hud-pos-y");
       this.posZEl = document.getElementById("hud-pos-z");
       this.scoreEl = document.getElementById("hud-score");
-
     } catch (e) {
       console.error("[HUD] Failed to load template:", e);
     }
@@ -45,7 +44,15 @@ export class HUD {
     }
   }
 
-  public update(fps: number, cam: string, x: number, y: number, z: number, score: number, total: number) {
+  public update(
+    fps: number,
+    cam: string,
+    x: number,
+    y: number,
+    z: number,
+    score: number,
+    total: number,
+  ) {
     if (!this.enabled || !this.root || this.root.style.display === "none") return;
     if (this.fpsEl) this.fpsEl.textContent = fps.toString();
     if (this.camEl) this.camEl.textContent = cam;

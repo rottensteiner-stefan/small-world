@@ -44,12 +44,7 @@ export class WebGPURenderer {
         this.createDepthTexture();
     }
     setClearColor(color) {
-        if (color && typeof color.toArray === "function") {
-            this.clearColor = color.toArray();
-        }
-        else if (color && color.r !== undefined) {
-            this.clearColor = [color.r, color.g, color.b, color.a !== undefined ? color.a : 1.0];
-        }
+        this.clearColor = color.toArray();
     }
     createDepthTexture() {
         if (this.depthTexture)
