@@ -1,7 +1,7 @@
-import { DEFAULT_RENDERER } from "./Engine.js";
+import { DEFAULT_RENDERER, RendererType } from "./Engine.js";
 import { RendererFactory } from "../renderers/RendererFactory.js";
 import { IRenderer } from "../interfaces/IRenderer.js";
-import { RendererType } from "../enums/RendererType";
+import { ColorUtils } from "./ColorUtils.js"; // WICHTIG: Für die Farbkonvertierung
 
 export interface WorldConfig {
   rendererType?: RendererType | string;
@@ -18,10 +18,6 @@ export class SmallWorld {
 
   constructor() {}
 
-  /**
-   * Initialisiert die Engine durch Laden der Konfigurationsdatei
-   * @param configPath Pfad zur JSON-Konfiguration
-   */
   public async init(configPath: string): Promise<void> {
     try {
       const response = await fetch(configPath);
@@ -31,7 +27,6 @@ export class SmallWorld {
 
       this.config = await response.json();
 
-      // --- Robustheits-Check für den Renderer ---
       if (!this.config.rendererType) {
         console.warn(
           `[SmallWorld] Kein rendererType in Config gefunden. Nutze Default: ${DEFAULT_RENDERER}`,
@@ -39,14 +34,23 @@ export class SmallWorld {
         this.config.rendererType = DEFAULT_RENDERER;
       }
 
-      // Canvas aus dem DOM holen
       const canvas = document.getElementById(this.config.canvasId) as HTMLCanvasElement;
       if (!canvas) {
         throw new Error(`Canvas mit ID '${this.config.canvasId}' wurde nicht im DOM gefunden.`);
       }
 
-      // --- Factory übernimmt die komplette Arbeit ---
+      // Factory erstellt den Renderer
       this.activeRenderer = await RendererFactory.create(this.config.rendererType, canvas);
+
+      // --- NEU: SkyColor setzen ---
+      if (this.config.skyColor) {
+        const skyColor = ColorUtils.fromCSS(this.config.skyColor);
+        this.activeRenderer.setClearColor(skyColor);
+      } else {
+        // Optionaler Fallback, falls in der JSON nichts steht
+        this.activeRenderer.setClearColor(ColorUtils.fromCSS("#111111"));
+      }
+      // ----------------------------
 
       if (this.config.debug) {
         console.log(`[SmallWorld] Engine initialisiert mit Renderer: ${this.config.rendererType}`);
