@@ -1,31 +1,61 @@
-import { RendererFactory } from "../renderers/RendererFactory.js";
-import { Input } from "./Input.js";
-import { ColorUtils } from "./ColorUtils.js";
+import { RendererType, DEFAULT_RENDERER } from '../core/Engine.js';
+import { WebGPURenderer } from '../renderers/WebGPURenderer.js';
 export class SmallWorld {
-    _renderer;
-    _config;
-    async init(path) {
-        const response = await fetch(path);
-        const loadedConfig = await response.json();
-        this._config = {
-            rendererType: loadedConfig.rendererType || "BEST",
-            canvasId: loadedConfig.canvasId || "viewport",
-            debug: loadedConfig.debug ?? true,
-            worldSize: loadedConfig.worldSize || 100,
-            skyColor: ColorUtils.fromCSS(loadedConfig.skyColor || "#000000"),
-            showHUD: loadedConfig.showHUD ?? false,
-        };
-        Input.debug = this._config.debug;
-        RendererFactory.init();
-        this._renderer = RendererFactory.create(this._config.rendererType);
-        await this._renderer.initialize(document.getElementById(this._config.canvasId));
-        this._renderer.setClearColor(this._config.skyColor);
+    config;
+    activeRenderer; // Hier später dein Renderer-Interface nutzen
+    constructor() { }
+    /**
+     * Initialisiert die Engine durch Laden der Konfigurationsdatei
+     * @param configPath Pfad zur JSON-Konfiguration
+     */
+    async init(configPath) {
+        try {
+            const response = await fetch(configPath);
+            if (!response.ok) {
+                throw new Error(`Konfigurationsdatei nicht gefunden: ${configPath}`);
+            }
+            this.config = await response.json();
+            // --- Robustheits-Check für den Renderer ---
+            if (!this.config.rendererType) {
+                console.warn(`[SmallWorld] Kein rendererType in Config gefunden. Nutze Default: ${DEFAULT_RENDERER}`);
+                this.config.rendererType = DEFAULT_RENDERER;
+            }
+            // Initialisierung des gewählten Renderers
+            this.activeRenderer = await this.setupRenderer(this.config.rendererType);
+            if (this.config.debug) {
+                console.log(`[SmallWorld] Engine initialisiert mit Renderer: ${this.config.rendererType}`);
+            }
+        }
+        catch (e) {
+            console.error("[SmallWorld] Kritischer Fehler bei der Initialisierung:", e);
+            throw e;
+        }
     }
-    get config() {
-        return this._config;
-    }
-    get activeRenderer() {
-        return this._renderer;
+    /**
+     * Wählt und initialisiert den passenden Renderer
+     */
+    async setupRenderer(type) {
+        const canvas = document.getElementById(this.config.canvasId);
+        if (!canvas) {
+            throw new Error(`Canvas mit ID '${this.config.canvasId}' wurde nicht im DOM gefunden.`);
+        }
+        // Logik für "BEST" Renderer oder spezifische Auswahl
+        if (type === RendererType.BEST || type === RendererType.WEB_GPU) {
+            try {
+                const renderer = new WebGPURenderer(canvas);
+                await renderer.init();
+                return renderer;
+            }
+            catch (e) {
+                if (type === RendererType.WEB_GPU) {
+                    throw new Error("WebGPU wurde explizit verlangt, ist aber nicht verfügbar.");
+                }
+                console.warn("[SmallWorld] WebGPU fehlgeschlagen, weiche auf Fallback aus.");
+            }
+        }
+        // Hier kämen später Fallbacks wie WebGL oder Canvas
+        // return new WebGLRenderer(canvas);
+        throw new Error(`Renderer-Typ ${type} konnte nicht initialisiert werden.`);
     }
 }
 //# sourceMappingURL=SmallWorld.js.map

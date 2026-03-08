@@ -1,4 +1,4 @@
-import { ENGINE_VERSION } from '../constants/Engine.js'; // Import angepasst
+import { ENGINE_VERSION } from './Engine.js'; // Pfad korrigiert (liegt jetzt in core)
 export class HUD {
     enabled;
     root = null;
