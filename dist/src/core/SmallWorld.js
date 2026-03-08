@@ -1,6 +1,6 @@
-import { DEFAULT_RENDERER } from './Engine.js';
-import { RendererFactory } from '../renderers/RendererFactory.js';
-import { ColorUtils } from './ColorUtils.js'; // WICHTIG: Für die Farbkonvertierung
+import { DEFAULT_RENDERER } from "./Engine.js";
+import { RendererFactory } from "../renderers/RendererFactory.js";
+import { ColorUtils } from "./ColorUtils.js"; // WICHTIG: Für die Farbkonvertierung
 export class SmallWorld {
     config;
     activeRenderer;

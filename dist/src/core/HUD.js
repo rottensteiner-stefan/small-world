@@ -1,4 +1,4 @@
-import { ENGINE_VERSION } from './Engine.js';
+import { ENGINE_VERSION } from "./Engine.js";
 export class HUD {
     enabled;
     root = null;
