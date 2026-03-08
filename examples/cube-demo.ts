@@ -62,32 +62,58 @@ async function start() {
   };
   createSpheres();
 
-  const cam = new Camera(new PerspectiveProjection(Math.PI / 4, window.innerWidth / window.innerHeight, 0.1, 200));
-  const vM = new Matrix4(), vpM = new Matrix4();
-  let score = 0, lastTime = performance.now(), frameCount = 0, fps = 0, hudVisible = sw.config.showHUD !== false, tabWasPressed = false;
+  const cam = new Camera(
+    new PerspectiveProjection(Math.PI / 4, window.innerWidth / window.innerHeight, 0.1, 200),
+  );
+  const vM = new Matrix4(),
+    vpM = new Matrix4();
+  let score = 0,
+    lastTime = performance.now(),
+    frameCount = 0,
+    fps = 0,
+    hudVisible = sw.config.showHUD !== false,
+    tabWasPressed = false;
 
   function loop() {
-    frameCount++; const now = performance.now();
-    if (now - lastTime >= 1000) { fps = frameCount; frameCount = 0; lastTime = now; }
+    frameCount++;
+    const now = performance.now();
+    if (now - lastTime >= 1000) {
+      fps = frameCount;
+      frameCount = 0;
+      lastTime = now;
+    }
 
     const speed = Input.isPressed(Keys.SHIFT_L) ? 0.6 : 0.25;
-    player.position.add(new Vector3D(Input.getAxis(Keys.A, Keys.D), 0, Input.getAxis(Keys.W, Keys.S)).scale(speed));
+    player.position.add(
+      new Vector3D(Input.getAxis(Keys.A, Keys.D), 0, Input.getAxis(Keys.W, Keys.S)).scale(speed),
+    );
 
     const tabDown = Input.isPressed(Keys.TAB);
-    if (tabDown && !tabWasPressed) { hudVisible = !hudVisible; hud.setVisible(hudVisible); }
+    if (tabDown && !tabWasPressed) {
+      hudVisible = !hudVisible;
+      hud.setVisible(hudVisible);
+    }
     tabWasPressed = tabDown;
 
     if (Input.isPressed(Keys.R)) {
-      spheres.forEach((s) => scene.remove(s)); spheres.length = 0; score = 0; createSpheres();
+      spheres.forEach((s) => scene.remove(s));
+      spheres.length = 0;
+      score = 0;
+      createSpheres();
     }
 
     const h = playerSize / 2;
-    player.bounds = new BoundingBox(new Vector3D(player.position.x - h, -h, player.position.z - h), new Vector3D(player.position.x + h, h, player.position.z + h));
+    player.bounds = new BoundingBox(
+      new Vector3D(player.position.x - h, -h, player.position.z - h),
+      new Vector3D(player.position.x + h, h, player.position.z + h),
+    );
 
     for (let i = spheres.length - 1; i >= 0; i--) {
       const s = spheres[i];
       if (s.bounds && Collision.test(player.bounds as BoundingBox, s.bounds)) {
-        scene.remove(s); spheres.splice(i, 1); score++;
+        scene.remove(s);
+        spheres.splice(i, 1);
+        score++;
       }
     }
 
@@ -95,12 +121,18 @@ async function start() {
     if (Input.isPressed(Keys.D2)) cam.strategy = CameraStrategy.STIFF;
     if (Input.isPressed(Keys.D3)) cam.strategy = CameraStrategy.SMOOTH;
 
-    cam.update(player.position, Input.mouse.right ? Input.mouse.dx : 0, Input.mouse.right ? Input.mouse.dy : 0);
-    Input.mouse.dx = 0; Input.mouse.dy = 0;
+    cam.update(
+      player.position,
+      Input.mouse.right ? Input.mouse.dx : 0,
+      Input.mouse.right ? Input.mouse.dy : 0,
+    );
+    Input.mouse.dx = 0;
+    Input.mouse.dy = 0;
 
     // Mond Animation
     const time = now * 0.002;
-    moon.position.x = Math.cos(time) * 3; moon.position.z = Math.sin(time) * 3;
+    moon.position.x = Math.cos(time) * 3;
+    moon.position.z = Math.sin(time) * 3;
 
     // 1. Zuerst die Matrizen aller Objekte aktualisieren
     scene.update();
@@ -121,7 +153,7 @@ async function start() {
       player.position.z,
       score,
       TOTAL_SPHERES,
-      visibleCount
+      visibleCount,
     );
 
     // 5. Zum Schluss alles zeichnen

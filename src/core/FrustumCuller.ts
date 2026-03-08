@@ -15,9 +15,13 @@ export class FrustumCuller {
         obj.isVisible = true;
       }
       if (obj.isVisible) visibleCount++;
-      for (const child of obj.children) { checkNode(child); }
+      for (const child of obj.children) {
+        checkNode(child);
+      }
     };
-    for (const obj of scene.objects) { checkNode(obj); }
+    for (const obj of scene.objects) {
+      checkNode(obj);
+    }
     return visibleCount;
   }
 }
