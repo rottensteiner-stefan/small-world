@@ -1,8 +1,8 @@
-import { RendererType, DEFAULT_RENDERER } from '../core/Engine.js';
-import { WebGPURenderer } from '../renderers/WebGPURenderer.js';
+import { DEFAULT_RENDERER } from "./Engine.js";
+import { RendererFactory } from "../renderers/RendererFactory.js";
 export class SmallWorld {
     config;
-    activeRenderer; // Hier später dein Renderer-Interface nutzen
+    activeRenderer;
     constructor() { }
     /**
      * Initialisiert die Engine durch Laden der Konfigurationsdatei
@@ -20,8 +20,13 @@ export class SmallWorld {
                 console.warn(`[SmallWorld] Kein rendererType in Config gefunden. Nutze Default: ${DEFAULT_RENDERER}`);
                 this.config.rendererType = DEFAULT_RENDERER;
             }
-            // Initialisierung des gewählten Renderers
-            this.activeRenderer = await this.setupRenderer(this.config.rendererType);
+            // Canvas aus dem DOM holen
+            const canvas = document.getElementById(this.config.canvasId);
+            if (!canvas) {
+                throw new Error(`Canvas mit ID '${this.config.canvasId}' wurde nicht im DOM gefunden.`);
+            }
+            // --- Factory übernimmt die komplette Arbeit ---
+            this.activeRenderer = await RendererFactory.create(this.config.rendererType, canvas);
             if (this.config.debug) {
                 console.log(`[SmallWorld] Engine initialisiert mit Renderer: ${this.config.rendererType}`);
             }
@@ -30,32 +35,6 @@ export class SmallWorld {
             console.error("[SmallWorld] Kritischer Fehler bei der Initialisierung:", e);
             throw e;
         }
-    }
-    /**
-     * Wählt und initialisiert den passenden Renderer
-     */
-    async setupRenderer(type) {
-        const canvas = document.getElementById(this.config.canvasId);
-        if (!canvas) {
-            throw new Error(`Canvas mit ID '${this.config.canvasId}' wurde nicht im DOM gefunden.`);
-        }
-        // Logik für "BEST" Renderer oder spezifische Auswahl
-        if (type === RendererType.BEST || type === RendererType.WEB_GPU) {
-            try {
-                const renderer = new WebGPURenderer(canvas);
-                await renderer.init();
-                return renderer;
-            }
-            catch (e) {
-                if (type === RendererType.WEB_GPU) {
-                    throw new Error("WebGPU wurde explizit verlangt, ist aber nicht verfügbar.");
-                }
-                console.warn("[SmallWorld] WebGPU fehlgeschlagen, weiche auf Fallback aus.");
-            }
-        }
-        // Hier kämen später Fallbacks wie WebGL oder Canvas
-        // return new WebGLRenderer(canvas);
-        throw new Error(`Renderer-Typ ${type} konnte nicht initialisiert werden.`);
     }
 }
 //# sourceMappingURL=SmallWorld.js.map

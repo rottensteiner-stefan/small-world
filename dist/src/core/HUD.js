@@ -1,4 +1,4 @@
-import { ENGINE_VERSION } from './Engine.js'; // Pfad korrigiert (liegt jetzt in core)
+import { ENGINE_VERSION } from './Engine.js';
 export class HUD {
     enabled;
     root = null;
@@ -15,11 +15,11 @@ export class HUD {
         if (!this.enabled)
             return;
         try {
-            const response = await fetch("./resources/hud.template.html");
+            // --- NEUER PFAD HIER ---
+            const response = await fetch("./resources/templates/hud.html");
             let html = await response.text();
-            // --- PLATZHALTER ERSETZEN ---
+            // Platzhalter ersetzen
             html = html.replace(/{sm-engine-version}/g, `v${ENGINE_VERSION}`);
-            // ----------------------------
             const container = document.createElement("div");
             container.innerHTML = html;
             document.body.appendChild(container);
