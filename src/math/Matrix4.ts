@@ -1,49 +1,111 @@
 import { Vector3D } from "./Vector3D.js";
 export class Matrix4 {
   public data = new Float32Array(16);
-  constructor() { this.identity(); }
+  constructor() {
+    this.identity();
+  }
   public identity(): Matrix4 {
-    this.data.fill(0); this.data[0] = 1; this.data[5] = 1; this.data[10] = 1; this.data[15] = 1;
+    this.data.fill(0);
+    this.data[0] = 1;
+    this.data[5] = 1;
+    this.data[10] = 1;
+    this.data[15] = 1;
     return this;
   }
   public compose(pos: Vector3D, rot: Vector3D, scale: Vector3D): this {
-    const t = new Matrix4(); Matrix4.translate(pos, t);
-    const rx = new Matrix4(); Matrix4.rotateX(rot.x, rx);
-    const ry = new Matrix4(); Matrix4.rotateY(rot.y, ry);
-    const rz = new Matrix4(); Matrix4.rotateZ(rot.z, rz);
-    const s = new Matrix4(); s.data[0] = scale.x; s.data[5] = scale.y; s.data[10] = scale.z;
-    Matrix4.multiply(t, ry, this); Matrix4.multiply(this, rx, this);
-    Matrix4.multiply(this, rz, this); Matrix4.multiply(this, s, this);
+    const t = new Matrix4();
+    Matrix4.translate(pos, t);
+    const rx = new Matrix4();
+    Matrix4.rotateX(rot.x, rx);
+    const ry = new Matrix4();
+    Matrix4.rotateY(rot.y, ry);
+    const rz = new Matrix4();
+    Matrix4.rotateZ(rot.z, rz);
+    const s = new Matrix4();
+    s.data[0] = scale.x;
+    s.data[5] = scale.y;
+    s.data[10] = scale.z;
+    Matrix4.multiply(t, ry, this);
+    Matrix4.multiply(this, rx, this);
+    Matrix4.multiply(this, rz, this);
+    Matrix4.multiply(this, s, this);
     return this;
   }
   public static translate(v: Vector3D, out: Matrix4): void {
-    out.identity(); out.data[12] = v.x; out.data[13] = v.y; out.data[14] = v.z;
+    out.identity();
+    out.data[12] = v.x;
+    out.data[13] = v.y;
+    out.data[14] = v.z;
   }
   public static scale(s: number, out: Matrix4): void {
-    out.identity(); out.data[0] = s; out.data[5] = s; out.data[10] = s;
+    out.identity();
+    out.data[0] = s;
+    out.data[5] = s;
+    out.data[10] = s;
   }
   public static rotateX(r: number, out: Matrix4): void {
-    const s = Math.sin(r), c = Math.cos(r);
-    out.identity(); out.data[5] = c; out.data[6] = s; out.data[9] = -s; out.data[10] = c;
+    const s = Math.sin(r),
+      c = Math.cos(r);
+    out.identity();
+    out.data[5] = c;
+    out.data[6] = s;
+    out.data[9] = -s;
+    out.data[10] = c;
   }
   public static rotateY(r: number, out: Matrix4): void {
-    const s = Math.sin(r), c = Math.cos(r);
-    out.identity(); out.data[0] = c; out.data[2] = -s; out.data[8] = s; out.data[10] = c;
+    const s = Math.sin(r),
+      c = Math.cos(r);
+    out.identity();
+    out.data[0] = c;
+    out.data[2] = -s;
+    out.data[8] = s;
+    out.data[10] = c;
   }
   public static rotateZ(r: number, out: Matrix4): void {
-    const s = Math.sin(r), c = Math.cos(r);
-    out.identity(); out.data[0] = c; out.data[1] = s; out.data[4] = -s; out.data[5] = c;
+    const s = Math.sin(r),
+      c = Math.cos(r);
+    out.identity();
+    out.data[0] = c;
+    out.data[1] = s;
+    out.data[4] = -s;
+    out.data[5] = c;
   }
   public static multiply(a: Matrix4, b: Matrix4, out: Matrix4): void {
-    const ae = a.data, be = b.data, te = out.data;
-    const a00 = ae[0], a01 = ae[1], a02 = ae[2], a03 = ae[3];
-    const a10 = ae[4], a11 = ae[5], a12 = ae[6], a13 = ae[7];
-    const a20 = ae[8], a21 = ae[9], a22 = ae[10], a23 = ae[11];
-    const a30 = ae[12], a31 = ae[13], a32 = ae[14], a33 = ae[15];
-    const b00 = be[0], b01 = be[1], b02 = be[2], b03 = be[3];
-    const b10 = be[4], b11 = be[5], b12 = be[6], b13 = be[7];
-    const b20 = be[8], b21 = be[9], b22 = be[10], b23 = be[11];
-    const b30 = be[12], b31 = be[13], b32 = be[14], b33 = be[15];
+    const ae = a.data,
+      be = b.data,
+      te = out.data;
+    const a00 = ae[0],
+      a01 = ae[1],
+      a02 = ae[2],
+      a03 = ae[3];
+    const a10 = ae[4],
+      a11 = ae[5],
+      a12 = ae[6],
+      a13 = ae[7];
+    const a20 = ae[8],
+      a21 = ae[9],
+      a22 = ae[10],
+      a23 = ae[11];
+    const a30 = ae[12],
+      a31 = ae[13],
+      a32 = ae[14],
+      a33 = ae[15];
+    const b00 = be[0],
+      b01 = be[1],
+      b02 = be[2],
+      b03 = be[3];
+    const b10 = be[4],
+      b11 = be[5],
+      b12 = be[6],
+      b13 = be[7];
+    const b20 = be[8],
+      b21 = be[9],
+      b22 = be[10],
+      b23 = be[11];
+    const b30 = be[12],
+      b31 = be[13],
+      b32 = be[14],
+      b33 = be[15];
     te[0] = a00 * b00 + a10 * b01 + a20 * b02 + a30 * b03;
     te[1] = a01 * b00 + a11 * b01 + a21 * b02 + a31 * b03;
     te[2] = a02 * b00 + a12 * b01 + a22 * b02 + a32 * b03;
@@ -61,27 +123,73 @@ export class Matrix4 {
     te[14] = a02 * b30 + a12 * b31 + a22 * b32 + a32 * b33;
     te[15] = a03 * b30 + a13 * b31 + a23 * b32 + a33 * b33;
   }
-  public static perspective(fov: number, aspect: number, near: number, far: number, out: Matrix4): void {
-    const f = 1.0 / Math.tan(fov / 2); const d = out.data; d.fill(0);
-    d[0] = f / aspect; d[5] = f; d[10] = far / (near - far); d[11] = -1; d[14] = (near * far) / (near - far);
+  public static perspective(
+    fov: number,
+    aspect: number,
+    near: number,
+    far: number,
+    out: Matrix4,
+  ): void {
+    const f = 1.0 / Math.tan(fov / 2);
+    const d = out.data;
+    d.fill(0);
+    d[0] = f / aspect;
+    d[5] = f;
+    d[10] = far / (near - far);
+    d[11] = -1;
+    d[14] = (near * far) / (near - far);
   }
-  public static orthographic(l: number, r: number, b: number, t: number, n: number, f: number, out: Matrix4): void {
-    const d = out.data; d.fill(0);
-    d[0] = 2 / (r - l); d[5] = 2 / (t - b); d[10] = 1 / (n - f);
-    d[12] = -(r + l) / (r - l); d[13] = -(t + b) / (t - b); d[14] = n / (n - f); d[15] = 1;
+  public static orthographic(
+    l: number,
+    r: number,
+    b: number,
+    t: number,
+    n: number,
+    f: number,
+    out: Matrix4,
+  ): void {
+    const d = out.data;
+    d.fill(0);
+    d[0] = 2 / (r - l);
+    d[5] = 2 / (t - b);
+    d[10] = 1 / (n - f);
+    d[12] = -(r + l) / (r - l);
+    d[13] = -(t + b) / (t - b);
+    d[14] = n / (n - f);
+    d[15] = 1;
   }
   public static lookAt(eye: Vector3D, target: Vector3D, up: Vector3D, out: Matrix4): void {
-    const d = out.data; const z = eye.clone().sub(target); const zL = z.length();
+    const d = out.data;
+    const z = eye.clone().sub(target);
+    const zL = z.length();
     if (zL > 0) z.scale(1 / zL);
-    const x = new Vector3D(up.y * z.z - up.z * z.y, up.z * z.x - up.x * z.z, up.x * z.y - up.y * z.x);
-    const xL = x.length(); if (xL > 0) x.scale(1 / xL);
+    const x = new Vector3D(
+      up.y * z.z - up.z * z.y,
+      up.z * z.x - up.x * z.z,
+      up.x * z.y - up.y * z.x,
+    );
+    const xL = x.length();
+    if (xL > 0) x.scale(1 / xL);
     const y = new Vector3D(z.y * x.z - z.z * x.y, z.z * x.x - z.x * x.z, z.x * x.y - z.y * x.x);
-    d[0] = x.x; d[4] = x.y; d[8] = x.z; d[12] = -x.dot(eye);
-    d[1] = y.x; d[5] = y.y; d[9] = y.z; d[13] = -y.dot(eye);
-    d[2] = z.x; d[6] = z.y; d[10] = z.z; d[14] = -z.dot(eye); d[15] = 1;
+    d[0] = x.x;
+    d[4] = x.y;
+    d[8] = x.z;
+    d[12] = -x.dot(eye);
+    d[1] = y.x;
+    d[5] = y.y;
+    d[9] = y.z;
+    d[13] = -y.dot(eye);
+    d[2] = z.x;
+    d[6] = z.y;
+    d[10] = z.z;
+    d[14] = -z.dot(eye);
+    d[15] = 1;
   }
   public transformVector(v: Vector3D): Vector3D {
-    const d = this.data; const x = v.x, y = v.y, z = v.z;
+    const d = this.data;
+    const x = v.x,
+      y = v.y,
+      z = v.z;
     v.x = d[0] * x + d[4] * y + d[8] * z + d[12];
     v.y = d[1] * x + d[5] * y + d[9] * z + d[13];
     v.z = d[2] * x + d[6] * y + d[10] * z + d[14];
