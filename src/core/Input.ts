@@ -4,15 +4,29 @@ export class Input {
   public static mouse = { x: 0, y: 0, dx: 0, dy: 0, right: false };
   public static debug = false;
   public static init() {
-    window.addEventListener("keydown", (e) => { this.keys.set(e.code, true); });
+    window.addEventListener("keydown", (e) => {
+      this.keys.set(e.code, true);
+    });
     window.addEventListener("keyup", (e) => this.keys.set(e.code, false));
-    window.addEventListener("mousedown", (e) => { if (e.button === 2) this.mouse.right = true; });
-    window.addEventListener("mouseup", (e) => { if (e.button === 2) this.mouse.right = false; });
-    window.addEventListener("mousemove", (e) => { this.mouse.dx = e.movementX; this.mouse.dy = e.movementY; });
+    window.addEventListener("mousedown", (e) => {
+      if (e.button === 2) this.mouse.right = true;
+    });
+    window.addEventListener("mouseup", (e) => {
+      if (e.button === 2) this.mouse.right = false;
+    });
+    window.addEventListener("mousemove", (e) => {
+      this.mouse.dx = e.movementX;
+      this.mouse.dy = e.movementY;
+    });
     window.addEventListener("contextmenu", (e) => e.preventDefault());
   }
-  public static isPressed(code: string | Keys): boolean { return this.keys.get(code) === true; }
+  public static isPressed(code: string | Keys): boolean {
+    return this.keys.get(code) === true;
+  }
   public static getAxis(neg: string | Keys, pos: string | Keys): number {
-    let v = 0; if (this.isPressed(neg)) v -= 1; if (this.isPressed(pos)) v += 1; return v;
+    let v = 0;
+    if (this.isPressed(neg)) v -= 1;
+    if (this.isPressed(pos)) v += 1;
+    return v;
   }
 }
