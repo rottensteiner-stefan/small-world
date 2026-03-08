@@ -19,14 +19,20 @@ export class Object3D {
   public isVisible: boolean = true;
   public frustumCulled: boolean = true;
 
-  constructor(name: string = "") { this.name = name; }
+  constructor(name: string = "") {
+    this.name = name;
+  }
   public add(child: Object3D): void {
     if (child.parent) child.parent.remove(child);
-    child.parent = this; this.children.push(child);
+    child.parent = this;
+    this.children.push(child);
   }
   public remove(child: Object3D): void {
     const index = this.children.indexOf(child);
-    if (index !== -1) { child.parent = null; this.children.splice(index, 1); }
+    if (index !== -1) {
+      child.parent = null;
+      this.children.splice(index, 1);
+    }
   }
   public updateMatrixWorld(force: boolean = false): void {
     this.localMatrix.compose(this.position, this.rotation, this.scale);
@@ -35,6 +41,8 @@ export class Object3D {
     } else {
       Matrix4.multiply(this.parent.worldMatrix, this.localMatrix, this.worldMatrix);
     }
-    for (const child of this.children) { child.updateMatrixWorld(force); }
+    for (const child of this.children) {
+      child.updateMatrixWorld(force);
+    }
   }
 }
