@@ -1,6 +1,21 @@
 import { Scene } from "../core/Scene.js";
 import { IRenderer } from "../interfaces/IRenderer.js";
 import { Color } from "../core/Color.js";
+
+// Hilfs-Interfaces für unser Caching
+interface GeoCacheEntry {
+  vb: GPUBuffer;
+  ib?: GPUBuffer;
+  format?: GPUIndexFormat;
+  vertexCount: number;
+  indexCount: number;
+}
+
+interface ObjCacheEntry {
+  ub: GPUBuffer;
+  bg: GPUBindGroup;
+}
+
 export class WebGPURenderer implements IRenderer {
   private device!: GPUDevice;
   private context!: GPUCanvasContext;
@@ -10,6 +25,10 @@ export class WebGPURenderer implements IRenderer {
   private canvas!: HTMLCanvasElement;
 
   private clearColor: number[] = [0.1, 0.1, 0.1, 1.0];
+
+  // Caches für Geometrien und Objekte
+  private geoCache = new Map<any, GeoCacheEntry>();
+  private objCache = new Map<any, ObjCacheEntry>();
 
   public async initialize(canvas: HTMLCanvasElement): Promise<void> {
     this.canvas = canvas;
@@ -44,7 +63,6 @@ export class WebGPURenderer implements IRenderer {
         ],
       },
       fragment: { module: shader, entryPoint: "fs", targets: [{ format: this.format }] },
-      // FIX 1: line-list statt triangle-list! (Und kein Culling für Linien)
       primitive: { topology: "line-list", cullMode: "none" },
       depthStencil: { depthWriteEnabled: true, depthCompare: "less", format: "depth24plus" },
     });
@@ -71,6 +89,71 @@ export class WebGPURenderer implements IRenderer {
     this.createDepthTexture();
   }
 
+  // Hilfsmethode, um Geometrie-Buffer zu erstellen und zu cachen
+  private getGeoCache(geometry: any): GeoCacheEntry {
+    let entry = this.geoCache.get(geometry);
+    if (!entry) {
+      const vertices = geometry.vertices;
+      const vb = this.device.createBuffer({
+        size: vertices.byteLength,
+        usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+      });
+      this.device.queue.writeBuffer(
+        vb,
+        0,
+        vertices.buffer as ArrayBuffer,
+        vertices.byteOffset,
+        vertices.byteLength,
+      );
+
+      let ib: GPUBuffer | undefined;
+      let format: GPUIndexFormat | undefined;
+      let indexCount = 0;
+
+      if (geometry.indices && geometry.indices.length > 0) {
+        const indices = geometry.indices;
+        indexCount = indices.length;
+        ib = this.device.createBuffer({
+          size: indices.byteLength,
+          usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
+        });
+        this.device.queue.writeBuffer(
+          ib,
+          0,
+          indices.buffer as ArrayBuffer,
+          indices.byteOffset,
+          indices.byteLength,
+        );
+        format = indices instanceof Uint32Array ? "uint32" : "uint16";
+      }
+
+      entry = { vb, ib, format, vertexCount: vertices.length / 3, indexCount };
+      this.geoCache.set(geometry, entry);
+    }
+    return entry;
+  }
+
+  // Hilfsmethode, um Uniform-Buffer pro Objekt zu erstellen und zu cachen
+  private getObjCache(obj: any): ObjCacheEntry {
+    let entry = this.objCache.get(obj);
+    if (!entry) {
+      // 36 Floats = 144 Bytes
+      const ub = this.device.createBuffer({
+        size: 144,
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+      });
+
+      const bg = this.device.createBindGroup({
+        layout: this.pipeline.getBindGroupLayout(0),
+        entries: [{ binding: 0, resource: { buffer: ub } }],
+      });
+
+      entry = { ub, bg };
+      this.objCache.set(obj, entry);
+    }
+    return entry;
+  }
+
   public render(scene: Scene, vpMatrix: Float32Array) {
     if (!this.device) return;
     const ce = this.device.createCommandEncoder();
@@ -92,70 +175,41 @@ export class WebGPURenderer implements IRenderer {
     });
     rp.setPipeline(this.pipeline);
 
+    // Temporäres Array für die Uniform-Daten (wird in jedem Frame überschrieben)
+    const uData = new Float32Array(36);
+    uData.set(vpMatrix, 0);
+
     const drawObject = (obj: any) => {
       if (obj.geometry && obj.worldMatrix) {
-        const uData = new Float32Array(36);
-        uData.set(vpMatrix, 0);
+        // 1. Uniform-Daten vorbereiten und an die GPU senden
         uData.set(obj.worldMatrix.data, 16);
         uData.set(obj.color.toArray(), 32);
 
-        const ub = this.device.createBuffer({
-          size: uData.byteLength,
-          usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-        });
+        const oCache = this.getObjCache(obj);
         this.device.queue.writeBuffer(
-          ub,
+          oCache.ub,
           0,
           uData.buffer as ArrayBuffer,
           uData.byteOffset,
           uData.byteLength,
         );
 
-        const vertices = obj.geometry.vertices;
-        const vb = this.device.createBuffer({
-          size: vertices.byteLength,
-          usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
-        });
-        this.device.queue.writeBuffer(
-          vb,
-          0,
-          vertices.buffer as ArrayBuffer,
-          vertices.byteOffset,
-          vertices.byteLength,
-        );
+        // 2. Geometrie-Buffer abrufen (aus Cache)
+        const gCache = this.getGeoCache(obj.geometry);
 
-        rp.setBindGroup(
-          0,
-          this.device.createBindGroup({
-            layout: this.pipeline.getBindGroupLayout(0),
-            entries: [{ binding: 0, resource: { buffer: ub } }],
-          }),
-        );
-        rp.setVertexBuffer(0, vb);
+        // 3. Zeichnen
+        rp.setBindGroup(0, oCache.bg);
+        rp.setVertexBuffer(0, gCache.vb);
 
-        // FIX 2: Den Index-Buffer hochladen und binden!
-        if (obj.geometry.indices && obj.geometry.indices.length > 0) {
-          const indices = obj.geometry.indices;
-          const ib = this.device.createBuffer({
-            size: indices.byteLength,
-            usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
-          });
-          this.device.queue.writeBuffer(
-            ib,
-            0,
-            indices.buffer as ArrayBuffer,
-            indices.byteOffset,
-            indices.byteLength,
-          );
-
-          const format = indices instanceof Uint32Array ? "uint32" : "uint16";
-          rp.setIndexBuffer(ib, format);
-          rp.drawIndexed(indices.length);
+        if (gCache.ib && gCache.format) {
+          rp.setIndexBuffer(gCache.ib, gCache.format);
+          rp.drawIndexed(gCache.indexCount);
         } else {
-          rp.draw(vertices.length / 3);
+          rp.draw(gCache.vertexCount);
         }
       }
 
+      // Rekursion für Kind-Objekte
       if (obj.children) {
         for (const child of obj.children) {
           drawObject(child);
