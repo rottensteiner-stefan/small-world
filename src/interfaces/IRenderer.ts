@@ -5,5 +5,5 @@ export interface IRenderer {
   initialize(canvas: HTMLCanvasElement): Promise<void>;
   render(scene: Scene, vpMatrix: Float32Array): void;
   setSize(width: number, height: number): void;
-  setClearColor(color: Color): void; // Verbindlich für alle
+  setClearColor(color: Color): void;
 }

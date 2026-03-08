@@ -14,7 +14,7 @@ import { HUD } from "../src/core/HUD.js";
 import { BoundingSphere } from "../src/physics/BoundingSphere.js";
 import { BoundingBox } from "../src/physics/BoundingBox.js";
 import { Collision } from "../src/physics/Collision.js";
-import { Keys } from "../src/constants/Keys.js";
+import { Keys } from "../src/enums/Keys.js";
 async function start() {
     Input.init();
     const sw = new SmallWorld();
