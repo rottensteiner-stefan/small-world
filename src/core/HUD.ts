@@ -45,14 +45,14 @@ export class HUD {
 
   // <--- NEU: visibleCount als Parameter hinzugefügt
   public update(
-      fps: number,
-      cam: string,
-      x: number,
-      y: number,
-      z: number,
-      score: number,
-      total: number,
-      visibleCount: number
+    fps: number,
+    cam: string,
+    x: number,
+    y: number,
+    z: number,
+    score: number,
+    total: number,
+    visibleCount: number,
   ) {
     if (!this.enabled || !this.root || this.root.style.display === "none") return;
     if (this.fpsEl) this.fpsEl.textContent = fps.toString();
