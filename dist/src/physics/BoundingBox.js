@@ -10,7 +10,11 @@ export class BoundingBox {
         const size = max.clone().sub(min);
         this.broadRadius = size.length() / 2;
     }
-    get center() { return this.min.clone().add(this.max).scale(0.5); }
-    getBroadRadius() { return this.broadRadius; }
+    get center() {
+        return this.min.clone().add(this.max).scale(0.5);
+    }
+    getBroadRadius() {
+        return this.broadRadius;
+    }
 }
 //# sourceMappingURL=BoundingBox.js.map

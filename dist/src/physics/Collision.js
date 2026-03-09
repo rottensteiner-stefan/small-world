@@ -22,7 +22,12 @@ export class Collision {
         return d2 <= r2;
     }
     static boxBox(b1, b2) {
-        return (b1.min.x <= b2.max.x && b1.max.x >= b2.min.x && b1.min.y <= b2.max.y && b1.max.y >= b2.min.y && b1.min.z <= b2.max.z && b1.max.z >= b2.min.z);
+        return (b1.min.x <= b2.max.x &&
+            b1.max.x >= b2.min.x &&
+            b1.min.y <= b2.max.y &&
+            b1.max.y >= b2.min.y &&
+            b1.min.z <= b2.max.z &&
+            b1.max.z >= b2.min.z);
     }
     static sphereBox(s, b) {
         const closest = new Vector3D(Math.max(b.min.x, Math.min(s.center.x, b.max.x)), Math.max(b.min.y, Math.min(s.center.y, b.max.y)), Math.max(b.min.z, Math.min(s.center.z, b.max.z)));

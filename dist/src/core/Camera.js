@@ -48,6 +48,8 @@ export class Camera {
             this.position.z += (idealZ - this.position.z) * this.lerpFactor;
         }
     }
-    getViewProjection(v, out) { Matrix4.multiply(this.projection.getMatrix(), v, out); }
+    getViewProjection(v, out) {
+        Matrix4.multiply(this.projection.getMatrix(), v, out);
+    }
 }
 //# sourceMappingURL=Camera.js.map

@@ -9,7 +9,14 @@ export class Line extends ObjectGeometry {
         this.generateGeometryData();
     }
     generateGeometryData() {
-        this.vertices = new Float32Array([this.start.x, this.start.y, this.start.z, this.end.x, this.end.y, this.end.z]);
+        this.vertices = new Float32Array([
+            this.start.x,
+            this.start.y,
+            this.start.z,
+            this.end.x,
+            this.end.y,
+            this.end.z,
+        ]);
         this.indices = new Uint16Array([0, 1]);
     }
 }

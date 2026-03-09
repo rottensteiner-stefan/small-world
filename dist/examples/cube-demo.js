@@ -16,6 +16,8 @@ import { BoundingBox } from "../src/physics/BoundingBox.js";
 import { Collision } from "../src/physics/Collision.js";
 import { Keys } from "../src/enums/Keys.js";
 import { FrustumCuller } from "../src/core/FrustumCuller.js";
+import { WireframeMaterial } from "../src/materials/WireframeMaterial.js";
+import { BasicMaterial } from "../src/materials/BasicMaterial.js";
 async function start() {
     Input.init();
     const sw = new SmallWorld();
@@ -25,19 +27,23 @@ async function start() {
     const scene = new Scene();
     const hud = new HUD(sw.config.showHUD !== false);
     await hud.init();
+    // Grid bekommt ein WireframeMaterial
     const grid = new Object3D("Grid");
     grid.geometry = new Grid(WORLD_SIZE, 50).getGeometryData();
-    grid.color = Color.DARKSLATEGRAY;
+    grid.material = new WireframeMaterial();
+    grid.material.color = Color.DARKSLATEGRAY;
     scene.add(grid);
+    // Player bekommt ein BasicMaterial (Gefüllte Polygone)
     const playerSize = 1.5;
     const player = new Object3D("Player");
     player.geometry = new Cube(playerSize).getGeometryData();
-    player.color = Color.ORANGE;
+    player.material = new BasicMaterial();
+    player.material.color = Color.ORANGE;
     scene.add(player);
-    // Der Mond
     const moon = new Object3D("Moon");
     moon.geometry = new Sphere(0.4).getGeometryData();
-    moon.color = Color.YELLOW;
+    moon.material = new BasicMaterial();
+    moon.material.color = Color.YELLOW;
     player.add(moon);
     const spheres = [];
     const TOTAL_SPHERES = 30;
@@ -46,7 +52,8 @@ async function start() {
         for (let i = 0; i < TOTAL_SPHERES; i++) {
             const s = new Object3D(`Sphere_${i}`);
             s.geometry = sGeo;
-            s.color = Color.DODGERBLUE;
+            s.material = new BasicMaterial();
+            s.material.color = Color.DODGERBLUE;
             s.position = new Vector3D(Math.random() * 40 - 20, 0, Math.random() * 40 - 20);
             s.bounds = new BoundingSphere(s.position, 0.6);
             scene.add(s);
@@ -98,20 +105,14 @@ async function start() {
         cam.update(player.position, Input.mouse.right ? Input.mouse.dx : 0, Input.mouse.right ? Input.mouse.dy : 0);
         Input.mouse.dx = 0;
         Input.mouse.dy = 0;
-        // Mond Animation
         const time = now * 0.002;
         moon.position.x = Math.cos(time) * 3;
         moon.position.z = Math.sin(time) * 3;
-        // 1. Zuerst die Matrizen aller Objekte aktualisieren
         scene.update();
-        // 2. Kamera-Matrizen berechnen
         Matrix4.lookAt(cam.position, cam.target, cam.up, vM);
         cam.getViewProjection(vM, vpM);
-        // 3. Frustum Culling ausführen und Anzahl der sichtbaren Objekte speichern
         const visibleCount = FrustumCuller.cull(scene, vpM);
-        // 4. Jetzt erst das HUD aktualisieren (mit dem neuen visibleCount Parameter)
         hud.update(fps, CameraStrategy[cam.strategy], player.position.x, player.position.y, player.position.z, score, TOTAL_SPHERES, visibleCount);
-        // 5. Zum Schluss alles zeichnen
         sw.activeRenderer.render(scene, vpM.data);
         requestAnimationFrame(loop);
     }
