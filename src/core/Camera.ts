@@ -1,5 +1,7 @@
 import { Matrix4 } from "../math/Matrix4.js";
 import { Vector3D } from "../math/Vector3D.js";
+import { Projection } from "../math/projections/Projection.js";
+
 export enum CameraStrategy {
   FIXED = 0,
   STIFF = 1,
@@ -14,7 +16,7 @@ export class Camera {
   public phi = 0.6;
   public radius = 20;
   public lerpFactor = 0.1;
-  constructor(public projection: any) {}
+  constructor(public projection: Projection) {}
   public update(playerPos: Vector3D, dx: number, dy: number) {
     if (dx !== 0 || dy !== 0) {
       this.theta -= dx * 0.01;

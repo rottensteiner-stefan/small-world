@@ -18,7 +18,7 @@ export class RendererFactory {
         if (!navigator.gpu) {
           renderer = new WebGL2Renderer();
         } else {
-          renderer = new WebGPURenderer() as any;
+          renderer = new WebGPURenderer(); // <--- 'as any' entfernt!
         }
         break;
       case RendererType.WEB_GL2:

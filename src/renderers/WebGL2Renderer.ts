@@ -5,13 +5,37 @@ import { DirectionalLight } from "../core/lights/DirectionalLight.js";
 import { AmbientLight } from "../core/lights/AmbientLight.js";
 import { PointLight } from "../core/lights/PointLight.js";
 import { Vector3D } from "../math/Vector3D.js";
+import { Scene } from "../core/Scene.js";
+import { IGeometryData } from "../interfaces/IGeometryData.js";
+import { Object3D } from "../core/Object3D.js";
+import { PhongMaterial } from "../core/materials/PhongMaterial";
+
+interface ShaderLocs {
+  pos: number;
+  norm: number;
+  vp: WebGLUniformLocation | null;
+  model: WebGLUniformLocation | null;
+  color: WebGLUniformLocation | null;
+  specColor: WebGLUniformLocation | null;
+  ambient: WebGLUniformLocation | null;
+  dirColor: WebGLUniformLocation | null;
+  dirDir: WebGLUniformLocation | null;
+  shininess: WebGLUniformLocation | null;
+  viewPos: WebGLUniformLocation | null;
+  numPL: WebGLUniformLocation | null;
+}
+
+interface PointLightLocs {
+  pos: WebGLUniformLocation | null;
+  col: WebGLUniformLocation | null;
+}
 
 export class WebGL2Renderer implements IRenderer {
   private gl!: WebGL2RenderingContext;
   private prog!: WebGLProgram;
-  private cache = new Map<any, Mesh>();
-  private locs: any = {};
-  private pointLightLocs: any[] = [];
+  private cache = new Map<IGeometryData, Mesh>();
+  private locs!: ShaderLocs;
+  private pointLightLocs: PointLightLocs[] = [];
 
   public async initialize(canvas: HTMLCanvasElement) {
     this.gl = canvas.getContext("webgl2", { antialias: true })!;
@@ -126,17 +150,16 @@ export class WebGL2Renderer implements IRenderer {
     this.gl.clearColor(color.r, color.g, color.b, color.a);
   }
 
-  public render(scene: any, vp: Float32Array, camPos: Vector3D = new Vector3D()) {
+  public render(scene: Scene, vp: Float32Array, camPos: Vector3D = new Vector3D()) {
     this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
     this.gl.useProgram(this.prog);
-    this.gl.uniformMatrix4fv(this.locs.vp, false, vp);
-    this.gl.uniform3f(this.locs.viewPos, camPos.x, camPos.y, camPos.z);
+    if (this.locs.vp) this.gl.uniformMatrix4fv(this.locs.vp, false, vp);
+    if (this.locs.viewPos) this.gl.uniform3f(this.locs.viewPos, camPos.x, camPos.y, camPos.z);
 
-    // Licht-Sammeln
     let aCol = new Color(0, 0, 0),
       dDir = new Vector3D(0, 1, 0),
       dCol = new Color(0, 0, 0);
-    const pLights: any[] = [];
+    const pLights: PointLight[] = [];
 
     for (const obj of scene.objects) {
       if (obj instanceof AmbientLight)
@@ -156,37 +179,38 @@ export class WebGL2Renderer implements IRenderer {
         );
       }
 
-      const findPointLights = (node: any) => {
+      const findPointLights = (node: Object3D) => {
         if (node instanceof PointLight && pLights.length < 4) pLights.push(node);
         if (node.children) node.children.forEach(findPointLights);
       };
       findPointLights(obj);
     }
 
-    this.gl.uniform3f(this.locs.ambient, aCol.r, aCol.g, aCol.b);
-    this.gl.uniform3f(this.locs.dirDir, dDir.x, dDir.y, dDir.z);
-    this.gl.uniform3f(this.locs.dirColor, dCol.r, dCol.g, dCol.b);
+    if (this.locs.ambient) this.gl.uniform3f(this.locs.ambient, aCol.r, aCol.g, aCol.b);
+    if (this.locs.dirDir) this.gl.uniform3f(this.locs.dirDir, dDir.x, dDir.y, dDir.z);
+    if (this.locs.dirColor) this.gl.uniform3f(this.locs.dirColor, dCol.r, dCol.g, dCol.b);
 
-    this.gl.uniform1i(this.locs.numPL, pLights.length);
+    if (this.locs.numPL) this.gl.uniform1i(this.locs.numPL, pLights.length);
     for (let i = 0; i < pLights.length; i++) {
       const pl = pLights[i];
-      // Da PointLights an Objekten hängen können, brauchen wir ihre absolute Welt-Position!
       const wPos = new Vector3D().set(
         pl.worldMatrix.data[12],
         pl.worldMatrix.data[13],
         pl.worldMatrix.data[14],
       );
-      this.gl.uniform3f(this.pointLightLocs[i].pos, wPos.x, wPos.y, wPos.z);
-      this.gl.uniform3f(
-        this.pointLightLocs[i].col,
-        pl.color.r * pl.intensity,
-        pl.color.g * pl.intensity,
-        pl.color.b * pl.intensity,
-      );
+      if (this.pointLightLocs[i].pos)
+        this.gl.uniform3f(this.pointLightLocs[i].pos!, wPos.x, wPos.y, wPos.z);
+      if (this.pointLightLocs[i].col)
+        this.gl.uniform3f(
+          this.pointLightLocs[i].col!,
+          pl.color.r * pl.intensity,
+          pl.color.g * pl.intensity,
+          pl.color.b * pl.intensity,
+        );
     }
 
     for (const o of scene.objects) {
-      if (o.isVisible === false || !o.material) continue;
+      if (o.isVisible === false || !o.material || !o.geometry) continue;
       let m = this.cache.get(o.geometry);
       if (!m) {
         m = new Mesh(this.gl, o.geometry);
@@ -194,19 +218,21 @@ export class WebGL2Renderer implements IRenderer {
       }
       m.bind(this.locs.pos, this.locs.norm);
 
-      this.gl.uniformMatrix4fv(this.locs.model, false, o.worldMatrix.data);
-      this.gl.uniform4fv(this.locs.color, o.material.color.toArray());
+      if (this.locs.model) this.gl.uniformMatrix4fv(this.locs.model, false, o.worldMatrix.data);
+      if (this.locs.color) this.gl.uniform4fv(this.locs.color, o.material.color.toArray());
 
       let shininess = -1.0;
       let specCol = [0, 0, 0, 0];
       if (o.material.type === "LambertMaterial") shininess = 0.0;
       else if (o.material.type === "PhongMaterial") {
-        shininess = o.material.shininess;
-        specCol = o.material.specularColor.toArray();
+        const material = o.material as PhongMaterial;
+        // Sicherer Zugriff auf child-spezifische Properties
+        shininess = material.shininess || 32;
+        specCol = material.specularColor ? material.specularColor.toArray() : [0, 0, 0, 0];
       }
 
-      this.gl.uniform1f(this.locs.shininess, shininess);
-      this.gl.uniform4fv(this.locs.specColor, specCol);
+      if (this.locs.shininess) this.gl.uniform1f(this.locs.shininess, shininess);
+      if (this.locs.specColor) this.gl.uniform4fv(this.locs.specColor, specCol);
 
       const drawMode = o.material.type === "WireframeMaterial" ? this.gl.LINES : this.gl.TRIANGLES;
       this.gl.drawElements(drawMode, m.count, this.gl.UNSIGNED_SHORT, 0);

@@ -22,7 +22,6 @@ export class WebGPURenderer {
         this.context = canvas.getContext("webgpu");
         this.format = navigator.gpu.getPreferredCanvasFormat();
         this.context.configure({ device: this.device, format: this.format });
-        // Shader mit Arrays und strict Padding für WebGPU (16-byte aligned)
         const shader = this.device.createShaderModule({
             code: `
         struct PointLight {
@@ -116,7 +115,7 @@ export class WebGPURenderer {
         const pipelineLayout = this.device.createPipelineLayout({
             bindGroupLayouts: [this.bindGroupLayout],
         });
-        const pipelineConfig = {
+        const pipelineDescriptorTemplate = {
             layout: pipelineLayout,
             vertex: {
                 module: shader,
@@ -130,11 +129,11 @@ export class WebGPURenderer {
             depthStencil: { depthWriteEnabled: true, depthCompare: "less", format: "depth24plus" },
         };
         this.pipelineTriangles = this.device.createRenderPipeline({
-            ...pipelineConfig,
+            ...pipelineDescriptorTemplate,
             primitive: { topology: "triangle-list", cullMode: "back" },
         });
         this.pipelineLines = this.device.createRenderPipeline({
-            ...pipelineConfig,
+            ...pipelineDescriptorTemplate,
             primitive: { topology: "line-list", cullMode: "none" },
         });
         this.createDepthTexture();
@@ -192,7 +191,6 @@ export class WebGPURenderer {
     getObjCache(obj) {
         let entry = this.objCache.get(obj);
         if (!entry) {
-            // Neuer Buffer-Size: 368 Bytes (92 Floats)
             const ub = this.device.createBuffer({
                 size: 368,
                 usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
@@ -246,15 +244,13 @@ export class WebGPURenderer {
             };
             findPointLights(obj);
         }
-        // Uniform Data Structure befüllen (Exaktes Float32 Alignment)
         const uData = new Float32Array(92);
-        uData.set(vpMatrix, 0); // 0-15
-        uData.set([aCol.r, aCol.g, aCol.b, 1.0], 40); // 40-43
-        uData.set([dCol.r, dCol.g, dCol.b, 1.0], 44); // 44-47
-        uData.set([dDir.x, dDir.y, dDir.z, 0.0], 48); // 48-51
-        uData.set([camPos.x, camPos.y, camPos.z, 0.0], 52); // 52-55
-        uData[57] = pLights.length; // 57 (numPointLights)
-        // Packe PointLights in den Buffer (startet bei Float 60)
+        uData.set(vpMatrix, 0);
+        uData.set([aCol.r, aCol.g, aCol.b, 1.0], 40);
+        uData.set([dCol.r, dCol.g, dCol.b, 1.0], 44);
+        uData.set([dDir.x, dDir.y, dDir.z, 0.0], 48);
+        uData.set([camPos.x, camPos.y, camPos.z, 0.0], 52);
+        uData[57] = pLights.length;
         for (let i = 0; i < pLights.length; i++) {
             const pl = pLights[i];
             const offset = 60 + i * 8;
@@ -262,22 +258,22 @@ export class WebGPURenderer {
             uData.set([pl.color.r * pl.intensity, pl.color.g * pl.intensity, pl.color.b * pl.intensity, 0.0], offset + 4);
         }
         const drawObject = (obj) => {
-            if (obj.isVisible === false || !obj.material)
+            if (obj.isVisible === false || !obj.material || !obj.geometry)
                 return;
-            if (obj.geometry && obj.worldMatrix) {
+            if (obj.worldMatrix) {
                 rp.setPipeline(obj.material.type === "WireframeMaterial" ? this.pipelineLines : this.pipelineTriangles);
-                uData.set(obj.worldMatrix.data, 16); // 16-31
-                uData.set(obj.material.color.toArray(), 32); // 32-35
+                uData.set(obj.worldMatrix.data, 16);
+                uData.set(obj.material.color.toArray(), 32);
                 let shininess = -1.0;
                 let specCol = [0, 0, 0, 0];
                 if (obj.material.type === "LambertMaterial")
                     shininess = 0.0;
                 else if (obj.material.type === "PhongMaterial") {
-                    shininess = obj.material.shininess;
-                    specCol = obj.material.specularColor.toArray();
+                    shininess = obj.material.shininess || 32;
+                    specCol = obj.material.specularColor ? obj.material.specularColor.toArray() : [0, 0, 0, 0];
                 }
-                uData.set(specCol, 36); // 36-39
-                uData[56] = shininess; // 56
+                uData.set(specCol, 36);
+                uData[56] = shininess;
                 const oCache = this.getObjCache(obj);
                 this.device.queue.writeBuffer(oCache.ub, 0, uData.buffer, uData.byteOffset, uData.byteLength);
                 const gCache = this.getGeoCache(obj.geometry);

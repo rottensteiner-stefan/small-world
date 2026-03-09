@@ -4,14 +4,21 @@
   "type": "module",
   "scripts": {
     "build": "tsc",
-    "format": "prettier --write .",
-    "start": "npm run build && npx serve .",
-    "prebuild": "node scripts/update-version.js"
+    "format": "prettier --write . && eslint . --fix",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "prebuild": "node scripts/update-version.js",
+    "start": "npm run build && npx serve ."
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@webgpu/types": "^0.1.40",
+    "eslint": "^10.0.3",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.4.0",
     "prettier": "^3.2.0",
     "serve": "^14.0.0",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "typescript-eslint": "^8.56.1"
   }
 }
