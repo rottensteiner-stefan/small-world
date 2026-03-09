@@ -2,7 +2,9 @@ export class WebGPURenderer {
     device;
     context;
     format;
-    pipeline;
+    pipelineLines;
+    pipelineTriangles;
+    bindGroupLayout; // <--- NEU: Der geteilte Bauplan
     depthTexture;
     canvas;
     clearColor = [0.1, 0.1, 0.1, 1.0];
@@ -19,19 +21,53 @@ export class WebGPURenderer {
             code: `
         struct Unifs { vp: mat4x4f, model: mat4x4f, color: vec4f }
         @group(0) @binding(0) var<uniform> u: Unifs;
+
         struct Out { @builtin(position) pos: vec4f, @location(0) col: vec4f }
+
         @vertex fn vs(@location(0) p: vec3f) -> Out {
-            var o: Out; o.pos = u.vp * u.model * vec4f(p, 1.0); o.col = u.color; return o;
+            var o: Out;
+            o.pos = u.vp * u.model * vec4f(p, 1.0);
+            o.col = u.color;
+            return o;
         }
-        @fragment fn fs(i: Out) -> @location(0) vec4f { return i.col; }
+
+        @fragment fn fs(i: Out) -> @location(0) vec4f {
+            return i.col;
+        }
       `,
         });
-        this.pipeline = this.device.createRenderPipeline({
-            layout: "auto",
-            vertex: { module: shader, entryPoint: "vs", buffers: [{ arrayStride: 12, attributes: [{ shaderLocation: 0, offset: 0, format: "float32x3" }] }] },
+        // --- NEU: Wir definieren den Bauplan explizit ---
+        this.bindGroupLayout = this.device.createBindGroupLayout({
+            entries: [{
+                    binding: 0,
+                    visibility: GPUShaderStage.VERTEX, // Unser Uniform-Block wird nur im Vertex-Shader genutzt
+                    buffer: { type: "uniform" }
+                }]
+        });
+        const pipelineLayout = this.device.createPipelineLayout({
+            bindGroupLayouts: [this.bindGroupLayout]
+        });
+        // ------------------------------------------------
+        // Konfiguration für beide Pipelines (Nutzt jetzt unser explizites Layout statt "auto")
+        const pipelineConfig = {
+            layout: pipelineLayout, // <--- WICHTIG: Hier stecken wir das geteilte Layout rein
+            vertex: {
+                module: shader,
+                entryPoint: "vs",
+                buffers: [{ arrayStride: 12, attributes: [{ shaderLocation: 0, offset: 0, format: "float32x3" }] }]
+            },
             fragment: { module: shader, entryPoint: "fs", targets: [{ format: this.format }] },
-            primitive: { topology: "line-list", cullMode: "none" },
             depthStencil: { depthWriteEnabled: true, depthCompare: "less", format: "depth24plus" },
+        };
+        // 1. Pipeline für BasicMaterial (Triangles)
+        this.pipelineTriangles = this.device.createRenderPipeline({
+            ...pipelineConfig,
+            primitive: { topology: "triangle-list", cullMode: "back" }
+        });
+        // 2. Pipeline für WireframeMaterial (Lines)
+        this.pipelineLines = this.device.createRenderPipeline({
+            ...pipelineConfig,
+            primitive: { topology: "line-list", cullMode: "none" }
         });
         this.createDepthTexture();
     }
@@ -67,7 +103,11 @@ export class WebGPURenderer {
         let entry = this.objCache.get(obj);
         if (!entry) {
             const ub = this.device.createBuffer({ size: 144, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
-            const bg = this.device.createBindGroup({ layout: this.pipeline.getBindGroupLayout(0), entries: [{ binding: 0, resource: { buffer: ub } }] });
+            // <--- WICHTIG: Wir nutzen jetzt explizit unser gespeichertes Layout!
+            const bg = this.device.createBindGroup({
+                layout: this.bindGroupLayout,
+                entries: [{ binding: 0, resource: { buffer: ub } }]
+            });
             entry = { ub, bg };
             this.objCache.set(obj, entry);
         }
@@ -81,15 +121,21 @@ export class WebGPURenderer {
             colorAttachments: [{ view: this.context.getCurrentTexture().createView(), clearValue: this.clearColor, loadOp: "clear", storeOp: "store" }],
             depthStencilAttachment: { view: this.depthTexture.createView(), depthClearValue: 1.0, depthLoadOp: "clear", depthStoreOp: "store" },
         });
-        rp.setPipeline(this.pipeline);
         const uData = new Float32Array(36);
         uData.set(vpMatrix, 0);
         const drawObject = (obj) => {
-            if (obj.isVisible === false)
+            if (obj.isVisible === false || !obj.material)
                 return;
             if (obj.geometry && obj.worldMatrix) {
+                // Dynamisch die richtige Pipeline anhand des Materials setzen
+                if (obj.material.type === "WireframeMaterial") {
+                    rp.setPipeline(this.pipelineLines);
+                }
+                else {
+                    rp.setPipeline(this.pipelineTriangles);
+                }
                 uData.set(obj.worldMatrix.data, 16);
-                uData.set(obj.color.toArray(), 32);
+                uData.set(obj.material.color.toArray(), 32);
                 const oCache = this.getObjCache(obj);
                 this.device.queue.writeBuffer(oCache.ub, 0, uData.buffer, uData.byteOffset, uData.byteLength);
                 const gCache = this.getGeoCache(obj.geometry);

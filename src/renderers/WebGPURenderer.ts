@@ -20,6 +20,7 @@ export class WebGPURenderer implements IRenderer {
   private format!: GPUTextureFormat;
   private pipelineLines!: GPURenderPipeline;
   private pipelineTriangles!: GPURenderPipeline;
+  private bindGroupLayout!: GPUBindGroupLayout; // <--- NEU: Der geteilte Bauplan
   private depthTexture!: GPUTexture;
   private canvas!: HTMLCanvasElement;
   private clearColor: number[] = [0.1, 0.1, 0.1, 1.0];
@@ -38,17 +39,41 @@ export class WebGPURenderer implements IRenderer {
       code: `
         struct Unifs { vp: mat4x4f, model: mat4x4f, color: vec4f }
         @group(0) @binding(0) var<uniform> u: Unifs;
+
         struct Out { @builtin(position) pos: vec4f, @location(0) col: vec4f }
+
         @vertex fn vs(@location(0) p: vec3f) -> Out {
-            var o: Out; o.pos = u.vp * u.model * vec4f(p, 1.0); o.col = u.color; return o;
+            var o: Out;
+            o.pos = u.vp * u.model * vec4f(p, 1.0);
+            o.col = u.color;
+            return o;
         }
-        @fragment fn fs(i: Out) -> @location(0) vec4f { return i.col; }
+
+        @fragment fn fs(i: Out) -> @location(0) vec4f {
+            return i.col;
+        }
       `,
     });
 
-    // Konfiguration für beide Pipelines
+    // --- NEU: Wir definieren den Bauplan explizit ---
+    this.bindGroupLayout = this.device.createBindGroupLayout({
+      entries: [
+        {
+          binding: 0,
+          visibility: GPUShaderStage.VERTEX, // Unser Uniform-Block wird nur im Vertex-Shader genutzt
+          buffer: { type: "uniform" },
+        },
+      ],
+    });
+
+    const pipelineLayout = this.device.createPipelineLayout({
+      bindGroupLayouts: [this.bindGroupLayout],
+    });
+    // ------------------------------------------------
+
+    // Konfiguration für beide Pipelines (Nutzt jetzt unser explizites Layout statt "auto")
     const pipelineConfig: any = {
-      layout: "auto",
+      layout: pipelineLayout, // <--- WICHTIG: Hier stecken wir das geteilte Layout rein
       vertex: {
         module: shader,
         entryPoint: "vs",
@@ -63,7 +88,7 @@ export class WebGPURenderer implements IRenderer {
     // 1. Pipeline für BasicMaterial (Triangles)
     this.pipelineTriangles = this.device.createRenderPipeline({
       ...pipelineConfig,
-      primitive: { topology: "triangle-list", cullMode: "back" }, // Backface Culling für Polygone!
+      primitive: { topology: "triangle-list", cullMode: "back" },
     });
 
     // 2. Pipeline für WireframeMaterial (Lines)
@@ -78,6 +103,7 @@ export class WebGPURenderer implements IRenderer {
   public setClearColor(color: Color): void {
     this.clearColor = color.toArray();
   }
+
   private createDepthTexture() {
     if (this.depthTexture) this.depthTexture.destroy();
     this.depthTexture = this.device.createTexture({
@@ -86,6 +112,7 @@ export class WebGPURenderer implements IRenderer {
       usage: GPUTextureUsage.RENDER_ATTACHMENT,
     });
   }
+
   public setSize(w: number, h: number) {
     this.canvas.width = w;
     this.canvas.height = h;
@@ -107,6 +134,7 @@ export class WebGPURenderer implements IRenderer {
         vertices.byteOffset,
         vertices.byteLength,
       );
+
       let ib: GPUBuffer | undefined;
       let format: GPUIndexFormat | undefined;
       let indexCount = 0;
@@ -139,11 +167,13 @@ export class WebGPURenderer implements IRenderer {
         size: 144,
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
       });
-      // Wir nutzen getBindGroupLayout(0) von einer der Pipelines (sie sind layout-kompatibel)
+
+      // <--- WICHTIG: Wir nutzen jetzt explizit unser gespeichertes Layout!
       const bg = this.device.createBindGroup({
-        layout: this.pipelineTriangles.getBindGroupLayout(0),
+        layout: this.bindGroupLayout,
         entries: [{ binding: 0, resource: { buffer: ub } }],
       });
+
       entry = { ub, bg };
       this.objCache.set(obj, entry);
     }
@@ -186,6 +216,7 @@ export class WebGPURenderer implements IRenderer {
 
         uData.set(obj.worldMatrix.data, 16);
         uData.set(obj.material.color.toArray(), 32);
+
         const oCache = this.getObjCache(obj);
         this.device.queue.writeBuffer(
           oCache.ub,
@@ -195,8 +226,10 @@ export class WebGPURenderer implements IRenderer {
           uData.byteLength,
         );
         const gCache = this.getGeoCache(obj.geometry);
+
         rp.setBindGroup(0, oCache.bg);
         rp.setVertexBuffer(0, gCache.vb);
+
         if (gCache.ib && gCache.format) {
           rp.setIndexBuffer(gCache.ib, gCache.format);
           rp.drawIndexed(gCache.indexCount);
@@ -204,11 +237,14 @@ export class WebGPURenderer implements IRenderer {
           rp.draw(gCache.vertexCount);
         }
       }
+
       if (obj.children) {
         for (const child of obj.children) drawObject(child);
       }
     };
+
     for (const obj of scene.objects || []) drawObject(obj);
+
     rp.end();
     this.device.queue.submit([ce.finish()]);
   }

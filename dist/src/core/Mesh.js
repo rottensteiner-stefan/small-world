@@ -1,14 +1,14 @@
 import { Object3D } from "./Object3D.js";
-import { Color } from "./Color.js";
 export class Mesh extends Object3D {
     geometry = null;
     bounds = null;
-    color = Color.WHITE;
-    constructor(geometry, color = Color.WHITE, name = "") {
+    // Mesh erfordert jetzt initial ein Material anstatt einer Farbe
+    constructor(geometry, material, name = "") {
         super(name);
         if (geometry)
             this.geometry = geometry;
-        this.color = color;
+        if (material)
+            this.material = material;
     }
 }
 //# sourceMappingURL=Mesh.js.map

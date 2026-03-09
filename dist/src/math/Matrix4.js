@@ -1,7 +1,9 @@
 import { Vector3D } from "./Vector3D.js";
 export class Matrix4 {
     data = new Float32Array(16);
-    constructor() { this.identity(); }
+    constructor() {
+        this.identity();
+    }
     identity() {
         this.data.fill(0);
         this.data[0] = 1;

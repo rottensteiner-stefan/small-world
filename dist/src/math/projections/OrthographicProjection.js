@@ -17,7 +17,11 @@ export class OrthographicProjection extends Projection {
         this.f = f;
         this.update();
     }
-    update() { Matrix4.orthographic(this.l, this.r, this.b, this.t, this.n, this.f, this.matrix); }
-    getMatrix() { return this.matrix; }
+    update() {
+        Matrix4.orthographic(this.l, this.r, this.b, this.t, this.n, this.f, this.matrix);
+    }
+    getMatrix() {
+        return this.matrix;
+    }
 }
 //# sourceMappingURL=OrthographicProjection.js.map

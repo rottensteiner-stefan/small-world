@@ -1,6 +1,8 @@
 export class Scene {
     objects = [];
-    add(obj) { this.objects.push(obj); }
+    add(obj) {
+        this.objects.push(obj);
+    }
     remove(obj) {
         const index = this.objects.indexOf(obj);
         if (index !== -1)

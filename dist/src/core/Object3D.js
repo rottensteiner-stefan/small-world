@@ -1,12 +1,11 @@
 import { Vector3D } from "../math/Vector3D.js";
 import { Matrix4 } from "../math/Matrix4.js";
-import { Color } from "./Color.js";
 export class Object3D {
     uuid = crypto.randomUUID();
     name = "";
     geometry = null;
+    material = null; // <--- NEU
     bounds = null;
-    color = Color.WHITE;
     position = new Vector3D(0, 0, 0);
     rotation = new Vector3D(0, 0, 0);
     scale = new Vector3D(1, 1, 1);
@@ -14,10 +13,11 @@ export class Object3D {
     worldMatrix = new Matrix4();
     parent = null;
     children = [];
-    // NEU: Culling Flags
     isVisible = true;
     frustumCulled = true;
-    constructor(name = "") { this.name = name; }
+    constructor(name = "") {
+        this.name = name;
+    }
     add(child) {
         if (child.parent)
             child.parent.remove(child);
