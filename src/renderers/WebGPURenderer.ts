@@ -18,7 +18,8 @@ export class WebGPURenderer implements IRenderer {
   private device!: GPUDevice;
   private context!: GPUCanvasContext;
   private format!: GPUTextureFormat;
-  private pipeline!: GPURenderPipeline;
+  private pipelineLines!: GPURenderPipeline;
+  private pipelineTriangles!: GPURenderPipeline;
   private depthTexture!: GPUTexture;
   private canvas!: HTMLCanvasElement;
   private clearColor: number[] = [0.1, 0.1, 0.1, 1.0];
@@ -32,6 +33,7 @@ export class WebGPURenderer implements IRenderer {
     this.context = canvas.getContext("webgpu")!;
     this.format = navigator.gpu.getPreferredCanvasFormat();
     this.context.configure({ device: this.device, format: this.format });
+
     const shader = this.device.createShaderModule({
       code: `
         struct Unifs { vp: mat4x4f, model: mat4x4f, color: vec4f }
@@ -43,7 +45,9 @@ export class WebGPURenderer implements IRenderer {
         @fragment fn fs(i: Out) -> @location(0) vec4f { return i.col; }
       `,
     });
-    this.pipeline = this.device.createRenderPipeline({
+
+    // Konfiguration für beide Pipelines
+    const pipelineConfig: any = {
       layout: "auto",
       vertex: {
         module: shader,
@@ -53,9 +57,21 @@ export class WebGPURenderer implements IRenderer {
         ],
       },
       fragment: { module: shader, entryPoint: "fs", targets: [{ format: this.format }] },
-      primitive: { topology: "line-list", cullMode: "none" },
       depthStencil: { depthWriteEnabled: true, depthCompare: "less", format: "depth24plus" },
+    };
+
+    // 1. Pipeline für BasicMaterial (Triangles)
+    this.pipelineTriangles = this.device.createRenderPipeline({
+      ...pipelineConfig,
+      primitive: { topology: "triangle-list", cullMode: "back" }, // Backface Culling für Polygone!
     });
+
+    // 2. Pipeline für WireframeMaterial (Lines)
+    this.pipelineLines = this.device.createRenderPipeline({
+      ...pipelineConfig,
+      primitive: { topology: "line-list", cullMode: "none" },
+    });
+
     this.createDepthTexture();
   }
 
@@ -123,8 +139,9 @@ export class WebGPURenderer implements IRenderer {
         size: 144,
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
       });
+      // Wir nutzen getBindGroupLayout(0) von einer der Pipelines (sie sind layout-kompatibel)
       const bg = this.device.createBindGroup({
-        layout: this.pipeline.getBindGroupLayout(0),
+        layout: this.pipelineTriangles.getBindGroupLayout(0),
         entries: [{ binding: 0, resource: { buffer: ub } }],
       });
       entry = { ub, bg };
@@ -152,15 +169,23 @@ export class WebGPURenderer implements IRenderer {
         depthStoreOp: "store",
       },
     });
-    rp.setPipeline(this.pipeline);
+
     const uData = new Float32Array(36);
     uData.set(vpMatrix, 0);
 
     const drawObject = (obj: any) => {
-      if (obj.isVisible === false) return;
+      if (obj.isVisible === false || !obj.material) return;
+
       if (obj.geometry && obj.worldMatrix) {
+        // Dynamisch die richtige Pipeline anhand des Materials setzen
+        if (obj.material.type === "WireframeMaterial") {
+          rp.setPipeline(this.pipelineLines);
+        } else {
+          rp.setPipeline(this.pipelineTriangles);
+        }
+
         uData.set(obj.worldMatrix.data, 16);
-        uData.set(obj.color.toArray(), 32);
+        uData.set(obj.material.color.toArray(), 32);
         const oCache = this.getObjCache(obj);
         this.device.queue.writeBuffer(
           oCache.ub,
