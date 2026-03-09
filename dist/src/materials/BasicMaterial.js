@@ -1,7 +1,5 @@
 import { Material } from "./Material.js";
 export class BasicMaterial extends Material {
-    get type() {
-        return "BasicMaterial";
-    }
+    type = "BasicMaterial";
 }
 //# sourceMappingURL=BasicMaterial.js.map
