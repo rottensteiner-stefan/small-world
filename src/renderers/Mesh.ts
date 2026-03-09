@@ -1,11 +1,14 @@
+import { IGeometryData } from "../interfaces/IGeometryData.js";
+
 export class Mesh {
-  public vbo: any;
-  public ebo: any;
-  public nbo: any;
+  public vbo: WebGLBuffer | null;
+  public ebo: WebGLBuffer | null;
+  public nbo: WebGLBuffer | null = null;
   public count: number;
+
   constructor(
-    private gl: any,
-    data: any,
+    private gl: WebGLRenderingContext | WebGL2RenderingContext,
+    data: IGeometryData,
   ) {
     this.vbo = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, this.vbo);

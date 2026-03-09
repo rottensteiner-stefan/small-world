@@ -31,10 +31,11 @@ export class WebGL1Renderer {
     render(scene, vp) {
         this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
         this.gl.useProgram(this.prog);
-        this.gl.uniformMatrix4fv(this.uVP, false, vp);
+        if (this.uVP)
+            this.gl.uniformMatrix4fv(this.uVP, false, vp);
         const posLoc = this.gl.getAttribLocation(this.prog, "a_position");
         for (const o of scene.objects) {
-            if (!o.isVisible || !o.material)
+            if (!o.isVisible || !o.material || !o.geometry)
                 continue;
             let m = this.cache.get(o.geometry);
             if (!m) {
@@ -42,8 +43,10 @@ export class WebGL1Renderer {
                 this.cache.set(o.geometry, m);
             }
             m.bind(posLoc);
-            this.gl.uniformMatrix4fv(this.uM, false, o.worldMatrix.data);
-            this.gl.uniform4fv(this.uC, o.material.color.toArray());
+            if (this.uM)
+                this.gl.uniformMatrix4fv(this.uM, false, o.worldMatrix.data);
+            if (this.uC)
+                this.gl.uniform4fv(this.uC, o.material.color.toArray());
             const drawMode = o.material.type === "WireframeMaterial" ? this.gl.LINES : this.gl.TRIANGLES;
             this.gl.drawElements(drawMode, m.count, this.gl.UNSIGNED_SHORT, 0);
         }

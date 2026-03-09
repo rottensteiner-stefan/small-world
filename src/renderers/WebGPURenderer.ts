@@ -5,6 +5,9 @@ import { DirectionalLight } from "../core/lights/DirectionalLight.js";
 import { AmbientLight } from "../core/lights/AmbientLight.js";
 import { PointLight } from "../core/lights/PointLight.js";
 import { Vector3D } from "../math/Vector3D.js";
+import { IGeometryData } from "../interfaces/IGeometryData.js";
+import { Object3D } from "../core/Object3D.js";
+import { PhongMaterial } from "../core/materials/PhongMaterial";
 
 interface GeoCacheEntry {
   vb: GPUBuffer;
@@ -29,8 +32,8 @@ export class WebGPURenderer implements IRenderer {
   private depthTexture!: GPUTexture;
   private canvas!: HTMLCanvasElement;
   private clearColor: number[] = [0.1, 0.1, 0.1, 1.0];
-  private geoCache = new Map<any, GeoCacheEntry>();
-  private objCache = new Map<any, ObjCacheEntry>();
+  private geoCache = new Map<IGeometryData, GeoCacheEntry>();
+  private objCache = new Map<Object3D, ObjCacheEntry>();
 
   public async initialize(canvas: HTMLCanvasElement): Promise<void> {
     this.canvas = canvas;
@@ -40,7 +43,6 @@ export class WebGPURenderer implements IRenderer {
     this.format = navigator.gpu.getPreferredCanvasFormat();
     this.context.configure({ device: this.device, format: this.format });
 
-    // Shader mit Arrays und strict Padding für WebGPU (16-byte aligned)
     const shader = this.device.createShaderModule({
       code: `
         struct PointLight {
@@ -136,28 +138,39 @@ export class WebGPURenderer implements IRenderer {
     const pipelineLayout = this.device.createPipelineLayout({
       bindGroupLayouts: [this.bindGroupLayout],
     });
-    const pipelineConfig: any = {
+
+    const pipelineDescriptorTemplate = {
       layout: pipelineLayout,
       vertex: {
         module: shader,
         entryPoint: "vs",
         buffers: [
-          { arrayStride: 12, attributes: [{ shaderLocation: 0, offset: 0, format: "float32x3" }] },
-          { arrayStride: 12, attributes: [{ shaderLocation: 1, offset: 0, format: "float32x3" }] },
+          {
+            arrayStride: 12,
+            attributes: [{ shaderLocation: 0, offset: 0, format: "float32x3" as GPUVertexFormat }],
+          },
+          {
+            arrayStride: 12,
+            attributes: [{ shaderLocation: 1, offset: 0, format: "float32x3" as GPUVertexFormat }],
+          },
         ],
       },
       fragment: { module: shader, entryPoint: "fs", targets: [{ format: this.format }] },
-      depthStencil: { depthWriteEnabled: true, depthCompare: "less", format: "depth24plus" },
+      depthStencil: {
+        depthWriteEnabled: true,
+        depthCompare: "less" as GPUCompareFunction,
+        format: "depth24plus" as GPUTextureFormat,
+      },
     };
 
     this.pipelineTriangles = this.device.createRenderPipeline({
-      ...pipelineConfig,
+      ...pipelineDescriptorTemplate,
       primitive: { topology: "triangle-list", cullMode: "back" },
-    });
+    } as GPURenderPipelineDescriptor);
     this.pipelineLines = this.device.createRenderPipeline({
-      ...pipelineConfig,
+      ...pipelineDescriptorTemplate,
       primitive: { topology: "line-list", cullMode: "none" },
-    });
+    } as GPURenderPipelineDescriptor);
     this.createDepthTexture();
   }
 
@@ -178,7 +191,7 @@ export class WebGPURenderer implements IRenderer {
     this.createDepthTexture();
   }
 
-  private getGeoCache(geometry: any): GeoCacheEntry {
+  private getGeoCache(geometry: IGeometryData): GeoCacheEntry {
     let entry = this.geoCache.get(geometry);
     if (!entry) {
       const vb = this.device.createBuffer({
@@ -232,10 +245,9 @@ export class WebGPURenderer implements IRenderer {
     return entry;
   }
 
-  private getObjCache(obj: any): ObjCacheEntry {
+  private getObjCache(obj: Object3D): ObjCacheEntry {
     let entry = this.objCache.get(obj);
     if (!entry) {
-      // Neuer Buffer-Size: 368 Bytes (92 Floats)
       const ub = this.device.createBuffer({
         size: 368,
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
@@ -273,7 +285,7 @@ export class WebGPURenderer implements IRenderer {
     let aCol = new Color(0, 0, 0),
       dDir = new Vector3D(0, 1, 0),
       dCol = new Color(0, 0, 0);
-    const pLights: any[] = [];
+    const pLights: PointLight[] = [];
 
     for (const obj of scene.objects) {
       if (obj instanceof AmbientLight)
@@ -293,23 +305,21 @@ export class WebGPURenderer implements IRenderer {
         );
       }
 
-      const findPointLights = (node: any) => {
+      const findPointLights = (node: Object3D) => {
         if (node instanceof PointLight && pLights.length < 4) pLights.push(node);
         if (node.children) node.children.forEach(findPointLights);
       };
       findPointLights(obj);
     }
 
-    // Uniform Data Structure befüllen (Exaktes Float32 Alignment)
     const uData = new Float32Array(92);
-    uData.set(vpMatrix, 0); // 0-15
-    uData.set([aCol.r, aCol.g, aCol.b, 1.0], 40); // 40-43
-    uData.set([dCol.r, dCol.g, dCol.b, 1.0], 44); // 44-47
-    uData.set([dDir.x, dDir.y, dDir.z, 0.0], 48); // 48-51
-    uData.set([camPos.x, camPos.y, camPos.z, 0.0], 52); // 52-55
-    uData[57] = pLights.length; // 57 (numPointLights)
+    uData.set(vpMatrix, 0);
+    uData.set([aCol.r, aCol.g, aCol.b, 1.0], 40);
+    uData.set([dCol.r, dCol.g, dCol.b, 1.0], 44);
+    uData.set([dDir.x, dDir.y, dDir.z, 0.0], 48);
+    uData.set([camPos.x, camPos.y, camPos.z, 0.0], 52);
+    uData[57] = pLights.length;
 
-    // Packe PointLights in den Buffer (startet bei Float 60)
     for (let i = 0; i < pLights.length; i++) {
       const pl = pLights[i];
       const offset = 60 + i * 8;
@@ -323,27 +333,28 @@ export class WebGPURenderer implements IRenderer {
       );
     }
 
-    const drawObject = (obj: any) => {
-      if (obj.isVisible === false || !obj.material) return;
+    const drawObject = (obj: Object3D) => {
+      if (obj.isVisible === false || !obj.material || !obj.geometry) return;
 
-      if (obj.geometry && obj.worldMatrix) {
+      if (obj.worldMatrix) {
         rp.setPipeline(
           obj.material.type === "WireframeMaterial" ? this.pipelineLines : this.pipelineTriangles,
         );
 
-        uData.set(obj.worldMatrix.data, 16); // 16-31
-        uData.set(obj.material.color.toArray(), 32); // 32-35
+        uData.set(obj.worldMatrix.data, 16);
+        uData.set(obj.material.color.toArray(), 32);
 
         let shininess = -1.0;
         let specCol = [0, 0, 0, 0];
         if (obj.material.type === "LambertMaterial") shininess = 0.0;
         else if (obj.material.type === "PhongMaterial") {
-          shininess = obj.material.shininess;
-          specCol = obj.material.specularColor.toArray();
+          const material = obj.material as PhongMaterial;
+          shininess = material.shininess || 32;
+          specCol = material.specularColor ? material.specularColor.toArray() : [0, 0, 0, 0];
         }
 
-        uData.set(specCol, 36); // 36-39
-        uData[56] = shininess; // 56
+        uData.set(specCol, 36);
+        uData[56] = shininess;
 
         const oCache = this.getObjCache(obj);
         this.device.queue.writeBuffer(

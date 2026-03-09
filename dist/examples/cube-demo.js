@@ -171,7 +171,7 @@ async function start() {
             "hud.player.pos.y": player.position.y.toFixed(1),
             "hud.player.pos.z": player.position.z.toFixed(1),
             "hud.score": `${score} / ${TOTAL_SPHERES}`,
-            "hud.visible": visibleCount
+            "hud.visible": visibleCount,
         });
         sw.activeRenderer.render(scene, vpM.data, cam.position);
         requestAnimationFrame(loop);

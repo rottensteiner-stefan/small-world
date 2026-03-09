@@ -1,5 +1,9 @@
 export class ShaderLoader {
-  public static createProgram(gl: any, vs: string, fs: string) {
+  public static createProgram(
+    gl: WebGLRenderingContext | WebGL2RenderingContext,
+    vs: string,
+    fs: string,
+  ) {
     const v = gl.createShader(gl.VERTEX_SHADER)!;
     gl.shaderSource(v, vs);
     gl.compileShader(v);

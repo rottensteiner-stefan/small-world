@@ -1,14 +1,16 @@
 import { Vector3D } from "../math/Vector3D.js";
 import { Matrix4 } from "../math/Matrix4.js";
-import { Material } from "../core/materials/Material.js";
+import { Material } from "./materials/Material";
+import { IGeometryData } from "../interfaces/IGeometryData.js";
+import { IBoundingVolume } from "../interfaces/IBoundingVolume.js";
 
 export class Object3D {
   public readonly uuid: string = crypto.randomUUID();
   public name: string = "";
 
-  public geometry: any = null;
+  public geometry: IGeometryData | null = null;
   public material: Material | null = null; // <--- NEU
-  public bounds: any = null;
+  public bounds: IBoundingVolume | null = null;
 
   public position: Vector3D = new Vector3D(0, 0, 0);
   public rotation: Vector3D = new Vector3D(0, 0, 0);
