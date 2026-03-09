@@ -17,7 +17,9 @@ import { Collision } from "../src/physics/Collision.js";
 import { Keys } from "../src/enums/Keys.js";
 import { FrustumCuller } from "../src/core/FrustumCuller.js";
 import { WireframeMaterial } from "../src/materials/WireframeMaterial.js";
-import { BasicMaterial } from "../src/materials/BasicMaterial.js";
+import { LambertMaterial } from "../src/materials/LambertMaterial.js";
+import { PhongMaterial } from "../src/materials/PhongMaterial.js";
+import { DirectionalLight } from "../src/core/DirectionalLight.js";
 
 async function start() {
   Input.init();
@@ -30,25 +32,36 @@ async function start() {
   const hud = new HUD(sw.config.showHUD !== false);
   await hud.init();
 
-  // Grid bekommt ein WireframeMaterial
+  // --- NEU: Wir machen Licht an! ---
+  const sun = new DirectionalLight(Color.WHITE, 1.2);
+  sun.direction.set(1, -1.5, -1); // Licht kommt von schräg oben hinten
+  scene.add(sun);
+
   const grid = new Object3D("Grid");
   grid.geometry = new Grid(WORLD_SIZE, 50).getGeometryData();
   grid.material = new WireframeMaterial();
   grid.material.color = Color.DARKSLATEGRAY;
   scene.add(grid);
 
-  // Player bekommt ein BasicMaterial (Gefüllte Polygone)
   const playerSize = 1.5;
   const player = new Object3D("Player");
   player.geometry = new Cube(playerSize).getGeometryData();
-  player.material = new BasicMaterial();
-  player.material.color = Color.ORANGE;
+
+  // Der Spieler bekommt ein cooles, glänzendes Plastik-Material!
+  const playerMat = new PhongMaterial();
+  playerMat.color = Color.ORANGE;
+  playerMat.specularColor = Color.WHITE;
+  playerMat.shininess = 64;
+  player.material = playerMat;
   scene.add(player);
 
   const moon = new Object3D("Moon");
   moon.geometry = new Sphere(0.4).getGeometryData();
-  moon.material = new BasicMaterial();
-  moon.material.color = Color.YELLOW;
+
+  // Der Mond glänzt nicht, er streut das Licht matt
+  const moonMat = new LambertMaterial();
+  moonMat.color = Color.YELLOW;
+  moon.material = moonMat;
   player.add(moon);
 
   const spheres: Object3D[] = [];
@@ -59,8 +72,14 @@ async function start() {
     for (let i = 0; i < TOTAL_SPHERES; i++) {
       const s = new Object3D(`Sphere_${i}`);
       s.geometry = sGeo;
-      s.material = new BasicMaterial();
-      s.material.color = Color.DODGERBLUE;
+
+      // Sammel-Sphären glänzen leicht
+      const sMat = new PhongMaterial();
+      sMat.color = Color.DODGERBLUE;
+      sMat.specularColor = new Color(0.8, 0.8, 1.0);
+      sMat.shininess = 32;
+      s.material = sMat;
+
       s.position = new Vector3D(Math.random() * 40 - 20, 0, Math.random() * 40 - 20);
       s.bounds = new BoundingSphere(s.position, 0.6);
       scene.add(s);
@@ -156,7 +175,9 @@ async function start() {
       visibleCount,
     );
 
-    sw.activeRenderer.render(scene, vpM.data);
+    // NEU: Wir übergeben die Kamera-Position an den Renderer für die Glanzpunkt-Berechnung!
+    sw.activeRenderer.render(scene, vpM.data, cam.position);
+
     requestAnimationFrame(loop);
   }
   loop();
