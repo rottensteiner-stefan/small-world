@@ -20,6 +20,8 @@ import { WireframeMaterial } from "../src/materials/WireframeMaterial.js";
 import { LambertMaterial } from "../src/materials/LambertMaterial.js";
 import { PhongMaterial } from "../src/materials/PhongMaterial.js";
 import { DirectionalLight } from "../src/core/DirectionalLight.js";
+import { AmbientLight } from "../src/core/AmbientLight.js";
+import { PointLight } from "../src/core/PointLight.js";
 
 async function start() {
   Input.init();
@@ -32,9 +34,13 @@ async function start() {
   const hud = new HUD(sw.config.showHUD !== false);
   await hud.init();
 
-  // --- NEU: Wir machen Licht an! ---
-  const sun = new DirectionalLight(Color.WHITE, 1.2);
-  sun.direction.set(1, -1.5, -1); // Licht kommt von schräg oben hinten
+  // 1. Sanftes Grundlicht im Raum (blau-graulich)
+  const ambient = new AmbientLight(new Color(0.3, 0.4, 0.6), 0.3);
+  scene.add(ambient);
+
+  // 2. Die schwache Sonne
+  const sun = new DirectionalLight(Color.WHITE, 0.5);
+  sun.direction.set(1, -1.5, -1);
   scene.add(sun);
 
   const grid = new Object3D("Grid");
@@ -46,8 +52,6 @@ async function start() {
   const playerSize = 1.5;
   const player = new Object3D("Player");
   player.geometry = new Cube(playerSize).getGeometryData();
-
-  // Der Spieler bekommt ein cooles, glänzendes Plastik-Material!
   const playerMat = new PhongMaterial();
   playerMat.color = Color.ORANGE;
   playerMat.specularColor = Color.WHITE;
@@ -57,12 +61,14 @@ async function start() {
 
   const moon = new Object3D("Moon");
   moon.geometry = new Sphere(0.4).getGeometryData();
-
-  // Der Mond glänzt nicht, er streut das Licht matt
   const moonMat = new LambertMaterial();
   moonMat.color = Color.YELLOW;
   moon.material = moonMat;
   player.add(moon);
+
+  // 3. Das dramatische PointLight! Wir hängen es direkt an den kreisenden Mond.
+  const torch = new PointLight(Color.RED, 5.0); // Starkes rotes Licht
+  moon.add(torch); // <-- Es wird mit dem Mond reisen!
 
   const spheres: Object3D[] = [];
   const TOTAL_SPHERES = 30;
@@ -72,14 +78,11 @@ async function start() {
     for (let i = 0; i < TOTAL_SPHERES; i++) {
       const s = new Object3D(`Sphere_${i}`);
       s.geometry = sGeo;
-
-      // Sammel-Sphären glänzen leicht
       const sMat = new PhongMaterial();
       sMat.color = Color.DODGERBLUE;
       sMat.specularColor = new Color(0.8, 0.8, 1.0);
       sMat.shininess = 32;
       s.material = sMat;
-
       s.position = new Vector3D(Math.random() * 40 - 20, 0, Math.random() * 40 - 20);
       s.bounds = new BoundingSphere(s.position, 0.6);
       scene.add(s);
@@ -159,7 +162,7 @@ async function start() {
     moon.position.x = Math.cos(time) * 3;
     moon.position.z = Math.sin(time) * 3;
 
-    scene.update();
+    scene.update(); // Hier wird auch die Welt-Position des PointLights berechnet!
     Matrix4.lookAt(cam.position, cam.target, cam.up, vM);
     cam.getViewProjection(vM, vpM);
 
@@ -175,7 +178,6 @@ async function start() {
       visibleCount,
     );
 
-    // NEU: Wir übergeben die Kamera-Position an den Renderer für die Glanzpunkt-Berechnung!
     sw.activeRenderer.render(scene, vpM.data, cam.position);
 
     requestAnimationFrame(loop);
