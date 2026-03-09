@@ -1,27 +1,32 @@
 import { Vector3D } from "../math/Vector3D.js";
 import { Matrix4 } from "../math/Matrix4.js";
-import { Color } from "./Color.js";
+import { Material } from "../materials/Material.js";
+
 export class Object3D {
   public readonly uuid: string = crypto.randomUUID();
   public name: string = "";
+
   public geometry: any = null;
+  public material: Material | null = null; // <--- NEU
   public bounds: any = null;
-  public color: Color = Color.WHITE;
+
   public position: Vector3D = new Vector3D(0, 0, 0);
   public rotation: Vector3D = new Vector3D(0, 0, 0);
   public scale: Vector3D = new Vector3D(1, 1, 1);
+
   public localMatrix: Matrix4 = new Matrix4();
   public worldMatrix: Matrix4 = new Matrix4();
+
   public parent: Object3D | null = null;
   public children: Object3D[] = [];
 
-  // NEU: Culling Flags
   public isVisible: boolean = true;
   public frustumCulled: boolean = true;
 
   constructor(name: string = "") {
     this.name = name;
   }
+
   public add(child: Object3D): void {
     if (child.parent) child.parent.remove(child);
     child.parent = this;
