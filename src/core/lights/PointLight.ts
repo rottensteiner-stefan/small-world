@@ -1,8 +1,7 @@
-import { Object3D } from "./Object3D.js";
-import { Color } from "./Color.js";
+import { Object3D } from "../Object3D.js";
+import { Color } from "../colors/Color.js";
 
 export class PointLight extends Object3D {
-  // distance: Wie weit das Licht reicht. decay: Wie schnell es abfällt.
   constructor(
     public color: Color = Color.WHITE,
     public intensity: number = 1.0,

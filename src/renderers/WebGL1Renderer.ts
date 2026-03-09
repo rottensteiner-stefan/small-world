@@ -1,7 +1,7 @@
 import { IRenderer } from "../interfaces/IRenderer.js";
 import { WireframeVS_100, WireframeFS_100 } from "./shaders/WireframeShader.js";
 import { Mesh } from "./Mesh.js";
-import { Color } from "../core/Color.js";
+import { Color } from "../core/colors/Color.js";
 
 export class WebGL1Renderer implements IRenderer {
   private gl!: WebGLRenderingContext;

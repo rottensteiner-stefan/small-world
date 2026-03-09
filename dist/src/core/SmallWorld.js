@@ -1,6 +1,6 @@
 import { DEFAULT_RENDERER } from "./Engine.js";
 import { RendererFactory } from "../renderers/RendererFactory.js";
-import { ColorUtils } from "./ColorUtils.js";
+import { ColorUtils } from "./colors/ColorUtils.js";
 export class SmallWorld {
     config;
     activeRenderer;

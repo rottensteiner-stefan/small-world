@@ -1,0 +1,1 @@
+{"version":3,"file":"PhongMaterial.js","sourceRoot":"","sources":["../../../../src/core/materials/PhongMaterial.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,QAAQ,EAAE,MAAM,eAAe,CAAC;AACzC,OAAO,EAAE,KAAK,EAAE,MAAM,oBAAoB,CAAC;AAC3C,MAAM,OAAO,aAAc,SAAQ,QAAQ;IACzB,IAAI,GAAG,eAAe,CAAC;IAChC,aAAa,GAAU,KAAK,CAAC,KAAK,CAAC;IACnC,SAAS,GAAW,IAAI,CAAC;CACjC"}

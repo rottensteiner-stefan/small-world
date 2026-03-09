@@ -1,5 +1,5 @@
-import { Object3D } from "./Object3D.js";
-import { Color } from "./Color.js";
+import { Object3D } from "../Object3D.js";
+import { Color } from "../colors/Color.js";
 
 export class AmbientLight extends Object3D {
   constructor(

@@ -1,7 +1,7 @@
-import { Color } from "../core/Color.js";
-import { DirectionalLight } from "../core/DirectionalLight.js";
-import { AmbientLight } from "../core/AmbientLight.js";
-import { PointLight } from "../core/PointLight.js";
+import { Color } from "../core/colors/Color.js";
+import { DirectionalLight } from "../core/lights/DirectionalLight.js";
+import { AmbientLight } from "../core/lights/AmbientLight.js";
+import { PointLight } from "../core/lights/PointLight.js";
 import { Vector3D } from "../math/Vector3D.js";
 export class WebGPURenderer {
     device;
