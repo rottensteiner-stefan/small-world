@@ -2,13 +2,8 @@ import { ENGINE_VERSION } from "./Engine.js";
 export class HUD {
     enabled;
     root = null;
-    fpsEl = null;
-    camEl = null;
-    posXEl = null;
-    posYEl = null;
-    posZEl = null;
-    scoreEl = null;
-    visibleEl = null; // <--- NEU
+    // Hier speichern wir die Referenzen zu den HTML-Elementen für schnellen Zugriff
+    elements = new Map();
     constructor(enabled) {
         this.enabled = enabled;
     }
@@ -23,13 +18,15 @@ export class HUD {
             container.innerHTML = html;
             document.body.appendChild(container);
             this.root = document.getElementById("sw-hud-root");
-            this.fpsEl = document.getElementById("hud-fps");
-            this.camEl = document.getElementById("hud-cam");
-            this.posXEl = document.getElementById("hud-pos-x");
-            this.posYEl = document.getElementById("hud-pos-y");
-            this.posZEl = document.getElementById("hud-pos-z");
-            this.scoreEl = document.getElementById("hud-score");
-            this.visibleEl = document.getElementById("hud-visible"); // <--- NEU
+            // --- NEU: Data-Binding initialisieren ---
+            // Finde ALLE Elemente, die das Attribut 'data-hud' haben
+            const nodes = document.querySelectorAll("[data-hud]");
+            nodes.forEach((node) => {
+                const key = node.getAttribute("data-hud");
+                if (key) {
+                    this.elements.set(key, node);
+                }
+            });
         }
         catch (e) {
             console.error("[HUD] Failed to load template:", e);
@@ -40,24 +37,21 @@ export class HUD {
             this.root.style.display = visible ? "block" : "none";
         }
     }
-    // <--- NEU: visibleCount als Parameter hinzugefügt
-    update(fps, cam, x, y, z, score, total, visibleCount) {
+    /**
+     * Nimmt ein Key-Value Objekt entgegen und aktualisiert nur die gemappten Elemente.
+     * Beispiel: hud.update({ "hud.fps": 120, "hud.cam.type": "SMOOTH" });
+     */
+    update(data) {
         if (!this.enabled || !this.root || this.root.style.display === "none")
             return;
-        if (this.fpsEl)
-            this.fpsEl.textContent = fps.toString();
-        if (this.camEl)
-            this.camEl.textContent = cam;
-        if (this.posXEl)
-            this.posXEl.textContent = x.toFixed(1);
-        if (this.posYEl)
-            this.posYEl.textContent = y.toFixed(1);
-        if (this.posZEl)
-            this.posZEl.textContent = z.toFixed(1);
-        if (this.scoreEl)
-            this.scoreEl.textContent = `${score} / ${total}`;
-        if (this.visibleEl)
-            this.visibleEl.textContent = visibleCount.toString(); // <--- NEU
+        // Iteriere über alle übergebenen Keys
+        for (const key in data) {
+            const el = this.elements.get(key);
+            if (el) {
+                // Nur updaten, wenn der Wert sich auch im HTML-Element befindet
+                el.textContent = data[key].toString();
+            }
+        }
     }
 }
 //# sourceMappingURL=HUD.js.map

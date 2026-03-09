@@ -1,64 +1,134 @@
 <style>
+  /* Moderner Glassmorphism-Look */
   #sw-hud-root {
     position: absolute;
     top: 10px;
     left: 10px;
-    color: #00ff00;
-    font-family: "Courier New", monospace;
-    font-size: 14px;
-    background-color: rgba(0, 0, 0, 0.6);
-    padding: 12px;
-    border-radius: 8px;
-    border: 1px solid rgba(0, 255, 0, 0.2);
+    background: rgba(15, 23, 42, 0.75); /* Dunkles Schiefergrau, leicht transparent */
+    backdrop-filter: blur(8px); /* Unschärfe für den Hintergrund */
+    -webkit-backdrop-filter: blur(8px); /* Safari Support */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 8px 10px;
+    font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: #e2e8f0;
+    min-width: 260px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
     pointer-events: none;
-    min-width: 240px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    user-select: none;
   }
-  .hud-line {
-    margin: 4px 0;
+
+  /* Kopfzeile mit Versionsnummer */
+  .hud-header {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #94a3b8;
+    margin-bottom: 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 8px;
     display: flex;
     justify-content: space-between;
+    align-items: center;
   }
-  .hud-label {
-    color: #888;
-    margin-right: 8px;
-  }
-  .hud-value {
-    color: #0f0;
+  .hud-version {
+    font-family: "Fira Code", "Courier New", monospace;
+    color: #38bdf8; /* Cyan Akzent */
     font-weight: bold;
   }
-  .hud-score {
-    color: #ffff00;
-    font-size: 18px;
-    text-shadow: 0 0 5px #ff0;
-  }
-  .coord-box {
+
+  /* Eine Daten-Zeile */
+  .hud-row {
     display: flex;
-    gap: 8px;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    font-size: 14px;
+  }
+  .hud-label {
+    color: #cbd5e1;
+    font-weight: 500;
+  }
+
+  /* Zahlen immer in Monospace, damit sie beim Ändern nicht "zittern" */
+  .hud-value {
+    font-family: "Fira Code", "Consolas", monospace;
+    color: #f8fafc;
+    font-weight: 600;
+  }
+
+  /* Farbliche Akzente für bestimmte Werte */
+  .val-fps {
+    color: #4ade80;
+  } /* Hellgrün */
+  .val-cam {
+    color: #c084fc;
+  } /* Violett */
+  .val-score {
+    color: #fbbf24;
+  } /* Goldgelb */
+
+  /* Koordinaten sauber nebeneinander */
+  .coord-group {
+    display: flex;
+    gap: 12px;
+  }
+  .coord {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .coord-label {
+    color: #64748b;
+    font-size: 11px;
   }
 </style>
+
 <div id="sw-hud-root">
-  <div style="font-weight: bold; color: #fff">SmallWorld {sm-engine-version}</div>
-  <hr style="border: 0; border-top: 1px solid #0f03; margin: 8px 0" />
-  <div class="hud-line">
-    <span class="hud-label">FPS:</span><span id="hud-fps" class="hud-value">0</span>
-  </div>
-  <div class="hud-line">
-    <span class="hud-label">CAM:</span><span id="hud-cam" class="hud-value">-</span>
-  </div>
-  <div class="hud-line">
-    <span class="hud-label">POS:</span>
-    <div class="coord-box">
-      <span>X:<span id="hud-pos-x" class="hud-value">0</span></span>
-      <span>Y:<span id="hud-pos-y" class="hud-value">0</span></span>
-      <span>Z:<span id="hud-pos-z" class="hud-value">0</span></span>
-    </div>
-  </div>
-  <hr style="border: 0; border-top: 1px solid #0f03; margin: 8px 0" />
-  <div class="hud-line">
-    <span class="hud-label">COLLECTED:</span>
-    <span id="hud-score" class="hud-score">0 / 0</span>
+  <div class="hud-header">
+    <span>Engine Debug</span>
+    <span class="hud-version">{sm-engine-version}</span>
   </div>
 
-  <div>Sichtbare Objekte: <span id="hud-visible">0</span></div>
+  <div class="hud-row">
+    <span class="hud-label">FPS</span>
+    <span class="hud-value val-fps" data-hud="hud.fps">0</span>
+  </div>
+
+  <div class="hud-row">
+    <span class="hud-label">Kamera</span>
+    <span class="hud-value val-cam" data-hud="hud.cam.type">SMOOTH</span>
+  </div>
+
+  <div class="hud-row">
+    <span class="hud-label">Pos</span>
+    <div class="coord-group">
+      <div class="coord">
+        <span class="coord-label">X</span
+        ><span class="hud-value" data-hud="hud.player.pos.x">0.0</span>
+      </div>
+      <div class="coord">
+        <span class="coord-label">Y</span
+        ><span class="hud-value" data-hud="hud.player.pos.y">0.0</span>
+      </div>
+      <div class="coord">
+        <span class="coord-label">Z</span
+        ><span class="hud-value" data-hud="hud.player.pos.z">0.0</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="hud-row">
+    <span class="hud-label">Sichtbare Objekte</span>
+    <span class="hud-value" data-hud="hud.visible">0</span>
+  </div>
+
+  <div
+    class="hud-row"
+    style="margin-top: 16px; border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 12px"
+  >
+    <span class="hud-label">Score</span>
+    <span class="hud-value val-score" style="font-size: 18px" data-hud="hud.score">0 / 0</span>
+  </div>
 </div>

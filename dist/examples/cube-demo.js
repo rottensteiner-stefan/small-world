@@ -164,7 +164,15 @@ async function start() {
         Matrix4.lookAt(cam.position, cam.target, cam.up, vM);
         cam.getViewProjection(vM, vpM);
         const visibleCount = FrustumCuller.cull(scene, vpM);
-        hud.update(fps, CameraStrategy[cam.strategy], player.position.x, player.position.y, player.position.z, score, TOTAL_SPHERES, visibleCount);
+        hud.update({
+            "hud.fps": fps,
+            "hud.cam.type": CameraStrategy[cam.strategy],
+            "hud.player.pos.x": player.position.x.toFixed(1),
+            "hud.player.pos.y": player.position.y.toFixed(1),
+            "hud.player.pos.z": player.position.z.toFixed(1),
+            "hud.score": `${score} / ${TOTAL_SPHERES}`,
+            "hud.visible": visibleCount
+        });
         sw.activeRenderer.render(scene, vpM.data, cam.position);
         requestAnimationFrame(loop);
     }
