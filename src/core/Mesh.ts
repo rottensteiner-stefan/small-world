@@ -1,7 +1,7 @@
 import { Object3D } from "./Object3D.js";
 import { IGeometryData } from "../interfaces/IGeometryData.js";
 import { IBoundingVolume } from "../interfaces/IBoundingVolume.js";
-import { Material } from "../materials/Material.js";
+import { Material } from "../core/materials/Material.js";
 
 export class Mesh extends Object3D {
   public geometry: IGeometryData | null = null;

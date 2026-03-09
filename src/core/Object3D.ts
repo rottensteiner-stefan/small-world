@@ -1,6 +1,6 @@
 import { Vector3D } from "../math/Vector3D.js";
 import { Matrix4 } from "../math/Matrix4.js";
-import { Material } from "../materials/Material.js";
+import { Material } from "../core/materials/Material.js";
 
 export class Object3D {
   public readonly uuid: string = crypto.randomUUID();

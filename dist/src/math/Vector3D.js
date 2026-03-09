@@ -49,6 +49,12 @@ export class Vector3D {
     distanceTo(v) {
         return Math.sqrt(this.distanceToSq(v));
     }
+    copyFrom(v) {
+        this.x = v.x;
+        this.y = v.y;
+        this.z = v.z;
+        return this;
+    }
     clone() {
         return new Vector3D(this.x, this.y, this.z);
     }
