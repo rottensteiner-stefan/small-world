@@ -1,5 +1,7 @@
 import { Color } from "../core/Color.js";
 import { DirectionalLight } from "../core/DirectionalLight.js";
+import { AmbientLight } from "../core/AmbientLight.js";
+import { PointLight } from "../core/PointLight.js";
 import { Vector3D } from "../math/Vector3D.js";
 export class WebGPURenderer {
     device;
@@ -20,38 +22,40 @@ export class WebGPURenderer {
         this.context = canvas.getContext("webgpu");
         this.format = navigator.gpu.getPreferredCanvasFormat();
         this.context.configure({ device: this.device, format: this.format });
+        // Shader mit Arrays und strict Padding für WebGPU (16-byte aligned)
         const shader = this.device.createShaderModule({
             code: `
-        struct Unifs {
-          vp: mat4x4f,           // offset 0
-          model: mat4x4f,        // offset 64
-          color: vec4f,          // offset 128
-          specColor: vec4f,      // offset 144
-          lightColor: vec4f,     // offset 160
-          lightDir: vec3f,       // offset 176
-          shininess: f32,        // offset 188
-          viewPos: vec3f,        // offset 192
-          pad: f32               // offset 204
+        struct PointLight {
+          pos: vec4f,
+          color: vec4f,
         }
+
+        struct Unifs {
+          vp: mat4x4f,           // 0
+          model: mat4x4f,        // 64
+          color: vec4f,          // 128
+          specColor: vec4f,      // 144
+          ambientColor: vec4f,   // 160
+          dirLightColor: vec4f,  // 176
+          dirLightDir: vec4f,    // 192 (xyz, w pad)
+          camPos: vec4f,         // 208 (xyz, w pad)
+          shininess: f32,        // 224
+          numPointLights: f32,   // 228
+          pad1: f32,             // 232
+          pad2: f32,             // 236
+          pointLights: array<PointLight, 4> // 240
+        }
+
         @group(0) @binding(0) var<uniform> u: Unifs;
 
-        struct In {
-          @location(0) pos: vec3f,
-          @location(1) normal: vec3f
-        }
-
-        struct Out {
-          @builtin(position) pos: vec4f,
-          @location(0) worldPos: vec3f,
-          @location(1) normal: vec3f
-        }
+        struct In { @location(0) pos: vec3f, @location(1) normal: vec3f }
+        struct Out { @builtin(position) pos: vec4f, @location(0) worldPos: vec3f, @location(1) normal: vec3f }
 
         @vertex fn vs(i: In) -> Out {
             var o: Out;
             let wp = u.model * vec4f(i.pos, 1.0);
             o.worldPos = wp.xyz;
             o.pos = u.vp * wp;
-            // Simple normal matrix
             o.normal = (u.model * vec4f(i.normal, 0.0)).xyz;
             return o;
         }
@@ -60,21 +64,43 @@ export class WebGPURenderer {
             if (u.shininess < -0.5) { return u.color; }
 
             let N = normalize(i.normal);
-            let L = normalize(u.lightDir);
-            let V = normalize(u.viewPos - i.worldPos);
-            let R = reflect(-L, N);
+            let V = normalize(u.camPos.xyz - i.worldPos);
 
-            let ambient = u.color.rgb * 0.15;
-            let diff = max(dot(N, L), 0.0);
-            let diffuse = diff * u.color.rgb * u.lightColor.rgb;
-
+            // Ambient
+            var finalLight = u.ambientColor.rgb;
             var specular = vec3f(0.0);
-            if (u.shininess > 0.0 && diff > 0.0) {
-                let spec = pow(max(dot(V, R), 0.0), u.shininess);
-                specular = spec * u.specColor.rgb * u.lightColor.rgb;
+
+            // Directional Light
+            let L_dir = normalize(u.dirLightDir.xyz);
+            let diff_dir = max(dot(N, L_dir), 0.0);
+            finalLight += diff_dir * u.dirLightColor.rgb;
+
+            if (u.shininess > 0.0 && diff_dir > 0.0) {
+                let R_dir = reflect(-L_dir, N);
+                specular += pow(max(dot(V, R_dir), 0.0), u.shininess) * u.dirLightColor.rgb;
             }
 
-            return vec4f(ambient + diffuse + specular, u.color.a);
+            // Point Lights
+            let numLights = i32(u.numPointLights);
+            for(var j = 0; j < 4; j++) {
+                if (j >= numLights) { break; }
+
+                let lightVec = u.pointLights[j].pos.xyz - i.worldPos;
+                let dist = length(lightVec);
+                let L_pt = lightVec / dist;
+
+                let attenuation = 1.0 / (1.0 + 0.1 * dist + 0.01 * dist * dist);
+                let diff_pt = max(dot(N, L_pt), 0.0);
+
+                finalLight += diff_pt * u.pointLights[j].color.rgb * attenuation;
+
+                if (u.shininess > 0.0 && diff_pt > 0.0) {
+                    let R_pt = reflect(-L_pt, N);
+                    specular += pow(max(dot(V, R_pt), 0.0), u.shininess) * u.pointLights[j].color.rgb * attenuation;
+                }
+            }
+
+            return vec4f((finalLight * u.color.rgb) + (specular * u.specColor.rgb), u.color.a);
         }
       `,
         });
@@ -166,9 +192,9 @@ export class WebGPURenderer {
     getObjCache(obj) {
         let entry = this.objCache.get(obj);
         if (!entry) {
-            // 52 Floats = 208 Bytes (inkl. Padding nach WGSL Standard)
+            // Neuer Buffer-Size: 368 Bytes (92 Floats)
             const ub = this.device.createBuffer({
-                size: 208,
+                size: 368,
                 usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
             });
             const bg = this.device.createBindGroup({
@@ -200,30 +226,48 @@ export class WebGPURenderer {
                 depthStoreOp: "store",
             },
         });
-        // Licht-Daten aus der Szene holen
-        let lDir = new Vector3D(0, 1, 0), lCol = new Color(1, 1, 1, 1);
+        let aCol = new Color(0, 0, 0), dDir = new Vector3D(0, 1, 0), dCol = new Color(0, 0, 0);
+        const pLights = [];
         for (const obj of scene.objects) {
-            if (obj instanceof DirectionalLight) {
-                lDir = obj.direction.clone().scale(-1);
-                const len = lDir.length();
+            if (obj instanceof AmbientLight)
+                aCol = new Color(obj.color.r * obj.intensity, obj.color.g * obj.intensity, obj.color.b * obj.intensity);
+            else if (obj instanceof DirectionalLight) {
+                dDir = obj.direction.clone().scale(-1);
+                const len = dDir.length();
                 if (len > 0)
-                    lDir.scale(1 / len);
-                lCol = new Color(obj.color.r * obj.intensity, obj.color.g * obj.intensity, obj.color.b * obj.intensity, 1);
-                break;
+                    dDir.scale(1 / len);
+                dCol = new Color(obj.color.r * obj.intensity, obj.color.g * obj.intensity, obj.color.b * obj.intensity);
             }
+            const findPointLights = (node) => {
+                if (node instanceof PointLight && pLights.length < 4)
+                    pLights.push(node);
+                if (node.children)
+                    node.children.forEach(findPointLights);
+            };
+            findPointLights(obj);
         }
-        const uData = new Float32Array(52);
-        uData.set(vpMatrix, 0);
-        uData.set(lCol.toArray(), 40);
-        uData.set([lDir.x, lDir.y, lDir.z], 44);
-        uData.set([camPos.x, camPos.y, camPos.z], 48);
+        // Uniform Data Structure befüllen (Exaktes Float32 Alignment)
+        const uData = new Float32Array(92);
+        uData.set(vpMatrix, 0); // 0-15
+        uData.set([aCol.r, aCol.g, aCol.b, 1.0], 40); // 40-43
+        uData.set([dCol.r, dCol.g, dCol.b, 1.0], 44); // 44-47
+        uData.set([dDir.x, dDir.y, dDir.z, 0.0], 48); // 48-51
+        uData.set([camPos.x, camPos.y, camPos.z, 0.0], 52); // 52-55
+        uData[57] = pLights.length; // 57 (numPointLights)
+        // Packe PointLights in den Buffer (startet bei Float 60)
+        for (let i = 0; i < pLights.length; i++) {
+            const pl = pLights[i];
+            const offset = 60 + i * 8;
+            uData.set([pl.worldMatrix.data[12], pl.worldMatrix.data[13], pl.worldMatrix.data[14], 0.0], offset);
+            uData.set([pl.color.r * pl.intensity, pl.color.g * pl.intensity, pl.color.b * pl.intensity, 0.0], offset + 4);
+        }
         const drawObject = (obj) => {
             if (obj.isVisible === false || !obj.material)
                 return;
             if (obj.geometry && obj.worldMatrix) {
                 rp.setPipeline(obj.material.type === "WireframeMaterial" ? this.pipelineLines : this.pipelineTriangles);
-                uData.set(obj.worldMatrix.data, 16);
-                uData.set(obj.material.color.toArray(), 32);
+                uData.set(obj.worldMatrix.data, 16); // 16-31
+                uData.set(obj.material.color.toArray(), 32); // 32-35
                 let shininess = -1.0;
                 let specCol = [0, 0, 0, 0];
                 if (obj.material.type === "LambertMaterial")
@@ -232,15 +276,14 @@ export class WebGPURenderer {
                     shininess = obj.material.shininess;
                     specCol = obj.material.specularColor.toArray();
                 }
-                uData.set(specCol, 36);
-                uData[47] = shininess;
+                uData.set(specCol, 36); // 36-39
+                uData[56] = shininess; // 56
                 const oCache = this.getObjCache(obj);
                 this.device.queue.writeBuffer(oCache.ub, 0, uData.buffer, uData.byteOffset, uData.byteLength);
                 const gCache = this.getGeoCache(obj.geometry);
                 rp.setBindGroup(0, oCache.bg);
                 rp.setVertexBuffer(0, gCache.vb);
-                if (gCache.nb)
-                    rp.setVertexBuffer(1, gCache.nb);
+                rp.setVertexBuffer(1, gCache.nb ? gCache.nb : gCache.vb);
                 if (gCache.ib && gCache.format) {
                     rp.setIndexBuffer(gCache.ib, gCache.format);
                     rp.drawIndexed(gCache.indexCount);

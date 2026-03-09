@@ -6,19 +6,22 @@ import { Vector3D } from "../math/Vector3D.js";
 export abstract class ObjectGeometry implements IGeometry {
   protected vertices: Float32Array = new Float32Array();
   protected indices: Uint16Array = new Uint16Array();
-  protected normals: Float32Array = new Float32Array(); // <--- NEU
+  protected normals: Float32Array = new Float32Array();
 
   protected abstract generateGeometryData(): void;
 
   public getGeometryData(): IGeometryData {
+    // AUTOMATISCHER FALLBACK:
+    // Wenn keine Normalen existieren, berechne sie genau jetzt auf Abruf!
+    if (this.normals.length === 0 && this.vertices.length > 0) {
+      this.computeNormals();
+    }
     return { vertices: this.vertices, indices: this.indices, normals: this.normals };
   }
 
-  // <--- NEU: Die magische Methode zur automatischen Berechnung!
   public computeNormals(): void {
     this.normals = new Float32Array(this.vertices.length);
 
-    // Fallback für Linien-Geometrien (Grid, Line), die keine Dreiecke bilden
     if (this.indices.length % 3 !== 0) {
       for (let i = 0; i < this.normals.length; i += 3) {
         this.normals[i] = 0;
@@ -28,13 +31,11 @@ export abstract class ObjectGeometry implements IGeometry {
       return;
     }
 
-    // Kreuzprodukt für jedes Dreieck berechnen
     for (let i = 0; i < this.indices.length; i += 3) {
       const iA = this.indices[i] * 3;
       const iB = this.indices[i + 1] * 3;
       const iC = this.indices[i + 2] * 3;
 
-      // Die 3 Punkte des Dreiecks
       const ax = this.vertices[iA],
         ay = this.vertices[iA + 1],
         az = this.vertices[iA + 2];
@@ -45,7 +46,6 @@ export abstract class ObjectGeometry implements IGeometry {
         cy = this.vertices[iC + 1],
         cz = this.vertices[iC + 2];
 
-      // Kantenvektoren u und v
       const ux = bx - ax,
         uy = by - ay,
         uz = bz - az;
@@ -53,12 +53,10 @@ export abstract class ObjectGeometry implements IGeometry {
         vy = cy - ay,
         vz = cz - az;
 
-      // Kreuzprodukt (Normalenvektor)
       const nx = uy * vz - uz * vy;
       const ny = uz * vx - ux * vz;
       const nz = ux * vy - uy * vx;
 
-      // Die Normale zu den beteiligten Vertices addieren (für Smooth Shading)
       this.normals[iA] += nx;
       this.normals[iA + 1] += ny;
       this.normals[iA + 2] += nz;
@@ -70,7 +68,6 @@ export abstract class ObjectGeometry implements IGeometry {
       this.normals[iC + 2] += nz;
     }
 
-    // Alle Normalen am Ende auf eine Länge von 1.0 normieren (Normalize)
     for (let i = 0; i < this.normals.length; i += 3) {
       const nx = this.normals[i],
         ny = this.normals[i + 1],
@@ -95,7 +92,7 @@ export abstract class ObjectGeometry implements IGeometry {
       this.vertices[i + 1] = v.y;
       this.vertices[i + 2] = v.z;
     }
-    this.computeNormals(); // <--- WICHTIG: Nach Verformung Normalen neu berechnen!
+    this.computeNormals();
     return this;
   }
 
