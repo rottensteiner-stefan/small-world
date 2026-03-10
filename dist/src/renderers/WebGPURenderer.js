@@ -104,40 +104,81 @@ export class WebGPURenderer {
       `,
         });
         this.bindGroupLayout = this.device.createBindGroupLayout({
-            entries: [{ binding: 0, visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT, buffer: { type: "uniform" } }],
+            entries: [
+                {
+                    binding: 0,
+                    visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+                    buffer: { type: "uniform" },
+                },
+            ],
         });
-        const pipelineLayout = this.device.createPipelineLayout({ bindGroupLayouts: [this.bindGroupLayout] });
+        const pipelineLayout = this.device.createPipelineLayout({
+            bindGroupLayouts: [this.bindGroupLayout],
+        });
         const pipelineDescriptorTemplate = {
             layout: pipelineLayout,
             vertex: {
-                module: shader, entryPoint: "vs",
+                module: shader,
+                entryPoint: "vs",
                 buffers: [
-                    { arrayStride: 12, attributes: [{ shaderLocation: 0, offset: 0, format: "float32x3" }] },
-                    { arrayStride: 12, attributes: [{ shaderLocation: 1, offset: 0, format: "float32x3" }] },
+                    {
+                        arrayStride: 12,
+                        attributes: [{ shaderLocation: 0, offset: 0, format: "float32x3" }],
+                    },
+                    {
+                        arrayStride: 12,
+                        attributes: [{ shaderLocation: 1, offset: 0, format: "float32x3" }],
+                    },
                 ],
             },
             fragment: { module: shader, entryPoint: "fs", targets: [{ format: this.format }] },
-            depthStencil: { depthWriteEnabled: true, depthCompare: "less", format: "depth24plus" },
+            depthStencil: {
+                depthWriteEnabled: true,
+                depthCompare: "less",
+                format: "depth24plus",
+            },
         };
-        this.pipelineTriangles = this.device.createRenderPipeline({ ...pipelineDescriptorTemplate, primitive: { topology: "triangle-list", cullMode: "back" } });
-        this.pipelineLines = this.device.createRenderPipeline({ ...pipelineDescriptorTemplate, primitive: { topology: "line-list", cullMode: "none" } });
+        this.pipelineTriangles = this.device.createRenderPipeline({
+            ...pipelineDescriptorTemplate,
+            primitive: { topology: "triangle-list", cullMode: "back" },
+        });
+        this.pipelineLines = this.device.createRenderPipeline({
+            ...pipelineDescriptorTemplate,
+            primitive: { topology: "line-list", cullMode: "none" },
+        });
         this.createDepthTexture();
     }
-    setClearColor(color) { this.clearColor = color.toArray(); }
+    setClearColor(color) {
+        this.clearColor = color.toArray();
+    }
     createDepthTexture() {
         if (this.depthTexture)
             this.depthTexture.destroy();
-        this.depthTexture = this.device.createTexture({ size: [this.canvas.width, this.canvas.height], format: "depth24plus", usage: GPUTextureUsage.RENDER_ATTACHMENT });
+        this.depthTexture = this.device.createTexture({
+            size: [this.canvas.width, this.canvas.height],
+            format: "depth24plus",
+            usage: GPUTextureUsage.RENDER_ATTACHMENT,
+        });
     }
-    setSize(w, h) { this.canvas.width = w; this.canvas.height = h; this.createDepthTexture(); }
+    setSize(w, h) {
+        this.canvas.width = w;
+        this.canvas.height = h;
+        this.createDepthTexture();
+    }
     getGeoCache(geometry) {
         let entry = this.geoCache.get(geometry);
         if (!entry) {
-            const vb = this.device.createBuffer({ size: geometry.vertices.byteLength, usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST });
+            const vb = this.device.createBuffer({
+                size: geometry.vertices.byteLength,
+                usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+            });
             this.device.queue.writeBuffer(vb, 0, geometry.vertices.buffer, geometry.vertices.byteOffset, geometry.vertices.byteLength);
             let nb;
             if (geometry.normals && geometry.normals.length > 0) {
-                nb = this.device.createBuffer({ size: geometry.normals.byteLength, usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST });
+                nb = this.device.createBuffer({
+                    size: geometry.normals.byteLength,
+                    usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+                });
                 this.device.queue.writeBuffer(nb, 0, geometry.normals.buffer, geometry.normals.byteOffset, geometry.normals.byteLength);
             }
             let ib;
@@ -145,7 +186,10 @@ export class WebGPURenderer {
             let indexCount = 0;
             if (geometry.indices && geometry.indices.length > 0) {
                 indexCount = geometry.indices.length;
-                ib = this.device.createBuffer({ size: geometry.indices.byteLength, usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST });
+                ib = this.device.createBuffer({
+                    size: geometry.indices.byteLength,
+                    usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
+                });
                 this.device.queue.writeBuffer(ib, 0, geometry.indices.buffer, geometry.indices.byteOffset, geometry.indices.byteLength);
                 format = geometry.indices instanceof Uint32Array ? "uint32" : "uint16";
             }
@@ -158,8 +202,14 @@ export class WebGPURenderer {
         let entry = this.objCache.get(obj);
         if (!entry) {
             // Neuer Size: 624 Bytes (156 Floats) wegen Spotlights
-            const ub = this.device.createBuffer({ size: 624, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
-            const bg = this.device.createBindGroup({ layout: this.bindGroupLayout, entries: [{ binding: 0, resource: { buffer: ub } }] });
+            const ub = this.device.createBuffer({
+                size: 624,
+                usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+            });
+            const bg = this.device.createBindGroup({
+                layout: this.bindGroupLayout,
+                entries: [{ binding: 0, resource: { buffer: ub } }],
+            });
             entry = { ub, bg };
             this.objCache.set(obj, entry);
         }
@@ -170,8 +220,20 @@ export class WebGPURenderer {
             return;
         const ce = this.device.createCommandEncoder();
         const rp = ce.beginRenderPass({
-            colorAttachments: [{ view: this.context.getCurrentTexture().createView(), clearValue: this.clearColor, loadOp: "clear", storeOp: "store" }],
-            depthStencilAttachment: { view: this.depthTexture.createView(), depthClearValue: 1.0, depthLoadOp: "clear", depthStoreOp: "store" },
+            colorAttachments: [
+                {
+                    view: this.context.getCurrentTexture().createView(),
+                    clearValue: this.clearColor,
+                    loadOp: "clear",
+                    storeOp: "store",
+                },
+            ],
+            depthStencilAttachment: {
+                view: this.depthTexture.createView(),
+                depthClearValue: 1.0,
+                depthLoadOp: "clear",
+                depthStoreOp: "store",
+            },
         });
         let aCol = new Color(0, 0, 0), dDir = new Vector3D(0, 1, 0), dCol = new Color(0, 0, 0);
         const pLights = [];
@@ -235,8 +297,9 @@ export class WebGPURenderer {
                 if (obj.material.type === "LambertMaterial")
                     shininess = 0.0;
                 else if (obj.material.type === "PhongMaterial") {
-                    shininess = obj.material.shininess || 32;
-                    specCol = obj.material.specularColor ? obj.material.specularColor.toArray() : [0, 0, 0, 0];
+                    const material = obj.material;
+                    shininess = material.shininess || 32;
+                    specCol = material.specularColor ? material.specularColor.toArray() : [0, 0, 0, 0];
                 }
                 uData.set(specCol, 36);
                 uData[56] = shininess;

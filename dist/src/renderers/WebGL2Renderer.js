@@ -97,26 +97,37 @@ export class WebGL2Renderer {
         this.gl.attachShader(this.prog, fs);
         this.gl.linkProgram(this.prog);
         this.locs = {
-            pos: this.gl.getAttribLocation(this.prog, "a_position"), norm: this.gl.getAttribLocation(this.prog, "a_normal"),
-            vp: this.gl.getUniformLocation(this.prog, "u_vp"), model: this.gl.getUniformLocation(this.prog, "u_model"),
-            color: this.gl.getUniformLocation(this.prog, "u_color"), specColor: this.gl.getUniformLocation(this.prog, "u_specColor"),
-            ambient: this.gl.getUniformLocation(this.prog, "u_ambientColor"), dirColor: this.gl.getUniformLocation(this.prog, "u_dirLightColor"),
-            dirDir: this.gl.getUniformLocation(this.prog, "u_dirLightDir"), shininess: this.gl.getUniformLocation(this.prog, "u_shininess"),
-            viewPos: this.gl.getUniformLocation(this.prog, "u_viewPos"), numPL: this.gl.getUniformLocation(this.prog, "u_numPointLights"),
-            numSL: this.gl.getUniformLocation(this.prog, "u_numSpotLights")
+            pos: this.gl.getAttribLocation(this.prog, "a_position"),
+            norm: this.gl.getAttribLocation(this.prog, "a_normal"),
+            vp: this.gl.getUniformLocation(this.prog, "u_vp"),
+            model: this.gl.getUniformLocation(this.prog, "u_model"),
+            color: this.gl.getUniformLocation(this.prog, "u_color"),
+            specColor: this.gl.getUniformLocation(this.prog, "u_specColor"),
+            ambient: this.gl.getUniformLocation(this.prog, "u_ambientColor"),
+            dirColor: this.gl.getUniformLocation(this.prog, "u_dirLightColor"),
+            dirDir: this.gl.getUniformLocation(this.prog, "u_dirLightDir"),
+            shininess: this.gl.getUniformLocation(this.prog, "u_shininess"),
+            viewPos: this.gl.getUniformLocation(this.prog, "u_viewPos"),
+            numPL: this.gl.getUniformLocation(this.prog, "u_numPointLights"),
+            numSL: this.gl.getUniformLocation(this.prog, "u_numSpotLights"),
         };
         for (let i = 0; i < 4; i++) {
             this.pointLightLocs.push({
-                pos: this.gl.getUniformLocation(this.prog, `u_pointLightPos[${i}]`), col: this.gl.getUniformLocation(this.prog, `u_pointLightColor[${i}]`)
+                pos: this.gl.getUniformLocation(this.prog, `u_pointLightPos[${i}]`),
+                col: this.gl.getUniformLocation(this.prog, `u_pointLightColor[${i}]`),
             });
             this.spotLightLocs.push({
-                pos: this.gl.getUniformLocation(this.prog, `u_spotLightPos[${i}]`), dir: this.gl.getUniformLocation(this.prog, `u_spotLightDir[${i}]`),
-                col: this.gl.getUniformLocation(this.prog, `u_spotLightColor[${i}]`), params: this.gl.getUniformLocation(this.prog, `u_spotLightParams[${i}]`)
+                pos: this.gl.getUniformLocation(this.prog, `u_spotLightPos[${i}]`),
+                dir: this.gl.getUniformLocation(this.prog, `u_spotLightDir[${i}]`),
+                col: this.gl.getUniformLocation(this.prog, `u_spotLightColor[${i}]`),
+                params: this.gl.getUniformLocation(this.prog, `u_spotLightParams[${i}]`),
             });
         }
         this.gl.enable(this.gl.DEPTH_TEST);
     }
-    setClearColor(color) { this.gl.clearColor(color.r, color.g, color.b, color.a); }
+    setClearColor(color) {
+        this.gl.clearColor(color.r, color.g, color.b, color.a);
+    }
     render(scene, vp, camPos = new Vector3D()) {
         this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
         this.gl.useProgram(this.prog);
@@ -195,8 +206,9 @@ export class WebGL2Renderer {
             if (o.material.type === "LambertMaterial")
                 shininess = 0.0;
             else if (o.material.type === "PhongMaterial") {
-                shininess = o.material.shininess || 32;
-                specCol = o.material.specularColor ? o.material.specularColor.toArray() : [0, 0, 0, 0];
+                const material = o.material;
+                shininess = material.shininess || 32;
+                specCol = material.specularColor ? material.specularColor.toArray() : [0, 0, 0, 0];
             }
             if (this.locs.shininess)
                 this.gl.uniform1f(this.locs.shininess, shininess);
@@ -206,6 +218,10 @@ export class WebGL2Renderer {
             this.gl.drawElements(drawMode, m.count, this.gl.UNSIGNED_SHORT, 0);
         }
     }
-    setSize(w, h) { this.gl.canvas.width = w * devicePixelRatio; this.gl.canvas.height = h * devicePixelRatio; this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height); }
+    setSize(w, h) {
+        this.gl.canvas.width = w * devicePixelRatio;
+        this.gl.canvas.height = h * devicePixelRatio;
+        this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
+    }
 }
 //# sourceMappingURL=WebGL2Renderer.js.map
