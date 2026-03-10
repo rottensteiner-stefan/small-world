@@ -7,6 +7,11 @@ export { Input } from "./core/Input.js";
 export { Object3D } from "./core/Object3D.js";
 export { Scene } from "./core/Scene.js";
 export { SmallWorld, WorldConfig } from "./core/SmallWorld.js";
+
+// --- Textures ---
+export { CubeTexture } from "./core/textures/CubeTexture.js";
+export { SkyboxLoader } from "./core/SkyboxLoader.js";
+export { Skybox } from "./core/Skybox.js";
 export { Texture } from "./core/textures/Texture.js";
 
 // --- Enums ---
@@ -15,7 +20,7 @@ export { Keys } from "./enums/Keys.js";
 export { LightType } from "./enums/LightType.js";
 export { RendererType } from "./enums/RendererType.js";
 export { TextureFilter } from "./enums/TextureFilter.js"; // <--- NEU
-export { TextureWrap } from "./enums/TextureWrap.js";     // <--- NEU
+export { TextureWrap } from "./enums/TextureWrap.js"; // <--- NEU
 
 // --- Math ---
 export { Matrix4 } from "./math/Matrix4.js";
@@ -46,6 +51,7 @@ export { LambertMaterial } from "./core/materials/LambertMaterial.js";
 export { Material } from "./core/materials/Material.js";
 export { PhongMaterial } from "./core/materials/PhongMaterial.js";
 export { WireframeMaterial } from "./core/materials/WireframeMaterial.js";
+export { SkyboxMaterial } from "./core/materials/SkyboxMaterial.js";
 
 // --- Lights ---
 export { AmbientLight } from "./core/lights/AmbientLight.js";

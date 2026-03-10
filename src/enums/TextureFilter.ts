@@ -1,4 +1,4 @@
 export enum TextureFilter {
-    LINEAR = "linear",
-    NEAREST = "nearest"
+  LINEAR = "linear",
+  NEAREST = "nearest",
 }

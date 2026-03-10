@@ -1,30 +1,45 @@
-import { Scene } from "../core/Scene.js";
-import { IRenderer } from "../interfaces/IRenderer.js";
 import { Color } from "../core/colors/Color.js";
+import { CubeTexture } from "../core/textures/CubeTexture.js";
 import { DirectionalLight } from "../core/lights/DirectionalLight.js";
-import { AmbientLight } from "../core/lights/AmbientLight.js";
-import { PointLight } from "../core/lights/PointLight.js";
-import { SpotLight } from "../core/lights/SpotLight.js";
-import { Vector3D } from "../math/Vector3D.js";
 import { IGeometryData } from "../interfaces/IGeometryData.js";
-import { Object3D } from "../core/Object3D.js";
-import { PhongMaterial } from "../core/materials/PhongMaterial.js";
+import { IRenderer } from "../interfaces/IRenderer.js";
 import { LightType } from "../enums/LightType.js";
 import { Light } from "../core/lights/Light.js";
+import { Object3D } from "../core/Object3D.js";
+import { PhongMaterial } from "../core/materials/PhongMaterial.js";
+import { PointLight } from "../core/lights/PointLight.js";
+import { Scene } from "../core/Scene.js";
+import { SkyboxMaterial } from "../core/materials/SkyboxMaterial.js";
+import { SpotLight } from "../core/lights/SpotLight.js";
 import { Texture } from "../core/textures/Texture.js";
+import { Vector3D } from "../math/Vector3D.js";
 
-interface GeoCacheEntry { vb: GPUBuffer; nb?: GPUBuffer; uvb?: GPUBuffer; ib?: GPUBuffer; format?: GPUIndexFormat; vertexCount: number; indexCount: number; }
-interface ObjCacheEntry { ub: GPUBuffer; bg: GPUBindGroup; }
+interface GeoCacheEntry {
+  vb: GPUBuffer;
+  nb?: GPUBuffer;
+  uvb?: GPUBuffer;
+  ib?: GPUBuffer;
+  format?: GPUIndexFormat;
+  vertexCount: number;
+  indexCount: number;
+}
+interface ObjCacheEntry {
+  ub: GPUBuffer;
+  bg: GPUBindGroup;
+}
 
 export class WebGPURenderer implements IRenderer {
   private device!: GPUDevice;
   private context!: GPUCanvasContext;
   private format!: GPUTextureFormat;
+
   private pipelineLines!: GPURenderPipeline;
   private pipelineTriangles!: GPURenderPipeline;
+  private pipelineSkybox!: GPURenderPipeline; // <--- NEU
 
   private bindGroupLayout!: GPUBindGroupLayout;
   private textureBindGroupLayout!: GPUBindGroupLayout;
+  private cubeTextureBindGroupLayout!: GPUBindGroupLayout; // <--- NEU
 
   private depthTexture!: GPUTexture;
   private canvas!: HTMLCanvasElement;
@@ -34,6 +49,9 @@ export class WebGPURenderer implements IRenderer {
   private objCache = new Map<Object3D, ObjCacheEntry>();
   private texCache = new Map<Texture, GPUBindGroup>();
   private defaultTexBindGroup!: GPUBindGroup;
+
+  private texCubeCache = new Map<CubeTexture, GPUBindGroup>(); // <--- NEU
+  private defaultCubeTexBindGroup!: GPUBindGroup; // <--- NEU
 
   public async initialize(canvas: HTMLCanvasElement): Promise<void> {
     this.canvas = canvas;
@@ -47,14 +65,11 @@ export class WebGPURenderer implements IRenderer {
       code: `
         struct PointLight { pos: vec4f, color: vec4f }
         struct SpotLight { pos: vec4f, dir: vec4f, color: vec4f, params: vec4f }
-
         struct Unifs {
           vp: mat4x4f, model: mat4x4f, color: vec4f, specColor: vec4f,
           ambientColor: vec4f, dirLightColor: vec4f, dirLightDir: vec4f, camPos: vec4f,
-          texOffset: vec2f, texRepeat: vec2f, // <--- NEU
-          shininess: f32, numPointLights: f32, numSpotLights: f32, pad: f32,
-          pointLights: array<PointLight, 4>,
-          spotLights: array<SpotLight, 4>
+          texOffset: vec2f, texRepeat: vec2f, shininess: f32, numPointLights: f32, numSpotLights: f32, pad: f32,
+          pointLights: array<PointLight, 4>, spotLights: array<SpotLight, 4>
         }
 
         @group(0) @binding(0) var<uniform> u: Unifs;
@@ -68,7 +83,7 @@ export class WebGPURenderer implements IRenderer {
             var o: Out;
             let wp = u.model * vec4f(i.pos, 1.0);
             o.worldPos = wp.xyz; o.pos = u.vp * wp; o.normal = (u.model * vec4f(i.normal, 0.0)).xyz; 
-            o.uv = (i.uv * u.texRepeat) + u.texOffset; // <--- UV TRANSFORMATION
+            o.uv = (i.uv * u.texRepeat) + u.texOffset;
             return o;
         }
 
@@ -104,11 +119,34 @@ export class WebGPURenderer implements IRenderer {
             }
             return vec4f((finalLight * u.color.rgb * texColor.rgb) + (specular * u.specColor.rgb), u.color.a * texColor.a);
         }
+
+        // --- NEU: SKYBOX SHADER ---
+        @group(1) @binding(0) var t_cube: texture_cube<f32>;
+        @group(1) @binding(1) var s_cube: sampler;
+
+        @vertex fn vs_sky(i: In) -> Out {
+            var o: Out;
+            let wp = u.model * vec4f(i.pos, 1.0);
+            o.worldPos = wp.xyz; o.pos = u.vp * wp;
+            o.uv = vec2f(0.0); 
+            o.normal = i.pos; // Wir missbrauchen die Normal als Richtung für die Cubemap!
+            return o;
+        }
+
+        @fragment fn fs_sky(i: Out) -> @location(0) vec4f {
+            return textureSample(t_cube, s_cube, i.normal);
+        }
       `,
     });
 
     this.bindGroupLayout = this.device.createBindGroupLayout({
-      entries: [{ binding: 0, visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT, buffer: { type: "uniform" } }],
+      entries: [
+        {
+          binding: 0,
+          visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+          buffer: { type: "uniform" },
+        },
+      ],
     });
     this.textureBindGroupLayout = this.device.createBindGroupLayout({
       entries: [
@@ -116,35 +154,118 @@ export class WebGPURenderer implements IRenderer {
         { binding: 1, visibility: GPUShaderStage.FRAGMENT, sampler: {} },
       ],
     });
+    this.cubeTextureBindGroupLayout = this.device.createBindGroupLayout({
+      entries: [
+        { binding: 0, visibility: GPUShaderStage.FRAGMENT, texture: { viewDimension: "cube" } },
+        { binding: 1, visibility: GPUShaderStage.FRAGMENT, sampler: {} },
+      ],
+    }); // <--- NEU
 
-    const pipelineLayout = this.device.createPipelineLayout({ bindGroupLayouts: [this.bindGroupLayout, this.textureBindGroupLayout] });
+    const pipelineLayout = this.device.createPipelineLayout({
+      bindGroupLayouts: [this.bindGroupLayout, this.textureBindGroupLayout],
+    });
+    const skyboxPipelineLayout = this.device.createPipelineLayout({
+      bindGroupLayouts: [this.bindGroupLayout, this.cubeTextureBindGroupLayout],
+    });
 
     const pipelineDescriptorTemplate = {
       layout: pipelineLayout,
       vertex: {
-        module: shader, entryPoint: "vs",
+        module: shader,
+        entryPoint: "vs",
         buffers: [
-          { arrayStride: 12, attributes: [{ shaderLocation: 0, offset: 0, format: "float32x3" as GPUVertexFormat }] },
-          { arrayStride: 12, attributes: [{ shaderLocation: 1, offset: 0, format: "float32x3" as GPUVertexFormat }] },
-          { arrayStride: 8, attributes: [{ shaderLocation: 2, offset: 0, format: "float32x2" as GPUVertexFormat }] },
+          {
+            arrayStride: 12,
+            attributes: [{ shaderLocation: 0, offset: 0, format: "float32x3" as GPUVertexFormat }],
+          },
+          {
+            arrayStride: 12,
+            attributes: [{ shaderLocation: 1, offset: 0, format: "float32x3" as GPUVertexFormat }],
+          },
+          {
+            arrayStride: 8,
+            attributes: [{ shaderLocation: 2, offset: 0, format: "float32x2" as GPUVertexFormat }],
+          },
         ],
       },
       fragment: { module: shader, entryPoint: "fs", targets: [{ format: this.format }] },
-      depthStencil: { depthWriteEnabled: true, depthCompare: "less" as GPUCompareFunction, format: "depth24plus" as GPUTextureFormat },
+      depthStencil: {
+        depthWriteEnabled: true,
+        depthCompare: "less" as GPUCompareFunction,
+        format: "depth24plus" as GPUTextureFormat,
+      },
     };
 
-    this.pipelineTriangles = this.device.createRenderPipeline({ ...pipelineDescriptorTemplate, primitive: { topology: "triangle-list", cullMode: "back" } } as GPURenderPipelineDescriptor);
-    this.pipelineLines = this.device.createRenderPipeline({ ...pipelineDescriptorTemplate, primitive: { topology: "line-list", cullMode: "none" } } as GPURenderPipelineDescriptor);
+    this.pipelineTriangles = this.device.createRenderPipeline({
+      ...pipelineDescriptorTemplate,
+      primitive: { topology: "triangle-list", cullMode: "back" },
+    } as GPURenderPipelineDescriptor);
+    this.pipelineLines = this.device.createRenderPipeline({
+      ...pipelineDescriptorTemplate,
+      primitive: { topology: "line-list", cullMode: "none" },
+    } as GPURenderPipelineDescriptor);
+
+    // --- NEU: Skybox Pipeline ---
+    this.pipelineSkybox = this.device.createRenderPipeline({
+      ...pipelineDescriptorTemplate,
+      layout: skyboxPipelineLayout,
+      vertex: { ...pipelineDescriptorTemplate.vertex, entryPoint: "vs_sky" },
+      fragment: { module: shader, entryPoint: "fs_sky", targets: [{ format: this.format }] },
+      depthStencil: {
+        depthWriteEnabled: false,
+        depthCompare: "less" as GPUCompareFunction,
+        format: "depth24plus" as GPUTextureFormat,
+      }, // Kein Depth-Writing!
+      primitive: { topology: "triangle-list", cullMode: "none" }, // Keine Kanten verbergen, wir sind drinnen!
+    } as GPURenderPipelineDescriptor);
 
     this.createDepthTexture();
     this.createDefaultTexture();
   }
 
   private createDefaultTexture() {
-    const defaultTex = this.device.createTexture({ size: [1, 1, 1], format: "rgba8unorm", usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST });
-    this.device.queue.writeTexture({ texture: defaultTex }, new Uint8Array([255, 255, 255, 255]), { bytesPerRow: 4, rowsPerImage: 1 }, [1, 1, 1]);
+    const defaultTex = this.device.createTexture({
+      size: [1, 1, 1],
+      format: "rgba8unorm",
+      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+    });
+    this.device.queue.writeTexture(
+      { texture: defaultTex },
+      new Uint8Array([255, 255, 255, 255]),
+      { bytesPerRow: 4, rowsPerImage: 1 },
+      [1, 1, 1],
+    );
     const defaultSampler = this.device.createSampler();
-    this.defaultTexBindGroup = this.device.createBindGroup({ layout: this.textureBindGroupLayout, entries: [{ binding: 0, resource: defaultTex.createView() }, { binding: 1, resource: defaultSampler }] });
+    this.defaultTexBindGroup = this.device.createBindGroup({
+      layout: this.textureBindGroupLayout,
+      entries: [
+        { binding: 0, resource: defaultTex.createView() },
+        { binding: 1, resource: defaultSampler },
+      ],
+    });
+
+    // --- Default CUBE Texture ---
+    const defaultCube = this.device.createTexture({
+      size: [1, 1, 6],
+      format: "rgba8unorm",
+      dimension: "2d",
+      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+    });
+    for (let i = 0; i < 6; i++) {
+      this.device.queue.writeTexture(
+        { texture: defaultCube, origin: [0, 0, i] },
+        new Uint8Array([50, 50, 100, 255]),
+        { bytesPerRow: 4, rowsPerImage: 1 },
+        [1, 1, 1],
+      );
+    }
+    this.defaultCubeTexBindGroup = this.device.createBindGroup({
+      layout: this.cubeTextureBindGroupLayout,
+      entries: [
+        { binding: 0, resource: defaultCube.createView({ dimension: "cube" }) },
+        { binding: 1, resource: defaultSampler },
+      ],
+    });
   }
 
   private getGPUTextureBindGroup(tex: Texture): GPUBindGroup {
@@ -154,54 +275,146 @@ export class WebGPURenderer implements IRenderer {
       const gpuTex = this.device.createTexture({
         size: [tex.image.width, tex.image.height, 1],
         format: "rgba8unorm",
-        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
+        usage:
+          GPUTextureUsage.TEXTURE_BINDING |
+          GPUTextureUsage.COPY_DST |
+          GPUTextureUsage.RENDER_ATTACHMENT,
       });
-      this.device.queue.copyExternalImageToTexture({ source: tex.image }, { texture: gpuTex }, [tex.image.width, tex.image.height]);
-
-      // Enums matchen direkt auf die WebGPU AddressModes!
+      this.device.queue.copyExternalImageToTexture({ source: tex.image }, { texture: gpuTex }, [
+        tex.image.width,
+        tex.image.height,
+      ]);
       const sampler = this.device.createSampler({
         magFilter: tex.magFilter as GPUFilterMode,
         minFilter: tex.minFilter as GPUFilterMode,
         addressModeU: tex.wrapS as GPUAddressMode,
         addressModeV: tex.wrapT as GPUAddressMode,
       });
-
-      entry = this.device.createBindGroup({ layout: this.textureBindGroupLayout, entries: [{ binding: 0, resource: gpuTex.createView() }, { binding: 1, resource: sampler }] });
+      entry = this.device.createBindGroup({
+        layout: this.textureBindGroupLayout,
+        entries: [
+          { binding: 0, resource: gpuTex.createView() },
+          { binding: 1, resource: sampler },
+        ],
+      });
       this.texCache.set(tex, entry);
     }
     return entry;
   }
 
-  public setClearColor(color: Color): void { this.clearColor = color.toArray(); }
+  // --- NEU: CubeTexture Loader ---
+  private getGPUCubeTextureBindGroup(tex: CubeTexture): GPUBindGroup {
+    if (!tex.isLoaded || tex.images.length !== 6) return this.defaultCubeTexBindGroup;
+    let entry = this.texCubeCache.get(tex);
+    if (!entry) {
+      const w = tex.images[0].width;
+      const h = tex.images[0].height;
+      const gpuTex = this.device.createTexture({
+        size: [w, h, 6],
+        dimension: "2d",
+        format: "rgba8unorm",
+        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+      });
+
+      for (let i = 0; i < 6; i++) {
+        this.device.queue.copyExternalImageToTexture(
+          { source: tex.images[i] },
+          { texture: gpuTex, origin: [0, 0, i] },
+          [w, h],
+        );
+      }
+
+      const sampler = this.device.createSampler({ magFilter: "linear", minFilter: "linear" });
+      entry = this.device.createBindGroup({
+        layout: this.cubeTextureBindGroupLayout,
+        entries: [
+          { binding: 0, resource: gpuTex.createView({ dimension: "cube" }) },
+          { binding: 1, resource: sampler },
+        ],
+      });
+      this.texCubeCache.set(tex, entry);
+    }
+    return entry;
+  }
+
+  public setClearColor(color: Color): void {
+    this.clearColor = color.toArray();
+  }
   private createDepthTexture() {
     if (this.depthTexture) this.depthTexture.destroy();
-    this.depthTexture = this.device.createTexture({ size: [this.canvas.width, this.canvas.height], format: "depth24plus", usage: GPUTextureUsage.RENDER_ATTACHMENT });
+    this.depthTexture = this.device.createTexture({
+      size: [this.canvas.width, this.canvas.height],
+      format: "depth24plus",
+      usage: GPUTextureUsage.RENDER_ATTACHMENT,
+    });
   }
-  public setSize(w: number, h: number) { this.canvas.width = w; this.canvas.height = h; this.createDepthTexture(); }
+  public setSize(w: number, h: number) {
+    this.canvas.width = w;
+    this.canvas.height = h;
+    this.createDepthTexture();
+  }
 
   private getGeoCache(geometry: IGeometryData): GeoCacheEntry {
     let entry = this.geoCache.get(geometry);
     if (!entry) {
-      const vb = this.device.createBuffer({ size: geometry.vertices.byteLength, usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST });
-      this.device.queue.writeBuffer(vb, 0, geometry.vertices.buffer as ArrayBuffer, geometry.vertices.byteOffset, geometry.vertices.byteLength);
+      const vb = this.device.createBuffer({
+        size: geometry.vertices.byteLength,
+        usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+      });
+      this.device.queue.writeBuffer(
+        vb,
+        0,
+        geometry.vertices.buffer as ArrayBuffer,
+        geometry.vertices.byteOffset,
+        geometry.vertices.byteLength,
+      );
 
       let nb: GPUBuffer | undefined;
       if (geometry.normals && geometry.normals.length > 0) {
-        nb = this.device.createBuffer({ size: geometry.normals.byteLength, usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST });
-        this.device.queue.writeBuffer(nb, 0, geometry.normals.buffer as ArrayBuffer, geometry.normals.byteOffset, geometry.normals.byteLength);
+        nb = this.device.createBuffer({
+          size: geometry.normals.byteLength,
+          usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+        });
+        this.device.queue.writeBuffer(
+          nb,
+          0,
+          geometry.normals.buffer as ArrayBuffer,
+          geometry.normals.byteOffset,
+          geometry.normals.byteLength,
+        );
       }
 
       let uvb: GPUBuffer | undefined;
       if (geometry.uvs && geometry.uvs.length > 0) {
-        uvb = this.device.createBuffer({ size: geometry.uvs.byteLength, usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST });
-        this.device.queue.writeBuffer(uvb, 0, geometry.uvs.buffer as ArrayBuffer, geometry.uvs.byteOffset, geometry.uvs.byteLength);
+        uvb = this.device.createBuffer({
+          size: geometry.uvs.byteLength,
+          usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+        });
+        this.device.queue.writeBuffer(
+          uvb,
+          0,
+          geometry.uvs.buffer as ArrayBuffer,
+          geometry.uvs.byteOffset,
+          geometry.uvs.byteLength,
+        );
       }
 
-      let ib: GPUBuffer | undefined; let format: GPUIndexFormat | undefined; let indexCount = 0;
+      let ib: GPUBuffer | undefined;
+      let format: GPUIndexFormat | undefined;
+      let indexCount = 0;
       if (geometry.indices && geometry.indices.length > 0) {
         indexCount = geometry.indices.length;
-        ib = this.device.createBuffer({ size: geometry.indices.byteLength, usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST });
-        this.device.queue.writeBuffer(ib, 0, geometry.indices.buffer as ArrayBuffer, geometry.indices.byteOffset, geometry.indices.byteLength);
+        ib = this.device.createBuffer({
+          size: geometry.indices.byteLength,
+          usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
+        });
+        this.device.queue.writeBuffer(
+          ib,
+          0,
+          geometry.indices.buffer as ArrayBuffer,
+          geometry.indices.byteOffset,
+          geometry.indices.byteLength,
+        );
         format = geometry.indices instanceof Uint32Array ? "uint32" : "uint16";
       }
       entry = { vb, nb, uvb, ib, format, vertexCount: geometry.vertices.length / 3, indexCount };
@@ -213,9 +426,14 @@ export class WebGPURenderer implements IRenderer {
   private getObjCache(obj: Object3D): ObjCacheEntry {
     let entry = this.objCache.get(obj);
     if (!entry) {
-      // 160 Floats * 4 Bytes = 640 Bytes Puffergröße
-      const ub = this.device.createBuffer({ size: 640, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
-      const bg = this.device.createBindGroup({ layout: this.bindGroupLayout, entries: [{ binding: 0, resource: { buffer: ub } }] });
+      const ub = this.device.createBuffer({
+        size: 640,
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+      });
+      const bg = this.device.createBindGroup({
+        layout: this.bindGroupLayout,
+        entries: [{ binding: 0, resource: { buffer: ub } }],
+      });
       entry = { ub, bg };
       this.objCache.set(obj, entry);
     }
@@ -226,76 +444,156 @@ export class WebGPURenderer implements IRenderer {
     if (!this.device) return;
     const ce = this.device.createCommandEncoder();
     const rp = ce.beginRenderPass({
-      colorAttachments: [{ view: this.context.getCurrentTexture().createView(), clearValue: this.clearColor, loadOp: "clear", storeOp: "store" }],
-      depthStencilAttachment: { view: this.depthTexture.createView(), depthClearValue: 1.0, depthLoadOp: "clear", depthStoreOp: "store" },
+      colorAttachments: [
+        {
+          view: this.context.getCurrentTexture().createView(),
+          clearValue: this.clearColor,
+          loadOp: "clear",
+          storeOp: "store",
+        },
+      ],
+      depthStencilAttachment: {
+        view: this.depthTexture.createView(),
+        depthClearValue: 1.0,
+        depthLoadOp: "clear",
+        depthStoreOp: "store",
+      },
     });
 
-    let aCol = new Color(0, 0, 0), dDir = new Vector3D(0, 1, 0), dCol = new Color(0, 0, 0);
-    const pLights: PointLight[] = [], sLights: SpotLight[] = [];
+    let aCol = new Color(0, 0, 0),
+      dDir = new Vector3D(0, 1, 0),
+      dCol = new Color(0, 0, 0);
+    const pLights: PointLight[] = [],
+      sLights: SpotLight[] = [];
     const extractLights = (node: Object3D | Light) => {
       if ("lightType" in node) {
         const light = node as Light;
         switch (light.lightType) {
-          case LightType.AMBIENT: aCol = new Color(light.color.r * light.intensity, light.color.g * light.intensity, light.color.b * light.intensity); break;
-          case LightType.DIRECTIONAL: { const dLight = light as DirectionalLight; dDir = dLight.direction.clone().scale(-1); if (dDir.length() > 0) dDir.scale(1 / dDir.length()); dCol = new Color(light.color.r * light.intensity, light.color.g * light.intensity, light.color.b * light.intensity); break; }
-          case LightType.POINT: if (pLights.length < 4) pLights.push(light as PointLight); break;
-          case LightType.SPOT: if (sLights.length < 4) sLights.push(light as SpotLight); break;
+          case LightType.AMBIENT:
+            aCol = new Color(
+              light.color.r * light.intensity,
+              light.color.g * light.intensity,
+              light.color.b * light.intensity,
+            );
+            break;
+          case LightType.DIRECTIONAL: {
+            const dLight = light as DirectionalLight;
+            dDir = dLight.direction.clone().scale(-1);
+            if (dDir.length() > 0) dDir.scale(1 / dDir.length());
+            dCol = new Color(
+              light.color.r * light.intensity,
+              light.color.g * light.intensity,
+              light.color.b * light.intensity,
+            );
+            break;
+          }
+          case LightType.POINT:
+            if (pLights.length < 4) pLights.push(light as PointLight);
+            break;
+          case LightType.SPOT:
+            if (sLights.length < 4) sLights.push(light as SpotLight);
+            break;
         }
       }
       if (node.children) node.children.forEach(extractLights);
     };
     for (const obj of scene.objects) extractLights(obj);
 
-    // Array ist jetzt 160 Floats groß!
     const uData = new Float32Array(160);
-    uData.set(vpMatrix, 0); uData.set([aCol.r, aCol.g, aCol.b, 1.0], 40); uData.set([dCol.r, dCol.g, dCol.b, 1.0], 44);
-    uData.set([dDir.x, dDir.y, dDir.z, 0.0], 48); uData.set([camPos.x, camPos.y, camPos.z, 0.0], 52);
-    uData[61] = pLights.length; uData[62] = sLights.length; // Verschoben!
+    uData.set(vpMatrix, 0);
+    uData.set([aCol.r, aCol.g, aCol.b, 1.0], 40);
+    uData.set([dCol.r, dCol.g, dCol.b, 1.0], 44);
+    uData.set([dDir.x, dDir.y, dDir.z, 0.0], 48);
+    uData.set([camPos.x, camPos.y, camPos.z, 0.0], 52);
+    uData[61] = pLights.length;
+    uData[62] = sLights.length;
 
     for (let i = 0; i < pLights.length; i++) {
-      const pl = pLights[i], offset = 64 + i * 8; // Verschoben!
-      uData.set([pl.worldMatrix.data[12], pl.worldMatrix.data[13], pl.worldMatrix.data[14], 0.0], offset); uData.set([pl.color.r * pl.intensity, pl.color.g * pl.intensity, pl.color.b * pl.intensity, 0.0], offset + 4);
+      const pl = pLights[i],
+        offset = 64 + i * 8;
+      uData.set(
+        [pl.worldMatrix.data[12], pl.worldMatrix.data[13], pl.worldMatrix.data[14], 0.0],
+        offset,
+      );
+      uData.set(
+        [pl.color.r * pl.intensity, pl.color.g * pl.intensity, pl.color.b * pl.intensity, 0.0],
+        offset + 4,
+      );
     }
     for (let i = 0; i < sLights.length; i++) {
-      const sl = sLights[i], offset = 96 + i * 16; // Verschoben!
-      uData.set([sl.worldMatrix.data[12], sl.worldMatrix.data[13], sl.worldMatrix.data[14], 0.0], offset);
-      const dir = sl.direction.clone(); if (dir.length() > 0) dir.scale(1 / dir.length());
-      uData.set([dir.x, dir.y, dir.z, 0.0], offset + 4); uData.set([sl.color.r * sl.intensity, sl.color.g * sl.intensity, sl.color.b * sl.intensity, 0.0], offset + 8);
-      uData.set([Math.cos(sl.angle), Math.cos(sl.angle * (1.0 - sl.penumbra)), sl.distance, sl.decay], offset + 12);
+      const sl = sLights[i],
+        offset = 96 + i * 16;
+      uData.set(
+        [sl.worldMatrix.data[12], sl.worldMatrix.data[13], sl.worldMatrix.data[14], 0.0],
+        offset,
+      );
+      const dir = sl.direction.clone();
+      if (dir.length() > 0) dir.scale(1 / dir.length());
+      uData.set([dir.x, dir.y, dir.z, 0.0], offset + 4);
+      uData.set(
+        [sl.color.r * sl.intensity, sl.color.g * sl.intensity, sl.color.b * sl.intensity, 0.0],
+        offset + 8,
+      );
+      uData.set(
+        [Math.cos(sl.angle), Math.cos(sl.angle * (1.0 - sl.penumbra)), sl.distance, sl.decay],
+        offset + 12,
+      );
     }
 
     const drawObject = (obj: Object3D) => {
       if (obj.isVisible === false || !obj.material || !obj.geometry) return;
       if (obj.worldMatrix) {
-        rp.setPipeline(obj.material.type === "WireframeMaterial" ? this.pipelineLines : this.pipelineTriangles);
+        const isSkybox = obj.material.type === "SkyboxMaterial";
+
+        // Pipeline auswählen!
+        if (isSkybox) {
+          rp.setPipeline(this.pipelineSkybox);
+        } else {
+          rp.setPipeline(
+            obj.material.type === "WireframeMaterial" ? this.pipelineLines : this.pipelineTriangles,
+          );
+        }
+
         uData.set(obj.worldMatrix.data, 16);
         uData.set(obj.material.color.toArray(), 32);
 
-        let shininess = -1.0; let specCol = [0, 0, 0, 0];
+        let shininess = -1.0;
+        let specCol = [0, 0, 0, 0];
         let texBindGroup = this.defaultTexBindGroup;
-        let tOffset = [0, 0]; // <--- NEU
-        let tRepeat = [1, 1]; // <--- NEU
+        let tOffset = [0, 0];
+        let tRepeat = [1, 1];
 
-        if (obj.material.type === "LambertMaterial") { shininess = 0.0; }
-        else if (obj.material.type === "PhongMaterial") {
+        if (isSkybox) {
+          const mat = obj.material as SkyboxMaterial;
+          texBindGroup = mat.cubeMap
+            ? this.getGPUCubeTextureBindGroup(mat.cubeMap)
+            : this.defaultCubeTexBindGroup;
+        } else if (obj.material.type === "LambertMaterial") {
+          shininess = 0.0;
+        } else if (obj.material.type === "PhongMaterial") {
           const material = obj.material as PhongMaterial;
           shininess = material.shininess || 32;
           specCol = material.specularColor ? material.specularColor.toArray() : [0, 0, 0, 0];
-
           if (material.diffuseMap) {
             texBindGroup = this.getGPUTextureBindGroup(material.diffuseMap);
-            tOffset = [material.diffuseMap.offset.x, material.diffuseMap.offset.y]; // <--- NEU
-            tRepeat = [material.diffuseMap.repeat.x, material.diffuseMap.repeat.y]; // <--- NEU
+            tOffset = [material.diffuseMap.offset.x, material.diffuseMap.offset.y];
+            tRepeat = [material.diffuseMap.repeat.x, material.diffuseMap.repeat.y];
           }
         }
 
         uData.set(specCol, 36);
-        uData.set(tOffset, 56); // <--- NEU
-        uData.set(tRepeat, 58); // <--- NEU
-        uData[60] = shininess; // Verschoben!
+        uData.set(tOffset, 56);
+        uData.set(tRepeat, 58);
+        uData[60] = shininess;
 
         const oCache = this.getObjCache(obj);
-        this.device.queue.writeBuffer(oCache.ub, 0, uData.buffer as ArrayBuffer, uData.byteOffset, uData.byteLength);
+        this.device.queue.writeBuffer(
+          oCache.ub,
+          0,
+          uData.buffer as ArrayBuffer,
+          uData.byteOffset,
+          uData.byteLength,
+        );
 
         const gCache = this.getGeoCache(obj.geometry);
         rp.setBindGroup(0, oCache.bg);
@@ -305,11 +603,15 @@ export class WebGPURenderer implements IRenderer {
         rp.setVertexBuffer(1, gCache.nb ? gCache.nb : gCache.vb);
         rp.setVertexBuffer(2, gCache.uvb ? gCache.uvb : gCache.vb);
 
-        if (gCache.ib && gCache.format) { rp.setIndexBuffer(gCache.ib, gCache.format); rp.drawIndexed(gCache.indexCount); } else rp.draw(gCache.vertexCount);
+        if (gCache.ib && gCache.format) {
+          rp.setIndexBuffer(gCache.ib, gCache.format);
+          rp.drawIndexed(gCache.indexCount);
+        } else rp.draw(gCache.vertexCount);
       }
       if (obj.children) for (const child of obj.children) drawObject(child);
     };
     for (const obj of scene.objects || []) drawObject(obj);
-    rp.end(); this.device.queue.submit([ce.finish()]);
+    rp.end();
+    this.device.queue.submit([ce.finish()]);
   }
 }

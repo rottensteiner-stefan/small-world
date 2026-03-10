@@ -1,6 +1,7 @@
 # Changelog
 
 ## [0.8.54] - 2026-03-10
+
 - Implement basic texture and assessment management stuff
 - Add new geometries (pyramid, torus and cylinder).
 - Some code improvements
@@ -46,6 +47,7 @@
 - Initial commit
 
 ## [0.8.54] - 2026-03-10
+
 - Implement basic texture and assessment management stuff
 - Add new geometries (pyramid, torus and cylinder).
 - Some code improvements
