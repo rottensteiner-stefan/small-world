@@ -1,0 +1,60 @@
+import { ObjectGeometry } from "./ObjectGeometry.js";
+
+export class Cylinder extends ObjectGeometry {
+  constructor(
+    public radius: number = 1,
+    public height: number = 2,
+    public segments: number = 16,
+  ) {
+    super();
+    this.generateGeometryData();
+  }
+
+  protected generateGeometryData(): void {
+    const v: number[] = [];
+    const idx: number[] = [];
+    const hh = this.height / 2;
+
+    // --- Seitenwand ---
+    for (let y = 0; y <= 1; y++) {
+      const yPos = y === 0 ? -hh : hh;
+      for (let x = 0; x <= this.segments; x++) {
+        const theta = (x / this.segments) * Math.PI * 2;
+        v.push(this.radius * Math.sin(theta), yPos, this.radius * Math.cos(theta));
+      }
+    }
+
+    for (let x = 0; x < this.segments; x++) {
+      const first = x;
+      const second = first + this.segments + 1;
+      idx.push(first, second, first + 1);
+      idx.push(second, second + 1, first + 1);
+    }
+
+    // --- Deckel Oben ---
+    let offset = v.length / 3;
+    v.push(0, hh, 0); // Zentrum Oben
+    for (let x = 0; x <= this.segments; x++) {
+      const theta = (x / this.segments) * Math.PI * 2;
+      v.push(this.radius * Math.sin(theta), hh, this.radius * Math.cos(theta));
+    }
+    for (let x = 0; x < this.segments; x++) {
+      idx.push(offset, offset + x + 1, offset + x + 2);
+    }
+
+    // --- Deckel Unten ---
+    offset = v.length / 3;
+    v.push(0, -hh, 0); // Zentrum Unten
+    for (let x = 0; x <= this.segments; x++) {
+      const theta = (x / this.segments) * Math.PI * 2;
+      v.push(this.radius * Math.sin(theta), -hh, this.radius * Math.cos(theta));
+    }
+    for (let x = 0; x < this.segments; x++) {
+      idx.push(offset, offset + x + 2, offset + x + 1); // Winding umdrehen für Sichtbarkeit!
+    }
+
+    this.vertices = new Float32Array(v);
+    this.indices = new Uint16Array(idx);
+    this.computeNormals();
+  }
+}
