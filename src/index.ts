@@ -29,6 +29,9 @@ export { Cube } from "./geometry/Cube.js";
 export { Sphere } from "./geometry/Sphere.js";
 export { Plane } from "./geometry/Plane.js";
 export { Grid } from "./geometry/Grid.js";
+export { Pyramid } from "./geometry/Pyramid.js";
+export { Cylinder } from "./geometry/Cylinder.js";
+export { Torus } from "./geometry/Torus.js";
 
 // --- Materials ---
 export { Material } from "./core/materials/Material.js";
