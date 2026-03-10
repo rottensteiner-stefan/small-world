@@ -1,0 +1,1 @@
+{"version":3,"file":"FixedStrategy.js","sourceRoot":"","sources":["../../../../../src/core/cameras/strategies/FixedStrategy.ts"],"names":[],"mappings":"AAIA,MAAM,OAAO,aAAa;IACR,IAAI,GAAG,OAAO,CAAC;IAExB,MAAM,CAAC,MAAc,EAAE,SAAmB,EAAE,EAAU,EAAE,EAAU;QACvE,sEAAsE;QACtE,MAAM,CAAC,MAAM,CAAC,QAAQ,CAAC,SAAS,CAAC,CAAC;IACpC,CAAC;CACF"}
