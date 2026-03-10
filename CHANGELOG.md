@@ -1,5 +1,8 @@
 # Changelog
 
+## [0.8.47] - 2026-03-10
+- Changelog
+
 ## [0.8.46] - 2026-03-10
 - Add changelog generation script
 - Add SpotLight and fix all ESLint any-types
