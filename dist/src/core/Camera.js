@@ -5,6 +5,7 @@ export var CameraStrategy;
     CameraStrategy[CameraStrategy["FIXED"] = 0] = "FIXED";
     CameraStrategy[CameraStrategy["STIFF"] = 1] = "STIFF";
     CameraStrategy[CameraStrategy["SMOOTH"] = 2] = "SMOOTH";
+    CameraStrategy[CameraStrategy["FPS"] = 3] = "FPS";
 })(CameraStrategy || (CameraStrategy = {}));
 export class Camera {
     projection;
@@ -16,36 +17,52 @@ export class Camera {
     phi = 0.6;
     radius = 20;
     lerpFactor = 0.1;
+    fpsHeightOffset = 0.5; // Auf Augenhöhe des Würfels
     constructor(projection) {
         this.projection = projection;
     }
     update(playerPos, dx, dy) {
         if (dx !== 0 || dy !== 0) {
-            this.theta -= dx * 0.01;
-            this.phi += dy * 0.01;
+            this.theta -= dx * 0.005;
+            this.phi += dy * 0.005;
+            // Nicht überkopf drehen können
             const limit = Math.PI / 2 - 0.01;
             if (this.phi > limit)
                 this.phi = limit;
             if (this.phi < -limit)
                 this.phi = -limit;
         }
-        if (this.strategy !== CameraStrategy.FIXED) {
-            this.target.x = playerPos.x;
-            this.target.y = playerPos.y;
-            this.target.z = playerPos.z;
+        if (this.strategy === CameraStrategy.FPS) {
+            // --- NEU: First-Person Logik ---
+            // 1. Kamera sitzt exakt im Kopf des Spielers
+            this.position.x = playerPos.x;
+            this.position.y = playerPos.y + this.fpsHeightOffset;
+            this.position.z = playerPos.z;
+            // 2. Zielpunkt liegt 1 Einheit vor der Kamera (Blickrichtung nach außen)
+            this.target.x = this.position.x - Math.sin(this.theta) * Math.cos(this.phi);
+            this.target.y = this.position.y - Math.sin(this.phi);
+            this.target.z = this.position.z - Math.cos(this.theta) * Math.cos(this.phi);
         }
-        const idealX = this.target.x + this.radius * Math.sin(this.theta) * Math.cos(this.phi);
-        const idealY = this.target.y + this.radius * Math.sin(this.phi);
-        const idealZ = this.target.z + this.radius * Math.cos(this.theta) * Math.cos(this.phi);
-        if (this.strategy === CameraStrategy.STIFF) {
-            this.position.x = idealX;
-            this.position.y = idealY;
-            this.position.z = idealZ;
-        }
-        else if (this.strategy === CameraStrategy.SMOOTH) {
-            this.position.x += (idealX - this.position.x) * this.lerpFactor;
-            this.position.y += (idealY - this.position.y) * this.lerpFactor;
-            this.position.z += (idealZ - this.position.z) * this.lerpFactor;
+        else {
+            // --- ALTE: Third-Person Orbital Logik ---
+            if (this.strategy !== CameraStrategy.FIXED) {
+                this.target.x = playerPos.x;
+                this.target.y = playerPos.y;
+                this.target.z = playerPos.z;
+            }
+            const idealX = this.target.x + this.radius * Math.sin(this.theta) * Math.cos(this.phi);
+            const idealY = this.target.y + this.radius * Math.sin(this.phi);
+            const idealZ = this.target.z + this.radius * Math.cos(this.theta) * Math.cos(this.phi);
+            if (this.strategy === CameraStrategy.STIFF) {
+                this.position.x = idealX;
+                this.position.y = idealY;
+                this.position.z = idealZ;
+            }
+            else if (this.strategy === CameraStrategy.SMOOTH) {
+                this.position.x += (idealX - this.position.x) * this.lerpFactor;
+                this.position.y += (idealY - this.position.y) * this.lerpFactor;
+                this.position.z += (idealZ - this.position.z) * this.lerpFactor;
+            }
         }
     }
     getViewProjection(v, out) {

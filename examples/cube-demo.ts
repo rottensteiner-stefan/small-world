@@ -34,21 +34,23 @@ async function start() {
   const hud = new HUD(sw.config.showHUD !== false);
   await hud.init();
 
-  // 1. Sanftes Grundlicht im Raum (blau-graulich)
-  const ambient = new AmbientLight(new Color(0.3, 0.4, 0.6), 0.3);
+  // 1. Sanftes Grundlicht im Raum (dunkler als vorher für besseren Taschenlampen-Effekt)
+  const ambient = new AmbientLight(new Color(0.1, 0.1, 0.15), 0.5);
   scene.add(ambient);
 
   // 2. Die schwache Sonne
-  const sun = new DirectionalLight(Color.WHITE, 0.5);
+  const sun = new DirectionalLight(Color.WHITE, 0.2);
   sun.direction.set(1, -1.5, -1);
   scene.add(sun);
 
+  // Gitter als Boden
   const grid = new Object3D("Grid");
   grid.geometry = new Grid(WORLD_SIZE, 50).getGeometryData();
   grid.material = new WireframeMaterial();
   grid.material.color = Color.DARKSLATEGRAY;
   scene.add(grid);
 
+  // Spieler-Würfel
   const playerSize = 1.5;
   const player = new Object3D("Player");
   player.geometry = new Cube(playerSize).getGeometryData();
@@ -59,6 +61,7 @@ async function start() {
   player.material = playerMat;
   scene.add(player);
 
+  // Mond, der um den Spieler kreist
   const moon = new Object3D("Moon");
   moon.geometry = new Sphere(0.4).getGeometryData();
   const moonMat = new LambertMaterial();
@@ -66,21 +69,14 @@ async function start() {
   moon.material = moonMat;
   player.add(moon);
 
-  // 3. Das dramatische PointLight! Wir hängen es direkt an den kreisenden Mond.
-  //const torch = new PointLight(Color.RED, 5.0); // Starkes rotes Licht
-  //moon.add(torch); // <-- Es wird mit dem Mond reisen!
-
-  // LÖSCHE das PointLight ("torch") und ersetze es durch:
   // 3. Die Taschenlampe (SpotLight) für den Spieler!
   const flashLight = new SpotLight(Color.GREEN, 8.0);
-  // Winkel: 25 Grad, Penumbra: 0.8 (sehr weicher Rand)
-  flashLight.angle = Math.PI / 7;
-  flashLight.penumbra = 0.8;
-
-  // Die Lampe etwas nach vorne und oben versetzen, damit sie nicht IM Würfel steckt
-  flashLight.position.set(0, 1, 1);
+  flashLight.angle = Math.PI / 7; // Ca. 25 Grad Kegel
+  flashLight.penumbra = 0.8;      // Sehr weicher Rand
+  flashLight.position.set(0, 1, 1); // Leicht nach vorne und oben versetzt
   player.add(flashLight);
 
+  // Sammelbare Kugeln
   const spheres: Object3D[] = [];
   const TOTAL_SPHERES = 30;
   const sGeo = new Sphere(0.6).getGeometryData();
@@ -103,17 +99,25 @@ async function start() {
   createSpheres();
 
   const cam = new Camera(
-    new PerspectiveProjection(Math.PI / 4, window.innerWidth / window.innerHeight, 0.1, 200),
+      new PerspectiveProjection(Math.PI / 4, window.innerWidth / window.innerHeight, 0.1, 200),
   );
 
+  // Klick auf das Canvas sperrt die Maus ein (für den FPS Modus)
+  const canvas = document.getElementById(sw.config.canvasId) as HTMLCanvasElement;
+  canvas.addEventListener("click", () => {
+    if (cam.strategy === CameraStrategy.FPS) {
+      Input.requestPointerLock(canvas);
+    }
+  });
+
   const vM = new Matrix4(),
-    vpM = new Matrix4();
+      vpM = new Matrix4();
   let score = 0,
-    lastTime = performance.now(),
-    frameCount = 0,
-    fps = 0,
-    hudVisible = sw.config.showHUD !== false,
-    tabWasPressed = false;
+      lastTime = performance.now(),
+      frameCount = 0,
+      fps = 0,
+      hudVisible = sw.config.showHUD !== false,
+      tabWasPressed = false;
 
   function loop() {
     frameCount++;
@@ -132,19 +136,50 @@ async function start() {
     const dz = Input.getAxis(Keys.W, Keys.S);
 
     if (dx !== 0 || dz !== 0) {
-      // Vektor normalisieren, damit diagonales Laufen nicht schneller ist
       const len = Math.sqrt(dx * dx + dz * dz);
       const moveX = dx / len;
       const moveZ = dz / len;
 
-      player.position.add(new Vector3D(moveX, 0, moveZ).scale(speed));
+      if (cam.strategy === CameraStrategy.FPS) {
+        // --- FPS BEWEGUNG (Relativ zur Kamera-Blickrichtung) ---
+        const s = Math.sin(cam.theta);
+        const c = Math.cos(cam.theta);
 
-      // Spieler in Laufrichtung drehen (Y-Achse)
-      // Math.atan2 gibt uns den Winkel in Radiant basierend auf X und Z
-      player.rotation.y = Math.atan2(moveX, moveZ);
+        // Berechne Vektor nach vorne (-s, -c) und nach rechts (-c, s)
+        const forwardX = -s, forwardZ = -c;
+        const rightX = -c, rightZ = s;
 
+        // Kombiniere WASD-Tastendrücke mit den Richtungs-Vektoren
+        const worldX = (rightX * moveX) - (forwardX * moveZ);
+        const worldZ = (rightZ * moveX) - (forwardZ * moveZ);
+
+        player.position.add(new Vector3D(worldX, 0, worldZ).scale(speed));
+        player.rotation.y = cam.theta; // Der Spieler guckt immer dorthin, wo die Kamera guckt
+      } else {
+        // --- THIRD PERSON BEWEGUNG (Absolute Welt-Koordinaten) ---
+        player.position.add(new Vector3D(moveX, 0, moveZ).scale(speed));
+        player.rotation.y = Math.atan2(moveX, moveZ);
+      }
+
+      // Taschenlampe folgt der Rotation des Spielers leicht nach unten geneigt
       flashLight.direction.set(Math.sin(player.rotation.y), -0.2, Math.cos(player.rotation.y));
     }
+
+    // --- KAMERA-MODUS UMSCHALTEN ---
+    if (Input.isPressed(Keys.D1)) cam.strategy = CameraStrategy.FIXED;
+    if (Input.isPressed(Keys.D2)) cam.strategy = CameraStrategy.STIFF;
+    if (Input.isPressed(Keys.D3)) cam.strategy = CameraStrategy.SMOOTH;
+    if (Input.isPressed(Keys.D4)) cam.strategy = CameraStrategy.FPS;
+
+    // Kamera updaten (Maus nur auswerten, wenn wir im FPS-Modus gelockt sind, ODER die rechte Maustaste halten)
+    let mdx = 0, mdy = 0;
+    if ((cam.strategy === CameraStrategy.FPS && Input.isPointerLocked) || Input.mouse.right) {
+      mdx = Input.mouse.dx;
+      mdy = Input.mouse.dy;
+    }
+    cam.update(player.position, mdx, mdy);
+    Input.mouse.dx = 0;
+    Input.mouse.dy = 0;
 
     // --- SYSTEM & HUD ---
     const tabDown = Input.isPressed(Keys.TAB);
@@ -164,8 +199,8 @@ async function start() {
     // --- KOLLISION ---
     const h = playerSize / 2;
     player.bounds = new BoundingBox(
-      new Vector3D(player.position.x - h, -h, player.position.z - h),
-      new Vector3D(player.position.x + h, h, player.position.z + h),
+        new Vector3D(player.position.x - h, -h, player.position.z - h),
+        new Vector3D(player.position.x + h, h, player.position.z + h),
     );
 
     for (let i = spheres.length - 1; i >= 0; i--) {
@@ -177,38 +212,19 @@ async function start() {
       }
     }
 
-    // --- KAMERA ---
-    if (Input.isPressed(Keys.D1)) cam.strategy = CameraStrategy.FIXED;
-    if (Input.isPressed(Keys.D2)) cam.strategy = CameraStrategy.STIFF;
-    if (Input.isPressed(Keys.D3)) cam.strategy = CameraStrategy.SMOOTH;
-
-    cam.update(
-      player.position,
-      Input.mouse.right ? Input.mouse.dx : 0,
-      Input.mouse.right ? Input.mouse.dy : 0,
-    );
-    Input.mouse.dx = 0;
-    Input.mouse.dy = 0;
-
-    // --- 2. MOND ANIMATION (Orbit + Eigenrotation) ---
-    // Orbit um den Spieler
+    // --- MOND ANIMATION (Orbit + Eigenrotation) ---
     moon.position.x = Math.cos(time * 2) * 3;
     moon.position.z = Math.sin(time * 2) * 3;
-    // Eigenrotation um alle Achsen für einen coolen Effekt
     moon.rotation.x = time;
     moon.rotation.y = time * 1.5;
 
-    // --- 3. KUGELN ANIMIEREN ---
+    // --- KUGELN ANIMIEREN ---
     for (let i = 0; i < spheres.length; i++) {
       const s = spheres[i];
-      // Sanftes Rotieren
       s.rotation.x += 0.01;
       s.rotation.y += 0.02;
-      // Hover-Effekt (auf und ab schweben)
-      // Wir nutzen 'i' als Offset, damit nicht alle exakt synchron schweben
       s.position.y = Math.sin(time * 3 + i) * 0.5 + 0.5;
 
-      // Update BoundingSphere Position für genaue Kollision
       if (s.bounds) s.bounds.center.copyFrom(s.position);
     }
 
