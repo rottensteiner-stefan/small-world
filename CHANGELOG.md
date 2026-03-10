@@ -3,7 +3,7 @@
 ## [0.8.50] - 2026-03-10
 
 - Re-work camera system (strategy pattern plus factor)
-- Re-work cube-demo.ts
+- Re-work demo.ts
 - Add FPS camera strategy
 
 ## [0.8.47] - 2026-03-10

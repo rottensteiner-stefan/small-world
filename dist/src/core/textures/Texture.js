@@ -1,13 +1,19 @@
 import { AssetManager } from "../AssetManager.js";
+import { Vector2D } from "../../math/Vector2D.js";
+import { TextureWrap } from "../../enums/TextureWrap.js";
+import { TextureFilter } from "../../enums/TextureFilter.js";
 export class Texture {
     uuid = crypto.randomUUID();
     image = null;
     isLoaded = false;
-    // Sampler-Einstellungen (vorbereitet für die GPU)
-    wrapS = "repeat"; // U-Achse Kachelung
-    wrapT = "repeat"; // V-Achse Kachelung
-    magFilter = "linear"; // Nah ranzoomen (nearest = Pixelart)
-    minFilter = "linear"; // Weit weg
+    // Sampler-Einstellungen über Enums
+    wrapS = TextureWrap.REPEAT;
+    wrapT = TextureWrap.REPEAT;
+    magFilter = TextureFilter.LINEAR;
+    minFilter = TextureFilter.LINEAR;
+    // --- NEU: Offset und Kachelung (Tiling) ---
+    offset = new Vector2D(0, 0);
+    repeat = new Vector2D(1, 1);
     constructor(url) {
         if (url) {
             this.load(url);

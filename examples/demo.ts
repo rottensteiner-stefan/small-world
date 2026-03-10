@@ -1,29 +1,30 @@
 import {
-  SmallWorld,
-  Scene,
-  Object3D,
+  AmbientLight,
+  BoundingBox,
+  BoundingSphere,
+  Camera,
+  CameraStrategyType,
+  Collision,
   Color,
   Cube,
-  Sphere,
-  Grid,
-  Camera,
-  PerspectiveProjection,
-  Matrix4,
-  Input,
-  Vector3D,
-  HUD,
-  BoundingSphere,
-  BoundingBox,
-  Collision,
-  Keys,
-  FrustumCuller,
-  WireframeMaterial,
-  LambertMaterial,
-  PhongMaterial,
   DirectionalLight,
-  AmbientLight,
+  FrustumCuller,
+  Grid,
+  HUD,
+  Input,
+  Keys,
+  LambertMaterial,
+  Matrix4,
+  Object3D,
+  PerspectiveProjection,
+  PhongMaterial,
+  Scene,
+  SmallWorld,
+  Sphere,
   SpotLight,
-  CameraStrategyType,
+  Texture,
+  Vector3D,
+  WireframeMaterial,
 } from "../src/index.js";
 
 class Application {
@@ -90,16 +91,21 @@ class Application {
     const WORLD_SIZE = this.sw.config.worldSize || 40;
     const grid = new Object3D("Grid");
     grid.geometry = new Grid(WORLD_SIZE, 50).getGeometryData();
+
     const gridMat = new WireframeMaterial();
     gridMat.color = Color.DARKSLATEGRAY;
     grid.material = gridMat;
+
     this.scene.add(grid);
 
     // 3. Spieler
     this.player = new Object3D("Player");
     this.player.geometry = new Cube(this.PLAYER_SIZE).getGeometryData();
     const playerMat = new PhongMaterial();
-    playerMat.color = Color.ORANGE;
+
+    const myTexture = new Texture("/resources/textures/dark-red-brick-wall.jpg");
+    playerMat.diffuseMap = myTexture;
+    playerMat.color = Color.WHITE;
     playerMat.specularColor = Color.WHITE;
     playerMat.shininess = 64;
     this.player.material = playerMat;

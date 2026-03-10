@@ -1,7 +1,7 @@
 import { Color } from "../colors/Color.js";
-import { Vector3D } from "../../math/Vector3D.js";
 import { LightType } from "../../enums/LightType.js";
 import { Light } from "./Light.js";
+import { Vector3D } from "../../math/Vector3D.js";
 export class SpotLight extends Light {
     distance;
     angle;
