@@ -1,11 +1,12 @@
 {
   "name": "smallworld-engine",
-  "version": "0.8.45",
+  "version": "0.8.46",
   "type": "module",
   "scripts": {
     "build": "tsc",
     "format": "prettier --write . && eslint . --fix",
-    "lint": "eslint .",
+    "changelog": "node scripts/generate-changelog.js",
+    "lint": "eslint .", 
     "prebuild": "node scripts/update-version.js",
     "start": "npm run build && npx serve ."
   },
