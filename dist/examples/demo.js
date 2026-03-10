@@ -1,4 +1,4 @@
-import { SmallWorld, Scene, Object3D, Color, Cube, Sphere, Grid, Camera, PerspectiveProjection, Matrix4, Input, Vector3D, HUD, BoundingSphere, BoundingBox, Collision, Keys, FrustumCuller, WireframeMaterial, LambertMaterial, PhongMaterial, DirectionalLight, AmbientLight, SpotLight, CameraStrategyType, } from "../src/index.js";
+import { AmbientLight, BoundingBox, BoundingSphere, Camera, CameraStrategyType, Collision, Color, Cube, DirectionalLight, FrustumCuller, Grid, HUD, Input, Keys, LambertMaterial, Matrix4, Object3D, PerspectiveProjection, PhongMaterial, Scene, SmallWorld, Sphere, SpotLight, Texture, Vector3D, WireframeMaterial, } from "../src/index.js";
 class Application {
     // --- Core Engine ---
     sw;
@@ -58,7 +58,9 @@ class Application {
         this.player = new Object3D("Player");
         this.player.geometry = new Cube(this.PLAYER_SIZE).getGeometryData();
         const playerMat = new PhongMaterial();
-        playerMat.color = Color.ORANGE;
+        const myTexture = new Texture("/resources/textures/dark-red-brick-wall.jpg");
+        playerMat.diffuseMap = myTexture;
+        playerMat.color = Color.WHITE;
         playerMat.specularColor = Color.WHITE;
         playerMat.shininess = 64;
         this.player.material = playerMat;
@@ -226,4 +228,4 @@ class Application {
 // Einstiegspunkt der Demo
 const app = new Application();
 app.start();
-//# sourceMappingURL=cube-demo.js.map
+//# sourceMappingURL=demo.js.map

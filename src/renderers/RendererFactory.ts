@@ -1,5 +1,5 @@
-import { RendererType } from "../enums/RendererType.js";
 import { IRenderer } from "../interfaces/IRenderer.js";
+import { RendererType } from "../enums/RendererType.js";
 import { WebGL1Renderer } from "./WebGL1Renderer.js";
 import { WebGL2Renderer } from "./WebGL2Renderer.js";
 import { WebGPURenderer } from "./WebGPURenderer.js";

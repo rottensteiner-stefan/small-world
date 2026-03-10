@@ -7,15 +7,15 @@ export class WebGPURenderer {
     format;
     pipelineLines;
     pipelineTriangles;
-    bindGroupLayout; // Für Matrizen/Lichter (Group 0)
-    textureBindGroupLayout; // Für Texturen (Group 1)
+    bindGroupLayout;
+    textureBindGroupLayout;
     depthTexture;
     canvas;
     clearColor = [0.1, 0.1, 0.1, 1.0];
     geoCache = new Map();
     objCache = new Map();
-    texCache = new Map(); // <--- NEU
-    defaultTexBindGroup; // <--- NEU
+    texCache = new Map();
+    defaultTexBindGroup;
     async initialize(canvas) {
         this.canvas = canvas;
         const adapter = await navigator.gpu.requestAdapter();
@@ -23,7 +23,6 @@ export class WebGPURenderer {
         this.context = canvas.getContext("webgpu");
         this.format = navigator.gpu.getPreferredCanvasFormat();
         this.context.configure({ device: this.device, format: this.format });
-        // --- WGSL SHADER UPDATE (Group 1 & UVs) ---
         const shader = this.device.createShaderModule({
             code: `
         struct PointLight { pos: vec4f, color: vec4f }
@@ -32,6 +31,7 @@ export class WebGPURenderer {
         struct Unifs {
           vp: mat4x4f, model: mat4x4f, color: vec4f, specColor: vec4f,
           ambientColor: vec4f, dirLightColor: vec4f, dirLightDir: vec4f, camPos: vec4f,
+          texOffset: vec2f, texRepeat: vec2f, // <--- NEU
           shininess: f32, numPointLights: f32, numSpotLights: f32, pad: f32,
           pointLights: array<PointLight, 4>,
           spotLights: array<SpotLight, 4>
@@ -47,7 +47,8 @@ export class WebGPURenderer {
         @vertex fn vs(i: In) -> Out {
             var o: Out;
             let wp = u.model * vec4f(i.pos, 1.0);
-            o.worldPos = wp.xyz; o.pos = u.vp * wp; o.normal = (u.model * vec4f(i.normal, 0.0)).xyz; o.uv = i.uv;
+            o.worldPos = wp.xyz; o.pos = u.vp * wp; o.normal = (u.model * vec4f(i.normal, 0.0)).xyz; 
+            o.uv = (i.uv * u.texRepeat) + u.texOffset; // <--- UV TRANSFORMATION
             return o;
         }
 
@@ -81,20 +82,18 @@ export class WebGPURenderer {
                     if (u.shininess > 0.0 && diff_sp > 0.0) { specular += pow(max(dot(V, reflect(-L_sp, N)), 0.0), u.shininess) * u.spotLights[k].color.rgb * attenuation * spotEffect; }
                 }
             }
-            // HIER IST DER FIX: u.specColor.rgb statt u_specColor.rgb
             return vec4f((finalLight * u.color.rgb * texColor.rgb) + (specular * u.specColor.rgb), u.color.a * texColor.a);
         }
       `,
         });
-        // --- Layouts ---
         this.bindGroupLayout = this.device.createBindGroupLayout({
             entries: [{ binding: 0, visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT, buffer: { type: "uniform" } }],
         });
         this.textureBindGroupLayout = this.device.createBindGroupLayout({
             entries: [
                 { binding: 0, visibility: GPUShaderStage.FRAGMENT, texture: {} },
-                { binding: 1, visibility: GPUShaderStage.FRAGMENT, sampler: {} }
-            ]
+                { binding: 1, visibility: GPUShaderStage.FRAGMENT, sampler: {} },
+            ],
         });
         const pipelineLayout = this.device.createPipelineLayout({ bindGroupLayouts: [this.bindGroupLayout, this.textureBindGroupLayout] });
         const pipelineDescriptorTemplate = {
@@ -104,7 +103,7 @@ export class WebGPURenderer {
                 buffers: [
                     { arrayStride: 12, attributes: [{ shaderLocation: 0, offset: 0, format: "float32x3" }] },
                     { arrayStride: 12, attributes: [{ shaderLocation: 1, offset: 0, format: "float32x3" }] },
-                    { arrayStride: 8, attributes: [{ shaderLocation: 2, offset: 0, format: "float32x2" }] }, // UV Buffer
+                    { arrayStride: 8, attributes: [{ shaderLocation: 2, offset: 0, format: "float32x2" }] },
                 ],
             },
             fragment: { module: shader, entryPoint: "fs", targets: [{ format: this.format }] },
@@ -115,14 +114,12 @@ export class WebGPURenderer {
         this.createDepthTexture();
         this.createDefaultTexture();
     }
-    // --- NEU: Standard weiße Textur ---
     createDefaultTexture() {
-        const defaultTex = this.device.createTexture({ size: [1, 1, 1], format: 'rgba8unorm', usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST });
+        const defaultTex = this.device.createTexture({ size: [1, 1, 1], format: "rgba8unorm", usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST });
         this.device.queue.writeTexture({ texture: defaultTex }, new Uint8Array([255, 255, 255, 255]), { bytesPerRow: 4, rowsPerImage: 1 }, [1, 1, 1]);
         const defaultSampler = this.device.createSampler();
         this.defaultTexBindGroup = this.device.createBindGroup({ layout: this.textureBindGroupLayout, entries: [{ binding: 0, resource: defaultTex.createView() }, { binding: 1, resource: defaultSampler }] });
     }
-    // --- NEU: Texturen asynchron laden und BindGroup erstellen ---
     getGPUTextureBindGroup(tex) {
         if (!tex.isLoaded || !tex.image)
             return this.defaultTexBindGroup;
@@ -130,16 +127,16 @@ export class WebGPURenderer {
         if (!entry) {
             const gpuTex = this.device.createTexture({
                 size: [tex.image.width, tex.image.height, 1],
-                format: 'rgba8unorm',
-                usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
+                format: "rgba8unorm",
+                usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
             });
             this.device.queue.copyExternalImageToTexture({ source: tex.image }, { texture: gpuTex }, [tex.image.width, tex.image.height]);
-            const mapWrap = (w) => w === "clamp" ? "clamp-to-edge" : (w === "mirror" ? "mirror-repeat" : "repeat");
+            // Enums matchen direkt auf die WebGPU AddressModes!
             const sampler = this.device.createSampler({
                 magFilter: tex.magFilter,
                 minFilter: tex.minFilter,
-                addressModeU: mapWrap(tex.wrapS),
-                addressModeV: mapWrap(tex.wrapT)
+                addressModeU: tex.wrapS,
+                addressModeV: tex.wrapT,
             });
             entry = this.device.createBindGroup({ layout: this.textureBindGroupLayout, entries: [{ binding: 0, resource: gpuTex.createView() }, { binding: 1, resource: sampler }] });
             this.texCache.set(tex, entry);
@@ -163,7 +160,6 @@ export class WebGPURenderer {
                 nb = this.device.createBuffer({ size: geometry.normals.byteLength, usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST });
                 this.device.queue.writeBuffer(nb, 0, geometry.normals.buffer, geometry.normals.byteOffset, geometry.normals.byteLength);
             }
-            // --- NEU: UV Puffer ---
             let uvb;
             if (geometry.uvs && geometry.uvs.length > 0) {
                 uvb = this.device.createBuffer({ size: geometry.uvs.byteLength, usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST });
@@ -186,7 +182,8 @@ export class WebGPURenderer {
     getObjCache(obj) {
         let entry = this.objCache.get(obj);
         if (!entry) {
-            const ub = this.device.createBuffer({ size: 624, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+            // 160 Floats * 4 Bytes = 640 Bytes Puffergröße
+            const ub = this.device.createBuffer({ size: 640, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
             const bg = this.device.createBindGroup({ layout: this.bindGroupLayout, entries: [{ binding: 0, resource: { buffer: ub } }] });
             entry = { ub, bg };
             this.objCache.set(obj, entry);
@@ -233,21 +230,22 @@ export class WebGPURenderer {
         };
         for (const obj of scene.objects)
             extractLights(obj);
-        const uData = new Float32Array(156);
+        // Array ist jetzt 160 Floats groß!
+        const uData = new Float32Array(160);
         uData.set(vpMatrix, 0);
         uData.set([aCol.r, aCol.g, aCol.b, 1.0], 40);
         uData.set([dCol.r, dCol.g, dCol.b, 1.0], 44);
         uData.set([dDir.x, dDir.y, dDir.z, 0.0], 48);
         uData.set([camPos.x, camPos.y, camPos.z, 0.0], 52);
-        uData[57] = pLights.length;
-        uData[58] = sLights.length;
+        uData[61] = pLights.length;
+        uData[62] = sLights.length; // Verschoben!
         for (let i = 0; i < pLights.length; i++) {
-            const pl = pLights[i], offset = 60 + i * 8;
+            const pl = pLights[i], offset = 64 + i * 8; // Verschoben!
             uData.set([pl.worldMatrix.data[12], pl.worldMatrix.data[13], pl.worldMatrix.data[14], 0.0], offset);
             uData.set([pl.color.r * pl.intensity, pl.color.g * pl.intensity, pl.color.b * pl.intensity, 0.0], offset + 4);
         }
         for (let i = 0; i < sLights.length; i++) {
-            const sl = sLights[i], offset = 92 + i * 16;
+            const sl = sLights[i], offset = 96 + i * 16; // Verschoben!
             uData.set([sl.worldMatrix.data[12], sl.worldMatrix.data[13], sl.worldMatrix.data[14], 0.0], offset);
             const dir = sl.direction.clone();
             if (dir.length() > 0)
@@ -265,7 +263,9 @@ export class WebGPURenderer {
                 uData.set(obj.material.color.toArray(), 32);
                 let shininess = -1.0;
                 let specCol = [0, 0, 0, 0];
-                let texBindGroup = this.defaultTexBindGroup; // <--- DEFAULT WEIß
+                let texBindGroup = this.defaultTexBindGroup;
+                let tOffset = [0, 0]; // <--- NEU
+                let tRepeat = [1, 1]; // <--- NEU
                 if (obj.material.type === "LambertMaterial") {
                     shininess = 0.0;
                 }
@@ -275,18 +275,22 @@ export class WebGPURenderer {
                     specCol = material.specularColor ? material.specularColor.toArray() : [0, 0, 0, 0];
                     if (material.diffuseMap) {
                         texBindGroup = this.getGPUTextureBindGroup(material.diffuseMap);
+                        tOffset = [material.diffuseMap.offset.x, material.diffuseMap.offset.y]; // <--- NEU
+                        tRepeat = [material.diffuseMap.repeat.x, material.diffuseMap.repeat.y]; // <--- NEU
                     }
                 }
                 uData.set(specCol, 36);
-                uData[56] = shininess;
+                uData.set(tOffset, 56); // <--- NEU
+                uData.set(tRepeat, 58); // <--- NEU
+                uData[60] = shininess; // Verschoben!
                 const oCache = this.getObjCache(obj);
                 this.device.queue.writeBuffer(oCache.ub, 0, uData.buffer, uData.byteOffset, uData.byteLength);
                 const gCache = this.getGeoCache(obj.geometry);
                 rp.setBindGroup(0, oCache.bg);
-                rp.setBindGroup(1, texBindGroup); // <--- Textur an Shader übergeben!
+                rp.setBindGroup(1, texBindGroup);
                 rp.setVertexBuffer(0, gCache.vb);
                 rp.setVertexBuffer(1, gCache.nb ? gCache.nb : gCache.vb);
-                rp.setVertexBuffer(2, gCache.uvb ? gCache.uvb : gCache.vb); // <--- UV Buffer
+                rp.setVertexBuffer(2, gCache.uvb ? gCache.uvb : gCache.vb);
                 if (gCache.ib && gCache.format) {
                     rp.setIndexBuffer(gCache.ib, gCache.format);
                     rp.drawIndexed(gCache.indexCount);

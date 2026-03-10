@@ -1,5 +1,5 @@
-import { Material } from "./Material.js";
 import { Color } from "../colors/Color.js";
+import { Material } from "./Material.js";
 import { Texture } from "../textures/Texture.js";
 
 export class PhongMaterial extends Material {

@@ -1,5 +1,5 @@
-import { Material } from "./Material.js";
 import { Color } from "../colors/Color.js";
+import { Material } from "./Material.js";
 export class PhongMaterial extends Material {
     type = "PhongMaterial";
     // Basisfarbe (wird mit der Diffuse Map multipliziert, falls vorhanden)
