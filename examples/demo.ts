@@ -104,6 +104,7 @@ class Application {
     const playerMat = new PhongMaterial();
 
     const myTexture = new Texture("/resources/textures/dark-red-brick-wall.jpg");
+    myTexture.repeat.set(2, 2);
     playerMat.diffuseMap = myTexture;
     playerMat.color = Color.WHITE;
     playerMat.specularColor = Color.WHITE;
@@ -177,6 +178,12 @@ class Application {
     // --- BEWEGUNG & KAMERA ---
     this.updatePlayerMovement();
     this.updateCamera();
+    if (this.player.material) {
+      const texture =   (this.player.material as PhongMaterial).diffuseMap;
+      if (texture) {
+        texture.offset.x += 0.005;
+      }
+    }
 
     // --- SYSTEM & HUD TOGGLE ---
     const tabDown = Input.isPressed(Keys.TAB);
