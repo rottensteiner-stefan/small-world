@@ -1,5 +1,6 @@
 import { ObjectGeometry } from "./ObjectGeometry.js";
 import { Vector3D } from "../math/Vector3D.js";
+
 export class Triangle extends ObjectGeometry {
   constructor(
     public pointA: Vector3D,
@@ -21,6 +22,7 @@ export class Triangle extends ObjectGeometry {
       this.pointC.y,
       this.pointC.z,
     ]);
-    this.indices = new Uint16Array([0, 1, 1, 2, 2, 0]);
+    this.uvs = new Float32Array([0, 0, 1, 0, 0.5, 1]);
+    this.indices = new Uint16Array([0, 1, 1, 2, 2, 0]); // Note: This is drawing as lines based on your old indices!
   }
 }

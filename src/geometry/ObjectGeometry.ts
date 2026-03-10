@@ -7,16 +7,25 @@ export abstract class ObjectGeometry implements IGeometry {
   protected vertices: Float32Array = new Float32Array();
   protected indices: Uint16Array = new Uint16Array();
   protected normals: Float32Array = new Float32Array();
+  protected uvs: Float32Array = new Float32Array(); // <--- NEU
 
   protected abstract generateGeometryData(): void;
 
   public getGeometryData(): IGeometryData {
-    // AUTOMATISCHER FALLBACK:
-    // Wenn keine Normalen existieren, berechne sie genau jetzt auf Abruf!
     if (this.normals.length === 0 && this.vertices.length > 0) {
       this.computeNormals();
     }
-    return { vertices: this.vertices, indices: this.indices, normals: this.normals };
+    // Falls keine UVs generiert wurden, füllen wir sie mit Nullen (Fallback)
+    if (this.uvs.length === 0 && this.vertices.length > 0) {
+      this.uvs = new Float32Array((this.vertices.length / 3) * 2);
+    }
+
+    return {
+      vertices: this.vertices,
+      indices: this.indices,
+      normals: this.normals,
+      uvs: this.uvs, // <--- NEU
+    };
   }
 
   public computeNormals(): void {
@@ -32,10 +41,9 @@ export abstract class ObjectGeometry implements IGeometry {
     }
 
     for (let i = 0; i < this.indices.length; i += 3) {
-      const iA = this.indices[i] * 3;
-      const iB = this.indices[i + 1] * 3;
-      const iC = this.indices[i + 2] * 3;
-
+      const iA = this.indices[i] * 3,
+        iB = this.indices[i + 1] * 3,
+        iC = this.indices[i + 2] * 3;
       const ax = this.vertices[iA],
         ay = this.vertices[iA + 1],
         az = this.vertices[iA + 2];

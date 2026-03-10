@@ -17,6 +17,7 @@ export class Line extends ObjectGeometry {
             this.end.y,
             this.end.z,
         ]);
+        this.uvs = new Float32Array([0, 0, 1, 1]);
         this.indices = new Uint16Array([0, 1]);
     }
 }
