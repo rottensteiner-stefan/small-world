@@ -22,6 +22,7 @@ import { PhongMaterial } from "../src/core/materials/PhongMaterial.js";
 import { DirectionalLight } from "../src/core/lights/DirectionalLight.js";
 import { AmbientLight } from "../src/core/lights/AmbientLight.js";
 import { PointLight } from "../src/core/lights/PointLight.js";
+import { SpotLight } from "../src/core/lights/SpotLight.js";
 
 async function start() {
   Input.init();
@@ -67,8 +68,20 @@ async function start() {
   player.add(moon);
 
   // 3. Das dramatische PointLight! Wir hängen es direkt an den kreisenden Mond.
-  const torch = new PointLight(Color.RED, 5.0); // Starkes rotes Licht
-  moon.add(torch); // <-- Es wird mit dem Mond reisen!
+  //const torch = new PointLight(Color.RED, 5.0); // Starkes rotes Licht
+  //moon.add(torch); // <-- Es wird mit dem Mond reisen!
+
+  // LÖSCHE das PointLight ("torch") und ersetze es durch:
+  // 3. Die Taschenlampe (SpotLight) für den Spieler!
+  const flashLight = new SpotLight(Color.GREEN, 8.0);
+  // Winkel: 25 Grad, Penumbra: 0.8 (sehr weicher Rand)
+  flashLight.angle = Math.PI / 7;
+  flashLight.penumbra = 0.8;
+
+  // Die Lampe etwas nach vorne und oben versetzen, damit sie nicht IM Würfel steckt
+  flashLight.position.set(0, 1, 1);
+  player.add(flashLight);
+
 
   const spheres: Object3D[] = [];
   const TOTAL_SPHERES = 30;
@@ -131,6 +144,8 @@ async function start() {
       // Spieler in Laufrichtung drehen (Y-Achse)
       // Math.atan2 gibt uns den Winkel in Radiant basierend auf X und Z
       player.rotation.y = Math.atan2(moveX, moveZ);
+
+      flashLight.direction.set(Math.sin(player.rotation.y), -0.2, Math.cos(player.rotation.y));
     }
 
     // --- SYSTEM & HUD ---

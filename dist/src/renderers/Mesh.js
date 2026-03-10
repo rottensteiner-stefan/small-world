@@ -2,7 +2,7 @@ export class Mesh {
     gl;
     vbo;
     ebo;
-    nbo;
+    nbo = null;
     count;
     constructor(gl, data) {
         this.gl = gl;
