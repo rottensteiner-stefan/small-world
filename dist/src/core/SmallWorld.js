@@ -4,8 +4,7 @@ import { ColorUtils } from "./colors/ColorUtils.js";
 export class SmallWorld {
     config;
     activeRenderer;
-    constructor() {
-    }
+    constructor() { }
     async init(configPath) {
         try {
             const response = await fetch(configPath);
