@@ -5,7 +5,7 @@ import { Color } from "../src/core/colors/Color.js";
 import { Cube } from "../src/geometry/Cube.js";
 import { Sphere } from "../src/geometry/Sphere.js";
 import { Grid } from "../src/geometry/Grid.js";
-import { Camera, CameraStrategy } from "../src/core/Camera.js";
+import { Camera } from "../src/core/Camera.js";
 import { PerspectiveProjection } from "../src/math/projections/PerspectiveProjection.js";
 import { Matrix4 } from "../src/math/Matrix4.js";
 import { Input } from "../src/core/Input.js";
@@ -22,57 +22,90 @@ import { PhongMaterial } from "../src/core/materials/PhongMaterial.js";
 import { DirectionalLight } from "../src/core/lights/DirectionalLight.js";
 import { AmbientLight } from "../src/core/lights/AmbientLight.js";
 import { SpotLight } from "../src/core/lights/SpotLight.js";
-async function start() {
-    Input.init();
-    const sw = new SmallWorld();
-    await sw.init("./config/small-world.json");
-    const WORLD_SIZE = sw.config.worldSize || 40;
-    sw.activeRenderer.setSize(window.innerWidth, window.innerHeight);
-    const scene = new Scene();
-    const hud = new HUD(sw.config.showHUD !== false);
-    await hud.init();
-    // 1. Sanftes Grundlicht im Raum (dunkler als vorher für besseren Taschenlampen-Effekt)
-    const ambient = new AmbientLight(new Color(0.1, 0.1, 0.15), 0.5);
-    scene.add(ambient);
-    // 2. Die schwache Sonne
-    const sun = new DirectionalLight(Color.WHITE, 0.2);
-    sun.direction.set(1, -1.5, -1);
-    scene.add(sun);
-    // Gitter als Boden
-    const grid = new Object3D("Grid");
-    grid.geometry = new Grid(WORLD_SIZE, 50).getGeometryData();
-    grid.material = new WireframeMaterial();
-    grid.material.color = Color.DARKSLATEGRAY;
-    scene.add(grid);
-    // Spieler-Würfel
-    const playerSize = 1.5;
-    const player = new Object3D("Player");
-    player.geometry = new Cube(playerSize).getGeometryData();
-    const playerMat = new PhongMaterial();
-    playerMat.color = Color.ORANGE;
-    playerMat.specularColor = Color.WHITE;
-    playerMat.shininess = 64;
-    player.material = playerMat;
-    scene.add(player);
-    // Mond, der um den Spieler kreist
-    const moon = new Object3D("Moon");
-    moon.geometry = new Sphere(0.4).getGeometryData();
-    const moonMat = new LambertMaterial();
-    moonMat.color = Color.YELLOW;
-    moon.material = moonMat;
-    player.add(moon);
-    // 3. Die Taschenlampe (SpotLight) für den Spieler!
-    const flashLight = new SpotLight(Color.GREEN, 8.0);
-    flashLight.angle = Math.PI / 7; // Ca. 25 Grad Kegel
-    flashLight.penumbra = 0.8; // Sehr weicher Rand
-    flashLight.position.set(0, 1, 1); // Leicht nach vorne und oben versetzt
-    player.add(flashLight);
-    // Sammelbare Kugeln
-    const spheres = [];
-    const TOTAL_SPHERES = 30;
-    const sGeo = new Sphere(0.6).getGeometryData();
-    const createSpheres = () => {
-        for (let i = 0; i < TOTAL_SPHERES; i++) {
+import { CameraStrategyType } from "../src/enums/CameraStrategyType.js";
+class Application {
+    // --- Core Engine ---
+    sw;
+    scene;
+    hud;
+    cam;
+    // --- Game Objects ---
+    player;
+    flashLight;
+    moon;
+    spheres = [];
+    // --- State & Settings ---
+    score = 0;
+    TOTAL_SPHERES = 30;
+    PLAYER_SIZE = 1.5;
+    hudVisible = true;
+    tabWasPressed = false;
+    // --- Timing & Matrices ---
+    lastTime = 0;
+    frameCount = 0;
+    fps = 0;
+    viewMatrix = new Matrix4();
+    vpMatrix = new Matrix4();
+    constructor() {
+        this.sw = new SmallWorld();
+        this.scene = new Scene();
+        this.cam = new Camera(new PerspectiveProjection(Math.PI / 4, window.innerWidth / window.innerHeight, 0.1, 200));
+    }
+    async start() {
+        Input.init();
+        await this.sw.init("./config/small-world.json");
+        this.sw.activeRenderer.setSize(window.innerWidth, window.innerHeight);
+        this.hudVisible = this.sw.config.showHUD !== false;
+        this.hud = new HUD(this.hudVisible);
+        await this.hud.init();
+        this.setupScene();
+        this.setupInput();
+        this.lastTime = performance.now();
+        this.loop();
+    }
+    setupScene() {
+        // 1. Lichtstimmung
+        const ambient = new AmbientLight(new Color(0.1, 0.1, 0.15), 0.5);
+        this.scene.add(ambient);
+        const sun = new DirectionalLight(Color.WHITE, 0.2);
+        sun.direction.set(1, -1.5, -1);
+        this.scene.add(sun);
+        // 2. Welt (Boden)
+        const WORLD_SIZE = this.sw.config.worldSize || 40;
+        const grid = new Object3D("Grid");
+        grid.geometry = new Grid(WORLD_SIZE, 50).getGeometryData();
+        const gridMat = new WireframeMaterial();
+        gridMat.color = Color.DARKSLATEGRAY;
+        grid.material = gridMat;
+        this.scene.add(grid);
+        // 3. Spieler
+        this.player = new Object3D("Player");
+        this.player.geometry = new Cube(this.PLAYER_SIZE).getGeometryData();
+        const playerMat = new PhongMaterial();
+        playerMat.color = Color.ORANGE;
+        playerMat.specularColor = Color.WHITE;
+        playerMat.shininess = 64;
+        this.player.material = playerMat;
+        this.scene.add(this.player);
+        // 4. Mond
+        this.moon = new Object3D("Moon");
+        this.moon.geometry = new Sphere(0.4).getGeometryData();
+        const moonMat = new LambertMaterial();
+        moonMat.color = Color.YELLOW;
+        this.moon.material = moonMat;
+        this.player.add(this.moon);
+        // 5. Taschenlampe
+        this.flashLight = new SpotLight(Color.GREEN, 8.0);
+        this.flashLight.angle = Math.PI / 7;
+        this.flashLight.penumbra = 0.8;
+        this.flashLight.position.set(0, 1, 1);
+        this.player.add(this.flashLight);
+        // 6. Sammelobjekte
+        this.createSpheres();
+    }
+    createSpheres() {
+        const sGeo = new Sphere(0.6).getGeometryData();
+        for (let i = 0; i < this.TOTAL_SPHERES; i++) {
             const s = new Object3D(`Sphere_${i}`);
             s.geometry = sGeo;
             const sMat = new PhongMaterial();
@@ -82,31 +115,67 @@ async function start() {
             s.material = sMat;
             s.position = new Vector3D(Math.random() * 40 - 20, 0, Math.random() * 40 - 20);
             s.bounds = new BoundingSphere(s.position, 0.6);
-            scene.add(s);
-            spheres.push(s);
+            this.scene.add(s);
+            this.spheres.push(s);
         }
-    };
-    createSpheres();
-    const cam = new Camera(new PerspectiveProjection(Math.PI / 4, window.innerWidth / window.innerHeight, 0.1, 200));
-    // Klick auf das Canvas sperrt die Maus ein (für den FPS Modus)
-    const canvas = document.getElementById(sw.config.canvasId);
-    canvas.addEventListener("click", () => {
-        if (cam.strategy === CameraStrategy.FPS) {
-            Input.requestPointerLock(canvas);
-        }
-    });
-    const vM = new Matrix4(), vpM = new Matrix4();
-    let score = 0, lastTime = performance.now(), frameCount = 0, fps = 0, hudVisible = sw.config.showHUD !== false, tabWasPressed = false;
-    function loop() {
-        frameCount++;
+    }
+    setupInput() {
+        const canvas = document.getElementById(this.sw.config.canvasId);
+        canvas.addEventListener("click", () => {
+            if (this.cam.activeStrategyType === CameraStrategyType.FPS) {
+                Input.requestPointerLock(canvas);
+            }
+        });
+    }
+    loop = () => {
         const now = performance.now();
-        const time = now * 0.001; // Zeit in Sekunden für flüssige Animationen
-        if (now - lastTime >= 1000) {
-            fps = frameCount;
-            frameCount = 0;
-            lastTime = now;
+        const time = now * 0.001; // Zeit in Sekunden
+        this.frameCount++;
+        if (now - this.lastTime >= 1000) {
+            this.fps = this.frameCount;
+            this.frameCount = 0;
+            this.lastTime = now;
         }
-        // --- 1. SPIELER BEWEGUNG & ROTATION ---
+        this.update(time);
+        this.render();
+        requestAnimationFrame(this.loop);
+    };
+    update(time) {
+        // --- BEWEGUNG & KAMERA ---
+        this.updatePlayerMovement();
+        this.updateCamera();
+        // --- SYSTEM & HUD TOGGLE ---
+        const tabDown = Input.isPressed(Keys.TAB);
+        if (tabDown && !this.tabWasPressed) {
+            this.hudVisible = !this.hudVisible;
+            this.hud.setVisible(this.hudVisible);
+        }
+        this.tabWasPressed = tabDown;
+        if (Input.isPressed(Keys.R)) {
+            this.spheres.forEach((s) => this.scene.remove(s));
+            this.spheres.length = 0;
+            this.score = 0;
+            this.createSpheres();
+        }
+        // --- KOLLISION ---
+        this.checkCollisions();
+        // --- ANIMATIONEN ---
+        this.moon.position.x = Math.cos(time * 2) * 3;
+        this.moon.position.z = Math.sin(time * 2) * 3;
+        this.moon.rotation.x = time;
+        this.moon.rotation.y = time * 1.5;
+        for (let i = 0; i < this.spheres.length; i++) {
+            const s = this.spheres[i];
+            s.rotation.x += 0.01;
+            s.rotation.y += 0.02;
+            s.position.y = Math.sin(time * 3 + i) * 0.5 + 0.5;
+            if (s.bounds)
+                s.bounds.center.copyFrom(s.position);
+        }
+        // Szenengraph durchrechnen
+        this.scene.update();
+    }
+    updatePlayerMovement() {
         const speed = Input.isPressed(Keys.SHIFT_L) ? 0.6 : 0.25;
         const dx = Input.getAxis(Keys.A, Keys.D);
         const dz = Input.getAxis(Keys.W, Keys.S);
@@ -114,100 +183,71 @@ async function start() {
             const len = Math.sqrt(dx * dx + dz * dz);
             const moveX = dx / len;
             const moveZ = dz / len;
-            if (cam.strategy === CameraStrategy.FPS) {
-                // --- FPS BEWEGUNG (Relativ zur Kamera-Blickrichtung) ---
-                const s = Math.sin(cam.theta);
-                const c = Math.cos(cam.theta);
-                // Berechne Vektor nach vorne (-s, -c) und nach rechts (-c, s)
+            if (this.cam.activeStrategyType === CameraStrategyType.FPS) {
+                const s = Math.sin(this.cam.theta);
+                const c = Math.cos(this.cam.theta);
                 const forwardX = -s, forwardZ = -c;
                 const rightX = -c, rightZ = s;
-                // Kombiniere WASD-Tastendrücke mit den Richtungs-Vektoren
-                const worldX = (rightX * moveX) - (forwardX * moveZ);
-                const worldZ = (rightZ * moveX) - (forwardZ * moveZ);
-                player.position.add(new Vector3D(worldX, 0, worldZ).scale(speed));
-                player.rotation.y = cam.theta; // Der Spieler guckt immer dorthin, wo die Kamera guckt
+                const worldX = rightX * moveX - forwardX * moveZ;
+                const worldZ = rightZ * moveX - forwardZ * moveZ;
+                this.player.position.add(new Vector3D(worldX, 0, worldZ).scale(speed));
+                this.player.rotation.y = this.cam.theta;
             }
             else {
-                // --- THIRD PERSON BEWEGUNG (Absolute Welt-Koordinaten) ---
-                player.position.add(new Vector3D(moveX, 0, moveZ).scale(speed));
-                player.rotation.y = Math.atan2(moveX, moveZ);
+                this.player.position.add(new Vector3D(moveX, 0, moveZ).scale(speed));
+                this.player.rotation.y = Math.atan2(moveX, moveZ);
             }
-            // Taschenlampe folgt der Rotation des Spielers leicht nach unten geneigt
-            flashLight.direction.set(Math.sin(player.rotation.y), -0.2, Math.cos(player.rotation.y));
+            this.flashLight.direction.set(Math.sin(this.player.rotation.y), -0.2, Math.cos(this.player.rotation.y));
         }
-        // --- KAMERA-MODUS UMSCHALTEN ---
+    }
+    updateCamera() {
         if (Input.isPressed(Keys.D1))
-            cam.strategy = CameraStrategy.FIXED;
+            this.cam.setStrategy(CameraStrategyType.FIXED);
         if (Input.isPressed(Keys.D2))
-            cam.strategy = CameraStrategy.STIFF;
+            this.cam.setStrategy(CameraStrategyType.STIFF);
         if (Input.isPressed(Keys.D3))
-            cam.strategy = CameraStrategy.SMOOTH;
+            this.cam.setStrategy(CameraStrategyType.SMOOTH);
         if (Input.isPressed(Keys.D4))
-            cam.strategy = CameraStrategy.FPS;
-        // Kamera updaten (Maus nur auswerten, wenn wir im FPS-Modus gelockt sind, ODER die rechte Maustaste halten)
+            this.cam.setStrategy(CameraStrategyType.FPS);
         let mdx = 0, mdy = 0;
-        if ((cam.strategy === CameraStrategy.FPS && Input.isPointerLocked) || Input.mouse.right) {
+        if ((this.cam.activeStrategyType === CameraStrategyType.FPS && Input.isPointerLocked) ||
+            Input.mouse.right) {
             mdx = Input.mouse.dx;
             mdy = Input.mouse.dy;
         }
-        cam.update(player.position, mdx, mdy);
+        this.cam.update(this.player.position, mdx, mdy);
         Input.mouse.dx = 0;
         Input.mouse.dy = 0;
-        // --- SYSTEM & HUD ---
-        const tabDown = Input.isPressed(Keys.TAB);
-        if (tabDown && !tabWasPressed) {
-            hudVisible = !hudVisible;
-            hud.setVisible(hudVisible);
-        }
-        tabWasPressed = tabDown;
-        if (Input.isPressed(Keys.R)) {
-            spheres.forEach((s) => scene.remove(s));
-            spheres.length = 0;
-            score = 0;
-            createSpheres();
-        }
-        // --- KOLLISION ---
-        const h = playerSize / 2;
-        player.bounds = new BoundingBox(new Vector3D(player.position.x - h, -h, player.position.z - h), new Vector3D(player.position.x + h, h, player.position.z + h));
-        for (let i = spheres.length - 1; i >= 0; i--) {
-            const s = spheres[i];
-            if (s.bounds && Collision.test(player.bounds, s.bounds)) {
-                scene.remove(s);
-                spheres.splice(i, 1);
-                score++;
+    }
+    checkCollisions() {
+        const h = this.PLAYER_SIZE / 2;
+        this.player.bounds = new BoundingBox(new Vector3D(this.player.position.x - h, -h, this.player.position.z - h), new Vector3D(this.player.position.x + h, h, this.player.position.z + h));
+        for (let i = this.spheres.length - 1; i >= 0; i--) {
+            const s = this.spheres[i];
+            if (s.bounds && Collision.test(this.player.bounds, s.bounds)) {
+                this.scene.remove(s);
+                this.spheres.splice(i, 1);
+                this.score++;
             }
         }
-        // --- MOND ANIMATION (Orbit + Eigenrotation) ---
-        moon.position.x = Math.cos(time * 2) * 3;
-        moon.position.z = Math.sin(time * 2) * 3;
-        moon.rotation.x = time;
-        moon.rotation.y = time * 1.5;
-        // --- KUGELN ANIMIEREN ---
-        for (let i = 0; i < spheres.length; i++) {
-            const s = spheres[i];
-            s.rotation.x += 0.01;
-            s.rotation.y += 0.02;
-            s.position.y = Math.sin(time * 3 + i) * 0.5 + 0.5;
-            if (s.bounds)
-                s.bounds.center.copyFrom(s.position);
-        }
-        scene.update();
-        Matrix4.lookAt(cam.position, cam.target, cam.up, vM);
-        cam.getViewProjection(vM, vpM);
-        const visibleCount = FrustumCuller.cull(scene, vpM);
-        hud.update({
-            "hud.fps": fps,
-            "hud.cam.type": CameraStrategy[cam.strategy],
-            "hud.player.pos.x": player.position.x.toFixed(1),
-            "hud.player.pos.y": player.position.y.toFixed(1),
-            "hud.player.pos.z": player.position.z.toFixed(1),
-            "hud.score": `${score} / ${TOTAL_SPHERES}`,
+    }
+    render() {
+        Matrix4.lookAt(this.cam.position, this.cam.target, this.cam.up, this.viewMatrix);
+        this.cam.getViewProjection(this.viewMatrix, this.vpMatrix);
+        const visibleCount = FrustumCuller.cull(this.scene, this.vpMatrix);
+        this.hud.update({
+            "hud.fps": this.fps,
+            "hud.cam.type": this.cam.activeStrategyType,
+            "hud.player.pos.x": this.player.position.x.toFixed(1),
+            "hud.player.pos.y": this.player.position.y.toFixed(1),
+            "hud.player.pos.z": this.player.position.z.toFixed(1),
+            "hud.score": `${this.score} / ${this.TOTAL_SPHERES}`,
             "hud.visible": visibleCount,
         });
-        sw.activeRenderer.render(scene, vpM.data, cam.position);
-        requestAnimationFrame(loop);
+        this.sw.activeRenderer.render(this.scene, this.vpMatrix.data, this.cam.position);
     }
-    loop();
 }
-start();
+// Einstiegspunkt der Demo
+const app = new Application();
+app.start();
 //# sourceMappingURL=cube-demo.js.map

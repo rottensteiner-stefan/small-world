@@ -5,7 +5,7 @@ import { Color } from "../src/core/colors/Color.js";
 import { Cube } from "../src/geometry/Cube.js";
 import { Sphere } from "../src/geometry/Sphere.js";
 import { Grid } from "../src/geometry/Grid.js";
-import { Camera, CameraStrategy } from "../src/core/Camera.js";
+import { Camera } from "../src/core/Camera.js";
 import { PerspectiveProjection } from "../src/math/projections/PerspectiveProjection.js";
 import { Matrix4 } from "../src/math/Matrix4.js";
 import { Input } from "../src/core/Input.js";
@@ -22,6 +22,7 @@ import { PhongMaterial } from "../src/core/materials/PhongMaterial.js";
 import { DirectionalLight } from "../src/core/lights/DirectionalLight.js";
 import { AmbientLight } from "../src/core/lights/AmbientLight.js";
 import { SpotLight } from "../src/core/lights/SpotLight.js";
+import { CameraStrategyType } from "../src/enums/CameraStrategyType.js";
 
 class Application {
   // --- Core Engine ---
@@ -54,7 +55,7 @@ class Application {
     this.sw = new SmallWorld();
     this.scene = new Scene();
     this.cam = new Camera(
-        new PerspectiveProjection(Math.PI / 4, window.innerWidth / window.innerHeight, 0.1, 200)
+      new PerspectiveProjection(Math.PI / 4, window.innerWidth / window.innerHeight, 0.1, 200),
     );
   }
 
@@ -141,7 +142,7 @@ class Application {
   private setupInput() {
     const canvas = document.getElementById(this.sw.config.canvasId) as HTMLCanvasElement;
     canvas.addEventListener("click", () => {
-      if (this.cam.strategy === CameraStrategy.FPS) {
+      if (this.cam.activeStrategyType === CameraStrategyType.FPS) {
         Input.requestPointerLock(canvas);
       }
     });
@@ -216,12 +217,14 @@ class Application {
       const moveX = dx / len;
       const moveZ = dz / len;
 
-      if (this.cam.strategy === CameraStrategy.FPS) {
+      if (this.cam.activeStrategyType === CameraStrategyType.FPS) {
         const s = Math.sin(this.cam.theta);
         const c = Math.cos(this.cam.theta);
 
-        const forwardX = -s, forwardZ = -c;
-        const rightX = -c, rightZ = s;
+        const forwardX = -s,
+          forwardZ = -c;
+        const rightX = -c,
+          rightZ = s;
 
         const worldX = rightX * moveX - forwardX * moveZ;
         const worldZ = rightZ * moveX - forwardZ * moveZ;
@@ -234,21 +237,25 @@ class Application {
       }
 
       this.flashLight.direction.set(
-          Math.sin(this.player.rotation.y),
-          -0.2,
-          Math.cos(this.player.rotation.y)
+        Math.sin(this.player.rotation.y),
+        -0.2,
+        Math.cos(this.player.rotation.y),
       );
     }
   }
 
   private updateCamera() {
-    if (Input.isPressed(Keys.D1)) this.cam.strategy = CameraStrategy.FIXED;
-    if (Input.isPressed(Keys.D2)) this.cam.strategy = CameraStrategy.STIFF;
-    if (Input.isPressed(Keys.D3)) this.cam.strategy = CameraStrategy.SMOOTH;
-    if (Input.isPressed(Keys.D4)) this.cam.strategy = CameraStrategy.FPS;
+    if (Input.isPressed(Keys.D1)) this.cam.setStrategy(CameraStrategyType.FIXED);
+    if (Input.isPressed(Keys.D2)) this.cam.setStrategy(CameraStrategyType.STIFF);
+    if (Input.isPressed(Keys.D3)) this.cam.setStrategy(CameraStrategyType.SMOOTH);
+    if (Input.isPressed(Keys.D4)) this.cam.setStrategy(CameraStrategyType.FPS);
 
-    let mdx = 0, mdy = 0;
-    if ((this.cam.strategy === CameraStrategy.FPS && Input.isPointerLocked) || Input.mouse.right) {
+    let mdx = 0,
+      mdy = 0;
+    if (
+      (this.cam.activeStrategyType === CameraStrategyType.FPS && Input.isPointerLocked) ||
+      Input.mouse.right
+    ) {
       mdx = Input.mouse.dx;
       mdy = Input.mouse.dy;
     }
@@ -261,8 +268,8 @@ class Application {
   private checkCollisions() {
     const h = this.PLAYER_SIZE / 2;
     this.player.bounds = new BoundingBox(
-        new Vector3D(this.player.position.x - h, -h, this.player.position.z - h),
-        new Vector3D(this.player.position.x + h, h, this.player.position.z + h)
+      new Vector3D(this.player.position.x - h, -h, this.player.position.z - h),
+      new Vector3D(this.player.position.x + h, h, this.player.position.z + h),
     );
 
     for (let i = this.spheres.length - 1; i >= 0; i--) {
@@ -283,7 +290,7 @@ class Application {
 
     this.hud.update({
       "hud.fps": this.fps,
-      "hud.cam.type": CameraStrategy[this.cam.strategy],
+      "hud.cam.type": this.cam.activeStrategyType,
       "hud.player.pos.x": this.player.position.x.toFixed(1),
       "hud.player.pos.y": this.player.position.y.toFixed(1),
       "hud.player.pos.z": this.player.position.z.toFixed(1),
