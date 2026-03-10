@@ -2,13 +2,14 @@ import { Scene } from "../core/Scene.js";
 import { IRenderer } from "../interfaces/IRenderer.js";
 import { Color } from "../core/colors/Color.js";
 import { DirectionalLight } from "../core/lights/DirectionalLight.js";
-import { AmbientLight } from "../core/lights/AmbientLight.js";
 import { PointLight } from "../core/lights/PointLight.js";
 import { SpotLight } from "../core/lights/SpotLight.js";
 import { Vector3D } from "../math/Vector3D.js";
 import { IGeometryData } from "../interfaces/IGeometryData.js";
 import { Object3D } from "../core/Object3D.js";
 import { PhongMaterial } from "../core/materials/PhongMaterial";
+import { LightType } from "../enums/LightType.js";
+import { Light } from "../core/lights/Light.js";
 
 interface GeoCacheEntry {
   vb: GPUBuffer;
@@ -18,6 +19,7 @@ interface GeoCacheEntry {
   vertexCount: number;
   indexCount: number;
 }
+
 interface ObjCacheEntry {
   ub: GPUBuffer;
   bg: GPUBindGroup;
@@ -175,6 +177,7 @@ export class WebGPURenderer implements IRenderer {
   public setClearColor(color: Color): void {
     this.clearColor = color.toArray();
   }
+
   private createDepthTexture() {
     if (this.depthTexture) this.depthTexture.destroy();
     this.depthTexture = this.device.createTexture({
@@ -183,6 +186,7 @@ export class WebGPURenderer implements IRenderer {
       usage: GPUTextureUsage.RENDER_ATTACHMENT,
     });
   }
+
   public setSize(w: number, h: number) {
     this.canvas.width = w;
     this.canvas.height = h;
@@ -285,26 +289,41 @@ export class WebGPURenderer implements IRenderer {
     const pLights: PointLight[] = [];
     const sLights: SpotLight[] = []; // <-- NEU
 
-    const extractLights = (node: Object3D) => {
-      if (node instanceof AmbientLight)
-        aCol = new Color(
-          node.color.r * node.intensity,
-          node.color.g * node.intensity,
-          node.color.b * node.intensity,
-        );
-      else if (node instanceof DirectionalLight) {
-        dDir = node.direction.clone().scale(-1);
-        if (dDir.length() > 0) dDir.scale(1 / dDir.length());
-        dCol = new Color(
-          node.color.r * node.intensity,
-          node.color.g * node.intensity,
-          node.color.b * node.intensity,
-        );
-      } else if (node instanceof PointLight && pLights.length < 4) pLights.push(node);
-      else if (node instanceof SpotLight && sLights.length < 4) sLights.push(node);
+    const extractLights = (node: Object3D | Light) => {
+      // Duck-Typing: Wenn es eine lightType Property hat, ist es ein Licht!
+      if ("lightType" in node) {
+        const light = node as Light;
+        switch (light.lightType) {
+          case LightType.AMBIENT:
+            aCol = new Color(
+              light.color.r * light.intensity,
+              light.color.g * light.intensity,
+              light.color.b * light.intensity,
+            );
+            break;
+          case LightType.DIRECTIONAL: {
+            const dLight = light as DirectionalLight;
+            dDir = dLight.direction.clone().scale(-1);
+            if (dDir.length() > 0) dDir.scale(1 / dDir.length());
+            dCol = new Color(
+              light.color.r * light.intensity,
+              light.color.g * light.intensity,
+              light.color.b * light.intensity,
+            );
+            break;
+          }
+          case LightType.POINT:
+            if (pLights.length < 4) pLights.push(light as PointLight);
+            break;
+          case LightType.SPOT:
+            if (sLights.length < 4) sLights.push(light as SpotLight);
+            break;
+        }
+      }
 
       if (node.children) node.children.forEach(extractLights);
     };
+
     for (const obj of scene.objects) extractLights(obj);
 
     const uData = new Float32Array(156);

@@ -1,10 +1,7 @@
 import { Mesh } from "./Mesh.js";
 import { Color } from "../core/colors/Color.js";
-import { DirectionalLight } from "../core/lights/DirectionalLight.js";
-import { AmbientLight } from "../core/lights/AmbientLight.js";
-import { PointLight } from "../core/lights/PointLight.js";
-import { SpotLight } from "../core/lights/SpotLight.js";
 import { Vector3D } from "../math/Vector3D.js";
+import { LightType } from "../enums/LightType.js";
 export class WebGL2Renderer {
     gl;
     prog;
@@ -139,18 +136,31 @@ export class WebGL2Renderer {
         const pLights = [];
         const sLights = [];
         const extractLights = (node) => {
-            if (node instanceof AmbientLight)
-                aCol = new Color(node.color.r * node.intensity, node.color.g * node.intensity, node.color.b * node.intensity);
-            else if (node instanceof DirectionalLight) {
-                dDir = node.direction.clone().scale(-1);
-                if (dDir.length() > 0)
-                    dDir.scale(1 / dDir.length());
-                dCol = new Color(node.color.r * node.intensity, node.color.g * node.intensity, node.color.b * node.intensity);
+            // Duck-Typing: Wenn es eine lightType Property hat, ist es ein Licht!
+            if ("lightType" in node) {
+                const light = node;
+                switch (light.lightType) {
+                    case LightType.AMBIENT:
+                        aCol = new Color(light.color.r * light.intensity, light.color.g * light.intensity, light.color.b * light.intensity);
+                        break;
+                    case LightType.DIRECTIONAL: {
+                        const dLight = light;
+                        dDir = dLight.direction.clone().scale(-1);
+                        if (dDir.length() > 0)
+                            dDir.scale(1 / dDir.length());
+                        dCol = new Color(light.color.r * light.intensity, light.color.g * light.intensity, light.color.b * light.intensity);
+                        break;
+                    }
+                    case LightType.POINT:
+                        if (pLights.length < 4)
+                            pLights.push(light);
+                        break;
+                    case LightType.SPOT:
+                        if (sLights.length < 4)
+                            sLights.push(light);
+                        break;
+                }
             }
-            else if (node instanceof PointLight && pLights.length < 4)
-                pLights.push(node);
-            else if (node instanceof SpotLight && sLights.length < 4)
-                sLights.push(node);
             if (node.children)
                 node.children.forEach(extractLights);
         };

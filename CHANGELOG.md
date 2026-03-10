@@ -1,6 +1,7 @@
 # Changelog
 
 ## [0.8.50] - 2026-03-10
+
 - Re-work camera system (strategy pattern plus factor)
 - Re-work cube-demo.ts
 - Add FPS camera strategy

@@ -1,11 +1,11 @@
-import { Object3D } from "../Object3D.js";
 import { Color } from "../colors/Color.js";
+import { LightType } from "../../enums/LightType.js";
+import { Light } from "./Light.js";
 
-export class AmbientLight extends Object3D {
-  constructor(
-    public color: Color = new Color(1, 1, 1),
-    public intensity: number = 0.2,
-  ) {
-    super("AmbientLight");
+export class AmbientLight extends Light {
+  public readonly lightType = LightType.AMBIENT;
+
+  constructor(color: Color = new Color(1, 1, 1), intensity: number = 0.2) {
+    super(color, intensity, "AmbientLight");
   }
 }
