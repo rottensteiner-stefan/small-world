@@ -6,38 +6,42 @@ export class WebGL2Renderer {
     gl;
     prog;
     cache = new Map();
+    texCache = new Map(); // <--- NEU
+    defaultTexture; // <--- NEU
     locs;
     pointLightLocs = [];
     spotLightLocs = [];
     async initialize(canvas) {
         this.gl = canvas.getContext("webgl2", { antialias: true });
+        // --- DEFAULT WHITE TEXTURE TRICK ---
+        this.defaultTexture = this.gl.createTexture();
+        this.gl.bindTexture(this.gl.TEXTURE_2D, this.defaultTexture);
+        this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, 1, 1, 0, this.gl.RGBA, this.gl.UNSIGNED_BYTE, new Uint8Array([255, 255, 255, 255]));
         const vsCode = `#version 300 es
-    in vec3 a_position; in vec3 a_normal;
+    in vec3 a_position; in vec3 a_normal; in vec2 a_uv;
     uniform mat4 u_vp; uniform mat4 u_model;
-    out vec3 v_worldPos; out vec3 v_normal;
+    out vec3 v_worldPos; out vec3 v_normal; out vec2 v_uv;
     void main() {
       vec4 wp = u_model * vec4(a_position, 1.0);
-      v_worldPos = wp.xyz; v_normal = mat3(u_model) * a_normal;
+      v_worldPos = wp.xyz; v_normal = mat3(u_model) * a_normal; v_uv = a_uv;
       gl_Position = u_vp * wp;
     }`;
         const fsCode = `#version 300 es
     precision highp float;
-    in vec3 v_worldPos; in vec3 v_normal;
+    in vec3 v_worldPos; in vec3 v_normal; in vec2 v_uv;
     uniform vec4 u_color; uniform vec4 u_specColor; uniform float u_shininess; uniform vec3 u_viewPos;
     uniform vec3 u_ambientColor; uniform vec3 u_dirLightColor; uniform vec3 u_dirLightDir;
+    uniform sampler2D u_diffuseMap; // <--- NEU
     
     uniform int u_numPointLights; uniform vec3 u_pointLightPos[4]; uniform vec3 u_pointLightColor[4];
-    
-    uniform int u_numSpotLights;
-    uniform vec3 u_spotLightPos[4];
-    uniform vec3 u_spotLightDir[4];
-    uniform vec3 u_spotLightColor[4];
-    uniform vec4 u_spotLightParams[4]; // x: cosOuter, y: cosInner, z: dist, w: decay
+    uniform int u_numSpotLights; uniform vec3 u_spotLightPos[4]; uniform vec3 u_spotLightDir[4]; uniform vec3 u_spotLightColor[4]; uniform vec4 u_spotLightParams[4];
 
     out vec4 c;
 
     void main() {
-      if (u_shininess < -0.5) { c = u_color; return; }
+      vec4 texColor = texture(u_diffuseMap, v_uv);
+      if (u_shininess < -0.5) { c = u_color * texColor; return; }
+      
       vec3 N = normalize(v_normal); vec3 V = normalize(u_viewPos - v_worldPos);
       vec3 finalLight = u_ambientColor; vec3 specular = vec3(0.0);
 
@@ -64,24 +68,18 @@ export class WebGL2Renderer {
         vec3 lightVec = u_spotLightPos[i] - v_worldPos;
         float dist = length(lightVec); vec3 L_sp = lightVec / dist;
         vec3 S_dir = normalize(u_spotLightDir[i]);
-        
         float theta = dot(-L_sp, S_dir);
-        float cosOuter = u_spotLightParams[i].x;
-        float cosInner = u_spotLightParams[i].y;
-        
-        if(theta > cosOuter) {
-            float spotEffect = smoothstep(cosOuter, cosInner, theta);
+        if(theta > u_spotLightParams[i].x) {
+            float spotEffect = smoothstep(u_spotLightParams[i].x, u_spotLightParams[i].y, theta);
             float attenuation = 1.0 / (1.0 + 0.1 * dist + 0.01 * dist * dist);
             float diff_sp = max(dot(N, L_sp), 0.0);
-            
             finalLight += diff_sp * u_spotLightColor[i] * attenuation * spotEffect;
-            if (u_shininess > 0.0 && diff_sp > 0.0) {
-                specular += pow(max(dot(V, reflect(-L_sp, N)), 0.0), u_shininess) * u_spotLightColor[i] * attenuation * spotEffect;
-            }
+            if (u_shininess > 0.0 && diff_sp > 0.0) specular += pow(max(dot(V, reflect(-L_sp, N)), 0.0), u_shininess) * u_spotLightColor[i] * attenuation * spotEffect;
         }
       }
 
-      c = vec4((finalLight * u_color.rgb) + (specular * u_specColor.rgb), u_color.a);
+      // Farbe mit Textur multiplizieren!
+      c = vec4((finalLight * u_color.rgb * texColor.rgb) + (specular * u_specColor.rgb), u_color.a * texColor.a);
     }`;
         const vs = this.gl.createShader(this.gl.VERTEX_SHADER);
         this.gl.shaderSource(vs, vsCode);
@@ -96,6 +94,7 @@ export class WebGL2Renderer {
         this.locs = {
             pos: this.gl.getAttribLocation(this.prog, "a_position"),
             norm: this.gl.getAttribLocation(this.prog, "a_normal"),
+            uv: this.gl.getAttribLocation(this.prog, "a_uv"),
             vp: this.gl.getUniformLocation(this.prog, "u_vp"),
             model: this.gl.getUniformLocation(this.prog, "u_model"),
             color: this.gl.getUniformLocation(this.prog, "u_color"),
@@ -107,6 +106,7 @@ export class WebGL2Renderer {
             viewPos: this.gl.getUniformLocation(this.prog, "u_viewPos"),
             numPL: this.gl.getUniformLocation(this.prog, "u_numPointLights"),
             numSL: this.gl.getUniformLocation(this.prog, "u_numSpotLights"),
+            diffuseMap: this.gl.getUniformLocation(this.prog, "u_diffuseMap"),
         };
         for (let i = 0; i < 4; i++) {
             this.pointLightLocs.push({
@@ -122,6 +122,30 @@ export class WebGL2Renderer {
         }
         this.gl.enable(this.gl.DEPTH_TEST);
     }
+    // --- NEU: Texturen asynchron auf die GPU schieben ---
+    getWebGLTexture(tex) {
+        if (!tex.isLoaded || !tex.image)
+            return this.defaultTexture;
+        let glTex = this.texCache.get(tex);
+        if (!glTex) {
+            glTex = this.gl.createTexture();
+            this.gl.bindTexture(this.gl.TEXTURE_2D, glTex);
+            this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, tex.image);
+            const glFilterMag = tex.magFilter === "nearest" ? this.gl.NEAREST : this.gl.LINEAR;
+            const glFilterMin = tex.minFilter === "nearest" ? this.gl.NEAREST : this.gl.LINEAR;
+            this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, glFilterMag);
+            this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, glFilterMin);
+            const mapWrap = (w) => w === "clamp"
+                ? this.gl.CLAMP_TO_EDGE
+                : w === "mirror"
+                    ? this.gl.MIRRORED_REPEAT
+                    : this.gl.REPEAT;
+            this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, mapWrap(tex.wrapS));
+            this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, mapWrap(tex.wrapT));
+            this.texCache.set(tex, glTex);
+        }
+        return glTex;
+    }
     setClearColor(color) {
         this.gl.clearColor(color.r, color.g, color.b, color.a);
     }
@@ -132,11 +156,10 @@ export class WebGL2Renderer {
             this.gl.uniformMatrix4fv(this.locs.vp, false, vp);
         if (this.locs.viewPos)
             this.gl.uniform3f(this.locs.viewPos, camPos.x, camPos.y, camPos.z);
+        // ... (Licht-Extraktion bleibt exakt identisch) ...
         let aCol = new Color(0, 0, 0), dDir = new Vector3D(0, 1, 0), dCol = new Color(0, 0, 0);
-        const pLights = [];
-        const sLights = [];
+        const pLights = [], sLights = [];
         const extractLights = (node) => {
-            // Duck-Typing: Wenn es eine lightType Property hat, ist es ein Licht!
             if ("lightType" in node) {
                 const light = node;
                 switch (light.lightType) {
@@ -194,9 +217,8 @@ export class WebGL2Renderer {
                 this.gl.uniform3f(this.spotLightLocs[i].dir, dir.x, dir.y, dir.z);
             if (this.spotLightLocs[i].col)
                 this.gl.uniform3f(this.spotLightLocs[i].col, sl.color.r * sl.intensity, sl.color.g * sl.intensity, sl.color.b * sl.intensity);
-            if (this.spotLightLocs[i].params) {
+            if (this.spotLightLocs[i].params)
                 this.gl.uniform4f(this.spotLightLocs[i].params, Math.cos(sl.angle), Math.cos(sl.angle * (1.0 - sl.penumbra)), sl.distance, sl.decay);
-            }
         }
         for (const o of scene.objects) {
             if (o.isVisible === false || !o.material || !o.geometry)
@@ -206,20 +228,32 @@ export class WebGL2Renderer {
                 m = new Mesh(this.gl, o.geometry);
                 this.cache.set(o.geometry, m);
             }
-            m.bind(this.locs.pos, this.locs.norm);
+            m.bind(this.locs.pos, this.locs.norm, this.locs.uv); // <--- UV Buffer binden
             if (this.locs.model)
                 this.gl.uniformMatrix4fv(this.locs.model, false, o.worldMatrix.data);
             if (this.locs.color)
                 this.gl.uniform4fv(this.locs.color, o.material.color.toArray());
             let shininess = -1.0;
             let specCol = [0, 0, 0, 0];
-            if (o.material.type === "LambertMaterial")
+            // --- NEU: Textur binden ---
+            let activeTex = this.defaultTexture;
+            if (o.material.type === "LambertMaterial") {
                 shininess = 0.0;
+            }
             else if (o.material.type === "PhongMaterial") {
                 const material = o.material;
                 shininess = material.shininess || 32;
                 specCol = material.specularColor ? material.specularColor.toArray() : [0, 0, 0, 0];
+                // Textur vorhanden?
+                if (material.diffuseMap) {
+                    activeTex = this.getWebGLTexture(material.diffuseMap);
+                }
             }
+            // Textur auf Kanal 0 aktivieren
+            this.gl.activeTexture(this.gl.TEXTURE0);
+            this.gl.bindTexture(this.gl.TEXTURE_2D, activeTex);
+            if (this.locs.diffuseMap)
+                this.gl.uniform1i(this.locs.diffuseMap, 0);
             if (this.locs.shininess)
                 this.gl.uniform1f(this.locs.shininess, shininess);
             if (this.locs.specColor)
