@@ -21,7 +21,6 @@ import { LambertMaterial } from "../src/core/materials/LambertMaterial.js";
 import { PhongMaterial } from "../src/core/materials/PhongMaterial.js";
 import { DirectionalLight } from "../src/core/lights/DirectionalLight.js";
 import { AmbientLight } from "../src/core/lights/AmbientLight.js";
-import { PointLight } from "../src/core/lights/PointLight.js";
 import { SpotLight } from "../src/core/lights/SpotLight.js";
 
 async function start() {
@@ -81,7 +80,6 @@ async function start() {
   // Die Lampe etwas nach vorne und oben versetzen, damit sie nicht IM Würfel steckt
   flashLight.position.set(0, 1, 1);
   player.add(flashLight);
-
 
   const spheres: Object3D[] = [];
   const TOTAL_SPHERES = 30;

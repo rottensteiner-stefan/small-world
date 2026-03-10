@@ -8,9 +8,20 @@ import { SpotLight } from "../core/lights/SpotLight.js";
 import { Vector3D } from "../math/Vector3D.js";
 import { IGeometryData } from "../interfaces/IGeometryData.js";
 import { Object3D } from "../core/Object3D.js";
+import { PhongMaterial } from "../core/materials/PhongMaterial";
 
-interface GeoCacheEntry { vb: GPUBuffer; nb?: GPUBuffer; ib?: GPUBuffer; format?: GPUIndexFormat; vertexCount: number; indexCount: number; }
-interface ObjCacheEntry { ub: GPUBuffer; bg: GPUBindGroup; }
+interface GeoCacheEntry {
+  vb: GPUBuffer;
+  nb?: GPUBuffer;
+  ib?: GPUBuffer;
+  format?: GPUIndexFormat;
+  vertexCount: number;
+  indexCount: number;
+}
+interface ObjCacheEntry {
+  ub: GPUBuffer;
+  bg: GPUBindGroup;
+}
 
 export class WebGPURenderer implements IRenderer {
   private device!: GPUDevice;
@@ -115,51 +126,113 @@ export class WebGPURenderer implements IRenderer {
     });
 
     this.bindGroupLayout = this.device.createBindGroupLayout({
-      entries: [{ binding: 0, visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT, buffer: { type: "uniform" } }],
+      entries: [
+        {
+          binding: 0,
+          visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+          buffer: { type: "uniform" },
+        },
+      ],
     });
-    const pipelineLayout = this.device.createPipelineLayout({ bindGroupLayouts: [this.bindGroupLayout] });
+    const pipelineLayout = this.device.createPipelineLayout({
+      bindGroupLayouts: [this.bindGroupLayout],
+    });
     const pipelineDescriptorTemplate = {
       layout: pipelineLayout,
       vertex: {
-        module: shader, entryPoint: "vs",
+        module: shader,
+        entryPoint: "vs",
         buffers: [
-          { arrayStride: 12, attributes: [{ shaderLocation: 0, offset: 0, format: "float32x3" as GPUVertexFormat }] },
-          { arrayStride: 12, attributes: [{ shaderLocation: 1, offset: 0, format: "float32x3" as GPUVertexFormat }] },
+          {
+            arrayStride: 12,
+            attributes: [{ shaderLocation: 0, offset: 0, format: "float32x3" as GPUVertexFormat }],
+          },
+          {
+            arrayStride: 12,
+            attributes: [{ shaderLocation: 1, offset: 0, format: "float32x3" as GPUVertexFormat }],
+          },
         ],
       },
       fragment: { module: shader, entryPoint: "fs", targets: [{ format: this.format }] },
-      depthStencil: { depthWriteEnabled: true, depthCompare: "less" as GPUCompareFunction, format: "depth24plus" as GPUTextureFormat },
+      depthStencil: {
+        depthWriteEnabled: true,
+        depthCompare: "less" as GPUCompareFunction,
+        format: "depth24plus" as GPUTextureFormat,
+      },
     };
 
-    this.pipelineTriangles = this.device.createRenderPipeline({ ...pipelineDescriptorTemplate, primitive: { topology: "triangle-list", cullMode: "back" } } as GPURenderPipelineDescriptor);
-    this.pipelineLines = this.device.createRenderPipeline({ ...pipelineDescriptorTemplate, primitive: { topology: "line-list", cullMode: "none" } } as GPURenderPipelineDescriptor);
+    this.pipelineTriangles = this.device.createRenderPipeline({
+      ...pipelineDescriptorTemplate,
+      primitive: { topology: "triangle-list", cullMode: "back" },
+    } as GPURenderPipelineDescriptor);
+    this.pipelineLines = this.device.createRenderPipeline({
+      ...pipelineDescriptorTemplate,
+      primitive: { topology: "line-list", cullMode: "none" },
+    } as GPURenderPipelineDescriptor);
     this.createDepthTexture();
   }
 
-  public setClearColor(color: Color): void { this.clearColor = color.toArray(); }
+  public setClearColor(color: Color): void {
+    this.clearColor = color.toArray();
+  }
   private createDepthTexture() {
     if (this.depthTexture) this.depthTexture.destroy();
-    this.depthTexture = this.device.createTexture({ size: [this.canvas.width, this.canvas.height], format: "depth24plus", usage: GPUTextureUsage.RENDER_ATTACHMENT });
+    this.depthTexture = this.device.createTexture({
+      size: [this.canvas.width, this.canvas.height],
+      format: "depth24plus",
+      usage: GPUTextureUsage.RENDER_ATTACHMENT,
+    });
   }
-  public setSize(w: number, h: number) { this.canvas.width = w; this.canvas.height = h; this.createDepthTexture(); }
+  public setSize(w: number, h: number) {
+    this.canvas.width = w;
+    this.canvas.height = h;
+    this.createDepthTexture();
+  }
 
   private getGeoCache(geometry: IGeometryData): GeoCacheEntry {
     let entry = this.geoCache.get(geometry);
     if (!entry) {
-      const vb = this.device.createBuffer({ size: geometry.vertices.byteLength, usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST });
-      this.device.queue.writeBuffer(vb, 0, geometry.vertices.buffer as ArrayBuffer, geometry.vertices.byteOffset, geometry.vertices.byteLength);
+      const vb = this.device.createBuffer({
+        size: geometry.vertices.byteLength,
+        usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+      });
+      this.device.queue.writeBuffer(
+        vb,
+        0,
+        geometry.vertices.buffer as ArrayBuffer,
+        geometry.vertices.byteOffset,
+        geometry.vertices.byteLength,
+      );
       let nb: GPUBuffer | undefined;
       if (geometry.normals && geometry.normals.length > 0) {
-        nb = this.device.createBuffer({ size: geometry.normals.byteLength, usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST });
-        this.device.queue.writeBuffer(nb, 0, geometry.normals.buffer as ArrayBuffer, geometry.normals.byteOffset, geometry.normals.byteLength);
+        nb = this.device.createBuffer({
+          size: geometry.normals.byteLength,
+          usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+        });
+        this.device.queue.writeBuffer(
+          nb,
+          0,
+          geometry.normals.buffer as ArrayBuffer,
+          geometry.normals.byteOffset,
+          geometry.normals.byteLength,
+        );
       }
       let ib: GPUBuffer | undefined;
       let format: GPUIndexFormat | undefined;
       let indexCount = 0;
       if (geometry.indices && geometry.indices.length > 0) {
         indexCount = geometry.indices.length;
-        ib = this.device.createBuffer({ size: geometry.indices.byteLength, usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST });
-        this.device.queue.writeBuffer(ib, 0, geometry.indices.buffer as ArrayBuffer, geometry.indices.byteOffset, geometry.indices.byteLength);
+        ib = this.device.createBuffer({
+          size: geometry.indices.byteLength,
+          usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
+        });
+        this.device.queue.writeBuffer(
+          ib,
+          0,
+          geometry.indices.buffer as ArrayBuffer,
+          geometry.indices.byteOffset,
+          geometry.indices.byteLength,
+        );
         format = geometry.indices instanceof Uint32Array ? "uint32" : "uint16";
       }
       entry = { vb, nb, ib, format, vertexCount: geometry.vertices.length / 3, indexCount };
@@ -172,8 +245,14 @@ export class WebGPURenderer implements IRenderer {
     let entry = this.objCache.get(obj);
     if (!entry) {
       // Neuer Size: 624 Bytes (156 Floats) wegen Spotlights
-      const ub = this.device.createBuffer({ size: 624, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
-      const bg = this.device.createBindGroup({ layout: this.bindGroupLayout, entries: [{ binding: 0, resource: { buffer: ub } }] });
+      const ub = this.device.createBuffer({
+        size: 624,
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+      });
+      const bg = this.device.createBindGroup({
+        layout: this.bindGroupLayout,
+        entries: [{ binding: 0, resource: { buffer: ub } }],
+      });
       entry = { ub, bg };
       this.objCache.set(obj, entry);
     }
@@ -184,22 +263,44 @@ export class WebGPURenderer implements IRenderer {
     if (!this.device) return;
     const ce = this.device.createCommandEncoder();
     const rp = ce.beginRenderPass({
-      colorAttachments: [{ view: this.context.getCurrentTexture().createView(), clearValue: this.clearColor, loadOp: "clear", storeOp: "store" }],
-      depthStencilAttachment: { view: this.depthTexture.createView(), depthClearValue: 1.0, depthLoadOp: "clear", depthStoreOp: "store" },
+      colorAttachments: [
+        {
+          view: this.context.getCurrentTexture().createView(),
+          clearValue: this.clearColor,
+          loadOp: "clear",
+          storeOp: "store",
+        },
+      ],
+      depthStencilAttachment: {
+        view: this.depthTexture.createView(),
+        depthClearValue: 1.0,
+        depthLoadOp: "clear",
+        depthStoreOp: "store",
+      },
     });
 
-    let aCol = new Color(0, 0, 0), dDir = new Vector3D(0, 1, 0), dCol = new Color(0, 0, 0);
+    let aCol = new Color(0, 0, 0),
+      dDir = new Vector3D(0, 1, 0),
+      dCol = new Color(0, 0, 0);
     const pLights: PointLight[] = [];
     const sLights: SpotLight[] = []; // <-- NEU
 
     const extractLights = (node: Object3D) => {
-      if (node instanceof AmbientLight) aCol = new Color(node.color.r * node.intensity, node.color.g * node.intensity, node.color.b * node.intensity);
+      if (node instanceof AmbientLight)
+        aCol = new Color(
+          node.color.r * node.intensity,
+          node.color.g * node.intensity,
+          node.color.b * node.intensity,
+        );
       else if (node instanceof DirectionalLight) {
         dDir = node.direction.clone().scale(-1);
         if (dDir.length() > 0) dDir.scale(1 / dDir.length());
-        dCol = new Color(node.color.r * node.intensity, node.color.g * node.intensity, node.color.b * node.intensity);
-      }
-      else if (node instanceof PointLight && pLights.length < 4) pLights.push(node);
+        dCol = new Color(
+          node.color.r * node.intensity,
+          node.color.g * node.intensity,
+          node.color.b * node.intensity,
+        );
+      } else if (node instanceof PointLight && pLights.length < 4) pLights.push(node);
       else if (node instanceof SpotLight && sLights.length < 4) sLights.push(node);
 
       if (node.children) node.children.forEach(extractLights);
@@ -218,22 +319,34 @@ export class WebGPURenderer implements IRenderer {
     for (let i = 0; i < pLights.length; i++) {
       const pl = pLights[i];
       const offset = 60 + i * 8;
-      uData.set([pl.worldMatrix.data[12], pl.worldMatrix.data[13], pl.worldMatrix.data[14], 0.0], offset);
-      uData.set([pl.color.r * pl.intensity, pl.color.g * pl.intensity, pl.color.b * pl.intensity, 0.0], offset + 4);
+      uData.set(
+        [pl.worldMatrix.data[12], pl.worldMatrix.data[13], pl.worldMatrix.data[14], 0.0],
+        offset,
+      );
+      uData.set(
+        [pl.color.r * pl.intensity, pl.color.g * pl.intensity, pl.color.b * pl.intensity, 0.0],
+        offset + 4,
+      );
     }
 
     // <-- NEU: SpotLights packen
     for (let i = 0; i < sLights.length; i++) {
       const sl = sLights[i];
       const offset = 92 + i * 16;
-      uData.set([sl.worldMatrix.data[12], sl.worldMatrix.data[13], sl.worldMatrix.data[14], 0.0], offset);
+      uData.set(
+        [sl.worldMatrix.data[12], sl.worldMatrix.data[13], sl.worldMatrix.data[14], 0.0],
+        offset,
+      );
 
       // Direction normalisieren
       const dir = sl.direction.clone();
-      if(dir.length() > 0) dir.scale(1 / dir.length());
+      if (dir.length() > 0) dir.scale(1 / dir.length());
       uData.set([dir.x, dir.y, dir.z, 0.0], offset + 4);
 
-      uData.set([sl.color.r * sl.intensity, sl.color.g * sl.intensity, sl.color.b * sl.intensity, 0.0], offset + 8);
+      uData.set(
+        [sl.color.r * sl.intensity, sl.color.g * sl.intensity, sl.color.b * sl.intensity, 0.0],
+        offset + 8,
+      );
 
       const cosOuter = Math.cos(sl.angle);
       const cosInner = Math.cos(sl.angle * (1.0 - sl.penumbra));
@@ -243,7 +356,9 @@ export class WebGPURenderer implements IRenderer {
     const drawObject = (obj: Object3D) => {
       if (obj.isVisible === false || !obj.material || !obj.geometry) return;
       if (obj.worldMatrix) {
-        rp.setPipeline(obj.material.type === "WireframeMaterial" ? this.pipelineLines : this.pipelineTriangles);
+        rp.setPipeline(
+          obj.material.type === "WireframeMaterial" ? this.pipelineLines : this.pipelineTriangles,
+        );
         uData.set(obj.worldMatrix.data, 16);
         uData.set(obj.material.color.toArray(), 32);
 
@@ -251,14 +366,21 @@ export class WebGPURenderer implements IRenderer {
         let specCol = [0, 0, 0, 0];
         if (obj.material.type === "LambertMaterial") shininess = 0.0;
         else if (obj.material.type === "PhongMaterial") {
-          shininess = (obj.material as any).shininess || 32;
-          specCol = (obj.material as any).specularColor ? (obj.material as any).specularColor.toArray() : [0,0,0,0];
+          const material = obj.material as PhongMaterial;
+          shininess = material.shininess || 32;
+          specCol = material.specularColor ? material.specularColor.toArray() : [0, 0, 0, 0];
         }
         uData.set(specCol, 36);
         uData[56] = shininess;
 
         const oCache = this.getObjCache(obj);
-        this.device.queue.writeBuffer(oCache.ub, 0, uData.buffer as ArrayBuffer, uData.byteOffset, uData.byteLength);
+        this.device.queue.writeBuffer(
+          oCache.ub,
+          0,
+          uData.buffer as ArrayBuffer,
+          uData.byteOffset,
+          uData.byteLength,
+        );
 
         const gCache = this.getGeoCache(obj.geometry);
         rp.setBindGroup(0, oCache.bg);
