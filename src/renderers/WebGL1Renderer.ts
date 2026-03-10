@@ -1,9 +1,9 @@
-import { IRenderer } from "../interfaces/IRenderer.js";
-import { WireframeFS_100, WireframeVS_100 } from "./shaders/WireframeShader.js";
-import { Mesh } from "./Mesh.js";
 import { Color } from "../core/colors/Color.js";
-import { Scene } from "../core/Scene.js";
 import { IGeometryData } from "../interfaces/IGeometryData.js";
+import { IRenderer } from "../interfaces/IRenderer.js";
+import { Mesh } from "./Mesh.js";
+import { Scene } from "../core/Scene.js";
+import { WireframeFS_100, WireframeVS_100 } from "./shaders/WireframeShader.js";
 
 export class WebGL1Renderer implements IRenderer {
   private gl!: WebGLRenderingContext;
@@ -55,8 +55,13 @@ export class WebGL1Renderer implements IRenderer {
       if (this.uM) this.gl.uniformMatrix4fv(this.uM, false, o.worldMatrix.data);
       if (this.uC) this.gl.uniform4fv(this.uC, o.material.color.toArray());
 
+      const isSkybox = o.material.type === "SkyboxMaterial";
+      if (isSkybox) this.gl.depthMask(false); // <--- SKYBOX TRICK: Im Hintergrund halten
+
       const drawMode = o.material.type === "WireframeMaterial" ? this.gl.LINES : this.gl.TRIANGLES;
       this.gl.drawElements(drawMode, m.count, this.gl.UNSIGNED_SHORT, 0);
+
+      if (isSkybox) this.gl.depthMask(true); // <--- Z-Buffer wieder aktivieren
     }
   }
 

@@ -19,6 +19,8 @@ import {
   PerspectiveProjection,
   PhongMaterial,
   Scene,
+  Skybox,
+  SkyboxLoader,
   SmallWorld,
   Sphere,
   SpotLight,
@@ -38,6 +40,7 @@ class Application {
   private player!: Object3D;
   private flashLight!: SpotLight;
   private moon!: Object3D;
+  private skybox!: Skybox;
   private spheres: Object3D[] = [];
 
   // --- State & Settings ---
@@ -78,7 +81,7 @@ class Application {
     this.loop();
   }
 
-  private setupScene() {
+  private async setupScene() {
     // 1. Lichtstimmung
     const ambient = new AmbientLight(new Color(0.1, 0.1, 0.15), 0.5);
     this.scene.add(ambient);
@@ -129,6 +132,11 @@ class Application {
 
     // 6. Sammelobjekte
     this.createSpheres();
+
+    // 7. Die Textur asynchron aus EINER Datei zerschneiden laden
+    const skyTexture = await SkyboxLoader.loadFromCross("./resources/textures/skybox.jpg");
+    const mySkybox = new Skybox(skyTexture, 100);
+    this.scene.add(mySkybox);
   }
 
   private createSpheres() {
@@ -179,7 +187,7 @@ class Application {
     this.updatePlayerMovement();
     this.updateCamera();
     if (this.player.material) {
-      const texture =   (this.player.material as PhongMaterial).diffuseMap;
+      const texture = (this.player.material as PhongMaterial).diffuseMap;
       if (texture) {
         texture.offset.x += 0.005;
       }
@@ -217,6 +225,9 @@ class Application {
 
       if (s.bounds) s.bounds.center.copyFrom(s.position);
     }
+
+    // Skybox
+    this.skybox.position.copyFrom(this.cam.position);
 
     // Szenengraph durchrechnen
     this.scene.update();

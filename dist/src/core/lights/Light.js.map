@@ -1,1 +1,0 @@
-{"version":3,"file":"Light.js","sourceRoot":"","sources":["../../../../src/core/lights/Light.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,QAAQ,EAAE,MAAM,gBAAgB,CAAC;AAI1C,MAAM,OAAgB,KAAM,SAAQ,QAAQ;IAIjC;IACA;IAFT,YACS,KAAY,EACZ,SAAiB,EACxB,OAAe,OAAO;QAEtB,KAAK,CAAC,IAAI,CAAC,CAAC;QAJL,UAAK,GAAL,KAAK,CAAO;QACZ,cAAS,GAAT,SAAS,CAAQ;IAI1B,CAAC;CACF"}
