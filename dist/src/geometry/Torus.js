@@ -13,24 +13,19 @@ export class Torus extends ObjectGeometry {
         this.generateGeometryData();
     }
     generateGeometryData() {
-        const v = [];
-        const idx = [];
-        // Vertices berechnen
+        const v = [], uv = [], idx = [];
         for (let j = 0; j <= this.radialSegments; j++) {
-            const vArg = (j / this.radialSegments) * Math.PI * 2;
-            const cosV = Math.cos(vArg);
-            const sinV = Math.sin(vArg);
+            const vRatio = j / this.radialSegments;
+            const vArg = vRatio * Math.PI * 2;
+            const cosV = Math.cos(vArg), sinV = Math.sin(vArg);
             for (let i = 0; i <= this.tubularSegments; i++) {
-                const uArg = (i / this.tubularSegments) * Math.PI * 2;
-                const cosU = Math.cos(uArg);
-                const sinU = Math.sin(uArg);
-                const x = (this.radius + this.tube * cosV) * cosU;
-                const y = this.tube * sinV;
-                const z = (this.radius + this.tube * cosV) * sinU;
-                v.push(x, y, z);
+                const uRatio = i / this.tubularSegments;
+                const uArg = uRatio * Math.PI * 2;
+                const cosU = Math.cos(uArg), sinU = Math.sin(uArg);
+                v.push((this.radius + this.tube * cosV) * cosU, this.tube * sinV, (this.radius + this.tube * cosV) * sinU);
+                uv.push(uRatio, vRatio);
             }
         }
-        // Indizes (Dreiecke) verknüpfen
         for (let j = 1; j <= this.radialSegments; j++) {
             for (let i = 1; i <= this.tubularSegments; i++) {
                 const a = (this.tubularSegments + 1) * j + i - 1;
@@ -42,6 +37,7 @@ export class Torus extends ObjectGeometry {
             }
         }
         this.vertices = new Float32Array(v);
+        this.uvs = new Float32Array(uv);
         this.indices = new Uint16Array(idx);
         this.computeNormals();
     }

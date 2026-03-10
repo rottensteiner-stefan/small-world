@@ -6,6 +6,8 @@ export { Object3D } from "./core/Object3D.js";
 export { Input } from "./core/Input.js";
 export { HUD } from "./core/HUD.js";
 export { Camera } from "./core/Camera.js";
+export { AssetManager } from "./core/AssetManager.js";
+export { Texture } from "./core/textures/Texture.js";
 // --- Enums ---
 export { Keys } from "./enums/Keys.js";
 export { RendererType } from "./enums/RendererType.js";

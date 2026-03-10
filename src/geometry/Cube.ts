@@ -8,7 +8,6 @@ export class Cube extends ObjectGeometry {
 
   protected generateGeometryData(): void {
     const h = this.size / 2;
-    // 24 Ecken (Jede der 6 Seiten hat 4 eigene Ecken, damit das Licht harte Kanten wirft)
     this.vertices = new Float32Array([
       // Front
       -h,
@@ -90,7 +89,21 @@ export class Cube extends ObjectGeometry {
       -h,
     ]);
 
-    // 36 Indizes (12 Dreiecke)
+    this.uvs = new Float32Array([
+      // Front
+      0, 0, 1, 0, 1, 1, 0, 1,
+      // Back
+      0, 0, 1, 0, 1, 1, 0, 1,
+      // Top
+      0, 0, 1, 0, 1, 1, 0, 1,
+      // Bottom
+      0, 0, 1, 0, 1, 1, 0, 1,
+      // Right
+      0, 0, 1, 0, 1, 1, 0, 1,
+      // Left
+      0, 0, 1, 0, 1, 1, 0, 1,
+    ]);
+
     this.indices = new Uint16Array([
       0,
       1,
@@ -130,6 +143,6 @@ export class Cube extends ObjectGeometry {
       23, // Left
     ]);
 
-    this.computeNormals(); // <--- Generiert sofort die Normalen
+    this.computeNormals();
   }
 }

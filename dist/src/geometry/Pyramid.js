@@ -72,26 +72,19 @@ export class Pyramid extends ObjectGeometry {
             -h,
             -b,
         ]);
-        this.indices = new Uint16Array([
-            0,
-            1,
-            2, // Vorne
-            3,
-            4,
-            5, // Rechts
-            6,
-            7,
-            8, // Hinten
-            9,
-            10,
-            11, // Links
-            12,
-            13,
-            14, // Boden 1
-            15,
-            16,
-            17, // Boden 2
+        this.uvs = new Float32Array([
+            // Vorne
+            0.5, 1, 0, 0, 1, 0,
+            // Rechts
+            0.5, 1, 0, 0, 1, 0,
+            // Hinten
+            0.5, 1, 0, 0, 1, 0,
+            // Links
+            0.5, 1, 0, 0, 1, 0,
+            // Boden
+            0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0,
         ]);
+        this.indices = new Uint16Array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]);
         this.computeNormals();
     }
 }
