@@ -1,4 +1,4 @@
-import { WireframeVS_100, WireframeFS_100 } from "./shaders/WireframeShader.js";
+import { WireframeFS_100, WireframeVS_100 } from "./shaders/WireframeShader.js";
 import { Mesh } from "./Mesh.js";
 export class WebGL1Renderer {
     gl;

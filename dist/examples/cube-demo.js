@@ -1,28 +1,4 @@
-import { SmallWorld } from "../src/core/SmallWorld.js";
-import { Scene } from "../src/core/Scene.js";
-import { Object3D } from "../src/core/Object3D.js";
-import { Color } from "../src/core/colors/Color.js";
-import { Cube } from "../src/geometry/Cube.js";
-import { Sphere } from "../src/geometry/Sphere.js";
-import { Grid } from "../src/geometry/Grid.js";
-import { Camera } from "../src/core/Camera.js";
-import { PerspectiveProjection } from "../src/math/projections/PerspectiveProjection.js";
-import { Matrix4 } from "../src/math/Matrix4.js";
-import { Input } from "../src/core/Input.js";
-import { Vector3D } from "../src/math/Vector3D.js";
-import { HUD } from "../src/core/HUD.js";
-import { BoundingSphere } from "../src/physics/BoundingSphere.js";
-import { BoundingBox } from "../src/physics/BoundingBox.js";
-import { Collision } from "../src/physics/Collision.js";
-import { Keys } from "../src/enums/Keys.js";
-import { FrustumCuller } from "../src/core/FrustumCuller.js";
-import { WireframeMaterial } from "../src/core/materials/WireframeMaterial.js";
-import { LambertMaterial } from "../src/core/materials/LambertMaterial.js";
-import { PhongMaterial } from "../src/core/materials/PhongMaterial.js";
-import { DirectionalLight } from "../src/core/lights/DirectionalLight.js";
-import { AmbientLight } from "../src/core/lights/AmbientLight.js";
-import { SpotLight } from "../src/core/lights/SpotLight.js";
-import { CameraStrategyType } from "../src/enums/CameraStrategyType.js";
+import { SmallWorld, Scene, Object3D, Color, Cube, Sphere, Grid, Camera, PerspectiveProjection, Matrix4, Input, Vector3D, HUD, BoundingSphere, BoundingBox, Collision, Keys, FrustumCuller, WireframeMaterial, LambertMaterial, PhongMaterial, DirectionalLight, AmbientLight, SpotLight, CameraStrategyType, } from "../src/index.js";
 class Application {
     // --- Core Engine ---
     sw;
