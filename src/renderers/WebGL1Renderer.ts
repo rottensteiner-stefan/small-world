@@ -1,5 +1,5 @@
 import { IRenderer } from "../interfaces/IRenderer.js";
-import { WireframeVS_100, WireframeFS_100 } from "./shaders/WireframeShader.js";
+import { WireframeFS_100, WireframeVS_100 } from "./shaders/WireframeShader.js";
 import { Mesh } from "./Mesh.js";
 import { Color } from "../core/colors/Color.js";
 import { Scene } from "../core/Scene.js";
@@ -31,6 +31,7 @@ export class WebGL1Renderer implements IRenderer {
     this.uC = this.gl.getUniformLocation(this.prog, "u_color");
     this.gl.enable(this.gl.DEPTH_TEST);
   }
+
   public setClearColor(color: Color): void {
     this.gl.clearColor(color.r, color.g, color.b, color.a);
   }
@@ -58,6 +59,7 @@ export class WebGL1Renderer implements IRenderer {
       this.gl.drawElements(drawMode, m.count, this.gl.UNSIGNED_SHORT, 0);
     }
   }
+
   public setSize(w: number, h: number) {
     const d = window.devicePixelRatio;
     this.gl.canvas.width = w * d;

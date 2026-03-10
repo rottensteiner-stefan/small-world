@@ -1,20 +1,18 @@
-import { Object3D } from "../Object3D.js";
 import { Color } from "../colors/Color.js";
 import { Vector3D } from "../../math/Vector3D.js";
-export class SpotLight extends Object3D {
-    color;
-    intensity;
+import { LightType } from "../../enums/LightType.js";
+import { Light } from "./Light.js";
+export class SpotLight extends Light {
     distance;
     angle;
     penumbra;
     decay;
+    lightType = LightType.SPOT;
     direction = new Vector3D(0, -1, 0);
     constructor(color = Color.WHITE, intensity = 1.0, distance = 50.0, angle = Math.PI / 6, // 30 Grad Kegel
     penumbra = 0.5, // 0 = harte Kante, 1 = extrem weich
     decay = 2.0) {
-        super("SpotLight");
-        this.color = color;
-        this.intensity = intensity;
+        super(color, intensity, "SpotLight");
         this.distance = distance;
         this.angle = angle;
         this.penumbra = penumbra;
