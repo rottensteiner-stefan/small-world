@@ -483,8 +483,7 @@ export class WebGPURenderer implements IRenderer {
             break;
           case LightType.DIRECTIONAL: {
             const dLight = light as DirectionalLight;
-            dDir = dLight.direction.clone().scale(-1);
-            if (dDir.length() > 0) dDir.scale(1 / dDir.length());
+            dDir = dLight.direction.clone().scale(-1).normalize();
             dCol = new Color(
               light.color.r * light.intensity,
               light.color.g * light.intensity,
