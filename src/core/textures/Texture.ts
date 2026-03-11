@@ -1,20 +1,20 @@
 import { AssetManager } from "../../loaders/AssetManager.js";
 import { Vector2D } from "../../math/Vector2D.js";
-import { TextureWrap } from "../../enums/TextureWrap.js";
-import { TextureFilter } from "../../enums/TextureFilter.js";
 
 export class Texture {
   public uuid: string = crypto.randomUUID();
   public image: ImageBitmap | HTMLImageElement | null = null;
   public isLoaded: boolean = false;
 
-  // Sampler-Einstellungen über Enums
-  public wrapS: TextureWrap = TextureWrap.REPEAT;
-  public wrapT: TextureWrap = TextureWrap.REPEAT;
-  public magFilter: TextureFilter = TextureFilter.LINEAR;
-  public minFilter: TextureFilter = TextureFilter.LINEAR;
+  // --- NEU: Sampler-Konfiguration ---
+  // Wir nutzen Strings, die WebGPU direkt versteht ("repeat", "clamp-to-edge", "mirror-repeat")
+  public addressModeU: GPUAddressMode = "repeat";
+  public addressModeV: GPUAddressMode = "repeat";
 
-  // --- NEU: Offset und Kachelung (Tiling) ---
+  // Filter: "linear" (weich) oder "nearest" (pixelig/scharf)
+  public magFilter: GPUFilterMode = "linear";
+  public minFilter: GPUFilterMode = "linear";
+
   public offset: Vector2D = new Vector2D(0, 0);
   public repeat: Vector2D = new Vector2D(1, 1);
 
@@ -22,6 +22,22 @@ export class Texture {
     if (url) {
       this.load(url);
     }
+  }
+
+  /**
+   * Hilfsmethode, um das Wrapping schnell umzustellen
+   */
+  public setWrapMode(mode: GPUAddressMode): void {
+    this.addressModeU = mode;
+    this.addressModeV = mode;
+  }
+
+  /**
+   * Hilfsmethode für den Filter-Modus
+   */
+  public setFilterMode(mode: GPUFilterMode): void {
+    this.magFilter = mode;
+    this.minFilter = mode;
   }
 
   public async load(url: string): Promise<void> {
