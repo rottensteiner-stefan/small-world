@@ -1,4 +1,4 @@
-import { AmbientLight, BoundingBox, BoundingSphere, Camera, CameraStrategyType, Collision, Color, Cube, DirectionalLight, FrustumCuller, Grid, HUD, Input, Keys, LambertMaterial, Matrix4, Object3D, PerspectiveProjection, PhongMaterial, Scene, Skybox, SkyboxLoader, SmallWorld, Sphere, SpotLight, Texture, Vector3D, WireframeMaterial, ObjLoader, } from "../src/index.js";
+import { AmbientLight, BoundingBox, BoundingSphere, Camera, CameraStrategyType, Collision, Color, Cube, DirectionalLight, FrustumCuller, Grid, HUD, Input, Keys, LambertMaterial, Matrix4, Object3D, PerspectiveProjection, PhongMaterial, Scene, Skybox, SkyboxLoader, SmallWorld, Sphere, SpotLight, Texture, Vector3D, WireframeMaterial, ObjLoader, } from "../src";
 class Application {
     // --- Core Engine ---
     sw;
@@ -90,7 +90,7 @@ class Application {
         // 7. Schneemann
         try {
             // 1. Das OBJ asynchron laden
-            const snowmanModel = await (new ObjLoader()).load("./resources/models/snowman.obj");
+            const snowmanModel = await new ObjLoader().load("./resources/models/snowman.obj");
             // 2. Ein Game-Objekt erstellen
             const snowman = new Object3D("Snowman");
             snowman.geometry = snowmanModel.getGeometryData();

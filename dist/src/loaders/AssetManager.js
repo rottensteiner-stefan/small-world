@@ -24,16 +24,14 @@ export class AssetManager {
                 break;
             if (value) {
                 loaded += value.length;
-                // FIX: Wir casten den Wert sicher zu einem Uint8Array, um TypeScript zufrieden zu stellen
-                // @ts-ignore
+                // @ts-expect-error Until we know exactly how to fix it
                 chunks.push(value);
                 onProgress(loaded, total);
             }
         }
         return new Blob(chunks);
     }
-    static async loadImage(url, onProgress, flipY = true // <--- NEU: Optionaler Parameter (Standard ist true)
-    ) {
+    static async loadImage(url, onProgress, flipY = true) {
         // Cache-Key anpassen, damit wir beide Varianten sicher speichern können
         const cacheKey = `${url}_${flipY}`;
         if (this.imageCache.has(cacheKey))
@@ -41,7 +39,7 @@ export class AssetManager {
         const loadPromise = this.fetchWithProgress(url, onProgress)
             .then((blob) => createImageBitmap(blob, {
             colorSpaceConversion: "none",
-            imageOrientation: flipY ? "flipY" : "none" // <--- Hier wenden wir ihn an
+            imageOrientation: flipY ? "flipY" : "none", // <--- Hier wenden wir ihn an
         }))
             .catch((err) => {
             console.error(err);

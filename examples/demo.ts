@@ -28,7 +28,7 @@ import {
   Vector3D,
   WireframeMaterial,
   ObjLoader,
-} from "../src/index.js";
+} from "../src";
 
 class Application {
   // --- Core Engine ---
