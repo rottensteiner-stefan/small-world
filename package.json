@@ -1,6 +1,6 @@
 {
   "name": "smallworld-engine",
-  "version": "0.8.54",
+  "version": "0.8.55",
   "type": "module",
   "scripts": {
     "build": "tsc",

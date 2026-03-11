@@ -87,7 +87,7 @@ class Application {
     this.scene.add(ambient);
 
     const sun = new DirectionalLight(Color.WHITE, 0.2);
-    sun.direction.set(1, -1.5, -1);
+    sun.direction.set(1, -1.5, -1).normalize();
     this.scene.add(sun);
 
     // 2. Welt (Boden)
@@ -270,7 +270,7 @@ class Application {
         Math.sin(this.player.rotation.y),
         -0.2,
         Math.cos(this.player.rotation.y),
-      );
+      ).normalize();
     }
   }
 

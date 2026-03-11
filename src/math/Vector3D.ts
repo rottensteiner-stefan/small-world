@@ -1,4 +1,6 @@
-export class Vector3D {
+import {IVector} from "../interfaces/IVector";
+
+export class Vector3D implements IVector{
   constructor(
     public x: number = 0,
     public y: number = 0,
@@ -56,5 +58,27 @@ export class Vector3D {
 
   public clone(): Vector3D {
     return new Vector3D(this.x, this.y, this.z);
+  }
+
+  /**
+   * Normalisiert den Vektor auf eine Länge von 1 (Einheitsvektor).
+   * @returns this (für Method Chaining)
+   */
+  public normalize(): this {
+    const len = this.length();
+
+    // Prüfen, ob die Länge größer als 0 ist, um Division durch Null zu vermeiden.
+    if (len > 0.000001) {
+      const invLen = 1 / len; // Multiplikation ist schneller als Division
+      this.x *= invLen;
+      this.y *= invLen;
+      this.z *= invLen;
+    } else {
+      this.x = 0;
+      this.y = 0;
+      this.z = 0;
+    }
+
+    return this;
   }
 }
