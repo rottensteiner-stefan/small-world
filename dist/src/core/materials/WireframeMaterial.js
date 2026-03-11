@@ -1,5 +1,5 @@
-import { Material } from "./Material.js";
-export class WireframeMaterial extends Material {
-    type = "WireframeMaterial";
+import { AbstractMaterial } from "./AbstractMaterial.js";
+export class WireframeMaterial extends AbstractMaterial {
+    static type = "WireframeMaterial";
 }
 //# sourceMappingURL=WireframeMaterial.js.map

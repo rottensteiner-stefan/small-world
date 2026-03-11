@@ -1,7 +1,7 @@
-import { Material } from "./Material.js";
+import { AbstractMaterial } from "./AbstractMaterial.js";
 import { CubeTexture } from "../textures/CubeTexture.js";
 
-export class SkyboxMaterial extends Material {
-  public readonly type = "SkyboxMaterial";
+export class SkyboxMaterial extends AbstractMaterial {
+  public static readonly type = "SkyboxMaterial";
   public cubeMap: CubeTexture | null = null;
 }

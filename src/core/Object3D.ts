@@ -1,6 +1,6 @@
 import { Vector3D } from "../math/Vector3D.js";
 import { Matrix4 } from "../math/Matrix4.js";
-import { Material } from "./materials/Material";
+import { AbstractMaterial } from "./materials/AbstractMaterial.js";
 import { IGeometryData } from "../interfaces/IGeometryData.js";
 import { IBoundingVolume } from "../interfaces/IBoundingVolume.js";
 
@@ -9,7 +9,7 @@ export class Object3D {
   public name: string = "";
 
   public geometry: IGeometryData | null = null;
-  public material: Material | null = null; // <--- NEU
+  public material: AbstractMaterial | null = null; // <--- NEU
   public bounds: IBoundingVolume | null = null;
 
   public position: Vector3D = new Vector3D(0, 0, 0);
