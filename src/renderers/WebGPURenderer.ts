@@ -41,6 +41,7 @@ export class WebGPURenderer implements IRenderer {
   private objCache = new Map<Object3D, { ub: GPUBuffer; plb: GPUBuffer; slb: GPUBuffer; bg: GPUBindGroup }>();
   private texCache = new Map<Texture, GPUBindGroup>();
   private texCubeCache = new Map<CubeTexture, GPUBindGroup>();
+  private samplerCache = new Map<string, GPUSampler>();
 
   private clearColor = { r: 0, g: 0, b: 0, a: 1 };
   private depthTexture!: GPUTexture;
@@ -52,11 +53,12 @@ export class WebGPURenderer implements IRenderer {
     this.format = navigator.gpu.getPreferredCanvasFormat();
     this.context.configure({ device: this.device, format: this.format, alphaMode: "premultiplied" });
 
+    // --- FIX: Erstelle einen Standard-Sampler für die Default-BindGroups ---
     this.sampler = this.device.createSampler({
-      magFilter: "linear",    // "nearest" für Pixellook, "linear" für weich
+      magFilter: "linear",
       minFilter: "linear",
-      addressModeU: "repeat", // <--- Das verhindert die Streifen links/rechts
-      addressModeV: "repeat", // <--- Das verhindert die Streifen oben/unten
+      addressModeU: "repeat",
+      addressModeV: "repeat"
     });
 
     const sm = this.device.createShaderModule({
@@ -165,14 +167,44 @@ export class WebGPURenderer implements IRenderer {
     const whiteTex = this.device.createTexture({ size: [1, 1], format: "rgba8unorm", usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST });
     this.device.queue.writeTexture({ texture: whiteTex }, new Uint8Array([255, 255, 255, 255]), { bytesPerRow: 4 }, [1, 1]);
 
-    // --- FIX: Nutze die gespeicherten Layout-Variablen ---
-    this.defaultTexBindGroup = this.device.createBindGroup({ layout: this.texBGL, entries: [{ binding: 0, resource: whiteTex.createView() }, { binding: 1, resource: this.sampler }] });
+    this.defaultTexBindGroup = this.device.createBindGroup({
+      layout: this.texBGL,
+      entries: [
+        { binding: 0, resource: whiteTex.createView() },
+        { binding: 1, resource: this.sampler } // <--- Jetzt nicht mehr undefined!
+      ]
+    });
 
     const whiteCube = this.device.createTexture({ size: [1, 1, 6], format: "rgba8unorm", usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST });
     for(let i=0; i<6; i++) this.device.queue.writeTexture({ texture: whiteCube, origin: [0, 0, i] }, new Uint8Array([50, 50, 100, 255]), { bytesPerRow: 4 }, [1, 1]);
-    this.defaultCubeTexBindGroup = this.device.createBindGroup({ layout: this.skyTexBGL, entries: [{ binding: 0, resource: whiteCube.createView({ dimension: "cube" }) }, { binding: 1, resource: this.sampler }] });
+
+    this.defaultCubeTexBindGroup = this.device.createBindGroup({
+      layout: this.skyTexBGL,
+      entries: [
+        { binding: 0, resource: whiteCube.createView({ dimension: "cube" }) },
+        { binding: 1, resource: this.sampler } // <--- Hier ebenfalls sicher
+      ]
+    });
 
     this.setSize(canvas.clientWidth, canvas.clientHeight);
+  }
+
+  private getSampler(tex: Texture): GPUSampler {
+    // Wir bauen einen Key aus den Einstellungen, z.B. "repeat_repeat_linear_linear"
+    const key = `${tex.addressModeU}_${tex.addressModeV}_${tex.magFilter}_${tex.minFilter}`;
+
+    if (!this.samplerCache.has(key)) {
+      const sampler = this.device!.createSampler({
+        addressModeU: tex.addressModeU,
+        addressModeV: tex.addressModeV,
+        magFilter: tex.magFilter,
+        minFilter: tex.minFilter,
+        mipmapFilter: "linear"
+      });
+      this.samplerCache.set(key, sampler);
+    }
+
+    return this.samplerCache.get(key)!;
   }
 
   // ... (setClearColor und setSize bleiben gleich) ...
@@ -228,11 +260,29 @@ export class WebGPURenderer implements IRenderer {
   // ... (getGPUTextureBindGroup und getGPUCubeTextureBindGroup nutzen jetzt this.texBGL / this.skyTexBGL) ...
   private getGPUTextureBindGroup(tex: Texture) {
     if (!tex.isLoaded || !tex.image) return this.defaultTexBindGroup;
+
     let bg = this.texCache.get(tex);
+    // Wenn sich die Sampler-Einstellungen geändert haben, müssten wir die BindGroup eigentlich neu erstellen.
+    // Für diesen Prototyp erstellen wir sie einmalig mit den aktuellen Einstellungen der Textur.
     if (!bg) {
-      const t = this.device!.createTexture({ size: [tex.image.width, tex.image.height], format: "rgba8unorm", usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT });
+      const t = this.device!.createTexture({
+        size: [tex.image.width, tex.image.height],
+        format: "rgba8unorm",
+        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
+      });
+
       this.device!.queue.copyExternalImageToTexture({ source: tex.image }, { texture: t }, [tex.image.width, tex.image.height]);
-      bg = this.device!.createBindGroup({ layout: this.texBGL, entries: [{ binding: 0, resource: t.createView() }, { binding: 1, resource: this.sampler }] });
+
+      // HIER DIE ÄNDERUNG: Nutze den dynamischen Sampler
+      const sampler = this.getSampler(tex);
+
+      bg = this.device!.createBindGroup({
+        layout: this.texBGL,
+        entries: [
+          { binding: 0, resource: t.createView() },
+          { binding: 1, resource: sampler }
+        ]
+      });
       this.texCache.set(tex, bg);
     }
     return bg;

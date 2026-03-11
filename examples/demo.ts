@@ -25,6 +25,7 @@ import {
   Sphere,
   SpotLight,
   Texture,
+  Vector2D,
   Vector3D,
   WireframeMaterial,
   ObjLoader,
@@ -113,6 +114,16 @@ class Application {
     playerMaterial.color = Color.WHITE;
     playerMaterial.specularColor = Color.WHITE;
     playerMaterial.shininess = 64;
+
+    if (playerMaterial.diffuseMap) {
+      // Sorgt dafür, dass die Textur beim Verschieben (Offset) unendlich weiterläuft
+      playerMaterial.diffuseMap.setWrapMode("repeat");
+
+      // Falls es zu verwaschen ist, probier mal "nearest" für scharfe Kanten
+      playerMaterial.diffuseMap.setFilterMode("nearest");
+    }
+
+
     this.player.material = playerMaterial;
     this.scene.add(this.player);
 
@@ -203,10 +214,14 @@ class Application {
     // --- BEWEGUNG & KAMERA ---
     this.updatePlayerMovement();
     this.updateCamera();
+
+    const flowSpeed = new Vector2D(0.2, 0.1);
     if (this.player.material) {
       const texture = (this.player.material as PhongMaterial).diffuseMap;
       if (texture) {
-        texture.offset.x += 0.005;
+        const dt = 0.016;
+        //texture.offset.x = (texture.offset.x + flowSpeed.x * dt) % 1.0;
+        texture.offset.y = (texture.offset.y + flowSpeed.y * dt) % 1.0;
       }
     }
 
