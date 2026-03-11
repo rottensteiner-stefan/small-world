@@ -6,7 +6,7 @@ import { Vector3D } from "../../math/Vector3D.js";
 export class SpotLight extends Light {
   public readonly lightType = LightType.SPOT;
 
-  public direction: Vector3D = new Vector3D(0, -1, 0);
+  public direction: Vector3D = new Vector3D(0, -1, 0).normalize();
 
   constructor(
     color: Color = Color.WHITE,

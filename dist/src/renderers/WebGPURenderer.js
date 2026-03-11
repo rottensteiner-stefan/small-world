@@ -262,7 +262,7 @@ export class WebGPURenderer {
                 format: "rgba8unorm",
                 usage: GPUTextureUsage.COPY_DST |
                     GPUTextureUsage.RENDER_ATTACHMENT |
-                    GPUTextureUsage.TEXTURE_BINDING
+                    GPUTextureUsage.TEXTURE_BINDING,
             });
             for (let i = 0; i < 6; i++) {
                 this.device.queue.copyExternalImageToTexture({ source: tex.images[i] }, { texture: gpuTex, origin: [0, 0, i] }, [w, h]);
