@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.8.56] - 2026-03-11
+- Add and use vector normalization
+- Add code collection script
+
 ## [0.8.55] - 2026-03-11
 
 - Improve vectors
