@@ -13,6 +13,7 @@ import { SkyboxMaterial } from "../core/materials/SkyboxMaterial.js";
 import { SpotLight } from "../core/lights/SpotLight.js";
 import { Texture } from "../core/textures/Texture.js";
 import { Vector3D } from "../math/Vector3D.js";
+import { RendererType } from "../enums/RendererType.js";
 
 interface GeoCacheEntry {
   vb: GPUBuffer;
@@ -29,6 +30,8 @@ interface ObjCacheEntry {
 }
 
 export class WebGPURenderer implements IRenderer {
+  public readonly type = RendererType.WEB_GPU; // <--- NEU
+
   private device!: GPUDevice;
   private context!: GPUCanvasContext;
   private format!: GPUTextureFormat;

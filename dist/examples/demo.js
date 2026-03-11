@@ -234,6 +234,7 @@ class Application {
         this.hud.update({
             "hud.fps": this.fps,
             "hud.cam.type": this.cam.activeStrategyType,
+            "hud.renderer.type": this.sw.activeRenderer.type,
             "hud.player.pos.x": this.player.position.x.toFixed(1),
             "hud.player.pos.y": this.player.position.y.toFixed(1),
             "hud.player.pos.z": this.player.position.z.toFixed(1),

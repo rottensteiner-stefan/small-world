@@ -16,6 +16,7 @@ import { Texture } from "../core/textures/Texture.js";
 import { TextureFilter } from "../enums/TextureFilter.js";
 import { TextureWrap } from "../enums/TextureWrap.js";
 import { Vector3D } from "../math/Vector3D.js";
+import { RendererType } from "../enums/RendererType.js";
 
 interface ShaderLocs {
   pos: number;
@@ -38,6 +39,8 @@ interface ShaderLocs {
 }
 
 export class WebGL2Renderer implements IRenderer {
+  public readonly type = RendererType.WEB_GL2; // <--- NEU
+
   private gl!: WebGL2RenderingContext;
 
   private prog!: WebGLProgram;
