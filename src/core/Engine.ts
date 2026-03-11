@@ -2,5 +2,5 @@
 import { RendererType } from '../enums/RendererType.js';
 
 export { RendererType }; // <--- WICHTIG: Re-Export hinzufügen
-export const ENGINE_VERSION = "0.9.0";
+export const ENGINE_VERSION = "0.9.1";
 export const DEFAULT_RENDERER = RendererType.BEST;
