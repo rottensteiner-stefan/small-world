@@ -1,4 +1,4 @@
-import { AssetManager } from "../../loaders/AssetManager";
+import { AssetManager } from "../../loaders/AssetManager.js";
 import { Vector2D } from "../../math/Vector2D.js";
 import { TextureWrap } from "../../enums/TextureWrap.js";
 import { TextureFilter } from "../../enums/TextureFilter.js";

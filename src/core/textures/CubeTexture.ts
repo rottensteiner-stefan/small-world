@@ -1,4 +1,4 @@
-import { AssetManager } from "../../loaders/AssetManager";
+import { AssetManager } from "../../loaders/AssetManager.js";
 
 export class CubeTexture {
   public uuid: string = crypto.randomUUID();

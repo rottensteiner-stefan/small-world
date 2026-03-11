@@ -1,5 +1,5 @@
-import { AssetManager } from "./AssetManager";
-import { ModelGeometry } from "../geometry/ModelGeometry";
+import { AssetManager } from "./AssetManager.js";
+import { ModelGeometry } from "../geometry/ModelGeometry.js";
 
 export class ObjLoader {
   /**

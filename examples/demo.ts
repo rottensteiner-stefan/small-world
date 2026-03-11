@@ -27,6 +27,7 @@ import {
   Texture,
   Vector3D,
   WireframeMaterial,
+  ObjLoader,
 } from "../src/index.js";
 
 class Application {
@@ -133,12 +134,36 @@ class Application {
     // 6. Sammelobjekte
     this.createSpheres();
 
-    // 7. Die Textur asynchron aus EINER Datei zerschneiden laden
+    // 7. Skybox
     const skyTexture = await SkyboxLoader.loadFromHorizontalCross(
       "./resources/textures/skybox.jpg",
     );
     this.skybox = new Skybox(skyTexture, 100);
     this.scene.add(this.skybox);
+
+    // 7. Schneemann
+    try {
+      // 1. Das OBJ asynchron laden
+      const snowmanModel = await ObjLoader.load("./resources/models/snowman.obj");
+
+      // 2. Ein Game-Objekt erstellen
+      const snowman = new Object3D("Snowman");
+      snowman.geometry = snowmanModel.getGeometryData();
+
+      // 3. Ein schickes Material verpassen
+      const snowMat = new PhongMaterial();
+      snowMat.color = Color.WHITE;
+      snowMat.shininess = 16; // Leichter Schnee-Glanz
+      snowman.material = snowMat;
+
+      // 4. In die Welt setzen (ein Stück vor den Spieler)
+      snowman.position.set(0, 0, 5);
+
+      this.scene.add(snowman);
+      console.log("Schneemann erfolgreich geladen!");
+    } catch (error) {
+      console.error("Fehler beim Laden des Schneemanns:", error);
+    }
   }
 
   private createSpheres() {

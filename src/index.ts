@@ -1,5 +1,5 @@
 // --- Core ---
-export { AssetManager } from "./loaders/AssetManager";
+export { AssetManager } from "./loaders/AssetManager.js";
 export { Camera } from "./core/Camera.js";
 export { ENGINE_VERSION, DEFAULT_RENDERER } from "./core/Engine.js";
 export { HUD } from "./core/HUD.js";
@@ -7,10 +7,11 @@ export { Input } from "./core/Input.js";
 export { Object3D } from "./core/Object3D.js";
 export { Scene } from "./core/Scene.js";
 export { SmallWorld, WorldConfig } from "./core/SmallWorld.js";
+export { ObjLoader } from "./loaders/ObjLoader.js";
 
 // --- Textures ---
 export { CubeTexture } from "./core/textures/CubeTexture.js";
-export { SkyboxLoader } from "./loaders/SkyboxLoader";
+export { SkyboxLoader } from "./loaders/SkyboxLoader.js";
 export { Skybox } from "./core/Skybox.js";
 export { Texture } from "./core/textures/Texture.js";
 
@@ -19,8 +20,8 @@ export { CameraStrategyType } from "./enums/CameraStrategyType.js";
 export { Keys } from "./enums/Keys.js";
 export { LightType } from "./enums/LightType.js";
 export { RendererType } from "./enums/RendererType.js";
-export { TextureFilter } from "./enums/TextureFilter.js"; // <--- NEU
-export { TextureWrap } from "./enums/TextureWrap.js"; // <--- NEU
+export { TextureFilter } from "./enums/TextureFilter.js";
+export { TextureWrap } from "./enums/TextureWrap.js";
 
 // --- Math ---
 export { Matrix4 } from "./math/Matrix4.js";
@@ -44,6 +45,7 @@ export { Torus } from "./geometry/Torus.js";
 export { Circle } from "./geometry/Circle.js";
 export { Triangle } from "./geometry/Triangle.js";
 export { Line } from "./geometry/Line.js";
+export { ModelGeometry } from "./geometry/ModelGeometry.js";
 
 // --- Materials ---
 export { BasicMaterial } from "./core/materials/BasicMaterial.js";
