@@ -29,7 +29,7 @@ for DIR in "${SEARCH_DIRS[@]}"; do
     find "$DIR" -type f \( -name "*.ts" -o -name "*.js" -o -name "*.json" \) | while read -r FILE_PATH; do
 
         # Den Pfad exakt im Format '# Dateipfad' schreiben
-        echo "# $FILE_PATH" >> "$OUTPUT_FILE"
+        echo "/// $FILE_PATH" >> "$OUTPUT_FILE"
 
         # Den Dateiinhalt anhängen
         cat "$FILE_PATH" >> "$OUTPUT_FILE"
