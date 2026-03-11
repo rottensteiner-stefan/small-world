@@ -314,16 +314,16 @@ export class WebGPURenderer implements IRenderer {
         dimension: "2d",
         format: "rgba8unorm",
         usage:
-            GPUTextureUsage.COPY_DST |
-            GPUTextureUsage.RENDER_ATTACHMENT |
-            GPUTextureUsage.TEXTURE_BINDING
+          GPUTextureUsage.COPY_DST |
+          GPUTextureUsage.RENDER_ATTACHMENT |
+          GPUTextureUsage.TEXTURE_BINDING,
       });
 
       for (let i = 0; i < 6; i++) {
         this.device.queue.copyExternalImageToTexture(
-            { source: tex.images[i] },
-            { texture: gpuTex, origin: [0, 0, i] },
-            [w, h],
+          { source: tex.images[i] },
+          { texture: gpuTex, origin: [0, 0, i] },
+          [w, h],
         );
       }
       const sampler = this.device.createSampler({ magFilter: "linear", minFilter: "linear" });
@@ -348,9 +348,9 @@ export class WebGPURenderer implements IRenderer {
       size: [this.canvas.width, this.canvas.height],
       format: "depth24plus",
       usage:
-          GPUTextureUsage.TEXTURE_BINDING |
-          GPUTextureUsage.COPY_DST |
-          GPUTextureUsage.RENDER_ATTACHMENT,
+        GPUTextureUsage.TEXTURE_BINDING |
+        GPUTextureUsage.COPY_DST |
+        GPUTextureUsage.RENDER_ATTACHMENT,
     });
   }
   public setSize(w: number, h: number) {

@@ -134,7 +134,9 @@ class Application {
     this.createSpheres();
 
     // 7. Die Textur asynchron aus EINER Datei zerschneiden laden
-    const skyTexture = await SkyboxLoader.loadFromHorizontalCross("./resources/textures/skybox.jpg");
+    const skyTexture = await SkyboxLoader.loadFromHorizontalCross(
+      "./resources/textures/skybox.jpg",
+    );
     this.skybox = new Skybox(skyTexture, 100);
     this.scene.add(this.skybox);
   }
