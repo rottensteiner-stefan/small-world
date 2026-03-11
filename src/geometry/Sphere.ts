@@ -2,9 +2,9 @@ import { ObjectGeometry } from "./ObjectGeometry.js";
 
 export class Sphere extends ObjectGeometry {
   constructor(
-    public radius: number = 1,
-    public widthSegments: number = 16,
-    public heightSegments: number = 12,
+      public radius: number = 1,
+      public widthSegments: number = 16,
+      public heightSegments: number = 12,
   ) {
     super();
     this.generateGeometryData();
@@ -12,6 +12,7 @@ export class Sphere extends ObjectGeometry {
 
   protected generateGeometryData(): void {
     const v: number[] = [];
+    const n: number[] = []; // <-- NEU: Array für unsere perfekten Normalen
     const uv: number[] = [];
     const idx: number[] = [];
 
@@ -23,11 +24,18 @@ export class Sphere extends ObjectGeometry {
         const uRatio = x / this.widthSegments;
         const theta = uRatio * Math.PI * 2;
 
-        v.push(
-          -(this.radius * Math.sin(phi) * Math.cos(theta)),
-          this.radius * Math.cos(phi),
-          this.radius * Math.sin(phi) * Math.sin(theta),
-        );
+        // Position berechnen
+        const px = -(this.radius * Math.sin(phi) * Math.cos(theta));
+        const py = this.radius * Math.cos(phi);
+        const pz = this.radius * Math.sin(phi) * Math.sin(theta);
+
+        v.push(px, py, pz);
+
+        // NEU: Perfekte Normale direkt mathematisch berechnen.
+        // Da die Kugel im Ursprung (0,0,0) generiert wird, ist die Normale
+        // einfach die Position geteilt durch den Radius (Normalisierung).
+        n.push(px / this.radius, py / this.radius, pz / this.radius);
+
         uv.push(uRatio, 1 - vRatio);
       }
     }
@@ -42,8 +50,12 @@ export class Sphere extends ObjectGeometry {
     }
 
     this.vertices = new Float32Array(v);
+    this.normals = new Float32Array(n); // <-- NEU: Setze die berechneten Normalen
     this.uvs = new Float32Array(uv);
     this.indices = new Uint16Array(idx);
-    this.computeNormals();
+
+    // WICHTIG: this.computeNormals() wurde hier entfernt!
+    // Dadurch verhindern wir, dass der automatische Algorithmus
+    // unsere perfekten Normalen wieder an der Naht kaputt rechnet.
   }
 }
