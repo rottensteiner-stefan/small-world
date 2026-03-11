@@ -50,7 +50,7 @@ export { ModelGeometry } from "./geometry/ModelGeometry.js";
 // --- Materials ---
 export { BasicMaterial } from "./core/materials/BasicMaterial.js";
 export { LambertMaterial } from "./core/materials/LambertMaterial.js";
-export { Material } from "./core/materials/Material.js";
+export { AbstractMaterial } from "./core/materials/AbstractMaterial.js";
 export { PhongMaterial } from "./core/materials/PhongMaterial.js";
 export { WireframeMaterial } from "./core/materials/WireframeMaterial.js";
 export { SkyboxMaterial } from "./core/materials/SkyboxMaterial.js";

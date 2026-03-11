@@ -1,4 +1,4 @@
-import { Material } from "./Material.js";
-export class LambertMaterial extends Material {
-  public readonly type = "LambertMaterial";
+import { AbstractMaterial } from "./AbstractMaterial.js";
+export class LambertMaterial extends AbstractMaterial {
+  public static readonly type = "LambertMaterial";
 }

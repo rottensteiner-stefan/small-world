@@ -26,7 +26,7 @@ for DIR in "${SEARCH_DIRS[@]}"; do
 
     # 4. 'find' mit logischem ODER (-o) für die Endungen
     # Die Backslashes vor den Klammern \( \) sind für die Shell notwendig
-    find "$DIR" -type f \( -name "*.ts" -o -name "*.js" -o -name "*.json" \) | while read -r FILE_PATH; do
+    find "$DIR" -type f \( -name "*.ts" -o -name "*.js" -o -name "*.json" -o -name "*.obj" \) | while read -r FILE_PATH; do
 
         # Den Pfad exakt im Format '# Dateipfad' schreiben
         echo "/// $FILE_PATH" >> "$OUTPUT_FILE"

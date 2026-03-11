@@ -2,35 +2,50 @@ import { AssetManager } from "./AssetManager.js";
 import { ModelGeometry } from "../geometry/ModelGeometry.js";
 import { Loader } from "./Loader.js";
 import { EventType } from "../enums/EventType.js";
+import { Object3D } from "../core/Object3D.js";
+import { MtlLoader } from "./MtlLoader.js";
+import { PhongMaterial } from "../core/materials/PhongMaterial.js";
+// Hilfsklasse, um Geometrie-Teile nach Material zu sortieren
+class MaterialGroup {
+    name;
+    outVertices = [];
+    outUVs = [];
+    outNormals = [];
+    outIndices = [];
+    vertexCache = new Map();
+    indexCounter = 0;
+    constructor(name) {
+        this.name = name;
+    }
+}
 export class ObjLoader extends Loader {
     async load(url) {
         const fullUrl = this.basePath + url;
         this.dispatchEvent(EventType.LOAD_START, { url: fullUrl });
         try {
-            // AssetManager mit Event-Weiterleitung aufrufen
             const text = await AssetManager.loadText(fullUrl, (loaded, total) => {
                 this.dispatchEvent(EventType.PROGRESS, { url: fullUrl, loaded, total });
             });
-            const geometry = this.parse(text);
-            this.dispatchEvent(EventType.LOAD_END, { url: fullUrl, data: geometry });
-            return geometry;
+            // Den Ordner-Pfad extrahieren, damit wir wissen, wo wir die .mtl Datei suchen müssen
+            const folderPath = fullUrl.substring(0, fullUrl.lastIndexOf("/") + 1);
+            const rootObject = await this.parse(text, folderPath);
+            this.dispatchEvent(EventType.LOAD_END, { url: fullUrl, data: rootObject });
+            return rootObject;
         }
         catch (error) {
             this.dispatchEvent(EventType.ERROR, { url: fullUrl, error });
             throw error;
         }
     }
-    // Wichtig: 'static' wurde hier entfernt, da es nun zur Instanz gehört
-    parse(text) {
+    async parse(text, folderPath) {
         const tempVertices = [];
         const tempUVs = [];
         const tempNormals = [];
-        const outVertices = [];
-        const outUVs = [];
-        const outNormals = [];
-        const outIndices = [];
-        const vertexCache = new Map();
-        let indexCounter = 0;
+        let materials = new Map();
+        const groups = new Map();
+        // Fallback-Gruppe, falls im OBJ kein Material definiert ist
+        let currentGroup = new MaterialGroup("default");
+        groups.set("default", currentGroup);
         const lines = text.split("\n");
         for (let line of lines) {
             line = line.trim();
@@ -38,7 +53,20 @@ export class ObjLoader extends Loader {
                 continue;
             const parts = line.split(/\s+/);
             const type = parts[0];
-            if (type === "v") {
+            if (type === "mtllib") {
+                // Lade die Materialdatei über unseren neuen MtlLoader!
+                const mtlLoader = new MtlLoader();
+                materials = await mtlLoader.load(folderPath + parts[1]);
+            }
+            else if (type === "usemtl") {
+                // Wechsle die aktive Material-Gruppe für alle folgenden Faces
+                const matName = parts[1];
+                if (!groups.has(matName)) {
+                    groups.set(matName, new MaterialGroup(matName));
+                }
+                currentGroup = groups.get(matName);
+            }
+            else if (type === "v") {
                 tempVertices.push(parseFloat(parts[1]), parseFloat(parts[2]), parseFloat(parts[3]));
             }
             else if (type === "vt") {
@@ -50,35 +78,45 @@ export class ObjLoader extends Loader {
             else if (type === "f") {
                 const vertices = parts.slice(1);
                 for (let i = 1; i < vertices.length - 1; i++) {
-                    const v1 = this.parseFaceVertex(vertices[0], tempVertices, tempUVs, tempNormals, outVertices, outUVs, outNormals, vertexCache, () => indexCounter++);
-                    const v2 = this.parseFaceVertex(vertices[i], tempVertices, tempUVs, tempNormals, outVertices, outUVs, outNormals, vertexCache, () => indexCounter++);
-                    const v3 = this.parseFaceVertex(vertices[i + 1], tempVertices, tempUVs, tempNormals, outVertices, outUVs, outNormals, vertexCache, () => indexCounter++);
-                    outIndices.push(v1, v2, v3);
+                    const v1 = this.parseFaceVertex(vertices[0], tempVertices, tempUVs, tempNormals, currentGroup);
+                    const v2 = this.parseFaceVertex(vertices[i], tempVertices, tempUVs, tempNormals, currentGroup);
+                    const v3 = this.parseFaceVertex(vertices[i + 1], tempVertices, tempUVs, tempNormals, currentGroup);
+                    currentGroup.outIndices.push(v1, v2, v3);
                 }
             }
         }
-        return new ModelGeometry(outVertices, outUVs, outNormals, outIndices);
+        // Baue das finale Szenen-Objekt zusammen
+        const root = new Object3D("ModelRoot");
+        groups.forEach((group, name) => {
+            // Leere Gruppen (z.B. das "default", wenn das OBJ direkt mit usemtl startet) ignorieren
+            if (group.outIndices.length === 0)
+                return;
+            const child = new Object3D(name);
+            child.geometry = new ModelGeometry(group.outVertices, group.outUVs, group.outNormals, group.outIndices).getGeometryData();
+            child.material = materials.get(name) || new PhongMaterial();
+            root.add(child);
+        });
+        return root;
     }
-    // Wichtig: Auch hier 'static' entfernt
-    parseFaceVertex(faceStr, tempV, tempVT, tempVN, outV, outVT, outVN, cache, getIndex) {
-        if (cache.has(faceStr))
-            return cache.get(faceStr);
+    parseFaceVertex(faceStr, tempV, tempVT, tempVN, group) {
+        if (group.vertexCache.has(faceStr))
+            return group.vertexCache.get(faceStr);
         const parts = faceStr.split("/");
         const vIdx = (parseInt(parts[0]) - 1) * 3;
-        outV.push(tempV[vIdx], tempV[vIdx + 1], tempV[vIdx + 2]);
+        group.outVertices.push(tempV[vIdx], tempV[vIdx + 1], tempV[vIdx + 2]);
         if (parts.length > 1 && parts[1] !== "") {
             const vtIdx = (parseInt(parts[1]) - 1) * 2;
-            outVT.push(tempVT[vtIdx], tempVT[vtIdx + 1]);
+            group.outUVs.push(tempVT[vtIdx], tempVT[vtIdx + 1]);
         }
         else {
-            outVT.push(0, 0);
+            group.outUVs.push(0, 0);
         }
         if (parts.length > 2) {
             const vnIdx = (parseInt(parts[2]) - 1) * 3;
-            outVN.push(tempVN[vnIdx], tempVN[vnIdx + 1], tempVN[vnIdx + 2]);
+            group.outNormals.push(tempVN[vnIdx], tempVN[vnIdx + 1], tempVN[vnIdx + 2]);
         }
-        const newIndex = getIndex();
-        cache.set(faceStr, newIndex);
+        const newIndex = group.indexCounter++;
+        group.vertexCache.set(faceStr, newIndex);
         return newIndex;
     }
 }

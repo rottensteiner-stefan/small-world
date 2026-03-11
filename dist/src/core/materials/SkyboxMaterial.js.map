@@ -1,1 +1,1 @@
-{"version":3,"file":"SkyboxMaterial.js","sourceRoot":"","sources":["../../../../src/core/materials/SkyboxMaterial.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,QAAQ,EAAE,MAAM,eAAe,CAAC;AAGzC,MAAM,OAAO,cAAe,SAAQ,QAAQ;IAC1B,IAAI,GAAG,gBAAgB,CAAC;IACjC,OAAO,GAAuB,IAAI,CAAC;CAC3C"}
+{"version":3,"file":"SkyboxMaterial.js","sourceRoot":"","sources":["../../../../src/core/materials/SkyboxMaterial.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,gBAAgB,EAAE,MAAM,uBAAuB,CAAC;AAGzD,MAAM,OAAO,cAAe,SAAQ,gBAAgB;IAC3C,MAAM,CAAU,IAAI,GAAG,gBAAgB,CAAC;IACxC,OAAO,GAAuB,IAAI,CAAC"}

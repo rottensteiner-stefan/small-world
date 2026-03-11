@@ -142,23 +142,14 @@ class Application {
 
     // 7. Schneemann
     try {
-      // 1. Das OBJ asynchron laden
-      const snowmanModel = await new ObjLoader().load("./resources/models/snowman.obj");
+      const objLoader = new ObjLoader();
 
-      // 2. Ein Game-Objekt erstellen
-      const snowman = new Object3D("Snowman");
-      snowman.geometry = snowmanModel.getGeometryData();
+      // Das Modell lädt sich jetzt selbstständig mitsamt seiner .mtl-Datei
+      const snowman = await objLoader.load("./resources/models/snowman.obj");
 
-      // 3. Ein schickes Material verpassen
-      const snowMat = new PhongMaterial();
-      snowMat.color = Color.WHITE;
-      snowMat.shininess = 16; // Leichter Schnee-Glanz
-      snowman.material = snowMat;
-
-      // 4. In die Welt setzen (ein Stück vor den Spieler)
       snowman.position.set(0, 0, 5);
-
       this.scene.add(snowman);
+
       console.log("Schneemann erfolgreich geladen!");
     } catch (error) {
       console.error("Fehler beim Laden des Schneemanns:", error);
