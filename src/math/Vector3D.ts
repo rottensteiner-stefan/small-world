@@ -1,6 +1,6 @@
-import {IVector} from "../interfaces/IVector";
+import { IVector } from "../interfaces/IVector";
 
-export class Vector3D implements IVector{
+export class Vector3D implements IVector {
   constructor(
     public x: number = 0,
     public y: number = 0,
