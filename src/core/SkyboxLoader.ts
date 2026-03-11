@@ -1,14 +1,14 @@
-import { CubeTexture } from "./textures/CubeTexture";
+import { CubeTexture } from "./textures/CubeTexture.js";
 
 export class SkyboxLoader {
   /**
    * Lädt ein einzelnes Bild im "Horizontal Cross" Format und zerlegt es in 6 CubeMap-Seiten.
    * Layout-Erwartung:
-   * [+y]
+   *      [+y]
    * [-x] [+z] [+x] [-z]
-   * [-y]
+   *      [-y]
    */
-  public static async loadFromCross(url: string): Promise<CubeTexture> {
+  public static async loadFromHorizontalCross(url: string): Promise<CubeTexture> {
     const response = await fetch(url);
     if (!response.ok) throw new Error(`[SkyboxLoader] Bild nicht gefunden: ${url}`);
 

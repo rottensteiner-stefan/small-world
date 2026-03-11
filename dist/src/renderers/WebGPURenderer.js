@@ -260,7 +260,9 @@ export class WebGPURenderer {
                 size: [w, h, 6],
                 dimension: "2d",
                 format: "rgba8unorm",
-                usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+                usage: GPUTextureUsage.COPY_DST |
+                    GPUTextureUsage.RENDER_ATTACHMENT |
+                    GPUTextureUsage.TEXTURE_BINDING
             });
             for (let i = 0; i < 6; i++) {
                 this.device.queue.copyExternalImageToTexture({ source: tex.images[i] }, { texture: gpuTex, origin: [0, 0, i] }, [w, h]);
@@ -286,7 +288,9 @@ export class WebGPURenderer {
         this.depthTexture = this.device.createTexture({
             size: [this.canvas.width, this.canvas.height],
             format: "depth24plus",
-            usage: GPUTextureUsage.RENDER_ATTACHMENT,
+            usage: GPUTextureUsage.TEXTURE_BINDING |
+                GPUTextureUsage.COPY_DST |
+                GPUTextureUsage.RENDER_ATTACHMENT,
         });
     }
     setSize(w, h) {
