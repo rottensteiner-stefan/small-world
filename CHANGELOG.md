@@ -1,5 +1,8 @@
 # Changelog
 
+## [0.9.0] - 2026-03-11
+- Even more refactoring; Event system; Asset loader pipelines
+
 ## [0.8.59] - 2026-03-11
 
 - Fix Sphere geometry generation
