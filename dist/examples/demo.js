@@ -83,9 +83,9 @@ class Application {
         // 6. Sammelobjekte
         this.createSpheres();
         // 7. Die Textur asynchron aus EINER Datei zerschneiden laden
-        const skyTexture = await SkyboxLoader.loadFromCross("./resources/textures/skybox.jpg");
-        const mySkybox = new Skybox(skyTexture, 100);
-        this.scene.add(mySkybox);
+        const skyTexture = await SkyboxLoader.loadFromHorizontalCross("./resources/textures/skybox.jpg");
+        this.skybox = new Skybox(skyTexture, 100);
+        this.scene.add(this.skybox);
     }
     createSpheres() {
         const sGeo = new Sphere(0.6).getGeometryData();
@@ -163,7 +163,9 @@ class Application {
                 s.bounds.center.copyFrom(s.position);
         }
         // Skybox
-        this.skybox.position.copyFrom(this.cam.position);
+        if (this.skybox && this.cam) {
+            this.skybox.position.copyFrom(this.cam.position);
+        }
         // Szenengraph durchrechnen
         this.scene.update();
     }

@@ -104,23 +104,23 @@ class Application {
     // 3. Spieler
     this.player = new Object3D("Player");
     this.player.geometry = new Cube(this.PLAYER_SIZE).getGeometryData();
-    const playerMat = new PhongMaterial();
 
-    const myTexture = new Texture("/resources/textures/dark-red-brick-wall.jpg");
-    myTexture.repeat.set(2, 2);
-    playerMat.diffuseMap = myTexture;
-    playerMat.color = Color.WHITE;
-    playerMat.specularColor = Color.WHITE;
-    playerMat.shininess = 64;
-    this.player.material = playerMat;
+    const playerMaterial = new PhongMaterial();
+    const playerTexture = new Texture("/resources/textures/dark-red-brick-wall.jpg");
+    playerTexture.repeat.set(2, 2);
+    playerMaterial.diffuseMap = playerTexture;
+    playerMaterial.color = Color.WHITE;
+    playerMaterial.specularColor = Color.WHITE;
+    playerMaterial.shininess = 64;
+    this.player.material = playerMaterial;
     this.scene.add(this.player);
 
     // 4. Mond
     this.moon = new Object3D("Moon");
     this.moon.geometry = new Sphere(0.4).getGeometryData();
-    const moonMat = new LambertMaterial();
-    moonMat.color = Color.YELLOW;
-    this.moon.material = moonMat;
+    const moonMaterial = new LambertMaterial();
+    moonMaterial.color = Color.YELLOW;
+    this.moon.material = moonMaterial;
     this.player.add(this.moon);
 
     // 5. Taschenlampe
@@ -134,9 +134,9 @@ class Application {
     this.createSpheres();
 
     // 7. Die Textur asynchron aus EINER Datei zerschneiden laden
-    const skyTexture = await SkyboxLoader.loadFromCross("./resources/textures/skybox.jpg");
-    const mySkybox = new Skybox(skyTexture, 100);
-    this.scene.add(mySkybox);
+    const skyTexture = await SkyboxLoader.loadFromHorizontalCross("./resources/textures/skybox.jpg");
+    this.skybox = new Skybox(skyTexture, 100);
+    this.scene.add(this.skybox);
   }
 
   private createSpheres() {
@@ -227,7 +227,9 @@ class Application {
     }
 
     // Skybox
-    this.skybox.position.copyFrom(this.cam.position);
+    if (this.skybox && this.cam) {
+      this.skybox.position.copyFrom(this.cam.position);
+    }
 
     // Szenengraph durchrechnen
     this.scene.update();
