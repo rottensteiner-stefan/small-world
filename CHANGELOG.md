@@ -1,6 +1,10 @@
 # Changelog
 
+## [0.8.57] - 2026-03-11
+- Extend HUD data
+
 ## [0.8.56] - 2026-03-11
+
 - Add and use vector normalization
 - Add code collection script
 

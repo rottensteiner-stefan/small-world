@@ -1,91 +1,113 @@
-import {Color} from "../core/colors/Color.js";
-import {CubeTexture} from "../core/textures/CubeTexture.js";
-import {DirectionalLight} from "../core/lights/DirectionalLight.js";
-import {IGeometryData} from "../interfaces/IGeometryData.js";
-import {IRenderer} from "../interfaces/IRenderer.js";
-import {Light} from "../core/lights/Light.js";
-import {LightType} from "../enums/LightType.js";
-import {Mesh} from "./Mesh.js";
-import {Object3D} from "../core/Object3D.js";
-import {PhongMaterial} from "../core/materials/PhongMaterial.js";
-import {PointLight} from "../core/lights/PointLight.js";
-import {Scene} from "../core/Scene.js";
-import {SkyboxMaterial} from "../core/materials/SkyboxMaterial.js";
-import {SpotLight} from "../core/lights/SpotLight.js";
-import {Texture} from "../core/textures/Texture.js";
-import {TextureFilter} from "../enums/TextureFilter.js";
-import {TextureWrap} from "../enums/TextureWrap.js";
-import {Vector3D} from "../math/Vector3D.js";
+import { Color } from "../core/colors/Color.js";
+import { CubeTexture } from "../core/textures/CubeTexture.js";
+import { DirectionalLight } from "../core/lights/DirectionalLight.js";
+import { IGeometryData } from "../interfaces/IGeometryData.js";
+import { IRenderer } from "../interfaces/IRenderer.js";
+import { Light } from "../core/lights/Light.js";
+import { LightType } from "../enums/LightType.js";
+import { Mesh } from "./Mesh.js";
+import { Object3D } from "../core/Object3D.js";
+import { PhongMaterial } from "../core/materials/PhongMaterial.js";
+import { PointLight } from "../core/lights/PointLight.js";
+import { Scene } from "../core/Scene.js";
+import { SkyboxMaterial } from "../core/materials/SkyboxMaterial.js";
+import { SpotLight } from "../core/lights/SpotLight.js";
+import { Texture } from "../core/textures/Texture.js";
+import { TextureFilter } from "../enums/TextureFilter.js";
+import { TextureWrap } from "../enums/TextureWrap.js";
+import { Vector3D } from "../math/Vector3D.js";
 import { RendererType } from "../enums/RendererType.js";
 
 interface ShaderLocs {
-    pos: number;
-    norm: number;
-    uv: number;
-    vp: WebGLUniformLocation | null;
-    model: WebGLUniformLocation | null;
-    color: WebGLUniformLocation | null;
-    specColor: WebGLUniformLocation | null;
-    ambient: WebGLUniformLocation | null;
-    dirColor: WebGLUniformLocation | null;
-    dirDir: WebGLUniformLocation | null;
-    shininess: WebGLUniformLocation | null;
-    viewPos: WebGLUniformLocation | null;
-    numPL: WebGLUniformLocation | null;
-    numSL: WebGLUniformLocation | null;
-    diffuseMap: WebGLUniformLocation | null;
-    texOffset: WebGLUniformLocation | null;
-    texRepeat: WebGLUniformLocation | null;
+  pos: number;
+  norm: number;
+  uv: number;
+  vp: WebGLUniformLocation | null;
+  model: WebGLUniformLocation | null;
+  color: WebGLUniformLocation | null;
+  specColor: WebGLUniformLocation | null;
+  ambient: WebGLUniformLocation | null;
+  dirColor: WebGLUniformLocation | null;
+  dirDir: WebGLUniformLocation | null;
+  shininess: WebGLUniformLocation | null;
+  viewPos: WebGLUniformLocation | null;
+  numPL: WebGLUniformLocation | null;
+  numSL: WebGLUniformLocation | null;
+  diffuseMap: WebGLUniformLocation | null;
+  texOffset: WebGLUniformLocation | null;
+  texRepeat: WebGLUniformLocation | null;
 }
 
 export class WebGL1Renderer implements IRenderer {
-    public readonly type = RendererType.WEB_GL1; // <--- NEU
+  public readonly type = RendererType.WEB_GL1; // <--- NEU
 
-    private gl!: WebGLRenderingContext;
+  private gl!: WebGLRenderingContext;
 
-    private prog!: WebGLProgram;
-    private locs!: ShaderLocs;
+  private prog!: WebGLProgram;
+  private locs!: ShaderLocs;
 
-    private skyProg!: WebGLProgram;
-    private skyLocs!: {
-        pos: number;
-        vp: WebGLUniformLocation | null;
-        model: WebGLUniformLocation | null;
-        skybox: WebGLUniformLocation | null;
-    };
+  private skyProg!: WebGLProgram;
+  private skyLocs!: {
+    pos: number;
+    vp: WebGLUniformLocation | null;
+    model: WebGLUniformLocation | null;
+    skybox: WebGLUniformLocation | null;
+  };
 
-    private cache = new Map<IGeometryData, Mesh>();
-    private texCache = new Map<Texture, WebGLTexture>();
-    private defaultTexture!: WebGLTexture;
+  private cache = new Map<IGeometryData, Mesh>();
+  private texCache = new Map<Texture, WebGLTexture>();
+  private defaultTexture!: WebGLTexture;
 
-    private texCubeCache = new Map<CubeTexture, WebGLTexture>();
-    private defaultCubeTexture!: WebGLTexture;
+  private texCubeCache = new Map<CubeTexture, WebGLTexture>();
+  private defaultCubeTexture!: WebGLTexture;
 
-    private pointLightLocs: { pos: WebGLUniformLocation | null; col: WebGLUniformLocation | null }[] = [];
-    private spotLightLocs: {
-        pos: WebGLUniformLocation | null;
-        dir: WebGLUniformLocation | null;
-        col: WebGLUniformLocation | null;
-        params: WebGLUniformLocation | null;
-    }[] = [];
+  private pointLightLocs: { pos: WebGLUniformLocation | null; col: WebGLUniformLocation | null }[] =
+    [];
+  private spotLightLocs: {
+    pos: WebGLUniformLocation | null;
+    dir: WebGLUniformLocation | null;
+    col: WebGLUniformLocation | null;
+    params: WebGLUniformLocation | null;
+  }[] = [];
 
-    public async initialize(canvas: HTMLCanvasElement) {
-        this.gl = (canvas.getContext("webgl", {antialias: true}) || canvas.getContext("experimental-webgl")) as WebGLRenderingContext;
+  public async initialize(canvas: HTMLCanvasElement) {
+    this.gl = (canvas.getContext("webgl", { antialias: true }) ||
+      canvas.getContext("experimental-webgl")) as WebGLRenderingContext;
 
-        // --- Default 2D Texture ---
-        this.defaultTexture = this.gl.createTexture()!;
-        this.gl.bindTexture(this.gl.TEXTURE_2D, this.defaultTexture);
-        this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, 1, 1, 0, this.gl.RGBA, this.gl.UNSIGNED_BYTE, new Uint8Array([255, 255, 255, 255]));
+    // --- Default 2D Texture ---
+    this.defaultTexture = this.gl.createTexture()!;
+    this.gl.bindTexture(this.gl.TEXTURE_2D, this.defaultTexture);
+    this.gl.texImage2D(
+      this.gl.TEXTURE_2D,
+      0,
+      this.gl.RGBA,
+      1,
+      1,
+      0,
+      this.gl.RGBA,
+      this.gl.UNSIGNED_BYTE,
+      new Uint8Array([255, 255, 255, 255]),
+    );
 
-        // --- Default CUBE Texture ---
-        this.defaultCubeTexture = this.gl.createTexture()!;
-        this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, this.defaultCubeTexture);
-        for (let i = 0; i < 6; i++) {
-            this.gl.texImage2D(this.gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, this.gl.RGBA, 1, 1, 0, this.gl.RGBA, this.gl.UNSIGNED_BYTE, new Uint8Array([50, 50, 100, 255]));
-        }
+    // --- Default CUBE Texture ---
+    this.defaultCubeTexture = this.gl.createTexture()!;
+    this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, this.defaultCubeTexture);
+    for (let i = 0; i < 6; i++) {
+      this.gl.texImage2D(
+        this.gl.TEXTURE_CUBE_MAP_POSITIVE_X + i,
+        0,
+        this.gl.RGBA,
+        1,
+        1,
+        0,
+        this.gl.RGBA,
+        this.gl.UNSIGNED_BYTE,
+        new Uint8Array([50, 50, 100, 255]),
+      );
+    }
 
-        // --- MAIN SHADER (GLSL ES 1.00) ---
-        const vsCode = `
+    // --- MAIN SHADER (GLSL ES 1.00) ---
+    const vsCode = `
     attribute vec3 a_position; attribute vec3 a_normal; attribute vec2 a_uv;
     uniform mat4 u_vp; uniform mat4 u_model; uniform vec2 u_texOffset; uniform vec2 u_texRepeat;
     varying vec3 v_worldPos; varying vec3 v_normal; varying vec2 v_uv;
@@ -103,7 +125,7 @@ export class WebGL1Renderer implements IRenderer {
       gl_Position = u_vp * wp;
     }`;
 
-        const fsCode = `
+    const fsCode = `
     precision highp float;
     varying vec3 v_worldPos; varying vec3 v_normal; varying vec2 v_uv;
     
@@ -147,260 +169,342 @@ export class WebGL1Renderer implements IRenderer {
       gl_FragColor = vec4((finalLight * u_color.rgb * texColor.rgb) + (specular * u_specColor.rgb), u_color.a * texColor.a);
     }`;
 
-        // --- SKYBOX SHADER (GLSL ES 1.00) ---
-        const skyVsCode = `
+    // --- SKYBOX SHADER (GLSL ES 1.00) ---
+    const skyVsCode = `
     attribute vec3 a_position; uniform mat4 u_vp; uniform mat4 u_model;
     varying vec3 v_uvw;
     void main() {
         v_uvw = a_position;
         gl_Position = u_vp * u_model * vec4(a_position, 1.0);
     }`;
-        const skyFsCode = `
+    const skyFsCode = `
     precision highp float;
     varying vec3 v_uvw; uniform samplerCube u_skybox;
     void main() { gl_FragColor = textureCube(u_skybox, v_uvw); }`;
 
-        const createShader = (vSrc: string, fSrc: string) => {
-            const vs = this.gl.createShader(this.gl.VERTEX_SHADER)!;
-            this.gl.shaderSource(vs, vSrc);
-            this.gl.compileShader(vs);
-            const fs = this.gl.createShader(this.gl.FRAGMENT_SHADER)!;
-            this.gl.shaderSource(fs, fSrc);
-            this.gl.compileShader(fs);
-            const p = this.gl.createProgram()!;
-            this.gl.attachShader(p, vs);
-            this.gl.attachShader(p, fs);
-            this.gl.linkProgram(p);
-            return p;
-        };
+    const createShader = (vSrc: string, fSrc: string) => {
+      const vs = this.gl.createShader(this.gl.VERTEX_SHADER)!;
+      this.gl.shaderSource(vs, vSrc);
+      this.gl.compileShader(vs);
+      const fs = this.gl.createShader(this.gl.FRAGMENT_SHADER)!;
+      this.gl.shaderSource(fs, fSrc);
+      this.gl.compileShader(fs);
+      const p = this.gl.createProgram()!;
+      this.gl.attachShader(p, vs);
+      this.gl.attachShader(p, fs);
+      this.gl.linkProgram(p);
+      return p;
+    };
 
-        this.prog = createShader(vsCode, fsCode);
-        this.skyProg = createShader(skyVsCode, skyFsCode);
+    this.prog = createShader(vsCode, fsCode);
+    this.skyProg = createShader(skyVsCode, skyFsCode);
 
-        this.locs = {
-            pos: this.gl.getAttribLocation(this.prog, "a_position"),
-            norm: this.gl.getAttribLocation(this.prog, "a_normal"),
-            uv: this.gl.getAttribLocation(this.prog, "a_uv"),
-            vp: this.gl.getUniformLocation(this.prog, "u_vp"),
-            model: this.gl.getUniformLocation(this.prog, "u_model"),
-            color: this.gl.getUniformLocation(this.prog, "u_color"),
-            specColor: this.gl.getUniformLocation(this.prog, "u_specColor"),
-            ambient: this.gl.getUniformLocation(this.prog, "u_ambientColor"),
-            dirColor: this.gl.getUniformLocation(this.prog, "u_dirLightColor"),
-            dirDir: this.gl.getUniformLocation(this.prog, "u_dirLightDir"),
-            shininess: this.gl.getUniformLocation(this.prog, "u_shininess"),
-            viewPos: this.gl.getUniformLocation(this.prog, "u_viewPos"),
-            numPL: this.gl.getUniformLocation(this.prog, "u_numPointLights"),
-            numSL: this.gl.getUniformLocation(this.prog, "u_numSpotLights"),
-            diffuseMap: this.gl.getUniformLocation(this.prog, "u_diffuseMap"),
-            texOffset: this.gl.getUniformLocation(this.prog, "u_texOffset"),
-            texRepeat: this.gl.getUniformLocation(this.prog, "u_texRepeat"),
-        };
+    this.locs = {
+      pos: this.gl.getAttribLocation(this.prog, "a_position"),
+      norm: this.gl.getAttribLocation(this.prog, "a_normal"),
+      uv: this.gl.getAttribLocation(this.prog, "a_uv"),
+      vp: this.gl.getUniformLocation(this.prog, "u_vp"),
+      model: this.gl.getUniformLocation(this.prog, "u_model"),
+      color: this.gl.getUniformLocation(this.prog, "u_color"),
+      specColor: this.gl.getUniformLocation(this.prog, "u_specColor"),
+      ambient: this.gl.getUniformLocation(this.prog, "u_ambientColor"),
+      dirColor: this.gl.getUniformLocation(this.prog, "u_dirLightColor"),
+      dirDir: this.gl.getUniformLocation(this.prog, "u_dirLightDir"),
+      shininess: this.gl.getUniformLocation(this.prog, "u_shininess"),
+      viewPos: this.gl.getUniformLocation(this.prog, "u_viewPos"),
+      numPL: this.gl.getUniformLocation(this.prog, "u_numPointLights"),
+      numSL: this.gl.getUniformLocation(this.prog, "u_numSpotLights"),
+      diffuseMap: this.gl.getUniformLocation(this.prog, "u_diffuseMap"),
+      texOffset: this.gl.getUniformLocation(this.prog, "u_texOffset"),
+      texRepeat: this.gl.getUniformLocation(this.prog, "u_texRepeat"),
+    };
 
-        this.skyLocs = {
-            pos: this.gl.getAttribLocation(this.skyProg, "a_position"),
-            vp: this.gl.getUniformLocation(this.skyProg, "u_vp"),
-            model: this.gl.getUniformLocation(this.skyProg, "u_model"),
-            skybox: this.gl.getUniformLocation(this.skyProg, "u_skybox"),
-        };
+    this.skyLocs = {
+      pos: this.gl.getAttribLocation(this.skyProg, "a_position"),
+      vp: this.gl.getUniformLocation(this.skyProg, "u_vp"),
+      model: this.gl.getUniformLocation(this.skyProg, "u_model"),
+      skybox: this.gl.getUniformLocation(this.skyProg, "u_skybox"),
+    };
 
-        for (let i = 0; i < 4; i++) {
-            this.pointLightLocs.push({
-                pos: this.gl.getUniformLocation(this.prog, `u_pointLightPos[${i}]`),
-                col: this.gl.getUniformLocation(this.prog, `u_pointLightColor[${i}]`),
-            });
-            this.spotLightLocs.push({
-                pos: this.gl.getUniformLocation(this.prog, `u_spotLightPos[${i}]`),
-                dir: this.gl.getUniformLocation(this.prog, `u_spotLightDir[${i}]`),
-                col: this.gl.getUniformLocation(this.prog, `u_spotLightColor[${i}]`),
-                params: this.gl.getUniformLocation(this.prog, `u_spotLightParams[${i}]`),
-            });
+    for (let i = 0; i < 4; i++) {
+      this.pointLightLocs.push({
+        pos: this.gl.getUniformLocation(this.prog, `u_pointLightPos[${i}]`),
+        col: this.gl.getUniformLocation(this.prog, `u_pointLightColor[${i}]`),
+      });
+      this.spotLightLocs.push({
+        pos: this.gl.getUniformLocation(this.prog, `u_spotLightPos[${i}]`),
+        dir: this.gl.getUniformLocation(this.prog, `u_spotLightDir[${i}]`),
+        col: this.gl.getUniformLocation(this.prog, `u_spotLightColor[${i}]`),
+        params: this.gl.getUniformLocation(this.prog, `u_spotLightParams[${i}]`),
+      });
+    }
+    this.gl.enable(this.gl.DEPTH_TEST);
+  }
+
+  // Hilfsmethode für Non-Power-of-Two Texturen
+  private isPowerOf2(value: number) {
+    return (value & (value - 1)) === 0;
+  }
+
+  private getWebGLTexture(tex: Texture): WebGLTexture {
+    if (!tex.isLoaded || !tex.image) return this.defaultTexture;
+    let glTex = this.texCache.get(tex);
+    if (!glTex) {
+      glTex = this.gl.createTexture()!;
+      this.gl.bindTexture(this.gl.TEXTURE_2D, glTex);
+      this.gl.texImage2D(
+        this.gl.TEXTURE_2D,
+        0,
+        this.gl.RGBA,
+        this.gl.RGBA,
+        this.gl.UNSIGNED_BYTE,
+        tex.image,
+      );
+
+      const isPot = this.isPowerOf2(tex.image.width) && this.isPowerOf2(tex.image.height);
+      const glFilterMag =
+        tex.magFilter === TextureFilter.NEAREST ? this.gl.NEAREST : this.gl.LINEAR;
+      const glFilterMin =
+        tex.minFilter === TextureFilter.NEAREST ? this.gl.NEAREST : this.gl.LINEAR;
+
+      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, glFilterMag);
+      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, glFilterMin);
+
+      // WebGL1 erfordert CLAMP_TO_EDGE für NPOT-Texturen!
+      const mapWrap = (w: TextureWrap) =>
+        !isPot || w === TextureWrap.CLAMP_TO_EDGE
+          ? this.gl.CLAMP_TO_EDGE
+          : w === TextureWrap.MIRRORED_REPEAT
+            ? this.gl.MIRRORED_REPEAT
+            : this.gl.REPEAT;
+
+      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, mapWrap(tex.wrapS));
+      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, mapWrap(tex.wrapT));
+      this.texCache.set(tex, glTex);
+    }
+    return glTex;
+  }
+
+  private getWebGLCubeTexture(tex: CubeTexture): WebGLTexture {
+    if (!tex.isLoaded || tex.images.length !== 6) return this.defaultCubeTexture;
+    let glTex = this.texCubeCache.get(tex);
+    if (!glTex) {
+      glTex = this.gl.createTexture()!;
+      this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, glTex);
+      for (let i = 0; i < 6; i++) {
+        this.gl.texImage2D(
+          this.gl.TEXTURE_CUBE_MAP_POSITIVE_X + i,
+          0,
+          this.gl.RGBA,
+          this.gl.RGBA,
+          this.gl.UNSIGNED_BYTE,
+          tex.images[i] as HTMLImageElement,
+        );
+      }
+      this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
+      this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR);
+      this.gl.texParameteri(
+        this.gl.TEXTURE_CUBE_MAP,
+        this.gl.TEXTURE_WRAP_S,
+        this.gl.CLAMP_TO_EDGE,
+      );
+      this.gl.texParameteri(
+        this.gl.TEXTURE_CUBE_MAP,
+        this.gl.TEXTURE_WRAP_T,
+        this.gl.CLAMP_TO_EDGE,
+      );
+      // HINWEIS: TEXTURE_WRAP_R gibt es in WebGL1 nicht, kann sicher weggelassen werden.
+      this.texCubeCache.set(tex, glTex);
+    }
+    return glTex;
+  }
+
+  public setClearColor(color: Color): void {
+    this.gl.clearColor(color.r, color.g, color.b, color.a);
+  }
+
+  public render(scene: Scene, vp: Float32Array, camPos: Vector3D = new Vector3D()) {
+    this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
+
+    // DURCHLAUF 1: Skyboxes rendern (ohne Depth-Writing)
+    this.gl.depthMask(false);
+    this.gl.useProgram(this.skyProg);
+    if (this.skyLocs.vp) this.gl.uniformMatrix4fv(this.skyLocs.vp, false, vp);
+
+    for (const o of scene.objects) {
+      if (!o.isVisible || !o.geometry || o.material?.type !== "SkyboxMaterial") continue;
+      const mat = o.material as SkyboxMaterial;
+      let m = this.cache.get(o.geometry);
+      if (!m) {
+        m = new Mesh(this.gl, o.geometry);
+        this.cache.set(o.geometry, m);
+      }
+
+      m.bind(this.skyLocs.pos);
+      if (this.skyLocs.model)
+        this.gl.uniformMatrix4fv(this.skyLocs.model, false, o.worldMatrix.data);
+
+      this.gl.activeTexture(this.gl.TEXTURE0);
+      this.gl.bindTexture(
+        this.gl.TEXTURE_CUBE_MAP,
+        mat.cubeMap ? this.getWebGLCubeTexture(mat.cubeMap) : this.defaultCubeTexture,
+      );
+      if (this.skyLocs.skybox) this.gl.uniform1i(this.skyLocs.skybox, 0);
+
+      this.gl.drawElements(this.gl.TRIANGLES, m.count, this.gl.UNSIGNED_SHORT, 0);
+    }
+    this.gl.depthMask(true);
+
+    // DURCHLAUF 2: Alles andere rendern
+    this.gl.useProgram(this.prog);
+    if (this.locs.vp) this.gl.uniformMatrix4fv(this.locs.vp, false, vp);
+    if (this.locs.viewPos) this.gl.uniform3f(this.locs.viewPos, camPos.x, camPos.y, camPos.z);
+
+    let aCol = new Color(0, 0, 0),
+      dDir = new Vector3D(0, 1, 0),
+      dCol = new Color(0, 0, 0);
+    const pLights: PointLight[] = [],
+      sLights: SpotLight[] = [];
+
+    const extractLights = (node: Object3D | Light) => {
+      if ("lightType" in node) {
+        const light = node as Light;
+        switch (light.lightType) {
+          case LightType.AMBIENT:
+            aCol = new Color(
+              light.color.r * light.intensity,
+              light.color.g * light.intensity,
+              light.color.b * light.intensity,
+            );
+            break;
+          case LightType.DIRECTIONAL: {
+            const dLight = light as DirectionalLight;
+            dDir = dLight.direction.clone().scale(-1).normalize(); // <--- HIER nutzen wir unsere neue Methode!
+            dCol = new Color(
+              light.color.r * light.intensity,
+              light.color.g * light.intensity,
+              light.color.b * light.intensity,
+            );
+            break;
+          }
+          case LightType.POINT:
+            if (pLights.length < 4) pLights.push(light as PointLight);
+            break;
+          case LightType.SPOT:
+            if (sLights.length < 4) sLights.push(light as SpotLight);
+            break;
         }
-        this.gl.enable(this.gl.DEPTH_TEST);
+      }
+      if (node.children) node.children.forEach(extractLights);
+    };
+    for (const obj of scene.objects) extractLights(obj);
+
+    if (this.locs.ambient) this.gl.uniform3f(this.locs.ambient, aCol.r, aCol.g, aCol.b);
+    if (this.locs.dirDir) this.gl.uniform3f(this.locs.dirDir, dDir.x, dDir.y, dDir.z);
+    if (this.locs.dirColor) this.gl.uniform3f(this.locs.dirColor, dCol.r, dCol.g, dCol.b);
+    if (this.locs.numPL) this.gl.uniform1i(this.locs.numPL, pLights.length);
+    for (let i = 0; i < pLights.length; i++) {
+      const pl = pLights[i];
+      if (this.pointLightLocs[i].pos)
+        this.gl.uniform3f(
+          this.pointLightLocs[i].pos!,
+          pl.worldMatrix.data[12],
+          pl.worldMatrix.data[13],
+          pl.worldMatrix.data[14],
+        );
+      if (this.pointLightLocs[i].col)
+        this.gl.uniform3f(
+          this.pointLightLocs[i].col!,
+          pl.color.r * pl.intensity,
+          pl.color.g * pl.intensity,
+          pl.color.b * pl.intensity,
+        );
+    }
+    if (this.locs.numSL) this.gl.uniform1i(this.locs.numSL, sLights.length);
+    for (let i = 0; i < sLights.length; i++) {
+      const sl = sLights[i];
+      if (this.spotLightLocs[i].pos)
+        this.gl.uniform3f(
+          this.spotLightLocs[i].pos!,
+          sl.worldMatrix.data[12],
+          sl.worldMatrix.data[13],
+          sl.worldMatrix.data[14],
+        );
+      const dir = sl.direction.clone().normalize(); // <--- UND HIER!
+      if (this.spotLightLocs[i].dir)
+        this.gl.uniform3f(this.spotLightLocs[i].dir!, dir.x, dir.y, dir.z);
+      if (this.spotLightLocs[i].col)
+        this.gl.uniform3f(
+          this.spotLightLocs[i].col!,
+          sl.color.r * sl.intensity,
+          sl.color.g * sl.intensity,
+          sl.color.b * sl.intensity,
+        );
+      if (this.spotLightLocs[i].params)
+        this.gl.uniform4f(
+          this.spotLightLocs[i].params!,
+          Math.cos(sl.angle),
+          Math.cos(sl.angle * (1.0 - sl.penumbra)),
+          sl.distance,
+          sl.decay,
+        );
     }
 
-    // Hilfsmethode für Non-Power-of-Two Texturen
-    private isPowerOf2(value: number) {
-        return (value & (value - 1)) === 0;
-    }
+    for (const o of scene.objects) {
+      if (
+        o.isVisible === false ||
+        !o.material ||
+        !o.geometry ||
+        o.material.type === "SkyboxMaterial"
+      )
+        continue;
 
-    private getWebGLTexture(tex: Texture): WebGLTexture {
-        if (!tex.isLoaded || !tex.image) return this.defaultTexture;
-        let glTex = this.texCache.get(tex);
-        if (!glTex) {
-            glTex = this.gl.createTexture()!;
-            this.gl.bindTexture(this.gl.TEXTURE_2D, glTex);
-            this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, tex.image);
+      let m = this.cache.get(o.geometry);
+      if (!m) {
+        m = new Mesh(this.gl, o.geometry);
+        this.cache.set(o.geometry, m);
+      }
+      m.bind(this.locs.pos, this.locs.norm, this.locs.uv);
 
-            const isPot = this.isPowerOf2(tex.image.width) && this.isPowerOf2(tex.image.height);
-            const glFilterMag = tex.magFilter === TextureFilter.NEAREST ? this.gl.NEAREST : this.gl.LINEAR;
-            const glFilterMin = tex.minFilter === TextureFilter.NEAREST ? this.gl.NEAREST : this.gl.LINEAR;
+      if (this.locs.model) this.gl.uniformMatrix4fv(this.locs.model, false, o.worldMatrix.data);
+      if (this.locs.color) this.gl.uniform4fv(this.locs.color, o.material.color.toArray());
 
-            this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, glFilterMag);
-            this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, glFilterMin);
+      let shininess = -1.0;
+      let specCol = [0, 0, 0, 0];
+      let activeTex = this.defaultTexture;
+      let tOffset = [0, 0];
+      let tRepeat = [1, 1];
 
-            // WebGL1 erfordert CLAMP_TO_EDGE für NPOT-Texturen!
-            const mapWrap = (w: TextureWrap) => !isPot || w === TextureWrap.CLAMP_TO_EDGE ? this.gl.CLAMP_TO_EDGE : (w === TextureWrap.MIRRORED_REPEAT ? this.gl.MIRRORED_REPEAT : this.gl.REPEAT);
-
-            this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, mapWrap(tex.wrapS));
-            this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, mapWrap(tex.wrapT));
-            this.texCache.set(tex, glTex);
+      if (o.material.type === "LambertMaterial") {
+        shininess = 0.0;
+      } else if (o.material.type === "PhongMaterial") {
+        const material = o.material as PhongMaterial;
+        shininess = material.shininess || 32;
+        specCol = material.specularColor ? material.specularColor.toArray() : [0, 0, 0, 0];
+        if (material.diffuseMap) {
+          activeTex = this.getWebGLTexture(material.diffuseMap);
+          tOffset = [material.diffuseMap.offset.x, material.diffuseMap.offset.y];
+          tRepeat = [material.diffuseMap.repeat.x, material.diffuseMap.repeat.y];
         }
-        return glTex;
+      }
+
+      this.gl.activeTexture(this.gl.TEXTURE0);
+      this.gl.bindTexture(this.gl.TEXTURE_2D, activeTex);
+      if (this.locs.diffuseMap) this.gl.uniform1i(this.locs.diffuseMap, 0);
+      if (this.locs.texOffset) this.gl.uniform2fv(this.locs.texOffset, tOffset);
+      if (this.locs.texRepeat) this.gl.uniform2fv(this.locs.texRepeat, tRepeat);
+      if (this.locs.shininess) this.gl.uniform1f(this.locs.shininess, shininess);
+      if (this.locs.specColor) this.gl.uniform4fv(this.locs.specColor, specCol);
+
+      const drawMode = o.material.type === "WireframeMaterial" ? this.gl.LINES : this.gl.TRIANGLES;
+      this.gl.drawElements(drawMode, m.count, this.gl.UNSIGNED_SHORT, 0);
     }
+  }
 
-    private getWebGLCubeTexture(tex: CubeTexture): WebGLTexture {
-        if (!tex.isLoaded || tex.images.length !== 6) return this.defaultCubeTexture;
-        let glTex = this.texCubeCache.get(tex);
-        if (!glTex) {
-            glTex = this.gl.createTexture()!;
-            this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, glTex);
-            for (let i = 0; i < 6; i++) {
-                this.gl.texImage2D(this.gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, tex.images[i] as HTMLImageElement);
-            }
-            this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
-            this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR);
-            this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
-            this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
-            // HINWEIS: TEXTURE_WRAP_R gibt es in WebGL1 nicht, kann sicher weggelassen werden.
-            this.texCubeCache.set(tex, glTex);
-        }
-        return glTex;
-    }
-
-    public setClearColor(color: Color): void {
-        this.gl.clearColor(color.r, color.g, color.b, color.a);
-    }
-
-    public render(scene: Scene, vp: Float32Array, camPos: Vector3D = new Vector3D()) {
-        this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
-
-        // DURCHLAUF 1: Skyboxes rendern (ohne Depth-Writing)
-        this.gl.depthMask(false);
-        this.gl.useProgram(this.skyProg);
-        if (this.skyLocs.vp) this.gl.uniformMatrix4fv(this.skyLocs.vp, false, vp);
-
-        for (const o of scene.objects) {
-            if (!o.isVisible || !o.geometry || o.material?.type !== "SkyboxMaterial") continue;
-            const mat = o.material as SkyboxMaterial;
-            let m = this.cache.get(o.geometry);
-            if (!m) {
-                m = new Mesh(this.gl, o.geometry);
-                this.cache.set(o.geometry, m);
-            }
-
-            m.bind(this.skyLocs.pos);
-            if (this.skyLocs.model) this.gl.uniformMatrix4fv(this.skyLocs.model, false, o.worldMatrix.data);
-
-            this.gl.activeTexture(this.gl.TEXTURE0);
-            this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, mat.cubeMap ? this.getWebGLCubeTexture(mat.cubeMap) : this.defaultCubeTexture);
-            if (this.skyLocs.skybox) this.gl.uniform1i(this.skyLocs.skybox, 0);
-
-            this.gl.drawElements(this.gl.TRIANGLES, m.count, this.gl.UNSIGNED_SHORT, 0);
-        }
-        this.gl.depthMask(true);
-
-        // DURCHLAUF 2: Alles andere rendern
-        this.gl.useProgram(this.prog);
-        if (this.locs.vp) this.gl.uniformMatrix4fv(this.locs.vp, false, vp);
-        if (this.locs.viewPos) this.gl.uniform3f(this.locs.viewPos, camPos.x, camPos.y, camPos.z);
-
-        let aCol = new Color(0, 0, 0), dDir = new Vector3D(0, 1, 0), dCol = new Color(0, 0, 0);
-        const pLights: PointLight[] = [], sLights: SpotLight[] = [];
-
-        const extractLights = (node: Object3D | Light) => {
-            if ("lightType" in node) {
-                const light = node as Light;
-                switch (light.lightType) {
-                    case LightType.AMBIENT:
-                        aCol = new Color(light.color.r * light.intensity, light.color.g * light.intensity, light.color.b * light.intensity);
-                        break;
-                    case LightType.DIRECTIONAL: {
-                        const dLight = light as DirectionalLight;
-                        dDir = dLight.direction.clone().scale(-1).normalize(); // <--- HIER nutzen wir unsere neue Methode!
-                        dCol = new Color(light.color.r * light.intensity, light.color.g * light.intensity, light.color.b * light.intensity);
-                        break;
-                    }
-                    case LightType.POINT:
-                        if (pLights.length < 4) pLights.push(light as PointLight);
-                        break;
-                    case LightType.SPOT:
-                        if (sLights.length < 4) sLights.push(light as SpotLight);
-                        break;
-                }
-            }
-            if (node.children) node.children.forEach(extractLights);
-        };
-        for (const obj of scene.objects) extractLights(obj);
-
-        if (this.locs.ambient) this.gl.uniform3f(this.locs.ambient, aCol.r, aCol.g, aCol.b);
-        if (this.locs.dirDir) this.gl.uniform3f(this.locs.dirDir, dDir.x, dDir.y, dDir.z);
-        if (this.locs.dirColor) this.gl.uniform3f(this.locs.dirColor, dCol.r, dCol.g, dCol.b);
-        if (this.locs.numPL) this.gl.uniform1i(this.locs.numPL, pLights.length);
-        for (let i = 0; i < pLights.length; i++) {
-            const pl = pLights[i];
-            if (this.pointLightLocs[i].pos) this.gl.uniform3f(this.pointLightLocs[i].pos!, pl.worldMatrix.data[12], pl.worldMatrix.data[13], pl.worldMatrix.data[14]);
-            if (this.pointLightLocs[i].col) this.gl.uniform3f(this.pointLightLocs[i].col!, pl.color.r * pl.intensity, pl.color.g * pl.intensity, pl.color.b * pl.intensity);
-        }
-        if (this.locs.numSL) this.gl.uniform1i(this.locs.numSL, sLights.length);
-        for (let i = 0; i < sLights.length; i++) {
-            const sl = sLights[i];
-            if (this.spotLightLocs[i].pos) this.gl.uniform3f(this.spotLightLocs[i].pos!, sl.worldMatrix.data[12], sl.worldMatrix.data[13], sl.worldMatrix.data[14]);
-            const dir = sl.direction.clone().normalize(); // <--- UND HIER!
-            if (this.spotLightLocs[i].dir) this.gl.uniform3f(this.spotLightLocs[i].dir!, dir.x, dir.y, dir.z);
-            if (this.spotLightLocs[i].col) this.gl.uniform3f(this.spotLightLocs[i].col!, sl.color.r * sl.intensity, sl.color.g * sl.intensity, sl.color.b * sl.intensity);
-            if (this.spotLightLocs[i].params) this.gl.uniform4f(this.spotLightLocs[i].params!, Math.cos(sl.angle), Math.cos(sl.angle * (1.0 - sl.penumbra)), sl.distance, sl.decay);
-        }
-
-        for (const o of scene.objects) {
-            if (o.isVisible === false || !o.material || !o.geometry || o.material.type === "SkyboxMaterial") continue;
-
-            let m = this.cache.get(o.geometry);
-            if (!m) {
-                m = new Mesh(this.gl, o.geometry);
-                this.cache.set(o.geometry, m);
-            }
-            m.bind(this.locs.pos, this.locs.norm, this.locs.uv);
-
-            if (this.locs.model) this.gl.uniformMatrix4fv(this.locs.model, false, o.worldMatrix.data);
-            if (this.locs.color) this.gl.uniform4fv(this.locs.color, o.material.color.toArray());
-
-            let shininess = -1.0;
-            let specCol = [0, 0, 0, 0];
-            let activeTex = this.defaultTexture;
-            let tOffset = [0, 0];
-            let tRepeat = [1, 1];
-
-            if (o.material.type === "LambertMaterial") {
-                shininess = 0.0;
-            } else if (o.material.type === "PhongMaterial") {
-                const material = o.material as PhongMaterial;
-                shininess = material.shininess || 32;
-                specCol = material.specularColor ? material.specularColor.toArray() : [0, 0, 0, 0];
-                if (material.diffuseMap) {
-                    activeTex = this.getWebGLTexture(material.diffuseMap);
-                    tOffset = [material.diffuseMap.offset.x, material.diffuseMap.offset.y];
-                    tRepeat = [material.diffuseMap.repeat.x, material.diffuseMap.repeat.y];
-                }
-            }
-
-            this.gl.activeTexture(this.gl.TEXTURE0);
-            this.gl.bindTexture(this.gl.TEXTURE_2D, activeTex);
-            if (this.locs.diffuseMap) this.gl.uniform1i(this.locs.diffuseMap, 0);
-            if (this.locs.texOffset) this.gl.uniform2fv(this.locs.texOffset, tOffset);
-            if (this.locs.texRepeat) this.gl.uniform2fv(this.locs.texRepeat, tRepeat);
-            if (this.locs.shininess) this.gl.uniform1f(this.locs.shininess, shininess);
-            if (this.locs.specColor) this.gl.uniform4fv(this.locs.specColor, specCol);
-
-            const drawMode = o.material.type === "WireframeMaterial" ? this.gl.LINES : this.gl.TRIANGLES;
-            this.gl.drawElements(drawMode, m.count, this.gl.UNSIGNED_SHORT, 0);
-        }
-    }
-
-    public setSize(w: number, h: number) {
-        const d = window.devicePixelRatio || 1;
-        this.gl.canvas.width = w * d;
-        this.gl.canvas.height = h * d;
-        this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
-    }
+  public setSize(w: number, h: number) {
+    const d = window.devicePixelRatio || 1;
+    this.gl.canvas.width = w * d;
+    this.gl.canvas.height = h * d;
+    this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
+  }
 }
