@@ -1,5 +1,5 @@
 {
-  "rendererType": "BEST",
+  "rendererType": "WEB_GPU",
   "canvasId": "viewport",
   "debug": true,
   "worldSize": 100,

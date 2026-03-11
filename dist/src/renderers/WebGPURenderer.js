@@ -1,7 +1,9 @@
 import { Color } from "../core/colors/Color.js";
 import { LightType } from "../enums/LightType.js";
 import { Vector3D } from "../math/Vector3D.js";
+import { RendererType } from "../enums/RendererType.js";
 export class WebGPURenderer {
+    type = RendererType.WEB_GPU; // <--- NEU
     device;
     context;
     format;

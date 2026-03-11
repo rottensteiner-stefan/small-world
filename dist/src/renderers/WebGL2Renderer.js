@@ -4,7 +4,9 @@ import { Mesh } from "./Mesh.js";
 import { TextureFilter } from "../enums/TextureFilter.js";
 import { TextureWrap } from "../enums/TextureWrap.js";
 import { Vector3D } from "../math/Vector3D.js";
+import { RendererType } from "../enums/RendererType.js";
 export class WebGL2Renderer {
+    type = RendererType.WEB_GL2; // <--- NEU
     gl;
     prog;
     locs;
