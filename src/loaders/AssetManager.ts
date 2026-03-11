@@ -1,71 +1,83 @@
+export type ProgressCallback = (loaded: number, total: number) => void;
+
 export class AssetManager {
-  // Caches für verschiedene Dateitypen (speichert den Promise, damit gleichzeitige Anfragen nicht doppelt laden)
   private static imageCache = new Map<string, Promise<ImageBitmap | HTMLImageElement>>();
-  private static jsonCache = new Map<string, Promise<any>>();
   private static textCache = new Map<string, Promise<string>>();
 
   /**
-   * Lädt ein Bild und decodiert es optimal für die GPU.
+   * Zentrale Methode, um Dateien mit Fortschrittsanzeige herunterzuladen.
    */
-  public static async loadImage(url: string): Promise<ImageBitmap | HTMLImageElement> {
-    if (this.imageCache.has(url)) {
-      return this.imageCache.get(url)!;
+  private static async fetchWithProgress(
+    url: string,
+    onProgress?: ProgressCallback,
+  ): Promise<Blob> {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`[AssetManager] HTTP Fehler: ${response.status} bei ${url}`);
+
+    const contentLength = response.headers.get("content-length");
+    const total = contentLength ? parseInt(contentLength, 10) : 0;
+
+    // Wenn kein Fortschritt benötigt wird oder kein Body vorhanden ist, direkt als Blob zurückgeben
+    if (!onProgress || !response.body) {
+      return response.blob();
     }
 
-    const loadPromise = fetch(url)
-      .then((response) => {
-        if (!response.ok) throw new Error(`[AssetManager] Fehler beim Laden des Bildes: ${url}`);
-        return response.blob();
-      })
-      .then((blob) => {
-        // createImageBitmap ist extrem schnell für WebGL/WebGPU
-        return createImageBitmap(blob, { colorSpaceConversion: "none", imageOrientation: "flipY" });
-      })
+    const reader = response.body.getReader();
+    let loaded = 0;
+
+    // FIX: Wir deklarieren das Array explizit als Array von BlobParts
+    const chunks: BlobPart[] = [];
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (value) {
+        loaded += value.length;
+        // @ts-expect-error Until we know exactly how to fix it
+        chunks.push(value as Uint8Array);
+        onProgress(loaded, total);
+      }
+    }
+
+    return new Blob(chunks);
+  }
+
+  public static async loadImage(
+    url: string,
+    onProgress?: ProgressCallback,
+    flipY: boolean = true, // <--- NEU: Optionaler Parameter (Standard ist true)
+  ): Promise<ImageBitmap | HTMLImageElement> {
+    // Cache-Key anpassen, damit wir beide Varianten sicher speichern können
+    const cacheKey = `${url}_${flipY}`;
+    if (this.imageCache.has(cacheKey)) return this.imageCache.get(cacheKey)!;
+
+    const loadPromise = this.fetchWithProgress(url, onProgress)
+      .then((blob) =>
+        createImageBitmap(blob, {
+          colorSpaceConversion: "none",
+          imageOrientation: flipY ? "flipY" : "none", // <--- Hier wenden wir ihn an
+        }),
+      )
       .catch((err) => {
         console.error(err);
-        // Fallback für sehr alte Browser, falls createImageBitmap fehlschlägt
         return new Promise<HTMLImageElement>((resolve, reject) => {
           const img = new Image();
           img.crossOrigin = "anonymous";
           img.onload = () => resolve(img);
-          img.onerror = () => reject(`[AssetManager] Fallback-Laden fehlgeschlagen: ${url}`);
+          img.onerror = () => reject(`[AssetManager] Fallback fehlgeschlagen: ${url}`);
           img.src = url;
         });
       });
 
-    this.imageCache.set(url, loadPromise);
+    this.imageCache.set(cacheKey, loadPromise);
     return loadPromise;
   }
 
-  /**
-   * Lädt eine JSON-Datei (z.B. für Level-Daten oder Configs).
-   */
-  public static async loadJSON(url: string): Promise<any> {
-    if (this.jsonCache.has(url)) return this.jsonCache.get(url)!;
-
-    const loadPromise = fetch(url).then((res) => {
-      if (!res.ok) throw new Error(`[AssetManager] Fehler beim JSON-Laden: ${url}`);
-      return res.json();
-    });
-
-    this.jsonCache.set(url, loadPromise);
-    return loadPromise;
-  }
-
-  /**
-   * Lädt reinen Text (z.B. für externe Shader-Dateien).
-   */
-  public static async loadText(url: string): Promise<string> {
+  public static async loadText(url: string, onProgress?: ProgressCallback): Promise<string> {
     if (this.textCache.has(url)) return this.textCache.get(url)!;
 
-    const loadPromise = fetch(url).then((res) => {
-      if (!res.ok) throw new Error(`[AssetManager] Fehler beim Text-Laden: ${url}`);
-      return res.text();
-    });
-
+    const loadPromise = this.fetchWithProgress(url, onProgress).then((blob) => blob.text());
     this.textCache.set(url, loadPromise);
     return loadPromise;
   }
-
-  // (Audio und Video können wir hier später nach genau demselben Muster einbauen)
 }

@@ -83,13 +83,14 @@ class Application {
         // 6. Sammelobjekte
         this.createSpheres();
         // 7. Skybox
-        const skyTexture = await SkyboxLoader.loadFromHorizontalCross("./resources/textures/skybox.jpg");
+        const skyLoader = new SkyboxLoader();
+        const skyTexture = await skyLoader.load("./resources/textures/skybox.jpg"); // <--- Über Instanz laden
         this.skybox = new Skybox(skyTexture, 100);
         this.scene.add(this.skybox);
         // 7. Schneemann
         try {
             // 1. Das OBJ asynchron laden
-            const snowmanModel = await ObjLoader.load("./resources/models/snowman.obj");
+            const snowmanModel = await (new ObjLoader()).load("./resources/models/snowman.obj");
             // 2. Ein Game-Objekt erstellen
             const snowman = new Object3D("Snowman");
             snowman.geometry = snowmanModel.getGeometryData();

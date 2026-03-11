@@ -2,9 +2,9 @@ import { ObjectGeometry } from "./ObjectGeometry.js";
 
 export class Sphere extends ObjectGeometry {
   constructor(
-      public radius: number = 1,
-      public widthSegments: number = 16,
-      public heightSegments: number = 12,
+    public radius: number = 1,
+    public widthSegments: number = 16,
+    public heightSegments: number = 12,
   ) {
     super();
     this.generateGeometryData();

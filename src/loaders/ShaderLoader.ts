@@ -1,19 +1,7 @@
-export class ShaderLoader {
-  public static createProgram(
-    gl: WebGLRenderingContext | WebGL2RenderingContext,
-    vs: string,
-    fs: string,
-  ) {
-    const v = gl.createShader(gl.VERTEX_SHADER)!;
-    gl.shaderSource(v, vs);
-    gl.compileShader(v);
-    const f = gl.createShader(gl.FRAGMENT_SHADER)!;
-    gl.shaderSource(f, fs);
-    gl.compileShader(f);
-    const p = gl.createProgram()!;
-    gl.attachShader(p, v);
-    gl.attachShader(p, f);
-    gl.linkProgram(p);
-    return p;
-  }
+import { TextLoader } from "./TextLoader.js";
+
+export class ShaderLoader extends TextLoader {
+  // Aktuell macht der ShaderLoader genau dasselbe wie der TextLoader.
+  // Er ist aber ein eigener Typ, falls wir später WebGPU-Shader-Code
+  // direkt hier validieren oder parsen möchten!
 }

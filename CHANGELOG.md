@@ -1,9 +1,11 @@
 # Changelog
 
 ## [0.8.59] - 2026-03-11
+
 - Fix Sphere geometry generation
 
 ## [0.8.58] - 2026-03-11
+
 - Reorganize loaders; Add .OBJ loader
 
 ## [0.8.57] - 2026-03-11

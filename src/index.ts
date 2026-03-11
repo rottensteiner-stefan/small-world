@@ -67,3 +67,13 @@ export { BoundingBox } from "./physics/BoundingBox.js";
 export { BoundingSphere } from "./physics/BoundingSphere.js";
 export { Collision } from "./physics/Collision.js";
 export { FrustumCuller } from "./core/FrustumCuller.js";
+
+// ---  Events ---
+export { EventDispatcher } from "./core/events/EventDispatcher.js";
+export { EventType } from "./enums/EventType.js";
+
+// ---  Loaders ---
+export { ImageLoader } from "./loaders/ImageLoader.js";
+export { Loader } from "./loaders/Loader.js";
+export { ShaderLoader } from "./loaders/ShaderLoader.js";
+export { TextLoader } from "./loaders/TextLoader.js";
