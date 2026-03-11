@@ -1,0 +1,1 @@
+{"version":3,"file":"SkyboxMaterial.js","sourceRoot":"","sources":["../../../../src/core/materials/SkyboxMaterial.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,QAAQ,EAAE,MAAM,eAAe,CAAC;AAGzC,MAAM,OAAO,cAAe,SAAQ,QAAQ;IAC1B,IAAI,GAAG,gBAAgB,CAAC;IACjC,OAAO,GAAuB,IAAI,CAAC;CAC3C"}
