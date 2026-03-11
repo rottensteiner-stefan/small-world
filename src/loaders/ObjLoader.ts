@@ -1,29 +1,40 @@
 import { AssetManager } from "./AssetManager.js";
 import { ModelGeometry } from "../geometry/ModelGeometry.js";
+import { Loader } from "./Loader.js";
+import { EventType } from "../enums/EventType.js";
 
-export class ObjLoader {
-  /**
-   * Lädt eine .obj Datei und wandelt sie in eine ModelGeometry um.
-   */
-  public static async load(url: string): Promise<ModelGeometry> {
-    const text = await AssetManager.loadText(url);
-    return this.parse(text);
+export class ObjLoader extends Loader<ModelGeometry> {
+  public async load(url: string): Promise<ModelGeometry> {
+    const fullUrl = this.basePath + url;
+    this.dispatchEvent(EventType.LOAD_START, { url: fullUrl });
+
+    try {
+      // AssetManager mit Event-Weiterleitung aufrufen
+      const text = await AssetManager.loadText(fullUrl, (loaded, total) => {
+        this.dispatchEvent(EventType.PROGRESS, { url: fullUrl, loaded, total });
+      });
+
+      const geometry = this.parse(text);
+
+      this.dispatchEvent(EventType.LOAD_END, { url: fullUrl, data: geometry });
+      return geometry;
+    } catch (error) {
+      this.dispatchEvent(EventType.ERROR, { url: fullUrl, error });
+      throw error;
+    }
   }
 
-  private static parse(text: string): ModelGeometry {
-    // Temporäre Arrays für die Rohdaten aus der Datei
+  // Wichtig: 'static' wurde hier entfernt, da es nun zur Instanz gehört
+  private parse(text: string): ModelGeometry {
     const tempVertices: number[] = [];
     const tempUVs: number[] = [];
     const tempNormals: number[] = [];
 
-    // Finale Arrays für unsere Geometry (entfaltet, da WebGL/WebGPU Index-Buffer
-    // nur einen Index pro Vertex/UV/Normal-Kombination erlauben)
     const outVertices: number[] = [];
     const outUVs: number[] = [];
     const outNormals: number[] = [];
     const outIndices: number[] = [];
 
-    // Hilfs-Map, um doppelte Vertices zu vermeiden (Vertex Caching)
     const vertexCache = new Map<string, number>();
     let indexCounter = 0;
 
@@ -31,7 +42,7 @@ export class ObjLoader {
 
     for (let line of lines) {
       line = line.trim();
-      if (line.length === 0 || line.startsWith("#")) continue; // Kommentare ignorieren
+      if (line.length === 0 || line.startsWith("#")) continue;
 
       const parts = line.split(/\s+/);
       const type = parts[0];
@@ -43,8 +54,6 @@ export class ObjLoader {
       } else if (type === "vn") {
         tempNormals.push(parseFloat(parts[1]), parseFloat(parts[2]), parseFloat(parts[3]));
       } else if (type === "f") {
-        // Ein Face besteht meist aus 3 Eckpunkten (Dreieck) oder 4 (Quad).
-        // Wir triangulieren Quads automatisch (0-1-2 und 0-2-3).
         const vertices = parts.slice(1);
 
         for (let i = 1; i < vertices.length - 1; i++) {
@@ -90,10 +99,8 @@ export class ObjLoader {
     return new ModelGeometry(outVertices, outUVs, outNormals, outIndices);
   }
 
-  /**
-   * Zerlegt einen Face-Eintrag (z.B. "1/2/3") und baut den finalen Vertex zusammen.
-   */
-  private static parseFaceVertex(
+  // Wichtig: Auch hier 'static' entfernt
+  private parseFaceVertex(
     faceStr: string,
     tempV: number[],
     tempVT: number[],
@@ -104,26 +111,20 @@ export class ObjLoader {
     cache: Map<string, number>,
     getIndex: () => number,
   ): number {
-    // Wenn wir diese exakte Kombination schon mal hatten, gib den gespeicherten Index zurück
-    if (cache.has(faceStr)) {
-      return cache.get(faceStr)!;
-    }
+    if (cache.has(faceStr)) return cache.get(faceStr)!;
 
     const parts = faceStr.split("/");
 
-    // OBJ Indices starten bei 1, daher -1 für 0-basiertes Array
     const vIdx = (parseInt(parts[0]) - 1) * 3;
     outV.push(tempV[vIdx], tempV[vIdx + 1], tempV[vIdx + 2]);
 
-    // Texturkoordinaten (optional)
     if (parts.length > 1 && parts[1] !== "") {
       const vtIdx = (parseInt(parts[1]) - 1) * 2;
       outVT.push(tempVT[vtIdx], tempVT[vtIdx + 1]);
     } else {
-      outVT.push(0, 0); // Fallback
+      outVT.push(0, 0);
     }
 
-    // Normalen (optional)
     if (parts.length > 2) {
       const vnIdx = (parseInt(parts[2]) - 1) * 3;
       outVN.push(tempVN[vnIdx], tempVN[vnIdx + 1], tempVN[vnIdx + 2]);
