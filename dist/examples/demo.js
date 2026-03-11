@@ -191,7 +191,9 @@ class Application {
                 this.player.position.add(new Vector3D(moveX, 0, moveZ).scale(speed));
                 this.player.rotation.y = Math.atan2(moveX, moveZ);
             }
-            this.flashLight.direction.set(Math.sin(this.player.rotation.y), -0.2, Math.cos(this.player.rotation.y)).normalize();
+            this.flashLight.direction
+                .set(Math.sin(this.player.rotation.y), -0.2, Math.cos(this.player.rotation.y))
+                .normalize();
         }
     }
     updateCamera() {

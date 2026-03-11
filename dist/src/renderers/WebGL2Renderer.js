@@ -234,9 +234,7 @@ export class WebGL2Renderer {
                         break;
                     case LightType.DIRECTIONAL: {
                         const dLight = light;
-                        dDir = dLight.direction.clone().scale(-1);
-                        if (dDir.length() > 0)
-                            dDir.scale(1 / dDir.length());
+                        dDir = dLight.direction.clone().scale(-1).normalize();
                         dCol = new Color(light.color.r * light.intensity, light.color.g * light.intensity, light.color.b * light.intensity);
                         break;
                     }
