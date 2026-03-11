@@ -1,5 +1,8 @@
 # Changelog
 
+## [0.8.58] - 2026-03-11
+- Reorganize loaders; Add .OBJ loader
+
 ## [0.8.57] - 2026-03-11
 
 - Extend HUD data
