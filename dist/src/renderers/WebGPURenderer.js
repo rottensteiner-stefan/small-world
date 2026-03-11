@@ -34,7 +34,12 @@ export class WebGPURenderer {
         this.context = canvas.getContext("webgpu");
         this.format = navigator.gpu.getPreferredCanvasFormat();
         this.context.configure({ device: this.device, format: this.format, alphaMode: "premultiplied" });
-        this.sampler = this.device.createSampler({ magFilter: "linear", minFilter: "linear" });
+        this.sampler = this.device.createSampler({
+            magFilter: "linear", // "nearest" für Pixellook, "linear" für weich
+            minFilter: "linear",
+            addressModeU: "repeat", // <--- Das verhindert die Streifen links/rechts
+            addressModeV: "repeat", // <--- Das verhindert die Streifen oben/unten
+        });
         const sm = this.device.createShaderModule({
             code: `
           struct U { vp: mat4x4f, model: mat4x4f, color: vec4f, specCol: vec4f, amb: vec4f, dCol: vec4f, dDir: vec4f, cam: vec4f, tOff: vec2f, tRep: vec2f, shininess: f32, numPL: f32, numSL: f32 }
