@@ -1,5 +1,5 @@
 // --- Core ---
-export { AssetManager } from "./core/AssetManager.js";
+export { AssetManager } from "./loaders/AssetManager";
 export { Camera } from "./core/Camera.js";
 export { ENGINE_VERSION, DEFAULT_RENDERER } from "./core/Engine.js";
 export { HUD } from "./core/HUD.js";
@@ -10,7 +10,7 @@ export { SmallWorld, WorldConfig } from "./core/SmallWorld.js";
 
 // --- Textures ---
 export { CubeTexture } from "./core/textures/CubeTexture.js";
-export { SkyboxLoader } from "./core/SkyboxLoader.js";
+export { SkyboxLoader } from "./loaders/SkyboxLoader";
 export { Skybox } from "./core/Skybox.js";
 export { Texture } from "./core/textures/Texture.js";
 

@@ -1,4 +1,4 @@
-import { CubeTexture } from "./textures/CubeTexture.js";
+import { CubeTexture } from "../core/textures/CubeTexture";
 
 export class SkyboxLoader {
   /**

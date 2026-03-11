@@ -20,7 +20,8 @@ export class WebGL1Renderer {
     pointLightLocs = [];
     spotLightLocs = [];
     async initialize(canvas) {
-        this.gl = (canvas.getContext("webgl", { antialias: true }) || canvas.getContext("experimental-webgl"));
+        this.gl = (canvas.getContext("webgl", { antialias: true }) ||
+            canvas.getContext("experimental-webgl"));
         // --- Default 2D Texture ---
         this.defaultTexture = this.gl.createTexture();
         this.gl.bindTexture(this.gl.TEXTURE_2D, this.defaultTexture);
@@ -176,7 +177,11 @@ export class WebGL1Renderer {
             this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, glFilterMag);
             this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, glFilterMin);
             // WebGL1 erfordert CLAMP_TO_EDGE für NPOT-Texturen!
-            const mapWrap = (w) => !isPot || w === TextureWrap.CLAMP_TO_EDGE ? this.gl.CLAMP_TO_EDGE : (w === TextureWrap.MIRRORED_REPEAT ? this.gl.MIRRORED_REPEAT : this.gl.REPEAT);
+            const mapWrap = (w) => !isPot || w === TextureWrap.CLAMP_TO_EDGE
+                ? this.gl.CLAMP_TO_EDGE
+                : w === TextureWrap.MIRRORED_REPEAT
+                    ? this.gl.MIRRORED_REPEAT
+                    : this.gl.REPEAT;
             this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, mapWrap(tex.wrapS));
             this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, mapWrap(tex.wrapT));
             this.texCache.set(tex, glTex);
@@ -297,7 +302,10 @@ export class WebGL1Renderer {
                 this.gl.uniform4f(this.spotLightLocs[i].params, Math.cos(sl.angle), Math.cos(sl.angle * (1.0 - sl.penumbra)), sl.distance, sl.decay);
         }
         for (const o of scene.objects) {
-            if (o.isVisible === false || !o.material || !o.geometry || o.material.type === "SkyboxMaterial")
+            if (o.isVisible === false ||
+                !o.material ||
+                !o.geometry ||
+                o.material.type === "SkyboxMaterial")
                 continue;
             let m = this.cache.get(o.geometry);
             if (!m) {
