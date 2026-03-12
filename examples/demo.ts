@@ -123,7 +123,6 @@ class Application {
       playerMaterial.diffuseMap.setFilterMode("nearest");
     }
 
-
     this.player.material = playerMaterial;
     this.scene.add(this.player);
 

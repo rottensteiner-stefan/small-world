@@ -1,10 +1,10 @@
 import { Color } from "../colors/Color.js";
 import { LightType } from "../../enums/LightType.js";
-import { Light } from "./Light.js";
+import { AbstractLight } from "./AbstractLight.js";
 import { Vector3D } from "../../math/Vector3D.js";
 
-export class SpotLight extends Light {
-  public readonly lightType = LightType.SPOT;
+export class SpotLight extends AbstractLight {
+  public readonly type = LightType.SPOT;
 
   public direction: Vector3D = new Vector3D(0, -1, 0).normalize();
 

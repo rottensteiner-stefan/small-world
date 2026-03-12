@@ -1,1 +1,1 @@
-{"version":3,"file":"LambertMaterial.js","sourceRoot":"","sources":["../../../../src/core/materials/LambertMaterial.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,gBAAgB,EAAE,MAAM,uBAAuB,CAAC;AACzD,MAAM,OAAO,eAAgB,SAAQ,gBAAgB;IAC5C,MAAM,CAAU,IAAI,GAAG,iBAAiB,CAAC"}
+{"version":3,"file":"LambertMaterial.js","sourceRoot":"","sources":["../../../../src/core/materials/LambertMaterial.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,gBAAgB,EAAE,MAAM,uBAAuB,CAAC;AACzD,OAAO,EAAE,YAAY,EAAE,MAAM,6BAA6B,CAAC;AAC3D,MAAM,OAAO,eAAgB,SAAQ,gBAAgB;IACnC,IAAI,GAAG,YAAY,CAAC,OAAO,CAAC;CAC7C"}

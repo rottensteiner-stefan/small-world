@@ -1,6 +1,6 @@
 export enum CameraStrategyType {
-  FIXED = "FIXED",
-  STIFF = "STIFF",
-  SMOOTH = "SMOOTH",
-  FPS = "FPS",
+  FIXED = "FixedCamera",
+  STIFF = "StiffCamera",
+  SMOOTH = "SmoothCamera",
+  FPS = "FPSCamera",
 }

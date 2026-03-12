@@ -51,7 +51,7 @@ export { SkyboxMaterial } from "./core/materials/SkyboxMaterial.js";
 // --- Lights ---
 export { AmbientLight } from "./core/lights/AmbientLight.js";
 export { DirectionalLight } from "./core/lights/DirectionalLight.js";
-export { Light } from "./core/lights/Light.js";
+export { AbstractLight } from "./core/lights/AbstractLight.js";
 export { PointLight } from "./core/lights/PointLight.js";
 export { SpotLight } from "./core/lights/SpotLight.js";
 // --- Physics & Utils ---

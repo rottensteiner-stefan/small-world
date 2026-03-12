@@ -1,1 +1,1 @@
-{"version":3,"file":"BasicMaterial.js","sourceRoot":"","sources":["../../../../src/core/materials/BasicMaterial.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,gBAAgB,EAAE,MAAM,uBAAuB,CAAC;AACzD,MAAM,OAAO,aAAc,SAAQ,gBAAgB;IAC1C,MAAM,CAAU,IAAI,GAAG,eAAe,CAAC"}
+{"version":3,"file":"BasicMaterial.js","sourceRoot":"","sources":["../../../../src/core/materials/BasicMaterial.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,gBAAgB,EAAE,MAAM,uBAAuB,CAAC;AACzD,OAAO,EAAE,YAAY,EAAE,MAAM,6BAA6B,CAAC;AAE3D,MAAM,OAAO,aAAc,SAAQ,gBAAgB;IACjC,IAAI,GAAG,YAAY,CAAC,KAAK,CAAC;CAC3C"}

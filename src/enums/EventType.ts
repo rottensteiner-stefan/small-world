@@ -1,8 +1,8 @@
 export enum EventType {
-  LOAD_START = "loadStart",
-  PROGRESS = "progress",
-  LOAD_END = "loadEnd",
-  ERROR = "error",
+  LOADER_END = "LoaderEnd",
+  LOADER_ERROR = "LoaderError",
+  LOADER_PROGRESS = "LoaderProgress",
+  LOADER_START = "LoaderStart",
 
   // (Hier können wir später problemlos weitere Events wie COLLISION oder UPDATE hinzufügen)
 }

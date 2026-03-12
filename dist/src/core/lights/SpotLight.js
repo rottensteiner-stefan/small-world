@@ -1,13 +1,13 @@
 import { Color } from "../colors/Color.js";
 import { LightType } from "../../enums/LightType.js";
-import { Light } from "./Light.js";
+import { AbstractLight } from "./AbstractLight.js";
 import { Vector3D } from "../../math/Vector3D.js";
-export class SpotLight extends Light {
+export class SpotLight extends AbstractLight {
     distance;
     angle;
     penumbra;
     decay;
-    lightType = LightType.SPOT;
+    type = LightType.SPOT;
     direction = new Vector3D(0, -1, 0).normalize();
     constructor(color = Color.WHITE, intensity = 1.0, distance = 50.0, angle = Math.PI / 6, // 30 Grad Kegel
     penumbra = 0.5, // 0 = harte Kante, 1 = extrem weich
