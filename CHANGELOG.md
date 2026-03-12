@@ -1,5 +1,8 @@
 # Changelog
 
+## [0.9.4] - 2026-03-12
+- Bug fixing due to the last refactorings
+
 ## [0.9.3] - 2026-03-12
 - Bug fixing; Fasten class type checks
 
