@@ -1,9 +1,11 @@
+/// src/core/cameras/strategies/FPSStrategy.ts
 import { ICameraStrategy } from "../../../interfaces/ICameraStrategy.js";
 import { Camera } from "../../Camera.js";
 import { Vector3D } from "../../../math/Vector3D.js";
+import { CameraStrategyType } from "../../../enums/CameraStrategyType.js";
 
 export class FPSStrategy implements ICameraStrategy {
-  public readonly type = "FPS";
+  public readonly type = CameraStrategyType.FPS;
   public heightOffset = 0.5;
 
   public update(camera: Camera, targetPos: Vector3D, dx: number, dy: number): void {

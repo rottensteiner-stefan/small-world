@@ -1,9 +1,10 @@
+/// src/core/Input.ts
 import { Keys } from "../enums/Keys.js";
 
 export class Input {
   private static keys = new Map<string, boolean>();
   public static mouse = { x: 0, y: 0, dx: 0, dy: 0, right: false };
-  public static isPointerLocked = false; // <--- NEU
+  public static isPointerLocked = false;
   public static debug = false;
 
   public static init() {
@@ -16,25 +17,30 @@ export class Input {
       if (e.button === 2) this.mouse.right = false;
     });
     window.addEventListener("mousemove", (e) => {
-      this.mouse.dx = e.movementX;
-      this.mouse.dy = e.movementY;
+      // WICHTIG: += summiert die Bewegung sauber auf, bis das nächste Frame gerendert wird!
+      this.mouse.dx += e.movementX;
+      this.mouse.dy += e.movementY;
     });
     window.addEventListener("contextmenu", (e) => e.preventDefault());
 
-    // --- NEU: Pointer Lock Events ---
+    // Pointer Lock Events
     document.addEventListener("pointerlockchange", () => {
       this.isPointerLocked = document.pointerLockElement !== null;
     });
   }
 
-  // Hilfsmethode, um die Maus einzufangen
   public static requestPointerLock(element: HTMLElement) {
-    element.requestPointerLock();
+    try {
+      element.requestPointerLock();
+    } catch (e) {
+      console.warn("[Input] Konnte PointerLock nicht aktivieren:", e);
+    }
   }
 
   public static isPressed(code: string | Keys): boolean {
     return this.keys.get(code) === true;
   }
+
   public static getAxis(neg: string | Keys, pos: string | Keys): number {
     let v = 0;
     if (this.isPressed(neg)) v -= 1;

@@ -1,22 +1,17 @@
 export class AssetManager {
     static imageCache = new Map();
     static textCache = new Map();
-    /**
-     * Zentrale Methode, um Dateien mit Fortschrittsanzeige herunterzuladen.
-     */
     static async fetchWithProgress(url, onProgress) {
         const response = await fetch(url);
         if (!response.ok)
             throw new Error(`[AssetManager] HTTP Fehler: ${response.status} bei ${url}`);
         const contentLength = response.headers.get("content-length");
         const total = contentLength ? parseInt(contentLength, 10) : 0;
-        // Wenn kein Fortschritt benötigt wird oder kein Body vorhanden ist, direkt als Blob zurückgeben
         if (!onProgress || !response.body) {
             return response.blob();
         }
         const reader = response.body.getReader();
         let loaded = 0;
-        // FIX: Wir deklarieren das Array explizit als Array von BlobParts
         const chunks = [];
         while (true) {
             const { done, value } = await reader.read();
@@ -32,15 +27,36 @@ export class AssetManager {
         return new Blob(chunks);
     }
     static async loadImage(url, onProgress, flipY = true) {
-        // Cache-Key anpassen, damit wir beide Varianten sicher speichern können
         const cacheKey = `${url}_${flipY}`;
         if (this.imageCache.has(cacheKey))
             return this.imageCache.get(cacheKey);
         const loadPromise = this.fetchWithProgress(url, onProgress)
-            .then((blob) => createImageBitmap(blob, {
-            colorSpaceConversion: "none",
-            imageOrientation: flipY ? "flipY" : "none", // <--- Hier wenden wir ihn an
-        }))
+            .then(async (blob) => {
+            if (flipY) {
+                return createImageBitmap(blob, {
+                    colorSpaceConversion: "none",
+                    imageOrientation: "flipY",
+                });
+            }
+            else {
+                // --- FEATURE DETECTION / FALLBACK ---
+                try {
+                    // Moderner Standard (ab Chrome 146+)
+                    // 'as any' verhindert TypeScript-Meldungen, falls deine TS-Version 'from-image' noch nicht kennt
+                    return await createImageBitmap(blob, {
+                        colorSpaceConversion: "none",
+                        imageOrientation: "from-image",
+                    });
+                }
+                catch (e) {
+                    // Fallback für Safari, Firefox und ältere Chrome-Versionen
+                    return await createImageBitmap(blob, {
+                        colorSpaceConversion: "none",
+                        imageOrientation: "none",
+                    });
+                }
+            }
+        })
             .catch((err) => {
             console.error(err);
             return new Promise((resolve, reject) => {

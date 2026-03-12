@@ -1,9 +1,10 @@
 import { ICameraStrategy } from "../../../interfaces/ICameraStrategy.js";
 import { Camera } from "../../Camera.js";
 import { Vector3D } from "../../../math/Vector3D.js";
+import {CameraStrategyType} from "../../../enums/CameraStrategyType.js";
 
 export class SmoothStrategy implements ICameraStrategy {
-  public readonly type = "SMOOTH";
+  public readonly type = CameraStrategyType.SMOOTH;
   public radius = 20;
   public lerpFactor = 0.1;
 
@@ -16,14 +17,14 @@ export class SmoothStrategy implements ICameraStrategy {
       if (camera.phi < -limit) camera.phi = -limit;
     }
 
-    camera.target.copyFrom(targetPos);
+    // LÖSUNG: Wir 'lerpen' das Ziel (den Fokuspunkt) anstatt der Kameraposition!
+    camera.target.x += (targetPos.x - camera.target.x) * this.lerpFactor;
+    camera.target.y += (targetPos.y - camera.target.y) * this.lerpFactor;
+    camera.target.z += (targetPos.z - camera.target.z) * this.lerpFactor;
 
-    const idealX = camera.target.x + this.radius * Math.sin(camera.theta) * Math.cos(camera.phi);
-    const idealY = camera.target.y + this.radius * Math.sin(camera.phi);
-    const idealZ = camera.target.z + this.radius * Math.cos(camera.theta) * Math.cos(camera.phi);
-
-    camera.position.x += (idealX - camera.position.x) * this.lerpFactor;
-    camera.position.y += (idealY - camera.position.y) * this.lerpFactor;
-    camera.position.z += (idealZ - camera.position.z) * this.lerpFactor;
+    // Die Kameraposition klebt nun immer exakt am Radius zum (weichen) Target
+    camera.position.x = camera.target.x + this.radius * Math.sin(camera.theta) * Math.cos(camera.phi);
+    camera.position.y = camera.target.y + this.radius * Math.sin(camera.phi);
+    camera.position.z = camera.target.z + this.radius * Math.cos(camera.theta) * Math.cos(camera.phi);
   }
 }

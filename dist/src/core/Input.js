@@ -1,7 +1,7 @@
 export class Input {
     static keys = new Map();
     static mouse = { x: 0, y: 0, dx: 0, dy: 0, right: false };
-    static isPointerLocked = false; // <--- NEU
+    static isPointerLocked = false;
     static debug = false;
     static init() {
         window.addEventListener("keydown", (e) => this.keys.set(e.code, true));
@@ -15,18 +15,23 @@ export class Input {
                 this.mouse.right = false;
         });
         window.addEventListener("mousemove", (e) => {
-            this.mouse.dx = e.movementX;
-            this.mouse.dy = e.movementY;
+            // WICHTIG: += summiert die Bewegung sauber auf, bis das nächste Frame gerendert wird!
+            this.mouse.dx += e.movementX;
+            this.mouse.dy += e.movementY;
         });
         window.addEventListener("contextmenu", (e) => e.preventDefault());
-        // --- NEU: Pointer Lock Events ---
+        // Pointer Lock Events
         document.addEventListener("pointerlockchange", () => {
             this.isPointerLocked = document.pointerLockElement !== null;
         });
     }
-    // Hilfsmethode, um die Maus einzufangen
     static requestPointerLock(element) {
-        element.requestPointerLock();
+        try {
+            element.requestPointerLock();
+        }
+        catch (e) {
+            console.warn("[Input] Konnte PointerLock nicht aktivieren:", e);
+        }
     }
     static isPressed(code) {
         return this.keys.get(code) === true;
