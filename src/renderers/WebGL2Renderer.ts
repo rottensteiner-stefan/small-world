@@ -1,22 +1,17 @@
 /// src/renderers/WebGL2Renderer.ts
 import { Color } from "../core/colors/Color.js";
 import { CubeTexture } from "../core/textures/CubeTexture.js";
-import { DirectionalLight } from "../core/lights/DirectionalLight.js";
 import { IGeometryData } from "../interfaces/IGeometryData.js";
-import { IRenderer } from "../interfaces/IRenderer.js";
-import { AbstractLight } from "../core/lights/AbstractLight.js";
-import { LightType } from "../enums/LightType.js";
 import { Mesh } from "./Mesh.js";
 import { Object3D } from "../core/Object3D.js";
 import { PhongMaterial } from "../core/materials/PhongMaterial.js";
-import { PointLight } from "../core/lights/PointLight.js";
 import { Scene } from "../core/Scene.js";
 import { SkyboxMaterial } from "../core/materials/SkyboxMaterial.js";
-import { SpotLight } from "../core/lights/SpotLight.js";
 import { Texture } from "../core/textures/Texture.js";
 import { Vector3D } from "../math/Vector3D.js";
 import { RendererType } from "../enums/RendererType.js";
 import { MaterialType } from "../enums/MaterialType.js";
+import { AbstractWebGLRenderer } from "./AbstractWebGLRenderer.js";
 
 interface ShaderLocs {
   pos: number;
@@ -38,10 +33,11 @@ interface ShaderLocs {
   texRepeat: WebGLUniformLocation | null;
 }
 
-export class WebGL2Renderer implements IRenderer {
+export class WebGL2Renderer extends AbstractWebGLRenderer {
   public readonly type = RendererType.WEB_GL2;
 
-  private gl!: WebGL2RenderingContext;
+  // Type-Hint, da wir sicher wissen, dass es WebGL2 ist
+  declare protected gl: WebGL2RenderingContext;
 
   private prog!: WebGLProgram;
   private locs!: ShaderLocs;
@@ -57,8 +53,6 @@ export class WebGL2Renderer implements IRenderer {
   private cache = new Map<IGeometryData, Mesh>();
   private texCache = new Map<Texture, WebGLTexture>();
   private texCubeCache = new Map<CubeTexture, WebGLTexture>();
-  private defaultTexture!: WebGLTexture;
-  private defaultCubeTexture!: WebGLTexture;
 
   private pointLightLocs: { pos: WebGLUniformLocation | null; col: WebGLUniformLocation | null }[] =
     [];
@@ -72,37 +66,8 @@ export class WebGL2Renderer implements IRenderer {
   public async initialize(canvas: HTMLCanvasElement) {
     this.gl = canvas.getContext("webgl2", { antialias: true })!;
 
-    // Default 2D Texture
-    this.defaultTexture = this.gl.createTexture()!;
-    this.gl.bindTexture(this.gl.TEXTURE_2D, this.defaultTexture);
-    this.gl.texImage2D(
-      this.gl.TEXTURE_2D,
-      0,
-      this.gl.RGBA,
-      1,
-      1,
-      0,
-      this.gl.RGBA,
-      this.gl.UNSIGNED_BYTE,
-      new Uint8Array([255, 255, 255, 255]),
-    );
-
-    // Default CUBE Texture
-    this.defaultCubeTexture = this.gl.createTexture()!;
-    this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, this.defaultCubeTexture);
-    for (let i = 0; i < 6; i++) {
-      this.gl.texImage2D(
-        this.gl.TEXTURE_CUBE_MAP_POSITIVE_X + i,
-        0,
-        this.gl.RGBA,
-        1,
-        1,
-        0,
-        this.gl.RGBA,
-        this.gl.UNSIGNED_BYTE,
-        new Uint8Array([50, 50, 100, 255]),
-      );
-    }
+    // Nutze geerbte Methode für Fallback-Texturen
+    this.initDefaultTextures();
 
     // MAIN SHADER
     const vsCode = `#version 300 es
@@ -167,22 +132,9 @@ export class WebGL2Renderer implements IRenderer {
     out vec4 c;
     void main() { c = texture(u_skybox, v_uvw); }`;
 
-    const createShader = (vSrc: string, fSrc: string) => {
-      const vs = this.gl.createShader(this.gl.VERTEX_SHADER)!;
-      this.gl.shaderSource(vs, vSrc);
-      this.gl.compileShader(vs);
-      const fs = this.gl.createShader(this.gl.FRAGMENT_SHADER)!;
-      this.gl.shaderSource(fs, fSrc);
-      this.gl.compileShader(fs);
-      const p = this.gl.createProgram()!;
-      this.gl.attachShader(p, vs);
-      this.gl.attachShader(p, fs);
-      this.gl.linkProgram(p);
-      return p;
-    };
-
-    this.prog = createShader(vsCode, fsCode);
-    this.skyProg = createShader(skyVsCode, skyFsCode);
+    // Nutze geerbte Methode zum Kompilieren
+    this.prog = this.createShaderProgram(vsCode, fsCode);
+    this.skyProg = this.createShaderProgram(skyVsCode, skyFsCode);
 
     this.locs = {
       pos: this.gl.getAttribLocation(this.prog, "a_position"),
@@ -280,10 +232,6 @@ export class WebGL2Renderer implements IRenderer {
     return glTex;
   }
 
-  public setClearColor(color: Color): void {
-    this.gl.clearColor(color.r, color.g, color.b, color.a);
-  }
-
   public render(scene: Scene, vp: Float32Array, camPos: Vector3D = new Vector3D()) {
     this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
 
@@ -319,46 +267,12 @@ export class WebGL2Renderer implements IRenderer {
 
     // --- PASS 2: Objects ---
     this.gl.useProgram(this.prog);
-
-    let aCol = new Color(0, 0, 0),
-      dDir = new Vector3D(0, 1, 0),
-      dCol = new Color(0, 0, 0);
-    const pLights: PointLight[] = [],
-      sLights: SpotLight[] = [];
-
-    const extractLights = (node: Object3D | AbstractLight) => {
-      if (node instanceof AbstractLight) {
-        switch (node.type) {
-          case LightType.AMBIENT:
-            aCol = new Color(
-              node.color.r * node.intensity,
-              node.color.g * node.intensity,
-              node.color.b * node.intensity,
-            );
-            break;
-          case LightType.DIRECTIONAL:
-            const dl = node as DirectionalLight;
-            dDir = dl.direction.clone().scale(-1).normalize();
-            dCol = new Color(
-              node.color.r * node.intensity,
-              node.color.g * node.intensity,
-              node.color.b * node.intensity,
-            );
-            break;
-          case LightType.POINT:
-            if (pLights.length < 4) pLights.push(node as PointLight);
-            break;
-          case LightType.SPOT:
-            if (sLights.length < 4) sLights.push(node as SpotLight);
-            break;
-        }
-      }
-      if (node.children) node.children.forEach(extractLights);
-    };
-    for (const obj of scene.objects) extractLights(obj);
-
     if (this.locs.vp) this.gl.uniformMatrix4fv(this.locs.vp, false, vp);
     if (this.locs.viewPos) this.gl.uniform3f(this.locs.viewPos, camPos.x, camPos.y, camPos.z);
+
+    // Nutze geerbte Methode zur Licht-Extraktion!
+    const { aCol, dDir, dCol, pLights, sLights } = this.extractLights(scene);
+
     if (this.locs.ambient) this.gl.uniform3f(this.locs.ambient, aCol.r, aCol.g, aCol.b);
     if (this.locs.dirDir) this.gl.uniform3f(this.locs.dirDir, dDir.x, dDir.y, dDir.z);
     if (this.locs.dirColor) this.gl.uniform3f(this.locs.dirColor, dCol.r, dCol.g, dCol.b);
@@ -422,11 +336,14 @@ export class WebGL2Renderer implements IRenderer {
       }
       m.bind(this.locs.pos, this.locs.norm, this.locs.uv);
 
-      let shininess = -1.0;
-      let specCol = [0, 0, 0, 0];
-      let activeTex = this.defaultTexture;
-      let tOffset = [0, 0];
-      let tRepeat = [1, 1];
+      if (this.locs.model) this.gl.uniformMatrix4fv(this.locs.model, false, o.worldMatrix.data);
+      if (this.locs.color) this.gl.uniform4fv(this.locs.color, mat.color.toArray());
+
+      let shininess = -1.0,
+        specCol = [0, 0, 0, 0],
+        activeTex = this.defaultTexture,
+        tOffset = [0, 0],
+        tRepeat = [1, 1];
 
       if (mat.type === MaterialType.LAMBERT) {
         shininess = 0.0;
@@ -441,29 +358,19 @@ export class WebGL2Renderer implements IRenderer {
         }
       }
 
-      if (this.locs.model) this.gl.uniformMatrix4fv(this.locs.model, false, o.worldMatrix.data);
-      if (this.locs.color) this.gl.uniform4fv(this.locs.color, mat.color.toArray());
-      if (this.locs.shininess) this.gl.uniform1f(this.locs.shininess, shininess);
-      if (this.locs.specColor) this.gl.uniform4fv(this.locs.specColor, specCol);
-
       this.gl.activeTexture(this.gl.TEXTURE0);
       this.gl.bindTexture(this.gl.TEXTURE_2D, activeTex);
       if (this.locs.diffuseMap) this.gl.uniform1i(this.locs.diffuseMap, 0);
       if (this.locs.texOffset) this.gl.uniform2fv(this.locs.texOffset, tOffset);
       if (this.locs.texRepeat) this.gl.uniform2fv(this.locs.texRepeat, tRepeat);
+      if (this.locs.shininess) this.gl.uniform1f(this.locs.shininess, shininess);
+      if (this.locs.specColor) this.gl.uniform4fv(this.locs.specColor, specCol);
 
-      const mode = mat.type === MaterialType.WIREFRAME ? this.gl.LINES : this.gl.TRIANGLES;
-      this.gl.drawElements(mode, m.count, this.gl.UNSIGNED_SHORT, 0);
+      const drawMode = mat.type === MaterialType.WIREFRAME ? this.gl.LINES : this.gl.TRIANGLES;
+      this.gl.drawElements(drawMode, m.count, this.gl.UNSIGNED_SHORT, 0);
 
       if (o.children) for (const child of o.children) drawNormal(child);
     };
-
     for (const obj of scene.objects) drawNormal(obj);
-  }
-
-  public setSize(w: number, h: number) {
-    this.gl.canvas.width = w * devicePixelRatio;
-    this.gl.canvas.height = h * devicePixelRatio;
-    this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
   }
 }
