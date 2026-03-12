@@ -15,8 +15,6 @@ import { Texture } from "../core/textures/Texture.js";
 import { Vector3D } from "../math/Vector3D.js";
 import { RendererType } from "../enums/RendererType.js";
 import { MaterialType } from "../enums/MaterialType.js";
-import { WireframeMaterial } from "../core/materials/WireframeMaterial.js";
-import { LambertMaterial } from "../core/materials/LambertMaterial.js";
 
 export class WebGPURenderer implements IRenderer {
   public readonly type = RendererType.WEB_GPU;
@@ -38,20 +36,20 @@ export class WebGPURenderer implements IRenderer {
   private sampler!: GPUSampler;
 
   private geoCache = new Map<
-      IGeometryData,
-      {
-        vb: GPUBuffer;
-        nb: GPUBuffer | null;
-        uvb: GPUBuffer | null;
-        ib: GPUBuffer | null;
-        indexCount: number;
-        vertexCount: number;
-        format: GPUIndexFormat | null;
-      }
+    IGeometryData,
+    {
+      vb: GPUBuffer;
+      nb: GPUBuffer | null;
+      uvb: GPUBuffer | null;
+      ib: GPUBuffer | null;
+      indexCount: number;
+      vertexCount: number;
+      format: GPUIndexFormat | null;
+    }
   >();
   private objCache = new Map<
-      Object3D,
-      { ub: GPUBuffer; plb: GPUBuffer; slb: GPUBuffer; bg: GPUBindGroup }
+    Object3D,
+    { ub: GPUBuffer; plb: GPUBuffer; slb: GPUBuffer; bg: GPUBindGroup }
   >();
   private texCache = new Map<Texture, GPUBindGroup>();
   private texCubeCache = new Map<CubeTexture, GPUBindGroup>();
@@ -203,10 +201,10 @@ export class WebGPURenderer implements IRenderer {
       usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
     });
     this.device.queue.writeTexture(
-        { texture: whiteTex },
-        new Uint8Array([255, 255, 255, 255]),
-        { bytesPerRow: 4 },
-        [1, 1],
+      { texture: whiteTex },
+      new Uint8Array([255, 255, 255, 255]),
+      { bytesPerRow: 4 },
+      [1, 1],
     );
 
     this.defaultTexBindGroup = this.device.createBindGroup({
@@ -224,13 +222,13 @@ export class WebGPURenderer implements IRenderer {
     });
     for (let i = 0; i < 6; i++)
       this.device.queue.writeTexture(
-          {
-            texture: whiteCube,
-            origin: [0, 0, i],
-          },
-          new Uint8Array([50, 50, 100, 255]),
-          { bytesPerRow: 4 },
-          [1, 1],
+        {
+          texture: whiteCube,
+          origin: [0, 0, i],
+        },
+        new Uint8Array([50, 50, 100, 255]),
+        { bytesPerRow: 4 },
+        [1, 1],
       );
 
     this.defaultCubeTexBindGroup = this.device.createBindGroup({
@@ -348,9 +346,9 @@ export class WebGPURenderer implements IRenderer {
         size: [tex.image.width, tex.image.height],
         format: "rgba8unorm",
         usage:
-            GPUTextureUsage.TEXTURE_BINDING |
-            GPUTextureUsage.COPY_DST |
-            GPUTextureUsage.RENDER_ATTACHMENT,
+          GPUTextureUsage.TEXTURE_BINDING |
+          GPUTextureUsage.COPY_DST |
+          GPUTextureUsage.RENDER_ATTACHMENT,
       });
 
       this.device!.queue.copyExternalImageToTexture({ source: tex.image }, { texture: t }, [
@@ -381,18 +379,18 @@ export class WebGPURenderer implements IRenderer {
         size: [img.width, img.height, 6],
         format: "rgba8unorm",
         usage:
-            GPUTextureUsage.TEXTURE_BINDING |
-            GPUTextureUsage.COPY_DST |
-            GPUTextureUsage.RENDER_ATTACHMENT,
+          GPUTextureUsage.TEXTURE_BINDING |
+          GPUTextureUsage.COPY_DST |
+          GPUTextureUsage.RENDER_ATTACHMENT,
       });
       for (let i = 0; i < 6; i++)
         this.device!.queue.copyExternalImageToTexture(
-            { source: tex.images[i] as ImageBitmap },
-            {
-              texture: t,
-              origin: [0, 0, i],
-            },
-            [img.width, img.height],
+          { source: tex.images[i] as ImageBitmap },
+          {
+            texture: t,
+            origin: [0, 0, i],
+          },
+          [img.width, img.height],
         );
       bg = this.device!.createBindGroup({
         layout: this.skyTexBGL,
@@ -430,28 +428,28 @@ export class WebGPURenderer implements IRenderer {
     });
 
     let aCol = new Color(0, 0, 0),
-        dDir = new Vector3D(0, 1, 0),
-        dCol = new Color(0, 0, 0);
+      dDir = new Vector3D(0, 1, 0),
+      dCol = new Color(0, 0, 0);
     const pLights: PointLight[] = [],
-        sLights: SpotLight[] = [];
+      sLights: SpotLight[] = [];
     const extractLights = (node: Object3D | AbstractLight) => {
       if (node instanceof AbstractLight) {
         const light = node as AbstractLight;
         switch (light.type) {
           case LightType.AMBIENT:
             aCol = new Color(
-                light.color.r * light.intensity,
-                light.color.g * light.intensity,
-                light.color.b * light.intensity,
+              light.color.r * light.intensity,
+              light.color.g * light.intensity,
+              light.color.b * light.intensity,
             );
             break;
           case LightType.DIRECTIONAL:
             const dLight = light as DirectionalLight;
             dDir = dLight.direction.clone().scale(-1).normalize();
             dCol = new Color(
-                light.color.r * light.intensity,
-                light.color.g * light.intensity,
-                light.color.b * light.intensity,
+              light.color.r * light.intensity,
+              light.color.g * light.intensity,
+              light.color.b * light.intensity,
             );
             break;
           case LightType.POINT:
@@ -479,31 +477,31 @@ export class WebGPURenderer implements IRenderer {
     for (let i = 0; i < pLights.length; i++) {
       const pl = pLights[i];
       plData.set(
-          [pl.worldMatrix.data[12], pl.worldMatrix.data[13], pl.worldMatrix.data[14], 0.0],
-          i * 8,
+        [pl.worldMatrix.data[12], pl.worldMatrix.data[13], pl.worldMatrix.data[14], 0.0],
+        i * 8,
       );
       plData.set(
-          [pl.color.r * pl.intensity, pl.color.g * pl.intensity, pl.color.b * pl.intensity, 0.0],
-          i * 8 + 4,
+        [pl.color.r * pl.intensity, pl.color.g * pl.intensity, pl.color.b * pl.intensity, 0.0],
+        i * 8 + 4,
       );
     }
     const slData = new Float32Array(64);
     for (let i = 0; i < sLights.length; i++) {
       const sl = sLights[i],
-          offset = i * 16;
+        offset = i * 16;
       slData.set(
-          [sl.worldMatrix.data[12], sl.worldMatrix.data[13], sl.worldMatrix.data[14], 0.0],
-          offset,
+        [sl.worldMatrix.data[12], sl.worldMatrix.data[13], sl.worldMatrix.data[14], 0.0],
+        offset,
       );
       const dir = sl.direction.clone().normalize();
       slData.set([dir.x, dir.y, dir.z, 0.0], offset + 4);
       slData.set(
-          [sl.color.r * sl.intensity, sl.color.g * sl.intensity, sl.color.b * sl.intensity, 0.0],
-          offset + 8,
+        [sl.color.r * sl.intensity, sl.color.g * sl.intensity, sl.color.b * sl.intensity, 0.0],
+        offset + 8,
       );
       slData.set(
-          [Math.cos(sl.angle), Math.cos(sl.angle * (1.0 - sl.penumbra)), sl.distance, sl.decay],
-          offset + 12,
+        [Math.cos(sl.angle), Math.cos(sl.angle * (1.0 - sl.penumbra)), sl.distance, sl.decay],
+        offset + 12,
       );
     }
 
@@ -520,9 +518,13 @@ export class WebGPURenderer implements IRenderer {
       if (mat.type === MaterialType.SKYBOX) {
         rp.setPipeline(this.pipelineSkybox);
         const skyMat = mat as SkyboxMaterial;
-        texBindGroup = skyMat.cubeMap ? this.getGPUCubeTextureBindGroup(skyMat.cubeMap) : this.defaultCubeTexBindGroup;
+        texBindGroup = skyMat.cubeMap
+          ? this.getGPUCubeTextureBindGroup(skyMat.cubeMap)
+          : this.defaultCubeTexBindGroup;
       } else {
-        rp.setPipeline(mat.type === MaterialType.WIREFRAME ? this.pipelineLines : this.pipelineTriangles);
+        rp.setPipeline(
+          mat.type === MaterialType.WIREFRAME ? this.pipelineLines : this.pipelineTriangles,
+        );
 
         if (mat.type === MaterialType.LAMBERT) {
           shininess = 0.0;

@@ -1,7 +1,8 @@
-import js from "@eslint/js";
-import tseslint from "typescript-eslint";
-import prettier from "eslint-config-prettier";
 import globals from "globals";
+import importPlugin from "eslint-plugin-import";
+import js from "@eslint/js";
+import prettier from "eslint-config-prettier";
+import tseslint from "typescript-eslint";
 
 export default [
   // 1. Standard JavaScript & TypeScript Empfehlungen
@@ -14,6 +15,9 @@ export default [
   // 3. Konfiguration für deinen Engine-Code (Browser-Umgebung)
   {
     files: ["src/**/*.ts", "examples/**/*.ts"],
+    plugins: {
+      import: importPlugin,
+    },
     languageOptions: {
       globals: {
         ...globals.browser, // Erkennt window, document, navigator.gpu etc.
@@ -26,6 +30,9 @@ export default [
 
       // Warnung, wenn Variablen deklariert, aber nie genutzt werden
       "@typescript-eslint/no-unused-vars": "warn",
+
+      // Erlaubt keine relativen Imports ohne Dateiendung. NPM-Pakete werden ignoriert.
+      "import/extensions": ["error", "ignorePackages"],
     },
   },
 

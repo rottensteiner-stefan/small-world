@@ -249,7 +249,7 @@ class Mt {
   }
 }
 var U = /* @__PURE__ */ ((a) => (a.BEST = "BEST", a.WEB_GPU = "WEB_GPU", a.WEB_GL2 = "WEB_GL2", a.WEB_GL1 = "WEB_GL1", a.CANVAS = "CANVAS", a))(U || {});
-const dt = "0.9.4", ft = U.BEST;
+const dt = "0.10.1", ft = U.BEST;
 class St {
   constructor(t) {
     this.enabled = t;
@@ -443,9 +443,29 @@ class pt {
   pointLightLocs = [];
   spotLightLocs = [];
   async initialize(t) {
-    this.gl = t.getContext("webgl", { antialias: !0 }) || t.getContext("experimental-webgl"), this.defaultTexture = this.gl.createTexture(), this.gl.bindTexture(this.gl.TEXTURE_2D, this.defaultTexture), this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, 1, 1, 0, this.gl.RGBA, this.gl.UNSIGNED_BYTE, new Uint8Array([255, 255, 255, 255])), this.defaultCubeTexture = this.gl.createTexture(), this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, this.defaultCubeTexture);
+    this.gl = t.getContext("webgl", { antialias: !0 }) || t.getContext("experimental-webgl"), this.defaultTexture = this.gl.createTexture(), this.gl.bindTexture(this.gl.TEXTURE_2D, this.defaultTexture), this.gl.texImage2D(
+      this.gl.TEXTURE_2D,
+      0,
+      this.gl.RGBA,
+      1,
+      1,
+      0,
+      this.gl.RGBA,
+      this.gl.UNSIGNED_BYTE,
+      new Uint8Array([255, 255, 255, 255])
+    ), this.defaultCubeTexture = this.gl.createTexture(), this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, this.defaultCubeTexture);
     for (let s = 0; s < 6; s++)
-      this.gl.texImage2D(this.gl.TEXTURE_CUBE_MAP_POSITIVE_X + s, 0, this.gl.RGBA, 1, 1, 0, this.gl.RGBA, this.gl.UNSIGNED_BYTE, new Uint8Array([50, 50, 100, 255]));
+      this.gl.texImage2D(
+        this.gl.TEXTURE_CUBE_MAP_POSITIVE_X + s,
+        0,
+        this.gl.RGBA,
+        1,
+        1,
+        0,
+        this.gl.RGBA,
+        this.gl.UNSIGNED_BYTE,
+        new Uint8Array([50, 50, 100, 255])
+      );
     const e = "attribute vec3 a_position; attribute vec3 a_normal; attribute vec2 a_uv; uniform mat4 u_vp; uniform mat4 u_model; uniform vec2 u_texOffset; uniform vec2 u_texRepeat; varying vec3 v_worldPos; varying vec3 v_normal; varying vec2 v_uv; mat3 extractMat3(mat4 m) { return mat3(m[0].xyz, m[1].xyz, m[2].xyz); } void main() { vec4 wp = u_model * vec4(a_position, 1.0); v_worldPos = wp.xyz; v_normal = extractMat3(u_model) * a_normal; v_uv = (a_uv * u_texRepeat) + u_texOffset; gl_Position = u_vp * wp; }", i = "precision highp float; varying vec3 v_worldPos; varying vec3 v_normal; varying vec2 v_uv; uniform vec4 u_color; uniform vec4 u_specColor; uniform float u_shininess; uniform vec3 u_viewPos; uniform vec3 u_ambientColor; uniform vec3 u_dirLightColor; uniform vec3 u_dirLightDir; uniform sampler2D u_diffuseMap; uniform int u_numPointLights; uniform vec3 u_pointLightPos[4]; uniform vec3 u_pointLightColor[4]; uniform int u_numSpotLights; uniform vec3 u_spotLightPos[4]; uniform vec3 u_spotLightDir[4]; uniform vec3 u_spotLightColor[4]; uniform vec4 u_spotLightParams[4]; void main() { vec4 texColor = texture2D(u_diffuseMap, v_uv); if (u_shininess < -0.5) { gl_FragColor = u_color * texColor; return; } vec3 N = normalize(v_normal); vec3 V = normalize(u_viewPos - v_worldPos); vec3 finalLight = u_ambientColor; vec3 specular = vec3(0.0); vec3 L_dir = normalize(u_dirLightDir); float diff_dir = max(dot(N, L_dir), 0.0); finalLight += diff_dir * u_dirLightColor; if (u_shininess > 0.0 && diff_dir > 0.0) specular += pow(max(dot(V, reflect(-L_dir, N)), 0.0), u_shininess) * u_dirLightColor; for(int i = 0; i < 4; i++) { if (i >= u_numPointLights) break; vec3 lightVec = u_pointLightPos[i] - v_worldPos; float dist = length(lightVec); vec3 L_pt = lightVec / dist; float attenuation = 1.0 / (1.0 + 0.1 * dist + 0.01 * dist * dist); float diff_pt = max(dot(N, L_pt), 0.0); finalLight += diff_pt * u_pointLightColor[i] * attenuation; if (u_shininess > 0.0 && diff_pt > 0.0) specular += pow(max(dot(V, reflect(-L_pt, N)), 0.0), u_shininess) * u_pointLightColor[i] * attenuation; } for(int i = 0; i < 4; i++) { if (i >= u_numSpotLights) break; vec3 lightVec = u_spotLightPos[i] - v_worldPos; float dist = length(lightVec); vec3 L_sp = lightVec / dist; vec3 S_dir = normalize(u_spotLightDir[i]); float theta = dot(-L_sp, S_dir); if(theta > u_spotLightParams[i].x) { float spotEffect = smoothstep(u_spotLightParams[i].x, u_spotLightParams[i].y, theta); float attenuation = 1.0 / (1.0 + 0.1 * dist + 0.01 * dist * dist); float diff_sp = max(dot(N, L_sp), 0.0); finalLight += diff_sp * u_spotLightColor[i] * attenuation * spotEffect; if (u_shininess > 0.0 && diff_sp > 0.0) specular += pow(max(dot(V, reflect(-L_sp, N)), 0.0), u_shininess) * u_spotLightColor[i] * attenuation * spotEffect; } } gl_FragColor = vec4((finalLight * u_color.rgb * texColor.rgb) + (specular * u_specColor.rgb), u_color.a * texColor.a); }", r = (s, n) => {
       const h = this.gl.createShader(this.gl.VERTEX_SHADER);
       this.gl.shaderSource(h, s), this.gl.compileShader(h);
@@ -454,7 +474,10 @@ class pt {
       const c = this.gl.createProgram();
       return this.gl.attachShader(c, h), this.gl.attachShader(c, l), this.gl.linkProgram(c), c;
     };
-    this.prog = r(e, i), this.skyProg = r("attribute vec3 a_position; uniform mat4 u_vp; uniform mat4 u_model; varying vec3 v_uvw; void main() { v_uvw = a_position; gl_Position = u_vp * u_model * vec4(a_position, 1.0); }", "precision highp float; varying vec3 v_uvw; uniform samplerCube u_skybox; void main() { gl_FragColor = textureCube(u_skybox, v_uvw); }"), this.locs = {
+    this.prog = r(e, i), this.skyProg = r(
+      "attribute vec3 a_position; uniform mat4 u_vp; uniform mat4 u_model; varying vec3 v_uvw; void main() { v_uvw = a_position; gl_Position = u_vp * u_model * vec4(a_position, 1.0); }",
+      "precision highp float; varying vec3 v_uvw; uniform samplerCube u_skybox; void main() { gl_FragColor = textureCube(u_skybox, v_uvw); }"
+    ), this.locs = {
       pos: this.gl.getAttribLocation(this.prog, "a_position"),
       norm: this.gl.getAttribLocation(this.prog, "a_normal"),
       uv: this.gl.getAttribLocation(this.prog, "a_uv"),
@@ -472,15 +495,43 @@ class pt {
       diffuseMap: this.gl.getUniformLocation(this.prog, "u_diffuseMap"),
       texOffset: this.gl.getUniformLocation(this.prog, "u_texOffset"),
       texRepeat: this.gl.getUniformLocation(this.prog, "u_texRepeat")
-    }, this.skyLocs = { pos: this.gl.getAttribLocation(this.skyProg, "a_position"), vp: this.gl.getUniformLocation(this.skyProg, "u_vp"), model: this.gl.getUniformLocation(this.skyProg, "u_model"), skybox: this.gl.getUniformLocation(this.skyProg, "u_skybox") };
+    }, this.skyLocs = {
+      pos: this.gl.getAttribLocation(this.skyProg, "a_position"),
+      vp: this.gl.getUniformLocation(this.skyProg, "u_vp"),
+      model: this.gl.getUniformLocation(this.skyProg, "u_model"),
+      skybox: this.gl.getUniformLocation(this.skyProg, "u_skybox")
+    };
     for (let s = 0; s < 4; s++)
-      this.pointLightLocs.push({ pos: this.gl.getUniformLocation(this.prog, `u_pointLightPos[${s}]`), col: this.gl.getUniformLocation(this.prog, `u_pointLightColor[${s}]`) }), this.spotLightLocs.push({ pos: this.gl.getUniformLocation(this.prog, `u_spotLightPos[${s}]`), dir: this.gl.getUniformLocation(this.prog, `u_spotLightDir[${s}]`), col: this.gl.getUniformLocation(this.prog, `u_spotLightColor[${s}]`), params: this.gl.getUniformLocation(this.prog, `u_spotLightParams[${s}]`) });
+      this.pointLightLocs.push({
+        pos: this.gl.getUniformLocation(this.prog, `u_pointLightPos[${s}]`),
+        col: this.gl.getUniformLocation(this.prog, `u_pointLightColor[${s}]`)
+      }), this.spotLightLocs.push({
+        pos: this.gl.getUniformLocation(this.prog, `u_spotLightPos[${s}]`),
+        dir: this.gl.getUniformLocation(this.prog, `u_spotLightDir[${s}]`),
+        col: this.gl.getUniformLocation(this.prog, `u_spotLightColor[${s}]`),
+        params: this.gl.getUniformLocation(this.prog, `u_spotLightParams[${s}]`)
+      });
     this.gl.enable(this.gl.DEPTH_TEST);
   }
   getWebGLTexture(t) {
     if (!t.isLoaded || !t.image) return this.defaultTexture;
     let e = this.texCache.get(t);
-    return e || (e = this.gl.createTexture(), this.gl.bindTexture(this.gl.TEXTURE_2D, e), this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, t.image), this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, t.magFilter === "nearest" ? this.gl.NEAREST : this.gl.LINEAR), this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, t.minFilter === "nearest" ? this.gl.NEAREST : this.gl.LINEAR), this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.REPEAT), this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.REPEAT), this.texCache.set(t, e)), e;
+    return e || (e = this.gl.createTexture(), this.gl.bindTexture(this.gl.TEXTURE_2D, e), this.gl.texImage2D(
+      this.gl.TEXTURE_2D,
+      0,
+      this.gl.RGBA,
+      this.gl.RGBA,
+      this.gl.UNSIGNED_BYTE,
+      t.image
+    ), this.gl.texParameteri(
+      this.gl.TEXTURE_2D,
+      this.gl.TEXTURE_MAG_FILTER,
+      t.magFilter === "nearest" ? this.gl.NEAREST : this.gl.LINEAR
+    ), this.gl.texParameteri(
+      this.gl.TEXTURE_2D,
+      this.gl.TEXTURE_MIN_FILTER,
+      t.minFilter === "nearest" ? this.gl.NEAREST : this.gl.LINEAR
+    ), this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.REPEAT), this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.REPEAT), this.texCache.set(t, e)), e;
   }
   getWebGLCubeTexture(t) {
     if (!t.isLoaded || t.images.length !== 6) return this.defaultCubeTexture;
@@ -488,8 +539,23 @@ class pt {
     if (!e) {
       e = this.gl.createTexture(), this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, e);
       for (let i = 0; i < 6; i++)
-        this.gl.texImage2D(this.gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, t.images[i]);
-      this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR), this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR), this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE), this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE), this.texCubeCache.set(t, e);
+        this.gl.texImage2D(
+          this.gl.TEXTURE_CUBE_MAP_POSITIVE_X + i,
+          0,
+          this.gl.RGBA,
+          this.gl.RGBA,
+          this.gl.UNSIGNED_BYTE,
+          t.images[i]
+        );
+      this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR), this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR), this.gl.texParameteri(
+        this.gl.TEXTURE_CUBE_MAP,
+        this.gl.TEXTURE_WRAP_S,
+        this.gl.CLAMP_TO_EDGE
+      ), this.gl.texParameteri(
+        this.gl.TEXTURE_CUBE_MAP,
+        this.gl.TEXTURE_WRAP_T,
+        this.gl.CLAMP_TO_EDGE
+      ), this.texCubeCache.set(t, e);
     }
     return e;
   }
@@ -503,7 +569,10 @@ class pt {
         if (o.geometry && o.material.type === b.SKYBOX) {
           const u = o.material;
           let p = this.cache.get(o.geometry);
-          p || (p = new tt(this.gl, o.geometry), this.cache.set(o.geometry, p)), p.bind(this.skyLocs.pos), this.skyLocs.model && this.gl.uniformMatrix4fv(this.skyLocs.model, !1, o.worldMatrix.data), this.gl.activeTexture(this.gl.TEXTURE0), this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, u.cubeMap ? this.getWebGLCubeTexture(u.cubeMap) : this.defaultCubeTexture), this.skyLocs.skybox && this.gl.uniform1i(this.skyLocs.skybox, 0), this.gl.drawElements(this.gl.TRIANGLES, p.count, this.gl.UNSIGNED_SHORT, 0);
+          p || (p = new tt(this.gl, o.geometry), this.cache.set(o.geometry, p)), p.bind(this.skyLocs.pos), this.skyLocs.model && this.gl.uniformMatrix4fv(this.skyLocs.model, !1, o.worldMatrix.data), this.gl.activeTexture(this.gl.TEXTURE0), this.gl.bindTexture(
+            this.gl.TEXTURE_CUBE_MAP,
+            u.cubeMap ? this.getWebGLCubeTexture(u.cubeMap) : this.defaultCubeTexture
+          ), this.skyLocs.skybox && this.gl.uniform1i(this.skyLocs.skybox, 0), this.gl.drawElements(this.gl.TRIANGLES, p.count, this.gl.UNSIGNED_SHORT, 0);
         }
         if (o.children) for (const u of o.children) r(u);
       }
@@ -516,10 +585,18 @@ class pt {
         const u = o;
         switch (u.type) {
           case M.AMBIENT:
-            s = new v(u.color.r * u.intensity, u.color.g * u.intensity, u.color.b * u.intensity);
+            s = new v(
+              u.color.r * u.intensity,
+              u.color.g * u.intensity,
+              u.color.b * u.intensity
+            );
             break;
           case M.DIRECTIONAL:
-            n = u.direction.clone().scale(-1).normalize(), h = new v(u.color.r * u.intensity, u.color.g * u.intensity, u.color.b * u.intensity);
+            n = u.direction.clone().scale(-1).normalize(), h = new v(
+              u.color.r * u.intensity,
+              u.color.g * u.intensity,
+              u.color.b * u.intensity
+            );
             break;
           case M.POINT:
             l.length < 4 && l.push(u);
@@ -534,12 +611,38 @@ class pt {
     for (const o of t.objects) d(o);
     this.locs.ambient && this.gl.uniform3f(this.locs.ambient, s.r, s.g, s.b), this.locs.dirDir && this.gl.uniform3f(this.locs.dirDir, n.x, n.y, n.z), this.locs.dirColor && this.gl.uniform3f(this.locs.dirColor, h.r, h.g, h.b), this.locs.numPL && this.gl.uniform1i(this.locs.numPL, l.length);
     for (let o = 0; o < l.length; o++)
-      this.pointLightLocs[o].pos && this.gl.uniform3f(this.pointLightLocs[o].pos, l[o].worldMatrix.data[12], l[o].worldMatrix.data[13], l[o].worldMatrix.data[14]), this.pointLightLocs[o].col && this.gl.uniform3f(this.pointLightLocs[o].col, l[o].color.r * l[o].intensity, l[o].color.g * l[o].intensity, l[o].color.b * l[o].intensity);
+      this.pointLightLocs[o].pos && this.gl.uniform3f(
+        this.pointLightLocs[o].pos,
+        l[o].worldMatrix.data[12],
+        l[o].worldMatrix.data[13],
+        l[o].worldMatrix.data[14]
+      ), this.pointLightLocs[o].col && this.gl.uniform3f(
+        this.pointLightLocs[o].col,
+        l[o].color.r * l[o].intensity,
+        l[o].color.g * l[o].intensity,
+        l[o].color.b * l[o].intensity
+      );
     this.locs.numSL && this.gl.uniform1i(this.locs.numSL, c.length);
     for (let o = 0; o < c.length; o++) {
-      this.spotLightLocs[o].pos && this.gl.uniform3f(this.spotLightLocs[o].pos, c[o].worldMatrix.data[12], c[o].worldMatrix.data[13], c[o].worldMatrix.data[14]);
+      this.spotLightLocs[o].pos && this.gl.uniform3f(
+        this.spotLightLocs[o].pos,
+        c[o].worldMatrix.data[12],
+        c[o].worldMatrix.data[13],
+        c[o].worldMatrix.data[14]
+      );
       const u = c[o].direction.clone().normalize();
-      this.spotLightLocs[o].dir && this.gl.uniform3f(this.spotLightLocs[o].dir, u.x, u.y, u.z), this.spotLightLocs[o].col && this.gl.uniform3f(this.spotLightLocs[o].col, c[o].color.r * c[o].intensity, c[o].color.g * c[o].intensity, c[o].color.b * c[o].intensity), this.spotLightLocs[o].params && this.gl.uniform4f(this.spotLightLocs[o].params, Math.cos(c[o].angle), Math.cos(c[o].angle * (1 - c[o].penumbra)), c[o].distance, c[o].decay);
+      this.spotLightLocs[o].dir && this.gl.uniform3f(this.spotLightLocs[o].dir, u.x, u.y, u.z), this.spotLightLocs[o].col && this.gl.uniform3f(
+        this.spotLightLocs[o].col,
+        c[o].color.r * c[o].intensity,
+        c[o].color.g * c[o].intensity,
+        c[o].color.b * c[o].intensity
+      ), this.spotLightLocs[o].params && this.gl.uniform4f(
+        this.spotLightLocs[o].params,
+        Math.cos(c[o].angle),
+        Math.cos(c[o].angle * (1 - c[o].penumbra)),
+        c[o].distance,
+        c[o].decay
+      );
     }
     const f = (o) => {
       if (!o.isVisible || !o.geometry || !o.material || o.material.type === b.SKYBOX) {
@@ -582,9 +685,29 @@ class it {
   pointLightLocs = [];
   spotLightLocs = [];
   async initialize(t) {
-    this.gl = t.getContext("webgl2", { antialias: !0 }), this.defaultTexture = this.gl.createTexture(), this.gl.bindTexture(this.gl.TEXTURE_2D, this.defaultTexture), this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, 1, 1, 0, this.gl.RGBA, this.gl.UNSIGNED_BYTE, new Uint8Array([255, 255, 255, 255])), this.defaultCubeTexture = this.gl.createTexture(), this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, this.defaultCubeTexture);
+    this.gl = t.getContext("webgl2", { antialias: !0 }), this.defaultTexture = this.gl.createTexture(), this.gl.bindTexture(this.gl.TEXTURE_2D, this.defaultTexture), this.gl.texImage2D(
+      this.gl.TEXTURE_2D,
+      0,
+      this.gl.RGBA,
+      1,
+      1,
+      0,
+      this.gl.RGBA,
+      this.gl.UNSIGNED_BYTE,
+      new Uint8Array([255, 255, 255, 255])
+    ), this.defaultCubeTexture = this.gl.createTexture(), this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, this.defaultCubeTexture);
     for (let h = 0; h < 6; h++)
-      this.gl.texImage2D(this.gl.TEXTURE_CUBE_MAP_POSITIVE_X + h, 0, this.gl.RGBA, 1, 1, 0, this.gl.RGBA, this.gl.UNSIGNED_BYTE, new Uint8Array([50, 50, 100, 255]));
+      this.gl.texImage2D(
+        this.gl.TEXTURE_CUBE_MAP_POSITIVE_X + h,
+        0,
+        this.gl.RGBA,
+        1,
+        1,
+        0,
+        this.gl.RGBA,
+        this.gl.UNSIGNED_BYTE,
+        new Uint8Array([50, 50, 100, 255])
+      );
     const e = `#version 300 es
     in vec3 a_position; in vec3 a_normal; in vec2 a_uv;
     uniform mat4 u_vp; uniform mat4 u_model; uniform vec2 u_texOffset; uniform vec2 u_texRepeat;
@@ -686,7 +809,22 @@ class it {
   getWebGLTexture(t) {
     if (!t.isLoaded || !t.image) return this.defaultTexture;
     let e = this.texCache.get(t);
-    return e || (e = this.gl.createTexture(), this.gl.bindTexture(this.gl.TEXTURE_2D, e), this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, t.image), this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, t.magFilter === "nearest" ? this.gl.NEAREST : this.gl.LINEAR), this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, t.minFilter === "nearest" ? this.gl.NEAREST : this.gl.LINEAR), this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.REPEAT), this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.REPEAT), this.texCache.set(t, e)), e;
+    return e || (e = this.gl.createTexture(), this.gl.bindTexture(this.gl.TEXTURE_2D, e), this.gl.texImage2D(
+      this.gl.TEXTURE_2D,
+      0,
+      this.gl.RGBA,
+      this.gl.RGBA,
+      this.gl.UNSIGNED_BYTE,
+      t.image
+    ), this.gl.texParameteri(
+      this.gl.TEXTURE_2D,
+      this.gl.TEXTURE_MAG_FILTER,
+      t.magFilter === "nearest" ? this.gl.NEAREST : this.gl.LINEAR
+    ), this.gl.texParameteri(
+      this.gl.TEXTURE_2D,
+      this.gl.TEXTURE_MIN_FILTER,
+      t.minFilter === "nearest" ? this.gl.NEAREST : this.gl.LINEAR
+    ), this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.REPEAT), this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.REPEAT), this.texCache.set(t, e)), e;
   }
   getWebGLCubeTexture(t) {
     if (!t.isLoaded || t.images.length !== 6) return this.defaultCubeTexture;
@@ -694,7 +832,14 @@ class it {
     if (!e) {
       e = this.gl.createTexture(), this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, e);
       for (let i = 0; i < 6; i++)
-        this.gl.texImage2D(this.gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, t.images[i]);
+        this.gl.texImage2D(
+          this.gl.TEXTURE_CUBE_MAP_POSITIVE_X + i,
+          0,
+          this.gl.RGBA,
+          this.gl.RGBA,
+          this.gl.UNSIGNED_BYTE,
+          t.images[i]
+        );
       this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR), this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR), this.texCubeCache.set(t, e);
     }
     return e;
@@ -709,7 +854,10 @@ class it {
         if (o.geometry && o.material.type === b.SKYBOX) {
           const u = o.material;
           let p = this.cache.get(o.geometry);
-          p || (p = new tt(this.gl, o.geometry), this.cache.set(o.geometry, p)), p.bind(this.skyLocs.pos), this.skyLocs.model && this.gl.uniformMatrix4fv(this.skyLocs.model, !1, o.worldMatrix.data), this.gl.activeTexture(this.gl.TEXTURE0), this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, u.cubeMap ? this.getWebGLCubeTexture(u.cubeMap) : this.defaultCubeTexture), this.skyLocs.skybox && this.gl.uniform1i(this.skyLocs.skybox, 0), this.gl.drawElements(this.gl.TRIANGLES, p.count, this.gl.UNSIGNED_SHORT, 0);
+          p || (p = new tt(this.gl, o.geometry), this.cache.set(o.geometry, p)), p.bind(this.skyLocs.pos), this.skyLocs.model && this.gl.uniformMatrix4fv(this.skyLocs.model, !1, o.worldMatrix.data), this.gl.activeTexture(this.gl.TEXTURE0), this.gl.bindTexture(
+            this.gl.TEXTURE_CUBE_MAP,
+            u.cubeMap ? this.getWebGLCubeTexture(u.cubeMap) : this.defaultCubeTexture
+          ), this.skyLocs.skybox && this.gl.uniform1i(this.skyLocs.skybox, 0), this.gl.drawElements(this.gl.TRIANGLES, p.count, this.gl.UNSIGNED_SHORT, 0);
         }
         if (o.children) for (const u of o.children) r(u);
       }
@@ -721,10 +869,18 @@ class it {
       if (o instanceof I)
         switch (o.type) {
           case M.AMBIENT:
-            s = new v(o.color.r * o.intensity, o.color.g * o.intensity, o.color.b * o.intensity);
+            s = new v(
+              o.color.r * o.intensity,
+              o.color.g * o.intensity,
+              o.color.b * o.intensity
+            );
             break;
           case M.DIRECTIONAL:
-            n = o.direction.clone().scale(-1).normalize(), h = new v(o.color.r * o.intensity, o.color.g * o.intensity, o.color.b * o.intensity);
+            n = o.direction.clone().scale(-1).normalize(), h = new v(
+              o.color.r * o.intensity,
+              o.color.g * o.intensity,
+              o.color.b * o.intensity
+            );
             break;
           case M.POINT:
             l.length < 4 && l.push(o);
@@ -738,12 +894,38 @@ class it {
     for (const o of t.objects) d(o);
     this.locs.vp && this.gl.uniformMatrix4fv(this.locs.vp, !1, e), this.locs.viewPos && this.gl.uniform3f(this.locs.viewPos, i.x, i.y, i.z), this.locs.ambient && this.gl.uniform3f(this.locs.ambient, s.r, s.g, s.b), this.locs.dirDir && this.gl.uniform3f(this.locs.dirDir, n.x, n.y, n.z), this.locs.dirColor && this.gl.uniform3f(this.locs.dirColor, h.r, h.g, h.b), this.locs.numPL && this.gl.uniform1i(this.locs.numPL, l.length);
     for (let o = 0; o < l.length; o++)
-      this.pointLightLocs[o].pos && this.gl.uniform3f(this.pointLightLocs[o].pos, l[o].worldMatrix.data[12], l[o].worldMatrix.data[13], l[o].worldMatrix.data[14]), this.pointLightLocs[o].col && this.gl.uniform3f(this.pointLightLocs[o].col, l[o].color.r * l[o].intensity, l[o].color.g * l[o].intensity, l[o].color.b * l[o].intensity);
+      this.pointLightLocs[o].pos && this.gl.uniform3f(
+        this.pointLightLocs[o].pos,
+        l[o].worldMatrix.data[12],
+        l[o].worldMatrix.data[13],
+        l[o].worldMatrix.data[14]
+      ), this.pointLightLocs[o].col && this.gl.uniform3f(
+        this.pointLightLocs[o].col,
+        l[o].color.r * l[o].intensity,
+        l[o].color.g * l[o].intensity,
+        l[o].color.b * l[o].intensity
+      );
     this.locs.numSL && this.gl.uniform1i(this.locs.numSL, c.length);
     for (let o = 0; o < c.length; o++) {
-      this.spotLightLocs[o].pos && this.gl.uniform3f(this.spotLightLocs[o].pos, c[o].worldMatrix.data[12], c[o].worldMatrix.data[13], c[o].worldMatrix.data[14]);
+      this.spotLightLocs[o].pos && this.gl.uniform3f(
+        this.spotLightLocs[o].pos,
+        c[o].worldMatrix.data[12],
+        c[o].worldMatrix.data[13],
+        c[o].worldMatrix.data[14]
+      );
       const u = c[o].direction.clone().normalize();
-      this.spotLightLocs[o].dir && this.gl.uniform3f(this.spotLightLocs[o].dir, u.x, u.y, u.z), this.spotLightLocs[o].col && this.gl.uniform3f(this.spotLightLocs[o].col, c[o].color.r * c[o].intensity, c[o].color.g * c[o].intensity, c[o].color.b * c[o].intensity), this.spotLightLocs[o].params && this.gl.uniform4f(this.spotLightLocs[o].params, Math.cos(c[o].angle), Math.cos(c[o].angle * (1 - c[o].penumbra)), c[o].distance, c[o].decay);
+      this.spotLightLocs[o].dir && this.gl.uniform3f(this.spotLightLocs[o].dir, u.x, u.y, u.z), this.spotLightLocs[o].col && this.gl.uniform3f(
+        this.spotLightLocs[o].col,
+        c[o].color.r * c[o].intensity,
+        c[o].color.g * c[o].intensity,
+        c[o].color.b * c[o].intensity
+      ), this.spotLightLocs[o].params && this.gl.uniform4f(
+        this.spotLightLocs[o].params,
+        Math.cos(c[o].angle),
+        Math.cos(c[o].angle * (1 - c[o].penumbra)),
+        c[o].distance,
+        c[o].decay
+      );
     }
     const f = (o) => {
       if (!o.isVisible || !o.geometry || !o.material || o.material.type === b.SKYBOX) {
@@ -1160,7 +1342,9 @@ class mt {
         s.setPipeline(this.pipelineSkybox);
         const R = g;
         L = R.cubeMap ? this.getGPUCubeTextureBindGroup(R.cubeMap) : this.defaultCubeTexBindGroup;
-      } else if (s.setPipeline(g.type === b.WIREFRAME ? this.pipelineLines : this.pipelineTriangles), g.type === b.LAMBERT)
+      } else if (s.setPipeline(
+        g.type === b.WIREFRAME ? this.pipelineLines : this.pipelineTriangles
+      ), g.type === b.LAMBERT)
         _ = 0;
       else if (g.type === b.PHONG) {
         const R = g;

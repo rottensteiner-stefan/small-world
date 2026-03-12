@@ -1,7 +1,7 @@
 import { ICameraStrategy } from "../../../interfaces/ICameraStrategy.js";
 import { Camera } from "../../Camera.js";
 import { Vector3D } from "../../../math/Vector3D.js";
-import {CameraStrategyType} from "../../../enums/CameraStrategyType.js";
+import { CameraStrategyType } from "../../../enums/CameraStrategyType.js";
 
 export class FixedStrategy implements ICameraStrategy {
   public readonly type = CameraStrategyType.FIXED;
