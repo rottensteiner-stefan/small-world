@@ -1,6 +1,9 @@
 # Changelog
 
 ## [0.10.2] - 2026-03-12
+- Renderer refactoring
+
+## [0.10.2] - 2026-03-12
 - Improve linting and formatting
 - Re-work /dist, TS bundling etc.
 - Bug fixing due to the last refactorings
