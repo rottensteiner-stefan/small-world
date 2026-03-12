@@ -1,5 +1,8 @@
 # Changelog
 
+## [0.10.0] - 2026-03-12
+- Re-work /dist, TS bundling etc.
+
 ## [0.9.4] - 2026-03-12
 - Bug fixing due to the last refactorings
 
