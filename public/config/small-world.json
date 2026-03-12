@@ -1,0 +1,8 @@
+{
+  "rendererType": "WEB_GPU",
+  "canvasId": "viewport",
+  "debug": true,
+  "worldSize": 100,
+  "skyColor": "midnightblue",
+  "showHUD": true
+}
