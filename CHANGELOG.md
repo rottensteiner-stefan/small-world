@@ -1,5 +1,8 @@
 # Changelog
 
+## [0.9.3] - 2026-03-12
+- Bug fixing; Fasten class type checks
+
 ## [0.9.2] - 2026-03-11
 
 - Fix WebGPU texture bug
