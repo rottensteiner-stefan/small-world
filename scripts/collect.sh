@@ -36,6 +36,8 @@ for DIR in "${SEARCH_DIRS[@]}"; do
 
         # Optionale Leerzeile für bessere Trennung im Dokument
         echo "" >> "$OUTPUT_FILE"
+        echo "/// EOF" >> "$OUTPUT_FILE"
+
 
         echo "Verarbeitet: $FILE_PATH"
     done

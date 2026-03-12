@@ -1,5 +1,6 @@
+import { CameraStrategyType } from "../../../enums/CameraStrategyType.js";
 export class FPSStrategy {
-    type = "FPS";
+    type = CameraStrategyType.FPS;
     heightOffset = 0.5;
     update(camera, targetPos, dx, dy) {
         if (dx !== 0 || dy !== 0) {

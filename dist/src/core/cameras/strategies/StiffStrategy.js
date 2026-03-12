@@ -1,5 +1,6 @@
+import { CameraStrategyType } from "../../../enums/CameraStrategyType.js";
 export class StiffStrategy {
-    type = "STIFF";
+    type = CameraStrategyType.STIFF;
     radius = 20;
     update(camera, targetPos, dx, dy) {
         if (dx !== 0 || dy !== 0) {

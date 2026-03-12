@@ -1,24 +1,24 @@
-import { AmbientLight, BoundingBox, BoundingSphere, Camera, CameraStrategyType, Collision, Color, Cube, DirectionalLight, FrustumCuller, Grid, HUD, Input, Keys, LambertMaterial, Matrix4, Object3D, PerspectiveProjection, PhongMaterial, Scene, Skybox, SkyboxLoader, SmallWorld, Sphere, SpotLight, Texture, Vector2D, Vector3D, WireframeMaterial, ObjLoader, } from "../src";
+/// examples/demo.ts
+import { AmbientLight, BoundingBox, BoundingSphere, Camera, CameraStrategyType, Collision, Color, Cube, DirectionalLight, FrustumCuller, Grid, HUD, Input, Keys, LambertMaterial, Matrix4, Object3D, PerspectiveProjection, PhongMaterial, Scene, Skybox, SkyboxLoader, SmallWorld, Sphere, SpotLight, Texture, Vector3D, WireframeMaterial, ObjLoader, } from "../src";
 class Application {
-    // --- Core Engine ---
     sw;
     scene;
     hud;
     cam;
-    // --- Game Objects ---
     player;
     flashLight;
     moon;
     skybox;
     spheres = [];
-    // --- State & Settings ---
     score = 0;
     TOTAL_SPHERES = 30;
     PLAYER_SIZE = 1.5;
     hudVisible = true;
     tabWasPressed = false;
-    // --- Timing & Matrices ---
+    playerVelocityY = 0;
+    isGrounded = true;
     lastTime = 0;
+    lastFrameTime = 0;
     frameCount = 0;
     fps = 0;
     viewMatrix = new Matrix4();
@@ -35,19 +35,19 @@ class Application {
         this.hudVisible = this.sw.config.showHUD !== false;
         this.hud = new HUD(this.hudVisible);
         await this.hud.init();
-        this.setupScene();
+        await this.setupScene();
         this.setupInput();
-        this.lastTime = performance.now();
-        this.loop();
+        const now = performance.now();
+        this.lastTime = now;
+        this.lastFrameTime = now;
+        this.loop(now);
     }
     async setupScene() {
-        // 1. Lichtstimmung
         const ambient = new AmbientLight(new Color(0.1, 0.1, 0.15), 0.5);
         this.scene.add(ambient);
         const sun = new DirectionalLight(Color.WHITE, 0.2);
         sun.direction.set(1, -1.5, -1).normalize();
         this.scene.add(sun);
-        // 2. Welt (Boden)
         const WORLD_SIZE = this.sw.config.worldSize || 40;
         const grid = new Object3D("Grid");
         grid.geometry = new Grid(WORLD_SIZE, 50).getGeometryData();
@@ -55,7 +55,6 @@ class Application {
         gridMat.color = Color.DARKSLATEGRAY;
         grid.material = gridMat;
         this.scene.add(grid);
-        // 3. Spieler
         this.player = new Object3D("Player");
         this.player.geometry = new Cube(this.PLAYER_SIZE).getGeometryData();
         const playerMaterial = new PhongMaterial();
@@ -66,41 +65,32 @@ class Application {
         playerMaterial.specularColor = Color.WHITE;
         playerMaterial.shininess = 64;
         if (playerMaterial.diffuseMap) {
-            // Sorgt dafür, dass die Textur beim Verschieben (Offset) unendlich weiterläuft
             playerMaterial.diffuseMap.setWrapMode("repeat");
-            // Falls es zu verwaschen ist, probier mal "nearest" für scharfe Kanten
             playerMaterial.diffuseMap.setFilterMode("nearest");
         }
         this.player.material = playerMaterial;
         this.scene.add(this.player);
-        // 4. Mond
         this.moon = new Object3D("Moon");
         this.moon.geometry = new Sphere(0.4).getGeometryData();
         const moonMaterial = new LambertMaterial();
         moonMaterial.color = Color.YELLOW;
         this.moon.material = moonMaterial;
         this.player.add(this.moon);
-        // 5. Taschenlampe
         this.flashLight = new SpotLight(Color.GREEN, 8.0);
         this.flashLight.angle = Math.PI / 7;
         this.flashLight.penumbra = 0.8;
         this.flashLight.position.set(0, 1, 1);
         this.player.add(this.flashLight);
-        // 6. Sammelobjekte
         this.createSpheres();
-        // 7. Skybox
         const skyLoader = new SkyboxLoader();
-        const skyTexture = await skyLoader.load("./resources/textures/skybox.jpg"); // <--- Über Instanz laden
+        const skyTexture = await skyLoader.load("./resources/textures/skybox.jpg");
         this.skybox = new Skybox(skyTexture, 100);
         this.scene.add(this.skybox);
-        // 7. Schneemann
         try {
             const objLoader = new ObjLoader();
-            // Das Modell lädt sich jetzt selbstständig mitsamt seiner .mtl-Datei
             const snowman = await objLoader.load("./resources/models/snowman.obj");
             snowman.position.set(0, 0, 5);
             this.scene.add(snowman);
-            console.log("Schneemann erfolgreich geladen!");
         }
         catch (error) {
             console.error("Fehler beim Laden des Schneemanns:", error);
@@ -124,39 +114,32 @@ class Application {
     }
     setupInput() {
         const canvas = document.getElementById(this.sw.config.canvasId);
-        canvas.addEventListener("click", () => {
+        // WICHTIG: Das Event liegt jetzt auf 'window'. Das HUD kann uns nicht mehr blockieren.
+        window.addEventListener("click", () => {
             if (this.cam.activeStrategyType === CameraStrategyType.FPS) {
                 Input.requestPointerLock(canvas);
             }
         });
     }
-    loop = () => {
-        const now = performance.now();
-        const time = now * 0.001; // Zeit in Sekunden
+    loop = (now = performance.now()) => {
+        let dt = (now - this.lastFrameTime) * 0.001;
+        this.lastFrameTime = now;
+        if (dt > 0.1)
+            dt = 0.1;
+        const time = now * 0.001;
         this.frameCount++;
         if (now - this.lastTime >= 1000) {
             this.fps = this.frameCount;
             this.frameCount = 0;
             this.lastTime = now;
         }
-        this.update(time);
+        this.update(time, dt);
         this.render();
         requestAnimationFrame(this.loop);
     };
-    update(time) {
-        // --- BEWEGUNG & KAMERA ---
-        this.updatePlayerMovement();
+    update(time, dt) {
+        this.updatePlayerMovement(dt);
         this.updateCamera();
-        const flowSpeed = new Vector2D(0.2, 0.1);
-        if (this.player.material) {
-            const texture = this.player.material.diffuseMap;
-            if (texture) {
-                const dt = 0.016;
-                //texture.offset.x = (texture.offset.x + flowSpeed.x * dt) % 1.0;
-                texture.offset.y = (texture.offset.y + flowSpeed.y * dt) % 1.0;
-            }
-        }
-        // --- SYSTEM & HUD TOGGLE ---
         const tabDown = Input.isPressed(Keys.TAB);
         if (tabDown && !this.tabWasPressed) {
             this.hudVisible = !this.hudVisible;
@@ -169,49 +152,63 @@ class Application {
             this.score = 0;
             this.createSpheres();
         }
-        // --- KOLLISION ---
         this.checkCollisions();
-        // --- ANIMATIONEN ---
         this.moon.position.x = Math.cos(time * 2) * 3;
         this.moon.position.z = Math.sin(time * 2) * 3;
         this.moon.rotation.x = time;
         this.moon.rotation.y = time * 1.5;
         for (let i = 0; i < this.spheres.length; i++) {
             const s = this.spheres[i];
-            s.rotation.x += 0.01;
-            s.rotation.y += 0.02;
+            s.rotation.x += 0.6 * dt;
+            s.rotation.y += 1.2 * dt;
             s.position.y = Math.sin(time * 3 + i) * 0.5 + 0.5;
             if (s.bounds)
                 s.bounds.center.copyFrom(s.position);
         }
-        // Skybox
         if (this.skybox && this.cam) {
             this.skybox.position.copyFrom(this.cam.position);
         }
-        // Szenengraph durchrechnen
         this.scene.update();
     }
-    updatePlayerMovement() {
-        const speed = Input.isPressed(Keys.SHIFT_L) ? 0.6 : 0.25;
+    updatePlayerMovement(dt) {
+        const GRAVITY = 30.0;
+        const JUMP_FORCE = 12.0;
+        this.playerVelocityY -= GRAVITY * dt;
+        this.player.position.y += this.playerVelocityY * dt;
+        if (this.player.position.y <= 0) {
+            this.player.position.y = 0;
+            this.playerVelocityY = 0;
+            this.isGrounded = true;
+        }
+        else {
+            this.isGrounded = false;
+        }
+        if (Input.isPressed(Keys.SPACE) && this.isGrounded) {
+            this.playerVelocityY = JUMP_FORCE;
+            this.isGrounded = false;
+        }
+        const baseSpeed = Input.isPressed(Keys.SHIFT_L) ? 25.0 : 10.0;
+        const speed = baseSpeed * dt;
         const dx = Input.getAxis(Keys.A, Keys.D);
         const dz = Input.getAxis(Keys.W, Keys.S);
         if (dx !== 0 || dz !== 0) {
             const len = Math.sqrt(dx * dx + dz * dz);
             const moveX = dx / len;
             const moveZ = dz / len;
-            if (this.cam.activeStrategyType === CameraStrategyType.FPS) {
-                const s = Math.sin(this.cam.theta);
-                const c = Math.cos(this.cam.theta);
-                const forwardX = -s, forwardZ = -c;
-                const rightX = -c, rightZ = s;
-                const worldX = rightX * moveX - forwardX * moveZ;
-                const worldZ = rightZ * moveX - forwardZ * moveZ;
-                this.player.position.add(new Vector3D(worldX, 0, worldZ).scale(speed));
-                this.player.rotation.y = this.cam.theta;
+            const s = Math.sin(this.cam.theta);
+            const c = Math.cos(this.cam.theta);
+            const forwardX = -s;
+            const forwardZ = -c;
+            const rightX = c;
+            const rightZ = -s;
+            const worldX = rightX * moveX - forwardX * moveZ;
+            const worldZ = rightZ * moveX - forwardZ * moveZ;
+            this.player.position.add(new Vector3D(worldX, 0, worldZ).scale(speed));
+            if (this.cam.activeStrategyType !== CameraStrategyType.FPS) {
+                this.player.rotation.y = Math.atan2(worldX, worldZ);
             }
             else {
-                this.player.position.add(new Vector3D(moveX, 0, moveZ).scale(speed));
-                this.player.rotation.y = Math.atan2(moveX, moveZ);
+                this.player.rotation.y = this.cam.theta;
             }
             this.flashLight.direction
                 .set(Math.sin(this.player.rotation.y), -0.2, Math.cos(this.player.rotation.y))
@@ -228,18 +225,20 @@ class Application {
         if (Input.isPressed(Keys.D4))
             this.cam.setStrategy(CameraStrategyType.FPS);
         let mdx = 0, mdy = 0;
+        // Wir rufen die Maus-Deltas nur ab, wenn wir gelockt sind ODER die rechte Maustaste halten
         if ((this.cam.activeStrategyType === CameraStrategyType.FPS && Input.isPointerLocked) ||
             Input.mouse.right) {
             mdx = Input.mouse.dx;
             mdy = Input.mouse.dy;
         }
         this.cam.update(this.player.position, mdx, mdy);
+        // WICHTIG: Nach dem Frame-Update setzen wir die aufsummierten Maus-Deltas wieder auf 0 zurück!
         Input.mouse.dx = 0;
         Input.mouse.dy = 0;
     }
     checkCollisions() {
         const h = this.PLAYER_SIZE / 2;
-        this.player.bounds = new BoundingBox(new Vector3D(this.player.position.x - h, -h, this.player.position.z - h), new Vector3D(this.player.position.x + h, h, this.player.position.z + h));
+        this.player.bounds = new BoundingBox(new Vector3D(this.player.position.x - h, this.player.position.y - h, this.player.position.z - h), new Vector3D(this.player.position.x + h, this.player.position.y + h, this.player.position.z + h));
         for (let i = this.spheres.length - 1; i >= 0; i--) {
             const s = this.spheres[i];
             if (s.bounds && Collision.test(this.player.bounds, s.bounds)) {
@@ -266,7 +265,6 @@ class Application {
         this.sw.activeRenderer.render(this.scene, this.vpMatrix.data, this.cam.position);
     }
 }
-// Einstiegspunkt der Demo
 const app = new Application();
 app.start();
 //# sourceMappingURL=demo.js.map
