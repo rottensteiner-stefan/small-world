@@ -1,1 +1,1 @@
-{"version":3,"file":"LightType.js","sourceRoot":"","sources":["../../../src/enums/LightType.ts"],"names":[],"mappings":"AAAA,MAAM,CAAN,IAAY,SAKX;AALD,WAAY,SAAS;IACnB,+CAAW,CAAA;IACX,uDAAe,CAAA;IACf,2CAAS,CAAA;IACT,yCAAQ,CAAA;AACV,CAAC,EALW,SAAS,KAAT,SAAS,QAKpB"}
+{"version":3,"file":"LightType.js","sourceRoot":"","sources":["../../../src/enums/LightType.ts"],"names":[],"mappings":"AAAA,MAAM,CAAN,IAAY,SAKX;AALD,WAAY,SAAS;IACnB,qCAAwB,CAAA;IACxB,6CAAgC,CAAA;IAChC,iCAAoB,CAAA;IACpB,+BAAkB,CAAA;AACpB,CAAC,EALW,SAAS,KAAT,SAAS,QAKpB"}

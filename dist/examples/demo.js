@@ -152,7 +152,7 @@ class Application {
             const texture = this.player.material.diffuseMap;
             if (texture) {
                 const dt = 0.016;
-                texture.offset.x = (texture.offset.x + flowSpeed.x * dt) % 1.0;
+                //texture.offset.x = (texture.offset.x + flowSpeed.x * dt) % 1.0;
                 texture.offset.y = (texture.offset.y + flowSpeed.y * dt) % 1.0;
             }
         }

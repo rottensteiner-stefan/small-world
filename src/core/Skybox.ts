@@ -4,17 +4,18 @@ import { SkyboxMaterial } from "./materials/SkyboxMaterial.js";
 import { CubeTexture } from "./textures/CubeTexture.js";
 
 export class Skybox extends Object3D {
-  // Akzeptiert nun ein Array aus Strings ODER eine fertige CubeTexture
   constructor(source: string[] | CubeTexture, size: number = 100) {
     super("Skybox");
 
     this.geometry = new Cube(size).getGeometryData();
+
+    // WICHTIG: Explizit als SkyboxMaterial instanziieren
     const mat = new SkyboxMaterial();
 
     if (Array.isArray(source)) {
       mat.cubeMap = new CubeTexture(source);
     } else {
-      mat.cubeMap = source; // Fertige Textur aus dem Loader übernehmen
+      mat.cubeMap = source;
     }
 
     this.material = mat;

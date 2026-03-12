@@ -1,8 +1,8 @@
 export var CameraStrategyType;
 (function (CameraStrategyType) {
-    CameraStrategyType["FIXED"] = "FIXED";
-    CameraStrategyType["STIFF"] = "STIFF";
-    CameraStrategyType["SMOOTH"] = "SMOOTH";
-    CameraStrategyType["FPS"] = "FPS";
+    CameraStrategyType["FIXED"] = "FixedCamera";
+    CameraStrategyType["STIFF"] = "StiffCamera";
+    CameraStrategyType["SMOOTH"] = "SmoothCamera";
+    CameraStrategyType["FPS"] = "FPSCamera";
 })(CameraStrategyType || (CameraStrategyType = {}));
 //# sourceMappingURL=CameraStrategyType.js.map

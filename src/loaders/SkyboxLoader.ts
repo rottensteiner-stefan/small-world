@@ -13,7 +13,8 @@ export class SkyboxLoader extends Loader<CubeTexture> {
       // Wir übergeben den Progress-Callback und setzen flipY auf FALSE (3. Parameter)
       const sourceImage = await AssetManager.loadImage(
         fullUrl,
-        (loaded, total) => this.dispatchEvent(EventType.PROGRESS, { url: fullUrl, loaded, total }),
+        (loaded, total) =>
+          this.dispatchEvent(EventType.LOADER_PROGRESS, { url: fullUrl, loaded, total }),
         false,
       );
 
@@ -58,10 +59,10 @@ export class SkyboxLoader extends Loader<CubeTexture> {
       cubeTexture.images = images;
       cubeTexture.isLoaded = true;
 
-      this.dispatchEvent(EventType.LOAD_END, { url: fullUrl, data: cubeTexture });
+      this.dispatchEvent(EventType.LOADER_END, { url: fullUrl, data: cubeTexture });
       return cubeTexture;
     } catch (error) {
-      this.dispatchEvent(EventType.ERROR, { url: fullUrl, error });
+      this.dispatchEvent(EventType.LOADER_ERROR, { url: fullUrl, error });
       throw error;
     }
   }

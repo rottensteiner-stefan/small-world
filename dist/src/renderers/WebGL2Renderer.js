@@ -1,10 +1,11 @@
+/// src/renderers/WebGL2Renderer.ts
+import { Color } from "../core/colors/Color.js";
+import { AbstractLight } from "../core/lights/AbstractLight.js";
+import { LightType } from "../enums/LightType.js";
 import { Mesh } from "./Mesh.js";
-import { PhongMaterial } from "../core/materials/PhongMaterial.js";
-import { SkyboxMaterial } from "../core/materials/SkyboxMaterial.js";
 import { Vector3D } from "../math/Vector3D.js";
 import { RendererType } from "../enums/RendererType.js";
-import { WireframeMaterial } from "../core/materials/WireframeMaterial.js";
-import { LambertMaterial } from "../core/materials/LambertMaterial.js";
+import { MaterialType } from "../enums/MaterialType.js";
 export class WebGL2Renderer {
     type = RendererType.WEB_GL2;
     gl;
@@ -12,11 +13,11 @@ export class WebGL2Renderer {
     locs;
     skyProg;
     skyLocs;
-    texCubeCache = new Map();
-    defaultCubeTexture;
     cache = new Map();
     texCache = new Map();
+    texCubeCache = new Map();
     defaultTexture;
+    defaultCubeTexture;
     pointLightLocs = [];
     spotLightLocs = [];
     async initialize(canvas) {
@@ -153,20 +154,10 @@ export class WebGL2Renderer {
             glTex = this.gl.createTexture();
             this.gl.bindTexture(this.gl.TEXTURE_2D, glTex);
             this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, tex.image);
-            // Filter-Mapping (WebGPU String -> WebGL Constant)
             this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, tex.magFilter === "nearest" ? this.gl.NEAREST : this.gl.LINEAR);
             this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, tex.minFilter === "nearest" ? this.gl.NEAREST : this.gl.LINEAR);
-            // --- NEU: Das korrigierte Wrapping-Mapping ---
-            const mapWrap = (mode) => {
-                switch (mode) {
-                    case "clamp-to-edge": return this.gl.CLAMP_TO_EDGE;
-                    case "mirror-repeat": return this.gl.MIRRORED_REPEAT;
-                    case "repeat":
-                    default: return this.gl.REPEAT;
-                }
-            };
-            this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, mapWrap(tex.addressModeU));
-            this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, mapWrap(tex.addressModeV));
+            this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.REPEAT);
+            this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.REPEAT);
             this.texCache.set(tex, glTex);
         }
         return glTex;
@@ -183,9 +174,6 @@ export class WebGL2Renderer {
             }
             this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
             this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR);
-            this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
-            this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
-            this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_WRAP_R, this.gl.CLAMP_TO_EDGE);
             this.texCubeCache.set(tex, glTex);
         }
         return glTex;
@@ -195,16 +183,16 @@ export class WebGL2Renderer {
     }
     render(scene, vp, camPos = new Vector3D()) {
         this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
-        // DURCHLAUF 1: Skyboxes rendern (ohne Depth-Writing)
+        // --- PASS 1: Skybox ---
         this.gl.depthMask(false);
         this.gl.useProgram(this.skyProg);
         if (this.skyLocs.vp)
             this.gl.uniformMatrix4fv(this.skyLocs.vp, false, vp);
         const drawSkybox = (o) => {
-            if (!o.isVisible)
+            if (!o.isVisible || !o.material)
                 return;
-            // --- NEU: Nutzung von instanceof ---
-            if (o.geometry && o.material instanceof SkyboxMaterial) {
+            if (o.geometry && o.material.type === MaterialType.SKYBOX) {
+                const skyMat = o.material;
                 let m = this.cache.get(o.geometry);
                 if (!m) {
                     m = new Mesh(this.gl, o.geometry);
@@ -214,82 +202,132 @@ export class WebGL2Renderer {
                 if (this.skyLocs.model)
                     this.gl.uniformMatrix4fv(this.skyLocs.model, false, o.worldMatrix.data);
                 this.gl.activeTexture(this.gl.TEXTURE0);
-                // Da o.material durch das if() oben sicher ein SkyboxMaterial ist,
-                // sparen wir uns das "as SkyboxMaterial" komplett!
-                this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, o.material.cubeMap ? this.getWebGLCubeTexture(o.material.cubeMap) : this.defaultCubeTexture);
+                this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, skyMat.cubeMap ? this.getWebGLCubeTexture(skyMat.cubeMap) : this.defaultCubeTexture);
                 if (this.skyLocs.skybox)
                     this.gl.uniform1i(this.skyLocs.skybox, 0);
                 this.gl.drawElements(this.gl.TRIANGLES, m.count, this.gl.UNSIGNED_SHORT, 0);
             }
-            if (o.children) {
+            if (o.children)
                 for (const child of o.children)
                     drawSkybox(child);
-            }
         };
         for (const obj of scene.objects)
             drawSkybox(obj);
         this.gl.depthMask(true);
-        // DURCHLAUF 2: Alles andere rendern
+        // --- PASS 2: Objects ---
         this.gl.useProgram(this.prog);
+        let aCol = new Color(0, 0, 0), dDir = new Vector3D(0, 1, 0), dCol = new Color(0, 0, 0);
+        const pLights = [], sLights = [];
+        const extractLights = (node) => {
+            if (node instanceof AbstractLight) {
+                switch (node.type) {
+                    case LightType.AMBIENT:
+                        aCol = new Color(node.color.r * node.intensity, node.color.g * node.intensity, node.color.b * node.intensity);
+                        break;
+                    case LightType.DIRECTIONAL:
+                        const dl = node;
+                        dDir = dl.direction.clone().scale(-1).normalize();
+                        dCol = new Color(node.color.r * node.intensity, node.color.g * node.intensity, node.color.b * node.intensity);
+                        break;
+                    case LightType.POINT:
+                        if (pLights.length < 4)
+                            pLights.push(node);
+                        break;
+                    case LightType.SPOT:
+                        if (sLights.length < 4)
+                            sLights.push(node);
+                        break;
+                }
+            }
+            if (node.children)
+                node.children.forEach(extractLights);
+        };
+        for (const obj of scene.objects)
+            extractLights(obj);
         if (this.locs.vp)
             this.gl.uniformMatrix4fv(this.locs.vp, false, vp);
         if (this.locs.viewPos)
             this.gl.uniform3f(this.locs.viewPos, camPos.x, camPos.y, camPos.z);
-        // ... (Hier bleibt dein Code für "let aCol = ..." und "extractLights" unverändert!) ...
-        // Ich setze hier nahtlos beim drawNormal an:
+        if (this.locs.ambient)
+            this.gl.uniform3f(this.locs.ambient, aCol.r, aCol.g, aCol.b);
+        if (this.locs.dirDir)
+            this.gl.uniform3f(this.locs.dirDir, dDir.x, dDir.y, dDir.z);
+        if (this.locs.dirColor)
+            this.gl.uniform3f(this.locs.dirColor, dCol.r, dCol.g, dCol.b);
+        if (this.locs.numPL)
+            this.gl.uniform1i(this.locs.numPL, pLights.length);
+        for (let i = 0; i < pLights.length; i++) {
+            if (this.pointLightLocs[i].pos)
+                this.gl.uniform3f(this.pointLightLocs[i].pos, pLights[i].worldMatrix.data[12], pLights[i].worldMatrix.data[13], pLights[i].worldMatrix.data[14]);
+            if (this.pointLightLocs[i].col)
+                this.gl.uniform3f(this.pointLightLocs[i].col, pLights[i].color.r * pLights[i].intensity, pLights[i].color.g * pLights[i].intensity, pLights[i].color.b * pLights[i].intensity);
+        }
+        if (this.locs.numSL)
+            this.gl.uniform1i(this.locs.numSL, sLights.length);
+        for (let i = 0; i < sLights.length; i++) {
+            if (this.spotLightLocs[i].pos)
+                this.gl.uniform3f(this.spotLightLocs[i].pos, sLights[i].worldMatrix.data[12], sLights[i].worldMatrix.data[13], sLights[i].worldMatrix.data[14]);
+            const dir = sLights[i].direction.clone().normalize();
+            if (this.spotLightLocs[i].dir)
+                this.gl.uniform3f(this.spotLightLocs[i].dir, dir.x, dir.y, dir.z);
+            if (this.spotLightLocs[i].col)
+                this.gl.uniform3f(this.spotLightLocs[i].col, sLights[i].color.r * sLights[i].intensity, sLights[i].color.g * sLights[i].intensity, sLights[i].color.b * sLights[i].intensity);
+            if (this.spotLightLocs[i].params)
+                this.gl.uniform4f(this.spotLightLocs[i].params, Math.cos(sLights[i].angle), Math.cos(sLights[i].angle * (1.0 - sLights[i].penumbra)), sLights[i].distance, sLights[i].decay);
+        }
         const drawNormal = (o) => {
-            if (!o.isVisible)
+            if (!o.isVisible || !o.geometry || !o.material || o.material.type === MaterialType.SKYBOX) {
+                if (o.children)
+                    for (const child of o.children)
+                        drawNormal(child);
                 return;
-            // --- NEU: Nutzung von instanceof zur Invertierung ---
-            if (o.geometry && o.material && !(o.material instanceof SkyboxMaterial)) {
-                let m = this.cache.get(o.geometry);
-                if (!m) {
-                    m = new Mesh(this.gl, o.geometry);
-                    this.cache.set(o.geometry, m);
-                }
-                m.bind(this.locs.pos, this.locs.norm, this.locs.uv);
-                if (this.locs.model)
-                    this.gl.uniformMatrix4fv(this.locs.model, false, o.worldMatrix.data);
-                if (this.locs.color)
-                    this.gl.uniform4fv(this.locs.color, o.material.color.toArray());
-                let shininess = -1.0;
-                let specCol = [0, 0, 0, 0];
-                let activeTex = this.defaultTexture;
-                let tOffset = [0, 0];
-                let tRepeat = [1, 1];
-                // --- NEU: Type Narrowing ---
-                if (o.material instanceof LambertMaterial) {
-                    shininess = 0.0;
-                }
-                else if (o.material instanceof PhongMaterial) {
-                    shininess = o.material.shininess || 32;
-                    specCol = o.material.specularColor ? o.material.specularColor.toArray() : [0, 0, 0, 0];
-                    if (o.material.diffuseMap) {
-                        activeTex = this.getWebGLTexture(o.material.diffuseMap);
-                        tOffset = [o.material.diffuseMap.offset.x, o.material.diffuseMap.offset.y];
-                        tRepeat = [o.material.diffuseMap.repeat.x, o.material.diffuseMap.repeat.y];
-                    }
-                }
-                this.gl.activeTexture(this.gl.TEXTURE0);
-                this.gl.bindTexture(this.gl.TEXTURE_2D, activeTex);
-                if (this.locs.diffuseMap)
-                    this.gl.uniform1i(this.locs.diffuseMap, 0);
-                if (this.locs.texOffset)
-                    this.gl.uniform2fv(this.locs.texOffset, tOffset);
-                if (this.locs.texRepeat)
-                    this.gl.uniform2fv(this.locs.texRepeat, tRepeat);
-                if (this.locs.shininess)
-                    this.gl.uniform1f(this.locs.shininess, shininess);
-                if (this.locs.specColor)
-                    this.gl.uniform4fv(this.locs.specColor, specCol);
-                // --- NEU: Wieder instanceof ---
-                const drawMode = o.material instanceof WireframeMaterial ? this.gl.LINES : this.gl.TRIANGLES;
-                this.gl.drawElements(drawMode, m.count, this.gl.UNSIGNED_SHORT, 0);
             }
-            if (o.children) {
+            const mat = o.material;
+            let m = this.cache.get(o.geometry);
+            if (!m) {
+                m = new Mesh(this.gl, o.geometry);
+                this.cache.set(o.geometry, m);
+            }
+            m.bind(this.locs.pos, this.locs.norm, this.locs.uv);
+            let shininess = -1.0;
+            let specCol = [0, 0, 0, 0];
+            let activeTex = this.defaultTexture;
+            let tOffset = [0, 0];
+            let tRepeat = [1, 1];
+            if (mat.type === MaterialType.LAMBERT) {
+                shininess = 0.0;
+            }
+            else if (mat.type === MaterialType.PHONG) {
+                const pMat = mat;
+                shininess = pMat.shininess || 32;
+                specCol = pMat.specularColor ? pMat.specularColor.toArray() : [0, 0, 0, 0];
+                if (pMat.diffuseMap) {
+                    activeTex = this.getWebGLTexture(pMat.diffuseMap);
+                    tOffset = [pMat.diffuseMap.offset.x, pMat.diffuseMap.offset.y];
+                    tRepeat = [pMat.diffuseMap.repeat.x, pMat.diffuseMap.repeat.y];
+                }
+            }
+            if (this.locs.model)
+                this.gl.uniformMatrix4fv(this.locs.model, false, o.worldMatrix.data);
+            if (this.locs.color)
+                this.gl.uniform4fv(this.locs.color, mat.color.toArray());
+            if (this.locs.shininess)
+                this.gl.uniform1f(this.locs.shininess, shininess);
+            if (this.locs.specColor)
+                this.gl.uniform4fv(this.locs.specColor, specCol);
+            this.gl.activeTexture(this.gl.TEXTURE0);
+            this.gl.bindTexture(this.gl.TEXTURE_2D, activeTex);
+            if (this.locs.diffuseMap)
+                this.gl.uniform1i(this.locs.diffuseMap, 0);
+            if (this.locs.texOffset)
+                this.gl.uniform2fv(this.locs.texOffset, tOffset);
+            if (this.locs.texRepeat)
+                this.gl.uniform2fv(this.locs.texRepeat, tRepeat);
+            const mode = mat.type === MaterialType.WIREFRAME ? this.gl.LINES : this.gl.TRIANGLES;
+            this.gl.drawElements(mode, m.count, this.gl.UNSIGNED_SHORT, 0);
+            if (o.children)
                 for (const child of o.children)
                     drawNormal(child);
-            }
         };
         for (const obj of scene.objects)
             drawNormal(obj);

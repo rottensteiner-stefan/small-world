@@ -1,4 +1,5 @@
 import { AbstractMaterial } from "./AbstractMaterial.js";
+import { MaterialType } from "../../enums/MaterialType.js";
 export class LambertMaterial extends AbstractMaterial {
-  public static readonly type = "LambertMaterial";
+  public readonly type = MaterialType.LAMBERT;
 }

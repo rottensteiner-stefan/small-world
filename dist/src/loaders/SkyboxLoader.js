@@ -9,7 +9,7 @@ export class SkyboxLoader extends Loader {
         try {
             // 1. Laden über den AssetManager:
             // Wir übergeben den Progress-Callback und setzen flipY auf FALSE (3. Parameter)
-            const sourceImage = await AssetManager.loadImage(fullUrl, (loaded, total) => this.dispatchEvent(EventType.PROGRESS, { url: fullUrl, loaded, total }), false);
+            const sourceImage = await AssetManager.loadImage(fullUrl, (loaded, total) => this.dispatchEvent(EventType.LOADER_PROGRESS, { url: fullUrl, loaded, total }), false);
             // 2. Das Bild zerschneiden
             const tileSize = sourceImage.width / 4;
             const canvas = document.createElement("canvas");
@@ -36,11 +36,11 @@ export class SkyboxLoader extends Loader {
             const cubeTexture = new CubeTexture();
             cubeTexture.images = images;
             cubeTexture.isLoaded = true;
-            this.dispatchEvent(EventType.LOAD_END, { url: fullUrl, data: cubeTexture });
+            this.dispatchEvent(EventType.LOADER_END, { url: fullUrl, data: cubeTexture });
             return cubeTexture;
         }
         catch (error) {
-            this.dispatchEvent(EventType.ERROR, { url: fullUrl, error });
+            this.dispatchEvent(EventType.LOADER_ERROR, { url: fullUrl, error });
             throw error;
         }
     }

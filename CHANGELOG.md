@@ -1,12 +1,15 @@
 # Changelog
 
 ## [0.9.2] - 2026-03-11
+
 - Fix WebGPU texture bug
 
 ## [0.9.1] - 2026-03-11
+
 - Add MTL loader; Rework material checks (speed improvements)
 
 ## [0.9.0] - 2026-03-11
+
 - Even more refactoring; Event system; Asset loader pipelines
 
 ## [0.8.59] - 2026-03-11

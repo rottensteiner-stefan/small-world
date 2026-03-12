@@ -21,19 +21,19 @@ class MaterialGroup {
 export class ObjLoader extends Loader {
     async load(url) {
         const fullUrl = this.basePath + url;
-        this.dispatchEvent(EventType.LOAD_START, { url: fullUrl });
+        this.dispatchEvent(EventType.LOADER_START, { url: fullUrl });
         try {
             const text = await AssetManager.loadText(fullUrl, (loaded, total) => {
-                this.dispatchEvent(EventType.PROGRESS, { url: fullUrl, loaded, total });
+                this.dispatchEvent(EventType.LOADER_PROGRESS, { url: fullUrl, loaded, total });
             });
             // Den Ordner-Pfad extrahieren, damit wir wissen, wo wir die .mtl Datei suchen müssen
             const folderPath = fullUrl.substring(0, fullUrl.lastIndexOf("/") + 1);
             const rootObject = await this.parse(text, folderPath);
-            this.dispatchEvent(EventType.LOAD_END, { url: fullUrl, data: rootObject });
+            this.dispatchEvent(EventType.LOADER_END, { url: fullUrl, data: rootObject });
             return rootObject;
         }
         catch (error) {
-            this.dispatchEvent(EventType.ERROR, { url: fullUrl, error });
+            this.dispatchEvent(EventType.LOADER_ERROR, { url: fullUrl, error });
             throw error;
         }
     }

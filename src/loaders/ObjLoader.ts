@@ -18,14 +18,13 @@ class MaterialGroup {
 }
 
 export class ObjLoader extends Loader<Object3D> {
-
   public async load(url: string): Promise<Object3D> {
     const fullUrl = this.basePath + url;
-    this.dispatchEvent(EventType.LOAD_START, { url: fullUrl });
+    this.dispatchEvent(EventType.LOADER_START, { url: fullUrl });
 
     try {
       const text = await AssetManager.loadText(fullUrl, (loaded, total) => {
-        this.dispatchEvent(EventType.PROGRESS, { url: fullUrl, loaded, total });
+        this.dispatchEvent(EventType.LOADER_PROGRESS, { url: fullUrl, loaded, total });
       });
 
       // Den Ordner-Pfad extrahieren, damit wir wissen, wo wir die .mtl Datei suchen müssen
@@ -33,10 +32,10 @@ export class ObjLoader extends Loader<Object3D> {
 
       const rootObject = await this.parse(text, folderPath);
 
-      this.dispatchEvent(EventType.LOAD_END, { url: fullUrl, data: rootObject });
+      this.dispatchEvent(EventType.LOADER_END, { url: fullUrl, data: rootObject });
       return rootObject;
     } catch (error) {
-      this.dispatchEvent(EventType.ERROR, { url: fullUrl, error });
+      this.dispatchEvent(EventType.LOADER_ERROR, { url: fullUrl, error });
       throw error;
     }
   }
@@ -82,9 +81,27 @@ export class ObjLoader extends Loader<Object3D> {
       } else if (type === "f") {
         const vertices = parts.slice(1);
         for (let i = 1; i < vertices.length - 1; i++) {
-          const v1 = this.parseFaceVertex(vertices[0], tempVertices, tempUVs, tempNormals, currentGroup);
-          const v2 = this.parseFaceVertex(vertices[i], tempVertices, tempUVs, tempNormals, currentGroup);
-          const v3 = this.parseFaceVertex(vertices[i + 1], tempVertices, tempUVs, tempNormals, currentGroup);
+          const v1 = this.parseFaceVertex(
+            vertices[0],
+            tempVertices,
+            tempUVs,
+            tempNormals,
+            currentGroup,
+          );
+          const v2 = this.parseFaceVertex(
+            vertices[i],
+            tempVertices,
+            tempUVs,
+            tempNormals,
+            currentGroup,
+          );
+          const v3 = this.parseFaceVertex(
+            vertices[i + 1],
+            tempVertices,
+            tempUVs,
+            tempNormals,
+            currentGroup,
+          );
           currentGroup.outIndices.push(v1, v2, v3);
         }
       }
@@ -98,7 +115,12 @@ export class ObjLoader extends Loader<Object3D> {
       if (group.outIndices.length === 0) return;
 
       const child = new Object3D(name);
-      child.geometry = new ModelGeometry(group.outVertices, group.outUVs, group.outNormals, group.outIndices).getGeometryData();
+      child.geometry = new ModelGeometry(
+        group.outVertices,
+        group.outUVs,
+        group.outNormals,
+        group.outIndices,
+      ).getGeometryData();
       child.material = materials.get(name) || new PhongMaterial();
 
       root.add(child);
@@ -108,9 +130,11 @@ export class ObjLoader extends Loader<Object3D> {
   }
 
   private parseFaceVertex(
-      faceStr: string,
-      tempV: number[], tempVT: number[], tempVN: number[],
-      group: MaterialGroup
+    faceStr: string,
+    tempV: number[],
+    tempVT: number[],
+    tempVN: number[],
+    group: MaterialGroup,
   ): number {
     if (group.vertexCache.has(faceStr)) return group.vertexCache.get(faceStr)!;
 
