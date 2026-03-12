@@ -1,7 +1,7 @@
 import { ICameraStrategy } from "../../../interfaces/ICameraStrategy.js";
 import { Camera } from "../../Camera.js";
 import { Vector3D } from "../../../math/Vector3D.js";
-import {CameraStrategyType} from "../../../enums/CameraStrategyType.js";
+import { CameraStrategyType } from "../../../enums/CameraStrategyType.js";
 
 export class SmoothStrategy implements ICameraStrategy {
   public readonly type = CameraStrategyType.SMOOTH;
@@ -23,8 +23,10 @@ export class SmoothStrategy implements ICameraStrategy {
     camera.target.z += (targetPos.z - camera.target.z) * this.lerpFactor;
 
     // Die Kameraposition klebt nun immer exakt am Radius zum (weichen) Target
-    camera.position.x = camera.target.x + this.radius * Math.sin(camera.theta) * Math.cos(camera.phi);
+    camera.position.x =
+      camera.target.x + this.radius * Math.sin(camera.theta) * Math.cos(camera.phi);
     camera.position.y = camera.target.y + this.radius * Math.sin(camera.phi);
-    camera.position.z = camera.target.z + this.radius * Math.cos(camera.theta) * Math.cos(camera.phi);
+    camera.position.z =
+      camera.target.z + this.radius * Math.cos(camera.theta) * Math.cos(camera.phi);
   }
 }

@@ -26,11 +26,10 @@ import {
   Sphere,
   SpotLight,
   Texture,
-  Vector2D,
   Vector3D,
   WireframeMaterial,
   ObjLoader,
-} from "../src";
+} from "../src/index.js";
 
 class Application {
   private sw: SmallWorld;
@@ -64,7 +63,7 @@ class Application {
     this.sw = new SmallWorld();
     this.scene = new Scene();
     this.cam = new Camera(
-        new PerspectiveProjection(Math.PI / 4, window.innerWidth / window.innerHeight, 0.1, 200),
+      new PerspectiveProjection(Math.PI / 4, window.innerWidth / window.innerHeight, 0.1, 200),
     );
   }
 
@@ -293,8 +292,8 @@ class Application {
       }
 
       this.flashLight.direction
-          .set(Math.sin(this.player.rotation.y), -0.2, Math.cos(this.player.rotation.y))
-          .normalize();
+        .set(Math.sin(this.player.rotation.y), -0.2, Math.cos(this.player.rotation.y))
+        .normalize();
     }
   }
 
@@ -304,12 +303,13 @@ class Application {
     if (Input.isPressed(Keys.D3)) this.cam.setStrategy(CameraStrategyType.SMOOTH);
     if (Input.isPressed(Keys.D4)) this.cam.setStrategy(CameraStrategyType.FPS);
 
-    let mdx = 0, mdy = 0;
+    let mdx = 0,
+      mdy = 0;
 
     // Wir rufen die Maus-Deltas nur ab, wenn wir gelockt sind ODER die rechte Maustaste halten
     if (
-        (this.cam.activeStrategyType === CameraStrategyType.FPS && Input.isPointerLocked) ||
-        Input.mouse.right
+      (this.cam.activeStrategyType === CameraStrategyType.FPS && Input.isPointerLocked) ||
+      Input.mouse.right
     ) {
       mdx = Input.mouse.dx;
       mdy = Input.mouse.dy;
@@ -325,8 +325,16 @@ class Application {
   private checkCollisions() {
     const h = this.PLAYER_SIZE / 2;
     this.player.bounds = new BoundingBox(
-        new Vector3D(this.player.position.x - h, this.player.position.y - h, this.player.position.z - h),
-        new Vector3D(this.player.position.x + h, this.player.position.y + h, this.player.position.z + h),
+      new Vector3D(
+        this.player.position.x - h,
+        this.player.position.y - h,
+        this.player.position.z - h,
+      ),
+      new Vector3D(
+        this.player.position.x + h,
+        this.player.position.y + h,
+        this.player.position.z + h,
+      ),
     );
 
     for (let i = this.spheres.length - 1; i >= 0; i--) {

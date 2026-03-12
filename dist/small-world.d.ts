@@ -145,7 +145,7 @@ export declare class DirectionalLight extends AbstractLight {
     constructor(color?: Color, intensity?: number);
 }
 
-export declare const ENGINE_VERSION = "0.9.4";
+export declare const ENGINE_VERSION = "0.10.1";
 
 export declare class EventDispatcher {
     private _listeners;
