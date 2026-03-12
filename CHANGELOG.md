@@ -1,6 +1,67 @@
 # Changelog
 
+## [0.10.2] - 2026-03-12
+- Improve linting and formatting
+- Re-work /dist, TS bundling etc.
+- Bug fixing due to the last refactorings
+- Bug fixing
+- Bug fixing; Fasten class type checks
+- Fix WebGPU texture bug
+- Add MTL loader; Rework material checks (speed improvements)
+- Even more refactoring; Event system; Asset loader pipelines
+- Fix Sphere geometry generation
+- Reorganize loaders; Add .OBJ loader
+- Extend HUD data
+- Add and use vector normalization
+- Add code collection script
+- Improve vectors
+- Implement SkyBox
+- Implement basic texture and assessment management stuff
+- Add new geometries (pyramid, torus and cylinder).
+- Some code improvements
+- Re-work light system
+- Re-work camera system (strategy pattern plus factor)
+- Re-work cube-demo.ts
+- Add FPS camera strategy
+- Changelog
+- Add changelog generation script
+- Add SpotLight and fix all ESLint any-types
+- Code style; Add ESLint
+- Refactoring HUD template
+- Refactoring code; Implementing rotation
+- Implementing point light and ambient light
+- Start implementing light
+- Start implementing materials
+- Implement frustrum calculation
+- Implement geometry caching
+- Set version 0.8.30
+- Clean up
+- Dynamic version display; Re-introduce /dist
+- Fix of the day
+- Major code and math base improvements
+- Code style;
+- Improve HUD; Code style; Collision detection improvements
+- Improve HUD; Code style
+- Enrich Vector2D methods with essential methods for math, collision detection etc.
+- Enrich Vector3D methods with essential methods for math, collision detection etc.
+- Improve generation of geometry data
+- Improve code style, types etc
+- Improve parameter naming and types of the geometric classes
+- Improve HUD
+- Introduce HUD
+- Introduce Vector3D and Vector2D
+- Improve base color handling; Introduce the grid
+- Add grid; Add world boundaries
+- Integrate "prettier"
+- Use constants instead of hard coded strings for input keys
+- Remove node_modules
+- Add camera follow strategies; Add some more debug information;
+- Initial commits
+- Initial commit from local project
+- Initial commit
+
 ## [0.10.1] - 2026-03-12
+
 - Improve linting and formatting
 
 ## [0.10.0] - 2026-03-12

@@ -1,22 +1,16 @@
 /// src/renderers/WebGL1Renderer.ts
-import { Color } from "../core/colors/Color.js";
 import { CubeTexture } from "../core/textures/CubeTexture.js";
-import { DirectionalLight } from "../core/lights/DirectionalLight.js";
 import { IGeometryData } from "../interfaces/IGeometryData.js";
-import { IRenderer } from "../interfaces/IRenderer.js";
-import { AbstractLight } from "../core/lights/AbstractLight.js";
-import { LightType } from "../enums/LightType.js";
 import { Mesh } from "./Mesh.js";
 import { Object3D } from "../core/Object3D.js";
 import { PhongMaterial } from "../core/materials/PhongMaterial.js";
-import { PointLight } from "../core/lights/PointLight.js";
 import { Scene } from "../core/Scene.js";
 import { SkyboxMaterial } from "../core/materials/SkyboxMaterial.js";
-import { SpotLight } from "../core/lights/SpotLight.js";
 import { Texture } from "../core/textures/Texture.js";
 import { Vector3D } from "../math/Vector3D.js";
 import { RendererType } from "../enums/RendererType.js";
 import { MaterialType } from "../enums/MaterialType.js";
+import { AbstractWebGLRenderer } from "./AbstractWebGLRenderer.js";
 
 interface ShaderLocs {
   pos: number;
@@ -38,9 +32,8 @@ interface ShaderLocs {
   texRepeat: WebGLUniformLocation | null;
 }
 
-export class WebGL1Renderer implements IRenderer {
+export class WebGL1Renderer extends AbstractWebGLRenderer {
   public readonly type = RendererType.WEB_GL1;
-  private gl!: WebGLRenderingContext;
   private prog!: WebGLProgram;
   private locs!: ShaderLocs;
   private skyProg!: WebGLProgram;
@@ -55,9 +48,6 @@ export class WebGL1Renderer implements IRenderer {
   private texCache = new Map<Texture, WebGLTexture>();
   private texCubeCache = new Map<CubeTexture, WebGLTexture>();
 
-  private defaultTexture!: WebGLTexture;
-  private defaultCubeTexture!: WebGLTexture;
-
   private pointLightLocs: { pos: WebGLUniformLocation | null; col: WebGLUniformLocation | null }[] =
     [];
   private spotLightLocs: {
@@ -71,60 +61,18 @@ export class WebGL1Renderer implements IRenderer {
     this.gl = (canvas.getContext("webgl", { antialias: true }) ||
       canvas.getContext("experimental-webgl")) as WebGLRenderingContext;
 
-    // Default Texturen
-    this.defaultTexture = this.gl.createTexture()!;
-    this.gl.bindTexture(this.gl.TEXTURE_2D, this.defaultTexture);
-    this.gl.texImage2D(
-      this.gl.TEXTURE_2D,
-      0,
-      this.gl.RGBA,
-      1,
-      1,
-      0,
-      this.gl.RGBA,
-      this.gl.UNSIGNED_BYTE,
-      new Uint8Array([255, 255, 255, 255]),
-    );
+    // Nutze geerbte Methode für Fallback-Texturen
+    this.initDefaultTextures();
 
-    this.defaultCubeTexture = this.gl.createTexture()!;
-    this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, this.defaultCubeTexture);
-    for (let i = 0; i < 6; i++) {
-      this.gl.texImage2D(
-        this.gl.TEXTURE_CUBE_MAP_POSITIVE_X + i,
-        0,
-        this.gl.RGBA,
-        1,
-        1,
-        0,
-        this.gl.RGBA,
-        this.gl.UNSIGNED_BYTE,
-        new Uint8Array([50, 50, 100, 255]),
-      );
-    }
-
-    // Shaders (Zusammengefasst für WebGL 1.0 / GLSL ES 100)
     const vs = `attribute vec3 a_position; attribute vec3 a_normal; attribute vec2 a_uv; uniform mat4 u_vp; uniform mat4 u_model; uniform vec2 u_texOffset; uniform vec2 u_texRepeat; varying vec3 v_worldPos; varying vec3 v_normal; varying vec2 v_uv; mat3 extractMat3(mat4 m) { return mat3(m[0].xyz, m[1].xyz, m[2].xyz); } void main() { vec4 wp = u_model * vec4(a_position, 1.0); v_worldPos = wp.xyz; v_normal = extractMat3(u_model) * a_normal; v_uv = (a_uv * u_texRepeat) + u_texOffset; gl_Position = u_vp * wp; }`;
     const fs = `precision highp float; varying vec3 v_worldPos; varying vec3 v_normal; varying vec2 v_uv; uniform vec4 u_color; uniform vec4 u_specColor; uniform float u_shininess; uniform vec3 u_viewPos; uniform vec3 u_ambientColor; uniform vec3 u_dirLightColor; uniform vec3 u_dirLightDir; uniform sampler2D u_diffuseMap; uniform int u_numPointLights; uniform vec3 u_pointLightPos[4]; uniform vec3 u_pointLightColor[4]; uniform int u_numSpotLights; uniform vec3 u_spotLightPos[4]; uniform vec3 u_spotLightDir[4]; uniform vec3 u_spotLightColor[4]; uniform vec4 u_spotLightParams[4]; void main() { vec4 texColor = texture2D(u_diffuseMap, v_uv); if (u_shininess < -0.5) { gl_FragColor = u_color * texColor; return; } vec3 N = normalize(v_normal); vec3 V = normalize(u_viewPos - v_worldPos); vec3 finalLight = u_ambientColor; vec3 specular = vec3(0.0); vec3 L_dir = normalize(u_dirLightDir); float diff_dir = max(dot(N, L_dir), 0.0); finalLight += diff_dir * u_dirLightColor; if (u_shininess > 0.0 && diff_dir > 0.0) specular += pow(max(dot(V, reflect(-L_dir, N)), 0.0), u_shininess) * u_dirLightColor; for(int i = 0; i < 4; i++) { if (i >= u_numPointLights) break; vec3 lightVec = u_pointLightPos[i] - v_worldPos; float dist = length(lightVec); vec3 L_pt = lightVec / dist; float attenuation = 1.0 / (1.0 + 0.1 * dist + 0.01 * dist * dist); float diff_pt = max(dot(N, L_pt), 0.0); finalLight += diff_pt * u_pointLightColor[i] * attenuation; if (u_shininess > 0.0 && diff_pt > 0.0) specular += pow(max(dot(V, reflect(-L_pt, N)), 0.0), u_shininess) * u_pointLightColor[i] * attenuation; } for(int i = 0; i < 4; i++) { if (i >= u_numSpotLights) break; vec3 lightVec = u_spotLightPos[i] - v_worldPos; float dist = length(lightVec); vec3 L_sp = lightVec / dist; vec3 S_dir = normalize(u_spotLightDir[i]); float theta = dot(-L_sp, S_dir); if(theta > u_spotLightParams[i].x) { float spotEffect = smoothstep(u_spotLightParams[i].x, u_spotLightParams[i].y, theta); float attenuation = 1.0 / (1.0 + 0.1 * dist + 0.01 * dist * dist); float diff_sp = max(dot(N, L_sp), 0.0); finalLight += diff_sp * u_spotLightColor[i] * attenuation * spotEffect; if (u_shininess > 0.0 && diff_sp > 0.0) specular += pow(max(dot(V, reflect(-L_sp, N)), 0.0), u_shininess) * u_spotLightColor[i] * attenuation * spotEffect; } } gl_FragColor = vec4((finalLight * u_color.rgb * texColor.rgb) + (specular * u_specColor.rgb), u_color.a * texColor.a); }`;
 
-    const createShader = (vSrc: string, fSrc: string) => {
-      const v = this.gl.createShader(this.gl.VERTEX_SHADER)!;
-      this.gl.shaderSource(v, vSrc);
-      this.gl.compileShader(v);
-      const f = this.gl.createShader(this.gl.FRAGMENT_SHADER)!;
-      this.gl.shaderSource(f, fSrc);
-      this.gl.compileShader(f);
-      const p = this.gl.createProgram()!;
-      this.gl.attachShader(p, v);
-      this.gl.attachShader(p, f);
-      this.gl.linkProgram(p);
-      return p;
-    };
+    const skyVs = `attribute vec3 a_position; uniform mat4 u_vp; uniform mat4 u_model; varying vec3 v_uvw; void main() { v_uvw = a_position; gl_Position = u_vp * u_model * vec4(a_position, 1.0); }`;
+    const skyFs = `precision highp float; varying vec3 v_uvw; uniform samplerCube u_skybox; void main() { gl_FragColor = textureCube(u_skybox, v_uvw); }`;
 
-    this.prog = createShader(vs, fs);
-    this.skyProg = createShader(
-      `attribute vec3 a_position; uniform mat4 u_vp; uniform mat4 u_model; varying vec3 v_uvw; void main() { v_uvw = a_position; gl_Position = u_vp * u_model * vec4(a_position, 1.0); }`,
-      `precision highp float; varying vec3 v_uvw; uniform samplerCube u_skybox; void main() { gl_FragColor = textureCube(u_skybox, v_uvw); }`,
-    );
+    // Nutze geerbte Methode zum Kompilieren
+    this.prog = this.createShaderProgram(vs, fs);
+    this.skyProg = this.createShaderProgram(skyVs, skyFs);
 
     this.locs = {
       pos: this.gl.getAttribLocation(this.prog, "a_position"),
@@ -232,10 +180,6 @@ export class WebGL1Renderer implements IRenderer {
     return glTex;
   }
 
-  public setClearColor(color: Color): void {
-    this.gl.clearColor(color.r, color.g, color.b, color.a);
-  }
-
   public render(scene: Scene, vp: Float32Array, camPos: Vector3D = new Vector3D()) {
     this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
 
@@ -274,43 +218,8 @@ export class WebGL1Renderer implements IRenderer {
     if (this.locs.vp) this.gl.uniformMatrix4fv(this.locs.vp, false, vp);
     if (this.locs.viewPos) this.gl.uniform3f(this.locs.viewPos, camPos.x, camPos.y, camPos.z);
 
-    let aCol = new Color(0, 0, 0),
-      dDir = new Vector3D(0, 1, 0),
-      dCol = new Color(0, 0, 0);
-    const pLights: PointLight[] = [],
-      sLights: SpotLight[] = [];
-
-    const extractLights = (node: Object3D | AbstractLight) => {
-      if (node instanceof AbstractLight) {
-        const light = node as AbstractLight;
-        switch (light.type) {
-          case LightType.AMBIENT:
-            aCol = new Color(
-              light.color.r * light.intensity,
-              light.color.g * light.intensity,
-              light.color.b * light.intensity,
-            );
-            break;
-          case LightType.DIRECTIONAL:
-            const dLight = light as DirectionalLight;
-            dDir = dLight.direction.clone().scale(-1).normalize();
-            dCol = new Color(
-              light.color.r * light.intensity,
-              light.color.g * light.intensity,
-              light.color.b * light.intensity,
-            );
-            break;
-          case LightType.POINT:
-            if (pLights.length < 4) pLights.push(light as PointLight);
-            break;
-          case LightType.SPOT:
-            if (sLights.length < 4) sLights.push(light as SpotLight);
-            break;
-        }
-      }
-      if (node.children) node.children.forEach(extractLights);
-    };
-    for (const obj of scene.objects) extractLights(obj);
+    // Nutze geerbte Methode zur Licht-Extraktion!
+    const { aCol, dDir, dCol, pLights, sLights } = this.extractLights(scene);
 
     if (this.locs.ambient) this.gl.uniform3f(this.locs.ambient, aCol.r, aCol.g, aCol.b);
     if (this.locs.dirDir) this.gl.uniform3f(this.locs.dirDir, dDir.x, dDir.y, dDir.z);
@@ -411,12 +320,5 @@ export class WebGL1Renderer implements IRenderer {
       if (o.children) for (const child of o.children) drawNormal(child);
     };
     for (const obj of scene.objects) drawNormal(obj);
-  }
-
-  public setSize(w: number, h: number) {
-    const d = devicePixelRatio;
-    this.gl.canvas.width = w * d;
-    this.gl.canvas.height = h * d;
-    this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
   }
 }

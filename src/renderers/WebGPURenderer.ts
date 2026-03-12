@@ -1,22 +1,20 @@
+/// src/renderers/WebGPURenderer.ts
 import { Color } from "../core/colors/Color.js";
 import { CubeTexture } from "../core/textures/CubeTexture.js";
-import { DirectionalLight } from "../core/lights/DirectionalLight.js";
 import { IGeometryData } from "../interfaces/IGeometryData.js";
-import { IRenderer } from "../interfaces/IRenderer.js";
-import { AbstractLight } from "../core/lights/AbstractLight.js";
-import { LightType } from "../enums/LightType.js";
 import { Object3D } from "../core/Object3D.js";
 import { PhongMaterial } from "../core/materials/PhongMaterial.js";
-import { PointLight } from "../core/lights/PointLight.js";
 import { Scene } from "../core/Scene.js";
 import { SkyboxMaterial } from "../core/materials/SkyboxMaterial.js";
-import { SpotLight } from "../core/lights/SpotLight.js";
 import { Texture } from "../core/textures/Texture.js";
 import { Vector3D } from "../math/Vector3D.js";
 import { RendererType } from "../enums/RendererType.js";
 import { MaterialType } from "../enums/MaterialType.js";
 
-export class WebGPURenderer implements IRenderer {
+// NEU: Wir erben direkt von der obersten abstrakten Klasse
+import { AbstractRenderer } from "./AbstractRenderer.js";
+
+export class WebGPURenderer extends AbstractRenderer {
   public readonly type = RendererType.WEB_GPU;
   private adapter: GPUAdapter | null = null;
   private device: GPUDevice | null = null;
@@ -55,7 +53,6 @@ export class WebGPURenderer implements IRenderer {
   private texCubeCache = new Map<CubeTexture, GPUBindGroup>();
   private samplerCache = new Map<string, GPUSampler>();
 
-  private clearColor = { r: 0, g: 0, b: 0, a: 1 };
   private depthTexture!: GPUTexture;
 
   public async initialize(canvas: HTMLCanvasElement) {
@@ -157,7 +154,6 @@ export class WebGPURenderer implements IRenderer {
     const layout = this.device.createPipelineLayout({
       bindGroupLayouts: [this.objBGL, this.texBGL],
     });
-
     const skyLayout = this.device.createPipelineLayout({
       bindGroupLayouts: [this.objBGL, this.skyTexBGL],
     });
@@ -166,14 +162,8 @@ export class WebGPURenderer implements IRenderer {
       vertex: {
         module: sm,
         buffers: [
-          {
-            arrayStride: 12,
-            attributes: [{ shaderLocation: 0, offset: 0, format: "float32x3" }],
-          },
-          {
-            arrayStride: 12,
-            attributes: [{ shaderLocation: 1, offset: 0, format: "float32x3" }],
-          },
+          { arrayStride: 12, attributes: [{ shaderLocation: 0, offset: 0, format: "float32x3" }] },
+          { arrayStride: 12, attributes: [{ shaderLocation: 1, offset: 0, format: "float32x3" }] },
           { arrayStride: 8, attributes: [{ shaderLocation: 2, offset: 0, format: "float32x2" }] },
         ],
       },
@@ -220,16 +210,14 @@ export class WebGPURenderer implements IRenderer {
       format: "rgba8unorm",
       usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
     });
-    for (let i = 0; i < 6; i++)
+    for (let i = 0; i < 6; i++) {
       this.device.queue.writeTexture(
-        {
-          texture: whiteCube,
-          origin: [0, 0, i],
-        },
+        { texture: whiteCube, origin: [0, 0, i] },
         new Uint8Array([50, 50, 100, 255]),
         { bytesPerRow: 4 },
         [1, 1],
       );
+    }
 
     this.defaultCubeTexBindGroup = this.device.createBindGroup({
       layout: this.skyTexBGL,
@@ -244,7 +232,6 @@ export class WebGPURenderer implements IRenderer {
 
   private getSampler(tex: Texture): GPUSampler {
     const key = `${tex.addressModeU}_${tex.addressModeV}_${tex.magFilter}_${tex.minFilter}`;
-
     if (!this.samplerCache.has(key)) {
       const sampler = this.device!.createSampler({
         addressModeU: tex.addressModeU,
@@ -255,13 +242,10 @@ export class WebGPURenderer implements IRenderer {
       });
       this.samplerCache.set(key, sampler);
     }
-
     return this.samplerCache.get(key)!;
   }
 
-  public setClearColor(color: Color) {
-    this.clearColor = { r: color.r, g: color.g, b: color.b, a: color.a };
-  }
+  // WICHTIG: public setClearColor() wurde gelöscht, da es nun über die abstrakte Klasse läuft!
 
   public setSize(width: number, height: number) {
     if (!this.device) return;
@@ -325,10 +309,7 @@ export class WebGPURenderer implements IRenderer {
         entries: [
           { binding: 0, resource: { buffer: ub } },
           { binding: 1, resource: { buffer: plb } },
-          {
-            binding: 2,
-            resource: { buffer: slb },
-          },
+          { binding: 2, resource: { buffer: slb } },
         ],
       });
       c = { ub, plb, slb, bg };
@@ -339,7 +320,6 @@ export class WebGPURenderer implements IRenderer {
 
   private getGPUTextureBindGroup(tex: Texture) {
     if (!tex.isLoaded || !tex.image) return this.defaultTexBindGroup;
-
     let bg = this.texCache.get(tex);
     if (!bg) {
       const t = this.device!.createTexture({
@@ -383,23 +363,18 @@ export class WebGPURenderer implements IRenderer {
           GPUTextureUsage.COPY_DST |
           GPUTextureUsage.RENDER_ATTACHMENT,
       });
-      for (let i = 0; i < 6; i++)
+      for (let i = 0; i < 6; i++) {
         this.device!.queue.copyExternalImageToTexture(
           { source: tex.images[i] as ImageBitmap },
-          {
-            texture: t,
-            origin: [0, 0, i],
-          },
+          { texture: t, origin: [0, 0, i] },
           [img.width, img.height],
         );
+      }
       bg = this.device!.createBindGroup({
         layout: this.skyTexBGL,
         entries: [
           { binding: 0, resource: t.createView({ dimension: "cube" }) },
-          {
-            binding: 1,
-            resource: this.sampler,
-          },
+          { binding: 1, resource: this.sampler },
         ],
       });
       this.texCubeCache.set(tex, bg);
@@ -414,6 +389,7 @@ export class WebGPURenderer implements IRenderer {
       colorAttachments: [
         {
           view: this.context.getCurrentTexture().createView(),
+          // WICHTIG: Wir nutzen die geerbte clearColor Instanz. WebGPU akzeptiert dieses Object direkt duck-typed!
           clearValue: this.clearColor,
           loadOp: "clear",
           storeOp: "store",
@@ -427,42 +403,8 @@ export class WebGPURenderer implements IRenderer {
       },
     });
 
-    let aCol = new Color(0, 0, 0),
-      dDir = new Vector3D(0, 1, 0),
-      dCol = new Color(0, 0, 0);
-    const pLights: PointLight[] = [],
-      sLights: SpotLight[] = [];
-    const extractLights = (node: Object3D | AbstractLight) => {
-      if (node instanceof AbstractLight) {
-        const light = node as AbstractLight;
-        switch (light.type) {
-          case LightType.AMBIENT:
-            aCol = new Color(
-              light.color.r * light.intensity,
-              light.color.g * light.intensity,
-              light.color.b * light.intensity,
-            );
-            break;
-          case LightType.DIRECTIONAL:
-            const dLight = light as DirectionalLight;
-            dDir = dLight.direction.clone().scale(-1).normalize();
-            dCol = new Color(
-              light.color.r * light.intensity,
-              light.color.g * light.intensity,
-              light.color.b * light.intensity,
-            );
-            break;
-          case LightType.POINT:
-            if (pLights.length < 4) pLights.push(light as PointLight);
-            break;
-          case LightType.SPOT:
-            if (sLights.length < 4) sLights.push(light as SpotLight);
-            break;
-        }
-      }
-      if (node.children) node.children.forEach(extractLights);
-    };
-    for (const obj of scene.objects) extractLights(obj);
+    // WICHTIG: Licht-Extraktion radikal gekürzt durch Vererbung!
+    const { aCol, dDir, dCol, pLights, sLights } = this.extractLights(scene);
 
     const uData = new Float32Array(160);
     uData.set(vpMatrix, 0);
@@ -510,10 +452,10 @@ export class WebGPURenderer implements IRenderer {
 
       const mat = obj.material;
       let texBindGroup: GPUBindGroup = this.defaultTexBindGroup;
-      let shininess = -1.0;
-      let specCol = [0, 0, 0, 0];
-      let tOffset = [0, 0];
-      let tRepeat = [1, 1];
+      let shininess = -1.0,
+        specCol = [0, 0, 0, 0],
+        tOffset = [0, 0],
+        tRepeat = [1, 1];
 
       if (mat.type === MaterialType.SKYBOX) {
         rp.setPipeline(this.pipelineSkybox);
@@ -562,7 +504,9 @@ export class WebGPURenderer implements IRenderer {
       if (gCache.ib && gCache.format) {
         rp.setIndexBuffer(gCache.ib, gCache.format);
         rp.drawIndexed(gCache.indexCount);
-      } else rp.draw(gCache.vertexCount);
+      } else {
+        rp.draw(gCache.vertexCount);
+      }
 
       if (obj.children) for (const child of obj.children) drawObject(child);
     };
