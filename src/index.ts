@@ -6,7 +6,7 @@ export { HUD } from "./core/HUD.js";
 export { Input } from "./core/Input.js";
 export { Object3D } from "./core/Object3D.js";
 export { Scene } from "./core/Scene.js";
-export { SmallWorld, WorldConfig } from "./core/SmallWorld.js";
+export { SmallWorld, type WorldConfig } from "./core/SmallWorld.js";
 export { ObjLoader } from "./loaders/ObjLoader.js";
 
 // --- Textures ---

@@ -1,1 +1,0 @@
-{"version":3,"file":"WireframeMaterial.js","sourceRoot":"","sources":["../../../../src/core/materials/WireframeMaterial.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,gBAAgB,EAAE,MAAM,uBAAuB,CAAC;AACzD,OAAO,EAAE,YAAY,EAAE,MAAM,6BAA6B,CAAC;AAC3D,MAAM,OAAO,iBAAkB,SAAQ,gBAAgB;IACrC,IAAI,GAAG,YAAY,CAAC,SAAS,CAAC;CAC/C"}
