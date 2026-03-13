@@ -1,5 +1,8 @@
 # Changelog
 
+## [0.10.3] - 2026-03-13
+- Implement AreaLight
+
 ## [0.10.2] - 2026-03-12
 - Renderer refactoring
 
