@@ -1,5 +1,8 @@
 # Changelog
 
+## [0.10.6] - 2026-03-13
+- Crush the code
+
 ## [0.10.5] - 2026-03-13
 
 - Introduce terrain with heightmap
