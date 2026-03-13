@@ -13,6 +13,9 @@ import { RendererType } from "../enums/RendererType.js";
 import { MaterialType } from "../enums/MaterialType.js";
 import { AbstractWebGLRenderer } from "./AbstractWebGLRenderer.js";
 
+// NEU: Import für das AreaLight!
+import { AreaLight } from "../core/lights/AreaLight.js";
+
 interface ShaderLocs {
   pos: number;
   norm: number;
@@ -28,6 +31,7 @@ interface ShaderLocs {
   viewPos: WebGLUniformLocation | null;
   numPL: WebGLUniformLocation | null;
   numSL: WebGLUniformLocation | null;
+  numAL: WebGLUniformLocation | null; // <-- NEU
   diffuseMap: WebGLUniformLocation | null;
   texOffset: WebGLUniformLocation | null;
   texRepeat: WebGLUniformLocation | null;
@@ -35,13 +39,10 @@ interface ShaderLocs {
 
 export class WebGL2Renderer extends AbstractWebGLRenderer {
   public readonly type = RendererType.WEB_GL2;
-
-  // Type-Hint, da wir sicher wissen, dass es WebGL2 ist
-  declare protected gl: WebGL2RenderingContext;
+  protected declare gl: WebGL2RenderingContext;
 
   private prog!: WebGLProgram;
   private locs!: ShaderLocs;
-
   private skyProg!: WebGLProgram;
   private skyLocs!: {
     pos: number;
@@ -54,8 +55,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
   private texCache = new Map<Texture, WebGLTexture>();
   private texCubeCache = new Map<CubeTexture, WebGLTexture>();
 
-  private pointLightLocs: { pos: WebGLUniformLocation | null; col: WebGLUniformLocation | null }[] =
-    [];
+  private pointLightLocs: { pos: WebGLUniformLocation | null; col: WebGLUniformLocation | null }[] = [];
   private spotLightLocs: {
     pos: WebGLUniformLocation | null;
     dir: WebGLUniformLocation | null;
@@ -63,13 +63,20 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     params: WebGLUniformLocation | null;
   }[] = [];
 
+  // <-- NEU: Locations für bis zu 4 AreaLights
+  private areaLightLocs: {
+    pos: WebGLUniformLocation | null;
+    col: WebGLUniformLocation | null;
+    right: WebGLUniformLocation | null;
+    up: WebGLUniformLocation | null;
+    normal: WebGLUniformLocation | null;
+    size: WebGLUniformLocation | null;
+  }[] = [];
+
   public async initialize(canvas: HTMLCanvasElement) {
     this.gl = canvas.getContext("webgl2", { antialias: true })!;
-
-    // Nutze geerbte Methode für Fallback-Texturen
     this.initDefaultTextures();
 
-    // MAIN SHADER
     const vsCode = `#version 300 es
     in vec3 a_position; in vec3 a_normal; in vec2 a_uv;
     uniform mat4 u_vp; uniform mat4 u_model; uniform vec2 u_texOffset; uniform vec2 u_texRepeat;
@@ -80,23 +87,42 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       gl_Position = u_vp * wp;
     }`;
 
+    // WICHTIG: Der Fragment Shader wurde um den Area Light Algorithmus erweitert!
     const fsCode = `#version 300 es
     precision highp float;
     in vec3 v_worldPos; in vec3 v_normal; in vec2 v_uv;
     uniform vec4 u_color; uniform vec4 u_specColor; uniform float u_shininess; uniform vec3 u_viewPos;
     uniform vec3 u_ambientColor; uniform vec3 u_dirLightColor; uniform vec3 u_dirLightDir;
     uniform sampler2D u_diffuseMap;
+    
     uniform int u_numPointLights; uniform vec3 u_pointLightPos[4]; uniform vec3 u_pointLightColor[4];
     uniform int u_numSpotLights; uniform vec3 u_spotLightPos[4]; uniform vec3 u_spotLightDir[4]; uniform vec3 u_spotLightColor[4]; uniform vec4 u_spotLightParams[4];
+    
+    uniform int u_numAreaLights;
+    uniform vec3 u_areaLightPos[4];
+    uniform vec3 u_areaLightColor[4];
+    uniform vec3 u_areaLightRight[4];
+    uniform vec3 u_areaLightUp[4];
+    uniform vec3 u_areaLightNormal[4];
+    uniform vec2 u_areaLightSize[4];
+
     out vec4 c;
+
     void main() {
       vec4 texColor = texture(u_diffuseMap, v_uv);
       if (u_shininess < -0.5) { c = u_color * texColor; return; }
-      vec3 N = normalize(v_normal); vec3 V = normalize(u_viewPos - v_worldPos);
-      vec3 finalLight = u_ambientColor; vec3 specular = vec3(0.0);
+      
+      vec3 N = normalize(v_normal); 
+      vec3 V = normalize(u_viewPos - v_worldPos);
+      vec3 finalLight = u_ambientColor; 
+      vec3 specular = vec3(0.0);
+      
+      // Directional Light
       vec3 L_dir = normalize(u_dirLightDir); float diff_dir = max(dot(N, L_dir), 0.0);
       finalLight += diff_dir * u_dirLightColor;
       if (u_shininess > 0.0 && diff_dir > 0.0) specular += pow(max(dot(V, reflect(-L_dir, N)), 0.0), u_shininess) * u_dirLightColor;
+      
+      // Point Lights
       for(int i = 0; i < 4; i++) {
         if (i >= u_numPointLights) break;
         vec3 lightVec = u_pointLightPos[i] - v_worldPos; float dist = length(lightVec); vec3 L_pt = lightVec / dist;
@@ -104,6 +130,8 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         finalLight += diff_pt * u_pointLightColor[i] * attenuation;
         if (u_shininess > 0.0 && diff_pt > 0.0) specular += pow(max(dot(V, reflect(-L_pt, N)), 0.0), u_shininess) * u_pointLightColor[i] * attenuation;
       }
+      
+      // Spot Lights
       for(int i = 0; i < 4; i++) {
         if (i >= u_numSpotLights) break;
         vec3 lightVec = u_spotLightPos[i] - v_worldPos; float dist = length(lightVec); vec3 L_sp = lightVec / dist;
@@ -115,24 +143,53 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
             if (u_shininess > 0.0 && diff_sp > 0.0) specular += pow(max(dot(V, reflect(-L_sp, N)), 0.0), u_shininess) * u_spotLightColor[i] * attenuation * spotEffect;
         }
       }
+
+      // Area Lights (Representative Point)
+      for(int i = 0; i < 4; i++) {
+        if (i >= u_numAreaLights) break;
+        
+        vec3 L_center = u_areaLightPos[i];
+        vec3 L_normal = normalize(u_areaLightNormal[i]);
+        vec3 dirFromLight = v_worldPos - L_center;
+        
+        // Licht strahlt nur nach vorne ab!
+        if(dot(dirFromLight, L_normal) < 0.0) continue; 
+        
+        vec3 L_right = normalize(u_areaLightRight[i]);
+        vec3 L_up = normalize(u_areaLightUp[i]);
+        vec2 size = u_areaLightSize[i];
+
+        // Projektion auf die Leuchtfläche
+        float projX = clamp(dot(dirFromLight, L_right), -size.x, size.x);
+        float projY = clamp(dot(dirFromLight, L_up), -size.y, size.y);
+
+        // Der nächstgelegene Punkt auf der Fläche wird zu unserem "PointLight"
+        vec3 closestPoint = L_center + L_right * projX + L_up * projY;
+        
+        vec3 lightVec = closestPoint - v_worldPos; 
+        float dist = length(lightVec); 
+        vec3 L_al = lightVec / (dist + 0.0001); // div by zero verhindern
+
+        float attenuation = 1.0 / (1.0 + 0.1 * dist + 0.01 * dist * dist); 
+        float diff_al = max(dot(N, L_al), 0.0);
+        
+        finalLight += diff_al * u_areaLightColor[i] * attenuation;
+        if (u_shininess > 0.0 && diff_al > 0.0) {
+            specular += pow(max(dot(V, reflect(-L_al, N)), 0.0), u_shininess) * u_areaLightColor[i] * attenuation;
+        }
+      }
+
       c = vec4((finalLight * u_color.rgb * texColor.rgb) + (specular * u_specColor.rgb), u_color.a * texColor.a);
     }`;
 
-    // SKYBOX SHADER
     const skyVsCode = `#version 300 es
-    in vec3 a_position; uniform mat4 u_vp; uniform mat4 u_model;
-    out vec3 v_uvw;
-    void main() {
-        v_uvw = a_position; 
-        gl_Position = u_vp * u_model * vec4(a_position, 1.0);
-    }`;
+    in vec3 a_position; uniform mat4 u_vp; uniform mat4 u_model; out vec3 v_uvw;
+    void main() { v_uvw = a_position; gl_Position = u_vp * u_model * vec4(a_position, 1.0); }`;
+
     const skyFsCode = `#version 300 es
-    precision highp float;
-    in vec3 v_uvw; uniform samplerCube u_skybox;
-    out vec4 c;
+    precision highp float; in vec3 v_uvw; uniform samplerCube u_skybox; out vec4 c;
     void main() { c = texture(u_skybox, v_uvw); }`;
 
-    // Nutze geerbte Methode zum Kompilieren
     this.prog = this.createShaderProgram(vsCode, fsCode);
     this.skyProg = this.createShaderProgram(skyVsCode, skyFsCode);
 
@@ -151,6 +208,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       viewPos: this.gl.getUniformLocation(this.prog, "u_viewPos"),
       numPL: this.gl.getUniformLocation(this.prog, "u_numPointLights"),
       numSL: this.gl.getUniformLocation(this.prog, "u_numSpotLights"),
+      numAL: this.gl.getUniformLocation(this.prog, "u_numAreaLights"), // <-- NEU
       diffuseMap: this.gl.getUniformLocation(this.prog, "u_diffuseMap"),
       texOffset: this.gl.getUniformLocation(this.prog, "u_texOffset"),
       texRepeat: this.gl.getUniformLocation(this.prog, "u_texRepeat"),
@@ -174,6 +232,14 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         col: this.gl.getUniformLocation(this.prog, `u_spotLightColor[${i}]`),
         params: this.gl.getUniformLocation(this.prog, `u_spotLightParams[${i}]`),
       });
+      this.areaLightLocs.push({
+        pos: this.gl.getUniformLocation(this.prog, `u_areaLightPos[${i}]`),
+        col: this.gl.getUniformLocation(this.prog, `u_areaLightColor[${i}]`),
+        right: this.gl.getUniformLocation(this.prog, `u_areaLightRight[${i}]`),
+        up: this.gl.getUniformLocation(this.prog, `u_areaLightUp[${i}]`),
+        normal: this.gl.getUniformLocation(this.prog, `u_areaLightNormal[${i}]`),
+        size: this.gl.getUniformLocation(this.prog, `u_areaLightSize[${i}]`),
+      });
     }
     this.gl.enable(this.gl.DEPTH_TEST);
   }
@@ -184,24 +250,9 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     if (!glTex) {
       glTex = this.gl.createTexture()!;
       this.gl.bindTexture(this.gl.TEXTURE_2D, glTex);
-      this.gl.texImage2D(
-        this.gl.TEXTURE_2D,
-        0,
-        this.gl.RGBA,
-        this.gl.RGBA,
-        this.gl.UNSIGNED_BYTE,
-        tex.image,
-      );
-      this.gl.texParameteri(
-        this.gl.TEXTURE_2D,
-        this.gl.TEXTURE_MAG_FILTER,
-        tex.magFilter === "nearest" ? this.gl.NEAREST : this.gl.LINEAR,
-      );
-      this.gl.texParameteri(
-        this.gl.TEXTURE_2D,
-        this.gl.TEXTURE_MIN_FILTER,
-        tex.minFilter === "nearest" ? this.gl.NEAREST : this.gl.LINEAR,
-      );
+      this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, tex.image);
+      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, tex.magFilter === "nearest" ? this.gl.NEAREST : this.gl.LINEAR);
+      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, tex.minFilter === "nearest" ? this.gl.NEAREST : this.gl.LINEAR);
       this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.REPEAT);
       this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.REPEAT);
       this.texCache.set(tex, glTex);
@@ -216,14 +267,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       glTex = this.gl.createTexture()!;
       this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, glTex);
       for (let i = 0; i < 6; i++) {
-        this.gl.texImage2D(
-          this.gl.TEXTURE_CUBE_MAP_POSITIVE_X + i,
-          0,
-          this.gl.RGBA,
-          this.gl.RGBA,
-          this.gl.UNSIGNED_BYTE,
-          tex.images[i] as ImageBitmap,
-        );
+        this.gl.texImage2D(this.gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, tex.images[i] as ImageBitmap);
       }
       this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
       this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR);
@@ -250,13 +294,9 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
           this.cache.set(o.geometry, m);
         }
         m.bind(this.skyLocs.pos);
-        if (this.skyLocs.model)
-          this.gl.uniformMatrix4fv(this.skyLocs.model, false, o.worldMatrix.data);
+        if (this.skyLocs.model) this.gl.uniformMatrix4fv(this.skyLocs.model, false, o.worldMatrix.data);
         this.gl.activeTexture(this.gl.TEXTURE0);
-        this.gl.bindTexture(
-          this.gl.TEXTURE_CUBE_MAP,
-          skyMat.cubeMap ? this.getWebGLCubeTexture(skyMat.cubeMap) : this.defaultCubeTexture,
-        );
+        this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, skyMat.cubeMap ? this.getWebGLCubeTexture(skyMat.cubeMap) : this.defaultCubeTexture);
         if (this.skyLocs.skybox) this.gl.uniform1i(this.skyLocs.skybox, 0);
         this.gl.drawElements(this.gl.TRIANGLES, m.count, this.gl.UNSIGNED_SHORT, 0);
       }
@@ -270,56 +310,55 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     if (this.locs.vp) this.gl.uniformMatrix4fv(this.locs.vp, false, vp);
     if (this.locs.viewPos) this.gl.uniform3f(this.locs.viewPos, camPos.x, camPos.y, camPos.z);
 
-    // Nutze geerbte Methode zur Licht-Extraktion!
-    const { aCol, dDir, dCol, pLights, sLights } = this.extractLights(scene);
+    // Licht-Extraktion (beinhaltet jetzt auch aLights!)
+    const { aCol, dDir, dCol, pLights, sLights, aLights } = this.extractLights(scene);
 
     if (this.locs.ambient) this.gl.uniform3f(this.locs.ambient, aCol.r, aCol.g, aCol.b);
     if (this.locs.dirDir) this.gl.uniform3f(this.locs.dirDir, dDir.x, dDir.y, dDir.z);
     if (this.locs.dirColor) this.gl.uniform3f(this.locs.dirColor, dCol.r, dCol.g, dCol.b);
+
+    // Point Lights
     if (this.locs.numPL) this.gl.uniform1i(this.locs.numPL, pLights.length);
     for (let i = 0; i < pLights.length; i++) {
       if (this.pointLightLocs[i].pos)
-        this.gl.uniform3f(
-          this.pointLightLocs[i].pos!,
-          pLights[i].worldMatrix.data[12],
-          pLights[i].worldMatrix.data[13],
-          pLights[i].worldMatrix.data[14],
-        );
+        this.gl.uniform3f(this.pointLightLocs[i].pos!, pLights[i].worldMatrix.data[12], pLights[i].worldMatrix.data[13], pLights[i].worldMatrix.data[14]);
       if (this.pointLightLocs[i].col)
-        this.gl.uniform3f(
-          this.pointLightLocs[i].col!,
-          pLights[i].color.r * pLights[i].intensity,
-          pLights[i].color.g * pLights[i].intensity,
-          pLights[i].color.b * pLights[i].intensity,
-        );
+        this.gl.uniform3f(this.pointLightLocs[i].col!, pLights[i].color.r * pLights[i].intensity, pLights[i].color.g * pLights[i].intensity, pLights[i].color.b * pLights[i].intensity);
     }
+
+    // Spot Lights
     if (this.locs.numSL) this.gl.uniform1i(this.locs.numSL, sLights.length);
     for (let i = 0; i < sLights.length; i++) {
       if (this.spotLightLocs[i].pos)
-        this.gl.uniform3f(
-          this.spotLightLocs[i].pos!,
-          sLights[i].worldMatrix.data[12],
-          sLights[i].worldMatrix.data[13],
-          sLights[i].worldMatrix.data[14],
-        );
+        this.gl.uniform3f(this.spotLightLocs[i].pos!, sLights[i].worldMatrix.data[12], sLights[i].worldMatrix.data[13], sLights[i].worldMatrix.data[14]);
       const dir = sLights[i].direction.clone().normalize();
-      if (this.spotLightLocs[i].dir)
-        this.gl.uniform3f(this.spotLightLocs[i].dir!, dir.x, dir.y, dir.z);
+      if (this.spotLightLocs[i].dir) this.gl.uniform3f(this.spotLightLocs[i].dir!, dir.x, dir.y, dir.z);
       if (this.spotLightLocs[i].col)
-        this.gl.uniform3f(
-          this.spotLightLocs[i].col!,
-          sLights[i].color.r * sLights[i].intensity,
-          sLights[i].color.g * sLights[i].intensity,
-          sLights[i].color.b * sLights[i].intensity,
-        );
+        this.gl.uniform3f(this.spotLightLocs[i].col!, sLights[i].color.r * sLights[i].intensity, sLights[i].color.g * sLights[i].intensity, sLights[i].color.b * sLights[i].intensity);
       if (this.spotLightLocs[i].params)
-        this.gl.uniform4f(
-          this.spotLightLocs[i].params!,
-          Math.cos(sLights[i].angle),
-          Math.cos(sLights[i].angle * (1.0 - sLights[i].penumbra)),
-          sLights[i].distance,
-          sLights[i].decay,
-        );
+        this.gl.uniform4f(this.spotLightLocs[i].params!, Math.cos(sLights[i].angle), Math.cos(sLights[i].angle * (1.0 - sLights[i].penumbra)), sLights[i].distance, sLights[i].decay);
+    }
+
+    // AREA LIGHTS
+    if (this.locs.numAL) this.gl.uniform1i(this.locs.numAL, aLights.length);
+    for (let i = 0; i < aLights.length; i++) {
+      const al = aLights[i] as AreaLight;
+      const mat = al.worldMatrix.data;
+
+      // Position
+      if (this.areaLightLocs[i].pos) this.gl.uniform3f(this.areaLightLocs[i].pos!, mat[12], mat[13], mat[14]);
+
+      // Farbe & Intensität
+      if (this.areaLightLocs[i].col) this.gl.uniform3f(this.areaLightLocs[i].col!, al.color.r * al.intensity, al.color.g * al.intensity, al.color.b * al.intensity);
+
+      // Rotations-Achsen aus der Matrix extrahieren (Spalten 0, 1 und 2 der Matrix)
+      if (this.areaLightLocs[i].right) this.gl.uniform3f(this.areaLightLocs[i].right!, mat[0], mat[1], mat[2]);
+      if (this.areaLightLocs[i].up) this.gl.uniform3f(this.areaLightLocs[i].up!, mat[4], mat[5], mat[6]);
+      // Wir nehmen die lokale Z-Achse als die Normale (Richtung, in die das Licht strahlt)
+      if (this.areaLightLocs[i].normal) this.gl.uniform3f(this.areaLightLocs[i].normal!, mat[8], mat[9], mat[10]);
+
+      // Größe (Halbe Breite und halbe Höhe)
+      if (this.areaLightLocs[i].size) this.gl.uniform2f(this.areaLightLocs[i].size!, al.width / 2.0, al.height / 2.0);
     }
 
     const drawNormal = (o: Object3D) => {
@@ -339,11 +378,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       if (this.locs.model) this.gl.uniformMatrix4fv(this.locs.model, false, o.worldMatrix.data);
       if (this.locs.color) this.gl.uniform4fv(this.locs.color, mat.color.toArray());
 
-      let shininess = -1.0,
-        specCol = [0, 0, 0, 0],
-        activeTex = this.defaultTexture,
-        tOffset = [0, 0],
-        tRepeat = [1, 1];
+      let shininess = -1.0, specCol = [0, 0, 0, 0], activeTex = this.defaultTexture, tOffset = [0, 0], tRepeat = [1, 1];
 
       if (mat.type === MaterialType.LAMBERT) {
         shininess = 0.0;
