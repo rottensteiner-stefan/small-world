@@ -10,6 +10,7 @@ import { LightType } from "../enums/LightType.js";
 import { PointLight } from "../core/lights/PointLight.js";
 import { SpotLight } from "../core/lights/SpotLight.js";
 import { DirectionalLight } from "../core/lights/DirectionalLight.js";
+import {AreaLight} from "../core/lights/AreaLight.js";
 
 export abstract class AbstractRenderer implements IRenderer {
   public abstract readonly type: RendererType;
@@ -32,25 +33,28 @@ export abstract class AbstractRenderer implements IRenderer {
     const sLights: SpotLight[] = [];
     const aLights: any[] = []; // <-- NEU (Typisierung als 'any' oder AreaLight importieren)
 
-    const traverse = (node: Object3D | AbstractLight) => {
-      if (node instanceof AbstractLight) {
-        switch (node.type) {
+    const traverse = (node: Object3D) => {
+      // Duck-Typing: Wenn das Objekt ein 'type' Feld hat, behandeln wir es als Licht
+      if ("type" in node) {
+        const light = node as AbstractLight; // TypeScript beruhigen
+
+        switch (light.type) {
           case LightType.AMBIENT:
-            aCol = new Color(node.color.r * node.intensity, node.color.g * node.intensity, node.color.b * node.intensity);
+            aCol = new Color(light.color.r * light.intensity, light.color.g * light.intensity, light.color.b * light.intensity);
             break;
           case LightType.DIRECTIONAL:
-            const dl = node as DirectionalLight;
+            const dl = light as DirectionalLight;
             dDir = dl.direction.clone().scale(-1).normalize();
-            dCol = new Color(node.color.r * node.intensity, node.color.g * node.intensity, node.color.b * node.intensity);
+            dCol = new Color(light.color.r * light.intensity, light.color.g * light.intensity, light.color.b * light.intensity);
             break;
           case LightType.POINT:
-            if (pLights.length < 4) pLights.push(node as PointLight);
+            if (pLights.length < 4) pLights.push(light as PointLight);
             break;
           case LightType.SPOT:
-            if (sLights.length < 4) sLights.push(node as SpotLight);
+            if (sLights.length < 4) sLights.push(light as SpotLight);
             break;
           case LightType.AREA:
-            if (aLights.length < 4) aLights.push(node); // <-- NEU
+            if (aLights.length < 4) aLights.push(light as AreaLight);
             break;
         }
       }
