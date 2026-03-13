@@ -34,6 +34,8 @@ interface ShaderLocs {
 
 export class WebGL1Renderer extends AbstractWebGLRenderer {
   public readonly type = RendererType.WEB_GL1;
+  protected declare gl: WebGLRenderingContext;
+
   private prog!: WebGLProgram;
   private locs!: ShaderLocs;
   private skyProg!: WebGLProgram;

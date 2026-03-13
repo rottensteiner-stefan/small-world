@@ -1,6 +1,7 @@
 /// examples/demo.ts
 import {
   AmbientLight,
+  AreaLight,
   BoundingBox,
   BoundingSphere,
   Camera,
@@ -89,11 +90,11 @@ class Application {
   private async setupScene() {
     const ambient = new AmbientLight(new Color(0.1, 0.1, 0.15), 0.5);
     this.scene.add(ambient);
-
+/*
     const sun = new DirectionalLight(Color.WHITE, 0.2);
     sun.direction.set(1, -1.5, -1).normalize();
     this.scene.add(sun);
-
+*/
     const WORLD_SIZE = this.sw.config.worldSize || 40;
     const grid = new Object3D("Grid");
     grid.geometry = new Grid(WORLD_SIZE, 50).getGeometryData();
@@ -149,6 +150,19 @@ class Application {
     } catch (error) {
       console.error("Fehler beim Laden des Schneemanns:", error);
     }
+
+    // --- SANFTES ROTES AREA LIGHT ---
+    // Parameter: Farbe (weiches Rot), Intensität, Breite, Höhe
+    const redAreaLight = new AreaLight(new Color(1.0, 0.2, 0.2), 3.0, 20.0, 20.0);
+
+    // Wir hängen das Leucht-Panel 10 Einheiten hoch über den Ursprung
+    redAreaLight.position.set(0, 10, 0);
+
+    // WICHTIG: Standardmäßig strahlt unser AreaLight entlang seiner Z-Achse.
+    // Wir kippen es um 90 Grad (PI / 2) nach unten, damit es den Boden anstrahlt!
+    redAreaLight.rotation.x = Math.PI / 2;
+
+    this.scene.add(redAreaLight);
   }
 
   private createSpheres() {

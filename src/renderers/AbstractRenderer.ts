@@ -30,31 +30,27 @@ export abstract class AbstractRenderer implements IRenderer {
     let dCol = new Color(0, 0, 0);
     const pLights: PointLight[] = [];
     const sLights: SpotLight[] = [];
+    const aLights: any[] = []; // <-- NEU (Typisierung als 'any' oder AreaLight importieren)
 
     const traverse = (node: Object3D | AbstractLight) => {
       if (node instanceof AbstractLight) {
         switch (node.type) {
           case LightType.AMBIENT:
-            aCol = new Color(
-              node.color.r * node.intensity,
-              node.color.g * node.intensity,
-              node.color.b * node.intensity,
-            );
+            aCol = new Color(node.color.r * node.intensity, node.color.g * node.intensity, node.color.b * node.intensity);
             break;
           case LightType.DIRECTIONAL:
             const dl = node as DirectionalLight;
             dDir = dl.direction.clone().scale(-1).normalize();
-            dCol = new Color(
-              node.color.r * node.intensity,
-              node.color.g * node.intensity,
-              node.color.b * node.intensity,
-            );
+            dCol = new Color(node.color.r * node.intensity, node.color.g * node.intensity, node.color.b * node.intensity);
             break;
           case LightType.POINT:
             if (pLights.length < 4) pLights.push(node as PointLight);
             break;
           case LightType.SPOT:
             if (sLights.length < 4) sLights.push(node as SpotLight);
+            break;
+          case LightType.AREA:
+            if (aLights.length < 4) aLights.push(node); // <-- NEU
             break;
         }
       }
@@ -63,6 +59,6 @@ export abstract class AbstractRenderer implements IRenderer {
 
     for (const obj of scene.objects) traverse(obj);
 
-    return { aCol, dDir, dCol, pLights, sLights };
+    return { aCol, dDir, dCol, pLights, sLights, aLights };
   }
 }

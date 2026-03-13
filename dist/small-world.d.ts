@@ -16,6 +16,14 @@ export declare class AmbientLight extends AbstractLight {
     constructor(color?: Color, intensity?: number);
 }
 
+export declare class AreaLight extends AbstractLight {
+    width: number;
+    height: number;
+    readonly type = LightType.AREA;
+    constructor(color?: Color, intensity?: number, width?: number, // Breite der Leuchtfläche
+    height?: number);
+}
+
 export declare class AssetManager {
     private static imageCache;
     private static textCache;
@@ -145,7 +153,7 @@ export declare class DirectionalLight extends AbstractLight {
     constructor(color?: Color, intensity?: number);
 }
 
-export declare const ENGINE_VERSION = "0.10.1";
+export declare const ENGINE_VERSION = "0.10.2";
 
 export declare class EventDispatcher {
     private _listeners;
@@ -302,6 +310,7 @@ export declare class LambertMaterial extends AbstractMaterial {
 
 export declare enum LightType {
     AMBIENT = "AmbientLight",
+    AREA = "AreaLight",
     DIRECTIONAL = "DirectionalLight",
     POINT = "PointLight",
     SPOT = "SpotLight"
