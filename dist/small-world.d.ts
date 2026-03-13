@@ -157,7 +157,7 @@ export declare class DirectionalLight extends AbstractLight {
     constructor(color?: Color, intensity?: number);
 }
 
-export declare const ENGINE_VERSION = "0.10.3";
+export declare const ENGINE_VERSION = "0.10.4";
 
 export declare class EventDispatcher {
     private _listeners;
@@ -189,6 +189,16 @@ export declare class Grid extends ObjectGeometry {
     protected generateGeometryData(): void;
 }
 
+export declare class HeightmapGenerator {
+    /**
+     * Generiert eine Heightmap mit dem Diamond-Square-Algorithmus.
+     * @param detail Bestimmt die Größe (Größe = 2^detail + 1). z.B. detail 8 = 257x257 Pixel.
+     * @param roughness Wie zerklüftet ist das Terrain? (0.0 = flach, 1.0 = extremes Chaos, ~0.6 ist gut für Hügel)
+     * @returns Ein ImageBitmap, das direkt in die Terrain-Geometrie gepumpt werden kann.
+     */
+    static generateDiamondSquare(detail?: number, roughness?: number): Promise<ImageBitmap>;
+}
+
 export declare class HUD {
     private enabled;
     private root;
@@ -215,7 +225,7 @@ declare interface IGeometry {
 
 declare interface IGeometryData {
     vertices: Float32Array;
-    indices: Uint16Array;
+    indices: Uint16Array | Uint32Array;
     normals: Float32Array;
     uvs: Float32Array;
 }
@@ -401,7 +411,7 @@ export declare class Object3D {
 
 declare abstract class ObjectGeometry implements IGeometry {
     protected vertices: Float32Array;
-    protected indices: Uint16Array;
+    protected indices: Uint16Array | Uint32Array;
     protected normals: Float32Array;
     protected uvs: Float32Array;
     protected abstract generateGeometryData(): void;
@@ -539,6 +549,35 @@ export declare class SpotLight extends AbstractLight {
     penumbra?: number, // 0 = harte Kante, 1 = extrem weich
     decay?: number);
 }
+
+export declare class Terrain extends ObjectGeometry {
+    image: HTMLImageElement | ImageBitmap;
+    width: number;
+    depth: number;
+    maxHeight: number;
+    widthSegments: number;
+    depthSegments: number;
+    strategy: TerrainHeightStrategy;
+    /**
+     * @param image Das geladene Bild (Heightmap)
+     * @param width Breite des Terrains in Weltkoordinaten
+     * @param depth Tiefe des Terrains in Weltkoordinaten
+     * @param maxHeight Wie hoch ist der höchste Berg (weißester Pixel)?
+     * @param widthSegments Anzahl der Unterteilungen auf der X-Achse (Auflösung)
+     * @param depthSegments Anzahl der Unterteilungen auf der Z-Achse (Auflösung)
+     * @param strategy Funktion zur Höhenberechnung (Standard: CENTERED_AVERAGE)
+     */
+    constructor(image: HTMLImageElement | ImageBitmap, width?: number, depth?: number, maxHeight?: number, widthSegments?: number, depthSegments?: number, strategy?: TerrainHeightStrategy);
+    protected generateGeometryData(): void;
+}
+
+export declare type TerrainHeightStrategy = (r: number, g: number, b: number, a: number, maxHeight: number) => number;
+
+export declare const TerrainStrategies: {
+    readonly CENTERED_AVERAGE: (r: number, g: number, b: number, a: number, max: number) => number;
+    readonly BASE_RED: (r: number, g: number, b: number, a: number, max: number) => number;
+    readonly INVERTED_AVERAGE: (r: number, g: number, b: number, a: number, max: number) => number;
+};
 
 export declare class TextLoader extends Loader<string> {
     load(url: string): Promise<string>;

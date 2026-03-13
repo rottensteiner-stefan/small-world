@@ -1,6 +1,6 @@
 export interface IGeometryData {
   vertices: Float32Array;
-  indices: Uint16Array;
+  indices: Uint16Array|Uint32Array;
   normals: Float32Array;
   uvs: Float32Array; // <--- NEU
 }

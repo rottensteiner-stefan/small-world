@@ -5,7 +5,7 @@ import { Vector3D } from "../math/Vector3D.js";
 
 export abstract class ObjectGeometry implements IGeometry {
   protected vertices: Float32Array = new Float32Array();
-  protected indices: Uint16Array = new Uint16Array();
+  protected indices: Uint16Array|Uint32Array = new Uint16Array();
   protected normals: Float32Array = new Float32Array();
   protected uvs: Float32Array = new Float32Array(); // <--- NEU
 
