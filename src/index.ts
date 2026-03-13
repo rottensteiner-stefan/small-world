@@ -46,6 +46,8 @@ export { Circle } from "./geometry/Circle.js";
 export { Triangle } from "./geometry/Triangle.js";
 export { Line } from "./geometry/Line.js";
 export { ModelGeometry } from "./geometry/ModelGeometry.js";
+export { Terrain, TerrainStrategies, type TerrainHeightStrategy } from "./geometry/Terrain.js";
+export { HeightmapGenerator } from "./utils/HeightmapGenerator.js";
 
 // --- Materials ---
 export { BasicMaterial } from "./core/materials/BasicMaterial.js";
