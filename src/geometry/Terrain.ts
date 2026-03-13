@@ -11,16 +11,25 @@ export type TerrainHeightStrategy = (
   maxHeight: number,
 ) => number;
 
-// 2. Ein Objekt mit vorgefertigten Strategien, die du direkt nutzen kannst
 export const TerrainStrategies = {
-  // Durchschnitt aus R, G und B, zentriert um den Nullpunkt (Y=0)
   CENTERED_AVERAGE: (r: number, g: number, b: number, a: number, max: number) => {
     const heightValue = (r + g + b) / 3.0 / 255.0;
     return heightValue * max - max / 2;
   },
-  // Liest nur den Rot-Kanal, Terrain startet flach bei Y=0 und geht nur nach oben
   BASE_RED: (r: number, g: number, b: number, a: number, max: number) => {
     const heightValue = r / 255.0;
+    return heightValue * max;
+  },
+  BASE_GREEN: (r: number, g: number, b: number, a: number, max: number) => {
+    const heightValue = g / 255.0;
+    return heightValue * max;
+  },
+  BASE_BLUE: (r: number, g: number, b: number, a: number, max: number) => {
+    const heightValue = b / 255.0;
+    return heightValue * max;
+  },
+  BASE_ALPHA: (r: number, g: number, b: number, a: number, max: number) => {
+    const heightValue = a / 255.0;
     return heightValue * max;
   },
   // Spielerei: Invertiertes Terrain (Schluchten statt Berge)
@@ -47,7 +56,7 @@ export class Terrain extends ObjectGeometry {
     public maxHeight: number = 20,
     public widthSegments: number = 64,
     public depthSegments: number = 64,
-    public strategy: TerrainHeightStrategy = TerrainStrategies.CENTERED_AVERAGE, // <-- NEU
+    public strategy: TerrainHeightStrategy = TerrainStrategies.CENTERED_AVERAGE,
   ) {
     super();
     this.generateGeometryData();

@@ -176,8 +176,8 @@ class Application {
       200, // Breite in Welt-Einheiten
       200, // Tiefe in Welt-Einheiten
       30, // Maximalhöhe der Berge
-      128, // X-Auflösung der Geometrie
-      128, // Z-Auflösung der Geometrie
+      256, // X-Auflösung der Geometrie
+      256, // Z-Auflösung der Geometrie
       TerrainStrategies.CENTERED_AVERAGE,
     ).getGeometryData();
 
