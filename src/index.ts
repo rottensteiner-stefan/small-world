@@ -61,7 +61,7 @@ export { DirectionalLight } from "./core/lights/DirectionalLight.js";
 export { AbstractLight } from "./core/lights/AbstractLight.js";
 export { PointLight } from "./core/lights/PointLight.js";
 export { SpotLight } from "./core/lights/SpotLight.js";
-export { AreaLight } from  "./core/lights/AreaLight.js"
+export { AreaLight } from "./core/lights/AreaLight.js";
 
 // --- Physics & Utils ---
 export { BoundingBox } from "./physics/BoundingBox.js";

@@ -1,7 +1,6 @@
-import { Loader } from "./Loader.js";
 import { AssetManager } from "./AssetManager.js";
 import { EventType } from "../enums/EventType.js";
-
+import { Loader } from "./Loader.js";
 export class TextLoader extends Loader<string> {
   public async load(url: string): Promise<string> {
     const fullUrl = this.basePath + url;

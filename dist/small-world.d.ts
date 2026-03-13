@@ -2,7 +2,7 @@ export declare abstract class AbstractLight extends Object3D {
     color: Color;
     intensity: number;
     abstract readonly type: LightType;
-    protected constructor(color: Color, intensity: number, name?: string);
+    protected constructor(color: Color | undefined, intensity: number, name?: string);
 }
 
 export declare abstract class AbstractMaterial {
@@ -12,14 +12,14 @@ export declare abstract class AbstractMaterial {
 }
 
 export declare class AmbientLight extends AbstractLight {
-    readonly type = LightType.AMBIENT;
+    readonly type: "AmbientLight";
     constructor(color?: Color, intensity?: number);
 }
 
 export declare class AreaLight extends AbstractLight {
     width: number;
     height: number;
-    readonly type = LightType.AREA;
+    readonly type: "AreaLight";
     constructor(color?: Color, intensity?: number, width?: number, // Breite der Leuchtfläche
     height?: number);
 }
@@ -33,13 +33,13 @@ export declare class AssetManager {
 }
 
 export declare class BasicMaterial extends AbstractMaterial {
-    readonly type = MaterialType.BASIC;
+    readonly type: "BasicMaterial";
 }
 
 export declare class BoundingBox implements IBoundingVolume {
     min: Vector3D;
     max: Vector3D;
-    type: BoundingType;
+    type: 1;
     broadRadius: number;
     constructor(min: Vector3D, max: Vector3D);
     get center(): Vector3D;
@@ -49,15 +49,17 @@ export declare class BoundingBox implements IBoundingVolume {
 export declare class BoundingSphere implements IBoundingVolume {
     center: Vector3D;
     radius: number;
-    type: BoundingType;
+    type: 0;
     constructor(center: Vector3D, radius: number);
     getBroadRadius(): number;
 }
 
-declare enum BoundingType {
-    SPHERE = 0,
-    BOX = 1
-}
+declare const BoundingType: {
+    readonly SPHERE: 0;
+    readonly BOX: 1;
+};
+
+declare type BoundingType = (typeof BoundingType)[keyof typeof BoundingType];
 
 export declare class Camera {
     projection: Projection;
@@ -74,12 +76,14 @@ export declare class Camera {
     getViewProjection(v: Matrix4, out: Matrix4): void;
 }
 
-export declare enum CameraStrategyType {
-    FIXED = "FixedCamera",
-    STIFF = "StiffCamera",
-    SMOOTH = "SmoothCamera",
-    FPS = "FPSCamera"
-}
+export declare const CameraStrategyType: {
+    readonly FIXED: "FixedCamera";
+    readonly STIFF: "StiffCamera";
+    readonly SMOOTH: "SmoothCamera";
+    readonly FPS: "FPSCamera";
+};
+
+export declare type CameraStrategyType = (typeof CameraStrategyType)[keyof typeof CameraStrategyType];
 
 export declare class Circle extends ObjectGeometry {
     radius: number;
@@ -144,16 +148,16 @@ export declare class Cylinder extends ObjectGeometry {
     protected generateGeometryData(): void;
 }
 
-export declare const DEFAULT_RENDERER = RendererType.BEST;
+export declare const DEFAULT_RENDERER: "BEST";
 
 export declare class DirectionalLight extends AbstractLight {
-    readonly type = LightType.DIRECTIONAL;
+    readonly type: "DirectionalLight";
     intensity: number;
     direction: Vector3D;
     constructor(color?: Color, intensity?: number);
 }
 
-export declare const ENGINE_VERSION = "0.10.2";
+export declare const ENGINE_VERSION = "0.10.3";
 
 export declare class EventDispatcher {
     private _listeners;
@@ -164,12 +168,14 @@ export declare class EventDispatcher {
 
 declare type EventHandler = (event: any) => void;
 
-export declare enum EventType {
-    LOADER_END = "LoaderEnd",
-    LOADER_ERROR = "LoaderError",
-    LOADER_PROGRESS = "LoaderProgress",
-    LOADER_START = "LoaderStart"
-}
+export declare const EventType: {
+    readonly LOADER_END: "LoaderEnd";
+    readonly LOADER_ERROR: "LoaderError";
+    readonly LOADER_PROGRESS: "LoaderProgress";
+    readonly LOADER_START: "LoaderStart";
+};
+
+export declare type EventType = (typeof EventType)[keyof typeof EventType];
 
 export declare class FrustumCuller {
     private static frustum;
@@ -250,71 +256,75 @@ declare interface IVector {
     scale(s: number): IVector;
 }
 
-export declare enum Keys {
-    UP = "ArrowUp",
-    DOWN = "ArrowDown",
-    LEFT = "ArrowLeft",
-    RIGHT = "ArrowRight",
-    SPACE = "Space",
-    ENTER = "Enter",
-    ESCAPE = "Escape",
-    TAB = "Tab",
-    BACKSPACE = "Backspace",
-    SHIFT_L = "ShiftLeft",
-    SHIFT_R = "ShiftRight",
-    CTRL_L = "ControlLeft",
-    CTRL_R = "ControlRight",
-    ALT_L = "AltLeft",
-    ALT_R = "AltRight",
-    D0 = "Digit0",
-    D1 = "Digit1",
-    D2 = "Digit2",
-    D3 = "Digit3",
-    D4 = "Digit4",
-    D5 = "Digit5",
-    D6 = "Digit6",
-    D7 = "Digit7",
-    D8 = "Digit8",
-    D9 = "Digit9",
-    A = "KeyA",
-    B = "KeyB",
-    C = "KeyC",
-    D = "KeyD",
-    E = "KeyE",
-    F = "KeyF",
-    G = "KeyG",
-    H = "KeyH",
-    I = "KeyI",
-    J = "KeyJ",
-    K = "KeyK",
-    L = "KeyL",
-    M = "KeyM",
-    N = "KeyN",
-    O = "KeyO",
-    P = "KeyP",
-    Q = "KeyQ",
-    R = "KeyR",
-    S = "KeyS",
-    T = "KeyT",
-    U = "KeyU",
-    V = "KeyV",
-    W = "KeyW",
-    X = "KeyX",
-    Y = "KeyY",
-    Z = "KeyZ"
-}
+export declare const Keys: {
+    readonly UP: "ArrowUp";
+    readonly DOWN: "ArrowDown";
+    readonly LEFT: "ArrowLeft";
+    readonly RIGHT: "ArrowRight";
+    readonly SPACE: "Space";
+    readonly ENTER: "Enter";
+    readonly ESCAPE: "Escape";
+    readonly TAB: "Tab";
+    readonly BACKSPACE: "Backspace";
+    readonly SHIFT_L: "ShiftLeft";
+    readonly SHIFT_R: "ShiftRight";
+    readonly CTRL_L: "ControlLeft";
+    readonly CTRL_R: "ControlRight";
+    readonly ALT_L: "AltLeft";
+    readonly ALT_R: "AltRight";
+    readonly D0: "Digit0";
+    readonly D1: "Digit1";
+    readonly D2: "Digit2";
+    readonly D3: "Digit3";
+    readonly D4: "Digit4";
+    readonly D5: "Digit5";
+    readonly D6: "Digit6";
+    readonly D7: "Digit7";
+    readonly D8: "Digit8";
+    readonly D9: "Digit9";
+    readonly A: "KeyA";
+    readonly B: "KeyB";
+    readonly C: "KeyC";
+    readonly D: "KeyD";
+    readonly E: "KeyE";
+    readonly F: "KeyF";
+    readonly G: "KeyG";
+    readonly H: "KeyH";
+    readonly I: "KeyI";
+    readonly J: "KeyJ";
+    readonly K: "KeyK";
+    readonly L: "KeyL";
+    readonly M: "KeyM";
+    readonly N: "KeyN";
+    readonly O: "KeyO";
+    readonly P: "KeyP";
+    readonly Q: "KeyQ";
+    readonly R: "KeyR";
+    readonly S: "KeyS";
+    readonly T: "KeyT";
+    readonly U: "KeyU";
+    readonly V: "KeyV";
+    readonly W: "KeyW";
+    readonly X: "KeyX";
+    readonly Y: "KeyY";
+    readonly Z: "KeyZ";
+};
+
+export declare type Keys = (typeof Keys)[keyof typeof Keys];
 
 export declare class LambertMaterial extends AbstractMaterial {
-    readonly type = MaterialType.LAMBERT;
+    readonly type: "LambertMaterial";
 }
 
-export declare enum LightType {
-    AMBIENT = "AmbientLight",
-    AREA = "AreaLight",
-    DIRECTIONAL = "DirectionalLight",
-    POINT = "PointLight",
-    SPOT = "SpotLight"
-}
+export declare const LightType: {
+    readonly AMBIENT: "AmbientLight";
+    readonly DIRECTIONAL: "DirectionalLight";
+    readonly POINT: "PointLight";
+    readonly SPOT: "SpotLight";
+    readonly AREA: "AreaLight";
+};
+
+export declare type LightType = (typeof LightType)[keyof typeof LightType];
 
 export declare class Line extends ObjectGeometry {
     start: Vector3D;
@@ -336,13 +346,15 @@ export declare abstract class Loader<T> extends EventDispatcher {
     abstract load(url: string): Promise<T>;
 }
 
-declare enum MaterialType {
-    BASIC = "BasicMaterial",
-    LAMBERT = "LabertMaterial",
-    PHONG = "PhongMaterial",
-    SKYBOX = "SkyboxMaterial",
-    WIREFRAME = "WireframeMaterial"
-}
+declare const MaterialType: {
+    readonly BASIC: "BasicMaterial";
+    readonly LAMBERT: "LambertMaterial";
+    readonly PHONG: "PhongMaterial";
+    readonly SKYBOX: "SkyboxMaterial";
+    readonly WIREFRAME: "WireframeMaterial";
+};
+
+declare type MaterialType = (typeof MaterialType)[keyof typeof MaterialType];
 
 export declare class Matrix4 {
     data: Float32Array<ArrayBuffer>;
@@ -431,7 +443,7 @@ export declare class PerspectiveProjection extends Projection {
 }
 
 export declare class PhongMaterial extends AbstractMaterial {
-    readonly type = MaterialType.PHONG;
+    readonly type: "PhongMaterial";
     specularColor: Color;
     shininess: number;
     diffuseMap: Texture | null;
@@ -449,7 +461,7 @@ export declare class Plane extends ObjectGeometry {
 export declare class PointLight extends AbstractLight {
     distance: number;
     decay: number;
-    readonly type = LightType.POINT;
+    readonly type: "PointLight";
     constructor(color?: Color, intensity?: number, distance?: number, decay?: number);
 }
 
@@ -468,13 +480,15 @@ export declare class Pyramid extends ObjectGeometry {
     protected generateGeometryData(): void;
 }
 
-export declare enum RendererType {
-    BEST = "BEST",
-    WEB_GPU = "WEB_GPU",
-    WEB_GL2 = "WEB_GL2",
-    WEB_GL1 = "WEB_GL1",
-    CANVAS = "CANVAS"
-}
+export declare const RendererType: {
+    readonly BEST: "BEST";
+    readonly WEB_GPU: "WEB_GPU";
+    readonly WEB_GL2: "WEB_GL2";
+    readonly WEB_GL1: "WEB_GL1";
+    readonly CANVAS: "CANVAS";
+};
+
+export declare type RendererType = (typeof RendererType)[keyof typeof RendererType];
 
 export declare class Scene {
     objects: Object3D[];
@@ -495,7 +509,7 @@ export declare class SkyboxLoader extends Loader<CubeTexture> {
 }
 
 export declare class SkyboxMaterial extends AbstractMaterial {
-    readonly type = MaterialType.SKYBOX;
+    readonly type: "SkyboxMaterial";
     cubeMap: CubeTexture | null;
 }
 
@@ -519,7 +533,7 @@ export declare class SpotLight extends AbstractLight {
     angle: number;
     penumbra: number;
     decay: number;
-    readonly type = LightType.SPOT;
+    readonly type: "SpotLight";
     direction: Vector3D;
     constructor(color?: Color, intensity?: number, distance?: number, angle?: number, // 30 Grad Kegel
     penumbra?: number, // 0 = harte Kante, 1 = extrem weich
@@ -552,16 +566,20 @@ export declare class Texture {
     load(url: string): Promise<void>;
 }
 
-export declare enum TextureFilter {
-    LINEAR = "linear",
-    NEAREST = "nearest"
-}
+export declare const TextureFilter: {
+    readonly LINEAR: "linear";
+    readonly NEAREST: "nearest";
+};
 
-export declare enum TextureWrap {
-    REPEAT = "repeat",
-    CLAMP_TO_EDGE = "clamp-to-edge",
-    MIRRORED_REPEAT = "mirror-repeat"
-}
+export declare type TextureFilter = (typeof TextureFilter)[keyof typeof TextureFilter];
+
+export declare const TextureWrap: {
+    readonly REPEAT: "repeat";
+    readonly CLAMP_TO_EDGE: "clamp-to-edge";
+    readonly MIRRORED_REPEAT: "mirror-repeat";
+};
+
+export declare type TextureWrap = (typeof TextureWrap)[keyof typeof TextureWrap];
 
 export declare class Torus extends ObjectGeometry {
     radius: number;
@@ -625,7 +643,7 @@ export declare class Vector3D implements IVector {
 }
 
 export declare class WireframeMaterial extends AbstractMaterial {
-    readonly type = MaterialType.WIREFRAME;
+    readonly type: "WireframeMaterial";
 }
 
 export declare interface WorldConfig {

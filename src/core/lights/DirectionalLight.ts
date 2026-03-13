@@ -1,7 +1,7 @@
-import { Color } from "../colors/Color.js";
-import { Vector3D } from "../../math/Vector3D.js";
-import { LightType } from "../../enums/LightType.js";
 import { AbstractLight } from "./AbstractLight.js";
+import { Color } from "../colors/Color.js";
+import { LightType } from "../../enums/LightType.js";
+import { Vector3D } from "../../math/Vector3D.js";
 
 export class DirectionalLight extends AbstractLight {
   public readonly type = LightType.DIRECTIONAL;

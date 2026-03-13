@@ -1,9 +1,9 @@
-import { ICameraStrategy } from "../../interfaces/ICameraStrategy.js";
 import { CameraStrategyType } from "../../enums/CameraStrategyType.js";
+import { FixedStrategy } from "./strategies/FixedStrategy.js";
 import { FPSStrategy } from "./strategies/FPSStrategy.js";
+import { ICameraStrategy } from "../../interfaces/ICameraStrategy.js";
 import { SmoothStrategy } from "./strategies/SmoothStrategy.js";
 import { StiffStrategy } from "./strategies/StiffStrategy.js";
-import { FixedStrategy } from "./strategies/FixedStrategy.js";
 
 export class CameraStrategyFactory {
   // Wir cachen die Instanzen, damit wir nicht bei jedem Wechsel ein neues 'new' Keyword bemühen müssen.

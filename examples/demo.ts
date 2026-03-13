@@ -90,7 +90,7 @@ class Application {
   private async setupScene() {
     const ambient = new AmbientLight(new Color(0.1, 0.1, 0.15), 0.5);
     this.scene.add(ambient);
-/*
+    /*
     const sun = new DirectionalLight(Color.WHITE, 0.2);
     sun.direction.set(1, -1.5, -1).normalize();
     this.scene.add(sun);

@@ -1,20 +1,17 @@
 /// src/renderers/WebGL2Renderer.ts
-import { Color } from "../core/colors/Color.js";
+import { AbstractWebGLRenderer } from "./AbstractWebGLRenderer.js";
+import { AreaLight } from "../core/lights/AreaLight.js";
 import { CubeTexture } from "../core/textures/CubeTexture.js";
 import { IGeometryData } from "../interfaces/IGeometryData.js";
+import { MaterialType } from "../enums/MaterialType.js";
 import { Mesh } from "./Mesh.js";
 import { Object3D } from "../core/Object3D.js";
 import { PhongMaterial } from "../core/materials/PhongMaterial.js";
+import { RendererType } from "../enums/RendererType.js";
 import { Scene } from "../core/Scene.js";
 import { SkyboxMaterial } from "../core/materials/SkyboxMaterial.js";
 import { Texture } from "../core/textures/Texture.js";
 import { Vector3D } from "../math/Vector3D.js";
-import { RendererType } from "../enums/RendererType.js";
-import { MaterialType } from "../enums/MaterialType.js";
-import { AbstractWebGLRenderer } from "./AbstractWebGLRenderer.js";
-
-// NEU: Import für das AreaLight!
-import { AreaLight } from "../core/lights/AreaLight.js";
 
 interface ShaderLocs {
   pos: number;
@@ -39,7 +36,7 @@ interface ShaderLocs {
 
 export class WebGL2Renderer extends AbstractWebGLRenderer {
   public readonly type = RendererType.WEB_GL2;
-  protected declare gl: WebGL2RenderingContext;
+  declare protected gl: WebGL2RenderingContext;
 
   private prog!: WebGLProgram;
   private locs!: ShaderLocs;
@@ -55,7 +52,8 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
   private texCache = new Map<Texture, WebGLTexture>();
   private texCubeCache = new Map<CubeTexture, WebGLTexture>();
 
-  private pointLightLocs: { pos: WebGLUniformLocation | null; col: WebGLUniformLocation | null }[] = [];
+  private pointLightLocs: { pos: WebGLUniformLocation | null; col: WebGLUniformLocation | null }[] =
+    [];
   private spotLightLocs: {
     pos: WebGLUniformLocation | null;
     dir: WebGLUniformLocation | null;
@@ -250,9 +248,24 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     if (!glTex) {
       glTex = this.gl.createTexture()!;
       this.gl.bindTexture(this.gl.TEXTURE_2D, glTex);
-      this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, tex.image);
-      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, tex.magFilter === "nearest" ? this.gl.NEAREST : this.gl.LINEAR);
-      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, tex.minFilter === "nearest" ? this.gl.NEAREST : this.gl.LINEAR);
+      this.gl.texImage2D(
+        this.gl.TEXTURE_2D,
+        0,
+        this.gl.RGBA,
+        this.gl.RGBA,
+        this.gl.UNSIGNED_BYTE,
+        tex.image,
+      );
+      this.gl.texParameteri(
+        this.gl.TEXTURE_2D,
+        this.gl.TEXTURE_MAG_FILTER,
+        tex.magFilter === "nearest" ? this.gl.NEAREST : this.gl.LINEAR,
+      );
+      this.gl.texParameteri(
+        this.gl.TEXTURE_2D,
+        this.gl.TEXTURE_MIN_FILTER,
+        tex.minFilter === "nearest" ? this.gl.NEAREST : this.gl.LINEAR,
+      );
       this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.REPEAT);
       this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.REPEAT);
       this.texCache.set(tex, glTex);
@@ -267,7 +280,14 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       glTex = this.gl.createTexture()!;
       this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, glTex);
       for (let i = 0; i < 6; i++) {
-        this.gl.texImage2D(this.gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, tex.images[i] as ImageBitmap);
+        this.gl.texImage2D(
+          this.gl.TEXTURE_CUBE_MAP_POSITIVE_X + i,
+          0,
+          this.gl.RGBA,
+          this.gl.RGBA,
+          this.gl.UNSIGNED_BYTE,
+          tex.images[i] as ImageBitmap,
+        );
       }
       this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
       this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR);
@@ -294,9 +314,13 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
           this.cache.set(o.geometry, m);
         }
         m.bind(this.skyLocs.pos);
-        if (this.skyLocs.model) this.gl.uniformMatrix4fv(this.skyLocs.model, false, o.worldMatrix.data);
+        if (this.skyLocs.model)
+          this.gl.uniformMatrix4fv(this.skyLocs.model, false, o.worldMatrix.data);
         this.gl.activeTexture(this.gl.TEXTURE0);
-        this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, skyMat.cubeMap ? this.getWebGLCubeTexture(skyMat.cubeMap) : this.defaultCubeTexture);
+        this.gl.bindTexture(
+          this.gl.TEXTURE_CUBE_MAP,
+          skyMat.cubeMap ? this.getWebGLCubeTexture(skyMat.cubeMap) : this.defaultCubeTexture,
+        );
         if (this.skyLocs.skybox) this.gl.uniform1i(this.skyLocs.skybox, 0);
         this.gl.drawElements(this.gl.TRIANGLES, m.count, this.gl.UNSIGNED_SHORT, 0);
       }
@@ -321,22 +345,49 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     if (this.locs.numPL) this.gl.uniform1i(this.locs.numPL, pLights.length);
     for (let i = 0; i < pLights.length; i++) {
       if (this.pointLightLocs[i].pos)
-        this.gl.uniform3f(this.pointLightLocs[i].pos!, pLights[i].worldMatrix.data[12], pLights[i].worldMatrix.data[13], pLights[i].worldMatrix.data[14]);
+        this.gl.uniform3f(
+          this.pointLightLocs[i].pos!,
+          pLights[i].worldMatrix.data[12],
+          pLights[i].worldMatrix.data[13],
+          pLights[i].worldMatrix.data[14],
+        );
       if (this.pointLightLocs[i].col)
-        this.gl.uniform3f(this.pointLightLocs[i].col!, pLights[i].color.r * pLights[i].intensity, pLights[i].color.g * pLights[i].intensity, pLights[i].color.b * pLights[i].intensity);
+        this.gl.uniform3f(
+          this.pointLightLocs[i].col!,
+          pLights[i].color.r * pLights[i].intensity,
+          pLights[i].color.g * pLights[i].intensity,
+          pLights[i].color.b * pLights[i].intensity,
+        );
     }
 
     // Spot Lights
     if (this.locs.numSL) this.gl.uniform1i(this.locs.numSL, sLights.length);
     for (let i = 0; i < sLights.length; i++) {
       if (this.spotLightLocs[i].pos)
-        this.gl.uniform3f(this.spotLightLocs[i].pos!, sLights[i].worldMatrix.data[12], sLights[i].worldMatrix.data[13], sLights[i].worldMatrix.data[14]);
+        this.gl.uniform3f(
+          this.spotLightLocs[i].pos!,
+          sLights[i].worldMatrix.data[12],
+          sLights[i].worldMatrix.data[13],
+          sLights[i].worldMatrix.data[14],
+        );
       const dir = sLights[i].direction.clone().normalize();
-      if (this.spotLightLocs[i].dir) this.gl.uniform3f(this.spotLightLocs[i].dir!, dir.x, dir.y, dir.z);
+      if (this.spotLightLocs[i].dir)
+        this.gl.uniform3f(this.spotLightLocs[i].dir!, dir.x, dir.y, dir.z);
       if (this.spotLightLocs[i].col)
-        this.gl.uniform3f(this.spotLightLocs[i].col!, sLights[i].color.r * sLights[i].intensity, sLights[i].color.g * sLights[i].intensity, sLights[i].color.b * sLights[i].intensity);
+        this.gl.uniform3f(
+          this.spotLightLocs[i].col!,
+          sLights[i].color.r * sLights[i].intensity,
+          sLights[i].color.g * sLights[i].intensity,
+          sLights[i].color.b * sLights[i].intensity,
+        );
       if (this.spotLightLocs[i].params)
-        this.gl.uniform4f(this.spotLightLocs[i].params!, Math.cos(sLights[i].angle), Math.cos(sLights[i].angle * (1.0 - sLights[i].penumbra)), sLights[i].distance, sLights[i].decay);
+        this.gl.uniform4f(
+          this.spotLightLocs[i].params!,
+          Math.cos(sLights[i].angle),
+          Math.cos(sLights[i].angle * (1.0 - sLights[i].penumbra)),
+          sLights[i].distance,
+          sLights[i].decay,
+        );
     }
 
     // AREA LIGHTS
@@ -346,19 +397,30 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       const mat = al.worldMatrix.data;
 
       // Position
-      if (this.areaLightLocs[i].pos) this.gl.uniform3f(this.areaLightLocs[i].pos!, mat[12], mat[13], mat[14]);
+      if (this.areaLightLocs[i].pos)
+        this.gl.uniform3f(this.areaLightLocs[i].pos!, mat[12], mat[13], mat[14]);
 
       // Farbe & Intensität
-      if (this.areaLightLocs[i].col) this.gl.uniform3f(this.areaLightLocs[i].col!, al.color.r * al.intensity, al.color.g * al.intensity, al.color.b * al.intensity);
+      if (this.areaLightLocs[i].col)
+        this.gl.uniform3f(
+          this.areaLightLocs[i].col!,
+          al.color.r * al.intensity,
+          al.color.g * al.intensity,
+          al.color.b * al.intensity,
+        );
 
       // Rotations-Achsen aus der Matrix extrahieren (Spalten 0, 1 und 2 der Matrix)
-      if (this.areaLightLocs[i].right) this.gl.uniform3f(this.areaLightLocs[i].right!, mat[0], mat[1], mat[2]);
-      if (this.areaLightLocs[i].up) this.gl.uniform3f(this.areaLightLocs[i].up!, mat[4], mat[5], mat[6]);
+      if (this.areaLightLocs[i].right)
+        this.gl.uniform3f(this.areaLightLocs[i].right!, mat[0], mat[1], mat[2]);
+      if (this.areaLightLocs[i].up)
+        this.gl.uniform3f(this.areaLightLocs[i].up!, mat[4], mat[5], mat[6]);
       // Wir nehmen die lokale Z-Achse als die Normale (Richtung, in die das Licht strahlt)
-      if (this.areaLightLocs[i].normal) this.gl.uniform3f(this.areaLightLocs[i].normal!, mat[8], mat[9], mat[10]);
+      if (this.areaLightLocs[i].normal)
+        this.gl.uniform3f(this.areaLightLocs[i].normal!, mat[8], mat[9], mat[10]);
 
       // Größe (Halbe Breite und halbe Höhe)
-      if (this.areaLightLocs[i].size) this.gl.uniform2f(this.areaLightLocs[i].size!, al.width / 2.0, al.height / 2.0);
+      if (this.areaLightLocs[i].size)
+        this.gl.uniform2f(this.areaLightLocs[i].size!, al.width / 2.0, al.height / 2.0);
     }
 
     const drawNormal = (o: Object3D) => {
@@ -378,7 +440,11 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       if (this.locs.model) this.gl.uniformMatrix4fv(this.locs.model, false, o.worldMatrix.data);
       if (this.locs.color) this.gl.uniform4fv(this.locs.color, mat.color.toArray());
 
-      let shininess = -1.0, specCol = [0, 0, 0, 0], activeTex = this.defaultTexture, tOffset = [0, 0], tRepeat = [1, 1];
+      let shininess = -1.0,
+        specCol = [0, 0, 0, 0],
+        activeTex = this.defaultTexture,
+        tOffset = [0, 0],
+        tRepeat = [1, 1];
 
       if (mat.type === MaterialType.LAMBERT) {
         shininess = 0.0;

@@ -1,7 +1,7 @@
-import { DEFAULT_RENDERER, RendererType } from "./Engine.js";
-import { RendererFactory } from "../renderers/RendererFactory.js";
-import { IRenderer } from "../interfaces/IRenderer.js";
 import { ColorUtils } from "./colors/ColorUtils.js";
+import { DEFAULT_RENDERER, RendererType } from "./Engine.js";
+import { IRenderer } from "../interfaces/IRenderer.js";
+import { RendererFactory } from "../renderers/RendererFactory.js";
 
 export interface WorldConfig {
   rendererType?: RendererType | string;

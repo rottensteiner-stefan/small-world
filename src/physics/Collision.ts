@@ -1,7 +1,8 @@
-import { IBoundingVolume, BoundingType } from "../interfaces/IBoundingVolume.js";
-import { BoundingSphere } from "./BoundingSphere.js";
 import { BoundingBox } from "./BoundingBox.js";
+import { BoundingSphere } from "./BoundingSphere.js";
+import { IBoundingVolume, BoundingType } from "../interfaces/IBoundingVolume.js";
 import { Vector3D } from "../math/Vector3D.js";
+
 export class Collision {
   public static test(a: IBoundingVolume, b: IBoundingVolume): boolean {
     const distSq = a.center.distanceToSq(b.center);
