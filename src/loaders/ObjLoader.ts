@@ -1,9 +1,9 @@
 import { AssetManager } from "./AssetManager.js";
-import { ModelGeometry } from "../geometry/ModelGeometry.js";
-import { Loader } from "./Loader.js";
 import { EventType } from "../enums/EventType.js";
-import { Object3D } from "../core/Object3D.js";
+import { Loader } from "./Loader.js";
+import { ModelGeometry } from "../geometry/ModelGeometry.js";
 import { MtlLoader } from "./MtlLoader.js";
+import { Object3D } from "../core/Object3D.js";
 import { PhongMaterial } from "../core/materials/PhongMaterial.js";
 
 // Hilfsklasse, um Geometrie-Teile nach Material zu sortieren

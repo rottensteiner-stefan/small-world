@@ -2,7 +2,6 @@ import { AssetManager } from "./AssetManager.js";
 import { CubeTexture } from "../core/textures/CubeTexture.js";
 import { EventType } from "../enums/EventType.js";
 import { Loader } from "./Loader.js";
-
 export class SkyboxLoader extends Loader<CubeTexture> {
   public async load(url: string): Promise<CubeTexture> {
     const fullUrl = this.basePath + url;

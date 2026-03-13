@@ -1,7 +1,7 @@
-import { Object3D } from "./Object3D.js";
 import { Cube } from "../geometry/Cube.js";
-import { SkyboxMaterial } from "./materials/SkyboxMaterial.js";
 import { CubeTexture } from "./textures/CubeTexture.js";
+import { Object3D } from "./Object3D.js";
+import { SkyboxMaterial } from "./materials/SkyboxMaterial.js";
 
 export class Skybox extends Object3D {
   constructor(source: string[] | CubeTexture, size: number = 100) {

@@ -1,9 +1,9 @@
-import { Matrix4 } from "../math/Matrix4.js";
-import { Vector3D } from "../math/Vector3D.js";
-import { Projection } from "../math/projections/Projection.js";
-import { ICameraStrategy } from "../interfaces/ICameraStrategy.js";
-import { CameraStrategyType } from "../enums/CameraStrategyType.js";
 import { CameraStrategyFactory } from "./cameras/CameraStrategyFactory.js";
+import { CameraStrategyType } from "../enums/CameraStrategyType.js";
+import { ICameraStrategy } from "../interfaces/ICameraStrategy.js";
+import { Matrix4 } from "../math/Matrix4.js";
+import { Projection } from "../math/projections/Projection.js";
+import { Vector3D } from "../math/Vector3D.js";
 
 export class Camera {
   public position: Vector3D = new Vector3D(0, 10, 20);

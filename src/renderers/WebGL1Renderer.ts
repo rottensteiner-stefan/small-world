@@ -27,6 +27,7 @@ interface ShaderLocs {
   viewPos: WebGLUniformLocation | null;
   numPL: WebGLUniformLocation | null;
   numSL: WebGLUniformLocation | null;
+  numAL: WebGLUniformLocation | null;
   diffuseMap: WebGLUniformLocation | null;
   texOffset: WebGLUniformLocation | null;
   texRepeat: WebGLUniformLocation | null;
@@ -34,7 +35,7 @@ interface ShaderLocs {
 
 export class WebGL1Renderer extends AbstractWebGLRenderer {
   public readonly type = RendererType.WEB_GL1;
-  protected declare gl: WebGLRenderingContext;
+  declare protected gl: WebGLRenderingContext;
 
   private prog!: WebGLProgram;
   private locs!: ShaderLocs;
@@ -58,6 +59,14 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
     col: WebGLUniformLocation | null;
     params: WebGLUniformLocation | null;
   }[] = [];
+  private areaLightLocs: {
+    pos: WebGLUniformLocation | null;
+    col: WebGLUniformLocation | null;
+    right: WebGLUniformLocation | null;
+    up: WebGLUniformLocation | null;
+    norm: WebGLUniformLocation | null;
+    size: WebGLUniformLocation | null;
+  }[] = [];
 
   public async initialize(canvas: HTMLCanvasElement) {
     this.gl = (canvas.getContext("webgl", { antialias: true }) ||
@@ -67,7 +76,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
     this.initDefaultTextures();
 
     const vs = `attribute vec3 a_position; attribute vec3 a_normal; attribute vec2 a_uv; uniform mat4 u_vp; uniform mat4 u_model; uniform vec2 u_texOffset; uniform vec2 u_texRepeat; varying vec3 v_worldPos; varying vec3 v_normal; varying vec2 v_uv; mat3 extractMat3(mat4 m) { return mat3(m[0].xyz, m[1].xyz, m[2].xyz); } void main() { vec4 wp = u_model * vec4(a_position, 1.0); v_worldPos = wp.xyz; v_normal = extractMat3(u_model) * a_normal; v_uv = (a_uv * u_texRepeat) + u_texOffset; gl_Position = u_vp * wp; }`;
-    const fs = `precision highp float; varying vec3 v_worldPos; varying vec3 v_normal; varying vec2 v_uv; uniform vec4 u_color; uniform vec4 u_specColor; uniform float u_shininess; uniform vec3 u_viewPos; uniform vec3 u_ambientColor; uniform vec3 u_dirLightColor; uniform vec3 u_dirLightDir; uniform sampler2D u_diffuseMap; uniform int u_numPointLights; uniform vec3 u_pointLightPos[4]; uniform vec3 u_pointLightColor[4]; uniform int u_numSpotLights; uniform vec3 u_spotLightPos[4]; uniform vec3 u_spotLightDir[4]; uniform vec3 u_spotLightColor[4]; uniform vec4 u_spotLightParams[4]; void main() { vec4 texColor = texture2D(u_diffuseMap, v_uv); if (u_shininess < -0.5) { gl_FragColor = u_color * texColor; return; } vec3 N = normalize(v_normal); vec3 V = normalize(u_viewPos - v_worldPos); vec3 finalLight = u_ambientColor; vec3 specular = vec3(0.0); vec3 L_dir = normalize(u_dirLightDir); float diff_dir = max(dot(N, L_dir), 0.0); finalLight += diff_dir * u_dirLightColor; if (u_shininess > 0.0 && diff_dir > 0.0) specular += pow(max(dot(V, reflect(-L_dir, N)), 0.0), u_shininess) * u_dirLightColor; for(int i = 0; i < 4; i++) { if (i >= u_numPointLights) break; vec3 lightVec = u_pointLightPos[i] - v_worldPos; float dist = length(lightVec); vec3 L_pt = lightVec / dist; float attenuation = 1.0 / (1.0 + 0.1 * dist + 0.01 * dist * dist); float diff_pt = max(dot(N, L_pt), 0.0); finalLight += diff_pt * u_pointLightColor[i] * attenuation; if (u_shininess > 0.0 && diff_pt > 0.0) specular += pow(max(dot(V, reflect(-L_pt, N)), 0.0), u_shininess) * u_pointLightColor[i] * attenuation; } for(int i = 0; i < 4; i++) { if (i >= u_numSpotLights) break; vec3 lightVec = u_spotLightPos[i] - v_worldPos; float dist = length(lightVec); vec3 L_sp = lightVec / dist; vec3 S_dir = normalize(u_spotLightDir[i]); float theta = dot(-L_sp, S_dir); if(theta > u_spotLightParams[i].x) { float spotEffect = smoothstep(u_spotLightParams[i].x, u_spotLightParams[i].y, theta); float attenuation = 1.0 / (1.0 + 0.1 * dist + 0.01 * dist * dist); float diff_sp = max(dot(N, L_sp), 0.0); finalLight += diff_sp * u_spotLightColor[i] * attenuation * spotEffect; if (u_shininess > 0.0 && diff_sp > 0.0) specular += pow(max(dot(V, reflect(-L_sp, N)), 0.0), u_shininess) * u_spotLightColor[i] * attenuation * spotEffect; } } gl_FragColor = vec4((finalLight * u_color.rgb * texColor.rgb) + (specular * u_specColor.rgb), u_color.a * texColor.a); }`;
+    const fs = `precision highp float; varying vec3 v_worldPos; varying vec3 v_normal; varying vec2 v_uv; uniform vec4 u_color; uniform vec4 u_specColor; uniform float u_shininess; uniform vec3 u_viewPos; uniform vec3 u_ambientColor; uniform vec3 u_dirLightColor; uniform vec3 u_dirLightDir; uniform sampler2D u_diffuseMap; uniform int u_numPointLights; uniform vec3 u_pointLightPos[4]; uniform vec3 u_pointLightColor[4]; uniform int u_numSpotLights; uniform vec3 u_spotLightPos[4]; uniform vec3 u_spotLightDir[4]; uniform vec3 u_spotLightColor[4]; uniform vec4 u_spotLightParams[4]; uniform int u_numAreaLights; uniform vec3 u_areaLightPos[4]; uniform vec3 u_areaLightColor[4]; uniform vec3 u_areaLightRight[4]; uniform vec3 u_areaLightUp[4]; uniform vec3 u_areaLightNormal[4]; uniform vec2 u_areaLightSize[4]; void main() { vec4 texColor = texture2D(u_diffuseMap, v_uv); if (u_shininess < -0.5) { gl_FragColor = u_color * texColor; return; } vec3 N = normalize(v_normal); vec3 V = normalize(u_viewPos - v_worldPos); vec3 finalLight = u_ambientColor; vec3 specular = vec3(0.0); vec3 L_dir = normalize(u_dirLightDir); float diff_dir = max(dot(N, L_dir), 0.0); finalLight += diff_dir * u_dirLightColor; if (u_shininess > 0.0 && diff_dir > 0.0) specular += pow(max(dot(V, reflect(-L_dir, N)), 0.0), u_shininess) * u_dirLightColor; for(int i = 0; i < 4; i++) { if (i >= u_numPointLights) break; vec3 lightVec = u_pointLightPos[i] - v_worldPos; float dist = length(lightVec); vec3 L_pt = lightVec / dist; float attenuation = 1.0 / (1.0 + 0.1 * dist + 0.01 * dist * dist); float diff_pt = max(dot(N, L_pt), 0.0); finalLight += diff_pt * u_pointLightColor[i] * attenuation; if (u_shininess > 0.0 && diff_pt > 0.0) specular += pow(max(dot(V, reflect(-L_pt, N)), 0.0), u_shininess) * u_pointLightColor[i] * attenuation; } for(int i = 0; i < 4; i++) { if (i >= u_numSpotLights) break; vec3 lightVec = u_spotLightPos[i] - v_worldPos; float dist = length(lightVec); vec3 L_sp = lightVec / dist; vec3 S_dir = normalize(u_spotLightDir[i]); float theta = dot(-L_sp, S_dir); if(theta > u_spotLightParams[i].x) { float spotEffect = smoothstep(u_spotLightParams[i].x, u_spotLightParams[i].y, theta); float attenuation = 1.0 / (1.0 + 0.1 * dist + 0.01 * dist * dist); float diff_sp = max(dot(N, L_sp), 0.0); finalLight += diff_sp * u_spotLightColor[i] * attenuation * spotEffect; if (u_shininess > 0.0 && diff_sp > 0.0) specular += pow(max(dot(V, reflect(-L_sp, N)), 0.0), u_shininess) * u_spotLightColor[i] * attenuation * spotEffect; } } for(int i = 0; i < 4; i++) { if (i >= u_numAreaLights) break; vec3 L_center = u_areaLightPos[i]; vec3 L_normal = normalize(u_areaLightNormal[i]); vec3 dirFromLight = v_worldPos - L_center; if(dot(dirFromLight, L_normal) >= 0.0) { vec3 L_right = normalize(u_areaLightRight[i]); vec3 L_up = normalize(u_areaLightUp[i]); vec2 size = u_areaLightSize[i]; float projX = clamp(dot(dirFromLight, L_right), -size.x, size.x); float projY = clamp(dot(dirFromLight, L_up), -size.y, size.y); vec3 closestPoint = L_center + L_right * projX + L_up * projY; vec3 lightVec = closestPoint - v_worldPos; float dist = length(lightVec); vec3 L_al = lightVec / (dist + 0.0001); float attenuation = 1.0 / (1.0 + 0.1 * dist + 0.01 * dist * dist); float diff_al = max(dot(N, L_al), 0.0); finalLight += diff_al * u_areaLightColor[i] * attenuation; if (u_shininess > 0.0 && diff_al > 0.0) specular += pow(max(dot(V, reflect(-L_al, N)), 0.0), u_shininess) * u_areaLightColor[i] * attenuation; } } gl_FragColor = vec4((finalLight * u_color.rgb * texColor.rgb) + (specular * u_specColor.rgb), u_color.a * texColor.a); }`;
 
     const skyVs = `attribute vec3 a_position; uniform mat4 u_vp; uniform mat4 u_model; varying vec3 v_uvw; void main() { v_uvw = a_position; gl_Position = u_vp * u_model * vec4(a_position, 1.0); }`;
     const skyFs = `precision highp float; varying vec3 v_uvw; uniform samplerCube u_skybox; void main() { gl_FragColor = textureCube(u_skybox, v_uvw); }`;
@@ -91,6 +100,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
       viewPos: this.gl.getUniformLocation(this.prog, "u_viewPos"),
       numPL: this.gl.getUniformLocation(this.prog, "u_numPointLights"),
       numSL: this.gl.getUniformLocation(this.prog, "u_numSpotLights"),
+      numAL: this.gl.getUniformLocation(this.prog, "u_numAreaLights"),
       diffuseMap: this.gl.getUniformLocation(this.prog, "u_diffuseMap"),
       texOffset: this.gl.getUniformLocation(this.prog, "u_texOffset"),
       texRepeat: this.gl.getUniformLocation(this.prog, "u_texRepeat"),
@@ -113,6 +123,14 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
         dir: this.gl.getUniformLocation(this.prog, `u_spotLightDir[${i}]`),
         col: this.gl.getUniformLocation(this.prog, `u_spotLightColor[${i}]`),
         params: this.gl.getUniformLocation(this.prog, `u_spotLightParams[${i}]`),
+      });
+      this.areaLightLocs.push({
+        pos: this.gl.getUniformLocation(this.prog, `u_areaLightPos[${i}]`),
+        col: this.gl.getUniformLocation(this.prog, `u_areaLightColor[${i}]`),
+        right: this.gl.getUniformLocation(this.prog, `u_areaLightRight[${i}]`),
+        up: this.gl.getUniformLocation(this.prog, `u_areaLightUp[${i}]`),
+        norm: this.gl.getUniformLocation(this.prog, `u_areaLightNormal[${i}]`),
+        size: this.gl.getUniformLocation(this.prog, `u_areaLightSize[${i}]`),
       });
     }
     this.gl.enable(this.gl.DEPTH_TEST);
@@ -221,7 +239,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
     if (this.locs.viewPos) this.gl.uniform3f(this.locs.viewPos, camPos.x, camPos.y, camPos.z);
 
     // Nutze geerbte Methode zur Licht-Extraktion!
-    const { aCol, dDir, dCol, pLights, sLights } = this.extractLights(scene);
+    const { aCol, dDir, dCol, pLights, sLights, aLights } = this.extractLights(scene);
 
     if (this.locs.ambient) this.gl.uniform3f(this.locs.ambient, aCol.r, aCol.g, aCol.b);
     if (this.locs.dirDir) this.gl.uniform3f(this.locs.dirDir, dDir.x, dDir.y, dDir.z);
@@ -270,6 +288,28 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
           sLights[i].distance,
           sLights[i].decay,
         );
+    }
+    if (this.locs.numAL) this.gl.uniform1i(this.locs.numAL, aLights.length);
+    for (let i = 0; i < aLights.length; i++) {
+      const al = aLights[i];
+      const mat = al.worldMatrix.data;
+      if (this.areaLightLocs[i].pos)
+        this.gl.uniform3f(this.areaLightLocs[i].pos!, mat[12], mat[13], mat[14]);
+      if (this.areaLightLocs[i].col)
+        this.gl.uniform3f(
+          this.areaLightLocs[i].col!,
+          al.color.r * al.intensity,
+          al.color.g * al.intensity,
+          al.color.b * al.intensity,
+        );
+      if (this.areaLightLocs[i].right)
+        this.gl.uniform3f(this.areaLightLocs[i].right!, mat[0], mat[1], mat[2]);
+      if (this.areaLightLocs[i].up)
+        this.gl.uniform3f(this.areaLightLocs[i].up!, mat[4], mat[5], mat[6]);
+      if (this.areaLightLocs[i].norm)
+        this.gl.uniform3f(this.areaLightLocs[i].norm!, mat[8], mat[9], mat[10]);
+      if (this.areaLightLocs[i].size)
+        this.gl.uniform2f(this.areaLightLocs[i].size!, al.width / 2.0, al.height / 2.0);
     }
 
     const drawNormal = (o: Object3D) => {

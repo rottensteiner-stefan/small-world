@@ -1,16 +1,16 @@
 /// src/renderers/AbstractRenderer.ts
+import { AbstractLight } from "../core/lights/AbstractLight.js";
+import { AreaLight } from "../core/lights/AreaLight.js";
+import { Color } from "../core/colors/Color.js";
+import { DirectionalLight } from "../core/lights/DirectionalLight.js";
 import { IRenderer } from "../interfaces/IRenderer.js";
+import { LightType } from "../enums/LightType.js";
+import { Object3D } from "../core/Object3D.js";
+import { PointLight } from "../core/lights/PointLight.js";
 import { RendererType } from "../enums/RendererType.js";
 import { Scene } from "../core/Scene.js";
-import { Vector3D } from "../math/Vector3D.js";
-import { Color } from "../core/colors/Color.js";
-import { Object3D } from "../core/Object3D.js";
-import { AbstractLight } from "../core/lights/AbstractLight.js";
-import { LightType } from "../enums/LightType.js";
-import { PointLight } from "../core/lights/PointLight.js";
 import { SpotLight } from "../core/lights/SpotLight.js";
-import { DirectionalLight } from "../core/lights/DirectionalLight.js";
-import {AreaLight} from "../core/lights/AreaLight.js";
+import { Vector3D } from "../math/Vector3D.js";
 
 export abstract class AbstractRenderer implements IRenderer {
   public abstract readonly type: RendererType;
@@ -40,12 +40,20 @@ export abstract class AbstractRenderer implements IRenderer {
 
         switch (light.type) {
           case LightType.AMBIENT:
-            aCol = new Color(light.color.r * light.intensity, light.color.g * light.intensity, light.color.b * light.intensity);
+            aCol = new Color(
+              light.color.r * light.intensity,
+              light.color.g * light.intensity,
+              light.color.b * light.intensity,
+            );
             break;
           case LightType.DIRECTIONAL:
             const dl = light as DirectionalLight;
             dDir = dl.direction.clone().scale(-1).normalize();
-            dCol = new Color(light.color.r * light.intensity, light.color.g * light.intensity, light.color.b * light.intensity);
+            dCol = new Color(
+              light.color.r * light.intensity,
+              light.color.g * light.intensity,
+              light.color.b * light.intensity,
+            );
             break;
           case LightType.POINT:
             if (pLights.length < 4) pLights.push(light as PointLight);
