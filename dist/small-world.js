@@ -259,7 +259,7 @@ const B = {
   WEB_GL2: "WEB_GL2",
   WEB_GL1: "WEB_GL1",
   CANVAS: "CANVAS"
-}, pt = "0.10.4", mt = B.BEST;
+}, pt = "0.10.5", mt = B.BEST;
 class Pt {
   constructor(t) {
     this.enabled = t;

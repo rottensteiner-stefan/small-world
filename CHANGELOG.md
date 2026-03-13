@@ -1,6 +1,11 @@
 # Changelog
 
+## [0.10.5] - 2026-03-13
+
+- Introduce terrain with heightmap
+
 ## [0.10.4] - 2026-03-13
+
 - Improve Enums (replace by frozen JS objects)
 
 ## [0.10.3] - 2026-03-13
