@@ -27,12 +27,12 @@ export abstract class AbstractRenderer implements IRenderer {
 
   // Diese Methode ist in ALLEN Renderern (sogar WebGPU) exakt gleich!
   protected extractLights(scene: Scene) {
-    let aCol = new Color(0, 0, 0);
-    let dDir = new Vector3D(0, 1, 0);
-    let dCol = new Color(0, 0, 0);
+    const aLights: AreaLight[] = [];
     const pLights: PointLight[] = [];
     const sLights: SpotLight[] = [];
-    const aLights: any[] = []; // <-- NEU (Typisierung als 'any' oder AreaLight importieren)
+    let aCol = new Color(0, 0, 0);
+    let dCol = new Color(0, 0, 0);
+    let dDir = new Vector3D(0, 1, 0);
 
     const traverse = (node: Object3D) => {
       // Duck-Typing: Wenn das Objekt ein 'type' Feld hat, behandeln wir es als Licht

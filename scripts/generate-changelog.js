@@ -17,7 +17,7 @@ try {
   const latestTag = execSync("git describe --tags --abbrev=0").toString().trim();
   // Hole alle Commit-Nachrichten zwischen dem Tag und dem aktuellen Stand (HEAD)
   commits = execSync(`git log ${latestTag}..HEAD --pretty=format:"- %s"`).toString().trim();
-} catch (e) {
+} catch {
   // Falls keine Tags existieren, nimm alle Commits (z.B. für das erste Release)
   console.warn("Keine Git-Tags gefunden. Der Changelog-Eintrag wird aus allen Commits erstellt.");
   commits = execSync(`git log --pretty=format:"- %s"`).toString().trim();

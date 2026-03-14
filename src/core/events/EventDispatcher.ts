@@ -1,6 +1,6 @@
 import { EventType } from "../../enums/EventType.js";
 
-export type EventHandler = (event: any) => void;
+export type EventHandler = (event: Record<string, unknown>) => void;
 
 export class EventDispatcher {
   private _listeners = new Map<string, EventHandler[]>();
@@ -25,7 +25,7 @@ export class EventDispatcher {
     }
   }
 
-  public dispatchEvent(type: string | EventType, eventData: any = {}): void {
+  public dispatchEvent(type: string | EventType, eventData: Record<string, unknown> = {}): void {
     const eventName = type as string;
     const listeners = this._listeners.get(eventName);
     if (listeners) {

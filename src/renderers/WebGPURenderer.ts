@@ -1,12 +1,11 @@
 /// src/renderers/WebGPURenderer.ts
-import { Color } from "../core/colors/Color.js";
+
 import { CubeTexture } from "../core/textures/CubeTexture.js";
 import { IGeometryData } from "../interfaces/IGeometryData.js";
 import { Object3D } from "../core/Object3D.js";
 import { PhongMaterial } from "../core/materials/PhongMaterial.js";
 import { TerrainMaterial } from "../core/materials/TerrainMaterial.js";
 import { Scene } from "../core/Scene.js";
-import { SkyboxMaterial } from "../core/materials/SkyboxMaterial.js";
 import { Texture } from "../core/textures/Texture.js";
 import { Vector3D } from "../math/Vector3D.js";
 import { RendererType } from "../enums/RendererType.js";
@@ -14,35 +13,48 @@ import { MaterialType } from "../enums/MaterialType.js";
 import { AbstractRenderer } from "./AbstractRenderer.js";
 import { AreaLight } from "../core/lights/AreaLight.js";
 
+interface WebGPUGeoCache {
+  vb: GPUBuffer;
+  nb: GPUBuffer | null;
+  uvb: GPUBuffer | null;
+  ib: GPUBuffer | null;
+  indexCount: number;
+  vertexCount: number;
+  format: GPUIndexFormat | null;
+}
+
+interface WebGPUObjCache {
+  ub: GPUBuffer;
+  plb: GPUBuffer;
+  slb: GPUBuffer;
+  alb: GPUBuffer;
+  bg: GPUBindGroup;
+}
+
 export class WebGPURenderer extends AbstractRenderer {
   public readonly type = RendererType.WEB_GPU;
   private adapter: GPUAdapter | null = null;
-  private device: GPUDevice | null = null;
   private context!: GPUCanvasContext;
+  private defaultCubeTexBindGroup!: GPUBindGroup;
+  private defaultTexBindGroup!: GPUBindGroup;
+  private depthTexture!: GPUTexture;
+  private device: GPUDevice | null = null;
   private format!: GPUTextureFormat;
-
-  private pipelineTriangles!: GPURenderPipeline;
+  private geoCache = new Map<IGeometryData, WebGPUGeoCache>();
+  private objBGL!: GPUBindGroupLayout;
+  private objCache = new Map<Object3D, WebGPUObjCache>();
   private pipelineLines!: GPURenderPipeline;
   private pipelineSkybox!: GPURenderPipeline;
-
-  private objBGL!: GPUBindGroupLayout;
-  private texBGL!: GPUBindGroupLayout;
-  private skyTexBGL!: GPUBindGroupLayout;
-
-  private defaultTexBindGroup!: GPUBindGroup;
-  private defaultCubeTexBindGroup!: GPUBindGroup;
+  private pipelineTriangles!: GPURenderPipeline;
   private sampler!: GPUSampler;
-  private whiteTexView!: GPUTextureView;
-
-  private geoCache = new Map<IGeometryData, any>();
-  private objCache = new Map<Object3D, any>();
-  private textureViewCache = new Map<Texture, GPUTextureView>();
-  private texCache = new Map<Texture, GPUBindGroup>();
-  private terrainTexCache = new Map<TerrainMaterial, GPUBindGroup>();
-  private texCubeCache = new Map<CubeTexture, GPUBindGroup>();
   private samplerCache = new Map<string, GPUSampler>();
-
-  private depthTexture!: GPUTexture;
+  private skyTexBGL!: GPUBindGroupLayout;
+  private terrainTexCache = new Map<TerrainMaterial, GPUBindGroup>();
+  private texBGL!: GPUBindGroupLayout;
+  private texCache = new Map<Texture, GPUBindGroup>();
+  private texCubeCache = new Map<CubeTexture, GPUBindGroup>();
+  private textureViewCache = new Map<Texture, GPUTextureView>();
+  private whiteTexView!: GPUTextureView;
 
   public async initialize(canvas: HTMLCanvasElement) {
     this.adapter = await navigator.gpu.requestAdapter();
