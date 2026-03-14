@@ -1,3 +1,4 @@
+/// src/core/Mesh.ts
 import { IGeometryData } from "../interfaces/IGeometryData.js";
 
 export class Mesh {

@@ -1,51 +1,66 @@
-import { AssetManager } from "../../loaders/AssetManager.js";
-import { Vector2D } from "../../math/Vector2D.js";
+/// src/core/textures/Texture.ts
+import { TextureFilter } from "../../enums/TextureFilter.js";
+import { TextureWrap } from "../../enums/TextureWrap.js";
 
 export class Texture {
-  public uuid: string = crypto.randomUUID();
-  public image: ImageBitmap | HTMLImageElement | null = null;
+  public image: HTMLImageElement | ImageBitmap | null = null;
   public isLoaded: boolean = false;
 
-  // --- NEU: Sampler-Konfiguration ---
-  // Wir nutzen Strings, die WebGPU direkt versteht ("repeat", "clamp-to-edge", "mirror-repeat")
-  public addressModeU: GPUAddressMode = "repeat";
-  public addressModeV: GPUAddressMode = "repeat";
+  public magFilter: TextureFilter = TextureFilter.LINEAR;
+  public minFilter: TextureFilter = TextureFilter.LINEAR;
+  public addressModeU: TextureWrap = TextureWrap.REPEAT;
+  public addressModeV: TextureWrap = TextureWrap.REPEAT;
 
-  // Filter: "linear" (weich) oder "nearest" (pixelig/scharf)
-  public magFilter: GPUFilterMode = "linear";
-  public minFilter: GPUFilterMode = "linear";
-
-  public offset: Vector2D = new Vector2D(0, 0);
-  public repeat: Vector2D = new Vector2D(1, 1);
-
-  constructor(url?: string) {
-    if (url) {
-      this.load(url);
-    }
-  }
+  public offset = { x: 0, y: 0 };
+  public repeat = { x: 1, y: 1 };
 
   /**
-   * Hilfsmethode, um das Wrapping schnell umzustellen
+   * Privater Konstruktor zwingt zur Nutzung der statischen Factory-Methoden,
+   * was den Code für den Nutzer der Engine viel eindeutiger macht.
    */
-  public setWrapMode(mode: GPUAddressMode): void {
-    this.addressModeU = mode;
-    this.addressModeV = mode;
-  }
-
-  /**
-   * Hilfsmethode für den Filter-Modus
-   */
-  public setFilterMode(mode: GPUFilterMode): void {
-    this.magFilter = mode;
-    this.minFilter = mode;
-  }
-
-  public async load(url: string): Promise<void> {
-    try {
-      this.image = await AssetManager.loadImage(url);
+  protected constructor(image?: HTMLImageElement | ImageBitmap) {
+    if (image) {
+      this.image = image;
       this.isLoaded = true;
-    } catch (e) {
-      console.error(`Fehler beim Laden der Textur: ${url}`, e);
     }
+  }
+
+  // --- STATISCHE FACTORY METHODEN ---
+
+  /**
+   * Erstellt eine Textur aus einem bereits im RAM existierenden Bild oder Bitmap.
+   * Perfekt für prozedural generierte Texturen!
+   */
+  public static fromImage(image: HTMLImageElement | ImageBitmap): Texture {
+    return new Texture(image);
+  }
+
+  /**
+   * Erstellt eine leere Textur (z.B. als Platzhalter, bis echte Daten reinkommen).
+   */
+  public static empty(): Texture {
+    return new Texture();
+  }
+
+  /**
+   * Lädt ein Bild direkt von einer URL und gibt die fertige Textur zurück.
+   * Macht externe TextureLoader überflüssig!
+   */
+  public static async fromUrl(url: string): Promise<Texture> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous"; // Wichtig, falls du Bilder von anderen Domains lädst
+
+      img.onload = () => {
+        resolve(new Texture(img));
+      };
+
+      img.onerror = () => {
+        console.warn(`TextureLoader: Konnte Bild nicht laden: ${url}`);
+        reject(new Error(`Fehler beim Laden der Textur: ${url}`));
+      };
+
+      img.src = url;
+    });
   }
 }

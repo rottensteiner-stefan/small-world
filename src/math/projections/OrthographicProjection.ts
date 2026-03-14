@@ -1,6 +1,11 @@
+/// src/math/projections/OrthographicProjection.ts
 import { Matrix4 } from "../Matrix4.js";
-import { Projection } from "./Projection.js";
-export class OrthographicProjection extends Projection {
+import { AbstractProjection } from "./AbstractProjection.js";
+import { ProjectionType } from "../../enums/ProjectionType.js";
+
+export class OrthographicProjection extends AbstractProjection {
+  public readonly type = ProjectionType.ORTHOGRAPHIC;
+
   constructor(
     public l: number,
     public r: number,

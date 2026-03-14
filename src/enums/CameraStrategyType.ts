@@ -1,8 +1,8 @@
 export const CameraStrategyType = {
   FIXED: "FixedCamera",
-  STIFF: "StiffCamera",
-  SMOOTH: "SmoothCamera",
   FPS: "FPSCamera",
+  SMOOTH: "SmoothCamera",
+  STIFF: "StiffCamera",
 } as const;
 
 export type CameraStrategyType = (typeof CameraStrategyType)[keyof typeof CameraStrategyType];

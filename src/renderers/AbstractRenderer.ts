@@ -1,4 +1,5 @@
 /// src/renderers/AbstractRenderer.ts
+
 import { AbstractLight } from "../core/lights/AbstractLight.js";
 import { AreaLight } from "../core/lights/AreaLight.js";
 import { Color } from "../core/colors/Color.js";

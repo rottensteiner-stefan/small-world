@@ -42,7 +42,7 @@
 - Some code improvements
 - Re-work light system
 - Re-work camera system (strategy pattern plus factor)
-- Re-work cube-demo.ts
+- Re-work cube-demo1.ts
 - Add FPS camera strategy
 - Changelog
 - Add changelog generation script
@@ -138,7 +138,7 @@
 - Some code improvements
 - Re-work light system
 - Re-work camera system (strategy pattern plus factor)
-- Re-work cube-demo.ts
+- Re-work cube-demo1.ts
 - Add FPS camera strategy
 - Changelog
 - Add changelog generation script
@@ -187,7 +187,7 @@
 ## [0.8.50] - 2026-03-10
 
 - Re-work camera system (strategy pattern plus factor)
-- Re-work demo.ts
+- Re-work demo1.ts
 - Add FPS camera strategy
 
 ## [0.8.47] - 2026-03-10

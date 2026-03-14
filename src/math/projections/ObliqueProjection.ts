@@ -1,6 +1,11 @@
+/// src/math/projections/ObliqueProjection.ts
 import { Matrix4 } from "../Matrix4.js";
-import { Projection } from "./Projection.js";
-export class ObliqueProjection extends Projection {
+import { AbstractProjection } from "./AbstractProjection.js";
+import { ProjectionType } from "../../enums/ProjectionType.js";
+
+export class ObliqueProjection extends AbstractProjection {
+  public readonly type = ProjectionType.OBLIQUE;
+
   constructor(
     public l: number,
     public r: number,

@@ -1,7 +1,7 @@
-import { Scene } from "./Scene.js";
-import { Matrix4 } from "../math/Matrix4.js";
 import { Frustum } from "../math/Frustum.js";
+import { Matrix4 } from "../math/Matrix4.js";
 import { Object3D } from "./Object3D.js";
+import { Scene } from "./Scene.js";
 
 export class FrustumCuller {
   private static frustum = new Frustum();

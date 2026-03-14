@@ -11,9 +11,31 @@ export declare abstract class AbstractMaterial {
     color: Color;
 }
 
+export declare abstract class AbstractProjection {
+    abstract readonly type: ProjectionType;
+    protected matrix: Matrix4;
+    abstract getMatrix(): Matrix4;
+    abstract update(): void;
+}
+
 export declare class AmbientLight extends AbstractLight {
     readonly type: "AmbientLight";
     constructor(color?: Color, intensity?: number);
+}
+
+export declare abstract class Application {
+    config: IEngineConfig;
+    scene: Scene;
+    camera: ICamera;
+    protected renderer: IRenderer;
+    protected canvas: HTMLCanvasElement;
+    private lastTime;
+    private isRunning;
+    constructor(userConfig?: IEngineConfig);
+    protected abstract setupScene(): Promise<void>;
+    protected abstract update(deltaTime: number): void;
+    start(): Promise<void>;
+    private loop;
 }
 
 export declare class AreaLight extends AbstractLight {
@@ -61,26 +83,32 @@ declare const BoundingType: {
 
 declare type BoundingType = (typeof BoundingType)[keyof typeof BoundingType];
 
-export declare class Camera {
-    projection: Projection;
+export declare class Camera implements ICamera {
+    projection: AbstractProjection;
     position: Vector3D;
     target: Vector3D;
     up: Vector3D;
     theta: number;
     phi: number;
     private strategy;
-    constructor(projection: Projection);
+    private viewMatrix;
+    private viewProjMatrix;
+    constructor(projection: AbstractProjection);
+    get viewProjectionMatrix(): Float32Array;
+    get aspect(): number;
+    set aspect(value: number);
+    updateProjectionMatrix(): void;
+    updateViewMatrix(): void;
     setStrategy(type: CameraStrategyType): void;
     get activeStrategyType(): string;
     update(targetPos: Vector3D, dx: number, dy: number): void;
-    getViewProjection(v: Matrix4, out: Matrix4): void;
 }
 
 export declare const CameraStrategyType: {
     readonly FIXED: "FixedCamera";
-    readonly STIFF: "StiffCamera";
-    readonly SMOOTH: "SmoothCamera";
     readonly FPS: "FPSCamera";
+    readonly SMOOTH: "SmoothCamera";
+    readonly STIFF: "StiffCamera";
 };
 
 export declare type CameraStrategyType = (typeof CameraStrategyType)[keyof typeof CameraStrategyType];
@@ -157,7 +185,7 @@ export declare class DirectionalLight extends AbstractLight {
     constructor(color?: Color, intensity?: number);
 }
 
-export declare const ENGINE_VERSION = "0.10.5";
+export declare const ENGINE_VERSION = "0.10.7";
 
 export declare class EventDispatcher {
     private _listeners;
@@ -217,6 +245,28 @@ declare interface IBoundingVolume {
     type: BoundingType;
     center: Vector3D;
     getBroadRadius(): number;
+}
+
+declare interface ICamera {
+    /** Position der Kamera in der Welt */
+    position: Vector3D;
+    /** Das Seitenverhältnis (z.B. für Window-Resizing) */
+    aspect: number;
+    /** Die kombinierte Matrix, die der Shader am Ende braucht (View * Projection) */
+    viewProjectionMatrix: Float32Array;
+    /** Berechnet die Verzerrung (Perspektive oder Orthografisch) neu */
+    updateProjectionMatrix(): void;
+    /** Berechnet die Blickrichtung und Position neu */
+    updateViewMatrix(): void;
+}
+
+declare interface IEngineConfig {
+    canvasId?: string;
+    fullscreen?: boolean;
+    height?: number;
+    projection?: ProjectionType;
+    renderer?: RendererType;
+    width?: number;
 }
 
 declare interface IGeometry {
@@ -361,6 +411,7 @@ declare const MaterialType: {
     readonly LAMBERT: "LambertMaterial";
     readonly PHONG: "PhongMaterial";
     readonly SKYBOX: "SkyboxMaterial";
+    readonly TERRAIN: "TerrainMaterial";
     readonly WIREFRAME: "WireframeMaterial";
 };
 
@@ -430,23 +481,25 @@ export declare class ObjLoader extends Loader<Object3D> {
     private parseFaceVertex;
 }
 
-export declare class OrthographicProjection extends Projection {
+export declare class OrthographicProjection extends AbstractProjection {
     l: number;
     r: number;
     b: number;
     t: number;
     n: number;
     f: number;
+    readonly type: "OrthographicProjection";
     constructor(l: number, r: number, b: number, t: number, n: number, f: number);
     update(): void;
     getMatrix(): Matrix4;
 }
 
-export declare class PerspectiveProjection extends Projection {
+export declare class PerspectiveProjection extends AbstractProjection {
     fov: number;
     aspect: number;
     near: number;
     far: number;
+    readonly type: "PerspectiveProjection";
     constructor(fov: number, aspect: number, near: number, far: number);
     update(): void;
     getMatrix(): Matrix4;
@@ -477,11 +530,13 @@ export declare class PointLight extends AbstractLight {
 
 declare type ProgressCallback = (loaded: number, total: number) => void;
 
-declare abstract class Projection {
-    protected matrix: Matrix4;
-    abstract getMatrix(): Matrix4;
-    abstract update(): void;
-}
+export declare const ProjectionType: {
+    readonly OBLIQUE: "ObliqueProjection";
+    readonly ORTHOGRAPHIC: "OrthographicProjection";
+    readonly PERSPECTIVE: "PerspectiveProjection";
+};
+
+export declare type ProjectionType = (typeof ProjectionType)[keyof typeof ProjectionType];
 
 export declare class Pyramid extends ObjectGeometry {
     base: number;
@@ -573,9 +628,23 @@ export declare class Terrain extends ObjectGeometry {
 
 export declare type TerrainHeightStrategy = (r: number, g: number, b: number, a: number, maxHeight: number) => number;
 
+export declare class TerrainMaterial extends AbstractMaterial {
+    readonly type: "TerrainMaterial";
+    shininess: number;
+    sandMap: Texture | null;
+    grassMap: Texture | null;
+    rockMap: Texture | null;
+    snowMap: Texture | null;
+    texRepeat: [number, number];
+    thresholds: [number, number, number, number];
+}
+
 export declare const TerrainStrategies: {
     readonly CENTERED_AVERAGE: (r: number, g: number, b: number, a: number, max: number) => number;
     readonly BASE_RED: (r: number, g: number, b: number, a: number, max: number) => number;
+    readonly BASE_GREEN: (r: number, g: number, b: number, a: number, max: number) => number;
+    readonly BASE_BLUE: (r: number, g: number, b: number, a: number, max: number) => number;
+    readonly BASE_ALPHA: (r: number, g: number, b: number, a: number, max: number) => number;
     readonly INVERTED_AVERAGE: (r: number, g: number, b: number, a: number, max: number) => number;
 };
 
@@ -584,25 +653,39 @@ export declare class TextLoader extends Loader<string> {
 }
 
 export declare class Texture {
-    uuid: string;
-    image: ImageBitmap | HTMLImageElement | null;
+    image: HTMLImageElement | ImageBitmap | null;
     isLoaded: boolean;
-    addressModeU: GPUAddressMode;
-    addressModeV: GPUAddressMode;
-    magFilter: GPUFilterMode;
-    minFilter: GPUFilterMode;
-    offset: Vector2D;
-    repeat: Vector2D;
-    constructor(url?: string);
+    magFilter: TextureFilter;
+    minFilter: TextureFilter;
+    addressModeU: TextureWrap;
+    addressModeV: TextureWrap;
+    offset: {
+        x: number;
+        y: number;
+    };
+    repeat: {
+        x: number;
+        y: number;
+    };
     /**
-     * Hilfsmethode, um das Wrapping schnell umzustellen
+     * Privater Konstruktor zwingt zur Nutzung der statischen Factory-Methoden,
+     * was den Code für den Nutzer der Engine viel eindeutiger macht.
      */
-    setWrapMode(mode: GPUAddressMode): void;
+    protected constructor(image?: HTMLImageElement | ImageBitmap);
     /**
-     * Hilfsmethode für den Filter-Modus
+     * Erstellt eine Textur aus einem bereits im RAM existierenden Bild oder Bitmap.
+     * Perfekt für prozedural generierte Texturen!
      */
-    setFilterMode(mode: GPUFilterMode): void;
-    load(url: string): Promise<void>;
+    static fromImage(image: HTMLImageElement | ImageBitmap): Texture;
+    /**
+     * Erstellt eine leere Textur (z.B. als Platzhalter, bis echte Daten reinkommen).
+     */
+    static empty(): Texture;
+    /**
+     * Lädt ein Bild direkt von einer URL und gibt die fertige Textur zurück.
+     * Macht externe TextureLoader überflüssig!
+     */
+    static fromUrl(url: string): Promise<Texture>;
 }
 
 export declare const TextureFilter: {
@@ -611,6 +694,17 @@ export declare const TextureFilter: {
 };
 
 export declare type TextureFilter = (typeof TextureFilter)[keyof typeof TextureFilter];
+
+export declare class TextureGenerator {
+    /**
+     * Generiert eine einfache, rauschende Textur für unser Terrain.
+     */
+    static generateBiome(r: number, g: number, b: number, noiseSpread: number, size?: number): Promise<ImageBitmap>;
+    static createSand(): Promise<ImageBitmap>;
+    static createGrass(): Promise<ImageBitmap>;
+    static createRock(): Promise<ImageBitmap>;
+    static createSnow(): Promise<ImageBitmap>;
+}
 
 export declare const TextureWrap: {
     readonly REPEAT: "repeat";

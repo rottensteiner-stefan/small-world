@@ -1,13 +1,14 @@
 // --- Core ---
+export { Application } from "./core/Application.js";
 export { AssetManager } from "./loaders/AssetManager.js";
 export { Camera } from "./core/Camera.js";
 export { ENGINE_VERSION, DEFAULT_RENDERER } from "./core/Engine.js";
 export { HUD } from "./core/HUD.js";
 export { Input } from "./core/Input.js";
 export { Object3D } from "./core/Object3D.js";
+export { ObjLoader } from "./loaders/ObjLoader.js";
 export { Scene } from "./core/Scene.js";
 export { SmallWorld, type WorldConfig } from "./core/SmallWorld.js";
-export { ObjLoader } from "./loaders/ObjLoader.js";
 
 // --- Textures ---
 export { CubeTexture } from "./core/textures/CubeTexture.js";
@@ -19,11 +20,13 @@ export { Texture } from "./core/textures/Texture.js";
 export { CameraStrategyType } from "./enums/CameraStrategyType.js";
 export { Keys } from "./enums/Keys.js";
 export { LightType } from "./enums/LightType.js";
+export { ProjectionType } from "./enums/ProjectionType.js";
 export { RendererType } from "./enums/RendererType.js";
 export { TextureFilter } from "./enums/TextureFilter.js";
 export { TextureWrap } from "./enums/TextureWrap.js";
 
 // --- Math ---
+export { AbstractProjection } from "./math/projections/AbstractProjection.js";
 export { Matrix4 } from "./math/Matrix4.js";
 export { OrthographicProjection } from "./math/projections/OrthographicProjection.js";
 export { PerspectiveProjection } from "./math/projections/PerspectiveProjection.js";
@@ -50,12 +53,13 @@ export { Terrain, TerrainStrategies, type TerrainHeightStrategy } from "./geomet
 export { HeightmapGenerator } from "./utils/HeightmapGenerator.js";
 
 // --- Materials ---
+export { AbstractMaterial } from "./core/materials/AbstractMaterial.js";
 export { BasicMaterial } from "./core/materials/BasicMaterial.js";
 export { LambertMaterial } from "./core/materials/LambertMaterial.js";
-export { AbstractMaterial } from "./core/materials/AbstractMaterial.js";
 export { PhongMaterial } from "./core/materials/PhongMaterial.js";
-export { WireframeMaterial } from "./core/materials/WireframeMaterial.js";
 export { SkyboxMaterial } from "./core/materials/SkyboxMaterial.js";
+export { TerrainMaterial } from "./core/materials/TerrainMaterial.js";
+export { WireframeMaterial } from "./core/materials/WireframeMaterial.js";
 
 // --- Lights ---
 export { AmbientLight } from "./core/lights/AmbientLight.js";
@@ -70,6 +74,7 @@ export { BoundingBox } from "./physics/BoundingBox.js";
 export { BoundingSphere } from "./physics/BoundingSphere.js";
 export { Collision } from "./physics/Collision.js";
 export { FrustumCuller } from "./core/FrustumCuller.js";
+export { TextureGenerator } from "./utils/TextureGenerator.js";
 
 // ---  Events ---
 export { EventDispatcher } from "./core/events/EventDispatcher.js";

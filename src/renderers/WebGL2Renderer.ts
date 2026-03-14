@@ -10,6 +10,7 @@ import { PhongMaterial } from "../core/materials/PhongMaterial.js";
 import { RendererType } from "../enums/RendererType.js";
 import { Scene } from "../core/Scene.js";
 import { SkyboxMaterial } from "../core/materials/SkyboxMaterial.js";
+import { TerrainMaterial } from "../core/materials/TerrainMaterial.js"; // <-- NEU
 import { Texture } from "../core/textures/Texture.js";
 import { Vector3D } from "../math/Vector3D.js";
 
@@ -28,10 +29,17 @@ interface ShaderLocs {
   viewPos: WebGLUniformLocation | null;
   numPL: WebGLUniformLocation | null;
   numSL: WebGLUniformLocation | null;
-  numAL: WebGLUniformLocation | null; // <-- NEU
+  numAL: WebGLUniformLocation | null;
   diffuseMap: WebGLUniformLocation | null;
   texOffset: WebGLUniformLocation | null;
   texRepeat: WebGLUniformLocation | null;
+  // Terrain Uniforms
+  isTerrain: WebGLUniformLocation | null;
+  sandMap: WebGLUniformLocation | null;
+  grassMap: WebGLUniformLocation | null;
+  rockMap: WebGLUniformLocation | null;
+  snowMap: WebGLUniformLocation | null;
+  thresholds: WebGLUniformLocation | null;
 }
 
 export class WebGL2Renderer extends AbstractWebGLRenderer {
@@ -60,8 +68,6 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     col: WebGLUniformLocation | null;
     params: WebGLUniformLocation | null;
   }[] = [];
-
-  // <-- NEU: Locations für bis zu 4 AreaLights
   private areaLightLocs: {
     pos: WebGLUniformLocation | null;
     col: WebGLUniformLocation | null;
@@ -85,7 +91,6 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       gl_Position = u_vp * wp;
     }`;
 
-    // WICHTIG: Der Fragment Shader wurde um den Area Light Algorithmus erweitert!
     const fsCode = `#version 300 es
     precision highp float;
     in vec3 v_worldPos; in vec3 v_normal; in vec2 v_uv;
@@ -104,13 +109,48 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     uniform vec3 u_areaLightNormal[4];
     uniform vec2 u_areaLightSize[4];
 
+    // Terrain Splatmapping Uniforms
+    uniform int u_isTerrain;
+    uniform sampler2D u_sandMap;
+    uniform sampler2D u_grassMap;
+    uniform sampler2D u_rockMap;
+    uniform sampler2D u_snowMap;
+    uniform vec4 u_thresholds;
+
     out vec4 c;
 
     void main() {
-      vec4 texColor = texture(u_diffuseMap, v_uv);
+      vec3 N = normalize(v_normal); 
+      vec4 texColor = vec4(1.0);
+
+      // TERRAIN SPLATMAPPING LOGIC
+      if (u_isTerrain == 1) {
+        vec4 sand = texture(u_sandMap, v_uv);
+        vec4 grass = texture(u_grassMap, v_uv);
+        vec4 rock = texture(u_rockMap, v_uv);
+        vec4 snow = texture(u_snowMap, v_uv);
+
+        float h = v_worldPos.y; 
+        
+        float b1 = smoothstep(u_thresholds.x - u_thresholds.w, u_thresholds.x + u_thresholds.w, h);
+        float b2 = smoothstep(u_thresholds.y - u_thresholds.w, u_thresholds.y + u_thresholds.w, h);
+        float b3 = smoothstep(u_thresholds.z - u_thresholds.w, u_thresholds.z + u_thresholds.w, h);
+
+        texColor = mix(sand, grass, b1);
+        texColor = mix(texColor, rock, b2);
+        texColor = mix(texColor, snow, b3);
+
+        // Klippen (Hangneigung)
+        float slope = 1.0 - N.y;
+        float slopeBlend = smoothstep(0.25, 0.45, slope);
+        texColor = mix(texColor, rock, slopeBlend);
+
+      } else {
+        texColor = texture(u_diffuseMap, v_uv);
+      }
+
       if (u_shininess < -0.5) { c = u_color * texColor; return; }
       
-      vec3 N = normalize(v_normal); 
       vec3 V = normalize(u_viewPos - v_worldPos);
       vec3 finalLight = u_ambientColor; 
       vec3 specular = vec3(0.0);
@@ -142,7 +182,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         }
       }
 
-      // Area Lights (Representative Point)
+      // Area Lights
       for(int i = 0; i < 4; i++) {
         if (i >= u_numAreaLights) break;
         
@@ -150,23 +190,20 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         vec3 L_normal = normalize(u_areaLightNormal[i]);
         vec3 dirFromLight = v_worldPos - L_center;
         
-        // Licht strahlt nur nach vorne ab!
         if(dot(dirFromLight, L_normal) < 0.0) continue; 
         
         vec3 L_right = normalize(u_areaLightRight[i]);
         vec3 L_up = normalize(u_areaLightUp[i]);
         vec2 size = u_areaLightSize[i];
 
-        // Projektion auf die Leuchtfläche
         float projX = clamp(dot(dirFromLight, L_right), -size.x, size.x);
         float projY = clamp(dot(dirFromLight, L_up), -size.y, size.y);
 
-        // Der nächstgelegene Punkt auf der Fläche wird zu unserem "PointLight"
         vec3 closestPoint = L_center + L_right * projX + L_up * projY;
         
         vec3 lightVec = closestPoint - v_worldPos; 
         float dist = length(lightVec); 
-        vec3 L_al = lightVec / (dist + 0.0001); // div by zero verhindern
+        vec3 L_al = lightVec / (dist + 0.0001); 
 
         float attenuation = 1.0 / (1.0 + 0.1 * dist + 0.01 * dist * dist); 
         float diff_al = max(dot(N, L_al), 0.0);
@@ -206,10 +243,17 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       viewPos: this.gl.getUniformLocation(this.prog, "u_viewPos"),
       numPL: this.gl.getUniformLocation(this.prog, "u_numPointLights"),
       numSL: this.gl.getUniformLocation(this.prog, "u_numSpotLights"),
-      numAL: this.gl.getUniformLocation(this.prog, "u_numAreaLights"), // <-- NEU
+      numAL: this.gl.getUniformLocation(this.prog, "u_numAreaLights"),
       diffuseMap: this.gl.getUniformLocation(this.prog, "u_diffuseMap"),
       texOffset: this.gl.getUniformLocation(this.prog, "u_texOffset"),
       texRepeat: this.gl.getUniformLocation(this.prog, "u_texRepeat"),
+      // Terrain Locations
+      isTerrain: this.gl.getUniformLocation(this.prog, "u_isTerrain"),
+      sandMap: this.gl.getUniformLocation(this.prog, "u_sandMap"),
+      grassMap: this.gl.getUniformLocation(this.prog, "u_grassMap"),
+      rockMap: this.gl.getUniformLocation(this.prog, "u_rockMap"),
+      snowMap: this.gl.getUniformLocation(this.prog, "u_snowMap"),
+      thresholds: this.gl.getUniformLocation(this.prog, "u_thresholds"),
     };
 
     this.skyLocs = {
@@ -334,7 +378,6 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     if (this.locs.vp) this.gl.uniformMatrix4fv(this.locs.vp, false, vp);
     if (this.locs.viewPos) this.gl.uniform3f(this.locs.viewPos, camPos.x, camPos.y, camPos.z);
 
-    // Licht-Extraktion (beinhaltet jetzt auch aLights!)
     const { aCol, dDir, dCol, pLights, sLights, aLights } = this.extractLights(scene);
 
     if (this.locs.ambient) this.gl.uniform3f(this.locs.ambient, aCol.r, aCol.g, aCol.b);
@@ -390,17 +433,13 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         );
     }
 
-    // AREA LIGHTS
+    // Area Lights
     if (this.locs.numAL) this.gl.uniform1i(this.locs.numAL, aLights.length);
     for (let i = 0; i < aLights.length; i++) {
       const al = aLights[i] as AreaLight;
       const mat = al.worldMatrix.data;
-
-      // Position
       if (this.areaLightLocs[i].pos)
         this.gl.uniform3f(this.areaLightLocs[i].pos!, mat[12], mat[13], mat[14]);
-
-      // Farbe & Intensität
       if (this.areaLightLocs[i].col)
         this.gl.uniform3f(
           this.areaLightLocs[i].col!,
@@ -408,17 +447,12 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
           al.color.g * al.intensity,
           al.color.b * al.intensity,
         );
-
-      // Rotations-Achsen aus der Matrix extrahieren (Spalten 0, 1 und 2 der Matrix)
       if (this.areaLightLocs[i].right)
         this.gl.uniform3f(this.areaLightLocs[i].right!, mat[0], mat[1], mat[2]);
       if (this.areaLightLocs[i].up)
         this.gl.uniform3f(this.areaLightLocs[i].up!, mat[4], mat[5], mat[6]);
-      // Wir nehmen die lokale Z-Achse als die Normale (Richtung, in die das Licht strahlt)
       if (this.areaLightLocs[i].normal)
         this.gl.uniform3f(this.areaLightLocs[i].normal!, mat[8], mat[9], mat[10]);
-
-      // Größe (Halbe Breite und halbe Höhe)
       if (this.areaLightLocs[i].size)
         this.gl.uniform2f(this.areaLightLocs[i].size!, al.width / 2.0, al.height / 2.0);
     }
@@ -445,6 +479,8 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         activeTex = this.defaultTexture,
         tOffset = [0, 0],
         tRepeat = [1, 1];
+      let isTerrain = 0,
+        thresholds = [0, 0, 0, 0];
 
       if (mat.type === MaterialType.LAMBERT) {
         shininess = 0.0;
@@ -457,18 +493,55 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
           tOffset = [pMat.diffuseMap.offset.x, pMat.diffuseMap.offset.y];
           tRepeat = [pMat.diffuseMap.repeat.x, pMat.diffuseMap.repeat.y];
         }
+      } else if (mat.type === MaterialType.TERRAIN) {
+        isTerrain = 1;
+        const tMat = mat as TerrainMaterial;
+        shininess = tMat.shininess;
+        tRepeat = tMat.texRepeat;
+        thresholds = tMat.thresholds;
+
+        this.gl.activeTexture(this.gl.TEXTURE1);
+        this.gl.bindTexture(
+          this.gl.TEXTURE_2D,
+          tMat.sandMap ? this.getWebGLTexture(tMat.sandMap) : this.defaultTexture,
+        );
+        if (this.locs.sandMap) this.gl.uniform1i(this.locs.sandMap, 1);
+
+        this.gl.activeTexture(this.gl.TEXTURE2);
+        this.gl.bindTexture(
+          this.gl.TEXTURE_2D,
+          tMat.grassMap ? this.getWebGLTexture(tMat.grassMap) : this.defaultTexture,
+        );
+        if (this.locs.grassMap) this.gl.uniform1i(this.locs.grassMap, 2);
+
+        this.gl.activeTexture(this.gl.TEXTURE3);
+        this.gl.bindTexture(
+          this.gl.TEXTURE_2D,
+          tMat.rockMap ? this.getWebGLTexture(tMat.rockMap) : this.defaultTexture,
+        );
+        if (this.locs.rockMap) this.gl.uniform1i(this.locs.rockMap, 3);
+
+        this.gl.activeTexture(this.gl.TEXTURE4);
+        this.gl.bindTexture(
+          this.gl.TEXTURE_2D,
+          tMat.snowMap ? this.getWebGLTexture(tMat.snowMap) : this.defaultTexture,
+        );
+        if (this.locs.snowMap) this.gl.uniform1i(this.locs.snowMap, 4);
       }
 
       this.gl.activeTexture(this.gl.TEXTURE0);
       this.gl.bindTexture(this.gl.TEXTURE_2D, activeTex);
       if (this.locs.diffuseMap) this.gl.uniform1i(this.locs.diffuseMap, 0);
+
       if (this.locs.texOffset) this.gl.uniform2fv(this.locs.texOffset, tOffset);
       if (this.locs.texRepeat) this.gl.uniform2fv(this.locs.texRepeat, tRepeat);
       if (this.locs.shininess) this.gl.uniform1f(this.locs.shininess, shininess);
       if (this.locs.specColor) this.gl.uniform4fv(this.locs.specColor, specCol);
+      if (this.locs.isTerrain) this.gl.uniform1i(this.locs.isTerrain, isTerrain);
+      if (this.locs.thresholds) this.gl.uniform4fv(this.locs.thresholds, thresholds);
 
       const drawMode = mat.type === MaterialType.WIREFRAME ? this.gl.LINES : this.gl.TRIANGLES;
-      this.gl.drawElements(drawMode, m.count, this.gl.UNSIGNED_SHORT, 0);
+      this.gl.drawElements(drawMode, m.count, this.gl.UNSIGNED_INT, 0); // Achtung: UNSIGNED_INT für Terrain-Größe!
 
       if (o.children) for (const child of o.children) drawNormal(child);
     };

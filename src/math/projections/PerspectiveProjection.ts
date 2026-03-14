@@ -1,6 +1,11 @@
+/// src/math/projections/PerspectiveProjection.ts
 import { Matrix4 } from "../Matrix4.js";
-import { Projection } from "./Projection.js";
-export class PerspectiveProjection extends Projection {
+import { AbstractProjection } from "./AbstractProjection.js";
+import { ProjectionType } from "../../enums/ProjectionType.js";
+
+export class PerspectiveProjection extends AbstractProjection {
+  public readonly type = ProjectionType.PERSPECTIVE;
+
   constructor(
     public fov: number,
     public aspect: number,

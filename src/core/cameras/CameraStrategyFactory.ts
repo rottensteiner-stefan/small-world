@@ -6,7 +6,6 @@ import { SmoothStrategy } from "./strategies/SmoothStrategy.js";
 import { StiffStrategy } from "./strategies/StiffStrategy.js";
 
 export class CameraStrategyFactory {
-  // Wir cachen die Instanzen, damit wir nicht bei jedem Wechsel ein neues 'new' Keyword bemühen müssen.
   private static strategies = new Map<CameraStrategyType, ICameraStrategy>([
     [CameraStrategyType.FPS, new FPSStrategy()],
     [CameraStrategyType.SMOOTH, new SmoothStrategy()],
