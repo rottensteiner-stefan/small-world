@@ -1,3 +1,4 @@
+/// src/core/ConfigLoader.ts
 export class ConfigLoader {
   public static async load(p: string) {
     const r = await fetch(p);

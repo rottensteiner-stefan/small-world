@@ -1,4 +1,5 @@
 /// src/renderers/AbstractWebGLRenderer.ts
+
 import { AbstractRenderer } from "./AbstractRenderer.js";
 import { Color } from "../core/colors/Color.js";
 

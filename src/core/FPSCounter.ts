@@ -1,3 +1,4 @@
+/// src/core/FPSCounter.ts
 export class FPSCounter {
   private last = performance.now();
   private frames = 0;

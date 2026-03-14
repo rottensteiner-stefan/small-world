@@ -1,3 +1,4 @@
+/// src/core/Scene.ts
 import { Object3D } from "./Object3D.js";
 export class Scene {
   public objects: Object3D[] = [];
