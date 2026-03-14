@@ -59,7 +59,7 @@ export abstract class Application {
         const jsonConfig = await response.json();
         this.config = { ...this.config, ...jsonConfig };
       }
-    } catch (e) {
+    } catch {
       console.warn("Nutze Fallback-Config (Keine JSON gefunden).");
     }
 

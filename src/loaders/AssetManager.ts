@@ -61,7 +61,7 @@ export class AssetManager {
               colorSpaceConversion: "none",
               imageOrientation: "from-image" as any,
             });
-          } catch (e) {
+          } catch {
             // Fallback für Safari, Firefox und ältere Chrome-Versionen
             return await createImageBitmap(blob, {
               colorSpaceConversion: "none",
