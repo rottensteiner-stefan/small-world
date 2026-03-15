@@ -12,7 +12,7 @@ import {
     PerspectiveProjection,
     PhongMaterial,
     ProjectionType,
-    Vector3D,
+    Vector3D, WireframeMaterial,
 } from "../src/index.js";
 
 class Demo3App extends Application {
@@ -56,11 +56,8 @@ class Demo3App extends Application {
         // ---------------------------------------------------------
         const gridObj = new Object3D("Boden");
         gridObj.geometry = new Grid(20, 20).getGeometryData();
-        const gridMat = new PhongMaterial();
+        const gridMat = new WireframeMaterial()
         gridMat.color = Color.DARKSLATEGRAY;
-
-        // WICHTIG: Zwingt den Renderer, das Grid als Linien zu zeichnen (keine "Fähnchen" mehr)
-        gridMat.type = MaterialType.WIREFRAME;
 
         gridObj.material = gridMat;
         this.scene.add(gridObj);
