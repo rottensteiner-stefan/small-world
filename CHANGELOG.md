@@ -1,5 +1,8 @@
 # Changelog
 
+## [0.10.12] - 2026-03-16
+- Demo 3: Load and display *.OBJ
+
 ## [0.10.11] - 2026-03-15
 - Demo 2: WASD and camera (pointer lock)
 
