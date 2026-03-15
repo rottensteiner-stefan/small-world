@@ -1,6 +1,6 @@
 {
   "name": "smallworld-engine",
-  "version": "0.10.8",
+  "version": "0.10.9",
   "type": "module",
   "scripts": {
     "build": "npm-run-all build:demo build:lib",
