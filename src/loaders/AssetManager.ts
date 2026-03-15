@@ -59,9 +59,11 @@ export class AssetManager {
             // 'as any' verhindert TypeScript-Meldungen, falls deine TS-Version 'from-image' noch nicht kennt
             return await createImageBitmap(blob, {
               colorSpaceConversion: "none",
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               imageOrientation: "from-image" as any,
             });
-          } catch {
+          } catch (e) {
+            console.error(e);
             // Fallback für Safari, Firefox und ältere Chrome-Versionen
             return await createImageBitmap(blob, {
               colorSpaceConversion: "none",
@@ -70,8 +72,8 @@ export class AssetManager {
           }
         }
       })
-      .catch((err) => {
-        console.error(err);
+      .catch((e) => {
+        console.error(e);
         return new Promise<HTMLImageElement>((resolve, reject) => {
           const img = new Image();
           img.crossOrigin = "anonymous";

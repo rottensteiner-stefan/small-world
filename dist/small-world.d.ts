@@ -252,6 +252,10 @@ declare interface ICamera {
     position: Vector3D;
     /** Das Seitenverhältnis (z.B. für Window-Resizing) */
     aspect: number;
+    /** Die aktive Projektionsart (Perspektive, Orthografisch, etc.) */
+    projection: AbstractProjection;
+    /** Gibt den Namen der aktuell genutzten Kamera-Strategie zurück */
+    readonly activeStrategyType: string;
     /** Die kombinierte Matrix, die der Shader am Ende braucht (View * Projection) */
     viewProjectionMatrix: Float32Array;
     /** Berechnet die Verzerrung (Perspektive oder Orthografisch) neu */
