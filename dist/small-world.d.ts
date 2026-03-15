@@ -138,6 +138,7 @@ export declare class Color {
     static get RED(): Color;
     static get GREEN(): Color;
     static get BLUE(): Color;
+    static get LIME(): Color;
     static get ORANGE(): Color;
     static get DODGERBLUE(): Color;
     static get SKYBLUE(): Color;
@@ -185,7 +186,7 @@ export declare class DirectionalLight extends AbstractLight {
     constructor(color?: Color, intensity?: number);
 }
 
-export declare const ENGINE_VERSION = "0.10.10";
+export declare const ENGINE_VERSION = "0.10.11";
 
 export declare class EventDispatcher {
     private _listeners;
@@ -250,14 +251,26 @@ declare interface IBoundingVolume {
 declare interface ICamera {
     /** Position der Kamera in der Welt */
     position: Vector3D;
+    /** Punkt, auf den die Kamera schaut */
+    target: Vector3D;
+    /** Oben-Vektor (meistens 0, 1, 0) */
+    up: Vector3D;
     /** Das Seitenverhältnis (z.B. für Window-Resizing) */
     aspect: number;
     /** Die aktive Projektionsart (Perspektive, Orthografisch, etc.) */
     projection: AbstractProjection;
+    /** Rotationswinkel auf der X/Z-Ebene */
+    theta: number;
+    /** Neigungswinkel (hoch/runter) */
+    phi: number;
     /** Gibt den Namen der aktuell genutzten Kamera-Strategie zurück */
     readonly activeStrategyType: string;
     /** Die kombinierte Matrix, die der Shader am Ende braucht (View * Projection) */
     viewProjectionMatrix: Float32Array;
+    /** Wechselt das Steuerungsverhalten der Kamera */
+    setStrategy(type: CameraStrategyType): void;
+    /** Führt die Bewegung und Logik der aktiven Strategie aus */
+    update(targetPos: Vector3D, dx: number, dy: number): void;
     /** Berechnet die Verzerrung (Perspektive oder Orthografisch) neu */
     updateProjectionMatrix(): void;
     /** Berechnet die Blickrichtung und Position neu */

@@ -313,53 +313,61 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
     }
 
     const drawNormal = (o: Object3D) => {
-      if (!o.isVisible || !o.geometry || !o.material || o.material.type === MaterialType.SKYBOX) {
-        if (o.children) for (const child of o.children) drawNormal(child);
-        return;
+      // 1. Wenn das Objekt unsichtbar ist, brechen wir SOFORT ab.
+      // Dadurch werden auch alle Kinder (die an diesem Objekt hängen) unsichtbar!
+      if (!o.isVisible) return;
+
+      // 2. Wir rendern dieses Objekt nur, wenn es Geometrie und Material hat
+      // UND es keine Skybox ist (die wird ja in einem anderen Pass gezeichnet).
+      if (o.geometry && o.material && o.material.type !== MaterialType.SKYBOX) {
+        const mat = o.material;
+        let m = this.cache.get(o.geometry);
+        if (!m) {
+          m = new Mesh(this.gl, o.geometry);
+          this.cache.set(o.geometry, m);
+        }
+        m.bind(this.locs.pos, this.locs.norm, this.locs.uv);
+
+        if (this.locs.model) this.gl.uniformMatrix4fv(this.locs.model, false, o.worldMatrix.data);
+        if (this.locs.color) this.gl.uniform4fv(this.locs.color, mat.color.toArray());
+
+        let shininess = -1.0,
+            specCol = [0, 0, 0, 0],
+            activeTex = this.defaultTexture,
+            tOffset = [0, 0],
+            tRepeat = [1, 1];
+
+        if (mat.type === MaterialType.LAMBERT) {
+          shininess = 0.0;
+        } else if (mat.type === MaterialType.PHONG) {
+          const pMat = mat as PhongMaterial;
+          shininess = pMat.shininess || 32;
+          specCol = pMat.specularColor ? pMat.specularColor.toArray() : [0, 0, 0, 0];
+          if (pMat.diffuseMap) {
+            activeTex = this.getWebGLTexture(pMat.diffuseMap);
+            tOffset = [pMat.diffuseMap.offset.x, pMat.diffuseMap.offset.y];
+            tRepeat = [pMat.diffuseMap.repeat.x, pMat.diffuseMap.repeat.y];
+          }
+        }
+
+        this.gl.activeTexture(this.gl.TEXTURE0);
+        this.gl.bindTexture(this.gl.TEXTURE_2D, activeTex);
+        if (this.locs.diffuseMap) this.gl.uniform1i(this.locs.diffuseMap, 0);
+        if (this.locs.texOffset) this.gl.uniform2fv(this.locs.texOffset, tOffset);
+        if (this.locs.texRepeat) this.gl.uniform2fv(this.locs.texRepeat, tRepeat);
+        if (this.locs.shininess) this.gl.uniform1f(this.locs.shininess, shininess);
+        if (this.locs.specColor) this.gl.uniform4fv(this.locs.specColor, specCol);
+
+        const drawMode = mat.type === MaterialType.WIREFRAME ? this.gl.LINES : this.gl.TRIANGLES;
+        this.gl.drawElements(drawMode, m.count, this.gl.UNSIGNED_SHORT, 0);
       }
 
-      const mat = o.material;
-      let m = this.cache.get(o.geometry);
-      if (!m) {
-        m = new Mesh(this.gl, o.geometry);
-        this.cache.set(o.geometry, m);
-      }
-      m.bind(this.locs.pos, this.locs.norm, this.locs.uv);
-
-      if (this.locs.model) this.gl.uniformMatrix4fv(this.locs.model, false, o.worldMatrix.data);
-      if (this.locs.color) this.gl.uniform4fv(this.locs.color, mat.color.toArray());
-
-      let shininess = -1.0,
-        specCol = [0, 0, 0, 0],
-        activeTex = this.defaultTexture,
-        tOffset = [0, 0],
-        tRepeat = [1, 1];
-
-      if (mat.type === MaterialType.LAMBERT) {
-        shininess = 0.0;
-      } else if (mat.type === MaterialType.PHONG) {
-        const pMat = mat as PhongMaterial;
-        shininess = pMat.shininess || 32;
-        specCol = pMat.specularColor ? pMat.specularColor.toArray() : [0, 0, 0, 0];
-        if (pMat.diffuseMap) {
-          activeTex = this.getWebGLTexture(pMat.diffuseMap);
-          tOffset = [pMat.diffuseMap.offset.x, pMat.diffuseMap.offset.y];
-          tRepeat = [pMat.diffuseMap.repeat.x, pMat.diffuseMap.repeat.y];
+      // 3. IMMER in die Kinder absteigen (sofern der Parent sichtbar war)
+      if (o.children) {
+        for (const child of o.children) {
+          drawNormal(child);
         }
       }
-
-      this.gl.activeTexture(this.gl.TEXTURE0);
-      this.gl.bindTexture(this.gl.TEXTURE_2D, activeTex);
-      if (this.locs.diffuseMap) this.gl.uniform1i(this.locs.diffuseMap, 0);
-      if (this.locs.texOffset) this.gl.uniform2fv(this.locs.texOffset, tOffset);
-      if (this.locs.texRepeat) this.gl.uniform2fv(this.locs.texRepeat, tRepeat);
-      if (this.locs.shininess) this.gl.uniform1f(this.locs.shininess, shininess);
-      if (this.locs.specColor) this.gl.uniform4fv(this.locs.specColor, specCol);
-
-      const drawMode = mat.type === MaterialType.WIREFRAME ? this.gl.LINES : this.gl.TRIANGLES;
-      this.gl.drawElements(drawMode, m.count, this.gl.UNSIGNED_SHORT, 0);
-
-      if (o.children) for (const child of o.children) drawNormal(child);
     };
     for (const obj of scene.objects) drawNormal(obj);
   }

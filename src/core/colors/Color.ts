@@ -20,6 +20,11 @@ export class Color {
   public static get BLUE() {
     return new Color(0, 0, 1);
   }
+
+  public static get LIME() {
+    return new Color(0, 1, 0);
+  }
+
   public static get ORANGE() {
     return new Color(1, 0.5, 0);
   }

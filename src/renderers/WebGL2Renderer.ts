@@ -458,93 +458,100 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     }
 
     const drawNormal = (o: Object3D) => {
-      if (!o.isVisible || !o.geometry || !o.material || o.material.type === MaterialType.SKYBOX) {
-        if (o.children) for (const child of o.children) drawNormal(child);
-        return;
-      }
+      // 1. Ist das Objekt (und damit alles, was an ihm hängt) unsichtbar? -> Abbruch
+      if (!o.isVisible) return;
 
-      const mat = o.material;
-      let m = this.cache.get(o.geometry);
-      if (!m) {
-        m = new Mesh(this.gl, o.geometry);
-        this.cache.set(o.geometry, m);
-      }
-      m.bind(this.locs.pos, this.locs.norm, this.locs.uv);
-
-      if (this.locs.model) this.gl.uniformMatrix4fv(this.locs.model, false, o.worldMatrix.data);
-      if (this.locs.color) this.gl.uniform4fv(this.locs.color, mat.color.toArray());
-
-      let shininess = -1.0,
-        specCol = [0, 0, 0, 0],
-        activeTex = this.defaultTexture,
-        tOffset = [0, 0],
-        tRepeat = [1, 1];
-      let isTerrain = 0,
-        thresholds = [0, 0, 0, 0];
-
-      if (mat.type === MaterialType.LAMBERT) {
-        shininess = 0.0;
-      } else if (mat.type === MaterialType.PHONG) {
-        const pMat = mat as PhongMaterial;
-        shininess = pMat.shininess || 32;
-        specCol = pMat.specularColor ? pMat.specularColor.toArray() : [0, 0, 0, 0];
-        if (pMat.diffuseMap) {
-          activeTex = this.getWebGLTexture(pMat.diffuseMap);
-          tOffset = [pMat.diffuseMap.offset.x, pMat.diffuseMap.offset.y];
-          tRepeat = [pMat.diffuseMap.repeat.x, pMat.diffuseMap.repeat.y];
+      // 2. Nur zeichnen, wenn das Objekt Geometrie und Material hat UND keine Skybox ist
+      if (o.geometry && o.material && o.material.type !== MaterialType.SKYBOX) {
+        const mat = o.material;
+        let m = this.cache.get(o.geometry);
+        if (!m) {
+          m = new Mesh(this.gl, o.geometry);
+          this.cache.set(o.geometry, m);
         }
-      } else if (mat.type === MaterialType.TERRAIN) {
-        isTerrain = 1;
-        const tMat = mat as TerrainMaterial;
-        shininess = tMat.shininess;
-        tRepeat = tMat.texRepeat;
-        thresholds = tMat.thresholds;
+        m.bind(this.locs.pos, this.locs.norm, this.locs.uv);
 
-        this.gl.activeTexture(this.gl.TEXTURE1);
-        this.gl.bindTexture(
-          this.gl.TEXTURE_2D,
-          tMat.sandMap ? this.getWebGLTexture(tMat.sandMap) : this.defaultTexture,
-        );
-        if (this.locs.sandMap) this.gl.uniform1i(this.locs.sandMap, 1);
+        if (this.locs.model) this.gl.uniformMatrix4fv(this.locs.model, false, o.worldMatrix.data);
+        if (this.locs.color) this.gl.uniform4fv(this.locs.color, mat.color.toArray());
 
-        this.gl.activeTexture(this.gl.TEXTURE2);
-        this.gl.bindTexture(
-          this.gl.TEXTURE_2D,
-          tMat.grassMap ? this.getWebGLTexture(tMat.grassMap) : this.defaultTexture,
-        );
-        if (this.locs.grassMap) this.gl.uniform1i(this.locs.grassMap, 2);
+        let shininess = -1.0,
+            specCol = [0, 0, 0, 0],
+            activeTex = this.defaultTexture,
+            tOffset = [0, 0],
+            tRepeat = [1, 1];
+        let isTerrain = 0,
+            thresholds = [0, 0, 0, 0];
 
-        this.gl.activeTexture(this.gl.TEXTURE3);
-        this.gl.bindTexture(
-          this.gl.TEXTURE_2D,
-          tMat.rockMap ? this.getWebGLTexture(tMat.rockMap) : this.defaultTexture,
-        );
-        if (this.locs.rockMap) this.gl.uniform1i(this.locs.rockMap, 3);
+        if (mat.type === MaterialType.LAMBERT) {
+          shininess = 0.0;
+        } else if (mat.type === MaterialType.PHONG) {
+          const pMat = mat as PhongMaterial;
+          shininess = pMat.shininess || 32;
+          specCol = pMat.specularColor ? pMat.specularColor.toArray() : [0, 0, 0, 0];
+          if (pMat.diffuseMap) {
+            activeTex = this.getWebGLTexture(pMat.diffuseMap);
+            tOffset = [pMat.diffuseMap.offset.x, pMat.diffuseMap.offset.y];
+            tRepeat = [pMat.diffuseMap.repeat.x, pMat.diffuseMap.repeat.y];
+          }
+        } else if (mat.type === MaterialType.TERRAIN) {
+          isTerrain = 1;
+          const tMat = mat as TerrainMaterial;
+          shininess = tMat.shininess;
+          tRepeat = tMat.texRepeat;
+          thresholds = tMat.thresholds;
 
-        this.gl.activeTexture(this.gl.TEXTURE4);
-        this.gl.bindTexture(
-          this.gl.TEXTURE_2D,
-          tMat.snowMap ? this.getWebGLTexture(tMat.snowMap) : this.defaultTexture,
-        );
-        if (this.locs.snowMap) this.gl.uniform1i(this.locs.snowMap, 4);
+          this.gl.activeTexture(this.gl.TEXTURE1);
+          this.gl.bindTexture(
+              this.gl.TEXTURE_2D,
+              tMat.sandMap ? this.getWebGLTexture(tMat.sandMap) : this.defaultTexture,
+          );
+          if (this.locs.sandMap) this.gl.uniform1i(this.locs.sandMap, 1);
+
+          this.gl.activeTexture(this.gl.TEXTURE2);
+          this.gl.bindTexture(
+              this.gl.TEXTURE_2D,
+              tMat.grassMap ? this.getWebGLTexture(tMat.grassMap) : this.defaultTexture,
+          );
+          if (this.locs.grassMap) this.gl.uniform1i(this.locs.grassMap, 2);
+
+          this.gl.activeTexture(this.gl.TEXTURE3);
+          this.gl.bindTexture(
+              this.gl.TEXTURE_2D,
+              tMat.rockMap ? this.getWebGLTexture(tMat.rockMap) : this.defaultTexture,
+          );
+          if (this.locs.rockMap) this.gl.uniform1i(this.locs.rockMap, 3);
+
+          this.gl.activeTexture(this.gl.TEXTURE4);
+          this.gl.bindTexture(
+              this.gl.TEXTURE_2D,
+              tMat.snowMap ? this.getWebGLTexture(tMat.snowMap) : this.defaultTexture,
+          );
+          if (this.locs.snowMap) this.gl.uniform1i(this.locs.snowMap, 4);
+        }
+
+        this.gl.activeTexture(this.gl.TEXTURE0);
+        this.gl.bindTexture(this.gl.TEXTURE_2D, activeTex);
+        if (this.locs.diffuseMap) this.gl.uniform1i(this.locs.diffuseMap, 0);
+
+        if (this.locs.texOffset) this.gl.uniform2fv(this.locs.texOffset, tOffset);
+        if (this.locs.texRepeat) this.gl.uniform2fv(this.locs.texRepeat, tRepeat);
+        if (this.locs.shininess) this.gl.uniform1f(this.locs.shininess, shininess);
+        if (this.locs.specColor) this.gl.uniform4fv(this.locs.specColor, specCol);
+        if (this.locs.isTerrain) this.gl.uniform1i(this.locs.isTerrain, isTerrain);
+        if (this.locs.thresholds) this.gl.uniform4fv(this.locs.thresholds, thresholds);
+
+        const drawMode = mat.type === MaterialType.WIREFRAME ? this.gl.LINES : this.gl.TRIANGLES;
+        this.gl.drawElements(drawMode, m.count, this.gl.UNSIGNED_INT, 0); // Achtung: UNSIGNED_INT für Terrain-Größe!
       }
 
-      this.gl.activeTexture(this.gl.TEXTURE0);
-      this.gl.bindTexture(this.gl.TEXTURE_2D, activeTex);
-      if (this.locs.diffuseMap) this.gl.uniform1i(this.locs.diffuseMap, 0);
-
-      if (this.locs.texOffset) this.gl.uniform2fv(this.locs.texOffset, tOffset);
-      if (this.locs.texRepeat) this.gl.uniform2fv(this.locs.texRepeat, tRepeat);
-      if (this.locs.shininess) this.gl.uniform1f(this.locs.shininess, shininess);
-      if (this.locs.specColor) this.gl.uniform4fv(this.locs.specColor, specCol);
-      if (this.locs.isTerrain) this.gl.uniform1i(this.locs.isTerrain, isTerrain);
-      if (this.locs.thresholds) this.gl.uniform4fv(this.locs.thresholds, thresholds);
-
-      const drawMode = mat.type === MaterialType.WIREFRAME ? this.gl.LINES : this.gl.TRIANGLES;
-      this.gl.drawElements(drawMode, m.count, this.gl.UNSIGNED_INT, 0); // Achtung: UNSIGNED_INT für Terrain-Größe!
-
-      if (o.children) for (const child of o.children) drawNormal(child);
+      // 3. IMMER in die Kinder absteigen, sofern der Parent sichtbar ist!
+      if (o.children) {
+        for (const child of o.children) {
+          drawNormal(child);
+        }
+      }
     };
+
     for (const obj of scene.objects) drawNormal(obj);
   }
 }
