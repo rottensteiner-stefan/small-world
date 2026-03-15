@@ -1,9 +1,12 @@
 # Changelog
 
+## [0.10.10] - 2026-03-15
+- Prepare more than a single feature demo
+
 ## [0.10.9] - 2026-03-15
 - More code refactor and version bump
 - Respect linting errors and warnings
-- Some sort of reset. Start with Demo1.
+- Some sort of reset. Start with Demo1
 
 ## [0.10.6] - 2026-03-13
 
