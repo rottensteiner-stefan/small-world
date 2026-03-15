@@ -54,7 +54,7 @@ export abstract class Application {
   public async start(): Promise<void> {
     // Config mergen
     try {
-      const response = await fetch("./config/small-world.json");
+      const response = await fetch("/config/small-world.json");
       if (response.ok) {
         const jsonConfig = await response.json();
         this.config = { ...this.config, ...jsonConfig };
@@ -64,6 +64,7 @@ export abstract class Application {
     }
 
     // Canvas Setup
+    console.debug('Canvas ID: ' + this.config.canvasId);
     this.canvas = document.getElementById(this.config.canvasId!) as HTMLCanvasElement;
     if (this.config.fullscreen) {
       this.canvas.width = window.innerWidth;
@@ -96,9 +97,14 @@ export abstract class Application {
     const deltaTime = (currentTime - this.lastTime) / 1000.0;
     this.lastTime = currentTime;
 
+    // 1. Benutzerdefinierte Logik des aktuellen Levels (z.B. Würfel rotieren)
     this.update(deltaTime);
 
+    // 2. ENGINE-LOGIK: Matrizen für Kamera und Szene automatisch berechnen!
+    this.scene.update(); // <--- NEU: Das passiert jetzt jeden Frame automatisch
     this.camera.updateViewMatrix();
+
+    // 3. Alles auf den Bildschirm zeichnen
     this.renderer.render(this.scene, this.camera.viewProjectionMatrix, this.camera.position);
 
     requestAnimationFrame((time) => this.loop(time));

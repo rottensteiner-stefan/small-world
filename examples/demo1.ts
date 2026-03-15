@@ -13,6 +13,10 @@ import {
 class Demo1App extends Application {
   private myCube!: Object3D;
 
+  constructor() {
+    super({ canvasId: "SmallWorld" });
+  }
+
   protected async setupScene(): Promise<void> {
     console.log("=== LEVEL 1: SETUP GESTARTET ===");
 
@@ -63,9 +67,7 @@ class Demo1App extends Application {
     this.myCube.rotation.x += 1.0 * deltaTime;
     this.myCube.rotation.y += 1.5 * deltaTime;
 
-    // FIX 2: Wir müssen der Szene sagen, dass sie alle Matrizen neu berechnen soll!
-    // (Für die Zukunft: Das könntest du auch fest in die Application.ts -> loop() einbauen)
-    this.scene.update();
+    // Den Aufruf von this.scene.update() haben wir hier komplett gelöscht!
   }
 }
 
