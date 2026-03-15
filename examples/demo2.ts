@@ -19,14 +19,12 @@ class Demo2App extends Application {
     private speed = 15.0;
 
     constructor() {
-        // WICHTIG: Hier nutzen wir jetzt deine neue, sprechende ID!
         super({ canvasId: "SmallWorld" });
     }
 
     protected async setupScene(): Promise<void> {
         Input.init();
 
-        // NEU: Klick auf das Canvas sperrt die Maus (Pointer Lock ein)
         this.canvas.addEventListener("click", () => {
             if (!Input.isPointerLocked) {
                 Input.requestPointerLock(this.canvas);
@@ -73,15 +71,8 @@ class Demo2App extends Application {
         const sin = Math.sin(this.camera.theta);
         const cos = Math.cos(this.camera.theta);
 
-        // --- HIER IST DER FIX ---
-        // Vorher:
-        // const dirX = moveX * cos - moveZ * sin;
-        // const dirZ = moveX * sin + moveZ * cos;
-
-        // Nachher (Vorzeichen getauscht für den korrekten Rotationsvektor):
         const dirX = moveX * cos + moveZ * sin;
         const dirZ = -moveX * sin + moveZ * cos;
-        // ------------------------
 
         this.playerPos.x += dirX * this.speed * deltaTime;
         this.playerPos.z += dirZ * this.speed * deltaTime;

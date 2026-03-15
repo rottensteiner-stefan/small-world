@@ -542,74 +542,84 @@ export class WebGPURenderer extends AbstractRenderer {
     }
 
     const drawObject = (obj: Object3D) => {
-      if (!obj.isVisible || !obj.geometry || !obj.material) return;
-      const mat = obj.material;
-      let texBindGroup: GPUBindGroup = this.defaultTexBindGroup;
-      let shininess = -1.0,
-        specCol = [0, 0, 0, 0],
-        tOffset = [0, 0],
-        tRepeat = [1, 1];
-      let isTerrain = 0.0,
-        thresholds = [0, 0, 0, 0];
+      // 1. Abbruch NUR, wenn das Objekt (und damit seine Kinder) explizit unsichtbar geschaltet wurde
+      if (!obj.isVisible) return;
 
-      if (mat.type === MaterialType.SKYBOX) {
-        rp.setPipeline(this.pipelineSkybox);
-      } else {
-        rp.setPipeline(
-          mat.type === MaterialType.WIREFRAME ? this.pipelineLines : this.pipelineTriangles,
-        );
+      // 2. Nur zeichnen, wenn auch wirklich Geometrie und Material da sind
+      if (obj.geometry && obj.material) {
+        const mat = obj.material;
+        let texBindGroup: GPUBindGroup = this.defaultTexBindGroup;
+        let shininess = -1.0,
+            specCol = [0, 0, 0, 0],
+            tOffset = [0, 0],
+            tRepeat = [1, 1];
+        let isTerrain = 0.0,
+            thresholds = [0, 0, 0, 0];
 
-        if (mat.type === MaterialType.LAMBERT) {
-          shininess = 0.0;
-        } else if (mat.type === MaterialType.PHONG) {
-          const pMat = mat as PhongMaterial;
-          shininess = pMat.shininess || 32;
-          specCol = pMat.specularColor ? pMat.specularColor.toArray() : [0, 0, 0, 0];
-          if (pMat.diffuseMap) {
-            texBindGroup = this.getGPUTextureBindGroup(pMat.diffuseMap);
-            tOffset = [pMat.diffuseMap.offset.x, pMat.diffuseMap.offset.y];
-            tRepeat = [pMat.diffuseMap.repeat.x, pMat.diffuseMap.repeat.y];
+        if (mat.type === MaterialType.SKYBOX) {
+          rp.setPipeline(this.pipelineSkybox);
+        } else {
+          rp.setPipeline(
+              mat.type === MaterialType.WIREFRAME ? this.pipelineLines : this.pipelineTriangles,
+          );
+
+          if (mat.type === MaterialType.LAMBERT) {
+            shininess = 0.0;
+          } else if (mat.type === MaterialType.PHONG) {
+            const pMat = mat as PhongMaterial;
+            shininess = pMat.shininess || 32;
+            specCol = pMat.specularColor ? pMat.specularColor.toArray() : [0, 0, 0, 0];
+            if (pMat.diffuseMap) {
+              texBindGroup = this.getGPUTextureBindGroup(pMat.diffuseMap);
+              tOffset = [pMat.diffuseMap.offset.x, pMat.diffuseMap.offset.y];
+              tRepeat = [pMat.diffuseMap.repeat.x, pMat.diffuseMap.repeat.y];
+            }
+          } else if (mat.type === MaterialType.TERRAIN) {
+            isTerrain = 1.0;
+            const tMat = mat as TerrainMaterial;
+            shininess = tMat.shininess;
+            tRepeat = tMat.texRepeat;
+            thresholds = tMat.thresholds;
+            texBindGroup = this.getGPUTerrainBindGroup(tMat);
           }
-        } else if (mat.type === MaterialType.TERRAIN) {
-          isTerrain = 1.0;
-          const tMat = mat as TerrainMaterial;
-          shininess = tMat.shininess;
-          tRepeat = tMat.texRepeat;
-          thresholds = tMat.thresholds;
-          texBindGroup = this.getGPUTerrainBindGroup(tMat);
+        }
+
+        uData.set(obj.worldMatrix.data, 16);
+        uData.set(mat.color.toArray(), 32);
+        uData.set(specCol, 36);
+        uData.set(tOffset, 56);
+        uData.set(tRepeat, 58);
+        uData[60] = shininess;
+        uData.set(thresholds, 64);
+        uData[68] = isTerrain;
+
+        const oCache = this.getObjCache(obj);
+        this.device!.queue.writeBuffer(oCache.ub, 0, uData);
+        this.device!.queue.writeBuffer(oCache.plb, 0, plData);
+        this.device!.queue.writeBuffer(oCache.slb, 0, slData);
+        this.device!.queue.writeBuffer(oCache.alb, 0, alData);
+
+        const gCache = this.getGeoCache(obj.geometry);
+        rp.setBindGroup(0, oCache.bg);
+        rp.setBindGroup(1, texBindGroup);
+        rp.setVertexBuffer(0, gCache.vb);
+        rp.setVertexBuffer(1, gCache.nb ? gCache.nb : gCache.vb);
+        rp.setVertexBuffer(2, gCache.uvb ? gCache.uvb : gCache.vb);
+
+        if (gCache.ib && gCache.format) {
+          rp.setIndexBuffer(gCache.ib, gCache.format);
+          rp.drawIndexed(gCache.indexCount);
+        } else {
+          rp.draw(gCache.vertexCount);
         }
       }
 
-      uData.set(obj.worldMatrix.data, 16);
-      uData.set(mat.color.toArray(), 32);
-      uData.set(specCol, 36);
-      uData.set(tOffset, 56);
-      uData.set(tRepeat, 58);
-      uData[60] = shininess;
-      uData.set(thresholds, 64);
-      uData[68] = isTerrain;
-
-      const oCache = this.getObjCache(obj);
-      this.device!.queue.writeBuffer(oCache.ub, 0, uData);
-      this.device!.queue.writeBuffer(oCache.plb, 0, plData);
-      this.device!.queue.writeBuffer(oCache.slb, 0, slData);
-      this.device!.queue.writeBuffer(oCache.alb, 0, alData);
-
-      const gCache = this.getGeoCache(obj.geometry);
-      rp.setBindGroup(0, oCache.bg);
-      rp.setBindGroup(1, texBindGroup);
-      rp.setVertexBuffer(0, gCache.vb);
-      rp.setVertexBuffer(1, gCache.nb ? gCache.nb : gCache.vb);
-      rp.setVertexBuffer(2, gCache.uvb ? gCache.uvb : gCache.vb);
-
-      if (gCache.ib && gCache.format) {
-        rp.setIndexBuffer(gCache.ib, gCache.format);
-        rp.drawIndexed(gCache.indexCount);
-      } else {
-        rp.draw(gCache.vertexCount);
+      // 3. WICHTIG: IMMER die Kinder durchlaufen, auch wenn der Parent nur ein leerer Container ist!
+      if (obj.children) {
+        for (const child of obj.children) {
+          drawObject(child);
+        }
       }
-
-      if (obj.children) for (const child of obj.children) drawObject(child);
     };
 
     for (const obj of scene.objects || []) drawObject(obj);

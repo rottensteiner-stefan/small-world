@@ -20,6 +20,7 @@ export { Texture } from "./core/textures/Texture.js";
 export { CameraStrategyType } from "./enums/CameraStrategyType.js";
 export { Keys } from "./enums/Keys.js";
 export { LightType } from "./enums/LightType.js";
+export { MaterialType } from "./enums/MaterialType.js";
 export { ProjectionType } from "./enums/ProjectionType.js";
 export { RendererType } from "./enums/RendererType.js";
 export { TextureFilter } from "./enums/TextureFilter.js";
