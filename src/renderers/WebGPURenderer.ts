@@ -1,5 +1,3 @@
-/// src/renderers/WebGPURenderer.ts
-
 import { CubeTexture } from "../core/textures/CubeTexture.js";
 import { IGeometryData } from "../interfaces/IGeometryData.js";
 import { Object3D } from "../core/Object3D.js";
@@ -34,27 +32,32 @@ interface WebGPUObjCache {
 export class WebGPURenderer extends AbstractRenderer {
   public readonly type = RendererType.WEB_GPU;
   private adapter: GPUAdapter | null = null;
-  private context!: GPUCanvasContext;
-  private defaultCubeTexBindGroup!: GPUBindGroup;
-  private defaultTexBindGroup!: GPUBindGroup;
-  private depthTexture!: GPUTexture;
   private device: GPUDevice | null = null;
+  private context!: GPUCanvasContext;
   private format!: GPUTextureFormat;
-  private geoCache = new Map<IGeometryData, WebGPUGeoCache>();
-  private objBGL!: GPUBindGroupLayout;
-  private objCache = new Map<Object3D, WebGPUObjCache>();
+
+  private pipelineTriangles!: GPURenderPipeline;
   private pipelineLines!: GPURenderPipeline;
   private pipelineSkybox!: GPURenderPipeline;
-  private pipelineTriangles!: GPURenderPipeline;
-  private sampler!: GPUSampler;
-  private samplerCache = new Map<string, GPUSampler>();
-  private skyTexBGL!: GPUBindGroupLayout;
-  private terrainTexCache = new Map<TerrainMaterial, GPUBindGroup>();
+
+  private objBGL!: GPUBindGroupLayout;
   private texBGL!: GPUBindGroupLayout;
-  private texCache = new Map<Texture, GPUBindGroup>();
-  private texCubeCache = new Map<CubeTexture, GPUBindGroup>();
-  private textureViewCache = new Map<Texture, GPUTextureView>();
+  private skyTexBGL!: GPUBindGroupLayout;
+
+  private defaultTexBindGroup!: GPUBindGroup;
+  private defaultCubeTexBindGroup!: GPUBindGroup;
+  private sampler!: GPUSampler;
   private whiteTexView!: GPUTextureView;
+
+  private geoCache = new Map<IGeometryData, WebGPUGeoCache>();
+  private objCache = new Map<Object3D, WebGPUObjCache>();
+  private textureViewCache = new Map<Texture, GPUTextureView>();
+  private texCache = new Map<Texture, GPUBindGroup>();
+  private terrainTexCache = new Map<TerrainMaterial, GPUBindGroup>();
+  private texCubeCache = new Map<CubeTexture, GPUBindGroup>();
+  private samplerCache = new Map<string, GPUSampler>();
+
+  private depthTexture!: GPUTexture;
 
   public async initialize(canvas: HTMLCanvasElement) {
     this.adapter = await navigator.gpu.requestAdapter();
@@ -222,14 +225,17 @@ export class WebGPURenderer extends AbstractRenderer {
       bindGroupLayouts: [this.objBGL, this.skyTexBGL],
     });
 
-    const common: any = {
+    // NEU: Die Puffer explizit in ein Array auslagern!
+    const vertexBuffers: GPUVertexBufferLayout[] = [
+      { arrayStride: 12, attributes: [{ shaderLocation: 0, offset: 0, format: "float32x3" }] },
+      { arrayStride: 12, attributes: [{ shaderLocation: 1, offset: 0, format: "float32x3" }] },
+      { arrayStride: 8, attributes: [{ shaderLocation: 2, offset: 0, format: "float32x2" }] },
+    ];
+
+    const common: GPURenderPipelineDescriptor = {
       vertex: {
         module: sm,
-        buffers: [
-          { arrayStride: 12, attributes: [{ shaderLocation: 0, offset: 0, format: "float32x3" }] },
-          { arrayStride: 12, attributes: [{ shaderLocation: 1, offset: 0, format: "float32x3" }] },
-          { arrayStride: 8, attributes: [{ shaderLocation: 2, offset: 0, format: "float32x2" }] },
-        ],
+        buffers: vertexBuffers,
       },
       fragment: { module: sm, targets: [{ format: this.format }] },
       primitive: { topology: "triangle-list", cullMode: "back" },
@@ -238,11 +244,15 @@ export class WebGPURenderer extends AbstractRenderer {
     };
 
     this.pipelineTriangles = this.device.createRenderPipeline(common);
-    common.primitive.topology = "line-list";
-    this.pipelineLines = this.device.createRenderPipeline(common);
+
+    this.pipelineLines = this.device.createRenderPipeline({
+      ...common,
+      primitive: { topology: "line-list", cullMode: "back" },
+    });
 
     this.pipelineSkybox = this.device.createRenderPipeline({
-      vertex: { module: skySm, buffers: [common.vertex.buffers[0]] },
+      // Hier nutzen wir nun direkt unser sicheres Array!
+      vertex: { module: skySm, buffers: [vertexBuffers[0]] },
       fragment: { module: skySm, targets: [{ format: this.format }] },
       primitive: { topology: "triangle-list" },
       depthStencil: { depthWriteEnabled: false, depthCompare: "less", format: "depth24plus" },
@@ -348,7 +358,7 @@ export class WebGPURenderer extends AbstractRenderer {
     return this.samplerCache.get(key)!;
   }
 
-  private getGeoCache(geo: IGeometryData) {
+  private getGeoCache(geo: IGeometryData): WebGPUGeoCache {
     let c = this.geoCache.get(geo);
     if (!c) {
       const createBuf = (data: Float32Array | Uint16Array | Uint32Array, usage: number) => {
@@ -377,13 +387,13 @@ export class WebGPURenderer extends AbstractRenderer {
     return c;
   }
 
-  private getObjCache(obj: Object3D) {
+  private getObjCache(obj: Object3D): WebGPUObjCache {
     let c = this.objCache.get(obj);
     if (!c) {
       const ub = this.device!.createBuffer({
         size: 512,
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-      }); // Vergrößert für neue Uniforms
+      });
       const plb = this.device!.createBuffer({
         size: 512,
         usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
@@ -472,7 +482,7 @@ export class WebGPURenderer extends AbstractRenderer {
 
     const { aCol, dDir, dCol, pLights, sLights, aLights } = this.extractLights(scene);
 
-    const uData = new Float32Array(80); // Genug Platz für die neuen Uniforms
+    const uData = new Float32Array(80);
     uData.set(vpMatrix, 0);
     uData.set([aCol.r, aCol.g, aCol.b, 1.0], 40);
     uData.set([dCol.r, dCol.g, dCol.b, 1.0], 44);
@@ -544,7 +554,6 @@ export class WebGPURenderer extends AbstractRenderer {
 
       if (mat.type === MaterialType.SKYBOX) {
         rp.setPipeline(this.pipelineSkybox);
-        // ... (Skybox Logik ignorieren wir hier kurz der Übersicht halber, bleibt unverändert)
       } else {
         rp.setPipeline(
           mat.type === MaterialType.WIREFRAME ? this.pipelineLines : this.pipelineTriangles,

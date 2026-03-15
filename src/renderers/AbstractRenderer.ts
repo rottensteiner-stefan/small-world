@@ -18,7 +18,9 @@ export abstract class AbstractRenderer implements IRenderer {
   protected clearColor: Color = new Color(0, 0, 0, 1);
 
   public abstract initialize(canvas: HTMLCanvasElement): Promise<void>;
+
   public abstract render(scene: Scene, vpMatrix: Float32Array, camPos?: Vector3D): void;
+
   public abstract setSize(width: number, height: number): void;
 
   public setClearColor(color: Color): void {
@@ -40,14 +42,15 @@ export abstract class AbstractRenderer implements IRenderer {
         const light = node as AbstractLight; // TypeScript beruhigen
 
         switch (light.type) {
-          case LightType.AMBIENT:
+          case LightType.AMBIENT: {
             aCol = new Color(
               light.color.r * light.intensity,
               light.color.g * light.intensity,
               light.color.b * light.intensity,
             );
             break;
-          case LightType.DIRECTIONAL:
+          }
+          case LightType.DIRECTIONAL: {
             const dl = light as DirectionalLight;
             dDir = dl.direction.clone().scale(-1).normalize();
             dCol = new Color(
@@ -55,16 +58,21 @@ export abstract class AbstractRenderer implements IRenderer {
               light.color.g * light.intensity,
               light.color.b * light.intensity,
             );
+
             break;
-          case LightType.POINT:
+          }
+          case LightType.POINT: {
             if (pLights.length < 4) pLights.push(light as PointLight);
             break;
-          case LightType.SPOT:
+          }
+          case LightType.SPOT: {
             if (sLights.length < 4) sLights.push(light as SpotLight);
             break;
-          case LightType.AREA:
+          }
+          case LightType.AREA: {
             if (aLights.length < 4) aLights.push(light as AreaLight);
             break;
+          }
         }
       }
       if (node.children) node.children.forEach(traverse);

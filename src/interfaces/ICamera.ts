@@ -1,4 +1,4 @@
-/// src/interfaces/ICamera.ts
+import { AbstractProjection } from "../math/projections/AbstractProjection.js";
 import { Vector3D } from "../math/Vector3D.js";
 
 export interface ICamera {
@@ -7,6 +7,12 @@ export interface ICamera {
 
   /** Das Seitenverhältnis (z.B. für Window-Resizing) */
   aspect: number;
+
+  /** Die aktive Projektionsart (Perspektive, Orthografisch, etc.) */
+  projection: AbstractProjection;
+
+  /** Gibt den Namen der aktuell genutzten Kamera-Strategie zurück */
+  readonly activeStrategyType: string;
 
   /** Die kombinierte Matrix, die der Shader am Ende braucht (View * Projection) */
   viewProjectionMatrix: Float32Array;
