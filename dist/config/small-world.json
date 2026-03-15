@@ -1,6 +1,6 @@
 {
   "rendererType": "WEB_GPU",
-  "canvasId": "viewport",
+  "canvasId": "SmallWorld",
   "debug": true,
   "worldSize": 100,
   "skyColor": "midnightblue",

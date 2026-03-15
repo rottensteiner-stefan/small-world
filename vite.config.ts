@@ -11,7 +11,7 @@ export default defineConfig({
       input: {
         main: resolve(__dirname, "index.html"),
         demo1: resolve(__dirname, "examples/demo1.html"),
-        // demo2: resolve(__dirname, "examples/demo2.html"), // Später einfach einkommentieren!
+        demo2: resolve(__dirname, "examples/demo2.html"),
       },
       output: {
         // Dynamische Benennung: Packt jedes Demo in seinen eigenen Ordner
