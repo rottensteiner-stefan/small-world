@@ -1,5 +1,8 @@
 # Changelog
 
+## [0.10.11] - 2026-03-15
+- Demo 2: WASD and camera (pointer lock)
+
 ## [0.10.10] - 2026-03-15
 - Prepare more than a single feature demo
 
