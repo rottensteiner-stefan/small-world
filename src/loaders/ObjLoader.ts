@@ -1,6 +1,8 @@
+/// src/loaders/ObjLoader.ts
+
 import { AssetManager } from "./AssetManager.js";
 import { EventType } from "../enums/EventType.js";
-import { Loader } from "./Loader.js";
+import { AbstractLoader } from "./AbstractLoader.js";
 import { ModelGeometry } from "../geometry/ModelGeometry.js";
 import { MtlLoader } from "./MtlLoader.js";
 import { Object3D } from "../core/Object3D.js";
@@ -17,7 +19,7 @@ class MaterialGroup {
   constructor(public name: string) {}
 }
 
-export class ObjLoader extends Loader<Object3D> {
+export class ObjLoader extends AbstractLoader<Object3D> {
   public async load(url: string): Promise<Object3D> {
     const fullUrl = this.basePath + url;
     this.dispatchEvent(EventType.LOADER_START, { url: fullUrl });

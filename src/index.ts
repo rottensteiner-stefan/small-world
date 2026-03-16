@@ -83,6 +83,6 @@ export { EventType } from "./enums/EventType.js";
 
 // ---  Loaders ---
 export { ImageLoader } from "./loaders/ImageLoader.js";
-export { Loader } from "./loaders/Loader.js";
+export { AbstractLoader } from "./loaders/AbstractLoader.js";
 export { ShaderLoader } from "./loaders/ShaderLoader.js";
 export { TextLoader } from "./loaders/TextLoader.js";

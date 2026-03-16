@@ -1,5 +1,6 @@
+/// examples/demo2.ts
+
 import {
-    Application,
     CameraStrategyType,
     Color,
     Cube,
@@ -13,14 +14,11 @@ import {
     ProjectionType,
     Vector3D,
 } from "../src/index.js";
+import {AbstractDemo} from "./AbstractDemo.js";
 
-class Demo2App extends Application {
+class Demo2 extends AbstractDemo {
     private playerPos = new Vector3D(0, 1, 0);
     private speed = 15.0;
-
-    constructor() {
-        super({ canvasId: "SmallWorld" });
-    }
 
     protected async setupScene(): Promise<void> {
         Input.init();
@@ -92,7 +90,13 @@ class Demo2App extends Application {
     }
 }
 
-const app = new Demo2App();
-app.start().catch((err) => {
-    console.error("Fehler beim Starten von Demo 2:", err);
-});
+// === START DES PROGRAMMS ===
+const app = new Demo2();
+app
+    .start()
+    .then(() => {
+        console.log("Engine läuft!");
+    })
+    .catch((err: Error) => {
+        console.error("Fehler beim Starten der Engine:", err);
+    });

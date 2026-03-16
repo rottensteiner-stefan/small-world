@@ -1,16 +1,16 @@
-# smallworld-engine
+# small-world
 
-smallworld-engine is a lightweight 3D engine written in TypeScript.
+small-world is a lightweight 3D engine written in TypeScript.
 
 ## Installation
 
 ```bash
-npm install smallworld-engine
+npm install small-world
 ```
 
 ## Usage
 
-To use the engine, you need to create a `smallworld.json` configuration file in your project's root directory. This file specifies the canvas element to use, the renderer, and other options.
+To use the engine, you need to create a `small-world.json` configuration file in your project's root directory. This file specifies the canvas element to use, the renderer, and other options.
 
 ```json
 {
@@ -25,10 +25,10 @@ To use the engine, you need to create a `smallworld.json` configuration file in 
 Then, you can initialize the engine in your code:
 
 ```typescript
-import { SmallWorld } from "smallworld-engine";
+import { SmallWorld } from "small-world";
 
 const world = new SmallWorld();
-world.init("smallworld.json").then(() => {
+world.init("small-world.json").then(() => {
   // Your code here
 });
 ```

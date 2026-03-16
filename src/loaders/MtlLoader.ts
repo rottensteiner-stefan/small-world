@@ -1,68 +1,76 @@
-import { AssetManager } from "./AssetManager.js";
-import { Loader } from "./Loader.js";
-import { EventType } from "../enums/EventType.js";
-import { PhongMaterial } from "../core/materials/PhongMaterial.js";
-import { Color } from "../core/colors/Color.js";
+/// src/loaders/MtlLoader.ts
 
-export class MtlLoader extends Loader<Map<string, PhongMaterial>> {
-  public async load(url: string): Promise<Map<string, PhongMaterial>> {
-    const fullUrl = this.basePath + url;
-    this.dispatchEvent(EventType.LOADER_START, { url: fullUrl });
+import {AbstractLoader} from "./AbstractLoader.js";
+import {AssetManager} from "./AssetManager.js";
+import {Color} from "../core/colors/Color.js";
+import {EventType} from "../enums/EventType.js";
+import {PhongMaterial} from "../core/materials/PhongMaterial.js";
+import {Texture} from "../core/textures/Texture.js";
 
-    try {
-      // 1. Text über unseren AssetManager laden (inkl. Progress-Event)
-      const text = await AssetManager.loadText(fullUrl, (loaded, total) => {
-        this.dispatchEvent(EventType.LOADER_PROGRESS, { url: fullUrl, loaded, total });
-      });
+export class MtlLoader extends AbstractLoader<Map<string, PhongMaterial>> {
+    public async load(url: string): Promise<Map<string, PhongMaterial>> {
+        const fullUrl = this.basePath + url;
+        this.dispatchEvent(EventType.LOADER_START, {url: fullUrl});
 
-      // 2. Text in Materialien umwandeln
-      const materials = this.parse(text);
+        try {
+            const text = await AssetManager.loadText(fullUrl, (loaded, total) => {
+                this.dispatchEvent(EventType.LOADER_PROGRESS, {url: fullUrl, loaded, total});
+            });
 
-      this.dispatchEvent(EventType.LOADER_END, { url: fullUrl, data: materials });
-      return materials;
-    } catch (error) {
-      this.dispatchEvent(EventType.LOADER_ERROR, { url: fullUrl, error });
-      throw error;
-    }
-  }
+            const folderPath = fullUrl.substring(0, fullUrl.lastIndexOf("/") + 1);
+            const materials = await this.parse(text, folderPath);
 
-  private parse(text: string): Map<string, PhongMaterial> {
-    const materials = new Map<string, PhongMaterial>();
-    let currentMat: PhongMaterial | null = null;
-
-    const lines = text.split("\n");
-    for (let line of lines) {
-      line = line.trim();
-
-      // Leere Zeilen und Kommentare überspringen
-      if (line.length === 0 || line.startsWith("#")) continue;
-
-      const parts = line.split(/\s+/);
-      const type = parts[0];
-
-      if (type === "newmtl") {
-        currentMat = new PhongMaterial();
-        materials.set(parts[1], currentMat);
-      } else if (type === "Kd" && currentMat) {
-        // Diffuse Basisfarbe (RGB)
-        currentMat.color = new Color(
-          parseFloat(parts[1]),
-          parseFloat(parts[2]),
-          parseFloat(parts[3]),
-        );
-      } else if (type === "Ks" && currentMat) {
-        // Spekuläre Farbe (Glanzlicht)
-        currentMat.specularColor = new Color(
-          parseFloat(parts[1]),
-          parseFloat(parts[2]),
-          parseFloat(parts[3]),
-        );
-      } else if (type === "Ns" && currentMat) {
-        // Shininess (Glanzhärte)
-        currentMat.shininess = parseFloat(parts[1]);
-      }
+            this.dispatchEvent(EventType.LOADER_END, {url: fullUrl, data: materials});
+            return materials;
+        } catch (error) {
+            this.dispatchEvent(EventType.LOADER_ERROR, {url: fullUrl, error});
+            throw error;
+        }
     }
 
-    return materials;
-  }
+    private async parse(text: string, folderPath: string): Promise<Map<string, PhongMaterial>> {
+        const materials = new Map<string, PhongMaterial>();
+        let currentMat: PhongMaterial | null = null;
+
+        const lines = text.split("\n");
+        for (let line of lines) {
+            line = line.trim();
+
+            if (line.length === 0 || line.startsWith("#")) continue;
+
+            const parts = line.split(/\s+/);
+            const type = parts[0];
+
+            if (type === "newmtl") {
+                currentMat = new PhongMaterial();
+                materials.set(parts[1], currentMat);
+            } else if (type === "Kd" && currentMat) {
+                currentMat.color = new Color(
+                    parseFloat(parts[1]),
+                    parseFloat(parts[2]),
+                    parseFloat(parts[3]),
+                );
+            } else if (type === "Ks" && currentMat) {
+                currentMat.specularColor = new Color(
+                    parseFloat(parts[1]),
+                    parseFloat(parts[2]),
+                    parseFloat(parts[3]),
+                );
+            } else if (type === "Ns" && currentMat) {
+                currentMat.shininess = parseFloat(parts[1]);
+            } else if (type === "map_Kd" && currentMat) {
+
+                const texPath = line.substring(line.indexOf(" ") + 1).trim();
+                const texUrl = folderPath + texPath;
+
+                // --- DER FIX: Wir nutzen den AssetManager mit flipY = true ---
+                // Das Bild wird beim Einlesen physisch gedreht, bevor es in die Textur wandert!
+                const image = await AssetManager.loadImage(texUrl, undefined, true);
+                currentMat.diffuseMap = Texture.fromImage(image);
+
+            }
+        }
+
+        return materials;
+    }
 }

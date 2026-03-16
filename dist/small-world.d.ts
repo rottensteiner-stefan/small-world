@@ -5,6 +5,19 @@ export declare abstract class AbstractLight extends Object3D {
     protected constructor(color: Color | undefined, intensity: number, name?: string);
 }
 
+/**
+ * Abstrakte Basisklasse für alle Loader.
+ * T ist der Typ, den der Loader am Ende zurückgibt (z.B. string, ImageBitmap, ModelGeometry).
+ */
+export declare abstract class AbstractLoader<T> extends EventDispatcher {
+    basePath: string;
+    setBasePath(path: string): this;
+    /**
+     * Die Hauptmethode, die von jedem spezifischen Loader implementiert werden muss.
+     */
+    abstract load(url: string): Promise<T>;
+}
+
 export declare abstract class AbstractMaterial {
     abstract readonly type: MaterialType;
     uuid: string;
@@ -186,7 +199,7 @@ export declare class DirectionalLight extends AbstractLight {
     constructor(color?: Color, intensity?: number);
 }
 
-export declare const ENGINE_VERSION = "0.10.11";
+export declare const ENGINE_VERSION = "0.10.12";
 
 export declare class EventDispatcher {
     private _listeners;
@@ -297,7 +310,7 @@ declare interface IGeometryData {
     uvs: Float32Array;
 }
 
-export declare class ImageLoader extends Loader<ImageBitmap | HTMLImageElement> {
+export declare class ImageLoader extends AbstractLoader<ImageBitmap | HTMLImageElement> {
     load(url: string): Promise<ImageBitmap | HTMLImageElement>;
 }
 
@@ -410,20 +423,7 @@ export declare class Line extends ObjectGeometry {
     protected generateGeometryData(): void;
 }
 
-/**
- * Abstrakte Basisklasse für alle Loader.
- * T ist der Typ, den der Loader am Ende zurückgibt (z.B. string, ImageBitmap, ModelGeometry).
- */
-export declare abstract class Loader<T> extends EventDispatcher {
-    basePath: string;
-    setBasePath(path: string): this;
-    /**
-     * Die Hauptmethode, die von jedem spezifischen Loader implementiert werden muss.
-     */
-    abstract load(url: string): Promise<T>;
-}
-
-declare const MaterialType: {
+export declare const MaterialType: {
     readonly BASIC: "BasicMaterial";
     readonly LAMBERT: "LambertMaterial";
     readonly PHONG: "PhongMaterial";
@@ -432,7 +432,7 @@ declare const MaterialType: {
     readonly WIREFRAME: "WireframeMaterial";
 };
 
-declare type MaterialType = (typeof MaterialType)[keyof typeof MaterialType];
+export declare type MaterialType = (typeof MaterialType)[keyof typeof MaterialType];
 
 export declare class Matrix4 {
     data: Float32Array<ArrayBuffer>;
@@ -492,7 +492,7 @@ declare abstract class ObjectGeometry implements IGeometry {
     rotateZ(a: number): this;
 }
 
-export declare class ObjLoader extends Loader<Object3D> {
+export declare class ObjLoader extends AbstractLoader<Object3D> {
     load(url: string): Promise<Object3D>;
     private parse;
     private parseFaceVertex;
@@ -586,7 +586,7 @@ export declare class Skybox extends Object3D {
     constructor(source: string[] | CubeTexture, size?: number);
 }
 
-export declare class SkyboxLoader extends Loader<CubeTexture> {
+export declare class SkyboxLoader extends AbstractLoader<CubeTexture> {
     load(url: string): Promise<CubeTexture>;
 }
 
@@ -665,7 +665,7 @@ export declare const TerrainStrategies: {
     readonly INVERTED_AVERAGE: (r: number, g: number, b: number, a: number, max: number) => number;
 };
 
-export declare class TextLoader extends Loader<string> {
+export declare class TextLoader extends AbstractLoader<string> {
     load(url: string): Promise<string>;
 }
 

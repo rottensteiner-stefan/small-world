@@ -14,6 +14,12 @@ export abstract class AbstractWebGLRenderer extends AbstractRenderer {
     const d = devicePixelRatio;
     this.gl.canvas.width = w * d;
     this.gl.canvas.height = h * d;
+
+    if ("style" in this.gl.canvas) {
+      this.gl.canvas.style.width = `${w}px`;
+      this.gl.canvas.style.height = `${h}px`;
+    }
+
     this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
   }
 
