@@ -1,24 +1,25 @@
-/// examples/demo3.ts
-
 import {
     AmbientLight,
     CameraStrategyType,
     Color,
     DirectionalLight,
-    Grid,
+    HeightmapGenerator,
     Input,
+    Keys,
     Object3D,
     ObjLoader,
     PerspectiveProjection,
     ProjectionType,
+    Terrain,
+    TerrainMaterial,
+    Texture,
+    TextureGenerator,
     Vector3D,
-    WireframeMaterial,
 } from "../src/index.js";
 import {AbstractDemo} from "./AbstractDemo.js";
 
-class Demo3 extends AbstractDemo {
-    // Der Punkt, um den sich die Kamera dreht (Zentrum des Modells)
-    private targetPos = new Vector3D();
+export class Demo4 extends AbstractDemo {
+    private targetPos = new Vector3D(0, 0, 0);
 
     protected async setupScene(): Promise<void> {
         Input.init();
@@ -38,7 +39,6 @@ class Demo3 extends AbstractDemo {
         this.camera.setStrategy(CameraStrategyType.SMOOTH);
         this.camera.position.set(0, 5, 15);
 
-        // Licht-Setup: Ambient für weiche Schatten, Directional für Highlights
         const ambientLight = new AmbientLight(Color.WHITE, 0.3);
         this.scene.add(ambientLight);
 
@@ -47,15 +47,35 @@ class Demo3 extends AbstractDemo {
         this.scene.add(sun);
 
         // ---------------------------------------------------------
-        // HILFS-BODEN (GRID)
+        // TERRAIN (Der Sweet-Spot)
         // ---------------------------------------------------------
-        const gridObj = new Object3D("Boden");
-        gridObj.geometry = new Grid(20, 20).getGeometryData();
-        const gridMat = new WireframeMaterial()
-        gridMat.color = Color.DARKSLATEGRAY;
+        console.log("[Demo 4] Generiere Terrain...");
 
-        gridObj.material = gridMat;
-        this.scene.add(gridObj);
+        // 0.55 für eine organische, aber nicht zu gezackte Landschaft
+        const heightmap = await HeightmapGenerator.generateDiamondSquare(7, 0.55);
+
+        // 4-fache Fläche (80x80) und eine moderate Höhe von 6.0
+        // (Schwankt zwischen Y = -3.0 und Y = +3.0)
+        const terrainGeo = new Terrain(heightmap, 80, 80, 6.0, 128, 128);
+
+        const terrainMat = new TerrainMaterial();
+        terrainMat.sandMap = Texture.fromImage(await TextureGenerator.createSand());
+        terrainMat.grassMap = Texture.fromImage(await TextureGenerator.createGrass());
+        terrainMat.rockMap = Texture.fromImage(await TextureGenerator.createRock());
+        terrainMat.snowMap = Texture.fromImage(await TextureGenerator.createSnow());
+
+        terrainMat.texRepeat = [25, 25];
+
+        // Biome an die Höhe anpassen
+        terrainMat.thresholds = [-2.0, 0.0, 2.0, 1.0];
+
+        const terrainObj = new Object3D("Boden");
+        terrainObj.geometry = terrainGeo.getGeometryData();
+        terrainObj.material = terrainMat;
+
+        // Leicht absenken, damit das Auto schön mittig auf der Wiese steht
+        terrainObj.position.set(0, -1.0, 0);
+        this.scene.add(terrainObj);
 
         // ---------------------------------------------------------
         // OBJ LADEN
@@ -71,36 +91,40 @@ class Demo3 extends AbstractDemo {
 
             this.scene.add(model);
         } catch (error) {
-            console.error("[Demo 3] Fehler beim Laden des Modells:", error);
+            console.error("[Demo 4] Fehler beim Laden:", error);
         }
     }
 
     protected update(deltaTime: number): void {
+        if (Input.isPressed(Keys.I)) {
+            this.printDebug();
+        }
+
         let dx = 0;
         let dy = 0;
 
-        // Mausbewegung auslesen, wenn der Pointer gesperrt ist
         if (Input.isPointerLocked) {
             dx = Input.mouse.dx;
             dy = Input.mouse.dy;
         }
 
-        // Deltas sofort zurücksetzen
         Input.mouse.dx = 0;
         Input.mouse.dy = 0;
 
-        // Kamera-Orbit aktualisieren
         this.camera.update(this.targetPos, dx, dy);
+    }
+
+    protected getDebugInfo(): Record<string, string | number> {
+        const baseInfo = super.getDebugInfo();
+        return {
+            ...baseInfo,
+            "Demo": "04 - Terrain & Auto",
+            "Objekte in Szene": this.scene.objects.length
+        };
     }
 }
 
-// === START DES PROGRAMMS ===
-const app = new Demo3();
-app
-    .start()
-    .then(() => {
-        console.log("Engine läuft!");
-    })
-    .catch((err: Error) => {
-        console.error("Fehler beim Starten der Engine:", err);
-    });
+const app = new Demo4();
+app.start().catch((err: Error) => {
+    console.error("Fehler beim Starten:", err);
+});

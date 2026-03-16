@@ -1,8 +1,10 @@
-import { Loader } from "./Loader.js";
+/// src/loaders/ImageLoader.ts
+
+import { AbstractLoader } from "./AbstractLoader.js";
 import { AssetManager } from "./AssetManager.js";
 import { EventType } from "../enums/EventType.js";
 
-export class ImageLoader extends Loader<ImageBitmap | HTMLImageElement> {
+export class ImageLoader extends AbstractLoader<ImageBitmap | HTMLImageElement> {
   public async load(url: string): Promise<ImageBitmap | HTMLImageElement> {
     const fullUrl = this.basePath + url;
     this.dispatchEvent(EventType.LOADER_START, { url: fullUrl });

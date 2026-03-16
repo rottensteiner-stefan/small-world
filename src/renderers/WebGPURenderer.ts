@@ -307,18 +307,6 @@ export class WebGPURenderer extends AbstractRenderer {
     this.setSize(canvas.clientWidth, canvas.clientHeight);
   }
 
-  public setSize(width: number, height: number) {
-    if (!this.device) return;
-    const d = devicePixelRatio;
-    this.context.canvas.width = width * d;
-    this.context.canvas.height = height * d;
-    this.depthTexture = this.device.createTexture({
-      size: [this.context.canvas.width, this.context.canvas.height],
-      format: "depth24plus",
-      usage: GPUTextureUsage.RENDER_ATTACHMENT,
-    });
-  }
-
   private getTextureView(tex: Texture | null): GPUTextureView {
     if (!tex || !tex.isLoaded || !tex.image) return this.whiteTexView;
     let view = this.textureViewCache.get(tex);
@@ -625,5 +613,23 @@ export class WebGPURenderer extends AbstractRenderer {
     for (const obj of scene.objects || []) drawObject(obj);
     rp.end();
     this.device.queue.submit([ce.finish()]);
+  }
+
+  public setSize(width: number, height: number) {
+    if (!this.device) return;
+    const d = devicePixelRatio;
+    this.context.canvas.width = width * d;
+    this.context.canvas.height = height * d;
+
+    if ("style" in this.context.canvas) {
+      this.context.canvas.style.width = `${width}px`;
+      this.context.canvas.style.height = `${height}px`;
+    }
+
+    this.depthTexture = this.device.createTexture({
+      size: [this.context.canvas.width, this.context.canvas.height],
+      format: "depth24plus",
+      usage: GPUTextureUsage.RENDER_ATTACHMENT,
+    });
   }
 }

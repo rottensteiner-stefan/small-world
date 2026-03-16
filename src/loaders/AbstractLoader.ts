@@ -1,10 +1,12 @@
+/// src/loaders/AbstractLoader.ts
+
 import { EventDispatcher } from "../core/events/EventDispatcher.js";
 
 /**
  * Abstrakte Basisklasse für alle Loader.
  * T ist der Typ, den der Loader am Ende zurückgibt (z.B. string, ImageBitmap, ModelGeometry).
  */
-export abstract class Loader<T> extends EventDispatcher {
+export abstract class AbstractLoader<T> extends EventDispatcher {
   public basePath: string = "";
 
   public setBasePath(path: string): this {
