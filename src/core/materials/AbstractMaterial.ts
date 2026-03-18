@@ -1,5 +1,5 @@
-import { Color } from "../colors/Color.js";
-import { MaterialType } from "../../enums/MaterialType.js";
+import { Color } from "../colors/index.js";
+import { MaterialType } from "../../enums/index.js";
 
 export abstract class AbstractMaterial {
   // Jede Unterklasse MUSS diesen Typ setzen

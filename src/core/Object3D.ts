@@ -1,8 +1,6 @@
-import { AbstractMaterial } from "./materials/AbstractMaterial.js";
-import { IBoundingVolume } from "../interfaces/IBoundingVolume.js";
-import { IGeometryData } from "../interfaces/IGeometryData.js";
-import { Matrix4 } from "../math/Matrix4.js";
-import { Vector3D } from "../math/Vector3D.js";
+import { AbstractMaterial } from "./materials/index.js";
+import { IBoundingVolume, IGeometryData } from "../interfaces/index.js";
+import { Matrix4, Vector3D } from "../math/index.js";
 
 export class Object3D {
   public readonly uuid: string = crypto.randomUUID();

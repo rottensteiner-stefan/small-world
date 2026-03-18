@@ -50,6 +50,33 @@ export declare abstract class AbstractProjection {
     abstract update(): void;
 }
 
+export declare abstract class AbstractRenderer implements IRenderer {
+    abstract readonly type: RendererType;
+    protected clearColor: Color;
+    abstract initialize(canvas: HTMLCanvasElement): Promise<void>;
+    abstract render(scene: Scene, vpMatrix: Float32Array, camPos?: Vector3D): void;
+    abstract setSize(width: number, height: number): void;
+    setClearColor(color: Color): void;
+    protected extractLights(scene: Scene): {
+        aCol: Color;
+        dDir: Vector3D;
+        dCol: Color;
+        pLights: PointLight[];
+        sLights: SpotLight[];
+        aLights: AreaLight[];
+    };
+}
+
+export declare abstract class AbstractWebGLRenderer extends AbstractRenderer {
+    protected gl: WebGLRenderingContext | WebGL2RenderingContext;
+    protected defaultTexture: WebGLTexture;
+    protected defaultCubeTexture: WebGLTexture;
+    setSize(w: number, h: number): void;
+    setClearColor(color: Color): void;
+    protected createShaderProgram(vSrc: string, fSrc: string): WebGLProgram;
+    protected initDefaultTextures(): void;
+}
+
 export declare class AmbientLight extends AbstractLight {
     readonly type: "AmbientLight";
     constructor(color?: Color, intensity?: number);
@@ -108,12 +135,12 @@ export declare class BoundingSphere implements IBoundingVolume {
     getBroadRadius(): number;
 }
 
-declare const BoundingType: {
+export declare const BoundingType: {
     readonly SPHERE: 0;
     readonly BOX: 1;
 };
 
-declare type BoundingType = (typeof BoundingType)[keyof typeof BoundingType];
+export declare type BoundingType = (typeof BoundingType)[keyof typeof BoundingType];
 
 export declare class Camera implements ICamera {
     projection: AbstractProjection;
@@ -187,6 +214,10 @@ export declare class ColorUtils {
     static fromCSS(cssColor: string): Color;
 }
 
+export declare class ConfigLoader {
+    static load(p: string): Promise<any>;
+}
+
 export declare class Cube extends AbstractGeometry {
     size: number;
     constructor(size?: number);
@@ -227,7 +258,7 @@ export declare class EventDispatcher implements IEventDispatcher {
     dispatchEvent(type: string | EventType, eventData?: Record<string, unknown>): void;
 }
 
-declare type EventHandler = (event: Record<string, unknown>) => void;
+export declare type EventHandler = (event: Record<string, unknown>) => void;
 
 export declare const EventType: {
     readonly LOADER_END: "LoaderEnd";
@@ -237,6 +268,20 @@ export declare const EventType: {
 };
 
 export declare type EventType = (typeof EventType)[keyof typeof EventType];
+
+export declare class FPSCounter {
+    private last;
+    private frames;
+    private el;
+    constructor();
+    update(): void;
+}
+
+export declare class Frustum {
+    planes: Float32Array;
+    setFromMatrix(m: Matrix4): void;
+    intersectsVolume(volume: IBoundingVolume): boolean;
+}
 
 export declare class FrustumCuller {
     private static frustum;
@@ -274,13 +319,13 @@ export declare class HUD {
     update(data: Record<string, string | number>): void;
 }
 
-declare interface IBoundingVolume {
+export declare interface IBoundingVolume {
     type: BoundingType;
     center: Vector3D;
     getBroadRadius(): number;
 }
 
-declare interface ICamera {
+export declare interface ICamera {
     /** Position der Kamera in der Welt */
     position: Vector3D;
     /** Punkt, auf den die Kamera schaut */
@@ -309,7 +354,12 @@ declare interface ICamera {
     updateViewMatrix(): void;
 }
 
-declare interface IEngineConfig {
+export declare interface ICameraStrategy {
+    readonly type: string;
+    update(camera: Camera, targetPos: Vector3D, dx: number, dy: number): void;
+}
+
+export declare interface IEngineConfig {
     canvasId?: string;
     fullscreen?: boolean;
     height?: number;
@@ -318,17 +368,17 @@ declare interface IEngineConfig {
     width?: number;
 }
 
-declare interface IEventDispatcher {
+export declare interface IEventDispatcher {
     addEventListener(type: string | EventType, listener: EventHandler): void;
     removeEventListener(type: string | EventType, listener: EventHandler): void;
     dispatchEvent(type: string | EventType, eventData?: Record<string, unknown>): void;
 }
 
-declare interface IGeometry {
+export declare interface IGeometry {
     getGeometryData(): IGeometryData;
 }
 
-declare interface IGeometryData {
+export declare interface IGeometryData {
     vertices: Float32Array;
     indices: Uint16Array | Uint32Array;
     normals: Float32Array;
@@ -356,7 +406,7 @@ export declare class Input {
     static getAxis(neg: string | Keys, pos: string | Keys): number;
 }
 
-declare interface IRenderer {
+export declare interface IRenderer {
     readonly type: RendererType;
     initialize(canvas: HTMLCanvasElement): Promise<void>;
     render(scene: Scene, vpMatrix: Float32Array, camPos?: Vector3D): void;
@@ -364,7 +414,7 @@ declare interface IRenderer {
     setClearColor(color: Color): void;
 }
 
-declare interface IVector {
+export declare interface IVector {
     length(): number;
     lengthSq(): number;
     normalize(): IVector;
@@ -459,6 +509,14 @@ export declare const MaterialType: {
 
 export declare type MaterialType = (typeof MaterialType)[keyof typeof MaterialType];
 
+export declare class MathUtils {
+    private static SIN_TABLE;
+    private static COS_TABLE;
+    private static isInit;
+    static init(): void;
+    static fastSin(rad: number): number;
+}
+
 export declare class Matrix4 {
     data: Float32Array<ArrayBuffer>;
     constructor();
@@ -476,9 +534,24 @@ export declare class Matrix4 {
     transformVector(v: Vector3D): Vector3D;
 }
 
+export declare class Mesh {
+    private gl;
+    vbo: WebGLBuffer | null;
+    ebo: WebGLBuffer | null;
+    nbo: WebGLBuffer | null;
+    count: number;
+    constructor(gl: WebGLRenderingContext | WebGL2RenderingContext, data: IGeometryData);
+    bind(posLoc: number, normLoc?: number): void;
+}
+
 export declare class ModelGeometry extends AbstractGeometry {
     constructor(vertices: number[], uvs: number[], normals: number[], indices: number[]);
     protected generateGeometryData(): void;
+}
+
+export declare class MtlLoader extends AbstractLoader<Map<string, PhongMaterial>> {
+    load(url: string): Promise<Map<string, PhongMaterial>>;
+    private parse;
 }
 
 export declare class Object3D {
@@ -506,6 +579,19 @@ export declare class ObjLoader extends AbstractLoader<Object3D> {
     load(url: string): Promise<Object3D>;
     private parse;
     private parseFaceVertex;
+}
+
+export declare class ObliqueProjection extends AbstractProjection {
+    l: number;
+    r: number;
+    b: number;
+    t: number;
+    n: number;
+    f: number;
+    readonly type: "ObliqueProjection";
+    constructor(l: number, r: number, b: number, t: number, n: number, f: number);
+    update(): void;
+    getMatrix(): Matrix4;
 }
 
 export declare class OrthographicProjection extends AbstractProjection {
@@ -555,7 +641,7 @@ export declare class PointLight extends AbstractLight {
     constructor(color?: Color, intensity?: number, distance?: number, decay?: number);
 }
 
-declare type ProgressCallback = (loaded: number, total: number) => void;
+export declare type ProgressCallback = (loaded: number, total: number) => void;
 
 export declare const ProjectionType: {
     readonly OBLIQUE: "ObliqueProjection";
@@ -570,6 +656,10 @@ export declare class Pyramid extends AbstractGeometry {
     height: number;
     constructor(base?: number, height?: number);
     protected generateGeometryData(): void;
+}
+
+export declare class RendererFactory {
+    static create(type: RendererType | string, canvas: HTMLCanvasElement): Promise<IRenderer>;
 }
 
 export declare const RendererType: {
@@ -802,9 +892,92 @@ export declare class Vector3D implements IVector {
     normalize(): this;
 }
 
+export declare class WebGL1Renderer extends AbstractWebGLRenderer {
+    readonly type: "WEB_GL1";
+    protected gl: WebGLRenderingContext;
+    private prog;
+    private locs;
+    private skyProg;
+    private skyLocs;
+    private cache;
+    private texCache;
+    private texCubeCache;
+    private pointLightLocs;
+    private spotLightLocs;
+    private areaLightLocs;
+    initialize(canvas: HTMLCanvasElement): Promise<void>;
+    private getWebGLTexture;
+    private getWebGLCubeTexture;
+    render(scene: Scene, vp: Float32Array, camPos?: Vector3D): void;
+}
+
+export declare class WebGL2Renderer extends AbstractWebGLRenderer {
+    readonly type: "WEB_GL2";
+    protected gl: WebGL2RenderingContext;
+    private prog;
+    private locs;
+    private skyProg;
+    private skyLocs;
+    private cache;
+    private texCache;
+    private texCubeCache;
+    private pointLightLocs;
+    private spotLightLocs;
+    private areaLightLocs;
+    initialize(canvas: HTMLCanvasElement): Promise<void>;
+    private getWebGLTexture;
+    private getWebGLCubeTexture;
+    render(scene: Scene, vp: Float32Array, camPos?: Vector3D): void;
+}
+
+export declare class WebGPURenderer extends AbstractRenderer {
+    readonly type: "WEB_GPU";
+    private adapter;
+    private device;
+    private context;
+    private format;
+    private pipelineTriangles;
+    private pipelineLines;
+    private pipelineSkybox;
+    private objBGL;
+    private texBGL;
+    private skyTexBGL;
+    private defaultTexBindGroup;
+    private defaultCubeTexBindGroup;
+    private sampler;
+    private whiteTexView;
+    private geoCache;
+    private objCache;
+    private textureViewCache;
+    private texCache;
+    private terrainTexCache;
+    private texCubeCache;
+    private samplerCache;
+    private depthTexture;
+    initialize(canvas: HTMLCanvasElement): Promise<void>;
+    private getTextureView;
+    private getSampler;
+    private getGeoCache;
+    private getObjCache;
+    private getGPUTextureBindGroup;
+    private getGPUTerrainBindGroup;
+    render(scene: Scene, vpMatrix: Float32Array, camPos?: Vector3D): void;
+    setSize(width: number, height: number): void;
+}
+
+export declare const WireframeFS_100 = "\nprecision highp float; uniform vec4 u_color;\nvoid main() { gl_FragColor = u_color; }";
+
+export declare const WireframeFS_300 = "#version 300 es\nprecision highp float; uniform vec4 u_color; out vec4 c;\nvoid main() { c = u_color; }";
+
 export declare class WireframeMaterial extends AbstractMaterial {
     readonly type: "WireframeMaterial";
 }
+
+export declare const WireframeVS_100 = "\nattribute vec3 a_position; uniform mat4 u_vp; uniform mat4 u_model;\nvoid main() { gl_Position = u_vp * u_model * vec4(a_position, 1.0); }";
+
+export declare const WireframeVS_300 = "#version 300 es\nin vec3 a_position; uniform mat4 u_vp; uniform mat4 u_model;\nvoid main() { gl_Position = u_vp * u_model * vec4(a_position, 1.0); }";
+
+export declare const WireframeWGSL = "\nstruct U { vp: mat4x4<f32>, model: mat4x4<f32>, color: vec4<f32> };\n@group(0) @binding(0) var<uniform> u: U;\n@vertex fn vs_main(@location(0) p: vec3<f32>) -> @builtin(position) vec4<f32> { return u.vp * u.model * vec4<f32>(p, 1.0); }\n@fragment fn fs_main() -> @location(0) vec4<f32> { return u.color; }\n";
 
 export declare interface WorldConfig {
     rendererType?: RendererType | string;

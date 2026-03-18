@@ -1,7 +1,7 @@
-import { AbstractMaterial } from "./AbstractMaterial.js";
-import { Color } from "../colors/Color.js";
-import { MaterialType } from "../../enums/MaterialType.js";
-import { Texture } from "../textures/Texture.js";
+import { AbstractMaterial } from "./index.js";
+import { Color } from "../colors/index.js";
+import { MaterialType } from "../../enums/index.js";
+import { Texture } from "../textures/index.js";
 
 export class PhongMaterial extends AbstractMaterial {
   public readonly type = MaterialType.PHONG;
