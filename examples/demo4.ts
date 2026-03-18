@@ -18,8 +18,11 @@ import {
 } from "../src/index.js";
 import { AbstractDemo } from "./AbstractDemo.js";
 
+const CAR_SPEED = 10.0; // Geschwindigkeit des Autos
+
 export class Demo4 extends AbstractDemo {
   private targetPos = new Vector3D(0, 0, 0);
+  private _car: Object3D | null = null; // Das Auto-Objekt
 
   protected async setupScene(): Promise<void> {
     Input.init();
@@ -90,6 +93,7 @@ export class Demo4 extends AbstractDemo {
       model.position.set(0, 0.0, 0);
 
       this.scene.add(model);
+      this._car = model; // Auto-Objekt speichern
     } catch (error) {
       console.error("[Demo 4] Fehler beim Laden:", error);
     }
@@ -107,6 +111,20 @@ export class Demo4 extends AbstractDemo {
     Input.mouse.dy = 0;
 
     this.camera.update(this.targetPos, dx, dy);
+
+    // --- WASD Steuerung ---
+    if (this._car) {
+      if (Input.isPressed(Keys.W)) {
+        // Die Vorwärtsrichtung des Autos ist typischerweise die negative Z-Achse im lokalen Raum.
+        // Diese muss mit der Weltmatrix des Autos transformiert werden, um die Weltrichtung zu erhalten.
+        const forward = new Vector3D(0, 0, -1); // Lokale Vorwärtsrichtung
+        forward.transformDirection(this._car.worldMatrix); // In Weltkoordinaten transformieren
+        forward.normalize(); // Sicherstellen, dass es ein Einheitsvektor ist
+
+        // Position des Autos aktualisieren
+        this._car.position.add(forward.multiplyScalar(CAR_SPEED * deltaTime));
+      }
+    }
   }
 
   protected getDebugInfo(): Record<string, string | number> {
@@ -115,6 +133,7 @@ export class Demo4 extends AbstractDemo {
       ...baseInfo,
       Demo: "04 - Terrain & Auto",
       "Objekte in Szene": this.scene.objects.length,
+      "Auto Position": this._car ? this._car.position.toString() : "N/A",
     };
   }
 }
