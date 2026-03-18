@@ -8,7 +8,15 @@
     "strict": true,
     "sourceMap": true,
     "esModuleInterop": true,
-    "types": ["@webgpu/types"]
+    "types": ["@webgpu/types", "@types/node"],
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
   },
-  "include": ["src/**/*", "examples/**/*"]
+  "include": ["src/**/*", "examples/**/*.ts"]
 }

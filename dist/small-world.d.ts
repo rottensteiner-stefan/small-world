@@ -9,9 +9,13 @@ export declare abstract class AbstractLight extends Object3D {
  * Abstrakte Basisklasse für alle Loader.
  * T ist der Typ, den der Loader am Ende zurückgibt (z.B. string, ImageBitmap, ModelGeometry).
  */
-export declare abstract class AbstractLoader<T> extends EventDispatcher {
+export declare abstract class AbstractLoader<T> implements IEventDispatcher {
     basePath: string;
+    private _dispatcher;
     setBasePath(path: string): this;
+    addEventListener(type: string | EventType, listener: EventHandler): void;
+    removeEventListener(type: string | EventType, listener: EventHandler): void;
+    dispatchEvent(type: string | EventType, eventData?: Record<string, unknown>): void;
     /**
      * Die Hauptmethode, die von jedem spezifischen Loader implementiert werden muss.
      */
@@ -199,9 +203,9 @@ export declare class DirectionalLight extends AbstractLight {
     constructor(color?: Color, intensity?: number);
 }
 
-export declare const ENGINE_VERSION = "0.10.12";
+export declare const ENGINE_VERSION = "0.10.14";
 
-export declare class EventDispatcher {
+export declare class EventDispatcher implements IEventDispatcher {
     private _listeners;
     addEventListener(type: string | EventType, listener: EventHandler): void;
     removeEventListener(type: string | EventType, listener: EventHandler): void;
@@ -297,6 +301,12 @@ declare interface IEngineConfig {
     projection?: ProjectionType;
     renderer?: RendererType;
     width?: number;
+}
+
+declare interface IEventDispatcher {
+    addEventListener(type: string | EventType, listener: EventHandler): void;
+    removeEventListener(type: string | EventType, listener: EventHandler): void;
+    dispatchEvent(type: string | EventType, eventData?: Record<string, unknown>): void;
 }
 
 declare interface IGeometry {
