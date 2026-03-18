@@ -1,8 +1,9 @@
 import { EventType } from "../../enums/EventType.js";
+import { IEventDispatcher } from "../../interfaces/IEventDispatcher.js";
 
 export type EventHandler = (event: Record<string, unknown>) => void;
 
-export class EventDispatcher {
+export class EventDispatcher implements IEventDispatcher {
   private _listeners = new Map<string, EventHandler[]>();
 
   // Wir erlauben 'string | EventType' für maximale Flexibilität und Typsicherheit
