@@ -41,46 +41,52 @@ export abstract class AbstractGeometry implements IGeometry {
     }
 
     for (let i = 0; i < this.indices.length; i += 3) {
-      const iA = this.indices[i] * 3,
-        iB = this.indices[i + 1] * 3,
-        iC = this.indices[i + 2] * 3;
-      const ax = this.vertices[iA],
-        ay = this.vertices[iA + 1],
-        az = this.vertices[iA + 2];
-      const bx = this.vertices[iB],
-        by = this.vertices[iB + 1],
-        bz = this.vertices[iB + 2];
-      const cx = this.vertices[iC],
-        cy = this.vertices[iC + 1],
-        cz = this.vertices[iC + 2];
+      const iA: number = this.indices[i] * 3;
+      const iB: number = this.indices[i + 1] * 3;
+      const iC: number = this.indices[i + 2] * 3;
 
-      const ux = bx - ax,
-        uy = by - ay,
-        uz = bz - az;
-      const vx = cx - ax,
-        vy = cy - ay,
-        vz = cz - az;
+      const ax: number = this.vertices[iA];
+      const ay: number = this.vertices[iA + 1];
+      const az: number = this.vertices[iA + 2];
 
-      const nx = uy * vz - uz * vy;
-      const ny = uz * vx - ux * vz;
-      const nz = ux * vy - uy * vx;
+      const bx: number = this.vertices[iB];
+      const by: number = this.vertices[iB + 1];
+      const bz: number = this.vertices[iB + 2];
+
+      const cx: number = this.vertices[iC];
+      const cy: number = this.vertices[iC + 1];
+      const cz: number = this.vertices[iC + 2];
+
+      const ux: number = bx - ax;
+      const uy: number = by - ay;
+      const uz: number = bz - az;
+
+      const vx: number = cx - ax;
+      const vy: number = cy - ay;
+      const vz: number = cz - az;
+
+      const nx: number = uy * vz - uz * vy;
+      const ny: number = uz * vx - ux * vz;
+      const nz: number = ux * vy - uy * vx;
 
       this.normals[iA] += nx;
       this.normals[iA + 1] += ny;
       this.normals[iA + 2] += nz;
+
       this.normals[iB] += nx;
       this.normals[iB + 1] += ny;
       this.normals[iB + 2] += nz;
+
       this.normals[iC] += nx;
       this.normals[iC + 1] += ny;
       this.normals[iC + 2] += nz;
     }
 
     for (let i = 0; i < this.normals.length; i += 3) {
-      const nx = this.normals[i],
-        ny = this.normals[i + 1],
-        nz = this.normals[i + 2];
-      const len = Math.sqrt(nx * nx + ny * ny + nz * nz);
+      const nx: number = this.normals[i];
+      const ny: number = this.normals[i + 1];
+      const nz: number = this.normals[i + 2];
+      const len: number = Math.sqrt(nx * nx + ny * ny + nz * nz);
       if (len > 0) {
         this.normals[i] /= len;
         this.normals[i + 1] /= len;
@@ -90,8 +96,8 @@ export abstract class AbstractGeometry implements IGeometry {
   }
 
   public applyMatrix4(matrix: Matrix4): this {
-    const v = new Vector3D();
-    for (let i = 0; i < this.vertices.length; i += 3) {
+    const v: Vector3D = new Vector3D();
+    for (let i: number = 0; i < this.vertices.length; i += 3) {
       v.x = this.vertices[i];
       v.y = this.vertices[i + 1];
       v.z = this.vertices[i + 2];
@@ -105,22 +111,22 @@ export abstract class AbstractGeometry implements IGeometry {
   }
 
   public scale(f: number): this {
-    const m = new Matrix4();
+    const m: Matrix4 = new Matrix4();
     Matrix4.scale(f, m);
     return this.applyMatrix4(m);
   }
   public rotateX(a: number): this {
-    const m = new Matrix4();
+    const m: Matrix4 = new Matrix4();
     Matrix4.rotateX(a, m);
     return this.applyMatrix4(m);
   }
   public rotateY(a: number): this {
-    const m = new Matrix4();
+    const m: Matrix4 = new Matrix4();
     Matrix4.rotateY(a, m);
     return this.applyMatrix4(m);
   }
   public rotateZ(a: number): this {
-    const m = new Matrix4();
+    const m: Matrix4 = new Matrix4();
     Matrix4.rotateZ(a, m);
     return this.applyMatrix4(m);
   }

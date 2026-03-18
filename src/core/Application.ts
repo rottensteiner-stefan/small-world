@@ -64,7 +64,7 @@ export abstract class Application {
     }
 
     // Canvas Setup
-    console.debug('Canvas ID: ' + this.config.canvasId);
+    console.debug("Canvas ID: " + this.config.canvasId);
     this.canvas = document.getElementById(this.config.canvasId!) as HTMLCanvasElement;
     if (this.config.fullscreen) {
       this.canvas.width = window.innerWidth;

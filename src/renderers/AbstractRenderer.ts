@@ -82,5 +82,4 @@ export abstract class AbstractRenderer implements IRenderer {
 
     return { aCol, dDir, dCol, pLights, sLights, aLights };
   }
-
 }

@@ -10,7 +10,7 @@ import { PhongMaterial } from "../core/materials/PhongMaterial.js";
 import { RendererType } from "../enums/RendererType.js";
 import { Scene } from "../core/Scene.js";
 import { SkyboxMaterial } from "../core/materials/SkyboxMaterial.js";
-import { TerrainMaterial } from "../core/materials/TerrainMaterial.js"; // <-- NEU
+import { TerrainMaterial } from "../core/materials/TerrainMaterial.js";
 import { Texture } from "../core/textures/Texture.js";
 import { Vector3D } from "../math/Vector3D.js";
 
@@ -63,18 +63,18 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
   private pointLightLocs: { pos: WebGLUniformLocation | null; col: WebGLUniformLocation | null }[] =
     [];
   private spotLightLocs: {
-    pos: WebGLUniformLocation | null;
-    dir: WebGLUniformLocation | null;
     col: WebGLUniformLocation | null;
+    dir: WebGLUniformLocation | null;
     params: WebGLUniformLocation | null;
+    pos: WebGLUniformLocation | null;
   }[] = [];
   private areaLightLocs: {
-    pos: WebGLUniformLocation | null;
     col: WebGLUniformLocation | null;
-    right: WebGLUniformLocation | null;
-    up: WebGLUniformLocation | null;
     normal: WebGLUniformLocation | null;
+    pos: WebGLUniformLocation | null;
+    right: WebGLUniformLocation | null;
     size: WebGLUniformLocation | null;
+    up: WebGLUniformLocation | null;
   }[] = [];
 
   public async initialize(canvas: HTMLCanvasElement) {
@@ -475,12 +475,12 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         if (this.locs.color) this.gl.uniform4fv(this.locs.color, mat.color.toArray());
 
         let shininess = -1.0,
-            specCol = [0, 0, 0, 0],
-            activeTex = this.defaultTexture,
-            tOffset = [0, 0],
-            tRepeat = [1, 1];
+          specCol = [0, 0, 0, 0],
+          activeTex = this.defaultTexture,
+          tOffset = [0, 0],
+          tRepeat = [1, 1];
         let isTerrain = 0,
-            thresholds = [0, 0, 0, 0];
+          thresholds = [0, 0, 0, 0];
 
         if (mat.type === MaterialType.LAMBERT) {
           shininess = 0.0;
@@ -502,29 +502,29 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
 
           this.gl.activeTexture(this.gl.TEXTURE1);
           this.gl.bindTexture(
-              this.gl.TEXTURE_2D,
-              tMat.sandMap ? this.getWebGLTexture(tMat.sandMap) : this.defaultTexture,
+            this.gl.TEXTURE_2D,
+            tMat.sandMap ? this.getWebGLTexture(tMat.sandMap) : this.defaultTexture,
           );
           if (this.locs.sandMap) this.gl.uniform1i(this.locs.sandMap, 1);
 
           this.gl.activeTexture(this.gl.TEXTURE2);
           this.gl.bindTexture(
-              this.gl.TEXTURE_2D,
-              tMat.grassMap ? this.getWebGLTexture(tMat.grassMap) : this.defaultTexture,
+            this.gl.TEXTURE_2D,
+            tMat.grassMap ? this.getWebGLTexture(tMat.grassMap) : this.defaultTexture,
           );
           if (this.locs.grassMap) this.gl.uniform1i(this.locs.grassMap, 2);
 
           this.gl.activeTexture(this.gl.TEXTURE3);
           this.gl.bindTexture(
-              this.gl.TEXTURE_2D,
-              tMat.rockMap ? this.getWebGLTexture(tMat.rockMap) : this.defaultTexture,
+            this.gl.TEXTURE_2D,
+            tMat.rockMap ? this.getWebGLTexture(tMat.rockMap) : this.defaultTexture,
           );
           if (this.locs.rockMap) this.gl.uniform1i(this.locs.rockMap, 3);
 
           this.gl.activeTexture(this.gl.TEXTURE4);
           this.gl.bindTexture(
-              this.gl.TEXTURE_2D,
-              tMat.snowMap ? this.getWebGLTexture(tMat.snowMap) : this.defaultTexture,
+            this.gl.TEXTURE_2D,
+            tMat.snowMap ? this.getWebGLTexture(tMat.snowMap) : this.defaultTexture,
           );
           if (this.locs.snowMap) this.gl.uniform1i(this.locs.snowMap, 4);
         }

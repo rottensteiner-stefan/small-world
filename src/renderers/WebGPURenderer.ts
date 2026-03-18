@@ -538,17 +538,17 @@ export class WebGPURenderer extends AbstractRenderer {
         const mat = obj.material;
         let texBindGroup: GPUBindGroup = this.defaultTexBindGroup;
         let shininess = -1.0,
-            specCol = [0, 0, 0, 0],
-            tOffset = [0, 0],
-            tRepeat = [1, 1];
+          specCol = [0, 0, 0, 0],
+          tOffset = [0, 0],
+          tRepeat = [1, 1];
         let isTerrain = 0.0,
-            thresholds = [0, 0, 0, 0];
+          thresholds = [0, 0, 0, 0];
 
         if (mat.type === MaterialType.SKYBOX) {
           rp.setPipeline(this.pipelineSkybox);
         } else {
           rp.setPipeline(
-              mat.type === MaterialType.WIREFRAME ? this.pipelineLines : this.pipelineTriangles,
+            mat.type === MaterialType.WIREFRAME ? this.pipelineLines : this.pipelineTriangles,
           );
 
           if (mat.type === MaterialType.LAMBERT) {

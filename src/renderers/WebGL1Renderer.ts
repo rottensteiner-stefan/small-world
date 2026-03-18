@@ -1,16 +1,16 @@
 /// src/renderers/WebGL1Renderer.ts
+import { AbstractWebGLRenderer } from "./AbstractWebGLRenderer.js";
 import { CubeTexture } from "../core/textures/CubeTexture.js";
 import { IGeometryData } from "../interfaces/IGeometryData.js";
+import { MaterialType } from "../enums/MaterialType.js";
 import { Mesh } from "./Mesh.js";
 import { Object3D } from "../core/Object3D.js";
 import { PhongMaterial } from "../core/materials/PhongMaterial.js";
+import { RendererType } from "../enums/RendererType.js";
 import { Scene } from "../core/Scene.js";
 import { SkyboxMaterial } from "../core/materials/SkyboxMaterial.js";
 import { Texture } from "../core/textures/Texture.js";
 import { Vector3D } from "../math/Vector3D.js";
-import { RendererType } from "../enums/RendererType.js";
-import { MaterialType } from "../enums/MaterialType.js";
-import { AbstractWebGLRenderer } from "./AbstractWebGLRenderer.js";
 
 interface ShaderLocs {
   pos: number;
@@ -332,10 +332,10 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
         if (this.locs.color) this.gl.uniform4fv(this.locs.color, mat.color.toArray());
 
         let shininess = -1.0,
-            specCol = [0, 0, 0, 0],
-            activeTex = this.defaultTexture,
-            tOffset = [0, 0],
-            tRepeat = [1, 1];
+          specCol = [0, 0, 0, 0],
+          activeTex = this.defaultTexture,
+          tOffset = [0, 0],
+          tRepeat = [1, 1];
 
         if (mat.type === MaterialType.LAMBERT) {
           shininess = 0.0;
