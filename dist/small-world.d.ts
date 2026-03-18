@@ -1,3 +1,18 @@
+export declare abstract class AbstractGeometry implements IGeometry {
+    protected vertices: Float32Array;
+    protected indices: Uint16Array | Uint32Array;
+    protected normals: Float32Array;
+    protected uvs: Float32Array;
+    protected abstract generateGeometryData(): void;
+    getGeometryData(): IGeometryData;
+    computeNormals(): void;
+    applyMatrix4(matrix: Matrix4): this;
+    scale(f: number): this;
+    rotateX(a: number): this;
+    rotateY(a: number): this;
+    rotateZ(a: number): this;
+}
+
 export declare abstract class AbstractLight extends Object3D {
     color: Color;
     intensity: number;
@@ -130,7 +145,7 @@ export declare const CameraStrategyType: {
 
 export declare type CameraStrategyType = (typeof CameraStrategyType)[keyof typeof CameraStrategyType];
 
-export declare class Circle extends ObjectGeometry {
+export declare class Circle extends AbstractGeometry {
     radius: number;
     segments: number;
     constructor(radius?: number, segments?: number);
@@ -172,7 +187,7 @@ export declare class ColorUtils {
     static fromCSS(cssColor: string): Color;
 }
 
-export declare class Cube extends ObjectGeometry {
+export declare class Cube extends AbstractGeometry {
     size: number;
     constructor(size?: number);
     protected generateGeometryData(): void;
@@ -186,7 +201,7 @@ export declare class CubeTexture {
     load(urls: string[]): Promise<void>;
 }
 
-export declare class Cylinder extends ObjectGeometry {
+export declare class Cylinder extends AbstractGeometry {
     radius: number;
     height: number;
     segments: number;
@@ -228,7 +243,7 @@ export declare class FrustumCuller {
     static cull(scene: Scene, vpMatrix: Matrix4): number;
 }
 
-export declare class Grid extends ObjectGeometry {
+export declare class Grid extends AbstractGeometry {
     size: number;
     divisions: number;
     constructor(size?: number, divisions?: number);
@@ -426,7 +441,7 @@ export declare const LightType: {
 
 export declare type LightType = (typeof LightType)[keyof typeof LightType];
 
-export declare class Line extends ObjectGeometry {
+export declare class Line extends AbstractGeometry {
     start: Vector3D;
     end: Vector3D;
     constructor(start: Vector3D, end: Vector3D);
@@ -461,7 +476,7 @@ export declare class Matrix4 {
     transformVector(v: Vector3D): Vector3D;
 }
 
-export declare class ModelGeometry extends ObjectGeometry {
+export declare class ModelGeometry extends AbstractGeometry {
     constructor(vertices: number[], uvs: number[], normals: number[], indices: number[]);
     protected generateGeometryData(): void;
 }
@@ -485,21 +500,6 @@ export declare class Object3D {
     add(child: Object3D): void;
     remove(child: Object3D): void;
     updateMatrixWorld(force?: boolean): void;
-}
-
-declare abstract class ObjectGeometry implements IGeometry {
-    protected vertices: Float32Array;
-    protected indices: Uint16Array | Uint32Array;
-    protected normals: Float32Array;
-    protected uvs: Float32Array;
-    protected abstract generateGeometryData(): void;
-    getGeometryData(): IGeometryData;
-    computeNormals(): void;
-    applyMatrix4(matrix: Matrix4): this;
-    scale(f: number): this;
-    rotateX(a: number): this;
-    rotateY(a: number): this;
-    rotateZ(a: number): this;
 }
 
 export declare class ObjLoader extends AbstractLoader<Object3D> {
@@ -539,7 +539,7 @@ export declare class PhongMaterial extends AbstractMaterial {
     diffuseMap: Texture | null;
 }
 
-export declare class Plane extends ObjectGeometry {
+export declare class Plane extends AbstractGeometry {
     width: number;
     depth: number;
     widthSegments: number;
@@ -565,7 +565,7 @@ export declare const ProjectionType: {
 
 export declare type ProjectionType = (typeof ProjectionType)[keyof typeof ProjectionType];
 
-export declare class Pyramid extends ObjectGeometry {
+export declare class Pyramid extends AbstractGeometry {
     base: number;
     height: number;
     constructor(base?: number, height?: number);
@@ -612,7 +612,7 @@ export declare class SmallWorld {
     init(configPath: string): Promise<void>;
 }
 
-export declare class Sphere extends ObjectGeometry {
+export declare class Sphere extends AbstractGeometry {
     radius: number;
     widthSegments: number;
     heightSegments: number;
@@ -632,7 +632,7 @@ export declare class SpotLight extends AbstractLight {
     decay?: number);
 }
 
-export declare class Terrain extends ObjectGeometry {
+export declare class Terrain extends AbstractGeometry {
     image: HTMLImageElement | ImageBitmap;
     width: number;
     depth: number;
@@ -741,7 +741,7 @@ export declare const TextureWrap: {
 
 export declare type TextureWrap = (typeof TextureWrap)[keyof typeof TextureWrap];
 
-export declare class Torus extends ObjectGeometry {
+export declare class Torus extends AbstractGeometry {
     radius: number;
     tube: number;
     radialSegments: number;
@@ -750,7 +750,7 @@ export declare class Torus extends ObjectGeometry {
     protected generateGeometryData(): void;
 }
 
-export declare class Triangle extends ObjectGeometry {
+export declare class Triangle extends AbstractGeometry {
     pointA: Vector3D;
     pointB: Vector3D;
     pointC: Vector3D;

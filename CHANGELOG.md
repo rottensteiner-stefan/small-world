@@ -1,5 +1,8 @@
 # Changelog
 
+## [0.10.15] - 2026-03-18
+- AI rework; Code style
+
 ## [0.10.14] - 2026-03-18
 
 - Introduce AGENTS.md
