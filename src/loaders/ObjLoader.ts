@@ -1,12 +1,10 @@
 /// src/loaders/ObjLoader.ts
 
-import { AssetManager } from "./AssetManager.js";
-import { EventType } from "../enums/EventType.js";
-import { AbstractLoader } from "./AbstractLoader.js";
-import { ModelGeometry } from "../geometry/ModelGeometry.js";
-import { MtlLoader } from "./MtlLoader.js";
-import { Object3D } from "../core/Object3D.js";
-import { PhongMaterial } from "../core/materials/PhongMaterial.js";
+import { AssetManager, AbstractLoader, MtlLoader } from "./index.js";
+import { EventType } from "../enums/index.js";
+import { ModelGeometry } from "../geometry/index.js";
+import { Object3D } from "../core/index.js";
+import { PhongMaterial } from "../core/materials/index.js";
 
 // Hilfsklasse, um Geometrie-Teile nach Material zu sortieren
 class MaterialGroup {
