@@ -100,13 +100,8 @@ export class Demo4 extends AbstractDemo {
             this.printDebug();
         }
 
-        let dx = 0;
-        let dy = 0;
-
-        if (Input.isPointerLocked) {
-            dx = Input.mouse.dx;
-            dy = Input.mouse.dy;
-        }
+        const dx = Input.isPointerLocked ? Input.mouse.dx : 0;
+        const dy = Input.isPointerLocked ? Input.mouse.dy : 0;
 
         Input.mouse.dx = 0;
         Input.mouse.dy = 0;

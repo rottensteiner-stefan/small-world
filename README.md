@@ -1,54 +1,84 @@
-# small-world
+# Small World Engine
 
-small-world is a lightweight 3D engine written in TypeScript.
+**Small World** ist eine leichtgewichtige, modulare 3D-Game-Engine für den Browser, entwickelt in TypeScript. Sie bietet eine einfache API, um 3D-Szenen, Kameras, Lichter und Geometrien zu verwalten und darzustellen.
 
-## Installation
+## 🚀 Features
+
+*   **Rendering:** Leistungsstarker Renderer (WebGPU-Support vorbereitet) mit Support für Skyboxen und Post-Processing.
+*   **Szenen-Management:** Einfacher Szenen-Graph mit `Object3D`-Hierarchien.
+*   **Materialien & Licht:** Unterstützung für Standard-Materialien (Phong, Lambert, Wireframe) und diverse Lichtquellen (Ambient, Directional, Point, Spot, Area).
+*   **Geometrie:** Integrierte Primitive (Würfel, Kugel, Pyramide, Torus, etc.) und Terrain-Generierung.
+*   **Loader:** Eingebaute Loader für OBJ-Modelle, Texturen und Shader.
+*   **Mathematik:** Eigene Implementierung für Vektoren (`Vector3D`) und Matrizen (`Matrix4`).
+
+## 📦 Installation
+
+Das Projekt kann über NPM installiert werden:
 
 ```bash
-npm install small-world
+npm install smallworld-engine
 ```
 
-## Usage
+## 🎮 Verwendung
 
-To use the engine, you need to create a `small-world.json` configuration file in your project's root directory. This file specifies the canvas element to use, the renderer, and other options.
+Die Engine wird über die Klasse `SmallWorld` initialisiert. Sie benötigt eine Konfiguration (meist eine JSON-Datei), die den Canvas und Render-Einstellungen definiert.
+
+### 1. Konfiguration (`world-config.json`)
 
 ```json
 {
   "canvasId": "render-canvas",
   "rendererType": "webgpu",
-  "worldSize": 1000,
-  "skyColor": "#111111",
+  "skyColor": "#202020",
+  "debug": true,
   "showHUD": true
 }
 ```
 
-Then, you can initialize the engine in your code:
+### 2. Code-Beispiel
 
 ```typescript
-import { SmallWorld } from "small-world";
+import { SmallWorld, Scene, Cube, Vector3D } from 'smallworld-engine';
 
-const world = new SmallWorld();
-world.init("small-world.json").then(() => {
-  // Your code here
-});
+// 1. Engine Instanz erzeugen
+const engine = new SmallWorld();
+
+async function main() {
+  // 2. Initialisieren
+  await engine.init('./world-config.json');
+
+  // 3. Zugriff auf die aktive Szene (wird vom Renderer verwaltet oder manuell erstellt)
+  // Hinweis: Die genaue Szenen-API hängt von der Implementierung in deiner 'main' ab.
+
+  console.log("Small World Engine gestartet!");
+}
+
+main();
 ```
 
-## Features
+## 🛠 Entwicklung
 
-The engine provides the following features:
+Um am Projekt selbst zu arbeiten:
 
-*   **Core:** Application, AssetManager, Camera, Engine, HUD, Input, Object3D, Scene, SmallWorld
-*   **Textures:** CubeTexture, Skybox, Texture
-*   **Enums:** CameraStrategyType, Keys, LightType, MaterialType, ProjectionType, RendererType, TextureFilter, TextureWrap
-*   **Math:** AbstractProjection, Matrix4, OrthographicProjection, PerspectiveProjection, Vector2D, Vector3D
-*   **Colors:** Color, ColorUtils
-*   **Geometries:** Cube, Cylinder, Grid, Plane, Pyramid, Sphere, Torus, Circle, Triangle, Line, ModelGeometry, Terrain
-*   **Materials:** AbstractMaterial, BasicMaterial, LambertMaterial, PhongMaterial, SkyboxMaterial, TerrainMaterial, WireframeMaterial
-*   **Lights:** AmbientLight, DirectionalLight, AbstractLight, PointLight, SpotLight, AreaLight
-*   **Physics & Utils:** BoundingBox, BoundingSphere, Collision, FrustumCuller, TextureGenerator
-*   **Events:** EventDispatcher, EventType
-*   **Loaders:** ImageLoader, Loader, ObjLoader, ShaderLoader, SkyboxLoader, TextLoader
+1.  **Abhängigkeiten installieren:**
+    ```bash
+    npm install
+    ```
 
-## Contributing
+2.  **Dev-Server starten (mit Hot-Reload):**
+    ```bash
+    npm run dev
+    ```
 
-Contributions are welcome! Please open an issue or submit a pull request.
+3.  **Library bauen:**
+    ```bash
+    npm run build:lib
+    ```
+
+## 📂 Struktur
+
+*   `src/core`: Kernklassen (Engine, Renderer-Interface, Events).
+*   `src/geometry`: Geometrische Formen (Mesh-Daten).
+*   `src/materials`: Shader-Konfigurationen und Material-Eigenschaften.
+*   `src/math`: Mathematische Hilfsfunktionen.
+*   `src/loaders`: Import-Logik für Assets.
