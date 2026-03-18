@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.10.14] - 2026-03-18
+- Code quality
+- Introduce event management interface
+
 ## [0.10.13] - 2026-03-17
 - Demo 4
 - Add README.md
