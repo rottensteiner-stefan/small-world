@@ -39,6 +39,7 @@ export { Color } from "./core/colors/Color.js";
 export { ColorUtils } from "./core/colors/ColorUtils.js";
 
 // --- Geometries ---
+export { AbstractGeometry } from "./geometry/AbstractGeometry.js";
 export { Cube } from "./geometry/Cube.js";
 export { Cylinder } from "./geometry/Cylinder.js";
 export { Grid } from "./geometry/Grid.js";

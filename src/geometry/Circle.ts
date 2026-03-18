@@ -1,6 +1,6 @@
-import { ObjectGeometry } from "./ObjectGeometry.js";
+import { AbstractGeometry } from "./AbstractGeometry.js";
 
-export class Circle extends ObjectGeometry {
+export class Circle extends AbstractGeometry {
   constructor(
     public radius: number = 1,
     public segments: number = 32,

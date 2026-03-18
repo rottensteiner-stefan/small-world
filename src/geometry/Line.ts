@@ -1,7 +1,7 @@
-import { ObjectGeometry } from "./ObjectGeometry.js";
+import { AbstractGeometry } from "./AbstractGeometry.js";
 import { Vector3D } from "../math/Vector3D.js";
 
-export class Line extends ObjectGeometry {
+export class Line extends AbstractGeometry {
   constructor(
     public start: Vector3D,
     public end: Vector3D,

@@ -1,6 +1,6 @@
-import { ObjectGeometry } from "./ObjectGeometry.js";
+import { AbstractGeometry } from "./AbstractGeometry.js";
 
-export class Pyramid extends ObjectGeometry {
+export class Pyramid extends AbstractGeometry {
   constructor(
     public base: number = 1,
     public height: number = 1,

@@ -1,6 +1,6 @@
-import { ObjectGeometry } from "./ObjectGeometry.js";
+import { AbstractGeometry } from "./AbstractGeometry.js";
 
-export class Grid extends ObjectGeometry {
+export class Grid extends AbstractGeometry {
   constructor(
     public size: number = 20,
     public divisions: number = 20,

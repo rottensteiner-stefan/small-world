@@ -1,6 +1,6 @@
-import { ObjectGeometry } from "./ObjectGeometry.js";
+import { AbstractGeometry } from "./AbstractGeometry.js";
 
-export class ModelGeometry extends ObjectGeometry {
+export class ModelGeometry extends AbstractGeometry {
   constructor(vertices: number[], uvs: number[], normals: number[], indices: number[]) {
     super();
     this.vertices = new Float32Array(vertices);
