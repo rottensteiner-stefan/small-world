@@ -1,4 +1,5 @@
 import { IVector } from "../interfaces/IVector.js";
+import { Matrix4 } from "./Matrix4.js";
 
 export class Vector3D implements IVector {
   constructor(
@@ -80,5 +81,24 @@ export class Vector3D implements IVector {
     }
 
     return this;
+  }
+
+  /**
+   * Transformiert die Richtung dieses Vektors mit einer Matrix.
+   * Dies ignoriert die Translationskomponente der Matrix.
+   * @param m Die Transformationsmatrix.
+   * @returns this (für Method Chaining)
+   */
+  public transformDirection(m: Matrix4): this {
+    const d = m.data;
+    const x = this.x,
+      y = this.y,
+      z = this.z;
+
+    this.x = d[0] * x + d[4] * y + d[8] * z;
+    this.y = d[1] * x + d[5] * y + d[9] * z;
+    this.z = d[2] * x + d[6] * y + d[10] * z;
+
+    return this.normalize();
   }
 }
