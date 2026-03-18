@@ -1,6 +1,6 @@
-import { ObjectGeometry } from "./ObjectGeometry.js";
+import { AbstractGeometry } from "./AbstractGeometry.js";
 
-export class Torus extends ObjectGeometry {
+export class Torus extends AbstractGeometry {
   constructor(
     public radius: number = 1,
     public tube: number = 0.4,

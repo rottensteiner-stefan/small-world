@@ -1,6 +1,6 @@
-import { ObjectGeometry } from "./ObjectGeometry.js";
+import { AbstractGeometry } from "./AbstractGeometry.js";
 
-export class Sphere extends ObjectGeometry {
+export class Sphere extends AbstractGeometry {
   constructor(
     public radius: number = 1,
     public widthSegments: number = 16,

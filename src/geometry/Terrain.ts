@@ -1,5 +1,5 @@
 /// src/geometry/Terrain.ts
-import { ObjectGeometry } from "./ObjectGeometry.js";
+import { AbstractGeometry } from "./AbstractGeometry.js";
 
 // 1. Wir definieren, wie eine Strategie-Funktion aussehen muss:
 // Sie bekommt die Farbwerte (0-255) eines Pixels und die Maximalhöhe, und gibt das fertige Y zurück.
@@ -39,7 +39,7 @@ export const TerrainStrategies = {
   },
 } as const;
 
-export class Terrain extends ObjectGeometry {
+export class Terrain extends AbstractGeometry {
   /**
    * @param image Das geladene Bild (Heightmap)
    * @param width Breite des Terrains in Weltkoordinaten

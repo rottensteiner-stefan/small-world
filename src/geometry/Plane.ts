@@ -1,6 +1,6 @@
-import { ObjectGeometry } from "./ObjectGeometry.js";
+import { AbstractGeometry } from "./AbstractGeometry.js";
 
-export class Plane extends ObjectGeometry {
+export class Plane extends AbstractGeometry {
   constructor(
     public width: number = 1,
     public depth: number = 1,

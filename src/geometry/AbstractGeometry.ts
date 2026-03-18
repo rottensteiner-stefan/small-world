@@ -3,11 +3,11 @@ import { IGeometryData } from "../interfaces/IGeometryData.js";
 import { Matrix4 } from "../math/Matrix4.js";
 import { Vector3D } from "../math/Vector3D.js";
 
-export abstract class ObjectGeometry implements IGeometry {
+export abstract class AbstractGeometry implements IGeometry {
   protected vertices: Float32Array = new Float32Array();
   protected indices: Uint16Array | Uint32Array = new Uint16Array();
   protected normals: Float32Array = new Float32Array();
-  protected uvs: Float32Array = new Float32Array(); // <--- NEU
+  protected uvs: Float32Array = new Float32Array();
 
   protected abstract generateGeometryData(): void;
 
@@ -24,7 +24,7 @@ export abstract class ObjectGeometry implements IGeometry {
       vertices: this.vertices,
       indices: this.indices,
       normals: this.normals,
-      uvs: this.uvs, // <--- NEU
+      uvs: this.uvs,
     };
   }
 

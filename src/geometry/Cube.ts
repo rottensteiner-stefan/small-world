@@ -1,6 +1,6 @@
-import { ObjectGeometry } from "./ObjectGeometry.js";
+import { AbstractGeometry } from "./AbstractGeometry.js";
 
-export class Cube extends ObjectGeometry {
+export class Cube extends AbstractGeometry {
   constructor(public size: number = 1) {
     super();
     this.generateGeometryData();

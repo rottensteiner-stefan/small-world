@@ -1,6 +1,6 @@
-import { ObjectGeometry } from "./ObjectGeometry.js";
+import { AbstractGeometry } from "./AbstractGeometry.js";
 
-export class Cylinder extends ObjectGeometry {
+export class Cylinder extends AbstractGeometry {
   constructor(
     public radius: number = 1,
     public height: number = 2,
