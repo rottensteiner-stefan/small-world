@@ -1,6 +1,7 @@
 # Changelog
 
 ## [0.10.14] - 2026-03-18
+- Introduce AGENTS and update coding
 - Code quality
 - Introduce event management interface
 
