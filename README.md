@@ -4,12 +4,12 @@
 
 ## 🚀 Features
 
-*   **Rendering:** Leistungsstarker Renderer (WebGPU-Support vorbereitet) mit Support für Skyboxen und Post-Processing.
-*   **Szenen-Management:** Einfacher Szenen-Graph mit `Object3D`-Hierarchien.
-*   **Materialien & Licht:** Unterstützung für Standard-Materialien (Phong, Lambert, Wireframe) und diverse Lichtquellen (Ambient, Directional, Point, Spot, Area).
-*   **Geometrie:** Integrierte Primitive (Würfel, Kugel, Pyramide, Torus, etc.) und Terrain-Generierung.
-*   **Loader:** Eingebaute Loader für OBJ-Modelle, Texturen und Shader.
-*   **Mathematik:** Eigene Implementierung für Vektoren (`Vector3D`) und Matrizen (`Matrix4`).
+- **Rendering:** Leistungsstarker Renderer (WebGPU-Support vorbereitet) mit Support für Skyboxen und Post-Processing.
+- **Szenen-Management:** Einfacher Szenen-Graph mit `Object3D`-Hierarchien.
+- **Materialien & Licht:** Unterstützung für Standard-Materialien (Phong, Lambert, Wireframe) und diverse Lichtquellen (Ambient, Directional, Point, Spot, Area).
+- **Geometrie:** Integrierte Primitive (Würfel, Kugel, Pyramide, Torus, etc.) und Terrain-Generierung.
+- **Loader:** Eingebaute Loader für OBJ-Modelle, Texturen und Shader.
+- **Mathematik:** Eigene Implementierung für Vektoren (`Vector3D`) und Matrizen (`Matrix4`).
 
 ## 📦 Installation
 
@@ -38,14 +38,14 @@ Die Engine wird über die Klasse `SmallWorld` initialisiert. Sie benötigt eine 
 ### 2. Code-Beispiel
 
 ```typescript
-import { SmallWorld, Scene, Cube, Vector3D } from 'smallworld-engine';
+import { SmallWorld, Scene, Cube, Vector3D } from "smallworld-engine";
 
 // 1. Engine Instanz erzeugen
 const engine = new SmallWorld();
 
 async function main() {
   // 2. Initialisieren
-  await engine.init('./world-config.json');
+  await engine.init("./world-config.json");
 
   // 3. Zugriff auf die aktive Szene (wird vom Renderer verwaltet oder manuell erstellt)
   // Hinweis: Die genaue Szenen-API hängt von der Implementierung in deiner 'main' ab.
@@ -61,11 +61,13 @@ main();
 Um am Projekt selbst zu arbeiten:
 
 1.  **Abhängigkeiten installieren:**
+
     ```bash
     npm install
     ```
 
 2.  **Dev-Server starten (mit Hot-Reload):**
+
     ```bash
     npm run dev
     ```
@@ -77,8 +79,8 @@ Um am Projekt selbst zu arbeiten:
 
 ## 📂 Struktur
 
-*   `src/core`: Kernklassen (Engine, Renderer-Interface, Events).
-*   `src/geometry`: Geometrische Formen (Mesh-Daten).
-*   `src/materials`: Shader-Konfigurationen und Material-Eigenschaften.
-*   `src/math`: Mathematische Hilfsfunktionen.
-*   `src/loaders`: Import-Logik für Assets.
+- `src/core`: Kernklassen (Engine, Renderer-Interface, Events).
+- `src/geometry`: Geometrische Formen (Mesh-Daten).
+- `src/materials`: Shader-Konfigurationen und Material-Eigenschaften.
+- `src/math`: Mathematische Hilfsfunktionen.
+- `src/loaders`: Import-Logik für Assets.
