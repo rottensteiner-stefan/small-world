@@ -1,24 +1,30 @@
 # Changelog
 
 ## [0.10.14] - 2026-03-18
-- Introduce AGENTS and update coding
+
+- Introduce AGENTS.md
 - Code quality
 - Introduce event management interface
 
 ## [0.10.13] - 2026-03-17
+
 - Demo 4
 - Add README.md
 
 ## [0.10.12] - 2026-03-16
-- Demo 3: Load and display *.OBJ
+
+- Demo 3: Load and display \*.OBJ
 
 ## [0.10.11] - 2026-03-15
+
 - Demo 2: WASD and camera (pointer lock)
 
 ## [0.10.10] - 2026-03-15
+
 - Prepare more than a single feature demo
 
 ## [0.10.9] - 2026-03-15
+
 - More code refactor and version bump
 - Respect linting errors and warnings
 - Some sort of reset. Start with Demo1
