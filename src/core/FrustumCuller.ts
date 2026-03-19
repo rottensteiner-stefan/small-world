@@ -1,3 +1,4 @@
+/// src/core/FrustumCuller.ts
 import { Frustum } from "../math/Frustum.js";
 import { Matrix4 } from "../math/Matrix4.js";
 import { Object3D } from "./Object3D.js";

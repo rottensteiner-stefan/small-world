@@ -1,3 +1,4 @@
+/// src/core/colors/ColorUtils.ts
 import { Color } from "./Color.js";
 export class ColorUtils {
   private static _ctx: CanvasRenderingContext2D | null = null;

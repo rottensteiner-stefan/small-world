@@ -1,3 +1,4 @@
+/// src/renderers/index.ts
 export * from "./AbstractRenderer.js";
 export * from "./AbstractWebGLRenderer.js";
 export * from "./Mesh.js";

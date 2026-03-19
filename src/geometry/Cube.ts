@@ -1,3 +1,4 @@
+/// src/geometry/Cube.ts
 import { AbstractGeometry } from "./AbstractGeometry.js";
 
 export class Cube extends AbstractGeometry {

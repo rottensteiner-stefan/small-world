@@ -1,3 +1,4 @@
+/// src/enums/Keys.ts
 export const Keys = {
   UP: "ArrowUp",
   DOWN: "ArrowDown",

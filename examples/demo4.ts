@@ -121,8 +121,8 @@ export class Demo4 extends AbstractDemo {
         forward.transformDirection(this._car.worldMatrix); // In Weltkoordinaten transformieren
         forward.normalize(); // Sicherstellen, dass es ein Einheitsvektor ist
 
-        // Position des Autos aktualisieren
-        this._car.position.add(forward.multiplyScalar(CAR_SPEED * deltaTime));
+        // Position des Autos aktualisieren (Forward wird hier in-place skaliert, was okay ist)
+        this._car.position.add(forward.scale(CAR_SPEED * deltaTime));
       }
     }
   }

@@ -1,6 +1,5 @@
 /// src/interfaces/IEngineConfig.ts
-import { RendererType } from "../enums/RendererType.js";
-import { ProjectionType } from "../enums/ProjectionType.js"; // <-- NEU
+import { ProjectionType, RendererType } from "../enums/index.js";
 
 export interface IEngineConfig {
   canvasId?: string;

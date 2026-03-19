@@ -1,5 +1,7 @@
-import { IBoundingVolume, BoundingType } from "../interfaces/IBoundingVolume.js";
-import { Vector3D } from "../math/Vector3D.js";
+/// src/physics/BoundingSphere.ts
+import { IBoundingVolume } from "../interfaces/index.js";
+import { Vector3D } from "../math/index.js";
+import { BoundingType } from "../enums/index.js";
 export class BoundingSphere implements IBoundingVolume {
   public type = BoundingType.SPHERE;
   constructor(

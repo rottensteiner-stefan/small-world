@@ -1,3 +1,4 @@
+/// src/math/Vector2D.ts
 import { IVector } from "../interfaces/IVector.js";
 
 export class Vector2D implements IVector {

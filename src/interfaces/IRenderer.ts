@@ -1,3 +1,4 @@
+/// src/interfaces/IRenderer.ts
 import { Scene } from "../core/Scene.js";
 import { Color } from "../core/colors/Color.js";
 import { Vector3D } from "../math/Vector3D.js";

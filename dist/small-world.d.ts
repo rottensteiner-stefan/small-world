@@ -136,8 +136,8 @@ export declare class BoundingSphere implements IBoundingVolume {
 }
 
 export declare const BoundingType: {
-    readonly SPHERE: 0;
     readonly BOX: 1;
+    readonly SPHERE: 0;
 };
 
 export declare type BoundingType = (typeof BoundingType)[keyof typeof BoundingType];
@@ -483,10 +483,10 @@ export declare class LambertMaterial extends AbstractMaterial {
 
 export declare const LightType: {
     readonly AMBIENT: "AmbientLight";
+    readonly AREA: "AreaLight";
     readonly DIRECTIONAL: "DirectionalLight";
     readonly POINT: "PointLight";
     readonly SPOT: "SpotLight";
-    readonly AREA: "AreaLight";
 };
 
 export declare type LightType = (typeof LightType)[keyof typeof LightType];
@@ -890,6 +890,13 @@ export declare class Vector3D implements IVector {
      * @returns this (für Method Chaining)
      */
     normalize(): this;
+    /**
+     * Transformiert die Richtung dieses Vektors mit einer Matrix.
+     * Dies ignoriert die Translationskomponente der Matrix.
+     * @param m Die Transformationsmatrix.
+     * @returns this (für Method Chaining)
+     */
+    transformDirection(m: Matrix4): this;
 }
 
 export declare class WebGL1Renderer extends AbstractWebGLRenderer {

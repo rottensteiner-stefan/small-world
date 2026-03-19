@@ -1,3 +1,4 @@
+/// src/geometry/Torus.ts
 import { AbstractGeometry } from "./AbstractGeometry.js";
 
 export class Torus extends AbstractGeometry {

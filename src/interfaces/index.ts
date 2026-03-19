@@ -1,3 +1,4 @@
+/// src/interfaces/index.ts
 export * from "./IBoundingVolume.js";
 export * from "./ICamera.js";
 export * from "./ICameraStrategy.js";

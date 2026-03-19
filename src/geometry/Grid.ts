@@ -1,3 +1,4 @@
+/// src/geometry/Grid.ts
 import { AbstractGeometry } from "./AbstractGeometry.js";
 
 export class Grid extends AbstractGeometry {

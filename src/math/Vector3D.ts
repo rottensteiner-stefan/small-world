@@ -1,3 +1,4 @@
+/// src/math/Vector3D.ts
 import { IVector } from "../interfaces/IVector.js";
 import { Matrix4 } from "./Matrix4.js";
 
@@ -95,8 +96,11 @@ export class Vector3D implements IVector {
       y = this.y,
       z = this.z;
 
+    // @ts-expect-error Potentially undefined values
     this.x = d[0] * x + d[4] * y + d[8] * z;
+    // @ts-expect-error Potentially undefined values
     this.y = d[1] * x + d[5] * y + d[9] * z;
+    // @ts-expect-error Potentially undefined values
     this.z = d[2] * x + d[6] * y + d[10] * z;
 
     return this.normalize();

@@ -1,3 +1,4 @@
+/// src/core/Object3D.ts
 import { AbstractMaterial } from "./materials/index.js";
 import { IBoundingVolume, IGeometryData } from "../interfaces/index.js";
 import { Matrix4, Vector3D } from "../math/index.js";

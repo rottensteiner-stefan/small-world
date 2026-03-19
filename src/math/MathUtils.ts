@@ -1,3 +1,4 @@
+/// src/math/MathUtils.ts
 export class MathUtils {
   private static SIN_TABLE = new Float32Array(3600);
   private static COS_TABLE = new Float32Array(3600);

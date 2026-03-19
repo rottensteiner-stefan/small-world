@@ -1,4 +1,5 @@
-import { IGeometryData } from "../interfaces/IGeometryData.js";
+/// src/renderers/Mesh.ts
+import { IGeometryData } from "../interfaces/index.js";
 
 export class Mesh {
   public vbo: WebGLBuffer | null;

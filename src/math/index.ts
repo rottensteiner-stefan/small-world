@@ -1,3 +1,4 @@
+/// src/math/index.ts
 export * from "./Frustum.js";
 export * from "./MathUtils.js";
 export * from "./Matrix4.js";

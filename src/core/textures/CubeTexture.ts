@@ -1,3 +1,4 @@
+/// src/core/textures/CubeTexture.ts
 import { AssetManager } from "../../loaders/AssetManager.js";
 
 export class CubeTexture {
