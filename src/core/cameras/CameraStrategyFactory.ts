@@ -1,10 +1,10 @@
+/// src/core/cameras/CameraStrategyFactory.ts
 import { CameraStrategyType } from "../../enums/CameraStrategyType.js";
 import { FixedStrategy } from "./strategies/FixedStrategy.js";
 import { FPSStrategy } from "./strategies/FPSStrategy.js";
 import { ICameraStrategy } from "../../interfaces/ICameraStrategy.js";
 import { SmoothStrategy } from "./strategies/SmoothStrategy.js";
 import { StiffStrategy } from "./strategies/StiffStrategy.js";
-
 export class CameraStrategyFactory {
   private static strategies = new Map<CameraStrategyType, ICameraStrategy>([
     [CameraStrategyType.FPS, new FPSStrategy()],

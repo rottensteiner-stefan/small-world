@@ -1,3 +1,4 @@
+/// src/geometry/Pyramid.ts
 import { AbstractGeometry } from "./AbstractGeometry.js";
 
 export class Pyramid extends AbstractGeometry {

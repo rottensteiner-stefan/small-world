@@ -1,3 +1,4 @@
+/// src/geometry/Circle.ts
 import { AbstractGeometry } from "./AbstractGeometry.js";
 
 export class Circle extends AbstractGeometry {

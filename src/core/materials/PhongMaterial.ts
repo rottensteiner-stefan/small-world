@@ -1,3 +1,4 @@
+/// src/core/materials/PhongMaterial.ts
 import { AbstractMaterial } from "./index.js";
 import { Color } from "../colors/index.js";
 import { MaterialType } from "../../enums/index.js";

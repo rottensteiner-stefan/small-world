@@ -1,3 +1,4 @@
+/// src/geometry/Cylinder.ts
 import { AbstractGeometry } from "./AbstractGeometry.js";
 
 export class Cylinder extends AbstractGeometry {

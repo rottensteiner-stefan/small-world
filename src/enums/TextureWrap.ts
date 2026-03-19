@@ -1,3 +1,4 @@
+/// src/enums/TextureWrap.ts
 export const TextureWrap = {
   REPEAT: "repeat",
   CLAMP_TO_EDGE: "clamp-to-edge",

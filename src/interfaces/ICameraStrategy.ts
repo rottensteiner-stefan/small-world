@@ -1,3 +1,4 @@
+/// src/interfaces/ICameraStrategy.ts
 import { Camera } from "../core/Camera.js";
 import { Vector3D } from "../math/Vector3D.js";
 

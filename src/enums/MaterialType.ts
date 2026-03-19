@@ -1,3 +1,4 @@
+/// src/enums/MaterialType.ts
 export const MaterialType = {
   BASIC: "BasicMaterial",
   LAMBERT: "LambertMaterial",

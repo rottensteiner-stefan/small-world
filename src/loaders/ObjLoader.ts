@@ -59,10 +59,14 @@ export class ObjLoader extends AbstractLoader<Object3D> {
       if (line.length === 0 || line.startsWith("#")) continue;
 
       const parts = line.split(/\s+/);
+      if (parts.length < 2) {
+        console.warn('Invalid line in OBJ file: "' + line + '"');
+        continue;
+      }
+
       const type = parts[0];
 
       if (type === "mtllib") {
-        // Lade die Materialdatei über unseren neuen MtlLoader!
         const mtlLoader = new MtlLoader();
         materials = await mtlLoader.load(folderPath + parts[1]);
       } else if (type === "usemtl") {

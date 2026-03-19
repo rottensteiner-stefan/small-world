@@ -1,3 +1,4 @@
+/// src/geometry/Plane.ts
 import { AbstractGeometry } from "./AbstractGeometry.js";
 
 export class Plane extends AbstractGeometry {

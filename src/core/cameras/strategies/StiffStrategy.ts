@@ -1,3 +1,4 @@
+/// src/core/cameras/strategies/StiffStrategy.ts
 import { Camera } from "../../Camera.js";
 import { CameraStrategyType } from "../../../enums/CameraStrategyType.js";
 import { ICameraStrategy } from "../../../interfaces/ICameraStrategy.js";

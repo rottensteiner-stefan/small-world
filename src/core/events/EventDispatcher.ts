@@ -1,3 +1,4 @@
+/// src/core/events/EventDispatcher.ts
 import { EventType } from "../../enums/EventType.js";
 import { IEventDispatcher } from "../../interfaces/IEventDispatcher.js";
 

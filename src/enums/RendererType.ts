@@ -1,3 +1,4 @@
+/// src/enums/RendererType.ts
 export const RendererType = {
   BEST: "BEST",
   WEB_GPU: "WEB_GPU",

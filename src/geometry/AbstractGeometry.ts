@@ -1,8 +1,10 @@
+/// src/geometry/AbstractGeometry.ts
 import { IGeometry } from "../interfaces/IGeometry.js";
 import { IGeometryData } from "../interfaces/IGeometryData.js";
 import { Matrix4 } from "../math/Matrix4.js";
 import { Vector3D } from "../math/Vector3D.js";
 
+// @ts-ignore
 export abstract class AbstractGeometry implements IGeometry {
   protected vertices: Float32Array = new Float32Array();
   protected indices: Uint16Array | Uint32Array = new Uint16Array();

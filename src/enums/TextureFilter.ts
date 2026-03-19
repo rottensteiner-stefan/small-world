@@ -1,3 +1,4 @@
+/// src/enums/TextureFilter.ts
 export const TextureFilter = {
   LINEAR: "linear",
   NEAREST: "nearest",

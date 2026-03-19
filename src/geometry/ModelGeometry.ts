@@ -1,3 +1,4 @@
+/// src/geometry/ModelGeometry.ts
 import { AbstractGeometry } from "./AbstractGeometry.js";
 
 export class ModelGeometry extends AbstractGeometry {

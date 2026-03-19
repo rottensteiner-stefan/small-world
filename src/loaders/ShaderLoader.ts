@@ -1,4 +1,4 @@
-/// src/loaders/TextLoader.ts
+/// src/loaders/ShaderLoader.ts
 
 import { TextLoader } from "./TextLoader.js";
 

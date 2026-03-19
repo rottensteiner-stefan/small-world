@@ -1,3 +1,4 @@
+/// src/geometry/Sphere.ts
 import { AbstractGeometry } from "./AbstractGeometry.js";
 
 export class Sphere extends AbstractGeometry {

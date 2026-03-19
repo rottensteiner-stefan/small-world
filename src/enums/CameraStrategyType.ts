@@ -1,3 +1,4 @@
+/// src/enums/CameraStrategyType.ts
 export const CameraStrategyType = {
   FIXED: "FixedCamera",
   FPS: "FPSCamera",

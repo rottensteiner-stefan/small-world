@@ -1,3 +1,4 @@
+/// src/enums/EventType.ts
 export const EventType = {
   LOADER_END: "LoaderEnd",
   LOADER_ERROR: "LoaderError",

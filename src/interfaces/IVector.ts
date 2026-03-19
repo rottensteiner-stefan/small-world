@@ -1,3 +1,4 @@
+/// src/interfaces/IVector.ts
 export interface IVector {
   length(): number;
   lengthSq(): number;

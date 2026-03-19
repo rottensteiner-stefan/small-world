@@ -1,3 +1,4 @@
+/// src/core/colors/Color.ts
 export class Color {
   constructor(
     public r: number,

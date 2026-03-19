@@ -1,3 +1,4 @@
+/// src/core/materials/AbstractMaterial.ts
 import { Color } from "../colors/index.js";
 import { MaterialType } from "../../enums/index.js";
 
