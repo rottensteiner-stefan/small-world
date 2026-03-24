@@ -41,7 +41,6 @@ export class WebGPURenderer extends AbstractRenderer {
   private _skyTexBGL!: GPUBindGroupLayout;
 
   private _defaultTexBindGroup!: GPUBindGroup;
-  private _defaultCubeTexBindGroup!: GPUBindGroup;
   private _sampler!: GPUSampler;
   private _whiteTexView!: GPUTextureView;
 
@@ -50,7 +49,6 @@ export class WebGPURenderer extends AbstractRenderer {
   private _textureViewCache = new Map<Texture, GPUTextureView>();
   private _texCache = new Map<Texture, GPUBindGroup>();
   private _terrainTexCache = new Map<TerrainMaterial, GPUBindGroup>();
-  private _texCubeCache = new Map<CubeTexture, GPUBindGroup>();
   private _samplerCache = new Map<string, GPUSampler>();
 
   private _depthTexture!: GPUTexture;
@@ -479,8 +477,9 @@ export class WebGPURenderer extends AbstractRenderer {
     const plData = new Float32Array(32);
     for (let i = 0; i < pLights.length; i++) {
       const pl = pLights[i];
+      if (!pl) continue;
       plData.set(
-        [pl.worldMatrix.data[12], pl.worldMatrix.data[13], pl.worldMatrix.data[14], 0.0],
+        [pl.worldMatrix.data[12]!, pl.worldMatrix.data[13]!, pl.worldMatrix.data[14]!, 0.0],
         i * 8,
       );
       plData.set(
@@ -491,10 +490,11 @@ export class WebGPURenderer extends AbstractRenderer {
 
     const slData = new Float32Array(64);
     for (let i = 0; i < sLights.length; i++) {
-      const sl = sLights[i],
-        offset = i * 16;
+      const sl = sLights[i];
+      if (!sl) continue;
+      const offset = i * 16;
       slData.set(
-        [sl.worldMatrix.data[12], sl.worldMatrix.data[13], sl.worldMatrix.data[14], 0.0],
+        [sl.worldMatrix.data[12]!, sl.worldMatrix.data[13]!, sl.worldMatrix.data[14]!, 0.0],
         offset,
       );
       const dir = sl.direction.clone().normalize();
@@ -512,16 +512,17 @@ export class WebGPURenderer extends AbstractRenderer {
     const alData = new Float32Array(96);
     for (let i = 0; i < aLights.length; i++) {
       const al = aLights[i] as AreaLight;
+      if (!al) continue;
       const mat = al.worldMatrix.data,
         offset = i * 24;
-      alData.set([mat[12], mat[13], mat[14], 0.0], offset);
+      alData.set([mat[12]!, mat[13]!, mat[14]!, 0.0], offset);
       alData.set(
         [al.color.r * al.intensity, al.color.g * al.intensity, al.color.b * al.intensity, 0.0],
         offset + 4,
       );
-      alData.set([mat[0], mat[1], mat[2], 0.0], offset + 8);
-      alData.set([mat[4], mat[5], mat[6], 0.0], offset + 12);
-      alData.set([mat[8], mat[9], mat[10], 0.0], offset + 16);
+      alData.set([mat[0]!, mat[1]!, mat[2]!, 0.0], offset + 8);
+      alData.set([mat[4]!, mat[5]!, mat[6]!, 0.0], offset + 12);
+      alData.set([mat[8]!, mat[9]!, mat[10]!, 0.0], offset + 16);
       alData.set([al.width / 2.0, al.height / 2.0, 0.0, 0.0], offset + 20);
     }
 

@@ -18,6 +18,7 @@ export class Frustum {
    */
   public setFromMatrix(m: Matrix4): void {
     const me: Float32Array = m.data;
+    if (me.length < 16) return;
     const p: Float32Array = this.planes;
 
     p[0] = me[3]! - me[0]!;
@@ -57,10 +58,10 @@ export class Frustum {
       );
       if (d > 0) {
         const f: number = 1.0 / d;
-        p[idx] *= f;
-        p[idx + 1] *= f;
-        p[idx + 2] *= f;
-        p[idx + 3] *= f;
+        p[idx]! *= f;
+        p[idx + 1]! *= f;
+        p[idx + 2]! *= f;
+        p[idx + 3]! *= f;
       }
     }
   }

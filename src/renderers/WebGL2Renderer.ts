@@ -353,20 +353,20 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       if (!o.isVisible || !o.material) return;
       if (o.geometry && o.material.type === MaterialType.SKYBOX) {
         const skyMat = o.material as SkyboxMaterial;
-        let m = this.cache.get(o.geometry);
+        let m = this._cache.get(o.geometry);
         if (!m) {
           m = new Mesh(this.gl, o.geometry);
-          this.cache.set(o.geometry, m);
+          this._cache.set(o.geometry, m);
         }
-        m.bind(this.skyLocs.pos);
-        if (this.skyLocs.model)
-          this.gl.uniformMatrix4fv(this.skyLocs.model, false, o.worldMatrix.data);
+        m.bind(this._skyLocs.pos);
+        if (this._skyLocs.model)
+          this.gl.uniformMatrix4fv(this._skyLocs.model, false, o.worldMatrix.data);
         this.gl.activeTexture(this.gl.TEXTURE0);
         this.gl.bindTexture(
           this.gl.TEXTURE_CUBE_MAP,
           skyMat.cubeMap ? this.getWebGLCubeTexture(skyMat.cubeMap) : this.defaultCubeTexture,
         );
-        if (this.skyLocs.skybox) this.gl.uniform1i(this.skyLocs.skybox, 0);
+        if (this._skyLocs.skybox) this.gl.uniform1i(this._skyLocs.skybox, 0);
         this.gl.drawElements(this.gl.TRIANGLES, m.count, this.gl.UNSIGNED_SHORT, 0);
       }
       if (o.children) for (const child of o.children) drawSkybox(child);
@@ -375,87 +375,92 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     this.gl.depthMask(true);
 
     // --- PASS 2: Objects ---
-    this.gl.useProgram(this.prog);
-    if (this.locs.vp) this.gl.uniformMatrix4fv(this.locs.vp, false, vp);
-    if (this.locs.viewPos) this.gl.uniform3f(this.locs.viewPos, camPos.x, camPos.y, camPos.z);
+    this.gl.useProgram(this._prog);
+    if (this._locs.vp) this.gl.uniformMatrix4fv(this._locs.vp, false, vp);
+    if (this._locs.viewPos) this.gl.uniform3f(this._locs.viewPos, camPos.x, camPos.y, camPos.z);
 
     const { aCol, dDir, dCol, pLights, sLights, aLights } = this.extractLights(scene);
 
-    if (this.locs.ambient) this.gl.uniform3f(this.locs.ambient, aCol.r, aCol.g, aCol.b);
-    if (this.locs.dirDir) this.gl.uniform3f(this.locs.dirDir, dDir.x, dDir.y, dDir.z);
-    if (this.locs.dirColor) this.gl.uniform3f(this.locs.dirColor, dCol.r, dCol.g, dCol.b);
+    if (this._locs.ambient) this.gl.uniform3f(this._locs.ambient, aCol.r, aCol.g, aCol.b);
+    if (this._locs.dirDir) this.gl.uniform3f(this._locs.dirDir, dDir.x, dDir.y, dDir.z);
+    if (this._locs.dirColor) this.gl.uniform3f(this._locs.dirColor, dCol.r, dCol.g, dCol.b);
 
     // Point Lights
-    if (this.locs.numPL) this.gl.uniform1i(this.locs.numPL, pLights.length);
+    if (this._locs.numPL) this.gl.uniform1i(this._locs.numPL, pLights.length);
     for (let i = 0; i < pLights.length; i++) {
-      if (this.pointLightLocs[i].pos)
+      const pl = pLights[i];
+      if (!pl) continue;
+      const loc = this._pointLightLocs[i];
+      if (!loc) continue;
+      if (loc.pos)
         this.gl.uniform3f(
-          this.pointLightLocs[i].pos!,
-          pLights[i].worldMatrix.data[12],
-          pLights[i].worldMatrix.data[13],
-          pLights[i].worldMatrix.data[14],
+          loc.pos!,
+          pl.worldMatrix.data[12]!,
+          pl.worldMatrix.data[13]!,
+          pl.worldMatrix.data[14]!,
         );
-      if (this.pointLightLocs[i].col)
+      if (loc.col)
         this.gl.uniform3f(
-          this.pointLightLocs[i].col!,
-          pLights[i].color.r * pLights[i].intensity,
-          pLights[i].color.g * pLights[i].intensity,
-          pLights[i].color.b * pLights[i].intensity,
+          loc.col!,
+          pl.color.r * pl.intensity,
+          pl.color.g * pl.intensity,
+          pl.color.b * pl.intensity,
         );
     }
 
     // Spot Lights
-    if (this.locs.numSL) this.gl.uniform1i(this.locs.numSL, sLights.length);
+    if (this._locs.numSL) this.gl.uniform1i(this._locs.numSL, sLights.length);
     for (let i = 0; i < sLights.length; i++) {
-      if (this.spotLightLocs[i].pos)
+      const sl = sLights[i];
+      if (!sl) continue;
+      const loc = this._spotLightLocs[i];
+      if (!loc) continue;
+      if (loc.pos)
         this.gl.uniform3f(
-          this.spotLightLocs[i].pos!,
-          sLights[i].worldMatrix.data[12],
-          sLights[i].worldMatrix.data[13],
-          sLights[i].worldMatrix.data[14],
+          loc.pos!,
+          sl.worldMatrix.data[12]!,
+          sl.worldMatrix.data[13]!,
+          sl.worldMatrix.data[14]!,
         );
-      const dir = sLights[i].direction.clone().normalize();
-      if (this.spotLightLocs[i].dir)
-        this.gl.uniform3f(this.spotLightLocs[i].dir!, dir.x, dir.y, dir.z);
-      if (this.spotLightLocs[i].col)
+      const dir = sl.direction.clone().normalize();
+      if (loc.dir) this.gl.uniform3f(loc.dir!, dir.x, dir.y, dir.z);
+      if (loc.col)
         this.gl.uniform3f(
-          this.spotLightLocs[i].col!,
-          sLights[i].color.r * sLights[i].intensity,
-          sLights[i].color.g * sLights[i].intensity,
-          sLights[i].color.b * sLights[i].intensity,
+          loc.col!,
+          sl.color.r * sl.intensity,
+          sl.color.g * sl.intensity,
+          sl.color.b * sl.intensity,
         );
-      if (this.spotLightLocs[i].params)
+      if (loc.params)
         this.gl.uniform4f(
-          this.spotLightLocs[i].params!,
-          Math.cos(sLights[i].angle),
-          Math.cos(sLights[i].angle * (1.0 - sLights[i].penumbra)),
-          sLights[i].distance,
-          sLights[i].decay,
+          loc.params!,
+          Math.cos(sl.angle),
+          Math.cos(sl.angle * (1.0 - sl.penumbra)),
+          sl.distance,
+          sl.decay,
         );
     }
 
     // Area Lights
-    if (this.locs.numAL) this.gl.uniform1i(this.locs.numAL, aLights.length);
+    if (this._locs.numAL) this.gl.uniform1i(this._locs.numAL, aLights.length);
     for (let i = 0; i < aLights.length; i++) {
       const al = aLights[i] as AreaLight;
+      if (!al) continue;
+      const loc = this._areaLightLocs[i];
+      if (!loc) continue;
       const mat = al.worldMatrix.data;
-      if (this._areaLightLocs[i].pos)
-        this.gl.uniform3f(this._areaLightLocs[i].pos!, mat[12], mat[13], mat[14]);
-      if (this._areaLightLocs[i].col)
+      if (loc.pos) this.gl.uniform3f(loc.pos!, mat[12]!, mat[13]!, mat[14]!);
+      if (loc.col)
         this.gl.uniform3f(
-          this._areaLightLocs[i].col!,
+          loc.col!,
           al.color.r * al.intensity,
           al.color.g * al.intensity,
           al.color.b * al.intensity,
         );
-      if (this._areaLightLocs[i].right)
-        this.gl.uniform3f(this._areaLightLocs[i].right!, mat[0], mat[1], mat[2]);
-      if (this._areaLightLocs[i].up)
-        this.gl.uniform3f(this._areaLightLocs[i].up!, mat[4], mat[5], mat[6]);
-      if (this._areaLightLocs[i].normal)
-        this.gl.uniform3f(this._areaLightLocs[i].normal!, mat[8], mat[9], mat[10]);
-      if (this._areaLightLocs[i].size)
-        this.gl.uniform2f(this._areaLightLocs[i].size!, al.width / 2.0, al.height / 2.0);
+      if (loc.right) this.gl.uniform3f(loc.right!, mat[0]!, mat[1]!, mat[2]!);
+      if (loc.up) this.gl.uniform3f(loc.up!, mat[4]!, mat[5]!, mat[6]!);
+      if (loc.normal) this.gl.uniform3f(loc.normal!, mat[8]!, mat[9]!, mat[10]!);
+      if (loc.size) this.gl.uniform2f(loc.size!, al.width / 2.0, al.height / 2.0);
     }
 
     const drawNormal = (o: Object3D) => {
@@ -465,15 +470,15 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       // 2. Nur zeichnen, wenn das Objekt Geometrie und Material hat UND keine Skybox ist
       if (o.geometry && o.material && o.material.type !== MaterialType.SKYBOX) {
         const mat = o.material;
-        let m = this.cache.get(o.geometry);
+        let m = this._cache.get(o.geometry);
         if (!m) {
           m = new Mesh(this.gl, o.geometry);
-          this.cache.set(o.geometry, m);
+          this._cache.set(o.geometry, m);
         }
-        m.bind(this.locs.pos, this.locs.norm, this.locs.uv);
+        m.bind(this._locs.pos, this._locs.norm, this._locs.uv);
 
-        if (this.locs.model) this.gl.uniformMatrix4fv(this.locs.model, false, o.worldMatrix.data);
-        if (this.locs.color) this.gl.uniform4fv(this.locs.color, mat.color.toArray());
+        if (this._locs.model) this.gl.uniformMatrix4fv(this._locs.model, false, o.worldMatrix.data);
+        if (this._locs.color) this.gl.uniform4fv(this._locs.color, mat.color.toArray());
 
         let shininess = -1.0,
           specCol = [0, 0, 0, 0],
@@ -506,40 +511,40 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
             this.gl.TEXTURE_2D,
             tMat.sandMap ? this.getWebGLTexture(tMat.sandMap) : this.defaultTexture,
           );
-          if (this.locs.sandMap) this.gl.uniform1i(this.locs.sandMap, 1);
+          if (this._locs.sandMap) this.gl.uniform1i(this._locs.sandMap, 1);
 
           this.gl.activeTexture(this.gl.TEXTURE2);
           this.gl.bindTexture(
             this.gl.TEXTURE_2D,
             tMat.grassMap ? this.getWebGLTexture(tMat.grassMap) : this.defaultTexture,
           );
-          if (this.locs.grassMap) this.gl.uniform1i(this.locs.grassMap, 2);
+          if (this._locs.grassMap) this.gl.uniform1i(this._locs.grassMap, 2);
 
           this.gl.activeTexture(this.gl.TEXTURE3);
           this.gl.bindTexture(
             this.gl.TEXTURE_2D,
             tMat.rockMap ? this.getWebGLTexture(tMat.rockMap) : this.defaultTexture,
           );
-          if (this.locs.rockMap) this.gl.uniform1i(this.locs.rockMap, 3);
+          if (this._locs.rockMap) this.gl.uniform1i(this._locs.rockMap, 3);
 
           this.gl.activeTexture(this.gl.TEXTURE4);
           this.gl.bindTexture(
             this.gl.TEXTURE_2D,
             tMat.snowMap ? this.getWebGLTexture(tMat.snowMap) : this.defaultTexture,
           );
-          if (this.locs.snowMap) this.gl.uniform1i(this.locs.snowMap, 4);
+          if (this._locs.snowMap) this.gl.uniform1i(this._locs.snowMap, 4);
         }
 
         this.gl.activeTexture(this.gl.TEXTURE0);
         this.gl.bindTexture(this.gl.TEXTURE_2D, activeTex);
-        if (this.locs.diffuseMap) this.gl.uniform1i(this.locs.diffuseMap, 0);
+        if (this._locs.diffuseMap) this.gl.uniform1i(this._locs.diffuseMap, 0);
 
-        if (this.locs.texOffset) this.gl.uniform2fv(this.locs.texOffset, tOffset);
-        if (this.locs.texRepeat) this.gl.uniform2fv(this.locs.texRepeat, tRepeat);
-        if (this.locs.shininess) this.gl.uniform1f(this.locs.shininess, shininess);
-        if (this.locs.specColor) this.gl.uniform4fv(this.locs.specColor, specCol);
-        if (this.locs.isTerrain) this.gl.uniform1i(this.locs.isTerrain, isTerrain);
-        if (this.locs.thresholds) this.gl.uniform4fv(this.locs.thresholds, thresholds);
+        if (this._locs.texOffset) this.gl.uniform2fv(this._locs.texOffset, tOffset);
+        if (this._locs.texRepeat) this.gl.uniform2fv(this._locs.texRepeat, tRepeat);
+        if (this._locs.shininess) this.gl.uniform1f(this._locs.shininess, shininess);
+        if (this._locs.specColor) this.gl.uniform4fv(this._locs.specColor, specCol);
+        if (this._locs.isTerrain) this.gl.uniform1i(this._locs.isTerrain, isTerrain);
+        if (this._locs.thresholds) this.gl.uniform4fv(this._locs.thresholds, thresholds);
 
         const drawMode = mat.type === MaterialType.WIREFRAME ? this.gl.LINES : this.gl.TRIANGLES;
         this.gl.drawElements(drawMode, m.count, this.gl.UNSIGNED_INT, 0); // Achtung: UNSIGNED_INT für Terrain-Größe!
