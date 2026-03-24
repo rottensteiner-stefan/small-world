@@ -7,7 +7,6 @@ export * from "./FPSCounter.js";
 export * from "./FrustumCuller.js";
 export * from "./HUD.js";
 export * from "./Input.js";
-export * from "./Mesh.js";
 export * from "./Object3D.js";
 export * from "./Scene.js";
 export * from "./Skybox.js";
