@@ -3,9 +3,20 @@ import { AbstractLight } from "./AbstractLight.js";
 import { Color } from "../colors/Color.js";
 import { LightType } from "../../enums/LightType.js";
 
+/**
+ * Point light that emits light in all directions from a single point.
+ */
 export class PointLight extends AbstractLight {
-  public readonly type = LightType.POINT;
+  /** @inheritdoc */
+  public override readonly type: LightType = LightType.POINT;
 
+  /**
+   * Creates a new PointLight.
+   * @param color The color of the light.
+   * @param intensity The intensity of the light.
+   * @param distance The maximum distance of the light.
+   * @param decay The decay factor of the light.
+   */
   constructor(
     color: Color = Color.WHITE,
     intensity: number = 1.0,
