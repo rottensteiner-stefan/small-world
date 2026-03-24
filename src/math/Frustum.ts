@@ -52,9 +52,7 @@ export class Frustum {
     for (let i = 0; i < 6; i++) {
       const idx: number = i * 4;
       const d: number = Math.sqrt(
-        (p[idx] ?? 0) * (p[idx] ?? 0) +
-          (p[idx + 1] ?? 0) * (p[idx + 1] ?? 0) +
-          (p[idx + 2] ?? 0) * (p[idx + 2] ?? 0),
+        p[idx]! * p[idx]! + p[idx + 1]! * p[idx + 1]! + p[idx + 2]! * p[idx + 2]!,
       );
       if (d > 0) {
         const f: number = 1.0 / d;
@@ -78,8 +76,7 @@ export class Frustum {
 
     for (let i = 0; i < 6; i++) {
       const idx: number = i * 4;
-      const dist: number =
-        (p[idx] ?? 0) * c.x + (p[idx + 1] ?? 0) * c.y + (p[idx + 2] ?? 0) * c.z + (p[idx + 3] ?? 0);
+      const dist: number = p[idx]! * c.x + p[idx + 1]! * c.y + p[idx + 2]! * c.z + p[idx + 3]!;
       if (dist < -r) {
         return false;
       }

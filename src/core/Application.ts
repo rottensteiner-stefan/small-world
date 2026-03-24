@@ -23,9 +23,9 @@ export abstract class Application {
   /** The main camera. */
   public camera: CameraInterface;
   /** The active renderer. */
-  protected _renderer!: RendererInterface;
+  public renderer: RendererInterface;
   /** The canvas element. */
-  protected _canvas!: HTMLCanvasElement;
+  public canvas!: HTMLCanvasElement;
 
   private _lastTime: number = 0;
   private _isRunning: boolean = false;
@@ -57,6 +57,7 @@ export abstract class Application {
     }
 
     this.camera = new Camera(projection);
+    this.renderer = null!; // Initialized in start()
   }
 
   /**
@@ -84,25 +85,25 @@ export abstract class Application {
     }
 
     console.debug("Canvas ID: " + this.config.canvasId);
-    this._canvas = document.getElementById(this.config.canvasId!) as HTMLCanvasElement;
+    this.canvas = document.getElementById(this.config.canvasId!) as HTMLCanvasElement;
     if (this.config.fullscreen) {
-      this._canvas.width = window.innerWidth;
-      this._canvas.height = window.innerHeight;
+      this.canvas.width = window.innerWidth;
+      this.canvas.height = window.innerHeight;
       window.addEventListener("resize", () => {
-        this._canvas.width = window.innerWidth;
-        this._canvas.height = window.innerHeight;
-        this.camera.aspect = this._canvas.width / this._canvas.height;
+        this.canvas.width = window.innerWidth;
+        this.canvas.height = window.innerHeight;
+        this.camera.aspect = this.canvas.width / this.canvas.height;
         this.camera.updateProjectionMatrix();
-        if (this._renderer) {
-          this._renderer.setSize(this._canvas.width, this._canvas.height);
+        if (this.renderer) {
+          this.renderer.setSize(this.canvas.width, this.canvas.height);
         }
       });
     } else if (this.config.width && this.config.height) {
-      this._canvas.width = this.config.width;
-      this._canvas.height = this.config.height;
+      this.canvas.width = this.config.width;
+      this.canvas.height = this.config.height;
     }
 
-    this._renderer = await RendererFactory.create(this.config.renderer!, this._canvas);
+    this.renderer = await RendererFactory.create(this.config.renderer!, this.canvas);
 
     await this.setupScene();
 
@@ -128,7 +129,7 @@ export abstract class Application {
     this.scene.update();
     this.camera.updateViewMatrix();
 
-    this._renderer.render(this.scene, this.camera.viewProjectionMatrix, this.camera.position);
+    this.renderer.render(this.scene, this.camera.viewProjectionMatrix, this.camera.position);
 
     requestAnimationFrame((time: number) => this.loop(time));
   }
