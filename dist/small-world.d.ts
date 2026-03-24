@@ -195,9 +195,9 @@ export declare abstract class Application {
     /** The main camera. */
     camera: CameraInterface;
     /** The active renderer. */
-    protected _renderer: RendererInterface;
+    renderer: RendererInterface;
     /** The canvas element. */
-    protected _canvas: HTMLCanvasElement;
+    canvas: HTMLCanvasElement;
     private _lastTime;
     private _isRunning;
     /**
@@ -1127,31 +1127,15 @@ export declare class Matrix4 {
     transformVector(v: Vector3D): Vector3D;
 }
 
-/**
- * Handles WebGL buffer management for a geometry.
- */
 export declare class Mesh {
-    private _gl;
-    /** The vertex buffer object. */
+    private gl;
     vbo: WebGLBuffer | null;
-    /** The element buffer object (indices). */
     ebo: WebGLBuffer | null;
-    /** The normal buffer object. */
     nbo: WebGLBuffer | null;
-    /** The number of indices. */
+    tbo: WebGLBuffer | null;
     count: number;
-    /**
-     * Creates a new Mesh.
-     * @param _gl The WebGL context.
-     * @param data The geometry data.
-     */
-    constructor(_gl: WebGLRenderingContext | WebGL2RenderingContext, data: GeometryDataInterface);
-    /**
-     * Binds the buffers and sets up vertex attributes.
-     * @param posLoc The position attribute location.
-     * @param normLoc The normal attribute location.
-     */
-    bind(posLoc: number, normLoc?: number): void;
+    constructor(gl: WebGLRenderingContext | WebGL2RenderingContext, data: GeometryDataInterface);
+    bind(posLoc: number, normLoc?: number, uvLoc?: number): void;
 }
 
 /**
@@ -1759,12 +1743,12 @@ export declare class TerrainMaterial extends AbstractMaterial {
  * Built-in terrain height strategies.
  */
 export declare const TerrainStrategies: {
-    readonly CENTERED_AVERAGE: (r: number, g: number, b: number, a: number) => number;
-    readonly BASE_RED: (r: number, g: number, b: number, a: number) => number;
-    readonly BASE_GREEN: (r: number, g: number, b: number, a: number) => number;
-    readonly BASE_BLUE: (r: number, g: number, b: number, a: number) => number;
-    readonly BASE_ALPHA: (r: number, g: number, b: number, a: number) => number;
-    readonly INVERTED_AVERAGE: (r: number, g: number, b: number, a: number) => number;
+    readonly CENTERED_AVERAGE: (r: number, g: number, b: number, _a: number) => number;
+    readonly BASE_RED: (r: number, _g: number, _b: number, _a: number) => number;
+    readonly BASE_GREEN: (_r: number, g: number, _b: number, _a: number) => number;
+    readonly BASE_BLUE: (_r: number, _g: number, b: number, _a: number) => number;
+    readonly BASE_ALPHA: (_r: number, _g: number, _b: number, a: number) => number;
+    readonly INVERTED_AVERAGE: (r: number, g: number, b: number, _a: number) => number;
 };
 
 /**
@@ -2099,16 +2083,16 @@ export declare interface VectorInterface {
 export declare class WebGL1Renderer extends AbstractWebGLRenderer {
     readonly type: "WEB_GL1";
     protected gl: WebGLRenderingContext;
-    private prog;
-    private locs;
-    private skyProg;
-    private skyLocs;
-    private cache;
-    private texCache;
-    private texCubeCache;
-    private pointLightLocs;
-    private spotLightLocs;
-    private areaLightLocs;
+    private _prog;
+    private _locs;
+    private _skyProg;
+    private _skyLocs;
+    private _cache;
+    private _texCache;
+    private _texCubeCache;
+    private _pointLightLocs;
+    private _spotLightLocs;
+    private _areaLightLocs;
     initialize(canvas: HTMLCanvasElement): Promise<void>;
     private getWebGLTexture;
     private getWebGLCubeTexture;
@@ -2155,7 +2139,6 @@ export declare class WebGPURenderer extends AbstractRenderer {
     private _textureViewCache;
     private _texCache;
     private _terrainTexCache;
-    private _texCubeCache;
     private _samplerCache;
     private _depthTexture;
     initialize(canvas: HTMLCanvasElement): Promise<void>;
