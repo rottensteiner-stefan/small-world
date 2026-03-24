@@ -1,7 +1,15 @@
 /// src/geometry/Grid.ts
 import { AbstractGeometry } from "./AbstractGeometry.js";
 
+/**
+ * A grid geometry.
+ */
 export class Grid extends AbstractGeometry {
+  /**
+   * Creates a new Grid geometry.
+   * @param size The total size of the grid.
+   * @param divisions The number of divisions.
+   */
   constructor(
     public size: number = 20,
     public divisions: number = 20,
@@ -9,17 +17,21 @@ export class Grid extends AbstractGeometry {
     super();
     this.generateGeometryData();
   }
-  protected generateGeometryData(): void {
-    const v: number[] = [],
-      uv: number[] = [],
-      i: number[] = [];
-    const step = this.size / this.divisions;
-    const half = this.size / 2;
-    let index = 0;
+
+  /**
+   * @inheritdoc
+   */
+  protected override generateGeometryData(): void {
+    const v: number[] = [];
+    const uv: number[] = [];
+    const i: number[] = [];
+    const step: number = this.size / this.divisions;
+    const half: number = this.size / 2;
+    let index: number = 0;
 
     for (let j = 0; j <= this.divisions; j++) {
-      const pos = j * step - half;
-      const ratio = j / this.divisions;
+      const pos: number = j * step - half;
+      const ratio: number = j / this.divisions;
 
       v.push(pos, 0, -half, pos, 0, half);
       uv.push(ratio, 0, ratio, 1);
@@ -32,8 +44,8 @@ export class Grid extends AbstractGeometry {
       index += 2;
     }
 
-    this.vertices = new Float32Array(v);
-    this.uvs = new Float32Array(uv);
-    this.indices = new Uint16Array(i);
+    this._vertices = new Float32Array(v);
+    this._uvs = new Float32Array(uv);
+    this._indices = new Uint16Array(i);
   }
 }

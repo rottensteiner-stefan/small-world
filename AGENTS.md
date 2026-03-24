@@ -19,7 +19,7 @@ This document outlines the commands, coding standards, and architectural guideli
   - **Return Types:** Specify return types for all functions and methods, even `void`.
 - **`any` is Forbidden:** Avoid `any`. Use `unknown` for data of unknown type and perform safe type checks.
 - **`const` over `let`:** Use `const` by default. Use `let` only for variables that must be reassigned.
-- **File Headers:** Every `.ts` file must start with a comment containing its relative path (e.g., `/// src/core/Scene.ts`).
+- **File Headers:** Every `.ts` file must start with a comment, followed by an empty line, containing its relative path (e.g., `/// src/core/Scene.ts`).
 
 ### 2. Naming Conventions
 
