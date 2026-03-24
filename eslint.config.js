@@ -24,14 +24,43 @@ export default [
       },
     },
     rules: {
-      // Da wir in der Engine aktuell noch oft "any" nutzen (z.B. beim Canvas-Fallback),
-      // setzen wir diese Regel vorerst nur auf eine Warnung, statt einen Fehler zu werfen.
-      "@typescript-eslint/no-explicit-any": "warn",
+      // 1) Strikte Typisierung und Sichtbarkeit
+      "@typescript-eslint/explicit-member-accessibility": [
+        "error",
+        { accessibility: "explicit", overrides: { constructors: "no-public" } },
+      ],
+      "@typescript-eslint/explicit-function-return-type": [
+        "error",
+        { allowExpressions: false, allowHigherOrderFunctions: true },
+      ],
 
-      // Warnung, wenn Variablen deklariert, aber nie genutzt werden
-      "@typescript-eslint/no-unused-vars": "warn",
+      // 2) Verbote & Best Practices
+      "@typescript-eslint/no-explicit-any": "error",
+      "prefer-const": "error",
 
-      // Erlaubt keine relativen Imports ohne Dateiendung. NPM-Pakete werden ignoriert.
+      // 3) Naming Conventions gemäß AGENTS.md
+      "@typescript-eslint/naming-convention": [
+        "error",
+        // Klassen, Interfaces, Enums, Type Aliases -> PascalCase
+        { selector: ["class", "interface", "enum", "typeAlias"], format: ["PascalCase"] },
+        // Interfaces dürfen NICHT mit I beginnen
+        { selector: "interface", custom: { regex: "^(?!I[A-Z])", match: true } },
+        // Private Member mit führendem Unterstrich
+        {
+          selector: ["classProperty", "method"],
+          modifiers: ["private"],
+          leadingUnderscore: "require",
+          format: null,
+        },
+      ],
+
+      // 4) Hygiene
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+      ],
+
+      // 5) ESM-Imports benötigen .js-Endung (Packages sind ausgenommen)
       "import/extensions": ["error", "ignorePackages"],
     },
   },

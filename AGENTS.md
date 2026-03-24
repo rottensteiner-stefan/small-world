@@ -11,6 +11,8 @@ This document outlines the commands, coding standards, and architectural guideli
 
 ## TypeScript Coding Standards
 
+> ESLint Sync: Diese Regeln sind mit der Linter-Konfiguration (eslint.config.js) synchronisiert. Für Punkte, die zusätzliche Plugins erfordern, ist ein Hinweis beigefügt.
+
 ### 1. General & Strictness
 
 - **Strict Mode:** The `tsconfig.json` must be configured with `strict: true` and related strictness flags.
