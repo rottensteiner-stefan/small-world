@@ -1,5 +1,5 @@
 /// src/renderers/Mesh.ts
-import { IGeometryData } from "../interfaces/index.js";
+import { GeometryDataInterface } from "../interfaces/index.js";
 
 export class Mesh {
   public vbo: WebGLBuffer | null;
@@ -10,7 +10,7 @@ export class Mesh {
 
   constructor(
     private gl: WebGLRenderingContext | WebGL2RenderingContext,
-    data: IGeometryData,
+    data: GeometryDataInterface,
   ) {
     this.vbo = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, this.vbo);
