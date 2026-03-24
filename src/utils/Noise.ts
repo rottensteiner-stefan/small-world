@@ -1,13 +1,13 @@
 /// src/utils/Noise.ts
-import { createNoise2D, createNoise3D, Noise2D, Noise3D } from "simplex-noise";
+import { createNoise2D, createNoise3D } from "simplex-noise";
 
 /**
  * A facade for the 'simplex-noise' library to provide a consistent API.
  * Provides static methods for Perlin and Simplex noise.
  */
 export class Noise {
-  private static _noise2D: Noise2D;
-  private static _noise3D: Noise3D;
+  private static _noise2D: (x: number, y: number) => number;
+  private static _noise3D: (x: number, y: number, z: number) => number;
   private static _initialized: boolean = false;
 
   private static _init(): void {

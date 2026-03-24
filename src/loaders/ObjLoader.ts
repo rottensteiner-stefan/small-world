@@ -68,39 +68,39 @@ export class ObjLoader extends AbstractLoader<Object3D> {
 
       if (type === "mtllib") {
         const mtlLoader = new MtlLoader();
-        materials = await mtlLoader.load(folderPath + parts[1]);
+        materials = await mtlLoader.load(folderPath + parts[1]!);
       } else if (type === "usemtl") {
         // Wechsle die aktive Material-Gruppe für alle folgenden Faces
-        const matName = parts[1];
+        const matName = parts[1]!;
         if (!groups.has(matName)) {
           groups.set(matName, new MaterialGroup(matName));
         }
         currentGroup = groups.get(matName)!;
       } else if (type === "v") {
-        tempVertices.push(parseFloat(parts[1]), parseFloat(parts[2]), parseFloat(parts[3]));
+        tempVertices.push(parseFloat(parts[1]!), parseFloat(parts[2]!), parseFloat(parts[3]!));
       } else if (type === "vt") {
-        tempUVs.push(parseFloat(parts[1]), parseFloat(parts[2]));
+        tempUVs.push(parseFloat(parts[1]!), parseFloat(parts[2]!));
       } else if (type === "vn") {
-        tempNormals.push(parseFloat(parts[1]), parseFloat(parts[2]), parseFloat(parts[3]));
+        tempNormals.push(parseFloat(parts[1]!), parseFloat(parts[2]!), parseFloat(parts[3]!));
       } else if (type === "f") {
         const vertices = parts.slice(1);
         for (let i = 1; i < vertices.length - 1; i++) {
           const v1 = this.parseFaceVertex(
-            vertices[0],
+            vertices[0]!,
             tempVertices,
             tempUVs,
             tempNormals,
             currentGroup,
           );
           const v2 = this.parseFaceVertex(
-            vertices[i],
+            vertices[i]!,
             tempVertices,
             tempUVs,
             tempNormals,
             currentGroup,
           );
           const v3 = this.parseFaceVertex(
-            vertices[i + 1],
+            vertices[i + 1]!,
             tempVertices,
             tempUVs,
             tempNormals,
@@ -143,19 +143,19 @@ export class ObjLoader extends AbstractLoader<Object3D> {
     if (group.vertexCache.has(faceStr)) return group.vertexCache.get(faceStr)!;
 
     const parts = faceStr.split("/");
-    const vIdx = (parseInt(parts[0]) - 1) * 3;
-    group.outVertices.push(tempV[vIdx], tempV[vIdx + 1], tempV[vIdx + 2]);
+    const vIdx = (parseInt(parts[0]!) - 1) * 3;
+    group.outVertices.push(tempV[vIdx]!, tempV[vIdx + 1]!, tempV[vIdx + 2]!);
 
     if (parts.length > 1 && parts[1] !== "") {
-      const vtIdx = (parseInt(parts[1]) - 1) * 2;
-      group.outUVs.push(tempVT[vtIdx], tempVT[vtIdx + 1]);
+      const vtIdx = (parseInt(parts[1]!) - 1) * 2;
+      group.outUVs.push(tempVT[vtIdx]!, tempVT[vtIdx + 1]!);
     } else {
       group.outUVs.push(0, 0);
     }
 
     if (parts.length > 2) {
-      const vnIdx = (parseInt(parts[2]) - 1) * 3;
-      group.outNormals.push(tempVN[vnIdx], tempVN[vnIdx + 1], tempVN[vnIdx + 2]);
+      const vnIdx = (parseInt(parts[2]!) - 1) * 3;
+      group.outNormals.push(tempVN[vnIdx]!, tempVN[vnIdx + 1]!, tempVN[vnIdx + 2]!);
     }
 
     const newIndex = group.indexCounter++;
