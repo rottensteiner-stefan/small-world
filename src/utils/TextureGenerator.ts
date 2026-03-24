@@ -1,8 +1,17 @@
 /// src/utils/TextureGenerator.ts
 
+/**
+ * Utility class for procedural texture generation.
+ */
 export class TextureGenerator {
   /**
-   * Generiert eine einfache, rauschende Textur für unser Terrain.
+   * Generates a simple noisy texture for terrain biomes.
+   * @param r Base red component.
+   * @param g Base green component.
+   * @param b Base blue component.
+   * @param noiseSpread How much noise to add.
+   * @param size Texture size.
+   * @returns A promise resolving to an ImageBitmap.
    */
   public static async generateBiome(
     r: number,
@@ -11,37 +20,39 @@ export class TextureGenerator {
     noiseSpread: number,
     size: number = 256,
   ): Promise<ImageBitmap> {
-    const canvas = document.createElement("canvas");
+    const canvas: HTMLCanvasElement = document.createElement("canvas");
     canvas.width = size;
     canvas.height = size;
-    const ctx = canvas.getContext("2d")!;
-    const imgData = ctx.createImageData(size, size);
+    const ctx: CanvasRenderingContext2D = canvas.getContext("2d")!;
+    const imgData: ImageData = ctx.createImageData(size, size);
 
-    for (let i = 0; i < imgData.data.length; i += 4) {
-      // Ein simples "Weißes Rauschen" (White Noise) für die Struktur
-      const noise = (Math.random() - 0.5) * noiseSpread;
+    for (let i: number = 0; i < imgData.data.length; i += 4) {
+      const noise: number = (Math.random() - 0.5) * noiseSpread;
 
-      imgData.data[i] = Math.min(255, Math.max(0, r + noise)); // Rot
-      imgData.data[i + 1] = Math.min(255, Math.max(0, g + noise)); // Grün
-      imgData.data[i + 2] = Math.min(255, Math.max(0, b + noise)); // Blau
-      imgData.data[i + 3] = 255; // Alpha
+      imgData.data[i] = Math.min(255, Math.max(0, r + noise));
+      imgData.data[i + 1] = Math.min(255, Math.max(0, g + noise));
+      imgData.data[i + 2] = Math.min(255, Math.max(0, b + noise));
+      imgData.data[i + 3] = 255;
     }
 
     ctx.putImageData(imgData, 0, 0);
     return await createImageBitmap(canvas);
   }
 
-  // Vorgefertigte, farblich abgestimmte Biome
-  public static async createSand() {
+  /** Creates a sand texture. */
+  public static async createSand(): Promise<ImageBitmap> {
     return this.generateBiome(214, 198, 143, 30);
   }
-  public static async createGrass() {
+  /** Creates a grass texture. */
+  public static async createGrass(): Promise<ImageBitmap> {
     return this.generateBiome(86, 125, 70, 40);
   }
-  public static async createRock() {
+  /** Creates a rock texture. */
+  public static async createRock(): Promise<ImageBitmap> {
     return this.generateBiome(110, 110, 115, 60);
   }
-  public static async createSnow() {
+  /** Creates a snow texture. */
+  public static async createSnow(): Promise<ImageBitmap> {
     return this.generateBiome(240, 245, 255, 15);
   }
 }

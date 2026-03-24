@@ -2,18 +2,19 @@
 import { createNoise2D, createNoise3D, Noise2D, Noise3D } from "simplex-noise";
 
 /**
- * Eine Fassade für die 'simplex-noise' Library, um eine konsistente API zu bieten.
- * Stellt statische Methoden für Perlin- und Simplex-Noise bereit.
+ * A facade for the 'simplex-noise' library to provide a consistent API.
+ * Provides static methods for Perlin and Simplex noise.
  */
 export class Noise {
   private static _noise2D: Noise2D;
   private static _noise3D: Noise3D;
-  private static _initialized = false;
+  private static _initialized: boolean = false;
 
-  private static init() {
-    if (this._initialized) return;
+  private static _init(): void {
+    if (this._initialized) {
+      return;
+    }
 
-    // Erstelle Standard-Instanzen ohne Seed
     this._noise2D = createNoise2D();
     this._noise3D = createNoise3D();
     this._initialized = true;
@@ -21,29 +22,35 @@ export class Noise {
 
   /**
    * 3D Simplex Noise.
-   * @param x X-Koordinate
-   * @param y Y-Koordinate
-   * @param z Z-Koordinate
-   * @returns Wert zwischen -1.0 und 1.0
+   * @param x X coordinate.
+   * @param y Y coordinate.
+   * @param z Z coordinate.
+   * @returns Value between -1.0 and 1.0.
    */
   public static perlin3(x: number, y: number, z: number): number {
-    this.init();
+    this._init();
     return this._noise3D(x, y, z);
   }
 
   /**
    * 2D Simplex Noise.
+   * @param x X coordinate.
+   * @param y Y coordinate.
+   * @returns Value between -1.0 and 1.0.
    */
   public static perlin2(x: number, y: number): number {
-    this.init();
+    this._init();
     return this._noise2D(x, y);
   }
 
   /**
    * 2D Simplex Noise.
+   * @param x X coordinate.
+   * @param y Y coordinate.
+   * @returns Value between -1.0 and 1.0.
    */
   public static simplex2(x: number, y: number): number {
-    this.init();
+    this._init();
     return this._noise2D(x, y);
   }
 }
