@@ -1,5 +1,5 @@
 /// src/renderers/WebGPURenderer.ts
-import { AreaLight, CubeTexture, PhongMaterial, TerrainMaterial, Texture } from "../core/index.js";
+import { AreaLight, PhongMaterial, TerrainMaterial, Texture } from "../core/index.js";
 import { GeometryDataInterface } from "../interfaces/index.js";
 import { Object3D } from "../core/Object3D.js";
 import { Scene } from "../core/Scene.js";
@@ -41,6 +41,7 @@ export class WebGPURenderer extends AbstractRenderer {
   private _skyTexBGL!: GPUBindGroupLayout;
 
   private _defaultTexBindGroup!: GPUBindGroup;
+  private _defaultCubeTexBindGroup!: GPUBindGroup;
   private _sampler!: GPUSampler;
   private _whiteTexView!: GPUTextureView;
 
@@ -543,6 +544,7 @@ export class WebGPURenderer extends AbstractRenderer {
 
         if (mat.type === MaterialType.SKYBOX) {
           rp.setPipeline(this._pipelineSkybox);
+          rp.setBindGroup(1, this._defaultCubeTexBindGroup);
         } else {
           rp.setPipeline(
             mat.type === MaterialType.WIREFRAME ? this._pipelineLines : this._pipelineTriangles,
