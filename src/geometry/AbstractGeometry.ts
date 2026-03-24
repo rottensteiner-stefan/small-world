@@ -1,11 +1,10 @@
 /// src/geometry/AbstractGeometry.ts
-import { IGeometry } from "../interfaces/IGeometry.js";
-import { IGeometryData } from "../interfaces/IGeometryData.js";
+import { Geometry } from "../interfaces/Geometry.js";
+import { GeometryData } from "../interfaces/GeometryData.js";
 import { Matrix4 } from "../math/Matrix4.js";
 import { Vector3D } from "../math/Vector3D.js";
 
-// @ts-ignore
-export abstract class AbstractGeometry implements IGeometry {
+export abstract class AbstractGeometry implements Geometry {
   protected vertices: Float32Array = new Float32Array();
   protected indices: Uint16Array | Uint32Array = new Uint16Array();
   protected normals: Float32Array = new Float32Array();
@@ -13,7 +12,7 @@ export abstract class AbstractGeometry implements IGeometry {
 
   protected abstract generateGeometryData(): void;
 
-  public getGeometryData(): IGeometryData {
+  public getGeometryData(): GeometryData {
     if (this.normals.length === 0 && this.vertices.length > 0) {
       this.computeNormals();
     }

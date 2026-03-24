@@ -1,6 +1,7 @@
 # Changelog
 
 ## [0.10.16] - 2026-03-19
+
 - AI-based rework II; Code style
 
 ## [0.10.15] - 2026-03-18

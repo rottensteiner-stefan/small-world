@@ -1,16 +1,15 @@
 /// src/loaders/AbstractLoader.ts
-
-import { EventDispatcher, EventHandler } from "../core/events/EventDispatcher.js";
-import { IEventDispatcher } from "../interfaces/IEventDispatcher.js";
-import { EventType } from "../enums/EventType.js";
+import { EventDispatcherImpl, EventHandler } from "../core/events/index.js";
+import { EventDispatcher } from "../interfaces/index.js";
+import { EventType } from "../enums/index.js";
 
 /**
  * Abstrakte Basisklasse für alle Loader.
  * T ist der Typ, den der Loader am Ende zurückgibt (z.B. string, ImageBitmap, ModelGeometry).
  */
-export abstract class AbstractLoader<T> implements IEventDispatcher {
+export abstract class AbstractLoader<T> implements EventDispatcher {
   public basePath: string = "";
-  private _dispatcher: EventDispatcher = new EventDispatcher();
+  private _dispatcher: EventDispatcherImpl = new EventDispatcherImpl();
 
   public setBasePath(path: string): this {
     this.basePath = path;

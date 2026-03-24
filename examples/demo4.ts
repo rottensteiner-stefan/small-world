@@ -3,14 +3,13 @@ import {
   CameraStrategyType,
   Color,
   DirectionalLight,
-  HeightmapGenerator,
   Input,
   Keys,
   Object3D,
   ObjLoader,
   PerspectiveProjection,
   ProjectionType,
-  Terrain,
+  TerrainManager,
   TerrainMaterial,
   Texture,
   TextureGenerator,
@@ -23,6 +22,7 @@ const CAR_SPEED = 10.0; // Geschwindigkeit des Autos
 export class Demo4 extends AbstractDemo {
   private targetPos = new Vector3D(0, 0, 0);
   private _car: Object3D | null = null; // Das Auto-Objekt
+  private _terrainManager: TerrainManager | null = null;
 
   protected async setupScene(): Promise<void> {
     Input.init();
@@ -50,35 +50,29 @@ export class Demo4 extends AbstractDemo {
     this.scene.add(sun);
 
     // ---------------------------------------------------------
-    // TERRAIN (Der Sweet-Spot)
+    // TERRAIN MANAGER
     // ---------------------------------------------------------
-    console.log("[Demo 4] Generiere Terrain...");
+    console.log("[Demo 4] Initialisiere Terrain Manager...");
 
-    // 0.55 für eine organische, aber nicht zu gezackte Landschaft
-    const heightmap = await HeightmapGenerator.generateDiamondSquare(7, 0.55);
-
-    // 4-fache Fläche (80x80) und eine moderate Höhe von 6.0
-    // (Schwankt zwischen Y = -3.0 und Y = +3.0)
-    const terrainGeo = new Terrain(heightmap, 80, 80, 6.0, 128, 128);
-
+    // Terrain-Material vorbereiten
     const terrainMat = new TerrainMaterial();
     terrainMat.sandMap = Texture.fromImage(await TextureGenerator.createSand());
     terrainMat.grassMap = Texture.fromImage(await TextureGenerator.createGrass());
     terrainMat.rockMap = Texture.fromImage(await TextureGenerator.createRock());
     terrainMat.snowMap = Texture.fromImage(await TextureGenerator.createSnow());
 
-    terrainMat.texRepeat = [25, 25];
+    // Konfiguration für Infinite Terrain
+    this._terrainManager = new TerrainManager(this.scene, {
+      chunkSize: 80,
+      meshSegments: 64,
+      heightmapDetail: 7, // 128x128
+      heightmapRoughness: 0.55,
+      maxHeight: 6.0,
+      gridSize: 3, // 3x3 Chunks aktiv
+      material: terrainMat,
+    });
 
-    // Biome an die Höhe anpassen
-    terrainMat.thresholds = [-2.0, 0.0, 2.0, 1.0];
-
-    const terrainObj = new Object3D("Boden");
-    terrainObj.geometry = terrainGeo.getGeometryData();
-    terrainObj.material = terrainMat;
-
-    // Leicht absenken, damit das Auto schön mittig auf der Wiese steht
-    terrainObj.position.set(0, -1.0, 0);
-    this.scene.add(terrainObj);
+    await this._terrainManager.init();
 
     // ---------------------------------------------------------
     // OBJ LADEN
@@ -90,7 +84,8 @@ export class Demo4 extends AbstractDemo {
       const model = await loader.load("vehicle-racer.obj");
       const carScale = 5;
       model.scale.set(carScale, carScale, carScale);
-      model.position.set(0, 0.0, 0);
+      // Position leicht über 0, da das Terrain um 0 schwankt
+      model.position.set(0, 0.5, 0);
 
       this.scene.add(model);
       this._car = model; // Auto-Objekt speichern
@@ -124,16 +119,29 @@ export class Demo4 extends AbstractDemo {
         // Position des Autos aktualisieren (Forward wird hier in-place skaliert, was okay ist)
         this._car.position.add(forward.scale(CAR_SPEED * deltaTime));
       }
+
+      // Terrain-Update basierend auf Auto-Position
+      if (this._terrainManager) {
+        this._terrainManager.update(this._car.position);
+      }
+
+      // Kamera folgt dem Auto
+      // Einfache Verfolgung: Wir setzen das Kamera-Target auf das Auto
+      this.targetPos.copyFrom(this._car.position);
+      // Optional: Kamera-Position sanft nachziehen, aber das macht der CameraStrategyType.SMOOTH schon relativ gut,
+      // wenn wir targetPos aktualisieren.
     }
   }
 
-  protected getDebugInfo(): Record<string, string | number> {
+  protected override getDebugInfo(): Record<string, string | number> {
     const baseInfo = super.getDebugInfo();
     return {
       ...baseInfo,
-      Demo: "04 - Terrain & Auto",
+      Demo: "04 - Infinite Terrain & Auto",
       "Objekte in Szene": this.scene.objects.length,
-      "Auto Position": this._car ? this._car.position.toString() : "N/A",
+      "Auto Position": this._car
+        ? `(${this._car.position.x.toFixed(1)}, ${this._car.position.y.toFixed(1)}, ${this._car.position.z.toFixed(1)})`
+        : "N/A",
     };
   }
 }

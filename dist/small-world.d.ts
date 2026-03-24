@@ -297,12 +297,32 @@ export declare class Grid extends AbstractGeometry {
 
 export declare class HeightmapGenerator {
     /**
-     * Generiert eine Heightmap mit dem Diamond-Square-Algorithmus.
-     * @param detail Bestimmt die Größe (Größe = 2^detail + 1). z.B. detail 8 = 257x257 Pixel.
-     * @param roughness Wie zerklüftet ist das Terrain? (0.0 = flach, 1.0 = extremes Chaos, ~0.6 ist gut für Hügel)
-     * @returns Ein ImageBitmap, das direkt in die Terrain-Geometrie gepumpt werden kann.
+     * Generiert eine Heightmap mit dem Diamond-Square-Algorithmus als ImageBitmap.
+     * (Für Kompatibilität mit bestehenden Demos)
      */
     static generateDiamondSquare(detail?: number, roughness?: number): Promise<ImageBitmap>;
+    /**
+     * Generiert eine Heightmap als Float32Array mit Diamond-Square.
+     */
+    static generateDiamondSquareFloat(detail?: number, roughness?: number, seed?: string): Promise<Float32Array>;
+    /**
+     * Generiert eine Heightmap mit Perlin Noise.
+     * Perfekt für Infinite Terrain, da nahtlos.
+     * @param detail Größe = 2^detail + 1
+     * @param scale Skalierung des Noise (kleiner = mehr Zoom)
+     * @param offsetX Verschiebung in X (für Chunks)
+     * @param offsetY Verschiebung in Y (für Chunks)
+     * @param octaves Anzahl der Noise-Schichten (mehr = detaillierter)
+     * @param persistence Wie stark jede Oktave beiträgt (0-1)
+     */
+    static generatePerlinFloat(detail?: number, scale?: number, offsetX?: number, offsetY?: number, octaves?: number, persistence?: number): Promise<Float32Array>;
+    /**
+     * Generiert eine Heightmap mit Simplex Noise.
+     * Oft schneller und visuell ansprechender als Perlin.
+     */
+    static generateSimplexFloat(detail?: number, scale?: number, offsetX?: number, offsetY?: number, octaves?: number, persistence?: number): Promise<Float32Array>;
+    private static cyrb128;
+    private static mulberry32;
 }
 
 export declare class HUD {
@@ -554,6 +574,33 @@ export declare class MtlLoader extends AbstractLoader<Map<string, PhongMaterial>
     private parse;
 }
 
+/**
+ * Eine Fassade für die 'simplex-noise' Library, um eine konsistente API zu bieten.
+ * Stellt statische Methoden für Perlin- und Simplex-Noise bereit.
+ */
+export declare class Noise {
+    private static _noise2D;
+    private static _noise3D;
+    private static _initialized;
+    private static init;
+    /**
+     * 3D Simplex Noise.
+     * @param x X-Koordinate
+     * @param y Y-Koordinate
+     * @param z Z-Koordinate
+     * @returns Wert zwischen -1.0 und 1.0
+     */
+    static perlin3(x: number, y: number, z: number): number;
+    /**
+     * 2D Simplex Noise.
+     */
+    static perlin2(x: number, y: number): number;
+    /**
+     * 2D Simplex Noise.
+     */
+    static simplex2(x: number, y: number): number;
+}
+
 export declare class Object3D {
     readonly uuid: string;
     name: string;
@@ -723,27 +770,67 @@ export declare class SpotLight extends AbstractLight {
 }
 
 export declare class Terrain extends AbstractGeometry {
-    image: HTMLImageElement | ImageBitmap;
+    heightData: Float32Array;
+    heightmapResolution: number;
     width: number;
     depth: number;
     maxHeight: number;
-    widthSegments: number;
-    depthSegments: number;
-    strategy: TerrainHeightStrategy;
+    meshWidthSegments: number;
+    meshDepthSegments: number;
     /**
-     * @param image Das geladene Bild (Heightmap)
-     * @param width Breite des Terrains in Weltkoordinaten
-     * @param depth Tiefe des Terrains in Weltkoordinaten
-     * @param maxHeight Wie hoch ist der höchste Berg (weißester Pixel)?
-     * @param widthSegments Anzahl der Unterteilungen auf der X-Achse (Auflösung)
-     * @param depthSegments Anzahl der Unterteilungen auf der Z-Achse (Auflösung)
-     * @param strategy Funktion zur Höhenberechnung (Standard: CENTERED_AVERAGE)
+     * Protected Konstruktor. Bitte verwende Terrain.fromHeightData() oder Terrain.fromImage().
      */
-    constructor(image: HTMLImageElement | ImageBitmap, width?: number, depth?: number, maxHeight?: number, widthSegments?: number, depthSegments?: number, strategy?: TerrainHeightStrategy);
+    protected constructor(heightData: Float32Array, heightmapResolution: number, width: number, depth: number, maxHeight: number, meshWidthSegments: number, meshDepthSegments: number);
+    /**
+     * Erstellt ein Terrain aus rohen Höhendaten (Float32Array).
+     * Die Werte im Array sollten idealerweise zwischen 0.0 und 1.0 liegen.
+     */
+    static fromHeightData(heightData: Float32Array, heightmapResolution: number, width?: number, depth?: number, maxHeight?: number, meshWidthSegments?: number, meshDepthSegments?: number): Terrain;
+    /**
+     * Erstellt ein Terrain aus einem Bild (ImageBitmap oder HTMLImageElement).
+     * Konvertiert das Bild in ein Float32Array basierend auf der angegebenen Strategie.
+     */
+    static fromImage(image: HTMLImageElement | ImageBitmap, width?: number, depth?: number, maxHeight?: number, meshWidthSegments?: number, meshDepthSegments?: number, strategy?: TerrainHeightStrategy): Terrain;
     protected generateGeometryData(): void;
 }
 
-export declare type TerrainHeightStrategy = (r: number, g: number, b: number, a: number, maxHeight: number) => number;
+declare type TerrainAlgorithm = 'DiamondSquare' | 'Perlin' | 'Simplex';
+
+export declare type TerrainHeightStrategy = (r: number, g: number, b: number, a: number) => number;
+
+export declare class TerrainManager {
+    private _scene;
+    private _chunkSize;
+    private _meshSegments;
+    private _heightmapDetail;
+    private _heightmapRoughness;
+    private _maxHeight;
+    private _gridSize;
+    private _halfGrid;
+    private _algorithm;
+    private _chunks;
+    private _currentGridX;
+    private _currentGridZ;
+    private _terrainMaterial;
+    constructor(scene: Scene, config?: TerrainManagerConfig);
+    init(): Promise<void>;
+    update(focusPoint: Vector3D): Promise<void>;
+    private _rebuildGrid;
+    private _generateChunk;
+    private _generateChunkObject;
+    private _getChunkKey;
+}
+
+declare interface TerrainManagerConfig {
+    chunkSize?: number;
+    meshSegments?: number;
+    heightmapDetail?: number;
+    heightmapRoughness?: number;
+    maxHeight?: number;
+    gridSize?: number;
+    material?: TerrainMaterial;
+    algorithm?: TerrainAlgorithm;
+}
 
 export declare class TerrainMaterial extends AbstractMaterial {
     readonly type: "TerrainMaterial";
@@ -757,12 +844,12 @@ export declare class TerrainMaterial extends AbstractMaterial {
 }
 
 export declare const TerrainStrategies: {
-    readonly CENTERED_AVERAGE: (r: number, g: number, b: number, a: number, max: number) => number;
-    readonly BASE_RED: (r: number, g: number, b: number, a: number, max: number) => number;
-    readonly BASE_GREEN: (r: number, g: number, b: number, a: number, max: number) => number;
-    readonly BASE_BLUE: (r: number, g: number, b: number, a: number, max: number) => number;
-    readonly BASE_ALPHA: (r: number, g: number, b: number, a: number, max: number) => number;
-    readonly INVERTED_AVERAGE: (r: number, g: number, b: number, a: number, max: number) => number;
+    readonly CENTERED_AVERAGE: (r: number, g: number, b: number, a: number) => number;
+    readonly BASE_RED: (r: number, g: number, b: number, a: number) => number;
+    readonly BASE_GREEN: (r: number, g: number, b: number, a: number) => number;
+    readonly BASE_BLUE: (r: number, g: number, b: number, a: number) => number;
+    readonly BASE_ALPHA: (r: number, g: number, b: number, a: number) => number;
+    readonly INVERTED_AVERAGE: (r: number, g: number, b: number, a: number) => number;
 };
 
 export declare class TextLoader extends AbstractLoader<string> {

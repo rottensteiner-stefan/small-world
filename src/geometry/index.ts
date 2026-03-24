@@ -10,5 +10,6 @@ export * from "./Plane.js";
 export * from "./Pyramid.js";
 export * from "./Sphere.js";
 export * from "./Terrain.js";
+export * from "./TerrainManager.js";
 export * from "./Torus.js";
 export * from "./Triangle.js";
