@@ -23,7 +23,7 @@ export abstract class AbstractWebGLRenderer extends AbstractRenderer {
     this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
   }
 
-  public setClearColor(color: Color): void {
+  public override setClearColor(color: Color): void {
     super.setClearColor(color);
     this.gl.clearColor(color.r, color.g, color.b, color.a);
   }
