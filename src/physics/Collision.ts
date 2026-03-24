@@ -1,11 +1,11 @@
 /// src/physics/Collision.ts
 import { BoundingBox, BoundingSphere } from "./index.js";
-import { IBoundingVolume } from "../interfaces/index.js";
+import { BoundingVolume } from "../interfaces/index.js";
 import { Vector3D } from "../math/index.js";
 import { BoundingType } from "../enums/index.js";
 
 export class Collision {
-  public static test(a: IBoundingVolume, b: IBoundingVolume): boolean {
+  public static test(a: BoundingVolume, b: BoundingVolume): boolean {
     const distSq = a.center.distanceToSq(b.center);
     const sumRad = a.getBroadRadius() + b.getBroadRadius();
     if (distSq > sumRad * sumRad) return false;

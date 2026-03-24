@@ -8,7 +8,7 @@ import {
   TerrainMaterial,
   Texture,
 } from "../core/index.js";
-import { IGeometryData } from "../interfaces/index.js";
+import { GeometryDataInterface } from "../interfaces/index.js";
 import { MaterialType, RendererType } from "../enums/index.js";
 import { Mesh } from "./Mesh.js";
 import { Object3D } from "../core/Object3D.js";
@@ -44,32 +44,32 @@ interface ShaderLocs {
 }
 
 export class WebGL2Renderer extends AbstractWebGLRenderer {
-  public readonly type = RendererType.WEB_GL2;
+  public override readonly type = RendererType.WEB_GL2;
   declare protected gl: WebGL2RenderingContext;
 
-  private prog!: WebGLProgram;
-  private locs!: ShaderLocs;
-  private skyProg!: WebGLProgram;
-  private skyLocs!: {
+  private _prog!: WebGLProgram;
+  private _locs!: ShaderLocs;
+  private _skyProg!: WebGLProgram;
+  private _skyLocs!: {
     pos: number;
     vp: WebGLUniformLocation | null;
     model: WebGLUniformLocation | null;
     skybox: WebGLUniformLocation | null;
   };
 
-  private cache = new Map<IGeometryData, Mesh>();
-  private texCache = new Map<Texture, WebGLTexture>();
-  private texCubeCache = new Map<CubeTexture, WebGLTexture>();
+  private _cache = new Map<GeometryDataInterface, Mesh>();
+  private _texCache = new Map<Texture, WebGLTexture>();
+  private _texCubeCache = new Map<CubeTexture, WebGLTexture>();
 
-  private pointLightLocs: { pos: WebGLUniformLocation | null; col: WebGLUniformLocation | null }[] =
+  private _pointLightLocs: { pos: WebGLUniformLocation | null; col: WebGLUniformLocation | null }[] =
     [];
-  private spotLightLocs: {
+  private _spotLightLocs: {
     col: WebGLUniformLocation | null;
     dir: WebGLUniformLocation | null;
     params: WebGLUniformLocation | null;
     pos: WebGLUniformLocation | null;
   }[] = [];
-  private areaLightLocs: {
+  private _areaLightLocs: {
     col: WebGLUniformLocation | null;
     normal: WebGLUniformLocation | null;
     pos: WebGLUniformLocation | null;
@@ -78,7 +78,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     up: WebGLUniformLocation | null;
   }[] = [];
 
-  public async initialize(canvas: HTMLCanvasElement) {
+  public async initialize(canvas: HTMLCanvasElement): Promise<void> {
     this.gl = canvas.getContext("webgl2", { antialias: true })!;
     this.initDefaultTextures();
 

@@ -1,7 +1,7 @@
-/// src/interfaces/IEngineConfig.ts
+/// src/interfaces/EngineConfigInterface.ts
 import { ProjectionType, RendererType } from "../enums/index.js";
 
-export interface IEngineConfig {
+export interface EngineConfigInterface {
   canvasId?: string;
   fullscreen?: boolean;
   height?: number;

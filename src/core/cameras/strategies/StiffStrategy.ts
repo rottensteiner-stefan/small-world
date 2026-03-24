@@ -1,10 +1,10 @@
 /// src/core/cameras/strategies/StiffStrategy.ts
 import { Camera } from "../../Camera.js";
 import { CameraStrategyType } from "../../../enums/CameraStrategyType.js";
-import { ICameraStrategy } from "../../../interfaces/ICameraStrategy.js";
+import { CameraStrategyInterface } from "../../../interfaces/CameraStrategyInterface.js";
 import { Vector3D } from "../../../math/Vector3D.js";
 
-export class StiffStrategy implements ICameraStrategy {
+export class StiffStrategy implements CameraStrategyInterface {
   public readonly type = CameraStrategyType.STIFF;
   public radius = 20;
 

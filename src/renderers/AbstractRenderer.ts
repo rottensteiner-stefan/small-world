@@ -8,15 +8,15 @@ import {
   PointLight,
   SpotLight,
 } from "../core/index.js";
-import { IRenderer } from "../interfaces/index.js";
+import { RendererInterface } from "../interfaces/index.js";
 import { LightType, RendererType } from "../enums/index.js";
 import { Object3D } from "../core/Object3D.js";
 import { Scene } from "../core/Scene.js";
 import { Vector3D } from "../math/Vector3D.js";
 
-export abstract class AbstractRenderer implements IRenderer {
+export abstract class AbstractRenderer implements RendererInterface {
   public abstract readonly type: RendererType;
-  protected clearColor: Color = new Color(0, 0, 0, 1);
+  protected _clearColor: Color = new Color(0, 0, 0, 1);
 
   public abstract initialize(canvas: HTMLCanvasElement): Promise<void>;
 
@@ -25,11 +25,18 @@ export abstract class AbstractRenderer implements IRenderer {
   public abstract setSize(width: number, height: number): void;
 
   public setClearColor(color: Color): void {
-    this.clearColor = color;
+    this._clearColor = color;
   }
 
   // Diese Methode ist in ALLEN Renderern (sogar WebGPU) exakt gleich!
-  protected extractLights(scene: Scene) {
+  protected extractLights(scene: Scene): {
+    aCol: Color;
+    dDir: Vector3D;
+    dCol: Color;
+    pLights: PointLight[];
+    sLights: SpotLight[];
+    aLights: AreaLight[];
+  } {
     const aLights: AreaLight[] = [];
     const pLights: PointLight[] = [];
     const sLights: SpotLight[] = [];
@@ -37,7 +44,7 @@ export abstract class AbstractRenderer implements IRenderer {
     let dCol = new Color(0, 0, 0);
     let dDir = new Vector3D(0, 1, 0);
 
-    const traverse = (node: Object3D) => {
+    const traverse = (node: Object3D): void => {
       // Duck-Typing: Wenn das Objekt ein 'type' Feld hat, behandeln wir es als Licht
       if ("type" in node) {
         const light = node as AbstractLight; // TypeScript beruhigen

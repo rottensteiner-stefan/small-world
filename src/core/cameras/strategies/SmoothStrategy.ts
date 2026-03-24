@@ -1,10 +1,10 @@
 /// src/core/cameras/strategies/SmoothStrategy.ts
 import { Camera } from "../../Camera.js";
 import { CameraStrategyType } from "../../../enums/CameraStrategyType.js";
-import { ICameraStrategy } from "../../../interfaces/ICameraStrategy.js";
+import { CameraStrategyInterface } from "../../../interfaces/CameraStrategyInterface.js";
 import { Vector3D } from "../../../math/Vector3D.js";
 
-export class SmoothStrategy implements ICameraStrategy {
+export class SmoothStrategy implements CameraStrategyInterface {
   public readonly type = CameraStrategyType.SMOOTH;
   public radius = 20;
   public lerpFactor = 0.1;
