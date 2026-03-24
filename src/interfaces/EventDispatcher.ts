@@ -1,8 +1,8 @@
-/// src/interfaces/IEventDispatcher.ts
-import { EventHandler } from "../core/events/EventDispatcher.js";
+/// src/interfaces/EventDispatcher.ts
+import { EventHandler } from "../core/events/EventDispatcherImpl.js"; // Wird gleich angepasst
 import { EventType } from "../enums/EventType.js";
 
-export interface IEventDispatcher {
+export interface EventDispatcher {
   addEventListener(type: string | EventType, listener: EventHandler): void;
   removeEventListener(type: string | EventType, listener: EventHandler): void;
   dispatchEvent(type: string | EventType, eventData?: Record<string, unknown>): void;

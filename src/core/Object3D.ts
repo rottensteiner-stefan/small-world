@@ -1,15 +1,15 @@
 /// src/core/Object3D.ts
 import { AbstractMaterial } from "./materials/index.js";
-import { IBoundingVolume, IGeometryData } from "../interfaces/index.js";
+import { BoundingVolume, GeometryData } from "../interfaces/index.js";
 import { Matrix4, Vector3D } from "../math/index.js";
 
 export class Object3D {
   public readonly uuid: string = crypto.randomUUID();
   public name: string = "";
 
-  public geometry: IGeometryData | null = null;
-  public material: AbstractMaterial | null = null; // <--- NEU
-  public bounds: IBoundingVolume | null = null;
+  public geometry: GeometryData | null = null;
+  public material: AbstractMaterial | null = null;
+  public bounds: BoundingVolume | null = null;
 
   public position: Vector3D = new Vector3D(0, 0, 0);
   public rotation: Vector3D = new Vector3D(0, 0, 0);

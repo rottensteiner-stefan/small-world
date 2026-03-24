@@ -1,8 +1,8 @@
 /// src/physics/BoundingBox.ts
-import { IBoundingVolume } from "../interfaces/index.js";
+import { BoundingVolume } from "../interfaces/index.js";
 import { Vector3D } from "../math/Vector3D.js";
 import { BoundingType } from "../enums/index.js";
-export class BoundingBox implements IBoundingVolume {
+export class BoundingBox implements BoundingVolume {
   public type = BoundingType.BOX;
   public broadRadius: number;
   constructor(
