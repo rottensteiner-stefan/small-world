@@ -56,24 +56,24 @@ export class WebGPURenderer extends AbstractRenderer {
   private _depthTexture!: GPUTexture;
 
   public async initialize(canvas: HTMLCanvasElement): Promise<void> {
-    this.adapter = await navigator.gpu.requestAdapter();
-    this.device = await this.adapter!.requestDevice();
-    this.context = canvas.getContext("webgpu")!;
-    this.format = navigator.gpu.getPreferredCanvasFormat();
-    this.context.configure({
-      device: this.device,
-      format: this.format,
+    this._adapter = await navigator.gpu.requestAdapter();
+    this._device = await this._adapter!.requestDevice();
+    this._context = canvas.getContext("webgpu")!;
+    this._format = navigator.gpu.getPreferredCanvasFormat();
+    this._context.configure({
+      device: this._device,
+      format: this._format,
       alphaMode: "premultiplied",
     });
 
-    this.sampler = this.device.createSampler({
+    this._sampler = this._device.createSampler({
       magFilter: "linear",
       minFilter: "linear",
       addressModeU: "repeat",
       addressModeV: "repeat",
     });
 
-    const sm = this.device.createShaderModule({
+    const sm = this._device.createShaderModule({
       code: `
           struct U { 
             vp: mat4x4f, model: mat4x4f, color: vec4f, specCol: vec4f, amb: vec4f, dCol: vec4f, 
@@ -172,7 +172,7 @@ export class WebGPURenderer extends AbstractRenderer {
         `,
     });
 
-    const skySm = this.device.createShaderModule({
+    const skySm = this._device.createShaderModule({
       code: `
           struct U { vp: mat4x4f, model: mat4x4f, color: vec4f, specCol: vec4f, amb: vec4f, dCol: vec4f, dDir: vec4f, cam: vec4f, tOff: vec2f, tRep: vec2f, shininess: f32, numPL: f32, numSL: f32, numAL: f32, thresholds: vec4f, isTerrain: f32, pad1: f32, pad2: f32, pad3: f32 }
           @group(0) @binding(0) var<uniform> u: U;
@@ -183,7 +183,7 @@ export class WebGPURenderer extends AbstractRenderer {
         `,
     });
 
-    this.objBGL = this.device.createBindGroupLayout({
+    this._objBGL = this._device.createBindGroupLayout({
       entries: [
         {
           binding: 0,
@@ -196,7 +196,7 @@ export class WebGPURenderer extends AbstractRenderer {
       ],
     });
 
-    this.texBGL = this.device.createBindGroupLayout({
+    this._texBGL = this._device.createBindGroupLayout({
       entries: [
         { binding: 0, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: "float" } },
         { binding: 1, visibility: GPUShaderStage.FRAGMENT, sampler: { type: "filtering" } },
@@ -207,18 +207,18 @@ export class WebGPURenderer extends AbstractRenderer {
       ],
     });
 
-    this.skyTexBGL = this.device.createBindGroupLayout({
+    this._skyTexBGL = this._device.createBindGroupLayout({
       entries: [
         { binding: 0, visibility: GPUShaderStage.FRAGMENT, texture: { viewDimension: "cube" } },
         { binding: 1, visibility: GPUShaderStage.FRAGMENT, sampler: { type: "filtering" } },
       ],
     });
 
-    const layout = this.device.createPipelineLayout({
-      bindGroupLayouts: [this.objBGL, this.texBGL],
+    const layout = this._device.createPipelineLayout({
+      bindGroupLayouts: [this._objBGL, this._texBGL],
     });
-    const skyLayout = this.device.createPipelineLayout({
-      bindGroupLayouts: [this.objBGL, this.skyTexBGL],
+    const skyLayout = this._device.createPipelineLayout({
+      bindGroupLayouts: [this._objBGL, this._skyTexBGL],
     });
 
     // NEU: Die Puffer explizit in ein Array auslagern!
@@ -233,70 +233,70 @@ export class WebGPURenderer extends AbstractRenderer {
         module: sm,
         buffers: vertexBuffers,
       },
-      fragment: { module: sm, targets: [{ format: this.format }] },
+      fragment: { module: sm, targets: [{ format: this._format }] },
       primitive: { topology: "triangle-list", cullMode: "back" },
       depthStencil: { depthWriteEnabled: true, depthCompare: "less", format: "depth24plus" },
       layout,
     };
 
-    this.pipelineTriangles = this.device.createRenderPipeline(common);
+    this._pipelineTriangles = this._device.createRenderPipeline(common);
 
-    this.pipelineLines = this.device.createRenderPipeline({
+    this._pipelineLines = this._device.createRenderPipeline({
       ...common,
       primitive: { topology: "line-list", cullMode: "back" },
     });
 
-    this.pipelineSkybox = this.device.createRenderPipeline({
+    this._pipelineSkybox = this._device.createRenderPipeline({
       // Hier nutzen wir nun direkt unser sicheres Array!
       vertex: { module: skySm, buffers: [vertexBuffers[0]] },
-      fragment: { module: skySm, targets: [{ format: this.format }] },
+      fragment: { module: skySm, targets: [{ format: this._format }] },
       primitive: { topology: "triangle-list" },
       depthStencil: { depthWriteEnabled: false, depthCompare: "less", format: "depth24plus" },
       layout: skyLayout,
     });
 
-    const whiteTex = this.device.createTexture({
+    const whiteTex = this._device.createTexture({
       size: [1, 1],
       format: "rgba8unorm",
       usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
     });
-    this.device.queue.writeTexture(
+    this._device.queue.writeTexture(
       { texture: whiteTex },
       new Uint8Array([255, 255, 255, 255]),
       { bytesPerRow: 4 },
       [1, 1],
     );
-    this.whiteTexView = whiteTex.createView();
+    this._whiteTexView = whiteTex.createView();
 
-    this.defaultTexBindGroup = this.device.createBindGroup({
-      layout: this.texBGL,
+    this._defaultTexBindGroup = this._device.createBindGroup({
+      layout: this._texBGL,
       entries: [
-        { binding: 0, resource: this.whiteTexView },
-        { binding: 1, resource: this.sampler },
-        { binding: 2, resource: this.whiteTexView },
-        { binding: 3, resource: this.whiteTexView },
-        { binding: 4, resource: this.whiteTexView },
-        { binding: 5, resource: this.whiteTexView },
+        { binding: 0, resource: this._whiteTexView },
+        { binding: 1, resource: this._sampler },
+        { binding: 2, resource: this._whiteTexView },
+        { binding: 3, resource: this._whiteTexView },
+        { binding: 4, resource: this._whiteTexView },
+        { binding: 5, resource: this._whiteTexView },
       ],
     });
 
-    const whiteCube = this.device.createTexture({
+    const whiteCube = this._device.createTexture({
       size: [1, 1, 6],
       format: "rgba8unorm",
       usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
     });
     for (let i = 0; i < 6; i++)
-      this.device.queue.writeTexture(
+      this._device.queue.writeTexture(
         { texture: whiteCube, origin: [0, 0, i] },
         new Uint8Array([50, 50, 100, 255]),
         { bytesPerRow: 4 },
         [1, 1],
       );
-    this.defaultCubeTexBindGroup = this.device.createBindGroup({
-      layout: this.skyTexBGL,
+    this._defaultCubeTexBindGroup = this._device.createBindGroup({
+      layout: this._skyTexBGL,
       entries: [
         { binding: 0, resource: whiteCube.createView({ dimension: "cube" }) },
-        { binding: 1, resource: this.sampler },
+        { binding: 1, resource: this._sampler },
       ],
     });
 
@@ -304,10 +304,10 @@ export class WebGPURenderer extends AbstractRenderer {
   }
 
   private getTextureView(tex: Texture | null): GPUTextureView {
-    if (!tex || !tex.isLoaded || !tex.image) return this.whiteTexView;
-    let view = this.textureViewCache.get(tex);
+    if (!tex || !tex.isLoaded || !tex.image) return this._whiteTexView;
+    let view = this._textureViewCache.get(tex);
     if (!view) {
-      const t = this.device!.createTexture({
+      const t = this._device!.createTexture({
         size: [tex.image.width, tex.image.height],
         format: "rgba8unorm",
         usage:
@@ -315,22 +315,22 @@ export class WebGPURenderer extends AbstractRenderer {
           GPUTextureUsage.COPY_DST |
           GPUTextureUsage.RENDER_ATTACHMENT,
       });
-      this.device!.queue.copyExternalImageToTexture({ source: tex.image }, { texture: t }, [
+      this._device!.queue.copyExternalImageToTexture({ source: tex.image }, { texture: t }, [
         tex.image.width,
         tex.image.height,
       ]);
       view = t.createView();
-      this.textureViewCache.set(tex, view);
+      this._textureViewCache.set(tex, view);
     }
     return view;
   }
 
   private getSampler(tex: Texture): GPUSampler {
     const key = `${tex.addressModeU}_${tex.addressModeV}_${tex.magFilter}_${tex.minFilter}`;
-    if (!this.samplerCache.has(key)) {
-      this.samplerCache.set(
+    if (!this._samplerCache.has(key)) {
+      this._samplerCache.set(
         key,
-        this.device!.createSampler({
+        this._device!.createSampler({
           addressModeU: tex.addressModeU,
           addressModeV: tex.addressModeV,
           magFilter: tex.magFilter,
@@ -339,14 +339,14 @@ export class WebGPURenderer extends AbstractRenderer {
         }),
       );
     }
-    return this.samplerCache.get(key)!;
+    return this._samplerCache.get(key)!;
   }
 
-  private getGeoCache(geo: IGeometryData): WebGPUGeoCache {
-    let c = this.geoCache.get(geo);
+  private getGeoCache(geo: GeometryDataInterface): WebGPUGeoCache {
+    let c = this._geoCache.get(geo);
     if (!c) {
       const createBuf = (data: Float32Array | Uint16Array | Uint32Array, usage: number) => {
-        const b = this.device!.createBuffer({
+        const b = this._device!.createBuffer({
           size: (data.byteLength + 3) & ~3,
           usage,
           mappedAtCreation: true,
@@ -366,32 +366,32 @@ export class WebGPURenderer extends AbstractRenderer {
         vertexCount: geo.vertices.length / 3,
         format: geo.indices ? (geo.indices instanceof Uint16Array ? "uint16" : "uint32") : null,
       };
-      this.geoCache.set(geo, c);
+      this._geoCache.set(geo, c);
     }
     return c;
   }
 
   private getObjCache(obj: Object3D): WebGPUObjCache {
-    let c = this.objCache.get(obj);
+    let c = this._objCache.get(obj);
     if (!c) {
-      const ub = this.device!.createBuffer({
+      const ub = this._device!.createBuffer({
         size: 512,
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
       });
-      const plb = this.device!.createBuffer({
+      const plb = this._device!.createBuffer({
         size: 512,
         usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
       });
-      const slb = this.device!.createBuffer({
+      const slb = this._device!.createBuffer({
         size: 1024,
         usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
       });
-      const alb = this.device!.createBuffer({
+      const alb = this._device!.createBuffer({
         size: 1024,
         usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
       });
-      const bg = this.device!.createBindGroup({
-        layout: this.objBGL,
+      const bg = this._device!.createBindGroup({
+        layout: this._objBGL,
         entries: [
           { binding: 0, resource: { buffer: ub } },
           { binding: 1, resource: { buffer: plb } },
@@ -400,64 +400,64 @@ export class WebGPURenderer extends AbstractRenderer {
         ],
       });
       c = { ub, plb, slb, alb, bg };
-      this.objCache.set(obj, c);
+      this._objCache.set(obj, c);
     }
     return c;
   }
 
-  private getGPUTextureBindGroup(tex: Texture) {
-    if (!tex.isLoaded || !tex.image) return this.defaultTexBindGroup;
-    let bg = this.texCache.get(tex);
+  private getGPUTextureBindGroup(tex: Texture): GPUBindGroup {
+    if (!tex.isLoaded || !tex.image) return this._defaultTexBindGroup;
+    let bg = this._texCache.get(tex);
     if (!bg) {
-      bg = this.device!.createBindGroup({
-        layout: this.texBGL,
+      bg = this._device!.createBindGroup({
+        layout: this._texBGL,
         entries: [
           { binding: 0, resource: this.getTextureView(tex) },
           { binding: 1, resource: this.getSampler(tex) },
-          { binding: 2, resource: this.whiteTexView },
-          { binding: 3, resource: this.whiteTexView },
-          { binding: 4, resource: this.whiteTexView },
-          { binding: 5, resource: this.whiteTexView },
+          { binding: 2, resource: this._whiteTexView },
+          { binding: 3, resource: this._whiteTexView },
+          { binding: 4, resource: this._whiteTexView },
+          { binding: 5, resource: this._whiteTexView },
         ],
       });
-      this.texCache.set(tex, bg);
+      this._texCache.set(tex, bg);
     }
     return bg;
   }
 
-  private getGPUTerrainBindGroup(mat: TerrainMaterial) {
-    let bg = this.terrainTexCache.get(mat);
+  private getGPUTerrainBindGroup(mat: TerrainMaterial): GPUBindGroup {
+    let bg = this._terrainTexCache.get(mat);
     if (!bg) {
-      bg = this.device!.createBindGroup({
-        layout: this.texBGL,
+      bg = this._device!.createBindGroup({
+        layout: this._texBGL,
         entries: [
-          { binding: 0, resource: this.whiteTexView },
-          { binding: 1, resource: this.sampler },
+          { binding: 0, resource: this._whiteTexView },
+          { binding: 1, resource: this._sampler },
           { binding: 2, resource: this.getTextureView(mat.sandMap) },
           { binding: 3, resource: this.getTextureView(mat.grassMap) },
           { binding: 4, resource: this.getTextureView(mat.rockMap) },
           { binding: 5, resource: this.getTextureView(mat.snowMap) },
         ],
       });
-      this.terrainTexCache.set(mat, bg);
+      this._terrainTexCache.set(mat, bg);
     }
     return bg;
   }
 
-  public render(scene: Scene, vpMatrix: Float32Array, camPos: Vector3D = new Vector3D()) {
-    if (!this.device) return;
-    const ce = this.device.createCommandEncoder();
+  public render(scene: Scene, vpMatrix: Float32Array, camPos: Vector3D = new Vector3D()): void {
+    if (!this._device) return;
+    const ce = this._device.createCommandEncoder();
     const rp = ce.beginRenderPass({
       colorAttachments: [
         {
-          view: this.context.getCurrentTexture().createView(),
-          clearValue: this.clearColor,
+          view: this._context.getCurrentTexture().createView(),
+          clearValue: this._clearColor,
           loadOp: "clear",
           storeOp: "store",
         },
       ],
       depthStencilAttachment: {
-        view: this.depthTexture.createView(),
+        view: this._depthTexture.createView(),
         depthClearValue: 1.0,
         depthLoadOp: "clear",
         depthStoreOp: "store",
@@ -525,14 +525,14 @@ export class WebGPURenderer extends AbstractRenderer {
       alData.set([al.width / 2.0, al.height / 2.0, 0.0, 0.0], offset + 20);
     }
 
-    const drawObject = (obj: Object3D) => {
+    const drawObject = (obj: Object3D): void => {
       // 1. Abbruch NUR, wenn das Objekt (und damit seine Kinder) explizit unsichtbar geschaltet wurde
       if (!obj.isVisible) return;
 
       // 2. Nur zeichnen, wenn auch wirklich Geometrie und Material da sind
       if (obj.geometry && obj.material) {
         const mat = obj.material;
-        let texBindGroup: GPUBindGroup = this.defaultTexBindGroup;
+        let texBindGroup: GPUBindGroup = this._defaultTexBindGroup;
         let shininess = -1.0,
           specCol = [0, 0, 0, 0],
           tOffset = [0, 0],
@@ -541,10 +541,10 @@ export class WebGPURenderer extends AbstractRenderer {
           thresholds = [0, 0, 0, 0];
 
         if (mat.type === MaterialType.SKYBOX) {
-          rp.setPipeline(this.pipelineSkybox);
+          rp.setPipeline(this._pipelineSkybox);
         } else {
           rp.setPipeline(
-            mat.type === MaterialType.WIREFRAME ? this.pipelineLines : this.pipelineTriangles,
+            mat.type === MaterialType.WIREFRAME ? this._pipelineLines : this._pipelineTriangles,
           );
 
           if (mat.type === MaterialType.LAMBERT) {
@@ -578,10 +578,10 @@ export class WebGPURenderer extends AbstractRenderer {
         uData[68] = isTerrain;
 
         const oCache = this.getObjCache(obj);
-        this.device!.queue.writeBuffer(oCache.ub, 0, uData);
-        this.device!.queue.writeBuffer(oCache.plb, 0, plData);
-        this.device!.queue.writeBuffer(oCache.slb, 0, slData);
-        this.device!.queue.writeBuffer(oCache.alb, 0, alData);
+        this._device!.queue.writeBuffer(oCache.ub, 0, uData);
+        this._device!.queue.writeBuffer(oCache.plb, 0, plData);
+        this._device!.queue.writeBuffer(oCache.slb, 0, slData);
+        this._device!.queue.writeBuffer(oCache.alb, 0, alData);
 
         const gCache = this.getGeoCache(obj.geometry);
         rp.setBindGroup(0, oCache.bg);
@@ -608,22 +608,23 @@ export class WebGPURenderer extends AbstractRenderer {
 
     for (const obj of scene.objects || []) drawObject(obj);
     rp.end();
-    this.device.queue.submit([ce.finish()]);
+    this._device.queue.submit([ce.finish()]);
   }
 
-  public setSize(width: number, height: number) {
-    if (!this.device) return;
+  public setSize(width: number, height: number): void {
+    if (!this._device) return;
     const d = devicePixelRatio;
-    this.context.canvas.width = width * d;
-    this.context.canvas.height = height * d;
+    this._context.canvas.width = width * d;
+    this._context.canvas.height = height * d;
 
-    if ("style" in this.context.canvas) {
-      this.context.canvas.style.width = `${width}px`;
-      this.context.canvas.style.height = `${height}px`;
+    if ("style" in this._context.canvas) {
+      const style = (this._context.canvas as HTMLCanvasElement).style;
+      style.width = `${width}px`;
+      style.height = `${height}px`;
     }
 
-    this.depthTexture = this.device.createTexture({
-      size: [this.context.canvas.width, this.context.canvas.height],
+    this._depthTexture = this._device.createTexture({
+      size: [this._context.canvas.width, this._context.canvas.height],
       format: "depth24plus",
       usage: GPUTextureUsage.RENDER_ATTACHMENT,
     });
