@@ -2,7 +2,16 @@
 import { AbstractGeometry } from "./AbstractGeometry.js";
 import { Vector3D } from "../math/Vector3D.js";
 
+/**
+ * A triangle geometry.
+ */
 export class Triangle extends AbstractGeometry {
+  /**
+   * Creates a new Triangle geometry.
+   * @param pointA The first point.
+   * @param pointB The second point.
+   * @param pointC The third point.
+   */
   constructor(
     public pointA: Vector3D,
     public pointB: Vector3D,
@@ -11,8 +20,12 @@ export class Triangle extends AbstractGeometry {
     super();
     this.generateGeometryData();
   }
-  protected generateGeometryData(): void {
-    this.vertices = new Float32Array([
+
+  /**
+   * @inheritdoc
+   */
+  protected override generateGeometryData(): void {
+    this._vertices = new Float32Array([
       this.pointA.x,
       this.pointA.y,
       this.pointA.z,
@@ -23,7 +36,7 @@ export class Triangle extends AbstractGeometry {
       this.pointC.y,
       this.pointC.z,
     ]);
-    this.uvs = new Float32Array([0, 0, 1, 0, 0.5, 1]);
-    this.indices = new Uint16Array([0, 1, 1, 2, 2, 0]); // Note: This is drawing as lines based on your old indices!
+    this._uvs = new Float32Array([0, 0, 1, 0, 0.5, 1]);
+    this._indices = new Uint16Array([0, 1, 2]);
   }
 }

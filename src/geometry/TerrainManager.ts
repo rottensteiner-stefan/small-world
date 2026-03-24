@@ -6,19 +6,36 @@ import { HeightmapGenerator, TextureGenerator } from "../utils/index.js";
 import { Terrain } from "./Terrain.js";
 import { TerrainMaterial } from "../core/materials/index.js";
 
-type TerrainAlgorithm = "DiamondSquare" | "Perlin" | "Simplex";
+/**
+ * Algorithm for terrain generation.
+ */
+export type TerrainAlgorithm = "DiamondSquare" | "Perlin" | "Simplex";
 
-interface TerrainManagerConfig {
-  chunkSize?: number; // Weltgröße eines Chunks (z.B. 80x80)
-  meshSegments?: number; // Auflösung des Meshes pro Chunk (z.B. 64x64)
-  heightmapDetail?: number; // Detail für Diamond-Square (z.B. 7 -> 129x129 Heightmap)
-  heightmapRoughness?: number; // Zerklüftung der Heightmap
-  maxHeight?: number; // Maximale Höhe des Terrains
-  gridSize?: number; // Anzahl der Chunks in einer Reihe/Spalte (z.B. 3 für 3x3)
-  material?: TerrainMaterial; // Optional: Vorgefertigtes Material
-  algorithm?: TerrainAlgorithm; // Welcher Algorithmus?
+/**
+ * Configuration for the TerrainManager.
+ */
+export interface TerrainManagerConfig {
+  /** Size of a single chunk in world units. */
+  chunkSize?: number;
+  /** Resolution of the mesh per chunk. */
+  meshSegments?: number;
+  /** Detail level for the heightmap (e.g., 7 -> 129x129). */
+  heightmapDetail?: number;
+  /** Roughness factor for the heightmap generation. */
+  heightmapRoughness?: number;
+  /** Maximum height of the terrain. */
+  maxHeight?: number;
+  /** Number of chunks in a row/column of the grid. */
+  gridSize?: number;
+  /** Material to use for the terrain chunks. */
+  material?: TerrainMaterial;
+  /** Generation algorithm to use. */
+  algorithm?: TerrainAlgorithm;
 }
 
+/**
+ * Manages dynamic loading and unloading of terrain chunks (infinite terrain).
+ */
 export class TerrainManager {
   private _scene: Scene;
   private readonly _chunkSize: number;
@@ -30,12 +47,17 @@ export class TerrainManager {
   private readonly _halfGrid: number;
   private readonly _algorithm: TerrainAlgorithm;
 
-  private _chunks = new Map<string, Object3D>();
+  private _chunks: Map<string, Object3D> = new Map<string, Object3D>();
   private _currentGridX: number = 0;
   private _currentGridZ: number = 0;
 
   private readonly _terrainMaterial: TerrainMaterial;
 
+  /**
+   * Creates a new TerrainManager.
+   * @param scene The scene to add terrain chunks to.
+   * @param config The manager configuration.
+   */
   constructor(scene: Scene, config: TerrainManagerConfig = {}) {
     this._scene = scene;
     this._chunkSize = config.chunkSize ?? 80;
@@ -45,11 +67,14 @@ export class TerrainManager {
     this._maxHeight = config.maxHeight ?? 6.0;
     this._gridSize = config.gridSize ?? 3;
     this._halfGrid = Math.floor(this._gridSize / 2);
-    this._algorithm = config.algorithm ?? "Perlin"; // Perlin ist jetzt Standard für Infinite Terrain
+    this._algorithm = config.algorithm ?? "Perlin";
 
     this._terrainMaterial = config.material || new TerrainMaterial();
   }
 
+  /**
+   * Initializes the manager and generates the initial grid of chunks.
+   */
   public async init(): Promise<void> {
     if (!this._terrainMaterial.sandMap) {
       this._terrainMaterial.sandMap = Texture.fromImage(await TextureGenerator.createSand());
@@ -66,16 +91,20 @@ export class TerrainManager {
     this._terrainMaterial.texRepeat = [this._chunkSize / 4, this._chunkSize / 4];
     this._terrainMaterial.thresholds = [-2.0, 0.0, 2.0, 1.0];
 
-    for (let z = -this._halfGrid; z <= this._halfGrid; z++) {
-      for (let x = -this._halfGrid; x <= this._halfGrid; x++) {
+    for (let z: number = -this._halfGrid; z <= this._halfGrid; z++) {
+      for (let x: number = -this._halfGrid; x <= this._halfGrid; x++) {
         await this._generateChunk(x, z);
       }
     }
   }
 
+  /**
+   * Updates the terrain grid based on a focus point (usually the player's position).
+   * @param focusPoint The current focus position.
+   */
   public async update(focusPoint: Vector3D): Promise<void> {
-    const newGridX = Math.floor(focusPoint.x / this._chunkSize);
-    const newGridZ = Math.floor(focusPoint.z / this._chunkSize);
+    const newGridX: number = Math.floor(focusPoint.x / this._chunkSize);
+    const newGridZ: number = Math.floor(focusPoint.z / this._chunkSize);
 
     if (newGridX !== this._currentGridX || newGridZ !== this._currentGridZ) {
       this._currentGridX = newGridX;
@@ -85,20 +114,21 @@ export class TerrainManager {
   }
 
   private async _rebuildGrid(): Promise<void> {
-    const newChunks = new Map<string, Object3D>();
-    const chunksToRemove = new Set(this._chunks.keys());
+    const newChunks: Map<string, Object3D> = new Map<string, Object3D>();
+    const chunksToRemove: Set<string> = new Set(this._chunks.keys());
 
-    for (let z = -this._halfGrid; z <= this._halfGrid; z++) {
-      for (let x = -this._halfGrid; x <= this._halfGrid; x++) {
-        const gridX = this._currentGridX + x;
-        const gridZ = this._currentGridZ + z;
-        const key = this._getChunkKey(gridX, gridZ);
+    for (let z: number = -this._halfGrid; z <= this._halfGrid; z++) {
+      for (let x: number = -this._halfGrid; x <= this._halfGrid; x++) {
+        const gridX: number = this._currentGridX + x;
+        const gridZ: number = this._currentGridZ + z;
+        const key: string = this._getChunkKey(gridX, gridZ);
 
-        if (this._chunks.has(key)) {
-          newChunks.set(key, this._chunks.get(key)!);
+        const existingChunk: Object3D | undefined = this._chunks.get(key);
+        if (existingChunk) {
+          newChunks.set(key, existingChunk);
           chunksToRemove.delete(key);
         } else {
-          const chunk = await this._generateChunkObject(gridX, gridZ);
+          const chunk: Object3D = await this._generateChunkObject(gridX, gridZ);
           newChunks.set(key, chunk);
           this._scene.add(chunk);
         }
@@ -106,7 +136,7 @@ export class TerrainManager {
     }
 
     for (const key of chunksToRemove) {
-      const chunk = this._chunks.get(key);
+      const chunk: Object3D | undefined = this._chunks.get(key);
       if (chunk) {
         this._scene.remove(chunk);
       }
@@ -115,32 +145,27 @@ export class TerrainManager {
   }
 
   private async _generateChunk(gridX: number, gridZ: number): Promise<void> {
-    const key = this._getChunkKey(gridX, gridZ);
-    if (this._chunks.has(key)) return;
+    const key: string = this._getChunkKey(gridX, gridZ);
+    if (this._chunks.has(key)) {
+      return;
+    }
 
-    const chunk = await this._generateChunkObject(gridX, gridZ);
+    const chunk: Object3D = await this._generateChunkObject(gridX, gridZ);
     this._scene.add(chunk);
     this._chunks.set(key, chunk);
   }
 
   private async _generateChunkObject(gridX: number, gridZ: number): Promise<Object3D> {
-    const key = this._getChunkKey(gridX, gridZ);
-    const heightmapResolution = Math.pow(2, this._heightmapDetail) + 1;
+    const key: string = this._getChunkKey(gridX, gridZ);
+    const heightmapResolution: number = Math.pow(2, this._heightmapDetail) + 1;
 
     let heightmapData: Float32Array;
 
     if (this._algorithm === "Perlin" || this._algorithm === "Simplex") {
-      // Offset berechnen:
-      // Wir wollen, dass die Pixel nahtlos weitergehen.
-      // resolution-1 ist die Anzahl der Segmente.
-      const pixelOffset = heightmapResolution - 1;
-      const offsetX = gridX * pixelOffset;
-      const offsetY = gridZ * pixelOffset;
-
-      // Scale so wählen, dass es gut aussieht.
-      // Da wir in Pixeln rechnen, müssen wir relativ klein skalieren.
-      // z.B. 0.01 bedeutet, dass sich das Noise alle 100 Pixel wiederholt.
-      const noiseScale = 0.015;
+      const pixelOffset: number = heightmapResolution - 1;
+      const offsetX: number = gridX * pixelOffset;
+      const offsetY: number = gridZ * pixelOffset;
+      const noiseScale: number = 0.015;
 
       if (this._algorithm === "Perlin") {
         heightmapData = await HeightmapGenerator.generatePerlinFloat(
@@ -148,8 +173,8 @@ export class TerrainManager {
           noiseScale,
           offsetX,
           offsetY,
-          4, // Octaves
-          0.5, // Persistence
+          4,
+          0.5,
         );
       } else {
         heightmapData = await HeightmapGenerator.generateSimplexFloat(
@@ -162,8 +187,7 @@ export class TerrainManager {
         );
       }
     } else {
-      // Fallback zu Diamond-Square (nicht nahtlos)
-      const seed = `${gridX},${gridZ}`;
+      const seed: string = `${gridX},${gridZ}`;
       heightmapData = await HeightmapGenerator.generateDiamondSquareFloat(
         this._heightmapDetail,
         this._heightmapRoughness,
@@ -171,7 +195,7 @@ export class TerrainManager {
       );
     }
 
-    const terrainGeo = Terrain.fromHeightData(
+    const terrainGeo: Terrain = Terrain.fromHeightData(
       heightmapData,
       heightmapResolution,
       this._chunkSize,
@@ -181,7 +205,7 @@ export class TerrainManager {
       this._meshSegments,
     );
 
-    const terrainObj = new Object3D(`TerrainChunk_${key}`);
+    const terrainObj: Object3D = new Object3D(`TerrainChunk_${key}`);
     terrainObj.geometry = terrainGeo.getGeometryData();
     terrainObj.material = this._terrainMaterial;
 

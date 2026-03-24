@@ -1,17 +1,39 @@
 /// src/core/Scene.ts
 import { Object3D } from "./Object3D.js";
+/**
+ * A scene that holds a collection of 3D objects.
+ */
 export class Scene {
+  /**
+   * The list of objects in the scene.
+   */
   public objects: Object3D[] = [];
+
+  /**
+   * Adds an object to the scene.
+   * @param obj The object to add.
+   */
   public add(obj: Object3D): void {
     this.objects.push(obj);
   }
+
+  /**
+   * Removes an object from the scene.
+   * @param obj The object to remove.
+   */
   public remove(obj: Object3D): void {
-    const index = this.objects.indexOf(obj);
-    if (index !== -1) this.objects.splice(index, 1);
+    const index: number = this.objects.indexOf(obj);
+    if (index !== -1) {
+      this.objects.splice(index, 1);
+    }
   }
+
+  /**
+   * Updates all objects in the scene.
+   */
   public update(): void {
     for (const obj of this.objects) {
-      if (obj.updateMatrixWorld) obj.updateMatrixWorld(true);
+      obj.updateMatrixWorld(true);
     }
   }
 }

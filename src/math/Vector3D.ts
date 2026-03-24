@@ -2,55 +2,123 @@
 import { VectorInterface } from "../interfaces/VectorInterface.js";
 import { Matrix4 } from "./Matrix4.js";
 
+/**
+ * A 3D vector class.
+ */
 export class Vector3D implements VectorInterface {
+  /**
+   * Creates a new Vector3D.
+   * @param x The x component.
+   * @param y The y component.
+   * @param z The z component.
+   */
   constructor(
     public x: number = 0,
     public y: number = 0,
     public z: number = 0,
   ) {}
+
+  /**
+   * Sets the components of the vector.
+   * @param x The x component.
+   * @param y The y component.
+   * @param z The z component.
+   * @returns this
+   */
   public set(x: number, y: number, z: number): this {
     this.x = x;
     this.y = y;
     this.z = z;
     return this;
   }
+
+  /**
+   * Adds another vector to this one.
+   * @param v The vector to add.
+   * @returns this
+   */
   public add(v: Vector3D): this {
     this.x += v.x;
     this.y += v.y;
     this.z += v.z;
     return this;
   }
+
+  /**
+   * Subtracts another vector from this one.
+   * @param v The vector to subtract.
+   * @returns this
+   */
   public sub(v: Vector3D): this {
     this.x -= v.x;
     this.y -= v.y;
     this.z -= v.z;
     return this;
   }
+
+  /**
+   * Scales the vector by a scalar value.
+   * @param s The scalar to scale by.
+   * @returns this
+   */
   public scale(s: number): this {
     this.x *= s;
     this.y *= s;
     this.z *= s;
     return this;
   }
+
+  /**
+   * Calculates the dot product of this vector and another.
+   * @param v The other vector.
+   * @returns The dot product.
+   */
   public dot(v: Vector3D): number {
     return this.x * v.x + this.y * v.y + this.z * v.z;
   }
+
+  /**
+   * Calculates the squared length of the vector.
+   * @returns The squared length.
+   */
   public lengthSq(): number {
     return this.x * this.x + this.y * this.y + this.z * this.z;
   }
+
+  /**
+   * Calculates the length of the vector.
+   * @returns The length.
+   */
   public length(): number {
     return Math.sqrt(this.lengthSq());
   }
+
+  /**
+   * Calculates the squared distance to another vector.
+   * @param v The other vector.
+   * @returns The squared distance.
+   */
   public distanceToSq(v: Vector3D): number {
-    const dx = this.x - v.x;
-    const dy = this.y - v.y;
-    const dz = this.z - v.z;
+    const dx: number = this.x - v.x;
+    const dy: number = this.y - v.y;
+    const dz: number = this.z - v.z;
     return dx * dx + dy * dy + dz * dz;
   }
+
+  /**
+   * Calculates the distance to another vector.
+   * @param v The other vector.
+   * @returns The distance.
+   */
   public distanceTo(v: Vector3D): number {
     return Math.sqrt(this.distanceToSq(v));
   }
 
+  /**
+   * Copies components from another vector.
+   * @param v The vector to copy from.
+   * @returns this
+   */
   public copyFrom(v: Vector3D): this {
     this.x = v.x;
     this.y = v.y;
@@ -58,20 +126,23 @@ export class Vector3D implements VectorInterface {
     return this;
   }
 
+  /**
+   * Clones the vector.
+   * @returns A new Vector3D with the same components.
+   */
   public clone(): Vector3D {
     return new Vector3D(this.x, this.y, this.z);
   }
 
   /**
-   * Normalisiert den Vektor auf eine Länge von 1 (Einheitsvektor).
-   * @returns this (für Method Chaining)
+   * Normalizes the vector to a length of 1.
+   * @returns this
    */
   public normalize(): this {
-    const len = this.length();
+    const len: number = this.length();
 
-    // Prüfen, ob die Länge größer als 0 ist, um Division durch Null zu vermeiden.
     if (len > 0.000001) {
-      const invLen = 1 / len; // Multiplikation ist schneller als Division
+      const invLen: number = 1 / len;
       this.x *= invLen;
       this.y *= invLen;
       this.z *= invLen;
@@ -85,23 +156,20 @@ export class Vector3D implements VectorInterface {
   }
 
   /**
-   * Transformiert die Richtung dieses Vektors mit einer Matrix.
-   * Dies ignoriert die Translationskomponente der Matrix.
-   * @param m Die Transformationsmatrix.
-   * @returns this (für Method Chaining)
+   * Transforms the direction of this vector with a matrix.
+   * This ignores the translation component of the matrix.
+   * @param m The transformation matrix.
+   * @returns this
    */
   public transformDirection(m: Matrix4): this {
-    const d = m.data;
-    const x = this.x,
-      y = this.y,
-      z = this.z;
+    const d: Float32Array = m.data;
+    const x: number = this.x;
+    const y: number = this.y;
+    const z: number = this.z;
 
-    // @ts-expect-error Potentially undefined values
-    this.x = d[0] * x + d[4] * y + d[8] * z;
-    // @ts-expect-error Potentially undefined values
-    this.y = d[1] * x + d[5] * y + d[9] * z;
-    // @ts-expect-error Potentially undefined values
-    this.z = d[2] * x + d[6] * y + d[10] * z;
+    this.x = (d[0] ?? 0) * x + (d[4] ?? 0) * y + (d[8] ?? 0) * z;
+    this.y = (d[1] ?? 0) * x + (d[5] ?? 0) * y + (d[9] ?? 0) * z;
+    this.z = (d[2] ?? 0) * x + (d[6] ?? 0) * y + (d[10] ?? 0) * z;
 
     return this.normalize();
   }

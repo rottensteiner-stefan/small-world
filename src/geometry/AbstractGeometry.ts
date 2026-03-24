@@ -1,62 +1,89 @@
 /// src/geometry/AbstractGeometry.ts
-import { Geometry } from "../interfaces/Geometry.js";
-import { GeometryData } from "../interfaces/GeometryData.js";
-import { Matrix4 } from "../math/Matrix4.js";
-import { Vector3D } from "../math/Vector3D.js";
+import {Matrix4} from "../math/Matrix4.js";
+import {Vector3D} from "../math/Vector3D.js";
+import {GeometryDataInterface, GeometryInterface} from "../interfaces/index.js";
 
-export abstract class AbstractGeometry implements Geometry {
-  protected vertices: Float32Array = new Float32Array();
-  protected indices: Uint16Array | Uint32Array = new Uint16Array();
-  protected normals: Float32Array = new Float32Array();
-  protected uvs: Float32Array = new Float32Array();
+/**
+ * Base class for all geometry types.
+ */
+export abstract class AbstractGeometry implements GeometryInterface {
+  /**
+   * The vertices of the geometry.
+   */
+  protected _vertices: Float32Array = new Float32Array();
 
+  /**
+   * The indices of the geometry.
+   */
+  protected _indices: Uint16Array | Uint32Array = new Uint16Array();
+
+  /**
+   * The normals of the geometry.
+   */
+  protected _normals: Float32Array = new Float32Array();
+
+  /**
+   * The UV coordinates of the geometry.
+   */
+  protected _uvs: Float32Array = new Float32Array();
+
+  /**
+   * Generates the geometry data.
+   */
   protected abstract generateGeometryData(): void;
 
-  public getGeometryData(): GeometryData {
-    if (this.normals.length === 0 && this.vertices.length > 0) {
+  /**
+   * Returns the geometry data.
+   * @returns The geometry data.
+   */
+  public getGeometryData(): GeometryDataInterface {
+    if (this._normals.length === 0 && this._vertices.length > 0) {
       this.computeNormals();
     }
     // Falls keine UVs generiert wurden, füllen wir sie mit Nullen (Fallback)
-    if (this.uvs.length === 0 && this.vertices.length > 0) {
-      this.uvs = new Float32Array((this.vertices.length / 3) * 2);
+    if (this._uvs.length === 0 && this._vertices.length > 0) {
+      this._uvs = new Float32Array((this._vertices.length / 3) * 2);
     }
 
     return {
-      vertices: this.vertices,
-      indices: this.indices,
-      normals: this.normals,
-      uvs: this.uvs,
+      vertices: this._vertices,
+      indices: this._indices,
+      normals: this._normals,
+      uvs: this._uvs,
     };
   }
 
+  /**
+   * Computes the normals of the geometry.
+   */
   public computeNormals(): void {
-    this.normals = new Float32Array(this.vertices.length);
+    this._normals = new Float32Array(this._vertices.length);
 
-    if (this.indices.length % 3 !== 0) {
-      for (let i = 0; i < this.normals.length; i += 3) {
-        this.normals[i] = 0;
-        this.normals[i + 1] = 1;
-        this.normals[i + 2] = 0;
+    if (this._indices.length % 3 !== 0) {
+      for (let i = 0; i < this._normals.length; i += 3) {
+        this._normals[i] = 0;
+        this._normals[i + 1] = 1;
+        this._normals[i + 2] = 0;
       }
       return;
     }
 
-    for (let i = 0; i < this.indices.length; i += 3) {
-      const iA: number = this.indices[i] * 3;
-      const iB: number = this.indices[i + 1] * 3;
-      const iC: number = this.indices[i + 2] * 3;
+    for (let i = 0; i < this._indices.length; i += 3) {
+      const iA: number = (this._indices[i] ?? 0) * 3;
+      const iB: number = (this._indices[i + 1] ?? 0) * 3;
+      const iC: number = (this._indices[i + 2] ?? 0) * 3;
 
-      const ax: number = this.vertices[iA];
-      const ay: number = this.vertices[iA + 1];
-      const az: number = this.vertices[iA + 2];
+      const ax: number = this._vertices[iA] ?? 0;
+      const ay: number = this._vertices[iA + 1] ?? 0;
+      const az: number = this._vertices[iA + 2] ?? 0;
 
-      const bx: number = this.vertices[iB];
-      const by: number = this.vertices[iB + 1];
-      const bz: number = this.vertices[iB + 2];
+      const bx: number = this._vertices[iB] ?? 0;
+      const by: number = this._vertices[iB + 1] ?? 0;
+      const bz: number = this._vertices[iB + 2] ?? 0;
 
-      const cx: number = this.vertices[iC];
-      const cy: number = this.vertices[iC + 1];
-      const cz: number = this.vertices[iC + 2];
+      const cx: number = this._vertices[iC] ?? 0;
+      const cy: number = this._vertices[iC + 1] ?? 0;
+      const cz: number = this._vertices[iC + 2] ?? 0;
 
       const ux: number = bx - ax;
       const uy: number = by - ay;
@@ -70,62 +97,90 @@ export abstract class AbstractGeometry implements Geometry {
       const ny: number = uz * vx - ux * vz;
       const nz: number = ux * vy - uy * vx;
 
-      this.normals[iA] += nx;
-      this.normals[iA + 1] += ny;
-      this.normals[iA + 2] += nz;
+      this._normals[iA] = (this._normals[iA] ?? 0) + nx;
+      this._normals[iA + 1] = (this._normals[iA + 1] ?? 0) + ny;
+      this._normals[iA + 2] = (this._normals[iA + 2] ?? 0) + nz;
 
-      this.normals[iB] += nx;
-      this.normals[iB + 1] += ny;
-      this.normals[iB + 2] += nz;
+      this._normals[iB] = (this._normals[iB] ?? 0) + nx;
+      this._normals[iB + 1] = (this._normals[iB + 1] ?? 0) + ny;
+      this._normals[iB + 2] = (this._normals[iB + 2] ?? 0) + nz;
 
-      this.normals[iC] += nx;
-      this.normals[iC + 1] += ny;
-      this.normals[iC + 2] += nz;
+      this._normals[iC] = (this._normals[iC] ?? 0) + nx;
+      this._normals[iC + 1] = (this._normals[iC + 1] ?? 0) + ny;
+      this._normals[iC + 2] = (this._normals[iC + 2] ?? 0) + nz;
     }
 
-    for (let i = 0; i < this.normals.length; i += 3) {
-      const nx: number = this.normals[i];
-      const ny: number = this.normals[i + 1];
-      const nz: number = this.normals[i + 2];
+    for (let i = 0; i < this._normals.length; i += 3) {
+      const nx: number = this._normals[i] ?? 0;
+      const ny: number = this._normals[i + 1] ?? 0;
+      const nz: number = this._normals[i + 2] ?? 0;
       const len: number = Math.sqrt(nx * nx + ny * ny + nz * nz);
       if (len > 0) {
-        this.normals[i] /= len;
-        this.normals[i + 1] /= len;
-        this.normals[i + 2] /= len;
+        this._normals[i] = nx / len;
+        this._normals[i + 1] = ny / len;
+        this._normals[i + 2] = nz / len;
       }
     }
   }
 
+  /**
+   * Applies a Matrix4 transformation to the geometry.
+   * @param matrix The transformation matrix.
+   * @returns this
+   */
   public applyMatrix4(matrix: Matrix4): this {
     const v: Vector3D = new Vector3D();
-    for (let i: number = 0; i < this.vertices.length; i += 3) {
-      v.x = this.vertices[i];
-      v.y = this.vertices[i + 1];
-      v.z = this.vertices[i + 2];
+    for (let i: number = 0; i < this._vertices.length; i += 3) {
+      v.x = this._vertices[i] ?? 0;
+      v.y = this._vertices[i + 1] ?? 0;
+      v.z = this._vertices[i + 2] ?? 0;
       matrix.transformVector(v);
-      this.vertices[i] = v.x;
-      this.vertices[i + 1] = v.y;
-      this.vertices[i + 2] = v.z;
+      this._vertices[i] = v.x;
+      this._vertices[i + 1] = v.y;
+      this._vertices[i + 2] = v.z;
     }
     this.computeNormals();
     return this;
   }
 
+  /**
+   * Scales the geometry.
+   * @param f The scale factor.
+   * @returns this
+   */
   public scale(f: number): this {
     const m: Matrix4 = new Matrix4();
     Matrix4.scale(f, m);
     return this.applyMatrix4(m);
   }
+
+  /**
+   * Rotates the geometry around the X-axis.
+   * @param a The rotation angle in radians.
+   * @returns this
+   */
   public rotateX(a: number): this {
     const m: Matrix4 = new Matrix4();
     Matrix4.rotateX(a, m);
     return this.applyMatrix4(m);
   }
+
+  /**
+   * Rotates the geometry around the Y-axis.
+   * @param a The rotation angle in radians.
+   * @returns this
+   */
   public rotateY(a: number): this {
     const m: Matrix4 = new Matrix4();
     Matrix4.rotateY(a, m);
     return this.applyMatrix4(m);
   }
+
+  /**
+   * Rotates the geometry around the Z-axis.
+   * @param a The rotation angle in radians.
+   * @returns this
+   */
   public rotateZ(a: number): this {
     const m: Matrix4 = new Matrix4();
     Matrix4.rotateZ(a, m);
