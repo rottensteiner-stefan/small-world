@@ -1,8 +1,8 @@
 /// src/math/Vector3D.ts
-import { IVector } from "../interfaces/IVector.js";
+import { VectorInterface } from "../interfaces/VectorInterface.js";
 import { Matrix4 } from "./Matrix4.js";
 
-export class Vector3D implements IVector {
+export class Vector3D implements VectorInterface {
   constructor(
     public x: number = 0,
     public y: number = 0,

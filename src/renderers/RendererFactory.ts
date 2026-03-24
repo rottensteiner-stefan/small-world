@@ -1,5 +1,5 @@
 /// src/renderers/RendererFactory.ts
-import { IRenderer } from "../interfaces/index.js";
+import { RendererInterface } from "../interfaces/index.js";
 import { RendererType } from "../enums/index.js";
 import { WebGL1Renderer } from "./WebGL1Renderer.js";
 import { WebGL2Renderer } from "./WebGL2Renderer.js";
@@ -9,11 +9,11 @@ export class RendererFactory {
   public static async create(
     type: RendererType | string,
     canvas: HTMLCanvasElement,
-  ): Promise<IRenderer> {
+  ): Promise<RendererInterface> {
     let actualType = type;
     if (actualType === RendererType.BEST)
       actualType = navigator.gpu ? RendererType.WEB_GPU : RendererType.WEB_GL2;
-    let renderer: IRenderer;
+    let renderer: RendererInterface;
     switch (actualType) {
       case RendererType.WEB_GPU:
         if (!navigator.gpu) {

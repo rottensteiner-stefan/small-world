@@ -1,7 +1,7 @@
 /// src/math/Vector2D.ts
-import { IVector } from "../interfaces/IVector.js";
+import { VectorInterface } from "../interfaces/VectorInterface.js";
 
-export class Vector2D implements IVector {
+export class Vector2D implements VectorInterface {
   constructor(
     public x: number = 0,
     public y: number = 0,

@@ -1,6 +1,6 @@
 /// src/core/SmallWorld.ts
 import { ColorUtils, DEFAULT_RENDERER, RendererType } from "./index.js";
-import { IRenderer } from "../interfaces/index.js";
+import { RendererInterface } from "../interfaces/index.js";
 import { RendererFactory } from "../renderers/index.js";
 
 export interface WorldConfig {
@@ -14,7 +14,7 @@ export interface WorldConfig {
 
 export class SmallWorld {
   public config!: WorldConfig;
-  public activeRenderer!: IRenderer;
+  public activeRenderer!: RendererInterface;
 
   constructor() {}
 

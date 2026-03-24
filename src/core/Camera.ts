@@ -3,7 +3,7 @@ import { AbstractProjection, PerspectiveProjection } from "../math/index.js";
 import { CameraStrategyFactory } from "./cameras/CameraStrategyFactory.js";
 import { CameraStrategyType } from "../enums/index.js";
 import { CameraInterface } from "../interfaces/CameraInterface.js";
-import { CameraStrategy } from "../interfaces/index.js";
+import { CameraStrategyInterface } from "../interfaces/index.js";
 import { Matrix4 } from "../math/Matrix4.js";
 import { Vector3D } from "../math/Vector3D.js";
 
@@ -15,17 +15,17 @@ export class Camera implements CameraInterface {
   public theta = 0;
   public phi = 0.6;
 
-  private strategy!: CameraStrategy;
+  private _strategy!: CameraStrategyInterface;
 
-  private viewMatrix = new Matrix4();
-  private viewProjMatrix = new Matrix4();
+  private _viewMatrix = new Matrix4();
+  private _viewProjMatrix = new Matrix4();
 
   constructor(public projection: AbstractProjection) {
     this.setStrategy(CameraStrategyType.SMOOTH);
   }
 
   public get viewProjectionMatrix(): Float32Array {
-    return this.viewProjMatrix.data;
+    return this._viewProjMatrix.data;
   }
 
   public get aspect(): number {
@@ -44,19 +44,19 @@ export class Camera implements CameraInterface {
   }
 
   public updateViewMatrix(): void {
-    Matrix4.lookAt(this.position, this.target, this.up, this.viewMatrix);
-    Matrix4.multiply(this.projection.getMatrix(), this.viewMatrix, this.viewProjMatrix);
+    Matrix4.lookAt(this.position, this.target, this.up, this._viewMatrix);
+    Matrix4.multiply(this.projection.getMatrix(), this._viewMatrix, this._viewProjMatrix);
   }
 
   public setStrategy(type: CameraStrategyType): void {
-    this.strategy = CameraStrategyFactory.get(type);
+    this._strategy = CameraStrategyFactory.get(type);
   }
 
   public get activeStrategyType(): string {
-    return this.strategy.type;
+    return this._strategy.type;
   }
 
   public update(targetPos: Vector3D, dx: number, dy: number): void {
-    this.strategy.update(this, targetPos, dx, dy);
+    this._strategy.update(this, targetPos, dx, dy);
   }
 }

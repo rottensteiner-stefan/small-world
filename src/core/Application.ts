@@ -1,9 +1,9 @@
 /// src/core/Application.ts
 import { AbstractProjection } from "../math/projections/AbstractProjection.js";
 import { Camera } from "./Camera.js";
-import { ICamera } from "../interfaces/ICamera.js";
-import { IEngineConfig } from "../interfaces/IEngineConfig.js";
-import { IRenderer } from "../interfaces/IRenderer.js";
+import { CameraInterface } from "../interfaces/CameraInterface.js";
+import { EngineConfigInterface } from "../interfaces/EngineConfigInterface.js";
+import { RendererInterface } from "../interfaces/RendererInterface.js";
 import { ObliqueProjection } from "../math/projections/ObliqueProjection.js";
 import { OrthographicProjection } from "../math/projections/OrthographicProjection.js";
 import { PerspectiveProjection } from "../math/projections/PerspectiveProjection.js";
@@ -13,16 +13,16 @@ import { RendererType } from "../enums/RendererType.js";
 import { Scene } from "./Scene.js";
 
 export abstract class Application {
-  public config: IEngineConfig;
+  public config: EngineConfigInterface;
   public scene: Scene;
-  public camera: ICamera;
-  protected renderer!: IRenderer;
+  public camera: CameraInterface;
+  protected renderer!: RendererInterface;
   protected canvas!: HTMLCanvasElement;
 
   private lastTime: number = 0;
   private isRunning: boolean = false;
 
-  constructor(userConfig: IEngineConfig = {}) {
+  constructor(userConfig: EngineConfigInterface = {}) {
     this.config = {
       canvasId: "canvas",
       renderer: RendererType.WEB_GPU,

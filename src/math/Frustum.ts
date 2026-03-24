@@ -1,6 +1,6 @@
 /// src/math/Frustum.ts
 import { Matrix4 } from "./Matrix4.js";
-import { IBoundingVolume } from "../interfaces/index.js";
+import { BoundingVolume } from "../interfaces/index.js";
 
 export class Frustum {
   public planes: Float32Array = new Float32Array(24);
@@ -47,7 +47,7 @@ export class Frustum {
     }
   }
 
-  public intersectsVolume(volume: IBoundingVolume): boolean {
+  public intersectsVolume(volume: BoundingVolume): boolean {
     const c = volume.center;
     const r = volume.getBroadRadius();
     const p = this.planes;
