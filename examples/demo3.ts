@@ -74,7 +74,7 @@ class Demo3 extends AbstractDemo {
     }
   }
 
-  protected update(deltaTime: number): void {
+  protected update(_deltaTime: number): void {
     let dx = 0;
     let dy = 0;
 
