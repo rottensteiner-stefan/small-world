@@ -4,29 +4,30 @@ import { AssetManager } from "./AssetManager.js";
 import { CubeTexture } from "../core/textures/CubeTexture.js";
 import { EventType } from "../enums/EventType.js";
 import { AbstractLoader } from "./AbstractLoader.js";
+/**
+ * Loader for cube map skybox textures from a single cross-layout image.
+ */
 export class SkyboxLoader extends AbstractLoader<CubeTexture> {
-  public async load(url: string): Promise<CubeTexture> {
-    const fullUrl = this.basePath + url;
+  /** @inheritdoc */
+  public override async load(url: string): Promise<CubeTexture> {
+    const fullUrl: string = this.basePath + url;
     this.dispatchEvent(EventType.LOADER_START, { url: fullUrl });
 
     try {
-      // 1. Laden über den AssetManager:
-      // Wir übergeben den Progress-Callback und setzen flipY auf FALSE (3. Parameter)
-      const sourceImage = await AssetManager.loadImage(
+      const sourceImage: ImageBitmap | HTMLImageElement = await AssetManager.loadImage(
         fullUrl,
-        (loaded, total) =>
+        (loaded: number, total: number) =>
           this.dispatchEvent(EventType.LOADER_PROGRESS, { url: fullUrl, loaded, total }),
         false,
       );
 
-      // 2. Das Bild zerschneiden
-      const tileSize = sourceImage.width / 4;
-      const canvas = document.createElement("canvas");
+      const tileSize: number = sourceImage.width / 4;
+      const canvas: HTMLCanvasElement = document.createElement("canvas");
       canvas.width = tileSize;
       canvas.height = tileSize;
-      const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
+      const ctx: CanvasRenderingContext2D = canvas.getContext("2d", { willReadFrequently: true })!;
 
-      const faces = [
+      const faces: { col: number; row: number }[] = [
         { col: 2, row: 1 }, // 0: +x
         { col: 0, row: 1 }, // 1: -x
         { col: 1, row: 0 }, // 2: +y
@@ -40,7 +41,7 @@ export class SkyboxLoader extends AbstractLoader<CubeTexture> {
       for (const face of faces) {
         ctx.clearRect(0, 0, tileSize, tileSize);
         ctx.drawImage(
-          sourceImage as CanvasImageSource, // Type-Cast für TypeScript
+          sourceImage as CanvasImageSource,
           face.col * tileSize,
           face.row * tileSize,
           tileSize,
@@ -51,18 +52,17 @@ export class SkyboxLoader extends AbstractLoader<CubeTexture> {
           tileSize,
         );
 
-        const faceBitmap = await createImageBitmap(canvas);
+        const faceBitmap: ImageBitmap = await createImageBitmap(canvas);
         images.push(faceBitmap);
       }
 
-      // 3. CubeTexture zusammenbauen
-      const cubeTexture = new CubeTexture();
+      const cubeTexture: CubeTexture = new CubeTexture();
       cubeTexture.images = images;
       cubeTexture.isLoaded = true;
 
       this.dispatchEvent(EventType.LOADER_END, { url: fullUrl, data: cubeTexture });
       return cubeTexture;
-    } catch (error) {
+    } catch (error: unknown) {
       this.dispatchEvent(EventType.LOADER_ERROR, { url: fullUrl, error });
       throw error;
     }
