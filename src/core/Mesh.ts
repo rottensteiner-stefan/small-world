@@ -1,12 +1,24 @@
 /// src/core/Mesh.ts
 import { GeometryDataInterface } from "../interfaces/index.js";
 
+/**
+ * Handles WebGL buffer management for a geometry.
+ */
 export class Mesh {
+  /** The vertex buffer object. */
   public vbo: WebGLBuffer | null;
+  /** The element buffer object (indices). */
   public ebo: WebGLBuffer | null;
+  /** The normal buffer object. */
   public nbo: WebGLBuffer | null = null;
+  /** The number of indices. */
   public count: number;
 
+  /**
+   * Creates a new Mesh.
+   * @param _gl The WebGL context.
+   * @param data The geometry data.
+   */
   constructor(
     private _gl: WebGLRenderingContext | WebGL2RenderingContext,
     data: GeometryDataInterface,
@@ -27,6 +39,11 @@ export class Mesh {
     this.count = data.indices.length;
   }
 
+  /**
+   * Binds the buffers and sets up vertex attributes.
+   * @param posLoc The position attribute location.
+   * @param normLoc The normal attribute location.
+   */
   public bind(posLoc: number, normLoc: number = -1): void {
     this._gl.bindBuffer(this._gl.ARRAY_BUFFER, this.vbo);
     this._gl.vertexAttribPointer(posLoc, 3, this._gl.FLOAT, false, 0, 0);
