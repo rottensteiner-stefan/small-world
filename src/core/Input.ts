@@ -1,50 +1,88 @@
 /// src/core/Input.ts
 import { Keys } from "../enums/Keys.js";
 
+/**
+ * Handles user input (keyboard and mouse).
+ */
 export class Input {
-  private static keys = new Map<string, boolean>();
-  public static mouse = { x: 0, y: 0, dx: 0, dy: 0, right: false };
-  public static isPointerLocked = false;
-  public static debug = false;
+  private static _keys: Map<string, boolean> = new Map<string, boolean>();
 
-  public static init() {
-    window.addEventListener("keydown", (e) => this.keys.set(e.code, true));
-    window.addEventListener("keyup", (e) => this.keys.set(e.code, false));
-    window.addEventListener("mousedown", (e) => {
-      if (e.button === 2) this.mouse.right = true;
+  /** Mouse state including position and button status. */
+  public static mouse: { x: number; y: number; dx: number; dy: number; right: boolean } = {
+    x: 0,
+    y: 0,
+    dx: 0,
+    dy: 0,
+    right: false,
+  };
+
+  /** Whether the pointer is currently locked. */
+  public static isPointerLocked: boolean = false;
+  /** Whether debug mode is enabled for input. */
+  public static debug: boolean = false;
+
+  /**
+   * Initializes the input listeners.
+   */
+  public static init(): void {
+    window.addEventListener("keydown", (e: KeyboardEvent) => this._keys.set(e.code, true));
+    window.addEventListener("keyup", (e: KeyboardEvent) => this._keys.set(e.code, false));
+    window.addEventListener("mousedown", (e: MouseEvent) => {
+      if (e.button === 2) {
+        this.mouse.right = true;
+      }
     });
-    window.addEventListener("mouseup", (e) => {
-      if (e.button === 2) this.mouse.right = false;
+    window.addEventListener("mouseup", (e: MouseEvent) => {
+      if (e.button === 2) {
+        this.mouse.right = false;
+      }
     });
-    window.addEventListener("mousemove", (e) => {
-      // WICHTIG: += summiert die Bewegung sauber auf, bis das nächste Frame gerendert wird!
+    window.addEventListener("mousemove", (e: MouseEvent) => {
       this.mouse.dx += e.movementX;
       this.mouse.dy += e.movementY;
     });
-    window.addEventListener("contextmenu", (e) => e.preventDefault());
+    window.addEventListener("contextmenu", (e: MouseEvent) => e.preventDefault());
 
-    // Pointer Lock Events
     document.addEventListener("pointerlockchange", () => {
       this.isPointerLocked = document.pointerLockElement !== null;
     });
   }
 
-  public static requestPointerLock(element: HTMLElement) {
+  /**
+   * Requests a pointer lock on the given element.
+   * @param element The element to lock the pointer to.
+   */
+  public static requestPointerLock(element: HTMLElement): void {
     try {
       element.requestPointerLock();
-    } catch (e) {
+    } catch (e: unknown) {
       console.warn("[Input] Konnte PointerLock nicht aktivieren:", e);
     }
   }
 
+  /**
+   * Checks if a key is currently pressed.
+   * @param code The key code.
+   * @returns True if the key is pressed.
+   */
   public static isPressed(code: string | Keys): boolean {
-    return this.keys.get(code) === true;
+    return this._keys.get(code) === true;
   }
 
+  /**
+   * Returns the value of an axis defined by two keys.
+   * @param neg The key for negative direction.
+   * @param pos The key for positive direction.
+   * @returns -1, 0, or 1.
+   */
   public static getAxis(neg: string | Keys, pos: string | Keys): number {
-    let v = 0;
-    if (this.isPressed(neg)) v -= 1;
-    if (this.isPressed(pos)) v += 1;
+    let v: number = 0;
+    if (this.isPressed(neg)) {
+      v -= 1;
+    }
+    if (this.isPressed(pos)) {
+      v += 1;
+    }
     return v;
   }
 }

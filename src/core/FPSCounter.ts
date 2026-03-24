@@ -1,10 +1,17 @@
 /// src/core/FPSCounter.ts
+/**
+ * Simple FPS counter that displays the current frames per second on the screen.
+ */
 export class FPSCounter {
-  private last = performance.now();
-  private frames = 0;
-  private el = document.createElement("div");
+  private _last: number = performance.now();
+  private _frames: number = 0;
+  private _el: HTMLDivElement = document.createElement("div");
+
+  /**
+   * Creates a new FPSCounter and adds it to the document body.
+   */
   constructor() {
-    Object.assign(this.el.style, {
+    Object.assign(this._el.style, {
       position: "fixed",
       top: "10px",
       left: "10px",
@@ -14,15 +21,19 @@ export class FPSCounter {
       padding: "4px",
       zIndex: "1000",
     });
-    document.body.appendChild(this.el);
+    document.body.appendChild(this._el);
   }
-  public update() {
-    this.frames++;
-    const now = performance.now();
-    if (now >= this.last + 1000) {
-      this.el.innerText = "FPS: " + this.frames;
-      this.frames = 0;
-      this.last = now;
+
+  /**
+   * Updates the FPS counter. Should be called every frame.
+   */
+  public update(): void {
+    this._frames++;
+    const now: number = performance.now();
+    if (now >= this._last + 1000) {
+      this._el.innerText = "FPS: " + this._frames;
+      this._frames = 0;
+      this._last = now;
     }
   }
 }
