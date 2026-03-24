@@ -1,7 +1,7 @@
 /// src/renderers/WebGL1Renderer.ts
 import { AbstractWebGLRenderer } from "./AbstractWebGLRenderer.js";
 import { CubeTexture, PhongMaterial, SkyboxMaterial, Texture } from "../core/index.js";
-import { IGeometryData } from "../interfaces/index.js";
+import { GeometryDataInterface } from "../interfaces/index.js";
 import { MaterialType, RendererType } from "../enums/index.js";
 import { Mesh } from "./Mesh.js";
 import { Object3D } from "../core/Object3D.js";
@@ -33,29 +33,29 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
   public readonly type = RendererType.WEB_GL1;
   declare protected gl: WebGLRenderingContext;
 
-  private prog!: WebGLProgram;
-  private locs!: ShaderLocs;
-  private skyProg!: WebGLProgram;
-  private skyLocs!: {
+  private _prog!: WebGLProgram;
+  private _locs!: ShaderLocs;
+  private _skyProg!: WebGLProgram;
+  private _skyLocs!: {
     pos: number;
     vp: WebGLUniformLocation | null;
     model: WebGLUniformLocation | null;
     skybox: WebGLUniformLocation | null;
   };
 
-  private cache = new Map<IGeometryData, Mesh>();
-  private texCache = new Map<Texture, WebGLTexture>();
-  private texCubeCache = new Map<CubeTexture, WebGLTexture>();
+  private _cache = new Map<GeometryDataInterface, Mesh>();
+  private _texCache = new Map<Texture, WebGLTexture>();
+  private _texCubeCache = new Map<CubeTexture, WebGLTexture>();
 
-  private pointLightLocs: { pos: WebGLUniformLocation | null; col: WebGLUniformLocation | null }[] =
+  private _pointLightLocs: { pos: WebGLUniformLocation | null; col: WebGLUniformLocation | null }[] =
     [];
-  private spotLightLocs: {
+  private _spotLightLocs: {
     pos: WebGLUniformLocation | null;
     dir: WebGLUniformLocation | null;
     col: WebGLUniformLocation | null;
     params: WebGLUniformLocation | null;
   }[] = [];
-  private areaLightLocs: {
+  private _areaLightLocs: {
     pos: WebGLUniformLocation | null;
     col: WebGLUniformLocation | null;
     right: WebGLUniformLocation | null;
@@ -78,55 +78,55 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
     const skyFs = `precision highp float; varying vec3 v_uvw; uniform samplerCube u_skybox; void main() { gl_FragColor = textureCube(u_skybox, v_uvw); }`;
 
     // Nutze geerbte Methode zum Kompilieren
-    this.prog = this.createShaderProgram(vs, fs);
-    this.skyProg = this.createShaderProgram(skyVs, skyFs);
+    this._prog = this.createShaderProgram(vs, fs);
+    this._skyProg = this.createShaderProgram(skyVs, skyFs);
 
-    this.locs = {
-      pos: this.gl.getAttribLocation(this.prog, "a_position"),
-      norm: this.gl.getAttribLocation(this.prog, "a_normal"),
-      uv: this.gl.getAttribLocation(this.prog, "a_uv"),
-      vp: this.gl.getUniformLocation(this.prog, "u_vp"),
-      model: this.gl.getUniformLocation(this.prog, "u_model"),
-      color: this.gl.getUniformLocation(this.prog, "u_color"),
-      specColor: this.gl.getUniformLocation(this.prog, "u_specColor"),
-      ambient: this.gl.getUniformLocation(this.prog, "u_ambientColor"),
-      dirColor: this.gl.getUniformLocation(this.prog, "u_dirLightColor"),
-      dirDir: this.gl.getUniformLocation(this.prog, "u_dirLightDir"),
-      shininess: this.gl.getUniformLocation(this.prog, "u_shininess"),
-      viewPos: this.gl.getUniformLocation(this.prog, "u_viewPos"),
-      numPL: this.gl.getUniformLocation(this.prog, "u_numPointLights"),
-      numSL: this.gl.getUniformLocation(this.prog, "u_numSpotLights"),
-      numAL: this.gl.getUniformLocation(this.prog, "u_numAreaLights"),
-      diffuseMap: this.gl.getUniformLocation(this.prog, "u_diffuseMap"),
-      texOffset: this.gl.getUniformLocation(this.prog, "u_texOffset"),
-      texRepeat: this.gl.getUniformLocation(this.prog, "u_texRepeat"),
+    this._locs = {
+      pos: this.gl.getAttribLocation(this._prog, "a_position"),
+      norm: this.gl.getAttribLocation(this._prog, "a_normal"),
+      uv: this.gl.getAttribLocation(this._prog, "a_uv"),
+      vp: this.gl.getUniformLocation(this._prog, "u_vp"),
+      model: this.gl.getUniformLocation(this._prog, "u_model"),
+      color: this.gl.getUniformLocation(this._prog, "u_color"),
+      specColor: this.gl.getUniformLocation(this._prog, "u_specColor"),
+      ambient: this.gl.getUniformLocation(this._prog, "u_ambientColor"),
+      dirColor: this.gl.getUniformLocation(this._prog, "u_dirLightColor"),
+      dirDir: this.gl.getUniformLocation(this._prog, "u_dirLightDir"),
+      shininess: this.gl.getUniformLocation(this._prog, "u_shininess"),
+      viewPos: this.gl.getUniformLocation(this._prog, "u_viewPos"),
+      numPL: this.gl.getUniformLocation(this._prog, "u_numPointLights"),
+      numSL: this.gl.getUniformLocation(this._prog, "u_numSpotLights"),
+      numAL: this.gl.getUniformLocation(this._prog, "u_numAreaLights"),
+      diffuseMap: this.gl.getUniformLocation(this._prog, "u_diffuseMap"),
+      texOffset: this.gl.getUniformLocation(this._prog, "u_texOffset"),
+      texRepeat: this.gl.getUniformLocation(this._prog, "u_texRepeat"),
     };
 
-    this.skyLocs = {
-      pos: this.gl.getAttribLocation(this.skyProg, "a_position"),
-      vp: this.gl.getUniformLocation(this.skyProg, "u_vp"),
-      model: this.gl.getUniformLocation(this.skyProg, "u_model"),
-      skybox: this.gl.getUniformLocation(this.skyProg, "u_skybox"),
+    this._skyLocs = {
+      pos: this.gl.getAttribLocation(this._skyProg, "a_position"),
+      vp: this.gl.getUniformLocation(this._skyProg, "u_vp"),
+      model: this.gl.getUniformLocation(this._skyProg, "u_model"),
+      skybox: this.gl.getUniformLocation(this._skyProg, "u_skybox"),
     };
 
     for (let i = 0; i < 4; i++) {
-      this.pointLightLocs.push({
-        pos: this.gl.getUniformLocation(this.prog, `u_pointLightPos[${i}]`),
-        col: this.gl.getUniformLocation(this.prog, `u_pointLightColor[${i}]`),
+      this._pointLightLocs.push({
+        pos: this.gl.getUniformLocation(this._prog, `u_pointLightPos[${i}]`),
+        col: this.gl.getUniformLocation(this._prog, `u_pointLightColor[${i}]`),
       });
-      this.spotLightLocs.push({
-        pos: this.gl.getUniformLocation(this.prog, `u_spotLightPos[${i}]`),
-        dir: this.gl.getUniformLocation(this.prog, `u_spotLightDir[${i}]`),
-        col: this.gl.getUniformLocation(this.prog, `u_spotLightColor[${i}]`),
-        params: this.gl.getUniformLocation(this.prog, `u_spotLightParams[${i}]`),
+      this._spotLightLocs.push({
+        pos: this.gl.getUniformLocation(this._prog, `u_spotLightPos[${i}]`),
+        dir: this.gl.getUniformLocation(this._prog, `u_spotLightDir[${i}]`),
+        col: this.gl.getUniformLocation(this._prog, `u_spotLightColor[${i}]`),
+        params: this.gl.getUniformLocation(this._prog, `u_spotLightParams[${i}]`),
       });
-      this.areaLightLocs.push({
-        pos: this.gl.getUniformLocation(this.prog, `u_areaLightPos[${i}]`),
-        col: this.gl.getUniformLocation(this.prog, `u_areaLightColor[${i}]`),
-        right: this.gl.getUniformLocation(this.prog, `u_areaLightRight[${i}]`),
-        up: this.gl.getUniformLocation(this.prog, `u_areaLightUp[${i}]`),
-        norm: this.gl.getUniformLocation(this.prog, `u_areaLightNormal[${i}]`),
-        size: this.gl.getUniformLocation(this.prog, `u_areaLightSize[${i}]`),
+      this._areaLightLocs.push({
+        pos: this.gl.getUniformLocation(this._prog, `u_areaLightPos[${i}]`),
+        col: this.gl.getUniformLocation(this._prog, `u_areaLightColor[${i}]`),
+        right: this.gl.getUniformLocation(this._prog, `u_areaLightRight[${i}]`),
+        up: this.gl.getUniformLocation(this._prog, `u_areaLightUp[${i}]`),
+        norm: this.gl.getUniformLocation(this._prog, `u_areaLightNormal[${i}]`),
+        size: this.gl.getUniformLocation(this._prog, `u_areaLightSize[${i}]`),
       });
     }
     this.gl.enable(this.gl.DEPTH_TEST);
