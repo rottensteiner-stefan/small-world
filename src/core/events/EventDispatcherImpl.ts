@@ -45,7 +45,7 @@ export class EventDispatcherImpl implements EventDispatcher {
     const eventName: string = type as string;
     const listeners: EventHandler[] | undefined = this._listeners.get(eventName);
     if (listeners) {
-      eventData.type = eventName;
+      eventData["type"] = eventName;
       const listenersCopy: EventHandler[] = listeners.slice(0);
       for (const listener of listenersCopy) {
         listener(eventData);

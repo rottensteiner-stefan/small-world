@@ -10,22 +10,22 @@ export type TerrainHeightStrategy = (r: number, g: number, b: number, a: number,
  * Built-in terrain height strategies.
  */
 export const TerrainStrategies = {
-  CENTERED_AVERAGE: (r: number, g: number, b: number, a: number): number => {
+  CENTERED_AVERAGE: (r: number, g: number, b: number, _a: number): number => {
     return (r + g + b) / 3.0 / 255.0;
   },
-  BASE_RED: (r: number, g: number, b: number, a: number): number => {
+  BASE_RED: (r: number, _g: number, _b: number, _a: number): number => {
     return r / 255.0;
   },
-  BASE_GREEN: (r: number, g: number, b: number, a: number): number => {
+  BASE_GREEN: (_r: number, g: number, _b: number, _a: number): number => {
     return g / 255.0;
   },
-  BASE_BLUE: (r: number, g: number, b: number, a: number): number => {
+  BASE_BLUE: (_r: number, _g: number, b: number, _a: number): number => {
     return b / 255.0;
   },
-  BASE_ALPHA: (r: number, g: number, b: number, a: number): number => {
+  BASE_ALPHA: (_r: number, _g: number, _b: number, a: number): number => {
     return a / 255.0;
   },
-  INVERTED_AVERAGE: (r: number, g: number, b: number, a: number): number => {
+  INVERTED_AVERAGE: (r: number, g: number, b: number, _a: number): number => {
     return 1.0 - (r + g + b) / 3.0 / 255.0;
   },
 } as const;
