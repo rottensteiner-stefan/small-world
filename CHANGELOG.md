@@ -1,12 +1,20 @@
 # Changelog
 
+## [0.11.10] - 2026-03-25
+- AI-based rework III
+- Extend AGENTS.md
+- Extend terrain generation
+- Code quality
+
 ## [0.10.16] - 2026-03-19
 
-- AI-based rework II; Code style
+- AI-based rework II
+- Code quality
 
 ## [0.10.15] - 2026-03-18
 
-- AI-rework; Code style
+- AI-rework
+- Code quality
 
 ## [0.10.14] - 2026-03-18
 
