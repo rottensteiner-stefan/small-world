@@ -3,7 +3,7 @@
 import { AbstractProjection, PerspectiveProjection } from "../math/index.js";
 import { CameraStrategyFactory } from "./cameras/CameraStrategyFactory.js";
 import { CameraStrategyType } from "../enums/index.js";
-import { CameraInterfaceData, CameraStrategy } from "../interfaces/index.js";
+import { CameraConstraints, CameraInterfaceData, CameraStrategy } from "../interfaces/index.js";
 import { Matrix4 } from "../math/Matrix4.js";
 import { Vector3D } from "../math/Vector3D.js";
 
@@ -74,7 +74,16 @@ export class Camera implements CameraInterfaceData {
 
   /** @inheritdoc */
   public setStrategy(type: CameraStrategyType): void {
+    const oldConstraints = this._strategy?.constraints;
     this._strategy = CameraStrategyFactory.get(type);
+    if (oldConstraints) {
+      this._strategy.constraints = oldConstraints;
+    }
+  }
+
+  /** @inheritdoc */
+  public setConstraints(constraints?: CameraConstraints): void {
+    this._strategy.constraints = constraints;
   }
 
   /** @inheritdoc */

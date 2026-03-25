@@ -354,9 +354,21 @@ export declare class Camera implements CameraInterfaceData {
     /** @inheritdoc */
     setStrategy(type: CameraStrategyType): void;
     /** @inheritdoc */
+    setConstraints(constraints?: CameraConstraints): void;
+    /** @inheritdoc */
     get activeStrategyType(): string;
     /** @inheritdoc */
     update(targetPos: Vector3D, dx: number, dy: number): void;
+}
+
+/**
+ * Interface defining constraints for the camera position or target.
+ */
+export declare interface CameraConstraints {
+    /** The minimum world coordinates for the camera/target. */
+    min?: Vector3D;
+    /** The maximum world coordinates for the camera/target. */
+    max?: Vector3D;
 }
 
 export declare interface CameraInterfaceData {
@@ -382,6 +394,8 @@ export declare interface CameraInterfaceData {
     viewProjectionMatrix: Float32Array;
     /** Wechselt das Steuerungsverhalten der Kamera */
     setStrategy(type: CameraStrategyType): void;
+    /** Setzt oder entfernt Kamera-Constraints für die aktive Strategie */
+    setConstraints(constraints?: CameraConstraints): void;
     /** Führt die Bewegung und Logik der aktiven Strategie aus */
     update(targetPos: Vector3D, dx: number, dy: number): void;
     /** Berechnet die Verzerrung (Perspektive oder Orthografisch) neu */
@@ -392,6 +406,8 @@ export declare interface CameraInterfaceData {
 
 export declare interface CameraStrategy {
     readonly type: string;
+    /** Optional constraints for the camera. */
+    constraints?: CameraConstraints | undefined;
     update(camera: Camera, targetPos: Vector3D, dx: number, dy: number): void;
 }
 
@@ -590,7 +606,7 @@ export declare class DirectionalLight extends AbstractLight {
     constructor(color?: Color, intensity?: number, name?: string);
 }
 
-export declare const ENGINE_VERSION = "0.11.11";
+export declare const ENGINE_VERSION = "0.11.13";
 
 export declare interface EngineConfig {
     canvasId?: string;
@@ -863,6 +879,8 @@ export declare class IsometricStrategy implements CameraStrategy {
     pixelPerfect: boolean;
     /** The zoom level (world units per screen unit). */
     zoom: number;
+    /** Optional constraints for the camera. */
+    constraints?: CameraConstraints;
     /**
      * Updates the camera position and target.
      * @param camera The camera to update.
@@ -1053,6 +1071,8 @@ export declare const MaterialType: {
     readonly TERRAIN: "TerrainMaterial";
     /** Material for wireframe rendering. */
     readonly WIREFRAME: "WireframeMaterial";
+    /** Material for sprites. */
+    readonly SPRITE: "SpriteMaterial";
 };
 
 /** Type definition for MaterialType. */
@@ -1692,7 +1712,7 @@ export declare class Sphere extends AbstractGeometry {
 }
 
 /**
- * Spot light that emits light in a cone shape.
+ * Spotlight that emits light in a cone shape.
  */
 export declare class SpotLight extends AbstractLight {
     distance: number;
@@ -1714,6 +1734,33 @@ export declare class SpotLight extends AbstractLight {
      * @param name The name of the light object.
      */
     constructor(color?: Color, intensity?: number, distance?: number, angle?: number, penumbra?: number, decay?: number, name?: string);
+}
+
+/**
+ * A Sprite is a 2D plane that typically always faces the camera.
+ */
+export declare class Sprite extends Object3D {
+    /**
+     * Creates a new Sprite.
+     * @param material The material for the sprite.
+     * @param name The name of the sprite.
+     */
+    constructor(material?: SpriteMaterial, name?: string);
+}
+
+/**
+ * Material for rendering 2D sprites.
+ */
+export declare class SpriteMaterial extends AbstractMaterial {
+    /** @inheritdoc */
+    readonly type: MaterialType;
+    /** The texture to display on the sprite. */
+    texture: Texture | undefined;
+    /**
+     * Creates a new SpriteMaterial.
+     * @param texture The texture for the sprite.
+     */
+    constructor(texture?: Texture);
 }
 
 /**
@@ -2223,6 +2270,13 @@ export declare class Vector3D implements Vector {
      * @returns A new Vector3D with the same components.
      */
     clone(): Vector3D;
+    /**
+     * Clamps the vector components between min and max vectors.
+     * @param min The minimum vector.
+     * @param max The maximum vector.
+     * @returns this
+     */
+    clamp(min: Vector3D, max: Vector3D): this;
     /**
      * Normalizes the vector to a length of 1.
      * @returns this

@@ -151,6 +151,19 @@ export class Vector3D implements Vector {
   }
 
   /**
+   * Clamps the vector components between min and max vectors.
+   * @param min The minimum vector.
+   * @param max The maximum vector.
+   * @returns this
+   */
+  public clamp(min: Vector3D, max: Vector3D): this {
+    this.x = Math.max(min.x, Math.min(max.x, this.x));
+    this.y = Math.max(min.y, Math.min(max.y, this.y));
+    this.z = Math.max(min.z, Math.min(max.z, this.z));
+    return this;
+  }
+
+  /**
    * Normalizes the vector to a length of 1.
    * @returns this
    */

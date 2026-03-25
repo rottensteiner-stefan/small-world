@@ -4,6 +4,7 @@ import { AbstractProjection } from "../math/index.js";
 import { CameraStrategyType } from "../enums/index.js";
 import { Vector3D } from "../math/Vector3D.js";
 import { CameraStrategy } from "./CameraStrategy.js";
+import { CameraConstraints } from "./CameraConstraints.js";
 
 export interface CameraInterfaceData {
   /** Die aktuell genutzte Kamera-Strategie */
@@ -34,6 +35,9 @@ export interface CameraInterfaceData {
 
   /** Wechselt das Steuerungsverhalten der Kamera */
   setStrategy(type: CameraStrategyType): void;
+
+  /** Setzt oder entfernt Kamera-Constraints für die aktive Strategie */
+  setConstraints(constraints?: CameraConstraints): void;
 
   /** Führt die Bewegung und Logik der aktiven Strategie aus */
   update(targetPos: Vector3D, dx: number, dy: number): void;
