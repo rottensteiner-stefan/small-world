@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.11.12] - 2026-03-26
+
+- Implement Sprite and SpriteMaterial
+- Add billboard rendering logic to WebGL1, WebGL2 and WebGPURenderer
+- Enable alpha blending for transparent sprites in all renderers
+
 ## [0.11.11] - 2026-03-25
 
 - Apply AGENTS.md

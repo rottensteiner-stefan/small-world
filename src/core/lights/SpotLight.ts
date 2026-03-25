@@ -6,7 +6,7 @@ import { AbstractLight } from "./AbstractLight.js";
 import { Vector3D } from "../../math/Vector3D.js";
 
 /**
- * Spot light that emits light in a cone shape.
+ * Spotlight that emits light in a cone shape.
  */
 export class SpotLight extends AbstractLight {
   /** @inheritdoc */

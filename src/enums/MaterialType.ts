@@ -16,6 +16,8 @@ export const MaterialType = {
   TERRAIN: "TerrainMaterial",
   /** Material for wireframe rendering. */
   WIREFRAME: "WireframeMaterial",
+  /** Material for sprites. */
+  SPRITE: "SpriteMaterial",
 } as const;
 
 /** Type definition for MaterialType. */
