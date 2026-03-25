@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.11.11] - 2026-03-25
+- Apply AGENTS.md
+- Start with nice 2D features
+- Reorganize code
+
 ## [0.11.10] - 2026-03-25
 
 - AI-based rework III

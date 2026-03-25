@@ -350,6 +350,8 @@ export declare class Camera implements CameraInterfaceData {
     /** @inheritdoc */
     updateViewMatrix(): void;
     /** @inheritdoc */
+    get strategy(): CameraStrategy;
+    /** @inheritdoc */
     setStrategy(type: CameraStrategyType): void;
     /** @inheritdoc */
     get activeStrategyType(): string;
@@ -358,6 +360,8 @@ export declare class Camera implements CameraInterfaceData {
 }
 
 export declare interface CameraInterfaceData {
+    /** Die aktuell genutzte Kamera-Strategie */
+    readonly strategy: CameraStrategy;
     /** Position der Kamera in der Welt */
     position: Vector3D;
     /** Punkt, auf den die Kamera schaut */
