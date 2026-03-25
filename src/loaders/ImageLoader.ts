@@ -14,9 +14,12 @@ export class ImageLoader extends AbstractLoader<ImageBitmap | HTMLImageElement> 
     this.dispatchEvent(EventType.LOADER_START, { url: fullUrl });
 
     try {
-      const image: ImageBitmap | HTMLImageElement = await AssetManager.loadImage(fullUrl, (loaded: number, total: number) => {
-        this.dispatchEvent(EventType.LOADER_PROGRESS, { url: fullUrl, loaded, total });
-      });
+      const image: ImageBitmap | HTMLImageElement = await AssetManager.loadImage(
+        fullUrl,
+        (loaded: number, total: number) => {
+          this.dispatchEvent(EventType.LOADER_PROGRESS, { url: fullUrl, loaded, total });
+        },
+      );
 
       this.dispatchEvent(EventType.LOADER_END, { url: fullUrl, data: image });
       return image;

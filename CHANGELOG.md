@@ -1,6 +1,7 @@
 # Changelog
 
 ## [0.11.10] - 2026-03-25
+
 - AI-based rework III
 - Extend AGENTS.md
 - Extend terrain generation

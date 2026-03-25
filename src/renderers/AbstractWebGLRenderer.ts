@@ -58,7 +58,7 @@ export abstract class AbstractWebGLRenderer extends AbstractRenderer {
   }
 
   // Baut die weißen/blauen Fallback-Texturen
-  protected initDefaultTextures() {
+  protected initDefaultTextures(): void {
     this.defaultTexture = this.gl.createTexture()!;
     this.gl.bindTexture(this.gl.TEXTURE_2D, this.defaultTexture);
     this.gl.texImage2D(

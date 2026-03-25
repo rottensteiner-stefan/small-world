@@ -18,7 +18,7 @@ export class MtlLoader extends AbstractLoader<Map<string, PhongMaterial>> {
       });
 
       const folderPath = fullUrl.substring(0, fullUrl.lastIndexOf("/") + 1);
-      const materials = await this.parse(text, folderPath);
+      const materials = await this._parse(text, folderPath);
 
       this.dispatchEvent(EventType.LOADER_END, { url: fullUrl, data: materials });
       return materials;
@@ -28,7 +28,7 @@ export class MtlLoader extends AbstractLoader<Map<string, PhongMaterial>> {
     }
   }
 
-  private async parse(text: string, folderPath: string): Promise<Map<string, PhongMaterial>> {
+  private async _parse(text: string, folderPath: string): Promise<Map<string, PhongMaterial>> {
     const materials = new Map<string, PhongMaterial>();
     let currentMat: PhongMaterial | null = null;
 

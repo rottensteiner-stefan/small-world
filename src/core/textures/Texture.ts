@@ -59,20 +59,25 @@ export class Texture {
    * @returns A promise that resolves to a new Texture instance.
    */
   public static async fromUrl(url: string): Promise<Texture> {
-    return new Promise((resolve: (value: Texture | PromiseLike<Texture>) => void, reject: (reason?: unknown) => void) => {
-      const img: HTMLImageElement = new Image();
-      img.crossOrigin = "anonymous";
+    return new Promise(
+      (
+        resolve: (value: Texture | PromiseLike<Texture>) => void,
+        reject: (reason?: unknown) => void,
+      ) => {
+        const img: HTMLImageElement = new Image();
+        img.crossOrigin = "anonymous";
 
-      img.onload = (): void => {
-        resolve(new Texture(img));
-      };
+        img.onload = (): void => {
+          resolve(new Texture(img));
+        };
 
-      img.onerror = (): void => {
-        console.warn(`TextureLoader: Konnte Bild nicht laden: ${url}`);
-        reject(new Error(`Fehler beim Laden der Textur: ${url}`));
-      };
+        img.onerror = (): void => {
+          console.warn(`TextureLoader: Konnte Bild nicht laden: ${url}`);
+          reject(new Error(`Fehler beim Laden der Textur: ${url}`));
+        };
 
-      img.src = url;
-    });
+        img.src = url;
+      },
+    );
   }
 }

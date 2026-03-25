@@ -16,11 +16,7 @@ export class AmbientLight extends AbstractLight {
    * @param intensity The intensity of the light.
    * @param name The name of the light object.
    */
-  constructor(
-    color: Color = Color.WHITE,
-    intensity: number = 0.2,
-    name: string = "AmbientLight",
-  ) {
+  constructor(color: Color = Color.WHITE, intensity: number = 0.2, name: string = "AmbientLight") {
     super(color, intensity, name);
   }
 }

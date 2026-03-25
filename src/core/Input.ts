@@ -8,7 +8,14 @@ export class Input {
   private static _keys: Map<string, boolean> = new Map<string, boolean>();
 
   /** Mouse state including position and button status. */
-  public static mouse: { x: number; y: number; dx: number; dy: number; left: boolean; right: boolean } = {
+  public static mouse: {
+    x: number;
+    y: number;
+    dx: number;
+    dy: number;
+    left: boolean;
+    right: boolean;
+  } = {
     x: 0,
     y: 0,
     dx: 0,
