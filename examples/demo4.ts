@@ -20,7 +20,7 @@ import { AbstractDemo } from "./AbstractDemo.js";
 const CAR_SPEED = 10.0; // Geschwindigkeit des Autos
 
 export class Demo4 extends AbstractDemo {
-  private targetPos = new Vector3D(0, 0, 0);
+  private _targetPos = new Vector3D(0, 0, 0);
   private _car: Object3D | null = null; // Das Auto-Objekt
   private _terrainManager: TerrainManager | null = null;
 
@@ -105,7 +105,7 @@ export class Demo4 extends AbstractDemo {
     Input.mouse.dx = 0;
     Input.mouse.dy = 0;
 
-    this.camera.update(this.targetPos, dx, dy);
+    this.camera.update(this._targetPos, dx, dy);
 
     // --- WASD Steuerung ---
     if (this._car) {
@@ -127,9 +127,9 @@ export class Demo4 extends AbstractDemo {
 
       // Kamera folgt dem Auto
       // Einfache Verfolgung: Wir setzen das Kamera-Target auf das Auto
-      this.targetPos.copyFrom(this._car.position);
+      this._targetPos.copyFrom(this._car.position);
       // Optional: Kamera-Position sanft nachziehen, aber das macht der CameraStrategyType.SMOOTH schon relativ gut,
-      // wenn wir targetPos aktualisieren.
+      // wenn wir _targetPos aktualisieren.
     }
   }
 

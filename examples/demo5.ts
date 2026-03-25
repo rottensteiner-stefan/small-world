@@ -91,7 +91,7 @@ export class Demo5 extends AbstractDemo {
     if (Input.isPressed(Keys.D)) this._player.position.x += speed * deltaTime;
 
     // Toggle Pixel-Perfect Snapping with 'P'
-    const strategy = (this.camera as any)._strategy;
+    const strategy = this.camera.strategy;
     if (strategy instanceof IsometricStrategy) {
       if (Input.isPressed(Keys.P)) {
         strategy.pixelPerfect = !strategy.pixelPerfect;
@@ -114,7 +114,7 @@ export class Demo5 extends AbstractDemo {
 
   protected override getDebugInfo(): Record<string, string | number> {
     const base = super.getDebugInfo();
-    const strategy = (this.camera as any)._strategy as IsometricStrategy;
+    const strategy = this.camera.strategy as IsometricStrategy;
     return {
       ...base,
       Demo: "05 - Isometric 2D/3D",

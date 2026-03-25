@@ -66,7 +66,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
     size: WebGLUniformLocation | null;
   }[] = [];
 
-  public async initialize(canvas: HTMLCanvasElement) {
+  public async initialize(canvas: HTMLCanvasElement): Promise<void> {
     this.gl = (canvas.getContext("webgl", { antialias: true }) ||
       canvas.getContext("experimental-webgl")) as WebGLRenderingContext;
 
@@ -289,7 +289,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
     }
     if (this._locs.numAL) this.gl.uniform1i(this._locs.numAL, aLights.length);
     for (let i = 0; i < aLights.length; i++) {
-      const al = aLights[i] as any;
+      const al = aLights[i] as AreaLight;
       const mat = al.worldMatrix.data;
       if (this._areaLightLocs[i]?.pos)
         this.gl.uniform3f(this._areaLightLocs[i]!.pos!, mat[12]!, mat[13]!, mat[14]!);
