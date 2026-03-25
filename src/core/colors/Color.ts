@@ -1,4 +1,5 @@
 /// src/core/colors/Color.ts
+
 /**
  * Represents an RGBA color.
  */

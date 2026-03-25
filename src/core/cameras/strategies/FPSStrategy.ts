@@ -1,4 +1,5 @@
 /// src/core/cameras/strategies/FPSStrategy.ts
+
 import { CameraConstraints, CameraStrategy } from "../../../interfaces/index.js";
 import { Camera } from "../../Camera.js";
 import { CameraStrategyType } from "../../../enums/index.js";

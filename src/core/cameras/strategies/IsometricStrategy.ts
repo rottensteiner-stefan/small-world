@@ -1,4 +1,5 @@
 /// src/core/cameras/strategies/IsometricStrategy.ts
+
 import { CameraConstraints, CameraStrategy } from "../../../interfaces/index.js";
 import { CameraInterfaceData } from "../../../interfaces/index.js";
 import { Camera } from "../../Camera.js";
