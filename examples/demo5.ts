@@ -14,7 +14,7 @@ import {
   Vector3D,
 } from "../src/index.js";
 import { AbstractDemo } from "./AbstractDemo.js";
-import { IsometricStrategy } from "../src/core/cameras/strategies/IsometricStrategy.js";
+import { IsometricStrategy } from "../src/index.js";
 
 /**
  * Demo 5: Introduction to 2D elements and Isometric Camera.
