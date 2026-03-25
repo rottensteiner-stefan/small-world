@@ -1,5 +1,5 @@
 /// src/core/cameras/strategies/IsometricStrategy.ts
-import { CameraStrategy } from "../../../interfaces/index.js";
+import { CameraConstraints, CameraStrategy } from "../../../interfaces/index.js";
 import { CameraInterfaceData } from "../../../interfaces/index.js";
 import { Camera } from "../../Camera.js";
 import { Vector3D } from "../../../math/Vector3D.js";
@@ -21,6 +21,9 @@ export class IsometricStrategy implements CameraStrategy {
   /** The zoom level (world units per screen unit). */
   public zoom: number = 50;
 
+  /** Optional constraints for the camera. */
+  public constraints?: CameraConstraints;
+
   /**
    * Updates the camera position and target.
    * @param camera The camera to update.
@@ -34,6 +37,22 @@ export class IsometricStrategy implements CameraStrategy {
       return;
     }
 
+    // Apply constraints to targetPos clone to not affect the source object
+    const constrainedTarget: Vector3D = targetPos.clone();
+    if (this.constraints) {
+      if (this.constraints.min && this.constraints.max) {
+        constrainedTarget.clamp(this.constraints.min, this.constraints.max);
+      } else if (this.constraints.min) {
+        constrainedTarget.x = Math.max(this.constraints.min.x, constrainedTarget.x);
+        constrainedTarget.y = Math.max(this.constraints.min.y, constrainedTarget.y);
+        constrainedTarget.z = Math.max(this.constraints.min.z, constrainedTarget.z);
+      } else if (this.constraints.max) {
+        constrainedTarget.x = Math.min(this.constraints.max.x, constrainedTarget.x);
+        constrainedTarget.y = Math.min(this.constraints.max.y, constrainedTarget.y);
+        constrainedTarget.z = Math.min(this.constraints.max.z, constrainedTarget.z);
+      }
+    }
+
     // Standard isometric angles
     // Rotation around Y: 45 degrees
     // Rotation around X (pitch): Math.asin(Math.tan(30 * Math.PI / 180)) approx 35.264 degrees
@@ -44,9 +63,9 @@ export class IsometricStrategy implements CameraStrategy {
     const distance: number = 100;
 
     // Calculate position based on angles
-    let posX: number = targetPos.x + distance * Math.sin(angleY) * Math.cos(angleX);
-    let posY: number = targetPos.y + distance * Math.sin(angleX);
-    let posZ: number = targetPos.z + distance * Math.cos(angleY) * Math.cos(angleX);
+    let posX: number = constrainedTarget.x + distance * Math.sin(angleY) * Math.cos(angleX);
+    let posY: number = constrainedTarget.y + distance * Math.sin(angleX);
+    let posZ: number = constrainedTarget.z + distance * Math.cos(angleY) * Math.cos(angleX);
 
     if (this.pixelPerfect) {
       posX = Math.round(posX * this.zoom) / this.zoom;
@@ -55,7 +74,7 @@ export class IsometricStrategy implements CameraStrategy {
     }
 
     camera.position.set(posX, posY, posZ);
-    camera.target.copyFrom(targetPos);
+    camera.target.copyFrom(constrainedTarget);
 
     // Update projection based on zoom
     const proj: OrthographicProjection = camera.projection;

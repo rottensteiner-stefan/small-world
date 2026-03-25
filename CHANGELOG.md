@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.11.13] - 2026-03-26
+
+- Implement camera constraints
+
 ## [0.11.12] - 2026-03-26
 
 - Implement Sprite and SpriteMaterial
