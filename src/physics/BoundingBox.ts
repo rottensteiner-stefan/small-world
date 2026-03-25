@@ -11,6 +11,8 @@ export class BoundingBox implements BoundingVolume {
   /** The broad radius for coarse intersection tests. */
   public broadRadius: number;
 
+  private _center: Vector3D;
+
   /**
    * Creates a new BoundingBox.
    * @param min The minimum coordinates.
@@ -20,13 +22,71 @@ export class BoundingBox implements BoundingVolume {
     public min: Vector3D,
     public max: Vector3D,
   ) {
-    const size: Vector3D = max.clone().sub(min);
-    this.broadRadius = size.length() / 2;
+    const sizeX: number = max.x - min.x;
+    const sizeY: number = max.y - min.y;
+    const sizeZ: number = max.z - min.z;
+    this.broadRadius = Math.sqrt(sizeX * sizeX + sizeY * sizeY + sizeZ * sizeZ) * 0.5;
+    this._center = new Vector3D(
+      (min.x + max.x) * 0.5,
+      (min.y + max.y) * 0.5,
+      (min.z + max.z) * 0.5,
+    );
+  }
+
+  /**
+   * Checks if this bounding box contains a point.
+   * @param point The point to check.
+   * @returns True if the point is inside the bounding box.
+   */
+  public containsPoint(point: Vector3D): boolean {
+    return (
+      point.x >= this.min.x &&
+      point.x <= this.max.x &&
+      point.y >= this.min.y &&
+      point.y <= this.max.y &&
+      point.z >= this.min.z &&
+      point.z <= this.max.z
+    );
+  }
+
+  /**
+   * Checks if this bounding box contains another bounding box.
+   * @param other The other bounding box.
+   * @returns True if the other bounding box is completely inside this one.
+   */
+  public containsBox(other: BoundingBox): boolean {
+    return (
+      this.min.x <= other.min.x &&
+      this.max.x >= other.max.x &&
+      this.min.y <= other.min.y &&
+      this.max.y >= other.max.y &&
+      this.min.z <= other.min.z &&
+      this.max.z >= other.max.z
+    );
+  }
+
+  /**
+   * Checks if this bounding box intersects with another bounding box.
+   * @param other The other bounding box.
+   * @returns True if the bounding boxes intersect.
+   */
+  public intersectsBox(other: BoundingBox): boolean {
+    return (
+      this.min.x <= other.max.x &&
+      this.max.x >= other.min.x &&
+      this.min.y <= other.max.y &&
+      this.max.y >= other.min.y &&
+      this.min.z <= other.max.z &&
+      this.max.z >= other.min.z
+    );
   }
 
   /** @inheritdoc */
   public get center(): Vector3D {
-    return this.min.clone().add(this.max).scale(0.5);
+    this._center.x = (this.min.x + this.max.x) * 0.5;
+    this._center.y = (this.min.y + this.max.y) * 0.5;
+    this._center.z = (this.min.z + this.max.z) * 0.5;
+    return this._center;
   }
 
   /** @inheritdoc */

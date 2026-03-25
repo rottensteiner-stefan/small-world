@@ -19,6 +19,24 @@ export class FrustumCuller {
    */
   public static cull(scene: Scene, vpMatrix: Matrix4): number {
     this._frustum.setFromMatrix(vpMatrix);
+
+    if (scene.octree) {
+      for (const obj of scene.objects) {
+        this._resetVisibility(obj);
+      }
+
+      const visibleObjects: Object3D[] = scene.octree.query(this._frustum);
+      for (const obj of visibleObjects) {
+        obj.isVisible = true;
+      }
+
+      let count: number = 0;
+      for (const obj of scene.objects) {
+        count += this._countVisible(obj);
+      }
+      return count;
+    }
+
     let visibleCount: number = 0;
 
     for (const obj of scene.objects) {
@@ -26,6 +44,36 @@ export class FrustumCuller {
     }
 
     return visibleCount;
+  }
+
+  /**
+   * Resets the visibility of an object and its children.
+   * @param obj The object to reset.
+   * @private
+   */
+  private static _resetVisibility(obj: Object3D): void {
+    if (obj.frustumCulled && obj.bounds) {
+      obj.isVisible = false;
+    } else {
+      obj.isVisible = true;
+    }
+
+    for (const child of obj.children) {
+      this._resetVisibility(child);
+    }
+  }
+
+  /**
+   * Counts the visible objects in a hierarchy.
+   * @param obj The object to count.
+   * @private
+   */
+  private static _countVisible(obj: Object3D): number {
+    let count: number = obj.isVisible ? 1 : 0;
+    for (const child of obj.children) {
+      count += this._countVisible(child);
+    }
+    return count;
   }
 
   /**
