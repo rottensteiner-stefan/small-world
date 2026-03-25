@@ -351,7 +351,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     this.gl.useProgram(this._skyProg);
     if (this._skyLocs.vp) this.gl.uniformMatrix4fv(this._skyLocs.vp, false, vp);
 
-    const drawSkybox = (o: Object3D) => {
+    const drawSkybox = (o: Object3D): void => {
       if (!o.isVisible || !o.material) return;
       if (o.geometry && o.material.type === MaterialType.SKYBOX) {
         const skyMat = o.material as SkyboxMaterial;
@@ -465,7 +465,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       if (loc.size) this.gl.uniform2f(loc.size!, al.width / 2.0, al.height / 2.0);
     }
 
-    const drawNormal = (o: Object3D) => {
+    const drawNormal = (o: Object3D): void => {
       // 1. Ist das Objekt (und damit alles, was an ihm hängt) unsichtbar? -> Abbruch
       if (!o.isVisible) return;
 

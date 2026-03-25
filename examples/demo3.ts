@@ -17,7 +17,7 @@ import { AbstractDemo } from "./AbstractDemo.js";
 
 class Demo3 extends AbstractDemo {
   // Der Punkt, um den sich die Kamera dreht (Zentrum des Modells)
-  private targetPos = new Vector3D();
+  private _targetPos = new Vector3D();
 
   protected async setupScene(): Promise<void> {
     Input.init();
@@ -89,7 +89,7 @@ class Demo3 extends AbstractDemo {
     Input.mouse.dy = 0;
 
     // Kamera-Orbit aktualisieren
-    this.camera.update(this.targetPos, dx, dy);
+    this.camera.update(this._targetPos, dx, dy);
   }
 }
 

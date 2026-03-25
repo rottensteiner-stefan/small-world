@@ -12,7 +12,7 @@ import {
 import { AbstractDemo } from "./AbstractDemo.js";
 
 class Demo1 extends AbstractDemo {
-  private myCube!: Object3D;
+  private _myCube!: Object3D;
 
   protected async setupScene(): Promise<void> {
     console.log("=== LEVEL 1: SETUP GESTARTET ===");
@@ -38,16 +38,16 @@ class Demo1 extends AbstractDemo {
     console.log("[DEBUG] Sonne hinzugefügt.");
 
     // 2. Objekt: Ein einzelner Würfel
-    this.myCube = new Object3D("RotatingCube");
-    this.myCube.geometry = new Cube(2).getGeometryData();
+    this._myCube = new Object3D("RotatingCube");
+    this._myCube.geometry = new Cube(2).getGeometryData();
 
     // 3. Material: Leuchtendes Blau
     const blueMat = new PhongMaterial();
     blueMat.color = Color.DODGERBLUE;
     blueMat.shininess = 60;
-    this.myCube.material = blueMat;
+    this._myCube.material = blueMat;
 
-    this.scene.add(this.myCube);
+    this.scene.add(this._myCube);
     console.log("[DEBUG] Würfel generiert und der Szene hinzugefügt.");
 
     // 4. Kamera starr positionieren (schaut standardmäßig auf 0,0,0)
@@ -61,8 +61,8 @@ class Demo1 extends AbstractDemo {
 
   protected update(deltaTime: number): void {
     // Den Würfel jeden Frame um alle Achsen drehen lassen
-    this.myCube.rotation.x += 1.0 * deltaTime;
-    this.myCube.rotation.y += 1.5 * deltaTime;
+    this._myCube.rotation.x += 1.0 * deltaTime;
+    this._myCube.rotation.y += 1.5 * deltaTime;
 
     // Den Aufruf von this.scene.update() haben wir hier komplett gelöscht!
   }

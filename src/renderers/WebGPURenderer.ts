@@ -344,7 +344,10 @@ export class WebGPURenderer extends AbstractRenderer {
   private _getGeoCache(geo: GeometryData): WebGPUGeoCache {
     let c = this._geoCache.get(geo);
     if (!c) {
-      const createBuf = (data: Float32Array | Uint16Array | Uint32Array, usage: number) => {
+      const createBuf = (
+        data: Float32Array | Uint16Array | Uint32Array,
+        usage: number,
+      ): GPUBuffer => {
         const b = this._device!.createBuffer({
           size: (data.byteLength + 3) & ~3,
           usage,

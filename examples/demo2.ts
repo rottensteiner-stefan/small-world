@@ -17,8 +17,8 @@ import {
 import { AbstractDemo } from "./AbstractDemo.js";
 
 class Demo2 extends AbstractDemo {
-  private playerPos = new Vector3D(0, 1, 0);
-  private speed = 15.0;
+  private _playerPos = new Vector3D(0, 1, 0);
+  private _speed = 15.0;
 
   protected async setupScene(): Promise<void> {
     Input.init();
@@ -72,8 +72,8 @@ class Demo2 extends AbstractDemo {
     const dirX = moveX * cos + moveZ * sin;
     const dirZ = -moveX * sin + moveZ * cos;
 
-    this.playerPos.x += dirX * this.speed * deltaTime;
-    this.playerPos.z += dirZ * this.speed * deltaTime;
+    this._playerPos.x += dirX * this._speed * deltaTime;
+    this._playerPos.z += dirZ * this._speed * deltaTime;
 
     let dx = 0;
     let dy = 0;
@@ -86,7 +86,7 @@ class Demo2 extends AbstractDemo {
     Input.mouse.dx = 0;
     Input.mouse.dy = 0;
 
-    this.camera.update(this.playerPos, dx, dy);
+    this.camera.update(this._playerPos, dx, dy);
   }
 }
 

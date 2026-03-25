@@ -68,6 +68,11 @@ export class Camera implements CameraInterfaceData {
   }
 
   /** @inheritdoc */
+  public get strategy(): CameraStrategy {
+    return this._strategy;
+  }
+
+  /** @inheritdoc */
   public setStrategy(type: CameraStrategyType): void {
     this._strategy = CameraStrategyFactory.get(type);
   }

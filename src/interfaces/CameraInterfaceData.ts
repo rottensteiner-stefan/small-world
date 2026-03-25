@@ -2,8 +2,11 @@
 import { AbstractProjection } from "../math/projections/AbstractProjection.js";
 import { CameraStrategyType } from "../enums/CameraStrategyType.js";
 import { Vector3D } from "../math/Vector3D.js";
+import { CameraStrategy } from "./CameraStrategy.js";
 
 export interface CameraInterfaceData {
+  /** Die aktuell genutzte Kamera-Strategie */
+  readonly strategy: CameraStrategy;
   /** Position der Kamera in der Welt */
   position: Vector3D;
   /** Punkt, auf den die Kamera schaut */
