@@ -1,15 +1,17 @@
 # Small World Engine
 
-**Small World** ist eine leichtgewichtige, modulare 3D-Game-Engine für den Browser, entwickelt in TypeScript. Sie bietet eine einfache API, um 3D-Szenen, Kameras, Lichter und Geometrien zu verwalten und darzustellen.
+**Small World** ist eine leichtgewichtige, modulare 3D-Game-Engine für den Browser, entwickelt in TypeScript. Sie bietet eine einfache API, um 3D-Szenen, Kameras, Lichter und Geometrien zu verwalten und darzustellen – mit speziellem Fokus auf eine flexible Kamera-Steuerung und 2.5D/2D-Features.
 
 ## 🚀 Features
 
-- **Rendering:** Leistungsstarker Renderer (WebGPU-Support vorbereitet) mit Support für Skyboxen und Post-Processing.
-- **Szenen-Management:** Einfacher Szenen-Graph mit `Object3D`-Hierarchien.
-- **Materialien & Licht:** Unterstützung für Standard-Materialien (Phong, Lambert, Wireframe) und diverse Lichtquellen (Ambient, Directional, Point, Spot, Area).
-- **Geometrie:** Integrierte Primitive (Würfel, Kugel, Pyramide, Torus, etc.) und Terrain-Generierung.
+- **Rendering:** Leistungsstarker Renderer (WebGL 1/2 und WebGPU) mit Support für Skyboxen, Sprites und Post-Processing.
+- **Szenen-Management:** Strukturierter Szenen-Graph mit `Object3D`-Hierarchien.
+- **Materialien & Licht:** Unterstützung für Standard-Materialien (Phong, Lambert, Wireframe, SpriteMaterial) und diverse Lichtquellen (Ambient, Directional, Point, Spot, Area).
+- **Kamera-System:** Flexible Kamera-Strategien (Smooth, Stiff, Fixed, FPS, Isometric) mit optionalen Constraints (Min/Max-Grenzen).
+- **2D/2.5D Support:** Integriertes Sprite-System, Billboard-Rendering und Isometrische Kamera-Perspektiven.
+- **Geometrie:** Integrierte Primitive (Würfel, Kugel, Pyramide, Torus, Ebene etc.) und Terrain-Generierung.
 - **Loader:** Eingebaute Loader für OBJ-Modelle, Texturen und Shader.
-- **Mathematik:** Eigene Implementierung für Vektoren (`Vector3D`) und Matrizen (`Matrix4`).
+- **Mathematik:** Eigene Implementierung für Vektoren (`Vector3D`), Matrizen (`Matrix4`) und diverse Projektionsarten.
 
 ## 📦 Installation
 
@@ -21,39 +23,48 @@ npm install smallworld-engine
 
 ## 🎮 Verwendung
 
-Die Engine wird über die Klasse `SmallWorld` initialisiert. Sie benötigt eine Konfiguration (meist eine JSON-Datei), die den Canvas und Render-Einstellungen definiert.
+Die Engine bietet eine `Application`-Basisklasse, die den Loop und die Initialisierung übernimmt.
 
-### 1. Konfiguration (`world-config.json`)
+### 1. Konfiguration (`small-world.json`)
+
+Die Konfiguration wird standardmäßig unter `/config/small-world.json` gesucht.
 
 ```json
 {
   "canvasId": "render-canvas",
-  "rendererType": "webgpu",
-  "skyColor": "#202020",
-  "debug": true,
-  "showHUD": true
+  "renderer": "webgpu",
+  "projection": "perspective",
+  "fullscreen": true
 }
 ```
 
 ### 2. Code-Beispiel
 
 ```typescript
-import { SmallWorld, Scene, Cube, Vector3D } from "smallworld-engine";
+import { Application, Cube, Vector3D, Color } from "smallworld-engine";
 
-// 1. Engine Instanz erzeugen
-const engine = new SmallWorld();
+class MyGame extends Application {
+  protected async setupScene(): Promise<void> {
+    // 1. Objekt erstellen
+    const cube = new Cube(2);
+    cube.position.set(0, 1, 0);
+    
+    // 2. Zur Szene hinzufügen
+    this.scene.add(cube);
+    
+    // 3. Kamera einstellen
+    this.camera.position.set(5, 5, 5);
+    this.camera.target.set(0, 0, 0);
+  }
 
-async function main() {
-  // 2. Initialisieren
-  await engine.init("./world-config.json");
-
-  // 3. Zugriff auf die aktive Szene (wird vom Renderer verwaltet oder manuell erstellt)
-  // Hinweis: Die genaue Szenen-API hängt von der Implementierung in deiner 'main' ab.
-
-  console.log("Small World Engine gestartet!");
+  protected update(deltaTime: number): void {
+    // Spiellogik pro Frame
+  }
 }
 
-main();
+// Starten
+const game = new MyGame({ canvasId: "render-canvas" });
+game.start();
 ```
 
 ## 🛠 Entwicklung
@@ -79,8 +90,10 @@ Um am Projekt selbst zu arbeiten:
 
 ## 📂 Struktur
 
-- `src/core`: Kernklassen (Engine, Renderer-Interface, Events).
-- `src/geometry`: Geometrische Formen (Mesh-Daten).
-- `src/materials`: Shader-Konfigurationen und Material-Eigenschaften.
-- `src/math`: Mathematische Hilfsfunktionen.
-- `src/loaders`: Import-Logik für Assets.
+- `src/core`: Kernklassen (Engine, Application, Kamera, Renderer-Interface).
+- `src/geometry`: Geometrische Formen und Primitive.
+- `src/materials`: Shader-Definitionen und Material-Eigenschaften.
+- `src/math`: Mathematische Hilfsfunktionen, Vektoren und Projektionen.
+- `src/loaders`: Asset-Loader (OBJ, Texturen, JSON).
+- `src/renderers`: Implementierungen der WebGL/WebGPU Renderer.
+- `src/physics`: Kollisionserkennung und Bounding-Volumes.
