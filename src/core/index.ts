@@ -11,7 +11,7 @@ export * from "./Object3D.js";
 export * from "./Scene.js";
 export * from "./Skybox.js";
 export * from "./SmallWorld.js";
-
+export * from "./cameras/strategies/IsometricStrategy.js";
 export * from "./colors/index.js";
 export * from "./events/index.js";
 export * from "./lights/index.js";

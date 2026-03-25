@@ -8,11 +8,12 @@ export class Input {
   private static _keys: Map<string, boolean> = new Map<string, boolean>();
 
   /** Mouse state including position and button status. */
-  public static mouse: { x: number; y: number; dx: number; dy: number; right: boolean } = {
+  public static mouse: { x: number; y: number; dx: number; dy: number; left: boolean; right: boolean } = {
     x: 0,
     y: 0,
     dx: 0,
     dy: 0,
+    left: false,
     right: false,
   };
 
@@ -28,16 +29,24 @@ export class Input {
     window.addEventListener("keydown", (e: KeyboardEvent) => this._keys.set(e.code, true));
     window.addEventListener("keyup", (e: KeyboardEvent) => this._keys.set(e.code, false));
     window.addEventListener("mousedown", (e: MouseEvent) => {
+      if (e.button === 0) {
+        this.mouse.left = true;
+      }
       if (e.button === 2) {
         this.mouse.right = true;
       }
     });
     window.addEventListener("mouseup", (e: MouseEvent) => {
+      if (e.button === 0) {
+        this.mouse.left = false;
+      }
       if (e.button === 2) {
         this.mouse.right = false;
       }
     });
     window.addEventListener("mousemove", (e: MouseEvent) => {
+      this.mouse.x = e.clientX;
+      this.mouse.y = e.clientY;
       this.mouse.dx += e.movementX;
       this.mouse.dy += e.movementY;
     });

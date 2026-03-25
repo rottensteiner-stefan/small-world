@@ -29,7 +29,6 @@ export class AssetManager {
       if (done) break;
       if (value) {
         loaded += value.length;
-        // @ts-expect-error Potential undefined Until we know exactly how to fix it
         chunks.push(value as Uint8Array);
         onProgress(loaded, total);
       }

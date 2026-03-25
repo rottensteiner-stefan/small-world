@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SmallWorld Engine - Demo 4: Terrain & Auto</title>
+    <title>SmallWorld Engine - Demo 5: Isometrische Kamera & 2D</title>
     <style>
       /* Resets für Fullscreen-Canvas */
       body,
@@ -32,21 +32,18 @@
         user-select: none;
       }
     </style>
-    <script type="module" crossorigin src="/examples/demo4/demo.js"></script>
-    <link rel="modulepreload" crossorigin href="/js/AbstractDemo.js">
-    <link rel="modulepreload" crossorigin href="/js/Keys.js">
-    <link rel="modulepreload" crossorigin href="/js/Input.js">
-    <link rel="modulepreload" crossorigin href="/js/ObjLoader.js">
-    <link rel="modulepreload" crossorigin href="/js/AmbientLight.js">
   </head>
   <body>
     <div id="overlay">
-      <h2>Demo 4: Terrain & Auto</h2>
-      <p>🖱️ <b>Klick</b>: Kamera steuern (PointerLock)</p>
+      <h2>Demo 5: Isometrische Kamera & 2D</h2>
+      <p>⌨️ <b>WASD</b>: Bewegen auf dem Raster</p>
+      <p>🖱️ <b>Klick</b>: Gehe zu Ziel (Screen-to-World Mapping)</p>
+      <p>⌨️ <b>Taste 'P'</b>: Pixel-Perfect Snapping Ein/Aus</p>
       <p>⌨️ <b>Taste 'I'</b>: Debug-Infos in Konsole</p>
     </div>
 
     <canvas id="SmallWorld"></canvas>
 
+    <script type="module" src="./demo5.ts"></script>
   </body>
 </html>

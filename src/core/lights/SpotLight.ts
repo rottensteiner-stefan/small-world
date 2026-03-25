@@ -22,6 +22,7 @@ export class SpotLight extends AbstractLight {
    * @param angle The angle of the light cone in radians.
    * @param penumbra The penumbra factor (0-1).
    * @param decay The decay factor of the light.
+   * @param name The name of the light object.
    */
   constructor(
     color: Color = Color.WHITE,
@@ -30,7 +31,8 @@ export class SpotLight extends AbstractLight {
     public angle: number = Math.PI / 6,
     public penumbra: number = 0.5,
     public decay: number = 2.0,
+    name: string = "SpotLight",
   ) {
-    super(color, intensity, "SpotLight");
+    super(color, intensity, name);
   }
 }
