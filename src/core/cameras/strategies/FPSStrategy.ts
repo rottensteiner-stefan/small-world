@@ -5,33 +5,39 @@ import { Camera } from "../../Camera.js";
 import { CameraStrategyType } from "../../../enums/index.js";
 import { Vector3D } from "../../../math/Vector3D.js";
 
+/**
+ * A first-person camera strategy.
+ */
 export class FPSStrategy implements CameraStrategy {
-  public readonly type = CameraStrategyType.FPS;
-  public heightOffset = 0.5;
+  /** @inheritdoc */
+  public readonly type: string = CameraStrategyType.FPS;
+  /** The height offset from the target position. */
+  public heightOffset: number = 0.5;
+  /** @inheritdoc */
   public constraints?: CameraConstraints;
 
+  /** @inheritdoc */
   public update(camera: Camera, targetPos: Vector3D, dx: number, dy: number): void {
-    if (dx !== 0 || dy !== 0) {
+    if (0 !== dx || 0 !== dy) {
       camera.theta -= dx * 0.005;
       camera.phi += dy * 0.005;
-      const limit = Math.PI / 2 - 0.01;
-      if (camera.phi > limit) camera.phi = limit;
-      if (camera.phi < -limit) camera.phi = -limit;
+      const limit: number = Math.PI / 2 - 0.01;
+      if (limit < camera.phi) camera.phi = limit;
+      if (-limit > camera.phi) camera.phi = -limit;
     }
 
     camera.position.x = targetPos.x;
     camera.position.y = targetPos.y + this.heightOffset;
     camera.position.z = targetPos.z;
 
-    // Apply constraints to position in FPS mode
-    if (this.constraints) {
-      if (this.constraints.min && this.constraints.max) {
+    if (undefined !== this.constraints) {
+      if (undefined !== this.constraints.min && undefined !== this.constraints.max) {
         camera.position.clamp(this.constraints.min, this.constraints.max);
-      } else if (this.constraints.min) {
+      } else if (undefined !== this.constraints.min) {
         camera.position.x = Math.max(this.constraints.min.x, camera.position.x);
         camera.position.y = Math.max(this.constraints.min.y, camera.position.y);
         camera.position.z = Math.max(this.constraints.min.z, camera.position.z);
-      } else if (this.constraints.max) {
+      } else if (undefined !== this.constraints.max) {
         camera.position.x = Math.min(this.constraints.max.x, camera.position.x);
         camera.position.y = Math.min(this.constraints.max.y, camera.position.y);
         camera.position.z = Math.min(this.constraints.max.z, camera.position.z);

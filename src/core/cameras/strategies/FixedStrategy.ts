@@ -5,23 +5,27 @@ import { CameraStrategyType } from "../../../enums/index.js";
 import { CameraConstraints, CameraStrategy } from "../../../interfaces/index.js";
 import { Vector3D } from "../../../math/Vector3D.js";
 
+/**
+ * A camera strategy where the camera remains at a fixed position but looks at a target.
+ */
 export class FixedStrategy implements CameraStrategy {
-  public readonly type = CameraStrategyType.FIXED;
+  /** @inheritdoc */
+  public readonly type: string = CameraStrategyType.FIXED;
+  /** @inheritdoc */
   public constraints?: CameraConstraints;
 
+  /** @inheritdoc */
   public update(camera: Camera, targetPos: Vector3D, _dx: number, _dy: number): void {
-    // Die Kamera bewegt sich nicht, sie schaut nur dem Spieler hinterher.
     camera.target.copyFrom(targetPos);
 
-    // Apply constraints to target
-    if (this.constraints) {
-      if (this.constraints.min && this.constraints.max) {
+    if (undefined !== this.constraints) {
+      if (undefined !== this.constraints.min && undefined !== this.constraints.max) {
         camera.target.clamp(this.constraints.min, this.constraints.max);
-      } else if (this.constraints.min) {
+      } else if (undefined !== this.constraints.min) {
         camera.target.x = Math.max(this.constraints.min.x, camera.target.x);
         camera.target.y = Math.max(this.constraints.min.y, camera.target.y);
         camera.target.z = Math.max(this.constraints.min.z, camera.target.z);
-      } else if (this.constraints.max) {
+      } else if (undefined !== this.constraints.max) {
         camera.target.x = Math.min(this.constraints.max.x, camera.target.x);
         camera.target.y = Math.min(this.constraints.max.y, camera.target.y);
         camera.target.z = Math.min(this.constraints.max.z, camera.target.z);

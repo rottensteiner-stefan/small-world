@@ -37,18 +37,18 @@ export class Input {
     window.addEventListener("keydown", (e: KeyboardEvent) => this._keys.set(e.code, true));
     window.addEventListener("keyup", (e: KeyboardEvent) => this._keys.set(e.code, false));
     window.addEventListener("mousedown", (e: MouseEvent) => {
-      if (e.button === 0) {
+      if (0 === e.button) {
         this.mouse.left = true;
       }
-      if (e.button === 2) {
+      if (2 === e.button) {
         this.mouse.right = true;
       }
     });
     window.addEventListener("mouseup", (e: MouseEvent) => {
-      if (e.button === 0) {
+      if (0 === e.button) {
         this.mouse.left = false;
       }
-      if (e.button === 2) {
+      if (2 === e.button) {
         this.mouse.right = false;
       }
     });
@@ -61,7 +61,7 @@ export class Input {
     window.addEventListener("contextmenu", (e: MouseEvent) => e.preventDefault());
 
     document.addEventListener("pointerlockchange", () => {
-      this.isPointerLocked = document.pointerLockElement !== null;
+      this.isPointerLocked = undefined !== document.pointerLockElement;
     });
   }
 

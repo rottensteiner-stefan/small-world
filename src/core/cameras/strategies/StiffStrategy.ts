@@ -5,31 +5,37 @@ import { CameraStrategyType } from "../../../enums/index.js";
 import { CameraConstraints, CameraStrategy } from "../../../interfaces/index.js";
 import { Vector3D } from "../../../math/Vector3D.js";
 
+/**
+ * A camera strategy that rigidly follows a target.
+ */
 export class StiffStrategy implements CameraStrategy {
-  public readonly type = CameraStrategyType.STIFF;
-  public radius = 20;
+  /** @inheritdoc */
+  public readonly type: string = CameraStrategyType.STIFF;
+  /** The radius of the camera from the target. */
+  public radius: number = 20;
+  /** @inheritdoc */
   public constraints?: CameraConstraints;
 
+  /** @inheritdoc */
   public update(camera: Camera, targetPos: Vector3D, dx: number, dy: number): void {
-    if (dx !== 0 || dy !== 0) {
+    if (0 !== dx || 0 !== dy) {
       camera.theta -= dx * 0.005;
       camera.phi += dy * 0.005;
-      const limit = Math.PI / 2 - 0.01;
-      if (camera.phi > limit) camera.phi = limit;
-      if (camera.phi < -limit) camera.phi = -limit;
+      const limit: number = Math.PI / 2 - 0.01;
+      if (limit < camera.phi) camera.phi = limit;
+      if (-limit > camera.phi) camera.phi = -limit;
     }
 
     camera.target.copyFrom(targetPos);
 
-    // Apply constraints to target
-    if (this.constraints) {
-      if (this.constraints.min && this.constraints.max) {
+    if (undefined !== this.constraints) {
+      if (undefined !== this.constraints.min && undefined !== this.constraints.max) {
         camera.target.clamp(this.constraints.min, this.constraints.max);
-      } else if (this.constraints.min) {
+      } else if (undefined !== this.constraints.min) {
         camera.target.x = Math.max(this.constraints.min.x, camera.target.x);
         camera.target.y = Math.max(this.constraints.min.y, camera.target.y);
         camera.target.z = Math.max(this.constraints.min.z, camera.target.z);
-      } else if (this.constraints.max) {
+      } else if (undefined !== this.constraints.max) {
         camera.target.x = Math.min(this.constraints.max.x, camera.target.x);
         camera.target.y = Math.min(this.constraints.max.y, camera.target.y);
         camera.target.z = Math.min(this.constraints.max.z, camera.target.z);

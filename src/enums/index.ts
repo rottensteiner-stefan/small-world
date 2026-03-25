@@ -1,6 +1,7 @@
 /// src/enums/index.ts
 
 export * from "./BoundingType.js";
+export * from "./CameraEffectType.js";
 export * from "./CameraStrategyType.js";
 export * from "./EventType.js";
 export * from "./Keys.js";

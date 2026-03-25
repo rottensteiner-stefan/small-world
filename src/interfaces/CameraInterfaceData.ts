@@ -1,10 +1,11 @@
 /// src/interfaces/CameraInterfaceData.ts
 
 import { AbstractProjection } from "../math/index.js";
-import { CameraStrategyType } from "../enums/index.js";
+import { CameraEffectType, CameraStrategyType } from "../enums/index.js";
 import { Vector3D } from "../math/Vector3D.js";
 import { CameraStrategy } from "./CameraStrategy.js";
 import { CameraConstraints } from "./CameraConstraints.js";
+import { CameraEffect } from "./CameraEffect.js";
 
 export interface CameraInterfaceData {
   /** Die aktuell genutzte Kamera-Strategie */
@@ -40,7 +41,13 @@ export interface CameraInterfaceData {
   setConstraints(constraints?: CameraConstraints): void;
 
   /** Führt die Bewegung und Logik der aktiven Strategie aus */
-  update(targetPos: Vector3D, dx: number, dy: number): void;
+  update(targetPos: Vector3D, dx: number, dy: number, deltaTime?: number): void;
+
+  /** Fügt einen Effekt zur Kamera hinzu */
+  addEffect(effect: CameraEffect): void;
+
+  /** Erstellt und aktiviert einen Effekt über seinen Typ */
+  applyEffect(type: CameraEffectType, intensity?: number, duration?: number): void;
 
   /** Berechnet die Verzerrung (Perspektive oder Orthografisch) neu */
   updateProjectionMatrix(): void;
