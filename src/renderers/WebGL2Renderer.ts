@@ -6,6 +6,7 @@ import {
   CubeTexture,
   PhongMaterial,
   SkyboxMaterial,
+  SpriteMaterial,
   TerrainMaterial,
   Texture,
 } from "../core/index.js";
@@ -347,6 +348,9 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
   public render(scene: Scene, vp: Float32Array, camPos: Vector3D = new Vector3D()): void {
     this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
 
+    this.gl.enable(this.gl.BLEND);
+    this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
+
     // --- PASS 1: Skybox ---
     this.gl.depthMask(false);
     this.gl.useProgram(this._skyProg);
@@ -480,7 +484,54 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         }
         m.bind(this._locs.pos, this._locs.norm, this._locs.uv);
 
-        if (this._locs.model) this.gl.uniformMatrix4fv(this._locs.model, false, o.worldMatrix.data);
+        const modelMatrix: Float32Array = new Float32Array(o.worldMatrix.data);
+
+        // BILLBOARD LOGIC for Sprites
+        if (mat.type === MaterialType.SPRITE) {
+          // Extrahiere die Translation aus der World-Matrix
+          const tx: number = modelMatrix[12]!;
+          const ty: number = modelMatrix[13]!;
+          const tz: number = modelMatrix[14]!;
+
+          // Extrahiere die Skalierung (Länge der Spalten-Vektoren)
+          const sx: number = Math.sqrt(
+            modelMatrix[0]! * modelMatrix[0]! +
+              modelMatrix[1]! * modelMatrix[1]! +
+              modelMatrix[2]! * modelMatrix[2]!,
+          );
+          const sy: number = Math.sqrt(
+            modelMatrix[4]! * modelMatrix[4]! +
+              modelMatrix[5]! * modelMatrix[5]! +
+              modelMatrix[6]! * modelMatrix[6]!,
+          );
+          const sz: number = Math.sqrt(
+            modelMatrix[8]! * modelMatrix[8]! +
+              modelMatrix[9]! * modelMatrix[9]! +
+              modelMatrix[10]! * modelMatrix[10]!,
+          );
+
+          // Setze die Rotations-Anteile auf die Werte der View-Matrix (invertiert)
+          // um das Objekt zur Kamera auszurichten.
+          // Wir nehmen die ersten 3 Spalten der transponierten View-Matrix (die die Ausrichtung der Kamera enthält).
+          modelMatrix[0] = vp[0]! * sx;
+          modelMatrix[1] = vp[4]! * sx;
+          modelMatrix[2] = vp[8]! * sx;
+
+          modelMatrix[4] = vp[1]! * sy;
+          modelMatrix[5] = vp[5]! * sy;
+          modelMatrix[6] = vp[9]! * sy;
+
+          modelMatrix[8] = vp[2]! * sz;
+          modelMatrix[9] = vp[6]! * sz;
+          modelMatrix[10] = vp[10]! * sz;
+
+          // Translation wiederherstellen
+          modelMatrix[12] = tx;
+          modelMatrix[13] = ty;
+          modelMatrix[14] = tz;
+        }
+
+        if (this._locs.model) this.gl.uniformMatrix4fv(this._locs.model, false, modelMatrix);
         if (this._locs.color) this.gl.uniform4fv(this._locs.color, mat.color.toArray());
 
         let shininess = -1.0,
@@ -502,6 +553,14 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
             tOffset = [pMat.diffuseMap.offset.x, pMat.diffuseMap.offset.y];
             tRepeat = [pMat.diffuseMap.repeat.x, pMat.diffuseMap.repeat.y];
           }
+        } else if (mat.type === MaterialType.SPRITE) {
+          const sMat = mat as SpriteMaterial;
+          if (sMat.texture) {
+            activeTex = this._getWebGLTexture(sMat.texture);
+            tOffset = [sMat.texture.offset.x, sMat.texture.offset.y];
+            tRepeat = [sMat.texture.repeat.x, sMat.texture.repeat.y];
+          }
+          shininess = -1.0;
         } else if (mat.type === MaterialType.TERRAIN) {
           isTerrain = 1;
           const tMat = mat as TerrainMaterial;

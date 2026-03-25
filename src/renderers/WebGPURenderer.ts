@@ -1,6 +1,12 @@
 /// src/renderers/WebGPURenderer.ts
 
-import { AreaLight, PhongMaterial, TerrainMaterial, Texture } from "../core/index.js";
+import {
+  AreaLight,
+  PhongMaterial,
+  SpriteMaterial,
+  TerrainMaterial,
+  Texture,
+} from "../core/index.js";
 import { GeometryData } from "../interfaces/index.js";
 import { Object3D } from "../core/Object3D.js";
 import { Scene } from "../core/Scene.js";
@@ -233,7 +239,26 @@ export class WebGPURenderer extends AbstractRenderer {
         module: sm,
         buffers: vertexBuffers,
       },
-      fragment: { module: sm, targets: [{ format: this._format }] },
+      fragment: {
+        module: sm,
+        targets: [
+          {
+            format: this._format,
+            blend: {
+              color: {
+                srcFactor: "src-alpha",
+                dstFactor: "one-minus-src-alpha",
+                operation: "add",
+              },
+              alpha: {
+                srcFactor: "one",
+                dstFactor: "one-minus-src-alpha",
+                operation: "add",
+              },
+            },
+          },
+        ],
+      },
       primitive: { topology: "triangle-list", cullMode: "back" },
       depthStencil: { depthWriteEnabled: true, depthCompare: "less", format: "depth24plus" },
       layout,
@@ -565,6 +590,14 @@ export class WebGPURenderer extends AbstractRenderer {
               tOffset = [pMat.diffuseMap.offset.x, pMat.diffuseMap.offset.y];
               tRepeat = [pMat.diffuseMap.repeat.x, pMat.diffuseMap.repeat.y];
             }
+          } else if (mat.type === MaterialType.SPRITE) {
+            const sMat = mat as SpriteMaterial;
+            if (sMat.texture) {
+              texBindGroup = this._getGPUTextureBindGroup(sMat.texture);
+              tOffset = [sMat.texture.offset.x, sMat.texture.offset.y];
+              tRepeat = [sMat.texture.repeat.x, sMat.texture.repeat.y];
+            }
+            shininess = -1.0;
           } else if (mat.type === MaterialType.TERRAIN) {
             isTerrain = 1.0;
             const tMat = mat as TerrainMaterial;
@@ -575,7 +608,49 @@ export class WebGPURenderer extends AbstractRenderer {
           }
         }
 
-        uData.set(obj.worldMatrix.data, 16);
+        const modelMatrix: Float32Array = new Float32Array(obj.worldMatrix.data);
+
+        // BILLBOARD LOGIC for Sprites
+        if (mat.type === MaterialType.SPRITE) {
+          const tx: number = modelMatrix[12]!;
+          const ty: number = modelMatrix[13]!;
+          const tz: number = modelMatrix[14]!;
+
+          const sx: number = Math.sqrt(
+            modelMatrix[0]! * modelMatrix[0]! +
+              modelMatrix[1]! * modelMatrix[1]! +
+              modelMatrix[2]! * modelMatrix[2]!,
+          );
+          const sy: number = Math.sqrt(
+            modelMatrix[4]! * modelMatrix[4]! +
+              modelMatrix[5]! * modelMatrix[5]! +
+              modelMatrix[6]! * modelMatrix[6]!,
+          );
+          const sz: number = Math.sqrt(
+            modelMatrix[8]! * modelMatrix[8]! +
+              modelMatrix[9]! * modelMatrix[9]! +
+              modelMatrix[10]! * modelMatrix[10]!,
+          );
+
+          const vp: Float32Array = vpMatrix;
+          modelMatrix[0] = vp[0]! * sx;
+          modelMatrix[1] = vp[4]! * sx;
+          modelMatrix[2] = vp[8]! * sx;
+
+          modelMatrix[4] = vp[1]! * sy;
+          modelMatrix[5] = vp[5]! * sy;
+          modelMatrix[6] = vp[9]! * sy;
+
+          modelMatrix[8] = vp[2]! * sz;
+          modelMatrix[9] = vp[6]! * sz;
+          modelMatrix[10] = vp[10]! * sz;
+
+          modelMatrix[12] = tx;
+          modelMatrix[13] = ty;
+          modelMatrix[14] = tz;
+        }
+
+        uData.set(modelMatrix, 16);
         uData.set(mat.color.toArray(), 32);
         uData.set(specCol, 36);
         uData.set(tOffset, 56);
