@@ -1,4 +1,5 @@
 /// src/geometry/Torus.ts
+
 import { AbstractGeometry } from "./AbstractGeometry.js";
 
 /**

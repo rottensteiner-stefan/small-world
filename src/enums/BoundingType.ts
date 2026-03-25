@@ -1,4 +1,5 @@
 /// src/enums/BoundingType.ts
+
 /**
  * Types of bounding volumes.
  */

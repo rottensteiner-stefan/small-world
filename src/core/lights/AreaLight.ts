@@ -1,6 +1,7 @@
 /// src/core/lights/AreaLight.ts
+
 import { Color } from "../colors/Color.js";
-import { LightType } from "../../enums/LightType.js";
+import { LightType } from "../../enums/index.js";
 import { AbstractLight } from "./AbstractLight.js";
 
 export class AreaLight extends AbstractLight {

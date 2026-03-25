@@ -1,4 +1,5 @@
 /// src/core/Scene.ts
+
 import { Object3D } from "./Object3D.js";
 /**
  * A scene that holds a collection of 3D objects.

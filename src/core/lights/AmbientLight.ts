@@ -1,7 +1,8 @@
 /// src/core/lights/AmbientLight.ts
+
 import { AbstractLight } from "./AbstractLight.js";
 import { Color } from "../colors/Color.js";
-import { LightType } from "../../enums/LightType.js";
+import { LightType } from "../../enums/index.js";
 
 /**
  * Ambient light that illuminates all objects in the scene equally.
