@@ -6,17 +6,31 @@ import { AbstractGeometry } from "./AbstractGeometry.js";
  */
 export class Sphere extends AbstractGeometry {
   /**
+   * The radius of the sphere.
+   */
+  public radius: number;
+
+  /**
+   * The number of horizontal segments.
+   */
+  public widthSegments: number;
+
+  /**
+   * The number of vertical segments.
+   */
+  public heightSegments: number;
+
+  /**
    * Creates a new Sphere geometry.
    * @param radius The radius of the sphere.
    * @param widthSegments The number of horizontal segments.
    * @param heightSegments The number of vertical segments.
    */
-  constructor(
-    public radius: number = 1,
-    public widthSegments: number = 16,
-    public heightSegments: number = 12,
-  ) {
+  constructor(radius: number = 1, widthSegments: number = 16, heightSegments: number = 12) {
     super();
+    this.radius = radius;
+    this.widthSegments = widthSegments;
+    this.heightSegments = heightSegments;
     this.generateGeometryData();
   }
 
@@ -29,11 +43,11 @@ export class Sphere extends AbstractGeometry {
     const uv: number[] = [];
     const idx: number[] = [];
 
-    for (let y = 0; y <= this.heightSegments; y++) {
+    for (let y: number = 0; y <= this.heightSegments; y++) {
       const vRatio: number = y / this.heightSegments;
       const phi: number = vRatio * Math.PI;
 
-      for (let x = 0; x <= this.widthSegments; x++) {
+      for (let x: number = 0; x <= this.widthSegments; x++) {
         const uRatio: number = x / this.widthSegments;
         const theta: number = uRatio * Math.PI * 2;
 
@@ -49,8 +63,8 @@ export class Sphere extends AbstractGeometry {
       }
     }
 
-    for (let y = 0; y < this.heightSegments; y++) {
-      for (let x = 0; x < this.widthSegments; x++) {
+    for (let y: number = 0; y < this.heightSegments; y++) {
+      for (let x: number = 0; x < this.widthSegments; x++) {
         const first: number = y * (this.widthSegments + 1) + x;
         const second: number = first + this.widthSegments + 1;
         idx.push(first, second, first + 1);

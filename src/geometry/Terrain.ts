@@ -4,7 +4,13 @@ import { AbstractGeometry } from "./AbstractGeometry.js";
 /**
  * Strategy for extracting height from color data.
  */
-export type TerrainHeightStrategy = (r: number, g: number, b: number, a: number, maxHeight?: number) => number;
+export type TerrainHeightStrategy = (
+  r: number,
+  g: number,
+  b: number,
+  a: number,
+  maxHeight?: number,
+) => number;
 
 /**
  * Built-in terrain height strategies.
@@ -35,6 +41,41 @@ export const TerrainStrategies = {
  */
 export class Terrain extends AbstractGeometry {
   /**
+   * The height data.
+   */
+  public heightData: Float32Array;
+
+  /**
+   * The resolution of the heightmap.
+   */
+  public heightmapResolution: number;
+
+  /**
+   * The width of the terrain.
+   */
+  public width: number;
+
+  /**
+   * The depth of the terrain.
+   */
+  public depth: number;
+
+  /**
+   * The maximum height of the terrain.
+   */
+  public maxHeight: number;
+
+  /**
+   * The number of segments along the width.
+   */
+  public meshWidthSegments: number;
+
+  /**
+   * The number of segments along the depth.
+   */
+  public meshDepthSegments: number;
+
+  /**
    * Protected constructor. Use Terrain.fromHeightData() or Terrain.fromImage() instead.
    * @param heightData The height data.
    * @param heightmapResolution The resolution of the heightmap.
@@ -45,15 +86,22 @@ export class Terrain extends AbstractGeometry {
    * @param meshDepthSegments The number of segments along the depth.
    */
   protected constructor(
-    public heightData: Float32Array,
-    public heightmapResolution: number,
-    public width: number,
-    public depth: number,
-    public maxHeight: number,
-    public meshWidthSegments: number,
-    public meshDepthSegments: number,
+    heightData: Float32Array,
+    heightmapResolution: number,
+    width: number,
+    depth: number,
+    maxHeight: number,
+    meshWidthSegments: number,
+    meshDepthSegments: number,
   ) {
     super();
+    this.heightData = heightData;
+    this.heightmapResolution = heightmapResolution;
+    this.width = width;
+    this.depth = depth;
+    this.maxHeight = maxHeight;
+    this.meshWidthSegments = meshWidthSegments;
+    this.meshDepthSegments = meshDepthSegments;
     // Sicherstellen, dass die Heightmap-Daten quadratisch sind
     if (heightData.length !== heightmapResolution * heightmapResolution) {
       console.warn(
@@ -125,8 +173,8 @@ export class Terrain extends AbstractGeometry {
     const resolution: number = image.width; // Annahme: Quadratisches Bild
     const heightData: Float32Array = new Float32Array(resolution * resolution);
 
-    for (let y = 0; y < resolution; y++) {
-      for (let x = 0; x < resolution; x++) {
+    for (let y: number = 0; y < resolution; y++) {
+      for (let x: number = 0; x < resolution; x++) {
         const index: number = (y * resolution + x) * 4;
         const r: number = imgData[index] ?? 0;
         const g: number = imgData[index + 1] ?? 0;

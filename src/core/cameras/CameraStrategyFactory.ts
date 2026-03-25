@@ -2,12 +2,12 @@
 import { CameraStrategyType } from "../../enums/CameraStrategyType.js";
 import { FixedStrategy } from "./strategies/FixedStrategy.js";
 import { FPSStrategy } from "./strategies/FPSStrategy.js";
-import { CameraStrategyInterface } from "../../interfaces/CameraStrategyInterface.js";
+import { CameraStrategy } from "../../interfaces/CameraStrategy.js";
 import { SmoothStrategy } from "./strategies/SmoothStrategy.js";
 import { StiffStrategy } from "./strategies/StiffStrategy.js";
 import { IsometricStrategy } from "./strategies/IsometricStrategy.js";
 export class CameraStrategyFactory {
-  private static strategies = new Map<CameraStrategyType, CameraStrategyInterface>([
+  private static strategies = new Map<CameraStrategyType, CameraStrategy>([
     [CameraStrategyType.FPS, new FPSStrategy()],
     [CameraStrategyType.SMOOTH, new SmoothStrategy()],
     [CameraStrategyType.STIFF, new StiffStrategy()],
@@ -15,7 +15,7 @@ export class CameraStrategyFactory {
     [CameraStrategyType.ISOMETRIC, new IsometricStrategy()],
   ]);
 
-  public static get(type: CameraStrategyType): CameraStrategyInterface {
+  public static get(type: CameraStrategyType): CameraStrategy {
     return this.strategies.get(type) || this.strategies.get(CameraStrategyType.SMOOTH)!;
   }
 }

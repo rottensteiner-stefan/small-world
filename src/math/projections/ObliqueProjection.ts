@@ -8,6 +8,36 @@ import { ProjectionType } from "../../enums/ProjectionType.js";
  */
 export class ObliqueProjection extends AbstractProjection {
   /**
+   * Left.
+   */
+  public l: number;
+
+  /**
+   * Right.
+   */
+  public r: number;
+
+  /**
+   * Bottom.
+   */
+  public b: number;
+
+  /**
+   * Top.
+   */
+  public t: number;
+
+  /**
+   * Near.
+   */
+  public n: number;
+
+  /**
+   * Far.
+   */
+  public f: number;
+
+  /**
    * @inheritdoc
    */
   public override readonly type: ProjectionType = ProjectionType.OBLIQUE;
@@ -21,15 +51,14 @@ export class ObliqueProjection extends AbstractProjection {
    * @param n Near.
    * @param f Far.
    */
-  constructor(
-    public l: number,
-    public r: number,
-    public b: number,
-    public t: number,
-    public n: number,
-    public f: number,
-  ) {
+  constructor(l: number, r: number, b: number, t: number, n: number, f: number) {
     super();
+    this.l = l;
+    this.r = r;
+    this.b = b;
+    this.t = t;
+    this.n = n;
+    this.f = f;
     this.update();
   }
 

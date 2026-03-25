@@ -1,6 +1,6 @@
 /// src/core/Object3D.ts
 import { AbstractMaterial } from "./materials/index.js";
-import { BoundingVolume, GeometryDataInterface } from "../interfaces/index.js";
+import { BoundingVolume, GeometryData } from "../interfaces/index.js";
 import { Matrix4, Vector3D } from "../math/index.js";
 
 /**
@@ -13,11 +13,11 @@ export class Object3D {
   public name: string = "";
 
   /** The geometry data of the object. */
-  public geometry: GeometryDataInterface | null = null;
+  public geometry: GeometryData | undefined = undefined;
   /** The material of the object. */
-  public material: AbstractMaterial | null = null;
+  public material: AbstractMaterial | undefined = undefined;
   /** The bounding volume for collision detection and frustum culling. */
-  public bounds: BoundingVolume | null = null;
+  public bounds: BoundingVolume | undefined = undefined;
 
   /** The position of the object in local space. */
   public position: Vector3D = new Vector3D(0, 0, 0);
@@ -32,7 +32,7 @@ export class Object3D {
   public worldMatrix: Matrix4 = new Matrix4();
 
   /** The parent object in the scene graph. */
-  public parent: Object3D | null = null;
+  public parent: Object3D | undefined = undefined;
   /** The list of child objects. */
   public children: Object3D[] = [];
 
@@ -67,8 +67,8 @@ export class Object3D {
    */
   public remove(child: Object3D): void {
     const index: number = this.children.indexOf(child);
-    if (index !== -1) {
-      child.parent = null;
+    if (-1 !== index) {
+      child.parent = undefined;
       this.children.splice(index, 1);
     }
   }
@@ -79,7 +79,7 @@ export class Object3D {
    */
   public updateMatrixWorld(force: boolean = false): void {
     this.localMatrix.compose(this.position, this.rotation, this.scale);
-    if (this.parent === null) {
+    if (undefined === this.parent) {
       this.worldMatrix.data.set(this.localMatrix.data);
     } else {
       Matrix4.multiply(this.parent.worldMatrix, this.localMatrix, this.worldMatrix);

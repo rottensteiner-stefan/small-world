@@ -1,6 +1,6 @@
 /// src/core/cameras/strategies/IsometricStrategy.ts
-import { CameraStrategyInterface } from "../../../interfaces/CameraStrategyInterface.js";
-import { CameraInterface } from "../../../interfaces/CameraInterface.js";
+import { CameraStrategy } from "../../../interfaces/CameraStrategy.js";
+import { CameraInterfaceData } from "../../../interfaces/CameraInterfaceData.js";
 import { Camera } from "../../Camera.js";
 import { Vector3D } from "../../../math/Vector3D.js";
 import { Matrix4 } from "../../../math/Matrix4.js";
@@ -11,7 +11,7 @@ import { OrthographicProjection } from "../../../math/projections/OrthographicPr
  * Strategy for an isometric 2D/3D camera.
  * Uses an orthographic projection and fixed angles.
  */
-export class IsometricStrategy implements CameraStrategyInterface {
+export class IsometricStrategy implements CameraStrategy {
   /** @inheritdoc */
   public readonly type: string = CameraStrategyType.ISOMETRIC;
 
@@ -61,7 +61,7 @@ export class IsometricStrategy implements CameraStrategyInterface {
     const proj: OrthographicProjection = camera.projection;
     // We assume aspect ratio is handled elsewhere or we use fixed bounds
     // In a real scenario, we'd use the current canvas aspect ratio
-    const halfWidth: number = 10; 
+    const halfWidth: number = 10;
     const halfHeight: number = 10;
 
     proj.l = -halfWidth;
@@ -80,7 +80,7 @@ export class IsometricStrategy implements CameraStrategyInterface {
    * @param camera The camera used for rendering.
    * @returns The world position.
    */
-  public screenToWorld(screenX: number, screenY: number, camera: CameraInterface): Vector3D {
+  public screenToWorld(screenX: number, screenY: number, camera: CameraInterfaceData): Vector3D {
     const invVP: Matrix4 = new Matrix4();
     const vp: Matrix4 = new Matrix4();
 

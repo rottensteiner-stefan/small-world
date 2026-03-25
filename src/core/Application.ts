@@ -1,9 +1,9 @@
 /// src/core/Application.ts
 import { AbstractProjection } from "../math/projections/AbstractProjection.js";
 import { Camera } from "./Camera.js";
-import { CameraInterface } from "../interfaces/CameraInterface.js";
-import { EngineConfigInterface } from "../interfaces/EngineConfigInterface.js";
-import { RendererInterface } from "../interfaces/RendererInterface.js";
+import { CameraInterfaceData } from "../interfaces/CameraInterfaceData.js";
+import { EngineConfig } from "../interfaces/EngineConfig.js";
+import { Renderer } from "../interfaces/Renderer.js";
 import { ObliqueProjection } from "../math/projections/ObliqueProjection.js";
 import { OrthographicProjection } from "../math/projections/OrthographicProjection.js";
 import { PerspectiveProjection } from "../math/projections/PerspectiveProjection.js";
@@ -17,13 +17,13 @@ import { Scene } from "./Scene.js";
  */
 export abstract class Application {
   /** The engine configuration. */
-  public config: EngineConfigInterface;
+  public config: EngineConfig;
   /** The current scene. */
   public scene: Scene;
   /** The main camera. */
-  public camera: CameraInterface;
+  public camera: CameraInterfaceData;
   /** The active renderer. */
-  public renderer: RendererInterface;
+  public renderer: Renderer;
   /** The canvas element. */
   public canvas!: HTMLCanvasElement;
 
@@ -34,7 +34,7 @@ export abstract class Application {
    * Creates a new application.
    * @param userConfig Optional configuration to override defaults.
    */
-  constructor(userConfig: EngineConfigInterface = {}) {
+  constructor(userConfig: EngineConfig = {}) {
     this.config = {
       canvasId: "canvas",
       renderer: RendererType.WEB_GPU,
@@ -71,14 +71,14 @@ export abstract class Application {
   protected abstract update(deltaTime: number): void;
 
   /**
-   * Starts the application loop.
+   * Starts the application _loop.
    */
   public async start(): Promise<void> {
     try {
       const response: Response = await fetch("/config/small-world.json");
       if (response.ok) {
         const jsonConfig: unknown = await response.json();
-        this.config = { ...this.config, ...(jsonConfig as EngineConfigInterface) };
+        this.config = { ...this.config, ...(jsonConfig as EngineConfig) };
       }
     } catch {
       console.warn("Nutze Fallback-Config (Keine JSON gefunden).");
@@ -109,14 +109,14 @@ export abstract class Application {
 
     this._isRunning = true;
     this._lastTime = performance.now();
-    requestAnimationFrame((time: number) => this.loop(time));
+    requestAnimationFrame((time: number) => this._loop(time));
   }
 
   /**
-   * The main application loop.
+   * The main application _loop.
    * @param currentTime The current timestamp.
    */
-  private loop(currentTime: number): void {
+  private _loop(currentTime: number): void {
     if (!this._isRunning) {
       return;
     }
@@ -131,6 +131,6 @@ export abstract class Application {
 
     this.renderer.render(this.scene, this.camera.viewProjectionMatrix, this.camera.position);
 
-    requestAnimationFrame((time: number) => this.loop(time));
+    requestAnimationFrame((time: number) => this._loop(time));
   }
 }

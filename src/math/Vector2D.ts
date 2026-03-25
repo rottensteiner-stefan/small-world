@@ -1,19 +1,29 @@
 /// src/math/Vector2D.ts
-import { VectorInterface } from "../interfaces/VectorInterface.js";
+import { Vector } from "../interfaces/Vector.js";
 
 /**
  * A 2D vector class.
  */
-export class Vector2D implements VectorInterface {
+export class Vector2D implements Vector {
+  /**
+   * The x component.
+   */
+  public x: number;
+
+  /**
+   * The y component.
+   */
+  public y: number;
+
   /**
    * Creates a new Vector2D.
    * @param x The x component.
    * @param y The y component.
    */
-  constructor(
-    public x: number = 0,
-    public y: number = 0,
-  ) {}
+  constructor(x: number = 0, y: number = 0) {
+    this.x = x;
+    this.y = y;
+  }
 
   /**
    * Sets the components of the vector.
@@ -120,7 +130,7 @@ export class Vector2D implements VectorInterface {
   public normalize(): this {
     const len: number = this.length();
 
-    if (len > 0.000001) {
+    if (0.000001 < len) {
       const invLen: number = 1 / len;
       this.x *= invLen;
       this.y *= invLen;

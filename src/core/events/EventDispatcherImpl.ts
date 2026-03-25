@@ -1,6 +1,6 @@
 /// src/core/events/EventDispatcherImpl.ts
 import { EventType } from "../../enums/EventType.js";
-import { EventDispatcher } from "../../interfaces/EventDispatcher.js";
+import { Events } from "../../interfaces/Events.js";
 
 /**
  * Type definition for event handler functions.
@@ -8,9 +8,9 @@ import { EventDispatcher } from "../../interfaces/EventDispatcher.js";
 export type EventHandler = (event: Record<string, unknown>) => void;
 
 /**
- * Standard implementation of the EventDispatcher interface.
+ * Standard implementation of the Events interface.
  */
-export class EventDispatcherImpl implements EventDispatcher {
+export class EventDispatcherImpl implements Events {
   private _listeners: Map<string, EventHandler[]> = new Map<string, EventHandler[]>();
 
   /**

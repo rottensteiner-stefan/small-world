@@ -1,7 +1,7 @@
 /// src/renderers/WebGL1Renderer.ts
 import { AbstractWebGLRenderer } from "./AbstractWebGLRenderer.js";
 import { CubeTexture, PhongMaterial, SkyboxMaterial, Texture } from "../core/index.js";
-import { GeometryDataInterface } from "../interfaces/index.js";
+import { GeometryData } from "../interfaces/index.js";
 import { MaterialType, RendererType } from "../enums/index.js";
 import { Mesh } from "./Mesh.js";
 import { Object3D } from "../core/Object3D.js";
@@ -43,12 +43,14 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
     skybox: WebGLUniformLocation | null;
   };
 
-  private _cache = new Map<GeometryDataInterface, Mesh>();
+  private _cache = new Map<GeometryData, Mesh>();
   private _texCache = new Map<Texture, WebGLTexture>();
   private _texCubeCache = new Map<CubeTexture, WebGLTexture>();
 
-  private _pointLightLocs: { pos: WebGLUniformLocation | null; col: WebGLUniformLocation | null }[] =
-    [];
+  private _pointLightLocs: {
+    pos: WebGLUniformLocation | null;
+    col: WebGLUniformLocation | null;
+  }[] = [];
   private _spotLightLocs: {
     pos: WebGLUniformLocation | null;
     dir: WebGLUniformLocation | null;
@@ -132,7 +134,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
     this.gl.enable(this.gl.DEPTH_TEST);
   }
 
-  private getWebGLTexture(tex: Texture): WebGLTexture {
+  private _getWebGLTexture(tex: Texture): WebGLTexture {
     if (!tex.isLoaded || !tex.image) return this.defaultTexture;
     let glTex = this._texCache.get(tex);
     if (!glTex) {
@@ -163,7 +165,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
     return glTex;
   }
 
-  private getWebGLCubeTexture(tex: CubeTexture): WebGLTexture {
+  private _getWebGLCubeTexture(tex: CubeTexture): WebGLTexture {
     if (!tex.isLoaded || tex.images.length !== 6) return this.defaultCubeTexture;
     let glTex = this._texCubeCache.get(tex);
     if (!glTex) {
@@ -219,7 +221,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
         this.gl.activeTexture(this.gl.TEXTURE0);
         this.gl.bindTexture(
           this.gl.TEXTURE_CUBE_MAP,
-          skyMat.cubeMap ? this.getWebGLCubeTexture(skyMat.cubeMap) : this.defaultCubeTexture,
+          skyMat.cubeMap ? this._getWebGLCubeTexture(skyMat.cubeMap) : this.defaultCubeTexture,
         );
         if (this._skyLocs.skybox) this.gl.uniform1i(this._skyLocs.skybox, 0);
         this.gl.drawElements(this.gl.TRIANGLES, m.count, this.gl.UNSIGNED_SHORT, 0);
@@ -338,7 +340,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
           shininess = pMat.shininess || 32;
           specCol = pMat.specularColor ? pMat.specularColor.toArray() : [0, 0, 0, 0];
           if (pMat.diffuseMap) {
-            activeTex = this.getWebGLTexture(pMat.diffuseMap);
+            activeTex = this._getWebGLTexture(pMat.diffuseMap);
             tOffset = [pMat.diffuseMap.offset.x, pMat.diffuseMap.offset.y];
             tRepeat = [pMat.diffuseMap.repeat.x, pMat.diffuseMap.repeat.y];
           }

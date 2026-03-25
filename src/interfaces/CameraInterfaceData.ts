@@ -1,9 +1,9 @@
-/// src/interfaces/CameraInterface.ts
+/// src/interfaces/CameraInterfaceData.ts
 import { AbstractProjection } from "../math/projections/AbstractProjection.js";
 import { CameraStrategyType } from "../enums/CameraStrategyType.js";
 import { Vector3D } from "../math/Vector3D.js";
 
-export interface CameraInterface {
+export interface CameraInterfaceData {
   /** Position der Kamera in der Welt */
   position: Vector3D;
   /** Punkt, auf den die Kamera schaut */
