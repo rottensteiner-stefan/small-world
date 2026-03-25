@@ -1,9 +1,18 @@
 /// src/interfaces/Renderer.ts
 
 import { Scene } from "../core/Scene.js";
-import { Color } from "../core/index.js";
+import { Color, AreaLight, PointLight, SpotLight } from "../core/index.js";
 import { Vector3D } from "../math/Vector3D.js";
 import { RendererType } from "../enums/index.js";
+
+export interface LightDataInterface {
+  aCol: Color;
+  dDir: Vector3D;
+  dCol: Color;
+  pLights: PointLight[];
+  sLights: SpotLight[];
+  aLights: AreaLight[];
+}
 
 export interface Renderer {
   readonly type: RendererType; // <--- NEU

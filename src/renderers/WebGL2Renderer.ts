@@ -3,6 +3,7 @@
 import { AbstractWebGLRenderer } from "./AbstractWebGLRenderer.js";
 import {
   AreaLight,
+  Color,
   CubeTexture,
   PhongMaterial,
   SkyboxMaterial,
@@ -81,6 +82,10 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     size: WebGLUniformLocation | null;
     up: WebGLUniformLocation | null;
   }[] = [];
+
+  // Scratch variables for rendering to avoid GC
+  private _scratchModelMatrix = new Float32Array(16);
+  private _scratchVec3 = new Vector3D();
 
   public async initialize(canvas: HTMLCanvasElement): Promise<void> {
     this.gl = canvas.getContext("webgl2", { antialias: true })!;
@@ -345,7 +350,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     return glTex;
   }
 
-  public render(scene: Scene, vp: Float32Array, camPos: Vector3D = new Vector3D()): void {
+  public render(scene: Scene, vp: Float32Array, camPos: Vector3D = Vector3D.ZERO): void {
     this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
 
     this.gl.enable(this.gl.BLEND);
@@ -356,29 +361,9 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     this.gl.useProgram(this._skyProg);
     if (this._skyLocs.vp) this.gl.uniformMatrix4fv(this._skyLocs.vp, false, vp);
 
-    const drawSkybox = (o: Object3D): void => {
-      if (!o.isVisible || !o.material) return;
-      if (o.geometry && o.material.type === MaterialType.SKYBOX) {
-        const skyMat = o.material as SkyboxMaterial;
-        let m = this._cache.get(o.geometry);
-        if (!m) {
-          m = new Mesh(this.gl, o.geometry);
-          this._cache.set(o.geometry, m);
-        }
-        m.bind(this._skyLocs.pos);
-        if (this._skyLocs.model)
-          this.gl.uniformMatrix4fv(this._skyLocs.model, false, o.worldMatrix.data);
-        this.gl.activeTexture(this.gl.TEXTURE0);
-        this.gl.bindTexture(
-          this.gl.TEXTURE_CUBE_MAP,
-          skyMat.cubeMap ? this._getWebGLCubeTexture(skyMat.cubeMap) : this.defaultCubeTexture,
-        );
-        if (this._skyLocs.skybox) this.gl.uniform1i(this._skyLocs.skybox, 0);
-        this.gl.drawElements(this.gl.TRIANGLES, m.count, this.gl.UNSIGNED_SHORT, 0);
-      }
-      if (o.children) for (const child of o.children) drawSkybox(child);
-    };
-    for (const obj of scene.objects) drawSkybox(obj);
+    for (const obj of scene.objects) {
+      this._drawSkybox(obj);
+    }
     this.gl.depthMask(true);
 
     // --- PASS 2: Objects ---
@@ -429,8 +414,11 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
           sl.worldMatrix.data[13]!,
           sl.worldMatrix.data[14]!,
         );
-      const dir = sl.direction.clone().normalize();
-      if (loc.dir) this.gl.uniform3f(loc.dir!, dir.x, dir.y, dir.z);
+
+      this._scratchVec3.set(sl.direction.x, sl.direction.y, sl.direction.z).normalize();
+      if (loc.dir)
+        this.gl.uniform3f(loc.dir!, this._scratchVec3.x, this._scratchVec3.y, this._scratchVec3.z);
+
       if (loc.col)
         this.gl.uniform3f(
           loc.col!,
@@ -470,156 +458,190 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       if (loc.size) this.gl.uniform2f(loc.size!, al.width / 2.0, al.height / 2.0);
     }
 
-    const drawNormal = (o: Object3D): void => {
-      // 1. Ist das Objekt (und damit alles, was an ihm hängt) unsichtbar? -> Abbruch
-      if (!o.isVisible) return;
+    for (const obj of scene.objects) {
+      this._drawNormal(obj, vp);
+    }
+  }
 
-      // 2. Nur zeichnen, wenn das Objekt Geometrie und Material hat UND keine Skybox ist
-      if (o.geometry && o.material && o.material.type !== MaterialType.SKYBOX) {
-        const mat = o.material;
-        let m = this._cache.get(o.geometry);
-        if (!m) {
-          m = new Mesh(this.gl, o.geometry);
-          this._cache.set(o.geometry, m);
-        }
-        m.bind(this._locs.pos, this._locs.norm, this._locs.uv);
+  /**
+   * Internal skybox draw function.
+   * @private
+   */
+  private _drawSkybox(o: Object3D): void {
+    if (!o.isVisible || !o.material) return;
+    if (o.geometry && o.material.type === MaterialType.SKYBOX) {
+      const skyMat = o.material as SkyboxMaterial;
+      let m = this._cache.get(o.geometry);
+      if (!m) {
+        m = new Mesh(this.gl, o.geometry);
+        this._cache.set(o.geometry, m);
+      }
+      m.bind(this._skyLocs.pos);
+      if (this._skyLocs.model)
+        this.gl.uniformMatrix4fv(this._skyLocs.model, false, o.worldMatrix.data);
+      this.gl.activeTexture(this.gl.TEXTURE0);
+      this.gl.bindTexture(
+        this.gl.TEXTURE_CUBE_MAP,
+        skyMat.cubeMap ? this._getWebGLCubeTexture(skyMat.cubeMap) : this.defaultCubeTexture,
+      );
+      if (this._skyLocs.skybox) this.gl.uniform1i(this._skyLocs.skybox, 0);
+      this.gl.drawElements(this.gl.TRIANGLES, m.count, this.gl.UNSIGNED_SHORT, 0);
+    }
+    if (o.children) {
+      for (const child of o.children) {
+        this._drawSkybox(child);
+      }
+    }
+  }
 
-        const modelMatrix: Float32Array = new Float32Array(o.worldMatrix.data);
+  /**
+   * Internal normal object draw function.
+   * @private
+   */
+  private _drawNormal(o: Object3D, vp: Float32Array): void {
+    if (!o.isVisible) return;
 
-        // BILLBOARD LOGIC for Sprites
-        if (mat.type === MaterialType.SPRITE) {
-          // Extrahiere die Translation aus der World-Matrix
-          const tx: number = modelMatrix[12]!;
-          const ty: number = modelMatrix[13]!;
-          const tz: number = modelMatrix[14]!;
+    if (o.geometry && o.material && o.material.type !== MaterialType.SKYBOX) {
+      const mat = o.material;
+      let m = this._cache.get(o.geometry);
+      if (!m) {
+        m = new Mesh(this.gl, o.geometry);
+        this._cache.set(o.geometry, m);
+      }
+      m.bind(this._locs.pos, this._locs.norm, this._locs.uv);
 
-          // Extrahiere die Skalierung (Länge der Spalten-Vektoren)
-          const sx: number = Math.sqrt(
-            modelMatrix[0]! * modelMatrix[0]! +
-              modelMatrix[1]! * modelMatrix[1]! +
-              modelMatrix[2]! * modelMatrix[2]!,
-          );
-          const sy: number = Math.sqrt(
-            modelMatrix[4]! * modelMatrix[4]! +
-              modelMatrix[5]! * modelMatrix[5]! +
-              modelMatrix[6]! * modelMatrix[6]!,
-          );
-          const sz: number = Math.sqrt(
-            modelMatrix[8]! * modelMatrix[8]! +
-              modelMatrix[9]! * modelMatrix[9]! +
-              modelMatrix[10]! * modelMatrix[10]!,
-          );
+      this._scratchModelMatrix.set(o.worldMatrix.data);
 
-          // Setze die Rotations-Anteile auf die Werte der View-Matrix (invertiert)
-          // um das Objekt zur Kamera auszurichten.
-          // Wir nehmen die ersten 3 Spalten der transponierten View-Matrix (die die Ausrichtung der Kamera enthält).
-          modelMatrix[0] = vp[0]! * sx;
-          modelMatrix[1] = vp[4]! * sx;
-          modelMatrix[2] = vp[8]! * sx;
+      if (mat.type === MaterialType.SPRITE) {
+        const tx: number = this._scratchModelMatrix[12]!;
+        const ty: number = this._scratchModelMatrix[13]!;
+        const tz: number = this._scratchModelMatrix[14]!;
 
-          modelMatrix[4] = vp[1]! * sy;
-          modelMatrix[5] = vp[5]! * sy;
-          modelMatrix[6] = vp[9]! * sy;
+        const sx: number = Math.sqrt(
+          this._scratchModelMatrix[0]! * this._scratchModelMatrix[0]! +
+            this._scratchModelMatrix[1]! * this._scratchModelMatrix[1]! +
+            this._scratchModelMatrix[2]! * this._scratchModelMatrix[2]!,
+        );
+        const sy: number = Math.sqrt(
+          this._scratchModelMatrix[4]! * this._scratchModelMatrix[4]! +
+            this._scratchModelMatrix[5]! * this._scratchModelMatrix[5]! +
+            this._scratchModelMatrix[6]! * this._scratchModelMatrix[6]!,
+        );
+        const sz: number = Math.sqrt(
+          this._scratchModelMatrix[8]! * this._scratchModelMatrix[8]! +
+            this._scratchModelMatrix[9]! * this._scratchModelMatrix[9]! +
+            this._scratchModelMatrix[10]! * this._scratchModelMatrix[10]!,
+        );
 
-          modelMatrix[8] = vp[2]! * sz;
-          modelMatrix[9] = vp[6]! * sz;
-          modelMatrix[10] = vp[10]! * sz;
-
-          // Translation wiederherstellen
-          modelMatrix[12] = tx;
-          modelMatrix[13] = ty;
-          modelMatrix[14] = tz;
-        }
-
-        if (this._locs.model) this.gl.uniformMatrix4fv(this._locs.model, false, modelMatrix);
-        if (this._locs.color) this.gl.uniform4fv(this._locs.color, mat.color.toArray());
-
-        let shininess = -1.0,
-          specCol = [0, 0, 0, 0],
-          activeTex = this.defaultTexture,
-          tOffset = [0, 0],
-          tRepeat = [1, 1];
-        let isTerrain = 0,
-          thresholds = [0, 0, 0, 0];
-
-        if (mat.type === MaterialType.LAMBERT) {
-          shininess = 0.0;
-        } else if (mat.type === MaterialType.PHONG) {
-          const pMat = mat as PhongMaterial;
-          shininess = pMat.shininess || 32;
-          specCol = pMat.specularColor ? pMat.specularColor.toArray() : [0, 0, 0, 0];
-          if (pMat.diffuseMap) {
-            activeTex = this._getWebGLTexture(pMat.diffuseMap);
-            tOffset = [pMat.diffuseMap.offset.x, pMat.diffuseMap.offset.y];
-            tRepeat = [pMat.diffuseMap.repeat.x, pMat.diffuseMap.repeat.y];
-          }
-        } else if (mat.type === MaterialType.SPRITE) {
-          const sMat = mat as SpriteMaterial;
-          if (sMat.texture) {
-            activeTex = this._getWebGLTexture(sMat.texture);
-            tOffset = [sMat.texture.offset.x, sMat.texture.offset.y];
-            tRepeat = [sMat.texture.repeat.x, sMat.texture.repeat.y];
-          }
-          shininess = -1.0;
-        } else if (mat.type === MaterialType.TERRAIN) {
-          isTerrain = 1;
-          const tMat = mat as TerrainMaterial;
-          shininess = tMat.shininess;
-          tRepeat = tMat.texRepeat;
-          thresholds = tMat.thresholds;
-
-          this.gl.activeTexture(this.gl.TEXTURE1);
-          this.gl.bindTexture(
-            this.gl.TEXTURE_2D,
-            tMat.sandMap ? this._getWebGLTexture(tMat.sandMap) : this.defaultTexture,
-          );
-          if (this._locs.sandMap) this.gl.uniform1i(this._locs.sandMap, 1);
-
-          this.gl.activeTexture(this.gl.TEXTURE2);
-          this.gl.bindTexture(
-            this.gl.TEXTURE_2D,
-            tMat.grassMap ? this._getWebGLTexture(tMat.grassMap) : this.defaultTexture,
-          );
-          if (this._locs.grassMap) this.gl.uniform1i(this._locs.grassMap, 2);
-
-          this.gl.activeTexture(this.gl.TEXTURE3);
-          this.gl.bindTexture(
-            this.gl.TEXTURE_2D,
-            tMat.rockMap ? this._getWebGLTexture(tMat.rockMap) : this.defaultTexture,
-          );
-          if (this._locs.rockMap) this.gl.uniform1i(this._locs.rockMap, 3);
-
-          this.gl.activeTexture(this.gl.TEXTURE4);
-          this.gl.bindTexture(
-            this.gl.TEXTURE_2D,
-            tMat.snowMap ? this._getWebGLTexture(tMat.snowMap) : this.defaultTexture,
-          );
-          if (this._locs.snowMap) this.gl.uniform1i(this._locs.snowMap, 4);
-        }
-
-        this.gl.activeTexture(this.gl.TEXTURE0);
-        this.gl.bindTexture(this.gl.TEXTURE_2D, activeTex);
-        if (this._locs.diffuseMap) this.gl.uniform1i(this._locs.diffuseMap, 0);
-
-        if (this._locs.texOffset) this.gl.uniform2fv(this._locs.texOffset, tOffset);
-        if (this._locs.texRepeat) this.gl.uniform2fv(this._locs.texRepeat, tRepeat);
-        if (this._locs.shininess) this.gl.uniform1f(this._locs.shininess, shininess);
-        if (this._locs.specColor) this.gl.uniform4fv(this._locs.specColor, specCol);
-        if (this._locs.isTerrain) this.gl.uniform1i(this._locs.isTerrain, isTerrain);
-        if (this._locs.thresholds) this.gl.uniform4fv(this._locs.thresholds, thresholds);
-
-        const drawMode = mat.type === MaterialType.WIREFRAME ? this.gl.LINES : this.gl.TRIANGLES;
-        this.gl.drawElements(drawMode, m.count, this.gl.UNSIGNED_INT, 0); // Achtung: UNSIGNED_INT für Terrain-Größe!
+        this._scratchModelMatrix[0] = vp[0]! * sx;
+        this._scratchModelMatrix[1] = vp[4]! * sx;
+        this._scratchModelMatrix[2] = vp[8]! * sx;
+        this._scratchModelMatrix[4] = vp[1]! * sy;
+        this._scratchModelMatrix[5] = vp[5]! * sy;
+        this._scratchModelMatrix[6] = vp[9]! * sy;
+        this._scratchModelMatrix[8] = vp[2]! * sz;
+        this._scratchModelMatrix[9] = vp[6]! * sz;
+        this._scratchModelMatrix[10] = vp[10]! * sz;
+        this._scratchModelMatrix[12] = tx;
+        this._scratchModelMatrix[13] = ty;
+        this._scratchModelMatrix[14] = tz;
       }
 
-      // 3. IMMER in die Kinder absteigen, sofern der Parent sichtbar ist!
-      if (o.children) {
-        for (const child of o.children) {
-          drawNormal(child);
-        }
-      }
-    };
+      if (this._locs.model)
+        this.gl.uniformMatrix4fv(this._locs.model, false, this._scratchModelMatrix);
+      if (this._locs.color) this.gl.uniform4fv(this._locs.color, mat.color.toFloat32Array());
 
-    for (const obj of scene.objects) drawNormal(obj);
+      let shininess = -1.0;
+      let activeTex = this.defaultTexture;
+      let tOffset0 = 0,
+        tOffset1 = 0;
+      let tRepeat0 = 1,
+        tRepeat1 = 1;
+      let isTerrain = 0;
+
+      if (mat.type === MaterialType.LAMBERT) {
+        shininess = 0.0;
+      } else if (mat.type === MaterialType.PHONG) {
+        const pMat = mat as PhongMaterial;
+        shininess = pMat.shininess || 32;
+        if (this._locs.specColor)
+          this.gl.uniform4fv(
+            this._locs.specColor,
+            pMat.specularColor ? pMat.specularColor.toFloat32Array() : Color.BLACK.toFloat32Array(),
+          );
+        if (pMat.diffuseMap) {
+          activeTex = this._getWebGLTexture(pMat.diffuseMap);
+          tOffset0 = pMat.diffuseMap.offset.x;
+          tOffset1 = pMat.diffuseMap.offset.y;
+          tRepeat0 = pMat.diffuseMap.repeat.x;
+          tRepeat1 = pMat.diffuseMap.repeat.y;
+        }
+      } else if (mat.type === MaterialType.SPRITE) {
+        const sMat = mat as SpriteMaterial;
+        if (sMat.texture) {
+          activeTex = this._getWebGLTexture(sMat.texture);
+          tOffset0 = sMat.texture.offset.x;
+          tOffset1 = sMat.texture.offset.y;
+          tRepeat0 = sMat.texture.repeat.x;
+          tRepeat1 = sMat.texture.repeat.y;
+        }
+        shininess = -1.0;
+      } else if (mat.type === MaterialType.TERRAIN) {
+        isTerrain = 1;
+        const tMat = mat as TerrainMaterial;
+        shininess = tMat.shininess;
+        tRepeat0 = tMat.texRepeat[0]!;
+        tRepeat1 = tMat.texRepeat[1]!;
+        if (this._locs.thresholds) this.gl.uniform4fv(this._locs.thresholds, tMat.thresholds);
+
+        this.gl.activeTexture(this.gl.TEXTURE1);
+        this.gl.bindTexture(
+          this.gl.TEXTURE_2D,
+          tMat.sandMap ? this._getWebGLTexture(tMat.sandMap) : this.defaultTexture,
+        );
+        if (this._locs.sandMap) this.gl.uniform1i(this._locs.sandMap, 1);
+
+        this.gl.activeTexture(this.gl.TEXTURE2);
+        this.gl.bindTexture(
+          this.gl.TEXTURE_2D,
+          tMat.grassMap ? this._getWebGLTexture(tMat.grassMap) : this.defaultTexture,
+        );
+        if (this._locs.grassMap) this.gl.uniform1i(this._locs.grassMap, 2);
+
+        this.gl.activeTexture(this.gl.TEXTURE3);
+        this.gl.bindTexture(
+          this.gl.TEXTURE_2D,
+          tMat.rockMap ? this._getWebGLTexture(tMat.rockMap) : this.defaultTexture,
+        );
+        if (this._locs.rockMap) this.gl.uniform1i(this._locs.rockMap, 3);
+
+        this.gl.activeTexture(this.gl.TEXTURE4);
+        this.gl.bindTexture(
+          this.gl.TEXTURE_2D,
+          tMat.snowMap ? this._getWebGLTexture(tMat.snowMap) : this.defaultTexture,
+        );
+        if (this._locs.snowMap) this.gl.uniform1i(this._locs.snowMap, 4);
+      }
+
+      if (this._locs.shininess) this.gl.uniform1f(this._locs.shininess, shininess);
+      if (this._locs.isTerrain) this.gl.uniform1i(this._locs.isTerrain, isTerrain);
+
+      this.gl.activeTexture(this.gl.TEXTURE0);
+      this.gl.bindTexture(this.gl.TEXTURE_2D, activeTex);
+      if (this._locs.diffuseMap) this.gl.uniform1i(this._locs.diffuseMap, 0);
+      if (this._locs.texOffset) this.gl.uniform2f(this._locs.texOffset, tOffset0, tOffset1);
+      if (this._locs.texRepeat) this.gl.uniform2f(this._locs.texRepeat, tRepeat0, tRepeat1);
+
+      const drawMode = mat.type === MaterialType.WIREFRAME ? this.gl.LINES : this.gl.TRIANGLES;
+      const indexType =
+        mat.type === MaterialType.TERRAIN ? this.gl.UNSIGNED_INT : this.gl.UNSIGNED_SHORT;
+      this.gl.drawElements(drawMode, m.count, indexType, 0);
+    }
+
+    if (o.children) {
+      for (const child of o.children) {
+        this._drawNormal(child, vp);
+      }
+    }
   }
 }
