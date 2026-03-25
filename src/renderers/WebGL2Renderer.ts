@@ -8,7 +8,7 @@ import {
   TerrainMaterial,
   Texture,
 } from "../core/index.js";
-import { GeometryDataInterface } from "../interfaces/index.js";
+import { GeometryData } from "../interfaces/index.js";
 import { MaterialType, RendererType } from "../enums/index.js";
 import { Mesh } from "./Mesh.js";
 import { Object3D } from "../core/Object3D.js";
@@ -57,12 +57,14 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     skybox: WebGLUniformLocation | null;
   };
 
-  private _cache = new Map<GeometryDataInterface, Mesh>();
+  private _cache = new Map<GeometryData, Mesh>();
   private _texCache = new Map<Texture, WebGLTexture>();
   private _texCubeCache = new Map<CubeTexture, WebGLTexture>();
 
-  private _pointLightLocs: { pos: WebGLUniformLocation | null; col: WebGLUniformLocation | null }[] =
-    [];
+  private _pointLightLocs: {
+    pos: WebGLUniformLocation | null;
+    col: WebGLUniformLocation | null;
+  }[] = [];
   private _spotLightLocs: {
     col: WebGLUniformLocation | null;
     dir: WebGLUniformLocation | null;
@@ -287,7 +289,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     this.gl.enable(this.gl.DEPTH_TEST);
   }
 
-  private getWebGLTexture(tex: Texture): WebGLTexture {
+  private _getWebGLTexture(tex: Texture): WebGLTexture {
     if (!tex.isLoaded || !tex.image) return this.defaultTexture;
     let glTex = this._texCache.get(tex);
     if (!glTex) {
@@ -318,7 +320,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     return glTex;
   }
 
-  private getWebGLCubeTexture(tex: CubeTexture): WebGLTexture {
+  private _getWebGLCubeTexture(tex: CubeTexture): WebGLTexture {
     if (!tex.isLoaded || tex.images.length !== 6) return this.defaultCubeTexture;
     let glTex = this._texCubeCache.get(tex);
     if (!glTex) {
@@ -364,7 +366,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         this.gl.activeTexture(this.gl.TEXTURE0);
         this.gl.bindTexture(
           this.gl.TEXTURE_CUBE_MAP,
-          skyMat.cubeMap ? this.getWebGLCubeTexture(skyMat.cubeMap) : this.defaultCubeTexture,
+          skyMat.cubeMap ? this._getWebGLCubeTexture(skyMat.cubeMap) : this.defaultCubeTexture,
         );
         if (this._skyLocs.skybox) this.gl.uniform1i(this._skyLocs.skybox, 0);
         this.gl.drawElements(this.gl.TRIANGLES, m.count, this.gl.UNSIGNED_SHORT, 0);
@@ -495,7 +497,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
           shininess = pMat.shininess || 32;
           specCol = pMat.specularColor ? pMat.specularColor.toArray() : [0, 0, 0, 0];
           if (pMat.diffuseMap) {
-            activeTex = this.getWebGLTexture(pMat.diffuseMap);
+            activeTex = this._getWebGLTexture(pMat.diffuseMap);
             tOffset = [pMat.diffuseMap.offset.x, pMat.diffuseMap.offset.y];
             tRepeat = [pMat.diffuseMap.repeat.x, pMat.diffuseMap.repeat.y];
           }
@@ -509,28 +511,28 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
           this.gl.activeTexture(this.gl.TEXTURE1);
           this.gl.bindTexture(
             this.gl.TEXTURE_2D,
-            tMat.sandMap ? this.getWebGLTexture(tMat.sandMap) : this.defaultTexture,
+            tMat.sandMap ? this._getWebGLTexture(tMat.sandMap) : this.defaultTexture,
           );
           if (this._locs.sandMap) this.gl.uniform1i(this._locs.sandMap, 1);
 
           this.gl.activeTexture(this.gl.TEXTURE2);
           this.gl.bindTexture(
             this.gl.TEXTURE_2D,
-            tMat.grassMap ? this.getWebGLTexture(tMat.grassMap) : this.defaultTexture,
+            tMat.grassMap ? this._getWebGLTexture(tMat.grassMap) : this.defaultTexture,
           );
           if (this._locs.grassMap) this.gl.uniform1i(this._locs.grassMap, 2);
 
           this.gl.activeTexture(this.gl.TEXTURE3);
           this.gl.bindTexture(
             this.gl.TEXTURE_2D,
-            tMat.rockMap ? this.getWebGLTexture(tMat.rockMap) : this.defaultTexture,
+            tMat.rockMap ? this._getWebGLTexture(tMat.rockMap) : this.defaultTexture,
           );
           if (this._locs.rockMap) this.gl.uniform1i(this._locs.rockMap, 3);
 
           this.gl.activeTexture(this.gl.TEXTURE4);
           this.gl.bindTexture(
             this.gl.TEXTURE_2D,
-            tMat.snowMap ? this.getWebGLTexture(tMat.snowMap) : this.defaultTexture,
+            tMat.snowMap ? this._getWebGLTexture(tMat.snowMap) : this.defaultTexture,
           );
           if (this._locs.snowMap) this.gl.uniform1i(this._locs.snowMap, 4);
         }

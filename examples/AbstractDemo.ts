@@ -1,12 +1,12 @@
 /// examples/AbstractDemo.ts
 
 import { Application } from "../src/index.js";
-import { EngineConfigInterface } from "../src/interfaces/EngineConfigInterface.js";
+import { EngineConfig } from "../src/interfaces/EngineConfig.js";
 
 export abstract class AbstractDemo extends Application {
   // Der Konstruktor wird an Application weitergereicht.
   // Er kann von Demo 1-4 1:1 geerbt werden, ohne ihn dort neu zu schreiben!
-  constructor(config: EngineConfigInterface = {}) {
+  constructor(config: EngineConfig = {}) {
     super(config);
   }
 

@@ -1,22 +1,37 @@
 /// src/math/Vector3D.ts
-import { VectorInterface } from "../interfaces/VectorInterface.js";
+import { Vector } from "../interfaces/Vector.js";
 import { Matrix4 } from "./Matrix4.js";
 
 /**
  * A 3D vector class.
  */
-export class Vector3D implements VectorInterface {
+export class Vector3D implements Vector {
+  /**
+   * The x component.
+   */
+  public x: number;
+
+  /**
+   * The y component.
+   */
+  public y: number;
+
+  /**
+   * The z component.
+   */
+  public z: number;
+
   /**
    * Creates a new Vector3D.
    * @param x The x component.
    * @param y The y component.
    * @param z The z component.
    */
-  constructor(
-    public x: number = 0,
-    public y: number = 0,
-    public z: number = 0,
-  ) {}
+  constructor(x: number = 0, y: number = 0, z: number = 0) {
+    this.x = x;
+    this.y = y;
+    this.z = z;
+  }
 
   /**
    * Sets the components of the vector.
@@ -141,7 +156,7 @@ export class Vector3D implements VectorInterface {
   public normalize(): this {
     const len: number = this.length();
 
-    if (len > 0.000001) {
+    if (0.000001 < len) {
       const invLen: number = 1 / len;
       this.x *= invLen;
       this.y *= invLen;

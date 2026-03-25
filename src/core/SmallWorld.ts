@@ -1,7 +1,7 @@
 /// src/core/SmallWorld.ts
 import { DEFAULT_RENDERER, RendererType } from "./index.js";
 import { ColorUtils } from "../utils/index.js";
-import { RendererInterface } from "../interfaces/index.js";
+import { Renderer } from "../interfaces/index.js";
 import { RendererFactory } from "../renderers/index.js";
 
 /**
@@ -29,7 +29,7 @@ export class SmallWorld {
   /** The current world configuration. */
   public config!: WorldConfig;
   /** The currently active renderer. */
-  public activeRenderer!: RendererInterface;
+  public activeRenderer!: Renderer;
 
   /**
    * Creates a new SmallWorld instance.
@@ -46,12 +46,13 @@ export class SmallWorld {
       if (!response.ok) {
         throw new Error(`Konfigurationsdatei nicht gefunden: ${configPath}`);
       }
-      this.config = await response.json();
+      this.config = (await response.json()) as WorldConfig;
       if (!this.config.rendererType) {
         this.config.rendererType = DEFAULT_RENDERER;
       }
-      const canvas: HTMLCanvasElement | null = document.getElementById(this.config.canvasId) as HTMLCanvasElement;
-      if (!canvas) {
+      const canvas: HTMLCanvasElement | undefined =
+        (document.getElementById(this.config.canvasId) as HTMLCanvasElement) ?? undefined;
+      if (undefined === canvas) {
         throw new Error(`Canvas mit ID '${this.config.canvasId}' wurde nicht im DOM gefunden.`);
       }
       this.activeRenderer = await RendererFactory.create(this.config.rendererType, canvas);

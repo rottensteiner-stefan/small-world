@@ -18,7 +18,7 @@ export class Frustum {
    */
   public setFromMatrix(m: Matrix4): void {
     const me: Float32Array = m.data;
-    if (me.length < 16) return;
+    if (16 > me.length) return;
     const p: Float32Array = this.planes;
 
     p[0] = me[3]! - me[0]!;
@@ -51,17 +51,19 @@ export class Frustum {
     p[22] = me[11]! + me[10]!;
     p[23] = me[15]! + me[14]!;
 
-    for (let i = 0; i < 6; i++) {
+    for (let i: number = 0; i < 6; i++) {
       const idx: number = i * 4;
       const d: number = Math.sqrt(
-        p[idx]! * p[idx]! + p[idx + 1]! * p[idx + 1]! + p[idx + 2]! * p[idx + 2]!,
+        (p[idx] ?? 0) * (p[idx] ?? 0) +
+          (p[idx + 1] ?? 0) * (p[idx + 1] ?? 0) +
+          (p[idx + 2] ?? 0) * (p[idx + 2] ?? 0),
       );
-      if (d > 0) {
+      if (0 < d) {
         const f: number = 1.0 / d;
-        p[idx]! *= f;
-        p[idx + 1]! *= f;
-        p[idx + 2]! *= f;
-        p[idx + 3]! *= f;
+        p[idx] = (p[idx] ?? 0) * f;
+        p[idx + 1] = (p[idx + 1] ?? 0) * f;
+        p[idx + 2] = (p[idx + 2] ?? 0) * f;
+        p[idx + 3] = (p[idx + 3] ?? 0) * f;
       }
     }
   }
@@ -76,10 +78,11 @@ export class Frustum {
     const r: number = volume.getBroadRadius();
     const p: Float32Array = this.planes;
 
-    for (let i = 0; i < 6; i++) {
+    for (let i: number = 0; i < 6; i++) {
       const idx: number = i * 4;
-      const dist: number = p[idx]! * c.x + p[idx + 1]! * c.y + p[idx + 2]! * c.z + p[idx + 3]!;
-      if (dist < -r) {
+      const dist: number =
+        (p[idx] ?? 0) * c.x + (p[idx + 1] ?? 0) * c.y + (p[idx + 2] ?? 0) * c.z + (p[idx + 3] ?? 0);
+      if (-r > dist) {
         return false;
       }
     }

@@ -1,12 +1,12 @@
 /// src/geometry/AbstractGeometry.ts
-import {Matrix4} from "../math/Matrix4.js";
-import {Vector3D} from "../math/Vector3D.js";
-import {GeometryDataInterface, GeometryInterface} from "../interfaces/index.js";
+import { Matrix4 } from "../math/Matrix4.js";
+import { Vector3D } from "../math/Vector3D.js";
+import { GeometryData, Geometry } from "../interfaces/index.js";
 
 /**
  * Base class for all geometry types.
  */
-export abstract class AbstractGeometry implements GeometryInterface {
+export abstract class AbstractGeometry implements Geometry {
   /**
    * The vertices of the geometry.
    */
@@ -36,12 +36,12 @@ export abstract class AbstractGeometry implements GeometryInterface {
    * Returns the geometry data.
    * @returns The geometry data.
    */
-  public getGeometryData(): GeometryDataInterface {
-    if (this._normals.length === 0 && this._vertices.length > 0) {
+  public getGeometryData(): GeometryData {
+    if (0 === this._normals.length && 0 < this._vertices.length) {
       this.computeNormals();
     }
     // Falls keine UVs generiert wurden, füllen wir sie mit Nullen (Fallback)
-    if (this._uvs.length === 0 && this._vertices.length > 0) {
+    if (0 === this._uvs.length && 0 < this._vertices.length) {
       this._uvs = new Float32Array((this._vertices.length / 3) * 2);
     }
 
@@ -59,8 +59,8 @@ export abstract class AbstractGeometry implements GeometryInterface {
   public computeNormals(): void {
     this._normals = new Float32Array(this._vertices.length);
 
-    if (this._indices.length % 3 !== 0) {
-      for (let i = 0; i < this._normals.length; i += 3) {
+    if (0 !== this._indices.length % 3) {
+      for (let i: number = 0; i < this._normals.length; i += 3) {
         this._normals[i] = 0;
         this._normals[i + 1] = 1;
         this._normals[i + 2] = 0;
@@ -68,7 +68,7 @@ export abstract class AbstractGeometry implements GeometryInterface {
       return;
     }
 
-    for (let i = 0; i < this._indices.length; i += 3) {
+    for (let i: number = 0; i < this._indices.length; i += 3) {
       const iA: number = (this._indices[i] ?? 0) * 3;
       const iB: number = (this._indices[i + 1] ?? 0) * 3;
       const iC: number = (this._indices[i + 2] ?? 0) * 3;
@@ -110,12 +110,12 @@ export abstract class AbstractGeometry implements GeometryInterface {
       this._normals[iC + 2] = (this._normals[iC + 2] ?? 0) + nz;
     }
 
-    for (let i = 0; i < this._normals.length; i += 3) {
+    for (let i: number = 0; i < this._normals.length; i += 3) {
       const nx: number = this._normals[i] ?? 0;
       const ny: number = this._normals[i + 1] ?? 0;
       const nz: number = this._normals[i + 2] ?? 0;
       const len: number = Math.sqrt(nx * nx + ny * ny + nz * nz);
-      if (len > 0) {
+      if (0 < len) {
         this._normals[i] = nx / len;
         this._normals[i + 1] = ny / len;
         this._normals[i + 2] = nz / len;

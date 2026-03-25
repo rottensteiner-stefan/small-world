@@ -23,7 +23,7 @@ export class Scene {
    */
   public remove(obj: Object3D): void {
     const index: number = this.objects.indexOf(obj);
-    if (index !== -1) {
+    if (-1 !== index) {
       this.objects.splice(index, 1);
     }
   }

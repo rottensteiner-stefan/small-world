@@ -263,7 +263,7 @@ export class Matrix4 {
     const d: Float32Array = out.data;
     const z: Vector3D = eye.clone().sub(target);
     const zL: number = z.length();
-    if (zL > 0) {
+    if (0 < zL) {
       z.scale(1 / zL);
     }
 
@@ -273,11 +273,15 @@ export class Matrix4 {
       up.x * z.y - up.y * z.x,
     );
     const xL: number = x.length();
-    if (xL > 0) {
+    if (0 < xL) {
       x.scale(1 / xL);
     }
 
-    const y: Vector3D = new Vector3D(z.y * x.z - z.z * x.y, z.z * x.x - z.x * x.z, z.x * x.y - z.y * x.x);
+    const y: Vector3D = new Vector3D(
+      z.y * x.z - z.z * x.y,
+      z.z * x.x - z.x * x.z,
+      z.x * x.y - z.y * x.x,
+    );
 
     d[0] = x.x;
     d[4] = x.y;
@@ -339,13 +343,33 @@ export class Matrix4 {
       n44: number = d[15]!;
 
     const t11: number =
-      n23 * n34 * n42 - n24 * n33 * n42 + n24 * n32 * n43 - n22 * n34 * n43 - n23 * n32 * n44 + n22 * n33 * n44;
+      n23 * n34 * n42 -
+      n24 * n33 * n42 +
+      n24 * n32 * n43 -
+      n22 * n34 * n43 -
+      n23 * n32 * n44 +
+      n22 * n33 * n44;
     const t12: number =
-      n14 * n33 * n42 - n13 * n34 * n42 - n14 * n32 * n43 + n12 * n34 * n43 + n13 * n32 * n44 - n12 * n33 * n44;
+      n14 * n33 * n42 -
+      n13 * n34 * n42 -
+      n14 * n32 * n43 +
+      n12 * n34 * n43 +
+      n13 * n32 * n44 -
+      n12 * n33 * n44;
     const t13: number =
-      n13 * n24 * n42 - n14 * n23 * n42 + n14 * n22 * n43 - n12 * n24 * n43 - n13 * n22 * n44 + n12 * n23 * n44;
+      n13 * n24 * n42 -
+      n14 * n23 * n42 +
+      n14 * n22 * n43 -
+      n12 * n24 * n43 -
+      n13 * n22 * n44 +
+      n12 * n23 * n44;
     const t14: number =
-      n14 * n23 * n32 - n13 * n24 * n32 - n14 * n22 * n33 + n12 * n24 * n33 + n13 * n22 * n34 - n12 * n23 * n34;
+      n14 * n23 * n32 -
+      n13 * n24 * n32 -
+      n14 * n22 * n33 +
+      n12 * n24 * n33 +
+      n13 * n22 * n34 -
+      n12 * n23 * n34;
 
     const det: number = n11 * t11 + n21 * t12 + n31 * t13 + n41 * t14;
 
@@ -357,46 +381,106 @@ export class Matrix4 {
 
     te[0] = t11 * invDet;
     te[1] =
-      (n24 * n33 * n41 - n23 * n34 * n41 - n24 * n31 * n43 + n21 * n34 * n43 + n23 * n31 * n44 - n21 * n33 * n44) *
+      (n24 * n33 * n41 -
+        n23 * n34 * n41 -
+        n24 * n31 * n43 +
+        n21 * n34 * n43 +
+        n23 * n31 * n44 -
+        n21 * n33 * n44) *
       invDet;
     te[2] =
-      (n22 * n34 * n41 - n24 * n32 * n41 + n24 * n31 * n42 - n21 * n34 * n42 - n22 * n31 * n44 + n21 * n32 * n44) *
+      (n22 * n34 * n41 -
+        n24 * n32 * n41 +
+        n24 * n31 * n42 -
+        n21 * n34 * n42 -
+        n22 * n31 * n44 +
+        n21 * n32 * n44) *
       invDet;
     te[3] =
-      (n23 * n32 * n41 - n22 * n33 * n41 - n23 * n31 * n42 + n21 * n33 * n42 + n22 * n31 * n43 - n21 * n32 * n43) *
+      (n23 * n32 * n41 -
+        n22 * n33 * n41 -
+        n23 * n31 * n42 +
+        n21 * n33 * n42 +
+        n22 * n31 * n43 -
+        n21 * n32 * n43) *
       invDet;
 
     te[4] = t12 * invDet;
     te[5] =
-      (n13 * n34 * n41 - n14 * n33 * n41 + n14 * n31 * n43 - n11 * n34 * n43 - n13 * n31 * n44 + n11 * n33 * n44) *
+      (n13 * n34 * n41 -
+        n14 * n33 * n41 +
+        n14 * n31 * n43 -
+        n11 * n34 * n43 -
+        n13 * n31 * n44 +
+        n11 * n33 * n44) *
       invDet;
     te[6] =
-      (n14 * n32 * n41 - n12 * n34 * n41 - n14 * n31 * n42 + n11 * n34 * n42 + n12 * n31 * n44 - n11 * n32 * n44) *
+      (n14 * n32 * n41 -
+        n12 * n34 * n41 -
+        n14 * n31 * n42 +
+        n11 * n34 * n42 +
+        n12 * n31 * n44 -
+        n11 * n32 * n44) *
       invDet;
     te[7] =
-      (n12 * n33 * n41 - n13 * n32 * n41 + n13 * n31 * n42 - n11 * n33 * n42 - n12 * n31 * n43 + n11 * n32 * n43) *
+      (n12 * n33 * n41 -
+        n13 * n32 * n41 +
+        n13 * n31 * n42 -
+        n11 * n33 * n42 -
+        n12 * n31 * n43 +
+        n11 * n32 * n43) *
       invDet;
 
     te[8] = t13 * invDet;
     te[9] =
-      (n14 * n23 * n41 - n13 * n24 * n41 - n14 * n21 * n43 + n11 * n24 * n43 + n13 * n21 * n44 - n11 * n23 * n44) *
+      (n14 * n23 * n41 -
+        n13 * n24 * n41 -
+        n14 * n21 * n43 +
+        n11 * n24 * n43 +
+        n13 * n21 * n44 -
+        n11 * n23 * n44) *
       invDet;
     te[10] =
-      (n12 * n24 * n41 - n14 * n22 * n41 + n14 * n21 * n42 - n11 * n24 * n42 - n12 * n21 * n44 + n11 * n22 * n44) *
+      (n12 * n24 * n41 -
+        n14 * n22 * n41 +
+        n14 * n21 * n42 -
+        n11 * n24 * n42 -
+        n12 * n21 * n44 +
+        n11 * n22 * n44) *
       invDet;
     te[11] =
-      (n13 * n22 * n41 - n12 * n23 * n41 - n13 * n21 * n42 + n11 * n23 * n42 + n12 * n21 * n43 - n11 * n22 * n43) *
+      (n13 * n22 * n41 -
+        n12 * n23 * n41 -
+        n13 * n21 * n42 +
+        n11 * n23 * n42 +
+        n12 * n21 * n43 -
+        n11 * n22 * n43) *
       invDet;
 
     te[12] = t14 * invDet;
     te[13] =
-      (n13 * n24 * n31 - n14 * n23 * n31 + n14 * n21 * n33 - n11 * n24 * n33 - n13 * n21 * n34 + n11 * n23 * n34) *
+      (n13 * n24 * n31 -
+        n14 * n23 * n31 +
+        n14 * n21 * n33 -
+        n11 * n24 * n33 -
+        n13 * n21 * n34 +
+        n11 * n23 * n34) *
       invDet;
     te[14] =
-      (n14 * n22 * n31 - n12 * n24 * n31 - n14 * n21 * n32 + n11 * n24 * n32 + n12 * n21 * n34 - n11 * n22 * n34) *
+      (n14 * n22 * n31 -
+        n12 * n24 * n31 -
+        n14 * n21 * n32 +
+        n11 * n24 * n32 +
+        n12 * n21 * n34 -
+        n11 * n22 * n34) *
       invDet;
     te[15] =
-      (n12 * n23 * n31 - n13 * n22 * n31 + n13 * n21 * n32 - n11 * n23 * n32 - n12 * n21 * n33 + n11 * n22 * n33) *
+      (n12 * n23 * n31 -
+        n13 * n22 * n31 +
+        n13 * n21 * n32 -
+        n11 * n23 * n32 -
+        n12 * n21 * n33 +
+        n11 * n22 * n33) *
       invDet;
 
     return true;

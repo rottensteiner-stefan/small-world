@@ -31,9 +31,12 @@ export class Demo5 extends AbstractDemo {
     const aspect = window.innerWidth / window.innerHeight;
     const size = 10;
     this.camera.projection = new OrthographicProjection(
-      -size * aspect, size * aspect, // left, right
-      -size, size,                   // bottom, top
-      0.1, 1000                      // near, far
+      -size * aspect,
+      size * aspect, // left, right
+      -size,
+      size, // bottom, top
+      0.1,
+      1000, // near, far
     );
     this.camera.updateProjectionMatrix();
     this.camera.setStrategy(CameraStrategyType.ISOMETRIC);
@@ -51,7 +54,7 @@ export class Demo5 extends AbstractDemo {
     const gridObj = new Object3D("IsometricGrid");
     gridObj.geometry = this._grid.getGeometryData();
     const gridMat = new PhongMaterial();
-    gridMat.color = new Color(0.3, 0.3, 0.3, 1);
+    gridMat.color = new Color(0.3, 0.3, 0.3);
     gridObj.material = gridMat;
     this.scene.add(gridObj);
 
@@ -71,11 +74,7 @@ export class Demo5 extends AbstractDemo {
       const treeMat = new PhongMaterial();
       treeMat.color = Color.GREEN;
       tree.material = treeMat;
-      tree.position.set(
-        Math.random() * 16 - 8,
-        0.4,
-        Math.random() * 16 - 8
-      );
+      tree.position.set(Math.random() * 16 - 8, 0.4, Math.random() * 16 - 8);
       this.scene.add(tree);
     }
 
@@ -84,7 +83,7 @@ export class Demo5 extends AbstractDemo {
 
   protected update(deltaTime: number): void {
     const speed = 5.0;
-    
+
     // Simple WASD movement on the isometric grid
     if (Input.isPressed(Keys.W)) this._player.position.z -= speed * deltaTime;
     if (Input.isPressed(Keys.S)) this._player.position.z += speed * deltaTime;
@@ -94,19 +93,19 @@ export class Demo5 extends AbstractDemo {
     // Toggle Pixel-Perfect Snapping with 'P'
     const strategy = (this.camera as any)._strategy;
     if (strategy instanceof IsometricStrategy) {
-        if (Input.isPressed(Keys.P)) {
-            strategy.pixelPerfect = !strategy.pixelPerfect;
-            console.log(`Pixel-Perfect Snapping: ${strategy.pixelPerfect}`);
-        }
-        
-        // Example of Screen-to-World (later usage)
-        if (Input.mouse.left) {
-            // Normalized mouse coords (-1 to 1)
-            const mx = (Input.mouse.x / window.innerWidth) * 2 - 1;
-            const my = -(Input.mouse.y / window.innerHeight) * 2 + 1;
-            const worldPos = strategy.screenToWorld(mx, my, this.camera);
-            this._player.position.set(worldPos.x, 0.5, worldPos.z);
-        }
+      if (Input.isPressed(Keys.P)) {
+        strategy.pixelPerfect = !strategy.pixelPerfect;
+        console.log(`Pixel-Perfect Snapping: ${strategy.pixelPerfect}`);
+      }
+
+      // Example of Screen-to-World (later usage)
+      if (Input.mouse.left) {
+        // Normalized mouse coords (-1 to 1)
+        const mx = (Input.mouse.x / window.innerWidth) * 2 - 1;
+        const my = -(Input.mouse.y / window.innerHeight) * 2 + 1;
+        const worldPos = strategy.screenToWorld(mx, my, this.camera);
+        this._player.position.set(worldPos.x, 0.5, worldPos.z);
+      }
     }
 
     this._targetPos.copyFrom(this._player.position);
@@ -118,9 +117,9 @@ export class Demo5 extends AbstractDemo {
     const strategy = (this.camera as any)._strategy as IsometricStrategy;
     return {
       ...base,
-      "Demo": "05 - Isometric 2D/3D",
+      Demo: "05 - Isometric 2D/3D",
       "Pixel Snapping (P)": strategy ? (strategy.pixelPerfect ? "ON" : "OFF") : "N/A",
-      "Player Pos": `(${this._player.position.x.toFixed(2)}, ${this._player.position.z.toFixed(2)})`
+      "Player Pos": `(${this._player.position.x.toFixed(2)}, ${this._player.position.z.toFixed(2)})`,
     };
   }
 }

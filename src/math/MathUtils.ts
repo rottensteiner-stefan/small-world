@@ -15,7 +15,7 @@ export class MathUtils {
       return;
     }
 
-    for (let i = 0; i < 3600; i++) {
+    for (let i: number = 0; i < 3600; i++) {
       const rad: number = (i / 10) * (Math.PI / 180);
       this._SIN_TABLE[i] = Math.sin(rad);
       this._COS_TABLE[i] = Math.cos(rad);

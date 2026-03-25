@@ -1,13 +1,13 @@
 /// src/loaders/AbstractLoader.ts
 import { EventDispatcherImpl, EventHandler } from "../core/events/index.js";
-import { EventDispatcher } from "../interfaces/index.js";
+import { Events } from "../interfaces/index.js";
 import { EventType } from "../enums/index.js";
 
 /**
  * Abstract base class for all resource loaders.
  * @template T The type of resource returned by the loader.
  */
-export abstract class AbstractLoader<T> implements EventDispatcher {
+export abstract class AbstractLoader<T> implements Events {
   /** The base path for resource URLs. */
   public basePath: string = "";
   private _dispatcher: EventDispatcherImpl = new EventDispatcherImpl();

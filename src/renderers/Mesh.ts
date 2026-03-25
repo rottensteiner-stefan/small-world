@@ -1,56 +1,56 @@
 /// src/renderers/Mesh.ts
-import { GeometryDataInterface } from "../interfaces/index.js";
+import { GeometryData } from "../interfaces/index.js";
 
 export class Mesh {
-  public vbo: WebGLBuffer | null;
-  public ebo: WebGLBuffer | null;
-  public nbo: WebGLBuffer | null = null;
-  public tbo: WebGLBuffer | null = null; // <--- NEU: UV Buffer
+  public vbo: WebGLBuffer | undefined;
+  public ebo: WebGLBuffer | undefined;
+  public nbo: WebGLBuffer | undefined = undefined;
+  public tbo: WebGLBuffer | undefined = undefined; // <--- NEU: UV Buffer
   public count: number;
 
-  constructor(
-    private gl: WebGLRenderingContext | WebGL2RenderingContext,
-    data: GeometryDataInterface,
-  ) {
-    this.vbo = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.vbo);
+  private _gl: WebGLRenderingContext | WebGL2RenderingContext;
+
+  constructor(gl: WebGLRenderingContext | WebGL2RenderingContext, data: GeometryData) {
+    this._gl = gl;
+    this.vbo = gl.createBuffer() ?? undefined;
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.vbo ?? null);
     gl.bufferData(gl.ARRAY_BUFFER, data.vertices, gl.STATIC_DRAW);
 
-    if (data.normals && data.normals.length > 0) {
-      this.nbo = gl.createBuffer();
-      gl.bindBuffer(gl.ARRAY_BUFFER, this.nbo);
+    if (data.normals && 0 < data.normals.length) {
+      this.nbo = gl.createBuffer() ?? undefined;
+      gl.bindBuffer(gl.ARRAY_BUFFER, this.nbo ?? null);
       gl.bufferData(gl.ARRAY_BUFFER, data.normals, gl.STATIC_DRAW);
     }
 
-    if (data.uvs && data.uvs.length > 0) {
-      this.tbo = gl.createBuffer();
-      gl.bindBuffer(gl.ARRAY_BUFFER, this.tbo);
+    if (data.uvs && 0 < data.uvs.length) {
+      this.tbo = gl.createBuffer() ?? undefined;
+      gl.bindBuffer(gl.ARRAY_BUFFER, this.tbo ?? null);
       gl.bufferData(gl.ARRAY_BUFFER, data.uvs, gl.STATIC_DRAW);
     }
 
-    this.ebo = gl.createBuffer();
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.ebo);
+    this.ebo = gl.createBuffer() ?? undefined;
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.ebo ?? null);
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, data.indices, gl.STATIC_DRAW);
     this.count = data.indices.length;
   }
 
-  public bind(posLoc: number, normLoc: number = -1, uvLoc: number = -1) {
-    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vbo);
-    this.gl.vertexAttribPointer(posLoc, 3, this.gl.FLOAT, false, 0, 0);
-    this.gl.enableVertexAttribArray(posLoc);
+  public bind(posLoc: number, normLoc: number = -1, uvLoc: number = -1): void {
+    this._gl.bindBuffer(this._gl.ARRAY_BUFFER, this.vbo ?? null);
+    this._gl.vertexAttribPointer(posLoc, 3, this._gl.FLOAT, false, 0, 0);
+    this._gl.enableVertexAttribArray(posLoc);
 
-    if (normLoc >= 0 && this.nbo) {
-      this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.nbo);
-      this.gl.vertexAttribPointer(normLoc, 3, this.gl.FLOAT, false, 0, 0);
-      this.gl.enableVertexAttribArray(normLoc);
+    if (0 <= normLoc && this.nbo) {
+      this._gl.bindBuffer(this._gl.ARRAY_BUFFER, this.nbo);
+      this._gl.vertexAttribPointer(normLoc, 3, this._gl.FLOAT, false, 0, 0);
+      this._gl.enableVertexAttribArray(normLoc);
     }
 
-    if (uvLoc >= 0 && this.tbo) {
-      this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.tbo);
-      this.gl.vertexAttribPointer(uvLoc, 2, this.gl.FLOAT, false, 0, 0);
-      this.gl.enableVertexAttribArray(uvLoc);
+    if (0 <= uvLoc && this.tbo) {
+      this._gl.bindBuffer(this._gl.ARRAY_BUFFER, this.tbo);
+      this._gl.vertexAttribPointer(uvLoc, 2, this._gl.FLOAT, false, 0, 0);
+      this._gl.enableVertexAttribArray(uvLoc);
     }
 
-    this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, this.ebo);
+    this._gl.bindBuffer(this._gl.ELEMENT_ARRAY_BUFFER, this.ebo ?? null);
   }
 }

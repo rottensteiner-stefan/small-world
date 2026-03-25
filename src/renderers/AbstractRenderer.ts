@@ -8,13 +8,13 @@ import {
   PointLight,
   SpotLight,
 } from "../core/index.js";
-import { RendererInterface } from "../interfaces/index.js";
+import { Renderer } from "../interfaces/index.js";
 import { LightType, RendererType } from "../enums/index.js";
 import { Object3D } from "../core/Object3D.js";
 import { Scene } from "../core/Scene.js";
 import { Vector3D } from "../math/Vector3D.js";
 
-export abstract class AbstractRenderer implements RendererInterface {
+export abstract class AbstractRenderer implements Renderer {
   public abstract readonly type: RendererType;
   protected _clearColor: Color = new Color(0, 0, 0, 1);
 

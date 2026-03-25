@@ -8,6 +8,26 @@ import { ProjectionType } from "../../enums/ProjectionType.js";
  */
 export class PerspectiveProjection extends AbstractProjection {
   /**
+   * Field of view in radians.
+   */
+  public fov: number;
+
+  /**
+   * Aspect ratio.
+   */
+  public aspect: number;
+
+  /**
+   * Near plane.
+   */
+  public near: number;
+
+  /**
+   * Far plane.
+   */
+  public far: number;
+
+  /**
    * @inheritdoc
    */
   public override readonly type: ProjectionType = ProjectionType.PERSPECTIVE;
@@ -19,13 +39,12 @@ export class PerspectiveProjection extends AbstractProjection {
    * @param near Near plane.
    * @param far Far plane.
    */
-  constructor(
-    public fov: number,
-    public aspect: number,
-    public near: number,
-    public far: number,
-  ) {
+  constructor(fov: number, aspect: number, near: number, far: number) {
     super();
+    this.fov = fov;
+    this.aspect = aspect;
+    this.near = near;
+    this.far = far;
     this.update();
   }
 

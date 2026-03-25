@@ -1,6 +1,6 @@
 /// src/renderers/WebGPURenderer.ts
 import { AreaLight, PhongMaterial, TerrainMaterial, Texture } from "../core/index.js";
-import { GeometryDataInterface } from "../interfaces/index.js";
+import { GeometryData } from "../interfaces/index.js";
 import { Object3D } from "../core/Object3D.js";
 import { Scene } from "../core/Scene.js";
 import { Vector3D } from "../math/Vector3D.js";
@@ -45,7 +45,7 @@ export class WebGPURenderer extends AbstractRenderer {
   private _sampler!: GPUSampler;
   private _whiteTexView!: GPUTextureView;
 
-  private _geoCache = new Map<GeometryDataInterface, WebGPUGeoCache>();
+  private _geoCache = new Map<GeometryData, WebGPUGeoCache>();
   private _objCache = new Map<Object3D, WebGPUObjCache>();
   private _textureViewCache = new Map<Texture, GPUTextureView>();
   private _texCache = new Map<Texture, GPUBindGroup>();
@@ -302,7 +302,7 @@ export class WebGPURenderer extends AbstractRenderer {
     this.setSize(canvas.clientWidth, canvas.clientHeight);
   }
 
-  private getTextureView(tex: Texture | null): GPUTextureView {
+  private _getTextureView(tex: Texture | null): GPUTextureView {
     if (!tex || !tex.isLoaded || !tex.image) return this._whiteTexView;
     let view = this._textureViewCache.get(tex);
     if (!view) {
@@ -324,7 +324,7 @@ export class WebGPURenderer extends AbstractRenderer {
     return view;
   }
 
-  private getSampler(tex: Texture): GPUSampler {
+  private _getSampler(tex: Texture): GPUSampler {
     const key = `${tex.addressModeU}_${tex.addressModeV}_${tex.magFilter}_${tex.minFilter}`;
     if (!this._samplerCache.has(key)) {
       this._samplerCache.set(
@@ -341,7 +341,7 @@ export class WebGPURenderer extends AbstractRenderer {
     return this._samplerCache.get(key)!;
   }
 
-  private getGeoCache(geo: GeometryDataInterface): WebGPUGeoCache {
+  private _getGeoCache(geo: GeometryData): WebGPUGeoCache {
     let c = this._geoCache.get(geo);
     if (!c) {
       const createBuf = (data: Float32Array | Uint16Array | Uint32Array, usage: number) => {
@@ -370,7 +370,7 @@ export class WebGPURenderer extends AbstractRenderer {
     return c;
   }
 
-  private getObjCache(obj: Object3D): WebGPUObjCache {
+  private _getObjCache(obj: Object3D): WebGPUObjCache {
     let c = this._objCache.get(obj);
     if (!c) {
       const ub = this._device!.createBuffer({
@@ -404,15 +404,15 @@ export class WebGPURenderer extends AbstractRenderer {
     return c;
   }
 
-  private getGPUTextureBindGroup(tex: Texture): GPUBindGroup {
+  private _getGPUTextureBindGroup(tex: Texture): GPUBindGroup {
     if (!tex.isLoaded || !tex.image) return this._defaultTexBindGroup;
     let bg = this._texCache.get(tex);
     if (!bg) {
       bg = this._device!.createBindGroup({
         layout: this._texBGL,
         entries: [
-          { binding: 0, resource: this.getTextureView(tex) },
-          { binding: 1, resource: this.getSampler(tex) },
+          { binding: 0, resource: this._getTextureView(tex) },
+          { binding: 1, resource: this._getSampler(tex) },
           { binding: 2, resource: this._whiteTexView },
           { binding: 3, resource: this._whiteTexView },
           { binding: 4, resource: this._whiteTexView },
@@ -424,7 +424,7 @@ export class WebGPURenderer extends AbstractRenderer {
     return bg;
   }
 
-  private getGPUTerrainBindGroup(mat: TerrainMaterial): GPUBindGroup {
+  private _getGPUTerrainBindGroup(mat: TerrainMaterial): GPUBindGroup {
     let bg = this._terrainTexCache.get(mat);
     if (!bg) {
       bg = this._device!.createBindGroup({
@@ -432,10 +432,10 @@ export class WebGPURenderer extends AbstractRenderer {
         entries: [
           { binding: 0, resource: this._whiteTexView },
           { binding: 1, resource: this._sampler },
-          { binding: 2, resource: this.getTextureView(mat.sandMap) },
-          { binding: 3, resource: this.getTextureView(mat.grassMap) },
-          { binding: 4, resource: this.getTextureView(mat.rockMap) },
-          { binding: 5, resource: this.getTextureView(mat.snowMap) },
+          { binding: 2, resource: this._getTextureView(mat.sandMap) },
+          { binding: 3, resource: this._getTextureView(mat.grassMap) },
+          { binding: 4, resource: this._getTextureView(mat.rockMap) },
+          { binding: 5, resource: this._getTextureView(mat.snowMap) },
         ],
       });
       this._terrainTexCache.set(mat, bg);
@@ -557,7 +557,7 @@ export class WebGPURenderer extends AbstractRenderer {
             shininess = pMat.shininess || 32;
             specCol = pMat.specularColor ? pMat.specularColor.toArray() : [0, 0, 0, 0];
             if (pMat.diffuseMap) {
-              texBindGroup = this.getGPUTextureBindGroup(pMat.diffuseMap);
+              texBindGroup = this._getGPUTextureBindGroup(pMat.diffuseMap);
               tOffset = [pMat.diffuseMap.offset.x, pMat.diffuseMap.offset.y];
               tRepeat = [pMat.diffuseMap.repeat.x, pMat.diffuseMap.repeat.y];
             }
@@ -567,7 +567,7 @@ export class WebGPURenderer extends AbstractRenderer {
             shininess = tMat.shininess;
             tRepeat = tMat.texRepeat;
             thresholds = tMat.thresholds;
-            texBindGroup = this.getGPUTerrainBindGroup(tMat);
+            texBindGroup = this._getGPUTerrainBindGroup(tMat);
           }
         }
 
@@ -580,13 +580,13 @@ export class WebGPURenderer extends AbstractRenderer {
         uData.set(thresholds, 64);
         uData[68] = isTerrain;
 
-        const oCache = this.getObjCache(obj);
+        const oCache = this._getObjCache(obj);
         this._device!.queue.writeBuffer(oCache.ub, 0, uData);
         this._device!.queue.writeBuffer(oCache.plb, 0, plData);
         this._device!.queue.writeBuffer(oCache.slb, 0, slData);
         this._device!.queue.writeBuffer(oCache.alb, 0, alData);
 
-        const gCache = this.getGeoCache(obj.geometry);
+        const gCache = this._getGeoCache(obj.geometry);
         rp.setBindGroup(0, oCache.bg);
         rp.setBindGroup(1, texBindGroup);
         rp.setVertexBuffer(0, gCache.vb);

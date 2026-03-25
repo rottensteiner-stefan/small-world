@@ -2,15 +2,15 @@
 import { AbstractProjection, PerspectiveProjection } from "../math/index.js";
 import { CameraStrategyFactory } from "./cameras/CameraStrategyFactory.js";
 import { CameraStrategyType } from "../enums/index.js";
-import { CameraInterface } from "../interfaces/CameraInterface.js";
-import { CameraStrategyInterface } from "../interfaces/index.js";
+import { CameraInterfaceData } from "../interfaces/CameraInterfaceData.js";
+import { CameraStrategy } from "../interfaces/index.js";
 import { Matrix4 } from "../math/Matrix4.js";
 import { Vector3D } from "../math/Vector3D.js";
 
 /**
- * Standard implementation of the CameraInterface.
+ * Standard implementation of the CameraInterfaceData.
  */
-export class Camera implements CameraInterface {
+export class Camera implements CameraInterfaceData {
   /** @inheritdoc */
   public position: Vector3D = new Vector3D(0, 10, 20);
   /** @inheritdoc */
@@ -23,7 +23,7 @@ export class Camera implements CameraInterface {
   /** @inheritdoc */
   public phi: number = 0.6;
 
-  private _strategy!: CameraStrategyInterface;
+  private _strategy!: CameraStrategy;
 
   private _viewMatrix: Matrix4 = new Matrix4();
   private _viewProjMatrix: Matrix4 = new Matrix4();
