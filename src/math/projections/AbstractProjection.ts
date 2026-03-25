@@ -1,6 +1,6 @@
 /// src/math/projections/AbstractProjection.ts
 import { Matrix4 } from "../Matrix4.js";
-import { ProjectionType } from "../../enums/ProjectionType.js";
+import { ProjectionType } from "../../enums/index.js";
 
 /**
  * Base class for all camera projections.

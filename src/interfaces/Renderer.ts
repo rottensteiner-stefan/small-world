@@ -1,8 +1,8 @@
 /// src/interfaces/Renderer.ts
 import { Scene } from "../core/Scene.js";
-import { Color } from "../core/colors/Color.js";
+import { Color } from "../core/index.js";
 import { Vector3D } from "../math/Vector3D.js";
-import { RendererType } from "../enums/RendererType.js"; // <--- NEU
+import { RendererType } from "../enums/index.js";
 
 export interface Renderer {
   readonly type: RendererType; // <--- NEU

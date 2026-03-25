@@ -1,11 +1,11 @@
 /// src/core/cameras/strategies/IsometricStrategy.ts
-import { CameraStrategy } from "../../../interfaces/CameraStrategy.js";
-import { CameraInterfaceData } from "../../../interfaces/CameraInterfaceData.js";
+import { CameraStrategy } from "../../../interfaces/index.js";
+import { CameraInterfaceData } from "../../../interfaces/index.js";
 import { Camera } from "../../Camera.js";
 import { Vector3D } from "../../../math/Vector3D.js";
 import { Matrix4 } from "../../../math/Matrix4.js";
-import { CameraStrategyType } from "../../../enums/CameraStrategyType.js";
-import { OrthographicProjection } from "../../../math/projections/OrthographicProjection.js";
+import { CameraStrategyType } from "../../../enums/index.js";
+import { OrthographicProjection } from "../../../math/index.js";
 
 /**
  * Strategy for an isometric 2D/3D camera.

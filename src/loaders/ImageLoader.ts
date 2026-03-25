@@ -2,7 +2,7 @@
 
 import { AbstractLoader } from "./AbstractLoader.js";
 import { AssetManager } from "./AssetManager.js";
-import { EventType } from "../enums/EventType.js";
+import { EventType } from "../enums/index.js";
 
 /**
  * Loader for image assets.

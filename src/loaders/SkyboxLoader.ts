@@ -1,9 +1,10 @@
 /// src/loaders/SkyboxLoader.ts
 
 import { AssetManager } from "./AssetManager.js";
-import { CubeTexture } from "../core/textures/CubeTexture.js";
-import { EventType } from "../enums/EventType.js";
+import { CubeTexture } from "../core/index.js";
+import { EventType } from "../enums/index.js";
 import { AbstractLoader } from "./AbstractLoader.js";
+
 /**
  * Loader for cube map skybox textures from a single cross-layout image.
  */

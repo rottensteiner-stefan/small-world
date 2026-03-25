@@ -1,7 +1,7 @@
 /// src/math/projections/ObliqueProjection.ts
 import { Matrix4 } from "../Matrix4.js";
 import { AbstractProjection } from "./AbstractProjection.js";
-import { ProjectionType } from "../../enums/ProjectionType.js";
+import { ProjectionType } from "../../enums/index.js";
 
 /**
  * Oblique camera projection.

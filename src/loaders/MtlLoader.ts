@@ -2,10 +2,10 @@
 
 import { AbstractLoader } from "./AbstractLoader.js";
 import { AssetManager } from "./AssetManager.js";
-import { Color } from "../core/colors/Color.js";
-import { EventType } from "../enums/EventType.js";
-import { PhongMaterial } from "../core/materials/PhongMaterial.js";
-import { Texture } from "../core/textures/Texture.js";
+import { Color } from "../core/index.js";
+import { EventType } from "../enums/index.js";
+import { PhongMaterial } from "../core/index.js";
+import { Texture } from "../core/index.js";
 
 export class MtlLoader extends AbstractLoader<Map<string, PhongMaterial>> {
   public async load(url: string): Promise<Map<string, PhongMaterial>> {

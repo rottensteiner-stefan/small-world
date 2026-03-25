@@ -4,7 +4,7 @@ import { AssetManager, AbstractLoader, MtlLoader } from "./index.js";
 import { EventType } from "../enums/index.js";
 import { ModelGeometry } from "../geometry/index.js";
 import { Object3D } from "../core/index.js";
-import { PhongMaterial } from "../core/materials/index.js";
+import { PhongMaterial } from "../core/index.js";
 
 // Hilfsklasse, um Geometrie-Teile nach Material zu sortieren
 class MaterialGroup {
