@@ -1,4 +1,5 @@
 /// src/interfaces/EngineConfig.ts
+
 import { ProjectionType, RendererType } from "../enums/index.js";
 
 export interface EngineConfig {

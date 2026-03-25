@@ -1,4 +1,5 @@
 /// src/renderers/WebGL2Renderer.ts
+
 import { AbstractWebGLRenderer } from "./AbstractWebGLRenderer.js";
 import {
   AreaLight,

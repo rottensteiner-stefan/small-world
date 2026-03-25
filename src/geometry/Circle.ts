@@ -1,4 +1,5 @@
 /// src/geometry/Circle.ts
+
 import { AbstractGeometry } from "./AbstractGeometry.js";
 
 /**

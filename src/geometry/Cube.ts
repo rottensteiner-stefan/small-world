@@ -1,4 +1,5 @@
 /// src/geometry/Cube.ts
+
 import { AbstractGeometry } from "./AbstractGeometry.js";
 
 /**

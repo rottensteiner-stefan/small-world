@@ -1,4 +1,5 @@
 /// src/interfaces/Events.ts
+
 import { EventHandler } from "../core/index.js"; // Wird gleich angepasst
 import { EventType } from "../enums/index.js";
 

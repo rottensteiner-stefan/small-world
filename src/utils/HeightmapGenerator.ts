@@ -1,4 +1,5 @@
 /// src/utils/HeightmapGenerator.ts
+
 import { Noise } from "./Noise.js";
 
 /**
