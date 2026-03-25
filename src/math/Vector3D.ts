@@ -1,4 +1,5 @@
 /// src/math/Vector3D.ts
+
 import { Vector } from "../interfaces/Vector.js";
 import { Matrix4 } from "./Matrix4.js";
 

@@ -1,4 +1,5 @@
 /// src/math/Vector2D.ts
+
 import { Vector } from "../interfaces/Vector.js";
 
 /**

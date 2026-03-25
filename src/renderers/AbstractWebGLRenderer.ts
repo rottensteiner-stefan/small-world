@@ -2,7 +2,6 @@
 
 import { AbstractRenderer } from "./AbstractRenderer.js";
 import { Color } from "../core/index.js";
-
 export abstract class AbstractWebGLRenderer extends AbstractRenderer {
   // WebGL2 context erbt von WebGL1 context
   protected gl!: WebGLRenderingContext | WebGL2RenderingContext;

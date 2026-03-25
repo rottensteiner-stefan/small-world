@@ -1,6 +1,6 @@
 /// src/interfaces/CameraInterfaceData.ts
-import { AbstractProjection } from "../math/projections/AbstractProjection.js";
-import { CameraStrategyType } from "../enums/CameraStrategyType.js";
+import { AbstractProjection } from "../math/index.js";
+import { CameraStrategyType } from "../enums/index.js";
 import { Vector3D } from "../math/Vector3D.js";
 import { CameraStrategy } from "./CameraStrategy.js";
 

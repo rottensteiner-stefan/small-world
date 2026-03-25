@@ -1,4 +1,5 @@
 /// src/math/Matrix4.ts
+
 import { Vector3D } from "./Vector3D.js";
 /**
  * A 4x4 matrix class.

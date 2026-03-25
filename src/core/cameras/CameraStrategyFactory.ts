@@ -1,8 +1,8 @@
 /// src/core/cameras/CameraStrategyFactory.ts
-import { CameraStrategyType } from "../../enums/CameraStrategyType.js";
+import { CameraStrategyType } from "../../enums/index.js";
 import { FixedStrategy } from "./strategies/FixedStrategy.js";
 import { FPSStrategy } from "./strategies/FPSStrategy.js";
-import { CameraStrategy } from "../../interfaces/CameraStrategy.js";
+import { CameraStrategy } from "../../interfaces/index.js";
 import { SmoothStrategy } from "./strategies/SmoothStrategy.js";
 import { StiffStrategy } from "./strategies/StiffStrategy.js";
 import { IsometricStrategy } from "./strategies/IsometricStrategy.js";

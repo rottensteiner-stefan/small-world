@@ -1,7 +1,7 @@
 /// src/loaders/TextLoader.ts
 
 import { AssetManager } from "./AssetManager.js";
-import { EventType } from "../enums/EventType.js";
+import { EventType } from "../enums/index.js";
 import { AbstractLoader } from "./AbstractLoader.js";
 /**
  * Loader for text assets.

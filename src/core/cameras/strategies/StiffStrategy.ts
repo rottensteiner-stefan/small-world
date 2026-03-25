@@ -1,7 +1,7 @@
 /// src/core/cameras/strategies/StiffStrategy.ts
 import { Camera } from "../../Camera.js";
-import { CameraStrategyType } from "../../../enums/CameraStrategyType.js";
-import { CameraStrategy } from "../../../interfaces/CameraStrategy.js";
+import { CameraStrategyType } from "../../../enums/index.js";
+import { CameraStrategy } from "../../../interfaces/index.js";
 import { Vector3D } from "../../../math/Vector3D.js";
 
 export class StiffStrategy implements CameraStrategy {
