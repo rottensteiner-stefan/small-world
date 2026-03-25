@@ -9,7 +9,7 @@ import { CameraEffectType } from "../../../enums/index.js";
  */
 export class FlashEffect extends AbstractCameraEffect {
   /** @inheritdoc */
-  public readonly type = CameraEffectType.FLASH;
+  public override readonly type: CameraEffectType = CameraEffectType.FLASH;
 
   private _intensity: number;
   private _duration: number;
@@ -27,7 +27,7 @@ export class FlashEffect extends AbstractCameraEffect {
   }
 
   /** @inheritdoc */
-  public update(deltaTime: number): void {
+  public override update(deltaTime: number): void {
     this._elapsed += deltaTime;
 
     if (this._elapsed >= this._duration) {
@@ -37,8 +37,8 @@ export class FlashEffect extends AbstractCameraEffect {
     }
 
     // Just a quick jolt up and down
-    const progress = this._elapsed / this._duration;
-    const offset = Math.sin(progress * Math.PI) * this._intensity;
+    const progress: number = this._elapsed / this._duration;
+    const offset: number = Math.sin(progress * Math.PI) * this._intensity;
     this.targetOffset.y = offset;
   }
 }

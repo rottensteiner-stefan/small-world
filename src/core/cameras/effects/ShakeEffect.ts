@@ -8,7 +8,7 @@ import { CameraEffectType } from "../../../enums/index.js";
  */
 export class ShakeEffect extends AbstractCameraEffect {
   /** @inheritdoc */
-  public readonly type = CameraEffectType.SHAKE;
+  public override readonly type: CameraEffectType = CameraEffectType.SHAKE;
 
   private _intensity: number;
   private _duration: number;
@@ -26,7 +26,7 @@ export class ShakeEffect extends AbstractCameraEffect {
   }
 
   /** @inheritdoc */
-  public update(deltaTime: number): void {
+  public override update(deltaTime: number): void {
     this._elapsed += deltaTime;
 
     if (this._elapsed >= this._duration) {
@@ -35,8 +35,8 @@ export class ShakeEffect extends AbstractCameraEffect {
       return;
     }
 
-    const remaining = 1.0 - this._elapsed / this._duration;
-    const currentIntensity = this._intensity * remaining;
+    const remaining: number = 1.0 - this._elapsed / this._duration;
+    const currentIntensity: number = this._intensity * remaining;
 
     this.offset.x = (Math.random() * 2 - 1) * currentIntensity;
     this.offset.y = (Math.random() * 2 - 1) * currentIntensity;
