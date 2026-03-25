@@ -2,6 +2,7 @@
 
 export * from "./BoundingVolume.js";
 export * from "./CameraConstraints.js";
+export * from "./CameraEffect.js";
 export * from "./CameraInterfaceData.js";
 export * from "./CameraStrategy.js";
 export * from "./EngineConfig.js";

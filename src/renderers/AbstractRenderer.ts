@@ -13,21 +13,34 @@ import { LightType, RendererType } from "../enums/index.js";
 import { Object3D } from "../core/Object3D.js";
 import { Scene } from "../core/Scene.js";
 import { Vector3D } from "../math/Vector3D.js";
+/**
+ * Base class for all renderer implementations.
+ */
 export abstract class AbstractRenderer implements Renderer {
+  /** @inheritdoc */
   public abstract readonly type: RendererType;
+  /** The clear color of the renderer. */
   protected _clearColor: Color = new Color(0, 0, 0, 1);
 
+  /** @inheritdoc */
   public abstract initialize(canvas: HTMLCanvasElement): Promise<void>;
 
+  /** @inheritdoc */
   public abstract render(scene: Scene, vpMatrix: Float32Array, camPos?: Vector3D): void;
 
+  /** @inheritdoc */
   public abstract setSize(width: number, height: number): void;
 
+  /** @inheritdoc */
   public setClearColor(color: Color): void {
     this._clearColor = color;
   }
 
-  // Diese Methode ist in ALLEN Renderern (sogar WebGPU) exakt gleich!
+  /**
+   * Extracts all lights from the scene for rendering.
+   * @param scene The scene to extract lights from.
+   * @returns An object containing all extracted light data.
+   */
   protected extractLights(scene: Scene): {
     aCol: Color;
     dDir: Vector3D;
@@ -39,14 +52,13 @@ export abstract class AbstractRenderer implements Renderer {
     const aLights: AreaLight[] = [];
     const pLights: PointLight[] = [];
     const sLights: SpotLight[] = [];
-    let aCol = new Color(0, 0, 0);
-    let dCol = new Color(0, 0, 0);
-    let dDir = new Vector3D(0, 1, 0);
+    let aCol: Color = new Color(0, 0, 0);
+    let dCol: Color = new Color(0, 0, 0);
+    let dDir: Vector3D = new Vector3D(0, 1, 0);
 
     const traverse = (node: Object3D): void => {
-      // Duck-Typing: Wenn das Objekt ein 'type' Feld hat, behandeln wir es als Licht
       if ("type" in node) {
-        const light = node as AbstractLight; // TypeScript beruhigen
+        const light: AbstractLight = node as AbstractLight;
 
         switch (light.type) {
           case LightType.AMBIENT: {
@@ -58,7 +70,7 @@ export abstract class AbstractRenderer implements Renderer {
             break;
           }
           case LightType.DIRECTIONAL: {
-            const dl = light as DirectionalLight;
+            const dl: DirectionalLight = light as DirectionalLight;
             dDir = dl.direction.clone().scale(-1).normalize();
             dCol = new Color(
               light.color.r * light.intensity,
@@ -69,20 +81,22 @@ export abstract class AbstractRenderer implements Renderer {
             break;
           }
           case LightType.POINT: {
-            if (pLights.length < 4) pLights.push(light as PointLight);
+            if (4 > pLights.length) pLights.push(light as PointLight);
             break;
           }
           case LightType.SPOT: {
-            if (sLights.length < 4) sLights.push(light as SpotLight);
+            if (4 > sLights.length) sLights.push(light as SpotLight);
             break;
           }
           case LightType.AREA: {
-            if (aLights.length < 4) aLights.push(light as AreaLight);
+            if (4 > aLights.length) aLights.push(light as AreaLight);
             break;
           }
         }
       }
-      if (node.children) node.children.forEach(traverse);
+      if (undefined !== node.children) {
+        node.children.forEach(traverse);
+      }
     };
 
     for (const obj of scene.objects) traverse(obj);

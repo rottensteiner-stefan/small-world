@@ -40,14 +40,14 @@ export class IsometricStrategy implements CameraStrategy {
 
     // Apply constraints to targetPos clone to not affect the source object
     const constrainedTarget: Vector3D = targetPos.clone();
-    if (this.constraints) {
-      if (this.constraints.min && this.constraints.max) {
+    if (undefined !== this.constraints) {
+      if (undefined !== this.constraints.min && undefined !== this.constraints.max) {
         constrainedTarget.clamp(this.constraints.min, this.constraints.max);
-      } else if (this.constraints.min) {
+      } else if (undefined !== this.constraints.min) {
         constrainedTarget.x = Math.max(this.constraints.min.x, constrainedTarget.x);
         constrainedTarget.y = Math.max(this.constraints.min.y, constrainedTarget.y);
         constrainedTarget.z = Math.max(this.constraints.min.z, constrainedTarget.z);
-      } else if (this.constraints.max) {
+      } else if (undefined !== this.constraints.max) {
         constrainedTarget.x = Math.min(this.constraints.max.x, constrainedTarget.x);
         constrainedTarget.y = Math.min(this.constraints.max.y, constrainedTarget.y);
         constrainedTarget.z = Math.min(this.constraints.max.z, constrainedTarget.z);

@@ -48,16 +48,16 @@ export abstract class Application {
     const aspect: number = window.innerWidth / window.innerHeight;
     let projection: AbstractProjection;
 
-    if (this.config.projection === ProjectionType.ORTHOGRAPHIC) {
+    if (ProjectionType.ORTHOGRAPHIC === this.config.projection) {
       projection = new OrthographicProjection(-10 * aspect, 10 * aspect, -10, 10, 0.1, 1000);
-    } else if (this.config.projection === ProjectionType.OBLIQUE) {
+    } else if (ProjectionType.OBLIQUE === this.config.projection) {
       projection = new ObliqueProjection(-10 * aspect, 10 * aspect, -10, 10, 0.1, 1000);
     } else {
       projection = new PerspectiveProjection(75, aspect, 0.1, 1000);
     }
 
     this.camera = new Camera(projection);
-    this.renderer = null!; // Initialized in start()
+    this.renderer = undefined!; // Initialized in start()
   }
 
   /**
@@ -94,7 +94,7 @@ export abstract class Application {
         this.canvas.height = window.innerHeight;
         this.camera.aspect = this.canvas.width / this.canvas.height;
         this.camera.updateProjectionMatrix();
-        if (this.renderer) {
+        if (undefined !== this.renderer) {
           this.renderer.setSize(this.canvas.width, this.canvas.height);
         }
       });
@@ -127,6 +127,7 @@ export abstract class Application {
     this.update(deltaTime);
 
     this.scene.update();
+    this.camera.update(this.camera.target, 0, 0, deltaTime);
     this.camera.updateViewMatrix();
 
     this.renderer.render(this.scene, this.camera.viewProjectionMatrix, this.camera.position);

@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.11.14] - 2026-03-26
+
+- Implement Camera Effects (Shake, Flash) with Factory and Enums
+- Add effect support to Camera class and Application loop
+- Refine Smooth Camera Strategy
+
 ## [0.11.13] - 2026-03-26
 
 - Implement camera constraints

@@ -4,8 +4,12 @@ import { Color } from "../colors/Color.js";
 import { LightType } from "../../enums/index.js";
 import { AbstractLight } from "./AbstractLight.js";
 
+/**
+ * Area light that emits light from a rectangular plane.
+ */
 export class AreaLight extends AbstractLight {
-  public readonly type = LightType.AREA;
+  /** @inheritdoc */
+  public override readonly type: LightType = LightType.AREA;
 
   /**
    * Creates a new AreaLight.
