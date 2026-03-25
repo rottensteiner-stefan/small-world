@@ -1,5 +1,6 @@
 /// src/core/events/EventDispatcherImpl.ts
-import { EventType } from "../../enums/EventType.js";
+
+import { EventType } from "../../enums/index.js";
 import { Events } from "../../interfaces/Events.js";
 
 /**

@@ -1,4 +1,5 @@
 /// src/core/Input.ts
+
 import { Keys } from "../enums/Keys.js";
 
 /**

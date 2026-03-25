@@ -1,9 +1,9 @@
 /// src/core/Camera.ts
+
 import { AbstractProjection, PerspectiveProjection } from "../math/index.js";
 import { CameraStrategyFactory } from "./cameras/CameraStrategyFactory.js";
 import { CameraStrategyType } from "../enums/index.js";
-import { CameraInterfaceData } from "../interfaces/CameraInterfaceData.js";
-import { CameraStrategy } from "../interfaces/index.js";
+import { CameraInterfaceData, CameraStrategy } from "../interfaces/index.js";
 import { Matrix4 } from "../math/Matrix4.js";
 import { Vector3D } from "../math/Vector3D.js";
 

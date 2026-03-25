@@ -1,4 +1,5 @@
 /// src/core/SmallWorld.ts
+
 import { DEFAULT_RENDERER, RendererType } from "./index.js";
 import { ColorUtils } from "../utils/index.js";
 import { Renderer } from "../interfaces/index.js";

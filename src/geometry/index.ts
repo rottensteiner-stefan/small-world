@@ -1,4 +1,5 @@
 /// src/geometry/index.ts
+
 export * from "./AbstractGeometry.js";
 export * from "./Circle.js";
 export * from "./Cube.js";

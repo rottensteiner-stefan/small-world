@@ -1,10 +1,9 @@
 /// src/geometry/TerrainManager.ts
-import { Scene } from "../core/index.js";
-import { Object3D, Texture } from "../core/index.js";
+
+import { Object3D, Scene, TerrainMaterial, Texture } from "../core/index.js";
 import { Vector3D } from "../math/index.js";
 import { HeightmapGenerator, TextureGenerator } from "../utils/index.js";
 import { Terrain } from "./Terrain.js";
-import { TerrainMaterial } from "../core/materials/index.js";
 
 /**
  * Algorithm for terrain generation.

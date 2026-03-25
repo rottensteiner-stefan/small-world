@@ -1,4 +1,5 @@
 /// src/geometry/Line.ts
+
 import { AbstractGeometry } from "./AbstractGeometry.js";
 import { Vector3D } from "../math/Vector3D.js";
 

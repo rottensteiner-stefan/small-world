@@ -1,7 +1,8 @@
 /// src/core/lights/PointLight.ts
+
 import { AbstractLight } from "./AbstractLight.js";
 import { Color } from "../colors/Color.js";
-import { LightType } from "../../enums/LightType.js";
+import { LightType } from "../../enums/index.js";
 
 /**
  * Point light that emits light in all directions from a single point.

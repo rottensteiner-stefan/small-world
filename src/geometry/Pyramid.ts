@@ -1,4 +1,5 @@
 /// src/geometry/Pyramid.ts
+
 import { AbstractGeometry } from "./AbstractGeometry.js";
 
 /**

@@ -1,6 +1,7 @@
 /// src/core/lights/SpotLight.ts
+
 import { Color } from "../colors/Color.js";
-import { LightType } from "../../enums/LightType.js";
+import { LightType } from "../../enums/index.js";
 import { AbstractLight } from "./AbstractLight.js";
 import { Vector3D } from "../../math/Vector3D.js";
 

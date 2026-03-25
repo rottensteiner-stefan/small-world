@@ -1,4 +1,5 @@
 /// src/geometry/ModelGeometry.ts
+
 import { AbstractGeometry } from "./AbstractGeometry.js";
 
 /**

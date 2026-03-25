@@ -1,4 +1,5 @@
 /// src/geometry/Sphere.ts
+
 import { AbstractGeometry } from "./AbstractGeometry.js";
 
 /**
