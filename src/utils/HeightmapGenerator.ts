@@ -53,13 +53,15 @@ export class HeightmapGenerator {
     const max: number = size - 1;
     const map: Float32Array = new Float32Array(size * size);
 
-    const rng: () => number = seed ? this._mulberry32(this._cyrb128(seed)) : () => Math.random();
+    const rng: () => number = seed
+      ? this._mulberry32(this._cyrb128(seed))
+      : (): number => Math.random();
 
     const set = (x: number, y: number, val: number): void => {
       map[y * size + x] = val;
     };
     const get = (x: number, y: number): number => {
-      if (x < 0 || x >= size || y < 0 || y >= size) {
+      if (0 > x || size <= x || 0 > y || size <= y) {
         return -1;
       }
       return map[y * size + x] ?? -1;

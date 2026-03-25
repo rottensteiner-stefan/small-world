@@ -1,7 +1,7 @@
 /**
  * Base class for all geometry types.
  */
-export declare abstract class AbstractGeometry implements GeometryInterface {
+export declare abstract class AbstractGeometry implements Geometry {
     /**
      * The vertices of the geometry.
      */
@@ -26,7 +26,7 @@ export declare abstract class AbstractGeometry implements GeometryInterface {
      * Returns the geometry data.
      * @returns The geometry data.
      */
-    getGeometryData(): GeometryDataInterface;
+    getGeometryData(): GeometryData;
     /**
      * Computes the normals of the geometry.
      */
@@ -84,7 +84,7 @@ export declare abstract class AbstractLight extends Object3D {
  * Abstract base class for all resource loaders.
  * @template T The type of resource returned by the loader.
  */
-export declare abstract class AbstractLoader<T> implements EventDispatcher {
+export declare abstract class AbstractLoader<T> implements Events {
     /** The base path for resource URLs. */
     basePath: string;
     private _dispatcher;
@@ -143,7 +143,7 @@ export declare abstract class AbstractProjection {
     abstract update(): void;
 }
 
-export declare abstract class AbstractRenderer implements RendererInterface {
+export declare abstract class AbstractRenderer implements Renderer {
     abstract readonly type: RendererType;
     protected _clearColor: Color;
     abstract initialize(canvas: HTMLCanvasElement): Promise<void>;
@@ -190,13 +190,13 @@ export declare class AmbientLight extends AbstractLight {
  */
 export declare abstract class Application {
     /** The engine configuration. */
-    config: EngineConfigInterface;
+    config: EngineConfig;
     /** The current scene. */
     scene: Scene;
     /** The main camera. */
-    camera: CameraInterface;
+    camera: CameraInterfaceData;
     /** The active renderer. */
-    renderer: RendererInterface;
+    renderer: Renderer;
     /** The canvas element. */
     canvas: HTMLCanvasElement;
     private _lastTime;
@@ -205,7 +205,7 @@ export declare abstract class Application {
      * Creates a new application.
      * @param userConfig Optional configuration to override defaults.
      */
-    constructor(userConfig?: EngineConfigInterface);
+    constructor(userConfig?: EngineConfig);
     /**
      * Called to setup the scene after the engine is initialized.
      */
@@ -216,14 +216,14 @@ export declare abstract class Application {
      */
     protected abstract update(deltaTime: number): void;
     /**
-     * Starts the application loop.
+     * Starts the application _loop.
      */
     start(): Promise<void>;
     /**
-     * The main application loop.
+     * The main application _loop.
      * @param currentTime The current timestamp.
      */
-    private loop;
+    private _loop;
 }
 
 export declare class AreaLight extends AbstractLight {
@@ -242,9 +242,9 @@ export declare class AreaLight extends AbstractLight {
 }
 
 export declare class AssetManager {
-    private static imageCache;
-    private static textCache;
-    private static fetchWithProgress;
+    private static _imageCache;
+    private static _textCache;
+    private static _fetchWithProgress;
     static loadImage(url: string, onProgress?: ProgressCallback, flipY?: boolean): Promise<ImageBitmap | HTMLImageElement>;
     static loadText(url: string, onProgress?: ProgressCallback): Promise<string>;
 }
@@ -317,9 +317,9 @@ export declare interface BoundingVolume {
 }
 
 /**
- * Standard implementation of the CameraInterface.
+ * Standard implementation of the CameraInterfaceData.
  */
-export declare class Camera implements CameraInterface {
+export declare class Camera implements CameraInterfaceData {
     projection: AbstractProjection;
     /** @inheritdoc */
     position: Vector3D;
@@ -357,7 +357,7 @@ export declare class Camera implements CameraInterface {
     update(targetPos: Vector3D, dx: number, dy: number): void;
 }
 
-export declare interface CameraInterface {
+export declare interface CameraInterfaceData {
     /** Position der Kamera in der Welt */
     position: Vector3D;
     /** Punkt, auf den die Kamera schaut */
@@ -386,7 +386,7 @@ export declare interface CameraInterface {
     updateViewMatrix(): void;
 }
 
-export declare interface CameraStrategyInterface {
+export declare interface CameraStrategy {
     readonly type: string;
     update(camera: Camera, targetPos: Vector3D, dx: number, dy: number): void;
 }
@@ -510,6 +510,9 @@ export declare class ConfigLoader {
  * A cube geometry.
  */
 export declare class Cube extends AbstractGeometry {
+    /**
+     * The size of the cube.
+     */
     size: number;
     /**
      * Creates a new Cube geometry.
@@ -585,7 +588,7 @@ export declare class DirectionalLight extends AbstractLight {
 
 export declare const ENGINE_VERSION = "0.11.10";
 
-export declare interface EngineConfigInterface {
+export declare interface EngineConfig {
     canvasId?: string;
     fullscreen?: boolean;
     height?: number;
@@ -594,16 +597,10 @@ export declare interface EngineConfigInterface {
     width?: number;
 }
 
-export declare interface EventDispatcher {
-    addEventListener(type: string | EventType, listener: EventHandler): void;
-    removeEventListener(type: string | EventType, listener: EventHandler): void;
-    dispatchEvent(type: string | EventType, eventData?: Record<string, unknown>): void;
-}
-
 /**
- * Standard implementation of the EventDispatcher interface.
+ * Standard implementation of the Events interface.
  */
-export declare class EventDispatcherImpl implements EventDispatcher {
+export declare class EventDispatcherImpl implements Events {
     private _listeners;
     /**
      * @inheritdoc
@@ -623,6 +620,12 @@ export declare class EventDispatcherImpl implements EventDispatcher {
  * Type definition for event handler functions.
  */
 export declare type EventHandler = (event: Record<string, unknown>) => void;
+
+export declare interface Events {
+    addEventListener(type: string | EventType, listener: EventHandler): void;
+    removeEventListener(type: string | EventType, listener: EventHandler): void;
+    dispatchEvent(type: string | EventType, eventData?: Record<string, unknown>): void;
+}
 
 /**
  * Types of events dispatched by the engine.
@@ -693,15 +696,15 @@ export declare class FrustumCuller {
     static cull(scene: Scene, vpMatrix: Matrix4): number;
 }
 
-export declare interface GeometryDataInterface {
+export declare interface Geometry {
+    getGeometryData(): GeometryData;
+}
+
+export declare interface GeometryData {
     vertices: Float32Array;
     indices: Uint16Array | Uint32Array;
     normals: Float32Array;
     uvs: Float32Array;
-}
-
-export declare interface GeometryInterface {
-    getGeometryData(): GeometryDataInterface;
 }
 
 /**
@@ -849,7 +852,7 @@ export declare class Input {
  * Strategy for an isometric 2D/3D camera.
  * Uses an orthographic projection and fixed angles.
  */
-export declare class IsometricStrategy implements CameraStrategyInterface {
+export declare class IsometricStrategy implements CameraStrategy {
     /** @inheritdoc */
     readonly type: string;
     /** Whether to snap the camera position to whole pixels. */
@@ -871,7 +874,7 @@ export declare class IsometricStrategy implements CameraStrategyInterface {
      * @param camera The camera used for rendering.
      * @returns The world position.
      */
-    screenToWorld(screenX: number, screenY: number, camera: CameraInterface): Vector3D;
+    screenToWorld(screenX: number, screenY: number, camera: CameraInterfaceData): Vector3D;
 }
 
 /**
@@ -1183,13 +1186,13 @@ export declare class Matrix4 {
 }
 
 export declare class Mesh {
-    private gl;
-    vbo: WebGLBuffer | null;
-    ebo: WebGLBuffer | null;
-    nbo: WebGLBuffer | null;
-    tbo: WebGLBuffer | null;
+    vbo: WebGLBuffer | undefined;
+    ebo: WebGLBuffer | undefined;
+    nbo: WebGLBuffer | undefined;
+    tbo: WebGLBuffer | undefined;
     count: number;
-    constructor(gl: WebGLRenderingContext | WebGL2RenderingContext, data: GeometryDataInterface);
+    private _gl;
+    constructor(gl: WebGLRenderingContext | WebGL2RenderingContext, data: GeometryData);
     bind(posLoc: number, normLoc?: number, uvLoc?: number): void;
 }
 
@@ -1213,7 +1216,7 @@ export declare class ModelGeometry extends AbstractGeometry {
 
 export declare class MtlLoader extends AbstractLoader<Map<string, PhongMaterial>> {
     load(url: string): Promise<Map<string, PhongMaterial>>;
-    private parse;
+    private _parse;
 }
 
 /**
@@ -1258,11 +1261,11 @@ export declare class Object3D {
     /** The name of the object. */
     name: string;
     /** The geometry data of the object. */
-    geometry: GeometryDataInterface | null;
+    geometry: GeometryData | undefined;
     /** The material of the object. */
-    material: AbstractMaterial | null;
+    material: AbstractMaterial | undefined;
     /** The bounding volume for collision detection and frustum culling. */
-    bounds: BoundingVolume | null;
+    bounds: BoundingVolume | undefined;
     /** The position of the object in local space. */
     position: Vector3D;
     /** The rotation of the object in local space (Euler angles). */
@@ -1274,7 +1277,7 @@ export declare class Object3D {
     /** The world transformation matrix. */
     worldMatrix: Matrix4;
     /** The parent object in the scene graph. */
-    parent: Object3D | null;
+    parent: Object3D | undefined;
     /** The list of child objects. */
     children: Object3D[];
     /** Whether the object is visible. */
@@ -1305,19 +1308,37 @@ export declare class Object3D {
 
 export declare class ObjLoader extends AbstractLoader<Object3D> {
     load(url: string): Promise<Object3D>;
-    private parse;
-    private parseFaceVertex;
+    private _parse;
+    private _parseFaceVertex;
 }
 
 /**
  * Oblique camera projection.
  */
 export declare class ObliqueProjection extends AbstractProjection {
+    /**
+     * Left.
+     */
     l: number;
+    /**
+     * Right.
+     */
     r: number;
+    /**
+     * Bottom.
+     */
     b: number;
+    /**
+     * Top.
+     */
     t: number;
+    /**
+     * Near.
+     */
     n: number;
+    /**
+     * Far.
+     */
     f: number;
     /**
      * @inheritdoc
@@ -1347,11 +1368,29 @@ export declare class ObliqueProjection extends AbstractProjection {
  * Orthographic camera projection.
  */
 export declare class OrthographicProjection extends AbstractProjection {
+    /**
+     * Left.
+     */
     l: number;
+    /**
+     * Right.
+     */
     r: number;
+    /**
+     * Bottom.
+     */
     b: number;
+    /**
+     * Top.
+     */
     t: number;
+    /**
+     * Near.
+     */
     n: number;
+    /**
+     * Far.
+     */
     f: number;
     /**
      * @inheritdoc
@@ -1381,9 +1420,21 @@ export declare class OrthographicProjection extends AbstractProjection {
  * Perspective camera projection.
  */
 export declare class PerspectiveProjection extends AbstractProjection {
+    /**
+     * Field of view in radians.
+     */
     fov: number;
+    /**
+     * Aspect ratio.
+     */
     aspect: number;
+    /**
+     * Near plane.
+     */
     near: number;
+    /**
+     * Far plane.
+     */
     far: number;
     /**
      * @inheritdoc
@@ -1497,16 +1548,16 @@ export declare class Pyramid extends AbstractGeometry {
     protected generateGeometryData(): void;
 }
 
-export declare class RendererFactory {
-    static create(type: RendererType | string, canvas: HTMLCanvasElement): Promise<RendererInterface>;
-}
-
-export declare interface RendererInterface {
+export declare interface Renderer {
     readonly type: RendererType;
     initialize(canvas: HTMLCanvasElement): Promise<void>;
     render(scene: Scene, vpMatrix: Float32Array, camPos?: Vector3D): void;
     setSize(width: number, height: number): void;
     setClearColor(color: Color): void;
+}
+
+export declare class RendererFactory {
+    static create(type: RendererType | string, canvas: HTMLCanvasElement): Promise<Renderer>;
 }
 
 /**
@@ -1595,7 +1646,7 @@ export declare class SmallWorld {
     /** The current world configuration. */
     config: WorldConfig;
     /** The currently active renderer. */
-    activeRenderer: RendererInterface;
+    activeRenderer: Renderer;
     /**
      * Creates a new SmallWorld instance.
      */
@@ -1611,8 +1662,17 @@ export declare class SmallWorld {
  * A sphere geometry.
  */
 export declare class Sphere extends AbstractGeometry {
+    /**
+     * The radius of the sphere.
+     */
     radius: number;
+    /**
+     * The number of horizontal segments.
+     */
     widthSegments: number;
+    /**
+     * The number of vertical segments.
+     */
     heightSegments: number;
     /**
      * Creates a new Sphere geometry.
@@ -1656,12 +1716,33 @@ export declare class SpotLight extends AbstractLight {
  * A terrain geometry generated from height data.
  */
 export declare class Terrain extends AbstractGeometry {
+    /**
+     * The height data.
+     */
     heightData: Float32Array;
+    /**
+     * The resolution of the heightmap.
+     */
     heightmapResolution: number;
+    /**
+     * The width of the terrain.
+     */
     width: number;
+    /**
+     * The depth of the terrain.
+     */
     depth: number;
+    /**
+     * The maximum height of the terrain.
+     */
     maxHeight: number;
+    /**
+     * The number of segments along the width.
+     */
     meshWidthSegments: number;
+    /**
+     * The number of segments along the depth.
+     */
     meshDepthSegments: number;
     /**
      * Protected constructor. Use Terrain.fromHeightData() or Terrain.fromImage() instead.
@@ -1960,11 +2041,24 @@ export declare class Triangle extends AbstractGeometry {
     protected generateGeometryData(): void;
 }
 
+export declare interface Vector {
+    length(): number;
+    lengthSq(): number;
+    normalize(): Vector;
+    scale(s: number): Vector;
+}
+
 /**
  * A 2D vector class.
  */
-export declare class Vector2D implements VectorInterface {
+export declare class Vector2D implements Vector {
+    /**
+     * The x component.
+     */
     x: number;
+    /**
+     * The y component.
+     */
     y: number;
     /**
      * Creates a new Vector2D.
@@ -2040,9 +2134,18 @@ export declare class Vector2D implements VectorInterface {
 /**
  * A 3D vector class.
  */
-export declare class Vector3D implements VectorInterface {
+export declare class Vector3D implements Vector {
+    /**
+     * The x component.
+     */
     x: number;
+    /**
+     * The y component.
+     */
     y: number;
+    /**
+     * The z component.
+     */
     z: number;
     /**
      * Creates a new Vector3D.
@@ -2130,13 +2233,6 @@ export declare class Vector3D implements VectorInterface {
     transformDirection(m: Matrix4): this;
 }
 
-export declare interface VectorInterface {
-    length(): number;
-    lengthSq(): number;
-    normalize(): VectorInterface;
-    scale(s: number): VectorInterface;
-}
-
 export declare class WebGL1Renderer extends AbstractWebGLRenderer {
     readonly type: "WEB_GL1";
     protected gl: WebGLRenderingContext;
@@ -2151,8 +2247,8 @@ export declare class WebGL1Renderer extends AbstractWebGLRenderer {
     private _spotLightLocs;
     private _areaLightLocs;
     initialize(canvas: HTMLCanvasElement): Promise<void>;
-    private getWebGLTexture;
-    private getWebGLCubeTexture;
+    private _getWebGLTexture;
+    private _getWebGLCubeTexture;
     render(scene: Scene, vp: Float32Array, camPos?: Vector3D): void;
 }
 
@@ -2170,8 +2266,8 @@ export declare class WebGL2Renderer extends AbstractWebGLRenderer {
     private _spotLightLocs;
     private _areaLightLocs;
     initialize(canvas: HTMLCanvasElement): Promise<void>;
-    private getWebGLTexture;
-    private getWebGLCubeTexture;
+    private _getWebGLTexture;
+    private _getWebGLCubeTexture;
     render(scene: Scene, vp: Float32Array, camPos?: Vector3D): void;
 }
 
@@ -2199,12 +2295,12 @@ export declare class WebGPURenderer extends AbstractRenderer {
     private _samplerCache;
     private _depthTexture;
     initialize(canvas: HTMLCanvasElement): Promise<void>;
-    private getTextureView;
-    private getSampler;
-    private getGeoCache;
-    private getObjCache;
-    private getGPUTextureBindGroup;
-    private getGPUTerrainBindGroup;
+    private _getTextureView;
+    private _getSampler;
+    private _getGeoCache;
+    private _getObjCache;
+    private _getGPUTextureBindGroup;
+    private _getGPUTerrainBindGroup;
     render(scene: Scene, vpMatrix: Float32Array, camPos?: Vector3D): void;
     setSize(width: number, height: number): void;
 }

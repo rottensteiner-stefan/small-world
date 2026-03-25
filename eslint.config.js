@@ -44,7 +44,11 @@ export default [
         // Klassen, Interfaces, Enums, Type Aliases -> PascalCase
         { selector: ["class", "interface", "enum", "typeAlias"], format: ["PascalCase"] },
         // Interfaces dürfen NICHT mit I beginnen
-        { selector: "interface", custom: { regex: "^(?!I[A-Z])", match: true } },
+        {
+          selector: "interface",
+          format: ["PascalCase"],
+          custom: { regex: "^(?!I[A-Z])", match: true },
+        },
         // Private Member mit führendem Unterstrich
         {
           selector: ["classProperty", "method"],

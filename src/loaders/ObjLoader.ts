@@ -30,7 +30,7 @@ export class ObjLoader extends AbstractLoader<Object3D> {
       // Den Ordner-Pfad extrahieren, damit wir wissen, wo wir die .mtl Datei suchen müssen
       const folderPath = fullUrl.substring(0, fullUrl.lastIndexOf("/") + 1);
 
-      const rootObject = await this.parse(text, folderPath);
+      const rootObject = await this._parse(text, folderPath);
 
       this.dispatchEvent(EventType.LOADER_END, { url: fullUrl, data: rootObject });
       return rootObject;
@@ -40,7 +40,7 @@ export class ObjLoader extends AbstractLoader<Object3D> {
     }
   }
 
-  private async parse(text: string, folderPath: string): Promise<Object3D> {
+  private async _parse(text: string, folderPath: string): Promise<Object3D> {
     const tempVertices: number[] = [];
     const tempUVs: number[] = [];
     const tempNormals: number[] = [];
@@ -85,21 +85,21 @@ export class ObjLoader extends AbstractLoader<Object3D> {
       } else if (type === "f") {
         const vertices = parts.slice(1);
         for (let i = 1; i < vertices.length - 1; i++) {
-          const v1 = this.parseFaceVertex(
+          const v1 = this._parseFaceVertex(
             vertices[0]!,
             tempVertices,
             tempUVs,
             tempNormals,
             currentGroup,
           );
-          const v2 = this.parseFaceVertex(
+          const v2 = this._parseFaceVertex(
             vertices[i]!,
             tempVertices,
             tempUVs,
             tempNormals,
             currentGroup,
           );
-          const v3 = this.parseFaceVertex(
+          const v3 = this._parseFaceVertex(
             vertices[i + 1]!,
             tempVertices,
             tempUVs,
@@ -133,7 +133,7 @@ export class ObjLoader extends AbstractLoader<Object3D> {
     return root;
   }
 
-  private parseFaceVertex(
+  private _parseFaceVertex(
     faceStr: string,
     tempV: number[],
     tempVT: number[],
