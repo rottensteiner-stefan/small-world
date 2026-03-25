@@ -44,6 +44,7 @@ This document outlines the commands, coding standards, and architectural guideli
 - **Functional Patterns:** Prefer functional patterns (`.map()`, `.filter()`) over imperative loops where it improves readability.
 - **`undefined` over `null`:** Use `undefined` for optional or uninitialized values. Avoid using `null`.
 - **Comments:** All code comments must be written in English.
+- **Yoda:** Use Yoda-style value comparisons
 
 ### 4. Asynchronicity
 

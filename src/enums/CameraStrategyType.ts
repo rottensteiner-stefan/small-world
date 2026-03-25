@@ -11,6 +11,8 @@ export const CameraStrategyType = {
   SMOOTH: "SmoothCamera",
   /** Rigid third-person following camera. */
   STIFF: "StiffCamera",
+  /** Isometric camera. */
+  ISOMETRIC: "IsometricCamera",
 } as const;
 
 /** Type definition for CameraStrategyType. */

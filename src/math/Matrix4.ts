@@ -311,4 +311,94 @@ export class Matrix4 {
 
     return v;
   }
+
+  /**
+   * Inverts this matrix and stores the result in out.
+   * @param out The output matrix.
+   * @returns Whether the inversion was successful.
+   */
+  public invert(out: Matrix4): boolean {
+    const d: Float32Array = this.data;
+    const te: Float32Array = out.data;
+
+    const n11: number = d[0]!,
+      n12: number = d[4]!,
+      n13: number = d[8]!,
+      n14: number = d[12]!;
+    const n21: number = d[1]!,
+      n22: number = d[5]!,
+      n23: number = d[9]!,
+      n24: number = d[13]!;
+    const n31: number = d[2]!,
+      n32: number = d[6]!,
+      n33: number = d[10]!,
+      n34: number = d[14]!;
+    const n41: number = d[3]!,
+      n42: number = d[7]!,
+      n43: number = d[11]!,
+      n44: number = d[15]!;
+
+    const t11: number =
+      n23 * n34 * n42 - n24 * n33 * n42 + n24 * n32 * n43 - n22 * n34 * n43 - n23 * n32 * n44 + n22 * n33 * n44;
+    const t12: number =
+      n14 * n33 * n42 - n13 * n34 * n42 - n14 * n32 * n43 + n12 * n34 * n43 + n13 * n32 * n44 - n12 * n33 * n44;
+    const t13: number =
+      n13 * n24 * n42 - n14 * n23 * n42 + n14 * n22 * n43 - n12 * n24 * n43 - n13 * n22 * n44 + n12 * n23 * n44;
+    const t14: number =
+      n14 * n23 * n32 - n13 * n24 * n32 - n14 * n22 * n33 + n12 * n24 * n33 + n13 * n22 * n34 - n12 * n23 * n34;
+
+    const det: number = n11 * t11 + n21 * t12 + n31 * t13 + n41 * t14;
+
+    if (det === 0) {
+      return false;
+    }
+
+    const invDet: number = 1 / det;
+
+    te[0] = t11 * invDet;
+    te[1] =
+      (n24 * n33 * n41 - n23 * n34 * n41 - n24 * n31 * n43 + n21 * n34 * n43 + n23 * n31 * n44 - n21 * n33 * n44) *
+      invDet;
+    te[2] =
+      (n22 * n34 * n41 - n24 * n32 * n41 + n24 * n31 * n42 - n21 * n34 * n42 - n22 * n31 * n44 + n21 * n32 * n44) *
+      invDet;
+    te[3] =
+      (n23 * n32 * n41 - n22 * n33 * n41 - n23 * n31 * n42 + n21 * n33 * n42 + n22 * n31 * n43 - n21 * n32 * n43) *
+      invDet;
+
+    te[4] = t12 * invDet;
+    te[5] =
+      (n13 * n34 * n41 - n14 * n33 * n41 + n14 * n31 * n43 - n11 * n34 * n43 - n13 * n31 * n44 + n11 * n33 * n44) *
+      invDet;
+    te[6] =
+      (n14 * n32 * n41 - n12 * n34 * n41 - n14 * n31 * n42 + n11 * n34 * n42 + n12 * n31 * n44 - n11 * n32 * n44) *
+      invDet;
+    te[7] =
+      (n12 * n33 * n41 - n13 * n32 * n41 + n13 * n31 * n42 - n11 * n33 * n42 - n12 * n31 * n43 + n11 * n32 * n43) *
+      invDet;
+
+    te[8] = t13 * invDet;
+    te[9] =
+      (n14 * n23 * n41 - n13 * n24 * n41 - n14 * n21 * n43 + n11 * n24 * n43 + n13 * n21 * n44 - n11 * n23 * n44) *
+      invDet;
+    te[10] =
+      (n12 * n24 * n41 - n14 * n22 * n41 + n14 * n21 * n42 - n11 * n24 * n42 - n12 * n21 * n44 + n11 * n22 * n44) *
+      invDet;
+    te[11] =
+      (n13 * n22 * n41 - n12 * n23 * n41 - n13 * n21 * n42 + n11 * n23 * n42 + n12 * n21 * n43 - n11 * n22 * n43) *
+      invDet;
+
+    te[12] = t14 * invDet;
+    te[13] =
+      (n13 * n24 * n31 - n14 * n23 * n31 + n14 * n21 * n33 - n11 * n24 * n33 - n13 * n21 * n34 + n11 * n23 * n34) *
+      invDet;
+    te[14] =
+      (n14 * n22 * n31 - n12 * n24 * n31 - n14 * n21 * n32 + n11 * n24 * n32 + n12 * n21 * n34 - n11 * n22 * n34) *
+      invDet;
+    te[15] =
+      (n12 * n23 * n31 - n13 * n22 * n31 + n13 * n21 * n32 - n11 * n23 * n32 - n12 * n21 * n33 + n11 * n22 * n33) *
+      invDet;
+
+    return true;
+  }
 }

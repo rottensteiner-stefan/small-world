@@ -16,13 +16,15 @@ export class PointLight extends AbstractLight {
    * @param intensity The intensity of the light.
    * @param distance The maximum distance of the light.
    * @param decay The decay factor of the light.
+   * @param name The name of the light object.
    */
   constructor(
     color: Color = Color.WHITE,
     intensity: number = 1.0,
     public distance: number = 50.0,
     public decay: number = 2.0,
+    name: string = "PointLight",
   ) {
-    super(color, intensity, "PointLight");
+    super(color, intensity, name);
   }
 }

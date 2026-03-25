@@ -12,6 +12,7 @@ export default defineConfig({
         demo2: resolve(__dirname, "examples/demo2.html"),
         demo3: resolve(__dirname, "examples/demo3.html"),
         demo4: resolve(__dirname, "examples/demo4.html"),
+        demo5: resolve(__dirname, "examples/demo5.html"),
         main: resolve(__dirname, "index.html"),
       },
       output: {

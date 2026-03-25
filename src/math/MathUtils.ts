@@ -34,4 +34,15 @@ export class MathUtils {
     deg = ((deg % 3600) + 3600) % 3600;
     return this._SIN_TABLE[deg]!;
   }
+
+  /**
+   * Clamps a value between a minimum and maximum.
+   * @param val The value to clamp.
+   * @param min The minimum value.
+   * @param max The maximum value.
+   * @returns The clamped value.
+   */
+  public static clamp(val: number, min: number, max: number): number {
+    return Math.max(min, Math.min(max, val));
+  }
 }

@@ -18,8 +18,13 @@ export class DirectionalLight extends AbstractLight {
    * Creates a new DirectionalLight.
    * @param color The color of the light.
    * @param intensity The intensity of the light.
+   * @param name The name of the light object.
    */
-  constructor(color: Color = Color.WHITE, intensity: number = 1.0) {
-    super(color, intensity, "DirectionalLight");
+  constructor(
+    color: Color = Color.WHITE,
+    intensity: number = 1.0,
+    name: string = "DirectionalLight",
+  ) {
+    super(color, intensity, name);
   }
 }

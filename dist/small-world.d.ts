@@ -180,8 +180,9 @@ export declare class AmbientLight extends AbstractLight {
      * Creates a new AmbientLight.
      * @param color The color of the light.
      * @param intensity The intensity of the light.
+     * @param name The name of the light object.
      */
-    constructor(color?: Color, intensity?: number);
+    constructor(color?: Color, intensity?: number, name?: string);
 }
 
 /**
@@ -229,8 +230,15 @@ export declare class AreaLight extends AbstractLight {
     width: number;
     height: number;
     readonly type: "AreaLight";
-    constructor(color?: Color, intensity?: number, width?: number, // Breite der Leuchtfläche
-    height?: number);
+    /**
+     * Creates a new AreaLight.
+     * @param color The color of the light.
+     * @param intensity The intensity of the light.
+     * @param width The width of the light area.
+     * @param height The height/length of the light area.
+     * @param name The name of the light object.
+     */
+    constructor(color?: Color, intensity?: number, width?: number, height?: number, name?: string);
 }
 
 export declare class AssetManager {
@@ -395,6 +403,8 @@ export declare const CameraStrategyType: {
     readonly SMOOTH: "SmoothCamera";
     /** Rigid third-person following camera. */
     readonly STIFF: "StiffCamera";
+    /** Isometric camera. */
+    readonly ISOMETRIC: "IsometricCamera";
 };
 
 /** Type definition for CameraStrategyType. */
@@ -568,8 +578,9 @@ export declare class DirectionalLight extends AbstractLight {
      * Creates a new DirectionalLight.
      * @param color The color of the light.
      * @param intensity The intensity of the light.
+     * @param name The name of the light object.
      */
-    constructor(color?: Color, intensity?: number);
+    constructor(color?: Color, intensity?: number, name?: string);
 }
 
 export declare const ENGINE_VERSION = "0.11.10";
@@ -803,6 +814,7 @@ export declare class Input {
         y: number;
         dx: number;
         dy: number;
+        left: boolean;
         right: boolean;
     };
     /** Whether the pointer is currently locked. */
@@ -831,6 +843,35 @@ export declare class Input {
      * @returns -1, 0, or 1.
      */
     static getAxis(neg: string | Keys, pos: string | Keys): number;
+}
+
+/**
+ * Strategy for an isometric 2D/3D camera.
+ * Uses an orthographic projection and fixed angles.
+ */
+export declare class IsometricStrategy implements CameraStrategyInterface {
+    /** @inheritdoc */
+    readonly type: string;
+    /** Whether to snap the camera position to whole pixels. */
+    pixelPerfect: boolean;
+    /** The zoom level (world units per screen unit). */
+    zoom: number;
+    /**
+     * Updates the camera position and target.
+     * @param camera The camera to update.
+     * @param targetPos The target position to follow.
+     * @param _dx Unused.
+     * @param _dy Unused.
+     */
+    update(camera: Camera, targetPos: Vector3D, _dx: number, _dy: number): void;
+    /**
+     * Maps screen coordinates to world coordinates on the Y=0 plane.
+     * @param screenX Normalized screen X (-1 to 1).
+     * @param screenY Normalized screen Y (-1 to 1).
+     * @param camera The camera used for rendering.
+     * @returns The world position.
+     */
+    screenToWorld(screenX: number, screenY: number, camera: CameraInterface): Vector3D;
 }
 
 /**
@@ -1027,6 +1068,14 @@ export declare class MathUtils {
      * @returns The sine of the angle.
      */
     static fastSin(rad: number): number;
+    /**
+     * Clamps a value between a minimum and maximum.
+     * @param val The value to clamp.
+     * @param min The minimum value.
+     * @param max The maximum value.
+     * @returns The clamped value.
+     */
+    static clamp(val: number, min: number, max: number): number;
 }
 
 /**
@@ -1125,6 +1174,12 @@ export declare class Matrix4 {
      * @returns The transformed vector.
      */
     transformVector(v: Vector3D): Vector3D;
+    /**
+     * Inverts this matrix and stores the result in out.
+     * @param out The output matrix.
+     * @returns Whether the inversion was successful.
+     */
+    invert(out: Matrix4): boolean;
 }
 
 export declare class Mesh {
@@ -1402,8 +1457,9 @@ export declare class PointLight extends AbstractLight {
      * @param intensity The intensity of the light.
      * @param distance The maximum distance of the light.
      * @param decay The decay factor of the light.
+     * @param name The name of the light object.
      */
-    constructor(color?: Color, intensity?: number, distance?: number, decay?: number);
+    constructor(color?: Color, intensity?: number, distance?: number, decay?: number, name?: string);
 }
 
 export declare type ProgressCallback = (loaded: number, total: number) => void;
@@ -1591,8 +1647,9 @@ export declare class SpotLight extends AbstractLight {
      * @param angle The angle of the light cone in radians.
      * @param penumbra The penumbra factor (0-1).
      * @param decay The decay factor of the light.
+     * @param name The name of the light object.
      */
-    constructor(color?: Color, intensity?: number, distance?: number, angle?: number, penumbra?: number, decay?: number);
+    constructor(color?: Color, intensity?: number, distance?: number, angle?: number, penumbra?: number, decay?: number, name?: string);
 }
 
 /**
