@@ -18,6 +18,16 @@ export class Color {
     public a: number = 1.0,
   ) {}
 
+  private _cachedArray = new Float32Array(4);
+
+  public set(r: number, g: number, b: number, a: number = 1.0): this {
+    this.r = r;
+    this.g = g;
+    this.b = b;
+    this.a = a;
+    return this;
+  }
+
   public static get WHITE(): Color {
     return new Color(1, 1, 1);
   }
@@ -64,5 +74,17 @@ export class Color {
    */
   public toArray(): number[] {
     return [this.r, this.g, this.b, this.a];
+  }
+
+  /**
+   * Returns the color components as a Float32Array.
+   * @returns Float32Array(4)
+   */
+  public toFloat32Array(): Float32Array {
+    this._cachedArray[0] = this.r;
+    this._cachedArray[1] = this.g;
+    this._cachedArray[2] = this.b;
+    this._cachedArray[3] = this.a;
+    return this._cachedArray;
   }
 }

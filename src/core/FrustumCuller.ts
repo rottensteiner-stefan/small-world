@@ -21,26 +21,31 @@ export class FrustumCuller {
     this._frustum.setFromMatrix(vpMatrix);
     let visibleCount: number = 0;
 
-    const checkNode = (obj: Object3D): void => {
-      if (obj.frustumCulled && obj.bounds) {
-        obj.isVisible = this._frustum.intersectsVolume(obj.bounds);
-      } else {
-        obj.isVisible = true;
-      }
-
-      if (obj.isVisible) {
-        visibleCount++;
-      }
-
-      for (const child of obj.children) {
-        checkNode(child);
-      }
-    };
-
     for (const obj of scene.objects) {
-      checkNode(obj);
+      visibleCount += this._checkNode(obj);
     }
 
     return visibleCount;
+  }
+
+  /**
+   * Recursively checks a node for visibility.
+   * @param obj The object to check.
+   * @private
+   */
+  private static _checkNode(obj: Object3D): number {
+    if (obj.frustumCulled && obj.bounds) {
+      obj.isVisible = this._frustum.intersectsVolume(obj.bounds);
+    } else {
+      obj.isVisible = true;
+    }
+
+    let count = obj.isVisible ? 1 : 0;
+
+    for (const child of obj.children) {
+      count += this._checkNode(child);
+    }
+
+    return count;
   }
 }

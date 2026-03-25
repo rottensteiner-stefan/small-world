@@ -52,17 +52,18 @@ export class ObjLoader extends AbstractLoader<Object3D> {
     let currentGroup = new MaterialGroup("default");
     groups.set("default", currentGroup);
 
-    const lines = text.split("\n");
+    let pos = 0;
+    while (pos < text.length) {
+      let nextNL = text.indexOf("\n", pos);
+      if (nextNL === -1) nextNL = text.length;
 
-    for (let line of lines) {
-      line = line.trim();
+      const line = text.substring(pos, nextNL).trim();
+      pos = nextNL + 1;
+
       if (line.length === 0 || line.startsWith("#")) continue;
 
       const parts = line.split(/\s+/);
-      if (parts.length < 2) {
-        console.warn('Invalid line in OBJ file: "' + line + '"');
-        continue;
-      }
+      if (parts.length < 2) continue;
 
       const type = parts[0];
 
@@ -83,24 +84,23 @@ export class ObjLoader extends AbstractLoader<Object3D> {
       } else if (type === "vn") {
         tempNormals.push(parseFloat(parts[1]!), parseFloat(parts[2]!), parseFloat(parts[3]!));
       } else if (type === "f") {
-        const vertices = parts.slice(1);
-        for (let i = 1; i < vertices.length - 1; i++) {
+        for (let i = 2; i < parts.length - 1; i++) {
           const v1 = this._parseFaceVertex(
-            vertices[0]!,
+            parts[1]!,
             tempVertices,
             tempUVs,
             tempNormals,
             currentGroup,
           );
           const v2 = this._parseFaceVertex(
-            vertices[i]!,
+            parts[i]!,
             tempVertices,
             tempUVs,
             tempNormals,
             currentGroup,
           );
           const v3 = this._parseFaceVertex(
-            vertices[i + 1]!,
+            parts[i + 1]!,
             tempVertices,
             tempUVs,
             tempNormals,

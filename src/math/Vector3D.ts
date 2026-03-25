@@ -7,6 +7,9 @@ import { Matrix4 } from "./Matrix4.js";
  * A 3D vector class.
  */
 export class Vector3D implements Vector {
+  /** Static zero vector to avoid unnecessary allocations. */
+  public static readonly ZERO: Vector3D = new Vector3D(0, 0, 0);
+
   /**
    * The x component.
    */

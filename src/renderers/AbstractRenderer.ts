@@ -8,7 +8,7 @@ import {
   PointLight,
   SpotLight,
 } from "../core/index.js";
-import { Renderer } from "../interfaces/index.js";
+import { Renderer, LightDataInterface } from "../interfaces/index.js";
 import { LightType, RendererType } from "../enums/index.js";
 import { Object3D } from "../core/Object3D.js";
 import { Scene } from "../core/Scene.js";
@@ -21,6 +21,16 @@ export abstract class AbstractRenderer implements Renderer {
   public abstract readonly type: RendererType;
   /** The clear color of the renderer. */
   protected _clearColor: Color = new Color(0, 0, 0, 1);
+
+  /** Cached light data to avoid GC pressure. */
+  protected _lightData: LightDataInterface = {
+    aCol: new Color(0, 0, 0),
+    dDir: new Vector3D(0, 1, 0),
+    dCol: new Color(0, 0, 0),
+    pLights: [],
+    sLights: [],
+    aLights: [],
+  };
 
   /** @inheritdoc */
   public abstract initialize(canvas: HTMLCanvasElement): Promise<void>;
@@ -41,66 +51,70 @@ export abstract class AbstractRenderer implements Renderer {
    * @param scene The scene to extract lights from.
    * @returns An object containing all extracted light data.
    */
-  protected extractLights(scene: Scene): {
-    aCol: Color;
-    dDir: Vector3D;
-    dCol: Color;
-    pLights: PointLight[];
-    sLights: SpotLight[];
-    aLights: AreaLight[];
-  } {
-    const aLights: AreaLight[] = [];
-    const pLights: PointLight[] = [];
-    const sLights: SpotLight[] = [];
-    let aCol: Color = new Color(0, 0, 0);
-    let dCol: Color = new Color(0, 0, 0);
-    let dDir: Vector3D = new Vector3D(0, 1, 0);
+  protected extractLights(scene: Scene): LightDataInterface {
+    this._lightData.pLights.length = 0;
+    this._lightData.sLights.length = 0;
+    this._lightData.aLights.length = 0;
+    this._lightData.aCol.set(0, 0, 0);
+    this._lightData.dCol.set(0, 0, 0);
+    this._lightData.dDir.set(0, 1, 0);
 
-    const traverse = (node: Object3D): void => {
-      if ("type" in node) {
-        const light: AbstractLight = node as AbstractLight;
+    for (const obj of scene.objects) {
+      this._traverseLights(obj);
+    }
 
-        switch (light.type) {
-          case LightType.AMBIENT: {
-            aCol = new Color(
-              light.color.r * light.intensity,
-              light.color.g * light.intensity,
-              light.color.b * light.intensity,
-            );
-            break;
-          }
-          case LightType.DIRECTIONAL: {
-            const dl: DirectionalLight = light as DirectionalLight;
-            dDir = dl.direction.clone().scale(-1).normalize();
-            dCol = new Color(
-              light.color.r * light.intensity,
-              light.color.g * light.intensity,
-              light.color.b * light.intensity,
-            );
+    return this._lightData;
+  }
 
-            break;
-          }
-          case LightType.POINT: {
-            if (4 > pLights.length) pLights.push(light as PointLight);
-            break;
-          }
-          case LightType.SPOT: {
-            if (4 > sLights.length) sLights.push(light as SpotLight);
-            break;
-          }
-          case LightType.AREA: {
-            if (4 > aLights.length) aLights.push(light as AreaLight);
-            break;
-          }
+  /**
+   * Recursively traverses the scene to find lights.
+   * @param node The current node to traverse.
+   * @private
+   */
+  private _traverseLights(node: Object3D): void {
+    if ("type" in node) {
+      const light: AbstractLight = node as AbstractLight;
+
+      switch (light.type) {
+        case LightType.AMBIENT: {
+          this._lightData.aCol.set(
+            light.color.r * light.intensity,
+            light.color.g * light.intensity,
+            light.color.b * light.intensity,
+          );
+          break;
+        }
+        case LightType.DIRECTIONAL: {
+          const dl: DirectionalLight = light as DirectionalLight;
+          // Optimierung: Direkt setzen statt clone()
+          this._lightData.dDir.set(dl.direction.x, dl.direction.y, dl.direction.z);
+          this._lightData.dDir.scale(-1).normalize();
+          this._lightData.dCol.set(
+            light.color.r * light.intensity,
+            light.color.g * light.intensity,
+            light.color.b * light.intensity,
+          );
+          break;
+        }
+        case LightType.POINT: {
+          if (4 > this._lightData.pLights.length) this._lightData.pLights.push(light as PointLight);
+          break;
+        }
+        case LightType.SPOT: {
+          if (4 > this._lightData.sLights.length) this._lightData.sLights.push(light as SpotLight);
+          break;
+        }
+        case LightType.AREA: {
+          if (4 > this._lightData.aLights.length) this._lightData.aLights.push(light as AreaLight);
+          break;
         }
       }
-      if (undefined !== node.children) {
-        node.children.forEach(traverse);
+    }
+
+    if (undefined !== node.children) {
+      for (const child of node.children) {
+        this._traverseLights(child);
       }
-    };
-
-    for (const obj of scene.objects) traverse(obj);
-
-    return { aCol, dDir, dCol, pLights, sLights, aLights };
+    }
   }
 }
