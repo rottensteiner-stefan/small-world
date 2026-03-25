@@ -68,23 +68,23 @@ export class TerrainManager {
     this._halfGrid = Math.floor(this._gridSize / 2);
     this._algorithm = config.algorithm ?? "Perlin";
 
-    this._terrainMaterial = config.material || new TerrainMaterial();
+    this._terrainMaterial = config.material ?? new TerrainMaterial();
   }
 
   /**
    * Initializes the manager and generates the initial grid of chunks.
    */
   public async init(): Promise<void> {
-    if (!this._terrainMaterial.sandMap) {
+    if (undefined === this._terrainMaterial.sandMap) {
       this._terrainMaterial.sandMap = Texture.fromImage(await TextureGenerator.createSand());
     }
-    if (!this._terrainMaterial.grassMap) {
+    if (undefined === this._terrainMaterial.grassMap) {
       this._terrainMaterial.grassMap = Texture.fromImage(await TextureGenerator.createGrass());
     }
-    if (!this._terrainMaterial.rockMap) {
+    if (undefined === this._terrainMaterial.rockMap) {
       this._terrainMaterial.rockMap = Texture.fromImage(await TextureGenerator.createRock());
     }
-    if (!this._terrainMaterial.snowMap) {
+    if (undefined === this._terrainMaterial.snowMap) {
       this._terrainMaterial.snowMap = Texture.fromImage(await TextureGenerator.createSnow());
     }
     this._terrainMaterial.texRepeat = [this._chunkSize / 4, this._chunkSize / 4];
