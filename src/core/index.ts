@@ -6,6 +6,7 @@ export * from "./ConfigLoader.js";
 export * from "./Engine.js";
 export * from "./FPSCounter.js";
 export * from "./FrustumCuller.js";
+export * from "./Octree.js";
 export * from "./HUD.js";
 export * from "./Input.js";
 export * from "./Object3D.js";

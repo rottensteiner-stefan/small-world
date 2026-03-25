@@ -2,6 +2,8 @@
 import { Matrix4 } from "./Matrix4.js";
 import { Vector3D } from "./Vector3D.js";
 import { BoundingVolume } from "../interfaces/index.js";
+import { BoundingType } from "../enums/index.js";
+import { BoundingBox } from "../physics/index.js";
 
 /**
  * A class representing a camera frustum.
@@ -74,6 +76,10 @@ export class Frustum {
    * @returns True if the volume intersects with the frustum.
    */
   public intersectsVolume(volume: BoundingVolume): boolean {
+    if (volume.type === BoundingType.BOX) {
+      return this.intersectsBox(volume as BoundingBox);
+    }
+
     const c: Vector3D = volume.center;
     const r: number = volume.getBroadRadius();
     const p: Float32Array = this.planes;
@@ -86,6 +92,34 @@ export class Frustum {
         return false;
       }
     }
+    return true;
+  }
+
+  /**
+   * Checks if a bounding box intersects with the frustum.
+   * @param box The bounding box to check.
+   * @returns True if the box intersects with the frustum.
+   */
+  public intersectsBox(box: BoundingBox): boolean {
+    const p: Float32Array = this.planes;
+
+    for (let i: number = 0; i < 6; i++) {
+      const idx: number = i * 4;
+      const px: number = (p[idx] ?? 0) >= 0 ? box.max.x : box.min.x;
+      const py: number = (p[idx + 1] ?? 0) >= 0 ? box.max.y : box.min.y;
+      const pz: number = (p[idx + 2] ?? 0) >= 0 ? box.max.z : box.min.z;
+
+      const dist: number =
+        (p[idx] ?? 0) * px +
+        (p[idx + 1] ?? 0) * py +
+        (p[idx + 2] ?? 0) * pz +
+        (p[idx + 3] ?? 0);
+
+      if (0 > dist) {
+        return false;
+      }
+    }
+
     return true;
   }
 }
