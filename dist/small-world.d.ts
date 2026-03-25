@@ -572,7 +572,7 @@ export declare class DirectionalLight extends AbstractLight {
     constructor(color?: Color, intensity?: number);
 }
 
-export declare const ENGINE_VERSION = "0.10.16";
+export declare const ENGINE_VERSION = "0.11.10";
 
 export declare interface EngineConfigInterface {
     canvasId?: string;
