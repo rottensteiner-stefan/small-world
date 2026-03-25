@@ -1,4 +1,5 @@
 /// src/core/cameras/strategies/FixedStrategy.ts
+
 import { Camera } from "../../Camera.js";
 import { CameraStrategyType } from "../../../enums/index.js";
 import { CameraConstraints, CameraStrategy } from "../../../interfaces/index.js";

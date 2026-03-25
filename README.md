@@ -48,10 +48,10 @@ class MyGame extends Application {
     // 1. Objekt erstellen
     const cube = new Cube(2);
     cube.position.set(0, 1, 0);
-    
+
     // 2. Zur Szene hinzufügen
     this.scene.add(cube);
-    
+
     // 3. Kamera einstellen
     this.camera.position.set(5, 5, 5);
     this.camera.target.set(0, 0, 0);
