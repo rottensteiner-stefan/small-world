@@ -1,4 +1,5 @@
 /// src/utils/Noise.ts
+
 import { createNoise2D, createNoise3D } from "simplex-noise";
 
 /**

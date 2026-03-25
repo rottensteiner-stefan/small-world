@@ -1,4 +1,5 @@
 /// src/renderers/WebGL1Renderer.ts
+
 import { AbstractWebGLRenderer } from "./AbstractWebGLRenderer.js";
 import { AreaLight, CubeTexture, PhongMaterial, SkyboxMaterial, Texture } from "../core/index.js";
 import { GeometryData } from "../interfaces/index.js";
