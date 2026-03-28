@@ -1,9 +1,24 @@
 /// src/core/lights/SpotLight.ts
 
-import { Color } from "../colors/Color.js";
 import { LightType } from "../../enums/index.js";
-import { AbstractLight } from "./AbstractLight.js";
+import { AbstractLight, LightOptions } from "./AbstractLight.js";
 import { Vector3D } from "../../math/Vector3D.js";
+
+/**
+ * Configuration options for spotlight.
+ */
+export interface SpotLightOptions extends LightOptions {
+  /** The direction of the light. Defaults to (0, -1, 0). */
+  direction?: Vector3D;
+  /** The maximum distance of the light. Defaults to 50.0. */
+  distance?: number;
+  /** The angle of the light cone in radians. Defaults to PI / 6. */
+  angle?: number;
+  /** The penumbra factor (0-1). Defaults to 0.5. */
+  penumbra?: number;
+  /** The decay factor of the light. Defaults to 2.0. */
+  decay?: number;
+}
 
 /**
  * Spotlight that emits light in a cone shape.
@@ -13,27 +28,38 @@ export class SpotLight extends AbstractLight {
   public override readonly type: LightType = LightType.SPOT;
 
   /** The direction of the light. */
-  public direction: Vector3D = new Vector3D(0, -1, 0).normalize();
+  public direction: Vector3D;
+
+  /** The maximum distance of the light. */
+  public distance: number;
+
+  /** The angle of the light cone in radians. */
+  public angle: number;
+
+  /** The penumbra factor (0-1). */
+  public penumbra: number;
+
+  /** The decay factor of the light. */
+  public decay: number;
 
   /**
    * Creates a new SpotLight.
-   * @param color The color of the light.
-   * @param intensity The intensity of the light.
-   * @param distance The maximum distance of the light.
-   * @param angle The angle of the light cone in radians.
-   * @param penumbra The penumbra factor (0-1).
-   * @param decay The decay factor of the light.
-   * @param name The name of the light object.
+   * @param options The configuration options for the light.
    */
-  constructor(
-    color: Color = Color.WHITE,
-    intensity: number = 1.0,
-    public distance: number = 50.0,
-    public angle: number = Math.PI / 6,
-    public penumbra: number = 0.5,
-    public decay: number = 2.0,
-    name: string = "SpotLight",
-  ) {
-    super(color, intensity, name);
+  constructor(options: SpotLightOptions = {}) {
+    const {
+      direction = new Vector3D(0, -1, 0).normalize(),
+      distance = 50.0,
+      angle = Math.PI / 6,
+      penumbra = 0.5,
+      decay = 2.0,
+      name = "SpotLight",
+    } = options;
+    super({ ...options, name });
+    this.direction = direction;
+    this.distance = distance;
+    this.angle = angle;
+    this.penumbra = penumbra;
+    this.decay = decay;
   }
 }

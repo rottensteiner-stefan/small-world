@@ -38,64 +38,82 @@ export const TerrainStrategies = {
 } as const;
 
 /**
+ * Configuration options for terrain geometry.
+ */
+export interface TerrainOptions {
+  /** The width of the terrain. Defaults to 100. */
+  width?: number;
+  /** The depth of the terrain. Defaults to 100. */
+  depth?: number;
+  /** The maximum height of the terrain. Defaults to 20. */
+  maxHeight?: number;
+  /** The number of segments along the width for the mesh. Defaults to 64. */
+  meshWidthSegments?: number;
+  /** The number of segments along the depth for the mesh. Defaults to 64. */
+  meshDepthSegments?: number;
+}
+
+/**
+ * Configuration for terrain from raw data.
+ */
+export interface TerrainDataOptions extends TerrainOptions {
+  /** The height data (normalized 0-1). */
+  heightData: Float32Array;
+  /** The resolution of the heightmap. */
+  heightmapResolution: number;
+}
+
+/**
+ * Configuration for terrain from an image.
+ */
+export interface TerrainImageOptions extends TerrainOptions {
+  /** The image to use as heightmap. */
+  image: HTMLImageElement | ImageBitmap;
+  /** The strategy to extract height from image data. Defaults to CENTERED_AVERAGE. */
+  strategy?: TerrainHeightStrategy;
+}
+
+/**
  * A terrain geometry generated from height data.
  */
 export class Terrain extends AbstractGeometry {
-  /**
-   * The height data.
-   */
+  /** The height data. */
   public heightData: Float32Array;
 
-  /**
-   * The resolution of the heightmap.
-   */
+  /** The resolution of the heightmap. */
   public heightmapResolution: number;
 
-  /**
-   * The width of the terrain.
-   */
+  /** The width of the terrain. */
   public width: number;
 
-  /**
-   * The depth of the terrain.
-   */
+  /** The depth of the terrain. */
   public depth: number;
 
-  /**
-   * The maximum height of the terrain.
-   */
+  /** The maximum height of the terrain. */
   public maxHeight: number;
 
-  /**
-   * The number of segments along the width.
-   */
+  /** The number of segments along the width. */
   public meshWidthSegments: number;
 
-  /**
-   * The number of segments along the depth.
-   */
+  /** The number of segments along the depth. */
   public meshDepthSegments: number;
 
   /**
    * Protected constructor. Use Terrain.fromHeightData() or Terrain.fromImage() instead.
-   * @param heightData The height data.
-   * @param heightmapResolution The resolution of the heightmap.
-   * @param width The width of the terrain.
-   * @param depth The depth of the terrain.
-   * @param maxHeight The maximum height of the terrain.
-   * @param meshWidthSegments The number of segments along the width.
-   * @param meshDepthSegments The number of segments along the depth.
+   * @param options The configuration options.
    */
-  protected constructor(
-    heightData: Float32Array,
-    heightmapResolution: number,
-    width: number,
-    depth: number,
-    maxHeight: number,
-    meshWidthSegments: number,
-    meshDepthSegments: number,
-  ) {
+  protected constructor(options: TerrainDataOptions) {
     super();
+    const {
+      heightData,
+      heightmapResolution,
+      width = 100,
+      depth = 100,
+      maxHeight = 20,
+      meshWidthSegments = 64,
+      meshDepthSegments = 64,
+    } = options;
+
     this.heightData = heightData;
     this.heightmapResolution = heightmapResolution;
     this.width = width;
@@ -103,6 +121,7 @@ export class Terrain extends AbstractGeometry {
     this.maxHeight = maxHeight;
     this.meshWidthSegments = meshWidthSegments;
     this.meshDepthSegments = meshDepthSegments;
+
     // Sicherstellen, dass die Heightmap-Daten quadratisch sind
     if (heightData.length !== heightmapResolution * heightmapResolution) {
       console.warn(
@@ -114,55 +133,21 @@ export class Terrain extends AbstractGeometry {
 
   /**
    * Creates a Terrain from raw height data.
-   * @param heightData The height data.
-   * @param heightmapResolution The resolution of the heightmap.
-   * @param width The width of the terrain.
-   * @param depth The depth of the terrain.
-   * @param maxHeight The maximum height of the terrain.
-   * @param meshWidthSegments The number of segments along the width.
-   * @param meshDepthSegments The number of segments along the depth.
+   * @param options The configuration options.
    * @returns A new Terrain instance.
    */
-  public static fromHeightData(
-    heightData: Float32Array,
-    heightmapResolution: number,
-    width: number = 100,
-    depth: number = 100,
-    maxHeight: number = 20,
-    meshWidthSegments: number = 64,
-    meshDepthSegments: number = 64,
-  ): Terrain {
-    return new Terrain(
-      heightData,
-      heightmapResolution,
-      width,
-      depth,
-      maxHeight,
-      meshWidthSegments,
-      meshDepthSegments,
-    );
+  public static fromHeightData(options: TerrainDataOptions): Terrain {
+    return new Terrain(options);
   }
 
   /**
    * Creates a Terrain from an image.
-   * @param image The image to use as heightmap.
-   * @param width The width of the terrain.
-   * @param depth The depth of the terrain.
-   * @param maxHeight The maximum height of the terrain.
-   * @param meshWidthSegments The number of segments along the width.
-   * @param meshDepthSegments The number of segments along the depth.
-   * @param strategy The strategy to extract height from image data.
+   * @param options The configuration options.
    * @returns A new Terrain instance.
    */
-  public static fromImage(
-    image: HTMLImageElement | ImageBitmap,
-    width: number = 100,
-    depth: number = 100,
-    maxHeight: number = 20,
-    meshWidthSegments: number = 64,
-    meshDepthSegments: number = 64,
-    strategy: TerrainHeightStrategy = TerrainStrategies.CENTERED_AVERAGE,
-  ): Terrain {
+  public static fromImage(options: TerrainImageOptions): Terrain {
+    const { image, strategy = TerrainStrategies.CENTERED_AVERAGE, maxHeight = 20 } = options;
+
     const canvas: HTMLCanvasElement = document.createElement("canvas");
     canvas.width = image.width;
     canvas.height = image.height;
@@ -189,20 +174,14 @@ export class Terrain extends AbstractGeometry {
       }
     }
 
-    return new Terrain(
+    return new Terrain({
+      ...options,
       heightData,
-      resolution,
-      width,
-      depth,
-      maxHeight,
-      meshWidthSegments,
-      meshDepthSegments,
-    );
+      heightmapResolution: resolution,
+    });
   }
 
-  /**
-   * @inheritdoc
-   */
+  /** @inheritdoc */
   protected override generateGeometryData(): void {
     const v: number[] = [];
     const uv: number[] = [];
@@ -211,10 +190,10 @@ export class Terrain extends AbstractGeometry {
     const hW: number = this.width / 2;
     const hD: number = this.depth / 2;
 
-    for (let z = 0; z <= this.meshDepthSegments; z++) {
+    for (let z: number = 0; z <= this.meshDepthSegments; z++) {
       const vRatio: number = z / this.meshDepthSegments;
 
-      for (let x = 0; x <= this.meshWidthSegments; x++) {
+      for (let x: number = 0; x <= this.meshWidthSegments; x++) {
         const uRatio: number = x / this.meshWidthSegments;
 
         // Pixelkoordinaten in der Heightmap
@@ -238,8 +217,8 @@ export class Terrain extends AbstractGeometry {
       }
     }
 
-    for (let z = 0; z < this.meshDepthSegments; z++) {
-      for (let x = 0; x < this.meshWidthSegments; x++) {
+    for (let z: number = 0; z < this.meshDepthSegments; z++) {
+      for (let x: number = 0; x < this.meshWidthSegments; x++) {
         const a: number = x + (this.meshWidthSegments + 1) * z;
         const b: number = x + (this.meshWidthSegments + 1) * (z + 1);
         const c: number = x + 1 + (this.meshWidthSegments + 1) * (z + 1);

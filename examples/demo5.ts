@@ -11,7 +11,7 @@ import {
   Object3D,
   OrthographicProjection,
   PhongMaterial,
-  Vector3D,
+  Vector3D, WireframeMaterial,
 } from "../src/index.js";
 import { AbstractDemo } from "./AbstractDemo.js";
 import { IsometricStrategy } from "../src/index.js";
@@ -21,7 +21,6 @@ import { IsometricStrategy } from "../src/index.js";
  */
 export class Demo5 extends AbstractDemo {
   private _player!: Object3D;
-  private _grid!: Grid;
   private _targetPos = new Vector3D(0, 0, 0);
 
   protected async setupScene(): Promise<void> {
@@ -42,21 +41,21 @@ export class Demo5 extends AbstractDemo {
     this.camera.setStrategy(CameraStrategyType.ISOMETRIC);
 
     // 2. Lights
-    const ambient = new AmbientLight(Color.WHITE, 0.4);
+    const ambient = new AmbientLight({ color: Color.WHITE, intensity: 0.4 });
     this.scene.add(ambient);
 
-    const sun = new DirectionalLight(Color.WHITE, 0.8);
+    const sun = new DirectionalLight({ color: Color.WHITE, intensity: 0.8 });
     sun.direction.set(-1, -1, -0.5).normalize();
     this.scene.add(sun);
 
     // 3. Grid for orientation
-    this._grid = new Grid(20, 1);
     const gridObj = new Object3D("IsometricGrid");
-    gridObj.geometry = this._grid.getGeometryData();
-    const gridMat = new PhongMaterial();
-    gridMat.color = new Color(0.3, 0.3, 0.3);
+    gridObj.geometry = new Grid(100, 100).getGeometryData();
+    const gridMat = new WireframeMaterial();
+    gridMat.color = Color.DARKSLATEGRAY;
     gridObj.material = gridMat;
     this.scene.add(gridObj);
+
 
     // 4. "Player" Cube
     this._player = new Object3D("PlayerCube");

@@ -3,29 +3,47 @@
 import { AbstractGeometry } from "./AbstractGeometry.js";
 
 /**
+ * Configuration options for torus geometry.
+ */
+export interface TorusOptions {
+  /** The radius of the torus. Defaults to 1. */
+  radius?: number;
+  /** The radius of the tube. Defaults to 0.4. */
+  tube?: number;
+  /** The number of radial segments. Defaults to 16. */
+  radialSegments?: number;
+  /** The number of tubular segments. Defaults to 32. */
+  tubularSegments?: number;
+}
+
+/**
  * A torus geometry.
  */
 export class Torus extends AbstractGeometry {
+  /** The radius of the torus. */
+  public radius: number;
+  /** The radius of the tube. */
+  public tube: number;
+  /** The number of radial segments. */
+  public radialSegments: number;
+  /** The number of tubular segments. */
+  public tubularSegments: number;
+
   /**
    * Creates a new Torus geometry.
-   * @param radius The radius of the torus.
-   * @param tube The radius of the tube.
-   * @param radialSegments The number of radial segments.
-   * @param tubularSegments The number of tubular segments.
+   * @param options The configuration options for the torus.
    */
-  constructor(
-    public radius: number = 1,
-    public tube: number = 0.4,
-    public radialSegments: number = 16,
-    public tubularSegments: number = 32,
-  ) {
+  constructor(options: TorusOptions = {}) {
     super();
+    const { radius = 1, tube = 0.4, radialSegments = 16, tubularSegments = 32 } = options;
+    this.radius = radius;
+    this.tube = tube;
+    this.radialSegments = radialSegments;
+    this.tubularSegments = tubularSegments;
     this.generateGeometryData();
   }
 
-  /**
-   * @inheritdoc
-   */
+  /** @inheritdoc */
   protected override generateGeometryData(): void {
     const v: number[] = [];
     const uv: number[] = [];

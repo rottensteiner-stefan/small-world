@@ -3,27 +3,42 @@
 import { AbstractGeometry } from "./AbstractGeometry.js";
 
 /**
+ * Configuration options for cylinder geometry.
+ */
+export interface CylinderOptions {
+  /** The radius of the cylinder. Defaults to 1. */
+  radius?: number;
+  /** The height of the cylinder. Defaults to 2. */
+  height?: number;
+  /** The number of segments. Defaults to 16. */
+  segments?: number;
+}
+
+/**
  * A cylinder geometry.
  */
 export class Cylinder extends AbstractGeometry {
+  /** The radius of the cylinder. */
+  public radius: number;
+  /** The height of the cylinder. */
+  public height: number;
+  /** The number of segments. */
+  public segments: number;
+
   /**
    * Creates a new Cylinder geometry.
-   * @param radius The radius of the cylinder.
-   * @param height The height of the cylinder.
-   * @param segments The number of segments.
+   * @param options The configuration options for the cylinder.
    */
-  constructor(
-    public radius: number = 1,
-    public height: number = 2,
-    public segments: number = 16,
-  ) {
+  constructor(options: CylinderOptions = {}) {
     super();
+    const { radius = 1, height = 2, segments = 16 } = options;
+    this.radius = radius;
+    this.height = height;
+    this.segments = segments;
     this.generateGeometryData();
   }
 
-  /**
-   * @inheritdoc
-   */
+  /** @inheritdoc */
   protected override generateGeometryData(): void {
     const v: number[] = [];
     const uv: number[] = [];

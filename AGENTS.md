@@ -40,6 +40,9 @@ This document outlines the commands, coding standards, and architectural guideli
   - Use `interface` for defining public object shapes and APIs that can be extended.
   - Use `type` for all other cases: defining unions, intersections, tuples, or for use with utility types like `Pick` or `Omit`.
 - **Factories over Complex Constructors:** For objects that can be created in multiple ways (e.g., from an image vs. from raw data), use static factory methods (e.g., `Terrain.fromImage(...)`) and keep the constructor `protected` or `private`.
+- **Constructor Strategy:**
+  - Use positional arguments for simple types (e.g., `Vector3D(x, y, z)`, `Color(r, g, b)`).
+  - Use **Configuration Objects** (Options-Interfaces) for complex entities with more than two optional parameters (e.g., `AmbientLight({ color, intensity })`) to improve readability and extensibility.
 - **Immutability:** Use `readonly` for properties that should not be changed after initialization.
 - **Functional Patterns:** Prefer functional patterns (`.map()`, `.filter()`) over imperative loops where it improves readability.
 - **`undefined` over `null`:** Use `undefined` for optional or uninitialized values. Avoid using `null`.

@@ -26,13 +26,18 @@ class Demo1 extends AbstractDemo {
     if (this.camera.projection.type === ProjectionType.PERSPECTIVE) {
       const aspect = window.innerWidth / window.innerHeight;
       // 75 Grad in Radianten umrechnen: 75 * (Math.PI / 180) = ca. 1.309
-      this.camera.projection = new PerspectiveProjection((75 * Math.PI) / 180, aspect, 0.1, 1000);
+      this.camera.projection = new PerspectiveProjection({
+        fov: (75 * Math.PI) / 180,
+        aspect,
+        near: 0.1,
+        far: 1000,
+      });
       this.camera.updateProjectionMatrix();
       console.log("[DEBUG] FOV (Sichtfeld) auf 75 Grad (Radianten) korrigiert.");
     }
 
     // 1. Licht: Eine sanfte Sonne
-    const sun = new DirectionalLight(Color.WHITE, 0.8);
+    const sun = new DirectionalLight({ color: Color.WHITE, intensity: 0.8 });
     sun.direction.set(-1, -1, -1);
     this.scene.add(sun);
     console.log("[DEBUG] Sonne hinzugefügt.");
@@ -42,10 +47,10 @@ class Demo1 extends AbstractDemo {
     this._myCube.geometry = new Cube(2).getGeometryData();
 
     // 3. Material: Leuchtendes Blau
-    const blueMat = new PhongMaterial();
-    blueMat.color = Color.DODGERBLUE;
-    blueMat.shininess = 60;
-    this._myCube.material = blueMat;
+    this._myCube.material = new PhongMaterial({
+      color: Color.DODGERBLUE,
+      shininess: 60,
+    });
 
     this.scene.add(this._myCube);
     console.log("[DEBUG] Würfel generiert und der Szene hinzugefügt.");

@@ -35,17 +35,22 @@ export class Demo4 extends AbstractDemo {
 
     if (this.camera.projection.type === ProjectionType.PERSPECTIVE) {
       const aspect = window.innerWidth / window.innerHeight;
-      this.camera.projection = new PerspectiveProjection((75 * Math.PI) / 180, aspect, 0.1, 1000);
+      this.camera.projection = new PerspectiveProjection({
+        fov: 75,
+        aspect,
+        near: 0.1,
+        far: 1000,
+      });
       this.camera.updateProjectionMatrix();
     }
 
     this.camera.setStrategy(CameraStrategyType.SMOOTH);
     this.camera.position.set(0, 5, 15);
 
-    const ambientLight = new AmbientLight(Color.WHITE, 0.3);
+    const ambientLight = new AmbientLight({ color: Color.WHITE, intensity: 0.3 });
     this.scene.add(ambientLight);
 
-    const sun = new DirectionalLight(Color.WHITE, 0.8);
+    const sun = new DirectionalLight({ color: Color.WHITE, intensity: 0.8 });
     sun.direction.set(-1, -1, -1);
     this.scene.add(sun);
 
@@ -55,11 +60,12 @@ export class Demo4 extends AbstractDemo {
     console.log("[Demo 4] Initialisiere Terrain Manager...");
 
     // Terrain-Material vorbereiten
-    const terrainMat = new TerrainMaterial();
-    terrainMat.sandMap = Texture.fromImage(await TextureGenerator.createSand());
-    terrainMat.grassMap = Texture.fromImage(await TextureGenerator.createGrass());
-    terrainMat.rockMap = Texture.fromImage(await TextureGenerator.createRock());
-    terrainMat.snowMap = Texture.fromImage(await TextureGenerator.createSnow());
+    const terrainMat = new TerrainMaterial({
+      sandMap: Texture.fromImage(await TextureGenerator.createSand()),
+      grassMap: Texture.fromImage(await TextureGenerator.createGrass()),
+      rockMap: Texture.fromImage(await TextureGenerator.createRock()),
+      snowMap: Texture.fromImage(await TextureGenerator.createSnow()),
+    });
 
     // Konfiguration für Infinite Terrain
     this._terrainManager = new TerrainManager(this.scene, {

@@ -19,15 +19,14 @@ export class Skybox extends Object3D {
 
     this.geometry = new Cube(size).getGeometryData();
 
-    const mat: SkyboxMaterial = new SkyboxMaterial();
-
+    let cubeMap: CubeTexture;
     if (Array.isArray(source)) {
-      mat.cubeMap = new CubeTexture(source);
+      cubeMap = new CubeTexture(source);
     } else {
-      mat.cubeMap = source;
+      cubeMap = source;
     }
 
-    this.material = mat;
+    this.material = new SkyboxMaterial({ cubeMap });
     this.frustumCulled = false;
   }
 }

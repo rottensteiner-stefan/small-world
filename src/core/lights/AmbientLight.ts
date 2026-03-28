@@ -1,8 +1,12 @@
 /// src/core/lights/AmbientLight.ts
 
-import { AbstractLight } from "./AbstractLight.js";
-import { Color } from "../colors/Color.js";
+import { AbstractLight, LightOptions } from "./AbstractLight.js";
 import { LightType } from "../../enums/index.js";
+
+/**
+ * Configuration options for ambient light.
+ */
+export interface AmbientLightOptions extends LightOptions {}
 
 /**
  * Ambient light that illuminates all objects in the scene equally.
@@ -13,11 +17,10 @@ export class AmbientLight extends AbstractLight {
 
   /**
    * Creates a new AmbientLight.
-   * @param color The color of the light.
-   * @param intensity The intensity of the light.
-   * @param name The name of the light object.
+   * @param options The configuration options for the light.
    */
-  constructor(color: Color = Color.WHITE, intensity: number = 0.2, name: string = "AmbientLight") {
-    super(color, intensity, name);
+  constructor(options: AmbientLightOptions = {}) {
+    const { name = "AmbientLight" } = options;
+    super({ ...options, name });
   }
 }

@@ -1,77 +1,82 @@
 /// src/math/projections/OrthographicProjection.ts
+
 import { Matrix4 } from "../Matrix4.js";
 import { AbstractProjection } from "./AbstractProjection.js";
 import { ProjectionType } from "../../enums/index.js";
 
 /**
+ * Configuration options for orthographic projection.
+ */
+export interface OrthographicOptions {
+  /** Left plane distance. Defaults to -1. */
+  left?: number;
+  /** Right plane distance. Defaults to 1. */
+  right?: number;
+  /** Bottom plane distance. Defaults to -1. */
+  bottom?: number;
+  /** Top plane distance. Defaults to 1. */
+  top?: number;
+  /** Near plane distance. Defaults to 0.1. */
+  near?: number;
+  /** Far plane distance. Defaults to 1000. */
+  far?: number;
+}
+
+/**
  * Orthographic camera projection.
  */
 export class OrthographicProjection extends AbstractProjection {
-  /**
-   * Left.
-   */
-  public l: number;
+  /** Left. */
+  public left: number;
 
-  /**
-   * Right.
-   */
-  public r: number;
+  /** Right. */
+  public right: number;
 
-  /**
-   * Bottom.
-   */
-  public b: number;
+  /** Bottom. */
+  public bottom: number;
 
-  /**
-   * Top.
-   */
-  public t: number;
+  /** Top. */
+  public top: number;
 
-  /**
-   * Near.
-   */
-  public n: number;
+  /** Near. */
+  public near: number;
 
-  /**
-   * Far.
-   */
-  public f: number;
+  /** Far. */
+  public far: number;
 
-  /**
-   * @inheritdoc
-   */
+  /** @inheritdoc */
   public override readonly type: ProjectionType = ProjectionType.ORTHOGRAPHIC;
 
   /**
    * Creates a new OrthographicProjection.
-   * @param l Left.
-   * @param r Right.
-   * @param b Bottom.
-   * @param t Top.
-   * @param n Near.
-   * @param f Far.
+   * @param options The configuration options for the projection.
    */
-  constructor(l: number, r: number, b: number, t: number, n: number, f: number) {
+  constructor(options: OrthographicOptions = {}) {
     super();
-    this.l = l;
-    this.r = r;
-    this.b = b;
-    this.t = t;
-    this.n = n;
-    this.f = f;
+    const { left = -1, right = 1, bottom = -1, top = 1, near = 0.1, far = 1000 } = options;
+    this.left = left;
+    this.right = right;
+    this.bottom = bottom;
+    this.top = top;
+    this.near = near;
+    this.far = far;
     this.update();
   }
 
-  /**
-   * @inheritdoc
-   */
+  /** @inheritdoc */
   public override update(): void {
-    Matrix4.orthographic(this.l, this.r, this.b, this.t, this.n, this.f, this._matrix);
+    Matrix4.orthographic(
+      this.left,
+      this.right,
+      this.bottom,
+      this.top,
+      this.near,
+      this.far,
+      this._matrix,
+    );
   }
 
-  /**
-   * @inheritdoc
-   */
+  /** @inheritdoc */
   public override getMatrix(): Matrix4 {
     return this._matrix;
   }

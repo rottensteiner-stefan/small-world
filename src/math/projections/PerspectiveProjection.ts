@@ -1,46 +1,49 @@
 /// src/math/projections/PerspectiveProjection.ts
+
 import { Matrix4 } from "../Matrix4.js";
 import { AbstractProjection } from "./AbstractProjection.js";
 import { ProjectionType } from "../../enums/index.js";
 
 /**
+ * Configuration options for perspective projection.
+ */
+export interface PerspectiveOptions {
+  /** Field of view in radians. Defaults to 75 degrees in radians. */
+  fov?: number;
+  /** Aspect ratio. Defaults to 1. */
+  aspect?: number;
+  /** Near plane distance. Defaults to 0.1. */
+  near?: number;
+  /** Far plane distance. Defaults to 1000. */
+  far?: number;
+}
+
+/**
  * Perspective camera projection.
  */
 export class PerspectiveProjection extends AbstractProjection {
-  /**
-   * Field of view in radians.
-   */
+  /** Field of view in radians. */
   public fov: number;
 
-  /**
-   * Aspect ratio.
-   */
+  /** Aspect ratio. */
   public aspect: number;
 
-  /**
-   * Near plane.
-   */
+  /** Near plane. */
   public near: number;
 
-  /**
-   * Far plane.
-   */
+  /** Far plane. */
   public far: number;
 
-  /**
-   * @inheritdoc
-   */
+  /** @inheritdoc */
   public override readonly type: ProjectionType = ProjectionType.PERSPECTIVE;
 
   /**
    * Creates a new PerspectiveProjection.
-   * @param fov Field of view in radians.
-   * @param aspect Aspect ratio.
-   * @param near Near plane.
-   * @param far Far plane.
+   * @param options The configuration options for the projection.
    */
-  constructor(fov: number, aspect: number, near: number, far: number) {
+  constructor(options: PerspectiveOptions = {}) {
     super();
+    const { fov = (75 * Math.PI) / 180, aspect = 1, near = 0.1, far = 1000 } = options;
     this.fov = fov;
     this.aspect = aspect;
     this.near = near;
@@ -48,16 +51,12 @@ export class PerspectiveProjection extends AbstractProjection {
     this.update();
   }
 
-  /**
-   * @inheritdoc
-   */
+  /** @inheritdoc */
   public override update(): void {
     Matrix4.perspective(this.fov, this.aspect, this.near, this.far, this._matrix);
   }
 
-  /**
-   * @inheritdoc
-   */
+  /** @inheritdoc */
   public override getMatrix(): Matrix4 {
     return this._matrix;
   }
