@@ -3,29 +3,47 @@
 import { AbstractGeometry } from "./AbstractGeometry.js";
 
 /**
+ * Configuration options for plane geometry.
+ */
+export interface PlaneOptions {
+  /** The width of the plane. Defaults to 1. */
+  width?: number;
+  /** The depth of the plane. Defaults to 1. */
+  depth?: number;
+  /** The number of segments along the width. Defaults to 1. */
+  widthSegments?: number;
+  /** The number of segments along the depth. Defaults to 1. */
+  depthSegments?: number;
+}
+
+/**
  * A simple plane geometry.
  */
 export class Plane extends AbstractGeometry {
+  /** The width of the plane. */
+  public width: number;
+  /** The depth of the plane. */
+  public depth: number;
+  /** The number of segments along the width. */
+  public widthSegments: number;
+  /** The number of segments along the depth. */
+  public depthSegments: number;
+
   /**
    * Creates a new Plane geometry.
-   * @param width The width of the plane.
-   * @param depth The depth of the plane.
-   * @param widthSegments The number of segments along the width.
-   * @param depthSegments The number of segments along the depth.
+   * @param options The configuration options for the plane.
    */
-  constructor(
-    public width: number = 1,
-    public depth: number = 1,
-    public widthSegments: number = 1,
-    public depthSegments: number = 1,
-  ) {
+  constructor(options: PlaneOptions = {}) {
     super();
+    const { width = 1, depth = 1, widthSegments = 1, depthSegments = 1 } = options;
+    this.width = width;
+    this.depth = depth;
+    this.widthSegments = widthSegments;
+    this.depthSegments = depthSegments;
     this.generateGeometryData();
   }
 
-  /**
-   * @inheritdoc
-   */
+  /** @inheritdoc */
   protected override generateGeometryData(): void {
     const v: number[] = [];
     const uv: number[] = [];

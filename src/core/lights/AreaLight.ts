@@ -1,8 +1,17 @@
 /// src/core/lights/AreaLight.ts
 
-import { Color } from "../colors/Color.js";
+import { LightOptions, AbstractLight } from "./AbstractLight.js";
 import { LightType } from "../../enums/index.js";
-import { AbstractLight } from "./AbstractLight.js";
+
+/**
+ * Configuration options for area light.
+ */
+export interface AreaLightOptions extends LightOptions {
+  /** The width of the light area. Defaults to 5.0. */
+  width?: number;
+  /** The height/length of the light area. Defaults to 5.0. */
+  height?: number;
+}
 
 /**
  * Area light that emits light from a rectangular plane.
@@ -11,21 +20,20 @@ export class AreaLight extends AbstractLight {
   /** @inheritdoc */
   public override readonly type: LightType = LightType.AREA;
 
+  /** The width of the light area. */
+  public width: number;
+
+  /** The height/length of the light area. */
+  public height: number;
+
   /**
    * Creates a new AreaLight.
-   * @param color The color of the light.
-   * @param intensity The intensity of the light.
-   * @param width The width of the light area.
-   * @param height The height/length of the light area.
-   * @param name The name of the light object.
+   * @param options The configuration options for the light.
    */
-  constructor(
-    color: Color = Color.WHITE,
-    intensity: number = 1.0,
-    public width: number = 5.0,
-    public height: number = 5.0,
-    name: string = "AreaLight",
-  ) {
-    super(color, intensity, name);
+  constructor(options: AreaLightOptions = {}) {
+    const { width = 5.0, height = 5.0, name = "AreaLight" } = options;
+    super({ ...options, name });
+    this.width = width;
+    this.height = height;
   }
 }

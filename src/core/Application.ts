@@ -49,11 +49,25 @@ export abstract class Application {
     let projection: AbstractProjection;
 
     if (ProjectionType.ORTHOGRAPHIC === this.config.projection) {
-      projection = new OrthographicProjection(-10 * aspect, 10 * aspect, -10, 10, 0.1, 1000);
+      projection = new OrthographicProjection({
+        left: -10 * aspect,
+        right: 10 * aspect,
+        bottom: -10,
+        top: 10,
+        near: 0.1,
+        far: 1000,
+      });
     } else if (ProjectionType.OBLIQUE === this.config.projection) {
-      projection = new ObliqueProjection(-10 * aspect, 10 * aspect, -10, 10, 0.1, 1000);
+      projection = new ObliqueProjection({
+        left: -10 * aspect,
+        right: 10 * aspect,
+        bottom: -10,
+        top: 10,
+        near: 0.1,
+        far: 1000,
+      });
     } else {
-      projection = new PerspectiveProjection(75, aspect, 0.1, 1000);
+      projection = new PerspectiveProjection({ fov: 75, aspect, near: 0.1, far: 1000 });
     }
 
     this.camera = new Camera(projection);

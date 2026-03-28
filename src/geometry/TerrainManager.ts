@@ -194,15 +194,15 @@ export class TerrainManager {
       );
     }
 
-    const terrainGeo: Terrain = Terrain.fromHeightData(
-      heightmapData,
+    const terrainGeo: Terrain = Terrain.fromHeightData({
+      heightData,
       heightmapResolution,
-      this._chunkSize,
-      this._chunkSize,
-      this._maxHeight,
-      this._meshSegments,
-      this._meshSegments,
-    );
+      width: this._chunkSize,
+      depth: this._chunkSize,
+      maxHeight: this._maxHeight,
+      meshWidthSegments: this._meshSegments,
+      meshDepthSegments: this._meshSegments,
+    });
 
     const terrainObj: Object3D = new Object3D(`TerrainChunk_${key}`);
     terrainObj.geometry = terrainGeo.getGeometryData();

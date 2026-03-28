@@ -21,6 +21,6 @@ export class Sprite extends Object3D {
     // The Plane in this engine is on the XZ plane by default.
     // For a sprite, we typically want it to be "upright" in local space if it's on the XY plane,
     // but the billboard logic will align it anyway.
-    this.geometry = new Plane(1, 1).rotateX(Math.PI / 2).getGeometryData();
+    this.geometry = new Plane({ width: 1, depth: 1 }).rotateX(Math.PI / 2).getGeometryData();
   }
 }

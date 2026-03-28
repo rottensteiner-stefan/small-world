@@ -3,41 +3,44 @@
 import { AbstractGeometry } from "./AbstractGeometry.js";
 
 /**
+ * Configuration options for sphere geometry.
+ */
+export interface SphereOptions {
+  /** The radius of the sphere. Defaults to 1. */
+  radius?: number;
+  /** The number of horizontal segments. Defaults to 16. */
+  widthSegments?: number;
+  /** The number of vertical segments. Defaults to 12. */
+  heightSegments?: number;
+}
+
+/**
  * A sphere geometry.
  */
 export class Sphere extends AbstractGeometry {
-  /**
-   * The radius of the sphere.
-   */
+  /** The radius of the sphere. */
   public radius: number;
 
-  /**
-   * The number of horizontal segments.
-   */
+  /** The number of horizontal segments. */
   public widthSegments: number;
 
-  /**
-   * The number of vertical segments.
-   */
+  /** The number of vertical segments. */
   public heightSegments: number;
 
   /**
    * Creates a new Sphere geometry.
-   * @param radius The radius of the sphere.
-   * @param widthSegments The number of horizontal segments.
-   * @param heightSegments The number of vertical segments.
+   * @param options The configuration options for the sphere.
    */
-  constructor(radius: number = 1, widthSegments: number = 16, heightSegments: number = 12) {
+  constructor(options: SphereOptions = {}) {
     super();
+    const { radius = 1, widthSegments = 16, heightSegments = 12 } = options;
     this.radius = radius;
     this.widthSegments = widthSegments;
     this.heightSegments = heightSegments;
     this.generateGeometryData();
   }
 
-  /**
-   * @inheritdoc
-   */
+  /** @inheritdoc */
   protected override generateGeometryData(): void {
     const v: number[] = [];
     const n: number[] = [];

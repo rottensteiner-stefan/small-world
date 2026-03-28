@@ -7,6 +7,16 @@ import { Vector3D } from "../math/Vector3D.js";
 import { BoundingType } from "../enums/index.js";
 
 /**
+ * Configuration options for an octree node.
+ */
+export interface OctreeOptions {
+  /** The maximum depth of the octree. Defaults to 8. */
+  maxDepth?: number;
+  /** The maximum number of objects in a node before it subdivides. Defaults to 10. */
+  maxObjects?: number;
+}
+
+/**
  * A node in the octree.
  */
 export class OctreeNode {
@@ -15,19 +25,26 @@ export class OctreeNode {
   /** The objects stored in this node. */
   public objects: Object3D[] = [];
 
+  private readonly _depth: number;
+  private readonly _maxDepth: number;
+  private readonly _maxObjects: number;
+
   /**
    * Creates a new OctreeNode.
    * @param bounds The bounds of this node.
-   * @param _depth The current depth of this node.
-   * @param _maxDepth The maximum depth of the octree.
-   * @param _maxObjects The maximum number of objects in a node before it subdivides.
+   * @param depth The current depth of this node.
+   * @param options The configuration options.
    */
   constructor(
     public bounds: BoundingBox,
-    private _depth: number = 0,
-    private _maxDepth: number = 8,
-    private _maxObjects: number = 10,
-  ) {}
+    depth: number = 0,
+    options: OctreeOptions = {},
+  ) {
+    const { maxDepth = 8, maxObjects = 10 } = options;
+    this._depth = depth;
+    this._maxDepth = maxDepth;
+    this._maxObjects = maxObjects;
+  }
 
   /**
    * Inserts an object into the octree.
@@ -94,12 +111,10 @@ export class OctreeNode {
             dims[5]?.[z] ?? 0,
           );
           this.children.push(
-            new OctreeNode(
-              new BoundingBox(childMin, childMax),
-              this._depth + 1,
-              this._maxDepth,
-              this._maxObjects,
-            ),
+            new OctreeNode(new BoundingBox(childMin, childMax), this._depth + 1, {
+              maxDepth: this._maxDepth,
+              maxObjects: this._maxObjects,
+            }),
           );
         }
       }
@@ -155,11 +170,10 @@ export class Octree {
   /**
    * Creates a new Octree.
    * @param bounds The bounds of the octree.
-   * @param maxDepth The maximum depth.
-   * @param maxObjects The maximum objects per node.
+   * @param options The configuration options.
    */
-  constructor(bounds: BoundingBox, maxDepth: number = 8, maxObjects: number = 10) {
-    this.root = new OctreeNode(bounds, 0, maxDepth, maxObjects);
+  constructor(bounds: BoundingBox, options: OctreeOptions = {}) {
+    this.root = new OctreeNode(bounds, 0, options);
   }
 
   /**
