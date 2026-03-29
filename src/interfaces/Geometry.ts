@@ -1,7 +1,14 @@
 /// src/interfaces/Geometry.ts
 
-import { GeometryData } from "./GeometryData.js"; // Wird gleich angepasst
+import { GeometryDataInterface } from "./GeometryData.js";
 
+/**
+ * Interface for all geometry types.
+ */
 export interface Geometry {
-  getGeometryData(): GeometryData;
+  /**
+   * Returns the geometry data.
+   * @returns The geometry data.
+   */
+  getGeometryData(): GeometryDataInterface;
 }

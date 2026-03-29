@@ -67,7 +67,13 @@ export abstract class Application {
         far: 1000,
       });
     } else {
-      projection = new PerspectiveProjection({ fov: 75, aspect, near: 0.1, far: 1000 });
+      // Korrektur: 75 Grad in Radianten umrechnen
+      projection = new PerspectiveProjection({
+        fov: (75 * Math.PI) / 180,
+        aspect,
+        near: 0.1,
+        far: 1000,
+      });
     }
 
     this.camera = new Camera(projection);

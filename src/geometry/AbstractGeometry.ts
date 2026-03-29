@@ -1,7 +1,7 @@
 /// src/geometry/AbstractGeometry.ts
 import { Matrix4 } from "../math/Matrix4.js";
 import { Vector3D } from "../math/Vector3D.js";
-import { GeometryData, Geometry } from "../interfaces/index.js";
+import { GeometryDataInterface, Geometry } from "../interfaces/index.js";
 
 /**
  * Base class for all geometry types.
@@ -36,7 +36,7 @@ export abstract class AbstractGeometry implements Geometry {
    * Returns the geometry data.
    * @returns The geometry data.
    */
-  public getGeometryData(): GeometryData {
+  public getGeometryData(): GeometryDataInterface {
     if (0 === this._normals.length && 0 < this._vertices.length) {
       this.computeNormals();
     }

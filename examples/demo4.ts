@@ -35,8 +35,9 @@ export class Demo4 extends AbstractDemo {
 
     if (this.camera.projection.type === ProjectionType.PERSPECTIVE) {
       const aspect = window.innerWidth / window.innerHeight;
+      // Korrektur: 75 Grad in Radianten umrechnen
       this.camera.projection = new PerspectiveProjection({
-        fov: 75,
+        fov: (75 * Math.PI) / 180,
         aspect,
         near: 0.1,
         far: 1000,
@@ -91,7 +92,7 @@ export class Demo4 extends AbstractDemo {
       const carScale = 5;
       model.scale.set(carScale, carScale, carScale);
       // Position leicht über 0, da das Terrain um 0 schwankt
-      model.position.set(0, 0.5, 0);
+      model.position.set(0, 2.0, 0);
 
       this.scene.add(model);
       this._car = model; // Auto-Objekt speichern

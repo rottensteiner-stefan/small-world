@@ -1,16 +1,29 @@
 /// src/renderers/Mesh.ts
-import { GeometryData } from "../interfaces/index.js";
+import { GeometryDataInterface } from "../interfaces/index.js";
 
+/**
+ * Wrapper for WebGL vertex and index buffers.
+ */
 export class Mesh {
+  /** The vertex buffer object. */
   public vbo: WebGLBuffer | undefined;
+  /** The element buffer object (indices). */
   public ebo: WebGLBuffer | undefined;
+  /** The normal buffer object. */
   public nbo: WebGLBuffer | undefined = undefined;
-  public tbo: WebGLBuffer | undefined = undefined; // <--- NEU: UV Buffer
+  /** The texture coordinate buffer object. */
+  public tbo: WebGLBuffer | undefined = undefined;
+  /** The number of elements to draw. */
   public count: number;
 
   private _gl: WebGLRenderingContext | WebGL2RenderingContext;
 
-  constructor(gl: WebGLRenderingContext | WebGL2RenderingContext, data: GeometryData) {
+  /**
+   * Creates a new Mesh and uploads the geometry data to the GPU.
+   * @param gl The WebGL context.
+   * @param data The geometry data to upload.
+   */
+  constructor(gl: WebGLRenderingContext | WebGL2RenderingContext, data: GeometryDataInterface) {
     this._gl = gl;
     this.vbo = gl.createBuffer() ?? undefined;
     gl.bindBuffer(gl.ARRAY_BUFFER, this.vbo ?? null);
@@ -34,6 +47,12 @@ export class Mesh {
     this.count = data.indices.length;
   }
 
+  /**
+   * Binds the buffers and sets the vertex attributes.
+   * @param posLoc The location of the position attribute.
+   * @param normLoc The location of the normal attribute.
+   * @param uvLoc The location of the UV attribute.
+   */
   public bind(posLoc: number, normLoc: number = -1, uvLoc: number = -1): void {
     this._gl.bindBuffer(this._gl.ARRAY_BUFFER, this.vbo ?? null);
     this._gl.vertexAttribPointer(posLoc, 3, this._gl.FLOAT, false, 0, 0);

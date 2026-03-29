@@ -143,9 +143,9 @@ export class Terrain extends AbstractGeometry {
   /**
    * Creates a Terrain from an image.
    * @param options The configuration options.
-   * @returns A new Terrain instance.
+   * @returns A promise resolving to a new Terrain instance.
    */
-  public static fromImage(options: TerrainImageOptions): Terrain {
+  public static async fromImage(options: TerrainImageOptions): Promise<Terrain> {
     const { image, strategy = TerrainStrategies.CENTERED_AVERAGE, maxHeight = 20 } = options;
 
     const canvas: HTMLCanvasElement = document.createElement("canvas");
@@ -224,8 +224,11 @@ export class Terrain extends AbstractGeometry {
         const c: number = x + 1 + (this.meshWidthSegments + 1) * (z + 1);
         const d: number = x + 1 + (this.meshWidthSegments + 1) * z;
 
+        // Korrektur: CCW Winding Order (für WebGL/WebGPU Standard)
+        // Triangle 1: a, b, d
         i.push(a, b, d);
-        i.push(b, c, d);
+        // Triangle 2: d, b, c
+        i.push(d, b, c);
       }
     }
 
