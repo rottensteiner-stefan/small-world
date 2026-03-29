@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.12.01] - 2026-03-29
+
+- Optimize it: Code hygiene
+
+## [0.12.01] - 2026-03-29
+
+- Optimize it: Constructor options
+
 ## [0.12.00] - 2026-03-28
 
 - Optimize it: Positional parameters vs config options
