@@ -84,10 +84,10 @@ export class IsometricStrategy implements CameraStrategy {
     const halfWidth: number = 10;
     const halfHeight: number = 10;
 
-    proj.l = -halfWidth;
-    proj.r = halfWidth;
-    proj.b = -halfHeight;
-    proj.t = halfHeight;
+    proj.left = -halfWidth;
+    proj.right = halfWidth;
+    proj.bottom = -halfHeight;
+    proj.top = halfHeight;
     proj.update();
 
     camera.updateViewMatrix();

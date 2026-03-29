@@ -1,7 +1,7 @@
 /// src/core/Object3D.ts
 
 import { AbstractMaterial } from "./materials/index.js";
-import { BoundingVolume, GeometryData } from "../interfaces/index.js";
+import { BoundingVolume, GeometryDataInterface } from "../interfaces/index.js";
 import { Matrix4, Vector3D } from "../math/index.js";
 
 /**
@@ -14,7 +14,7 @@ export class Object3D {
   public name: string = "";
 
   /** The geometry data of the object. */
-  public geometry: GeometryData | undefined = undefined;
+  public geometry: GeometryDataInterface | undefined = undefined;
   /** The material of the object. */
   public material: AbstractMaterial | undefined = undefined;
   /** The bounding volume for collision detection and frustum culling. */

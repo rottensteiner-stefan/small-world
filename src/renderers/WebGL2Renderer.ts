@@ -11,12 +11,13 @@ import {
   TerrainMaterial,
   Texture,
 } from "../core/index.js";
-import { GeometryData } from "../interfaces/index.js";
+import { GeometryDataInterface } from "../interfaces/index.js";
 import { MaterialType, RendererType } from "../enums/index.js";
 import { Mesh } from "./Mesh.js";
 import { Object3D } from "../core/Object3D.js";
 import { Scene } from "../core/Scene.js";
-import { Vector3D } from "../math/Vector3D.js";
+import { Vector3D } from "../math/index.js";
+import { PointLight, SpotLight } from "../core/lights/index.js";
 
 interface ShaderLocs {
   pos: number;
@@ -46,8 +47,12 @@ interface ShaderLocs {
   thresholds: WebGLUniformLocation | null;
 }
 
+/**
+ * WebGL 2.0 implementation of the renderer.
+ */
 export class WebGL2Renderer extends AbstractWebGLRenderer {
-  public override readonly type = RendererType.WEB_GL2;
+  /** @inheritdoc */
+  public override readonly type: RendererType = RendererType.WEB_GL2;
   declare protected gl: WebGL2RenderingContext;
 
   private _prog!: WebGLProgram;
@@ -60,9 +65,9 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     skybox: WebGLUniformLocation | null;
   };
 
-  private _cache = new Map<GeometryData, Mesh>();
-  private _texCache = new Map<Texture, WebGLTexture>();
-  private _texCubeCache = new Map<CubeTexture, WebGLTexture>();
+  private _cache: Map<GeometryDataInterface, Mesh> = new Map<GeometryDataInterface, Mesh>();
+  private _texCache: Map<Texture, WebGLTexture> = new Map<Texture, WebGLTexture>();
+  private _texCubeCache: Map<CubeTexture, WebGLTexture> = new Map<CubeTexture, WebGLTexture>();
 
   private _pointLightLocs: {
     pos: WebGLUniformLocation | null;
@@ -84,14 +89,15 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
   }[] = [];
 
   // Scratch variables for rendering to avoid GC
-  private _scratchModelMatrix = new Float32Array(16);
-  private _scratchVec3 = new Vector3D();
+  private _scratchModelMatrix: Float32Array = new Float32Array(16);
+  private _scratchVec3: Vector3D = new Vector3D();
 
+  /** @inheritdoc */
   public async initialize(canvas: HTMLCanvasElement): Promise<void> {
     this.gl = canvas.getContext("webgl2", { antialias: true })!;
     this.initDefaultTextures();
 
-    const vsCode = `#version 300 es
+    const vsCode: string = `#version 300 es
     in vec3 a_position; in vec3 a_normal; in vec2 a_uv;
     uniform mat4 u_vp; uniform mat4 u_model; uniform vec2 u_texOffset; uniform vec2 u_texRepeat;
     out vec3 v_worldPos; out vec3 v_normal; out vec2 v_uv;
@@ -101,7 +107,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       gl_Position = u_vp * wp;
     }`;
 
-    const fsCode = `#version 300 es
+    const fsCode: string = `#version 300 es
     precision highp float;
     in vec3 v_worldPos; in vec3 v_normal; in vec2 v_uv;
     uniform vec4 u_color; uniform vec4 u_specColor; uniform float u_shininess; uniform vec3 u_viewPos;
@@ -224,14 +230,14 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         }
       }
 
-      c = vec4((finalLight * u_color.rgb * texColor.rgb) + (specular * u_specColor.rgb), u_color.a * texColor.a);
+      c = vec4((finalLight * u_color.rgb * texColor.rgb) + (specular * u_specCol.rgb), u_color.a * texCol.a);
     }`;
 
-    const skyVsCode = `#version 300 es
+    const skyVsCode: string = `#version 300 es
     in vec3 a_position; uniform mat4 u_vp; uniform mat4 u_model; out vec3 v_uvw;
     void main() { v_uvw = a_position; gl_Position = u_vp * u_model * vec4(a_position, 1.0); }`;
 
-    const skyFsCode = `#version 300 es
+    const skyFsCode: string = `#version 300 es
     precision highp float; in vec3 v_uvw; uniform samplerCube u_skybox; out vec4 c;
     void main() { c = texture(u_skybox, v_uvw); }`;
 
@@ -273,7 +279,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       skybox: this.gl.getUniformLocation(this._skyProg, "u_skybox"),
     };
 
-    for (let i = 0; i < 4; i++) {
+    for (let i: number = 0; i < 4; i++) {
       this._pointLightLocs.push({
         pos: this.gl.getUniformLocation(this._prog, `u_pointLightPos[${i}]`),
         col: this.gl.getUniformLocation(this._prog, `u_pointLightColor[${i}]`),
@@ -298,7 +304,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
 
   private _getWebGLTexture(tex: Texture): WebGLTexture {
     if (!tex.isLoaded || !tex.image) return this.defaultTexture;
-    let glTex = this._texCache.get(tex);
+    let glTex: WebGLTexture | undefined = this._texCache.get(tex);
     if (!glTex) {
       glTex = this.gl.createTexture()!;
       this.gl.bindTexture(this.gl.TEXTURE_2D, glTex);
@@ -329,11 +335,11 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
 
   private _getWebGLCubeTexture(tex: CubeTexture): WebGLTexture {
     if (!tex.isLoaded || tex.images.length !== 6) return this.defaultCubeTexture;
-    let glTex = this._texCubeCache.get(tex);
+    let glTex: WebGLTexture | undefined = this._texCubeCache.get(tex);
     if (!glTex) {
       glTex = this.gl.createTexture()!;
       this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, glTex);
-      for (let i = 0; i < 6; i++) {
+      for (let i: number = 0; i < 6; i++) {
         this.gl.texImage2D(
           this.gl.TEXTURE_CUBE_MAP_POSITIVE_X + i,
           0,
@@ -350,6 +356,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     return glTex;
   }
 
+  /** @inheritdoc */
   public render(scene: Scene, vp: Float32Array, camPos: Vector3D = Vector3D.ZERO): void {
     this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
 
@@ -379,8 +386,8 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
 
     // Point Lights
     if (this._locs.numPL) this.gl.uniform1i(this._locs.numPL, pLights.length);
-    for (let i = 0; i < pLights.length; i++) {
-      const pl = pLights[i];
+    for (let i: number = 0; i < pLights.length; i++) {
+      const pl: PointLight = pLights[i]!;
       if (!pl) continue;
       const loc = this._pointLightLocs[i];
       if (!loc) continue;
@@ -402,8 +409,8 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
 
     // Spot Lights
     if (this._locs.numSL) this.gl.uniform1i(this._locs.numSL, sLights.length);
-    for (let i = 0; i < sLights.length; i++) {
-      const sl = sLights[i];
+    for (let i: number = 0; i < sLights.length; i++) {
+      const sl: SpotLight = sLights[i]!;
       if (!sl) continue;
       const loc = this._spotLightLocs[i];
       if (!loc) continue;
@@ -438,12 +445,12 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
 
     // Area Lights
     if (this._locs.numAL) this.gl.uniform1i(this._locs.numAL, aLights.length);
-    for (let i = 0; i < aLights.length; i++) {
+    for (let i: number = 0; i < aLights.length; i++) {
       const al = aLights[i] as AreaLight;
       if (!al) continue;
       const loc = this._areaLightLocs[i];
       if (!loc) continue;
-      const mat = al.worldMatrix.data;
+      const mat: Float32Array = al.worldMatrix.data;
       if (loc.pos) this.gl.uniform3f(loc.pos!, mat[12]!, mat[13]!, mat[14]!);
       if (loc.col)
         this.gl.uniform3f(
@@ -551,13 +558,13 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         this.gl.uniformMatrix4fv(this._locs.model, false, this._scratchModelMatrix);
       if (this._locs.color) this.gl.uniform4fv(this._locs.color, mat.color.toFloat32Array());
 
-      let shininess = -1.0;
-      let activeTex = this.defaultTexture;
-      let tOffset0 = 0,
-        tOffset1 = 0;
-      let tRepeat0 = 1,
-        tRepeat1 = 1;
-      let isTerrain = 0;
+      let shininess: number = -1.0;
+      let activeTex: WebGLTexture = this.defaultTexture;
+      let tOffset0: number = 0,
+        tOffset1: number = 0;
+      let tRepeat0: number = 1,
+        tRepeat1: number = 1;
+      let isTerrain: number = 0;
 
       if (mat.type === MaterialType.LAMBERT) {
         shininess = 0.0;
@@ -632,8 +639,9 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       if (this._locs.texOffset) this.gl.uniform2f(this._locs.texOffset, tOffset0, tOffset1);
       if (this._locs.texRepeat) this.gl.uniform2f(this._locs.texRepeat, tRepeat0, tRepeat1);
 
-      const drawMode = mat.type === MaterialType.WIREFRAME ? this.gl.LINES : this.gl.TRIANGLES;
-      const indexType =
+      const drawMode: number =
+        mat.type === MaterialType.WIREFRAME ? this.gl.LINES : this.gl.TRIANGLES;
+      const indexType: number =
         mat.type === MaterialType.TERRAIN ? this.gl.UNSIGNED_INT : this.gl.UNSIGNED_SHORT;
       this.gl.drawElements(drawMode, m.count, indexType, 0);
     }

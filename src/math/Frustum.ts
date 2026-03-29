@@ -110,10 +110,7 @@ export class Frustum {
       const pz: number = (p[idx + 2] ?? 0) >= 0 ? box.max.z : box.min.z;
 
       const dist: number =
-        (p[idx] ?? 0) * px +
-        (p[idx + 1] ?? 0) * py +
-        (p[idx + 2] ?? 0) * pz +
-        (p[idx + 3] ?? 0);
+        (p[idx] ?? 0) * px + (p[idx + 1] ?? 0) * py + (p[idx + 2] ?? 0) * pz + (p[idx + 3] ?? 0);
 
       if (0 > dist) {
         return false;

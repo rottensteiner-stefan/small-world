@@ -11,7 +11,8 @@ import {
   Object3D,
   OrthographicProjection,
   PhongMaterial,
-  Vector3D, WireframeMaterial,
+  Vector3D,
+  WireframeMaterial,
 } from "../src/index.js";
 import { AbstractDemo } from "./AbstractDemo.js";
 import { IsometricStrategy } from "../src/index.js";
@@ -29,14 +30,14 @@ export class Demo5 extends AbstractDemo {
     // 1. Setup Orthographic Camera for 2D/Isometric feel
     const aspect = window.innerWidth / window.innerHeight;
     const size = 10;
-    this.camera.projection = new OrthographicProjection(
-      -size * aspect,
-      size * aspect, // left, right
-      -size,
-      size, // bottom, top
-      0.1,
-      1000, // near, far
-    );
+    this.camera.projection = new OrthographicProjection({
+      left: -size * aspect,
+      right: size * aspect, // left, right
+      bottom: -size,
+      top: size, // bottom, top
+      near: 0.1,
+      far: 1000, // near, far
+    });
     this.camera.updateProjectionMatrix();
     this.camera.setStrategy(CameraStrategyType.ISOMETRIC);
 
@@ -55,7 +56,6 @@ export class Demo5 extends AbstractDemo {
     gridMat.color = Color.DARKSLATEGRAY;
     gridObj.material = gridMat;
     this.scene.add(gridObj);
-
 
     // 4. "Player" Cube
     this._player = new Object3D("PlayerCube");

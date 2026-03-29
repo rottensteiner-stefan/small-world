@@ -45,7 +45,7 @@ export declare abstract class AbstractGeometry implements Geometry {
      * Returns the geometry data.
      * @returns The geometry data.
      */
-    getGeometryData(): GeometryData;
+    getGeometryData(): GeometryDataInterface;
     /**
      * Computes the normals of the geometry.
      */
@@ -86,17 +86,17 @@ export declare abstract class AbstractGeometry implements Geometry {
  * Base class for all light types.
  */
 export declare abstract class AbstractLight extends Object3D {
-    color: Color;
-    intensity: number;
     /** The type of the light. */
     abstract readonly type: LightType;
+    /** The color of the light. */
+    color: Color;
+    /** The intensity of the light. */
+    intensity: number;
     /**
      * Creates a new AbstractLight.
-     * @param color The color of the light.
-     * @param intensity The intensity of the light.
-     * @param name The name of the light object.
+     * @param options The configuration options for the light.
      */
-    protected constructor(color?: Color, intensity?: number, name?: string);
+    protected constructor(options?: LightOptions);
 }
 
 /**
@@ -170,6 +170,8 @@ export declare abstract class AbstractRenderer implements Renderer {
     abstract readonly type: RendererType;
     /** The clear color of the renderer. */
     protected _clearColor: Color;
+    /** Cached light data to avoid GC pressure. */
+    protected _lightData: LightDataInterface;
     /** @inheritdoc */
     abstract initialize(canvas: HTMLCanvasElement): Promise<void>;
     /** @inheritdoc */
@@ -183,14 +185,13 @@ export declare abstract class AbstractRenderer implements Renderer {
      * @param scene The scene to extract lights from.
      * @returns An object containing all extracted light data.
      */
-    protected extractLights(scene: Scene): {
-        aCol: Color;
-        dDir: Vector3D;
-        dCol: Color;
-        pLights: PointLight[];
-        sLights: SpotLight[];
-        aLights: AreaLight[];
-    };
+    protected extractLights(scene: Scene): LightDataInterface;
+    /**
+     * Recursively traverses the scene to find lights.
+     * @param node The current node to traverse.
+     * @private
+     */
+    private _traverseLights;
 }
 
 export declare abstract class AbstractWebGLRenderer extends AbstractRenderer {
@@ -211,11 +212,9 @@ export declare class AmbientLight extends AbstractLight {
     readonly type: LightType;
     /**
      * Creates a new AmbientLight.
-     * @param color The color of the light.
-     * @param intensity The intensity of the light.
-     * @param name The name of the light object.
+     * @param options The configuration options for the light.
      */
-    constructor(color?: Color, intensity?: number, name?: string);
+    constructor(options?: LightOptions);
 }
 
 /**
@@ -263,19 +262,27 @@ export declare abstract class Application {
  * Area light that emits light from a rectangular plane.
  */
 export declare class AreaLight extends AbstractLight {
-    width: number;
-    height: number;
     /** @inheritdoc */
     readonly type: LightType;
+    /** The width of the light area. */
+    width: number;
+    /** The height/length of the light area. */
+    height: number;
     /**
      * Creates a new AreaLight.
-     * @param color The color of the light.
-     * @param intensity The intensity of the light.
-     * @param width The width of the light area.
-     * @param height The height/length of the light area.
-     * @param name The name of the light object.
+     * @param options The configuration options for the light.
      */
-    constructor(color?: Color, intensity?: number, width?: number, height?: number, name?: string);
+    constructor(options?: AreaLightOptions);
+}
+
+/**
+ * Configuration options for area light.
+ */
+export declare interface AreaLightOptions extends LightOptions {
+    /** The width of the light area. Defaults to 5.0. */
+    width?: number;
+    /** The height/length of the light area. Defaults to 5.0. */
+    height?: number;
 }
 
 export declare class AssetManager {
@@ -304,12 +311,31 @@ export declare class BoundingBox implements BoundingVolume {
     type: BoundingType;
     /** The broad radius for coarse intersection tests. */
     broadRadius: number;
+    private _center;
     /**
      * Creates a new BoundingBox.
      * @param min The minimum coordinates.
      * @param max The maximum coordinates.
      */
     constructor(min: Vector3D, max: Vector3D);
+    /**
+     * Checks if this bounding box contains a point.
+     * @param point The point to check.
+     * @returns True if the point is inside the bounding box.
+     */
+    containsPoint(point: Vector3D): boolean;
+    /**
+     * Checks if this bounding box contains another bounding box.
+     * @param other The other bounding box.
+     * @returns True if the other bounding box is completely inside this one.
+     */
+    containsBox(other: BoundingBox): boolean;
+    /**
+     * Checks if this bounding box intersects with another bounding box.
+     * @param other The other bounding box.
+     * @returns True if the bounding boxes intersect.
+     */
+    intersectsBox(other: BoundingBox): boolean;
     /** @inheritdoc */
     get center(): Vector3D;
     /** @inheritdoc */
@@ -585,6 +611,8 @@ export declare class Color {
      * @param a Alpha component (0-1).
      */
     constructor(r: number, g: number, b: number, a?: number);
+    private _cachedArray;
+    set(r: number, g: number, b: number, a?: number): this;
     static get WHITE(): Color;
     static get BLACK(): Color;
     static get RED(): Color;
@@ -603,6 +631,11 @@ export declare class Color {
      * @returns [r, g, b, a]
      */
     toArray(): number[];
+    /**
+     * Returns the color components as a Float32Array.
+     * @returns Float32Array(4)
+     */
+    toFloat32Array(): Float32Array;
 }
 
 /**
@@ -676,20 +709,31 @@ export declare class CubeTexture {
  * A cylinder geometry.
  */
 export declare class Cylinder extends AbstractGeometry {
+    /** The radius of the cylinder. */
     radius: number;
+    /** The height of the cylinder. */
     height: number;
+    /** The number of segments. */
     segments: number;
     /**
      * Creates a new Cylinder geometry.
-     * @param radius The radius of the cylinder.
-     * @param height The height of the cylinder.
-     * @param segments The number of segments.
+     * @param options The configuration options for the cylinder.
      */
-    constructor(radius?: number, height?: number, segments?: number);
-    /**
-     * @inheritdoc
-     */
+    constructor(options?: CylinderOptions);
+    /** @inheritdoc */
     protected generateGeometryData(): void;
+}
+
+/**
+ * Configuration options for cylinder geometry.
+ */
+export declare interface CylinderOptions {
+    /** The radius of the cylinder. Defaults to 1. */
+    radius?: number;
+    /** The height of the cylinder. Defaults to 2. */
+    height?: number;
+    /** The number of segments. Defaults to 16. */
+    segments?: number;
 }
 
 export declare const DEFAULT_RENDERER: "BEST";
@@ -704,14 +748,20 @@ export declare class DirectionalLight extends AbstractLight {
     direction: Vector3D;
     /**
      * Creates a new DirectionalLight.
-     * @param color The color of the light.
-     * @param intensity The intensity of the light.
-     * @param name The name of the light object.
+     * @param options The configuration options for the light.
      */
-    constructor(color?: Color, intensity?: number, name?: string);
+    constructor(options?: DirectionalLightOptions);
 }
 
-export declare const ENGINE_VERSION = "0.11.14";
+/**
+ * Configuration options for directional light.
+ */
+export declare interface DirectionalLightOptions extends LightOptions {
+    /** The direction of the light. Defaults to (0, -1, 0). */
+    direction?: Vector3D;
+}
+
+export declare const ENGINE_VERSION = "0.12.00";
 
 export declare interface EngineConfig {
     canvasId?: string;
@@ -851,6 +901,12 @@ export declare class Frustum {
      * @returns True if the volume intersects with the frustum.
      */
     intersectsVolume(volume: BoundingVolume): boolean;
+    /**
+     * Checks if a bounding box intersects with the frustum.
+     * @param box The bounding box to check.
+     * @returns True if the box intersects with the frustum.
+     */
+    intersectsBox(box: BoundingBox): boolean;
 }
 
 /**
@@ -865,16 +921,48 @@ export declare class FrustumCuller {
      * @returns The number of visible objects.
      */
     static cull(scene: Scene, vpMatrix: Matrix4): number;
+    /**
+     * Resets the visibility of an object and its children.
+     * @param obj The object to reset.
+     * @private
+     */
+    private static _resetVisibility;
+    /**
+     * Counts the visible objects in a hierarchy.
+     * @param obj The object to count.
+     * @private
+     */
+    private static _countVisible;
+    /**
+     * Recursively checks a node for visibility.
+     * @param obj The object to check.
+     * @private
+     */
+    private static _checkNode;
 }
 
+/**
+ * Interface for all geometry types.
+ */
 export declare interface Geometry {
-    getGeometryData(): GeometryData;
+    /**
+     * Returns the geometry data.
+     * @returns The geometry data.
+     */
+    getGeometryData(): GeometryDataInterface;
 }
 
-export declare interface GeometryData {
+/**
+ * Interface representing raw geometry data.
+ */
+export declare interface GeometryDataInterface {
+    /** Vertex position data. */
     vertices: Float32Array;
+    /** Index data. */
     indices: Uint16Array | Uint32Array;
+    /** Optional normal data. */
     normals: Float32Array;
+    /** Optional texture coordinate data. */
     uvs: Float32Array;
 }
 
@@ -1169,6 +1257,27 @@ export declare class LambertMaterial extends AbstractMaterial {
     readonly type: MaterialType;
 }
 
+export declare interface LightDataInterface {
+    aCol: Color;
+    dDir: Vector3D;
+    dCol: Color;
+    pLights: PointLight[];
+    sLights: SpotLight[];
+    aLights: AreaLight[];
+}
+
+/**
+ * Configuration options for lights.
+ */
+export declare interface LightOptions {
+    /** The color of the light. Defaults to white. */
+    color?: Color;
+    /** The intensity of the light. Defaults to 1.0. */
+    intensity?: number;
+    /** The name of the light object. Defaults to "Light". */
+    name?: string;
+}
+
 /**
  * Types of lights in the scene.
  */
@@ -1360,14 +1469,33 @@ export declare class Matrix4 {
     invert(out: Matrix4): boolean;
 }
 
+/**
+ * Wrapper for WebGL vertex and index buffers.
+ */
 export declare class Mesh {
+    /** The vertex buffer object. */
     vbo: WebGLBuffer | undefined;
+    /** The element buffer object (indices). */
     ebo: WebGLBuffer | undefined;
+    /** The normal buffer object. */
     nbo: WebGLBuffer | undefined;
+    /** The texture coordinate buffer object. */
     tbo: WebGLBuffer | undefined;
+    /** The number of elements to draw. */
     count: number;
     private _gl;
-    constructor(gl: WebGLRenderingContext | WebGL2RenderingContext, data: GeometryData);
+    /**
+     * Creates a new Mesh and uploads the geometry data to the GPU.
+     * @param gl The WebGL context.
+     * @param data The geometry data to upload.
+     */
+    constructor(gl: WebGLRenderingContext | WebGL2RenderingContext, data: GeometryDataInterface);
+    /**
+     * Binds the buffers and sets the vertex attributes.
+     * @param posLoc The location of the position attribute.
+     * @param normLoc The location of the normal attribute.
+     * @param uvLoc The location of the UV attribute.
+     */
     bind(posLoc: number, normLoc?: number, uvLoc?: number): void;
 }
 
@@ -1436,7 +1564,7 @@ export declare class Object3D {
     /** The name of the object. */
     name: string;
     /** The geometry data of the object. */
-    geometry: GeometryData | undefined;
+    geometry: GeometryDataInterface | undefined;
     /** The material of the object. */
     material: AbstractMaterial | undefined;
     /** The bounding volume for collision detection and frustum culling. */
@@ -1488,148 +1616,216 @@ export declare class ObjLoader extends AbstractLoader<Object3D> {
 }
 
 /**
+ * Configuration options for oblique projection.
+ */
+export declare interface ObliqueOptions {
+    /** Left plane distance. Defaults to -1. */
+    left?: number;
+    /** Right plane distance. Defaults to 1. */
+    right?: number;
+    /** Bottom plane distance. Defaults to -1. */
+    bottom?: number;
+    /** Top plane distance. Defaults to 1. */
+    top?: number;
+    /** Near plane distance. Defaults to 0.1. */
+    near?: number;
+    /** Far plane distance. Defaults to 1000. */
+    far?: number;
+}
+
+/**
  * Oblique camera projection.
  */
 export declare class ObliqueProjection extends AbstractProjection {
-    /**
-     * Left.
-     */
-    l: number;
-    /**
-     * Right.
-     */
-    r: number;
-    /**
-     * Bottom.
-     */
-    b: number;
-    /**
-     * Top.
-     */
-    t: number;
-    /**
-     * Near.
-     */
-    n: number;
-    /**
-     * Far.
-     */
-    f: number;
-    /**
-     * @inheritdoc
-     */
+    /** Left. */
+    left: number;
+    /** Right. */
+    right: number;
+    /** Bottom. */
+    bottom: number;
+    /** Top. */
+    top: number;
+    /** Near. */
+    near: number;
+    /** Far. */
+    far: number;
+    /** @inheritdoc */
     readonly type: ProjectionType;
     /**
      * Creates a new ObliqueProjection.
-     * @param l Left.
-     * @param r Right.
-     * @param b Bottom.
-     * @param t Top.
-     * @param n Near.
-     * @param f Far.
+     * @param options The configuration options for the projection.
      */
-    constructor(l: number, r: number, b: number, t: number, n: number, f: number);
-    /**
-     * @inheritdoc
-     */
+    constructor(options?: ObliqueOptions);
+    /** @inheritdoc */
     update(): void;
-    /**
-     * @inheritdoc
-     */
+    /** @inheritdoc */
     getMatrix(): Matrix4;
+}
+
+/**
+ * An octree for spatial partitioning.
+ */
+export declare class Octree {
+    /** The root node of the octree. */
+    root: OctreeNode;
+    /**
+     * Creates a new Octree.
+     * @param bounds The bounds of the octree.
+     * @param options The configuration options.
+     */
+    constructor(bounds: BoundingBox, options?: OctreeOptions);
+    /**
+     * Inserts an object into the octree.
+     * @param obj The object to insert.
+     */
+    insert(obj: Object3D): void;
+    /**
+     * Queries the octree for objects that intersect with the frustum.
+     * @param frustum The frustum to check.
+     * @returns The list of intersecting objects.
+     */
+    query(frustum: Frustum): Object3D[];
+    /**
+     * Clears the octree.
+     */
+    clear(): void;
+}
+
+/**
+ * A node in the octree.
+ */
+export declare class OctreeNode {
+    bounds: BoundingBox;
+    /** The children of this node. */
+    children: OctreeNode[];
+    /** The objects stored in this node. */
+    objects: Object3D[];
+    private readonly _depth;
+    private readonly _maxDepth;
+    private readonly _maxObjects;
+    /**
+     * Creates a new OctreeNode.
+     * @param bounds The bounds of this node.
+     * @param depth The current depth of this node.
+     * @param options The configuration options.
+     */
+    constructor(bounds: BoundingBox, depth?: number, options?: OctreeOptions);
+    /**
+     * Inserts an object into the octree.
+     * @param obj The object to insert.
+     * @returns True if the object was inserted.
+     */
+    insert(obj: Object3D): boolean;
+    /**
+     * Subdivides the node into 8 children.
+     * @private
+     */
+    private _subdivide;
+    /**
+     * Queries the octree for objects that intersect with the frustum.
+     * @param frustum The frustum to check.
+     * @param result The array to store the results.
+     */
+    query(frustum: Frustum, result: Object3D[]): void;
+    /**
+     * Clears the node and its children.
+     */
+    clear(): void;
+}
+
+/**
+ * Configuration options for an octree node.
+ */
+export declare interface OctreeOptions {
+    /** The maximum depth of the octree. Defaults to 8. */
+    maxDepth?: number;
+    /** The maximum number of objects in a node before it subdivides. Defaults to 10. */
+    maxObjects?: number;
+}
+
+/**
+ * Configuration options for orthographic projection.
+ */
+export declare interface OrthographicOptions {
+    /** Left plane distance. Defaults to -1. */
+    left?: number;
+    /** Right plane distance. Defaults to 1. */
+    right?: number;
+    /** Bottom plane distance. Defaults to -1. */
+    bottom?: number;
+    /** Top plane distance. Defaults to 1. */
+    top?: number;
+    /** Near plane distance. Defaults to 0.1. */
+    near?: number;
+    /** Far plane distance. Defaults to 1000. */
+    far?: number;
 }
 
 /**
  * Orthographic camera projection.
  */
 export declare class OrthographicProjection extends AbstractProjection {
-    /**
-     * Left.
-     */
-    l: number;
-    /**
-     * Right.
-     */
-    r: number;
-    /**
-     * Bottom.
-     */
-    b: number;
-    /**
-     * Top.
-     */
-    t: number;
-    /**
-     * Near.
-     */
-    n: number;
-    /**
-     * Far.
-     */
-    f: number;
-    /**
-     * @inheritdoc
-     */
+    /** Left. */
+    left: number;
+    /** Right. */
+    right: number;
+    /** Bottom. */
+    bottom: number;
+    /** Top. */
+    top: number;
+    /** Near. */
+    near: number;
+    /** Far. */
+    far: number;
+    /** @inheritdoc */
     readonly type: ProjectionType;
     /**
      * Creates a new OrthographicProjection.
-     * @param l Left.
-     * @param r Right.
-     * @param b Bottom.
-     * @param t Top.
-     * @param n Near.
-     * @param f Far.
+     * @param options The configuration options for the projection.
      */
-    constructor(l: number, r: number, b: number, t: number, n: number, f: number);
-    /**
-     * @inheritdoc
-     */
+    constructor(options?: OrthographicOptions);
+    /** @inheritdoc */
     update(): void;
-    /**
-     * @inheritdoc
-     */
+    /** @inheritdoc */
     getMatrix(): Matrix4;
+}
+
+/**
+ * Configuration options for perspective projection.
+ */
+export declare interface PerspectiveOptions {
+    /** Field of view in radians. Defaults to 75 degrees in radians. */
+    fov?: number;
+    /** Aspect ratio. Defaults to 1. */
+    aspect?: number;
+    /** Near plane distance. Defaults to 0.1. */
+    near?: number;
+    /** Far plane distance. Defaults to 1000. */
+    far?: number;
 }
 
 /**
  * Perspective camera projection.
  */
 export declare class PerspectiveProjection extends AbstractProjection {
-    /**
-     * Field of view in radians.
-     */
+    /** Field of view in radians. */
     fov: number;
-    /**
-     * Aspect ratio.
-     */
+    /** Aspect ratio. */
     aspect: number;
-    /**
-     * Near plane.
-     */
+    /** Near plane. */
     near: number;
-    /**
-     * Far plane.
-     */
+    /** Far plane. */
     far: number;
-    /**
-     * @inheritdoc
-     */
+    /** @inheritdoc */
     readonly type: ProjectionType;
     /**
      * Creates a new PerspectiveProjection.
-     * @param fov Field of view in radians.
-     * @param aspect Aspect ratio.
-     * @param near Near plane.
-     * @param far Far plane.
+     * @param options The configuration options for the projection.
      */
-    constructor(fov: number, aspect: number, near: number, far: number);
-    /**
-     * @inheritdoc
-     */
+    constructor(options?: PerspectiveOptions);
+    /** @inheritdoc */
     update(): void;
-    /**
-     * @inheritdoc
-     */
+    /** @inheritdoc */
     getMatrix(): Matrix4;
 }
 
@@ -1645,47 +1841,87 @@ export declare class PhongMaterial extends AbstractMaterial {
     shininess: number;
     /** The diffuse texture map. */
     diffuseMap: Texture | null;
+    /**
+     * Creates a new PhongMaterial.
+     * @param options The configuration options for the material.
+     */
+    constructor(options?: PhongMaterialOptions);
+}
+
+/**
+ * Configuration options for Phong material.
+ */
+export declare interface PhongMaterialOptions {
+    /** The base color of the material. Defaults to white. */
+    color?: Color;
+    /** The specular reflection color. Defaults to white. */
+    specularColor?: Color;
+    /** The shininess factor. Defaults to 32.0. */
+    shininess?: number;
+    /** The diffuse texture map. Defaults to null. */
+    diffuseMap?: Texture | null;
 }
 
 /**
  * A simple plane geometry.
  */
 export declare class Plane extends AbstractGeometry {
+    /** The width of the plane. */
     width: number;
+    /** The depth of the plane. */
     depth: number;
+    /** The number of segments along the width. */
     widthSegments: number;
+    /** The number of segments along the depth. */
     depthSegments: number;
     /**
      * Creates a new Plane geometry.
-     * @param width The width of the plane.
-     * @param depth The depth of the plane.
-     * @param widthSegments The number of segments along the width.
-     * @param depthSegments The number of segments along the depth.
+     * @param options The configuration options for the plane.
      */
-    constructor(width?: number, depth?: number, widthSegments?: number, depthSegments?: number);
-    /**
-     * @inheritdoc
-     */
+    constructor(options?: PlaneOptions);
+    /** @inheritdoc */
     protected generateGeometryData(): void;
+}
+
+/**
+ * Configuration options for plane geometry.
+ */
+export declare interface PlaneOptions {
+    /** The width of the plane. Defaults to 1. */
+    width?: number;
+    /** The depth of the plane. Defaults to 1. */
+    depth?: number;
+    /** The number of segments along the width. Defaults to 1. */
+    widthSegments?: number;
+    /** The number of segments along the depth. Defaults to 1. */
+    depthSegments?: number;
 }
 
 /**
  * Point light that emits light in all directions from a single point.
  */
 export declare class PointLight extends AbstractLight {
-    distance: number;
-    decay: number;
     /** @inheritdoc */
     readonly type: LightType;
+    /** The maximum distance of the light. */
+    distance: number;
+    /** The decay factor of the light. */
+    decay: number;
     /**
      * Creates a new PointLight.
-     * @param color The color of the light.
-     * @param intensity The intensity of the light.
-     * @param distance The maximum distance of the light.
-     * @param decay The decay factor of the light.
-     * @param name The name of the light object.
+     * @param options The configuration options for the light.
      */
-    constructor(color?: Color, intensity?: number, distance?: number, decay?: number, name?: string);
+    constructor(options?: PointLightOptions);
+}
+
+/**
+ * Configuration options for point light.
+ */
+export declare interface PointLightOptions extends LightOptions {
+    /** The maximum distance of the light. Defaults to 50.0. */
+    distance?: number;
+    /** The decay factor of the light. Defaults to 2.0. */
+    decay?: number;
 }
 
 export declare type ProgressCallback = (loaded: number, total: number) => void;
@@ -1771,6 +2007,8 @@ export declare class Scene {
      * The list of objects in the scene.
      */
     objects: Object3D[];
+    /** The octree for spatial partitioning. */
+    octree: Octree | undefined;
     /**
      * Adds an object to the scene.
      * @param obj The object to add.
@@ -1785,6 +2023,16 @@ export declare class Scene {
      * Updates all objects in the scene.
      */
     update(): void;
+    /**
+     * Rebuilds the octree from the current objects in the scene.
+     */
+    updateOctree(): void;
+    /**
+     * Adds an object and its children to the octree.
+     * @param obj The object to add.
+     * @private
+     */
+    private _addObjectToOctree;
 }
 
 /**
@@ -1840,6 +2088,21 @@ export declare class SkyboxMaterial extends AbstractMaterial {
     readonly type: MaterialType;
     /** The cube map texture. */
     cubeMap: CubeTexture | null;
+    /**
+     * Creates a new SkyboxMaterial.
+     * @param options The configuration options.
+     */
+    constructor(options?: SkyboxMaterialOptions);
+}
+
+/**
+ * Configuration options for skybox material.
+ */
+export declare interface SkyboxMaterialOptions {
+    /** The base color. Defaults to white. */
+    color?: Color;
+    /** The cube map texture. Defaults to null. */
+    cubeMap?: CubeTexture | null;
 }
 
 /**
@@ -1881,54 +2144,70 @@ export declare class SmoothStrategy implements CameraStrategy {
  * A sphere geometry.
  */
 export declare class Sphere extends AbstractGeometry {
-    /**
-     * The radius of the sphere.
-     */
+    /** The radius of the sphere. */
     radius: number;
-    /**
-     * The number of horizontal segments.
-     */
+    /** The number of horizontal segments. */
     widthSegments: number;
-    /**
-     * The number of vertical segments.
-     */
+    /** The number of vertical segments. */
     heightSegments: number;
     /**
      * Creates a new Sphere geometry.
-     * @param radius The radius of the sphere.
-     * @param widthSegments The number of horizontal segments.
-     * @param heightSegments The number of vertical segments.
+     * @param options The configuration options for the sphere.
      */
-    constructor(radius?: number, widthSegments?: number, heightSegments?: number);
-    /**
-     * @inheritdoc
-     */
+    constructor(options?: SphereOptions);
+    /** @inheritdoc */
     protected generateGeometryData(): void;
+}
+
+/**
+ * Configuration options for sphere geometry.
+ */
+export declare interface SphereOptions {
+    /** The radius of the sphere. Defaults to 1. */
+    radius?: number;
+    /** The number of horizontal segments. Defaults to 16. */
+    widthSegments?: number;
+    /** The number of vertical segments. Defaults to 12. */
+    heightSegments?: number;
 }
 
 /**
  * Spotlight that emits light in a cone shape.
  */
 export declare class SpotLight extends AbstractLight {
-    distance: number;
-    angle: number;
-    penumbra: number;
-    decay: number;
     /** @inheritdoc */
     readonly type: LightType;
     /** The direction of the light. */
     direction: Vector3D;
+    /** The maximum distance of the light. */
+    distance: number;
+    /** The angle of the light cone in radians. */
+    angle: number;
+    /** The penumbra factor (0-1). */
+    penumbra: number;
+    /** The decay factor of the light. */
+    decay: number;
     /**
      * Creates a new SpotLight.
-     * @param color The color of the light.
-     * @param intensity The intensity of the light.
-     * @param distance The maximum distance of the light.
-     * @param angle The angle of the light cone in radians.
-     * @param penumbra The penumbra factor (0-1).
-     * @param decay The decay factor of the light.
-     * @param name The name of the light object.
+     * @param options The configuration options for the light.
      */
-    constructor(color?: Color, intensity?: number, distance?: number, angle?: number, penumbra?: number, decay?: number, name?: string);
+    constructor(options?: SpotLightOptions);
+}
+
+/**
+ * Configuration options for spotlight.
+ */
+export declare interface SpotLightOptions extends LightOptions {
+    /** The direction of the light. Defaults to (0, -1, 0). */
+    direction?: Vector3D;
+    /** The maximum distance of the light. Defaults to 50.0. */
+    distance?: number;
+    /** The angle of the light cone in radians. Defaults to PI / 6. */
+    angle?: number;
+    /** The penumbra factor (0-1). Defaults to 0.5. */
+    penumbra?: number;
+    /** The decay factor of the light. Defaults to 2.0. */
+    decay?: number;
 }
 
 /**
@@ -1976,72 +2255,38 @@ export declare class StiffStrategy implements CameraStrategy {
  * A terrain geometry generated from height data.
  */
 export declare class Terrain extends AbstractGeometry {
-    /**
-     * The height data.
-     */
+    /** The height data. */
     heightData: Float32Array;
-    /**
-     * The resolution of the heightmap.
-     */
+    /** The resolution of the heightmap. */
     heightmapResolution: number;
-    /**
-     * The width of the terrain.
-     */
+    /** The width of the terrain. */
     width: number;
-    /**
-     * The depth of the terrain.
-     */
+    /** The depth of the terrain. */
     depth: number;
-    /**
-     * The maximum height of the terrain.
-     */
+    /** The maximum height of the terrain. */
     maxHeight: number;
-    /**
-     * The number of segments along the width.
-     */
+    /** The number of segments along the width. */
     meshWidthSegments: number;
-    /**
-     * The number of segments along the depth.
-     */
+    /** The number of segments along the depth. */
     meshDepthSegments: number;
     /**
      * Protected constructor. Use Terrain.fromHeightData() or Terrain.fromImage() instead.
-     * @param heightData The height data.
-     * @param heightmapResolution The resolution of the heightmap.
-     * @param width The width of the terrain.
-     * @param depth The depth of the terrain.
-     * @param maxHeight The maximum height of the terrain.
-     * @param meshWidthSegments The number of segments along the width.
-     * @param meshDepthSegments The number of segments along the depth.
+     * @param options The configuration options.
      */
-    protected constructor(heightData: Float32Array, heightmapResolution: number, width: number, depth: number, maxHeight: number, meshWidthSegments: number, meshDepthSegments: number);
+    protected constructor(options: TerrainDataOptions);
     /**
      * Creates a Terrain from raw height data.
-     * @param heightData The height data.
-     * @param heightmapResolution The resolution of the heightmap.
-     * @param width The width of the terrain.
-     * @param depth The depth of the terrain.
-     * @param maxHeight The maximum height of the terrain.
-     * @param meshWidthSegments The number of segments along the width.
-     * @param meshDepthSegments The number of segments along the depth.
+     * @param options The configuration options.
      * @returns A new Terrain instance.
      */
-    static fromHeightData(heightData: Float32Array, heightmapResolution: number, width?: number, depth?: number, maxHeight?: number, meshWidthSegments?: number, meshDepthSegments?: number): Terrain;
+    static fromHeightData(options: TerrainDataOptions): Terrain;
     /**
      * Creates a Terrain from an image.
-     * @param image The image to use as heightmap.
-     * @param width The width of the terrain.
-     * @param depth The depth of the terrain.
-     * @param maxHeight The maximum height of the terrain.
-     * @param meshWidthSegments The number of segments along the width.
-     * @param meshDepthSegments The number of segments along the depth.
-     * @param strategy The strategy to extract height from image data.
-     * @returns A new Terrain instance.
+     * @param options The configuration options.
+     * @returns A promise resolving to a new Terrain instance.
      */
-    static fromImage(image: HTMLImageElement | ImageBitmap, width?: number, depth?: number, maxHeight?: number, meshWidthSegments?: number, meshDepthSegments?: number, strategy?: TerrainHeightStrategy): Terrain;
-    /**
-     * @inheritdoc
-     */
+    static fromImage(options: TerrainImageOptions): Promise<Terrain>;
+    /** @inheritdoc */
     protected generateGeometryData(): void;
 }
 
@@ -2051,9 +2296,29 @@ export declare class Terrain extends AbstractGeometry {
 export declare type TerrainAlgorithm = "DiamondSquare" | "Perlin" | "Simplex";
 
 /**
+ * Configuration for terrain from raw data.
+ */
+export declare interface TerrainDataOptions extends TerrainOptions {
+    /** The height data (normalized 0-1). */
+    heightData: Float32Array;
+    /** The resolution of the heightmap. */
+    heightmapResolution: number;
+}
+
+/**
  * Strategy for extracting height from color data.
  */
 export declare type TerrainHeightStrategy = (r: number, g: number, b: number, a: number, maxHeight?: number) => number;
+
+/**
+ * Configuration for terrain from an image.
+ */
+export declare interface TerrainImageOptions extends TerrainOptions {
+    /** The image to use as heightmap. */
+    image: HTMLImageElement | ImageBitmap;
+    /** The strategy to extract height from image data. Defaults to CENTERED_AVERAGE. */
+    strategy?: TerrainHeightStrategy;
+}
 
 /**
  * Manages dynamic loading and unloading of terrain chunks (infinite terrain).
@@ -2135,6 +2400,49 @@ export declare class TerrainMaterial extends AbstractMaterial {
     texRepeat: [number, number];
     /** Thresholds for biome transitions: [SandToGrass, GrassToRock, RockToSnow, TransitionSoftness]. */
     thresholds: [number, number, number, number];
+    /**
+     * Creates a new TerrainMaterial.
+     * @param options The configuration options for the material.
+     */
+    constructor(options?: TerrainMaterialOptions);
+}
+
+/**
+ * Configuration options for terrain material.
+ */
+export declare interface TerrainMaterialOptions {
+    /** The base color. Defaults to white. */
+    color?: Color;
+    /** The shininess factor. Defaults to 10. */
+    shininess?: number;
+    /** Sand biome texture map. Defaults to null. */
+    sandMap?: Texture | null;
+    /** Grass biome texture map. Defaults to null. */
+    grassMap?: Texture | null;
+    /** Rock biome texture map. Defaults to null. */
+    rockMap?: Texture | null;
+    /** Snow biome texture map. Defaults to null. */
+    snowMap?: Texture | null;
+    /** Texture repetition factors. Defaults to [20.0, 20.0]. */
+    texRepeat?: [number, number];
+    /** Thresholds for biome transitions. Defaults to [2.0, 15.0, 25.0, 2.0]. */
+    thresholds?: [number, number, number, number];
+}
+
+/**
+ * Configuration options for terrain geometry.
+ */
+export declare interface TerrainOptions {
+    /** The width of the terrain. Defaults to 100. */
+    width?: number;
+    /** The depth of the terrain. Defaults to 100. */
+    depth?: number;
+    /** The maximum height of the terrain. Defaults to 20. */
+    maxHeight?: number;
+    /** The number of segments along the width for the mesh. Defaults to 64. */
+    meshWidthSegments?: number;
+    /** The number of segments along the depth for the mesh. Defaults to 64. */
+    meshDepthSegments?: number;
 }
 
 /**
@@ -2263,22 +2571,35 @@ export declare type TextureWrap = (typeof TextureWrap)[keyof typeof TextureWrap]
  * A torus geometry.
  */
 export declare class Torus extends AbstractGeometry {
+    /** The radius of the torus. */
     radius: number;
+    /** The radius of the tube. */
     tube: number;
+    /** The number of radial segments. */
     radialSegments: number;
+    /** The number of tubular segments. */
     tubularSegments: number;
     /**
      * Creates a new Torus geometry.
-     * @param radius The radius of the torus.
-     * @param tube The radius of the tube.
-     * @param radialSegments The number of radial segments.
-     * @param tubularSegments The number of tubular segments.
+     * @param options The configuration options for the torus.
      */
-    constructor(radius?: number, tube?: number, radialSegments?: number, tubularSegments?: number);
-    /**
-     * @inheritdoc
-     */
+    constructor(options?: TorusOptions);
+    /** @inheritdoc */
     protected generateGeometryData(): void;
+}
+
+/**
+ * Configuration options for torus geometry.
+ */
+export declare interface TorusOptions {
+    /** The radius of the torus. Defaults to 1. */
+    radius?: number;
+    /** The radius of the tube. Defaults to 0.4. */
+    tube?: number;
+    /** The number of radial segments. Defaults to 16. */
+    radialSegments?: number;
+    /** The number of tubular segments. Defaults to 32. */
+    tubularSegments?: number;
 }
 
 /**
@@ -2395,6 +2716,8 @@ export declare class Vector2D implements Vector {
  * A 3D vector class.
  */
 export declare class Vector3D implements Vector {
+    /** Static zero vector to avoid unnecessary allocations. */
+    static readonly ZERO: Vector3D;
     /**
      * The x component.
      */
@@ -2500,8 +2823,12 @@ export declare class Vector3D implements Vector {
     transformDirection(m: Matrix4): this;
 }
 
+/**
+ * WebGL 1.0 implementation of the renderer.
+ */
 export declare class WebGL1Renderer extends AbstractWebGLRenderer {
-    readonly type: "WEB_GL1";
+    /** @inheritdoc */
+    readonly type: RendererType;
     protected gl: WebGLRenderingContext;
     private _prog;
     private _locs;
@@ -2513,14 +2840,20 @@ export declare class WebGL1Renderer extends AbstractWebGLRenderer {
     private _pointLightLocs;
     private _spotLightLocs;
     private _areaLightLocs;
+    /** @inheritdoc */
     initialize(canvas: HTMLCanvasElement): Promise<void>;
     private _getWebGLTexture;
     private _getWebGLCubeTexture;
+    /** @inheritdoc */
     render(scene: Scene, vp: Float32Array, camPos?: Vector3D): void;
 }
 
+/**
+ * WebGL 2.0 implementation of the renderer.
+ */
 export declare class WebGL2Renderer extends AbstractWebGLRenderer {
-    readonly type: "WEB_GL2";
+    /** @inheritdoc */
+    readonly type: RendererType;
     protected gl: WebGL2RenderingContext;
     private _prog;
     private _locs;
@@ -2532,14 +2865,32 @@ export declare class WebGL2Renderer extends AbstractWebGLRenderer {
     private _pointLightLocs;
     private _spotLightLocs;
     private _areaLightLocs;
+    private _scratchModelMatrix;
+    private _scratchVec3;
+    /** @inheritdoc */
     initialize(canvas: HTMLCanvasElement): Promise<void>;
     private _getWebGLTexture;
     private _getWebGLCubeTexture;
+    /** @inheritdoc */
     render(scene: Scene, vp: Float32Array, camPos?: Vector3D): void;
+    /**
+     * Internal skybox draw function.
+     * @private
+     */
+    private _drawSkybox;
+    /**
+     * Internal normal object draw function.
+     * @private
+     */
+    private _drawNormal;
 }
 
+/**
+ * WebGPU implementation of the renderer.
+ */
 export declare class WebGPURenderer extends AbstractRenderer {
-    readonly type: "WEB_GPU";
+    /** @inheritdoc */
+    readonly type: RendererType;
     private _adapter;
     private _device;
     private _context;
@@ -2561,6 +2912,7 @@ export declare class WebGPURenderer extends AbstractRenderer {
     private _terrainTexCache;
     private _samplerCache;
     private _depthTexture;
+    /** @inheritdoc */
     initialize(canvas: HTMLCanvasElement): Promise<void>;
     private _getTextureView;
     private _getSampler;
@@ -2568,7 +2920,9 @@ export declare class WebGPURenderer extends AbstractRenderer {
     private _getObjCache;
     private _getGPUTextureBindGroup;
     private _getGPUTerrainBindGroup;
+    /** @inheritdoc */
     render(scene: Scene, vpMatrix: Float32Array, camPos?: Vector3D): void;
+    /** @inheritdoc */
     setSize(width: number, height: number): void;
 }
 

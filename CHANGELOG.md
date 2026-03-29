@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.12.00] - 2026-03-28
+
+- Optimize it: Positional parameters vs config options
+- Update README
+
 ## [0.11.14] - 2026-03-26
 
 - Implement Camera Effects (Shake, Flash) with Factory and Enums

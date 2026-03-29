@@ -195,7 +195,7 @@ export class TerrainManager {
     }
 
     const terrainGeo: Terrain = Terrain.fromHeightData({
-      heightData,
+      heightData: heightmapData, // Explizite Zuweisung
       heightmapResolution,
       width: this._chunkSize,
       depth: this._chunkSize,
