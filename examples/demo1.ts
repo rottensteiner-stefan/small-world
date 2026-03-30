@@ -44,7 +44,7 @@ class Demo1 extends AbstractDemo {
 
     // 2. Objekt: Ein einzelner Würfel
     this._myCube = new Object3D("RotatingCube");
-    this._myCube.geometry = new Cube(2).getGeometryData();
+    this._myCube.geometry = new Cube({ size: 2 }).getGeometryData();
 
     // 3. Material: Leuchtendes Blau
     this._myCube.material = new PhongMaterial({

@@ -47,7 +47,7 @@ class Demo2 extends AbstractDemo {
     this.scene.add(sun);
 
     const gridObj = new Object3D("Boden");
-    gridObj.geometry = new Grid(100, 100).getGeometryData();
+    gridObj.geometry = new Grid({ size: 100, divisions: 100 }).getGeometryData();
     const gridMat = new PhongMaterial();
     gridMat.color = Color.DARKSLATEGRAY;
     gridObj.material = gridMat;
@@ -56,7 +56,7 @@ class Demo2 extends AbstractDemo {
     // Ein paar zufällige Würfel als Hindernisse zur Orientierung
     for (let i = 0; i < 20; i++) {
       const cube = new Object3D(`Cube_${i}`);
-      cube.geometry = new Cube(2).getGeometryData();
+      cube.geometry = new Cube({ size: 2 }).getGeometryData();
 
       const mat = new PhongMaterial();
       mat.color = new Color(Math.random(), Math.random(), Math.random());

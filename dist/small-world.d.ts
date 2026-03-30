@@ -19,39 +19,36 @@ export declare abstract class AbstractCameraEffect implements CameraEffect {
 
 /**
  * Base class for all geometry types.
+ * Manages vertex, index, normal, and UV data.
  */
 export declare abstract class AbstractGeometry implements Geometry {
-    /**
-     * The vertices of the geometry.
-     */
+    /** The vertices of the geometry. */
     protected _vertices: Float32Array;
-    /**
-     * The indices of the geometry.
-     */
-    protected _indices: Uint16Array | Uint32Array;
-    /**
-     * The normals of the geometry.
-     */
+    /** The indices of the geometry. */
+    protected _indices: Uint16Array | Uint32Array | undefined;
+    /** The normals of the geometry. */
     protected _normals: Float32Array;
-    /**
-     * The UV coordinates of the geometry.
-     */
+    /** The UV coordinates of the geometry. */
     protected _uvs: Float32Array;
     /**
-     * Generates the geometry data.
+     * Generates the geometry data. Must be implemented by subclasses.
      */
     protected abstract generateGeometryData(): void;
-    /**
-     * Returns the geometry data.
-     * @returns The geometry data.
-     */
+    /** @inheritdoc */
     getGeometryData(): GeometryDataInterface;
     /**
-     * Computes the normals of the geometry.
+     * Helper method to create an appropriately sized index array.
+     * Automatically chooses between 16-bit and 32-bit indices based on vertex count.
+     * @param indexCount The number of indices needed.
+     * @returns A Uint16Array or Uint32Array.
+     */
+    protected _createIndexArray(indexCount: number): Uint16Array | Uint32Array;
+    /**
+     * Computes the normals of the geometry using the current vertices and indices.
      */
     computeNormals(): void;
     /**
-     * Applies a Matrix4 transformation to the geometry.
+     * Applies a Matrix4 transformation to the geometry vertices.
      * @param matrix The transformation matrix.
      * @returns this
      */
@@ -562,21 +559,73 @@ export declare const CameraStrategyType: {
 export declare type CameraStrategyType = (typeof CameraStrategyType)[keyof typeof CameraStrategyType];
 
 /**
- * A simple circle geometry.
+ * A capsule geometry consisting of a cylinder with hemispherical caps.
+ */
+export declare class Capsule extends AbstractGeometry {
+    /** The radius of the capsule. */
+    radius: number;
+    /** The length of the cylinder part. */
+    length: number;
+    /** The number of radial segments. */
+    radialSegments: number;
+    /** The number of segments for the caps. */
+    capSegments: number;
+    /**
+     * Creates a new Capsule geometry.
+     * @param options The configuration options.
+     */
+    constructor(options?: CapsuleOptions);
+    /** @inheritdoc */
+    protected generateGeometryData(): void;
+}
+
+/**
+ * Configuration options for capsule geometry.
+ */
+export declare interface CapsuleOptions {
+    /** The radius of the capsule. Defaults to 0.5. */
+    radius?: number;
+    /** The length of the cylinder part. Defaults to 1. */
+    length?: number;
+    /** The number of radial segments. Defaults to 16. */
+    radialSegments?: number;
+    /** The number of height segments for the caps. Defaults to 8. */
+    capSegments?: number;
+}
+
+/**
+ * A simple circle geometry, optionally as a segment or sector.
  */
 export declare class Circle extends AbstractGeometry {
+    /** The radius of the circle. */
     radius: number;
+    /** The number of segments. */
     segments: number;
+    /** The start angle of the circle segment in radians. */
+    thetaStart: number;
+    /** The central angle of the circle segment in radians. */
+    thetaLength: number;
     /**
      * Creates a new Circle geometry.
-     * @param radius The radius of the circle.
-     * @param segments The number of segments.
+     * @param options The configuration options for the circle.
      */
-    constructor(radius?: number, segments?: number);
-    /**
-     * @inheritdoc
-     */
+    constructor(options?: CircleOptions);
+    /** @inheritdoc */
     protected generateGeometryData(): void;
+}
+
+/**
+ * Configuration options for circle geometry.
+ */
+export declare interface CircleOptions {
+    /** The radius of the circle. Defaults to 1. */
+    radius?: number;
+    /** The number of segments. Defaults to 32. */
+    segments?: number;
+    /** The start angle of the circle segment in radians. Defaults to 0. */
+    thetaStart?: number;
+    /** The central angle of the circle segment in radians. Defaults to 2 * Math.PI (full circle). */
+    thetaLength?: number;
 }
 
 /**
@@ -653,6 +702,25 @@ export declare class ColorUtils {
 }
 
 /**
+ * A cone geometry. A specialized case of a cylinder with radiusTop set to 0.
+ */
+export declare class Cone extends Cylinder {
+    /**
+     * Creates a new Cone geometry.
+     * @param options The configuration options.
+     */
+    constructor(options?: ConeOptions);
+}
+
+/**
+ * Configuration options for cone geometry.
+ */
+export declare interface ConeOptions extends Omit<CylinderOptions, "radiusTop" | "radiusBottom"> {
+    /** The radius of the base of the cone. Defaults to 1. */
+    radius?: number;
+}
+
+/**
  * Utility class for loading configuration files.
  */
 export declare class ConfigLoader {
@@ -665,22 +733,38 @@ export declare class ConfigLoader {
 }
 
 /**
- * A cube geometry.
+ * A cube geometry with support for subdivisions.
  */
 export declare class Cube extends AbstractGeometry {
-    /**
-     * The size of the cube.
-     */
+    /** The size of the cube. */
     size: number;
+    /** Number of segments along the width. */
+    widthSegments: number;
+    /** Number of segments along the height. */
+    heightSegments: number;
+    /** Number of segments along the depth. */
+    depthSegments: number;
     /**
      * Creates a new Cube geometry.
-     * @param size The size of the cube.
+     * @param options The configuration options for the cube.
      */
-    constructor(size?: number);
-    /**
-     * @inheritdoc
-     */
+    constructor(options?: CubeOptions);
+    /** @inheritdoc */
     protected generateGeometryData(): void;
+}
+
+/**
+ * Configuration options for cube geometry.
+ */
+export declare interface CubeOptions {
+    /** The size of the cube. Defaults to 1. */
+    size?: number;
+    /** Number of segments along the width. Defaults to 1. */
+    widthSegments?: number;
+    /** Number of segments along the height. Defaults to 1. */
+    heightSegments?: number;
+    /** Number of segments along the depth. Defaults to 1. */
+    depthSegments?: number;
 }
 
 /**
@@ -706,18 +790,26 @@ export declare class CubeTexture {
 }
 
 /**
- * A cylinder geometry.
+ * A generalized cylinder geometry that can represent cylinders, cones, and conical frustums.
  */
 export declare class Cylinder extends AbstractGeometry {
-    /** The radius of the cylinder. */
-    radius: number;
-    /** The height of the cylinder. */
+    /** The radius at the top. */
+    radiusTop: number;
+    /** The radius at the bottom. */
+    radiusBottom: number;
+    /** The height. */
     height: number;
-    /** The number of segments. */
-    segments: number;
+    /** The number of radial segments. */
+    radialSegments: number;
+    /** The number of height segments. */
+    heightSegments: number;
+    /** The start angle. */
+    thetaStart: number;
+    /** The central angle. */
+    thetaLength: number;
     /**
      * Creates a new Cylinder geometry.
-     * @param options The configuration options for the cylinder.
+     * @param options The configuration options.
      */
     constructor(options?: CylinderOptions);
     /** @inheritdoc */
@@ -728,12 +820,20 @@ export declare class Cylinder extends AbstractGeometry {
  * Configuration options for cylinder geometry.
  */
 export declare interface CylinderOptions {
-    /** The radius of the cylinder. Defaults to 1. */
-    radius?: number;
+    /** The radius at the top. Defaults to 1. Set to 0 for a cone. */
+    radiusTop?: number;
+    /** The radius at the bottom. Defaults to 1. */
+    radiusBottom?: number;
     /** The height of the cylinder. Defaults to 2. */
     height?: number;
-    /** The number of segments. Defaults to 16. */
-    segments?: number;
+    /** The number of radial segments around the circumference. Defaults to 16. */
+    radialSegments?: number;
+    /** The number of height segments along the height. Defaults to 1. */
+    heightSegments?: number;
+    /** The start angle of the sector in radians. Defaults to 0. */
+    thetaStart?: number;
+    /** The central angle of the sector in radians. Defaults to 2 * Math.PI (full cylinder). */
+    thetaLength?: number;
 }
 
 export declare const DEFAULT_RENDERER: "BEST";
@@ -761,7 +861,7 @@ export declare interface DirectionalLightOptions extends LightOptions {
     direction?: Vector3D;
 }
 
-export declare const ENGINE_VERSION = "0.12.00";
+export declare const ENGINE_VERSION = "0.12.01";
 
 export declare interface EngineConfig {
     canvasId?: string;
@@ -953,35 +1053,44 @@ export declare interface Geometry {
 }
 
 /**
- * Interface representing raw geometry data.
+ * Interface representing raw geometry data for rendering.
  */
 export declare interface GeometryDataInterface {
-    /** Vertex position data. */
+    /** Vertex position data (x, y, z). */
     vertices: Float32Array;
-    /** Index data. */
-    indices: Uint16Array | Uint32Array;
-    /** Optional normal data. */
-    normals: Float32Array;
-    /** Optional texture coordinate data. */
-    uvs: Float32Array;
+    /** Optional index data. If provided, indexed rendering is used. */
+    indices?: Uint16Array | Uint32Array | undefined;
+    /** Optional normal data (nx, ny, nz). */
+    normals?: Float32Array | undefined;
+    /** Optional texture coordinate data (u, v). */
+    uvs?: Float32Array | undefined;
 }
 
 /**
  * A grid geometry.
  */
 export declare class Grid extends AbstractGeometry {
+    /** The total size of the grid. */
     size: number;
+    /** The number of divisions. */
     divisions: number;
     /**
      * Creates a new Grid geometry.
-     * @param size The total size of the grid.
-     * @param divisions The number of divisions.
+     * @param options The configuration options for the grid.
      */
-    constructor(size?: number, divisions?: number);
-    /**
-     * @inheritdoc
-     */
+    constructor(options?: GridOptions);
+    /** @inheritdoc */
     protected generateGeometryData(): void;
+}
+
+/**
+ * Configuration options for grid geometry.
+ */
+export declare interface GridOptions {
+    /** The total size of the grid. Defaults to 20. */
+    size?: number;
+    /** The number of divisions. Defaults to 20. */
+    divisions?: number;
 }
 
 /**
@@ -1471,6 +1580,7 @@ export declare class Matrix4 {
 
 /**
  * Wrapper for WebGL vertex and index buffers.
+ * Handles both indexed and non-indexed geometry.
  */
 export declare class Mesh {
     /** The vertex buffer object. */
@@ -1481,8 +1591,12 @@ export declare class Mesh {
     nbo: WebGLBuffer | undefined;
     /** The texture coordinate buffer object. */
     tbo: WebGLBuffer | undefined;
-    /** The number of elements to draw. */
+    /** The number of elements (indices or vertices) to draw. */
     count: number;
+    /** Whether this mesh uses indices for drawing. */
+    isIndexed: boolean;
+    /** The GL data type of the indices (e.g., UNSIGNED_SHORT or UNSIGNED_INT). */
+    indexType: number;
     private _gl;
     /**
      * Creates a new Mesh and uploads the geometry data to the GPU.
@@ -1497,6 +1611,11 @@ export declare class Mesh {
      * @param uvLoc The location of the UV attribute.
      */
     bind(posLoc: number, normLoc?: number, uvLoc?: number): void;
+    /**
+     * Draws the mesh using the appropriate GL call.
+     * @param mode The draw mode (e.g. TRIANGLES, LINES).
+     */
+    draw(mode: number): void;
 }
 
 /**
@@ -1942,21 +2061,34 @@ export declare const ProjectionType: {
 export declare type ProjectionType = (typeof ProjectionType)[keyof typeof ProjectionType];
 
 /**
- * A pyramid geometry.
+ * A pyramid geometry with support for subdivisions.
  */
 export declare class Pyramid extends AbstractGeometry {
+    /** The size of the base. */
     base: number;
+    /** The height of the pyramid. */
     height: number;
+    /** The number of radial segments. */
+    radialSegments: number;
     /**
      * Creates a new Pyramid geometry.
-     * @param base The base size.
-     * @param height The height.
+     * @param options The configuration options for the pyramid.
      */
-    constructor(base?: number, height?: number);
-    /**
-     * @inheritdoc
-     */
+    constructor(options?: PyramidOptions);
+    /** @inheritdoc */
     protected generateGeometryData(): void;
+}
+
+/**
+ * Configuration options for pyramid geometry.
+ */
+export declare interface PyramidOptions {
+    /** The size of the base. Defaults to 1. */
+    base?: number;
+    /** The height of the pyramid. Defaults to 1. */
+    height?: number;
+    /** The number of radial segments (sides). Defaults to 4. */
+    radialSegments?: number;
 }
 
 export declare interface Renderer {
@@ -2620,6 +2752,45 @@ export declare class Triangle extends AbstractGeometry {
      * @inheritdoc
      */
     protected generateGeometryData(): void;
+}
+
+/**
+ * A hollow cylinder geometry (Tube).
+ */
+export declare class Tube extends AbstractGeometry {
+    /** The outer radius. */
+    radius: number;
+    /** The inner radius. */
+    innerRadius: number;
+    /** The height. */
+    height: number;
+    /** The number of radial segments. */
+    radialSegments: number;
+    /** The number of height segments. */
+    heightSegments: number;
+    /**
+     * Creates a new Tube geometry.
+     * @param options The configuration options.
+     */
+    constructor(options?: TubeOptions);
+    /** @inheritdoc */
+    protected generateGeometryData(): void;
+}
+
+/**
+ * Configuration options for tube geometry.
+ */
+export declare interface TubeOptions {
+    /** The outer radius of the tube. Defaults to 1. */
+    radius?: number;
+    /** The inner radius of the tube. Defaults to 0.5. */
+    innerRadius?: number;
+    /** The height of the tube. Defaults to 2. */
+    height?: number;
+    /** The number of radial segments. Defaults to 16. */
+    radialSegments?: number;
+    /** The number of height segments. Defaults to 1. */
+    heightSegments?: number;
 }
 
 export declare interface Vector {

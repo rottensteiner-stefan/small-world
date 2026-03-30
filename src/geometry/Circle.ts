@@ -3,37 +3,71 @@
 import { AbstractGeometry } from "./AbstractGeometry.js";
 
 /**
- * A simple circle geometry.
+ * Configuration options for circle geometry.
+ */
+export interface CircleOptions {
+  /** The radius of the circle. Defaults to 1. */
+  radius?: number;
+  /** The number of segments. Defaults to 32. */
+  segments?: number;
+  /** The start angle of the circle segment in radians. Defaults to 0. */
+  thetaStart?: number;
+  /** The central angle of the circle segment in radians. Defaults to 2 * Math.PI (full circle). */
+  thetaLength?: number;
+}
+
+/**
+ * A simple circle geometry, optionally as a segment or sector.
  */
 export class Circle extends AbstractGeometry {
+  /** The radius of the circle. */
+  public radius: number;
+  /** The number of segments. */
+  public segments: number;
+  /** The start angle of the circle segment in radians. */
+  public thetaStart: number;
+  /** The central angle of the circle segment in radians. */
+  public thetaLength: number;
+
   /**
    * Creates a new Circle geometry.
-   * @param radius The radius of the circle.
-   * @param segments The number of segments.
+   * @param options The configuration options for the circle.
    */
-  constructor(
-    public radius: number = 1,
-    public segments: number = 32,
-  ) {
+  constructor(options: CircleOptions = {}) {
     super();
+    const { radius = 1, segments = 32, thetaStart = 0, thetaLength = Math.PI * 2 } = options;
+    this.radius = radius;
+    this.segments = segments;
+    this.thetaStart = thetaStart;
+    this.thetaLength = thetaLength;
     this.generateGeometryData();
   }
 
-  /**
-   * @inheritdoc
-   */
+  /** @inheritdoc */
   protected override generateGeometryData(): void {
     const v: number[] = [];
     const uv: number[] = [];
     const i: number[] = [];
-    for (let n = 0; n < this.segments; n++) {
-      const theta: number = (n / this.segments) * Math.PI * 2;
-      const cos: number = Math.cos(theta);
-      const sin: number = Math.sin(theta);
+
+    // Center vertex
+    v.push(0, 0, 0);
+    uv.push(0.5, 0.5);
+    const centerIndex: number = 0;
+
+    // Vertices on the circumference
+    for (let n: number = 0; n <= this.segments; n++) {
+      const segmentAngle: number = this.thetaStart + (n / this.segments) * this.thetaLength;
+      const cos: number = Math.cos(segmentAngle);
+      const sin: number = Math.sin(segmentAngle);
       v.push(cos * this.radius, 0, sin * this.radius);
       uv.push(0.5 + cos * 0.5, 0.5 + sin * 0.5);
-      i.push(n, (n + 1) % this.segments);
     }
+
+    // Indices for triangles (fan from center)
+    for (let n: number = 0; n < this.segments; n++) {
+      i.push(centerIndex, n + 1, n + 2);
+    }
+
     this._vertices = new Float32Array(v);
     this._uvs = new Float32Array(uv);
     this._indices = new Uint16Array(i);

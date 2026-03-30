@@ -17,7 +17,7 @@ export class Skybox extends Object3D {
   constructor(source: string[] | CubeTexture, size: number = 100) {
     super("Skybox");
 
-    this.geometry = new Cube(size).getGeometryData();
+    this.geometry = new Cube({ size }).getGeometryData();
 
     let cubeMap: CubeTexture;
     if (Array.isArray(source)) {

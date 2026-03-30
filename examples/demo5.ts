@@ -51,7 +51,7 @@ export class Demo5 extends AbstractDemo {
 
     // 3. Grid for orientation
     const gridObj = new Object3D("IsometricGrid");
-    gridObj.geometry = new Grid(100, 100).getGeometryData();
+    gridObj.geometry = new Grid({ size: 100, divisions: 100 }).getGeometryData();
     const gridMat = new WireframeMaterial();
     gridMat.color = Color.DARKSLATEGRAY;
     gridObj.material = gridMat;
@@ -59,7 +59,7 @@ export class Demo5 extends AbstractDemo {
 
     // 4. "Player" Cube
     this._player = new Object3D("PlayerCube");
-    this._player.geometry = new Cube(1).getGeometryData();
+    this._player.geometry = new Cube({ size: 1 }).getGeometryData();
     const playerMat = new PhongMaterial();
     playerMat.color = Color.DODGERBLUE;
     this._player.material = playerMat;
@@ -69,7 +69,7 @@ export class Demo5 extends AbstractDemo {
     // 5. Some static "World" objects
     for (let i = 0; i < 5; i++) {
       const tree = new Object3D(`Tree_${i}`);
-      tree.geometry = new Cube(0.8).getGeometryData();
+      tree.geometry = new Cube({ size: 0.8 }).getGeometryData();
       const treeMat = new PhongMaterial();
       treeMat.color = Color.GREEN;
       tree.material = treeMat;

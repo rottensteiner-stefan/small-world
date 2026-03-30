@@ -2,6 +2,7 @@
 
 import { AbstractWebGLRenderer } from "./AbstractWebGLRenderer.js";
 import {
+  AbstractMaterial,
   AreaLight,
   CubeTexture,
   PhongMaterial,
@@ -503,4 +504,3 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
     }
   }
 }
-import { AbstractMaterial } from "../core/materials/AbstractMaterial.js";
