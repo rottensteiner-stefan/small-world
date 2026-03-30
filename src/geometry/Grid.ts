@@ -3,25 +3,37 @@
 import { AbstractGeometry } from "./AbstractGeometry.js";
 
 /**
+ * Configuration options for grid geometry.
+ */
+export interface GridOptions {
+  /** The total size of the grid. Defaults to 20. */
+  size?: number;
+  /** The number of divisions. Defaults to 20. */
+  divisions?: number;
+}
+
+/**
  * A grid geometry.
  */
 export class Grid extends AbstractGeometry {
+  /** The total size of the grid. */
+  public size: number;
+  /** The number of divisions. */
+  public divisions: number;
+
   /**
    * Creates a new Grid geometry.
-   * @param size The total size of the grid.
-   * @param divisions The number of divisions.
+   * @param options The configuration options for the grid.
    */
-  constructor(
-    public size: number = 20,
-    public divisions: number = 20,
-  ) {
+  constructor(options: GridOptions = {}) {
     super();
+    const { size = 20, divisions = 20 } = options;
+    this.size = size;
+    this.divisions = divisions;
     this.generateGeometryData();
   }
 
-  /**
-   * @inheritdoc
-   */
+  /** @inheritdoc */
   protected override generateGeometryData(): void {
     const v: number[] = [];
     const uv: number[] = [];
@@ -30,7 +42,7 @@ export class Grid extends AbstractGeometry {
     const half: number = this.size / 2;
     let index: number = 0;
 
-    for (let j = 0; j <= this.divisions; j++) {
+    for (let j: number = 0; j <= this.divisions; j++) {
       const pos: number = j * step - half;
       const ratio: number = j / this.divisions;
 

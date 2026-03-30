@@ -5,42 +5,29 @@ import { GeometryDataInterface, Geometry } from "../interfaces/index.js";
 
 /**
  * Base class for all geometry types.
+ * Manages vertex, index, normal, and UV data.
  */
 export abstract class AbstractGeometry implements Geometry {
-  /**
-   * The vertices of the geometry.
-   */
+  /** The vertices of the geometry. */
   protected _vertices: Float32Array = new Float32Array();
-
-  /**
-   * The indices of the geometry.
-   */
-  protected _indices: Uint16Array | Uint32Array = new Uint16Array();
-
-  /**
-   * The normals of the geometry.
-   */
+  /** The indices of the geometry. */
+  protected _indices: Uint16Array | Uint32Array | undefined = undefined;
+  /** The normals of the geometry. */
   protected _normals: Float32Array = new Float32Array();
-
-  /**
-   * The UV coordinates of the geometry.
-   */
+  /** The UV coordinates of the geometry. */
   protected _uvs: Float32Array = new Float32Array();
 
   /**
-   * Generates the geometry data.
+   * Generates the geometry data. Must be implemented by subclasses.
    */
   protected abstract generateGeometryData(): void;
 
-  /**
-   * Returns the geometry data.
-   * @returns The geometry data.
-   */
+  /** @inheritdoc */
   public getGeometryData(): GeometryDataInterface {
     if (0 === this._normals.length && 0 < this._vertices.length) {
       this.computeNormals();
     }
-    // Falls keine UVs generiert wurden, füllen wir sie mit Nullen (Fallback)
+    // Fallback for UVs if they are missing
     if (0 === this._uvs.length && 0 < this._vertices.length) {
       this._uvs = new Float32Array((this._vertices.length / 3) * 2);
     }
@@ -54,12 +41,30 @@ export abstract class AbstractGeometry implements Geometry {
   }
 
   /**
-   * Computes the normals of the geometry.
+   * Helper method to create an appropriately sized index array.
+   * Automatically chooses between 16-bit and 32-bit indices based on vertex count.
+   * @param indexCount The number of indices needed.
+   * @returns A Uint16Array or Uint32Array.
+   */
+  protected _createIndexArray(indexCount: number): Uint16Array | Uint32Array {
+    const vertexCount: number = this._vertices.length / 3;
+    if (vertexCount > 65535) {
+      return new Uint32Array(indexCount);
+    }
+    return new Uint16Array(indexCount);
+  }
+
+  /**
+   * Computes the normals of the geometry using the current vertices and indices.
    */
   public computeNormals(): void {
+    if (!this._vertices.length) return;
+    
     this._normals = new Float32Array(this._vertices.length);
 
-    if (0 !== this._indices.length % 3) {
+    // If no indices, we can't easily compute averaged normals for shared vertices
+    if (!this._indices || 0 !== this._indices.length % 3) {
+      // Default to up-normals if calculation is impossible
       for (let i: number = 0; i < this._normals.length; i += 3) {
         this._normals[i] = 0;
         this._normals[i + 1] = 1;
@@ -124,7 +129,7 @@ export abstract class AbstractGeometry implements Geometry {
   }
 
   /**
-   * Applies a Matrix4 transformation to the geometry.
+   * Applies a Matrix4 transformation to the geometry vertices.
    * @param matrix The transformation matrix.
    * @returns this
    */

@@ -1,7 +1,9 @@
 /// src/geometry/index.ts
 
 export * from "./AbstractGeometry.js";
+export * from "./Capsule.js";
 export * from "./Circle.js";
+export * from "./Cone.js";
 export * from "./Cube.js";
 export * from "./Cylinder.js";
 export * from "./Grid.js";
@@ -14,3 +16,4 @@ export * from "./Terrain.js";
 export * from "./TerrainManager.js";
 export * from "./Torus.js";
 export * from "./Triangle.js";
+export * from "./Tube.js";

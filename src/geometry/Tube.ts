@@ -1,0 +1,129 @@
+/// src/geometry/Tube.ts
+
+import { AbstractGeometry } from "./AbstractGeometry.js";
+
+/**
+ * Configuration options for tube geometry.
+ */
+export interface TubeOptions {
+  /** The outer radius of the tube. Defaults to 1. */
+  radius?: number;
+  /** The inner radius of the tube. Defaults to 0.5. */
+  innerRadius?: number;
+  /** The height of the tube. Defaults to 2. */
+  height?: number;
+  /** The number of radial segments. Defaults to 16. */
+  radialSegments?: number;
+  /** The number of height segments. Defaults to 1. */
+  heightSegments?: number;
+}
+
+/**
+ * A hollow cylinder geometry (Tube).
+ */
+export class Tube extends AbstractGeometry {
+  /** The outer radius. */
+  public radius: number;
+  /** The inner radius. */
+  public innerRadius: number;
+  /** The height. */
+  public height: number;
+  /** The number of radial segments. */
+  public radialSegments: number;
+  /** The number of height segments. */
+  public heightSegments: number;
+
+  /**
+   * Creates a new Tube geometry.
+   * @param options The configuration options.
+   */
+  constructor(options: TubeOptions = {}) {
+    super();
+    const {
+      radius = 1,
+      innerRadius = 0.5,
+      height = 2,
+      radialSegments = 16,
+      heightSegments = 1,
+    } = options;
+    this.radius = radius;
+    this.innerRadius = innerRadius;
+    this.height = height;
+    this.radialSegments = radialSegments;
+    this.heightSegments = heightSegments;
+    this.generateGeometryData();
+  }
+
+  /** @inheritdoc */
+  protected override generateGeometryData(): void {
+    const v: number[] = [];
+    const uv: number[] = [];
+    const idx: number[] = [];
+    const hh: number = this.height / 2;
+
+    const buildSurface = (r: number, isInner: boolean): void => {
+      const offset: number = v.length / 3;
+      for (let y: number = 0; y <= this.heightSegments; y++) {
+        const vCoord: number = y / this.heightSegments;
+        const yPos: number = vCoord * this.height - hh;
+
+        for (let x: number = 0; x <= this.radialSegments; x++) {
+          const uCoord: number = x / this.radialSegments;
+          const theta: number = uCoord * Math.PI * 2;
+          v.push(r * Math.sin(theta), yPos, r * Math.cos(theta));
+          uv.push(uCoord, vCoord);
+        }
+      }
+
+      for (let y: number = 0; y < this.heightSegments; y++) {
+        for (let x: number = 0; x < this.radialSegments; x++) {
+          const first: number = offset + y * (this.radialSegments + 1) + x;
+          const second: number = first + this.radialSegments + 1;
+          if (isInner) {
+            idx.push(first, first + 1, second);
+            idx.push(second, first + 1, second + 1);
+          } else {
+            idx.push(first, second, first + 1);
+            idx.push(second, second + 1, first + 1);
+          }
+        }
+      }
+    };
+
+    // Outer surface
+    buildSurface(this.radius, false);
+    // Inner surface
+    buildSurface(this.innerRadius, true);
+
+    // Caps to connect inner and outer surfaces
+    const connectCaps = (isTop: boolean): void => {
+      const outerOffset: number = isTop ? this.heightSegments * (this.radialSegments + 1) : 0;
+      const innerOffset: number =
+        (this.heightSegments + 1) * (this.radialSegments + 1) +
+        (isTop ? this.heightSegments * (this.radialSegments + 1) : 0);
+
+      for (let x: number = 0; x < this.radialSegments; x++) {
+        const o1: number = outerOffset + x;
+        const o2: number = outerOffset + x + 1;
+        const i1: number = innerOffset + x;
+        const i2: number = innerOffset + x + 1;
+
+        if (isTop) {
+          idx.push(o1, i1, o2);
+          idx.push(i1, i2, o2);
+        } else {
+          idx.push(o1, o2, i1);
+          idx.push(i1, o2, i2);
+        }
+      }
+    };
+
+    connectCaps(true);
+    connectCaps(false);
+
+    this._vertices = new Float32Array(v);
+    this._uvs = new Float32Array(uv);
+    this._indices = new Uint16Array(idx);
+    this.computeNormals();
+  }
+}

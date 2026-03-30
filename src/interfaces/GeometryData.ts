@@ -1,15 +1,15 @@
 /// src/interfaces/GeometryData.ts
 
 /**
- * Interface representing raw geometry data.
+ * Interface representing raw geometry data for rendering.
  */
 export interface GeometryDataInterface {
-  /** Vertex position data. */
+  /** Vertex position data (x, y, z). */
   vertices: Float32Array;
-  /** Index data. */
-  indices: Uint16Array | Uint32Array;
-  /** Optional normal data. */
-  normals: Float32Array;
-  /** Optional texture coordinate data. */
-  uvs: Float32Array;
+  /** Optional index data. If provided, indexed rendering is used. */
+  indices?: Uint16Array | Uint32Array | undefined;
+  /** Optional normal data (nx, ny, nz). */
+  normals?: Float32Array | undefined;
+  /** Optional texture coordinate data (u, v). */
+  uvs?: Float32Array | undefined;
 }

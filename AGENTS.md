@@ -22,6 +22,7 @@ This document outlines the commands, coding standards, and architectural guideli
 - **`any` is Forbidden:** Avoid `any`. Use `unknown` for data of unknown type and perform safe type checks.
 - **`const` over `let`:** Use `const` by default. Use `let` only for variables that must be reassigned.
 - **File Headers:** Every `.ts` file must start with a comment, followed by an empty line, containing its relative path (e.g., `/// src/core/Scene.ts`).
+- **Import Placement:** All `import` statements must be placed at the very top of the file. No imports are allowed at the end or in the middle of a file.
 
 ### 2. Naming Conventions
 
@@ -43,6 +44,7 @@ This document outlines the commands, coding standards, and architectural guideli
 - **Constructor Strategy:**
   - Use positional arguments for simple types (e.g., `Vector3D(x, y, z)`, `Color(r, g, b)`).
   - Use **Configuration Objects** (Options-Interfaces) for complex entities with more than two optional parameters (e.g., `AmbientLight({ color, intensity })`) to improve readability and extensibility.
+- **Geometry Segmentation:** All primitive geometries (Cube, Sphere, Plane, etc.) must support segmentation (subdivisions) via constructor options to allow control over detail levels.
 - **Immutability:** Use `readonly` for properties that should not be changed after initialization.
 - **Functional Patterns:** Prefer functional patterns (`.map()`, `.filter()`) over imperative loops where it improves readability.
 - **`undefined` over `null`:** Use `undefined` for optional or uninitialized values. Avoid using `null`.

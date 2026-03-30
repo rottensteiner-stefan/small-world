@@ -6,35 +6,65 @@ import { AbstractGeometry } from "./AbstractGeometry.js";
  * Configuration options for cylinder geometry.
  */
 export interface CylinderOptions {
-  /** The radius of the cylinder. Defaults to 1. */
-  radius?: number;
+  /** The radius at the top. Defaults to 1. Set to 0 for a cone. */
+  radiusTop?: number;
+  /** The radius at the bottom. Defaults to 1. */
+  radiusBottom?: number;
   /** The height of the cylinder. Defaults to 2. */
   height?: number;
-  /** The number of segments. Defaults to 16. */
-  segments?: number;
+  /** The number of radial segments around the circumference. Defaults to 16. */
+  radialSegments?: number;
+  /** The number of height segments along the height. Defaults to 1. */
+  heightSegments?: number;
+  /** The start angle of the sector in radians. Defaults to 0. */
+  thetaStart?: number;
+  /** The central angle of the sector in radians. Defaults to 2 * Math.PI (full cylinder). */
+  thetaLength?: number;
 }
 
 /**
- * A cylinder geometry.
+ * A generalized cylinder geometry that can represent cylinders, cones, and conical frustums.
  */
 export class Cylinder extends AbstractGeometry {
-  /** The radius of the cylinder. */
-  public radius: number;
-  /** The height of the cylinder. */
+  /** The radius at the top. */
+  public radiusTop: number;
+  /** The radius at the bottom. */
+  public radiusBottom: number;
+  /** The height. */
   public height: number;
-  /** The number of segments. */
-  public segments: number;
+  /** The number of radial segments. */
+  public radialSegments: number;
+  /** The number of height segments. */
+  public heightSegments: number;
+  /** The start angle. */
+  public thetaStart: number;
+  /** The central angle. */
+  public thetaLength: number;
 
   /**
    * Creates a new Cylinder geometry.
-   * @param options The configuration options for the cylinder.
+   * @param options The configuration options.
    */
   constructor(options: CylinderOptions = {}) {
     super();
-    const { radius = 1, height = 2, segments = 16 } = options;
-    this.radius = radius;
+    const {
+      radiusTop = 1,
+      radiusBottom = 1,
+      height = 2,
+      radialSegments = 16,
+      heightSegments = 1,
+      thetaStart = 0,
+      thetaLength = Math.PI * 2,
+    } = options;
+
+    this.radiusTop = radiusTop;
+    this.radiusBottom = radiusBottom;
     this.height = height;
-    this.segments = segments;
+    this.radialSegments = radialSegments;
+    this.heightSegments = heightSegments;
+    this.thetaStart = thetaStart;
+    this.thetaLength = thetaLength;
+
     this.generateGeometryData();
   }
 
@@ -45,49 +75,59 @@ export class Cylinder extends AbstractGeometry {
     const idx: number[] = [];
     const hh: number = this.height / 2;
 
-    // --- Seitenwand ---
-    for (let y = 0; y <= 1; y++) {
-      const yPos: number = y === 0 ? -hh : hh;
-      const vCoord: number = y === 0 ? 0 : 1;
-      for (let x = 0; x <= this.segments; x++) {
-        const uCoord: number = x / this.segments;
-        const theta: number = uCoord * Math.PI * 2;
-        v.push(this.radius * Math.sin(theta), yPos, this.radius * Math.cos(theta));
-        uv.push(uCoord, vCoord);
+    // --- Side surface ---
+    for (let y: number = 0; y <= this.heightSegments; y++) {
+      const vCoord: number = y / this.heightSegments;
+      const yPos: number = vCoord * this.height - hh;
+      const radius: number = vCoord * (this.radiusTop - this.radiusBottom) + this.radiusBottom;
+
+      for (let x: number = 0; x <= this.radialSegments; x++) {
+        const uCoord: number = x / this.radialSegments;
+        const theta: number = this.thetaStart + uCoord * this.thetaLength;
+        v.push(radius * Math.sin(theta), yPos, radius * Math.cos(theta));
+        uv.push(uCoord, 1 - vCoord);
       }
     }
 
-    for (let x = 0; x < this.segments; x++) {
-      const first: number = x;
-      const second: number = first + this.segments + 1;
-      idx.push(first, second, first + 1);
-      idx.push(second, second + 1, first + 1);
+    for (let y: number = 0; y < this.heightSegments; y++) {
+      for (let x: number = 0; x < this.radialSegments; x++) {
+        const first: number = y * (this.radialSegments + 1) + x;
+        const second: number = first + this.radialSegments + 1;
+        idx.push(first, second, first + 1);
+        idx.push(second, second + 1, first + 1);
+      }
     }
 
-    // --- Deckel Oben ---
-    let offset: number = v.length / 3;
-    v.push(0, hh, 0);
-    uv.push(0.5, 0.5); // Zentrum
-    for (let x = 0; x <= this.segments; x++) {
-      const theta: number = (x / this.segments) * Math.PI * 2;
-      v.push(this.radius * Math.sin(theta), hh, this.radius * Math.cos(theta));
-      uv.push(0.5 + Math.sin(theta) * 0.5, 0.5 + Math.cos(theta) * 0.5);
-    }
-    for (let x = 0; x < this.segments; x++) {
-      idx.push(offset, offset + x + 1, offset + x + 2);
+    // --- Top cap ---
+    if (this.radiusTop > 0) {
+      const topOffset: number = v.length / 3;
+      v.push(0, hh, 0); // Center point
+      uv.push(0.5, 0.5);
+      for (let x: number = 0; x <= this.radialSegments; x++) {
+        const uCoord: number = x / this.radialSegments;
+        const theta: number = this.thetaStart + uCoord * this.thetaLength;
+        v.push(this.radiusTop * Math.sin(theta), hh, this.radiusTop * Math.cos(theta));
+        uv.push(0.5 + Math.sin(theta) * 0.5, 0.5 + Math.cos(theta) * 0.5);
+      }
+      for (let x: number = 0; x < this.radialSegments; x++) {
+        idx.push(topOffset, topOffset + x + 1, topOffset + x + 2);
+      }
     }
 
-    // --- Deckel Unten ---
-    offset = v.length / 3;
-    v.push(0, -hh, 0);
-    uv.push(0.5, 0.5); // Zentrum
-    for (let x = 0; x <= this.segments; x++) {
-      const theta: number = (x / this.segments) * Math.PI * 2;
-      v.push(this.radius * Math.sin(theta), -hh, this.radius * Math.cos(theta));
-      uv.push(0.5 + Math.sin(theta) * 0.5, 0.5 - Math.cos(theta) * 0.5);
-    }
-    for (let x = 0; x < this.segments; x++) {
-      idx.push(offset, offset + x + 2, offset + x + 1);
+    // --- Bottom cap ---
+    if (this.radiusBottom > 0) {
+      const bottomOffset: number = v.length / 3;
+      v.push(0, -hh, 0); // Center point
+      uv.push(0.5, 0.5);
+      for (let x: number = 0; x <= this.radialSegments; x++) {
+        const uCoord: number = x / this.radialSegments;
+        const theta: number = this.thetaStart + uCoord * this.thetaLength;
+        v.push(this.radiusBottom * Math.sin(theta), -hh, this.radiusBottom * Math.cos(theta));
+        uv.push(0.5 + Math.sin(theta) * 0.5, 0.5 - Math.cos(theta) * 0.5);
+      }
+      for (let x: number = 0; x < this.radialSegments; x++) {
+        idx.push(bottomOffset, bottomOffset + x + 2, bottomOffset + x + 1);
+      }
     }
 
     this._vertices = new Float32Array(v);

@@ -54,7 +54,7 @@ class Demo3 extends AbstractDemo {
     // HILFS-BODEN (GRID)
     // ---------------------------------------------------------
     const gridObj = new Object3D("Boden");
-    gridObj.geometry = new Grid(20, 20).getGeometryData();
+    gridObj.geometry = new Grid({ size: 20, divisions: 20 }).getGeometryData();
     const gridMat = new WireframeMaterial();
     gridMat.color = Color.DARKSLATEGRAY;
 
