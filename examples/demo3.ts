@@ -20,8 +20,6 @@ class Demo3 extends AbstractDemo {
   private _targetPos = new Vector3D();
 
   protected async setupScene(): Promise<void> {
-    Input.init();
-
     this.canvas.addEventListener("click", () => {
       if (!Input.isPointerLocked) {
         Input.requestPointerLock(this.canvas);

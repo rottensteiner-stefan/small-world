@@ -11,6 +11,7 @@ import { ProjectionType } from "../enums/ProjectionType.js";
 import { RendererFactory } from "../renderers/RendererFactory.js";
 import { RendererType } from "../enums/RendererType.js";
 import { Scene } from "./Scene.js";
+import { Input } from "./Input.js";
 
 /**
  * Base class for applications built with the SmallWorld engine.
@@ -78,6 +79,9 @@ export abstract class Application {
 
     this.camera = new Camera(projection);
     this.renderer = undefined!; // Initialized in start()
+
+    // Initialize Global Input System
+    Input.init();
   }
 
   /**

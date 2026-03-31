@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.12.03] - 2026-03-31
+
+- Centralize Input.init() in Application.ts
+- Refine keyboard handling in AbstractDemo to use Input.isPressed(Keys.SHIFT_L)
+
+## [0.12.02] - 2026-03-31
+
+- Add keyboard event handling to AbstractDemo
+- Implement renderer switching (WebGL1, WebGL2, WebGPU) via SHIFT+1/2/3 in all demos
+
 ## [0.12.01] - 2026-03-29
 
 - Optimize it: Code hygiene

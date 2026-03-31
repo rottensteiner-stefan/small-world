@@ -59,7 +59,7 @@ export abstract class AbstractGeometry implements Geometry {
    */
   public computeNormals(): void {
     if (!this._vertices.length) return;
-    
+
     this._normals = new Float32Array(this._vertices.length);
 
     // If no indices, we can't easily compute averaged normals for shared vertices

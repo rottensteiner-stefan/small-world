@@ -71,12 +71,12 @@ export class Capsule extends AbstractGeometry {
         const phi: number = ((y - 1) / this.capSegments) * (Math.PI / 2) - Math.PI / 2;
         radius = this.radius * Math.cos(phi);
         yPos = -halfLength - this.radius * Math.sin(phi);
-        vCoord = (y / (this.capSegments * 2 + 1));
+        vCoord = y / (this.capSegments * 2 + 1);
       } else {
-          // Should not happen with current logic
-          radius = this.radius;
-          yPos = 0;
-          vCoord = 0.5;
+        // Should not happen with current logic
+        radius = this.radius;
+        yPos = 0;
+        vCoord = 0.5;
       }
 
       for (let x: number = 0; x <= this.radialSegments; x++) {

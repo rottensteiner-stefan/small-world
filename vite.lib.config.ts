@@ -7,7 +7,7 @@ export default defineConfig({
   build: {
     outDir: "dist",
     emptyOutDir: false,
-    minify: "terser", // <-- Wechsel auf den aggressiveren Terser
+    minify: "terser",
     target: "esnext",
     lib: {
       entry: "src/index.ts",
