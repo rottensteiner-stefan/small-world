@@ -3,6 +3,19 @@ import { resolve } from "path";
 
 export default defineConfig({
   publicDir: "public",
+  plugins: [
+    {
+      name: "serve-index-from-public",
+      configureServer(server) {
+        server.middlewares.use((req, res, next) => {
+          if (req.url === "/") {
+            req.url = "/index.html";
+          }
+          next();
+        });
+      },
+    },
+  ],
   build: {
     outDir: "dist",
     emptyOutDir: true,
@@ -13,13 +26,10 @@ export default defineConfig({
         demo3: resolve(__dirname, "examples/demo3.html"),
         demo4: resolve(__dirname, "examples/demo4.html"),
         demo5: resolve(__dirname, "examples/demo5.html"),
-        main: resolve(__dirname, "index.html"),
+        demo6: resolve(__dirname, "examples/demo6.html"),
       },
       output: {
         entryFileNames: (assetInfo) => {
-          if (assetInfo.name === "main") {
-            return "main.js";
-          }
           return `examples/[name]/demo.js`;
         },
         assetFileNames: "assets/[name].[ext]",

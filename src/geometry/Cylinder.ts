@@ -24,6 +24,7 @@ export interface CylinderOptions {
 
 /**
  * A generalized cylinder geometry that can represent cylinders, cones, and conical frustums.
+ * Supports partial sectors (pie slices).
  */
 export class Cylinder extends AbstractGeometry {
   /** The radius at the top. */
@@ -128,6 +129,42 @@ export class Cylinder extends AbstractGeometry {
       for (let x: number = 0; x < this.radialSegments; x++) {
         idx.push(bottomOffset, bottomOffset + x + 2, bottomOffset + x + 1);
       }
+    }
+
+    // --- Side caps (for partial sectors) ---
+    if (this.thetaLength < Math.PI * 2) {
+      const buildSideCap = (isStart: boolean): void => {
+        const angle: number = isStart ? this.thetaStart : this.thetaStart + this.thetaLength;
+        const sin: number = Math.sin(angle);
+        const cos: number = Math.cos(angle);
+        const offset: number = v.length / 3;
+
+        // Points along the axis (center) and the edge
+        for (let y: number = 0; y <= this.heightSegments; y++) {
+          const vCoord: number = y / this.heightSegments;
+          const yPos: number = vCoord * this.height - hh;
+          const radius: number = vCoord * (this.radiusTop - this.radiusBottom) + this.radiusBottom;
+
+          v.push(0, yPos, 0); // Axis point
+          uv.push(0, vCoord);
+          v.push(radius * sin, yPos, radius * cos); // Edge point
+          uv.push(1, vCoord);
+        }
+
+        for (let y: number = 0; y < this.heightSegments; y++) {
+          const base: number = offset + y * 2;
+          if (isStart) {
+            idx.push(base, base + 1, base + 2);
+            idx.push(base + 2, base + 1, base + 3);
+          } else {
+            idx.push(base, base + 2, base + 1);
+            idx.push(base + 2, base + 3, base + 1);
+          }
+        }
+      };
+
+      buildSideCap(true);
+      buildSideCap(false);
     }
 
     this._vertices = new Float32Array(v);

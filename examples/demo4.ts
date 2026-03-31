@@ -25,8 +25,6 @@ export class Demo4 extends AbstractDemo {
   private _terrainManager: TerrainManager | null = null;
 
   protected async setupScene(): Promise<void> {
-    Input.init();
-
     this.canvas.addEventListener("click", () => {
       if (!Input.isPointerLocked) {
         Input.requestPointerLock(this.canvas);

@@ -14,7 +14,7 @@ export class Mesh {
   public nbo: WebGLBuffer | undefined = undefined;
   /** The texture coordinate buffer object. */
   public tbo: WebGLBuffer | undefined = undefined;
-  
+
   /** The number of elements (indices or vertices) to draw. */
   public count: number;
   /** Whether this mesh uses indices for drawing. */
@@ -31,7 +31,7 @@ export class Mesh {
    */
   constructor(gl: WebGLRenderingContext | WebGL2RenderingContext, data: GeometryDataInterface) {
     this._gl = gl;
-    
+
     // 1. Position Buffer
     this.vbo = gl.createBuffer() ?? undefined;
     gl.bindBuffer(gl.ARRAY_BUFFER, this.vbo ?? null);
@@ -58,7 +58,7 @@ export class Mesh {
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.ebo ?? null);
       gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, data.indices, gl.STATIC_DRAW);
       this.count = data.indices.length;
-      
+
       // Automatic detection of index type
       if (data.indices instanceof Uint32Array) {
         this.indexType = gl.UNSIGNED_INT;

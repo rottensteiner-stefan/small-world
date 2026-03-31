@@ -21,8 +21,6 @@ class Demo2 extends AbstractDemo {
   private _speed = 15.0;
 
   protected async setupScene(): Promise<void> {
-    Input.init();
-
     this.canvas.addEventListener("click", () => {
       if (!Input.isPointerLocked) {
         Input.requestPointerLock(this.canvas);

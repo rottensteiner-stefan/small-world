@@ -68,6 +68,10 @@ export class Color {
     return new Color(1, 1, 0);
   }
 
+  public static get CYAN(): Color {
+    return new Color(0, 1, 1);
+  }
+
   /**
    * Returns the color components as an array.
    * @returns [r, g, b, a]

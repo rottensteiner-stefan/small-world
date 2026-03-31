@@ -25,8 +25,6 @@ export class Demo5 extends AbstractDemo {
   private _targetPos = new Vector3D(0, 0, 0);
 
   protected async setupScene(): Promise<void> {
-    Input.init();
-
     // 1. Setup Orthographic Camera for 2D/Isometric feel
     const aspect = window.innerWidth / window.innerHeight;
     const size = 10;

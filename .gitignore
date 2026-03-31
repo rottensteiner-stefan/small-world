@@ -7,3 +7,4 @@ node_modules/
 # Misc develop stuff
 /*.sh
 /collected.txt
+/var/

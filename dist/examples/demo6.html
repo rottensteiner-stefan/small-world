@@ -3,9 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SmallWorld Engine - Demo 5: Isometrische Kamera & 2D</title>
+    <title>SmallWorld Engine - Demo 6: Erweiterte Geometrien</title>
     <style>
-      /* Resets für Fullscreen-Canvas */
       body,
       html {
         margin: 0;
@@ -19,7 +18,6 @@
       canvas {
         display: block;
       }
-      /* Ein kleines Overlay für den User */
       #overlay {
         position: absolute;
         top: 20px;
@@ -28,25 +26,21 @@
         background: rgba(0, 0, 0, 0.6);
         padding: 15px;
         border-radius: 8px;
-        pointer-events: none; /* Klicks gehen durch aufs Canvas */
+        pointer-events: none;
         user-select: none;
       }
     </style>
-    <script type="module" crossorigin src="/examples/demo5/demo.js"></script>
+    <script type="module" crossorigin src="/examples/demo6/demo.js"></script>
     <link rel="modulepreload" crossorigin href="/js/AbstractDemo.js">
-    <link rel="modulepreload" crossorigin href="/js/Cube.js">
-    <link rel="modulepreload" crossorigin href="/js/PhongMaterial.js">
     <link rel="modulepreload" crossorigin href="/js/WireframeMaterial.js">
     <link rel="modulepreload" crossorigin href="/js/AmbientLight.js">
     <link rel="modulepreload" crossorigin href="/js/Grid.js">
   </head>
   <body>
     <div id="overlay">
-      <h2>Demo 5: Isometrische Kamera & 2D</h2>
-      <p>⌨️ <b>WASD</b>: Bewegen auf dem Raster</p>
-      <p>🖱️ <b>Klick</b>: Gehe zu Ziel (Screen-to-World Mapping)</p>
-      <p>⌨️ <b>Taste 'P'</b>: Pixel-Perfect Snapping Ein/Aus</p>
-      <p>⌨️ <b>Taste 'I'</b>: Debug-Infos in Konsole</p>
+      <h2>Demo 6: Erweiterte Geometrien</h2>
+      <p>⌨️ <b>WASD</b>: Kamera bewegen</p>
+      <p>🖱️ <b>Maus</b>: Kamera drehen (Click zum Sperren)</p>
     </div>
 
     <canvas id="SmallWorld"></canvas>
