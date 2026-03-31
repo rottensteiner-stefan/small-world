@@ -675,6 +675,7 @@ export declare class Color {
     static get DARKSLATEGRAY(): Color;
     static get GRAY(): Color;
     static get YELLOW(): Color;
+    static get CYAN(): Color;
     /**
      * Returns the color components as an array.
      * @returns [r, g, b, a]
@@ -791,6 +792,7 @@ export declare class CubeTexture {
 
 /**
  * A generalized cylinder geometry that can represent cylinders, cones, and conical frustums.
+ * Supports partial sectors (pie slices).
  */
 export declare class Cylinder extends AbstractGeometry {
     /** The radius at the top. */
@@ -836,6 +838,25 @@ export declare interface CylinderOptions {
     thetaLength?: number;
 }
 
+/**
+ * A cylinder sector geometry (pie slice of a cylinder).
+ */
+export declare class CylinderSector extends Cylinder {
+    /**
+     * Creates a new CylinderSector geometry.
+     * @param options The configuration options.
+     */
+    constructor(options?: CylinderSectorOptions);
+}
+
+/**
+ * Configuration options for cylinder sector geometry.
+ */
+export declare interface CylinderSectorOptions extends CylinderOptions {
+    /** The central angle of the sector in radians. Defaults to PI / 2. */
+    thetaLength?: number;
+}
+
 export declare const DEFAULT_RENDERER: "BEST";
 
 /**
@@ -861,7 +882,7 @@ export declare interface DirectionalLightOptions extends LightOptions {
     direction?: Vector3D;
 }
 
-export declare const ENGINE_VERSION = "0.12.01";
+export declare const ENGINE_VERSION = "0.12.03";
 
 export declare interface EngineConfig {
     canvasId?: string;
