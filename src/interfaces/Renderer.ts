@@ -16,7 +16,7 @@ export interface LightDataInterface {
 
 export interface Renderer {
   readonly type: RendererType; // <--- NEU
-  initialize(canvas: HTMLCanvasElement): Promise<void>;
+  initialize(canvas: HTMLCanvasElement, attributes?: Record<string, unknown>): Promise<void>;
   render(scene: Scene, vpMatrix: Float32Array, camPos?: Vector3D): void;
   setSize(width: number, height: number): void;
   setClearColor(color: Color): void;

@@ -33,7 +33,10 @@ export abstract class AbstractRenderer implements Renderer {
   };
 
   /** @inheritdoc */
-  public abstract initialize(canvas: HTMLCanvasElement): Promise<void>;
+  public abstract initialize(
+    canvas: HTMLCanvasElement,
+    attributes?: Record<string, unknown>,
+  ): Promise<void>;
 
   /** @inheritdoc */
   public abstract render(scene: Scene, vpMatrix: Float32Array, camPos?: Vector3D): void;

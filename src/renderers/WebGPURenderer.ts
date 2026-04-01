@@ -72,8 +72,11 @@ export class WebGPURenderer extends AbstractRenderer {
   private _depthTexture!: GPUTexture;
 
   /** @inheritdoc */
-  public async initialize(canvas: HTMLCanvasElement): Promise<void> {
-    this._adapter = await navigator.gpu.requestAdapter();
+  public async initialize(
+    canvas: HTMLCanvasElement,
+    attributes?: Record<string, unknown>,
+  ): Promise<void> {
+    this._adapter = await navigator.gpu.requestAdapter(attributes);
     this._device = await this._adapter!.requestDevice();
     this._context = canvas.getContext("webgpu")!;
     this._format = navigator.gpu.getPreferredCanvasFormat();

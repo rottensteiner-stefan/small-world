@@ -18,24 +18,24 @@ import { Scene } from "../core/Scene.js";
 import { Vector3D } from "../math/Vector3D.js";
 
 interface ShaderLocs {
-  pos: number;
-  norm: number;
-  uv: number;
-  vp: WebGLUniformLocation | null;
-  model: WebGLUniformLocation | null;
-  color: WebGLUniformLocation | null;
-  specColor: WebGLUniformLocation | null;
   ambient: WebGLUniformLocation | null;
+  color: WebGLUniformLocation | null;
+  diffuseMap: WebGLUniformLocation | null;
   dirColor: WebGLUniformLocation | null;
   dirDir: WebGLUniformLocation | null;
-  shininess: WebGLUniformLocation | null;
-  viewPos: WebGLUniformLocation | null;
+  model: WebGLUniformLocation | null;
+  norm: number;
+  numAL: WebGLUniformLocation | null;
   numPL: WebGLUniformLocation | null;
   numSL: WebGLUniformLocation | null;
-  numAL: WebGLUniformLocation | null;
-  diffuseMap: WebGLUniformLocation | null;
+  pos: number;
+  shininess: WebGLUniformLocation | null;
+  specColor: WebGLUniformLocation | null;
   texOffset: WebGLUniformLocation | null;
   texRepeat: WebGLUniformLocation | null;
+  uv: number;
+  viewPos: WebGLUniformLocation | null;
+  vp: WebGLUniformLocation | null;
 }
 
 /**
@@ -55,11 +55,9 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
     model: WebGLUniformLocation | null;
     skybox: WebGLUniformLocation | null;
   };
-
   private _cache: Map<GeometryDataInterface, Mesh> = new Map<GeometryDataInterface, Mesh>();
   private _texCache: Map<Texture, WebGLTexture> = new Map<Texture, WebGLTexture>();
   private _texCubeCache: Map<CubeTexture, WebGLTexture> = new Map<CubeTexture, WebGLTexture>();
-
   private _pointLightLocs: {
     pos: WebGLUniformLocation | null;
     col: WebGLUniformLocation | null;
@@ -80,9 +78,18 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
   }[] = [];
 
   /** @inheritdoc */
-  public async initialize(canvas: HTMLCanvasElement): Promise<void> {
-    this.gl = (canvas.getContext("webgl", { antialias: true }) ||
-      canvas.getContext("experimental-webgl")) as WebGLRenderingContext;
+  public async initialize(
+    canvas: HTMLCanvasElement,
+    attributes?: Record<string, unknown>,
+  ): Promise<void> {
+    const gl =
+      canvas.getContext("webgl", attributes) || canvas.getContext("experimental-webgl", attributes);
+
+    if (!gl) {
+      throw new Error("[WebGL1Renderer] WebGL 1 context could not be initialized.");
+    }
+
+    this.gl = gl as WebGLRenderingContext;
 
     // Nutze geerbte Methode für Fallback-Texturen
     this.initDefaultTextures();
@@ -96,7 +103,6 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
     // Nutze geerbte Methode zum Kompilieren
     this._prog = this.createShaderProgram(vs, fs);
     this._skyProg = this.createShaderProgram(skyVs, skyFs);
-
     this._locs = {
       pos: this.gl.getAttribLocation(this._prog, "a_position"),
       norm: this.gl.getAttribLocation(this._prog, "a_normal"),
@@ -117,7 +123,6 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
       texOffset: this.gl.getUniformLocation(this._prog, "u_texOffset"),
       texRepeat: this.gl.getUniformLocation(this._prog, "u_texRepeat"),
     };
-
     this._skyLocs = {
       pos: this.gl.getAttribLocation(this._skyProg, "a_position"),
       vp: this.gl.getUniformLocation(this._skyProg, "u_vp"),
