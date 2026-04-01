@@ -2,7 +2,7 @@
 /**
  * Key codes for user input.
  */
-export const Keys = {
+export  const  Keys = {
   /** Up arrow key. */
   UP: "ArrowUp",
   /** Down arrow key. */

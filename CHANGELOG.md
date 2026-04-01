@@ -1,9 +1,16 @@
 # Changelog
 
+## [0.12.04] - 2026-04-01
+
+- Implement renderer configuration in small-world.json to support context attributes
+- Update Renderer interface to accept optional attributes during initialization
+- Pass renderer-specific attributes to WebGL1, WebGL2 and WebGPU contexts
+
 ## [0.12.03] - 2026-03-31
 
 - Centralize Input.init() in Application.ts
 - Refine keyboard handling in AbstractDemo to use Input.isPressed(Keys.SHIFT_L)
+- Fix: Add WebGL context check to prevent 'createTexture' of null error when switching renderers
 
 ## [0.12.02] - 2026-03-31
 
