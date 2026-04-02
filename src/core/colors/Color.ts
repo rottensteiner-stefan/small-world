@@ -462,14 +462,14 @@ export class Color {
       a = 1.0;
 
     if (hex.length === 3) {
-      r = parseInt(hex.charAt(0) + hex.charAt(0), 16) / 255 || 0;
-      g = parseInt(hex.charAt(1) + hex.charAt(1), 16) / 255 || 0;
-      b = parseInt(hex.charAt(2) + hex.charAt(2), 16) / 255 || 0;
+      r = parseInt((hex[0] || "0") + (hex[0] || "0"), 16) / 255 || 0;
+      g = parseInt((hex[1] || "0") + (hex[1] || "0"), 16) / 255 || 0;
+      b = parseInt((hex[2] || "0") + (hex[2] || "0"), 16) / 255 || 0;
     } else if (hex.length === 4) {
-      r = parseInt(hex.charAt(0) + hex.charAt(0), 16) / 255 || 0;
-      g = parseInt(hex.charAt(1) + hex.charAt(1), 16) / 255 || 0;
-      b = parseInt(hex.charAt(2) + hex.charAt(2), 16) / 255 || 0;
-      a = parseInt(hex.charAt(3) + hex.charAt(3), 16) / 255 || 1.0;
+      r = parseInt((hex[0] || "0") + (hex[0] || "0"), 16) / 255 || 0;
+      g = parseInt((hex[1] || "0") + (hex[1] || "0"), 16) / 255 || 0;
+      b = parseInt((hex[2] || "0") + (hex[2] || "0"), 16) / 255 || 0;
+      a = parseInt((hex[3] || "F") + (hex[3] || "F"), 16) / 255 || 1.0;
     } else if (hex.length === 6) {
       r = parseInt(hex.substring(0, 2), 16) / 255 || 0;
       g = parseInt(hex.substring(2, 4), 16) / 255 || 0;
