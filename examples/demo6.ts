@@ -32,13 +32,27 @@ export class Demo6 extends AbstractDemo {
     private _targetPos: Vector3D = new Vector3D(0, 0, 0);
     private _moveSpeed: number = 20.0;
 
-    /** @inheritdoc */
-    protected async setupScene(): Promise<void> {
+    /**
+     * Wird vom Konstruktor von Application ODER nach einem Renderer-Switch (onCanvasRecreated) aufgerufen.
+     * Sorgt dafür, dass der Pointer Lock auch auf einem NEUEN Canvas funktioniert.
+     */
+    protected override onCanvasRecreated(): void {
+        super.onCanvasRecreated();
+        
+        // Remove old listener if exists (wichtig, falls das Canvas aus dem DOM genommen wurde)
+        // Aber da das Canvas ohnehin ein neues DOM-Element ist, reicht einfach das Hinzufügen.
         this.canvas.addEventListener("click", () => {
             if (!Input.isPointerLocked) {
                 Input.requestPointerLock(this.canvas);
             }
         });
+        console.log("PointerLock-Event auf neues Canvas gebunden (Demo 6).");
+    }
+
+    /** @inheritdoc */
+    protected async setupScene(): Promise<void> {
+        // Initiales Binden des PointerLocks
+        this.onCanvasRecreated();
 
         // 1. Setup Perspective Camera
         const aspect: number = window.innerWidth / window.innerHeight;

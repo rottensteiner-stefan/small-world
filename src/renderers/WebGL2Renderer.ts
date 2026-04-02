@@ -98,13 +98,22 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         canvas: HTMLCanvasElement,
         attributes?: Record<string, unknown>,
     ): Promise<void> {
-        const gl = canvas.getContext("webgl2", attributes);
+        // Fallback-Mechanismus, falls Canvas bereits einen inkompatiblen Kontext hat
+        let gl = canvas.getContext("webgl2", attributes);
 
         if (!gl) {
+            // Wenn WebGL2 fehlschlägt, kann das an einem bereits existierenden WebGL1 Kontext liegen.
+            // Der Switch in AbstractDemo ersetzt das Canvas, aber für Application.ts beim Start
+            // oder in Edge-Cases müssen wir das klar kommunizieren.
             throw new Error("[WebGL2Renderer] WebGL2 context could not be initialized.");
         }
 
         this.gl = gl as WebGL2RenderingContext;
+        
+        if (!this.gl) {
+            throw new Error("[WebGL2Renderer] GL context is null after assignment.");
+        }
+
         this.initDefaultTextures();
 
         const vsCode: string = `#version 300 es
@@ -240,7 +249,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         }
       }
 
-      c = vec4((finalLight * u_color.rgb * texColor.rgb) + (specular * u_specCol.rgb), u_color.a * texCol.a);
+      c = vec4((finalLight * u_color.rgb * texColor.rgb) + (specular * u_specColor.rgb), u_color.a * texColor.a);
     }`;
 
         const skyVsCode: string = `#version 300 es

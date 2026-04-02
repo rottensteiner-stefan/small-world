@@ -63,14 +63,14 @@ export class Demo2 extends AbstractDemo {
     const floor: Object3D = new Object3D("Floor");
     floor.geometry = new Plane({
       width: 50,
-      height: 50,
+      depth: 50,
       widthSegments: 10,
-      heightSegments: 10,
+      depthSegments: 10,
     }).getGeometryData();
 
     // Wir nutzen ein Wireframe-Material, damit man die Bewegung besser spürt
     const floorMat: WireframeMaterial = new WireframeMaterial();
-    floorMat.color = Color.FORESTGREEN;
+    floorMat.color = Color.DARKSLATEGRAY;
     floor.material = floorMat;
 
     // Die Plane wird standardmäßig XY-ausgerichtet erstellt (stehend).
@@ -80,7 +80,7 @@ export class Demo2 extends AbstractDemo {
 
     // 5. Ein paar Hindernisse (Würfel) verteilen
     const boxMat: PhongMaterial = new PhongMaterial({
-      color: Color.TOMATO,
+      color: Color.RED,
       shininess: 30,
     });
 

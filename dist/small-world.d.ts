@@ -170,11 +170,12 @@ export declare abstract class AbstractRenderer implements Renderer {
     /** Cached light data to avoid GC pressure. */
     protected _lightData: LightDataInterface;
     /** @inheritdoc */
-    abstract initialize(canvas: HTMLCanvasElement): Promise<void>;
+    abstract initialize(canvas: HTMLCanvasElement, attributes?: Record<string, unknown>): Promise<void>;
     /** @inheritdoc */
     abstract render(scene: Scene, vpMatrix: Float32Array, camPos?: Vector3D): void;
     /** @inheritdoc */
     abstract setSize(width: number, height: number): void;
+    destroy(): void;
     /** @inheritdoc */
     setClearColor(color: Color): void;
     /**
@@ -195,6 +196,7 @@ export declare abstract class AbstractWebGLRenderer extends AbstractRenderer {
     protected gl: WebGLRenderingContext | WebGL2RenderingContext;
     protected defaultTexture: WebGLTexture;
     protected defaultCubeTexture: WebGLTexture;
+    destroy(): void;
     setSize(w: number, h: number): void;
     setClearColor(color: Color): void;
     protected createShaderProgram(vSrc: string, fSrc: string): WebGLProgram;
@@ -230,6 +232,7 @@ export declare abstract class Application {
     canvas: HTMLCanvasElement;
     private _lastTime;
     private _isRunning;
+    private _isInitialized;
     /**
      * Creates a new application.
      * @param userConfig Optional configuration to override defaults.
@@ -245,11 +248,15 @@ export declare abstract class Application {
      */
     protected abstract update(deltaTime: number): void;
     /**
-     * Starts the application _loop.
+     * Initializes and starts the application loop.
      */
     start(): Promise<void>;
     /**
-     * The main application _loop.
+     * Stops the application loop.
+     */
+    stop(): void;
+    /**
+     * The main application loop.
      * @param currentTime The current timestamp.
      */
     private _loop;
@@ -888,9 +895,15 @@ export declare interface EngineConfig {
     canvasId?: string;
     fullscreen?: boolean;
     height?: number;
-    projection?: ProjectionType;
-    renderer?: RendererType;
     width?: number;
+    projection?: ProjectionType;
+    rendererType?: RendererType;
+    renderer?: EngineRendererConfig[];
+}
+
+export declare interface EngineRendererConfig {
+    type: RendererType | string;
+    attributes?: Record<string, unknown>;
 }
 
 /**
@@ -2114,10 +2127,11 @@ export declare interface PyramidOptions {
 
 export declare interface Renderer {
     readonly type: RendererType;
-    initialize(canvas: HTMLCanvasElement): Promise<void>;
+    initialize(canvas: HTMLCanvasElement, attributes?: Record<string, unknown>): Promise<void>;
     render(scene: Scene, vpMatrix: Float32Array, camPos?: Vector3D): void;
     setSize(width: number, height: number): void;
     setClearColor(color: Color): void;
+    destroy?(): void;
 }
 
 /**
@@ -2130,7 +2144,7 @@ export declare class RendererFactory {
      * @param canvas The canvas element to initialize the renderer with.
      * @returns A promise that resolves to the created renderer instance.
      */
-    static create(type: RendererType | string, canvas: HTMLCanvasElement): Promise<Renderer>;
+    static create(type: RendererType | string, canvas: HTMLCanvasElement, config?: EngineConfig): Promise<Renderer>;
 }
 
 /**
@@ -3033,7 +3047,7 @@ export declare class WebGL1Renderer extends AbstractWebGLRenderer {
     private _spotLightLocs;
     private _areaLightLocs;
     /** @inheritdoc */
-    initialize(canvas: HTMLCanvasElement): Promise<void>;
+    initialize(canvas: HTMLCanvasElement, attributes?: Record<string, unknown>): Promise<void>;
     private _getWebGLTexture;
     private _getWebGLCubeTexture;
     /** @inheritdoc */
@@ -3060,7 +3074,7 @@ export declare class WebGL2Renderer extends AbstractWebGLRenderer {
     private _scratchModelMatrix;
     private _scratchVec3;
     /** @inheritdoc */
-    initialize(canvas: HTMLCanvasElement): Promise<void>;
+    initialize(canvas: HTMLCanvasElement, attributes?: Record<string, unknown>): Promise<void>;
     private _getWebGLTexture;
     private _getWebGLCubeTexture;
     /** @inheritdoc */
@@ -3105,7 +3119,8 @@ export declare class WebGPURenderer extends AbstractRenderer {
     private _samplerCache;
     private _depthTexture;
     /** @inheritdoc */
-    initialize(canvas: HTMLCanvasElement): Promise<void>;
+    initialize(canvas: HTMLCanvasElement, attributes?: Record<string, unknown>): Promise<void>;
+    destroy(): void;
     private _getTextureView;
     private _getSampler;
     private _getGeoCache;

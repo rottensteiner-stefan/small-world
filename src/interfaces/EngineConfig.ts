@@ -13,6 +13,6 @@ export interface EngineConfig {
   height?: number;
   width?: number;
   projection?: ProjectionType;
-  renderer?: RendererType;
-  rendererConfig?: EngineRendererConfig[];
+  rendererType?: RendererType;
+  renderer?: EngineRendererConfig[];
 }
