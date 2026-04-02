@@ -84,7 +84,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
   ): Promise<void> {
     // Versuche den Kontext zu holen. Wenn das Canvas ausgetauscht wurde,
     // sollte dies erfolgreich sein.
-    let gl =
+    const gl =
       canvas.getContext("webgl", attributes) || canvas.getContext("experimental-webgl", attributes);
 
     if (!gl) {

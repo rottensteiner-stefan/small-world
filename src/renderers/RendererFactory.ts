@@ -66,10 +66,10 @@ export class RendererFactory {
     // in der Regel nicht mehr ändern (z.B. von "webgl" auf "webgl2").
     // Das Ersetzen des Canvas-Elements wird nun in Application.ts / AbstractDemo.ts gehandhabt.
     try {
-        await renderer.initialize(canvas, attributes);
+      await renderer.initialize(canvas, attributes);
     } catch (e) {
-        console.error(`Fehler bei der Initialisierung von ${actualType}:`, e);
-        throw e;
+      console.error(`Fehler bei der Initialisierung von ${actualType}:`, e);
+      throw e;
     }
     return renderer;
   }

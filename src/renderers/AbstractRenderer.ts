@@ -45,7 +45,7 @@ export abstract class AbstractRenderer implements Renderer {
   public abstract setSize(width: number, height: number): void;
 
   public destroy(): void {
-      // Base implementation does nothing
+    // Base implementation does nothing
   }
 
   /** @inheritdoc */

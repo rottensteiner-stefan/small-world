@@ -78,14 +78,14 @@ export class WebGPURenderer extends AbstractRenderer {
   ): Promise<void> {
     this._adapter = await navigator.gpu.requestAdapter(attributes);
     this._device = await this._adapter!.requestDevice();
-    
+
     // Check if we already have a context, to handle canvas reuse
     const context = canvas.getContext("webgpu");
     if (!context) {
-        throw new Error("[WebGPURenderer] Could not get webgpu context.");
+      throw new Error("[WebGPURenderer] Could not get webgpu context.");
     }
     this._context = context as GPUCanvasContext;
-    
+
     this._format = navigator.gpu.getPreferredCanvasFormat();
     this._context.configure({
       device: this._device,
@@ -349,13 +349,13 @@ export class WebGPURenderer extends AbstractRenderer {
 
     this.setSize(canvas.clientWidth, canvas.clientHeight);
   }
-  
+
   public override destroy(): void {
-      if (this._device) {
-          this._device.destroy();
-          this._device = null;
-      }
-      this._adapter = null;
+    if (this._device) {
+      this._device.destroy();
+      this._device = null;
+    }
+    this._adapter = null;
   }
 
   private _getTextureView(tex: Texture | null): GPUTextureView {

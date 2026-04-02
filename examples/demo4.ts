@@ -146,10 +146,10 @@ export class Demo4 extends AbstractDemo {
 // === START DES PROGRAMMS ===
 const app = new Demo4();
 app
-    .start()
-    .then(() => {
-      console.log("Engine läuft!");
-    })
-    .catch((err: Error) => {
-      console.error("Fehler beim Starten der Engine:", err);
-    });
+  .start()
+  .then(() => {
+    console.log("Engine läuft!");
+  })
+  .catch((err: Error) => {
+    console.error("Fehler beim Starten der Engine:", err);
+  });
