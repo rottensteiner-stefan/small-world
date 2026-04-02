@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.13.02] - 2026-04-02
+
+- Add missing geometries: Cube, Plane, and a complete Circle
+- Fix and improve WASD movement and pointer lock in Demo 6
+- Add comprehensive set of standard web colors (CSS/X11) to Color class
+- Add color space conversions: HSL to/from Color and HSV to/from Color
+- Refactor RendererFactory and EngineConfig for robust renderer switching
+- Fix WebGL context loss issue when switching renderers dynamically
+
 ## [0.12.04] - 2026-04-01
 
 - Implement renderer configuration in small-world.json to support context attributes
