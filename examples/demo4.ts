@@ -53,11 +53,6 @@ export class Demo4 extends AbstractDemo {
     sun.direction.set(-1, -1, -1);
     this.scene.add(sun);
 
-    // ---------------------------------------------------------
-    // TERRAIN MANAGER
-    // ---------------------------------------------------------
-    console.log("[Demo 4] Initialisiere Terrain Manager...");
-
     // Terrain-Material vorbereiten
     const terrainMat = new TerrainMaterial({
       sandMap: Texture.fromImage(await TextureGenerator.createSand()),
@@ -79,9 +74,6 @@ export class Demo4 extends AbstractDemo {
 
     await this._terrainManager.init();
 
-    // ---------------------------------------------------------
-    // OBJ LADEN
-    // ---------------------------------------------------------
     const loader = new ObjLoader();
     loader.setBasePath("/resources/models/");
 
@@ -151,7 +143,13 @@ export class Demo4 extends AbstractDemo {
   }
 }
 
+// === START DES PROGRAMMS ===
 const app = new Demo4();
-app.start().catch((err: Error) => {
-  console.error("Fehler beim Starten:", err);
-});
+app
+    .start()
+    .then(() => {
+      console.log("Engine läuft!");
+    })
+    .catch((err: Error) => {
+      console.error("Fehler beim Starten der Engine:", err);
+    });
