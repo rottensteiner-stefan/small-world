@@ -4,14 +4,16 @@
 
 ## 🚀 Features
 
-- **Rendering:** Leistungsstarker Renderer (WebGL 1/2 und WebGPU) mit Support für Skyboxen, Sprites und Post-Processing.
+- **Rendering:** Leistungsstarker Renderer (WebGL 1/2 und WebGPU) mit dynamischem Wechsel zur Laufzeit und Fallback-Mechanismus. Unterstützt Skyboxen, Sprites und Post-Processing.
 - **Szenen-Management:** Strukturierter Szenen-Graph mit `Object3D`-Hierarchien.
-- **Materialien & Licht:** Unterstützung für Standard-Materialien (Phong, Lambert, Wireframe, SpriteMaterial) und diverse Lichtquellen (Ambient, Directional, Point, Spot, Area).
-- **Kamera-System:** Flexible Kamera-Strategien (Smooth, Stiff, Fixed, FPS, Isometric) mit optionalen Constraints (Min/Max-Grenzen).
+- **Materialien & Licht:** Unterstützung für Standard-Materialien (Phong, Lambert, Wireframe, SpriteMaterial, TerrainMaterial) und diverse Lichtquellen (Ambient, Directional, Point, Spot, Area).
+- **Kamera-System:** Flexible Kamera-Strategien (Smooth, Stiff, Fixed, FPS, Isometric) mit optionalen Constraints (Min/Max-Grenzen) und Kamera-Effekten (Shake, Flash).
 - **2D/2.5D Support:** Integriertes Sprite-System, Billboard-Rendering und Isometrische Kamera-Perspektiven.
-- **Geometrie:** Integrierte Primitive (Würfel, Kugel, Pyramide, Torus, Ebene etc.) und Terrain-Generierung.
-- **Loader:** Eingebaute Loader für OBJ-Modelle, Texturen und Shader.
-- **Mathematik:** Eigene Implementierung für Vektoren (`Vector3D`), Matrizen (`Matrix4`) und diverse Projektionsarten.
+- **Geometrie:** Umfassende integrierte Primitive (Würfel, Kugel, Pyramide, Torus, Zylinder, Plane, Circle, Triangle etc.) und Terrain-Generierung via Splatmapping.
+- **Farben:** Umfangreiche `Color`-Klasse mit Unterstützung für CSS/X11-Standardfarben und Konvertierungen (RGB, HEX, HSL, HSV).
+- **Loader:** Eingebaute Loader für OBJ-Modelle, Texturen und Konfigurationen.
+- **Eingabe:** Integriertes Input-System für Tastatur und Maus (inklusive Pointer Lock).
+- **Mathematik:** Eigene Implementierung für Vektoren (`Vector3D`, `Vector2D`), Matrizen (`Matrix4`) und diverse Projektionsarten (Perspektivisch, Orthografisch, Oblique).
 
 ## 📦 Installation
 
@@ -32,25 +34,35 @@ Die Konfiguration wird standardmäßig unter `/config/small-world.json` gesucht.
 ```json
 {
   "canvasId": "render-canvas",
-  "renderer": "webgpu",
-  "projection": "perspective",
-  "fullscreen": true
+  "rendererType": "WEB_GPU",
+  "projection": "PERSPECTIVE",
+  "fullscreen": true,
+  "renderer": [
+    {
+      "type": "WEB_GPU",
+      "attributes": {
+        "antialias": true
+      }
+    }
+  ]
 }
 ```
 
 ### 2. Code-Beispiel
 
 ```typescript
-import { Application, Cube, Vector3D, Color } from "smallworld-engine";
+import { Application, Cube, Vector3D, Color, PhongMaterial, Object3D } from "smallworld-engine";
 
 class MyGame extends Application {
   protected async setupScene(): Promise<void> {
     // 1. Objekt erstellen
-    const cube = new Cube(2);
-    cube.position.set(0, 1, 0);
+    const cubeObj = new Object3D("MyCube");
+    cubeObj.geometry = new Cube({ size: 2 }).getGeometryData();
+    cubeObj.material = new PhongMaterial({ color: Color.DODGERBLUE });
+    cubeObj.position.set(0, 1, 0);
 
     // 2. Zur Szene hinzufügen
-    this.scene.add(cube);
+    this.scene.add(cubeObj);
 
     // 3. Kamera einstellen
     this.camera.position.set(5, 5, 5);
@@ -77,7 +89,7 @@ Um am Projekt selbst zu arbeiten:
     npm install
     ```
 
-2.  **Dev-Server starten (mit Hot-Reload):**
+2.  **Dev-Server starten (mit Hot-Reload für die Demos):**
 
     ```bash
     npm run dev
@@ -90,10 +102,15 @@ Um am Projekt selbst zu arbeiten:
 
 ## 📂 Struktur
 
-- `src/core`: Kernklassen (Engine, Application, Kamera, Renderer-Interface).
+- `src/core`: Kernklassen (Engine, Application, Object3D, Scene, Input, Color).
+- `src/core/cameras`: Kameras, Projektionen, Strategien und Effekte.
 - `src/geometry`: Geometrische Formen und Primitive.
-- `src/materials`: Shader-Definitionen und Material-Eigenschaften.
-- `src/math`: Mathematische Hilfsfunktionen, Vektoren und Projektionen.
-- `src/loaders`: Asset-Loader (OBJ, Texturen, JSON).
-- `src/renderers`: Implementierungen der WebGL/WebGPU Renderer.
-- `src/physics`: Kollisionserkennung und Bounding-Volumes.
+- `src/core/materials`: Material-Eigenschaften.
+- `src/core/lights`: Lichtquellen.
+- `src/math`: Mathematische Hilfsfunktionen, Vektoren und Matrizen.
+- `src/loaders`: Asset-Loader (OBJ, Texturen, Config).
+- `src/renderers`: Implementierungen der WebGL1/WebGL2/WebGPU Renderer.
+- `src/interfaces`: TypeScript-Schnittstellen.
+- `src/enums`: Enumerationen.
+- `examples`: Interaktive Demos zur Veranschaulichung der Engine-Features.
+- `public`: Statische Assets wie index.html, Konfigurationen und Demo-Ressourcen.
