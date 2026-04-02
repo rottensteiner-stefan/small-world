@@ -121,5 +121,13 @@ export class Demo5 extends AbstractDemo {
   }
 }
 
+// === START DES PROGRAMMS ===
 const app = new Demo5();
-app.start().catch(console.error);
+app
+    .start()
+    .then(() => {
+      console.log("Engine läuft!");
+    })
+    .catch((err: Error) => {
+      console.error("Fehler beim Starten der Engine:", err);
+    });

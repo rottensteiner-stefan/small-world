@@ -48,9 +48,6 @@ class Demo3 extends AbstractDemo {
     sun.direction.set(-1, -1, -1);
     this.scene.add(sun);
 
-    // ---------------------------------------------------------
-    // HILFS-BODEN (GRID)
-    // ---------------------------------------------------------
     const gridObj = new Object3D("Boden");
     gridObj.geometry = new Grid({ size: 20, divisions: 20 }).getGeometryData();
     const gridMat = new WireframeMaterial();
@@ -59,9 +56,6 @@ class Demo3 extends AbstractDemo {
     gridObj.material = gridMat;
     this.scene.add(gridObj);
 
-    // ---------------------------------------------------------
-    // OBJ LADEN
-    // ---------------------------------------------------------
     const loader = new ObjLoader();
     loader.setBasePath("/resources/models/");
 
