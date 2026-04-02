@@ -206,6 +206,139 @@ export class Color {
   }
 
   /**
+   * Creates a Color from HSL (Hue, Saturation, Lightness).
+   * @param h Hue (0 - 360).
+   * @param s Saturation (0.0 - 1.0).
+   * @param l Lightness (0.0 - 1.0).
+   * @param a Alpha (0.0 - 1.0). Default is 1.0.
+   */
+  public static fromHSL(h: number, s: number, l: number, a: number = 1.0): Color {
+    // Normalize h to 0-1
+    h = (((h % 360) + 360) % 360) / 360;
+
+    let r, g, b;
+
+    if (s === 0) {
+      r = g = b = l; // Achromatic
+    } else {
+      const hue2rgb = (p: number, q: number, t: number) => {
+        if (t < 0) t += 1;
+        if (t > 1) t -= 1;
+        if (t < 1 / 6) return p + (q - p) * 6 * t;
+        if (t < 1 / 2) return q;
+        if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+        return p;
+      };
+
+      const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+      const p = 2 * l - q;
+
+      r = hue2rgb(p, q, h + 1 / 3);
+      g = hue2rgb(p, q, h);
+      b = hue2rgb(p, q, h - 1 / 3);
+    }
+
+    return new Color(r, g, b, a);
+  }
+
+  /**
+   * Creates a Color from HSV/HSB (Hue, Saturation, Value/Brightness).
+   * @param h Hue (0 - 360).
+   * @param s Saturation (0.0 - 1.0).
+   * @param v Value/Brightness (0.0 - 1.0).
+   * @param a Alpha (0.0 - 1.0). Default is 1.0.
+   */
+  public static fromHSV(h: number, s: number, v: number, a: number = 1.0): Color {
+      h = (((h % 360) + 360) % 360) / 360;
+
+      let r = 0, g = 0, b = 0;
+      
+      const i = Math.floor(h * 6);
+      const f = h * 6 - i;
+      const p = v * (1 - s);
+      const q = v * (1 - f * s);
+      const t = v * (1 - (1 - f) * s);
+
+      switch (i % 6) {
+          case 0: r = v, g = t, b = p; break;
+          case 1: r = q, g = v, b = p; break;
+          case 2: r = p, g = v, b = t; break;
+          case 3: r = p, g = q, b = v; break;
+          case 4: r = t, g = p, b = v; break;
+          case 5: r = v, g = p, b = q; break;
+      }
+
+      return new Color(r, g, b, a);
+  }
+
+  /**
+   * Returns the color components as a hex string (e.g. "#FF0000").
+   * @param includeAlpha Whether to include the alpha channel (e.g. "#FF0000FF").
+   */
+  public toHex(includeAlpha: boolean = false): string {
+    const toHexStr = (c: number) => {
+      const hex = Math.round(c * 255).toString(16);
+      return hex.length === 1 ? "0" + hex : hex;
+    };
+
+    let hex = "#" + toHexStr(this.r) + toHexStr(this.g) + toHexStr(this.b);
+    if (includeAlpha) {
+      hex += toHexStr(this.a);
+    }
+    
+    return hex.toUpperCase();
+  }
+
+  /**
+   * Returns the color components as HSL.
+   * @returns An object with { h: (0-360), s: (0-1), l: (0-1) }
+   */
+  public toHSL(): { h: number; s: number; l: number } {
+      const r = this.r, g = this.g, b = this.b;
+      const max = Math.max(r, g, b), min = Math.min(r, g, b);
+      let h = 0, s = 0;
+      const l = (max + min) / 2;
+
+      if (max !== min) {
+          const d = max - min;
+          s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+          
+          switch (max) {
+              case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+              case g: h = (b - r) / d + 2; break;
+              case b: h = (r - g) / d + 4; break;
+          }
+          h /= 6;
+      }
+
+      return { h: h * 360, s, l };
+  }
+
+  /**
+   * Returns the color components as HSV/HSB.
+   * @returns An object with { h: (0-360), s: (0-1), v: (0-1) }
+   */
+  public toHSV(): { h: number; s: number; v: number } {
+      const r = this.r, g = this.g, b = this.b;
+      const max = Math.max(r, g, b), min = Math.min(r, g, b);
+      let h = 0;
+      const v = max;
+      const d = max - min;
+      const s = max === 0 ? 0 : d / max;
+
+      if (max !== min) {
+          switch (max) {
+              case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+              case g: h = (b - r) / d + 2; break;
+              case b: h = (r - g) / d + 4; break;
+          }
+          h /= 6;
+      }
+
+      return { h: h * 360, s, v };
+  }
+
+  /**
    * Returns the color components as an array.
    * @returns [r, g, b, a]
    */
