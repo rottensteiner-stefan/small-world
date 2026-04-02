@@ -11,10 +11,10 @@ export abstract class AbstractWebGLRenderer extends AbstractRenderer {
 
   public override destroy(): void {
     if (this.gl) {
-        const ext = this.gl.getExtension('WEBGL_lose_context');
-        if (ext) {
-            ext.loseContext();
-        }
+      const ext = this.gl.getExtension("WEBGL_lose_context");
+      if (ext) {
+        ext.loseContext();
+      }
     }
   }
 
@@ -39,7 +39,7 @@ export abstract class AbstractWebGLRenderer extends AbstractRenderer {
   // Kompiliert und verlinkt einen Shader
   protected createShaderProgram(vSrc: string, fSrc: string): WebGLProgram {
     if (!this.gl) {
-        throw new Error("[WebGL] Cannot create shader program, context is null.");
+      throw new Error("[WebGL] Cannot create shader program, context is null.");
     }
     const v = this.gl.createShader(this.gl.VERTEX_SHADER)!;
     this.gl.shaderSource(v, vSrc);
@@ -71,7 +71,7 @@ export abstract class AbstractWebGLRenderer extends AbstractRenderer {
   // Baut die weißen/blauen Fallback-Texturen
   protected initDefaultTextures(): void {
     if (!this.gl) {
-        throw new Error("[WebGL] Cannot init default textures, context is null.");
+      throw new Error("[WebGL] Cannot init default textures, context is null.");
     }
     this.defaultTexture = this.gl.createTexture()!;
     this.gl.bindTexture(this.gl.TEXTURE_2D, this.defaultTexture);

@@ -29,7 +29,7 @@ export default defineConfig({
         demo6: resolve(__dirname, "examples/demo6.html"),
       },
       output: {
-        entryFileNames: (assetInfo) => {
+        entryFileNames: () => {
           return `examples/[name]/demo.js`;
         },
         assetFileNames: "assets/[name].[ext]",
