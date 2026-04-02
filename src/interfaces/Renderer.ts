@@ -20,4 +20,5 @@ export interface Renderer {
   render(scene: Scene, vpMatrix: Float32Array, camPos?: Vector3D): void;
   setSize(width: number, height: number): void;
   setClearColor(color: Color): void;
+  destroy?(): void;
 }

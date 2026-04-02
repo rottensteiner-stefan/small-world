@@ -4,5 +4,25 @@
   "debug": true,
   "worldSize": 100,
   "skyColor": "midnightblue",
-  "showHUD": true
+  "showHUD": true,
+  "renderer": [
+    {
+      "type": "WEB_GPU",
+      "attributes": {
+        "antialias": true
+      }
+    },
+    {
+      "type": "WEB_GL2",
+      "attributes": {
+        "antialias": true
+      }
+    },
+    {
+      "type": "WEB_GL1",
+      "attributes": {
+        "antialias": true
+      }
+    }
+  ]
 }

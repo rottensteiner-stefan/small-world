@@ -44,6 +44,10 @@ export abstract class AbstractRenderer implements Renderer {
   /** @inheritdoc */
   public abstract setSize(width: number, height: number): void;
 
+  public destroy(): void {
+      // Base implementation does nothing
+  }
+
   /** @inheritdoc */
   public setClearColor(color: Color): void {
     this._clearColor = color;

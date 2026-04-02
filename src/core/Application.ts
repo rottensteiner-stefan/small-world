@@ -26,6 +26,7 @@ export abstract class Application {
 
     private _lastTime: number = 0;
     private _isRunning: boolean = false;
+    private _isInitialized: boolean = false;
 
     /**
      * Creates a new application.
@@ -34,7 +35,7 @@ export abstract class Application {
     constructor(userConfig: EngineConfig = {}) {
         this.config = {
             canvasId: "canvas",
-            renderer: RendererType.WEB_GPU,
+            rendererType: RendererType.WEB_GPU,
             projection: ProjectionType.PERSPECTIVE,
             fullscreen: true,
             ...userConfig,
@@ -64,7 +65,6 @@ export abstract class Application {
                 far: 1000,
             });
         } else {
-            // Korrektur: 75 Grad in Radianten umrechnen
             projection = new PerspectiveProjection({
                 fov: (75 * Math.PI) / 180,
                 aspect,
@@ -76,7 +76,6 @@ export abstract class Application {
         this.camera = new Camera(projection);
         this.renderer = undefined!; // Initialized in start()
 
-        // Initialize Global Input System
         Input.init();
     }
 
@@ -92,45 +91,51 @@ export abstract class Application {
     protected abstract update(deltaTime: number): void;
 
     /**
-     * Starts the application _loop.
+     * Initializes and starts the application loop.
      */
     public async start(): Promise<void> {
-        try {
-            const response: Response = await fetch("/config/small-world.json");
-            if (response.ok) {
-                const jsonConfig: unknown = await response.json();
-                this.config = {...this.config, ...(jsonConfig as EngineConfig)};
-            }
-        } catch {
-            console.warn("Nutze Fallback-Config (Keine JSON gefunden).");
+        if (this._isRunning) {
+            return;
         }
 
-        console.debug("Canvas ID: " + this.config.canvasId);
-        this.canvas = document.getElementById(this.config.canvasId!) as HTMLCanvasElement;
-        if (this.config.fullscreen) {
-            this.canvas.width = window.innerWidth;
-            this.canvas.height = window.innerHeight;
-            window.addEventListener("resize", () => {
+        if (!this._isInitialized) {
+            try {
+                const response: Response = await fetch("/config/small-world.json");
+                if (response.ok) {
+                    const jsonConfig: unknown = await response.json();
+                    this.config = {...this.config, ...(jsonConfig as EngineConfig)};
+                }
+            } catch {
+                console.warn("Nutze Fallback-Config (Keine JSON gefunden).");
+            }
+
+            this.canvas = document.getElementById(this.config.canvasId!) as HTMLCanvasElement;
+            if (this.config.fullscreen) {
                 this.canvas.width = window.innerWidth;
                 this.canvas.height = window.innerHeight;
-                this.camera.aspect = this.canvas.width / this.canvas.height;
-                this.camera.updateProjectionMatrix();
-                if (undefined !== this.renderer) {
-                    this.renderer.setSize(this.canvas.width, this.canvas.height);
-                }
-            });
-        } else if (this.config.width && this.config.height) {
-            this.canvas.width = this.config.width;
-            this.canvas.height = this.config.height;
+                window.addEventListener("resize", () => {
+                    this.canvas.width = window.innerWidth;
+                    this.canvas.height = window.innerHeight;
+                    this.camera.aspect = this.canvas.width / this.canvas.height;
+                    this.camera.updateProjectionMatrix();
+                    if (this.renderer) {
+                        this.renderer.setSize(this.canvas.width, this.canvas.height);
+                    }
+                });
+            } else if (this.config.width && this.config.height) {
+                this.canvas.width = this.config.width;
+                this.canvas.height = this.config.height;
+            }
+
+            this.renderer = await RendererFactory.create(
+                this.config.rendererType!,
+                this.canvas,
+                this.config,
+            );
+
+            await this.setupScene();
+            this._isInitialized = true;
         }
-
-        this.renderer = await RendererFactory.create(
-            this.config.renderer!,
-            this.canvas,
-            this.config,
-        );
-
-        await this.setupScene();
 
         this._isRunning = true;
         this._lastTime = performance.now();
@@ -138,7 +143,14 @@ export abstract class Application {
     }
 
     /**
-     * The main application _loop.
+     * Stops the application loop.
+     */
+    public stop(): void {
+        this._isRunning = false;
+    }
+
+    /**
+     * The main application loop.
      * @param currentTime The current timestamp.
      */
     private _loop(currentTime: number): void {

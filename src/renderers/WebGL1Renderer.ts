@@ -82,7 +82,9 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
     canvas: HTMLCanvasElement,
     attributes?: Record<string, unknown>,
   ): Promise<void> {
-    const gl =
+    // Versuche den Kontext zu holen. Wenn das Canvas ausgetauscht wurde,
+    // sollte dies erfolgreich sein.
+    let gl =
       canvas.getContext("webgl", attributes) || canvas.getContext("experimental-webgl", attributes);
 
     if (!gl) {
@@ -90,6 +92,10 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
     }
 
     this.gl = gl as WebGLRenderingContext;
+
+    if (!this.gl) {
+      throw new Error("[WebGL1Renderer] GL context is null after assignment.");
+    }
 
     // Nutze geerbte Methode für Fallback-Texturen
     this.initDefaultTextures();

@@ -26,10 +26,16 @@ export class RendererFactory {
     }
 
     let renderer: Renderer;
+    let fallbackToWebGL2 = false;
+
     switch (actualType) {
       case RendererType.WEB_GPU:
         if (undefined === navigator.gpu) {
+          console.warn(
+            "[RendererFactory] WebGPU is not supported in this browser. Falling back to WebGL2.",
+          );
           renderer = new WebGL2Renderer();
+          fallbackToWebGL2 = true;
         } else {
           renderer = new WebGPURenderer();
         }
@@ -46,14 +52,25 @@ export class RendererFactory {
     }
 
     let attributes: Record<string, unknown> | undefined = undefined;
-    if (config?.rendererConfig) {
-      const match = config.rendererConfig.find((rc) => rc.type === actualType);
+    if (config?.renderer) {
+      const searchType = fallbackToWebGL2 ? RendererType.WEB_GL2 : actualType;
+      const match = config.renderer.find((rc) => rc.type === searchType);
       if (match) {
         attributes = match.attributes;
       }
     }
 
-    await renderer.initialize(canvas, attributes);
+    // Wenn der Canvas bereits einen Kontext hat, der nicht mit dem gewünschten
+    // Renderer übereinstimmt, kann getContext() fehlschlagen und null zurückgeben.
+    // Ein Canvas in HTML kann seinen Kontext-Typ nach der ersten Initialisierung
+    // in der Regel nicht mehr ändern (z.B. von "webgl" auf "webgl2").
+    // Das Ersetzen des Canvas-Elements wird nun in Application.ts / AbstractDemo.ts gehandhabt.
+    try {
+        await renderer.initialize(canvas, attributes);
+    } catch (e) {
+        console.error(`Fehler bei der Initialisierung von ${actualType}:`, e);
+        throw e;
+    }
     return renderer;
   }
 }
