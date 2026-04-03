@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Example 2 - Interactive Camera</title>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+        background-color: #000;
+      }
+
+      canvas {
+        display: block;
+        width: 100vw;
+        height: 100vh;
+      }
+
+      .back-btn {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        color: white;
+        background: rgba(0, 0, 0, 0.5);
+        padding: 5px 10px;
+        text-decoration: none;
+        font-family: sans-serif;
+        border-radius: 4px;
+        z-index: 1000;
+      }
+
+      .back-btn:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+
+      .instructions {
+        position: absolute;
+        bottom: 10px;
+        left: 10px;
+        color: white;
+        background: rgba(0, 0, 0, 0.5);
+        padding: 10px;
+        border-radius: 4px;
+        font-family: sans-serif;
+        pointer-events: none;
+      }
+    </style>
+  </head>
+  <body>
+    <a href="/" class="back-btn">← Zurück zur Übersicht</a>
+    <div class="instructions">
+      Steuerung: W, A, S, D für Bewegung | Maus (Rechtsklick halten) zum Umsehen
+    </div>
+
+    <canvas id="SmallWorld"></canvas>
+    <script type="module" src="./example2.ts"></script>
+  </body>
+</html>

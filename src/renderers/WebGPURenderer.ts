@@ -6,6 +6,8 @@ import {
   SpriteMaterial,
   TerrainMaterial,
   Texture,
+  CubeTexture,
+  SkyboxMaterial,
 } from "../core/index.js";
 import { GeometryDataInterface } from "../interfaces/index.js";
 import { Object3D } from "../core/Object3D.js";
@@ -61,8 +63,13 @@ export class WebGPURenderer extends AbstractRenderer {
     WebGPUGeoCache
   >();
   private _objCache: Map<Object3D, WebGPUObjCache> = new Map<Object3D, WebGPUObjCache>();
+  
   private _textureViewCache: Map<Texture, GPUTextureView> = new Map<Texture, GPUTextureView>();
   private _texCache: Map<Texture, GPUBindGroup> = new Map<Texture, GPUBindGroup>();
+  
+  private _cubeTextureViewCache: Map<CubeTexture, GPUTextureView> = new Map<CubeTexture, GPUTextureView>();
+  private _cubeTexBindGroupCache: Map<CubeTexture, GPUBindGroup> = new Map<CubeTexture, GPUBindGroup>();
+  
   private _terrainTexCache: Map<TerrainMaterial, GPUBindGroup> = new Map<
     TerrainMaterial,
     GPUBindGroup
@@ -248,7 +255,6 @@ export class WebGPURenderer extends AbstractRenderer {
       bindGroupLayouts: [this._objBGL, this._skyTexBGL],
     });
 
-    // NEU: Die Puffer explizit in ein Array auslagern!
     const vertexBuffers: GPUVertexBufferLayout[] = [
       { arrayStride: 12, attributes: [{ shaderLocation: 0, offset: 0, format: "float32x3" }] },
       { arrayStride: 12, attributes: [{ shaderLocation: 1, offset: 0, format: "float32x3" }] },
@@ -293,11 +299,11 @@ export class WebGPURenderer extends AbstractRenderer {
     });
 
     this._pipelineSkybox = this._device.createRenderPipeline({
-      // Hier nutzen wir nun direkt unser sicheres Array!
-      vertex: { module: skySm, buffers: [vertexBuffers[0]] },
+      // We pass ALL vertex buffers to the pipeline layout so that rp.setVertexBuffer(1) and (2) don't crash
+      vertex: { module: skySm, buffers: vertexBuffers },
       fragment: { module: skySm, targets: [{ format: this._format }] },
       primitive: { topology: "triangle-list" },
-      depthStencil: { depthWriteEnabled: false, depthCompare: "less", format: "depth24plus" },
+      depthStencil: { depthWriteEnabled: false, depthCompare: "less-equal", format: "depth24plus" },
       layout: skyLayout,
     });
 
@@ -378,6 +384,28 @@ export class WebGPURenderer extends AbstractRenderer {
       ]);
       view = t.createView();
       this._textureViewCache.set(tex, view);
+    }
+    return view;
+  }
+
+  private _getGPUCubeTextureView(tex: CubeTexture): GPUTextureView {
+    let view: GPUTextureView | undefined = this._cubeTextureViewCache.get(tex);
+    if (!view) {
+      const img = tex.images[0]!;
+      const t: GPUTexture = this._device!.createTexture({
+        size: [img.width, img.height, 6],
+        format: "rgba8unorm",
+        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
+      });
+      for (let i: number = 0; i < 6; i++) {
+        this._device!.queue.copyExternalImageToTexture(
+          { source: tex.images[i]! },
+          { texture: t, origin: [0, 0, i] },
+          [img.width, img.height]
+        );
+      }
+      view = t.createView({ dimension: "cube" });
+      this._cubeTextureViewCache.set(tex, view);
     }
     return view;
   }
@@ -487,6 +515,24 @@ export class WebGPURenderer extends AbstractRenderer {
         ],
       });
       this._texCache.set(tex, bg);
+    }
+    return bg;
+  }
+
+  private _getGPUCubeTextureBindGroup(tex: CubeTexture): GPUBindGroup {
+    if (!tex.isLoaded || tex.images.length !== 6) {
+      return this._defaultCubeTexBindGroup;
+    }
+    let bg: GPUBindGroup | undefined = this._cubeTexBindGroupCache.get(tex);
+    if (!bg) {
+      bg = this._device!.createBindGroup({
+        layout: this._skyTexBGL,
+        entries: [
+          { binding: 0, resource: this._getGPUCubeTextureView(tex) },
+          { binding: 1, resource: this._sampler }, // Skyboxes generally use the default sampler
+        ],
+      });
+      this._cubeTexBindGroupCache.set(tex, bg);
     }
     return bg;
   }
@@ -614,7 +660,8 @@ export class WebGPURenderer extends AbstractRenderer {
 
         if (mat.type === MaterialType.SKYBOX) {
           rp.setPipeline(this._pipelineSkybox);
-          rp.setBindGroup(1, this._defaultCubeTexBindGroup);
+          const skyMat = mat as SkyboxMaterial;
+          texBindGroup = skyMat.cubeMap ? this._getGPUCubeTextureBindGroup(skyMat.cubeMap) : this._defaultCubeTexBindGroup;
         } else {
           rp.setPipeline(
             mat.type === MaterialType.WIREFRAME ? this._pipelineLines : this._pipelineTriangles,
