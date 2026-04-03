@@ -46,7 +46,6 @@ export class Demo6 extends AbstractDemo {
         Input.requestPointerLock(this.canvas);
       }
     });
-    console.log("PointerLock-Event auf neues Canvas gebunden (Demo 6).");
   }
 
   /** @inheritdoc */
@@ -87,7 +86,12 @@ export class Demo6 extends AbstractDemo {
     wireMat.color = Color.CYAN;
 
     // 5. Helper function to add examples to the scene
-    const addExample = (name: string, geometry: any, x: number, z: number): void => {
+    const addExample = (
+      name: string,
+      geometry: { getGeometryData(): Exclude<Object3D["geometry"], undefined> },
+      x: number,
+      z: number,
+    ): void => {
       const obj: Object3D = new Object3D(name);
       obj.geometry = geometry.getGeometryData();
       obj.material = wireMat;
@@ -242,13 +246,13 @@ export class Demo6 extends AbstractDemo {
   }
 }
 
-// === START DES PROGRAMMS ===
+// === START THE ENGINE ===
 const app = new Demo6();
 app
   .start()
   .then(() => {
-    console.log("Engine läuft!");
+    console.log("Engine running");
   })
   .catch((err: Error) => {
-    console.error("Fehler beim Starten der Engine:", err);
+    console.error("Error while starting the engine: ", err);
   });

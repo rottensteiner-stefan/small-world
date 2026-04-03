@@ -45,7 +45,7 @@ export abstract class AbstractDemo extends Application {
    */
   protected async switchRenderer(type: RendererType): Promise<void> {
     if (this.renderer.type === type) {
-      console.log(`Renderer ist bereits ${type}.`);
+      console.log(`Current renderer is already ${type}.`);
       return;
     }
 
@@ -55,11 +55,15 @@ export abstract class AbstractDemo extends Application {
     this.stop();
 
     // 2. Cleanup old resources (wichtig für WebGL/WebGPU Limits)
-    if (this.renderer && typeof (this.renderer as any).destroy === "function") {
+    if (
+      this.renderer &&
+      "destroy" in this.renderer &&
+      typeof this.renderer.destroy === "function"
+    ) {
       try {
-        (this.renderer as any).destroy();
+        this.renderer.destroy();
       } catch (e) {
-        console.warn("Fehler beim Zerstören des alten Renderers:", e);
+        console.warn("Error while deconstruction current renderer: ", e);
       }
     }
 
@@ -71,34 +75,35 @@ export abstract class AbstractDemo extends Application {
       return;
     }
 
-    const oldId = this.canvas.id;
+    const className = this.canvas.className;
     const cssText = this.canvas.style.cssText;
-    const w = this.canvas.width;
     const h = this.canvas.height;
+    const oldId = this.canvas.id;
+    const w = this.canvas.width;
 
-    // Altes Canvas entfernen und nullen, um GC zu helfen
+    // Remove and zero out the old canvas to help GC
     parent.removeChild(this.canvas);
     this.canvas.width = 0;
     this.canvas.height = 0;
-    (this.canvas as any) = null;
+    this.canvas = null as unknown as HTMLCanvasElement;
 
-    // WICHTIG: Einen Tick warten, damit der Browser den DOM/Speicher aufräumen kann.
-    // Das löst oft das Problem, dass "zuviele Kontexte" aktiv sind oder getContext sofort fehlschlägt.
+    // Wait a moment so the browser can clear the DOM/memory.
+    // This often solves the problem of "too many contexts" being active or gettingContext failing immediately.
     await new Promise((resolve) => setTimeout(resolve, 50));
 
-    // 3. Create brand new Canvas
+    // 3. Create brand-new Canvas
     const newCanvas = document.createElement("canvas");
     newCanvas.id = oldId;
     newCanvas.width = w || window.innerWidth;
     newCanvas.height = h || window.innerHeight;
     newCanvas.style.cssText = cssText;
+    newCanvas.className = className;
 
     parent.appendChild(newCanvas);
     this.canvas = newCanvas;
+    console.log("Re-created canvas");
 
-    console.log("Neues, unbeflecktes Canvas in den DOM eingefügt.");
-
-    // Wenn erbende Demos Events auf das Canvas gebunden haben, müssen diese neu gebunden werden.
+    // If inheriting demos have bound events to the canvas, these must be rebound.
     this.onCanvasRecreated();
 
     // 4. Create the new renderer
@@ -116,19 +121,17 @@ export abstract class AbstractDemo extends Application {
   }
 
   /**
-   * Hook-Methode, die aufgerufen wird, wenn das Canvas-Element neu erstellt wurde.
-   * Erbende Klassen (wie Demo6) MÜSSEN diese überschreiben, um z.B. Klick-Events für den PointerLock neu zu binden.
+   * A hook method that is called when the canvas element is recreated.
+   * Inheriting classes (like Demo6) MUST override this to, for example, rebind click events for the PointerLock.
    */
   protected onCanvasRecreated(): void {
     // Standardmäßig leer
   }
 
-  /**
-   * Sammelt die wichtigsten Debug-Informationen der Engine.
-   */
   protected getDebugInfo(): Record<string, string | number> {
     return {
       Renderer: this.renderer ? this.renderer.type : "None",
+      "Pointer Locked": Input.isPointerLocked ? "Ja" : "Nein",
       "Cam Modus": this.camera.activeStrategyType,
       "Cam Pos X": this.camera.position.x.toFixed(2),
       "Cam Pos Y": this.camera.position.y.toFixed(2),
@@ -136,9 +139,6 @@ export abstract class AbstractDemo extends Application {
     };
   }
 
-  /**
-   * Hilfsmethode, um die Infos formatiert in die Konsole zu schreiben.
-   */
   protected printDebug(): void {
     console.clear();
     console.table(this.getDebugInfo());

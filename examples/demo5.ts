@@ -74,8 +74,6 @@ export class Demo5 extends AbstractDemo {
       tree.position.set(Math.random() * 16 - 8, 0.4, Math.random() * 16 - 8);
       this.scene.add(tree);
     }
-
-    console.log("Demo 5: Isometric Camera & 2D Intro initialized.");
   }
 
   protected update(deltaTime: number): void {
@@ -92,7 +90,6 @@ export class Demo5 extends AbstractDemo {
     if (strategy instanceof IsometricStrategy) {
       if (Input.isPressed(Keys.P)) {
         strategy.pixelPerfect = !strategy.pixelPerfect;
-        console.log(`Pixel-Perfect Snapping: ${strategy.pixelPerfect}`);
       }
 
       // Example of Screen-to-World (later usage)
@@ -121,13 +118,13 @@ export class Demo5 extends AbstractDemo {
   }
 }
 
-// === START DES PROGRAMMS ===
+// === START THE ENGINE ===
 const app = new Demo5();
 app
   .start()
   .then(() => {
-    console.log("Engine läuft!");
+    console.log("Engine running");
   })
   .catch((err: Error) => {
-    console.error("Fehler beim Starten der Engine:", err);
+    console.error("Error while starting the engine: ", err);
   });
