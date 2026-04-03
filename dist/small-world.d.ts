@@ -1675,6 +1675,12 @@ export declare type MaterialType = (typeof MaterialType)[keyof typeof MaterialTy
  * Utility class for mathematical operations.
  */
 export declare class MathUtils {
+    static readonly PI: number;
+    static readonly TWO_PI: number;
+    static readonly HALF_PI: number;
+    static readonly QUARTER_PI: number;
+    private static readonly DEG2RAD;
+    private static readonly RAD2DEG;
     private static _SIN_TABLE;
     private static _COS_TABLE;
     private static _isInit;
@@ -1682,6 +1688,18 @@ export declare class MathUtils {
      * Initializes the sine and cosine lookup tables.
      */
     static init(): void;
+    /**
+     * Converts degrees to radians.
+     * @param degrees The angle in degrees.
+     * @returns The angle in radians.
+     */
+    static degToRad(degrees: number): number;
+    /**
+     * Converts radians to degrees.
+     * @param radians The angle in radians.
+     * @returns The angle in degrees.
+     */
+    static radToDeg(radians: number): number;
     /**
      * Returns the sine of the given angle in radians using a lookup table.
      * @param rad The angle in radians.

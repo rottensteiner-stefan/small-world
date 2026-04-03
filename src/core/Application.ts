@@ -13,6 +13,7 @@ import { ProjectionType, RendererType } from "../enums/index.js";
 import { RendererFactory } from "../renderers/index.js";
 import { Scene } from "./Scene.js";
 import { Input } from "./Input.js";
+import { MathUtils } from "../math/MathUtils.js";
 
 /**
  * Base class for applications built with the SmallWorld engine.
@@ -71,7 +72,7 @@ export abstract class Application {
       });
     } else {
       projection = new PerspectiveProjection({
-        fov: (75 * Math.PI) / 180,
+        fov: MathUtils.degToRad(75),
         aspect,
         near: 0.1,
         far: 1000,
