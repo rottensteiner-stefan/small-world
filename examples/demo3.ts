@@ -16,18 +16,18 @@ import {
 import { AbstractDemo } from "./AbstractDemo.js";
 
 class Demo3 extends AbstractDemo {
-  // Der Punkt, um den sich die Kamera dreht (Zentrum des Modells)
-  private _targetPos = new Vector3D();
+  // The point around which the camera rotates (center of the model)
+  private _targetPos: Vector3D = new Vector3D();
 
-  protected async setupScene(): Promise<void> {
-    this.canvas.addEventListener("click", () => {
+  protected override async setupScene(): Promise<void> {
+    this.canvas.addEventListener("click", (): void => {
       if (!Input.isPointerLocked) {
         Input.requestPointerLock(this.canvas);
       }
     });
 
-    if (this.camera.projection.type === ProjectionType.PERSPECTIVE) {
-      const aspect = window.innerWidth / window.innerHeight;
+    if (ProjectionType.PERSPECTIVE === this.camera.projection.type) {
+      const aspect: number = window.innerWidth / window.innerHeight;
       this.camera.projection = new PerspectiveProjection({
         fov: (75 * Math.PI) / 180,
         aspect,
@@ -40,63 +40,63 @@ class Demo3 extends AbstractDemo {
     this.camera.setStrategy(CameraStrategyType.SMOOTH);
     this.camera.position.set(0, 5, 15);
 
-    // Licht-Setup: Ambient für weiche Schatten, Directional für Highlights
-    const ambientLight = new AmbientLight({ color: Color.WHITE, intensity: 0.3 });
+    // Light setup: Ambient for soft shadows, Directional for highlights
+    const ambientLight: AmbientLight = new AmbientLight({ color: Color.WHITE, intensity: 0.3 });
     this.scene.add(ambientLight);
 
-    const sun = new DirectionalLight({ color: Color.WHITE, intensity: 0.8 });
+    const sun: DirectionalLight = new DirectionalLight({ color: Color.WHITE, intensity: 0.8 });
     sun.direction.set(-1, -1, -1);
     this.scene.add(sun);
 
-    const gridObj = new Object3D("Boden");
+    const gridObj: Object3D = new Object3D("Floor");
     gridObj.geometry = new Grid({ size: 20, divisions: 20 }).getGeometryData();
-    const gridMat = new WireframeMaterial();
+    const gridMat: WireframeMaterial = new WireframeMaterial();
     gridMat.color = Color.DARKSLATEGRAY;
 
     gridObj.material = gridMat;
     this.scene.add(gridObj);
 
-    const loader = new ObjLoader();
+    const loader: ObjLoader = new ObjLoader();
     loader.setBasePath("/resources/models/");
 
     try {
-      const model = await loader.load("vehicle-racer.obj");
-      const carScale = 5;
+      const model: Object3D = await loader.load("vehicle-racer.obj");
+      const carScale: number = 5;
       model.scale.set(carScale, carScale, carScale);
       model.position.set(0, 0.0, 0);
 
       this.scene.add(model);
-    } catch (error) {
-      console.error("[Demo 3] Fehler beim Laden des Modells:", error);
+    } catch (error: unknown) {
+      console.error("[Demo 3] Error loading model:", error);
     }
   }
 
-  protected update(_deltaTime: number): void {
-    let dx = 0;
-    let dy = 0;
+  protected override update(_deltaTime: number): void {
+    let dx: number = 0;
+    let dy: number = 0;
 
-    // Mausbewegung auslesen, wenn der Pointer gesperrt ist
+    // Read mouse movement if pointer is locked
     if (Input.isPointerLocked) {
       dx = Input.mouse.dx;
       dy = Input.mouse.dy;
     }
 
-    // Deltas sofort zurücksetzen
+    // Reset deltas immediately
     Input.mouse.dx = 0;
     Input.mouse.dy = 0;
 
-    // Kamera-Orbit aktualisieren
+    // Update camera orbit
     this.camera.update(this._targetPos, dx, dy);
   }
 }
 
 // === START THE ENGINE ===
-const app = new Demo3();
+const app: Demo3 = new Demo3();
 app
   .start()
-  .then(() => {
+  .then((): void => {
     console.log("Engine running");
   })
-  .catch((err: Error) => {
+  .catch((err: Error): void => {
     console.error("Error while starting the engine: ", err);
   });

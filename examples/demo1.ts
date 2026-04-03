@@ -14,10 +14,10 @@ import { AbstractDemo } from "./AbstractDemo.js";
 class Demo1 extends AbstractDemo {
   private _myCube!: Object3D;
 
-  protected async setupScene(): Promise<void> {
-    if (this.camera.projection.type === ProjectionType.PERSPECTIVE) {
-      const aspect = window.innerWidth / window.innerHeight;
-      // 75 Grad in Radianten umrechnen: 75 * (Math.PI / 180) = ca. 1.309
+  protected override async setupScene(): Promise<void> {
+    if (ProjectionType.PERSPECTIVE === this.camera.projection.type) {
+      const aspect: number = window.innerWidth / window.innerHeight;
+      // Convert 75 degrees to radians: 75 * (Math.PI / 180) = approx. 1.309
       this.camera.projection = new PerspectiveProjection({
         fov: (75 * Math.PI) / 180,
         aspect,
@@ -27,42 +27,42 @@ class Demo1 extends AbstractDemo {
       this.camera.updateProjectionMatrix();
     }
 
-    // 1. Licht: Eine sanfte Sonne
-    const sun = new DirectionalLight({ color: Color.WHITE, intensity: 0.8 });
+    // 1. Light: A gentle sun
+    const sun: DirectionalLight = new DirectionalLight({ color: Color.WHITE, intensity: 0.8 });
     sun.direction.set(-1, -1, -1);
     this.scene.add(sun);
 
-    // 2. Objekt: Ein einzelner Würfel
+    // 2. Object: A single cube
     this._myCube = new Object3D("RotatingCube");
     this._myCube.geometry = new Cube({ size: 2 }).getGeometryData();
 
-    // 3. Material: Leuchtendes Blau
+    // 3. Material: Glowing blue
     this._myCube.material = new PhongMaterial({
       color: Color.DODGERBLUE,
       shininess: 60,
     });
     this.scene.add(this._myCube);
 
-    // 4. Kamera starr positionieren (schaut standardmäßig auf 0,0,0)
+    // 4. Position camera rigidly (looks at 0,0,0 by default)
     this.camera.position.set(0, 3, 6);
   }
 
-  protected update(deltaTime: number): void {
-    // Den Würfel jeden Frame um alle Achsen drehen lassen
+  protected override update(deltaTime: number): void {
+    // Rotate the cube around all axes every frame
     this._myCube.rotation.x += 1.0 * deltaTime;
     this._myCube.rotation.y += 1.5 * deltaTime;
 
-    // Den Aufruf von this.scene.update() haben wir hier komplett gelöscht!
+    // We have completely removed the call to this.scene.update() here!
   }
 }
 
 // === START THE ENGINE ===
-const app = new Demo1();
+const app: Demo1 = new Demo1();
 app
   .start()
-  .then(() => {
+  .then((): void => {
     console.log("Engine running");
   })
-  .catch((err: Error) => {
+  .catch((err: Error): void => {
     console.error("Error while starting the engine: ", err);
   });

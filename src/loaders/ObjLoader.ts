@@ -6,35 +6,38 @@ import { ModelGeometry } from "../geometry/index.js";
 import { Object3D } from "../core/index.js";
 import { PhongMaterial } from "../core/index.js";
 
-// Hilfsklasse, um Geometrie-Teile nach Material zu sortieren
+// Helper class to sort geometry parts by material
 class MaterialGroup {
   public outVertices: number[] = [];
   public outUVs: number[] = [];
   public outNormals: number[] = [];
   public outIndices: number[] = [];
-  public vertexCache = new Map<string, number>();
-  public indexCounter = 0;
+  public vertexCache: Map<string, number> = new Map<string, number>();
+  public indexCounter: number = 0;
   constructor(public name: string) {}
 }
 
 export class ObjLoader extends AbstractLoader<Object3D> {
-  public async load(url: string): Promise<Object3D> {
-    const fullUrl = this.basePath + url;
+  public override async load(url: string): Promise<Object3D> {
+    const fullUrl: string = this.basePath + url;
     this.dispatchEvent(EventType.LOADER_START, { url: fullUrl });
 
     try {
-      const text = await AssetManager.loadText(fullUrl, (loaded, total) => {
-        this.dispatchEvent(EventType.LOADER_PROGRESS, { url: fullUrl, loaded, total });
-      });
+      const text: string = await AssetManager.loadText(
+        fullUrl,
+        (loaded: number, total: number): void => {
+          this.dispatchEvent(EventType.LOADER_PROGRESS, { url: fullUrl, loaded, total });
+        },
+      );
 
-      // Den Ordner-Pfad extrahieren, damit wir wissen, wo wir die .mtl Datei suchen müssen
-      const folderPath = fullUrl.substring(0, fullUrl.lastIndexOf("/") + 1);
+      // Extract folder path to know where to look for the .mtl file
+      const folderPath: string = fullUrl.substring(0, fullUrl.lastIndexOf("/") + 1);
 
-      const rootObject = await this._parse(text, folderPath);
+      const rootObject: Object3D = await this._parse(text, folderPath);
 
       this.dispatchEvent(EventType.LOADER_END, { url: fullUrl, data: rootObject });
       return rootObject;
-    } catch (error) {
+    } catch (error: unknown) {
       this.dispatchEvent(EventType.LOADER_ERROR, { url: fullUrl, error });
       throw error;
     }
@@ -45,61 +48,67 @@ export class ObjLoader extends AbstractLoader<Object3D> {
     const tempUVs: number[] = [];
     const tempNormals: number[] = [];
 
-    let materials = new Map<string, PhongMaterial>();
-    const groups = new Map<string, MaterialGroup>();
+    let materials: Map<string, PhongMaterial> = new Map<string, PhongMaterial>();
+    const groups: Map<string, MaterialGroup> = new Map<string, MaterialGroup>();
 
-    // Fallback-Gruppe, falls im OBJ kein Material definiert ist
-    let currentGroup = new MaterialGroup("default");
+    // Fallback group if no material is defined in the OBJ
+    let currentGroup: MaterialGroup = new MaterialGroup("default");
     groups.set("default", currentGroup);
 
-    let pos = 0;
+    let pos: number = 0;
     while (pos < text.length) {
-      let nextNL = text.indexOf("\n", pos);
-      if (nextNL === -1) nextNL = text.length;
+      let nextNL: number = text.indexOf("\n", pos);
+      if (-1 === nextNL) {
+        nextNL = text.length;
+      }
 
-      const line = text.substring(pos, nextNL).trim();
+      const line: string = text.substring(pos, nextNL).trim();
       pos = nextNL + 1;
 
-      if (line.length === 0 || line.startsWith("#")) continue;
+      if (0 === line.length || line.startsWith("#")) {
+        continue;
+      }
 
-      const parts = line.split(/\s+/);
-      if (parts.length < 2) continue;
+      const parts: string[] = line.split(/\s+/);
+      if (2 > parts.length) {
+        continue;
+      }
 
-      const type = parts[0];
+      const type: string = parts[0]!;
 
-      if (type === "mtllib") {
-        const mtlLoader = new MtlLoader();
+      if ("mtllib" === type) {
+        const mtlLoader: MtlLoader = new MtlLoader();
         materials = await mtlLoader.load(folderPath + parts[1]!);
-      } else if (type === "usemtl") {
-        // Wechsle die aktive Material-Gruppe für alle folgenden Faces
-        const matName = parts[1]!;
+      } else if ("usemtl" === type) {
+        // Switch the active material group for all subsequent faces
+        const matName: string = parts[1]!;
         if (!groups.has(matName)) {
           groups.set(matName, new MaterialGroup(matName));
         }
         currentGroup = groups.get(matName)!;
-      } else if (type === "v") {
+      } else if ("v" === type) {
         tempVertices.push(parseFloat(parts[1]!), parseFloat(parts[2]!), parseFloat(parts[3]!));
-      } else if (type === "vt") {
+      } else if ("vt" === type) {
         tempUVs.push(parseFloat(parts[1]!), parseFloat(parts[2]!));
-      } else if (type === "vn") {
+      } else if ("vn" === type) {
         tempNormals.push(parseFloat(parts[1]!), parseFloat(parts[2]!), parseFloat(parts[3]!));
-      } else if (type === "f") {
-        for (let i = 2; i < parts.length - 1; i++) {
-          const v1 = this._parseFaceVertex(
+      } else if ("f" === type) {
+        for (let i: number = 2; i < parts.length - 1; i++) {
+          const v1: number = this._parseFaceVertex(
             parts[1]!,
             tempVertices,
             tempUVs,
             tempNormals,
             currentGroup,
           );
-          const v2 = this._parseFaceVertex(
+          const v2: number = this._parseFaceVertex(
             parts[i]!,
             tempVertices,
             tempUVs,
             tempNormals,
             currentGroup,
           );
-          const v3 = this._parseFaceVertex(
+          const v3: number = this._parseFaceVertex(
             parts[i + 1]!,
             tempVertices,
             tempUVs,
@@ -111,14 +120,16 @@ export class ObjLoader extends AbstractLoader<Object3D> {
       }
     }
 
-    // Baue das finale Szenen-Objekt zusammen
-    const root = new Object3D("ModelRoot");
+    // Assemble the final scene object
+    const root: Object3D = new Object3D("ModelRoot");
 
-    groups.forEach((group, name) => {
-      // Leere Gruppen (z.B. das "default", wenn das OBJ direkt mit usemtl startet) ignorieren
-      if (group.outIndices.length === 0) return;
+    groups.forEach((group: MaterialGroup, name: string): void => {
+      // Ignore empty groups (e.g. "default" if OBJ starts directly with usemtl)
+      if (0 === group.outIndices.length) {
+        return;
+      }
 
-      const child = new Object3D(name);
+      const child: Object3D = new Object3D(name);
       child.geometry = new ModelGeometry(
         group.outVertices,
         group.outUVs,
@@ -140,25 +151,27 @@ export class ObjLoader extends AbstractLoader<Object3D> {
     tempVN: number[],
     group: MaterialGroup,
   ): number {
-    if (group.vertexCache.has(faceStr)) return group.vertexCache.get(faceStr)!;
+    if (group.vertexCache.has(faceStr)) {
+      return group.vertexCache.get(faceStr)!;
+    }
 
-    const parts = faceStr.split("/");
-    const vIdx = (parseInt(parts[0]!) - 1) * 3;
+    const parts: string[] = faceStr.split("/");
+    const vIdx: number = (parseInt(parts[0]!) - 1) * 3;
     group.outVertices.push(tempV[vIdx]!, tempV[vIdx + 1]!, tempV[vIdx + 2]!);
 
-    if (parts.length > 1 && parts[1] !== "") {
-      const vtIdx = (parseInt(parts[1]!) - 1) * 2;
+    if (1 < parts.length && "" !== parts[1]) {
+      const vtIdx: number = (parseInt(parts[1]!) - 1) * 2;
       group.outUVs.push(tempVT[vtIdx]!, tempVT[vtIdx + 1]!);
     } else {
       group.outUVs.push(0, 0);
     }
 
-    if (parts.length > 2) {
-      const vnIdx = (parseInt(parts[2]!) - 1) * 3;
+    if (2 < parts.length) {
+      const vnIdx: number = (parseInt(parts[2]!) - 1) * 3;
       group.outNormals.push(tempVN[vnIdx]!, tempVN[vnIdx + 1]!, tempVN[vnIdx + 2]!);
     }
 
-    const newIndex = group.indexCounter++;
+    const newIndex: number = group.indexCounter++;
     group.vertexCache.set(faceStr, newIndex);
     return newIndex;
   }

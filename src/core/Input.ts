@@ -34,9 +34,13 @@ export class Input {
    * Initializes the input listeners.
    */
   public static init(): void {
-    window.addEventListener("keydown", (e: KeyboardEvent) => this._keys.set(e.code, true));
-    window.addEventListener("keyup", (e: KeyboardEvent) => this._keys.set(e.code, false));
-    window.addEventListener("mousedown", (e: MouseEvent) => {
+    window.addEventListener("keydown", (e: KeyboardEvent): void => {
+      this._keys.set(e.code, true);
+    });
+    window.addEventListener("keyup", (e: KeyboardEvent): void => {
+      this._keys.set(e.code, false);
+    });
+    window.addEventListener("mousedown", (e: MouseEvent): void => {
       if (0 === e.button) {
         this.mouse.left = true;
       }
@@ -44,7 +48,7 @@ export class Input {
         this.mouse.right = true;
       }
     });
-    window.addEventListener("mouseup", (e: MouseEvent) => {
+    window.addEventListener("mouseup", (e: MouseEvent): void => {
       if (0 === e.button) {
         this.mouse.left = false;
       }
@@ -52,15 +56,15 @@ export class Input {
         this.mouse.right = false;
       }
     });
-    window.addEventListener("mousemove", (e: MouseEvent) => {
+    window.addEventListener("mousemove", (e: MouseEvent): void => {
       this.mouse.x = e.clientX;
       this.mouse.y = e.clientY;
       this.mouse.dx += e.movementX;
       this.mouse.dy += e.movementY;
     });
-    window.addEventListener("contextmenu", (e: MouseEvent) => e.preventDefault());
+    window.addEventListener("contextmenu", (e: MouseEvent): void => e.preventDefault());
 
-    document.addEventListener("pointerlockchange", () => {
+    document.addEventListener("pointerlockchange", (): void => {
       this.isPointerLocked = undefined !== document.pointerLockElement;
     });
   }
@@ -73,7 +77,7 @@ export class Input {
     try {
       element.requestPointerLock();
     } catch (e: unknown) {
-      console.warn("[Input] Konnte PointerLock nicht aktivieren:", e);
+      console.warn("[Input] Could not activate PointerLock:", e);
     }
   }
 

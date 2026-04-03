@@ -13,14 +13,14 @@ export interface TerrainMaterialOptions {
   color?: Color;
   /** The shininess factor. Defaults to 10. */
   shininess?: number;
-  /** Sand biome texture map. Defaults to null. */
-  sandMap?: Texture | null;
-  /** Grass biome texture map. Defaults to null. */
-  grassMap?: Texture | null;
-  /** Rock biome texture map. Defaults to null. */
-  rockMap?: Texture | null;
-  /** Snow biome texture map. Defaults to null. */
-  snowMap?: Texture | null;
+  /** Sand biome texture map. Defaults to undefined. */
+  sandMap?: Texture | undefined;
+  /** Grass biome texture map. Defaults to undefined. */
+  grassMap?: Texture | undefined;
+  /** Rock biome texture map. Defaults to undefined. */
+  rockMap?: Texture | undefined;
+  /** Snow biome texture map. Defaults to undefined. */
+  snowMap?: Texture | undefined;
   /** Texture repetition factors. Defaults to [20.0, 20.0]. */
   texRepeat?: [number, number];
   /** Thresholds for biome transitions. Defaults to [2.0, 15.0, 25.0, 2.0]. */
@@ -38,13 +38,13 @@ export class TerrainMaterial extends AbstractMaterial {
   public shininess: number;
 
   /** Sand biome texture map. */
-  public sandMap: Texture | null;
+  public sandMap: Texture | undefined;
   /** Grass biome texture map. */
-  public grassMap: Texture | null;
+  public grassMap: Texture | undefined;
   /** Rock biome texture map. */
-  public rockMap: Texture | null;
+  public rockMap: Texture | undefined;
   /** Snow biome texture map. */
-  public snowMap: Texture | null;
+  public snowMap: Texture | undefined;
 
   /** Texture repetition factors. */
   public texRepeat: [number, number];
@@ -61,10 +61,10 @@ export class TerrainMaterial extends AbstractMaterial {
     const {
       color = Color.WHITE,
       shininess = 10,
-      sandMap = null,
-      grassMap = null,
-      rockMap = null,
-      snowMap = null,
+      sandMap = undefined,
+      grassMap = undefined,
+      rockMap = undefined,
+      snowMap = undefined,
       texRepeat = [20.0, 20.0],
       thresholds = [2.0, 15.0, 25.0, 2.0],
     } = options;

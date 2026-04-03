@@ -10,26 +10,30 @@ export class AssetManager {
     url: string,
     onProgress?: ProgressCallback,
   ): Promise<Blob> {
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`[AssetManager] HTTP Fehler: ${response.status} bei ${url}`);
+    const response: Response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`[AssetManager] HTTP error: ${response.status} at ${url}`);
+    }
 
-    const contentLength = response.headers.get("content-length");
-    const total = contentLength ? parseInt(contentLength, 10) : 0;
+    const contentLength: string | null = response.headers.get("content-length");
+    const total: number = contentLength ? parseInt(contentLength, 10) : 0;
 
     if (!onProgress || !response.body) {
       return response.blob();
     }
 
-    const reader = response.body.getReader();
-    let loaded = 0;
+    const reader: ReadableStreamDefaultReader<Uint8Array> = response.body.getReader();
+    let loaded: number = 0;
     const chunks: BlobPart[] = [];
 
     while (true) {
       const { done, value } = await reader.read();
-      if (done) break;
+      if (done) {
+        break;
+      }
       if (value) {
         loaded += value.length;
-        chunks.push(value as Uint8Array);
+        chunks.push(value);
         onProgress(loaded, total);
       }
     }

@@ -93,7 +93,7 @@ export abstract class AbstractRenderer implements Renderer {
         }
         case LightType.DIRECTIONAL: {
           const dl: DirectionalLight = light as DirectionalLight;
-          // Optimierung: Direkt setzen statt clone()
+          // Optimization: Set directly instead of clone()
           this._lightData.dDir.set(dl.direction.x, dl.direction.y, dl.direction.z);
           this._lightData.dDir.scale(-1).normalize();
           this._lightData.dCol.set(
@@ -104,15 +104,21 @@ export abstract class AbstractRenderer implements Renderer {
           break;
         }
         case LightType.POINT: {
-          if (4 > this._lightData.pLights.length) this._lightData.pLights.push(light as PointLight);
+          if (4 > this._lightData.pLights.length) {
+            this._lightData.pLights.push(light as PointLight);
+          }
           break;
         }
         case LightType.SPOT: {
-          if (4 > this._lightData.sLights.length) this._lightData.sLights.push(light as SpotLight);
+          if (4 > this._lightData.sLights.length) {
+            this._lightData.sLights.push(light as SpotLight);
+          }
           break;
         }
         case LightType.AREA: {
-          if (4 > this._lightData.aLights.length) this._lightData.aLights.push(light as AreaLight);
+          if (4 > this._lightData.aLights.length) {
+            this._lightData.aLights.push(light as AreaLight);
+          }
           break;
         }
       }
