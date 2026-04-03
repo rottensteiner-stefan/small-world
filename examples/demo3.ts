@@ -90,13 +90,13 @@ class Demo3 extends AbstractDemo {
   }
 }
 
-// === START DES PROGRAMMS ===
+// === START THE ENGINE ===
 const app = new Demo3();
 app
   .start()
   .then(() => {
-    console.log("Engine läuft!");
+    console.log("Engine running");
   })
   .catch((err: Error) => {
-    console.error("Fehler beim Starten der Engine:", err);
+    console.error("Error while starting the engine: ", err);
   });

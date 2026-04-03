@@ -56,13 +56,13 @@ class Demo1 extends AbstractDemo {
   }
 }
 
-// === START DES PROGRAMMS ===
+// === START THE ENGINE ===
 const app = new Demo1();
 app
   .start()
   .then(() => {
-    console.log("Engine läuft! Aktiver Renderer: " + app.config.rendererType);
+    console.log("Engine running");
   })
   .catch((err: Error) => {
-    console.error("Fehler beim Starten der Engine:", err);
+    console.error("Error while starting the engine: ", err);
   });

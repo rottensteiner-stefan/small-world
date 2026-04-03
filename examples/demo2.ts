@@ -27,8 +27,6 @@ export class Demo2 extends AbstractDemo {
 
   /** @inheritdoc */
   protected async setupScene(): Promise<void> {
-    console.log("=== LEVEL 2: SETUP GESTARTET ===");
-
     // 1. Eingabe initialisieren (Keyboard & Mouse)
     Input.init();
 
@@ -99,14 +97,8 @@ export class Demo2 extends AbstractDemo {
 
       this.scene.add(box);
     }
-
-    console.log("=== LEVEL 2: SETUP ABGESCHLOSSEN ===");
-    console.log("Steuerung: W,A,S,D zum Bewegen. Klicken für Kamera-Rotation (PointerLock).");
   }
 
-  /**
-   * Wird aufgerufen, wenn das Canvas-Element (z.B. wegen Renderer-Wechsel) neu erstellt wurde.
-   */
   protected override onCanvasRecreated(): void {
     // Da wir das Canvas neu erstellt haben, müssen wir den Click-Listener wieder anhängen!
     this.canvas.addEventListener("click", () => {
@@ -114,7 +106,6 @@ export class Demo2 extends AbstractDemo {
         Input.requestPointerLock(this.canvas);
       }
     });
-    console.log("[Demo2] Canvas neu erstellt, Click-Listener wiederhergestellt.");
   }
 
   /** @inheritdoc */
@@ -159,18 +150,17 @@ export class Demo2 extends AbstractDemo {
     return {
       ...base,
       Demo: "02 - FPS Kamera",
-      PointerLocked: Input.isPointerLocked ? "Ja" : "Nein",
     };
   }
 }
 
-// === START DES PROGRAMMS ===
-const app: Demo2 = new Demo2();
+// === START THE ENGINE ===
+const app = new Demo2();
 app
   .start()
   .then(() => {
-    console.log("Level 2 gestartet!");
+    console.log("Engine running");
   })
   .catch((err: Error) => {
-    console.error("Fehler beim Starten von Level 2:", err);
+    console.error("Error while starting the engine: ", err);
   });
