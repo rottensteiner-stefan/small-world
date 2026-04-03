@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.13.04] - 2026-04-03
+
+- Fix PointerLocked issues
+
 ## [0.13.03] - 2026-04-03
 
 - Clean up log-messages
