@@ -3,6 +3,7 @@
 import { Matrix4 } from "../Matrix4.js";
 import { AbstractProjection } from "./AbstractProjection.js";
 import { ProjectionType } from "../../enums/index.js";
+import { MathUtils } from "../MathUtils.js";
 
 /**
  * Configuration options for perspective projection.
@@ -43,7 +44,7 @@ export class PerspectiveProjection extends AbstractProjection {
    */
   constructor(options: PerspectiveOptions = {}) {
     super();
-    const { fov = (75 * Math.PI) / 180, aspect = 1, near = 0.1, far = 1000 } = options;
+    const { fov = MathUtils.degToRad(75), aspect = 1, near = 0.1, far = 1000 } = options;
     this.fov = fov;
     this.aspect = aspect;
     this.near = near;

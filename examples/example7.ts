@@ -9,6 +9,7 @@ import {
     DirectionalLight,
     Input,
     Keys,
+    MathUtils,
     Object3D,
     PerspectiveProjection,
     PhongMaterial,
@@ -43,7 +44,7 @@ export class Example7 extends AbstractExample {
         // 1. Camera
         const aspect: number = window.innerWidth / window.innerHeight;
         this.camera.projection = new PerspectiveProjection({
-            fov: (75 * Math.PI) / 180,
+            fov: MathUtils.degToRad(75),
             aspect,
             near: 0.1,
             far: 2000, // Make sure far plane is large enough for the skybox
@@ -81,7 +82,7 @@ export class Example7 extends AbstractExample {
             color: new Color(0.2, 0.8, 0.2), // Bright grass green
             shininess: 0,
         });
-        floor.rotation.x = -Math.PI / 2;
+        floor.rotation.x = -MathUtils.HALF_PI;
         this.scene.add(floor);
     }
 
