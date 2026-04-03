@@ -1,81 +1,81 @@
 /// src/core/materials/TerrainMaterial.ts
 
-import { AbstractMaterial } from "./AbstractMaterial.js";
-import { MaterialType } from "../../enums/MaterialType.js";
-import { Texture } from "../textures/Texture.js";
-import { Color } from "../colors/Color.js";
+import {AbstractMaterial} from "./AbstractMaterial.js";
+import {MaterialType} from "../../enums/index.js";
+import {Texture} from "../textures/Texture.js";
+import {Color} from "../colors/Color.js";
 
 /**
  * Configuration options for terrain material.
  */
 export interface TerrainMaterialOptions {
-  /** The base color. Defaults to white. */
-  color?: Color;
-  /** The shininess factor. Defaults to 10. */
-  shininess?: number;
-  /** Sand biome texture map. Defaults to undefined. */
-  sandMap?: Texture | undefined;
-  /** Grass biome texture map. Defaults to undefined. */
-  grassMap?: Texture | undefined;
-  /** Rock biome texture map. Defaults to undefined. */
-  rockMap?: Texture | undefined;
-  /** Snow biome texture map. Defaults to undefined. */
-  snowMap?: Texture | undefined;
-  /** Texture repetition factors. Defaults to [20.0, 20.0]. */
-  texRepeat?: [number, number];
-  /** Thresholds for biome transitions. Defaults to [2.0, 15.0, 25.0, 2.0]. */
-  thresholds?: [number, number, number, number];
+    /** The base color. Defaults to white. */
+    color?: Color;
+    /** The shininess factor. Defaults to 10. */
+    shininess?: number;
+    /** Sand biome texture map. Defaults to undefined. */
+    sandMap?: Texture | undefined;
+    /** Grass biome texture map. Defaults to undefined. */
+    grassMap?: Texture | undefined;
+    /** Rock biome texture map. Defaults to undefined. */
+    rockMap?: Texture | undefined;
+    /** Snow biome texture map. Defaults to undefined. */
+    snowMap?: Texture | undefined;
+    /** Texture repetition factors. Defaults to [20.0, 20.0]. */
+    texRepeat?: [number, number];
+    /** Thresholds for biome transitions. Defaults to [2.0, 15.0, 25.0, 2.0]. */
+    thresholds?: [number, number, number, number];
 }
 
 /**
  * Material specifically for terrain rendering with splatmapping.
  */
 export class TerrainMaterial extends AbstractMaterial {
-  /** @inheritdoc */
-  public override readonly type: MaterialType = MaterialType.TERRAIN;
+    /** @inheritdoc */
+    public override readonly type: MaterialType = MaterialType.TERRAIN;
 
-  /** The shininess factor. */
-  public shininess: number;
+    /** The shininess factor. */
+    public shininess: number;
 
-  /** Sand biome texture map. */
-  public sandMap: Texture | undefined;
-  /** Grass biome texture map. */
-  public grassMap: Texture | undefined;
-  /** Rock biome texture map. */
-  public rockMap: Texture | undefined;
-  /** Snow biome texture map. */
-  public snowMap: Texture | undefined;
+    /** Sand biome texture map. */
+    public sandMap: Texture | undefined;
+    /** Grass biome texture map. */
+    public grassMap: Texture | undefined;
+    /** Rock biome texture map. */
+    public rockMap: Texture | undefined;
+    /** Snow biome texture map. */
+    public snowMap: Texture | undefined;
 
-  /** Texture repetition factors. */
-  public texRepeat: [number, number];
+    /** Texture repetition factors. */
+    public texRepeat: [number, number];
 
-  /** Thresholds for biome transitions: [SandToGrass, GrassToRock, RockToSnow, TransitionSoftness]. */
-  public thresholds: [number, number, number, number];
+    /** Thresholds for biome transitions: [SandToGrass, GrassToRock, RockToSnow, TransitionSoftness]. */
+    public thresholds: [number, number, number, number];
 
-  /**
-   * Creates a new TerrainMaterial.
-   * @param options The configuration options for the material.
-   */
-  constructor(options: TerrainMaterialOptions = {}) {
-    super();
-    const {
-      color = Color.WHITE,
-      shininess = 10,
-      sandMap = undefined,
-      grassMap = undefined,
-      rockMap = undefined,
-      snowMap = undefined,
-      texRepeat = [20.0, 20.0],
-      thresholds = [2.0, 15.0, 25.0, 2.0],
-    } = options;
+    /**
+     * Creates a new TerrainMaterial.
+     * @param options The configuration options for the material.
+     */
+    constructor(options: TerrainMaterialOptions = {}) {
+        super();
+        const {
+            color = Color.WHITE,
+            shininess = 10,
+            sandMap = undefined,
+            grassMap = undefined,
+            rockMap = undefined,
+            snowMap = undefined,
+            texRepeat = [20.0, 20.0],
+            thresholds = [2.0, 15.0, 25.0, 2.0],
+        } = options;
 
-    this.color = color;
-    this.shininess = shininess;
-    this.sandMap = sandMap;
-    this.grassMap = grassMap;
-    this.rockMap = rockMap;
-    this.snowMap = snowMap;
-    this.texRepeat = texRepeat;
-    this.thresholds = thresholds;
-  }
+        this.color = color;
+        this.shininess = shininess;
+        this.sandMap = sandMap;
+        this.grassMap = grassMap;
+        this.rockMap = rockMap;
+        this.snowMap = snowMap;
+        this.texRepeat = texRepeat;
+        this.thresholds = thresholds;
+    }
 }
