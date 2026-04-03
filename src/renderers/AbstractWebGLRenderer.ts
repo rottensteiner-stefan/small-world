@@ -3,7 +3,7 @@
 import { AbstractRenderer } from "./AbstractRenderer.js";
 import { Color } from "../core/index.js";
 export abstract class AbstractWebGLRenderer extends AbstractRenderer {
-  // WebGL2 context erbt von WebGL1 context
+  // WebGL2 context inherits from WebGL1 context
   protected gl!: WebGLRenderingContext | WebGL2RenderingContext;
 
   protected defaultTexture!: WebGLTexture;
@@ -11,7 +11,7 @@ export abstract class AbstractWebGLRenderer extends AbstractRenderer {
 
   public override destroy(): void {
     if (this.gl) {
-      const ext = this.gl.getExtension("WEBGL_lose_context");
+      const ext: WEBGL_lose_context | null = this.gl.getExtension("WEBGL_lose_context");
       if (ext) {
         ext.loseContext();
       }
@@ -19,7 +19,7 @@ export abstract class AbstractWebGLRenderer extends AbstractRenderer {
   }
 
   public setSize(w: number, h: number): void {
-    const d = devicePixelRatio;
+    const d: number = devicePixelRatio;
     this.gl.canvas.width = w * d;
     this.gl.canvas.height = h * d;
 
@@ -36,42 +36,42 @@ export abstract class AbstractWebGLRenderer extends AbstractRenderer {
     this.gl.clearColor(color.r, color.g, color.b, color.a);
   }
 
-  // Kompiliert und verlinkt einen Shader
+  // Compiles and links a shader program
   protected createShaderProgram(vSrc: string, fSrc: string): WebGLProgram {
     if (!this.gl) {
-      throw new Error("[WebGL] Cannot create shader program, context is null.");
+      throw new Error("[WebGL] Cannot create shader program, context is undefined.");
     }
-    const v = this.gl.createShader(this.gl.VERTEX_SHADER)!;
+    const v: WebGLShader = this.gl.createShader(this.gl.VERTEX_SHADER)!;
     this.gl.shaderSource(v, vSrc);
     this.gl.compileShader(v);
 
     if (!this.gl.getShaderParameter(v, this.gl.COMPILE_STATUS)) {
-      console.error("[WebGL] Vertex Shader Fehler:", this.gl.getShaderInfoLog(v));
+      console.error("[WebGL] Vertex Shader Error:", this.gl.getShaderInfoLog(v));
     }
 
-    const f = this.gl.createShader(this.gl.FRAGMENT_SHADER)!;
+    const f: WebGLShader = this.gl.createShader(this.gl.FRAGMENT_SHADER)!;
     this.gl.shaderSource(f, fSrc);
     this.gl.compileShader(f);
 
     if (!this.gl.getShaderParameter(f, this.gl.COMPILE_STATUS)) {
-      console.error("[WebGL] Fragment Shader Fehler:", this.gl.getShaderInfoLog(f));
+      console.error("[WebGL] Fragment Shader Error:", this.gl.getShaderInfoLog(f));
     }
 
-    const p = this.gl.createProgram()!;
+    const p: WebGLProgram = this.gl.createProgram()!;
     this.gl.attachShader(p, v);
     this.gl.attachShader(p, f);
     this.gl.linkProgram(p);
 
-    // RAM sparen
+    // Free memory
     this.gl.deleteShader(v);
     this.gl.deleteShader(f);
     return p;
   }
 
-  // Baut die weißen/blauen Fallback-Texturen
+  // Builds the white/blue fallback textures
   protected initDefaultTextures(): void {
     if (!this.gl) {
-      throw new Error("[WebGL] Cannot init default textures, context is null.");
+      throw new Error("[WebGL] Cannot init default textures, context is undefined.");
     }
     this.defaultTexture = this.gl.createTexture()!;
     this.gl.bindTexture(this.gl.TEXTURE_2D, this.defaultTexture);
@@ -89,7 +89,7 @@ export abstract class AbstractWebGLRenderer extends AbstractRenderer {
 
     this.defaultCubeTexture = this.gl.createTexture()!;
     this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, this.defaultCubeTexture);
-    for (let i = 0; i < 6; i++) {
+    for (let i: number = 0; 6 > i; i++) {
       this.gl.texImage2D(
         this.gl.TEXTURE_CUBE_MAP_POSITIVE_X + i,
         0,

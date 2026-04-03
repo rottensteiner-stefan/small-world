@@ -2161,7 +2161,7 @@ export declare class PhongMaterial extends AbstractMaterial {
     /** The shininess factor. */
     shininess: number;
     /** The diffuse texture map. */
-    diffuseMap: Texture | null;
+    diffuseMap: Texture | undefined;
     /**
      * Creates a new PhongMaterial.
      * @param options The configuration options for the material.
@@ -2179,8 +2179,8 @@ export declare interface PhongMaterialOptions {
     specularColor?: Color;
     /** The shininess factor. Defaults to 32.0. */
     shininess?: number;
-    /** The diffuse texture map. Defaults to null. */
-    diffuseMap?: Texture | null;
+    /** The diffuse texture map. Defaults to undefined. */
+    diffuseMap?: Texture | undefined;
 }
 
 /**
@@ -2724,13 +2724,13 @@ export declare class TerrainMaterial extends AbstractMaterial {
     /** The shininess factor. */
     shininess: number;
     /** Sand biome texture map. */
-    sandMap: Texture | null;
+    sandMap: Texture | undefined;
     /** Grass biome texture map. */
-    grassMap: Texture | null;
+    grassMap: Texture | undefined;
     /** Rock biome texture map. */
-    rockMap: Texture | null;
+    rockMap: Texture | undefined;
     /** Snow biome texture map. */
-    snowMap: Texture | null;
+    snowMap: Texture | undefined;
     /** Texture repetition factors. */
     texRepeat: [number, number];
     /** Thresholds for biome transitions: [SandToGrass, GrassToRock, RockToSnow, TransitionSoftness]. */
@@ -2750,14 +2750,14 @@ export declare interface TerrainMaterialOptions {
     color?: Color;
     /** The shininess factor. Defaults to 10. */
     shininess?: number;
-    /** Sand biome texture map. Defaults to null. */
-    sandMap?: Texture | null;
-    /** Grass biome texture map. Defaults to null. */
-    grassMap?: Texture | null;
-    /** Rock biome texture map. Defaults to null. */
-    rockMap?: Texture | null;
-    /** Snow biome texture map. Defaults to null. */
-    snowMap?: Texture | null;
+    /** Sand biome texture map. Defaults to undefined. */
+    sandMap?: Texture | undefined;
+    /** Grass biome texture map. Defaults to undefined. */
+    grassMap?: Texture | undefined;
+    /** Rock biome texture map. Defaults to undefined. */
+    rockMap?: Texture | undefined;
+    /** Snow biome texture map. Defaults to undefined. */
+    snowMap?: Texture | undefined;
     /** Texture repetition factors. Defaults to [20.0, 20.0]. */
     texRepeat?: [number, number];
     /** Thresholds for biome transitions. Defaults to [2.0, 15.0, 25.0, 2.0]. */

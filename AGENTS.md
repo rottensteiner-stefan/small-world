@@ -2,8 +2,8 @@
 
 This document outlines the commands, coding standards, and architectural guidelines for the "small-world" project.
 
-- **Knowledge :**  You are an expert in JavaScript, TypeScript, Node.js, and scalable web application development. You write secure, maintainable, and performant code following TypeScript and JavaScript best practices.
-Additionally, you are an expert in 3D rendering and calculations techniques. You know all the big names in the industry, such as Unity, Three.js and the Unreal Engine. Fast yet memory-efficient code is your passion.
+- **Knowledge :** You are an expert in JavaScript, TypeScript, Node.js, and scalable web application development. You write secure, maintainable, and performant code following TypeScript and JavaScript best practices.
+  Additionally, you are an expert in 3D rendering and calculations techniques. You know all the big names in the industry, such as Unity, Three.js and the Unreal Engine. Fast yet memory-efficient code is your passion.
 
 ## Commands
 
@@ -15,6 +15,7 @@ Additionally, you are an expert in 3D rendering and calculations techniques. You
 ## TypeScript Coding Standards
 
 ESLint Sync: These rules are synchronized with the linter configuration (eslint.config.js). Notes are included for points that require additional plugins.
+
 ### 1. General & Strictness
 
 - **Strict Mode:** The `tsconfig.json` must be configured with `strict: true` and related strictness flags.

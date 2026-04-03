@@ -358,7 +358,7 @@ export class WebGPURenderer extends AbstractRenderer {
     this._adapter = null;
   }
 
-  private _getTextureView(tex: Texture | null): GPUTextureView {
+  private _getTextureView(tex: Texture | undefined): GPUTextureView {
     if (!tex || !tex.isLoaded || !tex.image) {
       return this._whiteTexView;
     }

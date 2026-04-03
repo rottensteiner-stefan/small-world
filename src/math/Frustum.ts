@@ -20,7 +20,9 @@ export class Frustum {
    */
   public setFromMatrix(m: Matrix4): void {
     const me: Float32Array = m.data;
-    if (16 > me.length) return;
+    if (16 > me.length) {
+      return;
+    }
     const p: Float32Array = this.planes;
 
     p[0] = me[3]! - me[0]!;
@@ -53,7 +55,7 @@ export class Frustum {
     p[22] = me[11]! + me[10]!;
     p[23] = me[15]! + me[14]!;
 
-    for (let i: number = 0; i < 6; i++) {
+    for (let i: number = 0; 6 > i; i++) {
       const idx: number = i * 4;
       const d: number = Math.sqrt(
         (p[idx] ?? 0) * (p[idx] ?? 0) +
@@ -76,7 +78,7 @@ export class Frustum {
    * @returns True if the volume intersects with the frustum.
    */
   public intersectsVolume(volume: BoundingVolume): boolean {
-    if (volume.type === BoundingType.BOX) {
+    if (BoundingType.BOX === volume.type) {
       return this.intersectsBox(volume as BoundingBox);
     }
 
@@ -84,7 +86,7 @@ export class Frustum {
     const r: number = volume.getBroadRadius();
     const p: Float32Array = this.planes;
 
-    for (let i: number = 0; i < 6; i++) {
+    for (let i: number = 0; 6 > i; i++) {
       const idx: number = i * 4;
       const dist: number =
         (p[idx] ?? 0) * c.x + (p[idx + 1] ?? 0) * c.y + (p[idx + 2] ?? 0) * c.z + (p[idx + 3] ?? 0);
@@ -103,11 +105,11 @@ export class Frustum {
   public intersectsBox(box: BoundingBox): boolean {
     const p: Float32Array = this.planes;
 
-    for (let i: number = 0; i < 6; i++) {
+    for (let i: number = 0; 6 > i; i++) {
       const idx: number = i * 4;
-      const px: number = (p[idx] ?? 0) >= 0 ? box.max.x : box.min.x;
-      const py: number = (p[idx + 1] ?? 0) >= 0 ? box.max.y : box.min.y;
-      const pz: number = (p[idx + 2] ?? 0) >= 0 ? box.max.z : box.min.z;
+      const px: number = 0 <= (p[idx] ?? 0) ? box.max.x : box.min.x;
+      const py: number = 0 <= (p[idx + 1] ?? 0) ? box.max.y : box.min.y;
+      const pz: number = 0 <= (p[idx + 2] ?? 0) ? box.max.z : box.min.z;
 
       const dist: number =
         (p[idx] ?? 0) * px + (p[idx + 1] ?? 0) * py + (p[idx + 2] ?? 0) * pz + (p[idx + 3] ?? 0);

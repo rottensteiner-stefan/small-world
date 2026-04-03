@@ -1,3 +1,5 @@
+/// examples/demo4.ts
+
 import {
   AmbientLight,
   CameraStrategyType,
@@ -17,23 +19,23 @@ import {
 } from "../src/index.js";
 import { AbstractDemo } from "./AbstractDemo.js";
 
-const CAR_SPEED = 10.0; // Geschwindigkeit des Autos
+const CAR_SPEED: number = 10.0; // The car's speed
 
 export class Demo4 extends AbstractDemo {
-  private _targetPos = new Vector3D(0, 0, 0);
-  private _car: Object3D | null = null; // Das Auto-Objekt
-  private _terrainManager: TerrainManager | null = null;
+  private _targetPos: Vector3D = new Vector3D(0, 0, 0);
+  private _car: Object3D | undefined = undefined; // The car object
+  private _terrainManager: TerrainManager | undefined = undefined;
 
-  protected async setupScene(): Promise<void> {
-    this.canvas.addEventListener("click", () => {
+  protected override async setupScene(): Promise<void> {
+    this.canvas.addEventListener("click", (): void => {
       if (!Input.isPointerLocked) {
         Input.requestPointerLock(this.canvas);
       }
     });
 
-    if (this.camera.projection.type === ProjectionType.PERSPECTIVE) {
-      const aspect = window.innerWidth / window.innerHeight;
-      // Korrektur: 75 Grad in Radianten umrechnen
+    if (ProjectionType.PERSPECTIVE === this.camera.projection.type) {
+      const aspect: number = window.innerWidth / window.innerHeight;
+      // Correction: Convert 75 degrees to radians
       this.camera.projection = new PerspectiveProjection({
         fov: (75 * Math.PI) / 180,
         aspect,
@@ -46,97 +48,97 @@ export class Demo4 extends AbstractDemo {
     this.camera.setStrategy(CameraStrategyType.SMOOTH);
     this.camera.position.set(0, 5, 15);
 
-    const ambientLight = new AmbientLight({ color: Color.WHITE, intensity: 0.3 });
+    const ambientLight: AmbientLight = new AmbientLight({ color: Color.WHITE, intensity: 0.3 });
     this.scene.add(ambientLight);
 
-    const sun = new DirectionalLight({ color: Color.WHITE, intensity: 0.8 });
+    const sun: DirectionalLight = new DirectionalLight({ color: Color.WHITE, intensity: 0.8 });
     sun.direction.set(-1, -1, -1);
     this.scene.add(sun);
 
-    // Terrain-Material vorbereiten
-    const terrainMat = new TerrainMaterial({
+    // Prepare terrain material
+    const terrainMat: TerrainMaterial = new TerrainMaterial({
       sandMap: Texture.fromImage(await TextureGenerator.createSand()),
       grassMap: Texture.fromImage(await TextureGenerator.createGrass()),
       rockMap: Texture.fromImage(await TextureGenerator.createRock()),
       snowMap: Texture.fromImage(await TextureGenerator.createSnow()),
     });
 
-    // Konfiguration für Infinite Terrain
+    // Configuration for Infinite Terrain
     this._terrainManager = new TerrainManager(this.scene, {
       chunkSize: 80,
       meshSegments: 64,
       heightmapDetail: 7, // 128x128
       heightmapRoughness: 0.55,
       maxHeight: 6.0,
-      gridSize: 3, // 3x3 Chunks aktiv
+      gridSize: 3, // 3x3 active chunks
       material: terrainMat,
     });
 
     await this._terrainManager.init();
 
-    const loader = new ObjLoader();
+    const loader: ObjLoader = new ObjLoader();
     loader.setBasePath("/resources/models/");
 
     try {
-      const model = await loader.load("vehicle-racer.obj");
-      const carScale = 5;
+      const model: Object3D = await loader.load("vehicle-racer.obj");
+      const carScale: number = 5;
       model.scale.set(carScale, carScale, carScale);
-      // Position leicht über 0, da das Terrain um 0 schwankt
+      // Position slightly above 0, as terrain fluctuates around 0
       model.position.set(0, 2.0, 0);
 
       this.scene.add(model);
-      this._car = model; // Auto-Objekt speichern
-    } catch (error) {
-      console.error("[Demo 4] Fehler beim Laden:", error);
+      this._car = model; // Store car object
+    } catch (error: unknown) {
+      console.error("[Demo 4] Error during loading:", error);
     }
   }
 
-  protected update(deltaTime: number): void {
+  protected override update(deltaTime: number): void {
     if (Input.isPressed(Keys.I)) {
       this.printDebug();
     }
 
-    const dx = Input.isPointerLocked ? Input.mouse.dx : 0;
-    const dy = Input.isPointerLocked ? Input.mouse.dy : 0;
+    const dx: number = Input.isPointerLocked ? Input.mouse.dx : 0;
+    const dy: number = Input.isPointerLocked ? Input.mouse.dy : 0;
 
     Input.mouse.dx = 0;
     Input.mouse.dy = 0;
 
     this.camera.update(this._targetPos, dx, dy);
 
-    // --- WASD Steuerung ---
+    // --- WASD Control ---
     if (this._car) {
       if (Input.isPressed(Keys.W)) {
-        // Die Vorwärtsrichtung des Autos ist typischerweise die negative Z-Achse im lokalen Raum.
-        // Diese muss mit der Weltmatrix des Autos transformiert werden, um die Weltrichtung zu erhalten.
-        const forward = new Vector3D(0, 0, -1); // Lokale Vorwärtsrichtung
-        forward.transformDirection(this._car.worldMatrix); // In Weltkoordinaten transformieren
-        forward.normalize(); // Sicherstellen, dass es ein Einheitsvektor ist
+        // The car's forward direction is typically the negative Z-axis in local space.
+        // This must be transformed with the car's world matrix to get the world direction.
+        const forward: Vector3D = new Vector3D(0, 0, -1); // Local forward direction
+        forward.transformDirection(this._car.worldMatrix); // Transform to world coordinates
+        forward.normalize(); // Ensure it's a unit vector
 
-        // Position des Autos aktualisieren (Forward wird hier in-place skaliert, was okay ist)
+        // Update car position (forward is scaled in-place here, which is okay)
         this._car.position.add(forward.scale(CAR_SPEED * deltaTime));
       }
 
-      // Terrain-Update basierend auf Auto-Position
+      // Terrain update based on car position
       if (this._terrainManager) {
         this._terrainManager.update(this._car.position);
       }
 
-      // Kamera folgt dem Auto
-      // Einfache Verfolgung: Wir setzen das Kamera-Target auf das Auto
+      // Camera follows the car
+      // Simple tracking: We set the camera target to the car
       this._targetPos.copyFrom(this._car.position);
-      // Optional: Kamera-Position sanft nachziehen, aber das macht der CameraStrategyType.SMOOTH schon relativ gut,
-      // wenn wir _targetPos aktualisieren.
+      // Optional: Smoothly trail the camera position, but CameraStrategyType.SMOOTH already handles this reasonably well
+      // when we update _targetPos.
     }
   }
 
   protected override getDebugInfo(): Record<string, string | number> {
-    const baseInfo = super.getDebugInfo();
+    const baseInfo: Record<string, string | number> = super.getDebugInfo();
     return {
       ...baseInfo,
-      Demo: "04 - Infinite Terrain & Auto",
-      "Objekte in Szene": this.scene.objects.length,
-      "Auto Position": this._car
+      Demo: "04 - Infinite Terrain & Car",
+      "Objects in scene": this.scene.objects.length,
+      "Car Position": this._car
         ? `(${this._car.position.x.toFixed(1)}, ${this._car.position.y.toFixed(1)}, ${this._car.position.z.toFixed(1)})`
         : "N/A",
     };
@@ -144,12 +146,12 @@ export class Demo4 extends AbstractDemo {
 }
 
 // === START THE ENGINE ===
-const app = new Demo4();
+const app: Demo4 = new Demo4();
 app
   .start()
-  .then(() => {
+  .then((): void => {
     console.log("Engine running");
   })
-  .catch((err: Error) => {
+  .catch((err: Error): void => {
     console.error("Error while starting the engine: ", err);
   });

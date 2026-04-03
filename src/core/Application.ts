@@ -111,14 +111,14 @@ export abstract class Application {
           this.config = { ...this.config, ...(jsonConfig as EngineConfig) };
         }
       } catch {
-        console.warn("Nutze Fallback-Config (Keine JSON gefunden).");
+        console.warn("Using fallback configuration (No JSON found).");
       }
 
       this.canvas = document.getElementById(this.config.canvasId!) as HTMLCanvasElement;
       if (this.config.fullscreen) {
         this.canvas.width = window.innerWidth;
         this.canvas.height = window.innerHeight;
-        window.addEventListener("resize", () => {
+        window.addEventListener("resize", (): void => {
           this.canvas.width = window.innerWidth;
           this.canvas.height = window.innerHeight;
           this.camera.aspect = this.canvas.width / this.canvas.height;

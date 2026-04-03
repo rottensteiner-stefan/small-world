@@ -33,15 +33,14 @@ export class Demo6 extends AbstractDemo {
   private _moveSpeed: number = 20.0;
 
   /**
-   * Wird vom Konstruktor von Application ODER nach einem Renderer-Switch (onCanvasRecreated) aufgerufen.
-   * Sorgt dafür, dass der Pointer Lock auch auf einem NEUEN Canvas funktioniert.
+   * Called by the constructor of Application OR after a renderer switch (onCanvasRecreated).
+   * Ensures that pointer lock works even on a NEW canvas.
    */
   protected override onCanvasRecreated(): void {
     super.onCanvasRecreated();
 
-    // Remove old listener if exists (wichtig, falls das Canvas aus dem DOM genommen wurde)
-    // Aber da das Canvas ohnehin ein neues DOM-Element ist, reicht einfach das Hinzufügen.
-    this.canvas.addEventListener("click", () => {
+    // Reattach listener to the new canvas
+    this.canvas.addEventListener("click", (): void => {
       if (!Input.isPointerLocked) {
         Input.requestPointerLock(this.canvas);
       }
@@ -49,8 +48,8 @@ export class Demo6 extends AbstractDemo {
   }
 
   /** @inheritdoc */
-  protected async setupScene(): Promise<void> {
-    // Initiales Binden des PointerLocks
+  protected override async setupScene(): Promise<void> {
+    // Initial binding of PointerLock
     this.onCanvasRecreated();
 
     // 1. Setup Perspective Camera
@@ -86,7 +85,12 @@ export class Demo6 extends AbstractDemo {
     wireMat.color = Color.CYAN;
 
     // 5. Helper function to add examples to the scene
-    const addExample = (
+    const addExample: (
+      name: string,
+      geometry: { getGeometryData(): Exclude<Object3D["geometry"], undefined> },
+      x: number,
+      z: number,
+    ) => void = (
       name: string,
       geometry: { getGeometryData(): Exclude<Object3D["geometry"], undefined> },
       x: number,
@@ -204,7 +208,7 @@ export class Demo6 extends AbstractDemo {
   }
 
   /** @inheritdoc */
-  protected update(deltaTime: number): void {
+  protected override update(deltaTime: number): void {
     // 1. Mouse Look
     const dx: number = Input.isPointerLocked ? Input.mouse.dx : 0;
     const dy: number = Input.isPointerLocked ? Input.mouse.dy : 0;
@@ -212,24 +216,28 @@ export class Demo6 extends AbstractDemo {
     Input.mouse.dy = 0;
 
     // 2. Keyboard Movement (relative to camera rotation)
-    const moveZ = Input.getAxis(Keys.W, Keys.S);
-    const moveX = Input.getAxis(Keys.A, Keys.D);
+    const moveZ: number = Input.getAxis(Keys.W, Keys.S);
+    const moveX: number = Input.getAxis(Keys.A, Keys.D);
 
-    if (moveZ !== 0 || moveX !== 0) {
+    if (0 !== moveZ || 0 !== moveX) {
       // Calculate direction based on camera yaw (theta)
-      const sin = Math.sin(this.camera.theta);
-      const cos = Math.cos(this.camera.theta);
+      const sin: number = Math.sin(this.camera.theta);
+      const cos: number = Math.cos(this.camera.theta);
 
-      const dirX = moveX * cos + moveZ * sin;
-      const dirZ = -moveX * sin + moveZ * cos;
+      const dirX: number = moveX * cos + moveZ * sin;
+      const dirZ: number = -moveX * sin + moveZ * cos;
 
       this._targetPos.x += dirX * this._moveSpeed * deltaTime;
       this._targetPos.z += dirZ * this._moveSpeed * deltaTime;
     }
 
     // 3. Vertical movement (Q/E or Space/Shift style)
-    if (Input.isPressed(Keys.Q)) this._targetPos.y -= this._moveSpeed * deltaTime;
-    if (Input.isPressed(Keys.E)) this._targetPos.y += this._moveSpeed * deltaTime;
+    if (Input.isPressed(Keys.Q)) {
+      this._targetPos.y -= this._moveSpeed * deltaTime;
+    }
+    if (Input.isPressed(Keys.E)) {
+      this._targetPos.y += this._moveSpeed * deltaTime;
+    }
 
     // 4. Update Camera
     this.camera.update(this._targetPos, dx, dy);
@@ -247,12 +255,12 @@ export class Demo6 extends AbstractDemo {
 }
 
 // === START THE ENGINE ===
-const app = new Demo6();
+const app: Demo6 = new Demo6();
 app
   .start()
-  .then(() => {
+  .then((): void => {
     console.log("Engine running");
   })
-  .catch((err: Error) => {
+  .catch((err: Error): void => {
     console.error("Error while starting the engine: ", err);
   });
