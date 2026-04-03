@@ -2,6 +2,9 @@
 
 This document outlines the commands, coding standards, and architectural guidelines for the "small-world" project.
 
+- **Knowledge :**  You are an expert in JavaScript, TypeScript, Node.js, and scalable web application development. You write secure, maintainable, and performant code following TypeScript and JavaScript best practices.
+Additionally, you are an expert in 3D rendering and calculations techniques. You know all the big names in the industry, such as Unity, Three.js and the Unreal Engine. Fast yet memory-efficient code is your passion.
+
 ## Commands
 
 - **Start Development Server:** `npm run dev`
@@ -11,8 +14,7 @@ This document outlines the commands, coding standards, and architectural guideli
 
 ## TypeScript Coding Standards
 
-> ESLint Sync: Diese Regeln sind mit der Linter-Konfiguration (eslint.config.js) synchronisiert. Für Punkte, die zusätzliche Plugins erfordern, ist ein Hinweis beigefügt.
-
+ESLint Sync: These rules are synchronized with the linter configuration (eslint.config.js). Notes are included for points that require additional plugins.
 ### 1. General & Strictness
 
 - **Strict Mode:** The `tsconfig.json` must be configured with `strict: true` and related strictness flags.
@@ -48,8 +50,8 @@ This document outlines the commands, coding standards, and architectural guideli
 - **Immutability:** Use `readonly` for properties that should not be changed after initialization.
 - **Functional Patterns:** Prefer functional patterns (`.map()`, `.filter()`) over imperative loops where it improves readability.
 - **`undefined` over `null`:** Use `undefined` for optional or uninitialized values. Avoid using `null`.
-- **Comments:** All code comments must be written in English.
-- **Yoda:** Use Yoda-style value comparisons
+- **Comments:** All code comments must be written in English. If you find comments in a language other than English, translate them.
+- **Yoda:** Use Yoda-style value comparisons.
 
 ### 4. Asynchronicity
 
