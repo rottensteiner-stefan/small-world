@@ -29,6 +29,7 @@ export class Demo2 extends AbstractDemo {
   protected override async setupScene(): Promise<void> {
     // 1. Initialize input (Keyboard & Mouse)
     Input.init();
+    Input.debug = true;
 
     // Attach event listener directly to the canvas to activate PointerLock (mouse capture)
     this.canvas.addEventListener("click", (): void => {

@@ -20,6 +20,8 @@ class Demo3 extends AbstractDemo {
   private _targetPos: Vector3D = new Vector3D();
 
   protected override async setupScene(): Promise<void> {
+    Input.init();
+    Input.debug = true;
     this.canvas.addEventListener("click", (): void => {
       if (!Input.isPointerLocked) {
         Input.requestPointerLock(this.canvas);
@@ -71,22 +73,25 @@ class Demo3 extends AbstractDemo {
     }
   }
 
-  protected override update(_deltaTime: number): void {
-    let dx: number = 0;
-    let dy: number = 0;
+  protected override onCanvasRecreated(): void {
+    // Since we recreated the canvas, we must reattach the click listener!
+    this.canvas.addEventListener("click", (): void => {
+      if (!Input.isPointerLocked) {
+        Input.requestPointerLock(this.canvas);
+      }
+    });
+  }
 
-    // Read mouse movement if pointer is locked
-    if (Input.isPointerLocked) {
-      dx = Input.mouse.dx;
-      dy = Input.mouse.dy;
-    }
+  protected override update(deltaTime: number): void {
+    const dx: number = Input.isPointerLocked ? Input.mouse.dx : 0;
+    const dy: number = Input.isPointerLocked ? Input.mouse.dy : 0;
 
     // Reset deltas immediately
     Input.mouse.dx = 0;
     Input.mouse.dy = 0;
 
     // Update camera orbit
-    this.camera.update(this._targetPos, dx, dy);
+    this.camera.update(this._targetPos, dx, dy, deltaTime);
   }
 }
 

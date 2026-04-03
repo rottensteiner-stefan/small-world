@@ -59,13 +59,26 @@ export class Input {
     window.addEventListener("mousemove", (e: MouseEvent): void => {
       this.mouse.x = e.clientX;
       this.mouse.y = e.clientY;
-      this.mouse.dx += e.movementX;
-      this.mouse.dy += e.movementY;
+      if (this.isPointerLocked) {
+        this.mouse.dx += e.movementX;
+        this.mouse.dy += e.movementY;
+      } else {
+        this.mouse.dx = 0;
+        this.mouse.dy = 0;
+      }
     });
     window.addEventListener("contextmenu", (e: MouseEvent): void => e.preventDefault());
 
     document.addEventListener("pointerlockchange", (): void => {
-      this.isPointerLocked = undefined !== document.pointerLockElement;
+      this.isPointerLocked =
+        undefined !== document.pointerLockElement && null !== document.pointerLockElement;
+      if (this.debug) {
+        console.log(`[Input] PointerLock changed: ${this.isPointerLocked}`);
+      }
+      if (!this.isPointerLocked) {
+        this.mouse.dx = 0;
+        this.mouse.dy = 0;
+      }
     });
   }
 

@@ -27,6 +27,8 @@ export class Demo4 extends AbstractDemo {
   private _terrainManager: TerrainManager | undefined = undefined;
 
   protected override async setupScene(): Promise<void> {
+    Input.init();
+    Input.debug = true;
     this.canvas.addEventListener("click", (): void => {
       if (!Input.isPointerLocked) {
         Input.requestPointerLock(this.canvas);
@@ -93,6 +95,15 @@ export class Demo4 extends AbstractDemo {
     }
   }
 
+  protected override onCanvasRecreated(): void {
+    // Since we recreated the canvas, we must reattach the click listener!
+    this.canvas.addEventListener("click", (): void => {
+      if (!Input.isPointerLocked) {
+        Input.requestPointerLock(this.canvas);
+      }
+    });
+  }
+
   protected override update(deltaTime: number): void {
     if (Input.isPressed(Keys.I)) {
       this.printDebug();
@@ -104,7 +115,7 @@ export class Demo4 extends AbstractDemo {
     Input.mouse.dx = 0;
     Input.mouse.dy = 0;
 
-    this.camera.update(this._targetPos, dx, dy);
+    this.camera.update(this._targetPos, dx, dy, deltaTime);
 
     // --- WASD Control ---
     if (this._car) {
