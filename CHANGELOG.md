@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.13.03] - 2026-04-03
+
+- Clean up log-messages
+
 ## [0.13.02] - 2026-04-02
 
 - Add missing geometries: Cube, Plane, and a complete Circle
