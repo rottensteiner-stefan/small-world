@@ -930,6 +930,27 @@ export declare class Cube extends AbstractGeometry {
 }
 
 /**
+ * Layouts for cube map textures.
+ */
+export declare const CubeLayout: {
+    /** Six individual images. */
+    readonly SIX_IMAGES: "six_images";
+    /** 6x1 horizontal strip. */
+    readonly STRIP_HORIZONTAL: "strip_horizontal";
+    /** 1x6 vertical strip. */
+    readonly STRIP_VERTICAL: "strip_vertical";
+    /** 3x2 grid. */
+    readonly GRID_3X2: "grid_3x2";
+    /** 4x3 horizontal cross. */
+    readonly CROSS_HORIZONTAL: "cross_horizontal";
+    /** 3x4 vertical cross. */
+    readonly CROSS_VERTICAL: "cross_vertical";
+};
+
+/** Type definition for CubeLayout. */
+export declare type CubeLayout = (typeof CubeLayout)[keyof typeof CubeLayout];
+
+/**
  * Configuration options for cube geometry.
  */
 export declare interface CubeOptions {
@@ -955,14 +976,15 @@ export declare class CubeTexture {
     isLoaded: boolean;
     /**
      * Creates a new CubeTexture.
-     * @param urls Optional array of 6 URLs for the cube faces.
+     * @param urls Optional array of 6 URLs for the cube faces or a single URL for a tiled texture.
      */
     constructor(urls?: string[]);
     /**
-     * Loads the cube map images from the given URLs.
-     * @param urls An array of 6 URLs.
+     * Loads the cube map from one or more URLs.
+     * @param urls A single URL or an array of URLs.
+     * @param layout Optional layout hint for single images (e.g. 6x1 strip, 3x2 grid, or crosses).
      */
-    load(urls: string[]): Promise<void>;
+    loadFrom(urls: string | string[], layout?: CubeLayout): Promise<void>;
 }
 
 /**
@@ -3283,6 +3305,8 @@ export declare class WebGPURenderer extends AbstractRenderer {
     private _objCache;
     private _textureViewCache;
     private _texCache;
+    private _cubeTextureViewCache;
+    private _cubeTexBindGroupCache;
     private _terrainTexCache;
     private _samplerCache;
     private _depthTexture;
@@ -3290,10 +3314,12 @@ export declare class WebGPURenderer extends AbstractRenderer {
     initialize(canvas: HTMLCanvasElement, attributes?: Record<string, unknown>): Promise<void>;
     destroy(): void;
     private _getTextureView;
+    private _getGPUCubeTextureView;
     private _getSampler;
     private _getGeoCache;
     private _getObjCache;
     private _getGPUTextureBindGroup;
+    private _getGPUCubeTextureBindGroup;
     private _getGPUTerrainBindGroup;
     /** @inheritdoc */
     render(scene: Scene, vpMatrix: Float32Array, camPos?: Vector3D): void;

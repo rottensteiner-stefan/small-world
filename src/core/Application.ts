@@ -115,6 +115,35 @@ export abstract class Application {
       }
 
       this.canvas = document.getElementById(this.config.canvasId!) as HTMLCanvasElement;
+      if (!this.canvas) {
+        // If not found, wait for DOMContentLoaded or a short timeout
+        await new Promise<void>((resolve: () => void): void => {
+          if ("loading" === document.readyState) {
+            document.addEventListener("DOMContentLoaded", (): void => resolve(), { once: true });
+            // Fallback timeout in case DOMContentLoaded already fired or something else
+            setTimeout((): void => { resolve(); }, 500);
+          } else {
+            resolve();
+          }
+        });
+        this.canvas = document.getElementById(this.config.canvasId!) as HTMLCanvasElement;
+      }
+
+      // Final check with a bit of a loop if it's still not there (e.g. dynamically added by another script)
+      let retries: number = 0;
+      while (!this.canvas && 5 > retries) {
+        await new Promise<void>((resolve: () => void): void => {
+          setTimeout((): void => { resolve(); }, 100);
+        });
+        this.canvas = document.getElementById(this.config.canvasId!) as HTMLCanvasElement;
+        retries++;
+      }
+
+      if (!this.canvas) {
+        throw new Error(
+          `[Application] Canvas element with ID '${this.config.canvasId}' not found in DOM.`,
+        );
+      }
       if (this.config.fullscreen) {
         this.canvas.width = window.innerWidth;
         this.canvas.height = window.innerHeight;

@@ -21,12 +21,13 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       input: {
-        demo1: resolve(__dirname, "examples/demo1.html"),
-        demo2: resolve(__dirname, "examples/demo2.html"),
-        demo3: resolve(__dirname, "examples/demo3.html"),
-        demo4: resolve(__dirname, "examples/demo4.html"),
-        demo5: resolve(__dirname, "examples/demo5.html"),
-        demo6: resolve(__dirname, "examples/demo6.html"),
+        example1: resolve(__dirname, "examples/example1.html"),
+        example2: resolve(__dirname, "examples/example2.html"),
+        example3: resolve(__dirname, "examples/example3.html"),
+        example4: resolve(__dirname, "examples/example4.html"),
+        example5: resolve(__dirname, "examples/example5.html"),
+        example6: resolve(__dirname, "examples/example6.html"),
+        example7: resolve(__dirname, "examples/example7.html"),
       },
       output: {
         entryFileNames: () => {

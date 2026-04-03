@@ -12,7 +12,7 @@ export class FPSStrategy implements CameraStrategy {
   /** @inheritdoc */
   public readonly type: string = CameraStrategyType.FPS;
   /** The height offset from the target position. */
-  public heightOffset: number = 0.5;
+  public heightOffset: number = 0.0;
   /** @inheritdoc */
   public constraints?: CameraConstraints;
 
@@ -26,9 +26,15 @@ export class FPSStrategy implements CameraStrategy {
       if (-limit > camera.phi) camera.phi = -limit;
     }
 
-    camera.position.x = targetPos.x;
-    camera.position.y = targetPos.y + this.heightOffset;
-    camera.position.z = targetPos.z;
+    // IMPORTANT FIX: In FPS mode, the user directly manipulates the camera's position (or we copy a targetPos into it).
+    // However, Application.ts unconditionally calls camera.update(camera.target), which in FPS mode 
+    // would mean the camera treats its own look-at point as its feet and constantly flies forward.
+    // To prevent this, FPSStrategy should ONLY update the position if the provided targetPos is NOT the camera's own target.
+    if (targetPos !== camera.target) {
+      camera.position.x = targetPos.x;
+      camera.position.y = targetPos.y + this.heightOffset;
+      camera.position.z = targetPos.z;
+    }
 
     if (undefined !== this.constraints) {
       if (undefined !== this.constraints.min && undefined !== this.constraints.max) {

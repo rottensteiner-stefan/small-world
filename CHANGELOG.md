@@ -2,7 +2,15 @@
 
 ## [0.13.04] - 2026-04-03
 
-- Fix PointerLocked issues
+- Fixed PointerLocked issues
+- Fixed Skybox (added support for 4x3/3x4 cross layouts in `CubeTexture`)
+- Renamed all Demos to Examples
+- Moved AbstractDemo to `src/core/example/AbstractExample`
+- Added Example 7 with Skybox, infinite floor, and FPS controls
+- Fixed Example 7 canvas initialization error (ID mismatch)
+- Improved error handling in `Application.ts` when canvas element is missing
+- Updated Vite configuration and main index page
+- Added support for single-image (tiled) skybox textures in `CubeTexture`
 
 ## [0.13.03] - 2026-04-03
 

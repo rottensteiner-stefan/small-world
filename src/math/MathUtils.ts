@@ -4,6 +4,14 @@
  * Utility class for mathematical operations.
  */
 export class MathUtils {
+  public static readonly PI: number = Math.PI;
+  public static readonly TWO_PI: number = Math.PI * 2.0;
+  public static readonly HALF_PI: number = Math.PI / 2.0;
+  public static readonly QUARTER_PI: number = Math.PI / 4.0;
+
+  private static readonly DEG2RAD: number = Math.PI / 180.0;
+  private static readonly RAD2DEG: number = 180.0 / Math.PI;
+
   private static _SIN_TABLE: Float32Array = new Float32Array(3600);
   private static _COS_TABLE: Float32Array = new Float32Array(3600);
   private static _isInit: boolean = false;
@@ -17,12 +25,30 @@ export class MathUtils {
     }
 
     for (let i: number = 0; 3600 > i; i++) {
-      const rad: number = (i / 10) * (Math.PI / 180);
+      const rad: number = (i / 10) * MathUtils.DEG2RAD;
       this._SIN_TABLE[i] = Math.sin(rad);
       this._COS_TABLE[i] = Math.cos(rad);
     }
 
     this._isInit = true;
+  }
+
+  /**
+   * Converts degrees to radians.
+   * @param degrees The angle in degrees.
+   * @returns The angle in radians.
+   */
+  public static degToRad(degrees: number): number {
+    return degrees * MathUtils.DEG2RAD;
+  }
+
+  /**
+   * Converts radians to degrees.
+   * @param radians The angle in radians.
+   * @returns The angle in degrees.
+   */
+  public static radToDeg(radians: number): number {
+    return radians * MathUtils.RAD2DEG;
   }
 
   /**
