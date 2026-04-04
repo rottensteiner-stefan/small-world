@@ -111,6 +111,9 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       throw new Error("[WebGL2Renderer] GL context is null after assignment.");
     }
 
+    // Lade die Shader als Dateien asynchron vom Server herunter!
+    await WebGL2ShaderBuilder.preloadShaders();
+
     this.initDefaultTextures();
     this.gl.enable(this.gl.DEPTH_TEST);
   }
