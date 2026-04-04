@@ -7,7 +7,7 @@ export default defineConfig({
     {
       name: "serve-index-from-public",
       configureServer(server) {
-        server.middlewares.use((req, res, next) => {
+        server.middlewares.use((req, _res, next) => {
           if (req.url === "/") {
             req.url = "/index.html";
           }
