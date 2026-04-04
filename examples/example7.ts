@@ -71,9 +71,11 @@ export class Example7 extends AbstractExample {
 
         // 4. Floor
         const floor = new Object3D("Floor");
+        // Der Boden muss nicht gigantisch sein, solange er immer mit der Kamera wandert.
+        // Er muss nur den Bereich bis zur Clipping-Ebene abdecken.
         floor.geometry = new Plane({
-            width: 2000,
-            depth: 2000,
+            width: 4000,
+            depth: 4000,
             widthSegments: 10,
             depthSegments: 10,
         }).getGeometryData();
@@ -84,6 +86,19 @@ export class Example7 extends AbstractExample {
         });
         floor.rotation.x = -MathUtils.HALF_PI;
         this.scene.add(floor);
+
+        // 5. Orientierungspunkte (Illusion Breaker)
+        const referenceCube = new Object3D("ReferenceCube");
+        referenceCube.geometry = new Cube({size: 2}).getGeometryData();
+        referenceCube.material = new PhongMaterial({color: Color.BLUE, shininess: 50});
+        referenceCube.position.set(0, 1, -10); // Genau vor unserer Startposition
+        this.scene.add(referenceCube);
+
+        const redCube = new Object3D("RedCube");
+        redCube.geometry = new Cube({size: 2}).getGeometryData();
+        redCube.material = new PhongMaterial({color: Color.RED, shininess: 50});
+        redCube.position.set(10, 1, 0); // Rechts von uns
+        this.scene.add(redCube);
     }
 
     protected override update(deltaTime: number): void {
@@ -98,8 +113,6 @@ export class Example7 extends AbstractExample {
         Input.mouse.dy = 0;
 
         // Wir updaten die Kamera einmal vorab, damit die Rotation (theta) für den Bewegungsvektor aktuell ist.
-        // In FPSStrategy ignoriert die Kamera targetPos, wenn es === camera.target ist,
-        // aber übernimmt die Rotationswerte dx und dy.
         this.camera.update(this.camera.target, dx, dy, deltaTime);
 
         // 2. Process movement from keyboard
@@ -113,7 +126,6 @@ export class Example7 extends AbstractExample {
             const dirX: number = moveX * cos + moveZ * sin;
             const dirZ: number = -moveX * sin + moveZ * cos;
 
-            // Direktes Manipulieren der Kamera-Position!
             this.camera.position.x += dirX * this._moveSpeed * deltaTime;
             this.camera.position.z += dirZ * this._moveSpeed * deltaTime;
         }
@@ -127,26 +139,33 @@ export class Example7 extends AbstractExample {
         }
 
         // 4. Collision / Floor Clamp
-        // Verhindert, dass die Kamera unter den Boden (Y=2.0) sinkt.
         this.camera.position.y = Math.max(this._eyeHeight, this.camera.position.y);
 
-        // 5. Update Skybox Position
-        // Die Skybox muss immer exakt auf der Kamera liegen, damit man sie nicht verlassen kann.
+        // 5. Update Skybox & Floor Position
+        // Die Skybox muss immer exakt auf der Kamera liegen.
         const skybox = this.scene.objects.find((o) => o.name === "Skybox");
         if (skybox) {
             skybox.position.copyFrom(this.camera.position);
         }
 
-        // ACHTUNG: Wir rufen hier NICHT nochmal this.camera.update() auf, um Überschreibungen zu verhindern.
-        // Die Basisklasse Application.ts ruft ohnehin this.camera.update() sowie this.camera.updateViewMatrix() am Ende des Frames auf!
+        // Auch der Boden muss der Kamera folgen (auf der X- und Z-Achse),
+        // da er sonst "aufhört", wenn man zu weit läuft!
+        const floor = this.scene.objects.find((o) => o.name === "Floor");
+        if (floor) {
+            floor.position.x = this.camera.position.x;
+            floor.position.z = this.camera.position.z;
+        }
     }
 
     protected override getDebugInfo(): Record<string, string | number> {
         const base = super.getDebugInfo();
         return {
             ...base,
-            Example: "07 - Clean Rebuild",
+            Example: "07 - Illusion Breaker",
             "Pointer Locked": Input.isPointerLocked ? "Yes" : "No",
+            "Cam X": this.camera.position.x.toFixed(2),
+            "Cam Y": this.camera.position.y.toFixed(2),
+            "Cam Z": this.camera.position.z.toFixed(2),
         };
     }
 }
