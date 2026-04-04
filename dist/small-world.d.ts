@@ -3244,22 +3244,19 @@ export declare class WebGL1Renderer extends AbstractWebGLRenderer {
     /** @inheritdoc */
     readonly type: RendererType;
     protected gl: WebGLRenderingContext;
-    private _prog;
-    private _locs;
-    private _skyProg;
-    private _skyLocs;
+    private _programs;
     private _cache;
     private _texCache;
     private _texCubeCache;
-    private _pointLightLocs;
-    private _spotLightLocs;
-    private _areaLightLocs;
     /** @inheritdoc */
     initialize(canvas: HTMLCanvasElement, attributes?: Record<string, unknown>): Promise<void>;
+    private _getProgram;
     private _getWebGLTexture;
     private _getWebGLCubeTexture;
     /** @inheritdoc */
     render(scene: Scene, vp: Float32Array, camPos?: Vector3D): void;
+    private _drawSkybox;
+    private _drawNormal;
 }
 
 /**
@@ -3269,20 +3266,15 @@ export declare class WebGL2Renderer extends AbstractWebGLRenderer {
     /** @inheritdoc */
     readonly type: RendererType;
     protected gl: WebGL2RenderingContext;
-    private _prog;
-    private _locs;
-    private _skyProg;
-    private _skyLocs;
+    private _programs;
     private _cache;
     private _texCache;
     private _texCubeCache;
-    private _pointLightLocs;
-    private _spotLightLocs;
-    private _areaLightLocs;
     private _scratchModelMatrix;
     private _scratchVec3;
     /** @inheritdoc */
     initialize(canvas: HTMLCanvasElement, attributes?: Record<string, unknown>): Promise<void>;
+    private _getProgram;
     private _getWebGLTexture;
     private _getWebGLCubeTexture;
     /** @inheritdoc */
