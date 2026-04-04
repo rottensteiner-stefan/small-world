@@ -428,10 +428,12 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
 
         // BILLBOARD LOGIC for Sprites
         if (mat.type === MaterialType.SPRITE) {
+          // Extrahiere die Translation aus der World-Matrix
           const tx: number = modelMatrix[12]!;
           const ty: number = modelMatrix[13]!;
           const tz: number = modelMatrix[14]!;
 
+          // Extrahiere die Skalierung (Länge der Spalten-Vektoren)
           const sx: number = Math.sqrt(
             modelMatrix[0]! * modelMatrix[0]! +
               modelMatrix[1]! * modelMatrix[1]! +
@@ -448,6 +450,8 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
               modelMatrix[10]! * modelMatrix[10]!,
           );
 
+          // Setze die Rotations-Anteile auf die Werte der View-Matrix (invertiert)
+          // um das Objekt zur Kamera auszurichten.
           modelMatrix[0] = vp[0]! * sx;
           modelMatrix[1] = vp[4]! * sx;
           modelMatrix[2] = vp[8]! * sx;
@@ -460,6 +464,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
           modelMatrix[9] = vp[6]! * sz;
           modelMatrix[10] = vp[10]! * sz;
 
+          // Translation wiederherstellen
           modelMatrix[12] = tx;
           modelMatrix[13] = ty;
           modelMatrix[14] = tz;
