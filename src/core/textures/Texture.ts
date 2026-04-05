@@ -37,6 +37,26 @@ export class Texture {
     }
 
     /**
+     * Flips the texture horizontally by modifying the UV offset and repeat.
+     * @returns This texture instance for chaining.
+     */
+    public flipX(): this {
+        this.repeat.x *= -1;
+        this.offset.x = this.repeat.x < 0 ? 1 : 0;
+        return this;
+    }
+
+    /**
+     * Flips the texture vertically by modifying the UV offset and repeat.
+     * @returns This texture instance for chaining.
+     */
+    public flipY(): this {
+        this.repeat.y *= -1;
+        this.offset.y = this.repeat.y < 0 ? 1 : 0;
+        return this;
+    }
+
+    /**
      * Creates a texture from an existing image or bitmap.
      * @param image The image or bitmap data.
      * @returns A new Texture instance.
@@ -72,8 +92,9 @@ export class Texture {
                 };
 
                 img.onerror = (): void => {
-                    console.warn(`TextureLoader: Konnte Bild nicht laden: ${url}`);
-                    reject(new Error(`Fehler beim Laden der Textur: ${url}`));
+                    const message = `TextureLoader: Error while loading image: ${url}`;
+                    console.warn(message);
+                    reject(new Error(message));
                 };
 
                 img.src = url;

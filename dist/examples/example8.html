@@ -1,26 +1,33 @@
-<!doctype html>
-<html lang="de">
+<!DOCTYPE html>
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Example 3 - OBJ Loader</title>
+    <title>Small World - Example 8 (2.5D Jump & Run)</title>
     <style>
       body {
         margin: 0;
         overflow: hidden;
-        background-color: #000;
+        background-color: #87CEEB; /* Sky blue fallback */
+        font-family: sans-serif;
       }
-
       canvas {
         display: block;
         width: 100vw;
         height: 100vh;
       }
-
-      .back-btn {
+      #info {
         position: absolute;
         top: 10px;
         left: 10px;
+        color: white;
+        pointer-events: none;
+        text-shadow: 1px 1px 2px black;
+      }
+      .back-btn {
+        position: absolute;
+        top: 10px;
+        right: 10px;
         color: white;
         background: rgba(0, 0, 0, 0.5);
         padding: 5px 10px;
@@ -28,39 +35,29 @@
         font-family: sans-serif;
         border-radius: 4px;
         z-index: 1000;
+        pointer-events: auto;
       }
-
       .back-btn:hover {
         background: rgba(255, 255, 255, 0.2);
       }
-
-      .instructions {
-        position: absolute;
-        bottom: 10px;
-        left: 10px;
-        color: white;
-        background: rgba(0, 0, 0, 0.5);
-        padding: 10px;
-        border-radius: 4px;
-        font-family: sans-serif;
-        pointer-events: none;
-      }
     </style>
-    <script type="module" crossorigin src="/examples/example3/demo.js"></script>
+    <script type="module" crossorigin src="/examples/example8/demo.js"></script>
     <link rel="modulepreload" crossorigin href="/js/AbstractExample.js">
     <link rel="modulepreload" crossorigin href="/js/Texture.js">
+    <link rel="modulepreload" crossorigin href="/js/Cube.js">
     <link rel="modulepreload" crossorigin href="/js/PhongMaterial.js">
-    <link rel="modulepreload" crossorigin href="/js/ObjLoader.js">
-    <link rel="modulepreload" crossorigin href="/js/WireframeMaterial.js">
+    <link rel="modulepreload" crossorigin href="/js/Plane.js">
     <link rel="modulepreload" crossorigin href="/js/AmbientLight.js">
-    <link rel="modulepreload" crossorigin href="/js/Grid.js">
   </head>
   <body>
     <a href="/" class="back-btn">← Zurück zur Übersicht</a>
-    <div class="instructions">
-      Steuerung: Klick für Maus-Fokus | Maus zum Umsehen (Orbit) | ESC zum Beenden
+    <div id="info">
+      <h1>Example 8: 2.5D Jump & Run</h1>
+      <p>A/D = Move Left/Right</p>
+      <p>SPACE = Jump</p>
     </div>
 
     <canvas id="SmallWorld"></canvas>
+
   </body>
 </html>

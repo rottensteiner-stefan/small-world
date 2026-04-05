@@ -28,6 +28,7 @@ export default defineConfig({
         example5: resolve(__dirname, "examples/example5.html"),
         example6: resolve(__dirname, "examples/example6.html"),
         example7: resolve(__dirname, "examples/example7.html"),
+        example8: resolve(__dirname, "examples/example8.html"),
       },
       output: {
         entryFileNames: () => {

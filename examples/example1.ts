@@ -17,7 +17,6 @@ class Example1 extends AbstractExample {
   protected override async setupScene(): Promise<void> {
     if (ProjectionType.PERSPECTIVE === this.camera.projection.type) {
       const aspect: number = window.innerWidth / window.innerHeight;
-      // Convert 75 degrees to radians: 75 * (Math.PI / 180) = approx. 1.309
       this.camera.projection = new PerspectiveProjection({
         fov: (75 * Math.PI) / 180,
         aspect,
@@ -30,20 +29,21 @@ class Example1 extends AbstractExample {
     // 1. Light: A gentle sun
     const sun: DirectionalLight = new DirectionalLight({ color: Color.WHITE, intensity: 0.8 });
     sun.direction.set(-1, -1, -1);
-    this.scene.add(sun);
 
-    // 2. Object: A single cube
-    this._myCube = new Object3D("RotatingCube");
+    // 2. Object: A single cube with blue material
+    this._myCube = new Object3D("RotatingCube")
+      .setPosition(0, 0, 0)
+      .setScale(1);
+    
     this._myCube.geometry = new Cube({ size: 2 }).getGeometryData();
-
-    // 3. Material: Glowing blue
     this._myCube.material = new PhongMaterial({
       color: Color.DODGERBLUE,
       shininess: 60,
     });
-    this.scene.add(this._myCube);
 
-    // 4. Position camera rigidly (looks at 0,0,0 by default)
+    this.scene.add(sun, this._myCube);
+
+    // 3. Position camera rigidly
     this.camera.position.set(0, 3, 6);
   }
 

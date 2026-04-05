@@ -445,6 +445,12 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
           tOffset1 = sMat.texture.offset.y;
           tRepeat0 = sMat.texture.repeat.x;
           tRepeat1 = sMat.texture.repeat.y;
+        } else {
+          activeTex = this.defaultTexture;
+          tOffset0 = 0;
+          tOffset1 = 0;
+          tRepeat0 = 1;
+          tRepeat1 = 1;
         }
         shininess = -1.0;
       } else if (mat.type === MaterialType.TERRAIN) {
