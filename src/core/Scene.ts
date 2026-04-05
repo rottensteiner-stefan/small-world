@@ -15,21 +15,25 @@ export class Scene {
   public octree: Octree | undefined = undefined;
 
   /**
-   * Adds an object to the scene.
-   * @param obj The object to add.
+   * Adds objects to the scene.
+   * @param objs The objects to add.
    */
-  public add(obj: Object3D): void {
-    this.objects.push(obj);
+  public add(...objs: Object3D[]): void {
+    for (const obj of objs) {
+      this.objects.push(obj);
+    }
   }
 
   /**
-   * Removes an object from the scene.
-   * @param obj The object to remove.
+   * Removes objects from the scene.
+   * @param objs The objects to remove.
    */
-  public remove(obj: Object3D): void {
-    const index: number = this.objects.indexOf(obj);
-    if (-1 !== index) {
-      this.objects.splice(index, 1);
+  public remove(...objs: Object3D[]): void {
+    for (const obj of objs) {
+      const index: number = this.objects.indexOf(obj);
+      if (-1 !== index) {
+        this.objects.splice(index, 1);
+      }
     }
   }
 

@@ -37,19 +37,19 @@ export class Vector3D implements Vector {
     this.z = z;
   }
 
-  /**
-   * Sets the components of the vector.
-   * @param x The x component.
-   * @param y The y component.
-   * @param z The z component.
-   * @returns this
-   */
-  public set(x: number, y: number, z: number): this {
-    this.x = x;
-    this.y = y;
-    this.z = z;
-    return this;
-  }
+    /**
+     * Sets the components of the vector.
+     * @param x The x component.
+     * @param y The y component.
+     * @param z The z component.
+     * @returns this
+     */
+    public set(x: number, y: number = x, z: number = y): this {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+        return this;
+    }
 
   /**
    * Adds another vector to this one.
@@ -96,10 +96,76 @@ export class Vector3D implements Vector {
     return this.x * v.x + this.y * v.y + this.z * v.z;
   }
 
-  /**
-   * Calculates the squared length of the vector.
-   * @returns The squared length.
-   */
+    /**
+     * Adds a scalar value to all components.
+     * @param s The scalar to add.
+     * @returns this
+     */
+    public addScalar(s: number): this {
+        this.x += s;
+        this.y += s;
+        this.z += s;
+        return this;
+    }
+
+    /**
+     * Multiplies the vector components by another vector.
+     * @param v The vector to multiply by.
+     * @returns this
+     */
+    public multiply(v: Vector3D): this {
+        this.x *= v.x;
+        this.y *= v.y;
+        this.z *= v.z;
+        return this;
+    }
+
+    /**
+     * Divides the vector by a scalar.
+     * @param s The scalar to divide by.
+     * @returns this
+     */
+    public divideScalar(s: number): this {
+        return this.scale(1 / s);
+    }
+
+    /**
+     * Cross product of this vector and another vector.
+     * @param v The other vector.
+     * @returns this
+     */
+    public cross(v: Vector3D): this {
+        const x: number = this.x;
+        const y: number = this.y;
+        const z: number = this.z;
+
+        this.x = y * v.z - z * v.y;
+        this.y = z * v.x - x * v.z;
+        this.z = x * v.y - y * v.x;
+
+        return this;
+    }
+
+    /**
+     * Calculates the cross product of two vectors and stores the result in this vector.
+     * @param a The first vector.
+     * @param b The second vector.
+     * @returns this
+     */
+    public crossVectors(a: Vector3D, b: Vector3D): this {
+        const ax: number = a.x;
+        const ay: number = a.y;
+        const az: number = a.z;
+        const bx: number = b.x;
+        const by: number = b.y;
+        const bz: number = b.z;
+
+        this.x = ay * bz - az * by;
+        this.y = az * bx - ax * bz;
+        this.z = ax * by - ay * bx;
+
+        return this;
+    }
   public lengthSq(): number {
     return this.x * this.x + this.y * this.y + this.z * this.z;
   }

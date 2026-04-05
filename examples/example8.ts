@@ -1,0 +1,281 @@
+/// examples/example8.ts
+
+import {
+    AmbientLight,
+    BoundingBox,
+    CameraStrategyType,
+    Color,
+    Cube,
+    DirectionalLight,
+    Input,
+    Keys,
+    MathUtils,
+    Object3D,
+    PerspectiveProjection,
+    PhongMaterial,
+    Sprite,
+    SpriteMaterial,
+    Texture,
+    TextureFilter,
+    Vector3D,
+} from "../src/index.js";
+import {AbstractExample} from "../src/core/example/AbstractExample.js";
+
+interface CloudData {
+    sprite: Sprite;
+    speed: number;
+}
+
+/**
+ * Example 8: A classic 2.5D Jump & Run with pure code physics, collision, and parallax clouds!
+ */
+export class Example8 extends AbstractExample {
+    private _player!: Sprite;
+    private _blocks: Object3D[] = [];
+    private _clouds: CloudData[] = [];
+    
+    // Physics & Movement
+    private _velocity: Vector3D = new Vector3D(0, 0, 0);
+    private _gravity: number = -25.0;
+    private _jumpForce: number = 12.0;
+    private _moveSpeed: number = 8.0;
+    private _isGrounded: boolean = false;
+
+    // The Level Map (1-3 = blocks with different textures, 0 = air)
+    private _levelMap: number[][] = [
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 0, 0, 0, 0, 0, 0, 3, 3, 3],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 3, 2, 3, 0, 0, 0, 0, 0, 0, 0, 2, 2, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0],
+        [1, 0, 0, 2, 3, 0, 0, 0, 3, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    ];
+
+    constructor() {
+        super({canvasId: "SmallWorld"});
+    }
+
+    protected override async setupScene(): Promise<void> {
+        Input.init();
+
+        // 1. Camera Setup
+        const aspect: number = window.innerWidth / window.innerHeight;
+        this.camera.projection = new PerspectiveProjection({
+            fov: MathUtils.degToRad(60),
+            aspect,
+            near: 0.1,
+            far: 1000,
+        });
+        this.camera.updateProjectionMatrix();
+        
+        this.camera.setStrategy(CameraStrategyType.STIFF);
+        (this.camera.strategy as any).radius = 15;
+        this.camera.position.set(0, 0, 15);
+
+        // 2. Lights
+        this.scene.add(new AmbientLight({color: Color.WHITE, intensity: 0.4}));
+        const sun = new DirectionalLight({color: Color.WHITE, intensity: 0.9});
+        sun.direction.set(0.5, -1, -0.5).normalize();
+        this.scene.add(sun);
+
+        // 3. Texturen laden
+        const loadPixelTexture = async (url: string): Promise<Texture> => {
+            const tex = await Texture.fromUrl(url);
+            tex.magFilter = TextureFilter.NEAREST;
+            tex.minFilter = TextureFilter.NEAREST;
+            return tex;
+        };
+
+        const brickTex1 = await loadPixelTexture("/resources/examples/8/brick-1.png");
+        const brickTex2 = await loadPixelTexture("/resources/examples/8/brick-2.png");
+        const brickTex3 = await loadPixelTexture("/resources/examples/8/brick-3.png");
+        const cloudTex1 = await loadPixelTexture("/resources/examples/8/cloud-1.png");
+        const cloudTex2 = await loadPixelTexture("/resources/examples/8/cloud-2.png");
+
+        // 4. Level aufbauen
+        const blockGeo = new Cube({size: 1}).getGeometryData();
+        const blockMat1 = new PhongMaterial({ color: Color.WHITE, diffuseMap: brickTex1, shininess: 0 });
+        const blockMat2 = new PhongMaterial({ color: Color.WHITE, diffuseMap: brickTex2, shininess: 0 });
+        const blockMat3 = new PhongMaterial({ color: Color.WHITE, diffuseMap: brickTex3, shininess: 0 });
+
+        const rows = this._levelMap.length;
+        const cols = this._levelMap[0]!.length;
+
+        for (let y = 0; y < rows; y++) {
+            for (let x = 0; x < cols; x++) {
+                const cellType = this._levelMap[y]![x];
+                
+                if (cellType !== undefined && cellType > 0) {
+                    const block = new Object3D(`Block_${x}_${y}`);
+                    block.geometry = blockGeo;
+                    
+                    if (cellType === 1) block.material = blockMat1;
+                    else if (cellType === 2) block.material = blockMat2;
+                    else if (cellType === 3) block.material = blockMat3;
+
+                    block.position.set(x, rows - y - 1, 0);
+                    this.scene.add(block);
+                    this._blocks.push(block);
+                }
+            }
+        }
+
+        // 5. Spieler erstellen
+        const playerMat = new SpriteMaterial({ color: Color.RED });
+        this._player = new Sprite(playerMat, "Mario");
+        this._player.position.set(2, 10, 0);
+        this.scene.add(this._player);
+
+        // 6. Wolken (Hintergrund-Ebenen / Parallax Scrolling) hinzufügen
+        const cloudMat1 = new SpriteMaterial({ color: Color.WHITE, texture: cloudTex1 });
+        const cloudMat2 = new SpriteMaterial({ color: Color.WHITE, texture: cloudTex2 });
+        
+        // Wir verteilen die Wolken auf 3 tiefen Ebenen
+        const zLayers = [-10, -25, -45];
+        
+        for (let i = 0; i < 15; i++) {
+            const isCloud1 = Math.random() > 0.5;
+            const cloudSprite = new Sprite(isCloud1 ? cloudMat1 : cloudMat2, `Cloud_${i}`);
+            
+            // Zufällige Größe (Wolken sind meist breiter als hoch)
+            const scaleX = 4 + Math.random() * 6;
+            const scaleY = scaleX * 0.5;
+            
+            // Horizontales Flippen via Skalierung (die Sprite-Klasse verarbeitet negative X-Skalierung korrekt)
+            cloudSprite.scale.set(Math.random() > 0.5 ? scaleX : -scaleX, scaleY, 1);
+            
+            // Zufällige Position
+            const z = zLayers[i % zLayers.length]!; // Verteilen auf die 3 Ebenen
+            const x = (Math.random() - 0.5) * 100;
+            // Je weiter hinten (Z ist negativ), desto höher können sie optisch sein
+            const y = 5 + Math.random() * 15 - (z * 0.2); 
+            
+            cloudSprite.position.set(x, y, z);
+            
+            // Geschwindigkeit variiert: je weiter weg, desto langsamer wirkt der Wind
+            const speed = (Math.random() * 1.5 + 0.5) * (1.0 / Math.abs(z)) * 5.0;
+            
+            this.scene.add(cloudSprite);
+            this._clouds.push({ sprite: cloudSprite, speed });
+        }
+    }
+
+    private _getAABB(obj: Object3D, width: number, height: number): BoundingBox {
+        const halfW = width / 2;
+        const halfH = height / 2;
+        const min = new Vector3D(obj.position.x - halfW, obj.position.y - halfH, -0.5);
+        const max = new Vector3D(obj.position.x + halfW, obj.position.y + halfH, 0.5);
+        return new BoundingBox(min, max);
+    }
+
+    private _checkCollision(boxA: BoundingBox, boxB: BoundingBox): boolean {
+        return (
+            boxA.min.x <= boxB.max.x &&
+            boxA.max.x >= boxB.min.x &&
+            boxA.min.y <= boxB.max.y &&
+            boxA.max.y >= boxB.min.y
+        );
+    }
+
+    protected override update(deltaTime: number): void {
+        // --- 1. HORIZONTALE BEWEGUNG (X) ---
+        let moveX = 0;
+        if (Input.isPressed(Keys.A)) moveX = -1;
+        if (Input.isPressed(Keys.D)) moveX = 1;
+
+        this._velocity.x = moveX * this._moveSpeed;
+        this._player.position.x += this._velocity.x * deltaTime;
+
+        // Horizontale Kollision prüfen & korrigieren
+        const playerBoxX = this._getAABB(this._player, 1, 1);
+        for (const block of this._blocks) {
+            const blockBox = this._getAABB(block, 1, 1);
+            if (this._checkCollision(playerBoxX, blockBox)) {
+                if (this._velocity.x > 0) {
+                    this._player.position.x = blockBox.min.x - 0.501;
+                } else if (this._velocity.x < 0) {
+                    this._player.position.x = blockBox.max.x + 0.501;
+                }
+                this._velocity.x = 0;
+            }
+        }
+
+        // --- 2. VERTIKALE BEWEGUNG (Y) ---
+        this._velocity.y += this._gravity * deltaTime;
+        
+        if (this._isGrounded && Input.isPressed(Keys.SPACE)) {
+            this._velocity.y = this._jumpForce;
+            this._isGrounded = false;
+        }
+
+        this._player.position.y += this._velocity.y * deltaTime;
+
+        // Vertikale Kollision prüfen & korrigieren
+        this._isGrounded = false;
+        const playerBoxY = this._getAABB(this._player, 1, 1);
+        for (const block of this._blocks) {
+            const blockBox = this._getAABB(block, 1, 1);
+            if (this._checkCollision(playerBoxY, blockBox)) {
+                if (this._velocity.y < 0) {
+                    this._player.position.y = blockBox.max.y + 0.501;
+                    this._isGrounded = true;
+                    this._velocity.y = 0;
+                } else if (this._velocity.y > 0) {
+                    this._player.position.y = blockBox.min.y - 0.501;
+                    this._velocity.y = 0;
+                }
+            }
+        }
+
+        // Death Zone
+        if (this._player.position.y < -10) {
+            this._player.position.set(2, 10, 0); // Respawn
+            this._velocity.set(0, 0, 0);
+        }
+
+        // --- 3. WOLKEN BEWEGEN (Parallax & Wind) ---
+        // Der perspektivische 3D-Effekt (Parallax) ergibt sich automatisch durch die Kamera!
+        // Hier fügen wir nur eine kontinuierliche "Wind"-Bewegung hinzu.
+        for (const cloud of this._clouds) {
+            cloud.sprite.position.x -= cloud.speed * deltaTime;
+
+            // Wenn eine Wolke zu weit nach links fliegt, setzen wir sie rechts wieder an
+            // relativ zur Kamera, damit es endlos wirkt.
+            const limitLeft = this.camera.position.x - 50;
+            const limitRight = this.camera.position.x + 50;
+            
+            if (cloud.sprite.position.x < limitLeft) {
+                cloud.sprite.position.x = limitRight;
+                // Leichte Y-Varianz beim Respawn
+                cloud.sprite.position.y = 5 + Math.random() * 15 - (cloud.sprite.position.z * 0.2);
+            }
+        }
+
+        // --- 4. KAMERA NACHFÜHREN ---
+        const camTarget = new Vector3D(this._player.position.x, this._player.position.y, 0);
+        this.camera.update(camTarget, 0, 0, deltaTime);
+    }
+
+    protected override getDebugInfo(): Record<string, string | number> {
+        const base = super.getDebugInfo();
+        return {
+            ...base,
+            Example: "08 - 2.5D Jump & Run",
+            "Player X": this._player.position.x.toFixed(2),
+            "Player Y": this._player.position.y.toFixed(2),
+            "Grounded": this._isGrounded ? "Yes" : "No",
+        };
+    }
+}
+
+const app = new Example8();
+app
+    .start()
+    .then((): void => {
+        console.log("Example 8 running");
+    })
+    .catch((err: Error): void => {
+        console.error("Error starting engine:", err);
+    });

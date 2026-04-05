@@ -25,10 +25,6 @@ export class Example7 extends AbstractExample {
     private _moveSpeed: number = 15.0;
     private _eyeHeight: number = 2.0;
 
-    constructor() {
-        super({canvasId: "SmallWorld"});
-    }
-
     protected override onCanvasRecreated(): void {
         super.onCanvasRecreated();
         this.canvas.addEventListener("click", (): void => {

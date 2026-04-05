@@ -2607,9 +2607,12 @@ export declare class SpriteMaterial extends AbstractMaterial {
     texture: Texture | undefined;
     /**
      * Creates a new SpriteMaterial.
-     * @param texture The texture for the sprite.
+     * @param options The texture for the sprite or a configuration object.
      */
-    constructor(texture?: Texture);
+    constructor(options?: Texture | {
+        texture?: Texture;
+        color?: Color;
+    });
 }
 
 /**
@@ -2871,6 +2874,16 @@ export declare class Texture {
      * @param image Optional initial image data.
      */
     protected constructor(image?: HTMLImageElement | ImageBitmap);
+    /**
+     * Flips the texture horizontally by modifying the UV offset and repeat.
+     * @returns This texture instance for chaining.
+     */
+    flipX(): this;
+    /**
+     * Flips the texture vertically by modifying the UV offset and repeat.
+     * @returns This texture instance for chaining.
+     */
+    flipY(): this;
     /**
      * Creates a texture from an existing image or bitmap.
      * @param image The image or bitmap data.
