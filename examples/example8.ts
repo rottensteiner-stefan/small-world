@@ -21,10 +21,6 @@ import {
 } from "../src/index.js";
 import {AbstractExample} from "../src/core/example/AbstractExample.js";
 
-interface CloudData {
-    sprite: Sprite;
-    speed: number;
-}
 
 /**
  * Example 8: A classic 2.5D Jump & Run with pure code physics, collision, and parallax clouds!
@@ -32,7 +28,6 @@ interface CloudData {
 export class Example8 extends AbstractExample {
     private _player!: Sprite;
     private _blocks: Object3D[] = [];
-    private _clouds: CloudData[] = [];
     
     // Physics & Movement
     private _velocity: Vector3D = new Vector3D(0, 0, 0);
@@ -91,8 +86,6 @@ export class Example8 extends AbstractExample {
         const brickTex1 = await loadPixelTexture("/resources/examples/8/brick-1.png");
         const brickTex2 = await loadPixelTexture("/resources/examples/8/brick-2.png");
         const brickTex3 = await loadPixelTexture("/resources/examples/8/brick-3.png");
-        const cloudTex1 = await loadPixelTexture("/resources/examples/8/cloud-1.png");
-        const cloudTex2 = await loadPixelTexture("/resources/examples/8/cloud-2.png");
 
         // 4. Level aufbauen
         const blockGeo = new Cube({size: 1}).getGeometryData();
@@ -127,39 +120,6 @@ export class Example8 extends AbstractExample {
         this._player = new Sprite(playerMat, "Mario");
         this._player.position.set(2, 10, 0);
         this.scene.add(this._player);
-
-        // 6. Wolken (Hintergrund-Ebenen / Parallax Scrolling) hinzufügen
-        const cloudMat1 = new SpriteMaterial({ color: Color.WHITE, texture: cloudTex1 });
-        const cloudMat2 = new SpriteMaterial({ color: Color.WHITE, texture: cloudTex2 });
-        
-        // Wir verteilen die Wolken auf 3 tiefen Ebenen
-        const zLayers = [-10, -25, -45];
-        
-        for (let i = 0; i < 15; i++) {
-            const isCloud1 = Math.random() > 0.5;
-            const cloudSprite = new Sprite(isCloud1 ? cloudMat1 : cloudMat2, `Cloud_${i}`);
-            
-            // Zufällige Größe (Wolken sind meist breiter als hoch)
-            const scaleX = 4 + Math.random() * 6;
-            const scaleY = scaleX * 0.5;
-            
-            // Horizontales Flippen via Skalierung (die Sprite-Klasse verarbeitet negative X-Skalierung korrekt)
-            cloudSprite.scale.set(Math.random() > 0.5 ? scaleX : -scaleX, scaleY, 1);
-            
-            // Zufällige Position
-            const z = zLayers[i % zLayers.length]!; // Verteilen auf die 3 Ebenen
-            const x = (Math.random() - 0.5) * 100;
-            // Je weiter hinten (Z ist negativ), desto höher können sie optisch sein
-            const y = 5 + Math.random() * 15 - (z * 0.2); 
-            
-            cloudSprite.position.set(x, y, z);
-            
-            // Geschwindigkeit variiert: je weiter weg, desto langsamer wirkt der Wind
-            const speed = (Math.random() * 1.5 + 0.5) * (1.0 / Math.abs(z)) * 5.0;
-            
-            this.scene.add(cloudSprite);
-            this._clouds.push({ sprite: cloudSprite, speed });
-        }
     }
 
     private _getAABB(obj: Object3D, width: number, height: number): BoundingBox {
@@ -233,24 +193,6 @@ export class Example8 extends AbstractExample {
         if (this._player.position.y < -10) {
             this._player.position.set(2, 10, 0); // Respawn
             this._velocity.set(0, 0, 0);
-        }
-
-        // --- 3. WOLKEN BEWEGEN (Parallax & Wind) ---
-        // Der perspektivische 3D-Effekt (Parallax) ergibt sich automatisch durch die Kamera!
-        // Hier fügen wir nur eine kontinuierliche "Wind"-Bewegung hinzu.
-        for (const cloud of this._clouds) {
-            cloud.sprite.position.x -= cloud.speed * deltaTime;
-
-            // Wenn eine Wolke zu weit nach links fliegt, setzen wir sie rechts wieder an
-            // relativ zur Kamera, damit es endlos wirkt.
-            const limitLeft = this.camera.position.x - 50;
-            const limitRight = this.camera.position.x + 50;
-            
-            if (cloud.sprite.position.x < limitLeft) {
-                cloud.sprite.position.x = limitRight;
-                // Leichte Y-Varianz beim Respawn
-                cloud.sprite.position.y = 5 + Math.random() * 15 - (cloud.sprite.position.z * 0.2);
-            }
         }
 
         // --- 4. KAMERA NACHFÜHREN ---

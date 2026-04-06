@@ -1717,6 +1717,42 @@ export declare class MathUtils {
 }
 
 /**
+ * A class representing a 3x3 matrix.
+ */
+export declare class Matrix3 {
+    /** The matrix data (column-major). */
+    data: Float32Array;
+    /**
+     * Creates a new Matrix3.
+     */
+    constructor();
+    /**
+     * Sets the matrix to identity.
+     * @returns this
+     */
+    identity(): this;
+    /**
+     * Sets the matrix from a 4x4 matrix (upper-left 3x3).
+     * @param m The 4x4 matrix.
+     * @returns this
+     */
+    setFromMatrix4(m: any): this;
+    /**
+     * Normal matrix calculation (transpose of inverse of the upper-left 3x3 of a 4x4 matrix).
+     * @param m The 4x4 matrix.
+     * @returns this
+     */
+    getNormalMatrix(m: any): this;
+    /**
+     * Multiplies two 3x3 matrices.
+     * @param a The first matrix.
+     * @param b The second matrix.
+     * @param out The output matrix.
+     */
+    static multiply(a: Matrix3, b: Matrix3, out: Matrix3): void;
+}
+
+/**
  * A 4x4 matrix class.
  */
 export declare class Matrix4 {
@@ -1954,19 +1990,52 @@ export declare class Object3D {
      */
     constructor(name?: string);
     /**
-     * Adds a child object.
-     * @param child The child object to add.
+     * Adds child objects.
+     * @param children The child objects to add.
      */
-    add(child: Object3D): void;
+    add(...children: Object3D[]): void;
     /**
-     * Removes a child object.
-     * @param child The child object to remove.
+     * Removes child objects.
+     * @param children The child objects to remove.
      */
-    remove(child: Object3D): void;
+    remove(...children: Object3D[]): void;
     /**
-     * Updates the world matrix of the object and its children.
-     * @param force Whether to force the update.
+     * Translates the object by a vector.
+     * @param v The translation vector.
+     * @returns this
      */
+    translate(v: Vector3D): this;
+    /**
+     * Sets the position of the object.
+     * @param x The x coordinate.
+     * @param y The y coordinate.
+     * @param z The z coordinate.
+     * @returns this
+     */
+    setPosition(x: number, y: number, z: number): this;
+    /**
+     * Sets the rotation of the object.
+     * @param x The x rotation in radians.
+     * @param y The y rotation in radians.
+     * @param z The z rotation in radians.
+     * @returns this
+     */
+    setRotation(x: number, y: number, z: number): this;
+    /**
+     * Sets the scale of the object.
+     * @param x The x scale.
+     * @param y The y scale.
+     * @param z The z scale.
+     * @returns this
+     */
+    setScale(x: number, y?: number, z?: number): this;
+    /**
+     * Rotates the object to look at a target position.
+     * @param target The target position.
+     * @param up The up vector.
+     * @returns this
+     */
+    lookAt(target: Vector3D, up?: Vector3D): this;
     updateMatrixWorld(force?: boolean): void;
 }
 
@@ -2333,6 +2402,76 @@ export declare interface PyramidOptions {
     radialSegments?: number;
 }
 
+/**
+ * A class representing a quaternion for rotations.
+ */
+export declare class Quaternion {
+    /** The x component. */
+    x: number;
+    /** The y component. */
+    y: number;
+    /** The z component. */
+    z: number;
+    /** The w component. */
+    w: number;
+    /**
+     * Creates a new Quaternion.
+     * @param x The x component.
+     * @param y The y component.
+     * @param z The z component.
+     * @param w The w component.
+     */
+    constructor(x?: number, y?: number, z?: number, w?: number);
+    /**
+     * Sets the components of the quaternion.
+     * @param x The x component.
+     * @param y The y component.
+     * @param z The z component.
+     * @param w The w component.
+     * @returns this
+     */
+    set(x: number, y: number, z: number, w: number): this;
+    /**
+     * Identity quaternion.
+     * @returns this
+     */
+    identity(): this;
+    /**
+     * Multiplies this quaternion by another.
+     * @param q The other quaternion.
+     * @returns this
+     */
+    multiply(q: Quaternion): this;
+    /**
+     * Sets the quaternion from axis and angle.
+     * @param axis The rotation axis (must be normalized).
+     * @param angle The rotation angle in radians.
+     * @returns this
+     */
+    setFromAxisAngle(axis: Vector3D, angle: number): this;
+    /**
+     * Sets the quaternion from a rotation matrix.
+     * @param m The rotation matrix.
+     * @returns this
+     */
+    setFromRotationMatrix(m: Matrix4): this;
+    /**
+     * Calculates the length of the quaternion.
+     * @returns The length.
+     */
+    length(): number;
+    /**
+     * Normalizes the quaternion.
+     * @returns this
+     */
+    normalize(): this;
+    /**
+     * Clones the quaternion.
+     * @returns A new Quaternion.
+     */
+    clone(): Quaternion;
+}
+
 export declare interface Renderer {
     readonly type: RendererType;
     initialize(canvas: HTMLCanvasElement, attributes?: Record<string, unknown>): Promise<void>;
@@ -2385,15 +2524,15 @@ export declare class Scene {
     /** The octree for spatial partitioning. */
     octree: Octree | undefined;
     /**
-     * Adds an object to the scene.
-     * @param obj The object to add.
+     * Adds objects to the scene.
+     * @param objs The objects to add.
      */
-    add(obj: Object3D): void;
+    add(...objs: Object3D[]): void;
     /**
-     * Removes an object from the scene.
-     * @param obj The object to remove.
+     * Removes objects from the scene.
+     * @param objs The objects to remove.
      */
-    remove(obj: Object3D): void;
+    remove(...objs: Object3D[]): void;
     /**
      * Updates all objects in the scene.
      */
@@ -3088,6 +3227,24 @@ export declare class Vector2D implements Vector {
      */
     add(v: Vector2D): this;
     /**
+     * Adds a scalar to this vector.
+     * @param s The scalar to add.
+     * @returns this
+     */
+    addScalar(s: number): this;
+    /**
+     * Multiplies this vector by another.
+     * @param v The other vector.
+     * @returns this
+     */
+    multiply(v: Vector2D): this;
+    /**
+     * Divides this vector by a scalar.
+     * @param s The scalar to divide by.
+     * @returns this
+     */
+    divideScalar(s: number): this;
+    /**
      * Subtracts another vector from this one.
      * @param v The vector to subtract.
      * @returns this
@@ -3171,7 +3328,7 @@ export declare class Vector3D implements Vector {
      * @param z The z component.
      * @returns this
      */
-    set(x: number, y: number, z: number): this;
+    set(x: number, y?: number, z?: number): this;
     /**
      * Adds another vector to this one.
      * @param v The vector to add.
@@ -3197,9 +3354,36 @@ export declare class Vector3D implements Vector {
      */
     dot(v: Vector3D): number;
     /**
-     * Calculates the squared length of the vector.
-     * @returns The squared length.
+     * Adds a scalar value to all components.
+     * @param s The scalar to add.
+     * @returns this
      */
+    addScalar(s: number): this;
+    /**
+     * Multiplies the vector components by another vector.
+     * @param v The vector to multiply by.
+     * @returns this
+     */
+    multiply(v: Vector3D): this;
+    /**
+     * Divides the vector by a scalar.
+     * @param s The scalar to divide by.
+     * @returns this
+     */
+    divideScalar(s: number): this;
+    /**
+     * Cross product of this vector and another vector.
+     * @param v The other vector.
+     * @returns this
+     */
+    cross(v: Vector3D): this;
+    /**
+     * Calculates the cross product of two vectors and stores the result in this vector.
+     * @param a The first vector.
+     * @param b The second vector.
+     * @returns this
+     */
+    crossVectors(a: Vector3D, b: Vector3D): this;
     lengthSq(): number;
     /**
      * Calculates the length of the vector.

@@ -50,6 +50,45 @@ export class Vector2D implements Vector {
   }
 
   /**
+   * Adds a scalar to this vector.
+   * @param s The scalar to add.
+   * @returns this
+   */
+  public addScalar(s: number): this {
+    this.x += s;
+    this.y += s;
+    return this;
+  }
+
+  /**
+   * Multiplies this vector by another.
+   * @param v The other vector.
+   * @returns this
+   */
+  public multiply(v: Vector2D): this {
+    this.x *= v.x;
+    this.y *= v.y;
+    return this;
+  }
+
+  /**
+   * Divides this vector by a scalar.
+   * @param s The scalar to divide by.
+   * @returns this
+   */
+  public divideScalar(s: number): this {
+    if (0 !== s) {
+      const invLen = 1 / s;
+      this.x *= invLen;
+      this.y *= invLen;
+    } else {
+      this.x = 0;
+      this.y = 0;
+    }
+    return this;
+  }
+
+  /**
    * Subtracts another vector from this one.
    * @param v The vector to subtract.
    * @returns this
