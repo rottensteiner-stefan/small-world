@@ -303,6 +303,8 @@ export declare class AssetManager {
 export declare class BasicMaterial extends AbstractMaterial {
     /** @inheritdoc */
     readonly type: MaterialType;
+    /** The diffuse texture map. */
+    diffuseMap: Texture | undefined;
 }
 
 /**
