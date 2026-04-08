@@ -8,9 +8,8 @@ export class MathUtils {
   public static readonly TWO_PI: number = Math.PI * 2.0;
   public static readonly HALF_PI: number = Math.PI / 2.0;
   public static readonly QUARTER_PI: number = Math.PI / 4.0;
-
-  private static readonly DEG2RAD: number = Math.PI / 180.0;
-  private static readonly RAD2DEG: number = 180.0 / Math.PI;
+  public static readonly DEG2RAD: number = Math.PI / 180.0;
+  public static readonly RAD2DEG: number = 180.0 / Math.PI;
 
   private static _SIN_TABLE: Float32Array = new Float32Array(3600);
   private static _COS_TABLE: Float32Array = new Float32Array(3600);

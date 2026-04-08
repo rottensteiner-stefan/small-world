@@ -1,6 +1,7 @@
 /// src/geometry/Capsule.ts
 
 import { AbstractGeometry } from "./AbstractGeometry.js";
+import { MathUtils } from "../math/index.js";
 
 /**
  * Configuration options for capsule geometry.
@@ -61,14 +62,14 @@ export class Capsule extends AbstractGeometry {
 
       // Top cap
       if (y <= this.capSegments) {
-        const phi: number = (y / this.capSegments) * (Math.PI / 2) - Math.PI / 2;
+        const phi: number = (y / this.capSegments) * MathUtils.HALF_PI - MathUtils.HALF_PI;
         radius = this.radius * Math.cos(phi);
         yPos = halfLength - this.radius * Math.sin(phi);
         vCoord = (y / (this.capSegments * 2 + 1)) * 0.5;
       }
       // Bottom cap
       else if (y > this.capSegments) {
-        const phi: number = ((y - 1) / this.capSegments) * (Math.PI / 2) - Math.PI / 2;
+        const phi: number = ((y - 1) / this.capSegments) * MathUtils.HALF_PI - MathUtils.HALF_PI;
         radius = this.radius * Math.cos(phi);
         yPos = -halfLength - this.radius * Math.sin(phi);
         vCoord = y / (this.capSegments * 2 + 1);
@@ -81,7 +82,7 @@ export class Capsule extends AbstractGeometry {
 
       for (let x: number = 0; x <= this.radialSegments; x++) {
         const uCoord: number = x / this.radialSegments;
-        const theta: number = uCoord * Math.PI * 2;
+        const theta: number = uCoord * MathUtils.TWO_PI;
 
         const vx: number = radius * Math.sin(theta);
         const vz: number = radius * Math.cos(theta);

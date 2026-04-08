@@ -4,6 +4,7 @@ import { Camera } from "../../Camera.js";
 import { CameraStrategyType } from "../../../enums/index.js";
 import { CameraConstraints, CameraStrategy } from "../../../interfaces/index.js";
 import { Vector3D } from "../../../math/Vector3D.js";
+import { MathUtils } from "../../../math/index.js";
 
 /**
  * A camera strategy that rigidly follows a target.
@@ -21,7 +22,7 @@ export class StiffStrategy implements CameraStrategy {
     if (0 !== dx || 0 !== dy) {
       camera.theta -= dx * 0.005;
       camera.phi += dy * 0.005;
-      const limit: number = Math.PI / 2 - 0.01;
+      const limit: number = MathUtils.HALF_PI - 0.01;
       if (limit < camera.phi) camera.phi = limit;
       if (-limit > camera.phi) camera.phi = -limit;
     }

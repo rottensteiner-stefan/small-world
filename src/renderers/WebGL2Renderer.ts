@@ -231,8 +231,16 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       }
       this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
       this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR);
-      this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
-      this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
+      this.gl.texParameteri(
+        this.gl.TEXTURE_CUBE_MAP,
+        this.gl.TEXTURE_WRAP_S,
+        this.gl.CLAMP_TO_EDGE,
+      );
+      this.gl.texParameteri(
+        this.gl.TEXTURE_CUBE_MAP,
+        this.gl.TEXTURE_WRAP_T,
+        this.gl.CLAMP_TO_EDGE,
+      );
       this._texCubeCache.set(tex, glTex);
     }
     return glTex;
@@ -268,11 +276,11 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
    */
   private _drawSkybox(o: Object3D, vp: Float32Array): void {
     if (!o.isVisible || !o.material) return;
-    
+
     if (o.geometry && o.material.type === MaterialType.SKYBOX) {
       const skyMat = o.material as SkyboxMaterial;
       const cache = this._getProgram(MaterialType.SKYBOX);
-      
+
       this.gl.useProgram(cache.prog);
 
       if (cache.locs.vp) this.gl.uniformMatrix4fv(cache.locs.vp, false, vp);
@@ -282,22 +290,21 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         m = new Mesh(this.gl, o.geometry);
         this._cache.set(o.geometry, m);
       }
-      
+
       m.bind(cache.locs.pos);
-      
-      if (cache.locs.model)
-        this.gl.uniformMatrix4fv(cache.locs.model, false, o.worldMatrix.data);
-        
+
+      if (cache.locs.model) this.gl.uniformMatrix4fv(cache.locs.model, false, o.worldMatrix.data);
+
       this.gl.activeTexture(this.gl.TEXTURE0);
       this.gl.bindTexture(
         this.gl.TEXTURE_CUBE_MAP,
         skyMat.cubeMap ? this._getWebGLCubeTexture(skyMat.cubeMap) : this.defaultCubeTexture,
       );
-      
+
       if (cache.locs.skybox) this.gl.uniform1i(cache.locs.skybox, 0);
       this.gl.drawElements(this.gl.TRIANGLES, m.count, this.gl.UNSIGNED_SHORT, 0);
     }
-    
+
     if (o.children) {
       for (const child of o.children) {
         this._drawSkybox(child, vp);
@@ -315,7 +322,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     if (o.geometry && o.material && o.material.type !== MaterialType.SKYBOX) {
       const mat = o.material;
       const cache = this._getProgram(mat.type);
-      
+
       this.gl.useProgram(cache.prog);
 
       // Upload global uniforms (VP, CamPos, Lights)
@@ -323,9 +330,12 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       if (cache.locs.vp) this.gl.uniformMatrix4fv(cache.locs.vp, false, vp);
       if (cache.locs.viewPos) this.gl.uniform3f(cache.locs.viewPos, camPos.x, camPos.y, camPos.z);
 
-      if (cache.locs.ambient) this.gl.uniform3f(cache.locs.ambient, lights.aCol.r, lights.aCol.g, lights.aCol.b);
-      if (cache.locs.dirDir) this.gl.uniform3f(cache.locs.dirDir, lights.dDir.x, lights.dDir.y, lights.dDir.z);
-      if (cache.locs.dirColor) this.gl.uniform3f(cache.locs.dirColor, lights.dCol.r, lights.dCol.g, lights.dCol.b);
+      if (cache.locs.ambient)
+        this.gl.uniform3f(cache.locs.ambient, lights.aCol.r, lights.aCol.g, lights.aCol.b);
+      if (cache.locs.dirDir)
+        this.gl.uniform3f(cache.locs.dirDir, lights.dDir.x, lights.dDir.y, lights.dDir.z);
+      if (cache.locs.dirColor)
+        this.gl.uniform3f(cache.locs.dirColor, lights.dCol.r, lights.dCol.g, lights.dCol.b);
 
       if (cache.locs.numPL) this.gl.uniform1i(cache.locs.numPL, lights.pLights.length);
       for (let i: number = 0; i < lights.pLights.length; i++) {
@@ -333,8 +343,20 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         if (!pl) continue;
         const loc = cache.pointLightLocs[i];
         if (!loc) continue;
-        if (loc.pos) this.gl.uniform3f(loc.pos!, pl.worldMatrix.data[12]!, pl.worldMatrix.data[13]!, pl.worldMatrix.data[14]!);
-        if (loc.col) this.gl.uniform3f(loc.col!, pl.color.r * pl.intensity, pl.color.g * pl.intensity, pl.color.b * pl.intensity);
+        if (loc.pos)
+          this.gl.uniform3f(
+            loc.pos!,
+            pl.worldMatrix.data[12]!,
+            pl.worldMatrix.data[13]!,
+            pl.worldMatrix.data[14]!,
+          );
+        if (loc.col)
+          this.gl.uniform3f(
+            loc.col!,
+            pl.color.r * pl.intensity,
+            pl.color.g * pl.intensity,
+            pl.color.b * pl.intensity,
+          );
       }
 
       if (cache.locs.numSL) this.gl.uniform1i(cache.locs.numSL, lights.sLights.length);
@@ -343,11 +365,36 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         if (!sl) continue;
         const loc = cache.spotLightLocs[i];
         if (!loc) continue;
-        if (loc.pos) this.gl.uniform3f(loc.pos!, sl.worldMatrix.data[12]!, sl.worldMatrix.data[13]!, sl.worldMatrix.data[14]!);
+        if (loc.pos)
+          this.gl.uniform3f(
+            loc.pos!,
+            sl.worldMatrix.data[12]!,
+            sl.worldMatrix.data[13]!,
+            sl.worldMatrix.data[14]!,
+          );
         this._scratchVec3.set(sl.direction.x, sl.direction.y, sl.direction.z).normalize();
-        if (loc.dir) this.gl.uniform3f(loc.dir!, this._scratchVec3.x, this._scratchVec3.y, this._scratchVec3.z);
-        if (loc.col) this.gl.uniform3f(loc.col!, sl.color.r * sl.intensity, sl.color.g * sl.intensity, sl.color.b * sl.intensity);
-        if (loc.params) this.gl.uniform4f(loc.params!, Math.cos(sl.angle), Math.cos(sl.angle * (1.0 - sl.penumbra)), sl.distance, sl.decay);
+        if (loc.dir)
+          this.gl.uniform3f(
+            loc.dir!,
+            this._scratchVec3.x,
+            this._scratchVec3.y,
+            this._scratchVec3.z,
+          );
+        if (loc.col)
+          this.gl.uniform3f(
+            loc.col!,
+            sl.color.r * sl.intensity,
+            sl.color.g * sl.intensity,
+            sl.color.b * sl.intensity,
+          );
+        if (loc.params)
+          this.gl.uniform4f(
+            loc.params!,
+            Math.cos(sl.angle),
+            Math.cos(sl.angle * (1.0 - sl.penumbra)),
+            sl.distance,
+            sl.decay,
+          );
       }
 
       if (cache.locs.numAL) this.gl.uniform1i(cache.locs.numAL, lights.aLights.length);
@@ -358,7 +405,13 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         if (!loc) continue;
         const matData: Float32Array = al.worldMatrix.data;
         if (loc.pos) this.gl.uniform3f(loc.pos!, matData[12]!, matData[13]!, matData[14]!);
-        if (loc.col) this.gl.uniform3f(loc.col!, al.color.r * al.intensity, al.color.g * al.intensity, al.color.b * al.intensity);
+        if (loc.col)
+          this.gl.uniform3f(
+            loc.col!,
+            al.color.r * al.intensity,
+            al.color.g * al.intensity,
+            al.color.b * al.intensity,
+          );
         if (loc.right) this.gl.uniform3f(loc.right!, matData[0]!, matData[1]!, matData[2]!);
         if (loc.up) this.gl.uniform3f(loc.up!, matData[4]!, matData[5]!, matData[6]!);
         if (loc.normal) this.gl.uniform3f(loc.normal!, matData[8]!, matData[9]!, matData[10]!);

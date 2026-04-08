@@ -668,9 +668,9 @@ export declare class Color {
      * @param b Blue component (0-1).
      * @param a Alpha component (0-1).
      */
-    constructor(r: number, g: number, b: number, a?: number);
+    constructor(r?: number, g?: number, b?: number, a?: number);
     private _cachedArray;
-    set(r: number, g: number, b: number, a?: number): this;
+    set(r?: number, g?: number, b?: number, a?: number): this;
     static get BLACK(): Color;
     static get SILVER(): Color;
     static get GRAY(): Color;
@@ -1988,7 +1988,7 @@ export declare class Object3D {
     frustumCulled: boolean;
     /**
      * Creates a new Object3D.
-     * @param name The name of the object.
+     * @param name The name of the object. Defaults to a random UUID.
      */
     constructor(name?: string);
     /**
@@ -2580,12 +2580,7 @@ export declare class ShakeEffect extends AbstractCameraEffect {
  * A skybox that surrounds the scene.
  */
 export declare class Skybox extends Object3D {
-    /**
-     * Creates a new Skybox.
-     * @param source An array of paths to the cube map textures or a CubeTexture instance.
-     * @param size The size of the skybox cube.
-     */
-    constructor(source: string[] | CubeTexture, size?: number);
+    constructor(options: SkyboxOptions);
 }
 
 /**
@@ -2619,6 +2614,18 @@ export declare interface SkyboxMaterialOptions {
     color?: Color;
     /** The cube map texture. Defaults to null. */
     cubeMap?: CubeTexture | null;
+}
+
+/**
+ * Configuration options for the Skydome.
+ */
+export declare interface SkyboxOptions {
+    /** The name of the object. Defaults to "Skydome". */
+    name?: string;
+    /** The size of the skybox cube. */
+    size?: number;
+    /** An array of paths to the cube map textures or a CubeTexture instance. */
+    source: string[] | CubeTexture;
 }
 
 /**

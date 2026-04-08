@@ -63,13 +63,19 @@ export class WebGPURenderer extends AbstractRenderer {
     WebGPUGeoCache
   >();
   private _objCache: Map<Object3D, WebGPUObjCache> = new Map<Object3D, WebGPUObjCache>();
-  
+
   private _textureViewCache: Map<Texture, GPUTextureView> = new Map<Texture, GPUTextureView>();
   private _texCache: Map<Texture, GPUBindGroup> = new Map<Texture, GPUBindGroup>();
-  
-  private _cubeTextureViewCache: Map<CubeTexture, GPUTextureView> = new Map<CubeTexture, GPUTextureView>();
-  private _cubeTexBindGroupCache: Map<CubeTexture, GPUBindGroup> = new Map<CubeTexture, GPUBindGroup>();
-  
+
+  private _cubeTextureViewCache: Map<CubeTexture, GPUTextureView> = new Map<
+    CubeTexture,
+    GPUTextureView
+  >();
+  private _cubeTexBindGroupCache: Map<CubeTexture, GPUBindGroup> = new Map<
+    CubeTexture,
+    GPUBindGroup
+  >();
+
   private _terrainTexCache: Map<TerrainMaterial, GPUBindGroup> = new Map<
     TerrainMaterial,
     GPUBindGroup
@@ -395,13 +401,16 @@ export class WebGPURenderer extends AbstractRenderer {
       const t: GPUTexture = this._device!.createTexture({
         size: [img.width, img.height, 6],
         format: "rgba8unorm",
-        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
+        usage:
+          GPUTextureUsage.TEXTURE_BINDING |
+          GPUTextureUsage.COPY_DST |
+          GPUTextureUsage.RENDER_ATTACHMENT,
       });
       for (let i: number = 0; i < 6; i++) {
         this._device!.queue.copyExternalImageToTexture(
           { source: tex.images[i]! },
           { texture: t, origin: [0, 0, i] },
-          [img.width, img.height]
+          [img.width, img.height],
         );
       }
       view = t.createView({ dimension: "cube" });
@@ -661,7 +670,9 @@ export class WebGPURenderer extends AbstractRenderer {
         if (mat.type === MaterialType.SKYBOX) {
           rp.setPipeline(this._pipelineSkybox);
           const skyMat = mat as SkyboxMaterial;
-          texBindGroup = skyMat.cubeMap ? this._getGPUCubeTextureBindGroup(skyMat.cubeMap) : this._defaultCubeTexBindGroup;
+          texBindGroup = skyMat.cubeMap
+            ? this._getGPUCubeTextureBindGroup(skyMat.cubeMap)
+            : this._defaultCubeTexBindGroup;
         } else {
           rp.setPipeline(
             mat.type === MaterialType.WIREFRAME ? this._pipelineLines : this._pipelineTriangles,

@@ -1,6 +1,7 @@
 /// src/geometry/Circle.ts
 
 import { AbstractGeometry } from "./AbstractGeometry.js";
+import { MathUtils } from "../math/index.js";
 
 /**
  * Configuration options for circle geometry.
@@ -35,7 +36,7 @@ export class Circle extends AbstractGeometry {
    */
   constructor(options: CircleOptions = {}) {
     super();
-    const { radius = 1, segments = 32, thetaStart = 0, thetaLength = Math.PI * 2 } = options;
+    const { radius = 1, segments = 32, thetaStart = 0, thetaLength = MathUtils.TWO_PI } = options;
     this.radius = radius;
     this.segments = segments;
     this.thetaStart = thetaStart;

@@ -1,6 +1,7 @@
 /// src/geometry/Tube.ts
 
 import { AbstractGeometry } from "./AbstractGeometry.js";
+import { MathUtils } from "../math/index.js";
 
 /**
  * Configuration options for tube geometry.
@@ -69,7 +70,7 @@ export class Tube extends AbstractGeometry {
 
         for (let x: number = 0; x <= this.radialSegments; x++) {
           const uCoord: number = x / this.radialSegments;
-          const theta: number = uCoord * Math.PI * 2;
+          const theta: number = uCoord * MathUtils.TWO_PI;
           v.push(r * Math.sin(theta), yPos, r * Math.cos(theta));
           uv.push(uCoord, vCoord);
         }
