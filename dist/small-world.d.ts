@@ -2523,6 +2523,10 @@ export declare class Scene {
      * The list of objects in the scene.
      */
     objects: Object3D[];
+    /**
+     * A map for fast O(1) object lookups by name.
+     */
+    private readonly _objectsByName;
     /** The octree for spatial partitioning. */
     octree: Octree | undefined;
     /**
@@ -2535,6 +2539,12 @@ export declare class Scene {
      * @param objs The objects to remove.
      */
     remove(...objs: Object3D[]): void;
+    /**
+     * Retrieves an object by its name.
+     * @param name The name of the object to find.
+     * @returns The object, or undefined if not found.
+     */
+    getObjectByName(name: string): Object3D | undefined;
     /**
      * Updates all objects in the scene.
      */
@@ -2626,6 +2636,34 @@ export declare interface SkyboxOptions {
     size?: number;
     /** An array of paths to the cube map textures or a CubeTexture instance. */
     source: string[] | CubeTexture;
+}
+
+/**
+ * A skydome that surrounds the scene using a spherical geometry.
+ */
+export declare class Skydome extends Object3D {
+    material: BasicMaterial;
+    /**
+     * Creates a new Skydome.
+     * @param options The configuration options for the skydome.
+     */
+    constructor(options: SkydomeOptions);
+}
+
+/**
+ * Configuration options for the Skydome.
+ */
+export declare interface SkydomeOptions {
+    /** The name of the object. Defaults to "Skydome". */
+    name?: string;
+    /** The texture to use for the skydome. */
+    texture: Texture;
+    /** The radius of the skydome. Defaults to 100. */
+    radius?: number;
+    /** The number of width segments. Defaults to 32. */
+    widthSegments?: number;
+    /** The number of height segments. Defaults to 32. */
+    heightSegments?: number;
 }
 
 /**

@@ -96,7 +96,7 @@ export class Example9 extends AbstractExample {
     // 1. Process rotation from mouse
     let dx: number = 0;
     let dy: number = 0;
-    if (true === Input.isPointerLocked) {
+    if (Input.isPointerLocked) {
       dx = Input.mouse.dx;
       dy = Input.mouse.dy;
     }
