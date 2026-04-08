@@ -124,10 +124,14 @@ export abstract class AbstractExample extends Application {
 
   /**
    * A hook method that is called when the canvas element is recreated.
-   * Inheriting classes (like Example6) MUST override this to, for example, rebind click events for the PointerLock.
+   * By default, it binds the click event to request PointerLock. Inheriting classes can override this if needed.
    */
   protected onCanvasRecreated(): void {
-    // Empty by default
+    this.canvas.addEventListener("click", (): void => {
+      if (false === Input.isPointerLocked) {
+        Input.requestPointerLock(this.canvas);
+      }
+    });
   }
 
   protected getDebugInfo(): Record<string, string | number> {

@@ -11,6 +11,11 @@ export class Scene {
    */
   public objects: Object3D[] = [];
 
+  /**
+   * A map for fast O(1) object lookups by name.
+   */
+  private readonly _objectsByName: Map<string, Object3D> = new Map();
+
   /** The octree for spatial partitioning. */
   public octree: Octree | undefined = undefined;
 
@@ -21,6 +26,7 @@ export class Scene {
   public add(...objs: Object3D[]): void {
     for (const obj of objs) {
       this.objects.push(obj);
+      this._objectsByName.set(obj.name, obj);
     }
   }
 
@@ -33,8 +39,18 @@ export class Scene {
       const index: number = this.objects.indexOf(obj);
       if (-1 !== index) {
         this.objects.splice(index, 1);
+        this._objectsByName.delete(obj.name);
       }
     }
+  }
+
+  /**
+   * Retrieves an object by its name.
+   * @param name The name of the object to find.
+   * @returns The object, or undefined if not found.
+   */
+  public getObjectByName(name: string): Object3D | undefined {
+    return this._objectsByName.get(name);
   }
 
   /**

@@ -237,7 +237,7 @@ export declare abstract class Application {
      * Creates a new application.
      * @param userConfig Optional configuration to override defaults.
      */
-    constructor(userConfig?: EngineConfig);
+    protected constructor(userConfig?: EngineConfig);
     /**
      * Called to setup the scene after the engine is initialized.
      */
@@ -1681,8 +1681,8 @@ export declare class MathUtils {
     static readonly TWO_PI: number;
     static readonly HALF_PI: number;
     static readonly QUARTER_PI: number;
-    private static readonly DEG2RAD;
-    private static readonly RAD2DEG;
+    static readonly DEG2RAD: number;
+    static readonly RAD2DEG: number;
     private static _SIN_TABLE;
     private static _COS_TABLE;
     private static _isInit;

@@ -12,6 +12,7 @@ export * from "./Input.js";
 export * from "./Object3D.js";
 export * from "./Scene.js";
 export * from "./Skybox.js";
+export * from "./Skydome.js";
 export * from "./SmallWorld.js";
 export * from "./Sprite.js";
 export * from "./cameras/index.js";

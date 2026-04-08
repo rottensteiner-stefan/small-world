@@ -98,7 +98,7 @@ export class Example8 extends AbstractExample {
     });
     const blockMat3 = new PhongMaterial({
       color: Color.WHITE,
-      diffuseMap: brickTextures[3],
+      diffuseMap: brickTextures[2],
       shininess: 0,
     });
 

@@ -1,11 +1,10 @@
-/// examples/example7.ts
+/// examples/example9.ts
 
 import {
   AmbientLight,
   CameraStrategyType,
   Color,
   Cube,
-  CubeTexture,
   DirectionalLight,
   Input,
   Keys,
@@ -14,25 +13,20 @@ import {
   PerspectiveProjection,
   PhongMaterial,
   Plane,
-  SkyboxMaterial,
+  Skydome,
+  Texture,
 } from "../src/index.js";
 import { AbstractExample } from "../src/core/example/AbstractExample.js";
 
 /**
- * Example 7: Clean rebuild with Skybox, Green Floor, WASD/QE movement.
+ * Example 9: Clean rebuild with Skydome, Green Floor, WASD/QE movement.
  */
-export class Example7 extends AbstractExample {
-  private _moveSpeed: number = 15.0;
-  private _eyeHeight: number = 2.0;
+export class Example9 extends AbstractExample {
+  private readonly _moveSpeed: number = 15.0;
+  private readonly _eyeHeight: number = 2.0;
 
-  protected override onCanvasRecreated(): void {
-    super.onCanvasRecreated();
-    this.canvas.addEventListener("click", (): void => {
-      if (!Input.isPointerLocked) {
-        Input.requestPointerLock(this.canvas);
-      }
-    });
-  }
+  private _skydome: Skydome | undefined = undefined;
+  private _floor: Object3D | undefined = undefined;
 
   protected override async setupScene(): Promise<void> {
     this.onCanvasRecreated();
@@ -43,7 +37,7 @@ export class Example7 extends AbstractExample {
       fov: MathUtils.degToRad(75),
       aspect,
       near: 0.1,
-      far: 2000, // Make sure far plane is large enough for the skybox
+      far: 2000, // Make sure far plane is large enough for the skydome
     });
     this.camera.updateProjectionMatrix();
     this.camera.setStrategy(CameraStrategyType.FPS);
@@ -51,24 +45,24 @@ export class Example7 extends AbstractExample {
 
     // 2. Lighting
     this.scene.add(new AmbientLight({ color: Color.WHITE, intensity: 0.5 }));
-    const sun = new DirectionalLight({ color: Color.WHITE, intensity: 0.8 });
+    const sun: DirectionalLight = new DirectionalLight({ color: Color.WHITE, intensity: 0.8 });
     sun.direction.set(-1, -1, -1).normalize();
     this.scene.add(sun);
 
-    // 3. Skybox
-    const skyTexture = new CubeTexture();
-    await skyTexture.loadFrom("/resources/models/textures/skybox-1.jpg");
-
-    const skybox = new Object3D("Skybox");
-    skybox.geometry = new Cube({ size: 1000 }).getGeometryData();
-    skybox.material = new SkyboxMaterial({ cubeMap: skyTexture });
-    skybox.frustumCulled = false;
-    this.scene.add(skybox);
+    // 3. Skydome
+    const skyTexture: Texture = await Texture.fromUrl("/resources/models/textures/skydome-1.jpg");
+    
+    const skydome: Skydome = new Skydome({
+      texture: skyTexture,
+      radius: 1000, // Large enough to cover the visible space without clipping
+    });
+    this.scene.add(skydome);
+    this._skydome = skydome;
 
     // 4. Floor
-    const floor = new Object3D("Floor");
-    // Der Boden muss nicht gigantisch sein, solange er immer mit der Kamera wandert.
-    // Er muss nur den Bereich bis zur Clipping-Ebene abdecken.
+    // The floor doesn't need to be gigantic as long as it moves with the camera.
+    // It only needs to cover the area up to the clipping plane.
+    const floor: Object3D = new Object3D("Floor");
     floor.geometry = new Plane({
       width: 4000,
       depth: 4000,
@@ -82,40 +76,41 @@ export class Example7 extends AbstractExample {
     });
     floor.rotation.x = -MathUtils.HALF_PI;
     this.scene.add(floor);
+    this._floor = floor;
 
-    // 5. Orientierungspunkte (Illusion Breaker)
-    const referenceCube = new Object3D("ReferenceCube");
+    // 5. Reference points (Illusion Breaker)
+    const referenceCube: Object3D = new Object3D("ReferenceCube");
     referenceCube.geometry = new Cube({ size: 2 }).getGeometryData();
     referenceCube.material = new PhongMaterial({ color: Color.BLUE, shininess: 50 });
-    referenceCube.position.set(0, 1, -10); // Genau vor unserer Startposition
+    referenceCube.position.set(0, 1, -10); // Exactly in front of our starting position
     this.scene.add(referenceCube);
 
-    const redCube = new Object3D("RedCube");
+    const redCube: Object3D = new Object3D("RedCube");
     redCube.geometry = new Cube({ size: 2 }).getGeometryData();
     redCube.material = new PhongMaterial({ color: Color.RED, shininess: 50 });
-    redCube.position.set(10, 1, 0); // Rechts von uns
+    redCube.position.set(10, 1, 0); // To our right
     this.scene.add(redCube);
   }
 
   protected override update(deltaTime: number): void {
     // 1. Process rotation from mouse
-    let dx = 0;
-    let dy = 0;
-    if (Input.isPointerLocked) {
+    let dx: number = 0;
+    let dy: number = 0;
+    if (true === Input.isPointerLocked) {
       dx = Input.mouse.dx;
       dy = Input.mouse.dy;
     }
     Input.mouse.dx = 0;
     Input.mouse.dy = 0;
 
-    // Wir updaten die Kamera einmal vorab, damit die Rotation (theta) für den Bewegungsvektor aktuell ist.
+    // We update the camera once in advance so that the rotation (theta) for the movement vector is current.
     this.camera.update(this.camera.target, dx, dy, deltaTime);
 
     // 2. Process movement from keyboard
     const moveZ: number = Input.getAxis(Keys.W, Keys.S);
     const moveX: number = Input.getAxis(Keys.A, Keys.D);
 
-    if (moveZ !== 0 || moveX !== 0) {
+    if (0 !== moveZ || 0 !== moveX) {
       const sin: number = Math.sin(this.camera.theta);
       const cos: number = Math.cos(this.camera.theta);
 
@@ -127,38 +122,36 @@ export class Example7 extends AbstractExample {
     }
 
     // 3. Process vertical movement (Q = down, E = up)
-    if (Input.isPressed(Keys.Q)) {
+    if (true === Input.isPressed(Keys.Q)) {
       this.camera.position.y -= this._moveSpeed * deltaTime;
     }
-    if (Input.isPressed(Keys.E)) {
+    if (true === Input.isPressed(Keys.E)) {
       this.camera.position.y += this._moveSpeed * deltaTime;
     }
 
     // 4. Collision / Floor Clamp
     this.camera.position.y = Math.max(this._eyeHeight, this.camera.position.y);
 
-    // 5. Update Skybox & Floor Position
-    // Die Skybox muss immer exakt auf der Kamera liegen.
-    const skybox = this.scene.objects.find((o) => o.name === "Skybox");
-    if (skybox) {
-      skybox.position.copyFrom(this.camera.position);
+    // 5. Update Skydome & Floor Position
+    // The skydome must always be exactly on the camera.
+    if (undefined !== this._skydome) {
+      this._skydome.position.copyFrom(this.camera.position);
     }
 
-    // Auch der Boden muss der Kamera folgen (auf der X- und Z-Achse),
-    // da er sonst "aufhört", wenn man zu weit läuft!
-    const floor = this.scene.objects.find((o) => o.name === "Floor");
-    if (floor) {
-      floor.position.x = this.camera.position.x;
-      floor.position.z = this.camera.position.z;
+    // The floor must also follow the camera (on the X and Z axes),
+    // otherwise it "ends" if you walk too far!
+    if (undefined !== this._floor) {
+      this._floor.position.x = this.camera.position.x;
+      this._floor.position.z = this.camera.position.z;
     }
   }
 
   protected override getDebugInfo(): Record<string, string | number> {
-    const base = super.getDebugInfo();
+    const base: Record<string, string | number> = super.getDebugInfo();
     return {
       ...base,
-      Example: "07 - Illusion Breaker",
-      "Pointer Locked": Input.isPointerLocked ? "Yes" : "No",
+      Example: "09 - Skydome Implementation",
+      "Pointer Locked": true === Input.isPointerLocked ? "Yes" : "No",
       "Cam X": this.camera.position.x.toFixed(2),
       "Cam Y": this.camera.position.y.toFixed(2),
       "Cam Z": this.camera.position.z.toFixed(2),
@@ -166,11 +159,11 @@ export class Example7 extends AbstractExample {
   }
 }
 
-const app = new Example7();
+const app: Example9 = new Example9();
 app
   .start()
   .then((): void => {
-    console.log("Example 7 running");
+    console.log("Example 9 running");
   })
   .catch((err: Error): void => {
     console.error("Error starting engine:", err);
