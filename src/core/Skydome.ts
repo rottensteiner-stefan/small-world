@@ -41,14 +41,19 @@ export class Skydome extends Object3D {
     super(name);
 
     this.geometry = new Sphere({
-      heightSegments, // Nutzt den destrukturierten Wert oder Default (32)
-      radius, // Nutzt den destrukturierten Wert oder Default (100)
-      widthSegments, // Nutzt den destrukturierten Wert oder Default (32)
+      heightSegments, // Uses the destructured value or default (32)
+      radius, // Uses the destructured value or default (100)
+      widthSegments, // Uses the destructured value or default (32)
     }).getGeometryData();
 
     this.frustumCulled = false;
     this.material = new BasicMaterial();
     this.material.color.set(1, 1, 1);
     this.material.diffuseMap = texture;
+
+    // Invert the scale on the X-axis to flip the sphere inside out.
+    // Since the camera is placed inside the sphere, the faces would 
+    // otherwise be invisible due to backface culling.
+    this.scale.set(-1, 1, 1);
   }
 }
