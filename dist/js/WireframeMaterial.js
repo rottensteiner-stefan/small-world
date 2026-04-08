@@ -1,1 +1,1 @@
-import{d as a,e}from"./AbstractExample.js";class s extends a{type=e.WIREFRAME}export{s as W};
+import{d as s,e as a}from"./AbstractExample.js";class e extends s{type=a.WIREFRAME}export{e as W};
