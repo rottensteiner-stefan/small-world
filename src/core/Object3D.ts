@@ -44,10 +44,10 @@ export class Object3D {
 
   /**
    * Creates a new Object3D.
-   * @param name The name of the object.
+   * @param name The name of the object. Defaults to a random UUID.
    */
-  constructor(name: string = "") {
-    this.name = name;
+  constructor(name?: string) {
+    this.name = name || crypto.randomUUID();
   }
 
   /**

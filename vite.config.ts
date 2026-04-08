@@ -19,6 +19,18 @@ export default defineConfig({
   build: {
     outDir: "dist",
     emptyOutDir: true,
+    minify: "terser",
+    terserOptions: {
+      format: {
+        comments: false,
+      },
+      compress: {
+        drop_console: true,
+        drop_debugger: true,
+        passes: 2,
+      },
+      mangle: true,
+    },
     rollupOptions: {
       input: {
         example1: resolve(__dirname, "examples/example1.html"),

@@ -12,15 +12,15 @@ export class Color {
    * @param a Alpha component (0-1).
    */
   constructor(
-    public r: number,
-    public g: number,
-    public b: number,
+    public r: number = 0,
+    public g: number = 0,
+    public b: number = 0,
     public a: number = 1.0,
   ) {}
 
   private _cachedArray = new Float32Array(4);
 
-  public set(r: number, g: number, b: number, a: number = 1.0): this {
+  public set(r: number = 0, g: number = 0, b: number = 0, a: number = 1.0): this {
     this.r = r;
     this.g = g;
     this.b = b;
@@ -30,7 +30,7 @@ export class Color {
 
   // --- CSS Level 1 / Basic Colors ---
   public static get BLACK(): Color {
-    return new Color(0, 0, 0);
+    return new Color();
   }
   public static get SILVER(): Color {
     return new Color(0.753, 0.753, 0.753);

@@ -17,14 +17,14 @@ export default defineConfig({
     },
     terserOptions: {
       format: {
-        comments: false, // Wirft wirklich ALLE Kommentare restlos raus
+        comments: false, // Strips out absolutely ALL comments
       },
       compress: {
         drop_console: true,
         drop_debugger: true,
-        passes: 2, // Jagt den Optimierer zweimal über den Code (für maximales Quetschen)
+        passes: 2, // Runs the optimizer twice over the code (for maximum compression)
       },
-      mangle: true, // Kürzt alle internen Variablennamen
+      mangle: true, // Minifies all internal variable names
     },
     rollupOptions: {
       output: {

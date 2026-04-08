@@ -1,6 +1,7 @@
 /// src/geometry/Torus.ts
 
 import { AbstractGeometry } from "./AbstractGeometry.js";
+import { MathUtils } from "../math/index.js";
 
 /**
  * Configuration options for torus geometry.
@@ -51,13 +52,13 @@ export class Torus extends AbstractGeometry {
 
     for (let j = 0; j <= this.radialSegments; j++) {
       const vRatio: number = j / this.radialSegments;
-      const vArg: number = vRatio * Math.PI * 2;
+      const vArg: number = vRatio * MathUtils.TWO_PI;
       const cosV: number = Math.cos(vArg);
       const sinV: number = Math.sin(vArg);
 
       for (let i = 0; i <= this.tubularSegments; i++) {
         const uRatio: number = i / this.tubularSegments;
-        const uArg: number = uRatio * Math.PI * 2;
+        const uArg: number = uRatio * MathUtils.TWO_PI;
         const cosU: number = Math.cos(uArg);
         const sinU: number = Math.sin(uArg);
 

@@ -1,6 +1,7 @@
 /// src/geometry/Sphere.ts
 
 import { AbstractGeometry } from "./AbstractGeometry.js";
+import { MathUtils } from "../math/index.js";
 
 /**
  * Configuration options for sphere geometry.
@@ -53,7 +54,7 @@ export class Sphere extends AbstractGeometry {
 
       for (let x: number = 0; x <= this.widthSegments; x++) {
         const uRatio: number = x / this.widthSegments;
-        const theta: number = uRatio * Math.PI * 2;
+        const theta: number = uRatio * MathUtils.TWO_PI;
 
         const px: number = -(this.radius * Math.sin(phi) * Math.cos(theta));
         const py: number = this.radius * Math.cos(phi);

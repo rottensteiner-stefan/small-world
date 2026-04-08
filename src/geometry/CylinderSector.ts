@@ -1,6 +1,7 @@
 /// src/geometry/CylinderSector.ts
 
 import { Cylinder, CylinderOptions } from "./Cylinder.js";
+import { MathUtils } from "../math/index.js";
 
 /**
  * Configuration options for cylinder sector geometry.
@@ -19,7 +20,7 @@ export class CylinderSector extends Cylinder {
    * @param options The configuration options.
    */
   constructor(options: CylinderSectorOptions = {}) {
-    const { thetaLength = Math.PI / 2, ...rest } = options;
+    const { thetaLength = MathUtils.TWO_PI, ...rest } = options;
     super({
       ...rest,
       thetaLength,

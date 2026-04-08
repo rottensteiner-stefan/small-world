@@ -31,10 +31,8 @@ class Example1 extends AbstractExample {
     sun.direction.set(-1, -1, -1);
 
     // 2. Object: A single cube with blue material
-    this._myCube = new Object3D("RotatingCube")
-      .setPosition(0, 0, 0)
-      .setScale(1);
-    
+    this._myCube = new Object3D("RotatingCube").setPosition(0, 0, 0).setScale(1);
+
     this._myCube.geometry = new Cube({ size: 2 }).getGeometryData();
     this._myCube.material = new PhongMaterial({
       color: Color.DODGERBLUE,

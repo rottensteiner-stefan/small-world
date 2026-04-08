@@ -82,7 +82,7 @@ export class Example2 extends AbstractExample {
     for (let i: number = 0; 20 > i; i++) {
       const box: Object3D = new Object3D(`Box_${i}`);
       box.geometry = new Cube({ size: Math.random() * 2 + 1 }).getGeometryData();
-      
+
       // Use the newly implemented HSL method to generate vibrant, random colors
       box.material = new PhongMaterial({
         color: Color.fromHSL(Math.random() * 360, 0.8, 0.5),

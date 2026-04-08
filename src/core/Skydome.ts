@@ -9,6 +9,8 @@ import { Texture } from "./textures/index.js";
  * Configuration options for the Skydome.
  */
 export interface SkydomeOptions {
+  /** The name of the object. Defaults to "Skydome". */
+  name?: string;
   /** The texture to use for the skydome. */
   texture: Texture;
   /** The radius of the skydome. Defaults to 100. */
@@ -23,31 +25,30 @@ export interface SkydomeOptions {
  * A skydome that surrounds the scene using a spherical geometry.
  */
 export class Skydome extends Object3D {
-  declare material: BasicMaterial;
+  declare public material: BasicMaterial;
   /**
    * Creates a new Skydome.
    * @param options The configuration options for the skydome.
    */
   constructor(options: SkydomeOptions) {
-    super("Skydome");
-
     const {
-      texture,
-      radius = 100,
-      widthSegments = 32,
       heightSegments = 32,
+      name = "Skydome",
+      radius = 100,
+      texture,
+      widthSegments = 32,
     } = options;
+    super(name);
 
     this.geometry = new Sphere({
-      radius,          // Nutzt den destrukturierten Wert oder Default (100)
-      widthSegments,   // Nutzt den destrukturierten Wert oder Default (32)
-      heightSegments,  // Nutzt den destrukturierten Wert oder Default (32)
+      heightSegments, // Nutzt den destrukturierten Wert oder Default (32)
+      radius, // Nutzt den destrukturierten Wert oder Default (100)
+      widthSegments, // Nutzt den destrukturierten Wert oder Default (32)
     }).getGeometryData();
 
+    this.frustumCulled = false;
     this.material = new BasicMaterial();
     this.material.color.set(1, 1, 1);
     this.material.diffuseMap = texture;
-
-    this.frustumCulled = false;
   }
 }

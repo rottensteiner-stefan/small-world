@@ -4,6 +4,7 @@ import { CameraConstraints, CameraStrategy } from "../../../interfaces/index.js"
 import { Camera } from "../../Camera.js";
 import { CameraStrategyType } from "../../../enums/index.js";
 import { Vector3D } from "../../../math/Vector3D.js";
+import { MathUtils } from "../../../math/index.js";
 
 /**
  * A first-person camera strategy.
@@ -21,13 +22,13 @@ export class FPSStrategy implements CameraStrategy {
     if (0 !== dx || 0 !== dy) {
       camera.theta -= dx * 0.005;
       camera.phi += dy * 0.005;
-      const limit: number = Math.PI / 2 - 0.01;
+      const limit: number = MathUtils.HALF_PI - 0.01;
       if (limit < camera.phi) camera.phi = limit;
       if (-limit > camera.phi) camera.phi = -limit;
     }
 
     // IMPORTANT FIX: In FPS mode, the user directly manipulates the camera's position (or we copy a targetPos into it).
-    // However, Application.ts unconditionally calls camera.update(camera.target), which in FPS mode 
+    // However, Application.ts unconditionally calls camera.update(camera.target), which in FPS mode
     // would mean the camera treats its own look-at point as its feet and constantly flies forward.
     // To prevent this, FPSStrategy should ONLY update the position if the provided targetPos is NOT the camera's own target.
     if (targetPos !== camera.target) {

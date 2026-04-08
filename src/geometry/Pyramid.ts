@@ -1,6 +1,7 @@
 /// src/geometry/Pyramid.ts
 
 import { AbstractGeometry } from "./AbstractGeometry.js";
+import { MathUtils } from "../math/index.js";
 
 /**
  * Configuration options for pyramid geometry.
@@ -53,7 +54,7 @@ export class Pyramid extends AbstractGeometry {
     const tipIndex: number = 0;
 
     for (let i: number = 0; i <= this.radialSegments; i++) {
-      const theta: number = (i / this.radialSegments) * Math.PI * 2;
+      const theta: number = (i / this.radialSegments) * MathUtils.TWO_PI;
       v.push(rb * Math.sin(theta), -hh, rb * Math.cos(theta));
       uv.push(i / this.radialSegments, 0.0);
     }
@@ -69,7 +70,7 @@ export class Pyramid extends AbstractGeometry {
 
     const baseOffset: number = v.length / 3;
     for (let i: number = 0; i <= this.radialSegments; i++) {
-      const theta: number = (i / this.radialSegments) * Math.PI * 2;
+      const theta: number = (i / this.radialSegments) * MathUtils.TWO_PI;
       v.push(rb * Math.sin(theta), -hh, rb * Math.cos(theta));
       uv.push(0.5 + Math.sin(theta) * 0.5, 0.5 + Math.cos(theta) * 0.5);
     }

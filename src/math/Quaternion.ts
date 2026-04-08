@@ -60,8 +60,14 @@ export class Quaternion {
    * @returns this
    */
   public multiply(q: Quaternion): this {
-    const qax = this.x, qay = this.y, qaz = this.z, qaw = this.w;
-    const qbx = q.x, qby = q.y, qbz = q.z, qbw = q.w;
+    const qax = this.x,
+      qay = this.y,
+      qaz = this.z,
+      qaw = this.w;
+    const qbx = q.x,
+      qby = q.y,
+      qbz = q.z,
+      qbw = q.w;
 
     this.x = qax * qbw + qaw * qbx + qay * qbz - qaz * qby;
     this.y = qay * qbw + qaw * qby + qaz * qbx - qax * qbz;
@@ -96,9 +102,15 @@ export class Quaternion {
    */
   public setFromRotationMatrix(m: Matrix4): this {
     const te = m.data;
-    const m11 = te[0]!, m12 = te[4]!, m13 = te[8]!;
-    const m21 = te[1]!, m22 = te[5]!, m23 = te[9]!;
-    const m31 = te[2]!, m32 = te[6]!, m33 = te[10]!;
+    const m11 = te[0]!,
+      m12 = te[4]!,
+      m13 = te[8]!;
+    const m21 = te[1]!,
+      m22 = te[5]!,
+      m23 = te[9]!;
+    const m31 = te[2]!,
+      m32 = te[6]!,
+      m33 = te[10]!;
     const trace = m11 + m22 + m33;
 
     if (0 < trace) {

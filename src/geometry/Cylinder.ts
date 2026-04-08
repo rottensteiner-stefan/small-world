@@ -1,6 +1,7 @@
 /// src/geometry/Cylinder.ts
 
 import { AbstractGeometry } from "./AbstractGeometry.js";
+import { MathUtils } from "../math/index.js";
 
 /**
  * Configuration options for cylinder geometry.
@@ -55,7 +56,7 @@ export class Cylinder extends AbstractGeometry {
       radialSegments = 16,
       heightSegments = 1,
       thetaStart = 0,
-      thetaLength = Math.PI * 2,
+      thetaLength = MathUtils.TWO_PI,
     } = options;
 
     this.radiusTop = radiusTop;
@@ -132,7 +133,7 @@ export class Cylinder extends AbstractGeometry {
     }
 
     // --- Side caps (for partial sectors) ---
-    if (this.thetaLength < Math.PI * 2) {
+    if (this.thetaLength < MathUtils.TWO_PI) {
       const buildSideCap = (isStart: boolean): void => {
         const angle: number = isStart ? this.thetaStart : this.thetaStart + this.thetaLength;
         const sin: number = Math.sin(angle);

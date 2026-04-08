@@ -6,7 +6,7 @@ import { Camera } from "../../Camera.js";
 import { Vector3D } from "../../../math/Vector3D.js";
 import { Matrix4 } from "../../../math/Matrix4.js";
 import { CameraStrategyType } from "../../../enums/index.js";
-import { OrthographicProjection } from "../../../math/index.js";
+import { MathUtils, OrthographicProjection } from "../../../math/index.js";
 
 /**
  * Strategy for an isometric 2D/3D camera.
@@ -57,7 +57,7 @@ export class IsometricStrategy implements CameraStrategy {
     // Standard isometric angles
     // Rotation around Y: 45 degrees
     // Rotation around X (pitch): Math.asin(Math.tan(30 * Math.PI / 180)) approx 35.264 degrees
-    const angleY: number = Math.PI / 4; // 45°
+    const angleY: number = MathUtils.QUARTER_PI; // 45°
     const angleX: number = Math.atan(Math.SQRT1_2); // ~35.264°
 
     // Distance from target

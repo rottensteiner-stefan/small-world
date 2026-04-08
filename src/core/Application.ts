@@ -38,7 +38,7 @@ export abstract class Application {
    * Creates a new application.
    * @param userConfig Optional configuration to override defaults.
    */
-  constructor(userConfig: EngineConfig = {}) {
+  protected constructor(userConfig: EngineConfig = {}) {
     this.config = {
       canvasId: "canvas",
       rendererType: RendererType.WEB_GPU,
@@ -122,7 +122,9 @@ export abstract class Application {
           if ("loading" === document.readyState) {
             document.addEventListener("DOMContentLoaded", (): void => resolve(), { once: true });
             // Fallback timeout in case DOMContentLoaded already fired or something else
-            setTimeout((): void => { resolve(); }, 500);
+            setTimeout((): void => {
+              resolve();
+            }, 500);
           } else {
             resolve();
           }
@@ -134,7 +136,9 @@ export abstract class Application {
       let retries: number = 0;
       while (!this.canvas && 5 > retries) {
         await new Promise<void>((resolve: () => void): void => {
-          setTimeout((): void => { resolve(); }, 100);
+          setTimeout((): void => {
+            resolve();
+          }, 100);
         });
         this.canvas = document.getElementById(this.config.canvasId!) as HTMLCanvasElement;
         retries++;
