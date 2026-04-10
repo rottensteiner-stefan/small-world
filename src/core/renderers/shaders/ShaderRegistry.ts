@@ -3,12 +3,17 @@
 import { ShaderDefinition } from "./ShaderDefinition.js";
 
 /**
+ * Supported shader languages.
+ */
+export type ShaderLanguage = "glsl300" | "glsl100" | "wgsl";
+
+/**
  * Central registry for shader definitions.
  */
 export class ShaderRegistry {
   private static _instance: ShaderRegistry;
   private _shaders: Map<string, ShaderDefinition> = new Map();
-  private _chunks: Map<string, string> = new Map();
+  private _chunks: Map<string, Map<ShaderLanguage, string>> = new Map();
 
   private constructor() {}
 
@@ -44,37 +49,44 @@ export class ShaderRegistry {
   }
 
   /**
-   * Registers a shader chunk.
-   * @param id The ID of the chunk.
+   * Registers a shader chunk for a specific language.
+   * @param id The ID of the chunk (e.g., "LIGHTING_PHONG").
    * @param code The source code of the chunk.
+   * @param lang The language of the code.
    */
-  public registerChunk(id: string, code: string): void {
-    this._chunks.set(id, code);
+  public registerChunk(id: string, code: string, lang: ShaderLanguage): void {
+    if (!this._chunks.has(id)) {
+      this._chunks.set(id, new Map());
+    }
+    this._chunks.get(id)!.set(lang, code);
   }
 
   /**
-   * Gets a shader chunk by its ID.
+   * Gets a shader chunk by its ID and language.
    * @param id The ID of the chunk.
+   * @param lang The language of the chunk.
    * @returns The source code of the chunk or undefined if not found.
    */
-  public getChunk(id: string): string | undefined {
-    return this._chunks.get(id);
+  public getChunk(id: string, lang: ShaderLanguage): string | undefined {
+    return this._chunks.get(id)?.get(lang);
   }
 
   /**
    * Processes a shader source and replaces all chunk placeholders.
    * Placeholders are formatted as: [CHUNK_ID]
    * @param source The shader source code.
+   * @param lang The language to use for chunks.
    * @returns The source code with all placeholders replaced.
    */
-  public assemble(source: string): string {
+  public assemble(source: string, lang: ShaderLanguage): string {
     return source.replace(/\[([A-Z0-9_]+)\]/g, (match: string, chunkId: string) => {
-      const chunk: string | undefined = this.getChunk(chunkId);
+      const chunk: string | undefined = this.getChunk(chunkId, lang);
       if (undefined === chunk) {
-        console.warn(`[ShaderRegistry] Chunk not found: ${chunkId}`);
+        console.warn(`[ShaderRegistry] Chunk not found for language ${lang}: ${chunkId}`);
         return match;
       }
-      return chunk;
+      // Recursively assemble chunks in case chunks contain other chunks
+      return this.assemble(chunk, lang);
     });
   }
 }
