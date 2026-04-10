@@ -2,7 +2,7 @@
 
 import { AbstractMaterial } from "./AbstractMaterial.js";
 import { CubeTexture } from "../textures/index.js";
-import { MaterialType } from "../../enums/index.js";
+import { MaterialType, CullMode } from "../../enums/index.js";
 import { Color } from "../colors/Color.js";
 import { RenderManifest } from "../renderers/shaders/RenderManifest.js";
 
@@ -49,7 +49,7 @@ export class SkyboxMaterial extends AbstractMaterial {
       },
       state: {
         depthWrite: false,
-        culling: "none", // Skybox is visible from the inside
+        culling: CullMode.NONE, // Skybox is visible from the inside
       },
     };
   }

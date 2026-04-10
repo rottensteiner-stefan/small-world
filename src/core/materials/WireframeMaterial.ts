@@ -1,6 +1,6 @@
 /// src/core/materials/WireframeMaterial.ts
 import { AbstractMaterial } from "./AbstractMaterial.js";
-import { MaterialType } from "../../enums/MaterialType.js";
+import { MaterialType, CullMode } from "../../enums/index.js";
 import { Color } from "../colors/index.js";
 import { RenderManifest } from "../renderers/shaders/RenderManifest.js";
 
@@ -25,7 +25,7 @@ export class WireframeMaterial extends AbstractMaterial {
       },
       textures: {},
       state: {
-        culling: "none", // Often useful for wireframes to see the back
+        culling: CullMode.NONE, // Often useful for wireframes to see the back
       },
     };
   }
