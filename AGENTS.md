@@ -51,6 +51,7 @@ ESLint Sync: These rules are synchronized with the linter configuration (eslint.
 - **Immutability:** Use `readonly` for properties that should not be changed after initialization.
 - **Functional Patterns:** Prefer functional patterns (`.map()`, `.filter()`) over imperative loops where it improves readability.
 - **`undefined` over `null`:** Use `undefined` for optional or uninitialized values. Avoid using `null`.
+- **No Magic Strings:** Avoid using hardcoded strings for configuration, state, or identifiers (e.g., `"alpha"`, `"back"`). Instead, use `Enums` or `Const Objects` (e.g., `BlendingMode.ALPHA`, `CullMode.BACK`) to ensure type safety and maintainability.
 - **Comments:** All code comments must be written in English. If you find comments in a language other than English, translate them.
 - **Yoda:** Use Yoda-style value comparisons.
 

@@ -12,3 +12,6 @@ export * from "./ProjectionType.js";
 export * from "./RendererType.js";
 export * from "./TextureFilter.js";
 export * from "./TextureWrap.js";
+export * from "./BlendingMode.js";
+export * from "./CullMode.js";
+export * from "./ShaderPropertyType.js";

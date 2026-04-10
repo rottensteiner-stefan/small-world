@@ -2,6 +2,7 @@
 
 import { Color } from "../../colors/Color.js";
 import { Texture } from "../../core/textures/Texture.js";
+import { BlendingMode, CullMode } from "../../../enums/index.js";
 
 /**
  * The RenderManifest is the "order sheet" that a material 
@@ -27,8 +28,8 @@ export interface RenderManifest {
    * Optional GPU state overrides for this specific draw call.
    */
   state?: {
-    culling?: "back" | "front" | "none";
-    blending?: "alpha" | "opaque" | "additive";
+    culling?: CullMode;
+    blending?: BlendingMode;
     depthWrite?: boolean;
     transparent?: boolean;
   };

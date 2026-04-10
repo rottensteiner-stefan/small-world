@@ -1,11 +1,7 @@
 /// src/core/renderers/shaders/ShaderDefinition.ts
 
 import { Color } from "../../colors/Color.js";
-
-/**
- * Defines the types of data that can be passed to a shader.
- */
-export type ShaderPropertyType = "float" | "vec2" | "vec3" | "vec4" | "mat4" | "color" | "texture";
+import { BlendingMode, CullMode, ShaderPropertyType } from "../../../enums/index.js";
 
 /**
  * Metadata for a shader property.
@@ -41,8 +37,8 @@ export interface ShaderDefinition {
   layout: ShaderLayout;
   /** Optional default state for the GPU pipeline. */
   defaultState?: {
-    culling?: "back" | "front" | "none";
-    blending?: "alpha" | "opaque" | "additive";
+    culling?: CullMode;
+    blending?: BlendingMode;
     depthWrite?: boolean;
     transparent?: boolean;
   };
