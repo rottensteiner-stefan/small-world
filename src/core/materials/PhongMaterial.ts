@@ -1,9 +1,10 @@
 /// src/core/materials/PhongMaterial.ts
 
-import { AbstractMaterial } from "./index.js";
+import { AbstractMaterial } from "./AbstractMaterial.js";
 import { Color } from "../colors/index.js";
 import { MaterialType } from "../../enums/index.js";
 import { Texture } from "../textures/index.js";
+import { RenderManifest } from "../renderers/shaders/RenderManifest.js";
 
 /**
  * Configuration options for Phong material.
@@ -51,5 +52,20 @@ export class PhongMaterial extends AbstractMaterial {
     this.specularColor = specularColor;
     this.shininess = shininess;
     this.diffuseMap = diffuseMap;
+  }
+
+  /** @inheritdoc */
+  public override getRenderManifest(): RenderManifest {
+    return {
+      shaderId: this.type,
+      properties: {
+        u_color: this.color,
+        u_specColor: this.specularColor,
+        u_shininess: this.shininess,
+      },
+      textures: {
+        u_diffuseMap: this.diffuseMap,
+      },
+    };
   }
 }
