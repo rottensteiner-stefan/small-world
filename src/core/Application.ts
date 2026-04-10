@@ -84,7 +84,6 @@ export abstract class Application {
     this.renderer = undefined!; // Initialized in start()
 
     Input.init();
-    ShaderBootstrap.init();
   }
 
   /**
@@ -167,6 +166,8 @@ export abstract class Application {
         this.canvas.width = this.config.width;
         this.canvas.height = this.config.height;
       }
+
+      await ShaderBootstrap.init();
 
       this.renderer = await RendererFactory.create(
         this.config.rendererType!,
