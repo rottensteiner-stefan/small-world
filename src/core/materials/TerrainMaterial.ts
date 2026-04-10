@@ -4,6 +4,7 @@ import { AbstractMaterial } from "./AbstractMaterial.js";
 import { MaterialType } from "../../enums/index.js";
 import { Texture } from "../textures/Texture.js";
 import { Color } from "../colors/Color.js";
+import { RenderManifest } from "../renderers/shaders/RenderManifest.js";
 
 /**
  * Configuration options for terrain material.
@@ -77,5 +78,24 @@ export class TerrainMaterial extends AbstractMaterial {
     this.snowMap = snowMap;
     this.texRepeat = texRepeat;
     this.thresholds = thresholds;
+  }
+
+  /** @inheritdoc */
+  public override getRenderManifest(): RenderManifest {
+    return {
+      shaderId: this.type,
+      properties: {
+        u_color: this.color,
+        u_shininess: this.shininess,
+        u_texRepeat: this.texRepeat,
+        u_thresholds: this.thresholds,
+      },
+      textures: {
+        u_sandMap: this.sandMap,
+        u_grassMap: this.grassMap,
+        u_rockMap: this.rockMap,
+        u_snowMap: this.snowMap,
+      },
+    };
   }
 }

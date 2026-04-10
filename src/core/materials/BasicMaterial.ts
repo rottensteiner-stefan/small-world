@@ -4,6 +4,7 @@ import { AbstractMaterial } from "./AbstractMaterial.js";
 import { MaterialType } from "../../enums/index.js";
 import { Color } from "../../core/index.js";
 import { Texture } from "../textures/index.js";
+import { RenderManifest } from "../renderers/shaders/RenderManifest.js";
 
 export type BasicMaterialOptions = {
   color?: Color;
@@ -28,5 +29,18 @@ export class BasicMaterial extends AbstractMaterial {
       }
       this.diffuseMap = options.diffuseMap;
     }
+  }
+
+  /** @inheritdoc */
+  public override getRenderManifest(): RenderManifest {
+    return {
+      shaderId: this.type,
+      properties: {
+        u_color: this.color,
+      },
+      textures: {
+        u_diffuseMap: this.diffuseMap,
+      },
+    };
   }
 }

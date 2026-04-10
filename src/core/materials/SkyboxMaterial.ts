@@ -1,9 +1,10 @@
 /// src/core/materials/SkyboxMaterial.ts
 
-import { AbstractMaterial } from "./index.js";
+import { AbstractMaterial } from "./AbstractMaterial.js";
 import { CubeTexture } from "../textures/index.js";
 import { MaterialType } from "../../enums/index.js";
 import { Color } from "../colors/Color.js";
+import { RenderManifest } from "../renderers/shaders/RenderManifest.js";
 
 /**
  * Configuration options for skybox material.
@@ -34,5 +35,22 @@ export class SkyboxMaterial extends AbstractMaterial {
     const { color = Color.WHITE, cubeMap = null } = options;
     this.color = color;
     this.cubeMap = cubeMap;
+  }
+
+  /** @inheritdoc */
+  public override getRenderManifest(): RenderManifest {
+    return {
+      shaderId: this.type,
+      properties: {
+        u_color: this.color,
+      },
+      textures: {
+        u_skybox: this.cubeMap || undefined,
+      },
+      state: {
+        depthWrite: false,
+        culling: "none", // Skybox is visible from the inside
+      },
+    };
   }
 }
