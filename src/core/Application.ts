@@ -14,6 +14,7 @@ import { RendererFactory } from "../renderers/index.js";
 import { Scene } from "./Scene.js";
 import { Input } from "./Input.js";
 import { MathUtils } from "../math/MathUtils.js";
+import { ShaderBootstrap } from "./renderers/shaders/ShaderBootstrap.js";
 
 /**
  * Base class for applications built with the SmallWorld engine.
@@ -83,6 +84,7 @@ export abstract class Application {
     this.renderer = undefined!; // Initialized in start()
 
     Input.init();
+    ShaderBootstrap.init();
   }
 
   /**
