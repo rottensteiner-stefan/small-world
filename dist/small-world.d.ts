@@ -1,3 +1,5 @@
+import { Texture as Texture_2 } from './Texture.js';
+
 /**
  * Base class for camera effects.
  */
@@ -305,7 +307,13 @@ export declare class BasicMaterial extends AbstractMaterial {
     readonly type: MaterialType;
     /** The diffuse texture map. */
     diffuseMap: Texture | undefined;
+    constructor(options?: BasicMaterialOptions);
 }
+
+export declare type BasicMaterialOptions = {
+    color?: Color;
+    diffuseMap?: Texture;
+};
 
 /**
  * Represents an axis-aligned bounding box (AABB).
@@ -653,9 +661,6 @@ export declare class Collision {
     private static _sphereBox;
 }
 
-/**
- * Represents an RGBA color.
- */
 export declare class Color {
     r: number;
     g: number;
@@ -671,6 +676,7 @@ export declare class Color {
     constructor(r?: number, g?: number, b?: number, a?: number);
     private _cachedArray;
     set(r?: number, g?: number, b?: number, a?: number): this;
+    copyFrom(color: Color): this;
     static get BLACK(): Color;
     static get SILVER(): Color;
     static get GRAY(): Color;
@@ -2657,7 +2663,7 @@ export declare interface SkydomeOptions {
     /** The name of the object. Defaults to "Skydome". */
     name?: string;
     /** The texture to use for the skydome. */
-    texture: Texture;
+    texture: Texture_2;
     /** The radius of the skydome. Defaults to 100. */
     radius?: number;
     /** The number of width segments. Defaults to 32. */
