@@ -652,13 +652,23 @@ export class WebGPURenderer extends AbstractRenderer {
       alData.set([al.width / 2.0, al.height / 2.0, 0.0, 0.0], offset + 20);
     }
 
-    const drawObject = (obj: Object3D): void => {
+    const drawObject = (obj: Object3D, pass: number): void => {
       // 1. Abbruch NUR, wenn das Objekt (und damit seine Kinder) explizit unsichtbar geschaltet wurde
       if (!obj.isVisible) return;
 
       // 2. Nur zeichnen, wenn auch wirklich Geometrie und Material da sind
       if (obj.geometry && obj.material) {
         const mat = obj.material;
+
+        // Skip logic for passes
+        if (pass === 1) {
+            // Pass 1 only draws Skybox OR non-culled BASIC (background)
+            if (mat.type !== MaterialType.SKYBOX && (mat.type !== MaterialType.BASIC || obj.frustumCulled)) return;
+        } else {
+            // Pass 2 draws everything ELSE
+            if (mat.type === MaterialType.SKYBOX || (mat.type === MaterialType.BASIC && !obj.frustumCulled)) return;
+        }
+
         let texBindGroup: GPUBindGroup = this._defaultTexBindGroup;
         let shininess: number = -1.0,
           specCol: number[] = [0, 0, 0, 0],
@@ -678,11 +688,24 @@ export class WebGPURenderer extends AbstractRenderer {
             mat.type === MaterialType.WIREFRAME ? this._pipelineLines : this._pipelineTriangles,
           );
 
-          if (mat.type === MaterialType.LAMBERT) {
+          if (mat.type === MaterialType.BASIC) {
+            const bMat = mat as any; // BasicMaterial
+            if (bMat.diffuseMap) {
+              texBindGroup = this._getGPUTextureBindGroup(bMat.diffuseMap);
+              tOffset = [bMat.diffuseMap.offset.x, bMat.diffuseMap.offset.y];
+              tRepeat = [bMat.diffuseMap.repeat.x, bMat.diffuseMap.repeat.y];
+            }
+          } else if (mat.type === MaterialType.LAMBERT) {
             shininess = 0.0;
+            const lMat = mat as any;
+            if (lMat.diffuseMap) {
+              texBindGroup = this._getGPUTextureBindGroup(lMat.diffuseMap);
+              tOffset = [lMat.diffuseMap.offset.x, lMat.diffuseMap.offset.y];
+              tRepeat = [lMat.diffuseMap.repeat.x, lMat.diffuseMap.repeat.y];
+            }
           } else if (mat.type === MaterialType.PHONG) {
             const pMat: PhongMaterial = mat as PhongMaterial;
-            shininess = pMat.shininess || 32;
+            shininess = undefined !== pMat.shininess ? pMat.shininess : 32;
             specCol = pMat.specularColor ? pMat.specularColor.toArray() : [0, 0, 0, 0];
             if (pMat.diffuseMap) {
               texBindGroup = this._getGPUTextureBindGroup(pMat.diffuseMap);
@@ -782,13 +805,21 @@ export class WebGPURenderer extends AbstractRenderer {
       // 3. WICHTIG: IMMER die Kinder durchlaufen, auch wenn der Parent nur ein leerer Container ist!
       if (obj.children) {
         for (const child of obj.children) {
-          drawObject(child);
+          drawObject(child, pass);
         }
       }
     };
 
+    // Pass 1: Skybox / Background
+    // In WebGPU we don't easily change depthMask in middle of a render pass 
+    // without multiple render passes, but we have pipeline with depthWriteEnabled: false.
     for (const obj of scene.objects || []) {
-      drawObject(obj);
+      drawObject(obj, 1);
+    }
+
+    // Pass 2: Normal Objects
+    for (const obj of scene.objects || []) {
+      drawObject(obj, 2);
     }
     rp.end();
     this._device.queue.submit([ce.finish()]);

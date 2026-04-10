@@ -51,7 +51,7 @@ export class Example9 extends AbstractExample {
 
     // 3. Skydome
     const skyTexture: Texture = await Texture.fromUrl("/resources/models/textures/skydome-1.jpg");
-    
+
     const skydome: Skydome = new Skydome({
       texture: skyTexture,
       radius: 1000, // Large enough to cover the visible space without clipping

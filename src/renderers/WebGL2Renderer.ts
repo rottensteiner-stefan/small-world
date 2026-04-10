@@ -253,19 +253,24 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     this.gl.enable(this.gl.BLEND);
     this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
 
-    // --- PASS 1: Skybox ---
+    // --- PASS 1: Skybox / Background ---
     this.gl.depthMask(false);
     for (const obj of scene.objects) {
-      this._drawSkybox(obj, vp);
+      if (!obj.isVisible || !obj.material) continue;
+      if (obj.geometry && obj.material.type === MaterialType.SKYBOX) {
+        this._drawSkybox(obj, vp);
+      } else if (obj.geometry && obj.material.type === MaterialType.BASIC && !obj.frustumCulled) {
+        // Render Skydome/Background objects in Pass 1
+        this._drawNormal(obj, vp, Vector3D.ZERO, { aCol: Color.BLACK, dCol: Color.BLACK, dDir: Vector3D.ZERO, pLights: [], sLights: [], aLights: [] });
+      }
     }
     this.gl.depthMask(true);
 
     // --- PASS 2: Objects ---
     const extractedLights = this.extractLights(scene);
 
-    // Optimize by grouping by material type to minimize program switching (not fully implemented yet, just switching per object)
-    // We can just iterate objects.
     for (const obj of scene.objects) {
+      if (obj.geometry && obj.material && obj.material.type === MaterialType.BASIC && !obj.frustumCulled) continue;
       this._drawNormal(obj, vp, camPos, extractedLights);
     }
   }
@@ -473,11 +478,28 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       let tRepeat0: number = 1,
         tRepeat1: number = 1;
 
-      if (mat.type === MaterialType.LAMBERT) {
+      if (mat.type === MaterialType.BASIC) {
+        const bMat = mat as any; // BasicMaterial
+        if (bMat.diffuseMap) {
+          activeTex = this._getWebGLTexture(bMat.diffuseMap);
+          tOffset0 = bMat.diffuseMap.offset.x;
+          tOffset1 = bMat.diffuseMap.offset.y;
+          tRepeat0 = bMat.diffuseMap.repeat.x;
+          tRepeat1 = bMat.diffuseMap.repeat.y;
+        }
+      } else if (mat.type === MaterialType.LAMBERT) {
         shininess = 0.0;
+        const lMat = mat as any;
+        if (lMat.diffuseMap) {
+          activeTex = this._getWebGLTexture(lMat.diffuseMap);
+          tOffset0 = lMat.diffuseMap.offset.x;
+          tOffset1 = lMat.diffuseMap.offset.y;
+          tRepeat0 = lMat.diffuseMap.repeat.x;
+          tRepeat1 = lMat.diffuseMap.repeat.y;
+        }
       } else if (mat.type === MaterialType.PHONG) {
         const pMat = mat as PhongMaterial;
-        shininess = pMat.shininess || 32;
+        shininess = undefined !== pMat.shininess ? pMat.shininess : 32;
         if (cache.locs.specColor)
           this.gl.uniform4fv(
             cache.locs.specColor,
