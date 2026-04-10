@@ -263,6 +263,44 @@ export class ShaderBootstrap {
       }
     });
 
+    // LAMBERT SHADER (LIT, but no specular)
+    registry.register({
+      id: MaterialType.LAMBERT,
+      sources: {
+        glsl300: {
+          vs: "[BASE_VERTEX_HEADER][BASE_VERTEX_MAIN]",
+          fs: `
+            [BASE_FRAGMENT_HEADER]
+            [LIGHT_DEFS]
+            void main() {
+              vec4 texColor = texture(u_diffuseMap, v_uv);
+              [LIGHT_CALC]
+              fragColor = vec4(finalLight * u_color.rgb * texColor.rgb, u_color.a * texColor.a);
+            }
+          `
+        },
+        wgsl: `
+          [WGSL_STRUCTS]
+          [WGSL_VS]
+          @fragment fn fs(i: Out) -> @location(0) vec4f {
+            let texCol = textureSample(tDiff, s, i.uv);
+            [WGSL_LIGHT_CALC]
+            return vec4f(fL * u.color.rgb * texCol.rgb, u.color.a * texCol.a);
+          }
+        `
+      },
+      layout: {
+        uniforms: {
+          u_color: { type: ShaderPropertyType.COLOR },
+          u_viewPos: { type: ShaderPropertyType.VEC3 },
+          u_ambientColor: { type: ShaderPropertyType.VEC3 }
+        },
+        textures: {
+          u_diffuseMap: { type: ShaderPropertyType.TEXTURE }
+        }
+      }
+    });
+
     // SPRITE SHADER (similar to BASIC but with Alpha)
     registry.register({
       id: MaterialType.SPRITE,
