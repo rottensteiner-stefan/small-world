@@ -98,6 +98,8 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
     // Lade die Shader als Dateien asynchron vom Server herunter!
     await WebGL1ShaderBuilder.preloadShaders();
 
+    this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, true);
+
     // Nutze geerbte Methode für Fallback-Texturen
     this.initDefaultTextures();
 

@@ -114,6 +114,8 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     // Lade die Shader als Dateien asynchron vom Server herunter!
     await WebGL2ShaderBuilder.preloadShaders();
 
+    this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, true);
+
     this.initDefaultTextures();
     this.gl.enable(this.gl.DEPTH_TEST);
   }

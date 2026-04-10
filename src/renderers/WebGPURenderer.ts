@@ -293,7 +293,7 @@ export class WebGPURenderer extends AbstractRenderer {
         ],
       },
       primitive: { topology: "triangle-list", cullMode: "back" },
-      depthStencil: { depthWriteEnabled: true, depthCompare: "less", format: "depth24plus" },
+      depthStencil: { depthWriteEnabled: true, depthCompare: "less-equal", format: "depth24plus" },
       layout,
     };
 
@@ -384,10 +384,11 @@ export class WebGPURenderer extends AbstractRenderer {
           GPUTextureUsage.COPY_DST |
           GPUTextureUsage.RENDER_ATTACHMENT,
       });
-      this._device!.queue.copyExternalImageToTexture({ source: tex.image }, { texture: t }, [
-        tex.image.width,
-        tex.image.height,
-      ]);
+      this._device!.queue.copyExternalImageToTexture(
+        { source: tex.image, flipY: true },
+        { texture: t },
+        [tex.image.width, tex.image.height],
+      );
       view = t.createView();
       this._textureViewCache.set(tex, view);
     }
