@@ -127,7 +127,7 @@ export class WebGPURenderer extends AbstractRenderer {
         throw new Error(`[WebGPURenderer] Shader definition for ${shaderId} not found or missing WGSL source.`);
       }
       const code = ShaderRegistry.instance.assemble(def.sources.wgsl, "wgsl");
-      sm = this._device!.createShaderModule({ code });
+      sm = this._device!.createShaderModule({ label: shaderId, code });
       this._shaderModules.set(shaderId, sm);
     }
     return sm;
