@@ -1,3 +1,8 @@
+@group(1) @binding(2) var tSand: texture_2d<f32>;
+@group(1) @binding(3) var tGrass: texture_2d<f32>;
+@group(1) @binding(4) var tRock: texture_2d<f32>;
+@group(1) @binding(5) var tSnow: texture_2d<f32>;
+
 @fragment fn fs(i: Out) -> @location(0) vec4f {
   let sand = textureSample(tSand, s, i.uv);
   let grass = textureSample(tGrass, s, i.uv);
