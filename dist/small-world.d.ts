@@ -3799,7 +3799,7 @@ export declare const WireframeVS_100 = "\nattribute vec3 a_position; uniform mat
 
 export declare const WireframeVS_300 = "#version 300 es\nin vec3 a_position; uniform mat4 u_vp; uniform mat4 u_model;\nvoid main() { gl_Position = u_vp * u_model * vec4(a_position, 1.0); }";
 
-export declare const WireframeWGSL = "\nstruct U { vp: mat4x4<f32>, model: mat4x4<f32>, color: vec4<f32> };\n@group(0) @binding(0) var<uniform> u: U;\n@vertex fn vs_main(@location(0) p: vec3<f32>) -> @builtin(position) vec4<f32> { return u.vp * u.model * vec4<f32>(p, 1.0); }\n@fragment fn fs_main() -> @location(0) vec4<f32> { return u.color; }\n";
+export declare const WireframeWGSL = "\nstruct U { vp: mat4x4<f32>; model: mat4x4<f32>; color: vec4<f32>; };\n@group(0) @binding(0) var<uniform> u: U;\n@vertex fn vs_main(@location(0) p: vec3<f32>) -> @builtin(position) vec4<f32> { return u.vp * u.model * vec4<f32>(p, 1.0); }\n@fragment fn fs_main() -> @location(0) vec4<f32> { return u.color; }\n";
 
 /**
  * Global world configuration.
