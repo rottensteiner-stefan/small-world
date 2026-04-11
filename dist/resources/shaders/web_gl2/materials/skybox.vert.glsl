@@ -1,0 +1,9 @@
+#version 300 es
+in vec3 a_position;
+uniform mat4 u_vp;
+uniform mat4 u_model;
+out vec3 v_uvw;
+void main() {
+  v_uvw = a_position;
+  gl_Position = u_vp * u_model * vec4(a_position, 1.0);
+}

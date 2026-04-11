@@ -1,6 +1,5 @@
 /// src/core/renderers/shaders/ShaderDefinition.ts
 
-import { Color } from "../../colors/Color.js";
 import { BlendingMode, CullMode, ShaderPropertyType } from "../../../enums/index.js";
 
 /**

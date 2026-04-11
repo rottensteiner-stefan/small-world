@@ -12,7 +12,6 @@ import {
   Object3D,
   PerspectiveProjection,
   PhongMaterial,
-  Plane,
   Skydome,
   Texture,
 } from "../src/index.js";
