@@ -1,6 +1,6 @@
 struct Out {
     @builtin(position) p: vec4f,
-    @location(0) uvw: vec3f,
+    @location(0) uvw: vec3f
 }
 
 @vertex fn vs(@location(0) p: vec3f) -> Out { 
