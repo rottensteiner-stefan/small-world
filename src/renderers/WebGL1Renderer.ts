@@ -9,10 +9,9 @@ import {
   SpotLight,
   Texture,
   ShaderRegistry,
-  RenderManifest,
 } from "../core/index.js";
 import { GeometryDataInterface } from "../interfaces/index.js";
-import { BlendingMode, CullMode, MaterialType, RendererType } from "../enums/index.js";
+import { CullMode, MaterialType, RendererType } from "../enums/index.js";
 import { Mesh } from "./Mesh.js";
 import { Object3D } from "../core/Object3D.js";
 import { Scene } from "../core/Scene.js";
@@ -289,10 +288,10 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
       // 5. Material Properties
       const props = manifest.properties;
       if (u.get("u_color")) this.gl.uniform4fv(u.get("u_color")!, mat.color.toArray());
-      if (u.get("u_specColor") && props.u_specColor) this.gl.uniform4fv(u.get("u_specColor")!, props.u_specColor.toArray());
-      if (u.get("u_shininess")) this.gl.uniform1f(u.get("u_shininess")!, props.u_shininess !== undefined ? props.u_shininess : -1.0);
-      if (u.get("u_thresholds") && props.u_thresholds) this.gl.uniform4fv(u.get("u_thresholds")!, props.u_thresholds);
-      if (u.get("u_texRepeat") && props.u_texRepeat) this.gl.uniform2fv(u.get("u_texRepeat")!, props.u_texRepeat);
+      if (u.get("u_specColor") && props["u_specColor"]) this.gl.uniform4fv(u.get("u_specColor")!, props["u_specColor"].toArray());
+      if (u.get("u_shininess")) this.gl.uniform1f(u.get("u_shininess")!, props["u_shininess"] !== undefined ? props["u_shininess"] : -1.0);
+      if (u.get("u_thresholds") && props["u_thresholds"]) this.gl.uniform4fv(u.get("u_thresholds")!, props["u_thresholds"]);
+      if (u.get("u_texRepeat") && props["u_texRepeat"]) this.gl.uniform2fv(u.get("u_texRepeat")!, props["u_texRepeat"]);
 
       // 6. Textures
       const texs = manifest.textures;
@@ -308,7 +307,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
         if (u.get("u_diffuseMap")) this.gl.uniform1i(u.get("u_diffuseMap")!, 0);
         if (diff) {
           if (u.get("u_texOffset")) this.gl.uniform2f(u.get("u_texOffset")!, diff.offset.x, diff.offset.y);
-          if (u.get("u_texRepeat") && !props.u_texRepeat) this.gl.uniform2f(u.get("u_texRepeat")!, diff.repeat.x, diff.repeat.y);
+          if (u.get("u_texRepeat") && !props["u_texRepeat"]) this.gl.uniform2f(u.get("u_texRepeat")!, diff.repeat.x, diff.repeat.y);
         }
         // Terrain fallbacks
         ["u_sandMap", "u_grassMap", "u_rockMap", "u_snowMap"].forEach((name, i) => {

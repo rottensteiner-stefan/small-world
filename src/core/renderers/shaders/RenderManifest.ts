@@ -1,7 +1,6 @@
 /// src/core/renderers/shaders/RenderManifest.ts
-
-import { Color } from "../../colors/Color.js";
-import { Texture } from "../../core/textures/Texture.js";
+import { Texture } from "../../textures/Texture.js";
+import { CubeTexture } from "../../textures/CubeTexture.js";
 import { BlendingMode, CullMode } from "../../../enums/index.js";
 
 /**
@@ -22,7 +21,8 @@ export interface RenderManifest {
    * The textures for the material. 
    * Key: Texture name as defined in ShaderDefinition layout.
    */
-  textures: Record<string, Texture | undefined>;
+  textures: Record<string, Texture | CubeTexture | undefined>;
+
 
   /** 
    * Optional GPU state overrides for this specific draw call.

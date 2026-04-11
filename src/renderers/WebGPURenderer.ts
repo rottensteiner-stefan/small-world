@@ -1,18 +1,17 @@
 /// src/renderers/WebGPURenderer.ts
 
 import {
-  AreLight,
   Texture,
   CubeTexture,
   ShaderRegistry,
-  ShaderDefinition,
   RenderManifest,
 } from "../core/index.js";
 import { GeometryDataInterface } from "../interfaces/index.js";
 import { Object3D } from "../core/Object3D.js";
 import { Scene } from "../core/Scene.js";
 import { Vector3D } from "../math/Vector3D.js";
-import { BlendingMode, CullMode, MaterialType, RendererType, ShaderPropertyType } from "../enums/index.js";
+import { BlendingMode, CullMode, MaterialType, RendererType } from "../enums/index.js";
+
 import { AbstractRenderer } from "./AbstractRenderer.js";
 
 interface WebGPUGeoCache {
@@ -145,7 +144,6 @@ export class WebGPURenderer extends AbstractRenderer {
     let cache = this._pipelines.get(key);
 
     if (!cache) {
-      const def = ShaderRegistry.instance.get(shaderId)!;
       const sm = this._getShaderModule(shaderId);
 
       // 1. Create BindGroupLayouts based on layout
@@ -158,7 +156,6 @@ export class WebGPURenderer extends AbstractRenderer {
       const objBGL = this._device!.createBindGroupLayout({ entries: objEntries });
 
       const texEntries: GPUBindGroupLayoutEntry[] = [];
-      let binding = 0;
       // We always put a sampler at binding 1 for now (SmallWorld convention)
       // Actually, let's just mirror the current texBGL for compatibility with standard shaders
       if (shaderId === MaterialType.SKYBOX) {
@@ -187,12 +184,12 @@ export class WebGPURenderer extends AbstractRenderer {
 
       const targets: GPUColorTargetState[] = [{ format: this._format }];
       if (blending === BlendingMode.ALPHA) {
-        targets[0].blend = {
+        targets[0]!.blend = {
           color: { srcFactor: "src-alpha", dstFactor: "one-minus-src-alpha", operation: "add" },
           alpha: { srcFactor: "one", dstFactor: "one-minus-src-alpha", operation: "add" },
         };
       } else if (blending === BlendingMode.ADDITIVE) {
-        targets[0].blend = {
+        targets[0]!.blend = {
           color: { srcFactor: "src-alpha", dstFactor: "one", operation: "add" },
           alpha: { srcFactor: "one", dstFactor: "one", operation: "add" },
         };
@@ -440,20 +437,21 @@ export class WebGPURenderer extends AbstractRenderer {
         uData.set([dDir.x, dDir.y, dDir.z, 0.0], 48);
         uData.set([camPos.x, camPos.y, camPos.z, 0.0], 52);
         uData[61] = pLights.length; uData[62] = sLights.length; uData[63] = aLights.length;
+// Map Material Properties from Manifest
+const props = manifest.properties;
+if (props["u_specColor"]) uData.set(props["u_specColor"].toArray(), 36);
+if (props["u_shininess"] !== undefined) uData[60] = props["u_shininess"];
+if (props["u_thresholds"]) uData.set(props["u_thresholds"], 64);
+if (manifest.shaderId === MaterialType.TERRAIN) uData[68] = 1.0;
 
-        const props = manifest.properties;
-        if (props.u_specColor) uData.set(props.u_specColor.toArray(), 36);
-        if (props.u_shininess !== undefined) uData[60] = props.u_shininess;
-        if (props.u_thresholds) uData.set(props.u_thresholds, 64);
-        if (manifest.shaderId === MaterialType.TERRAIN) uData[68] = 1.0;
+const diff = manifest.textures["u_diffuseMap"] as Texture;
+if (diff) {
+  uData.set([diff.offset.x, diff.offset.y], 56);
+  uData.set([diff.repeat.x, diff.repeat.y], 58);
+} else if (props["u_texRepeat"]) {
+  uData.set(props["u_texRepeat"], 58);
+}
 
-        const diff = manifest.textures["u_diffuseMap"] as Texture;
-        if (diff) {
-          uData.set([diff.offset.x, diff.offset.y], 56);
-          uData.set([diff.repeat.x, diff.repeat.y], 58);
-        } else if (props.u_texRepeat) {
-          uData.set(props.u_texRepeat, 58);
-        }
 
         const bufs = this._getObjBuffers(obj);
         this._device!.queue.writeBuffer(bufs.ub, 0, uData);

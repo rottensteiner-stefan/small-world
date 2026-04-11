@@ -1,5 +1,3 @@
-import { Texture as Texture_2 } from './Texture.js';
-
 /**
  * Base class for camera effects.
  */
@@ -136,6 +134,11 @@ export declare abstract class AbstractMaterial {
     uuid: string;
     /** The base color of the material. */
     color: Color;
+    /**
+     * Returns a manifest describing the requirements for rendering this material.
+     * @returns The render manifest.
+     */
+    abstract getRenderManifest(): RenderManifest;
 }
 
 /**
@@ -308,12 +311,29 @@ export declare class BasicMaterial extends AbstractMaterial {
     /** The diffuse texture map. */
     diffuseMap: Texture | undefined;
     constructor(options?: BasicMaterialOptions);
+    /** @inheritdoc */
+    getRenderManifest(): RenderManifest;
 }
 
 export declare type BasicMaterialOptions = {
     color?: Color;
     diffuseMap?: Texture;
 };
+
+/**
+ * Texture blending modes.
+ */
+export declare const BlendingMode: {
+    /** No blending. */
+    readonly OPAQUE: "opaque";
+    /** Alpha blending. */
+    readonly ALPHA: "alpha";
+    /** Additive blending. */
+    readonly ADDITIVE: "additive";
+};
+
+/** Type definition for BlendingMode. */
+export declare type BlendingMode = (typeof BlendingMode)[keyof typeof BlendingMode];
 
 /**
  * Represents an axis-aligned bounding box (AABB).
@@ -996,6 +1016,21 @@ export declare class CubeTexture {
 }
 
 /**
+ * Culling modes for rendering.
+ */
+export declare const CullMode: {
+    /** Cull back faces. */
+    readonly BACK: "back";
+    /** Cull front faces. */
+    readonly FRONT: "front";
+    /** No culling. */
+    readonly NONE: "none";
+};
+
+/** Type definition for CullMode. */
+export declare type CullMode = (typeof CullMode)[keyof typeof CullMode];
+
+/**
  * A generalized cylinder geometry that can represent cylinders, cones, and conical frustums.
  * Supports partial sectors (pie slices).
  */
@@ -1596,6 +1631,21 @@ export declare type Keys = (typeof Keys)[keyof typeof Keys];
 export declare class LambertMaterial extends AbstractMaterial {
     /** @inheritdoc */
     readonly type: MaterialType;
+    /** The diffuse texture map. */
+    diffuseMap: Texture | undefined;
+    constructor(options?: LambertMaterialOptions);
+    /** @inheritdoc */
+    getRenderManifest(): RenderManifest;
+}
+
+/**
+ * Configuration options for Lambert material.
+ */
+export declare interface LambertMaterialOptions {
+    /** The base color of the material. Defaults to white. */
+    color?: Color;
+    /** The diffuse texture map. Defaults to undefined. */
+    diffuseMap?: Texture | undefined;
 }
 
 export declare interface LightDataInterface {
@@ -2284,6 +2334,8 @@ export declare class PhongMaterial extends AbstractMaterial {
      * @param options The configuration options for the material.
      */
     constructor(options?: PhongMaterialOptions);
+    /** @inheritdoc */
+    getRenderManifest(): RenderManifest;
 }
 
 /**
@@ -2522,6 +2574,34 @@ export declare const RendererType: {
 export declare type RendererType = (typeof RendererType)[keyof typeof RendererType];
 
 /**
+ * The RenderManifest is the "order sheet" that a material
+ * passes to the renderer to describe its requirements.
+ */
+export declare interface RenderManifest {
+    /** The ID of the shader to use. */
+    shaderId: string;
+    /**
+     * The properties (uniforms) for the material.
+     * Key: Property name as defined in ShaderDefinition layout.
+     */
+    properties: Record<string, any>;
+    /**
+     * The textures for the material.
+     * Key: Texture name as defined in ShaderDefinition layout.
+     */
+    textures: Record<string, Texture | CubeTexture | undefined>;
+    /**
+     * Optional GPU state overrides for this specific draw call.
+     */
+    state?: {
+        culling?: CullMode;
+        blending?: BlendingMode;
+        depthWrite?: boolean;
+        transparent?: boolean;
+    };
+}
+
+/**
  * A scene that holds a collection of 3D objects.
  */
 export declare class Scene {
@@ -2568,9 +2648,125 @@ export declare class Scene {
 }
 
 /**
+ * Defines a shader for all supported APIs.
+ */
+export declare interface ShaderDefinition {
+    /** Unique ID of the shader. */
+    id: string;
+    /** Shader sources for different APIs. */
+    sources: {
+        wgsl?: string;
+        glsl300?: {
+            vs: string;
+            fs: string;
+        };
+        glsl100?: {
+            vs: string;
+            fs: string;
+        };
+    };
+    /** The data layout expected by this shader. */
+    layout: ShaderLayout;
+    /** Optional default state for the GPU pipeline. */
+    defaultState?: {
+        culling?: CullMode;
+        blending?: BlendingMode;
+        depthWrite?: boolean;
+        transparent?: boolean;
+    };
+}
+
+/**
+ * Supported shader languages.
+ */
+export declare type ShaderLanguage = "glsl300" | "glsl100" | "wgsl";
+
+/**
+ * Defines the requirements of a shader.
+ */
+export declare interface ShaderLayout {
+    /** Map of uniform names to their metadata. */
+    uniforms: Record<string, ShaderPropertyMetadata>;
+    /** Map of texture names to their metadata. */
+    textures: Record<string, ShaderPropertyMetadata>;
+}
+
+/**
  * Loader for shader assets. Extends TextLoader for future extensibility.
  */
 export declare class ShaderLoader extends TextLoader {
+}
+
+/**
+ * Metadata for a shader property.
+ */
+export declare interface ShaderPropertyMetadata {
+    type: ShaderPropertyType;
+    defaultValue?: any;
+}
+
+/**
+ * Supported data types for shader properties.
+ */
+export declare const ShaderPropertyType: {
+    readonly FLOAT: "float";
+    readonly VEC2: "vec2";
+    readonly VEC3: "vec3";
+    readonly VEC4: "vec4";
+    readonly MAT4: "mat4";
+    readonly COLOR: "color";
+    readonly TEXTURE: "texture";
+};
+
+/** Type definition for ShaderPropertyType. */
+export declare type ShaderPropertyType = (typeof ShaderPropertyType)[keyof typeof ShaderPropertyType];
+
+/**
+ * Central registry for shader definitions.
+ */
+export declare class ShaderRegistry {
+    private static _instance;
+    private _shaders;
+    private _chunks;
+    private constructor();
+    /**
+     * Gets the singleton instance of the ShaderRegistry.
+     * @returns The instance.
+     */
+    static get instance(): ShaderRegistry;
+    /**
+     * Registers a new shader definition.
+     * @param definition The shader definition to register.
+     */
+    register(definition: ShaderDefinition): void;
+    /**
+     * Gets a shader definition by its ID.
+     * @param id The ID of the shader.
+     * @returns The shader definition or undefined if not found.
+     */
+    get(id: string): ShaderDefinition | undefined;
+    /**
+     * Registers a shader chunk for a specific language.
+     * @param id The ID of the chunk (e.g., "LIGHTING_PHONG").
+     * @param code The source code of the chunk.
+     * @param lang The language of the code.
+     */
+    registerChunk(id: string, code: string, lang: ShaderLanguage): void;
+    /**
+     * Gets a shader chunk by its ID and language.
+     * @param id The ID of the chunk.
+     * @param lang The language of the chunk.
+     * @returns The source code of the chunk or undefined if not found.
+     */
+    getChunk(id: string, lang: ShaderLanguage): string | undefined;
+    /**
+     * Processes a shader source and replaces all chunk placeholders.
+     * Placeholders are formatted as: [CHUNK_ID]
+     * @param source The shader source code.
+     * @param lang The language to use for chunks.
+     * @returns The source code with all placeholders replaced.
+     */
+    assemble(source: string, lang: ShaderLanguage): string;
 }
 
 /**
@@ -2620,6 +2816,8 @@ export declare class SkyboxMaterial extends AbstractMaterial {
      * @param options The configuration options.
      */
     constructor(options?: SkyboxMaterialOptions);
+    /** @inheritdoc */
+    getRenderManifest(): RenderManifest;
 }
 
 /**
@@ -2663,7 +2861,7 @@ export declare interface SkydomeOptions {
     /** The name of the object. Defaults to "Skydome". */
     name?: string;
     /** The texture to use for the skydome. */
-    texture: Texture_2;
+    texture: Texture;
     /** The radius of the skydome. Defaults to 100. */
     radius?: number;
     /** The number of width segments. Defaults to 32. */
@@ -2797,6 +2995,8 @@ export declare class SpriteMaterial extends AbstractMaterial {
     readonly type: MaterialType;
     /** The texture to display on the sprite. */
     texture: Texture | undefined;
+    /** Whether the sprite is transparent. Defaults to true. */
+    transparent: boolean;
     /**
      * Creates a new SpriteMaterial.
      * @param options The texture for the sprite or a configuration object.
@@ -2804,7 +3004,10 @@ export declare class SpriteMaterial extends AbstractMaterial {
     constructor(options?: Texture | {
         texture?: Texture;
         color?: Color;
+        transparent?: boolean;
     });
+    /** @inheritdoc */
+    getRenderManifest(): RenderManifest;
 }
 
 /**
@@ -2975,6 +3178,8 @@ export declare class TerrainMaterial extends AbstractMaterial {
      * @param options The configuration options for the material.
      */
     constructor(options?: TerrainMaterialOptions);
+    /** @inheritdoc */
+    getRenderManifest(): RenderManifest;
 }
 
 /**
@@ -3505,8 +3710,7 @@ export declare class WebGL1Renderer extends AbstractWebGLRenderer {
     private _getWebGLCubeTexture;
     /** @inheritdoc */
     render(scene: Scene, vp: Float32Array, camPos?: Vector3D): void;
-    private _drawSkybox;
-    private _drawNormal;
+    private _drawObject;
 }
 
 /**
@@ -3530,15 +3734,9 @@ export declare class WebGL2Renderer extends AbstractWebGLRenderer {
     /** @inheritdoc */
     render(scene: Scene, vp: Float32Array, camPos?: Vector3D): void;
     /**
-     * Internal skybox draw function.
-     * @private
+     * Internal generic object draw function.
      */
-    private _drawSkybox;
-    /**
-     * Internal normal object draw function.
-     * @private
-     */
-    private _drawNormal;
+    private _drawObject;
 }
 
 /**
@@ -3551,38 +3749,33 @@ export declare class WebGPURenderer extends AbstractRenderer {
     private _device;
     private _context;
     private _format;
-    private _pipelineTriangles;
-    private _pipelineLines;
-    private _pipelineSkybox;
-    private _objBGL;
-    private _texBGL;
-    private _skyTexBGL;
-    private _defaultTexBindGroup;
-    private _defaultCubeTexBindGroup;
+    private _pipelines;
+    private _shaderModules;
     private _sampler;
     private _whiteTexView;
+    private _defaultCubeTexView;
     private _geoCache;
-    private _objCache;
     private _textureViewCache;
-    private _texCache;
     private _cubeTextureViewCache;
-    private _cubeTexBindGroupCache;
-    private _terrainTexCache;
     private _samplerCache;
     private _depthTexture;
+    private _objUniformBuffers;
+    private _objLightBuffers;
+    private _objBindGroups;
     /** @inheritdoc */
     initialize(canvas: HTMLCanvasElement, attributes?: Record<string, unknown>): Promise<void>;
-    destroy(): void;
+    private _getShaderModule;
+    private _getPipeline;
     private _getTextureView;
     private _getGPUCubeTextureView;
     private _getSampler;
     private _getGeoCache;
-    private _getObjCache;
-    private _getGPUTextureBindGroup;
-    private _getGPUCubeTextureBindGroup;
-    private _getGPUTerrainBindGroup;
+    private _getObjBuffers;
+    private _getObjBindGroup;
+    private _getTexBindGroup;
     /** @inheritdoc */
     render(scene: Scene, vpMatrix: Float32Array, camPos?: Vector3D): void;
+    destroy(): void;
     /** @inheritdoc */
     setSize(width: number, height: number): void;
 }
@@ -3597,6 +3790,9 @@ export declare const WireframeFS_300 = "#version 300 es\nprecision highp float; 
 export declare class WireframeMaterial extends AbstractMaterial {
     /** @inheritdoc */
     readonly type: MaterialType;
+    constructor(color?: Color);
+    /** @inheritdoc */
+    getRenderManifest(): RenderManifest;
 }
 
 export declare const WireframeVS_100 = "\nattribute vec3 a_position; uniform mat4 u_vp; uniform mat4 u_model;\nvoid main() { gl_Position = u_vp * u_model * vec4(a_position, 1.0); }";
