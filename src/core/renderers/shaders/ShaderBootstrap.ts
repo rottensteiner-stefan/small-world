@@ -40,6 +40,24 @@ export class ShaderBootstrap {
     registry.registerChunk("LIGHT_DEFS", gl2LightDefs, "glsl300");
     registry.registerChunk("LIGHT_CALC", gl2LightCalc, "glsl300");
 
+    // WebGL 1 Chunks
+    loader.setBasePath("/resources/shaders/web_gl1/chunks/");
+    const [gl1LightDefs, gl1LightCalc] = await Promise.all([
+      loader.load("lights.frag.glsl"),
+      loader.load("light_calc.frag.glsl"),
+    ]);
+
+    loader.setBasePath("/resources/shaders/web_gl1/");
+    const [gl1BaseVs, gl1BaseFs] = await Promise.all([
+      loader.load("base.vert.glsl"),
+      loader.load("base.frag.glsl"),
+    ]);
+
+    registry.registerChunk("BASE_VS", gl1BaseVs, "glsl100");
+    registry.registerChunk("BASE_FS_HEADER", gl1BaseFs, "glsl100");
+    registry.registerChunk("LIGHT_DEFS", gl1LightDefs, "glsl100");
+    registry.registerChunk("LIGHT_CALC", gl1LightCalc, "glsl100");
+
     // WebGPU Chunks
     loader.setBasePath("/resources/shaders/web_gpu/chunks/");
     const [wgslStructs, wgslLighting] = await Promise.all([
@@ -61,6 +79,17 @@ export class ShaderBootstrap {
         loader.load("lambert.frag.glsl"),
         loader.load("sprite.frag.glsl"),
         loader.load("wireframe.frag.glsl"),
+        loader.load("skybox.vert.glsl"),
+        loader.load("skybox.frag.glsl"),
+        loader.load("terrain.frag.glsl"),
+      ]);
+
+    // WebGL 1 Materials
+    loader.setBasePath("/resources/shaders/web_gl1/materials/");
+    const [gl1BasicFs, gl1PhongFs, gl1SkyVs, gl1SkyFs, gl1TerrainFs] =
+      await Promise.all([
+        loader.load("basic.frag.glsl"),
+        loader.load("phong.frag.glsl"),
         loader.load("skybox.vert.glsl"),
         loader.load("skybox.frag.glsl"),
         loader.load("terrain.frag.glsl"),
@@ -92,6 +121,7 @@ export class ShaderBootstrap {
       id: MaterialType.BASIC,
       sources: {
         glsl300: { vs: "[BASE_VERTEX_HEADER][BASE_VERTEX_MAIN]", fs: gl2BasicFs },
+        glsl100: { vs: "[BASE_VS]", fs: gl1BasicFs },
         wgsl: `[WGSL_STRUCTS][WGSL_VS]${wgslBasicFs}`,
       },
       layout: {
@@ -109,6 +139,7 @@ export class ShaderBootstrap {
       id: MaterialType.PHONG,
       sources: {
         glsl300: { vs: "[BASE_VERTEX_HEADER][BASE_VERTEX_MAIN]", fs: gl2PhongFs },
+        glsl100: { vs: "[BASE_VS]", fs: gl1PhongFs },
         wgsl: `[WGSL_STRUCTS][WGSL_VS]${wgslPhongFs}`,
       },
       layout: {
@@ -128,6 +159,7 @@ export class ShaderBootstrap {
       id: MaterialType.LAMBERT,
       sources: {
         glsl300: { vs: "[BASE_VERTEX_HEADER][BASE_VERTEX_MAIN]", fs: gl2LambertFs },
+        glsl100: { vs: "[BASE_VS]", fs: gl1PhongFs }, // Fallback to phong for now in GL1
         wgsl: `[WGSL_STRUCTS][WGSL_VS]${wgslLambertFs}`,
       },
       layout: {
@@ -145,6 +177,7 @@ export class ShaderBootstrap {
       id: MaterialType.SPRITE,
       sources: {
         glsl300: { vs: "[BASE_VERTEX_HEADER][BASE_VERTEX_MAIN]", fs: gl2SpriteFs },
+        glsl100: { vs: "[BASE_VS]", fs: gl1BasicFs },
         wgsl: `[WGSL_STRUCTS][WGSL_VS]${wgslSpriteFs}`,
       },
       layout: {
@@ -158,6 +191,7 @@ export class ShaderBootstrap {
       id: MaterialType.WIREFRAME,
       sources: {
         glsl300: { vs: "[BASE_VERTEX_HEADER][BASE_VERTEX_MAIN]", fs: gl2WireframeFs },
+        glsl100: { vs: "[BASE_VS]", fs: "void main() { gl_FragColor = u_color; }" },
         wgsl: `[WGSL_STRUCTS][WGSL_VS]${wgslWireframeFs}`,
       },
       layout: {
@@ -171,6 +205,7 @@ export class ShaderBootstrap {
       id: MaterialType.SKYBOX,
       sources: {
         glsl300: { vs: gl2SkyVs, fs: gl2SkyFs },
+        glsl100: { vs: gl1SkyVs, fs: gl1SkyFs },
         wgsl: `[WGSL_STRUCTS]${wgslSkyVs}${wgslSkyFs}`,
       },
       layout: {
@@ -184,6 +219,7 @@ export class ShaderBootstrap {
       id: MaterialType.TERRAIN,
       sources: {
         glsl300: { vs: "[BASE_VERTEX_HEADER][BASE_VERTEX_MAIN]", fs: gl2TerrainFs },
+        glsl100: { vs: "[BASE_VS]", fs: gl1TerrainFs },
         wgsl: `[WGSL_STRUCTS][WGSL_VS]${wgslTerrainFs}`,
       },
       layout: {
