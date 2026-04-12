@@ -6,9 +6,11 @@ import {
   DirectionalLight,
   Grid,
   Input,
+  Keys,
   Object3D,
   ObjLoader,
   PerspectiveProjection,
+  PhongMaterial,
   ProjectionType,
   Vector3D,
   WireframeMaterial,
@@ -16,12 +18,25 @@ import {
 import { AbstractExample } from "../src/core/example/AbstractExample.js";
 
 class Example3 extends AbstractExample {
-  // The point around which the camera rotates (center of the model)
   private _targetPos: Vector3D = new Vector3D();
+  private _carModel: Object3D | undefined;
 
   protected override async setupScene(): Promise<void> {
     Input.init();
-    Input.debug = true;
+    
+    // Add instruction overlay
+    const overlay = document.createElement("div");
+    overlay.style.position = "absolute";
+    overlay.style.top = "20px";
+    overlay.style.left = "20px";
+    overlay.style.color = "white";
+    overlay.style.background = "rgba(0,0,0,0.5)";
+    overlay.style.padding = "10px";
+    overlay.style.borderRadius = "5px";
+    overlay.style.fontFamily = "sans-serif";
+    overlay.innerHTML = "<h2>Car Color Switcher</h2><p>Press <b>1 - 5</b> to change color</p><p>Click & Drag to rotate</p>";
+    document.body.appendChild(overlay);
+
     this.canvas.addEventListener("click", (): void => {
       if (!Input.isPointerLocked) {
         Input.requestPointerLock(this.canvas);
@@ -42,7 +57,6 @@ class Example3 extends AbstractExample {
     this.camera.setStrategy(CameraStrategyType.SMOOTH);
     this.camera.position.set(0, 5, 15);
 
-    // Light setup: Ambient for soft shadows, Directional for highlights
     const ambientLight: AmbientLight = new AmbientLight({ color: Color.WHITE, intensity: 0.3 });
     this.scene.add(ambientLight);
 
@@ -54,7 +68,6 @@ class Example3 extends AbstractExample {
     gridObj.geometry = new Grid({ size: 20, divisions: 20 }).getGeometryData();
     const gridMat: WireframeMaterial = new WireframeMaterial();
     gridMat.color = Color.DARKSLATEGRAY;
-
     gridObj.material = gridMat;
     this.scene.add(gridObj);
 
@@ -62,22 +75,26 @@ class Example3 extends AbstractExample {
     loader.setBasePath("/resources/models/");
 
     try {
-      const model: Object3D = await loader.load("vehicle-racer.obj");
+      this._carModel = await loader.load("vehicle-racer.obj");
       const carScale: number = 5;
-      model.scale.set(carScale, carScale, carScale);
-      model.position.set(0, 0.0, 0);
-
-      this.scene.add(model);
+      this._carModel.scale.set(carScale, carScale, carScale);
+      this._carModel.position.set(0, 0.0, 0);
+      this.scene.add(this._carModel);
     } catch (error: unknown) {
       console.error("[Example 3] Error loading model:", error);
     }
   }
 
-  protected override onCanvasRecreated(): void {
-    // Since we recreated the canvas, we must reattach the click listener!
-    this.canvas.addEventListener("click", (): void => {
-      if (!Input.isPointerLocked) {
-        Input.requestPointerLock(this.canvas);
+  private _setCarColor(index: number): void {
+    if (!this._carModel) return;
+
+    // Find the part of the car that uses the colormap material
+    // The ObjLoader creates children named after the material groups
+    this._carModel.children.forEach(child => {
+      if (child.material instanceof PhongMaterial && child.material.diffuseMap) {
+        // Shifting the X offset picks a different color column in colormap.png
+        // Usually, these textures have 8 or 16 columns. 0.125 is a good step for Kenney assets.
+        child.material.diffuseMap.offset.x = index * 0.125;
       }
     });
   }
@@ -86,22 +103,19 @@ class Example3 extends AbstractExample {
     const dx: number = Input.isPointerLocked ? Input.mouse.dx : 0;
     const dy: number = Input.isPointerLocked ? Input.mouse.dy : 0;
 
-    // Reset deltas immediately
     Input.mouse.dx = 0;
     Input.mouse.dy = 0;
 
-    // Update camera orbit
+    // Handle Color Switching
+    if (Input.isPressed(Keys.D1)) this._setCarColor(0);
+    if (Input.isPressed(Keys.D2)) this._setCarColor(1);
+    if (Input.isPressed(Keys.D3)) this._setCarColor(2);
+    if (Input.isPressed(Keys.D4)) this._setCarColor(3);
+    if (Input.isPressed(Keys.D5)) this._setCarColor(4);
+
     this.camera.update(this._targetPos, dx, dy, deltaTime);
   }
 }
 
-// === START THE ENGINE ===
 const app: Example3 = new Example3();
-app
-  .start()
-  .then((): void => {
-    console.log("Engine running");
-  })
-  .catch((err: Error): void => {
-    console.error("Error while starting the engine: ", err);
-  });
+app.start();
