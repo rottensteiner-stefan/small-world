@@ -8,6 +8,8 @@ export interface GeometryDataInterface {
   vertices: Float32Array;
   /** Optional index data. If provided, indexed rendering is used. */
   indices?: Uint16Array | Uint32Array | undefined;
+  /** Optional index data for wireframe rendering. */
+  wireframeIndices?: Uint16Array | Uint32Array | undefined;
   /** Optional normal data (nx, ny, nz). */
   normals?: Float32Array | undefined;
   /** Optional texture coordinate data (u, v). */

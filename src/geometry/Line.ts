@@ -17,6 +17,7 @@ export class Line extends AbstractGeometry {
     public end: Vector3D,
   ) {
     super();
+    this._isLineGeometry = true;
     this.generateGeometryData();
   }
 

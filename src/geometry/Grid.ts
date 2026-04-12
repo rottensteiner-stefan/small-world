@@ -30,6 +30,7 @@ export class Grid extends AbstractGeometry {
     const { size = 20, divisions = 20 } = options;
     this.size = size;
     this.divisions = divisions;
+    this._isLineGeometry = true;
     this.generateGeometryData();
   }
 
@@ -46,11 +47,13 @@ export class Grid extends AbstractGeometry {
       const pos: number = j * step - half;
       const ratio: number = j / this.divisions;
 
+      // Vertical line
       v.push(pos, 0, -half, pos, 0, half);
       uv.push(ratio, 0, ratio, 1);
       i.push(index, index + 1);
       index += 2;
 
+      // Horizontal line
       v.push(-half, 0, pos, half, 0, pos);
       uv.push(0, ratio, 1, ratio);
       i.push(index, index + 1);
