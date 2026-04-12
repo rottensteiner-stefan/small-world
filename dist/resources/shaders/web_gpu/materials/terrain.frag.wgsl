@@ -18,8 +18,8 @@
   texCol = mix(texCol, rock, b2);
   texCol = mix(texCol, snow, b3);
 
-  let N = normalize(i.n); 
-  let slope = 1.0 - N.y;
+  let terrainNormal = normalize(i.n); 
+  let slope = 1.0 - terrainNormal.y;
   let slopeBlend = smoothstep(0.25, 0.45, slope);
   texCol = mix(texCol, rock, slopeBlend);
 
