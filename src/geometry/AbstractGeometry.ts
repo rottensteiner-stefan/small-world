@@ -12,10 +12,14 @@ export abstract class AbstractGeometry implements Geometry {
   protected _vertices: Float32Array = new Float32Array();
   /** The indices of the geometry. */
   protected _indices: Uint16Array | Uint32Array | undefined = undefined;
+  /** The indices for wireframe rendering. */
+  protected _wireframeIndices: Uint16Array | Uint32Array | undefined = undefined;
   /** The normals of the geometry. */
   protected _normals: Float32Array = new Float32Array();
   /** The UV coordinates of the geometry. */
   protected _uvs: Float32Array = new Float32Array();
+  /** Whether the geometry is line-based. */
+  protected _isLineGeometry: boolean = false;
 
   /**
    * Generates the geometry data. Must be implemented by subclasses.
@@ -32,12 +36,54 @@ export abstract class AbstractGeometry implements Geometry {
       this._uvs = new Float32Array((this._vertices.length / 3) * 2);
     }
 
+    if (undefined === this._wireframeIndices && 0 < this._vertices.length) {
+      if (this._isLineGeometry && this._indices) {
+        this._wireframeIndices = this._indices;
+      } else {
+        this.computeWireframeIndices();
+      }
+    }
+
     return {
       vertices: this._vertices,
       indices: this._indices,
+      wireframeIndices: this._wireframeIndices,
       normals: this._normals,
       uvs: this._uvs,
     };
+  }
+
+  /**
+   * Computes the wireframe indices from the current indices or vertices.
+   */
+  public computeWireframeIndices(): void {
+    if (this._indices) {
+      const triangleCount = Math.floor(this._indices.length / 3);
+      const lineCount = triangleCount * 6;
+      const lines = this._createIndexArray(lineCount);
+      let ptr = 0;
+      for (let i = 0; i < triangleCount * 3; i += 3) {
+        const a = this._indices[i]!;
+        const b = this._indices[i + 1]!;
+        const c = this._indices[i + 2]!;
+        lines[ptr++] = a; lines[ptr++] = b;
+        lines[ptr++] = b; lines[ptr++] = c;
+        lines[ptr++] = c; lines[ptr++] = a;
+      }
+      this._wireframeIndices = lines;
+    } else {
+      const vertexCount = this._vertices.length / 3;
+      const triangleCount = Math.floor(vertexCount / 3);
+      const lineCount = triangleCount * 6;
+      const lines = this._createIndexArray(lineCount);
+      let ptr = 0;
+      for (let i = 0; i < triangleCount * 3; i += 3) {
+        lines[ptr++] = i; lines[ptr++] = i + 1;
+        lines[ptr++] = i + 1; lines[ptr++] = i + 2;
+        lines[ptr++] = i + 2; lines[ptr++] = i;
+      }
+      this._wireframeIndices = lines;
+    }
   }
 
   /**

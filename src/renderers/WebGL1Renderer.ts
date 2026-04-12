@@ -334,7 +334,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
       }
 
       const drawMode = manifest.shaderId === MaterialType.WIREFRAME ? this.gl.LINES : this.gl.TRIANGLES;
-      this.gl.drawElements(drawMode, m.count, this.gl.UNSIGNED_SHORT, 0);
+      m.draw(drawMode);
     }
 
     if (o.children) o.children.forEach(child => this._drawObject(child, vp, camPos, lights));

@@ -360,8 +360,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       }
 
       const drawMode = manifest.shaderId === MaterialType.WIREFRAME ? this.gl.LINES : this.gl.TRIANGLES;
-      const indexType = manifest.shaderId === MaterialType.TERRAIN ? this.gl.UNSIGNED_INT : this.gl.UNSIGNED_SHORT;
-      this.gl.drawElements(drawMode, m.count, indexType, 0);
+      m.draw(drawMode);
     }
 
     if (o.children) {

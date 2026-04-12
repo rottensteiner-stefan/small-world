@@ -10,6 +10,8 @@ export class Mesh {
   public vbo: WebGLBuffer | undefined;
   /** The element buffer object (indices). */
   public ebo: WebGLBuffer | undefined;
+  /** The wireframe element buffer object. */
+  public webo: WebGLBuffer | undefined;
   /** The normal buffer object. */
   public nbo: WebGLBuffer | undefined = undefined;
   /** The texture coordinate buffer object. */
@@ -17,10 +19,14 @@ export class Mesh {
 
   /** The number of elements (indices or vertices) to draw. */
   public count: number;
+  /** The number of wireframe elements. */
+  public wireframeCount: number = 0;
   /** Whether this mesh uses indices for drawing. */
   public isIndexed: boolean = false;
   /** The GL data type of the indices (e.g., UNSIGNED_SHORT or UNSIGNED_INT). */
   public indexType: number = 0;
+  /** The GL data type of the wireframe indices. */
+  public wireframeIndexType: number = 0;
 
   private _gl: WebGLRenderingContext | WebGL2RenderingContext;
 
@@ -58,16 +64,19 @@ export class Mesh {
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.ebo ?? null);
       gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, data.indices, gl.STATIC_DRAW);
       this.count = data.indices.length;
-
-      // Automatic detection of index type
-      if (data.indices instanceof Uint32Array) {
-        this.indexType = gl.UNSIGNED_INT;
-      } else {
-        this.indexType = gl.UNSIGNED_SHORT;
-      }
+      this.indexType = data.indices instanceof Uint32Array ? gl.UNSIGNED_INT : gl.UNSIGNED_SHORT;
     } else {
       this.isIndexed = false;
       this.count = data.vertices.length / 3;
+    }
+
+    // 5. Wireframe Indices Buffer (Optional)
+    if (data.wireframeIndices && 0 < data.wireframeIndices.length) {
+      this.webo = gl.createBuffer() ?? undefined;
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.webo ?? null);
+      gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, data.wireframeIndices, gl.STATIC_DRAW);
+      this.wireframeCount = data.wireframeIndices.length;
+      this.wireframeIndexType = data.wireframeIndices instanceof Uint32Array ? gl.UNSIGNED_INT : gl.UNSIGNED_SHORT;
     }
   }
 
@@ -93,10 +102,6 @@ export class Mesh {
       this._gl.vertexAttribPointer(uvLoc, 2, this._gl.FLOAT, false, 0, 0);
       this._gl.enableVertexAttribArray(uvLoc);
     }
-
-    if (this.isIndexed) {
-      this._gl.bindBuffer(this._gl.ELEMENT_ARRAY_BUFFER, this.ebo ?? null);
-    }
   }
 
   /**
@@ -104,7 +109,11 @@ export class Mesh {
    * @param mode The draw mode (e.g. TRIANGLES, LINES).
    */
   public draw(mode: number): void {
-    if (this.isIndexed) {
+    if (mode === this._gl.LINES && this.webo) {
+      this._gl.bindBuffer(this._gl.ELEMENT_ARRAY_BUFFER, this.webo);
+      this._gl.drawElements(mode, this.wireframeCount, this.wireframeIndexType, 0);
+    } else if (this.isIndexed) {
+      this._gl.bindBuffer(this._gl.ELEMENT_ARRAY_BUFFER, this.ebo ?? null);
       this._gl.drawElements(mode, this.count, this.indexType, 0);
     } else {
       this._gl.drawArrays(mode, 0, this.count);

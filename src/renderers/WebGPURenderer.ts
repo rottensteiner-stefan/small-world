@@ -19,7 +19,9 @@ interface WebGPUGeoCache {
   nb: GPUBuffer | null;
   uvb: GPUBuffer | null;
   ib: GPUBuffer | null;
+  wib: GPUBuffer | null; // Wireframe Index Buffer
   indexCount: number;
+  wireframeIndexCount: number;
   vertexCount: number;
   format: GPUIndexFormat | null;
 }
@@ -293,10 +295,13 @@ export class WebGPURenderer extends AbstractRenderer {
         nb: geo.normals ? createBuf(geo.normals, GPUBufferUsage.VERTEX) : null,
         uvb: geo.uvs ? createBuf(geo.uvs, GPUBufferUsage.VERTEX) : null,
         ib: geo.indices ? createBuf(geo.indices, GPUBufferUsage.INDEX) : null,
+        wib: geo.wireframeIndices ? createBuf(geo.wireframeIndices, GPUBufferUsage.INDEX) : null,
         indexCount: geo.indices ? geo.indices.length : 0,
+        wireframeIndexCount: geo.wireframeIndices ? geo.wireframeIndices.length : 0,
         vertexCount: geo.vertices.length / 3,
-        format: geo.indices ? (geo.indices instanceof Uint16Array ? "uint16" : "uint32") : null,
+        format: geo.indices instanceof Uint32Array || geo.wireframeIndices instanceof Uint32Array ? "uint32" : "uint16",
       };
+
       this._geoCache.set(geo, c);
     }
     return c;
@@ -467,7 +472,10 @@ if (diff) {
         rp.setVertexBuffer(1, gCache.nb || gCache.vb);
         rp.setVertexBuffer(2, gCache.uvb || gCache.vb);
 
-        if (gCache.ib && gCache.format) {
+        if (topology === "line-list" && gCache.wib && gCache.format) {
+          rp.setIndexBuffer(gCache.wib, gCache.format);
+          rp.drawIndexed(gCache.wireframeIndexCount);
+        } else if (gCache.ib && gCache.format) {
           rp.setIndexBuffer(gCache.ib, gCache.format);
           rp.drawIndexed(gCache.indexCount);
         } else {
