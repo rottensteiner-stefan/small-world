@@ -436,6 +436,7 @@ export class WebGPURenderer extends AbstractRenderer {
         uData.set([dCol.r, dCol.g, dCol.b, 1.0], 44);
         uData.set([dDir.x, dDir.y, dDir.z, 0.0], 48);
         uData.set([camPos.x, camPos.y, camPos.z, 0.0], 52);
+        uData.set([1.0, 1.0], 58); // Default tRep to (1, 1)
         uData[61] = pLights.length; uData[62] = sLights.length; uData[63] = aLights.length;
 // Map Material Properties from Manifest
 const props = manifest.properties;

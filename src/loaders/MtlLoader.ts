@@ -69,12 +69,12 @@ export class MtlLoader extends AbstractLoader<Map<string, PhongMaterial>> {
         const texPath: string = line.substring(line.indexOf(" ") + 1).trim();
         const texUrl: string = folderPath + texPath;
 
-        // --- THE FIX: We use the AssetManager with flipY = true ---
-        // The image is physically flipped when read before it goes into the texture!
+        // --- THE FIX: We use the AssetManager with flipY = false ---
+        // The renderer handles flipping during upload to GPU!
         const image: ImageBitmap | HTMLImageElement = await AssetManager.loadImage(
           texUrl,
           undefined,
-          true,
+          false,
         );
         currentMat.diffuseMap = Texture.fromImage(image);
       }
