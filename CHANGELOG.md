@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.14.00] - 2026-04-12
+
+- Major rework of the  renderer and shader.
+
 ## [0.13.05] - 2026-04-03
 
 - Refactor and improve shader handling
