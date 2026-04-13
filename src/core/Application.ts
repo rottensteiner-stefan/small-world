@@ -13,6 +13,7 @@ import { ProjectionType, RendererType } from "../enums/index.js";
 import { RendererFactory } from "../renderers/index.js";
 import { Scene } from "./Scene.js";
 import { Input } from "./Input.js";
+import { ConfigLoader } from "./ConfigLoader.js";
 import { MathUtils } from "../math/MathUtils.js";
 import { ShaderBootstrap } from "./renderers/shaders/ShaderBootstrap.js";
 
@@ -107,11 +108,8 @@ export abstract class Application {
 
     if (!this._isInitialized) {
       try {
-        const response: Response = await fetch("/config/small-world.json");
-        if (response.ok) {
-          const jsonConfig: unknown = await response.json();
-          this.config = { ...this.config, ...(jsonConfig as EngineConfig) };
-        }
+        const jsonConfig = await ConfigLoader.load("/config/small-world.json");
+        this.config = { ...this.config, ...(jsonConfig as EngineConfig) };
       } catch {
         console.warn("Using fallback configuration (No JSON found).");
       }

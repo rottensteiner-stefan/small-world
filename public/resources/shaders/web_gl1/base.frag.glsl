@@ -12,3 +12,4 @@ uniform vec3 u_viewPos;
 
 uniform sampler2D u_diffuseMap;
 uniform sampler2D u_normalMap;
+uniform sampler2D u_specularMap;

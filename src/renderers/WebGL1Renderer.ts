@@ -90,7 +90,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
         uniforms.set(name, this.gl.getUniformLocation(prog, name));
       });
 
-      ["u_diffuseMap", "u_normalMap", "u_skybox", "u_sandMap", "u_grassMap", "u_rockMap", "u_snowMap", "u_texOffset", "u_texRepeat"].forEach(name => {
+      ["u_diffuseMap", "u_normalMap", "u_specularMap", "u_skybox", "u_sandMap", "u_grassMap", "u_rockMap", "u_snowMap", "u_texOffset", "u_texRepeat"].forEach(name => {
         uniforms.set(name, this.gl.getUniformLocation(prog, name));
       });
 
@@ -375,6 +375,17 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
           if (u.get("u_normalMap")) this.gl.uniform1i(u.get("u_normalMap")!, 1);
         }
 
+        // Specular Map
+        this.gl.activeTexture(this.gl.TEXTURE2);
+        const specularMap = texs["u_specularMap"] as Texture;
+        if (specularMap) {
+          this.gl.bindTexture(this.gl.TEXTURE_2D, this._getWebGLTexture(specularMap));
+          if (u.get("u_specularMap")) this.gl.uniform1i(u.get("u_specularMap")!, 2);
+        } else {
+          this.gl.bindTexture(this.gl.TEXTURE_2D, this.defaultSpecularMap);
+          if (u.get("u_specularMap")) this.gl.uniform1i(u.get("u_specularMap")!, 2);
+        }
+
         if (diff) {
           if (u.get("u_texOffset")) this.gl.uniform2f(u.get("u_texOffset")!, diff.offset.x, diff.offset.y);
           if (u.get("u_texRepeat") && !props["u_texRepeat"]) this.gl.uniform2f(u.get("u_texRepeat")!, diff.repeat.x, diff.repeat.y);
@@ -383,10 +394,10 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
         // Terrain fallbacks
         ["u_sandMap", "u_grassMap", "u_rockMap", "u_snowMap"].forEach((name, i) => {
           if (u.get(name)) {
-            this.gl.activeTexture(this.gl.TEXTURE2 + i);
+            this.gl.activeTexture(this.gl.TEXTURE3 + i);
             const t = texs[name] as Texture;
             this.gl.bindTexture(this.gl.TEXTURE_2D, t ? this._getWebGLTexture(t) : this.defaultTexture);
-            this.gl.uniform1i(u.get(name)!, 2 + i);
+            this.gl.uniform1i(u.get(name)!, 3 + i);
           }
         });
       }

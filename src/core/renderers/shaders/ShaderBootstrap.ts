@@ -173,6 +173,7 @@ export class ShaderBootstrap {
         textures: {
           u_diffuseMap: { type: ShaderPropertyType.TEXTURE },
           u_normalMap: { type: ShaderPropertyType.TEXTURE },
+          u_specularMap: { type: ShaderPropertyType.TEXTURE },
         },
       },
     });

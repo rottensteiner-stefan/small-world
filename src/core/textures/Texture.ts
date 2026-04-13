@@ -1,6 +1,7 @@
 /// src/core/textures/Texture.ts
 
 import { TextureFilter, TextureWrap } from "../../enums/index.js";
+import { AssetManager } from "../../loaders/AssetManager.js";
 
 /**
  * Configuration options for creating a texture.
@@ -120,26 +121,7 @@ export class Texture {
    * @returns A promise that resolves to a new Texture instance.
    */
   public static async fromUrl(url: string, options?: TextureOptions): Promise<Texture> {
-    return new Promise(
-      (
-        resolve: (value: Texture | PromiseLike<Texture>) => void,
-        reject: (reason?: unknown) => void,
-      ) => {
-        const img: HTMLImageElement = new Image();
-        img.crossOrigin = "anonymous";
-
-        img.onload = (): void => {
-          resolve(new Texture(img, options));
-        };
-
-        img.onerror = (): void => {
-          const message = `TextureLoader: Error while loading image: ${url}`;
-          console.warn(message);
-          reject(new Error(message));
-        };
-
-        img.src = url;
-      },
-    );
+    const image = await AssetManager.loadImage(url);
+    return new Texture(image, options);
   }
 }
