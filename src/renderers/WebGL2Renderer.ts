@@ -95,7 +95,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       });
 
       // Texture Samplers
-      ["u_diffuseMap", "u_normalMap", "u_skybox", "u_sandMap", "u_grassMap", "u_rockMap", "u_snowMap", "u_texOffset", "u_texRepeat"].forEach(name => {
+      ["u_diffuseMap", "u_normalMap", "u_specularMap", "u_skybox", "u_sandMap", "u_grassMap", "u_rockMap", "u_snowMap", "u_texOffset", "u_texRepeat"].forEach(name => {
         uniforms.set(name, this.gl.getUniformLocation(prog, name));
       });
 
@@ -376,6 +376,17 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
           this.gl.bindTexture(this.gl.TEXTURE_2D, this.defaultNormalMap);
           if (u.get("u_normalMap")) this.gl.uniform1i(u.get("u_normalMap")!, 1);
         }
+
+        // Specular Map
+        this.gl.activeTexture(this.gl.TEXTURE2);
+        const specularMap = texs["u_specularMap"] as Texture;
+        if (specularMap) {
+          this.gl.bindTexture(this.gl.TEXTURE_2D, this._getWebGLTexture(specularMap));
+          if (u.get("u_specularMap")) this.gl.uniform1i(u.get("u_specularMap")!, 2);
+        } else {
+          this.gl.bindTexture(this.gl.TEXTURE_2D, this.defaultSpecularMap);
+          if (u.get("u_specularMap")) this.gl.uniform1i(u.get("u_specularMap")!, 2);
+        }
         
         if (diff) {
           if (u.get("u_texOffset")) this.gl.uniform2f(u.get("u_texOffset")!, diff.offset.x, diff.offset.y);
@@ -384,28 +395,28 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
 
         // Terrain Maps (if present)
         if (u.get("u_sandMap")) {
-          this.gl.activeTexture(this.gl.TEXTURE2);
+          this.gl.activeTexture(this.gl.TEXTURE3);
           const t = texs["u_sandMap"] as Texture;
           this.gl.bindTexture(this.gl.TEXTURE_2D, t ? this._getWebGLTexture(t) : this.defaultTexture);
-          this.gl.uniform1i(u.get("u_sandMap")!, 2);
+          this.gl.uniform1i(u.get("u_sandMap")!, 3);
         }
         if (u.get("u_grassMap")) {
-          this.gl.activeTexture(this.gl.TEXTURE3);
+          this.gl.activeTexture(this.gl.TEXTURE4);
           const t = texs["u_grassMap"] as Texture;
           this.gl.bindTexture(this.gl.TEXTURE_2D, t ? this._getWebGLTexture(t) : this.defaultTexture);
-          this.gl.uniform1i(u.get("u_grassMap")!, 3);
+          this.gl.uniform1i(u.get("u_grassMap")!, 4);
         }
         if (u.get("u_rockMap")) {
-          this.gl.activeTexture(this.gl.TEXTURE4);
+          this.gl.activeTexture(this.gl.TEXTURE5);
           const t = texs["u_rockMap"] as Texture;
           this.gl.bindTexture(this.gl.TEXTURE_2D, t ? this._getWebGLTexture(t) : this.defaultTexture);
-          this.gl.uniform1i(u.get("u_rockMap")!, 4);
+          this.gl.uniform1i(u.get("u_rockMap")!, 5);
         }
         if (u.get("u_snowMap")) {
-          this.gl.activeTexture(this.gl.TEXTURE5);
+          this.gl.activeTexture(this.gl.TEXTURE6);
           const t = texs["u_snowMap"] as Texture;
           this.gl.bindTexture(this.gl.TEXTURE_2D, t ? this._getWebGLTexture(t) : this.defaultTexture);
-          this.gl.uniform1i(u.get("u_snowMap")!, 5);
+          this.gl.uniform1i(u.get("u_snowMap")!, 6);
         }
       }
 

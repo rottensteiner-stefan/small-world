@@ -3,6 +3,7 @@
 
 void main() {
   vec4 texColor = texture(u_diffuseMap, v_uv);
+  float specMap = texture(u_specularMap, v_uv).r;
 
   vec3 normalMap = texture(u_normalMap, v_uv).rgb;
   normalMap = normalize(normalMap * 2.0 - 1.0);
@@ -10,5 +11,5 @@ void main() {
 
   // [CHUNK_LIGHT_CALC]
 
-  c = vec4((finalLight * u_color.rgb * texColor.rgb) + (specular * u_specColor.rgb), u_color.a * texColor.a);
+  c = vec4((finalLight * u_color.rgb * texColor.rgb) + (specular * u_specColor.rgb * specMap), u_color.a * texColor.a);
 }

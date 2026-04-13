@@ -1,4 +1,6 @@
 /// src/core/ConfigLoader.ts
+import { AssetManager } from "../loaders/AssetManager.js";
+
 /**
  * Utility class for loading configuration files.
  */
@@ -9,7 +11,7 @@ export class ConfigLoader {
    * @returns A promise that resolves to the configuration object.
    */
   public static async load(path: string): Promise<unknown> {
-    const response: Response = await fetch(path);
-    return response.json();
+    const text = await AssetManager.loadText(path);
+    return JSON.parse(text);
   }
 }

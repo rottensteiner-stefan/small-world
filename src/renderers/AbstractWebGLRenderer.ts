@@ -8,6 +8,7 @@ export abstract class AbstractWebGLRenderer extends AbstractRenderer {
 
   protected defaultTexture!: WebGLTexture;
   protected defaultNormalMap!: WebGLTexture;
+  protected defaultSpecularMap!: WebGLTexture;
   protected defaultCubeTexture!: WebGLTexture;
 
   public override destroy(): void {
@@ -100,6 +101,20 @@ export abstract class AbstractWebGLRenderer extends AbstractRenderer {
       this.gl.RGBA,
       this.gl.UNSIGNED_BYTE,
       new Uint8Array([128, 128, 255, 255]),
+    );
+
+    this.defaultSpecularMap = this.gl.createTexture()!;
+    this.gl.bindTexture(this.gl.TEXTURE_2D, this.defaultSpecularMap);
+    this.gl.texImage2D(
+      this.gl.TEXTURE_2D,
+      0,
+      this.gl.RGBA,
+      1,
+      1,
+      0,
+      this.gl.RGBA,
+      this.gl.UNSIGNED_BYTE,
+      new Uint8Array([255, 255, 255, 255]),
     );
 
     this.defaultCubeTexture = this.gl.createTexture()!;

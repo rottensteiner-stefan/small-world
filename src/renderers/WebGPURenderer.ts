@@ -51,6 +51,7 @@ export class WebGPURenderer extends AbstractRenderer {
   private _sampler!: GPUSampler;
   private _whiteTexView!: GPUTextureView;
   private _flatNormalTexView!: GPUTextureView;
+  private _specularTexView!: GPUTextureView;
   private _defaultCubeTexView!: GPUTextureView;
 
   private _geoCache: Map<GeometryDataInterface, WebGPUGeoCache> = new Map();
@@ -124,6 +125,19 @@ export class WebGPURenderer extends AbstractRenderer {
     );
     this._flatNormalTexView = flatNormalTex.createView();
 
+    const specTex: GPUTexture = this._device.createTexture({
+      size: [1, 1],
+      format: "rgba8unorm",
+      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+    });
+    this._device.queue.writeTexture(
+      { texture: specTex },
+      new Uint8Array([255, 255, 255, 255]),
+      { bytesPerRow: 4 },
+      [1, 1],
+    );
+    this._specularTexView = specTex.createView();
+
     const whiteCube: GPUTexture = this._device.createTexture({
       size: [1, 1, 6],
       format: "rgba8unorm",
@@ -193,6 +207,7 @@ export class WebGPURenderer extends AbstractRenderer {
         texEntries.push({ binding: 4, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: "float" } }); // Terrain Rock
         texEntries.push({ binding: 5, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: "float" } }); // Terrain Snow
         texEntries.push({ binding: 6, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: "float" } }); // Normal Map
+        texEntries.push({ binding: 7, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: "float" } }); // Specular Map
       }
       const texBGL = this._device!.createBindGroupLayout({ entries: texEntries });
 
@@ -434,6 +449,8 @@ export class WebGPURenderer extends AbstractRenderer {
       entries.push({ binding: 5, resource: snow ? this._getTextureView(snow) : this._whiteTexView });
       const normal = manifest.textures["u_normalMap"] as Texture;
       entries.push({ binding: 6, resource: normal ? this._getTextureView(normal) : this._flatNormalTexView });
+      const specular = manifest.textures["u_specularMap"] as Texture;
+      entries.push({ binding: 7, resource: specular ? this._getTextureView(specular) : this._specularTexView });
     }
 
     return this._device!.createBindGroup({ layout, entries });

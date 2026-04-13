@@ -8,6 +8,8 @@ import {
     Color,
     Cube,
     DirectionalLight,
+    PointLight,
+    PhongMaterial,
     Input,
     Keys,
     MathUtils,
@@ -28,6 +30,8 @@ export class Example10 extends AbstractExample {
 
     private _rockTexture: Texture | undefined;
     private _lavaTexture: Texture | undefined;
+    private _lavaNormalMap: Texture | undefined;
+    private _lavaSpecularMap: Texture | undefined;
 
     /** @inheritdoc */
     protected override async setupScene(): Promise<void> {
@@ -65,6 +69,12 @@ export class Example10 extends AbstractExample {
         });
         this._lavaTexture = await Texture.fromUrl("/resources/examples/10/lava.png", {
             generateMipmaps: true // Lava doesn't need high anisotropy as much as the floor
+        });
+        this._lavaNormalMap = await Texture.fromUrl("/resources/examples/10/lava_normal.png", {
+            generateMipmaps: true
+        });
+        this._lavaSpecularMap = await Texture.fromUrl("/resources/examples/10/lava_specular.png", {
+            generateMipmaps: true
         });
 
         // 4. Textured Floor (instead of Grid)
@@ -107,13 +117,25 @@ export class Example10 extends AbstractExample {
           // 5c. Add Lava (3x3 plane, slightly below the rim at y=1.8)
           const lava: Object3D = new Object3D("Lava");
           lava.geometry = new Plane({ width: 3, depth: 3 }).getGeometryData();
-          const lavaMaterial = new BasicMaterial();
-          if (this._lavaTexture) {
-            lavaMaterial.diffuseMap = this._lavaTexture;
-          }
+          const lavaMaterial = new PhongMaterial({
+            diffuseMap: this._lavaTexture,
+            normalMap: this._lavaNormalMap,
+            specularMap: this._lavaSpecularMap,
+            shininess: 64,
+            specularColor: new Color(1, 0.5, 0.2) // Orange-ish specular for lava
+          });
           lava.material = lavaMaterial;
           lava.position.set(0, 1.8, 0);
           container.add(lava);
+
+          // 5d. Add PointLight inside the bowl to make the normal map visible
+          const light = new PointLight({
+            color: new Color(1, 0.4, 0.1),
+            intensity: 2.0,
+            distance: 10
+          });
+          light.position.set(0, 2.5, 0); // Position slightly above the lava surface
+          container.add(light);
 
           container.position.set(x, y, z);
           return container;
@@ -126,6 +148,8 @@ export class Example10 extends AbstractExample {
         // 5b. Add two bowls on top of the pedestal (y=1)
         this.scene.add(createFireBowl("FireBowl1", -4, 1, 0));
         this.scene.add(createFireBowl("FireBowl2", 4, 1, 0));
+
+        await this.waitForAssets();
     }
 
     /** @inheritdoc */

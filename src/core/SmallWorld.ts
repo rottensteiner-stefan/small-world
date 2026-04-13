@@ -1,6 +1,7 @@
 /// src/core/SmallWorld.ts
 
 import { DEFAULT_RENDERER, RendererType } from "./index.js";
+import { ConfigLoader } from "./ConfigLoader.js";
 import { ColorUtils } from "../utils/index.js";
 import { Renderer } from "../interfaces/index.js";
 import { RendererFactory } from "../renderers/index.js";
@@ -43,11 +44,7 @@ export class SmallWorld {
    */
   public async init(configPath: string): Promise<void> {
     try {
-      const response: Response = await fetch(configPath);
-      if (!response.ok) {
-        throw new Error(`Konfigurationsdatei nicht gefunden: ${configPath}`);
-      }
-      this.config = (await response.json()) as WorldConfig;
+      this.config = (await ConfigLoader.load(configPath)) as WorldConfig;
       if (!this.config.rendererType) {
         this.config.rendererType = DEFAULT_RENDERER;
       }

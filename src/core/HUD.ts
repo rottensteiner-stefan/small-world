@@ -1,6 +1,7 @@
 /// src/core/HUD.ts
 
 import { ENGINE_VERSION } from "./Engine.js";
+import { AssetManager } from "../loaders/AssetManager.js";
 
 /**
  * Handles the Head-Up Display (HUD) overlay.
@@ -23,8 +24,7 @@ export class HUD {
       return;
     }
     try {
-      const response: Response = await fetch("./resources/templates/hud.html");
-      let html: string = await response.text();
+      let html: string = await AssetManager.loadText("./resources/templates/hud.html");
 
       html = html.replace(/{sm-engine-version}/g, `v${ENGINE_VERSION}`);
 
