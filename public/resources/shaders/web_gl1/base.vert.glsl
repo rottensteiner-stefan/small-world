@@ -1,6 +1,7 @@
 attribute vec3 a_position;
 attribute vec3 a_normal;
 attribute vec2 a_uv;
+attribute vec3 a_tangent;
 
 uniform mat4 u_vp;
 uniform mat4 u_model;
@@ -10,6 +11,7 @@ uniform vec2 u_texRepeat;
 varying vec3 v_worldPos;
 varying vec3 v_normal;
 varying vec2 v_uv;
+varying mat3 v_tbn;
 
 mat3 extractMat3(mat4 m) {
     return mat3(m[0].xyz, m[1].xyz, m[2].xyz);
@@ -18,7 +20,15 @@ mat3 extractMat3(mat4 m) {
 void main() {
     vec4 wp = u_model * vec4(a_position, 1.0);
     v_worldPos = wp.xyz;
-    v_normal = extractMat3(u_model) * a_normal;
+    mat3 m3 = extractMat3(u_model);
+    v_normal = normalize(m3 * a_normal);
     v_uv = (a_uv * u_texRepeat) + u_texOffset;
+
+    vec3 T = normalize(m3 * a_tangent);
+    vec3 N = v_normal;
+    T = normalize(T - dot(T, N) * N);
+    vec3 B = cross(N, T);
+    v_tbn = mat3(T, B, N);
+
     gl_Position = u_vp * wp;
 }

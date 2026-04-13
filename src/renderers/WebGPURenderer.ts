@@ -10,7 +10,7 @@ import { GeometryDataInterface } from "../interfaces/index.js";
 import { Object3D } from "../core/Object3D.js";
 import { Scene } from "../core/Scene.js";
 import { Vector3D } from "../math/Vector3D.js";
-import { BlendingMode, CullMode, MaterialType, RendererType } from "../enums/index.js";
+import { BlendingMode, CullMode, MaterialType, RendererType, TextureFilter, TextureWrap } from "../enums/index.js";
 import { EngineConfig } from "../interfaces/EngineConfig.js";
 
 import { AbstractRenderer } from "./AbstractRenderer.js";
@@ -19,6 +19,7 @@ interface WebGPUGeoCache {
   vb: GPUBuffer;
   nb: GPUBuffer | null;
   uvb: GPUBuffer | null;
+  tb: GPUBuffer | null; // Tangent Buffer
   ib: GPUBuffer | null;
   wib: GPUBuffer | null; // Wireframe Index Buffer
   indexCount: number;
@@ -49,6 +50,7 @@ export class WebGPURenderer extends AbstractRenderer {
 
   private _sampler!: GPUSampler;
   private _whiteTexView!: GPUTextureView;
+  private _flatNormalTexView!: GPUTextureView;
   private _defaultCubeTexView!: GPUTextureView;
 
   private _geoCache: Map<GeometryDataInterface, WebGPUGeoCache> = new Map();
@@ -108,6 +110,19 @@ export class WebGPURenderer extends AbstractRenderer {
       [1, 1],
     );
     this._whiteTexView = whiteTex.createView();
+
+    const flatNormalTex: GPUTexture = this._device.createTexture({
+      size: [1, 1],
+      format: "rgba8unorm",
+      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+    });
+    this._device.queue.writeTexture(
+      { texture: flatNormalTex },
+      new Uint8Array([128, 128, 255, 255]),
+      { bytesPerRow: 4 },
+      [1, 1],
+    );
+    this._flatNormalTexView = flatNormalTex.createView();
 
     const whiteCube: GPUTexture = this._device.createTexture({
       size: [1, 1, 6],
@@ -177,6 +192,7 @@ export class WebGPURenderer extends AbstractRenderer {
         texEntries.push({ binding: 3, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: "float" } }); // Terrain Grass
         texEntries.push({ binding: 4, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: "float" } }); // Terrain Rock
         texEntries.push({ binding: 5, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: "float" } }); // Terrain Snow
+        texEntries.push({ binding: 6, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: "float" } }); // Normal Map
       }
       const texBGL = this._device!.createBindGroupLayout({ entries: texEntries });
 
@@ -188,6 +204,7 @@ export class WebGPURenderer extends AbstractRenderer {
         { arrayStride: 12, attributes: [{ shaderLocation: 0, offset: 0, format: "float32x3" }] },
         { arrayStride: 12, attributes: [{ shaderLocation: 1, offset: 0, format: "float32x3" }] },
         { arrayStride: 8, attributes: [{ shaderLocation: 2, offset: 0, format: "float32x2" }] },
+        { arrayStride: 12, attributes: [{ shaderLocation: 3, offset: 0, format: "float32x3" }] },
       ];
 
       const targets: GPUColorTargetState[] = [{ format: this._format }];
@@ -276,27 +293,123 @@ export class WebGPURenderer extends AbstractRenderer {
     let sampler = this._samplerCache.get(key);
 
     if (!sampler) {
-      sampler = this._device!.createSampler({
-        magFilter: tex.magFilter === TextureFilter.NEAREST ? "nearest" : "linear",
-        minFilter: tex.minFilter === TextureFilter.NEAREST ? "nearest" : "linear",
-        mipmapFilter: useMipmaps ? "linear" : undefined,
+      const samplerDesc: GPUSamplerDescriptor = {
+        magFilter: TextureFilter.NEAREST === tex.magFilter ? "nearest" : "linear",
+        minFilter: TextureFilter.NEAREST === tex.minFilter ? "nearest" : "linear",
         addressModeU:
-          tex.addressModeU === TextureWrap.REPEAT
+          TextureWrap.REPEAT === tex.addressModeU
             ? "repeat"
-            : tex.addressModeU === TextureWrap.MIRRORED_REPEAT
+            : TextureWrap.MIRRORED_REPEAT === tex.addressModeU
               ? "mirror-repeat"
               : "clamp-to-edge",
         addressModeV:
-          tex.addressModeV === TextureWrap.REPEAT
+          TextureWrap.REPEAT === tex.addressModeV
             ? "repeat"
-            : tex.addressModeV === TextureWrap.MIRRORED_REPEAT
+            : TextureWrap.MIRRORED_REPEAT === tex.addressModeV
               ? "mirror-repeat"
               : "clamp-to-edge",
         maxAnisotropy: anisotropy,
-      });
+      };
+
+      if (useMipmaps) {
+        samplerDesc.mipmapFilter = "linear";
+      }
+
+      sampler = this._device!.createSampler(samplerDesc);
       this._samplerCache.set(key, sampler);
     }
     return sampler;
+  }
+
+  private _getGeoCache(geo: GeometryDataInterface): WebGPUGeoCache {
+    let c = this._geoCache.get(geo);
+    if (!c) {
+      const createBuf = (data: Float32Array | Uint16Array | Uint32Array, usage: number): GPUBuffer => {
+        const b = this._device!.createBuffer({
+          size: (data.byteLength + 3) & ~3,
+          usage,
+          mappedAtCreation: true,
+        });
+        if (data instanceof Float32Array) new Float32Array(b.getMappedRange()).set(data);
+        else if (data instanceof Uint16Array) new Uint16Array(b.getMappedRange()).set(data);
+        else new Uint32Array(b.getMappedRange()).set(data);
+        b.unmap();
+        return b;
+      };
+      c = {
+        vb: createBuf(geo.vertices, GPUBufferUsage.VERTEX),
+        nb: geo.normals && 0 < geo.normals.length ? createBuf(geo.normals, GPUBufferUsage.VERTEX) : null,
+        uvb: geo.uvs && 0 < geo.uvs.length ? createBuf(geo.uvs, GPUBufferUsage.VERTEX) : null,
+        tb: geo.tangents && 0 < geo.tangents.length ? createBuf(geo.tangents, GPUBufferUsage.VERTEX) : null,
+        ib: geo.indices && 0 < geo.indices.length ? createBuf(geo.indices, GPUBufferUsage.INDEX) : null,
+        wib:
+          geo.wireframeIndices && 0 < geo.wireframeIndices.length
+            ? createBuf(geo.wireframeIndices, GPUBufferUsage.INDEX)
+            : null,
+        indexCount: geo.indices ? geo.indices.length : 0,
+        wireframeIndexCount: geo.wireframeIndices ? geo.wireframeIndices.length : 0,
+        vertexCount: geo.vertices.length / 3,
+        format:
+          geo.indices instanceof Uint32Array || geo.wireframeIndices instanceof Uint32Array
+            ? "uint32"
+            : "uint16",
+      };
+
+      this._geoCache.set(geo, c);
+    }
+    return c;
+  }
+
+  private _getObjBuffers(obj: Object3D): {
+    ub: GPUBuffer;
+    pl: GPUBuffer;
+    sl: GPUBuffer;
+    al: GPUBuffer;
+  } {
+    let ub = this._objUniformBuffers.get(obj);
+    let lights = this._objLightBuffers.get(obj);
+
+    if (!ub || !lights) {
+      ub = this._device!.createBuffer({
+        size: 512,
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+      });
+      const pl = this._device!.createBuffer({
+        size: 512,
+        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+      });
+      const sl = this._device!.createBuffer({
+        size: 1024,
+        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+      });
+      const al = this._device!.createBuffer({
+        size: 1024,
+        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+      });
+      lights = { pl, sl, al };
+      this._objUniformBuffers.set(obj, ub);
+      this._objLightBuffers.set(obj, lights);
+    }
+    return { ub, ...lights };
+  }
+
+  private _getObjBindGroup(obj: Object3D, layout: GPUBindGroupLayout): GPUBindGroup {
+    const key = obj.uuid + "_" + (layout as any).label;
+    let bg = this._objBindGroups.get(key);
+    if (!bg) {
+      const bufs = this._getObjBuffers(obj);
+      bg = this._device!.createBindGroup({
+        layout,
+        entries: [
+          { binding: 0, resource: { buffer: bufs.ub } },
+          { binding: 1, resource: { buffer: bufs.pl } },
+          { binding: 2, resource: { buffer: bufs.sl } },
+          { binding: 3, resource: { buffer: bufs.al } },
+        ],
+      });
+      this._objBindGroups.set(key, bg);
+    }
+    return bg;
   }
 
   private _getTexBindGroup(manifest: RenderManifest, layout: GPUBindGroupLayout): GPUBindGroup {
@@ -319,6 +432,8 @@ export class WebGPURenderer extends AbstractRenderer {
       entries.push({ binding: 4, resource: rock ? this._getTextureView(rock) : this._whiteTexView });
       const snow = manifest.textures["u_snowMap"] as Texture;
       entries.push({ binding: 5, resource: snow ? this._getTextureView(snow) : this._whiteTexView });
+      const normal = manifest.textures["u_normalMap"] as Texture;
+      entries.push({ binding: 6, resource: normal ? this._getTextureView(normal) : this._flatNormalTexView });
     }
 
     return this._device!.createBindGroup({ layout, entries });
@@ -428,6 +543,7 @@ if (diff) {
         rp.setVertexBuffer(0, gCache.vb);
         rp.setVertexBuffer(1, gCache.nb || gCache.vb);
         rp.setVertexBuffer(2, gCache.uvb || gCache.vb);
+        rp.setVertexBuffer(3, gCache.tb || gCache.vb);
 
         if (topology === "line-list" && gCache.wib && gCache.format) {
           rp.setIndexBuffer(gCache.wib, gCache.format);

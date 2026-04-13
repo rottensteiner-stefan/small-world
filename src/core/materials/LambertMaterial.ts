@@ -13,6 +13,8 @@ export interface LambertMaterialOptions {
   color?: Color;
   /** The diffuse texture map. Defaults to undefined. */
   diffuseMap?: Texture | undefined;
+  /** The normal texture map. Defaults to undefined. */
+  normalMap?: Texture | undefined;
 }
 
 /**
@@ -24,12 +26,15 @@ export class LambertMaterial extends AbstractMaterial {
 
   /** The diffuse texture map. */
   public diffuseMap: Texture | undefined;
+  /** The normal texture map. */
+  public normalMap: Texture | undefined;
 
   constructor(options: LambertMaterialOptions = {}) {
     super();
-    const { color = Color.WHITE, diffuseMap = undefined } = options;
+    const { color = Color.WHITE, diffuseMap = undefined, normalMap = undefined } = options;
     this.color = color;
     this.diffuseMap = diffuseMap;
+    this.normalMap = normalMap;
   }
 
   /** @inheritdoc */
@@ -42,6 +47,7 @@ export class LambertMaterial extends AbstractMaterial {
       },
       textures: {
         u_diffuseMap: this.diffuseMap,
+        u_normalMap: this.normalMap,
       },
     };
   }

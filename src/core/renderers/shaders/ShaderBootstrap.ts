@@ -170,7 +170,10 @@ export class ShaderBootstrap {
           u_viewPos: { type: ShaderPropertyType.VEC3 },
           u_ambientColor: { type: ShaderPropertyType.VEC3 },
         },
-        textures: { u_diffuseMap: { type: ShaderPropertyType.TEXTURE } },
+        textures: {
+          u_diffuseMap: { type: ShaderPropertyType.TEXTURE },
+          u_normalMap: { type: ShaderPropertyType.TEXTURE },
+        },
       },
     });
 
@@ -188,7 +191,10 @@ export class ShaderBootstrap {
           u_viewPos: { type: ShaderPropertyType.VEC3 },
           u_ambientColor: { type: ShaderPropertyType.VEC3 },
         },
-        textures: { u_diffuseMap: { type: ShaderPropertyType.TEXTURE } },
+        textures: {
+          u_diffuseMap: { type: ShaderPropertyType.TEXTURE },
+          u_normalMap: { type: ShaderPropertyType.TEXTURE },
+        },
       },
     });
 

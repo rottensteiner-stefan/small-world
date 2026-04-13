@@ -11,12 +11,12 @@ import {
   ShaderRegistry,
 } from "../core/index.js";
 import { GeometryDataInterface } from "../interfaces/index.js";
-import { CullMode, MaterialType, RendererType } from "../enums/index.js";
+import { CullMode, MaterialType, RendererType, TextureFilter, TextureWrap } from "../enums/index.js";
 import { Mesh } from "./Mesh.js";
 import { Object3D } from "../core/Object3D.js";
 import { Scene } from "../core/Scene.js";
 import { Vector3D } from "../math/Vector3D.js";
-import { EngineConfig } from "../interfaces/EngineConfig.js";
+import { EngineConfig } from "../interfaces/index.js";
 
 interface ProgramCache {
   prog: WebGLProgram;
@@ -78,7 +78,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
       const uniforms = new Map<string, WebGLUniformLocation | null>();
       const attributes = new Map<string, number>();
 
-      ["a_position", "a_normal", "a_uv"].forEach(name => {
+      ["a_position", "a_normal", "a_uv", "a_tangent"].forEach(name => {
         attributes.set(name, this.gl.getAttribLocation(prog, name));
       });
 
@@ -90,7 +90,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
         uniforms.set(name, this.gl.getUniformLocation(prog, name));
       });
 
-      ["u_diffuseMap", "u_skybox", "u_sandMap", "u_grassMap", "u_rockMap", "u_snowMap", "u_texOffset", "u_texRepeat"].forEach(name => {
+      ["u_diffuseMap", "u_normalMap", "u_skybox", "u_sandMap", "u_grassMap", "u_rockMap", "u_snowMap", "u_texOffset", "u_texRepeat"].forEach(name => {
         uniforms.set(name, this.gl.getUniformLocation(prog, name));
       });
 
@@ -154,24 +154,24 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
       this.gl.texParameteri(
         this.gl.TEXTURE_2D,
         this.gl.TEXTURE_MAG_FILTER,
-        tex.magFilter === TextureFilter.NEAREST ? this.gl.NEAREST : this.gl.LINEAR,
+        TextureFilter.NEAREST === tex.magFilter ? this.gl.NEAREST : this.gl.LINEAR,
       );
 
       let minFilter: number = this.gl.LINEAR;
       if (useMipmaps) {
         minFilter = this.gl.LINEAR_MIPMAP_LINEAR;
-        if (tex.minFilter === TextureFilter.NEAREST) {
+        if (TextureFilter.NEAREST === tex.minFilter) {
           minFilter = this.gl.NEAREST_MIPMAP_LINEAR;
         }
       } else {
-        if (tex.minFilter === TextureFilter.NEAREST) {
+        if (TextureFilter.NEAREST === tex.minFilter) {
           minFilter = this.gl.NEAREST;
         }
       }
       this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, minFilter);
 
       // Anisotropic Filtering (if available)
-      if (useMipmaps && this._quality.maxAnisotropy && 1 < this._quality.maxAnisotropy) {
+      if (useMipmaps && undefined !== this._quality.maxAnisotropy && 1 < this._quality.maxAnisotropy) {
         const ext =
           this.gl.getExtension("EXT_texture_filter_anisotropic") ||
           this.gl.getExtension("MOZ_EXT_texture_filter_anisotropic") ||
@@ -184,15 +184,15 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
       }
 
       const wrapS =
-        tex.addressModeU === TextureWrap.REPEAT
+        TextureWrap.REPEAT === tex.addressModeU
           ? this.gl.REPEAT
-          : tex.addressModeU === TextureWrap.MIRRORED_REPEAT
+          : TextureWrap.MIRRORED_REPEAT === tex.addressModeU
             ? this.gl.MIRRORED_REPEAT
             : this.gl.CLAMP_TO_EDGE;
       const wrapT =
-        tex.addressModeV === TextureWrap.REPEAT
+        TextureWrap.REPEAT === tex.addressModeV
           ? this.gl.REPEAT
-          : tex.addressModeV === TextureWrap.MIRRORED_REPEAT
+          : TextureWrap.MIRRORED_REPEAT === tex.addressModeV
             ? this.gl.MIRRORED_REPEAT
             : this.gl.CLAMP_TO_EDGE;
 
@@ -323,7 +323,12 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
         m = new Mesh(this.gl, o.geometry);
         this._cache.set(o.geometry, m);
       }
-      m.bind(cache.attributes.get("a_position")!, cache.attributes.get("a_normal")!, cache.attributes.get("a_uv")!);
+      m.bind(
+        cache.attributes.get("a_position")!,
+        cache.attributes.get("a_normal")!,
+        cache.attributes.get("a_uv")!,
+        cache.attributes.get("a_tangent")!,
+      );
 
       // 4. Model Matrix (including Billboarding)
       const modelMatrix = new Float32Array(o.worldMatrix.data);
@@ -353,21 +358,35 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
         this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, skyTex ? this._getWebGLCubeTexture(skyTex) : this.defaultCubeTexture);
         if (u.get("u_skybox")) this.gl.uniform1i(u.get("u_skybox")!, 0);
       } else {
+        // Diffuse
         this.gl.activeTexture(this.gl.TEXTURE0);
         const diff = texs["u_diffuseMap"] as Texture;
         this.gl.bindTexture(this.gl.TEXTURE_2D, diff ? this._getWebGLTexture(diff) : this.defaultTexture);
         if (u.get("u_diffuseMap")) this.gl.uniform1i(u.get("u_diffuseMap")!, 0);
+
+        // Normal Map
+        this.gl.activeTexture(this.gl.TEXTURE1);
+        const normal = texs["u_normalMap"] as Texture;
+        if (normal) {
+          this.gl.bindTexture(this.gl.TEXTURE_2D, this._getWebGLTexture(normal));
+          if (u.get("u_normalMap")) this.gl.uniform1i(u.get("u_normalMap")!, 1);
+        } else {
+          this.gl.bindTexture(this.gl.TEXTURE_2D, this.defaultNormalMap);
+          if (u.get("u_normalMap")) this.gl.uniform1i(u.get("u_normalMap")!, 1);
+        }
+
         if (diff) {
           if (u.get("u_texOffset")) this.gl.uniform2f(u.get("u_texOffset")!, diff.offset.x, diff.offset.y);
           if (u.get("u_texRepeat") && !props["u_texRepeat"]) this.gl.uniform2f(u.get("u_texRepeat")!, diff.repeat.x, diff.repeat.y);
         }
+
         // Terrain fallbacks
         ["u_sandMap", "u_grassMap", "u_rockMap", "u_snowMap"].forEach((name, i) => {
           if (u.get(name)) {
-            this.gl.activeTexture(this.gl.TEXTURE1 + i);
+            this.gl.activeTexture(this.gl.TEXTURE2 + i);
             const t = texs[name] as Texture;
             this.gl.bindTexture(this.gl.TEXTURE_2D, t ? this._getWebGLTexture(t) : this.defaultTexture);
-            this.gl.uniform1i(u.get(name)!, 1 + i);
+            this.gl.uniform1i(u.get(name)!, 2 + i);
           }
         });
       }

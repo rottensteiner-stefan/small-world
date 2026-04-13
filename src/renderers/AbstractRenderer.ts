@@ -13,7 +13,7 @@ import { LightType, RendererType } from "../enums/index.js";
 import { Object3D } from "../core/Object3D.js";
 import { Scene } from "../core/Scene.js";
 import { Vector3D } from "../math/Vector3D.js";
-import { EngineConfig, QualityConfig } from "../interfaces/EngineConfig.js";
+import { EngineConfig, QualityConfig, ToneMapping } from "../interfaces/EngineConfig.js";
 /**
  * Base class for all renderer implementations.
  */
@@ -29,6 +29,8 @@ export abstract class AbstractRenderer implements Renderer {
     maxAnisotropy: 4,
     msaa: 4,
     maxShadowResolution: 1024,
+    hdr: false,
+    toneMapping: ToneMapping.NONE,
   };
 
   /** Cached light data to avoid GC pressure. */

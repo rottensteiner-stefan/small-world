@@ -14,6 +14,8 @@ export class Mesh {
   public webo: WebGLBuffer | undefined;
   /** The normal buffer object. */
   public nbo: WebGLBuffer | undefined = undefined;
+  /** The tangent buffer object. */
+  public tanbo: WebGLBuffer | undefined = undefined;
   /** The texture coordinate buffer object. */
   public tbo: WebGLBuffer | undefined = undefined;
 
@@ -50,14 +52,21 @@ export class Mesh {
       gl.bufferData(gl.ARRAY_BUFFER, data.normals, gl.STATIC_DRAW);
     }
 
-    // 3. UVs Buffer
+    // 3. Tangents Buffer
+    if (data.tangents && 0 < data.tangents.length) {
+      this.tanbo = gl.createBuffer() ?? undefined;
+      gl.bindBuffer(gl.ARRAY_BUFFER, this.tanbo ?? null);
+      gl.bufferData(gl.ARRAY_BUFFER, data.tangents, gl.STATIC_DRAW);
+    }
+
+    // 4. UVs Buffer
     if (data.uvs && 0 < data.uvs.length) {
       this.tbo = gl.createBuffer() ?? undefined;
       gl.bindBuffer(gl.ARRAY_BUFFER, this.tbo ?? null);
       gl.bufferData(gl.ARRAY_BUFFER, data.uvs, gl.STATIC_DRAW);
     }
 
-    // 4. Indices Buffer (Optional)
+    // 5. Indices Buffer (Optional)
     if (data.indices && 0 < data.indices.length) {
       this.isIndexed = true;
       this.ebo = gl.createBuffer() ?? undefined;
@@ -70,7 +79,7 @@ export class Mesh {
       this.count = data.vertices.length / 3;
     }
 
-    // 5. Wireframe Indices Buffer (Optional)
+    // 6. Wireframe Indices Buffer (Optional)
     if (data.wireframeIndices && 0 < data.wireframeIndices.length) {
       this.webo = gl.createBuffer() ?? undefined;
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.webo ?? null);
@@ -85,8 +94,9 @@ export class Mesh {
    * @param posLoc The location of the position attribute.
    * @param normLoc The location of the normal attribute.
    * @param uvLoc The location of the UV attribute.
+   * @param tanLoc The location of the tangent attribute.
    */
-  public bind(posLoc: number, normLoc: number = -1, uvLoc: number = -1): void {
+  public bind(posLoc: number, normLoc: number = -1, uvLoc: number = -1, tanLoc: number = -1): void {
     this._gl.bindBuffer(this._gl.ARRAY_BUFFER, this.vbo ?? null);
     this._gl.vertexAttribPointer(posLoc, 3, this._gl.FLOAT, false, 0, 0);
     this._gl.enableVertexAttribArray(posLoc);
@@ -101,6 +111,12 @@ export class Mesh {
       this._gl.bindBuffer(this._gl.ARRAY_BUFFER, this.tbo);
       this._gl.vertexAttribPointer(uvLoc, 2, this._gl.FLOAT, false, 0, 0);
       this._gl.enableVertexAttribArray(uvLoc);
+    }
+
+    if (0 <= tanLoc && this.tanbo) {
+      this._gl.bindBuffer(this._gl.ARRAY_BUFFER, this.tanbo);
+      this._gl.vertexAttribPointer(tanLoc, 3, this._gl.FLOAT, false, 0, 0);
+      this._gl.enableVertexAttribArray(tanLoc);
     }
   }
 

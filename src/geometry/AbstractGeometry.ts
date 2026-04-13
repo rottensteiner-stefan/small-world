@@ -16,6 +16,8 @@ export abstract class AbstractGeometry implements Geometry {
   protected _wireframeIndices: Uint16Array | Uint32Array | undefined = undefined;
   /** The normals of the geometry. */
   protected _normals: Float32Array = new Float32Array();
+  /** The tangents of the geometry. */
+  protected _tangents: Float32Array = new Float32Array();
   /** The UV coordinates of the geometry. */
   protected _uvs: Float32Array = new Float32Array();
   /** Whether the geometry is line-based. */
@@ -36,6 +38,10 @@ export abstract class AbstractGeometry implements Geometry {
       this._uvs = new Float32Array((this._vertices.length / 3) * 2);
     }
 
+    if (0 === this._tangents.length && 0 < this._vertices.length && !this._isLineGeometry) {
+      this.computeTangents();
+    }
+
     if (undefined === this._wireframeIndices && 0 < this._vertices.length) {
       if (this._isLineGeometry && this._indices) {
         this._wireframeIndices = this._indices;
@@ -49,8 +55,98 @@ export abstract class AbstractGeometry implements Geometry {
       indices: this._indices,
       wireframeIndices: this._wireframeIndices,
       normals: this._normals,
+      tangents: this._tangents,
       uvs: this._uvs,
     };
+  }
+
+  /**
+   * Computes the tangents of the geometry.
+   */
+  public computeTangents(): void {
+    if (0 === this._vertices.length || 0 === this._uvs.length || this._isLineGeometry) return;
+
+    this._tangents = new Float32Array(this._vertices.length);
+
+    if (undefined === this._indices || 0 !== this._indices.length % 3) {
+      return;
+    }
+
+    const tan1: Float32Array = new Float32Array(this._vertices.length);
+    const tan2: Float32Array = new Float32Array(this._vertices.length);
+
+    for (let i: number = 0; i < this._indices.length; i += 3) {
+      const i1: number = this._indices[i]!;
+      const i2: number = this._indices[i + 1]!;
+      const i3: number = this._indices[i + 2]!;
+
+      const v1x: number = this._vertices[i1 * 3]!;
+      const v1y: number = this._vertices[i1 * 3 + 1]!;
+      const v1z: number = this._vertices[i1 * 3 + 2]!;
+      const v2x: number = this._vertices[i2 * 3]!;
+      const v2y: number = this._vertices[i2 * 3 + 1]!;
+      const v2z: number = this._vertices[i2 * 3 + 2]!;
+      const v3x: number = this._vertices[i3 * 3]!;
+      const v3y: number = this._vertices[i3 * 3 + 1]!;
+      const v3z: number = this._vertices[i3 * 3 + 2]!;
+
+      const w1u: number = this._uvs[i1 * 2]!;
+      const w1v: number = this._uvs[i1 * 2 + 1]!;
+      const w2u: number = this._uvs[i2 * 2]!;
+      const w2v: number = this._uvs[i2 * 2 + 1]!;
+      const w3u: number = this._uvs[i3 * 2]!;
+      const w3v: number = this._uvs[i3 * 2 + 1]!;
+
+      const x1: number = v2x - v1x;
+      const x2: number = v3x - v1x;
+      const y1: number = v2y - v1y;
+      const y2: number = v3y - v1y;
+      const z1: number = v2z - v1z;
+      const z2: number = v3z - v1z;
+
+      const s1: number = w2u - w1u;
+      const s2: number = w3u - w1u;
+      const t1: number = w2v - w1v;
+      const t2: number = w3v - w1v;
+
+      const r: number = 1.0 / (s1 * t2 - s2 * t1);
+      const tx: number = (t2 * x1 - t1 * x2) * r;
+      const ty: number = (t2 * y1 - t1 * y2) * r;
+      const tz: number = (t2 * z1 - t1 * z2) * r;
+      const bx: number = (s1 * x2 - s2 * x1) * r;
+      const by: number = (s1 * y2 - s2 * y1) * r;
+      const bz: number = (s1 * z2 - s2 * z1) * r;
+
+      tan1[i1 * 3] += tx; tan1[i1 * 3 + 1] += ty; tan1[i1 * 3 + 2] += tz;
+      tan1[i2 * 3] += tx; tan1[i2 * 3 + 1] += ty; tan1[i2 * 3 + 2] += tz;
+      tan1[i3 * 3] += tx; tan1[i3 * 3 + 1] += ty; tan1[i3 * 3 + 2] += tz;
+
+      tan2[i1 * 3] += bx; tan2[i1 * 3 + 1] += by; tan2[i1 * 3 + 2] += bz;
+      tan2[i2 * 3] += bx; tan2[i2 * 3 + 1] += by; tan2[i2 * 3 + 2] += bz;
+      tan2[i3 * 3] += bx; tan2[i3 * 3 + 1] += by; tan2[i3 * 3 + 2] += bz;
+    }
+
+    for (let i: number = 0; i < this._vertices.length / 3; i++) {
+      const nx: number = this._normals[i * 3]!;
+      const ny: number = this._normals[i * 3 + 1]!;
+      const nz: number = this._normals[i * 3 + 2]!;
+      const tx: number = tan1[i * 3]!;
+      const ty: number = tan1[i * 3 + 1]!;
+      const tz: number = tan1[i * 3 + 2]!;
+
+      // Gram-Schmidt orthogonalize
+      const dot: number = nx * tx + ny * ty + nz * tz;
+      const otx: number = tx - nx * dot;
+      const oty: number = ty - ny * dot;
+      const otz: number = tz - nz * dot;
+      const len: number = Math.sqrt(otx * otx + oty * oty + otz * otz);
+
+      if (len > 0) {
+        this._tangents[i * 3] = otx / len;
+        this._tangents[i * 3 + 1] = oty / len;
+        this._tangents[i * 3 + 2] = otz / len;
+      }
+    }
   }
 
   /**

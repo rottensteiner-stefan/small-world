@@ -77,6 +77,16 @@ export class MtlLoader extends AbstractLoader<Map<string, PhongMaterial>> {
           false,
         );
         currentMat.diffuseMap = Texture.fromImage(image);
+      } else if (("map_Bump" === type || "bump" === type) && currentMat) {
+        const texPath: string = line.substring(line.indexOf(" ") + 1).trim();
+        const texUrl: string = folderPath + texPath;
+
+        const image: ImageBitmap | HTMLImageElement = await AssetManager.loadImage(
+          texUrl,
+          undefined,
+          false,
+        );
+        currentMat.normalMap = Texture.fromImage(image);
       }
     }
 

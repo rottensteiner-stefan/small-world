@@ -30,6 +30,8 @@ export declare abstract class AbstractGeometry implements Geometry {
     protected _wireframeIndices: Uint16Array | Uint32Array | undefined;
     /** The normals of the geometry. */
     protected _normals: Float32Array;
+    /** The tangents of the geometry. */
+    protected _tangents: Float32Array;
     /** The UV coordinates of the geometry. */
     protected _uvs: Float32Array;
     /** Whether the geometry is line-based. */
@@ -40,6 +42,10 @@ export declare abstract class AbstractGeometry implements Geometry {
     protected abstract generateGeometryData(): void;
     /** @inheritdoc */
     getGeometryData(): GeometryDataInterface;
+    /**
+     * Computes the tangents of the geometry.
+     */
+    computeTangents(): void;
     /**
      * Computes the wireframe indices from the current indices or vertices.
      */
@@ -97,6 +103,10 @@ export declare abstract class AbstractLight extends Object3D {
     color: Color;
     /** The intensity of the light. */
     intensity: number;
+    /** Whether the light casts shadows. */
+    castShadow: boolean;
+    /** The resolution of the shadow map for this light. */
+    shadowResolution: number;
     /**
      * Creates a new AbstractLight.
      * @param options The configuration options for the light.
@@ -180,10 +190,12 @@ export declare abstract class AbstractRenderer implements Renderer {
     abstract readonly type: RendererType;
     /** The clear color of the renderer. */
     protected _clearColor: Color;
+    /** Global quality settings. */
+    protected _quality: QualityConfig;
     /** Cached light data to avoid GC pressure. */
     protected _lightData: LightDataInterface;
     /** @inheritdoc */
-    abstract initialize(canvas: HTMLCanvasElement, attributes?: Record<string, unknown>): Promise<void>;
+    abstract initialize(canvas: HTMLCanvasElement, attributes?: Record<string, unknown>, config?: EngineConfig): Promise<void>;
     /** @inheritdoc */
     abstract render(scene: Scene, vpMatrix: Float32Array, camPos?: Vector3D): void;
     /** @inheritdoc */
@@ -208,6 +220,7 @@ export declare abstract class AbstractRenderer implements Renderer {
 export declare abstract class AbstractWebGLRenderer extends AbstractRenderer {
     protected gl: WebGLRenderingContext | WebGL2RenderingContext;
     protected defaultTexture: WebGLTexture;
+    protected defaultNormalMap: WebGLTexture;
     protected defaultCubeTexture: WebGLTexture;
     destroy(): void;
     setSize(w: number, h: number): void;
@@ -1140,6 +1153,8 @@ export declare interface EngineConfig {
     projection?: ProjectionType;
     rendererType?: RendererType;
     renderer?: EngineRendererConfig[];
+    /** Optional quality settings. */
+    quality?: QualityConfig;
 }
 
 export declare interface EngineRendererConfig {
@@ -1339,6 +1354,8 @@ export declare interface GeometryDataInterface {
     wireframeIndices?: Uint16Array | Uint32Array | undefined;
     /** Optional normal data (nx, ny, nz). */
     normals?: Float32Array | undefined;
+    /** Optional tangent data (tx, ty, tz). */
+    tangents?: Float32Array | undefined;
     /** Optional texture coordinate data (u, v). */
     uvs?: Float32Array | undefined;
 }
@@ -1643,6 +1660,8 @@ export declare class LambertMaterial extends AbstractMaterial {
     readonly type: MaterialType;
     /** The diffuse texture map. */
     diffuseMap: Texture | undefined;
+    /** The normal texture map. */
+    normalMap: Texture | undefined;
     constructor(options?: LambertMaterialOptions);
     /** @inheritdoc */
     getRenderManifest(): RenderManifest;
@@ -1656,6 +1675,8 @@ export declare interface LambertMaterialOptions {
     color?: Color;
     /** The diffuse texture map. Defaults to undefined. */
     diffuseMap?: Texture | undefined;
+    /** The normal texture map. Defaults to undefined. */
+    normalMap?: Texture | undefined;
 }
 
 export declare interface LightDataInterface {
@@ -1677,6 +1698,10 @@ export declare interface LightOptions {
     intensity?: number;
     /** The name of the light object. Defaults to "Light". */
     name?: string;
+    /** Whether the light casts shadows. Defaults to false. */
+    castShadow?: boolean;
+    /** The resolution of the shadow map for this light. Defaults to 512. */
+    shadowResolution?: number;
 }
 
 /**
@@ -1939,6 +1964,8 @@ export declare class Mesh {
     webo: WebGLBuffer | undefined;
     /** The normal buffer object. */
     nbo: WebGLBuffer | undefined;
+    /** The tangent buffer object. */
+    tanbo: WebGLBuffer | undefined;
     /** The texture coordinate buffer object. */
     tbo: WebGLBuffer | undefined;
     /** The number of elements (indices or vertices) to draw. */
@@ -1963,8 +1990,9 @@ export declare class Mesh {
      * @param posLoc The location of the position attribute.
      * @param normLoc The location of the normal attribute.
      * @param uvLoc The location of the UV attribute.
+     * @param tanLoc The location of the tangent attribute.
      */
-    bind(posLoc: number, normLoc?: number, uvLoc?: number): void;
+    bind(posLoc: number, normLoc?: number, uvLoc?: number, tanLoc?: number): void;
     /**
      * Draws the mesh using the appropriate GL call.
      * @param mode The draw mode (e.g. TRIANGLES, LINES).
@@ -2347,6 +2375,8 @@ export declare class PhongMaterial extends AbstractMaterial {
     shininess: number;
     /** The diffuse texture map. */
     diffuseMap: Texture | undefined;
+    /** The normal map texture. */
+    normalMap: Texture | undefined;
     /**
      * Creates a new PhongMaterial.
      * @param options The configuration options for the material.
@@ -2368,6 +2398,8 @@ export declare interface PhongMaterialOptions {
     shininess?: number;
     /** The diffuse texture map. Defaults to undefined. */
     diffuseMap?: Texture | undefined;
+    /** The normal map texture. Defaults to undefined. */
+    normalMap?: Texture | undefined;
 }
 
 /**
@@ -2481,6 +2513,24 @@ export declare interface PyramidOptions {
 }
 
 /**
+ * Quality settings for the engine.
+ */
+export declare interface QualityConfig {
+    /** Global toggle for mipmapping. Defaults to true. */
+    mipmapping?: boolean;
+    /** Maximum anisotropic filtering level. Usually 1, 4, 8, 16. Defaults to 4. */
+    maxAnisotropy?: number;
+    /** Antialiasing (MSAA) level. usually 0, 2, 4, 8. Defaults to 4. */
+    msaa?: number;
+    /** Maximum shadow map resolution. Defaults to 1024. */
+    maxShadowResolution?: number;
+    /** Whether to enable HDR rendering. Defaults to false. */
+    hdr?: boolean;
+    /** The tone mapping algorithm to use. Defaults to NONE. */
+    toneMapping?: ToneMapping;
+}
+
+/**
  * A class representing a quaternion for rotations.
  */
 export declare class Quaternion {
@@ -2552,7 +2602,7 @@ export declare class Quaternion {
 
 export declare interface Renderer {
     readonly type: RendererType;
-    initialize(canvas: HTMLCanvasElement, attributes?: Record<string, unknown>): Promise<void>;
+    initialize(canvas: HTMLCanvasElement, attributes?: Record<string, unknown>, config?: EngineConfig): Promise<void>;
     render(scene: Scene, vpMatrix: Float32Array, camPos?: Vector3D): void;
     setSize(width: number, height: number): void;
     setClearColor(color: Color): void;
@@ -3274,6 +3324,10 @@ export declare class Texture {
     addressModeU: TextureWrap;
     /** The wrapping mode for the V coordinate. */
     addressModeV: TextureWrap;
+    /** Whether mipmaps should be generated for this texture. */
+    generateMipmaps: boolean;
+    /** Desired anisotropic filtering level for this texture. */
+    anisotropy: number;
     /** The UV offset. */
     offset: {
         x: number;
@@ -3287,8 +3341,9 @@ export declare class Texture {
     /**
      * Protected constructor. Use static factory methods to create instances.
      * @param image Optional initial image data.
+     * @param options Optional configuration options.
      */
-    protected constructor(image?: HTMLImageElement | ImageBitmap);
+    protected constructor(image?: HTMLImageElement | ImageBitmap, options?: TextureOptions);
     /**
      * Flips the texture horizontally by modifying the UV offset and repeat.
      * @returns This texture instance for chaining.
@@ -3302,20 +3357,23 @@ export declare class Texture {
     /**
      * Creates a texture from an existing image or bitmap.
      * @param image The image or bitmap data.
+     * @param options Optional configuration options.
      * @returns A new Texture instance.
      */
-    static fromImage(image: HTMLImageElement | ImageBitmap): Texture;
+    static fromImage(image: HTMLImageElement | ImageBitmap, options?: TextureOptions): Texture;
     /**
      * Creates an empty texture placeholder.
+     * @param options Optional configuration options.
      * @returns A new empty Texture instance.
      */
-    static empty(): Texture;
+    static empty(options?: TextureOptions): Texture;
     /**
      * Loads a texture from a URL.
      * @param url The URL of the image.
+     * @param options Optional configuration options.
      * @returns A promise that resolves to a new Texture instance.
      */
-    static fromUrl(url: string): Promise<Texture>;
+    static fromUrl(url: string, options?: TextureOptions): Promise<Texture>;
 }
 
 /**
@@ -3326,6 +3384,14 @@ export declare const TextureFilter: {
     readonly LINEAR: "linear";
     /** Nearest-neighbor filtering (pixelated). */
     readonly NEAREST: "nearest";
+    /** Linear filtering with linear mipmap interpolation. */
+    readonly LINEAR_MIPMAP_LINEAR: "linear_mipmap_linear";
+    /** Linear filtering with nearest mipmap. */
+    readonly LINEAR_MIPMAP_NEAREST: "linear_mipmap_nearest";
+    /** Nearest filtering with linear mipmap interpolation. */
+    readonly NEAREST_MIPMAP_LINEAR: "nearest_mipmap_linear";
+    /** Nearest filtering with nearest mipmap. */
+    readonly NEAREST_MIPMAP_NEAREST: "nearest_mipmap_nearest";
 };
 
 /** Type definition for TextureFilter. */
@@ -3356,6 +3422,24 @@ export declare class TextureGenerator {
 }
 
 /**
+ * Configuration options for creating a texture.
+ */
+export declare interface TextureOptions {
+    /** The magnification filter. */
+    magFilter?: TextureFilter;
+    /** The minification filter. */
+    minFilter?: TextureFilter;
+    /** The wrapping mode for the U coordinate. */
+    addressModeU?: TextureWrap;
+    /** The wrapping mode for the V coordinate. */
+    addressModeV?: TextureWrap;
+    /** Whether to generate mipmaps. Defaults to true. */
+    generateMipmaps?: boolean;
+    /** Requested anisotropic filtering level. Defaults to 1. */
+    anisotropy?: number;
+}
+
+/**
  * Texture wrapping modes.
  */
 export declare const TextureWrap: {
@@ -3369,6 +3453,21 @@ export declare const TextureWrap: {
 
 /** Type definition for TextureWrap. */
 export declare type TextureWrap = (typeof TextureWrap)[keyof typeof TextureWrap];
+
+/**
+ * Tone mapping algorithms.
+ */
+export declare const ToneMapping: {
+    /** No tone mapping. */
+    readonly NONE: "none";
+    /** Reinhard tone mapping. */
+    readonly REINHARD: "reinhard";
+    /** ACES Filmic tone mapping. */
+    readonly ACES: "aces";
+};
+
+/** Type definition for ToneMapping. */
+export declare type ToneMapping = (typeof ToneMapping)[keyof typeof ToneMapping];
 
 /**
  * A torus geometry.
@@ -3722,7 +3821,7 @@ export declare class WebGL1Renderer extends AbstractWebGLRenderer {
     private _texCache;
     private _texCubeCache;
     /** @inheritdoc */
-    initialize(canvas: HTMLCanvasElement, attributes?: Record<string, unknown>): Promise<void>;
+    initialize(canvas: HTMLCanvasElement, attributes?: Record<string, unknown>, config?: EngineConfig): Promise<void>;
     private _getProgram;
     private _getWebGLTexture;
     private _getWebGLCubeTexture;
@@ -3745,7 +3844,7 @@ export declare class WebGL2Renderer extends AbstractWebGLRenderer {
     private _scratchModelMatrix;
     private _scratchVec3;
     /** @inheritdoc */
-    initialize(canvas: HTMLCanvasElement, attributes?: Record<string, unknown>): Promise<void>;
+    initialize(canvas: HTMLCanvasElement, attributes?: Record<string, unknown>, config?: EngineConfig): Promise<void>;
     private _getProgram;
     private _getWebGLTexture;
     private _getWebGLCubeTexture;
@@ -3771,6 +3870,7 @@ export declare class WebGPURenderer extends AbstractRenderer {
     private _shaderModules;
     private _sampler;
     private _whiteTexView;
+    private _flatNormalTexView;
     private _defaultCubeTexView;
     private _geoCache;
     private _textureViewCache;
@@ -3781,7 +3881,7 @@ export declare class WebGPURenderer extends AbstractRenderer {
     private _objLightBuffers;
     private _objBindGroups;
     /** @inheritdoc */
-    initialize(canvas: HTMLCanvasElement, attributes?: Record<string, unknown>): Promise<void>;
+    initialize(canvas: HTMLCanvasElement, attributes?: Record<string, unknown>, config?: EngineConfig): Promise<void>;
     private _getShaderModule;
     private _getPipeline;
     private _getTextureView;
