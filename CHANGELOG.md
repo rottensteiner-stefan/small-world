@@ -1,8 +1,19 @@
 # Changelog
 
-## [0.14.00] - 2026-04-12
+## [0.14.0] - 2026-04-13
 
-- Major rework of the  renderer and shader.
+- **AssetManager**: Introduced a centralized manager for loading and caching assets (images, text) with global progress tracking, base URL support, and custom headers.
+- **Normal & Specular Maps**: Added support for normal maps and specular maps in `PhongMaterial` and `LambertMaterial` across all renderers.
+- **WorldMaterial**: New material type using triplanar mapping for seamless, world-space textures—ideal for terrain, rocks, and large structures.
+- **Skydome**: Added `Skydome` implementation for immersive 360-degree backgrounds (see Example 9).
+- **Major Renderer Rework**: Significant architectural updates to WebGL1, WebGL2, and WebGPU renderers for more modular and efficient shader handling.
+- **Spatial Partitioning & Optimization**: Implemented `Octree` for efficient spatial querying and `FrustumCuller` to skip rendering objects outside the camera's view.
+- **Enhanced Texture Quality**: Added support for anisotropic filtering and improved mipmap generation.
+- **New Examples**:
+  - `Example 8`: A classic 2.5D Jump & Run demonstrating physics, collision detection, and sprite-based player movement.
+  - `Example 9`: Immersive environment with a Skydome and FPS-style camera.
+  - `Example 10`: Advanced scene composition with fire bowls, point lights, and materials using normal/specular maps.
+- **Physics**: Basic AABB collision detection and gravity implementation (showcased in Example 8).
 
 ## [0.13.05] - 2026-04-03
 
