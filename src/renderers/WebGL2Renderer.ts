@@ -16,6 +16,7 @@ import { Mesh } from "./Mesh.js";
 import { Object3D } from "../core/Object3D.js";
 import { Scene } from "../core/Scene.js";
 import { Vector3D } from "../math/index.js";
+import { EngineConfig } from "../interfaces/EngineConfig.js";
 
 interface ProgramCache {
   prog: WebGLProgram;
@@ -48,10 +49,15 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
   public async initialize(
     canvas: HTMLCanvasElement,
     attributes?: Record<string, unknown>,
+    config?: EngineConfig,
   ): Promise<void> {
     const gl = canvas.getContext("webgl2", attributes);
     if (!gl) throw new Error("[WebGL2Renderer] WebGL2 context could not be initialized.");
     this.gl = gl as WebGL2RenderingContext;
+
+    if (config?.quality) {
+      this._quality = { ...this._quality, ...config.quality };
+    }
 
     this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, true);
     this.initDefaultTextures();
@@ -138,18 +144,59 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         this.gl.UNSIGNED_BYTE,
         tex.image,
       );
+
+      // 1. Mipmapping
+      const useMipmaps = this._quality.mipmapping && tex.generateMipmaps;
+      if (useMipmaps) {
+        this.gl.generateMipmap(this.gl.TEXTURE_2D);
+      }
+
+      // 2. Filters
       this.gl.texParameteri(
         this.gl.TEXTURE_2D,
         this.gl.TEXTURE_MAG_FILTER,
-        tex.magFilter === "nearest" ? this.gl.NEAREST : this.gl.LINEAR,
+        tex.magFilter === TextureFilter.NEAREST ? this.gl.NEAREST : this.gl.LINEAR,
       );
-      this.gl.texParameteri(
-        this.gl.TEXTURE_2D,
-        this.gl.TEXTURE_MIN_FILTER,
-        tex.minFilter === "nearest" ? this.gl.NEAREST : this.gl.LINEAR,
-      );
-      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.REPEAT);
-      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.REPEAT);
+
+      let minFilter: number = this.gl.LINEAR;
+      if (useMipmaps) {
+        minFilter = this.gl.LINEAR_MIPMAP_LINEAR;
+        if (tex.minFilter === TextureFilter.NEAREST) {
+          minFilter = this.gl.NEAREST_MIPMAP_LINEAR;
+        }
+      } else {
+        if (tex.minFilter === TextureFilter.NEAREST) {
+          minFilter = this.gl.NEAREST;
+        }
+      }
+      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, minFilter);
+
+      // 3. Anisotropic Filtering
+      if (useMipmaps && this._quality.maxAnisotropy && this._quality.maxAnisotropy > 1) {
+        const ext = this.gl.getExtension("EXT_texture_filter_anisotropic");
+        if (ext) {
+          const maxAvailable = this.gl.getParameter(ext.MAX_TEXTURE_MAX_ANISOTROPY_EXT);
+          const amount = Math.min(maxAvailable, this._quality.maxAnisotropy, tex.anisotropy);
+          this.gl.texParameterf(this.gl.TEXTURE_2D, ext.TEXTURE_MAX_ANISOTROPY_EXT, amount);
+        }
+      }
+
+      // 4. Wrapping
+      const wrapS =
+        tex.addressModeU === TextureWrap.REPEAT
+          ? this.gl.REPEAT
+          : tex.addressModeU === TextureWrap.MIRRORED_REPEAT
+            ? this.gl.MIRRORED_REPEAT
+            : this.gl.CLAMP_TO_EDGE;
+      const wrapT =
+        tex.addressModeV === TextureWrap.REPEAT
+          ? this.gl.REPEAT
+          : tex.addressModeV === TextureWrap.MIRRORED_REPEAT
+            ? this.gl.MIRRORED_REPEAT
+            : this.gl.CLAMP_TO_EDGE;
+      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, wrapS);
+      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, wrapT);
+
       this._texCache.set(tex, glTex);
     }
     return glTex;

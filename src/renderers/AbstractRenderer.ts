@@ -13,6 +13,7 @@ import { LightType, RendererType } from "../enums/index.js";
 import { Object3D } from "../core/Object3D.js";
 import { Scene } from "../core/Scene.js";
 import { Vector3D } from "../math/Vector3D.js";
+import { EngineConfig, QualityConfig } from "../interfaces/EngineConfig.js";
 /**
  * Base class for all renderer implementations.
  */
@@ -21,6 +22,14 @@ export abstract class AbstractRenderer implements Renderer {
   public abstract readonly type: RendererType;
   /** The clear color of the renderer. */
   protected _clearColor: Color = new Color(0, 0, 0, 1);
+
+  /** Global quality settings. */
+  protected _quality: QualityConfig = {
+    mipmapping: true,
+    maxAnisotropy: 4,
+    msaa: 4,
+    maxShadowResolution: 1024,
+  };
 
   /** Cached light data to avoid GC pressure. */
   protected _lightData: LightDataInterface = {
@@ -36,6 +45,7 @@ export abstract class AbstractRenderer implements Renderer {
   public abstract initialize(
     canvas: HTMLCanvasElement,
     attributes?: Record<string, unknown>,
+    config?: EngineConfig,
   ): Promise<void>;
 
   /** @inheritdoc */

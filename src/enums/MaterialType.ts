@@ -18,6 +18,8 @@ export const MaterialType = {
   WIREFRAME: "WireframeMaterial",
   /** Material for sprites. */
   SPRITE: "SpriteMaterial",
+  /** Special triplanar mapping material for seamless tiling. */
+  WORLD: "WorldMaterial",
 } as const;
 
 /** Type definition for MaterialType. */

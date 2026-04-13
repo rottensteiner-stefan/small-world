@@ -11,6 +11,7 @@ import { Object3D } from "../core/Object3D.js";
 import { Scene } from "../core/Scene.js";
 import { Vector3D } from "../math/Vector3D.js";
 import { BlendingMode, CullMode, MaterialType, RendererType } from "../enums/index.js";
+import { EngineConfig } from "../interfaces/EngineConfig.js";
 
 import { AbstractRenderer } from "./AbstractRenderer.js";
 
@@ -66,10 +67,15 @@ export class WebGPURenderer extends AbstractRenderer {
   public async initialize(
     canvas: HTMLCanvasElement,
     attributes?: Record<string, unknown>,
+    config?: EngineConfig,
   ): Promise<void> {
     this._adapter = await navigator.gpu.requestAdapter(attributes);
     if (!this._adapter) throw new Error("[WebGPURenderer] No adapter found.");
     this._device = await this._adapter.requestDevice();
+
+    if (config?.quality) {
+      this._quality = { ...this._quality, ...config.quality };
+    }
 
     const context = canvas.getContext("webgpu");
     if (!context) throw new Error("[WebGPURenderer] Could not get webgpu context.");
@@ -263,83 +269,34 @@ export class WebGPURenderer extends AbstractRenderer {
   }
 
   private _getSampler(tex: Texture): GPUSampler {
-    const key: string = `${tex.addressModeU}_${tex.addressModeV}_${tex.magFilter}_${tex.minFilter}`;
-    if (!this._samplerCache.has(key)) {
-      this._samplerCache.set(
-        key,
-        this._device!.createSampler({
-          addressModeU: tex.addressModeU,
-          addressModeV: tex.addressModeV,
-          magFilter: tex.magFilter,
-          minFilter: tex.minFilter,
-          mipmapFilter: "linear",
-        }),
-      );
-    }
-    return this._samplerCache.get(key)!;
-  }
+    const useMipmaps = this._quality.mipmapping && tex.generateMipmaps;
+    const anisotropy = useMipmaps ? Math.min(this._quality.maxAnisotropy || 1, tex.anisotropy || 1) : 1;
 
-  private _getGeoCache(geo: GeometryDataInterface): WebGPUGeoCache {
-    let c = this._geoCache.get(geo);
-    if (!c) {
-      const createBuf = (data: Float32Array | Uint16Array | Uint32Array, usage: number): GPUBuffer => {
-        const b = this._device!.createBuffer({ size: (data.byteLength + 3) & ~3, usage, mappedAtCreation: true });
-        if (data instanceof Float32Array) new Float32Array(b.getMappedRange()).set(data);
-        else if (data instanceof Uint16Array) new Uint16Array(b.getMappedRange()).set(data);
-        else new Uint32Array(b.getMappedRange()).set(data);
-        b.unmap();
-        return b;
-      };
-      c = {
-        vb: createBuf(geo.vertices, GPUBufferUsage.VERTEX),
-        nb: geo.normals ? createBuf(geo.normals, GPUBufferUsage.VERTEX) : null,
-        uvb: geo.uvs ? createBuf(geo.uvs, GPUBufferUsage.VERTEX) : null,
-        ib: geo.indices ? createBuf(geo.indices, GPUBufferUsage.INDEX) : null,
-        wib: geo.wireframeIndices ? createBuf(geo.wireframeIndices, GPUBufferUsage.INDEX) : null,
-        indexCount: geo.indices ? geo.indices.length : 0,
-        wireframeIndexCount: geo.wireframeIndices ? geo.wireframeIndices.length : 0,
-        vertexCount: geo.vertices.length / 3,
-        format: geo.indices instanceof Uint32Array || geo.wireframeIndices instanceof Uint32Array ? "uint32" : "uint16",
-      };
+    const key = `${tex.minFilter}_${tex.magFilter}_${tex.addressModeU}_${tex.addressModeV}_${useMipmaps}_${anisotropy}`;
+    let sampler = this._samplerCache.get(key);
 
-      this._geoCache.set(geo, c);
-    }
-    return c;
-  }
-
-  private _getObjBuffers(obj: Object3D): { ub: GPUBuffer; pl: GPUBuffer; sl: GPUBuffer; al: GPUBuffer } {
-    let ub = this._objUniformBuffers.get(obj);
-    let lights = this._objLightBuffers.get(obj);
-
-    if (!ub || !lights) {
-      ub = this._device!.createBuffer({ size: 512, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
-      const pl = this._device!.createBuffer({ size: 512, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST });
-      const sl = this._device!.createBuffer({ size: 1024, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST });
-      const al = this._device!.createBuffer({ size: 1024, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST });
-      lights = { pl, sl, al };
-      this._objUniformBuffers.set(obj, ub);
-      this._objLightBuffers.set(obj, lights);
-    }
-    return { ub, ...lights };
-  }
-
-  private _getObjBindGroup(obj: Object3D, layout: GPUBindGroupLayout): GPUBindGroup {
-    const key = obj.uuid + "_" + (layout as any).label; 
-    let bg = this._objBindGroups.get(key);
-    if (!bg) {
-      const bufs = this._getObjBuffers(obj);
-      bg = this._device!.createBindGroup({
-        layout,
-        entries: [
-          { binding: 0, resource: { buffer: bufs.ub } },
-          { binding: 1, resource: { buffer: bufs.pl } },
-          { binding: 2, resource: { buffer: bufs.sl } },
-          { binding: 3, resource: { buffer: bufs.al } },
-        ],
+    if (!sampler) {
+      sampler = this._device!.createSampler({
+        magFilter: tex.magFilter === TextureFilter.NEAREST ? "nearest" : "linear",
+        minFilter: tex.minFilter === TextureFilter.NEAREST ? "nearest" : "linear",
+        mipmapFilter: useMipmaps ? "linear" : undefined,
+        addressModeU:
+          tex.addressModeU === TextureWrap.REPEAT
+            ? "repeat"
+            : tex.addressModeU === TextureWrap.MIRRORED_REPEAT
+              ? "mirror-repeat"
+              : "clamp-to-edge",
+        addressModeV:
+          tex.addressModeV === TextureWrap.REPEAT
+            ? "repeat"
+            : tex.addressModeV === TextureWrap.MIRRORED_REPEAT
+              ? "mirror-repeat"
+              : "clamp-to-edge",
+        maxAnisotropy: anisotropy,
       });
-      this._objBindGroups.set(key, bg);
+      this._samplerCache.set(key, sampler);
     }
-    return bg;
+    return sampler;
   }
 
   private _getTexBindGroup(manifest: RenderManifest, layout: GPUBindGroupLayout): GPUBindGroup {
