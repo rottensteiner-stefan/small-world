@@ -18,6 +18,8 @@ export interface PhongMaterialOptions {
   shininess?: number;
   /** The diffuse texture map. Defaults to undefined. */
   diffuseMap?: Texture | undefined;
+  /** The normal map texture. Defaults to undefined. */
+  normalMap?: Texture | undefined;
 }
 
 /**
@@ -36,6 +38,9 @@ export class PhongMaterial extends AbstractMaterial {
   /** The diffuse texture map. */
   public diffuseMap: Texture | undefined;
 
+  /** The normal map texture. */
+  public normalMap: Texture | undefined;
+
   /**
    * Creates a new PhongMaterial.
    * @param options The configuration options for the material.
@@ -47,11 +52,13 @@ export class PhongMaterial extends AbstractMaterial {
       specularColor = Color.WHITE,
       shininess = 32.0,
       diffuseMap = undefined,
+      normalMap = undefined,
     } = options;
     this.color = color;
     this.specularColor = specularColor;
     this.shininess = shininess;
     this.diffuseMap = diffuseMap;
+    this.normalMap = normalMap;
   }
 
   /** @inheritdoc */
@@ -65,6 +72,7 @@ export class PhongMaterial extends AbstractMaterial {
       },
       textures: {
         u_diffuseMap: this.diffuseMap,
+        u_normalMap: this.normalMap,
       },
     };
   }

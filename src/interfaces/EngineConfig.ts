@@ -8,6 +8,21 @@ export interface EngineRendererConfig {
 }
 
 /**
+ * Tone mapping algorithms.
+ */
+export const ToneMapping = {
+  /** No tone mapping. */
+  NONE: "none",
+  /** Reinhard tone mapping. */
+  REINHARD: "reinhard",
+  /** ACES Filmic tone mapping. */
+  ACES: "aces",
+} as const;
+
+/** Type definition for ToneMapping. */
+export type ToneMapping = (typeof ToneMapping)[keyof typeof ToneMapping];
+
+/**
  * Quality settings for the engine.
  */
 export interface QualityConfig {
@@ -19,6 +34,10 @@ export interface QualityConfig {
   msaa?: number;
   /** Maximum shadow map resolution. Defaults to 1024. */
   maxShadowResolution?: number;
+  /** Whether to enable HDR rendering. Defaults to false. */
+  hdr?: boolean;
+  /** The tone mapping algorithm to use. Defaults to NONE. */
+  toneMapping?: ToneMapping;
 }
 
 export interface EngineConfig {

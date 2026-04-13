@@ -12,6 +12,8 @@ export interface GeometryDataInterface {
   wireframeIndices?: Uint16Array | Uint32Array | undefined;
   /** Optional normal data (nx, ny, nz). */
   normals?: Float32Array | undefined;
+  /** Optional tangent data (tx, ty, tz). */
+  tangents?: Float32Array | undefined;
   /** Optional texture coordinate data (u, v). */
   uvs?: Float32Array | undefined;
 }

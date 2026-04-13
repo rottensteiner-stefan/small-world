@@ -52,12 +52,20 @@ export class Example10 extends AbstractExample {
         this.scene.add(sun);
 
         // 3. Textures
-        const sandTexture: Texture = await Texture.fromUrl("/resources/examples/10/sand.png");
+        const sandTexture: Texture = await Texture.fromUrl("/resources/examples/10/sand.png", {
+            anisotropy: 16,
+            generateMipmaps: true
+        });
         sandTexture.repeat.x = 20;
         sandTexture.repeat.y = 20;
 
-        this._rockTexture = await Texture.fromUrl("/resources/examples/10/rock.png");
-        this._lavaTexture = await Texture.fromUrl("/resources/examples/10/lava.png");
+        this._rockTexture = await Texture.fromUrl("/resources/examples/10/rock.png", {
+            anisotropy: 16,
+            generateMipmaps: true
+        });
+        this._lavaTexture = await Texture.fromUrl("/resources/examples/10/lava.png", {
+            generateMipmaps: true // Lava doesn't need high anisotropy as much as the floor
+        });
 
         // 4. Textured Floor (instead of Grid)
         const floor: Object3D = new Object3D("Floor");
@@ -173,7 +181,14 @@ export class Example10 extends AbstractExample {
 }
 
 // Start application
-const app: Example10 = new Example10();
+const app: Example10 = new Example10({
+    fullscreen: true,
+    quality: {
+        maxAnisotropy: 16, // Ultra-sharp textures at flat angles
+        msaa: 4,           // Smooth edges
+        mipmapping: true   // No flickering in the distance
+    }
+});
 app.start().catch((err) => {
     console.error("Example 10 failed to start:", err);
     if (err instanceof Error) {

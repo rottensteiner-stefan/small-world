@@ -23,6 +23,7 @@
   let slopeBlend = smoothstep(0.25, 0.45, slope);
   texCol = mix(texCol, rock, slopeBlend);
 
+  let N = terrainNormal;
   [WGSL_LIGHTING]
   return vec4f(fL * u.color.rgb * texCol.rgb, u.color.a * texCol.a);
 }
