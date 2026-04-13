@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.14.0] - 2026-04-13
+## [0.15.0] - 2026-04-13
 
 - **AssetManager**: Introduced a centralized manager for loading and caching assets (images, text) with global progress tracking, base URL support, and custom headers.
 - **Normal & Specular Maps**: Added support for normal maps and specular maps in `PhongMaterial` and `LambertMaterial` across all renderers.
@@ -15,7 +15,7 @@
   - `Example 10`: Advanced scene composition with fire bowls, point lights, and materials using normal/specular maps.
 - **Physics**: Basic AABB collision detection and gravity implementation (showcased in Example 8).
 
-## [0.13.05] - 2026-04-03
+## [0.14.00] - 2026-04-03
 
 - Refactor and improve shader handling
 
