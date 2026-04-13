@@ -88,9 +88,13 @@ export class AssetManager {
     url: string,
     onProgress?: ProgressCallback,
   ): Promise<Blob> {
-    // Resolve URL: Prepend baseUrl if url is relative
+    // Resolve URL: Prepend baseUrl if url is relative and baseUrl is set
     const isAbsolute = url.startsWith("http://") || url.startsWith("https://") || url.startsWith("//");
-    const finalUrl = isAbsolute ? url : this._baseUrl + (url.startsWith("/") ? url.substring(1) : url);
+    let finalUrl = url;
+    
+    if (!isAbsolute && this._baseUrl) {
+      finalUrl = this._baseUrl + (url.startsWith("/") ? url.substring(1) : url);
+    }
 
     const response: Response = await fetch(finalUrl, {
       headers: this._headers,

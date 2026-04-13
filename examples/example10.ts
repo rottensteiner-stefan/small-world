@@ -191,6 +191,20 @@ export class Example10 extends AbstractExample {
 
         // Floor clamp
         this.camera.position.y = Math.max(this._eyeHeight, this.camera.position.y);
+
+        // 4. Animate Lava
+        if (this._lavaTexture) {
+          this._lavaTexture.offset.x += 0.05 * deltaTime;
+          this._lavaTexture.offset.y += 0.02 * deltaTime;
+        }
+        if (this._lavaNormalMap) {
+          this._lavaNormalMap.offset.x += 0.05 * deltaTime;
+          this._lavaNormalMap.offset.y += 0.02 * deltaTime;
+        }
+        if (this._lavaSpecularMap) {
+          this._lavaSpecularMap.offset.x += 0.05 * deltaTime;
+          this._lavaSpecularMap.offset.y += 0.02 * deltaTime;
+        }
     }
 
     /** @inheritdoc */
