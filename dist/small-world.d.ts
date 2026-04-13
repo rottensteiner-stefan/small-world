@@ -221,6 +221,7 @@ export declare abstract class AbstractWebGLRenderer extends AbstractRenderer {
     protected gl: WebGLRenderingContext | WebGL2RenderingContext;
     protected defaultTexture: WebGLTexture;
     protected defaultNormalMap: WebGLTexture;
+    protected defaultSpecularMap: WebGLTexture;
     protected defaultCubeTexture: WebGLTexture;
     destroy(): void;
     setSize(w: number, h: number): void;
@@ -315,10 +316,43 @@ export declare interface AreaLightOptions extends LightOptions {
     height?: number;
 }
 
+/**
+ * Centralized manager for loading and caching assets (images, text, etc.).
+ * Provides global progress tracking and loading state.
+ */
 export declare class AssetManager {
     private static _imageCache;
     private static _textCache;
+    private static _activeLoaders;
+    private static _onLoadedPromise;
+    private static _resolveLoaded;
+    private static _baseUrl;
+    private static _headers;
+    /**
+     * Sets a base URL that will be prepended to all relative asset paths.
+     * @param url The base URL (e.g. "https://cdn.example.com/assets/").
+     */
+    static setBaseUrl(url: string): void;
+    /**
+     * Sets a custom header to be sent with every asset request.
+     * @param key The header name (e.g. "Authorization").
+     * @param value The header value.
+     */
+    static setHeader(key: string, value: string): void;
+    /**
+     * Returns a promise that resolves when all currently active loading processes are finished.
+     */
+    static onLoaded(): Promise<void>;
+    /**
+     * Checks if all assets are currently loaded.
+     */
+    static get isLoaded(): boolean;
+    /**
+     * Returns the global loading progress (0.0 to 1.0).
+     */
+    static getGlobalProgress(): number;
     private static _fetchWithProgress;
+    private static _checkCompletion;
     static loadImage(url: string, onProgress?: ProgressCallback, flipY?: boolean): Promise<ImageBitmap | HTMLImageElement>;
     static loadText(url: string, onProgress?: ProgressCallback): Promise<string>;
 }
@@ -1143,7 +1177,7 @@ export declare interface DirectionalLightOptions extends LightOptions {
     direction?: Vector3D;
 }
 
-export declare const ENGINE_VERSION = "0.13.05";
+export declare const ENGINE_VERSION = "0.15.01";
 
 export declare interface EngineConfig {
     canvasId?: string;
@@ -2377,6 +2411,8 @@ export declare class PhongMaterial extends AbstractMaterial {
     diffuseMap: Texture | undefined;
     /** The normal map texture. */
     normalMap: Texture | undefined;
+    /** The specular map texture. */
+    specularMap: Texture | undefined;
     /**
      * Creates a new PhongMaterial.
      * @param options The configuration options for the material.
@@ -2400,6 +2436,8 @@ export declare interface PhongMaterialOptions {
     diffuseMap?: Texture | undefined;
     /** The normal map texture. Defaults to undefined. */
     normalMap?: Texture | undefined;
+    /** The specular map texture. Defaults to undefined. */
+    specularMap?: Texture | undefined;
 }
 
 /**
@@ -3871,6 +3909,7 @@ export declare class WebGPURenderer extends AbstractRenderer {
     private _sampler;
     private _whiteTexView;
     private _flatNormalTexView;
+    private _specularTexView;
     private _defaultCubeTexView;
     private _geoCache;
     private _textureViewCache;
