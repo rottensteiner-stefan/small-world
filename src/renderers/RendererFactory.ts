@@ -56,7 +56,15 @@ export class RendererFactory {
       const searchType = fallbackToWebGL2 ? RendererType.WEB_GL2 : actualType;
       const match = config.renderer.find((rc) => rc.type === searchType);
       if (match) {
-        attributes = match.attributes;
+        attributes = { ...match.attributes };
+      }
+    }
+
+    // Apply global MSAA quality setting to attributes if not explicitly overridden
+    if (config?.quality?.msaa !== undefined) {
+      attributes = attributes || {};
+      if (attributes["antialias"] === undefined) {
+        attributes["antialias"] = config.quality.msaa > 0;
       }
     }
 
@@ -66,7 +74,7 @@ export class RendererFactory {
     // in der Regel nicht mehr ändern (z.B. von "webgl" auf "webgl2").
     // Das Ersetzen des Canvas-Elements wird nun in Application.ts / AbstractDemo.ts gehandhabt.
     try {
-      await renderer.initialize(canvas, attributes);
+      await renderer.initialize(canvas, attributes, config);
     } catch (e) {
       console.error(`Fehler bei der Initialisierung von ${actualType}:`, e);
       throw e;

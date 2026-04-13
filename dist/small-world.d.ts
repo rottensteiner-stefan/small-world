@@ -26,16 +26,24 @@ export declare abstract class AbstractGeometry implements Geometry {
     protected _vertices: Float32Array;
     /** The indices of the geometry. */
     protected _indices: Uint16Array | Uint32Array | undefined;
+    /** The indices for wireframe rendering. */
+    protected _wireframeIndices: Uint16Array | Uint32Array | undefined;
     /** The normals of the geometry. */
     protected _normals: Float32Array;
     /** The UV coordinates of the geometry. */
     protected _uvs: Float32Array;
+    /** Whether the geometry is line-based. */
+    protected _isLineGeometry: boolean;
     /**
      * Generates the geometry data. Must be implemented by subclasses.
      */
     protected abstract generateGeometryData(): void;
     /** @inheritdoc */
     getGeometryData(): GeometryDataInterface;
+    /**
+     * Computes the wireframe indices from the current indices or vertices.
+     */
+    computeWireframeIndices(): void;
     /**
      * Helper method to create an appropriately sized index array.
      * Automatically chooses between 16-bit and 32-bit indices based on vertex count.
@@ -1327,6 +1335,8 @@ export declare interface GeometryDataInterface {
     vertices: Float32Array;
     /** Optional index data. If provided, indexed rendering is used. */
     indices?: Uint16Array | Uint32Array | undefined;
+    /** Optional index data for wireframe rendering. */
+    wireframeIndices?: Uint16Array | Uint32Array | undefined;
     /** Optional normal data (nx, ny, nz). */
     normals?: Float32Array | undefined;
     /** Optional texture coordinate data (u, v). */
@@ -1724,6 +1734,8 @@ export declare const MaterialType: {
     readonly WIREFRAME: "WireframeMaterial";
     /** Material for sprites. */
     readonly SPRITE: "SpriteMaterial";
+    /** Special triplanar mapping material for seamless tiling. */
+    readonly WORLD: "WorldMaterial";
 };
 
 /** Type definition for MaterialType. */
@@ -1923,16 +1935,22 @@ export declare class Mesh {
     vbo: WebGLBuffer | undefined;
     /** The element buffer object (indices). */
     ebo: WebGLBuffer | undefined;
+    /** The wireframe element buffer object. */
+    webo: WebGLBuffer | undefined;
     /** The normal buffer object. */
     nbo: WebGLBuffer | undefined;
     /** The texture coordinate buffer object. */
     tbo: WebGLBuffer | undefined;
     /** The number of elements (indices or vertices) to draw. */
     count: number;
+    /** The number of wireframe elements. */
+    wireframeCount: number;
     /** Whether this mesh uses indices for drawing. */
     isIndexed: boolean;
     /** The GL data type of the indices (e.g., UNSIGNED_SHORT or UNSIGNED_INT). */
     indexType: number;
+    /** The GL data type of the wireframe indices. */
+    wireframeIndexType: number;
     private _gl;
     /**
      * Creates a new Mesh and uploads the geometry data to the GPU.
@@ -3818,5 +3836,24 @@ export declare interface WorldConfig {
     /** Whether to show the HUD. */
     showHUD?: boolean;
 }
+
+/**
+ * A material that uses triplanar mapping to render seamless textures across world space coordinates.
+ * Ideal for terrain, rocks, walls, and architectural structures.
+ */
+export declare class WorldMaterial extends AbstractMaterial {
+    /** @inheritdoc */
+    readonly type: MaterialType;
+    /** The diffuse texture map. */
+    diffuseMap: Texture | undefined;
+    constructor(options?: WorldMaterialOptions);
+    /** @inheritdoc */
+    getRenderManifest(): RenderManifest;
+}
+
+export declare type WorldMaterialOptions = {
+    color?: Color;
+    diffuseMap?: Texture;
+};
 
 export { }

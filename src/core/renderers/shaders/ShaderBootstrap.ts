@@ -72,7 +72,7 @@ export class ShaderBootstrap {
 
     // WebGL 2 Materials
     loader.setBasePath("/resources/shaders/web_gl2/materials/");
-    const [gl2BasicFs, gl2PhongFs, gl2LambertFs, gl2SpriteFs, gl2WireframeFs, gl2SkyVs, gl2SkyFs, gl2TerrainFs] =
+    const [gl2BasicFs, gl2PhongFs, gl2LambertFs, gl2SpriteFs, gl2WireframeFs, gl2SkyVs, gl2SkyFs, gl2TerrainFs, gl2WorldFs] =
       await Promise.all([
         loader.load("basic.frag.glsl"),
         loader.load("phong.frag.glsl"),
@@ -82,17 +82,19 @@ export class ShaderBootstrap {
         loader.load("skybox.vert.glsl"),
         loader.load("skybox.frag.glsl"),
         loader.load("terrain.frag.glsl"),
+        loader.load("world.frag.glsl"),
       ]);
 
     // WebGL 1 Materials
     loader.setBasePath("/resources/shaders/web_gl1/materials/");
-    const [gl1BasicFs, gl1PhongFs, gl1SkyVs, gl1SkyFs, gl1TerrainFs] =
+    const [gl1BasicFs, gl1PhongFs, gl1SkyVs, gl1SkyFs, gl1TerrainFs, gl1WorldFs] =
       await Promise.all([
         loader.load("basic.frag.glsl"),
         loader.load("phong.frag.glsl"),
         loader.load("skybox.vert.glsl"),
         loader.load("skybox.frag.glsl"),
         loader.load("terrain.frag.glsl"),
+        loader.load("world.frag.glsl"),
       ]);
 
     // WebGPU Materials
@@ -101,7 +103,7 @@ export class ShaderBootstrap {
     const wgslSkyVs = await loader.load("skybox.vert.wgsl");
 
     loader.setBasePath("/resources/shaders/web_gpu/materials/");
-    const [wgslBasicFs, wgslPhongFs, wgslLambertFs, wgslSpriteFs, wgslWireframeFs, wgslSkyFs, wgslTerrainFs] =
+    const [wgslBasicFs, wgslPhongFs, wgslLambertFs, wgslSpriteFs, wgslWireframeFs, wgslSkyFs, wgslTerrainFs, wgslWorldFs] =
       await Promise.all([
         loader.load("basic.frag.wgsl"),
         loader.load("phong.frag.wgsl"),
@@ -110,11 +112,29 @@ export class ShaderBootstrap {
         loader.load("wireframe.frag.wgsl"),
         loader.load("skybox.frag.wgsl"),
         loader.load("terrain.frag.wgsl"),
+        loader.load("world.frag.wgsl"),
       ]);
 
     registry.registerChunk("WGSL_VS", wgslBaseVs, "wgsl");
 
     // --- 3. REGISTER SHADERS ---
+
+    // WORLD
+    registry.register({
+      id: MaterialType.WORLD,
+      sources: {
+        glsl300: { vs: "[BASE_VERTEX_HEADER][BASE_VERTEX_MAIN]", fs: gl2WorldFs },
+        glsl100: { vs: "[BASE_VS]", fs: gl1WorldFs },
+        wgsl: `[WGSL_STRUCTS]\n[WGSL_VS]\n${wgslWorldFs}`,
+      },
+      layout: {
+        uniforms: {
+          u_color: { type: ShaderPropertyType.COLOR },
+          u_texRepeat: { type: ShaderPropertyType.VEC2 },
+        },
+        textures: { u_diffuseMap: { type: ShaderPropertyType.TEXTURE } },
+      },
+    });
 
     // BASIC
     registry.register({
