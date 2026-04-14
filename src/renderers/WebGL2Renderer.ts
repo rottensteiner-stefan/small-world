@@ -9,6 +9,7 @@ import {
   SpotLight,
   Texture,
   ShaderRegistry,
+  PhongMaterial,
 } from "../core/index.js";
 import { GeometryDataInterface } from "../interfaces/index.js";
 import {
@@ -454,21 +455,61 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
 
       // 5. Material Properties from Manifest
       const props = manifest.properties;
-      if (u.get("u_color")) this.gl.uniform4fv(u.get("u_color")!, mat.color.toFloat32Array());
-      if (u.get("u_specColor") && props["u_specColor"])
-        this.gl.uniform4fv(u.get("u_specColor")!, props["u_specColor"].toFloat32Array());
-      if (u.get("u_shininess"))
+      const texs = manifest.textures;
+
+      if (u.get("u_color")) {
+        const c = props["u_color"];
+        if (Array.isArray(c)) {
+          this.gl.uniform4fv(u.get("u_color")!, new Float32Array(c));
+        } else {
+          this.gl.uniform4fv(u.get("u_color")!, mat.color.toFloat32Array());
+        }
+      }
+      if (u.get("u_specColor")) {
+        const sc = props["u_specColor"];
+        if (Array.isArray(sc)) {
+          this.gl.uniform4fv(u.get("u_specColor")!, new Float32Array(sc));
+        } else if (mat instanceof PhongMaterial) {
+          this.gl.uniform4fv(u.get("u_specColor")!, (mat as PhongMaterial).specularColor.toFloat32Array());
+        } else {
+          this.gl.uniform4f(u.get("u_specColor")!, 1, 1, 1, 1);
+        }
+      }
+      if (u.get("u_shininess")) {
+        const s = props["u_shininess"];
         this.gl.uniform1f(
           u.get("u_shininess")!,
-          props["u_shininess"] !== undefined ? props["u_shininess"] : -1.0,
+          typeof s === "number" ? s : (mat as any).shininess !== undefined ? (mat as any).shininess : -1.0,
         );
-      if (u.get("u_thresholds") && props["u_thresholds"])
-        this.gl.uniform4fv(u.get("u_thresholds")!, props["u_thresholds"]);
-      if (u.get("u_texRepeat") && props["u_texRepeat"])
-        this.gl.uniform2fv(u.get("u_texRepeat")!, props["u_texRepeat"]);
+      }
+      if (u.get("u_thresholds")) {
+        const t = props["u_thresholds"];
+        if (Array.isArray(t)) {
+          this.gl.uniform4fv(u.get("u_thresholds")!, new Float32Array(t));
+        } else if ((mat as any).thresholds) {
+          this.gl.uniform4fv(u.get("u_thresholds")!, new Float32Array((mat as any).thresholds));
+        }
+      }
+      if (u.get("u_texOffset")) {
+        const off = props["u_texOffset"];
+        if (Array.isArray(off)) {
+          this.gl.uniform2fv(u.get("u_texOffset")!, new Float32Array(off));
+        } else {
+          const diff = texs["u_diffuseMap"] as Texture;
+          this.gl.uniform2f(u.get("u_texOffset")!, diff ? diff.offset.x : 0, diff ? diff.offset.y : 0);
+        }
+      }
+      if (u.get("u_texRepeat")) {
+        const rep = props["u_texRepeat"];
+        if (Array.isArray(rep)) {
+          this.gl.uniform2fv(u.get("u_texRepeat")!, new Float32Array(rep));
+        } else {
+          const diff = texs["u_diffuseMap"] as Texture;
+          this.gl.uniform2f(u.get("u_texRepeat")!, diff ? diff.repeat.x : 1, diff ? diff.repeat.y : 1);
+        }
+      }
 
       // 6. Textures
-      const texs = manifest.textures;
       if (manifest.shaderId === MaterialType.SKYBOX) {
         this.gl.activeTexture(this.gl.TEXTURE0);
         const skyTex = texs["u_skybox"] as CubeTexture;
@@ -507,13 +548,6 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         } else {
           this.gl.bindTexture(this.gl.TEXTURE_2D, this.defaultSpecularMap);
           if (u.get("u_specularMap")) this.gl.uniform1i(u.get("u_specularMap")!, 2);
-        }
-
-        if (diff) {
-          if (u.get("u_texOffset"))
-            this.gl.uniform2f(u.get("u_texOffset")!, diff.offset.x, diff.offset.y);
-          if (u.get("u_texRepeat") && !props["u_texRepeat"])
-            this.gl.uniform2f(u.get("u_texRepeat")!, diff.repeat.x, diff.repeat.y);
         }
 
         // Terrain Maps (if present)

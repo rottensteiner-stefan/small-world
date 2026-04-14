@@ -1,1 +1,1 @@
-import{d as s,e as t,C as e,j as r}from"./AbstractExample.js";class o extends s{type=t.WIREFRAME;constructor(s=e.WHITE){super(),this.color=s}getRenderManifest(){return{shaderId:this.type,properties:{u_color:this.color},textures:{},state:{culling:r.NONE}}}}export{o as W};
+import{e as t,f as s,C as e,k as r}from"./AbstractExample.js";class o extends t{type=s.WIREFRAME;constructor(t=e.WHITE){super(),this.color=t}getRenderManifest(){return{shaderId:this.type,properties:{u_color:this.color.toArray()},textures:{},state:{culling:r.NONE}}}}export{o as W};
