@@ -64,6 +64,10 @@ export abstract class AbstractWebGLRenderer extends AbstractRenderer {
     this.gl.attachShader(p, f);
     this.gl.linkProgram(p);
 
+    if (!this.gl.getProgramParameter(p, this.gl.LINK_STATUS)) {
+      console.error("[WebGL] Program Link Error:", this.gl.getProgramInfoLog(p));
+    }
+
     // Free memory
     this.gl.deleteShader(v);
     this.gl.deleteShader(f);
@@ -88,6 +92,8 @@ export abstract class AbstractWebGLRenderer extends AbstractRenderer {
       this.gl.UNSIGNED_BYTE,
       new Uint8Array([255, 255, 255, 255]),
     );
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST);
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST);
 
     this.defaultNormalMap = this.gl.createTexture()!;
     this.gl.bindTexture(this.gl.TEXTURE_2D, this.defaultNormalMap);
@@ -102,6 +108,8 @@ export abstract class AbstractWebGLRenderer extends AbstractRenderer {
       this.gl.UNSIGNED_BYTE,
       new Uint8Array([128, 128, 255, 255]),
     );
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST);
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST);
 
     this.defaultSpecularMap = this.gl.createTexture()!;
     this.gl.bindTexture(this.gl.TEXTURE_2D, this.defaultSpecularMap);
@@ -116,6 +124,8 @@ export abstract class AbstractWebGLRenderer extends AbstractRenderer {
       this.gl.UNSIGNED_BYTE,
       new Uint8Array([255, 255, 255, 255]),
     );
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST);
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST);
 
     this.defaultCubeTexture = this.gl.createTexture()!;
     this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, this.defaultCubeTexture);

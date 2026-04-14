@@ -1,4 +1,4 @@
-// [INCLUDE_BASE]
+[BASE_FRAGMENT_HEADER]
 uniform vec2 u_texRepeat;
 
 void main() {

@@ -113,6 +113,7 @@ export class Capsule extends AbstractGeometry {
     this._vertices = new Float32Array(v);
     this._normals = new Float32Array(n);
     this._uvs = new Float32Array(uv);
-    this._indices = new Uint16Array(idx);
+    this._indices = this._createIndexArray(idx.length);
+    this._indices.set(idx);
   }
 }

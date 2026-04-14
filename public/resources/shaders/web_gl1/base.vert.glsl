@@ -24,7 +24,16 @@ void main() {
     v_normal = normalize(m3 * a_normal);
     v_uv = (a_uv * u_texRepeat) + u_texOffset;
 
-    vec3 T = normalize(m3 * a_tangent);
+    vec3 tangent = a_tangent;
+    if (length(tangent) < 0.0001) {
+        if (abs(v_normal.y) < 0.999) {
+            tangent = cross(v_normal, vec3(0.0, 1.0, 0.0));
+        } else {
+            tangent = cross(v_normal, vec3(1.0, 0.0, 0.0));
+        }
+    }
+
+    vec3 T = normalize(m3 * tangent);
     vec3 N = v_normal;
     T = normalize(T - dot(T, N) * N);
     vec3 B = cross(N, T);

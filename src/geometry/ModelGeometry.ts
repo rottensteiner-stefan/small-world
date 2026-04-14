@@ -18,7 +18,8 @@ export class ModelGeometry extends AbstractGeometry {
     this._vertices = new Float32Array(vertices);
     this._uvs = new Float32Array(uvs);
     this._normals = new Float32Array(normals);
-    this._indices = new Uint16Array(indices);
+    this._indices = this._createIndexArray(indices.length);
+    this._indices.set(indices);
 
     // Falls das Modell keine Normalen mitbringt, berechnen wir sie selbst
     if (this._normals.length === 0) {

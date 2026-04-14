@@ -79,7 +79,8 @@ export class ShaderRegistry {
    * @returns The source code with all placeholders replaced.
    */
   public assemble(source: string, lang: ShaderLanguage): string {
-    return source.replace(/\[([A-Z0-9_]+)\]/g, (match: string, chunkId: string) => {
+    // Regex matches [CHUNK_NAME] but avoids [0-9] or single letters to not collide with GLSL array indexing
+    return source.replace(/\[([A-Z][A-Z0-9_]+)\]/g, (match: string, chunkId: string) => {
       const chunk: string | undefined = this.getChunk(chunkId, lang);
       if (undefined === chunk) {
         console.warn(`[ShaderRegistry] Chunk not found for language ${lang}: ${chunkId}`);

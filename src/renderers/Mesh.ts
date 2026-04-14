@@ -85,7 +85,8 @@ export class Mesh {
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.webo ?? null);
       gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, data.wireframeIndices, gl.STATIC_DRAW);
       this.wireframeCount = data.wireframeIndices.length;
-      this.wireframeIndexType = data.wireframeIndices instanceof Uint32Array ? gl.UNSIGNED_INT : gl.UNSIGNED_SHORT;
+      this.wireframeIndexType =
+        data.wireframeIndices instanceof Uint32Array ? gl.UNSIGNED_INT : gl.UNSIGNED_SHORT;
     }
   }
 
@@ -101,22 +102,34 @@ export class Mesh {
     this._gl.vertexAttribPointer(posLoc, 3, this._gl.FLOAT, false, 0, 0);
     this._gl.enableVertexAttribArray(posLoc);
 
-    if (0 <= normLoc && this.nbo) {
-      this._gl.bindBuffer(this._gl.ARRAY_BUFFER, this.nbo);
-      this._gl.vertexAttribPointer(normLoc, 3, this._gl.FLOAT, false, 0, 0);
-      this._gl.enableVertexAttribArray(normLoc);
+    if (0 <= normLoc) {
+      if (this.nbo) {
+        this._gl.bindBuffer(this._gl.ARRAY_BUFFER, this.nbo);
+        this._gl.vertexAttribPointer(normLoc, 3, this._gl.FLOAT, false, 0, 0);
+        this._gl.enableVertexAttribArray(normLoc);
+      } else {
+        this._gl.disableVertexAttribArray(normLoc);
+      }
     }
 
-    if (0 <= uvLoc && this.tbo) {
-      this._gl.bindBuffer(this._gl.ARRAY_BUFFER, this.tbo);
-      this._gl.vertexAttribPointer(uvLoc, 2, this._gl.FLOAT, false, 0, 0);
-      this._gl.enableVertexAttribArray(uvLoc);
+    if (0 <= uvLoc) {
+      if (this.tbo) {
+        this._gl.bindBuffer(this._gl.ARRAY_BUFFER, this.tbo);
+        this._gl.vertexAttribPointer(uvLoc, 2, this._gl.FLOAT, false, 0, 0);
+        this._gl.enableVertexAttribArray(uvLoc);
+      } else {
+        this._gl.disableVertexAttribArray(uvLoc);
+      }
     }
 
-    if (0 <= tanLoc && this.tanbo) {
-      this._gl.bindBuffer(this._gl.ARRAY_BUFFER, this.tanbo);
-      this._gl.vertexAttribPointer(tanLoc, 3, this._gl.FLOAT, false, 0, 0);
-      this._gl.enableVertexAttribArray(tanLoc);
+    if (0 <= tanLoc) {
+      if (this.tanbo) {
+        this._gl.bindBuffer(this._gl.ARRAY_BUFFER, this.tanbo);
+        this._gl.vertexAttribPointer(tanLoc, 3, this._gl.FLOAT, false, 0, 0);
+        this._gl.enableVertexAttribArray(tanLoc);
+      } else {
+        this._gl.disableVertexAttribArray(tanLoc);
+      }
     }
   }
 

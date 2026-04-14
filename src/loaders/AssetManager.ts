@@ -89,9 +89,10 @@ export class AssetManager {
     onProgress?: ProgressCallback,
   ): Promise<Blob> {
     // Resolve URL: Prepend baseUrl if url is relative and baseUrl is set
-    const isAbsolute = url.startsWith("http://") || url.startsWith("https://") || url.startsWith("//");
+    const isAbsolute =
+      url.startsWith("http://") || url.startsWith("https://") || url.startsWith("//");
     let finalUrl = url;
-    
+
     if (!isAbsolute && this._baseUrl) {
       finalUrl = this._baseUrl + (url.startsWith("/") ? url.substring(1) : url);
     }
@@ -110,7 +111,7 @@ export class AssetManager {
     // Register this loader for global tracking
     this._activeLoaders.set(url, { loaded: 0, total });
 
-    const updateProgress = (loaded: number, total: number) => {
+    const updateProgress = (loaded: number, total: number): void => {
       this._activeLoaders.set(url, { loaded, total });
       if (onProgress) onProgress(loaded, total);
     };
@@ -177,7 +178,7 @@ export class AssetManager {
               colorSpaceConversion: "none",
               imageOrientation: "from-image" as ImageOrientation,
             });
-          } catch (e: unknown) {
+          } catch {
             // Fallback für Safari, Firefox und ältere Chrome-Versionen
             return await createImageBitmap(blob, {
               colorSpaceConversion: "none",
@@ -194,9 +195,9 @@ export class AssetManager {
           (resolve: (value: HTMLImageElement) => void, reject: (reason: string) => void): void => {
             const img: HTMLImageElement = new Image();
             img.crossOrigin = "anonymous";
+            img.src = url;
             img.onload = (): void => resolve(img);
             img.onerror = (): void => reject(`[AssetManager] Fallback fehlgeschlagen: ${url}`);
-            img.src = url;
           },
         );
       });
@@ -208,12 +209,12 @@ export class AssetManager {
   public static async loadText(url: string, onProgress?: ProgressCallback): Promise<string> {
     if (this._textCache.has(url)) return this._textCache.get(url)!;
 
-    const loadPromise: Promise<string> = this._fetchWithProgress(url, onProgress).then(
-      (blob: Blob): Promise<string> => blob.text(),
-    ).catch((e: unknown) => {
+    const loadPromise: Promise<string> = this._fetchWithProgress(url, onProgress)
+      .then((blob: Blob): Promise<string> => blob.text())
+      .catch((e: unknown) => {
         this._checkCompletion(url);
         throw e;
-    });
+      });
     this._textCache.set(url, loadPromise);
     return loadPromise;
   }

@@ -23,7 +23,7 @@ class Example3 extends AbstractExample {
 
   protected override async setupScene(): Promise<void> {
     Input.init();
-    
+
     // Add instruction overlay
     const overlay = document.createElement("div");
     overlay.style.position = "absolute";
@@ -34,7 +34,8 @@ class Example3 extends AbstractExample {
     overlay.style.padding = "10px";
     overlay.style.borderRadius = "5px";
     overlay.style.fontFamily = "sans-serif";
-    overlay.innerHTML = "<h2>Car Color Switcher</h2><p>Press <b>1 - 5</b> to change color</p><p>Click & Drag to rotate</p>";
+    overlay.innerHTML =
+      "<h2>Car Color Switcher</h2><p>Press <b>1 - 5</b> to change color</p><p>Click & Drag to rotate</p>";
     document.body.appendChild(overlay);
 
     this.canvas.addEventListener("click", (): void => {
@@ -90,7 +91,7 @@ class Example3 extends AbstractExample {
 
     // Find the part of the car that uses the colormap material
     // The ObjLoader creates children named after the material groups
-    this._carModel.children.forEach(child => {
+    this._carModel.children.forEach((child) => {
       if (child.material instanceof PhongMaterial && child.material.diffuseMap) {
         // Shifting the X offset picks a different color column in colormap.png
         // Usually, these textures have 8 or 16 columns. 0.125 is a good step for Kenney assets.

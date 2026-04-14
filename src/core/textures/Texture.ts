@@ -101,7 +101,10 @@ export class Texture {
    * @param options Optional configuration options.
    * @returns A new Texture instance.
    */
-  public static fromImage(image: HTMLImageElement | ImageBitmap, options?: TextureOptions): Texture {
+  public static fromImage(
+    image: HTMLImageElement | ImageBitmap,
+    options?: TextureOptions,
+  ): Texture {
     return new Texture(image, options);
   }
 

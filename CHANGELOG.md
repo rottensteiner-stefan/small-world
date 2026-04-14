@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.15.02] - 2026-04-14
+
+- **Recursive Rendering Fix**: Corrected WebGL renderers to properly process nested object hierarchies even when parent objects lack a material (essential for complex model groups).
+- **Matrix Calculation**: Fixed critical bug in `Matrix4.compose` by implementing direct matrix construction, ensuring correct transformation order (Translation _ Rotation _ Scale).
+- **Large Geometry Support**: All geometry classes now dynamically select between 16-bit and 32-bit index arrays (`Uint16Array` vs `Uint32Array`) based on vertex count, preventing buffer overflows.
+- **Improved Model Loading**:
+  - `ObjLoader`: Added support for n-gon triangulation and automatic V-flip for UV coordinates.
+  - `MtlLoader`: Improved error reporting for missing texture assets.
+- **Enhanced Shader Stability**:
+  - Implemented robust TBN matrix calculation with fallbacks for geometries without tangent vectors (prevents "black object" syndrome).
+  - Fixed shader template placeholders and standardized variable naming across WebGL 1 & 2.
+- **System Integrity & Security**:
+  - Added `crypto.randomUUID` fallback in `MathUtils` to support insecure contexts (e.g., local network IP access without SSL).
+  - Fixed `Mesh` class to explicitly disable unused vertex attributes, preventing state leakage between draw calls.
+- **AssetManager Fixes**: Corrected image loading fallback logic to ensure failed fetch requests still attempt to load via the standard Image API.
+
 ## [0.15.01] - 2026-04-13
 
 - **Texture Animation**: Added support for UV offset animation in the update loop (showcased with flowing lava in Example 10).
@@ -9,7 +25,6 @@
 - **Bugfixes**: Fixed 404 errors for shaders and config files when running examples from subdirectories.
 
 ## [0.14.0] - 2026-04-13
-
 
 - **AssetManager**: Introduced a centralized manager for loading and caching assets (images, text) with global progress tracking, base URL support, and custom headers.
 - **Normal & Specular Maps**: Added support for normal maps and specular maps in `PhongMaterial` and `LambertMaterial` across all renderers.

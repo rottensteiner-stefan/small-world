@@ -1,5 +1,6 @@
 import { defineConfig } from "vite";
 import { resolve } from "path";
+import mkcert from "vite-plugin-mkcert";
 
 export default defineConfig({
   publicDir: "public",
@@ -15,6 +16,7 @@ export default defineConfig({
         });
       },
     },
+    mkcert(),
   ],
   build: {
     outDir: "dist",

@@ -7,7 +7,7 @@ import { BlendingMode, CullMode, ShaderPropertyType } from "../../../enums/index
  */
 export interface ShaderPropertyMetadata {
   type: ShaderPropertyType;
-  defaultValue?: any;
+  defaultValue?: unknown;
 }
 
 /**

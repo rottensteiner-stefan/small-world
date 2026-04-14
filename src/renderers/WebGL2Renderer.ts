@@ -11,7 +11,13 @@ import {
   ShaderRegistry,
 } from "../core/index.js";
 import { GeometryDataInterface } from "../interfaces/index.js";
-import { CullMode, MaterialType, RendererType, TextureFilter, TextureWrap } from "../enums/index.js";
+import {
+  CullMode,
+  MaterialType,
+  RendererType,
+  TextureFilter,
+  TextureWrap,
+} from "../enums/index.js";
 import { Mesh } from "./Mesh.js";
 import { Object3D } from "../core/Object3D.js";
 import { Scene } from "../core/Scene.js";
@@ -24,8 +30,20 @@ interface ProgramCache {
   attributes: Map<string, number>;
   // Specialized light locations for the current Uber-Shader structure
   pointLightLocs: { pos: WebGLUniformLocation | null; col: WebGLUniformLocation | null }[];
-  spotLightLocs: { pos: WebGLUniformLocation | null; dir: WebGLUniformLocation | null; col: WebGLUniformLocation | null; params: WebGLUniformLocation | null }[];
-  areaLightLocs: { pos: WebGLUniformLocation | null; col: WebGLUniformLocation | null; normal: WebGLUniformLocation | null; right: WebGLUniformLocation | null; up: WebGLUniformLocation | null; size: WebGLUniformLocation | null }[];
+  spotLightLocs: {
+    pos: WebGLUniformLocation | null;
+    dir: WebGLUniformLocation | null;
+    col: WebGLUniformLocation | null;
+    params: WebGLUniformLocation | null;
+  }[];
+  areaLightLocs: {
+    pos: WebGLUniformLocation | null;
+    col: WebGLUniformLocation | null;
+    normal: WebGLUniformLocation | null;
+    right: WebGLUniformLocation | null;
+    up: WebGLUniformLocation | null;
+    size: WebGLUniformLocation | null;
+  }[];
 }
 
 /**
@@ -43,7 +61,6 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
   private _texCubeCache: Map<CubeTexture, WebGLTexture> = new Map();
 
   private _scratchModelMatrix: Float32Array = new Float32Array(16);
-  private _scratchVec3: Vector3D = new Vector3D();
 
   /** @inheritdoc */
   public async initialize(
@@ -69,7 +86,9 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     if (!cache) {
       const def = ShaderRegistry.instance.get(shaderId);
       if (!def || !def.sources.glsl300) {
-        throw new Error(`[WebGL2Renderer] Shader definition for ${shaderId} not found or missing GLSL 300 source.`);
+        throw new Error(
+          `[WebGL2Renderer] Shader definition for ${shaderId} not found or missing GLSL 300 source.`,
+        );
       }
 
       const vs = ShaderRegistry.instance.assemble(def.sources.glsl300.vs, "glsl300");
@@ -80,22 +99,43 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       const attributes = new Map<string, number>();
 
       // Register standard attributes
-      ["a_position", "a_normal", "a_uv", "a_tangent"].forEach(name => {
+      ["a_position", "a_normal", "a_uv", "a_tangent"].forEach((name) => {
         attributes.set(name, this.gl.getAttribLocation(prog, name));
       });
 
       // Register layout uniforms
-      Object.keys(def.layout.uniforms).forEach(name => {
+      Object.keys(def.layout.uniforms).forEach((name) => {
         uniforms.set(name, this.gl.getUniformLocation(prog, name));
       });
 
       // Global Engine Uniforms
-      ["u_vp", "u_model", "u_viewPos", "u_ambientColor", "u_dirLightColor", "u_dirLightDir", "u_numPointLights", "u_numSpotLights", "u_numAreaLights"].forEach(name => {
+      [
+        "u_vp",
+        "u_model",
+        "u_viewPos",
+        "u_ambientColor",
+        "u_dirLightColor",
+        "u_dirLightDir",
+        "u_numPointLights",
+        "u_numSpotLights",
+        "u_numAreaLights",
+      ].forEach((name) => {
         uniforms.set(name, this.gl.getUniformLocation(prog, name));
       });
 
       // Texture Samplers
-      ["u_diffuseMap", "u_normalMap", "u_specularMap", "u_skybox", "u_sandMap", "u_grassMap", "u_rockMap", "u_snowMap", "u_texOffset", "u_texRepeat"].forEach(name => {
+      [
+        "u_diffuseMap",
+        "u_normalMap",
+        "u_specularMap",
+        "u_skybox",
+        "u_sandMap",
+        "u_grassMap",
+        "u_rockMap",
+        "u_snowMap",
+        "u_texOffset",
+        "u_texRepeat",
+      ].forEach((name) => {
         uniforms.set(name, this.gl.getUniformLocation(prog, name));
       });
 
@@ -171,17 +211,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       }
       this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, minFilter);
 
-      // 3. Anisotropic Filtering
-      if (useMipmaps && undefined !== this._quality.maxAnisotropy && 1 < this._quality.maxAnisotropy) {
-        const ext = this.gl.getExtension("EXT_texture_filter_anisotropic");
-        if (ext) {
-          const maxAvailable = this.gl.getParameter(ext.MAX_TEXTURE_MAX_ANISOTROPY_EXT);
-          const amount = Math.min(maxAvailable, this._quality.maxAnisotropy, tex.anisotropy);
-          this.gl.texParameterf(this.gl.TEXTURE_2D, ext.TEXTURE_MAX_ANISOTROPY_EXT, amount);
-        }
-      }
-
-      // 4. Wrapping
+      // 3. Wrapping
       const wrapS =
         TextureWrap.REPEAT === tex.addressModeU
           ? this.gl.REPEAT
@@ -194,6 +224,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
           : TextureWrap.MIRRORED_REPEAT === tex.addressModeV
             ? this.gl.MIRRORED_REPEAT
             : this.gl.CLAMP_TO_EDGE;
+
       this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, wrapS);
       this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, wrapT);
 
@@ -245,11 +276,21 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     // --- PASS 1: Skybox / Background ---
     this.gl.depthMask(false);
     for (const obj of scene.objects) {
-      if (!obj.isVisible || !obj.material) continue;
-      const manifest = obj.material.getRenderManifest();
-      
-      if (manifest.shaderId === MaterialType.SKYBOX || (manifest.shaderId === MaterialType.BASIC && !obj.frustumCulled)) {
-        this._drawObject(obj, vp, Vector3D.ZERO, { aCol: Color.BLACK, dCol: Color.BLACK, dDir: Vector3D.ZERO, pLights: [], sLights: [], aLights: [] });
+      if (!obj.isVisible) continue;
+      const manifest = obj.material ? obj.material.getRenderManifest() : null;
+      if (
+        manifest &&
+        (manifest.shaderId === MaterialType.SKYBOX ||
+          (manifest.shaderId === MaterialType.BASIC && !obj.frustumCulled))
+      ) {
+        this._drawObject(obj, vp, Vector3D.ZERO, {
+          aCol: Color.BLACK,
+          dCol: Color.BLACK,
+          dDir: Vector3D.ZERO,
+          pLights: [],
+          sLights: [],
+          aLights: [],
+        });
       }
     }
     this.gl.depthMask(true);
@@ -257,10 +298,15 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     // --- PASS 2: Objects ---
     const extractedLights = this.extractLights(scene);
     for (const obj of scene.objects) {
-      if (!obj.isVisible || !obj.material) continue;
-      const manifest = obj.material.getRenderManifest();
-      if (manifest.shaderId === MaterialType.SKYBOX || (manifest.shaderId === MaterialType.BASIC && !obj.frustumCulled)) continue;
-      
+      if (!obj.isVisible) continue;
+      const manifest = obj.material ? obj.material.getRenderManifest() : null;
+      if (
+        manifest &&
+        (manifest.shaderId === MaterialType.SKYBOX ||
+          (manifest.shaderId === MaterialType.BASIC && !obj.frustumCulled))
+      )
+        continue;
+
       this._drawObject(obj, vp, camPos, extractedLights);
     }
   }
@@ -282,37 +328,80 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       const u = cache.uniforms;
       if (u.get("u_vp")) this.gl.uniformMatrix4fv(u.get("u_vp")!, false, vp);
       if (u.get("u_viewPos")) this.gl.uniform3f(u.get("u_viewPos")!, camPos.x, camPos.y, camPos.z);
-      if (u.get("u_ambientColor")) this.gl.uniform3f(u.get("u_ambientColor")!, lights.aCol.r, lights.aCol.g, lights.aCol.b);
-      if (u.get("u_dirLightColor")) this.gl.uniform3f(u.get("u_dirLightColor")!, lights.dCol.r, lights.dCol.g, lights.dCol.b);
-      if (u.get("u_dirLightDir")) this.gl.uniform3f(u.get("u_dirLightDir")!, lights.dDir.x, lights.dDir.y, lights.dDir.z);
+      if (u.get("u_ambientColor"))
+        this.gl.uniform3f(u.get("u_ambientColor")!, lights.aCol.r, lights.aCol.g, lights.aCol.b);
+      if (u.get("u_dirLightColor"))
+        this.gl.uniform3f(u.get("u_dirLightColor")!, lights.dCol.r, lights.dCol.g, lights.dCol.b);
+      if (u.get("u_dirLightDir"))
+        this.gl.uniform3f(u.get("u_dirLightDir")!, lights.dDir.x, lights.dDir.y, lights.dDir.z);
 
       // 2. Upload Lights
-      if (u.get("u_numPointLights")) this.gl.uniform1i(u.get("u_numPointLights")!, lights.pLights.length);
+      if (u.get("u_numPointLights"))
+        this.gl.uniform1i(u.get("u_numPointLights")!, lights.pLights.length);
       lights.pLights.forEach((pl: PointLight, i: number) => {
         const loc = cache.pointLightLocs[i];
-        if (loc?.pos) this.gl.uniform3f(loc.pos, pl.worldMatrix.data[12]!, pl.worldMatrix.data[13]!, pl.worldMatrix.data[14]!);
-        if (loc?.col) this.gl.uniform3f(loc.col, pl.color.r * pl.intensity, pl.color.g * pl.intensity, pl.color.b * pl.intensity);
+        if (loc?.pos)
+          this.gl.uniform3f(
+            loc.pos,
+            pl.worldMatrix.data[12]!,
+            pl.worldMatrix.data[13]!,
+            pl.worldMatrix.data[14]!,
+          );
+        if (loc?.col)
+          this.gl.uniform3f(
+            loc.col,
+            pl.color.r * pl.intensity,
+            pl.color.g * pl.intensity,
+            pl.color.b * pl.intensity,
+          );
       });
 
-      if (u.get("u_numSpotLights")) this.gl.uniform1i(u.get("u_numSpotLights")!, lights.sLights.length);
+      if (u.get("u_numSpotLights"))
+        this.gl.uniform1i(u.get("u_numSpotLights")!, lights.sLights.length);
       lights.sLights.forEach((sl: SpotLight, i: number) => {
         const loc = cache.spotLightLocs[i];
-        if (loc?.pos) this.gl.uniform3f(loc.pos, sl.worldMatrix.data[12]!, sl.worldMatrix.data[13]!, sl.worldMatrix.data[14]!);
+        if (loc?.pos)
+          this.gl.uniform3f(
+            loc.pos,
+            sl.worldMatrix.data[12]!,
+            sl.worldMatrix.data[13]!,
+            sl.worldMatrix.data[14]!,
+          );
         if (loc?.dir) {
-          this._scratchVec3.set(sl.direction.x, sl.direction.y, sl.direction.z).normalize();
-          this.gl.uniform3f(loc.dir, this._scratchVec3.x, this._scratchVec3.y, this._scratchVec3.z);
+          const d = sl.direction.clone().normalize();
+          this.gl.uniform3f(loc.dir, d.x, d.y, d.z);
         }
-        if (loc?.col) this.gl.uniform3f(loc.col, sl.color.r * sl.intensity, sl.color.g * sl.intensity, sl.color.b * sl.intensity);
-        if (loc?.params) this.gl.uniform4f(loc.params, Math.cos(sl.angle), Math.cos(sl.angle * (1.0 - sl.penumbra)), sl.distance, sl.decay);
+        if (loc?.col)
+          this.gl.uniform3f(
+            loc.col,
+            sl.color.r * sl.intensity,
+            sl.color.g * sl.intensity,
+            sl.color.b * sl.intensity,
+          );
+        if (loc?.params)
+          this.gl.uniform4f(
+            loc.params,
+            Math.cos(sl.angle),
+            Math.cos(sl.angle * (1.0 - sl.penumbra)),
+            sl.distance,
+            sl.decay,
+          );
       });
 
-      if (u.get("u_numAreaLights")) this.gl.uniform1i(u.get("u_numAreaLights")!, lights.aLights.length);
+      if (u.get("u_numAreaLights"))
+        this.gl.uniform1i(u.get("u_numAreaLights")!, lights.aLights.length);
       lights.aLights.forEach((al: AreaLight, i: number) => {
         const loc = cache.areaLightLocs[i];
         if (!loc) return;
         const matData = al.worldMatrix.data;
         if (loc.pos) this.gl.uniform3f(loc.pos, matData[12]!, matData[13]!, matData[14]!);
-        if (loc.col) this.gl.uniform3f(loc.col, al.color.r * al.intensity, al.color.g * al.intensity, al.color.b * al.intensity);
+        if (loc.col)
+          this.gl.uniform3f(
+            loc.col,
+            al.color.r * al.intensity,
+            al.color.g * al.intensity,
+            al.color.b * al.intensity,
+          );
         if (loc.right) this.gl.uniform3f(loc.right, matData[0]!, matData[1]!, matData[2]!);
         if (loc.up) this.gl.uniform3f(loc.up, matData[4]!, matData[5]!, matData[6]!);
         if (loc.normal) this.gl.uniform3f(loc.normal, matData[8]!, matData[9]!, matData[10]!);
@@ -335,35 +424,67 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       // 4. Model Matrix (including Billboarding for Sprites)
       this._scratchModelMatrix.set(o.worldMatrix.data);
       if (manifest.shaderId === MaterialType.SPRITE) {
-        const sx = Math.sqrt(this._scratchModelMatrix[0]!**2 + this._scratchModelMatrix[1]!**2 + this._scratchModelMatrix[2]!**2);
-        const sy = Math.sqrt(this._scratchModelMatrix[4]!**2 + this._scratchModelMatrix[5]!**2 + this._scratchModelMatrix[6]!**2);
-        const sz = Math.sqrt(this._scratchModelMatrix[8]!**2 + this._scratchModelMatrix[9]!**2 + this._scratchModelMatrix[10]!**2);
-        this._scratchModelMatrix[0] = vp[0]! * sx; this._scratchModelMatrix[1] = vp[4]! * sx; this._scratchModelMatrix[2] = vp[8]! * sx;
-        this._scratchModelMatrix[4] = vp[1]! * sy; this._scratchModelMatrix[5] = vp[5]! * sy; this._scratchModelMatrix[6] = vp[9]! * sy;
-        this._scratchModelMatrix[8] = vp[2]! * sz; this._scratchModelMatrix[9] = vp[6]! * sz; this._scratchModelMatrix[10] = vp[10]! * sz;
+        const sx = Math.sqrt(
+          this._scratchModelMatrix[0]! ** 2 +
+            this._scratchModelMatrix[1]! ** 2 +
+            this._scratchModelMatrix[2]! ** 2,
+        );
+        const sy = Math.sqrt(
+          this._scratchModelMatrix[4]! ** 2 +
+            this._scratchModelMatrix[5]! ** 2 +
+            this._scratchModelMatrix[6]! ** 2,
+        );
+        const sz = Math.sqrt(
+          this._scratchModelMatrix[8]! ** 2 +
+            this._scratchModelMatrix[9]! ** 2 +
+            this._scratchModelMatrix[10]! ** 2,
+        );
+        this._scratchModelMatrix[0] = vp[0]! * sx;
+        this._scratchModelMatrix[1] = vp[4]! * sx;
+        this._scratchModelMatrix[2] = vp[8]! * sx;
+        this._scratchModelMatrix[4] = vp[1]! * sy;
+        this._scratchModelMatrix[5] = vp[5]! * sy;
+        this._scratchModelMatrix[6] = vp[9]! * sy;
+        this._scratchModelMatrix[8] = vp[2]! * sz;
+        this._scratchModelMatrix[9] = vp[6]! * sz;
+        this._scratchModelMatrix[10] = vp[10]! * sz;
       }
-      if (u.get("u_model")) this.gl.uniformMatrix4fv(u.get("u_model")!, false, this._scratchModelMatrix);
+      if (u.get("u_model"))
+        this.gl.uniformMatrix4fv(u.get("u_model")!, false, this._scratchModelMatrix);
 
       // 5. Material Properties from Manifest
       const props = manifest.properties;
       if (u.get("u_color")) this.gl.uniform4fv(u.get("u_color")!, mat.color.toFloat32Array());
-      if (u.get("u_specColor") && props["u_specColor"]) this.gl.uniform4fv(u.get("u_specColor")!, props["u_specColor"].toFloat32Array());
-      if (u.get("u_shininess")) this.gl.uniform1f(u.get("u_shininess")!, props["u_shininess"] !== undefined ? props["u_shininess"] : -1.0);
-      if (u.get("u_thresholds") && props["u_thresholds"]) this.gl.uniform4fv(u.get("u_thresholds")!, props["u_thresholds"]);
-      if (u.get("u_texRepeat") && props["u_texRepeat"]) this.gl.uniform2fv(u.get("u_texRepeat")!, props["u_texRepeat"]);
+      if (u.get("u_specColor") && props["u_specColor"])
+        this.gl.uniform4fv(u.get("u_specColor")!, props["u_specColor"].toFloat32Array());
+      if (u.get("u_shininess"))
+        this.gl.uniform1f(
+          u.get("u_shininess")!,
+          props["u_shininess"] !== undefined ? props["u_shininess"] : -1.0,
+        );
+      if (u.get("u_thresholds") && props["u_thresholds"])
+        this.gl.uniform4fv(u.get("u_thresholds")!, props["u_thresholds"]);
+      if (u.get("u_texRepeat") && props["u_texRepeat"])
+        this.gl.uniform2fv(u.get("u_texRepeat")!, props["u_texRepeat"]);
 
       // 6. Textures
       const texs = manifest.textures;
       if (manifest.shaderId === MaterialType.SKYBOX) {
         this.gl.activeTexture(this.gl.TEXTURE0);
         const skyTex = texs["u_skybox"] as CubeTexture;
-        this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, skyTex ? this._getWebGLCubeTexture(skyTex) : this.defaultCubeTexture);
+        this.gl.bindTexture(
+          this.gl.TEXTURE_CUBE_MAP,
+          skyTex ? this._getWebGLCubeTexture(skyTex) : this.defaultCubeTexture,
+        );
         if (u.get("u_skybox")) this.gl.uniform1i(u.get("u_skybox")!, 0);
       } else {
         // Diffuse Map
         this.gl.activeTexture(this.gl.TEXTURE0);
         const diff = texs["u_diffuseMap"] as Texture;
-        this.gl.bindTexture(this.gl.TEXTURE_2D, diff ? this._getWebGLTexture(diff) : this.defaultTexture);
+        this.gl.bindTexture(
+          this.gl.TEXTURE_2D,
+          diff ? this._getWebGLTexture(diff) : this.defaultTexture,
+        );
         if (u.get("u_diffuseMap")) this.gl.uniform1i(u.get("u_diffuseMap")!, 0);
 
         // Normal Map
@@ -387,35 +508,49 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
           this.gl.bindTexture(this.gl.TEXTURE_2D, this.defaultSpecularMap);
           if (u.get("u_specularMap")) this.gl.uniform1i(u.get("u_specularMap")!, 2);
         }
-        
+
         if (diff) {
-          if (u.get("u_texOffset")) this.gl.uniform2f(u.get("u_texOffset")!, diff.offset.x, diff.offset.y);
-          if (u.get("u_texRepeat") && !props["u_texRepeat"]) this.gl.uniform2f(u.get("u_texRepeat")!, diff.repeat.x, diff.repeat.y);
+          if (u.get("u_texOffset"))
+            this.gl.uniform2f(u.get("u_texOffset")!, diff.offset.x, diff.offset.y);
+          if (u.get("u_texRepeat") && !props["u_texRepeat"])
+            this.gl.uniform2f(u.get("u_texRepeat")!, diff.repeat.x, diff.repeat.y);
         }
 
         // Terrain Maps (if present)
         if (u.get("u_sandMap")) {
           this.gl.activeTexture(this.gl.TEXTURE3);
           const t = texs["u_sandMap"] as Texture;
-          this.gl.bindTexture(this.gl.TEXTURE_2D, t ? this._getWebGLTexture(t) : this.defaultTexture);
+          this.gl.bindTexture(
+            this.gl.TEXTURE_2D,
+            t ? this._getWebGLTexture(t) : this.defaultTexture,
+          );
           this.gl.uniform1i(u.get("u_sandMap")!, 3);
         }
         if (u.get("u_grassMap")) {
           this.gl.activeTexture(this.gl.TEXTURE4);
           const t = texs["u_grassMap"] as Texture;
-          this.gl.bindTexture(this.gl.TEXTURE_2D, t ? this._getWebGLTexture(t) : this.defaultTexture);
+          this.gl.bindTexture(
+            this.gl.TEXTURE_2D,
+            t ? this._getWebGLTexture(t) : this.defaultTexture,
+          );
           this.gl.uniform1i(u.get("u_grassMap")!, 4);
         }
         if (u.get("u_rockMap")) {
           this.gl.activeTexture(this.gl.TEXTURE5);
           const t = texs["u_rockMap"] as Texture;
-          this.gl.bindTexture(this.gl.TEXTURE_2D, t ? this._getWebGLTexture(t) : this.defaultTexture);
+          this.gl.bindTexture(
+            this.gl.TEXTURE_2D,
+            t ? this._getWebGLTexture(t) : this.defaultTexture,
+          );
           this.gl.uniform1i(u.get("u_rockMap")!, 5);
         }
         if (u.get("u_snowMap")) {
           this.gl.activeTexture(this.gl.TEXTURE6);
           const t = texs["u_snowMap"] as Texture;
-          this.gl.bindTexture(this.gl.TEXTURE_2D, t ? this._getWebGLTexture(t) : this.defaultTexture);
+          this.gl.bindTexture(
+            this.gl.TEXTURE_2D,
+            t ? this._getWebGLTexture(t) : this.defaultTexture,
+          );
           this.gl.uniform1i(u.get("u_snowMap")!, 6);
         }
       }
@@ -433,7 +568,8 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         this.gl.cullFace(this.gl.BACK);
       }
 
-      const drawMode = manifest.shaderId === MaterialType.WIREFRAME ? this.gl.LINES : this.gl.TRIANGLES;
+      const drawMode =
+        manifest.shaderId === MaterialType.WIREFRAME ? this.gl.LINES : this.gl.TRIANGLES;
       m.draw(drawMode);
     }
 

@@ -96,12 +96,13 @@ export class Tube extends AbstractGeometry {
     // Inner surface
     buildSurface(this.innerRadius, true);
 
+    const verticesPerSurface = (this.heightSegments + 1) * (this.radialSegments + 1);
+
     // Caps to connect inner and outer surfaces
     const connectCaps = (isTop: boolean): void => {
       const outerOffset: number = isTop ? this.heightSegments * (this.radialSegments + 1) : 0;
       const innerOffset: number =
-        (this.heightSegments + 1) * (this.radialSegments + 1) +
-        (isTop ? this.heightSegments * (this.radialSegments + 1) : 0);
+        verticesPerSurface + (isTop ? this.heightSegments * (this.radialSegments + 1) : 0);
 
       for (let x: number = 0; x < this.radialSegments; x++) {
         const o1: number = outerOffset + x;
@@ -124,7 +125,8 @@ export class Tube extends AbstractGeometry {
 
     this._vertices = new Float32Array(v);
     this._uvs = new Float32Array(uv);
-    this._indices = new Uint16Array(idx);
+    this._indices = this._createIndexArray(idx.length);
+    this._indices.set(idx);
     this.computeNormals();
   }
 }
