@@ -660,8 +660,15 @@ export class WebGPURenderer extends AbstractRenderer {
           modelMatrix[10] = vpMatrix[10]! * sz;
         }
 
+        // Map Material Properties from Manifest
+        const props = manifest.properties;
+
         uData.set(modelMatrix, 16);
-        uData.set(obj.material.color.toArray(), 32);
+        if (props["u_color"]) {
+          uData.set(props["u_color"] as number[], 32);
+        } else {
+          uData.set(obj.material.color.toArray(), 32);
+        }
         uData.set([aCol.r, aCol.g, aCol.b, 1.0], 40);
         uData.set([dCol.r, dCol.g, dCol.b, 1.0], 44);
         uData.set([dDir.x, dDir.y, dDir.z, 0.0], 48);
@@ -670,19 +677,19 @@ export class WebGPURenderer extends AbstractRenderer {
         uData[61] = pLights.length;
         uData[62] = sLights.length;
         uData[63] = aLights.length;
-        // Map Material Properties from Manifest
-        const props = manifest.properties;
-        if (props["u_specColor"]) uData.set(props["u_specColor"].toArray(), 36);
-        if (props["u_shininess"] !== undefined) uData[60] = props["u_shininess"];
-        if (props["u_thresholds"]) uData.set(props["u_thresholds"], 64);
+        
+        if (props["u_specColor"]) uData.set(props["u_specColor"] as number[], 36);
+        if (props["u_shininess"] !== undefined) uData[60] = props["u_shininess"] as number;
+        if (props["u_thresholds"]) uData.set(props["u_thresholds"] as number[], 64);
         if (manifest.shaderId === MaterialType.TERRAIN) uData[68] = 1.0;
 
+        if (props["u_texOffset"]) uData.set(props["u_texOffset"] as number[], 56);
+        if (props["u_texRepeat"]) uData.set(props["u_texRepeat"] as number[], 58);
+
         const diff = manifest.textures["u_diffuseMap"] as Texture;
-        if (diff) {
+        if (diff && !props["u_texOffset"] && !props["u_texRepeat"]) {
           uData.set([diff.offset.x, diff.offset.y], 56);
           uData.set([diff.repeat.x, diff.repeat.y], 58);
-        } else if (props["u_texRepeat"]) {
-          uData.set(props["u_texRepeat"], 58);
         }
 
         const bufs = this._getObjBuffers(obj);

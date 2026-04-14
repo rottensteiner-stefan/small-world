@@ -1177,7 +1177,7 @@ export declare interface DirectionalLightOptions extends LightOptions {
     direction?: Vector3D;
 }
 
-export declare const ENGINE_VERSION = "0.15.01";
+export declare const ENGINE_VERSION = "0.15.02";
 
 export declare interface EngineConfig {
     canvasId?: string;
@@ -1871,13 +1871,17 @@ export declare class Matrix3 {
      * @param m The 4x4 matrix.
      * @returns this
      */
-    setFromMatrix4(m: any): this;
+    setFromMatrix4(m: {
+        data: Float32Array;
+    }): this;
     /**
      * Normal matrix calculation (transpose of inverse of the upper-left 3x3 of a 4x4 matrix).
      * @param m The 4x4 matrix.
      * @returns this
      */
-    getNormalMatrix(m: any): this;
+    getNormalMatrix(m: {
+        data: Float32Array;
+    }): this;
     /**
      * Multiplies two 3x3 matrices.
      * @param a The first matrix.
@@ -2696,7 +2700,7 @@ export declare interface RenderManifest {
      * The properties (uniforms) for the material.
      * Key: Property name as defined in ShaderDefinition layout.
      */
-    properties: Record<string, any>;
+    properties: Record<string, unknown>;
     /**
      * The textures for the material.
      * Key: Texture name as defined in ShaderDefinition layout.
@@ -2814,7 +2818,7 @@ export declare class ShaderLoader extends TextLoader {
  */
 export declare interface ShaderPropertyMetadata {
     type: ShaderPropertyType;
-    defaultValue?: any;
+    defaultValue?: unknown;
 }
 
 /**

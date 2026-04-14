@@ -73,9 +73,15 @@ export class PhongMaterial extends AbstractMaterial {
     return {
       shaderId: this.type,
       properties: {
-        u_color: this.color,
-        u_specColor: this.specularColor,
+        u_color: this.color.toArray(),
+        u_specColor: this.specularColor.toArray(),
         u_shininess: this.shininess,
+        u_texOffset: this.diffuseMap
+          ? [this.diffuseMap.offset.x, this.diffuseMap.offset.y]
+          : [0, 0],
+        u_texRepeat: this.diffuseMap
+          ? [this.diffuseMap.repeat.x, this.diffuseMap.repeat.y]
+          : [1, 1],
       },
       textures: {
         u_diffuseMap: this.diffuseMap,

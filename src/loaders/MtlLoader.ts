@@ -2,7 +2,6 @@
 
 import { AbstractLoader } from "./AbstractLoader.js";
 import { AssetManager } from "./AssetManager.js";
-import { Color } from "../core/index.js";
 import { EventType } from "../enums/index.js";
 import { PhongMaterial } from "../core/index.js";
 import { Texture } from "../core/index.js";
@@ -48,17 +47,18 @@ export class MtlLoader extends AbstractLoader<Map<string, PhongMaterial>> {
 
       if ("newmtl" === type) {
         currentMat = new PhongMaterial();
-        if (parts[1]) {
-          materials.set(parts[1], currentMat);
+        const matName = parts[1];
+        if (matName) {
+          materials.set(matName, currentMat);
         }
       } else if ("Kd" === type && currentMat) {
-        currentMat.color = new Color(
+        currentMat.color.set(
           parseFloat(parts[1] ?? "1"),
           parseFloat(parts[2] ?? "1"),
           parseFloat(parts[3] ?? "1"),
         );
       } else if ("Ks" === type && currentMat) {
-        currentMat.specularColor = new Color(
+        currentMat.specularColor.set(
           parseFloat(parts[1] ?? "1"),
           parseFloat(parts[2] ?? "1"),
           parseFloat(parts[3] ?? "1"),

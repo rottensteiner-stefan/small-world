@@ -76,7 +76,7 @@ export class Sphere extends AbstractGeometry {
 
         n.push(px / this.radius, py / this.radius, pz / this.radius);
 
-        uv.push(uRatio, 1 - vRatio);
+        uv.push(uRatio, vRatio);
       }
     }
 
