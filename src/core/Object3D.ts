@@ -2,14 +2,14 @@
 
 import { AbstractMaterial } from "./materials/index.js";
 import { BoundingVolume, GeometryDataInterface } from "../interfaces/index.js";
-import { Matrix4, Quaternion, Vector3D } from "../math/index.js";
+import { Matrix4, Quaternion, Vector3D, MathUtils } from "../math/index.js";
 
 /**
  * Base class for all 3D objects in the scene.
  */
 export class Object3D {
   /** The unique identifier of the object. */
-  public readonly uuid: string = crypto.randomUUID();
+  public readonly uuid: string = MathUtils.generateUUID();
   /** The name of the object. */
   public name: string = "";
 
@@ -151,6 +151,7 @@ export class Object3D {
     } else {
       Matrix4.multiply(this.parent.worldMatrix, this.localMatrix, this.worldMatrix);
     }
+
     for (const child of this.children) {
       child.updateMatrixWorld(force);
     }

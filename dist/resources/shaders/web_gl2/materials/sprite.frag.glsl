@@ -1,4 +1,4 @@
-// [BASE_FRAGMENT_HEADER]
+[BASE_FRAGMENT_HEADER]
 
 void main() {
   vec4 texColor = texture(u_diffuseMap, v_uv);

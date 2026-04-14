@@ -1,13 +1,13 @@
 {
   "name": "small-world",
-  "version": "0.15.01",
+  "version": "0.15.02",
   "type": "module",
   "scripts": {
     "build": "npm-run-all build:demo build:lib",
     "build:demo": "vite build",
     "build:lib": "vite build --config vite.lib.config.ts",
     "changelog": "node scripts/generate-changelog.js",
-    "dev": "vite",
+    "dev": "vite --host",
     "format": "prettier --write . && eslint . --fix",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -32,6 +32,7 @@
     "typescript": "5.8.2",
     "typescript-eslint": "^8.57.0",
     "vite": "^7.3.1",
-    "vite-plugin-dts": "^4.5.4"
+    "vite-plugin-dts": "^4.5.4",
+    "vite-plugin-mkcert": "^2.0.0"
   }
 }

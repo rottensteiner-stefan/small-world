@@ -1,5 +1,5 @@
-// [INCLUDE_BASE]
-// [INCLUDE_LIGHTS]
+[BASE_FS_HEADER]
+[LIGHT_DEFS]
 
 void main() {
   vec4 texColor = texture2D(u_diffuseMap, v_uv);
@@ -9,7 +9,7 @@ void main() {
   normalMap = normalize(normalMap * 2.0 - 1.0);
   vec3 N = normalize(v_tbn * normalMap);
 
-  // [CHUNK_LIGHT_CALC]
+  [LIGHT_CALC]
 
-  gl_FragColor = vec4((finalLight * u_color.rgb * texColor.rgb) + (spec * u_specColor.rgb * specMap), u_color.a * texColor.a);
+  gl_FragColor = vec4((finalLight * u_color.rgb * texColor.rgb) + (specular * u_specColor.rgb * specMap), u_color.a * texColor.a);
 }

@@ -72,18 +72,27 @@ export class ShaderBootstrap {
 
     // WebGL 2 Materials
     loader.setBasePath("/resources/shaders/web_gl2/materials/");
-    const [gl2BasicFs, gl2PhongFs, gl2LambertFs, gl2SpriteFs, gl2WireframeFs, gl2SkyVs, gl2SkyFs, gl2TerrainFs, gl2WorldFs] =
-      await Promise.all([
-        loader.load("basic.frag.glsl"),
-        loader.load("phong.frag.glsl"),
-        loader.load("lambert.frag.glsl"),
-        loader.load("sprite.frag.glsl"),
-        loader.load("wireframe.frag.glsl"),
-        loader.load("skybox.vert.glsl"),
-        loader.load("skybox.frag.glsl"),
-        loader.load("terrain.frag.glsl"),
-        loader.load("world.frag.glsl"),
-      ]);
+    const [
+      gl2BasicFs,
+      gl2PhongFs,
+      gl2LambertFs,
+      gl2SpriteFs,
+      gl2WireframeFs,
+      gl2SkyVs,
+      gl2SkyFs,
+      gl2TerrainFs,
+      gl2WorldFs,
+    ] = await Promise.all([
+      loader.load("basic.frag.glsl"),
+      loader.load("phong.frag.glsl"),
+      loader.load("lambert.frag.glsl"),
+      loader.load("sprite.frag.glsl"),
+      loader.load("wireframe.frag.glsl"),
+      loader.load("skybox.vert.glsl"),
+      loader.load("skybox.frag.glsl"),
+      loader.load("terrain.frag.glsl"),
+      loader.load("world.frag.glsl"),
+    ]);
 
     // WebGL 1 Materials
     loader.setBasePath("/resources/shaders/web_gl1/materials/");
@@ -103,17 +112,25 @@ export class ShaderBootstrap {
     const wgslSkyVs = await loader.load("skybox.vert.wgsl");
 
     loader.setBasePath("/resources/shaders/web_gpu/materials/");
-    const [wgslBasicFs, wgslPhongFs, wgslLambertFs, wgslSpriteFs, wgslWireframeFs, wgslSkyFs, wgslTerrainFs, wgslWorldFs] =
-      await Promise.all([
-        loader.load("basic.frag.wgsl"),
-        loader.load("phong.frag.wgsl"),
-        loader.load("lambert.frag.wgsl"),
-        loader.load("sprite.frag.wgsl"),
-        loader.load("wireframe.frag.wgsl"),
-        loader.load("skybox.frag.wgsl"),
-        loader.load("terrain.frag.wgsl"),
-        loader.load("world.frag.wgsl"),
-      ]);
+    const [
+      wgslBasicFs,
+      wgslPhongFs,
+      wgslLambertFs,
+      wgslSpriteFs,
+      wgslWireframeFs,
+      wgslSkyFs,
+      wgslTerrainFs,
+      wgslWorldFs,
+    ] = await Promise.all([
+      loader.load("basic.frag.wgsl"),
+      loader.load("phong.frag.wgsl"),
+      loader.load("lambert.frag.wgsl"),
+      loader.load("sprite.frag.wgsl"),
+      loader.load("wireframe.frag.wgsl"),
+      loader.load("skybox.frag.wgsl"),
+      loader.load("terrain.frag.wgsl"),
+      loader.load("world.frag.wgsl"),
+    ]);
 
     registry.registerChunk("WGSL_VS", wgslBaseVs, "wgsl");
 

@@ -1,6 +1,11 @@
-// [INCLUDE_BASE]
-// [INCLUDE_LIGHTS]
-// [INCLUDE_TERRAIN_UNIFORMS]
+[BASE_FRAGMENT_HEADER]
+[LIGHT_DEFS]
+
+uniform sampler2D u_sandMap;
+uniform sampler2D u_grassMap;
+uniform sampler2D u_rockMap;
+uniform sampler2D u_snowMap;
+uniform vec4 u_thresholds;
 
 void main() {
   vec3 N = normalize(v_normal);
@@ -22,7 +27,7 @@ void main() {
   float slopeBlend = smoothstep(0.25, 0.45, slope);
   texColor = mix(texColor, rock, slopeBlend);
 
-  // [CHUNK_LIGHT_CALC]
+  [LIGHT_CALC]
 
-  c = vec4((finalLight * u_color.rgb * texColor.rgb) + (specular * u_specColor.rgb), u_color.a * texColor.a);
+  fragColor = vec4((finalLight * u_color.rgb * texColor.rgb) + (specular * u_specColor.rgb), u_color.a * texColor.a);
 }

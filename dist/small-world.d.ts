@@ -1843,6 +1843,12 @@ export declare class MathUtils {
      * @returns The clamped value.
      */
     static clamp(val: number, min: number, max: number): number;
+    /**
+     * Generates a unique identifier (UUID v4).
+     * Uses crypto.randomUUID() if available, otherwise falls back to a simple random generator.
+     * @returns A string representation of a UUID.
+     */
+    static generateUUID(): string;
 }
 
 /**
@@ -3880,7 +3886,6 @@ export declare class WebGL2Renderer extends AbstractWebGLRenderer {
     private _texCache;
     private _texCubeCache;
     private _scratchModelMatrix;
-    private _scratchVec3;
     /** @inheritdoc */
     initialize(canvas: HTMLCanvasElement, attributes?: Record<string, unknown>, config?: EngineConfig): Promise<void>;
     private _getProgram;

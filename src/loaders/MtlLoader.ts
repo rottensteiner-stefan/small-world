@@ -71,12 +71,16 @@ export class MtlLoader extends AbstractLoader<Map<string, PhongMaterial>> {
 
         // --- THE FIX: We use the AssetManager with flipY = false ---
         // The renderer handles flipping during upload to GPU!
-        const image: ImageBitmap | HTMLImageElement = await AssetManager.loadImage(
-          texUrl,
-          undefined,
-          false,
-        );
-        currentMat.diffuseMap = Texture.fromImage(image);
+        try {
+          const image: ImageBitmap | HTMLImageElement = await AssetManager.loadImage(
+            texUrl,
+            undefined,
+            false,
+          );
+          currentMat.diffuseMap = Texture.fromImage(image);
+        } catch (e) {
+          console.error(`[MtlLoader] Failed to load texture: ${texUrl}`, e);
+        }
       } else if (("map_Bump" === type || "bump" === type) && currentMat) {
         const texPath: string = line.substring(line.indexOf(" ") + 1).trim();
         const texUrl: string = folderPath + texPath;

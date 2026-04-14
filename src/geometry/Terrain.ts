@@ -234,7 +234,8 @@ export class Terrain extends AbstractGeometry {
 
     this._vertices = new Float32Array(v);
     this._uvs = new Float32Array(uv);
-    this._indices = new Uint32Array(i);
+    this._indices = this._createIndexArray(i.length);
+    this._indices.set(i);
 
     this.computeNormals();
   }

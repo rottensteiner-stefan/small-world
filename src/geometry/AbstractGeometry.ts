@@ -117,13 +117,25 @@ export abstract class AbstractGeometry implements Geometry {
       const by: number = (s1 * y2 - s2 * y1) * r;
       const bz: number = (s1 * z2 - s2 * z1) * r;
 
-      tan1[i1 * 3] += tx; tan1[i1 * 3 + 1] += ty; tan1[i1 * 3 + 2] += tz;
-      tan1[i2 * 3] += tx; tan1[i2 * 3 + 1] += ty; tan1[i2 * 3 + 2] += tz;
-      tan1[i3 * 3] += tx; tan1[i3 * 3 + 1] += ty; tan1[i3 * 3 + 2] += tz;
+      tan1[i1 * 3]! += tx;
+      tan1[i1 * 3 + 1]! += ty;
+      tan1[i1 * 3 + 2]! += tz;
+      tan1[i2 * 3]! += tx;
+      tan1[i2 * 3 + 1]! += ty;
+      tan1[i2 * 3 + 2]! += tz;
+      tan1[i3 * 3]! += tx;
+      tan1[i3 * 3 + 1]! += ty;
+      tan1[i3 * 3 + 2]! += tz;
 
-      tan2[i1 * 3] += bx; tan2[i1 * 3 + 1] += by; tan2[i1 * 3 + 2] += bz;
-      tan2[i2 * 3] += bx; tan2[i2 * 3 + 1] += by; tan2[i2 * 3 + 2] += bz;
-      tan2[i3 * 3] += bx; tan2[i3 * 3 + 1] += by; tan2[i3 * 3 + 2] += bz;
+      tan2[i1 * 3]! += bx;
+      tan2[i1 * 3 + 1]! += by;
+      tan2[i1 * 3 + 2]! += bz;
+      tan2[i2 * 3]! += bx;
+      tan2[i2 * 3 + 1]! += by;
+      tan2[i2 * 3 + 2]! += bz;
+      tan2[i3 * 3]! += bx;
+      tan2[i3 * 3 + 1]! += by;
+      tan2[i3 * 3 + 2]! += bz;
     }
 
     for (let i: number = 0; i < this._vertices.length / 3; i++) {
@@ -162,9 +174,12 @@ export abstract class AbstractGeometry implements Geometry {
         const a = this._indices[i]!;
         const b = this._indices[i + 1]!;
         const c = this._indices[i + 2]!;
-        lines[ptr++] = a; lines[ptr++] = b;
-        lines[ptr++] = b; lines[ptr++] = c;
-        lines[ptr++] = c; lines[ptr++] = a;
+        lines[ptr++] = a;
+        lines[ptr++] = b;
+        lines[ptr++] = b;
+        lines[ptr++] = c;
+        lines[ptr++] = c;
+        lines[ptr++] = a;
       }
       this._wireframeIndices = lines;
     } else {
@@ -174,9 +189,12 @@ export abstract class AbstractGeometry implements Geometry {
       const lines = this._createIndexArray(lineCount);
       let ptr = 0;
       for (let i = 0; i < triangleCount * 3; i += 3) {
-        lines[ptr++] = i; lines[ptr++] = i + 1;
-        lines[ptr++] = i + 1; lines[ptr++] = i + 2;
-        lines[ptr++] = i + 2; lines[ptr++] = i;
+        lines[ptr++] = i;
+        lines[ptr++] = i + 1;
+        lines[ptr++] = i + 1;
+        lines[ptr++] = i + 2;
+        lines[ptr++] = i + 2;
+        lines[ptr++] = i;
       }
       this._wireframeIndices = lines;
     }

@@ -44,7 +44,13 @@ export abstract class AbstractLight extends Object3D {
    * @param options The configuration options for the light.
    */
   protected constructor(options: LightOptions = {}) {
-    const { color = Color.WHITE, intensity = 1.0, name = "Light", castShadow = false, shadowResolution = 512 } = options;
+    const {
+      color = Color.WHITE,
+      intensity = 1.0,
+      name = "Light",
+      castShadow = false,
+      shadowResolution = 512,
+    } = options;
     super(name);
     this.color = color;
     this.intensity = intensity;

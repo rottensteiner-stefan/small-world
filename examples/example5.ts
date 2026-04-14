@@ -68,7 +68,7 @@ export class Example5 extends AbstractExample {
     this.scene.add(this._player);
 
     const playerMat: PhongMaterial = new PhongMaterial({ color: Color.DODGERBLUE });
-    
+
     // Layer 1 (Base): Size 1.0
     const pBase = new Object3D("PlayerBase");
     pBase.geometry = new Cube({ size: 1.0 }).getGeometryData();
@@ -137,7 +137,7 @@ export class Example5 extends AbstractExample {
         const nextX = this._player.position.x + dx;
         const nextZ = this._player.position.z + dz;
 
-        // Bounds check: Grid is 20x20 (from -10 to 10). 
+        // Bounds check: Grid is 20x20 (from -10 to 10).
         // Centers are -9.5, -8.5, ..., 8.5, 9.5.
         if (nextX >= -9.5 && nextX <= 9.5 && nextZ >= -9.5 && nextZ <= 9.5) {
           this._isMoving = true;
@@ -174,7 +174,7 @@ export class Example5 extends AbstractExample {
         const mx: number = (Input.mouse.x / window.innerWidth) * 2 - 1;
         const my: number = -(Input.mouse.y / window.innerHeight) * 2 + 1;
         const worldPos: Vector3D = strategy.screenToWorld(mx, my, this.camera);
-        
+
         const nextX = Math.floor(worldPos.x) + 0.5;
         const nextZ = Math.floor(worldPos.z) + 0.5;
 
@@ -200,7 +200,7 @@ export class Example5 extends AbstractExample {
       Example: "05 - Isometric 2D/3D",
       "Pixel Snapping (P)": strategy ? (strategy.pixelPerfect ? "ON" : "OFF") : "N/A",
       "Player Pos": `(${this._player.position.x.toFixed(2)}, ${this._player.position.z.toFixed(2)})`,
-      "Moving": this._isMoving ? "Yes" : "No"
+      Moving: this._isMoving ? "Yes" : "No",
     };
   }
 }

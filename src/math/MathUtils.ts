@@ -71,4 +71,22 @@ export class MathUtils {
   public static clamp(val: number, min: number, max: number): number {
     return Math.max(min, Math.min(max, val));
   }
+
+  /**
+   * Generates a unique identifier (UUID v4).
+   * Uses crypto.randomUUID() if available, otherwise falls back to a simple random generator.
+   * @returns A string representation of a UUID.
+   */
+  public static generateUUID(): string {
+    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+      return crypto.randomUUID();
+    }
+
+    // Fallback for insecure contexts or older browsers
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+      const r = (Math.random() * 16) | 0;
+      const v = c === "x" ? r : (r & 0x3) | 0x8;
+      return v.toString(16);
+    });
+  }
 }

@@ -37,19 +37,19 @@ export class Matrix3 {
    * @param m The 4x4 matrix.
    * @returns this
    */
-  public setFromMatrix4(m: any): this {
+  public setFromMatrix4(m: { data: Float32Array }): this {
     const me = m.data;
     const d = this.data;
 
-    d[0] = me[0];
-    d[3] = me[4];
-    d[6] = me[8];
-    d[1] = me[1];
-    d[4] = me[5];
-    d[7] = me[9];
-    d[2] = me[2];
-    d[5] = me[6];
-    d[8] = me[10];
+    d[0] = me[0]!;
+    d[3] = me[4]!;
+    d[6] = me[8]!;
+    d[1] = me[1]!;
+    d[4] = me[5]!;
+    d[7] = me[9]!;
+    d[2] = me[2]!;
+    d[5] = me[6]!;
+    d[8] = me[10]!;
 
     return this;
   }
@@ -59,7 +59,7 @@ export class Matrix3 {
    * @param m The 4x4 matrix.
    * @returns this
    */
-  public getNormalMatrix(m: any): this {
+  public getNormalMatrix(m: { data: Float32Array }): this {
     // This is a simplified version: for now, we just copy the 3x3 and would need inversion/transposition
     // for correct normal transformation with scaling.
     return this.setFromMatrix4(m);

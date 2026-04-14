@@ -38,25 +38,43 @@ export class Matrix4 {
    * @returns this
    */
   public compose(pos: Vector3D, rot: Vector3D, scale: Vector3D): this {
-    const t: Matrix4 = new Matrix4();
-    Matrix4.translate(pos, t);
-    const rx: Matrix4 = new Matrix4();
-    Matrix4.rotateX(rot.x, rx);
-    const ry: Matrix4 = new Matrix4();
-    Matrix4.rotateY(rot.y, ry);
-    const rz: Matrix4 = new Matrix4();
-    Matrix4.rotateZ(rot.z, rz);
-    const s: Matrix4 = new Matrix4();
-    s.data[0] = scale.x;
-    s.data[5] = scale.y;
-    s.data[10] = scale.z;
-    Matrix4.multiply(t, ry, this);
-    Matrix4.multiply(this, rx, this);
-    Matrix4.multiply(this, rz, this);
-    Matrix4.multiply(this, s, this);
+    const x = rot.x,
+      y = rot.y,
+      z = rot.z;
+    const sx = Math.sin(x),
+      cx = Math.cos(x);
+    const sy = Math.sin(y),
+      cy = Math.cos(y);
+    const sz = Math.sin(z),
+      cz = Math.cos(z);
+
+    const d = this.data;
+
+    // Translation
+    d[12] = pos.x;
+    d[13] = pos.y;
+    d[14] = pos.z;
+    d[15] = 1;
+
+    // Rotation and Scale
+    // Order: Y * X * Z
+    d[0] = (cy * cz + sy * sx * sz) * scale.x;
+    d[1] = cx * sz * scale.x;
+    d[2] = (-sy * cz + cy * sx * sz) * scale.x;
+    d[3] = 0;
+
+    d[4] = (-cy * sz + sy * sx * cz) * scale.y;
+    d[5] = cx * cz * scale.y;
+    d[6] = (sy * sz + cy * sx * cz) * scale.y;
+    d[7] = 0;
+
+    d[8] = sy * cx * scale.z;
+    d[9] = -sx * scale.z;
+    d[10] = cy * cx * scale.z;
+    d[11] = 0;
+
     return this;
   }
-
   /**
    * Sets the matrix to a translation matrix.
    * @param v The translation vector.

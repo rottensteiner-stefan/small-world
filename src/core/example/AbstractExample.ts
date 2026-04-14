@@ -26,7 +26,9 @@ export abstract class AbstractExample extends Application {
    */
   protected async waitForAssets(): Promise<void> {
     if (!AssetManager.isLoaded) {
-      console.log(`Waiting for assets... (${(AssetManager.getGlobalProgress() * 100).toFixed(0)}%)`);
+      console.log(
+        `Waiting for assets... (${(AssetManager.getGlobalProgress() * 100).toFixed(0)}%)`,
+      );
       await AssetManager.onLoaded();
       console.log("All assets loaded.");
     }
@@ -150,7 +152,9 @@ export abstract class AbstractExample extends Application {
   protected getDebugInfo(): Record<string, string | number> {
     return {
       Renderer: this.renderer ? this.renderer.type : "None",
-      "Assets Loaded": AssetManager.isLoaded ? "Yes" : `${(AssetManager.getGlobalProgress() * 100).toFixed(0)}%`,
+      "Assets Loaded": AssetManager.isLoaded
+        ? "Yes"
+        : `${(AssetManager.getGlobalProgress() * 100).toFixed(0)}%`,
       "Pointer Locked": Input.isPointerLocked ? "Yes" : "No",
       "Cam Mode": this.camera.activeStrategyType,
       "Cam Pos X": this.camera.position.x.toFixed(2),

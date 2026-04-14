@@ -80,27 +80,27 @@ export class ObjLoader extends AbstractLoader<Object3D> {
         const mtlLoader: MtlLoader = new MtlLoader();
         materials = await mtlLoader.load(folderPath + parts[1]!);
       } else if ("usemtl" === type) {
-        // Switch the active material group for all subsequent faces
         const matName: string = parts[1]!;
         if (!groups.has(matName)) {
           groups.set(matName, new MaterialGroup(matName));
         }
         currentGroup = groups.get(matName)!;
       } else if ("v" === type) {
+        // Only take first 3 components, ignore vertex colors if present
         tempVertices.push(parseFloat(parts[1]!), parseFloat(parts[2]!), parseFloat(parts[3]!));
       } else if ("vt" === type) {
         tempUVs.push(parseFloat(parts[1]!), parseFloat(parts[2]!));
       } else if ("vn" === type) {
         tempNormals.push(parseFloat(parts[1]!), parseFloat(parts[2]!), parseFloat(parts[3]!));
       } else if ("f" === type) {
+        const v1: number = this._parseFaceVertex(
+          parts[1]!,
+          tempVertices,
+          tempUVs,
+          tempNormals,
+          currentGroup,
+        );
         for (let i: number = 2; i < parts.length - 1; i++) {
-          const v1: number = this._parseFaceVertex(
-            parts[1]!,
-            tempVertices,
-            tempUVs,
-            tempNormals,
-            currentGroup,
-          );
           const v2: number = this._parseFaceVertex(
             parts[i]!,
             tempVertices,
@@ -156,19 +156,32 @@ export class ObjLoader extends AbstractLoader<Object3D> {
     }
 
     const parts: string[] = faceStr.split("/");
+
+    // 1. Position (Mandatory)
     const vIdx: number = (parseInt(parts[0]!) - 1) * 3;
     group.outVertices.push(tempV[vIdx]!, tempV[vIdx + 1]!, tempV[vIdx + 2]!);
 
-    if (1 < parts.length && "" !== parts[1]) {
+    // 2. UV Coordinates (Optional)
+    if (parts.length > 1 && parts[1] !== "") {
       const vtIdx: number = (parseInt(parts[1]!) - 1) * 2;
-      group.outUVs.push(tempVT[vtIdx]!, tempVT[vtIdx + 1]!);
+      // Safety check for bounds
+      if (vtIdx >= 0 && vtIdx + 1 < tempVT.length) {
+        group.outUVs.push(tempVT[vtIdx]!, 1.0 - tempVT[vtIdx + 1]!);
+      } else {
+        group.outUVs.push(0, 0);
+      }
     } else {
       group.outUVs.push(0, 0);
     }
 
-    if (2 < parts.length) {
+    // 3. Normals (Optional)
+    if (parts.length > 2 && parts[2] !== "") {
       const vnIdx: number = (parseInt(parts[2]!) - 1) * 3;
-      group.outNormals.push(tempVN[vnIdx]!, tempVN[vnIdx + 1]!, tempVN[vnIdx + 2]!);
+      if (vnIdx >= 0 && vnIdx + 2 < tempVN.length) {
+        group.outNormals.push(tempVN[vnIdx]!, tempVN[vnIdx + 1]!, tempVN[vnIdx + 2]!);
+      } else {
+        // We will compute normals later if they are missing
+      }
     }
 
     const newIndex: number = group.indexCounter++;

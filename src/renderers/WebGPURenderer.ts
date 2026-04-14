@@ -1,16 +1,18 @@
 /// src/renderers/WebGPURenderer.ts
 
-import {
-  Texture,
-  CubeTexture,
-  ShaderRegistry,
-  RenderManifest,
-} from "../core/index.js";
+import { Texture, CubeTexture, ShaderRegistry, RenderManifest } from "../core/index.js";
 import { GeometryDataInterface } from "../interfaces/index.js";
 import { Object3D } from "../core/Object3D.js";
 import { Scene } from "../core/Scene.js";
 import { Vector3D } from "../math/Vector3D.js";
-import { BlendingMode, CullMode, MaterialType, RendererType, TextureFilter, TextureWrap } from "../enums/index.js";
+import {
+  BlendingMode,
+  CullMode,
+  MaterialType,
+  RendererType,
+  TextureFilter,
+  TextureWrap,
+} from "../enums/index.js";
 import { EngineConfig } from "../interfaces/EngineConfig.js";
 
 import { AbstractRenderer } from "./AbstractRenderer.js";
@@ -63,7 +65,8 @@ export class WebGPURenderer extends AbstractRenderer {
 
   // Generic Buffers for Uniforms (per Object)
   private _objUniformBuffers: Map<Object3D, GPUBuffer> = new Map();
-  private _objLightBuffers: Map<Object3D, { pl: GPUBuffer; sl: GPUBuffer; al: GPUBuffer }> = new Map();
+  private _objLightBuffers: Map<Object3D, { pl: GPUBuffer; sl: GPUBuffer; al: GPUBuffer }> =
+    new Map();
   private _objBindGroups: Map<string, GPUBindGroup> = new Map();
 
   /** @inheritdoc */
@@ -161,7 +164,9 @@ export class WebGPURenderer extends AbstractRenderer {
     if (!sm) {
       const def = ShaderRegistry.instance.get(shaderId);
       if (!def || !def.sources.wgsl) {
-        throw new Error(`[WebGPURenderer] Shader definition for ${shaderId} not found or missing WGSL source.`);
+        throw new Error(
+          `[WebGPURenderer] Shader definition for ${shaderId} not found or missing WGSL source.`,
+        );
       }
       const code = ShaderRegistry.instance.assemble(def.sources.wgsl, "wgsl");
       sm = this._device!.createShaderModule({ label: shaderId, code });
@@ -170,7 +175,10 @@ export class WebGPURenderer extends AbstractRenderer {
     return sm;
   }
 
-  private _getPipeline(manifest: RenderManifest, topology: GPUPrimitiveTopology = "triangle-list"): WebGPUPipelineCache {
+  private _getPipeline(
+    manifest: RenderManifest,
+    topology: GPUPrimitiveTopology = "triangle-list",
+  ): WebGPUPipelineCache {
     const shaderId = manifest.shaderId;
     const state = manifest.state || {};
     const cullMode = state.culling || CullMode.BACK;
@@ -185,7 +193,11 @@ export class WebGPURenderer extends AbstractRenderer {
 
       // 1. Create BindGroupLayouts based on layout
       const objEntries: GPUBindGroupLayoutEntry[] = [
-        { binding: 0, visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT, buffer: { type: "uniform" } },
+        {
+          binding: 0,
+          visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+          buffer: { type: "uniform" },
+        },
         { binding: 1, visibility: GPUShaderStage.FRAGMENT, buffer: { type: "read-only-storage" } },
         { binding: 2, visibility: GPUShaderStage.FRAGMENT, buffer: { type: "read-only-storage" } },
         { binding: 3, visibility: GPUShaderStage.FRAGMENT, buffer: { type: "read-only-storage" } },
@@ -196,18 +208,58 @@ export class WebGPURenderer extends AbstractRenderer {
       // We always put a sampler at binding 1 for now (SmallWorld convention)
       // Actually, let's just mirror the current texBGL for compatibility with standard shaders
       if (shaderId === MaterialType.SKYBOX) {
-        texEntries.push({ binding: 0, visibility: GPUShaderStage.FRAGMENT, texture: { viewDimension: "cube" } });
-        texEntries.push({ binding: 1, visibility: GPUShaderStage.FRAGMENT, sampler: { type: "filtering" } });
+        texEntries.push({
+          binding: 0,
+          visibility: GPUShaderStage.FRAGMENT,
+          texture: { viewDimension: "cube" },
+        });
+        texEntries.push({
+          binding: 1,
+          visibility: GPUShaderStage.FRAGMENT,
+          sampler: { type: "filtering" },
+        });
       } else {
         // Standard SmallWorld Tex Layout (compatible with our Uber-Shaders)
-        texEntries.push({ binding: 0, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: "float" } }); // Diffuse
-        texEntries.push({ binding: 1, visibility: GPUShaderStage.FRAGMENT, sampler: { type: "filtering" } });   // Sampler
-        texEntries.push({ binding: 2, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: "float" } }); // Terrain Sand
-        texEntries.push({ binding: 3, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: "float" } }); // Terrain Grass
-        texEntries.push({ binding: 4, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: "float" } }); // Terrain Rock
-        texEntries.push({ binding: 5, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: "float" } }); // Terrain Snow
-        texEntries.push({ binding: 6, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: "float" } }); // Normal Map
-        texEntries.push({ binding: 7, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: "float" } }); // Specular Map
+        texEntries.push({
+          binding: 0,
+          visibility: GPUShaderStage.FRAGMENT,
+          texture: { sampleType: "float" },
+        }); // Diffuse
+        texEntries.push({
+          binding: 1,
+          visibility: GPUShaderStage.FRAGMENT,
+          sampler: { type: "filtering" },
+        }); // Sampler
+        texEntries.push({
+          binding: 2,
+          visibility: GPUShaderStage.FRAGMENT,
+          texture: { sampleType: "float" },
+        }); // Terrain Sand
+        texEntries.push({
+          binding: 3,
+          visibility: GPUShaderStage.FRAGMENT,
+          texture: { sampleType: "float" },
+        }); // Terrain Grass
+        texEntries.push({
+          binding: 4,
+          visibility: GPUShaderStage.FRAGMENT,
+          texture: { sampleType: "float" },
+        }); // Terrain Rock
+        texEntries.push({
+          binding: 5,
+          visibility: GPUShaderStage.FRAGMENT,
+          texture: { sampleType: "float" },
+        }); // Terrain Snow
+        texEntries.push({
+          binding: 6,
+          visibility: GPUShaderStage.FRAGMENT,
+          texture: { sampleType: "float" },
+        }); // Normal Map
+        texEntries.push({
+          binding: 7,
+          visibility: GPUShaderStage.FRAGMENT,
+          texture: { sampleType: "float" },
+        }); // Specular Map
       }
       const texBGL = this._device!.createBindGroupLayout({ entries: texEntries });
 
@@ -240,7 +292,11 @@ export class WebGPURenderer extends AbstractRenderer {
         vertex: { module: sm, entryPoint: "vs", buffers: vertexBuffers },
         fragment: { module: sm, entryPoint: "fs", targets },
         primitive: { topology, cullMode },
-        depthStencil: { depthWriteEnabled: depthWrite, depthCompare: "less-equal", format: "depth24plus" },
+        depthStencil: {
+          depthWriteEnabled: depthWrite,
+          depthCompare: "less-equal",
+          format: "depth24plus",
+        },
       });
 
       cache = { pipeline, layout: pipelineLayout, bgLayouts: [objBGL, texBGL] };
@@ -302,7 +358,9 @@ export class WebGPURenderer extends AbstractRenderer {
 
   private _getSampler(tex: Texture): GPUSampler {
     const useMipmaps = this._quality.mipmapping && tex.generateMipmaps;
-    const anisotropy = useMipmaps ? Math.min(this._quality.maxAnisotropy || 1, tex.anisotropy || 1) : 1;
+    const anisotropy = useMipmaps
+      ? Math.min(this._quality.maxAnisotropy || 1, tex.anisotropy || 1)
+      : 1;
 
     const key = `${tex.minFilter}_${tex.magFilter}_${tex.addressModeU}_${tex.addressModeV}_${useMipmaps}_${anisotropy}`;
     let sampler = this._samplerCache.get(key);
@@ -339,7 +397,10 @@ export class WebGPURenderer extends AbstractRenderer {
   private _getGeoCache(geo: GeometryDataInterface): WebGPUGeoCache {
     let c = this._geoCache.get(geo);
     if (!c) {
-      const createBuf = (data: Float32Array | Uint16Array | Uint32Array, usage: number): GPUBuffer => {
+      const createBuf = (
+        data: Float32Array | Uint16Array | Uint32Array,
+        usage: number,
+      ): GPUBuffer => {
         const b = this._device!.createBuffer({
           size: (data.byteLength + 3) & ~3,
           usage,
@@ -353,10 +414,19 @@ export class WebGPURenderer extends AbstractRenderer {
       };
       c = {
         vb: createBuf(geo.vertices, GPUBufferUsage.VERTEX),
-        nb: geo.normals && 0 < geo.normals.length ? createBuf(geo.normals, GPUBufferUsage.VERTEX) : null,
+        nb:
+          geo.normals && 0 < geo.normals.length
+            ? createBuf(geo.normals, GPUBufferUsage.VERTEX)
+            : null,
         uvb: geo.uvs && 0 < geo.uvs.length ? createBuf(geo.uvs, GPUBufferUsage.VERTEX) : null,
-        tb: geo.tangents && 0 < geo.tangents.length ? createBuf(geo.tangents, GPUBufferUsage.VERTEX) : null,
-        ib: geo.indices && 0 < geo.indices.length ? createBuf(geo.indices, GPUBufferUsage.INDEX) : null,
+        tb:
+          geo.tangents && 0 < geo.tangents.length
+            ? createBuf(geo.tangents, GPUBufferUsage.VERTEX)
+            : null,
+        ib:
+          geo.indices && 0 < geo.indices.length
+            ? createBuf(geo.indices, GPUBufferUsage.INDEX)
+            : null,
         wib:
           geo.wireframeIndices && 0 < geo.wireframeIndices.length
             ? createBuf(geo.wireframeIndices, GPUBufferUsage.INDEX)
@@ -429,28 +499,52 @@ export class WebGPURenderer extends AbstractRenderer {
 
   private _getTexBindGroup(manifest: RenderManifest, layout: GPUBindGroupLayout): GPUBindGroup {
     const entries: GPUBindGroupEntry[] = [];
-    
+
     if (manifest.shaderId === MaterialType.SKYBOX) {
       const tex = manifest.textures["u_skybox"] as CubeTexture;
-      entries.push({ binding: 0, resource: tex ? this._getGPUCubeTextureView(tex) : this._defaultCubeTexView });
+      entries.push({
+        binding: 0,
+        resource: tex ? this._getGPUCubeTextureView(tex) : this._defaultCubeTexView,
+      });
       entries.push({ binding: 1, resource: this._sampler });
     } else {
       const diff = manifest.textures["u_diffuseMap"] as Texture;
-      entries.push({ binding: 0, resource: diff ? this._getTextureView(diff) : this._whiteTexView });
+      entries.push({
+        binding: 0,
+        resource: diff ? this._getTextureView(diff) : this._whiteTexView,
+      });
       entries.push({ binding: 1, resource: diff ? this._getSampler(diff) : this._sampler });
-      
+
       const sand = manifest.textures["u_sandMap"] as Texture;
-      entries.push({ binding: 2, resource: sand ? this._getTextureView(sand) : this._whiteTexView });
+      entries.push({
+        binding: 2,
+        resource: sand ? this._getTextureView(sand) : this._whiteTexView,
+      });
       const grass = manifest.textures["u_grassMap"] as Texture;
-      entries.push({ binding: 3, resource: grass ? this._getTextureView(grass) : this._whiteTexView });
+      entries.push({
+        binding: 3,
+        resource: grass ? this._getTextureView(grass) : this._whiteTexView,
+      });
       const rock = manifest.textures["u_rockMap"] as Texture;
-      entries.push({ binding: 4, resource: rock ? this._getTextureView(rock) : this._whiteTexView });
+      entries.push({
+        binding: 4,
+        resource: rock ? this._getTextureView(rock) : this._whiteTexView,
+      });
       const snow = manifest.textures["u_snowMap"] as Texture;
-      entries.push({ binding: 5, resource: snow ? this._getTextureView(snow) : this._whiteTexView });
+      entries.push({
+        binding: 5,
+        resource: snow ? this._getTextureView(snow) : this._whiteTexView,
+      });
       const normal = manifest.textures["u_normalMap"] as Texture;
-      entries.push({ binding: 6, resource: normal ? this._getTextureView(normal) : this._flatNormalTexView });
+      entries.push({
+        binding: 6,
+        resource: normal ? this._getTextureView(normal) : this._flatNormalTexView,
+      });
       const specular = manifest.textures["u_specularMap"] as Texture;
-      entries.push({ binding: 7, resource: specular ? this._getTextureView(specular) : this._specularTexView });
+      entries.push({
+        binding: 7,
+        resource: specular ? this._getTextureView(specular) : this._specularTexView,
+      });
     }
 
     return this._device!.createBindGroup({ layout, entries });
@@ -462,33 +556,64 @@ export class WebGPURenderer extends AbstractRenderer {
 
     const ce = this._device.createCommandEncoder();
     const rp = ce.beginRenderPass({
-      colorAttachments: [{ view: this._context.getCurrentTexture().createView(), clearValue: this._clearColor, loadOp: "clear", storeOp: "store" }],
-      depthStencilAttachment: { view: this._depthTexture.createView(), depthClearValue: 1.0, depthLoadOp: "clear", depthStoreOp: "store" },
+      colorAttachments: [
+        {
+          view: this._context.getCurrentTexture().createView(),
+          clearValue: this._clearColor,
+          loadOp: "clear",
+          storeOp: "store",
+        },
+      ],
+      depthStencilAttachment: {
+        view: this._depthTexture.createView(),
+        depthClearValue: 1.0,
+        depthLoadOp: "clear",
+        depthStoreOp: "store",
+      },
     });
 
     const { aCol, dDir, dCol, pLights, sLights, aLights } = this.extractLights(scene);
 
     const plData = new Float32Array(32);
     pLights.forEach((pl, i) => {
-      plData.set([pl.worldMatrix.data[12]!, pl.worldMatrix.data[13]!, pl.worldMatrix.data[14]!, 0.0], i * 8);
-      plData.set([pl.color.r * pl.intensity, pl.color.g * pl.intensity, pl.color.b * pl.intensity, 0.0], i * 8 + 4);
+      plData.set(
+        [pl.worldMatrix.data[12]!, pl.worldMatrix.data[13]!, pl.worldMatrix.data[14]!, 0.0],
+        i * 8,
+      );
+      plData.set(
+        [pl.color.r * pl.intensity, pl.color.g * pl.intensity, pl.color.b * pl.intensity, 0.0],
+        i * 8 + 4,
+      );
     });
 
     const slData = new Float32Array(64);
     sLights.forEach((sl, i) => {
       const offset = i * 16;
-      slData.set([sl.worldMatrix.data[12]!, sl.worldMatrix.data[13]!, sl.worldMatrix.data[14]!, 0.0], offset);
+      slData.set(
+        [sl.worldMatrix.data[12]!, sl.worldMatrix.data[13]!, sl.worldMatrix.data[14]!, 0.0],
+        offset,
+      );
       const dir = sl.direction.clone().normalize();
       slData.set([dir.x, dir.y, dir.z, 0.0], offset + 4);
-      slData.set([sl.color.r * sl.intensity, sl.color.g * sl.intensity, sl.color.b * sl.intensity, 0.0], offset + 8);
-      slData.set([Math.cos(sl.angle), Math.cos(sl.angle * (1.0 - sl.penumbra)), sl.distance, sl.decay], offset + 12);
+      slData.set(
+        [sl.color.r * sl.intensity, sl.color.g * sl.intensity, sl.color.b * sl.intensity, 0.0],
+        offset + 8,
+      );
+      slData.set(
+        [Math.cos(sl.angle), Math.cos(sl.angle * (1.0 - sl.penumbra)), sl.distance, sl.decay],
+        offset + 12,
+      );
     });
 
     const alData = new Float32Array(96);
     aLights.forEach((al, i) => {
-      const mat = al.worldMatrix.data, offset = i * 24;
+      const mat = al.worldMatrix.data,
+        offset = i * 24;
       alData.set([mat[12]!, mat[13]!, mat[14]!, 0.0], offset);
-      alData.set([al.color.r * al.intensity, al.color.g * al.intensity, al.color.b * al.intensity, 0.0], offset + 4);
+      alData.set(
+        [al.color.r * al.intensity, al.color.g * al.intensity, al.color.b * al.intensity, 0.0],
+        offset + 4,
+      );
       alData.set([mat[0]!, mat[1]!, mat[2]!, 0.0], offset + 8);
       alData.set([mat[4]!, mat[5]!, mat[6]!, 0.0], offset + 12);
       alData.set([mat[8]!, mat[9]!, mat[10]!, 0.0], offset + 16);
@@ -500,12 +625,17 @@ export class WebGPURenderer extends AbstractRenderer {
 
       if (obj.geometry && obj.material) {
         const manifest = obj.material.getRenderManifest();
-        const topology: GPUPrimitiveTopology = manifest.shaderId === MaterialType.WIREFRAME ? "line-list" : "triangle-list";
+        const topology: GPUPrimitiveTopology =
+          manifest.shaderId === MaterialType.WIREFRAME ? "line-list" : "triangle-list";
 
         if (pass === 1) {
           if (manifest.shaderId !== MaterialType.SKYBOX && obj.frustumCulled) return;
         } else {
-          if (manifest.shaderId === MaterialType.SKYBOX || (manifest.shaderId === MaterialType.BASIC && !obj.frustumCulled)) return;
+          if (
+            manifest.shaderId === MaterialType.SKYBOX ||
+            (manifest.shaderId === MaterialType.BASIC && !obj.frustumCulled)
+          )
+            return;
         }
 
         const cache = this._getPipeline(manifest, topology);
@@ -514,14 +644,20 @@ export class WebGPURenderer extends AbstractRenderer {
         const uData = new Float32Array(80);
         uData.set(vpMatrix, 0);
         const modelMatrix = new Float32Array(obj.worldMatrix.data);
-        
+
         if (manifest.shaderId === MaterialType.SPRITE) {
-          const sx = Math.sqrt(modelMatrix[0]!**2 + modelMatrix[1]!**2 + modelMatrix[2]!**2);
-          const sy = Math.sqrt(modelMatrix[4]!**2 + modelMatrix[5]!**2 + modelMatrix[6]!**2);
-          const sz = Math.sqrt(modelMatrix[8]!**2 + modelMatrix[9]!**2 + modelMatrix[10]!**2);
-          modelMatrix[0] = vpMatrix[0]! * sx; modelMatrix[1] = vpMatrix[4]! * sx; modelMatrix[2] = vpMatrix[8]! * sx;
-          modelMatrix[4] = vpMatrix[1]! * sy; modelMatrix[5] = vpMatrix[5]! * sy; modelMatrix[6] = vpMatrix[9]! * sy;
-          modelMatrix[8] = vpMatrix[2]! * sz; modelMatrix[9] = vpMatrix[6]! * sz; modelMatrix[10] = vpMatrix[10]! * sz;
+          const sx = Math.sqrt(modelMatrix[0]! ** 2 + modelMatrix[1]! ** 2 + modelMatrix[2]! ** 2);
+          const sy = Math.sqrt(modelMatrix[4]! ** 2 + modelMatrix[5]! ** 2 + modelMatrix[6]! ** 2);
+          const sz = Math.sqrt(modelMatrix[8]! ** 2 + modelMatrix[9]! ** 2 + modelMatrix[10]! ** 2);
+          modelMatrix[0] = vpMatrix[0]! * sx;
+          modelMatrix[1] = vpMatrix[4]! * sx;
+          modelMatrix[2] = vpMatrix[8]! * sx;
+          modelMatrix[4] = vpMatrix[1]! * sy;
+          modelMatrix[5] = vpMatrix[5]! * sy;
+          modelMatrix[6] = vpMatrix[9]! * sy;
+          modelMatrix[8] = vpMatrix[2]! * sz;
+          modelMatrix[9] = vpMatrix[6]! * sz;
+          modelMatrix[10] = vpMatrix[10]! * sz;
         }
 
         uData.set(modelMatrix, 16);
@@ -531,22 +667,23 @@ export class WebGPURenderer extends AbstractRenderer {
         uData.set([dDir.x, dDir.y, dDir.z, 0.0], 48);
         uData.set([camPos.x, camPos.y, camPos.z, 0.0], 52);
         uData.set([1.0, 1.0], 58); // Default tRep to (1, 1)
-        uData[61] = pLights.length; uData[62] = sLights.length; uData[63] = aLights.length;
-// Map Material Properties from Manifest
-const props = manifest.properties;
-if (props["u_specColor"]) uData.set(props["u_specColor"].toArray(), 36);
-if (props["u_shininess"] !== undefined) uData[60] = props["u_shininess"];
-if (props["u_thresholds"]) uData.set(props["u_thresholds"], 64);
-if (manifest.shaderId === MaterialType.TERRAIN) uData[68] = 1.0;
+        uData[61] = pLights.length;
+        uData[62] = sLights.length;
+        uData[63] = aLights.length;
+        // Map Material Properties from Manifest
+        const props = manifest.properties;
+        if (props["u_specColor"]) uData.set(props["u_specColor"].toArray(), 36);
+        if (props["u_shininess"] !== undefined) uData[60] = props["u_shininess"];
+        if (props["u_thresholds"]) uData.set(props["u_thresholds"], 64);
+        if (manifest.shaderId === MaterialType.TERRAIN) uData[68] = 1.0;
 
-const diff = manifest.textures["u_diffuseMap"] as Texture;
-if (diff) {
-  uData.set([diff.offset.x, diff.offset.y], 56);
-  uData.set([diff.repeat.x, diff.repeat.y], 58);
-} else if (props["u_texRepeat"]) {
-  uData.set(props["u_texRepeat"], 58);
-}
-
+        const diff = manifest.textures["u_diffuseMap"] as Texture;
+        if (diff) {
+          uData.set([diff.offset.x, diff.offset.y], 56);
+          uData.set([diff.repeat.x, diff.repeat.y], 58);
+        } else if (props["u_texRepeat"]) {
+          uData.set(props["u_texRepeat"], 58);
+        }
 
         const bufs = this._getObjBuffers(obj);
         this._device!.queue.writeBuffer(bufs.ub, 0, uData);
@@ -573,7 +710,7 @@ if (diff) {
         }
       }
 
-      if (obj.children) obj.children.forEach(child => drawObject(child, pass));
+      if (obj.children) obj.children.forEach((child) => drawObject(child, pass));
     };
 
     for (const obj of scene.objects) drawObject(obj, 1);

@@ -34,6 +34,7 @@ export class Line extends AbstractGeometry {
       this.end.z,
     ]);
     this._uvs = new Float32Array([0, 0, 1, 1]);
-    this._indices = new Uint16Array([0, 1]);
+    this._indices = this._createIndexArray(2);
+    this._indices.set([0, 1]);
   }
 }

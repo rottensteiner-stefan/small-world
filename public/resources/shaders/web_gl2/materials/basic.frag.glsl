@@ -1,6 +1,6 @@
-// [INCLUDE_BASE]
+[BASE_FRAGMENT_HEADER]
 
 void main() {
   vec4 texColor = texture(u_diffuseMap, v_uv);
-  c = u_color * texColor;
+  fragColor = u_color * texColor;
 }
