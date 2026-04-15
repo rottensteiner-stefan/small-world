@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.15.05] - 2026-04-15
+
+- **TypeScript & Linting Fixes**:
+  - Removed unused `TerrainMaterial` import in `WebGL2Renderer` to fix `TS6133` error during declaration file generation.
+  - Standardized ESLint ecosystem on the latest stable versions within the v9/v8 range (`eslint` `^9.39.4`, `typescript-eslint` `^8.58.2`) to ensure compatibility with `eslint-plugin-import` while maximizing stability.
+  - Updated all core development tools (`@microsoft/api-extractor`, `@types/node`, `globals`, `prettier`, `simplex-noise`, `terser`) to their latest stable versions.
+- **Build Optimization**:
+  - Improved `vite-plugin-dts` performance by disabling `rollupTypes`, significantly reducing build time.
+  - Fixed Vite warning by removing the deprecated `compact` option from `rollupOptions.output` in `vite.lib.config.ts`.
+
 ## [0.15.04] - 2026-04-15
 
 - **Unified Texture Flip Handling**: Centralized vertical flip logic in `AssetManager` via `createImageBitmap`, ensuring consistent orientation across WebGL and WebGPU while removing redundant renderer-level flips.
