@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.15.03] - 2026-04-14
+
+- **Robust WebGPU Rendering**: 
+  - Major update to the **WebGPU Renderer** to implement defensive material property application, matching the reliability of the WebGL backends.
+  - Improved WebGPU shader stability with fallback logic for missing normal/specular maps and minimum ambient visibility.
+- **Model & Texture Fixes**:
+  - **Kenney Car (Example 3/4)**: Fixed "black/gray car" issue by removing redundant UV flips in `ObjLoader` and enforcing `NEAREST` filtering in `MtlLoader` to prevent color bleeding on small texture atlases.
+  - **Skydome (Example 9)**: Corrected upside-down texture by removing manual UV flipping in `Sphere` geometry, ensuring alignment with global renderer standards.
+- **Renderer Property Handling**: Standardized the use of `Float32Array` for all material color properties (`u_color`, `u_specColor`) in manifests, improving performance and type safety across all rendering APIs.
+- **Material Enhancements**: All core materials (`Basic`, `Phong`, `Lambert`, `Sprite`, `Terrain`, `World`, `Wireframe`, `Skybox`) now correctly expose UV transformation properties in their render manifests.
+
 ## [0.15.02] - 2026-04-14
 
 - **Recursive Rendering Fix**: Corrected WebGL renderers to properly process nested object hierarchies even when parent objects lack a material (essential for complex model groups).

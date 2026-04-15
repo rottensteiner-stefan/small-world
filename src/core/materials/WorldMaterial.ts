@@ -37,7 +37,7 @@ export class WorldMaterial extends AbstractMaterial {
     return {
       shaderId: this.type,
       properties: {
-        u_color: this.color.toArray(),
+        u_color: this.color.toFloat32Array(),
         u_texRepeat: this.diffuseMap
           ? [this.diffuseMap.repeat.x, this.diffuseMap.repeat.y]
           : [1, 1],

@@ -1,6 +1,6 @@
 /// src/renderers/WebGPURenderer.ts
 
-import { Texture, CubeTexture, ShaderRegistry, RenderManifest } from "../core/index.js";
+import { Texture, CubeTexture, ShaderRegistry, RenderManifest, PhongMaterial } from "../core/index.js";
 import { GeometryDataInterface } from "../interfaces/index.js";
 import { Object3D } from "../core/Object3D.js";
 import { Scene } from "../core/Scene.js";
@@ -664,33 +664,65 @@ export class WebGPURenderer extends AbstractRenderer {
         const props = manifest.properties;
 
         uData.set(modelMatrix, 16);
-        if (props["u_color"]) {
-          uData.set(props["u_color"] as number[], 32);
+        const manifestColor = props["u_color"];
+        if (manifestColor instanceof Float32Array || Array.isArray(manifestColor)) {
+          uData.set(manifestColor as any, 32);
         } else {
-          uData.set(obj.material.color.toArray(), 32);
+          uData.set(obj.material.color.toFloat32Array(), 32);
         }
+
         uData.set([aCol.r, aCol.g, aCol.b, 1.0], 40);
         uData.set([dCol.r, dCol.g, dCol.b, 1.0], 44);
         uData.set([dDir.x, dDir.y, dDir.z, 0.0], 48);
         uData.set([camPos.x, camPos.y, camPos.z, 0.0], 52);
-        uData.set([1.0, 1.0], 58); // Default tRep to (1, 1)
+        
+        const diff = manifest.textures["u_diffuseMap"] as Texture;
+
+        // UV Transformations
+        const mOff = props["u_texOffset"];
+        if (mOff instanceof Float32Array || Array.isArray(mOff)) {
+          uData.set(mOff as any, 56);
+        } else if (diff) {
+          uData.set([diff.offset.x, diff.offset.y], 56);
+        } else {
+          uData.set([0, 0], 56);
+        }
+
+        const mRep = props["u_texRepeat"];
+        if (mRep instanceof Float32Array || Array.isArray(mRep)) {
+          uData.set(mRep as any, 58);
+        } else if (diff) {
+          uData.set([diff.repeat.x, diff.repeat.y], 58);
+        } else {
+          uData.set([1, 1], 58);
+        }
+
         uData[61] = pLights.length;
         uData[62] = sLights.length;
         uData[63] = aLights.length;
         
-        if (props["u_specColor"]) uData.set(props["u_specColor"] as number[], 36);
-        if (props["u_shininess"] !== undefined) uData[60] = props["u_shininess"] as number;
-        if (props["u_thresholds"]) uData.set(props["u_thresholds"] as number[], 64);
-        if (manifest.shaderId === MaterialType.TERRAIN) uData[68] = 1.0;
-
-        if (props["u_texOffset"]) uData.set(props["u_texOffset"] as number[], 56);
-        if (props["u_texRepeat"]) uData.set(props["u_texRepeat"] as number[], 58);
-
-        const diff = manifest.textures["u_diffuseMap"] as Texture;
-        if (diff && !props["u_texOffset"] && !props["u_texRepeat"]) {
-          uData.set([diff.offset.x, diff.offset.y], 56);
-          uData.set([diff.repeat.x, diff.repeat.y], 58);
+        const mSpec = props["u_specColor"];
+        if (mSpec instanceof Float32Array || Array.isArray(mSpec)) {
+          uData.set(mSpec as any, 36);
+        } else if (obj.material instanceof PhongMaterial) {
+          uData.set((obj.material as PhongMaterial).specularColor.toFloat32Array(), 36);
+        } else {
+          uData.set([1, 1, 1, 1], 36);
         }
+
+        const mShininess = props["u_shininess"];
+        if (typeof mShininess === "number") {
+          uData[60] = mShininess;
+        } else {
+          uData[60] = (obj.material as any).shininess !== undefined ? (obj.material as any).shininess : 32.0;
+        }
+
+        const mThresh = props["u_thresholds"];
+        if (mThresh instanceof Float32Array || Array.isArray(mThresh)) {
+          uData.set(mThresh as any, 64);
+        }
+
+        if (manifest.shaderId === MaterialType.TERRAIN) uData[68] = 1.0;
 
         const bufs = this._getObjBuffers(obj);
         this._device!.queue.writeBuffer(bufs.ub, 0, uData);

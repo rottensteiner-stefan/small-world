@@ -1177,7 +1177,7 @@ export declare interface DirectionalLightOptions extends LightOptions {
     direction?: Vector3D;
 }
 
-export declare const ENGINE_VERSION = "0.15.02";
+export declare const ENGINE_VERSION = "0.15.03";
 
 export declare interface EngineConfig {
     canvasId?: string;
