@@ -1,5 +1,5 @@
 {
-  "rendererType": "WEB_GPU",
+  "rendererType": "WEB_GL2",
   "canvasId": "SmallWorld",
   "debug": true,
   "worldSize": 100,

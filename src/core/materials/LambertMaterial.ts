@@ -42,7 +42,7 @@ export class LambertMaterial extends AbstractMaterial {
     return {
       shaderId: this.type,
       properties: {
-        u_color: this.color.toArray(),
+        u_color: this.color.toFloat32Array(),
         u_shininess: 0.0, // Lambert is un-shiny
         u_texOffset: this.diffuseMap
           ? [this.diffuseMap.offset.x, this.diffuseMap.offset.y]

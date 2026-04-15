@@ -73,8 +73,8 @@ export class PhongMaterial extends AbstractMaterial {
     return {
       shaderId: this.type,
       properties: {
-        u_color: this.color.toArray(),
-        u_specColor: this.specularColor.toArray(),
+        u_color: this.color.toFloat32Array(),
+        u_specColor: this.specularColor.toFloat32Array(),
         u_shininess: this.shininess,
         u_texOffset: this.diffuseMap
           ? [this.diffuseMap.offset.x, this.diffuseMap.offset.y]

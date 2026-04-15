@@ -43,7 +43,7 @@ export class SpriteMaterial extends AbstractMaterial {
     return {
       shaderId: this.type,
       properties: {
-        u_color: this.color.toArray(),
+        u_color: this.color.toFloat32Array(),
         u_texOffset: this.texture ? [this.texture.offset.x, this.texture.offset.y] : [0, 0],
         u_texRepeat: this.texture ? [this.texture.repeat.x, this.texture.repeat.y] : [1, 1],
       },

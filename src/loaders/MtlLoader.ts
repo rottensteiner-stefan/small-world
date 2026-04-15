@@ -2,7 +2,7 @@
 
 import { AbstractLoader } from "./AbstractLoader.js";
 import { AssetManager } from "./AssetManager.js";
-import { EventType } from "../enums/index.js";
+import { EventType, TextureFilter } from "../enums/index.js";
 import { PhongMaterial } from "../core/index.js";
 import { Texture } from "../core/index.js";
 
@@ -58,11 +58,11 @@ export class MtlLoader extends AbstractLoader<Map<string, PhongMaterial>> {
           parseFloat(parts[3] ?? "1"),
         );
       } else if ("Ks" === type && currentMat) {
-        currentMat.specularColor.set(
-          parseFloat(parts[1] ?? "1"),
-          parseFloat(parts[2] ?? "1"),
-          parseFloat(parts[3] ?? "1"),
-        );
+        const r = parseFloat(parts[1] ?? "1");
+        const g = parseFloat(parts[2] ?? "1");
+        const b = parseFloat(parts[3] ?? "1");
+        // Ensure some specularity if defined, but not zero
+        currentMat.specularColor.set(Math.max(r, 0.05), Math.max(g, 0.05), Math.max(b, 0.05));
       } else if ("Ns" === type && currentMat) {
         currentMat.shininess = parseFloat(parts[1] ?? "32");
       } else if ("map_Kd" === type && currentMat) {
@@ -77,7 +77,10 @@ export class MtlLoader extends AbstractLoader<Map<string, PhongMaterial>> {
             undefined,
             false,
           );
-          currentMat.diffuseMap = Texture.fromImage(image);
+          currentMat.diffuseMap = Texture.fromImage(image, {
+            magFilter: TextureFilter.NEAREST,
+            minFilter: TextureFilter.NEAREST,
+          });
         } catch (e) {
           console.error(`[MtlLoader] Failed to load texture: ${texUrl}`, e);
         }
@@ -90,7 +93,10 @@ export class MtlLoader extends AbstractLoader<Map<string, PhongMaterial>> {
           undefined,
           false,
         );
-        currentMat.normalMap = Texture.fromImage(image);
+        currentMat.normalMap = Texture.fromImage(image, {
+          magFilter: TextureFilter.NEAREST,
+          minFilter: TextureFilter.NEAREST,
+        });
       }
     }
 

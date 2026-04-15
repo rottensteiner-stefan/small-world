@@ -166,7 +166,7 @@ export class ObjLoader extends AbstractLoader<Object3D> {
       const vtIdx: number = (parseInt(parts[1]!) - 1) * 2;
       // Safety check for bounds
       if (vtIdx >= 0 && vtIdx + 1 < tempVT.length) {
-        group.outUVs.push(tempVT[vtIdx]!, 1.0 - tempVT[vtIdx + 1]!);
+        group.outUVs.push(tempVT[vtIdx]!, tempVT[vtIdx + 1]!);
       } else {
         group.outUVs.push(0, 0);
       }

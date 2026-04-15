@@ -36,7 +36,7 @@ export class BasicMaterial extends AbstractMaterial {
     return {
       shaderId: this.type,
       properties: {
-        u_color: this.color.toArray(),
+        u_color: this.color.toFloat32Array(),
         u_texOffset: this.diffuseMap
           ? [this.diffuseMap.offset.x, this.diffuseMap.offset.y]
           : [0, 0],

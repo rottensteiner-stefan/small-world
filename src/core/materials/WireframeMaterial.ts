@@ -21,7 +21,7 @@ export class WireframeMaterial extends AbstractMaterial {
     return {
       shaderId: this.type,
       properties: {
-        u_color: this.color.toArray(),
+        u_color: this.color.toFloat32Array(),
       },
       textures: {},
       state: {

@@ -42,7 +42,7 @@ export class SkyboxMaterial extends AbstractMaterial {
     return {
       shaderId: this.type,
       properties: {
-        u_color: this.color.toArray(),
+        u_color: this.color.toFloat32Array(),
       },
       textures: {
         u_skybox: this.cubeMap || undefined,

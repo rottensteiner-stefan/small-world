@@ -459,16 +459,16 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
 
       if (u.get("u_color")) {
         const c = props["u_color"];
-        if (Array.isArray(c)) {
-          this.gl.uniform4fv(u.get("u_color")!, new Float32Array(c));
+        if (c instanceof Float32Array || Array.isArray(c)) {
+          this.gl.uniform4fv(u.get("u_color")!, c as any);
         } else {
           this.gl.uniform4fv(u.get("u_color")!, mat.color.toFloat32Array());
         }
       }
       if (u.get("u_specColor")) {
         const sc = props["u_specColor"];
-        if (Array.isArray(sc)) {
-          this.gl.uniform4fv(u.get("u_specColor")!, new Float32Array(sc));
+        if (sc instanceof Float32Array || Array.isArray(sc)) {
+          this.gl.uniform4fv(u.get("u_specColor")!, sc as any);
         } else if (mat instanceof PhongMaterial) {
           this.gl.uniform4fv(u.get("u_specColor")!, (mat as PhongMaterial).specularColor.toFloat32Array());
         } else {
@@ -484,16 +484,16 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       }
       if (u.get("u_thresholds")) {
         const t = props["u_thresholds"];
-        if (Array.isArray(t)) {
-          this.gl.uniform4fv(u.get("u_thresholds")!, new Float32Array(t));
+        if (t instanceof Float32Array || Array.isArray(t)) {
+          this.gl.uniform4fv(u.get("u_thresholds")!, t as any);
         } else if ((mat as any).thresholds) {
           this.gl.uniform4fv(u.get("u_thresholds")!, new Float32Array((mat as any).thresholds));
         }
       }
       if (u.get("u_texOffset")) {
         const off = props["u_texOffset"];
-        if (Array.isArray(off)) {
-          this.gl.uniform2fv(u.get("u_texOffset")!, new Float32Array(off));
+        if (off instanceof Float32Array || Array.isArray(off)) {
+          this.gl.uniform2fv(u.get("u_texOffset")!, off as any);
         } else {
           const diff = texs["u_diffuseMap"] as Texture;
           this.gl.uniform2f(u.get("u_texOffset")!, diff ? diff.offset.x : 0, diff ? diff.offset.y : 0);
@@ -501,8 +501,8 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       }
       if (u.get("u_texRepeat")) {
         const rep = props["u_texRepeat"];
-        if (Array.isArray(rep)) {
-          this.gl.uniform2fv(u.get("u_texRepeat")!, new Float32Array(rep));
+        if (rep instanceof Float32Array || Array.isArray(rep)) {
+          this.gl.uniform2fv(u.get("u_texRepeat")!, rep as any);
         } else {
           const diff = texs["u_diffuseMap"] as Texture;
           this.gl.uniform2f(u.get("u_texRepeat")!, diff ? diff.repeat.x : 1, diff ? diff.repeat.y : 1);
@@ -542,13 +542,11 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         // Specular Map
         this.gl.activeTexture(this.gl.TEXTURE2);
         const specularMap = texs["u_specularMap"] as Texture;
-        if (specularMap) {
-          this.gl.bindTexture(this.gl.TEXTURE_2D, this._getWebGLTexture(specularMap));
-          if (u.get("u_specularMap")) this.gl.uniform1i(u.get("u_specularMap")!, 2);
-        } else {
-          this.gl.bindTexture(this.gl.TEXTURE_2D, this.defaultSpecularMap);
-          if (u.get("u_specularMap")) this.gl.uniform1i(u.get("u_specularMap")!, 2);
-        }
+        this.gl.bindTexture(
+          this.gl.TEXTURE_2D,
+          specularMap ? this._getWebGLTexture(specularMap) : this.defaultSpecularMap,
+        );
+        if (u.get("u_specularMap")) this.gl.uniform1i(u.get("u_specularMap")!, 2);
 
         // Terrain Maps (if present)
         if (u.get("u_sandMap")) {

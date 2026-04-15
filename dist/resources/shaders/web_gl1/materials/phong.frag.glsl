@@ -6,10 +6,21 @@ void main() {
   float specMap = texture2D(u_specularMap, v_uv).r;
 
   vec3 normalMap = texture2D(u_normalMap, v_uv).rgb;
-  normalMap = normalize(normalMap * 2.0 - 1.0);
-  vec3 N = normalize(v_tbn * normalMap);
+  vec3 N;
+  if (normalMap.b > 0.9 && normalMap.r > 0.4 && normalMap.r < 0.6 && normalMap.g > 0.4 && normalMap.g < 0.6) {
+    N = normalize(v_normal);
+  } else {
+    normalMap = normalize(normalMap * 2.0 - 1.0);
+    N = normalize(v_tbn * normalMap);
+  }
 
   [LIGHT_CALC]
 
-  gl_FragColor = vec4((finalLight * u_color.rgb * texColor.rgb) + (specular * u_specColor.rgb * specMap), u_color.a * texColor.a);
+  vec3 diffuseColor = texColor.rgb * u_color.rgb;
+  vec3 ambientFinal = u_ambientColor * diffuseColor;
+  if (length(ambientFinal) < 0.05) {
+    ambientFinal = u_ambientColor * u_color.rgb * 0.5;
+  }
+
+  gl_FragColor = vec4(ambientFinal + (finalLight - u_ambientColor) * diffuseColor + (specular * u_specColor.rgb * specMap), u_color.a * texColor.a);
 }

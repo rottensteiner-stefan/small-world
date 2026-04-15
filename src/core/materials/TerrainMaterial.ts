@@ -85,7 +85,7 @@ export class TerrainMaterial extends AbstractMaterial {
     return {
       shaderId: this.type,
       properties: {
-        u_color: this.color.toArray(),
+        u_color: this.color.toFloat32Array(),
         u_shininess: this.shininess,
         u_texRepeat: this.texRepeat,
         u_thresholds: this.thresholds,
