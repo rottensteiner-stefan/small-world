@@ -9,5 +9,6 @@ export * from "./EngineConfig.js";
 export * from "./Events.js";
 export * from "./Geometry.js";
 export * from "./GeometryData.js";
+export * from "./LoaderOptions.js";
 export * from "./Renderer.js";
 export * from "./Vector.js";

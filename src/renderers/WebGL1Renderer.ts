@@ -10,8 +10,9 @@ import {
   Texture,
   ShaderRegistry,
   PhongMaterial,
+  TerrainMaterial,
 } from "../core/index.js";
-import { GeometryDataInterface } from "../interfaces/index.js";
+import { GeometryDataInterface, LightDataInterface } from "../interfaces/index.js";
 import {
   CullMode,
   MaterialType,
@@ -77,7 +78,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
       this._quality = { ...this._quality, ...config.quality };
     }
 
-    this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, true);
+    this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, false);
     this.initDefaultTextures();
     this.gl.enable(this.gl.DEPTH_TEST);
   }
@@ -329,7 +330,12 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
     }
   }
 
-  private _drawObject(o: Object3D, vp: Float32Array, camPos: Vector3D, lights: any): void {
+  private _drawObject(
+    o: Object3D,
+    vp: Float32Array,
+    camPos: Vector3D,
+    lights: LightDataInterface,
+  ): void {
     if (!o.isVisible) return;
 
     if (o.geometry && o.material) {
@@ -460,7 +466,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
       if (u.get("u_color")) {
         const c = props["u_color"];
         if (c instanceof Float32Array || Array.isArray(c)) {
-          this.gl.uniform4fv(u.get("u_color")!, c as any);
+          this.gl.uniform4fv(u.get("u_color")!, c as Float32List);
         } else {
           this.gl.uniform4fv(u.get("u_color")!, mat.color.toFloat32Array());
         }
@@ -468,9 +474,12 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
       if (u.get("u_specColor")) {
         const sc = props["u_specColor"];
         if (sc instanceof Float32Array || Array.isArray(sc)) {
-          this.gl.uniform4fv(u.get("u_specColor")!, sc as any);
+          this.gl.uniform4fv(u.get("u_specColor")!, sc as Float32List);
         } else if (mat instanceof PhongMaterial) {
-          this.gl.uniform4fv(u.get("u_specColor")!, (mat as PhongMaterial).specularColor.toFloat32Array());
+          this.gl.uniform4fv(
+            u.get("u_specColor")!,
+            (mat as PhongMaterial).specularColor.toFloat32Array(),
+          );
         } else {
           this.gl.uniform4f(u.get("u_specColor")!, 1, 1, 1, 1);
         }
@@ -479,33 +488,45 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
         const s = props["u_shininess"];
         this.gl.uniform1f(
           u.get("u_shininess")!,
-          typeof s === "number" ? s : (mat as any).shininess !== undefined ? (mat as any).shininess : -1.0,
+          typeof s === "number"
+            ? s
+            : mat instanceof PhongMaterial
+              ? mat.shininess
+              : -1.0,
         );
       }
       if (u.get("u_thresholds")) {
         const t = props["u_thresholds"];
         if (t instanceof Float32Array || Array.isArray(t)) {
-          this.gl.uniform4fv(u.get("u_thresholds")!, t as any);
-        } else if ((mat as any).thresholds) {
-          this.gl.uniform4fv(u.get("u_thresholds")!, new Float32Array((mat as any).thresholds));
+          this.gl.uniform4fv(u.get("u_thresholds")!, t as Float32List);
+        } else if (mat instanceof TerrainMaterial) {
+          this.gl.uniform4fv(u.get("u_thresholds")!, new Float32Array(mat.thresholds));
         }
       }
       if (u.get("u_texOffset")) {
         const off = props["u_texOffset"];
         if (off instanceof Float32Array || Array.isArray(off)) {
-          this.gl.uniform2fv(u.get("u_texOffset")!, off as any);
+          this.gl.uniform2fv(u.get("u_texOffset")!, off as Float32List);
         } else {
           const diff = texs["u_diffuseMap"] as Texture;
-          this.gl.uniform2f(u.get("u_texOffset")!, diff ? diff.offset.x : 0, diff ? diff.offset.y : 0);
+          this.gl.uniform2f(
+            u.get("u_texOffset")!,
+            diff ? diff.offset.x : 0,
+            diff ? diff.offset.y : 0,
+          );
         }
       }
       if (u.get("u_texRepeat")) {
         const rep = props["u_texRepeat"];
         if (rep instanceof Float32Array || Array.isArray(rep)) {
-          this.gl.uniform2fv(u.get("u_texRepeat")!, rep as any);
+          this.gl.uniform2fv(u.get("u_texRepeat")!, rep as Float32List);
         } else {
           const diff = texs["u_diffuseMap"] as Texture;
-          this.gl.uniform2f(u.get("u_texRepeat")!, diff ? diff.repeat.x : 1, diff ? diff.repeat.y : 1);
+          this.gl.uniform2f(
+            u.get("u_texRepeat")!,
+            diff ? diff.repeat.x : 1,
+            diff ? diff.repeat.y : 1,
+          );
         }
       }
 

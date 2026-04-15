@@ -639,9 +639,7 @@ export class Color {
     // Normalize h to 0-1
     h = (((h % 360) + 360) % 360) / 360;
 
-    let r = 0,
-      g = 0,
-      b = 0;
+    let r: number, g: number, b: number;
 
     if (s === 0) {
       r = g = b = l; // Achromatic

@@ -3,10 +3,20 @@
 import { AssetManager } from "./AssetManager.js";
 import { EventType } from "../enums/index.js";
 import { AbstractLoader } from "./AbstractLoader.js";
+import { LoaderOptions } from "../interfaces/index.js";
+
 /**
  * Loader for text assets.
  */
 export class TextLoader extends AbstractLoader<string> {
+  /**
+   * Creates a new TextLoader.
+   * @param options Optional configuration options.
+   */
+  constructor(options: LoaderOptions = {}) {
+    super(options);
+  }
+
   /** @inheritdoc */
   public override async load(url: string): Promise<string> {
     const fullUrl: string = this.basePath + url;

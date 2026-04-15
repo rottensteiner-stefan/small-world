@@ -134,7 +134,7 @@ export class AssetManager {
       }
       if (value) {
         loaded += value.length;
-        chunks.push(value);
+        chunks.push(value as any);
         updateProgress(loaded, total);
       }
     }
@@ -155,7 +155,7 @@ export class AssetManager {
   public static async loadImage(
     url: string,
     onProgress?: ProgressCallback,
-    flipY: boolean = true,
+    flipY: boolean = false,
   ): Promise<ImageBitmap | HTMLImageElement> {
     const cacheKey: string = `${url}_${flipY}`;
     if (this._imageCache.has(cacheKey)) return this._imageCache.get(cacheKey)!;

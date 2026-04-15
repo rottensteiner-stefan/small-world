@@ -1,6 +1,12 @@
 /// src/renderers/WebGPURenderer.ts
 
-import { Texture, CubeTexture, ShaderRegistry, RenderManifest, PhongMaterial } from "../core/index.js";
+import {
+  Texture,
+  CubeTexture,
+  ShaderRegistry,
+  RenderManifest,
+  PhongMaterial,
+} from "../core/index.js";
 import { GeometryDataInterface } from "../interfaces/index.js";
 import { Object3D } from "../core/Object3D.js";
 import { Scene } from "../core/Scene.js";
@@ -321,7 +327,7 @@ export class WebGPURenderer extends AbstractRenderer {
           GPUTextureUsage.RENDER_ATTACHMENT,
       });
       this._device!.queue.copyExternalImageToTexture(
-        { source: tex.image, flipY: true },
+        { source: tex.image, flipY: false },
         { texture: t },
         [tex.image.width, tex.image.height],
       );
@@ -675,7 +681,7 @@ export class WebGPURenderer extends AbstractRenderer {
         uData.set([dCol.r, dCol.g, dCol.b, 1.0], 44);
         uData.set([dDir.x, dDir.y, dDir.z, 0.0], 48);
         uData.set([camPos.x, camPos.y, camPos.z, 0.0], 52);
-        
+
         const diff = manifest.textures["u_diffuseMap"] as Texture;
 
         // UV Transformations
@@ -700,7 +706,7 @@ export class WebGPURenderer extends AbstractRenderer {
         uData[61] = pLights.length;
         uData[62] = sLights.length;
         uData[63] = aLights.length;
-        
+
         const mSpec = props["u_specColor"];
         if (mSpec instanceof Float32Array || Array.isArray(mSpec)) {
           uData.set(mSpec as any, 36);
@@ -714,7 +720,8 @@ export class WebGPURenderer extends AbstractRenderer {
         if (typeof mShininess === "number") {
           uData[60] = mShininess;
         } else {
-          uData[60] = (obj.material as any).shininess !== undefined ? (obj.material as any).shininess : 32.0;
+          uData[60] =
+            (obj.material as any).shininess !== undefined ? (obj.material as any).shininess : 32.0;
         }
 
         const mThresh = props["u_thresholds"];

@@ -1,8 +1,15 @@
 # Changelog
 
+## [0.15.04] - 2026-04-15
+
+- **Unified Texture Flip Handling**: Centralized vertical flip logic in `AssetManager` via `createImageBitmap`, ensuring consistent orientation across WebGL and WebGPU while removing redundant renderer-level flips.
+- **Enhanced Configuration Options**: Added optional `flipY` control to `TextureOptions` and `ImageLoader`, defaulting to `false` (web-standard top-down) to correctly support skydomes and other top-down textures.
+- **Architectural Loader Overhaul**: Refactored all loaders (`ImageLoader`, `ObjLoader`, `MtlLoader`, `SkyboxLoader`, `TextLoader`) to use standardized Configuration Objects (`LoaderOptions`, `ImageLoaderOptions`) in their constructors, improving maintainability and adhering to `AGENTS.md` standards.
+- **OBJ & MTL Path Consistency**: Improved path resolution in `ObjLoader` to automatically pass its base path to the internal `MtlLoader` for more reliable model loading.
+
 ## [0.15.03] - 2026-04-14
 
-- **Robust WebGPU Rendering**: 
+- **Robust WebGPU Rendering**:
   - Major update to the **WebGPU Renderer** to implement defensive material property application, matching the reliability of the WebGL backends.
   - Improved WebGPU shader stability with fallback logic for missing normal/specular maps and minimum ambient visibility.
 - **Model & Texture Fixes**:

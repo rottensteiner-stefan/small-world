@@ -3,11 +3,24 @@
 import { AbstractLoader } from "./AbstractLoader.js";
 import { AssetManager } from "./AssetManager.js";
 import { EventType } from "../enums/index.js";
+import { ImageLoaderOptions } from "../interfaces/index.js";
 
 /**
  * Loader for image assets.
  */
 export class ImageLoader extends AbstractLoader<ImageBitmap | HTMLImageElement> {
+  /** Whether the image should be flipped vertically during loading. */
+  public flipY: boolean = false;
+
+  /**
+   * Creates a new ImageLoader.
+   * @param options Optional configuration options.
+   */
+  constructor(options: ImageLoaderOptions = {}) {
+    super(options);
+    this.flipY = options.flipY ?? false;
+  }
+
   /** @inheritdoc */
   public override async load(url: string): Promise<ImageBitmap | HTMLImageElement> {
     const fullUrl: string = this.basePath + url;
@@ -19,6 +32,7 @@ export class ImageLoader extends AbstractLoader<ImageBitmap | HTMLImageElement> 
         (loaded: number, total: number) => {
           this.dispatchEvent(EventType.LOADER_PROGRESS, { url: fullUrl, loaded, total });
         },
+        this.flipY,
       );
 
       this.dispatchEvent(EventType.LOADER_END, { url: fullUrl, data: image });

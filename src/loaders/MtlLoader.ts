@@ -5,8 +5,17 @@ import { AssetManager } from "./AssetManager.js";
 import { EventType, TextureFilter } from "../enums/index.js";
 import { PhongMaterial } from "../core/index.js";
 import { Texture } from "../core/index.js";
+import { LoaderOptions } from "../interfaces/index.js";
 
 export class MtlLoader extends AbstractLoader<Map<string, PhongMaterial>> {
+  /**
+   * Creates a new MtlLoader.
+   * @param options Optional configuration options.
+   */
+  constructor(options: LoaderOptions = {}) {
+    super(options);
+  }
+
   public override async load(url: string): Promise<Map<string, PhongMaterial>> {
     const fullUrl: string = this.basePath + url;
     this.dispatchEvent(EventType.LOADER_START, { url: fullUrl });
@@ -69,13 +78,13 @@ export class MtlLoader extends AbstractLoader<Map<string, PhongMaterial>> {
         const texPath: string = line.substring(line.indexOf(" ") + 1).trim();
         const texUrl: string = folderPath + texPath;
 
-        // --- THE FIX: We use the AssetManager with flipY = false ---
-        // The renderer handles flipping during upload to GPU!
+        // --- THE FIX: We use the AssetManager with flipY = true ---
+        // The renderer NO LONGER handles flipping; it's done during image creation!
         try {
           const image: ImageBitmap | HTMLImageElement = await AssetManager.loadImage(
             texUrl,
             undefined,
-            false,
+            true,
           );
           currentMat.diffuseMap = Texture.fromImage(image, {
             magFilter: TextureFilter.NEAREST,
@@ -91,7 +100,7 @@ export class MtlLoader extends AbstractLoader<Map<string, PhongMaterial>> {
         const image: ImageBitmap | HTMLImageElement = await AssetManager.loadImage(
           texUrl,
           undefined,
-          false,
+          true,
         );
         currentMat.normalMap = Texture.fromImage(image, {
           magFilter: TextureFilter.NEAREST,

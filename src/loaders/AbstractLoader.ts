@@ -1,7 +1,7 @@
 /// src/loaders/AbstractLoader.ts
 
 import { EventDispatcherImpl, EventHandler } from "../core/index.js";
-import { Events } from "../interfaces/index.js";
+import { Events, LoaderOptions } from "../interfaces/index.js";
 import { EventType } from "../enums/index.js";
 
 /**
@@ -12,6 +12,14 @@ export abstract class AbstractLoader<T> implements Events {
   /** The base path for resource URLs. */
   public basePath: string = "";
   private _dispatcher: EventDispatcherImpl = new EventDispatcherImpl();
+
+  /**
+   * Creates a new AbstractLoader.
+   * @param options Optional configuration options.
+   */
+  constructor(options: LoaderOptions = {}) {
+    this.basePath = options.basePath ?? "";
+  }
 
   /**
    * Sets the base path for the loader.

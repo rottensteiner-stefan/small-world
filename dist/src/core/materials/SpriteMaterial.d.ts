@@ -1,0 +1,27 @@
+import { Color } from '../colors/index.js';
+import { AbstractMaterial } from './AbstractMaterial.js';
+import { MaterialType } from '../../enums/index.js';
+import { Texture } from '../textures/Texture.js';
+import { RenderManifest } from '../renderers/shaders/RenderManifest.js';
+/**
+ * Material for rendering 2D sprites.
+ */
+export declare class SpriteMaterial extends AbstractMaterial {
+    /** @inheritdoc */
+    readonly type: MaterialType;
+    /** The texture to display on the sprite. */
+    texture: Texture | undefined;
+    /** Whether the sprite is transparent. Defaults to true. */
+    transparent: boolean;
+    /**
+     * Creates a new SpriteMaterial.
+     * @param options The texture for the sprite or a configuration object.
+     */
+    constructor(options?: Texture | {
+        texture?: Texture;
+        color?: Color;
+        transparent?: boolean;
+    });
+    /** @inheritdoc */
+    getRenderManifest(): RenderManifest;
+}
