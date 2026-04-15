@@ -28,13 +28,12 @@ export default defineConfig({
     },
     rollupOptions: {
       output: {
-        compact: true,
       },
     },
   },
   plugins: [
     dts({
-      rollupTypes: true,
+      rollupTypes: false,
     }),
   ],
 });

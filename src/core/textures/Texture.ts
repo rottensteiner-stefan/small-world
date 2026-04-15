@@ -19,6 +19,8 @@ export interface TextureOptions {
   generateMipmaps?: boolean;
   /** Requested anisotropic filtering level. Defaults to 1. */
   anisotropy?: number;
+  /** Whether the image should be flipped vertically during loading. Defaults to false. */
+  flipY?: boolean;
 }
 
 /**
@@ -124,7 +126,7 @@ export class Texture {
    * @returns A promise that resolves to a new Texture instance.
    */
   public static async fromUrl(url: string, options?: TextureOptions): Promise<Texture> {
-    const image = await AssetManager.loadImage(url);
+    const image = await AssetManager.loadImage(url, undefined, options?.flipY);
     return new Texture(image, options);
   }
 }

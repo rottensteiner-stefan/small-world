@@ -4,11 +4,20 @@ import { AssetManager } from "./AssetManager.js";
 import { CubeTexture } from "../core/index.js";
 import { EventType } from "../enums/index.js";
 import { AbstractLoader } from "./AbstractLoader.js";
+import { LoaderOptions } from "../interfaces/index.js";
 
 /**
  * Loader for cube map skybox textures from a single cross-layout image.
  */
 export class SkyboxLoader extends AbstractLoader<CubeTexture> {
+  /**
+   * Creates a new SkyboxLoader.
+   * @param options Optional configuration options.
+   */
+  constructor(options: LoaderOptions = {}) {
+    super(options);
+  }
+
   /** @inheritdoc */
   public override async load(url: string): Promise<CubeTexture> {
     const fullUrl: string = this.basePath + url;

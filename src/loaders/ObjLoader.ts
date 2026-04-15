@@ -5,6 +5,7 @@ import { EventType } from "../enums/index.js";
 import { ModelGeometry } from "../geometry/index.js";
 import { Object3D } from "../core/index.js";
 import { PhongMaterial } from "../core/index.js";
+import { LoaderOptions } from "../interfaces/index.js";
 
 // Helper class to sort geometry parts by material
 class MaterialGroup {
@@ -18,6 +19,14 @@ class MaterialGroup {
 }
 
 export class ObjLoader extends AbstractLoader<Object3D> {
+  /**
+   * Creates a new ObjLoader.
+   * @param options Optional configuration options.
+   */
+  constructor(options: LoaderOptions = {}) {
+    super(options);
+  }
+
   public override async load(url: string): Promise<Object3D> {
     const fullUrl: string = this.basePath + url;
     this.dispatchEvent(EventType.LOADER_START, { url: fullUrl });
@@ -77,8 +86,8 @@ export class ObjLoader extends AbstractLoader<Object3D> {
       const type: string = parts[0]!;
 
       if ("mtllib" === type) {
-        const mtlLoader: MtlLoader = new MtlLoader();
-        materials = await mtlLoader.load(folderPath + parts[1]!);
+        const mtlLoader: MtlLoader = new MtlLoader({ basePath: folderPath });
+        materials = await mtlLoader.load(parts[1]!);
       } else if ("usemtl" === type) {
         const matName: string = parts[1]!;
         if (!groups.has(matName)) {

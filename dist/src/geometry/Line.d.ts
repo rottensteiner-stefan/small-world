@@ -1,0 +1,19 @@
+import { AbstractGeometry } from './AbstractGeometry.js';
+import { Vector3D } from '../math/Vector3D.js';
+/**
+ * A simple line geometry.
+ */
+export declare class Line extends AbstractGeometry {
+    start: Vector3D;
+    end: Vector3D;
+    /**
+     * Creates a new Line geometry.
+     * @param start The start point.
+     * @param end The end point.
+     */
+    constructor(start: Vector3D, end: Vector3D);
+    /**
+     * @inheritdoc
+     */
+    protected generateGeometryData(): void;
+}
