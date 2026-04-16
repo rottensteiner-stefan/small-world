@@ -1,60 +1,22 @@
 <!doctype html>
-<html lang="de">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Example 3 - OBJ Loader</title>
-    <style>
-      body {
-        margin: 0;
-        overflow: hidden;
-        background-color: #000;
-      }
-
-      canvas {
-        display: block;
-        width: 100vw;
-        height: 100vh;
-      }
-
-      .back-btn {
-        position: absolute;
-        top: 10px;
-        left: 10px;
-        color: white;
-        background: rgba(0, 0, 0, 0.5);
-        padding: 5px 10px;
-        text-decoration: none;
-        font-family: sans-serif;
-        border-radius: 4px;
-        z-index: 1000;
-      }
-
-      .back-btn:hover {
-        background: rgba(255, 255, 255, 0.2);
-      }
-
-      .instructions {
-        position: absolute;
-        bottom: 10px;
-        left: 10px;
-        color: white;
-        background: rgba(0, 0, 0, 0.5);
-        padding: 10px;
-        border-radius: 4px;
-        font-family: sans-serif;
-        pointer-events: none;
-      }
-    </style>
+    <title>Small World - Example 3</title>
+    <link rel="stylesheet" href="/resources/examples/examples.css" />
     <script type="module" crossorigin src="/examples/example3/demo.js"></script>
     <link rel="modulepreload" crossorigin href="/js/AbstractExample.js">
   </head>
   <body>
-    <a href="/" class="back-btn">← Zurück zur Übersicht</a>
-    <div class="instructions">
-      Steuerung: Klick für Maus-Fokus | Maus zum Umsehen (Orbit) | ESC zum Beenden
+    <a href="/" class="back-btn">← Back to Overview</a>
+    <div id="info">
+      <h1>Example 3: OBJ & MTL Loader</h1>
+      <p>Click to capture mouse. ESC to release.</p>
+      <p>Mouse to orbit around the object.</p>
     </div>
 
     <canvas id="SmallWorld"></canvas>
+
   </body>
 </html>

@@ -7,6 +7,6 @@ export declare class Example7 extends AbstractExample {
     private _eyeHeight;
     protected onCanvasRecreated(): void;
     protected setupScene(): Promise<void>;
-    protected update(deltaTime: number): void;
+    protected update(_deltaTime: number): void;
     protected getDebugInfo(): Record<string, string | number>;
 }
