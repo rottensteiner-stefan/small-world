@@ -39,18 +39,28 @@ export class SkyboxMaterial extends AbstractMaterial {
 
   /** @inheritdoc */
   public override getRenderManifest(): RenderManifest {
-    return {
-      shaderId: this.type,
-      properties: {
-        u_color: this.color.toFloat32Array(),
-      },
-      textures: {
-        u_skybox: this.cubeMap || undefined,
-      },
-      state: {
-        depthWrite: false,
-        culling: CullMode.NONE, // Skybox is visible from the inside
-      },
-    };
+    if (undefined === this._renderManifest) {
+      this._renderManifest = {
+        shaderId: this.type,
+        properties: {
+          u_color: this.color.toFloat32Array(),
+        },
+        textures: {
+          u_skybox: this.cubeMap || undefined,
+        },
+        state: {
+          depthWrite: false,
+          culling: CullMode.NONE, // Skybox is visible from the inside
+        },
+      };
+    }
+
+    const props = this._renderManifest.properties as Record<string, unknown>;
+    const texs = this._renderManifest.textures as Record<string, unknown>;
+
+    props["u_color"] = this.color.toFloat32Array();
+    texs["u_skybox"] = this.cubeMap || undefined;
+
+    return this._renderManifest;
   }
 }

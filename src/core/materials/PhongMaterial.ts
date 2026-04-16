@@ -70,24 +70,47 @@ export class PhongMaterial extends AbstractMaterial {
 
   /** @inheritdoc */
   public override getRenderManifest(): RenderManifest {
-    return {
-      shaderId: this.type,
-      properties: {
-        u_color: this.color.toFloat32Array(),
-        u_specColor: this.specularColor.toFloat32Array(),
-        u_shininess: this.shininess,
-        u_texOffset: this.diffuseMap
-          ? [this.diffuseMap.offset.x, this.diffuseMap.offset.y]
-          : [0, 0],
-        u_texRepeat: this.diffuseMap
-          ? [this.diffuseMap.repeat.x, this.diffuseMap.repeat.y]
-          : [1, 1],
-      },
-      textures: {
-        u_diffuseMap: this.diffuseMap,
-        u_normalMap: this.normalMap,
-        u_specularMap: this.specularMap,
-      },
-    };
+    if (undefined === this._renderManifest) {
+      this._renderManifest = {
+        shaderId: this.type,
+        properties: {
+          u_color: this.color.toFloat32Array(),
+          u_specColor: this.specularColor.toFloat32Array(),
+          u_shininess: this.shininess,
+          u_texOffset: [0, 0],
+          u_texRepeat: [1, 1],
+        },
+        textures: {
+          u_diffuseMap: this.diffuseMap,
+          u_normalMap: this.normalMap,
+          u_specularMap: this.specularMap,
+        },
+      };
+    }
+
+    const props = this._renderManifest.properties as Record<string, unknown>;
+    const texs = this._renderManifest.textures as Record<string, unknown>;
+
+    props["u_color"] = this.color.toFloat32Array();
+    props["u_specColor"] = this.specularColor.toFloat32Array();
+    props["u_shininess"] = this.shininess;
+
+    if (this.diffuseMap) {
+      (props["u_texOffset"] as number[])[0] = this.diffuseMap.offset.x;
+      (props["u_texOffset"] as number[])[1] = this.diffuseMap.offset.y;
+      (props["u_texRepeat"] as number[])[0] = this.diffuseMap.repeat.x;
+      (props["u_texRepeat"] as number[])[1] = this.diffuseMap.repeat.y;
+    } else {
+      (props["u_texOffset"] as number[])[0] = 0;
+      (props["u_texOffset"] as number[])[1] = 0;
+      (props["u_texRepeat"] as number[])[0] = 1;
+      (props["u_texRepeat"] as number[])[1] = 1;
+    }
+
+    texs["u_diffuseMap"] = this.diffuseMap;
+    texs["u_normalMap"] = this.normalMap;
+    texs["u_specularMap"] = this.specularMap;
+
+    return this._renderManifest;
   }
 }

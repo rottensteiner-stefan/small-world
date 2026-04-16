@@ -12,6 +12,7 @@ export declare class Example10 extends AbstractExample {
     private _lavaSpecularMap;
     private _lavaPlanes;
     private _lavaOriginalVertices;
+    private _lavaLights;
     private _noise;
     private _time;
     /** @inheritdoc */

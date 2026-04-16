@@ -11,6 +11,8 @@ export declare abstract class AbstractMaterial {
     uuid: string;
     /** The base color of the material. */
     color: Color;
+    /** Cached render manifest to avoid frequent allocations. */
+    protected _renderManifest: RenderManifest | undefined;
     /**
      * Returns a manifest describing the requirements for rendering this material.
      * @returns The render manifest.

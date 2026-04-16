@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.15.07] - 2026-04-16
+
+- **Performance & Memory Optimization**:
+  - **Object Pooling**: Introduced `MathPool` for `Vector3D`, `Matrix4`, and `Quaternion` to drastically reduce GC pressure in hot paths.
+  - **Inline Cache Stabilization**: Implemented `RenderManifest` caching in all materials to maintain stable hidden classes and avoid frequent allocations during rendering.
+  - **Hot Path Refactoring**: Replaced `.forEach` with optimized `for` loops in all renderers, frustum culling, and spatial partitioning (Octree) logic.
+  - **Scratch Buffer Usage**: Added pre-allocated scratch matrices and typed arrays in renderers to eliminate per-object allocations.
+- **Project-Wide Standards**:
+  - Standardized all value comparisons to **Yoda-style** (`value === variable`) for consistency and safety.
+  - Improved JSDoc documentation for core interfaces (`Vector`, `Renderer`).
+- **Core Engine Fixes & Utilities**:
+  - **PointerLock Fix**: Fixed an issue where the camera would still follow the mouse after exiting PointerLock via ESC.
+  - **Collision Visualizer**: Added `CollisionVisualizer` utility to render wireframe bounding boxes and spheres for physics debugging.
+  - **WebGL2 Support**: Added `WebGL2FrameBuffer` class to support future post-processing passes.
+- **Example 10 Improvements**:
+  - Enhanced Lava animation with multi-layered wandering noise for flowing wave effects.
+  - Added organic pulsing for lava light intensity and color (heat glow effect).
+  - Improved wave damping at geometry edges for a cleaner visual look.
+
 ## [0.15.06] - 2026-04-15
 
 - **Dynamic Geometry Support**:
