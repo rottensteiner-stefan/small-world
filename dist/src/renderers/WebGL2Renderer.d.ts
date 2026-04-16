@@ -1,8 +1,8 @@
 import { AbstractWebGLRenderer } from './AbstractWebGLRenderer.js';
+import { EngineConfig } from '../interfaces/index.js';
 import { RendererType } from '../enums/index.js';
 import { Scene } from '../core/Scene.js';
 import { Vector3D } from '../math/index.js';
-import { EngineConfig } from '../interfaces/index.js';
 /**
  * WebGL 2.0 implementation of the renderer.
  */
