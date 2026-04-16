@@ -33,7 +33,7 @@ export class EventDispatcherImpl implements Events {
     const listeners: EventHandler[] | undefined = this._listeners.get(eventName);
     if (listeners) {
       const index: number = listeners.indexOf(listener);
-      if (index !== -1) {
+      if (-1 !== index) {
         listeners.splice(index, 1);
       }
     }

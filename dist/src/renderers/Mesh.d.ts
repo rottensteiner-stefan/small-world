@@ -1,4 +1,5 @@
-import { GeometryDataInterface } from '../interfaces/index.js';
+import {GeometryDataInterface} from '../interfaces/index.js';
+
 /**
  * Wrapper for WebGL vertex and index buffers.
  * Handles both indexed and non-indexed geometry.
@@ -27,12 +28,14 @@ export declare class Mesh {
     /** The GL data type of the wireframe indices. */
     wireframeIndexType: number;
     private _gl;
+
     /**
      * Creates a new Mesh and uploads the geometry data to the GPU.
      * @param gl The WebGL context.
      * @param data The geometry data to upload.
      */
     constructor(gl: WebGLRenderingContext | WebGL2RenderingContext, data: GeometryDataInterface);
+
     /**
      * Binds the buffers and sets the vertex attributes.
      * @param posLoc The location of the position attribute.
@@ -41,9 +44,17 @@ export declare class Mesh {
      * @param tanLoc The location of the tangent attribute.
      */
     bind(posLoc: number, normLoc?: number, uvLoc?: number, tanLoc?: number): void;
+
     /**
      * Draws the mesh using the appropriate GL call.
      * @param mode The draw mode (e.g. TRIANGLES, LINES).
      */
     draw(mode: number): void;
+
+    /**
+     * Updates the GPU buffers with new geometry data.
+     * Currently updates vertices, normals and tangents.
+     * @param data The new geometry data.
+     */
+    update(data: GeometryDataInterface): void;
 }

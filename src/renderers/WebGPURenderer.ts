@@ -1,16 +1,17 @@
 /// src/renderers/WebGPURenderer.ts
 
 import {
-  Texture,
   CubeTexture,
-  ShaderRegistry,
-  RenderManifest,
   PhongMaterial,
+  RenderManifest,
+  ShaderRegistry,
+  TerrainMaterial,
+  Texture,
 } from "../core/index.js";
 import { GeometryDataInterface } from "../interfaces/index.js";
 import { Object3D } from "../core/Object3D.js";
 import { Scene } from "../core/Scene.js";
-import { Vector3D } from "../math/Vector3D.js";
+import { MathPool, Vector3D } from "../math/index.js";
 import {
   BlendingMode,
   CullMode,
@@ -25,15 +26,15 @@ import { AbstractRenderer } from "./AbstractRenderer.js";
 
 interface WebGPUGeoCache {
   vb: GPUBuffer;
-  nb: GPUBuffer | null;
-  uvb: GPUBuffer | null;
-  tb: GPUBuffer | null; // Tangent Buffer
-  ib: GPUBuffer | null;
-  wib: GPUBuffer | null; // Wireframe Index Buffer
+  nb: GPUBuffer | undefined;
+  uvb: GPUBuffer | undefined;
+  tb: GPUBuffer | undefined; // Tangent Buffer
+  ib: GPUBuffer | undefined;
+  wib: GPUBuffer | undefined; // Wireframe Index Buffer
   indexCount: number;
   wireframeIndexCount: number;
   vertexCount: number;
-  format: GPUIndexFormat | null;
+  format: GPUIndexFormat | undefined;
 }
 
 interface WebGPUPipelineCache {
@@ -48,8 +49,8 @@ interface WebGPUPipelineCache {
 export class WebGPURenderer extends AbstractRenderer {
   /** @inheritdoc */
   public override readonly type: RendererType = RendererType.WEB_GPU;
-  private _adapter: GPUAdapter | null = null;
-  private _device: GPUDevice | null = null;
+  private _adapter: GPUAdapter | undefined = undefined;
+  private _device: GPUDevice | undefined = undefined;
   private _context!: GPUCanvasContext;
   private _format!: GPUTextureFormat;
 
@@ -81,7 +82,7 @@ export class WebGPURenderer extends AbstractRenderer {
     attributes?: Record<string, unknown>,
     config?: EngineConfig,
   ): Promise<void> {
-    this._adapter = await navigator.gpu.requestAdapter(attributes);
+    this._adapter = (await navigator.gpu.requestAdapter(attributes)) ?? undefined;
     if (!this._adapter) throw new Error("[WebGPURenderer] No adapter found.");
     this._device = await this._adapter.requestDevice();
 
@@ -152,7 +153,7 @@ export class WebGPURenderer extends AbstractRenderer {
       format: "rgba8unorm",
       usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
     });
-    for (let i: number = 0; i < 6; i++) {
+    for (let i: number = 0; 6 > i; i++) {
       this._device.queue.writeTexture(
         { texture: whiteCube, origin: [0, 0, i] },
         new Uint8Array([50, 50, 100, 255]),
@@ -212,7 +213,6 @@ export class WebGPURenderer extends AbstractRenderer {
 
       const texEntries: GPUBindGroupLayoutEntry[] = [];
       // We always put a sampler at binding 1 for now (SmallWorld convention)
-      // Actually, let's just mirror the current texBGL for compatibility with standard shaders
       if (shaderId === MaterialType.SKYBOX) {
         texEntries.push({
           binding: 0,
@@ -349,7 +349,7 @@ export class WebGPURenderer extends AbstractRenderer {
           GPUTextureUsage.COPY_DST |
           GPUTextureUsage.RENDER_ATTACHMENT,
       });
-      for (let i: number = 0; i < 6; i++) {
+      for (let i: number = 0; 6 > i; i++) {
         this._device!.queue.copyExternalImageToTexture(
           { source: tex.images[i]! },
           { texture: t, origin: [0, 0, i] },
@@ -419,24 +419,24 @@ export class WebGPURenderer extends AbstractRenderer {
         return b;
       };
       c = {
-        vb: createBuf(geo.vertices, GPUBufferUsage.VERTEX),
+        vb: createBuf(geo.vertices, GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST),
         nb:
           geo.normals && 0 < geo.normals.length
-            ? createBuf(geo.normals, GPUBufferUsage.VERTEX)
-            : null,
-        uvb: geo.uvs && 0 < geo.uvs.length ? createBuf(geo.uvs, GPUBufferUsage.VERTEX) : null,
+            ? createBuf(geo.normals, GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST)
+            : undefined,
+        uvb: geo.uvs && 0 < geo.uvs.length ? createBuf(geo.uvs, GPUBufferUsage.VERTEX) : undefined,
         tb:
           geo.tangents && 0 < geo.tangents.length
-            ? createBuf(geo.tangents, GPUBufferUsage.VERTEX)
-            : null,
+            ? createBuf(geo.tangents, GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST)
+            : undefined,
         ib:
           geo.indices && 0 < geo.indices.length
             ? createBuf(geo.indices, GPUBufferUsage.INDEX)
-            : null,
+            : undefined,
         wib:
           geo.wireframeIndices && 0 < geo.wireframeIndices.length
             ? createBuf(geo.wireframeIndices, GPUBufferUsage.INDEX)
-            : null,
+            : undefined,
         indexCount: geo.indices ? geo.indices.length : 0,
         wireframeIndexCount: geo.wireframeIndices ? geo.wireframeIndices.length : 0,
         vertexCount: geo.vertices.length / 3,
@@ -447,6 +447,11 @@ export class WebGPURenderer extends AbstractRenderer {
       };
 
       this._geoCache.set(geo, c);
+    } else if (geo.needsUpdate) {
+      this._device!.queue.writeBuffer(c.vb, 0, geo.vertices);
+      if (geo.normals && c.nb) this._device!.queue.writeBuffer(c.nb, 0, geo.normals);
+      if (geo.tangents && c.tb) this._device!.queue.writeBuffer(c.tb, 0, geo.tangents);
+      geo.needsUpdate = false;
     }
     return c;
   }
@@ -485,7 +490,7 @@ export class WebGPURenderer extends AbstractRenderer {
   }
 
   private _getObjBindGroup(obj: Object3D, layout: GPUBindGroupLayout): GPUBindGroup {
-    const key = obj.uuid + "_" + (layout as any).label;
+    const key = `${obj.uuid}_${layout.label}`;
     let bg = this._objBindGroups.get(key);
     if (!bg) {
       const bufs = this._getObjBuffers(obj);
@@ -556,6 +561,8 @@ export class WebGPURenderer extends AbstractRenderer {
     return this._device!.createBindGroup({ layout, entries });
   }
 
+  private _scratchObjUniformData: Float32Array = new Float32Array(80);
+
   /** @inheritdoc */
   public render(scene: Scene, vpMatrix: Float32Array, camPos: Vector3D = new Vector3D()): void {
     if (!this._device) return;
@@ -581,7 +588,8 @@ export class WebGPURenderer extends AbstractRenderer {
     const { aCol, dDir, dCol, pLights, sLights, aLights } = this.extractLights(scene);
 
     const plData = new Float32Array(32);
-    pLights.forEach((pl, i) => {
+    for (let i: number = 0; i < pLights.length; i++) {
+      const pl = pLights[i]!;
       plData.set(
         [pl.worldMatrix.data[12]!, pl.worldMatrix.data[13]!, pl.worldMatrix.data[14]!, 0.0],
         i * 8,
@@ -590,17 +598,19 @@ export class WebGPURenderer extends AbstractRenderer {
         [pl.color.r * pl.intensity, pl.color.g * pl.intensity, pl.color.b * pl.intensity, 0.0],
         i * 8 + 4,
       );
-    });
+    }
 
     const slData = new Float32Array(64);
-    sLights.forEach((sl, i) => {
+    for (let i: number = 0; i < sLights.length; i++) {
+      const sl = sLights[i]!;
       const offset = i * 16;
       slData.set(
         [sl.worldMatrix.data[12]!, sl.worldMatrix.data[13]!, sl.worldMatrix.data[14]!, 0.0],
         offset,
       );
-      const dir = sl.direction.clone().normalize();
+      const dir = MathPool.acquireVector().copyFrom(sl.direction).normalize();
       slData.set([dir.x, dir.y, dir.z, 0.0], offset + 4);
+      MathPool.releaseVector(dir);
       slData.set(
         [sl.color.r * sl.intensity, sl.color.g * sl.intensity, sl.color.b * sl.intensity, 0.0],
         offset + 8,
@@ -609,10 +619,11 @@ export class WebGPURenderer extends AbstractRenderer {
         [Math.cos(sl.angle), Math.cos(sl.angle * (1.0 - sl.penumbra)), sl.distance, sl.decay],
         offset + 12,
       );
-    });
+    }
 
     const alData = new Float32Array(96);
-    aLights.forEach((al, i) => {
+    for (let i: number = 0; i < aLights.length; i++) {
+      const al = aLights[i]!;
       const mat = al.worldMatrix.data,
         offset = i * 24;
       alData.set([mat[12]!, mat[13]!, mat[14]!, 0.0], offset);
@@ -624,7 +635,7 @@ export class WebGPURenderer extends AbstractRenderer {
       alData.set([mat[4]!, mat[5]!, mat[6]!, 0.0], offset + 12);
       alData.set([mat[8]!, mat[9]!, mat[10]!, 0.0], offset + 16);
       alData.set([al.width / 2.0, al.height / 2.0, 0.0, 0.0], offset + 20);
-    });
+    }
 
     const drawObject = (obj: Object3D, pass: number): void => {
       if (!obj.isVisible) return;
@@ -634,12 +645,12 @@ export class WebGPURenderer extends AbstractRenderer {
         const topology: GPUPrimitiveTopology =
           manifest.shaderId === MaterialType.WIREFRAME ? "line-list" : "triangle-list";
 
-        if (pass === 1) {
-          if (manifest.shaderId !== MaterialType.SKYBOX && obj.frustumCulled) return;
+        if (1 === pass) {
+          if (MaterialType.SKYBOX !== manifest.shaderId && obj.frustumCulled) return;
         } else {
           if (
-            manifest.shaderId === MaterialType.SKYBOX ||
-            (manifest.shaderId === MaterialType.BASIC && !obj.frustumCulled)
+            MaterialType.SKYBOX === manifest.shaderId ||
+            (MaterialType.BASIC === manifest.shaderId && !obj.frustumCulled)
           )
             return;
         }
@@ -647,8 +658,8 @@ export class WebGPURenderer extends AbstractRenderer {
         const cache = this._getPipeline(manifest, topology);
         rp.setPipeline(cache.pipeline);
 
-        const uData = new Float32Array(80);
-        uData.set(vpMatrix, 0);
+        this._scratchObjUniformData.fill(0);
+        this._scratchObjUniformData.set(vpMatrix, 0);
         const modelMatrix = new Float32Array(obj.worldMatrix.data);
 
         if (manifest.shaderId === MaterialType.SPRITE) {
@@ -669,70 +680,78 @@ export class WebGPURenderer extends AbstractRenderer {
         // Map Material Properties from Manifest
         const props = manifest.properties;
 
-        uData.set(modelMatrix, 16);
+        this._scratchObjUniformData.set(modelMatrix, 16);
         const manifestColor = props["u_color"];
         if (manifestColor instanceof Float32Array || Array.isArray(manifestColor)) {
-          uData.set(manifestColor as any, 32);
+          this._scratchObjUniformData.set(manifestColor as Float32List, 32);
         } else {
-          uData.set(obj.material.color.toFloat32Array(), 32);
+          this._scratchObjUniformData.set(obj.material.color.toFloat32Array(), 32);
         }
 
-        uData.set([aCol.r, aCol.g, aCol.b, 1.0], 40);
-        uData.set([dCol.r, dCol.g, dCol.b, 1.0], 44);
-        uData.set([dDir.x, dDir.y, dDir.z, 0.0], 48);
-        uData.set([camPos.x, camPos.y, camPos.z, 0.0], 52);
+        this._scratchObjUniformData.set([aCol.r, aCol.g, aCol.b, 1.0], 40);
+        this._scratchObjUniformData.set([dCol.r, dCol.g, dCol.b, 1.0], 44);
+        this._scratchObjUniformData.set([dDir.x, dDir.y, dDir.z, 0.0], 48);
+        this._scratchObjUniformData.set([camPos.x, camPos.y, camPos.z, 0.0], 52);
 
         const diff = manifest.textures["u_diffuseMap"] as Texture;
 
         // UV Transformations
         const mOff = props["u_texOffset"];
         if (mOff instanceof Float32Array || Array.isArray(mOff)) {
-          uData.set(mOff as any, 56);
+          this._scratchObjUniformData.set(mOff as Float32List, 56);
         } else if (diff) {
-          uData.set([diff.offset.x, diff.offset.y], 56);
+          this._scratchObjUniformData.set([diff.offset.x, diff.offset.y], 56);
         } else {
-          uData.set([0, 0], 56);
+          this._scratchObjUniformData.set([0, 0], 56);
         }
 
         const mRep = props["u_texRepeat"];
         if (mRep instanceof Float32Array || Array.isArray(mRep)) {
-          uData.set(mRep as any, 58);
+          this._scratchObjUniformData.set(mRep as Float32List, 58);
         } else if (diff) {
-          uData.set([diff.repeat.x, diff.repeat.y], 58);
+          this._scratchObjUniformData.set([diff.repeat.x, diff.repeat.y], 58);
         } else {
-          uData.set([1, 1], 58);
+          this._scratchObjUniformData.set([1, 1], 58);
         }
 
-        uData[61] = pLights.length;
-        uData[62] = sLights.length;
-        uData[63] = aLights.length;
+        this._scratchObjUniformData[61] = pLights.length;
+        this._scratchObjUniformData[62] = sLights.length;
+        this._scratchObjUniformData[63] = aLights.length;
 
         const mSpec = props["u_specColor"];
         if (mSpec instanceof Float32Array || Array.isArray(mSpec)) {
-          uData.set(mSpec as any, 36);
+          this._scratchObjUniformData.set(mSpec as Float32List, 36);
         } else if (obj.material instanceof PhongMaterial) {
-          uData.set((obj.material as PhongMaterial).specularColor.toFloat32Array(), 36);
+          this._scratchObjUniformData.set(
+            (obj.material as PhongMaterial).specularColor.toFloat32Array(),
+            36,
+          );
         } else {
-          uData.set([1, 1, 1, 1], 36);
+          this._scratchObjUniformData.set([1, 1, 1, 1], 36);
         }
 
         const mShininess = props["u_shininess"];
         if (typeof mShininess === "number") {
-          uData[60] = mShininess;
+          this._scratchObjUniformData[60] = mShininess;
+        } else if (
+          obj.material instanceof PhongMaterial ||
+          obj.material instanceof TerrainMaterial
+        ) {
+          const mat = obj.material as PhongMaterial | TerrainMaterial;
+          this._scratchObjUniformData[60] = mat.shininess;
         } else {
-          uData[60] =
-            (obj.material as any).shininess !== undefined ? (obj.material as any).shininess : 32.0;
+          this._scratchObjUniformData[60] = 32.0;
         }
 
         const mThresh = props["u_thresholds"];
         if (mThresh instanceof Float32Array || Array.isArray(mThresh)) {
-          uData.set(mThresh as any, 64);
+          this._scratchObjUniformData.set(mThresh as Float32List, 64);
         }
 
-        if (manifest.shaderId === MaterialType.TERRAIN) uData[68] = 1.0;
+        if (manifest.shaderId === MaterialType.TERRAIN) this._scratchObjUniformData[68] = 1.0;
 
         const bufs = this._getObjBuffers(obj);
-        this._device!.queue.writeBuffer(bufs.ub, 0, uData);
+        this._device!.queue.writeBuffer(bufs.ub, 0, this._scratchObjUniformData);
         this._device!.queue.writeBuffer(bufs.pl, 0, plData);
         this._device!.queue.writeBuffer(bufs.sl, 0, slData);
         this._device!.queue.writeBuffer(bufs.al, 0, alData);
@@ -756,7 +775,11 @@ export class WebGPURenderer extends AbstractRenderer {
         }
       }
 
-      if (obj.children) obj.children.forEach((child) => drawObject(child, pass));
+      if (obj.children) {
+        for (let i: number = 0; i < obj.children.length; i++) {
+          drawObject(obj.children[i]!, pass);
+        }
+      }
     };
 
     for (const obj of scene.objects) drawObject(obj, 1);
@@ -769,9 +792,9 @@ export class WebGPURenderer extends AbstractRenderer {
   public override destroy(): void {
     if (this._device) {
       this._device.destroy();
-      this._device = null;
+      this._device = undefined;
     }
-    this._adapter = null;
+    this._adapter = undefined;
   }
 
   /** @inheritdoc */

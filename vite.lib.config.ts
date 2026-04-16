@@ -27,8 +27,7 @@ export default defineConfig({
       mangle: true, // Minifies all internal variable names
     },
     rollupOptions: {
-      output: {
-      },
+      output: {},
     },
   },
   plugins: [

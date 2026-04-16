@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.15.06] - 2026-04-15
+
+- **Dynamic Geometry Support**:
+  - Added `needsUpdate` flag to `GeometryDataInterface` to allow manual buffer re-uploads.
+  - Implemented `Mesh.update()` (WebGL) and buffer write logic (WebGPU) to support real-time vertex displacement.
+  - Updated all renderers (WebGL 1, WebGL 2, WebGPU) to check for geometry updates before each draw call.
+- **Improved Lava Animation**: Refactored Example 10 with SimplexNoise-based bubbling lava and individual offsets per fire bowl.
+
 ## [0.15.05] - 2026-04-15
 
 - **TypeScript & Linting Fixes**:

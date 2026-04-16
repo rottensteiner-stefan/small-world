@@ -1,6 +1,6 @@
 /// src/core/Camera.ts
 
-import { AbstractProjection, PerspectiveProjection } from "../math/index.js";
+import { AbstractProjection, PerspectiveProjection, MathPool } from "../math/index.js";
 import { CameraEffectFactory, CameraStrategyFactory } from "./cameras/index.js";
 import { CameraEffectType, CameraStrategyType } from "../enums/index.js";
 import {
@@ -70,8 +70,8 @@ export class Camera implements CameraInterfaceData {
 
   /** @inheritdoc */
   public updateViewMatrix(): void {
-    const finalPos = this.position.clone();
-    const finalTarget = this.target.clone();
+    const finalPos = MathPool.acquireVector().copyFrom(this.position);
+    const finalTarget = MathPool.acquireVector().copyFrom(this.target);
 
     for (const effect of this._effects) {
       finalPos.add(effect.offset);
@@ -80,6 +80,9 @@ export class Camera implements CameraInterfaceData {
 
     Matrix4.lookAt(finalPos, finalTarget, this.up, this._viewMatrix);
     Matrix4.multiply(this.projection.getMatrix(), this._viewMatrix, this._viewProjMatrix);
+
+    MathPool.releaseVector(finalPos);
+    MathPool.releaseVector(finalTarget);
   }
 
   /** @inheritdoc */

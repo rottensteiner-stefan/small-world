@@ -14,4 +14,6 @@ export interface GeometryDataInterface {
     tangents?: Float32Array | undefined;
     /** Optional texture coordinate data (u, v). */
     uvs?: Float32Array | undefined;
+    /** Flag to indicate that the vertex/normal buffers need to be re-uploaded to the GPU. */
+    needsUpdate?: boolean;
 }

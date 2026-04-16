@@ -13,7 +13,8 @@ export abstract class AbstractWebGLRenderer extends AbstractRenderer {
 
   public override destroy(): void {
     if (this.gl) {
-      const ext: WEBGL_lose_context | null = this.gl.getExtension("WEBGL_lose_context");
+      const ext: WEBGL_lose_context | undefined =
+        this.gl.getExtension("WEBGL_lose_context") ?? undefined;
       if (ext) {
         ext.loseContext();
       }

@@ -19,10 +19,11 @@ import {
   Texture,
 } from "../src/index.js";
 import { AbstractExample } from "../src/core/example/AbstractExample.js";
+import { createNoise2D, NoiseFunction2D } from "simplex-noise";
 
 /**
- * Example 10: Textured Floor & Fire Bowl.
- * Shows how to compose objects from primitives and apply textures.
+ * Example 10: Textured Floor & Fire Bowl with Bubbling Lava.
+ * Shows how to compose objects from primitives and apply vertex-displacement using SimplexNoise.
  */
 export class Example10 extends AbstractExample {
   private readonly _moveSpeed: number = 15.0;
@@ -32,6 +33,11 @@ export class Example10 extends AbstractExample {
   private _lavaTexture: Texture | undefined;
   private _lavaNormalMap: Texture | undefined;
   private _lavaSpecularMap: Texture | undefined;
+
+  private _lavaPlanes: Plane[] = [];
+  private _lavaOriginalVertices: Float32Array[] = [];
+  private _noise: NoiseFunction2D = createNoise2D();
+  private _time: number = 0;
 
   /** @inheritdoc */
   protected override async setupScene(): Promise<void> {
@@ -68,7 +74,7 @@ export class Example10 extends AbstractExample {
       generateMipmaps: true,
     });
     this._lavaTexture = await Texture.fromUrl("/resources/examples/10/lava.png", {
-      generateMipmaps: true, // Lava doesn't need high anisotropy as much as the floor
+      generateMipmaps: true,
     });
     this._lavaNormalMap = await Texture.fromUrl("/resources/examples/10/lava_normal.png", {
       generateMipmaps: true,
@@ -77,14 +83,13 @@ export class Example10 extends AbstractExample {
       generateMipmaps: true,
     });
 
-    // 4. Textured Floor (instead of Grid)
+    // 4. Textured Floor
     const floor: Object3D = new Object3D("Floor");
     floor.geometry = new Plane({ width: 100, depth: 100 }).getGeometryData();
     floor.material = new BasicMaterial({ diffuseMap: sandTexture });
     this.scene.add(floor);
 
-    // 5. Fire Bowls (Feuerschalen) & Pedestal (Podest)
-    // 1 tile per 2 world units
+    // 5. Fire Bowls & Pedestal
     if (this._rockTexture) {
       this._rockTexture.repeat.x = 0.5;
       this._rockTexture.repeat.y = 0.5;
@@ -109,58 +114,76 @@ export class Example10 extends AbstractExample {
     };
 
     /** Helper to create a fire bowl at a specific position */
-    const createFireBowl = (name: string, x: number, y: number, z: number): Object3D => {
+    const createFireBowl = (
+      name: string,
+      x: number,
+      y: number,
+      z: number,
+      seed: number,
+    ): Object3D => {
       const container: Object3D = new Object3D(name);
 
       // Base (5 x 1 x 5)
       container.add(createBox("Base", 5, 1, 5, 0, 0.5, 0));
 
-      // Walls (1 unit high, around the 3x3 hole)
+      // Walls
       container.add(createBox("WallFront", 5, 1, 1, 0, 1.5, 2));
       container.add(createBox("WallBack", 5, 1, 1, 0, 1.5, -2));
       container.add(createBox("WallLeft", 1, 1, 3, -2, 1.5, 0));
       container.add(createBox("WallRight", 1, 1, 3, 2, 1.5, 0));
 
-      // 5c. Add Lava (3x3 plane, slightly below the rim at y=1.8)
+      // 5c. Add Subdivided Lava (16x16 segments for vertex displacement)
       const lava: Object3D = new Object3D("Lava");
-      lava.geometry = new Plane({ width: 3, depth: 3 }).getGeometryData();
+      const plane = new Plane({ width: 3, depth: 3, widthSegments: 16, depthSegments: 16 });
+      const geomData = plane.getGeometryData();
+      lava.geometry = geomData;
+
+      // Store original vertices and offset for animation
+      this._lavaOriginalVertices.push(new Float32Array(geomData.vertices));
+      this._lavaPlanes.push(plane);
+
+      // Store the seed in the object name to retrieve it in the loop
+      lava.name = `Lava_${seed}`;
+
+      // Each bowl gets its own material clone to animate textures independently
       const lavaMaterial = new PhongMaterial({
         diffuseMap: this._lavaTexture,
         normalMap: this._lavaNormalMap,
         specularMap: this._lavaSpecularMap,
         shininess: 64,
-        specularColor: new Color(1, 0.5, 0.2), // Orange-ish specular for lava
+        specularColor: new Color(1, 0.5, 0.2),
       });
       lava.material = lavaMaterial;
       lava.position.set(0, 1.8, 0);
       container.add(lava);
 
-      // 5d. Add PointLight inside the bowl to make the normal map visible
+      // 5d. Add PointLight inside
       const light = new PointLight({
         color: new Color(1, 0.4, 0.1),
         intensity: 2.0,
         distance: 10,
       });
-      light.position.set(0, 2.5, 0); // Position slightly above the lava surface
+      light.position.set(0, 2.5, 0);
       container.add(light);
 
       container.position.set(x, y, z);
       return container;
     };
 
-    // 5a. Add Pedestal (Podest)
-    // 15 units wide, 7 units deep, 1 unit high. Center at y=0.5.
+    // 5a. Add Pedestal
     this.scene.add(createBox("Pedestal", 15, 1, 7, 0, 0.5, 0));
 
-    // 5b. Add two bowls on top of the pedestal (y=1)
-    this.scene.add(createFireBowl("FireBowl1", -4, 1, 0));
-    this.scene.add(createFireBowl("FireBowl2", 4, 1, 0));
+    // 5b. Add two bowls with different seeds
+    this.scene.add(createFireBowl("FireBowl1", -4, 1, 0, 0));
+    this.scene.add(createFireBowl("FireBowl2", 4, 1, 0, 1000));
 
     await this.waitForAssets();
   }
 
   /** @inheritdoc */
   protected override update(deltaTime: number): void {
+    this._time += deltaTime;
+
     // 1. Mouse Look
     let dx: number = 0;
     let dy: number = 0;
@@ -180,37 +203,49 @@ export class Example10 extends AbstractExample {
     if (0 !== moveZ || 0 !== moveX) {
       const sin: number = Math.sin(this.camera.theta);
       const cos: number = Math.cos(this.camera.theta);
-
       const dirX: number = moveX * cos + moveZ * sin;
       const dirZ: number = -moveX * sin + moveZ * cos;
-
       this.camera.position.x += dirX * this._moveSpeed * deltaTime;
       this.camera.position.z += dirZ * this._moveSpeed * deltaTime;
     }
 
-    // 3. Fly height (Q/E)
-    if (Input.isPressed(Keys.Q)) {
-      this.camera.position.y -= this._moveSpeed * deltaTime;
-    }
-    if (Input.isPressed(Keys.E)) {
-      this.camera.position.y += this._moveSpeed * deltaTime;
-    }
-
-    // Floor clamp
+    // 3. Fly height
+    if (Input.isPressed(Keys.Q)) this.camera.position.y -= this._moveSpeed * deltaTime;
+    if (Input.isPressed(Keys.E)) this.camera.position.y += this._moveSpeed * deltaTime;
     this.camera.position.y = Math.max(this._eyeHeight, this.camera.position.y);
 
-    // 4. Animate Lava
+    // 4. Animate Lava Vertices (Bubbling)
+    for (let m = 0; m < this._lavaPlanes.length; m++) {
+      const plane = this._lavaPlanes[m];
+      const original = this._lavaOriginalVertices[m];
+      if (!plane || !original) continue;
+
+      const geom = plane.getGeometryData();
+      const vertices = geom.vertices;
+      const seed = m * 100; // Offset per bowl
+
+      for (let i = 0; i < vertices.length; i += 3) {
+        const vx = original[i];
+        const vz = original[i + 2];
+        if (undefined === vx || undefined === vz) continue;
+
+        // Simplex Noise for organic bubbling
+        const n1 = this._noise(vx * 0.5 + this._time * 0.2, vz * 0.5 + seed) * 0.3;
+        const n2 = this._noise(vx * 1.2 - this._time * 0.5, vz * 1.2 + seed) * 0.1;
+
+        vertices[i + 1] = n1 + n2;
+      }
+
+      // Recompute normals on the plane instance
+      plane.computeNormals();
+      // Signal the renderer to re-upload the buffers
+      geom.needsUpdate = true;
+    }
+
+    // 5. Animate Texture Offset
     if (this._lavaTexture) {
-      this._lavaTexture.offset.x += 0.05 * deltaTime;
-      this._lavaTexture.offset.y += 0.02 * deltaTime;
-    }
-    if (this._lavaNormalMap) {
-      this._lavaNormalMap.offset.x += 0.05 * deltaTime;
-      this._lavaNormalMap.offset.y += 0.02 * deltaTime;
-    }
-    if (this._lavaSpecularMap) {
-      this._lavaSpecularMap.offset.x += 0.05 * deltaTime;
-      this._lavaSpecularMap.offset.y += 0.02 * deltaTime;
+      this._lavaTexture.offset.x += 0.03 * deltaTime;
+      this._lavaTexture.offset.y += 0.01 * deltaTime;
     }
   }
 
@@ -219,7 +254,8 @@ export class Example10 extends AbstractExample {
     const base: Record<string, string | number> = super.getDebugInfo();
     return {
       ...base,
-      Example: "10 - Textured Floor & Composed Fire Bowl",
+      Example: "10 - Bubbling Lava & Vertex Displacement",
+      "Lava Segments": "16x16",
       "Cam Pos": `(${this.camera.position.x.toFixed(1)}, ${this.camera.position.y.toFixed(1)}, ${this.camera.position.z.toFixed(1)})`,
     };
   }
@@ -229,14 +265,11 @@ export class Example10 extends AbstractExample {
 const app: Example10 = new Example10({
   fullscreen: true,
   quality: {
-    maxAnisotropy: 16, // Ultra-sharp textures at flat angles
-    msaa: 4, // Smooth edges
-    mipmapping: true, // No flickering in the distance
+    maxAnisotropy: 16,
+    msaa: 4,
+    mipmapping: true,
   },
 });
 app.start().catch((err) => {
   console.error("Example 10 failed to start:", err);
-  if (err instanceof Error) {
-    console.error("Stack trace:", err.stack);
-  }
 });

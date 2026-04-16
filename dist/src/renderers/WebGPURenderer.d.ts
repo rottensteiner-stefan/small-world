@@ -1,8 +1,9 @@
-import { Scene } from '../core/Scene.js';
-import { Vector3D } from '../math/Vector3D.js';
-import { RendererType } from '../enums/index.js';
-import { EngineConfig } from '../interfaces/EngineConfig.js';
-import { AbstractRenderer } from './AbstractRenderer.js';
+import {Scene} from '../core/Scene.js';
+import {Vector3D} from '../math/index.js';
+import {RendererType} from '../enums/index.js';
+import {EngineConfig} from '../interfaces/EngineConfig.js';
+import {AbstractRenderer} from './AbstractRenderer.js';
+
 /**
  * WebGPU implementation of the renderer.
  */
@@ -28,8 +29,10 @@ export declare class WebGPURenderer extends AbstractRenderer {
     private _objUniformBuffers;
     private _objLightBuffers;
     private _objBindGroups;
+
     /** @inheritdoc */
     initialize(canvas: HTMLCanvasElement, attributes?: Record<string, unknown>, config?: EngineConfig): Promise<void>;
+
     private _getShaderModule;
     private _getPipeline;
     private _getTextureView;
@@ -39,9 +42,13 @@ export declare class WebGPURenderer extends AbstractRenderer {
     private _getObjBuffers;
     private _getObjBindGroup;
     private _getTexBindGroup;
+    private _scratchObjUniformData;
+
     /** @inheritdoc */
     render(scene: Scene, vpMatrix: Float32Array, camPos?: Vector3D): void;
+
     destroy(): void;
+
     /** @inheritdoc */
     setSize(width: number, height: number): void;
 }

@@ -19,8 +19,8 @@ export class AssetManager {
   private static _textCache = new Map<string, Promise<string>>();
 
   private static _activeLoaders = new Map<string, AssetProgress>();
-  private static _onLoadedPromise: Promise<void> | null = null;
-  private static _resolveLoaded: (() => void) | null = null;
+  private static _onLoadedPromise: Promise<void> | undefined = undefined;
+  private static _resolveLoaded: (() => void) | undefined = undefined;
 
   private static _baseUrl: string = "";
   private static _headers: Record<string, string> = {};
@@ -76,12 +76,12 @@ export class AssetManager {
     let loaded = 0;
     let total = 0;
 
-    this._activeLoaders.forEach((progress) => {
+    for (const progress of this._activeLoaders.values()) {
       loaded += progress.loaded;
       total += progress.total;
-    });
+    }
 
-    return total > 0 ? loaded / total : 0;
+    return 0 < total ? loaded / total : 0;
   }
 
   private static async _fetchWithProgress(
@@ -105,7 +105,7 @@ export class AssetManager {
       throw new Error(`[AssetManager] HTTP error: ${response.status} at ${finalUrl}`);
     }
 
-    const contentLength: string | null = response.headers.get("content-length");
+    const contentLength: string | undefined = response.headers.get("content-length") ?? undefined;
     const total: number = contentLength ? parseInt(contentLength, 10) : 0;
 
     // Register this loader for global tracking
@@ -125,7 +125,7 @@ export class AssetManager {
 
     const reader: ReadableStreamDefaultReader<Uint8Array> = response.body.getReader();
     let loaded: number = 0;
-    const chunks: BlobPart[] = [];
+    const chunks: Uint8Array[] = [];
 
     while (true) {
       const { done, value } = await reader.read();
@@ -134,21 +134,21 @@ export class AssetManager {
       }
       if (value) {
         loaded += value.length;
-        chunks.push(value as any);
+        chunks.push(value);
         updateProgress(loaded, total);
       }
     }
 
     this._checkCompletion(url);
-    return new Blob(chunks);
+    return new Blob(chunks as BlobPart[]);
   }
 
   private static _checkCompletion(url: string): void {
     this._activeLoaders.delete(url);
     if (0 === this._activeLoaders.size && this._resolveLoaded) {
       this._resolveLoaded();
-      this._onLoadedPromise = null;
-      this._resolveLoaded = null;
+      this._onLoadedPromise = undefined;
+      this._resolveLoaded = undefined;
     }
   }
 

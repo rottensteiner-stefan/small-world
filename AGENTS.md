@@ -46,6 +46,37 @@ When your changes create orphans:
 
 The test: Every changed line should trace directly to the user's request.
 
+## TypeScript Performance & Memory Optimization Rules
+
+Follow these rules to ensure the generated code is optimized for modern JavaScript engines (V8) and minimizes Garbage Collection (GC) overhead.
+
+### 1. Object Stability (Hidden Classes)
+
+- **Prefer Fixed Shapes:** Always initialize objects with all their expected properties. Avoid adding properties dynamically (`obj.prop = value`).
+- **Consistent Order:** Initialize properties in the same order to allow the engine to reuse "Hidden Classes" (Shapes).
+- **Interfaces over Types:** Use `interface` for object definitions to encourage stable structures.
+
+### 2. Memory Management & GC Pressure
+
+- **Avoid Frequent Allocations:** In performance-critical loops (hot paths), reuse objects or arrays instead of creating new ones (Object Pooling).
+- **Minimize Spread Operator:** Avoid using `{ ...obj }` or `[ ...arr ]` inside tight loops, as this creates a new instance every time, triggering frequent GC cycles.
+- **Use `const` for Scope:** Help the engine track lifetimes, but prefer in-place mutations over immutability ONLY in heavy computational logic.
+
+### 3. Data Structures
+
+- **TypedArrays for Numbers:** Use `Int32Array`, `Float64Array`, or `Uint8Array` for large numeric datasets to ensure contiguous memory allocation and avoid boxing.
+- **Maps for Dynamic Keys:** Use `Map` instead of plain objects `{}` when keys are frequently added or deleted.
+- **Monomorphism:** Ensure functions are called with arguments of the same "shape" to stay in the JIT "fast path" (avoiding megamorphic calls).
+
+### 4. Array Optimizations
+
+- **Pre-allocate Arrays:** If the final size is known, use `new Array(size)` or a TypedArray to avoid costly re-sizing/re-allocating operations.
+- **Avoid Hole-y Arrays:** Do not create "holes" in arrays (e.g., `arr[100] = 'x'` on a 5-element array), as this pushes the array into "dictionary mode."
+
+### 5. Modern Syntax vs. Performance
+
+- **For-loops vs. Array Methods:** Use standard `for` or `for...of` loops for massive datasets. While `.forEach`, `.map`, and `.filter` are elegant, they introduce a functional overhead (callback creation) that can be significant in hot paths.
+
 ## Commands
 
 - **Start Development Server:** `npm run dev`

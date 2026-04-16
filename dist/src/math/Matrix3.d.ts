@@ -22,7 +22,7 @@ export declare class Matrix3 {
         data: Float32Array;
     }): this;
     /**
-     * Normal matrix calculation (transpose of inverse of the upper-left 3x3 of a 4x4 matrix).
+     * Calculates the normal matrix (transpose of the inverse of the upper-left 3x3 of a 4x4 matrix).
      * @param m The 4x4 matrix.
      * @returns this
      */

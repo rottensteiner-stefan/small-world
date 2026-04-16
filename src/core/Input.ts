@@ -70,8 +70,7 @@ export class Input {
     window.addEventListener("contextmenu", (e: MouseEvent): void => e.preventDefault());
 
     document.addEventListener("pointerlockchange", (): void => {
-      this.isPointerLocked =
-        undefined !== document.pointerLockElement && null !== document.pointerLockElement;
+      this.isPointerLocked = undefined !== document.pointerLockElement && true;
       if (this.debug) {
         console.log(`[Input] PointerLock changed: ${this.isPointerLocked}`);
       }
