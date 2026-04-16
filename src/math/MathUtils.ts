@@ -95,7 +95,7 @@ export class MathUtils {
    * @returns A string representation of a UUID.
    */
   public static generateUUID(): string {
-    if (undefined !== typeof crypto && "function" === typeof crypto.randomUUID) {
+    if ("undefined" !== typeof crypto && "function" === typeof crypto.randomUUID) {
       return crypto.randomUUID();
     }
 

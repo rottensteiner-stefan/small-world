@@ -90,8 +90,7 @@ export class Frustum {
 
     for (let i: number = 0; 6 > i; i++) {
       const idx: number = i * 4;
-      const dist: number =
-        p[idx]! * c.x + p[idx + 1]! * c.y + p[idx + 2]! * c.z + p[idx + 3]!;
+      const dist: number = p[idx]! * c.x + p[idx + 1]! * c.y + p[idx + 2]! * c.z + p[idx + 3]!;
       if (-r > dist) {
         return false;
       }

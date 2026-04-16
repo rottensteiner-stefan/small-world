@@ -1,6 +1,13 @@
 /// src/core/Camera.ts
 
-import { AbstractProjection, PerspectiveProjection, MathPool } from "../math/index.js";
+import {
+  AbstractProjection,
+  PerspectiveProjection,
+  OrthographicProjection,
+  ObliqueProjection,
+  MathPool,
+  MathUtils,
+} from "../math/index.js";
 import { CameraEffectFactory, CameraStrategyFactory } from "./cameras/index.js";
 import { CameraEffectType, CameraStrategyType } from "../enums/index.js";
 import {
@@ -60,6 +67,47 @@ export class Camera implements CameraInterfaceData {
   public set aspect(value: number) {
     if (this.projection instanceof PerspectiveProjection) {
       this.projection.aspect = value;
+    }
+  }
+
+  /** @inheritdoc */
+  public zoom(delta: number): void {
+    // 1. Handle strategies with a radius (third-person strategies like Smooth, Stiff)
+    const radiusStrategy = this._strategy as unknown as {
+      radius: number;
+      minRadius: number;
+      maxRadius: number;
+    };
+
+    if (undefined !== radiusStrategy.radius) {
+      radiusStrategy.radius += delta * radiusStrategy.radius;
+
+      // Default limits if not provided by the strategy
+      const min: number = radiusStrategy.minRadius ?? 1.0;
+      const max: number = radiusStrategy.maxRadius ?? 1000.0;
+      radiusStrategy.radius = MathUtils.clamp(radiusStrategy.radius, min, max);
+      return;
+    }
+
+    // 2. Handle Projection-based zoom (for strategies without radius, like FPS or Isometric)
+    if (this.projection instanceof PerspectiveProjection) {
+      const proj = this.projection;
+      proj.fov += delta * proj.fov;
+      // Clamp FOV between 10 and 120 degrees
+      proj.fov = MathUtils.clamp(proj.fov, MathUtils.degToRad(10), MathUtils.degToRad(120));
+      proj.update();
+    } else if (
+      this.projection instanceof OrthographicProjection ||
+      this.projection instanceof ObliqueProjection
+    ) {
+      // Orthographic/Oblique bounds scaling
+      const proj = this.projection as OrthographicProjection | ObliqueProjection;
+      const factor: number = 1.0 + delta;
+      proj.left *= factor;
+      proj.right *= factor;
+      proj.top *= factor;
+      proj.bottom *= factor;
+      proj.update();
     }
   }
 

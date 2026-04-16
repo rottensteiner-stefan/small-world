@@ -1,4 +1,3 @@
-
 /// src/physics/Collision.ts
 
 import { BoundingBox, BoundingSphere } from "./index.js";

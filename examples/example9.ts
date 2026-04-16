@@ -1,21 +1,22 @@
 /// examples/example9.ts
 
 import {
-    AmbientLight,
-    CameraStrategyType,
-    Color,
-    Cube,
-    DirectionalLight,
-    FPSController,
-    Input,
-    MathUtils,
-    Object3D,
-    PerspectiveProjection,
-    PhongMaterial,
-    Skydome,
-    Texture,
+  AmbientLight,
+  CameraStrategyType,
+  Color,
+  Cube,
+  DirectionalLight,
+  FPSController,
+  ZoomController,
+  Input,
+  MathUtils,
+  Object3D,
+  PerspectiveProjection,
+  PhongMaterial,
+  Skydome,
+  Texture,
 } from "../src/index.js";
-import {AbstractExample} from "../src/core/example/AbstractExample.js";
+import { AbstractExample } from "../src/core/example/AbstractExample.js";
 
 /**
  * Example 9: Clean rebuild with Skydome, Green Floor, WASD/QE movement.
@@ -28,94 +29,93 @@ export class Example9 extends AbstractExample {
   private _time: number = 0;
 
   protected override async setupScene(): Promise<void> {
+    this.onCanvasRecreated();
 
-        this.onCanvasRecreated();
+    // 1. Camera
+    const aspect: number = window.innerWidth / window.innerHeight;
+    this.camera.projection = new PerspectiveProjection({
+      fov: MathUtils.degToRad(75),
+      aspect,
+      near: 0.1,
+      far: 2000, // Make sure far plane is large enough for the skydome
+    });
+    this.camera.updateProjectionMatrix();
+    this.camera.setStrategy(CameraStrategyType.FPS);
+    this.camera.position.set(0, this._eyeHeight, 0);
 
-        // 1. Camera
-        const aspect: number = window.innerWidth / window.innerHeight;
-        this.camera.projection = new PerspectiveProjection({
-            fov: MathUtils.degToRad(75),
-            aspect,
-            near: 0.1,
-            far: 2000, // Make sure far plane is large enough for the skydome
-        });
-        this.camera.updateProjectionMatrix();
-        this.camera.setStrategy(CameraStrategyType.FPS);
-        this.camera.position.set(0, this._eyeHeight, 0);
+    this.controllers.push(
+      new FPSController(this.camera, {
+        moveSpeed: this._moveSpeed,
+      }),
+      new ZoomController(this.camera),
+    );
 
-        this.controllers.push(
-            new FPSController(this.camera, {
-                moveSpeed: this._moveSpeed,
-                enableZoom: true,
-            }),
-        );
+    // 2. Lighting
+    this.scene.add(new AmbientLight({ color: Color.WHITE, intensity: 0.5 }));
+    const sun: DirectionalLight = new DirectionalLight({ color: Color.WHITE, intensity: 0.8 });
+    sun.direction.set(-1, -1, -1).normalize();
+    this.scene.add(sun);
 
-        // 2. Lighting
-        this.scene.add(new AmbientLight({color: Color.WHITE, intensity: 0.5}));
-        const sun: DirectionalLight = new DirectionalLight({color: Color.WHITE, intensity: 0.8});
-        sun.direction.set(-1, -1, -1).normalize();
-        this.scene.add(sun);
+    // 3. Skydome
+    const skyTexture: Texture = await Texture.fromUrl("/resources/models/textures/skydome-1.jpg");
 
-        // 3. Skydome
-        const skyTexture: Texture = await Texture.fromUrl("/resources/models/textures/skydome-1.jpg");
+    const skydome: Skydome = new Skydome({
+      texture: skyTexture,
+      radius: 1000, // Large enough to cover the visible space without clipping
+      widthSegments: 64,
+      heightSegments: 64,
+    });
+    this.scene.add(skydome);
+    this._skydome = skydome;
 
-        const skydome: Skydome = new Skydome({
-            texture: skyTexture,
-            radius: 1000, // Large enough to cover the visible space without clipping
-            widthSegments: 64,
-            heightSegments: 64,
-        });
-        this.scene.add(skydome);
-        this._skydome = skydome;
+    // 5. Reference points (Illusion Breaker)
+    const referenceCube: Object3D = new Object3D("ReferenceCube");
+    referenceCube.geometry = new Cube({ size: 2 }).getGeometryData();
+    referenceCube.material = new PhongMaterial({ color: Color.BLUE, shininess: 50 });
+    referenceCube.position.set(0, 1, -10); // Exactly in front of our starting position
+    this.scene.add(referenceCube);
 
-        // 5. Reference points (Illusion Breaker)
-        const referenceCube: Object3D = new Object3D("ReferenceCube");
-        referenceCube.geometry = new Cube({size: 2}).getGeometryData();
-        referenceCube.material = new PhongMaterial({color: Color.BLUE, shininess: 50});
-        referenceCube.position.set(0, 1, -10); // Exactly in front of our starting position
-        this.scene.add(referenceCube);
+    const redCube: Object3D = new Object3D("RedCube");
+    redCube.geometry = new Cube({ size: 2 }).getGeometryData();
+    redCube.material = new PhongMaterial({ color: Color.RED, shininess: 50 });
+    redCube.position.set(10, 1, 0); // To our right
+    this.scene.add(redCube);
+  }
 
-        const redCube: Object3D = new Object3D("RedCube");
-        redCube.geometry = new Cube({size: 2}).getGeometryData();
-        redCube.material = new PhongMaterial({color: Color.RED, shininess: 50});
-        redCube.position.set(10, 1, 0); // To our right
-        this.scene.add(redCube);
+  protected override update(deltaTime: number): void {
+    this._time += deltaTime;
+
+    // The FPSController handles Mouse Look, WASD movement and Zoom.
+
+    // 4. Collision / Floor Clamp
+    this.camera.position.y = Math.max(this._eyeHeight, this.camera.position.y);
+
+    // 5. Update Skydome & Floor Position
+    // The skydome must always be exactly on the camera.
+    if (undefined !== this._skydome) {
+      this._skydome.position.copyFrom(this.camera.position);
     }
+  }
 
-    protected override update(deltaTime: number): void {
-        this._time += deltaTime;
-
-        // The FPSController handles Mouse Look, WASD movement and Zoom.
-
-        // 4. Collision / Floor Clamp
-        this.camera.position.y = Math.max(this._eyeHeight, this.camera.position.y);
-
-        // 5. Update Skydome & Floor Position
-        // The skydome must always be exactly on the camera.
-        if (undefined !== this._skydome) {
-            this._skydome.position.copyFrom(this.camera.position);
-        }
-    }
-
-    protected override getDebugInfo(): Record<string, string | number> {
-        const base: Record<string, string | number> = super.getDebugInfo();
-        return {
-            ...base,
-            Example: "09 - Skydome Implementation",
-            "Pointer Locked": Input.isPointerLocked ? "Yes" : "No",
-            "Cam X": this.camera.position.x.toFixed(2),
-            "Cam Y": this.camera.position.y.toFixed(2),
-            "Cam Z": this.camera.position.z.toFixed(2),
-        };
-    }
+  protected override getDebugInfo(): Record<string, string | number> {
+    const base: Record<string, string | number> = super.getDebugInfo();
+    return {
+      ...base,
+      Example: "09 - Skydome Implementation",
+      "Pointer Locked": Input.isPointerLocked ? "Yes" : "No",
+      "Cam X": this.camera.position.x.toFixed(2),
+      "Cam Y": this.camera.position.y.toFixed(2),
+      "Cam Z": this.camera.position.z.toFixed(2),
+    };
+  }
 }
 
 const app: Example9 = new Example9();
 app
-    .start()
-    .then((): void => {
-        console.log("Example 9 running");
-    })
-    .catch((err: Error): void => {
-        console.error("Error starting engine:", err);
-    });
+  .start()
+  .then((): void => {
+    console.log("Example 9 running");
+  })
+  .catch((err: Error): void => {
+    console.error("Error starting engine:", err);
+  });

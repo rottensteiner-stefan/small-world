@@ -14,6 +14,10 @@ export class StiffStrategy implements CameraStrategy {
   public readonly type: string = CameraStrategyType.STIFF;
   /** The radius of the camera from the target. */
   public radius: number = 20;
+  /** Minimum allowed radius. */
+  public minRadius: number = 2;
+  /** Maximum allowed radius. */
+  public maxRadius: number = 500;
   /** @inheritdoc */
   public constraints?: CameraConstraints;
 

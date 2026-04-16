@@ -73,6 +73,12 @@ export interface CameraInterfaceData {
   applyEffect(type: CameraEffectType, intensity?: number, duration?: number): void;
 
   /**
+   * Adjusts the zoom level (radius, FOV, or orthographic bounds).
+   * @param delta The zoom delta.
+   */
+  zoom(delta: number): void;
+
+  /**
    * Recomputes the projection matrix.
    */
   updateProjectionMatrix(): void;
