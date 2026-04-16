@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.15.08] - 2026-04-17
+
+- **Modular Zoom System**:
+  - **Centralized Zoom Logic**: Centralized all camera zooming (radius, FOV, and bounds) into a unified `Camera.zoom()` method.
+  - **Standalone ZoomController**: Extracted zoom functionality into a dedicated, configurable `ZoomController` for better modularity.
+  - **Refactored Controllers**: Modularized `FPSController` and `OrbitController` by removing direct zoom logic.
+- **Architectural Improvements**:
+  - **Enhanced Strategies**: Added `minRadius`/`maxRadius` constraints to `StiffStrategy` and refactored `IsometricStrategy` to respect projection bounds.
+  - **Unified Fallbacks**: Implemented robust fallback mechanisms for zooming across different projection types (Perspective, Orthographic, Oblique).
+- **Code Hygiene & Type Safety**:
+  - Refined internal zoom logic with improved type checking and safer casting.
+  - Fixed multiple pre-existing linting and typing issues in `MathUtils.ts`, `Input.ts`, and `Camera.ts`.
+
 ## [0.15.07] - 2026-04-16
 
 - **Performance & Memory Optimization**:
