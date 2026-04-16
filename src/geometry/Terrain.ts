@@ -2,6 +2,9 @@
 
 import { AbstractGeometry } from "./AbstractGeometry.js";
 
+/**
+ * Strategy function type for extracting height from color data.
+ */
 export type TerrainHeightStrategy = (
   r: number,
   g: number,
@@ -14,33 +17,39 @@ export type TerrainHeightStrategy = (
  * Built-in terrain height strategies.
  */
 export const TerrainStrategies = {
+  /** Average of RGB components normalized. */
   CENTERED_AVERAGE: (r: number, g: number, b: number, _a: number): number => {
     return (r + g + b) / 3.0 / 255.0;
   },
+  /** Use only red channel. */
   BASE_RED: (r: number, _g: number, _b: number, _a: number): number => {
     return r / 255.0;
   },
+  /** Use only green channel. */
   BASE_GREEN: (_r: number, g: number, _b: number, _a: number): number => {
     return g / 255.0;
   },
+  /** Use only blue channel. */
   BASE_BLUE: (_r: number, _g: number, b: number, _a: number): number => {
     return b / 255.0;
   },
+  /** Use only alpha channel. */
   BASE_ALPHA: (_r: number, _g: number, _b: number, a: number): number => {
     return a / 255.0;
   },
+  /** Inverted average of RGB components. */
   INVERTED_AVERAGE: (r: number, g: number, b: number, _a: number): number => {
     return 1.0 - (r + g + b) / 3.0 / 255.0;
   },
 } as const;
 
 /**
- * Configuration options for terrain geometry.
+ * Common configuration options for terrain geometry.
  */
 export interface TerrainOptions {
-  /** The width of the terrain. Defaults to 100. */
+  /** The width of the terrain in world units. Defaults to 100. */
   width?: number;
-  /** The depth of the terrain. Defaults to 100. */
+  /** The depth of the terrain in world units. Defaults to 100. */
   depth?: number;
   /** The maximum height of the terrain. Defaults to 20. */
   maxHeight?: number;
@@ -51,52 +60,47 @@ export interface TerrainOptions {
 }
 
 /**
- * Configuration for terrain from raw data.
+ * Configuration for terrain initialized from raw float data.
  */
 export interface TerrainDataOptions extends TerrainOptions {
   /** The height data (normalized 0-1). */
   heightData: Float32Array;
-  /** The resolution of the heightmap. */
+  /** The resolution of the heightmap grid. */
   heightmapResolution: number;
 }
 
 /**
- * Configuration for terrain from an image.
+ * Configuration for terrain initialized from an image.
  */
 export interface TerrainImageOptions extends TerrainOptions {
-  /** The image to use as heightmap. */
+  /** The image to use as a heightmap source. */
   image: HTMLImageElement | ImageBitmap;
-  /** The strategy to extract height from image data. Defaults to CENTERED_AVERAGE. */
+  /** The strategy to extract height from image pixels. Defaults to CENTERED_AVERAGE. */
   strategy?: TerrainHeightStrategy;
 }
 
 /**
- * A terrain geometry generated from height data.
+ * A terrain geometry generated from heightmaps.
+ * Supports initialization from raw data or images.
  */
 export class Terrain extends AbstractGeometry {
-  /** The height data. */
+  /** The raw height data (0.0 to 1.0). */
   public heightData: Float32Array;
-
-  /** The resolution of the heightmap. */
+  /** The resolution of the heightmap grid. */
   public heightmapResolution: number;
-
-  /** The width of the terrain. */
+  /** The world width of the terrain. */
   public width: number;
-
-  /** The depth of the terrain. */
+  /** The world depth of the terrain. */
   public depth: number;
-
-  /** The maximum height of the terrain. */
+  /** The world maximum height. */
   public maxHeight: number;
-
-  /** The number of segments along the width. */
+  /** The horizontal mesh subdivisions. */
   public meshWidthSegments: number;
-
-  /** The number of segments along the depth. */
+  /** The vertical mesh subdivisions. */
   public meshDepthSegments: number;
 
   /**
-   * Protected constructor. Use Terrain.fromHeightData() or Terrain.fromImage() instead.
+   * Protected constructor. Use static factory methods Terrain.fromHeightData() or Terrain.fromImage().
    * @param options The configuration options.
    */
   protected constructor(options: TerrainDataOptions) {
@@ -119,17 +123,16 @@ export class Terrain extends AbstractGeometry {
     this.meshWidthSegments = meshWidthSegments;
     this.meshDepthSegments = meshDepthSegments;
 
-    // Sicherstellen, dass die Heightmap-Daten quadratisch sind
     if (heightData.length !== heightmapResolution * heightmapResolution) {
       console.warn(
-        `[Terrain] Heightmap-Datenlänge (${heightData.length}) stimmt nicht mit der angegebenen Auflösung (${heightmapResolution}x${heightmapResolution}) überein.`,
+        `[Terrain] Heightmap data length (${heightData.length}) does not match resolution (${heightmapResolution}x${heightmapResolution}).`,
       );
     }
     this.generateGeometryData();
   }
 
   /**
-   * Creates a Terrain from raw height data.
+   * Creates a Terrain instance from raw height data.
    * @param options The configuration options.
    * @returns A new Terrain instance.
    */
@@ -138,7 +141,7 @@ export class Terrain extends AbstractGeometry {
   }
 
   /**
-   * Creates a Terrain from an image.
+   * Creates a Terrain instance from an image.
    * @param options The configuration options.
    * @returns A promise resolving to a new Terrain instance.
    */
@@ -153,7 +156,7 @@ export class Terrain extends AbstractGeometry {
     ctx.drawImage(image as CanvasImageSource, 0, 0);
     const imgData: Uint8ClampedArray = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
 
-    const resolution: number = image.width; // Annahme: Quadratisches Bild
+    const resolution: number = image.width; // Assume square
     const heightData: Float32Array = new Float32Array(resolution * resolution);
 
     for (let y: number = 0; y < resolution; y++) {
@@ -164,9 +167,7 @@ export class Terrain extends AbstractGeometry {
         const b: number = imgData[index + 2] ?? 0;
         const a: number = imgData[index + 3] ?? 0;
 
-        // Die Strategie gibt einen Wert zwischen 0.0 und 1.0 zurück
         const normalizedHeight: number = strategy(r, g, b, a, maxHeight);
-
         heightData[y * resolution + x] = Math.max(0, Math.min(1, normalizedHeight));
       }
     }
@@ -182,10 +183,10 @@ export class Terrain extends AbstractGeometry {
   protected override generateGeometryData(): void {
     const v: number[] = [];
     const uv: number[] = [];
-    const i: number[] = [];
+    const idx: number[] = [];
 
-    const hW: number = this.width / 2;
-    const hD: number = this.depth / 2;
+    const hW: number = this.width / 2.0;
+    const hD: number = this.depth / 2.0;
 
     for (let z: number = 0; z <= this.meshDepthSegments; z++) {
       const vRatio: number = z / this.meshDepthSegments;
@@ -193,24 +194,20 @@ export class Terrain extends AbstractGeometry {
       for (let x: number = 0; x <= this.meshWidthSegments; x++) {
         const uRatio: number = x / this.meshWidthSegments;
 
-        // Pixelkoordinaten in der Heightmap
         const pixelX: number = Math.floor(uRatio * (this.heightmapResolution - 1));
         const pixelY: number = Math.floor(vRatio * (this.heightmapResolution - 1));
         const heightDataIndex: number = pixelY * this.heightmapResolution + pixelX;
 
-        // Höhe aus den übergebenen Daten abrufen (Werte sind 0.0 - 1.0)
         const heightValue: number = this.heightData[heightDataIndex] ?? 0;
 
-        // X und Z sind immer gleich
         const posX: number = uRatio * this.width - hW;
         const posZ: number = vRatio * this.depth - hD;
 
-        // Skalierung der Höhe und Zentrierung um Y=0
-        // Hier wenden wir die Logik an: 0.0 -> -max/2, 1.0 -> +max/2
-        const posY: number = heightValue * this.maxHeight - this.maxHeight / 2;
+        // Centered around Y=0
+        const posY: number = heightValue * this.maxHeight - this.maxHeight / 2.0;
 
         v.push(posX, posY, posZ);
-        uv.push(uRatio, 1 - vRatio);
+        uv.push(uRatio, 1.0 - vRatio);
       }
     }
 
@@ -221,18 +218,15 @@ export class Terrain extends AbstractGeometry {
         const c: number = x + 1 + (this.meshWidthSegments + 1) * (z + 1);
         const d: number = x + 1 + (this.meshWidthSegments + 1) * z;
 
-        // Korrektur: CCW Winding Order (für WebGL/WebGPU Standard)
-        // Triangle 1: a, b, d
-        i.push(a, b, d);
-        // Triangle 2: d, b, c
-        i.push(d, b, c);
+        idx.push(a, b, d);
+        idx.push(d, b, c); // Standard CCW
       }
     }
 
     this._vertices = new Float32Array(v);
     this._uvs = new Float32Array(uv);
-    this._indices = this._createIndexArray(i.length);
-    this._indices.set(i);
+    this._indices = this._createIndexArray(idx.length);
+    this._indices.set(idx);
 
     this.computeNormals();
   }

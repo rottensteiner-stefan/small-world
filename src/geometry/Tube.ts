@@ -3,16 +3,19 @@
 import { AbstractGeometry } from "./AbstractGeometry.js";
 import { MathUtils } from "../math/index.js";
 
+/**
+ * Configuration options for tube geometry.
+ */
 export interface TubeOptions {
   /** The outer radius of the tube. Defaults to 1. */
   radius?: number;
-  /** The inner radius of the tube. Defaults to 0.5. */
+  /** The inner radius of the tube (hole size). Defaults to 0.5. */
   innerRadius?: number;
-  /** The height of the tube. Defaults to 2. */
+  /** The total height of the tube. Defaults to 2. */
   height?: number;
   /** The number of radial segments. Defaults to 16. */
   radialSegments?: number;
-  /** The number of height segments. Defaults to 1. */
+  /** The number of height segments along the vertical axis. Defaults to 1. */
   heightSegments?: number;
 }
 
@@ -57,8 +60,11 @@ export class Tube extends AbstractGeometry {
     const v: number[] = [];
     const uv: number[] = [];
     const idx: number[] = [];
-    const hh: number = this.height / 2;
+    const hh: number = this.height / 2.0;
 
+    /**
+     * Builds one surface of the tube (inner or outer).
+     */
     const buildSurface = (r: number, isInner: boolean): void => {
       const offset: number = v.length / 3;
       for (let y: number = 0; y <= this.heightSegments; y++) {
@@ -95,7 +101,9 @@ export class Tube extends AbstractGeometry {
 
     const verticesPerSurface = (this.heightSegments + 1) * (this.radialSegments + 1);
 
-    // Caps to connect inner and outer surfaces
+    /**
+     * Connects inner and outer surfaces with caps.
+     */
     const connectCaps = (isTop: boolean): void => {
       const outerOffset: number = isTop ? this.heightSegments * (this.radialSegments + 1) : 0;
       const innerOffset: number =
