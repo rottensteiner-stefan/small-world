@@ -1,8 +1,5 @@
 /// src/utils/TextureGenerator.ts
 
-/**
- * Utility class for procedural texture generation.
- */
 export class TextureGenerator {
   /**
    * Generates a simple noisy texture for terrain biomes.

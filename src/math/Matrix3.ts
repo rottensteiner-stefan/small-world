@@ -1,8 +1,5 @@
 /// src/math/Matrix3.ts
 
-/**
- * A class representing a 3x3 matrix.
- */
 export class Matrix3 {
   /** The matrix data (column-major). */
   public data: Float32Array = new Float32Array(9);

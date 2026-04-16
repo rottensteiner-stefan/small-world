@@ -3,9 +3,6 @@
 import { AbstractGeometry } from "./AbstractGeometry.js";
 import { Vector3D } from "../math/Vector3D.js";
 
-/**
- * A simple line geometry.
- */
 export class Line extends AbstractGeometry {
   /**
    * Creates a new Line geometry.

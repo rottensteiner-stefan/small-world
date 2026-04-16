@@ -1,8 +1,5 @@
 /// src/enums/ShaderPropertyType.ts
 
-/**
- * Supported data types for shader properties.
- */
 export const ShaderPropertyType = {
   FLOAT: "float",
   VEC2: "vec2",

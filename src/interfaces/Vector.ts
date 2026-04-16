@@ -1,7 +1,5 @@
 /// src/interfaces/Vector.ts
-/**
- * Interface representing a mathematical vector.
- */
+
 export interface Vector {
   /**
    * Calculates the length of the vector.

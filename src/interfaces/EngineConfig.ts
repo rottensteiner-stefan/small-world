@@ -1,7 +1,6 @@
 /// src/interfaces/EngineConfig.ts
 
 import { ProjectionType, RendererType } from "../enums/index.js";
-
 export interface EngineRendererConfig {
   type: RendererType | string;
   attributes?: Record<string, unknown>;

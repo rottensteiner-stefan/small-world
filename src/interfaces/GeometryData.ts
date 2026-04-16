@@ -1,8 +1,5 @@
 /// src/interfaces/GeometryData.ts
 
-/**
- * Interface representing raw geometry data for rendering.
- */
 export interface GeometryDataInterface {
   /** Vertex position data (x, y, z). */
   vertices: Float32Array;

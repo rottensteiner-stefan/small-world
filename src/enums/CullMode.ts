@@ -1,8 +1,5 @@
 /// src/enums/CullMode.ts
 
-/**
- * Culling modes for rendering.
- */
 export const CullMode = {
   /** Cull back faces. */
   BACK: "back",

@@ -4,9 +4,6 @@ import { Matrix4 } from "../Matrix4.js";
 import { AbstractProjection } from "./AbstractProjection.js";
 import { ProjectionType } from "../../enums/index.js";
 
-/**
- * Configuration options for oblique projection.
- */
 export interface ObliqueOptions {
   /** Left plane distance. Defaults to -1. */
   left?: number;

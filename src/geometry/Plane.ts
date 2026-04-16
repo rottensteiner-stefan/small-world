@@ -2,9 +2,6 @@
 
 import { AbstractGeometry } from "./AbstractGeometry.js";
 
-/**
- * Configuration options for plane geometry.
- */
 export interface PlaneOptions {
   /** The width of the plane. Defaults to 1. */
   width?: number;

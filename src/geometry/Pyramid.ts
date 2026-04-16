@@ -3,9 +3,6 @@
 import { AbstractGeometry } from "./AbstractGeometry.js";
 import { MathUtils } from "../math/index.js";
 
-/**
- * Configuration options for pyramid geometry.
- */
 export interface PyramidOptions {
   /** The size of the base. Defaults to 1. */
   base?: number;

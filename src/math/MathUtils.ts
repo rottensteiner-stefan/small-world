@@ -1,8 +1,5 @@
 /// src/math/MathUtils.ts
 
-/**
- * Utility class for mathematical operations.
- */
 export class MathUtils {
   public static readonly PI: number = Math.PI;
   public static readonly TWO_PI: number = Math.PI * 2.0;

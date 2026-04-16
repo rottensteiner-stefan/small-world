@@ -5,14 +5,8 @@ import { Vector3D } from "../math/index.js";
 import { HeightmapGenerator, TextureGenerator } from "../utils/index.js";
 import { Terrain } from "./Terrain.js";
 
-/**
- * Algorithm for terrain generation.
- */
 export type TerrainAlgorithm = "DiamondSquare" | "Perlin" | "Simplex";
 
-/**
- * Configuration for the TerrainManager.
- */
 export interface TerrainManagerConfig {
   /** Size of a single chunk in world units. */
   chunkSize?: number;

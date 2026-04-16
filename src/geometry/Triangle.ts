@@ -3,9 +3,6 @@
 import { AbstractGeometry } from "./AbstractGeometry.js";
 import { Vector3D } from "../math/Vector3D.js";
 
-/**
- * A triangle geometry.
- */
 export class Triangle extends AbstractGeometry {
   /**
    * Creates a new Triangle geometry.

@@ -1,8 +1,5 @@
 /// src/interfaces/Controller.ts
 
-/**
- * Base interface for all input controllers.
- */
 export interface Controller {
   /** Whether the controller is enabled. */
   enabled: boolean;
