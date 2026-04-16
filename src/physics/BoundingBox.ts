@@ -1,4 +1,5 @@
 /// src/physics/BoundingBox.ts
+
 import { BoundingVolume } from "../interfaces/index.js";
 import { Vector3D } from "../math/Vector3D.js";
 import { BoundingType } from "../enums/index.js";

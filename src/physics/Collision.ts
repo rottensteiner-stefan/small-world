@@ -1,4 +1,5 @@
 /// src/physics/Collision.ts
+
 import { BoundingBox, BoundingSphere } from "./index.js";
 import { BoundingVolume } from "../interfaces/index.js";
 import { Vector3D, MathPool } from "../math/index.js";

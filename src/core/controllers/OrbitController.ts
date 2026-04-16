@@ -3,7 +3,7 @@
 import { Controller } from "../../interfaces/index.js";
 import { CameraInterfaceData } from "../../interfaces/index.js";
 import { Input } from "../Input.js";
-import { MathUtils, Vector3D } from "../../math/index.js";
+import { MathUtils } from "../../math/index.js";
 
 /**
  * Configuration for the OrbitController.
