@@ -34,17 +34,34 @@ export class WorldMaterial extends AbstractMaterial {
 
   /** @inheritdoc */
   public override getRenderManifest(): RenderManifest {
-    return {
-      shaderId: this.type,
-      properties: {
-        u_color: this.color.toFloat32Array(),
-        u_texRepeat: this.diffuseMap
-          ? [this.diffuseMap.repeat.x, this.diffuseMap.repeat.y]
-          : [1, 1],
-      },
-      textures: {
-        u_diffuseMap: this.diffuseMap,
-      },
-    };
+    if (undefined === this._renderManifest) {
+      this._renderManifest = {
+        shaderId: this.type,
+        properties: {
+          u_color: this.color.toFloat32Array(),
+          u_texRepeat: [1, 1],
+        },
+        textures: {
+          u_diffuseMap: this.diffuseMap,
+        },
+      };
+    }
+
+    const props = this._renderManifest.properties as Record<string, unknown>;
+    const texs = this._renderManifest.textures as Record<string, unknown>;
+
+    props["u_color"] = this.color.toFloat32Array();
+
+    if (this.diffuseMap) {
+      (props["u_texRepeat"] as number[])[0] = this.diffuseMap.repeat.x;
+      (props["u_texRepeat"] as number[])[1] = this.diffuseMap.repeat.y;
+    } else {
+      (props["u_texRepeat"] as number[])[0] = 1;
+      (props["u_texRepeat"] as number[])[1] = 1;
+    }
+
+    texs["u_diffuseMap"] = this.diffuseMap;
+
+    return this._renderManifest;
   }
 }

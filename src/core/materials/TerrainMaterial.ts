@@ -82,20 +82,37 @@ export class TerrainMaterial extends AbstractMaterial {
 
   /** @inheritdoc */
   public override getRenderManifest(): RenderManifest {
-    return {
-      shaderId: this.type,
-      properties: {
-        u_color: this.color.toFloat32Array(),
-        u_shininess: this.shininess,
-        u_texRepeat: this.texRepeat,
-        u_thresholds: this.thresholds,
-      },
-      textures: {
-        u_sandMap: this.sandMap,
-        u_grassMap: this.grassMap,
-        u_rockMap: this.rockMap,
-        u_snowMap: this.snowMap,
-      },
-    };
+    if (undefined === this._renderManifest) {
+      this._renderManifest = {
+        shaderId: this.type,
+        properties: {
+          u_color: this.color.toFloat32Array(),
+          u_shininess: this.shininess,
+          u_texRepeat: this.texRepeat,
+          u_thresholds: this.thresholds,
+        },
+        textures: {
+          u_sandMap: this.sandMap,
+          u_grassMap: this.grassMap,
+          u_rockMap: this.rockMap,
+          u_snowMap: this.snowMap,
+        },
+      };
+    }
+
+    const props = this._renderManifest.properties as Record<string, unknown>;
+    const texs = this._renderManifest.textures as Record<string, unknown>;
+
+    props["u_color"] = this.color.toFloat32Array();
+    props["u_shininess"] = this.shininess;
+    props["u_texRepeat"] = this.texRepeat;
+    props["u_thresholds"] = this.thresholds;
+
+    texs["u_sandMap"] = this.sandMap;
+    texs["u_grassMap"] = this.grassMap;
+    texs["u_rockMap"] = this.rockMap;
+    texs["u_snowMap"] = this.snowMap;
+
+    return this._renderManifest;
   }
 }

@@ -36,6 +36,7 @@ export class Example10 extends AbstractExample {
 
   private _lavaPlanes: Plane[] = [];
   private _lavaOriginalVertices: Float32Array[] = [];
+  private _lavaLights: PointLight[] = [];
   private _noise: NoiseFunction2D = createNoise2D();
   private _time: number = 0;
 
@@ -165,6 +166,7 @@ export class Example10 extends AbstractExample {
       });
       light.position.set(0, 2.5, 0);
       container.add(light);
+      this._lavaLights.push(light);
 
       container.position.set(x, y, z);
       return container;
@@ -214,8 +216,8 @@ export class Example10 extends AbstractExample {
     if (Input.isPressed(Keys.E)) this.camera.position.y += this._moveSpeed * deltaTime;
     this.camera.position.y = Math.max(this._eyeHeight, this.camera.position.y);
 
-    // 4. Animate Lava Vertices (Bubbling)
-    for (let m = 0; m < this._lavaPlanes.length; m++) {
+    // 4. Animate Lava Vertices (Bubbling & Flowing Waves)
+    for (let m: number = 0; m < this._lavaPlanes.length; m++) {
       const plane = this._lavaPlanes[m];
       const original = this._lavaOriginalVertices[m];
       if (!plane || !original) continue;
@@ -224,16 +226,24 @@ export class Example10 extends AbstractExample {
       const vertices = geom.vertices;
       const seed = m * 100; // Offset per bowl
 
-      for (let i = 0; i < vertices.length; i += 3) {
-        const vx = original[i];
-        const vz = original[i + 2];
-        if (undefined === vx || undefined === vz) continue;
+      for (let i: number = 0; i < vertices.length; i += 3) {
+        const vx = original[i]!;
+        const vz = original[i + 2]!;
 
-        // Simplex Noise for organic bubbling
-        const n1 = this._noise(vx * 0.5 + this._time * 0.2, vz * 0.5 + seed) * 0.3;
-        const n2 = this._noise(vx * 1.2 - this._time * 0.5, vz * 1.2 + seed) * 0.1;
+        // 1. Layer: Slow, large waves moving diagonal (Speed and Amplitude +15%)
+        const n1 = this._noise(vx * 0.4 + this._time * 0.1725, vz * 0.4 + this._time * 0.115 + seed) * 0.2875;
+        // 2. Layer: Faster, smaller bubbles/ripples (Speed and Amplitude +15%)
+        const n2 = this._noise(vx * 1.5 - this._time * 0.345, vz * 1.5 + this._time * 0.23 + seed) * 0.092;
 
-        vertices[i + 1] = n1 + n2;
+        // Combine layers
+        let height = n1 + n2;
+
+        // Damping towards the edges so lava stays inside the bowl
+        const distFromCenter = Math.sqrt(vx * vx + vz * vz);
+        const damping = Math.max(0, 1.0 - Math.pow(distFromCenter / 1.6, 4));
+        height *= damping;
+
+        vertices[i + 1] = height;
       }
 
       // Recompute normals on the plane instance
@@ -242,10 +252,28 @@ export class Example10 extends AbstractExample {
       geom.needsUpdate = true;
     }
 
-    // 5. Animate Texture Offset
+    // 5. Animate Texture Offset (synchronous slow flow, Speed +15%)
     if (this._lavaTexture) {
-      this._lavaTexture.offset.x += 0.03 * deltaTime;
-      this._lavaTexture.offset.y += 0.01 * deltaTime;
+      this._lavaTexture.offset.x += 0.01725 * deltaTime;
+      this._lavaTexture.offset.y += 0.0115 * deltaTime;
+    }
+
+    // 6. Animate Lava Glow (Pulsing Intensity and Color)
+    for (let l: number = 0; l < this._lavaLights.length; l++) {
+      const light = this._lavaLights[l]!;
+      const seed = l * 500;
+
+      // Organic pulsing using sine and noise
+      const pulse = (Math.sin(this._time * 1.5 + seed) * 0.5 + 0.5) * 0.4 +
+                    (this._noise(this._time * 0.8, seed) * 0.5 + 0.5) * 0.6;
+
+      // Intensity varies between 1.5 and 3.0
+      light.intensity = 1.5 + pulse * 1.5;
+
+      // Color varies between deep red-orange and bright lava-orange
+      light.color.r = 1.0;
+      light.color.g = 0.3 + pulse * 0.3; // More yellow/orange when brighter
+      light.color.b = 0.1 + pulse * 0.1;
     }
   }
 

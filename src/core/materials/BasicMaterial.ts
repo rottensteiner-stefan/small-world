@@ -33,20 +33,38 @@ export class BasicMaterial extends AbstractMaterial {
 
   /** @inheritdoc */
   public override getRenderManifest(): RenderManifest {
-    return {
-      shaderId: this.type,
-      properties: {
-        u_color: this.color.toFloat32Array(),
-        u_texOffset: this.diffuseMap
-          ? [this.diffuseMap.offset.x, this.diffuseMap.offset.y]
-          : [0, 0],
-        u_texRepeat: this.diffuseMap
-          ? [this.diffuseMap.repeat.x, this.diffuseMap.repeat.y]
-          : [1, 1],
-      },
-      textures: {
-        u_diffuseMap: this.diffuseMap,
-      },
-    };
+    if (undefined === this._renderManifest) {
+      this._renderManifest = {
+        shaderId: this.type,
+        properties: {
+          u_color: this.color.toFloat32Array(),
+          u_texOffset: [0, 0],
+          u_texRepeat: [1, 1],
+        },
+        textures: {
+          u_diffuseMap: this.diffuseMap,
+        },
+      };
+    }
+
+    const props = this._renderManifest.properties as Record<string, unknown>;
+    const texs = this._renderManifest.textures as Record<string, unknown>;
+
+    props["u_color"] = this.color.toFloat32Array();
+    if (this.diffuseMap) {
+      (props["u_texOffset"] as number[])[0] = this.diffuseMap.offset.x;
+      (props["u_texOffset"] as number[])[1] = this.diffuseMap.offset.y;
+      (props["u_texRepeat"] as number[])[0] = this.diffuseMap.repeat.x;
+      (props["u_texRepeat"] as number[])[1] = this.diffuseMap.repeat.y;
+      texs["u_diffuseMap"] = this.diffuseMap;
+    } else {
+      (props["u_texOffset"] as number[])[0] = 0;
+      (props["u_texOffset"] as number[])[1] = 0;
+      (props["u_texRepeat"] as number[])[0] = 1;
+      (props["u_texRepeat"] as number[])[1] = 1;
+      texs["u_diffuseMap"] = undefined;
+    }
+
+    return this._renderManifest;
   }
 }

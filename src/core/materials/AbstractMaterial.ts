@@ -15,6 +15,9 @@ export abstract class AbstractMaterial {
   /** The base color of the material. */
   public color: Color = Color.WHITE;
 
+  /** Cached render manifest to avoid frequent allocations. */
+  protected _renderManifest: RenderManifest | undefined = undefined;
+
   /**
    * Returns a manifest describing the requirements for rendering this material.
    * @returns The render manifest.
