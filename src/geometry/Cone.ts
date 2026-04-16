@@ -11,7 +11,8 @@ export interface ConeOptions extends Omit<CylinderOptions, "radiusTop" | "radius
 }
 
 /**
- * A cone geometry. A specialized case of a cylinder with radiusTop set to 0.
+ * A cone geometry.
+ * Specialized case of a cylinder where the top radius is zero.
  */
 export class Cone extends Cylinder {
   /**

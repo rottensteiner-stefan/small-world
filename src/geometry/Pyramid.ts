@@ -3,17 +3,20 @@
 import { AbstractGeometry } from "./AbstractGeometry.js";
 import { MathUtils } from "../math/index.js";
 
+/**
+ * Configuration options for pyramid geometry.
+ */
 export interface PyramidOptions {
-  /** The size of the base. Defaults to 1. */
+  /** The size of the square base. Defaults to 1. */
   base?: number;
-  /** The height of the pyramid. Defaults to 1. */
+  /** The total height of the pyramid. Defaults to 1. */
   height?: number;
-  /** The number of radial segments (sides). Defaults to 4. */
+  /** The number of radial segments (faces). Defaults to 4 for a square pyramid. */
   radialSegments?: number;
 }
 
 /**
- * A pyramid geometry with support for subdivisions.
+ * A pyramid geometry with a flat base and a tip.
  */
 export class Pyramid extends AbstractGeometry {
   /** The size of the base. */
@@ -25,7 +28,7 @@ export class Pyramid extends AbstractGeometry {
 
   /**
    * Creates a new Pyramid geometry.
-   * @param options The configuration options for the pyramid.
+   * @param options The configuration options.
    */
   constructor(options: PyramidOptions = {}) {
     super();
@@ -41,8 +44,8 @@ export class Pyramid extends AbstractGeometry {
     const v: number[] = [];
     const uv: number[] = [];
     const idx: number[] = [];
-    const hh: number = this.height / 2;
-    const rb: number = this.base / 2;
+    const hh: number = this.height / 2.0;
+    const rb: number = this.base / 2.0;
 
     // --- Side faces ---
     // Tip vertex

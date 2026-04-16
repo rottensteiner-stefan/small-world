@@ -2,13 +2,17 @@
 
 import { AbstractGeometry } from "./AbstractGeometry.js";
 
+/**
+ * A geometry implementation for externally loaded models (e.g. from OBJ files).
+ * Holds raw data provided during construction.
+ */
 export class ModelGeometry extends AbstractGeometry {
   /**
-   * Creates a new ModelGeometry.
-   * @param vertices The vertices.
-   * @param uvs The UV coordinates.
-   * @param normals The normals.
-   * @param indices The indices.
+   * Creates a new ModelGeometry from provided raw data.
+   * @param vertices Raw vertex positions.
+   * @param uvs Raw texture coordinates.
+   * @param normals Raw vertex normals.
+   * @param indices Raw triangle indices.
    */
   constructor(vertices: number[], uvs: number[], normals: number[], indices: number[]) {
     super();
@@ -18,16 +22,14 @@ export class ModelGeometry extends AbstractGeometry {
     this._indices = this._createIndexArray(indices.length);
     this._indices.set(indices);
 
-    // Falls das Modell keine Normalen mitbringt, berechnen wir sie selbst
-    if (this._normals.length === 0) {
+    // If the model doesn't provide normals, compute them automatically.
+    if (0 === this._normals.length) {
       this.computeNormals();
     }
   }
 
-  /**
-   * @inheritdoc
-   */
+  /** @inheritdoc */
   protected override generateGeometryData(): void {
-    // Bleibt leer, da die Daten bereits im Konstruktor übergeben und gesetzt werden.
+    // Data is provided in constructor.
   }
 }

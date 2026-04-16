@@ -13,7 +13,7 @@ export interface CapsuleOptions {
   length?: number;
   /** The number of radial segments. Defaults to 16. */
   radialSegments?: number;
-  /** The number of height segments for the caps. Defaults to 8. */
+  /** The number of height segments for each cap. Defaults to 8. */
   capSegments?: number;
 }
 
@@ -51,7 +51,7 @@ export class Capsule extends AbstractGeometry {
     const uv: number[] = [];
     const idx: number[] = [];
 
-    const halfLength: number = this.length / 2;
+    const halfLength: number = this.length / 2.0;
 
     // --- Generate Vertices and Normals ---
     // From top cap to bottom cap
@@ -68,16 +68,11 @@ export class Capsule extends AbstractGeometry {
         vCoord = (y / (this.capSegments * 2 + 1)) * 0.5;
       }
       // Bottom cap
-      else if (y > this.capSegments) {
+      else {
         const phi: number = ((y - 1) / this.capSegments) * MathUtils.HALF_PI - MathUtils.HALF_PI;
         radius = this.radius * Math.cos(phi);
         yPos = -halfLength - this.radius * Math.sin(phi);
         vCoord = y / (this.capSegments * 2 + 1);
-      } else {
-        // Should not happen with current logic
-        radius = this.radius;
-        yPos = 0;
-        vCoord = 0.5;
       }
 
       for (let x: number = 0; x <= this.radialSegments; x++) {
@@ -94,9 +89,13 @@ export class Capsule extends AbstractGeometry {
         const ny: number = y <= this.capSegments ? yPos - halfLength : yPos + halfLength;
         const nz: number = vz;
         const nLen: number = Math.sqrt(nx * nx + ny * ny + nz * nz);
-        n.push(nx / nLen, ny / nLen, nz / nLen);
+        if (0 < nLen) {
+          n.push(nx / nLen, ny / nLen, nz / nLen);
+        } else {
+          n.push(0, 1, 0);
+        }
 
-        uv.push(uCoord, 1 - vCoord);
+        uv.push(uCoord, 1.0 - vCoord);
       }
     }
 

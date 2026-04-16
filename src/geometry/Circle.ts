@@ -9,11 +9,11 @@ import { MathUtils } from "../math/index.js";
 export interface CircleOptions {
   /** The radius of the circle. Defaults to 1. */
   radius?: number;
-  /** The number of segments. Defaults to 32. */
+  /** The number of radial segments. Defaults to 32. */
   segments?: number;
   /** The start angle of the circle segment in radians. Defaults to 0. */
   thetaStart?: number;
-  /** The central angle of the circle segment in radians. Defaults to 2 * Math.PI (full circle). */
+  /** The central angle of the circle segment in radians. Defaults to 2 * PI. */
   thetaLength?: number;
 }
 
@@ -25,14 +25,14 @@ export class Circle extends AbstractGeometry {
   public radius: number;
   /** The number of segments. */
   public segments: number;
-  /** The start angle of the circle segment in radians. */
+  /** The start angle in radians. */
   public thetaStart: number;
-  /** The central angle of the circle segment in radians. */
+  /** The central angle in radians. */
   public thetaLength: number;
 
   /**
    * Creates a new Circle geometry.
-   * @param options The configuration options for the circle.
+   * @param options The configuration options.
    */
   constructor(options: CircleOptions = {}) {
     super();
@@ -48,7 +48,7 @@ export class Circle extends AbstractGeometry {
   protected override generateGeometryData(): void {
     const v: number[] = [];
     const uv: number[] = [];
-    const i: number[] = [];
+    const idx: number[] = [];
 
     // Center vertex
     v.push(0, 0, 0);
@@ -66,12 +66,12 @@ export class Circle extends AbstractGeometry {
 
     // Indices for triangles (fan from center)
     for (let n: number = 0; n < this.segments; n++) {
-      i.push(centerIndex, n + 1, n + 2);
+      idx.push(centerIndex, n + 1, n + 2);
     }
 
     this._vertices = new Float32Array(v);
     this._uvs = new Float32Array(uv);
-    this._indices = this._createIndexArray(i.length);
-    this._indices.set(i);
+    this._indices = this._createIndexArray(idx.length);
+    this._indices.set(idx);
   }
 }
