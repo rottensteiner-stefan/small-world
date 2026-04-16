@@ -1,12 +1,7 @@
 /// src/core/events/EventDispatcherImpl.ts
 
 import { EventType } from "../../enums/index.js";
-import { Events } from "../../interfaces/Events.js";
-
-/**
- * Type definition for event handler functions.
- */
-export type EventHandler = (event: Record<string, unknown>) => void;
+import { Events, EventHandler } from "../../interfaces/index.js";
 
 /**
  * Standard implementation of the Events interface.
