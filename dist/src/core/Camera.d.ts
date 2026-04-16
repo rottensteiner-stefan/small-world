@@ -33,6 +33,8 @@ export declare class Camera implements CameraInterfaceData {
     /** @inheritdoc */
     set aspect(value: number);
     /** @inheritdoc */
+    zoom(delta: number): void;
+    /** @inheritdoc */
     updateProjectionMatrix(): void;
     /** @inheritdoc */
     updateViewMatrix(): void;

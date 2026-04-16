@@ -5,14 +5,10 @@ import { Controller, CameraInterfaceData } from '../../interfaces/index.js';
 export interface OrbitControllerOptions {
     /** Look sensitivity. Defaults to 0.005. */
     lookSensitivity?: number;
-    /** Zoom sensitivity. Defaults to 0.5. */
-    zoomSensitivity?: number;
     /** Minimum vertical angle (phi) in radians. Defaults to 0.01. */
     minPhi?: number;
     /** Maximum vertical angle (phi) in radians. Defaults to PI - 0.01. */
     maxPhi?: number;
-    /** Whether zoom (Wheel/Pinch) is enabled. Defaults to true. */
-    enableZoom?: boolean;
     /** Whether rotation (Mouse) is enabled. Defaults to true. */
     enableRotation?: boolean;
 }
