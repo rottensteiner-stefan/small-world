@@ -3,21 +3,24 @@
 import { BoundingVolume } from "../interfaces/index.js";
 import { Vector3D } from "../math/Vector3D.js";
 import { BoundingType } from "../enums/index.js";
+
 /**
- * Represents an axis-aligned bounding box (AABB).
+ * Represents an axis-aligned bounding box (AABB) in 3D space.
  */
 export class BoundingBox implements BoundingVolume {
   /** @inheritdoc */
   public type: BoundingType = BoundingType.BOX;
+
   /** The broad radius for coarse intersection tests. */
   public broadRadius: number;
 
+  /** Internal storage for the center point. */
   private _center: Vector3D;
 
   /**
    * Creates a new BoundingBox.
-   * @param min The minimum coordinates.
-   * @param max The maximum coordinates.
+   * @param min The minimum coordinates (lower-left-back).
+   * @param max The maximum coordinates (upper-right-front).
    */
   constructor(
     public min: Vector3D,
@@ -41,12 +44,12 @@ export class BoundingBox implements BoundingVolume {
    */
   public containsPoint(point: Vector3D): boolean {
     return (
-      point.x >= this.min.x &&
-      point.x <= this.max.x &&
-      point.y >= this.min.y &&
-      point.y <= this.max.y &&
-      point.z >= this.min.z &&
-      point.z <= this.max.z
+      this.min.x <= point.x &&
+      this.max.x >= point.x &&
+      this.min.y <= point.y &&
+      this.max.y >= point.y &&
+      this.min.z <= point.z &&
+      this.max.z >= point.z
     );
   }
 
