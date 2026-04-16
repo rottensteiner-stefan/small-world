@@ -9,7 +9,7 @@ export class ColorUtils {
   private static _ctx: CanvasRenderingContext2D | undefined = undefined;
 
   private static _getCtx(): CanvasRenderingContext2D | undefined {
-    if (!this._ctx) {
+    if (undefined === this._ctx) {
       const canvas: HTMLCanvasElement = document.createElement("canvas");
       canvas.width = 1;
       canvas.height = 1;
@@ -25,7 +25,7 @@ export class ColorUtils {
    */
   public static fromCSS(cssColor: string): Color {
     const ctx: CanvasRenderingContext2D | undefined = this._getCtx();
-    if (!ctx) {
+    if (undefined === ctx) {
       return new Color(1, 1, 1, 1);
     }
     ctx.fillStyle = cssColor;
