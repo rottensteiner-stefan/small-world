@@ -134,3 +134,4 @@ ESLint Sync: These rules are synchronized with the linter configuration (eslint.
 ### 5. Documentation
 
 - **JSDoc:** All public APIs (classes, methods, properties) must be documented with JSDoc (`/** ... */`).
+- **Language:** All comments, documentation, etc. must be written in English.
