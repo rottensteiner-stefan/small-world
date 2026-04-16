@@ -70,7 +70,7 @@ export class Input {
     window.addEventListener("contextmenu", (e: MouseEvent): void => e.preventDefault());
 
     document.addEventListener("pointerlockchange", (): void => {
-      this.isPointerLocked = undefined !== document.pointerLockElement && true;
+      this.isPointerLocked = null !== document.pointerLockElement;
       if (this.debug) {
         console.log(`[Input] PointerLock changed: ${this.isPointerLocked}`);
       }
@@ -99,7 +99,7 @@ export class Input {
    * @returns True if the key is pressed.
    */
   public static isPressed(code: string | Keys): boolean {
-    return this._keys.get(code) === true;
+    return true === this._keys.get(code);
   }
 
   /**
