@@ -1,20 +1,15 @@
 import { Vector } from '../interfaces/Vector.js';
 /**
- * A 2D vector class.
+ * A class representing a 2D vector.
+ * Data is stored as individual properties for fast access in JS engines.
  */
 export declare class Vector2D implements Vector {
-    /**
-     * The x component.
-     */
     x: number;
-    /**
-     * The y component.
-     */
     y: number;
     /**
      * Creates a new Vector2D.
-     * @param x The x component.
-     * @param y The y component.
+     * @param x The x component. Defaults to 0.
+     * @param y The y component. Defaults to 0.
      */
     constructor(x?: number, y?: number);
     /**
@@ -37,7 +32,7 @@ export declare class Vector2D implements Vector {
      */
     addScalar(s: number): this;
     /**
-     * Multiplies this vector by another.
+     * Multiplies this vector by another (component-wise).
      * @param v The other vector.
      * @returns this
      */
@@ -56,7 +51,7 @@ export declare class Vector2D implements Vector {
     sub(v: Vector2D): this;
     /**
      * Scales the vector by a scalar value.
-     * @param s The scalar to scale by.
+     * @param s The scalar factor.
      * @returns this
      */
     scale(s: number): this;
@@ -72,7 +67,7 @@ export declare class Vector2D implements Vector {
      */
     lengthSq(): number;
     /**
-     * Calculates the length of the vector.
+     * Calculates the Euclidean length of the vector.
      * @returns The length.
      */
     length(): number;
@@ -83,18 +78,18 @@ export declare class Vector2D implements Vector {
      */
     distanceToSq(v: Vector2D): number;
     /**
-     * Calculates the distance to another vector.
+     * Calculates the Euclidean distance to another vector.
      * @param v The other vector.
      * @returns The distance.
      */
     distanceTo(v: Vector2D): number;
     /**
-     * Clones the vector.
-     * @returns A new Vector2D with the same components.
+     * Clones the vector into a new instance.
+     * @returns A new Vector2D.
      */
     clone(): Vector2D;
     /**
-     * Normalizes the vector to a length of 1.
+     * Normalizes the vector to a unit length of 1.
      * @returns this
      */
     normalize(): this;

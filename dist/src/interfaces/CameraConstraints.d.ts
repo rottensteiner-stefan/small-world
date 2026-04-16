@@ -1,10 +1,10 @@
 import { Vector3D } from '../math/Vector3D.js';
 /**
- * Interface defining constraints for the camera position or target.
+ * Interface defining spatial constraints for the camera position or target.
  */
 export interface CameraConstraints {
-    /** The minimum world coordinates for the camera/target. */
+    /** The minimum world coordinates (bounding box min). */
     min?: Vector3D;
-    /** The maximum world coordinates for the camera/target. */
+    /** The maximum world coordinates (bounding box max). */
     max?: Vector3D;
 }

@@ -3,9 +3,9 @@ import { AbstractGeometry } from './AbstractGeometry.js';
  * Configuration options for torus geometry.
  */
 export interface TorusOptions {
-    /** The radius of the torus. Defaults to 1. */
+    /** The radius of the torus tube center. Defaults to 1. */
     radius?: number;
-    /** The radius of the tube. Defaults to 0.4. */
+    /** The radius of the tube itself. Defaults to 0.4. */
     tube?: number;
     /** The number of radial segments. Defaults to 16. */
     radialSegments?: number;
@@ -13,10 +13,10 @@ export interface TorusOptions {
     tubularSegments?: number;
 }
 /**
- * A torus geometry.
+ * A torus (donut-shaped) geometry.
  */
 export declare class Torus extends AbstractGeometry {
-    /** The radius of the torus. */
+    /** The radius of the torus ring. */
     radius: number;
     /** The radius of the tube. */
     tube: number;
@@ -26,7 +26,7 @@ export declare class Torus extends AbstractGeometry {
     tubularSegments: number;
     /**
      * Creates a new Torus geometry.
-     * @param options The configuration options for the torus.
+     * @param options The configuration options.
      */
     constructor(options?: TorusOptions);
     /** @inheritdoc */

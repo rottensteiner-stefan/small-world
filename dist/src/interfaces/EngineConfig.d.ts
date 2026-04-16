@@ -1,13 +1,18 @@
 import { ProjectionType, RendererType } from '../enums/index.js';
+/**
+ * Configuration for a single renderer backend.
+ */
 export interface EngineRendererConfig {
+    /** The type of the renderer (e.g., WEB_GL2, WEB_GPU). */
     type: RendererType | string;
+    /** Context attributes passed to getContext(). */
     attributes?: Record<string, unknown>;
 }
 /**
- * Tone mapping algorithms.
+ * Tone mapping algorithms for HDR rendering.
  */
 export declare const ToneMapping: {
-    /** No tone mapping. */
+    /** No tone mapping applied. */
     readonly NONE: "none";
     /** Reinhard tone mapping. */
     readonly REINHARD: "reinhard";
@@ -22,9 +27,9 @@ export type ToneMapping = (typeof ToneMapping)[keyof typeof ToneMapping];
 export interface QualityConfig {
     /** Global toggle for mipmapping. Defaults to true. */
     mipmapping?: boolean;
-    /** Maximum anisotropic filtering level. Usually 1, 4, 8, 16. Defaults to 4. */
+    /** Maximum anisotropic filtering level (1, 4, 8, 16). Defaults to 4. */
     maxAnisotropy?: number;
-    /** Antialiasing (MSAA) level. usually 0, 2, 4, 8. Defaults to 4. */
+    /** Antialiasing (MSAA) level (0, 2, 4, 8). Defaults to 4. */
     msaa?: number;
     /** Maximum shadow map resolution. Defaults to 1024. */
     maxShadowResolution?: number;
@@ -33,13 +38,23 @@ export interface QualityConfig {
     /** The tone mapping algorithm to use. Defaults to NONE. */
     toneMapping?: ToneMapping;
 }
+/**
+ * Global engine configuration options.
+ */
 export interface EngineConfig {
+    /** The ID of the canvas element in the DOM. Defaults to "canvas". */
     canvasId?: string;
+    /** Whether the engine should automatically resize the canvas to full screen. */
     fullscreen?: boolean;
+    /** Fixed height in pixels (ignored if fullscreen is true). */
     height?: number;
+    /** Fixed width in pixels (ignored if fullscreen is true). */
     width?: number;
+    /** Default camera projection type. */
     projection?: ProjectionType;
+    /** Primary renderer type to attempt initialization. */
     rendererType?: RendererType;
+    /** Detailed renderer configurations. */
     renderer?: EngineRendererConfig[];
     /** Optional quality settings. */
     quality?: QualityConfig;

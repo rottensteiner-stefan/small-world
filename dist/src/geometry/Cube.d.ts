@@ -3,20 +3,20 @@ import { AbstractGeometry } from './AbstractGeometry.js';
  * Configuration options for cube geometry.
  */
 export interface CubeOptions {
-    /** The size of the cube. Defaults to 1. */
+    /** The size of the cube edges. Defaults to 1. */
     size?: number;
-    /** Number of segments along the width. Defaults to 1. */
+    /** Number of segments along the width (X-axis). Defaults to 1. */
     widthSegments?: number;
-    /** Number of segments along the height. Defaults to 1. */
+    /** Number of segments along the height (Y-axis). Defaults to 1. */
     heightSegments?: number;
-    /** Number of segments along the depth. Defaults to 1. */
+    /** Number of segments along the depth (Z-axis). Defaults to 1. */
     depthSegments?: number;
 }
 /**
- * A cube geometry with support for subdivisions.
+ * A box-shaped geometry with support for face subdivisions.
  */
 export declare class Cube extends AbstractGeometry {
-    /** The size of the cube. */
+    /** The size of the cube edges. */
     size: number;
     /** Number of segments along the width. */
     widthSegments: number;
@@ -26,7 +26,7 @@ export declare class Cube extends AbstractGeometry {
     depthSegments: number;
     /**
      * Creates a new Cube geometry.
-     * @param options The configuration options for the cube.
+     * @param options The configuration options.
      */
     constructor(options?: CubeOptions);
     /** @inheritdoc */

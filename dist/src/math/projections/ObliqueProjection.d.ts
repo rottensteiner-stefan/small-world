@@ -19,26 +19,26 @@ export interface ObliqueOptions {
     far?: number;
 }
 /**
- * Oblique camera projection.
+ * Oblique camera projection for specialized 2.5D views.
  */
 export declare class ObliqueProjection extends AbstractProjection {
-    /** Left. */
+    /** Left clip plane. */
     left: number;
-    /** Right. */
+    /** Right clip plane. */
     right: number;
-    /** Bottom. */
+    /** Bottom clip plane. */
     bottom: number;
-    /** Top. */
+    /** Top clip plane. */
     top: number;
-    /** Near. */
+    /** Near clip plane. */
     near: number;
-    /** Far. */
+    /** Far clip plane. */
     far: number;
     /** @inheritdoc */
     readonly type: ProjectionType;
     /**
      * Creates a new ObliqueProjection.
-     * @param options The configuration options for the projection.
+     * @param options The configuration options.
      */
     constructor(options?: ObliqueOptions);
     /** @inheritdoc */

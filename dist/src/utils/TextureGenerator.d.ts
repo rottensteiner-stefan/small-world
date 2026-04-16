@@ -1,5 +1,6 @@
 /**
  * Utility class for procedural texture generation.
+ * Provides methods to create organic textures for terrain biomes.
  */
 export declare class TextureGenerator {
     /**
@@ -12,12 +13,24 @@ export declare class TextureGenerator {
      * @returns A promise resolving to an ImageBitmap.
      */
     static generateBiome(r: number, g: number, b: number, noiseSpread: number, size?: number): Promise<ImageBitmap>;
-    /** Creates a sand texture. */
+    /**
+     * Creates a sand texture.
+     * @returns ImageBitmap
+     */
     static createSand(): Promise<ImageBitmap>;
-    /** Creates a grass texture. */
+    /**
+     * Creates a grass texture.
+     * @returns ImageBitmap
+     */
     static createGrass(): Promise<ImageBitmap>;
-    /** Creates a rock texture. */
+    /**
+     * Creates a rock texture.
+     * @returns ImageBitmap
+     */
     static createRock(): Promise<ImageBitmap>;
-    /** Creates a snow texture. */
+    /**
+     * Creates a snow texture.
+     * @returns ImageBitmap
+     */
     static createSnow(): Promise<ImageBitmap>;
 }

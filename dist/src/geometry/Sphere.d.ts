@@ -11,7 +11,7 @@ export interface SphereOptions {
     heightSegments?: number;
 }
 /**
- * A sphere geometry.
+ * A spherical geometry based on UV mapping (latitude-longitude).
  */
 export declare class Sphere extends AbstractGeometry {
     /** The radius of the sphere. */
@@ -22,7 +22,7 @@ export declare class Sphere extends AbstractGeometry {
     heightSegments: number;
     /**
      * Creates a new Sphere geometry.
-     * @param options The configuration options for the sphere.
+     * @param options The configuration options.
      */
     constructor(options?: SphereOptions);
     /** @inheritdoc */

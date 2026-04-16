@@ -1,8 +1,9 @@
 /**
- * Interface representing raw geometry data for rendering.
+ * Interface representing raw geometry data for GPU upload and rendering.
+ * All numeric data is stored in TypedArrays for maximum performance.
  */
 export interface GeometryDataInterface {
-    /** Vertex position data (x, y, z). */
+    /** Vertex position data (x, y, z). Mandatory. */
     vertices: Float32Array;
     /** Optional index data. If provided, indexed rendering is used. */
     indices?: Uint16Array | Uint32Array | undefined;
@@ -10,10 +11,13 @@ export interface GeometryDataInterface {
     wireframeIndices?: Uint16Array | Uint32Array | undefined;
     /** Optional normal data (nx, ny, nz). */
     normals?: Float32Array | undefined;
-    /** Optional tangent data (tx, ty, tz). */
+    /** Optional tangent data (tx, ty, tz). Used for normal mapping. */
     tangents?: Float32Array | undefined;
     /** Optional texture coordinate data (u, v). */
     uvs?: Float32Array | undefined;
-    /** Flag to indicate that the vertex/normal buffers need to be re-uploaded to the GPU. */
+    /**
+     * Flag to indicate that the vertex/normal/tangent buffers need to be re-uploaded to the GPU.
+     * Set this to true after modifying the TypedArrays in-place.
+     */
     needsUpdate?: boolean;
 }

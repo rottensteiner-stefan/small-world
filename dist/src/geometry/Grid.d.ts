@@ -3,13 +3,13 @@ import { AbstractGeometry } from './AbstractGeometry.js';
  * Configuration options for grid geometry.
  */
 export interface GridOptions {
-    /** The total size of the grid. Defaults to 20. */
+    /** The total size of the grid edges. Defaults to 20. */
     size?: number;
-    /** The number of divisions. Defaults to 20. */
+    /** The number of divisions along each axis. Defaults to 20. */
     divisions?: number;
 }
 /**
- * A grid geometry.
+ * A helper geometry representing a flat grid of lines on the XZ plane.
  */
 export declare class Grid extends AbstractGeometry {
     /** The total size of the grid. */
@@ -18,7 +18,7 @@ export declare class Grid extends AbstractGeometry {
     divisions: number;
     /**
      * Creates a new Grid geometry.
-     * @param options The configuration options for the grid.
+     * @param options The configuration options.
      */
     constructor(options?: GridOptions);
     /** @inheritdoc */

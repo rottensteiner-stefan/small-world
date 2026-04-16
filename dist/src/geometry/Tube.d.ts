@@ -5,13 +5,13 @@ import { AbstractGeometry } from './AbstractGeometry.js';
 export interface TubeOptions {
     /** The outer radius of the tube. Defaults to 1. */
     radius?: number;
-    /** The inner radius of the tube. Defaults to 0.5. */
+    /** The inner radius of the tube (hole size). Defaults to 0.5. */
     innerRadius?: number;
-    /** The height of the tube. Defaults to 2. */
+    /** The total height of the tube. Defaults to 2. */
     height?: number;
     /** The number of radial segments. Defaults to 16. */
     radialSegments?: number;
-    /** The number of height segments. Defaults to 1. */
+    /** The number of height segments along the vertical axis. Defaults to 1. */
     heightSegments?: number;
 }
 /**
