@@ -4,7 +4,7 @@ import { BoundingVolume } from "../interfaces/index.js";
 import { Vector3D } from "../math/index.js";
 import { BoundingType } from "../enums/index.js";
 /**
- * Represents a bounding sphere.
+ * Represents a bounding sphere in 3D space.
  */
 export class BoundingSphere implements BoundingVolume {
   /** @inheritdoc */
@@ -12,7 +12,7 @@ export class BoundingSphere implements BoundingVolume {
 
   /**
    * Creates a new BoundingSphere.
-   * @param center The center of the sphere.
+   * @param center The center position of the sphere.
    * @param radius The radius of the sphere.
    */
   constructor(
