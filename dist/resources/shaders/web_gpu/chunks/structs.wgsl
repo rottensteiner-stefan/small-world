@@ -16,9 +16,9 @@ struct U {
   numAL: f32, 
   thresholds: vec4f,
   isTerrain: f32,
-  pad1: f32,
-  pad2: f32,
-  pad3: f32
+  metallic: f32,
+  roughness: f32,
+  ao: f32
 }
 @group(0) @binding(0) var<uniform> u: U;
 

@@ -750,6 +750,16 @@ export class WebGPURenderer extends AbstractRenderer {
 
         if (manifest.shaderId === MaterialType.TERRAIN) this._scratchObjUniformData[68] = 1.0;
 
+        if (manifest.shaderId === MaterialType.STANDARD) {
+          const mMetallic = props["u_metallic"];
+          const mRoughness = props["u_roughness"];
+          const mAO = props["u_ao"];
+
+          if (typeof mMetallic === "number") this._scratchObjUniformData[69] = mMetallic;
+          if (typeof mRoughness === "number") this._scratchObjUniformData[70] = mRoughness;
+          if (typeof mAO === "number") this._scratchObjUniformData[71] = mAO;
+        }
+
         const bufs = this._getObjBuffers(obj);
         this._device!.queue.writeBuffer(bufs.ub, 0, this._scratchObjUniformData);
         this._device!.queue.writeBuffer(bufs.pl, 0, plData);
