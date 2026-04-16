@@ -19,7 +19,7 @@ export class IsometricStrategy implements CameraStrategy {
   /** Whether to snap the camera position to whole pixels. */
   public pixelPerfect: boolean = true;
 
-  /** The zoom level (world units per screen unit). */
+  /** The snapping grid size (pixels per world unit) for pixelPerfect mode. */
   public zoom: number = 50;
 
   /** Optional constraints for the camera. */
@@ -76,19 +76,6 @@ export class IsometricStrategy implements CameraStrategy {
 
     camera.position.set(posX, posY, posZ);
     camera.target.copyFrom(constrainedTarget);
-
-    // Update projection based on zoom
-    const proj: OrthographicProjection = camera.projection;
-    // We assume aspect ratio is handled elsewhere or we use fixed bounds
-    // In a real scenario, we'd use the current canvas aspect ratio
-    const halfWidth: number = 10;
-    const halfHeight: number = 10;
-
-    proj.left = -halfWidth;
-    proj.right = halfWidth;
-    proj.bottom = -halfHeight;
-    proj.top = halfHeight;
-    proj.update();
 
     camera.updateViewMatrix();
   }

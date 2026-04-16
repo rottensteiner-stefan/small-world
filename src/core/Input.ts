@@ -91,11 +91,12 @@ export class Input {
     );
 
     // macOS specific gesture events for smoother pinching
-    window.addEventListener("gesturechange", (e: any): void => {
+    window.addEventListener("gesturechange", (e: Event): void => {
       e.preventDefault();
+      const gestureEvent = e as unknown as { scale: number };
       // scale > 1 is zoom in (negative delta for distance usually), scale < 1 is zoom out
       // We map this to our zoom delta
-      this.mouse.zoom += (1.0 - e.scale) * 2.0;
+      this.mouse.zoom += (1.0 - gestureEvent.scale) * 2.0;
     });
 
     window.addEventListener("contextmenu", (e: MouseEvent): void => e.preventDefault());
