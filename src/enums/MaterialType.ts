@@ -14,6 +14,8 @@ export const MaterialType = {
   SKYBOX: "SkyboxMaterial",
   /** Specialized terrain material. */
   TERRAIN: "TerrainMaterial",
+  /** Physically based rendering material. */
+  STANDARD: "StandardMaterial",
   /** Material for wireframe rendering. */
   WIREFRAME: "WireframeMaterial",
   /** Material for sprites. */
