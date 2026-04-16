@@ -9,6 +9,10 @@ export declare class SmoothStrategy implements CameraStrategy {
     readonly type: string;
     /** The radius of the camera from the target. */
     radius: number;
+    /** Minimum allowed radius. */
+    minRadius: number;
+    /** Maximum allowed radius. */
+    maxRadius: number;
     /** The lerp factor for smoothing. */
     lerpFactor: number;
     /** @inheritdoc */

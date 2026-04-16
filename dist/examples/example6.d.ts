@@ -13,7 +13,7 @@ export declare class Example6 extends AbstractExample {
     /** @inheritdoc */
     protected setupScene(): Promise<void>;
     /** @inheritdoc */
-    protected update(deltaTime: number): void;
+    protected update(_deltaTime: number): void;
     /** @inheritdoc */
     protected getDebugInfo(): Record<string, string | number>;
 }

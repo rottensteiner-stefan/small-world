@@ -10,6 +10,9 @@ export declare class Input {
         y: number;
         dx: number;
         dy: number;
+        wheelX: number;
+        wheelY: number;
+        zoom: number;
         left: boolean;
         right: boolean;
     };
