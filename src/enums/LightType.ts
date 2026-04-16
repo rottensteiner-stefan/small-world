@@ -1,5 +1,8 @@
 /// src/enums/LightType.ts
 
+/**
+ * Types of lights in the scene.
+ */
 export const LightType = {
   /** Ambient light. */
   AMBIENT: "AmbientLight",
