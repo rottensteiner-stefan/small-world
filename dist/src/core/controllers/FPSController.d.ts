@@ -1,21 +1,17 @@
 import { CameraInterfaceData, Controller } from '../../interfaces/index.js';
 import { Object3D } from '../Object3D.js';
 /**
- * Configuration for the FPSController.
+ * Configuration for the FPSControlle
  */
 export interface FPSControllerOptions {
     /** Movement speed in units per second. Defaults to 10. */
     moveSpeed?: number;
     /** Look sensitivity. Defaults to 0.005. */
     lookSensitivity?: number;
-    /** Zoom sensitivity. Defaults to 0.5. */
-    zoomSensitivity?: number;
     /** Whether movement (WASD) is enabled. Defaults to true. */
     enableMovement?: boolean;
     /** Whether rotation (Mouse) is enabled. Defaults to true. */
     enableRotation?: boolean;
-    /** Whether zoom (Wheel/Pinch) is enabled. Defaults to true. */
-    enableZoom?: boolean;
     /** Whether vertical movement (Q/E) is enabled. Defaults to true. */
     enableVertical?: boolean;
 }

@@ -10,7 +10,7 @@ export declare class IsometricStrategy implements CameraStrategy {
     readonly type: string;
     /** Whether to snap the camera position to whole pixels. */
     pixelPerfect: boolean;
-    /** The zoom level (world units per screen unit). */
+    /** The snapping grid size (pixels per world unit) for pixelPerfect mode. */
     zoom: number;
     /** Optional constraints for the camera. */
     constraints?: CameraConstraints;
