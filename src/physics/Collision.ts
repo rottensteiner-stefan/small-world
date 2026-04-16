@@ -1,7 +1,7 @@
 /// src/physics/Collision.ts
 import { BoundingBox, BoundingSphere } from "./index.js";
 import { BoundingVolume } from "../interfaces/index.js";
-import { Vector3D } from "../math/index.js";
+import { Vector3D, MathPool } from "../math/index.js";
 import { BoundingType } from "../enums/index.js";
 
 /**
@@ -20,16 +20,16 @@ export class Collision {
     if (distSq > sumRad * sumRad) {
       return false;
     }
-    if (a.type === BoundingType.SPHERE && b.type === BoundingType.SPHERE) {
+    if (BoundingType.SPHERE === a.type && BoundingType.SPHERE === b.type) {
       return this._sphereSphere(a as BoundingSphere, b as BoundingSphere);
     }
-    if (a.type === BoundingType.BOX && b.type === BoundingType.BOX) {
+    if (BoundingType.BOX === a.type && BoundingType.BOX === b.type) {
       return this._boxBox(a as BoundingBox, b as BoundingBox);
     }
-    if (a.type === BoundingType.SPHERE && b.type === BoundingType.BOX) {
+    if (BoundingType.SPHERE === a.type && BoundingType.BOX === b.type) {
       return this._sphereBox(a as BoundingSphere, b as BoundingBox);
     }
-    if (a.type === BoundingType.BOX && b.type === BoundingType.SPHERE) {
+    if (BoundingType.BOX === a.type && BoundingType.SPHERE === b.type) {
       return this._sphereBox(b as BoundingSphere, a as BoundingBox);
     }
     return false;
@@ -53,11 +53,13 @@ export class Collision {
   }
 
   private static _sphereBox(s: BoundingSphere, b: BoundingBox): boolean {
-    const closest: Vector3D = new Vector3D(
+    const closest: Vector3D = MathPool.acquireVector().set(
       Math.max(b.min.x, Math.min(s.center.x, b.max.x)),
       Math.max(b.min.y, Math.min(s.center.y, b.max.y)),
       Math.max(b.min.z, Math.min(s.center.z, b.max.z)),
     );
-    return closest.distanceToSq(s.center) <= s.radius * s.radius;
+    const result: boolean = closest.distanceToSq(s.center) <= s.radius * s.radius;
+    MathPool.releaseVector(closest);
+    return result;
   }
 }

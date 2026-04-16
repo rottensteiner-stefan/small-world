@@ -1,1 +1,0 @@
-import{B as t,L as r,l as s,u as e}from"./AbstractExample.js";var a=class extends s{type=t.WIREFRAME;constructor(t=e.WHITE){super(),this.color=t}getRenderManifest(){return{shaderId:this.type,properties:{u_color:this.color.toFloat32Array()},textures:{},state:{culling:r.NONE}}}};export{a as t};

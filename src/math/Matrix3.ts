@@ -55,14 +55,49 @@ export class Matrix3 {
   }
 
   /**
-   * Normal matrix calculation (transpose of inverse of the upper-left 3x3 of a 4x4 matrix).
+   * Calculates the normal matrix (transpose of the inverse of the upper-left 3x3 of a 4x4 matrix).
    * @param m The 4x4 matrix.
    * @returns this
    */
   public getNormalMatrix(m: { data: Float32Array }): this {
-    // This is a simplified version: for now, we just copy the 3x3 and would need inversion/transposition
-    // for correct normal transformation with scaling.
-    return this.setFromMatrix4(m);
+    const me: Float32Array = m.data;
+    const te: Float32Array = this.data;
+
+    const n11: number = me[0]!,
+      n12: number = me[4]!,
+      n13: number = me[8]!;
+    const n21: number = me[1]!,
+      n22: number = me[5]!,
+      n23: number = me[9]!;
+    const n31: number = me[2]!,
+      n32: number = me[6]!,
+      n33: number = me[10]!;
+
+    const t11: number = n33 * n22 - n32 * n23;
+    const t12: number = n32 * n13 - n33 * n12;
+    const t13: number = n23 * n12 - n22 * n13;
+
+    const det: number = n11 * t11 + n21 * t12 + n31 * t13;
+
+    if (0 === det) {
+      return this.identity();
+    }
+
+    const detInv: number = 1.0 / det;
+
+    te[0] = t11 * detInv;
+    te[1] = (n31 * n23 - n33 * n21) * detInv;
+    te[2] = (n32 * n21 - n31 * n22) * detInv;
+
+    te[3] = t12 * detInv;
+    te[4] = (n33 * n11 - n31 * n13) * detInv;
+    te[5] = (n31 * n12 - n32 * n11) * detInv;
+
+    te[6] = t13 * detInv;
+    te[7] = (n21 * n13 - n23 * n11) * detInv;
+    te[8] = (n22 * n11 - n21 * n12) * detInv;
+
+    return this;
   }
 
   /**

@@ -28,7 +28,7 @@ export interface TextureOptions {
  */
 export class Texture {
   /** The underlying image or bitmap data. */
-  public image: HTMLImageElement | ImageBitmap | null = null;
+  public image: HTMLImageElement | ImageBitmap | undefined = undefined;
   /** Whether the texture is fully loaded and ready for use. */
   public isLoaded: boolean = false;
 

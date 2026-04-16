@@ -2,7 +2,7 @@
 
 import { AbstractMaterial } from "./AbstractMaterial.js";
 import { CubeTexture } from "../textures/index.js";
-import { MaterialType, CullMode } from "../../enums/index.js";
+import { CullMode, MaterialType } from "../../enums/index.js";
 import { Color } from "../colors/Color.js";
 import { RenderManifest } from "../renderers/shaders/RenderManifest.js";
 
@@ -12,8 +12,8 @@ import { RenderManifest } from "../renderers/shaders/RenderManifest.js";
 export interface SkyboxMaterialOptions {
   /** The base color. Defaults to white. */
   color?: Color;
-  /** The cube map texture. Defaults to null. */
-  cubeMap?: CubeTexture | null;
+  /** The cube map texture. Defaults to undefined. */
+  cubeMap?: CubeTexture | undefined;
 }
 
 /**
@@ -24,7 +24,7 @@ export class SkyboxMaterial extends AbstractMaterial {
   public override readonly type: MaterialType = MaterialType.SKYBOX;
 
   /** The cube map texture. */
-  public cubeMap: CubeTexture | null;
+  public cubeMap: CubeTexture | undefined;
 
   /**
    * Creates a new SkyboxMaterial.
@@ -32,7 +32,7 @@ export class SkyboxMaterial extends AbstractMaterial {
    */
   constructor(options: SkyboxMaterialOptions = {}) {
     super();
-    const { color = Color.WHITE, cubeMap = null } = options;
+    const { color = Color.WHITE, cubeMap = undefined } = options;
     this.color = color;
     this.cubeMap = cubeMap;
   }

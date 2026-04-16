@@ -6,14 +6,14 @@ import { Color } from "../core/index.js";
  * Utility class for color conversions and manipulations.
  */
 export class ColorUtils {
-  private static _ctx: CanvasRenderingContext2D | null = null;
+  private static _ctx: CanvasRenderingContext2D | undefined = undefined;
 
-  private static _getCtx(): CanvasRenderingContext2D | null {
+  private static _getCtx(): CanvasRenderingContext2D | undefined {
     if (!this._ctx) {
       const canvas: HTMLCanvasElement = document.createElement("canvas");
       canvas.width = 1;
       canvas.height = 1;
-      this._ctx = canvas.getContext("2d", { willReadFrequently: true });
+      this._ctx = canvas.getContext("2d", { willReadFrequently: true }) ?? undefined;
     }
     return this._ctx;
   }
@@ -24,7 +24,7 @@ export class ColorUtils {
    * @returns A new Color instance.
    */
   public static fromCSS(cssColor: string): Color {
-    const ctx: CanvasRenderingContext2D | null = this._getCtx();
+    const ctx: CanvasRenderingContext2D | undefined = this._getCtx();
     if (!ctx) {
       return new Color(1, 1, 1, 1);
     }

@@ -1,6 +1,8 @@
 /// src/math/Matrix4.ts
 
 import { Vector3D } from "./Vector3D.js";
+import { MathPool } from "./MathPool.js";
+
 /**
  * A 4x4 matrix class.
  */
@@ -75,6 +77,7 @@ export class Matrix4 {
 
     return this;
   }
+
   /**
    * Sets the matrix to a translation matrix.
    * @param v The translation vector.
@@ -280,13 +283,13 @@ export class Matrix4 {
    */
   public static lookAt(eye: Vector3D, target: Vector3D, up: Vector3D, out: Matrix4): void {
     const d: Float32Array = out.data;
-    const z: Vector3D = eye.clone().sub(target);
+    const z: Vector3D = MathPool.acquireVector().copyFrom(eye).sub(target);
     const zL: number = z.length();
     if (0 < zL) {
       z.scale(1 / zL);
     }
 
-    const x: Vector3D = new Vector3D(
+    const x: Vector3D = MathPool.acquireVector().set(
       up.y * z.z - up.z * z.y,
       up.z * z.x - up.x * z.z,
       up.x * z.y - up.y * z.x,
@@ -296,7 +299,7 @@ export class Matrix4 {
       x.scale(1 / xL);
     }
 
-    const y: Vector3D = new Vector3D(
+    const y: Vector3D = MathPool.acquireVector().set(
       z.y * x.z - z.z * x.y,
       z.z * x.x - z.x * x.z,
       z.x * x.y - z.y * x.x,
@@ -315,6 +318,10 @@ export class Matrix4 {
     d[10] = z.z;
     d[14] = -z.dot(eye);
     d[15] = 1;
+
+    MathPool.releaseVector(x);
+    MathPool.releaseVector(y);
+    MathPool.releaseVector(z);
   }
 
   /**

@@ -7,7 +7,7 @@ import { AssetManager } from "../loaders/AssetManager.js";
  * Handles the Head-Up Display (HUD) overlay.
  */
 export class HUD {
-  private _root: HTMLElement | null = null;
+  private _root: HTMLElement | undefined = undefined;
   private _elements: Map<string, HTMLElement> = new Map<string, HTMLElement>();
 
   /**
@@ -32,11 +32,11 @@ export class HUD {
       container.innerHTML = html;
       document.body.appendChild(container);
 
-      this._root = document.getElementById("sw-hud-root");
+      this._root = document.getElementById("sw-hud-root") ?? undefined;
 
       const nodes: NodeListOf<Element> = document.querySelectorAll("[data-hud]");
       nodes.forEach((node: Element) => {
-        const key: string | null = node.getAttribute("data-hud");
+        const key: string | undefined = node.getAttribute("data-hud") ?? undefined;
         if (key) {
           this._elements.set(key, node as HTMLElement);
         }

@@ -1,5 +1,6 @@
 export * from './Frustum.js';
 export * from './MathUtils.js';
+export * from './MathPool.js';
 export * from './Matrix3.js';
 export * from './Matrix4.js';
 export * from './Quaternion.js';

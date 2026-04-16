@@ -21,26 +21,26 @@ export class FrustumCuller {
     this._frustum.setFromMatrix(vpMatrix);
 
     if (scene.octree) {
-      for (const obj of scene.objects) {
-        this._resetVisibility(obj);
+      for (let i: number = 0; i < scene.objects.length; i++) {
+        this._resetVisibility(scene.objects[i]!);
       }
 
       const visibleObjects: Object3D[] = scene.octree.query(this._frustum);
-      for (const obj of visibleObjects) {
-        obj.isVisible = true;
+      for (let i: number = 0; i < visibleObjects.length; i++) {
+        visibleObjects[i]!.isVisible = true;
       }
 
       let count: number = 0;
-      for (const obj of scene.objects) {
-        count += this._countVisible(obj);
+      for (let i: number = 0; i < scene.objects.length; i++) {
+        count += this._countVisible(scene.objects[i]!);
       }
       return count;
     }
 
     let visibleCount: number = 0;
 
-    for (const obj of scene.objects) {
-      visibleCount += this._checkNode(obj);
+    for (let i: number = 0; i < scene.objects.length; i++) {
+      visibleCount += this._checkNode(scene.objects[i]!);
     }
 
     return visibleCount;
@@ -58,8 +58,8 @@ export class FrustumCuller {
       obj.isVisible = true;
     }
 
-    for (const child of obj.children) {
-      this._resetVisibility(child);
+    for (let i: number = 0; i < obj.children.length; i++) {
+      this._resetVisibility(obj.children[i]!);
     }
   }
 
@@ -70,8 +70,8 @@ export class FrustumCuller {
    */
   private static _countVisible(obj: Object3D): number {
     let count: number = obj.isVisible ? 1 : 0;
-    for (const child of obj.children) {
-      count += this._countVisible(child);
+    for (let i: number = 0; i < obj.children.length; i++) {
+      count += this._countVisible(obj.children[i]!);
     }
     return count;
   }
@@ -90,8 +90,8 @@ export class FrustumCuller {
 
     let count = obj.isVisible ? 1 : 0;
 
-    for (const child of obj.children) {
-      count += this._checkNode(child);
+    for (let i: number = 0; i < obj.children.length; i++) {
+      count += this._checkNode(obj.children[i]!);
     }
 
     return count;

@@ -148,4 +148,24 @@ export class Mesh {
       this._gl.drawArrays(mode, 0, this.count);
     }
   }
+
+  /**
+   * Updates the GPU buffers with new geometry data.
+   * Currently updates vertices, normals and tangents.
+   * @param data The new geometry data.
+   */
+  public update(data: GeometryDataInterface): void {
+    this._gl.bindBuffer(this._gl.ARRAY_BUFFER, this.vbo ?? null);
+    this._gl.bufferData(this._gl.ARRAY_BUFFER, data.vertices, this._gl.STATIC_DRAW);
+
+    if (this.nbo && data.normals) {
+      this._gl.bindBuffer(this._gl.ARRAY_BUFFER, this.nbo);
+      this._gl.bufferData(this._gl.ARRAY_BUFFER, data.normals, this._gl.STATIC_DRAW);
+    }
+
+    if (this.tanbo && data.tangents) {
+      this._gl.bindBuffer(this._gl.ARRAY_BUFFER, this.tanbo);
+      this._gl.bufferData(this._gl.ARRAY_BUFFER, data.tangents, this._gl.STATIC_DRAW);
+    }
+  }
 }

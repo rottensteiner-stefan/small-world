@@ -3,7 +3,7 @@
 import { BoundingBox } from "../physics/BoundingBox.js";
 import { Object3D } from "./Object3D.js";
 import { Frustum } from "../math/Frustum.js";
-import { Vector3D } from "../math/Vector3D.js";
+import { Vector3D, MathPool } from "../math/index.js";
 import { BoundingType } from "../enums/index.js";
 
 /**
@@ -52,7 +52,7 @@ export class OctreeNode {
    * @returns True if the object was inserted.
    */
   public insert(obj: Object3D): boolean {
-    if (!obj.bounds || obj.bounds.type !== BoundingType.BOX) {
+    if (!obj.bounds || BoundingType.BOX !== obj.bounds.type) {
       return false;
     }
 
@@ -63,8 +63,8 @@ export class OctreeNode {
     }
 
     if (0 < this.children.length) {
-      for (const child of this.children) {
-        if (child.insert(obj)) {
+      for (let i: number = 0; i < this.children.length; i++) {
+        if (this.children[i]!.insert(obj)) {
           return true;
         }
       }
@@ -86,7 +86,7 @@ export class OctreeNode {
   private _subdivide(): void {
     const min: Vector3D = this.bounds.min;
     const max: Vector3D = this.bounds.max;
-    const center: Vector3D = min.clone().add(max).scale(0.5);
+    const center: Vector3D = MathPool.acquireVector().copyFrom(min).add(max).scale(0.5);
 
     const dims: number[][] = [
       [min.x, center.x],
@@ -120,10 +120,12 @@ export class OctreeNode {
       }
     }
 
+    MathPool.releaseVector(center);
+
     const oldObjects: Object3D[] = this.objects;
     this.objects = [];
-    for (const obj of oldObjects) {
-      this.insert(obj);
+    for (let i: number = 0; i < oldObjects.length; i++) {
+      this.insert(oldObjects[i]!);
     }
   }
 
@@ -137,14 +139,15 @@ export class OctreeNode {
       return;
     }
 
-    for (const obj of this.objects) {
+    for (let i: number = 0; i < this.objects.length; i++) {
+      const obj = this.objects[i]!;
       if (obj.bounds && frustum.intersectsVolume(obj.bounds)) {
         result.push(obj);
       }
     }
 
-    for (const child of this.children) {
-      child.query(frustum, result);
+    for (let i: number = 0; i < this.children.length; i++) {
+      this.children[i]!.query(frustum, result);
     }
   }
 
@@ -153,8 +156,8 @@ export class OctreeNode {
    */
   public clear(): void {
     this.objects = [];
-    for (const child of this.children) {
-      child.clear();
+    for (let i: number = 0; i < this.children.length; i++) {
+      this.children[i]!.clear();
     }
     this.children = [];
   }
