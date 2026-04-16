@@ -76,7 +76,7 @@ export class HeightmapGenerator {
     let stepSize: number = max;
     let randomScale: number = 1.0;
 
-    while (stepSize > 1) {
+    while (1 < stepSize) {
       const halfStep: number = stepSize / 2;
 
       for (let y: number = 0; y < max; y += stepSize) {
@@ -92,7 +92,7 @@ export class HeightmapGenerator {
       }
 
       for (let y: number = 0; y <= max; y += halfStep) {
-        for (let x: number = y % stepSize === 0 ? halfStep : 0; x <= max; x += stepSize) {
+        for (let x: number = 0 === y % stepSize ? halfStep : 0; x <= max; x += stepSize) {
           let sum: number = 0;
           let count: number = 0;
           const vals: number[] = [
@@ -101,8 +101,9 @@ export class HeightmapGenerator {
             get(x - halfStep, y),
             get(x + halfStep, y),
           ];
-          for (const v of vals) {
-            if (v !== -1) {
+          for (let i: number = 0; i < vals.length; i++) {
+            const v: number = vals[i]!;
+            if (-1 !== v) {
               sum += v;
               count++;
             }
@@ -128,7 +129,7 @@ export class HeightmapGenerator {
       }
     }
     const range: number = maxVal - minVal;
-    if (range > 0.000001) {
+    if (0.000001 < range) {
       for (let i: number = 0; i < map.length; i++) {
         map[i] = ((map[i] ?? 0) - minVal) / range;
       }

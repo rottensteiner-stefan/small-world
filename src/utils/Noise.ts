@@ -12,7 +12,7 @@ export class Noise {
   private static _initialized: boolean = false;
 
   private static _init(): void {
-    if (this._initialized) {
+    if (true === this._initialized) {
       return;
     }
 
