@@ -1,5 +1,4 @@
-import {TextureFilter, TextureWrap} from '../../enums/index.js';
-
+import { TextureFilter, TextureWrap } from '../../enums/index.js';
 /**
  * Configuration options for creating a texture.
  */
@@ -19,7 +18,6 @@ export interface TextureOptions {
     /** Whether the image should be flipped vertically during loading. Defaults to false. */
     flipY?: boolean;
 }
-
 /**
  * Represents a 2D texture.
  */
@@ -50,26 +48,22 @@ export declare class Texture {
         x: number;
         y: number;
     };
-
     /**
      * Protected constructor. Use static factory methods to create instances.
      * @param image Optional initial image data.
      * @param options Optional configuration options.
      */
     protected constructor(image?: HTMLImageElement | ImageBitmap, options?: TextureOptions);
-
     /**
      * Flips the texture horizontally by modifying the UV offset and repeat.
      * @returns This texture instance for chaining.
      */
     flipX(): this;
-
     /**
      * Flips the texture vertically by modifying the UV offset and repeat.
      * @returns This texture instance for chaining.
      */
     flipY(): this;
-
     /**
      * Creates a texture from an existing image or bitmap.
      * @param image The image or bitmap data.
@@ -77,14 +71,12 @@ export declare class Texture {
      * @returns A new Texture instance.
      */
     static fromImage(image: HTMLImageElement | ImageBitmap, options?: TextureOptions): Texture;
-
     /**
      * Creates an empty texture placeholder.
      * @param options Optional configuration options.
      * @returns A new empty Texture instance.
      */
     static empty(options?: TextureOptions): Texture;
-
     /**
      * Loads a texture from a URL.
      * @param url The URL of the image.

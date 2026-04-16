@@ -1,8 +1,8 @@
 import { AbstractWebGLRenderer } from './AbstractWebGLRenderer.js';
+import { EngineConfig } from '../interfaces/index.js';
 import { RendererType } from '../enums/index.js';
 import { Scene } from '../core/Scene.js';
-import { Vector3D } from '../math/Vector3D.js';
-import { EngineConfig } from '../interfaces/index.js';
+import { Vector3D } from '../math/index.js';
 /**
  * WebGL 1.0 implementation of the renderer.
  */
@@ -14,6 +14,7 @@ export declare class WebGL1Renderer extends AbstractWebGLRenderer {
     private _cache;
     private _texCache;
     private _texCubeCache;
+    private _scratchModelMatrix;
     /** @inheritdoc */
     initialize(canvas: HTMLCanvasElement, attributes?: Record<string, unknown>, config?: EngineConfig): Promise<void>;
     private _getProgram;
