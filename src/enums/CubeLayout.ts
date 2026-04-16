@@ -1,5 +1,8 @@
 /// src/enums/CubeLayout.ts
 
+/**
+ * Layouts for cube map textures.
+ */
 export const CubeLayout = {
   /** Six individual images. */
   SIX_IMAGES: "six_images",

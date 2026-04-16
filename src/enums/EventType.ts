@@ -1,5 +1,8 @@
 /// src/enums/EventType.ts
 
+/**
+ * Types of events dispatched by the engine.
+ */
 export const EventType = {
   /** Dispatched when a loader finishes. */
   LOADER_END: "LoaderEnd",

@@ -1,5 +1,8 @@
 /// src/enums/CameraEffectType.ts
 
+/**
+ * Types of camera effects.
+ */
 export const CameraEffectType = {
   /** Screen shake effect. */
   SHAKE: "ShakeEffect",
