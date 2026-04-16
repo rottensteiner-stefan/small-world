@@ -6,21 +6,21 @@ import { AbstractGeometry } from "./AbstractGeometry.js";
  * Configuration options for cube geometry.
  */
 export interface CubeOptions {
-  /** The size of the cube. Defaults to 1. */
+  /** The size of the cube edges. Defaults to 1. */
   size?: number;
-  /** Number of segments along the width. Defaults to 1. */
+  /** Number of segments along the width (X-axis). Defaults to 1. */
   widthSegments?: number;
-  /** Number of segments along the height. Defaults to 1. */
+  /** Number of segments along the height (Y-axis). Defaults to 1. */
   heightSegments?: number;
-  /** Number of segments along the depth. Defaults to 1. */
+  /** Number of segments along the depth (Z-axis). Defaults to 1. */
   depthSegments?: number;
 }
 
 /**
- * A cube geometry with support for subdivisions.
+ * A box-shaped geometry with support for face subdivisions.
  */
 export class Cube extends AbstractGeometry {
-  /** The size of the cube. */
+  /** The size of the cube edges. */
   public size: number;
   /** Number of segments along the width. */
   public widthSegments: number;
@@ -31,7 +31,7 @@ export class Cube extends AbstractGeometry {
 
   /**
    * Creates a new Cube geometry.
-   * @param options The configuration options for the cube.
+   * @param options The configuration options.
    */
   constructor(options: CubeOptions = {}) {
     super();
@@ -50,6 +50,9 @@ export class Cube extends AbstractGeometry {
     const uvs: number[] = [];
     let vertexCount: number = 0;
 
+    /**
+     * Internal helper to build a single face plane of the cube.
+     */
     const buildPlane = (
       u: "x" | "y" | "z",
       v: "x" | "y" | "z",
@@ -64,9 +67,9 @@ export class Cube extends AbstractGeometry {
     ): void => {
       const segmentWidth: number = width / gridX;
       const segmentHeight: number = height / gridY;
-      const widthHalf: number = width / 2;
-      const heightHalf: number = height / 2;
-      const depthHalf: number = depth / 2;
+      const widthHalf: number = width / 2.0;
+      const heightHalf: number = height / 2.0;
+      const depthHalf: number = depth / 2.0;
 
       for (let iy: number = 0; iy <= gridY; iy++) {
         const y: number = iy * segmentHeight - heightHalf;
@@ -79,7 +82,7 @@ export class Cube extends AbstractGeometry {
           vertex[w] = depthHalf;
 
           vertices.push(vertex.x, vertex.y, vertex.z);
-          uvs.push(ix / gridX, 1 - iy / gridY);
+          uvs.push(ix / gridX, 1.0 - iy / gridY);
 
           if (iy < gridY && ix < gridX) {
             const a: number = vertexCount + ix + iy * (gridX + 1);

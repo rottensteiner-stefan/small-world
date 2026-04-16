@@ -7,7 +7,7 @@ import { MathUtils } from "../math/index.js";
  * Configuration options for cylinder sector geometry.
  */
 export interface CylinderSectorOptions extends CylinderOptions {
-  /** The central angle of the sector in radians. Defaults to PI / 2. */
+  /** The central angle of the sector in radians. Defaults to 2 * PI. */
   thetaLength?: number;
 }
 

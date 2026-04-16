@@ -2,19 +2,22 @@
 
 import { AbstractGeometry } from "./AbstractGeometry.js";
 
+/**
+ * Configuration options for plane geometry.
+ */
 export interface PlaneOptions {
-  /** The width of the plane. Defaults to 1. */
+  /** The total width of the plane. Defaults to 1. */
   width?: number;
-  /** The depth of the plane. Defaults to 1. */
+  /** The total depth of the plane. Defaults to 1. */
   depth?: number;
-  /** The number of segments along the width. Defaults to 1. */
+  /** The number of segments along the width (subdivisions). Defaults to 1. */
   widthSegments?: number;
-  /** The number of segments along the depth. Defaults to 1. */
+  /** The number of segments along the depth (subdivisions). Defaults to 1. */
   depthSegments?: number;
 }
 
 /**
- * A simple plane geometry.
+ * A simple flat plane geometry on the XZ plane.
  */
 export class Plane extends AbstractGeometry {
   /** The width of the plane. */
@@ -28,7 +31,7 @@ export class Plane extends AbstractGeometry {
 
   /**
    * Creates a new Plane geometry.
-   * @param options The configuration options for the plane.
+   * @param options The configuration options.
    */
   constructor(options: PlaneOptions = {}) {
     super();
@@ -44,35 +47,35 @@ export class Plane extends AbstractGeometry {
   protected override generateGeometryData(): void {
     const v: number[] = [];
     const uv: number[] = [];
-    const i: number[] = [];
-    const hW: number = this.width / 2;
-    const hD: number = this.depth / 2;
+    const idx: number[] = [];
+    const hW: number = this.width / 2.0;
+    const hD: number = this.depth / 2.0;
 
-    for (let z = 0; z <= this.depthSegments; z++) {
+    for (let z: number = 0; z <= this.depthSegments; z++) {
       const vRatio: number = z / this.depthSegments;
-      for (let x = 0; x <= this.widthSegments; x++) {
+      for (let x: number = 0; x <= this.widthSegments; x++) {
         const uRatio: number = x / this.widthSegments;
         v.push(uRatio * this.width - hW, 0, vRatio * this.depth - hD);
-        uv.push(uRatio, 1 - vRatio);
+        uv.push(uRatio, 1.0 - vRatio);
       }
     }
 
-    for (let z = 0; z < this.depthSegments; z++) {
-      for (let x = 0; x < this.widthSegments; x++) {
+    for (let z: number = 0; z < this.depthSegments; z++) {
+      for (let x: number = 0; x < this.widthSegments; x++) {
         const a: number = x + (this.widthSegments + 1) * z;
         const b: number = x + (this.widthSegments + 1) * (z + 1);
         const c: number = x + 1 + (this.widthSegments + 1) * (z + 1);
         const d: number = x + 1 + (this.widthSegments + 1) * z;
 
-        i.push(a, b, d);
-        i.push(b, c, d);
+        idx.push(a, b, d);
+        idx.push(b, c, d);
       }
     }
 
     this._vertices = new Float32Array(v);
     this._uvs = new Float32Array(uv);
-    this._indices = this._createIndexArray(i.length);
-    this._indices.set(i);
+    this._indices = this._createIndexArray(idx.length);
+    this._indices.set(idx);
     this.computeNormals();
   }
 }

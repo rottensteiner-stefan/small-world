@@ -3,6 +3,9 @@
 import { AbstractGeometry } from "./AbstractGeometry.js";
 import { MathUtils } from "../math/index.js";
 
+/**
+ * Configuration options for sphere geometry.
+ */
 export interface SphereOptions {
   /** The radius of the sphere. Defaults to 1. */
   radius?: number;
@@ -13,21 +16,19 @@ export interface SphereOptions {
 }
 
 /**
- * A sphere geometry.
+ * A spherical geometry based on UV mapping (latitude-longitude).
  */
 export class Sphere extends AbstractGeometry {
   /** The radius of the sphere. */
   public radius: number;
-
   /** The number of horizontal segments. */
   public widthSegments: number;
-
   /** The number of vertical segments. */
   public heightSegments: number;
 
   /**
    * Creates a new Sphere geometry.
-   * @param options The configuration options for the sphere.
+   * @param options The configuration options.
    */
   constructor(options: SphereOptions = {}) {
     super();
@@ -55,7 +56,7 @@ export class Sphere extends AbstractGeometry {
         const theta: number = x === this.widthSegments ? 0 : uRatio * MathUtils.TWO_PI;
 
         let px: number, py: number, pz: number;
-        if (y === 0) {
+        if (0 === y) {
           px = 0;
           py = this.radius;
           pz = 0;

@@ -3,11 +3,14 @@
 import { AbstractGeometry } from "./AbstractGeometry.js";
 import { Vector3D } from "../math/Vector3D.js";
 
+/**
+ * A simple line geometry connecting two points.
+ */
 export class Line extends AbstractGeometry {
   /**
    * Creates a new Line geometry.
-   * @param start The start point.
-   * @param end The end point.
+   * @param start The start position of the line.
+   * @param end The end position of the line.
    */
   constructor(
     public start: Vector3D,
@@ -18,9 +21,7 @@ export class Line extends AbstractGeometry {
     this.generateGeometryData();
   }
 
-  /**
-   * @inheritdoc
-   */
+  /** @inheritdoc */
   protected override generateGeometryData(): void {
     this._vertices = new Float32Array([
       this.start.x,

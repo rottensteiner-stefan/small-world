@@ -11,36 +11,37 @@ export interface CylinderOptions {
   radiusTop?: number;
   /** The radius at the bottom. Defaults to 1. */
   radiusBottom?: number;
-  /** The height of the cylinder. Defaults to 2. */
+  /** The total height of the cylinder. Defaults to 2. */
   height?: number;
   /** The number of radial segments around the circumference. Defaults to 16. */
   radialSegments?: number;
-  /** The number of height segments along the height. Defaults to 1. */
+  /** The number of height segments along the vertical axis. Defaults to 1. */
   heightSegments?: number;
   /** The start angle of the sector in radians. Defaults to 0. */
   thetaStart?: number;
-  /** The central angle of the sector in radians. Defaults to 2 * Math.PI (full cylinder). */
+  /** The central angle of the sector in radians. Defaults to 2 * PI (full cylinder). */
   thetaLength?: number;
 }
 
 /**
- * A generalized cylinder geometry that can represent cylinders, cones, and conical frustums.
- * Supports partial sectors (pie slices).
+ * A generalized cylinder geometry.
+ * Can represent standard cylinders, cones (top radius 0), and conical frustums.
+ * Supports partial sectors (pie slices) via thetaStart and thetaLength.
  */
 export class Cylinder extends AbstractGeometry {
   /** The radius at the top. */
   public radiusTop: number;
   /** The radius at the bottom. */
   public radiusBottom: number;
-  /** The height. */
+  /** The total height. */
   public height: number;
   /** The number of radial segments. */
   public radialSegments: number;
   /** The number of height segments. */
   public heightSegments: number;
-  /** The start angle. */
+  /** The start angle in radians. */
   public thetaStart: number;
-  /** The central angle. */
+  /** The central angle in radians. */
   public thetaLength: number;
 
   /**
@@ -75,7 +76,7 @@ export class Cylinder extends AbstractGeometry {
     const v: number[] = [];
     const uv: number[] = [];
     const idx: number[] = [];
-    const hh: number = this.height / 2;
+    const hh: number = this.height / 2.0;
 
     // --- Side surface ---
     for (let y: number = 0; y <= this.heightSegments; y++) {
@@ -87,7 +88,7 @@ export class Cylinder extends AbstractGeometry {
         const uCoord: number = x / this.radialSegments;
         const theta: number = this.thetaStart + uCoord * this.thetaLength;
         v.push(radius * Math.sin(theta), yPos, radius * Math.cos(theta));
-        uv.push(uCoord, 1 - vCoord);
+        uv.push(uCoord, 1.0 - vCoord);
       }
     }
 
@@ -101,7 +102,7 @@ export class Cylinder extends AbstractGeometry {
     }
 
     // --- Top cap ---
-    if (this.radiusTop > 0) {
+    if (0 < this.radiusTop) {
       const topOffset: number = v.length / 3;
       v.push(0, hh, 0); // Center point
       uv.push(0.5, 0.5);
@@ -117,7 +118,7 @@ export class Cylinder extends AbstractGeometry {
     }
 
     // --- Bottom cap ---
-    if (this.radiusBottom > 0) {
+    if (0 < this.radiusBottom) {
       const bottomOffset: number = v.length / 3;
       v.push(0, -hh, 0); // Center point
       uv.push(0.5, 0.5);
@@ -133,7 +134,7 @@ export class Cylinder extends AbstractGeometry {
     }
 
     // --- Side caps (for partial sectors) ---
-    if (this.thetaLength < MathUtils.TWO_PI) {
+    if (MathUtils.TWO_PI > this.thetaLength) {
       const buildSideCap = (isStart: boolean): void => {
         const angle: number = isStart ? this.thetaStart : this.thetaStart + this.thetaLength;
         const sin: number = Math.sin(angle);
