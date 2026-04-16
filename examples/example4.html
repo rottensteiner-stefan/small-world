@@ -1,43 +1,17 @@
 <!doctype html>
-<html lang="de">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SmallWorld Engine - Example 4: Terrain & Car</title>
-    <style>
-      /* Resets für Fullscreen-Canvas */
-      body,
-      html {
-        margin: 0;
-        padding: 0;
-        width: 100%;
-        height: 100%;
-        overflow: hidden;
-        background-color: #111;
-        font-family: Arial, sans-serif;
-      }
-      canvas {
-        display: block;
-      }
-      /* Ein kleines Overlay für den User */
-      #overlay {
-        position: absolute;
-        top: 20px;
-        left: 20px;
-        color: white;
-        background: rgba(0, 0, 0, 0.6);
-        padding: 15px;
-        border-radius: 8px;
-        pointer-events: none; /* Klicks gehen durch aufs Canvas */
-        user-select: none;
-      }
-    </style>
+    <title>Small World - Example 4</title>
+    <link rel="stylesheet" href="/resources/examples/examples.css" />
   </head>
   <body>
-    <div id="overlay">
-      <h2>Example 4: Terrain & Car</h2>
-      <p>🖱️ <b>Klick</b>: Kamera steuern (PointerLock)</p>
-      <p>⌨️ <b>Taste 'I'</b>: Debug-Infos in Konsole</p>
+    <a href="/" class="back-btn">← Back to Overview</a>
+    <div id="info">
+      <h1>Example 4: Terrain & Car</h1>
+      <p>Click to capture mouse. ESC to release.</p>
+      <p>WASD to move the car. Camera follows smoothly.</p>
     </div>
 
     <canvas id="SmallWorld"></canvas>

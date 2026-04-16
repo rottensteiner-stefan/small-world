@@ -1,43 +1,17 @@
 <!doctype html>
-<html lang="de">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Small World - Example 1</title>
-    <style>
-      body {
-        margin: 0;
-        overflow: hidden;
-        background-color: #000;
-      }
-
-      canvas {
-        display: block;
-        width: 100vw;
-        height: 100vh;
-      }
-
-      /* Ein kleiner Zurück-Button für den Komfort */
-      .back-btn {
-        position: absolute;
-        top: 10px;
-        left: 10px;
-        color: white;
-        background: rgba(0, 0, 0, 0.5);
-        padding: 5px 10px;
-        text-decoration: none;
-        font-family: sans-serif;
-        border-radius: 4px;
-        z-index: 1000;
-      }
-
-      .back-btn:hover {
-        background: rgba(255, 255, 255, 0.2);
-      }
-    </style>
+    <link rel="stylesheet" href="/resources/examples/examples.css" />
   </head>
   <body>
-    <a href="/" class="back-btn">← Zurück zur Übersicht</a>
+    <a href="/" class="back-btn">← Back to Overview</a>
+    <div id="info">
+      <h1>Example 1: Basic Engine Setup</h1>
+      <p>A simple scene with a rotating cube and a sphere.</p>
+    </div>
 
     <canvas id="SmallWorld"></canvas>
 
