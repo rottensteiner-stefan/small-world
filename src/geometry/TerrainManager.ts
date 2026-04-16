@@ -5,29 +5,36 @@ import { Vector3D } from "../math/index.js";
 import { HeightmapGenerator, TextureGenerator } from "../utils/index.js";
 import { Terrain } from "./Terrain.js";
 
+/**
+ * Algorithm types for procedural terrain generation.
+ */
 export type TerrainAlgorithm = "DiamondSquare" | "Perlin" | "Simplex";
 
+/**
+ * Configuration for the TerrainManager.
+ */
 export interface TerrainManagerConfig {
-  /** Size of a single chunk in world units. */
+  /** Size of a single terrain chunk in world units. Defaults to 80. */
   chunkSize?: number;
-  /** Resolution of the mesh per chunk. */
+  /** Resolution of the mesh subdivisions per chunk. Defaults to 64. */
   meshSegments?: number;
-  /** Detail level for the heightmap (e.g., 7 -> 129x129). */
+  /** Detail level for the heightmap (2^n + 1). Defaults to 7 (129x129). */
   heightmapDetail?: number;
-  /** Roughness factor for the heightmap generation. */
+  /** Roughness factor for the DiamondSquare algorithm. Defaults to 0.55. */
   heightmapRoughness?: number;
-  /** Maximum height of the terrain. */
+  /** Maximum height of the terrain. Defaults to 6.0. */
   maxHeight?: number;
-  /** Number of chunks in a row/column of the grid. */
+  /** Number of chunks in the active grid (edge length). Defaults to 3 (3x3). */
   gridSize?: number;
-  /** Material to use for the terrain chunks. */
+  /** Material to use for all terrain chunks. */
   material?: TerrainMaterial;
-  /** Generation algorithm to use. */
+  /** Generation algorithm to use. Defaults to "Perlin". */
   algorithm?: TerrainAlgorithm;
 }
 
 /**
- * Manages dynamic loading and unloading of terrain chunks (infinite terrain).
+ * Manages dynamic loading and unloading of terrain chunks to create an "infinite" terrain feel.
+ * Chunks are loaded around a specific focus point (usually the player).
  */
 export class TerrainManager {
   private _scene: Scene;
@@ -48,7 +55,7 @@ export class TerrainManager {
 
   /**
    * Creates a new TerrainManager.
-   * @param scene The scene to add terrain chunks to.
+   * @param scene The scene where chunks will be added/removed.
    * @param config The manager configuration.
    */
   constructor(scene: Scene, config: TerrainManagerConfig = {}) {
@@ -67,6 +74,7 @@ export class TerrainManager {
 
   /**
    * Initializes the manager and generates the initial grid of chunks.
+   * Also ensures default biome textures are loaded if missing.
    */
   public async init(): Promise<void> {
     if (undefined === this._terrainMaterial.sandMap) {
@@ -81,7 +89,7 @@ export class TerrainManager {
     if (undefined === this._terrainMaterial.snowMap) {
       this._terrainMaterial.snowMap = Texture.fromImage(await TextureGenerator.createSnow());
     }
-    this._terrainMaterial.texRepeat = [this._chunkSize / 4, this._chunkSize / 4];
+    this._terrainMaterial.texRepeat = [this._chunkSize / 4.0, this._chunkSize / 4.0];
     this._terrainMaterial.thresholds = [-2.0, 0.0, 2.0, 1.0];
 
     for (let z: number = -this._halfGrid; z <= this._halfGrid; z++) {
@@ -92,7 +100,8 @@ export class TerrainManager {
   }
 
   /**
-   * Updates the terrain grid based on a focus point (usually the player's position).
+   * Updates the terrain grid based on a focus point (e.g. player position).
+   * Triggers rebuilding of the grid if the focus point moves to a new chunk.
    * @param focusPoint The current focus position.
    */
   public async update(focusPoint: Vector3D): Promise<void> {
@@ -106,6 +115,11 @@ export class TerrainManager {
     }
   }
 
+  /**
+   * Rebuilds the grid by calculating which chunks should be visible.
+   * Reuses existing chunks and removes ones that are too far away.
+   * @private
+   */
   private async _rebuildGrid(): Promise<void> {
     const newChunks: Map<string, Object3D> = new Map<string, Object3D>();
     const chunksToRemove: Set<string> = new Set(this._chunks.keys());
@@ -117,7 +131,7 @@ export class TerrainManager {
         const key: string = this._getChunkKey(gridX, gridZ);
 
         const existingChunk: Object3D | undefined = this._chunks.get(key);
-        if (existingChunk) {
+        if (undefined !== existingChunk) {
           newChunks.set(key, existingChunk);
           chunksToRemove.delete(key);
         } else {
@@ -130,13 +144,16 @@ export class TerrainManager {
 
     for (const key of chunksToRemove) {
       const chunk: Object3D | undefined = this._chunks.get(key);
-      if (chunk) {
+      if (undefined !== chunk) {
         this._scene.remove(chunk);
       }
     }
     this._chunks = newChunks;
   }
 
+  /**
+   * Internal helper to generate and add a single chunk.
+   */
   private async _generateChunk(gridX: number, gridZ: number): Promise<void> {
     const key: string = this._getChunkKey(gridX, gridZ);
     if (this._chunks.has(key)) {
@@ -148,19 +165,22 @@ export class TerrainManager {
     this._chunks.set(key, chunk);
   }
 
+  /**
+   * Generates a single chunk Object3D including geometry.
+   */
   private async _generateChunkObject(gridX: number, gridZ: number): Promise<Object3D> {
     const key: string = this._getChunkKey(gridX, gridZ);
     const heightmapResolution: number = Math.pow(2, this._heightmapDetail) + 1;
 
     let heightmapData: Float32Array;
 
-    if (this._algorithm === "Perlin" || this._algorithm === "Simplex") {
+    if ("Perlin" === this._algorithm || "Simplex" === this._algorithm) {
       const pixelOffset: number = heightmapResolution - 1;
       const offsetX: number = gridX * pixelOffset;
       const offsetY: number = gridZ * pixelOffset;
       const noiseScale: number = 0.015;
 
-      if (this._algorithm === "Perlin") {
+      if ("Perlin" === this._algorithm) {
         heightmapData = await HeightmapGenerator.generatePerlinFloat(
           this._heightmapDetail,
           noiseScale,
@@ -189,7 +209,7 @@ export class TerrainManager {
     }
 
     const terrainGeo: Terrain = Terrain.fromHeightData({
-      heightData: heightmapData, // Explizite Zuweisung
+      heightData: heightmapData,
       heightmapResolution,
       width: this._chunkSize,
       depth: this._chunkSize,
@@ -207,6 +227,9 @@ export class TerrainManager {
     return terrainObj;
   }
 
+  /**
+   * Generates a unique key for a chunk coordinate.
+   */
   private _getChunkKey(gridX: number, gridZ: number): string {
     return `${gridX}_${gridZ}`;
   }

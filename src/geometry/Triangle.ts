@@ -3,12 +3,15 @@
 import { AbstractGeometry } from "./AbstractGeometry.js";
 import { Vector3D } from "../math/Vector3D.js";
 
+/**
+ * A simple triangle geometry defined by three points.
+ */
 export class Triangle extends AbstractGeometry {
   /**
    * Creates a new Triangle geometry.
-   * @param pointA The first point.
-   * @param pointB The second point.
-   * @param pointC The third point.
+   * @param pointA The first vertex position.
+   * @param pointB The second vertex position.
+   * @param pointC The third vertex position.
    */
   constructor(
     public pointA: Vector3D,
@@ -19,9 +22,7 @@ export class Triangle extends AbstractGeometry {
     this.generateGeometryData();
   }
 
-  /**
-   * @inheritdoc
-   */
+  /** @inheritdoc */
   protected override generateGeometryData(): void {
     this._vertices = new Float32Array([
       this.pointA.x,
