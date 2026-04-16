@@ -7,7 +7,7 @@ import {
   PerspectiveProjection,
 } from "../math/index.js";
 import { Camera } from "./Camera.js";
-import { CameraInterfaceData, EngineConfig } from "../interfaces/index.js";
+import { CameraInterfaceData, EngineConfig, Controller } from "../interfaces/index.js";
 import { Renderer } from "../interfaces/Renderer.js";
 import { ProjectionType, RendererType } from "../enums/index.js";
 import { RendererFactory } from "../renderers/index.js";
@@ -31,6 +31,9 @@ export abstract class Application {
   public renderer: Renderer;
   /** The canvas element. */
   public canvas!: HTMLCanvasElement;
+
+  /** List of active input controllers. */
+  public readonly controllers: Controller[] = [];
 
   private _lastTime: number = 0;
   private _isRunning: boolean = false;
@@ -201,6 +204,11 @@ export abstract class Application {
     const deltaTime: number = (currentTime - this._lastTime) / 1000.0;
     this._lastTime = currentTime;
 
+    // Update all registered controllers
+    for (let i: number = 0; i < this.controllers.length; i++) {
+      this.controllers[i]!.update(deltaTime);
+    }
+
     this.update(deltaTime);
 
     this.scene.update();
@@ -208,6 +216,13 @@ export abstract class Application {
     this.camera.updateViewMatrix();
 
     this.renderer.render(this.scene, this.camera.viewProjectionMatrix, this.camera.position);
+
+    // Centralized reset of input deltas after each frame
+    Input.mouse.dx = 0;
+    Input.mouse.dy = 0;
+    Input.mouse.wheelX = 0;
+    Input.mouse.wheelY = 0;
+    Input.mouse.zoom = 0;
 
     requestAnimationFrame((time: number) => this._loop(time));
   }

@@ -15,6 +15,7 @@ import {
   ProjectionType,
   Vector3D,
   WireframeMaterial,
+  FPSController,
 } from "../src/index.js";
 import { AbstractExample } from "../src/core/example/AbstractExample.js";
 
@@ -53,6 +54,13 @@ export class Example2 extends AbstractExample {
     // We switch to the First-Person strategy
     this.camera.setStrategy(CameraStrategyType.FPS);
     this.camera.position.set(0, 2, 0); // Start position
+
+    this.controllers.push(
+      new FPSController(this.camera, {
+        moveSpeed: this._moveSpeed,
+        enableZoom: true,
+      }),
+    );
 
     // 3. Add light
     const sun: DirectionalLight = new DirectionalLight({ color: Color.WHITE, intensity: 0.8 });
@@ -111,39 +119,8 @@ export class Example2 extends AbstractExample {
   }
 
   /** @inheritdoc */
-  protected override update(deltaTime: number): void {
-    // 1. Query mouse deltas (only if pointer is locked)
-    const dx: number = Input.isPointerLocked ? Input.mouse.dx : 0;
-    const dy: number = Input.isPointerLocked ? Input.mouse.dy : 0;
-
-    // Reset deltas so they are not applied again in the next frame
-    Input.mouse.dx = 0;
-    Input.mouse.dy = 0;
-
-    // 2. Keyboard input for movement (W,A,S,D)
-    // We determine the axes: -1, 0, or 1
-    const moveZ: number = Input.getAxis(Keys.W, Keys.S); // Forward / Backward
-    const moveX: number = Input.getAxis(Keys.A, Keys.D); // Left / Right
-
-    // 3. Calculate movement direction relative to camera rotation
-    // The camera rotates around the Y-axis (theta).
-    if (0 !== moveZ || 0 !== moveX) {
-      const sin: number = Math.sin(this.camera.theta);
-      const cos: number = Math.cos(this.camera.theta);
-
-      // Rotate direction vector (2D rotation matrix)
-      const dirX: number = moveX * cos + moveZ * sin;
-      const dirZ: number = -moveX * sin + moveZ * cos;
-
-      // Update position
-      this._targetPos.x += dirX * this._moveSpeed * deltaTime;
-      this._targetPos.z += dirZ * this._moveSpeed * deltaTime;
-    }
-
-    // 4. Call camera update
-    // The camera strategy (FPS) internally handles how the rotation (dx, dy)
-    // is applied to the target position.
-    this.camera.update(this._targetPos, dx, dy, deltaTime);
+  protected override update(_deltaTime: number): void {
+    // Movement and looking is now handled by the FPSController registered in setupScene.
   }
 
   /** @inheritdoc */

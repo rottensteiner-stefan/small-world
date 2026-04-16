@@ -16,6 +16,7 @@ import {
   Texture,
   TextureGenerator,
   Vector3D,
+  WASDController,
 } from "../src/index.js";
 import { AbstractExample } from "../src/core/example/AbstractExample.js";
 
@@ -90,6 +91,13 @@ export class Example4 extends AbstractExample {
 
       this.scene.add(model);
       this._car = model; // Store car object
+
+      // Setup WASD Controller for the car
+      this.controllers.push(
+        new WASDController(this._car, {
+          moveSpeed: CAR_SPEED,
+        }),
+      );
     } catch (error: unknown) {
       console.error("[Example 4] Error during loading:", error);
     }
@@ -112,24 +120,10 @@ export class Example4 extends AbstractExample {
     const dx: number = Input.isPointerLocked ? Input.mouse.dx : 0;
     const dy: number = Input.isPointerLocked ? Input.mouse.dy : 0;
 
-    Input.mouse.dx = 0;
-    Input.mouse.dy = 0;
-
     this.camera.update(this._targetPos, dx, dy, deltaTime);
 
-    // --- WASD Control ---
+    // --- WASD Control is now handled by WASDController ---
     if (this._car) {
-      if (Input.isPressed(Keys.W)) {
-        // The car's forward direction is typically the negative Z-axis in local space.
-        // This must be transformed with the car's world matrix to get the world direction.
-        const forward: Vector3D = new Vector3D(0, 0, -1); // Local forward direction
-        forward.transformDirection(this._car.worldMatrix); // Transform to world coordinates
-        forward.normalize(); // Ensure it's a unit vector
-
-        // Update car position (forward is scaled in-place here, which is okay)
-        this._car.position.add(forward.scale(CAR_SPEED * deltaTime));
-      }
-
       // Terrain update based on car position
       if (this._terrainManager) {
         this._terrainManager.update(this._car.position);
@@ -138,8 +132,6 @@ export class Example4 extends AbstractExample {
       // Camera follows the car
       // Simple tracking: We set the camera target to the car
       this._targetPos.copyFrom(this._car.position);
-      // Optional: Smoothly trail the camera position, but CameraStrategyType.SMOOTH already handles this reasonably well
-      // when we update _targetPos.
     }
   }
 

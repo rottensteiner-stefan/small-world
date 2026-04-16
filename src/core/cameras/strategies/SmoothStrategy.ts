@@ -5,6 +5,7 @@ import { CameraStrategyType } from "../../../enums/index.js";
 import { CameraConstraints, CameraStrategy } from "../../../interfaces/index.js";
 import { Vector3D } from "../../../math/Vector3D.js";
 import { MathUtils } from "../../../math/index.js";
+import { Input } from "../../Input.js";
 
 /**
  * A camera strategy that smoothly follows a target.
@@ -14,6 +15,10 @@ export class SmoothStrategy implements CameraStrategy {
   public readonly type: string = CameraStrategyType.SMOOTH;
   /** The radius of the camera from the target. */
   public radius: number = 20;
+  /** Minimum allowed radius. */
+  public minRadius: number = 2;
+  /** Maximum allowed radius. */
+  public maxRadius: number = 500;
   /** The lerp factor for smoothing. */
   public lerpFactor: number = 0.1;
   /** @inheritdoc */
@@ -21,6 +26,12 @@ export class SmoothStrategy implements CameraStrategy {
 
   /** @inheritdoc */
   public update(camera: Camera, targetPos: Vector3D, dx: number, dy: number): void {
+    // Apply Zoom
+    if (0 !== Input.mouse.zoom) {
+      this.radius += Input.mouse.zoom * this.radius * 0.5;
+      this.radius = MathUtils.clamp(this.radius, this.minRadius, this.maxRadius);
+    }
+
     if (0 !== dx || 0 !== dy) {
       camera.theta -= dx * 0.005;
       camera.phi += dy * 0.005;

@@ -14,6 +14,7 @@ import {
   ProjectionType,
   Vector3D,
   WireframeMaterial,
+  OrbitController,
 } from "../src/index.js";
 import { AbstractExample } from "../src/core/example/AbstractExample.js";
 
@@ -43,6 +44,8 @@ class Example3 extends AbstractExample {
 
     this.camera.setStrategy(CameraStrategyType.SMOOTH);
     this.camera.position.set(0, 5, 15);
+
+    this.controllers.push(new OrbitController(this.camera));
 
     const ambientLight: AmbientLight = new AmbientLight({ color: Color.WHITE, intensity: 0.3 });
     this.scene.add(ambientLight);
@@ -86,21 +89,13 @@ class Example3 extends AbstractExample {
     });
   }
 
-  protected override update(deltaTime: number): void {
-    const dx: number = Input.isPointerLocked ? Input.mouse.dx : 0;
-    const dy: number = Input.isPointerLocked ? Input.mouse.dy : 0;
-
-    Input.mouse.dx = 0;
-    Input.mouse.dy = 0;
-
+  protected override update(_deltaTime: number): void {
     // Handle Color Switching
     if (Input.isPressed(Keys.D1)) this._setCarColor(0);
     if (Input.isPressed(Keys.D2)) this._setCarColor(1);
     if (Input.isPressed(Keys.D3)) this._setCarColor(2);
     if (Input.isPressed(Keys.D4)) this._setCarColor(3);
     if (Input.isPressed(Keys.D5)) this._setCarColor(4);
-
-    this.camera.update(this._targetPos, dx, dy, deltaTime);
   }
 }
 

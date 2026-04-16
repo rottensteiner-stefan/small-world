@@ -14,6 +14,9 @@ export class Input {
     y: number;
     dx: number;
     dy: number;
+    wheelX: number;
+    wheelY: number;
+    zoom: number;
     left: boolean;
     right: boolean;
   } = {
@@ -21,6 +24,9 @@ export class Input {
     y: 0,
     dx: 0,
     dy: 0,
+    wheelX: 0,
+    wheelY: 0,
+    zoom: 0,
     left: false,
     right: false,
   };
@@ -67,6 +73,31 @@ export class Input {
         this.mouse.dy = 0;
       }
     });
+    window.addEventListener(
+      "wheel",
+      (e: WheelEvent): void => {
+        // Pinch-to-zoom on trackpads is often sent as a wheel event with ctrlKey
+        if (e.ctrlKey) {
+          e.preventDefault();
+          this.mouse.zoom += e.deltaY * 0.01;
+        } else {
+          this.mouse.wheelX += e.deltaX;
+          this.mouse.wheelY += e.deltaY;
+          // Also add to zoom for standard mouse wheel convenience
+          this.mouse.zoom += e.deltaY * 0.001;
+        }
+      },
+      { passive: false },
+    );
+
+    // macOS specific gesture events for smoother pinching
+    window.addEventListener("gesturechange", (e: any): void => {
+      e.preventDefault();
+      // scale > 1 is zoom in (negative delta for distance usually), scale < 1 is zoom out
+      // We map this to our zoom delta
+      this.mouse.zoom += (1.0 - e.scale) * 2.0;
+    });
+
     window.addEventListener("contextmenu", (e: MouseEvent): void => e.preventDefault());
 
     document.addEventListener("pointerlockchange", (): void => {
