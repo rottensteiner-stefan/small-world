@@ -19,26 +19,26 @@ export interface OrthographicOptions {
     far?: number;
 }
 /**
- * Orthographic camera projection.
+ * Orthographic camera projection for 2D or isometric views.
  */
 export declare class OrthographicProjection extends AbstractProjection {
-    /** Left. */
+    /** Left clip plane. */
     left: number;
-    /** Right. */
+    /** Right clip plane. */
     right: number;
-    /** Bottom. */
+    /** Bottom clip plane. */
     bottom: number;
-    /** Top. */
+    /** Top clip plane. */
     top: number;
-    /** Near. */
+    /** Near clip plane. */
     near: number;
-    /** Far. */
+    /** Far clip plane. */
     far: number;
     /** @inheritdoc */
     readonly type: ProjectionType;
     /**
      * Creates a new OrthographicProjection.
-     * @param options The configuration options for the projection.
+     * @param options The configuration options.
      */
     constructor(options?: OrthographicOptions);
     /** @inheritdoc */

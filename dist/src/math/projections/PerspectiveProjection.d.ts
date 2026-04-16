@@ -5,9 +5,9 @@ import { ProjectionType } from '../../enums/index.js';
  * Configuration options for perspective projection.
  */
 export interface PerspectiveOptions {
-    /** Field of view in radians. Defaults to 75 degrees in radians. */
+    /** Field of view in radians. Defaults to 75 degrees. */
     fov?: number;
-    /** Aspect ratio. Defaults to 1. */
+    /** Aspect ratio (width / height). Defaults to 1. */
     aspect?: number;
     /** Near plane distance. Defaults to 0.1. */
     near?: number;
@@ -15,22 +15,22 @@ export interface PerspectiveOptions {
     far?: number;
 }
 /**
- * Perspective camera projection.
+ * Perspective camera projection for 3D views.
  */
 export declare class PerspectiveProjection extends AbstractProjection {
     /** Field of view in radians. */
     fov: number;
-    /** Aspect ratio. */
+    /** Aspect ratio (width / height). */
     aspect: number;
-    /** Near plane. */
+    /** Near clip plane. */
     near: number;
-    /** Far plane. */
+    /** Far clip plane. */
     far: number;
     /** @inheritdoc */
     readonly type: ProjectionType;
     /**
      * Creates a new PerspectiveProjection.
-     * @param options The configuration options for the projection.
+     * @param options The configuration options.
      */
     constructor(options?: PerspectiveOptions);
     /** @inheritdoc */

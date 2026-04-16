@@ -14,10 +14,10 @@ export declare class Quaternion {
     w: number;
     /**
      * Creates a new Quaternion.
-     * @param x The x component.
-     * @param y The y component.
-     * @param z The z component.
-     * @param w The w component.
+     * @param x The x component. Defaults to 0.
+     * @param y The y component. Defaults to 0.
+     * @param z The z component. Defaults to 0.
+     * @param w The w component. Defaults to 1.
      */
     constructor(x?: number, y?: number, z?: number, w?: number);
     /**
@@ -30,7 +30,7 @@ export declare class Quaternion {
      */
     set(x: number, y: number, z: number, w: number): this;
     /**
-     * Identity quaternion.
+     * Resets the quaternion to the identity rotation.
      * @returns this
      */
     identity(): this;
@@ -54,17 +54,17 @@ export declare class Quaternion {
      */
     setFromRotationMatrix(m: Matrix4): this;
     /**
-     * Calculates the length of the quaternion.
+     * Calculates the Euclidean length of the quaternion.
      * @returns The length.
      */
     length(): number;
     /**
-     * Normalizes the quaternion.
+     * Normalizes the quaternion to a unit length of 1.
      * @returns this
      */
     normalize(): this;
     /**
-     * Clones the quaternion.
+     * Clones the quaternion into a new instance.
      * @returns A new Quaternion.
      */
     clone(): Quaternion;

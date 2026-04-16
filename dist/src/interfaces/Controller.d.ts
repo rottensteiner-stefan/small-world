@@ -2,7 +2,7 @@
  * Base interface for all input controllers.
  */
 export interface Controller {
-    /** Whether the controller is enabled. */
+    /** Whether the controller is currently enabled. */
     enabled: boolean;
     /**
      * Updates the controller logic.

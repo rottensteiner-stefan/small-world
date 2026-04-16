@@ -1,10 +1,10 @@
 import { Vector3D } from './Vector3D.js';
 /**
- * A 4x4 matrix class.
+ * A 4x4 matrix class for 3D transformations.
  */
 export declare class Matrix4 {
     /**
-     * The matrix data.
+     * The matrix data in column-major order.
      */
     data: Float32Array;
     /**
@@ -17,9 +17,10 @@ export declare class Matrix4 {
      */
     identity(): Matrix4;
     /**
-     * Composes the matrix from position, rotation, and scale.
+     * Composes the matrix from position, rotation (Euler), and scale.
+     * Uses Y * X * Z rotation order.
      * @param pos The position vector.
-     * @param rot The rotation vector (Euler angles).
+     * @param rot The rotation vector (Euler angles in radians).
      * @param scale The scale vector.
      * @returns this
      */
@@ -72,12 +73,12 @@ export declare class Matrix4 {
     static perspective(fov: number, aspect: number, near: number, far: number, out: Matrix4): void;
     /**
      * Sets the matrix to an orthographic projection matrix.
-     * @param l Left.
-     * @param r Right.
-     * @param b Bottom.
-     * @param t Top.
-     * @param n Near.
-     * @param f Far.
+     * @param l Left edge.
+     * @param r Right edge.
+     * @param b Bottom edge.
+     * @param t Top edge.
+     * @param n Near plane.
+     * @param f Far plane.
      * @param out The output matrix.
      */
     static orthographic(l: number, r: number, b: number, t: number, n: number, f: number, out: Matrix4): void;
@@ -90,7 +91,7 @@ export declare class Matrix4 {
      */
     static lookAt(eye: Vector3D, target: Vector3D, up: Vector3D, out: Matrix4): void;
     /**
-     * Transforms a vector with this matrix.
+     * Transforms a vector in-place with this matrix.
      * @param v The vector to transform.
      * @returns The transformed vector.
      */
@@ -98,7 +99,7 @@ export declare class Matrix4 {
     /**
      * Inverts this matrix and stores the result in out.
      * @param out The output matrix.
-     * @returns Whether the inversion was successful.
+     * @returns True if the inversion was successful.
      */
     invert(out: Matrix4): boolean;
 }

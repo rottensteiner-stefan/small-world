@@ -1,35 +1,27 @@
 import { Vector } from '../interfaces/Vector.js';
 import { Matrix4 } from './Matrix4.js';
 /**
- * A 3D vector class.
+ * A class representing a 3D vector.
+ * Data is stored as individual properties for fast access in JS engines.
  */
 export declare class Vector3D implements Vector {
-    /** Static zero vector to avoid unnecessary allocations. */
+    x: number;
+    y: number;
+    z: number;
+    /** Static zero vector to avoid unnecessary allocations. Should be treated as read-only. */
     static readonly ZERO: Vector3D;
     /**
-     * The x component.
-     */
-    x: number;
-    /**
-     * The y component.
-     */
-    y: number;
-    /**
-     * The z component.
-     */
-    z: number;
-    /**
      * Creates a new Vector3D.
-     * @param x The x component.
-     * @param y The y component.
-     * @param z The z component.
+     * @param x The x component. Defaults to 0.
+     * @param y The y component. Defaults to 0.
+     * @param z The z component. Defaults to 0.
      */
     constructor(x?: number, y?: number, z?: number);
     /**
      * Sets the components of the vector.
      * @param x The x component.
-     * @param y The y component.
-     * @param z The z component.
+     * @param y The y component. Defaults to x.
+     * @param z The z component. Defaults to y.
      * @returns this
      */
     set(x: number, y?: number, z?: number): this;
@@ -47,7 +39,7 @@ export declare class Vector3D implements Vector {
     sub(v: Vector3D): this;
     /**
      * Scales the vector by a scalar value.
-     * @param s The scalar to scale by.
+     * @param s The scalar factor.
      * @returns this
      */
     scale(s: number): this;
@@ -64,7 +56,7 @@ export declare class Vector3D implements Vector {
      */
     addScalar(s: number): this;
     /**
-     * Multiplies the vector components by another vector.
+     * Multiplies the vector components by another vector (component-wise).
      * @param v The vector to multiply by.
      * @returns this
      */
@@ -76,7 +68,7 @@ export declare class Vector3D implements Vector {
      */
     divideScalar(s: number): this;
     /**
-     * Cross product of this vector and another vector.
+     * Calculates the cross product of this vector and another vector.
      * @param v The other vector.
      * @returns this
      */
@@ -88,9 +80,13 @@ export declare class Vector3D implements Vector {
      * @returns this
      */
     crossVectors(a: Vector3D, b: Vector3D): this;
+    /**
+     * Calculates the squared length of the vector.
+     * @returns The squared length.
+     */
     lengthSq(): number;
     /**
-     * Calculates the length of the vector.
+     * Calculates the Euclidean length of the vector.
      * @returns The length.
      */
     length(): number;
@@ -101,7 +97,7 @@ export declare class Vector3D implements Vector {
      */
     distanceToSq(v: Vector3D): number;
     /**
-     * Calculates the distance to another vector.
+     * Calculates the Euclidean distance to another vector.
      * @param v The other vector.
      * @returns The distance.
      */
@@ -113,8 +109,8 @@ export declare class Vector3D implements Vector {
      */
     copyFrom(v: Vector3D): this;
     /**
-     * Clones the vector.
-     * @returns A new Vector3D with the same components.
+     * Clones the vector into a new instance.
+     * @returns A new Vector3D.
      */
     clone(): Vector3D;
     /**
@@ -125,7 +121,7 @@ export declare class Vector3D implements Vector {
      */
     clamp(min: Vector3D, max: Vector3D): this;
     /**
-     * Normalizes the vector to a length of 1.
+     * Normalizes the vector to a unit length of 1.
      * @returns this
      */
     normalize(): this;

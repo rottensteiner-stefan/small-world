@@ -9,7 +9,7 @@ export interface CapsuleOptions {
     length?: number;
     /** The number of radial segments. Defaults to 16. */
     radialSegments?: number;
-    /** The number of height segments for the caps. Defaults to 8. */
+    /** The number of height segments for each cap. Defaults to 8. */
     capSegments?: number;
 }
 /**

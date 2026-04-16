@@ -7,35 +7,36 @@ export interface CylinderOptions {
     radiusTop?: number;
     /** The radius at the bottom. Defaults to 1. */
     radiusBottom?: number;
-    /** The height of the cylinder. Defaults to 2. */
+    /** The total height of the cylinder. Defaults to 2. */
     height?: number;
     /** The number of radial segments around the circumference. Defaults to 16. */
     radialSegments?: number;
-    /** The number of height segments along the height. Defaults to 1. */
+    /** The number of height segments along the vertical axis. Defaults to 1. */
     heightSegments?: number;
     /** The start angle of the sector in radians. Defaults to 0. */
     thetaStart?: number;
-    /** The central angle of the sector in radians. Defaults to 2 * Math.PI (full cylinder). */
+    /** The central angle of the sector in radians. Defaults to 2 * PI (full cylinder). */
     thetaLength?: number;
 }
 /**
- * A generalized cylinder geometry that can represent cylinders, cones, and conical frustums.
- * Supports partial sectors (pie slices).
+ * A generalized cylinder geometry.
+ * Can represent standard cylinders, cones (top radius 0), and conical frustums.
+ * Supports partial sectors (pie slices) via thetaStart and thetaLength.
  */
 export declare class Cylinder extends AbstractGeometry {
     /** The radius at the top. */
     radiusTop: number;
     /** The radius at the bottom. */
     radiusBottom: number;
-    /** The height. */
+    /** The total height. */
     height: number;
     /** The number of radial segments. */
     radialSegments: number;
     /** The number of height segments. */
     heightSegments: number;
-    /** The start angle. */
+    /** The start angle in radians. */
     thetaStart: number;
-    /** The central angle. */
+    /** The central angle in radians. */
     thetaLength: number;
     /**
      * Creates a new Cylinder geometry.
