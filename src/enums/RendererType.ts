@@ -1,7 +1,5 @@
 /// src/enums/RendererType.ts
-/**
- * Types of renderers supported by the engine.
- */
+
 export const RendererType = {
   /** Automatically select the best available renderer. */
   BEST: "BEST",

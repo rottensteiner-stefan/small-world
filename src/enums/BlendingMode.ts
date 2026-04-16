@@ -1,8 +1,5 @@
 /// src/enums/BlendingMode.ts
 
-/**
- * Texture blending modes.
- */
 export const BlendingMode = {
   /** No blending. */
   OPAQUE: "opaque",

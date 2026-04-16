@@ -2,9 +2,6 @@
 
 import { AbstractGeometry } from "./AbstractGeometry.js";
 
-/**
- * A geometry loaded from a model file.
- */
 export class ModelGeometry extends AbstractGeometry {
   /**
    * Creates a new ModelGeometry.

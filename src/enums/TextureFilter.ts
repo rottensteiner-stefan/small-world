@@ -1,7 +1,5 @@
 /// src/enums/TextureFilter.ts
-/**
- * Texture filtering modes.
- */
+
 export const TextureFilter = {
   /** Linear filtering (smooth). */
   LINEAR: "linear",

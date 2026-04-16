@@ -3,9 +3,6 @@
 import { AbstractGeometry } from "./AbstractGeometry.js";
 import { MathUtils } from "../math/index.js";
 
-/**
- * Configuration options for tube geometry.
- */
 export interface TubeOptions {
   /** The outer radius of the tube. Defaults to 1. */
   radius?: number;

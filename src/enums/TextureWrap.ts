@@ -1,7 +1,5 @@
 /// src/enums/TextureWrap.ts
-/**
- * Texture wrapping modes.
- */
+
 export const TextureWrap = {
   /** Repeat the texture. */
   REPEAT: "repeat",

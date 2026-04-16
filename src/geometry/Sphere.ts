@@ -3,9 +3,6 @@
 import { AbstractGeometry } from "./AbstractGeometry.js";
 import { MathUtils } from "../math/index.js";
 
-/**
- * Configuration options for sphere geometry.
- */
 export interface SphereOptions {
   /** The radius of the sphere. Defaults to 1. */
   radius?: number;

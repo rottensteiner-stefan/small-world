@@ -1,7 +1,5 @@
 /// src/enums/Keys.ts
-/**
- * Key codes for user input.
- */
+
 export const Keys = {
   /** Up arrow key. */
   UP: "ArrowUp",

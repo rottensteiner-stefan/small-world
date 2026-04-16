@@ -1,8 +1,5 @@
 /// src/enums/CameraStrategyType.ts
 
-/**
- * Types of camera control strategies.
- */
 export const CameraStrategyType = {
   /** Camera stays fixed at its position. */
   FIXED: "FixedCamera",

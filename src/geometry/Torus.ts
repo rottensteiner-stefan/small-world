@@ -3,9 +3,6 @@
 import { AbstractGeometry } from "./AbstractGeometry.js";
 import { MathUtils } from "../math/index.js";
 
-/**
- * Configuration options for torus geometry.
- */
 export interface TorusOptions {
   /** The radius of the torus. Defaults to 1. */
   radius?: number;

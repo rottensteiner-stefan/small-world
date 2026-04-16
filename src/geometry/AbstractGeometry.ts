@@ -1,12 +1,9 @@
 /// src/geometry/AbstractGeometry.ts
+
 import { Matrix4 } from "../math/Matrix4.js";
 import { Vector3D } from "../math/Vector3D.js";
 import { GeometryDataInterface, Geometry } from "../interfaces/index.js";
 
-/**
- * Base class for all geometry types.
- * Manages vertex, index, normal, and UV data.
- */
 export abstract class AbstractGeometry implements Geometry {
   /** The vertices of the geometry. */
   protected _vertices: Float32Array = new Float32Array();

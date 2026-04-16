@@ -1,8 +1,5 @@
 /// src/interfaces/LoaderOptions.ts
 
-/**
- * Common options for all resource loaders.
- */
 export interface LoaderOptions {
   /** The base path for resource URLs. */
   basePath?: string;

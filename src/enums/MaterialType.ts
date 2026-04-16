@@ -1,8 +1,5 @@
 /// src/enums/MaterialType.ts
 
-/**
- * Types of materials.
- */
 export const MaterialType = {
   /** Unlit basic material. */
   BASIC: "BasicMaterial",
