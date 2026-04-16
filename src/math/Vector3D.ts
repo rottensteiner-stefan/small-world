@@ -4,44 +4,30 @@ import { Vector } from "../interfaces/Vector.js";
 import { Matrix4 } from "./Matrix4.js";
 
 /**
- * A 3D vector class.
+ * A class representing a 3D vector.
+ * Data is stored as individual properties for fast access in JS engines.
  */
 export class Vector3D implements Vector {
-  /** Static zero vector to avoid unnecessary allocations. */
+  /** Static zero vector to avoid unnecessary allocations. Should be treated as read-only. */
   public static readonly ZERO: Vector3D = new Vector3D(0, 0, 0);
 
   /**
-   * The x component.
-   */
-  public x: number;
-
-  /**
-   * The y component.
-   */
-  public y: number;
-
-  /**
-   * The z component.
-   */
-  public z: number;
-
-  /**
    * Creates a new Vector3D.
-   * @param x The x component.
-   * @param y The y component.
-   * @param z The z component.
+   * @param x The x component. Defaults to 0.
+   * @param y The y component. Defaults to 0.
+   * @param z The z component. Defaults to 0.
    */
-  constructor(x: number = 0, y: number = 0, z: number = 0) {
-    this.x = x;
-    this.y = y;
-    this.z = z;
-  }
+  constructor(
+    public x: number = 0,
+    public y: number = 0,
+    public z: number = 0,
+  ) {}
 
   /**
    * Sets the components of the vector.
    * @param x The x component.
-   * @param y The y component.
-   * @param z The z component.
+   * @param y The y component. Defaults to x.
+   * @param z The z component. Defaults to y.
    * @returns this
    */
   public set(x: number, y: number = x, z: number = y): this {
@@ -77,7 +63,7 @@ export class Vector3D implements Vector {
 
   /**
    * Scales the vector by a scalar value.
-   * @param s The scalar to scale by.
+   * @param s The scalar factor.
    * @returns this
    */
   public scale(s: number): this {
@@ -109,7 +95,7 @@ export class Vector3D implements Vector {
   }
 
   /**
-   * Multiplies the vector components by another vector.
+   * Multiplies the vector components by another vector (component-wise).
    * @param v The vector to multiply by.
    * @returns this
    */
@@ -126,11 +112,11 @@ export class Vector3D implements Vector {
    * @returns this
    */
   public divideScalar(s: number): this {
-    return this.scale(1 / s);
+    return this.scale(1.0 / s);
   }
 
   /**
-   * Cross product of this vector and another vector.
+   * Calculates the cross product of this vector and another vector.
    * @param v The other vector.
    * @returns this
    */
@@ -166,12 +152,17 @@ export class Vector3D implements Vector {
 
     return this;
   }
+
+  /**
+   * Calculates the squared length of the vector.
+   * @returns The squared length.
+   */
   public lengthSq(): number {
     return this.x * this.x + this.y * this.y + this.z * this.z;
   }
 
   /**
-   * Calculates the length of the vector.
+   * Calculates the Euclidean length of the vector.
    * @returns The length.
    */
   public length(): number {
@@ -191,7 +182,7 @@ export class Vector3D implements Vector {
   }
 
   /**
-   * Calculates the distance to another vector.
+   * Calculates the Euclidean distance to another vector.
    * @param v The other vector.
    * @returns The distance.
    */
@@ -212,8 +203,8 @@ export class Vector3D implements Vector {
   }
 
   /**
-   * Clones the vector.
-   * @returns A new Vector3D with the same components.
+   * Clones the vector into a new instance.
+   * @returns A new Vector3D.
    */
   public clone(): Vector3D {
     return new Vector3D(this.x, this.y, this.z);
@@ -233,14 +224,14 @@ export class Vector3D implements Vector {
   }
 
   /**
-   * Normalizes the vector to a length of 1.
+   * Normalizes the vector to a unit length of 1.
    * @returns this
    */
   public normalize(): this {
     const len: number = this.length();
 
     if (0.000001 < len) {
-      const invLen: number = 1 / len;
+      const invLen: number = 1.0 / len;
       this.x *= invLen;
       this.y *= invLen;
       this.z *= invLen;

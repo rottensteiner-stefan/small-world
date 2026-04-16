@@ -1,18 +1,22 @@
 /// src/math/Matrix3.ts
 
+/**
+ * A class representing a 3x3 matrix.
+ * Used for 2D transformations or normal matrices.
+ */
 export class Matrix3 {
-  /** The matrix data (column-major). */
+  /** The matrix data in column-major order. */
   public data: Float32Array = new Float32Array(9);
 
   /**
-   * Creates a new Matrix3.
+   * Creates a new Matrix3 and initializes it to the identity matrix.
    */
   constructor() {
     this.identity();
   }
 
   /**
-   * Sets the matrix to identity.
+   * Sets the matrix to the identity matrix.
    * @returns this
    */
   public identity(): this {
@@ -30,8 +34,8 @@ export class Matrix3 {
   }
 
   /**
-   * Sets the matrix from a 4x4 matrix (upper-left 3x3).
-   * @param m The 4x4 matrix.
+   * Sets the matrix from the upper-left 3x3 part of a 4x4 matrix.
+   * @param m The source 4x4 matrix.
    * @returns this
    */
   public setFromMatrix4(m: { data: Float32Array }): this {
@@ -53,7 +57,8 @@ export class Matrix3 {
 
   /**
    * Calculates the normal matrix (transpose of the inverse of the upper-left 3x3 of a 4x4 matrix).
-   * @param m The 4x4 matrix.
+   * Used for transforming normals correctly when non-uniform scaling is present.
+   * @param m The source 4x4 matrix.
    * @returns this
    */
   public getNormalMatrix(m: { data: Float32Array }): this {
@@ -98,35 +103,35 @@ export class Matrix3 {
   }
 
   /**
-   * Multiplies two 3x3 matrices.
+   * Multiplies two 3x3 matrices and stores the result in out.
    * @param a The first matrix.
    * @param b The second matrix.
    * @param out The output matrix.
    */
   public static multiply(a: Matrix3, b: Matrix3, out: Matrix3): void {
-    const ae = a.data;
-    const be = b.data;
-    const te = out.data;
+    const ae: Float32Array = a.data;
+    const be: Float32Array = b.data;
+    const te: Float32Array = out.data;
 
-    const a11 = ae[0]!,
-      a12 = ae[3]!,
-      a13 = ae[6]!;
-    const a21 = ae[1]!,
-      a22 = ae[4]!,
-      a23 = ae[7]!;
-    const a31 = ae[2]!,
-      a32 = ae[5]!,
-      a33 = ae[8]!;
+    const a11: number = ae[0]!,
+      a12: number = ae[3]!,
+      a13: number = ae[6]!;
+    const a21: number = ae[1]!,
+      a22: number = ae[4]!,
+      a23: number = ae[7]!;
+    const a31: number = ae[2]!,
+      a32: number = ae[5]!,
+      a33: number = ae[8]!;
 
-    const b11 = be[0]!,
-      b12 = be[3]!,
-      b13 = be[6]!;
-    const b21 = be[1]!,
-      b22 = be[4]!,
-      b23 = be[7]!;
-    const b31 = be[2]!,
-      b32 = be[5]!,
-      b33 = be[8]!;
+    const b11: number = be[0]!,
+      b12: number = be[3]!,
+      b13: number = be[6]!;
+    const b21: number = be[1]!,
+      b22: number = be[4]!,
+      b23: number = be[7]!;
+    const b31: number = be[2]!,
+      b32: number = be[5]!,
+      b33: number = be[8]!;
 
     te[0] = a11 * b11 + a12 * b21 + a13 * b31;
     te[3] = a11 * b12 + a12 * b22 + a13 * b32;

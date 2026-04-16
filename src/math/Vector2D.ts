@@ -3,28 +3,19 @@
 import { Vector } from "../interfaces/Vector.js";
 
 /**
- * A 2D vector class.
+ * A class representing a 2D vector.
+ * Data is stored as individual properties for fast access in JS engines.
  */
 export class Vector2D implements Vector {
   /**
-   * The x component.
-   */
-  public x: number;
-
-  /**
-   * The y component.
-   */
-  public y: number;
-
-  /**
    * Creates a new Vector2D.
-   * @param x The x component.
-   * @param y The y component.
+   * @param x The x component. Defaults to 0.
+   * @param y The y component. Defaults to 0.
    */
-  constructor(x: number = 0, y: number = 0) {
-    this.x = x;
-    this.y = y;
-  }
+  constructor(
+    public x: number = 0,
+    public y: number = 0,
+  ) {}
 
   /**
    * Sets the components of the vector.
@@ -61,7 +52,7 @@ export class Vector2D implements Vector {
   }
 
   /**
-   * Multiplies this vector by another.
+   * Multiplies this vector by another (component-wise).
    * @param v The other vector.
    * @returns this
    */
@@ -78,7 +69,7 @@ export class Vector2D implements Vector {
    */
   public divideScalar(s: number): this {
     if (0 !== s) {
-      const invLen = 1 / s;
+      const invLen = 1.0 / s;
       this.x *= invLen;
       this.y *= invLen;
     } else {
@@ -101,7 +92,7 @@ export class Vector2D implements Vector {
 
   /**
    * Scales the vector by a scalar value.
-   * @param s The scalar to scale by.
+   * @param s The scalar factor.
    * @returns this
    */
   public scale(s: number): this {
@@ -128,7 +119,7 @@ export class Vector2D implements Vector {
   }
 
   /**
-   * Calculates the length of the vector.
+   * Calculates the Euclidean length of the vector.
    * @returns The length.
    */
   public length(): number {
@@ -147,7 +138,7 @@ export class Vector2D implements Vector {
   }
 
   /**
-   * Calculates the distance to another vector.
+   * Calculates the Euclidean distance to another vector.
    * @param v The other vector.
    * @returns The distance.
    */
@@ -156,22 +147,22 @@ export class Vector2D implements Vector {
   }
 
   /**
-   * Clones the vector.
-   * @returns A new Vector2D with the same components.
+   * Clones the vector into a new instance.
+   * @returns A new Vector2D.
    */
   public clone(): Vector2D {
     return new Vector2D(this.x, this.y);
   }
 
   /**
-   * Normalizes the vector to a length of 1.
+   * Normalizes the vector to a unit length of 1.
    * @returns this
    */
   public normalize(): this {
     const len: number = this.length();
 
     if (0.000001 < len) {
-      const invLen: number = 1 / len;
+      const invLen: number = 1.0 / len;
       this.x *= invLen;
       this.y *= invLen;
     } else {

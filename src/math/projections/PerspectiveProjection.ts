@@ -9,9 +9,9 @@ import { MathUtils } from "../MathUtils.js";
  * Configuration options for perspective projection.
  */
 export interface PerspectiveOptions {
-  /** Field of view in radians. Defaults to 75 degrees in radians. */
+  /** Field of view in radians. Defaults to 75 degrees. */
   fov?: number;
-  /** Aspect ratio. Defaults to 1. */
+  /** Aspect ratio (width / height). Defaults to 1. */
   aspect?: number;
   /** Near plane distance. Defaults to 0.1. */
   near?: number;
@@ -20,19 +20,16 @@ export interface PerspectiveOptions {
 }
 
 /**
- * Perspective camera projection.
+ * Perspective camera projection for 3D views.
  */
 export class PerspectiveProjection extends AbstractProjection {
   /** Field of view in radians. */
   public fov: number;
-
-  /** Aspect ratio. */
+  /** Aspect ratio (width / height). */
   public aspect: number;
-
-  /** Near plane. */
+  /** Near clip plane. */
   public near: number;
-
-  /** Far plane. */
+  /** Far clip plane. */
   public far: number;
 
   /** @inheritdoc */
@@ -40,7 +37,7 @@ export class PerspectiveProjection extends AbstractProjection {
 
   /**
    * Creates a new PerspectiveProjection.
-   * @param options The configuration options for the projection.
+   * @param options The configuration options.
    */
   constructor(options: PerspectiveOptions = {}) {
     super();
