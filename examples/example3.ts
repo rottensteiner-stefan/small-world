@@ -24,20 +24,6 @@ class Example3 extends AbstractExample {
   protected override async setupScene(): Promise<void> {
     Input.init();
 
-    // Add instruction overlay
-    const overlay = document.createElement("div");
-    overlay.style.position = "absolute";
-    overlay.style.top = "20px";
-    overlay.style.left = "20px";
-    overlay.style.color = "white";
-    overlay.style.background = "rgba(0,0,0,0.5)";
-    overlay.style.padding = "10px";
-    overlay.style.borderRadius = "5px";
-    overlay.style.fontFamily = "sans-serif";
-    overlay.innerHTML =
-      "<h2>Car Color Switcher</h2><p>Press <b>1 - 5</b> to change color</p><p>Click & Drag to rotate</p>";
-    document.body.appendChild(overlay);
-
     this.canvas.addEventListener("click", (): void => {
       if (!Input.isPointerLocked) {
         Input.requestPointerLock(this.canvas);
