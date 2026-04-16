@@ -12,6 +12,8 @@ export declare const MaterialType: {
     readonly SKYBOX: "SkyboxMaterial";
     /** Specialized terrain material. */
     readonly TERRAIN: "TerrainMaterial";
+    /** Physically based rendering material. */
+    readonly STANDARD: "StandardMaterial";
     /** Material for wireframe rendering. */
     readonly WIREFRAME: "WireframeMaterial";
     /** Material for sprites. */

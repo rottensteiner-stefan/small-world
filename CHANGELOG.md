@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.16.00] - 2026-04-17
+
+- **Major Feature: Cross-Renderer PBR System**:
+  - **Physically Based Rendering (PBR)**: Implemented a modern PBR material system using the Metallic-Roughness workflow across all rendering backends (**WebGL 1**, **WebGL 2**, and **WebGPU**).
+  - **StandardMaterial**: Introduced `StandardMaterial` with support for albedo, metallic, roughness, and ambient occlusion properties.
+  - **Cook-Torrance BRDF**: Standardized lighting math using industry-standard GGX Normal Distribution, Smith-Schlick Geometry, and Fresnel-Schlick functions.
+  - **Linear Lighting Workflow**: Migrated all lighting calculations to **Linear Space** with automatic sRGB gamma correction for more realistic color falloffs.
+  - **Shader Architecture**: Modularized PBR math and lighting into reusable shader chunks (`pbr_math`, `light_calc_pbr`) for GLSL and WGSL.
+- **Architectural Overhaul**:
+  - **Centralized Zoom Logic**: Unified all camera zooming (radius, FOV, and bounds scaling) into a single `Camera.zoom()` method.
+  - **Standalone ZoomController**: Extracted zoom functionality into a dedicated, configurable controller for enhanced modularity.
+  - **Strategy Enhancements**: Improved `StiffStrategy` with radius constraints and refactored `IsometricStrategy` to respect unified projection bounds.
+- **Code Hygiene & Stability**:
+  - Fixed pre-existing WebGPU uniform alignment issues by optimizing struct layouts.
+  - Resolved multiple linting and typing issues in core modules (`MathUtils.ts`, `Input.ts`).
+
 ## [0.15.08] - 2026-04-17
 
 - **Modular Zoom System**:
