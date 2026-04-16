@@ -7,17 +7,19 @@ import { BoundingType } from "../enums/index.js";
 import { BoundingBox } from "../physics/index.js";
 
 /**
- * A class representing a camera frustum.
+ * A class representing a camera frustum defined by 6 planes.
+ * Used for frustum culling.
  */
 export class Frustum {
   /**
-   * The planes of the frustum.
+   * The planes of the frustum (6 planes * 4 components = 24 floats).
+   * Format: Ax + By + Cz + D = 0.
    */
   public planes: Float32Array = new Float32Array(24);
 
   /**
-   * Sets the frustum planes from a matrix.
-   * @param m The matrix to set from.
+   * Sets the frustum planes from a projection matrix.
+   * @param m The matrix to set from (usually View-Projection).
    */
   public setFromMatrix(m: Matrix4): void {
     const me: Float32Array = m.data;
@@ -58,17 +60,16 @@ export class Frustum {
 
     for (let i: number = 0; 6 > i; i++) {
       const idx: number = i * 4;
-      const d: number = Math.sqrt(
-        (p[idx] ?? 0) * (p[idx] ?? 0) +
-          (p[idx + 1] ?? 0) * (p[idx + 1] ?? 0) +
-          (p[idx + 2] ?? 0) * (p[idx + 2] ?? 0),
-      );
+      const p0 = p[idx]!;
+      const p1 = p[idx + 1]!;
+      const p2 = p[idx + 2]!;
+      const d: number = Math.sqrt(p0 * p0 + p1 * p1 + p2 * p2);
       if (0 < d) {
         const f: number = 1.0 / d;
-        p[idx] = (p[idx] ?? 0) * f;
-        p[idx + 1] = (p[idx + 1] ?? 0) * f;
-        p[idx + 2] = (p[idx + 2] ?? 0) * f;
-        p[idx + 3] = (p[idx + 3] ?? 0) * f;
+        p[idx] = p[idx]! * f;
+        p[idx + 1] = p[idx + 1]! * f;
+        p[idx + 2] = p[idx + 2]! * f;
+        p[idx + 3] = p[idx + 3]! * f;
       }
     }
   }
@@ -76,7 +77,7 @@ export class Frustum {
   /**
    * Checks if a bounding volume intersects with the frustum.
    * @param volume The bounding volume to check.
-   * @returns True if the volume intersects with the frustum.
+   * @returns True if the volume is inside or intersecting the frustum.
    */
   public intersectsVolume(volume: BoundingVolume): boolean {
     if (BoundingType.BOX === volume.type) {
@@ -90,7 +91,7 @@ export class Frustum {
     for (let i: number = 0; 6 > i; i++) {
       const idx: number = i * 4;
       const dist: number =
-        (p[idx] ?? 0) * c.x + (p[idx + 1] ?? 0) * c.y + (p[idx + 2] ?? 0) * c.z + (p[idx + 3] ?? 0);
+        p[idx]! * c.x + p[idx + 1]! * c.y + p[idx + 2]! * c.z + p[idx + 3]!;
       if (-r > dist) {
         return false;
       }
@@ -101,19 +102,23 @@ export class Frustum {
   /**
    * Checks if a bounding box intersects with the frustum.
    * @param box The bounding box to check.
-   * @returns True if the box intersects with the frustum.
+   * @returns True if the box is inside or intersecting the frustum.
    */
   public intersectsBox(box: BoundingBox): boolean {
     const p: Float32Array = this.planes;
 
     for (let i: number = 0; 6 > i; i++) {
       const idx: number = i * 4;
-      const px: number = 0 <= (p[idx] ?? 0) ? box.max.x : box.min.x;
-      const py: number = 0 <= (p[idx + 1] ?? 0) ? box.max.y : box.min.y;
-      const pz: number = 0 <= (p[idx + 2] ?? 0) ? box.max.z : box.min.z;
+      const p0 = p[idx]!;
+      const p1 = p[idx + 1]!;
+      const p2 = p[idx + 2]!;
+      const p3 = p[idx + 3]!;
 
-      const dist: number =
-        (p[idx] ?? 0) * px + (p[idx + 1] ?? 0) * py + (p[idx + 2] ?? 0) * pz + (p[idx + 3] ?? 0);
+      const px: number = 0 <= p0 ? box.max.x : box.min.x;
+      const py: number = 0 <= p1 ? box.max.y : box.min.y;
+      const pz: number = 0 <= p2 ? box.max.z : box.min.z;
+
+      const dist: number = p0 * px + p1 * py + p2 * pz + p3;
 
       if (0 > dist) {
         return false;

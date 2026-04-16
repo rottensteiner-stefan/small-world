@@ -18,10 +18,10 @@ export class Quaternion {
 
   /**
    * Creates a new Quaternion.
-   * @param x The x component.
-   * @param y The y component.
-   * @param z The z component.
-   * @param w The w component.
+   * @param x The x component. Defaults to 0.
+   * @param y The y component. Defaults to 0.
+   * @param z The z component. Defaults to 0.
+   * @param w The w component. Defaults to 1.
    */
   constructor(x: number = 0, y: number = 0, z: number = 0, w: number = 1) {
     this.x = x;
@@ -47,7 +47,7 @@ export class Quaternion {
   }
 
   /**
-   * Identity quaternion.
+   * Resets the quaternion to the identity rotation.
    * @returns this
    */
   public identity(): this {
@@ -60,14 +60,14 @@ export class Quaternion {
    * @returns this
    */
   public multiply(q: Quaternion): this {
-    const qax = this.x,
-      qay = this.y,
-      qaz = this.z,
-      qaw = this.w;
-    const qbx = q.x,
-      qby = q.y,
-      qbz = q.z,
-      qbw = q.w;
+    const qax: number = this.x,
+      qay: number = this.y,
+      qaz: number = this.z,
+      qaw: number = this.w;
+    const qbx: number = q.x,
+      qby: number = q.y,
+      qbz: number = q.z,
+      qbw: number = q.w;
 
     this.x = qax * qbw + qaw * qbx + qay * qbz - qaz * qby;
     this.y = qay * qbw + qaw * qby + qaz * qbx - qax * qbz;
@@ -84,8 +84,8 @@ export class Quaternion {
    * @returns this
    */
   public setFromAxisAngle(axis: Vector3D, angle: number): this {
-    const halfAngle = angle / 2;
-    const s = Math.sin(halfAngle);
+    const halfAngle: number = angle / 2.0;
+    const s: number = Math.sin(halfAngle);
 
     this.x = axis.x * s;
     this.y = axis.y * s;
@@ -101,38 +101,38 @@ export class Quaternion {
    * @returns this
    */
   public setFromRotationMatrix(m: Matrix4): this {
-    const te = m.data;
-    const m11 = te[0]!,
-      m12 = te[4]!,
-      m13 = te[8]!;
-    const m21 = te[1]!,
-      m22 = te[5]!,
-      m23 = te[9]!;
-    const m31 = te[2]!,
-      m32 = te[6]!,
-      m33 = te[10]!;
-    const trace = m11 + m22 + m33;
+    const te: Float32Array = m.data;
+    const m11: number = te[0]!,
+      m12: number = te[4]!,
+      m13: number = te[8]!;
+    const m21: number = te[1]!,
+      m22: number = te[5]!,
+      m23: number = te[9]!;
+    const m31: number = te[2]!,
+      m32: number = te[6]!,
+      m33: number = te[10]!;
+    const trace: number = m11 + m22 + m33;
 
     if (0 < trace) {
-      const s = 0.5 / Math.sqrt(trace + 1.0);
+      const s: number = 0.5 / Math.sqrt(trace + 1.0);
       this.w = 0.25 / s;
       this.x = (m32 - m23) * s;
       this.y = (m13 - m31) * s;
       this.z = (m21 - m12) * s;
     } else if (m11 > m22 && m11 > m33) {
-      const s = 2.0 * Math.sqrt(1.0 + m11 - m22 - m33);
+      const s: number = 2.0 * Math.sqrt(1.0 + m11 - m22 - m33);
       this.w = (m32 - m23) / s;
       this.x = 0.25 * s;
       this.y = (m12 + m21) / s;
       this.z = (m13 + m31) / s;
     } else if (m22 > m33) {
-      const s = 2.0 * Math.sqrt(1.0 + m22 - m11 - m33);
+      const s: number = 2.0 * Math.sqrt(1.0 + m22 - m11 - m33);
       this.w = (m13 - m31) / s;
       this.x = (m12 + m21) / s;
       this.y = 0.25 * s;
       this.z = (m23 + m32) / s;
     } else {
-      const s = 2.0 * Math.sqrt(1.0 + m33 - m11 - m22);
+      const s: number = 2.0 * Math.sqrt(1.0 + m33 - m11 - m22);
       this.w = (m21 - m12) / s;
       this.x = (m13 + m31) / s;
       this.y = (m23 + m32) / s;
@@ -143,7 +143,7 @@ export class Quaternion {
   }
 
   /**
-   * Calculates the length of the quaternion.
+   * Calculates the Euclidean length of the quaternion.
    * @returns The length.
    */
   public length(): number {
@@ -151,18 +151,18 @@ export class Quaternion {
   }
 
   /**
-   * Normalizes the quaternion.
+   * Normalizes the quaternion to a unit length of 1.
    * @returns this
    */
   public normalize(): this {
-    let l = this.length();
+    let l: number = this.length();
     if (0 === l) {
       this.x = 0;
       this.y = 0;
       this.z = 0;
       this.w = 1;
     } else {
-      l = 1 / l;
+      l = 1.0 / l;
       this.x *= l;
       this.y *= l;
       this.z *= l;
@@ -172,7 +172,7 @@ export class Quaternion {
   }
 
   /**
-   * Clones the quaternion.
+   * Clones the quaternion into a new instance.
    * @returns A new Quaternion.
    */
   public clone(): Quaternion {

@@ -4,6 +4,9 @@ import { Matrix4 } from "../Matrix4.js";
 import { AbstractProjection } from "./AbstractProjection.js";
 import { ProjectionType } from "../../enums/index.js";
 
+/**
+ * Configuration options for oblique projection.
+ */
 export interface ObliqueOptions {
   /** Left plane distance. Defaults to -1. */
   left?: number;
@@ -20,25 +23,20 @@ export interface ObliqueOptions {
 }
 
 /**
- * Oblique camera projection.
+ * Oblique camera projection for specialized 2.5D views.
  */
 export class ObliqueProjection extends AbstractProjection {
-  /** Left. */
+  /** Left clip plane. */
   public left: number;
-
-  /** Right. */
+  /** Right clip plane. */
   public right: number;
-
-  /** Bottom. */
+  /** Bottom clip plane. */
   public bottom: number;
-
-  /** Top. */
+  /** Top clip plane. */
   public top: number;
-
-  /** Near. */
+  /** Near clip plane. */
   public near: number;
-
-  /** Far. */
+  /** Far clip plane. */
   public far: number;
 
   /** @inheritdoc */
@@ -46,7 +44,7 @@ export class ObliqueProjection extends AbstractProjection {
 
   /**
    * Creates a new ObliqueProjection.
-   * @param options The configuration options for the projection.
+   * @param options The configuration options.
    */
   constructor(options: ObliqueOptions = {}) {
     super();

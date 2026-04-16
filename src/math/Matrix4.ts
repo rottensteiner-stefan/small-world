@@ -4,11 +4,11 @@ import { Vector3D } from "./Vector3D.js";
 import { MathPool } from "./MathPool.js";
 
 /**
- * A 4x4 matrix class.
+ * A 4x4 matrix class for 3D transformations.
  */
 export class Matrix4 {
   /**
-   * The matrix data.
+   * The matrix data in column-major order.
    */
   public data: Float32Array = new Float32Array(16);
 
@@ -33,9 +33,10 @@ export class Matrix4 {
   }
 
   /**
-   * Composes the matrix from position, rotation, and scale.
+   * Composes the matrix from position, rotation (Euler), and scale.
+   * Uses Y * X * Z rotation order.
    * @param pos The position vector.
-   * @param rot The rotation vector (Euler angles).
+   * @param rot The rotation vector (Euler angles in radians).
    * @param scale The scale vector.
    * @returns this
    */
@@ -59,7 +60,6 @@ export class Matrix4 {
     d[15] = 1;
 
     // Rotation and Scale
-    // Order: Y * X * Z
     d[0] = (cy * cz + sy * sx * sz) * scale.x;
     d[1] = cx * sz * scale.x;
     d[2] = (-sy * cz + cy * sx * sz) * scale.x;
@@ -158,45 +158,15 @@ export class Matrix4 {
     const be: Float32Array = b.data;
     const te: Float32Array = out.data;
 
-    const a00: number = ae[0] ?? 0;
-    const a01: number = ae[1] ?? 0;
-    const a02: number = ae[2] ?? 0;
-    const a03: number = ae[3] ?? 0;
+    const a00: number = ae[0]!, a01: number = ae[1]!, a02: number = ae[2]!, a03: number = ae[3]!;
+    const a10: number = ae[4]!, a11: number = ae[5]!, a12: number = ae[6]!, a13: number = ae[7]!;
+    const a20: number = ae[8]!, a21: number = ae[9]!, a22: number = ae[10]!, a23: number = ae[11]!;
+    const a30: number = ae[12]!, a31: number = ae[13]!, a32: number = ae[14]!, a33: number = ae[15]!;
 
-    const a10: number = ae[4] ?? 0;
-    const a11: number = ae[5] ?? 0;
-    const a12: number = ae[6] ?? 0;
-    const a13: number = ae[7] ?? 0;
-
-    const a20: number = ae[8] ?? 0;
-    const a21: number = ae[9] ?? 0;
-    const a22: number = ae[10] ?? 0;
-    const a23: number = ae[11] ?? 0;
-
-    const a30: number = ae[12] ?? 0;
-    const a31: number = ae[13] ?? 0;
-    const a32: number = ae[14] ?? 0;
-    const a33: number = ae[15] ?? 0;
-
-    const b00: number = be[0] ?? 0;
-    const b01: number = be[1] ?? 0;
-    const b02: number = be[2] ?? 0;
-    const b03: number = be[3] ?? 0;
-
-    const b10: number = be[4] ?? 0;
-    const b11: number = be[5] ?? 0;
-    const b12: number = be[6] ?? 0;
-    const b13: number = be[7] ?? 0;
-
-    const b20: number = be[8] ?? 0;
-    const b21: number = be[9] ?? 0;
-    const b22: number = be[10] ?? 0;
-    const b23: number = be[11] ?? 0;
-
-    const b30: number = be[12] ?? 0;
-    const b31: number = be[13] ?? 0;
-    const b32: number = be[14] ?? 0;
-    const b33: number = be[15] ?? 0;
+    const b00: number = be[0]!, b01: number = be[1]!, b02: number = be[2]!, b03: number = be[3]!;
+    const b10: number = be[4]!, b11: number = be[5]!, b12: number = be[6]!, b13: number = be[7]!;
+    const b20: number = be[8]!, b21: number = be[9]!, b22: number = be[10]!, b23: number = be[11]!;
+    const b30: number = be[12]!, b31: number = be[13]!, b32: number = be[14]!, b33: number = be[15]!;
 
     te[0] = a00 * b00 + a10 * b01 + a20 * b02 + a30 * b03;
     te[1] = a01 * b00 + a11 * b01 + a21 * b02 + a31 * b03;
@@ -234,7 +204,7 @@ export class Matrix4 {
     far: number,
     out: Matrix4,
   ): void {
-    const f: number = 1.0 / Math.tan(fov / 2);
+    const f: number = 1.0 / Math.tan(fov / 2.0);
     const d: Float32Array = out.data;
     d.fill(0);
     d[0] = f / aspect;
@@ -246,12 +216,12 @@ export class Matrix4 {
 
   /**
    * Sets the matrix to an orthographic projection matrix.
-   * @param l Left.
-   * @param r Right.
-   * @param b Bottom.
-   * @param t Top.
-   * @param n Near.
-   * @param f Far.
+   * @param l Left edge.
+   * @param r Right edge.
+   * @param b Bottom edge.
+   * @param t Top edge.
+   * @param n Near plane.
+   * @param f Far plane.
    * @param out The output matrix.
    */
   public static orthographic(
@@ -265,9 +235,9 @@ export class Matrix4 {
   ): void {
     const d: Float32Array = out.data;
     d.fill(0);
-    d[0] = 2 / (r - l);
-    d[5] = 2 / (t - b);
-    d[10] = 1 / (n - f);
+    d[0] = 2.0 / (r - l);
+    d[5] = 2.0 / (t - b);
+    d[10] = 1.0 / (n - f);
     d[12] = -(r + l) / (r - l);
     d[13] = -(t + b) / (t - b);
     d[14] = n / (n - f);
@@ -286,7 +256,7 @@ export class Matrix4 {
     const z: Vector3D = MathPool.acquireVector().copyFrom(eye).sub(target);
     const zL: number = z.length();
     if (0 < zL) {
-      z.scale(1 / zL);
+      z.scale(1.0 / zL);
     }
 
     const x: Vector3D = MathPool.acquireVector().set(
@@ -296,7 +266,7 @@ export class Matrix4 {
     );
     const xL: number = x.length();
     if (0 < xL) {
-      x.scale(1 / xL);
+      x.scale(1.0 / xL);
     }
 
     const y: Vector3D = MathPool.acquireVector().set(
@@ -325,7 +295,7 @@ export class Matrix4 {
   }
 
   /**
-   * Transforms a vector with this matrix.
+   * Transforms a vector in-place with this matrix.
    * @param v The vector to transform.
    * @returns The transformed vector.
    */
@@ -335,9 +305,9 @@ export class Matrix4 {
     const y: number = v.y;
     const z: number = v.z;
 
-    v.x = (d[0] ?? 0) * x + (d[4] ?? 0) * y + (d[8] ?? 0) * z + (d[12] ?? 0);
-    v.y = (d[1] ?? 0) * x + (d[5] ?? 0) * y + (d[9] ?? 0) * z + (d[13] ?? 0);
-    v.z = (d[2] ?? 0) * x + (d[6] ?? 0) * y + (d[10] ?? 0) * z + (d[14] ?? 0);
+    v.x = d[0]! * x + d[4]! * y + d[8]! * z + d[12]!;
+    v.y = d[1]! * x + d[5]! * y + d[9]! * z + d[13]!;
+    v.z = d[2]! * x + d[6]! * y + d[10]! * z + d[14]!;
 
     return v;
   }
@@ -345,169 +315,49 @@ export class Matrix4 {
   /**
    * Inverts this matrix and stores the result in out.
    * @param out The output matrix.
-   * @returns Whether the inversion was successful.
+   * @returns True if the inversion was successful.
    */
   public invert(out: Matrix4): boolean {
     const d: Float32Array = this.data;
     const te: Float32Array = out.data;
 
-    const n11: number = d[0]!,
-      n12: number = d[4]!,
-      n13: number = d[8]!,
-      n14: number = d[12]!;
-    const n21: number = d[1]!,
-      n22: number = d[5]!,
-      n23: number = d[9]!,
-      n24: number = d[13]!;
-    const n31: number = d[2]!,
-      n32: number = d[6]!,
-      n33: number = d[10]!,
-      n34: number = d[14]!;
-    const n41: number = d[3]!,
-      n42: number = d[7]!,
-      n43: number = d[11]!,
-      n44: number = d[15]!;
+    const n11: number = d[0]!, n12: number = d[4]!, n13: number = d[8]!, n14: number = d[12]!;
+    const n21: number = d[1]!, n22: number = d[5]!, n23: number = d[9]!, n24: number = d[13]!;
+    const n31: number = d[2]!, n32: number = d[6]!, n33: number = d[10]!, n34: number = d[14]!;
+    const n41: number = d[3]!, n42: number = d[7]!, n43: number = d[11]!, n44: number = d[15]!;
 
-    const t11: number =
-      n23 * n34 * n42 -
-      n24 * n33 * n42 +
-      n24 * n32 * n43 -
-      n22 * n34 * n43 -
-      n23 * n32 * n44 +
-      n22 * n33 * n44;
-    const t12: number =
-      n14 * n33 * n42 -
-      n13 * n34 * n42 -
-      n14 * n32 * n43 +
-      n12 * n34 * n43 +
-      n13 * n32 * n44 -
-      n12 * n33 * n44;
-    const t13: number =
-      n13 * n24 * n42 -
-      n14 * n23 * n42 +
-      n14 * n22 * n43 -
-      n12 * n24 * n43 -
-      n13 * n22 * n44 +
-      n12 * n23 * n44;
-    const t14: number =
-      n14 * n23 * n32 -
-      n13 * n24 * n32 -
-      n14 * n22 * n33 +
-      n12 * n24 * n33 +
-      n13 * n22 * n34 -
-      n12 * n23 * n34;
+    const t11: number = n23 * n34 * n42 - n24 * n33 * n42 + n24 * n32 * n43 - n22 * n34 * n43 - n23 * n32 * n44 + n22 * n33 * n44;
+    const t12: number = n14 * n33 * n42 - n13 * n34 * n42 - n14 * n32 * n43 + n12 * n34 * n43 + n13 * n32 * n44 - n12 * n33 * n44;
+    const t13: number = n13 * n24 * n42 - n14 * n23 * n42 + n14 * n22 * n43 - n12 * n24 * n43 - n13 * n22 * n44 + n12 * n23 * n44;
+    const t14: number = n14 * n23 * n32 - n13 * n24 * n32 - n14 * n22 * n33 + n12 * n24 * n33 + n13 * n22 * n34 - n12 * n23 * n34;
 
     const det: number = n11 * t11 + n21 * t12 + n31 * t13 + n41 * t14;
 
-    if (det === 0) {
+    if (0 === det) {
       return false;
     }
 
-    const invDet: number = 1 / det;
+    const invDet: number = 1.0 / det;
 
     te[0] = t11 * invDet;
-    te[1] =
-      (n24 * n33 * n41 -
-        n23 * n34 * n41 -
-        n24 * n31 * n43 +
-        n21 * n34 * n43 +
-        n23 * n31 * n44 -
-        n21 * n33 * n44) *
-      invDet;
-    te[2] =
-      (n22 * n34 * n41 -
-        n24 * n32 * n41 +
-        n24 * n31 * n42 -
-        n21 * n34 * n42 -
-        n22 * n31 * n44 +
-        n21 * n32 * n44) *
-      invDet;
-    te[3] =
-      (n23 * n32 * n41 -
-        n22 * n33 * n41 -
-        n23 * n31 * n42 +
-        n21 * n33 * n42 +
-        n22 * n31 * n43 -
-        n21 * n32 * n43) *
-      invDet;
+    te[1] = (n24 * n33 * n41 - n23 * n34 * n41 - n24 * n31 * n43 + n21 * n34 * n43 + n23 * n31 * n44 - n21 * n33 * n44) * invDet;
+    te[2] = (n22 * n34 * n41 - n24 * n32 * n41 + n24 * n31 * n42 - n21 * n34 * n42 - n22 * n31 * n44 + n21 * n32 * n44) * invDet;
+    te[3] = (n23 * n32 * n41 - n22 * n33 * n41 - n23 * n31 * n42 + n21 * n33 * n42 + n22 * n31 * n43 - n21 * n32 * n43) * invDet;
 
     te[4] = t12 * invDet;
-    te[5] =
-      (n13 * n34 * n41 -
-        n14 * n33 * n41 +
-        n14 * n31 * n43 -
-        n11 * n34 * n43 -
-        n13 * n31 * n44 +
-        n11 * n33 * n44) *
-      invDet;
-    te[6] =
-      (n14 * n32 * n41 -
-        n12 * n34 * n41 -
-        n14 * n31 * n42 +
-        n11 * n34 * n42 +
-        n12 * n31 * n44 -
-        n11 * n32 * n44) *
-      invDet;
-    te[7] =
-      (n12 * n33 * n41 -
-        n13 * n32 * n41 +
-        n13 * n31 * n42 -
-        n11 * n33 * n42 -
-        n12 * n31 * n43 +
-        n11 * n32 * n43) *
-      invDet;
+    te[5] = (n13 * n34 * n41 - n14 * n33 * n41 + n14 * n31 * n43 - n11 * n34 * n43 - n13 * n31 * n44 + n11 * n33 * n44) * invDet;
+    te[6] = (n14 * n32 * n41 - n12 * n34 * n41 - n14 * n31 * n42 + n11 * n34 * n42 + n12 * n31 * n44 - n11 * n32 * n44) * invDet;
+    te[7] = (n12 * n33 * n41 - n13 * n32 * n41 + n13 * n31 * n42 - n11 * n33 * n42 - n12 * n31 * n43 + n11 * n32 * n43) * invDet;
 
     te[8] = t13 * invDet;
-    te[9] =
-      (n14 * n23 * n41 -
-        n13 * n24 * n41 -
-        n14 * n21 * n43 +
-        n11 * n24 * n43 +
-        n13 * n21 * n44 -
-        n11 * n23 * n44) *
-      invDet;
-    te[10] =
-      (n12 * n24 * n41 -
-        n14 * n22 * n41 +
-        n14 * n21 * n42 -
-        n11 * n24 * n42 -
-        n12 * n21 * n44 +
-        n11 * n22 * n44) *
-      invDet;
-    te[11] =
-      (n13 * n22 * n41 -
-        n12 * n23 * n41 -
-        n13 * n21 * n42 +
-        n11 * n23 * n42 +
-        n12 * n21 * n43 -
-        n11 * n22 * n43) *
-      invDet;
+    te[9] = (n14 * n23 * n41 - n13 * n24 * n41 - n14 * n21 * n43 + n11 * n24 * n43 + n13 * n21 * n44 - n11 * n23 * n44) * invDet;
+    te[10] = (n12 * n24 * n41 - n14 * n22 * n41 + n14 * n21 * n42 - n11 * n24 * n42 - n12 * n21 * n44 + n11 * n22 * n44) * invDet;
+    te[11] = (n13 * n22 * n41 - n12 * n23 * n41 - n13 * n21 * n42 + n11 * n23 * n42 + n12 * n21 * n43 - n11 * n22 * n43) * invDet;
 
     te[12] = t14 * invDet;
-    te[13] =
-      (n13 * n24 * n31 -
-        n14 * n23 * n31 +
-        n14 * n21 * n33 -
-        n11 * n24 * n33 -
-        n13 * n21 * n34 +
-        n11 * n23 * n34) *
-      invDet;
-    te[14] =
-      (n14 * n22 * n31 -
-        n12 * n24 * n31 -
-        n14 * n21 * n32 +
-        n11 * n24 * n32 +
-        n12 * n21 * n34 -
-        n11 * n22 * n34) *
-      invDet;
-    te[15] =
-      (n12 * n23 * n31 -
-        n13 * n22 * n31 +
-        n13 * n21 * n32 -
-        n11 * n23 * n32 -
-        n12 * n21 * n33 +
-        n11 * n22 * n33) *
-      invDet;
+    te[13] = (n13 * n24 * n31 - n14 * n23 * n31 + n14 * n21 * n33 - n11 * n24 * n33 - n13 * n21 * n34 + n11 * n23 * n34) * invDet;
+    te[14] = (n14 * n22 * n31 - n12 * n24 * n31 - n14 * n21 * n32 + n11 * n24 * n32 + n12 * n21 * n34 - n11 * n22 * n34) * invDet;
+    te[15] = (n12 * n23 * n31 - n13 * n22 * n31 + n13 * n21 * n32 - n11 * n23 * n32 - n12 * n21 * n33 + n11 * n22 * n33) * invDet;
 
     return true;
   }
