@@ -15,6 +15,7 @@ import {
   PhongMaterial,
   Plane,
   SkyboxMaterial,
+  FPSController,
 } from "../src/index.js";
 import { AbstractExample } from "../src/core/example/AbstractExample.js";
 
@@ -48,6 +49,13 @@ export class Example7 extends AbstractExample {
     this.camera.updateProjectionMatrix();
     this.camera.setStrategy(CameraStrategyType.FPS);
     this.camera.position.set(0, this._eyeHeight, 0);
+
+    this.controllers.push(
+      new FPSController(this.camera, {
+        moveSpeed: this._moveSpeed,
+        enableZoom: true,
+      }),
+    );
 
     // 2. Lighting
     this.scene.add(new AmbientLight({ color: Color.WHITE, intensity: 0.5 }));
@@ -98,41 +106,7 @@ export class Example7 extends AbstractExample {
   }
 
   protected override update(deltaTime: number): void {
-    // 1. Process rotation from mouse
-    let dx = 0;
-    let dy = 0;
-    if (Input.isPointerLocked) {
-      dx = Input.mouse.dx;
-      dy = Input.mouse.dy;
-    }
-    Input.mouse.dx = 0;
-    Input.mouse.dy = 0;
-
-    // Wir updaten die Kamera einmal vorab, damit die Rotation (theta) für den Bewegungsvektor aktuell ist.
-    this.camera.update(this.camera.target, dx, dy, deltaTime);
-
-    // 2. Process movement from keyboard
-    const moveZ: number = Input.getAxis(Keys.W, Keys.S);
-    const moveX: number = Input.getAxis(Keys.A, Keys.D);
-
-    if (moveZ !== 0 || moveX !== 0) {
-      const sin: number = Math.sin(this.camera.theta);
-      const cos: number = Math.cos(this.camera.theta);
-
-      const dirX: number = moveX * cos + moveZ * sin;
-      const dirZ: number = -moveX * sin + moveZ * cos;
-
-      this.camera.position.x += dirX * this._moveSpeed * deltaTime;
-      this.camera.position.z += dirZ * this._moveSpeed * deltaTime;
-    }
-
-    // 3. Process vertical movement (Q = down, E = up)
-    if (Input.isPressed(Keys.Q)) {
-      this.camera.position.y -= this._moveSpeed * deltaTime;
-    }
-    if (Input.isPressed(Keys.E)) {
-      this.camera.position.y += this._moveSpeed * deltaTime;
-    }
+    // The FPSController handles Mouse Look, WASD movement and Zoom.
 
     // 4. Collision / Floor Clamp
     this.camera.position.y = Math.max(this._eyeHeight, this.camera.position.y);

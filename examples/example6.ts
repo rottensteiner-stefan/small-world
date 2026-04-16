@@ -22,6 +22,7 @@ import {
   Tube,
   Vector3D,
   WireframeMaterial,
+  FPSController,
 } from "../src/index.js";
 import { AbstractExample } from "../src/core/example/AbstractExample.js";
 
@@ -63,6 +64,13 @@ export class Example6 extends AbstractExample {
     this.camera.updateProjectionMatrix();
     this.camera.setStrategy(CameraStrategyType.SMOOTH);
     this.camera.position.set(0, 15, 30);
+
+    this.controllers.push(
+      new FPSController(this.camera, {
+        moveSpeed: this._moveSpeed,
+        enableZoom: true,
+      }),
+    );
 
     // 2. Lights
     const ambient: AmbientLight = new AmbientLight({ color: Color.WHITE, intensity: 0.4 });
@@ -208,39 +216,8 @@ export class Example6 extends AbstractExample {
   }
 
   /** @inheritdoc */
-  protected override update(deltaTime: number): void {
-    // 1. Mouse Look
-    const dx: number = Input.isPointerLocked ? Input.mouse.dx : 0;
-    const dy: number = Input.isPointerLocked ? Input.mouse.dy : 0;
-    Input.mouse.dx = 0;
-    Input.mouse.dy = 0;
-
-    // 2. Keyboard Movement (relative to camera rotation)
-    const moveZ: number = Input.getAxis(Keys.W, Keys.S);
-    const moveX: number = Input.getAxis(Keys.A, Keys.D);
-
-    if (0 !== moveZ || 0 !== moveX) {
-      // Calculate direction based on camera yaw (theta)
-      const sin: number = Math.sin(this.camera.theta);
-      const cos: number = Math.cos(this.camera.theta);
-
-      const dirX: number = moveX * cos + moveZ * sin;
-      const dirZ: number = -moveX * sin + moveZ * cos;
-
-      this._targetPos.x += dirX * this._moveSpeed * deltaTime;
-      this._targetPos.z += dirZ * this._moveSpeed * deltaTime;
-    }
-
-    // 3. Vertical movement (Q/E or Space/Shift style)
-    if (Input.isPressed(Keys.Q)) {
-      this._targetPos.y -= this._moveSpeed * deltaTime;
-    }
-    if (Input.isPressed(Keys.E)) {
-      this._targetPos.y += this._moveSpeed * deltaTime;
-    }
-
-    // 4. Update Camera
-    this.camera.update(this._targetPos, dx, dy);
+  protected override update(_deltaTime: number): void {
+    // Movement and looking is now handled by the FPSController registered in setupScene.
   }
 
   /** @inheritdoc */

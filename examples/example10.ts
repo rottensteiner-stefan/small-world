@@ -17,6 +17,7 @@ import {
   PerspectiveProjection,
   Plane,
   Texture,
+  FPSController,
 } from "../src/index.js";
 import { AbstractExample } from "../src/core/example/AbstractExample.js";
 import { createNoise2D, NoiseFunction2D } from "simplex-noise";
@@ -179,6 +180,14 @@ export class Example10 extends AbstractExample {
     this.scene.add(createFireBowl("FireBowl1", -4, 1, 0, 0));
     this.scene.add(createFireBowl("FireBowl2", 4, 1, 0, 1000));
 
+    // 6. Setup FPS Controller
+    this.controllers.push(
+      new FPSController(this.camera, {
+        moveSpeed: this._moveSpeed,
+        enableZoom: true,
+      }),
+    );
+
     await this.waitForAssets();
   }
 
@@ -186,34 +195,9 @@ export class Example10 extends AbstractExample {
   protected override update(deltaTime: number): void {
     this._time += deltaTime;
 
-    // 1. Mouse Look
-    let dx: number = 0;
-    let dy: number = 0;
-    if (Input.isPointerLocked) {
-      dx = Input.mouse.dx;
-      dy = Input.mouse.dy;
-    }
-    Input.mouse.dx = 0;
-    Input.mouse.dy = 0;
+    // The FPSController added in setupScene handles Mouse Look, WASD, and Q/E Fly.
 
-    this.camera.update(this.camera.target, dx, dy, deltaTime);
-
-    // 2. Keyboard Movement
-    const moveZ: number = Input.getAxis(Keys.W, Keys.S);
-    const moveX: number = Input.getAxis(Keys.A, Keys.D);
-
-    if (0 !== moveZ || 0 !== moveX) {
-      const sin: number = Math.sin(this.camera.theta);
-      const cos: number = Math.cos(this.camera.theta);
-      const dirX: number = moveX * cos + moveZ * sin;
-      const dirZ: number = -moveX * sin + moveZ * cos;
-      this.camera.position.x += dirX * this._moveSpeed * deltaTime;
-      this.camera.position.z += dirZ * this._moveSpeed * deltaTime;
-    }
-
-    // 3. Fly height
-    if (Input.isPressed(Keys.Q)) this.camera.position.y -= this._moveSpeed * deltaTime;
-    if (Input.isPressed(Keys.E)) this.camera.position.y += this._moveSpeed * deltaTime;
+    // Collision / Floor Clamp
     this.camera.position.y = Math.max(this._eyeHeight, this.camera.position.y);
 
     // 4. Animate Lava Vertices (Bubbling & Flowing Waves)
