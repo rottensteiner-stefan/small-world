@@ -22,5 +22,5 @@ export declare class WebGL1Renderer extends AbstractWebGLRenderer {
     private _getWebGLCubeTexture;
     /** @inheritdoc */
     render(scene: Scene, vp: Float32Array, camPos?: Vector3D): void;
-    private _drawObject;
+    private _renderGroup;
 }

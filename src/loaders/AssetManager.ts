@@ -17,6 +17,8 @@ interface AssetProgress {
 export class AssetManager {
   private static _imageCache = new Map<string, Promise<ImageBitmap | HTMLImageElement>>();
   private static _textCache = new Map<string, Promise<string>>();
+  private static _jsonCache = new Map<string, Promise<any>>();
+  private static _binaryCache = new Map<string, Promise<ArrayBuffer>>();
 
   private static _activeLoaders = new Map<string, AssetProgress>();
   private static _onLoadedPromise: Promise<void> | undefined = undefined;
@@ -88,9 +90,7 @@ export class AssetManager {
     url: string,
     onProgress?: ProgressCallback,
   ): Promise<Blob> {
-    // Resolve URL: Prepend baseUrl if url is relative and baseUrl is set
-    const isAbsolute =
-      url.startsWith("http://") || url.startsWith("https://") || url.startsWith("//");
+    const isAbsolute = url.startsWith("http://") || url.startsWith("https://") || url.startsWith("//");
     let finalUrl = url;
 
     if (!isAbsolute && this._baseUrl) {
@@ -108,7 +108,6 @@ export class AssetManager {
     const contentLength: string | undefined = response.headers.get("content-length") ?? undefined;
     const total: number = contentLength ? parseInt(contentLength, 10) : 0;
 
-    // Register this loader for global tracking
     this._activeLoaders.set(url, { loaded: 0, total });
 
     const updateProgress = (loaded: number, total: number): void => {
@@ -123,15 +122,13 @@ export class AssetManager {
       return blob;
     }
 
-    const reader: ReadableStreamDefaultReader<Uint8Array> = response.body.getReader();
+    const reader = response.body.getReader();
     let loaded: number = 0;
     const chunks: Uint8Array[] = [];
 
     while (true) {
       const { done, value } = await reader.read();
-      if (done) {
-        break;
-      }
+      if (done) break;
       if (value) {
         loaded += value.length;
         chunks.push(value);
@@ -160,46 +157,28 @@ export class AssetManager {
     const cacheKey: string = `${url}_${flipY}`;
     if (this._imageCache.has(cacheKey)) return this._imageCache.get(cacheKey)!;
 
-    const loadPromise: Promise<ImageBitmap | HTMLImageElement> = this._fetchWithProgress(
-      url,
-      onProgress,
-    )
+    const loadPromise: Promise<ImageBitmap | HTMLImageElement> = this._fetchWithProgress(url, onProgress)
       .then(async (blob: Blob): Promise<ImageBitmap> => {
         if (flipY) {
-          return createImageBitmap(blob, {
-            colorSpaceConversion: "none",
-            imageOrientation: "flipY",
-          });
+          return createImageBitmap(blob, { colorSpaceConversion: "none", imageOrientation: "flipY" });
         } else {
-          // --- FEATURE DETECTION / FALLBACK ---
           try {
-            // Moderner Standard (ab Chrome 146+)
-            return await createImageBitmap(blob, {
-              colorSpaceConversion: "none",
-              imageOrientation: "from-image" as ImageOrientation,
-            });
+            return await createImageBitmap(blob, { colorSpaceConversion: "none", imageOrientation: "from-image" as ImageOrientation });
           } catch {
-            // Fallback für Safari, Firefox und ältere Chrome-Versionen
-            return await createImageBitmap(blob, {
-              colorSpaceConversion: "none",
-              imageOrientation: "none",
-            });
+            return await createImageBitmap(blob, { colorSpaceConversion: "none", imageOrientation: "none" });
           }
         }
       })
       .catch((e: unknown): Promise<HTMLImageElement> => {
-        // If fetch fails, we still need to cleanup global tracking
         this._checkCompletion(url);
         console.error(e);
-        return new Promise<HTMLImageElement>(
-          (resolve: (value: HTMLImageElement) => void, reject: (reason: string) => void): void => {
+        return new Promise<HTMLImageElement>((resolve, reject) => {
             const img: HTMLImageElement = new Image();
             img.crossOrigin = "anonymous";
             img.src = url;
             img.onload = (): void => resolve(img);
             img.onerror = (): void => reject(`[AssetManager] Fallback fehlgeschlagen: ${url}`);
-          },
-        );
+        });
       });
 
     this._imageCache.set(cacheKey, loadPromise);
@@ -208,14 +187,29 @@ export class AssetManager {
 
   public static async loadText(url: string, onProgress?: ProgressCallback): Promise<string> {
     if (this._textCache.has(url)) return this._textCache.get(url)!;
-
-    const loadPromise: Promise<string> = this._fetchWithProgress(url, onProgress)
-      .then((blob: Blob): Promise<string> => blob.text())
-      .catch((e: unknown) => {
-        this._checkCompletion(url);
-        throw e;
-      });
+    const loadPromise = this._fetchWithProgress(url, onProgress)
+      .then((blob: Blob) => blob.text())
+      .catch((e: unknown) => { this._checkCompletion(url); throw e; });
     this._textCache.set(url, loadPromise);
+    return loadPromise;
+  }
+
+  public static async loadJson(url: string, onProgress?: ProgressCallback): Promise<any> {
+    if (this._jsonCache.has(url)) return this._jsonCache.get(url)!;
+    const loadPromise = this._fetchWithProgress(url, onProgress)
+        .then((blob: Blob) => blob.text())
+        .then((text: string) => JSON.parse(text))
+        .catch((e: unknown) => { this._checkCompletion(url); throw e; });
+    this._jsonCache.set(url, loadPromise);
+    return loadPromise;
+  }
+
+  public static async loadBinary(url: string, onProgress?: ProgressCallback): Promise<ArrayBuffer> {
+    if (this._binaryCache.has(url)) return this._binaryCache.get(url)!;
+    const loadPromise = this._fetchWithProgress(url, onProgress)
+        .then((blob: Blob) => blob.arrayBuffer())
+        .catch((e: unknown) => { this._checkCompletion(url); throw e; });
+    this._binaryCache.set(url, loadPromise);
     return loadPromise;
   }
 }

@@ -8,17 +8,14 @@ import {
   TerrainMaterial,
   Texture,
 } from "../core/index.js";
-import { GeometryDataInterface } from "../interfaces/index.js";
+import { GeometryDataInterface, LightDataInterface } from "../interfaces/index.js";
 import { Object3D } from "../core/Object3D.js";
 import { Scene } from "../core/Scene.js";
 import { MathPool, Vector3D } from "../math/index.js";
 import {
   BlendingMode,
-  CullMode,
   MaterialType,
   RendererType,
-  TextureFilter,
-  TextureWrap,
 } from "../enums/index.js";
 import { EngineConfig } from "../interfaces/EngineConfig.js";
 
@@ -28,9 +25,9 @@ interface WebGPUGeoCache {
   vb: GPUBuffer;
   nb: GPUBuffer | undefined;
   uvb: GPUBuffer | undefined;
-  tb: GPUBuffer | undefined; // Tangent Buffer
+  tb: GPUBuffer | undefined;
   ib: GPUBuffer | undefined;
-  wib: GPUBuffer | undefined; // Wireframe Index Buffer
+  wib: GPUBuffer | undefined;
   indexCount: number;
   wireframeIndexCount: number;
   vertexCount: number;
@@ -44,10 +41,9 @@ interface WebGPUPipelineCache {
 }
 
 /**
- * WebGPU implementation of the renderer.
+ * Modern WebGPU implementation with optimized Bind Groups.
  */
 export class WebGPURenderer extends AbstractRenderer {
-  /** @inheritdoc */
   public override readonly type: RendererType = RendererType.WEB_GPU;
   private _adapter: GPUAdapter | undefined = undefined;
   private _device: GPUDevice | undefined = undefined;
@@ -57,24 +53,26 @@ export class WebGPURenderer extends AbstractRenderer {
   private _pipelines: Map<string, WebGPUPipelineCache> = new Map();
   private _shaderModules: Map<string, GPUShaderModule> = new Map();
 
-  private _sampler!: GPUSampler;
   private _whiteTexView!: GPUTextureView;
-  private _flatNormalTexView!: GPUTextureView;
-  private _specularTexView!: GPUTextureView;
   private _defaultCubeTexView!: GPUTextureView;
+  private _defaultSampler!: GPUSampler;
 
   private _geoCache: Map<GeometryDataInterface, WebGPUGeoCache> = new Map();
   private _textureViewCache: Map<Texture, GPUTextureView> = new Map();
   private _cubeTextureViewCache: Map<CubeTexture, GPUTextureView> = new Map();
-  private _samplerCache: Map<string, GPUSampler> = new Map();
 
   private _depthTexture!: GPUTexture;
 
-  // Generic Buffers for Uniforms (per Object)
-  private _objUniformBuffers: Map<Object3D, GPUBuffer> = new Map();
-  private _objLightBuffers: Map<Object3D, { pl: GPUBuffer; sl: GPUBuffer; al: GPUBuffer }> =
-    new Map();
-  private _objBindGroups: Map<string, GPUBindGroup> = new Map();
+  // --- GLOBAL BUFFERS (Bind Group 0) ---
+  private _globalUniformBuffer!: GPUBuffer;
+  private _pointLightBuffer!: GPUBuffer;
+  private _spotLightBuffer!: GPUBuffer;
+  private _areaLightBuffer!: GPUBuffer;
+  private _globalBindGroup!: GPUBindGroup;
+  private _globalBGL!: GPUBindGroupLayout;
+
+  // --- MATERIAL / OBJECT CACHES ---
+  private _objectUniformBuffers: Map<string, GPUBuffer> = new Map();
 
   /** @inheritdoc */
   public async initialize(
@@ -90,188 +88,81 @@ export class WebGPURenderer extends AbstractRenderer {
       this._quality = { ...this._quality, ...config.quality };
     }
 
-    const context = canvas.getContext("webgpu");
-    if (!context) throw new Error("[WebGPURenderer] Could not get webgpu context.");
-    this._context = context as GPUCanvasContext;
-
+    this._context = canvas.getContext("webgpu") as GPUCanvasContext;
     this._format = navigator.gpu.getPreferredCanvasFormat();
-    this._context.configure({
-      device: this._device,
-      format: this._format,
-      alphaMode: "premultiplied",
-    });
+    this._context.configure({ device: this._device, format: this._format, alphaMode: "premultiplied" });
 
-    this._sampler = this._device.createSampler({
-      magFilter: "linear",
-      minFilter: "linear",
-      addressModeU: "repeat",
-      addressModeV: "repeat",
-    });
-
-    // Default Textures
-    const whiteTex: GPUTexture = this._device.createTexture({
-      size: [1, 1],
-      format: "rgba8unorm",
-      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
-    });
-    this._device.queue.writeTexture(
-      { texture: whiteTex },
-      new Uint8Array([255, 255, 255, 255]),
-      { bytesPerRow: 4 },
-      [1, 1],
-    );
-    this._whiteTexView = whiteTex.createView();
-
-    const flatNormalTex: GPUTexture = this._device.createTexture({
-      size: [1, 1],
-      format: "rgba8unorm",
-      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
-    });
-    this._device.queue.writeTexture(
-      { texture: flatNormalTex },
-      new Uint8Array([128, 128, 255, 255]),
-      { bytesPerRow: 4 },
-      [1, 1],
-    );
-    this._flatNormalTexView = flatNormalTex.createView();
-
-    const specTex: GPUTexture = this._device.createTexture({
-      size: [1, 1],
-      format: "rgba8unorm",
-      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
-    });
-    this._device.queue.writeTexture(
-      { texture: specTex },
-      new Uint8Array([255, 255, 255, 255]),
-      { bytesPerRow: 4 },
-      [1, 1],
-    );
-    this._specularTexView = specTex.createView();
-
-    const whiteCube: GPUTexture = this._device.createTexture({
-      size: [1, 1, 6],
-      format: "rgba8unorm",
-      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
-    });
-    for (let i: number = 0; 6 > i; i++) {
-      this._device.queue.writeTexture(
-        { texture: whiteCube, origin: [0, 0, i] },
-        new Uint8Array([50, 50, 100, 255]),
-        { bytesPerRow: 4 },
-        [1, 1],
-      );
-    }
-    this._defaultCubeTexView = whiteCube.createView({ dimension: "cube" });
-
+    this._initDefaultResources();
+    this._initGlobalBuffers();
     this.setSize(canvas.clientWidth, canvas.clientHeight);
   }
 
-  private _getShaderModule(shaderId: string): GPUShaderModule {
-    let sm = this._shaderModules.get(shaderId);
-    if (!sm) {
-      const def = ShaderRegistry.instance.get(shaderId);
-      if (!def || !def.sources.wgsl) {
-        throw new Error(
-          `[WebGPURenderer] Shader definition for ${shaderId} not found or missing WGSL source.`,
-        );
-      }
-      const code = ShaderRegistry.instance.assemble(def.sources.wgsl, "wgsl");
-      sm = this._device!.createShaderModule({ label: shaderId, code });
-      this._shaderModules.set(shaderId, sm);
+  private _initDefaultResources(): void {
+    const create1x1 = (col: number[]): GPUTextureView => {
+      const t = this._device!.createTexture({ size: [1, 1], format: "rgba8unorm", usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST });
+      this._device!.queue.writeTexture({ texture: t }, new Uint8Array(col), { bytesPerRow: 4 }, [1, 1]);
+      return t.createView();
+    };
+    this._whiteTexView = create1x1([255, 255, 255, 255]);
+
+    const whiteCube = this._device!.createTexture({ size: [1, 1, 6], format: "rgba8unorm", usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST });
+    for (let i = 0; i < 6; i++) {
+        this._device!.queue.writeTexture({ texture: whiteCube, origin: [0, 0, i] }, new Uint8Array([50, 50, 100, 255]), { bytesPerRow: 4 }, [1, 1]);
     }
-    return sm;
+    this._defaultCubeTexView = whiteCube.createView({ dimension: "cube" });
+    this._defaultSampler = this._device!.createSampler({ magFilter: "linear", minFilter: "linear" });
   }
 
-  private _getPipeline(
-    manifest: RenderManifest,
-    topology: GPUPrimitiveTopology = "triangle-list",
-  ): WebGPUPipelineCache {
+  private _initGlobalBuffers(): void {
+    this._globalUniformBuffer = this._device!.createBuffer({ size: 256, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+    this._pointLightBuffer = this._device!.createBuffer({ size: 1024, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST });
+    this._spotLightBuffer = this._device!.createBuffer({ size: 2048, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST });
+    this._areaLightBuffer = this._device!.createBuffer({ size: 4096, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST });
+
+    this._globalBGL = this._device!.createBindGroupLayout({
+      entries: [
+        { binding: 0, visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT, buffer: { type: "uniform" } },
+        { binding: 1, visibility: GPUShaderStage.FRAGMENT, buffer: { type: "read-only-storage" } },
+        { binding: 2, visibility: GPUShaderStage.FRAGMENT, buffer: { type: "read-only-storage" } },
+        { binding: 3, visibility: GPUShaderStage.FRAGMENT, buffer: { type: "read-only-storage" } },
+      ]
+    });
+
+    this._globalBindGroup = this._device!.createBindGroup({
+      layout: this._globalBGL,
+      entries: [
+        { binding: 0, resource: { buffer: this._globalUniformBuffer } },
+        { binding: 1, resource: { buffer: this._pointLightBuffer } },
+        { binding: 2, resource: { buffer: this._spotLightBuffer } },
+        { binding: 3, resource: { buffer: this._areaLightBuffer } },
+      ]
+    });
+  }
+
+  private _getPipeline(manifest: RenderManifest, topology: GPUPrimitiveTopology): WebGPUPipelineCache {
     const shaderId = manifest.shaderId;
     const state = manifest.state || {};
-    const cullMode = state.culling || CullMode.BACK;
-    const blending = state.blending || BlendingMode.OPAQUE;
-    const depthWrite = state.depthWrite !== undefined ? state.depthWrite : true;
-
-    const key = `${shaderId}_${topology}_${cullMode}_${blending}_${depthWrite}`;
+    const key = `${shaderId}_${topology}_${state.culling}_${state.blending}`;
     let cache = this._pipelines.get(key);
 
     if (!cache) {
       const sm = this._getShaderModule(shaderId);
 
-      // 1. Create BindGroupLayouts based on layout
       const objEntries: GPUBindGroupLayoutEntry[] = [
-        {
-          binding: 0,
-          visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-          buffer: { type: "uniform" },
-        },
-        { binding: 1, visibility: GPUShaderStage.FRAGMENT, buffer: { type: "read-only-storage" } },
-        { binding: 2, visibility: GPUShaderStage.FRAGMENT, buffer: { type: "read-only-storage" } },
-        { binding: 3, visibility: GPUShaderStage.FRAGMENT, buffer: { type: "read-only-storage" } },
+        { binding: 0, visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT, buffer: { type: "uniform" } },
+        { binding: 1, visibility: GPUShaderStage.FRAGMENT, sampler: { type: "filtering" } },
       ];
-      const objBGL = this._device!.createBindGroupLayout({ entries: objEntries });
 
-      const texEntries: GPUBindGroupLayoutEntry[] = [];
-      // We always put a sampler at binding 1 for now (SmallWorld convention)
       if (shaderId === MaterialType.SKYBOX) {
-        texEntries.push({
-          binding: 0,
-          visibility: GPUShaderStage.FRAGMENT,
-          texture: { viewDimension: "cube" },
-        });
-        texEntries.push({
-          binding: 1,
-          visibility: GPUShaderStage.FRAGMENT,
-          sampler: { type: "filtering" },
-        });
+          objEntries.push({ binding: 9, visibility: GPUShaderStage.FRAGMENT, texture: { viewDimension: "cube" } });
       } else {
-        // Standard SmallWorld Tex Layout (compatible with our Uber-Shaders)
-        texEntries.push({
-          binding: 0,
-          visibility: GPUShaderStage.FRAGMENT,
-          texture: { sampleType: "float" },
-        }); // Diffuse
-        texEntries.push({
-          binding: 1,
-          visibility: GPUShaderStage.FRAGMENT,
-          sampler: { type: "filtering" },
-        }); // Sampler
-        texEntries.push({
-          binding: 2,
-          visibility: GPUShaderStage.FRAGMENT,
-          texture: { sampleType: "float" },
-        }); // Terrain Sand
-        texEntries.push({
-          binding: 3,
-          visibility: GPUShaderStage.FRAGMENT,
-          texture: { sampleType: "float" },
-        }); // Terrain Grass
-        texEntries.push({
-          binding: 4,
-          visibility: GPUShaderStage.FRAGMENT,
-          texture: { sampleType: "float" },
-        }); // Terrain Rock
-        texEntries.push({
-          binding: 5,
-          visibility: GPUShaderStage.FRAGMENT,
-          texture: { sampleType: "float" },
-        }); // Terrain Snow
-        texEntries.push({
-          binding: 6,
-          visibility: GPUShaderStage.FRAGMENT,
-          texture: { sampleType: "float" },
-        }); // Normal Map
-        texEntries.push({
-          binding: 7,
-          visibility: GPUShaderStage.FRAGMENT,
-          texture: { sampleType: "float" },
-        }); // Specular Map
+          for(let i=2; i<=8; i++) {
+              objEntries.push({ binding: i, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: "float" } });
+          }
       }
-      const texBGL = this._device!.createBindGroupLayout({ entries: texEntries });
-
-      const pipelineLayout = this._device!.createPipelineLayout({
-        bindGroupLayouts: [objBGL, texBGL],
-      });
+      
+      const objBGL = this._device!.createBindGroupLayout({ entries: objEntries });
+      const pipelineLayout = this._device!.createPipelineLayout({ bindGroupLayouts: [this._globalBGL, objBGL] });
 
       const vertexBuffers: GPUVertexBufferLayout[] = [
         { arrayStride: 12, attributes: [{ shaderLocation: 0, offset: 0, format: "float32x3" }] },
@@ -281,15 +172,10 @@ export class WebGPURenderer extends AbstractRenderer {
       ];
 
       const targets: GPUColorTargetState[] = [{ format: this._format }];
-      if (blending === BlendingMode.ALPHA) {
+      if (state.blending === BlendingMode.ALPHA) {
         targets[0]!.blend = {
           color: { srcFactor: "src-alpha", dstFactor: "one-minus-src-alpha", operation: "add" },
           alpha: { srcFactor: "one", dstFactor: "one-minus-src-alpha", operation: "add" },
-        };
-      } else if (blending === BlendingMode.ADDITIVE) {
-        targets[0]!.blend = {
-          color: { srcFactor: "src-alpha", dstFactor: "one", operation: "add" },
-          alpha: { srcFactor: "one", dstFactor: "one", operation: "add" },
         };
       }
 
@@ -297,121 +183,32 @@ export class WebGPURenderer extends AbstractRenderer {
         layout: pipelineLayout,
         vertex: { module: sm, entryPoint: "vs", buffers: vertexBuffers },
         fragment: { module: sm, entryPoint: "fs", targets },
-        primitive: { topology, cullMode },
-        depthStencil: {
-          depthWriteEnabled: depthWrite,
-          depthCompare: "less-equal",
-          format: "depth24plus",
-        },
+        primitive: { topology, cullMode: state.culling || "back" },
+        depthStencil: { depthWriteEnabled: state.depthWrite !== false, depthCompare: "less-equal", format: "depth24plus" },
       });
 
-      cache = { pipeline, layout: pipelineLayout, bgLayouts: [objBGL, texBGL] };
+      cache = { pipeline, layout: pipelineLayout, bgLayouts: [this._globalBGL, objBGL] };
       this._pipelines.set(key, cache);
     }
-
     return cache;
   }
 
-  private _getTextureView(tex: Texture | undefined): GPUTextureView {
-    if (!tex || !tex.isLoaded || !tex.image) {
-      return this._whiteTexView;
+  private _getShaderModule(shaderId: string): GPUShaderModule {
+    let sm = this._shaderModules.get(shaderId);
+    if (!sm) {
+      const def = ShaderRegistry.instance.get(shaderId);
+      const code = ShaderRegistry.instance.assemble(def!.sources.wgsl!, "wgsl");
+      sm = this._device!.createShaderModule({ code });
+      this._shaderModules.set(shaderId, sm);
     }
-    let view: GPUTextureView | undefined = this._textureViewCache.get(tex);
-    if (!view) {
-      const t: GPUTexture = this._device!.createTexture({
-        size: [tex.image.width, tex.image.height],
-        format: "rgba8unorm",
-        usage:
-          GPUTextureUsage.TEXTURE_BINDING |
-          GPUTextureUsage.COPY_DST |
-          GPUTextureUsage.RENDER_ATTACHMENT,
-      });
-      this._device!.queue.copyExternalImageToTexture(
-        { source: tex.image, flipY: false },
-        { texture: t },
-        [tex.image.width, tex.image.height],
-      );
-      view = t.createView();
-      this._textureViewCache.set(tex, view);
-    }
-    return view;
-  }
-
-  private _getGPUCubeTextureView(tex: CubeTexture): GPUTextureView {
-    let view: GPUTextureView | undefined = this._cubeTextureViewCache.get(tex);
-    if (!view) {
-      const img = tex.images[0]!;
-      const t: GPUTexture = this._device!.createTexture({
-        size: [img.width, img.height, 6],
-        format: "rgba8unorm",
-        usage:
-          GPUTextureUsage.TEXTURE_BINDING |
-          GPUTextureUsage.COPY_DST |
-          GPUTextureUsage.RENDER_ATTACHMENT,
-      });
-      for (let i: number = 0; 6 > i; i++) {
-        this._device!.queue.copyExternalImageToTexture(
-          { source: tex.images[i]! },
-          { texture: t, origin: [0, 0, i] },
-          [img.width, img.height],
-        );
-      }
-      view = t.createView({ dimension: "cube" });
-      this._cubeTextureViewCache.set(tex, view);
-    }
-    return view;
-  }
-
-  private _getSampler(tex: Texture): GPUSampler {
-    const useMipmaps = this._quality.mipmapping && tex.generateMipmaps;
-    const anisotropy = useMipmaps
-      ? Math.min(this._quality.maxAnisotropy || 1, tex.anisotropy || 1)
-      : 1;
-
-    const key = `${tex.minFilter}_${tex.magFilter}_${tex.addressModeU}_${tex.addressModeV}_${useMipmaps}_${anisotropy}`;
-    let sampler = this._samplerCache.get(key);
-
-    if (!sampler) {
-      const samplerDesc: GPUSamplerDescriptor = {
-        magFilter: TextureFilter.NEAREST === tex.magFilter ? "nearest" : "linear",
-        minFilter: TextureFilter.NEAREST === tex.minFilter ? "nearest" : "linear",
-        addressModeU:
-          TextureWrap.REPEAT === tex.addressModeU
-            ? "repeat"
-            : TextureWrap.MIRRORED_REPEAT === tex.addressModeU
-              ? "mirror-repeat"
-              : "clamp-to-edge",
-        addressModeV:
-          TextureWrap.REPEAT === tex.addressModeV
-            ? "repeat"
-            : TextureWrap.MIRRORED_REPEAT === tex.addressModeV
-              ? "mirror-repeat"
-              : "clamp-to-edge",
-        maxAnisotropy: anisotropy,
-      };
-
-      if (useMipmaps) {
-        samplerDesc.mipmapFilter = "linear";
-      }
-
-      sampler = this._device!.createSampler(samplerDesc);
-      this._samplerCache.set(key, sampler);
-    }
-    return sampler;
+    return sm;
   }
 
   private _getGeoCache(geo: GeometryDataInterface): WebGPUGeoCache {
     let c = this._geoCache.get(geo);
     if (!c) {
-      const createBuf = (
-        data: Float32Array | Uint16Array | Uint32Array,
-        usage: number,
-      ): GPUBuffer => {
-        const b = this._device!.createBuffer({
-          size: (data.byteLength + 3) & ~3,
-          usage,
-          mappedAtCreation: true,
-        });
+      const createBuf = (data: any, usage: number): GPUBuffer => {
+        const b = this._device!.createBuffer({ size: (data.byteLength + 3) & ~3, usage, mappedAtCreation: true });
         if (data instanceof Float32Array) new Float32Array(b.getMappedRange()).set(data);
         else if (data instanceof Uint16Array) new Uint16Array(b.getMappedRange()).set(data);
         else new Uint32Array(b.getMappedRange()).set(data);
@@ -420,412 +217,227 @@ export class WebGPURenderer extends AbstractRenderer {
       };
       c = {
         vb: createBuf(geo.vertices, GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST),
-        nb:
-          geo.normals && 0 < geo.normals.length
-            ? createBuf(geo.normals, GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST)
-            : undefined,
-        uvb: geo.uvs && 0 < geo.uvs.length ? createBuf(geo.uvs, GPUBufferUsage.VERTEX) : undefined,
-        tb:
-          geo.tangents && 0 < geo.tangents.length
-            ? createBuf(geo.tangents, GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST)
-            : undefined,
-        ib:
-          geo.indices && 0 < geo.indices.length
-            ? createBuf(geo.indices, GPUBufferUsage.INDEX)
-            : undefined,
-        wib:
-          geo.wireframeIndices && 0 < geo.wireframeIndices.length
-            ? createBuf(geo.wireframeIndices, GPUBufferUsage.INDEX)
-            : undefined,
-        indexCount: geo.indices ? geo.indices.length : 0,
-        wireframeIndexCount: geo.wireframeIndices ? geo.wireframeIndices.length : 0,
+        nb: geo.normals?.length ? createBuf(geo.normals, GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST) : undefined,
+        uvb: geo.uvs?.length ? createBuf(geo.uvs, GPUBufferUsage.VERTEX) : undefined,
+        tb: geo.tangents?.length ? createBuf(geo.tangents, GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST) : undefined,
+        ib: geo.indices?.length ? createBuf(geo.indices, GPUBufferUsage.INDEX) : undefined,
+        wib: geo.wireframeIndices?.length ? createBuf(geo.wireframeIndices, GPUBufferUsage.INDEX) : undefined,
+        indexCount: geo.indices?.length || 0,
+        wireframeIndexCount: geo.wireframeIndices?.length || 0,
         vertexCount: geo.vertices.length / 3,
-        format:
-          geo.indices instanceof Uint32Array || geo.wireframeIndices instanceof Uint32Array
-            ? "uint32"
-            : "uint16",
+        format: (geo.indices instanceof Uint32Array || geo.wireframeIndices instanceof Uint32Array) ? "uint32" : "uint16",
       };
-
       this._geoCache.set(geo, c);
-    } else if (geo.needsUpdate) {
-      this._device!.queue.writeBuffer(c.vb, 0, geo.vertices);
-      if (geo.normals && c.nb) this._device!.queue.writeBuffer(c.nb, 0, geo.normals);
-      if (geo.tangents && c.tb) this._device!.queue.writeBuffer(c.tb, 0, geo.tangents);
-      geo.needsUpdate = false;
     }
     return c;
   }
-
-  private _getObjBuffers(obj: Object3D): {
-    ub: GPUBuffer;
-    pl: GPUBuffer;
-    sl: GPUBuffer;
-    al: GPUBuffer;
-  } {
-    let ub = this._objUniformBuffers.get(obj);
-    let lights = this._objLightBuffers.get(obj);
-
-    if (!ub || !lights) {
-      ub = this._device!.createBuffer({
-        size: 512,
-        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-      });
-      const pl = this._device!.createBuffer({
-        size: 512,
-        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-      });
-      const sl = this._device!.createBuffer({
-        size: 1024,
-        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-      });
-      const al = this._device!.createBuffer({
-        size: 1024,
-        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-      });
-      lights = { pl, sl, al };
-      this._objUniformBuffers.set(obj, ub);
-      this._objLightBuffers.set(obj, lights);
-    }
-    return { ub, ...lights };
-  }
-
-  private _getObjBindGroup(obj: Object3D, layout: GPUBindGroupLayout): GPUBindGroup {
-    const key = `${obj.uuid}_${layout.label}`;
-    let bg = this._objBindGroups.get(key);
-    if (!bg) {
-      const bufs = this._getObjBuffers(obj);
-      bg = this._device!.createBindGroup({
-        layout,
-        entries: [
-          { binding: 0, resource: { buffer: bufs.ub } },
-          { binding: 1, resource: { buffer: bufs.pl } },
-          { binding: 2, resource: { buffer: bufs.sl } },
-          { binding: 3, resource: { buffer: bufs.al } },
-        ],
-      });
-      this._objBindGroups.set(key, bg);
-    }
-    return bg;
-  }
-
-  private _getTexBindGroup(manifest: RenderManifest, layout: GPUBindGroupLayout): GPUBindGroup {
-    const entries: GPUBindGroupEntry[] = [];
-
-    if (manifest.shaderId === MaterialType.SKYBOX) {
-      const tex = manifest.textures["u_skybox"] as CubeTexture;
-      entries.push({
-        binding: 0,
-        resource: tex ? this._getGPUCubeTextureView(tex) : this._defaultCubeTexView,
-      });
-      entries.push({ binding: 1, resource: this._sampler });
-    } else {
-      const diff = manifest.textures["u_diffuseMap"] as Texture;
-      entries.push({
-        binding: 0,
-        resource: diff ? this._getTextureView(diff) : this._whiteTexView,
-      });
-      entries.push({ binding: 1, resource: diff ? this._getSampler(diff) : this._sampler });
-
-      const sand = manifest.textures["u_sandMap"] as Texture;
-      entries.push({
-        binding: 2,
-        resource: sand ? this._getTextureView(sand) : this._whiteTexView,
-      });
-      const grass = manifest.textures["u_grassMap"] as Texture;
-      entries.push({
-        binding: 3,
-        resource: grass ? this._getTextureView(grass) : this._whiteTexView,
-      });
-      const rock = manifest.textures["u_rockMap"] as Texture;
-      entries.push({
-        binding: 4,
-        resource: rock ? this._getTextureView(rock) : this._whiteTexView,
-      });
-      const snow = manifest.textures["u_snowMap"] as Texture;
-      entries.push({
-        binding: 5,
-        resource: snow ? this._getTextureView(snow) : this._whiteTexView,
-      });
-      const normal = manifest.textures["u_normalMap"] as Texture;
-      entries.push({
-        binding: 6,
-        resource: normal ? this._getTextureView(normal) : this._flatNormalTexView,
-      });
-      const specular = manifest.textures["u_specularMap"] as Texture;
-      entries.push({
-        binding: 7,
-        resource: specular ? this._getTextureView(specular) : this._specularTexView,
-      });
-    }
-
-    return this._device!.createBindGroup({ layout, entries });
-  }
-
-  private _scratchObjUniformData: Float32Array = new Float32Array(80);
 
   /** @inheritdoc */
   public render(scene: Scene, vpMatrix: Float32Array, camPos: Vector3D = new Vector3D()): void {
     if (!this._device) return;
 
+    const lights = this.extractLights(scene);
+    this._updateGlobalBuffers(vpMatrix, camPos, lights);
+
     const ce = this._device.createCommandEncoder();
     const rp = ce.beginRenderPass({
-      colorAttachments: [
-        {
-          view: this._context.getCurrentTexture().createView(),
-          clearValue: this._clearColor,
-          loadOp: "clear",
-          storeOp: "store",
-        },
-      ],
-      depthStencilAttachment: {
-        view: this._depthTexture.createView(),
-        depthClearValue: 1.0,
-        depthLoadOp: "clear",
-        depthStoreOp: "store",
-      },
+      colorAttachments: [{ view: this._context.getCurrentTexture().createView(), clearValue: this._clearColor, loadOp: "clear", storeOp: "store" }],
+      depthStencilAttachment: { view: this._depthTexture.createView(), depthClearValue: 1.0, depthLoadOp: "clear", depthStoreOp: "store" },
     });
 
-    const { aCol, dDir, dCol, pLights, sLights, aLights } = this.extractLights(scene);
+    const sortedGroups = scene.getVisibleObjectsSorted();
 
-    const plData = new Float32Array(32);
-    for (let i: number = 0; i < pLights.length; i++) {
-      const pl = pLights[i]!;
-      plData.set(
-        [pl.worldMatrix.data[12]!, pl.worldMatrix.data[13]!, pl.worldMatrix.data[14]!, 0.0],
-        i * 8,
-      );
-      plData.set(
-        [pl.color.r * pl.intensity, pl.color.g * pl.intensity, pl.color.b * pl.intensity, 0.0],
-        i * 8 + 4,
-      );
+    const skyboxGroup = sortedGroups.get(MaterialType.SKYBOX);
+    if (skyboxGroup) {
+        this._renderGroup(rp, MaterialType.SKYBOX, skyboxGroup);
+        sortedGroups.delete(MaterialType.SKYBOX);
     }
 
-    const slData = new Float32Array(64);
-    for (let i: number = 0; i < sLights.length; i++) {
-      const sl = sLights[i]!;
-      const offset = i * 16;
-      slData.set(
-        [sl.worldMatrix.data[12]!, sl.worldMatrix.data[13]!, sl.worldMatrix.data[14]!, 0.0],
-        offset,
-      );
-      const dir = MathPool.acquireVector().copyFrom(sl.direction).normalize();
-      slData.set([dir.x, dir.y, dir.z, 0.0], offset + 4);
-      MathPool.releaseVector(dir);
-      slData.set(
-        [sl.color.r * sl.intensity, sl.color.g * sl.intensity, sl.color.b * sl.intensity, 0.0],
-        offset + 8,
-      );
-      slData.set(
-        [Math.cos(sl.angle), Math.cos(sl.angle * (1.0 - sl.penumbra)), sl.distance, sl.decay],
-        offset + 12,
-      );
+    for (const [shaderId, materialGroups] of sortedGroups.entries()) {
+      this._renderGroup(rp, shaderId, materialGroups);
     }
-
-    const alData = new Float32Array(96);
-    for (let i: number = 0; i < aLights.length; i++) {
-      const al = aLights[i]!;
-      const mat = al.worldMatrix.data,
-        offset = i * 24;
-      alData.set([mat[12]!, mat[13]!, mat[14]!, 0.0], offset);
-      alData.set(
-        [al.color.r * al.intensity, al.color.g * al.intensity, al.color.b * al.intensity, 0.0],
-        offset + 4,
-      );
-      alData.set([mat[0]!, mat[1]!, mat[2]!, 0.0], offset + 8);
-      alData.set([mat[4]!, mat[5]!, mat[6]!, 0.0], offset + 12);
-      alData.set([mat[8]!, mat[9]!, mat[10]!, 0.0], offset + 16);
-      alData.set([al.width / 2.0, al.height / 2.0, 0.0, 0.0], offset + 20);
-    }
-
-    const drawObject = (obj: Object3D, pass: number): void => {
-      if (!obj.isVisible) return;
-
-      if (obj.geometry && obj.material) {
-        const manifest = obj.material.getRenderManifest();
-        const topology: GPUPrimitiveTopology =
-          manifest.shaderId === MaterialType.WIREFRAME ? "line-list" : "triangle-list";
-
-        if (1 === pass) {
-          if (MaterialType.SKYBOX !== manifest.shaderId && obj.frustumCulled) return;
-        } else {
-          if (
-            MaterialType.SKYBOX === manifest.shaderId ||
-            (MaterialType.BASIC === manifest.shaderId && !obj.frustumCulled)
-          )
-            return;
-        }
-
-        const cache = this._getPipeline(manifest, topology);
-        rp.setPipeline(cache.pipeline);
-
-        this._scratchObjUniformData.fill(0);
-        this._scratchObjUniformData.set(vpMatrix, 0);
-        const modelMatrix = new Float32Array(obj.worldMatrix.data);
-
-        if (manifest.shaderId === MaterialType.SPRITE) {
-          const sx = Math.sqrt(modelMatrix[0]! ** 2 + modelMatrix[1]! ** 2 + modelMatrix[2]! ** 2);
-          const sy = Math.sqrt(modelMatrix[4]! ** 2 + modelMatrix[5]! ** 2 + modelMatrix[6]! ** 2);
-          const sz = Math.sqrt(modelMatrix[8]! ** 2 + modelMatrix[9]! ** 2 + modelMatrix[10]! ** 2);
-          modelMatrix[0] = vpMatrix[0]! * sx;
-          modelMatrix[1] = vpMatrix[4]! * sx;
-          modelMatrix[2] = vpMatrix[8]! * sx;
-          modelMatrix[4] = vpMatrix[1]! * sy;
-          modelMatrix[5] = vpMatrix[5]! * sy;
-          modelMatrix[6] = vpMatrix[9]! * sy;
-          modelMatrix[8] = vpMatrix[2]! * sz;
-          modelMatrix[9] = vpMatrix[6]! * sz;
-          modelMatrix[10] = vpMatrix[10]! * sz;
-        }
-
-        // Map Material Properties from Manifest
-        const props = manifest.properties;
-
-        this._scratchObjUniformData.set(modelMatrix, 16);
-        const manifestColor = props["u_color"];
-        if (manifestColor instanceof Float32Array || Array.isArray(manifestColor)) {
-          this._scratchObjUniformData.set(manifestColor as Float32List, 32);
-        } else {
-          this._scratchObjUniformData.set(obj.material.color.toFloat32Array(), 32);
-        }
-
-        this._scratchObjUniformData.set([aCol.r, aCol.g, aCol.b, 1.0], 40);
-        this._scratchObjUniformData.set([dCol.r, dCol.g, dCol.b, 1.0], 44);
-        this._scratchObjUniformData.set([dDir.x, dDir.y, dDir.z, 0.0], 48);
-        this._scratchObjUniformData.set([camPos.x, camPos.y, camPos.z, 0.0], 52);
-
-        const diff = manifest.textures["u_diffuseMap"] as Texture;
-
-        // UV Transformations
-        const mOff = props["u_texOffset"];
-        if (mOff instanceof Float32Array || Array.isArray(mOff)) {
-          this._scratchObjUniformData.set(mOff as Float32List, 56);
-        } else if (diff) {
-          this._scratchObjUniformData.set([diff.offset.x, diff.offset.y], 56);
-        } else {
-          this._scratchObjUniformData.set([0, 0], 56);
-        }
-
-        const mRep = props["u_texRepeat"];
-        if (mRep instanceof Float32Array || Array.isArray(mRep)) {
-          this._scratchObjUniformData.set(mRep as Float32List, 58);
-        } else if (diff) {
-          this._scratchObjUniformData.set([diff.repeat.x, diff.repeat.y], 58);
-        } else {
-          this._scratchObjUniformData.set([1, 1], 58);
-        }
-
-        this._scratchObjUniformData[61] = pLights.length;
-        this._scratchObjUniformData[62] = sLights.length;
-        this._scratchObjUniformData[63] = aLights.length;
-
-        const mSpec = props["u_specColor"];
-        if (mSpec instanceof Float32Array || Array.isArray(mSpec)) {
-          this._scratchObjUniformData.set(mSpec as Float32List, 36);
-        } else if (obj.material instanceof PhongMaterial) {
-          this._scratchObjUniformData.set(
-            (obj.material as PhongMaterial).specularColor.toFloat32Array(),
-            36,
-          );
-        } else {
-          this._scratchObjUniformData.set([1, 1, 1, 1], 36);
-        }
-
-        const mShininess = props["u_shininess"];
-        if (typeof mShininess === "number") {
-          this._scratchObjUniformData[60] = mShininess;
-        } else if (
-          obj.material instanceof PhongMaterial ||
-          obj.material instanceof TerrainMaterial
-        ) {
-          const mat = obj.material as PhongMaterial | TerrainMaterial;
-          this._scratchObjUniformData[60] = mat.shininess;
-        } else {
-          this._scratchObjUniformData[60] = 32.0;
-        }
-
-        const mThresh = props["u_thresholds"];
-        if (mThresh instanceof Float32Array || Array.isArray(mThresh)) {
-          this._scratchObjUniformData.set(mThresh as Float32List, 64);
-        }
-
-        if (manifest.shaderId === MaterialType.TERRAIN) this._scratchObjUniformData[68] = 1.0;
-
-        if (manifest.shaderId === MaterialType.STANDARD) {
-          const mMetallic = props["u_metallic"];
-          const mRoughness = props["u_roughness"];
-          const mAO = props["u_ao"];
-
-          if (typeof mMetallic === "number") this._scratchObjUniformData[69] = mMetallic;
-          if (typeof mRoughness === "number") this._scratchObjUniformData[70] = mRoughness;
-          if (typeof mAO === "number") this._scratchObjUniformData[71] = mAO;
-        }
-
-        const bufs = this._getObjBuffers(obj);
-        this._device!.queue.writeBuffer(bufs.ub, 0, this._scratchObjUniformData);
-        this._device!.queue.writeBuffer(bufs.pl, 0, plData);
-        this._device!.queue.writeBuffer(bufs.sl, 0, slData);
-        this._device!.queue.writeBuffer(bufs.al, 0, alData);
-
-        const gCache = this._getGeoCache(obj.geometry);
-        rp.setBindGroup(0, this._getObjBindGroup(obj, cache.bgLayouts[0]!));
-        rp.setBindGroup(1, this._getTexBindGroup(manifest, cache.bgLayouts[1]!));
-        rp.setVertexBuffer(0, gCache.vb);
-        rp.setVertexBuffer(1, gCache.nb || gCache.vb);
-        rp.setVertexBuffer(2, gCache.uvb || gCache.vb);
-        rp.setVertexBuffer(3, gCache.tb || gCache.vb);
-
-        if (topology === "line-list" && gCache.wib && gCache.format) {
-          rp.setIndexBuffer(gCache.wib, gCache.format);
-          rp.drawIndexed(gCache.wireframeIndexCount);
-        } else if (gCache.ib && gCache.format) {
-          rp.setIndexBuffer(gCache.ib, gCache.format);
-          rp.drawIndexed(gCache.indexCount);
-        } else {
-          rp.draw(gCache.vertexCount);
-        }
-      }
-
-      if (obj.children) {
-        for (let i: number = 0; i < obj.children.length; i++) {
-          drawObject(obj.children[i]!, pass);
-        }
-      }
-    };
-
-    for (const obj of scene.objects) drawObject(obj, 1);
-    for (const obj of scene.objects) drawObject(obj, 2);
 
     rp.end();
     this._device.queue.submit([ce.finish()]);
   }
 
-  public override destroy(): void {
-    if (this._device) {
-      this._device.destroy();
-      this._device = undefined;
+  private _renderGroup(rp: GPURenderPassEncoder, shaderId: string, materialGroups: Map<string, Object3D[]>): void {
+    const groupIterator = materialGroups.values();
+    const firstGroup = groupIterator.next().value;
+    if (!firstGroup || firstGroup.length === 0) return;
+
+    const firstMat = firstGroup[0].material;
+    if (!firstMat) return;
+
+    const topology: GPUPrimitiveTopology = shaderId === MaterialType.WIREFRAME ? "line-list" : "triangle-list";
+    const cache = this._getPipeline(firstMat.getRenderManifest(), topology);
+
+    rp.setPipeline(cache.pipeline);
+    rp.setBindGroup(0, this._globalBindGroup);
+
+    for (const objects of materialGroups.values()) {
+      const mat = objects[0]?.material;
+      if (!mat) continue;
+      const manifest = mat.getRenderManifest();
+      
+      for (const obj of objects) {
+        if (!obj.geometry) continue;
+
+        const uBuffer = this._getObjUniformBuffer(obj);
+        this._updateObjUniformBuffer(uBuffer, obj, manifest);
+
+        const texBindGroup = this._getTexBindGroup(uBuffer, manifest, cache.bgLayouts[1]!);
+        rp.setBindGroup(1, texBindGroup);
+
+        const gCache = this._getGeoCache(obj.geometry);
+        rp.setVertexBuffer(0, gCache.vb);
+        rp.setVertexBuffer(1, gCache.nb || gCache.vb);
+        rp.setVertexBuffer(2, gCache.uvb || gCache.vb);
+        rp.setVertexBuffer(3, gCache.tb || gCache.vb);
+
+        if (topology === "line-list" && gCache.wib) {
+          rp.setIndexBuffer(gCache.wib, gCache.format!);
+          rp.drawIndexed(gCache.wireframeIndexCount);
+        } else if (gCache.ib) {
+          rp.setIndexBuffer(gCache.ib, gCache.format!);
+          rp.drawIndexed(gCache.indexCount);
+        } else {
+          rp.draw(gCache.vertexCount);
+        }
+      }
     }
-    this._adapter = undefined;
   }
 
-  /** @inheritdoc */
-  public setSize(width: number, height: number): void {
-    if (!this._device) {
-      return;
+  private _getObjUniformBuffer(obj: Object3D): GPUBuffer {
+    let b = this._objectUniformBuffers.get(obj.uuid);
+    if (!b) {
+      b = this._device!.createBuffer({ size: 256, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+      this._objectUniformBuffers.set(obj.uuid, b);
     }
-    const d: number = devicePixelRatio;
+    return b;
+  }
+
+  private _updateObjUniformBuffer(b: GPUBuffer, o: Object3D, m: RenderManifest): void {
+    const data = new Float32Array(64);
+    data.set(o.worldMatrix.data, 0);
+    data.set(o.material!.color.toFloat32Array(), 16);
+    
+    const props = m.properties;
+    const diff = m.textures["u_diffuseMap"] as Texture;
+    data.set([diff?.offset.x || 0, diff?.offset.y || 0, diff?.repeat.x || 1, diff?.repeat.y || 1], 24);
+    
+    let shininess = 32.0;
+    if (o.material instanceof PhongMaterial || o.material instanceof TerrainMaterial) shininess = (o.material as any).shininess;
+    
+    const metallic = typeof props["u_metallic"] === "number" ? props["u_metallic"] : 0;
+    const roughness = typeof props["u_roughness"] === "number" ? props["u_roughness"] : 0.5;
+    const ao = typeof props["u_ao"] === "number" ? props["u_ao"] : 1.0;
+
+    data.set([shininess, m.shaderId === MaterialType.TERRAIN ? 1.0 : 0.0, metallic, roughness], 28);
+    data.set([ao, 0, 0, 0], 32); 
+    if (o.material instanceof TerrainMaterial) data.set(o.material.thresholds, 36);
+
+    this._device!.queue.writeBuffer(b, 0, data);
+  }
+
+  private _getTexBindGroup(objBuffer: GPUBuffer, m: RenderManifest, layout: GPUBindGroupLayout): GPUBindGroup {
+    const texs = m.textures;
+    const entries: GPUBindGroupEntry[] = [
+        { binding: 0, resource: { buffer: objBuffer } },
+        { binding: 1, resource: this._defaultSampler },
+    ];
+
+    if (m.shaderId === MaterialType.SKYBOX) {
+        entries.push({ binding: 9, resource: texs["u_skybox"] ? this._getGPUCubeTextureView(texs["u_skybox"] as CubeTexture) : this._defaultCubeTexView });
+    } else {
+        entries.push({ binding: 2, resource: this._getTextureView(texs["u_diffuseMap"] as Texture) });
+        entries.push({ binding: 3, resource: this._getTextureView(texs["u_normalMap"] as Texture) });
+        entries.push({ binding: 4, resource: this._getTextureView(texs["u_specularMap"] as Texture) });
+        entries.push({ binding: 5, resource: this._getTextureView(texs["u_sandMap"] as Texture) });
+        entries.push({ binding: 6, resource: this._getTextureView(texs["u_grassMap"] as Texture) });
+        entries.push({ binding: 7, resource: this._getTextureView(texs["u_rockMap"] as Texture) });
+        entries.push({ binding: 8, resource: this._getTextureView(texs["u_snowMap"] as Texture) });
+    }
+
+    return this._device!.createBindGroup({ layout, entries });
+  }
+
+  private _getTextureView(tex: Texture | undefined): GPUTextureView {
+    if (!tex || !tex.isLoaded || !tex.image) return this._whiteTexView;
+    let v = this._textureViewCache.get(tex);
+    if (!v) {
+        const t = this._device!.createTexture({ size: [tex.image.width, tex.image.height], format: "rgba8unorm", usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST });
+        this._device!.queue.copyExternalImageToTexture({ source: tex.image }, { texture: t }, [tex.image.width, tex.image.height]);
+        v = t.createView();
+        this._textureViewCache.set(tex, v);
+    }
+    return v;
+  }
+
+  private _getGPUCubeTextureView(tex: CubeTexture): GPUTextureView {
+    let v = this._cubeTextureViewCache.get(tex);
+    if (!v) {
+        const img = tex.images[0]!;
+        const t = this._device!.createTexture({ size: [img.width, img.height, 6], format: "rgba8unorm", usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST });
+        for(let i=0; i<6; i++) this._device!.queue.copyExternalImageToTexture({ source: tex.images[i]! }, { texture: t, origin: [0,0,i] }, [img.width, img.height]);
+        v = t.createView({ dimension: "cube" });
+        this._cubeTextureViewCache.set(tex, v);
+    }
+    return v;
+  }
+
+  private _updateGlobalBuffers(vp: Float32Array, camPos: Vector3D, lights: LightDataInterface): void {
+    const gData = new Float32Array(64);
+    gData.set(vp, 0);
+    gData.set([camPos.x, camPos.y, camPos.z, 1], 16);
+    gData.set([lights.aCol.r, lights.aCol.g, lights.aCol.b, 1], 20);
+    gData.set([lights.dCol.r, lights.dCol.g, lights.dCol.b, 1], 24);
+    gData.set([lights.dDir.x, lights.dDir.y, lights.dDir.z, 0], 28);
+    gData.set([lights.pLights.length, lights.sLights.length, lights.aLights.length, 0], 32);
+    this._device!.queue.writeBuffer(this._globalUniformBuffer, 0, gData);
+
+    const plData = new Float32Array(Math.max(lights.pLights.length * 8, 8));
+    for(let i=0; i<lights.pLights.length; i++) {
+        const l = lights.pLights[i]!;
+        const d = l.worldMatrix.data;
+        plData.set([d[12] as number, d[13] as number, d[14] as number, 1], i*8);
+        plData.set([l.color.r * l.intensity, l.color.g * l.intensity, l.color.b * l.intensity, 1], i*8+4);
+    }
+    this._device!.queue.writeBuffer(this._pointLightBuffer, 0, plData);
+
+    const slData = new Float32Array(Math.max(lights.sLights.length * 16, 16));
+    for(let i=0; i<lights.sLights.length; i++) {
+        const l = lights.sLights[i]!;
+        const d = l.worldMatrix.data;
+        slData.set([d[12] as number, d[13] as number, d[14] as number, 1], i*16);
+        const dir = MathPool.acquireVector().copyFrom(l.direction).normalize();
+        slData.set([dir.x, dir.y, dir.z, 0], i*16+4);
+        slData.set([l.color.r * l.intensity, l.color.g * l.intensity, l.color.b * l.intensity, 1], i*16+8);
+        slData.set([Math.cos(l.angle), Math.cos(l.angle * (1.0 - l.penumbra)), l.distance, l.decay], i*16+12);
+        MathPool.releaseVector(dir);
+    }
+    this._device!.queue.writeBuffer(this._spotLightBuffer, 0, slData);
+
+    const alData = new Float32Array(Math.max(lights.aLights.length * 24, 24));
+    for(let i=0; i<lights.aLights.length; i++) {
+        const l = lights.aLights[i]!;
+        const m = l.worldMatrix.data;
+        const off = i*24;
+        alData.set([m[12] as number, m[13] as number, m[14] as number, 1], off);
+        alData.set([l.color.r * l.intensity, l.color.g * l.intensity, l.color.b * l.intensity, 1], off+4);
+        alData.set([m[0] as number, m[1] as number, m[2] as number, 0], off+8);
+        alData.set([m[4] as number, m[5] as number, m[6] as number, 0], off+12);
+        alData.set([m[8] as number, m[9] as number, m[10] as number, 0], off+16);
+        alData.set([l.width/2, l.height/2, 0, 0], off+20);
+    }
+    this._device!.queue.writeBuffer(this._areaLightBuffer, 0, alData);
+  }
+
+  public override setSize(width: number, height: number): void {
+    if (!this._device) return;
+    const d = devicePixelRatio;
     this._context.canvas.width = width * d;
     this._context.canvas.height = height * d;
-
-    if ("style" in this._context.canvas) {
-      const style: CSSStyleDeclaration = (this._context.canvas as HTMLCanvasElement).style;
-      style.width = `${width}px`;
-      style.height = `${height}px`;
-    }
-
-    this._depthTexture = this._device.createTexture({
-      size: [this._context.canvas.width, this._context.canvas.height],
-      format: "depth24plus",
-      usage: GPUTextureUsage.RENDER_ATTACHMENT,
-    });
+    this._depthTexture = this._device.createTexture({ size: [this._context.canvas.width, this._context.canvas.height], format: "depth24plus", usage: GPUTextureUsage.RENDER_ATTACHMENT });
   }
 }

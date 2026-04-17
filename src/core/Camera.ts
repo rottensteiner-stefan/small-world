@@ -56,6 +56,11 @@ export class Camera implements CameraInterfaceData {
   }
 
   /** @inheritdoc */
+  public get viewProjectionMatrix4(): Matrix4 {
+    return this._viewProjMatrix;
+  }
+
+  /** @inheritdoc */
   public get aspect(): number {
     if (this.projection instanceof PerspectiveProjection) {
       return this.projection.aspect;

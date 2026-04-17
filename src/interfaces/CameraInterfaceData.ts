@@ -1,6 +1,6 @@
 /// src/interfaces/CameraInterfaceData.ts
 
-import { AbstractProjection } from "../math/index.js";
+import { AbstractProjection, Matrix4 } from "../math/index.js";
 import { CameraEffectType, CameraStrategyType } from "../enums/index.js";
 import { Vector3D } from "../math/index.js";
 import { CameraStrategy } from "./CameraStrategy.js";
@@ -36,6 +36,9 @@ export interface CameraInterfaceData {
 
   /** The combined view-projection matrix as a Float32Array. */
   viewProjectionMatrix: Float32Array;
+
+  /** The combined view-projection matrix as a Matrix4 instance. */
+  viewProjectionMatrix4: Matrix4;
 
   /**
    * Switches the camera's control behavior.

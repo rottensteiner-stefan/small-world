@@ -30,6 +30,8 @@ export interface TerrainManagerConfig {
   material?: TerrainMaterial;
   /** Generation algorithm to use. Defaults to "Perlin". */
   algorithm?: TerrainAlgorithm;
+  /** Callback triggered when chunks are added or removed. */
+  onRebuild?: () => void;
 }
 
 /**
@@ -46,6 +48,7 @@ export class TerrainManager {
   private readonly _gridSize: number;
   private readonly _halfGrid: number;
   private readonly _algorithm: TerrainAlgorithm;
+  private readonly _onRebuild: (() => void) | undefined;
 
   private _chunks: Map<string, Object3D> = new Map<string, Object3D>();
   private _currentGridX: number = 0;
@@ -68,6 +71,7 @@ export class TerrainManager {
     this._gridSize = config.gridSize ?? 3;
     this._halfGrid = Math.floor(this._gridSize / 2);
     this._algorithm = config.algorithm ?? "Perlin";
+    this._onRebuild = config.onRebuild;
 
     this._terrainMaterial = config.material ?? new TerrainMaterial();
   }
@@ -97,6 +101,8 @@ export class TerrainManager {
         await this._generateChunk(x, z);
       }
     }
+
+    this._onRebuild?.();
   }
 
   /**
@@ -123,6 +129,7 @@ export class TerrainManager {
   private async _rebuildGrid(): Promise<void> {
     const newChunks: Map<string, Object3D> = new Map<string, Object3D>();
     const chunksToRemove: Set<string> = new Set(this._chunks.keys());
+    let changed: boolean = false;
 
     for (let z: number = -this._halfGrid; z <= this._halfGrid; z++) {
       for (let x: number = -this._halfGrid; x <= this._halfGrid; x++) {
@@ -138,6 +145,7 @@ export class TerrainManager {
           const chunk: Object3D = await this._generateChunkObject(gridX, gridZ);
           newChunks.set(key, chunk);
           this._scene.add(chunk);
+          changed = true;
         }
       }
     }
@@ -146,9 +154,14 @@ export class TerrainManager {
       const chunk: Object3D | undefined = this._chunks.get(key);
       if (undefined !== chunk) {
         this._scene.remove(chunk);
+        changed = true;
       }
     }
     this._chunks = newChunks;
+
+    if (changed) {
+      this._onRebuild?.();
+    }
   }
 
   /**
@@ -221,6 +234,7 @@ export class TerrainManager {
     const terrainObj: Object3D = new Object3D(`TerrainChunk_${key}`);
     terrainObj.geometry = terrainGeo.getGeometryData();
     terrainObj.material = this._terrainMaterial;
+    terrainObj.isStatic = true; // Optimization: Terrain does not move
 
     terrainObj.position.set(gridX * this._chunkSize, 0, gridZ * this._chunkSize);
 

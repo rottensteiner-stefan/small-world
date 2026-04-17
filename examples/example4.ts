@@ -2,6 +2,7 @@
 
 import {
   AmbientLight,
+  BoundingBox,
   CameraStrategyType,
   Color,
   DirectionalLight,
@@ -35,6 +36,10 @@ export class Example4 extends AbstractExample {
         Input.requestPointerLock(this.canvas);
       }
     });
+
+    // Initialize Octrees for the scene
+    // For this example, we define a large world area
+    this.scene.initOctrees(new BoundingBox(new Vector3D(-500, -100, -500), new Vector3D(500, 100, 500)));
 
     if (ProjectionType.PERSPECTIVE === this.camera.projection.type) {
       const aspect: number = window.innerWidth / window.innerHeight;
@@ -75,6 +80,10 @@ export class Example4 extends AbstractExample {
       maxHeight: 6.0,
       gridSize: 3, // 3x3 active chunks
       material: terrainMat,
+      onRebuild: () => {
+        // Rebuild the static octree whenever terrain chunks change
+        this.scene.updateStaticOctree();
+      }
     });
 
     await this._terrainManager.init();
@@ -90,7 +99,7 @@ export class Example4 extends AbstractExample {
       model.position.set(0, 2.0, 0);
 
       this.scene.add(model);
-      this._car = model; // Store car object
+      this._car = model; // Store car object, isStatic = false (default)
 
       // Setup WASD Controller for the car
       this.controllers.push(
@@ -144,6 +153,7 @@ export class Example4 extends AbstractExample {
       "Car Position": this._car
         ? `(${this._car.position.x.toFixed(1)}, ${this._car.position.y.toFixed(1)}, ${this._car.position.z.toFixed(1)})`
         : "N/A",
+      "Debug Mode": this.debug ? "ON (B to toggle)" : "OFF (B to toggle)",
     };
   }
 }

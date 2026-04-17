@@ -16,6 +16,8 @@ import { Input } from "./Input.js";
 import { ConfigLoader } from "./ConfigLoader.js";
 import { MathUtils } from "../math/MathUtils.js";
 import { ShaderBootstrap } from "./renderers/shaders/ShaderBootstrap.js";
+import { FrustumCuller } from "./FrustumCuller.js";
+import { CollisionVisualizer, OctreeVisualizer } from "../utils/index.js";
 
 /**
  * Base class for applications built with the SmallWorld engine.
@@ -31,6 +33,8 @@ export abstract class Application {
   public renderer: Renderer;
   /** The canvas element. */
   public canvas!: HTMLCanvasElement;
+  /** Whether debug visualization is enabled. */
+  public debug: boolean = false;
 
   /** List of active input controllers. */
   public readonly controllers: Controller[] = [];
@@ -214,6 +218,14 @@ export abstract class Application {
     this.scene.update();
     this.camera.update(this.camera.target, 0, 0, deltaTime);
     this.camera.updateViewMatrix();
+
+    // Perform frustum culling before rendering
+    FrustumCuller.cull(this.scene, this.camera.viewProjectionMatrix4);
+
+    if (this.debug) {
+      CollisionVisualizer.instance.update(this.scene);
+      OctreeVisualizer.instance.update(this.scene, FrustumCuller.lastIntersectedNodes);
+    }
 
     this.renderer.render(this.scene, this.camera.viewProjectionMatrix, this.camera.position);
 

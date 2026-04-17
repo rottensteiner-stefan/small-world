@@ -133,10 +133,15 @@ export class OctreeNode {
    * Queries the octree for objects that intersect with the frustum.
    * @param frustum The frustum to check.
    * @param result The array to store the results.
+   * @param intersectedNodes Optional set to store nodes that were intersected by the frustum.
    */
-  public query(frustum: Frustum, result: Object3D[]): void {
+  public query(frustum: Frustum, result: Object3D[], intersectedNodes?: Set<OctreeNode>): void {
     if (!frustum.intersectsBox(this.bounds)) {
       return;
+    }
+
+    if (intersectedNodes) {
+      intersectedNodes.add(this);
     }
 
     for (let i: number = 0; i < this.objects.length; i++) {
@@ -147,7 +152,7 @@ export class OctreeNode {
     }
 
     for (let i: number = 0; i < this.children.length; i++) {
-      this.children[i]!.query(frustum, result);
+      this.children[i]!.query(frustum, result, intersectedNodes);
     }
   }
 
@@ -190,11 +195,12 @@ export class Octree {
   /**
    * Queries the octree for objects that intersect with the frustum.
    * @param frustum The frustum to check.
+   * @param intersectedNodes Optional set to store nodes that were intersected by the frustum.
    * @returns The list of intersecting objects.
    */
-  public query(frustum: Frustum): Object3D[] {
+  public query(frustum: Frustum, intersectedNodes?: Set<OctreeNode>): Object3D[] {
     const result: Object3D[] = [];
-    this.root.query(frustum, result);
+    this.root.query(frustum, result, intersectedNodes);
     return result;
   }
 

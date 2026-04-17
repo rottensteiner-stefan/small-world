@@ -1,21 +1,55 @@
-uniform vec3 u_ambientColor;
-uniform vec3 u_dirLightColor;
-uniform vec3 u_dirLightDir;
+struct PointLight {
+    vec3 pos;
+    float _pad;
+    vec3 color;
+    float _pad2;
+};
 
-uniform int u_numPointLights;
-uniform vec3 u_pointLightPos[4];
-uniform vec3 u_pointLightColor[4];
+struct SpotLight {
+    vec3 pos;
+    float _pad;
+    vec3 dir;
+    float _pad2;
+    vec3 color;
+    float _pad3;
+    vec4 params; // intensity, inner, outer, range
+};
 
-uniform int u_numSpotLights;
-uniform vec3 u_spotLightPos[4];
-uniform vec3 u_spotLightDir[4];
-uniform vec3 u_spotLightColor[4];
-uniform vec4 u_spotLightParams[4];
+struct AreaLight {
+    vec3 pos;
+    float _pad;
+    vec3 color;
+    float _pad2;
+    vec3 right;
+    float _pad3;
+    vec3 up;
+    float _pad4;
+    vec3 normal;
+    float _pad5;
+    vec2 size;
+    vec2 _pad6;
+};
 
-uniform int u_numAreaLights;
-uniform vec3 u_areaLightPos[4];
-uniform vec3 u_areaLightColor[4];
-uniform vec3 u_areaLightRight[4];
-uniform vec3 u_areaLightUp[4];
-uniform vec3 u_areaLightNormal[4];
-uniform vec2 u_areaLightSize[4];
+// Note: This block must match the one in headers exactly if not using separate files
+// But since these are chunks, we only define the arrays here and expect the UBO to be open.
+// Actually, in WebGL2 it's better to define the WHOLE UBO in one chunk or repeat it.
+// Let's redefine the WHOLE GlobalUniforms here to be safe and clear.
+
+layout(std140) uniform GlobalUniforms {
+    mat4 u_vp;
+    vec3 u_viewPos;
+    int _pad0;
+    vec3 u_ambientColor;
+    int _pad1;
+    vec3 u_dirLightColor;
+    int _pad2;
+    vec3 u_dirLightDir;
+    int _pad3;
+    int u_numPointLights;
+    int u_numSpotLights;
+    int u_numAreaLights;
+    int _pad4;
+    PointLight u_pointLights[4];
+    SpotLight u_spotLights[4];
+    AreaLight u_areaLights[4];
+};

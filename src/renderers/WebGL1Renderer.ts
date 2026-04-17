@@ -6,31 +6,24 @@ import {
   CubeTexture,
   PhongMaterial,
   ShaderRegistry,
-  TerrainMaterial,
   Texture,
 } from "../core/index.js";
 import { EngineConfig, GeometryDataInterface, LightDataInterface } from "../interfaces/index.js";
 import {
-  CullMode,
   MaterialType,
   RendererType,
   TextureFilter,
-  TextureWrap,
 } from "../enums/index.js";
 import { Mesh } from "./Mesh.js";
 import { Object3D } from "../core/Object3D.js";
 import { Scene } from "../core/Scene.js";
-import { MathPool, Vector3D } from "../math/index.js";
+import { Vector3D } from "../math/index.js";
 
 interface ProgramCache {
   prog: WebGLProgram;
   uniforms: Map<string, WebGLUniformLocation | undefined>;
   attributes: Map<string, number>;
-  // Specialized light locations for current Uber-Shader structure
-  pointLightLocs: {
-    pos: WebGLUniformLocation | undefined;
-    col: WebGLUniformLocation | undefined;
-  }[];
+  pointLightLocs: { pos: WebGLUniformLocation | undefined; col: WebGLUniformLocation | undefined }[];
   spotLightLocs: {
     pos: WebGLUniformLocation | undefined;
     dir: WebGLUniformLocation | undefined;
@@ -52,14 +45,14 @@ interface ProgramCache {
  */
 export class WebGL1Renderer extends AbstractWebGLRenderer {
   /** @inheritdoc */
-  public readonly type: RendererType = RendererType.WEB_GL1;
+  public override readonly type: RendererType = RendererType.WEB_GL1;
   declare protected gl: WebGLRenderingContext;
 
   private _programs: Map<string, ProgramCache> = new Map();
 
-  private _cache: Map<GeometryDataInterface, Mesh> = new Map<GeometryDataInterface, Mesh>();
-  private _texCache: Map<Texture, WebGLTexture> = new Map<Texture, WebGLTexture>();
-  private _texCubeCache: Map<CubeTexture, WebGLTexture> = new Map<CubeTexture, WebGLTexture>();
+  private _cache: Map<GeometryDataInterface, Mesh> = new Map();
+  private _texCache: Map<Texture, WebGLTexture> = new Map();
+  private _texCubeCache: Map<CubeTexture, WebGLTexture> = new Map();
 
   private _scratchModelMatrix: Float32Array = new Float32Array(16);
 
@@ -69,10 +62,8 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
     attributes?: Record<string, unknown>,
     config?: EngineConfig,
   ): Promise<void> {
-    const gl =
-      canvas.getContext("webgl", attributes) || canvas.getContext("experimental-webgl", attributes);
-
-    if (!gl) throw new Error("[WebGL1Renderer] WebGL 1 context could not be initialized.");
+    const gl = canvas.getContext("webgl", attributes) || canvas.getContext("experimental-webgl", attributes);
+    if (!gl) throw new Error("[WebGL1Renderer] WebGL1 context could not be initialized.");
     this.gl = gl as WebGLRenderingContext;
 
     if (config?.quality) {
@@ -89,9 +80,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
     if (!cache) {
       const def = ShaderRegistry.instance.get(shaderId);
       if (!def || !def.sources.glsl100) {
-        throw new Error(
-          `[WebGL1Renderer] Shader definition for ${shaderId} not found or missing GLSL 100 source.`,
-        );
+        throw new Error(`[WebGL1Renderer] Shader definition for ${shaderId} not found or missing GLSL 100 source.`);
       }
 
       const vs = ShaderRegistry.instance.assemble(def.sources.glsl100.vs, "glsl100");
@@ -110,30 +99,12 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
       });
 
       [
-        "u_vp",
-        "u_model",
-        "u_viewPos",
-        "u_ambientColor",
-        "u_dirLightColor",
-        "u_dirLightDir",
-        "u_numPointLights",
-        "u_numSpotLights",
-        "u_numAreaLights",
-      ].forEach((name) => {
-        uniforms.set(name, this.gl.getUniformLocation(prog, name) ?? undefined);
-      });
-
-      [
-        "u_diffuseMap",
-        "u_normalMap",
-        "u_specularMap",
-        "u_skybox",
-        "u_sandMap",
-        "u_grassMap",
-        "u_rockMap",
-        "u_snowMap",
-        "u_texOffset",
-        "u_texRepeat",
+        "u_vp", "u_model", "u_viewPos", "u_ambientColor", "u_dirLightColor", "u_dirLightDir",
+        "u_numPointLights", "u_numSpotLights", "u_numAreaLights",
+        "u_color", "u_specColor", "u_shininess", "u_thresholds",
+        "u_diffuseMap", "u_normalMap", "u_specularMap", "u_skybox",
+        "u_sandMap", "u_grassMap", "u_rockMap", "u_snowMap",
+        "u_texOffset", "u_texRepeat"
       ].forEach((name) => {
         uniforms.set(name, this.gl.getUniformLocation(prog, name) ?? undefined);
       });
@@ -141,7 +112,6 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
       const pointLightLocs = [];
       const spotLightLocs = [];
       const areaLightLocs = [];
-
       for (let i = 0; i < 4; i++) {
         pointLightLocs.push({
           pos: this.gl.getUniformLocation(prog, `u_pointLightPos[${i}]`) ?? undefined,
@@ -170,118 +140,32 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
   }
 
   private _getWebGLTexture(tex: Texture): WebGLTexture {
-    if (!tex.isLoaded || !tex.image) {
-      return this.defaultTexture;
-    }
+    if (!tex.isLoaded || !tex.image) return this.defaultTexture;
     let glTex: WebGLTexture | undefined = this._texCache.get(tex);
     if (!glTex) {
       glTex = this.gl.createTexture()!;
       this.gl.bindTexture(this.gl.TEXTURE_2D, glTex);
-      this.gl.texImage2D(
-        this.gl.TEXTURE_2D,
-        0,
-        this.gl.RGBA,
-        this.gl.RGBA,
-        this.gl.UNSIGNED_BYTE,
-        tex.image,
-      );
-
-      // WebGL 1 only supports mipmaps for Power-of-Two textures
-      const isPowerOfTwo = (n: number): boolean => 0 === (n & (n - 1));
-      const canMipmap = isPowerOfTwo(tex.image.width) && isPowerOfTwo(tex.image.height);
-      const useMipmaps = this._quality.mipmapping && tex.generateMipmaps && canMipmap;
-
-      if (useMipmaps) {
-        this.gl.generateMipmap(this.gl.TEXTURE_2D);
-      }
-
-      this.gl.texParameteri(
-        this.gl.TEXTURE_2D,
-        this.gl.TEXTURE_MAG_FILTER,
-        TextureFilter.NEAREST === tex.magFilter ? this.gl.NEAREST : this.gl.LINEAR,
-      );
-
-      let minFilter: number = this.gl.LINEAR;
-      if (useMipmaps) {
-        minFilter = this.gl.LINEAR_MIPMAP_LINEAR;
-        if (TextureFilter.NEAREST === tex.minFilter) {
-          minFilter = this.gl.NEAREST_MIPMAP_LINEAR;
-        }
-      } else {
-        if (TextureFilter.NEAREST === tex.minFilter) {
-          minFilter = this.gl.NEAREST;
-        }
-      }
-      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, minFilter);
-
-      // Anisotropic Filtering (if available)
-      if (
-        useMipmaps &&
-        undefined !== this._quality.maxAnisotropy &&
-        1 < this._quality.maxAnisotropy
-      ) {
-        const ext =
-          this.gl.getExtension("EXT_texture_filter_anisotropic") ||
-          this.gl.getExtension("MOZ_EXT_texture_filter_anisotropic") ||
-          this.gl.getExtension("WEBKIT_EXT_texture_filter_anisotropic");
-        if (ext) {
-          const maxAvailable = this.gl.getParameter(ext.MAX_TEXTURE_MAX_ANISOTROPY_EXT);
-          const amount = Math.min(maxAvailable, this._quality.maxAnisotropy, tex.anisotropy);
-          this.gl.texParameterf(this.gl.TEXTURE_2D, ext.TEXTURE_MAX_ANISOTROPY_EXT, amount);
-        }
-      }
-
-      const wrapS =
-        TextureWrap.REPEAT === tex.addressModeU
-          ? this.gl.REPEAT
-          : TextureWrap.MIRRORED_REPEAT === tex.addressModeU
-            ? this.gl.MIRRORED_REPEAT
-            : this.gl.CLAMP_TO_EDGE;
-      const wrapT =
-        TextureWrap.REPEAT === tex.addressModeV
-          ? this.gl.REPEAT
-          : TextureWrap.MIRRORED_REPEAT === tex.addressModeV
-            ? this.gl.MIRRORED_REPEAT
-            : this.gl.CLAMP_TO_EDGE;
-
-      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, wrapS);
-      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, wrapT);
-
+      this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, tex.image);
+      const useMipmaps = this._quality.mipmapping && tex.generateMipmaps;
+      if (useMipmaps) this.gl.generateMipmap(this.gl.TEXTURE_2D);
+      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, TextureFilter.NEAREST === tex.magFilter ? this.gl.NEAREST : this.gl.LINEAR);
+      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, useMipmaps ? this.gl.LINEAR_MIPMAP_LINEAR : this.gl.LINEAR);
       this._texCache.set(tex, glTex);
     }
     return glTex;
   }
 
   private _getWebGLCubeTexture(tex: CubeTexture): WebGLTexture {
-    if (!tex.isLoaded || tex.images.length !== 6) {
-      return this.defaultCubeTexture;
-    }
+    if (!tex.isLoaded || tex.images.length !== 6) return this.defaultCubeTexture;
     let glTex: WebGLTexture | undefined = this._texCubeCache.get(tex);
     if (!glTex) {
       glTex = this.gl.createTexture()!;
       this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, glTex);
-      for (let i = 0; i < 6; i++) {
-        this.gl.texImage2D(
-          this.gl.TEXTURE_CUBE_MAP_POSITIVE_X + i,
-          0,
-          this.gl.RGBA,
-          this.gl.RGBA,
-          this.gl.UNSIGNED_BYTE,
-          tex.images[i] as HTMLImageElement,
-        );
+      for (let i: number = 0; i < 6; i++) {
+        this.gl.texImage2D(this.gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, tex.images[i] as ImageBitmap);
       }
       this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
       this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR);
-      this.gl.texParameteri(
-        this.gl.TEXTURE_CUBE_MAP,
-        this.gl.TEXTURE_WRAP_S,
-        this.gl.CLAMP_TO_EDGE,
-      );
-      this.gl.texParameteri(
-        this.gl.TEXTURE_CUBE_MAP,
-        this.gl.TEXTURE_WRAP_T,
-        this.gl.CLAMP_TO_EDGE,
-      );
       this._texCubeCache.set(tex, glTex);
     }
     return glTex;
@@ -289,347 +173,90 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
 
   /** @inheritdoc */
   public render(scene: Scene, vp: Float32Array, camPos: Vector3D = new Vector3D()): void {
+    const extractedLights = this.extractLights(scene);
     this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
-
     this.gl.enable(this.gl.BLEND);
     this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
 
-    // --- PASS 1: Skybox / Background ---
-    this.gl.depthMask(false);
-    for (let i: number = 0; i < scene.objects.length; i++) {
-      const obj = scene.objects[i]!;
-      if (!obj.isVisible) continue;
-      const manifest = obj.material ? obj.material.getRenderManifest() : undefined;
-      if (
-        manifest &&
-        (MaterialType.SKYBOX === manifest.shaderId ||
-          (MaterialType.BASIC === manifest.shaderId && !obj.frustumCulled))
-      ) {
-        this._drawObject(obj, vp, Vector3D.ZERO, {
-          aCol: Color.BLACK,
-          dCol: Color.BLACK,
-          dDir: Vector3D.ZERO,
-          pLights: [],
-          sLights: [],
-          aLights: [],
-        });
-      }
+    const sortedGroups = scene.getVisibleObjectsSorted();
+
+    // --- PASS 1: Skybox ---
+    const skyboxGroup = sortedGroups.get(MaterialType.SKYBOX);
+    if (skyboxGroup) {
+      this.gl.depthMask(false);
+      this._renderGroup(MaterialType.SKYBOX, skyboxGroup, vp, Vector3D.ZERO, { aCol: Color.BLACK, dCol: Color.BLACK, dDir: Vector3D.ZERO, pLights: [], sLights: [], aLights: [] });
+      this.gl.depthMask(true);
+      sortedGroups.delete(MaterialType.SKYBOX);
     }
-    this.gl.depthMask(true);
 
     // --- PASS 2: Objects ---
-    const extractedLights = this.extractLights(scene);
-    for (let i: number = 0; i < scene.objects.length; i++) {
-      const obj = scene.objects[i]!;
-      if (!obj.isVisible) continue;
-      const manifest = obj.material ? obj.material.getRenderManifest() : undefined;
-      if (
-        manifest &&
-        (MaterialType.SKYBOX === manifest.shaderId ||
-          (MaterialType.BASIC === manifest.shaderId && !obj.frustumCulled))
-      )
-        continue;
-      this._drawObject(obj, vp, camPos, extractedLights);
+    for (const [shaderId, materialGroups] of sortedGroups.entries()) {
+      this._renderGroup(shaderId, materialGroups, vp, camPos, extractedLights);
     }
   }
 
-  private _drawObject(
-    o: Object3D,
-    vp: Float32Array,
-    camPos: Vector3D,
-    lights: LightDataInterface,
-  ): void {
-    if (!o.isVisible) return;
+  private _renderGroup(shaderId: string, materialGroups: Map<string, Object3D[]>, vp: Float32Array, camPos: Vector3D, lights: LightDataInterface): void {
+    const cache = this._getProgram(shaderId);
+    this.gl.useProgram(cache.prog);
 
-    if (o.geometry && o.material) {
-      const mat = o.material;
-      const manifest = mat.getRenderManifest();
-      const cache = this._getProgram(manifest.shaderId);
-      this.gl.useProgram(cache.prog);
+    const u = cache.uniforms;
 
-      // 1. Upload global uniforms
-      const u = cache.uniforms;
-      const uVp = u.get("u_vp");
-      if (uVp) this.gl.uniformMatrix4fv(uVp, false, vp);
-      const uViewPos = u.get("u_viewPos");
-      if (uViewPos) this.gl.uniform3f(uViewPos, camPos.x, camPos.y, camPos.z);
-      const uAmbientColor = u.get("u_ambientColor");
-      if (uAmbientColor)
-        this.gl.uniform3f(uAmbientColor, lights.aCol.r, lights.aCol.g, lights.aCol.b);
-      const uDirLightColor = u.get("u_dirLightColor");
-      if (uDirLightColor)
-        this.gl.uniform3f(uDirLightColor, lights.dCol.r, lights.dCol.g, lights.dCol.b);
-      const uDirLightDir = u.get("u_dirLightDir");
-      if (uDirLightDir)
-        this.gl.uniform3f(uDirLightDir, lights.dDir.x, lights.dDir.y, lights.dDir.z);
+    // --- Bind Global Uniforms (Once per shader) ---
+    const uVp = u.get("u_vp"); if (uVp) this.gl.uniformMatrix4fv(uVp, false, vp);
+    const uViewPos = u.get("u_viewPos"); if (uViewPos) this.gl.uniform3f(uViewPos, camPos.x, camPos.y, camPos.z);
+    const uAmbientColor = u.get("u_ambientColor"); if (uAmbientColor) this.gl.uniform3f(uAmbientColor, lights.aCol.r, lights.aCol.g, lights.aCol.b);
+    const uDirLightColor = u.get("u_dirLightColor"); if (uDirLightColor) this.gl.uniform3f(uDirLightColor, lights.dCol.r, lights.dCol.g, lights.dCol.b);
+    const uDirLightDir = u.get("u_dirLightDir"); if (uDirLightDir) this.gl.uniform3f(uDirLightDir, lights.dDir.x, lights.dDir.y, lights.dDir.z);
 
-      // 2. Upload Lights
-      const uNumPointLights = u.get("u_numPointLights");
-      if (uNumPointLights) this.gl.uniform1i(uNumPointLights, lights.pLights.length);
-      for (let i: number = 0; i < lights.pLights.length; i++) {
-        const pl = lights.pLights[i]!;
-        const loc = cache.pointLightLocs[i];
-        if (loc?.pos)
-          this.gl.uniform3f(
-            loc.pos,
-            pl.worldMatrix.data[12]!,
-            pl.worldMatrix.data[13]!,
-            pl.worldMatrix.data[14]!,
-          );
-        if (loc?.col)
-          this.gl.uniform3f(
-            loc.col,
-            pl.color.r * pl.intensity,
-            pl.color.g * pl.intensity,
-            pl.color.b * pl.intensity,
-          );
-      }
-
-      const uNumSpotLights = u.get("u_numSpotLights");
-      if (uNumSpotLights) this.gl.uniform1i(uNumSpotLights, lights.sLights.length);
-      for (let i: number = 0; i < lights.sLights.length; i++) {
-        const sl = lights.sLights[i]!;
-        const loc = cache.spotLightLocs[i];
-        if (loc?.pos)
-          this.gl.uniform3f(
-            loc.pos,
-            sl.worldMatrix.data[12]!,
-            sl.worldMatrix.data[13]!,
-            sl.worldMatrix.data[14]!,
-          );
-        if (loc?.dir) {
-          const d = MathPool.acquireVector().copyFrom(sl.direction).normalize();
-          this.gl.uniform3f(loc.dir, d.x, d.y, d.z);
-          MathPool.releaseVector(d);
-        }
-        if (loc?.col)
-          this.gl.uniform3f(
-            loc.col,
-            sl.color.r * sl.intensity,
-            sl.color.g * sl.intensity,
-            sl.color.b * sl.intensity,
-          );
-        if (loc?.params)
-          this.gl.uniform4f(
-            loc.params,
-            Math.cos(sl.angle),
-            Math.cos(sl.angle * (1.0 - sl.penumbra)),
-            sl.distance,
-            sl.decay,
-          );
-      }
-
-      const uNumAreaLights = u.get("u_numAreaLights");
-      if (uNumAreaLights) this.gl.uniform1i(uNumAreaLights, lights.aLights.length);
-      for (let i: number = 0; i < lights.aLights.length; i++) {
-        const al = lights.aLights[i]!;
-        const loc = cache.areaLightLocs[i];
-        if (!loc) continue;
-        const matData = al.worldMatrix.data;
-        if (loc.pos) this.gl.uniform3f(loc.pos, matData[12]!, matData[13]!, matData[14]!);
-        if (loc.col)
-          this.gl.uniform3f(
-            loc.col,
-            al.color.r * al.intensity,
-            al.color.g * al.intensity,
-            al.color.b * al.intensity,
-          );
-        if (loc.right) this.gl.uniform3f(loc.right, matData[0]!, matData[1]!, matData[2]!);
-        if (loc.up) this.gl.uniform3f(loc.up, matData[4]!, matData[5]!, matData[6]!);
-        if (loc.normal) this.gl.uniform3f(loc.normal, matData[8]!, matData[9]!, matData[10]!);
-        if (loc.size) this.gl.uniform2f(loc.size, al.width / 2.0, al.height / 2.0);
-      }
-
-      // 3. Bind Geometry
-      let m = this._cache.get(o.geometry);
-      if (!m) {
-        m = new Mesh(this.gl, o.geometry);
-        this._cache.set(o.geometry, m);
-      } else if (o.geometry.needsUpdate) {
-        m.update(o.geometry);
-        o.geometry.needsUpdate = false;
-      }
-      m.bind(
-        cache.attributes.get("a_position")!,
-        cache.attributes.get("a_normal")!,
-        cache.attributes.get("a_uv")!,
-        cache.attributes.get("a_tangent")!,
-      );
-
-      // 4. Model Matrix (including Billboarding)
-      this._scratchModelMatrix.set(o.worldMatrix.data);
-      if (MaterialType.SPRITE === manifest.shaderId) {
-        const sx = Math.sqrt(
-          this._scratchModelMatrix[0]! ** 2 +
-            this._scratchModelMatrix[1]! ** 2 +
-            this._scratchModelMatrix[2]! ** 2,
-        );
-        const sy = Math.sqrt(
-          this._scratchModelMatrix[4]! ** 2 +
-            this._scratchModelMatrix[5]! ** 2 +
-            this._scratchModelMatrix[6]! ** 2,
-        );
-        const sz = Math.sqrt(
-          this._scratchModelMatrix[8]! ** 2 +
-            this._scratchModelMatrix[9]! ** 2 +
-            this._scratchModelMatrix[10]! ** 2,
-        );
-        this._scratchModelMatrix[0] = vp[0]! * sx;
-        this._scratchModelMatrix[1] = vp[4]! * sx;
-        this._scratchModelMatrix[2] = vp[8]! * sx;
-        this._scratchModelMatrix[4] = vp[1]! * sy;
-        this._scratchModelMatrix[5] = vp[5]! * sy;
-        this._scratchModelMatrix[6] = vp[9]! * sy;
-        this._scratchModelMatrix[8] = vp[2]! * sz;
-        this._scratchModelMatrix[9] = vp[6]! * sz;
-        this._scratchModelMatrix[10] = vp[10]! * sz;
-      }
-      const uModel = u.get("u_model");
-      if (uModel) this.gl.uniformMatrix4fv(uModel, false, this._scratchModelMatrix);
-
-      // 5. Material Properties
-      const props = manifest.properties;
-      const texs = manifest.textures;
-
-      const uColor = u.get("u_color");
-      if (uColor) {
-        const c = props["u_color"];
-        if (c instanceof Float32Array || Array.isArray(c)) {
-          this.gl.uniform4fv(uColor, c as Float32List);
-        } else {
-          this.gl.uniform4fv(uColor, mat.color.toFloat32Array());
-        }
-      }
-      const uSpecColor = u.get("u_specColor");
-      if (uSpecColor) {
-        const sc = props["u_specColor"];
-        if (sc instanceof Float32Array || Array.isArray(sc)) {
-          this.gl.uniform4fv(uSpecColor, sc as Float32List);
-        } else if (mat instanceof PhongMaterial) {
-          this.gl.uniform4fv(uSpecColor, (mat as PhongMaterial).specularColor.toFloat32Array());
-        } else {
-          this.gl.uniform4f(uSpecColor, 1, 1, 1, 1);
-        }
-      }
-      const uShininess = u.get("u_shininess");
-      if (uShininess) {
-        const s = props["u_shininess"];
-        this.gl.uniform1f(
-          uShininess,
-          typeof s === "number" ? s : mat instanceof PhongMaterial ? mat.shininess : -1.0,
-        );
-      }
-      const uThresholds = u.get("u_thresholds");
-      if (uThresholds) {
-        const t = props["u_thresholds"];
-        if (t instanceof Float32Array || Array.isArray(t)) {
-          this.gl.uniform4fv(uThresholds, t as Float32List);
-        } else if (mat instanceof TerrainMaterial) {
-          this.gl.uniform4fv(uThresholds, new Float32Array(mat.thresholds));
-        }
-      }
-      const uTexOffset = u.get("u_texOffset");
-      if (uTexOffset) {
-        const off = props["u_texOffset"];
-        if (off instanceof Float32Array || Array.isArray(off)) {
-          this.gl.uniform2fv(uTexOffset, off as Float32List);
-        } else {
-          const diff = texs["u_diffuseMap"] as Texture;
-          this.gl.uniform2f(uTexOffset, diff ? diff.offset.x : 0, diff ? diff.offset.y : 0);
-        }
-      }
-      const uTexRepeat = u.get("u_texRepeat");
-      if (uTexRepeat) {
-        const rep = props["u_texRepeat"];
-        if (rep instanceof Float32Array || Array.isArray(rep)) {
-          this.gl.uniform2fv(uTexRepeat, rep as Float32List);
-        } else {
-          const diff = texs["u_diffuseMap"] as Texture;
-          this.gl.uniform2f(uTexRepeat, diff ? diff.repeat.x : 1, diff ? diff.repeat.y : 1);
-        }
-      }
-
-      // 6. Textures
-      if (MaterialType.SKYBOX === manifest.shaderId) {
-        this.gl.activeTexture(this.gl.TEXTURE0);
-        const skyTex = texs["u_skybox"] as CubeTexture;
-        this.gl.bindTexture(
-          this.gl.TEXTURE_CUBE_MAP,
-          skyTex ? this._getWebGLCubeTexture(skyTex) : this.defaultCubeTexture,
-        );
-        const uSkybox = u.get("u_skybox");
-        if (uSkybox) this.gl.uniform1i(uSkybox, 0);
-      } else {
-        // Diffuse
-        this.gl.activeTexture(this.gl.TEXTURE0);
-        const diff = texs["u_diffuseMap"] as Texture;
-        this.gl.bindTexture(
-          this.gl.TEXTURE_2D,
-          diff ? this._getWebGLTexture(diff) : this.defaultTexture,
-        );
-        const uDiffuseMap = u.get("u_diffuseMap");
-        if (uDiffuseMap) this.gl.uniform1i(uDiffuseMap, 0);
-
-        // Normal Map
-        this.gl.activeTexture(this.gl.TEXTURE1);
-        const normal = texs["u_normalMap"] as Texture;
-        const uNormalMap = u.get("u_normalMap");
-        if (normal) {
-          this.gl.bindTexture(this.gl.TEXTURE_2D, this._getWebGLTexture(normal));
-          if (uNormalMap) this.gl.uniform1i(uNormalMap, 1);
-        } else {
-          this.gl.bindTexture(this.gl.TEXTURE_2D, this.defaultNormalMap);
-          if (uNormalMap) this.gl.uniform1i(uNormalMap, 1);
-        }
-
-        // Specular Map
-        this.gl.activeTexture(this.gl.TEXTURE2);
-        const specularMap = texs["u_specularMap"] as Texture;
-        this.gl.bindTexture(
-          this.gl.TEXTURE_2D,
-          specularMap ? this._getWebGLTexture(specularMap) : this.defaultSpecularMap,
-        );
-        const uSpecularMap = u.get("u_specularMap");
-        if (uSpecularMap) this.gl.uniform1i(uSpecularMap, 2);
-
-        // Terrain fallbacks
-        const terrainMapNames = ["u_sandMap", "u_grassMap", "u_rockMap", "u_snowMap"];
-        for (let i: number = 0; i < terrainMapNames.length; i++) {
-          const name = terrainMapNames[i]!;
-          const uTex = u.get(name);
-          if (uTex) {
-            this.gl.activeTexture(this.gl.TEXTURE3 + i);
-            const t = texs[name] as Texture;
-            this.gl.bindTexture(
-              this.gl.TEXTURE_2D,
-              t ? this._getWebGLTexture(t) : this.defaultTexture,
-            );
-            this.gl.uniform1i(uTex, 3 + i);
-          }
-        }
-      }
-
-      // 7. GPU State
-      const state = manifest.state;
-      if (state) {
-        if (CullMode.NONE === state.culling) this.gl.disable(this.gl.CULL_FACE);
-        else {
-          this.gl.enable(this.gl.CULL_FACE);
-          this.gl.cullFace(CullMode.FRONT === state.culling ? this.gl.FRONT : this.gl.BACK);
-        }
-      } else {
-        this.gl.enable(this.gl.CULL_FACE);
-        this.gl.cullFace(this.gl.BACK);
-      }
-
-      const drawMode =
-        MaterialType.WIREFRAME === manifest.shaderId ? this.gl.LINES : this.gl.TRIANGLES;
-      m.draw(drawMode);
+    // --- Bind Lights ---
+    const uNumPointLights = u.get("u_numPointLights"); if (uNumPointLights) this.gl.uniform1i(uNumPointLights, lights.pLights.length);
+    for (let i = 0; i < lights.pLights.length; i++) {
+        const pl = lights.pLights[i]!; const loc = cache.pointLightLocs[i];
+        if (loc?.pos) this.gl.uniform3f(loc.pos, pl.worldMatrix.data[12]!, pl.worldMatrix.data[13]!, pl.worldMatrix.data[14]!);
+        if (loc?.col) this.gl.uniform3f(loc.col, pl.color.r * pl.intensity, pl.color.g * pl.intensity, pl.color.b * pl.intensity);
     }
 
-    if (o.children) {
-      for (let i: number = 0; i < o.children.length; i++) {
-        this._drawObject(o.children[i]!, vp, camPos, lights);
+    for (const [_, objects] of materialGroups.entries()) {
+      const firstObj = objects[0]!;
+      const mat = firstObj.material!;
+      const manifest = mat.getRenderManifest();
+      const texs = manifest.textures;
+
+      // --- Bind Material Properties ---
+      const uColor = u.get("u_color"); if (uColor) this.gl.uniform4fv(uColor, mat.color.toFloat32Array());
+      const uSpecColor = u.get("u_specColor"); if (uSpecColor) this.gl.uniform4fv(uSpecColor, mat instanceof PhongMaterial ? mat.specularColor.toFloat32Array() : new Float32Array([1,1,1,1]));
+      const uShininess = u.get("u_shininess"); if (uShininess) this.gl.uniform1f(uShininess, mat instanceof PhongMaterial ? mat.shininess : -1.0);
+
+      // --- Bind Textures ---
+      if (shaderId === MaterialType.SKYBOX) {
+        this.gl.activeTexture(this.gl.TEXTURE0);
+        const skyTex = texs["u_skybox"] as CubeTexture;
+        this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, skyTex ? this._getWebGLCubeTexture(skyTex) : this.defaultCubeTexture);
+        const uSkybox = u.get("u_skybox"); if (uSkybox) this.gl.uniform1i(uSkybox, 0);
+      } else {
+        const samplerUnits: Record<string, number> = { "u_diffuseMap": 0, "u_normalMap": 1, "u_specularMap": 2 };
+        for(const [uniformName, unit] of Object.entries(samplerUnits)) {
+            const loc = u.get(uniformName);
+            if(loc) {
+                this.gl.activeTexture(this.gl.TEXTURE0 + unit);
+                const t = texs[uniformName] as Texture;
+                this.gl.bindTexture(this.gl.TEXTURE_2D, t ? this._getWebGLTexture(t) : (uniformName === "u_normalMap" ? this.defaultNormalMap : this.defaultTexture));
+                this.gl.uniform1i(loc, unit);
+            }
+        }
+      }
+
+      // --- Render each object ---
+      for (const o of objects) {
+        if (!o.geometry) continue;
+
+        this._scratchModelMatrix.set(o.worldMatrix.data);
+        const uModel = u.get("u_model"); if (uModel) this.gl.uniformMatrix4fv(uModel, false, this._scratchModelMatrix);
+
+        let mesh = this._cache.get(o.geometry);
+        if (!mesh) { mesh = new Mesh(this.gl, o.geometry); this._cache.set(o.geometry, mesh); }
+        mesh.bind(cache.attributes.get("a_position")!, cache.attributes.get("a_normal")!, cache.attributes.get("a_uv")!, cache.attributes.get("a_tangent")!);
+        mesh.draw(MaterialType.WIREFRAME === shaderId ? this.gl.LINES : this.gl.TRIANGLES);
       }
     }
   }

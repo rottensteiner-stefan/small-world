@@ -9,7 +9,6 @@ in mat3 v_tbn;
 uniform vec4 u_color;
 uniform vec4 u_specColor;
 uniform float u_shininess;
-uniform vec3 u_viewPos;
 
 uniform sampler2D u_diffuseMap;
 uniform sampler2D u_normalMap;

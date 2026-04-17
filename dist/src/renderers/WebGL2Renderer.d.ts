@@ -15,6 +15,7 @@ export declare class WebGL2Renderer extends AbstractWebGLRenderer {
     private _texCache;
     private _texCubeCache;
     private _scratchModelMatrix;
+    private _globalUBO;
     /** @inheritdoc */
     initialize(canvas: HTMLCanvasElement, attributes?: Record<string, unknown>, config?: EngineConfig): Promise<void>;
     private _getProgram;
@@ -23,7 +24,8 @@ export declare class WebGL2Renderer extends AbstractWebGLRenderer {
     /** @inheritdoc */
     render(scene: Scene, vp: Float32Array, camPos?: Vector3D): void;
     /**
-     * Internal generic object draw function.
+     * Renders a group of objects sharing the same shader.
      */
-    private _drawObject;
+    private _renderGroup;
+    private _updateGlobalUBO;
 }

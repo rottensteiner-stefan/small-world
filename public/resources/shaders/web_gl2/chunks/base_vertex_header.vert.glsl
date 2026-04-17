@@ -4,7 +4,6 @@ in vec3 a_normal;
 in vec2 a_uv;
 in vec3 a_tangent;
 
-uniform mat4 u_vp;
 uniform mat4 u_model;
 uniform vec2 u_texOffset;
 uniform vec2 u_texRepeat;

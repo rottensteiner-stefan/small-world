@@ -15,6 +15,8 @@ export declare abstract class Application {
     renderer: Renderer;
     /** The canvas element. */
     canvas: HTMLCanvasElement;
+    /** Whether debug visualization is enabled. */
+    debug: boolean;
     /** List of active input controllers. */
     readonly controllers: Controller[];
     private _lastTime;

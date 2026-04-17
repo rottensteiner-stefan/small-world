@@ -1,11 +1,12 @@
 struct Out {
-    @builtin(position) p: vec4f,
-    @location(0) uvw: vec3f
+    @builtin(position) pos: vec4f,
+    @location(0) uv: vec3f
 }
 
-@vertex fn vs(@location(0) p: vec3f) -> Out { 
+@vertex fn vs(@location(0) pos: vec3f) -> Out {
     var o: Out;
-    o.uvw = p;
-    o.p = u.vp * u.model * vec4f(p, 1.0);
-    return o; 
+    o.uv = pos;
+    let wp = obj.model * vec4f(pos, 1.0);
+    o.pos = (global.vp * wp).xyww;
+    return o;
 }

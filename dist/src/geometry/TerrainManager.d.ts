@@ -24,6 +24,8 @@ export interface TerrainManagerConfig {
     material?: TerrainMaterial;
     /** Generation algorithm to use. Defaults to "Perlin". */
     algorithm?: TerrainAlgorithm;
+    /** Callback triggered when chunks are added or removed. */
+    onRebuild?: () => void;
 }
 /**
  * Manages dynamic loading and unloading of terrain chunks to create an "infinite" terrain feel.
@@ -39,6 +41,7 @@ export declare class TerrainManager {
     private readonly _gridSize;
     private readonly _halfGrid;
     private readonly _algorithm;
+    private readonly _onRebuild?;
     private _chunks;
     private _currentGridX;
     private _currentGridZ;
