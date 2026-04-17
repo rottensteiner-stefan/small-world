@@ -44,8 +44,9 @@ export declare class OctreeNode {
      * Queries the octree for objects that intersect with the frustum.
      * @param frustum The frustum to check.
      * @param result The array to store the results.
+     * @param intersectedNodes Optional set to store nodes that were intersected by the frustum.
      */
-    query(frustum: Frustum, result: Object3D[]): void;
+    query(frustum: Frustum, result: Object3D[], intersectedNodes?: Set<OctreeNode>): void;
     /**
      * Clears the node and its children.
      */
@@ -71,9 +72,10 @@ export declare class Octree {
     /**
      * Queries the octree for objects that intersect with the frustum.
      * @param frustum The frustum to check.
+     * @param intersectedNodes Optional set to store nodes that were intersected by the frustum.
      * @returns The list of intersecting objects.
      */
-    query(frustum: Frustum): Object3D[];
+    query(frustum: Frustum, intersectedNodes?: Set<OctreeNode>): Object3D[];
     /**
      * Clears the octree.
      */

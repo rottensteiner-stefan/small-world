@@ -1,6 +1,7 @@
 import { AbstractProjection } from '../math/index.js';
 import { CameraEffectType, CameraStrategyType } from '../enums/index.js';
 import { CameraConstraints, CameraEffect, CameraInterfaceData, CameraStrategy } from '../interfaces/index.js';
+import { Matrix4 } from '../math/Matrix4.js';
 import { Vector3D } from '../math/Vector3D.js';
 /**
  * Standard implementation of the CameraInterfaceData.
@@ -28,6 +29,8 @@ export declare class Camera implements CameraInterfaceData {
     constructor(projection: AbstractProjection);
     /** @inheritdoc */
     get viewProjectionMatrix(): Float32Array;
+    /** @inheritdoc */
+    get viewProjectionMatrix4(): Matrix4;
     /** @inheritdoc */
     get aspect(): number;
     /** @inheritdoc */

@@ -6,6 +6,8 @@ export type ProgressCallback = (loaded: number, total: number) => void;
 export declare class AssetManager {
     private static _imageCache;
     private static _textCache;
+    private static _jsonCache;
+    private static _binaryCache;
     private static _activeLoaders;
     private static _onLoadedPromise;
     private static _resolveLoaded;
@@ -38,4 +40,6 @@ export declare class AssetManager {
     private static _checkCompletion;
     static loadImage(url: string, onProgress?: ProgressCallback, flipY?: boolean): Promise<ImageBitmap | HTMLImageElement>;
     static loadText(url: string, onProgress?: ProgressCallback): Promise<string>;
+    static loadJson(url: string, onProgress?: ProgressCallback): Promise<any>;
+    static loadBinary(url: string, onProgress?: ProgressCallback): Promise<ArrayBuffer>;
 }

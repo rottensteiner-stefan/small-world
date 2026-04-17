@@ -33,6 +33,8 @@ export declare class Object3D {
     isVisible: boolean;
     /** Whether frustum culling is enabled for this object. */
     frustumCulled: boolean;
+    /** Whether the object is static (not moving). Static objects are optimized in the spatial partitioning system. */
+    isStatic: boolean;
     /**
      * Creates a new Object3D.
      * @param name The name of the object. Defaults to a random UUID.

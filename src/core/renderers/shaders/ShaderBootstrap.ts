@@ -166,7 +166,7 @@ export class ShaderBootstrap {
       sources: {
         glsl300: { vs: "[BASE_VERTEX_HEADER][BASE_VERTEX_MAIN]", fs: gl2WorldFs },
         glsl100: { vs: "[BASE_VS]", fs: gl1WorldFs },
-        wgsl: `[WGSL_STRUCTS]\n[WGSL_VS]\n${wgslWorldFs}`,
+        wgsl: `[WGSL_VS]\n${wgslWorldFs}`,
       },
       layout: {
         uniforms: {
@@ -183,7 +183,7 @@ export class ShaderBootstrap {
       sources: {
         glsl300: { vs: "[BASE_VERTEX_HEADER][BASE_VERTEX_MAIN]", fs: gl2BasicFs },
         glsl100: { vs: "[BASE_VS]", fs: gl1BasicFs },
-        wgsl: `[WGSL_STRUCTS]\n[WGSL_VS]\n${wgslBasicFs}`,
+        wgsl: `[WGSL_VS]\n${wgslBasicFs}`,
       },
       layout: {
         uniforms: {
@@ -201,7 +201,7 @@ export class ShaderBootstrap {
       sources: {
         glsl300: { vs: "[BASE_VERTEX_HEADER][BASE_VERTEX_MAIN]", fs: gl2PhongFs },
         glsl100: { vs: "[BASE_VS]", fs: gl1PhongFs },
-        wgsl: `[WGSL_STRUCTS]\n[WGSL_VS]\n${wgslPhongFs}`,
+        wgsl: `[WGSL_VS]\n${wgslPhongFs}`,
       },
       layout: {
         uniforms: {
@@ -228,7 +228,7 @@ export class ShaderBootstrap {
           fs: gl2StandardFs,
         },
         glsl100: { vs: "[BASE_VS]", fs: gl1StandardFs },
-        wgsl: `[WGSL_STRUCTS]\n[WGSL_VS]\n${wgslStandardFs}`,
+        wgsl: `[WGSL_VS]\n${wgslStandardFs}`,
       },
       layout: {
         uniforms: {
@@ -254,7 +254,7 @@ export class ShaderBootstrap {
       sources: {
         glsl300: { vs: "[BASE_VERTEX_HEADER][BASE_VERTEX_MAIN]", fs: gl2LambertFs },
         glsl100: { vs: "[BASE_VS]", fs: gl1PhongFs }, // Fallback to phong for now in GL1
-        wgsl: `[WGSL_STRUCTS]\n[WGSL_VS]\n${wgslLambertFs}`,
+        wgsl: `[WGSL_VS]\n${wgslLambertFs}`,
       },
       layout: {
         uniforms: {
@@ -275,7 +275,7 @@ export class ShaderBootstrap {
       sources: {
         glsl300: { vs: "[BASE_VERTEX_HEADER][BASE_VERTEX_MAIN]", fs: gl2SpriteFs },
         glsl100: { vs: "[BASE_VS]", fs: gl1BasicFs },
-        wgsl: `[WGSL_STRUCTS]\n[WGSL_VS]\n${wgslSpriteFs}`,
+        wgsl: `[WGSL_VS]\n${wgslSpriteFs}`,
       },
       layout: {
         uniforms: { u_color: { type: ShaderPropertyType.COLOR } },
@@ -289,7 +289,7 @@ export class ShaderBootstrap {
       sources: {
         glsl300: { vs: "[BASE_VERTEX_HEADER][BASE_VERTEX_MAIN]", fs: gl2WireframeFs },
         glsl100: { vs: "[BASE_VS]", fs: "void main() { gl_FragColor = u_color; }" },
-        wgsl: `[WGSL_STRUCTS]\n[WGSL_VS]\n${wgslWireframeFs}`,
+        wgsl: `[WGSL_VS]\n${wgslWireframeFs}`,
       },
       layout: {
         uniforms: { u_color: { type: ShaderPropertyType.COLOR } },
@@ -303,7 +303,7 @@ export class ShaderBootstrap {
       sources: {
         glsl300: { vs: gl2SkyVs, fs: gl2SkyFs },
         glsl100: { vs: gl1SkyVs, fs: gl1SkyFs },
-        wgsl: `[WGSL_STRUCTS]\n${wgslSkyVs}\n${wgslSkyFs}`,
+        wgsl: `${wgslSkyVs}\n${wgslSkyFs}`,
       },
       layout: {
         uniforms: { u_color: { type: ShaderPropertyType.COLOR } },
@@ -317,7 +317,7 @@ export class ShaderBootstrap {
       sources: {
         glsl300: { vs: "[BASE_VERTEX_HEADER][BASE_VERTEX_MAIN]", fs: gl2TerrainFs },
         glsl100: { vs: "[BASE_VS]", fs: gl1TerrainFs },
-        wgsl: `[WGSL_STRUCTS]\n[WGSL_VS]\n${wgslTerrainFs}`,
+        wgsl: `[WGSL_VS]\n${wgslTerrainFs}`,
       },
       layout: {
         uniforms: {

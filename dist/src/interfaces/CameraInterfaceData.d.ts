@@ -1,4 +1,4 @@
-import { AbstractProjection, Vector3D } from '../math/index.js';
+import { AbstractProjection, Matrix4, Vector3D } from '../math/index.js';
 import { CameraEffectType, CameraStrategyType } from '../enums/index.js';
 import { CameraStrategy } from './CameraStrategy.js';
 import { CameraConstraints } from './CameraConstraints.js';
@@ -27,6 +27,8 @@ export interface CameraInterfaceData {
     readonly activeStrategyType: string;
     /** The combined view-projection matrix as a Float32Array. */
     viewProjectionMatrix: Float32Array;
+    /** The combined view-projection matrix as a Matrix4 instance. */
+    viewProjectionMatrix4: Matrix4;
     /**
      * Switches the camera's control behavior.
      * @param type The type of strategy to use.

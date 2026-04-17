@@ -4,12 +4,16 @@ import { Frustum } from "../math/Frustum.js";
 import { Matrix4 } from "../math/Matrix4.js";
 import { Object3D } from "./Object3D.js";
 import { Scene } from "./Scene.js";
+import { OctreeNode } from "./Octree.js";
 
 /**
  * Handles frustum culling for objects in a scene.
  */
 export class FrustumCuller {
   private static _frustum: Frustum = new Frustum();
+
+  /** The octree nodes that were intersected during the last cull operation. */
+  public static lastIntersectedNodes: Set<OctreeNode> = new Set();
 
   /**
    * Culls objects in the scene that are outside the camera frustum.
@@ -19,15 +23,28 @@ export class FrustumCuller {
    */
   public static cull(scene: Scene, vpMatrix: Matrix4): number {
     this._frustum.setFromMatrix(vpMatrix);
+    this.lastIntersectedNodes.clear();
 
-    if (scene.octree) {
-      for (let i: number = 0; i < scene.objects.length; i++) {
-        this._resetVisibility(scene.objects[i]!);
+    // Reset visibility for all objects that can be culled
+    for (let i: number = 0; i < scene.objects.length; i++) {
+      this._resetVisibility(scene.objects[i]!);
+    }
+
+    if (scene.staticOctree || scene.dynamicOctree) {
+      // Query static octree
+      if (scene.staticOctree) {
+        const visibleStatic: Object3D[] = scene.staticOctree.query(this._frustum, this.lastIntersectedNodes);
+        for (let i: number = 0; i < visibleStatic.length; i++) {
+          visibleStatic[i]!.isVisible = true;
+        }
       }
 
-      const visibleObjects: Object3D[] = scene.octree.query(this._frustum);
-      for (let i: number = 0; i < visibleObjects.length; i++) {
-        visibleObjects[i]!.isVisible = true;
+      // Query dynamic octree
+      if (scene.dynamicOctree) {
+        const visibleDynamic: Object3D[] = scene.dynamicOctree.query(this._frustum, this.lastIntersectedNodes);
+        for (let i: number = 0; i < visibleDynamic.length; i++) {
+          visibleDynamic[i]!.isVisible = true;
+        }
       }
 
       let count: number = 0;
@@ -37,8 +54,8 @@ export class FrustumCuller {
       return count;
     }
 
+    // Fallback if no octrees are used
     let visibleCount: number = 0;
-
     for (let i: number = 0; i < scene.objects.length; i++) {
       visibleCount += this._checkNode(scene.objects[i]!);
     }

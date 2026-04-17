@@ -41,6 +41,8 @@ export class Object3D {
   public isVisible: boolean = true;
   /** Whether frustum culling is enabled for this object. */
   public frustumCulled: boolean = true;
+  /** Whether the object is static (not moving). Static objects are optimized in the spatial partitioning system. */
+  public isStatic: boolean = false;
 
   /**
    * Creates a new Object3D.

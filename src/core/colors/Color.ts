@@ -1,5 +1,7 @@
 /// src/core/colors/Color.ts
 
+import { Vector3D } from "../../math/index.js";
+
 export class Color {
   /**
    * Creates a new Color.
@@ -220,6 +222,10 @@ export class Color {
   }
 
   public static get DARKSEAGREEN(): Color {
+    return new Color(0.561, 0.737, 0.561);
+  }
+
+  public static get DARKSEAGREEN_X11(): Color {
     return new Color(0.561, 0.737, 0.561);
   }
 
@@ -824,5 +830,12 @@ export class Color {
     this._cachedArray[2] = this.b;
     this._cachedArray[3] = this.a;
     return this._cachedArray;
+  }
+
+  /**
+   * Returns the RGB components as a Vector3D.
+   */
+  public toVector3(): Vector3D {
+    return new Vector3D(this.r, this.g, this.b);
   }
 }

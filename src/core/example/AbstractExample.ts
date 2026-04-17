@@ -35,6 +35,10 @@ export abstract class AbstractExample extends Application {
     if (Keys.I === event.code) {
       this.printDebug();
     }
+    if (Keys.B === event.code) {
+      this.debug = !this.debug;
+      console.log(`Debug visualization: ${this.debug ? "ON" : "OFF"}`);
+    }
   }
 
   /**
