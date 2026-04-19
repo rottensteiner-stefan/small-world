@@ -1,4 +1,4 @@
-// WGSL Global and Object structures for optimized Bind Groups
+// WGSL Global and Object structures
 
 struct GlobalUniforms {
     vp: mat4x4f,
@@ -36,7 +36,7 @@ struct SpotLight {
     pos: vec4f,
     dir: vec4f,
     col: vec4f,
-    params: vec4f // x=cos(angle), y=cos(penumbra), z=range, w=decay
+    params: vec4f 
 }
 
 struct AreaLight {
@@ -48,13 +48,11 @@ struct AreaLight {
     size: vec4f
 }
 
-// Bind Group 0: Global Data (Constant per frame)
 @group(0) @binding(0) var<uniform> global: GlobalUniforms;
 @group(0) @binding(1) var<storage> pLights: array<PointLight>;
 @group(0) @binding(2) var<storage> sLights: array<SpotLight>;
 @group(0) @binding(3) var<storage> aLights: array<AreaLight>;
 
-// Bind Group 1: Object / Material Data
 @group(1) @binding(0) var<uniform> obj: ObjectUniforms;
 @group(1) @binding(1) var s: sampler;
 @group(1) @binding(2) var u_diffuseMap: texture_2d<f32>;

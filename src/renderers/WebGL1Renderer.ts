@@ -184,7 +184,11 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
     const skyboxGroup = sortedGroups.get(MaterialType.SKYBOX);
     if (skyboxGroup) {
       this.gl.depthMask(false);
-      this._renderGroup(MaterialType.SKYBOX, skyboxGroup, vp, Vector3D.ZERO, { aCol: Color.BLACK, dCol: Color.BLACK, dDir: Vector3D.ZERO, pLights: [], sLights: [], aLights: [] });
+      this._renderGroup(MaterialType.SKYBOX, skyboxGroup, vp, Vector3D.ZERO, { 
+        aCol: Color.BLACK, aIntensity: 0, 
+        dCol: Color.BLACK, dIntensity: 0, dDir: Vector3D.ZERO, 
+        pLights: [], sLights: [], aLights: [] 
+      });
       this.gl.depthMask(true);
       sortedGroups.delete(MaterialType.SKYBOX);
     }
@@ -204,8 +208,13 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
     // --- Bind Global Uniforms (Once per shader) ---
     const uVp = u.get("u_vp"); if (uVp) this.gl.uniformMatrix4fv(uVp, false, vp);
     const uViewPos = u.get("u_viewPos"); if (uViewPos) this.gl.uniform3f(uViewPos, camPos.x, camPos.y, camPos.z);
-    const uAmbientColor = u.get("u_ambientColor"); if (uAmbientColor) this.gl.uniform3f(uAmbientColor, lights.aCol.r, lights.aCol.g, lights.aCol.b);
-    const uDirLightColor = u.get("u_dirLightColor"); if (uDirLightColor) this.gl.uniform3f(uDirLightColor, lights.dCol.r, lights.dCol.g, lights.dCol.b);
+    
+    const uAmbientColor = u.get("u_ambientColor"); 
+    if (uAmbientColor) this.gl.uniform3f(uAmbientColor, lights.aCol.r * lights.aIntensity, lights.aCol.g * lights.aIntensity, lights.aCol.b * lights.aIntensity);
+    
+    const uDirLightColor = u.get("u_dirLightColor"); 
+    if (uDirLightColor) this.gl.uniform3f(uDirLightColor, lights.dCol.r * lights.dIntensity, lights.dCol.g * lights.dIntensity, lights.dCol.b * lights.dIntensity);
+    
     const uDirLightDir = u.get("u_dirLightDir"); if (uDirLightDir) this.gl.uniform3f(uDirLightDir, lights.dDir.x, lights.dDir.y, lights.dDir.z);
 
     // --- Bind Lights ---

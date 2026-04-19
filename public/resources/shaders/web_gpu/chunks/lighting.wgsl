@@ -1,5 +1,7 @@
 // WGSL Lighting calculation (Logic only)
 
+// IMPORTANT: Re-normalize interpolated normal in fragment shader!
+let N = normalize(i.n);
 let V = normalize(global.viewPos.xyz - i.wp); 
 var fL = global.ambientColor.xyz; 
 var spec = vec3f(0.0);

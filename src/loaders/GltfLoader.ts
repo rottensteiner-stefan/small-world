@@ -5,6 +5,7 @@ import { EventType } from "../enums/index.js";
 import { ModelGeometry } from "../geometry/index.js";
 import { Object3D, StandardMaterial, Color, Texture } from "../core/index.js";
 import { LoaderOptions } from "../interfaces/index.js";
+import { Matrix4, Vector3D } from "../math/index.js";
 
 interface GltfData {
   json: any;
@@ -123,10 +124,39 @@ export class GltfLoader extends AbstractLoader<Object3D> {
 
     // Transforms
     if (node.matrix) {
-        obj.worldMatrix.data.set(node.matrix);
+        const mat = new Matrix4();
+        mat.data.set(node.matrix);
+        // Decompose into position, rotation, scale to keep Object3D state consistent
+        const pos = new Vector3D();
+        const rot = new Vector3D();
+        const sca = new Vector3D(1, 1, 1);
+        mat.decompose(pos, rot, sca);
+        obj.position.copyFrom(pos);
+        obj.rotation.copyFrom(rot);
+        obj.scale.copyFrom(sca);
     } else {
         if (node.translation) obj.position.set(node.translation[0], node.translation[1], node.translation[2]);
         if (node.scale) obj.scale.set(node.scale[0], node.scale[1], node.scale[2]);
+        if (node.rotation) {
+            // glTF uses quaternions [x, y, z, w]
+            // For now, we can only correctly decompose if we build a temp matrix
+            // This is a simplified approach to handle glTF quaternions
+            const q = node.rotation;
+            const mat = new Matrix4();
+            const x = q[0], y = q[1], z = q[2], w = q[3];
+            const x2 = x + x, y2 = y + y, z2 = z + z;
+            const xx = x * x2, xy = x * y2, xz = x * z2;
+            const yy = y * y2, yz = y * z2, zz = z * z2;
+            const wx = w * x2, wy = w * y2, wz = w * z2;
+
+            mat.data[0] = 1 - (yy + zz); mat.data[4] = xy - wz; mat.data[8] = xz + wy;
+            mat.data[1] = xy + wz; mat.data[5] = 1 - (xx + zz); mat.data[9] = yz - wx;
+            mat.data[2] = xz - wy; mat.data[6] = yz + wx; mat.data[10] = 1 - (xx + yy);
+            
+            const dummyP = new Vector3D();
+            const dummyS = new Vector3D(1, 1, 1);
+            mat.decompose(dummyP, obj.rotation, dummyS);
+        }
     }
 
     // Mesh
@@ -209,13 +239,12 @@ export class GltfLoader extends AbstractLoader<Object3D> {
         const texIdx = pbr.baseColorTexture.index;
         const textureDef = json.textures[texIdx];
         const imageDef = json.images[textureDef.source];
-        // Loading texture via AssetManager
         const texUrl = folderPath + imageDef.uri;
         mat.diffuseMap = Texture.fromImage(await AssetManager.loadImage(texUrl));
     }
 
-    mat.metallic = pbr.metallicFactor !== undefined ? pbr.metallicFactor : 1.0;
-    mat.roughness = pbr.roughnessFactor !== undefined ? pbr.roughnessFactor : 1.0;
+    mat.metallic = pbr.metallicFactor !== undefined ? pbr.metallicFactor : 0.0;
+    mat.roughness = pbr.roughnessFactor !== undefined ? pbr.roughnessFactor : 0.5;
 
     return mat;
   }

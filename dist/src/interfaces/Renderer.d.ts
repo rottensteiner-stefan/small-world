@@ -9,10 +9,14 @@ import { EngineConfig } from './EngineConfig.js';
 export interface LightDataInterface {
     /** Ambient light color. */
     aCol: Color;
+    /** Ambient light intensity. */
+    aIntensity: number;
     /** Directional light direction. */
     dDir: Vector3D;
     /** Directional light color. */
     dCol: Color;
+    /** Directional light intensity. */
+    dIntensity: number;
     /** List of point lights. */
     pLights: PointLight[];
     /** List of spot lights. */
