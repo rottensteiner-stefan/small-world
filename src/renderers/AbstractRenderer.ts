@@ -12,8 +12,9 @@ import { Renderer, LightDataInterface } from "../interfaces/index.js";
 import { LightType, RendererType } from "../enums/index.js";
 import { Object3D } from "../core/Object3D.js";
 import { Scene } from "../core/Scene.js";
-import { Vector3D } from "../math/Vector3D.js";
+import { Vector3D } from "../math/index.js";
 import { EngineConfig, QualityConfig, ToneMapping } from "../interfaces/EngineConfig.js";
+
 /**
  * Base class for all renderer implementations.
  */
@@ -36,8 +37,10 @@ export abstract class AbstractRenderer implements Renderer {
   /** Cached light data to avoid GC pressure. */
   protected _lightData: LightDataInterface = {
     aCol: new Color(0, 0, 0),
+    aIntensity: 0,
     dDir: new Vector3D(0, 1, 0),
     dCol: new Color(0, 0, 0),
+    dIntensity: 0,
     pLights: [],
     sLights: [],
     aLights: [],
@@ -75,7 +78,9 @@ export abstract class AbstractRenderer implements Renderer {
     this._lightData.sLights.length = 0;
     this._lightData.aLights.length = 0;
     this._lightData.aCol.set(0, 0, 0);
+    this._lightData.aIntensity = 0;
     this._lightData.dCol.set(0, 0, 0);
+    this._lightData.dIntensity = 0;
     this._lightData.dDir.set(0, 1, 0);
 
     for (const obj of scene.objects) {
@@ -96,23 +101,16 @@ export abstract class AbstractRenderer implements Renderer {
 
       switch (light.type) {
         case LightType.AMBIENT: {
-          this._lightData.aCol.set(
-            light.color.r * light.intensity,
-            light.color.g * light.intensity,
-            light.color.b * light.intensity,
-          );
+          this._lightData.aCol.copyFrom(light.color);
+          this._lightData.aIntensity = light.intensity;
           break;
         }
         case LightType.DIRECTIONAL: {
           const dl: DirectionalLight = light as DirectionalLight;
-          // Optimization: Set directly instead of clone()
           this._lightData.dDir.set(dl.direction.x, dl.direction.y, dl.direction.z);
           this._lightData.dDir.scale(-1).normalize();
-          this._lightData.dCol.set(
-            light.color.r * light.intensity,
-            light.color.g * light.intensity,
-            light.color.b * light.intensity,
-          );
+          this._lightData.dCol.copyFrom(light.color);
+          this._lightData.dIntensity = light.intensity;
           break;
         }
         case LightType.POINT: {

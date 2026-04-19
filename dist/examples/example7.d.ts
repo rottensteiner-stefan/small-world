@@ -1,6 +1,7 @@
 import { AbstractExample } from '../src/core/example/AbstractExample.js';
 /**
- * Example 7: Clean rebuild with Skybox, Green Floor, WASD/QE movement.
+ * Example 7: Skybox & FPS Controls.
+ * This example demonstrates a pure skybox environment without a physical floor.
  */
 export declare class Example7 extends AbstractExample {
     private _moveSpeed;

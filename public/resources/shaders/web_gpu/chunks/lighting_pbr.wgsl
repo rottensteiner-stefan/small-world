@@ -35,7 +35,7 @@ for(var j=0u; j<u32(global.numPointLights); j++) {
     let dist = length(lightVec);
     let L = lightVec / dist;
     let H = normalize(V + L);
-    let attenuation = 1.0 / (dist * dist);
+    let attenuation = 1.0 / (dist * dist + 0.0001);
     let radiance = pLights[j].col.xyz * attenuation;
 
     let dotNL = max(dot(N, L), 0.0);
@@ -55,6 +55,6 @@ for(var j=0u; j<u32(global.numPointLights); j++) {
 let ambient = global.ambientColor.rgb * albedo * ao;
 var color = ambient + Lo;
 
-// Tone Mapping & Gamma
+// Tone Mapping
 color = color / (color + vec3f(1.0));
-color = linearToSRGB(color);
+// sRGB conversion is handled by the canvas format in WebGPU Renderer context.configure

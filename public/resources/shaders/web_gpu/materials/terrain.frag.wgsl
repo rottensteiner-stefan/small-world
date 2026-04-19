@@ -3,8 +3,10 @@
     let grass = textureSample(u_grassMap, s, i.uv);
     let rock = textureSample(u_rockMap, s, i.uv);
     let snow = textureSample(u_snowMap, s, i.uv);
+
     let h = i.wp.y;
     var texCol: vec4f;
+
     if (h < obj.thresholds.x) {
         texCol = sand;
     } else if (h < obj.thresholds.y) {
@@ -19,9 +21,12 @@
     } else {
         texCol = snow;
     }
-    let N = normalize(i.n);
+
+    // Note: N is now defined inside WGSL_LIGHTING via normalize(i.n)
     [WGSL_LIGHTING]
+
     let diffuseColor = texCol.rgb * obj.color.rgb;
-    let ambientFinal = global.ambientColor.rgb * diffuseColor;
-    return vec4f(ambientFinal + (fL - global.ambientColor.rgb) * diffuseColor, obj.color.a);
+    let finalColor = fL * diffuseColor;
+
+    return vec4f(finalColor, obj.color.a);
 }

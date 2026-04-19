@@ -1,4 +1,5 @@
-import { Color, Vector3D } from '../math/index.js';
+import { Vector3D } from '../math/index.js';
+import { Color } from '../core/index.js';
 /**
  * Helper to manage WebGL2 Uniform Buffer Objects (UBOs) with std140 layout.
  */

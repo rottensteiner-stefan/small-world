@@ -307,8 +307,13 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     const ubo = this._globalUBO;
     ubo.setMatrix(0, vp);
     ubo.setVector3(64, camPos);
-    ubo.setVector3(80, lights.aCol.toVector3());
-    ubo.setVector3(96, lights.dCol.toVector3());
+    
+    // Scale colors by intensity
+    const aScaled = new Vector3D(lights.aCol.r * lights.aIntensity, lights.aCol.g * lights.aIntensity, lights.aCol.b * lights.aIntensity);
+    const dScaled = new Vector3D(lights.dCol.r * lights.dIntensity, lights.dCol.g * lights.dIntensity, lights.dCol.b * lights.dIntensity);
+    
+    ubo.setVector3(80, aScaled);
+    ubo.setVector3(96, dScaled);
     ubo.setVector3(112, lights.dDir);
     ubo.setInt(128, lights.pLights.length);
     ubo.setInt(132, lights.sLights.length);

@@ -14,13 +14,13 @@ import {
   Object3D,
   PerspectiveProjection,
   PhongMaterial,
-  Plane,
   SkyboxMaterial,
 } from "../src/index.js";
 import { AbstractExample } from "../src/core/example/AbstractExample.js";
 
 /**
- * Example 7: Clean rebuild with Skybox, Green Floor, WASD/QE movement.
+ * Example 7: Skybox & FPS Controls.
+ * This example demonstrates a pure skybox environment without a physical floor.
  */
 export class Example7 extends AbstractExample {
   private _moveSpeed: number = 15.0;
@@ -44,7 +44,7 @@ export class Example7 extends AbstractExample {
       fov: MathUtils.degToRad(75),
       aspect,
       near: 0.1,
-      far: 2000, // Make sure far plane is large enough for the skybox
+      far: 2000,
     });
     this.camera.updateProjectionMatrix();
     this.camera.setStrategy(CameraStrategyType.FPS);
@@ -63,7 +63,7 @@ export class Example7 extends AbstractExample {
     sun.direction.set(-1, -1, -1).normalize();
     this.scene.add(sun);
 
-    // 3. Skybox
+    // 3. Skybox (Contains the floor texture in the bottom part of the cube map)
     const skyTexture = new CubeTexture();
     await skyTexture.loadFrom("/resources/models/textures/skybox-1.jpg");
 
@@ -73,56 +73,28 @@ export class Example7 extends AbstractExample {
     skybox.frustumCulled = false;
     this.scene.add(skybox);
 
-    // 4. Floor
-    const floor = new Object3D("Floor");
-    // Der Boden muss nicht gigantisch sein, solange er immer mit der Kamera wandert.
-    // Er muss nur den Bereich bis zur Clipping-Ebene abdecken.
-    floor.geometry = new Plane({
-      width: 4000,
-      depth: 4000,
-      widthSegments: 10,
-      depthSegments: 10,
-    }).getGeometryData();
-
-    floor.material = new PhongMaterial({
-      color: new Color(0.2, 0.8, 0.2), // Bright grass green
-      shininess: 0,
-    });
-    this.scene.add(floor);
-
-    // 5. Orientierungspunkte (Illusion Breaker)
+    // 4. Orientierungspunkte (Illusion Breaker)
     const referenceCube = new Object3D("ReferenceCube");
     referenceCube.geometry = new Cube({ size: 2 }).getGeometryData();
     referenceCube.material = new PhongMaterial({ color: Color.BLUE, shininess: 50 });
-    referenceCube.position.set(0, 1, -10); // Genau vor unserer Startposition
+    referenceCube.position.set(0, 1, -10); 
     this.scene.add(referenceCube);
 
     const redCube = new Object3D("RedCube");
     redCube.geometry = new Cube({ size: 2 }).getGeometryData();
     redCube.material = new PhongMaterial({ color: Color.RED, shininess: 50 });
-    redCube.position.set(10, 1, 0); // Rechts von uns
+    redCube.position.set(10, 1, 0);
     this.scene.add(redCube);
   }
 
   protected override update(_deltaTime: number): void {
-    // The FPSController handles Mouse Look, WASD movement and Zoom.
-
-    // 4. Collision / Floor Clamp
+    // Keep camera above "virtual" floor
     this.camera.position.y = Math.max(this._eyeHeight, this.camera.position.y);
 
-    // 5. Update Skybox & Floor Position.
-    // Die Skybox muss immer exakt auf der Kamera liegen.
+    // Skybox follows camera
     const skybox = this.scene.objects.find((o) => o.name === "Skybox");
     if (skybox) {
       skybox.position.copyFrom(this.camera.position);
-    }
-
-    // Auch der Boden muss der Kamera folgen (auf der X- und Z-Achse),
-    // da er sonst "aufhört", wenn man zu weit läuft!
-    const floor = this.scene.objects.find((o) => o.name === "Floor");
-    if (floor) {
-      floor.position.x = this.camera.position.x;
-      floor.position.z = this.camera.position.z;
     }
   }
 
@@ -130,21 +102,11 @@ export class Example7 extends AbstractExample {
     const base = super.getDebugInfo();
     return {
       ...base,
-      Example: "07 - Illusion Breaker",
+      Example: "07 - Skybox & FPS Controls",
       "Pointer Locked": Input.isPointerLocked ? "Yes" : "No",
-      "Cam X": this.camera.position.x.toFixed(2),
-      "Cam Y": this.camera.position.y.toFixed(2),
-      "Cam Z": this.camera.position.z.toFixed(2),
     };
   }
 }
 
 const app = new Example7();
-app
-  .start()
-  .then((): void => {
-    console.log("Example 7 running");
-  })
-  .catch((err: Error): void => {
-    console.error("Error starting engine:", err);
-  });
+app.start();

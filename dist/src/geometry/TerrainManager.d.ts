@@ -41,7 +41,7 @@ export declare class TerrainManager {
     private readonly _gridSize;
     private readonly _halfGrid;
     private readonly _algorithm;
-    private readonly _onRebuild?;
+    private readonly _onRebuild;
     private _chunks;
     private _currentGridX;
     private _currentGridZ;

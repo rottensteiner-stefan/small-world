@@ -1,3 +1,4 @@
+import { Vector3D } from '../../math/index.js';
 export declare class Color {
     r: number;
     g: number;
@@ -61,6 +62,7 @@ export declare class Color {
     static get DARKRED(): Color;
     static get DARKSALMON(): Color;
     static get DARKSEAGREEN(): Color;
+    static get DARKSEAGREEN_X11(): Color;
     static get DARKSLATEGRAY(): Color;
     static get DARKTURQUOISE(): Color;
     static get DARKVIOLET(): Color;
@@ -206,4 +208,8 @@ export declare class Color {
      * @returns Float32Array(4)
      */
     toFloat32Array(): Float32Array;
+    /**
+     * Returns the RGB components as a Vector3D.
+     */
+    toVector3(): Vector3D;
 }

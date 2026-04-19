@@ -2,7 +2,7 @@ import { Color } from '../core/index.js';
 import { Renderer, LightDataInterface } from '../interfaces/index.js';
 import { RendererType } from '../enums/index.js';
 import { Scene } from '../core/Scene.js';
-import { Vector3D } from '../math/Vector3D.js';
+import { Vector3D } from '../math/index.js';
 import { EngineConfig, QualityConfig } from '../interfaces/EngineConfig.js';
 /**
  * Base class for all renderer implementations.
