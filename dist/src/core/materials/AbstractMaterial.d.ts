@@ -1,5 +1,5 @@
 import { Color } from '../colors/index.js';
-import { MaterialType } from '../../enums/index.js';
+import { MaterialType, CullMode } from '../../enums/index.js';
 import { RenderManifest } from '../renderers/shaders/RenderManifest.js';
 /**
  * Base class for all material types.
@@ -11,6 +11,8 @@ export declare abstract class AbstractMaterial {
     uuid: string;
     /** The base color of the material. */
     color: Color;
+    /** The culling mode for this material. Defaults to BACK. */
+    cullMode: CullMode;
     /** Cached render manifest to avoid frequent allocations. */
     protected _renderManifest: RenderManifest | undefined;
     /**

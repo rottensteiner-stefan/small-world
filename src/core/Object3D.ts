@@ -43,6 +43,8 @@ export class Object3D {
   public frustumCulled: boolean = true;
   /** Whether the object is static (not moving). Static objects are optimized in the spatial partitioning system. */
   public isStatic: boolean = false;
+  /** Whether the object is currently within the camera frustum (calculated during culling). */
+  public inFrustum: boolean = true;
 
   /**
    * Creates a new Object3D.

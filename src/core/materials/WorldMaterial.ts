@@ -62,6 +62,11 @@ export class WorldMaterial extends AbstractMaterial {
 
     texs["u_diffuseMap"] = this.diffuseMap;
 
+    this._renderManifest.state = {
+      ...this._renderManifest.state,
+      culling: this.cullMode,
+    };
+
     return this._renderManifest;
   }
 }
