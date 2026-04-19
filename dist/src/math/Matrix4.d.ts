@@ -23,9 +23,5 @@ export declare class Matrix4 {
     static rotateY(angle: number, target: Matrix4): void;
     static rotateZ(angle: number, target: Matrix4): void;
     static translate(x: number, y: number, z: number, target: Matrix4): void;
-    /**
-     * Sets a scaling matrix.
-     * If only x and y (matrix) are provided, performs uniform scaling.
-     */
     static scale(x: number, y: number | Matrix4, z?: number, target?: Matrix4): void;
 }

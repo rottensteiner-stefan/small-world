@@ -1,6 +1,7 @@
 /// src/core/materials/AbstractMaterial.ts
+
 import { Color } from "../colors/index.js";
-import { MaterialType } from "../../enums/index.js";
+import { MaterialType, CullMode } from "../../enums/index.js";
 import { RenderManifest } from "../renderers/shaders/RenderManifest.js";
 
 /**
@@ -14,6 +15,9 @@ export abstract class AbstractMaterial {
   public uuid: string = crypto.randomUUID();
   /** The base color of the material. */
   public color: Color = Color.WHITE;
+
+  /** The culling mode for this material. Defaults to BACK. */
+  public cullMode: CullMode = CullMode.BACK;
 
   /** Cached render manifest to avoid frequent allocations. */
   protected _renderManifest: RenderManifest | undefined = undefined;

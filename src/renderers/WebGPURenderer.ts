@@ -17,6 +17,8 @@ import {
   BlendingMode,
   MaterialType,
   RendererType,
+  TextureFilter,
+  TextureWrap,
 } from "../enums/index.js";
 import { EngineConfig } from "../interfaces/EngineConfig.js";
 
@@ -42,7 +44,7 @@ interface WebGPUPipelineCache {
 }
 
 /**
- * Modern WebGPU implementation with memory management and robust attribute handling.
+ * Modern WebGPU implementation with dynamic vertex updates and memory management.
  */
 export class WebGPURenderer extends AbstractRenderer {
   public override readonly type: RendererType = RendererType.WEB_GPU;
@@ -57,12 +59,13 @@ export class WebGPURenderer extends AbstractRenderer {
   private _whiteTexView!: GPUTextureView;
   private _flatNormalTexView!: GPUTextureView;
   private _defaultCubeTexView!: GPUTextureView;
-  private _defaultSampler!: GPUSampler;
+  
+  private _samplerCache: Map<string, GPUSampler> = new Map();
 
   private _dummyNormalBuffer!: GPUBuffer;
   private _dummyUvBuffer!: GPUBuffer;
   private _dummyTangentBuffer!: GPUBuffer;
-  private _dummyBufferSize: number = 0; // Initialize to 0 to force creation!
+  private _dummyBufferSize: number = 0;
 
   private _geoCache: Map<GeometryDataInterface, WebGPUGeoCache> = new Map();
   private _textureViewCache: Map<Texture, GPUTextureView> = new Map();
@@ -117,33 +120,46 @@ export class WebGPURenderer extends AbstractRenderer {
         this._device!.queue.writeTexture({ texture: whiteCube, origin: [0, 0, i] }, new Uint8Array([50, 50, 100, 255]), { bytesPerRow: 4 }, [1, 1]);
     }
     this._defaultCubeTexView = whiteCube.createView({ dimension: "cube" });
-    this._defaultSampler = this._device!.createSampler({ magFilter: "linear", minFilter: "linear" });
 
     this._ensureDummyBufferSize(1000);
   }
 
+  private _getSampler(tex: Texture | undefined): GPUSampler {
+    const mag = tex?.magFilter === TextureFilter.NEAREST ? "nearest" : "linear";
+    const min = tex?.minFilter === TextureFilter.NEAREST ? "nearest" : "linear";
+    const mapWrap = (w: TextureWrap | undefined): GPUAddressMode => {
+        if (w === TextureWrap.REPEAT) return "repeat";
+        if (w === TextureWrap.MIRRORED_REPEAT) return "mirror-repeat";
+        return "clamp-to-edge";
+    };
+    const u = mapWrap(tex?.addressModeU);
+    const v = mapWrap(tex?.addressModeV);
+    const key = `${mag}_${min}_${u}_${v}`;
+    let s = this._samplerCache.get(key);
+    if (!s) {
+        s = this._device!.createSampler({ magFilter: mag, minFilter: min, addressModeU: u, addressModeV: v, mipmapFilter: "linear" });
+        this._samplerCache.set(key, s);
+    }
+    return s;
+  }
+
   private _ensureDummyBufferSize(vertexCount: number): void {
       if (this._dummyBufferSize >= vertexCount * 3 && this._dummyNormalBuffer) return;
-      
       const newSize = Math.max(this._dummyBufferSize * 2, vertexCount * 3, 3000);
       if(this._dummyNormalBuffer) this._dummyNormalBuffer.destroy();
       if(this._dummyUvBuffer) this._dummyUvBuffer.destroy();
       if(this._dummyTangentBuffer) this._dummyTangentBuffer.destroy();
-
       const normalData = new Float32Array(newSize).fill(0);
       for(let i=0; i<newSize; i+=3) normalData[i+1] = 1.0; 
       this._dummyNormalBuffer = this._device!.createBuffer({ size: normalData.byteLength, usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST });
       this._device!.queue.writeBuffer(this._dummyNormalBuffer, 0, normalData);
-
       const uvData = new Float32Array(newSize).fill(0);
       this._dummyUvBuffer = this._device!.createBuffer({ size: uvData.byteLength, usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST });
       this._device!.queue.writeBuffer(this._dummyUvBuffer, 0, uvData);
-
       const tangentData = new Float32Array(newSize).fill(0);
       for(let i=0; i<newSize; i+=3) tangentData[i] = 1.0; 
       this._dummyTangentBuffer = this._device!.createBuffer({ size: tangentData.byteLength, usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST });
       this._device!.queue.writeBuffer(this._dummyTangentBuffer, 0, tangentData);
-
       this._dummyBufferSize = newSize;
   }
 
@@ -178,46 +194,27 @@ export class WebGPURenderer extends AbstractRenderer {
     const state = manifest.state || {};
     const key = `${shaderId}_${topology}_${state.culling}_${state.blending}`;
     let cache = this._pipelines.get(key);
-
     if (!cache) {
       const sm = this._getShaderModule(shaderId);
       const objEntries: GPUBindGroupLayoutEntry[] = [
         { binding: 0, visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT, buffer: { type: "uniform" } },
         { binding: 1, visibility: GPUShaderStage.FRAGMENT, sampler: { type: "filtering" } },
       ];
-
-      if (shaderId === MaterialType.SKYBOX) {
-          objEntries.push({ binding: 9, visibility: GPUShaderStage.FRAGMENT, texture: { viewDimension: "cube" } });
-      } else {
-          for(let i=2; i<=8; i++) objEntries.push({ binding: i, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: "float" } });
-      }
-      
+      if (shaderId === MaterialType.SKYBOX) { objEntries.push({ binding: 9, visibility: GPUShaderStage.FRAGMENT, texture: { viewDimension: "cube" } }); }
+      else { for(let i=2; i<=8; i++) objEntries.push({ binding: i, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: "float" } }); }
       const objBGL = this._device!.createBindGroupLayout({ entries: objEntries });
       const pipelineLayout = this._device!.createPipelineLayout({ bindGroupLayouts: [this._globalBGL, objBGL] });
-
       const vertexBuffers: GPUVertexBufferLayout[] = [
         { arrayStride: 12, attributes: [{ shaderLocation: 0, offset: 0, format: "float32x3" }] },
         { arrayStride: 12, attributes: [{ shaderLocation: 1, offset: 0, format: "float32x3" }] },
         { arrayStride: 8, attributes: [{ shaderLocation: 2, offset: 0, format: "float32x2" }] },
         { arrayStride: 12, attributes: [{ shaderLocation: 3, offset: 0, format: "float32x3" }] },
       ];
-
       const targets: GPUColorTargetState[] = [{ format: this._format }];
       if (state.blending === BlendingMode.ALPHA) {
-        targets[0]!.blend = {
-          color: { srcFactor: "src-alpha", dstFactor: "one-minus-src-alpha", operation: "add" },
-          alpha: { srcFactor: "one", dstFactor: "one-minus-src-alpha", operation: "add" },
-        };
+        targets[0]!.blend = { color: { srcFactor: "src-alpha", dstFactor: "one-minus-src-alpha", operation: "add" }, alpha: { srcFactor: "one", dstFactor: "one-minus-src-alpha", operation: "add" } };
       }
-
-      const pipeline = this._device!.createRenderPipeline({
-        layout: pipelineLayout,
-        vertex: { module: sm, entryPoint: "vs", buffers: vertexBuffers },
-        fragment: { module: sm, entryPoint: "fs", targets },
-        primitive: { topology, cullMode: state.culling || "back" },
-        depthStencil: { depthWriteEnabled: state.depthWrite !== false, depthCompare: "less-equal", format: "depth24plus" },
-      });
-
+      const pipeline = this._device!.createRenderPipeline({ layout: pipelineLayout, vertex: { module: sm, entryPoint: "vs", buffers: vertexBuffers }, fragment: { module: sm, entryPoint: "fs", targets }, primitive: { topology, cullMode: state.culling || "back" }, depthStencil: { depthWriteEnabled: state.depthWrite !== false, depthCompare: "less-equal", format: "depth24plus" } });
       cache = { pipeline, layout: pipelineLayout, bgLayouts: [this._globalBGL, objBGL] };
       this._pipelines.set(key, cache);
     }
@@ -237,7 +234,7 @@ export class WebGPURenderer extends AbstractRenderer {
 
   private _getGeoCache(geo: GeometryDataInterface): WebGPUGeoCache {
     let c = this._geoCache.get(geo);
-    if (!c) {
+    if (!c || geo.needsUpdate) {
       const createBuf = (data: any, usage: number): GPUBuffer => {
         const b = this._device!.createBuffer({ size: (data.byteLength + 3) & ~3, usage, mappedAtCreation: true });
         if (data instanceof Float32Array) new Float32Array(b.getMappedRange()).set(data);
@@ -246,6 +243,14 @@ export class WebGPURenderer extends AbstractRenderer {
         b.unmap();
         return b;
       };
+      
+      if (c && geo.needsUpdate) {
+          this._device!.queue.writeBuffer(c.vb, 0, geo.vertices);
+          if (c.nb && geo.normals) this._device!.queue.writeBuffer(c.nb, 0, geo.normals);
+          geo.needsUpdate = false;
+          return c;
+      }
+
       c = {
         vb: createBuf(geo.vertices, GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST),
         nb: geo.normals?.length ? createBuf(geo.normals, GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST) : undefined,
@@ -259,48 +264,33 @@ export class WebGPURenderer extends AbstractRenderer {
         format: (geo.indices instanceof Uint32Array || geo.wireframeIndices instanceof Uint32Array) ? "uint32" : "uint16",
       };
       this._geoCache.set(geo, c);
+      geo.needsUpdate = false;
     }
     return c;
   }
 
-  /** @inheritdoc */
   public render(scene: Scene, vpMatrix: Float32Array, camPos: Vector3D = new Vector3D()): void {
     if (!this._device) return;
     this._frameCount++;
-
     const lights = this.extractLights(scene);
     this._updateGlobalBuffers(vpMatrix, camPos, lights);
-
     const ce = this._device.createCommandEncoder();
     const rp = ce.beginRenderPass({
       colorAttachments: [{ view: this._context.getCurrentTexture().createView(), clearValue: this._clearColor, loadOp: "clear", storeOp: "store" }],
       depthStencilAttachment: { view: this._depthTexture.createView(), depthClearValue: 1.0, depthLoadOp: "clear", depthStoreOp: "store" },
     });
-
     const sortedGroups = scene.getVisibleObjectsSorted();
-
     const skyboxGroup = sortedGroups.get(MaterialType.SKYBOX);
-    if (skyboxGroup) {
-        this._renderGroup(rp, MaterialType.SKYBOX, skyboxGroup);
-        sortedGroups.delete(MaterialType.SKYBOX);
-    }
-
-    for (const [shaderId, materialGroups] of sortedGroups.entries()) {
-      this._renderGroup(rp, shaderId, materialGroups);
-    }
-
+    if (skyboxGroup) { this._renderGroup(rp, MaterialType.SKYBOX, skyboxGroup); sortedGroups.delete(MaterialType.SKYBOX); }
+    for (const [shaderId, materialGroups] of sortedGroups.entries()) { this._renderGroup(rp, shaderId, materialGroups); }
     rp.end();
     this._device.queue.submit([ce.finish()]);
-
     if (this._frameCount % 100 === 0) this._pruneObjectBuffers();
   }
 
   private _pruneObjectBuffers(): void {
       for (const [uuid, data] of this._objectUniformBuffers.entries()) {
-          if (this._frameCount - data.lastFrame > 100) {
-              data.buffer.destroy();
-              this._objectUniformBuffers.delete(uuid);
-          }
+          if (this._frameCount - data.lastFrame > 100) { data.buffer.destroy(); this._objectUniformBuffers.delete(uuid); }
       }
   }
 
@@ -308,47 +298,31 @@ export class WebGPURenderer extends AbstractRenderer {
     const groupIterator = materialGroups.values();
     const firstGroup = groupIterator.next().value;
     if (!firstGroup || firstGroup.length === 0) return;
-
     const firstObj = firstGroup[0];
     if (!firstObj || !firstObj.material) return;
-
     const topology: GPUPrimitiveTopology = shaderId === MaterialType.WIREFRAME ? "line-list" : "triangle-list";
     const cache = this._getPipeline(firstObj.material.getRenderManifest(), topology);
-
     rp.setPipeline(cache.pipeline);
     rp.setBindGroup(0, this._globalBindGroup);
-
     for (const objects of materialGroups.values()) {
       const mat = objects[0]?.material;
       if (!mat) continue;
       const manifest = mat.getRenderManifest();
-      
       for (const obj of objects) {
         if (!obj.geometry) continue;
-
         const uBuffer = this._getObjUniformBuffer(obj);
         this._updateObjUniformBuffer(uBuffer, obj, manifest);
-
         const texBindGroup = this._getTexBindGroup(uBuffer, manifest, cache.bgLayouts[1]!);
         rp.setBindGroup(1, texBindGroup);
-
         const gCache = this._getGeoCache(obj.geometry);
         this._ensureDummyBufferSize(gCache.vertexCount);
-
         rp.setVertexBuffer(0, gCache.vb);
         rp.setVertexBuffer(1, gCache.nb || this._dummyNormalBuffer);
         rp.setVertexBuffer(2, gCache.uvb || this._dummyUvBuffer);
         rp.setVertexBuffer(3, gCache.tb || this._dummyTangentBuffer);
-
-        if (topology === "line-list" && gCache.wib) {
-          rp.setIndexBuffer(gCache.wib, gCache.format!);
-          rp.drawIndexed(gCache.wireframeIndexCount);
-        } else if (gCache.ib) {
-          rp.setIndexBuffer(gCache.ib, gCache.format!);
-          rp.drawIndexed(gCache.indexCount);
-        } else {
-          rp.draw(gCache.vertexCount);
-        }
+        if (topology === "line-list" && gCache.wib) { rp.setIndexBuffer(gCache.wib, gCache.format!); rp.drawIndexed(gCache.wireframeIndexCount); }
+        else if (gCache.ib) { rp.setIndexBuffer(gCache.ib, gCache.format!); rp.drawIndexed(gCache.indexCount); }
+        else { rp.draw(gCache.vertexCount); }
       }
     }
   }
@@ -368,39 +342,29 @@ export class WebGPURenderer extends AbstractRenderer {
     const data = new Float32Array(64);
     data.set(o.worldMatrix.data, 0);
     data.set(o.material!.color.toFloat32Array(), 16);
-    
     let specColor = new Color(1, 1, 1, 1);
-    if (o.material instanceof PhongMaterial) specColor = o.material.specularColor;
+    if (o.material instanceof PhongMaterial) specColor = (o.material as PhongMaterial).specularColor;
     data.set(specColor.toFloat32Array(), 20);
-
     const props = m.properties;
     const diff = m.textures["u_diffuseMap"] as Texture;
     data.set([diff?.offset.x || 0, diff?.offset.y || 0, diff?.repeat.x || 1, diff?.repeat.y || 1], 24);
-    
     let shininess = 32.0;
     if (o.material instanceof PhongMaterial || o.material instanceof TerrainMaterial) shininess = (o.material as any).shininess;
-    
     const metallic = typeof props["u_metallic"] === "number" ? props["u_metallic"] : 0.0;
     const roughness = typeof props["u_roughness"] === "number" ? props["u_roughness"] : 0.5;
     const ao = typeof props["u_ao"] === "number" ? props["u_ao"] : 1.0;
-
     data.set([shininess, m.shaderId === MaterialType.TERRAIN ? 1.0 : 0.0, metallic, roughness], 28);
     data.set([ao, 0, 0, 0], 32); 
     if (o.material instanceof TerrainMaterial) data.set(o.material.thresholds, 36);
-
     this._device!.queue.writeBuffer(b, 0, data);
   }
 
   private _getTexBindGroup(objBuffer: GPUBuffer, m: RenderManifest, layout: GPUBindGroupLayout): GPUBindGroup {
     const texs = m.textures;
-    const entries: GPUBindGroupEntry[] = [
-        { binding: 0, resource: { buffer: objBuffer } },
-        { binding: 1, resource: this._defaultSampler },
-    ];
-
-    if (m.shaderId === MaterialType.SKYBOX) {
-        entries.push({ binding: 9, resource: this._getGPUCubeTextureView(texs["u_skybox"] as CubeTexture) });
-    } else {
+    const diffuseTex = texs["u_diffuseMap"] as Texture;
+    const entries: GPUBindGroupEntry[] = [ { binding: 0, resource: { buffer: objBuffer } }, { binding: 1, resource: this._getSampler(diffuseTex) } ];
+    if (m.shaderId === MaterialType.SKYBOX) { entries.push({ binding: 9, resource: this._getGPUCubeTextureView(texs["u_skybox"] as CubeTexture) }); }
+    else {
         entries.push({ binding: 2, resource: this._getTextureView(texs["u_diffuseMap"] as Texture) });
         entries.push({ binding: 3, resource: this._getNormalTextureView(texs["u_normalMap"] as Texture) });
         entries.push({ binding: 4, resource: this._getTextureView(texs["u_specularMap"] as Texture) });
@@ -409,7 +373,6 @@ export class WebGPURenderer extends AbstractRenderer {
         entries.push({ binding: 7, resource: this._getTextureView(texs["u_rockMap"] as Texture) });
         entries.push({ binding: 8, resource: this._getTextureView(texs["u_snowMap"] as Texture) });
     }
-
     return this._device!.createBindGroup({ layout, entries });
   }
 
@@ -417,11 +380,7 @@ export class WebGPURenderer extends AbstractRenderer {
     if (!tex || !tex.isLoaded || !tex.image) return this._whiteTexView;
     let v = this._textureViewCache.get(tex);
     if (!v) {
-        const t = this._device!.createTexture({ 
-          size: [tex.image.width, tex.image.height], 
-          format: "rgba8unorm", 
-          usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT 
-        });
+        const t = this._device!.createTexture({ size: [tex.image.width, tex.image.height], format: "rgba8unorm", usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT });
         this._device!.queue.copyExternalImageToTexture({ source: tex.image }, { texture: t }, [tex.image.width, tex.image.height]);
         v = t.createView();
         this._textureViewCache.set(tex, v);
@@ -439,14 +398,8 @@ export class WebGPURenderer extends AbstractRenderer {
     let v = this._cubeTextureViewCache.get(tex);
     if (!v) {
         const img = tex.images[0]!;
-        const t = this._device!.createTexture({ 
-          size: [img.width, img.height, 6], 
-          format: "rgba8unorm", 
-          usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT 
-        });
-        for(let i=0; i<6; i++) {
-          this._device!.queue.copyExternalImageToTexture({ source: tex.images[i]! }, { texture: t, origin: [0,0,i] }, [img.width, img.height]);
-        }
+        const t = this._device!.createTexture({ size: [img.width, img.height, 6], format: "rgba8unorm", usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT });
+        for(let i=0; i<6; i++) { this._device!.queue.copyExternalImageToTexture({ source: tex.images[i]! }, { texture: t, origin: [0,0,i] }, [img.width, img.height]); }
         v = t.createView({ dimension: "cube" });
         this._cubeTextureViewCache.set(tex, v);
     }
@@ -457,27 +410,21 @@ export class WebGPURenderer extends AbstractRenderer {
     const gData = new Float32Array(64);
     gData.set(vp, 0);
     gData.set([camPos.x, camPos.y, camPos.z, 1], 16);
-    
     gData.set([lights.aCol.r * lights.aIntensity, lights.aCol.g * lights.aIntensity, lights.aCol.b * lights.aIntensity, 1], 20);
     gData.set([lights.dCol.r * lights.dIntensity, lights.dCol.g * lights.dIntensity, lights.dCol.b * lights.dIntensity, 1], 24);
-    
     gData.set([lights.dDir.x, lights.dDir.y, lights.dDir.z, 0], 28);
     gData.set([lights.pLights.length, lights.sLights.length, lights.aLights.length, 0], 32);
     this._device!.queue.writeBuffer(this._globalUniformBuffer, 0, gData);
-
     const plData = new Float32Array(Math.max(lights.pLights.length * 8, 8));
     for(let i=0; i<lights.pLights.length; i++) {
-        const l = lights.pLights[i]!;
-        const d = l.worldMatrix.data;
+        const l = lights.pLights[i]!; const d = l.worldMatrix.data;
         plData.set([d[12] as number, d[13] as number, d[14] as number, 1], i*8);
         plData.set([l.color.r * l.intensity, l.color.g * l.intensity, l.color.b * l.intensity, 1], i*8+4);
     }
     this._device!.queue.writeBuffer(this._pointLightBuffer, 0, plData);
-
     const slData = new Float32Array(Math.max(lights.sLights.length * 16, 16));
     for(let i=0; i<lights.sLights.length; i++) {
-        const l = lights.sLights[i]!;
-        const d = l.worldMatrix.data;
+        const l = lights.sLights[i]!; const d = l.worldMatrix.data;
         slData.set([d[12] as number, d[13] as number, d[14] as number, 1], i*16);
         const dir = MathPool.acquireVector().copyFrom(l.direction).normalize();
         slData.set([dir.x, dir.y, dir.z, 0], i*16+4);
@@ -486,12 +433,9 @@ export class WebGPURenderer extends AbstractRenderer {
         MathPool.releaseVector(dir);
     }
     this._device!.queue.writeBuffer(this._spotLightBuffer, 0, slData);
-
     const alData = new Float32Array(Math.max(lights.aLights.length * 24, 24));
     for(let i=0; i<lights.aLights.length; i++) {
-        const l = lights.aLights[i]!;
-        const m = l.worldMatrix.data;
-        const off = i*24;
+        const l = lights.aLights[i]!; const m = l.worldMatrix.data; const off = i*24;
         alData.set([m[12] as number, m[13] as number, m[14] as number, 1], off);
         alData.set([l.color.r * l.intensity, l.color.g * l.intensity, l.color.b * l.intensity, 1], off+4);
         alData.set([m[0] as number, m[1] as number, m[2] as number, 0], off+8);

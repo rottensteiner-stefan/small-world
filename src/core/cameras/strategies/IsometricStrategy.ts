@@ -6,7 +6,7 @@ import { Camera } from "../../Camera.js";
 import { Vector3D } from "../../../math/Vector3D.js";
 import { Matrix4 } from "../../../math/Matrix4.js";
 import { CameraStrategyType } from "../../../enums/index.js";
-import { MathUtils, OrthographicProjection, MathPool } from "../../../math/index.js";
+import { OrthographicProjection, MathPool } from "../../../math/index.js";
 
 /**
  * Strategy for an isometric 2D/3D camera.
@@ -29,8 +29,16 @@ export class IsometricStrategy implements CameraStrategy {
 
     const constrainedTarget = MathPool.acquireVector().copyFrom(targetPos);
     if (this.constraints) {
-        if (this.constraints.min) constrainedTarget.max(this.constraints.min);
-        if (this.constraints.max) constrainedTarget.min(this.constraints.max);
+        if (this.constraints.min) {
+            constrainedTarget.x = Math.max(constrainedTarget.x, this.constraints.min.x);
+            constrainedTarget.y = Math.max(constrainedTarget.y, this.constraints.min.y);
+            constrainedTarget.z = Math.max(constrainedTarget.z, this.constraints.min.z);
+        }
+        if (this.constraints.max) {
+            constrainedTarget.x = Math.min(constrainedTarget.x, this.constraints.max.x);
+            constrainedTarget.y = Math.min(constrainedTarget.y, this.constraints.max.y);
+            constrainedTarget.z = Math.min(constrainedTarget.z, this.constraints.max.z);
+        }
     }
 
     // Classic Isometric Angles: 45° around Y, ~35.264° around X

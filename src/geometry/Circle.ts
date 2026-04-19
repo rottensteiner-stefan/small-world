@@ -73,5 +73,6 @@ export class Circle extends AbstractGeometry {
     this._uvs = new Float32Array(uv);
     this._indices = this._createIndexArray(idx.length);
     this._indices.set(idx);
+    this.computeNormals();
   }
 }

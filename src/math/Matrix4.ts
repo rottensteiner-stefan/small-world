@@ -56,7 +56,6 @@ export class Matrix4 {
   }
 
   public compose(pos: Vector3D, rot: Vector3D, scale: Vector3D): this {
-    const te = this.data;
     const x = rot.x, y = rot.y, z = rot.z;
     const sx = Math.sin(x), cx = Math.cos(x);
     const sy = Math.sin(y), cy = Math.cos(y);
@@ -66,22 +65,18 @@ export class Matrix4 {
     this.data[1] = (cy * sz + sy * sx * cz) * scale.x;
     this.data[2] = (-sy * cz + cy * sx * sz) * scale.x;
     this.data[3] = 0;
-
     this.data[4] = -cy * sz * scale.y;
     this.data[5] = (cy * cz - sy * sx * sz) * scale.y;
     this.data[6] = (sy * sz + cy * sx * cz) * scale.y;
     this.data[7] = 0;
-
     this.data[8] = sy * scale.z;
     this.data[9] = -sx * cy * scale.z;
     this.data[10] = cy * cx * scale.z;
     this.data[11] = 0;
-
     this.data[12] = pos.x;
     this.data[13] = pos.y;
     this.data[14] = pos.z;
     this.data[15] = 1;
-
     return this;
   }
 
@@ -137,7 +132,6 @@ export class Matrix4 {
     const b21 = be[1]!, b22 = be[5]!, b23 = be[9]!, b24 = be[13]!;
     const b31 = be[2]!, b32 = be[6]!, b33 = be[10]!, b34 = be[14]!;
     const b41 = be[3]!, b42 = be[7]!, b43 = be[11]!, b44 = be[15]!;
-
     te[0] = a11 * b11 + a12 * b21 + a13 * b31 + a14 * b41;
     te[4] = a11 * b12 + a12 * b22 + a13 * b32 + a14 * b42;
     te[8] = a11 * b13 + a12 * b23 + a13 * b33 + a14 * b43;
@@ -166,11 +160,11 @@ export class Matrix4 {
   }
 
   public static orthographic(left: number, right: number, bottom: number, top: number, near: number, far: number, target: Matrix4): void {
-    const w = 1.0 / (right - left); const h = 1.0 / (top - bottom); const p = 1.0 / (near - far);
+    const w = 1.0 / (right - left); const h = 1.0 / (top - bottom); const p = 1.0 / (far - near);
     target.data.fill(0);
     target.data[0] = 2 * w;
     target.data[5] = 2 * h;
-    target.data[10] = p; // Standard Ortho: 1/(n-f)
+    target.data[10] = p; 
     target.data[12] = -(right + left) * w;
     target.data[13] = -(top + bottom) * h;
     target.data[14] = near * p;
@@ -182,12 +176,10 @@ export class Matrix4 {
     const x = MathPool.acquireVector().copyFrom(up).cross(z).normalize();
     const y = MathPool.acquireVector().copyFrom(z).cross(x).normalize();
     const te = result.data;
-    
     te[0] = x.x; te[4] = x.y; te[8] = x.z; te[12] = -x.dot(eye);
     te[1] = y.x; te[5] = y.y; te[9] = y.z; te[13] = -y.dot(eye);
     te[2] = z.x; te[6] = z.y; te[10] = z.z; te[14] = -z.dot(eye);
     te[3] = 0;   te[7] = 0;   te[11] = 0;   te[15] = 1;
-
     MathPool.releaseVector(x); MathPool.releaseVector(y); MathPool.releaseVector(z);
   }
 

@@ -65,6 +65,11 @@ export class BasicMaterial extends AbstractMaterial {
       texs["u_diffuseMap"] = undefined;
     }
 
+    this._renderManifest.state = {
+      ...this._renderManifest.state,
+      culling: this.cullMode,
+    };
+
     return this._renderManifest;
   }
 }

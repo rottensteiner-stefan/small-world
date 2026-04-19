@@ -111,6 +111,11 @@ export class PhongMaterial extends AbstractMaterial {
     texs["u_normalMap"] = this.normalMap;
     texs["u_specularMap"] = this.specularMap;
 
+    this._renderManifest.state = {
+      ...this._renderManifest.state,
+      culling: this.cullMode,
+    };
+
     return this._renderManifest;
   }
 }

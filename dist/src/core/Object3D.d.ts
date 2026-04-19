@@ -35,6 +35,8 @@ export declare class Object3D {
     frustumCulled: boolean;
     /** Whether the object is static (not moving). Static objects are optimized in the spatial partitioning system. */
     isStatic: boolean;
+    /** Whether the object is currently within the camera frustum (calculated during culling). */
+    inFrustum: boolean;
     /**
      * Creates a new Object3D.
      * @param name The name of the object. Defaults to a random UUID.

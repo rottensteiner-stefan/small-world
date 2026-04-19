@@ -1,9 +1,10 @@
 import { AbstractExample } from '../src/core/example/AbstractExample.js';
 /**
- * Example 5: Introduction to 2D elements and Isometric Camera.
+ * Example 5: Grid-based Movement with Enemies.
  */
 export declare class Example5 extends AbstractExample {
     private _player;
+    private _enemies;
     private _targetPos;
     private _isMoving;
     private _moveProgress;
@@ -11,6 +12,8 @@ export declare class Example5 extends AbstractExample {
     private _moveEnd;
     private _moveDuration;
     protected setupScene(): Promise<void>;
+    private _createActor;
     protected update(deltaTime: number): void;
+    private _startMove;
     protected getDebugInfo(): Record<string, string | number>;
 }

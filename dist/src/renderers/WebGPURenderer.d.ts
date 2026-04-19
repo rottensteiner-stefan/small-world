@@ -4,7 +4,7 @@ import { RendererType } from '../enums/index.js';
 import { EngineConfig } from '../interfaces/EngineConfig.js';
 import { AbstractRenderer } from './AbstractRenderer.js';
 /**
- * Modern WebGPU implementation with memory management and robust attribute handling.
+ * Modern WebGPU implementation with dynamic vertex updates and memory management.
  */
 export declare class WebGPURenderer extends AbstractRenderer {
     readonly type: RendererType;
@@ -17,7 +17,7 @@ export declare class WebGPURenderer extends AbstractRenderer {
     private _whiteTexView;
     private _flatNormalTexView;
     private _defaultCubeTexView;
-    private _defaultSampler;
+    private _samplerCache;
     private _dummyNormalBuffer;
     private _dummyUvBuffer;
     private _dummyTangentBuffer;
@@ -37,12 +37,12 @@ export declare class WebGPURenderer extends AbstractRenderer {
     /** @inheritdoc */
     initialize(canvas: HTMLCanvasElement, attributes?: Record<string, unknown>, config?: EngineConfig): Promise<void>;
     private _initDefaultResources;
+    private _getSampler;
     private _ensureDummyBufferSize;
     private _initGlobalBuffers;
     private _getPipeline;
     private _getShaderModule;
     private _getGeoCache;
-    /** @inheritdoc */
     render(scene: Scene, vpMatrix: Float32Array, camPos?: Vector3D): void;
     private _pruneObjectBuffers;
     private _renderGroup;
