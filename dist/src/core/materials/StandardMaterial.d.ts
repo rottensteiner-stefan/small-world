@@ -3,6 +3,7 @@ import { Color } from '../colors/index.js';
 import { MaterialType } from '../../enums/index.js';
 import { Texture } from '../textures/index.js';
 import { RenderManifest } from '../renderers/shaders/RenderManifest.js';
+import { ShaderDefinition } from '../renderers/shaders/ShaderDefinition.js';
 /**
  * Configuration options for StandardMaterial.
  */
@@ -43,4 +44,6 @@ export declare class StandardMaterial extends AbstractMaterial {
     constructor(options?: StandardMaterialOptions);
     /** @inheritdoc */
     getRenderManifest(): RenderManifest;
+    /** @inheritdoc */
+    getShaderDefinition(): ShaderDefinition;
 }

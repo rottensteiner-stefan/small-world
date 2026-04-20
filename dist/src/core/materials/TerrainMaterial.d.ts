@@ -3,6 +3,7 @@ import { MaterialType } from '../../enums/index.js';
 import { Texture } from '../textures/Texture.js';
 import { Color } from '../colors/Color.js';
 import { RenderManifest } from '../renderers/shaders/RenderManifest.js';
+import { ShaderDefinition } from '../renderers/shaders/ShaderDefinition.js';
 /**
  * Configuration options for terrain material.
  */
@@ -51,4 +52,6 @@ export declare class TerrainMaterial extends AbstractMaterial {
     constructor(options?: TerrainMaterialOptions);
     /** @inheritdoc */
     getRenderManifest(): RenderManifest;
+    /** @inheritdoc */
+    getShaderDefinition(): ShaderDefinition;
 }

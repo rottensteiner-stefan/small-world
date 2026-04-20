@@ -3,6 +3,7 @@ import { AbstractMaterial } from './AbstractMaterial.js';
 import { MaterialType } from '../../enums/index.js';
 import { Texture } from '../textures/Texture.js';
 import { RenderManifest } from '../renderers/shaders/RenderManifest.js';
+import { ShaderDefinition } from '../renderers/shaders/ShaderDefinition.js';
 /**
  * Material for rendering 2D sprites.
  */
@@ -24,4 +25,6 @@ export declare class SpriteMaterial extends AbstractMaterial {
     });
     /** @inheritdoc */
     getRenderManifest(): RenderManifest;
+    /** @inheritdoc */
+    getShaderDefinition(): ShaderDefinition;
 }

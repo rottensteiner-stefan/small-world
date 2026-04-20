@@ -1,4 +1,5 @@
 import { ShaderDefinition } from './ShaderDefinition.js';
+import { ShaderProvider } from '../../../interfaces/index.js';
 /**
  * Supported shader languages.
  */
@@ -9,6 +10,7 @@ export type ShaderLanguage = "glsl300" | "glsl100" | "wgsl";
 export declare class ShaderRegistry {
     private static _instance;
     private _shaders;
+    private _providers;
     private _chunks;
     private constructor();
     /**
@@ -22,7 +24,14 @@ export declare class ShaderRegistry {
      */
     register(definition: ShaderDefinition): void;
     /**
+     * Registers a provider that can supply a shader definition on demand.
+     * @param id The shader ID.
+     * @param provider The provider instance.
+     */
+    registerProvider(id: string, provider: ShaderProvider): void;
+    /**
      * Gets a shader definition by its ID.
+     * If not found, it checks if a provider is registered for this ID.
      * @param id The ID of the shader.
      * @returns The shader definition or undefined if not found.
      */

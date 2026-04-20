@@ -1,6 +1,7 @@
 /// src/core/renderers/shaders/ShaderRegistry.ts
 
 import { ShaderDefinition } from "./ShaderDefinition.js";
+import { ShaderProvider } from "../../../interfaces/index.js";
 
 /**
  * Supported shader languages.
@@ -13,6 +14,7 @@ export type ShaderLanguage = "glsl300" | "glsl100" | "wgsl";
 export class ShaderRegistry {
   private static _instance: ShaderRegistry;
   private _shaders: Map<string, ShaderDefinition> = new Map();
+  private _providers: Map<string, ShaderProvider> = new Map();
   private _chunks: Map<string, Map<ShaderLanguage, string>> = new Map();
 
   private constructor() {}
@@ -34,18 +36,37 @@ export class ShaderRegistry {
    */
   public register(definition: ShaderDefinition): void {
     if (this._shaders.has(definition.id)) {
-      console.warn(`[ShaderRegistry] Overwriting existing shader: ${definition.id}`);
+      console.debug(`[ShaderRegistry] Overwriting shader: ${definition.id}`);
     }
     this._shaders.set(definition.id, definition);
   }
 
   /**
+   * Registers a provider that can supply a shader definition on demand.
+   * @param id The shader ID.
+   * @param provider The provider instance.
+   */
+  public registerProvider(id: string, provider: ShaderProvider): void {
+    this._providers.set(id, provider);
+  }
+
+  /**
    * Gets a shader definition by its ID.
+   * If not found, it checks if a provider is registered for this ID.
    * @param id The ID of the shader.
    * @returns The shader definition or undefined if not found.
    */
   public get(id: string): ShaderDefinition | undefined {
-    return this._shaders.get(id);
+    let def = this._shaders.get(id);
+
+    if (!def && this._providers.has(id)) {
+      const provider = this._providers.get(id)!;
+      def = provider.getShaderDefinition();
+      this.register(def);
+      this._providers.delete(id); // Move from provider to registered shader
+    }
+
+    return def;
   }
 
   /**
