@@ -29,9 +29,6 @@ export interface PhongMaterialOptions {
  * Material that implements the Phong reflection model.
  */
 export class PhongMaterial extends AbstractMaterial {
-  /** @inheritdoc */
-  public override readonly type: MaterialType = MaterialType.PHONG;
-
   /** The specular reflection color. */
   public specularColor: Color;
 
@@ -52,7 +49,7 @@ export class PhongMaterial extends AbstractMaterial {
    * @param options The configuration options for the material.
    */
   constructor(options: PhongMaterialOptions = {}) {
-    super();
+    super(MaterialType.PHONG);
     const {
       color = Color.WHITE,
       specularColor = Color.WHITE,
@@ -162,9 +159,8 @@ void main() {
         },
         wgsl: `[WGSL_STRUCTS]
 [WGSL_VS]
-@fragment fn fs(i: VertexOut) -> @location(0) vec4f {
+@fragment fn fs(i: Out) -> @location(0) vec4f {
     let texCol = textureSample(u_diffuseMap, s, i.uv);
-    let nMap = textureSample(u_normalMap, s, i.uv).rgb;
     // Basic lighting for now in WGSL
     return vec4f(texCol.rgb * obj.color.rgb, 1.0);
 }`,

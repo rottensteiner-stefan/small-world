@@ -21,16 +21,13 @@ export interface LambertMaterialOptions {
  * A material that uses the Lambertian reflectance model.
  */
 export class LambertMaterial extends AbstractMaterial {
-  /** @inheritdoc */
-  public override readonly type: MaterialType = MaterialType.LAMBERT;
-
   /** The diffuse texture map. */
   public diffuseMap: Texture | undefined;
   /** The normal texture map. */
   public normalMap: Texture | undefined;
 
   constructor(options: LambertMaterialOptions = {}) {
-    super();
+    super(MaterialType.LAMBERT);
     const { color = Color.WHITE, diffuseMap = undefined, normalMap = undefined } = options;
     this.color = color;
     this.diffuseMap = diffuseMap;

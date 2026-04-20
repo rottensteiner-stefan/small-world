@@ -8,11 +8,8 @@ import { ShaderDefinition } from "../renderers/shaders/ShaderDefinition.js";
  * A material for wireframe rendering.
  */
 export class WireframeMaterial extends AbstractMaterial {
-  /** @inheritdoc */
-  public override readonly type: MaterialType = MaterialType.WIREFRAME;
-
   constructor(color: Color = Color.WHITE) {
-    super();
+    super(MaterialType.WIREFRAME);
     this.color = color;
   }
 

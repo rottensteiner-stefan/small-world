@@ -9,9 +9,6 @@ import { ShaderDefinition } from "../renderers/shaders/ShaderDefinition.js";
  * Material for rendering 2D sprites.
  */
 export class SpriteMaterial extends AbstractMaterial {
-  /** @inheritdoc */
-  public override readonly type: MaterialType = MaterialType.SPRITE;
-
   /** The texture to display on the sprite. */
   public texture: Texture | undefined = undefined;
 
@@ -23,7 +20,7 @@ export class SpriteMaterial extends AbstractMaterial {
    * @param options The texture for the sprite or a configuration object.
    */
   constructor(options?: Texture | { texture?: Texture; color?: Color; transparent?: boolean }) {
-    super();
+    super(MaterialType.SPRITE);
     if (options instanceof Texture) {
       this.texture = options;
     } else if (options) {

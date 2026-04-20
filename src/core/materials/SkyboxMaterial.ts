@@ -19,9 +19,6 @@ export interface SkyboxMaterialOptions {
  * A material for skyboxes.
  */
 export class SkyboxMaterial extends AbstractMaterial {
-  /** @inheritdoc */
-  public override readonly type: MaterialType = MaterialType.SKYBOX;
-
   /** The cube map texture. */
   public cubeMap: CubeTexture | undefined;
 
@@ -30,7 +27,7 @@ export class SkyboxMaterial extends AbstractMaterial {
    * @param options The configuration options.
    */
   constructor(options: SkyboxMaterialOptions = {}) {
-    super();
+    super(MaterialType.SKYBOX);
     const { color = Color.WHITE, cubeMap = undefined } = options;
     this.color = color;
     this.cubeMap = cubeMap;
