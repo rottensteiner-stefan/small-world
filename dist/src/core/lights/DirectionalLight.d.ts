@@ -1,6 +1,7 @@
 import { AbstractLight, LightOptions } from './AbstractLight.js';
 import { LightType } from '../../enums/LightType.js';
 import { Vector3D } from '../../math/Vector3D.js';
+import { LightDataInterface } from '../../interfaces/index.js';
 /**
  * Configuration options for directional light.
  */
@@ -21,4 +22,6 @@ export declare class DirectionalLight extends AbstractLight {
      * @param options The configuration options for the light.
      */
     constructor(options?: DirectionalLightOptions);
+    /** @inheritdoc */
+    applyTo(data: LightDataInterface): void;
 }

@@ -1,4 +1,5 @@
 import { AbstractGeometry } from './AbstractGeometry.js';
+import { BoundingVolume } from '../interfaces/index.js';
 /**
  * Configuration options for cube geometry.
  */
@@ -31,4 +32,6 @@ export declare class Cube extends AbstractGeometry {
     constructor(options?: CubeOptions);
     /** @inheritdoc */
     protected generateGeometryData(): void;
+    /** @inheritdoc */
+    getBoundingVolume(): BoundingVolume;
 }

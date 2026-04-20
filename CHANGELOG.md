@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.18.00] - 2026-04-20
+
+- **Major Architectural Overhaul: Polymorphic Core**:
+  - **Open/Closed Principle Implementation**: Refactored major engine subsystems to eliminate "IF-monsters" and type-checking logic, allowing for seamless extension without modifying core classes.
+  - **Robust TypedArray Handling**:
+    - Replaced problematic `instanceof Uint32Array` checks with context-independent `BYTES_PER_ELEMENT` property access.
+    - Migrated all generic array checks in renderers to `ArrayBuffer.isView()` for maximum stability across different execution contexts (e.g., Iframes).
+    - Implemented polymorphic buffer creation in WebGPU using `data.constructor` to avoid manual type branching.
+  - **Polymorphic Camera System**:
+    - Shifting zoom and aspect ratio responsibility to `AbstractProjection` subclasses.
+    - Introduced strategy-based zooming via `CameraStrategy.zoom()`, allowing radius-based zoom for Smooth/Stiff strategies and FOV/Bounds-based zoom for others.
+    - Removed all `instanceof` checks and manual type casting from the `Camera` class.
+  - **Polymorphic Lighting System**:
+    - Introduced `AbstractLight.applyTo(LightDataInterface)`, allowing every light type to define how its data is extracted for the renderer.
+    - Eliminated the large `switch(light.type)` block in `AbstractRenderer`.
+  - **Data-Driven Material Rendering**:
+    - Standardized `RenderManifest` to drive all renderer bindings generically.
+    - Eliminated material-specific `instanceof` checks in all rendering backends (WebGL 1/2, WebGPU).
+    - Introduced `state.isSprite` flag for generic billboarding and `state.transparent` for automated blend/depth-mask state management.
+  - **Geometry & Physics Optimization**:
+    - Added `getBoundingVolume()` to the `Geometry` interface, enabling $O(1)$ bounds calculation for primitives (Cube, Sphere, Plane).
+    - Refactored `Frustum` and `Collision` systems to delegate intersection logic to polymorphic `BoundingVolume` implementations.
+    - Updated `Object3D.computeBounds()` to utilize optimal geometric calculations instead of expensive vertex loops.
+
 ## [0.17.01] - 2026-04-20
 
 - **Maintenance & Stability Round**:

@@ -4,7 +4,7 @@ import { AbstractWebGLRenderer } from "./AbstractWebGLRenderer.js";
 import {
   Color,
   CubeTexture,
-  PhongMaterial,
+  
   ShaderRegistry,
   Texture,
 } from "../core/index.js";
@@ -13,6 +13,7 @@ import {
   MaterialType,
   RendererType,
   TextureFilter,
+  CullMode,
 } from "../enums/index.js";
 import { Mesh } from "./Mesh.js";
 import { Object3D } from "../core/Object3D.js";
@@ -231,12 +232,39 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
       const manifest = mat.getRenderManifest();
       const texs = manifest.textures;
 
-      // --- Bind Material Properties ---
-      const uColor = u.get("u_color"); if (uColor) this.gl.uniform4fv(uColor, mat.color.toFloat32Array());
-      const uSpecColor = u.get("u_specColor"); if (uSpecColor) this.gl.uniform4fv(uSpecColor, mat instanceof PhongMaterial ? mat.specularColor.toFloat32Array() : new Float32Array([1,1,1,1]));
-      const uShininess = u.get("u_shininess"); if (uShininess) this.gl.uniform1f(uShininess, mat instanceof PhongMaterial ? mat.shininess : -1.0);
+      // --- 1. Bind Material States ---
+      const state = manifest.state;
+      if (state && CullMode.NONE === state.culling) this.gl.disable(this.gl.CULL_FACE);
+      else {
+        this.gl.enable(this.gl.CULL_FACE);
+        this.gl.cullFace(state && CullMode.FRONT === state.culling ? this.gl.FRONT : this.gl.BACK);
+      }
 
-      // --- Bind Textures ---
+      if (state?.transparent) {
+        this.gl.enable(this.gl.BLEND);
+        this.gl.depthMask(false);
+      } else {
+        this.gl.disable(this.gl.BLEND);
+        this.gl.depthMask(true);
+      }
+
+      // --- 2. Bind Generic Material Properties (Uniforms) ---
+      for (const [name, value] of Object.entries(manifest.properties)) {
+        const loc = u.get(name);
+        if (!loc) continue;
+
+        if (typeof value === "number") {
+          this.gl.uniform1f(loc, value);
+        } else if (ArrayBuffer.isView(value)) {
+          const v = value as Float32Array;
+          if (v.length === 4) this.gl.uniform4fv(loc, v);
+          else if (v.length === 3) this.gl.uniform3fv(loc, v);
+          else if (v.length === 2) this.gl.uniform2fv(loc, v);
+          else if (v.length === 16) this.gl.uniformMatrix4fv(loc, false, v);
+        }
+      }
+
+      // --- 3. Bind Textures ---
       if (shaderId === MaterialType.SKYBOX) {
         this.gl.activeTexture(this.gl.TEXTURE0);
         const skyTex = texs["u_skybox"] as CubeTexture;

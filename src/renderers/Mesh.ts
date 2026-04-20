@@ -73,7 +73,7 @@ export class Mesh {
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.ebo ?? null);
       gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, data.indices, gl.STATIC_DRAW);
       this.count = data.indices.length;
-      this.indexType = data.indices instanceof Uint32Array ? gl.UNSIGNED_INT : gl.UNSIGNED_SHORT;
+      this.indexType = data.indices.BYTES_PER_ELEMENT === 4 ? gl.UNSIGNED_INT : gl.UNSIGNED_SHORT;
     } else {
       this.isIndexed = false;
       this.count = data.vertices.length / 3;
@@ -86,7 +86,7 @@ export class Mesh {
       gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, data.wireframeIndices, gl.STATIC_DRAW);
       this.wireframeCount = data.wireframeIndices.length;
       this.wireframeIndexType =
-        data.wireframeIndices instanceof Uint32Array ? gl.UNSIGNED_INT : gl.UNSIGNED_SHORT;
+        data.wireframeIndices.BYTES_PER_ELEMENT === 4 ? gl.UNSIGNED_INT : gl.UNSIGNED_SHORT;
     }
   }
 

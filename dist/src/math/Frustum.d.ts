@@ -1,6 +1,6 @@
 import { Matrix4 } from './Matrix4.js';
 import { BoundingVolume } from '../interfaces/index.js';
-import { BoundingBox } from '../physics/index.js';
+import { BoundingBox } from '../physics/BoundingBox.js';
 /**
  * A class representing a camera frustum defined by 6 planes.
  * Used for frustum culling.

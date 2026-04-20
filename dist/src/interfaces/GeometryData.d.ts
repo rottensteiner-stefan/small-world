@@ -1,7 +1,4 @@
-/**
- * Interface representing raw geometry data for GPU upload and rendering.
- * All numeric data is stored in TypedArrays for maximum performance.
- */
+import { BoundingVolume } from './BoundingVolume.js';
 export interface GeometryDataInterface {
     /** Vertex position data (x, y, z). Mandatory. */
     vertices: Float32Array;
@@ -20,4 +17,5 @@ export interface GeometryDataInterface {
      * Set this to true after modifying the TypedArrays in-place.
      */
     needsUpdate?: boolean;
+    getBoundingVolume(): BoundingVolume;
 }

@@ -75,6 +75,11 @@ export class LambertMaterial extends AbstractMaterial {
     texs["u_diffuseMap"] = this.diffuseMap;
     texs["u_normalMap"] = this.normalMap;
 
+    this._renderManifest.state = {
+      ...this._renderManifest.state,
+      culling: this.cullMode,
+    };
+
     return this._renderManifest;
   }
 }

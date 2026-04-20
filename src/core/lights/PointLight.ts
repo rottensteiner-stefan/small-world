@@ -2,6 +2,7 @@
 
 import { AbstractLight, LightOptions } from "./AbstractLight.js";
 import { LightType } from "../../enums/index.js";
+import { LightDataInterface } from "../../interfaces/index.js";
 
 /**
  * Configuration options for point light.
@@ -35,5 +36,12 @@ export class PointLight extends AbstractLight {
     super({ ...options, name });
     this.distance = distance;
     this.decay = decay;
+  }
+
+  /** @inheritdoc */
+  public override applyTo(data: LightDataInterface): void {
+    if (4 > data.pLights.length) {
+      data.pLights.push(this);
+    }
   }
 }

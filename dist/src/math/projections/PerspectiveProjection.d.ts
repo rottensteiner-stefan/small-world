@@ -35,6 +35,8 @@ export declare class PerspectiveProjection extends AbstractProjection {
     constructor(options?: PerspectiveOptions);
     /** @inheritdoc */
     update(): void;
+    setAspect(value: number): void;
+    zoom(delta: number): void;
     /** @inheritdoc */
     getMatrix(): Matrix4;
 }

@@ -1,4 +1,5 @@
 import { AbstractGeometry } from './AbstractGeometry.js';
+import { BoundingVolume } from '../interfaces/index.js';
 /**
  * Configuration options for sphere geometry.
  */
@@ -27,4 +28,6 @@ export declare class Sphere extends AbstractGeometry {
     constructor(options?: SphereOptions);
     /** @inheritdoc */
     protected generateGeometryData(): void;
+    /** @inheritdoc */
+    getBoundingVolume(): BoundingVolume;
 }

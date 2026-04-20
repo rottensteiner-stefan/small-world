@@ -1,5 +1,6 @@
 /// src/interfaces/Geometry.ts
 
+import { BoundingVolume } from "./BoundingVolume.js";
 import { GeometryDataInterface } from "./GeometryData.js";
 
 /**
@@ -12,4 +13,10 @@ export interface Geometry {
    * @returns The geometry data interface.
    */
   getGeometryData(): GeometryDataInterface;
+
+  /**
+   * Returns a bounding volume that encapsulates this geometry.
+   * @returns The bounding volume.
+   */
+  getBoundingVolume(): BoundingVolume;
 }

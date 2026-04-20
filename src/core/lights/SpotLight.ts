@@ -1,6 +1,7 @@
 /// src/core/lights/SpotLight.ts
 
 import { LightType } from "../../enums/index.js";
+import { LightDataInterface } from "../../interfaces/index.js";
 import { AbstractLight, LightOptions } from "./AbstractLight.js";
 import { Vector3D } from "../../math/Vector3D.js";
 
@@ -61,5 +62,12 @@ export class SpotLight extends AbstractLight {
     this.angle = angle;
     this.penumbra = penumbra;
     this.decay = decay;
+  }
+
+  /** @inheritdoc */
+  public override applyTo(data: LightDataInterface): void {
+    if (4 > data.sLights.length) {
+      data.sLights.push(this);
+    }
   }
 }

@@ -1,5 +1,4 @@
-import { CameraConstraints, CameraStrategy } from '../../../interfaces/index.js';
-import { Camera } from '../../Camera.js';
+import { CameraConstraints, CameraStrategy, CameraInterfaceData } from '../../../interfaces/index.js';
 import { Vector3D } from '../../../math/Vector3D.js';
 /**
  * Strategy for an isometric 2D/3D camera.
@@ -8,10 +7,10 @@ import { Vector3D } from '../../../math/Vector3D.js';
 export declare class IsometricStrategy implements CameraStrategy {
     readonly type: string;
     pixelPerfect: boolean;
-    zoom: number;
+    zoomFactor: number;
     constraints?: CameraConstraints;
     /**
      * Updates the camera position and target.
      */
-    update(camera: Camera, targetPos: Vector3D, _dx: number, _dy: number): void;
+    update(camera: CameraInterfaceData, targetPos: Vector3D, _dx: number, _dy: number): void;
 }

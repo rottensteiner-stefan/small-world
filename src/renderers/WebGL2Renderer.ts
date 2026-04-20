@@ -3,9 +3,9 @@
 import { AbstractWebGLRenderer } from "./AbstractWebGLRenderer.js";
 import {
   CubeTexture,
-  PhongMaterial,
+  
   ShaderRegistry,
-  TerrainMaterial,
+  
   Texture,
 } from "../core/index.js";
 import { EngineConfig, GeometryDataInterface, LightDataInterface } from "../interfaces/index.js";
@@ -203,7 +203,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       const manifest = mat.getRenderManifest();
       const u = cache.uniforms;
 
-      // --- Bind Material States (Once per material group) ---
+      // --- 1. Bind Material States (Once per material group) ---
       const state = manifest.state;
       if (state && CullMode.NONE === state.culling) this.gl.disable(this.gl.CULL_FACE);
       else {
@@ -211,25 +211,28 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         this.gl.cullFace(state && CullMode.FRONT === state.culling ? this.gl.FRONT : this.gl.BACK);
       }
 
-      // --- Bind Material Properties ---
-      const texs = manifest.textures;
+      // --- 2. Bind Generic Material Properties (Uniforms) ---
+      for (const [name, value] of Object.entries(manifest.properties)) {
+        const loc = u.get(name);
+        if (!loc) continue;
 
-      const uColor = u.get("u_color");
-      if (uColor) this.gl.uniform4fv(uColor, mat.color.toFloat32Array());
-      
-      const uSpecColor = u.get("u_specColor");
-      if (uSpecColor) {
-        if (mat instanceof PhongMaterial) this.gl.uniform4fv(uSpecColor, mat.specularColor.toFloat32Array());
-        else this.gl.uniform4f(uSpecColor, 1, 1, 1, 1);
+        if (typeof value === "number") {
+          this.gl.uniform1f(loc, value);
+        } else if (ArrayBuffer.isView(value)) {
+          const v = value as Float32Array;
+          if (v.length === 4) this.gl.uniform4fv(loc, v);
+          else if (v.length === 3) this.gl.uniform3fv(loc, v);
+          else if (v.length === 2) this.gl.uniform2fv(loc, v);
+          else if (v.length === 16) this.gl.uniformMatrix4fv(loc, false, v);
+        } else if (Array.isArray(value)) {
+          if (value.length === 4) this.gl.uniform4fv(loc, new Float32Array(value));
+          else if (value.length === 3) this.gl.uniform3fv(loc, new Float32Array(value));
+          else if (value.length === 2) this.gl.uniform2fv(loc, new Float32Array(value));
+        }
       }
-      
-      const uShininess = u.get("u_shininess");
-      if (uShininess) this.gl.uniform1f(uShininess, mat instanceof PhongMaterial ? mat.shininess : -1.0);
 
-      const uThresholds = u.get("u_thresholds");
-      if (uThresholds && mat instanceof TerrainMaterial) this.gl.uniform4fv(uThresholds, new Float32Array(mat.thresholds));
-
-      // --- Bind Textures ---
+      // --- 3. Bind Textures ---
+      const texs = manifest.textures;
       if (shaderId === MaterialType.SKYBOX) {
         this.gl.activeTexture(this.gl.TEXTURE0);
         const skyTex = texs["u_skybox"] as CubeTexture;
@@ -254,13 +257,13 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         }
       }
 
-      // --- Render each object in the material group ---
+      // --- 4. Render each object in the material group ---
       for (const o of objects) {
         if (!o.geometry) continue;
 
-        // 1. Model Matrix
+        // Model Matrix & Billboarding
         this._scratchModelMatrix.set(o.worldMatrix.data);
-        if (shaderId === MaterialType.SPRITE) {
+        if (state?.isSprite) {
           const sx = Math.sqrt(this._scratchModelMatrix[0]! ** 2 + this._scratchModelMatrix[1]! ** 2 + this._scratchModelMatrix[2]! ** 2);
           const sy = Math.sqrt(this._scratchModelMatrix[4]! ** 2 + this._scratchModelMatrix[5]! ** 2 + this._scratchModelMatrix[6]! ** 2);
           const sz = Math.sqrt(this._scratchModelMatrix[8]! ** 2 + this._scratchModelMatrix[9]! ** 2 + this._scratchModelMatrix[10]! ** 2);
@@ -271,16 +274,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         const uModel = u.get("u_model");
         if (uModel) this.gl.uniformMatrix4fv(uModel, false, this._scratchModelMatrix);
 
-        // 2. Texture Offset/Repeat (if not using defaults)
-        const uTexOffset = u.get("u_texOffset");
-        const uTexRepeat = u.get("u_texRepeat");
-        if (uTexOffset || uTexRepeat) {
-          const diff = texs["u_diffuseMap"] as Texture;
-          if (uTexOffset) this.gl.uniform2f(uTexOffset, diff ? diff.offset.x : 0, diff ? diff.offset.y : 0);
-          if (uTexRepeat) this.gl.uniform2f(uTexRepeat, diff ? diff.repeat.x : 1, diff ? diff.repeat.y : 1);
-        }
-
-        // 3. Bind and Draw Geometry
+        // Bind and Draw Geometry
         let mesh = this._cache.get(o.geometry);
         if (!mesh) {
           mesh = new Mesh(this.gl, o.geometry);

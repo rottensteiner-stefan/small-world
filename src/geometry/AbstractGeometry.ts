@@ -2,7 +2,8 @@
 
 import { Matrix4 } from "../math/Matrix4.js";
 import { Vector3D } from "../math/Vector3D.js";
-import { GeometryDataInterface, Geometry } from "../interfaces/index.js";
+import { BoundingBox } from "../physics/index.js";
+import { GeometryDataInterface, Geometry, BoundingVolume } from "../interfaces/index.js";
 
 /**
  * Base class for all geometry types.
@@ -59,7 +60,13 @@ export abstract class AbstractGeometry implements Geometry {
       normals: this._normals,
       tangents: this._tangents,
       uvs: this._uvs,
+      getBoundingVolume: () => this.getBoundingVolume(),
     };
+  }
+
+  /** @inheritdoc */
+  public getBoundingVolume(): BoundingVolume {
+    return BoundingBox.fromVertices(this._vertices);
   }
 
   /**

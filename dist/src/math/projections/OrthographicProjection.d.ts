@@ -30,5 +30,6 @@ export declare class OrthographicProjection extends AbstractProjection {
      * @param aspect The target aspect ratio (width / height).
      */
     setAspect(aspect: number): void;
+    zoom(delta: number): void;
     getMatrix(): Matrix4;
 }

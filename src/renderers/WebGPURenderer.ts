@@ -1,12 +1,12 @@
 /// src/renderers/WebGPURenderer.ts
 
 import {
-  Color,
+  
   CubeTexture,
-  PhongMaterial,
+  
   RenderManifest,
   ShaderRegistry,
-  TerrainMaterial,
+  
   Texture,
 } from "../core/index.js";
 import { GeometryDataInterface, LightDataInterface } from "../interfaces/index.js";
@@ -235,15 +235,18 @@ export class WebGPURenderer extends AbstractRenderer {
   private _getGeoCache(geo: GeometryDataInterface): WebGPUGeoCache {
     let c = this._geoCache.get(geo);
     if (!c || geo.needsUpdate) {
-      const createBuf = (data: any, usage: number): GPUBuffer => {
-        const b = this._device!.createBuffer({ size: (data.byteLength + 3) & ~3, usage, mappedAtCreation: true });
-        if (data instanceof Float32Array) new Float32Array(b.getMappedRange()).set(data);
-        else if (data instanceof Uint16Array) new Uint16Array(b.getMappedRange()).set(data);
-        else new Uint32Array(b.getMappedRange()).set(data);
+      const createBuf = (data: ArrayBufferView, usage: number): GPUBuffer => {
+        const b = this._device!.createBuffer({
+          size: (data.byteLength + 3) & ~3,
+          usage,
+          mappedAtCreation: true,
+        });
+        // Elegant polymorphic set: use the constructor of the source data
+        new (data.constructor as any)(b.getMappedRange()).set(data);
         b.unmap();
         return b;
       };
-      
+
       if (c && geo.needsUpdate) {
           this._device!.queue.writeBuffer(c.vb, 0, geo.vertices);
           if (c.nb && geo.normals) this._device!.queue.writeBuffer(c.nb, 0, geo.normals);
@@ -261,7 +264,7 @@ export class WebGPURenderer extends AbstractRenderer {
         indexCount: geo.indices?.length || 0,
         wireframeIndexCount: geo.wireframeIndices?.length || 0,
         vertexCount: geo.vertices.length / 3,
-        format: (geo.indices instanceof Uint32Array || geo.wireframeIndices instanceof Uint32Array) ? "uint32" : "uint16",
+        format: (geo.indices?.BYTES_PER_ELEMENT === 4 || geo.wireframeIndices?.BYTES_PER_ELEMENT === 4) ? "uint32" : "uint16",
       };
       this._geoCache.set(geo, c);
       geo.needsUpdate = false;
@@ -340,22 +343,42 @@ export class WebGPURenderer extends AbstractRenderer {
 
   private _updateObjUniformBuffer(b: GPUBuffer, o: Object3D, m: RenderManifest): void {
     const data = new Float32Array(64);
-    data.set(o.worldMatrix.data, 0);
-    data.set(o.material!.color.toFloat32Array(), 16);
-    let specColor = new Color(1, 1, 1, 1);
-    if (o.material instanceof PhongMaterial) specColor = (o.material as PhongMaterial).specularColor;
-    data.set(specColor.toFloat32Array(), 20);
     const props = m.properties;
+
+    // 1. World Matrix
+    data.set(o.worldMatrix.data, 0);
+
+    // 2. Base Color (u_color)
+    const color = props["u_color"] as Float32Array || o.material!.color.toFloat32Array();
+    data.set(color, 16);
+
+    // 3. Specular Color (u_specColor)
+    const specColor = props["u_specColor"] as Float32Array || new Float32Array([1, 1, 1, 1]);
+    data.set(specColor, 20);
+
+    // 4. Texture Transform
     const diff = m.textures["u_diffuseMap"] as Texture;
-    data.set([diff?.offset.x || 0, diff?.offset.y || 0, diff?.repeat.x || 1, diff?.repeat.y || 1], 24);
-    let shininess = 32.0;
-    if (o.material instanceof PhongMaterial || o.material instanceof TerrainMaterial) shininess = (o.material as any).shininess;
+    const offset = props["u_texOffset"] as number[] || [diff?.offset.x || 0, diff?.offset.y || 0];
+    const repeat = props["u_texRepeat"] as number[] || [diff?.repeat.x || 1, diff?.repeat.y || 1];
+    data.set([offset[0]!, offset[1]!, repeat[0]!, repeat[1]!], 24);
+
+    // 5. Material Parameters (Shininess, TerrainFlag, Metallic, Roughness)
+    const shininess = typeof props["u_shininess"] === "number" ? props["u_shininess"] : 32.0;
+    const isTerrain = m.shaderId === MaterialType.TERRAIN ? 1.0 : 0.0;
     const metallic = typeof props["u_metallic"] === "number" ? props["u_metallic"] : 0.0;
     const roughness = typeof props["u_roughness"] === "number" ? props["u_roughness"] : 0.5;
+    data.set([shininess, isTerrain, metallic, roughness], 28);
+
+    // 6. Extra Parameters (AO, Padding)
     const ao = typeof props["u_ao"] === "number" ? props["u_ao"] : 1.0;
-    data.set([shininess, m.shaderId === MaterialType.TERRAIN ? 1.0 : 0.0, metallic, roughness], 28);
     data.set([ao, 0, 0, 0], 32); 
-    if (o.material instanceof TerrainMaterial) data.set(o.material.thresholds, 36);
+
+    // 7. Terrain Thresholds (if applicable)
+    const thresholds = props["u_thresholds"];
+    if (ArrayBuffer.isView(thresholds)) {
+      data.set(thresholds as Float32Array, 36);
+    }
+
     this._device!.queue.writeBuffer(b, 0, data);
   }
 

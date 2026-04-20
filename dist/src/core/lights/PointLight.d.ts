@@ -1,5 +1,6 @@
 import { AbstractLight, LightOptions } from './AbstractLight.js';
 import { LightType } from '../../enums/index.js';
+import { LightDataInterface } from '../../interfaces/index.js';
 /**
  * Configuration options for point light.
  */
@@ -24,4 +25,6 @@ export declare class PointLight extends AbstractLight {
      * @param options The configuration options for the light.
      */
     constructor(options?: PointLightOptions);
+    /** @inheritdoc */
+    applyTo(data: LightDataInterface): void;
 }

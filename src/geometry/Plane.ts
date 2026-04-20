@@ -1,6 +1,9 @@
 /// src/geometry/Plane.ts
 
 import { AbstractGeometry } from "./AbstractGeometry.js";
+import { BoundingVolume } from "../interfaces/index.js";
+import { BoundingBox, } from "../physics/index.js";
+import { Vector3D } from "../math/index.js";
 
 /**
  * Configuration options for plane geometry.
@@ -77,5 +80,12 @@ export class Plane extends AbstractGeometry {
     this._indices = this._createIndexArray(idx.length);
     this._indices.set(idx);
     this.computeNormals();
+  }
+
+  /** @inheritdoc */
+  public override getBoundingVolume(): BoundingVolume {
+    const hW = this.width / 2;
+    const hD = this.depth / 2;
+    return new BoundingBox(new Vector3D(-hW, -0.01, -hD), new Vector3D(hW, 0.01, hD));
   }
 }

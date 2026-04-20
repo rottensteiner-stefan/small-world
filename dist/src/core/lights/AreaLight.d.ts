@@ -1,5 +1,6 @@
 import { LightOptions, AbstractLight } from './AbstractLight.js';
 import { LightType } from '../../enums/index.js';
+import { LightDataInterface } from '../../interfaces/index.js';
 /**
  * Configuration options for area light.
  */
@@ -24,4 +25,6 @@ export declare class AreaLight extends AbstractLight {
      * @param options The configuration options for the light.
      */
     constructor(options?: AreaLightOptions);
+    /** @inheritdoc */
+    applyTo(data: LightDataInterface): void;
 }

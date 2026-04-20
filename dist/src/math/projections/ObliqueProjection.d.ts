@@ -43,6 +43,8 @@ export declare class ObliqueProjection extends AbstractProjection {
     constructor(options?: ObliqueOptions);
     /** @inheritdoc */
     update(): void;
+    setAspect(aspect: number): void;
+    zoom(delta: number): void;
     /** @inheritdoc */
     getMatrix(): Matrix4;
 }

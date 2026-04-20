@@ -82,6 +82,7 @@ export class SpriteMaterial extends AbstractMaterial {
     state.transparent = this.transparent;
     state.blending = this.transparent ? BlendingMode.ALPHA : BlendingMode.OPAQUE;
     state.depthWrite = !this.transparent;
+    state.isSprite = true;
 
     return this._renderManifest;
   }
