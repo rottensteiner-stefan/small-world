@@ -1,4 +1,4 @@
-import { AbstractExample } from '../src/core/example/AbstractExample.js';
+import { AbstractExample } from '../core/example/AbstractExample.js';
 /**
  * Example 6: Advanced Geometries & Camera Collision.
  */
