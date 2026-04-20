@@ -1,4 +1,4 @@
-/// examples/example5.ts
+/// src/examples/example5.ts
 
 import {
   AmbientLight,
@@ -15,8 +15,8 @@ import {
   PhongMaterial,
   Input,
   Keys,
-} from "../src/index.js";
-import { AbstractExample } from "../src/core/example/AbstractExample.js";
+} from "../index.js";
+import { AbstractExample } from "../core/example/AbstractExample.js";
 
 /**
  * Example 5: Grid-based Movement with Enemies.

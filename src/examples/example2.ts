@@ -1,4 +1,4 @@
-/// examples/example2.ts
+/// src/examples/example2.ts
 
 import {
   CameraStrategyType,
@@ -15,8 +15,8 @@ import {
   Plane,
   ProjectionType,
   WireframeMaterial,
-} from "../src/index.js";
-import { AbstractExample } from "../src/core/example/AbstractExample.js";
+} from "../index.js";
+import { AbstractExample } from "../core/example/AbstractExample.js";
 
 /**
  * Example 2: Interactive camera (FPS-style) and keyboard input.

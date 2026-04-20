@@ -1,4 +1,4 @@
-/// examples/example7.ts
+/// src/examples/example7.ts
 
 import {
   AmbientLight,
@@ -15,8 +15,8 @@ import {
   PerspectiveProjection,
   PhongMaterial,
   SkyboxMaterial,
-} from "../src/index.js";
-import { AbstractExample } from "../src/core/example/AbstractExample.js";
+} from "../index.js";
+import { AbstractExample } from "../core/example/AbstractExample.js";
 
 /**
  * Example 7: Skybox & FPS Controls.

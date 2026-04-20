@@ -1,4 +1,4 @@
-/// examples/example3.ts
+/// src/examples/example3.ts
 import {
   AmbientLight,
   CameraStrategyType,
@@ -14,8 +14,8 @@ import {
   PhongMaterial,
   ProjectionType,
   WireframeMaterial,
-} from "../src/index.js";
-import { AbstractExample } from "../src/core/example/AbstractExample.js";
+} from "../index.js";
+import { AbstractExample } from "../core/example/AbstractExample.js";
 
 class Example3 extends AbstractExample {
   private _carModel: Object3D | undefined;

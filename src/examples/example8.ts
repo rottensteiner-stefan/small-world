@@ -1,4 +1,4 @@
-/// examples/example8.ts
+/// src/examples/example8.ts
 
 import {
   AmbientLight,
@@ -19,8 +19,8 @@ import {
   Texture,
   TextureFilter,
   Vector3D,
-} from "../src/index.js";
-import { AbstractExample } from "../src/core/example/AbstractExample.js";
+} from "../index.js";
+import { AbstractExample } from "../core/example/AbstractExample.js";
 
 /**
  * Example 8: A classic 2.5D Jump & Run with pure code physics, collision, and parallax clouds!
