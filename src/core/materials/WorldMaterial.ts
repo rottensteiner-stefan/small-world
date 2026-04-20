@@ -17,14 +17,11 @@ export type WorldMaterialOptions = {
  * Ideal for terrain, rocks, walls, and architectural structures.
  */
 export class WorldMaterial extends AbstractMaterial {
-  /** @inheritdoc */
-  public override readonly type: MaterialType = MaterialType.WORLD;
-
   /** The diffuse texture map. */
   public diffuseMap: Texture | undefined;
 
   constructor(options?: WorldMaterialOptions) {
-    super();
+    super(MaterialType.WORLD);
     if (options) {
       if (options.color) {
         this.color.copyFrom(options.color);
@@ -120,17 +117,17 @@ void main() {
         },
         wgsl: `[WGSL_STRUCTS]
 [WGSL_VS]
-@fragment fn fs(i: VertexOut) -> @location(0) vec4f {
-  var blendWeights = abs(i.worldNormal);
+@fragment fn fs(i: Out) -> @location(0) vec4f {
+  var blendWeights = abs(i.n);
   blendWeights = pow(blendWeights, vec3f(4.0));
   let totalWeight = blendWeights.x + blendWeights.y + blendWeights.z;
   blendWeights = blendWeights / totalWeight;
-  var coordX = i.worldPos.zy * obj.texRepeat;
-  var coordY = i.worldPos.xz * obj.texRepeat;
-  var coordZ = i.worldPos.xy * obj.texRepeat;
-  if (i.worldNormal.x < 0.0) { coordX.x = -coordX.x; }
-  if (i.worldNormal.y < 0.0) { coordY.x = -coordY.x; }
-  if (i.worldNormal.z >= 0.0) { coordZ.x = -coordZ.x; }
+  var coordX = i.wp.zy * obj.texRepeat;
+  var coordY = i.wp.xz * obj.texRepeat;
+  var coordZ = i.wp.xy * obj.texRepeat;
+  if (i.n.x < 0.0) { coordX.x = -coordX.x; }
+  if (i.n.y < 0.0) { coordY.x = -coordY.x; }
+  if (i.n.z >= 0.0) { coordZ.x = -coordZ.x; }
   let colX = textureSample(u_diffuseMap, s, coordX);
   let colY = textureSample(u_diffuseMap, s, coordY);
   let colZ = textureSample(u_diffuseMap, s, coordZ);

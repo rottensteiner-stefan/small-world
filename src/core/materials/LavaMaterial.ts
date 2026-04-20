@@ -28,9 +28,6 @@ export interface LavaMaterialOptions {
  * Requires a noise map to generate the flowing crust effect on the GPU.
  */
 export class LavaMaterial extends AbstractMaterial {
-  /** @inheritdoc */
-  public override readonly type: MaterialType = MaterialType.LAVA;
-
   /** The color of the cooled crust. */
   public crustColor: Color;
   /** The speed of the lava flow. */
@@ -47,7 +44,7 @@ export class LavaMaterial extends AbstractMaterial {
    * @param options The configuration options.
    */
   constructor(options: LavaMaterialOptions = {}) {
-    super();
+    super(MaterialType.LAVA);
     const {
       color = new Color(1.5, 0.5, 0.0), // Over-bright for pseudo-bloom
       crustColor = new Color(0.1, 0.1, 0.1),

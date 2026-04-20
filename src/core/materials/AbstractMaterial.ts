@@ -5,16 +5,14 @@ import { RenderManifest } from "../renderers/shaders/RenderManifest.js";
 import { ShaderProvider } from "../../interfaces/index.js";
 import { ShaderDefinition } from "../renderers/shaders/ShaderDefinition.js";
 import { ShaderRegistry } from "../renderers/shaders/ShaderRegistry.js";
+import { MathUtils } from "../../math/index.js";
 
 /**
  * Base class for all material types.
  */
 export abstract class AbstractMaterial implements ShaderProvider {
-  /** The type of the material. */
-  public abstract readonly type: MaterialType;
-
   /** The unique identifier of the material. */
-  public uuid: string = crypto.randomUUID();
+  public uuid: string = MathUtils.generateUUID();
   /** The base color of the material. */
   public color: Color = Color.WHITE;
 
@@ -26,8 +24,9 @@ export abstract class AbstractMaterial implements ShaderProvider {
 
   /**
    * Creates a new material and automatically registers it with the ShaderRegistry.
+   * @param type The type of the material.
    */
-  protected constructor() {
+  protected constructor(public readonly type: MaterialType) {
     // Self-registration: The moment a material is instantiated, 
     // the engine knows how to handle its shader.
     ShaderRegistry.instance.registerProvider(this.type, this);

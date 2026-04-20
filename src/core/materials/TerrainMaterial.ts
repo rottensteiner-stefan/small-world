@@ -31,9 +31,6 @@ export interface TerrainMaterialOptions {
  * Material specifically for terrain rendering with splatmapping.
  */
 export class TerrainMaterial extends AbstractMaterial {
-  /** @inheritdoc */
-  public override readonly type: MaterialType = MaterialType.TERRAIN;
-
   /** The shininess factor. */
   public shininess: number;
 
@@ -57,7 +54,7 @@ export class TerrainMaterial extends AbstractMaterial {
    * @param options The configuration options for the material.
    */
   constructor(options: TerrainMaterialOptions = {}) {
-    super();
+    super(MaterialType.TERRAIN);
     const {
       color = Color.WHITE,
       shininess = 10,

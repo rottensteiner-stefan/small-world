@@ -19,14 +19,11 @@ export type BasicMaterialOptions = {
  * A basic material that only uses a flat color.
  */
 export class BasicMaterial extends AbstractMaterial {
-  /** @inheritdoc */
-  public override readonly type: MaterialType = MaterialType.BASIC;
-
   /** The diffuse texture map. */
   public diffuseMap: Texture | undefined;
 
   constructor(options?: BasicMaterialOptions) {
-    super();
+    super(MaterialType.BASIC);
     if (options) {
       if (options.color) {
         this.color.copyFrom(options.color);
@@ -100,7 +97,7 @@ void main() {
         },
         wgsl: `[WGSL_STRUCTS]
 [WGSL_VS]
-@fragment fn fs(i: VertexOut) -> @location(0) vec4f {
+@fragment fn fs(i: Out) -> @location(0) vec4f {
     let texCol = textureSample(u_diffuseMap, s, i.uv);
     return vec4f(texCol.rgb * obj.color.rgb, texCol.a * obj.color.a);
 }`,

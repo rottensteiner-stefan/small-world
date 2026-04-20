@@ -27,9 +27,6 @@ export interface StandardMaterialOptions {
  * A physically based rendering (PBR) material using the Metallic-Roughness workflow.
  */
 export class StandardMaterial extends AbstractMaterial {
-  /** @inheritdoc */
-  public override readonly type: MaterialType = MaterialType.STANDARD;
-
   /** Metallic factor (0 to 1). */
   public metallic: number;
   /** Roughness factor (0 to 1). */
@@ -48,7 +45,7 @@ export class StandardMaterial extends AbstractMaterial {
    * @param options The configuration options for the material.
    */
   constructor(options: StandardMaterialOptions = {}) {
-    super();
+    super(MaterialType.STANDARD);
     const {
       color = Color.WHITE,
       metallic = 0.0,
