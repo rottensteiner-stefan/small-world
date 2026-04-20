@@ -110,16 +110,20 @@ export class GltfLoader extends AbstractLoader<Object3D> {
 
     // 2. Create Scene Root
     const root = new Object3D("glTF_Root");
-    const scene = json.scenes[json.scene || 0];
+    const sceneIdx = json.scene ?? 0;
+    const scene = json.scenes ? json.scenes[sceneIdx] : null;
     
-    for (const nodeIdx of scene.nodes) {
-        root.add(this._parseNode(json.nodes[nodeIdx], json, buffers, materials));
+    if (scene && scene.nodes) {
+        for (const nodeIdx of scene.nodes) {
+            root.add(this._parseNode(json.nodes[nodeIdx], json, buffers, materials));
+        }
     }
 
     return root;
   }
 
   private _parseNode(node: any, json: any, buffers: ArrayBuffer[], materials: any[]): Object3D {
+    if (!node) return new Object3D("EmptyNode");
     const obj = new Object3D(node.name || "Node");
 
     // Transforms
@@ -139,8 +143,6 @@ export class GltfLoader extends AbstractLoader<Object3D> {
         if (node.scale) obj.scale.set(node.scale[0], node.scale[1], node.scale[2]);
         if (node.rotation) {
             // glTF uses quaternions [x, y, z, w]
-            // For now, we can only correctly decompose if we build a temp matrix
-            // This is a simplified approach to handle glTF quaternions
             const q = node.rotation;
             const mat = new Matrix4();
             const x = q[0], y = q[1], z = q[2], w = q[3];
@@ -160,13 +162,16 @@ export class GltfLoader extends AbstractLoader<Object3D> {
     }
 
     // Mesh
-    if (node.mesh !== undefined) {
+    if (node.mesh !== undefined && json.meshes && json.meshes[node.mesh]) {
         const meshDef = json.meshes[node.mesh];
         for (const primitive of meshDef.primitives) {
             const child = new Object3D(node.name ? `${node.name}_mesh` : "MeshInstance");
-            child.geometry = this._parseGeometry(primitive, json, buffers);
-            child.material = primitive.material !== undefined ? materials[primitive.material] : new StandardMaterial();
-            obj.add(child);
+            const geo = this._parseGeometry(primitive, json, buffers);
+            if (geo) {
+                child.geometry = geo;
+                child.material = (primitive.material !== undefined && materials[primitive.material]) ? materials[primitive.material] : new StandardMaterial();
+                obj.add(child);
+            }
         }
     }
 
@@ -182,8 +187,11 @@ export class GltfLoader extends AbstractLoader<Object3D> {
 
   private _parseGeometry(primitive: any, json: any, buffers: ArrayBuffer[]): any {
     const attributes = primitive.attributes;
+    if (!attributes || attributes.POSITION === undefined) return null;
     
     const positions = this._getBufferData(json.accessors[attributes.POSITION], json, buffers);
+    if (!positions) return null;
+
     const normals = attributes.NORMAL !== undefined ? this._getBufferData(json.accessors[attributes.NORMAL], json, buffers) : undefined;
     const uvs = attributes.TEXCOORD_0 !== undefined ? this._getBufferData(json.accessors[attributes.TEXCOORD_0], json, buffers) : undefined;
     const indices = primitive.indices !== undefined ? this._getBufferData(json.accessors[primitive.indices], json, buffers) : undefined;
@@ -196,23 +204,26 @@ export class GltfLoader extends AbstractLoader<Object3D> {
     ).getGeometryData();
   }
 
-  private _getBufferData(accessorIdx: any, json: any, buffers: ArrayBuffer[]): TypedArray {
+  private _getBufferData(accessorIdx: any, json: any, buffers: ArrayBuffer[]): TypedArray | null {
+    if (accessorIdx === undefined || !json.accessors) return null;
     const accessor = json.accessors[accessorIdx];
+    if (!accessor || accessor.bufferView === undefined) return null;
     const bufferView = json.bufferViews[accessor.bufferView];
     const buffer = buffers[bufferView.buffer];
     
     if (!buffer) {
-        return new Float32Array(0);
+        return null;
     }
 
     const byteOffset = (bufferView.byteOffset || 0) + (accessor.byteOffset || 0);
+    const count = accessor.count * this._getComponentCount(accessor.type);
     
     switch (accessor.componentType) {
-        case 5121: return new Uint8Array(buffer, byteOffset, accessor.count * this._getComponentCount(accessor.type));
-        case 5123: return new Uint16Array(buffer, byteOffset, accessor.count * this._getComponentCount(accessor.type));
-        case 5125: return new Uint32Array(buffer, byteOffset, accessor.count * this._getComponentCount(accessor.type));
-        case 5126: return new Float32Array(buffer, byteOffset, accessor.count * this._getComponentCount(accessor.type));
-        default: return new Float32Array(0);
+        case 5121: return new Uint8Array(buffer, byteOffset, count);
+        case 5123: return new Uint16Array(buffer, byteOffset, count);
+        case 5125: return new Uint32Array(buffer, byteOffset, count);
+        case 5126: return new Float32Array(buffer, byteOffset, count);
+        default: return null;
     }
   }
 
@@ -232,7 +243,7 @@ export class GltfLoader extends AbstractLoader<Object3D> {
     const pbr = m.pbrMetallicRoughness || {};
 
     if (pbr.baseColorFactor) {
-        mat.color = new Color(pbr.baseColorFactor[0] * 255, pbr.baseColorFactor[1] * 255, pbr.baseColorFactor[2] * 255, pbr.baseColorFactor[3]);
+        mat.color = new Color(pbr.baseColorFactor[0], pbr.baseColorFactor[1], pbr.baseColorFactor[2], pbr.baseColorFactor[3]);
     }
 
     if (pbr.baseColorTexture) {
