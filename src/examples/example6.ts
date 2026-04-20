@@ -1,4 +1,4 @@
-/// examples/example6.ts
+/// src/examples/example6.ts
 
 import {
     AmbientLight,
@@ -24,8 +24,8 @@ import {
     Vector3D,
     WireframeMaterial,
     ZoomController,
-} from "../src/index.js";
-import {AbstractExample} from "../src/core/example/AbstractExample.js";
+} from "../index.js";
+import {AbstractExample} from "../core/example/AbstractExample.js";
 
 /**
  * Example 6: Advanced Geometries & Camera Collision.

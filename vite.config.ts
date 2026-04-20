@@ -35,15 +35,16 @@ export default defineConfig({
     },
     rollupOptions: {
       input: {
-        example1: resolve(__dirname, "examples/example1.html"),
-        example2: resolve(__dirname, "examples/example2.html"),
-        example3: resolve(__dirname, "examples/example3.html"),
-        example4: resolve(__dirname, "examples/example4.html"),
-        example5: resolve(__dirname, "examples/example5.html"),
-        example6: resolve(__dirname, "examples/example6.html"),
-        example7: resolve(__dirname, "examples/example7.html"),
-        example8: resolve(__dirname, "examples/example8.html"),
-        example9: resolve(__dirname, "examples/example9.html"),
+        example1: resolve(__dirname, "public/examples/example1.html"),
+        example2: resolve(__dirname, "public/examples/example2.html"),
+        example3: resolve(__dirname, "public/examples/example3.html"),
+        example4: resolve(__dirname, "public/examples/example4.html"),
+        example5: resolve(__dirname, "public/examples/example5.html"),
+        example6: resolve(__dirname, "public/examples/example6.html"),
+        example7: resolve(__dirname, "public/examples/example7.html"),
+        example8: resolve(__dirname, "public/examples/example8.html"),
+        example9: resolve(__dirname, "public/examples/example9.html"),
+        example10: resolve(__dirname, "public/examples/example10.html"),
       },
       output: {
         entryFileNames: () => {

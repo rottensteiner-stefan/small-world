@@ -1,4 +1,4 @@
-/// examples/example10.ts
+/// src/examples/example10.ts
 
 import {
   AmbientLight,
@@ -20,8 +20,8 @@ import {
   Circle,
   PhongMaterial,
   CullMode,
-} from "../src/index.js";
-import { AbstractExample } from "../src/core/example/AbstractExample.js";
+} from "../index.js";
+import { AbstractExample } from "../core/example/AbstractExample.js";
 import { createNoise2D, NoiseFunction2D } from "simplex-noise";
 
 /**
@@ -31,6 +31,7 @@ import { createNoise2D, NoiseFunction2D } from "simplex-noise";
 export class Example10 extends AbstractExample {
   private readonly _moveSpeed: number = 15.0;
   private readonly _eyeHeight: number = 2.0;
+  private readonly _lightPulseSpeed: number = 2.1;
 
   private _lavaTexture: Texture | undefined;
   private _lavaNormalMap: Texture | undefined;
@@ -163,8 +164,8 @@ export class Example10 extends AbstractExample {
             continue;
         }
 
-        const n1 = this._noise(vx * 0.8 + this._time * 1.5, vz * 0.8 + m) * 0.6;
-        const n2 = this._noise(vx * 3.0 - this._time * 2.5, vz * 3.0 + m) * 0.25;
+        const n1 = this._noise(vx * 0.8 + this._time * 1.5, vz * 0.8 + m) * 0.3;
+        const n2 = this._noise(vx * 3.0 - this._time * 2.5, vz * 3.0 + m) * 0.125;
         const damping = Math.max(0, 1.0 - Math.pow(dist / 1.8, 4));
         vertices[i + 1] = (n1 + n2) * damping;
       }
@@ -179,7 +180,7 @@ export class Example10 extends AbstractExample {
 
     for (let l = 0; l < this._lavaLights.length; l++) {
       const light = this._lavaLights[l]!;
-      const pulse = (Math.sin(this._time * 3.0 + l) * 0.5 + 0.5);
+      const pulse = (Math.sin(this._time * this._lightPulseSpeed + l) * 0.5 + 0.5);
       light.intensity = 3.0 + pulse * 4.0;
       light.color.g = 0.4 + pulse * 0.3;
     }

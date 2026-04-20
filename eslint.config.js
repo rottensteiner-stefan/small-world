@@ -14,7 +14,7 @@ export default [
 
   // 3. Konfiguration für deinen Engine-Code (Browser-Umgebung)
   {
-    files: ["src/**/*.ts", "examples/**/*.ts"],
+    files: ["src/**/*.ts"],
     plugins: {
       import: importPlugin,
     },

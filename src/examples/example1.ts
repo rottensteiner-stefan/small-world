@@ -1,4 +1,4 @@
-/// examples/example1.ts
+/// src/examples/example1.ts
 
 import {
   CameraStrategyType,
@@ -9,8 +9,8 @@ import {
   PerspectiveProjection,
   PhongMaterial,
   ProjectionType,
-} from "../src/index.js";
-import { AbstractExample } from "../src/core/example/AbstractExample.js";
+} from "../index.js";
+import { AbstractExample } from "../core/example/AbstractExample.js";
 
 class Example1 extends AbstractExample {
   private _myCube!: Object3D;

@@ -1,4 +1,4 @@
-/// examples/example4.ts
+/// src/examples/example4.ts
 
 import {
   AmbientLight,
@@ -18,8 +18,8 @@ import {
   TextureGenerator,
   Vector3D,
   WASDController,
-} from "../src/index.js";
-import { AbstractExample } from "../src/core/example/AbstractExample.js";
+} from "../index.js";
+import { AbstractExample } from "../core/example/AbstractExample.js";
 
 const CAR_SPEED: number = 10.0; // The car's speed
 
