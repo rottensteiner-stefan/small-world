@@ -1,6 +1,6 @@
 /// src/core/cameras/strategies/SmoothStrategy.ts
 
-import { Camera } from "../../Camera.js";
+import { CameraInterfaceData } from "../../../interfaces/index.js";
 import { CameraStrategyType } from "../../../enums/index.js";
 import { CameraConstraints, CameraStrategy } from "../../../interfaces/index.js";
 import { Vector3D } from "../../../math/Vector3D.js";
@@ -24,7 +24,7 @@ export class SmoothStrategy implements CameraStrategy {
   public constraints?: CameraConstraints;
 
   /** @inheritdoc */
-  public update(camera: Camera, targetPos: Vector3D, dx: number, dy: number): void {
+  public update(camera: CameraInterfaceData, targetPos: Vector3D, dx: number, dy: number): void {
     if (0 !== dx || 0 !== dy) {
       camera.theta -= dx * 0.005;
       camera.phi += dy * 0.005;
@@ -56,5 +56,12 @@ export class SmoothStrategy implements CameraStrategy {
     camera.position.y = camera.target.y + this.radius * Math.sin(camera.phi);
     camera.position.z =
       camera.target.z + this.radius * Math.cos(camera.theta) * Math.cos(camera.phi);
+  }
+
+  /** @inheritdoc */
+  public zoom(_camera: CameraInterfaceData, delta: number): boolean {
+    this.radius += delta * this.radius;
+    this.radius = MathUtils.clamp(this.radius, this.minRadius, this.maxRadius);
+    return true;
   }
 }

@@ -71,6 +71,23 @@ export class ObliqueProjection extends AbstractProjection {
     );
   }
 
+  public override setAspect(aspect: number): void {
+    const height: number = this.top - this.bottom;
+    const centerX: number = (this.left + this.right) / 2;
+    this.left = centerX - (height * aspect) / 2;
+    this.right = centerX + (height * aspect) / 2;
+    this.update();
+  }
+
+  public override zoom(delta: number): void {
+    const factor: number = 1.0 + delta;
+    this.left *= factor;
+    this.right *= factor;
+    this.top *= factor;
+    this.bottom *= factor;
+    this.update();
+  }
+
   /** @inheritdoc */
   public override getMatrix(): Matrix4 {
     return this._matrix;

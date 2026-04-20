@@ -1,8 +1,8 @@
 /// src/interfaces/CameraStrategy.ts
 
-import { Camera } from "../core/Camera.js";
 import { Vector3D } from "../math/Vector3D.js";
 import { CameraConstraints } from "./CameraConstraints.js";
+import { CameraInterfaceData } from "./CameraInterfaceData.js";
 
 /**
  * Interface for camera control strategies (e.g. FPS, Orbit, Smooth).
@@ -20,5 +20,13 @@ export interface CameraStrategy {
    * @param dx The horizontal rotation delta.
    * @param dy The vertical rotation delta.
    */
-  update(camera: Camera, targetPos: Vector3D, dx: number, dy: number): void;
+  update(camera: CameraInterfaceData, targetPos: Vector3D, dx: number, dy: number): void;
+
+  /**
+   * Optional method to handle zooming within the strategy.
+   * @param camera The camera to update.
+   * @param delta The zoom delta.
+   * @returns True if the strategy handled the zoom, false otherwise.
+   */
+  zoom?(camera: CameraInterfaceData, delta: number): boolean;
 }

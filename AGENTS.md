@@ -115,6 +115,7 @@ ESLint Sync: These rules are synchronized with the linter configuration (eslint.
 - **`interface` vs. `type`:**
   - Use `interface` for defining public object shapes and APIs that can be extended.
   - Use `type` for all other cases: defining unions, intersections, tuples, or for use with utility types like `Pick` or `Omit`.
+- **Open/Closed Principle (OCP):** Software entities (classes, modules, functions) should be open for extension but closed for modification. Design components—especially renderers, geometries, and loaders—using stable interfaces or abstract classes to allow for new implementations without altering core engine logic. Always balance this with **Simplicity First**: do not introduce abstractions until they are required by at least two distinct use cases.
 - **Factories over Complex Constructors:** For objects that can be created in multiple ways (e.g., from an image vs. from raw data), use static factory methods (e.g., `Terrain.fromImage(...)`) and keep the constructor `protected` or `private`.
 - **Constructor Strategy:**
   - Use positional arguments for simple types (e.g., `Vector3D(x, y, z)`, `Color(r, g, b)`).

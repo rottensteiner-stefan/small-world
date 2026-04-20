@@ -54,6 +54,18 @@ export class PerspectiveProjection extends AbstractProjection {
     Matrix4.perspective(this.fov, this.aspect, this.near, this.far, this._matrix);
   }
 
+  public override setAspect(value: number): void {
+    this.aspect = value;
+    this.update();
+  }
+
+  public override zoom(delta: number): void {
+    this.fov += delta * this.fov;
+    // Clamp FOV between 10 and 120 degrees
+    this.fov = MathUtils.clamp(this.fov, MathUtils.degToRad(10), MathUtils.degToRad(120));
+    this.update();
+  }
+
   /** @inheritdoc */
   public override getMatrix(): Matrix4 {
     return this._matrix;
