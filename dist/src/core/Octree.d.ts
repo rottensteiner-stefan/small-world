@@ -1,6 +1,7 @@
-import { BoundingBox } from '../physics/BoundingBox.js';
+import { BoundingBox } from '../physics/index.js';
 import { Object3D } from './Object3D.js';
 import { Frustum } from '../math/Frustum.js';
+import { BoundingVolume } from '../interfaces/index.js';
 /**
  * Configuration options for an octree node.
  */
@@ -31,53 +32,30 @@ export declare class OctreeNode {
     constructor(bounds: BoundingBox, depth?: number, options?: OctreeOptions);
     /**
      * Inserts an object into the octree.
-     * @param obj The object to insert.
-     * @returns True if the object was inserted.
      */
     insert(obj: Object3D): boolean;
-    /**
-     * Subdivides the node into 8 children.
-     * @private
-     */
     private _subdivide;
     /**
      * Queries the octree for objects that intersect with the frustum.
-     * @param frustum The frustum to check.
-     * @param result The array to store the results.
-     * @param intersectedNodes Optional set to store nodes that were intersected by the frustum.
      */
     query(frustum: Frustum, result: Object3D[], intersectedNodes?: Set<OctreeNode>): void;
     /**
-     * Clears the node and its children.
+     * Queries the octree for objects that intersect with a specific volume.
      */
+    queryVolume(volume: BoundingVolume, result: Object3D[]): void;
     clear(): void;
 }
 /**
  * An octree for spatial partitioning.
  */
 export declare class Octree {
-    /** The root node of the octree. */
     root: OctreeNode;
-    /**
-     * Creates a new Octree.
-     * @param bounds The bounds of the octree.
-     * @param options The configuration options.
-     */
     constructor(bounds: BoundingBox, options?: OctreeOptions);
-    /**
-     * Inserts an object into the octree.
-     * @param obj The object to insert.
-     */
     insert(obj: Object3D): void;
-    /**
-     * Queries the octree for objects that intersect with the frustum.
-     * @param frustum The frustum to check.
-     * @param intersectedNodes Optional set to store nodes that were intersected by the frustum.
-     * @returns The list of intersecting objects.
-     */
     query(frustum: Frustum, intersectedNodes?: Set<OctreeNode>): Object3D[];
     /**
-     * Clears the octree.
+     * Queries the octree for objects intersecting with a volume.
      */
+    queryVolume(volume: BoundingVolume): Object3D[];
     clear(): void;
 }

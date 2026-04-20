@@ -90,4 +90,12 @@ export interface CameraInterfaceData {
    * Recomputes the view matrix and the combined view-projection matrix.
    */
   updateViewMatrix(): void;
+
+  /**
+   * Maps screen coordinates (NDC -1 to 1) to world coordinates on the Y=0 plane.
+   * @param screenX Normalized X coordinate (-1 to 1).
+   * @param screenY Normalized Y coordinate (-1 to 1).
+   * @returns The world position on the Y=0 plane.
+   */
+  screenToWorld(screenX: number, screenY: number): Vector3D;
 }

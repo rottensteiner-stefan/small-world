@@ -52,6 +52,18 @@ export class OrthographicProjection extends AbstractProjection {
     );
   }
 
+  /**
+   * Adjusts the left/right bounds to match a specific aspect ratio while keeping top/bottom fixed.
+   * @param aspect The target aspect ratio (width / height).
+   */
+  public setAspect(aspect: number): void {
+    const height: number = this.top - this.bottom;
+    const centerX: number = (this.left + this.right) / 2;
+    this.left = centerX - (height * aspect) / 2;
+    this.right = centerX + (height * aspect) / 2;
+    this.update();
+  }
+
   public override getMatrix(): Matrix4 {
     return this._matrix;
   }

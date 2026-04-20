@@ -38,9 +38,27 @@ export class BoundingBox implements BoundingVolume {
   }
 
   /**
+   * Creates a BoundingBox that encapsulates all provided vertices.
+   */
+  public static fromVertices(v: Float32Array): BoundingBox {
+    let minX = Infinity; let minY = Infinity; let minZ = Infinity;
+    let maxX = -Infinity; let maxY = -Infinity; let maxZ = -Infinity;
+
+    for (let i = 0; i < v.length; i += 3) {
+      const x = v[i]!; const y = v[i+1]!; const z = v[i+2]!;
+      if (x < minX) minX = x; if (x > maxX) maxX = x;
+      if (y < minY) minY = y; if (y > maxY) maxY = y;
+      if (z < minZ) minZ = z; if (z > maxZ) maxZ = z;
+    }
+
+    return new BoundingBox(
+        new Vector3D(minX, minY, minZ),
+        new Vector3D(maxX, maxY, maxZ)
+    );
+  }
+
+  /**
    * Checks if this bounding box contains a point.
-   * @param point The point to check.
-   * @returns True if the point is inside the bounding box.
    */
   public containsPoint(point: Vector3D): boolean {
     return (
@@ -55,8 +73,6 @@ export class BoundingBox implements BoundingVolume {
 
   /**
    * Checks if this bounding box contains another bounding box.
-   * @param other The other bounding box.
-   * @returns True if the other bounding box is completely inside this one.
    */
   public containsBox(other: BoundingBox): boolean {
     return (
@@ -71,8 +87,6 @@ export class BoundingBox implements BoundingVolume {
 
   /**
    * Checks if this bounding box intersects with another bounding box.
-   * @param other The other bounding box.
-   * @returns True if the bounding boxes intersect.
    */
   public intersectsBox(other: BoundingBox): boolean {
     return (

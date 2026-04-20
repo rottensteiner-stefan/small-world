@@ -161,7 +161,8 @@ export abstract class Application {
         window.addEventListener("resize", (): void => {
           this.canvas.width = window.innerWidth;
           this.canvas.height = window.innerHeight;
-          this.camera.aspect = this.canvas.width / this.canvas.height;
+          // Use clientWidth/Height to account for scrollbars or dev tools
+          this.camera.aspect = this.canvas.clientWidth / this.canvas.clientHeight;
           this.camera.updateProjectionMatrix();
           if (this.renderer) {
             this.renderer.setSize(this.canvas.width, this.canvas.height);
@@ -179,6 +180,8 @@ export abstract class Application {
         this.canvas,
         this.config,
       );
+
+      this.renderer.setSize(this.canvas.width, this.canvas.height);
 
       await this.setupScene();
       this._isInitialized = true;
@@ -217,7 +220,6 @@ export abstract class Application {
 
     this.scene.update();
     this.camera.update(this.camera.target, 0, 0, deltaTime);
-    this.camera.updateViewMatrix();
 
     // Perform frustum culling before rendering
     FrustumCuller.cull(this.scene, this.camera.viewProjectionMatrix4);

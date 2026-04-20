@@ -1,6 +1,7 @@
 /// examples/example1.ts
 
 import {
+  CameraStrategyType,
   Color,
   Cube,
   DirectionalLight,
@@ -42,7 +43,9 @@ class Example1 extends AbstractExample {
     this.scene.add(sun, this._myCube);
 
     // 3. Position camera rigidly
+    this.camera.setStrategy(CameraStrategyType.FIXED);
     this.camera.position.set(0, 3, 6);
+    this.camera.target.set(0, 0, 0);
   }
 
   protected override update(deltaTime: number): void {

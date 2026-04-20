@@ -47,6 +47,8 @@ export class Input {
       this._keys.set(e.code, false);
     });
     window.addEventListener("mousedown", (e: MouseEvent): void => {
+      this.mouse.x = e.clientX;
+      this.mouse.y = e.clientY;
       if (0 === e.button) {
         this.mouse.left = true;
       }
@@ -55,6 +57,8 @@ export class Input {
       }
     });
     window.addEventListener("mouseup", (e: MouseEvent): void => {
+      this.mouse.x = e.clientX;
+      this.mouse.y = e.clientY;
       if (0 === e.button) {
         this.mouse.left = false;
       }

@@ -1,7 +1,7 @@
 import { AbstractExample } from '../src/core/example/AbstractExample.js';
 /**
  * Example 10: Textured Floor & Organic Fire Bowls.
- * Final polished version with wavy lava and clean engine logic.
+ * Fixed: Lava plane corners hidden and bowl bottom added.
  */
 export declare class Example10 extends AbstractExample {
     private readonly _moveSpeed;
@@ -9,7 +9,7 @@ export declare class Example10 extends AbstractExample {
     private _lavaTexture;
     private _lavaNormalMap;
     private _lavaSpecularMap;
-    private _lavaCircles;
+    private _lavaPlanes;
     private _lavaOriginalVertices;
     private _lavaLights;
     private _noise;
