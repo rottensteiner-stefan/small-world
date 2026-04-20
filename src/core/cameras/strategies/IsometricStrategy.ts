@@ -1,7 +1,7 @@
 /// src/core/cameras/strategies/IsometricStrategy.ts
 
 import {CameraConstraints, CameraStrategy} from "../../../interfaces/index.js";
-import {Camera} from "../../Camera.js";
+import {CameraInterfaceData} from "../../../interfaces/index.js";
 import {Vector3D} from "../../../math/Vector3D.js";
 import {CameraStrategyType} from "../../../enums/index.js";
 import {MathPool, OrthographicProjection} from "../../../math/index.js";
@@ -14,13 +14,13 @@ export class IsometricStrategy implements CameraStrategy {
     public readonly type: string = CameraStrategyType.ISOMETRIC;
 
     public pixelPerfect: boolean = false;
-    public zoom: number = 50;
+    public zoomFactor: number = 50;
     public constraints?: CameraConstraints;
 
     /**
      * Updates the camera position and target.
      */
-    public update(camera: Camera, targetPos: Vector3D, _dx: number, _dy: number): void {
+    public update(camera: CameraInterfaceData, targetPos: Vector3D, _dx: number, _dy: number): void {
         if (!(camera.projection instanceof OrthographicProjection)) {
             return;
         }
@@ -49,9 +49,9 @@ export class IsometricStrategy implements CameraStrategy {
         let posZ = constrainedTarget.z + distance * Math.cos(angleY) * Math.cos(angleX);
 
         if (this.pixelPerfect) {
-            posX = Math.round(posX * this.zoom) / this.zoom;
-            posY = Math.round(posY * this.zoom) / this.zoom;
-            posZ = Math.round(posZ * this.zoom) / this.zoom;
+            posX = Math.round(posX * this.zoomFactor) / this.zoomFactor;
+            posY = Math.round(posY * this.zoomFactor) / this.zoomFactor;
+            posZ = Math.round(posZ * this.zoomFactor) / this.zoomFactor;
         }
 
         camera.position.set(posX, posY, posZ);

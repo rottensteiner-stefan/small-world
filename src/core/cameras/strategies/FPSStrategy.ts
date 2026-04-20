@@ -1,7 +1,7 @@
 /// src/core/cameras/strategies/FPSStrategy.ts
 
 import { CameraConstraints, CameraStrategy } from "../../../interfaces/index.js";
-import { Camera } from "../../Camera.js";
+import { CameraInterfaceData } from "../../../interfaces/index.js";
 import { CameraStrategyType } from "../../../enums/index.js";
 import { Vector3D } from "../../../math/Vector3D.js";
 import { MathUtils } from "../../../math/index.js";
@@ -18,7 +18,7 @@ export class FPSStrategy implements CameraStrategy {
   public constraints?: CameraConstraints;
 
   /** @inheritdoc */
-  public update(camera: Camera, targetPos: Vector3D, dx: number, dy: number): void {
+  public update(camera: CameraInterfaceData, targetPos: Vector3D, dx: number, dy: number): void {
     if (0 !== dx || 0 !== dy) {
       camera.theta -= dx * 0.005;
       camera.phi += dy * 0.005;

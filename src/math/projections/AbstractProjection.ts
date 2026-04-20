@@ -23,4 +23,16 @@ export abstract class AbstractProjection {
    * Updates the projection matrix based on current properties.
    */
   public abstract update(): void;
+
+  /**
+   * Sets the aspect ratio of the projection.
+   * @param value The aspect ratio (width / height).
+   */
+  public abstract setAspect(value: number): void;
+
+  /**
+   * Adjusts the zoom/scale of the projection.
+   * @param delta The zoom delta.
+   */
+  public abstract zoom(delta: number): void;
 }

@@ -1,6 +1,6 @@
 /// src/core/cameras/strategies/FixedStrategy.ts
 
-import { Camera } from "../../Camera.js";
+import { CameraInterfaceData } from "../../../interfaces/index.js";
 import { CameraStrategyType } from "../../../enums/index.js";
 import { CameraConstraints, CameraStrategy } from "../../../interfaces/index.js";
 import { Vector3D } from "../../../math/Vector3D.js";
@@ -15,7 +15,7 @@ export class FixedStrategy implements CameraStrategy {
   public constraints?: CameraConstraints;
 
   /** @inheritdoc */
-  public update(camera: Camera, targetPos: Vector3D, _dx: number, _dy: number): void {
+  public update(camera: CameraInterfaceData, targetPos: Vector3D, _dx: number, _dy: number): void {
     camera.target.copyFrom(targetPos);
 
     if (undefined !== this.constraints) {
