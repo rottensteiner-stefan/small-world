@@ -15,16 +15,15 @@ struct GlobalUniforms {
 struct ObjectUniforms {
     model: mat4x4f,
     color: vec4f,
-    specularColor: vec4f,
+    specColor: vec4f, // Renamed from specularColor to match common uniform naming
     texOffset: vec2f,
     texRepeat: vec2f,
     shininess: f32,
     isTerrain: f32,
     metallic: f32,
     roughness: f32,
-    ao: f32,
-    _pad: f32,
-    thresholds: vec4f
+    extraParams: vec4f, // [ao, time, flowSpeed, noiseScale]
+    thresholds: vec4f   // [sandToGrass, grassToRock, rockToSnow, softness]
 }
 
 struct PointLight {

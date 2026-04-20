@@ -103,6 +103,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
         "u_vp", "u_model", "u_viewPos", "u_ambientColor", "u_dirLightColor", "u_dirLightDir",
         "u_numPointLights", "u_numSpotLights", "u_numAreaLights",
         "u_color", "u_specColor", "u_shininess", "u_thresholds",
+        "u_time", "u_flowSpeed", "u_noiseScale",
         "u_diffuseMap", "u_normalMap", "u_specularMap", "u_skybox",
         "u_sandMap", "u_grassMap", "u_rockMap", "u_snowMap",
         "u_texOffset", "u_texRepeat"

@@ -8,12 +8,8 @@ export declare class Example10 extends AbstractExample {
     private readonly _eyeHeight;
     private readonly _lightPulseSpeed;
     private _lavaTexture;
-    private _lavaNormalMap;
-    private _lavaSpecularMap;
-    private _lavaPlanes;
-    private _lavaOriginalVertices;
+    private _lavaMaterials;
     private _lavaLights;
-    private _noise;
     private _time;
     protected setupScene(): Promise<void>;
     protected update(deltaTime: number): void;

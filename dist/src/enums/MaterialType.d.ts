@@ -20,6 +20,8 @@ export declare const MaterialType: {
     readonly SPRITE: "SpriteMaterial";
     /** Special triplanar mapping material for seamless tiling. */
     readonly WORLD: "WorldMaterial";
+    /** Specialized animated lava material. */
+    readonly LAVA: "LavaMaterial";
 };
 /** Type definition for MaterialType. */
 export type MaterialType = (typeof MaterialType)[keyof typeof MaterialType];

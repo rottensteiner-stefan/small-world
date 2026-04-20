@@ -94,7 +94,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         uniforms.set(name, this.gl.getUniformLocation(prog, name) ?? undefined);
       });
 
-      ["u_model", "u_color", "u_specColor", "u_shininess", "u_thresholds"].forEach((name) => {
+      ["u_model", "u_color", "u_specColor", "u_shininess", "u_thresholds", "u_time", "u_flowSpeed", "u_noiseScale"].forEach((name) => {
         uniforms.set(name, this.gl.getUniformLocation(prog, name) ?? undefined);
       });
 

@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.18.01] - 2026-04-20
+
+- **New Feature: AAA-Style Lava System**:
+  - Introduced `LavaMaterial`, a specialized material for high-performance, animated lava effects.
+  - Implemented GPU-based Vertex Displacement in all shader backends (WebGL 1/2, WebGPU), moving vertex animation from CPU to GPU for massive performance gains.
+  - Developed a multi-layered Fragment Shader featuring:
+    - **Dual-Flow Maps**: Two noise-based flows moving in different directions to create chaotic, organic liquid patterns.
+    - **Dynamic Crust Simulation**: Threshold-based logic for rendering cooled rock (crust) floating on top of molten magma.
+    - **Customizable Viscosity**: Added `flowSpeed` and `noiseScale` parameters to control the sluggishness and scale of the lava flow.
+  - Updated all renderers to generically handle new lava-specific uniforms (`u_time`, `u_flowSpeed`, `u_noiseScale`).
+  - Refactored Example 10 to utilize the new `LavaMaterial`, eliminating all legacy CPU-based noise logic and improving visual quality significantly.
+
 ## [0.18.00] - 2026-04-20
 
 - **Major Architectural Overhaul: Polymorphic Core**:
