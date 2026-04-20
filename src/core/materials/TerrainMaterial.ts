@@ -5,6 +5,10 @@ import { Color } from "../colors/Color.js";
 import { RenderManifest } from "../renderers/shaders/RenderManifest.js";
 import { ShaderDefinition } from "../renderers/shaders/ShaderDefinition.js";
 
+import fragGLSL from "./shaders/Terrain.frag.glsl?raw";
+import fragGLSL100 from "./shaders/Terrain.frag.glsl100?raw";
+import fragWGSL from "./shaders/Terrain.frag.wgsl?raw";
+
 /**
  * Configuration options for terrain material.
  */
@@ -124,88 +128,13 @@ export class TerrainMaterial extends AbstractMaterial {
       sources: {
         glsl300: {
           vs: "[BASE_VERTEX_HEADER][BASE_VERTEX_MAIN]",
-          fs: `[BASE_FRAGMENT_HEADER]
-[LIGHT_DEFS]
-
-uniform sampler2D u_sandMap;
-uniform sampler2D u_grassMap;
-uniform sampler2D u_rockMap;
-uniform sampler2D u_snowMap;
-uniform vec4 u_thresholds;
-
-void main() {
-  vec3 N = normalize(v_normal);
-  vec4 sand = texture(u_sandMap, v_uv);
-  vec4 grass = texture(u_grassMap, v_uv);
-  vec4 rock = texture(u_rockMap, v_uv);
-  vec4 snow = texture(u_snowMap, v_uv);
-
-  float h = v_worldPos.y;
-  float b1 = smoothstep(u_thresholds.x - u_thresholds.w, u_thresholds.x + u_thresholds.w, h);
-  float b2 = smoothstep(u_thresholds.y - u_thresholds.w, u_thresholds.y + u_thresholds.w, h);
-  float b3 = smoothstep(u_thresholds.z - u_thresholds.w, u_thresholds.z + u_thresholds.w, h);
-
-  vec4 texColor = mix(sand, grass, b1);
-  texColor = mix(texColor, rock, b2);
-  texColor = mix(texColor, snow, b3);
-
-  float slope = 1.0 - N.y;
-  float slopeBlend = smoothstep(0.25, 0.45, slope);
-  texColor = mix(texColor, rock, slopeBlend);
-
-  [LIGHT_CALC]
-
-  fragColor = vec4((finalLight * u_color.rgb * texColor.rgb) + (specular * u_specColor.rgb), u_color.a * texColor.a);
-}`,
+          fs: fragGLSL,
         },
         glsl100: {
           vs: "[BASE_VS]",
-          fs: `[BASE_FS_HEADER]
-[LIGHT_DEFS]
-
-void main() {
-  vec3 N = normalize(v_normal);
-  vec4 texColor = texture2D(u_diffuseMap, v_uv); // Fallback for WebGL1 terrain
-
-  [LIGHT_CALC]
-
-  gl_FragColor = vec4((finalLight * u_color.rgb * texColor.rgb) + (specular * u_specColor.rgb), u_color.a * texColor.a);
-}`,
+          fs: fragGLSL100,
         },
-        wgsl: `[WGSL_STRUCTS]
-[WGSL_VS]
-@fragment fn fs(i: Out) -> @location(0) vec4f {
-    let sand = textureSample(u_sandMap, s, i.uv);
-    let grass = textureSample(u_grassMap, s, i.uv);
-    let rock = textureSample(u_rockMap, s, i.uv);
-    let snow = textureSample(u_snowMap, s, i.uv);
-
-    let h = i.wp.y;
-    var texCol: vec4f;
-
-    if (h < obj.thresholds.x) {
-        texCol = sand;
-    } else if (h < obj.thresholds.y) {
-        let t = (h - obj.thresholds.x) / (obj.thresholds.y - obj.thresholds.x);
-        texCol = mix(sand, grass, t);
-    } else if (h < obj.thresholds.z) {
-        let t = (h - obj.thresholds.y) / (obj.thresholds.z - obj.thresholds.y);
-        texCol = mix(grass, rock, t);
-    } else if (h < obj.thresholds.w) {
-        let t = (h - obj.thresholds.z) / (obj.thresholds.w - obj.thresholds.z);
-        texCol = mix(rock, snow, t);
-    } else {
-        texCol = snow;
-    }
-
-    // Note: N is now defined inside WGSL_LIGHTING via normalize(i.n)
-    [WGSL_LIGHTING]
-
-    let diffuseColor = texCol.rgb * obj.color.rgb;
-    let finalColor = fL * diffuseColor;
-
-    return vec4f(finalColor, obj.color.a);
-}`,
+        wgsl: fragWGSL,
       },
       layout: {
         uniforms: {

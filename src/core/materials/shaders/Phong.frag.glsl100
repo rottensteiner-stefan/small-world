@@ -1,0 +1,8 @@
+[BASE_FS_HEADER]
+[LIGHT_DEFS]
+void main() {
+  vec4 texColor = texture2D(u_diffuseMap, v_uv);
+  [LIGHT_CALC]
+  vec3 diffuseColor = texColor.rgb * u_color.rgb;
+  gl_FragColor = vec4((u_ambientColor * diffuseColor) + (diff_dir * u_dirLightColor * diffuseColor), 1.0);
+}

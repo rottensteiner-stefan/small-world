@@ -7,6 +7,10 @@ import { Texture } from "../textures/index.js";
 import { RenderManifest } from "../renderers/shaders/RenderManifest.js";
 import { ShaderDefinition } from "../renderers/shaders/ShaderDefinition.js";
 
+import fragGLSL from "./shaders/Basic.frag.glsl?raw";
+import fragGLSL100 from "./shaders/Basic.frag.glsl100?raw";
+import fragWGSL from "./shaders/Basic.frag.wgsl?raw";
+
 /**
  * Configuration options for BasicMaterial.
  */
@@ -81,26 +85,13 @@ export class BasicMaterial extends AbstractMaterial {
       sources: {
         glsl300: {
           vs: "[BASE_VERTEX_HEADER][BASE_VERTEX_MAIN]",
-          fs: `[BASE_FRAGMENT_HEADER]
-void main() {
-  vec4 texColor = texture(u_diffuseMap, v_uv);
-  fragColor = u_color * texColor;
-}`,
+          fs: fragGLSL,
         },
         glsl100: {
           vs: "[BASE_VS]",
-          fs: `[BASE_FS_HEADER]
-void main() {
-  vec4 texColor = texture2D(u_diffuseMap, v_uv);
-  gl_FragColor = u_color * texColor;
-}`,
+          fs: fragGLSL100,
         },
-        wgsl: `[WGSL_STRUCTS]
-[WGSL_VS]
-@fragment fn fs(i: Out) -> @location(0) vec4f {
-    let texCol = textureSample(u_diffuseMap, s, i.uv);
-    return vec4f(texCol.rgb * obj.color.rgb, texCol.a * obj.color.a);
-}`,
+        wgsl: fragWGSL,
       },
       layout: {
         uniforms: {
