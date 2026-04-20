@@ -1,11 +1,15 @@
 /// src/core/materials/BasicMaterial.ts
 
 import { AbstractMaterial } from "./AbstractMaterial.js";
-import { MaterialType } from "../../enums/index.js";
+import { MaterialType, ShaderPropertyType } from "../../enums/index.js";
 import { Color } from "../../core/index.js";
 import { Texture } from "../textures/index.js";
 import { RenderManifest } from "../renderers/shaders/RenderManifest.js";
+import { ShaderDefinition } from "../renderers/shaders/ShaderDefinition.js";
 
+/**
+ * Configuration options for BasicMaterial.
+ */
 export type BasicMaterialOptions = {
   color?: Color;
   diffuseMap?: Texture;
@@ -71,5 +75,44 @@ export class BasicMaterial extends AbstractMaterial {
     };
 
     return this._renderManifest;
+  }
+
+  /** @inheritdoc */
+  public override getShaderDefinition(): ShaderDefinition {
+    return {
+      id: this.type,
+      sources: {
+        glsl300: {
+          vs: "[BASE_VERTEX_HEADER][BASE_VERTEX_MAIN]",
+          fs: `[BASE_FRAGMENT_HEADER]
+void main() {
+  vec4 texColor = texture(u_diffuseMap, v_uv);
+  fragColor = u_color * texColor;
+}`,
+        },
+        glsl100: {
+          vs: "[BASE_VS]",
+          fs: `[BASE_FS_HEADER]
+void main() {
+  vec4 texColor = texture2D(u_diffuseMap, v_uv);
+  gl_FragColor = u_color * texColor;
+}`,
+        },
+        wgsl: `[WGSL_STRUCTS]
+[WGSL_VS]
+@fragment fn fs(i: VertexOut) -> @location(0) vec4f {
+    let texCol = textureSample(u_diffuseMap, s, i.uv);
+    return vec4f(texCol.rgb * obj.color.rgb, texCol.a * obj.color.a);
+}`,
+      },
+      layout: {
+        uniforms: {
+          u_color: { type: ShaderPropertyType.COLOR },
+          u_texOffset: { type: ShaderPropertyType.VEC2 },
+          u_texRepeat: { type: ShaderPropertyType.VEC2 },
+        },
+        textures: { u_diffuseMap: { type: ShaderPropertyType.TEXTURE } },
+      },
+    };
   }
 }

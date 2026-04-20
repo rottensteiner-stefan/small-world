@@ -1,13 +1,15 @@
 /// src/core/materials/AbstractMaterial.ts
-
 import { Color } from "../colors/index.js";
 import { MaterialType, CullMode } from "../../enums/index.js";
 import { RenderManifest } from "../renderers/shaders/RenderManifest.js";
+import { ShaderProvider } from "../../interfaces/index.js";
+import { ShaderDefinition } from "../renderers/shaders/ShaderDefinition.js";
+import { ShaderRegistry } from "../renderers/shaders/ShaderRegistry.js";
 
 /**
  * Base class for all material types.
  */
-export abstract class AbstractMaterial {
+export abstract class AbstractMaterial implements ShaderProvider {
   /** The type of the material. */
   public abstract readonly type: MaterialType;
 
@@ -23,8 +25,21 @@ export abstract class AbstractMaterial {
   protected _renderManifest: RenderManifest | undefined = undefined;
 
   /**
+   * Creates a new material and automatically registers it with the ShaderRegistry.
+   */
+  protected constructor() {
+    // Self-registration: The moment a material is instantiated, 
+    // the engine knows how to handle its shader.
+    ShaderRegistry.instance.registerProvider(this.type, this);
+  }
+
+  /**
    * Returns a manifest describing the requirements for rendering this material.
+...
    * @returns The render manifest.
    */
   public abstract getRenderManifest(): RenderManifest;
+
+  /** @inheritdoc */
+  public abstract getShaderDefinition(): ShaderDefinition;
 }

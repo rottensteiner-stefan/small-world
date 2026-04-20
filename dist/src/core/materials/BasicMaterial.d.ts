@@ -3,6 +3,10 @@ import { MaterialType } from '../../enums/index.js';
 import { Color } from '../../core/index.js';
 import { Texture } from '../textures/index.js';
 import { RenderManifest } from '../renderers/shaders/RenderManifest.js';
+import { ShaderDefinition } from '../renderers/shaders/ShaderDefinition.js';
+/**
+ * Configuration options for BasicMaterial.
+ */
 export type BasicMaterialOptions = {
     color?: Color;
     diffuseMap?: Texture;
@@ -18,4 +22,6 @@ export declare class BasicMaterial extends AbstractMaterial {
     constructor(options?: BasicMaterialOptions);
     /** @inheritdoc */
     getRenderManifest(): RenderManifest;
+    /** @inheritdoc */
+    getShaderDefinition(): ShaderDefinition;
 }

@@ -3,6 +3,7 @@ import { MaterialType } from '../../enums/index.js';
 import { Color } from '../../core/index.js';
 import { Texture } from '../textures/index.js';
 import { RenderManifest } from '../renderers/shaders/RenderManifest.js';
+import { ShaderDefinition } from '../renderers/shaders/ShaderDefinition.js';
 export type WorldMaterialOptions = {
     color?: Color;
     diffuseMap?: Texture;
@@ -19,4 +20,6 @@ export declare class WorldMaterial extends AbstractMaterial {
     constructor(options?: WorldMaterialOptions);
     /** @inheritdoc */
     getRenderManifest(): RenderManifest;
+    /** @inheritdoc */
+    getShaderDefinition(): ShaderDefinition;
 }

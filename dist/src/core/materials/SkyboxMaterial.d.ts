@@ -3,6 +3,7 @@ import { CubeTexture } from '../textures/index.js';
 import { MaterialType } from '../../enums/index.js';
 import { Color } from '../colors/Color.js';
 import { RenderManifest } from '../renderers/shaders/RenderManifest.js';
+import { ShaderDefinition } from '../renderers/shaders/ShaderDefinition.js';
 /**
  * Configuration options for skybox material.
  */
@@ -27,4 +28,6 @@ export declare class SkyboxMaterial extends AbstractMaterial {
     constructor(options?: SkyboxMaterialOptions);
     /** @inheritdoc */
     getRenderManifest(): RenderManifest;
+    /** @inheritdoc */
+    getShaderDefinition(): ShaderDefinition;
 }

@@ -11,3 +11,4 @@ export * from './GeometryData.js';
 export * from './LoaderOptions.js';
 export * from './Renderer.js';
 export * from './Vector.js';
+export * from './ShaderProvider.js';

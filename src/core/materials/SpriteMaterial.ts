@@ -1,10 +1,9 @@
-/// src/core/materials/SpriteMaterial.ts
-
 import { Color } from "../colors/index.js";
 import { AbstractMaterial } from "./AbstractMaterial.js";
-import { MaterialType, BlendingMode } from "../../enums/index.js";
+import { MaterialType, BlendingMode, ShaderPropertyType } from "../../enums/index.js";
 import { Texture } from "../textures/Texture.js";
 import { RenderManifest } from "../renderers/shaders/RenderManifest.js";
+import { ShaderDefinition } from "../renderers/shaders/ShaderDefinition.js";
 
 /**
  * Material for rendering 2D sprites.
@@ -55,6 +54,7 @@ export class SpriteMaterial extends AbstractMaterial {
           transparent: this.transparent,
           blending: this.transparent ? BlendingMode.ALPHA : BlendingMode.OPAQUE,
           depthWrite: !this.transparent,
+          isSprite: true,
         },
       };
     }
@@ -85,5 +85,45 @@ export class SpriteMaterial extends AbstractMaterial {
     state.isSprite = true;
 
     return this._renderManifest;
+  }
+
+  /** @inheritdoc */
+  public override getShaderDefinition(): ShaderDefinition {
+    return {
+      id: this.type,
+      sources: {
+        glsl300: {
+          vs: "[BASE_VERTEX_HEADER][BASE_VERTEX_MAIN]",
+          fs: `[BASE_FRAGMENT_HEADER]
+void main() {
+  vec4 texColor = texture(u_diffuseMap, v_uv);
+  fragColor = u_color * texColor;
+}`,
+        },
+        glsl100: {
+          vs: "[BASE_VS]",
+          fs: `[BASE_FS_HEADER]
+void main() {
+  vec4 texColor = texture2D(u_diffuseMap, v_uv);
+  gl_FragColor = u_color * texColor;
+}`,
+        },
+        wgsl: `[WGSL_STRUCTS]
+[WGSL_VS]
+@fragment fn fs(i: Out) -> @location(0) vec4f {
+    let texCol = textureSample(u_diffuseMap, s, i.uv);
+    if (texCol.a < 0.1) { discard; }
+    return texCol * obj.color;
+}`,
+      },
+      layout: {
+        uniforms: {
+          u_color: { type: ShaderPropertyType.COLOR },
+          u_texOffset: { type: ShaderPropertyType.VEC2 },
+          u_texRepeat: { type: ShaderPropertyType.VEC2 },
+        },
+        textures: { u_diffuseMap: { type: ShaderPropertyType.TEXTURE } },
+      },
+    };
   }
 }

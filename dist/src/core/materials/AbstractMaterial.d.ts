@@ -1,10 +1,12 @@
 import { Color } from '../colors/index.js';
 import { MaterialType, CullMode } from '../../enums/index.js';
 import { RenderManifest } from '../renderers/shaders/RenderManifest.js';
+import { ShaderProvider } from '../../interfaces/index.js';
+import { ShaderDefinition } from '../renderers/shaders/ShaderDefinition.js';
 /**
  * Base class for all material types.
  */
-export declare abstract class AbstractMaterial {
+export declare abstract class AbstractMaterial implements ShaderProvider {
     /** The type of the material. */
     abstract readonly type: MaterialType;
     /** The unique identifier of the material. */
@@ -20,4 +22,6 @@ export declare abstract class AbstractMaterial {
      * @returns The render manifest.
      */
     abstract getRenderManifest(): RenderManifest;
+    /** @inheritdoc */
+    abstract getShaderDefinition(): ShaderDefinition;
 }
