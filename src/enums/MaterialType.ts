@@ -22,6 +22,8 @@ export const MaterialType = {
   SPRITE: "SpriteMaterial",
   /** Special triplanar mapping material for seamless tiling. */
   WORLD: "WorldMaterial",
+  /** Specialized animated lava material. */
+  LAVA: "LavaMaterial",
 } as const;
 
 /** Type definition for MaterialType. */

@@ -369,9 +369,12 @@ export class WebGPURenderer extends AbstractRenderer {
     const roughness = typeof props["u_roughness"] === "number" ? props["u_roughness"] : 0.5;
     data.set([shininess, isTerrain, metallic, roughness], 28);
 
-    // 6. Extra Parameters (AO, Padding)
+    // 6. Extra Parameters (AO, Time, FlowSpeed, NoiseScale)
     const ao = typeof props["u_ao"] === "number" ? props["u_ao"] : 1.0;
-    data.set([ao, 0, 0, 0], 32); 
+    const time = typeof props["u_time"] === "number" ? props["u_time"] : 0.0;
+    const flowSpeed = typeof props["u_flowSpeed"] === "number" ? props["u_flowSpeed"] : 1.0;
+    const noiseScale = typeof props["u_noiseScale"] === "number" ? props["u_noiseScale"] : 1.0;
+    data.set([ao, time, flowSpeed, noiseScale], 32); 
 
     // 7. Terrain Thresholds (if applicable)
     const thresholds = props["u_thresholds"];

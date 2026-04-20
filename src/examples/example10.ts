@@ -18,11 +18,10 @@ import {
   WorldMaterial,
   Tube,
   Circle,
-  PhongMaterial,
+  LavaMaterial,
   CullMode,
 } from "../index.js";
 import { AbstractExample } from "../core/example/AbstractExample.js";
-import { createNoise2D, NoiseFunction2D } from "simplex-noise";
 
 /**
  * Example 10: Textured Floor & Organic Fire Bowls.
@@ -34,13 +33,9 @@ export class Example10 extends AbstractExample {
   private readonly _lightPulseSpeed: number = 2.1;
 
   private _lavaTexture: Texture | undefined;
-  private _lavaNormalMap: Texture | undefined;
-  private _lavaSpecularMap: Texture | undefined;
 
-  private _lavaPlanes: Plane[] = [];
-  private _lavaOriginalVertices: Float32Array[] = [];
+  private _lavaMaterials: LavaMaterial[] = [];
   private _lavaLights: PointLight[] = [];
-  private _noise: NoiseFunction2D = createNoise2D();
   private _time: number = 0;
 
   protected override async setupScene(): Promise<void> {
@@ -65,8 +60,6 @@ export class Example10 extends AbstractExample {
     if (rockTexture) { rockTexture.repeat.x = 0.5; rockTexture.repeat.y = 0.5; }
 
     this._lavaTexture = await Texture.fromUrl("/resources/examples/10/lava.png", { generateMipmaps: true, flipY: true });
-    this._lavaNormalMap = await Texture.fromUrl("/resources/examples/10/lava_normal.png", { generateMipmaps: true, flipY: true });
-    this._lavaSpecularMap = await Texture.fromUrl("/resources/examples/10/lava_specular.png", { generateMipmaps: true, flipY: true });
 
     const floor = new Object3D("Floor");
     floor.geometry = new Plane({ width: 100, depth: 100 }).getGeometryData();
@@ -103,23 +96,21 @@ export class Example10 extends AbstractExample {
 
       // 3. Lava Surface (Smaller Plane 3.5 to stay inside)
       const lava = new Object3D("Lava");
+      // Still relatively high poly to show off vertex displacement!
       const plane = new Plane({ width: 3.5, depth: 3.5, widthSegments: 32, depthSegments: 32 }); 
-      const geomData = plane.getGeometryData();
-      lava.geometry = geomData;
+      lava.geometry = plane.getGeometryData();
 
-      this._lavaOriginalVertices.push(new Float32Array(geomData.vertices));
-      this._lavaPlanes.push(plane);
-
-      const lavaMaterial = new PhongMaterial({
-        color: new Color(1.5, 1.3, 1.0),
-        diffuseMap: this._lavaTexture,
-        normalMap: this._lavaNormalMap,
-        specularMap: this._lavaSpecularMap,
-        shininess: 256,
-        specularColor: new Color(1, 0.8, 0.5),
+      const lavaMaterial = new LavaMaterial({
+        color: new Color(1.5, 0.5, 0.0), // Bright magma glow
+        crustColor: new Color(0.1, 0.05, 0.05), // Dark cooled rock
+        noiseMap: this._lavaTexture,
+        flowSpeed: 0.3,
+        noiseScale: 2.0
       });
       lavaMaterial.cullMode = CullMode.NONE;
       
+      this._lavaMaterials.push(lavaMaterial);
+
       lava.material = lavaMaterial;
       lava.position.set(0, 1.3, 0); 
       container.add(lava);
@@ -148,34 +139,8 @@ export class Example10 extends AbstractExample {
     this._time += deltaTime;
     this.camera.position.y = Math.max(this._eyeHeight, this.camera.position.y);
 
-    for (let m = 0; m < this._lavaPlanes.length; m++) {
-      const plane = this._lavaPlanes[m]!;
-      const original = this._lavaOriginalVertices[m]!;
-      const geom = plane.getGeometryData();
-      const vertices = geom.vertices;
-      
-      for (let i: number = 0; i < vertices.length; i += 3) {
-        const vx = original[i]!; const vz = original[i + 2]!; 
-        const dist = Math.sqrt(vx * vx + vz * vz);
-        
-        // Hide vertices that overlap with the tube walls
-        if (dist > 1.85) {
-            vertices[i + 1] = -0.5; 
-            continue;
-        }
-
-        const n1 = this._noise(vx * 0.8 + this._time * 1.5, vz * 0.8 + m) * 0.3;
-        const n2 = this._noise(vx * 3.0 - this._time * 2.5, vz * 3.0 + m) * 0.125;
-        const damping = Math.max(0, 1.0 - Math.pow(dist / 1.8, 4));
-        vertices[i + 1] = (n1 + n2) * damping;
-      }
-      plane.computeNormals();
-      geom.needsUpdate = true;
-    }
-
-    if (this._lavaTexture) {
-      this._lavaTexture.offset.x += 0.03 * deltaTime;
-      this._lavaTexture.offset.y += 0.02 * deltaTime;
+    for (const mat of this._lavaMaterials) {
+      mat.time = this._time;
     }
 
     for (let l = 0; l < this._lavaLights.length; l++) {
