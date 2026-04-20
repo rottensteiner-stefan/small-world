@@ -1,4 +1,4 @@
-import { AbstractExample } from '../src/core/example/AbstractExample.js';
+import { AbstractExample } from '../core/example/AbstractExample.js';
 export declare class Example4 extends AbstractExample {
     private _targetPos;
     private _car;

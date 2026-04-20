@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.17.01] - 2026-04-20
+
+- **Maintenance & Stability Round**:
+  - **Core Regression Fixes**: Restored `camera.update()` and `camera.updateViewMatrix()` calls in the main application loop to fix visual errors where objects appeared too large (Identity Matrix issues).
+  - **Type Safety Overhaul**: Performed a project-wide maintenance pass, eliminating unsafe `any` usages and fixing calls to non-existent methods/properties.
+  - **GltfLoader Improvements**: Fixed a critical color scaling bug (removed redundant *255 multiplication) and added robust safety checks for malformed glTF files.
+  - **Robustness**: Added division-by-zero protection in tangent calculations for degenerate UV coordinates.
+  - **Cross-Environment Compatibility**: Switched to `MathUtils.generateUUID()` for safer ID generation across various browser environments.
+- **Architectural Refinement**:
+  - **Example Restructuring**: Reorganized the project structure by moving example TypeScript files to `src/examples/` and HTML files to `public/examples/` for better build integration and cleaner separation of concerns.
+  - **Smart Camera Updates**: Integrated `updateViewMatrix()` directly into `Camera.update()` to ensure every strategy or effect update is immediately reflected in the render.
+- **Visual & Performance Tuning**:
+  - **Example 10 Polish**: Mellowed the pointedness of bubbling lava animation by 50% and slowed down the light pulsing speed by 30% via a new `_lightPulseSpeed` constant for a more organic feel.
+  - **Build System**: Added `example10` to the Vite production build configuration.
+
 ## [0.17.00] - 2026-04-19
 
 - **WebGPU Backend Stability & Performance**:

@@ -1,4 +1,4 @@
-import { AbstractExample } from '../src/core/example/AbstractExample.js';
+import { AbstractExample } from '../core/example/AbstractExample.js';
 /**
  * Example 8: A classic 2.5D Jump & Run with pure code physics, collision, and parallax clouds!
  */

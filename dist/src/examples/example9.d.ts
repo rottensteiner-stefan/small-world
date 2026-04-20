@@ -1,4 +1,4 @@
-import { AbstractExample } from '../src/core/example/AbstractExample.js';
+import { AbstractExample } from '../core/example/AbstractExample.js';
 /**
  * Example 9: Clean rebuild with Skydome, Green Floor, WASD/QE movement.
  */

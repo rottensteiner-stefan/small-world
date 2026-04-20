@@ -1,4 +1,4 @@
-import { AbstractExample } from '../src/core/example/AbstractExample.js';
+import { AbstractExample } from '../core/example/AbstractExample.js';
 /**
  * Example 7: Skybox & FPS Controls.
  * This example demonstrates a pure skybox environment without a physical floor.

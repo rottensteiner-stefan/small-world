@@ -1,4 +1,4 @@
-import { AbstractExample } from '../src/core/example/AbstractExample.js';
+import { AbstractExample } from '../core/example/AbstractExample.js';
 /**
  * Example 2: Interactive camera (FPS-style) and keyboard input.
  * Shows how to move the camera with mouse and keyboard.
