@@ -1,243 +1,159 @@
 /// examples/example6.ts
 
 import {
-  AmbientLight,
-  CameraStrategyType,
-  Capsule,
-  Circle,
-  Color,
-  Cone,
-  Cylinder,
-  CylinderSector,
-  DirectionalLight,
-  FPSController,
-  ZoomController,
-  Grid,
-  Input,
-  Object3D,
-  PerspectiveProjection,
-  Pyramid,
-  Sphere,
-  Torus,
-  Triangle,
-  Tube,
-  Vector3D,
-  WireframeMaterial,
+    AmbientLight,
+    BoundingBox,
+    CameraStrategyType,
+    Capsule,
+    Color,
+    Cone,
+    Cube,
+    Cylinder,
+    DirectionalLight,
+    FPSController,
+    Grid,
+    Input,
+    Object3D,
+    PerspectiveProjection,
+    PhongMaterial,
+    Pyramid,
+    Sphere,
+    Torus,
+    Tube,
+    Vector3D,
+    WireframeMaterial,
+    ZoomController,
 } from "../src/index.js";
-import { AbstractExample } from "../src/core/example/AbstractExample.js";
+import {AbstractExample} from "../src/core/example/AbstractExample.js";
 
 /**
- * Example 6: Showcasing advanced geometries like Capsule, Tube, and Sektors.
+ * Example 6: Advanced Geometries & Camera Collision.
  */
 export class Example6 extends AbstractExample {
-  private _targetPos: Vector3D = new Vector3D(0, 0, 0);
-  private _moveSpeed: number = 20.0;
+    private _moveSpeed: number = 10.0;
 
-  /**
-   * Called by the constructor of Application OR after a renderer switch (onCanvasRecreated).
-   * Ensures that pointer lock works even on a NEW canvas.
-   */
-  protected override onCanvasRecreated(): void {
-    super.onCanvasRecreated();
+    protected override onCanvasRecreated(): void {
+        super.onCanvasRecreated();
+        this.canvas.addEventListener("click", (): void => {
+            if (!Input.isPointerLocked) Input.requestPointerLock(this.canvas);
+        });
+    }
 
-    // Reattach listener to the new canvas
-    this.canvas.addEventListener("click", (): void => {
-      if (!Input.isPointerLocked) {
-        Input.requestPointerLock(this.canvas);
-      }
-    });
-  }
+    /** @inheritdoc */
+    protected override async setupScene(): Promise<void> {
+        this.onCanvasRecreated();
 
-  /** @inheritdoc */
-  protected override async setupScene(): Promise<void> {
-    // Initial binding of PointerLock
-    this.onCanvasRecreated();
+        // 0. Initialize Octrees for Collision
+        this.scene.initOctrees(new BoundingBox(new Vector3D(-100, -10, -100), new Vector3D(100, 50, 100)));
 
-    // 1. Setup Perspective Camera
-    const aspect: number = window.innerWidth / window.innerHeight;
-    this.camera.projection = new PerspectiveProjection({
-      fov: (75 * Math.PI) / 180,
-      aspect,
-      near: 0.1,
-      far: 1000,
-    });
-    this.camera.updateProjectionMatrix();
-    this.camera.setStrategy(CameraStrategyType.SMOOTH);
-    this.camera.position.set(0, 15, 30);
+        // 1. Camera Setup
+        const aspect: number = window.innerWidth / window.innerHeight;
+        this.camera.projection = new PerspectiveProjection({fov: (75 * Math.PI) / 180, aspect, near: 0.1, far: 1000});
+        this.camera.updateProjectionMatrix();
+        this.camera.setStrategy(CameraStrategyType.FPS);
+        this.camera.position.set(0, 2, 10);
 
-    this.controllers.push(
-      new FPSController(this.camera, {
-        moveSpeed: this._moveSpeed,
-      }),
-      new ZoomController(this.camera),
-    );
+        // 2. Controller with Collision enabled
+        this.controllers.push(
+            new FPSController(this.camera, {
+                moveSpeed: this._moveSpeed,
+                collisionRadius: 0.6,
+            }, this.scene),
+            new ZoomController(this.camera),
+        );
 
-    // 2. Lights
-    const ambient: AmbientLight = new AmbientLight({ color: Color.WHITE, intensity: 0.4 });
-    this.scene.add(ambient);
+        // 3. Lights
+        this.scene.add(new AmbientLight({color: Color.WHITE, intensity: 0.4}));
+        const sun: DirectionalLight = new DirectionalLight({color: Color.WHITE, intensity: 0.8});
+        sun.direction.set(-1, -1, -1).normalize();
+        this.scene.add(sun);
 
-    const sun: DirectionalLight = new DirectionalLight({ color: Color.WHITE, intensity: 0.8 });
-    sun.direction.set(-1, -1, -1).normalize();
-    this.scene.add(sun);
+        // 4. Floor Grid
+        const gridObj: Object3D = new Object3D("FloorGrid");
+        gridObj.geometry = new Grid({size: 100, divisions: 50}).getGeometryData();
+        const gridMat: WireframeMaterial = new WireframeMaterial();
+        gridMat.color = Color.DARKSLATEGRAY;
+        gridObj.material = gridMat;
+        gridObj.isStatic = true;
+        this.scene.add(gridObj);
 
-    // 3. Grid for orientation
-    const gridObj: Object3D = new Object3D("FloorGrid");
-    gridObj.geometry = new Grid({ size: 100, divisions: 50 }).getGeometryData();
-    const gridMat: WireframeMaterial = new WireframeMaterial();
-    gridMat.color = Color.DARKSLATEGRAY;
-    gridObj.material = gridMat;
-    this.scene.add(gridObj);
+        // 5. Walls to test collision
+        const wallMat = new PhongMaterial({color: Color.GRAY});
+        const addWall = (name: string, w: number, h: number, d: number, x: number, z: number): void => {
+            const wall = new Object3D(name);
+            wall.geometry = new Cube({size: 1}).getGeometryData();
+            wall.material = wallMat;
+            wall.scale.set(w, h, d);
+            wall.position.set(x, h / 2, z);
+            wall.isStatic = true;
+            wall.computeBounds();
+            this.scene.add(wall);
+        };
 
-    // 4. Common Wireframe Material for all examples
-    const wireMat: WireframeMaterial = new WireframeMaterial();
-    wireMat.color = Color.CYAN;
+        addWall("Wall1", 10, 4, 1, 0, -5); // Front wall
+        addWall("Wall2", 1, 4, 10, -5, 0); // Left wall
 
-    // 5. Helper function to add examples to the scene
-    const addExample: (
-      name: string,
-      geometry: { getGeometryData(): Exclude<Object3D["geometry"], undefined> },
-      x: number,
-      z: number,
-    ) => void = (
-      name: string,
-      geometry: { getGeometryData(): Exclude<Object3D["geometry"], undefined> },
-      x: number,
-      z: number,
-    ): void => {
-      const obj: Object3D = new Object3D(name);
-      obj.geometry = geometry.getGeometryData();
-      obj.material = wireMat;
-      obj.position.set(x, 2, z);
-      this.scene.add(obj);
-    };
+        // 6. Common Wireframe Material
+        const wireMat: WireframeMaterial = new WireframeMaterial();
+        wireMat.color = Color.CYAN;
 
-    const spacing: number = 10;
+        const addExample = (name: string, geometry: any, x: number, z: number): void => {
+            const obj: Object3D = new Object3D(name);
+            obj.geometry = geometry.getGeometryData();
+            obj.material = wireMat;
+            obj.position.set(x, 2, z);
+            obj.isStatic = true;
+            obj.computeBounds();
+            this.scene.add(obj);
+        };
 
-    // --- Row 1: Traditional Primitives ---
-    addExample(
-      "Sphere",
-      new Sphere({ radius: 2, widthSegments: 32, heightSegments: 24 }),
-      -spacing * 1.5,
-      spacing,
-    );
-    addExample(
-      "Pyramid",
-      new Pyramid({ base: 4, height: 4, radialSegments: 4 }),
-      -spacing * 0.5,
-      spacing,
-    );
-    addExample(
-      "Torus",
-      new Torus({
-        radius: 2,
-        tube: 0.6,
-        radialSegments: 16,
-        tubularSegments: 32,
-      }),
-      spacing * 0.5,
-      spacing,
-    );
-    addExample(
-      "Capsule",
-      new Capsule({
-        radius: 1,
-        length: 3,
-        radialSegments: 16,
-        capSegments: 8,
-      }),
-      spacing * 1.5,
-      spacing,
-    );
+        const spacing: number = 10;
+        addExample("Sphere", new Sphere({radius: 2, widthSegments: 32, heightSegments: 24}), -spacing * 1.5, spacing);
+        addExample("Pyramid", new Pyramid({base: 4, height: 4, radialSegments: 4}), -spacing * 0.5, spacing);
+        addExample("Torus", new Torus({
+            radius: 2,
+            tube: 0.6,
+            radialSegments: 16,
+            tubularSegments: 32
+        }), spacing * 0.5, spacing);
+        addExample("Capsule", new Capsule({
+            radius: 1,
+            length: 3,
+            radialSegments: 16,
+            capSegments: 8
+        }), spacing * 1.5, spacing);
 
-    // --- Row 2: Cylinder & Variations ---
-    addExample("Cone", new Cone({ radius: 2, height: 4, radialSegments: 32 }), -spacing * 1.5, 0);
-    addExample(
-      "Frustum",
-      new Cylinder({
-        radiusTop: 1,
-        radiusBottom: 2,
-        height: 4,
-        radialSegments: 32,
-      }),
-      -spacing * 0.5,
-      0,
-    );
-    addExample(
-      "Cylinder",
-      new Cylinder({
-        radiusTop: 2,
-        radiusBottom: 2,
-        height: 4,
-        radialSegments: 32,
-      }),
-      spacing * 0.5,
-      0,
-    );
-    addExample(
-      "Tube",
-      new Tube({ radius: 2, innerRadius: 1.5, height: 4, radialSegments: 32 }),
-      spacing * 1.5,
-      0,
-    );
+        addExample("Cone", new Cone({radius: 2, height: 4, radialSegments: 32}), -spacing * 1.5, 0);
+        addExample("Frustum", new Cylinder({
+            radiusTop: 1,
+            radiusBottom: 2,
+            height: 4,
+            radialSegments: 32
+        }), -spacing * 0.5, 0);
+        addExample("Cylinder", new Cylinder({
+            radiusTop: 2,
+            radiusBottom: 2,
+            height: 4,
+            radialSegments: 32
+        }), spacing * 0.5, 0);
+        addExample("Tube", new Tube({radius: 2, innerRadius: 1.5, height: 4, radialSegments: 32}), spacing * 1.5, 0);
 
-    // --- Row 3: Sectors & Basic units ---
-    addExample(
-      "CylinderSector",
-      new CylinderSector({
-        radiusTop: 2,
-        radiusBottom: 2,
-        height: 4,
-        radialSegments: 16,
-        thetaLength: Math.PI / 2,
-      }),
-      -spacing * 1.5,
-      -spacing,
-    );
-    addExample(
-      "CircleSector",
-      new Circle({
-        radius: 2,
-        segments: 32,
-        thetaLength: Math.PI * 1.5,
-      }),
-      -spacing * 0.5,
-      -spacing,
-    );
+        this.scene.updateStaticOctree();
+        console.log("Example 6: Scene with collision walls ready.");
+    }
 
-    // Triangle
-    addExample(
-      "Triangle",
-      new Triangle(new Vector3D(-2, 0, -2), new Vector3D(2, 0, -2), new Vector3D(0, 3, 0)),
-      -spacing * 0.5,
-      -spacing,
-    );
+    protected override update(_deltaTime: number): void {
+    }
 
-    console.log("Example 6: All geometries added.");
-  }
-
-  /** @inheritdoc */
-  protected override update(_deltaTime: number): void {
-    // Movement and looking is now handled by the FPSController registered in setupScene.
-  }
-
-  /** @inheritdoc */
-  protected override getDebugInfo(): Record<string, string | number> {
-    const base: Record<string, string | number> = super.getDebugInfo();
-    return {
-      ...base,
-      Example: "06 - Advanced Geometries",
-      "Camera Target": `(${this._targetPos.x.toFixed(1)}, ${this._targetPos.y.toFixed(1)}, ${this._targetPos.z.toFixed(1)})`,
-    };
-  }
+    protected override getDebugInfo(): Record<string, string | number> {
+        const base = super.getDebugInfo();
+        return {
+            ...base,
+            Example: "06 - Geometry & Collision",
+            "Collision": "Enabled",
+        };
+    }
 }
 
-// === START THE ENGINE ===
 const app: Example6 = new Example6();
-app
-  .start()
-  .then((): void => {
-    console.log("Engine running");
-  })
-  .catch((err: Error): void => {
-    console.error("Error while starting the engine: ", err);
-  });
+app.start();

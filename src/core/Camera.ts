@@ -72,6 +72,8 @@ export class Camera implements CameraInterfaceData {
   public set aspect(value: number) {
     if (this.projection instanceof PerspectiveProjection) {
       this.projection.aspect = value;
+    } else if (this.projection instanceof OrthographicProjection) {
+      this.projection.setAspect(value);
     }
   }
 
@@ -139,6 +141,45 @@ export class Camera implements CameraInterfaceData {
   }
 
   /** @inheritdoc */
+  public screenToWorld(screenX: number, screenY: number): Vector3D {
+    const invVP: Matrix4 = MathPool.acquireMatrix();
+    if (false === this._viewProjMatrix.invert(invVP)) {
+      MathPool.releaseMatrix(invVP);
+      return new Vector3D().copyFrom(this.target);
+    }
+
+    // Points in NDC space
+    const pNear: Vector3D = MathPool.acquireVector().set(screenX, screenY, -1);
+    const pFar: Vector3D = MathPool.acquireVector().set(screenX, screenY, 1);
+
+    // Transform to world space
+    invVP.transformVector(pNear);
+    invVP.transformVector(pFar);
+
+    const result: Vector3D = new Vector3D();
+    const dy: number = pFar.y - pNear.y;
+
+    if (0.0001 < Math.abs(dy)) {
+      const t: number = -pNear.y / dy;
+      // Linear interpolation between pNear and pFar at Y=0
+      result.set(
+        pNear.x + (pFar.x - pNear.x) * t,
+        0,
+        pNear.z + (pFar.z - pNear.z) * t
+      );
+    } else {
+      result.copyFrom(pNear);
+      result.y = 0;
+    }
+
+    MathPool.releaseMatrix(invVP);
+    MathPool.releaseVector(pNear);
+    MathPool.releaseVector(pFar);
+    
+    return result;
+  }
+
+  /** @inheritdoc */
   public get strategy(): CameraStrategy {
     return this._strategy;
   }
@@ -174,6 +215,8 @@ export class Camera implements CameraInterfaceData {
         this._effects.splice(i, 1);
       }
     }
+
+    this.updateViewMatrix();
   }
 
   /**

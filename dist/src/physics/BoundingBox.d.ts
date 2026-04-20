@@ -20,21 +20,19 @@ export declare class BoundingBox implements BoundingVolume {
      */
     constructor(min: Vector3D, max: Vector3D);
     /**
+     * Creates a BoundingBox that encapsulates all provided vertices.
+     */
+    static fromVertices(v: Float32Array): BoundingBox;
+    /**
      * Checks if this bounding box contains a point.
-     * @param point The point to check.
-     * @returns True if the point is inside the bounding box.
      */
     containsPoint(point: Vector3D): boolean;
     /**
      * Checks if this bounding box contains another bounding box.
-     * @param other The other bounding box.
-     * @returns True if the other bounding box is completely inside this one.
      */
     containsBox(other: BoundingBox): boolean;
     /**
      * Checks if this bounding box intersects with another bounding box.
-     * @param other The other bounding box.
-     * @returns True if the bounding boxes intersect.
      */
     intersectsBox(other: BoundingBox): boolean;
     /** @inheritdoc */

@@ -55,28 +55,38 @@ export class Matrix4 {
     return result;
   }
 
+  /**
+   * Composes matrix from pos, rot (Euler YXZ), scale.
+   */
   public compose(pos: Vector3D, rot: Vector3D, scale: Vector3D): this {
+    const te = this.data;
     const x = rot.x, y = rot.y, z = rot.z;
-    const sx = Math.sin(x), cx = Math.cos(x);
-    const sy = Math.sin(y), cy = Math.cos(y);
-    const sz = Math.sin(z), cz = Math.cos(z);
+    const cX = Math.cos(x), sX = Math.sin(x);
+    const cY = Math.cos(y), sY = Math.sin(y);
+    const cZ = Math.cos(z), sZ = Math.sin(z);
 
-    this.data[0] = cy * cz * scale.x;
-    this.data[1] = (cy * sz + sy * sx * cz) * scale.x;
-    this.data[2] = (-sy * cz + cy * sx * sz) * scale.x;
-    this.data[3] = 0;
-    this.data[4] = -cy * sz * scale.y;
-    this.data[5] = (cy * cz - sy * sx * sz) * scale.y;
-    this.data[6] = (sy * sz + cy * sx * cz) * scale.y;
-    this.data[7] = 0;
-    this.data[8] = sy * scale.z;
-    this.data[9] = -sx * cy * scale.z;
-    this.data[10] = cy * cx * scale.z;
-    this.data[11] = 0;
-    this.data[12] = pos.x;
-    this.data[13] = pos.y;
-    this.data[14] = pos.z;
-    this.data[15] = 1;
+    const scX = scale.x, scY = scale.y, scZ = scale.z;
+
+    te[0] = (cY * cZ + sY * sX * sZ) * scX;
+    te[1] = (cX * sZ) * scX;
+    te[2] = (-sY * cZ + cY * sX * sZ) * scX;
+    te[3] = 0;
+
+    te[4] = (-cY * sZ + sY * sX * cZ) * scY;
+    te[5] = (cX * cZ) * scY;
+    te[6] = (sY * sZ + cY * sX * cZ) * scY;
+    te[7] = 0;
+
+    te[8] = (sY * cX) * scZ;
+    te[9] = (-sX) * scZ;
+    te[10] = (cY * cX) * scZ;
+    te[11] = 0;
+
+    te[12] = pos.x;
+    te[13] = pos.y;
+    te[14] = pos.z;
+    te[15] = 1;
+
     return this;
   }
 
@@ -95,12 +105,12 @@ export class Matrix4 {
     m.data[0]! *= invSX; m.data[1]! *= invSX; m.data[2]! *= invSX;
     m.data[4]! *= invSY; m.data[5]! *= invSY; m.data[6]! *= invSY;
     m.data[8]! *= invSZ; m.data[9]! *= invSZ; m.data[10]! *= invSZ;
-    rotation.x = Math.asin(-Math.max(-1, Math.min(1, m.data[6]!)));
-    if (Math.abs(m.data[6]!) < 0.99999) {
-      rotation.y = Math.atan2(m.data[2]!, m.data[10]!);
-      rotation.z = Math.atan2(m.data[4]!, m.data[5]!);
+    rotation.x = Math.asin(-Math.max(-1, Math.min(1, m.data[9]!))); // Fixed decompose index
+    if (Math.abs(m.data[9]!) < 0.99999) {
+      rotation.y = Math.atan2(m.data[8]!, m.data[10]!);
+      rotation.z = Math.atan2(m.data[1]!, m.data[5]!);
     } else {
-      rotation.y = Math.atan2(-m.data[8]!, m.data[0]!);
+      rotation.y = Math.atan2(-m.data[2]!, m.data[0]!);
       rotation.z = 0;
     }
     MathPool.releaseVector(v1); MathPool.releaseVector(v2); MathPool.releaseVector(v3);
@@ -164,10 +174,10 @@ export class Matrix4 {
     target.data.fill(0);
     target.data[0] = 2 * w;
     target.data[5] = 2 * h;
-    target.data[10] = p; 
+    target.data[10] = -2 * p; // Correct Ortho Z: -2/(f-n)
     target.data[12] = -(right + left) * w;
     target.data[13] = -(top + bottom) * h;
-    target.data[14] = near * p;
+    target.data[14] = -(far + near) * p;
     target.data[15] = 1;
   }
 

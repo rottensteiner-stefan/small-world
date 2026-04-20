@@ -11,6 +11,9 @@ export declare class Matrix4 {
     invert(target?: Matrix4): boolean;
     transpose(): this;
     transformVector(v: Vector3D, result?: Vector3D): Vector3D;
+    /**
+     * Composes matrix from pos, rot (Euler YXZ), scale.
+     */
     compose(pos: Vector3D, rot: Vector3D, scale: Vector3D): this;
     decompose(position: Vector3D, rotation: Vector3D, scale: Vector3D): this;
     determinant(): number;

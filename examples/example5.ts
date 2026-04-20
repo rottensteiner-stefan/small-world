@@ -9,12 +9,12 @@ import {
   Grid,
   Object3D,
   OrthographicProjection,
+  Sphere,
   Vector3D,
   WireframeMaterial,
   PhongMaterial,
   Input,
   Keys,
-  IsometricStrategy,
 } from "../src/index.js";
 import { AbstractExample } from "../src/core/example/AbstractExample.js";
 
@@ -23,8 +23,12 @@ import { AbstractExample } from "../src/core/example/AbstractExample.js";
  */
 export class Example5 extends AbstractExample {
   private _player!: Object3D;
+  private _clickMarker!: Object3D;
   private _enemies: Object3D[] = [];
   private _targetPos: Vector3D = new Vector3D(0, 0, 0);
+
+  // Input State
+  private _mouseWasDown: boolean = false;
 
   // Movement State
   private _isMoving: boolean = false;
@@ -35,17 +39,18 @@ export class Example5 extends AbstractExample {
 
   protected override async setupScene(): Promise<void> {
     // 1. Setup Orthographic Projection (Perfect for 15x15 grid)
-    const aspect: number = window.innerWidth / window.innerHeight;
     const frustumSize: number = 15;
 
     this.camera.projection = new OrthographicProjection({
-      left: (-frustumSize * aspect) / 2,
-      right: (frustumSize * aspect) / 2,
+      left: -frustumSize / 2,
+      right: frustumSize / 2,
       top: frustumSize / 2,
       bottom: -frustumSize / 2,
-      near: 0.1,
+      near: -1000,
       far: 1000,
     });
+    
+    this.camera.aspect = this.canvas.clientWidth / this.canvas.clientHeight;
     this.camera.updateProjectionMatrix();
 
     // 2. Isometric Strategy
@@ -76,6 +81,14 @@ export class Example5 extends AbstractExample {
     this._player = this._createActor("Player", playerMat);
     this._player.position.set(0.5, 0, 0.5); 
     this.scene.add(this._player);
+
+    // 6b. Click Marker (Visual Debug)
+    this._clickMarker = new Object3D("ClickMarker");
+    this._clickMarker.geometry = new Sphere({ radius: 0.2 }).getGeometryData();
+    const markerMat = new PhongMaterial({ color: Color.YELLOW });
+    this._clickMarker.material = markerMat;
+    this._clickMarker.isVisible = false;
+    this.scene.add(this._clickMarker);
 
     // 7. Create 3 Enemies at random positions
     for (let i = 0; i < 3; i++) {
@@ -118,48 +131,60 @@ export class Example5 extends AbstractExample {
   }
 
   protected override update(deltaTime: number): void {
-    // A) Keyboard Input
-    if (!this._isMoving) {
-      let dx = 0; let dz = 0;
+    // 1. Camera Update
+    this._targetPos.copyFrom(this._player.position);
+    this.camera.update(this._targetPos, 0, 0);
+
+    // 2. Keyboard Input
+    if (false === this._isMoving) {
+      let dx: number = 0; let dz: number = 0;
       if (Input.isPressed(Keys.W)) dz = -1;
       else if (Input.isPressed(Keys.S)) dz = 1;
       else if (Input.isPressed(Keys.A)) dx = -1;
       else if (Input.isPressed(Keys.D)) dx = 1;
 
-      if (dx !== 0 || dz !== 0) {
+      if (0 !== dx || 0 !== dz) {
         this._startMove(this._player.position.x + dx, this._player.position.z + dz);
       }
     }
 
-    // B) Mouse Click
-    const strategy = this.camera.strategy;
-    if (strategy instanceof IsometricStrategy && Input.mouse.left && !this._isMoving) {
-      const mx = (Input.mouse.x / window.innerWidth) * 2 - 1;
-      const my = -(Input.mouse.y / window.innerHeight) * 2 + 1;
-      const worldPos = strategy.screenToWorld(mx, my, this.camera);
-      const nextX = Math.floor(worldPos.x) + 0.5;
-      const nextZ = Math.floor(worldPos.z) + 0.5;
+    // 3. Mouse Click (Single click check)
+    const isMouseDown: boolean = true === Input.mouse.left;
+    if (true === isMouseDown && false === this._mouseWasDown && false === this._isMoving) {
+      const rect: DOMRect = this.canvas.getBoundingClientRect();
+      const mx: number = ((Input.mouse.x - rect.left) / rect.width) * 2 - 1;
+      const my: number = -((Input.mouse.y - rect.top) / rect.height) * 2 + 1;
+      
+      const worldPos: Vector3D = this.camera.screenToWorld(mx, my);
+      
+      // Update visual marker
+      this._clickMarker.position.copyFrom(worldPos);
+      this._clickMarker.isVisible = true;
+
+      // Original Snapping to grid intersections (0.5 offsets)
+      const nextX: number = Math.floor(worldPos.x) + 0.5;
+      const nextZ: number = Math.floor(worldPos.z) + 0.5;
+      
+      console.log(`[v5] NDC: (${mx.toFixed(2)}, ${my.toFixed(2)}) -> World: (${worldPos.x.toFixed(1)}, ${worldPos.z.toFixed(1)}) -> Target: (${nextX}, ${nextZ})`);
+      
       this._startMove(nextX, nextZ);
     }
+    this._mouseWasDown = isMouseDown;
 
-    // C) Movement Interpolation
-    if (this._isMoving) {
+    // 4. Movement Interpolation
+    if (true === this._isMoving) {
       this._moveProgress += deltaTime / this._moveDuration;
-      if (this._moveProgress >= 1.0) {
+      if (1.0 <= this._moveProgress) {
         this._moveProgress = 1.0;
         this._isMoving = false;
       }
       this._player.position.x = this._moveStart.x + (this._moveEnd.x - this._moveStart.x) * this._moveProgress;
       this._player.position.z = this._moveStart.z + (this._moveEnd.z - this._moveStart.z) * this._moveProgress;
     }
-
-    // Camera follows player
-    this._targetPos.copyFrom(this._player.position);
-    this.camera.update(this._targetPos, 0, 0);
   }
 
   private _startMove(tx: number, tz: number): void {
-    const halfGrid = 15 / 2;
+    const halfGrid: number = 15 / 2;
     if (tx > -halfGrid && tx < halfGrid && tz > -halfGrid && tz < halfGrid) {
       this._isMoving = true;
       this._moveProgress = 0;

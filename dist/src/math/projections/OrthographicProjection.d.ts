@@ -25,5 +25,10 @@ export declare class OrthographicProjection extends AbstractProjection {
     readonly type: ProjectionType;
     constructor(options?: OrthographicOptions);
     update(): void;
+    /**
+     * Adjusts the left/right bounds to match a specific aspect ratio while keeping top/bottom fixed.
+     * @param aspect The target aspect ratio (width / height).
+     */
+    setAspect(aspect: number): void;
     getMatrix(): Matrix4;
 }

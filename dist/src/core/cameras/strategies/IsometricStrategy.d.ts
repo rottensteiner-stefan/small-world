@@ -1,4 +1,4 @@
-import { CameraConstraints, CameraStrategy, CameraInterfaceData } from '../../../interfaces/index.js';
+import { CameraConstraints, CameraStrategy } from '../../../interfaces/index.js';
 import { Camera } from '../../Camera.js';
 import { Vector3D } from '../../../math/Vector3D.js';
 /**
@@ -14,8 +14,4 @@ export declare class IsometricStrategy implements CameraStrategy {
      * Updates the camera position and target.
      */
     update(camera: Camera, targetPos: Vector3D, _dx: number, _dy: number): void;
-    /**
-     * Maps screen coordinates to world coordinates on the Y=0 plane.
-     */
-    screenToWorld(screenX: number, screenY: number, camera: CameraInterfaceData): Vector3D;
 }

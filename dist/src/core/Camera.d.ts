@@ -42,6 +42,8 @@ export declare class Camera implements CameraInterfaceData {
     /** @inheritdoc */
     updateViewMatrix(): void;
     /** @inheritdoc */
+    screenToWorld(screenX: number, screenY: number): Vector3D;
+    /** @inheritdoc */
     get strategy(): CameraStrategy;
     /** @inheritdoc */
     setStrategy(type: CameraStrategyType): void;

@@ -6,22 +6,17 @@ import { Vector3D, MathPool } from "../math/index.js";
 import { BoundingType } from "../enums/index.js";
 
 /**
- * Static class for collision detection tests between different bounding volumes.
+ * Static class for collision detection and resolution.
  */
 export class Collision {
   /**
    * Performs a collision test between two bounding volumes.
-   * Dispatches to specialized tests based on volume types.
-   * @param a The first bounding volume.
-   * @param b The second bounding volume.
-   * @returns True if the volumes intersect.
    */
   public static test(a: BoundingVolume, b: BoundingVolume): boolean {
     const distSq: number = a.center.distanceToSq(b.center);
     const sumRad: number = a.getBroadRadius() + b.getBroadRadius();
-    if (distSq > sumRad * sumRad) {
-      return false;
-    }
+    if (distSq > sumRad * sumRad) return false;
+
     if (BoundingType.SPHERE === a.type && BoundingType.SPHERE === b.type) {
       return this._sphereSphere(a as BoundingSphere, b as BoundingSphere);
     }
@@ -38,45 +33,63 @@ export class Collision {
   }
 
   /**
-   * Tests intersection between two spheres.
-   * @param s1 The first sphere.
-   * @param s2 The second sphere.
-   * @returns True if they intersect.
-   * @private
+   * Resolves collision between a sphere and a box, returning a correction vector.
+   * @param s The sphere (e.g. Camera).
+   * @param b The box (e.g. Wall).
+   * @param result Vector to store the correction.
+   * @returns True if collision was resolved.
    */
+  public static resolveSphereBox(s: BoundingSphere, b: BoundingBox, result: Vector3D): boolean {
+    const closest = MathPool.acquireVector().set(
+      Math.max(b.min.x, Math.min(s.center.x, b.max.x)),
+      Math.max(b.min.y, Math.min(s.center.y, b.max.y)),
+      Math.max(b.min.z, Math.min(s.center.z, b.max.z)),
+    );
+
+    const diff = MathPool.acquireVector().copyFrom(s.center).sub(closest);
+    const distSq = diff.lengthSq();
+
+    if (distSq >= s.radius * s.radius) {
+      MathPool.releaseVector(closest);
+      MathPool.releaseVector(diff);
+      return false;
+    }
+
+    const dist = Math.sqrt(distSq);
+    if (dist < 0.0001) {
+        // Sphere center is exactly on the edge or inside. Push out along the axis of least penetration.
+        const dx1 = s.center.x - b.min.x; const dx2 = b.max.x - s.center.x;
+        const dy1 = s.center.y - b.min.y; const dy2 = b.max.y - s.center.y;
+        const dz1 = s.center.z - b.min.z; const dz2 = b.max.z - s.center.z;
+        const min = Math.min(dx1, dx2, dy1, dy2, dz1, dz2);
+        if (min === dx1) result.set(-s.radius - dx1, 0, 0);
+        else if (min === dx2) result.set(s.radius + dx2, 0, 0);
+        else if (min === dy1) result.set(0, -s.radius - dy1, 0);
+        else if (min === dy2) result.set(0, s.radius + dy2, 0);
+        else if (min === dz1) result.set(0, 0, -s.radius - dz1);
+        else result.set(0, 0, s.radius + dz2);
+    } else {
+        const overlap = s.radius - dist;
+        result.copyFrom(diff).normalize().scale(overlap);
+    }
+
+    MathPool.releaseVector(closest);
+    MathPool.releaseVector(diff);
+    return true;
+  }
+
   private static _sphereSphere(s1: BoundingSphere, s2: BoundingSphere): boolean {
     const d2: number = s1.center.distanceToSq(s2.center);
     const r2: number = (s1.radius + s2.radius) * (s1.radius + s2.radius);
     return d2 <= r2;
   }
 
-  /**
-   * Tests intersection between two axis-aligned bounding boxes.
-   * @param b1 The first box.
-   * @param b2 The second box.
-   * @returns True if they intersect.
-   * @private
-   */
   private static _boxBox(b1: BoundingBox, b2: BoundingBox): boolean {
-    return (
-      b1.min.x <= b2.max.x &&
-      b1.max.x >= b2.min.x &&
-      b1.min.y <= b2.max.y &&
-      b1.max.y >= b2.min.y &&
-      b1.min.z <= b2.max.z &&
-      b1.max.z >= b2.min.z
-    );
+    return (b1.min.x <= b2.max.x && b1.max.x >= b2.min.x && b1.min.y <= b2.max.y && b1.max.y >= b2.min.y && b1.min.z <= b2.max.z && b1.max.z >= b2.min.z);
   }
 
-  /**
-   * Tests intersection between a sphere and an axis-aligned bounding box.
-   * @param s The sphere.
-   * @param b The box.
-   * @returns True if they intersect.
-   * @private
-   */
   private static _sphereBox(s: BoundingSphere, b: BoundingBox): boolean {
-    const closest: Vector3D = MathPool.acquireVector().set(
+    const closest = MathPool.acquireVector().set(
       Math.max(b.min.x, Math.min(s.center.x, b.max.x)),
       Math.max(b.min.y, Math.min(s.center.y, b.max.y)),
       Math.max(b.min.z, Math.min(s.center.z, b.max.z)),

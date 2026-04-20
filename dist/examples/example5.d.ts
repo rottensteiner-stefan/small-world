@@ -4,8 +4,10 @@ import { AbstractExample } from '../src/core/example/AbstractExample.js';
  */
 export declare class Example5 extends AbstractExample {
     private _player;
+    private _clickMarker;
     private _enemies;
     private _targetPos;
+    private _mouseWasDown;
     private _isMoving;
     private _moveProgress;
     private _moveStart;

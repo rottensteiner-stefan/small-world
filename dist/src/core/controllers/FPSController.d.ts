@@ -1,7 +1,8 @@
 import { CameraInterfaceData, Controller } from '../../interfaces/index.js';
 import { Object3D } from '../Object3D.js';
+import { Scene } from '../Scene.js';
 /**
- * Configuration for the FPSControlle
+ * Configuration for the FPSController.
  */
 export interface FPSControllerOptions {
     /** Movement speed in units per second. Defaults to 10. */
@@ -14,22 +15,24 @@ export interface FPSControllerOptions {
     enableRotation?: boolean;
     /** Whether vertical movement (Q/E) is enabled. Defaults to true. */
     enableVertical?: boolean;
+    /** Whether collisions are enabled. Requires a Scene reference. */
+    enableCollision?: boolean;
+    /** The radius of the collision sphere. Defaults to 0.5. */
+    collisionRadius?: number;
 }
 /**
  * A controller for first-person style movement and looking.
- * Can be attached to a Camera or any Object3D.
  */
 export declare class FPSController implements Controller {
-    /** @inheritdoc */
     enabled: boolean;
     private _target;
     private _options;
+    private _scene;
+    private _collider;
     /**
      * Creates a new FPSController.
-     * @param target The object or camera to control.
-     * @param options Configuration options.
      */
-    constructor(target: CameraInterfaceData | Object3D, options?: FPSControllerOptions);
-    /** @inheritdoc */
+    constructor(target: CameraInterfaceData | Object3D, options?: FPSControllerOptions, scene?: Scene);
     update(deltaTime: number): void;
+    private _resolveCollisions;
 }
