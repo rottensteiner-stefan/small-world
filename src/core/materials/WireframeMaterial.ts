@@ -4,6 +4,10 @@ import { Color } from "../colors/index.js";
 import { RenderManifest } from "../renderers/shaders/RenderManifest.js";
 import { ShaderDefinition } from "../renderers/shaders/ShaderDefinition.js";
 
+import fragGLSL from "./shaders/Wireframe.frag.glsl?raw";
+import fragGLSL100 from "./shaders/Wireframe.frag.glsl100?raw";
+import fragWGSL from "./shaders/Wireframe.frag.wgsl?raw";
+
 /**
  * A material for wireframe rendering.
  */
@@ -34,20 +38,13 @@ export class WireframeMaterial extends AbstractMaterial {
       sources: {
         glsl300: {
           vs: "[BASE_VERTEX_HEADER][BASE_VERTEX_MAIN]",
-          fs: `[BASE_FRAGMENT_HEADER]
-void main() {
-  fragColor = u_color;
-}`,
+          fs: fragGLSL,
         },
         glsl100: {
           vs: "[BASE_VS]",
-          fs: "void main() { gl_FragColor = u_color; }",
+          fs: fragGLSL100,
         },
-        wgsl: `[WGSL_STRUCTS]
-[WGSL_VS]
-@fragment fn fs(i: Out) -> @location(0) vec4f {
-    return obj.color;
-}`,
+        wgsl: fragWGSL,
       },
       layout: {
         uniforms: { u_color: { type: ShaderPropertyType.COLOR } },

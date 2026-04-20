@@ -5,6 +5,10 @@ import { Texture } from "../textures/index.js";
 import { RenderManifest } from "../renderers/shaders/RenderManifest.js";
 import { ShaderDefinition } from "../renderers/shaders/ShaderDefinition.js";
 
+import fragGLSL from "./shaders/Standard.frag.glsl?raw";
+import fragGLSL100 from "./shaders/Standard.frag.glsl100?raw";
+import fragWGSL from "./shaders/Standard.frag.wgsl?raw";
+
 /**
  * Configuration options for StandardMaterial.
  */
@@ -120,57 +124,13 @@ export class StandardMaterial extends AbstractMaterial {
       sources: {
         glsl300: {
           vs: "[BASE_VERTEX_HEADER][BASE_VERTEX_MAIN]",
-          fs: `[BASE_FRAGMENT_HEADER]
-[LIGHT_DEFS]
-[PBR_MATH]
-
-uniform float u_metallic;
-uniform float u_roughness;
-uniform float u_ao;
-
-void main() {
-    // Convert sampled albedo to linear space
-    vec4 texColor = texture(u_diffuseMap, v_uv);
-    vec3 albedo = sRGBToLinear(texColor.rgb) * sRGBToLinear(u_color.rgb);
-    
-    float metallic = u_metallic;
-    float roughness = clamp(u_roughness, 0.05, 1.0); // Avoid divide by zero
-    float ao = u_ao;
-
-    [LIGHT_CALC_PBR]
-}`,
+          fs: fragGLSL,
         },
         glsl100: {
           vs: "[BASE_VS]",
-          fs: `[BASE_FS_HEADER]
-[LIGHT_DEFS]
-[PBR_MATH]
-
-uniform float u_metallic;
-uniform float u_roughness;
-uniform float u_ao;
-
-void main() {
-    vec4 texColor = texture2D(u_diffuseMap, v_uv);
-    vec3 albedo = sRGBToLinear(texColor.rgb) * sRGBToLinear(u_color.rgb);
-    
-    float metallic = u_metallic;
-    float roughness = clamp(u_roughness, 0.05, 1.0);
-    float ao = u_ao;
-
-    [LIGHT_CALC_PBR]
-}`,
+          fs: fragGLSL100,
         },
-        wgsl: `[WGSL_STRUCTS]
-[WGSL_VS]
-@fragment fn fs(i: Out) -> @location(0) vec4f {
-    let albedo = textureSample(u_diffuseMap, s, i.uv).rgb * obj.color.rgb;
-    let metallic = obj.metallic;
-    let roughness = obj.roughness;
-    let ao = obj.ao;
-    [WGSL_LIGHTING_PBR]
-    return vec4f(color, obj.color.a);
-}`,
+        wgsl: fragWGSL,
       },
       layout: {
         uniforms: {

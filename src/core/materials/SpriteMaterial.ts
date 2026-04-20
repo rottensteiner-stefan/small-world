@@ -5,6 +5,10 @@ import { Texture } from "../textures/Texture.js";
 import { RenderManifest } from "../renderers/shaders/RenderManifest.js";
 import { ShaderDefinition } from "../renderers/shaders/ShaderDefinition.js";
 
+import fragGLSL from "./shaders/Sprite.frag.glsl?raw";
+import fragGLSL100 from "./shaders/Sprite.frag.glsl100?raw";
+import fragWGSL from "./shaders/Sprite.frag.wgsl?raw";
+
 /**
  * Material for rendering 2D sprites.
  */
@@ -91,27 +95,13 @@ export class SpriteMaterial extends AbstractMaterial {
       sources: {
         glsl300: {
           vs: "[BASE_VERTEX_HEADER][BASE_VERTEX_MAIN]",
-          fs: `[BASE_FRAGMENT_HEADER]
-void main() {
-  vec4 texColor = texture(u_diffuseMap, v_uv);
-  fragColor = u_color * texColor;
-}`,
+          fs: fragGLSL,
         },
         glsl100: {
           vs: "[BASE_VS]",
-          fs: `[BASE_FS_HEADER]
-void main() {
-  vec4 texColor = texture2D(u_diffuseMap, v_uv);
-  gl_FragColor = u_color * texColor;
-}`,
+          fs: fragGLSL100,
         },
-        wgsl: `[WGSL_STRUCTS]
-[WGSL_VS]
-@fragment fn fs(i: Out) -> @location(0) vec4f {
-    let texCol = textureSample(u_diffuseMap, s, i.uv);
-    if (texCol.a < 0.1) { discard; }
-    return texCol * obj.color;
-}`,
+        wgsl: fragWGSL,
       },
       layout: {
         uniforms: {

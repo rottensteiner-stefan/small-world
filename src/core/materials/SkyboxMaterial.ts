@@ -5,6 +5,12 @@ import { Color } from "../colors/Color.js";
 import { RenderManifest } from "../renderers/shaders/RenderManifest.js";
 import { ShaderDefinition } from "../renderers/shaders/ShaderDefinition.js";
 
+import vertGLSL from "./shaders/Skybox.vert.glsl?raw";
+import fragGLSL from "./shaders/Skybox.frag.glsl?raw";
+import vertGLSL100 from "./shaders/Skybox.vert.glsl100?raw";
+import fragGLSL100 from "./shaders/Skybox.frag.glsl100?raw";
+import fragWGSL from "./shaders/Skybox.frag.wgsl?raw";
+
 /**
  * Configuration options for skybox material.
  */
@@ -66,53 +72,14 @@ export class SkyboxMaterial extends AbstractMaterial {
       id: this.type,
       sources: {
         glsl300: {
-          vs: `#version 300 es
-in vec3 a_position;
-uniform mat4 u_vp;
-uniform mat4 u_model;
-out vec3 v_uvw;
-void main() {
-  v_uvw = a_position;
-  gl_Position = u_vp * u_model * vec4(a_position, 1.0);
-}`,
-          fs: `[BASE_FRAGMENT_HEADER]
-in vec3 v_uvw;
-uniform samplerCube u_skybox;
-void main() {
-  fragColor = texture(u_skybox, v_uvw);
-}`,
+          vs: vertGLSL,
+          fs: fragGLSL,
         },
         glsl100: {
-          vs: `attribute vec3 a_position;
-uniform mat4 u_vp;
-uniform mat4 u_model;
-varying vec3 v_uvw;
-void main() {
-    v_uvw = a_position;
-    gl_Position = u_vp * u_model * vec4(a_position, 1.0);
-}`,
-          fs: `[BASE_FS_HEADER]
-varying vec3 v_uvw;
-uniform samplerCube u_skybox;
-void main() {
-    gl_FragColor = textureCube(u_skybox, v_uvw);
-}`,
+          vs: vertGLSL100,
+          fs: fragGLSL100,
         },
-        wgsl: `[WGSL_STRUCTS]
-struct Out {
-    @builtin(position) pos: vec4f,
-    @location(0) uv: vec3f
-}
-@vertex fn vs(@location(0) pos: vec3f) -> Out {
-    var o: Out;
-    o.uv = pos;
-    let wp = obj.model * vec4f(pos, 1.0);
-    o.pos = (global.vp * wp).xyww;
-    return o;
-}
-@fragment fn fs(i: Out) -> @location(0) vec4f {
-    return textureSample(u_skybox, s, i.uv) * obj.color;
-}`,
+        wgsl: fragWGSL,
       },
       layout: {
         uniforms: { u_color: { type: ShaderPropertyType.COLOR } },

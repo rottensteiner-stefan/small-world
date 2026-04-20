@@ -7,6 +7,10 @@ import { Texture } from "../textures/index.js";
 import { RenderManifest } from "../renderers/shaders/RenderManifest.js";
 import { ShaderDefinition } from "../renderers/shaders/ShaderDefinition.js";
 
+import fragGLSL from "./shaders/Phong.frag.glsl?raw";
+import fragGLSL100 from "./shaders/Phong.frag.glsl100?raw";
+import fragWGSL from "./shaders/Phong.frag.wgsl?raw";
+
 /**
  * Configuration options for Phong material.
  */
@@ -124,46 +128,13 @@ export class PhongMaterial extends AbstractMaterial {
       sources: {
         glsl300: {
           vs: "[BASE_VERTEX_HEADER][BASE_VERTEX_MAIN]",
-          fs: `[BASE_FRAGMENT_HEADER]
-[LIGHT_DEFS]
-void main() {
-  vec4 texColor = texture(u_diffuseMap, v_uv);
-  float specMap = texture(u_specularMap, v_uv).r;
-  vec3 normalMap = texture(u_normalMap, v_uv).rgb;
-  vec3 N;
-  if (normalMap.b > 0.9 && normalMap.r > 0.4 && normalMap.r < 0.6 && normalMap.g > 0.4 && normalMap.g < 0.6) {
-    N = normalize(v_normal);
-  } else {
-    normalMap = normalize(normalMap * 2.0 - 1.0);
-    N = normalize(v_tbn * normalMap);
-  }
-  [LIGHT_CALC]
-  vec3 diffuseColor = texColor.rgb * u_color.rgb;
-  vec3 ambientFinal = u_ambientColor * diffuseColor;
-  if (length(ambientFinal) < 0.05) {
-    ambientFinal = u_ambientColor * u_color.rgb * 0.5; 
-  }
-  fragColor = vec4(ambientFinal + (diff_dir * u_dirLightColor * diffuseColor) + (specular * u_specColor.rgb * specMap), 1.0);
-}`,
+          fs: fragGLSL,
         },
         glsl100: {
           vs: "[BASE_VS]",
-          fs: `[BASE_FS_HEADER]
-[LIGHT_DEFS]
-void main() {
-  vec4 texColor = texture2D(u_diffuseMap, v_uv);
-  [LIGHT_CALC]
-  vec3 diffuseColor = texColor.rgb * u_color.rgb;
-  gl_FragColor = vec4((u_ambientColor * diffuseColor) + (diff_dir * u_dirLightColor * diffuseColor), 1.0);
-}`,
+          fs: fragGLSL100,
         },
-        wgsl: `[WGSL_STRUCTS]
-[WGSL_VS]
-@fragment fn fs(i: Out) -> @location(0) vec4f {
-    let texCol = textureSample(u_diffuseMap, s, i.uv);
-    // Basic lighting for now in WGSL
-    return vec4f(texCol.rgb * obj.color.rgb, 1.0);
-}`,
+        wgsl: fragWGSL,
       },
       layout: {
         uniforms: {
