@@ -32,7 +32,7 @@ export class Object3D {
     public inFrustum: boolean = true;
 
     constructor(name?: string) {
-        this.name = name || crypto.randomUUID();
+        this.name = name || MathUtils.generateUUID();
     }
 
     public add(...children: Object3D[]): void {

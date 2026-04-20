@@ -11,6 +11,7 @@ import {
     Cylinder,
     DirectionalLight,
     FPSController,
+    Geometry,
     Grid,
     Input,
     Object3D,
@@ -97,7 +98,7 @@ export class Example6 extends AbstractExample {
         const wireMat: WireframeMaterial = new WireframeMaterial();
         wireMat.color = Color.CYAN;
 
-        const addExample = (name: string, geometry: any, x: number, z: number): void => {
+        const addExample = (name: string, geometry: Geometry, x: number, z: number): void => {
             const obj: Object3D = new Object3D(name);
             obj.geometry = geometry.getGeometryData();
             obj.material = wireMat;

@@ -112,7 +112,8 @@ export abstract class AbstractGeometry implements Geometry {
       const t1: number = w2v - w1v;
       const t2: number = w3v - w1v;
 
-      const r: number = 1.0 / (s1 * t2 - s2 * t1);
+      const div: number = s1 * t2 - s2 * t1;
+      const r: number = 0 === div ? 0 : 1.0 / div;
       const tx: number = (t2 * x1 - t1 * x2) * r;
       const ty: number = (t2 * y1 - t1 * y2) * r;
       const tz: number = (t2 * z1 - t1 * z2) * r;
