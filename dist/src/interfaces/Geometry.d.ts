@@ -1,3 +1,4 @@
+import { BoundingVolume } from './BoundingVolume.js';
 import { GeometryDataInterface } from './GeometryData.js';
 /**
  * Interface for all geometry types (Cube, Sphere, Plane, etc.).
@@ -9,4 +10,9 @@ export interface Geometry {
      * @returns The geometry data interface.
      */
     getGeometryData(): GeometryDataInterface;
+    /**
+     * Returns a bounding volume that encapsulates this geometry.
+     * @returns The bounding volume.
+     */
+    getBoundingVolume(): BoundingVolume;
 }

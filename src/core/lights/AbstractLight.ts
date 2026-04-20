@@ -3,6 +3,7 @@
 import { Color } from "../colors/Color.js";
 import { LightType } from "../../enums/LightType.js";
 import { Object3D } from "../Object3D.js";
+import { LightDataInterface } from "../../interfaces/index.js";
 
 /**
  * Configuration options for lights.
@@ -38,6 +39,12 @@ export abstract class AbstractLight extends Object3D {
 
   /** The resolution of the shadow map for this light. */
   public shadowResolution: number;
+
+  /**
+   * Applies the light's data to the collective light data structure.
+   * @param data The structure to populate.
+   */
+  public abstract applyTo(data: LightDataInterface): void;
 
   /**
    * Creates a new AbstractLight.

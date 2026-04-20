@@ -3,6 +3,7 @@
 import { AbstractLight, LightOptions } from "./AbstractLight.js";
 import { LightType } from "../../enums/LightType.js";
 import { Vector3D } from "../../math/Vector3D.js";
+import { LightDataInterface } from "../../interfaces/index.js";
 
 /**
  * Configuration options for directional light.
@@ -30,5 +31,13 @@ export class DirectionalLight extends AbstractLight {
     const { direction = new Vector3D(0, -1, 0).normalize(), name = "DirectionalLight" } = options;
     super({ ...options, name });
     this.direction = direction;
+  }
+
+  /** @inheritdoc */
+  public override applyTo(data: LightDataInterface): void {
+    data.dDir.set(this.direction.x, this.direction.y, this.direction.z);
+    data.dDir.scale(-1).normalize();
+    data.dCol.copyFrom(this.color);
+    data.dIntensity = this.intensity;
   }
 }

@@ -2,6 +2,7 @@
 
 import { LightOptions, AbstractLight } from "./AbstractLight.js";
 import { LightType } from "../../enums/index.js";
+import { LightDataInterface } from "../../interfaces/index.js";
 
 /**
  * Configuration options for area light.
@@ -35,5 +36,12 @@ export class AreaLight extends AbstractLight {
     super({ ...options, name });
     this.width = width;
     this.height = height;
+  }
+
+  /** @inheritdoc */
+  public override applyTo(data: LightDataInterface): void {
+    if (4 > data.aLights.length) {
+      data.aLights.push(this);
+    }
   }
 }

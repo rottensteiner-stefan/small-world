@@ -1,4 +1,5 @@
 import { LightType } from '../../enums/index.js';
+import { LightDataInterface } from '../../interfaces/index.js';
 import { AbstractLight, LightOptions } from './AbstractLight.js';
 import { Vector3D } from '../../math/Vector3D.js';
 /**
@@ -37,4 +38,6 @@ export declare class SpotLight extends AbstractLight {
      * @param options The configuration options for the light.
      */
     constructor(options?: SpotLightOptions);
+    /** @inheritdoc */
+    applyTo(data: LightDataInterface): void;
 }

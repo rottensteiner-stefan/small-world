@@ -3,7 +3,7 @@
 import {AbstractMaterial} from "./materials/index.js";
 import {BoundingVolume, GeometryDataInterface} from "../interfaces/index.js";
 import {MathUtils, Matrix4, Quaternion, Vector3D} from "../math/index.js";
-import {BoundingBox} from "../physics/index.js";
+
 
 /**
  * Base class for all 3D objects in the scene.
@@ -75,7 +75,8 @@ export class Object3D {
 
     public computeBounds(): this {
         if (this.geometry) {
-            this.bounds = BoundingBox.fromVertices(this.geometry.vertices);
+            // New polymorphic approach: Geometry knows its bounds optimally.
+            this.bounds = this.geometry.getBoundingVolume();
         }
         return this;
     }

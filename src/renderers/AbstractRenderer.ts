@@ -2,14 +2,10 @@
 
 import {
   AbstractLight,
-  AreaLight,
   Color,
-  DirectionalLight,
-  PointLight,
-  SpotLight,
 } from "../core/index.js";
 import { Renderer, LightDataInterface } from "../interfaces/index.js";
-import { LightType, RendererType } from "../enums/index.js";
+import { RendererType } from "../enums/index.js";
 import { Object3D } from "../core/Object3D.js";
 import { Scene } from "../core/Scene.js";
 import { Vector3D } from "../math/index.js";
@@ -96,42 +92,8 @@ export abstract class AbstractRenderer implements Renderer {
    * @private
    */
   private _traverseLights(node: Object3D): void {
-    if ("type" in node) {
-      const light: AbstractLight = node as AbstractLight;
-
-      switch (light.type) {
-        case LightType.AMBIENT: {
-          this._lightData.aCol.copyFrom(light.color);
-          this._lightData.aIntensity = light.intensity;
-          break;
-        }
-        case LightType.DIRECTIONAL: {
-          const dl: DirectionalLight = light as DirectionalLight;
-          this._lightData.dDir.set(dl.direction.x, dl.direction.y, dl.direction.z);
-          this._lightData.dDir.scale(-1).normalize();
-          this._lightData.dCol.copyFrom(light.color);
-          this._lightData.dIntensity = light.intensity;
-          break;
-        }
-        case LightType.POINT: {
-          if (4 > this._lightData.pLights.length) {
-            this._lightData.pLights.push(light as PointLight);
-          }
-          break;
-        }
-        case LightType.SPOT: {
-          if (4 > this._lightData.sLights.length) {
-            this._lightData.sLights.push(light as SpotLight);
-          }
-          break;
-        }
-        case LightType.AREA: {
-          if (4 > this._lightData.aLights.length) {
-            this._lightData.aLights.push(light as AreaLight);
-          }
-          break;
-        }
-      }
+    if (node instanceof AbstractLight) {
+      node.applyTo(this._lightData);
     }
 
     if (undefined !== node.children) {

@@ -1,4 +1,5 @@
 import { AbstractGeometry } from './AbstractGeometry.js';
+import { BoundingVolume } from '../interfaces/index.js';
 /**
  * Configuration options for plane geometry.
  */
@@ -31,4 +32,6 @@ export declare class Plane extends AbstractGeometry {
     constructor(options?: PlaneOptions);
     /** @inheritdoc */
     protected generateGeometryData(): void;
+    /** @inheritdoc */
+    getBoundingVolume(): BoundingVolume;
 }

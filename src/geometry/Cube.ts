@@ -1,6 +1,9 @@
 /// src/geometry/Cube.ts
 
 import { AbstractGeometry } from "./AbstractGeometry.js";
+import { BoundingVolume } from "../interfaces/index.js";
+import { BoundingBox, } from "../physics/index.js";
+import { Vector3D } from "../math/index.js";
 
 /**
  * Configuration options for cube geometry.
@@ -178,5 +181,11 @@ export class Cube extends AbstractGeometry {
     this._indices.set(indices);
 
     this.computeNormals();
+  }
+
+  /** @inheritdoc */
+  public override getBoundingVolume(): BoundingVolume {
+    const half = this.size / 2;
+    return new BoundingBox(new Vector3D(-half, -half, -half), new Vector3D(half, half, half));
   }
 }

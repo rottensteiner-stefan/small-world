@@ -1,4 +1,4 @@
-import { BoundingVolume } from '../interfaces/index.js';
+import { BoundingVolume, FrustumInterface } from '../interfaces/index.js';
 import { Vector3D } from '../math/index.js';
 import { BoundingType } from '../enums/index.js';
 /**
@@ -17,4 +17,8 @@ export declare class BoundingSphere implements BoundingVolume {
     constructor(center: Vector3D, radius: number);
     /** @inheritdoc */
     getBroadRadius(): number;
+    /** @inheritdoc */
+    intersectsFrustum(frustum: FrustumInterface): boolean;
+    /** @inheritdoc */
+    intersectsVolume(other: BoundingVolume): boolean;
 }

@@ -1,10 +1,9 @@
 /// src/math/Frustum.ts
 
 import { Matrix4 } from "./Matrix4.js";
-import { Vector3D } from "./Vector3D.js";
+
 import { BoundingVolume } from "../interfaces/index.js";
-import { BoundingType } from "../enums/index.js";
-import { BoundingBox } from "../physics/index.js";
+import { BoundingBox } from "../physics/BoundingBox.js";
 
 /**
  * A class representing a camera frustum defined by 6 planes.
@@ -80,22 +79,7 @@ export class Frustum {
    * @returns True if the volume is inside or intersecting the frustum.
    */
   public intersectsVolume(volume: BoundingVolume): boolean {
-    if (BoundingType.BOX === volume.type) {
-      return this.intersectsBox(volume as BoundingBox);
-    }
-
-    const c: Vector3D = volume.center;
-    const r: number = volume.getBroadRadius();
-    const p: Float32Array = this.planes;
-
-    for (let i: number = 0; 6 > i; i++) {
-      const idx: number = i * 4;
-      const dist: number = p[idx]! * c.x + p[idx + 1]! * c.y + p[idx + 2]! * c.z + p[idx + 3]!;
-      if (-r > dist) {
-        return false;
-      }
-    }
-    return true;
+    return volume.intersectsFrustum(this);
   }
 
   /**

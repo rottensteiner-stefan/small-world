@@ -1,5 +1,4 @@
-import { Camera } from '../../Camera.js';
-import { CameraConstraints, CameraStrategy } from '../../../interfaces/index.js';
+import { CameraInterfaceData, CameraConstraints, CameraStrategy } from '../../../interfaces/index.js';
 import { Vector3D } from '../../../math/Vector3D.js';
 /**
  * A camera strategy where the camera remains at a fixed position but looks at a target.
@@ -10,5 +9,5 @@ export declare class FixedStrategy implements CameraStrategy {
     /** @inheritdoc */
     constraints?: CameraConstraints;
     /** @inheritdoc */
-    update(camera: Camera, targetPos: Vector3D, _dx: number, _dy: number): void;
+    update(camera: CameraInterfaceData, targetPos: Vector3D, _dx: number, _dy: number): void;
 }

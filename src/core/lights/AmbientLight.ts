@@ -2,6 +2,7 @@
 
 import { AbstractLight, LightOptions } from "./AbstractLight.js";
 import { LightType } from "../../enums/index.js";
+import { LightDataInterface } from "../../interfaces/index.js";
 
 /**
  * Ambient light that illuminates all objects in the scene equally.
@@ -17,5 +18,11 @@ export class AmbientLight extends AbstractLight {
   constructor(options: LightOptions = {}) {
     const { name = "AmbientLight" } = options;
     super({ ...options, name });
+  }
+
+  /** @inheritdoc */
+  public override applyTo(data: LightDataInterface): void {
+    data.aCol.copyFrom(this.color);
+    data.aIntensity = this.intensity;
   }
 }

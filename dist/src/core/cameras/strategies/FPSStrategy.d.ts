@@ -1,5 +1,4 @@
-import { CameraConstraints, CameraStrategy } from '../../../interfaces/index.js';
-import { Camera } from '../../Camera.js';
+import { CameraConstraints, CameraStrategy, CameraInterfaceData } from '../../../interfaces/index.js';
 import { Vector3D } from '../../../math/Vector3D.js';
 /**
  * A first-person camera strategy.
@@ -12,5 +11,5 @@ export declare class FPSStrategy implements CameraStrategy {
     /** @inheritdoc */
     constraints?: CameraConstraints;
     /** @inheritdoc */
-    update(camera: Camera, targetPos: Vector3D, dx: number, dy: number): void;
+    update(camera: CameraInterfaceData, targetPos: Vector3D, dx: number, dy: number): void;
 }

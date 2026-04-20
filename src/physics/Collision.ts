@@ -17,6 +17,7 @@ export class Collision {
     const sumRad: number = a.getBroadRadius() + b.getBroadRadius();
     if (distSq > sumRad * sumRad) return false;
 
+    // Use specific logic based on types to avoid infinite recursion
     if (BoundingType.SPHERE === a.type && BoundingType.SPHERE === b.type) {
       return this._sphereSphere(a as BoundingSphere, b as BoundingSphere);
     }

@@ -1,8 +1,9 @@
 /// src/physics/BoundingBox.ts
 
-import { BoundingVolume } from "../interfaces/index.js";
+import { BoundingVolume, FrustumInterface } from "../interfaces/index.js";
 import { Vector3D } from "../math/Vector3D.js";
 import { BoundingType } from "../enums/index.js";
+import { Collision } from "./Collision.js";
 
 /**
  * Represents an axis-aligned bounding box (AABB) in 3D space.
@@ -110,5 +111,35 @@ export class BoundingBox implements BoundingVolume {
   /** @inheritdoc */
   public getBroadRadius(): number {
     return this.broadRadius;
+  }
+
+  /** @inheritdoc */
+  public intersectsFrustum(frustum: FrustumInterface): boolean {
+    const p: Float32Array = frustum.planes;
+
+    for (let i: number = 0; 6 > i; i++) {
+      const idx: number = i * 4;
+      const p0 = p[idx]!;
+      const p1 = p[idx + 1]!;
+      const p2 = p[idx + 2]!;
+      const p3 = p[idx + 3]!;
+
+      const px: number = 0 <= p0 ? this.max.x : this.min.x;
+      const py: number = 0 <= p1 ? this.max.y : this.min.y;
+      const pz: number = 0 <= p2 ? this.max.z : this.min.z;
+
+      const dist: number = p0 * px + p1 * py + p2 * pz + p3;
+
+      if (0 > dist) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  /** @inheritdoc */
+  public intersectsVolume(other: BoundingVolume): boolean {
+    return Collision.test(this, other);
   }
 }

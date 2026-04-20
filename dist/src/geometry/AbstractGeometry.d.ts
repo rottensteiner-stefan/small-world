@@ -1,5 +1,5 @@
 import { Matrix4 } from '../math/Matrix4.js';
-import { GeometryDataInterface, Geometry } from '../interfaces/index.js';
+import { GeometryDataInterface, Geometry, BoundingVolume } from '../interfaces/index.js';
 /**
  * Base class for all geometry types.
  * Manages vertex, index, normal, and UV data.
@@ -26,6 +26,8 @@ export declare abstract class AbstractGeometry implements Geometry {
     protected abstract generateGeometryData(): void;
     /** @inheritdoc */
     getGeometryData(): GeometryDataInterface;
+    /** @inheritdoc */
+    getBoundingVolume(): BoundingVolume;
     /**
      * Computes the tangents of the geometry based on normals and UVs.
      * Required for normal mapping.

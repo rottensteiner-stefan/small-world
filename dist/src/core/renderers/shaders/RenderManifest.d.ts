@@ -26,5 +26,7 @@ export interface RenderManifest {
         blending?: BlendingMode;
         depthWrite?: boolean;
         transparent?: boolean;
+        /** Whether this object should be treated as a camera-facing sprite (billboarding). */
+        isSprite?: boolean;
     };
 }

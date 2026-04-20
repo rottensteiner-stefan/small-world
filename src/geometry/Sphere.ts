@@ -1,6 +1,9 @@
 /// src/geometry/Sphere.ts
 
 import { AbstractGeometry } from "./AbstractGeometry.js";
+import { BoundingVolume } from "../interfaces/index.js";
+import { BoundingSphere } from "../physics/index.js";
+import { Vector3D } from "../math/index.js";
 import { MathUtils } from "../math/index.js";
 
 /**
@@ -92,5 +95,10 @@ export class Sphere extends AbstractGeometry {
     this._uvs = new Float32Array(uv);
     this._indices = this._createIndexArray(idx.length);
     this._indices.set(idx);
+  }
+
+  /** @inheritdoc */
+  public override getBoundingVolume(): BoundingVolume {
+    return new BoundingSphere(new Vector3D(0, 0, 0), this.radius);
   }
 }

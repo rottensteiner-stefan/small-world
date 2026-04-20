@@ -106,12 +106,17 @@ export class TerrainMaterial extends AbstractMaterial {
     props["u_color"] = this.color.toFloat32Array();
     props["u_shininess"] = this.shininess;
     props["u_texRepeat"] = this.texRepeat;
-    props["u_thresholds"] = this.thresholds;
+    props["u_thresholds"] = new Float32Array(this.thresholds);
 
     texs["u_sandMap"] = this.sandMap;
     texs["u_grassMap"] = this.grassMap;
     texs["u_rockMap"] = this.rockMap;
     texs["u_snowMap"] = this.snowMap;
+
+    this._renderManifest.state = {
+      ...this._renderManifest.state,
+      culling: this.cullMode,
+    };
 
     return this._renderManifest;
   }
