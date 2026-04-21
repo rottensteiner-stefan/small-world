@@ -53,6 +53,14 @@ export abstract class AbstractExample extends Application {
     });
   }
 
+  /**
+   * Default update method for examples. Subclasses can override this to implement custom logic.
+   * @param _deltaTime Time elapsed since the last frame.
+   */
+  protected update(_deltaTime: number): void {
+    // Default implementation does nothing
+  }
+
   protected getDebugInfo(): Record<string, string | number> {
     return {
       Renderer: this.renderer ? this.renderer.type : "None",

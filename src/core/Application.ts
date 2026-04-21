@@ -49,7 +49,7 @@ export abstract class Application {
    */
   protected constructor(userConfig: EngineConfig = {}) {
     this.config = {
-      canvasId: "canvas",
+      canvasId: "SmallWorld",
       rendererType: RendererType.WEB_GPU,
       projection: ProjectionType.PERSPECTIVE,
       fullscreen: true,

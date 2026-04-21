@@ -20,6 +20,11 @@ export declare abstract class AbstractExample extends Application {
      * By default, it binds the click event to request PointerLock. Inheriting classes can override this if needed.
      */
     protected onCanvasRecreated(): void;
+    /**
+     * Default update method for examples. Subclasses can override this to implement custom logic.
+     * @param _deltaTime Time elapsed since the last frame.
+     */
+    protected update(_deltaTime: number): void;
     protected getDebugInfo(): Record<string, string | number>;
     protected printDebug(): void;
 }

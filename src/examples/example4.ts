@@ -19,7 +19,7 @@ import {
   Vector3D,
   WASDController,
 } from "../index.js";
-import { AbstractExample } from "../core/example/AbstractExample.js";
+import { AbstractExample } from "../core/index.js";
 
 const CAR_SPEED: number = 10.0; // The car's speed
 

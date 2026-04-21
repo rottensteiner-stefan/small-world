@@ -628,7 +628,10 @@ export class WebGPURenderer extends AbstractRenderer {
       ],
       24,
     );
-    gData.set([lights.dDir.x, lights.dDir.y, lights.dDir.z, 0], 28);
+    gData.set(
+      [-lights.dDir.x, -lights.dDir.y, -lights.dDir.z, 0],
+      28,
+    );
     gData.set([lights.pLights.length, lights.sLights.length, lights.aLights.length, 0], 32);
     this._device!.queue.writeBuffer(this._globalUniformBuffer, 0, gData);
     const plData = new Float32Array(Math.max(lights.pLights.length * 8, 8));

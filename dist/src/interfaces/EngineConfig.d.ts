@@ -42,7 +42,7 @@ export interface QualityConfig {
  * Global engine configuration options.
  */
 export interface EngineConfig {
-    /** The ID of the canvas element in the DOM. Defaults to "canvas". */
+    /** The ID of the canvas element in the DOM. Defaults to "SmallWorld". */
     canvasId?: string;
     /** Whether the engine should automatically resize the canvas to full screen. */
     fullscreen?: boolean;
