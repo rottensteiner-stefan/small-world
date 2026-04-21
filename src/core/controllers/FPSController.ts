@@ -26,6 +26,8 @@ export interface FPSControllerOptions {
   enableCollision?: boolean;
   /** The radius of the collision sphere. Defaults to 0.5. */
   collisionRadius?: number;
+  /** The scene to check for collisions. */
+  scene?: Scene;
 }
 
 /**
@@ -35,28 +37,25 @@ export class FPSController implements Controller {
   public enabled: boolean = true;
 
   private _target: CameraInterfaceData | Object3D;
-  private _options: Required<FPSControllerOptions>;
-  private _scene: Scene | undefined;
+  private _options: Required<Omit<FPSControllerOptions, "scene">> & { scene: Scene | undefined };
   private _collider: BoundingSphere;
 
   /**
    * Creates a new FPSController.
+   * @param target The target object or camera to control.
+   * @param options The configuration options.
    */
-  constructor(
-    target: CameraInterfaceData | Object3D,
-    options: FPSControllerOptions = {},
-    scene?: Scene,
-  ) {
+  constructor(target: CameraInterfaceData | Object3D, options: FPSControllerOptions = {}) {
     this._target = target;
-    this._scene = scene;
     this._options = {
       moveSpeed: options.moveSpeed ?? 10.0,
       lookSensitivity: options.lookSensitivity ?? 0.005,
       enableMovement: options.enableMovement ?? true,
       enableRotation: options.enableRotation ?? true,
       enableVertical: options.enableVertical ?? true,
-      enableCollision: options.enableCollision ?? !!scene,
+      enableCollision: options.enableCollision ?? !!options.scene,
       collisionRadius: options.collisionRadius ?? 0.5,
+      scene: options.scene,
     };
     this._collider = new BoundingSphere(
       this._target.position.clone(),
@@ -104,7 +103,7 @@ export class FPSController implements Controller {
     }
 
     // 3. Resolve Collisions (BEFORE rotation application)
-    if (this._options.enableCollision && this._scene) {
+    if (this._options.enableCollision && this._options.scene) {
       this._resolveCollisions();
     }
 
@@ -125,14 +124,14 @@ export class FPSController implements Controller {
   }
 
   private _resolveCollisions(): void {
-    if (!this._scene) return;
+    if (!this._options.scene) return;
     this._collider.center.copyFrom(this._target.position);
 
     const potentialHits: Object3D[] = [];
-    if (this._scene.staticOctree)
-      potentialHits.push(...this._scene.staticOctree.queryVolume(this._collider));
-    if (this._scene.dynamicOctree)
-      potentialHits.push(...this._scene.dynamicOctree.queryVolume(this._collider));
+    if (this._options.scene.staticOctree)
+      potentialHits.push(...this._options.scene.staticOctree.queryVolume(this._collider));
+    if (this._options.scene.dynamicOctree)
+      potentialHits.push(...this._options.scene.dynamicOctree.queryVolume(this._collider));
 
     const correction = MathPool.acquireVector().set(0, 0, 0);
     const hitCorrection = MathPool.acquireVector();

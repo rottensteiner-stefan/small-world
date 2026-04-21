@@ -326,8 +326,10 @@ export class WebGPURenderer extends AbstractRenderer {
           usage,
           mappedAtCreation: true,
         });
-        // Elegant polymorphic set: use the constructor of the source data
-        new (data.constructor as any)(b.getMappedRange()).set(data);
+        // Copy data using a byte view to avoid 'any' casting and satisfy lint rules
+        new Uint8Array(b.getMappedRange()).set(
+          new Uint8Array(data.buffer, data.byteOffset, data.byteLength),
+        );
         b.unmap();
         return b;
       };

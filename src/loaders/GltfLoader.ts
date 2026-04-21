@@ -4,7 +4,7 @@ import { AssetManager, AbstractLoader } from "./index.js";
 import { EventType } from "../enums/index.js";
 import { ModelGeometry } from "../geometry/index.js";
 import { Object3D, StandardMaterial, Color, Texture } from "../core/index.js";
-import { LoaderOptions } from "../interfaces/index.js";
+import { LoaderOptions, GeometryDataInterface } from "../interfaces/index.js";
 import { Matrix4, Vector3D } from "../math/index.js";
 
 interface GltfJson {
@@ -236,16 +236,18 @@ export class GltfLoader extends AbstractLoader<Object3D> {
     // Mesh
     if (node.mesh !== undefined && json.meshes && json.meshes[node.mesh]) {
       const meshDef = json.meshes[node.mesh];
-      for (const primitive of meshDef.primitives) {
-        const child = new Object3D(node.name ? `${node.name}_mesh` : "MeshInstance");
-        const geo = this._parseGeometry(primitive, json, buffers);
-        if (geo) {
-          child.geometry = geo;
-          child.material =
-            primitive.material !== undefined && materials[primitive.material]
-              ? materials[primitive.material]!
-              : new StandardMaterial();
-          obj.add(child);
+      if (meshDef) {
+        for (const primitive of meshDef.primitives) {
+          const child = new Object3D(node.name ? `${node.name}_mesh` : "MeshInstance");
+          const geo = this._parseGeometry(primitive, json, buffers);
+          if (geo) {
+            child.geometry = geo;
+            child.material =
+              primitive.material !== undefined && materials[primitive.material]
+                ? materials[primitive.material]!
+                : new StandardMaterial();
+            obj.add(child);
+          }
         }
       }
     }
@@ -264,20 +266,20 @@ export class GltfLoader extends AbstractLoader<Object3D> {
     primitive: NonNullable<NonNullable<GltfJson["meshes"]>[number]["primitives"]>[number],
     json: GltfJson,
     buffers: ArrayBuffer[],
-  ): any {
+  ): GeometryDataInterface | null {
     const attributes = primitive.attributes;
-    if (!attributes || attributes.POSITION === undefined || !json.accessors) return null;
+    if (!attributes || attributes["POSITION"] === undefined || !json.accessors) return null;
 
-    const positions = this._getBufferData(json.accessors[attributes.POSITION], json, buffers);
+    const positions = this._getBufferData(json.accessors[attributes["POSITION"]], json, buffers);
     if (!positions) return null;
 
     const normals =
-      attributes.NORMAL !== undefined
-        ? this._getBufferData(json.accessors[attributes.NORMAL], json, buffers)
+      attributes["NORMAL"] !== undefined
+        ? this._getBufferData(json.accessors[attributes["NORMAL"]], json, buffers)
         : undefined;
     const uvs =
-      attributes.TEXCOORD_0 !== undefined
-        ? this._getBufferData(json.accessors[attributes.TEXCOORD_0], json, buffers)
+      attributes["TEXCOORD_0"] !== undefined
+        ? this._getBufferData(json.accessors[attributes["TEXCOORD_0"]], json, buffers)
         : undefined;
     const indices =
       primitive.indices !== undefined
