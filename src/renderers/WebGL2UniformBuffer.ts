@@ -1,6 +1,6 @@
 /// src/renderers/WebGL2UniformBuffer.ts
 
-import { Matrix4, Vector3D } from "../math/index.js";
+import { Vector3D } from "../math/index.js";
 
 /**
  * Wrapper for a WebGL2 Uniform Buffer Object (UBO).
@@ -9,7 +9,6 @@ export class WebGL2UniformBuffer {
   private _gl: WebGL2RenderingContext;
   private _buffer: WebGLBuffer;
   private _data: Float32Array;
-  private _uint32Data: Uint32Array;
   private _int32Data: Int32Array;
   private _bindingPoint: number;
 
@@ -26,7 +25,6 @@ export class WebGL2UniformBuffer {
     // Create underlying buffer
     const buffer = new ArrayBuffer(size);
     this._data = new Float32Array(buffer);
-    this._uint32Data = new Uint32Array(buffer);
     this._int32Data = new Int32Array(buffer);
     
     this._buffer = this._gl.createBuffer()!;

@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.19.00] - 2026-04-21
+
+- **Major Architectural Overhaul: Decentralized Shader System**:
+  - Eliminated the central `ShaderBootstrap` "monster" (reduced from 700+ to ~50 lines).
+  - Implemented the **Open/Closed Principle**: Materials are now self-contained units that provide their own shader DNA without core engine modifications.
+  - **Self-Registering Materials**: Materials now automatically register as `ShaderProvider` instances upon instantiation, enabling true "Lazy Registration" (shaders are only loaded and compiled when used).
+  - **Externalized Shader Assets**: Moved all shader code into dedicated `.glsl` and `.wgsl` files in `src/core/materials/shaders/` for better developer experience (syntax highlighting, linting).
+  - **Vite Integration**: Utilized Vite `?raw` imports for zero-overhead, synchronous shader loading at runtime while maintaining source code separation.
+  - **Refined WebGPU Pipeline**: Standardized the `Out` structure and property naming (`wp`, `n`, `uv`, etc.) across all backends to ensure seamless interoperability.
+  - **Improved Type Safety**: Added global declarations for raw shader imports in `src/global.d.ts`.
+  - **Bug Fixes**:
+    - Fixed critical `setInt` bug in `WebGL2UniformBuffer` causing corrupted lighting data.
+    - Resolved WebGPU shader redeclaration errors caused by redundant chunk inclusion.
+    - Restored correct Phong and Lambert lighting logic in WebGPU shaders.
+
 ## [0.18.01] - 2026-04-20
 
 - **New Feature: AAA-Style Lava System**:

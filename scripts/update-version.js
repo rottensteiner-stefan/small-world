@@ -10,9 +10,9 @@ try {
   const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
 
   const tsContent = `// AUTO-GENERATED FILE - DO NOT EDIT
-import { RendererType } from '../enums/RendererType.js';
+import { RendererType } from '../enums/index.js';
 
-export { RendererType }; // <--- WICHTIG: Re-Export hinzufügen
+export { RendererType };
 export const ENGINE_VERSION = "${pkg.version}";
 export const DEFAULT_RENDERER = RendererType.BEST;
 `;
