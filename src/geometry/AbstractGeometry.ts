@@ -2,7 +2,7 @@
 
 import { Matrix4 } from "../math/Matrix4.js";
 import { Vector3D } from "../math/Vector3D.js";
-import { BoundingBox } from "../physics/index.js";
+import { BoundingBox } from "../physics/BoundingBox.js";
 import { GeometryDataInterface, Geometry, BoundingVolume } from "../interfaces/index.js";
 
 /**

@@ -109,6 +109,18 @@ export declare class Vector3D implements Vector {
      */
     copyFrom(v: Vector3D): this;
     /**
+     * Sets this vector's components to the minimum of its own and the given vector's.
+     * @param v The other vector.
+     * @returns this
+     */
+    min(v: Vector3D): this;
+    /**
+     * Sets this vector's components to the maximum of its own and the given vector's.
+     * @param v The other vector.
+     * @returns this
+     */
+    max(v: Vector3D): this;
+    /**
      * Clones the vector into a new instance.
      * @returns A new Vector3D.
      */

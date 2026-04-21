@@ -51,17 +51,17 @@ export class Frustum {
     p[14] = me[11]! - me[9]!;
     p[15] = me[15]! - me[13]!;
 
-    // Far plane
-    p[16] = me[3]! - me[2]!;
-    p[17] = me[7]! - me[6]!;
-    p[18] = me[11]! - me[10]!;
-    p[19] = me[15]! - me[14]!;
-
     // Near plane
-    p[20] = me[3]! + me[2]!;
-    p[21] = me[7]! + me[6]!;
-    p[22] = me[11]! + me[10]!;
-    p[23] = me[15]! + me[14]!;
+    p[16] = me[3]! + me[2]!;
+    p[17] = me[7]! + me[6]!;
+    p[18] = me[11]! + me[10]!;
+    p[19] = me[15]! + me[14]!;
+
+    // Far plane
+    p[20] = me[3]! - me[2]!;
+    p[21] = me[7]! - me[6]!;
+    p[22] = me[11]! - me[10]!;
+    p[23] = me[15]! - me[14]!;
 
     for (let i: number = 0; 6 > i; i++) {
       const idx: number = i * 4;

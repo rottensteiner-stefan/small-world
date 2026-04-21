@@ -74,8 +74,10 @@ export class Object3D {
 
   public computeBounds(): this {
     if (this.geometry) {
-      // New polymorphic approach: Geometry knows its bounds optimally.
+      // 1. Get local bounds from geometry
       this.bounds = this.geometry.getBoundingVolume();
+      // 2. Transform bounds to world space
+      this.bounds.transform(this.worldMatrix);
     }
     return this;
   }

@@ -1,99 +1,83 @@
 /// src/physics/BoundingBox.ts
 
 import { BoundingVolume, FrustumInterface } from "../interfaces/index.js";
-import { Vector3D } from "../math/Vector3D.js";
+import { Vector3D, MathPool, Matrix4 } from "../math/index.js";
 import { BoundingType } from "../enums/index.js";
 import { Collision } from "./Collision.js";
 
 /**
- * Represents an axis-aligned bounding box (AABB) in 3D space.
+ * Represents an axis-aligned bounding box (AABB).
  */
 export class BoundingBox implements BoundingVolume {
   /** @inheritdoc */
   public type: BoundingType = BoundingType.BOX;
 
-  /** The broad radius for coarse intersection tests. */
-  public broadRadius: number;
-
-  /** Internal storage for the center point. */
-  private _center: Vector3D;
+  /** The center of the box. */
+  public center: Vector3D = new Vector3D();
 
   /**
    * Creates a new BoundingBox.
-   * @param min The minimum coordinates (lower-left-back).
-   * @param max The maximum coordinates (upper-right-front).
+   * @param min The minimum coordinates.
+   * @param max The maximum coordinates.
    */
   constructor(
-    public min: Vector3D,
-    public max: Vector3D,
+    public min: Vector3D = new Vector3D(Infinity, Infinity, Infinity),
+    public max: Vector3D = new Vector3D(-Infinity, -Infinity, -Infinity),
   ) {
-    const sizeX: number = max.x - min.x;
-    const sizeY: number = max.y - min.y;
-    const sizeZ: number = max.z - min.z;
-    this.broadRadius = Math.sqrt(sizeX * sizeX + sizeY * sizeY + sizeZ * sizeZ) * 0.5;
-    this._center = new Vector3D(
-      (min.x + max.x) * 0.5,
-      (min.y + max.y) * 0.5,
-      (min.z + max.z) * 0.5,
-    );
+    this.center.copyFrom(min).add(max).scale(0.5);
   }
 
   /**
-   * Creates a BoundingBox that encapsulates all provided vertices.
+   * Creates a new BoundingBox that encapsulates all provided vertices.
+   * @param vertices The raw vertex data [x, y, z, ...].
+   * @returns A new BoundingBox instance.
    */
-  public static fromVertices(v: Float32Array): BoundingBox {
-    let minX = Infinity;
-    let minY = Infinity;
-    let minZ = Infinity;
-    let maxX = -Infinity;
-    let maxY = -Infinity;
-    let maxZ = -Infinity;
+  public static fromVertices(vertices: ArrayLike<number>): BoundingBox {
+    const min = new Vector3D(Infinity, Infinity, Infinity);
+    const max = new Vector3D(-Infinity, -Infinity, -Infinity);
 
-    for (let i = 0; i < v.length; i += 3) {
-      const x = v[i]!;
-      const y = v[i + 1]!;
-      const z = v[i + 2]!;
-      if (x < minX) minX = x;
-      if (x > maxX) maxX = x;
-      if (y < minY) minY = y;
-      if (y > maxY) maxY = y;
-      if (z < minZ) minZ = z;
-      if (z > maxZ) maxZ = z;
+    for (let i = 0; i < vertices.length; i += 3) {
+      const x = vertices[i]!;
+      const y = vertices[i + 1]!;
+      const z = vertices[i + 2]!;
+
+      if (x < min.x) min.x = x;
+      if (y < min.y) min.y = y;
+      if (z < min.z) min.z = z;
+
+      if (x > max.x) max.x = x;
+      if (y > max.y) max.y = y;
+      if (z > max.z) max.z = z;
     }
 
-    return new BoundingBox(new Vector3D(minX, minY, minZ), new Vector3D(maxX, maxY, maxZ));
+    return new BoundingBox(min, max);
+  }
+
+  /** @inheritdoc */
+  public getBroadRadius(): number {
+    return this.min.distanceTo(this.max) * 0.5;
   }
 
   /**
-   * Checks if this bounding box contains a point.
+   * Checks if a point is inside the box.
+   * @param point The point to check.
+   * @returns True if inside.
    */
   public containsPoint(point: Vector3D): boolean {
     return (
-      this.min.x <= point.x &&
-      this.max.x >= point.x &&
-      this.min.y <= point.y &&
-      this.max.y >= point.y &&
-      this.min.z <= point.z &&
-      this.max.z >= point.z
+      point.x >= this.min.x &&
+      point.x <= this.max.x &&
+      point.y >= this.min.y &&
+      point.y <= this.max.y &&
+      point.z >= this.min.z &&
+      point.z <= this.max.z
     );
   }
 
   /**
-   * Checks if this bounding box contains another bounding box.
-   */
-  public containsBox(other: BoundingBox): boolean {
-    return (
-      this.min.x <= other.min.x &&
-      this.max.x >= other.max.x &&
-      this.min.y <= other.min.y &&
-      this.max.y >= other.max.y &&
-      this.min.z <= other.min.z &&
-      this.max.z >= other.max.z
-    );
-  }
-
-  /**
-   * Checks if this bounding box intersects with another bounding box.
+   * Checks if another box intersects with this one.
+   * @param other The other box.
+   * @returns True if intersecting.
    */
   public intersectsBox(other: BoundingBox): boolean {
     return (
@@ -104,19 +88,6 @@ export class BoundingBox implements BoundingVolume {
       this.min.z <= other.max.z &&
       this.max.z >= other.min.z
     );
-  }
-
-  /** @inheritdoc */
-  public get center(): Vector3D {
-    this._center.x = (this.min.x + this.max.x) * 0.5;
-    this._center.y = (this.min.y + this.max.y) * 0.5;
-    this._center.z = (this.min.z + this.max.z) * 0.5;
-    return this._center;
-  }
-
-  /** @inheritdoc */
-  public getBroadRadius(): number {
-    return this.broadRadius;
   }
 
   /** @inheritdoc */
@@ -147,5 +118,35 @@ export class BoundingBox implements BoundingVolume {
   /** @inheritdoc */
   public intersectsVolume(other: BoundingVolume): boolean {
     return Collision.test(this, other);
+  }
+
+  /** @inheritdoc */
+  public transform(matrix: Matrix4): void {
+    const min = this.min;
+    const max = this.max;
+
+    // Corners of the box
+    const points = [
+      MathPool.acquireVector().set(min.x, min.y, min.z),
+      MathPool.acquireVector().set(min.x, min.y, max.z),
+      MathPool.acquireVector().set(min.x, max.y, min.z),
+      MathPool.acquireVector().set(min.x, max.y, max.z),
+      MathPool.acquireVector().set(max.x, min.y, min.z),
+      MathPool.acquireVector().set(max.x, min.y, max.z),
+      MathPool.acquireVector().set(max.x, max.y, min.z),
+      MathPool.acquireVector().set(max.x, max.y, max.z),
+    ];
+
+    min.set(Infinity, Infinity, Infinity);
+    max.set(-Infinity, -Infinity, -Infinity);
+
+    for (const p of points) {
+      matrix.transformVector(p);
+      min.min(p);
+      max.max(p);
+      MathPool.releaseVector(p);
+    }
+
+    this.center.copyFrom(min).add(max).scale(0.5);
   }
 }

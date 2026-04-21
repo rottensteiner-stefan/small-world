@@ -1,15 +1,32 @@
 # Changelog
 
+## [0.19.03] - 2026-04-21
+
+- **Stability & Polishing**:
+  - Validated world-space bounding volume transformations across all geometries.
+  - Optimized Example 6 as a "Geometry Showcase" with optimized frustum culling.
+  - Ensured all internal engine events and matrix updates are synchronized before spatial tree generation.
+
+## [0.19.02] - 2026-04-21
+
+- **Frustum & Bounding Volume Overhaul**:
+  - Implemented `BoundingVolume.transform(matrix)` to support world-space culling and octree placement.
+  - Fixed "disappearing objects" bug by ensuring `Object3D.computeBounds()` correctly transforms local geometry bounds into world coordinates.
+  - Corrected `Frustum` plane extraction logic for column-major matrices (Near/Far plane flip).
+  - Renamed Example 6 to **"Geometry Showcase"** and removed collision test walls.
+  - Fixed `FPSStrategy` vertical look direction (positive phi now looks up).
+- **Critical Fixes**:
+  - Resolved `TypeError: BoundingBox.fromVertices is not a function` by fixing cyclic/broken imports in `AbstractGeometry.ts`.
+  - Added `min()` and `max()` utility methods to `Vector3D`.
+  - Updated `Octree` to support all `BoundingVolume` types (Sphere, Box, etc.) via polymorphic tests.
+
 ## [0.19.01] - 2026-04-21
 
-- **Critical Fixes & Refinements**:
-  - **Math & Culling**: Fixed `Frustum` plane extraction logic for column-major matrices, resolving issues where visible objects were incorrectly culled.
-  - **Renderer Stability**: Fixed critical `setInt` bug in `WebGL2UniformBuffer` that caused corrupted lighting data by incorrectly mixing types in TypedArrays.
-  - **Spatial Partitioning**: Updated `Octree` to support all `BoundingVolume` types via polymorphic intersection tests, improving performance and accuracy for spherical bounds.
-  - **API Compliance**: Refactored `FPSController` constructor to use a configuration object, adhering to the project rule of maximum 2 optional positional parameters.
-  - **Example Stability**: Fixed "disappearing objects" in Examples 6 and 10 by ensuring world matrices are updated before spatial tree generation.
-  - **Code Quality**: Performed a project-wide cleanup of `any` types and added missing return types in example files.
-  - **WGSL Standardization**: Unified property naming (`wp`, `n`, `uv`) in all WebGPU shaders for better consistency and interoperability.
+- **Stability & Code Quality Pass**:
+  - Fixed critical `setInt` bug in `WebGL2UniformBuffer` causing corrupted lighting data.
+  - Project-wide cleanup of `any` types and linting errors (missing return types, explicit interfaces).
+  - Refactored `FPSController` constructor to use a configuration object (adhering to @AGENTS.md).
+  - Standardized property naming (`wp`, `n`, `uv`) in all WebGPU shaders.
 
 ## [0.19.00] - 2026-04-21
 

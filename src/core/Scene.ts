@@ -59,9 +59,12 @@ export class Scene {
   }
 
   private _addObjectToOctree(obj: Object3D, checkStatic: boolean): void {
-    if (obj.bounds && obj.frustumCulled && obj.isStatic === checkStatic) {
-      const targetOctree = checkStatic ? this.staticOctree : this.dynamicOctree;
-      targetOctree?.insert(obj);
+    if (obj.isStatic === checkStatic) {
+      if (obj.geometry) {
+        obj.computeBounds();
+        const targetOctree = checkStatic ? this.staticOctree : this.dynamicOctree;
+        targetOctree?.insert(obj);
+      }
     }
     for (const child of obj.children) this._addObjectToOctree(child, checkStatic);
   }
