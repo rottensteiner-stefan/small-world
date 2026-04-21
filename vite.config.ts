@@ -1,9 +1,14 @@
-import { defineConfig } from "vite";
+import { defineConfig } from "vitest/config";
 import { resolve } from "path";
 import mkcert from "vite-plugin-mkcert";
 
 export default defineConfig({
   publicDir: "public",
+  test: {
+    globals: true,
+    environment: "node",
+    include: ["tests/**/*.test.ts"],
+  },
   plugins: [
     {
       name: "serve-index-from-public",
