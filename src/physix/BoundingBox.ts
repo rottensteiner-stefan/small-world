@@ -1,9 +1,10 @@
-/// src/physics/BoundingBox.ts
+/// src/physix/BoundingBox.ts
 
 import { BoundingVolume, FrustumInterface } from "../interfaces/index.js";
 import { Vector3D, MathPool, Matrix4 } from "../math/index.js";
 import { BoundingType } from "../enums/index.js";
 import { Collision } from "./Collision.js";
+import { BoundingSphere } from "./BoundingSphere.js";
 
 /**
  * Represents an axis-aligned bounding box (AABB).
@@ -33,21 +34,33 @@ export class BoundingBox implements BoundingVolume {
    * @returns A new BoundingBox instance.
    */
   public static fromVertices(vertices: ArrayLike<number>): BoundingBox {
-    const min = new Vector3D(Infinity, Infinity, Infinity);
-    const max = new Vector3D(-Infinity, -Infinity, -Infinity);
+    const min: Vector3D = new Vector3D(Infinity, Infinity, Infinity);
+    const max: Vector3D = new Vector3D(-Infinity, -Infinity, -Infinity);
 
-    for (let i = 0; i < vertices.length; i += 3) {
-      const x = vertices[i]!;
-      const y = vertices[i + 1]!;
-      const z = vertices[i + 2]!;
+    for (let i: number = 0; i < vertices.length; i += 3) {
+      const x: number = vertices[i]!;
+      const y: number = vertices[i + 1]!;
+      const z: number = vertices[i + 2]!;
 
-      if (x < min.x) min.x = x;
-      if (y < min.y) min.y = y;
-      if (z < min.z) min.z = z;
+      if (x < min.x) {
+        min.x = x;
+      }
+      if (y < min.y) {
+        min.y = y;
+      }
+      if (z < min.z) {
+        min.z = z;
+      }
 
-      if (x > max.x) max.x = x;
-      if (y > max.y) max.y = y;
-      if (z > max.z) max.z = z;
+      if (x > max.x) {
+        max.x = x;
+      }
+      if (y > max.y) {
+        max.y = y;
+      }
+      if (z > max.z) {
+        max.z = z;
+      }
     }
 
     return new BoundingBox(min, max);
@@ -90,6 +103,38 @@ export class BoundingBox implements BoundingVolume {
     );
   }
 
+  /**
+   * Checks if another box is entirely contained within this one.
+   * @param other The other box.
+   * @returns True if entirely contained.
+   */
+  public containsBox(other: BoundingBox): boolean {
+    return (
+      this.min.x <= other.min.x &&
+      this.max.x >= other.max.x &&
+      this.min.y <= other.min.y &&
+      this.max.y >= other.max.y &&
+      this.min.z <= other.min.z &&
+      this.max.z >= other.max.z
+    );
+  }
+
+  /**
+   * Checks if a sphere is entirely contained within this box.
+   * @param other The sphere.
+   * @returns True if entirely contained.
+   */
+  public containsSphere(other: BoundingSphere): boolean {
+    return (
+      this.min.x <= other.center.x - other.radius &&
+      this.max.x >= other.center.x + other.radius &&
+      this.min.y <= other.center.y - other.radius &&
+      this.max.y >= other.center.y + other.radius &&
+      this.min.z <= other.center.z - other.radius &&
+      this.max.z >= other.center.z + other.radius
+    );
+  }
+
   /** @inheritdoc */
   public intersectsFrustum(frustum: FrustumInterface): boolean {
     const p: Float32Array = frustum.planes;
@@ -118,6 +163,17 @@ export class BoundingBox implements BoundingVolume {
   /** @inheritdoc */
   public intersectsVolume(other: BoundingVolume): boolean {
     return Collision.test(this, other);
+  }
+
+  /** @inheritdoc */
+  public containsVolume(other: BoundingVolume): boolean {
+    if (BoundingType.BOX === other.type) {
+      return this.containsBox(other as BoundingBox);
+    }
+    if (BoundingType.SPHERE === other.type) {
+      return this.containsSphere(other as BoundingSphere);
+    }
+    return false;
   }
 
   /** @inheritdoc */

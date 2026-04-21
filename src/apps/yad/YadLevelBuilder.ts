@@ -49,6 +49,7 @@ export class YadLevelBuilder {
     mapData: string,
     config: YadLevelConfig,
   ): Promise<{ playerStart: Vector3D; lavaMaterial: LavaMaterial }> {
+    console.log("[YadLevelBuilder] Starting build...");
     const lines: string[] = mapData.trim().split("\n");
     const height: number = lines.length;
     const width: number = lines[0]!.length;
@@ -86,6 +87,8 @@ export class YadLevelBuilder {
           wall.position.set(worldX, this._wallHeight / 2, worldZ);
           wall.scale.y = this._wallHeight / this._gridSize;
           wall.isStatic = true;
+          wall.updateMatrixWorld(true);
+          wall.computeBounds();
           scene.add(wall);
         }
 
@@ -139,6 +142,8 @@ export class YadLevelBuilder {
           col.position.set(worldX, this._wallHeight / 2, worldZ);
           col.scale.set(0.5, this._wallHeight / this._gridSize, 0.5);
           col.isStatic = true;
+          col.updateMatrixWorld(true);
+          col.computeBounds();
           scene.add(col);
         } else if ("P" === char) {
           playerStart.set(worldX, 1.0, worldZ);

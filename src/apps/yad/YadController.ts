@@ -5,7 +5,7 @@ import { Object3D } from "../../core/Object3D.js";
 import { Input } from "../../core/Input.js";
 import { Keys } from "../../enums/Keys.js";
 import { Scene } from "../../core/Scene.js";
-import { BoundingBox, BoundingSphere, Collision } from "../../physics/index.js";
+import { BoundingBox, BoundingSphere, Collision } from "../../physix/index.js";
 import { MathPool } from "../../math/index.js";
 import { Vector3D } from "../../math/Vector3D.js";
 
@@ -52,7 +52,7 @@ export class YadController implements Controller {
       moveSpeed: options.moveSpeed ?? 10.0,
       rotationSpeed: options.rotationSpeed ?? 2.0,
       enableCollision: options.enableCollision ?? !!options.scene,
-      collisionRadius: options.collisionRadius ?? 0.5,
+      collisionRadius: options.collisionRadius ?? 0.7,
       scene: options.scene,
     };
     this._collider = new BoundingSphere(
@@ -133,10 +133,14 @@ export class YadController implements Controller {
     this._collider.center.copyFrom(this._target.position);
 
     const potentialHits: Object3D[] = [];
-    if (this._options.scene.staticOctree) {
-      potentialHits.push(...this._options.scene.staticOctree.queryVolume(this._collider));
+    if (undefined !== this._options.scene.staticOctree) {
+      const hits: Object3D[] = this._options.scene.staticOctree.queryVolume(this._collider);
+      if (0 < hits.length) {
+        // console.log(`[YadController] Hits found: ${hits.length}`);
+      }
+      potentialHits.push(...hits);
     }
-    if (this._options.scene.dynamicOctree) {
+    if (undefined !== this._options.scene.dynamicOctree) {
       potentialHits.push(...this._options.scene.dynamicOctree.queryVolume(this._collider));
     }
 
@@ -148,6 +152,7 @@ export class YadController implements Controller {
         continue;
       }
       if (Collision.resolveSphereBox(this._collider, obj.bounds as BoundingBox, hitCorrection)) {
+        // console.log(`[YadController] Collided with ${obj.name}. Correction: ${hitCorrection.x}, ${hitCorrection.z}`);
         correction.add(hitCorrection);
         this._collider.center.add(hitCorrection);
       }

@@ -1,4 +1,4 @@
-import { BoundingBox } from '../physics/index.js';
+import { BoundingBox } from '../physix/index.js';
 import { Object3D } from './Object3D.js';
 import { Frustum } from '../math/Frustum.js';
 import { BoundingVolume } from '../interfaces/index.js';

@@ -22,5 +22,7 @@ export declare class BoundingSphere implements BoundingVolume {
     /** @inheritdoc */
     intersectsVolume(other: BoundingVolume): boolean;
     /** @inheritdoc */
+    containsVolume(other: BoundingVolume): boolean;
+    /** @inheritdoc */
     transform(matrix: Matrix4): void;
 }

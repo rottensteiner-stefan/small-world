@@ -15,6 +15,8 @@ import {
 import { YadLevelBuilder } from "./YadLevelBuilder.js";
 import { TextLoader } from "../../loaders/TextLoader.js";
 import { YadController } from "./YadController.js";
+import { BoundingBox } from "../../physix/index.js";
+import { Vector3D } from "../../math/index.js";
 
 /**
  * YAD (Yet Another Doom)
@@ -82,7 +84,14 @@ export class YadApp extends AbstractExample {
     );
 
     // 6. Final Scene Prep
-    this.scene.update();
+    this.scene.update(); // Update all world matrices first
+    this.scene.initOctrees(
+      new BoundingBox(new Vector3D(-200, -50, -200), new Vector3D(200, 100, 200)),
+    );
+    console.log("[YadApp] Updating static octree...");
+    this.scene.updateStaticOctree();
+    this.debug = false; // Disable visual debugging for collisions by default
+
     console.log("YAD: Level 1 built.");
   }
 

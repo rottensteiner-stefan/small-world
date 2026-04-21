@@ -1,4 +1,4 @@
-/// src/physics/index.ts
+/// src/physix/index.ts
 
 export * from "./BoundingBox.js";
 export * from "./BoundingSphere.js";
