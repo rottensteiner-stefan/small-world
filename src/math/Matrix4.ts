@@ -326,160 +326,59 @@ export class Matrix4 {
   public static invert(src: Matrix4, target: Matrix4): boolean {
     const te = target.data;
     const n = src.data;
-    const n11 = n[0]!,
-      n12 = n[4]!,
-      n13 = n[8]!,
-      n14 = n[12]!;
-    const n21 = n[1]!,
-      n22 = n[5]!,
-      n23 = n[9]!,
-      n24 = n[13]!;
-    const n31 = n[2]!,
-      n32 = n[6]!,
-      n33 = n[10]!,
-      n34 = n[14]!;
-    const n41 = n[3]!,
-      n42 = n[7]!,
-      n43 = n[11]!,
-      n44 = n[15]!;
-    const t11 =
-      n23 * n34 * n42 -
-      n24 * n33 * n42 +
-      n24 * n32 * n43 -
-      n22 * n34 * n43 -
-      n23 * n32 * n44 +
-      n22 * n33 * n44;
-    const t12 =
-      n14 * n33 * n42 -
-      n13 * n34 * n42 -
-      n14 * n32 * n43 +
-      n12 * n34 * n43 +
-      n13 * n32 * n44 -
-      n12 * n33 * n44;
-    const t13 =
-      n13 * n24 * n42 -
-      n14 * n23 * n42 +
-      n14 * n22 * n43 -
-      n12 * n24 * n43 -
-      n13 * n22 * n44 +
-      n12 * n23 * n44;
-    const t14 =
-      n14 * n23 * n32 -
-      n13 * n24 * n32 -
-      n14 * n22 * n33 +
-      n12 * n24 * n33 +
-      n13 * n22 * n34 -
-      n12 * n23 * n34;
-    const det = n11 * t11 + n21 * t12 + n31 * t13 + n41 * t14;
+
+    const a0 = n[0]!,
+      a1 = n[1]!,
+      a2 = n[2]!,
+      a3 = n[3]!;
+    const b0 = n[4]!,
+      b1 = n[5]!,
+      b2 = n[6]!,
+      b3 = n[7]!;
+    const c0 = n[8]!,
+      c1 = n[9]!,
+      c2 = n[10]!,
+      c3 = n[11]!;
+    const d0 = n[12]!,
+      d1 = n[13]!,
+      d2 = n[14]!,
+      d3 = n[15]!;
+
+    const b01 = a0 * b1 - a1 * b0;
+    const b02 = a0 * b2 - a2 * b0;
+    const b03 = a0 * b3 - a3 * b0;
+    const b12 = a1 * b2 - a2 * b1;
+    const b13 = a1 * b3 - a3 * b1;
+    const b23 = a2 * b3 - a3 * b2;
+    const c01 = c0 * d1 - c1 * d0;
+    const c02 = c0 * d2 - c2 * d0;
+    const c03 = c0 * d3 - c3 * d0;
+    const c12 = c1 * d2 - c2 * d1;
+    const c13 = c1 * d3 - c3 * d1;
+    const c23 = c2 * d3 - c3 * d2;
+
+    const det = b01 * c23 - b02 * c13 + b03 * c12 + b12 * c03 - b13 * c02 + b23 * c01;
+
     if (det === 0) return false;
-    const invDet = 1.0 / det;
-    te[0] = t11 * invDet;
-    te[1] =
-      (n24 * n33 * n41 -
-        n23 * n34 * n41 -
-        n24 * n31 * n43 +
-        n21 * n34 * n43 +
-        n23 * n31 * n44 -
-        n21 * n33 * n44) *
-      invDet;
-    te[2] =
-      (n22 * n34 * n41 -
-        n24 * n32 * n41 +
-        n24 * n31 * n42 -
-        n21 * n34 * n42 -
-        n22 * n31 * n44 +
-        n21 * n32 * n44) *
-      invDet;
-    te[3] =
-      (n23 * n32 * n41 -
-        n22 * n33 * n41 -
-        n23 * n31 * n42 +
-        n21 * n33 * n42 +
-        n22 * n31 * n43 -
-        n21 * n32 * n43) *
-      invDet;
-    te[4] = t12 * invDet;
-    te[5] =
-      (n13 * n34 * n41 -
-        n14 * n33 * n41 +
-        n14 * n31 * n43 -
-        n11 * n34 * n43 -
-        n13 * n31 * n44 +
-        n11 * n33 * n44) *
-      invDet;
-    te[6] =
-      (n14 * n32 * n41 -
-        n12 * n34 * n41 -
-        n14 * n31 * n42 +
-        n11 * n34 * n42 +
-        n12 * n31 * n44 -
-        n11 * n32 * n44) *
-      invDet;
-    te[7] =
-      (n12 * n33 * n41 -
-        n13 * n32 * n41 +
-        n13 * n31 * n42 -
-        n11 * n33 * n42 -
-        n12 * n31 * n43 +
-        n11 * n32 * n43) *
-      invDet;
-    te[8] =
-      (n21 * n32 * n44 -
-        n21 * n34 * n42 +
-        n24 * n31 * n42 -
-        n22 * n31 * n44 -
-        n24 * n32 * n41 +
-        n22 * n34 * n41) *
-      invDet;
-    te[9] =
-      (n11 * n34 * n42 -
-        n11 * n32 * n44 +
-        n12 * n31 * n44 -
-        n14 * n31 * n42 +
-        n14 * n32 * n41 -
-        n12 * n34 * n41) *
-      invDet;
-    te[10] =
-      (n11 * n22 * n44 -
-        n11 * n24 * n42 +
-        n14 * n21 * n42 -
-        n12 * n21 * n44 -
-        n14 * n22 * n41 +
-        n12 * n24 * n41) *
-      invDet;
-    te[11] =
-      (n11 * n24 * n32 -
-        n11 * n22 * n34 +
-        n12 * n21 * n34 -
-        n14 * n21 * n32 +
-        n14 * n22 * n31 -
-        n12 * n24 * n31) *
-      invDet;
-    te[12] = t14 * invDet;
-    te[13] =
-      (n21 * n33 * n42 -
-        n21 * n32 * n43 +
-        n22 * n31 * n43 -
-        n23 * n31 * n42 +
-        n23 * n32 * n41 -
-        n22 * n33 * n41) *
-      invDet;
-    te[14] =
-      (n11 * n32 * n43 -
-        n11 * n33 * n42 +
-        n13 * n31 * n42 -
-        n12 * n31 * n43 -
-        n13 * n32 * n41 +
-        n12 * n33 * n41) *
-      invDet;
-    te[15] =
-      (n11 * n23 * n42 -
-        n11 * n22 * n43 +
-        n12 * n21 * n43 -
-        n13 * n21 * n42 +
-        n13 * n22 * n41 -
-        n12 * n23 * n41) *
-      invDet;
+    const invDet = 1 / det;
+
+    te[0] = (b1 * c23 - b2 * c13 + b3 * c12) * invDet;
+    te[1] = (-a1 * c23 + a2 * c13 - a3 * c12) * invDet;
+    te[2] = (d1 * b23 - d2 * b13 + d3 * b12) * invDet;
+    te[3] = (-c1 * b23 + c2 * b13 - c3 * b12) * invDet;
+    te[4] = (-b0 * c23 + b2 * c03 - b3 * c02) * invDet;
+    te[5] = (a0 * c23 - a2 * c03 + a3 * c02) * invDet;
+    te[6] = (-d0 * b23 + d2 * b03 - d3 * b02) * invDet;
+    te[7] = (c0 * b23 - c2 * b03 + c3 * b02) * invDet;
+    te[8] = (b0 * c13 - b1 * c03 + b3 * c01) * invDet;
+    te[9] = (-a0 * c13 + a1 * c03 - a3 * c01) * invDet;
+    te[10] = (d0 * b13 - d1 * b03 + d3 * b01) * invDet;
+    te[11] = (-c0 * b13 + c1 * b03 - c3 * b01) * invDet;
+    te[12] = (-b0 * c12 + b1 * c02 - b2 * c01) * invDet;
+    te[13] = (a0 * c12 - a1 * c02 + a2 * c01) * invDet;
+    te[14] = (-d0 * b12 + d1 * b02 - d2 * b01) * invDet;
+    te[15] = (c0 * b12 - c1 * b02 + c2 * b01) * invDet;
+
     return true;
   }
 

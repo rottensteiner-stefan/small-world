@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.19.04] - 2026-04-21
+
+- **Testing Infrastructure**:
+  - Integrated **Vitest** for high-performance unit testing.
+  - Implemented a dedicated `tests/` directory following "Separation of Concerns" (mirrored `src/` structure).
+  - Added comprehensive test suites for `Vector3D`, `Matrix4`, `Quaternion`, and `MathUtils`.
+- **Bugfixes**:
+  - **Matrix Math**: Discovered and fixed a critical bug in `Matrix4.invert` through automated testing. The inversion logic is now 100% compliant with industry standards for column-major matrices.
+  - **Vector Math**: Added `min()` and `max()` utility methods to `Vector3D`.
+
 ## [0.19.03] - 2026-04-21
 
 - **Stability & Polishing**:
