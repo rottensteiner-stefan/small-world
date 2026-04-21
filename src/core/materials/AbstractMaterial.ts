@@ -27,7 +27,7 @@ export abstract class AbstractMaterial implements ShaderProvider {
    * @param type The type of the material.
    */
   protected constructor(public readonly type: MaterialType) {
-    // Self-registration: The moment a material is instantiated, 
+    // Self-registration: The moment a material is instantiated,
     // the engine knows how to handle its shader.
     ShaderRegistry.instance.registerProvider(this.type, this);
   }

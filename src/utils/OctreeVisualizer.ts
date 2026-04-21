@@ -1,7 +1,7 @@
 import { Color, Object3D, Scene, WireframeMaterial } from "../core/index.js";
 import { Cube } from "../geometry/Cube.js";
 import { OctreeNode } from "../core/Octree.js";
-import { BoundingBox } from "../physics/BoundingBox.js";
+import { BoundingBox } from "../physics/index.js";
 
 /**
  * Utility to visualize the Octree structure in the scene.
@@ -80,7 +80,7 @@ export class OctreeVisualizer {
     isActive: boolean,
     defaultMat: WireframeMaterial,
     objIndex: number,
-    scene: Scene
+    scene: Scene,
   ): number {
     let debugObj: Object3D;
     if (objIndex < this._debugObjects.length) {
@@ -94,16 +94,16 @@ export class OctreeVisualizer {
     }
 
     debugObj.material = isActive ? this._activeNodeMat : defaultMat;
-    
+
     const box: BoundingBox = node.bounds;
     const sizeX: number = box.max.x - box.min.x;
     const sizeY: number = box.max.y - box.min.y;
     const sizeZ: number = box.max.z - box.min.z;
-    
+
     debugObj.position.copyFrom(box.center);
     debugObj.scale.set(sizeX, sizeY, sizeZ);
     debugObj.updateMatrixWorld();
-    
+
     return objIndex + 1;
   }
 
@@ -127,7 +127,7 @@ export class OctreeVisualizer {
     node: OctreeNode,
     scene: Scene,
     activeNodes: Set<OctreeNode>,
-    callback: (node: OctreeNode, isActive: boolean) => void
+    callback: (node: OctreeNode, isActive: boolean) => void,
   ): void {
     callback(node, activeNodes.has(node));
 

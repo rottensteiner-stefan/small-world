@@ -77,7 +77,7 @@ export class Example7 extends AbstractExample {
     const referenceCube = new Object3D("ReferenceCube");
     referenceCube.geometry = new Cube({ size: 2 }).getGeometryData();
     referenceCube.material = new PhongMaterial({ color: Color.BLUE, shininess: 50 });
-    referenceCube.position.set(0, 1, -10); 
+    referenceCube.position.set(0, 1, -10);
     this.scene.add(referenceCube);
 
     const redCube = new Object3D("RedCube");

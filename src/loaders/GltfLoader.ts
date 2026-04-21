@@ -7,8 +7,49 @@ import { Object3D, StandardMaterial, Color, Texture } from "../core/index.js";
 import { LoaderOptions } from "../interfaces/index.js";
 import { Matrix4, Vector3D } from "../math/index.js";
 
+interface GltfJson {
+  buffers?: { uri?: string }[];
+  bufferViews?: { buffer: number; byteOffset?: number; byteLength: number }[];
+  accessors?: {
+    bufferView?: number;
+    byteOffset?: number;
+    componentType: number;
+    count: number;
+    type: string;
+  }[];
+  meshes?: {
+    name?: string;
+    primitives: {
+      attributes: { [key: string]: number };
+      indices?: number;
+      material?: number;
+    }[];
+  }[];
+  nodes?: {
+    name?: string;
+    children?: number[];
+    matrix?: number[];
+    translation?: number[];
+    rotation?: number[];
+    scale?: number[];
+    mesh?: number;
+  }[];
+  scenes?: { nodes?: number[] }[];
+  scene?: number;
+  materials?: {
+    pbrMetallicRoughness?: {
+      baseColorFactor?: number[];
+      baseColorTexture?: { index: number };
+      metallicFactor?: number;
+      roughnessFactor?: number;
+    };
+  }[];
+  textures?: { source: number }[];
+  images?: { uri?: string }[];
+}
+
 interface GltfData {
-  json: any;
+  json: GltfJson;
   buffers: ArrayBuffer[];
 }
 
@@ -45,14 +86,14 @@ export class GltfLoader extends AbstractLoader<Object3D> {
   }
 
   private async _loadJson(url: string): Promise<GltfData> {
-    const json = await AssetManager.loadJson(url);
+    const json = (await AssetManager.loadJson(url)) as GltfJson;
     const folderPath = url.substring(0, url.lastIndexOf("/") + 1);
-    
-    const bufferPromises = (json.buffers || []).map((buf: any) => {
-      if (buf.uri.startsWith("data:")) {
+
+    const bufferPromises = (json.buffers || []).map((buf) => {
+      if (buf.uri?.startsWith("data:")) {
         return this._decodeBase64(buf.uri);
       }
-      return AssetManager.loadBinary(folderPath + buf.uri);
+      return AssetManager.loadBinary(folderPath + (buf.uri || ""));
     });
 
     const buffers = await Promise.all(bufferPromises);
@@ -65,13 +106,13 @@ export class GltfLoader extends AbstractLoader<Object3D> {
 
     // Check Magic: "glTF"
     const magic = dataView.getUint32(0, true);
-    if (magic !== 0x46546C67) throw new Error("Not a valid .glb file.");
+    if (magic !== 0x46546c67) throw new Error("Not a valid .glb file.");
 
     const version = dataView.getUint32(4, true);
     if (version !== 2) throw new Error("Only glTF 2.0 is supported.");
 
     // Parse Chunks
-    let json: any = null;
+    let json: GltfJson | null = null;
     const buffers: ArrayBuffer[] = [];
     let offset = 12;
 
@@ -80,14 +121,20 @@ export class GltfLoader extends AbstractLoader<Object3D> {
       const chunkType = dataView.getUint32(offset + 4, true);
       offset += 8;
 
-      if (chunkType === 0x4E4F534A) { // JSON
-        const jsonContent = new TextDecoder().decode(new Uint8Array(arrayBuffer, offset, chunkLength));
-        json = JSON.parse(jsonContent);
-      } else if (chunkType === 0x004E4942) { // BIN
+      if (chunkType === 0x4e4f534a) {
+        // JSON
+        const jsonContent = new TextDecoder().decode(
+          new Uint8Array(arrayBuffer, offset, chunkLength),
+        );
+        json = JSON.parse(jsonContent) as GltfJson;
+      } else if (chunkType === 0x004e4942) {
+        // BIN
         buffers.push(arrayBuffer.slice(offset, offset + chunkLength));
       }
       offset += chunkLength;
     }
+
+    if (!json) throw new Error("No JSON chunk found in .glb file.");
 
     return { json, buffers };
   }
@@ -104,154 +151,223 @@ export class GltfLoader extends AbstractLoader<Object3D> {
   private async _parse(gltf: GltfData, baseUrl: string): Promise<Object3D> {
     const { json, buffers } = gltf;
     const folderPath = baseUrl.substring(0, baseUrl.lastIndexOf("/") + 1);
-    
+
     // 1. Parse Materials
-    const materials = await Promise.all((json.materials || []).map((m: any) => this._parseMaterial(m, json, folderPath)));
+    const materials = await Promise.all(
+      (json.materials || []).map((m) => this._parseMaterial(m, json, folderPath)),
+    );
 
     // 2. Create Scene Root
     const root = new Object3D("glTF_Root");
     const sceneIdx = json.scene ?? 0;
     const scene = json.scenes ? json.scenes[sceneIdx] : null;
-    
-    if (scene && scene.nodes) {
-        for (const nodeIdx of scene.nodes) {
-            root.add(this._parseNode(json.nodes[nodeIdx], json, buffers, materials));
-        }
+
+    if (scene && scene.nodes && json.nodes) {
+      for (const nodeIdx of scene.nodes) {
+        root.add(this._parseNode(json.nodes[nodeIdx], json, buffers, materials));
+      }
     }
 
     return root;
   }
 
-  private _parseNode(node: any, json: any, buffers: ArrayBuffer[], materials: any[]): Object3D {
+  private _parseNode(
+    node: NonNullable<GltfJson["nodes"]>[number] | undefined,
+    json: GltfJson,
+    buffers: ArrayBuffer[],
+    materials: StandardMaterial[],
+  ): Object3D {
     if (!node) return new Object3D("EmptyNode");
     const obj = new Object3D(node.name || "Node");
 
     // Transforms
     if (node.matrix) {
-        const mat = new Matrix4();
-        mat.data.set(node.matrix);
-        // Decompose into position, rotation, scale to keep Object3D state consistent
-        const pos = new Vector3D();
-        const rot = new Vector3D();
-        const sca = new Vector3D(1, 1, 1);
-        mat.decompose(pos, rot, sca);
-        obj.position.copyFrom(pos);
-        obj.rotation.copyFrom(rot);
-        obj.scale.copyFrom(sca);
+      const mat = new Matrix4();
+      mat.data.set(node.matrix);
+      // Decompose into position, rotation, scale to keep Object3D state consistent
+      const pos = new Vector3D();
+      const rot = new Vector3D();
+      const sca = new Vector3D(1, 1, 1);
+      mat.decompose(pos, rot, sca);
+      obj.position.copyFrom(pos);
+      obj.rotation.copyFrom(rot);
+      obj.scale.copyFrom(sca);
     } else {
-        if (node.translation) obj.position.set(node.translation[0], node.translation[1], node.translation[2]);
-        if (node.scale) obj.scale.set(node.scale[0], node.scale[1], node.scale[2]);
-        if (node.rotation) {
-            // glTF uses quaternions [x, y, z, w]
-            const q = node.rotation;
-            const mat = new Matrix4();
-            const x = q[0], y = q[1], z = q[2], w = q[3];
-            const x2 = x + x, y2 = y + y, z2 = z + z;
-            const xx = x * x2, xy = x * y2, xz = x * z2;
-            const yy = y * y2, yz = y * z2, zz = z * z2;
-            const wx = w * x2, wy = w * y2, wz = w * z2;
+      if (node.translation)
+        obj.position.set(node.translation[0]!, node.translation[1]!, node.translation[2]!);
+      if (node.scale) obj.scale.set(node.scale[0]!, node.scale[1]!, node.scale[2]!);
+      if (node.rotation) {
+        // glTF uses quaternions [x, y, z, w]
+        const q = node.rotation;
+        const mat = new Matrix4();
+        const x = q[0]!,
+          y = q[1]!,
+          z = q[2]!,
+          w = q[3]!;
+        const x2 = x + x,
+          y2 = y + y,
+          z2 = z + z;
+        const xx = x * x2,
+          xy = x * y2,
+          xz = x * z2;
+        const yy = y * y2,
+          yz = y * z2,
+          zz = z * z2;
+        const wx = w * x2,
+          wy = w * y2,
+          wz = w * z2;
 
-            mat.data[0] = 1 - (yy + zz); mat.data[4] = xy - wz; mat.data[8] = xz + wy;
-            mat.data[1] = xy + wz; mat.data[5] = 1 - (xx + zz); mat.data[9] = yz - wx;
-            mat.data[2] = xz - wy; mat.data[6] = yz + wx; mat.data[10] = 1 - (xx + yy);
-            
-            const dummyP = new Vector3D();
-            const dummyS = new Vector3D(1, 1, 1);
-            mat.decompose(dummyP, obj.rotation, dummyS);
-        }
+        mat.data[0] = 1 - (yy + zz);
+        mat.data[4] = xy - wz;
+        mat.data[8] = xz + wy;
+        mat.data[1] = xy + wz;
+        mat.data[5] = 1 - (xx + zz);
+        mat.data[9] = yz - wx;
+        mat.data[2] = xz - wy;
+        mat.data[6] = yz + wx;
+        mat.data[10] = 1 - (xx + yy);
+
+        const dummyP = new Vector3D();
+        const dummyS = new Vector3D(1, 1, 1);
+        mat.decompose(dummyP, obj.rotation, dummyS);
+      }
     }
 
     // Mesh
     if (node.mesh !== undefined && json.meshes && json.meshes[node.mesh]) {
-        const meshDef = json.meshes[node.mesh];
-        for (const primitive of meshDef.primitives) {
-            const child = new Object3D(node.name ? `${node.name}_mesh` : "MeshInstance");
-            const geo = this._parseGeometry(primitive, json, buffers);
-            if (geo) {
-                child.geometry = geo;
-                child.material = (primitive.material !== undefined && materials[primitive.material]) ? materials[primitive.material] : new StandardMaterial();
-                obj.add(child);
-            }
+      const meshDef = json.meshes[node.mesh];
+      for (const primitive of meshDef.primitives) {
+        const child = new Object3D(node.name ? `${node.name}_mesh` : "MeshInstance");
+        const geo = this._parseGeometry(primitive, json, buffers);
+        if (geo) {
+          child.geometry = geo;
+          child.material =
+            primitive.material !== undefined && materials[primitive.material]
+              ? materials[primitive.material]!
+              : new StandardMaterial();
+          obj.add(child);
         }
+      }
     }
 
     // Children
-    if (node.children) {
-        for (const childIdx of node.children) {
-            obj.add(this._parseNode(json.nodes[childIdx], json, buffers, materials));
-        }
+    if (node.children && json.nodes) {
+      for (const childIdx of node.children) {
+        obj.add(this._parseNode(json.nodes[childIdx], json, buffers, materials));
+      }
     }
 
     return obj;
   }
 
-  private _parseGeometry(primitive: any, json: any, buffers: ArrayBuffer[]): any {
+  private _parseGeometry(
+    primitive: NonNullable<NonNullable<GltfJson["meshes"]>[number]["primitives"]>[number],
+    json: GltfJson,
+    buffers: ArrayBuffer[],
+  ): any {
     const attributes = primitive.attributes;
-    if (!attributes || attributes.POSITION === undefined) return null;
-    
+    if (!attributes || attributes.POSITION === undefined || !json.accessors) return null;
+
     const positions = this._getBufferData(json.accessors[attributes.POSITION], json, buffers);
     if (!positions) return null;
 
-    const normals = attributes.NORMAL !== undefined ? this._getBufferData(json.accessors[attributes.NORMAL], json, buffers) : undefined;
-    const uvs = attributes.TEXCOORD_0 !== undefined ? this._getBufferData(json.accessors[attributes.TEXCOORD_0], json, buffers) : undefined;
-    const indices = primitive.indices !== undefined ? this._getBufferData(json.accessors[primitive.indices], json, buffers) : undefined;
+    const normals =
+      attributes.NORMAL !== undefined
+        ? this._getBufferData(json.accessors[attributes.NORMAL], json, buffers)
+        : undefined;
+    const uvs =
+      attributes.TEXCOORD_0 !== undefined
+        ? this._getBufferData(json.accessors[attributes.TEXCOORD_0], json, buffers)
+        : undefined;
+    const indices =
+      primitive.indices !== undefined
+        ? this._getBufferData(json.accessors[primitive.indices], json, buffers)
+        : undefined;
 
     return new ModelGeometry(
-        Array.from(positions as Float32Array),
-        uvs ? Array.from(uvs as Float32Array) : [],
-        normals ? Array.from(normals as Float32Array) : [],
-        indices ? Array.from(indices as Uint16Array | Uint32Array) : []
+      Array.from(positions as Float32Array),
+      uvs ? Array.from(uvs as Float32Array) : [],
+      normals ? Array.from(normals as Float32Array) : [],
+      indices ? Array.from(indices as Uint16Array | Uint32Array) : [],
     ).getGeometryData();
   }
 
-  private _getBufferData(accessorIdx: any, json: any, buffers: ArrayBuffer[]): TypedArray | null {
-    if (accessorIdx === undefined || !json.accessors) return null;
-    const accessor = json.accessors[accessorIdx];
-    if (!accessor || accessor.bufferView === undefined) return null;
+  private _getBufferData(
+    accessor: NonNullable<GltfJson["accessors"]>[number] | undefined,
+    json: GltfJson,
+    buffers: ArrayBuffer[],
+  ): TypedArray | null {
+    if (accessor === undefined || accessor.bufferView === undefined || !json.bufferViews)
+      return null;
     const bufferView = json.bufferViews[accessor.bufferView];
+    if (!bufferView) return null;
     const buffer = buffers[bufferView.buffer];
-    
+
     if (!buffer) {
-        return null;
+      return null;
     }
 
     const byteOffset = (bufferView.byteOffset || 0) + (accessor.byteOffset || 0);
     const count = accessor.count * this._getComponentCount(accessor.type);
-    
+
     switch (accessor.componentType) {
-        case 5121: return new Uint8Array(buffer, byteOffset, count);
-        case 5123: return new Uint16Array(buffer, byteOffset, count);
-        case 5125: return new Uint32Array(buffer, byteOffset, count);
-        case 5126: return new Float32Array(buffer, byteOffset, count);
-        default: return null;
+      case 5121:
+        return new Uint8Array(buffer, byteOffset, count);
+      case 5123:
+        return new Uint16Array(buffer, byteOffset, count);
+      case 5125:
+        return new Uint32Array(buffer, byteOffset, count);
+      case 5126:
+        return new Float32Array(buffer, byteOffset, count);
+      default:
+        return null;
     }
   }
 
   private _getComponentCount(type: string): number {
     switch (type) {
-        case "SCALAR": return 1;
-        case "VEC2": return 2;
-        case "VEC3": return 3;
-        case "VEC4": return 4;
-        case "MAT4": return 16;
-        default: return 1;
+      case "SCALAR":
+        return 1;
+      case "VEC2":
+        return 2;
+      case "VEC3":
+        return 3;
+      case "VEC4":
+        return 4;
+      case "MAT4":
+        return 16;
+      default:
+        return 1;
     }
   }
 
-  private async _parseMaterial(m: any, json: any, folderPath: string): Promise<StandardMaterial> {
+  private async _parseMaterial(
+    m: NonNullable<GltfJson["materials"]>[number],
+    json: GltfJson,
+    folderPath: string,
+  ): Promise<StandardMaterial> {
     const mat = new StandardMaterial();
     const pbr = m.pbrMetallicRoughness || {};
 
     if (pbr.baseColorFactor) {
-        mat.color = new Color(pbr.baseColorFactor[0], pbr.baseColorFactor[1], pbr.baseColorFactor[2], pbr.baseColorFactor[3]);
+      mat.color = new Color(
+        pbr.baseColorFactor[0]!,
+        pbr.baseColorFactor[1]!,
+        pbr.baseColorFactor[2]!,
+        pbr.baseColorFactor[3]!,
+      );
     }
 
-    if (pbr.baseColorTexture) {
-        const texIdx = pbr.baseColorTexture.index;
-        const textureDef = json.textures[texIdx];
+    if (pbr.baseColorTexture && json.textures && json.images) {
+      const texIdx = pbr.baseColorTexture.index;
+      const textureDef = json.textures[texIdx];
+      if (textureDef) {
         const imageDef = json.images[textureDef.source];
-        const texUrl = folderPath + imageDef.uri;
-        mat.diffuseMap = Texture.fromImage(await AssetManager.loadImage(texUrl));
+        if (imageDef && imageDef.uri) {
+          const texUrl = folderPath + imageDef.uri;
+          mat.diffuseMap = Texture.fromImage(await AssetManager.loadImage(texUrl));
+        }
+      }
     }
 
     mat.metallic = pbr.metallicFactor !== undefined ? pbr.metallicFactor : 0.0;

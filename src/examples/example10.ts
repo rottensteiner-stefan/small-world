@@ -42,7 +42,12 @@ export class Example10 extends AbstractExample {
     this.onCanvasRecreated();
 
     const aspect = window.innerWidth / window.innerHeight;
-    this.camera.projection = new PerspectiveProjection({ fov: MathUtils.degToRad(75), aspect, near: 0.1, far: 1000 });
+    this.camera.projection = new PerspectiveProjection({
+      fov: MathUtils.degToRad(75),
+      aspect,
+      near: 0.1,
+      far: 1000,
+    });
     this.camera.updateProjectionMatrix();
     this.camera.setStrategy(CameraStrategyType.FPS);
     this.camera.position.set(0, this._eyeHeight + 4, 12);
@@ -53,13 +58,28 @@ export class Example10 extends AbstractExample {
     this.scene.add(sun);
 
     // Textures
-    const sandTexture = await Texture.fromUrl("/resources/examples/10/sand.png", { anisotropy: 16, generateMipmaps: true, flipY: true });
-    sandTexture.repeat.x = 20; sandTexture.repeat.y = 20;
+    const sandTexture = await Texture.fromUrl("/resources/examples/10/sand.png", {
+      anisotropy: 16,
+      generateMipmaps: true,
+      flipY: true,
+    });
+    sandTexture.repeat.x = 20;
+    sandTexture.repeat.y = 20;
 
-    const rockTexture = await Texture.fromUrl("/resources/examples/10/rock.png", { anisotropy: 16, generateMipmaps: true, flipY: true });
-    if (rockTexture) { rockTexture.repeat.x = 0.5; rockTexture.repeat.y = 0.5; }
+    const rockTexture = await Texture.fromUrl("/resources/examples/10/rock.png", {
+      anisotropy: 16,
+      generateMipmaps: true,
+      flipY: true,
+    });
+    if (rockTexture) {
+      rockTexture.repeat.x = 0.5;
+      rockTexture.repeat.y = 0.5;
+    }
 
-    this._lavaTexture = await Texture.fromUrl("/resources/examples/10/lava.png", { generateMipmaps: true, flipY: true });
+    this._lavaTexture = await Texture.fromUrl("/resources/examples/10/lava.png", {
+      generateMipmaps: true,
+      flipY: true,
+    });
 
     const floor = new Object3D("Floor");
     floor.geometry = new Plane({ width: 100, depth: 100 }).getGeometryData();
@@ -82,9 +102,14 @@ export class Example10 extends AbstractExample {
 
       // 1. Bowl Structure
       const bowl = new Object3D("BowlStructure");
-      bowl.geometry = new Tube({ radius: 2.5, innerRadius: 1.8, height: 1.5, radialSegments: 32 }).getGeometryData();
+      bowl.geometry = new Tube({
+        radius: 2.5,
+        innerRadius: 1.8,
+        height: 1.5,
+        radialSegments: 32,
+      }).getGeometryData();
       bowl.material = rockMaterial;
-      bowl.position.y = 0.75; 
+      bowl.position.y = 0.75;
       container.add(bowl);
 
       // 2. Bowl Bottom (Solid floor inside)
@@ -97,7 +122,7 @@ export class Example10 extends AbstractExample {
       // 3. Lava Surface (Smaller Plane 3.5 to stay inside)
       const lava = new Object3D("Lava");
       // Still relatively high poly to show off vertex displacement!
-      const plane = new Plane({ width: 3.5, depth: 3.5, widthSegments: 32, depthSegments: 32 }); 
+      const plane = new Plane({ width: 3.5, depth: 3.5, widthSegments: 32, depthSegments: 32 });
       lava.geometry = plane.getGeometryData();
 
       const lavaMaterial = new LavaMaterial({
@@ -105,14 +130,14 @@ export class Example10 extends AbstractExample {
         crustColor: new Color(0.1, 0.05, 0.05), // Dark cooled rock
         noiseMap: this._lavaTexture,
         flowSpeed: 0.3,
-        noiseScale: 2.0
+        noiseScale: 2.0,
       });
       lavaMaterial.cullMode = CullMode.NONE;
-      
+
       this._lavaMaterials.push(lavaMaterial);
 
       lava.material = lavaMaterial;
-      lava.position.set(0, 1.3, 0); 
+      lava.position.set(0, 1.3, 0);
       container.add(lava);
 
       const light = new PointLight({ color: new Color(1, 0.5, 0.2), intensity: 4.0, distance: 20 });
@@ -145,7 +170,7 @@ export class Example10 extends AbstractExample {
 
     for (let l = 0; l < this._lavaLights.length; l++) {
       const light = this._lavaLights[l]!;
-      const pulse = (Math.sin(this._time * this._lightPulseSpeed + l) * 0.5 + 0.5);
+      const pulse = Math.sin(this._time * this._lightPulseSpeed + l) * 0.5 + 0.5;
       light.intensity = 3.0 + pulse * 4.0;
       light.color.g = 0.4 + pulse * 0.3;
     }

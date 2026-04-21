@@ -42,20 +42,26 @@ export class BoundingBox implements BoundingVolume {
    * Creates a BoundingBox that encapsulates all provided vertices.
    */
   public static fromVertices(v: Float32Array): BoundingBox {
-    let minX = Infinity; let minY = Infinity; let minZ = Infinity;
-    let maxX = -Infinity; let maxY = -Infinity; let maxZ = -Infinity;
+    let minX = Infinity;
+    let minY = Infinity;
+    let minZ = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    let maxZ = -Infinity;
 
     for (let i = 0; i < v.length; i += 3) {
-      const x = v[i]!; const y = v[i+1]!; const z = v[i+2]!;
-      if (x < minX) minX = x; if (x > maxX) maxX = x;
-      if (y < minY) minY = y; if (y > maxY) maxY = y;
-      if (z < minZ) minZ = z; if (z > maxZ) maxZ = z;
+      const x = v[i]!;
+      const y = v[i + 1]!;
+      const z = v[i + 2]!;
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+      if (z < minZ) minZ = z;
+      if (z > maxZ) maxZ = z;
     }
 
-    return new BoundingBox(
-        new Vector3D(minX, minY, minZ),
-        new Vector3D(maxX, maxY, maxZ)
-    );
+    return new BoundingBox(new Vector3D(minX, minY, minZ), new Vector3D(maxX, maxY, maxZ));
   }
 
   /**

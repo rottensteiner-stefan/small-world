@@ -1,9 +1,6 @@
 /// src/core/Camera.ts
 
-import {
-  AbstractProjection,
-  MathPool,
-} from "../math/index.js";
+import { AbstractProjection, MathPool } from "../math/index.js";
 import { CameraEffectFactory, CameraStrategyFactory } from "./cameras/index.js";
 import { CameraEffectType, CameraStrategyType } from "../enums/index.js";
 import {
@@ -121,11 +118,7 @@ export class Camera implements CameraInterfaceData {
     if (0.0001 < Math.abs(dy)) {
       const t: number = -pNear.y / dy;
       // Linear interpolation between pNear and pFar at Y=0
-      result.set(
-        pNear.x + (pFar.x - pNear.x) * t,
-        0,
-        pNear.z + (pFar.z - pNear.z) * t
-      );
+      result.set(pNear.x + (pFar.x - pNear.x) * t, 0, pNear.z + (pFar.z - pNear.z) * t);
     } else {
       result.copyFrom(pNear);
       result.y = 0;
@@ -134,7 +127,7 @@ export class Camera implements CameraInterfaceData {
     MathPool.releaseMatrix(invVP);
     MathPool.releaseVector(pNear);
     MathPool.releaseVector(pFar);
-    
+
     return result;
   }
 

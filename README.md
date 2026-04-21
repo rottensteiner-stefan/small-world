@@ -54,10 +54,10 @@ class MyGame extends Application {
   protected async setupScene(): Promise<void> {
     // 1. Create a PBR geometry and material
     const geometry = new Cube({ size: 2 }).getGeometryData();
-    const material = new StandardMaterial({ 
-        color: Color.DODGERBLUE,
-        metallic: 0.7,
-        roughness: 0.2 
+    const material = new StandardMaterial({
+      color: Color.DODGERBLUE,
+      metallic: 0.7,
+      roughness: 0.2,
     });
 
     // 2. Wrap in an Object3D and add to scene
@@ -71,7 +71,7 @@ class MyGame extends Application {
     // 3. Configure the camera and modular controllers
     this.camera.position.set(5, 5, 5);
     this.camera.target.set(0, 0, 0);
-    
+
     // Add a standalone zoom controller
     this.controllers.push(new ZoomController(this.camera));
   }

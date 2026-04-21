@@ -1,13 +1,7 @@
 /// src/renderers/WebGL2Renderer.ts
 
 import { AbstractWebGLRenderer } from "./AbstractWebGLRenderer.js";
-import {
-  CubeTexture,
-  
-  ShaderRegistry,
-  
-  Texture,
-} from "../core/index.js";
+import { CubeTexture, ShaderRegistry, Texture } from "../core/index.js";
 import { EngineConfig, GeometryDataInterface, LightDataInterface } from "../interfaces/index.js";
 import {
   CullMode,
@@ -94,14 +88,30 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         uniforms.set(name, this.gl.getUniformLocation(prog, name) ?? undefined);
       });
 
-      ["u_model", "u_color", "u_specColor", "u_shininess", "u_thresholds", "u_time", "u_flowSpeed", "u_noiseScale"].forEach((name) => {
+      [
+        "u_model",
+        "u_color",
+        "u_specColor",
+        "u_shininess",
+        "u_thresholds",
+        "u_time",
+        "u_flowSpeed",
+        "u_noiseScale",
+      ].forEach((name) => {
         uniforms.set(name, this.gl.getUniformLocation(prog, name) ?? undefined);
       });
 
       [
-        "u_diffuseMap", "u_normalMap", "u_specularMap", "u_skybox",
-        "u_sandMap", "u_grassMap", "u_rockMap", "u_snowMap",
-        "u_texOffset", "u_texRepeat"
+        "u_diffuseMap",
+        "u_normalMap",
+        "u_specularMap",
+        "u_skybox",
+        "u_sandMap",
+        "u_grassMap",
+        "u_rockMap",
+        "u_snowMap",
+        "u_texOffset",
+        "u_texRepeat",
       ].forEach((name) => {
         uniforms.set(name, this.gl.getUniformLocation(prog, name) ?? undefined);
       });
@@ -119,24 +129,46 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       glTex = this.gl.createTexture()!;
       this.gl.bindTexture(this.gl.TEXTURE_2D, glTex);
       this.gl.texImage2D(
-        this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, tex.image,
+        this.gl.TEXTURE_2D,
+        0,
+        this.gl.RGBA,
+        this.gl.RGBA,
+        this.gl.UNSIGNED_BYTE,
+        tex.image,
       );
 
       const useMipmaps = this._quality.mipmapping && tex.generateMipmaps;
       if (useMipmaps) this.gl.generateMipmap(this.gl.TEXTURE_2D);
 
-      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, TextureFilter.NEAREST === tex.magFilter ? this.gl.NEAREST : this.gl.LINEAR);
-      
+      this.gl.texParameteri(
+        this.gl.TEXTURE_2D,
+        this.gl.TEXTURE_MAG_FILTER,
+        TextureFilter.NEAREST === tex.magFilter ? this.gl.NEAREST : this.gl.LINEAR,
+      );
+
       let minFilter: number = this.gl.LINEAR;
       if (useMipmaps) {
-        minFilter = TextureFilter.NEAREST === tex.minFilter ? this.gl.NEAREST_MIPMAP_LINEAR : this.gl.LINEAR_MIPMAP_LINEAR;
+        minFilter =
+          TextureFilter.NEAREST === tex.minFilter
+            ? this.gl.NEAREST_MIPMAP_LINEAR
+            : this.gl.LINEAR_MIPMAP_LINEAR;
       } else {
         if (TextureFilter.NEAREST === tex.minFilter) minFilter = this.gl.NEAREST;
       }
       this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, minFilter);
 
-      const wrapS = TextureWrap.REPEAT === tex.addressModeU ? this.gl.REPEAT : TextureWrap.MIRRORED_REPEAT === tex.addressModeU ? this.gl.MIRRORED_REPEAT : this.gl.CLAMP_TO_EDGE;
-      const wrapT = TextureWrap.REPEAT === tex.addressModeV ? this.gl.REPEAT : TextureWrap.MIRRORED_REPEAT === tex.addressModeV ? this.gl.MIRRORED_REPEAT : this.gl.CLAMP_TO_EDGE;
+      const wrapS =
+        TextureWrap.REPEAT === tex.addressModeU
+          ? this.gl.REPEAT
+          : TextureWrap.MIRRORED_REPEAT === tex.addressModeU
+            ? this.gl.MIRRORED_REPEAT
+            : this.gl.CLAMP_TO_EDGE;
+      const wrapT =
+        TextureWrap.REPEAT === tex.addressModeV
+          ? this.gl.REPEAT
+          : TextureWrap.MIRRORED_REPEAT === tex.addressModeV
+            ? this.gl.MIRRORED_REPEAT
+            : this.gl.CLAMP_TO_EDGE;
       this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, wrapS);
       this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, wrapT);
 
@@ -152,12 +184,27 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       glTex = this.gl.createTexture()!;
       this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, glTex);
       for (let i: number = 0; i < 6; i++) {
-        this.gl.texImage2D(this.gl.TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, tex.images[i] as ImageBitmap);
+        this.gl.texImage2D(
+          this.gl.TEXTURE_CUBE_MAP_POSITIVE_X + i,
+          0,
+          this.gl.RGBA,
+          this.gl.RGBA,
+          this.gl.UNSIGNED_BYTE,
+          tex.images[i] as ImageBitmap,
+        );
       }
       this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
       this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR);
-      this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
-      this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
+      this.gl.texParameteri(
+        this.gl.TEXTURE_CUBE_MAP,
+        this.gl.TEXTURE_WRAP_S,
+        this.gl.CLAMP_TO_EDGE,
+      );
+      this.gl.texParameteri(
+        this.gl.TEXTURE_CUBE_MAP,
+        this.gl.TEXTURE_WRAP_T,
+        this.gl.CLAMP_TO_EDGE,
+      );
       this._texCubeCache.set(tex, glTex);
     }
     return glTex;
@@ -192,7 +239,11 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
   /**
    * Renders a group of objects sharing the same shader.
    */
-  private _renderGroup(shaderId: string, materialGroups: Map<string, Object3D[]>, vp: Float32Array): void {
+  private _renderGroup(
+    shaderId: string,
+    materialGroups: Map<string, Object3D[]>,
+    vp: Float32Array,
+  ): void {
     const cache = this._getProgram(shaderId);
     this.gl.useProgram(cache.prog);
 
@@ -236,22 +287,36 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       if (shaderId === MaterialType.SKYBOX) {
         this.gl.activeTexture(this.gl.TEXTURE0);
         const skyTex = texs["u_skybox"] as CubeTexture;
-        this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, skyTex ? this._getWebGLCubeTexture(skyTex) : this.defaultCubeTexture);
+        this.gl.bindTexture(
+          this.gl.TEXTURE_CUBE_MAP,
+          skyTex ? this._getWebGLCubeTexture(skyTex) : this.defaultCubeTexture,
+        );
         const uSkybox = u.get("u_skybox");
         if (uSkybox) this.gl.uniform1i(uSkybox, 0);
       } else {
         const samplerUnits: Record<string, number> = {
-          "u_diffuseMap": 0, "u_normalMap": 1, "u_specularMap": 2,
-          "u_sandMap": 3, "u_grassMap": 4, "u_rockMap": 5, "u_snowMap": 6
+          u_diffuseMap: 0,
+          u_normalMap: 1,
+          u_specularMap: 2,
+          u_sandMap: 3,
+          u_grassMap: 4,
+          u_rockMap: 5,
+          u_snowMap: 6,
         };
-        for(const [uniformName, unit] of Object.entries(samplerUnits)) {
+        for (const [uniformName, unit] of Object.entries(samplerUnits)) {
           const loc = u.get(uniformName);
-          if(loc) {
+          if (loc) {
             this.gl.activeTexture(this.gl.TEXTURE0 + unit);
             const t = texs[uniformName] as Texture;
-            if(uniformName === "u_normalMap" && !t) this.gl.bindTexture(this.gl.TEXTURE_2D, this.defaultNormalMap);
-            else if (uniformName === "u_specularMap" && !t) this.gl.bindTexture(this.gl.TEXTURE_2D, this.defaultSpecularMap);
-            else this.gl.bindTexture(this.gl.TEXTURE_2D, t ? this._getWebGLTexture(t) : this.defaultTexture);
+            if (uniformName === "u_normalMap" && !t)
+              this.gl.bindTexture(this.gl.TEXTURE_2D, this.defaultNormalMap);
+            else if (uniformName === "u_specularMap" && !t)
+              this.gl.bindTexture(this.gl.TEXTURE_2D, this.defaultSpecularMap);
+            else
+              this.gl.bindTexture(
+                this.gl.TEXTURE_2D,
+                t ? this._getWebGLTexture(t) : this.defaultTexture,
+              );
             this.gl.uniform1i(loc, unit);
           }
         }
@@ -264,12 +329,30 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         // Model Matrix & Billboarding
         this._scratchModelMatrix.set(o.worldMatrix.data);
         if (state?.isSprite) {
-          const sx = Math.sqrt(this._scratchModelMatrix[0]! ** 2 + this._scratchModelMatrix[1]! ** 2 + this._scratchModelMatrix[2]! ** 2);
-          const sy = Math.sqrt(this._scratchModelMatrix[4]! ** 2 + this._scratchModelMatrix[5]! ** 2 + this._scratchModelMatrix[6]! ** 2);
-          const sz = Math.sqrt(this._scratchModelMatrix[8]! ** 2 + this._scratchModelMatrix[9]! ** 2 + this._scratchModelMatrix[10]! ** 2);
-          this._scratchModelMatrix[0] = vp[0]! * sx; this._scratchModelMatrix[1] = vp[4]! * sx; this._scratchModelMatrix[2] = vp[8]! * sx;
-          this._scratchModelMatrix[4] = vp[1]! * sy; this._scratchModelMatrix[5] = vp[5]! * sy; this._scratchModelMatrix[6] = vp[9]! * sy;
-          this._scratchModelMatrix[8] = vp[2]! * sz; this._scratchModelMatrix[9] = vp[6]! * sz; this._scratchModelMatrix[10] = vp[10]! * sz;
+          const sx = Math.sqrt(
+            this._scratchModelMatrix[0]! ** 2 +
+              this._scratchModelMatrix[1]! ** 2 +
+              this._scratchModelMatrix[2]! ** 2,
+          );
+          const sy = Math.sqrt(
+            this._scratchModelMatrix[4]! ** 2 +
+              this._scratchModelMatrix[5]! ** 2 +
+              this._scratchModelMatrix[6]! ** 2,
+          );
+          const sz = Math.sqrt(
+            this._scratchModelMatrix[8]! ** 2 +
+              this._scratchModelMatrix[9]! ** 2 +
+              this._scratchModelMatrix[10]! ** 2,
+          );
+          this._scratchModelMatrix[0] = vp[0]! * sx;
+          this._scratchModelMatrix[1] = vp[4]! * sx;
+          this._scratchModelMatrix[2] = vp[8]! * sx;
+          this._scratchModelMatrix[4] = vp[1]! * sy;
+          this._scratchModelMatrix[5] = vp[5]! * sy;
+          this._scratchModelMatrix[6] = vp[9]! * sy;
+          this._scratchModelMatrix[8] = vp[2]! * sz;
+          this._scratchModelMatrix[9] = vp[6]! * sz;
+          this._scratchModelMatrix[10] = vp[10]! * sz;
         }
         const uModel = u.get("u_model");
         if (uModel) this.gl.uniformMatrix4fv(uModel, false, this._scratchModelMatrix);
@@ -301,11 +384,19 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     const ubo = this._globalUBO;
     ubo.setMatrix(0, vp);
     ubo.setVector3(64, camPos);
-    
+
     // Scale colors by intensity
-    const aScaled = new Vector3D(lights.aCol.r * lights.aIntensity, lights.aCol.g * lights.aIntensity, lights.aCol.b * lights.aIntensity);
-    const dScaled = new Vector3D(lights.dCol.r * lights.dIntensity, lights.dCol.g * lights.dIntensity, lights.dCol.b * lights.dIntensity);
-    
+    const aScaled = new Vector3D(
+      lights.aCol.r * lights.aIntensity,
+      lights.aCol.g * lights.aIntensity,
+      lights.aCol.b * lights.aIntensity,
+    );
+    const dScaled = new Vector3D(
+      lights.dCol.r * lights.dIntensity,
+      lights.dCol.g * lights.dIntensity,
+      lights.dCol.b * lights.dIntensity,
+    );
+
     ubo.setVector3(80, aScaled);
     ubo.setVector3(96, dScaled);
     ubo.setVector3(112, lights.dDir);
@@ -317,8 +408,22 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       const offset = 144 + i * 32;
       if (i < lights.pLights.length) {
         const pl = lights.pLights[i]!;
-        ubo.setVector3(offset, new Vector3D(pl.worldMatrix.data[12]!, pl.worldMatrix.data[13]!, pl.worldMatrix.data[14]!));
-        ubo.setVector3(offset + 16, new Vector3D(pl.color.r * pl.intensity, pl.color.g * pl.intensity, pl.color.b * pl.intensity));
+        ubo.setVector3(
+          offset,
+          new Vector3D(
+            pl.worldMatrix.data[12]!,
+            pl.worldMatrix.data[13]!,
+            pl.worldMatrix.data[14]!,
+          ),
+        );
+        ubo.setVector3(
+          offset + 16,
+          new Vector3D(
+            pl.color.r * pl.intensity,
+            pl.color.g * pl.intensity,
+            pl.color.b * pl.intensity,
+          ),
+        );
       }
     }
 
@@ -327,9 +432,23 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       if (i < lights.sLights.length) {
         const sl = lights.sLights[i]!;
         const dir = MathPool.acquireVector().copyFrom(sl.direction).normalize();
-        ubo.setVector3(offset, new Vector3D(sl.worldMatrix.data[12]!, sl.worldMatrix.data[13]!, sl.worldMatrix.data[14]!));
+        ubo.setVector3(
+          offset,
+          new Vector3D(
+            sl.worldMatrix.data[12]!,
+            sl.worldMatrix.data[13]!,
+            sl.worldMatrix.data[14]!,
+          ),
+        );
         ubo.setVector3(offset + 16, dir);
-        ubo.setVector3(offset + 32, new Vector3D(sl.color.r * sl.intensity, sl.color.g * sl.intensity, sl.color.b * sl.intensity));
+        ubo.setVector3(
+          offset + 32,
+          new Vector3D(
+            sl.color.r * sl.intensity,
+            sl.color.g * sl.intensity,
+            sl.color.b * sl.intensity,
+          ),
+        );
         ubo.setFloat(offset + 48, Math.cos(sl.angle));
         ubo.setFloat(offset + 52, Math.cos(sl.angle * (1.0 - sl.penumbra)));
         ubo.setFloat(offset + 56, sl.distance);
@@ -344,7 +463,14 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         const al = lights.aLights[i]!;
         const mat = al.worldMatrix.data;
         ubo.setVector3(offset, new Vector3D(mat[12]!, mat[13]!, mat[14]!));
-        ubo.setVector3(offset + 16, new Vector3D(al.color.r * al.intensity, al.color.g * al.intensity, al.color.b * al.intensity));
+        ubo.setVector3(
+          offset + 16,
+          new Vector3D(
+            al.color.r * al.intensity,
+            al.color.g * al.intensity,
+            al.color.b * al.intensity,
+          ),
+        );
         ubo.setVector3(offset + 32, new Vector3D(mat[0]!, mat[1]!, mat[2]!));
         ubo.setVector3(offset + 48, new Vector3D(mat[4]!, mat[5]!, mat[6]!));
         ubo.setVector3(offset + 64, new Vector3D(mat[8]!, mat[9]!, mat[10]!));
