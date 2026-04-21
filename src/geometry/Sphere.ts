@@ -56,14 +56,14 @@ export class Sphere extends AbstractGeometry {
       for (let x: number = 0; x <= this.widthSegments; x++) {
         const uRatio: number = x / this.widthSegments;
         // Exact 0 at start, and exact TWO_PI at end to avoid precision issues
-        const theta: number = x === this.widthSegments ? 0 : uRatio * MathUtils.TWO_PI;
+        const theta: number = this.widthSegments === x ? 0 : uRatio * MathUtils.TWO_PI;
 
         let px: number, py: number, pz: number;
         if (0 === y) {
           px = 0;
           py = this.radius;
           pz = 0;
-        } else if (y === this.heightSegments) {
+        } else if (this.heightSegments === y) {
           px = 0;
           py = -this.radius;
           pz = 0;

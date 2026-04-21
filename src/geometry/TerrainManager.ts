@@ -114,7 +114,7 @@ export class TerrainManager {
     const newGridX: number = Math.floor(focusPoint.x / this._chunkSize);
     const newGridZ: number = Math.floor(focusPoint.z / this._chunkSize);
 
-    if (newGridX !== this._currentGridX || newGridZ !== this._currentGridZ) {
+    if (this._currentGridX !== newGridX || this._currentGridZ !== newGridZ) {
       this._currentGridX = newGridX;
       this._currentGridZ = newGridZ;
       await this._rebuildGrid();

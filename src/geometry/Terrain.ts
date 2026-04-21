@@ -123,7 +123,7 @@ export class Terrain extends AbstractGeometry {
     this.meshWidthSegments = meshWidthSegments;
     this.meshDepthSegments = meshDepthSegments;
 
-    if (heightData.length !== heightmapResolution * heightmapResolution) {
+    if (heightmapResolution * heightmapResolution !== heightData.length) {
       console.warn(
         `[Terrain] Heightmap data length (${heightData.length}) does not match resolution (${heightmapResolution}x${heightmapResolution}).`,
       );
