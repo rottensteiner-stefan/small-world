@@ -1,6 +1,5 @@
 import { AbstractMaterial } from './AbstractMaterial.js';
 import { Color } from '../colors/index.js';
-import { MaterialType } from '../../enums/index.js';
 import { Texture } from '../textures/index.js';
 import { RenderManifest } from '../renderers/shaders/RenderManifest.js';
 import { ShaderDefinition } from '../renderers/shaders/ShaderDefinition.js';
@@ -24,8 +23,6 @@ export interface LavaMaterialOptions {
  * Requires a noise map to generate the flowing crust effect on the GPU.
  */
 export declare class LavaMaterial extends AbstractMaterial {
-    /** @inheritdoc */
-    readonly type: MaterialType;
     /** The color of the cooled crust. */
     crustColor: Color;
     /** The speed of the lava flow. */

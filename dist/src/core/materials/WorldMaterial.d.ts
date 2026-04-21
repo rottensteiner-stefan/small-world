@@ -1,5 +1,4 @@
 import { AbstractMaterial } from './AbstractMaterial.js';
-import { MaterialType } from '../../enums/index.js';
 import { Color } from '../../core/index.js';
 import { Texture } from '../textures/index.js';
 import { RenderManifest } from '../renderers/shaders/RenderManifest.js';
@@ -13,8 +12,6 @@ export type WorldMaterialOptions = {
  * Ideal for terrain, rocks, walls, and architectural structures.
  */
 export declare class WorldMaterial extends AbstractMaterial {
-    /** @inheritdoc */
-    readonly type: MaterialType;
     /** The diffuse texture map. */
     diffuseMap: Texture | undefined;
     constructor(options?: WorldMaterialOptions);
