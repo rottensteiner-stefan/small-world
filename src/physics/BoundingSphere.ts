@@ -1,7 +1,7 @@
 /// src/physics/BoundingSphere.ts
 
 import { BoundingVolume, FrustumInterface } from "../interfaces/index.js";
-import { Vector3D } from "../math/index.js";
+import { Vector3D, Matrix4 } from "../math/index.js";
 import { BoundingType } from "../enums/index.js";
 import { Collision } from "./Collision.js";
 /**
@@ -45,5 +45,16 @@ export class BoundingSphere implements BoundingVolume {
   /** @inheritdoc */
   public intersectsVolume(other: BoundingVolume): boolean {
     return Collision.test(this, other);
+  }
+
+  /** @inheritdoc */
+  public transform(matrix: Matrix4): void {
+    matrix.transformVector(this.center);
+    // Approximate new radius by taking the max scale
+    const me = matrix.data;
+    const sX = Math.sqrt(me[0]! * me[0]! + me[1]! * me[1]! + me[2]! * me[2]!);
+    const sY = Math.sqrt(me[4]! * me[4]! + me[5]! * me[5]! + me[6]! * me[6]!);
+    const sZ = Math.sqrt(me[8]! * me[8]! + me[9]! * me[9]! + me[10]! * me[10]!);
+    this.radius *= Math.max(sX, sY, sZ);
   }
 }

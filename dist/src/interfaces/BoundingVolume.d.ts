@@ -1,4 +1,4 @@
-import { Vector3D } from '../math/index.js';
+import { Matrix4, Vector3D } from '../math/index.js';
 import { BoundingType } from '../enums/index.js';
 /**
  * Minimal interface for a Frustum to avoid circular dependencies.
@@ -32,4 +32,10 @@ export interface BoundingVolume {
      * @returns True if intersecting.
      */
     intersectsVolume(other: BoundingVolume): boolean;
+    /**
+     * Transforms the bounding volume by a matrix.
+     * Typically used to move local geometry bounds into world space.
+     * @param matrix The transformation matrix.
+     */
+    transform(matrix: Matrix4): void;
 }

@@ -54,6 +54,7 @@ export class FrustumCuller {
       for (let i: number = 0; i < scene.objects.length; i++) {
         count += this._countVisible(scene.objects[i]!);
       }
+
       return count;
     }
 
@@ -61,10 +62,6 @@ export class FrustumCuller {
     let visibleCount: number = 0;
     for (let i: number = 0; i < scene.objects.length; i++) {
       visibleCount += this._checkNode(scene.objects[i]!);
-    }
-
-    if (visibleCount === 0 && scene.objects.length > 0) {
-      console.warn(`[FrustumCuller] Culled ALL ${scene.objects.length} objects! VP Matrix possibly invalid.`);
     }
 
     return visibleCount;

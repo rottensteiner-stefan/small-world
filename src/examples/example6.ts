@@ -26,7 +26,7 @@ import {
 import { AbstractExample } from "../core/example/AbstractExample.js";
 
 /**
- * Example 6: Advanced Geometries & Camera Collision.
+ * Example 6: Geometry Showcase.
  */
 export class Example6 extends AbstractExample {
   private _moveSpeed: number = 10.0;
@@ -162,13 +162,13 @@ export class Example6 extends AbstractExample {
       0,
     );
 
-    // IMPORTANT: Update all world matrices BEFORE computing bounds 
+    // IMPORTANT: Update all world matrices BEFORE computing bounds
     // and building the octree, otherwise bounds will be at (0,0,0).
-    this.scene.update(); 
-    
+    this.scene.update();
+
     // Now compute bounds for all static objects
-    for(const obj of this.scene.objects) {
-        if(obj.isStatic) obj.computeBounds();
+    for (const obj of this.scene.objects) {
+      if (obj.isStatic) obj.computeBounds();
     }
 
     this.scene.updateStaticOctree();
@@ -181,8 +181,7 @@ export class Example6 extends AbstractExample {
     const base = super.getDebugInfo();
     return {
       ...base,
-      Example: "06 - Geometry & Collision",
-      Collision: "Enabled",
+      Example: "06 - Geometry Showcase",
     };
   }
 }

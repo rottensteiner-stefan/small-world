@@ -1,6 +1,6 @@
 import { AbstractExample } from '../core/example/AbstractExample.js';
 /**
- * Example 6: Advanced Geometries & Camera Collision.
+ * Example 6: Geometry Showcase.
  */
 export declare class Example6 extends AbstractExample {
     private _moveSpeed;

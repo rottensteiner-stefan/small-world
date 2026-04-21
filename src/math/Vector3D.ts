@@ -203,6 +203,30 @@ export class Vector3D implements Vector {
   }
 
   /**
+   * Sets this vector's components to the minimum of its own and the given vector's.
+   * @param v The other vector.
+   * @returns this
+   */
+  public min(v: Vector3D): this {
+    this.x = Math.min(this.x, v.x);
+    this.y = Math.min(this.y, v.y);
+    this.z = Math.min(this.z, v.z);
+    return this;
+  }
+
+  /**
+   * Sets this vector's components to the maximum of its own and the given vector's.
+   * @param v The other vector.
+   * @returns this
+   */
+  public max(v: Vector3D): this {
+    this.x = Math.max(this.x, v.x);
+    this.y = Math.max(this.y, v.y);
+    this.z = Math.max(this.z, v.z);
+    return this;
+  }
+
+  /**
    * Clones the vector into a new instance.
    * @returns A new Vector3D.
    */
