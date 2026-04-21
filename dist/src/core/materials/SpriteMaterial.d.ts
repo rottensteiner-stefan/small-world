@@ -16,9 +16,9 @@ export declare class SpriteMaterial extends AbstractMaterial {
      * @param options The texture for the sprite or a configuration object.
      */
     constructor(options?: Texture | {
-        texture?: Texture;
-        color?: Color;
-        transparent?: boolean;
+        texture?: Texture | undefined;
+        color?: Color | undefined;
+        transparent?: boolean | undefined;
     });
     /** @inheritdoc */
     getRenderManifest(): RenderManifest;

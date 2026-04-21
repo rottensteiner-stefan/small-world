@@ -50,6 +50,7 @@ export default defineConfig({
         example8: resolve(__dirname, "public/examples/example8.html"),
         example9: resolve(__dirname, "public/examples/example9.html"),
         example10: resolve(__dirname, "public/examples/example10.html"),
+        yad: resolve(__dirname, "public/examples/yad.html"),
       },
       output: {
         entryFileNames: () => {

@@ -127,6 +127,11 @@ ESLint Sync: These rules are synchronized with the linter configuration (eslint.
 - **No Magic Strings:** Avoid using hardcoded strings for configuration, state, or identifiers (e.g., `"alpha"`, `"back"`). Instead, use `Enums` or `Const Objects` (e.g., `BlendingMode.ALPHA`, `CullMode.BACK`) to ensure type safety and maintainability.
 - **Comments:** All code comments must be written in English. If you find comments in a language other than English, translate them.
 - **Yoda:** Use Yoda-style value comparisons.
+- **Early Returns & Guard Clauses**: Prioritize "Early Returns" to enhance readability, reduce cognitive load, and avoid deeply nested logic.
+  - **Guard Clauses First:** Validate inputs, permissions, and preconditions at the very beginning of the function.
+  - **No 'else' after Return:** Do not use `else` or `else if` blocks if the preceding `if` block ends with a `return`, `throw`, or `break`.
+  - **Minimize Nesting:** Keep the nesting level as shallow as possible. Avoid nesting `if` statements more than 2 levels deep.
+  - **The Happy Path:** The primary successful execution logic (the "Happy Path") should remain non-indented at the end of the function.
 
 ### 4. Asynchronicity
 

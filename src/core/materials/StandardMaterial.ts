@@ -130,7 +130,7 @@ export class StandardMaterial extends AbstractMaterial {
           vs: "[BASE_VS]",
           fs: fragGLSL100,
         },
-        wgsl: `[WGSL_STRUCTS]\n[WGSL_VS]\n${fragWGSL}`,
+        wgsl: `[WGSL_STRUCTS]\n[WGSL_PBR_MATH]\n[WGSL_VS]\n${fragWGSL}`,
       },
       layout: {
         uniforms: {

@@ -23,7 +23,15 @@ export class SpriteMaterial extends AbstractMaterial {
    * Creates a new SpriteMaterial.
    * @param options The texture for the sprite or a configuration object.
    */
-  constructor(options?: Texture | { texture?: Texture; color?: Color; transparent?: boolean }) {
+  constructor(
+    options?:
+      | Texture
+      | {
+          texture?: Texture | undefined;
+          color?: Color | undefined;
+          transparent?: boolean | undefined;
+        },
+  ) {
     super(MaterialType.SPRITE);
     if (options instanceof Texture) {
       this.texture = options;
