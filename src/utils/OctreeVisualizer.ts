@@ -1,7 +1,7 @@
 import { Color, Object3D, Scene, WireframeMaterial } from "../core/index.js";
 import { Cube } from "../geometry/Cube.js";
 import { OctreeNode } from "../core/Octree.js";
-import { BoundingBox } from "../physics/index.js";
+import { BoundingBox } from "../physix/index.js";
 
 /**
  * Utility to visualize the Octree structure in the scene.

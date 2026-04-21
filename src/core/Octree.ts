@@ -1,6 +1,6 @@
 /// src/core/Octree.ts
 
-import { BoundingBox, Collision } from "../physics/index.js";
+import { BoundingBox, Collision } from "../physix/index.js";
 import { Object3D } from "./Object3D.js";
 import { Frustum } from "../math/Frustum.js";
 import { MathPool, Vector3D } from "../math/index.js";
@@ -50,11 +50,11 @@ export class OctreeNode {
    * Inserts an object into the octree.
    */
   public insert(obj: Object3D): boolean {
-    if (!obj.bounds) {
+    if (undefined === obj.bounds) {
       return false;
     }
 
-    if (!Collision.test(obj.bounds, this.bounds)) {
+    if (false === this.bounds.containsVolume(obj.bounds)) {
       return false;
     }
 
@@ -115,7 +115,17 @@ export class OctreeNode {
     const oldObjects: Object3D[] = this.objects;
     this.objects = [];
     for (let i: number = 0; i < oldObjects.length; i++) {
-      this.insert(oldObjects[i]!);
+      const obj: Object3D = oldObjects[i]!;
+      let insertedInChild: boolean = false;
+      for (let j: number = 0; j < this.children.length; j++) {
+        if (this.children[j]!.insert(obj)) {
+          insertedInChild = true;
+          break;
+        }
+      }
+      if (false === insertedInChild) {
+        this.objects.push(obj);
+      }
     }
   }
 
@@ -171,8 +181,8 @@ export class Octree {
     this.root = new OctreeNode(bounds, 0, options);
   }
 
-  public insert(obj: Object3D): void {
-    this.root.insert(obj);
+  public insert(obj: Object3D): boolean {
+    return this.root.insert(obj);
   }
 
   public query(frustum: Frustum, intersectedNodes?: Set<OctreeNode>): Object3D[] {

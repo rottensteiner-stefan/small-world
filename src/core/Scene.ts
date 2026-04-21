@@ -2,7 +2,8 @@
 
 import { Object3D } from "./Object3D.js";
 import { Octree } from "./Octree.js";
-import { BoundingBox } from "../physics/BoundingBox.js";
+import { BoundingBox } from "../physix/BoundingBox.js";
+import { BoundingType } from "../enums/index.js";
 
 /**
  * A scene that holds a collection of 3D objects.
@@ -43,7 +44,9 @@ export class Scene {
     for (const obj of this.objects) {
       obj.updateMatrixWorld(true);
     }
-    if (this.dynamicOctree) this.updateDynamicOctree();
+    if (undefined !== this.dynamicOctree) {
+      this.updateDynamicOctree();
+    }
   }
 
   public updateStaticOctree(): void {
@@ -59,11 +62,31 @@ export class Scene {
   }
 
   private _addObjectToOctree(obj: Object3D, checkStatic: boolean): void {
+    // Skip debug objects to avoid recursion and unnecessary processing
+    if (obj.name.startsWith("debug_")) {
+      return;
+    }
+
     if (obj.isStatic === checkStatic) {
       if (obj.geometry) {
         obj.computeBounds();
         const targetOctree = checkStatic ? this.staticOctree : this.dynamicOctree;
-        targetOctree?.insert(obj);
+        if (!targetOctree?.insert(obj)) {
+          let bStr: string = "null";
+          if (obj.bounds) {
+            if (obj.bounds.type === BoundingType.BOX) {
+              const b = obj.bounds as BoundingBox;
+              bStr = `${b.min.x},${b.min.y},${b.min.z} to ${b.max.x},${b.max.y},${b.max.z}`;
+            } else {
+              bStr = `non-box bounds (${obj.bounds.type})`;
+            }
+          }
+          console.warn(
+            `[Scene] Failed to add ${obj.name} to ${checkStatic ? "static" : "dynamic"} octree. Bounds: ${bStr}`,
+          );
+        } else {
+          // console.log(`[Scene] Added ${obj.name} to ${checkStatic ? "static" : "dynamic"} octree.`);
+        }
       }
     }
     for (const child of obj.children) this._addObjectToOctree(child, checkStatic);

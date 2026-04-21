@@ -4,7 +4,7 @@ import { Color, Object3D, Scene, WireframeMaterial } from "../core/index.js";
 import { Cube } from "../geometry/Cube.js";
 import { Sphere } from "../geometry/Sphere.js";
 import { BoundingType } from "../enums/index.js";
-import { BoundingBox, BoundingSphere } from "../physics/index.js";
+import { BoundingBox, BoundingSphere } from "../physix/index.js";
 
 /**
  * Utility to visualize collision boundaries (AABBs and Spheres) in the scene.

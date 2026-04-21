@@ -5,7 +5,7 @@ import { Object3D } from "../Object3D.js";
 import { Input } from "../Input.js";
 import { Keys } from "../../enums/index.js";
 import { Scene } from "../Scene.js";
-import { BoundingBox, BoundingSphere, Collision } from "../../physics/index.js";
+import { BoundingBox, BoundingSphere, Collision } from "../../physix/index.js";
 import { MathPool } from "../../math/index.js";
 
 /**

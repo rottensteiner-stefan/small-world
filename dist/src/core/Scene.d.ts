@@ -1,6 +1,6 @@
 import { Object3D } from './Object3D.js';
 import { Octree } from './Octree.js';
-import { BoundingBox } from '../physics/BoundingBox.js';
+import { BoundingBox } from '../physix/BoundingBox.js';
 /**
  * A scene that holds a collection of 3D objects.
  */

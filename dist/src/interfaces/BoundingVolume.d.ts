@@ -33,6 +33,12 @@ export interface BoundingVolume {
      */
     intersectsVolume(other: BoundingVolume): boolean;
     /**
+     * Checks if this volume entirely contains another volume.
+     * @param other The other volume to check against.
+     * @returns True if entirely contained.
+     */
+    containsVolume(other: BoundingVolume): boolean;
+    /**
      * Transforms the bounding volume by a matrix.
      * Typically used to move local geometry bounds into world space.
      * @param matrix The transformation matrix.

@@ -1,6 +1,7 @@
 import { BoundingVolume, FrustumInterface } from '../interfaces/index.js';
 import { Vector3D, Matrix4 } from '../math/index.js';
 import { BoundingType } from '../enums/index.js';
+import { BoundingSphere } from './BoundingSphere.js';
 /**
  * Represents an axis-aligned bounding box (AABB).
  */
@@ -37,10 +38,24 @@ export declare class BoundingBox implements BoundingVolume {
      * @returns True if intersecting.
      */
     intersectsBox(other: BoundingBox): boolean;
+    /**
+     * Checks if another box is entirely contained within this one.
+     * @param other The other box.
+     * @returns True if entirely contained.
+     */
+    containsBox(other: BoundingBox): boolean;
+    /**
+     * Checks if a sphere is entirely contained within this box.
+     * @param other The sphere.
+     * @returns True if entirely contained.
+     */
+    containsSphere(other: BoundingSphere): boolean;
     /** @inheritdoc */
     intersectsFrustum(frustum: FrustumInterface): boolean;
     /** @inheritdoc */
     intersectsVolume(other: BoundingVolume): boolean;
+    /** @inheritdoc */
+    containsVolume(other: BoundingVolume): boolean;
     /** @inheritdoc */
     transform(matrix: Matrix4): void;
 }
