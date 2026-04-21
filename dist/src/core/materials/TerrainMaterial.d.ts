@@ -1,5 +1,4 @@
 import { AbstractMaterial } from './AbstractMaterial.js';
-import { MaterialType } from '../../enums/index.js';
 import { Texture } from '../textures/Texture.js';
 import { Color } from '../colors/Color.js';
 import { RenderManifest } from '../renderers/shaders/RenderManifest.js';
@@ -29,8 +28,6 @@ export interface TerrainMaterialOptions {
  * Material specifically for terrain rendering with splatmapping.
  */
 export declare class TerrainMaterial extends AbstractMaterial {
-    /** @inheritdoc */
-    readonly type: MaterialType;
     /** The shininess factor. */
     shininess: number;
     /** Sand biome texture map. */

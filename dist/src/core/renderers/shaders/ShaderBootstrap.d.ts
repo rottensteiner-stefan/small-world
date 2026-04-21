@@ -1,11 +1,11 @@
 /**
  * Modern Bootstrapper for the ShaderRegistry.
- * Instead of hardcoding everything, it uses decentralized registration.
+ * Handles global chunk initialization. Core materials register themselves automatically.
  */
 export declare class ShaderBootstrap {
     private static _isInitialized;
     /**
-     * Initializes the registry by loading standard chunks and registering core material providers.
+     * Initializes the registry by loading standard chunks.
      */
     static init(): Promise<void>;
 }

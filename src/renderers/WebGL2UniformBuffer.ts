@@ -1,68 +1,110 @@
-import { Vector3D } from "../math/index.js";
-import { Color } from "../core/index.js";
+/// src/renderers/WebGL2UniformBuffer.ts
+
+import { Matrix4, Vector3D } from "../math/index.js";
 
 /**
- * Helper to manage WebGL2 Uniform Buffer Objects (UBOs) with std140 layout.
+ * Wrapper for a WebGL2 Uniform Buffer Object (UBO).
  */
 export class WebGL2UniformBuffer {
   private _gl: WebGL2RenderingContext;
-  private _buffer: WebGLBuffer | null;
+  private _buffer: WebGLBuffer;
   private _data: Float32Array;
+  private _uint32Data: Uint32Array;
+  private _int32Data: Int32Array;
   private _bindingPoint: number;
 
-  constructor(gl: WebGL2RenderingContext, sizeInBytes: number, bindingPoint: number) {
+  /**
+   * Creates a new Uniform Buffer Object.
+   * @param gl The WebGL2 context.
+   * @param size The size of the buffer in bytes.
+   * @param bindingPoint The binding point to use (e.g., 0).
+   */
+  constructor(gl: WebGL2RenderingContext, size: number, bindingPoint: number) {
     this._gl = gl;
     this._bindingPoint = bindingPoint;
-    this._data = new Float32Array(sizeInBytes / 4);
-    this._buffer = gl.createBuffer();
-
-    gl.bindBuffer(gl.UNIFORM_BUFFER, this._buffer);
-    gl.bufferData(gl.UNIFORM_BUFFER, this._data, gl.DYNAMIC_DRAW);
-    gl.bindBufferBase(gl.UNIFORM_BUFFER, bindingPoint, this._buffer);
-    gl.bindBuffer(gl.UNIFORM_BUFFER, null);
+    
+    // Create underlying buffer
+    const buffer = new ArrayBuffer(size);
+    this._data = new Float32Array(buffer);
+    this._uint32Data = new Uint32Array(buffer);
+    this._int32Data = new Int32Array(buffer);
+    
+    this._buffer = this._gl.createBuffer()!;
+    this._gl.bindBuffer(this._gl.UNIFORM_BUFFER, this._buffer);
+    this._gl.bufferData(this._gl.UNIFORM_BUFFER, size, this._gl.DYNAMIC_DRAW);
+    this._gl.bindBufferBase(this._gl.UNIFORM_BUFFER, this._bindingPoint, this._buffer);
+    this._gl.bindBuffer(this._gl.UNIFORM_BUFFER, null);
   }
 
-  public setMatrix(offset: number, matrix: Float32Array): void {
-    this._data.set(matrix, offset / 4);
+  /**
+   * Sets a float value in the buffer.
+   * @param offset The byte offset.
+   * @param value The float value.
+   */
+  public setFloat(offset: number, value: number): void {
+    this._data[offset / 4] = value;
   }
 
+  /**
+   * Sets an int value in the buffer.
+   * @param offset The byte offset.
+   * @param value The int value.
+   */
+  public setInt(offset: number, value: number): void {
+    this._int32Data[offset / 4] = value;
+  }
+
+  /**
+   * Sets a vec2 value in the buffer.
+   * @param offset The byte offset.
+   * @param x X component.
+   * @param y Y component.
+   */
+  public setVec2(offset: number, x: number, y: number): void {
+    const idx = offset / 4;
+    this._data[idx] = x;
+    this._data[idx + 1] = y;
+  }
+
+  /**
+   * Sets a vec3 value in the buffer.
+   * @param offset The byte offset.
+   * @param vec The Vector3D value.
+   */
   public setVector3(offset: number, vec: Vector3D): void {
     const idx = offset / 4;
     this._data[idx] = vec.x;
     this._data[idx + 1] = vec.y;
     this._data[idx + 2] = vec.z;
-    // index + 3 is padding in std140 for vec3
   }
 
-  public setColor(offset: number, col: Color): void {
-    const idx = offset / 4;
-    this._data[idx] = col.r;
-    this._data[idx + 1] = col.g;
-    this._data[idx + 2] = col.b;
-    this._data[idx + 3] = col.a;
+  /**
+   * Sets a mat4 value in the buffer.
+   * @param offset The byte offset.
+   * @param matrix The Matrix4 data.
+   */
+  public setMatrix(offset: number, matrix: Float32Array): void {
+    this._data.set(matrix, offset / 4);
   }
 
-  public setFloat(offset: number, val: number): void {
-    this._data[offset / 4] = val;
-  }
-
-  public setInt(offset: number, val: number): void {
-    // In std140, ints are still 4 bytes, so we can use the float array view if we're careful,
-    // or use an Int32Array view of the same buffer.
-    const view = new Int32Array(this._data.buffer);
-    view[offset / 4] = val;
-  }
-
-  public update(): void {
-    this._gl.bindBuffer(this._gl.UNIFORM_BUFFER, this._buffer);
-    this._gl.bufferSubData(this._gl.UNIFORM_BUFFER, 0, this._data);
-    this._gl.bindBuffer(this._gl.UNIFORM_BUFFER, null);
-  }
-
+  /**
+   * Binds the buffer to a specific shader program's uniform block.
+   * @param program The WebGL program.
+   * @param blockName The name of the uniform block.
+   */
   public bindToProgram(program: WebGLProgram, blockName: string): void {
     const blockIndex = this._gl.getUniformBlockIndex(program, blockName);
     if (blockIndex !== 0xffffffff) {
       this._gl.uniformBlockBinding(program, blockIndex, this._bindingPoint);
     }
+  }
+
+  /**
+   * Uploads the local data to the GPU.
+   */
+  public update(): void {
+    this._gl.bindBuffer(this._gl.UNIFORM_BUFFER, this._buffer);
+    this._gl.bufferSubData(this._gl.UNIFORM_BUFFER, 0, this._data);
+    this._gl.bindBuffer(this._gl.UNIFORM_BUFFER, null);
   }
 }

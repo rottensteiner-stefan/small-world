@@ -1,6 +1,5 @@
 import { AbstractMaterial } from './AbstractMaterial.js';
 import { Color } from '../colors/index.js';
-import { MaterialType } from '../../enums/index.js';
 import { Texture } from '../textures/index.js';
 import { RenderManifest } from '../renderers/shaders/RenderManifest.js';
 import { ShaderDefinition } from '../renderers/shaders/ShaderDefinition.js';
@@ -25,8 +24,6 @@ export interface StandardMaterialOptions {
  * A physically based rendering (PBR) material using the Metallic-Roughness workflow.
  */
 export declare class StandardMaterial extends AbstractMaterial {
-    /** @inheritdoc */
-    readonly type: MaterialType;
     /** Metallic factor (0 to 1). */
     metallic: number;
     /** Roughness factor (0 to 1). */

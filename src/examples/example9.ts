@@ -57,7 +57,7 @@ export class Example9 extends AbstractExample {
     this.scene.add(sun);
 
     // 3. Skydome
-    const skyTexture: Texture = await Texture.fromUrl("/resources/models/textures/skydome-1.jpg");
+    const skyTexture: Texture = await Texture.fromUrl("/resources/examples/9/skydome-1.jpg");
 
     const skydome: Skydome = new Skydome({
       texture: skyTexture,

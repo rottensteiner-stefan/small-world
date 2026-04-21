@@ -1,6 +1,5 @@
 import { AbstractMaterial } from './AbstractMaterial.js';
 import { Color } from '../colors/index.js';
-import { MaterialType } from '../../enums/index.js';
 import { Texture } from '../textures/index.js';
 import { RenderManifest } from '../renderers/shaders/RenderManifest.js';
 import { ShaderDefinition } from '../renderers/shaders/ShaderDefinition.js';
@@ -25,8 +24,6 @@ export interface PhongMaterialOptions {
  * Material that implements the Phong reflection model.
  */
 export declare class PhongMaterial extends AbstractMaterial {
-    /** @inheritdoc */
-    readonly type: MaterialType;
     /** The specular reflection color. */
     specularColor: Color;
     /** The shininess factor. */

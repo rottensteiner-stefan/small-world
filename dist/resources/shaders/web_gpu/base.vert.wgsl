@@ -1,12 +1,3 @@
-struct Out {
-    @builtin(position) pos: vec4f,
-    @location(0) wp: vec3f,
-    @location(1) n: vec3f,
-    @location(2) uv: vec2f,
-    @location(3) t: vec3f,
-    @location(4) b: vec3f
-}
-
 @vertex fn vs(
     @location(0) pos: vec3f,
     @location(1) normal: vec3f,
@@ -21,8 +12,6 @@ struct Out {
     o.uv = uv * obj.texRepeat + obj.texOffset;
     
     // Improved Normal Matrix (handling scaling correctly)
-    // For now, we take the top-left 3x3 part of the model matrix.
-    // If there is non-uniform scaling, we'd need the inverse transpose.
     let m33 = mat3x3f(obj.model[0].xyz, obj.model[1].xyz, obj.model[2].xyz);
     
     // Normalize normals after transformation to world space

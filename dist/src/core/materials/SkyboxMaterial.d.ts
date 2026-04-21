@@ -1,6 +1,5 @@
 import { AbstractMaterial } from './AbstractMaterial.js';
 import { CubeTexture } from '../textures/index.js';
-import { MaterialType } from '../../enums/index.js';
 import { Color } from '../colors/Color.js';
 import { RenderManifest } from '../renderers/shaders/RenderManifest.js';
 import { ShaderDefinition } from '../renderers/shaders/ShaderDefinition.js';
@@ -17,8 +16,6 @@ export interface SkyboxMaterialOptions {
  * A material for skyboxes.
  */
 export declare class SkyboxMaterial extends AbstractMaterial {
-    /** @inheritdoc */
-    readonly type: MaterialType;
     /** The cube map texture. */
     cubeMap: CubeTexture | undefined;
     /**

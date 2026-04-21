@@ -7,8 +7,7 @@ import { ShaderDefinition } from '../renderers/shaders/ShaderDefinition.js';
  * Base class for all material types.
  */
 export declare abstract class AbstractMaterial implements ShaderProvider {
-    /** The type of the material. */
-    abstract readonly type: MaterialType;
+    readonly type: MaterialType;
     /** The unique identifier of the material. */
     uuid: string;
     /** The base color of the material. */
@@ -18,7 +17,13 @@ export declare abstract class AbstractMaterial implements ShaderProvider {
     /** Cached render manifest to avoid frequent allocations. */
     protected _renderManifest: RenderManifest | undefined;
     /**
+     * Creates a new material and automatically registers it with the ShaderRegistry.
+     * @param type The type of the material.
+     */
+    protected constructor(type: MaterialType);
+    /**
      * Returns a manifest describing the requirements for rendering this material.
+  ...
      * @returns The render manifest.
      */
     abstract getRenderManifest(): RenderManifest;
