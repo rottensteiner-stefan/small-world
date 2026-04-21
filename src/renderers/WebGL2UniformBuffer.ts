@@ -21,12 +21,12 @@ export class WebGL2UniformBuffer {
   constructor(gl: WebGL2RenderingContext, size: number, bindingPoint: number) {
     this._gl = gl;
     this._bindingPoint = bindingPoint;
-    
+
     // Create underlying buffer
     const buffer = new ArrayBuffer(size);
     this._data = new Float32Array(buffer);
     this._int32Data = new Int32Array(buffer);
-    
+
     this._buffer = this._gl.createBuffer()!;
     this._gl.bindBuffer(this._gl.UNIFORM_BUFFER, this._buffer);
     this._gl.bufferData(this._gl.UNIFORM_BUFFER, size, this._gl.DYNAMIC_DRAW);

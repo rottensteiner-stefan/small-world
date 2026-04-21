@@ -58,20 +58,23 @@ export class Collision {
 
     const dist = Math.sqrt(distSq);
     if (dist < 0.0001) {
-        // Sphere center is exactly on the edge or inside. Push out along the axis of least penetration.
-        const dx1 = s.center.x - b.min.x; const dx2 = b.max.x - s.center.x;
-        const dy1 = s.center.y - b.min.y; const dy2 = b.max.y - s.center.y;
-        const dz1 = s.center.z - b.min.z; const dz2 = b.max.z - s.center.z;
-        const min = Math.min(dx1, dx2, dy1, dy2, dz1, dz2);
-        if (min === dx1) result.set(-s.radius - dx1, 0, 0);
-        else if (min === dx2) result.set(s.radius + dx2, 0, 0);
-        else if (min === dy1) result.set(0, -s.radius - dy1, 0);
-        else if (min === dy2) result.set(0, s.radius + dy2, 0);
-        else if (min === dz1) result.set(0, 0, -s.radius - dz1);
-        else result.set(0, 0, s.radius + dz2);
+      // Sphere center is exactly on the edge or inside. Push out along the axis of least penetration.
+      const dx1 = s.center.x - b.min.x;
+      const dx2 = b.max.x - s.center.x;
+      const dy1 = s.center.y - b.min.y;
+      const dy2 = b.max.y - s.center.y;
+      const dz1 = s.center.z - b.min.z;
+      const dz2 = b.max.z - s.center.z;
+      const min = Math.min(dx1, dx2, dy1, dy2, dz1, dz2);
+      if (min === dx1) result.set(-s.radius - dx1, 0, 0);
+      else if (min === dx2) result.set(s.radius + dx2, 0, 0);
+      else if (min === dy1) result.set(0, -s.radius - dy1, 0);
+      else if (min === dy2) result.set(0, s.radius + dy2, 0);
+      else if (min === dz1) result.set(0, 0, -s.radius - dz1);
+      else result.set(0, 0, s.radius + dz2);
     } else {
-        const overlap = s.radius - dist;
-        result.copyFrom(diff).normalize().scale(overlap);
+      const overlap = s.radius - dist;
+      result.copyFrom(diff).normalize().scale(overlap);
     }
 
     MathPool.releaseVector(closest);
@@ -86,7 +89,14 @@ export class Collision {
   }
 
   private static _boxBox(b1: BoundingBox, b2: BoundingBox): boolean {
-    return (b1.min.x <= b2.max.x && b1.max.x >= b2.min.x && b1.min.y <= b2.max.y && b1.max.y >= b2.min.y && b1.min.z <= b2.max.z && b1.max.z >= b2.min.z);
+    return (
+      b1.min.x <= b2.max.x &&
+      b1.max.x >= b2.min.x &&
+      b1.min.y <= b2.max.y &&
+      b1.max.y >= b2.min.y &&
+      b1.min.z <= b2.max.z &&
+      b1.max.z >= b2.min.z
+    );
   }
 
   private static _sphereBox(s: BoundingSphere, b: BoundingBox): boolean {

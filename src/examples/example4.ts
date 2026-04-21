@@ -39,7 +39,9 @@ export class Example4 extends AbstractExample {
 
     // Initialize Octrees for the scene
     // For this example, we define a large world area
-    this.scene.initOctrees(new BoundingBox(new Vector3D(-500, -100, -500), new Vector3D(500, 100, 500)));
+    this.scene.initOctrees(
+      new BoundingBox(new Vector3D(-500, -100, -500), new Vector3D(500, 100, 500)),
+    );
 
     if (ProjectionType.PERSPECTIVE === this.camera.projection.type) {
       const aspect: number = window.innerWidth / window.innerHeight;
@@ -80,10 +82,10 @@ export class Example4 extends AbstractExample {
       maxHeight: 6.0,
       gridSize: 3, // 3x3 active chunks
       material: terrainMat,
-      onRebuild: () => {
+      onRebuild: (): void => {
         // Rebuild the static octree whenever terrain chunks change
         this.scene.updateStaticOctree();
-      }
+      },
     });
 
     await this._terrainManager.init();

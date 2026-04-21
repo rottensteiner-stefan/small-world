@@ -49,7 +49,7 @@ export class Example5 extends AbstractExample {
       near: -1000,
       far: 1000,
     });
-    
+
     this.camera.aspect = this.canvas.clientWidth / this.canvas.clientHeight;
     this.camera.updateProjectionMatrix();
 
@@ -79,7 +79,7 @@ export class Example5 extends AbstractExample {
 
     // 6. Create Player
     this._player = this._createActor("Player", playerMat);
-    this._player.position.set(0.5, 0, 0.5); 
+    this._player.position.set(0.5, 0, 0.5);
     this.scene.add(this._player);
 
     // 6b. Click Marker (Visual Debug)
@@ -93,12 +93,12 @@ export class Example5 extends AbstractExample {
     // 7. Create 3 Enemies at random positions
     for (let i = 0; i < 3; i++) {
       const enemy = this._createActor(`Enemy_${i}`, enemyMat);
-      
+
       // Random grid center position within 15x15 (-7.5 to 7.5)
       const rx = Math.floor(Math.random() * 14 - 7) + 0.5;
       const rz = Math.floor(Math.random() * 14 - 7) + 0.5;
       enemy.position.set(rx, 0, rz);
-      
+
       this._enemies.push(enemy);
       this.scene.add(enemy);
     }
@@ -108,7 +108,7 @@ export class Example5 extends AbstractExample {
 
   private _createActor(name: string, material: PhongMaterial): Object3D {
     const actor = new Object3D(name);
-    
+
     const pBase = new Object3D(`${name}_Base`);
     pBase.geometry = new Cube({ size: 1.0 }).getGeometryData();
     pBase.material = material;
@@ -137,7 +137,8 @@ export class Example5 extends AbstractExample {
 
     // 2. Keyboard Input
     if (false === this._isMoving) {
-      let dx: number = 0; let dz: number = 0;
+      let dx: number = 0;
+      let dz: number = 0;
       if (Input.isPressed(Keys.W)) dz = -1;
       else if (Input.isPressed(Keys.S)) dz = 1;
       else if (Input.isPressed(Keys.A)) dx = -1;
@@ -154,9 +155,9 @@ export class Example5 extends AbstractExample {
       const rect: DOMRect = this.canvas.getBoundingClientRect();
       const mx: number = ((Input.mouse.x - rect.left) / rect.width) * 2 - 1;
       const my: number = -((Input.mouse.y - rect.top) / rect.height) * 2 + 1;
-      
+
       const worldPos: Vector3D = this.camera.screenToWorld(mx, my);
-      
+
       // Update visual marker
       this._clickMarker.position.copyFrom(worldPos);
       this._clickMarker.isVisible = true;
@@ -164,9 +165,11 @@ export class Example5 extends AbstractExample {
       // Original Snapping to grid intersections (0.5 offsets)
       const nextX: number = Math.floor(worldPos.x) + 0.5;
       const nextZ: number = Math.floor(worldPos.z) + 0.5;
-      
-      console.log(`[v5] NDC: (${mx.toFixed(2)}, ${my.toFixed(2)}) -> World: (${worldPos.x.toFixed(1)}, ${worldPos.z.toFixed(1)}) -> Target: (${nextX}, ${nextZ})`);
-      
+
+      console.log(
+        `[v5] NDC: (${mx.toFixed(2)}, ${my.toFixed(2)}) -> World: (${worldPos.x.toFixed(1)}, ${worldPos.z.toFixed(1)}) -> Target: (${nextX}, ${nextZ})`,
+      );
+
       this._startMove(nextX, nextZ);
     }
     this._mouseWasDown = isMouseDown;
@@ -178,8 +181,10 @@ export class Example5 extends AbstractExample {
         this._moveProgress = 1.0;
         this._isMoving = false;
       }
-      this._player.position.x = this._moveStart.x + (this._moveEnd.x - this._moveStart.x) * this._moveProgress;
-      this._player.position.z = this._moveStart.z + (this._moveEnd.z - this._moveStart.z) * this._moveProgress;
+      this._player.position.x =
+        this._moveStart.x + (this._moveEnd.x - this._moveStart.x) * this._moveProgress;
+      this._player.position.z =
+        this._moveStart.z + (this._moveEnd.z - this._moveStart.z) * this._moveProgress;
     }
   }
 
@@ -200,7 +205,7 @@ export class Example5 extends AbstractExample {
       Example: "05 - Isometric World",
       "Gird Size": "15x15",
       "Player Pos": `(${this._player.position.x.toFixed(1)}, ${this._player.position.z.toFixed(1)})`,
-      "Enemies": this._enemies.length
+      Enemies: this._enemies.length,
     };
   }
 }

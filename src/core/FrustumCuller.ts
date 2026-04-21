@@ -29,7 +29,10 @@ export class FrustumCuller {
 
     if (scene.staticOctree || scene.dynamicOctree) {
       if (scene.staticOctree) {
-        const visibleStatic: Object3D[] = scene.staticOctree.query(this._frustum, this.lastIntersectedNodes);
+        const visibleStatic: Object3D[] = scene.staticOctree.query(
+          this._frustum,
+          this.lastIntersectedNodes,
+        );
         for (let i: number = 0; i < visibleStatic.length; i++) {
           const obj = visibleStatic[i]!;
           if (obj.isVisible) obj.inFrustum = true;
@@ -37,7 +40,10 @@ export class FrustumCuller {
       }
 
       if (scene.dynamicOctree) {
-        const visibleDynamic: Object3D[] = scene.dynamicOctree.query(this._frustum, this.lastIntersectedNodes);
+        const visibleDynamic: Object3D[] = scene.dynamicOctree.query(
+          this._frustum,
+          this.lastIntersectedNodes,
+        );
         for (let i: number = 0; i < visibleDynamic.length; i++) {
           const obj = visibleDynamic[i]!;
           if (obj.isVisible) obj.inFrustum = true;
@@ -67,7 +73,7 @@ export class FrustumCuller {
   }
 
   private static _countVisible(obj: Object3D): number {
-    let count: number = (obj.isVisible && obj.inFrustum) ? 1 : 0;
+    let count: number = obj.isVisible && obj.inFrustum ? 1 : 0;
     for (let i: number = 0; i < obj.children.length; i++) {
       count += this._countVisible(obj.children[i]!);
     }
@@ -78,10 +84,10 @@ export class FrustumCuller {
     if (obj.isVisible && obj.frustumCulled && obj.bounds) {
       obj.inFrustum = this._frustum.intersectsVolume(obj.bounds);
     } else {
-      obj.inFrustum = true; 
+      obj.inFrustum = true;
     }
 
-    let count = (obj.isVisible && obj.inFrustum) ? 1 : 0;
+    let count = obj.isVisible && obj.inFrustum ? 1 : 0;
     for (let i: number = 0; i < obj.children.length; i++) {
       count += this._checkNode(obj.children[i]!);
     }

@@ -58,7 +58,7 @@ export class LavaMaterial extends AbstractMaterial {
       noiseScale = 2.0,
       noiseMap = undefined,
     } = options;
-    
+
     this.color = color;
     this.crustColor = crustColor;
     this.flowSpeed = flowSpeed;

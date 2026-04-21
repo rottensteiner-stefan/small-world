@@ -56,7 +56,7 @@
 - **Maintenance & Stability Round**:
   - **Core Regression Fixes**: Restored `camera.update()` and `camera.updateViewMatrix()` calls in the main application loop to fix visual errors where objects appeared too large (Identity Matrix issues).
   - **Type Safety Overhaul**: Performed a project-wide maintenance pass, eliminating unsafe `any` usages and fixing calls to non-existent methods/properties.
-  - **GltfLoader Improvements**: Fixed a critical color scaling bug (removed redundant *255 multiplication) and added robust safety checks for malformed glTF files.
+  - **GltfLoader Improvements**: Fixed a critical color scaling bug (removed redundant \*255 multiplication) and added robust safety checks for malformed glTF files.
   - **Robustness**: Added division-by-zero protection in tangent calculations for degenerate UV coordinates.
   - **Cross-Environment Compatibility**: Switched to `MathUtils.generateUUID()` for safer ID generation across various browser environments.
 - **Architectural Refinement**:

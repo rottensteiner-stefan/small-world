@@ -2,7 +2,7 @@
 
 import { AbstractGeometry } from "./AbstractGeometry.js";
 import { BoundingVolume } from "../interfaces/index.js";
-import { BoundingBox, } from "../physics/index.js";
+import { BoundingBox } from "../physics/index.js";
 import { Vector3D } from "../math/index.js";
 
 /**

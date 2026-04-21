@@ -1,9 +1,6 @@
 /// src/renderers/AbstractRenderer.ts
 
-import {
-  AbstractLight,
-  Color,
-} from "../core/index.js";
+import { AbstractLight, Color } from "../core/index.js";
 import { Renderer, LightDataInterface } from "../interfaces/index.js";
 import { RendererType } from "../enums/index.js";
 import { Object3D } from "../core/Object3D.js";
