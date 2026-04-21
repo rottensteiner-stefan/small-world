@@ -1,15 +1,12 @@
-[WGSL_STRUCTS]
-struct Out {
-    @builtin(position) pos: vec4f,
-    @location(0) uv: vec3f
-}
 @vertex fn vs(@location(0) pos: vec3f) -> Out {
     var o: Out;
-    o.uv = pos;
+    o.uv = pos.xy; // Legacy UV for vertex-in-pos
     let wp = obj.model * vec4f(pos, 1.0);
     o.pos = (global.vp * wp).xyww;
+    o.wp = pos; // Use local position as direction for skybox
     return o;
 }
+
 @fragment fn fs(i: Out) -> @location(0) vec4f {
-    return textureSample(u_skybox, s, i.uv) * obj.color;
+    return textureSample(u_skybox, s, i.wp) * obj.color;
 }

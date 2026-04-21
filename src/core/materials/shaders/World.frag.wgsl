@@ -1,5 +1,3 @@
-[WGSL_STRUCTS]
-[WGSL_VS]
 @fragment fn fs(i: Out) -> @location(0) vec4f {
   var blendWeights = abs(i.n);
   blendWeights = pow(blendWeights, vec3f(4.0));

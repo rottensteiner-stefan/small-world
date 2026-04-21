@@ -79,7 +79,7 @@ export class SkyboxMaterial extends AbstractMaterial {
           vs: vertGLSL100,
           fs: fragGLSL100,
         },
-        wgsl: fragWGSL,
+        wgsl: `[WGSL_STRUCTS]\n${fragWGSL}`,
       },
       layout: {
         uniforms: { u_color: { type: ShaderPropertyType.COLOR } },
