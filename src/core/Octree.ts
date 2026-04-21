@@ -4,7 +4,6 @@ import { BoundingBox, Collision } from "../physics/index.js";
 import { Object3D } from "./Object3D.js";
 import { Frustum } from "../math/Frustum.js";
 import { MathPool, Vector3D } from "../math/index.js";
-import { BoundingType } from "../enums/index.js";
 import { BoundingVolume } from "../interfaces/index.js";
 
 /**
@@ -51,12 +50,11 @@ export class OctreeNode {
    * Inserts an object into the octree.
    */
   public insert(obj: Object3D): boolean {
-    if (!obj.bounds || BoundingType.BOX !== obj.bounds.type) {
+    if (!obj.bounds) {
       return false;
     }
 
-    const objBox: BoundingBox = obj.bounds as BoundingBox;
-    if (!this.bounds.intersectsBox(objBox)) {
+    if (!Collision.test(obj.bounds, this.bounds)) {
       return false;
     }
 

@@ -27,31 +27,37 @@ export class Frustum {
     }
     const p: Float32Array = this.planes;
 
+    // Right plane
     p[0] = me[3]! - me[0]!;
     p[1] = me[7]! - me[4]!;
     p[2] = me[11]! - me[8]!;
     p[3] = me[15]! - me[12]!;
 
+    // Left plane
     p[4] = me[3]! + me[0]!;
     p[5] = me[7]! + me[4]!;
     p[6] = me[11]! + me[8]!;
     p[7] = me[15]! + me[12]!;
 
+    // Bottom plane
     p[8] = me[3]! + me[1]!;
     p[9] = me[7]! + me[5]!;
     p[10] = me[11]! + me[9]!;
     p[11] = me[15]! + me[13]!;
 
+    // Top plane
     p[12] = me[3]! - me[1]!;
     p[13] = me[7]! - me[5]!;
     p[14] = me[11]! - me[9]!;
     p[15] = me[15]! - me[13]!;
 
+    // Far plane
     p[16] = me[3]! - me[2]!;
     p[17] = me[7]! - me[6]!;
     p[18] = me[11]! - me[10]!;
     p[19] = me[15]! - me[14]!;
 
+    // Near plane
     p[20] = me[3]! + me[2]!;
     p[21] = me[7]! + me[6]!;
     p[22] = me[11]! + me[10]!;

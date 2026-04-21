@@ -157,6 +157,8 @@ export class Example10 extends AbstractExample {
       new ZoomController(this.camera),
     );
 
+    this.scene.update();
+
     await this.waitForAssets();
   }
 

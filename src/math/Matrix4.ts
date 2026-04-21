@@ -290,7 +290,7 @@ export class Matrix4 {
     target.data.fill(0);
     target.data[0] = 2 * w;
     target.data[5] = 2 * h;
-    target.data[10] = -2 * p; // Correct Ortho Z: -2/(f-n)
+    target.data[10] = -2 * p;
     target.data[12] = -(right + left) * w;
     target.data[13] = -(top + bottom) * h;
     target.data[14] = -(far + near) * p;

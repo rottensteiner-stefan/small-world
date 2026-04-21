@@ -7,7 +7,6 @@ import {
   Capsule,
   Color,
   Cone,
-  Cube,
   Cylinder,
   DirectionalLight,
   FPSController,
@@ -16,7 +15,6 @@ import {
   Input,
   Object3D,
   PerspectiveProjection,
-  PhongMaterial,
   Pyramid,
   Sphere,
   Torus,
@@ -85,23 +83,7 @@ export class Example6 extends AbstractExample {
     gridObj.isStatic = true;
     this.scene.add(gridObj);
 
-    // 5. Walls to test collision
-    const wallMat = new PhongMaterial({ color: Color.GRAY });
-    const addWall = (name: string, w: number, h: number, d: number, x: number, z: number): void => {
-      const wall = new Object3D(name);
-      wall.geometry = new Cube({ size: 1 }).getGeometryData();
-      wall.material = wallMat;
-      wall.scale.set(w, h, d);
-      wall.position.set(x, h / 2, z);
-      wall.isStatic = true;
-      wall.computeBounds();
-      this.scene.add(wall);
-    };
-
-    addWall("Wall1", 10, 4, 1, 0, -5); // Front wall
-    addWall("Wall2", 1, 4, 10, -5, 0); // Left wall
-
-    // 6. Common Wireframe Material
+    // 5. Common Wireframe Material
     const wireMat: WireframeMaterial = new WireframeMaterial();
     wireMat.color = Color.CYAN;
 
@@ -111,7 +93,6 @@ export class Example6 extends AbstractExample {
       obj.material = wireMat;
       obj.position.set(x, 2, z);
       obj.isStatic = true;
-      obj.computeBounds();
       this.scene.add(obj);
     };
 
@@ -181,8 +162,17 @@ export class Example6 extends AbstractExample {
       0,
     );
 
+    // IMPORTANT: Update all world matrices BEFORE computing bounds 
+    // and building the octree, otherwise bounds will be at (0,0,0).
+    this.scene.update(); 
+    
+    // Now compute bounds for all static objects
+    for(const obj of this.scene.objects) {
+        if(obj.isStatic) obj.computeBounds();
+    }
+
     this.scene.updateStaticOctree();
-    console.log("Example 6: Scene with collision walls ready.");
+    console.log("Example 6: Scene ready.");
   }
 
   protected override update(_deltaTime: number): void {}
