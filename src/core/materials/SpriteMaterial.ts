@@ -101,7 +101,7 @@ export class SpriteMaterial extends AbstractMaterial {
           vs: "[BASE_VS]",
           fs: fragGLSL100,
         },
-        wgsl: fragWGSL,
+        wgsl: `[WGSL_STRUCTS]\n[WGSL_VS]\n${fragWGSL}`,
       },
       layout: {
         uniforms: {

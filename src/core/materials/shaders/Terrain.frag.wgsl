@@ -1,5 +1,3 @@
-[WGSL_STRUCTS]
-[WGSL_VS]
 @fragment fn fs(i: Out) -> @location(0) vec4f {
     let sand = textureSample(u_sandMap, s, i.uv);
     let grass = textureSample(u_grassMap, s, i.uv);

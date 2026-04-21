@@ -101,7 +101,7 @@ export class ShaderRegistry {
    */
   public assemble(source: string, lang: ShaderLanguage): string {
     // Regex matches [CHUNK_NAME] but avoids [0-9] or single letters to not collide with GLSL array indexing
-    const result = source.replace(/\[([A-Z][A-Z0-9_]+)\]/g, (match: string, chunkId: string) => {
+    return source.replace(/\[([A-Z][A-Z0-9_]+)\]/g, (match: string, chunkId: string) => {
       const chunk: string | undefined = this.getChunk(chunkId, lang);
       if (undefined === chunk) {
         console.warn(`[ShaderRegistry] Chunk not found for language ${lang}: ${chunkId}`);
@@ -110,12 +110,5 @@ export class ShaderRegistry {
       // Recursively assemble chunks in case chunks contain other chunks
       return this.assemble(chunk, lang);
     });
-
-    if (lang === "wgsl" && result.includes("VertexOut")) {
-      console.error("[ShaderRegistry] WGSL assembly contains unresolved 'VertexOut' type!");
-      console.debug(result);
-    }
-
-    return result;
   }
 }

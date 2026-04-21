@@ -116,7 +116,7 @@ export class LavaMaterial extends AbstractMaterial {
           vs: vertGLSL100,
           fs: fragGLSL100,
         },
-        wgsl: fragWGSL,
+        wgsl: `[WGSL_STRUCTS]\n${fragWGSL}`,
       },
       layout: {
         uniforms: {
