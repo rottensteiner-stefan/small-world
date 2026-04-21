@@ -61,16 +61,12 @@ export class Example6 extends AbstractExample {
     this.camera.setStrategy(CameraStrategyType.FPS);
     this.camera.position.set(0, 2, 10);
 
-    // 2. Controller with Collision enabled
     this.controllers.push(
-      new FPSController(
-        this.camera,
-        {
-          moveSpeed: this._moveSpeed,
-          collisionRadius: 0.6,
-        },
-        this.scene,
-      ),
+      new FPSController(this.camera, {
+        moveSpeed: this._moveSpeed,
+        collisionRadius: 0.6,
+        scene: this.scene,
+      }),
       new ZoomController(this.camera),
     );
 

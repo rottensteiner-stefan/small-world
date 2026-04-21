@@ -19,6 +19,8 @@ export interface FPSControllerOptions {
     enableCollision?: boolean;
     /** The radius of the collision sphere. Defaults to 0.5. */
     collisionRadius?: number;
+    /** The scene to check for collisions. */
+    scene?: Scene;
 }
 /**
  * A controller for first-person style movement and looking.
@@ -27,12 +29,13 @@ export declare class FPSController implements Controller {
     enabled: boolean;
     private _target;
     private _options;
-    private _scene;
     private _collider;
     /**
      * Creates a new FPSController.
+     * @param target The target object or camera to control.
+     * @param options The configuration options.
      */
-    constructor(target: CameraInterfaceData | Object3D, options?: FPSControllerOptions, scene?: Scene);
+    constructor(target: CameraInterfaceData | Object3D, options?: FPSControllerOptions);
     update(deltaTime: number): void;
     private _resolveCollisions;
 }

@@ -40,6 +40,6 @@ export declare class AssetManager {
     private static _checkCompletion;
     static loadImage(url: string, onProgress?: ProgressCallback, flipY?: boolean): Promise<ImageBitmap | HTMLImageElement>;
     static loadText(url: string, onProgress?: ProgressCallback): Promise<string>;
-    static loadJson(url: string, onProgress?: ProgressCallback): Promise<any>;
+    static loadJson(url: string, onProgress?: ProgressCallback): Promise<unknown>;
     static loadBinary(url: string, onProgress?: ProgressCallback): Promise<ArrayBuffer>;
 }
