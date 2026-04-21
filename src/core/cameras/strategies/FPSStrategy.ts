@@ -51,8 +51,8 @@ export class FPSStrategy implements CameraStrategy {
       }
     }
 
-    camera.target.x = camera.position.x - Math.sin(camera.theta) * Math.cos(camera.phi);
-    camera.target.y = camera.position.y - Math.sin(camera.phi);
+    camera.target.x = camera.position.x + Math.sin(camera.theta) * Math.cos(camera.phi);
+    camera.target.y = camera.position.y + Math.sin(camera.phi);
     camera.target.z = camera.position.z - Math.cos(camera.theta) * Math.cos(camera.phi);
   }
 }

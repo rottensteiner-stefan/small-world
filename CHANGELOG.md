@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.19.01] - 2026-04-21
+
+- **Critical Fixes & Refinements**:
+  - **Math & Culling**: Fixed `Frustum` plane extraction logic for column-major matrices, resolving issues where visible objects were incorrectly culled.
+  - **Renderer Stability**: Fixed critical `setInt` bug in `WebGL2UniformBuffer` that caused corrupted lighting data by incorrectly mixing types in TypedArrays.
+  - **Spatial Partitioning**: Updated `Octree` to support all `BoundingVolume` types via polymorphic intersection tests, improving performance and accuracy for spherical bounds.
+  - **API Compliance**: Refactored `FPSController` constructor to use a configuration object, adhering to the project rule of maximum 2 optional positional parameters.
+  - **Example Stability**: Fixed "disappearing objects" in Examples 6 and 10 by ensuring world matrices are updated before spatial tree generation.
+  - **Code Quality**: Performed a project-wide cleanup of `any` types and added missing return types in example files.
+  - **WGSL Standardization**: Unified property naming (`wp`, `n`, `uv`) in all WebGPU shaders for better consistency and interoperability.
+
 ## [0.19.00] - 2026-04-21
 
 - **Major Architectural Overhaul: Decentralized Shader System**:
