@@ -546,10 +546,15 @@ export class WebGPURenderer extends AbstractRenderer {
     const noiseScale = typeof props["u_noiseScale"] === "number" ? props["u_noiseScale"] : 1.0;
     data.set([ao, time, flowSpeed, noiseScale], 32);
 
-    // 7. Terrain Thresholds (if applicable)
+    // 7. Liquid Parameters (Wave Frequency, Wave Amplitude)
+    const waveFreq = typeof props["u_waveFrequency"] === "number" ? props["u_waveFrequency"] : 5.0;
+    const waveAmp = typeof props["u_waveAmplitude"] === "number" ? props["u_waveAmplitude"] : 0.15;
+    data.set([waveFreq, waveAmp, 0, 0], 36);
+
+    // 8. Terrain Thresholds (if applicable)
     const thresholds = props["u_thresholds"];
     if (ArrayBuffer.isView(thresholds)) {
-      data.set(thresholds as Float32Array, 36);
+      data.set(thresholds as Float32Array, 40);
     }
 
     this._device!.queue.writeBuffer(b, 0, data);

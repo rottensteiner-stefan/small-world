@@ -23,6 +23,7 @@ struct ObjectUniforms {
     metallic: f32,
     roughness: f32,
     extraParams: vec4f, // [ao, time, flowSpeed, noiseScale]
+    liquidParams: vec4f, // [waveFreq, waveAmp, 0, 0]
     thresholds: vec4f   // [sandToGrass, grassToRock, rockToSnow, softness]
 }
 
