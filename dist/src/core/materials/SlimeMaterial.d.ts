@@ -1,14 +1,13 @@
-import { LavaMaterial, LavaMaterialOptions } from './LavaMaterial.js';
+import { LiquidMaterial, LiquidMaterialOptions } from './LiquidMaterial.js';
 /**
  * Configuration options for SlimeMaterial.
  */
-export interface SlimeMaterialOptions extends LavaMaterialOptions {
-}
+export type SlimeMaterialOptions = LiquidMaterialOptions;
 /**
  * Specialized animated toxic slime material.
- * Inherits from LavaMaterial but with distinct radioactive defaults and flatter waves.
+ * Inherits from LiquidMaterial but with distinct radioactive defaults and flatter waves.
  */
-export declare class SlimeMaterial extends LavaMaterial {
+export declare class SlimeMaterial extends LiquidMaterial {
     /**
      * Creates a new SlimeMaterial.
      * @param options The configuration options.
