@@ -9,19 +9,30 @@ import { ShaderDefinition } from '../renderers/shaders/ShaderDefinition.js';
  */
 export interface LavaMaterialOptions {
     /** The base glow color of the lava. Defaults to bright orange/yellow. */
-    color?: Color;
+    color?: Color | undefined;
     /** The color of the cooled crust. Defaults to dark grey. */
-    crustColor?: Color;
+    crustColor?: Color | undefined;
     /** The speed of the lava flow animation. Defaults to 1.0. */
-    flowSpeed?: number;
+    flowSpeed?: number | undefined;
     /** The scale of the noise. Defaults to 2.0. */
-    noiseScale?: number;
+    noiseScale?: number | undefined;
     /** A noise texture map used to generate the crust and flow. */
     noiseMap?: Texture | undefined;
+    /** Displacement map for vertex waves. */
+    displacementMap?: Texture | undefined;
+    /** Normal map for surface detail. */
+    normalMap?: Texture | undefined;
+    /** Specular map for shininess. */
+    specularMap?: Texture | undefined;
+    /** Ambient map for occlusion or base glow. */
+    ambientMap?: Texture | undefined;
+    /** Frequency of the vertex waves. Defaults to 5.0. */
+    waveFrequency?: number | undefined;
+    /** Amplitude of the vertex waves. Defaults to 0.15. */
+    waveAmplitude?: number | undefined;
 }
 /**
- * A highly specialized material for rendering animated, glowing lava.
- * Requires a noise map to generate the flowing crust effect on the GPU.
+ * A highly specialized material for rendering animated, glowing lava or slime.
  */
 export declare class LavaMaterial extends AbstractMaterial {
     /** The color of the cooled crust. */
@@ -34,6 +45,18 @@ export declare class LavaMaterial extends AbstractMaterial {
     time: number;
     /** The noise texture. */
     noiseMap: Texture | undefined;
+    /** Optional displacement map. */
+    displacementMap: Texture | undefined;
+    /** Optional normal map. */
+    normalMap: Texture | undefined;
+    /** Optional specular map. */
+    specularMap: Texture | undefined;
+    /** Optional ambient map. */
+    ambientMap: Texture | undefined;
+    /** Wave frequency. */
+    waveFrequency: number;
+    /** Wave amplitude. */
+    waveAmplitude: number;
     /**
      * Creates a new LavaMaterial.
      * @param options The configuration options.

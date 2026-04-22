@@ -1,0 +1,39 @@
+#version 300 es
+in vec3 a_position;
+in vec2 a_uv;
+in vec3 a_normal;
+
+uniform mat4 u_vp;
+uniform mat4 u_model;
+uniform float u_time;
+uniform float u_flowSpeed;
+uniform float u_waveFrequency;
+uniform float u_waveAmplitude;
+uniform sampler2D u_displacementMap;
+
+out vec2 v_uv;
+out vec3 v_worldPos;
+out vec3 v_normal;
+
+void main() {
+    v_uv = a_uv;
+    vec3 pos = a_position;
+    
+    float displacementSpeed = u_time * u_flowSpeed * 0.5;
+    
+    // Wave based on uniforms
+    float wave = sin(pos.x * u_waveFrequency + displacementSpeed) * cos(pos.z * u_waveFrequency + displacementSpeed) * u_waveAmplitude;
+    
+    // Add displacement map if available
+    if (textureSize(u_displacementMap, 0).x > 1) {
+        vec4 disp = texture(u_displacementMap, v_uv + vec2(displacementSpeed * 0.1));
+        pos.y += wave + (disp.r * u_waveAmplitude);
+    } else {
+        pos.y += wave;
+    }
+
+    vec4 worldPos = u_model * vec4(pos, 1.0);
+    v_worldPos = worldPos.xyz;
+    v_normal = (u_model * vec4(a_normal, 0.0)).xyz;
+    gl_Position = u_vp * worldPos;
+}

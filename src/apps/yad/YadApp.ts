@@ -57,11 +57,19 @@ export class YadApp extends AbstractExample {
     const wallTex: Texture = await Texture.fromUrl("/resources/examples/10/rock.png", { flipY: true });
     const floorTex: Texture = await Texture.fromUrl("/resources/examples/10/sand.png", { flipY: true });
     const lavaNoise: Texture = await Texture.fromUrl("/resources/examples/10/lava.png", { flipY: true });
+    const lavaNorm: Texture = await Texture.fromUrl("/resources/examples/10/lava_normal.png", { flipY: true });
+    const lavaDisp: Texture = await Texture.fromUrl("/resources/examples/10/lava_displacement.png", {
+      flipY: true,
+    });
+    const lavaSpec: Texture = await Texture.fromUrl("/resources/examples/10/lava_specular.png", { flipY: true });
+    const lavaAmb: Texture = await Texture.fromUrl("/resources/examples/10/lava_ambient.png", { flipY: true });
     const slimeTex: Texture = await Texture.fromUrl("/resources/examples/10/slime.png", { flipY: true });
     const slimeDisp: Texture = await Texture.fromUrl("/resources/examples/10/slime_displacement.png", {
       flipY: true,
     });
     const slimeNorm: Texture = await Texture.fromUrl("/resources/examples/10/slime_normal.png", { flipY: true });
+    const slimeSpec: Texture = await Texture.fromUrl("/resources/examples/10/slime_specular.png", { flipY: true });
+    const slimeAmb: Texture = await Texture.fromUrl("/resources/examples/10/slime_ambient.png", { flipY: true });
 
     // Reuse some generic textures or placeholders
     const barrelTex: Texture = await Texture.fromUrl("/resources/examples/10/rock.png", { flipY: true });
@@ -77,9 +85,15 @@ export class YadApp extends AbstractExample {
       wallTexture: wallTex,
       floorTexture: floorTex,
       lavaNoiseMap: lavaNoise,
+      lavaNormalMap: lavaNorm,
+      lavaDisplacementMap: lavaDisp,
+      lavaSpecularMap: lavaSpec,
+      lavaAmbientMap: lavaAmb,
       slimeTexture: slimeTex,
       slimeDisplacementMap: slimeDisp,
       slimeNormalMap: slimeNorm,
+      slimeSpecularMap: slimeSpec,
+      slimeAmbientMap: slimeAmb,
       barrelTexture: barrelTex,
       torchTexture: torchTex,
     });

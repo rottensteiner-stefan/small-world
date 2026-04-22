@@ -12,6 +12,14 @@ export interface YadLevelConfig {
     floorTexture?: Texture;
     /** Noise map for lava animation. */
     lavaNoiseMap?: Texture;
+    /** Normal map for lava. */
+    lavaNormalMap?: Texture;
+    /** Displacement map for lava. */
+    lavaDisplacementMap?: Texture;
+    /** Specular map for lava. */
+    lavaSpecularMap?: Texture;
+    /** Ambient map for lava. */
+    lavaAmbientMap?: Texture;
     /** Texture for barrel sprites. */
     barrelTexture?: Texture;
     /** Texture for torch sprites. */
@@ -22,6 +30,10 @@ export interface YadLevelConfig {
     slimeDisplacementMap?: Texture;
     /** Normal map for slime floor. */
     slimeNormalMap?: Texture;
+    /** Specular map for slime floor. */
+    slimeSpecularMap?: Texture;
+    /** Ambient map for slime floor. */
+    slimeAmbientMap?: Texture;
 }
 /**
  * Utility to build a 3D level from an ASCII grid string.

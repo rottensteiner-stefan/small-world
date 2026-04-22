@@ -33,6 +33,10 @@ export class Example10 extends AbstractExample {
   private readonly _lightPulseSpeed: number = 2.1;
 
   private _lavaTexture: Texture | undefined;
+  private _lavaNormalMap: Texture | undefined;
+  private _lavaDisplacementMap: Texture | undefined;
+  private _lavaSpecularMap: Texture | undefined;
+  private _lavaAmbientMap: Texture | undefined;
 
   private _lavaMaterials: LavaMaterial[] = [];
   private _lavaLights: PointLight[] = [];
@@ -77,6 +81,22 @@ export class Example10 extends AbstractExample {
     }
 
     this._lavaTexture = await Texture.fromUrl("/resources/examples/10/lava.png", {
+      generateMipmaps: true,
+      flipY: true,
+    });
+    this._lavaNormalMap = await Texture.fromUrl("/resources/examples/10/lava_normal.png", {
+      generateMipmaps: true,
+      flipY: true,
+    });
+    this._lavaDisplacementMap = await Texture.fromUrl("/resources/examples/10/lava_displacement.png", {
+      generateMipmaps: true,
+      flipY: true,
+    });
+    this._lavaSpecularMap = await Texture.fromUrl("/resources/examples/10/lava_specular.png", {
+      generateMipmaps: true,
+      flipY: true,
+    });
+    this._lavaAmbientMap = await Texture.fromUrl("/resources/examples/10/lava_ambient.png", {
       generateMipmaps: true,
       flipY: true,
     });
@@ -129,6 +149,10 @@ export class Example10 extends AbstractExample {
         color: new Color(1.5, 0.5, 0.0), // Bright magma glow
         crustColor: new Color(0.1, 0.05, 0.05), // Dark cooled rock
         noiseMap: this._lavaTexture,
+        normalMap: this._lavaNormalMap,
+        displacementMap: this._lavaDisplacementMap,
+        specularMap: this._lavaSpecularMap,
+        ambientMap: this._lavaAmbientMap,
         flowSpeed: 0.3,
         noiseScale: 2.0,
       });
