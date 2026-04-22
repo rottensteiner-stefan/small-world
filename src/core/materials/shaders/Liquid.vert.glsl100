@@ -22,10 +22,7 @@ void main() {
     float displacementSpeed = u_time * u_flowSpeed * 0.5;
     
     float wave = sin(pos.x * u_waveFrequency + displacementSpeed) * cos(pos.z * u_waveFrequency + displacementSpeed) * u_waveAmplitude;
-    
-    // Simplification for GLSL 100: texture2D
-    vec4 disp = texture2D(u_displacementMap, v_uv + vec2(displacementSpeed * 0.1));
-    pos.y += wave + (disp.r * u_waveAmplitude);
+    pos.y += wave;
 
     vec4 worldPos = u_model * vec4(pos, 1.0);
     v_worldPos = worldPos.xyz;

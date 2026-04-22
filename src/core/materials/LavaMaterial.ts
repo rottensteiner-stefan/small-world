@@ -25,7 +25,7 @@ export class LavaMaterial extends LiquidMaterial {
       flowSpeed: 1.0,
       noiseScale: 2.0,
       waveFrequency: 5.0,
-      waveAmplitude: 0.15,
+      waveAmplitude: 0.05,
       ...options,
     };
     super(defaults, type);

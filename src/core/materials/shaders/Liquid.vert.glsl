@@ -23,14 +23,7 @@ void main() {
     
     // Wave based on uniforms
     float wave = sin(pos.x * u_waveFrequency + displacementSpeed) * cos(pos.z * u_waveFrequency + displacementSpeed) * u_waveAmplitude;
-    
-    // Add displacement map if available
-    if (textureSize(u_displacementMap, 0).x > 1) {
-        vec4 disp = texture(u_displacementMap, v_uv + vec2(displacementSpeed * 0.1));
-        pos.y += wave + (disp.r * u_waveAmplitude);
-    } else {
-        pos.y += wave;
-    }
+    pos.y += wave;
 
     vec4 worldPos = u_model * vec4(pos, 1.0);
     v_worldPos = worldPos.xyz;

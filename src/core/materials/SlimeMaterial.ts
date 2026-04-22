@@ -26,7 +26,7 @@ export class SlimeMaterial extends LiquidMaterial {
       flowSpeed: 0.1, // Slower than lava
       noiseScale: 3.0,
       waveFrequency: 3.0, // Flatter/wider waves
-      waveAmplitude: 0.05, // Flatter waves
+      waveAmplitude: 0.015, // Flatter waves
       ...options,
     };
     super(defaults, MaterialType.SLIME);

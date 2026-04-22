@@ -63,7 +63,7 @@ export class YadApp extends AbstractExample {
     });
     const lavaSpec: Texture = await Texture.fromUrl("/resources/examples/10/lava_specular.png", { flipY: true });
     const lavaAmb: Texture = await Texture.fromUrl("/resources/examples/10/lava_ambient.png", { flipY: true });
-    const slimeTex: Texture = await Texture.fromUrl("/resources/examples/10/slime.png", { flipY: true });
+    const slimeNoise: Texture = await Texture.fromUrl("/resources/examples/10/slime.png", { flipY: true });
     const slimeDisp: Texture = await Texture.fromUrl("/resources/examples/10/slime_displacement.png", {
       flipY: true,
     });
@@ -89,7 +89,7 @@ export class YadApp extends AbstractExample {
       lavaDisplacementMap: lavaDisp,
       lavaSpecularMap: lavaSpec,
       lavaAmbientMap: lavaAmb,
-      slimeTexture: slimeTex,
+      slimeNoiseMap: slimeNoise,
       slimeDisplacementMap: slimeDisp,
       slimeNormalMap: slimeNorm,
       slimeSpecularMap: slimeSpec,

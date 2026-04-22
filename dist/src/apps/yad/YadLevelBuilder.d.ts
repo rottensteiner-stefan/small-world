@@ -24,8 +24,8 @@ export interface YadLevelConfig {
     barrelTexture?: Texture;
     /** Texture for torch sprites. */
     torchTexture?: Texture;
-    /** Texture for toxin/slime floor. */
-    slimeTexture?: Texture;
+    /** Noise map for toxin/slime floor. */
+    slimeNoiseMap?: Texture;
     /** Displacement map for slime floor. */
     slimeDisplacementMap?: Texture;
     /** Normal map for slime floor. */

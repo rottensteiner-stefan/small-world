@@ -33,8 +33,10 @@ struct VertexIn {
     let uv1 = uv + vec2<f32>(time * 0.05, time * 0.02) * flowSpeed;
     let uv2 = uv + vec2<f32>(-time * 0.03, time * 0.04) * flowSpeed;
 
-    let n1 = textureSample(u_diffuseMap, s, uv1).r;
-    let n2 = textureSample(u_diffuseMap, s, uv2).r;
+    let tex1 = textureSample(u_diffuseMap, s, uv1).rgb;
+    let tex2 = textureSample(u_diffuseMap, s, uv2).rgb;
+    let n1 = dot(tex1, vec3<f32>(0.299, 0.587, 0.114));
+    let n2 = dot(tex2, vec3<f32>(0.299, 0.587, 0.114));
     let noise = (n1 + n2) * 0.5;
 
     let blend = smoothstep(0.6, 0.8, noise);
