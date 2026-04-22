@@ -36,8 +36,8 @@ export interface YadLevelConfig {
   barrelTexture?: Texture;
   /** Texture for torch sprites. */
   torchTexture?: Texture;
-  /** Texture for toxin/slime floor. */
-  slimeTexture?: Texture;
+  /** Noise map for toxin/slime floor. */
+  slimeNoiseMap?: Texture;
   /** Displacement map for slime floor. */
   slimeDisplacementMap?: Texture;
   /** Normal map for slime floor. */
@@ -94,7 +94,7 @@ export class YadLevelBuilder {
     lavaMaterials.push(lavaMat);
 
     const slimeMat: SlimeMaterial = new SlimeMaterial({
-      noiseMap: config.slimeTexture,
+      noiseMap: config.slimeNoiseMap,
       displacementMap: config.slimeDisplacementMap,
       normalMap: config.slimeNormalMap,
       specularMap: config.slimeSpecularMap,

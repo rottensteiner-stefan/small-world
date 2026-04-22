@@ -24,8 +24,8 @@ void main() {
     vec2 uv1 = uv + vec2(u_time * 0.05, u_time * 0.02) * u_flowSpeed;
     vec2 uv2 = uv + vec2(-u_time * 0.03, u_time * 0.04) * u_flowSpeed;
     
-    float n1 = texture(u_diffuseMap, uv1).r;
-    float n2 = texture(u_diffuseMap, uv2).r;
+    float n1 = dot(texture(u_diffuseMap, uv1).rgb, vec3(0.299, 0.587, 0.114));
+    float n2 = dot(texture(u_diffuseMap, uv2).rgb, vec3(0.299, 0.587, 0.114));
     float noise = (n1 + n2) * 0.5;
     
     // Ambient map for base details
