@@ -8,6 +8,10 @@ export declare class Example10 extends AbstractExample {
     private readonly _eyeHeight;
     private readonly _lightPulseSpeed;
     private _lavaTexture;
+    private _lavaNormalMap;
+    private _lavaDisplacementMap;
+    private _lavaSpecularMap;
+    private _lavaAmbientMap;
     private _lavaMaterials;
     private _lavaLights;
     private _time;

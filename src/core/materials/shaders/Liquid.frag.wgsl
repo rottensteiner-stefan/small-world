@@ -10,8 +10,14 @@ struct VertexIn {
     var p = in.position;
     let time = obj.extraParams.y;
     let flowSpeed = obj.extraParams.z;
+    let waveFreq = obj.extraParams.w;
+    let waveAmp = obj.extraParams.x; // Simplified mapping
+    
     let displacementSpeed = time * flowSpeed * 0.5;
-    p.y += sin(p.x * 5.0 + displacementSpeed) * cos(p.z * 5.0 + displacementSpeed) * 0.15;
+    let wave = sin(p.x * waveFreq + displacementSpeed) * cos(p.z * waveFreq + displacementSpeed) * waveAmp;
+    
+    p.y += wave;
+
     let worldPos = obj.model * vec4<f32>(p, 1.0);
     o.wp = worldPos.xyz;
     o.pos = global.vp * worldPos;
@@ -29,9 +35,7 @@ struct VertexIn {
 
     let n1 = textureSample(u_diffuseMap, s, uv1).r;
     let n2 = textureSample(u_diffuseMap, s, uv2).r;
-    var noise = (n1 + n2) * 0.5;
-
-    noise += sin(i.wp.x * 2.0 + time) * 0.1;
+    let noise = (n1 + n2) * 0.5;
 
     let blend = smoothstep(0.6, 0.8, noise);
     let glow = obj.color.rgb * (1.0 - smoothstep(0.0, 0.6, noise)) * 1.5;
