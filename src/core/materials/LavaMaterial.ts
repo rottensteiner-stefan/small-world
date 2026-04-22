@@ -48,9 +48,10 @@ export class LavaMaterial extends AbstractMaterial {
   /**
    * Creates a new LavaMaterial.
    * @param options The configuration options.
+   * @param type The material type (defaults to LAVA).
    */
-  constructor(options: LavaMaterialOptions = {}) {
-    super(MaterialType.LAVA);
+  constructor(options: LavaMaterialOptions = {}, type: MaterialType = MaterialType.LAVA) {
+    super(type);
     const {
       color = new Color(1.5, 0.5, 0.0), // Over-bright for pseudo-bloom
       crustColor = new Color(0.1, 0.1, 0.1),

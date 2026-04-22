@@ -15,8 +15,8 @@ export class Object3D {
   public material: AbstractMaterial | undefined = undefined;
   public bounds: BoundingVolume | undefined = undefined;
 
-  public position: Vector3D = new Vector3D(0, 0, 0);
-  public rotation: Vector3D = new Vector3D(0, 0, 0);
+  public position: Vector3D = new Vector3D();
+  public rotation: Vector3D = new Vector3D();
   public scale: Vector3D = new Vector3D(1, 1, 1);
 
   public localMatrix: Matrix4 = new Matrix4();

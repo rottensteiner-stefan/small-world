@@ -1,6 +1,9 @@
 /// src/core/example/AbstractExample.ts
 
-import { Application, EngineConfig, Input, Keys } from "../../index.js";
+import { Application } from "../Application.js";
+import { Input } from "../Input.js";
+import { EngineConfig } from "../../interfaces/EngineConfig.js";
+import { Keys } from "../../enums/Keys.js";
 import { AssetManager } from "../../loaders/index.js";
 
 export abstract class AbstractExample extends Application {

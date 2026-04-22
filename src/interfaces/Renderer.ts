@@ -52,8 +52,9 @@ export interface Renderer {
    * @param scene The scene to render.
    * @param vpMatrix The view-projection matrix.
    * @param camPos The camera position.
+   * @param viewMatrix Optional view matrix for billboarding.
    */
-  render(scene: Scene, vpMatrix: Float32Array, camPos?: Vector3D): void;
+  render(scene: Scene, vpMatrix: Float32Array, camPos?: Vector3D, viewMatrix?: Float32Array): void;
 
   /**
    * Sets the size of the render viewport.

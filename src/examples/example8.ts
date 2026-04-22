@@ -30,7 +30,7 @@ export class Example8 extends AbstractExample {
   private _blocks: Object3D[] = [];
 
   // Physics & Movement
-  private _velocity: Vector3D = new Vector3D(0, 0, 0);
+  private _velocity: Vector3D = new Vector3D();
   private _gravity: number = -25.0;
   private _jumpForce: number = 12.0;
   private _moveSpeed: number = 8.0;

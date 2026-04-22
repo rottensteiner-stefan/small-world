@@ -9,3 +9,4 @@ export * from './WireframeMaterial.js';
 export * from './WorldMaterial.js';
 export * from './StandardMaterial.js';
 export * from './LavaMaterial.js';
+export * from './SlimeMaterial.js';

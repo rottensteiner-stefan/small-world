@@ -229,7 +229,12 @@ export abstract class Application {
       OctreeVisualizer.instance.update(this.scene, FrustumCuller.lastIntersectedNodes);
     }
 
-    this.renderer.render(this.scene, this.camera.viewProjectionMatrix, this.camera.position);
+    this.renderer.render(
+      this.scene,
+      this.camera.viewProjectionMatrix,
+      this.camera.position,
+      this.camera.viewMatrix,
+    );
 
     // Centralized reset of input deltas after each frame
     Input.mouse.dx = 0;

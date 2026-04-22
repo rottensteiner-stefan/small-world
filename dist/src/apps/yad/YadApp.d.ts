@@ -5,7 +5,8 @@ import { AbstractExample } from '../../index.js';
  */
 export declare class YadApp extends AbstractExample {
     private _time;
-    private _lavaMaterial;
+    private _lavaMaterials;
+    private _lavaLights;
     /** @inheritdoc */
     protected onCanvasRecreated(): void;
     /** @inheritdoc */

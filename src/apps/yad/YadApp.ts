@@ -11,6 +11,7 @@ import {
   Texture,
   ZoomController,
   LavaMaterial,
+  PointLight,
 } from "../../index.js";
 import { YadLevelBuilder } from "./YadLevelBuilder.js";
 import { TextLoader } from "../../loaders/TextLoader.js";
@@ -24,7 +25,8 @@ import { Vector3D } from "../../math/index.js";
  */
 export class YadApp extends AbstractExample {
   private _time: number = 0;
-  private _lavaMaterial: LavaMaterial | undefined;
+  private _lavaMaterials: LavaMaterial[] = [];
+  private _lavaLights: PointLight[] = [];
 
   /** @inheritdoc */
   protected override onCanvasRecreated(): void {
@@ -55,6 +57,11 @@ export class YadApp extends AbstractExample {
     const wallTex: Texture = await Texture.fromUrl("/resources/examples/10/rock.png", { flipY: true });
     const floorTex: Texture = await Texture.fromUrl("/resources/examples/10/sand.png", { flipY: true });
     const lavaNoise: Texture = await Texture.fromUrl("/resources/examples/10/lava.png", { flipY: true });
+    const slimeTex: Texture = await Texture.fromUrl("/resources/examples/10/slime.png", { flipY: true });
+    const slimeDisp: Texture = await Texture.fromUrl("/resources/examples/10/slime_displacement.png", {
+      flipY: true,
+    });
+    const slimeNorm: Texture = await Texture.fromUrl("/resources/examples/10/slime_normal.png", { flipY: true });
 
     // Reuse some generic textures or placeholders
     const barrelTex: Texture = await Texture.fromUrl("/resources/examples/10/rock.png", { flipY: true });
@@ -66,15 +73,19 @@ export class YadApp extends AbstractExample {
 
     // 4. Build Level
     const builder: YadLevelBuilder = new YadLevelBuilder();
-    const { playerStart, lavaMaterial } = await builder.build(this.scene, mapData, {
+    const { playerStart, lavaMaterials, lavaLights } = await builder.build(this.scene, mapData, {
       wallTexture: wallTex,
       floorTexture: floorTex,
       lavaNoiseMap: lavaNoise,
+      slimeTexture: slimeTex,
+      slimeDisplacementMap: slimeDisp,
+      slimeNormalMap: slimeNorm,
       barrelTexture: barrelTex,
       torchTexture: torchTex,
     });
 
-    this._lavaMaterial = lavaMaterial;
+    this._lavaMaterials = lavaMaterials;
+    this._lavaLights = lavaLights;
     this.camera.position.copyFrom(playerStart);
 
     // 5. Controllers
@@ -98,8 +109,13 @@ export class YadApp extends AbstractExample {
   /** @inheritdoc */
   protected override update(deltaTime: number): void {
     this._time += deltaTime;
-    if (undefined !== this._lavaMaterial) {
-      this._lavaMaterial.time = this._time;
+    for (const mat of this._lavaMaterials) {
+      mat.time = this._time;
+    }
+    for (let l = 0; l < this._lavaLights.length; l++) {
+      const light = this._lavaLights[l]!;
+      const pulse = Math.sin(this._time * 2.1 + l) * 0.5 + 0.5;
+      light.intensity = 3.0 + pulse * 2.0;
     }
   }
 

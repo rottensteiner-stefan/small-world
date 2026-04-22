@@ -24,7 +24,7 @@ import { AbstractExample } from "../core/index.js";
 const CAR_SPEED: number = 10.0; // The car's speed
 
 export class Example4 extends AbstractExample {
-  private _targetPos: Vector3D = new Vector3D(0, 0, 0);
+  private _targetPos: Vector3D = new Vector3D();
   private _car: Object3D | undefined = undefined; // The car object
   private _terrainManager: TerrainManager | undefined = undefined;
 

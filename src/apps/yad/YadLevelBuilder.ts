@@ -3,10 +3,11 @@
 import { Object3D } from "../../core/Object3D.js";
 import { Scene } from "../../core/Scene.js";
 import { Vector3D } from "../../math/index.js";
-import { Cube, Plane } from "../../geometry/index.js";
+import { Cube, Plane, Sphere } from "../../geometry/index.js";
 import {
   StandardMaterial,
   LavaMaterial,
+  SlimeMaterial,
   SpriteMaterial,
 } from "../../core/materials/index.js";
 import { PointLight, Color, Texture, Sprite } from "../../core/index.js";
@@ -27,6 +28,12 @@ export interface YadLevelConfig {
   barrelTexture?: Texture;
   /** Texture for torch sprites. */
   torchTexture?: Texture;
+  /** Texture for toxin/slime floor. */
+  slimeTexture?: Texture;
+  /** Displacement map for slime floor. */
+  slimeDisplacementMap?: Texture;
+  /** Normal map for slime floor. */
+  slimeNormalMap?: Texture;
 }
 
 /**
@@ -48,12 +55,15 @@ export class YadLevelBuilder {
     scene: Scene,
     mapData: string,
     config: YadLevelConfig,
-  ): Promise<{ playerStart: Vector3D; lavaMaterial: LavaMaterial }> {
+  ): Promise<{ playerStart: Vector3D; lavaMaterials: LavaMaterial[]; lavaLights: PointLight[] }> {
     console.log("[YadLevelBuilder] Starting build...");
     const lines: string[] = mapData.trim().split("\n");
     const height: number = lines.length;
     const width: number = lines[0]!.length;
     const playerStart: Vector3D = new Vector3D(0, 1, 0);
+
+    const lavaMaterials: LavaMaterial[] = [];
+    const lavaLights: PointLight[] = [];
 
     // 1. Common Materials
     const wallMat: StandardMaterial = new StandardMaterial({ diffuseMap: config.wallTexture });
@@ -65,21 +75,35 @@ export class YadLevelBuilder {
       noiseScale: 2.0,
     });
     lavaMat.cullMode = CullMode.NONE;
+    lavaMaterials.push(lavaMat);
+
+    const slimeMat: SlimeMaterial = new SlimeMaterial({
+      noiseMap: config.slimeTexture,
+      displacementMap: config.slimeDisplacementMap,
+      normalMap: config.slimeNormalMap,
+    });
+    slimeMat.cullMode = CullMode.NONE;
+    lavaMaterials.push(slimeMat);
 
     const wallGeo: GeometryDataInterface = new Cube({ size: this._gridSize }).getGeometryData();
     const floorGeo: GeometryDataInterface = new Plane({
       width: this._gridSize,
       depth: this._gridSize,
+      widthSegments: 8,
+      depthSegments: 8,
     }).getGeometryData();
+    const sphereGeo: GeometryDataInterface = new Sphere({ radius: 0.6 }).getGeometryData();
 
     for (let y: number = 0; y < height; y++) {
       const line: string = lines[y]!;
       for (let x: number = 0; x < width; x++) {
         const char: string = line[x]!;
+        if (" " === char) continue;
+
         const worldX: number = x * this._gridSize - (width * this._gridSize) / 2;
         const worldZ: number = y * this._gridSize - (height * this._gridSize) / 2;
 
-        // --- STRUCTURAL ELEMENTS ---
+        // 1. Walls (Structural Elements)
         if ("W" === char || "G" === char) {
           const wall: Object3D = new Object3D(`Wall_${x}_${y}`);
           wall.geometry = wallGeo;
@@ -90,30 +114,36 @@ export class YadLevelBuilder {
           wall.updateMatrixWorld(true);
           wall.computeBounds();
           scene.add(wall);
+          continue; // Walls don't have floors/ceilings in this logic
         }
 
-        // --- FLOOR & CEILING ---
-        if (" " !== char && "W" !== char && "G" !== char) {
-          const floor: Object3D = new Object3D(`Floor_${x}_${y}`);
-          floor.geometry = floorGeo;
-          floor.material = "~" === char ? lavaMat : floorMat;
-          floor.position.set(worldX, 0, worldZ);
-          floor.isStatic = true;
-          scene.add(floor);
+        // 2. Floor & Ceiling (For everything else that is not a space or a wall)
+        // If it's a floating LavaBall, we STILL want floor/ceiling
+        const floor: Object3D = new Object3D(`Floor_${x}_${y}`);
+        floor.geometry = floorGeo;
+        if ("~" === char) {
+          floor.material = lavaMat;
+        } else if ("T" === char) {
+          floor.material = slimeMat;
+        } else {
+          floor.material = floorMat;
+        }
+        floor.position.set(worldX, 0, worldZ);
+        floor.isStatic = true;
+        scene.add(floor);
 
-          // Ceiling (optional, but good for Doom feel)
-          if ("~" !== char) {
-            const ceil: Object3D = new Object3D(`Ceiling_${x}_${y}`);
-            ceil.geometry = floorGeo;
-            ceil.material = floorMat;
-            ceil.position.set(worldX, this._wallHeight, worldZ);
-            ceil.rotation.x = Math.PI; // Flip it
-            ceil.isStatic = true;
-            scene.add(ceil);
-          }
+        // Ceiling (optional, but good for Doom feel)
+        if ("~" !== char && "T" !== char) {
+          const ceil: Object3D = new Object3D(`Ceiling_${x}_${y}`);
+          ceil.geometry = floorGeo;
+          ceil.material = floorMat;
+          ceil.position.set(worldX, this._wallHeight, worldZ);
+          ceil.rotation.x = Math.PI; // Flip it
+          ceil.isStatic = true;
+          scene.add(ceil);
         }
 
-        // --- SPRITES & LIGHTS ---
+        // 3. Specific Objects (Sprites, Lights, LavaBalls, etc.)
         if ("l" === char) {
           // Torch
           const torch: Sprite = new Sprite(new SpriteMaterial({ texture: config.torchTexture }));
@@ -134,6 +164,29 @@ export class YadLevelBuilder {
           barrel.position.set(worldX, 0.8, worldZ);
           barrel.scale.set(1.5, 1.5, 1.5);
           scene.add(barrel);
+        } else if ("S" === char) {
+          // Lava Ball (The requested floating lava sphere)
+          const lavaBall: Object3D = new Object3D(`LavaBall_${x}_${y}`);
+          lavaBall.geometry = sphereGeo;
+
+          const ballMat = new LavaMaterial({
+            noiseMap: config.lavaNoiseMap,
+            color: new Color(2.0, 0.8, 0.0), // Extra bright core
+            flowSpeed: 1.5, // Faster flow for the ball
+          });
+          lavaMaterials.push(ballMat);
+          lavaBall.material = ballMat;
+          lavaBall.position.set(worldX, 1.5, worldZ); // Floating at 1.5m
+          scene.add(lavaBall);
+
+          const light: PointLight = new PointLight({
+            color: new Color(1.0, 0.4, 0.0),
+            intensity: 4.0,
+            distance: 10,
+          });
+          light.position.set(worldX, 1.5, worldZ);
+          scene.add(light);
+          lavaLights.push(light);
         } else if ("c" === char) {
           // Column (Static obstacle)
           const col: Object3D = new Object3D(`Column_${x}_${y}`);
@@ -151,6 +204,6 @@ export class YadLevelBuilder {
       }
     }
 
-    return { playerStart, lavaMaterial: lavaMat };
+    return { playerStart, lavaMaterials, lavaLights };
   }
 }

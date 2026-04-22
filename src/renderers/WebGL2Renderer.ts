@@ -211,7 +211,12 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
   }
 
   /** @inheritdoc */
-  public render(scene: Scene, vp: Float32Array, camPos: Vector3D = Vector3D.ZERO): void {
+  public render(
+    scene: Scene,
+    vp: Float32Array,
+    camPos: Vector3D = Vector3D.ZERO,
+    vMat?: Float32Array,
+  ): void {
     const extractedLights = this.extractLights(scene);
     this._updateGlobalUBO(vp, camPos, extractedLights);
 
@@ -225,14 +230,14 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     const skyboxGroup = sortedGroups.get(MaterialType.SKYBOX);
     if (skyboxGroup) {
       this.gl.depthMask(false);
-      this._renderGroup(MaterialType.SKYBOX, skyboxGroup, vp);
+      this._renderGroup(MaterialType.SKYBOX, skyboxGroup, vMat);
       this.gl.depthMask(true);
       sortedGroups.delete(MaterialType.SKYBOX);
     }
 
     // --- PASS 2: All other Objects ---
     for (const [shaderId, materialGroups] of sortedGroups.entries()) {
-      this._renderGroup(shaderId, materialGroups, vp);
+      this._renderGroup(shaderId, materialGroups, vMat);
     }
   }
 
@@ -242,7 +247,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
   private _renderGroup(
     shaderId: string,
     materialGroups: Map<string, Object3D[]>,
-    vp: Float32Array,
+    vMat?: Float32Array,
   ): void {
     const cache = this._getProgram(shaderId);
     this.gl.useProgram(cache.prog);
@@ -328,7 +333,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
 
         // Model Matrix & Billboarding
         this._scratchModelMatrix.set(o.worldMatrix.data);
-        if (state?.isSprite) {
+        if (state?.isSprite && vMat) {
           const sx = Math.sqrt(
             this._scratchModelMatrix[0]! ** 2 +
               this._scratchModelMatrix[1]! ** 2 +
@@ -344,15 +349,17 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
               this._scratchModelMatrix[9]! ** 2 +
               this._scratchModelMatrix[10]! ** 2,
           );
-          this._scratchModelMatrix[0] = vp[0]! * sx;
-          this._scratchModelMatrix[1] = vp[4]! * sx;
-          this._scratchModelMatrix[2] = vp[8]! * sx;
-          this._scratchModelMatrix[4] = vp[1]! * sy;
-          this._scratchModelMatrix[5] = vp[5]! * sy;
-          this._scratchModelMatrix[6] = vp[9]! * sy;
-          this._scratchModelMatrix[8] = vp[2]! * sz;
-          this._scratchModelMatrix[9] = vp[6]! * sz;
-          this._scratchModelMatrix[10] = vp[10]! * sz;
+          // Set rotation part of model matrix to transpose of view matrix rotation
+          // This cancels camera rotation.
+          this._scratchModelMatrix[0] = vMat[0]! * sx;
+          this._scratchModelMatrix[1] = vMat[4]! * sx;
+          this._scratchModelMatrix[2] = vMat[8]! * sx;
+          this._scratchModelMatrix[4] = vMat[1]! * sy;
+          this._scratchModelMatrix[5] = vMat[5]! * sy;
+          this._scratchModelMatrix[6] = vMat[9]! * sy;
+          this._scratchModelMatrix[8] = vMat[2]! * sz;
+          this._scratchModelMatrix[9] = vMat[6]! * sz;
+          this._scratchModelMatrix[10] = vMat[10]! * sz;
         }
         const uModel = u.get("u_model");
         if (uModel) this.gl.uniformMatrix4fv(uModel, false, this._scratchModelMatrix);
