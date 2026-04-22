@@ -32,6 +32,10 @@ export declare class Camera implements CameraInterfaceData {
     /** @inheritdoc */
     get viewProjectionMatrix4(): Matrix4;
     /** @inheritdoc */
+    get viewMatrix(): Float32Array;
+    /** @inheritdoc */
+    get viewMatrix4(): Matrix4;
+    /** @inheritdoc */
     get aspect(): number;
     /** @inheritdoc */
     set aspect(value: number);

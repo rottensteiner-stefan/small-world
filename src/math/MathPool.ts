@@ -21,7 +21,7 @@ export class MathPool {
     if (v) {
       return v.set(0, 0, 0);
     }
-    return new Vector3D(0, 0, 0);
+    return new Vector3D();
   }
 
   /**

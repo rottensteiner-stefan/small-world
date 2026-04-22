@@ -25,7 +25,7 @@ export class Example5 extends AbstractExample {
   private _player!: Object3D;
   private _clickMarker!: Object3D;
   private _enemies: Object3D[] = [];
-  private _targetPos: Vector3D = new Vector3D(0, 0, 0);
+  private _targetPos: Vector3D = new Vector3D();
 
   // Input State
   private _mouseWasDown: boolean = false;

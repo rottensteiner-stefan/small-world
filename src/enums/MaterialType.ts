@@ -24,6 +24,8 @@ export const MaterialType = {
   WORLD: "WorldMaterial",
   /** Specialized animated lava material. */
   LAVA: "LavaMaterial",
+  /** Specialized animated toxic slime material. */
+  SLIME: "SlimeMaterial",
 } as const;
 
 /** Type definition for MaterialType. */

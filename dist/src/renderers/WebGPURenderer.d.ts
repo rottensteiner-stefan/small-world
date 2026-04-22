@@ -34,6 +34,7 @@ export declare class WebGPURenderer extends AbstractRenderer {
     private _globalBGL;
     private _objectUniformBuffers;
     private _frameCount;
+    private _scratchModelMatrix;
     /** @inheritdoc */
     initialize(canvas: HTMLCanvasElement, attributes?: Record<string, unknown>, config?: EngineConfig): Promise<void>;
     private _initDefaultResources;
@@ -43,7 +44,7 @@ export declare class WebGPURenderer extends AbstractRenderer {
     private _getPipeline;
     private _getShaderModule;
     private _getGeoCache;
-    render(scene: Scene, vpMatrix: Float32Array, camPos?: Vector3D): void;
+    render(scene: Scene, vp: Float32Array, camPos?: Vector3D, vMat?: Float32Array): void;
     private _pruneObjectBuffers;
     private _renderGroup;
     private _getObjUniformBuffer;

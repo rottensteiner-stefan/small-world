@@ -210,7 +210,12 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
   }
 
   /** @inheritdoc */
-  public render(scene: Scene, vp: Float32Array, camPos: Vector3D = new Vector3D()): void {
+  public render(
+    scene: Scene,
+    vp: Float32Array,
+    camPos: Vector3D = Vector3D.ZERO,
+    vMat?: Float32Array,
+  ): void {
     const extractedLights = this.extractLights(scene);
     this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
     this.gl.enable(this.gl.BLEND);
@@ -222,23 +227,30 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
     const skyboxGroup = sortedGroups.get(MaterialType.SKYBOX);
     if (skyboxGroup) {
       this.gl.depthMask(false);
-      this._renderGroup(MaterialType.SKYBOX, skyboxGroup, vp, Vector3D.ZERO, {
-        aCol: Color.BLACK,
-        aIntensity: 0,
-        dCol: Color.BLACK,
-        dIntensity: 0,
-        dDir: Vector3D.ZERO,
-        pLights: [],
-        sLights: [],
-        aLights: [],
-      });
+      this._renderGroup(
+        MaterialType.SKYBOX,
+        skyboxGroup,
+        vp,
+        Vector3D.ZERO,
+        {
+          aCol: Color.BLACK,
+          aIntensity: 0,
+          dCol: Color.BLACK,
+          dIntensity: 0,
+          dDir: Vector3D.ZERO,
+          pLights: [],
+          sLights: [],
+          aLights: [],
+        },
+        vMat,
+      );
       this.gl.depthMask(true);
       sortedGroups.delete(MaterialType.SKYBOX);
     }
 
     // --- PASS 2: Objects ---
     for (const [shaderId, materialGroups] of sortedGroups.entries()) {
-      this._renderGroup(shaderId, materialGroups, vp, camPos, extractedLights);
+      this._renderGroup(shaderId, materialGroups, vp, camPos, extractedLights, vMat);
     }
   }
 
@@ -248,6 +260,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
     vp: Float32Array,
     camPos: Vector3D,
     lights: LightDataInterface,
+    vMat?: Float32Array,
   ): void {
     const cache = this._getProgram(shaderId);
     this.gl.useProgram(cache.prog);
@@ -380,6 +393,33 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
         if (!o.geometry) continue;
 
         this._scratchModelMatrix.set(o.worldMatrix.data);
+        if (state?.isSprite && vMat) {
+          const sx = Math.sqrt(
+            this._scratchModelMatrix[0]! ** 2 +
+              this._scratchModelMatrix[1]! ** 2 +
+              this._scratchModelMatrix[2]! ** 2,
+          );
+          const sy = Math.sqrt(
+            this._scratchModelMatrix[4]! ** 2 +
+              this._scratchModelMatrix[5]! ** 2 +
+              this._scratchModelMatrix[6]! ** 2,
+          );
+          const sz = Math.sqrt(
+            this._scratchModelMatrix[8]! ** 2 +
+              this._scratchModelMatrix[9]! ** 2 +
+              this._scratchModelMatrix[10]! ** 2,
+          );
+          this._scratchModelMatrix[0] = vMat[0]! * sx;
+          this._scratchModelMatrix[1] = vMat[4]! * sx;
+          this._scratchModelMatrix[2] = vMat[8]! * sx;
+          this._scratchModelMatrix[4] = vMat[1]! * sy;
+          this._scratchModelMatrix[5] = vMat[5]! * sy;
+          this._scratchModelMatrix[6] = vMat[9]! * sy;
+          this._scratchModelMatrix[8] = vMat[2]! * sz;
+          this._scratchModelMatrix[9] = vMat[6]! * sz;
+          this._scratchModelMatrix[10] = vMat[10]! * sz;
+        }
+
         const uModel = u.get("u_model");
         if (uModel) this.gl.uniformMatrix4fv(uModel, false, this._scratchModelMatrix);
 

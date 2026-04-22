@@ -40,6 +40,12 @@ export interface CameraInterfaceData {
   /** The combined view-projection matrix as a Matrix4 instance. */
   viewProjectionMatrix4: Matrix4;
 
+  /** The view matrix as a Float32Array. */
+  viewMatrix: Float32Array;
+
+  /** The view matrix as a Matrix4 instance. */
+  viewMatrix4: Matrix4;
+
   /**
    * Switches the camera's control behavior.
    * @param type The type of strategy to use.

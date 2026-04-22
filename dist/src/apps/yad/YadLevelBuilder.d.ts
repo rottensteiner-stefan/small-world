@@ -1,7 +1,7 @@
 import { Scene } from '../../core/Scene.js';
 import { Vector3D } from '../../math/index.js';
 import { LavaMaterial } from '../../core/materials/index.js';
-import { Texture } from '../../core/index.js';
+import { PointLight, Texture } from '../../core/index.js';
 /**
  * Configuration for the YadLevelBuilder.
  */
@@ -16,6 +16,12 @@ export interface YadLevelConfig {
     barrelTexture?: Texture;
     /** Texture for torch sprites. */
     torchTexture?: Texture;
+    /** Texture for toxin/slime floor. */
+    slimeTexture?: Texture;
+    /** Displacement map for slime floor. */
+    slimeDisplacementMap?: Texture;
+    /** Normal map for slime floor. */
+    slimeNormalMap?: Texture;
 }
 /**
  * Utility to build a 3D level from an ASCII grid string.
@@ -33,6 +39,7 @@ export declare class YadLevelBuilder {
      */
     build(scene: Scene, mapData: string, config: YadLevelConfig): Promise<{
         playerStart: Vector3D;
-        lavaMaterial: LavaMaterial;
+        lavaMaterials: LavaMaterial[];
+        lavaLights: PointLight[];
     }>;
 }

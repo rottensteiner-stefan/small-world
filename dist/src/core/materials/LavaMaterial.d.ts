@@ -1,5 +1,6 @@
 import { AbstractMaterial } from './AbstractMaterial.js';
 import { Color } from '../colors/index.js';
+import { MaterialType } from '../../enums/index.js';
 import { Texture } from '../textures/index.js';
 import { RenderManifest } from '../renderers/shaders/RenderManifest.js';
 import { ShaderDefinition } from '../renderers/shaders/ShaderDefinition.js';
@@ -36,8 +37,9 @@ export declare class LavaMaterial extends AbstractMaterial {
     /**
      * Creates a new LavaMaterial.
      * @param options The configuration options.
+     * @param type The material type (defaults to LAVA).
      */
-    constructor(options?: LavaMaterialOptions);
+    constructor(options?: LavaMaterialOptions, type?: MaterialType);
     /** @inheritdoc */
     getRenderManifest(): RenderManifest;
     /** @inheritdoc */

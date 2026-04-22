@@ -54,6 +54,16 @@ export class Camera implements CameraInterfaceData {
   }
 
   /** @inheritdoc */
+  public get viewMatrix(): Float32Array {
+    return this._viewMatrix.data;
+  }
+
+  /** @inheritdoc */
+  public get viewMatrix4(): Matrix4 {
+    return this._viewMatrix;
+  }
+
+  /** @inheritdoc */
   public get aspect(): number {
     return 1; // Base aspect fallback if needed, but projection should handle it.
   }

@@ -1,6 +1,6 @@
 import { Color } from "../colors/index.js";
 import { AbstractMaterial } from "./AbstractMaterial.js";
-import { MaterialType, BlendingMode, ShaderPropertyType } from "../../enums/index.js";
+import { MaterialType, BlendingMode, ShaderPropertyType, CullMode } from "../../enums/index.js";
 import { Texture } from "../textures/Texture.js";
 import { RenderManifest } from "../renderers/shaders/RenderManifest.js";
 import { ShaderDefinition } from "../renderers/shaders/ShaderDefinition.js";
@@ -64,6 +64,7 @@ export class SpriteMaterial extends AbstractMaterial {
           blending: this.transparent ? BlendingMode.ALPHA : BlendingMode.OPAQUE,
           depthWrite: !this.transparent,
           isSprite: true,
+          culling: CullMode.NONE,
         },
       };
     }
@@ -92,6 +93,7 @@ export class SpriteMaterial extends AbstractMaterial {
     state.blending = this.transparent ? BlendingMode.ALPHA : BlendingMode.OPAQUE;
     state.depthWrite = !this.transparent;
     state.isSprite = true;
+    state.culling = CullMode.NONE;
 
     return this._renderManifest;
   }

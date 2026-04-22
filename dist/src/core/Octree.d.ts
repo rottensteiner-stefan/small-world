@@ -51,7 +51,7 @@ export declare class OctreeNode {
 export declare class Octree {
     root: OctreeNode;
     constructor(bounds: BoundingBox, options?: OctreeOptions);
-    insert(obj: Object3D): void;
+    insert(obj: Object3D): boolean;
     query(frustum: Frustum, intersectedNodes?: Set<OctreeNode>): Object3D[];
     /**
      * Queries the octree for objects intersecting with a volume.

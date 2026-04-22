@@ -74,6 +74,7 @@ export class WebGPURenderer extends AbstractRenderer {
 
   private _objectUniformBuffers: Map<string, { buffer: GPUBuffer; lastFrame: number }> = new Map();
   private _frameCount: number = 0;
+  private _scratchModelMatrix: Float32Array = new Float32Array(16);
 
   /** @inheritdoc */
   public async initialize(
@@ -368,11 +369,16 @@ export class WebGPURenderer extends AbstractRenderer {
     return c;
   }
 
-  public render(scene: Scene, vpMatrix: Float32Array, camPos: Vector3D = new Vector3D()): void {
+  public render(
+    scene: Scene,
+    vp: Float32Array,
+    camPos: Vector3D = Vector3D.ZERO,
+    vMat?: Float32Array,
+  ): void {
     if (!this._device) return;
     this._frameCount++;
     const lights = this.extractLights(scene);
-    this._updateGlobalBuffers(vpMatrix, camPos, lights);
+    this._updateGlobalBuffers(vp, camPos, lights);
     const ce = this._device.createCommandEncoder();
     const rp = ce.beginRenderPass({
       colorAttachments: [
@@ -393,11 +399,11 @@ export class WebGPURenderer extends AbstractRenderer {
     const sortedGroups = scene.getVisibleObjectsSorted();
     const skyboxGroup = sortedGroups.get(MaterialType.SKYBOX);
     if (skyboxGroup) {
-      this._renderGroup(rp, MaterialType.SKYBOX, skyboxGroup);
+      this._renderGroup(rp, MaterialType.SKYBOX, skyboxGroup, vMat);
       sortedGroups.delete(MaterialType.SKYBOX);
     }
     for (const [shaderId, materialGroups] of sortedGroups.entries()) {
-      this._renderGroup(rp, shaderId, materialGroups);
+      this._renderGroup(rp, shaderId, materialGroups, vMat);
     }
     rp.end();
     this._device.queue.submit([ce.finish()]);
@@ -417,6 +423,7 @@ export class WebGPURenderer extends AbstractRenderer {
     rp: GPURenderPassEncoder,
     shaderId: string,
     materialGroups: Map<string, Object3D[]>,
+    vMat?: Float32Array,
   ): void {
     const groupIterator = materialGroups.values();
     const firstGroup = groupIterator.next().value;
@@ -435,7 +442,7 @@ export class WebGPURenderer extends AbstractRenderer {
       for (const obj of objects) {
         if (!obj.geometry) continue;
         const uBuffer = this._getObjUniformBuffer(obj);
-        this._updateObjUniformBuffer(uBuffer, obj, manifest);
+        this._updateObjUniformBuffer(uBuffer, obj, manifest, vMat);
         const texBindGroup = this._getTexBindGroup(uBuffer, manifest, cache.bgLayouts[1]!);
         rp.setBindGroup(1, texBindGroup);
         const gCache = this._getGeoCache(obj.geometry);
@@ -471,12 +478,45 @@ export class WebGPURenderer extends AbstractRenderer {
     return data.buffer;
   }
 
-  private _updateObjUniformBuffer(b: GPUBuffer, o: Object3D, m: RenderManifest): void {
+  private _updateObjUniformBuffer(
+    b: GPUBuffer,
+    o: Object3D,
+    m: RenderManifest,
+    vMat?: Float32Array,
+  ): void {
     const data = new Float32Array(64);
     const props = m.properties;
 
-    // 1. World Matrix
-    data.set(o.worldMatrix.data, 0);
+    // 1. World Matrix & Billboarding
+    this._scratchModelMatrix.set(o.worldMatrix.data);
+    const state = m.state;
+    if (state?.isSprite && vMat) {
+      const sx = Math.sqrt(
+        this._scratchModelMatrix[0]! ** 2 +
+          this._scratchModelMatrix[1]! ** 2 +
+          this._scratchModelMatrix[2]! ** 2,
+      );
+      const sy = Math.sqrt(
+        this._scratchModelMatrix[4]! ** 2 +
+          this._scratchModelMatrix[5]! ** 2 +
+          this._scratchModelMatrix[6]! ** 2,
+      );
+      const sz = Math.sqrt(
+        this._scratchModelMatrix[8]! ** 2 +
+          this._scratchModelMatrix[9]! ** 2 +
+          this._scratchModelMatrix[10]! ** 2,
+      );
+      this._scratchModelMatrix[0] = vMat[0]! * sx;
+      this._scratchModelMatrix[1] = vMat[4]! * sx;
+      this._scratchModelMatrix[2] = vMat[8]! * sx;
+      this._scratchModelMatrix[4] = vMat[1]! * sy;
+      this._scratchModelMatrix[5] = vMat[5]! * sy;
+      this._scratchModelMatrix[6] = vMat[9]! * sy;
+      this._scratchModelMatrix[8] = vMat[2]! * sz;
+      this._scratchModelMatrix[9] = vMat[6]! * sz;
+      this._scratchModelMatrix[10] = vMat[10]! * sz;
+    }
+    data.set(this._scratchModelMatrix, 0);
 
     // 2. Base Color (u_color)
     const color = (props["u_color"] as Float32Array) || o.material!.color.toFloat32Array();
