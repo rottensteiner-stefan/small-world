@@ -10,8 +10,8 @@ struct VertexIn {
     var p = in.position;
     let time = obj.extraParams.y;
     let flowSpeed = obj.extraParams.z;
-    let waveFreq = obj.extraParams.w;
-    let waveAmp = obj.extraParams.x; // Simplified mapping
+    let waveFreq = obj.liquidParams.x;
+    let waveAmp = obj.liquidParams.y;
     
     let displacementSpeed = time * flowSpeed * 0.5;
     let wave = sin(p.x * waveFreq + displacementSpeed) * cos(p.z * waveFreq + displacementSpeed) * waveAmp;
