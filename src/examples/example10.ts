@@ -88,10 +88,13 @@ export class Example10 extends AbstractExample {
       generateMipmaps: true,
       flipY: true,
     });
-    this._lavaDisplacementMap = await Texture.fromUrl("/resources/examples/10/lava_displacement.png", {
-      generateMipmaps: true,
-      flipY: true,
-    });
+    this._lavaDisplacementMap = await Texture.fromUrl(
+      "/resources/examples/10/lava_displacement.png",
+      {
+        generateMipmaps: true,
+        flipY: true,
+      },
+    );
     this._lavaSpecularMap = await Texture.fromUrl("/resources/examples/10/lava_specular.png", {
       generateMipmaps: true,
       flipY: true,

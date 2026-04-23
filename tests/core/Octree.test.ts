@@ -8,7 +8,9 @@ import { Sprite } from "../../src/core/Sprite.js";
 
 describe("Octree", () => {
   it("should return true when inserting an object within bounds", () => {
-    const octree = new Octree(new BoundingBox(new Vector3D(-10, -10, -10), new Vector3D(10, 10, 10)));
+    const octree = new Octree(
+      new BoundingBox(new Vector3D(-10, -10, -10), new Vector3D(10, 10, 10)),
+    );
     const obj = new Object3D("TestObj");
     obj.geometry = new Cube({ size: 1 }).getGeometryData();
     obj.position.set(0, 0, 0);
@@ -20,7 +22,9 @@ describe("Octree", () => {
   });
 
   it("should return true when inserting a Sprite within bounds", () => {
-    const octree = new Octree(new BoundingBox(new Vector3D(-200, -50, -200), new Vector3D(200, 100, 200)));
+    const octree = new Octree(
+      new BoundingBox(new Vector3D(-200, -50, -200), new Vector3D(200, 100, 200)),
+    );
     const sprite = new Sprite();
     sprite.position.set(-14, 1.5, -5);
     sprite.updateMatrixWorld(true);
@@ -31,7 +35,9 @@ describe("Octree", () => {
   });
 
   it("should return false when inserting an object outside bounds", () => {
-    const octree = new Octree(new BoundingBox(new Vector3D(-10, -10, -10), new Vector3D(10, 10, 10)));
+    const octree = new Octree(
+      new BoundingBox(new Vector3D(-10, -10, -10), new Vector3D(10, 10, 10)),
+    );
     const obj = new Object3D("TestObj");
     obj.geometry = new Cube({ size: 1 }).getGeometryData();
     obj.position.set(20, 20, 20);
@@ -43,7 +49,9 @@ describe("Octree", () => {
   });
 
   it("should return false when inserting an object without bounds", () => {
-    const octree = new Octree(new BoundingBox(new Vector3D(-10, -10, -10), new Vector3D(10, 10, 10)));
+    const octree = new Octree(
+      new BoundingBox(new Vector3D(-10, -10, -10), new Vector3D(10, 10, 10)),
+    );
     const obj = new Object3D("TestObj");
     // No geometry = no bounds
 

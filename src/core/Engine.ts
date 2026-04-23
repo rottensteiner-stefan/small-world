@@ -2,5 +2,5 @@
 import { RendererType } from '../enums/index.js';
 
 export { RendererType };
-export const ENGINE_VERSION = "0.19.04";
+export const ENGINE_VERSION = "0.19.05";
 export const DEFAULT_RENDERER = RendererType.BEST;
