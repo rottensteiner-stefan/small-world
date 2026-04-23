@@ -19,7 +19,9 @@ uniform sampler2D u_ambientMap;
 out vec4 FragColor;
 
 void main() {
-    vec2 uv = v_uv * u_noiseScale;
+    // Use world position XZ for seamless tiling across objects
+    vec2 worldUV = v_worldPos.xz * 0.5; // Factor 0.5 because tile size was 2x2
+    vec2 uv = worldUV * u_noiseScale;
     
     vec2 uv1 = uv + vec2(u_time * 0.05, u_time * 0.02) * u_flowSpeed;
     vec2 uv2 = uv + vec2(-u_time * 0.03, u_time * 0.04) * u_flowSpeed;

@@ -13,8 +13,9 @@ struct VertexIn {
     let waveFreq = obj.liquidParams.x;
     let waveAmp = obj.liquidParams.y;
     
+    let worldPosPre = obj.model * vec4<f32>(p, 1.0);
     let displacementSpeed = time * flowSpeed * 0.5;
-    let wave = sin(p.x * waveFreq + displacementSpeed) * cos(p.z * waveFreq + displacementSpeed) * waveAmp;
+    let wave = sin(worldPosPre.x * waveFreq + displacementSpeed) * cos(worldPosPre.z * waveFreq + displacementSpeed) * waveAmp;
     
     p.y += wave;
 
@@ -29,7 +30,9 @@ struct VertexIn {
     let flowSpeed = obj.extraParams.z;
     let noiseScale = obj.extraParams.w;
 
-    let uv = i.uv * noiseScale;
+    // Use world position XZ for seamless tiling
+    let worldUV = i.wp.xz * 0.5; 
+    let uv = worldUV * noiseScale;
     let uv1 = uv + vec2<f32>(time * 0.05, time * 0.02) * flowSpeed;
     let uv2 = uv + vec2<f32>(-time * 0.03, time * 0.04) * flowSpeed;
 

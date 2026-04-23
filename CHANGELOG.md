@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.19.05] - 2026-04-22
+
+- **Liquid Shader Enhancements**:
+  - Implemented **World-Space Coordinate Mapping** for all liquid shaders (WebGL 1/2 and WebGPU). This enables seamless tiling of lava and slime across multiple adjacent objects without visible seams or broken wave patterns.
+  - Synchronized vertex displacement and fragment noise calculation to use global world positions.
+- **WebGPU Fixes**:
+  - Fixed a critical bug in `WebGPURenderer` where `waveFrequency` and `waveAmplitude` were not being passed to the uniform buffer.
+  - Corrected `Liquid.frag.wgsl` mapping to prevent it from using Ambient Occlusion (AO) as a fallback amplitude value.
+- **Visual Polishing**:
+  - Reduced default `waveAmplitude` for `LavaMaterial` (0.05) and `SlimeMaterial` (0.015) to ensure they fit correctly within container structures (like fire bowls) and look more realistic in grid-based levels.
+
 ## [0.19.04] - 2026-04-21
 
 - **Testing Infrastructure**:
