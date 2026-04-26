@@ -107,7 +107,7 @@ export class Scene {
     // Only proceed if object is visible and within the frustum
     if (!obj.isVisible || !obj.inFrustum) return;
 
-    if (obj.geometry && obj.material) {
+    if (obj.material && (obj.geometry || (obj as any).positionBuffer)) {
       const manifest = obj.material.getRenderManifest();
       const shaderId = manifest.shaderId;
       const matUuid = obj.material.uuid;

@@ -62,7 +62,7 @@ export class Example10 extends AbstractExample {
     this.scene.add(sun);
 
     // Textures
-    const sandTexture = await Texture.fromUrl("/resources/examples/10/sand.png", {
+    const sandTexture = await Texture.fromUrl("/resources/examples/10/floor-2.png", {
       anisotropy: 16,
       generateMipmaps: true,
       flipY: true,
@@ -70,7 +70,7 @@ export class Example10 extends AbstractExample {
     sandTexture.repeat.x = 20;
     sandTexture.repeat.y = 20;
 
-    const rockTexture = await Texture.fromUrl("/resources/examples/10/rock.png", {
+    const rockTexture = await Texture.fromUrl("/resources/examples/10/rock-1.png", {
       anisotropy: 16,
       generateMipmaps: true,
       flipY: true,

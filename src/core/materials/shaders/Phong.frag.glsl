@@ -15,10 +15,16 @@ void main() {
 
   [LIGHT_CALC]
 
-  vec3 albedo = texColor.rgb * u_color.rgb;
+  vec3 albedo = sRGBToLinear(texColor.rgb) * sRGBToLinear(u_color.rgb);
   // finalLight already contains ambient + all diffuse components
   // specular contains all specular components
-  vec3 finalColor = finalLight * albedo + specular * u_specColor.rgb * specMapValue;
+  vec3 finalColor = finalLight * albedo + specular * sRGBToLinear(u_specColor.rgb) * specMapValue;
   
+  // Exposure
+  finalColor *= u_exposure;
+
+  // Gamma Correction
+  finalColor = linearToSRGB(finalColor);
+
   fragColor = vec4(finalColor, u_color.a * texColor.a);
 }

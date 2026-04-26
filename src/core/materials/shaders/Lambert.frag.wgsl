@@ -4,8 +4,14 @@
   // Note: N is now defined inside WGSL_LIGHTING via normalize(i.n)
   [WGSL_LIGHTING]
   
-  let diffuseColor = texCol.rgb * obj.color.rgb;
-  let finalColor = fL * diffuseColor;
+  let albedo = sRGBToLinear(texCol.rgb) * sRGBToLinear(obj.color.rgb);
+  var finalColor = fL * albedo;
+
+  // Exposure
+  finalColor *= global.exposure;
+
+  // Gamma correction
+  finalColor = linearToSRGB(finalColor);
 
   return vec4f(finalColor, obj.color.a * texCol.a);
 }

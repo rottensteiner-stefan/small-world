@@ -160,7 +160,7 @@ export abstract class LiquidMaterial extends AbstractMaterial {
           vs: vertGLSL100,
           fs: fragGLSL100,
         },
-        wgsl: `[WGSL_STRUCTS]\n${fragWGSL}`,
+        wgsl: `[WGSL_STRUCTS]\n[WGSL_PBR_MATH]\n${fragWGSL}`,
       },
       layout: {
         uniforms: {

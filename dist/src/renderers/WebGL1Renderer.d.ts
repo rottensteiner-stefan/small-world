@@ -10,6 +10,8 @@ export declare class WebGL1Renderer extends AbstractWebGLRenderer {
     /** @inheritdoc */
     readonly type: RendererType;
     protected gl: WebGLRenderingContext;
+    /** Satisfies Renderer interface */
+    get webglContext(): WebGLRenderingContext;
     private _programs;
     private _cache;
     private _texCache;

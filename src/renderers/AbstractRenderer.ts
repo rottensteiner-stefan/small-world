@@ -25,6 +25,8 @@ export abstract class AbstractRenderer implements Renderer {
     maxShadowResolution: 1024,
     hdr: false,
     toneMapping: ToneMapping.NONE,
+    gamma: 2.2,
+    exposure: 1.0,
   };
 
   /** Cached light data to avoid GC pressure. */

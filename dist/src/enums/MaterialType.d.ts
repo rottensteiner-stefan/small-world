@@ -24,6 +24,8 @@ export declare const MaterialType: {
     readonly LAVA: "LavaMaterial";
     /** Specialized animated toxic slime material. */
     readonly SLIME: "SlimeMaterial";
+    /** Specialized fluid material. */
+    readonly FLUID: "FluidMaterial";
 };
 /** Type definition for MaterialType. */
 export type MaterialType = (typeof MaterialType)[keyof typeof MaterialType];

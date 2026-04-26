@@ -29,5 +29,11 @@ void main() {
 
   [LIGHT_CALC]
 
-  fragColor = vec4((finalLight * u_color.rgb * texColor.rgb) + (specular * u_specColor.rgb), u_color.a * texColor.a);
+  vec3 albedo = sRGBToLinear(texColor.rgb) * sRGBToLinear(u_color.rgb);
+  vec3 finalColor = finalLight * albedo + specular * sRGBToLinear(u_specColor.rgb);
+  
+  finalColor *= u_exposure;
+  finalColor = linearToSRGB(finalColor);
+
+  fragColor = vec4(finalColor, u_color.a * texColor.a);
 }

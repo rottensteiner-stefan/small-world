@@ -43,9 +43,15 @@ struct VertexIn {
     let noise = (n1 + n2) * 0.5;
 
     let blend = smoothstep(0.6, 0.8, noise);
-    let glow = obj.color.rgb * (1.0 - smoothstep(0.0, 0.6, noise)) * 1.5;
-    let crust = obj.specColor.rgb; 
-    let finalColor = mix(glow, crust, blend);
+    let glow = sRGBToLinear(obj.color.rgb) * (1.0 - smoothstep(0.0, 0.6, noise)) * 1.5;
+    let crust = sRGBToLinear(obj.specColor.rgb); 
+    var finalColor = mix(glow, crust, blend);
+
+    // Exposure
+    finalColor *= global.exposure;
+
+    // Gamma correction
+    finalColor = linearToSRGB(finalColor);
 
     return vec4<f32>(finalColor, 1.0);
 }

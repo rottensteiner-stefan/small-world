@@ -10,10 +10,13 @@ export declare class WebGPURenderer extends AbstractRenderer {
     readonly type: RendererType;
     private _adapter;
     private _device;
+    /** Satisfies Renderer interface */
+    get gpuDevice(): GPUDevice | undefined;
     private _context;
     private _format;
     private _pipelines;
     private _shaderModules;
+    private _fluidCompositePipeline;
     private _whiteTexView;
     private _flatNormalTexView;
     private _defaultCubeTexView;
@@ -26,6 +29,10 @@ export declare class WebGPURenderer extends AbstractRenderer {
     private _textureViewCache;
     private _cubeTextureViewCache;
     private _depthTexture;
+    private _fluidDepthTexture;
+    private _fluidThicknessTexture;
+    private _fluidDepthView;
+    private _fluidThicknessView;
     private _globalUniformBuffer;
     private _pointLightBuffer;
     private _spotLightBuffer;
@@ -54,5 +61,7 @@ export declare class WebGPURenderer extends AbstractRenderer {
     private _getNormalTextureView;
     private _getGPUCubeTextureView;
     private _updateGlobalBuffers;
+    private _renderFluidComposite;
+    private _renderFluidPasses;
     setSize(width: number, height: number): void;
 }

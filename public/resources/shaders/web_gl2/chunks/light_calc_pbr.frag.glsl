@@ -62,6 +62,9 @@ for(int i = 0; i < u_numPointLights; ++i) {
 vec3 ambient = u_ambientColor * albedo * ao;
 vec3 color = ambient + Lo;
 
+// Exposure
+color *= u_exposure;
+
 // Simple HDR Tone Mapping
 color = color / (color + vec3(1.0));
 // Gamma Correction

@@ -5,6 +5,10 @@
   "worldSize": 100,
   "skyColor": "midnightblue",
   "showHUD": true,
+  "quality": {
+    "exposure": 2.2,
+    "gamma": 2.2
+  },
   "renderer": [
     {
       "type": "WEB_GPU",

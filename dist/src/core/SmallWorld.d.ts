@@ -1,13 +1,8 @@
-import { RendererType } from './index.js';
-import { Renderer } from '../interfaces/index.js';
+import { Renderer, EngineConfig } from '../interfaces/index.js';
 /**
  * Global world configuration.
  */
-export interface WorldConfig {
-    /** The type of renderer to use. */
-    rendererType?: RendererType | string;
-    /** The ID of the canvas element. */
-    canvasId: string;
+export interface WorldConfig extends EngineConfig {
     /** Whether debug mode is enabled. */
     debug?: boolean;
     /** The size of the world. */

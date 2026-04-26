@@ -8,6 +8,7 @@
     "strict": true,
     "sourceMap": true,
     "esModuleInterop": true,
+    "skipLibCheck": true,
     "types": ["@webgpu/types", "@types/node"],
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,

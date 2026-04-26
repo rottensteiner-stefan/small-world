@@ -3,30 +3,29 @@
 
 void main() {
   vec4 texColor = texture(u_diffuseMap, v_uv);
-  float specMap = texture(u_specularMap, v_uv).r;
-
-  vec3 normalMap = texture(u_normalMap, v_uv).rgb;
-  vec3 N;
+  float specMapValue = texture(u_specularMap, v_uv).r;
+  vec3 normalMapValue = texture(u_normalMap, v_uv).rgb;
   
-  // Standard-Normale nutzen, wenn keine echte Map vorhanden
-  if (normalMap.b > 0.9 && normalMap.r > 0.4 && normalMap.r < 0.6 && normalMap.g > 0.4 && normalMap.g < 0.6) {
+  vec3 N;
+  if (normalMapValue.b > 0.9 && normalMapValue.r > 0.4 && normalMapValue.r < 0.6 && normalMapValue.g > 0.4 && normalMapValue.g < 0.6) {
     N = normalize(v_normal);
   } else {
-    normalMap = normalize(normalMap * 2.0 - 1.0);
-    N = normalize(v_tbn * normalMap);
+    normalMapValue = normalize(normalMapValue * 2.0 - 1.0);
+    N = normalize(v_tbn * normalMapValue);
   }
 
   [LIGHT_CALC]
 
-  // Kombiniere Textur-Farbe mit Material-Farbe
-  vec3 diffuseColor = texColor.rgb * u_color.rgb;
+  vec3 albedo = sRGBToLinear(texColor.rgb) * sRGBToLinear(u_color.rgb);
+  // finalLight already contains ambient + all diffuse components
+  // specular contains all specular components
+  vec3 finalColor = finalLight * albedo + specular * sRGBToLinear(u_specColor.rgb) * specMapValue;
   
-  // Falls das Ergebnis extrem dunkel ist, erzwinge eine Mindesthelligkeit für das Ambient Light
-  vec3 ambientFinal = u_ambientColor * diffuseColor;
-  if (length(ambientFinal) < 0.05) {
-    ambientFinal = u_ambientColor * u_color.rgb * 0.5; 
-  }
+  // Exposure
+  finalColor *= u_exposure;
 
-  // Finales Shading
-  fragColor = vec4(ambientFinal + (diff_dir * u_dirLightColor * diffuseColor) + (specular * u_specColor.rgb * specMap), 1.0);
+  // Gamma Correction
+  finalColor = linearToSRGB(finalColor);
+
+  fragColor = vec4(finalColor, u_color.a * texColor.a);
 }
