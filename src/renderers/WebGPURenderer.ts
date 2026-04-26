@@ -226,8 +226,10 @@ export class WebGPURenderer extends AbstractRenderer {
       }
       const objBGL = this._device!.createBindGroupLayout({ entries: objEntries });
       const pipelineLayout = this._device!.createPipelineLayout({ bindGroupLayouts: [this._globalBGL, objBGL] });
+      
+      const isFluid = shaderId === MaterialType.FLUID;
       const vertexBuffers: GPUVertexBufferLayout[] = [
-        { arrayStride: 16, attributes: [{ shaderLocation: 0, offset: 0, format: "float32x4" }] },
+        { arrayStride: isFluid ? 16 : 12, attributes: [{ shaderLocation: 0, offset: 0, format: isFluid ? "float32x4" : "float32x3" }] },
         { arrayStride: 12, attributes: [{ shaderLocation: 1, offset: 0, format: "float32x3" }] },
         { arrayStride: 8, attributes: [{ shaderLocation: 2, offset: 0, format: "float32x2" }] },
         { arrayStride: 12, attributes: [{ shaderLocation: 3, offset: 0, format: "float32x3" }] },
