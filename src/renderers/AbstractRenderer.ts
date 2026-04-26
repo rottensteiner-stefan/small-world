@@ -63,6 +63,11 @@ export abstract class AbstractRenderer implements Renderer {
     this._clearColor = color;
   }
 
+  /** @inheritdoc */
+  public get clearColor(): Color {
+    return this._clearColor;
+  }
+
   /**
    * Extracts all lights from the scene for rendering.
    * @param scene The scene to extract lights from.

@@ -53,7 +53,7 @@ struct GlobalUniforms {
 };
 
 struct ObjectUniforms {
-  modelMatrix: mat4x4<f32>,
+  model: mat4x4<f32>,
   color: vec4<f32>,
   particleSize: f32,
 };
@@ -69,7 +69,7 @@ struct VertexOutput {
 @vertex
 fn vs(@location(0) pos: vec4<f32>) -> VertexOutput {
   var out: VertexOutput;
-  out.position = global.viewProjection * obj.modelMatrix * vec4<f32>(pos.xyz, 1.0);
+  out.position = global.viewProjection * obj.model * vec4<f32>(pos.xyz, 1.0);
   out.color = obj.color;
   return out;
 }
@@ -86,9 +86,11 @@ fn fs(in: VertexOutput) -> @location(0) vec4<f32> {
       },
       layout: {
         uniforms: {
+          u_model: { type: ShaderPropertyType.MAT4 },
           u_color: { type: ShaderPropertyType.COLOR },
           u_particleSize: { type: ShaderPropertyType.FLOAT },
         },
+        uniformLayout: ["u_model", "u_color", "u_particleSize"],
         textures: {},
       },
     };

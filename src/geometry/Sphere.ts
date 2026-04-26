@@ -82,8 +82,8 @@ export class Sphere extends AbstractGeometry {
       for (let x: number = 0; x < this.widthSegments; x++) {
         const first: number = y * (this.widthSegments + 1) + x;
         const second: number = first + this.widthSegments + 1;
-        idx.push(first, second, first + 1);
-        idx.push(second, second + 1, first + 1);
+        idx.push(first, second, second + 1);
+        idx.push(first, second + 1, first + 1);
       }
     }
 

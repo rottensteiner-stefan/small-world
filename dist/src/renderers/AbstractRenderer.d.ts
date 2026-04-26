@@ -25,6 +25,8 @@ export declare abstract class AbstractRenderer implements Renderer {
     destroy(): void;
     /** @inheritdoc */
     setClearColor(color: Color): void;
+    /** @inheritdoc */
+    get clearColor(): Color;
     /**
      * Extracts all lights from the scene for rendering.
      * @param scene The scene to extract lights from.

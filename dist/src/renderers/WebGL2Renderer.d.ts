@@ -9,8 +9,7 @@ import { Vector3D } from '../math/index.js';
 export declare class WebGL2Renderer extends AbstractWebGLRenderer {
     /** @inheritdoc */
     readonly type: RendererType;
-    /** Satisfies Renderer interface */
-    get webglContext(): WebGL2RenderingContext;
+    protected gl: WebGL2RenderingContext;
     private _programs;
     private _cache;
     private _texCache;

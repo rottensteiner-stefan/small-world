@@ -79,8 +79,8 @@ export class Torus extends AbstractGeometry {
         const c: number = (this.tubularSegments + 1) * (j - 1) + i;
         const d: number = (this.tubularSegments + 1) * j + i;
 
-        idx.push(a, b, d);
-        idx.push(b, c, d);
+        idx.push(a, d, b);
+        idx.push(b, d, c);
       }
     }
 

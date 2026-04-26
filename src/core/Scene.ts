@@ -104,10 +104,12 @@ export class Scene {
   }
 
   private _collectVisible(obj: Object3D, sorted: Map<string, Map<string, Object3D[]>>): void {
-    // Only proceed if object is visible and within the frustum
-    if (!obj.isVisible || !obj.inFrustum) return;
+    // Only proceed if object is visible
+    if (!obj.isVisible) return;
+    // For debugging: ignore frustum
+    // if (!obj.inFrustum) return;
 
-    if (obj.material && (obj.geometry || (obj as any).positionBuffer)) {
+    if ((obj.geometry || (obj as any).positionBuffer) && obj.material) {
       const manifest = obj.material.getRenderManifest();
       const shaderId = manifest.shaderId;
       const matUuid = obj.material.uuid;

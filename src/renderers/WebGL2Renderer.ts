@@ -13,7 +13,7 @@ import {
 import { Mesh } from "./Mesh.js";
 import { Object3D } from "../core/Object3D.js";
 import { Scene } from "../core/Scene.js";
-import { Vector3D } from "../math/index.js";
+import { MathPool, Vector3D } from "../math/index.js";
 import { WebGL2UniformBuffer } from "./WebGL2UniformBuffer.js";
 
 interface ProgramCache {
@@ -28,11 +28,7 @@ interface ProgramCache {
 export class WebGL2Renderer extends AbstractWebGLRenderer {
   /** @inheritdoc */
   public override readonly type: RendererType = RendererType.WEB_GL2;
-
-  /** Satisfies Renderer interface */
-  public get webglContext(): WebGL2RenderingContext {
-    return this.gl as WebGL2RenderingContext;
-  }
+  declare protected gl: WebGL2RenderingContext;
 
   private _programs: Map<string, ProgramCache> = new Map();
 
@@ -62,7 +58,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     this.initDefaultTextures();
     this.gl.enable(this.gl.DEPTH_TEST);
 
-    this._globalUBO = new WebGL2UniformBuffer(this.gl as WebGL2RenderingContext, 1280, 0);
+    this._globalUBO = new WebGL2UniformBuffer(this.gl, 1280, 0);
   }
 
   private _getProgram(shaderId: string): ProgramCache {
@@ -85,11 +81,11 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       this._globalUBO.bindToProgram(prog, "GlobalUniforms");
 
       ["a_position", "a_normal", "a_uv", "a_tangent"].forEach((name) => {
-        attributes.set(name, (this.gl as WebGL2RenderingContext).getAttribLocation(prog, name));
+        attributes.set(name, this.gl.getAttribLocation(prog, name));
       });
 
       Object.keys(def.layout.uniforms).forEach((name) => {
-        uniforms.set(name, (this.gl as WebGL2RenderingContext).getUniformLocation(prog, name) ?? undefined);
+        uniforms.set(name, this.gl.getUniformLocation(prog, name) ?? undefined);
       });
 
       [
@@ -102,7 +98,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         "u_flowSpeed",
         "u_noiseScale",
       ].forEach((name) => {
-        uniforms.set(name, (this.gl as WebGL2RenderingContext).getUniformLocation(prog, name) ?? undefined);
+        uniforms.set(name, this.gl.getUniformLocation(prog, name) ?? undefined);
       });
 
       [
@@ -117,7 +113,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         "u_texOffset",
         "u_texRepeat",
       ].forEach((name) => {
-        uniforms.set(name, (this.gl as WebGL2RenderingContext).getUniformLocation(prog, name) ?? undefined);
+        uniforms.set(name, this.gl.getUniformLocation(prog, name) ?? undefined);
       });
 
       cache = { prog, uniforms, attributes };
@@ -189,7 +185,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, glTex);
       for (let i: number = 0; i < 6; i++) {
         this.gl.texImage2D(
-          (this.gl as WebGL2RenderingContext).TEXTURE_CUBE_MAP_POSITIVE_X + i,
+          this.gl.TEXTURE_CUBE_MAP_POSITIVE_X + i,
           0,
           this.gl.RGBA,
           this.gl.RGBA,
@@ -263,7 +259,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       const manifest = mat.getRenderManifest();
       const u = cache.uniforms;
 
-      // --- 1. Bind Material States ---
+      // --- 1. Bind Material States (Once per material group) ---
       const state = manifest.state;
       if (state && CullMode.NONE === state.culling) this.gl.disable(this.gl.CULL_FACE);
       else {
@@ -271,19 +267,23 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         this.gl.cullFace(state && CullMode.FRONT === state.culling ? this.gl.FRONT : this.gl.BACK);
       }
 
-      // --- 2. Bind Generic Material Properties ---
+      // --- 2. Bind Generic Material Properties (Uniforms) ---
       for (const [name, value] of Object.entries(manifest.properties)) {
         const loc = u.get(name);
         if (!loc) continue;
 
         if (typeof value === "number") {
-          (this.gl as WebGL2RenderingContext).uniform1f(loc, value);
+          this.gl.uniform1f(loc, value);
         } else if (ArrayBuffer.isView(value)) {
           const v = value as Float32Array;
-          if (v.length === 4) (this.gl as WebGL2RenderingContext).uniform4fv(loc, v);
-          else if (v.length === 3) (this.gl as WebGL2RenderingContext).uniform3fv(loc, v);
-          else if (v.length === 2) (this.gl as WebGL2RenderingContext).uniform2fv(loc, v);
-          else if (v.length === 16) (this.gl as WebGL2RenderingContext).uniformMatrix4fv(loc, false, v);
+          if (v.length === 4) this.gl.uniform4fv(loc, v);
+          else if (v.length === 3) this.gl.uniform3fv(loc, v);
+          else if (v.length === 2) this.gl.uniform2fv(loc, v);
+          else if (v.length === 16) this.gl.uniformMatrix4fv(loc, false, v);
+        } else if (Array.isArray(value)) {
+          if (value.length === 4) this.gl.uniform4fv(loc, new Float32Array(value));
+          else if (value.length === 3) this.gl.uniform3fv(loc, new Float32Array(value));
+          else if (value.length === 2) this.gl.uniform2fv(loc, new Float32Array(value));
         }
       }
 
@@ -297,7 +297,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
           skyTex ? this._getWebGLCubeTexture(skyTex) : this.defaultCubeTexture,
         );
         const uSkybox = u.get("u_skybox");
-        if (uSkybox) (this.gl as WebGL2RenderingContext).uniform1i(uSkybox, 0);
+        if (uSkybox) this.gl.uniform1i(uSkybox, 0);
       } else {
         const samplerUnits: Record<string, number> = {
           u_diffuseMap: 0,
@@ -322,20 +322,35 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
                 this.gl.TEXTURE_2D,
                 t ? this._getWebGLTexture(t) : this.defaultTexture,
               );
-            (this.gl as WebGL2RenderingContext).uniform1i(loc, unit);
+            this.gl.uniform1i(loc, unit);
           }
         }
       }
 
-      // --- 4. Render each object ---
+      // --- 4. Render each object in the material group ---
       for (const o of objects) {
         if (!o.geometry) continue;
 
+        // Model Matrix & Billboarding
         this._scratchModelMatrix.set(o.worldMatrix.data);
         if (state?.isSprite && vMat) {
-          const sx = Math.sqrt(this._scratchModelMatrix[0]! ** 2 + this._scratchModelMatrix[1]! ** 2 + this._scratchModelMatrix[2]! ** 2);
-          const sy = Math.sqrt(this._scratchModelMatrix[4]! ** 2 + this._scratchModelMatrix[5]! ** 2 + this._scratchModelMatrix[6]! ** 2);
-          const sz = Math.sqrt(this._scratchModelMatrix[8]! ** 2 + this._scratchModelMatrix[9]! ** 2 + this._scratchModelMatrix[10]! ** 2);
+          const sx = Math.sqrt(
+            this._scratchModelMatrix[0]! ** 2 +
+              this._scratchModelMatrix[1]! ** 2 +
+              this._scratchModelMatrix[2]! ** 2,
+          );
+          const sy = Math.sqrt(
+            this._scratchModelMatrix[4]! ** 2 +
+              this._scratchModelMatrix[5]! ** 2 +
+              this._scratchModelMatrix[6]! ** 2,
+          );
+          const sz = Math.sqrt(
+            this._scratchModelMatrix[8]! ** 2 +
+              this._scratchModelMatrix[9]! ** 2 +
+              this._scratchModelMatrix[10]! ** 2,
+          );
+          // Set rotation part of model matrix to transpose of view matrix rotation
+          // This cancels camera rotation.
           this._scratchModelMatrix[0] = vMat[0]! * sx;
           this._scratchModelMatrix[1] = vMat[4]! * sx;
           this._scratchModelMatrix[2] = vMat[8]! * sx;
@@ -347,8 +362,9 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
           this._scratchModelMatrix[10] = vMat[10]! * sz;
         }
         const uModel = u.get("u_model");
-        if (uModel) (this.gl as WebGL2RenderingContext).uniformMatrix4fv(uModel, false, this._scratchModelMatrix);
+        if (uModel) this.gl.uniformMatrix4fv(uModel, false, this._scratchModelMatrix);
 
+        // Bind and Draw Geometry
         let mesh = this._cache.get(o.geometry);
         if (!mesh) {
           mesh = new Mesh(this.gl, o.geometry);
@@ -365,15 +381,110 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
           cache.attributes.get("a_tangent")!,
         );
 
-        this.gl.drawElements(this.gl.TRIANGLES, mesh.count, mesh.indexType, 0);
+        const drawMode = MaterialType.WIREFRAME === shaderId ? this.gl.LINES : this.gl.TRIANGLES;
+        mesh.draw(drawMode);
       }
     }
   }
 
-  private _updateGlobalUBO(vp: Float32Array, camPos: Vector3D, _lights: LightDataInterface): void {
+  private _updateGlobalUBO(vp: Float32Array, camPos: Vector3D, lights: LightDataInterface): void {
     const ubo = this._globalUBO;
     ubo.setMatrix(0, vp);
     ubo.setVector3(64, camPos);
+
+    // Scale colors by intensity
+    const aScaled = new Vector3D(
+      lights.aCol.r * lights.aIntensity,
+      lights.aCol.g * lights.aIntensity,
+      lights.aCol.b * lights.aIntensity,
+    );
+    const dScaled = new Vector3D(
+      lights.dCol.r * lights.dIntensity,
+      lights.dCol.g * lights.dIntensity,
+      lights.dCol.b * lights.dIntensity,
+    );
+
+    ubo.setVector3(80, aScaled);
+    ubo.setVector3(96, dScaled);
+    ubo.setVector3(112, lights.dDir);
+    ubo.setInt(128, lights.pLights.length);
+    ubo.setInt(132, lights.sLights.length);
+    ubo.setInt(136, lights.aLights.length);
+
+    for (let i = 0; i < 4; i++) {
+      const offset = 144 + i * 32;
+      if (i < lights.pLights.length) {
+        const pl = lights.pLights[i]!;
+        ubo.setVector3(
+          offset,
+          new Vector3D(
+            pl.worldMatrix.data[12]!,
+            pl.worldMatrix.data[13]!,
+            pl.worldMatrix.data[14]!,
+          ),
+        );
+        ubo.setVector3(
+          offset + 16,
+          new Vector3D(
+            pl.color.r * pl.intensity,
+            pl.color.g * pl.intensity,
+            pl.color.b * pl.intensity,
+          ),
+        );
+      }
+    }
+
+    for (let i = 0; i < 4; i++) {
+      const offset = 272 + i * 64;
+      if (i < lights.sLights.length) {
+        const sl = lights.sLights[i]!;
+        const dir = MathPool.acquireVector().copyFrom(sl.direction).normalize();
+        ubo.setVector3(
+          offset,
+          new Vector3D(
+            sl.worldMatrix.data[12]!,
+            sl.worldMatrix.data[13]!,
+            sl.worldMatrix.data[14]!,
+          ),
+        );
+        ubo.setVector3(offset + 16, dir);
+        ubo.setVector3(
+          offset + 32,
+          new Vector3D(
+            sl.color.r * sl.intensity,
+            sl.color.g * sl.intensity,
+            sl.color.b * sl.intensity,
+          ),
+        );
+        ubo.setFloat(offset + 48, Math.cos(sl.angle));
+        ubo.setFloat(offset + 52, Math.cos(sl.angle * (1.0 - sl.penumbra)));
+        ubo.setFloat(offset + 56, sl.distance);
+        ubo.setFloat(offset + 60, sl.decay);
+        MathPool.releaseVector(dir);
+      }
+    }
+
+    for (let i = 0; i < 4; i++) {
+      const offset = 528 + i * 112;
+      if (i < lights.aLights.length) {
+        const al = lights.aLights[i]!;
+        const mat = al.worldMatrix.data;
+        ubo.setVector3(offset, new Vector3D(mat[12]!, mat[13]!, mat[14]!));
+        ubo.setVector3(
+          offset + 16,
+          new Vector3D(
+            al.color.r * al.intensity,
+            al.color.g * al.intensity,
+            al.color.b * al.intensity,
+          ),
+        );
+        ubo.setVector3(offset + 32, new Vector3D(mat[0]!, mat[1]!, mat[2]!));
+        ubo.setVector3(offset + 48, new Vector3D(mat[4]!, mat[5]!, mat[6]!));
+        ubo.setVector3(offset + 64, new Vector3D(mat[8]!, mat[9]!, mat[10]!));
+        ubo.setFloat(offset + 80, al.width / 2.0);
+        ubo.setFloat(offset + 84, al.height / 2.0);
+      }
+    }
     ubo.update();
   }
 }

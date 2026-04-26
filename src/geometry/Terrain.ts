@@ -218,8 +218,8 @@ export class Terrain extends AbstractGeometry {
         const c: number = x + 1 + (this.meshWidthSegments + 1) * (z + 1);
         const d: number = x + 1 + (this.meshWidthSegments + 1) * z;
 
-        idx.push(a, b, d);
-        idx.push(d, b, c); // Standard CCW
+        idx.push(a, b, c);
+        idx.push(a, c, d);
       }
     }
 

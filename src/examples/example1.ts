@@ -9,6 +9,7 @@ import {
   PerspectiveProjection,
   PhongMaterial,
   ProjectionType,
+  AmbientLight,
 } from "../index.js";
 import { AbstractExample } from "../core/example/AbstractExample.js";
 
@@ -28,8 +29,11 @@ class Example1 extends AbstractExample {
     }
 
     // 1. Light: A gentle sun
-    const sun: DirectionalLight = new DirectionalLight({ color: Color.WHITE, intensity: 0.8 });
+    const sun: DirectionalLight = new DirectionalLight({ color: Color.WHITE, intensity: 1.0 });
     sun.direction.set(-1, -1, -1);
+    this.scene.add(sun);
+    
+    this.scene.add(new AmbientLight({ color: Color.WHITE, intensity: 0.2 }));
 
     // 2. Object: A single cube with blue material
     this._myCube = new Object3D("RotatingCube").setPosition(0, 0, 0).setScale(1);
@@ -40,20 +44,21 @@ class Example1 extends AbstractExample {
       shininess: 60,
     });
 
-    this.scene.add(sun, this._myCube);
+    this.scene.add(this._myCube);
 
     // 3. Position camera rigidly
     this.camera.setStrategy(CameraStrategyType.FIXED);
     this.camera.position.set(0, 3, 6);
     this.camera.target.set(0, 0, 0);
+    this.camera.updateViewMatrix();
   }
 
   protected override update(deltaTime: number): void {
     // Rotate the cube around all axes every frame
     this._myCube.rotation.x += 1.0 * deltaTime;
     this._myCube.rotation.y += 1.5 * deltaTime;
-
-    // We have completely removed the call to this.scene.update() here!
+    
+    this.scene.update();
   }
 }
 

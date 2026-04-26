@@ -12,6 +12,11 @@ export interface ShaderPropertyMetadata {
 export interface ShaderLayout {
     /** Map of uniform names to their metadata. */
     uniforms: Record<string, ShaderPropertyMetadata>;
+    /**
+     * Explicit order of uniforms in the buffer for automated packing.
+     * If provided, the renderer can automatically pack data into buffers.
+     */
+    uniformLayout?: string[];
     /** Map of texture names to their metadata. */
     textures: Record<string, ShaderPropertyMetadata>;
 }
