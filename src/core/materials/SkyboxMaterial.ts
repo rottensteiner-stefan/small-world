@@ -4,6 +4,7 @@ import { CullMode, MaterialType, ShaderPropertyType } from "../../enums/index.js
 import { Color } from "../colors/Color.js";
 import { RenderManifest } from "../renderers/shaders/RenderManifest.js";
 import { ShaderDefinition } from "../renderers/shaders/ShaderDefinition.js";
+import { StandardWebGPULayout } from "../renderers/shaders/StandardWebGPULayout.js";
 
 import vertGLSL from "./shaders/Skybox.vert.glsl?raw";
 import fragGLSL from "./shaders/Skybox.frag.glsl?raw";
@@ -46,6 +47,16 @@ export class SkyboxMaterial extends AbstractMaterial {
         shaderId: this.type,
         properties: {
           u_color: this.color.toFloat32Array(),
+          u_specColor: new Float32Array([1, 1, 1, 1]),
+          u_texOffset: [0, 0],
+          u_texRepeat: [1, 1],
+          u_shininess: 32.0,
+          u_isTerrain: 0.0,
+          u_metallic: 0.0,
+          u_roughness: 0.5,
+          u_extraParams: [1.0, 0, 0, 0],
+          u_liquidParams: [0, 0, 0, 0],
+          u_thresholds: [0, 0, 0, 0],
         },
         textures: {
           u_skybox: this.cubeMap || undefined,
@@ -82,7 +93,7 @@ export class SkyboxMaterial extends AbstractMaterial {
         wgsl: `[WGSL_STRUCTS]\n${fragWGSL}`,
       },
       layout: {
-        uniforms: { u_color: { type: ShaderPropertyType.COLOR } },
+        ...StandardWebGPULayout,
         textures: { u_skybox: { type: ShaderPropertyType.TEXTURE } },
       },
     };

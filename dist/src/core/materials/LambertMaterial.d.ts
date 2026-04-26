@@ -20,7 +20,7 @@ export interface LambertMaterialOptions {
 export declare class LambertMaterial extends AbstractMaterial {
     /** The diffuse texture map. */
     diffuseMap: Texture | undefined;
-    /** The normal texture map. */
+    /** The normal map texture. */
     normalMap: Texture | undefined;
     constructor(options?: LambertMaterialOptions);
     /** @inheritdoc */

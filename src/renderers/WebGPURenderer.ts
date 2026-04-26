@@ -16,8 +16,12 @@ import { EngineConfig } from "../interfaces/EngineConfig.js";
 
 import { AbstractRenderer } from "./AbstractRenderer.js";
 import { FluidRenderingWGSL } from "./shaders/FluidRenderingWGSL.js";
+import { RenderPass } from "./RenderPass.js";
+import { MainRenderPass } from "./passes/MainRenderPass.js";
+import { FluidPass } from "./passes/FluidPass.js";
+import { UniformPacker } from "../core/renderers/shaders/UniformPacker.js";
 
-interface WebGPUGeoCache {
+export interface WebGPUGeoCache {
   vb: GPUBuffer;
   nb: GPUBuffer | undefined;
   uvb: GPUBuffer | undefined;
@@ -30,7 +34,7 @@ interface WebGPUGeoCache {
   format: GPUIndexFormat | undefined;
 }
 
-interface WebGPUPipelineCache {
+export interface WebGPUPipelineCache {
   pipeline: GPURenderPipeline;
   layout: GPUPipelineLayout;
   bgLayouts: GPUBindGroupLayout[];
@@ -41,54 +45,57 @@ interface WebGPUPipelineCache {
  */
 export class WebGPURenderer extends AbstractRenderer {
   public override readonly type: RendererType = RendererType.WEB_GPU;
-  private _adapter: GPUAdapter | undefined = undefined;
-  private _device: GPUDevice | undefined = undefined;
+  protected _adapter: GPUAdapter | undefined = undefined;
+  public _device: GPUDevice | undefined = undefined;
 
   /** Satisfies Renderer interface */
   public get gpuDevice(): GPUDevice | undefined {
     return this._device;
   }
 
-  private _context!: GPUCanvasContext;
-  private _format!: GPUTextureFormat;
+  protected _context!: GPUCanvasContext;
+  public _format!: GPUTextureFormat;
 
-  private _pipelines: Map<string, WebGPUPipelineCache> = new Map();
-  private _shaderModules: Map<string, GPUShaderModule> = new Map();
-  private _fluidCompositePipeline: GPURenderPipeline | undefined;
+  protected _pipelines: Map<string, WebGPUPipelineCache> = new Map();
+  protected _shaderModules: Map<string, GPUShaderModule> = new Map();
+  public _fluidCompositePipeline: GPURenderPipeline | undefined;
 
-  private _whiteTexView!: GPUTextureView;
-  private _flatNormalTexView!: GPUTextureView;
-  private _defaultCubeTexView!: GPUTextureView;
+  protected _whiteTexView!: GPUTextureView;
+  protected _flatNormalTexView!: GPUTextureView;
+  protected _defaultCubeTexView!: GPUTextureView;
 
-  private _samplerCache: Map<string, GPUSampler> = new Map();
+  protected _samplerCache: Map<string, GPUSampler> = new Map();
 
-  private _dummyNormalBuffer!: GPUBuffer;
-  private _dummyUvBuffer!: GPUBuffer;
-  private _dummyTangentBuffer!: GPUBuffer;
-  private _dummyBufferSize: number = 0;
+  protected _dummyNormalBuffer!: GPUBuffer;
+  protected _dummyUvBuffer!: GPUBuffer;
+  protected _dummyTangentBuffer!: GPUBuffer;
+  protected _dummyBufferSize: number = 0;
 
-  private _geoCache: Map<GeometryDataInterface, WebGPUGeoCache> = new Map();
-  private _textureViewCache: Map<Texture, GPUTextureView> = new Map();
-  private _cubeTextureViewCache: Map<CubeTexture, GPUTextureView> = new Map();
+  protected _geoCache: Map<GeometryDataInterface, WebGPUGeoCache> = new Map();
+  protected _textureViewCache: Map<Texture, GPUTextureView> = new Map();
+  protected _cubeTextureViewCache: Map<CubeTexture, GPUTextureView> = new Map();
 
-  private _depthTexture!: GPUTexture;
+  public _depthTexture!: GPUTexture;
+
+  // Render Pass System
+  protected _passes: RenderPass[] = [];
 
   // Fluid Rendering Resources
-  private _fluidDepthTexture!: GPUTexture;
-  private _fluidThicknessTexture!: GPUTexture;
-  private _fluidDepthView!: GPUTextureView;
-  private _fluidThicknessView!: GPUTextureView;
+  public _fluidDepthTexture!: GPUTexture;
+  public _fluidThicknessTexture!: GPUTexture;
+  public _fluidDepthView!: GPUTextureView;
+  public _fluidThicknessView!: GPUTextureView;
 
-  private _globalUniformBuffer!: GPUBuffer;
-  private _pointLightBuffer!: GPUBuffer;
-  private _spotLightBuffer!: GPUBuffer;
-  private _areaLightBuffer!: GPUBuffer;
-  private _globalBindGroup!: GPUBindGroup;
-  private _globalBGL!: GPUBindGroupLayout;
+  public _globalUniformBuffer!: GPUBuffer;
+  public _pointLightBuffer!: GPUBuffer;
+  public _spotLightBuffer!: GPUBuffer;
+  public _areaLightBuffer!: GPUBuffer;
+  public _globalBindGroup!: GPUBindGroup;
+  public _globalBGL!: GPUBindGroupLayout;
 
-  private _objectUniformBuffers: Map<string, { buffer: GPUBuffer; lastFrame: number }> = new Map();
-  private _frameCount: number = 0;
-  private _scratchModelMatrix: Float32Array = new Float32Array(16);
+  protected _objectUniformBuffers: Map<string, { buffer: GPUBuffer; lastFrame: number }> = new Map();
+  protected _frameCount: number = 0;
+  protected _scratchModelMatrix: Float32Array = new Float32Array(16);
 
   /** @inheritdoc */
   public async initialize(
@@ -115,6 +122,20 @@ export class WebGPURenderer extends AbstractRenderer {
     this._initDefaultResources();
     this._initGlobalBuffers();
     this.setSize(canvas.clientWidth, canvas.clientHeight);
+
+    // Default Pass Setup
+    this._passes = [
+        new MainRenderPass(),
+        new FluidPass(),
+    ];
+  }
+
+  /**
+   * Adds a render pass to the pipeline.
+   * @param pass The pass to add.
+   */
+  public addPass(pass: RenderPass): void {
+      this._passes.push(pass);
   }
 
   private _initDefaultResources(): void {
@@ -143,7 +164,7 @@ export class WebGPURenderer extends AbstractRenderer {
     this._ensureDummyBufferSize(1000);
   }
 
-  private _getSampler(tex: Texture | undefined): GPUSampler {
+  protected _getSampler(tex: Texture | undefined): GPUSampler {
     const mag = tex?.magFilter === TextureFilter.NEAREST ? "nearest" : "linear";
     const min = tex?.minFilter === TextureFilter.NEAREST ? "nearest" : "linear";
     const mapWrap = (w: TextureWrap | undefined): GPUAddressMode => {
@@ -162,7 +183,7 @@ export class WebGPURenderer extends AbstractRenderer {
     return s;
   }
 
-  private _ensureDummyBufferSize(vertexCount: number): void {
+  protected _ensureDummyBufferSize(vertexCount: number): void {
     if (this._dummyBufferSize >= vertexCount * 3 && this._dummyNormalBuffer) return;
     const newSize = Math.max(this._dummyBufferSize * 2, vertexCount * 3, 3000);
     if (this._dummyNormalBuffer) this._dummyNormalBuffer.destroy();
@@ -184,8 +205,8 @@ export class WebGPURenderer extends AbstractRenderer {
 
   private _initGlobalBuffers(): void {
     this._globalUniformBuffer = this._device!.createBuffer({ size: 256, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
-    this._pointLightBuffer = this._device!.createBuffer({ size: 1024, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST });
-    this._spotLightBuffer = this._device!.createBuffer({ size: 2048, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST });
+    this._pointLightBuffer = this._device!.createBuffer({ size: 2048, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST });
+    this._spotLightBuffer = this._device!.createBuffer({ size: 4096, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST });
     this._areaLightBuffer = this._device!.createBuffer({ size: 4096, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST });
 
     this._globalBGL = this._device!.createBindGroupLayout({
@@ -208,10 +229,10 @@ export class WebGPURenderer extends AbstractRenderer {
     });
   }
 
-  private _getPipeline(manifest: RenderManifest, topology: GPUPrimitiveTopology): WebGPUPipelineCache {
+  protected _getPipeline(manifest: RenderManifest, topology: GPUPrimitiveTopology): WebGPUPipelineCache {
     const shaderId = manifest.shaderId;
     const state = manifest.state || {};
-    const key = shaderId + "_" + topology + "_" + state.culling + "_" + state.blending;
+    const key = shaderId + "_" + topology + "_" + (state.culling || "back") + "_" + (state.blending || "none");
     let cache = this._pipelines.get(key);
     if (!cache) {
       const sm = this._getShaderModule(shaderId);
@@ -254,7 +275,7 @@ export class WebGPURenderer extends AbstractRenderer {
     return cache;
   }
 
-  private _getShaderModule(shaderId: string): GPUShaderModule {
+  protected _getShaderModule(shaderId: string): GPUShaderModule {
     let sm = this._shaderModules.get(shaderId);
     if (!sm) {
       const def = ShaderRegistry.instance.get(shaderId);
@@ -265,7 +286,7 @@ export class WebGPURenderer extends AbstractRenderer {
     return sm;
   }
 
-  private _getGeoCache(geo: GeometryDataInterface): WebGPUGeoCache {
+  protected _getGeoCache(geo: GeometryDataInterface): WebGPUGeoCache {
     let c = this._geoCache.get(geo);
     if (!c || geo.needsUpdate) {
       const createBuf = (data: ArrayBufferView, usage: number): GPUBuffer => {
@@ -307,37 +328,21 @@ export class WebGPURenderer extends AbstractRenderer {
 
     const currentView = this._context.getCurrentTexture().createView();
 
-    const sortedGroups = scene.getVisibleObjectsSorted();
-    const fluidGroup = sortedGroups.get(MaterialType.FLUID);
-    if (fluidGroup) {
-      this._renderFluidPasses(ce, fluidGroup, vMat);
-      sortedGroups.delete(MaterialType.FLUID);
+    for (const pass of this._passes) {
+        pass.execute(this, scene, ce, currentView, vp, camPos, vMat);
     }
-    const rp = ce.beginRenderPass({
-      colorAttachments: [{ view: currentView, clearValue: this._clearColor, loadOp: "clear", storeOp: "store" }],
-      depthStencilAttachment: { view: this._depthTexture.createView(), depthClearValue: 1.0, depthLoadOp: "clear", depthStoreOp: "store" },
-    });
-    const skyboxGroup = sortedGroups.get(MaterialType.SKYBOX);
-    if (skyboxGroup) {
-      this._renderGroup(rp, MaterialType.SKYBOX, skyboxGroup, vMat);
-      sortedGroups.delete(MaterialType.SKYBOX);
-    }
-    for (const [shaderId, materialGroups] of sortedGroups.entries()) {
-      this._renderGroup(rp, shaderId, materialGroups, vMat);
-    }
-    rp.end();
-    if (fluidGroup) this._renderFluidComposite(ce, fluidGroup, currentView);
+
     this._device.queue.submit([ce.finish()]);
     if (this._frameCount % 100 === 0) this._pruneObjectBuffers();
   }
 
-  private _pruneObjectBuffers(): void {
+  protected _pruneObjectBuffers(): void {
     for (const [uuid, data] of this._objectUniformBuffers.entries()) {
       if (this._frameCount - data.lastFrame > 100) { data.buffer.destroy(); this._objectUniformBuffers.delete(uuid); }
     }
   }
 
-  private _renderGroup(rp: GPURenderPassEncoder, shaderId: string, materialGroups: Map<string, Object3D[]>, vMat?: Float32Array): void {
+  public _renderGroup(rp: GPURenderPassEncoder, shaderId: string, materialGroups: Map<string, Object3D[]>, vMat?: Float32Array): void {
     const groupIterator = materialGroups.values();
     const firstGroup = groupIterator.next().value;
     if (!firstGroup || firstGroup.length === 0) return;
@@ -382,7 +387,7 @@ export class WebGPURenderer extends AbstractRenderer {
     }
   }
 
-  private _getObjUniformBuffer(obj: Object3D): GPUBuffer {
+  protected _getObjUniformBuffer(obj: Object3D): GPUBuffer {
     let data = this._objectUniformBuffers.get(obj.uuid);
     if (!data) {
       const buffer = this._device!.createBuffer({ size: 256, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
@@ -393,9 +398,10 @@ export class WebGPURenderer extends AbstractRenderer {
     return data.buffer;
   }
 
-  private _updateObjUniformBuffer(b: GPUBuffer, o: Object3D, m: RenderManifest, vMat?: Float32Array): void {
-    const data = new Float32Array(64);
-    const props = m.properties;
+  protected _updateObjUniformBuffer(b: GPUBuffer, o: Object3D, m: RenderManifest, vMat?: Float32Array): void {
+    const shaderDef = ShaderRegistry.instance.get(m.shaderId);
+    if (!shaderDef) return;
+
     this._scratchModelMatrix.set(o.worldMatrix.data);
     const state = m.state;
     if (state?.isSprite && vMat) {
@@ -406,13 +412,16 @@ export class WebGPURenderer extends AbstractRenderer {
       this._scratchModelMatrix[4] = vMat[1]! * sy; this._scratchModelMatrix[5] = vMat[5]! * sy; this._scratchModelMatrix[6] = vMat[9]! * sy;
       this._scratchModelMatrix[8] = vMat[2]! * sz; this._scratchModelMatrix[9] = vMat[6]! * sz; this._scratchModelMatrix[10] = vMat[10]! * sz;
     }
-    data.set(this._scratchModelMatrix, 0);
-    const color = (props["u_color"] as Float32Array) || o.material!.color.toFloat32Array();
-    data.set(color, 16);
-    this._device!.queue.writeBuffer(b, 0, data);
+
+    const values: Record<string, any> = { ...m.properties };
+    values["u_model"] = this._scratchModelMatrix;
+    if (values["u_color"] === undefined) values["u_color"] = o.material?.color.toFloat32Array();
+
+    const packedData = UniformPacker.pack(shaderDef.layout, values);
+    this._device!.queue.writeBuffer(b, 0, packedData);
   }
 
-  private _getTexBindGroup(objBuffer: GPUBuffer, m: RenderManifest, layout: GPUBindGroupLayout): GPUBindGroup {
+  protected _getTexBindGroup(objBuffer: GPUBuffer, m: RenderManifest, layout: GPUBindGroupLayout): GPUBindGroup {
     const entries: GPUBindGroupEntry[] = [
       { binding: 0, resource: { buffer: objBuffer } },
       { binding: 1, resource: this._getSampler(undefined) },
@@ -431,7 +440,7 @@ export class WebGPURenderer extends AbstractRenderer {
     return this._device!.createBindGroup({ layout, entries });
   }
 
-  private _getTextureView(tex: Texture | undefined): GPUTextureView {
+  protected _getTextureView(tex: Texture | undefined): GPUTextureView {
     if (!tex || !tex.isLoaded || !tex.image) return this._whiteTexView;
     let v = this._textureViewCache.get(tex);
     if (!v) {
@@ -442,12 +451,12 @@ export class WebGPURenderer extends AbstractRenderer {
     return v;
   }
 
-  private _getNormalTextureView(tex: Texture | undefined): GPUTextureView {
+  protected _getNormalTextureView(tex: Texture | undefined): GPUTextureView {
     if (!tex || !tex.isLoaded || !tex.image) return this._flatNormalTexView;
     return this._getTextureView(tex);
   }
 
-  private _getGPUCubeTextureView(tex: CubeTexture | undefined): GPUTextureView {
+  protected _getGPUCubeTextureView(tex: CubeTexture | undefined): GPUTextureView {
     if (!tex || !tex.isLoaded || tex.images.length !== 6) return this._defaultCubeTexView;
     let v = this._cubeTextureViewCache.get(tex);
     if (!v) {
@@ -459,14 +468,52 @@ export class WebGPURenderer extends AbstractRenderer {
     return v;
   }
 
-  private _updateGlobalBuffers(vp: Float32Array, camPos: Vector3D, _lights: LightDataInterface): void {
+  private _updateGlobalBuffers(vp: Float32Array, camPos: Vector3D, lights: LightDataInterface): void {
     const gData = new Float32Array(64);
     gData.set(vp, 0);
     gData.set([camPos.x, camPos.y, camPos.z, 1], 16);
+    gData.set([lights.aCol.r * lights.aIntensity, lights.aCol.g * lights.aIntensity, lights.aCol.b * lights.aIntensity, 1], 20);
+    gData.set([lights.dCol.r * lights.dIntensity, lights.dCol.g * lights.dIntensity, lights.dCol.b * lights.dIntensity, 1], 24);
+    // Fix: lights.dDir is already negated to point TO the light in applyTo.
+    gData.set([lights.dDir.x, lights.dDir.y, lights.dDir.z, 0], 28);
+    gData.set([lights.pLights.length, lights.sLights.length, lights.aLights.length, 2.2], 32);
+    gData[36] = 1.0;
     this._device!.queue.writeBuffer(this._globalUniformBuffer, 0, gData);
+    
+    const plData = new Float32Array(Math.max(lights.pLights.length * 8, 8));
+    for (let i = 0; i < lights.pLights.length; i++) {
+        const l = lights.pLights[i]!; const d = l.worldMatrix.data;
+        plData.set([d[12]!, d[13]!, d[14]!, 1], i * 8);
+        plData.set([l.color.r * l.intensity, l.color.g * l.intensity, l.color.b * l.intensity, 1], i * 8 + 4);
+    }
+    this._device!.queue.writeBuffer(this._pointLightBuffer, 0, plData);
+
+    const slData = new Float32Array(Math.max(lights.sLights.length * 16, 16));
+    for (let i = 0; i < lights.sLights.length; i++) {
+        const l = lights.sLights[i]!; const d = l.worldMatrix.data;
+        slData.set([d[12]!, d[13]!, d[14]!, 1], i * 16);
+        const dir = MathPool.acquireVector().copyFrom(l.direction).normalize();
+        slData.set([dir.x, dir.y, dir.z, 0], i * 16 + 4);
+        slData.set([l.color.r * l.intensity, l.color.g * l.intensity, l.color.b * l.intensity, 1], i * 16 + 8);
+        slData.set([Math.cos(l.angle), Math.cos(l.angle * (1.0 - l.penumbra)), l.distance, l.decay], i * 16 + 12);
+        MathPool.releaseVector(dir);
+    }
+    this._device!.queue.writeBuffer(this._spotLightBuffer, 0, slData);
+
+    const alData = new Float32Array(Math.max(lights.aLights.length * 24, 24));
+    for (let i = 0; i < lights.aLights.length; i++) {
+        const l = lights.aLights[i]!; const m = l.worldMatrix.data; const off = i * 24;
+        alData.set([m[12]!, m[13]!, m[14]!, 1], off);
+        alData.set([l.color.r * l.intensity, l.color.g * l.intensity, l.color.b * l.intensity, 1], off + 4);
+        alData.set([m[0]!, m[1]!, m[2]!, 0], off + 8);
+        alData.set([m[4]!, m[5]!, m[6]!, 0], off + 12);
+        alData.set([m[8]!, m[9]!, m[10]!, 0], off + 16);
+        alData.set([l.width / 2, l.height / 2, 0, 0], off + 20);
+    }
+    this._device!.queue.writeBuffer(this._areaLightBuffer, 0, alData);
   }
 
-  private _renderFluidComposite(ce: GPUCommandEncoder, materialGroups: Map<string, Object3D[]>, targetView: GPUTextureView): void {
+  public _renderFluidComposite(ce: GPUCommandEncoder, materialGroups: Map<string, Object3D[]>, targetView: GPUTextureView): void {
     if (!this._fluidCompositePipeline) {
         const sm = this._device!.createShaderModule({ code: FluidRenderingWGSL });
         const objBGL = this._device!.createBindGroupLayout({ entries: [{ binding: 0, visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT, buffer: { type: "uniform" } }] });
@@ -495,15 +542,6 @@ export class WebGPURenderer extends AbstractRenderer {
         rp.setBindGroup(0, bindGroup0); rp.setBindGroup(1, bindGroup1); rp.draw(3);
     }
     rp.end();
-  }
-
-  private _renderFluidPasses(ce: GPUCommandEncoder, materialGroups: Map<string, Object3D[]>, vMat?: Float32Array): void {
-    const depthPass = ce.beginRenderPass({ colorAttachments: [], depthStencilAttachment: { view: this._fluidDepthView, depthClearValue: 1.0, depthLoadOp: "clear", depthStoreOp: "store" } });
-    this._renderGroup(depthPass, MaterialType.FLUID, materialGroups, vMat);
-    depthPass.end();
-    const thicknessPass = ce.beginRenderPass({ colorAttachments: [{ view: this._fluidThicknessView, clearValue: { r: 0, g: 0, b: 0, a: 0 }, loadOp: "clear", storeOp: "store" }] });
-    this._renderGroup(thicknessPass, MaterialType.FLUID, materialGroups, vMat);
-    thicknessPass.end();
   }
 
   public override setSize(width: number, height: number): void {

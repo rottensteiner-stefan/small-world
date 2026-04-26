@@ -26,6 +26,10 @@ export interface Renderer {
      */
     setClearColor(color: Color): void;
     /**
+     * Gets the clear color of the renderer.
+     */
+    readonly clearColor: Color;
+    /**
      * Destroys the renderer and releases its resources.
      */
     destroy?(): void;

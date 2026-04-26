@@ -13,13 +13,10 @@ import { ProjectionType, RendererType } from "../enums/index.js";
 import { RendererFactory } from "../renderers/index.js";
 import { Scene } from "./Scene.js";
 import { Input } from "./Input.js";
-import { AmbientLight } from "./lights/AmbientLight.js";
-import { Color } from "./colors/Color.js";
 import { ConfigLoader } from "./ConfigLoader.js";
 import { MathUtils } from "../math/MathUtils.js";
 import { ShaderBootstrap } from "./renderers/shaders/ShaderBootstrap.js";
 import { FrustumCuller } from "./FrustumCuller.js";
-import { FluidManager } from "./FluidManager.js";
 import { CollisionVisualizer, OctreeVisualizer } from "../utils/index.js";
 
 /**
@@ -60,8 +57,6 @@ export abstract class Application {
     };
 
     this.scene = new Scene();
-    // Default-Licht für dunkle Szenen
-    this.scene.add(new AmbientLight({ color: Color.WHITE, intensity: 0.15 }));
 
     const aspect: number = window.innerWidth / window.innerHeight;
     let projection: AbstractProjection;
@@ -188,9 +183,6 @@ export abstract class Application {
 
       this.renderer.setSize(this.canvas.width, this.canvas.height);
 
-      // Initialize FluidManager with the active renderer
-      FluidManager.instance.init(this.renderer);
-
       await this.setupScene();
       this._isInitialized = true;
     }
@@ -225,9 +217,6 @@ export abstract class Application {
     }
 
     this.update(deltaTime);
-
-    // Update fluid simulation
-    FluidManager.instance.update(deltaTime);
 
     this.scene.update();
     this.camera.update(this.camera.target, 0, 0, deltaTime);

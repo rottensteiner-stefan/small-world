@@ -29,6 +29,7 @@ fn vs_depth(@location(0) pos: vec4<f32>) -> VertexOutput {
     var out: VertexOutput;
     let viewPos = global.viewProjection * obj.modelMatrix * vec4<f32>(pos.xyz, 1.0);
     out.position = viewPos;
+    out.position.z = (out.position.z + out.position.w) * 0.5;
     // Simple point to sphere logic would happen here or via point size
     return out;
 }

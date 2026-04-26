@@ -96,8 +96,8 @@ export class Cylinder extends AbstractGeometry {
       for (let x: number = 0; x < this.radialSegments; x++) {
         const first: number = y * (this.radialSegments + 1) + x;
         const second: number = first + this.radialSegments + 1;
-        idx.push(first, second, first + 1);
-        idx.push(second, second + 1, first + 1);
+        idx.push(first, first + 1, second);
+        idx.push(second, first + 1, second + 1);
       }
     }
 
@@ -113,7 +113,7 @@ export class Cylinder extends AbstractGeometry {
         uv.push(0.5 + Math.sin(theta) * 0.5, 0.5 + Math.cos(theta) * 0.5);
       }
       for (let x: number = 0; x < this.radialSegments; x++) {
-        idx.push(topOffset, topOffset + x + 1, topOffset + x + 2);
+        idx.push(topOffset, topOffset + x + 2, topOffset + x + 1);
       }
     }
 
@@ -129,7 +129,7 @@ export class Cylinder extends AbstractGeometry {
         uv.push(0.5 + Math.sin(theta) * 0.5, 0.5 - Math.cos(theta) * 0.5);
       }
       for (let x: number = 0; x < this.radialSegments; x++) {
-        idx.push(bottomOffset, bottomOffset + x + 2, bottomOffset + x + 1);
+        idx.push(bottomOffset, bottomOffset + x + 1, bottomOffset + x + 2);
       }
     }
 
