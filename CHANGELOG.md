@@ -1,15 +1,22 @@
 # Changelog
 
-## [0.19.05] - 2026-04-22
+## [0.19.05] - 2026-04-24
 
+- **Global Gamma & Exposure System**:
+  - Implemented a unified system for color correction across WebGL 1, WebGL 2, and WebGPU.
+  - Added `gamma` and `exposure` settings to `QualityConfig` and the global configuration JSON.
+  - Migrated all lighting calculations (Phong, Lambert, Standard, Terrain, Liquid) to **Linear Space** for physically accurate color blending.
+  - Added automatic sRGB conversion in all fragment shaders using a configurable global gamma factor.
+- **Default Lighting**:
+  - Added a default `AmbientLight` (0.15 intensity) to the `Application` base class to ensure unlit areas remain visible across all examples.
 - **Liquid Shader Enhancements**:
-  - Implemented **World-Space Coordinate Mapping** for all liquid shaders (WebGL 1/2 and WebGPU). This enables seamless tiling of lava and slime across multiple adjacent objects without visible seams or broken wave patterns.
+  - Implemented **World-Space Coordinate Mapping** for all liquid shaders (WebGL 1/2 and WebGPU). This enables seamless tiling of lava and slime across multiple adjacent objects.
   - Synchronized vertex displacement and fragment noise calculation to use global world positions.
 - **WebGPU Fixes**:
   - Fixed a critical bug in `WebGPURenderer` where `waveFrequency` and `waveAmplitude` were not being passed to the uniform buffer.
-  - Corrected `Liquid.frag.wgsl` mapping to prevent it from using Ambient Occlusion (AO) as a fallback amplitude value.
+  - Corrected `Liquid.frag.wgsl` mapping and fixed missing math chunks in material definitions.
 - **Visual Polishing**:
-  - Reduced default `waveAmplitude` for `LavaMaterial` (0.05) and `SlimeMaterial` (0.015) to ensure they fit correctly within container structures (like fire bowls) and look more realistic in grid-based levels.
+  - Reduced default `waveAmplitude` for `LavaMaterial` (0.05) and `SlimeMaterial` (0.015).
 
 ## [0.19.04] - 2026-04-21
 

@@ -41,6 +41,11 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
   public override readonly type: RendererType = RendererType.WEB_GL1;
   declare protected gl: WebGLRenderingContext;
 
+  /** Satisfies Renderer interface */
+  public get webglContext(): WebGLRenderingContext {
+    return this.gl;
+  }
+
   private _programs: Map<string, ProgramCache> = new Map();
 
   private _cache: Map<GeometryDataInterface, Mesh> = new Map();

@@ -18,9 +18,9 @@ fn F_Schlick(cosTheta: f32, F0: vec3f) -> vec3f {
 }
 
 fn linearToSRGB(color: vec3f) -> vec3f {
-    return pow(color, vec3f(1.0 / 2.2));
+    return pow(color, vec3f(1.0 / global.gamma));
 }
 
 fn sRGBToLinear(color: vec3f) -> vec3f {
-    return pow(color, vec3f(2.2));
+    return pow(color, vec3f(global.gamma));
 }

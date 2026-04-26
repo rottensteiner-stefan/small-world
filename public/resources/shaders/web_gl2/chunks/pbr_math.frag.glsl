@@ -22,10 +22,10 @@ vec3 F_Schlick(float cosTheta, vec3 F0) {
 
 // Linear to sRGB
 vec3 linearToSRGB(vec3 color) {
-    return pow(color, vec3(1.0 / 2.2));
+    return pow(color, vec3(1.0 / u_gamma));
 }
 
 // sRGB to Linear
 vec3 sRGBToLinear(vec3 color) {
-    return pow(color, vec3(2.2));
+    return pow(color, vec3(u_gamma));
 }

@@ -9,7 +9,9 @@ struct GlobalUniforms {
     numPointLights: f32,
     numSpotLights: f32,
     numAreaLights: f32,
-    _pad: f32
+    gamma: f32,
+    exposure: f32,
+    _pad: vec3f
 }
 
 struct ObjectUniforms {

@@ -9,5 +9,11 @@ void main() {
   vec3 N = normalize(v_tbn * normalMap);
 
   [LIGHT_CALC]
-  fragColor = vec4(finalLight * u_color.rgb * texColor.rgb, u_color.a * texColor.a);
+  vec3 albedo = sRGBToLinear(texColor.rgb) * sRGBToLinear(u_color.rgb);
+  vec3 finalColor = finalLight * albedo;
+  
+  finalColor *= u_exposure;
+  finalColor = linearToSRGB(finalColor);
+
+  fragColor = vec4(finalColor, u_color.a * texColor.a);
 }

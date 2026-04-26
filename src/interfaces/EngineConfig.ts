@@ -43,6 +43,10 @@ export interface QualityConfig {
   hdr?: boolean;
   /** The tone mapping algorithm to use. Defaults to NONE. */
   toneMapping?: ToneMapping;
+  /** Global gamma factor for color correction. Defaults to 2.2. */
+  gamma?: number;
+  /** Global exposure factor for brightness control. Defaults to 1.0. */
+  exposure?: number;
 }
 
 /**

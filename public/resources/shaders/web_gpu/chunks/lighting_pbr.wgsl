@@ -55,6 +55,11 @@ for(var j=0u; j<u32(global.numPointLights); j++) {
 let ambient = global.ambientColor.rgb * albedo * ao;
 var color = ambient + Lo;
 
+// Exposure
+color *= global.exposure;
+
 // Tone Mapping
 color = color / (color + vec3f(1.0));
-// sRGB conversion is handled by the canvas format in WebGPU Renderer context.configure
+
+// Gamma Correction
+color = linearToSRGB(color);

@@ -4,10 +4,16 @@
 
     [WGSL_LIGHTING]
 
-    let albedo = texCol.rgb * obj.color.rgb;
+    let albedo = sRGBToLinear(texCol.rgb) * sRGBToLinear(obj.color.rgb);
     // fL contains ambient + all diffuse components
     // spec contains all specular components
-    let finalColor = fL * albedo + spec * obj.specColor.rgb * specMap;
+    var finalColor = fL * albedo + spec * sRGBToLinear(obj.specColor.rgb) * specMap;
+
+    // Apply exposure
+    finalColor *= global.exposure;
+
+    // Apply gamma correction
+    finalColor = linearToSRGB(finalColor);
 
     return vec4f(finalColor, obj.color.a * texCol.a);
 }

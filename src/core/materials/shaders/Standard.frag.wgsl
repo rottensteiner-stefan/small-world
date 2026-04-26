@@ -1,5 +1,5 @@
 @fragment fn fs(i: Out) -> @location(0) vec4f {
-    let albedo = textureSample(u_diffuseMap, s, i.uv).rgb * obj.color.rgb;
+    let albedo = sRGBToLinear(textureSample(u_diffuseMap, s, i.uv).rgb) * sRGBToLinear(obj.color.rgb);
     let metallic = obj.metallic;
     let roughness = obj.roughness;
     let ao = obj.extraParams.x;
