@@ -105,7 +105,15 @@ export class WebGPURenderer extends AbstractRenderer {
   ): Promise<void> {
     this._adapter = (await navigator.gpu.requestAdapter(attributes)) ?? undefined;
     if (!this._adapter) throw new Error("[WebGPURenderer] No adapter found.");
+    
+    console.log("[WebGPURenderer] Adapter limits:", this._adapter.limits);
+
     this._device = await this._adapter.requestDevice();
+    
+    // Add uncapturederror listener
+    this._device.onuncapturederror = (event) => {
+        console.error("[WebGPU Error]:", event.error.message);
+    };
 
     if (config?.quality) {
       this._quality = { ...this._quality, ...config.quality };
@@ -235,6 +243,7 @@ export class WebGPURenderer extends AbstractRenderer {
     const key = shaderId + "_" + topology + "_" + (state.culling || "back") + "_" + (state.blending || "none");
     let cache = this._pipelines.get(key);
     if (!cache) {
+      console.log("[WebGPURenderer] Creating new pipeline:", key);
       const sm = this._getShaderModule(shaderId);
       const objEntries: GPUBindGroupLayoutEntry[] = [
         { binding: 0, visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT, buffer: { type: "uniform" } },
@@ -422,9 +431,10 @@ export class WebGPURenderer extends AbstractRenderer {
   }
 
   protected _getTexBindGroup(objBuffer: GPUBuffer, m: RenderManifest, layout: GPUBindGroupLayout): GPUBindGroup {
+    const diffuseTex = m.textures["u_diffuseMap"] as Texture;
     const entries: GPUBindGroupEntry[] = [
       { binding: 0, resource: { buffer: objBuffer } },
-      { binding: 1, resource: this._getSampler(undefined) },
+      { binding: 1, resource: this._getSampler(diffuseTex) },
     ];
     if (m.shaderId === MaterialType.SKYBOX) {
         entries.push({ binding: 9, resource: this._getGPUCubeTextureView(m.textures["u_skybox"] as CubeTexture) });

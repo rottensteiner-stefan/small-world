@@ -90,8 +90,8 @@ export class Cube extends AbstractGeometry {
             const c: number = vertexCount + ix + 1 + (iy + 1) * (gridX + 1);
             const d: number = vertexCount + ix + 1 + iy * (gridX + 1);
 
-            indices.push(a, b, c);
-            indices.push(a, c, d);
+            indices.push(a, b, d);
+            indices.push(b, c, d);
           }
         }
       }

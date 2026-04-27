@@ -84,11 +84,11 @@ export class Tube extends AbstractGeometry {
           const first: number = offset + y * (this.radialSegments + 1) + x;
           const second: number = first + this.radialSegments + 1;
           if (isInner) {
-            idx.push(first, second, first + 1);
-            idx.push(second, second + 1, first + 1);
-          } else {
             idx.push(first, first + 1, second);
             idx.push(second, first + 1, second + 1);
+          } else {
+            idx.push(first, second, first + 1);
+            idx.push(second, second + 1, first + 1);
           }
         }
       }

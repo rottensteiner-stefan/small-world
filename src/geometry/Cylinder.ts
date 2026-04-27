@@ -96,8 +96,8 @@ export class Cylinder extends AbstractGeometry {
       for (let x: number = 0; x < this.radialSegments; x++) {
         const first: number = y * (this.radialSegments + 1) + x;
         const second: number = first + this.radialSegments + 1;
-        idx.push(first, first + 1, second);
-        idx.push(second, first + 1, second + 1);
+        idx.push(first, second, first + 1);
+        idx.push(second, second + 1, first + 1);
       }
     }
 

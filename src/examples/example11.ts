@@ -53,7 +53,7 @@ class Example11 extends AbstractExample {
     this.scene.add(floor);
 
     // 4. Generate Procedural Marble & Normal Map with Cross
-    const marbleNormalMap = await this.generateMarbleWithCross();
+    const marbleNormalMap = await this._generateMarbleWithCross();
 
     const fonts = [
       { pos: new Vector3D(-9, 0, 0), color: new Color(0.95, 0.1, 0.1, 0.8), name: "Ruby" },
@@ -62,14 +62,14 @@ class Example11 extends AbstractExample {
     ];
 
     for (const data of fonts) {
-      this.createStoneFont(data.pos, data.color, data.name, marbleNormalMap);
+      this._createStoneFont(data.pos, data.color, data.name, marbleNormalMap);
     }
   }
 
   /**
    * Generates a procedural normal map with a cross engraving.
    */
-  private async generateMarbleWithCross(): Promise<Texture> {
+  private async _generateMarbleWithCross(): Promise<Texture> {
     const size = 512;
     const canvas = document.createElement("canvas");
     canvas.width = size;
@@ -89,15 +89,15 @@ class Example11 extends AbstractExample {
     ctx.lineWidth = 15;
     
     // Vertical part
-    this.drawBevelledRect(ctx, cx - w/2, cy - h/2, w, h);
+    this._drawBevelledRect(ctx, cx - w/2, cy - h/2, w, h);
     // Horizontal part
-    this.drawBevelledRect(ctx, cx - h/3, cy - h/4, h * 0.7, w);
+    this._drawBevelledRect(ctx, cx - h/3, cy - h/4, h * 0.7, w);
 
     const texture = Texture.fromImage(await createImageBitmap(canvas));
     return texture;
   }
 
-  private drawBevelledRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number): void {
+  private _drawBevelledRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number): void {
     // "Engrave" effect using normal map colors
     // Left edge (X-negative)
     ctx.fillStyle = "rgb(80, 128, 255)";
@@ -116,7 +116,7 @@ class Example11 extends AbstractExample {
     ctx.fillRect(x + 5, y + 5, w - 10, h - 10);
   }
 
-  private createStoneFont(pos: Vector3D, fluidColor: Color, name: string, normalMap: Texture): void {
+  private _createStoneFont(pos: Vector3D, fluidColor: Color, name: string, normalMap: Texture): void {
     const fontRoot = new Object3D(name + "Font");
     fontRoot.setPosition(pos.x, pos.y, pos.z);
 

@@ -16,6 +16,15 @@ Before implementing:
 - If a simpler approach exists, say so. Push back when warranted.
 - If something is unclear, stop. Name what's confusing. Ask.
 
+## Mathematical Integrity
+
+**Stability of core logic is paramount. No "local" fixes for global math.**
+
+- **Core Math is Immutable:** Methods in `src/math/` (Matrices, Quaternions, Vectors) are the foundation of the engine. A method must not be changed because it "doesn't fit" a specific use case if that change alters its mathematical definition.
+- **Global Impact Analysis:** If a core mathematical method *must* be changed (e.g., to fix a fundamental bug), you MUST identify and update ALL call sites across the entire codebase.
+- **Regression Testing:** Any change to `src/math/` or index-generating logic MUST be accompanied by tests that verify the orientation, winding order, and coordinate system integrity (e.g., ensuring objects don't end up "upside down" or mirrored).
+- **Coordinate System:** Adhere strictly to the project's coordinate system (Right-Handed/Left-Handed as defined). Don't flip axes to solve local rendering issues.
+
 ## Simplicity First
 
 **Minimum code that solves the problem. Nothing speculative.**

@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.19.06] - 2026-04-27
+
+- **Mathematical Integrity & Regression Testing**:
+  - Added a new **Mathematical Integrity** section to `AGENTS.md` to enforce the stability of core mathematical logic and coordinate system consistency.
+  - Implemented a dedicated regression test suite (`tests/math/RegressionIntegrity.test.ts`) to verify orientation (lookAt), winding order (geometry), and Euler conventions (YXZ).
+- **Developer Experience**:
+  - Introduced a **Makefile** with "best practice" targets (`help`, `install`, `dev`, `build`, `test`, `lint`, `format`, `clean`) to streamline project management and automate dependency checks.
+
 ## [0.19.05] - 2026-04-24
 
 - **Global Gamma & Exposure System**:

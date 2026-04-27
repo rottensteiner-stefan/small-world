@@ -67,8 +67,8 @@ export class Plane extends AbstractGeometry {
         const c: number = x + 1 + (this.widthSegments + 1) * (z + 1);
         const d: number = x + 1 + (this.widthSegments + 1) * z;
 
-        idx.push(a, b, c);
-        idx.push(a, c, d);
+        idx.push(a, b, d);
+        idx.push(b, c, d);
       }
     }
 
