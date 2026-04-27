@@ -6,6 +6,7 @@ import { MaterialType, ShaderPropertyType } from "../../enums/index.js";
 import { Texture } from "../textures/index.js";
 import { RenderManifest } from "../renderers/shaders/RenderManifest.js";
 import { ShaderDefinition } from "../renderers/shaders/ShaderDefinition.js";
+import { StandardWebGPULayout } from "../renderers/shaders/StandardWebGPULayout.js";
 
 import vertGLSL from "./shaders/Liquid.vert.glsl?raw";
 import fragGLSL from "./shaders/Liquid.frag.glsl?raw";
@@ -110,11 +111,15 @@ export abstract class LiquidMaterial extends AbstractMaterial {
         properties: {
           u_color: this.color.toFloat32Array(),
           u_specColor: this.crustColor.toFloat32Array(),
-          u_time: this.time,
-          u_flowSpeed: this.flowSpeed,
-          u_noiseScale: this.noiseScale,
-          u_waveFrequency: this.waveFrequency,
-          u_waveAmplitude: this.waveAmplitude,
+          u_texOffset: [0, 0],
+          u_texRepeat: [1, 1],
+          u_shininess: 32.0,
+          u_isTerrain: 0.0,
+          u_metallic: 0.0,
+          u_roughness: 0.5,
+          u_extraParams: [1.0, this.time, this.flowSpeed, this.noiseScale],
+          u_liquidParams: [this.waveFrequency, this.waveAmplitude, 0, 0],
+          u_thresholds: [0, 0, 0, 0],
         },
         textures: {
           u_diffuseMap: this.noiseMap,
@@ -127,11 +132,15 @@ export abstract class LiquidMaterial extends AbstractMaterial {
 
     props["u_color"] = this.color.toFloat32Array();
     props["u_specColor"] = this.crustColor.toFloat32Array();
-    props["u_time"] = this.time;
-    props["u_flowSpeed"] = this.flowSpeed;
-    props["u_noiseScale"] = this.noiseScale;
-    props["u_waveFrequency"] = this.waveFrequency;
-    props["u_waveAmplitude"] = this.waveAmplitude;
+    
+    const extra = props["u_extraParams"] as number[];
+    extra[1] = this.time;
+    extra[2] = this.flowSpeed;
+    extra[3] = this.noiseScale;
+
+    const liquid = props["u_liquidParams"] as number[];
+    liquid[0] = this.waveFrequency;
+    liquid[1] = this.waveAmplitude;
 
     texs["u_diffuseMap"] = this.noiseMap;
     if (this.displacementMap) texs["u_displacementMap"] = this.displacementMap;
@@ -163,15 +172,7 @@ export abstract class LiquidMaterial extends AbstractMaterial {
         wgsl: `[WGSL_STRUCTS]\n[WGSL_PBR_MATH]\n${fragWGSL}`,
       },
       layout: {
-        uniforms: {
-          u_color: { type: ShaderPropertyType.COLOR },
-          u_specColor: { type: ShaderPropertyType.COLOR },
-          u_time: { type: ShaderPropertyType.FLOAT },
-          u_flowSpeed: { type: ShaderPropertyType.FLOAT },
-          u_noiseScale: { type: ShaderPropertyType.FLOAT },
-          u_waveFrequency: { type: ShaderPropertyType.FLOAT },
-          u_waveAmplitude: { type: ShaderPropertyType.FLOAT },
-        },
+        ...StandardWebGPULayout,
         textures: {
           u_diffuseMap: { type: ShaderPropertyType.TEXTURE },
           u_displacementMap: { type: ShaderPropertyType.TEXTURE },

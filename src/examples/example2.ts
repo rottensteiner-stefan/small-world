@@ -15,6 +15,7 @@ import {
   Plane,
   ProjectionType,
   WireframeMaterial,
+  AmbientLight,
 } from "../index.js";
 import { AbstractExample } from "../core/example/AbstractExample.js";
 
@@ -64,6 +65,8 @@ export class Example2 extends AbstractExample {
     const sun: DirectionalLight = new DirectionalLight({ color: Color.WHITE, intensity: 0.8 });
     sun.direction.set(-1, -1, -1).normalize();
     this.scene.add(sun);
+    
+    this.scene.add(new AmbientLight({ color: Color.WHITE, intensity: 0.2 }));
 
     // 4. Create a large floor (Plane)
     const floor: Object3D = new Object3D("Floor");

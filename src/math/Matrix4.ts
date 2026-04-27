@@ -299,25 +299,22 @@ export class Matrix4 {
 
   public static lookAt(eye: Vector3D, target: Vector3D, up: Vector3D, result: Matrix4): void {
     const z = MathPool.acquireVector().copyFrom(eye).sub(target).normalize();
+    if (z.lengthSq() === 0) z.z = 1;
+
     const x = MathPool.acquireVector().copyFrom(up).cross(z).normalize();
+    if (x.lengthSq() === 0) {
+      z.x += 0.0001;
+      z.normalize();
+      x.copyFrom(up).cross(z).normalize();
+    }
     const y = MathPool.acquireVector().copyFrom(z).cross(x).normalize();
+
     const te = result.data;
-    te[0] = x.x;
-    te[4] = x.y;
-    te[8] = x.z;
-    te[12] = -x.dot(eye);
-    te[1] = y.x;
-    te[5] = y.y;
-    te[9] = y.z;
-    te[13] = -y.dot(eye);
-    te[2] = z.x;
-    te[6] = z.y;
-    te[10] = z.z;
-    te[14] = -z.dot(eye);
-    te[3] = 0;
-    te[7] = 0;
-    te[11] = 0;
-    te[15] = 1;
+    te[0] = x.x; te[4] = x.y; te[8] = x.z; te[12] = -x.dot(eye);
+    te[1] = y.x; te[5] = y.y; te[9] = y.z; te[13] = -y.dot(eye);
+    te[2] = z.x; te[6] = z.y; te[10] = z.z; te[14] = -z.dot(eye);
+    te[3] = 0;   te[7] = 0;   te[11] = 0;   te[15] = 1;
+
     MathPool.releaseVector(x);
     MathPool.releaseVector(y);
     MathPool.releaseVector(z);

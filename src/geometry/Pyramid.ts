@@ -60,7 +60,7 @@ export class Pyramid extends AbstractGeometry {
     }
 
     for (let i: number = 0; i < this.radialSegments; i++) {
-      idx.push(tipIndex, i + 2, i + 1);
+      idx.push(tipIndex, i + 1, i + 2);
     }
 
     // --- Base cap ---

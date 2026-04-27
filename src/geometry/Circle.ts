@@ -66,7 +66,7 @@ export class Circle extends AbstractGeometry {
 
     // Indices for triangles (fan from center)
     for (let n: number = 0; n < this.segments; n++) {
-      idx.push(centerIndex, n + 2, n + 1);
+      idx.push(centerIndex, n + 1, n + 2);
     }
 
     this._vertices = new Float32Array(v);
