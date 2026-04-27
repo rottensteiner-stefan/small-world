@@ -20,7 +20,7 @@ export class FPSStrategy implements CameraStrategy {
   /** @inheritdoc */
   public update(camera: CameraInterfaceData, targetPos: Vector3D, dx: number, dy: number): void {
     if (0 !== dx || 0 !== dy) {
-      camera.theta -= dx * 0.005;
+      camera.theta += dx * 0.005;
       camera.phi += dy * 0.005;
       const limit: number = MathUtils.HALF_PI - 0.01;
       if (limit < camera.phi) camera.phi = limit;

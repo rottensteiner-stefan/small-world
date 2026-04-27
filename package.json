@@ -1,6 +1,6 @@
 {
   "name": "small-world",
-  "version": "0.19.06",
+  "version": "0.19.08",
   "type": "module",
   "scripts": {
     "build": "npm-run-all build:demo build:lib",

@@ -83,7 +83,7 @@ export class YadController implements Controller {
         (this._target as CameraInterfaceData).theta +=
           rotationDelta * this._options.rotationSpeed * deltaTime;
       } else {
-        (this._target as Object3D).rotation.y +=
+        (this._target as Object3D).rotation.y -=
           rotationDelta * this._options.rotationSpeed * deltaTime;
       }
     }

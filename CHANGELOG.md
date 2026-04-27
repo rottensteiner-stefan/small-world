@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.19.08] - 2026-04-27
+
+- **Feature: Configurable Input Modes**:
+  - Introduced `inputMode` to `EngineConfig` to toggle between different control schemes.
+  - Implemented **Tank-Mode** as the new default (`inputMode: "tank"`), where A/D keys rotate the object or camera.
+  - Preserved **Strafe-Mode** (`inputMode: "strafe"`) for modern FPS-style lateral movement.
+  - Updated `FPSController` and `WASDController` to dynamically switch logic based on the configured mode.
+  - Added automatic `inputMode` injection into controllers via the `Application` base class.
+
+## [0.19.07] - 2026-04-27
+
+- **Controller & Input Refinement**:
+  - Unified **WASD control scheme** across all examples: **A/D** now consistently performs horizontal rotation (turning) instead of strafing.
+  - Fixed movement vector calculation in `FPSController` to ensure forward movement (W) correctly follows the current look direction after rotation.
+  - Standardized rotation directions for `Object3D` and `Camera`: **D** key now consistently rotates to the right across all controllers (`FPS`, `WASD`, `Orbit`, `Yad`).
+  - Corrected mouse horizontal inversion in `FPSStrategy` to match the new keyboard rotation logic.
+  - Added keyboard rotation support to `OrbitController`.
+
 ## [0.19.06] - 2026-04-27
 
 - **Mathematical Integrity & Regression Testing**:

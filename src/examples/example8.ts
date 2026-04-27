@@ -149,12 +149,16 @@ export class Example8 extends AbstractExample {
   }
 
   protected override update(deltaTime: number): void {
-    // --- 1. HORIZONTALE BEWEGUNG (X) ---
-    let moveX = 0;
-    if (Input.isPressed(Keys.A)) moveX = -1;
-    if (Input.isPressed(Keys.D)) moveX = 1;
+    // --- 1. HORIZONTALE BEWEGUNG (X) & ROTATION ---
+    if (Input.isPressed(Keys.A)) {
+      this._player.rotation.y -= 5.0 * deltaTime; // Quick rotation
+    }
+    if (Input.isPressed(Keys.D)) {
+      this._player.rotation.y += 5.0 * deltaTime;
+    }
 
-    this._velocity.x = moveX * this._moveSpeed;
+    // Horizontal movement is now zero from keys, only velocity persists or other forces
+    this._velocity.x = 0; 
     this._player.position.x += this._velocity.x * deltaTime;
 
     // Horizontale Kollision prüfen & korrigieren

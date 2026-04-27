@@ -3,7 +3,7 @@
 import { CameraInterfaceData, Controller } from "../../interfaces/index.js";
 import { Object3D } from "../Object3D.js";
 import { Input } from "../Input.js";
-import { Keys } from "../../enums/index.js";
+import { InputMode, Keys } from "../../enums/index.js";
 import { Scene } from "../Scene.js";
 import { BoundingBox, BoundingSphere, Collision } from "../../physix/index.js";
 import { MathPool } from "../../math/index.js";
@@ -16,6 +16,8 @@ export interface FPSControllerOptions {
   moveSpeed?: number;
   /** Look sensitivity. Defaults to 0.005. */
   lookSensitivity?: number;
+  /** Input mode for A/D keys (STRAFE or TANK). Defaults to TANK. */
+  inputMode?: InputMode;
   /** Whether movement (WASD) is enabled. Defaults to true. */
   enableMovement?: boolean;
   /** Whether rotation (Mouse) is enabled. Defaults to true. */
@@ -50,6 +52,7 @@ export class FPSController implements Controller {
     this._options = {
       moveSpeed: options.moveSpeed ?? 10.0,
       lookSensitivity: options.lookSensitivity ?? 0.005,
+      inputMode: options.inputMode ?? InputMode.TANK,
       enableMovement: options.enableMovement ?? true,
       enableRotation: options.enableRotation ?? true,
       enableVertical: options.enableVertical ?? true,
@@ -74,20 +77,45 @@ export class FPSController implements Controller {
       dy = Input.mouse.dy;
     }
 
-    // 1. Horizontal Movement
+    // 1. Horizontal Movement & Rotation
     if (this._options.enableMovement) {
       const moveZ = Input.getAxis(Keys.W, Keys.S);
-      const moveX = Input.getAxis(Keys.A, Keys.D);
+      const horizontalAxis = Input.getAxis(Keys.A, Keys.D);
 
-      if (0 !== moveZ || 0 !== moveX) {
+      if (InputMode.TANK === this._options.inputMode) {
+        // Keyboard Rotation (A/D)
+        if (0 !== horizontalAxis) {
+          const rotationAmount = horizontalAxis * 2.0 * deltaTime; // 2 rad/s
+          if (isCamera) {
+            (this._target as CameraInterfaceData).theta += rotationAmount;
+          } else {
+            (this._target as Object3D).rotation.y -= rotationAmount;
+          }
+        }
+      }
+
+      if (0 !== moveZ || (0 !== horizontalAxis && InputMode.STRAFE === this._options.inputMode)) {
         // If it's a camera, we use its current look direction (theta)
         const theta = isCamera
           ? (this._target as CameraInterfaceData).theta
           : (this._target as Object3D).rotation.y;
         const sin = Math.sin(theta);
         const cos = Math.cos(theta);
-        const dirX = moveX * cos + moveZ * sin;
-        const dirZ = -moveX * sin + moveZ * cos;
+
+        let dirX = 0;
+        let dirZ = 0;
+
+        // Forward/Backward
+        if (0 !== moveZ) {
+          dirX += -moveZ * sin;
+          dirZ += moveZ * cos;
+        }
+
+        // Strafe
+        if (0 !== horizontalAxis && InputMode.STRAFE === this._options.inputMode) {
+          dirX += horizontalAxis * cos;
+          dirZ += horizontalAxis * sin;
+        }
 
         this._target.position.x += dirX * this._options.moveSpeed * deltaTime;
         this._target.position.z += dirZ * this._options.moveSpeed * deltaTime;

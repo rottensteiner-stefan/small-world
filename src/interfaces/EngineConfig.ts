@@ -1,6 +1,6 @@
 /// src/interfaces/EngineConfig.ts
 
-import { ProjectionType, RendererType } from "../enums/index.js";
+import { ProjectionType, RendererType, InputMode } from "../enums/index.js";
 
 /**
  * Configuration for a single renderer backend.
@@ -65,6 +65,8 @@ export interface EngineConfig {
   projection?: ProjectionType;
   /** Primary renderer type to attempt initialization. */
   rendererType?: RendererType;
+  /** The behavior of horizontal input keys (A/D). Defaults to TANK. */
+  inputMode?: InputMode;
   /** Detailed renderer configurations. */
   renderer?: EngineRendererConfig[];
   /** Optional quality settings. */
