@@ -4,12 +4,16 @@ import { Controller } from "../../interfaces/index.js";
 import { CameraInterfaceData } from "../../interfaces/index.js";
 import { Input } from "../Input.js";
 
+import { Keys } from "../../enums/index.js";
+
 /**
  * Configuration for the OrbitController.
  */
 export interface OrbitControllerOptions {
   /** Look sensitivity. Defaults to 0.005. */
   lookSensitivity?: number;
+  /** Rotation speed for keyboard. Defaults to 2.0. */
+  rotationSpeed?: number;
   /** Minimum vertical angle (phi) in radians. Defaults to 0.01. */
   minPhi?: number;
   /** Maximum vertical angle (phi) in radians. Defaults to PI - 0.01. */
@@ -37,6 +41,7 @@ export class OrbitController implements Controller {
     this._camera = camera;
     this._options = {
       lookSensitivity: options.lookSensitivity ?? 0.005,
+      rotationSpeed: options.rotationSpeed ?? 2.0,
       minPhi: options.minPhi ?? 0.01,
       maxPhi: options.maxPhi ?? Math.PI - 0.01,
       enableRotation: options.enableRotation ?? true,
@@ -52,9 +57,17 @@ export class OrbitController implements Controller {
     // 1. Handle Rotation
     let dx = 0;
     let dy = 0;
-    if (this._options.enableRotation && Input.isPointerLocked) {
-      dx = Input.mouse.dx;
-      dy = Input.mouse.dy;
+    if (this._options.enableRotation) {
+      if (Input.isPointerLocked) {
+        dx = Input.mouse.dx;
+        dy = Input.mouse.dy;
+      }
+
+      // Keyboard Rotation (A/D)
+      const rotateY = Input.getAxis(Keys.A, Keys.D);
+      if (0 !== rotateY) {
+        this._camera.theta -= rotateY * this._options.rotationSpeed * deltaTime;
+      }
     }
 
     // 2. Update Camera

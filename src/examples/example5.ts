@@ -137,15 +137,19 @@ export class Example5 extends AbstractExample {
 
     // 2. Keyboard Input
     if (false === this._isMoving) {
-      let dx: number = 0;
       let dz: number = 0;
       if (Input.isPressed(Keys.W)) dz = -1;
       else if (Input.isPressed(Keys.S)) dz = 1;
-      else if (Input.isPressed(Keys.A)) dx = -1;
-      else if (Input.isPressed(Keys.D)) dx = 1;
 
-      if (0 !== dx || 0 !== dz) {
-        this._startMove(this._player.position.x + dx, this._player.position.z + dz);
+      // Rotation (A/D)
+      if (Input.isPressed(Keys.A)) {
+        this._player.rotation.y -= 2.0 * deltaTime;
+      } else if (Input.isPressed(Keys.D)) {
+        this._player.rotation.y += 2.0 * deltaTime;
+      }
+
+      if (0 !== dz) {
+        this._startMove(this._player.position.x, this._player.position.z + dz);
       }
     }
 

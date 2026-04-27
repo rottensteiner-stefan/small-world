@@ -212,8 +212,14 @@ export abstract class Application {
     this._lastTime = currentTime;
 
     // Update all registered controllers
+    const inputMode = this.config.inputMode || "tank";
     for (let i: number = 0; i < this.controllers.length; i++) {
-      this.controllers[i]!.update(deltaTime);
+      const controller = this.controllers[i]!;
+      // Dynamically inject inputMode if the controller supports it and it's not already set
+      if ("_options" in controller && "inputMode" in (controller as any)._options) {
+        (controller as any)._options.inputMode = (controller as any)._options.inputMode || inputMode;
+      }
+      controller.update(deltaTime);
     }
 
     this.update(deltaTime);
