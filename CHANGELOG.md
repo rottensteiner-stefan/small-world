@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.19.09] - 2026-04-27
+
+- **Geometry & Visual Enhancements**:
+  - Introduced `Disk` geometry with concentric rings, providing superior tessellation for circular surfaces that require vertex displacement.
+  - Fixed "square lava" issue in Example 10 by replacing the rectangular plane with a high-fidelity `Disk` geometry, ensuring the lava fits perfectly within the circular fire bowls.
+  - Refined `LavaMaterial` application to work seamlessly with the new disk tessellation.
+
 ## [0.19.08] - 2026-04-27
 
 - **Feature: Configurable Input Modes**:
