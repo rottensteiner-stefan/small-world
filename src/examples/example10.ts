@@ -18,6 +18,7 @@ import {
   WorldMaterial,
   Tube,
   Circle,
+  Disk,
   LavaMaterial,
   CullMode,
 } from "../index.js";
@@ -142,11 +143,11 @@ export class Example10 extends AbstractExample {
       bottom.position.y = 0.1;
       container.add(bottom);
 
-      // 3. Lava Surface (Smaller Plane 3.5 to stay inside)
+      // 3. Lava Surface (Circular Disk to stay inside the bowl)
       const lava = new Object3D("Lava");
-      // Still relatively high poly to show off vertex displacement!
-      const plane = new Plane({ width: 3.5, depth: 3.5, widthSegments: 32, depthSegments: 32 });
-      lava.geometry = plane.getGeometryData();
+      // Use Disk instead of Plane or simple Circle for better tessellation and visual fit
+      const disk = new Disk({ radius: 1.75, segments: 64, rings: 16 });
+      lava.geometry = disk.getGeometryData();
 
       const lavaMaterial = new LavaMaterial({
         color: new Color(1.5, 0.5, 0.0), // Bright magma glow
@@ -207,7 +208,7 @@ export class Example10 extends AbstractExample {
 
   protected override getDebugInfo(): Record<string, string | number> {
     const base = super.getDebugInfo();
-    return { ...base, Example: "10 - Lava Bowl Fix", "Plane Size": "3.5x3.5" };
+    return { ...base, Example: "10 - Lava Bowl Fix", "Lava Shape": "Disk (r=1.75)" };
   }
 }
 
