@@ -1,5 +1,6 @@
 import { CameraInterfaceData, Controller } from '../../interfaces/index.js';
 import { Object3D } from '../Object3D.js';
+import { InputMode } from '../../enums/index.js';
 import { Scene } from '../Scene.js';
 /**
  * Configuration for the FPSController.
@@ -9,6 +10,8 @@ export interface FPSControllerOptions {
     moveSpeed?: number;
     /** Look sensitivity. Defaults to 0.005. */
     lookSensitivity?: number;
+    /** Input mode for A/D keys (STRAFE or TANK). Defaults to TANK. */
+    inputMode?: InputMode;
     /** Whether movement (WASD) is enabled. Defaults to true. */
     enableMovement?: boolean;
     /** Whether rotation (Mouse) is enabled. Defaults to true. */

@@ -37,7 +37,6 @@ export declare class WebGPURenderer extends AbstractRenderer {
     _format: GPUTextureFormat;
     protected _pipelines: Map<string, WebGPUPipelineCache>;
     protected _shaderModules: Map<string, GPUShaderModule>;
-    _fluidCompositePipeline: GPURenderPipeline | undefined;
     protected _whiteTexView: GPUTextureView;
     protected _flatNormalTexView: GPUTextureView;
     protected _defaultCubeTexView: GPUTextureView;
@@ -51,10 +50,6 @@ export declare class WebGPURenderer extends AbstractRenderer {
     protected _cubeTextureViewCache: Map<CubeTexture, GPUTextureView>;
     _depthTexture: GPUTexture;
     protected _passes: RenderPass[];
-    _fluidDepthTexture: GPUTexture;
-    _fluidThicknessTexture: GPUTexture;
-    _fluidDepthView: GPUTextureView;
-    _fluidThicknessView: GPUTextureView;
     _globalUniformBuffer: GPUBuffer;
     _pointLightBuffer: GPUBuffer;
     _spotLightBuffer: GPUBuffer;
@@ -91,6 +86,5 @@ export declare class WebGPURenderer extends AbstractRenderer {
     protected _getNormalTextureView(tex: Texture | undefined): GPUTextureView;
     protected _getGPUCubeTextureView(tex: CubeTexture | undefined): GPUTextureView;
     private _updateGlobalBuffers;
-    _renderFluidComposite(ce: GPUCommandEncoder, materialGroups: Map<string, Object3D[]>, targetView: GPUTextureView): void;
     setSize(width: number, height: number): void;
 }

@@ -20,10 +20,16 @@ Before implementing:
 
 **Stability of core logic is paramount. No "local" fixes for global math.**
 
-- **Core Math is Immutable:** Methods in `src/math/` (Matrices, Quaternions, Vectors) are the foundation of the engine. A method must not be changed because it "doesn't fit" a specific use case if that change alters its mathematical definition.
+- **Coordinate System:** Adhere strictly to the project's coordinate system (Right-Handed):
+  - **X-Axis:** Positive is **Right**.
+  - **Y-Axis:** Positive is **Up**.
+  - **Z-Axis:** Positive is **Backward** (towards the viewer). Negative is **Forward/Front**.
+- **Input & Controls Standard:** To prevent regressions in movement logic, the following standards must be adhered to:
+  - **Camera Orientation:** When `theta = 0` and `phi = 0`, the camera looks directly **Forward** (towards `-Z`). `theta` (Rotation around Y) increases when looking **Right** (Clockwise from top).
+  - **FPS Movement (WASD):** **W (Forward)** must move the target in the current look direction. In code: `pos += LookVector * moveSpeed`. **S (Backward)** must move exactly in the opposite direction. **A/D (Strafe)** must move perpendicular to the look direction (Right vector).
+  - **Implementation Reference:** The `FPSController` calculation must always follow this logic: `dirX = -moveZ * sin; dirZ = moveZ * cos;` (where W=-1, S=+1).
+- **Regression Testing:** Any change to `src/math/` or index-generating logic MUST be accompanied by tests that verify the orientation, winding order, and coordinate system integrity (e.g., ensuring objects don't end up "upside down" or mirrored). Use `npm test tests/core/FPSController.test.ts` for movement verification.
 - **Global Impact Analysis:** If a core mathematical method *must* be changed (e.g., to fix a fundamental bug), you MUST identify and update ALL call sites across the entire codebase.
-- **Regression Testing:** Any change to `src/math/` or index-generating logic MUST be accompanied by tests that verify the orientation, winding order, and coordinate system integrity (e.g., ensuring objects don't end up "upside down" or mirrored).
-- **Coordinate System:** Adhere strictly to the project's coordinate system (Right-Handed/Left-Handed as defined). Don't flip axes to solve local rendering issues.
 
 ## Simplicity First
 

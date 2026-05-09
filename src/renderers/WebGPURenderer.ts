@@ -1,6 +1,6 @@
 /// src/renderers/WebGPURenderer.ts
 
-import { CubeTexture, FluidParticleSystem, RenderManifest, ShaderRegistry, Texture } from "../core/index.js";
+import { CubeTexture, RenderManifest, ShaderRegistry, Texture } from "../core/index.js";
 import { GeometryDataInterface, LightDataInterface } from "../interfaces/index.js";
 import { Object3D } from "../core/Object3D.js";
 import { Scene } from "../core/Scene.js";
@@ -15,10 +15,8 @@ import {
 import { EngineConfig } from "../interfaces/EngineConfig.js";
 
 import { AbstractRenderer } from "./AbstractRenderer.js";
-import { FluidRenderingWGSL } from "./shaders/FluidRenderingWGSL.js";
 import { RenderPass } from "./RenderPass.js";
 import { MainRenderPass } from "./passes/MainRenderPass.js";
-import { FluidPass } from "./passes/FluidPass.js";
 import { UniformPacker } from "../core/renderers/shaders/UniformPacker.js";
 
 export interface WebGPUGeoCache {
@@ -58,7 +56,6 @@ export class WebGPURenderer extends AbstractRenderer {
 
   protected _pipelines: Map<string, WebGPUPipelineCache> = new Map();
   protected _shaderModules: Map<string, GPUShaderModule> = new Map();
-  public _fluidCompositePipeline: GPURenderPipeline | undefined;
 
   protected _whiteTexView!: GPUTextureView;
   protected _flatNormalTexView!: GPUTextureView;
@@ -79,12 +76,6 @@ export class WebGPURenderer extends AbstractRenderer {
 
   // Render Pass System
   protected _passes: RenderPass[] = [];
-
-  // Fluid Rendering Resources
-  public _fluidDepthTexture!: GPUTexture;
-  public _fluidThicknessTexture!: GPUTexture;
-  public _fluidDepthView!: GPUTextureView;
-  public _fluidThicknessView!: GPUTextureView;
 
   public _globalUniformBuffer!: GPUBuffer;
   public _pointLightBuffer!: GPUBuffer;
@@ -134,7 +125,6 @@ export class WebGPURenderer extends AbstractRenderer {
     // Default Pass Setup
     this._passes = [
         new MainRenderPass(),
-        new FluidPass(),
     ];
   }
 
@@ -257,9 +247,8 @@ export class WebGPURenderer extends AbstractRenderer {
       const objBGL = this._device!.createBindGroupLayout({ entries: objEntries });
       const pipelineLayout = this._device!.createPipelineLayout({ bindGroupLayouts: [this._globalBGL, objBGL] });
       
-      const isFluid = shaderId === MaterialType.FLUID;
       const vertexBuffers: GPUVertexBufferLayout[] = [
-        { arrayStride: isFluid ? 16 : 12, attributes: [{ shaderLocation: 0, offset: 0, format: isFluid ? "float32x4" : "float32x3" }] },
+        { arrayStride: 12, attributes: [{ shaderLocation: 0, offset: 0, format: "float32x3" }] },
         { arrayStride: 12, attributes: [{ shaderLocation: 1, offset: 0, format: "float32x3" }] },
         { arrayStride: 8, attributes: [{ shaderLocation: 2, offset: 0, format: "float32x2" }] },
         { arrayStride: 12, attributes: [{ shaderLocation: 3, offset: 0, format: "float32x3" }] },
@@ -357,7 +346,7 @@ export class WebGPURenderer extends AbstractRenderer {
     if (!firstGroup || firstGroup.length === 0) return;
     const firstObj = firstGroup[0];
     if (!firstObj || !firstObj.material) return;
-    const topology: GPUPrimitiveTopology = shaderId === MaterialType.WIREFRAME ? "line-list" : shaderId === MaterialType.FLUID ? "point-list" : "triangle-list";
+    const topology: GPUPrimitiveTopology = shaderId === MaterialType.WIREFRAME ? "line-list" : "triangle-list";
     const cache = this._getPipeline(firstObj.material.getRenderManifest(), topology);
     rp.setPipeline(cache.pipeline);
     rp.setBindGroup(0, this._globalBindGroup);
@@ -366,23 +355,11 @@ export class WebGPURenderer extends AbstractRenderer {
       if (!mat) continue;
       const manifest = mat.getRenderManifest();
       for (const obj of objects) {
-        const isFluid = obj instanceof FluidParticleSystem;
-        if (!obj.geometry && !isFluid) continue;
+        if (!obj.geometry) continue;
         const uBuffer = this._getObjUniformBuffer(obj);
         this._updateObjUniformBuffer(uBuffer, obj, manifest, vMat);
         const texBindGroup = this._getTexBindGroup(uBuffer, manifest, cache.bgLayouts[1]!);
         rp.setBindGroup(1, texBindGroup);
-        if (isFluid) {
-          const fluid = obj as FluidParticleSystem;
-          if (fluid.positionBuffer) {
-            rp.setVertexBuffer(0, fluid.positionBuffer);
-            rp.setVertexBuffer(1, this._dummyNormalBuffer);
-            rp.setVertexBuffer(2, this._dummyUvBuffer);
-            rp.setVertexBuffer(3, this._dummyTangentBuffer);
-            rp.draw(fluid.config.particleCount);
-          }
-          continue;
-        }
         const gCache = this._getGeoCache(obj.geometry!);
         this._ensureDummyBufferSize(gCache.vertexCount);
         rp.setVertexBuffer(0, gCache.vb);
@@ -523,47 +500,10 @@ export class WebGPURenderer extends AbstractRenderer {
     this._device!.queue.writeBuffer(this._areaLightBuffer, 0, alData);
   }
 
-  public _renderFluidComposite(ce: GPUCommandEncoder, materialGroups: Map<string, Object3D[]>, targetView: GPUTextureView): void {
-    if (!this._fluidCompositePipeline) {
-        const sm = this._device!.createShaderModule({ code: FluidRenderingWGSL });
-        const objBGL = this._device!.createBindGroupLayout({ entries: [{ binding: 0, visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT, buffer: { type: "uniform" } }] });
-        const compositeBGL = this._device!.createBindGroupLayout({
-            entries: [
-                { binding: 0, visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT, buffer: { type: "uniform" } },
-                { binding: 1, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: "depth" } },
-                { binding: 2, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: "float" } },
-                { binding: 3, visibility: GPUShaderStage.FRAGMENT, sampler: { type: "filtering" } },
-            ]
-        });
-        this._fluidCompositePipeline = this._device!.createRenderPipeline({
-            layout: this._device!.createPipelineLayout({ bindGroupLayouts: [compositeBGL, objBGL] }),
-            vertex: { module: sm, entryPoint: "vs_main" },
-            fragment: { module: sm, entryPoint: "fs_main", targets: [{ format: this._format, blend: { color: { srcFactor: "src-alpha", dstFactor: "one-minus-src-alpha", operation: "add" }, alpha: { srcFactor: "one", dstFactor: "one-minus-src-alpha", operation: "add" } } }] },
-            primitive: { topology: "triangle-list" },
-        });
-    }
-    const rp = ce.beginRenderPass({ colorAttachments: [{ view: targetView, loadOp: "load", storeOp: "store" }] });
-    rp.setPipeline(this._fluidCompositePipeline);
-    for (const objects of materialGroups.values()) {
-        const firstObj = objects[0]!;
-        const uBuffer = this._getObjUniformBuffer(firstObj);
-        const bindGroup0 = this._device!.createBindGroup({ layout: this._fluidCompositePipeline.getBindGroupLayout(0), entries: [{ binding: 0, resource: { buffer: this._globalUniformBuffer } }, { binding: 1, resource: this._fluidDepthView }, { binding: 2, resource: this._fluidThicknessView }, { binding: 3, resource: this._getSampler(undefined) }] });
-        const bindGroup1 = this._device!.createBindGroup({ layout: this._fluidCompositePipeline.getBindGroupLayout(1), entries: [{ binding: 0, resource: { buffer: uBuffer } }] });
-        rp.setBindGroup(0, bindGroup0); rp.setBindGroup(1, bindGroup1); rp.draw(3);
-    }
-    rp.end();
-  }
-
   public override setSize(width: number, height: number): void {
     if (!this._device) return;
     const d = devicePixelRatio;
     this._context.canvas.width = width * d; this._context.canvas.height = height * d;
     this._depthTexture = this._device.createTexture({ size: [this._context.canvas.width, this._context.canvas.height], format: "depth24plus", usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING });
-    if (this._fluidDepthTexture) this._fluidDepthTexture.destroy();
-    if (this._fluidThicknessTexture) this._fluidThicknessTexture.destroy();
-    this._fluidDepthTexture = this._device.createTexture({ size: [this._context.canvas.width, this._context.canvas.height], format: "depth24plus", usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING });
-    this._fluidDepthView = this._fluidDepthTexture.createView();
-    this._fluidThicknessTexture = this._device.createTexture({ size: [this._context.canvas.width, this._context.canvas.height], format: "rgba8unorm", usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING });
-    this._fluidThicknessView = this._fluidThicknessTexture.createView();
   }
 }

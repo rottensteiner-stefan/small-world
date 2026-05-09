@@ -1,5 +1,6 @@
 {
   "rendererType": "WEB_GPU",
+  "inputMode": "tank",
   "canvasId": "SmallWorld",
   "debug": true,
   "worldSize": 100,

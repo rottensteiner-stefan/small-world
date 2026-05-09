@@ -2,7 +2,7 @@
 
 import { CameraInterfaceData, Controller } from "../../interfaces/index.js";
 import { Object3D } from "../Object3D.js";
-import { Input } from "../Input.js";
+import { Input, InputInterface } from "../Input.js";
 import { InputMode, Keys } from "../../enums/index.js";
 import { Scene } from "../Scene.js";
 import { BoundingBox, BoundingSphere, Collision } from "../../physix/index.js";
@@ -30,6 +30,8 @@ export interface FPSControllerOptions {
   collisionRadius?: number;
   /** The scene to check for collisions. */
   scene?: Scene;
+  /** Optional input source (for testing). Defaults to global Input.instance. */
+  input?: InputInterface;
 }
 
 /**
@@ -39,7 +41,10 @@ export class FPSController implements Controller {
   public enabled: boolean = true;
 
   private _target: CameraInterfaceData | Object3D;
-  private _options: Required<Omit<FPSControllerOptions, "scene">> & { scene: Scene | undefined };
+  private _options: Required<Omit<FPSControllerOptions, "scene" | "input">> & { 
+    scene: Scene | undefined;
+    input: InputInterface;
+  };
   private _collider: BoundingSphere;
 
   /**
@@ -59,6 +64,7 @@ export class FPSController implements Controller {
       enableCollision: options.enableCollision ?? !!options.scene,
       collisionRadius: options.collisionRadius ?? 0.5,
       scene: options.scene,
+      input: options.input ?? Input.instance,
     };
     this._collider = new BoundingSphere(
       this._target.position.clone(),
@@ -69,18 +75,19 @@ export class FPSController implements Controller {
   public update(deltaTime: number): void {
     if (!this.enabled) return;
 
+    const input = this._options.input;
     const isCamera = "projection" in this._target;
     let dx = 0;
     let dy = 0;
-    if (this._options.enableRotation && Input.isPointerLocked) {
-      dx = Input.mouse.dx;
-      dy = Input.mouse.dy;
+    if (this._options.enableRotation && input.isPointerLocked) {
+      dx = input.mouse.dx;
+      dy = input.mouse.dy;
     }
 
     // 1. Horizontal Movement & Rotation
     if (this._options.enableMovement) {
-      const moveZ = Input.getAxis(Keys.W, Keys.S);
-      const horizontalAxis = Input.getAxis(Keys.A, Keys.D);
+      const moveZ = input.getAxis(Keys.W, Keys.S);
+      const horizontalAxis = input.getAxis(Keys.A, Keys.D);
 
       if (InputMode.TANK === this._options.inputMode) {
         // Keyboard Rotation (A/D)
@@ -107,6 +114,10 @@ export class FPSController implements Controller {
 
         // Forward/Backward
         if (0 !== moveZ) {
+          // moveZ is -1 for W (forward), +1 for S (backward)
+          // Look vector is (sin, -cos)
+          // We want: W -> +Look, S -> -Look
+          // Therefore: -moveZ * Look
           dirX += -moveZ * sin;
           dirZ += moveZ * cos;
         }
@@ -124,7 +135,7 @@ export class FPSController implements Controller {
 
     // 2. Vertical Movement
     if (this._options.enableVertical) {
-      const moveY = Input.getAxis(Keys.Q, Keys.E);
+      const moveY = input.getAxis(Keys.Q, Keys.E);
       if (0 !== moveY) {
         this._target.position.y += moveY * this._options.moveSpeed * deltaTime;
       }
