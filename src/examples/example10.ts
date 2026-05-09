@@ -63,7 +63,7 @@ export class Example10 extends AbstractExample {
     this.scene.add(sun);
 
     // Textures
-    const sandTexture = await Texture.fromUrl("/resources/examples/10/floor-2.png", {
+    const sandTexture = await Texture.fromUrl("/resources/examples/10/sand.png", {
       anisotropy: 16,
       generateMipmaps: true,
       flipY: true,
@@ -71,7 +71,7 @@ export class Example10 extends AbstractExample {
     sandTexture.repeat.x = 20;
     sandTexture.repeat.y = 20;
 
-    const rockTexture = await Texture.fromUrl("/resources/examples/10/rock-1.png", {
+    const rockTexture = await Texture.fromUrl("/resources/examples/10/rock.png", {
       anisotropy: 16,
       generateMipmaps: true,
       flipY: true,
@@ -184,6 +184,11 @@ export class Example10 extends AbstractExample {
       new FPSController(this.camera, { moveSpeed: this._moveSpeed }),
       new ZoomController(this.camera),
     );
+
+    // Pointer Lock Request on click
+    window.addEventListener("mousedown", () => {
+      Input.requestPointerLock(this.canvas);
+    });
 
     this.scene.update();
 

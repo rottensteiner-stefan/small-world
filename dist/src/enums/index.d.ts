@@ -3,6 +3,7 @@ export * from './CameraEffectType.js';
 export * from './CameraStrategyType.js';
 export * from './CubeLayout.js';
 export * from './EventType.js';
+export * from './InputMode.js';
 export * from './Keys.js';
 export * from './LightType.js';
 export * from './MaterialType.js';

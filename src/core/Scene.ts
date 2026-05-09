@@ -106,7 +106,7 @@ export class Scene {
   private _collectVisible(obj: Object3D, sorted: Map<string, Map<string, Object3D[]>>): void {
     // Only proceed if object is visible
     if (!obj.isVisible) return;
-    // For debugging: ignore frustum
+    // For Strategy C: Ignore frustum state
     // if (!obj.inFrustum) return;
 
     if ((obj.geometry || (obj as any).positionBuffer) && obj.material) {

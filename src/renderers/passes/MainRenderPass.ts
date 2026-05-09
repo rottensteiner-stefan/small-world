@@ -20,9 +20,6 @@ export class MainRenderPass implements RenderPass {
   ): void {
     const sortedGroups = scene.getVisibleObjectsSorted();
     
-    // Fluid is handled by its own pass, so we remove it here if it exists
-    sortedGroups.delete(MaterialType.FLUID);
-
     const rp = ce.beginRenderPass({
       colorAttachments: [{ 
           view: targetView, 

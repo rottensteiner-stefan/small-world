@@ -1,27 +1,27 @@
 /// src/examples/example11.ts
 
 import {
+  BasicMaterial,
   CameraStrategyType,
   Color,
   Cylinder,
   DirectionalLight,
-  FluidManager,
-  FluidMaterial,
-  FluidParticleSystem,
+  FPSController,
+  Input,
+  InputMode,
   Object3D,
   PerspectiveProjection,
-  PhongMaterial,
   ProjectionType,
   Pyramid,
-  Texture,
   Torus,
   Vector3D,
+  CullMode,
 } from "../index.js";
 import { AbstractExample } from "../core/example/AbstractExample.js";
 
 /**
- * Example 11: Baptismal fonts with colored magical fluids.
- * Featuring procedural marble textures with engraved cross details.
+ * Example 11: Baptismal Font Geometry Test.
+ * Focuses on correctly assembling the font and investigating visibility issues.
  */
 class Example11 extends AbstractExample {
   
@@ -36,136 +36,105 @@ class Example11 extends AbstractExample {
       });
       this.camera.updateProjectionMatrix();
     }
-    this.camera.setStrategy(CameraStrategyType.SMOOTH);
-    this.camera.position.set(0, 15, 30);
+    
+    // Switch to FPS Strategy
+    this.camera.setStrategy(CameraStrategyType.FPS);
+    this.camera.position.set(0, 5, 15);
+    // Align camera to look directly at the center (0, 5, 0)
+    this.camera.theta = 0; 
+    this.camera.phi = 0;   
     this.camera.target.set(0, 5, 0);
 
-    // 2. Lighting
-    const sun = new DirectionalLight({ color: Color.WHITE, intensity: 1.2 });
+    // 2. Add FPS Controller
+    const fps = new FPSController(this.camera, {
+      moveSpeed: 10,
+      lookSensitivity: 0.005,
+    });
+    this.controllers.push(fps);
+
+    // Pointer Lock Request on click
+    window.addEventListener("mousedown", () => {
+      Input.requestPointerLock(this.canvas);
+    });
+
+    // 3. Lighting (Just for reference, using BasicMaterial)
+    const sun = new DirectionalLight({ color: Color.WHITE, intensity: 1.0 });
     sun.direction.set(-1, -1, -1);
     this.scene.add(sun);
 
-    // 3. Platform
-    const floor = new Object3D("StonePlatform");
-    floor.geometry = new Cylinder({ radiusTop: 25, radiusBottom: 25, height: 1.0 }).getGeometryData();
-    floor.material = new PhongMaterial({ color: new Color(0.1, 0.1, 0.15), shininess: 20 });
-    floor.setPosition(0, -0.5, 0);
+    // 4. Floor
+    const floorMat = new BasicMaterial({ color: new Color(0.15, 0.15, 0.15) });
+    floorMat.cullMode = CullMode.NONE;
+    const floor = new Object3D("Floor");
+    floor.geometry = new Cylinder({ radiusTop: 20, radiusBottom: 20, height: 0.1 }).getGeometryData();
+    floor.material = floorMat;
+    floor.frustumCulled = false;
+    // Position floor so its surface is at y=0
+    floor.setPosition(0, -0.05, 0);
     this.scene.add(floor);
 
-    // 4. Generate Procedural Marble & Normal Map with Cross
-    const marbleNormalMap = await this._generateMarbleWithCross();
-
-    const fonts = [
-      { pos: new Vector3D(-9, 0, 0), color: new Color(0.95, 0.1, 0.1, 0.8), name: "Ruby" },
-      { pos: new Vector3D(9, 0, 0), color: new Color(0.1, 0.95, 0.2, 0.8), name: "Emerald" },
-      { pos: new Vector3D(0, 0, -9), color: new Color(0.1, 0.4, 1.0, 0.8), name: "Sapphire" }
-    ];
-
-    for (const data of fonts) {
-      this._createStoneFont(data.pos, data.color, data.name, marbleNormalMap);
-    }
+    // 5. The Baptismal Font (Properly assembled)
+    this._createStoneFont(new Vector3D(0, 0, 0), "TestFont");
   }
 
-  /**
-   * Generates a procedural normal map with a cross engraving.
-   */
-  private async _generateMarbleWithCross(): Promise<Texture> {
-    const size = 512;
-    const canvas = document.createElement("canvas");
-    canvas.width = size;
-    canvas.height = size;
-    const ctx = canvas.getContext("2d")!;
-
-    // Background: Neutral Normal (Flat Z-up)
-    ctx.fillStyle = "rgb(128, 128, 255)";
-    ctx.fillRect(0, 0, size, size);
-
-    // Draw Cross with Normal-shading (Simple Bevelling)
-    const cx = size / 2;
-    const cy = size / 2;
-    const w = 40;
-    const h = 200;
-
-    ctx.lineWidth = 15;
-    
-    // Vertical part
-    this._drawBevelledRect(ctx, cx - w/2, cy - h/2, w, h);
-    // Horizontal part
-    this._drawBevelledRect(ctx, cx - h/3, cy - h/4, h * 0.7, w);
-
-    const texture = Texture.fromImage(await createImageBitmap(canvas));
-    return texture;
-  }
-
-  private _drawBevelledRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number): void {
-    // "Engrave" effect using normal map colors
-    // Left edge (X-negative)
-    ctx.fillStyle = "rgb(80, 128, 255)";
-    ctx.fillRect(x, y, 5, h);
-    // Right edge (X-positive)
-    ctx.fillStyle = "rgb(180, 128, 255)";
-    ctx.fillRect(x + w - 5, y, 5, h);
-    // Top edge (Y-negative)
-    ctx.fillStyle = "rgb(128, 80, 255)";
-    ctx.fillRect(x, y, w, 5);
-    // Bottom edge (Y-positive)
-    ctx.fillStyle = "rgb(128, 180, 255)";
-    ctx.fillRect(x, y + h - 5, w, 5);
-    // Middle (Flat deep)
-    ctx.fillStyle = "rgb(128, 128, 220)";
-    ctx.fillRect(x + 5, y + 5, w - 10, h - 10);
-  }
-
-  private _createStoneFont(pos: Vector3D, fluidColor: Color, name: string, normalMap: Texture): void {
-    const fontRoot = new Object3D(name + "Font");
+  private _createStoneFont(pos: Vector3D, name: string): void {
+    const fontRoot = new Object3D(name);
     fontRoot.setPosition(pos.x, pos.y, pos.z);
 
-    const marbleMat = new PhongMaterial({ 
-        color: new Color(0.92, 0.92, 0.95), 
-        shininess: 60,
-        normalMap: normalMap 
-    });
+    const stoneMat = new BasicMaterial({ color: new Color(0.8, 0.8, 0.8) });
+    stoneMat.cullMode = CullMode.NONE; 
 
-    // 1. Pedestal
-    const pedestal = new Object3D(name + "Pedestal");
-    pedestal.geometry = new Pyramid({ base: 5, height: 6.5, radialSegments: 4 }).getGeometryData();
-    pedestal.material = marbleMat;
-    pedestal.rotation.y = Math.PI / 4;
-    pedestal.setPosition(0, 3.25, 0);
+    // Component 1: Pedestal (Pyramid) - The base
+    const pedestal = new Object3D(name + "_Pedestal");
+    // Use a truncated pyramid (Cylinder with 4 segments) for a more stable look
+    pedestal.geometry = new Cylinder({ 
+      radiusTop: 1.0, 
+      radiusBottom: 2.0, 
+      height: 4, 
+      radialSegments: 4 
+    }).getGeometryData();
+    pedestal.material = stoneMat;
+    pedestal.frustumCulled = false;
+    pedestal.rotation.y = Math.PI / 4; // Align to axes
+    pedestal.setPosition(0, 2, 0); // Bottom at 0, Top at 4
     fontRoot.add(pedestal);
 
-    // 2. Bowl Bottom
-    const bowlBase = new Object3D(name + "BowlBase");
-    bowlBase.geometry = new Cylinder({ radiusTop: 4.8, radiusBottom: 2.5, height: 2 }).getGeometryData();
-    bowlBase.material = marbleMat;
-    bowlBase.setPosition(0, 7.5, 0);
+    // Component 2: Bowl Base (Cylinder) - The transition
+    const bowlBase = new Object3D(name + "_BowlBase");
+    bowlBase.geometry = new Cylinder({ 
+      radiusTop: 4.5, 
+      radiusBottom: 1.0, 
+      height: 2, 
+      radialSegments: 32 
+    }).getGeometryData();
+    bowlBase.material = stoneMat;
+    bowlBase.frustumCulled = false;
+    bowlBase.setPosition(0, 5, 0); // Sits on top of pedestal (4 + 1)
     fontRoot.add(bowlBase);
 
-    // 3. The Rim (Torus)
-    const rim = new Object3D(name + "Rim");
-    rim.geometry = new Torus({ radius: 4.5, tube: 0.7, radialSegments: 16, tubularSegments: 64 }).getGeometryData();
-    rim.material = marbleMat;
-    rim.rotation.x = Math.PI / 2;
-    rim.setPosition(0, 8.5, 0);
+    // Component 3: Rim (Torus) - The top edge
+    const rim = new Object3D(name + "_Rim");
+    rim.geometry = new Torus({ 
+      radius: 4.5, 
+      tube: 0.4, 
+      radialSegments: 16, 
+      tubularSegments: 32 
+    }).getGeometryData();
+    rim.material = stoneMat;
+    rim.frustumCulled = false;
+    // Torus is already flat in XZ plane by default
+    rim.setPosition(0, 6.0, 0); // Sits at the top of the bowl
     fontRoot.add(rim);
 
     this.scene.add(fontRoot);
-
-    // 4. Fluid
-    const fluid = new FluidParticleSystem({
-      particleCount: 2500,
-      radius: 0.35,
-      boundaryMin: new Vector3D(pos.x - 4, 7.8, pos.z - 4),
-      boundaryMax: new Vector3D(pos.x + 4, 9.5, pos.z + 4),
-      gravity: new Vector3D(0, -9.81, 0)
-    });
-    fluid.material = new FluidMaterial(fluidColor, 6.0);
-    
-    this.scene.add(fluid);
-    FluidManager.instance.registerSystem(fluid);
   }
 
-  protected override update(_deltaTime: number): void { }
+  protected override update(_deltaTime: number): void {
+    const font = this.scene.getObjectByName("TestFont");
+    if (font) {
+      font.rotation.y += _deltaTime * 0.15;
+    }
+  }
 }
 
 const app = new Example11();

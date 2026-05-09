@@ -5,6 +5,8 @@ import { Controller, CameraInterfaceData } from '../../interfaces/index.js';
 export interface OrbitControllerOptions {
     /** Look sensitivity. Defaults to 0.005. */
     lookSensitivity?: number;
+    /** Rotation speed for keyboard. Defaults to 2.0. */
+    rotationSpeed?: number;
     /** Minimum vertical angle (phi) in radians. Defaults to 0.01. */
     minPhi?: number;
     /** Maximum vertical angle (phi) in radians. Defaults to PI - 0.01. */
