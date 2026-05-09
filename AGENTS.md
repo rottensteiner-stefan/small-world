@@ -43,9 +43,11 @@ Before implementing:
 
 Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
 
-## Surgical Changes
-
-**Touch only what you must. Clean up only your own mess.**
+- **Surgical Changes:**
+  - **Mandatory `replace`:** ALWAYS use the `replace` tool for existing files to ensure only the intended lines are changed. NEVER use `write_file` to update an existing file unless you have explicitly verified the full content of the file in the current turn or are instructed to replace it entirely.
+  - **Preserve History:** When updating logs or changelogs, ensure all previous entries are preserved. Use `read_file` to gather context if the file history is not already fully visible in the current session.
+  - **No Accidental Truncation:** Double-check that your `new_string` or `content` does not omit existing code or data.
+- **Touch only what you must. Clean up only your own mess.**
 
 When editing existing code:
 
