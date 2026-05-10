@@ -44,6 +44,7 @@ export interface ShaderDefinition {
     culling?: CullMode;
     blending?: BlendingMode;
     depthWrite?: boolean;
+    depthTest?: boolean;
     transparent?: boolean;
   };
 }

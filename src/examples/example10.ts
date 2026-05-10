@@ -21,6 +21,7 @@ import {
   Disk,
   LavaMaterial,
   CullMode,
+  Input,
 } from "../index.js";
 import { AbstractExample } from "../core/example/AbstractExample.js";
 
@@ -148,7 +149,8 @@ export class Example10 extends AbstractExample {
       // 3. Lava Surface (Circular Disk to stay inside the bowl)
       const lava = new Object3D("Lava");
       // Use Disk instead of Plane or simple Circle for better tessellation and visual fit
-      const disk = new Disk({ radius: 1.75, segments: 64, rings: 16 });
+      // Reduced radius from 1.75 to 1.6 to prevent clipping through the bowl rim (inner radius 1.8)
+      const disk = new Disk({ radius: 1.6, segments: 64, rings: 16 });
       lava.geometry = disk.getGeometryData();
 
       const lavaMaterial = new LavaMaterial({
@@ -161,13 +163,14 @@ export class Example10 extends AbstractExample {
         ambientMap: this._lavaAmbientMap,
         flowSpeed: 0.3,
         noiseScale: 2.0,
+        waveAmplitude: 0.08, // Reduced from default 0.15 to prevent clipping
       });
       lavaMaterial.cullMode = CullMode.NONE;
 
       this._lavaMaterials.push(lavaMaterial);
 
       lava.material = lavaMaterial;
-      lava.position.set(0, 1.3, 0);
+      lava.position.set(0, 1.25, 0); // Lowered from 1.3 to 1.25
       container.add(lava);
 
       const light = new PointLight({ color: new Color(1, 0.5, 0.2), intensity: 4.0, distance: 20 });

@@ -47,6 +47,11 @@ Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, sim
   - **Mandatory `replace`:** ALWAYS use the `replace` tool for existing files to ensure only the intended lines are changed. NEVER use `write_file` to update an existing file unless you have explicitly verified the full content of the file in the current turn or are instructed to replace it entirely.
   - **Preserve History:** When updating logs or changelogs, ensure all previous entries are preserved. Use `read_file` to gather context if the file history is not already fully visible in the current session.
   - **No Accidental Truncation:** Double-check that your `new_string` or `content` does not omit existing code or data.
+- **Incremental Progress:** Make small, logical changes. Verify after each significant step (build/lint/test).
+- **Quality & Stability:**
+  - **Regression Testing:** Every bug fix must include a test case or a verification step that ensures the bug does not return.
+  - **Geometric Integrity:** When modifying or adding geometries, verify winding orders and normals.
+  - **Cross-Renderer Verification:** Changes to shaders or renderer state must be considered for all supported renderers (WebGL1, WebGL2, WebGPU).
 - **Touch only what you must. Clean up only your own mess.**
 
 When editing existing code:
