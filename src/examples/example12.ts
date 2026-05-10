@@ -10,7 +10,6 @@ import {
   MathUtils,
   Object3D,
   PerspectiveProjection,
-  Vector3D,
   Cylinder,
 } from "../index.js";
 import { AbstractExample } from "../core/example/AbstractExample.js";

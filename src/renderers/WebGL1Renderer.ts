@@ -343,6 +343,10 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
         this.gl.depthMask(true);
       }
 
+      if (state?.depthWrite === false) this.gl.depthMask(false);
+      if (state?.depthTest === false) this.gl.disable(this.gl.DEPTH_TEST);
+      else this.gl.enable(this.gl.DEPTH_TEST);
+
       // --- 2. Bind Generic Material Properties (Uniforms) ---
       for (const [name, value] of Object.entries(manifest.properties)) {
         const loc = u.get(name);

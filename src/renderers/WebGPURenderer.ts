@@ -230,7 +230,7 @@ export class WebGPURenderer extends AbstractRenderer {
   protected _getPipeline(manifest: RenderManifest, topology: GPUPrimitiveTopology): WebGPUPipelineCache {
     const shaderId = manifest.shaderId;
     const state = manifest.state || {};
-    const key = shaderId + "_" + topology + "_" + (state.culling || "back") + "_" + (state.blending || "none");
+    const key = shaderId + "_" + topology + "_" + (state.culling || "back") + "_" + (state.blending || "none") + "_" + (state.depthWrite !== false) + "_" + (state.depthTest !== false);
     let cache = this._pipelines.get(key);
     if (!cache) {
       console.log("[WebGPURenderer] Creating new pipeline:", key);
@@ -265,7 +265,11 @@ export class WebGPURenderer extends AbstractRenderer {
         vertex: { module: sm, entryPoint: "vs", buffers: vertexBuffers },
         fragment: { module: sm, entryPoint: "fs", targets },
         primitive: { topology, cullMode: state.culling || "back" },
-        depthStencil: { depthWriteEnabled: state.depthWrite !== false, depthCompare: "less-equal", format: "depth24plus" },
+        depthStencil: { 
+          depthWriteEnabled: state.depthWrite !== false, 
+          depthCompare: state.depthTest === false ? "always" : "less-equal", 
+          format: "depth24plus" 
+        },
       });
       cache = { pipeline, layout: pipelineLayout, bgLayouts: [this._globalBGL, objBGL] };
       this._pipelines.set(key, cache);

@@ -70,6 +70,8 @@ export class Input implements InputInterface {
   public static get mouse(): MouseState { return this.instance.mouse; }
   public static get isPointerLocked(): boolean { return this.instance.isPointerLocked; }
   public static set isPointerLocked(v: boolean) { this.instance.isPointerLocked = v; }
+  public static get debug(): boolean { return this.instance.debug; }
+  public static set debug(v: boolean) { this.instance.debug = v; }
 
   /**
    * Initializes the input listeners.

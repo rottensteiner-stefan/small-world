@@ -46,6 +46,8 @@ export declare class Input implements InputInterface {
     static get mouse(): MouseState;
     static get isPointerLocked(): boolean;
     static set isPointerLocked(v: boolean);
+    static get debug(): boolean;
+    static set debug(v: boolean);
     /**
      * Initializes the input listeners.
      */

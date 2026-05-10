@@ -25,6 +25,7 @@ export interface RenderManifest {
         culling?: CullMode;
         blending?: BlendingMode;
         depthWrite?: boolean;
+        depthTest?: boolean;
         transparent?: boolean;
         /** Whether this object should be treated as a camera-facing sprite (billboarding). */
         isSprite?: boolean;
