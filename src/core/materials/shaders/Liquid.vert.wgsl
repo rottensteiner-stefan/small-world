@@ -1,40 +1,38 @@
 [WGSL_STRUCTS]
 
-struct VertexInput {
-    @location(0) position: vec3<f32>,
-    @location(1) normal: vec3<f32>,
-    @location(2) uv: vec2<f32>,
-    @location(3) tangent: vec3<f32>,
-};
-
-struct VertexOutput {
-    @builtin(position) clip_position: vec4<f32>,
-    @location(0) world_pos: vec3<f32>,
-    @location(1) normal: vec3<f32>,
-    @location(2) uv: vec2<f32>,
-};
-
 @vertex
-fn vs(model: VertexInput) -> VertexOutput {
-    var out: VertexOutput;
+fn vs(
+    @location(0) pos: vec3f,
+    @location(1) normal: vec3f,
+    @location(2) uv: vec2f,
+    @location(3) tangent: vec3f
+) -> Out {
+    var o: Out;
     
-    let time = object.u_extraParams.y;
-    let flowSpeed = object.u_extraParams.z;
-    let waveFrequency = object.u_liquidParams.x;
-    let waveAmplitude = object.u_liquidParams.y;
+    let time = obj.extraParams.y;
+    let flowSpeed = obj.extraParams.z;
+    let waveFrequency = obj.liquidParams.x;
+    let waveAmplitude = obj.liquidParams.y;
 
-    var pos = model.position;
-    let world_pos_init = object.u_model * vec4<f32>(pos, 1.0);
+    var p = pos;
+    let worldPosInit = obj.model * vec4f(p, 1.0);
     let displacementSpeed = time * flowSpeed * 0.5;
     
     // Wave based on world coordinates for seamless tiling
-    let wave = sin(world_pos_init.x * waveFrequency + displacementSpeed) * cos(world_pos_init.z * waveFrequency + displacementSpeed) * waveAmplitude;
-    pos.y += wave;
+    let wave = sin(worldPosInit.x * waveFrequency + displacementSpeed) * cos(worldPosInit.z * waveFrequency + displacementSpeed) * waveAmplitude;
+    p.y += wave;
 
-    let world_pos = object.u_model * vec4<f32>(pos, 1.0);
-    out.world_pos = world_pos.xyz;
-    out.normal = (object.u_model * vec4<f32>(model.normal, 0.0)).xyz;
-    out.uv = model.uv;
-    out.clip_position = global.u_vp * world_pos;
-    return out;
+    let worldPos = obj.model * vec4f(p, 1.0);
+    o.wp = worldPos.xyz;
+    o.pos = global.vp * worldPos;
+    
+    // WebGPU depth correction (0 to 1 range, though usually handled by projection)
+    // o.pos.z = (o.pos.z + o.pos.w) * 0.5;
+    
+    o.uv = uv;
+    o.n = normalize((obj.model * vec4f(normal, 0.0)).xyz);
+    o.t = normalize((obj.model * vec4f(tangent, 0.0)).xyz);
+    o.b = normalize(cross(o.n, o.t));
+    
+    return o;
 }

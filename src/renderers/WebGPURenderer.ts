@@ -303,20 +303,18 @@ export class WebGPURenderer extends AbstractRenderer {
         },
         { binding: 1, visibility: GPUShaderStage.FRAGMENT, sampler: { type: "filtering" } },
       ];
-      if (shaderId === MaterialType.SKYBOX) {
+      for (let i = 2; i <= 8; i++) {
         objEntries.push({
-          binding: 9,
+          binding: i,
           visibility: GPUShaderStage.FRAGMENT,
-          texture: { viewDimension: "cube" },
+          texture: { sampleType: "float" },
         });
-      } else {
-        for (let i = 2; i <= 8; i++)
-          objEntries.push({
-            binding: i,
-            visibility: GPUShaderStage.FRAGMENT,
-            texture: { sampleType: "float" },
-          });
       }
+      objEntries.push({
+        binding: 9,
+        visibility: GPUShaderStage.FRAGMENT,
+        texture: { viewDimension: "cube" },
+      });
       const objBGL = this._device!.createBindGroupLayout({ entries: objEntries });
       const pipelineLayout = this._device!.createPipelineLayout({
         bindGroupLayouts: [this._globalBGL, objBGL],
@@ -552,46 +550,21 @@ export class WebGPURenderer extends AbstractRenderer {
     m: RenderManifest,
     layout: GPUBindGroupLayout,
   ): GPUBindGroup {
-    const diffuseTex = m.textures["u_diffuseMap"] as Texture;
     const entries: GPUBindGroupEntry[] = [
       { binding: 0, resource: { buffer: objBuffer } },
-      { binding: 1, resource: this._getSampler(diffuseTex) },
-    ];
-    if (m.shaderId === MaterialType.SKYBOX) {
-      entries.push({
+      { binding: 1, resource: this._getSampler(m.textures["u_diffuseMap"] as Texture) },
+      { binding: 2, resource: this._getTextureView(m.textures["u_diffuseMap"] as Texture) },
+      { binding: 3, resource: this._getNormalTextureView(m.textures["u_normalMap"] as Texture) },
+      { binding: 4, resource: this._getTextureView(m.textures["u_specularMap"] as Texture) },
+      { binding: 5, resource: this._getTextureView(m.textures["u_sandMap"] as Texture) },
+      { binding: 6, resource: this._getTextureView(m.textures["u_grassMap"] as Texture) },
+      { binding: 7, resource: this._getTextureView(m.textures["u_rockMap"] as Texture) },
+      { binding: 8, resource: this._getTextureView(m.textures["u_snowMap"] as Texture) },
+      {
         binding: 9,
         resource: this._getGPUCubeTextureView(m.textures["u_skybox"] as CubeTexture),
-      });
-    } else {
-      entries.push({
-        binding: 2,
-        resource: this._getTextureView(m.textures["u_diffuseMap"] as Texture),
-      });
-      entries.push({
-        binding: 3,
-        resource: this._getNormalTextureView(m.textures["u_normalMap"] as Texture),
-      });
-      entries.push({
-        binding: 4,
-        resource: this._getTextureView(m.textures["u_specularMap"] as Texture),
-      });
-      entries.push({
-        binding: 5,
-        resource: this._getTextureView(m.textures["u_sandMap"] as Texture),
-      });
-      entries.push({
-        binding: 6,
-        resource: this._getTextureView(m.textures["u_grassMap"] as Texture),
-      });
-      entries.push({
-        binding: 7,
-        resource: this._getTextureView(m.textures["u_rockMap"] as Texture),
-      });
-      entries.push({
-        binding: 8,
-        resource: this._getTextureView(m.textures["u_snowMap"] as Texture),
-      });
-    }
+      },
+    ];
     return this._device!.createBindGroup({ layout, entries });
   }
 

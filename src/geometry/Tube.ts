@@ -88,7 +88,7 @@ export class Tube extends AbstractGeometry {
             idx.push(second, second + 1, first + 1);
           } else {
             idx.push(first, first + 1, second);
-            idx.push(second, second + 1, first + 1);
+            idx.push(first + 1, second + 1, second);
           }
         }
       }
@@ -116,11 +116,11 @@ export class Tube extends AbstractGeometry {
         const i2: number = innerOffset + x + 1;
 
         if (isTop) {
-          idx.push(o1, i1, o2);
-          idx.push(i1, i2, o2);
-        } else {
           idx.push(o1, o2, i1);
           idx.push(i1, o2, i2);
+        } else {
+          idx.push(o1, i1, o2);
+          idx.push(i1, i2, o2);
         }
       }
     };

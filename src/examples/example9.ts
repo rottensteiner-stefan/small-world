@@ -128,7 +128,11 @@ export class Example9 extends AbstractExample {
     // 5. Spieler erstellen
     const playerMat = new BasicMaterial({ color: Color.YELLOW });
     this._player = new Object3D("Player");
-    this._player.geometry = new Sphere({ radius: 0.5, segments: 16, rings: 16 }).getGeometryData();
+    this._player.geometry = new Sphere({
+      radius: 0.5,
+      widthSegments: 16,
+      heightSegments: 16,
+    }).getGeometryData();
     this._player.material = playerMat;
     this._player.position.set(2, 10, 0);
     this.scene.add(this._player);
