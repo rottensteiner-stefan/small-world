@@ -1,30 +1,3 @@
-struct VertexIn {
-    @location(0) position: vec3<f32>,
-    @location(1) normal: vec3<f32>,
-    @location(2) uv: vec2<f32>,
-};
-
-@vertex fn vs(in: VertexIn) -> Out {
-    var o: Out;
-    o.uv = in.uv;
-    var p = in.position;
-    let time = obj.extraParams.y;
-    let flowSpeed = obj.extraParams.z;
-    let waveFreq = obj.liquidParams.x;
-    let waveAmp = obj.liquidParams.y;
-    
-    let worldPosPre = obj.model * vec4<f32>(p, 1.0);
-    let displacementSpeed = time * flowSpeed * 0.5;
-    let wave = sin(worldPosPre.x * waveFreq + displacementSpeed) * cos(worldPosPre.z * waveFreq + displacementSpeed) * waveAmp;
-    
-    p.y += wave;
-
-    let worldPos = obj.model * vec4<f32>(p, 1.0);
-    o.wp = worldPos.xyz;
-    o.pos = global.vp * worldPos;
-    return o;
-}
-
 @fragment fn fs(i: Out) -> @location(0) vec4<f32> {
     let time = obj.extraParams.y;
     let flowSpeed = obj.extraParams.z;

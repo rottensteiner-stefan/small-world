@@ -32,8 +32,9 @@ class Example12 extends AbstractExample {
     });
     this.camera.updateProjectionMatrix();
     this.camera.setStrategy(CameraStrategyType.FPS);
-    this.camera.position.set(0, 2, 10);
-    this.camera.theta = 0; // Looking towards -Z
+    this.camera.position.set(10, 8, 15);
+    this.camera.theta = MathUtils.degToRad(-30);
+    this.camera.phi = MathUtils.degToRad(-20);
 
     // 2. Add FPS Controller
     this.controllers.push(new FPSController(this.camera, { moveSpeed: 10 }));
