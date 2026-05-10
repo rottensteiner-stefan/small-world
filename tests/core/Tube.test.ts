@@ -11,7 +11,6 @@ describe("Tube Geometry", () => {
     // Vertices: (radialSegments + 1) * (heightSegments + 1) * 2 (inner/outer)
     const expectedVertices = (radialSegments + 1) * (heightSegments + 1) * 2;
     expect(data.vertices.length / 3).toBe(expectedVertices);
-
     // Indices:
     // Outer surface: radialSegments * heightSegments * 6
     // Inner surface: radialSegments * heightSegments * 6

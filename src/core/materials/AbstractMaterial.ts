@@ -19,6 +19,13 @@ export abstract class AbstractMaterial implements ShaderProvider {
   /** The culling mode for this material. Defaults to BACK. */
   public cullMode: CullMode = CullMode.BACK;
 
+  /** Whether the material writes to the depth buffer. Defaults to true. */
+  public depthWrite: boolean = true;
+  /** Whether the material performs depth testing. Defaults to true. */
+  public depthTest: boolean = true;
+  /** Whether the material is transparent. Defaults to false. */
+  public transparent: boolean = false;
+
   /** Cached render manifest to avoid frequent allocations. */
   protected _renderManifest: RenderManifest | undefined = undefined;
 
