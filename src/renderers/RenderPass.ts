@@ -1,5 +1,6 @@
 import { Scene } from "../core/Scene.js";
 import { AbstractRenderer } from "./AbstractRenderer.js";
+import { Vector3D } from "../math/Vector3D.js";
 
 /**
  * Interface for a render pass that can be executed by a renderer.
@@ -23,7 +24,7 @@ export interface RenderPass {
     ce: GPUCommandEncoder,
     targetView: GPUTextureView,
     vp: Float32Array,
-    camPos: any,
+    camPos: Vector3D,
     vMat?: Float32Array
   ): void;
 }

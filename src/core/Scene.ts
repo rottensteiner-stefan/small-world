@@ -109,7 +109,7 @@ export class Scene {
     // For Strategy C: Ignore frustum state
     // if (!obj.inFrustum) return;
 
-    if ((obj.geometry || (obj as any).positionBuffer) && obj.material) {
+    if ((obj.geometry || (obj as Object3D & { positionBuffer?: unknown }).positionBuffer) && obj.material) {
       const manifest = obj.material.getRenderManifest();
       const shaderId = manifest.shaderId;
       const matUuid = obj.material.uuid;

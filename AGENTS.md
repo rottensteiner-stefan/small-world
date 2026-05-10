@@ -48,6 +48,9 @@ Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, sim
   - **Preserve History:** When updating logs or changelogs, ensure all previous entries are preserved. Use `read_file` to gather context if the file history is not already fully visible in the current session.
   - **No Accidental Truncation:** Double-check that your `new_string` or `content` does not omit existing code or data.
 - **Incremental Progress:** Make small, logical changes. Verify after each significant step (build/lint/test).
+- **Mandatory Verification:**
+  - **Full Build:** ALWAYS run `npm run build:lib` before finishing a task, especially when refactoring types, interfaces, or updating dependencies. This ensures that TypeScript errors in declaration files are caught.
+  - **Test Coverage:** Run `npm test` after any logic change.
 - **Quality & Stability:**
   - **Regression Testing:** Every bug fix must include a test case or a verification step that ensures the bug does not return.
   - **Geometric Integrity:** When modifying or adding geometries, verify winding orders and normals.
