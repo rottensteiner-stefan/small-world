@@ -1,19 +1,13 @@
 import { AbstractExample } from '../core/example/AbstractExample.js';
 /**
- * Example 8: A classic 2.5D Jump & Run with pure code physics and collision!
+ * Example 8: Clean rebuild with Skydome, Reference Cubes, WASD/QE movement.
  */
 export declare class Example8 extends AbstractExample {
-    private _player;
-    private _blocks;
-    private _velocity;
-    private _gravity;
-    private _jumpForce;
-    private _moveSpeed;
-    private _isGrounded;
-    private _levelMap;
+    private readonly _moveSpeed;
+    private readonly _eyeHeight;
+    private _skydome;
+    private _time;
     protected setupScene(): Promise<void>;
-    private _getAABB;
-    private _checkCollision;
     protected update(deltaTime: number): void;
     protected getDebugInfo(): Record<string, string | number>;
 }
