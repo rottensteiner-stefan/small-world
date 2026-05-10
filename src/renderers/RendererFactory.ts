@@ -29,20 +29,20 @@ export class RendererFactory {
       case RendererType.WEB_GPU:
         if (undefined === navigator.gpu) {
           console.warn("[RendererFactory] WebGPU is not supported. Falling back to WebGL2.");
-          renderer = new WebGL2Renderer() as any;
+          renderer = new WebGL2Renderer();
           fallbackToWebGL2 = true;
         } else {
-          renderer = new WebGPURenderer() as any;
+          renderer = new WebGPURenderer();
         }
         break;
       case RendererType.WEB_GL2:
-        renderer = new WebGL2Renderer() as any;
+        renderer = new WebGL2Renderer();
         break;
       case RendererType.WEB_GL1:
-        renderer = new WebGL1Renderer() as any;
+        renderer = new WebGL1Renderer();
         break;
       default:
-        renderer = new WebGL2Renderer() as any;
+        renderer = new WebGL2Renderer();
         break;
     }
 

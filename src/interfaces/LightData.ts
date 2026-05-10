@@ -2,6 +2,9 @@
 
 import { Color } from "../core/colors/Color.js";
 import { Vector3D } from "../math/Vector3D.js";
+import { PointLight } from "../core/lights/PointLight.js";
+import { SpotLight } from "../core/lights/SpotLight.js";
+import { AreaLight } from "../core/lights/AreaLight.js";
 
 /**
  * Interface representing the data for all lights in a scene.
@@ -18,9 +21,9 @@ export interface LightDataInterface {
   /** Directional light intensity. */
   dIntensity: number;
   /** List of point lights. */
-  pLights: any[];
+  pLights: PointLight[];
   /** List of spot lights. */
-  sLights: any[];
+  sLights: SpotLight[];
   /** List of area lights. */
-  aLights: any[];
+  aLights: AreaLight[];
 }

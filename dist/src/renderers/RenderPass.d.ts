@@ -1,5 +1,6 @@
 import { Scene } from '../core/Scene.js';
 import { AbstractRenderer } from './AbstractRenderer.js';
+import { Vector3D } from '../math/Vector3D.js';
 /**
  * Interface for a render pass that can be executed by a renderer.
  */
@@ -16,5 +17,5 @@ export interface RenderPass {
      * @param camPos Camera position.
      * @param vMat View matrix.
      */
-    execute(renderer: AbstractRenderer, scene: Scene, ce: GPUCommandEncoder, targetView: GPUTextureView, vp: Float32Array, camPos: any, vMat?: Float32Array): void;
+    execute(renderer: AbstractRenderer, scene: Scene, ce: GPUCommandEncoder, targetView: GPUTextureView, vp: Float32Array, camPos: Vector3D, vMat?: Float32Array): void;
 }

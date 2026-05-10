@@ -102,7 +102,7 @@ export class WebGPURenderer extends AbstractRenderer {
     this._device = await this._adapter.requestDevice();
     
     // Add uncapturederror listener
-    this._device.onuncapturederror = (event) => {
+    this._device.onuncapturederror = (event: GPUUncapturedErrorEvent): void => {
         console.error("[WebGPU Error]:", event.error.message);
     };
 
@@ -403,7 +403,7 @@ export class WebGPURenderer extends AbstractRenderer {
       this._scratchModelMatrix[8] = vMat[2]! * sz; this._scratchModelMatrix[9] = vMat[6]! * sz; this._scratchModelMatrix[10] = vMat[10]! * sz;
     }
 
-    const values: Record<string, any> = { ...m.properties };
+    const values: Record<string, unknown> = { ...m.properties };
     values["u_model"] = this._scratchModelMatrix;
     if (values["u_color"] === undefined) values["u_color"] = o.material?.color.toFloat32Array();
 

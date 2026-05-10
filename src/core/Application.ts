@@ -216,8 +216,9 @@ export abstract class Application {
     for (let i: number = 0; i < this.controllers.length; i++) {
       const controller = this.controllers[i]!;
       // Dynamically inject inputMode if the controller supports it and it's not already set
-      if ("_options" in controller && "inputMode" in (controller as any)._options) {
-        (controller as any)._options.inputMode = (controller as any)._options.inputMode || inputMode;
+      const ctrl = controller as Controller & { _options?: { inputMode?: string } };
+      if (ctrl._options && "inputMode" in ctrl._options) {
+        ctrl._options.inputMode = ctrl._options.inputMode || inputMode;
       }
       controller.update(deltaTime);
     }

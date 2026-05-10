@@ -16,7 +16,7 @@ export class UniformPacker {
    */
   public static pack(
     layout: ShaderLayout,
-    values: Record<string, any>,
+    values: Record<string, unknown>,
     bufferSize: number = 256
   ): Float32Array {
     const data = new Float32Array(bufferSize / 4);
@@ -31,13 +31,13 @@ export class UniformPacker {
       const val = values[name] ?? meta.defaultValue;
       
       // Ensure Alignment
-      const alignment = this.getTypeAlignment(meta.type);
+      const alignment = this._getTypeAlignment(meta.type);
       if (offset % alignment !== 0) {
           offset += (alignment - (offset % alignment));
       }
 
       if (val === undefined) {
-          offset += this.getTypeSize(meta.type);
+          offset += this._getTypeSize(meta.type);
           continue;
       }
 
@@ -48,8 +48,8 @@ export class UniformPacker {
           break;
         case ShaderPropertyType.VEC2:
           if (Array.isArray(val) || val instanceof Float32Array) {
-            data[offset] = val[0];
-            data[offset + 1] = val[1];
+            data[offset] = (val as number[])[0]!;
+            data[offset + 1] = (val as number[])[1]!;
           }
           offset += 2;
           break;
@@ -59,9 +59,9 @@ export class UniformPacker {
             data[offset + 1] = val.y;
             data[offset + 2] = val.z;
           } else if (Array.isArray(val) || val instanceof Float32Array) {
-            data[offset] = val[0];
-            data[offset + 1] = val[1];
-            data[offset + 2] = val[2];
+            data[offset] = (val as number[])[0]!;
+            data[offset + 1] = (val as number[])[1]!;
+            data[offset + 2] = (val as number[])[2]!;
           }
           offset += 3; 
           break;
@@ -70,7 +70,7 @@ export class UniformPacker {
           if (val instanceof Color) {
             data.set(val.toFloat32Array(), offset);
           } else if (Array.isArray(val) || val instanceof Float32Array) {
-            data.set(val as any, offset);
+            data.set(val as Float32Array, offset);
           }
           offset += 4;
           break;
@@ -88,7 +88,7 @@ export class UniformPacker {
     return data;
   }
 
-  private static getTypeSize(type: ShaderPropertyType): number {
+  private static _getTypeSize(type: ShaderPropertyType): number {
     switch (type) {
       case ShaderPropertyType.FLOAT: return 1;
       case ShaderPropertyType.VEC2: return 2;
@@ -100,7 +100,7 @@ export class UniformPacker {
     }
   }
 
-  private static getTypeAlignment(type: ShaderPropertyType): number {
+  private static _getTypeAlignment(type: ShaderPropertyType): number {
     switch (type) {
       case ShaderPropertyType.FLOAT: return 1;
       case ShaderPropertyType.VEC2: return 2;

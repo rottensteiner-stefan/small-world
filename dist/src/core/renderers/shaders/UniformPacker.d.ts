@@ -10,7 +10,7 @@ export declare class UniformPacker {
      * @param bufferSize Minimum size of the resulting buffer in bytes (default 256 for WebGPU alignment).
      * @returns A Float32Array ready for GPU upload.
      */
-    static pack(layout: ShaderLayout, values: Record<string, any>, bufferSize?: number): Float32Array;
-    private static getTypeSize;
-    private static getTypeAlignment;
+    static pack(layout: ShaderLayout, values: Record<string, unknown>, bufferSize?: number): Float32Array;
+    private static _getTypeSize;
+    private static _getTypeAlignment;
 }

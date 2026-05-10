@@ -48,7 +48,7 @@ export interface Renderer {
   destroy?(): void;
 
   /** WebGPU Device (only for WebGPU renderer) */
-  readonly gpuDevice?: any;
-  /** WebGL2 Context (only for WebGL2 renderer) */
-  readonly webglContext?: any;
+  readonly gpuDevice?: GPUDevice | undefined;
+  /** WebGL Context (for WebGL1/2 renderers) */
+  readonly webglContext?: WebGLRenderingContext | WebGL2RenderingContext | undefined;
 }

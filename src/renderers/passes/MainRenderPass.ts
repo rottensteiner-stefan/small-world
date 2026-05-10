@@ -2,6 +2,7 @@ import { Scene } from "../../core/Scene.js";
 import { MaterialType } from "../../enums/index.js";
 import { WebGPURenderer } from "../WebGPURenderer.js";
 import { RenderPass } from "../RenderPass.js";
+import { Vector3D } from "../../math/index.js";
 
 /**
  * Standard render pass for opaque and skybox objects.
@@ -15,7 +16,7 @@ export class MainRenderPass implements RenderPass {
     ce: GPUCommandEncoder,
     targetView: GPUTextureView,
     _vp: Float32Array,
-    _camPos: any,
+    _camPos: Vector3D,
     vMat?: Float32Array
   ): void {
     const sortedGroups = scene.getVisibleObjectsSorted();
@@ -38,13 +39,13 @@ export class MainRenderPass implements RenderPass {
     // 1. Skybox first
     const skyboxGroup = sortedGroups.get(MaterialType.SKYBOX);
     if (skyboxGroup) {
-      (renderer as any)._renderGroup(rp, MaterialType.SKYBOX, skyboxGroup, vMat);
+      renderer._renderGroup(rp, MaterialType.SKYBOX, skyboxGroup, vMat);
       sortedGroups.delete(MaterialType.SKYBOX);
     }
 
     // 2. All other materials
     for (const [shaderId, materialGroups] of sortedGroups.entries()) {
-      (renderer as any)._renderGroup(rp, shaderId, materialGroups, vMat);
+      renderer._renderGroup(rp, shaderId, materialGroups, vMat);
     }
 
     rp.end();
