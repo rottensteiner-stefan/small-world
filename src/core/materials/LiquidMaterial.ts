@@ -12,6 +12,7 @@ import vertGLSL from "./shaders/Liquid.vert.glsl?raw";
 import fragGLSL from "./shaders/Liquid.frag.glsl?raw";
 import vertGLSL100 from "./shaders/Liquid.vert.glsl100?raw";
 import fragGLSL100 from "./shaders/Liquid.frag.glsl100?raw";
+import vertWGSL from "./shaders/Liquid.vert.wgsl?raw";
 import fragWGSL from "./shaders/Liquid.frag.wgsl?raw";
 
 /**
@@ -151,6 +152,9 @@ export abstract class LiquidMaterial extends AbstractMaterial {
     this._renderManifest.state = {
       ...this._renderManifest.state,
       culling: this.cullMode,
+      depthWrite: this.depthWrite,
+      depthTest: this.depthTest,
+      transparent: this.transparent,
     };
 
     return this._renderManifest;
@@ -169,7 +173,7 @@ export abstract class LiquidMaterial extends AbstractMaterial {
           vs: vertGLSL100,
           fs: fragGLSL100,
         },
-        wgsl: `[WGSL_STRUCTS]\n[WGSL_PBR_MATH]\n${fragWGSL}`,
+        wgsl: `${vertWGSL}\n[WGSL_PBR_MATH]\n${fragWGSL}`,
       },
       layout: {
         ...StandardWebGPULayout,

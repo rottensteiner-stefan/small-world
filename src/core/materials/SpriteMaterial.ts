@@ -17,7 +17,7 @@ export class SpriteMaterial extends AbstractMaterial {
   public texture: Texture | undefined = undefined;
 
   /** Whether the sprite is transparent. Defaults to true. */
-  public transparent: boolean = true;
+  public override transparent: boolean = true;
 
   /**
    * Creates a new SpriteMaterial.

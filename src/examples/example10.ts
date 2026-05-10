@@ -115,7 +115,7 @@ export class Example10 extends AbstractExample {
 
     const rockMaterial = new WorldMaterial({ diffuseMap: rockTexture });
     rockMaterial.color = Color.WHITE;
-    rockMaterial.cullMode = CullMode.NONE;
+    rockMaterial.cullMode = CullMode.BACK;
 
     const pedestal = new Object3D("Pedestal");
     pedestal.geometry = new Cube({ size: 1 }).getGeometryData();

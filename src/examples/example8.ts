@@ -13,8 +13,8 @@ import {
   Object3D,
   PerspectiveProjection,
   PhongMaterial,
-  Sprite,
-  SpriteMaterial,
+  Sphere,
+  BasicMaterial,
   StiffStrategy,
   Texture,
   TextureFilter,
@@ -23,10 +23,10 @@ import {
 import { AbstractExample } from "../core/example/AbstractExample.js";
 
 /**
- * Example 8: A classic 2.5D Jump & Run with pure code physics, collision, and parallax clouds!
+ * Example 8: A classic 2.5D Jump & Run with pure code physics and collision!
  */
 export class Example8 extends AbstractExample {
-  private _player!: Sprite;
+  private _player!: Object3D;
   private _blocks: Object3D[] = [];
 
   // Physics & Movement
@@ -50,6 +50,7 @@ export class Example8 extends AbstractExample {
 
   protected override async setupScene(): Promise<void> {
     Input.init();
+    this.renderer.setClearColor(new Color(0.5, 0.7, 1.0));
 
     // 1. Camera Setup
     const aspect: number = window.innerWidth / window.innerHeight;
@@ -125,8 +126,10 @@ export class Example8 extends AbstractExample {
     }
 
     // 5. Spieler erstellen
-    const playerMat = new SpriteMaterial({ color: Color.RED });
-    this._player = new Sprite(playerMat, "Mario");
+    const playerMat = new BasicMaterial({ color: Color.YELLOW });
+    this._player = new Object3D("Player");
+    this._player.geometry = new Sphere({ radius: 0.5, segments: 16, rings: 16 }).getGeometryData();
+    this._player.material = playerMat;
     this._player.position.set(2, 10, 0);
     this.scene.add(this._player);
   }
