@@ -41,7 +41,7 @@ export class FPSController implements Controller {
   public enabled: boolean = true;
 
   private _target: CameraInterfaceData | Object3D;
-  private _options: Required<Omit<FPSControllerOptions, "scene" | "input">> & { 
+  private _options: Required<Omit<FPSControllerOptions, "scene" | "input">> & {
     scene: Scene | undefined;
     input: InputInterface;
   };

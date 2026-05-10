@@ -17,7 +17,7 @@ export class UniformPacker {
   public static pack(
     layout: ShaderLayout,
     values: Record<string, unknown>,
-    bufferSize: number = 256
+    bufferSize: number = 256,
   ): Float32Array {
     const data = new Float32Array(bufferSize / 4);
     if (!layout.uniformLayout) return data;
@@ -29,16 +29,16 @@ export class UniformPacker {
       if (!meta) continue;
 
       const val = values[name] ?? meta.defaultValue;
-      
+
       // Ensure Alignment
       const alignment = this._getTypeAlignment(meta.type);
       if (offset % alignment !== 0) {
-          offset += (alignment - (offset % alignment));
+        offset += alignment - (offset % alignment);
       }
 
       if (val === undefined) {
-          offset += this._getTypeSize(meta.type);
-          continue;
+        offset += this._getTypeSize(meta.type);
+        continue;
       }
 
       switch (meta.type) {
@@ -63,7 +63,7 @@ export class UniformPacker {
             data[offset + 1] = (val as number[])[1]!;
             data[offset + 2] = (val as number[])[2]!;
           }
-          offset += 3; 
+          offset += 3;
           break;
         case ShaderPropertyType.VEC4:
         case ShaderPropertyType.COLOR:
@@ -90,25 +90,39 @@ export class UniformPacker {
 
   private static _getTypeSize(type: ShaderPropertyType): number {
     switch (type) {
-      case ShaderPropertyType.FLOAT: return 1;
-      case ShaderPropertyType.VEC2: return 2;
-      case ShaderPropertyType.VEC3: return 3;
-      case ShaderPropertyType.VEC4: return 4;
-      case ShaderPropertyType.COLOR: return 4;
-      case ShaderPropertyType.MAT4: return 16;
-      default: return 0;
+      case ShaderPropertyType.FLOAT:
+        return 1;
+      case ShaderPropertyType.VEC2:
+        return 2;
+      case ShaderPropertyType.VEC3:
+        return 3;
+      case ShaderPropertyType.VEC4:
+        return 4;
+      case ShaderPropertyType.COLOR:
+        return 4;
+      case ShaderPropertyType.MAT4:
+        return 16;
+      default:
+        return 0;
     }
   }
 
   private static _getTypeAlignment(type: ShaderPropertyType): number {
     switch (type) {
-      case ShaderPropertyType.FLOAT: return 1;
-      case ShaderPropertyType.VEC2: return 2;
-      case ShaderPropertyType.VEC3: return 4; // 16 bytes alignment for vec3
-      case ShaderPropertyType.VEC4: return 4; // 16 bytes
-      case ShaderPropertyType.COLOR: return 4; // 16 bytes
-      case ShaderPropertyType.MAT4: return 16; // 64 bytes
-      default: return 1;
+      case ShaderPropertyType.FLOAT:
+        return 1;
+      case ShaderPropertyType.VEC2:
+        return 2;
+      case ShaderPropertyType.VEC3:
+        return 4; // 16 bytes alignment for vec3
+      case ShaderPropertyType.VEC4:
+        return 4; // 16 bytes
+      case ShaderPropertyType.COLOR:
+        return 4; // 16 bytes
+      case ShaderPropertyType.MAT4:
+        return 16; // 64 bytes
+      default:
+        return 1;
     }
   }
 }

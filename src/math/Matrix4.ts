@@ -310,10 +310,22 @@ export class Matrix4 {
     const y = MathPool.acquireVector().copyFrom(z).cross(x).normalize();
 
     const te = result.data;
-    te[0] = x.x; te[4] = x.y; te[8] = x.z; te[12] = -x.dot(eye);
-    te[1] = y.x; te[5] = y.y; te[9] = y.z; te[13] = -y.dot(eye);
-    te[2] = z.x; te[6] = z.y; te[10] = z.z; te[14] = -z.dot(eye);
-    te[3] = 0;   te[7] = 0;   te[11] = 0;   te[15] = 1;
+    te[0] = x.x;
+    te[4] = x.y;
+    te[8] = x.z;
+    te[12] = -x.dot(eye);
+    te[1] = y.x;
+    te[5] = y.y;
+    te[9] = y.z;
+    te[13] = -y.dot(eye);
+    te[2] = z.x;
+    te[6] = z.y;
+    te[10] = z.z;
+    te[14] = -z.dot(eye);
+    te[3] = 0;
+    te[7] = 0;
+    te[11] = 0;
+    te[15] = 1;
 
     MathPool.releaseVector(x);
     MathPool.releaseVector(y);

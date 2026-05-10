@@ -8,7 +8,15 @@ import { CameraStrategyType } from "../../src/enums/index.js";
 
 class MockInput implements InputInterface {
   public mouse: MouseState = {
-    x: 0, y: 0, dx: 0, dy: 0, wheelX: 0, wheelY: 0, zoom: 0, left: false, right: false
+    x: 0,
+    y: 0,
+    dx: 0,
+    dy: 0,
+    wheelX: 0,
+    wheelY: 0,
+    zoom: 0,
+    left: false,
+    right: false,
   };
   public isPointerLocked = false;
   private _keys = new Map<string, boolean>();
@@ -36,16 +44,16 @@ describe("FPSController Movement Regressions", () => {
     cam.position.set(0, 0, 0);
     cam.theta = 0; // Looking towards -Z
     cam.phi = 0;
-    
+
     // Initial sync
     cam.update(cam.target, 0, 0, 0);
 
     const input = new MockInput();
     const controller = new FPSController(cam, { input, moveSpeed: 10 });
-    
+
     input.setKey(Keys.W, true);
     controller.update(1.0); // Move for 1 second
-    
+
     // With theta=0, look direction is (0, 0, -1)
     expect(cam.position.z).toBeCloseTo(-10);
   });
@@ -60,10 +68,10 @@ describe("FPSController Movement Regressions", () => {
 
     const input = new MockInput();
     const controller = new FPSController(cam, { input, moveSpeed: 10 });
-    
+
     input.setKey(Keys.S, true);
     controller.update(1.0);
-    
+
     expect(cam.position.z).toBeCloseTo(10);
   });
 
@@ -77,10 +85,10 @@ describe("FPSController Movement Regressions", () => {
 
     const input = new MockInput();
     const controller = new FPSController(cam, { input, moveSpeed: 10 });
-    
+
     input.setKey(Keys.W, true);
     controller.update(1.0);
-    
+
     expect(cam.position.x).toBeCloseTo(10);
     expect(cam.position.z).toBeCloseTo(0);
   });

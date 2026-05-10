@@ -29,7 +29,7 @@ Before implementing:
   - **FPS Movement (WASD):** **W (Forward)** must move the target in the current look direction. In code: `pos += LookVector * moveSpeed`. **S (Backward)** must move exactly in the opposite direction. **A/D (Strafe)** must move perpendicular to the look direction (Right vector).
   - **Implementation Reference:** The `FPSController` calculation must always follow this logic: `dirX = -moveZ * sin; dirZ = moveZ * cos;` (where W=-1, S=+1).
 - **Regression Testing:** Any change to `src/math/` or index-generating logic MUST be accompanied by tests that verify the orientation, winding order, and coordinate system integrity (e.g., ensuring objects don't end up "upside down" or mirrored). Use `npm test tests/core/FPSController.test.ts` for movement verification.
-- **Global Impact Analysis:** If a core mathematical method *must* be changed (e.g., to fix a fundamental bug), you MUST identify and update ALL call sites across the entire codebase.
+- **Global Impact Analysis:** If a core mathematical method _must_ be changed (e.g., to fix a fundamental bug), you MUST identify and update ALL call sites across the entire codebase.
 
 ## Simplicity First
 

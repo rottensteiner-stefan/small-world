@@ -22,7 +22,6 @@ import { AbstractExample } from "../core/example/AbstractExample.js";
  * Focuses on correctly assembling the font and investigating visibility issues.
  */
 class Example11 extends AbstractExample {
-  
   protected override async setupScene(): Promise<void> {
     // 1. Camera Setup
     if (ProjectionType.PERSPECTIVE === this.camera.projection.type) {
@@ -34,13 +33,13 @@ class Example11 extends AbstractExample {
       });
       this.camera.updateProjectionMatrix();
     }
-    
+
     // Switch to FPS Strategy
     this.camera.setStrategy(CameraStrategyType.FPS);
     this.camera.position.set(0, 5, 15);
     // Align camera to look directly at the center (0, 5, 0)
-    this.camera.theta = 0; 
-    this.camera.phi = 0;   
+    this.camera.theta = 0;
+    this.camera.phi = 0;
     this.camera.target.set(0, 5, 0);
 
     // 2. Add FPS Controller
@@ -64,7 +63,11 @@ class Example11 extends AbstractExample {
     const floorMat = new BasicMaterial({ color: new Color(0.15, 0.15, 0.15) });
     floorMat.cullMode = CullMode.NONE;
     const floor = new Object3D("Floor");
-    floor.geometry = new Cylinder({ radiusTop: 20, radiusBottom: 20, height: 0.1 }).getGeometryData();
+    floor.geometry = new Cylinder({
+      radiusTop: 20,
+      radiusBottom: 20,
+      height: 0.1,
+    }).getGeometryData();
     floor.material = floorMat;
     floor.frustumCulled = false;
     // Position floor so its surface is at y=0
@@ -80,16 +83,16 @@ class Example11 extends AbstractExample {
     fontRoot.setPosition(pos.x, pos.y, pos.z);
 
     const stoneMat = new BasicMaterial({ color: new Color(0.8, 0.8, 0.8) });
-    stoneMat.cullMode = CullMode.NONE; 
+    stoneMat.cullMode = CullMode.NONE;
 
     // Component 1: Pedestal (Pyramid) - The base
     const pedestal = new Object3D(name + "_Pedestal");
     // Use a truncated pyramid (Cylinder with 4 segments) for a more stable look
-    pedestal.geometry = new Cylinder({ 
-      radiusTop: 1.0, 
-      radiusBottom: 2.0, 
-      height: 4, 
-      radialSegments: 4 
+    pedestal.geometry = new Cylinder({
+      radiusTop: 1.0,
+      radiusBottom: 2.0,
+      height: 4,
+      radialSegments: 4,
     }).getGeometryData();
     pedestal.material = stoneMat;
     pedestal.frustumCulled = false;
@@ -99,11 +102,11 @@ class Example11 extends AbstractExample {
 
     // Component 2: Bowl Base (Cylinder) - The transition
     const bowlBase = new Object3D(name + "_BowlBase");
-    bowlBase.geometry = new Cylinder({ 
-      radiusTop: 4.5, 
-      radiusBottom: 1.0, 
-      height: 2, 
-      radialSegments: 32 
+    bowlBase.geometry = new Cylinder({
+      radiusTop: 4.5,
+      radiusBottom: 1.0,
+      height: 2,
+      radialSegments: 32,
     }).getGeometryData();
     bowlBase.material = stoneMat;
     bowlBase.frustumCulled = false;
@@ -112,11 +115,11 @@ class Example11 extends AbstractExample {
 
     // Component 3: Rim (Torus) - The top edge
     const rim = new Object3D(name + "_Rim");
-    rim.geometry = new Torus({ 
-      radius: 4.5, 
-      tube: 0.4, 
-      radialSegments: 16, 
-      tubularSegments: 32 
+    rim.geometry = new Torus({
+      radius: 4.5,
+      tube: 0.4,
+      radialSegments: 16,
+      tubularSegments: 32,
     }).getGeometryData();
     rim.material = stoneMat;
     rim.frustumCulled = false;

@@ -132,7 +132,7 @@ export abstract class LiquidMaterial extends AbstractMaterial {
 
     props["u_color"] = this.color.toFloat32Array();
     props["u_specColor"] = this.crustColor.toFloat32Array();
-    
+
     const extra = props["u_extraParams"] as number[];
     extra[1] = this.time;
     extra[2] = this.flowSpeed;
