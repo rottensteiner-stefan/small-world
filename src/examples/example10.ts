@@ -55,7 +55,9 @@ export class Example10 extends AbstractExample {
     });
     this.camera.updateProjectionMatrix();
     this.camera.setStrategy(CameraStrategyType.FPS);
-    this.camera.position.set(0, this._eyeHeight + 4, 12);
+    this.camera.position.set(0, this._eyeHeight, 12);
+    this.camera.theta = 0;
+    this.camera.phi = 0;
 
     this.scene.add(new AmbientLight({ color: Color.WHITE, intensity: 0.3 }));
     const sun = new DirectionalLight({ color: Color.WHITE, intensity: 1.0 });
