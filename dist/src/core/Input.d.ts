@@ -1,45 +1,65 @@
 import { Keys } from '../enums/Keys.js';
 /**
- * Handles user input (keyboard and mouse).
+ * Interface for mouse state.
  */
-export declare class Input {
-    private static _keys;
+export interface MouseState {
+    x: number;
+    y: number;
+    dx: number;
+    dy: number;
+    wheelX: number;
+    wheelY: number;
+    zoom: number;
+    left: boolean;
+    right: boolean;
+}
+/**
+ * Interface for Input management to allow mocking and dependency injection.
+ */
+export interface InputInterface {
+    mouse: MouseState;
+    isPointerLocked: boolean;
+    isPressed(code: string | Keys): boolean;
+    getAxis(neg: string | Keys, pos: string | Keys): number;
+}
+/**
+ * Handles user input (keyboard and mouse).
+ * Implements a static singleton pattern for global access,
+ * but can be instantiated or mocked for testing.
+ */
+export declare class Input implements InputInterface {
+    private static _instance;
+    private _keys;
     /** Mouse state including position and button status. */
-    static mouse: {
-        x: number;
-        y: number;
-        dx: number;
-        dy: number;
-        wheelX: number;
-        wheelY: number;
-        zoom: number;
-        left: boolean;
-        right: boolean;
-    };
+    mouse: MouseState;
     /** Whether the pointer is currently locked. */
-    static isPointerLocked: boolean;
+    isPointerLocked: boolean;
     /** Whether debug mode is enabled for input. */
-    static debug: boolean;
+    debug: boolean;
+    /**
+     * Gets the global singleton instance.
+     */
+    static get instance(): Input;
+    /**
+     * Static accessors to maintain backward compatibility.
+     */
+    static get mouse(): MouseState;
+    static get isPointerLocked(): boolean;
+    static set isPointerLocked(v: boolean);
     /**
      * Initializes the input listeners.
      */
     static init(): void;
-    /**
-     * Requests a pointer lock on the given element.
-     * @param element The element to lock the pointer to.
-     */
     static requestPointerLock(element: HTMLElement): void;
-    /**
-     * Checks if a key is currently pressed.
-     * @param code The key code.
-     * @returns True if the key is pressed.
-     */
+    /** @inheritdoc */
+    isPressed(code: string | Keys): boolean;
+    /** @inheritdoc */
+    getAxis(neg: string | Keys, pos: string | Keys): number;
+    /** Static wrappers */
     static isPressed(code: string | Keys): boolean;
-    /**
-     * Returns the value of an axis defined by two keys.
-     * @param neg The key for negative direction.
-     * @param pos The key for positive direction.
-     * @returns -1, 0, or 1.
-     */
     static getAxis(neg: string | Keys, pos: string | Keys): number;
+    /**
+     * Helper for testing to manually set key state.
+     */
+    setKeyState(code: string | Keys, pressed: boolean): void;
 }

@@ -1,5 +1,6 @@
 import { CameraInterfaceData, Controller } from '../../interfaces/index.js';
 import { Object3D } from '../Object3D.js';
+import { InputInterface } from '../Input.js';
 import { InputMode } from '../../enums/index.js';
 import { Scene } from '../Scene.js';
 /**
@@ -24,6 +25,8 @@ export interface FPSControllerOptions {
     collisionRadius?: number;
     /** The scene to check for collisions. */
     scene?: Scene;
+    /** Optional input source (for testing). Defaults to global Input.instance. */
+    input?: InputInterface;
 }
 /**
  * A controller for first-person style movement and looking.
