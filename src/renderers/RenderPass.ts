@@ -25,6 +25,6 @@ export interface RenderPass {
     targetView: GPUTextureView,
     vp: Float32Array,
     camPos: Vector3D,
-    vMat?: Float32Array
+    vMat?: Float32Array,
   ): void;
 }

@@ -32,7 +32,7 @@ class Example1 extends AbstractExample {
     const sun: DirectionalLight = new DirectionalLight({ color: Color.WHITE, intensity: 1.0 });
     sun.direction.set(-1, -1, -1);
     this.scene.add(sun);
-    
+
     this.scene.add(new AmbientLight({ color: Color.WHITE, intensity: 0.2 }));
 
     // 2. Object: A single cube with blue material
@@ -57,7 +57,7 @@ class Example1 extends AbstractExample {
     // Rotate the cube around all axes every frame
     this._myCube.rotation.x += 1.0 * deltaTime;
     this._myCube.rotation.y += 1.5 * deltaTime;
-    
+
     this.scene.update();
   }
 }

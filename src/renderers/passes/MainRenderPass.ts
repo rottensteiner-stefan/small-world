@@ -17,22 +17,24 @@ export class MainRenderPass implements RenderPass {
     targetView: GPUTextureView,
     _vp: Float32Array,
     _camPos: Vector3D,
-    vMat?: Float32Array
+    vMat?: Float32Array,
   ): void {
     const sortedGroups = scene.getVisibleObjectsSorted();
-    
+
     const rp = ce.beginRenderPass({
-      colorAttachments: [{ 
-          view: targetView, 
-          clearValue: renderer.clearColor, 
-          loadOp: "clear", 
-          storeOp: "store" 
-      }],
-      depthStencilAttachment: { 
-          view: renderer._depthTexture.createView(), 
-          depthClearValue: 1.0, 
-          depthLoadOp: "clear", 
-          depthStoreOp: "store" 
+      colorAttachments: [
+        {
+          view: targetView,
+          clearValue: renderer.clearColor,
+          loadOp: "clear",
+          storeOp: "store",
+        },
+      ],
+      depthStencilAttachment: {
+        view: renderer._depthTexture.createView(),
+        depthClearValue: 1.0,
+        depthLoadOp: "clear",
+        depthStoreOp: "store",
       },
     });
 

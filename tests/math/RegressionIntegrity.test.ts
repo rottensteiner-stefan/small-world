@@ -14,14 +14,14 @@ describe("Regression Integrity Tests", () => {
     const target = new Vector3D(0, 0, -1);
     const up = new Vector3D(0, 1, 0);
     const viewMatrix = new Matrix4();
-    
+
     Matrix4.lookAt(eye, target, up, viewMatrix);
-    
+
     // A point 1 unit "up" in world space
     const worldPoint = new Vector3D(0, 1, -1);
     const viewPoint = new Vector3D();
     viewMatrix.transformVector(worldPoint, viewPoint);
-    
+
     // In view space, looking down -Z, UP should still be +Y
     expect(viewPoint.y).toBeGreaterThan(0);
     expect(viewPoint.y).toBeCloseTo(1);
@@ -43,7 +43,7 @@ describe("Regression Integrity Tests", () => {
       const x = vertices[i];
       const y = vertices[i + 1];
       const z = vertices[i + 2];
-      
+
       // Look for the center of the front face
       if (Math.abs(x!) < 0.001 && Math.abs(y!) < 0.001 && Math.abs(z! - 0.5) < 0.001) {
         expect(normals[i]).toBeCloseTo(0);
@@ -70,7 +70,7 @@ describe("Regression Integrity Tests", () => {
     const result = new Vector3D();
     m.transformVector(v, result);
 
-    // After 90 deg X rotation, (0, 1, 0) should become (0, 0, 1) 
+    // After 90 deg X rotation, (0, 1, 0) should become (0, 0, 1)
     // depending on the implementation of YXZ.
     // In Matrix4.ts:
     // te[8] = sY * cX * scZ;
@@ -81,7 +81,7 @@ describe("Regression Integrity Tests", () => {
     // te[6] = sX * cZ => sX
     // So Y' = Y * cX - Z * sX, Z' = Y * sX + Z * cX
     // (0, 1, 0) => Y' = cos(90)=0, Z' = sin(90)=1 => (0, 0, 1)
-    
+
     expect(result.x).toBeCloseTo(0);
     expect(result.y).toBeCloseTo(0);
     expect(result.z).toBeCloseTo(1);

@@ -19,7 +19,6 @@ import { AbstractExample } from "../core/example/AbstractExample.js";
  * Used to visually verify that WASD and coordinate systems follow the engine standard.
  */
 class Example12 extends AbstractExample {
-  
   protected override async setupScene(): Promise<void> {
     this.onCanvasRecreated();
 
@@ -53,7 +52,11 @@ class Example12 extends AbstractExample {
     // 4. Verification Grid
     const floorMat = new BasicMaterial({ color: new Color(0.2, 0.2, 0.2) });
     const floor = new Object3D("Floor");
-    floor.geometry = new Cylinder({ radiusTop: 20, radiusBottom: 20, height: 0.1 }).getGeometryData();
+    floor.geometry = new Cylinder({
+      radiusTop: 20,
+      radiusBottom: 20,
+      height: 0.1,
+    }).getGeometryData();
     floor.material = floorMat;
     floor.setPosition(0, -0.05, 0);
     this.scene.add(floor);

@@ -29,7 +29,7 @@ export interface InputInterface {
 
 /**
  * Handles user input (keyboard and mouse).
- * Implements a static singleton pattern for global access, 
+ * Implements a static singleton pattern for global access,
  * but can be instantiated or mocked for testing.
  */
 export class Input implements InputInterface {
@@ -67,11 +67,21 @@ export class Input implements InputInterface {
   /**
    * Static accessors to maintain backward compatibility.
    */
-  public static get mouse(): MouseState { return this.instance.mouse; }
-  public static get isPointerLocked(): boolean { return this.instance.isPointerLocked; }
-  public static set isPointerLocked(v: boolean) { this.instance.isPointerLocked = v; }
-  public static get debug(): boolean { return this.instance.debug; }
-  public static set debug(v: boolean) { this.instance.debug = v; }
+  public static get mouse(): MouseState {
+    return this.instance.mouse;
+  }
+  public static get isPointerLocked(): boolean {
+    return this.instance.isPointerLocked;
+  }
+  public static set isPointerLocked(v: boolean) {
+    this.instance.isPointerLocked = v;
+  }
+  public static get debug(): boolean {
+    return this.instance.debug;
+  }
+  public static set debug(v: boolean) {
+    this.instance.debug = v;
+  }
 
   /**
    * Initializes the input listeners.
@@ -170,8 +180,12 @@ export class Input implements InputInterface {
   }
 
   /** Static wrappers */
-  public static isPressed(code: string | Keys): boolean { return this.instance.isPressed(code); }
-  public static getAxis(neg: string | Keys, pos: string | Keys): number { return this.instance.getAxis(neg, pos); }
+  public static isPressed(code: string | Keys): boolean {
+    return this.instance.isPressed(code);
+  }
+  public static getAxis(neg: string | Keys, pos: string | Keys): number {
+    return this.instance.getAxis(neg, pos);
+  }
 
   /**
    * Helper for testing to manually set key state.

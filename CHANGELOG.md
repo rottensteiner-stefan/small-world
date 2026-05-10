@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.20.01] - 2026-05-10
+
+- **Rendering & Shader Stability**:
+  - Fixed a critical issue in **WebGL 2.0** where global uniforms (like `u_vp`) were incorrectly declared, causing depth calculation failures.
+  - Implemented full **Uniform Buffer Object (UBO)** integration for `LiquidMaterial` and standard shader headers in WebGL 2.0.
+  - Added support for `depthWrite`, `depthTest`, and `transparent` state management across all renderers (WebGL 1/2, WebGPU).
+  - Resolved "lava leaking" artifacts in Example 10 by synchronizing UBO layouts and refining vertex displacement parameters.
+- **Example 10 Improvements**:
+  - Adjusted starting camera height to eye level (`y=2.0`) and set initial rotation to look straight ahead.
+  - Optimized fire bowl rendering by refining lava radius and wave amplitude to prevent geometry clipping.
+  - Cleaned up unreferenced imports and fixed missing `Input` references.
+- **Workflow & Quality Standards**:
+  - Introduced a new **Quality & Stability** section in `GEMINI.md`, mandating incremental changes and full library builds for interface updates.
+  - Added regression test for `Tube` geometry (`tests/core/Tube.test.ts`) to ensure geometric integrity.
+  - Performed safe dependency updates for TypeScript, Vite, and ESLint tools while maintaining linter compatibility.
+
 ## [0.20.00] - 2026-05-10
 
 - **Core Input & Control Logic**:
@@ -159,7 +175,7 @@
 - **Maintenance & Stability Round**:
   - **Core Regression Fixes**: Restored `camera.update()` and `camera.updateViewMatrix()` calls in the main application loop to fix visual errors where objects appeared too large (Identity Matrix issues).
   - **Type Safety Overhaul**: Performed a project-wide maintenance pass, eliminating unsafe `any` usages and fixing calls to non-existent methods/properties.
-  - **GltfLoader Improvements**: Fixed a critical color scaling bug (removed redundant *255 multiplication) and added robust safety checks for malformed glTF files.
+  - **GltfLoader Improvements**: Fixed a critical color scaling bug (removed redundant \*255 multiplication) and added robust safety checks for malformed glTF files.
   - **Robustness**: Added division-by-zero protection in tangent calculations for degenerate UV coordinates.
   - **Cross-Environment Compatibility**: Switched to `MathUtils.generateUUID()` for safer ID generation across various browser environments.
 - **Architectural Refinement**:
@@ -272,7 +288,7 @@
 ## [0.15.02] - 2026-04-14
 
 - **Recursive Rendering Fix**: Corrected WebGL renderers to properly process nested object hierarchies even when parent objects lack a material (essential for complex model groups).
-- **Matrix Calculation**: Fixed critical bug in `Matrix4.compose` by implementing direct matrix construction, ensuring correct transformation order (Translation * Rotation * Scale).
+- **Matrix Calculation**: Fixed critical bug in `Matrix4.compose` by implementing direct matrix construction, ensuring correct transformation order (Translation _ Rotation _ Scale).
 - **Large Geometry Support**: All geometry classes now dynamically select between 16-bit and 32-bit index arrays (`Uint16Array` vs `Uint32Array`) based on vertex count, preventing buffer overflows.
 - **Improved Model Loading**:
   - `ObjLoader`: Added support for n-gon triangulation and automatic V-flip for UV coordinates.
@@ -420,7 +436,7 @@
 
 ## [0.10.12] - 2025-03-16
 
-- Demo 3: Load and display *.OBJ
+- Demo 3: Load and display \*.OBJ
 
 ## [0.10.11] - 2025-03-15
 
