@@ -1,5 +1,5 @@
 import { AbstractMaterial } from "./AbstractMaterial.js";
-import { MaterialType, CullMode } from "../../enums/index.js";
+import { MaterialType, CullMode, Topology } from "../../enums/index.js";
 import { Color } from "../colors/index.js";
 import { RenderManifest } from "../renderers/shaders/RenderManifest.js";
 import { ShaderDefinition } from "../renderers/shaders/ShaderDefinition.js";
@@ -39,7 +39,7 @@ export class WireframeMaterial extends AbstractMaterial {
         textures: {},
         state: {
           culling: CullMode.NONE, // Often useful for wireframes to see the back
-          topology: "line-list",
+          topology: Topology.LINE_LIST,
         },
       };
     }
