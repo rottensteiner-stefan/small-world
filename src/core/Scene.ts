@@ -94,20 +94,22 @@ export class Scene {
 
   /**
    * Returns visible objects, respecting BOTH user visibility and frustum state.
+   * Grouping: shaderId -> topology -> matUuid -> Object3D[]
    */
-  public getVisibleObjectsSorted(): Map<string, Map<string, Object3D[]>> {
-    const sorted: Map<string, Map<string, Object3D[]>> = new Map();
+  public getVisibleObjectsSorted(): Map<string, Map<string, Map<string, Object3D[]>>> {
+    const sorted: Map<string, Map<string, Map<string, Object3D[]>>> = new Map();
     for (let i: number = 0; i < this.objects.length; i++) {
       this._collectVisible(this.objects[i]!, sorted);
     }
     return sorted;
   }
 
-  private _collectVisible(obj: Object3D, sorted: Map<string, Map<string, Object3D[]>>): void {
+  private _collectVisible(
+    obj: Object3D,
+    sorted: Map<string, Map<string, Map<string, Object3D[]>>>,
+  ): void {
     // Only proceed if object is visible
     if (!obj.isVisible) return;
-    // For Strategy C: Ignore frustum state
-    // if (!obj.inFrustum) return;
 
     if (
       (obj.geometry || (obj as Object3D & { positionBuffer?: unknown }).positionBuffer) &&
@@ -115,13 +117,19 @@ export class Scene {
     ) {
       const manifest = obj.material.getRenderManifest();
       const shaderId = manifest.shaderId;
+      const topology =
+        manifest.state?.topology ||
+        (obj.geometry?.indices?.length === 2 ? "line-list" : "triangle-list");
       const matUuid = obj.material.uuid;
 
       if (!sorted.has(shaderId)) sorted.set(shaderId, new Map());
-      const shaderMap = sorted.get(shaderId)!;
+      const topologyMap = sorted.get(shaderId)!;
 
-      if (!shaderMap.has(matUuid)) shaderMap.set(matUuid, []);
-      shaderMap.get(matUuid)!.push(obj);
+      if (!topologyMap.has(topology)) topologyMap.set(topology, new Map());
+      const matMap = topologyMap.get(topology)!;
+
+      if (!matMap.has(matUuid)) matMap.set(matUuid, []);
+      matMap.get(matUuid)!.push(obj);
     }
 
     for (let i: number = 0; i < obj.children.length; i++) {

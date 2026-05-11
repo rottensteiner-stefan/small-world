@@ -34,5 +34,7 @@ export interface RenderManifest {
     transparent?: boolean;
     /** Whether this object should be treated as a camera-facing sprite (billboarding). */
     isSprite?: boolean;
+    /** The primitive topology (e.g., triangle-list or line-list). Defaults to triangle-list. */
+    topology?: string;
   };
 }

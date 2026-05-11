@@ -151,10 +151,9 @@ export class Input implements InputInterface {
 
     document.addEventListener("pointerlockchange", (): void => {
       inst.isPointerLocked = null !== document.pointerLockElement;
-      if (!inst.isPointerLocked) {
-        inst.mouse.dx = 0;
-        inst.mouse.dy = 0;
-      }
+      // Reset deltas when lock state changes to prevent jumping
+      inst.mouse.dx = 0;
+      inst.mouse.dy = 0;
     });
   }
 

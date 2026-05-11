@@ -19,8 +19,9 @@ export declare class Scene {
     private _addObjectToOctree;
     /**
      * Returns visible objects, respecting BOTH user visibility and frustum state.
+     * Grouping: shaderId -> topology -> matUuid -> Object3D[]
      */
-    getVisibleObjectsSorted(): Map<string, Map<string, Object3D[]>>;
+    getVisibleObjectsSorted(): Map<string, Map<string, Map<string, Object3D[]>>>;
     private _collectVisible;
     get octree(): Octree | undefined;
 }

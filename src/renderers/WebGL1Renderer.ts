@@ -229,33 +229,38 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
     const sortedGroups = scene.getVisibleObjectsSorted();
 
     // --- PASS 1: Skybox ---
-    const skyboxGroup = sortedGroups.get(MaterialType.SKYBOX);
-    if (skyboxGroup) {
+    const skyboxShaderMap = sortedGroups.get(MaterialType.SKYBOX);
+    if (skyboxShaderMap) {
       this.gl.depthMask(false);
-      this._renderGroup(
-        MaterialType.SKYBOX,
-        skyboxGroup,
-        vp,
-        Vector3D.ZERO,
-        {
-          aCol: Color.BLACK,
-          aIntensity: 0,
-          dCol: Color.BLACK,
-          dIntensity: 0,
-          dDir: Vector3D.ZERO,
-          pLights: [],
-          sLights: [],
-          aLights: [],
-        },
-        vMat,
-      );
+      for (const [topology, materialGroups] of skyboxShaderMap.entries()) {
+        this._renderGroup(
+          MaterialType.SKYBOX,
+          materialGroups,
+          vp,
+          Vector3D.ZERO,
+          {
+            aCol: Color.BLACK,
+            aIntensity: 0,
+            dCol: Color.BLACK,
+            dIntensity: 0,
+            dDir: Vector3D.ZERO,
+            pLights: [],
+            sLights: [],
+            aLights: [],
+          },
+          vMat,
+          topology,
+        );
+      }
       this.gl.depthMask(true);
       sortedGroups.delete(MaterialType.SKYBOX);
     }
 
     // --- PASS 2: Objects ---
-    for (const [shaderId, materialGroups] of sortedGroups.entries()) {
-      this._renderGroup(shaderId, materialGroups, vp, camPos, extractedLights, vMat);
+    for (const [shaderId, topologyMap] of sortedGroups.entries()) {
+      for (const [topology, materialGroups] of topologyMap.entries()) {
+        this._renderGroup(shaderId, materialGroups, vp, camPos, extractedLights, vMat, topology);
+      }
     }
   }
 
@@ -266,6 +271,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
     camPos: Vector3D,
     lights: LightDataInterface,
     vMat?: Float32Array,
+    topology: string = "triangle-list",
   ): void {
     const cache = this._getProgram(shaderId);
     this.gl.useProgram(cache.prog);
@@ -443,7 +449,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
           cache.attributes.get("a_uv")!,
           cache.attributes.get("a_tangent")!,
         );
-        mesh.draw(MaterialType.WIREFRAME === shaderId ? this.gl.LINES : this.gl.TRIANGLES);
+        mesh.draw(topology === "line-list" ? this.gl.LINES : this.gl.TRIANGLES);
       }
     }
   }
