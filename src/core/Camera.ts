@@ -26,7 +26,7 @@ export class Camera implements CameraInterfaceData {
   /** @inheritdoc */
   public theta: number = 0;
   /** @inheritdoc */
-  public phi: number = 0.6;
+  public phi: number = 0;
 
   private _strategy!: CameraStrategy;
 

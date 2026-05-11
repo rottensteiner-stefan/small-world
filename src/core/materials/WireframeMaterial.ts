@@ -39,6 +39,7 @@ export class WireframeMaterial extends AbstractMaterial {
         textures: {},
         state: {
           culling: CullMode.NONE, // Often useful for wireframes to see the back
+          topology: "line-list",
         },
       };
     }
@@ -46,7 +47,7 @@ export class WireframeMaterial extends AbstractMaterial {
     const props = this._renderManifest.properties as Record<string, unknown>;
     props["u_color"] = this.color.toFloat32Array();
 
-    return this._renderManifest;
+    return this._renderManifest!;
   }
 
   /** @inheritdoc */

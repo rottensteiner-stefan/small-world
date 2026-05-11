@@ -7,7 +7,6 @@ import { Scene } from "../core/Scene.js";
 import { MathPool, Vector3D } from "../math/index.js";
 import {
   BlendingMode,
-  MaterialType,
   RendererType,
   TextureFilter,
   TextureWrap,
@@ -442,17 +441,17 @@ export class WebGPURenderer extends AbstractRenderer {
 
   public _renderGroup(
     rp: GPURenderPassEncoder,
-    shaderId: string,
+    _shaderId: string,
     materialGroups: Map<string, Object3D[]>,
     vMat?: Float32Array,
+    topology: GPUPrimitiveTopology = "triangle-list",
   ): void {
     const groupIterator = materialGroups.values();
     const firstGroup = groupIterator.next().value;
     if (!firstGroup || firstGroup.length === 0) return;
     const firstObj = firstGroup[0];
     if (!firstObj || !firstObj.material) return;
-    const topology: GPUPrimitiveTopology =
-      shaderId === MaterialType.WIREFRAME ? "line-list" : "triangle-list";
+
     const cache = this._getPipeline(firstObj.material.getRenderManifest(), topology);
     rp.setPipeline(cache.pipeline);
     rp.setBindGroup(0, this._globalBindGroup);
@@ -472,9 +471,17 @@ export class WebGPURenderer extends AbstractRenderer {
         rp.setVertexBuffer(1, gCache.nb || this._dummyNormalBuffer);
         rp.setVertexBuffer(2, gCache.uvb || this._dummyUvBuffer);
         rp.setVertexBuffer(3, gCache.tb || this._dummyTangentBuffer);
-        if (topology === "line-list" && gCache.wib) {
-          rp.setIndexBuffer(gCache.wib, gCache.format!);
-          rp.drawIndexed(gCache.wireframeIndexCount);
+
+        if (topology === "line-list") {
+          if (gCache.wib) {
+            rp.setIndexBuffer(gCache.wib, gCache.format!);
+            rp.drawIndexed(gCache.wireframeIndexCount);
+          } else if (gCache.ib) {
+            rp.setIndexBuffer(gCache.ib, gCache.format!);
+            rp.drawIndexed(gCache.indexCount);
+          } else {
+            rp.draw(gCache.vertexCount);
+          }
         } else if (gCache.ib) {
           rp.setIndexBuffer(gCache.ib, gCache.format!);
           rp.drawIndexed(gCache.indexCount);

@@ -227,27 +227,32 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     const sortedGroups = scene.getVisibleObjectsSorted();
 
     // --- PASS 1: Skybox / Background ---
-    const skyboxGroup = sortedGroups.get(MaterialType.SKYBOX);
-    if (skyboxGroup) {
+    const skyboxShaderMap = sortedGroups.get(MaterialType.SKYBOX);
+    if (skyboxShaderMap) {
       this.gl.depthMask(false);
-      this._renderGroup(MaterialType.SKYBOX, skyboxGroup, vMat);
+      for (const [topology, materialGroups] of skyboxShaderMap.entries()) {
+        this._renderGroup(MaterialType.SKYBOX, materialGroups, vMat, topology);
+      }
       this.gl.depthMask(true);
       sortedGroups.delete(MaterialType.SKYBOX);
     }
 
     // --- PASS 2: All other Objects ---
-    for (const [shaderId, materialGroups] of sortedGroups.entries()) {
-      this._renderGroup(shaderId, materialGroups, vMat);
+    for (const [shaderId, topologyMap] of sortedGroups.entries()) {
+      for (const [topology, materialGroups] of topologyMap.entries()) {
+        this._renderGroup(shaderId, materialGroups, vMat, topology);
+      }
     }
   }
 
   /**
-   * Renders a group of objects sharing the same shader.
+   * Renders a group of objects sharing the same shader and topology.
    */
   private _renderGroup(
     shaderId: string,
     materialGroups: Map<string, Object3D[]>,
     vMat?: Float32Array,
+    topology: string = "triangle-list",
   ): void {
     const cache = this._getProgram(shaderId);
     this.gl.useProgram(cache.prog);
@@ -394,7 +399,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
           cache.attributes.get("a_tangent")!,
         );
 
-        const drawMode = MaterialType.WIREFRAME === shaderId ? this.gl.LINES : this.gl.TRIANGLES;
+        const drawMode = topology === "line-list" ? this.gl.LINES : this.gl.TRIANGLES;
         mesh.draw(drawMode);
       }
     }

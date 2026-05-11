@@ -24,7 +24,7 @@ export declare class WebGL2Renderer extends AbstractWebGLRenderer {
     /** @inheritdoc */
     render(scene: Scene, vp: Float32Array, camPos?: Vector3D, vMat?: Float32Array): void;
     /**
-     * Renders a group of objects sharing the same shader.
+     * Renders a group of objects sharing the same shader and topology.
      */
     private _renderGroup;
     private _updateGlobalUBO;

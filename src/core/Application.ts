@@ -183,6 +183,10 @@ export abstract class Application {
 
       this.renderer.setSize(this.canvas.width, this.canvas.height);
 
+      // --- CRITICAL FIX: Ensure correct initial aspect ratio ---
+      this.camera.aspect = this.canvas.clientWidth / this.canvas.clientHeight;
+      this.camera.updateProjectionMatrix();
+
       await this.setupScene();
       this._isInitialized = true;
     }

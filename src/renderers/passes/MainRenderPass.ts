@@ -39,15 +39,19 @@ export class MainRenderPass implements RenderPass {
     });
 
     // 1. Skybox first
-    const skyboxGroup = sortedGroups.get(MaterialType.SKYBOX);
-    if (skyboxGroup) {
-      renderer._renderGroup(rp, MaterialType.SKYBOX, skyboxGroup, vMat);
+    const skyboxShaderMap = sortedGroups.get(MaterialType.SKYBOX);
+    if (skyboxShaderMap) {
+      for (const [topology, materialGroups] of skyboxShaderMap.entries()) {
+        renderer._renderGroup(rp, MaterialType.SKYBOX, materialGroups, vMat, topology as GPUPrimitiveTopology);
+      }
       sortedGroups.delete(MaterialType.SKYBOX);
     }
 
     // 2. All other materials
-    for (const [shaderId, materialGroups] of sortedGroups.entries()) {
-      renderer._renderGroup(rp, shaderId, materialGroups, vMat);
+    for (const [shaderId, topologyMap] of sortedGroups.entries()) {
+      for (const [topology, materialGroups] of topologyMap.entries()) {
+        renderer._renderGroup(rp, shaderId, materialGroups, vMat, topology as GPUPrimitiveTopology);
+      }
     }
 
     rp.end();
