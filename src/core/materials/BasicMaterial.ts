@@ -82,6 +82,9 @@ export class BasicMaterial extends AbstractMaterial {
     this._renderManifest.state = {
       ...this._renderManifest.state,
       culling: this.cullMode,
+      depthWrite: this.depthWrite,
+      depthTest: this.depthTest,
+      transparent: this.transparent,
     };
 
     return this._renderManifest;

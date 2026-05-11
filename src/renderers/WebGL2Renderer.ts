@@ -428,9 +428,11 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     ubo.setInt(128, lights.pLights.length);
     ubo.setInt(132, lights.sLights.length);
     ubo.setInt(136, lights.aLights.length);
+    ubo.setFloat(140, this._quality.gamma);
+    ubo.setFloat(144, this._quality.exposure);
 
     for (let i = 0; i < 4; i++) {
-      const offset = 144 + i * 32;
+      const offset = 160 + i * 32;
       if (i < lights.pLights.length) {
         const pl = lights.pLights[i]!;
         ubo.setVector3(
@@ -453,7 +455,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     }
 
     for (let i = 0; i < 4; i++) {
-      const offset = 272 + i * 64;
+      const offset = 288 + i * 64;
       if (i < lights.sLights.length) {
         const sl = lights.sLights[i]!;
         const dir = MathPool.acquireVector().copyFrom(sl.direction).normalize();
@@ -483,7 +485,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     }
 
     for (let i = 0; i < 4; i++) {
-      const offset = 528 + i * 112;
+      const offset = 544 + i * 112;
       if (i < lights.aLights.length) {
         const al = lights.aLights[i]!;
         const mat = al.worldMatrix.data;

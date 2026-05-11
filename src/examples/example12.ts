@@ -1,3 +1,5 @@
+/// src/examples/example12.ts
+
 import {
   AmbientLight,
   BasicMaterial,
@@ -10,15 +12,16 @@ import {
   MathUtils,
   Object3D,
   PerspectiveProjection,
-  Plane,
   Grid,
   InputMode,
+  Line,
+  Vector3D,
 } from "../index.js";
 import { AbstractExample } from "../core/example/AbstractExample.js";
 
 /**
- * Example 12: Rigorous Orientation Test.
- * Used to define and verify the engine's coordinate system.
+ * Example 12: Controls Verification & Coordinate System Test.
+ * Matches the visual style of Example 3 but focused on FPS controls.
  */
 class Example12 extends AbstractExample {
   protected override async setupScene(): Promise<void> {
@@ -35,67 +38,66 @@ class Example12 extends AbstractExample {
     this.camera.updateProjectionMatrix();
     this.camera.setStrategy(CameraStrategyType.FPS);
     
-    // Position standing 15 units back, at eye level (2)
-    // Looking directly at origin (-Z direction)
-    this.camera.position.set(0, 2, 15);
+    // Position matching Example 3: (0, 5, 15)
+    this.camera.position.set(0, 5, 15);
     this.camera.theta = 0;
     this.camera.phi = 0;
 
-    // 2. Add FPS Controller (Strafe Mode)
+    // 2. Add FPS Controller
     this.controllers.push(
       new FPSController(this.camera, { moveSpeed: 10, inputMode: InputMode.STRAFE }),
     );
 
-    // Pointer Lock Request on click
-    window.addEventListener("mousedown", () => {
-      Input.requestPointerLock(this.canvas);
-    });
-
     // 3. Lighting
-    this.scene.add(new AmbientLight({ color: Color.WHITE, intensity: 0.5 }));
-    const sun = new DirectionalLight({ color: Color.WHITE, intensity: 1.0 });
+    this.scene.add(new AmbientLight({ color: Color.WHITE, intensity: 0.3 }));
+    const sun = new DirectionalLight({ color: Color.WHITE, intensity: 0.8 });
     sun.direction.set(-1, -1, -1).normalize();
     this.scene.add(sun);
 
-    // 4. Reference Floor (Dark Plane)
-    const floor = new Object3D("Ground");
-    floor.geometry = new Plane({ width: 100, depth: 100 }).getGeometryData();
-    floor.material = new BasicMaterial({ color: new Color(0.1, 0.1, 0.1) });
-    this.scene.add(floor);
+    // 4. Grid (Matching Example 3)
+    const gridObj = new Object3D("FloorGrid");
+    gridObj.geometry = new Grid({ size: 20, divisions: 20 }).getGeometryData();
+    gridObj.material = new BasicMaterial({ color: Color.DARKSLATEGRAY });
+    this.scene.add(gridObj);
 
-    // 5. Reference Grid (Visualizing the XZ plane)
-    const grid = new Object3D("OrientationGrid");
-    grid.geometry = new Grid({ size: 40, divisions: 20 }).getGeometryData();
-    grid.material = new BasicMaterial({ color: new Color(0.3, 0.3, 0.3) });
-    grid.position.y = 0.05; // Slightly above plane
-    this.scene.add(grid);
-
-    // 6. Coordinate System Markers (Large Cubes)
+    // 5. Axes Markings (Colored Lines)
     
-    // ORIGIN: White
-    this.scene.add(this._createMarker(Color.WHITE, "Origin", 0, 0.5, 0));
+    // X-Axis: RED
+    const xAxis = new Object3D("Axis_X");
+    xAxis.geometry = new Line(new Vector3D(0, 0, 0), new Vector3D(5, 0, 0)).getGeometryData();
+    xAxis.material = new BasicMaterial({ color: Color.RED });
+    this.scene.add(xAxis);
 
-    // FRONT (-Z): Cyan (Standard Look Direction)
-    this.scene.add(this._createMarker(new Color(0, 1, 1), "FRONT (-Z)", 0, 0.5, -5));
+    // Y-Axis: GREEN
+    const yAxis = new Object3D("Axis_Y");
+    yAxis.geometry = new Line(new Vector3D(0, 0, 0), new Vector3D(0, 5, 0)).getGeometryData();
+    yAxis.material = new BasicMaterial({ color: Color.GREEN });
+    this.scene.add(yAxis);
 
-    // BACK (+Z): Blue
-    this.scene.add(this._createMarker(new Color(0, 0, 1), "BACK (+Z)", 0, 0.5, 5));
+    // Z-Axis: BLUE
+    const zAxis = new Object3D("Axis_Z");
+    zAxis.geometry = new Line(new Vector3D(0, 0, 0), new Vector3D(0, 0, 5)).getGeometryData();
+    zAxis.material = new BasicMaterial({ color: Color.BLUE });
+    this.scene.add(zAxis);
 
-    // RIGHT (+X): Red
-    this.scene.add(this._createMarker(new Color(1, 0, 0), "RIGHT (+X)", 5, 0.5, 0));
-
-    // LEFT (-X): Yellow
-    this.scene.add(this._createMarker(new Color(1, 1, 0), "LEFT (-X)", -5, 0.5, 0));
-    
-    // UP (+Y): Green
-    this.scene.add(this._createMarker(new Color(0, 1, 0), "UP (+Y)", 0, 5, 0));
+    // 6. Directional Markers (Cubes at ends of axes)
+    // Front is -Z (Cyan)
+    this.scene.add(this._createMarker(Color.CYAN, "Marker_Front_-Z", 0, 0, -5));
+    // Back is +Z (Blue)
+    this.scene.add(this._createMarker(Color.BLUE, "Marker_Back_+Z", 0, 0, 5));
+    // Right is +X (Red)
+    this.scene.add(this._createMarker(Color.RED, "Marker_Right_+X", 5, 0, 0));
+    // Left is -X (Yellow)
+    this.scene.add(this._createMarker(Color.YELLOW, "Marker_Left_-X", -5, 0, 0));
+    // Origin (White)
+    this.scene.add(this._createMarker(Color.WHITE, "Marker_Origin", 0, 0, 0));
 
     this.scene.update();
   }
 
   private _createMarker(color: Color, name: string, x: number, y: number, z: number): Object3D {
     const obj = new Object3D(name);
-    obj.geometry = new Cube({ size: 1 }).getGeometryData();
+    obj.geometry = new Cube({ size: 0.5 }).getGeometryData();
     obj.material = new BasicMaterial({ color });
     obj.position.set(x, y, z);
     return obj;

@@ -119,6 +119,7 @@ export class Scene {
       const shaderId = manifest.shaderId;
       const topology =
         manifest.state?.topology ||
+        obj.geometry?.topology ||
         (obj.geometry?.indices?.length === 2 ? "line-list" : "triangle-list");
       const matUuid = obj.material.uuid;
 

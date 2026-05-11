@@ -31,6 +31,13 @@ Before implementing:
 - **Regression Testing:** Any change to `src/math/` or index-generating logic MUST be accompanied by tests that verify the orientation, winding order, and coordinate system integrity (e.g., ensuring objects don't end up "upside down" or mirrored). Use `npm test tests/core/FPSController.test.ts` for movement verification.
 - **Global Impact Analysis:** If a core mathematical method _must_ be changed (e.g., to fix a fundamental bug), you MUST identify and update ALL call sites across the entire codebase.
 
+## Industry Standards & Defaults
+
+**When in doubt, align with the giants.**
+
+- **Default Values & Settings:** When defining default parameters, behaviors, or settings, orient yourself towards industry standards established by engines like **Unreal Engine**, **Three.js**, or **Unity**.
+- **Clarification:** If there is a conflict between standards or if the "best" standard is unclear, you MUST ask for clarification before proceeding.
+
 ## Simplicity First
 
 **Minimum code that solves the problem. Nothing speculative.**
