@@ -9,6 +9,7 @@ import {
   RendererType,
   TextureFilter,
   TextureWrap,
+  Topology,
 } from "../enums/index.js";
 import { Mesh } from "./Mesh.js";
 import { Object3D } from "../core/Object3D.js";
@@ -399,7 +400,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
           cache.attributes.get("a_tangent")!,
         );
 
-        const drawMode = topology === "line-list" ? this.gl.LINES : this.gl.TRIANGLES;
+        const drawMode = topology === Topology.LINE_LIST ? this.gl.LINES : this.gl.TRIANGLES;
         mesh.draw(drawMode);
       }
     }
@@ -427,9 +428,9 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     ubo.setVector3(112, lights.dDir);
     ubo.setInt(128, lights.pLights.length);
     ubo.setInt(132, lights.sLights.length);
-    ubo.setInt(136, lights.aLights.length);
-    ubo.setFloat(140, this._quality.gamma);
-    ubo.setFloat(144, this._quality.exposure);
+    ubo.setFloat(136, lights.aLights.length);
+    ubo.setFloat(140, this._quality.gamma ?? 2.2);
+    ubo.setFloat(144, this._quality.exposure ?? 1.0);
 
     for (let i = 0; i < 4; i++) {
       const offset = 160 + i * 32;

@@ -1,6 +1,6 @@
 import { Texture } from '../../textures/Texture.js';
 import { CubeTexture } from '../../textures/CubeTexture.js';
-import { BlendingMode, CullMode } from '../../../enums/index.js';
+import { BlendingMode, CullMode, Topology } from '../../../enums/index.js';
 /**
  * The RenderManifest is the "order sheet" that a material
  * passes to the renderer to describe its requirements.
@@ -29,7 +29,7 @@ export interface RenderManifest {
         transparent?: boolean;
         /** Whether this object should be treated as a camera-facing sprite (billboarding). */
         isSprite?: boolean;
-        /** The primitive topology (e.g., triangle-list or line-list). Defaults to triangle-list. */
-        topology?: string;
+        /** The primitive topology (e.g., TRIANGLE_LIST or LINE_LIST). Defaults to TRIANGLE_LIST. */
+        topology?: Topology;
     };
 }

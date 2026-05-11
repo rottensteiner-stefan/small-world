@@ -3,7 +3,7 @@
 import { Object3D } from "./Object3D.js";
 import { Octree } from "./Octree.js";
 import { BoundingBox } from "../physix/BoundingBox.js";
-import { BoundingType } from "../enums/index.js";
+import { BoundingType, Topology } from "../enums/index.js";
 
 /**
  * A scene that holds a collection of 3D objects.
@@ -120,7 +120,7 @@ export class Scene {
       const topology =
         manifest.state?.topology ||
         obj.geometry?.topology ||
-        (obj.geometry?.indices?.length === 2 ? "line-list" : "triangle-list");
+        (obj.geometry?.indices?.length === 2 ? Topology.LINE_LIST : Topology.TRIANGLE_LIST);
       const matUuid = obj.material.uuid;
 
       if (!sorted.has(shaderId)) sorted.set(shaderId, new Map());

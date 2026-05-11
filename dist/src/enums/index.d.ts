@@ -14,3 +14,4 @@ export * from './TextureWrap.js';
 export * from './BlendingMode.js';
 export * from './CullMode.js';
 export * from './ShaderPropertyType.js';
+export * from './Topology.js';
