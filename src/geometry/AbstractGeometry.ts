@@ -60,6 +60,7 @@ export abstract class AbstractGeometry implements Geometry {
       normals: this._normals,
       tangents: this._tangents,
       uvs: this._uvs,
+      topology: this._isLineGeometry ? "line-list" : "triangle-list",
       getBoundingVolume: () => this.getBoundingVolume(),
     };
   }

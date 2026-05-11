@@ -149,6 +149,14 @@ export class Input implements InputInterface {
 
     window.addEventListener("contextmenu", (e: MouseEvent): void => e.preventDefault());
 
+    window.addEventListener("blur", (): void => {
+      inst._keys.clear();
+      inst.mouse.left = false;
+      inst.mouse.right = false;
+      inst.mouse.dx = 0;
+      inst.mouse.dy = 0;
+    });
+
     document.addEventListener("pointerlockchange", (): void => {
       inst.isPointerLocked = null !== document.pointerLockElement;
       // Reset deltas when lock state changes to prevent jumping

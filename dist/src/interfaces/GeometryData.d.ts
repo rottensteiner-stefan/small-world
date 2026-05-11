@@ -12,6 +12,8 @@ export interface GeometryDataInterface {
     tangents?: Float32Array | undefined;
     /** Optional texture coordinate data (u, v). */
     uvs?: Float32Array | undefined;
+    /** The topology of the geometry (e.g., 'triangle-list' or 'line-list'). */
+    topology?: "triangle-list" | "line-list";
     /**
      * Flag to indicate that the vertex/normal/tangent buffers need to be re-uploaded to the GPU.
      * Set this to true after modifying the TypedArrays in-place.

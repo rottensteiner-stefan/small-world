@@ -212,7 +212,7 @@ export abstract class Application {
       return;
     }
 
-    const deltaTime: number = (currentTime - this._lastTime) / 1000.0;
+    const deltaTime: number = Math.min((currentTime - this._lastTime) / 1000.0, 0.1);
     this._lastTime = currentTime;
 
     // Update all registered controllers
