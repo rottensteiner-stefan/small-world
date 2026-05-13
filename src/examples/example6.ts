@@ -23,7 +23,7 @@ import {
   WireframeMaterial,
   ZoomController,
 } from "../index.js";
-import { AbstractExample } from "../core/example/AbstractExample.js";
+import { AbstractExample } from "../core/index.js";
 
 /**
  * Example 6: Geometry Showcase.

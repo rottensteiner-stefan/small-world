@@ -16,7 +16,7 @@ import {
   PhongMaterial,
   SkyboxMaterial,
 } from "../index.js";
-import { AbstractExample } from "../core/example/AbstractExample.js";
+import { AbstractExample } from "../core/index.js";
 
 /**
  * Example 7: Skybox & FPS Controls.

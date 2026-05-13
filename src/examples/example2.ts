@@ -17,7 +17,7 @@ import {
   WireframeMaterial,
   AmbientLight,
 } from "../index.js";
-import { AbstractExample } from "../core/example/AbstractExample.js";
+import { AbstractExample } from "../core/index.js";
 
 /**
  * Example 2: Interactive camera (FPS-style) and keyboard input.

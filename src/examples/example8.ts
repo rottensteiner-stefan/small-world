@@ -16,7 +16,7 @@ import {
   Skydome,
   Texture,
 } from "../index.js";
-import { AbstractExample } from "../core/example/AbstractExample.js";
+import { AbstractExample } from "../core/index.js";
 
 /**
  * Example 8: Clean rebuild with Skydome, Reference Cubes, WASD/QE movement.

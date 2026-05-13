@@ -15,7 +15,7 @@ import {
   Vector3D,
   CullMode,
 } from "../index.js";
-import { AbstractExample } from "../core/example/AbstractExample.js";
+import { AbstractExample } from "../core/index.js";
 
 /**
  * Example 11: Baptismal Font Geometry Test.

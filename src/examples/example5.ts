@@ -16,7 +16,7 @@ import {
   Input,
   Keys,
 } from "../index.js";
-import { AbstractExample } from "../core/example/AbstractExample.js";
+import { AbstractExample } from "../core/index.js";
 
 /**
  * Example 5: Grid-based Movement with Enemies.

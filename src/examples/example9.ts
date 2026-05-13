@@ -20,7 +20,7 @@ import {
   TextureFilter,
   Vector3D,
 } from "../index.js";
-import { AbstractExample } from "../core/example/AbstractExample.js";
+import { AbstractExample } from "../core/index.js";
 
 /**
  * Example 9: A classic 2.5D Jump & Run with pure code physics and collision!

@@ -8,6 +8,7 @@ import {
   Cube,
   DirectionalLight,
   FPSController,
+  MathUtils,
   Object3D,
   PerspectiveProjection,
   Grid,
@@ -15,7 +16,7 @@ import {
   Line,
   Vector3D,
 } from "../index.js";
-import { AbstractExample } from "../core/example/AbstractExample.js";
+import { AbstractExample } from "../core/index.js";
 
 /**
  * Example 12: Controls Verification & Coordinate System Test.
@@ -25,26 +26,29 @@ class Example12 extends AbstractExample {
   protected override async setupScene(): Promise<void> {
     this.onCanvasRecreated();
 
-    // 1. Camera Setup (Matching Example 3 FOV and aspect logic)
-    const aspect = window.innerWidth / window.innerHeight;
+    // 1. Camera Setup
+    // Using 60 degrees FOV (Industry standard for natural perspective)
     this.camera.projection = new PerspectiveProjection({
-      fov: (75 * Math.PI) / 180,
-      aspect,
+      fov: MathUtils.degToRad(60),
       near: 0.1,
       far: 1000,
     });
-    this.camera.updateProjectionMatrix();
-    
-    // Position matching Example 3: (0, 5, 15)
-    this.camera.position.set(0, 5, 15);
-    this.camera.target.set(0, 0, 0); // Look at origin
+
+    // Isometric-style corner view (Standard for coordinate system tests)
+    // Looking from (+X, +Y, +Z) towards origin (0,0,0)
+    this.camera.position.set(60, 45, 60);
+    // theta ≈ -45 degrees (-0.785 rad) to look between +X and +Z
+    this.camera.theta = -0.785;
+    // phi ≈ -35 degrees (-0.61 rad) to look down at origin
+    this.camera.phi = -0.61;
     this.camera.setStrategy(CameraStrategyType.FPS);
-    this.camera.theta = 0;
-    this.camera.phi = -0.3; // Slight tilt down to see the floor better
+
+    console.log("Camera Initial Up:", this.camera.up);
+    console.log("Camera Initial Target:", this.camera.target);
 
     // 2. Add FPS Controller
     this.controllers.push(
-      new FPSController(this.camera, { moveSpeed: 10, inputMode: InputMode.STRAFE }),
+      new FPSController(this.camera, { moveSpeed: 20, inputMode: InputMode.STRAFE }),
     );
 
     // 3. Lighting (Matching Example 3)
@@ -55,27 +59,27 @@ class Example12 extends AbstractExample {
 
     // 4. Grid (Matching Example 3)
     const gridObj = new Object3D("FloorGrid");
-    gridObj.geometry = new Grid({ size: 20, divisions: 20 }).getGeometryData();
+    gridObj.geometry = new Grid({ size: 60, divisions: 60 }).getGeometryData();
     gridObj.material = new BasicMaterial({ color: Color.DARKSLATEGRAY });
     this.scene.add(gridObj);
 
     // 5. Axes Markings (Colored Lines + Marker Cubes at ends)
     
     // X-Axis: RED (+X)
-    this.scene.add(this._createAxis(new Vector3D(10, 0, 0), Color.RED, "Axis_X"));
-    this.scene.add(this._createMarker(Color.RED, "Marker_X", 10, 0, 0));
+    this.scene.add(this._createAxis(new Vector3D(30, 0, 0), Color.RED, "Axis_X"));
+    this.scene.add(this._createMarker(Color.RED, "Marker_X", 30, 0, 0));
 
     // Y-Axis: GREEN (+Y)
-    this.scene.add(this._createAxis(new Vector3D(0, 10, 0), Color.GREEN, "Axis_Y"));
-    this.scene.add(this._createMarker(Color.GREEN, "Marker_Y", 0, 10, 0));
+    this.scene.add(this._createAxis(new Vector3D(0, 30, 0), Color.GREEN, "Axis_Y"));
+    this.scene.add(this._createMarker(Color.GREEN, "Marker_Y", 0, 30, 0));
 
     // Z-Axis: BLUE (+Z)
-    this.scene.add(this._createAxis(new Vector3D(0, 0, 10), Color.BLUE, "Axis_Z"));
-    this.scene.add(this._createMarker(Color.BLUE, "Marker_Z", 0, 0, 10));
+    this.scene.add(this._createAxis(new Vector3D(0, 0, 30), Color.BLUE, "Axis_Z"));
+    this.scene.add(this._createMarker(Color.BLUE, "Marker_Z", 0, 0, 30));
     
     // Negative Z: CYAN (Front / Look Direction)
-    this.scene.add(this._createAxis(new Vector3D(0, 0, -10), Color.CYAN, "Axis_-Z"));
-    this.scene.add(this._createMarker(Color.CYAN, "Marker_-Z", 0, 0, -10));
+    this.scene.add(this._createAxis(new Vector3D(0, 0, -30), Color.CYAN, "Axis_-Z"));
+    this.scene.add(this._createMarker(Color.CYAN, "Marker_-Z", 0, 0, -30));
 
     // Origin: WHITE
     this.scene.add(this._createMarker(Color.WHITE, "Marker_Origin", 0, 0, 0));

@@ -2,7 +2,7 @@
 
 import { Application } from "../Application.js";
 import { Input } from "../Input.js";
-import { EngineConfig } from "../../interfaces/EngineConfig.js";
+import { EngineConfig } from "../../interfaces/index.js";
 import { Keys } from "../../enums/Keys.js";
 import { AssetManager } from "../../loaders/index.js";
 
