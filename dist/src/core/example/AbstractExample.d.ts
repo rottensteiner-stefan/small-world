@@ -1,5 +1,5 @@
 import { Application } from '../Application.js';
-import { EngineConfig } from '../../interfaces/EngineConfig.js';
+import { EngineConfig } from '../../interfaces/index.js';
 export declare abstract class AbstractExample extends Application {
     /**
      * The constructor is passed to Application.

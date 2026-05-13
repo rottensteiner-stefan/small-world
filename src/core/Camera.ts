@@ -28,6 +28,9 @@ export class Camera implements CameraInterfaceData {
   /** @inheritdoc */
   public phi: number = 0;
 
+  private _projection!: AbstractProjection;
+  private _aspect: number = 1;
+
   private _strategy!: CameraStrategy;
 
   private _effects: CameraEffect[] = [];
@@ -39,8 +42,20 @@ export class Camera implements CameraInterfaceData {
    * Creates a new Camera.
    * @param projection The projection to use.
    */
-  constructor(public projection: AbstractProjection) {
+  constructor(projection: AbstractProjection) {
+    this.projection = projection;
     this.setStrategy(CameraStrategyType.SMOOTH);
+  }
+
+  /** @inheritdoc */
+  public get projection(): AbstractProjection {
+    return this._projection;
+  }
+
+  /** @inheritdoc */
+  public set projection(value: AbstractProjection) {
+    this._projection = value;
+    this._projection.setAspect(this._aspect);
   }
 
   /** @inheritdoc */
@@ -65,11 +80,12 @@ export class Camera implements CameraInterfaceData {
 
   /** @inheritdoc */
   public get aspect(): number {
-    return 1; // Base aspect fallback if needed, but projection should handle it.
+    return this._aspect;
   }
 
   /** @inheritdoc */
   public set aspect(value: number) {
+    this._aspect = value;
     this.projection.setAspect(value);
   }
 

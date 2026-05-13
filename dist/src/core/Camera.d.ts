@@ -7,7 +7,6 @@ import { Vector3D } from '../math/Vector3D.js';
  * Standard implementation of the CameraInterfaceData.
  */
 export declare class Camera implements CameraInterfaceData {
-    projection: AbstractProjection;
     /** @inheritdoc */
     position: Vector3D;
     /** @inheritdoc */
@@ -18,6 +17,8 @@ export declare class Camera implements CameraInterfaceData {
     theta: number;
     /** @inheritdoc */
     phi: number;
+    private _projection;
+    private _aspect;
     private _strategy;
     private _effects;
     private _viewMatrix;
@@ -27,6 +28,10 @@ export declare class Camera implements CameraInterfaceData {
      * @param projection The projection to use.
      */
     constructor(projection: AbstractProjection);
+    /** @inheritdoc */
+    get projection(): AbstractProjection;
+    /** @inheritdoc */
+    set projection(value: AbstractProjection);
     /** @inheritdoc */
     get viewProjectionMatrix(): Float32Array;
     /** @inheritdoc */

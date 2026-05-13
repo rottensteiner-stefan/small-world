@@ -1,4 +1,4 @@
-import { AbstractExample } from '../core/example/AbstractExample.js';
+import { AbstractExample } from '../core/index.js';
 /**
  * Example 10: Textured Floor & Organic Fire Bowls.
  * Fixed: Lava plane corners hidden and bowl bottom added.

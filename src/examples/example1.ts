@@ -11,7 +11,7 @@ import {
   ProjectionType,
   AmbientLight,
 } from "../index.js";
-import { AbstractExample } from "../core/example/AbstractExample.js";
+import { AbstractExample } from "../core/index.js";
 
 class Example1 extends AbstractExample {
   private _myCube!: Object3D;

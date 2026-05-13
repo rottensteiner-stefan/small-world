@@ -15,7 +15,7 @@ import {
   ProjectionType,
   WireframeMaterial,
 } from "../index.js";
-import { AbstractExample } from "../core/example/AbstractExample.js";
+import { AbstractExample } from "../core/index.js";
 
 class Example3 extends AbstractExample {
   private _carModel: Object3D | undefined;
