@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.20.02] - 2026-05-26
+
+- **Housekeeping**:
+  - Removed **Example 11: Baptismal Fonts (Fluid Simulation)** and **Example 12: Controls Verification** as requested.
+  - Cleaned up entry points in `vite.config.ts` and updated the main example index.
+
 ## [0.20.01] - 2026-05-10
 
 - **Rendering & Shader Stability**:

@@ -5,12 +5,7 @@ import { GeometryDataInterface, LightDataInterface } from "../interfaces/index.j
 import { Object3D } from "../core/Object3D.js";
 import { Scene } from "../core/Scene.js";
 import { MathPool, Vector3D } from "../math/index.js";
-import {
-  BlendingMode,
-  RendererType,
-  TextureFilter,
-  TextureWrap,
-} from "../enums/index.js";
+import { BlendingMode, RendererType, TextureFilter, TextureWrap } from "../enums/index.js";
 import { EngineConfig } from "../interfaces/EngineConfig.js";
 
 import { AbstractRenderer } from "./AbstractRenderer.js";

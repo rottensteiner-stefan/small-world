@@ -42,7 +42,13 @@ export class MainRenderPass implements RenderPass {
     const skyboxShaderMap = sortedGroups.get(MaterialType.SKYBOX);
     if (skyboxShaderMap) {
       for (const [topology, materialGroups] of skyboxShaderMap.entries()) {
-        renderer._renderGroup(rp, MaterialType.SKYBOX, materialGroups, vMat, topology as GPUPrimitiveTopology);
+        renderer._renderGroup(
+          rp,
+          MaterialType.SKYBOX,
+          materialGroups,
+          vMat,
+          topology as GPUPrimitiveTopology,
+        );
       }
       sortedGroups.delete(MaterialType.SKYBOX);
     }
