@@ -1,8 +1,12 @@
-import { describe, it, expect } from 'vitest';
-import { Cylinder, Tube, Torus, Pyramid, Sphere, Cube, Plane, Vector3D } from '../../src/index.js';
+import { describe, it, expect } from "vitest";
+import { Cylinder, Tube, Torus, Pyramid, Sphere, Cube, Plane, Vector3D } from "../../src/index.js";
 
-describe('Geometry Winding Order (Analytical)', () => {
-  const getTriangleNormal = (vertices: Float32Array, indices: Uint16Array | Uint32Array, triIdx: number) => {
+describe("Geometry Winding Order (Analytical)", () => {
+  const getTriangleNormal = (
+    vertices: Float32Array,
+    indices: Uint16Array | Uint32Array,
+    triIdx: number,
+  ) => {
     const i1 = indices[triIdx * 3]! * 3;
     const i2 = indices[triIdx * 3 + 1]! * 3;
     const i3 = indices[triIdx * 3 + 2]! * 3;
@@ -14,17 +18,17 @@ describe('Geometry Winding Order (Analytical)', () => {
     const edge1 = v2.clone().sub(v1);
     const edge2 = v3.clone().sub(v1);
     const normal = edge1.clone().cross(edge2);
-    
+
     const centroid = new Vector3D(
-        (v1.x + v2.x + v3.x) / 3,
-        (v1.y + v2.y + v3.y) / 3,
-        (v1.z + v2.z + v3.z) / 3
+      (v1.x + v2.x + v3.x) / 3,
+      (v1.y + v2.y + v3.y) / 3,
+      (v1.z + v2.z + v3.z) / 3,
     );
 
     return { normal, centroid, v1, v2, v3 };
   };
 
-  it('Sphere triangles should point outward', () => {
+  it("Sphere triangles should point outward", () => {
     const geo = new Sphere().getGeometryData();
     const indices = geo.indices as any;
     for (let i = 0; i < indices.length / 3; i++) {
@@ -35,11 +39,12 @@ describe('Geometry Winding Order (Analytical)', () => {
     }
   });
 
-  it('Cylinder side triangles should point outward', () => {
+  it("Cylinder side triangles should point outward", () => {
     const geo = new Cylinder({ heightSegments: 1, radialSegments: 16 }).getGeometryData();
     const indices = geo.indices as any;
     // Sides are first in Cylinder
-    for (let i = 0; i < 32; i++) { // 16 quads * 2
+    for (let i = 0; i < 32; i++) {
+      // 16 quads * 2
       const { normal, centroid } = getTriangleNormal(geo.vertices, indices, i);
       // For cylinder side, normal XZ should point away from origin XZ
       const dotXZ = normal.x * centroid.x + normal.z * centroid.z;
@@ -47,7 +52,7 @@ describe('Geometry Winding Order (Analytical)', () => {
     }
   });
 
-  it('Tube outer side triangles should point outward', () => {
+  it("Tube outer side triangles should point outward", () => {
     const geo = new Tube({ radialSegments: 16 }).getGeometryData();
     const indices = geo.indices as any;
     // Outer sides are first
@@ -58,7 +63,7 @@ describe('Geometry Winding Order (Analytical)', () => {
     }
   });
 
-  it('Tube inner side triangles should point inward', () => {
+  it("Tube inner side triangles should point inward", () => {
     const geo = new Tube({ radialSegments: 16 }).getGeometryData();
     const indices = geo.indices as any;
     // Inner sides follow outer sides (32 tris)
@@ -70,7 +75,7 @@ describe('Geometry Winding Order (Analytical)', () => {
     }
   });
 
-  it('Tube top cap should point UP', () => {
+  it("Tube top cap should point UP", () => {
     const geo = new Tube({ radialSegments: 16 }).getGeometryData();
     const indices = geo.indices as any;
     // Caps follow sides (64 tris)
@@ -80,7 +85,7 @@ describe('Geometry Winding Order (Analytical)', () => {
     }
   });
 
-  it('Tube bottom cap should point DOWN', () => {
+  it("Tube bottom cap should point DOWN", () => {
     const geo = new Tube({ radialSegments: 16 }).getGeometryData();
     const indices = geo.indices as any;
     // Bottom cap follows top cap (64 + 32 tris)
@@ -90,39 +95,40 @@ describe('Geometry Winding Order (Analytical)', () => {
     }
   });
 
-  it('Pyramid triangles should point outward', () => {
+  it("Pyramid triangles should point outward", () => {
     const geo = new Pyramid().getGeometryData();
     const indices = geo.indices as any;
     // Side faces first
-    for (let i = 0; i < 4; i++) { // radialSegments default is 4
-        const { normal, centroid } = getTriangleNormal(geo.vertices, indices, i);
-        // Centroid is on the face, normal should point away from origin
-        expect(normal.dot(centroid)).toBeGreaterThan(0);
+    for (let i = 0; i < 4; i++) {
+      // radialSegments default is 4
+      const { normal, centroid } = getTriangleNormal(geo.vertices, indices, i);
+      // Centroid is on the face, normal should point away from origin
+      expect(normal.dot(centroid)).toBeGreaterThan(0);
     }
     // Base cap
     const { normal, centroid } = getTriangleNormal(geo.vertices, indices, 4); // 5th triangle is first of base
     // Base is at Y = -hh, normal should be (0, -1, 0)
     expect(normal.y).toBeLessThan(0);
   });
-  
-  it('Torus triangles should point outward from tube center', () => {
-      const radius = 1;
-      const geo = new Torus({ radius }).getGeometryData();
-      const indices = geo.indices as any;
-      for (let i = 0; i < indices.length / 3; i++) {
-          const { normal, centroid } = getTriangleNormal(geo.vertices, indices, i);
-          if (normal.lengthSq() < 0.0001) continue;
-          
-          // Tube center in XZ plane is at distance 'radius' from origin
-          const distXZ = Math.sqrt(centroid.x * centroid.x + centroid.z * centroid.z);
-          const tubeCenter = new Vector3D(
-              centroid.x * (radius / distXZ),
-              0,
-              centroid.z * (radius / distXZ)
-          );
-          
-          const outwardVec = centroid.clone().sub(tubeCenter);
-          expect(normal.dot(outwardVec)).toBeGreaterThan(0);
-      }
+
+  it("Torus triangles should point outward from tube center", () => {
+    const radius = 1;
+    const geo = new Torus({ radius }).getGeometryData();
+    const indices = geo.indices as any;
+    for (let i = 0; i < indices.length / 3; i++) {
+      const { normal, centroid } = getTriangleNormal(geo.vertices, indices, i);
+      if (normal.lengthSq() < 0.0001) continue;
+
+      // Tube center in XZ plane is at distance 'radius' from origin
+      const distXZ = Math.sqrt(centroid.x * centroid.x + centroid.z * centroid.z);
+      const tubeCenter = new Vector3D(
+        centroid.x * (radius / distXZ),
+        0,
+        centroid.z * (radius / distXZ),
+      );
+
+      const outwardVec = centroid.clone().sub(tubeCenter);
+      expect(normal.dot(outwardVec)).toBeGreaterThan(0);
+    }
   });
 });

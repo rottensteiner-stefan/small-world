@@ -1,6 +1,6 @@
 {
   "name": "small-world",
-  "version": "0.20.01",
+  "version": "0.20.02",
   "type": "module",
   "scripts": {
     "build": "npm-run-all build:demo build:lib",
@@ -12,11 +12,11 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "prebuild": "node scripts/update-version.js",
-    "preview": "vite0.19.09 preview",
+    "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
-    "start": "npm run build && npx serve ."
+    "start": "npm run build && npx serve dist"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",

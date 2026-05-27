@@ -23,7 +23,7 @@ $(NODE_MODULES): package.json
 	$(NPM) install
 	@touch $(NODE_MODULES)
 
-dev: install ## Startet den Development-Server (Vite)
+serve: install ## Startet den Development-Server (Vite)
 	$(NPM) run dev
 
 build: install ## Erstellt Library und Demo (Produktion)

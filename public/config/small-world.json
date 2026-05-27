@@ -2,7 +2,7 @@
   "rendererType": "WEB_GPU",
   "inputMode": "tank",
   "canvasId": "SmallWorld",
-  "debug": true,
+  "debug": false,
   "worldSize": 100,
   "skyColor": "midnightblue",
   "showHUD": true,
