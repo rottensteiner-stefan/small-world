@@ -88,7 +88,11 @@ game.start();
 
 ## 🛠 Development
 
-To contribute or run the internal demos:
+### Prerequisites
+
+- **Node.js:** We recommend using the version specified in `.nvmrc`. If you use [nvm](https://github.com/nvm-sh/nvm), simply run `nvm use` in the root directory.
+
+### Local Setup
 
 1.  **Install dependencies:**
     ```bash
@@ -102,6 +106,12 @@ To contribute or run the internal demos:
     ```bash
     npm run build:lib
     ```
+
+### Optional: Dev Containers (VS Code)
+
+For an isolated development environment, this project includes a **Dev Container** configuration for VS Code.
+- When opening the project, VS Code should prompt you to "Reopen in Container".
+- This sets up the correct Node.js version and recommended extensions (ESLint, Prettier, etc.) automatically.
 
 ## 📂 Project Structure
 
