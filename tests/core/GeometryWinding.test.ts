@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { Cylinder, Tube, Torus, Pyramid, Sphere, Cube, Plane, Vector3D } from "../../src/index.js";
+import { Cylinder, Tube, Torus, Pyramid, Sphere, Vector3D } from "../../src/index.js";
 
 describe("Geometry Winding Order (Analytical)", () => {
   const getTriangleNormal = (
@@ -30,7 +30,7 @@ describe("Geometry Winding Order (Analytical)", () => {
 
   it("Sphere triangles should point outward", () => {
     const geo = new Sphere().getGeometryData();
-    const indices = geo.indices as any;
+    const indices = geo.indices;
     for (let i = 0; i < indices.length / 3; i++) {
       const { normal, centroid } = getTriangleNormal(geo.vertices, indices, i);
       if (normal.lengthSq() < 0.0001) continue;
@@ -41,7 +41,7 @@ describe("Geometry Winding Order (Analytical)", () => {
 
   it("Cylinder side triangles should point outward", () => {
     const geo = new Cylinder({ heightSegments: 1, radialSegments: 16 }).getGeometryData();
-    const indices = geo.indices as any;
+    const indices = geo.indices;
     // Sides are first in Cylinder
     for (let i = 0; i < 32; i++) {
       // 16 quads * 2
@@ -54,7 +54,7 @@ describe("Geometry Winding Order (Analytical)", () => {
 
   it("Tube outer side triangles should point outward", () => {
     const geo = new Tube({ radialSegments: 16 }).getGeometryData();
-    const indices = geo.indices as any;
+    const indices = geo.indices;
     // Outer sides are first
     for (let i = 0; i < 32; i++) {
       const { normal, centroid } = getTriangleNormal(geo.vertices, indices, i);
@@ -65,7 +65,7 @@ describe("Geometry Winding Order (Analytical)", () => {
 
   it("Tube inner side triangles should point inward", () => {
     const geo = new Tube({ radialSegments: 16 }).getGeometryData();
-    const indices = geo.indices as any;
+    const indices = geo.indices;
     // Inner sides follow outer sides (32 tris)
     for (let i = 32; i < 64; i++) {
       const { normal, centroid } = getTriangleNormal(geo.vertices, indices, i);
@@ -77,7 +77,7 @@ describe("Geometry Winding Order (Analytical)", () => {
 
   it("Tube top cap should point UP", () => {
     const geo = new Tube({ radialSegments: 16 }).getGeometryData();
-    const indices = geo.indices as any;
+    const indices = geo.indices;
     // Caps follow sides (64 tris)
     for (let i = 64; i < 64 + 32; i++) {
       const { normal } = getTriangleNormal(geo.vertices, indices, i);
@@ -87,7 +87,7 @@ describe("Geometry Winding Order (Analytical)", () => {
 
   it("Tube bottom cap should point DOWN", () => {
     const geo = new Tube({ radialSegments: 16 }).getGeometryData();
-    const indices = geo.indices as any;
+    const indices = geo.indices;
     // Bottom cap follows top cap (64 + 32 tris)
     for (let i = 96; i < 128; i++) {
       const { normal } = getTriangleNormal(geo.vertices, indices, i);
@@ -97,7 +97,7 @@ describe("Geometry Winding Order (Analytical)", () => {
 
   it("Pyramid triangles should point outward", () => {
     const geo = new Pyramid().getGeometryData();
-    const indices = geo.indices as any;
+    const indices = geo.indices;
     // Side faces first
     for (let i = 0; i < 4; i++) {
       // radialSegments default is 4
@@ -106,7 +106,7 @@ describe("Geometry Winding Order (Analytical)", () => {
       expect(normal.dot(centroid)).toBeGreaterThan(0);
     }
     // Base cap
-    const { normal, centroid } = getTriangleNormal(geo.vertices, indices, 4); // 5th triangle is first of base
+    const { normal } = getTriangleNormal(geo.vertices, indices, 4); // 5th triangle is first of base
     // Base is at Y = -hh, normal should be (0, -1, 0)
     expect(normal.y).toBeLessThan(0);
   });
@@ -114,7 +114,7 @@ describe("Geometry Winding Order (Analytical)", () => {
   it("Torus triangles should point outward from tube center", () => {
     const radius = 1;
     const geo = new Torus({ radius }).getGeometryData();
-    const indices = geo.indices as any;
+    const indices = geo.indices;
     for (let i = 0; i < indices.length / 3; i++) {
       const { normal, centroid } = getTriangleNormal(geo.vertices, indices, i);
       if (normal.lengthSq() < 0.0001) continue;
