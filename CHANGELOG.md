@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.20.03] - 2026-06-01
+
+- **Developer Experience (DX)**:
+  - Added `.nvmrc` to specify and enforce the recommended Node.js version (v24.13.1).
+  - Introduced **VS Code Dev Container** configuration for a seamless, isolated development setup with pre-installed extensions and dependencies.
+  - Updated `README.md` with detailed instructions for local setup and optional Dev Container usage.
+- **Dependency Updates**:
+  - Upgraded **ESLint** and **@eslint/js** to **v10.x** for improved linting and modern JavaScript support.
+  - Updated **Vite** to **v8.x** and **vite-plugin-dts** to **v5.x** to leverage the latest build performance and features.
+  - Updated **Vitest**, **typescript-eslint**, and other development dependencies to their latest stable versions.
+- **Code Quality & Maintenance**:
+  - Resolved several linting errors in tests discovered by the new ESLint version (unused imports, `any`-casts, and unused variables).
+  - Verified geometric integrity and movement logic with the updated toolchain.
+
 ## [0.20.02] - 2026-05-26
 
 - **Housekeeping**:
