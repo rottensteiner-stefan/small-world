@@ -96,7 +96,13 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
       });
 
       Object.keys(def.layout.uniforms).forEach((name) => {
-        uniforms.set(name, this.gl.getUniformLocation(prog, name) ?? undefined);
+        const loc = this.gl.getUniformLocation(prog, name);
+        if (null === loc) {
+          console.warn(
+            `[WebGL1Renderer] Uniform '${name}' defined in material layout but not found in shader '${shaderId}'. It might be unused or optimized away.`,
+          );
+        }
+        uniforms.set(name, loc ?? undefined);
       });
 
       [
@@ -127,7 +133,9 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
         "u_texOffset",
         "u_texRepeat",
       ].forEach((name) => {
-        uniforms.set(name, this.gl.getUniformLocation(prog, name) ?? undefined);
+        if (!uniforms.has(name)) {
+          uniforms.set(name, this.gl.getUniformLocation(prog, name) ?? undefined);
+        }
       });
 
       const pointLightLocs = [];
