@@ -1,6 +1,7 @@
 /// src/examples/example11.ts
 
 import {
+  AmbientLight,
   BasicMaterial,
   CameraStrategyType,
   Color,
@@ -13,6 +14,7 @@ import {
   Object3D,
   OrbitController,
   PerspectiveProjection,
+  PointLight,
   ProjectionType,
   Sphere,
   Sprite,
@@ -67,11 +69,23 @@ class Example11 extends AbstractExample {
     gridObj.material = gridMat;
     this.scene.add(gridObj);
 
-    // Create a centered white sphere (diameter 1)
-    const centerSphere: Object3D = new Object3D("CenterSphere");
-    centerSphere.geometry = new Sphere({ radius: 0.5 }).getGeometryData();
-    centerSphere.material = new BasicMaterial({ color: Color.WHITE });
-    this.scene.add(centerSphere);
+    // Create a centered "Sun" (diameter 1)
+    const sunObj: Object3D = new Object3D("Sun");
+    sunObj.geometry = new Sphere({ radius: 0.5 }).getGeometryData();
+    // BasicMaterial makes it appear "unlit" and always bright (glowing)
+    sunObj.material = new BasicMaterial({ color: new Color(1, 0.8, 0.1) });
+    this.scene.add(sunObj);
+
+    // Add a PointLight at the sun's position to illuminate the scene
+    const sunLight: PointLight = new PointLight({
+      color: new Color(1, 0.9, 0.5),
+      intensity: 1.5,
+      distance: 50,
+    });
+    sunObj.add(sunLight);
+
+    // Add AmbientLight so the rest of the coordinate system is visible
+    this.scene.add(new AmbientLight({ color: Color.WHITE, intensity: 0.2 }));
 
     // --- Add Axes ---
     // await is functionally necessary because setupScene is called and awaited by the Application start.
