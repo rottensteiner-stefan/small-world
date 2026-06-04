@@ -44,7 +44,7 @@ export class Camera implements CameraInterfaceData {
    */
   constructor(projection: AbstractProjection) {
     this.projection = projection;
-    this.setStrategy(CameraStrategyType.SMOOTH);
+    this.setStrategy(CameraStrategyType.MANUAL);
   }
 
   /** @inheritdoc */

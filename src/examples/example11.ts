@@ -29,8 +29,6 @@ import { AbstractExample } from "../core/index.js";
  */
 class Example11 extends AbstractExample {
   protected override async setupScene(): Promise<void> {
-    Input.init();
-
     // Log device capabilities for debugging
     console.log("[Example 11] Device Capabilities:", {
       WebGL2: DeviceCaps.hasWebGL2,
@@ -53,11 +51,11 @@ class Example11 extends AbstractExample {
       this.camera.updateProjectionMatrix();
     }
 
-    // Camera strategy and initial position
-    this.camera.setStrategy(CameraStrategyType.SMOOTH);
+    // Use HYBRID_SYNC strategy: Syncs manual position changes (WSAD) with orbital rotation (Maus).
+    this.camera.setStrategy(CameraStrategyType.HYBRID_SYNC);
     this.camera.position.set(20, 20, 40);
 
-    // Re-add OrbitController to handle the view matrix correctly
+    // Re-add OrbitController to handle rotation via mouse
     this.controllers.push(new OrbitController(this.camera));
 
     // Create the ground grid (size 20x20)
@@ -97,7 +95,8 @@ class Example11 extends AbstractExample {
     if (Input.isPressed(Keys.Q)) this.camera.position.y += moveSpeed; // Up (+Y)
     if (Input.isPressed(Keys.E)) this.camera.position.y -= moveSpeed; // Down (-Y)
 
-    // Ensure the camera keeps looking at the origin
+    // OrbitController will handle theta/phi rotation via mouse,
+    // we keep the camera focused on the origin.
     this.camera.target.set(0, 0, 0);
   }
 
