@@ -110,6 +110,7 @@ game.start();
 ### Optional: Dev Containers (VS Code)
 
 For an isolated development environment, this project includes a **Dev Container** configuration for VS Code.
+
 - When opening the project, VS Code should prompt you to "Reopen in Container".
 - This sets up the correct Node.js version and recommended extensions (ESLint, Prettier, etc.) automatically.
 

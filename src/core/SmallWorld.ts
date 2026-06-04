@@ -1,6 +1,6 @@
 /// src/core/SmallWorld.ts
 
-import { DEFAULT_RENDERER } from "./index.js";
+import { DEFAULT_RENDERER, DeviceCaps } from "./index.js";
 import { ConfigLoader } from "./ConfigLoader.js";
 import { ColorUtils } from "../utils/index.js";
 import { Renderer, EngineConfig } from "../interfaces/index.js";
@@ -32,7 +32,9 @@ export class SmallWorld {
   /**
    * Creates a new SmallWorld instance.
    */
-  constructor() {}
+  constructor() {
+    DeviceCaps.init();
+  }
 
   /**
    * Initializes the engine with the given configuration file.

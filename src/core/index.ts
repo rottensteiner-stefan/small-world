@@ -3,6 +3,7 @@
 export * from "./Application.js";
 export * from "./Camera.js";
 export * from "./ConfigLoader.js";
+export * from "./DeviceCaps.js";
 export * from "./Engine.js";
 export * from "./FPSCounter.js";
 export * from "./FrustumCuller.js";
