@@ -6,6 +6,11 @@ import { Vector3D } from '../math/index.js';
 import { EngineConfig, QualityConfig } from '../interfaces/EngineConfig.js';
 /**
  * Base class for all renderer implementations.
+ *
+ * Backends are expected to implement defensive rendering strategies to prevent "silent failures":
+ * 1. Validate that all uniforms defined in a material's layout are actually present in the compiled shader.
+ * 2. Log warnings or errors if expected data structures (e.g., WebGPU uniform blocks) are missing or misaligned.
+ * 3. Provide fallback values or behaviors if specific features (like rounded rects) are not supported by the hardware.
  */
 export declare abstract class AbstractRenderer implements Renderer {
     /** @inheritdoc */

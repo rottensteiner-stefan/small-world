@@ -4,6 +4,7 @@ import { MaterialType, BlendingMode, ShaderPropertyType, CullMode } from "../../
 import { Texture } from "../textures/Texture.js";
 import { RenderManifest } from "../renderers/shaders/RenderManifest.js";
 import { ShaderDefinition } from "../renderers/shaders/ShaderDefinition.js";
+import { StandardWebGPULayout } from "../renderers/shaders/StandardWebGPULayout.js";
 
 import fragGLSL from "./shaders/Sprite.frag.glsl?raw";
 import fragGLSL100 from "./shaders/Sprite.frag.glsl100?raw";
@@ -53,8 +54,16 @@ export class SpriteMaterial extends AbstractMaterial {
         shaderId: this.type,
         properties: {
           u_color: this.color.toFloat32Array(),
+          u_specColor: new Float32Array([1, 1, 1, 1]),
           u_texOffset: [0, 0],
           u_texRepeat: [1, 1],
+          u_shininess: 32.0,
+          u_isTerrain: 0.0,
+          u_metallic: 0.0,
+          u_roughness: 0.5,
+          u_extraParams: [1.0, 0, 0, 0],
+          u_liquidParams: [0, 0, 0, 0],
+          u_thresholds: [0, 0, 0, 0],
         },
         textures: {
           u_diffuseMap: this.texture,
@@ -114,11 +123,7 @@ export class SpriteMaterial extends AbstractMaterial {
         wgsl: `[WGSL_STRUCTS]\n[WGSL_VS]\n${fragWGSL}`,
       },
       layout: {
-        uniforms: {
-          u_color: { type: ShaderPropertyType.COLOR },
-          u_texOffset: { type: ShaderPropertyType.VEC2 },
-          u_texRepeat: { type: ShaderPropertyType.VEC2 },
-        },
+        ...StandardWebGPULayout,
         textures: { u_diffuseMap: { type: ShaderPropertyType.TEXTURE } },
       },
     };
