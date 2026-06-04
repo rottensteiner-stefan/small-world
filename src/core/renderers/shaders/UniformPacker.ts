@@ -20,13 +20,23 @@ export class UniformPacker {
     bufferSize: number = 256,
   ): Float32Array {
     const data = new Float32Array(bufferSize / 4);
-    if (!layout.uniformLayout) return data;
+    if (!layout.uniformLayout) {
+      console.error(
+        `[UniformPacker] Material layout is missing 'uniformLayout'. This will result in empty data being sent to the GPU!`,
+      );
+      return data;
+    }
 
     let offset = 0; // in floats (4 bytes each)
 
     for (const name of layout.uniformLayout) {
       const meta = layout.uniforms[name];
-      if (!meta) continue;
+      if (!meta) {
+        console.warn(
+          `[UniformPacker] Property '${name}' listed in layout but not defined in uniforms.`,
+        );
+        continue;
+      }
 
       const val = values[name] ?? meta.defaultValue;
 
@@ -37,6 +47,7 @@ export class UniformPacker {
       }
 
       if (val === undefined) {
+        console.warn(`[UniformPacker] Property '${name}' has no value and no default.`);
         offset += this._getTypeSize(meta.type);
         continue;
       }
