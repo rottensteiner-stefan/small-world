@@ -4,11 +4,11 @@ import {
   BasicMaterial,
   CameraStrategyType,
   Color,
-  Cube,
   Cylinder,
   DeviceCaps,
   Grid,
   Input,
+  Keys,
   MathUtils,
   Object3D,
   OrbitController,
@@ -57,7 +57,7 @@ class Example11 extends AbstractExample {
     this.camera.setStrategy(CameraStrategyType.SMOOTH);
     this.camera.position.set(20, 20, 40);
 
-    // Add orbit controller for interactive viewing
+    // Re-add OrbitController to handle the view matrix correctly
     this.controllers.push(new OrbitController(this.camera));
 
     // Create the ground grid (size 20x20)
@@ -69,11 +69,11 @@ class Example11 extends AbstractExample {
     gridObj.material = gridMat;
     this.scene.add(gridObj);
 
-    // Create a centered white cube (size 1x1x1)
-    const cubeObj: Object3D = new Object3D("CenterCube");
-    cubeObj.geometry = new Cube({ size: 1 }).getGeometryData();
-    cubeObj.material = new BasicMaterial({ color: Color.WHITE });
-    this.scene.add(cubeObj);
+    // Create a centered white sphere (diameter 1)
+    const centerSphere: Object3D = new Object3D("CenterSphere");
+    centerSphere.geometry = new Sphere({ radius: 0.5 }).getGeometryData();
+    centerSphere.material = new BasicMaterial({ color: Color.WHITE });
+    this.scene.add(centerSphere);
 
     // --- Add Axes ---
     // await is functionally necessary because setupScene is called and awaited by the Application start.
@@ -81,6 +81,24 @@ class Example11 extends AbstractExample {
     await this._addAxis("X", new Vector3D(1, 0, 0), Color.RED);
     await this._addAxis("Y", new Vector3D(0, 1, 0), Color.GREEN);
     await this._addAxis("Z", new Vector3D(0, 0, 1), Color.BLUE);
+  }
+
+  /**
+   * Update logic for camera movement.
+   */
+  protected override update(deltaTime: number): void {
+    const moveSpeed: number = 10 * deltaTime;
+
+    // Movement along world axes
+    if (Input.isPressed(Keys.W)) this.camera.position.z -= moveSpeed; // Forward (-Z)
+    if (Input.isPressed(Keys.S)) this.camera.position.z += moveSpeed; // Backward (+Z)
+    if (Input.isPressed(Keys.A)) this.camera.position.x -= moveSpeed; // Left (-X)
+    if (Input.isPressed(Keys.D)) this.camera.position.x += moveSpeed; // Right (+X)
+    if (Input.isPressed(Keys.Q)) this.camera.position.y += moveSpeed; // Up (+Y)
+    if (Input.isPressed(Keys.E)) this.camera.position.y -= moveSpeed; // Down (-Y)
+
+    // Ensure the camera keeps looking at the origin
+    this.camera.target.set(0, 0, 0);
   }
 
   /**
