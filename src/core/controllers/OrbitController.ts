@@ -4,8 +4,6 @@ import { Controller } from "../../interfaces/index.js";
 import { CameraInterfaceData } from "../../interfaces/index.js";
 import { Input } from "../Input.js";
 
-import { Keys } from "../../enums/index.js";
-
 /**
  * Configuration for the OrbitController.
  */
@@ -61,12 +59,6 @@ export class OrbitController implements Controller {
       if (Input.isPointerLocked) {
         dx = Input.mouse.dx;
         dy = Input.mouse.dy;
-      }
-
-      // Keyboard Rotation (A/D)
-      const rotateY = Input.getAxis(Keys.A, Keys.D);
-      if (0 !== rotateY) {
-        this._camera.theta -= rotateY * this._options.rotationSpeed * deltaTime;
       }
     }
 
