@@ -94,6 +94,13 @@ export class WebGPURenderer extends AbstractRenderer {
 
     console.log("[WebGPURenderer] Adapter limits:", this._adapter.limits);
 
+    // Update DeviceCaps with actual WebGPU limits
+    const { DeviceCaps } = await import("../core/DeviceCaps.js");
+    DeviceCaps.updateLimits({
+      maxTextureSize: this._adapter.limits.maxTextureDimension2D,
+      maxUniformBufferSize: this._adapter.limits.maxUniformBufferBindingSize,
+    });
+
     this._device = await this._adapter.requestDevice();
 
     // Add uncapturederror listener
