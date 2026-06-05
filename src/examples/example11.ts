@@ -7,6 +7,7 @@ import {
   Color,
   Cylinder,
   DeviceCaps,
+  DeviceFeature,
   Grid,
   Input,
   Keys,
@@ -33,9 +34,10 @@ class Example11 extends AbstractExample {
   protected override async setupScene(): Promise<void> {
     // Log device capabilities for debugging
     console.log("[Example 11] Device Capabilities:", {
-      WebGL2: DeviceCaps.hasWebGL2,
-      WebGPU: DeviceCaps.hasWebGPU,
-      roundRect: DeviceCaps.hasCanvasRoundRect,
+      WebGL1: DeviceCaps.hasFeature(DeviceFeature.WEBGL1),
+      WebGL2: DeviceCaps.hasFeature(DeviceFeature.WEBGL2),
+      WebGPU: DeviceCaps.hasFeature(DeviceFeature.WEBGPU),
+      roundRect: DeviceCaps.hasFeature(DeviceFeature.CANVAS_ROUND_RECT),
     });
 
     // Setup input listeners (e.g. pointer lock)
@@ -171,7 +173,7 @@ class Example11 extends AbstractExample {
 
     // Draw background
     ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
-    if (DeviceCaps.hasCanvasRoundRect) {
+    if (DeviceCaps.hasFeature(DeviceFeature.CANVAS_ROUND_RECT)) {
       ctx.beginPath();
       ctx.roundRect(10, 10, 108, 108, 20);
       ctx.fill();
