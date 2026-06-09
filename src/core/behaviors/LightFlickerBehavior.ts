@@ -2,7 +2,6 @@
 
 import { Behavior } from "./Behavior.js";
 import { AbstractLight } from "../lights/AbstractLight.js";
-import { Object3D } from "../Object3D.js";
 
 export class LightFlickerBehavior extends Behavior {
   public baseIntensity: number = 1.0;

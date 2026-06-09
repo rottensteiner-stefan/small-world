@@ -52,9 +52,8 @@ export class Example7 extends AbstractExample {
 
     this.camera.addBehavior(new FPSController( {
         moveSpeed: this._moveSpeed,
-      }),
-      new ZoomController(this.camera),
-    );
+      }));
+    this.camera.addBehavior(new ZoomController());
 
     // 2. Lighting
     this.scene.add(new AmbientLight({ color: Color.WHITE, intensity: 0.5 }));

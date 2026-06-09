@@ -48,14 +48,15 @@ export class WASDController extends Behavior {
     const horizontalAxis = Input.getAxis(Keys.A, Keys.D);
 
     // Handle Rotation (A/D in TANK mode)
+    const obj = this.target as Object3D;
     if (InputMode.TANK === this._options.inputMode && 0 !== horizontalAxis) {
-      this.target.rotation.y -= horizontalAxis * 2.0 * deltaTime;
+      obj.rotation.y -= horizontalAxis * 2.0 * deltaTime;
     }
 
     if (0 !== moveZ || (0 !== horizontalAxis && InputMode.STRAFE === this._options.inputMode)) {
       // Calculate world-space direction based on object's rotation
       const forward = MathPool.acquireVector().set(0, 0, -1);
-      forward.transformDirection(this.target.worldMatrix).normalize();
+      forward.transformDirection(obj.worldMatrix).normalize();
 
       const direction = MathPool.acquireVector().set(0, 0, 0);
 
@@ -67,14 +68,14 @@ export class WASDController extends Behavior {
       // A/D strafe movement
       if (InputMode.STRAFE === this._options.inputMode && 0 !== horizontalAxis) {
         const right = MathPool.acquireVector().set(1, 0, 0);
-        right.transformDirection(this.target.worldMatrix).normalize();
+        right.transformDirection(obj.worldMatrix).normalize();
         direction.add(right.scale(horizontalAxis));
         MathPool.releaseVector(right);
       }
 
       if (direction.lengthSq() > 0) {
         direction.normalize();
-        this.target.position.add(direction.scale(this._options.moveSpeed * deltaTime));
+        obj.position.add(direction.scale(this._options.moveSpeed * deltaTime));
       }
 
       MathPool.releaseVector(forward);
@@ -84,7 +85,7 @@ export class WASDController extends Behavior {
     if (this._options.enableVertical) {
       const moveY = Input.getAxis(Keys.Q, Keys.E);
       if (0 !== moveY) {
-        this.target.position.y += moveY * this._options.moveSpeed * deltaTime;
+        obj.position.y += moveY * this._options.moveSpeed * deltaTime;
       }
     }
   }

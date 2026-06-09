@@ -63,9 +63,8 @@ export class Example6 extends AbstractExample {
         moveSpeed: this._moveSpeed,
         collisionRadius: 0.6,
         scene: this.scene,
-      }),
-      new ZoomController(this.camera),
-    );
+      }));
+    this.camera.addBehavior(new ZoomController());
 
     // 3. Lights
     this.scene.add(new AmbientLight({ color: Color.WHITE, intensity: 0.4 }));
