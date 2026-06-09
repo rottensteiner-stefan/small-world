@@ -40,7 +40,12 @@ export class Scene {
     return this._objectsByName.get(name);
   }
 
-  public update(): void {
+  public update(deltaTime: number = 0): void {
+    // 1. Update behaviors
+    for (const obj of this.objects) {
+      this._updateBehaviorsRecursive(obj, deltaTime);
+    }
+    // 2. Update matrices
     for (const obj of this.objects) {
       obj.updateMatrixWorld(true);
     }
@@ -90,6 +95,16 @@ export class Scene {
       }
     }
     for (const child of obj.children) this._addObjectToOctree(child, checkStatic);
+  }
+
+  private _updateBehaviorsRecursive(obj: Object3D, deltaTime: number): void {
+    for (let i = 0; i < obj.behaviors.length; i++) {
+      const b = obj.behaviors[i]!;
+      if (b.isActive) b.update(deltaTime);
+    }
+    for (let i = 0; i < obj.children.length; i++) {
+      this._updateBehaviorsRecursive(obj.children[i]!, deltaTime);
+    }
   }
 
   /**

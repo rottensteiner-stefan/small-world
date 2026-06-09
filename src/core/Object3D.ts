@@ -3,6 +3,7 @@
 import { AbstractMaterial } from "./materials/index.js";
 import { BoundingVolume, GeometryDataInterface } from "../interfaces/index.js";
 import { MathUtils, Matrix4, Quaternion, Vector3D } from "../math/index.js";
+import { Behavior } from "./behaviors/Behavior.js";
 
 /**
  * Base class for all 3D objects in the scene.
@@ -24,6 +25,7 @@ export class Object3D {
 
   public parent: Object3D | undefined = undefined;
   public children: Object3D[] = [];
+  public behaviors: Behavior[] = [];
 
   public isVisible: boolean = true;
   public frustumCulled: boolean = true;
@@ -50,6 +52,21 @@ export class Object3D {
         this.children.splice(index, 1);
       }
     }
+  }
+
+  public addBehavior(behavior: Behavior): this {
+    behavior.onAttach(this);
+    this.behaviors.push(behavior);
+    return this;
+  }
+
+  public removeBehavior(behavior: Behavior): this {
+    const index = this.behaviors.indexOf(behavior);
+    if (index !== -1) {
+      behavior.onDetach();
+      this.behaviors.splice(index, 1);
+    }
+    return this;
   }
 
   public translate(v: Vector3D): this {

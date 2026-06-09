@@ -22,6 +22,7 @@ export * from "./renderers/shaders/RenderManifest.js";
 export * from "./renderers/shaders/ShaderDefinition.js";
 export * from "./renderers/shaders/ShaderRegistry.js";
 export * from "./cameras/index.js";
+export * from "./behaviors/index.js";
 export * from "./colors/index.js";
 export * from "./events/index.js";
 export * from "./lights/index.js";
