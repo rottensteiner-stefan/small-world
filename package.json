@@ -10,6 +10,7 @@
     "dev": "vite --host",
     "format": "prettier --write . && eslint . --fix",
     "lint": "eslint .",
+    "lint:wgsl": "tsx scripts/lint-wgsl.ts",
     "lint:fix": "eslint . --fix",
     "prebuild": "node scripts/update-version.js",
     "preview": "vite preview",
@@ -39,11 +40,15 @@
     "vite": "^8.0.16",
     "vite-plugin-dts": "^5.0.2",
     "vite-plugin-mkcert": "^2.0.0",
-    "vitest": "^4.1.8"
+    "vitest": "^4.1.8",
+    "wgsl_reflect": "^1.4.0"
   },
   "overrides": {
     "eslint-plugin-import": {
       "eslint": "$eslint"
     }
+  },
+  "dependencies": {
+    "gl-matrix": "^3.4.4"
   }
 }

@@ -59,6 +59,44 @@ for(int i = 0; i < u_numPointLights; ++i) {
     Lo += (kD * albedo / 3.14159265359 + specular) * radiance * dotNL;
 }
 
+// -- Spot Lights --
+for(int i = 0; i < u_numSpotLights; ++i) {
+    vec3 lightVec = u_spotLightPos[i] - v_worldPos;
+    float dist = length(lightVec);
+    vec3 L = normalize(lightVec);
+    vec3 H = normalize(V + L);
+
+    vec3 spotDir = normalize(u_spotLightDir[i]);
+    float cosOuter = u_spotLightParams[i].x;
+    float cosInner = u_spotLightParams[i].y;
+    float maxDist = u_spotLightParams[i].z;
+    float decay = u_spotLightParams[i].w;
+
+    float theta = dot(L, -spotDir);
+    float epsilon = max(cosInner - cosOuter, 0.0001);
+    float intensity = clamp((theta - cosOuter) / epsilon, 0.0, 1.0);
+
+    if (intensity > 0.0 && dist < maxDist) {
+        float distanceAttenuation = pow(clamp(1.0 - dist / maxDist, 0.0, 1.0), decay);
+        float attenuation = distanceAttenuation * intensity;
+        vec3 radiance = u_spotLightColor[i] * attenuation;
+
+        float dotNL = max(dot(N, L), 0.0);
+        float dotNH = max(dot(N, H), 0.0);
+        float dotVH = max(dot(V, H), 0.0);
+
+        float D = D_GGX(dotNH, roughness);
+        float G = G_SchlickGGX(dotNL, dotNV, roughness);
+        vec3 F = F_Schlick(dotVH, F0);
+
+        vec3 kS = F;
+        vec3 kD = (vec3(1.0) - kS) * (1.0 - metallic);
+
+        vec3 specular = (D * G * F) / (4.0 * dotNV * dotNL + 0.0001);
+        Lo += (kD * albedo / 3.14159265359 + specular) * radiance * dotNL;
+    }
+}
+
 vec3 ambient = u_ambientColor * albedo * ao;
 vec3 color = ambient + Lo;
 
