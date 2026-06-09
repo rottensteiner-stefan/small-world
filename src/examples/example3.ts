@@ -43,7 +43,7 @@ class Example3 extends AbstractExample {
     this.camera.setStrategy(CameraStrategyType.SMOOTH);
     this.camera.position.set(0, 5, 15);
 
-    this.controllers.push(new OrbitController(this.camera));
+    this.camera.addBehavior(new OrbitController());
 
     const ambientLight: AmbientLight = new AmbientLight({ color: Color.WHITE, intensity: 0.3 });
     this.scene.add(ambientLight);

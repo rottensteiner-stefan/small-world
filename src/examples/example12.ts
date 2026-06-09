@@ -10,19 +10,19 @@ import {
   Object3D,
   PerspectiveProjection,
   Plane,
-  PointLight,
   ProjectionType,
   StandardMaterial,
   Texture,
   BoundingBox,
   Vector3D,
   SpotLight,
+  LightFlickerBehavior,
 } from "../index.js";
 import { AbstractExample, Input } from "../core/index.js";
 
 class AbyssalDecoExample extends AbstractExample {
-  private _flickerLight!: PointLight;
   private _portLight!: SpotLight;
+  private _portLightBehavior!: LightFlickerBehavior;
   private _time: number = 0;
 
   protected override async setupScene(): Promise<void> {
@@ -322,28 +322,28 @@ class AbyssalDecoExample extends AbstractExample {
     // Add a SpotLight to cast a beam into the room
     const portLight = new SpotLight({ 
       color: new Color(1.0, 0.8, 0.5), 
-      intensity: 2.5,
-      direction: new Vector3D(1, 0, 0), // Pointing exactly AWAY from the left wall
+      intensity: 15.0, // Boosted to make it clearly visible
+      direction: new Vector3D(1, -0.2, 0), // Pointing AWAY from the left wall, slightly downwards
       angle: Math.PI / 4, // 45 degrees cone
       penumbra: 0.5,
-      distance: 30.0
+      distance: 40.0
     });
     portLight.position.set(-9.4, 4, -5); // Positioned slightly in front of the porthole glass
     this._portLight = portLight;
+    
+    // Add our new Behavior to the light
+    this._portLightBehavior = new LightFlickerBehavior(15.0);
+    this._portLight.addBehavior(this._portLightBehavior);
+
     this.scene.add(portLight);
 
-    // 6. Lighting: Ambient (Brighter to see the textures)
-    this.scene.add(new AmbientLight({ color: new Color(0.1, 0.1, 0.15), intensity: 0.8 }));
+    // 6. Lighting: Ambient (Lowered to make spot light pop)
+    this.scene.add(new AmbientLight({ color: new Color(0.1, 0.1, 0.15), intensity: 0.1 }));
 
-    // 5. Lighting: Moon/Ocean rays coming from above/side
-    const oceanLight = new DirectionalLight({ color: new Color(0.4, 0.7, 1.0), intensity: 1.5 });
+    // 7. Lighting: Moon/Ocean rays coming from above/side (Dimmed)
+    const oceanLight = new DirectionalLight({ color: new Color(0.4, 0.7, 1.0), intensity: 0.3 });
     oceanLight.direction.set(1, -1, 0);
     this.scene.add(oceanLight);
-
-    // 6. Lighting: Flickering orange neon/broken lamp (Stronger for reflections)
-    this._flickerLight = new PointLight({ color: new Color(1.0, 0.5, 0.0), intensity: 10.0 });
-    this._flickerLight.position.set(0, 4, -5);
-    this.scene.add(this._flickerLight);
 
     // 7. Camera & Controls (FPS)
     this.camera.setStrategy(CameraStrategyType.FPS);
@@ -355,12 +355,13 @@ class AbyssalDecoExample extends AbstractExample {
     this.scene.initOctrees(new BoundingBox(new Vector3D(-30, -5, -50), new Vector3D(30, 15, 50)));
 
     // Add WASD/Mouse controller with collisions
-    this.controllers.push(new FPSController(this.camera, { 
+    const fpsController = new FPSController({ 
       moveSpeed: 5.0,
       enableCollision: true,
       scene: this.scene,
       collisionRadius: 0.8
-    }));
+    });
+    this.camera.addBehavior(fpsController);
 
     // Pointer Lock
     this.canvas.addEventListener("click", (): void => {
@@ -373,21 +374,18 @@ class AbyssalDecoExample extends AbstractExample {
   protected override update(deltaTime: number): void {
     this._time += deltaTime;
 
-    // Adjust porthole light intensity via NumpadAdd (+) and NumpadSubtract (-)
+    // Adjust base porthole light intensity via NumpadAdd (+) and NumpadSubtract (-)
     if (Input.isPressed("NumpadAdd") || Input.isPressed("Equal") || Input.isPressed("BracketRight")) {
-      this._portLight.intensity += deltaTime * 2.0;
-      console.log(`[Porthole] Light Intensity: ${this._portLight.intensity.toFixed(2)}`);
+      this._portLightBehavior.baseIntensity += deltaTime * 5.0;
+      console.log(`[Porthole] Base Intensity: ${this._portLightBehavior.baseIntensity.toFixed(2)}`);
     }
     if (Input.isPressed("NumpadSubtract") || Input.isPressed("Minus") || Input.isPressed("Slash")) {
-      this._portLight.intensity = Math.max(0, this._portLight.intensity - deltaTime * 2.0);
-      console.log(`[Porthole] Light Intensity: ${this._portLight.intensity.toFixed(2)}`);
+      this._portLightBehavior.baseIntensity = Math.max(0, this._portLightBehavior.baseIntensity - deltaTime * 5.0);
+      console.log(`[Porthole] Base Intensity: ${this._portLightBehavior.baseIntensity.toFixed(2)}`);
     }
 
-    // Flickering logic: using Math.random combined with sine wave for an irregular pattern
-    const flicker = Math.abs(Math.sin(this._time * 10)) * (Math.random() > 0.8 ? 0.2 : 1.0);
-    this._flickerLight.intensity = 2.0 * flicker;
-
-    this.scene.update();
+    // Notice: we removed the entire custom flicker logic from here!
+    // The LightFlickerBehavior handles it internally.
   }
 }
 

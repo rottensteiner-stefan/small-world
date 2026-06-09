@@ -59,8 +59,7 @@ export class Example6 extends AbstractExample {
     this.camera.setStrategy(CameraStrategyType.FPS);
     this.camera.position.set(0, 2, 10);
 
-    this.controllers.push(
-      new FPSController(this.camera, {
+    this.camera.addBehavior(new FPSController( {
         moveSpeed: this._moveSpeed,
         collisionRadius: 0.6,
         scene: this.scene,
