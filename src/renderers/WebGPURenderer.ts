@@ -304,7 +304,7 @@ export class WebGPURenderer extends AbstractRenderer {
         },
         { binding: 1, visibility: GPUShaderStage.FRAGMENT, sampler: { type: "filtering" } },
       ];
-      for (let i = 2; i <= 8; i++) {
+      for (let i = 2; i <= 10; i++) {
         objEntries.push({
           binding: i,
           visibility: GPUShaderStage.FRAGMENT,
@@ -312,7 +312,7 @@ export class WebGPURenderer extends AbstractRenderer {
         });
       }
       objEntries.push({
-        binding: 9,
+        binding: 11,
         visibility: GPUShaderStage.FRAGMENT,
         texture: { viewDimension: "cube" },
       });
@@ -569,8 +569,10 @@ export class WebGPURenderer extends AbstractRenderer {
       { binding: 6, resource: this._getTextureView(m.textures["u_grassMap"] as Texture) },
       { binding: 7, resource: this._getTextureView(m.textures["u_rockMap"] as Texture) },
       { binding: 8, resource: this._getTextureView(m.textures["u_snowMap"] as Texture) },
+      { binding: 9, resource: this._getTextureView(m.textures["u_metallicMap"] as Texture) },
+      { binding: 10, resource: this._getTextureView(m.textures["u_roughnessMap"] as Texture) },
       {
-        binding: 9,
+        binding: 11,
         resource: this._getGPUCubeTextureView(m.textures["u_skybox"] as CubeTexture),
       },
     ];

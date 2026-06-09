@@ -26,6 +26,10 @@ export interface StandardMaterialOptions {
   diffuseMap?: Texture | undefined;
   /** The normal map texture. */
   normalMap?: Texture | undefined;
+  /** The metallic texture map. */
+  metallicMap?: Texture | undefined;
+  /** The roughness texture map. */
+  roughnessMap?: Texture | undefined;
 }
 
 /**
@@ -45,6 +49,12 @@ export class StandardMaterial extends AbstractMaterial {
   /** The normal map texture. */
   public normalMap: Texture | undefined;
 
+  /** The metallic map texture. */
+  public metallicMap: Texture | undefined;
+
+  /** The roughness map texture. */
+  public roughnessMap: Texture | undefined;
+
   /**
    * Creates a new StandardMaterial.
    * @param options The configuration options for the material.
@@ -58,6 +68,8 @@ export class StandardMaterial extends AbstractMaterial {
       ao = 1.0,
       diffuseMap = undefined,
       normalMap = undefined,
+      metallicMap = undefined,
+      roughnessMap = undefined,
     } = options;
     this.color = color;
     this.metallic = metallic;
@@ -65,6 +77,8 @@ export class StandardMaterial extends AbstractMaterial {
     this.ao = ao;
     this.diffuseMap = diffuseMap;
     this.normalMap = normalMap;
+    this.metallicMap = metallicMap;
+    this.roughnessMap = roughnessMap;
   }
 
   /** @inheritdoc */
@@ -88,6 +102,8 @@ export class StandardMaterial extends AbstractMaterial {
         textures: {
           u_diffuseMap: this.diffuseMap,
           u_normalMap: this.normalMap,
+          u_metallicMap: this.metallicMap,
+          u_roughnessMap: this.roughnessMap,
         },
       };
     }
@@ -114,6 +130,8 @@ export class StandardMaterial extends AbstractMaterial {
 
     texs["u_diffuseMap"] = this.diffuseMap;
     texs["u_normalMap"] = this.normalMap;
+    texs["u_metallicMap"] = this.metallicMap;
+    texs["u_roughnessMap"] = this.roughnessMap;
 
     this._renderManifest.state = {
       ...this._renderManifest.state,
@@ -143,6 +161,8 @@ export class StandardMaterial extends AbstractMaterial {
         textures: {
           u_diffuseMap: { type: ShaderPropertyType.TEXTURE },
           u_normalMap: { type: ShaderPropertyType.TEXTURE },
+          u_metallicMap: { type: ShaderPropertyType.TEXTURE },
+          u_roughnessMap: { type: ShaderPropertyType.TEXTURE },
         },
       },
     };
