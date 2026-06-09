@@ -15,6 +15,7 @@ Before implementing:
 - If multiple interpretations exist, present them - don't pick silently.
 - If a simpler approach exists, say so. Push back when warranted.
 - If something is unclear, stop. Name what's confusing. Ask.
+- **Mandatory Planning:** ALWAYS create a detailed plan before making any code changes or file modifications, unless explicitly instructed otherwise. Code execution and modifications must only proceed AFTER the user has explicitly approved the plan. This ensures mutual safety and alignment.
 
 ## Mathematical Integrity
 
