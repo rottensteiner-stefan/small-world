@@ -3,10 +3,17 @@ import { CameraEffectType, CameraStrategyType } from '../enums/index.js';
 import { CameraStrategy } from './CameraStrategy.js';
 import { CameraConstraints } from './CameraConstraints.js';
 import { CameraEffect } from './CameraEffect.js';
+import { Behavior } from '../core/behaviors/Behavior.js';
 /**
  * Interface representing the core data and API of a camera.
  */
 export interface CameraInterfaceData {
+    /** The behaviors attached to this camera. */
+    behaviors: Behavior[];
+    /** Horizontal rotation delta accumulated by behaviors. */
+    pendingDx: number;
+    /** Vertical rotation delta accumulated by behaviors. */
+    pendingDy: number;
     /** The currently active camera control strategy. */
     readonly strategy: CameraStrategy;
     /** The position of the camera in world space. */
@@ -33,6 +40,16 @@ export interface CameraInterfaceData {
     viewMatrix: Float32Array;
     /** The view matrix as a Matrix4 instance. */
     viewMatrix4: Matrix4;
+    /**
+     * Adds a behavior to the camera.
+     * @param behavior The behavior to add.
+     */
+    addBehavior(behavior: Behavior): this;
+    /**
+     * Removes a behavior from the camera.
+     * @param behavior The behavior to remove.
+     */
+    removeBehavior(behavior: Behavior): this;
     /**
      * Switches the camera's control behavior.
      * @param type The type of strategy to use.

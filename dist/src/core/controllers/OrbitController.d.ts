@@ -1,4 +1,4 @@
-import { Controller, CameraInterfaceData } from '../../interfaces/index.js';
+import { Behavior } from '../behaviors/Behavior.js';
 /**
  * Configuration for the OrbitController.
  */
@@ -17,17 +17,13 @@ export interface OrbitControllerOptions {
 /**
  * A controller that orbits a camera around a fixed target.
  */
-export declare class OrbitController implements Controller {
-    /** @inheritdoc */
+export declare class OrbitController extends Behavior {
     enabled: boolean;
-    private _camera;
     private _options;
     /**
      * Creates a new OrbitController.
-     * @param camera The camera to control.
      * @param options Configuration options.
      */
-    constructor(camera: CameraInterfaceData, options?: OrbitControllerOptions);
-    /** @inheritdoc */
-    update(deltaTime: number): void;
+    constructor(options?: OrbitControllerOptions);
+    update(_deltaTime: number): void;
 }

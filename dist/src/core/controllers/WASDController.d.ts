@@ -1,5 +1,4 @@
-import { Controller } from '../../interfaces/index.js';
-import { Object3D } from '../Object3D.js';
+import { Behavior } from '../behaviors/Behavior.js';
 import { InputMode } from '../../enums/index.js';
 /**
  * Configuration for the WASDController.
@@ -16,17 +15,13 @@ export interface WASDControllerOptions {
  * A controller that moves an Object3D using WASD keys.
  * Movement is relative to the object's rotation (local forward).
  */
-export declare class WASDController implements Controller {
-    /** @inheritdoc */
+export declare class WASDController extends Behavior {
     enabled: boolean;
-    private _target;
     private _options;
     /**
      * Creates a new WASDController.
-     * @param target The object to move.
      * @param options Configuration options.
      */
-    constructor(target: Object3D, options?: WASDControllerOptions);
-    /** @inheritdoc */
+    constructor(options?: WASDControllerOptions);
     update(deltaTime: number): void;
 }
