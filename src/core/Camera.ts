@@ -30,6 +30,11 @@ export class Camera implements CameraInterfaceData {
   public phi: number = 0;
 
   /** @inheritdoc */
+  public pendingDx: number = 0;
+  /** @inheritdoc */
+  public pendingDy: number = 0;
+
+  /** @inheritdoc */
   public behaviors: Behavior[] = [];
 
   private _projection!: AbstractProjection;
@@ -214,8 +219,13 @@ export class Camera implements CameraInterfaceData {
       if (b.isActive) b.update(deltaTime);
     }
 
+    const totalDx = dx + this.pendingDx;
+    const totalDy = dy + this.pendingDy;
+    this.pendingDx = 0;
+    this.pendingDy = 0;
+
     if (this._strategy) {
-      this._strategy.update(this, targetPos, dx, dy);
+      this._strategy.update(this, targetPos, totalDx, totalDy);
     }
 
     // Update effects
