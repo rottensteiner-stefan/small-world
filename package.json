@@ -17,7 +17,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
-    "start": "npm run build && npx serve dist"
+    "start": "npm run build && npx serve dist",
+    "prepare": "husky"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -29,6 +30,8 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-import": "^2.32.0",
     "globals": "^17.6.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.7",
     "npm-run-all": "^4.1.5",
     "prettier": "^3.8.3",
     "serve": "^14.2.6",
@@ -50,5 +53,14 @@
   },
   "dependencies": {
     "gl-matrix": "^3.4.4"
+  },
+  "lint-staged": {
+    "*.ts": [
+      "prettier --write",
+      "eslint --fix"
+    ],
+    "*.wgsl": [
+      "npm run lint:wgsl"
+    ]
   }
 }
