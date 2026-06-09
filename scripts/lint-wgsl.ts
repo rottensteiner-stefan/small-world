@@ -1,6 +1,6 @@
 import fs from "fs/promises";
 import path from "path";
-import { WgslReflect } from "wgsl_reflect";
+import { WgslReflect } from "wgsl_reflect/wgsl_reflect.module.js";
 
 const chunksDir = path.resolve("public/resources/shaders/web_gpu/chunks");
 const materialsDir = path.resolve("src/core/materials/shaders");
