@@ -62,6 +62,10 @@ for(int i = 0; i < u_numPointLights; ++i) {
 vec3 ambient = u_ambientColor * albedo * ao;
 vec3 color = ambient + Lo;
 
+// Emissive
+vec3 emissive = sRGBToLinear(texture(u_emissiveMap, v_uv).rgb) * sRGBToLinear(u_specColor.rgb) * u_specColor.a;
+color += emissive;
+
 // Exposure
 color *= u_exposure;
 

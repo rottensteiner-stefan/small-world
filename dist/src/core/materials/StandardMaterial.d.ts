@@ -23,6 +23,14 @@ export interface StandardMaterialOptions {
     metallicMap?: Texture | undefined;
     /** The roughness texture map. */
     roughnessMap?: Texture | undefined;
+    /** The emissive color. Defaults to black. */
+    emissiveColor?: Color;
+    /** The emissive texture map. */
+    emissiveMap?: Texture | undefined;
+    /** The intensity of the emissive light. Defaults to 1.0. */
+    emissiveIntensity?: number;
+    /** Whether the material is transparent. Defaults to false. */
+    transparent?: boolean;
 }
 /**
  * A physically based rendering (PBR) material using the Metallic-Roughness workflow.
@@ -42,6 +50,12 @@ export declare class StandardMaterial extends AbstractMaterial {
     metallicMap: Texture | undefined;
     /** The roughness map texture. */
     roughnessMap: Texture | undefined;
+    /** The emissive color. */
+    emissiveColor: Color;
+    /** The emissive map texture. */
+    emissiveMap: Texture | undefined;
+    /** The intensity of the emissive glow. */
+    emissiveIntensity: number;
     /**
      * Creates a new StandardMaterial.
      * @param options The configuration options for the material.

@@ -57,6 +57,10 @@ for(int i = 0; i < 4; i++) {
 vec3 ambient = u_ambientColor * albedo * ao;
 vec3 color = ambient + Lo;
 
+// Emissive
+vec3 emissive = sRGBToLinear(texture2D(u_emissiveMap, v_uv).rgb) * sRGBToLinear(u_specColor.rgb) * u_specColor.a;
+color += emissive;
+
 color = color / (color + vec3(1.0));
 color = linearToSRGB(color);
 
