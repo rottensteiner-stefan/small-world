@@ -42,7 +42,7 @@ export class OrbitController extends Behavior {
     };
   }
 
-  public override update(deltaTime: number): void {
+  public override update(_deltaTime: number): void {
     if (!this.enabled || !this.target) {
       return;
     }
