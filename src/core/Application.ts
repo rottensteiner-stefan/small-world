@@ -7,7 +7,7 @@ import {
   PerspectiveProjection,
 } from "../math/index.js";
 import { Camera } from "./Camera.js";
-import { CameraInterfaceData, EngineConfig, Controller } from "../interfaces/index.js";
+import { CameraInterfaceData, EngineConfig } from "../interfaces/index.js";
 import { Renderer } from "../interfaces/Renderer.js";
 import { ProjectionType, RendererType } from "../enums/index.js";
 import { RendererFactory } from "../renderers/index.js";
@@ -36,8 +36,6 @@ export abstract class Application {
   /** Whether debug visualization is enabled. */
   public debug: boolean = false;
 
-  /** List of active input controllers. */
-  public readonly controllers: Controller[] = [];
 
   private _lastTime: number = 0;
   private _isRunning: boolean = false;
@@ -215,21 +213,12 @@ export abstract class Application {
     const deltaTime: number = Math.min((currentTime - this._lastTime) / 1000.0, 0.1);
     this._lastTime = currentTime;
 
-    // Update all registered controllers
-    const inputMode = this.config.inputMode || "tank";
-    for (let i: number = 0; i < this.controllers.length; i++) {
-      const controller = this.controllers[i]!;
-      // Dynamically inject inputMode if the controller supports it and it's not already set
-      const ctrl = controller as Controller & { _options?: { inputMode?: string } };
-      if (ctrl._options && "inputMode" in ctrl._options) {
-        ctrl._options.inputMode = ctrl._options.inputMode || inputMode;
-      }
-      controller.update(deltaTime);
-    }
-
+    // Note: controllers are now behaviors attached to objects (e.g., Camera)
+    // and are updated by scene.update()
+    
     this.update(deltaTime);
 
-    this.scene.update();
+    this.scene.update(deltaTime);
     this.camera.update(this.camera.target, 0, 0, deltaTime);
 
     // Perform frustum culling before rendering

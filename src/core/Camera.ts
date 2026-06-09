@@ -11,6 +11,7 @@ import {
 } from "../interfaces/index.js";
 import { Matrix4 } from "../math/Matrix4.js";
 import { Vector3D } from "../math/Vector3D.js";
+import { Behavior } from "./behaviors/Behavior.js";
 
 /**
  * Standard implementation of the CameraInterfaceData.
@@ -27,6 +28,9 @@ export class Camera implements CameraInterfaceData {
   public theta: number = 0;
   /** @inheritdoc */
   public phi: number = 0;
+
+  /** @inheritdoc */
+  public behaviors: Behavior[] = [];
 
   private _projection!: AbstractProjection;
   private _aspect: number = 1;
@@ -173,7 +177,24 @@ export class Camera implements CameraInterfaceData {
 
   /** @inheritdoc */
   public setConstraints(constraints?: CameraConstraints): void {
-    this._strategy.constraints = constraints;
+    if (this._strategy) {
+      this._strategy.constraints = constraints;
+    }
+  }
+
+  public addBehavior(behavior: Behavior): this {
+    behavior.onAttach(this);
+    this.behaviors.push(behavior);
+    return this;
+  }
+
+  public removeBehavior(behavior: Behavior): this {
+    const index = this.behaviors.indexOf(behavior);
+    if (index !== -1) {
+      behavior.onDetach();
+      this.behaviors.splice(index, 1);
+    }
+    return this;
   }
 
   /** @inheritdoc */
@@ -182,8 +203,20 @@ export class Camera implements CameraInterfaceData {
   }
 
   /** @inheritdoc */
-  public update(targetPos: Vector3D, dx: number, dy: number, deltaTime: number = 0.016): void {
-    this._strategy.update(this, targetPos, dx, dy);
+  public update(
+    targetPos: Vector3D,
+    dx: number,
+    dy: number,
+    deltaTime: number = 0.016,
+  ): void {
+    for (let i = 0; i < this.behaviors.length; i++) {
+      const b = this.behaviors[i]!;
+      if (b.isActive) b.update(deltaTime);
+    }
+
+    if (this._strategy) {
+      this._strategy.update(this, targetPos, dx, dy);
+    }
 
     // Update effects
     for (let i: number = this._effects.length - 1; 0 <= i; i--) {
