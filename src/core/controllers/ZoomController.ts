@@ -1,6 +1,7 @@
 /// src/core/controllers/ZoomController.ts
 
-import { CameraInterfaceData, Controller } from "../../interfaces/index.js";
+import { Behavior } from "../behaviors/Behavior.js";
+import { CameraInterfaceData } from "../../interfaces/index.js";
 import { Input } from "../Input.js";
 
 /**
@@ -14,31 +15,27 @@ export interface ZoomControllerOptions {
 /**
  * A standalone controller for handling camera zoom (Wheel/Pinch).
  */
-export class ZoomController implements Controller {
-  /** @inheritdoc */
+export class ZoomController extends Behavior {
   public enabled: boolean = true;
-
-  private _camera: CameraInterfaceData;
   private _options: Required<ZoomControllerOptions>;
 
   /**
    * Creates a new ZoomController.
-   * @param camera The camera to control.
    * @param options Configuration options.
    */
-  constructor(camera: CameraInterfaceData, options: ZoomControllerOptions = {}) {
-    this._camera = camera;
+  constructor(options: ZoomControllerOptions = {}) {
+    super();
     this._options = {
       zoomSensitivity: options.zoomSensitivity ?? 0.5,
     };
   }
 
-  /** @inheritdoc */
-  public update(_deltaTime: number): void {
-    if (!this.enabled || 0 === Input.mouse.zoom) {
+  public override update(_deltaTime: number): void {
+    if (!this.enabled || !this.target || 0 === Input.mouse.zoom) {
       return;
     }
 
-    this._camera.zoom(Input.mouse.zoom * this._options.zoomSensitivity);
+    const cam = this.target as unknown as CameraInterfaceData;
+    cam.zoom(Input.mouse.zoom * this._options.zoomSensitivity);
   }
 }

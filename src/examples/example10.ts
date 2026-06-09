@@ -185,9 +185,8 @@ export class Example10 extends AbstractExample {
     this.scene.add(createFireBowl("FireBowlLeft", -4, 1, 0));
     this.scene.add(createFireBowl("FireBowlRight", 4, 1, 0));
 
-    this.camera.addBehavior(new FPSController( { moveSpeed: this._moveSpeed }),
-      new ZoomController(this.camera),
-    );
+    this.camera.addBehavior(new FPSController( { moveSpeed: this._moveSpeed }));
+    this.camera.addBehavior(new ZoomController());
 
     // Pointer Lock Request on click
     window.addEventListener("mousedown", () => {

@@ -133,10 +133,8 @@ export class YadApp extends AbstractExample {
     this.camera.position.copyFrom(playerStart);
 
     // 5. Controllers
-    this.controllers.push(
-      new YadController(this.camera, { moveSpeed: 10.0, scene: this.scene }),
-      new ZoomController(this.camera),
-    );
+    this.camera.addBehavior(new YadController({ moveSpeed: 10.0, scene: this.scene }));
+    this.camera.addBehavior(new ZoomController());
 
     // 6. Final Scene Prep
     this.scene.update(); // Update all world matrices first

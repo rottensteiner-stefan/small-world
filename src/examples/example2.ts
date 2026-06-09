@@ -56,9 +56,8 @@ export class Example2 extends AbstractExample {
 
     this.camera.addBehavior(new FPSController( {
         moveSpeed: this._moveSpeed,
-      }),
-      new ZoomController(this.camera),
-    );
+      }));
+    this.camera.addBehavior(new ZoomController());
 
     // 3. Add light
     const sun: DirectionalLight = new DirectionalLight({ color: Color.WHITE, intensity: 0.8 });

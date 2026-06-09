@@ -1,13 +1,13 @@
 /// src/apps/yad/YadController.ts
 
-import { CameraInterfaceData, Controller } from "../../interfaces/index.js";
+import { Behavior } from "../../core/behaviors/Behavior.js";
+import { CameraInterfaceData } from "../../interfaces/index.js";
 import { Object3D } from "../../core/Object3D.js";
 import { Input } from "../../core/Input.js";
 import { Keys } from "../../enums/Keys.js";
 import { Scene } from "../../core/Scene.js";
 import { BoundingBox, BoundingSphere, Collision } from "../../physix/index.js";
 import { MathPool } from "../../math/index.js";
-import { Vector3D } from "../../math/Vector3D.js";
 
 /**
  * Configuration for the YadController.
@@ -33,21 +33,17 @@ export interface YadControllerOptions {
  * - Turn Left: ArrowLeft or A
  * - Turn Right: ArrowRight or D
  */
-export class YadController implements Controller {
-  /** @inheritdoc */
+export class YadController extends Behavior {
   public enabled: boolean = true;
-
-  private _target: CameraInterfaceData | Object3D;
   private _options: Required<Omit<YadControllerOptions, "scene">> & { scene: Scene | undefined };
-  private _collider: BoundingSphere;
+  private _collider?: BoundingSphere;
 
   /**
    * Creates a new YadController.
-   * @param target The target object or camera to control.
    * @param options The configuration options.
    */
-  constructor(target: CameraInterfaceData | Object3D, options: YadControllerOptions = {}) {
-    this._target = target;
+  constructor(options: YadControllerOptions = {}) {
+    super();
     this._options = {
       moveSpeed: options.moveSpeed ?? 10.0,
       rotationSpeed: options.rotationSpeed ?? 2.0,
@@ -55,19 +51,22 @@ export class YadController implements Controller {
       collisionRadius: options.collisionRadius ?? 0.7,
       scene: options.scene,
     };
+  }
+
+  public override onAttach(target: Object3D | CameraInterfaceData): void {
+    super.onAttach(target);
     this._collider = new BoundingSphere(
-      this._target.position.clone(),
+      target.position.clone(),
       this._options.collisionRadius,
     );
   }
 
-  /** @inheritdoc */
-  public update(deltaTime: number): void {
-    if (false === this.enabled) {
+  public override update(deltaTime: number): void {
+    if (!this.enabled || !this.target) {
       return;
     }
 
-    const isCamera: boolean = "projection" in this._target;
+    const isCamera = "updateProjectionMatrix" in this.target;
 
     // 1. Rotation (Turn Left/Right)
     let rotationDelta: number = 0;
@@ -78,13 +77,13 @@ export class YadController implements Controller {
       rotationDelta += 1;
     }
 
+    const rotationAmount = rotationDelta * this._options.rotationSpeed * deltaTime;
+
     if (0 !== rotationDelta) {
       if (isCamera) {
-        (this._target as CameraInterfaceData).theta +=
-          rotationDelta * this._options.rotationSpeed * deltaTime;
+        (this.target as unknown as CameraInterfaceData).theta += rotationAmount;
       } else {
-        (this._target as Object3D).rotation.y -=
-          rotationDelta * this._options.rotationSpeed * deltaTime;
+        (this.target as Object3D).rotation.y -= rotationAmount;
       }
     }
 
@@ -99,15 +98,18 @@ export class YadController implements Controller {
 
     if (0 !== moveZ) {
       const theta: number = isCamera
-        ? (this._target as CameraInterfaceData).theta
-        : (this._target as Object3D).rotation.y;
+        ? (this.target as unknown as CameraInterfaceData).theta
+        : (this.target as Object3D).rotation.y;
 
       const sin: number = Math.sin(theta);
       const cos: number = Math.cos(theta);
 
+      const dirX = sin * moveZ;
+      const dirZ = -cos * moveZ;
+
       // Forward is towards -Z at theta=0
-      this._target.position.x += sin * moveZ * this._options.moveSpeed * deltaTime;
-      this._target.position.z -= cos * moveZ * this._options.moveSpeed * deltaTime;
+      this.target.position.x += dirX * this._options.moveSpeed * deltaTime;
+      this.target.position.z += dirZ * this._options.moveSpeed * deltaTime;
     }
 
     // 3. Resolve Collisions
@@ -117,8 +119,8 @@ export class YadController implements Controller {
 
     // 4. Update Camera internal state if needed
     if (isCamera) {
-      const cam: CameraInterfaceData = this._target as CameraInterfaceData;
-      // We pass 0 for dx/dy as we handle keyboard rotation manually
+      const cam = this.target as unknown as CameraInterfaceData;
+      // update camera but with 0 dx/dy since rotation is handled manually above
       cam.update(cam.target, 0, 0, deltaTime);
     }
   }
@@ -127,38 +129,28 @@ export class YadController implements Controller {
    * Internal helper to resolve physical collisions against scene geometry.
    */
   private _resolveCollisions(): void {
-    if (undefined === this._options.scene) {
-      return;
-    }
-    this._collider.center.copyFrom(this._target.position);
+    if (!this._options.scene || !this.target || !this._collider) return;
+    this._collider.center.copyFrom(this.target.position);
+    this._collider.center.y += 0.5; // Offset slightly up
 
     const potentialHits: Object3D[] = [];
-    if (undefined !== this._options.scene.staticOctree) {
-      const hits: Object3D[] = this._options.scene.staticOctree.queryVolume(this._collider);
-      if (0 < hits.length) {
-        // console.log(`[YadController] Hits found: ${hits.length}`);
-      }
-      potentialHits.push(...hits);
-    }
-    if (undefined !== this._options.scene.dynamicOctree) {
+    if (this._options.scene.staticOctree)
+      potentialHits.push(...this._options.scene.staticOctree.queryVolume(this._collider));
+    if (this._options.scene.dynamicOctree)
       potentialHits.push(...this._options.scene.dynamicOctree.queryVolume(this._collider));
-    }
 
-    const correction: Vector3D = MathPool.acquireVector().set(0, 0, 0);
-    const hitCorrection: Vector3D = MathPool.acquireVector();
+    const correction = MathPool.acquireVector().set(0, 0, 0);
+    const hitCorrection = MathPool.acquireVector();
 
     for (const obj of potentialHits) {
-      if (undefined === obj.bounds || obj === this._target) {
-        continue;
-      }
+      if (!obj.bounds || obj === this.target) continue;
       if (Collision.resolveSphereBox(this._collider, obj.bounds as BoundingBox, hitCorrection)) {
-        // console.log(`[YadController] Collided with ${obj.name}. Correction: ${hitCorrection.x}, ${hitCorrection.z}`);
         correction.add(hitCorrection);
-        this._collider.center.add(hitCorrection);
+        this._collider.center.add(hitCorrection); // update sphere center iteratively
       }
     }
 
-    this._target.position.add(correction);
+    this.target.position.add(correction);
     MathPool.releaseVector(correction);
     MathPool.releaseVector(hitCorrection);
   }

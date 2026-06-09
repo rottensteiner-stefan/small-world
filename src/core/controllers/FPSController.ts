@@ -98,7 +98,7 @@ export class FPSController extends Behavior {
         if (0 !== horizontalAxis) {
           const rotationAmount = horizontalAxis * 2.0 * deltaTime; // 2 rad/s
           if (isCamera) {
-            (this.target as CameraInterfaceData).theta += rotationAmount;
+            (this.target as unknown as CameraInterfaceData).theta += rotationAmount;
           } else {
             (this.target as Object3D).rotation.y -= rotationAmount;
           }
@@ -108,7 +108,7 @@ export class FPSController extends Behavior {
       if (0 !== moveZ || (0 !== horizontalAxis && InputMode.STRAFE === this._options.inputMode)) {
         // If it's a camera, we use its current look direction (theta)
         const theta = isCamera
-          ? (this.target as CameraInterfaceData).theta
+          ? (this.target as unknown as CameraInterfaceData).theta
           : (this.target as import("../Object3D.js").Object3D).rotation.y;
         
         const sin = Math.sin(theta);
