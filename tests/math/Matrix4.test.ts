@@ -84,4 +84,28 @@ describe("Matrix4", () => {
     expect(outRot.y).toBeCloseTo(rot.y);
     expect(outRot.z).toBeCloseTo(rot.z);
   });
+
+  it("should enforce strictly Right-Handed rotations (X-axis +90 degrees)", () => {
+    const m = new Matrix4();
+    // Rotate +90 degrees around X-axis
+    m.compose(new Vector3D(0, 0, 0), new Vector3D(Math.PI / 2, 0, 0), new Vector3D(1, 1, 1));
+
+    // A forward vector points down -Z
+    const forward = new Vector3D(0, 0, -1);
+    m.transformVector(forward);
+
+    // If right-handed, rotating +90 around X pitches the forward vector UP (+Y)
+    expect(forward.x).toBeCloseTo(0);
+    expect(forward.y).toBeCloseTo(1);
+    expect(forward.z).toBeCloseTo(0);
+
+    // An up vector points up +Y
+    const up = new Vector3D(0, 1, 0);
+    m.transformVector(up);
+
+    // If right-handed, rotating +90 around X pitches the up vector BACK (+Z)
+    expect(up.x).toBeCloseTo(0);
+    expect(up.y).toBeCloseTo(0);
+    expect(up.z).toBeCloseTo(1);
+  });
 });
