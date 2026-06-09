@@ -73,4 +73,6 @@ struct AreaLight {
 @group(1) @binding(6) var u_grassMap: texture_2d<f32>;
 @group(1) @binding(7) var u_rockMap: texture_2d<f32>;
 @group(1) @binding(8) var u_snowMap: texture_2d<f32>;
-@group(1) @binding(9) var u_skybox: texture_cube<f32>;
+@group(1) @binding(9) var u_metallicMap: texture_2d<f32>;
+@group(1) @binding(10) var u_roughnessMap: texture_2d<f32>;
+@group(1) @binding(11) var u_skybox: texture_cube<f32>;

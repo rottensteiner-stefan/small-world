@@ -8,7 +8,7 @@ NODE_MODULES := node_modules
 BLUE := \033[36m
 RESET := \033[0m
 
-.PHONY: help install dev build build-lib build-demo test test-watch lint format clean fclean preview start
+.PHONY: help install dev build build-lib build-demo test test-watch lint format clean fclean preview start pbr
 
 # Default target
 all: help
@@ -60,3 +60,17 @@ preview: build ## Startet eine Vorschau der gebauten Demo
 
 start: build ## Baut das Projekt und serviert es (lokal)
 	$(NPM) run start
+
+pbr: ## Generiert PBR-Maps aus einem Bild/Ordner (Bsp: make pbr IN=./ordner SET="NORM_STRENGTH=3.0")
+	@if [ -z "$(IN)" ]; then \
+		echo "Fehler: Du musst IN angeben! (z.B. make pbr IN=./ordner)"; \
+		exit 1; \
+	fi
+	@bash scripts/pbr.sh --in $(IN) \
+		$(if $(OUT),--out $(OUT)) \
+		$(if $(PROFILE),--profile $(PROFILE)) \
+		$(if $(filter true,$(FORCE)),--force) \
+		$(if $(OUT_FORMAT),--out-format $(OUT_FORMAT)) \
+		$(if $(QUALITY),--quality $(QUALITY)) \
+		$(if $(RESIZE),--resize "$(RESIZE)") \
+		$(foreach s,$(SET),--set "$(s)")
