@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { Cylinder, Tube, Torus, Pyramid, Sphere, Vector3D } from "../../src/index.js";
+import { Cylinder, Tube, Torus, Pyramid, Sphere, Plane, Vector3D } from "../../src/index.js";
 
 describe("Geometry Winding Order (Analytical)", () => {
   const getTriangleNormal = (
@@ -27,6 +27,17 @@ describe("Geometry Winding Order (Analytical)", () => {
 
     return { normal, centroid, v1, v2, v3 };
   };
+
+  it("Plane triangles should point to +Y (Right-Handed CCW Winding)", () => {
+    const geo = new Plane().getGeometryData();
+    const indices = geo.indices;
+    for (let i = 0; i < indices.length / 3; i++) {
+      const { normal } = getTriangleNormal(geo.vertices, indices, i);
+      expect(normal.x).toBeCloseTo(0);
+      expect(normal.y).toBeGreaterThan(0); // Strictly facing UP
+      expect(normal.z).toBeCloseTo(0);
+    }
+  });
 
   it("Sphere triangles should point outward", () => {
     const geo = new Sphere().getGeometryData();

@@ -49,7 +49,8 @@ describe("FPSController Movement Regressions", () => {
     cam.update(cam.target, 0, 0, 0);
 
     const input = new MockInput();
-    const controller = new FPSController(cam, { input, moveSpeed: 10 });
+    const controller = new FPSController({ input, moveSpeed: 10 });
+    controller.onAttach(cam);
 
     input.setKey(Keys.W, true);
     controller.update(1.0); // Move for 1 second
@@ -67,7 +68,8 @@ describe("FPSController Movement Regressions", () => {
     cam.update(cam.target, 0, 0, 0);
 
     const input = new MockInput();
-    const controller = new FPSController(cam, { input, moveSpeed: 10 });
+    const controller = new FPSController({ input, moveSpeed: 10 });
+    controller.onAttach(cam);
 
     input.setKey(Keys.S, true);
     controller.update(1.0);
@@ -84,7 +86,8 @@ describe("FPSController Movement Regressions", () => {
     cam.update(cam.target, 0, 0, 0);
 
     const input = new MockInput();
-    const controller = new FPSController(cam, { input, moveSpeed: 10 });
+    const controller = new FPSController({ input, moveSpeed: 10 });
+    controller.onAttach(cam);
 
     input.setKey(Keys.W, true);
     controller.update(1.0);
