@@ -60,7 +60,7 @@ class Example11 extends AbstractExample {
     this.camera.position.set(20, 20, 40);
 
     // Re-add OrbitController to handle rotation via mouse
-    this.controllers.push(new OrbitController(this.camera));
+    this.camera.addBehavior(new OrbitController());
 
     // Create the ground grid (size 20x20)
     // Absolute (0,0,0) is in the middle of this grid.

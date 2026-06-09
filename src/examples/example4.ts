@@ -104,8 +104,7 @@ export class Example4 extends AbstractExample {
       this._car = model; // Store car object, isStatic = false (default)
 
       // Setup WASD Controller for the car
-      this.controllers.push(
-        new WASDController(this._car, {
+      this._car.addBehavior(new WASDController( {
           moveSpeed: CAR_SPEED,
         }),
       );
