@@ -145,8 +145,11 @@ export class FPSController extends Behavior {
     // 4. Apply Rotation / View Update
     if (isCamera) {
       const cam = this.target as unknown as CameraInterfaceData;
-      // Pass dx/dy to the camera's update which handles theta/phi
-      cam.update(cam.target, dx, dy, deltaTime);
+      // Removed cam.update, rely on Camera's update logic
+      if (this._options.enableRotation && input.isPointerLocked) {
+        cam.pendingDx += dx;
+        cam.pendingDy += dy;
+      }
     } else {
       const obj = this.target as Object3D;
       if (this._options.enableRotation) {

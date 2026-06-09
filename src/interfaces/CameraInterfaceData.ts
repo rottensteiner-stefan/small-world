@@ -15,6 +15,11 @@ export interface CameraInterfaceData {
   /** The behaviors attached to this camera. */
   behaviors: Behavior[];
 
+  /** Horizontal rotation delta accumulated by behaviors. */
+  pendingDx: number;
+  /** Vertical rotation delta accumulated by behaviors. */
+  pendingDy: number;
+
   /** The currently active camera control strategy. */
   readonly strategy: CameraStrategy;
   /** The position of the camera in world space. */
