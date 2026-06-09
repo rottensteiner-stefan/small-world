@@ -117,12 +117,7 @@ export class YadController extends Behavior {
       this._resolveCollisions();
     }
 
-    // 4. Update Camera internal state if needed
-    if (isCamera) {
-      const cam = this.target as unknown as CameraInterfaceData;
-      // update camera but with 0 dx/dy since rotation is handled manually above
-      cam.update(cam.target, 0, 0, deltaTime);
-    }
+    // 4. Removed cam.update() - Camera handles its own updates
   }
 
   /**

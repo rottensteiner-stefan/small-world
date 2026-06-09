@@ -50,16 +50,11 @@ export class OrbitController extends Behavior {
     const cam = this.target as unknown as CameraInterfaceData;
 
     // 1. Handle Rotation
-    let dx = 0;
-    let dy = 0;
     if (this._options.enableRotation) {
       if (Input.isPointerLocked) {
-        dx = Input.mouse.dx;
-        dy = Input.mouse.dy;
+        cam.pendingDx += Input.mouse.dx;
+        cam.pendingDy += Input.mouse.dy;
       }
     }
-
-    // 2. Update Camera
-    cam.update(cam.target, dx, dy, deltaTime);
   }
 }
