@@ -10,6 +10,7 @@ uniform sampler2D u_diffuseMap;
 uniform sampler2D u_normalMap;
 uniform sampler2D u_metallicMap;
 uniform sampler2D u_roughnessMap;
+uniform sampler2D u_emissiveMap;
 
 void main() {
     // Convert sampled albedo to linear space

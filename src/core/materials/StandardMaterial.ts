@@ -1,6 +1,6 @@
 import { AbstractMaterial } from "./AbstractMaterial.js";
 import { Color } from "../colors/index.js";
-import { MaterialType, ShaderPropertyType } from "../../enums/index.js";
+import { MaterialType, ShaderPropertyType, BlendingMode } from "../../enums/index.js";
 import { Texture } from "../textures/index.js";
 import { RenderManifest } from "../renderers/shaders/RenderManifest.js";
 import { ShaderDefinition } from "../renderers/shaders/ShaderDefinition.js";
@@ -30,6 +30,14 @@ export interface StandardMaterialOptions {
   metallicMap?: Texture | undefined;
   /** The roughness texture map. */
   roughnessMap?: Texture | undefined;
+  /** The emissive color. Defaults to black. */
+  emissiveColor?: Color;
+  /** The emissive texture map. */
+  emissiveMap?: Texture | undefined;
+  /** The intensity of the emissive light. Defaults to 1.0. */
+  emissiveIntensity?: number;
+  /** Whether the material is transparent. Defaults to false. */
+  transparent?: boolean;
 }
 
 /**
@@ -55,6 +63,15 @@ export class StandardMaterial extends AbstractMaterial {
   /** The roughness map texture. */
   public roughnessMap: Texture | undefined;
 
+  /** The emissive color. */
+  public emissiveColor: Color;
+
+  /** The emissive map texture. */
+  public emissiveMap: Texture | undefined;
+
+  /** The intensity of the emissive glow. */
+  public emissiveIntensity: number;
+
   /**
    * Creates a new StandardMaterial.
    * @param options The configuration options for the material.
@@ -70,6 +87,10 @@ export class StandardMaterial extends AbstractMaterial {
       normalMap = undefined,
       metallicMap = undefined,
       roughnessMap = undefined,
+      emissiveColor = new Color(0, 0, 0),
+      emissiveMap = undefined,
+      emissiveIntensity = 1.0,
+      transparent = false,
     } = options;
     this.color = color;
     this.metallic = metallic;
@@ -79,6 +100,10 @@ export class StandardMaterial extends AbstractMaterial {
     this.normalMap = normalMap;
     this.metallicMap = metallicMap;
     this.roughnessMap = roughnessMap;
+    this.emissiveColor = emissiveColor;
+    this.emissiveMap = emissiveMap;
+    this.emissiveIntensity = emissiveIntensity;
+    this.transparent = transparent;
   }
 
   /** @inheritdoc */
@@ -88,7 +113,7 @@ export class StandardMaterial extends AbstractMaterial {
         shaderId: this.type,
         properties: {
           u_color: this.color.toFloat32Array(),
-          u_specColor: new Float32Array([1, 1, 1, 1]),
+          u_specColor: new Float32Array([this.emissiveColor.r, this.emissiveColor.g, this.emissiveColor.b, this.emissiveIntensity]),
           u_metallic: this.metallic,
           u_roughness: this.roughness,
           u_extraParams: [this.ao, 0, 0, 0], // ao, time, flow, noise
@@ -104,6 +129,7 @@ export class StandardMaterial extends AbstractMaterial {
           u_normalMap: this.normalMap,
           u_metallicMap: this.metallicMap,
           u_roughnessMap: this.roughnessMap,
+          u_emissiveMap: this.emissiveMap,
         },
       };
     }
@@ -112,6 +138,10 @@ export class StandardMaterial extends AbstractMaterial {
     const texs = this._renderManifest.textures;
 
     props["u_color"] = this.color.toFloat32Array();
+    (props["u_specColor"] as Float32Array)[0] = this.emissiveColor.r;
+    (props["u_specColor"] as Float32Array)[1] = this.emissiveColor.g;
+    (props["u_specColor"] as Float32Array)[2] = this.emissiveColor.b;
+    (props["u_specColor"] as Float32Array)[3] = this.emissiveIntensity;
     props["u_metallic"] = this.metallic;
     props["u_roughness"] = this.roughness;
     (props["u_extraParams"] as number[])[0] = this.ao;
@@ -132,10 +162,14 @@ export class StandardMaterial extends AbstractMaterial {
     texs["u_normalMap"] = this.normalMap;
     texs["u_metallicMap"] = this.metallicMap;
     texs["u_roughnessMap"] = this.roughnessMap;
+    texs["u_emissiveMap"] = this.emissiveMap;
 
     this._renderManifest.state = {
       ...this._renderManifest.state,
       culling: this.cullMode,
+      transparent: this.transparent,
+      blending: this.transparent ? BlendingMode.ALPHA : BlendingMode.OPAQUE,
+      depthWrite: !this.transparent,
     };
 
     return this._renderManifest;
@@ -163,6 +197,7 @@ export class StandardMaterial extends AbstractMaterial {
           u_normalMap: { type: ShaderPropertyType.TEXTURE },
           u_metallicMap: { type: ShaderPropertyType.TEXTURE },
           u_roughnessMap: { type: ShaderPropertyType.TEXTURE },
+          u_emissiveMap: { type: ShaderPropertyType.TEXTURE },
         },
       },
     };

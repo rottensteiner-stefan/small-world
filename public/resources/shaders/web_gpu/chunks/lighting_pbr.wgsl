@@ -55,6 +55,10 @@ for(var j=0u; j<u32(global.numPointLights); j++) {
 let ambient = global.ambientColor.rgb * albedo * ao;
 var color = ambient + Lo;
 
+// Emissive
+let emissive = sRGBToLinear(textureSample(u_emissiveMap, s, i.uv).rgb) * sRGBToLinear(obj.specColor.rgb) * obj.specColor.a;
+color += emissive;
+
 // Exposure
 color *= global.exposure;
 
