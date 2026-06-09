@@ -3,6 +3,7 @@ import { CameraEffectType, CameraStrategyType } from '../enums/index.js';
 import { CameraConstraints, CameraEffect, CameraInterfaceData, CameraStrategy } from '../interfaces/index.js';
 import { Matrix4 } from '../math/Matrix4.js';
 import { Vector3D } from '../math/Vector3D.js';
+import { Behavior } from './behaviors/Behavior.js';
 /**
  * Standard implementation of the CameraInterfaceData.
  */
@@ -17,6 +18,12 @@ export declare class Camera implements CameraInterfaceData {
     theta: number;
     /** @inheritdoc */
     phi: number;
+    /** @inheritdoc */
+    pendingDx: number;
+    /** @inheritdoc */
+    pendingDy: number;
+    /** @inheritdoc */
+    behaviors: Behavior[];
     private _projection;
     private _aspect;
     private _strategy;
@@ -58,6 +65,8 @@ export declare class Camera implements CameraInterfaceData {
     setStrategy(type: CameraStrategyType): void;
     /** @inheritdoc */
     setConstraints(constraints?: CameraConstraints): void;
+    addBehavior(behavior: Behavior): this;
+    removeBehavior(behavior: Behavior): this;
     /** @inheritdoc */
     get activeStrategyType(): string;
     /** @inheritdoc */

@@ -1,6 +1,7 @@
 import { AbstractMaterial } from './materials/index.js';
 import { BoundingVolume, GeometryDataInterface } from '../interfaces/index.js';
 import { Matrix4, Vector3D } from '../math/index.js';
+import { Behavior } from './behaviors/Behavior.js';
 /**
  * Base class for all 3D objects in the scene.
  */
@@ -17,6 +18,7 @@ export declare class Object3D {
     worldMatrix: Matrix4;
     parent: Object3D | undefined;
     children: Object3D[];
+    behaviors: Behavior[];
     isVisible: boolean;
     frustumCulled: boolean;
     isStatic: boolean;
@@ -24,6 +26,8 @@ export declare class Object3D {
     constructor(name?: string);
     add(...children: Object3D[]): void;
     remove(...children: Object3D[]): void;
+    addBehavior(behavior: Behavior): this;
+    removeBehavior(behavior: Behavior): this;
     translate(v: Vector3D): this;
     setPosition(x: number, y: number, z: number): this;
     setRotation(x: number, y: number, z: number): this;

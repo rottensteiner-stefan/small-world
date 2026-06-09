@@ -1,4 +1,4 @@
-import { CameraInterfaceData, EngineConfig, Controller } from '../interfaces/index.js';
+import { CameraInterfaceData, EngineConfig } from '../interfaces/index.js';
 import { Renderer } from '../interfaces/Renderer.js';
 import { Scene } from './Scene.js';
 /**
@@ -17,8 +17,6 @@ export declare abstract class Application {
     canvas: HTMLCanvasElement;
     /** Whether debug visualization is enabled. */
     debug: boolean;
-    /** List of active input controllers. */
-    readonly controllers: Controller[];
     private _lastTime;
     private _isRunning;
     private _isInitialized;

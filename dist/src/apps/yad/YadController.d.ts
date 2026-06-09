@@ -1,4 +1,5 @@
-import { CameraInterfaceData, Controller } from '../../interfaces/index.js';
+import { Behavior } from '../../core/behaviors/Behavior.js';
+import { CameraInterfaceData } from '../../interfaces/index.js';
 import { Object3D } from '../../core/Object3D.js';
 import { Scene } from '../../core/Scene.js';
 /**
@@ -24,19 +25,16 @@ export interface YadControllerOptions {
  * - Turn Left: ArrowLeft or A
  * - Turn Right: ArrowRight or D
  */
-export declare class YadController implements Controller {
-    /** @inheritdoc */
+export declare class YadController extends Behavior {
     enabled: boolean;
-    private _target;
     private _options;
-    private _collider;
+    private _collider?;
     /**
      * Creates a new YadController.
-     * @param target The target object or camera to control.
      * @param options The configuration options.
      */
-    constructor(target: CameraInterfaceData | Object3D, options?: YadControllerOptions);
-    /** @inheritdoc */
+    constructor(options?: YadControllerOptions);
+    onAttach(target: Object3D | CameraInterfaceData): void;
     update(deltaTime: number): void;
     /**
      * Internal helper to resolve physical collisions against scene geometry.

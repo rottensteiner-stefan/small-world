@@ -13,10 +13,11 @@ export declare class Scene {
     remove(...objs: Object3D[]): void;
     initOctrees(bounds: BoundingBox): void;
     getObjectByName(name: string): Object3D | undefined;
-    update(): void;
+    update(deltaTime?: number): void;
     updateStaticOctree(): void;
     updateDynamicOctree(): void;
     private _addObjectToOctree;
+    private _updateBehaviorsRecursive;
     /**
      * Returns visible objects, respecting BOTH user visibility and frustum state.
      * Grouping: shaderId -> topology -> matUuid -> Object3D[]

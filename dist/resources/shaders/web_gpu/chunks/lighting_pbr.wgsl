@@ -52,6 +52,44 @@ for(var j=0u; j<u32(global.numPointLights); j++) {
     Lo += (kD * albedo / 3.14159265359 + specular) * radiance * dotNL;
 }
 
+// Spot Lights
+for(var j=0u; j<u32(global.numSpotLights); j++) {
+    let lightVec = sLights[j].pos.xyz - i.wp;
+    let dist = length(lightVec);
+    let L = lightVec / dist;
+    
+    // SpotLight parameters
+    let spotDir = normalize(sLights[j].dir.xyz);
+    let cosOuter = sLights[j].params.x;
+    let cosInner = sLights[j].params.y;
+    let maxDist = sLights[j].params.z;
+    let decay = sLights[j].params.w;
+    
+    let theta = dot(L, -spotDir);
+    let epsilon = max(cosInner - cosOuter, 0.0001);
+    let intensity = clamp((theta - cosOuter) / epsilon, 0.0, 1.0);
+    
+    if (intensity > 0.0 && dist < maxDist) {
+        let H = normalize(V + L);
+        let distanceAttenuation = pow(clamp(1.0 - dist / maxDist, 0.0, 1.0), decay);
+        let attenuation = distanceAttenuation * intensity;
+        let radiance = sLights[j].col.xyz * attenuation;
+
+        let dotNL = max(dot(N, L), 0.0);
+        let dotNH = max(dot(N, H), 0.0);
+        let dotVH = max(dot(V, H), 0.0);
+
+        let D = D_GGX(dotNH, roughness);
+        let G = G_SchlickGGX(dotNL, dotNV, roughness);
+        let F = F_Schlick(dotVH, F0);
+
+        let kS = F;
+        let kD = (vec3f(1.0) - kS) * (1.0 - metallic);
+        let specular = (D * G * F) / (4.0 * dotNV * dotNL + 0.0001);
+        Lo += (kD * albedo / 3.14159265359 + specular) * radiance * dotNL;
+    }
+}
+
 let ambient = global.ambientColor.rgb * albedo * ao;
 var color = ambient + Lo;
 

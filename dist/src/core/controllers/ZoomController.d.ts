@@ -1,4 +1,4 @@
-import { CameraInterfaceData, Controller } from '../../interfaces/index.js';
+import { Behavior } from '../behaviors/Behavior.js';
 /**
  * Configuration for the ZoomController.
  */
@@ -9,17 +9,13 @@ export interface ZoomControllerOptions {
 /**
  * A standalone controller for handling camera zoom (Wheel/Pinch).
  */
-export declare class ZoomController implements Controller {
-    /** @inheritdoc */
+export declare class ZoomController extends Behavior {
     enabled: boolean;
-    private _camera;
     private _options;
     /**
      * Creates a new ZoomController.
-     * @param camera The camera to control.
      * @param options Configuration options.
      */
-    constructor(camera: CameraInterfaceData, options?: ZoomControllerOptions);
-    /** @inheritdoc */
+    constructor(options?: ZoomControllerOptions);
     update(_deltaTime: number): void;
 }

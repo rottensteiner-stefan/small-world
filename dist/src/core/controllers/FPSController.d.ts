@@ -1,5 +1,5 @@
-import { CameraInterfaceData, Controller } from '../../interfaces/index.js';
-import { Object3D } from '../Object3D.js';
+import { Behavior } from '../behaviors/Behavior.js';
+import { CameraInterfaceData } from '../../interfaces/index.js';
 import { InputInterface } from '../Input.js';
 import { InputMode } from '../../enums/index.js';
 import { Scene } from '../Scene.js';
@@ -31,17 +31,16 @@ export interface FPSControllerOptions {
 /**
  * A controller for first-person style movement and looking.
  */
-export declare class FPSController implements Controller {
+export declare class FPSController extends Behavior {
     enabled: boolean;
-    private _target;
     private _options;
-    private _collider;
+    private _collider?;
     /**
      * Creates a new FPSController.
-     * @param target The target object or camera to control.
      * @param options The configuration options.
      */
-    constructor(target: CameraInterfaceData | Object3D, options?: FPSControllerOptions);
+    constructor(options?: FPSControllerOptions);
+    onAttach(target: import('../Object3D.js').Object3D | CameraInterfaceData): void;
     update(deltaTime: number): void;
     private _resolveCollisions;
 }
