@@ -1,6 +1,6 @@
 /// src/core/controllers/OrbitController.ts
 
-import { Controller } from "../../interfaces/index.js";
+import { Behavior } from "../behaviors/Behavior.js";
 import { CameraInterfaceData } from "../../interfaces/index.js";
 import { Input } from "../Input.js";
 
@@ -23,20 +23,16 @@ export interface OrbitControllerOptions {
 /**
  * A controller that orbits a camera around a fixed target.
  */
-export class OrbitController implements Controller {
-  /** @inheritdoc */
+export class OrbitController extends Behavior {
   public enabled: boolean = true;
-
-  private _camera: CameraInterfaceData;
   private _options: Required<OrbitControllerOptions>;
 
   /**
    * Creates a new OrbitController.
-   * @param camera The camera to control.
    * @param options Configuration options.
    */
-  constructor(camera: CameraInterfaceData, options: OrbitControllerOptions = {}) {
-    this._camera = camera;
+  constructor(options: OrbitControllerOptions = {}) {
+    super();
     this._options = {
       lookSensitivity: options.lookSensitivity ?? 0.005,
       rotationSpeed: options.rotationSpeed ?? 2.0,
@@ -46,11 +42,12 @@ export class OrbitController implements Controller {
     };
   }
 
-  /** @inheritdoc */
-  public update(deltaTime: number): void {
-    if (!this.enabled) {
+  public override update(deltaTime: number): void {
+    if (!this.enabled || !this.target) {
       return;
     }
+    
+    const cam = this.target as unknown as CameraInterfaceData;
 
     // 1. Handle Rotation
     let dx = 0;
@@ -63,6 +60,6 @@ export class OrbitController implements Controller {
     }
 
     // 2. Update Camera
-    this._camera.update(this._camera.target, dx, dy, deltaTime);
+    cam.update(cam.target, dx, dy, deltaTime);
   }
 }

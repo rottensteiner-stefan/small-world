@@ -1,6 +1,7 @@
 /// src/core/controllers/FPSController.ts
 
-import { CameraInterfaceData, Controller } from "../../interfaces/index.js";
+import { Behavior } from "../behaviors/Behavior.js";
+import { CameraInterfaceData } from "../../interfaces/index.js";
 import { Object3D } from "../Object3D.js";
 import { Input, InputInterface } from "../Input.js";
 import { InputMode, Keys } from "../../enums/index.js";
@@ -37,23 +38,20 @@ export interface FPSControllerOptions {
 /**
  * A controller for first-person style movement and looking.
  */
-export class FPSController implements Controller {
+export class FPSController extends Behavior {
   public enabled: boolean = true;
-
-  private _target: CameraInterfaceData | Object3D;
   private _options: Required<Omit<FPSControllerOptions, "scene" | "input">> & {
     scene: Scene | undefined;
     input: InputInterface;
   };
-  private _collider: BoundingSphere;
+  private _collider?: BoundingSphere;
 
   /**
    * Creates a new FPSController.
-   * @param target The target object or camera to control.
    * @param options The configuration options.
    */
-  constructor(target: CameraInterfaceData | Object3D, options: FPSControllerOptions = {}) {
-    this._target = target;
+  constructor(options: FPSControllerOptions = {}) {
+    super();
     this._options = {
       moveSpeed: options.moveSpeed ?? 10.0,
       lookSensitivity: options.lookSensitivity ?? 0.005,
@@ -66,17 +64,23 @@ export class FPSController implements Controller {
       scene: options.scene,
       input: options.input ?? Input.instance,
     };
+  }
+
+  public override onAttach(target: import("../Object3D.js").Object3D | CameraInterfaceData): void {
+    super.onAttach(target as any);
     this._collider = new BoundingSphere(
-      this._target.position.clone(),
+      this.target!.position.clone(),
       this._options.collisionRadius,
     );
   }
 
-  public update(deltaTime: number): void {
-    if (!this.enabled) return;
+  public override update(deltaTime: number): void {
+    if (!this.enabled || !this.target) {
+      return;
+    }
 
     const input = this._options.input;
-    const isCamera = "projection" in this._target;
+    const isCamera = "updateProjectionMatrix" in this.target;
     let dx = 0;
     let dy = 0;
     if (this._options.enableRotation && input.isPointerLocked) {
@@ -94,9 +98,9 @@ export class FPSController implements Controller {
         if (0 !== horizontalAxis) {
           const rotationAmount = horizontalAxis * 2.0 * deltaTime; // 2 rad/s
           if (isCamera) {
-            (this._target as CameraInterfaceData).theta += rotationAmount;
+            (this.target as CameraInterfaceData).theta += rotationAmount;
           } else {
-            (this._target as Object3D).rotation.y -= rotationAmount;
+            (this.target as Object3D).rotation.y -= rotationAmount;
           }
         }
       }
@@ -104,32 +108,24 @@ export class FPSController implements Controller {
       if (0 !== moveZ || (0 !== horizontalAxis && InputMode.STRAFE === this._options.inputMode)) {
         // If it's a camera, we use its current look direction (theta)
         const theta = isCamera
-          ? (this._target as CameraInterfaceData).theta
-          : (this._target as Object3D).rotation.y;
+          ? (this.target as CameraInterfaceData).theta
+          : (this.target as import("../Object3D.js").Object3D).rotation.y;
+        
         const sin = Math.sin(theta);
         const cos = Math.cos(theta);
-
-        let dirX = 0;
-        let dirZ = 0;
 
         // Forward/Backward
         if (0 !== moveZ) {
           // moveZ is -1 for W (forward), +1 for S (backward)
-          // Look vector is (sin, -cos)
-          // We want: W -> +Look, S -> -Look
-          // Therefore: -moveZ * Look
-          dirX += -moveZ * sin;
-          dirZ += moveZ * cos;
+          this.target.position.x += -moveZ * sin * this._options.moveSpeed * deltaTime;
+          this.target.position.z += moveZ * cos * this._options.moveSpeed * deltaTime;
         }
 
         // Strafe
         if (0 !== horizontalAxis && InputMode.STRAFE === this._options.inputMode) {
-          dirX += horizontalAxis * cos;
-          dirZ += horizontalAxis * sin;
+          this.target.position.x += horizontalAxis * cos * this._options.moveSpeed * deltaTime;
+          this.target.position.z += horizontalAxis * sin * this._options.moveSpeed * deltaTime;
         }
-
-        this._target.position.x += dirX * this._options.moveSpeed * deltaTime;
-        this._target.position.z += dirZ * this._options.moveSpeed * deltaTime;
       }
     }
 
@@ -137,7 +133,7 @@ export class FPSController implements Controller {
     if (this._options.enableVertical) {
       const moveY = input.getAxis(Keys.Q, Keys.E);
       if (0 !== moveY) {
-        this._target.position.y += moveY * this._options.moveSpeed * deltaTime;
+        this.target.position.y += moveY * this._options.moveSpeed * deltaTime;
       }
     }
 
@@ -148,11 +144,11 @@ export class FPSController implements Controller {
 
     // 4. Apply Rotation / View Update
     if (isCamera) {
-      const cam = this._target as CameraInterfaceData;
+      const cam = this.target as unknown as CameraInterfaceData;
       // Pass dx/dy to the camera's update which handles theta/phi
       cam.update(cam.target, dx, dy, deltaTime);
     } else {
-      const obj = this._target as Object3D;
+      const obj = this.target as Object3D;
       if (this._options.enableRotation) {
         obj.rotation.y -= dx * this._options.lookSensitivity;
         obj.rotation.x += dy * this._options.lookSensitivity;
@@ -163,8 +159,9 @@ export class FPSController implements Controller {
   }
 
   private _resolveCollisions(): void {
-    if (!this._options.scene) return;
-    this._collider.center.copyFrom(this._target.position);
+    if (!this._options.scene || !this.target || !this._collider) return;
+    this._collider.center.copyFrom(this.target.position);
+    this._collider.center.y += 0.5;
 
     const potentialHits: Object3D[] = [];
     if (this._options.scene.staticOctree)
@@ -176,14 +173,14 @@ export class FPSController implements Controller {
     const hitCorrection = MathPool.acquireVector();
 
     for (const obj of potentialHits) {
-      if (!obj.bounds || obj === this._target) continue;
+      if (!obj.bounds || obj === this.target) continue;
       if (Collision.resolveSphereBox(this._collider, obj.bounds as BoundingBox, hitCorrection)) {
         correction.add(hitCorrection);
         this._collider.center.add(hitCorrection);
       }
     }
 
-    this._target.position.add(correction);
+    this.target.position.add(correction);
     MathPool.releaseVector(correction);
     MathPool.releaseVector(hitCorrection);
   }
