@@ -16,11 +16,13 @@ import {
   Texture,
   BoundingBox,
   Vector3D,
+  SpotLight,
 } from "../index.js";
 import { AbstractExample, Input } from "../core/index.js";
 
 class AbyssalDecoExample extends AbstractExample {
   private _flickerLight!: PointLight;
+  private _portLight!: SpotLight;
   private _time: number = 0;
 
   protected override async setupScene(): Promise<void> {
@@ -52,6 +54,10 @@ class AbyssalDecoExample extends AbstractExample {
     let crateNormal: Texture | undefined;
     let crateRoughness: Texture | undefined;
 
+    let brandingDiffuse: Texture | undefined;
+    let brandingNormal: Texture | undefined;
+    let brandingRoughness: Texture | undefined;
+
     let rockDiffuse: Texture | undefined;
     let rockNormal: Texture | undefined;
     let rockRoughness: Texture | undefined;
@@ -80,6 +86,14 @@ class AbyssalDecoExample extends AbstractExample {
       crateDiffuse = await Texture.fromUrl("/resources/examples/12/crate_diffuse.png");
       crateNormal = await Texture.fromUrl("/resources/examples/12/crate_normal.png");
       crateRoughness = await Texture.fromUrl("/resources/examples/12/crate_roughness.png");
+      
+      // Crate Branding
+      brandingDiffuse = await Texture.fromUrl("/resources/examples/12/create_branding_diffuse.png");
+      brandingNormal = await Texture.fromUrl("/resources/examples/12/create_branding_normal.png");
+      brandingRoughness = await Texture.fromUrl("/resources/examples/12/create_branding_roughness.png");
+      if (brandingDiffuse) brandingDiffuse.repeat.y = -1;
+      if (brandingNormal) brandingNormal.repeat.y = -1;
+      if (brandingRoughness) brandingRoughness.repeat.y = -1;
       
       // Rock Walls (Ends)
       rockDiffuse = await Texture.fromUrl("/resources/examples/12/large_rock_diffuse.png");
@@ -176,6 +190,48 @@ class AbyssalDecoExample extends AbstractExample {
       roughnessMap: crateRoughness,
     });
 
+    const brandingMaterial = new StandardMaterial({
+      color: new Color(1.0, 1.0, 1.0),
+      metallic: 0.0,
+      roughness: 0.9,
+      diffuseMap: brandingDiffuse,
+      normalMap: brandingNormal,
+      roughnessMap: brandingRoughness,
+    });
+
+    const applyBrandings = (crateObj: Object3D, size: number) => {
+      const eps = 0.005;
+      const d = size / 2 + eps;
+      const faces: Array<{ name: string; pos: [number, number, number]; rot: [number, number, number] }> = [
+        { name: "Top", pos: [0, d, 0], rot: [0, 0, 0] },
+        { name: "Bottom", pos: [0, -d, 0], rot: [Math.PI, 0, 0] },
+        { name: "Right", pos: [d, 0, 0], rot: [Math.PI / 2, 0, -Math.PI / 2] },
+        { name: "Left", pos: [-d, 0, 0], rot: [Math.PI / 2, 0, Math.PI / 2] },
+        { name: "Front", pos: [0, 0, -d], rot: [Math.PI / 2, Math.PI, 0] },
+        { name: "Back", pos: [0, 0, d], rot: [Math.PI / 2, 0, 0] }
+      ];
+
+      // Shuffle faces and pick 3
+      const shuffled = faces.sort(() => 0.5 - Math.random()).slice(0, 3);
+
+      shuffled.forEach((face) => {
+        const container = new Object3D(`Branding_Container_${face.name}`);
+        container.position.set(face.pos[0] as number, face.pos[1] as number, face.pos[2] as number);
+        container.rotation.set(face.rot[0] as number, face.rot[1] as number, face.rot[2] as number);
+
+        const planeObj = new Object3D("Branding_Plane");
+        planeObj.geometry = new Plane({ width: size, depth: size }).getGeometryData();
+        planeObj.material = brandingMaterial;
+        
+        // Random 0, 90, 180, 270 degree clockwise rotation around the local normal (+Y axis)
+        const randomTurns = Math.floor(Math.random() * 4);
+        planeObj.rotation.y = -randomTurns * (Math.PI / 2);
+        
+        container.add(planeObj);
+        crateObj.add(container);
+      });
+    };
+
     // 1. Floor (Art Deco)
     const floor = new Object3D("Floor").setPosition(0, 0, 0);
     floor.geometry = new Plane({ width: 20, depth: 40 }).getGeometryData();
@@ -217,6 +273,7 @@ class AbyssalDecoExample extends AbstractExample {
     crate.material = crateMaterial;
     // slightly rotate to look interesting
     crate.rotation.y = Math.PI / 6;
+    applyBrandings(crate, 3);
     this.scene.add(crate);
 
     // 5. Stack of 4 Small Crates (Corner)
@@ -229,18 +286,21 @@ class AbyssalDecoExample extends AbstractExample {
     c1.geometry = new Cube({ size: s }).getGeometryData();
     c1.material = crateMaterial;
     c1.rotation.y = 0.15;
+    applyBrandings(c1, s);
     this.scene.add(c1);
 
     const c2 = new Object3D("SmallCrate2").setPosition(-5.8, y0, -17.2);
     c2.geometry = new Cube({ size: s }).getGeometryData();
     c2.material = crateMaterial;
     c2.rotation.y = -0.12;
+    applyBrandings(c2, s);
     this.scene.add(c2);
 
     const c3 = new Object3D("SmallCrate3").setPosition(-6.8, y0, -15.8);
     c3.geometry = new Cube({ size: s }).getGeometryData();
     c3.material = crateMaterial;
     c3.rotation.y = 0.28;
+    applyBrandings(c3, s);
     this.scene.add(c3);
 
     // One on top
@@ -248,20 +308,28 @@ class AbyssalDecoExample extends AbstractExample {
     c4.geometry = new Cube({ size: 1.5 }).getGeometryData();
     c4.material = crateMaterial;
     c4.rotation.y = -0.25;
+    applyBrandings(c4, 1.5);
     this.scene.add(c4);
 
     // 5. Porthole Light (Decal on Left Wall)
-    // Left wall is at X=-10, scale X=1, so its inner face is at X=-9.5
     const porthole = new Object3D("Porthole").setPosition(-9.49, 4, -5);
-    // Plane is on XZ. Rotate -90 on Z to make it face +X (right).
+    // Rotate to face +X
     porthole.rotation.z = -Math.PI / 2;
     porthole.geometry = new Plane({ width: 2, depth: 2 }).getGeometryData();
     porthole.material = portMaterial;
     this.scene.add(porthole);
 
-    // Add a PointLight slightly in front of the porthole to cast light into the room
-    const portLight = new PointLight({ color: new Color(1.0, 0.8, 0.5), intensity: 1.5 });
-    portLight.position.set(-9.0, 4, -5);
+    // Add a SpotLight to cast a beam into the room
+    const portLight = new SpotLight({ 
+      color: new Color(1.0, 0.8, 0.5), 
+      intensity: 2.5,
+      direction: new Vector3D(1, 0, 0), // Pointing exactly AWAY from the left wall
+      angle: Math.PI / 4, // 45 degrees cone
+      penumbra: 0.5,
+      distance: 30.0
+    });
+    portLight.position.set(-9.4, 4, -5); // Positioned slightly in front of the porthole glass
+    this._portLight = portLight;
     this.scene.add(portLight);
 
     // 6. Lighting: Ambient (Brighter to see the textures)
@@ -304,6 +372,16 @@ class AbyssalDecoExample extends AbstractExample {
 
   protected override update(deltaTime: number): void {
     this._time += deltaTime;
+
+    // Adjust porthole light intensity via NumpadAdd (+) and NumpadSubtract (-)
+    if (Input.isPressed("NumpadAdd") || Input.isPressed("Equal") || Input.isPressed("BracketRight")) {
+      this._portLight.intensity += deltaTime * 2.0;
+      console.log(`[Porthole] Light Intensity: ${this._portLight.intensity.toFixed(2)}`);
+    }
+    if (Input.isPressed("NumpadSubtract") || Input.isPressed("Minus") || Input.isPressed("Slash")) {
+      this._portLight.intensity = Math.max(0, this._portLight.intensity - deltaTime * 2.0);
+      console.log(`[Porthole] Light Intensity: ${this._portLight.intensity.toFixed(2)}`);
+    }
 
     // Flickering logic: using Math.random combined with sine wave for an irregular pattern
     const flicker = Math.abs(Math.sin(this._time * 10)) * (Math.random() > 0.8 ? 0.2 : 1.0);
