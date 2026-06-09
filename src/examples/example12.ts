@@ -36,9 +36,13 @@ class AbyssalDecoExample extends AbstractExample {
     // Load the generated textures
     let texture: Texture | undefined = undefined;
     let normalTexture: Texture | undefined = undefined;
+    let metallicTexture: Texture | undefined = undefined;
+    let roughnessTexture: Texture | undefined = undefined;
     try {
       texture = await Texture.fromUrl("textures/abyssal_metal.png");
       normalTexture = await Texture.fromUrl("textures/abyssal_metal_normal.png");
+      metallicTexture = await Texture.fromUrl("textures/abyssal_metal_metallic.png");
+      roughnessTexture = await Texture.fromUrl("textures/abyssal_metal_roughness.png");
     } catch (e) {
       console.warn("Could not load textures:", e);
     }
@@ -47,10 +51,12 @@ class AbyssalDecoExample extends AbstractExample {
     // Highly metallic, low roughness for wet look
     const metalMaterial = new StandardMaterial({
       color: new Color(0.1, 0.25, 0.25), // Dark teal base
-      metallic: 0.8,
-      roughness: 0.15,
+      metallic: 1.0, // Base multiplier for the map
+      roughness: 1.0, // Base multiplier for the map
       diffuseMap: texture,
       normalMap: normalTexture,
+      metallicMap: metallicTexture,
+      roughnessMap: roughnessTexture,
     });
 
     // 1. Floor

@@ -19,6 +19,10 @@ export interface StandardMaterialOptions {
     diffuseMap?: Texture | undefined;
     /** The normal map texture. */
     normalMap?: Texture | undefined;
+    /** The metallic texture map. */
+    metallicMap?: Texture | undefined;
+    /** The roughness texture map. */
+    roughnessMap?: Texture | undefined;
 }
 /**
  * A physically based rendering (PBR) material using the Metallic-Roughness workflow.
@@ -34,6 +38,10 @@ export declare class StandardMaterial extends AbstractMaterial {
     diffuseMap: Texture | undefined;
     /** The normal map texture. */
     normalMap: Texture | undefined;
+    /** The metallic map texture. */
+    metallicMap: Texture | undefined;
+    /** The roughness map texture. */
+    roughnessMap: Texture | undefined;
     /**
      * Creates a new StandardMaterial.
      * @param options The configuration options for the material.
