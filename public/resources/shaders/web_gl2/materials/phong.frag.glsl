@@ -28,4 +28,7 @@ void main() {
   finalColor = linearToSRGB(finalColor);
 
   fragColor = vec4(finalColor, u_color.a * texColor.a);
+  if (fragColor.a < u_extraParams.y) {
+      discard;
+  }
 }

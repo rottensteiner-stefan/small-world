@@ -2,7 +2,7 @@
 
 import { AbstractMaterial } from "./AbstractMaterial.js";
 import { Color } from "../colors/index.js";
-import { MaterialType, ShaderPropertyType } from "../../enums/index.js";
+import { MaterialType, ShaderPropertyType, BlendingMode } from "../../enums/index.js";
 import { Texture } from "../textures/index.js";
 import { RenderManifest } from "../renderers/shaders/RenderManifest.js";
 import { ShaderDefinition } from "../renderers/shaders/ShaderDefinition.js";
@@ -11,6 +11,7 @@ import { StandardWebGPULayout } from "../renderers/shaders/StandardWebGPULayout.
 import fragGLSL from "./shaders/Phong.frag.glsl?raw";
 import fragGLSL100 from "./shaders/Phong.frag.glsl100?raw";
 import fragWGSL from "./shaders/Phong.frag.wgsl?raw";
+import { Vector2D } from "../../math/index.js";
 
 /**
  * Configuration options for Phong material.
@@ -26,8 +27,14 @@ export interface PhongMaterialOptions {
   diffuseMap?: Texture | undefined;
   /** The normal map texture. Defaults to undefined. */
   normalMap?: Texture | undefined;
+  /** Scale factor for the normal map to control strength and flip X/Y. Defaults to (1, 1). */
+  normalScale?: Vector2D;
   /** The specular map texture. Defaults to undefined. */
   specularMap?: Texture | undefined;
+  /** Whether the material is transparent. Defaults to false. */
+  transparent?: boolean;
+  /** Alpha cutoff threshold. Fragments with alpha below this value are discarded. Defaults to 0.0. */
+  alphaTest?: number;
 }
 
 /**
@@ -46,8 +53,14 @@ export class PhongMaterial extends AbstractMaterial {
   /** The normal map texture. */
   public normalMap: Texture | undefined;
 
+  /** Scale factor for the normal map to control strength and flip X/Y. */
+  public normalScale: Vector2D;
+
   /** The specular map texture. */
   public specularMap: Texture | undefined;
+
+  /** Alpha cutoff threshold. */
+  public alphaTest: number;
 
   /**
    * Creates a new PhongMaterial.
@@ -61,14 +74,20 @@ export class PhongMaterial extends AbstractMaterial {
       shininess = 32.0,
       diffuseMap = undefined,
       normalMap = undefined,
+      normalScale = new Vector2D(1, 1),
       specularMap = undefined,
+      transparent = false,
+      alphaTest = 0.0,
     } = options;
     this.color = color;
     this.specularColor = specularColor;
     this.shininess = shininess;
     this.diffuseMap = diffuseMap;
     this.normalMap = normalMap;
+    this.normalScale = normalScale;
     this.specularMap = specularMap;
+    this.transparent = transparent;
+    this.alphaTest = alphaTest;
   }
 
   /** @inheritdoc */
@@ -85,7 +104,7 @@ export class PhongMaterial extends AbstractMaterial {
           u_isTerrain: 0.0,
           u_metallic: 0.0,
           u_roughness: 0.5,
-          u_extraParams: [1.0, 0, 0, 0],
+          u_extraParams: [1.0, this.alphaTest, this.normalScale.x, this.normalScale.y],
           u_liquidParams: [0, 0, 0, 0],
           u_thresholds: [0, 0, 0, 0],
         },
@@ -103,6 +122,9 @@ export class PhongMaterial extends AbstractMaterial {
     props["u_color"] = this.color.toFloat32Array();
     props["u_specColor"] = this.specularColor.toFloat32Array();
     props["u_shininess"] = this.shininess;
+    (props["u_extraParams"] as number[])[1] = this.alphaTest;
+    (props["u_extraParams"] as number[])[2] = this.normalScale.x;
+    (props["u_extraParams"] as number[])[3] = this.normalScale.y;
 
     if (this.diffuseMap) {
       (props["u_texOffset"] as number[])[0] = this.diffuseMap.offset.x;
@@ -123,6 +145,9 @@ export class PhongMaterial extends AbstractMaterial {
     this._renderManifest.state = {
       ...this._renderManifest.state,
       culling: this.cullMode,
+      transparent: this.transparent,
+      blending: this.transparent ? BlendingMode.ALPHA : BlendingMode.OPAQUE,
+      depthWrite: !this.transparent,
     };
 
     return this._renderManifest;

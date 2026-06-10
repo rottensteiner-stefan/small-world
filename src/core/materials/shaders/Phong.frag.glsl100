@@ -10,6 +10,7 @@ void main() {
     N = normalize(v_normal);
   } else {
     normalMapValue = normalize(normalMapValue * 2.0 - 1.0);
+    normalMapValue.xy *= u_extraParams.zw;
     N = normalize(v_tbn * normalMapValue);
   }
 

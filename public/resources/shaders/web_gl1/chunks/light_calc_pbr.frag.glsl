@@ -1,5 +1,7 @@
 vec3 V = normalize(u_viewPos - v_worldPos);
-vec3 N = normalize(v_tbn * (texture2D(u_normalMap, v_uv).rgb * 2.0 - 1.0));
+vec3 rawNormal = texture2D(u_normalMap, v_uv).rgb * 2.0 - 1.0;
+rawNormal.xy *= u_extraParams.zw;
+vec3 N = normalize(v_tbn * rawNormal);
 float dotNV = max(dot(N, V), 0.0001);
 
 vec3 F0 = vec3(0.04); 
@@ -65,3 +67,6 @@ color = color / (color + vec3(1.0));
 color = linearToSRGB(color);
 
 gl_FragColor = vec4(color, u_color.a * texture2D(u_diffuseMap, v_uv).a);
+if (gl_FragColor.a < u_extraParams.y) {
+    discard;
+}

@@ -23,4 +23,7 @@ void main() {
   }
 
   gl_FragColor = vec4(ambientFinal + (finalLight - u_ambientColor) * diffuseColor + (specular * u_specColor.rgb * specMap), u_color.a * texColor.a);
+  if (gl_FragColor.a < u_extraParams.y) {
+      discard;
+  }
 }

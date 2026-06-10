@@ -9,6 +9,7 @@ import { StandardWebGPULayout } from "../renderers/shaders/StandardWebGPULayout.
 import fragGLSL from "./shaders/Lambert.frag.glsl?raw";
 import fragGLSL100 from "./shaders/Lambert.frag.glsl100?raw";
 import fragWGSL from "./shaders/Lambert.frag.wgsl?raw";
+import { Vector2D } from "../../math/index.js";
 
 /**
  * Configuration options for Lambert material.
@@ -20,6 +21,8 @@ export interface LambertMaterialOptions {
   diffuseMap?: Texture | undefined;
   /** The normal texture map. Defaults to undefined. */
   normalMap?: Texture | undefined;
+  /** Scale factor for the normal map to control strength and flip X/Y. Defaults to (1, 1). */
+  normalScale?: Vector2D;
 }
 
 /**
@@ -31,12 +34,21 @@ export class LambertMaterial extends AbstractMaterial {
   /** The normal map texture. */
   public normalMap: Texture | undefined;
 
+  /** Scale factor for the normal map to control strength and flip X/Y. */
+  public normalScale: Vector2D;
+
   constructor(options: LambertMaterialOptions = {}) {
     super(MaterialType.LAMBERT);
-    const { color = Color.WHITE, diffuseMap = undefined, normalMap = undefined } = options;
+    const {
+      color = Color.WHITE,
+      diffuseMap = undefined,
+      normalMap = undefined,
+      normalScale = new Vector2D(1, 1),
+    } = options;
     this.color = color;
     this.diffuseMap = diffuseMap;
     this.normalMap = normalMap;
+    this.normalScale = normalScale;
   }
 
   /** @inheritdoc */
@@ -53,7 +65,7 @@ export class LambertMaterial extends AbstractMaterial {
           u_isTerrain: 0.0,
           u_metallic: 0.0,
           u_roughness: 1.0,
-          u_extraParams: [1.0, 0, 0, 0],
+          u_extraParams: [1.0, 0, this.normalScale.x, this.normalScale.y],
           u_liquidParams: [0, 0, 0, 0],
           u_thresholds: [0, 0, 0, 0],
         },
@@ -68,6 +80,8 @@ export class LambertMaterial extends AbstractMaterial {
     const texs = this._renderManifest.textures as Record<string, unknown>;
 
     props["u_color"] = this.color.toFloat32Array();
+    (props["u_extraParams"] as number[])[2] = this.normalScale.x;
+    (props["u_extraParams"] as number[])[3] = this.normalScale.y;
 
     if (this.diffuseMap) {
       (props["u_texOffset"] as number[])[0] = this.diffuseMap.offset.x;
