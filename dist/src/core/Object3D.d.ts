@@ -23,6 +23,8 @@ export declare class Object3D {
     frustumCulled: boolean;
     isStatic: boolean;
     inFrustum: boolean;
+    castShadow: boolean;
+    receiveShadow: boolean;
     constructor(name?: string);
     add(...children: Object3D[]): void;
     remove(...children: Object3D[]): void;

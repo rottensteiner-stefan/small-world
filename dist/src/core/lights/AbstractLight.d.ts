@@ -2,6 +2,7 @@ import { Color } from '../colors/Color.js';
 import { LightType } from '../../enums/LightType.js';
 import { Object3D } from '../Object3D.js';
 import { LightDataInterface } from '../../interfaces/index.js';
+import { Camera } from '../Camera.js';
 /**
  * Configuration options for lights.
  */
@@ -16,6 +17,10 @@ export interface LightOptions {
     castShadow?: boolean;
     /** The resolution of the shadow map for this light. Defaults to 512. */
     shadowResolution?: number;
+    /** A small offset to prevent shadow acne. Defaults to 0.005. */
+    shadowBias?: number;
+    /** An offset along the surface normal to prevent shadow acne. Defaults to 0.0. */
+    shadowNormalBias?: number;
 }
 /**
  * Base class for all light types.
@@ -31,6 +36,12 @@ export declare abstract class AbstractLight extends Object3D {
     castShadow: boolean;
     /** The resolution of the shadow map for this light. */
     shadowResolution: number;
+    /** A small offset to prevent shadow acne. */
+    shadowBias: number;
+    /** An offset along the surface normal to prevent shadow acne. */
+    shadowNormalBias: number;
+    /** The camera used to render the shadow map for this light. */
+    shadowCamera: Camera | undefined;
     /**
      * Applies the light's data to the collective light data structure.
      * @param data The structure to populate.
