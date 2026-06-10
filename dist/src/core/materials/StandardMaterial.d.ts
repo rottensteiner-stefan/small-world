@@ -3,6 +3,7 @@ import { Color } from '../colors/index.js';
 import { Texture } from '../textures/index.js';
 import { RenderManifest } from '../renderers/shaders/RenderManifest.js';
 import { ShaderDefinition } from '../renderers/shaders/ShaderDefinition.js';
+import { Vector2D } from '../../math/index.js';
 /**
  * Configuration options for StandardMaterial.
  */
@@ -19,6 +20,8 @@ export interface StandardMaterialOptions {
     diffuseMap?: Texture | undefined;
     /** The normal map texture. */
     normalMap?: Texture | undefined;
+    /** Scale factor for the normal map to control strength and flip X/Y. Defaults to (1, 1). */
+    normalScale?: Vector2D;
     /** The metallic texture map. */
     metallicMap?: Texture | undefined;
     /** The roughness texture map. */
@@ -31,6 +34,8 @@ export interface StandardMaterialOptions {
     emissiveIntensity?: number;
     /** Whether the material is transparent. Defaults to false. */
     transparent?: boolean;
+    /** Alpha cutoff threshold. Fragments with alpha below this value are discarded. Defaults to 0.0. */
+    alphaTest?: number;
 }
 /**
  * A physically based rendering (PBR) material using the Metallic-Roughness workflow.
@@ -46,6 +51,8 @@ export declare class StandardMaterial extends AbstractMaterial {
     diffuseMap: Texture | undefined;
     /** The normal map texture. */
     normalMap: Texture | undefined;
+    /** Scale factor for the normal map to control strength and flip X/Y. */
+    normalScale: Vector2D;
     /** The metallic map texture. */
     metallicMap: Texture | undefined;
     /** The roughness map texture. */
@@ -56,6 +63,8 @@ export declare class StandardMaterial extends AbstractMaterial {
     emissiveMap: Texture | undefined;
     /** The intensity of the emissive glow. */
     emissiveIntensity: number;
+    /** Alpha cutoff threshold. */
+    alphaTest: number;
     /**
      * Creates a new StandardMaterial.
      * @param options The configuration options for the material.

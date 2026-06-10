@@ -4,9 +4,9 @@
 void main() {
   vec4 texColor = texture(u_diffuseMap, v_uv);
 
-  vec3 normalMap = texture(u_normalMap, v_uv).rgb;
-  normalMap = normalize(normalMap * 2.0 - 1.0);
-  vec3 N = normalize(v_tbn * normalMap);
+  vec3 rawNormal = texture(u_normalMap, v_uv).rgb * 2.0 - 1.0;
+  rawNormal.xy *= u_extraParams.zw;
+  vec3 N = normalize(v_tbn * rawNormal);
 
   [LIGHT_CALC]
   vec3 albedo = sRGBToLinear(texColor.rgb) * sRGBToLinear(u_color.rgb);

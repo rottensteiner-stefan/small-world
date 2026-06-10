@@ -11,12 +11,15 @@ import {
   PerspectiveProjection,
   Plane,
   ProjectionType,
+  PhongMaterial,
   StandardMaterial,
   Texture,
   BoundingBox,
+  Vector2D,
   Vector3D,
   SpotLight,
   LightFlickerBehavior,
+  ProximitySensorBehavior,
 } from "../index.js";
 import { AbstractExample, Input } from "../core/index.js";
 
@@ -41,7 +44,7 @@ class AbyssalDecoExample extends AbstractExample {
     let decoDiffuse: Texture | undefined;
     let decoNormal: Texture | undefined;
     let decoRoughness: Texture | undefined;
-    
+
     let steamDiffuse: Texture | undefined;
     let steamNormal: Texture | undefined;
     let steamRoughness: Texture | undefined;
@@ -52,11 +55,11 @@ class AbyssalDecoExample extends AbstractExample {
 
     let crateDiffuse: Texture | undefined;
     let crateNormal: Texture | undefined;
-    let crateRoughness: Texture | undefined;
+    let crateSpecular: Texture | undefined;
 
     let brandingDiffuse: Texture | undefined;
     let brandingNormal: Texture | undefined;
-    let brandingRoughness: Texture | undefined;
+    let brandingSpecular: Texture | undefined;
 
     let rockDiffuse: Texture | undefined;
     let rockNormal: Texture | undefined;
@@ -71,7 +74,7 @@ class AbyssalDecoExample extends AbstractExample {
       decoDiffuse = await Texture.fromUrl("/resources/examples/12/artdeco_diffuse.png");
       decoNormal = await Texture.fromUrl("/resources/examples/12/artdeco_normal.png");
       decoRoughness = await Texture.fromUrl("/resources/examples/12/artdeco_roughness.png");
-      
+
       // Ceiling Textures
       steamDiffuse = await Texture.fromUrl("/resources/examples/12/steampunk_diffuse.png");
       steamNormal = await Texture.fromUrl("/resources/examples/12/steampunk_normal.png");
@@ -81,31 +84,36 @@ class AbyssalDecoExample extends AbstractExample {
       steamWallDiffuse = await Texture.fromUrl("/resources/examples/12/steampunk_diffuse.png");
       steamWallNormal = await Texture.fromUrl("/resources/examples/12/steampunk_normal.png");
       steamWallRoughness = await Texture.fromUrl("/resources/examples/12/steampunk_roughness.png");
-      
+
       // Wooden Crate
       crateDiffuse = await Texture.fromUrl("/resources/examples/12/crate_diffuse.png");
       crateNormal = await Texture.fromUrl("/resources/examples/12/crate_normal.png");
-      crateRoughness = await Texture.fromUrl("/resources/examples/12/crate_roughness.png");
-      
+      crateSpecular = await Texture.fromUrl("/resources/examples/12/crate_specular.png");
+      if (crateDiffuse) crateDiffuse.repeat.y = -1;
+      if (crateNormal) crateNormal.repeat.y = -1;
+      if (crateSpecular) crateSpecular.repeat.y = -1;
+
       // Crate Branding
       brandingDiffuse = await Texture.fromUrl("/resources/examples/12/create_branding_diffuse.png");
       brandingNormal = await Texture.fromUrl("/resources/examples/12/create_branding_normal.png");
-      brandingRoughness = await Texture.fromUrl("/resources/examples/12/create_branding_roughness.png");
+      brandingSpecular = await Texture.fromUrl(
+        "/resources/examples/12/create_branding_specular.png",
+      );
       if (brandingDiffuse) brandingDiffuse.repeat.y = -1;
       if (brandingNormal) brandingNormal.repeat.y = -1;
-      if (brandingRoughness) brandingRoughness.repeat.y = -1;
-      
+      if (brandingSpecular) brandingSpecular.repeat.y = -1;
+
       // Rock Walls (Ends)
       rockDiffuse = await Texture.fromUrl("/resources/examples/12/large_rock_diffuse.png");
       rockNormal = await Texture.fromUrl("/resources/examples/12/large_rock_normal.png");
       rockRoughness = await Texture.fromUrl("/resources/examples/12/large_rock_roughness.png");
-      
+
       // Porthole Light
       portDiffuse = await Texture.fromUrl("/resources/examples/12/porthole_diffuse.png");
       portNormal = await Texture.fromUrl("/resources/examples/12/porthole_normal.png");
       portRoughness = await Texture.fromUrl("/resources/examples/12/porthole_roughness.png");
       portEmissive = await Texture.fromUrl("/resources/examples/12/porthole_emissive.png");
-      
+
       // Texturen kacheln (1 Repeat pro 2 World-Units)
       if (decoDiffuse) {
         decoDiffuse.repeat.x = 10; // Floor width 20 -> 10 repeats
@@ -119,16 +127,28 @@ class AbyssalDecoExample extends AbstractExample {
       if (steamWallDiffuse) {
         steamWallDiffuse.repeat.x = 20;
         steamWallDiffuse.repeat.y = 4;
-        if (steamWallNormal) { steamWallNormal.repeat.x = 20; steamWallNormal.repeat.y = 4; }
-        if (steamWallRoughness) { steamWallRoughness.repeat.x = 20; steamWallRoughness.repeat.y = 4; }
+        if (steamWallNormal) {
+          steamWallNormal.repeat.x = 20;
+          steamWallNormal.repeat.y = 4;
+        }
+        if (steamWallRoughness) {
+          steamWallRoughness.repeat.x = 20;
+          steamWallRoughness.repeat.y = 4;
+        }
       }
-      
+
       // Felswände vorne/hinten (20x8)
       if (rockDiffuse) {
         rockDiffuse.repeat.x = 5; // 20 units -> 5 repeats (1 per 4 units, for larger stones)
         rockDiffuse.repeat.y = 2;
-        if (rockNormal) { rockNormal.repeat.x = 5; rockNormal.repeat.y = 2; }
-        if (rockRoughness) { rockRoughness.repeat.x = 5; rockRoughness.repeat.y = 2; }
+        if (rockNormal) {
+          rockNormal.repeat.x = 5;
+          rockNormal.repeat.y = 2;
+        }
+        if (rockRoughness) {
+          rockRoughness.repeat.x = 5;
+          rockRoughness.repeat.y = 2;
+        }
       }
     } catch (e) {
       console.warn("Could not load textures:", e);
@@ -177,38 +197,43 @@ class AbyssalDecoExample extends AbstractExample {
       emissiveColor: new Color(1.0, 0.8, 0.5), // Warm glow
       emissiveIntensity: 3.0,
       transparent: true,
+      alphaTest: 0.1,
       roughness: 0.3,
       metallic: 0.8,
     });
 
-    const crateMaterial = new StandardMaterial({
+    const crateMaterial = new PhongMaterial({
       color: new Color(1.0, 1.0, 1.0),
-      metallic: 0.0, // Not metal
-      roughness: 0.9, // Very rough wood
       diffuseMap: crateDiffuse,
       normalMap: crateNormal,
-      roughnessMap: crateRoughness,
+      normalScale: new Vector2D(1, -1), // Fix for DirectX normal map
+      specularMap: crateSpecular,
+      shininess: 32.0,
     });
 
-    const brandingMaterial = new StandardMaterial({
+    const brandingMaterial = new PhongMaterial({
       color: new Color(1.0, 1.0, 1.0),
-      metallic: 0.0,
-      roughness: 0.9,
       diffuseMap: brandingDiffuse,
       normalMap: brandingNormal,
-      roughnessMap: brandingRoughness,
+      normalScale: new Vector2D(1, -1), // Fix for DirectX normal map
+      specularMap: brandingSpecular,
+      shininess: 32.0,
     });
 
-    const applyBrandings = (crateObj: Object3D, size: number) => {
+    const applyBrandings = (crateObj: Object3D, size: number): void => {
       const eps = 0.005;
       const d = size / 2 + eps;
-      const faces: Array<{ name: string; pos: [number, number, number]; rot: [number, number, number] }> = [
+      const faces: Array<{
+        name: string;
+        pos: [number, number, number];
+        rot: [number, number, number];
+      }> = [
         { name: "Top", pos: [0, d, 0], rot: [0, 0, 0] },
         { name: "Bottom", pos: [0, -d, 0], rot: [Math.PI, 0, 0] },
         { name: "Right", pos: [d, 0, 0], rot: [Math.PI / 2, 0, -Math.PI / 2] },
         { name: "Left", pos: [-d, 0, 0], rot: [Math.PI / 2, 0, Math.PI / 2] },
         { name: "Front", pos: [0, 0, -d], rot: [Math.PI / 2, Math.PI, 0] },
-        { name: "Back", pos: [0, 0, d], rot: [Math.PI / 2, 0, 0] }
+        { name: "Back", pos: [0, 0, d], rot: [Math.PI / 2, 0, 0] },
       ];
 
       // Shuffle faces and pick 3
@@ -222,11 +247,11 @@ class AbyssalDecoExample extends AbstractExample {
         const planeObj = new Object3D("Branding_Plane");
         planeObj.geometry = new Plane({ width: size, depth: size }).getGeometryData();
         planeObj.material = brandingMaterial;
-        
+
         // Random 0, 90, 180, 270 degree clockwise rotation around the local normal (+Y axis)
         const randomTurns = Math.floor(Math.random() * 4);
         planeObj.rotation.y = -randomTurns * (Math.PI / 2);
-        
+
         container.add(planeObj);
         crateObj.add(container);
       });
@@ -320,25 +345,50 @@ class AbyssalDecoExample extends AbstractExample {
     this.scene.add(porthole);
 
     // Add a SpotLight to cast a beam into the room
-    const portLight = new SpotLight({ 
-      color: new Color(1.0, 0.8, 0.5), 
-      intensity: 15.0, // Boosted to make it clearly visible
+    const portLight = new SpotLight({
+      color: new Color(1.0, 0.8, 0.5),
+      intensity: 10.0, // Slightly reduced to avoid blowing out highlights
       direction: new Vector3D(1, -0.2, 0), // Pointing AWAY from the left wall, slightly downwards
       angle: Math.PI / 4, // 45 degrees cone
       penumbra: 0.5,
-      distance: 40.0
+      distance: 40.0,
     });
     portLight.position.set(-9.4, 4, -5); // Positioned slightly in front of the porthole glass
     this._portLight = portLight;
-    
+
     // Add our new Behavior to the light
-    this._portLightBehavior = new LightFlickerBehavior(15.0);
+    this._portLightBehavior = new LightFlickerBehavior({
+      baseIntensity: 10.0,
+      flickerColor: new Color(1.0, 0.0, 0.0), // Deep red when it flickers/dims
+    });
     this._portLight.addBehavior(this._portLightBehavior);
+
+    // Attach Proximity Sensor to increase flicker speed and intensity when player approaches
+    this._portLight.addBehavior(
+      new ProximitySensorBehavior({
+        targetObj: this.camera, // The player
+        radius: 15.0, // Start reacting at 15 units away so it's easier to notice
+        minDistance: 2.0, // Max intensity at 2 unit distance
+        onUpdate: (factor: number): void => {
+          // factor is 0.0 (far) to 1.0 (very close)
+
+          // Boost base intensity up to 250% (10.0 * 2.5) for extreme debugging visibility
+          this._portLightBehavior.options.baseIntensity = 10.0 * (1.0 + 1.5 * factor);
+
+          // Reduce stable time (0% at full proximity, i.e., constant flickering)
+          this._portLightBehavior.options.minStableTime = 2.0 * (1.0 - factor);
+          this._portLightBehavior.options.maxStableTime = 6.0 * (1.0 - factor);
+
+          // Speed up the flickering itself
+          this._portLightBehavior.options.minFlickerTime = 0.2 - 0.1 * factor;
+        },
+      }),
+    );
 
     this.scene.add(portLight);
 
-    // 6. Lighting: Ambient (Lowered to make spot light pop)
-    this.scene.add(new AmbientLight({ color: new Color(0.1, 0.1, 0.15), intensity: 0.1 }));
+    // 6. Lighting: Ambient (Increased to balance contrast and prevent pitch-black shadows)
+    this.scene.add(new AmbientLight({ color: new Color(0.1, 0.1, 0.15), intensity: 0.4 }));
 
     // 7. Lighting: Moon/Ocean rays coming from above/side (Dimmed)
     const oceanLight = new DirectionalLight({ color: new Color(0.4, 0.7, 1.0), intensity: 0.3 });
@@ -355,11 +405,11 @@ class AbyssalDecoExample extends AbstractExample {
     this.scene.initOctrees(new BoundingBox(new Vector3D(-30, -5, -50), new Vector3D(30, 15, 50)));
 
     // Add WASD/Mouse controller with collisions
-    const fpsController = new FPSController({ 
+    const fpsController = new FPSController({
       moveSpeed: 5.0,
       enableCollision: true,
       scene: this.scene,
-      collisionRadius: 0.8
+      collisionRadius: 0.8,
     });
     this.camera.addBehavior(fpsController);
 
@@ -375,13 +425,24 @@ class AbyssalDecoExample extends AbstractExample {
     this._time += deltaTime;
 
     // Adjust base porthole light intensity via NumpadAdd (+) and NumpadSubtract (-)
-    if (Input.isPressed("NumpadAdd") || Input.isPressed("Equal") || Input.isPressed("BracketRight")) {
-      this._portLightBehavior.baseIntensity += deltaTime * 5.0;
-      console.log(`[Porthole] Base Intensity: ${this._portLightBehavior.baseIntensity.toFixed(2)}`);
+    if (
+      Input.isPressed("NumpadAdd") ||
+      Input.isPressed("Equal") ||
+      Input.isPressed("BracketRight")
+    ) {
+      this._portLightBehavior.options.baseIntensity += deltaTime * 5.0;
+      console.log(
+        `[Porthole] Base Intensity: ${this._portLightBehavior.options.baseIntensity.toFixed(2)}`,
+      );
     }
     if (Input.isPressed("NumpadSubtract") || Input.isPressed("Minus") || Input.isPressed("Slash")) {
-      this._portLightBehavior.baseIntensity = Math.max(0, this._portLightBehavior.baseIntensity - deltaTime * 5.0);
-      console.log(`[Porthole] Base Intensity: ${this._portLightBehavior.baseIntensity.toFixed(2)}`);
+      this._portLightBehavior.options.baseIntensity = Math.max(
+        0,
+        this._portLightBehavior.options.baseIntensity - deltaTime * 5.0,
+      );
+      console.log(
+        `[Porthole] Base Intensity: ${this._portLightBehavior.options.baseIntensity.toFixed(2)}`,
+      );
     }
 
     // Notice: we removed the entire custom flicker logic from here!

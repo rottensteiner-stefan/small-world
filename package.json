@@ -52,7 +52,8 @@
     }
   },
   "dependencies": {
-    "gl-matrix": "^3.4.4"
+    "gl-matrix": "^3.4.4",
+    "pngjs": "^7.0.0"
   },
   "lint-staged": {
     "*.ts": [

@@ -9,6 +9,7 @@ import { StandardWebGPULayout } from "../renderers/shaders/StandardWebGPULayout.
 import fragGLSL from "./shaders/Standard.frag.glsl?raw";
 import fragGLSL100 from "./shaders/Standard.frag.glsl100?raw";
 import fragWGSL from "./shaders/Standard.frag.wgsl?raw";
+import { Vector2D } from "../../math/index.js";
 
 /**
  * Configuration options for StandardMaterial.
@@ -26,6 +27,8 @@ export interface StandardMaterialOptions {
   diffuseMap?: Texture | undefined;
   /** The normal map texture. */
   normalMap?: Texture | undefined;
+  /** Scale factor for the normal map to control strength and flip X/Y. Defaults to (1, 1). */
+  normalScale?: Vector2D;
   /** The metallic texture map. */
   metallicMap?: Texture | undefined;
   /** The roughness texture map. */
@@ -38,6 +41,8 @@ export interface StandardMaterialOptions {
   emissiveIntensity?: number;
   /** Whether the material is transparent. Defaults to false. */
   transparent?: boolean;
+  /** Alpha cutoff threshold. Fragments with alpha below this value are discarded. Defaults to 0.0. */
+  alphaTest?: number;
 }
 
 /**
@@ -57,6 +62,9 @@ export class StandardMaterial extends AbstractMaterial {
   /** The normal map texture. */
   public normalMap: Texture | undefined;
 
+  /** Scale factor for the normal map to control strength and flip X/Y. */
+  public normalScale: Vector2D;
+
   /** The metallic map texture. */
   public metallicMap: Texture | undefined;
 
@@ -72,6 +80,9 @@ export class StandardMaterial extends AbstractMaterial {
   /** The intensity of the emissive glow. */
   public emissiveIntensity: number;
 
+  /** Alpha cutoff threshold. */
+  public alphaTest: number;
+
   /**
    * Creates a new StandardMaterial.
    * @param options The configuration options for the material.
@@ -85,12 +96,14 @@ export class StandardMaterial extends AbstractMaterial {
       ao = 1.0,
       diffuseMap = undefined,
       normalMap = undefined,
+      normalScale = new Vector2D(1, 1),
       metallicMap = undefined,
       roughnessMap = undefined,
       emissiveColor = new Color(0, 0, 0),
       emissiveMap = undefined,
       emissiveIntensity = 1.0,
       transparent = false,
+      alphaTest = 0.0,
     } = options;
     this.color = color;
     this.metallic = metallic;
@@ -98,12 +111,14 @@ export class StandardMaterial extends AbstractMaterial {
     this.ao = ao;
     this.diffuseMap = diffuseMap;
     this.normalMap = normalMap;
+    this.normalScale = normalScale;
     this.metallicMap = metallicMap;
     this.roughnessMap = roughnessMap;
     this.emissiveColor = emissiveColor;
     this.emissiveMap = emissiveMap;
     this.emissiveIntensity = emissiveIntensity;
     this.transparent = transparent;
+    this.alphaTest = alphaTest;
   }
 
   /** @inheritdoc */
@@ -113,10 +128,15 @@ export class StandardMaterial extends AbstractMaterial {
         shaderId: this.type,
         properties: {
           u_color: this.color.toFloat32Array(),
-          u_specColor: new Float32Array([this.emissiveColor.r, this.emissiveColor.g, this.emissiveColor.b, this.emissiveIntensity]),
+          u_specColor: new Float32Array([
+            this.emissiveColor.r,
+            this.emissiveColor.g,
+            this.emissiveColor.b,
+            this.emissiveIntensity,
+          ]),
           u_metallic: this.metallic,
           u_roughness: this.roughness,
-          u_extraParams: [this.ao, 0, 0, 0], // ao, time, flow, noise
+          u_extraParams: [this.ao, this.alphaTest, this.normalScale.x, this.normalScale.y], // ao, alphaTest, normalScaleX, normalScaleY
           u_liquidParams: [0, 0, 0, 0],
           u_thresholds: [0, 0, 0, 0],
           u_texOffset: [0, 0],
@@ -145,6 +165,9 @@ export class StandardMaterial extends AbstractMaterial {
     props["u_metallic"] = this.metallic;
     props["u_roughness"] = this.roughness;
     (props["u_extraParams"] as number[])[0] = this.ao;
+    (props["u_extraParams"] as number[])[1] = this.alphaTest;
+    (props["u_extraParams"] as number[])[2] = this.normalScale.x;
+    (props["u_extraParams"] as number[])[3] = this.normalScale.y;
 
     if (this.diffuseMap) {
       (props["u_texOffset"] as number[])[0] = this.diffuseMap.offset.x;

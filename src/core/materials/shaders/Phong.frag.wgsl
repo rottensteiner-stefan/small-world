@@ -15,5 +15,9 @@
     // Apply gamma correction
     finalColor = linearToSRGB(finalColor);
 
-    return vec4f(finalColor, obj.color.a * texCol.a);
+    let finalAlpha = obj.color.a * texCol.a;
+    if (finalAlpha < obj.extraParams.y) {
+        discard;
+    }
+    return vec4f(finalColor, finalAlpha);
 }
