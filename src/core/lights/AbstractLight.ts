@@ -4,6 +4,7 @@ import { Color } from "../colors/Color.js";
 import { LightType } from "../../enums/LightType.js";
 import { Object3D } from "../Object3D.js";
 import { LightDataInterface } from "../../interfaces/index.js";
+import type { Camera } from "../Camera.js";
 
 /**
  * Configuration options for lights.
@@ -19,6 +20,10 @@ export interface LightOptions {
   castShadow?: boolean;
   /** The resolution of the shadow map for this light. Defaults to 512. */
   shadowResolution?: number;
+  /** A small offset to prevent shadow acne. Defaults to 0.005. */
+  shadowBias?: number;
+  /** An offset along the surface normal to prevent shadow acne. Defaults to 0.0. */
+  shadowNormalBias?: number;
 }
 
 /**
@@ -35,10 +40,19 @@ export abstract class AbstractLight extends Object3D {
   public intensity: number;
 
   /** Whether the light casts shadows. */
-  public castShadow: boolean;
+  public override castShadow: boolean;
 
   /** The resolution of the shadow map for this light. */
   public shadowResolution: number;
+
+  /** A small offset to prevent shadow acne. */
+  public shadowBias: number;
+
+  /** An offset along the surface normal to prevent shadow acne. */
+  public shadowNormalBias: number;
+
+  /** The camera used to render the shadow map for this light. */
+  public shadowCamera: Camera | undefined;
 
   /**
    * Applies the light's data to the collective light data structure.
@@ -57,11 +71,16 @@ export abstract class AbstractLight extends Object3D {
       name = "Light",
       castShadow = false,
       shadowResolution = 512,
+      shadowBias = 0.005,
+      shadowNormalBias = 0.0,
     } = options;
     super(name);
     this.color = color;
     this.intensity = intensity;
     this.castShadow = castShadow;
     this.shadowResolution = shadowResolution;
+    this.shadowBias = shadowBias;
+    this.shadowNormalBias = shadowNormalBias;
+    this.shadowCamera = undefined;
   }
 }

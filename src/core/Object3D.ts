@@ -31,6 +31,8 @@ export class Object3D {
   public frustumCulled: boolean = true;
   public isStatic: boolean = false;
   public inFrustum: boolean = true;
+  public castShadow: boolean = false;
+  public receiveShadow: boolean = false;
 
   constructor(name?: string) {
     this.name = name || MathUtils.generateUUID();

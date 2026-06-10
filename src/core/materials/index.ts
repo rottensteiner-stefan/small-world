@@ -12,3 +12,4 @@ export * from "./WorldMaterial.js";
 export * from "./LiquidMaterial.js";
 export * from "./LavaMaterial.js";
 export * from "./SlimeMaterial.js";
+export * from "./DepthMaterial.js";
