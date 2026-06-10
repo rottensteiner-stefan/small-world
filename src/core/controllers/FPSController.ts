@@ -67,7 +67,7 @@ export class FPSController extends Behavior {
   }
 
   public override onAttach(target: import("../Object3D.js").Object3D | CameraInterfaceData): void {
-    super.onAttach(target as any);
+    super.onAttach(target);
     this._collider = new BoundingSphere(
       this.target!.position.clone(),
       this._options.collisionRadius,
@@ -110,7 +110,7 @@ export class FPSController extends Behavior {
         const theta = isCamera
           ? (this.target as unknown as CameraInterfaceData).theta
           : (this.target as import("../Object3D.js").Object3D).rotation.y;
-        
+
         const sin = Math.sin(theta);
         const cos = Math.cos(theta);
 
