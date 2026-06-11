@@ -5,7 +5,7 @@ import {
   CameraStrategyType,
   Color,
   Cube,
-  Cylinder,
+  Gear,
   DirectionalLight,
   FPSController,
   Object3D,
@@ -48,7 +48,12 @@ class AbyssalDecoExample extends AbstractExample {
     let decoRoughness: Texture | undefined;
 
     let brassDiffuse: Texture | undefined;
+    let brassNormal: Texture | undefined;
+    let brassRoughness: Texture | undefined;
+
     let steelDiffuse: Texture | undefined;
+    let steelNormal: Texture | undefined;
+    let steelRoughness: Texture | undefined;
 
     let steamDiffuse: Texture | undefined;
     let steamNormal: Texture | undefined;
@@ -85,11 +90,33 @@ class AbyssalDecoExample extends AbstractExample {
         brassDiffuse.repeat.x = 2;
         brassDiffuse.repeat.y = 2;
       }
+      brassNormal = await Texture.fromUrl("/resources/examples/12/rusty_brass_normal.png");
+      if (brassNormal) {
+        brassNormal.repeat.x = 2;
+        brassNormal.repeat.y = 2;
+      }
+      brassRoughness = await Texture.fromUrl("/resources/examples/12/rusty_brass_roughness.png");
+      if (brassRoughness) {
+        brassRoughness.repeat.x = 2;
+        brassRoughness.repeat.y = 2;
+      }
 
       steelDiffuse = await Texture.fromUrl("/resources/examples/12/scratched_steel_diffuse.png");
       if (steelDiffuse) {
         steelDiffuse.repeat.x = 2;
         steelDiffuse.repeat.y = 2;
+      }
+      steelNormal = await Texture.fromUrl("/resources/examples/12/scratched_steel_normal.png");
+      if (steelNormal) {
+        steelNormal.repeat.x = 2;
+        steelNormal.repeat.y = 2;
+      }
+      steelRoughness = await Texture.fromUrl(
+        "/resources/examples/12/scratched_steel_roughness.png",
+      );
+      if (steelRoughness) {
+        steelRoughness.repeat.x = 2;
+        steelRoughness.repeat.y = 2;
       }
 
       // Ceiling Textures
@@ -180,6 +207,8 @@ class AbyssalDecoExample extends AbstractExample {
     const brassMaterial = new StandardMaterial({
       color: new Color(1.0, 1.0, 1.0),
       diffuseMap: brassDiffuse,
+      normalMap: brassNormal,
+      roughnessMap: brassRoughness,
       metallic: 0.8,
       roughness: 0.6,
     });
@@ -187,6 +216,8 @@ class AbyssalDecoExample extends AbstractExample {
     const steelMaterial = new StandardMaterial({
       color: new Color(1.0, 1.0, 1.0),
       diffuseMap: steelDiffuse,
+      normalMap: steelNormal,
+      roughnessMap: steelRoughness,
       metallic: 0.9,
       roughness: 0.4,
     });
@@ -347,65 +378,48 @@ class AbyssalDecoExample extends AbstractExample {
     // 3.8 Steampunk Gears (On Left Wall)
     const createGear = (
       name: string,
-      radius: number,
+      innerRadius: number,
       thickness: number,
       numTeeth: number,
       material: StandardMaterial,
     ): Object3D => {
-      const gearGroup = new Object3D(name);
+      const gearObj = new Object3D(name);
 
-      // Central Hub
-      const hub = new Object3D(`${name}_Hub`);
-      hub.geometry = new Cylinder({
-        radiusTop: radius * 0.8,
-        radiusBottom: radius * 0.8,
-        height: thickness,
-        radialSegments: 16,
+      // Calculate toothHeight proportionally to innerRadius and teeth count to look nice
+      const toothHeight = innerRadius * 0.2;
+
+      gearObj.geometry = new Gear({
+        teeth: numTeeth,
+        innerRadius: innerRadius,
+        holeRadius: innerRadius / 4.0,
+        toothHeight: toothHeight,
+        vRatio: 0.5,
+        thickness: thickness,
       }).getGeometryData();
-      hub.material = material;
-      hub.castShadow = true;
-      hub.receiveShadow = true;
-      hub.rotation.x = Math.PI / 2; // Orient cylinder to face outward
-      gearGroup.add(hub);
 
-      // Teeth
-      const toothWidth = (radius * Math.PI) / numTeeth;
-      const toothHeight = radius * 0.4;
-      for (let i = 0; i < numTeeth; i++) {
-        const angle = (i / numTeeth) * Math.PI * 2;
-        const tooth = new Object3D(`${name}_Tooth_${i}`);
-        tooth.geometry = new Cube({ size: 1 }).getGeometryData();
-        tooth.setScale(toothWidth, toothHeight, thickness);
+      gearObj.material = material;
+      gearObj.castShadow = true;
+      gearObj.receiveShadow = true;
 
-        // Position tooth along the edge
-        const dist = radius * 0.9;
-        tooth.position.set(Math.cos(angle) * dist, Math.sin(angle) * dist, 0);
-        tooth.rotation.z = angle + Math.PI / 2;
-
-        tooth.material = material;
-        tooth.castShadow = true;
-        tooth.receiveShadow = true;
-        gearGroup.add(tooth);
-      }
-      return gearGroup;
+      return gearObj;
     };
 
     // Instantiate Gears
     const gear1 = createGear("Gear_Brass_Large", 2.0, 0.4, 12, brassMaterial);
-    gear1.position.set(-9.8, 5, -8); // On left wall
+    gear1.position.set(-8.8, 5, -8); // On left wall (moved out of the wall)
     gear1.rotation.y = Math.PI / 2; // Face out from left wall
     this.scene.add(gear1);
     this._gears.push({ obj: gear1, speed: 0.5 });
 
     const gear2 = createGear("Gear_Steel_Med", 1.2, 0.3, 8, steelMaterial);
-    gear2.position.set(-9.8, 6.8, -5.2); // Interlocking with gear1
+    gear2.position.set(-8.8, 6.8, -5.2); // Interlocking with gear1
     gear2.rotation.y = Math.PI / 2;
     gear2.rotation.z = Math.PI / 8; // Offset so teeth mesh
     this.scene.add(gear2);
     this._gears.push({ obj: gear2, speed: -0.75 }); // ratio: 12/8 = 1.5 * 0.5 = 0.75
 
     const gear3 = createGear("Gear_Steel_Small", 0.8, 0.5, 6, steelMaterial);
-    gear3.position.set(-9.8, 3.2, -6.5); // Interlocking with gear1
+    gear3.position.set(-8.8, 3.2, -6.5); // Interlocking with gear1
     gear3.rotation.y = Math.PI / 2;
     gear3.rotation.z = Math.PI / 6;
     this.scene.add(gear3);
@@ -563,6 +577,7 @@ class AbyssalDecoExample extends AbstractExample {
 
     // Update gears
     for (const gear of this._gears) {
+      // Rotate the Gear object itself since there's no nested group
       gear.obj.rotation.z += gear.speed * deltaTime;
     }
   }
