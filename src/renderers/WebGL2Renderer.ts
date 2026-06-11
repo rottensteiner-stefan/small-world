@@ -494,9 +494,10 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     const dirMapLoc = cache.uniforms.get("u_dirShadowMap");
     if (dirMapLoc) this.gl.uniform1i(dirMapLoc, dummyUnit);
 
-    const spotMapLoc0 = cache.uniforms.get("u_spotShadowMap[0]");
-    if (spotMapLoc0) {
-      this.gl.uniform1iv(spotMapLoc0, new Int32Array([dummyUnit, dummyUnit, dummyUnit, dummyUnit]));
+    for (let i = 0; i < 4; i++) {
+      let loc = cache.uniforms.get(`u_spotShadowMap[${i}]`);
+      if (!loc) loc = this.gl.getUniformLocation(cache.prog, `u_spotShadowMap[${i}]`) ?? undefined;
+      if (loc) this.gl.uniform1i(loc, dummyUnit);
     }
   }
 

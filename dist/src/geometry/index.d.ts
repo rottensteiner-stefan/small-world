@@ -4,6 +4,8 @@ export * from './Circle.js';
 export * from './Cone.js';
 export * from './Cube.js';
 export * from './Cylinder.js';
+export * from './ExtrudeGeometry.js';
+export * from './Gear.js';
 export * from './CylinderSector.js';
 export * from './Disk.js';
 export * from './Grid.js';
