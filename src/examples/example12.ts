@@ -6,6 +6,8 @@ import {
   Color,
   Cube,
   Gear,
+  GearMath,
+  GearParameters,
   DirectionalLight,
   FPSController,
   Object3D,
@@ -375,55 +377,164 @@ class AbyssalDecoExample extends AbstractExample {
     backWall.receiveShadow = true;
     this.scene.add(backWall);
 
-    // 3.8 Steampunk Gears (On Left Wall)
-    const createGear = (
+    // 3.8 Steampunk Gears (Composite with Spokes using GearMath)
+    const createSpokedGear = (
       name: string,
-      innerRadius: number,
+      module: number,
       thickness: number,
       numTeeth: number,
-      material: StandardMaterial,
-    ): Object3D => {
-      const gearObj = new Object3D(name);
+      numSpokes: number,
+      rimMaterial: StandardMaterial,
+      spokeMaterial: StandardMaterial,
+    ): { obj: Object3D; params: GearParameters } => {
+      const gearGroup = new Object3D(name);
 
-      // Calculate toothHeight proportionally to innerRadius and teeth count to look nice
-      const toothHeight = innerRadius * 0.2;
+      const params = GearMath.getGearParams(module, numTeeth);
 
-      gearObj.geometry = new Gear({
+      const rimWidth = params.innerRadius * 0.2; // Width of the solid metal ring
+      const holeRadius = params.innerRadius - rimWidth;
+
+      // 1. The Rim (Kranz)
+      const rim = new Object3D(`${name}_Rim`);
+      rim.geometry = new Gear({
         teeth: numTeeth,
-        innerRadius: innerRadius,
-        holeRadius: innerRadius / 4.0,
-        toothHeight: toothHeight,
+        innerRadius: params.innerRadius,
+        holeRadius: holeRadius,
+        toothHeight: params.toothHeight,
         vRatio: 0.5,
         thickness: thickness,
       }).getGeometryData();
+      rim.material = rimMaterial;
+      rim.castShadow = true;
+      rim.receiveShadow = true;
+      gearGroup.add(rim);
 
-      gearObj.material = material;
-      gearObj.castShadow = true;
-      gearObj.receiveShadow = true;
+      // 2. The Hub (Nabe)
+      const hubRadius = params.innerRadius * 0.3;
+      const hubHole = hubRadius * 0.4;
+      const hub = new Object3D(`${name}_Hub`);
+      hub.geometry = new Gear({
+        teeth: 32,
+        innerRadius: hubRadius,
+        holeRadius: hubHole,
+        toothHeight: 0,
+        vRatio: 1.0,
+        thickness: thickness * 1.2,
+      }).getGeometryData();
+      hub.material = rimMaterial;
+      hub.castShadow = true;
+      hub.receiveShadow = true;
+      gearGroup.add(hub);
 
-      return gearObj;
+      // 3. The Spokes (Speichen)
+      const spokeLength = holeRadius - hubRadius + 0.1;
+      const spokeWidth = params.innerRadius * 0.12;
+      const spokeThickness = thickness * 0.6;
+
+      for (let i = 0; i < numSpokes; i++) {
+        const angle = (i / numSpokes) * Math.PI * 2;
+        const spoke = new Object3D(`${name}_Spoke_${i}`);
+        spoke.geometry = new Cube({ size: 1 }).getGeometryData();
+        spoke.setScale(spokeLength, spokeWidth, spokeThickness);
+
+        const dist = hubRadius + spokeLength / 2 - 0.05;
+        spoke.position.set(Math.cos(angle) * dist, Math.sin(angle) * dist, 0);
+        spoke.rotation.z = angle;
+
+        spoke.material = spokeMaterial;
+        spoke.castShadow = true;
+        spoke.receiveShadow = true;
+        gearGroup.add(spoke);
+      }
+
+      return { obj: gearGroup, params };
     };
 
-    // Instantiate Gears
-    const gear1 = createGear("Gear_Brass_Large", 2.0, 0.4, 12, brassMaterial);
-    gear1.position.set(-8.8, 5, -8); // On left wall (moved out of the wall)
-    gear1.rotation.y = Math.PI / 2; // Face out from left wall
+    const gearModule = 0.25;
+
+    // Gear 1: Brass, large (16 teeth)
+    const gear1Data = createSpokedGear(
+      "Gear_Brass_Large",
+      gearModule,
+      0.4,
+      16,
+      5,
+      brassMaterial,
+      steelMaterial,
+    );
+    const gear1 = gear1Data.obj;
+    gear1.position.set(-8.8, 6, -8); // Placed a bit higher but not touching the ceiling
+    gear1.rotation.y = Math.PI / 2;
+    // Initial rotation
+    gear1.rotation.z = 0;
     this.scene.add(gear1);
-    this._gears.push({ obj: gear1, speed: 0.5 });
+    this._gears.push({ obj: gear1, speed: 0.5 }); // Base speed
 
-    const gear2 = createGear("Gear_Steel_Med", 1.2, 0.3, 8, steelMaterial);
-    gear2.position.set(-8.8, 6.8, -5.2); // Interlocking with gear1
+    // Gear 2: Steel, medium (10 teeth)
+    const gear2Data = createSpokedGear(
+      "Gear_Steel_Medium",
+      gearModule,
+      0.3,
+      10,
+      4,
+      steelMaterial,
+      brassMaterial,
+    );
+    const gear2 = gear2Data.obj;
+    const dist1to2 = GearMath.getCenterDistance(gearModule, 16, 10);
+    const angle1to2 = -Math.PI / 6; // 30 degrees down and forward along Z
+    gear2.position.set(
+      -8.8,
+      gear1.position.y + Math.sin(angle1to2) * dist1to2,
+      gear1.position.z + Math.cos(angle1to2) * dist1to2,
+    );
     gear2.rotation.y = Math.PI / 2;
-    gear2.rotation.z = Math.PI / 8; // Offset so teeth mesh
-    this.scene.add(gear2);
-    this._gears.push({ obj: gear2, speed: -0.75 }); // ratio: 12/8 = 1.5 * 0.5 = 0.75
 
-    const gear3 = createGear("Gear_Steel_Small", 0.8, 0.5, 6, steelMaterial);
-    gear3.position.set(-8.8, 3.2, -6.5); // Interlocking with gear1
+    // Mathematically perfect meshing rotation
+    const mapToXY = (v: Vector3D): Vector3D => new Vector3D(v.z, v.y, 0);
+    gear2.rotation.z = GearMath.getMeshingRotation(
+      mapToXY(gear1.position),
+      gear1.rotation.z,
+      gear1Data.params,
+      mapToXY(gear2.position),
+      gear2Data.params,
+    );
+    this.scene.add(gear2);
+    this._gears.push({ obj: gear2, speed: GearMath.getDrivenSpeed(0.5, 16, 10) });
+
+    // Gear 3: Steel, small (6 teeth)
+    const gear3Data = createSpokedGear(
+      "Gear_Steel_Small",
+      gearModule,
+      0.3,
+      6,
+      3,
+      steelMaterial,
+      steelMaterial,
+    );
+    const gear3 = gear3Data.obj;
+    const dist2to3 = GearMath.getCenterDistance(gearModule, 10, 6);
+
+    const angle2to3 = Math.PI / 8; // 22.5 degrees up and forward along Z
+    gear3.position.set(
+      -8.8,
+      gear2.position.y + Math.sin(angle2to3) * dist2to3,
+      gear2.position.z + Math.cos(angle2to3) * dist2to3,
+    );
     gear3.rotation.y = Math.PI / 2;
-    gear3.rotation.z = Math.PI / 6;
+
+    // Speed of gear3 driven by gear2
+    const speed3 = GearMath.getDrivenSpeed(GearMath.getDrivenSpeed(0.5, 16, 10), 10, 6);
+
+    gear3.rotation.z = GearMath.getMeshingRotation(
+      mapToXY(gear2.position),
+      gear2.rotation.z,
+      gear2Data.params,
+      mapToXY(gear3.position),
+      gear3Data.params,
+    );
     this.scene.add(gear3);
-    this._gears.push({ obj: gear3, speed: -1.0 }); // ratio: 12/6 = 2 * 0.5 = 1.0
+    this._gears.push({ obj: gear3, speed: speed3 });
 
     // 4. Large Wooden Crate (Center)
     const crate = createCrate("OldCrate", 3, 3);
