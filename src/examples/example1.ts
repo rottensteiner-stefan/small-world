@@ -56,8 +56,8 @@ class Example1 extends AbstractExample {
     this.scene.add(this._myCube);
 
     // Floor to receive shadows
-    const floor = new Object3D("Floor").setPosition(0, -2, 0);
-    floor.geometry = new Plane({ width: 10, depth: 10 }).getGeometryData();
+    const floor = new Object3D("Floor").setPosition(0, -2, -1);
+    floor.geometry = new Plane({ width: 10, depth: 6 }).getGeometryData();
     floor.material = new PhongMaterial({ color: Color.WHITE });
     floor.receiveShadow = true;
     this.scene.add(floor);

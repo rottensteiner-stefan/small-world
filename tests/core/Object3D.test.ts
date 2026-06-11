@@ -1,6 +1,7 @@
 /// tests/core/Object3D.test.ts
 
-import { Object3D } from "../../src/core/Object3D.js";
+import { Object3D } from "../../src/index.js";
+import { describe, it, expect } from "vitest";
 
 describe("Object3D", () => {
   it("should initialize with default shadow properties", () => {
