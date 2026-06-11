@@ -94,11 +94,9 @@ class AbyssalDecoExample extends AbstractExample {
       if (crateSpecular) crateSpecular.repeat.y = -1;
 
       // Crate Branding
-      brandingDiffuse = await Texture.fromUrl("/resources/examples/12/create_branding_diffuse.png");
-      brandingNormal = await Texture.fromUrl("/resources/examples/12/create_branding_normal.png");
-      brandingSpecular = await Texture.fromUrl(
-        "/resources/examples/12/create_branding_specular.png",
-      );
+      brandingDiffuse = await Texture.fromUrl("/resources/examples/12/crate_branded_diffuse.png");
+      brandingNormal = await Texture.fromUrl("/resources/examples/12/crate_branded_normal.png");
+      brandingSpecular = await Texture.fromUrl("/resources/examples/12/crate_branded_specular.png");
       if (brandingDiffuse) brandingDiffuse.repeat.y = -1;
       if (brandingNormal) brandingNormal.repeat.y = -1;
       if (brandingSpecular) brandingSpecular.repeat.y = -1;
@@ -220,9 +218,11 @@ class AbyssalDecoExample extends AbstractExample {
       shininess: 32.0,
     });
 
-    const applyBrandings = (crateObj: Object3D, size: number): void => {
-      const eps = 0.005;
-      const d = size / 2 + eps;
+    // Helper to build a solid crate from 6 Plane geometries,
+    // randomly assigning the branded texture to some faces.
+    const createCrate = (name: string, size: number, numBrandings: number = 3): Object3D => {
+      const crateGroup = new Object3D(name);
+      const d = size / 2;
       const faces: Array<{
         name: string;
         pos: [number, number, number];
@@ -236,25 +236,34 @@ class AbyssalDecoExample extends AbstractExample {
         { name: "Back", pos: [0, 0, d], rot: [Math.PI / 2, 0, 0] },
       ];
 
-      // Shuffle faces and pick 3
-      const shuffled = faces.sort(() => 0.5 - Math.random()).slice(0, 3);
+      // Randomly pick which faces get the branding
+      const shuffledIndices = [0, 1, 2, 3, 4, 5].sort(() => 0.5 - Math.random());
+      const brandedIndices = new Set(shuffledIndices.slice(0, numBrandings));
 
-      shuffled.forEach((face) => {
-        const container = new Object3D(`Branding_Container_${face.name}`);
-        container.position.set(face.pos[0] as number, face.pos[1] as number, face.pos[2] as number);
-        container.rotation.set(face.rot[0] as number, face.rot[1] as number, face.rot[2] as number);
+      faces.forEach((face, index) => {
+        const isBranded = brandedIndices.has(index);
 
-        const planeObj = new Object3D("Branding_Plane");
-        planeObj.geometry = new Plane({ width: size, depth: size }).getGeometryData();
-        planeObj.material = brandingMaterial;
+        const container = new Object3D(`${name}_${face.name}_Container`);
+        container.position.set(face.pos[0], face.pos[1], face.pos[2]);
+        container.rotation.set(face.rot[0], face.rot[1], face.rot[2]);
 
-        // Random 0, 90, 180, 270 degree clockwise rotation around the local normal (+Y axis)
-        const randomTurns = Math.floor(Math.random() * 4);
-        planeObj.rotation.y = -randomTurns * (Math.PI / 2);
+        const faceObj = new Object3D(`${name}_${face.name}_Plane`);
+        faceObj.geometry = new Plane({ width: size, depth: size }).getGeometryData();
+        faceObj.material = isBranded ? brandingMaterial : crateMaterial;
+        faceObj.castShadow = true;
+        faceObj.receiveShadow = true;
 
-        container.add(planeObj);
-        crateObj.add(container);
+        if (isBranded) {
+          // Random 0, 90, 180, 270 degree clockwise rotation around the local normal (+Y axis)
+          const randomTurns = Math.floor(Math.random() * 4);
+          faceObj.rotation.y = -randomTurns * (Math.PI / 2);
+        }
+
+        container.add(faceObj);
+        crateGroup.add(container);
       });
+
+      return crateGroup;
     };
 
     // 1. Floor (Art Deco)
@@ -305,14 +314,10 @@ class AbyssalDecoExample extends AbstractExample {
     this.scene.add(backWall);
 
     // 4. Large Wooden Crate (Center)
-    const crate = new Object3D("OldCrate").setPosition(0, 1.5, 0); // Y=1.5 because size is 3 and center is 0
-    crate.geometry = new Cube({ size: 3 }).getGeometryData();
-    crate.material = crateMaterial;
-    crate.castShadow = true;
-    crate.receiveShadow = true;
+    const crate = createCrate("OldCrate", 3, 3);
+    crate.setPosition(0, 1.5, 0); // Y=1.5 because size is 3 and center is 0
     // slightly rotate to look interesting
     crate.rotation.y = Math.PI / 6;
-    applyBrandings(crate, 3);
     this.scene.add(crate);
 
     // 5. Stack of 4 Small Crates (Corner -> moved 3 units diagonally)
@@ -322,41 +327,25 @@ class AbyssalDecoExample extends AbstractExample {
 
     // Three on the ground, slightly messy
     // Original positions + 2.1 on X and Z (approx 3 units diagonal distance)
-    const c1 = new Object3D("SmallCrate1").setPosition(-5.4, y0, -15.4);
-    c1.geometry = new Cube({ size: s }).getGeometryData();
-    c1.material = crateMaterial;
+    const c1 = createCrate("SmallCrate1", s, 1);
+    c1.setPosition(-5.4, y0, -15.4);
     c1.rotation.y = 0.15;
-    c1.castShadow = true;
-    c1.receiveShadow = true;
-    applyBrandings(c1, s);
     this.scene.add(c1);
 
-    const c2 = new Object3D("SmallCrate2").setPosition(-3.7, y0, -15.1);
-    c2.geometry = new Cube({ size: s }).getGeometryData();
-    c2.material = crateMaterial;
+    const c2 = createCrate("SmallCrate2", s, 1);
+    c2.setPosition(-3.7, y0, -15.1);
     c2.rotation.y = -0.12;
-    c2.castShadow = true;
-    c2.receiveShadow = true;
-    applyBrandings(c2, s);
     this.scene.add(c2);
 
-    const c3 = new Object3D("SmallCrate3").setPosition(-4.7, y0, -13.7);
-    c3.geometry = new Cube({ size: s }).getGeometryData();
-    c3.material = crateMaterial;
+    const c3 = createCrate("SmallCrate3", s, 1);
+    c3.setPosition(-4.7, y0, -13.7);
     c3.rotation.y = 0.28;
-    c3.castShadow = true;
-    c3.receiveShadow = true;
-    applyBrandings(c3, s);
     this.scene.add(c3);
 
     // One on top
-    const c4 = new Object3D("SmallCrate4").setPosition(-4.5, y1, -14.7);
-    c4.geometry = new Cube({ size: 1.5 }).getGeometryData();
-    c4.material = crateMaterial;
+    const c4 = createCrate("SmallCrate4", 1.5, 2);
+    c4.setPosition(-4.5, y1, -14.7);
     c4.rotation.y = -0.25;
-    c4.castShadow = true;
-    c4.receiveShadow = true;
-    applyBrandings(c4, 1.5);
     this.scene.add(c4);
 
     // 5. Porthole Light (Decal on Right Wall)
