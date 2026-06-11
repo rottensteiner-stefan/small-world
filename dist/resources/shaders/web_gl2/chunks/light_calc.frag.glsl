@@ -36,9 +36,29 @@
             float spotEffect = smoothstep(u_spotLights[i].params.x, u_spotLights[i].params.y, theta);
             float attenuation = 1.0 / (1.0 + 0.1 * dist + 0.01 * dist * dist);
             float diff_sp = max(dot(N, L_sp), 0.0);
-            finalLight += diff_sp * u_spotLights[i].color * attenuation * spotEffect;
+            
+            // Shadow Calculation
+            float shadow = 1.0;
+            if (u_spotShadowInfo[i].z > 0.5) {
+                vec3 projCoords = v_spotLightSpacePos[i].xyz / v_spotLightSpacePos[i].w;
+                projCoords = projCoords * 0.5 + 0.5;
+                if (projCoords.x >= 0.0 && projCoords.x <= 1.0 && projCoords.y >= 0.0 && projCoords.y <= 1.0 && projCoords.z <= 1.0) {
+                    float bias = u_spotShadowInfo[i].x;
+                    float currentDepth = projCoords.z;
+                    shadow = 0.0;
+                    vec2 texelSize = 1.0 / vec2(textureSize(u_spotShadowMap[i], 0));
+                    for(int x = -1; x <= 1; ++x) {
+                        for(int y = -1; y <= 1; ++y) {
+                            shadow += texture(u_spotShadowMap[i], vec3(projCoords.xy + vec2(x, y) * texelSize, currentDepth - bias));
+                        }
+                    }
+                    shadow /= 9.0;
+                }
+            }
+
+            finalLight += diff_sp * u_spotLights[i].color * attenuation * spotEffect * shadow;
             if (u_shininess > 0.0 && diff_sp > 0.0) {
-                specular += pow(max(dot(V, reflect(-L_sp, N)), 0.0), u_shininess) * u_spotLights[i].color * attenuation * spotEffect;
+                specular += pow(max(dot(V, reflect(-L_sp, N)), 0.0), u_shininess) * u_spotLights[i].color * attenuation * spotEffect * shadow;
             }
         }
       }

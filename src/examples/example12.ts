@@ -261,6 +261,8 @@ class AbyssalDecoExample extends AbstractExample {
     const floor = new Object3D("Floor").setPosition(0, 0, 0);
     floor.geometry = new Plane({ width: 20, depth: 40 }).getGeometryData();
     floor.material = floorMaterial;
+    floor.castShadow = false; // Floor usually doesn't cast shadow on itself, but receives
+    floor.receiveShadow = true;
     this.scene.add(floor);
 
     // 2. Ceiling (Steampunk)
@@ -268,92 +270,117 @@ class AbyssalDecoExample extends AbstractExample {
     ceiling.geometry = new Plane({ width: 20, depth: 40 }).getGeometryData();
     ceiling.rotation.x = Math.PI; // Face downwards
     ceiling.material = ceilingMaterial;
+    ceiling.castShadow = false;
+    ceiling.receiveShadow = true;
     this.scene.add(ceiling);
 
     // 3. Walls (Left & Right) (Steampunk)
     const leftWall = new Object3D("LeftWall").setPosition(-10, 4, 0).setScale(1, 8, 40);
     leftWall.geometry = new Cube({ size: 1 }).getGeometryData();
     leftWall.material = sideWallMaterial;
+    leftWall.castShadow = false;
+    leftWall.receiveShadow = true;
     this.scene.add(leftWall);
 
     const rightWall = new Object3D("RightWall").setPosition(10, 4, 0).setScale(1, 8, 40);
     rightWall.geometry = new Cube({ size: 1 }).getGeometryData();
     rightWall.material = sideWallMaterial;
+    rightWall.castShadow = false;
+    rightWall.receiveShadow = true;
     this.scene.add(rightWall);
 
     // 3.5 Walls (Front & Back) (Rock)
     const frontWall = new Object3D("FrontWall").setPosition(0, 4, -20).setScale(20, 8, 1);
     frontWall.geometry = new Cube({ size: 1 }).getGeometryData();
     frontWall.material = rockMaterial;
+    frontWall.castShadow = true;
+    frontWall.receiveShadow = true;
     this.scene.add(frontWall);
 
     const backWall = new Object3D("BackWall").setPosition(0, 4, 20).setScale(20, 8, 1);
     backWall.geometry = new Cube({ size: 1 }).getGeometryData();
     backWall.material = rockMaterial;
+    backWall.castShadow = true;
+    backWall.receiveShadow = true;
     this.scene.add(backWall);
 
     // 4. Large Wooden Crate (Center)
     const crate = new Object3D("OldCrate").setPosition(0, 1.5, 0); // Y=1.5 because size is 3 and center is 0
     crate.geometry = new Cube({ size: 3 }).getGeometryData();
     crate.material = crateMaterial;
+    crate.castShadow = true;
+    crate.receiveShadow = true;
     // slightly rotate to look interesting
     crate.rotation.y = Math.PI / 6;
     applyBrandings(crate, 3);
     this.scene.add(crate);
 
-    // 5. Stack of 4 Small Crates (Corner)
+    // 5. Stack of 4 Small Crates (Corner -> moved 3 units diagonally)
     const s = 1.5; // Half size
     const y0 = s / 2; // Ground level center (0.75)
     const y1 = y0 + s; // Second layer center (2.25)
 
     // Three on the ground, slightly messy
-    const c1 = new Object3D("SmallCrate1").setPosition(-7.5, y0, -17.5);
+    // Original positions + 2.1 on X and Z (approx 3 units diagonal distance)
+    const c1 = new Object3D("SmallCrate1").setPosition(-5.4, y0, -15.4);
     c1.geometry = new Cube({ size: s }).getGeometryData();
     c1.material = crateMaterial;
     c1.rotation.y = 0.15;
+    c1.castShadow = true;
+    c1.receiveShadow = true;
     applyBrandings(c1, s);
     this.scene.add(c1);
 
-    const c2 = new Object3D("SmallCrate2").setPosition(-5.8, y0, -17.2);
+    const c2 = new Object3D("SmallCrate2").setPosition(-3.7, y0, -15.1);
     c2.geometry = new Cube({ size: s }).getGeometryData();
     c2.material = crateMaterial;
     c2.rotation.y = -0.12;
+    c2.castShadow = true;
+    c2.receiveShadow = true;
     applyBrandings(c2, s);
     this.scene.add(c2);
 
-    const c3 = new Object3D("SmallCrate3").setPosition(-6.8, y0, -15.8);
+    const c3 = new Object3D("SmallCrate3").setPosition(-4.7, y0, -13.7);
     c3.geometry = new Cube({ size: s }).getGeometryData();
     c3.material = crateMaterial;
     c3.rotation.y = 0.28;
+    c3.castShadow = true;
+    c3.receiveShadow = true;
     applyBrandings(c3, s);
     this.scene.add(c3);
 
     // One on top
-    const c4 = new Object3D("SmallCrate4").setPosition(-6.6, y1, -16.8);
+    const c4 = new Object3D("SmallCrate4").setPosition(-4.5, y1, -14.7);
     c4.geometry = new Cube({ size: 1.5 }).getGeometryData();
     c4.material = crateMaterial;
     c4.rotation.y = -0.25;
+    c4.castShadow = true;
+    c4.receiveShadow = true;
     applyBrandings(c4, 1.5);
     this.scene.add(c4);
 
-    // 5. Porthole Light (Decal on Left Wall)
-    const porthole = new Object3D("Porthole").setPosition(-9.49, 4, -5);
-    // Rotate to face +X
-    porthole.rotation.z = -Math.PI / 2;
+    // 5. Porthole Light (Decal on Right Wall)
+    const porthole = new Object3D("Porthole").setPosition(9.49, 4, -5);
+    // Rotate to face -X
+    porthole.rotation.z = Math.PI / 2;
     porthole.geometry = new Plane({ width: 2, depth: 2 }).getGeometryData();
     porthole.material = portMaterial;
+    porthole.castShadow = false;
     this.scene.add(porthole);
 
     // Add a SpotLight to cast a beam into the room
     const portLight = new SpotLight({
       color: new Color(1.0, 0.8, 0.5),
       intensity: 10.0, // Slightly reduced to avoid blowing out highlights
-      direction: new Vector3D(1, -0.2, 0), // Pointing AWAY from the left wall, slightly downwards
+      direction: new Vector3D(-1, -0.2, 0), // Pointing AWAY from the right wall, slightly downwards
       angle: Math.PI / 4, // 45 degrees cone
       penumbra: 0.5,
       distance: 40.0,
     });
-    portLight.position.set(-9.4, 4, -5); // Positioned slightly in front of the porthole glass
+    portLight.position.set(9.4, 4, -5); // Positioned slightly in front of the porthole glass
+    portLight.castShadow = true;
+    portLight.shadowResolution = 1024;
+    portLight.shadowBias = 0.005;
     this._portLight = portLight;
 
     // Add our new Behavior to the light

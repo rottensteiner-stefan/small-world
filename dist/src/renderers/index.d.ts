@@ -5,5 +5,6 @@ export * from './RendererFactory.js';
 export * from './WebGL1Renderer.js';
 export * from './WebGL2Renderer.js';
 export * from './WebGL2FrameBuffer.js';
+export * from './WebGL2DepthFrameBuffer.js';
 export * from './WebGPURenderer.js';
 export * from './shaders/index.js';

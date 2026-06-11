@@ -20,4 +20,10 @@ void main() {
   v_tbn = mat3(T, B, N_v);
 
   gl_Position = u_vp * wp;
+
+  // Shadow Maps Light Space Transforms
+  for (int i = 0; i < 4; i++) {
+    if (i >= u_numSpotLights) break;
+    v_spotLightSpacePos[i] = u_spotShadowMatrix[i] * wp;
+  }
 }

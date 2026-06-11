@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.21.00] - 2026-06-11
+
+- **Core Architecture: Shadow Mapping (WebGL 2.0)**:
+  - Introduced robust Shadow Mapping infrastructure for `SpotLight` sources in WebGL 2.0.
+  - Implemented the `WebGL2DepthFrameBuffer` to handle off-screen depth rendering utilizing `DEPTH_COMPONENT32F` textures for high precision.
+  - Added crucial shadow parameters directly to the engine's base classes (`Object3D.castShadow`, `Object3D.receiveShadow`, `AbstractLight.castShadow`, `AbstractLight.shadowBias`, `AbstractLight.shadowResolution`).
+- **Rendering & Shader Enhancements**:
+  - Integrated **Hardware Shadow Sampling (`sampler2DShadow`)** combined with `COMPARE_REF_TO_TEXTURE` to leverage free bilinear PCF hardware acceleration.
+  - Deployed a **Percentage-Closer Filtering (PCF) Kernel** (3x3 footprint) working alongside the hardware sampler for exceptionally soft and smooth shadow edges.
+  - Adopted the **Front-Face Culling Trick** during the shadow depth pass (`gl.cullFace(gl.FRONT)`) to physically eliminate self-shadowing artifacts (Shadow Acne) on lighted geometry.
+  - Shader variables `u_spotShadowMap`, `u_spotShadowMatrix` and `u_spotShadowInfo` are dynamically parsed, bound and piped into both standard and PBR lighting models.
+- **Engine Defaults & Examples**:
+  - `DEFAULT_RENDERER` was globally switched from `BEST` to `RendererType.WEB_GL2` to guarantee consistent out-of-the-box shadow support across all examples.
+  - Redesigned **Example 12 (Abyssal Deco)** to heavily showcase the new shadow pipeline with multiple PBR materials, a flickering `SpotLight` casting high-resolution soft shadows, and various geometrical primitives utilizing `castShadow` and `receiveShadow`.
+
 ## [0.20.03] - 2026-06-01
 
 - **Developer Experience (DX)**:

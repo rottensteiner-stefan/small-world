@@ -38,6 +38,10 @@ export declare class SpotLight extends AbstractLight {
      * @param options The configuration options for the light.
      */
     constructor(options?: SpotLightOptions);
+    /**
+     * Updates the shadow camera's matrices based on the spotlight's properties.
+     */
+    updateShadowCamera(): void;
     /** @inheritdoc */
     applyTo(data: LightDataInterface): void;
 }

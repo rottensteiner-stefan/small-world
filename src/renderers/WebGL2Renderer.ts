@@ -1,7 +1,7 @@
 /// src/renderers/WebGL2Renderer.ts
 
 import { AbstractWebGLRenderer } from "./AbstractWebGLRenderer.js";
-import { CubeTexture, ShaderRegistry, Texture } from "../core/index.js";
+import { CubeTexture, ShaderRegistry, Texture, Color } from "../core/index.js";
 import { EngineConfig, GeometryDataInterface, LightDataInterface } from "../interfaces/index.js";
 import {
   CullMode,
@@ -16,6 +16,8 @@ import { Object3D } from "../core/Object3D.js";
 import { Scene } from "../core/Scene.js";
 import { MathPool, Vector3D } from "../math/index.js";
 import { WebGL2UniformBuffer } from "./WebGL2UniformBuffer.js";
+import { WebGL2DepthFrameBuffer } from "./WebGL2DepthFrameBuffer.js";
+import { AbstractLight } from "../core/lights/AbstractLight.js";
 
 interface ProgramCache {
   prog: WebGLProgram;
@@ -40,6 +42,8 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
   private _scratchModelMatrix: Float32Array = new Float32Array(16);
 
   private _globalUBO!: WebGL2UniformBuffer;
+
+  private _shadowMaps: Map<AbstractLight, WebGL2DepthFrameBuffer> = new Map();
 
   /** @inheritdoc */
   public async initialize(
@@ -126,6 +130,16 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
           uniforms.set(name, this.gl.getUniformLocation(prog, name) ?? undefined);
         }
       });
+
+      // Shadow Uniform Arrays
+      for (let i = 0; i < 4; i++) {
+        const mapName = `u_spotShadowMap[${i}]`;
+        const matrixName = `u_spotShadowMatrix[${i}]`;
+        const infoName = `u_spotShadowInfo[${i}]`;
+        uniforms.set(mapName, this.gl.getUniformLocation(prog, mapName) ?? undefined);
+        uniforms.set(matrixName, this.gl.getUniformLocation(prog, matrixName) ?? undefined);
+        uniforms.set(infoName, this.gl.getUniformLocation(prog, infoName) ?? undefined);
+      }
 
       cache = { prog, uniforms, attributes };
       this._programs.set(shaderId, cache);
@@ -229,20 +243,26 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     vMat?: Float32Array,
   ): void {
     const extractedLights = this.extractLights(scene);
+    const sortedGroups = scene.getVisibleObjectsSorted();
+
+    // --- PASS 0: Shadow Maps ---
+    this._renderShadowMaps(extractedLights, sortedGroups);
+
+    // --- SETUP MAIN PASS ---
     this._updateGlobalUBO(vp, camPos, extractedLights);
+    this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
+    this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
 
     this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
     this.gl.enable(this.gl.BLEND);
     this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
-
-    const sortedGroups = scene.getVisibleObjectsSorted();
 
     // --- PASS 1: Skybox / Background ---
     const skyboxShaderMap = sortedGroups.get(MaterialType.SKYBOX);
     if (skyboxShaderMap) {
       this.gl.depthMask(false);
       for (const [topology, materialGroups] of skyboxShaderMap.entries()) {
-        this._renderGroup(MaterialType.SKYBOX, materialGroups, vMat, topology);
+        this._renderGroup(MaterialType.SKYBOX, materialGroups, vMat, topology, extractedLights);
       }
       this.gl.depthMask(true);
       sortedGroups.delete(MaterialType.SKYBOX);
@@ -251,7 +271,118 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     // --- PASS 2: All other Objects ---
     for (const [shaderId, topologyMap] of sortedGroups.entries()) {
       for (const [topology, materialGroups] of topologyMap.entries()) {
-        this._renderGroup(shaderId, materialGroups, vMat, topology);
+        this._renderGroup(shaderId, materialGroups, vMat, topology, extractedLights);
+      }
+    }
+  }
+
+  /**
+   * Renders shadow maps for all shadow-casting lights.
+   */
+  private _renderShadowMaps(
+    lights: LightDataInterface,
+    sortedGroups: Map<string, Map<string, Map<string, Object3D[]>>>,
+  ): void {
+    const emptyLights: LightDataInterface = {
+      aCol: new Color(0, 0, 0, 1),
+      aIntensity: 0,
+      dCol: new Color(0, 0, 0, 1),
+      dDir: Vector3D.ZERO,
+      dIntensity: 0,
+      aLights: [],
+      pLights: [],
+      sLights: [],
+    };
+
+    for (const light of lights.sLights) {
+      if (!light.castShadow || !light.shadowCamera) continue;
+
+      let fbo = this._shadowMaps.get(light);
+      if (!fbo) {
+        fbo = new WebGL2DepthFrameBuffer(this.gl, light.shadowResolution, light.shadowResolution);
+        this._shadowMaps.set(light, fbo);
+      } else {
+        fbo.resize(light.shadowResolution, light.shadowResolution);
+      }
+
+      fbo.bind();
+      this.gl.clear(this.gl.DEPTH_BUFFER_BIT);
+
+      // Update Global UBO with light's camera
+      this._updateGlobalUBO(
+        light.shadowCamera.viewProjectionMatrix,
+        light.shadowCamera.position,
+        emptyLights,
+      );
+
+      // Keep FRONT culling enabled for the shadow pass to prevent shadow acne!
+      this.gl.enable(this.gl.CULL_FACE);
+      this.gl.cullFace(this.gl.FRONT);
+      this.gl.enable(this.gl.DEPTH_TEST);
+      this.gl.depthMask(true);
+      this.gl.disable(this.gl.BLEND);
+
+      const cache = this._getProgram(MaterialType.DEPTH);
+      this.gl.useProgram(cache.prog);
+
+      for (const [shaderId, topologyMap] of sortedGroups.entries()) {
+        if (shaderId === MaterialType.SKYBOX) continue;
+
+        for (const [topology, materialGroups] of topologyMap.entries()) {
+          const drawMode = topology === Topology.LINE_LIST ? this.gl.LINES : this.gl.TRIANGLES;
+
+          for (const objects of materialGroups.values()) {
+            const firstObj = objects[0]!;
+            if (!firstObj.material) continue;
+
+            const manifest = firstObj.material.getRenderManifest();
+            const uExtraLoc = cache.uniforms.get("u_extraParams");
+            const extraParams = manifest.properties["u_extraParams"] as Float32Array | number[];
+
+            let hasAlpha = false;
+            if (extraParams && extraParams[1]! > 0.0 && manifest.textures["u_diffuseMap"]) {
+              hasAlpha = true;
+              this.gl.activeTexture(this.gl.TEXTURE0);
+              const tex = manifest.textures["u_diffuseMap"] as Texture;
+              this.gl.bindTexture(this.gl.TEXTURE_2D, this._getWebGLTexture(tex));
+              const uDiffuseLoc = cache.uniforms.get("u_diffuseMap");
+              if (uDiffuseLoc) this.gl.uniform1i(uDiffuseLoc, 0);
+
+              if (uExtraLoc) {
+                this.gl.uniform4fv(uExtraLoc, extraParams as Float32Array);
+              }
+            }
+
+            if (!hasAlpha && uExtraLoc) {
+              this.gl.uniform4fv(uExtraLoc, new Float32Array([0, 0, 0, 0]));
+            }
+
+            for (const o of objects) {
+              if (!o.castShadow || !o.geometry) continue;
+
+              this._scratchModelMatrix.set(o.worldMatrix.data);
+              const uModel = cache.uniforms.get("u_model");
+              if (uModel) this.gl.uniformMatrix4fv(uModel, false, this._scratchModelMatrix);
+
+              let mesh = this._cache.get(o.geometry);
+              if (!mesh) {
+                mesh = new Mesh(this.gl, o.geometry);
+                this._cache.set(o.geometry, mesh);
+              } else if (o.geometry.needsUpdate) {
+                mesh.update(o.geometry);
+                o.geometry.needsUpdate = false;
+              }
+
+              mesh.bind(
+                cache.attributes.get("a_position")!,
+                cache.attributes.get("a_normal")!,
+                cache.attributes.get("a_uv")!,
+                cache.attributes.get("a_tangent")!,
+              );
+              mesh.draw(drawMode);
+            }
+          }
+        }
       }
     }
   }
@@ -264,9 +395,40 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     materialGroups: Map<string, Object3D[]>,
     vMat?: Float32Array,
     topology: string = "triangle-list",
+    lights?: LightDataInterface,
   ): void {
     const cache = this._getProgram(shaderId);
     this.gl.useProgram(cache.prog);
+    // Bind Shadow Maps
+    if (lights && lights.sLights.length > 0) {
+      for (let i = 0; i < 4; i++) {
+        if (i >= lights.sLights.length) break;
+        const light = lights.sLights[i]!;
+        const mapLoc = cache.uniforms.get(`u_spotShadowMap[${i}]`);
+        const matLoc = cache.uniforms.get(`u_spotShadowMatrix[${i}]`);
+        const infoLoc = cache.uniforms.get(`u_spotShadowInfo[${i}]`);
+
+        if (light.castShadow && light.shadowCamera) {
+          const fbo = this._shadowMaps.get(light);
+          if (fbo && fbo.texture) {
+            const texUnit = 8 + i; // TEXTURE8 to TEXTURE11
+            this.gl.activeTexture(this.gl.TEXTURE0 + texUnit);
+            this.gl.bindTexture(this.gl.TEXTURE_2D, fbo.texture);
+            if (mapLoc) this.gl.uniform1i(mapLoc, texUnit);
+            if (matLoc)
+              this.gl.uniformMatrix4fv(matLoc, false, light.shadowCamera.viewProjectionMatrix);
+            // x: bias, y: normalBias, z: castShadow (1.0 = true)
+            if (infoLoc)
+              this.gl.uniform4fv(
+                infoLoc,
+                new Float32Array([light.shadowBias, light.shadowNormalBias, 1.0, 0.0]),
+              );
+          }
+        } else {
+          if (infoLoc) this.gl.uniform4fv(infoLoc, new Float32Array([0.0, 0.0, 0.0, 0.0]));
+        }
+      }
+    }
 
     for (const materialGroup of materialGroups.values()) {
       const objects = materialGroup;
