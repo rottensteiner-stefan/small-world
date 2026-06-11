@@ -62,26 +62,47 @@ for(int i = 0; i < u_numPointLights; ++i) {
 }
 
 // -- Spot Lights --
-for(int i = 0; i < u_numSpotLights; ++i) {
-    vec3 lightVec = u_spotLightPos[i] - v_worldPos;
+for(int i = 0; i < 4; i++) {
+    if (i >= u_numSpotLights) break;
+    vec3 lightVec = u_spotLights[i].pos - v_worldPos;
     float dist = length(lightVec);
     vec3 L = normalize(lightVec);
     vec3 H = normalize(V + L);
 
-    vec3 spotDir = normalize(u_spotLightDir[i]);
-    float cosOuter = u_spotLightParams[i].x;
-    float cosInner = u_spotLightParams[i].y;
-    float maxDist = u_spotLightParams[i].z;
-    float decay = u_spotLightParams[i].w;
+    vec3 spotDir = normalize(u_spotLights[i].dir);
+    float cosOuter = u_spotLights[i].params.x;
+    float cosInner = u_spotLights[i].params.y;
+    float maxDist = u_spotLights[i].params.z;
+    float decay = u_spotLights[i].params.w;
 
-    float theta = dot(L, -spotDir);
+    float theta = dot(-L, spotDir);
     float epsilon = max(cosInner - cosOuter, 0.0001);
     float intensity = clamp((theta - cosOuter) / epsilon, 0.0, 1.0);
 
     if (intensity > 0.0 && dist < maxDist) {
         float distanceAttenuation = pow(clamp(1.0 - dist / maxDist, 0.0, 1.0), decay);
         float attenuation = distanceAttenuation * intensity;
-        vec3 radiance = u_spotLightColor[i] * attenuation;
+        
+        // Shadow Calculation
+        float shadow = 1.0;
+        if (u_spotShadowInfo[i].z > 0.5) {
+            vec3 projCoords = v_spotLightSpacePos[i].xyz / v_spotLightSpacePos[i].w;
+            projCoords = projCoords * 0.5 + 0.5;
+            if (projCoords.x >= 0.0 && projCoords.x <= 1.0 && projCoords.y >= 0.0 && projCoords.y <= 1.0 && projCoords.z <= 1.0) {
+                float bias = u_spotShadowInfo[i].x;
+                float currentDepth = projCoords.z;
+                shadow = 0.0;
+                vec2 texelSize = 1.0 / vec2(textureSize(u_spotShadowMap[i], 0));
+                for(int x = -1; x <= 1; ++x) {
+                    for(int y = -1; y <= 1; ++y) {
+                        shadow += texture(u_spotShadowMap[i], vec3(projCoords.xy + vec2(x, y) * texelSize, currentDepth - bias));
+                    }
+                }
+                shadow /= 9.0;
+            }
+        }
+
+        vec3 radiance = u_spotLights[i].color * attenuation * shadow;
 
         float dotNL = max(dot(N, L), 0.0);
         float dotNH = max(dot(N, H), 0.0);

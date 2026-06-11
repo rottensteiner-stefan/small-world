@@ -15,4 +15,9 @@ uniform sampler2D u_diffuseMap;
 uniform sampler2D u_normalMap;
 uniform sampler2D u_specularMap;
 
+// Shadow Mapping
+in vec4 v_spotLightSpacePos[4];
+uniform sampler2DShadow u_spotShadowMap[4];
+uniform vec4 u_spotShadowInfo[4]; // x=bias, y=normalBias, z=castShadow, w=pad
+
 out vec4 fragColor;

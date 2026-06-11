@@ -4,6 +4,8 @@ import { LightType } from "../../enums/index.js";
 import { LightDataInterface } from "../../interfaces/index.js";
 import { AbstractLight, LightOptions } from "./AbstractLight.js";
 import { Vector3D } from "../../math/Vector3D.js";
+import { PerspectiveProjection } from "../../math/index.js";
+import { Camera } from "../Camera.js";
 
 /**
  * Configuration options for spotlight.
@@ -62,6 +64,51 @@ export class SpotLight extends AbstractLight {
     this.angle = angle;
     this.penumbra = penumbra;
     this.decay = decay;
+
+    if (this.castShadow) {
+      this.updateShadowCamera();
+    }
+  }
+
+  /**
+   * Updates the shadow camera's matrices based on the spotlight's properties.
+   */
+  public updateShadowCamera(): void {
+    if (!this.shadowCamera) {
+      this.shadowCamera = new Camera(
+        new PerspectiveProjection({
+          fov: this.angle * 2.0, // FOV is full angle
+          aspect: 1.0, // Shadow map is 1:1 square
+          near: 0.1,
+          far: this.distance > 0 ? this.distance : 1000.0,
+        }),
+      );
+    } else {
+      const proj = this.shadowCamera.projection as PerspectiveProjection;
+      proj.fov = this.angle * 2.0;
+      proj.far = this.distance > 0 ? this.distance : 1000.0;
+      this.shadowCamera.updateProjectionMatrix();
+    }
+
+    // Position camera at light position
+    this.shadowCamera.position.set(
+      this.worldMatrix.data[12] ?? this.position.x,
+      this.worldMatrix.data[13] ?? this.position.y,
+      this.worldMatrix.data[14] ?? this.position.z,
+    );
+
+    // Target is position + direction
+    const target = this.shadowCamera.position.clone().add(this.direction);
+    this.shadowCamera.target.copyFrom(target);
+
+    // Default up vector for lights looking straight down
+    if (Math.abs(this.direction.y) > 0.99) {
+      this.shadowCamera.up.set(0, 0, -1);
+    } else {
+      this.shadowCamera.up.set(0, 1, 0);
+    }
+
+    this.shadowCamera.updateViewMatrix();
   }
 
   /** @inheritdoc */
