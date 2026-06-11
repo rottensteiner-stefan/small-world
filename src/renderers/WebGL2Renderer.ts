@@ -480,7 +480,10 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
   private _bindDummyShadowMaps(cache: ProgramCache): void {
     const dummyUnit = 13;
     const maxUnits = DeviceCaps.getLimit(DeviceLimit.MAX_TEXTURE_IMAGE_UNITS);
-    if (dummyUnit >= maxUnits) return;
+    if (dummyUnit >= maxUnits) {
+      console.warn(`[WebGL2Renderer] dummyUnit ${dummyUnit} >= maxUnits ${maxUnits}`);
+      return;
+    }
 
     this.gl.activeTexture(this.gl.TEXTURE0 + dummyUnit);
     this.gl.bindTexture(this.gl.TEXTURE_2D, this._dummyShadowMap.texture);
@@ -488,9 +491,9 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     const dirMapLoc = cache.uniforms.get("u_dirShadowMap");
     if (dirMapLoc) this.gl.uniform1i(dirMapLoc, dummyUnit);
 
-    for (let i = 0; i < 4; i++) {
-      const spotMapLoc = cache.uniforms.get(`u_spotShadowMap[${i}]`);
-      if (spotMapLoc) this.gl.uniform1i(spotMapLoc, dummyUnit);
+    const spotMapLoc0 = cache.uniforms.get("u_spotShadowMap[0]");
+    if (spotMapLoc0) {
+      this.gl.uniform1iv(spotMapLoc0, new Int32Array([dummyUnit, dummyUnit, dummyUnit, dummyUnit]));
     }
   }
 

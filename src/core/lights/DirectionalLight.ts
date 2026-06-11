@@ -1,12 +1,12 @@
 /// src/core/lights/DirectionalLight.ts
 
 import { AbstractLight, LightOptions } from "./AbstractLight.js";
-import { LightType } from "../../enums/LightType.js";
+import { LightType } from "../../enums/index.js";
 import { Vector3D } from "../../math/Vector3D.js";
 import { LightDataInterface } from "../../interfaces/index.js";
 import { Camera } from "../Camera.js";
-import { OrthographicProjection } from "../../math/projections/OrthographicProjection.js";
-import { PerspectiveProjection } from "../../math/projections/PerspectiveProjection.js";
+import { OrthographicProjection } from "../../math/index.js";
+import { PerspectiveProjection } from "../../math/index.js";
 import { ProjectionType } from "../../enums/index.js";
 import { MathPool } from "../../math/MathPool.js";
 
