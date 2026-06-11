@@ -10,10 +10,15 @@ import {
   PhongMaterial,
   ProjectionType,
   AmbientLight,
+  Plane,
 } from "../index.js";
 import { AbstractExample } from "../core/index.js";
+import { RendererType } from "../enums/index.js";
 
 class Example1 extends AbstractExample {
+  constructor() {
+    super({ rendererType: RendererType.WEB_GL2 });
+  }
   private _myCube!: Object3D;
 
   protected override async setupScene(): Promise<void> {
@@ -31,6 +36,8 @@ class Example1 extends AbstractExample {
     // 1. Light: A gentle sun
     const sun: DirectionalLight = new DirectionalLight({ color: Color.WHITE, intensity: 1.0 });
     sun.direction.set(-1, -1, -1);
+    sun.castShadow = true;
+    sun.shadowBias = 0.005;
     this.scene.add(sun);
 
     this.scene.add(new AmbientLight({ color: Color.WHITE, intensity: 0.2 }));
@@ -43,8 +50,17 @@ class Example1 extends AbstractExample {
       color: Color.DODGERBLUE,
       shininess: 60,
     });
+    this._myCube.castShadow = true;
+    this._myCube.receiveShadow = true;
 
     this.scene.add(this._myCube);
+
+    // Floor to receive shadows
+    const floor = new Object3D("Floor").setPosition(0, -2, 0);
+    floor.geometry = new Plane({ width: 10, depth: 10 }).getGeometryData();
+    floor.material = new PhongMaterial({ color: Color.WHITE });
+    floor.receiveShadow = true;
+    this.scene.add(floor);
 
     // 3. Position camera rigidly
     this.camera.setStrategy(CameraStrategyType.FIXED);

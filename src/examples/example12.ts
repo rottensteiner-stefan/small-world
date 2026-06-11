@@ -369,7 +369,7 @@ class AbyssalDecoExample extends AbstractExample {
     portLight.position.set(9.4, 4, -5); // Positioned slightly in front of the porthole glass
     portLight.castShadow = true;
     portLight.shadowResolution = 1024;
-    portLight.shadowBias = 0.005;
+    portLight.shadowBias = 0.015; // Increased to prevent shadow acne
     this._portLight = portLight;
 
     // Add our new Behavior to the light
@@ -407,8 +407,10 @@ class AbyssalDecoExample extends AbstractExample {
     this.scene.add(new AmbientLight({ color: new Color(0.1, 0.1, 0.15), intensity: 0.4 }));
 
     // 7. Lighting: Moon/Ocean rays coming from above/side (Dimmed)
-    const oceanLight = new DirectionalLight({ color: new Color(0.4, 0.7, 1.0), intensity: 0.3 });
+    const oceanLight = new DirectionalLight({ color: new Color(0.4, 0.7, 1.0), intensity: 1.0 }); // Increased for visibility
     oceanLight.direction.set(1, -1, 0);
+    oceanLight.castShadow = true; // Enable CSM Shadows
+    oceanLight.shadowBias = 0.005;
     this.scene.add(oceanLight);
 
     // 7. Camera & Controls (FPS)

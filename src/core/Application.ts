@@ -14,6 +14,7 @@ import { RendererFactory } from "../renderers/index.js";
 import { Scene } from "./Scene.js";
 import { Input } from "./Input.js";
 import { ConfigLoader } from "./ConfigLoader.js";
+import { DeviceCaps } from "./DeviceCaps.js";
 import { MathUtils } from "../math/MathUtils.js";
 import { ShaderBootstrap } from "./renderers/shaders/ShaderBootstrap.js";
 import { FrustumCuller } from "./FrustumCuller.js";
@@ -36,16 +37,17 @@ export abstract class Application {
   /** Whether debug visualization is enabled. */
   public debug: boolean = false;
 
-
   private _lastTime: number = 0;
   private _isRunning: boolean = false;
   private _isInitialized: boolean = false;
+  private _userConfig: EngineConfig;
 
   /**
    * Creates a new application.
    * @param userConfig Optional configuration to override defaults.
    */
   protected constructor(userConfig: EngineConfig = {}) {
+    this._userConfig = userConfig;
     this.config = {
       canvasId: "SmallWorld",
       rendererType: RendererType.WEB_GPU,
@@ -114,7 +116,7 @@ export abstract class Application {
     if (!this._isInitialized) {
       try {
         const jsonConfig = await ConfigLoader.load("/config/small-world.json");
-        this.config = { ...this.config, ...(jsonConfig as EngineConfig) };
+        this.config = { ...this.config, ...(jsonConfig as EngineConfig), ...this._userConfig };
       } catch {
         console.warn("Using fallback configuration (No JSON found).");
       }
@@ -173,6 +175,9 @@ export abstract class Application {
 
       await ShaderBootstrap.init();
 
+      // Initialize Device capabilities before creating the renderer
+      DeviceCaps.init();
+
       this.renderer = await RendererFactory.create(
         this.config.rendererType!,
         this.canvas,
@@ -213,12 +218,10 @@ export abstract class Application {
     const deltaTime: number = Math.min((currentTime - this._lastTime) / 1000.0, 0.1);
     this._lastTime = currentTime;
 
-    // Note: controllers are now behaviors attached to objects (e.g., Camera)
-    // and are updated by scene.update()
-    
     this.update(deltaTime);
 
     this.scene.update(deltaTime);
+    this.scene.updateLights(this.camera);
     this.camera.update(this.camera.target, 0, 0, deltaTime);
 
     // Perform frustum culling before rendering

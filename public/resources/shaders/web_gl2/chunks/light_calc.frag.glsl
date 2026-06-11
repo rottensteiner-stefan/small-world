@@ -5,9 +5,46 @@
       // Directional Light
       vec3 L_dir = normalize(u_dirLightDir);
       float diff_dir = max(dot(N, L_dir), 0.0);
-      finalLight += diff_dir * u_dirLightColor;
+      
+      float dirShadow = 1.0;
+      if (u_dirShadowInfo.z > 0.5 && u_dirShadowInfo.w > 0.0) {
+          float depth = length(u_viewPos - v_worldPos);
+          int cascadeIndex = int(u_dirShadowInfo.w) - 1;
+          for (int i = 0; i < 4; i++) {
+              if (i >= int(u_dirShadowInfo.w)) break;
+              if (depth < u_cascadeSplits[i]) {
+                  cascadeIndex = i;
+                  break;
+              }
+          }
+          
+          vec4 lightSpacePos = u_cascadeMatrices[cascadeIndex] * vec4(v_worldPos, 1.0);
+          vec3 projCoords = lightSpacePos.xyz / lightSpacePos.w;
+          projCoords = projCoords * 0.5 + 0.5;
+          
+          if (projCoords.z <= 1.0 && projCoords.x >= 0.0 && projCoords.x <= 1.0 && projCoords.y >= 0.0 && projCoords.y <= 1.0) {
+              float cols = ceil(sqrt(u_dirShadowInfo.w));
+              float col = mod(float(cascadeIndex), cols);
+              float row = floor(float(cascadeIndex) / cols);
+              
+              vec2 atlasUV = (projCoords.xy + vec2(col, row)) / cols;
+              float bias = u_dirShadowInfo.x;
+              float currentDepth = projCoords.z;
+              
+              dirShadow = 0.0;
+              vec2 texelSize = 1.0 / vec2(textureSize(u_dirShadowMap, 0));
+              for(int x = -1; x <= 1; ++x) {
+                  for(int y = -1; y <= 1; ++y) {
+                      dirShadow += texture(u_dirShadowMap, vec3(atlasUV + vec2(x, y) * texelSize, currentDepth - bias));
+                  }
+              }
+              dirShadow /= 9.0;
+          }
+      }
+
+      finalLight += diff_dir * u_dirLightColor * dirShadow;
       if (u_shininess > 0.0 && diff_dir > 0.0) {
-        specular += pow(max(dot(V, reflect(-L_dir, N)), 0.0), u_shininess) * u_dirLightColor;
+        specular += pow(max(dot(V, reflect(-L_dir, N)), 0.0), u_shininess) * u_dirLightColor * dirShadow;
       }
 
       // Point Lights
@@ -46,10 +83,19 @@
                     float bias = u_spotShadowInfo[i].x;
                     float currentDepth = projCoords.z;
                     shadow = 0.0;
-                    vec2 texelSize = 1.0 / vec2(textureSize(u_spotShadowMap[i], 0));
+                    vec2 texelSize;
+                    if (i == 0) texelSize = 1.0 / vec2(textureSize(u_spotShadowMap[0], 0));
+                    else if (i == 1) texelSize = 1.0 / vec2(textureSize(u_spotShadowMap[1], 0));
+                    else if (i == 2) texelSize = 1.0 / vec2(textureSize(u_spotShadowMap[2], 0));
+                    else texelSize = 1.0 / vec2(textureSize(u_spotShadowMap[3], 0));
+                    
                     for(int x = -1; x <= 1; ++x) {
                         for(int y = -1; y <= 1; ++y) {
-                            shadow += texture(u_spotShadowMap[i], vec3(projCoords.xy + vec2(x, y) * texelSize, currentDepth - bias));
+                            vec3 tCoord = vec3(projCoords.xy + vec2(x, y) * texelSize, currentDepth - bias);
+                            if (i == 0) shadow += texture(u_spotShadowMap[0], tCoord);
+                            else if (i == 1) shadow += texture(u_spotShadowMap[1], tCoord);
+                            else if (i == 2) shadow += texture(u_spotShadowMap[2], tCoord);
+                            else shadow += texture(u_spotShadowMap[3], tCoord);
                         }
                     }
                     shadow /= 9.0;

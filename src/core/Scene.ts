@@ -2,8 +2,9 @@
 
 import { Object3D } from "./Object3D.js";
 import { Octree } from "./Octree.js";
-import { BoundingBox } from "../physix/BoundingBox.js";
+import { BoundingBox } from "../physix/index.js";
 import { BoundingType, Topology } from "../enums/index.js";
+import { DirectionalLight } from "./lights/index.js";
 
 /**
  * A scene that holds a collection of 3D objects.
@@ -51,6 +52,24 @@ export class Scene {
     }
     if (undefined !== this.dynamicOctree) {
       this.updateDynamicOctree();
+    }
+  }
+
+  public updateLights(camera: import("../interfaces/index.js").CameraInterfaceData): void {
+    for (const obj of this.objects) {
+      this._updateLightsRecursive(obj, camera);
+    }
+  }
+
+  private _updateLightsRecursive(
+    obj: Object3D,
+    camera: import("../interfaces/index.js").CameraInterfaceData,
+  ): void {
+    if (obj instanceof DirectionalLight) {
+      obj.updateCascades(camera);
+    }
+    for (const child of obj.children) {
+      this._updateLightsRecursive(child, camera);
     }
   }
 

@@ -24,6 +24,9 @@ export enum DeviceLimit {
   MAX_UNIFORM_BUFFER_SIZE = "MAX_UNIFORM_BUFFER_SIZE",
   MAX_MSAA_SAMPLES = "MAX_MSAA_SAMPLES",
   MAX_VERTEX_ATTRIBUTES = "MAX_VERTEX_ATTRIBUTES",
+  MAX_TEXTURE_IMAGE_UNITS = "MAX_TEXTURE_IMAGE_UNITS",
+  MAX_VERTEX_UNIFORM_VECTORS = "MAX_VERTEX_UNIFORM_VECTORS",
+  MAX_FRAGMENT_UNIFORM_VECTORS = "MAX_FRAGMENT_UNIFORM_VECTORS",
 }
 
 /**
@@ -50,6 +53,9 @@ export class DeviceCaps {
   private static _maxUniformBufferSize: number = 0;
   private static _maxMsaaSamples: number = 1;
   private static _maxVertexAttributes: number = 0;
+  private static _maxTextureImageUnits: number = 0;
+  private static _maxVertexUniformVectors: number = 0;
+  private static _maxFragmentUniformVectors: number = 0;
 
   // Specialized Features
   private static _hasFloatTextures: boolean = false;
@@ -78,6 +84,9 @@ export class DeviceCaps {
       if (gl) {
         this._maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE);
         this._maxVertexAttributes = gl.getParameter(gl.MAX_VERTEX_ATTRIBS);
+        this._maxTextureImageUnits = gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS);
+        this._maxVertexUniformVectors = gl.getParameter(gl.MAX_VERTEX_UNIFORM_VECTORS);
+        this._maxFragmentUniformVectors = gl.getParameter(gl.MAX_FRAGMENT_UNIFORM_VECTORS);
 
         // Check Anisotropy
         const extAni =
@@ -110,6 +119,18 @@ export class DeviceCaps {
         );
         this._maxUniformBufferSize = gl2.getParameter(gl2.MAX_UNIFORM_BLOCK_SIZE);
         this._maxMsaaSamples = gl2.getParameter(gl2.MAX_SAMPLES);
+        this._maxTextureImageUnits = Math.max(
+          this._maxTextureImageUnits,
+          gl2.getParameter(gl2.MAX_TEXTURE_IMAGE_UNITS),
+        );
+        this._maxVertexUniformVectors = Math.max(
+          this._maxVertexUniformVectors,
+          gl2.getParameter(gl2.MAX_VERTEX_UNIFORM_VECTORS),
+        );
+        this._maxFragmentUniformVectors = Math.max(
+          this._maxFragmentUniformVectors,
+          gl2.getParameter(gl2.MAX_FRAGMENT_UNIFORM_VECTORS),
+        );
         this._hasFloatTextures = true; // Required by spec in WebGL2
       }
     } catch {
@@ -128,6 +149,9 @@ export class DeviceCaps {
         anisotropy: this._maxAnisotropy,
         uniformBuffer: this._maxUniformBufferSize,
         msaa: this._maxMsaaSamples,
+        textureUnits: this._maxTextureImageUnits,
+        vertexUniforms: this._maxVertexUniformVectors,
+        fragmentUniforms: this._maxFragmentUniformVectors,
       },
       features: {
         floatTex: this._hasFloatTextures,
@@ -150,6 +174,9 @@ export class DeviceCaps {
     maxUniformBufferSize?: number;
     maxAnisotropy?: number;
     maxMsaaSamples?: number;
+    maxTextureImageUnits?: number;
+    maxVertexUniformVectors?: number;
+    maxFragmentUniformVectors?: number;
   }): void {
     if (limits.maxTextureSize)
       this._maxTextureSize = Math.max(this._maxTextureSize, limits.maxTextureSize);
@@ -162,6 +189,21 @@ export class DeviceCaps {
       this._maxAnisotropy = Math.max(this._maxAnisotropy, limits.maxAnisotropy);
     if (limits.maxMsaaSamples)
       this._maxMsaaSamples = Math.max(this._maxMsaaSamples, limits.maxMsaaSamples);
+    if (limits.maxTextureImageUnits)
+      this._maxTextureImageUnits = Math.max(
+        this._maxTextureImageUnits,
+        limits.maxTextureImageUnits,
+      );
+    if (limits.maxVertexUniformVectors)
+      this._maxVertexUniformVectors = Math.max(
+        this._maxVertexUniformVectors,
+        limits.maxVertexUniformVectors,
+      );
+    if (limits.maxFragmentUniformVectors)
+      this._maxFragmentUniformVectors = Math.max(
+        this._maxFragmentUniformVectors,
+        limits.maxFragmentUniformVectors,
+      );
   }
 
   /**
@@ -211,6 +253,12 @@ export class DeviceCaps {
         return this._maxMsaaSamples;
       case DeviceLimit.MAX_VERTEX_ATTRIBUTES:
         return this._maxVertexAttributes;
+      case DeviceLimit.MAX_TEXTURE_IMAGE_UNITS:
+        return this._maxTextureImageUnits;
+      case DeviceLimit.MAX_VERTEX_UNIFORM_VECTORS:
+        return this._maxVertexUniformVectors;
+      case DeviceLimit.MAX_FRAGMENT_UNIFORM_VECTORS:
+        return this._maxFragmentUniformVectors;
       default:
         return 0;
     }

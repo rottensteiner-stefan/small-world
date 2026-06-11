@@ -4,6 +4,38 @@ in vec3 a_normal;
 in vec2 a_uv;
 in vec3 a_tangent;
 
+struct PointLight {
+    vec3 pos;
+    float _pad;
+    vec3 color;
+    float _pad2;
+};
+
+struct SpotLight {
+    vec3 pos;
+    float _pad;
+    vec3 dir;
+    float _pad2;
+    vec3 color;
+    float _pad3;
+    vec4 params;
+};
+
+struct AreaLight {
+    vec3 pos;
+    float _pad;
+    vec3 color;
+    float _pad2;
+    vec3 right;
+    float _pad3;
+    vec3 up;
+    float _pad4;
+    vec3 normal;
+    float _pad5;
+    vec2 size;
+    vec2 _pad6;
+};
+
 layout(std140) uniform GlobalUniforms {
     mat4 u_vp;
     vec3 u_viewPos;
@@ -20,7 +52,9 @@ layout(std140) uniform GlobalUniforms {
     float u_gamma;
     float u_exposure;
     float _pad4[3]; 
-    vec4 _lightData[44];
+    PointLight u_pointLights[4];
+    SpotLight u_spotLights[4];
+    AreaLight u_areaLights[4];
 };
 
 uniform mat4 u_model;

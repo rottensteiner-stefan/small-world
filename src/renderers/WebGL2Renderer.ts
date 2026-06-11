@@ -1,7 +1,15 @@
 /// src/renderers/WebGL2Renderer.ts
 
 import { AbstractWebGLRenderer } from "./AbstractWebGLRenderer.js";
-import { CubeTexture, ShaderRegistry, Texture, Color } from "../core/index.js";
+import {
+  CubeTexture,
+  ShaderRegistry,
+  Texture,
+  Color,
+  DeviceCaps,
+  DeviceLimit,
+  DepthMaterial,
+} from "../core/index.js";
 import { EngineConfig, GeometryDataInterface, LightDataInterface } from "../interfaces/index.js";
 import {
   CullMode,
@@ -44,6 +52,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
   private _globalUBO!: WebGL2UniformBuffer;
 
   private _shadowMaps: Map<AbstractLight, WebGL2DepthFrameBuffer> = new Map();
+  private _dummyShadowMap!: WebGL2DepthFrameBuffer;
 
   /** @inheritdoc */
   public async initialize(
@@ -59,9 +68,14 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       this._quality = { ...this._quality, ...config.quality };
     }
 
+    this._dummyShadowMap = new WebGL2DepthFrameBuffer(this.gl, 1, 1);
+
     this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, false);
     this.initDefaultTextures();
     this.gl.enable(this.gl.DEPTH_TEST);
+
+    // Pre-register internal materials
+    new DepthMaterial();
 
     this._globalUBO = new WebGL2UniformBuffer(this.gl, 1280, 0);
   }
@@ -91,7 +105,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
 
       Object.keys(def.layout.uniforms).forEach((name) => {
         const loc = this.gl.getUniformLocation(prog, name);
-        if (null === loc) {
+        if (null === loc && name !== "u_thresholds" && name !== "u_liquidParams") {
           console.warn(
             `[WebGL2Renderer] Uniform '${name}' defined in material layout but not found in shader '${shaderId}'. It might be unused or optimized away.`,
           );
@@ -139,6 +153,15 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         uniforms.set(mapName, this.gl.getUniformLocation(prog, mapName) ?? undefined);
         uniforms.set(matrixName, this.gl.getUniformLocation(prog, matrixName) ?? undefined);
         uniforms.set(infoName, this.gl.getUniformLocation(prog, infoName) ?? undefined);
+      }
+
+      // Directional Shadow Uniforms
+      ["u_dirShadowMap", "u_cascadeSplits", "u_dirShadowInfo"].forEach((name) => {
+        uniforms.set(name, this.gl.getUniformLocation(prog, name) ?? undefined);
+      });
+      for (let i = 0; i < 4; i++) {
+        const name = `u_cascadeMatrices[${i}]`;
+        uniforms.set(name, this.gl.getUniformLocation(prog, name) ?? undefined);
       }
 
       cache = { prog, uniforms, attributes };
@@ -294,6 +317,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       sLights: [],
     };
 
+    // SpotLights
     for (const light of lights.sLights) {
       if (!light.castShadow || !light.shadowCamera) continue;
 
@@ -325,65 +349,148 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       const cache = this._getProgram(MaterialType.DEPTH);
       this.gl.useProgram(cache.prog);
 
-      for (const [shaderId, topologyMap] of sortedGroups.entries()) {
-        if (shaderId === MaterialType.SKYBOX) continue;
+      this._renderShadowScene(cache, sortedGroups);
 
-        for (const [topology, materialGroups] of topologyMap.entries()) {
-          const drawMode = topology === Topology.LINE_LIST ? this.gl.LINES : this.gl.TRIANGLES;
+      this.gl.cullFace(this.gl.BACK);
+      fbo.unbind();
+    }
 
-          for (const objects of materialGroups.values()) {
-            const firstObj = objects[0]!;
-            if (!firstObj.material) continue;
+    // DirectionalLight (CSM Atlas)
+    if (lights.dLight && lights.dLight.castShadow && lights.dLight.numCascades > 0) {
+      const light = lights.dLight;
+      const res = light.shadowResolution;
 
-            const manifest = firstObj.material.getRenderManifest();
-            const uExtraLoc = cache.uniforms.get("u_extraParams");
-            const extraParams = manifest.properties["u_extraParams"] as Float32Array | number[];
+      // Arrange cascades in a square grid (e.g. 2x2 for 4 cascades)
+      const cols = Math.ceil(Math.sqrt(light.numCascades));
+      const rows = Math.ceil(light.numCascades / cols);
+      const atlasWidth = cols * res;
+      const atlasHeight = rows * res;
 
-            let hasAlpha = false;
-            if (extraParams && extraParams[1]! > 0.0 && manifest.textures["u_diffuseMap"]) {
-              hasAlpha = true;
-              this.gl.activeTexture(this.gl.TEXTURE0);
-              const tex = manifest.textures["u_diffuseMap"] as Texture;
-              this.gl.bindTexture(this.gl.TEXTURE_2D, this._getWebGLTexture(tex));
-              const uDiffuseLoc = cache.uniforms.get("u_diffuseMap");
-              if (uDiffuseLoc) this.gl.uniform1i(uDiffuseLoc, 0);
+      let fbo = this._shadowMaps.get(light);
+      if (!fbo) {
+        fbo = new WebGL2DepthFrameBuffer(this.gl, atlasWidth, atlasHeight);
+        this._shadowMaps.set(light, fbo);
+      } else {
+        fbo.resize(atlasWidth, atlasHeight);
+      }
 
-              if (uExtraLoc) {
-                this.gl.uniform4fv(uExtraLoc, extraParams as Float32Array);
-              }
+      fbo.bind(); // This sets viewport to full atlas, we'll overwrite it per cascade
+      this.gl.clear(this.gl.DEPTH_BUFFER_BIT);
+
+      this.gl.enable(this.gl.CULL_FACE);
+      this.gl.cullFace(this.gl.FRONT);
+      this.gl.enable(this.gl.DEPTH_TEST);
+      this.gl.depthMask(true);
+      this.gl.disable(this.gl.BLEND);
+
+      const cache = this._getProgram(MaterialType.DEPTH);
+      this.gl.useProgram(cache.prog);
+      this._bindDummyShadowMaps(cache);
+
+      for (let i = 0; i < light.numCascades; i++) {
+        const cascadeCam = light.cascadeCameras[i];
+        if (!cascadeCam) continue;
+
+        // Set viewport to the quadrant for this cascade
+        const col = i % cols;
+        const row = Math.floor(i / cols);
+        this.gl.viewport(col * res, row * res, res, res);
+
+        this._updateGlobalUBO(cascadeCam.viewProjectionMatrix, cascadeCam.position, emptyLights);
+
+        this._renderShadowScene(cache, sortedGroups);
+      }
+
+      this.gl.cullFace(this.gl.BACK);
+      fbo.unbind();
+    }
+  }
+
+  /**
+   * Helper to render the actual geometry for a shadow pass.
+   */
+  private _renderShadowScene(
+    cache: ProgramCache,
+    sortedGroups: Map<string, Map<string, Map<string, Object3D[]>>>,
+  ): void {
+    for (const [shaderId, topologyMap] of sortedGroups.entries()) {
+      if (shaderId === MaterialType.SKYBOX) continue;
+
+      for (const [topology, materialGroups] of topologyMap.entries()) {
+        const drawMode = topology === Topology.LINE_LIST ? this.gl.LINES : this.gl.TRIANGLES;
+
+        for (const objects of materialGroups.values()) {
+          const firstObj = objects[0]!;
+          if (!firstObj.material) continue;
+
+          const manifest = firstObj.material.getRenderManifest();
+          const uExtraLoc = cache.uniforms.get("u_extraParams");
+          const extraParams = manifest.properties["u_extraParams"] as Float32Array | number[];
+
+          let hasAlpha = false;
+          if (extraParams && extraParams[1]! > 0.0 && manifest.textures["u_diffuseMap"]) {
+            hasAlpha = true;
+            this.gl.activeTexture(this.gl.TEXTURE0);
+            const tex = manifest.textures["u_diffuseMap"] as Texture;
+            this.gl.bindTexture(this.gl.TEXTURE_2D, this._getWebGLTexture(tex));
+            const uDiffuseLoc = cache.uniforms.get("u_diffuseMap");
+            if (uDiffuseLoc) this.gl.uniform1i(uDiffuseLoc, 0);
+
+            if (uExtraLoc) {
+              this.gl.uniform4fv(uExtraLoc, extraParams as Float32Array);
+            }
+          }
+
+          if (!hasAlpha && uExtraLoc) {
+            this.gl.uniform4fv(uExtraLoc, new Float32Array([0, 0, 0, 0]));
+          }
+
+          for (const o of objects) {
+            if (!o.castShadow || !o.geometry) continue;
+
+            this._scratchModelMatrix.set(o.worldMatrix.data);
+            const uModel = cache.uniforms.get("u_model");
+            if (uModel) this.gl.uniformMatrix4fv(uModel, false, this._scratchModelMatrix);
+
+            let mesh = this._cache.get(o.geometry);
+            if (!mesh) {
+              mesh = new Mesh(this.gl, o.geometry);
+              this._cache.set(o.geometry, mesh);
+            } else if (o.geometry.needsUpdate) {
+              mesh.update(o.geometry);
+              o.geometry.needsUpdate = false;
             }
 
-            if (!hasAlpha && uExtraLoc) {
-              this.gl.uniform4fv(uExtraLoc, new Float32Array([0, 0, 0, 0]));
-            }
-
-            for (const o of objects) {
-              if (!o.castShadow || !o.geometry) continue;
-
-              this._scratchModelMatrix.set(o.worldMatrix.data);
-              const uModel = cache.uniforms.get("u_model");
-              if (uModel) this.gl.uniformMatrix4fv(uModel, false, this._scratchModelMatrix);
-
-              let mesh = this._cache.get(o.geometry);
-              if (!mesh) {
-                mesh = new Mesh(this.gl, o.geometry);
-                this._cache.set(o.geometry, mesh);
-              } else if (o.geometry.needsUpdate) {
-                mesh.update(o.geometry);
-                o.geometry.needsUpdate = false;
-              }
-
-              mesh.bind(
-                cache.attributes.get("a_position")!,
-                cache.attributes.get("a_normal")!,
-                cache.attributes.get("a_uv")!,
-                cache.attributes.get("a_tangent")!,
-              );
-              mesh.draw(drawMode);
-            }
+            mesh.bind(
+              cache.attributes.get("a_position")!,
+              cache.attributes.get("a_normal")!,
+              cache.attributes.get("a_uv")!,
+              cache.attributes.get("a_tangent")!,
+            );
+            mesh.draw(drawMode);
           }
         }
       }
+    }
+  }
+
+  /**
+   * Binds dummy depth textures to shadow samplers to satisfy WebGL2 sampler2DShadow validation rules.
+   */
+  private _bindDummyShadowMaps(cache: ProgramCache): void {
+    const dummyUnit = 13;
+    const maxUnits = DeviceCaps.getLimit(DeviceLimit.MAX_TEXTURE_IMAGE_UNITS);
+    if (dummyUnit >= maxUnits) return;
+
+    this.gl.activeTexture(this.gl.TEXTURE0 + dummyUnit);
+    this.gl.bindTexture(this.gl.TEXTURE_2D, this._dummyShadowMap.texture);
+
+    const dirMapLoc = cache.uniforms.get("u_dirShadowMap");
+    if (dirMapLoc) this.gl.uniform1i(dirMapLoc, dummyUnit);
+
+    for (let i = 0; i < 4; i++) {
+      const spotMapLoc = cache.uniforms.get(`u_spotShadowMap[${i}]`);
+      if (spotMapLoc) this.gl.uniform1i(spotMapLoc, dummyUnit);
     }
   }
 
@@ -399,6 +506,9 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
   ): void {
     const cache = this._getProgram(shaderId);
     this.gl.useProgram(cache.prog);
+
+    this._bindDummyShadowMaps(cache);
+
     // Bind Shadow Maps
     if (lights && lights.sLights.length > 0) {
       for (let i = 0; i < 4; i++) {
@@ -412,22 +522,84 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
           const fbo = this._shadowMaps.get(light);
           if (fbo && fbo.texture) {
             const texUnit = 8 + i; // TEXTURE8 to TEXTURE11
-            this.gl.activeTexture(this.gl.TEXTURE0 + texUnit);
-            this.gl.bindTexture(this.gl.TEXTURE_2D, fbo.texture);
-            if (mapLoc) this.gl.uniform1i(mapLoc, texUnit);
-            if (matLoc)
-              this.gl.uniformMatrix4fv(matLoc, false, light.shadowCamera.viewProjectionMatrix);
-            // x: bias, y: normalBias, z: castShadow (1.0 = true)
-            if (infoLoc)
-              this.gl.uniform4fv(
-                infoLoc,
-                new Float32Array([light.shadowBias, light.shadowNormalBias, 1.0, 0.0]),
+            const maxUnits = DeviceCaps.getLimit(DeviceLimit.MAX_TEXTURE_IMAGE_UNITS);
+            if (texUnit >= maxUnits) {
+              console.warn(
+                `[WebGL2Renderer] Exceeded MAX_TEXTURE_IMAGE_UNITS (${maxUnits}). Cannot bind spot shadow map to texture unit ${texUnit}.`,
               );
+            } else {
+              this.gl.activeTexture(this.gl.TEXTURE0 + texUnit);
+              this.gl.bindTexture(this.gl.TEXTURE_2D, fbo.texture);
+              if (mapLoc) this.gl.uniform1i(mapLoc, texUnit);
+              if (matLoc)
+                this.gl.uniformMatrix4fv(matLoc, false, light.shadowCamera.viewProjectionMatrix);
+              // x: bias, y: normalBias, z: castShadow (1.0 = true)
+              if (infoLoc)
+                this.gl.uniform4fv(
+                  infoLoc,
+                  new Float32Array([light.shadowBias, light.shadowNormalBias, 1.0, 0.0]),
+                );
+            }
           }
         } else {
           if (infoLoc) this.gl.uniform4fv(infoLoc, new Float32Array([0.0, 0.0, 0.0, 0.0]));
         }
       }
+    }
+
+    // DirectionalLight Shadows
+    if (lights && lights.dLight && lights.dLight.castShadow && lights.dLight.numCascades > 0) {
+      const light = lights.dLight;
+      const mapLoc = cache.uniforms.get("u_dirShadowMap");
+      const splitsLoc = cache.uniforms.get("u_cascadeSplits");
+      const infoLoc = cache.uniforms.get("u_dirShadowInfo");
+
+      const fbo = this._shadowMaps.get(light);
+      if (fbo && fbo.texture) {
+        const texUnit = 12; // TEXTURE12
+        const maxUnits = DeviceCaps.getLimit(DeviceLimit.MAX_TEXTURE_IMAGE_UNITS);
+        if (texUnit >= maxUnits) {
+          console.warn(
+            `[WebGL2Renderer] Exceeded MAX_TEXTURE_IMAGE_UNITS (${maxUnits}). Cannot bind directional shadow map to texture unit ${texUnit}.`,
+          );
+        } else {
+          this.gl.activeTexture(this.gl.TEXTURE0 + texUnit);
+          this.gl.bindTexture(this.gl.TEXTURE_2D, fbo.texture);
+          if (mapLoc) this.gl.uniform1i(mapLoc, texUnit);
+
+          for (let i = 0; i < light.numCascades; i++) {
+            const matLoc = cache.uniforms.get(`u_cascadeMatrices[${i}]`);
+            if (matLoc && light.cascadeCameras[i]) {
+              this.gl.uniformMatrix4fv(
+                matLoc,
+                false,
+                light.cascadeCameras[i]!.viewProjectionMatrix,
+              );
+            }
+          }
+
+          if (splitsLoc) {
+            const splits = new Float32Array([
+              light.cascadeSplits[0] ?? 0,
+              light.cascadeSplits[1] ?? 0,
+              light.cascadeSplits[2] ?? 0,
+              light.cascadeSplits[3] ?? 0,
+            ]);
+            this.gl.uniform4fv(splitsLoc, splits);
+          }
+
+          if (infoLoc) {
+            // x: bias, y: normalBias, z: castShadow, w: numCascades
+            this.gl.uniform4fv(
+              infoLoc,
+              new Float32Array([light.shadowBias, light.shadowNormalBias, 1.0, light.numCascades]),
+            );
+          }
+        }
+      }
+    } else {
+      const infoLoc = cache.uniforms.get("u_dirShadowInfo");
+      if (infoLoc) this.gl.uniform4fv(infoLoc, new Float32Array([0.0, 0.0, 0.0, 0.0]));
     }
 
     for (const materialGroup of materialGroups.values()) {
@@ -502,18 +674,25 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         for (const [uniformName, unit] of Object.entries(samplerUnits)) {
           const loc = u.get(uniformName);
           if (loc) {
-            this.gl.activeTexture(this.gl.TEXTURE0 + unit);
-            const t = texs[uniformName] as Texture;
-            if (uniformName === "u_normalMap" && !t)
-              this.gl.bindTexture(this.gl.TEXTURE_2D, this.defaultNormalMap);
-            else if (uniformName === "u_specularMap" && !t)
-              this.gl.bindTexture(this.gl.TEXTURE_2D, this.defaultSpecularMap);
-            else
-              this.gl.bindTexture(
-                this.gl.TEXTURE_2D,
-                t ? this._getWebGLTexture(t) : this.defaultTexture,
+            const maxUnits = DeviceCaps.getLimit(DeviceLimit.MAX_TEXTURE_IMAGE_UNITS);
+            if (unit >= maxUnits) {
+              console.warn(
+                `[WebGL2Renderer] Exceeded MAX_TEXTURE_IMAGE_UNITS (${maxUnits}). Cannot bind material texture ${uniformName} to unit ${unit}.`,
               );
-            this.gl.uniform1i(loc, unit);
+            } else {
+              this.gl.activeTexture(this.gl.TEXTURE0 + unit);
+              const t = texs[uniformName] as Texture;
+              if (uniformName === "u_normalMap" && !t)
+                this.gl.bindTexture(this.gl.TEXTURE_2D, this.defaultNormalMap);
+              else if (uniformName === "u_specularMap" && !t)
+                this.gl.bindTexture(this.gl.TEXTURE_2D, this.defaultSpecularMap);
+              else
+                this.gl.bindTexture(
+                  this.gl.TEXTURE_2D,
+                  t ? this._getWebGLTexture(t) : this.defaultTexture,
+                );
+              this.gl.uniform1i(loc, unit);
+            }
           }
         }
       }
