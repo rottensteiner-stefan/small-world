@@ -1,5 +1,4 @@
 {
-  "rendererType": "WEB_GPU",
   "inputMode": "tank",
   "canvasId": "SmallWorld",
   "debug": false,

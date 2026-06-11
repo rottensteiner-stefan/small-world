@@ -1,6 +1,6 @@
 /// src/renderers/WebGPURenderer.ts
 
-import { CubeTexture, RenderManifest, ShaderRegistry, Texture } from "../core/index.js";
+import { CubeTexture, RenderManifest, ShaderRegistry, Texture, DeviceCaps } from "../core/index.js";
 import { GeometryDataInterface, LightDataInterface } from "../interfaces/index.js";
 import { Object3D } from "../core/Object3D.js";
 import { Scene } from "../core/Scene.js";
@@ -92,16 +92,14 @@ export class WebGPURenderer extends AbstractRenderer {
     this._adapter = (await navigator.gpu.requestAdapter(attributes)) ?? undefined;
     if (!this._adapter) throw new Error("[WebGPURenderer] No adapter found.");
 
-    console.log("[WebGPURenderer] Adapter limits:", this._adapter.limits);
+    this._device = await this._adapter.requestDevice();
 
     // Update DeviceCaps with actual WebGPU limits
-    const { DeviceCaps } = await import("../core/DeviceCaps.js");
     DeviceCaps.updateLimits({
-      maxTextureSize: this._adapter.limits.maxTextureDimension2D,
-      maxUniformBufferSize: this._adapter.limits.maxUniformBufferBindingSize,
+      maxTextureSize: this._device.limits.maxTextureDimension2D,
+      maxUniformBufferSize: this._device.limits.maxUniformBufferBindingSize,
+      maxTextureImageUnits: this._device.limits.maxSampledTexturesPerShaderStage,
     });
-
-    this._device = await this._adapter.requestDevice();
 
     // Add uncapturederror listener
     this._device.onuncapturederror = (event: GPUUncapturedErrorEvent): void => {

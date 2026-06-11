@@ -1,7 +1,14 @@
 /// src/renderers/WebGL1Renderer.ts
 
 import { AbstractWebGLRenderer } from "./AbstractWebGLRenderer.js";
-import { Color, CubeTexture, ShaderRegistry, Texture } from "../core/index.js";
+import {
+  Color,
+  CubeTexture,
+  ShaderRegistry,
+  Texture,
+  DeviceCaps,
+  DeviceLimit,
+} from "../core/index.js";
 import { EngineConfig, GeometryDataInterface, LightDataInterface } from "../interfaces/index.js";
 import { MaterialType, RendererType, TextureFilter, CullMode } from "../enums/index.js";
 import { Mesh } from "./Mesh.js";
@@ -97,7 +104,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
 
       Object.keys(def.layout.uniforms).forEach((name) => {
         const loc = this.gl.getUniformLocation(prog, name);
-        if (null === loc) {
+        if (null === loc && name !== "u_thresholds" && name !== "u_liquidParams") {
           console.warn(
             `[WebGL1Renderer] Uniform '${name}' defined in material layout but not found in shader '${shaderId}'. It might be unused or optimized away.`,
           );
@@ -396,17 +403,24 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
         for (const [uniformName, unit] of Object.entries(samplerUnits)) {
           const loc = u.get(uniformName);
           if (loc) {
-            this.gl.activeTexture(this.gl.TEXTURE0 + unit);
-            const t = texs[uniformName] as Texture;
-            this.gl.bindTexture(
-              this.gl.TEXTURE_2D,
-              t
-                ? this._getWebGLTexture(t)
-                : uniformName === "u_normalMap"
-                  ? this.defaultNormalMap
-                  : this.defaultTexture,
-            );
-            this.gl.uniform1i(loc, unit);
+            const maxUnits = DeviceCaps.getLimit(DeviceLimit.MAX_TEXTURE_IMAGE_UNITS);
+            if (unit >= maxUnits) {
+              console.warn(
+                `[WebGL1Renderer] Exceeded MAX_TEXTURE_IMAGE_UNITS (${maxUnits}). Cannot bind material texture ${uniformName} to unit ${unit}.`,
+              );
+            } else {
+              this.gl.activeTexture(this.gl.TEXTURE0 + unit);
+              const t = texs[uniformName] as Texture;
+              this.gl.bindTexture(
+                this.gl.TEXTURE_2D,
+                t
+                  ? this._getWebGLTexture(t)
+                  : uniformName === "u_normalMap"
+                    ? this.defaultNormalMap
+                    : this.defaultTexture,
+              );
+              this.gl.uniform1i(loc, unit);
+            }
           }
         }
       }

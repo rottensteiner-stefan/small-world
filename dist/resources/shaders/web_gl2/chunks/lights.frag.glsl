@@ -1,3 +1,5 @@
+precision highp int;
+
 struct PointLight {
     vec3 pos;
     float _pad;
@@ -55,3 +57,13 @@ layout(std140) uniform GlobalUniforms {
     SpotLight u_spotLights[4];
     AreaLight u_areaLights[4];
 };
+
+// Linear to sRGB
+vec3 linearToSRGB(vec3 color) {
+    return pow(color, vec3(1.0 / u_gamma));
+}
+
+// sRGB to Linear
+vec3 sRGBToLinear(vec3 color) {
+    return pow(color, vec3(u_gamma));
+}
