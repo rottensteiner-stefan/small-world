@@ -1,6 +1,7 @@
 /// src/math/index.ts
 
 export * from "./Frustum.js";
+export * from "./GearMath.js";
 export * from "./MathUtils.js";
 export * from "./MathPool.js";
 export * from "./Matrix3.js";
