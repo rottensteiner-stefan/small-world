@@ -69,6 +69,9 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     }
 
     this._dummyShadowMap = new WebGL2DepthFrameBuffer(this.gl, 1, 1);
+    this._dummyShadowMap.bind();
+    this.gl.clear(this.gl.DEPTH_BUFFER_BIT);
+    this._dummyShadowMap.unbind();
 
     this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, false);
     this.initDefaultTextures();

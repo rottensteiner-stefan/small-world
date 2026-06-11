@@ -29,16 +29,16 @@ export class WebGL2DepthFrameBuffer {
     this._depthTexture = gl.createTexture()!;
     gl.bindTexture(gl.TEXTURE_2D, this._depthTexture);
 
-    // We use DEPTH_COMPONENT32F for high-precision shadow mapping to avoid artifacts
+    // We use DEPTH_COMPONENT24 for high-precision shadow mapping to avoid artifacts while maximizing compatibility
     gl.texImage2D(
       gl.TEXTURE_2D,
       0,
-      gl.DEPTH_COMPONENT32F,
+      gl.DEPTH_COMPONENT24,
       width,
       height,
       0,
       gl.DEPTH_COMPONENT,
-      gl.FLOAT,
+      gl.UNSIGNED_INT,
       null,
     );
 
