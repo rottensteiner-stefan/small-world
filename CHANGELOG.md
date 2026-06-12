@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.22.0] - 2026-06-13
+
+- **Core Architecture: Behavior System Refactoring**:
+  - Transformed algorithmic behaviors (`PulsatingBehavior`, `FlickerBehavior`, `ProximitySensorBehavior`) into generic, callback-driven components (`onUpdate: (val, target) => void`). This drastically enhances composability by fully decoupling complex state-machine logic (timers, noise functions, random cuts) from specific 3D properties (emissive intensity, scale, transforms).
+  - Replaced the hardcoded `EmissivePulsateBehavior` with the fully agnostic `PulsatingBehavior`.
+  - Generalized `LightFlickerBehavior` into `FlickerBehavior`, retaining the organic and hard-cut algorithms while allowing attachment to any object property.
+  - Cleaned up outdated mechanics (`ProceduralLiquidGenerator`, `UVScrollBehavior`) to maintain architectural simplicity.
+- **Testing & Quality Assurance**:
+  - Implemented 3 extensive new test suites (`PulsatingBehavior.test.ts`, `FlickerBehavior.test.ts`, `ProximitySensorBehavior.test.ts`) covering simulated frame runtimes to strictly verify mathematical bounds, linear interpolations, and phase transitions.
+  - Total test suite now spans 66 rigorously passing unit tests across Mathematics, Materials, Rendering, and Behaviors.
+- **Bugfixes & Rendering Fixes**:
+  - Fixed a critical "disappearing light cone" bug in Example 12. Correctly identified and resolved a situation where 4 decorative Porthole-Spotlights entirely consumed the engine's internal WebGPU SpotLight limit (`sLights[4]`), forcing the main shadow-casting spotlight to be silently dropped by the forward renderer.
+  - Adjusted Example 12 to rely on `emissiveIntensity` pulsation on the Portholes instead of spawning hidden Spotlights, recovering crucial light slots and saving performance.
+
 ## [0.21.00] - 2026-06-11
 
 - **Core Architecture: Shadow Mapping (WebGL 2.0)**:
