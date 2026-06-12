@@ -2,6 +2,7 @@
 
 import { Object3D } from "./Object3D.js";
 import { Octree } from "./Octree.js";
+import { Fog } from "./Fog.js";
 import { BoundingBox } from "../physix/index.js";
 import { BoundingType, Topology } from "../enums/index.js";
 import { DirectionalLight } from "./lights/index.js";
@@ -14,6 +15,7 @@ export class Scene {
   private readonly _objectsByName: Map<string, Object3D> = new Map();
   public staticOctree: Octree | undefined = undefined;
   public dynamicOctree: Octree | undefined = undefined;
+  public fog?: Fog;
 
   public add(...objs: Object3D[]): void {
     for (const obj of objs) {

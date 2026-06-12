@@ -11,7 +11,14 @@ struct GlobalUniforms {
     numAreaLights: f32,
     gamma: f32,
     exposure: f32,
-    _pad: vec3f
+    fogMode: f32,
+    fogDensity: f32,
+    fogNear: f32,
+    fogFar: f32,
+    fogHeight: f32,
+    fogHeightFalloff: f32,
+    _pad: f32,
+    fogColor: vec4f
 }
 
 struct ObjectUniforms {

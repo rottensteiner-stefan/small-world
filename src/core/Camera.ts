@@ -208,12 +208,7 @@ export class Camera implements CameraInterfaceData {
   }
 
   /** @inheritdoc */
-  public update(
-    targetPos: Vector3D,
-    dx: number,
-    dy: number,
-    deltaTime: number = 0.016,
-  ): void {
+  public update(targetPos: Vector3D, dx: number, dy: number, deltaTime: number = 0.016): void {
     for (let i = 0; i < this.behaviors.length; i++) {
       const b = this.behaviors[i]!;
       if (b.isActive) b.update(deltaTime);

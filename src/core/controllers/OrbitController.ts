@@ -46,7 +46,7 @@ export class OrbitController extends Behavior {
     if (!this.enabled || !this.target) {
       return;
     }
-    
+
     const cam = this.target as unknown as CameraInterfaceData;
 
     // 1. Handle Rotation

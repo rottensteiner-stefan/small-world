@@ -5,13 +5,14 @@
   [WGSL_LIGHTING]
   
   let albedo = sRGBToLinear(texCol.rgb) * sRGBToLinear(obj.color.rgb);
-  var finalColor = fL * albedo;
+  var color = fL * albedo;
 
   // Exposure
-  finalColor *= global.exposure;
+  color *= global.exposure;
 
   // Gamma correction
-  finalColor = linearToSRGB(finalColor);
+  color = linearToSRGB(color);
 
-  return vec4f(finalColor, obj.color.a * texCol.a);
+  [WGSL_FOG_CALC]
+  return vec4f(color, obj.color.a * texCol.a);
 }

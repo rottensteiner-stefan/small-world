@@ -142,6 +142,13 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         "u_snowMap",
         "u_texOffset",
         "u_texRepeat",
+        "u_fogMode",
+        "u_fogColor",
+        "u_fogDensity",
+        "u_fogNear",
+        "u_fogFar",
+        "u_fogHeight",
+        "u_fogHeightFalloff",
       ].forEach((name) => {
         if (!uniforms.has(name)) {
           uniforms.set(name, this.gl.getUniformLocation(prog, name) ?? undefined);
@@ -288,7 +295,14 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     if (skyboxShaderMap) {
       this.gl.depthMask(false);
       for (const [topology, materialGroups] of skyboxShaderMap.entries()) {
-        this._renderGroup(MaterialType.SKYBOX, materialGroups, vMat, topology, extractedLights);
+        this._renderGroup(
+          MaterialType.SKYBOX,
+          materialGroups,
+          vMat,
+          topology,
+          extractedLights,
+          scene.fog,
+        );
       }
       this.gl.depthMask(true);
       sortedGroups.delete(MaterialType.SKYBOX);
@@ -297,7 +311,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     // --- PASS 2: All other Objects ---
     for (const [shaderId, topologyMap] of sortedGroups.entries()) {
       for (const [topology, materialGroups] of topologyMap.entries()) {
-        this._renderGroup(shaderId, materialGroups, vMat, topology, extractedLights);
+        this._renderGroup(shaderId, materialGroups, vMat, topology, extractedLights, scene.fog);
       }
     }
   }
@@ -491,7 +505,9 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     this.gl.activeTexture(this.gl.TEXTURE0 + dummyUnit);
     this.gl.bindTexture(this.gl.TEXTURE_2D, this._dummyShadowMap.texture);
 
-    const dirMapLoc = cache.uniforms.get("u_dirShadowMap");
+    let dirMapLoc = cache.uniforms.get("u_dirShadowMap");
+    if (!dirMapLoc)
+      dirMapLoc = this.gl.getUniformLocation(cache.prog, "u_dirShadowMap") ?? undefined;
     if (dirMapLoc) this.gl.uniform1i(dirMapLoc, dummyUnit);
 
     for (let i = 0; i < 4; i++) {
@@ -510,6 +526,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     vMat?: Float32Array,
     topology: string = "triangle-list",
     lights?: LightDataInterface,
+    fog?: import("../core/Fog.js").Fog,
   ): void {
     const cache = this._getProgram(shaderId);
     this.gl.useProgram(cache.prog);
@@ -615,6 +632,27 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       const mat = firstObj.material!;
       const manifest = mat.getRenderManifest();
       const u = cache.uniforms;
+
+      // --- Fog Uniforms ---
+      if (fog) {
+        const modeLoc = u.get("u_fogMode");
+        if (modeLoc) this.gl.uniform1i(modeLoc, fog.mode);
+        const colLoc = u.get("u_fogColor");
+        if (colLoc) this.gl.uniform3f(colLoc, fog.color.r, fog.color.g, fog.color.b);
+        const densLoc = u.get("u_fogDensity");
+        if (densLoc) this.gl.uniform1f(densLoc, fog.density);
+        const nearLoc = u.get("u_fogNear");
+        if (nearLoc) this.gl.uniform1f(nearLoc, fog.near);
+        const farLoc = u.get("u_fogFar");
+        if (farLoc) this.gl.uniform1f(farLoc, fog.far);
+        const heightLoc = u.get("u_fogHeight");
+        if (heightLoc) this.gl.uniform1f(heightLoc, fog.height);
+        const hFalloffLoc = u.get("u_fogHeightFalloff");
+        if (hFalloffLoc) this.gl.uniform1f(hFalloffLoc, fog.heightFalloff);
+      } else {
+        const modeLoc = u.get("u_fogMode");
+        if (modeLoc) this.gl.uniform1i(modeLoc, 0); // NONE
+      }
 
       // --- 1. Bind Material States (Once per material group) ---
       const state = manifest.state;

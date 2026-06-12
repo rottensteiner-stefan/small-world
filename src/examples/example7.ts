@@ -50,9 +50,11 @@ export class Example7 extends AbstractExample {
     this.camera.setStrategy(CameraStrategyType.FPS);
     this.camera.position.set(0, this._eyeHeight, 0);
 
-    this.camera.addBehavior(new FPSController( {
+    this.camera.addBehavior(
+      new FPSController({
         moveSpeed: this._moveSpeed,
-      }));
+      }),
+    );
     this.camera.addBehavior(new ZoomController());
 
     // 2. Lighting
