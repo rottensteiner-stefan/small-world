@@ -18,20 +18,24 @@ import {
   PhongMaterial,
   StandardMaterial,
   Texture,
+  Torus,
   BoundingBox,
   Vector2D,
   Vector3D,
   SpotLight,
-  LightFlickerBehavior,
+  FlickerBehavior,
   ProximitySensorBehavior,
   Fog,
   FogMode,
+  PulsatingBehavior,
 } from "../index.js";
 import { AbstractExample, Input } from "../core/index.js";
 
 class AbyssalDecoExample extends AbstractExample {
   private _portLight!: SpotLight;
-  private _portLightBehavior!: LightFlickerBehavior;
+  private _portLightBehavior!: FlickerBehavior;
+  private _portLightBaseIntensity: number = 10.0;
+  private _portLightBaseColor: Color = new Color(1.0, 0.8, 0.5);
   private _portMaterial?: StandardMaterial;
   private _time: number = 0;
   private _gears: { obj: Object3D; speed: number }[] = [];
@@ -50,13 +54,11 @@ class AbyssalDecoExample extends AbstractExample {
     }
     // --- Fog Setup ---
     // A room length is 40. 1/5 of that is 8.
-    // At density 0.06, EXP2 fog starts becoming visible around distance 8,
-    // and becomes very thick towards the walls at distance 20-30.
     this.scene.fog = new Fog({
       mode: FogMode.LINEAR,
       color: new Color(0.0, 0.1, 0.15), // Dark abyssal teal/blue
       near: 7.0, // Kein Nebel in der Mitte (ca. 1/3 der Distanz)
-      far: 22.0, // Dichter Nebel an den Wänden (Wände sind ca bei Distanz 20)
+      far: 35.0, // Dichter Nebel an den Wänden (Wände sind ca bei Distanz 20)
       height: 0.0,
       heightFalloff: 0.0, // No falloff, pure distance fog
     });
@@ -97,6 +99,11 @@ class AbyssalDecoExample extends AbstractExample {
     let portDiffuse: Texture | undefined;
     let portNormal: Texture | undefined;
     let portRoughness: Texture | undefined;
+    let portEmissive: Texture | undefined;
+
+    let glassAlbedo: Texture | undefined;
+    let glassRoughness: Texture | undefined;
+    let glassEmissive: Texture | undefined;
 
     try {
       decoDiffuse = await Texture.fromUrl("/resources/examples/12/artdeco_diffuse.png");
@@ -118,6 +125,10 @@ class AbyssalDecoExample extends AbstractExample {
         brassRoughness.repeat.x = 2;
         brassRoughness.repeat.y = 2;
       }
+
+      glassAlbedo = await Texture.fromUrl("/resources/examples/12/glass_albedo.png");
+      glassRoughness = await Texture.fromUrl("/resources/examples/12/glass_roughness.png");
+      glassEmissive = await Texture.fromUrl("/resources/examples/12/glass_emissive.png");
 
       steelDiffuse = await Texture.fromUrl("/resources/examples/12/scratched_steel_diffuse.png");
       if (steelDiffuse) {
@@ -172,6 +183,7 @@ class AbyssalDecoExample extends AbstractExample {
       portDiffuse = await Texture.fromUrl("/resources/examples/12/porthole_diffuse.png");
       portNormal = await Texture.fromUrl("/resources/examples/12/porthole_normal.png");
       portRoughness = await Texture.fromUrl("/resources/examples/12/porthole_roughness.png");
+      portEmissive = await Texture.fromUrl("/resources/examples/12/porthole_emissive.png");
 
       // Texturen kacheln (1 Repeat pro 2 World-Units)
       if (decoDiffuse) {
@@ -271,9 +283,9 @@ class AbyssalDecoExample extends AbstractExample {
       diffuseMap: portDiffuse,
       normalMap: portNormal,
       roughnessMap: portRoughness,
-      emissiveMap: portDiffuse, // Use diffuse as emissive mask so the black grid stays dark!
+      emissiveMap: portEmissive, // Use generated emissive map!
       emissiveColor: new Color(1.0, 0.8, 0.5), // Warm glow
-      emissiveIntensity: 3.0,
+      emissiveIntensity: 3.0, // Back to normal intensity
       transparent: true,
       alphaTest: 0.1,
       roughness: 0.3,
@@ -617,13 +629,33 @@ class AbyssalDecoExample extends AbstractExample {
       glass.setScale(1.0, 1.0, 0.2); // Flattened on Z axis
 
       const glassMaterial = new StandardMaterial({
-        color: new Color(0.0, 0.1, 0.2),
-        emissiveColor: new Color(0.0, 0.4, 0.5), // Glowing cyan
-        emissiveIntensity: 3.0,
-        roughness: 0.1,
-        metallic: 0.9,
+        color: new Color(1.0, 1.0, 1.0), // Base color from texture
+        diffuseMap: glassAlbedo, // Fake ocean color + dirt
+        roughnessMap: glassRoughness, // Scratches and streaks
+        roughness: 0.1, // Very smooth where there are no scratches
+        metallic: 0.9, // Highly reflective
+        emissiveColor: new Color(0.0, 0.8, 1.0), // Bright glow from the ocean outside
+        emissiveMap: glassEmissive, // Glows only where there is no dirt
+        emissiveIntensity: 4.0, // High intensity to fake looking outside
+        transparent: false,
       });
       glass.material = glassMaterial;
+
+      // Add pulsating behavior to the glass!
+      glass.addBehavior(
+        new PulsatingBehavior({
+          min: 1.0,
+          max: 4.0,
+          minDuration: 2.0,
+          maxDuration: 5.0,
+          onUpdate: (val: number, target: Object3D): void => {
+            if (target.material instanceof StandardMaterial) {
+              target.material.emissiveIntensity = val;
+            }
+          },
+        }),
+      );
+
       group.add(glass);
 
       return group;
@@ -706,6 +738,21 @@ class AbyssalDecoExample extends AbstractExample {
     baulichtSurface.position.set(0, 0, 0.51);
     baulichtGroup.add(baulichtSurface);
 
+    // Bezel (Torus) connecting the Plane smoothly to the Gear Sockel
+    const baulichtBezel = new Object3D("Baulicht_Bezel");
+    baulichtBezel.geometry = new Torus({
+      radius: 1.55,
+      tube: 0.2,
+      radialSegments: 16,
+      tubularSegments: 64,
+    }).getGeometryData();
+    baulichtBezel.material = brassMaterial;
+    baulichtBezel.castShadow = true;
+    baulichtBezel.receiveShadow = true;
+    baulichtBezel.rotation.x = Math.PI / 2; // Flat against the wall
+    baulichtBezel.position.set(0, 0, 0.51); // Sit exactly at the plane level
+    baulichtGroup.add(baulichtBezel);
+
     this.scene.add(baulichtGroup);
 
     // Add the SpotLight back to the Baulicht
@@ -724,9 +771,20 @@ class AbyssalDecoExample extends AbstractExample {
     this._portLight = portLight;
 
     // Add our new Behavior to the light
-    this._portLightBehavior = new LightFlickerBehavior({
-      baseIntensity: 10.0,
-      flickerColor: new Color(1.0, 0.0, 0.0), // Deep red when it flickers/dims
+    const flickerColor = new Color(1.0, 0.0, 0.0); // Deep red when it flickers/dims
+    this._portLightBehavior = new FlickerBehavior({
+      onUpdate: (multiplier: number, target: Object3D): void => {
+        if (target instanceof SpotLight) {
+          target.intensity = this._portLightBaseIntensity * multiplier;
+
+          const blendFactor = 1.0 - multiplier;
+          const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
+
+          target.color.r = lerp(this._portLightBaseColor.r, flickerColor.r, blendFactor);
+          target.color.g = lerp(this._portLightBaseColor.g, flickerColor.g, blendFactor);
+          target.color.b = lerp(this._portLightBaseColor.b, flickerColor.b, blendFactor);
+        }
+      },
     });
     this._portLight.addBehavior(this._portLightBehavior);
 
@@ -740,7 +798,7 @@ class AbyssalDecoExample extends AbstractExample {
           // factor is 0.0 (far) to 1.0 (very close)
 
           // Boost base intensity up to 250% (10.0 * 2.5) for extreme debugging visibility
-          this._portLightBehavior.options.baseIntensity = 10.0 * (1.0 + 1.5 * factor);
+          this._portLightBaseIntensity = 10.0 * (1.0 + 1.5 * factor);
 
           // Reduce stable time (0% at full proximity, i.e., constant flickering)
           this._portLightBehavior.options.minStableTime = 2.0 * (1.0 - factor);
@@ -798,25 +856,22 @@ class AbyssalDecoExample extends AbstractExample {
       this._portMaterial.emissiveIntensity = (this._portLight.intensity / 10.0) * 3.0;
     }
 
-    // Adjust base porthole light intensity via NumpadAdd (+) and NumpadSubtract (-)
+    if (Math.floor(this._time) > Math.floor(this._time - deltaTime)) {
+      console.log(
+        `[Debug] portLight intensity: ${this._portLight?.intensity}, color: ${this._portLight?.color.r}, ${this._portLight?.color.g}, ${this._portLight?.color.b}`,
+      );
+    } // Adjust base porthole light intensity via NumpadAdd (+) and NumpadSubtract (-)
     if (
       Input.isPressed("NumpadAdd") ||
       Input.isPressed("Equal") ||
       Input.isPressed("BracketRight")
     ) {
-      this._portLightBehavior.options.baseIntensity += deltaTime * 5.0;
-      console.log(
-        `[Porthole] Base Intensity: ${this._portLightBehavior.options.baseIntensity.toFixed(2)}`,
-      );
+      this._portLightBaseIntensity += deltaTime * 5.0;
+      console.log(`[Porthole] Base Intensity: ${this._portLightBaseIntensity.toFixed(2)}`);
     }
     if (Input.isPressed("NumpadSubtract") || Input.isPressed("Minus") || Input.isPressed("Slash")) {
-      this._portLightBehavior.options.baseIntensity = Math.max(
-        0,
-        this._portLightBehavior.options.baseIntensity - deltaTime * 5.0,
-      );
-      console.log(
-        `[Porthole] Base Intensity: ${this._portLightBehavior.options.baseIntensity.toFixed(2)}`,
-      );
+      this._portLightBaseIntensity = Math.max(0.0, this._portLightBaseIntensity - deltaTime * 5.0);
+      console.log(`[Porthole] Base Intensity: ${this._portLightBaseIntensity.toFixed(2)}`);
     }
 
     // Update gears

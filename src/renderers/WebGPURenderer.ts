@@ -315,11 +315,18 @@ export class WebGPURenderer extends AbstractRenderer {
         visibility: GPUShaderStage.FRAGMENT,
         texture: { viewDimension: "cube" },
       });
-      objEntries.push({
-        binding: 12,
-        visibility: GPUShaderStage.FRAGMENT,
-        texture: { sampleType: "float" },
-      });
+      objEntries.push(
+        {
+          binding: 12,
+          visibility: GPUShaderStage.FRAGMENT,
+          texture: { viewDimension: "2d", sampleType: "float" },
+        },
+        {
+          binding: 13,
+          visibility: GPUShaderStage.FRAGMENT,
+          texture: { viewDimension: "2d", sampleType: "float" },
+        },
+      );
       const objBGL = this._device!.createBindGroupLayout({ entries: objEntries });
       const pipelineLayout = this._device!.createPipelineLayout({
         bindGroupLayouts: [this._globalBGL, objBGL],
@@ -580,6 +587,7 @@ export class WebGPURenderer extends AbstractRenderer {
         resource: this._getGPUCubeTextureView(m.textures["u_skybox"] as CubeTexture),
       },
       { binding: 12, resource: this._getTextureView(m.textures["u_emissiveMap"] as Texture) },
+      { binding: 13, resource: this._getTextureView(m.textures["u_alphaMap"] as Texture) },
     ];
     return this._device!.createBindGroup({ layout, entries });
   }

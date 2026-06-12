@@ -37,9 +37,9 @@ export declare class LightFlickerBehavior extends Behavior {
     private _timeAcc;
     /**
      * Creates a new LightFlickerBehavior.
-     * @param options Configuration options or just the baseIntensity as a number.
+     * @param options Configuration options.
      */
-    constructor(options?: LightFlickerOptions | number);
+    constructor(options?: LightFlickerOptions);
     onAttach(target: import('../Object3D.js').Object3D | import('../../interfaces/index.js').CameraInterfaceData): void;
     update(deltaTime: number): void;
 }
