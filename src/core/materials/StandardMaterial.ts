@@ -37,6 +37,8 @@ export interface StandardMaterialOptions {
   emissiveColor?: Color;
   /** The emissive texture map. */
   emissiveMap?: Texture | undefined;
+  /** The alpha mask texture map. */
+  alphaMap?: Texture | undefined;
   /** The intensity of the emissive light. Defaults to 1.0. */
   emissiveIntensity?: number;
   /** Whether the material is transparent. Defaults to false. */
@@ -77,6 +79,9 @@ export class StandardMaterial extends AbstractMaterial {
   /** The emissive map texture. */
   public emissiveMap: Texture | undefined;
 
+  /** The alpha mask texture map. */
+  public alphaMap: Texture | undefined;
+
   /** The intensity of the emissive glow. */
   public emissiveIntensity: number;
 
@@ -101,6 +106,7 @@ export class StandardMaterial extends AbstractMaterial {
       roughnessMap = undefined,
       emissiveColor = new Color(0, 0, 0),
       emissiveMap = undefined,
+      alphaMap = undefined,
       emissiveIntensity = 1.0,
       transparent = false,
       alphaTest = 0.0,
@@ -116,6 +122,7 @@ export class StandardMaterial extends AbstractMaterial {
     this.roughnessMap = roughnessMap;
     this.emissiveColor = emissiveColor;
     this.emissiveMap = emissiveMap;
+    this.alphaMap = alphaMap;
     this.emissiveIntensity = emissiveIntensity;
     this.transparent = transparent;
     this.alphaTest = alphaTest;
@@ -150,6 +157,7 @@ export class StandardMaterial extends AbstractMaterial {
           u_metallicMap: this.metallicMap,
           u_roughnessMap: this.roughnessMap,
           u_emissiveMap: this.emissiveMap,
+          u_alphaMap: this.alphaMap,
         },
       };
     }
@@ -186,6 +194,7 @@ export class StandardMaterial extends AbstractMaterial {
     texs["u_metallicMap"] = this.metallicMap;
     texs["u_roughnessMap"] = this.roughnessMap;
     texs["u_emissiveMap"] = this.emissiveMap;
+    texs["u_alphaMap"] = this.alphaMap;
 
     this._renderManifest.state = {
       ...this._renderManifest.state,
@@ -221,6 +230,7 @@ export class StandardMaterial extends AbstractMaterial {
           u_metallicMap: { type: ShaderPropertyType.TEXTURE },
           u_roughnessMap: { type: ShaderPropertyType.TEXTURE },
           u_emissiveMap: { type: ShaderPropertyType.TEXTURE },
+          u_alphaMap: { type: ShaderPropertyType.TEXTURE },
         },
       },
     };

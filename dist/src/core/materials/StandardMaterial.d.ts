@@ -30,6 +30,8 @@ export interface StandardMaterialOptions {
     emissiveColor?: Color;
     /** The emissive texture map. */
     emissiveMap?: Texture | undefined;
+    /** The alpha mask texture map. */
+    alphaMap?: Texture | undefined;
     /** The intensity of the emissive light. Defaults to 1.0. */
     emissiveIntensity?: number;
     /** Whether the material is transparent. Defaults to false. */
@@ -61,6 +63,8 @@ export declare class StandardMaterial extends AbstractMaterial {
     emissiveColor: Color;
     /** The emissive map texture. */
     emissiveMap: Texture | undefined;
+    /** The alpha mask texture map. */
+    alphaMap: Texture | undefined;
     /** The intensity of the emissive glow. */
     emissiveIntensity: number;
     /** Alpha cutoff threshold. */

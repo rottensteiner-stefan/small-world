@@ -42,7 +42,8 @@ struct Out {
     @location(1) n: vec3f,
     @location(2) uv: vec2f,
     @location(3) t: vec3f,
-    @location(4) b: vec3f
+    @location(4) b: vec3f,
+    @location(5) original_uv: vec2f
 }
 
 struct PointLight {
@@ -84,3 +85,4 @@ struct AreaLight {
 @group(1) @binding(10) var u_roughnessMap: texture_2d<f32>;
 @group(1) @binding(11) var u_skybox: texture_cube<f32>;
 @group(1) @binding(12) var u_emissiveMap: texture_2d<f32>;
+@group(1) @binding(13) var u_alphaMap: texture_2d<f32>;

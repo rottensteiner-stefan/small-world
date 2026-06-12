@@ -11,6 +11,7 @@
     o.pos = global.vp * worldPos;
     o.pos.z = (o.pos.z + o.pos.w) * 0.5;
     o.uv = uv * obj.texRepeat + obj.texOffset;
+    o.original_uv = uv;
     
     // Improved Normal Matrix (handling scaling correctly)
     let m33 = mat3x3f(obj.model[0].xyz, obj.model[1].xyz, obj.model[2].xyz);
