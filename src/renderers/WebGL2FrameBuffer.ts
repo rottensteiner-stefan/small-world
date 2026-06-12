@@ -53,6 +53,8 @@ export class WebGL2FrameBuffer {
     }
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.bindTexture(gl.TEXTURE_2D, null);
+    gl.bindRenderbuffer(gl.RENDERBUFFER, null);
   }
 
   /**
@@ -91,6 +93,7 @@ export class WebGL2FrameBuffer {
       this._gl.UNSIGNED_BYTE,
       null,
     );
+    this._gl.bindTexture(this._gl.TEXTURE_2D, null);
 
     this._gl.bindRenderbuffer(this._gl.RENDERBUFFER, this._renderbuffer);
     this._gl.renderbufferStorage(this._gl.RENDERBUFFER, this._gl.DEPTH24_STENCIL8, width, height);

@@ -7,6 +7,7 @@ export * from "./DeviceCaps.js";
 export * from "./Engine.js";
 export * from "./FPSCounter.js";
 export * from "./FrustumCuller.js";
+export * from "./Fog.js";
 export * from "./Octree.js";
 export * from "./HUD.js";
 export * from "./Input.js";

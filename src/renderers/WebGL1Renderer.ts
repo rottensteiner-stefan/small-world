@@ -139,6 +139,13 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
         "u_snowMap",
         "u_texOffset",
         "u_texRepeat",
+        "u_fogMode",
+        "u_fogColor",
+        "u_fogDensity",
+        "u_fogNear",
+        "u_fogFar",
+        "u_fogHeight",
+        "u_fogHeightFalloff",
       ].forEach((name) => {
         if (!uniforms.has(name)) {
           uniforms.set(name, this.gl.getUniformLocation(prog, name) ?? undefined);
@@ -252,7 +259,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
           MaterialType.SKYBOX,
           materialGroups,
           vp,
-          Vector3D.ZERO,
+          camPos,
           {
             aCol: Color.BLACK,
             aIntensity: 0,
@@ -265,6 +272,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
           },
           vMat,
           topology,
+          scene.fog,
         );
       }
       this.gl.depthMask(true);
@@ -274,7 +282,16 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
     // --- PASS 2: Objects ---
     for (const [shaderId, topologyMap] of sortedGroups.entries()) {
       for (const [topology, materialGroups] of topologyMap.entries()) {
-        this._renderGroup(shaderId, materialGroups, vp, camPos, extractedLights, vMat, topology);
+        this._renderGroup(
+          shaderId,
+          materialGroups,
+          vp,
+          camPos,
+          extractedLights,
+          vMat,
+          topology,
+          scene.fog,
+        );
       }
     }
   }
@@ -287,6 +304,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
     lights: LightDataInterface,
     vMat?: Float32Array,
     topology: string = "triangle-list",
+    fog?: import("../core/Fog.js").Fog,
   ): void {
     const cache = this._getProgram(shaderId);
     this.gl.useProgram(cache.prog);
@@ -347,6 +365,27 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
       const mat = firstObj.material!;
       const manifest = mat.getRenderManifest();
       const texs = manifest.textures;
+
+      // --- Fog Uniforms ---
+      if (fog) {
+        const modeLoc = u.get("u_fogMode");
+        if (modeLoc) this.gl.uniform1i(modeLoc, fog.mode);
+        const colLoc = u.get("u_fogColor");
+        if (colLoc) this.gl.uniform3f(colLoc, fog.color.r, fog.color.g, fog.color.b);
+        const densLoc = u.get("u_fogDensity");
+        if (densLoc) this.gl.uniform1f(densLoc, fog.density);
+        const nearLoc = u.get("u_fogNear");
+        if (nearLoc) this.gl.uniform1f(nearLoc, fog.near);
+        const farLoc = u.get("u_fogFar");
+        if (farLoc) this.gl.uniform1f(farLoc, fog.far);
+        const heightLoc = u.get("u_fogHeight");
+        if (heightLoc) this.gl.uniform1f(heightLoc, fog.height);
+        const hFalloffLoc = u.get("u_fogHeightFalloff");
+        if (hFalloffLoc) this.gl.uniform1f(hFalloffLoc, fog.heightFalloff);
+      } else {
+        const modeLoc = u.get("u_fogMode");
+        if (modeLoc) this.gl.uniform1i(modeLoc, 0); // NONE
+      }
 
       // --- 1. Bind Material States ---
       const state = manifest.state;

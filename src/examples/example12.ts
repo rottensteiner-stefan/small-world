@@ -5,14 +5,15 @@ import {
   CameraStrategyType,
   Color,
   Cube,
+  DirectionalLight,
+  FPSController,
   Gear,
   GearMath,
   GearParameters,
-  DirectionalLight,
-  FPSController,
   Object3D,
   PerspectiveProjection,
   Plane,
+  Sphere,
   ProjectionType,
   PhongMaterial,
   StandardMaterial,
@@ -23,14 +24,18 @@ import {
   SpotLight,
   LightFlickerBehavior,
   ProximitySensorBehavior,
+  Fog,
+  FogMode,
 } from "../index.js";
 import { AbstractExample, Input } from "../core/index.js";
 
 class AbyssalDecoExample extends AbstractExample {
   private _portLight!: SpotLight;
   private _portLightBehavior!: LightFlickerBehavior;
+  private _portMaterial?: StandardMaterial;
   private _time: number = 0;
   private _gears: { obj: Object3D; speed: number }[] = [];
+  private _waterDrops: { obj: Object3D; velocityY: number; active: boolean }[] = [];
 
   protected override async setupScene(): Promise<void> {
     if (ProjectionType.PERSPECTIVE === this.camera.projection.type) {
@@ -43,8 +48,20 @@ class AbyssalDecoExample extends AbstractExample {
       });
       this.camera.updateProjectionMatrix();
     }
+    // --- Fog Setup ---
+    // A room length is 40. 1/5 of that is 8.
+    // At density 0.06, EXP2 fog starts becoming visible around distance 8,
+    // and becomes very thick towards the walls at distance 20-30.
+    this.scene.fog = new Fog({
+      mode: FogMode.LINEAR,
+      color: new Color(0.0, 0.1, 0.15), // Dark abyssal teal/blue
+      near: 7.0, // Kein Nebel in der Mitte (ca. 1/3 der Distanz)
+      far: 22.0, // Dichter Nebel an den Wänden (Wände sind ca bei Distanz 20)
+      height: 0.0,
+      heightFalloff: 0.0, // No falloff, pure distance fog
+    });
 
-    // Load the generated textures
+    // 1. Textures & Materials
     let decoDiffuse: Texture | undefined;
     let decoNormal: Texture | undefined;
     let decoRoughness: Texture | undefined;
@@ -80,7 +97,6 @@ class AbyssalDecoExample extends AbstractExample {
     let portDiffuse: Texture | undefined;
     let portNormal: Texture | undefined;
     let portRoughness: Texture | undefined;
-    let portEmissive: Texture | undefined;
 
     try {
       decoDiffuse = await Texture.fromUrl("/resources/examples/12/artdeco_diffuse.png");
@@ -152,11 +168,10 @@ class AbyssalDecoExample extends AbstractExample {
       rockNormal = await Texture.fromUrl("/resources/examples/12/large_rock_normal.png");
       rockRoughness = await Texture.fromUrl("/resources/examples/12/large_rock_roughness.png");
 
-      // Porthole Light
+      // Baulicht (Construction Light)
       portDiffuse = await Texture.fromUrl("/resources/examples/12/porthole_diffuse.png");
       portNormal = await Texture.fromUrl("/resources/examples/12/porthole_normal.png");
       portRoughness = await Texture.fromUrl("/resources/examples/12/porthole_roughness.png");
-      portEmissive = await Texture.fromUrl("/resources/examples/12/porthole_emissive.png");
 
       // Texturen kacheln (1 Repeat pro 2 World-Units)
       if (decoDiffuse) {
@@ -252,10 +267,11 @@ class AbyssalDecoExample extends AbstractExample {
     });
 
     const portMaterial = new StandardMaterial({
+      color: new Color(0.2, 0.2, 0.2), // Dark base
       diffuseMap: portDiffuse,
       normalMap: portNormal,
       roughnessMap: portRoughness,
-      emissiveMap: portEmissive,
+      emissiveMap: portDiffuse, // Use diffuse as emissive mask so the black grid stays dark!
       emissiveColor: new Color(1.0, 0.8, 0.5), // Warm glow
       emissiveIntensity: 3.0,
       transparent: true,
@@ -263,6 +279,7 @@ class AbyssalDecoExample extends AbstractExample {
       roughness: 0.3,
       metallic: 0.8,
     });
+    this._portMaterial = portMaterial;
 
     const crateMaterial = new PhongMaterial({
       color: new Color(1.0, 1.0, 1.0),
@@ -463,7 +480,7 @@ class AbyssalDecoExample extends AbstractExample {
       steelMaterial,
     );
     const gear1 = gear1Data.obj;
-    gear1.position.set(-8.8, 6, -8); // Placed a bit higher but not touching the ceiling
+    gear1.position.set(-8.8, 4, -8); // Moved down by another 1 unit
     gear1.rotation.y = Math.PI / 2;
     // Initial rotation
     gear1.rotation.z = 0;
@@ -571,28 +588,139 @@ class AbyssalDecoExample extends AbstractExample {
     c4.rotation.y = -0.25;
     this.scene.add(c4);
 
-    // 5. Porthole Light (Decal on Right Wall)
-    const porthole = new Object3D("Porthole").setPosition(9.49, 4, -5);
-    // Rotate to face -X
-    porthole.rotation.z = Math.PI / 2;
-    porthole.geometry = new Plane({ width: 2, depth: 2 }).getGeometryData();
-    porthole.material = portMaterial;
-    porthole.castShadow = false;
-    this.scene.add(porthole);
+    // 5. Portholes (Bullaugen on the Rock Walls)
+    const createPorthole = (name: string, radius: number): Object3D => {
+      const group = new Object3D(name);
 
-    // Add a SpotLight to cast a beam into the room
+      // Frame
+      const frame = new Object3D(`${name}_Frame`);
+      frame.geometry = new Gear({
+        teeth: 32,
+        innerRadius: radius,
+        holeRadius: radius * 0.8,
+        toothHeight: 0,
+        vRatio: 1.0,
+        thickness: 0.4,
+      }).getGeometryData();
+      frame.material = brassMaterial;
+      frame.castShadow = true;
+      frame.receiveShadow = true;
+      group.add(frame);
+
+      // Glass (A flattened sphere inside the frame)
+      const glass = new Object3D(`${name}_Glass`);
+      glass.geometry = new Sphere({
+        radius: radius * 0.85,
+        widthSegments: 16,
+        heightSegments: 16,
+      }).getGeometryData();
+      glass.setScale(1.0, 1.0, 0.2); // Flattened on Z axis
+
+      const glassMaterial = new StandardMaterial({
+        color: new Color(0.0, 0.1, 0.2),
+        emissiveColor: new Color(0.0, 0.4, 0.5), // Glowing cyan
+        emissiveIntensity: 3.0,
+        roughness: 0.1,
+        metallic: 0.9,
+      });
+      glass.material = glassMaterial;
+      group.add(glass);
+
+      return group;
+    };
+
+    // Pair on Front Wall (Z = -19.5, faces +Z)
+    const porthole1 = createPorthole("Porthole_Front1", 1.5);
+    porthole1.position.set(-5, 5, -19.49);
+    porthole1.rotation.y = 0;
+    this.scene.add(porthole1);
+
+    const porthole2 = createPorthole("Porthole_Front2", 1.5);
+    porthole2.position.set(5, 5, -19.49);
+    porthole2.rotation.y = 0;
+    this.scene.add(porthole2);
+
+    // Pair on Back Wall (Z = 19.5, faces -Z)
+    const porthole3 = createPorthole("Porthole_Back1", 1.5);
+    porthole3.position.set(-5, 5, 19.49);
+    porthole3.rotation.y = Math.PI;
+    this.scene.add(porthole3);
+
+    const porthole4 = createPorthole("Porthole_Back2", 1.5);
+    porthole4.position.set(5, 5, 19.49);
+    porthole4.rotation.y = Math.PI;
+    this.scene.add(porthole4);
+
+    // 6. Dripping Water Particles
+    const waterMaterial = new StandardMaterial({
+      color: new Color(0.7, 0.8, 0.9),
+      roughness: 0.0,
+      metallic: 1.0,
+    });
+
+    for (let i = 0; i < 30; i++) {
+      const drop = new Object3D(`WaterDrop_${i}`);
+      drop.geometry = new Sphere({
+        radius: 0.04,
+        widthSegments: 8,
+        heightSegments: 8,
+      }).getGeometryData();
+      drop.material = waterMaterial;
+      drop.castShadow = true;
+      drop.position.set(0, -4, 0); // Hide initially below ground
+      this.scene.add(drop);
+      this._waterDrops.push({ obj: drop, velocityY: 0, active: false });
+    }
+
+    // 7. Baulicht (Construction Light) on the Right Wall
+    const baulichtGroup = new Object3D("BaulichtGroup").setPosition(9.49, 4, -5);
+    // Rotate entire group so +Z faces -X (towards the room)
+    baulichtGroup.rotation.y = -Math.PI / 2;
+
+    // Sockel (Base/Frame) connecting the light to the wall
+    const baulichtSockel = new Object3D("Baulicht_Sockel");
+    baulichtSockel.geometry = new Gear({
+      teeth: 32,
+      innerRadius: 1.7, // Made larger so it extends beyond the painted metal rim
+      holeRadius: 0.0, // Solid base
+      toothHeight: 0,
+      vRatio: 1.0,
+      thickness: 0.5,
+    }).getGeometryData();
+    baulichtSockel.material = brassMaterial;
+    baulichtSockel.castShadow = true;
+    baulichtSockel.receiveShadow = true;
+    // The wall is at local Z = 0 (after group rotation).
+    // The Sockel goes from -0.25 to 0.25.
+    baulichtSockel.position.set(0, 0, 0.25); // Push it out so it starts at the wall
+    baulichtGroup.add(baulichtSockel);
+
+    // The Light Surface (Decal with Baugitter)
+    const baulichtSurface = new Object3D("Baulicht_Surface");
+    baulichtSurface.geometry = new Plane({ width: 2.8, depth: 2.8 }).getGeometryData();
+    baulichtSurface.material = portMaterial;
+    baulichtSurface.castShadow = false;
+    // Plane is on XZ plane (+Y normal). Rotate X by 90deg to face +Z
+    baulichtSurface.rotation.x = Math.PI / 2;
+    // Place it exactly on top of the Sockel
+    baulichtSurface.position.set(0, 0, 0.51);
+    baulichtGroup.add(baulichtSurface);
+
+    this.scene.add(baulichtGroup);
+
+    // Add the SpotLight back to the Baulicht
     const portLight = new SpotLight({
       color: new Color(1.0, 0.8, 0.5),
-      intensity: 10.0, // Slightly reduced to avoid blowing out highlights
-      direction: new Vector3D(-1, -0.2, 0), // Pointing AWAY from the right wall, slightly downwards
-      angle: Math.PI / 4, // 45 degrees cone
+      intensity: 10.0,
+      direction: new Vector3D(-1, -0.2, 0), // Pointing -X (from right wall to left wall)
+      angle: Math.PI / 4,
       penumbra: 0.5,
       distance: 40.0,
     });
-    portLight.position.set(9.4, 4, -5); // Positioned slightly in front of the porthole glass
+    portLight.position.set(9.4, 4, -5); // Positioned slightly in front of the decal
     portLight.castShadow = true;
     portLight.shadowResolution = 1024;
-    portLight.shadowBias = 0.015; // Increased to prevent shadow acne
+    portLight.shadowBias = 0.015;
     this._portLight = portLight;
 
     // Add our new Behavior to the light
@@ -665,6 +793,11 @@ class AbyssalDecoExample extends AbstractExample {
   protected override update(deltaTime: number): void {
     this._time += deltaTime;
 
+    if (this._portLight && this._portMaterial) {
+      // Sync the light bulb's emissive intensity with the actual flickering light intensity
+      this._portMaterial.emissiveIntensity = (this._portLight.intensity / 10.0) * 3.0;
+    }
+
     // Adjust base porthole light intensity via NumpadAdd (+) and NumpadSubtract (-)
     if (
       Input.isPressed("NumpadAdd") ||
@@ -688,8 +821,36 @@ class AbyssalDecoExample extends AbstractExample {
 
     // Update gears
     for (const gear of this._gears) {
-      // Rotate the Gear object itself since there's no nested group
       gear.obj.rotation.z += gear.speed * deltaTime;
+    }
+
+    // Update Water Drops
+    for (const drop of this._waterDrops) {
+      if (drop.active) {
+        drop.velocityY -= 15.0 * deltaTime; // Gravity
+        drop.obj.position.y += drop.velocityY * deltaTime;
+
+        // Motion blur stretch
+        const stretch = 1.0 + Math.abs(drop.velocityY) * 0.15;
+        drop.obj.setScale(1.0, stretch, 1.0);
+
+        if (drop.obj.position.y <= 0.1) {
+          drop.active = false;
+          drop.obj.position.y = -4; // Hide (but stay within Octree Y > -5)
+        }
+      } else {
+        // Spawn chance based on time
+        if (Math.random() < 1.0 * deltaTime) {
+          // e.g. at 60 FPS, 1.6% chance per frame per drop
+          drop.active = true;
+          drop.velocityY = 0;
+          // Random position on the ceiling
+          const rx = (Math.random() - 0.5) * 16; // -8 to 8
+          const rz = (Math.random() - 0.5) * 26 + 5; // -8 to 18
+          drop.obj.position.set(rx, 9.8, rz);
+          drop.obj.setScale(1.0, 1.0, 1.0);
+        }
+      }
     }
   }
 }

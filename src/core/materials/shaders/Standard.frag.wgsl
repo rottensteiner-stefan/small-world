@@ -8,5 +8,6 @@
     if (finalAlpha < obj.extraParams.y) {
         discard;
     }
+    [WGSL_FOG_CALC]
     return vec4f(color, finalAlpha);
 }

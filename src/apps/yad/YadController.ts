@@ -55,10 +55,7 @@ export class YadController extends Behavior {
 
   public override onAttach(target: Object3D | CameraInterfaceData): void {
     super.onAttach(target);
-    this._collider = new BoundingSphere(
-      target.position.clone(),
-      this._options.collisionRadius,
-    );
+    this._collider = new BoundingSphere(target.position.clone(), this._options.collisionRadius);
   }
 
   public override update(deltaTime: number): void {

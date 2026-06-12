@@ -1,6 +1,9 @@
 /// tests/core/StandardMaterial.test.ts
 
-import { StandardMaterial, StandardMaterialOptions } from "../../src/core/materials/StandardMaterial.js";
+import {
+  StandardMaterial,
+  StandardMaterialOptions,
+} from "../../src/core/materials/StandardMaterial.js";
 import { Color } from "../../src/core/colors/Color.js";
 import { Texture } from "../../src/core/textures/Texture.js";
 import { BlendingMode, MaterialType } from "../../src/enums/index.js";
@@ -73,7 +76,7 @@ describe("StandardMaterial", () => {
   it("should disable depthWrite and enable ALPHA blending only when transparent is true", () => {
     const opaqueMaterial = new StandardMaterial({ transparent: false });
     const opaqueManifest = opaqueMaterial.getRenderManifest();
-    
+
     expect(opaqueManifest.state?.transparent).toBe(false);
     expect(opaqueManifest.state?.blending).toBe(BlendingMode.OPAQUE);
     expect(opaqueManifest.state?.depthWrite).toBe(true);

@@ -73,6 +73,7 @@ export class WebGL2DepthFrameBuffer {
     }
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.bindTexture(gl.TEXTURE_2D, null);
   }
 
   /**
@@ -104,14 +105,15 @@ export class WebGL2DepthFrameBuffer {
     this._gl.texImage2D(
       this._gl.TEXTURE_2D,
       0,
-      this._gl.DEPTH_COMPONENT32F,
+      this._gl.DEPTH_COMPONENT24,
       width,
       height,
       0,
       this._gl.DEPTH_COMPONENT,
-      this._gl.FLOAT,
+      this._gl.UNSIGNED_INT,
       null,
     );
+    this._gl.bindTexture(this._gl.TEXTURE_2D, null);
   }
 
   /**

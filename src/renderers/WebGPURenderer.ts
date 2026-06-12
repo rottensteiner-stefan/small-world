@@ -7,6 +7,7 @@ import { Scene } from "../core/Scene.js";
 import { MathPool, Vector3D } from "../math/index.js";
 import { BlendingMode, RendererType, TextureFilter, TextureWrap } from "../enums/index.js";
 import { EngineConfig } from "../interfaces/EngineConfig.js";
+import { Fog } from "../core/Fog.js";
 
 import { AbstractRenderer } from "./AbstractRenderer.js";
 import { RenderPass } from "./RenderPass.js";
@@ -422,7 +423,7 @@ export class WebGPURenderer extends AbstractRenderer {
     if (!this._device) return;
     this._frameCount++;
     const lights = this.extractLights(scene);
-    this._updateGlobalBuffers(vp, camPos, lights);
+    this._updateGlobalBuffers(vp, camPos, lights, scene.fog);
     const ce = this._device.createCommandEncoder();
 
     const currentView = this._context.getCurrentTexture().createView();
@@ -639,8 +640,9 @@ export class WebGPURenderer extends AbstractRenderer {
     vp: Float32Array,
     camPos: Vector3D,
     lights: LightDataInterface,
+    fog?: Fog,
   ): void {
-    const gData = new Float32Array(64);
+    const gData = new Float32Array(48); // 192 bytes = 48 floats
     gData.set(vp, 0);
     gData.set([camPos.x, camPos.y, camPos.z, 1], 16);
     gData.set(
@@ -664,7 +666,19 @@ export class WebGPURenderer extends AbstractRenderer {
     // Fix: lights.dDir is already negated to point TO the light in applyTo.
     gData.set([lights.dDir.x, lights.dDir.y, lights.dDir.z, 0], 28);
     gData.set([lights.pLights.length, lights.sLights.length, lights.aLights.length, 2.2], 32);
-    gData[36] = 1.0;
+    gData[36] = 1.0; // exposure
+    if (fog) {
+      gData[37] = fog.mode;
+      gData[38] = fog.density;
+      gData[39] = fog.near;
+      gData[40] = fog.far;
+      gData[41] = fog.height;
+      gData[42] = fog.heightFalloff;
+      gData[43] = 0.0; // _pad
+      gData.set([fog.color.r, fog.color.g, fog.color.b, 1.0], 44);
+    } else {
+      gData[37] = 0.0; // fogMode NONE
+    }
     this._device!.queue.writeBuffer(this._globalUniformBuffer, 0, gData);
 
     const plData = new Float32Array(Math.max(lights.pLights.length * 8, 8));

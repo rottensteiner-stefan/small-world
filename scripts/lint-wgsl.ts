@@ -17,6 +17,7 @@ async function loadChunks() {
       let key = name;
       if (name === "LIGHTING_PBR") key = "WGSL_PBR_LIGHTING";
       if (name === "LIGHTING") key = "WGSL_LIGHTING";
+      if (name === "FOG_CALC") key = "WGSL_FOG_CALC";
 
       chunks.set(key, content);
     }

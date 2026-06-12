@@ -1,4 +1,5 @@
 [BASE_FRAGMENT_HEADER]
+[FOG_DEFS]
 [LIGHT_DEFS]
 [PBR_MATH]
 
@@ -22,4 +23,6 @@ void main() {
     float ao = u_ao;
 
     [LIGHT_CALC_PBR]
+    
+    [FOG_CALC]
 }
