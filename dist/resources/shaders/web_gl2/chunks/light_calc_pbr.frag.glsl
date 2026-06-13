@@ -73,14 +73,15 @@ vec3 Lo = vec3(0.0);
 }
 
 // -- Point Lights --
-for(int i = 0; i < u_numPointLights; ++i) {
-    vec3 lightVec = u_pointLightPos[i] - v_worldPos;
+for(int i = 0; i < 4; i++) {
+    if (i >= u_numPointLights) break;
+    vec3 lightVec = u_pointLights[i].pos - v_worldPos;
     float dist = length(lightVec);
     vec3 L = normalize(lightVec);
     vec3 H = normalize(V + L);
 
     float attenuation = 1.0 / (dist * dist);
-    vec3 radiance = u_pointLightColor[i] * attenuation;
+    vec3 radiance = u_pointLights[i].color * attenuation;
 
     float dotNL = max(dot(N, L), 0.0);
     float dotNH = max(dot(N, H), 0.0);
