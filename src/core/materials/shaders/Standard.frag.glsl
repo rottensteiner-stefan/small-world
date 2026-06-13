@@ -7,8 +7,6 @@ uniform float u_metallic;
 uniform float u_roughness;
 uniform float u_ao;
 
-uniform sampler2D u_diffuseMap;
-uniform sampler2D u_normalMap;
 uniform sampler2D u_metallicMap;
 uniform sampler2D u_roughnessMap;
 uniform sampler2D u_emissiveMap;
@@ -16,9 +14,6 @@ uniform sampler2D u_alphaMap;
 
 uniform vec2 u_texOffset;
 uniform vec2 u_texRepeat;
-
-    // We use u_extraParams.y for alphaTest
-uniform vec4 u_extraParams;
 
 void main() {
     // Reconstruct original UV for static alpha map

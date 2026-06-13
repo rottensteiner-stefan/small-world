@@ -7,8 +7,6 @@ uniform float u_metallic;
 uniform float u_roughness;
 uniform float u_ao;
 
-uniform sampler2D u_diffuseMap;
-uniform sampler2D u_normalMap;
 uniform sampler2D u_metallicMap;
 uniform sampler2D u_roughnessMap;
 uniform sampler2D u_emissiveMap;
@@ -16,8 +14,6 @@ uniform sampler2D u_alphaMap;
 
 uniform vec2 u_texOffset;
 uniform vec2 u_texRepeat;
-
-uniform vec4 u_extraParams;
 
 void main() {
     vec2 original_uv = v_uv / u_texRepeat;
