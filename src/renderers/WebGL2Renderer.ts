@@ -1,6 +1,7 @@
 /// src/renderers/WebGL2Renderer.ts
 
 import { AbstractWebGLRenderer } from "./AbstractWebGLRenderer.js";
+import { PostProcessPassGL } from "./post/index.js";
 import {
   CubeTexture,
   ShaderRegistry,
@@ -26,6 +27,7 @@ import { Scene } from "../core/Scene.js";
 import { MathPool, Vector3D } from "../math/index.js";
 import { WebGL2UniformBuffer } from "./WebGL2UniformBuffer.js";
 import { WebGL2DepthFrameBuffer } from "./WebGL2DepthFrameBuffer.js";
+import { WebGL2FrameBuffer } from "./WebGL2FrameBuffer.js";
 import { AbstractLight } from "../core/lights/AbstractLight.js";
 
 interface ProgramCache {
@@ -50,6 +52,8 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
 
   public _opaqueTexture?: WebGLTexture;
   public _opaqueTextureWrapper?: Texture;
+  protected _hdrFbo: WebGL2FrameBuffer | undefined = undefined;
+  protected _postPassGL: PostProcessPassGL | undefined = undefined;
 
   private _scratchModelMatrix: Float32Array = new Float32Array(16);
 
@@ -294,8 +298,13 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
 
     // --- SETUP MAIN PASS ---
     this._updateGlobalUBO(vp, camPos, extractedLights);
-    this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
-    this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
+
+    if (this.postConfig.enabled && this._hdrFbo) {
+      this._hdrFbo.bind();
+    } else {
+      this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
+      this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
+    }
 
     this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
     this.gl.enable(this.gl.BLEND);
@@ -375,6 +384,16 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         const materialMap = new Map<string, Object3D[]>([[obj.material!.uuid, [obj]]]);
         this._renderGroup(shaderId, materialMap, vMat, topology, extractedLights, scene.fog);
       }
+    }
+
+    // --- PASS 4: Post-Process Blit (HDR -> Canvas) ---
+    if (this.postConfig.enabled && this._hdrFbo && this._postPassGL) {
+      this._postPassGL.execute(
+        this.gl,
+        this._hdrFbo.texture,
+        this.postConfig.exposure,
+        this.postConfig.gamma,
+      );
     }
   }
 
@@ -973,5 +992,31 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       }
     }
     ubo.update();
+  }
+
+  /** @inheritdoc */
+  public override setSize(width: number, height: number): void {
+    super.setSize(width, height);
+
+    if (this.postConfig.enabled) {
+      this.gl.getExtension("EXT_color_buffer_float");
+      if (!this._hdrFbo) {
+        this._hdrFbo = new WebGL2FrameBuffer(this.gl, {
+          width: this.gl.canvas.width,
+          height: this.gl.canvas.height,
+          internalFormat: this.gl.RGBA16F,
+          format: this.gl.RGBA,
+          type: this.gl.HALF_FLOAT,
+        });
+        this._postPassGL ??= new PostProcessPassGL(this.gl, true);
+      } else {
+        this._hdrFbo.resize(this.gl.canvas.width, this.gl.canvas.height);
+      }
+    } else if (this._hdrFbo) {
+      this._postPassGL?.destroy(this.gl);
+      this._hdrFbo.destroy();
+      this._hdrFbo = undefined;
+      this._postPassGL = undefined;
+    }
   }
 }

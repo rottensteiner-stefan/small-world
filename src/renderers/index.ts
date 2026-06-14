@@ -9,3 +9,4 @@ export * from "./WebGL2FrameBuffer.js";
 export * from "./WebGL2DepthFrameBuffer.js";
 export * from "./WebGPURenderer.js";
 export * from "./shaders/index.js";
+export * from "./post/index.js";

@@ -1,26 +1,45 @@
 /// src/renderers/WebGL2FrameBuffer.ts
 
+/** Configuration for WebGL2FrameBuffer. */
+export interface WebGL2FrameBufferOptions {
+  /** Width in pixels. */
+  width: number;
+  /** Height in pixels. */
+  height: number;
+  /** Internal storage format, e.g. gl.RGBA16F for HDR. Defaults to gl.RGBA. */
+  internalFormat?: number;
+  /** Pixel data format, e.g. gl.RGBA. Defaults to gl.RGBA. */
+  format?: number;
+  /** Pixel data type, e.g. gl.HALF_FLOAT. Defaults to gl.UNSIGNED_BYTE. */
+  type?: number;
+}
+
 /**
  * Encapsulates a WebGL2 Framebuffer with a color texture and depth/stencil renderbuffer.
  */
 export class WebGL2FrameBuffer {
   private _gl: WebGL2RenderingContext;
-  private _framebuffer: WebGLFramebuffer;
-  private _renderbuffer: WebGLRenderbuffer;
-  private _texture: WebGLTexture;
+  private readonly _framebuffer: WebGLFramebuffer;
+  private readonly _renderbuffer: WebGLRenderbuffer;
+  private readonly _texture: WebGLTexture;
   private _width: number;
   private _height: number;
+  private readonly _internalFormat: number;
+  private _format: number;
+  private _type: number;
 
   /**
    * Creates a new WebGL2FrameBuffer.
    * @param gl The WebGL2 context.
-   * @param width The width of the buffer.
-   * @param height The height of the buffer.
+   * @param options Width, height, and optional format overrides.
    */
-  constructor(gl: WebGL2RenderingContext, width: number, height: number) {
+  constructor(gl: WebGL2RenderingContext, options: WebGL2FrameBufferOptions) {
     this._gl = gl;
-    this._width = width;
-    this._height = height;
+    this._width = options.width;
+    this._height = options.height;
+    this._internalFormat = options.internalFormat ?? gl.RGBA;
+    this._format = options.format ?? gl.RGBA;
+    this._type = options.type ?? gl.UNSIGNED_BYTE;
 
     this._framebuffer = gl.createFramebuffer()!;
     gl.bindFramebuffer(gl.FRAMEBUFFER, this._framebuffer);
@@ -28,7 +47,17 @@ export class WebGL2FrameBuffer {
     // Color texture
     this._texture = gl.createTexture()!;
     gl.bindTexture(gl.TEXTURE_2D, this._texture);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      this._internalFormat,
+      width,
+      height,
+      0,
+      this._format,
+      this._type,
+      null,
+    );
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -85,12 +114,12 @@ export class WebGL2FrameBuffer {
     this._gl.texImage2D(
       this._gl.TEXTURE_2D,
       0,
-      this._gl.RGBA,
+      this._internalFormat,
       width,
       height,
       0,
-      this._gl.RGBA,
-      this._gl.UNSIGNED_BYTE,
+      this._format,
+      this._type,
       null,
     );
     this._gl.bindTexture(this._gl.TEXTURE_2D, null);

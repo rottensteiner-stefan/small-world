@@ -52,6 +52,16 @@ Before implementing:
 - **Explicit Resource Usage & Pipeline Strictness (WebGPU/WebGL):** Modern graphics APIs require explicit upfront declaration of resource intent. Never assume implicit capabilities. When allocating buffers or textures (especially SwapChain or FBOs), carefully analyze *all* stages the resource will pass through (e.g., Binding, Copying, Rendering) and bitwise-OR the exact usage flags (e.g., `GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT`). Always bind error callbacks (`onuncapturederror`) and check for validation warnings during development.
 
 
+## Post-Processing Architecture
+
+**Bandwidth is King. Avoid naive Ping-Pong passes.**
+
+- **Render-to-Texture (FBO):** The `MainRenderPass` MUST render to a high-precision off-screen texture (e.g., `RGBA16F` for HDR) instead of directly to the canvas/backbuffer. This HDR buffer forms the foundation for all post-processing.
+- **Pass Consolidation (The "Uber-Shader"):** Do NOT build a modular "Ping-Pong" Effect Composer (like Three.js) that renders a fullscreen quad for every single effect. Each read/write cycle kills memory bandwidth on modern and mobile GPUs. Instead, consolidate all standard effects (Tone Mapping, Color Grading/LUT, Vignette, Gamma Correction) into **one single final Post-Process Pass**.
+- **WebGPU Compute Shaders:** For spatially heavy operations that require reading neighboring pixels (like Gaussian Blur for Bloom or Depth of Field), prefer **Compute Shaders** over fullscreen Fragment Shaders in WebGPU. Compute shaders allow for shared workgroup memory, dramatically accelerating these algorithms.
+- **Data-Oriented Post-Process State:** Manage post-processing settings via flat configuration structures rather than deeply nested OOP class hierarchies, allowing the renderer to quickly assemble the final Uber-Shader.
+
+
 ## Industry Standards & Defaults
 
 **When in doubt, align with the giants.**
