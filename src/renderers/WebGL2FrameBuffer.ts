@@ -51,8 +51,8 @@ export class WebGL2FrameBuffer {
       gl.TEXTURE_2D,
       0,
       this._internalFormat,
-      width,
-      height,
+      this._width,
+      this._height,
       0,
       this._format,
       this._type,
@@ -68,7 +68,7 @@ export class WebGL2FrameBuffer {
     // Depth and stencil renderbuffer
     this._renderbuffer = gl.createRenderbuffer()!;
     gl.bindRenderbuffer(gl.RENDERBUFFER, this._renderbuffer);
-    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH24_STENCIL8, width, height);
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH24_STENCIL8, this._width, this._height);
     gl.framebufferRenderbuffer(
       gl.FRAMEBUFFER,
       gl.DEPTH_STENCIL_ATTACHMENT,

@@ -1,4 +1,5 @@
 import { AbstractWebGLRenderer } from './AbstractWebGLRenderer.js';
+import { PostProcessPassGL } from './post/index.js';
 import { Texture } from '../core/index.js';
 import { EngineConfig } from '../interfaces/index.js';
 import { RendererType } from '../enums/index.js';
@@ -19,6 +20,10 @@ export declare class WebGL1Renderer extends AbstractWebGLRenderer {
     private _texCubeCache;
     _opaqueTexture?: WebGLTexture;
     _opaqueTextureWrapper?: Texture;
+    protected _hdrFbo: WebGLFramebuffer | undefined;
+    protected _hdrTexture: WebGLTexture | undefined;
+    protected _hdrRenderBuffer: WebGLRenderbuffer | undefined;
+    protected _postPassGL: PostProcessPassGL | undefined;
     private _scratchModelMatrix;
     /** @inheritdoc */
     initialize(canvas: HTMLCanvasElement, attributes?: Record<string, unknown>, config?: EngineConfig): Promise<void>;
@@ -28,4 +33,6 @@ export declare class WebGL1Renderer extends AbstractWebGLRenderer {
     /** @inheritdoc */
     render(scene: Scene, vp: Float32Array, camPos?: Vector3D, vMat?: Float32Array): void;
     private _renderGroup;
+    /** @inheritdoc */
+    setSize(width: number, height: number): void;
 }

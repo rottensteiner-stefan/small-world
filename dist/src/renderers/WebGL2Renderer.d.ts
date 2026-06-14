@@ -1,9 +1,11 @@
 import { AbstractWebGLRenderer } from './AbstractWebGLRenderer.js';
+import { PostProcessPassGL } from './post/index.js';
 import { Texture } from '../core/index.js';
 import { EngineConfig } from '../interfaces/index.js';
 import { RendererType } from '../enums/index.js';
 import { Scene } from '../core/Scene.js';
 import { Vector3D } from '../math/index.js';
+import { WebGL2FrameBuffer } from './WebGL2FrameBuffer.js';
 /**
  * WebGL 2.0 implementation of the renderer.
  */
@@ -17,6 +19,8 @@ export declare class WebGL2Renderer extends AbstractWebGLRenderer {
     private _texCubeCache;
     _opaqueTexture?: WebGLTexture;
     _opaqueTextureWrapper?: Texture;
+    protected _hdrFbo: WebGL2FrameBuffer | undefined;
+    protected _postPassGL: PostProcessPassGL | undefined;
     private _scratchModelMatrix;
     private _globalUBO;
     private _shadowMaps;
@@ -45,4 +49,6 @@ export declare class WebGL2Renderer extends AbstractWebGLRenderer {
      */
     private _renderGroup;
     private _updateGlobalUBO;
+    /** @inheritdoc */
+    setSize(width: number, height: number): void;
 }
