@@ -1,6 +1,68 @@
-import { Object3D } from "../../index.js";
-import { Cube, Cylinder } from "../../index.js";
+import { Cube, Cylinder, Object3D } from "../../index.js";
 import { AbstractMaterial } from "../../index.js";
+import { GeometryDataInterface } from "../../interfaces/index.js";
+
+const applyBoxUVs = (
+  geo: GeometryDataInterface,
+  width: number,
+  height: number,
+  depth: number,
+  offsetX: number = 0,
+  offsetY: number = 0,
+  rotateTop: boolean = false,
+): GeometryDataInterface => {
+  const newGeo = { ...geo }; // Shallow copy
+  if (!geo.uvs || geo.uvs.length < 48) return newGeo; // Needs at least 24 vertices
+
+  newGeo.uvs = new Float32Array(geo.uvs);
+
+  // Right (+X) face [indices 0-7] - dimensions: depth x height
+  for (let i = 0; i < 8; i += 2) {
+    newGeo.uvs[i] = geo.uvs[i]! * depth + offsetX;
+    newGeo.uvs[i + 1] = geo.uvs[i + 1]! * height + offsetY;
+  }
+  // Left (-X) face [indices 8-15] - dimensions: depth x height
+  for (let i = 8; i < 16; i += 2) {
+    newGeo.uvs[i] = geo.uvs[i]! * depth + offsetX;
+    newGeo.uvs[i + 1] = geo.uvs[i + 1]! * height + offsetY;
+  }
+  // Top (+Y) face [indices 16-23] - dimensions: width x depth
+  for (let i = 16; i < 24; i += 2) {
+    const u = geo.uvs[i]!;
+    const v = geo.uvs[i + 1]!;
+    if (rotateTop) {
+      newGeo.uvs[i] = v * depth + offsetX;
+      newGeo.uvs[i + 1] = u * width + offsetY;
+    } else {
+      newGeo.uvs[i] = u * width + offsetX;
+      newGeo.uvs[i + 1] = v * depth + offsetY;
+    }
+  }
+  // Bottom (-Y) face [indices 24-31] - dimensions: width x depth
+  for (let i = 24; i < 32; i += 2) {
+    const u = geo.uvs[i]!;
+    const v = geo.uvs[i + 1]!;
+    if (rotateTop) {
+      newGeo.uvs[i] = v * depth + offsetX;
+      newGeo.uvs[i + 1] = u * width + offsetY;
+    } else {
+      newGeo.uvs[i] = u * width + offsetX;
+      newGeo.uvs[i + 1] = v * depth + offsetY;
+    }
+  }
+  // Front (+Z) face [indices 32-39] - dimensions: width x height
+  for (let i = 32; i < 40; i += 2) {
+    newGeo.uvs[i] = geo.uvs[i]! * width + offsetX;
+    newGeo.uvs[i + 1] = geo.uvs[i + 1]! * height + offsetY;
+  }
+  // Back (-Z) face [indices 40-47] - dimensions: width x height
+  for (let i = 40; i < 48; i += 2) {
+    newGeo.uvs[i] = geo.uvs[i]! * width + offsetX;
+    newGeo.uvs[i + 1] = geo.uvs[i + 1]! * height + offsetY;
+  }
+
+  return newGeo;
+};
 
 export interface WorkbenchTableOptions {
   /** Width in meters (X-axis). Default: 1.2 */
@@ -36,29 +98,7 @@ export class WorkbenchTable extends Object3D {
     const topGroup = new Object3D(`${name}_Top`);
     topGroup.position.set(0, h - t / 2, 0); // Origin is in the center of the tabletop volume
 
-    // Breadboard ends (Hirnholzleisten)
-    const breadboardWidth = 0.12; // 12cm wide breadboards
-
-    const bbLeft = new Object3D(`${name}_BB_Left`);
-    bbLeft.geometry = unitCubeGeo;
-    bbLeft.scale.set(breadboardWidth, t, d);
-    if (woodMat) bbLeft.material = woodMat;
-    bbLeft.castShadow = true;
-    bbLeft.receiveShadow = true;
-    bbLeft.position.set(-w / 2 + breadboardWidth / 2, 0, 0);
-    topGroup.add(bbLeft);
-
-    const bbRight = new Object3D(`${name}_BB_Right`);
-    bbRight.geometry = unitCubeGeo;
-    bbRight.scale.set(breadboardWidth, t, d);
-    if (woodMat) bbRight.material = woodMat;
-    bbRight.castShadow = true;
-    bbRight.receiveShadow = true;
-    bbRight.position.set(w / 2 - breadboardWidth / 2, 0, 0);
-    topGroup.add(bbRight);
-
-    // Middle Planks
-    const innerWidth = w - breadboardWidth * 2;
+    // 4 Planks spanning the full width
     const numPlanks = 4;
     const plankDepth = d / numPlanks;
     // We add a tiny gap between planks to sell the illusion
@@ -67,8 +107,17 @@ export class WorkbenchTable extends Object3D {
 
     for (let i = 0; i < numPlanks; i++) {
       const plank = new Object3D(`${name}_Plank_${i}`);
-      plank.geometry = unitCubeGeo;
-      plank.scale.set(innerWidth, t, actualPlankDepth);
+      // Grain runs along X (width). Top face UV scaled by w and actualPlankDepth.
+      plank.geometry = applyBoxUVs(
+        unitCubeGeo,
+        w,
+        t,
+        actualPlankDepth,
+        Math.random(),
+        Math.random(),
+        false,
+      );
+      plank.scale.set(w, t, actualPlankDepth);
       if (woodMat) plank.material = woodMat;
       plank.castShadow = true;
       plank.receiveShadow = true;
@@ -77,12 +126,19 @@ export class WorkbenchTable extends Object3D {
       topGroup.add(plank);
     }
 
-    // Top Bolts (on breadboards)
+    // Top Bolts (going through planks into legs)
     const boltWasherGeo = new Cylinder({
-      radiusTop: 0.03,
-      radiusBottom: 0.03,
+      radiusTop: 0.06,
+      radiusBottom: 0.06,
       height: 0.005,
       radialSegments: 16,
+    }).getGeometryData();
+
+    const boltNutGeo = new Cylinder({
+      radiusTop: 0.04,
+      radiusBottom: 0.04,
+      height: 0.02,
+      radialSegments: 6,
     }).getGeometryData();
 
     const addTopBolt = (x: number, z: number): void => {
@@ -92,15 +148,14 @@ export class WorkbenchTable extends Object3D {
       const washer = new Object3D(`${name}_Washer`);
       washer.geometry = boltWasherGeo;
       if (metalMat) washer.material = metalMat;
-      washer.position.set(0, 0.0025, 0);
+      washer.position.set(0, 0.002, 0); // Sink 0.5mm into wood to prevent Z-fighting
       washer.castShadow = true;
       boltGroup.add(washer);
 
       const nut = new Object3D(`${name}_Nut`);
-      nut.geometry = unitCubeGeo;
-      nut.scale.set(0.03, 0.02, 0.03);
+      nut.geometry = boltNutGeo;
       if (metalMat) nut.material = metalMat;
-      nut.position.set(0, 0.005 + 0.01, 0); // Above washer
+      nut.position.set(0, 0.014, 0); // Sink 0.5mm into washer to prevent Z-fighting
       nut.castShadow = true;
       // Slight random rotation for realism
       nut.rotation.y = (Math.random() * Math.PI) / 4;
@@ -109,9 +164,9 @@ export class WorkbenchTable extends Object3D {
       topGroup.add(boltGroup);
     };
 
-    // Place bolts on the breadboards
-    const boltX = w / 2 - breadboardWidth / 2;
-    const boltZ = d / 2 - 0.1;
+    // Place bolts exactly over the legs
+    const boltX = w / 2 - 0.15;
+    const boltZ = (d - 0.05) / 2 - 0.1 / 2 - 0.05;
     addTopBolt(boltX, boltZ);
     addTopBolt(boltX, -boltZ);
     addTopBolt(-boltX, boltZ);
@@ -125,33 +180,136 @@ export class WorkbenchTable extends Object3D {
     // Runners (Bodenkufen)
     const runnerHeight = 0.08;
     const runnerWidth = 0.12;
-    const runnerDepth = d - 0.05; // Slightly shorter than table depth
+    const radius = runnerHeight / 2;
+    const runnerStraightDepth = d - 0.05;
+
+    const runnerEndCylGeo = new Cylinder({
+      radiusTop: radius,
+      radiusBottom: radius,
+      height: runnerWidth,
+      radialSegments: 16,
+      thetaStart: 0,
+      thetaLength: Math.PI / 2, // Quarter circle
+    }).getGeometryData();
+
+    const sideBoltWasherGeo = new Cylinder({
+      radiusTop: 0.02,
+      radiusBottom: 0.02,
+      height: 0.004,
+      radialSegments: 16,
+    }).getGeometryData();
+
+    const sideBoltNutGeo = new Cylinder({
+      radiusTop: 0.015,
+      radiusBottom: 0.015,
+      height: 0.015,
+      radialSegments: 6,
+    }).getGeometryData();
 
     const legWidth = 0.1;
     const legDepth = 0.1;
     // Leg height goes from top of runner to bottom of tabletop
-    const legHeight = h - t - runnerHeight;
+    const legHeight = h - runnerHeight - t;
 
-    const legInsetX = w / 2 - breadboardWidth - 0.1; // Place legs just inside the breadboards
+    // Legs inset slightly from ends
+    const legInsetX = w / 2 - 0.15; // Place legs near the ends of the planks
+    const legZ = runnerStraightDepth / 2 - legDepth / 2 - 0.05;
 
-    const createSideBase = (x: number, isLeft: boolean): void => {
+    const createSideBase = (x: number, isLeft: boolean): Object3D => {
       const sideGroup = new Object3D(`${name}_SideBase_${isLeft ? "L" : "R"}`);
       sideGroup.position.set(x, 0, 0);
 
-      const runner = new Object3D(`${name}_Runner`);
-      runner.geometry = unitCubeGeo;
-      runner.scale.set(runnerWidth, runnerHeight, runnerDepth);
-      if (woodMat) runner.material = woodMat;
-      runner.position.set(0, runnerHeight / 2, 0);
-      runner.castShadow = true;
-      runner.receiveShadow = true;
-      sideGroup.add(runner);
+      // Main runner body (straight part)
+      const runnerBody = new Object3D(`${name}_RunnerBody`);
+      runnerBody.geometry = applyBoxUVs(
+        unitCubeGeo,
+        runnerWidth,
+        runnerHeight,
+        runnerStraightDepth,
+        Math.random(),
+        Math.random(),
+        true,
+      );
+      runnerBody.scale.set(runnerWidth, runnerHeight, runnerStraightDepth);
+      if (woodMat) runnerBody.material = woodMat;
+      runnerBody.position.set(0, runnerHeight / 2, 0);
+      runnerBody.castShadow = true;
+      runnerBody.receiveShadow = true;
+      sideGroup.add(runnerBody);
 
-      const legZ = runnerDepth / 2 - legDepth / 2 - 0.05;
+      // Front rounded end (top half curve, bottom half flat)
+      const runnerFrontCyl = new Object3D(`${name}_RunnerFrontCyl`);
+      // Use different offset for the cylinder part, but same scale
+      // Cylinder UVs aren't easily fixed by Box UVs, so we use original mapping without scaling for now
+      runnerFrontCyl.geometry = runnerEndCylGeo;
+      if (woodMat) runnerFrontCyl.material = woodMat;
+      runnerFrontCyl.rotation.z = Math.PI / 2;
+      runnerFrontCyl.position.set(0, runnerHeight / 2, runnerStraightDepth / 2);
+      runnerFrontCyl.castShadow = true;
+      runnerFrontCyl.receiveShadow = true;
+      sideGroup.add(runnerFrontCyl);
+
+      const runnerFrontBox = new Object3D(`${name}_RunnerFrontBox`);
+      runnerFrontBox.geometry = applyBoxUVs(
+        unitCubeGeo,
+        runnerWidth,
+        radius,
+        radius,
+        Math.random(),
+        Math.random(),
+        true,
+      );
+      runnerFrontBox.scale.set(runnerWidth, radius, radius);
+      if (woodMat) runnerFrontBox.material = woodMat;
+      runnerFrontBox.position.set(0, radius / 2, runnerStraightDepth / 2 + radius / 2);
+      runnerFrontBox.castShadow = true;
+      runnerFrontBox.receiveShadow = true;
+      sideGroup.add(runnerFrontBox);
+
+      // Back rounded end (top half curve, bottom half flat)
+      const runnerBackCyl = new Object3D(`${name}_RunnerBackCyl`);
+      runnerBackCyl.geometry = runnerEndCylGeo;
+      if (woodMat) runnerBackCyl.material = woodMat;
+      runnerBackCyl.rotation.z = Math.PI / 2;
+      runnerBackCyl.position.set(0, runnerHeight / 2, -runnerStraightDepth / 2);
+      runnerBackCyl.castShadow = true;
+      runnerBackCyl.receiveShadow = true;
+      sideGroup.add(runnerBackCyl);
+
+      const runnerBackBox = new Object3D(`${name}_RunnerBackBox`);
+      runnerBackBox.geometry = applyBoxUVs(
+        unitCubeGeo,
+        runnerWidth,
+        radius,
+        radius,
+        Math.random(),
+        Math.random(),
+        true,
+      );
+      runnerBackBox.scale.set(runnerWidth, radius, radius);
+      if (woodMat) runnerBackBox.material = woodMat;
+      runnerBackBox.position.set(0, radius / 2, -(runnerStraightDepth / 2 + radius / 2));
+      runnerBackBox.castShadow = true;
+      runnerBackBox.receiveShadow = true;
+      sideGroup.add(runnerBackBox);
 
       const legF = new Object3D(`${name}_Leg_Front`);
-      legF.geometry = unitCubeGeo;
-      legF.scale.set(legWidth, legHeight, legDepth);
+      // For vertical legs, grain runs along Y. By rotating top by 90deg, U maps to Y?
+      // Actually, applyBoxUVs might not support Y-axis grain if texture is X-axis.
+      // Since our texture is X-axis, and Front face uses U=Width, V=Height.
+      // We can rotate the Leg Object3D itself instead of UVs?
+      // Let's just create it with swapped Width/Height, and then rotate the Leg Object by 90 deg around Z!
+      legF.geometry = applyBoxUVs(
+        unitCubeGeo,
+        legHeight,
+        legWidth,
+        legDepth,
+        Math.random(),
+        Math.random(),
+        false,
+      );
+      legF.scale.set(legHeight, legWidth, legDepth);
+      legF.rotation.z = Math.PI / 2;
       if (woodMat) legF.material = woodMat;
       legF.position.set(0, runnerHeight + legHeight / 2, legZ);
       legF.castShadow = true;
@@ -159,13 +317,60 @@ export class WorkbenchTable extends Object3D {
       sideGroup.add(legF);
 
       const legB = new Object3D(`${name}_Leg_Back`);
-      legB.geometry = unitCubeGeo;
-      legB.scale.set(legWidth, legHeight, legDepth);
+      legB.geometry = applyBoxUVs(
+        unitCubeGeo,
+        legHeight,
+        legWidth,
+        legDepth,
+        Math.random(),
+        Math.random(),
+        false,
+      );
+      legB.scale.set(legHeight, legWidth, legDepth);
+      legB.rotation.z = Math.PI / 2;
       if (woodMat) legB.material = woodMat;
       legB.position.set(0, runnerHeight + legHeight / 2, -legZ);
       legB.castShadow = true;
       legB.receiveShadow = true;
       sideGroup.add(legB);
+
+      // Add bolts going through the runner into the legs
+      const addRunnerBolts = (baseZ: number): void => {
+        const outDir = isLeft ? -1 : 1;
+        // Rotation to face outside: if left side (-X), point to -X (z rot = PI/2)
+        const rotZ = isLeft ? Math.PI / 2 : -Math.PI / 2;
+        const boltXOffset = runnerWidth / 2;
+        const boltZOffset = 0.025;
+
+        const placeBolt = (bZ: number): void => {
+          const bGroup = new Object3D(`${name}_RBolt`);
+          bGroup.position.set(boltXOffset * outDir, runnerHeight / 2, bZ);
+          bGroup.rotation.set(0, 0, rotZ);
+
+          const w = new Object3D(`${name}_RW`);
+          w.geometry = sideBoltWasherGeo;
+          if (metalMat) w.material = metalMat;
+          w.position.set(0, 0.002, 0);
+          w.castShadow = true;
+          bGroup.add(w);
+
+          const n = new Object3D(`${name}_RN`);
+          n.geometry = sideBoltNutGeo;
+          if (metalMat) n.material = metalMat;
+          n.position.set(0, 0.0115, 0);
+          n.rotation.y = (Math.random() * Math.PI) / 4;
+          n.castShadow = true;
+          bGroup.add(n);
+
+          sideGroup.add(bGroup);
+        };
+
+        placeBolt(baseZ + boltZOffset);
+        placeBolt(baseZ - boltZOffset);
+      };
+
+      addRunnerBolts(legZ);
+      addRunnerBolts(-legZ);
 
       return sideGroup;
     };
@@ -176,28 +381,33 @@ export class WorkbenchTable extends Object3D {
     // --- 3. SHELF (Ablage) ---
     // Metal rails running across
     const shelfHeight = runnerHeight + legHeight * 0.3; // 30% up the legs
-    const shelfDepth = d - 0.2; // narrower than table depth
+    const shelfDepth = legZ * 2; // Rails span between the legs
+    // Rails between the leg frames
+    const railHeight = 0.08;
     const railWidth = 0.04;
-    const railHeight = 0.04;
-    const railLength = legInsetX * 2; // Spans between the legs
+    const railLength = legInsetX * 2 - legWidth;
 
-    const railF = new Object3D(`${name}_Rail_Front`);
-    railF.geometry = unitCubeGeo;
-    railF.scale.set(railLength, railHeight, railWidth);
-    if (metalMat) railF.material = metalMat;
-    railF.position.set(0, shelfHeight, shelfDepth / 2);
-    railF.castShadow = true;
-    railF.receiveShadow = true;
-    baseGroup.add(railF);
+    const createRail = (z: number): void => {
+      const rail = new Object3D(`${name}_Rail`);
+      rail.geometry = applyBoxUVs(
+        unitCubeGeo,
+        railLength,
+        railHeight,
+        railWidth,
+        Math.random(),
+        Math.random(),
+        false,
+      );
+      rail.scale.set(railLength, railHeight, railWidth);
+      if (woodMat) rail.material = woodMat;
+      rail.position.set(0, shelfHeight + railHeight / 2, z);
+      rail.castShadow = true;
+      rail.receiveShadow = true;
+      baseGroup.add(rail);
+    };
 
-    const railB = new Object3D(`${name}_Rail_Back`);
-    railB.geometry = unitCubeGeo;
-    railB.scale.set(railLength, railHeight, railWidth);
-    if (metalMat) railB.material = metalMat;
-    railB.position.set(0, shelfHeight, -shelfDepth / 2);
-    railB.castShadow = true;
-    railB.receiveShadow = true;
-    baseGroup.add(railB);
+    createRail(legZ - legDepth / 2 + railWidth / 2);
+    createRail(-legZ + legDepth / 2 - railWidth / 2);
 
     // Shelf Slats (Latten)
     const numSlats = 12;
@@ -209,8 +419,18 @@ export class WorkbenchTable extends Object3D {
 
     for (let i = 0; i < numSlats; i++) {
       const slat = new Object3D(`${name}_Slat_${i}`);
-      slat.geometry = unitCubeGeo;
-      slat.scale.set(slatWidth, slatHeight, slatDepth);
+      // Grain along depth (Z). We rotate the object 90 deg around Y.
+      slat.geometry = applyBoxUVs(
+        unitCubeGeo,
+        slatDepth,
+        slatHeight,
+        slatWidth,
+        Math.random(),
+        Math.random(),
+        false,
+      );
+      slat.scale.set(slatDepth, slatHeight, slatWidth);
+      slat.rotation.y = Math.PI / 2;
       if (woodMat) slat.material = woodMat;
       slat.castShadow = true;
       slat.receiveShadow = true;

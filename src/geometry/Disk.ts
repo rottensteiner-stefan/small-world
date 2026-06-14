@@ -64,7 +64,7 @@ export class Disk extends AbstractGeometry {
     // Indices
     // Center to first ring
     for (let s = 0; s < this.segments; s++) {
-      idx.push(0, s + 1, s + 2);
+      idx.push(0, s + 2, s + 1);
     }
 
     // Subsequent rings

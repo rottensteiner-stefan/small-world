@@ -1,5 +1,16 @@
 import { describe, it, expect } from "vitest";
-import { Cylinder, Tube, Torus, Pyramid, Sphere, Plane, Vector3D } from "../../src/index.js";
+import {
+  Cylinder,
+  Tube,
+  Torus,
+  Pyramid,
+  Sphere,
+  Plane,
+  Vector3D,
+  Capsule,
+  Circle,
+  Disk,
+} from "../../src/index.js";
 
 describe("Geometry Winding Order (Analytical)", () => {
   const getTriangleNormal = (
@@ -60,6 +71,26 @@ describe("Geometry Winding Order (Analytical)", () => {
       // For cylinder side, normal XZ should point away from origin XZ
       const dotXZ = normal.x * centroid.x + normal.z * centroid.z;
       expect(dotXZ).toBeGreaterThan(0);
+    }
+  });
+
+  it("Cylinder top cap should point UP", () => {
+    const geo = new Cylinder({ heightSegments: 1, radialSegments: 16 }).getGeometryData();
+    const indices = geo.indices;
+    // Top cap follows sides
+    for (let i = 32; i < 32 + 16; i++) {
+      const { normal } = getTriangleNormal(geo.vertices, indices, i);
+      expect(normal.y).toBeGreaterThan(0);
+    }
+  });
+
+  it("Cylinder bottom cap should point DOWN", () => {
+    const geo = new Cylinder({ heightSegments: 1, radialSegments: 16 }).getGeometryData();
+    const indices = geo.indices;
+    // Bottom cap follows top cap
+    for (let i = 48; i < 48 + 16; i++) {
+      const { normal } = getTriangleNormal(geo.vertices, indices, i);
+      expect(normal.y).toBeLessThan(0);
     }
   });
 
@@ -140,6 +171,36 @@ describe("Geometry Winding Order (Analytical)", () => {
 
       const outwardVec = centroid.clone().sub(tubeCenter);
       expect(normal.dot(outwardVec)).toBeGreaterThan(0);
+    }
+  });
+
+  it("Capsule side triangles should point outward", () => {
+    const geo = new Capsule().getGeometryData();
+    const indices = geo.indices;
+    for (let i = 0; i < indices.length / 3; i++) {
+      const { normal, centroid } = getTriangleNormal(geo.vertices, indices, i);
+      if (normal.lengthSq() < 0.0001) continue;
+      // Normal XZ should point away from origin XZ (or full 3D if it's on the cap)
+      // Actually, centroid from origin should dot positively with normal
+      expect(normal.dot(centroid)).toBeGreaterThan(0);
+    }
+  });
+
+  it("Circle should point to +Y", () => {
+    const geo = new Circle().getGeometryData();
+    const indices = geo.indices;
+    for (let i = 0; i < indices.length / 3; i++) {
+      const { normal } = getTriangleNormal(geo.vertices, indices, i);
+      expect(normal.y).toBeGreaterThan(0);
+    }
+  });
+
+  it("Disk should point to +Y", () => {
+    const geo = new Disk().getGeometryData();
+    const indices = geo.indices;
+    for (let i = 0; i < indices.length / 3; i++) {
+      const { normal } = getTriangleNormal(geo.vertices, indices, i);
+      expect(normal.y).toBeGreaterThan(0);
     }
   });
 });

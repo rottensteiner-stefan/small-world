@@ -28,8 +28,13 @@ import {
   Fog,
   FogMode,
   PulsatingBehavior,
+  RendererType,
+  CullMode,
 } from "../index.js";
 import { AbstractExample, Input } from "../core/index.js";
+import { WorkbenchTable } from "./objects/WorkbenchTable.js";
+import { ErlenmeyerFlask } from "./objects/ErlenmeyerFlask.js";
+import { ApothecaryBottle } from "./objects/ApothecaryBottle.js";
 
 class AbyssalDecoExample extends AbstractExample {
   private _portLight!: SpotLight;
@@ -104,6 +109,10 @@ class AbyssalDecoExample extends AbstractExample {
     let glassAlbedo: Texture | undefined;
     let glassRoughness: Texture | undefined;
     let glassEmissive: Texture | undefined;
+
+    let oakDiffuse: Texture | undefined;
+    let oakNormal: Texture | undefined;
+    let oakRoughness: Texture | undefined;
 
     try {
       decoDiffuse = await Texture.fromUrl("/resources/examples/12/artdeco_diffuse.png");
@@ -184,6 +193,11 @@ class AbyssalDecoExample extends AbstractExample {
       portNormal = await Texture.fromUrl("/resources/examples/12/porthole_normal.png");
       portRoughness = await Texture.fromUrl("/resources/examples/12/porthole_roughness.png");
       portEmissive = await Texture.fromUrl("/resources/examples/12/porthole_emissive.png");
+
+      // Table Wood (Oak)
+      oakDiffuse = await Texture.fromUrl("/resources/examples/12/oak_diffuse.png");
+      oakNormal = await Texture.fromUrl("/resources/examples/12/oak_normal.png");
+      oakRoughness = await Texture.fromUrl("/resources/examples/12/oak_roughness.png");
 
       // Texturen kacheln (1 Repeat pro 2 World-Units)
       if (decoDiffuse) {
@@ -300,6 +314,15 @@ class AbyssalDecoExample extends AbstractExample {
       normalScale: new Vector2D(1, -1), // Fix for DirectX normal map
       specularMap: crateSpecular,
       shininess: 32.0,
+    });
+
+    const oakMaterial = new StandardMaterial({
+      color: oakDiffuse ? new Color(1.0, 1.0, 1.0) : new Color(0.4, 0.25, 0.15),
+      diffuseMap: oakDiffuse,
+      normalMap: oakNormal,
+      roughnessMap: oakRoughness,
+      roughness: 0.85,
+      metallic: 0.02,
     });
 
     const brandingMaterial = new PhongMaterial({
@@ -812,7 +835,67 @@ class AbyssalDecoExample extends AbstractExample {
 
     this.scene.add(portLight);
 
-    // 6. Lighting: Ambient (Increased to balance contrast and prevent pitch-black shadows)
+    // 6. Workbench Table under the Right Porthole (Front Wall)
+    const table = new WorkbenchTable("MyWorkbench", {
+      width: 3,
+      depth: 1.2,
+      height: 1,
+      woodMaterial: oakMaterial,
+      metalMaterial: steelMaterial,
+    });
+    table.position.set(5, 0, -18.8); // X=5 (under right porthole), Z=-18.8 (close to front wall at Z=-19.5)
+    this.scene.add(table);
+
+    // Add a small light to highlight the table in the dark corner
+    const tableLight = new SpotLight({
+      color: new Color(1.0, 0.9, 0.7),
+      intensity: 3.0,
+      direction: new Vector3D(0, -1, 0),
+      angle: Math.PI / 3,
+      distance: 10.0,
+    });
+    tableLight.position.set(5, 4, -18.8);
+    tableLight.castShadow = true;
+    this.scene.add(tableLight);
+
+    // 6.b Laboratory Glassware on the Table
+    const greenGlass = new StandardMaterial({
+      color: new Color(0.1, 0.8, 0.2, 0.25), // Rich green, very transparent
+      roughness: 0.05, // Smooth glass
+      metallic: 0.0,
+      transparent: true,
+    });
+    greenGlass.cullMode = CullMode.NONE;
+
+    const blueGlass = new StandardMaterial({
+      color: new Color(0.1, 0.3, 0.9, 0.25), // Rich blue, very transparent
+      roughness: 0.05, // Smooth glass
+      metallic: 0.0,
+      transparent: true,
+    });
+    blueGlass.cullMode = CullMode.NONE;
+
+    // Erlenmeyer Flask
+    const flask = new ErlenmeyerFlask("Erlenmeyer", {
+      radius: 0.2,
+      height: 0.5,
+      glassMaterial: greenGlass,
+    });
+    // Place on table (Y=1)
+    flask.position.set(4.5, 1, -18.8);
+    this.scene.add(flask);
+
+    // Apothecary Bottle
+    const bottle = new ApothecaryBottle("Apothecary", {
+      radius: 0.15,
+      height: 0.6,
+      glassMaterial: blueGlass,
+    });
+    // Place next to flask
+    bottle.position.set(5.2, 1, -18.6);
+    this.scene.add(bottle);
+
+    // 7. Lighting: Ambient (Increased to balance contrast and prevent pitch-black shadows)
     this.scene.add(new AmbientLight({ color: new Color(0.1, 0.1, 0.15), intensity: 0.4 }));
 
     // 7. Lighting: Moon/Ocean rays coming from above/side (Dimmed)
@@ -911,7 +994,9 @@ class AbyssalDecoExample extends AbstractExample {
 }
 
 // === START THE ENGINE ===
-const app: AbyssalDecoExample = new AbyssalDecoExample();
+const app: AbyssalDecoExample = new AbyssalDecoExample({
+  rendererType: RendererType.WEB_GPU,
+});
 app
   .start()
   .then((): void => {

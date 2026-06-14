@@ -11,9 +11,11 @@ import {
   FPSController,
   CameraStrategyType,
   SpotLight,
+  Input,
+  Texture,
 } from "../index.js";
 import { AbstractExample } from "../core/index.js";
-import { RendererType } from "../enums/index.js";
+import { RendererType, InputMode } from "../enums/index.js";
 import { WorkbenchTable } from "./objects/WorkbenchTable.js";
 
 class Example13 extends AbstractExample {
@@ -22,10 +24,9 @@ class Example13 extends AbstractExample {
   }
 
   protected override async setupScene(): Promise<void> {
-    const aspect = window.innerWidth / window.innerHeight;
     this.camera.projection = new PerspectiveProjection({
       fov: (75 * Math.PI) / 180,
-      aspect,
+      aspect: this.canvas.width / this.canvas.height,
       near: 0.1,
       far: 1000,
     });
@@ -52,6 +53,7 @@ class Example13 extends AbstractExample {
     spotLight.position.set(0, 4, 2);
     spotLight.direction.set(0, -1, -0.5);
     spotLight.castShadow = true;
+    spotLight.shadowBias = 0.002;
     this.scene.add(spotLight);
 
     // 2. Floor
@@ -67,11 +69,24 @@ class Example13 extends AbstractExample {
     floor.rotation.x = -Math.PI / 2;
     this.scene.add(floor);
 
-    // 3. Materials
+    // 3. Load Textures
+    let woodDiffuse: Texture | undefined;
+    let woodNormal: Texture | undefined;
+
+    try {
+      woodDiffuse = await Texture.fromUrl("/resources/textures/wood_diffuse.png");
+      woodNormal = await Texture.fromUrl("/resources/textures/wood_normal.png");
+    } catch (e) {
+      console.warn("Could not load wood textures", e);
+    }
+
+    // 4. Materials
     const woodMaterial = new StandardMaterial({
-      color: new Color(0.4, 0.25, 0.15), // Warm brown wood
-      roughness: 0.8,
-      metallic: 0.05,
+      color: woodDiffuse ? new Color(1.0, 1.0, 1.0) : new Color(0.4, 0.25, 0.15),
+      diffuseMap: woodDiffuse,
+      normalMap: woodNormal,
+      roughness: 0.85,
+      metallic: 0.02,
     });
 
     const metalMaterial = new StandardMaterial({
@@ -79,9 +94,6 @@ class Example13 extends AbstractExample {
       roughness: 0.4,
       metallic: 0.9,
     });
-
-    // 4. Load Textures (optional, if we had them, but we'll use base colors for now)
-    // To make it look great even without textures, PBR handles the lighting beautifully.
 
     // 5. The Workbench
     const table = new WorkbenchTable("MyWorkbench", {
@@ -104,8 +116,20 @@ class Example13 extends AbstractExample {
 
     // FPS Controller
     this.camera.setStrategy(CameraStrategyType.FPS);
-    const controller = new FPSController({ moveSpeed: 2.0 });
+    const controller = new FPSController({
+      moveSpeed: 2.0,
+      inputMode: InputMode.STRAFE,
+      enableVertical: true,
+    });
     this.camera.addBehavior(controller);
+
+    // Pointer Lock for mouse controls
+    const canvas = document.querySelector("canvas");
+    if (canvas) {
+      canvas.addEventListener("click", () => {
+        Input.requestPointerLock(canvas);
+      });
+    }
   }
 
   public override update(deltaTime: number): void {
