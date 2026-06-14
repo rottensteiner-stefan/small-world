@@ -33,7 +33,7 @@ export declare class WebGPURenderer extends AbstractRenderer {
     _device: GPUDevice | undefined;
     /** Satisfies Renderer interface */
     get gpuDevice(): GPUDevice | undefined;
-    protected _context: GPUCanvasContext;
+    _context: GPUCanvasContext;
     _format: GPUTextureFormat;
     protected _pipelines: Map<string, WebGPUPipelineCache>;
     protected _shaderModules: Map<string, GPUShaderModule>;

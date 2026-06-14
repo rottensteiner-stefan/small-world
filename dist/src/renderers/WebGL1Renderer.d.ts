@@ -1,4 +1,5 @@
 import { AbstractWebGLRenderer } from './AbstractWebGLRenderer.js';
+import { Texture } from '../core/index.js';
 import { EngineConfig } from '../interfaces/index.js';
 import { RendererType } from '../enums/index.js';
 import { Scene } from '../core/Scene.js';
@@ -16,6 +17,8 @@ export declare class WebGL1Renderer extends AbstractWebGLRenderer {
     private _cache;
     private _texCache;
     private _texCubeCache;
+    _opaqueTexture?: WebGLTexture;
+    _opaqueTextureWrapper?: Texture;
     private _scratchModelMatrix;
     /** @inheritdoc */
     initialize(canvas: HTMLCanvasElement, attributes?: Record<string, unknown>, config?: EngineConfig): Promise<void>;
