@@ -46,7 +46,7 @@ export class WebGPURenderer extends AbstractRenderer {
     return this._device;
   }
 
-  protected _context!: GPUCanvasContext;
+  public _context!: GPUCanvasContext;
   public _format!: GPUTextureFormat;
 
   protected _pipelines: Map<string, WebGPUPipelineCache> = new Map();
@@ -68,6 +68,8 @@ export class WebGPURenderer extends AbstractRenderer {
   protected _cubeTextureViewCache: Map<CubeTexture, GPUTextureView> = new Map();
 
   public _depthTexture!: GPUTexture;
+  public _opaqueTexture?: GPUTexture;
+  public _opaqueTextureView?: GPUTextureView;
 
   // Render Pass System
   protected _passes: RenderPass[] = [];
@@ -116,6 +118,7 @@ export class WebGPURenderer extends AbstractRenderer {
     this._context.configure({
       device: this._device,
       format: this._format,
+      usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
       alphaMode: "premultiplied",
     });
 
@@ -326,6 +329,11 @@ export class WebGPURenderer extends AbstractRenderer {
           visibility: GPUShaderStage.FRAGMENT,
           texture: { viewDimension: "2d", sampleType: "float" },
         },
+        {
+          binding: 14,
+          visibility: GPUShaderStage.FRAGMENT,
+          texture: { viewDimension: "2d", sampleType: "float" },
+        },
       );
       const objBGL = this._device!.createBindGroupLayout({ entries: objEntries });
       const pipelineLayout = this._device!.createPipelineLayout({
@@ -342,6 +350,16 @@ export class WebGPURenderer extends AbstractRenderer {
       if (state.blending === BlendingMode.ALPHA) {
         targets[0]!.blend = {
           color: { srcFactor: "src-alpha", dstFactor: "one-minus-src-alpha", operation: "add" },
+          alpha: { srcFactor: "one", dstFactor: "one-minus-src-alpha", operation: "add" },
+        };
+      } else if (state.blending === BlendingMode.ADDITIVE) {
+        targets[0]!.blend = {
+          color: { srcFactor: "one", dstFactor: "one", operation: "add" },
+          alpha: { srcFactor: "one", dstFactor: "one", operation: "add" },
+        };
+      } else if (state.blending === BlendingMode.PREMULTIPLIED_ALPHA) {
+        targets[0]!.blend = {
+          color: { srcFactor: "one", dstFactor: "one-minus-src-alpha", operation: "add" },
           alpha: { srcFactor: "one", dstFactor: "one-minus-src-alpha", operation: "add" },
         };
       }
@@ -443,6 +461,28 @@ export class WebGPURenderer extends AbstractRenderer {
     if (this._frameCount % 100 === 0) this._pruneObjectBuffers();
   }
 
+  public captureOpaqueTexture(ce: GPUCommandEncoder, targetTex: GPUTexture): void {
+    if (
+      !this._opaqueTexture ||
+      this._opaqueTexture.width !== targetTex.width ||
+      this._opaqueTexture.height !== targetTex.height
+    ) {
+      if (this._opaqueTexture) this._opaqueTexture.destroy();
+      this._opaqueTexture = this._device!.createTexture({
+        size: [targetTex.width, targetTex.height, 1],
+        format: targetTex.format,
+        usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
+      });
+      this._opaqueTextureView = this._opaqueTexture.createView();
+    }
+
+    ce.copyTextureToTexture({ texture: targetTex }, { texture: this._opaqueTexture }, [
+      targetTex.width,
+      targetTex.height,
+      1,
+    ]);
+  }
+
   protected _pruneObjectBuffers(): void {
     for (const [uuid, data] of this._objectUniformBuffers.entries()) {
       if (this._frameCount - data.lastFrame > 100) {
@@ -459,19 +499,14 @@ export class WebGPURenderer extends AbstractRenderer {
     vMat?: Float32Array,
     topology: GPUPrimitiveTopology = "triangle-list",
   ): void {
-    const groupIterator = materialGroups.values();
-    const firstGroup = groupIterator.next().value;
-    if (!firstGroup || firstGroup.length === 0) return;
-    const firstObj = firstGroup[0];
-    if (!firstObj || !firstObj.material) return;
-
-    const cache = this._getPipeline(firstObj.material.getRenderManifest(), topology);
-    rp.setPipeline(cache.pipeline);
     rp.setBindGroup(0, this._globalBindGroup);
     for (const objects of materialGroups.values()) {
       const mat = objects[0]?.material;
       if (!mat) continue;
       const manifest = mat.getRenderManifest();
+      const cache = this._getPipeline(manifest, topology);
+      rp.setPipeline(cache.pipeline);
+
       for (const obj of objects) {
         if (!obj.geometry) continue;
         const uBuffer = this._getObjUniformBuffer(obj);
@@ -588,6 +623,12 @@ export class WebGPURenderer extends AbstractRenderer {
       },
       { binding: 12, resource: this._getTextureView(m.textures["u_emissiveMap"] as Texture) },
       { binding: 13, resource: this._getTextureView(m.textures["u_alphaMap"] as Texture) },
+      {
+        binding: 14,
+        resource: m.textures["u_opaqueMap"]
+          ? this._getTextureView(m.textures["u_opaqueMap"] as Texture)
+          : this._opaqueTextureView || this._whiteTexView,
+      },
     ];
     return this._device!.createBindGroup({ layout, entries });
   }

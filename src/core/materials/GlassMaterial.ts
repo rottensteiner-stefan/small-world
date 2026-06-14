@@ -3,13 +3,12 @@ import { Color } from "../colors/index.js";
 import { MaterialType, ShaderPropertyType, BlendingMode } from "../../enums/index.js";
 import { Texture } from "../textures/index.js";
 import { RenderManifest } from "../renderers/shaders/RenderManifest.js";
+import { ShaderDefinition } from "../renderers/shaders/ShaderDefinition.js";
+import { StandardWebGPULayout } from "../renderers/shaders/StandardWebGPULayout.js";
 
 import fragGLSL from "./shaders/Glass.frag.glsl?raw";
 import fragGLSL100 from "./shaders/Glass.frag.glsl100?raw";
 import fragWGSL from "./shaders/Glass.frag.wgsl?raw";
-import vertGLSL from "./shaders/Standard.vert.glsl?raw";
-import vertGLSL100 from "./shaders/Standard.vert.glsl100?raw";
-import vertWGSL from "./shaders/Standard.vert.wgsl?raw";
 
 export interface GlassMaterialOptions {
   color?: Color;
@@ -22,24 +21,24 @@ export interface GlassMaterialOptions {
 }
 
 export class GlassMaterial extends AbstractMaterial {
+  public override color: Color;
   public metallic: number;
   public roughness: number;
   public ior: number;
   public thickness: number;
   public transmission: number;
+  public normalMap?: Texture;
 
   constructor(options: GlassMaterialOptions = {}) {
-    super();
-    this.name = "GlassMaterial";
-    this.color = options.color || Color.WHITE.clone();
+    super(MaterialType.GLASS);
+    this.color = options.color || new Color(1, 1, 1, 1);
     this.metallic = options.metallic ?? 0.0;
     this.roughness = options.roughness ?? 0.1;
     this.ior = options.ior ?? 1.5;
     this.thickness = options.thickness ?? 1.0;
     this.transmission = options.transmission ?? 1.0;
-
     if (options.normalMap) {
-      this.setTexture("u_normalMap", options.normalMap);
+      this.normalMap = options.normalMap;
     }
   }
 
@@ -62,7 +61,7 @@ export class GlassMaterial extends AbstractMaterial {
         },
         textures: {
           u_diffuseMap: undefined,
-          u_normalMap: this.hasTexture("u_normalMap") ? this.getTexture("u_normalMap") : undefined,
+          u_normalMap: this.normalMap || undefined,
           u_opaqueMap: undefined, // The opaque map texture!
         },
         state: {

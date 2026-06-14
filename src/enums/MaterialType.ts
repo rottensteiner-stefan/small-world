@@ -28,6 +28,8 @@ export const MaterialType = {
   SLIME: "SlimeMaterial",
   /** Depth material for shadow mapping. */
   DEPTH: "DepthMaterial",
+  /** Physically based rendering material with transmission/refraction. */
+  GLASS: "GlassMaterial",
 } as const;
 
 /** Type definition for MaterialType. */

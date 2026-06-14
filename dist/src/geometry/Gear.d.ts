@@ -18,6 +18,7 @@ export interface GearOptions {
 }
 /**
  * Procedural Gear Geometry based on isosceles trapezoidal teeth.
+ * @see Please refer to `REFERENCES.md#gear-zahnrad` for the underlying tooth calculation formulas.
  */
 export declare class Gear extends ExtrudeGeometry {
     readonly teeth: number;

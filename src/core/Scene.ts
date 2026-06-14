@@ -3,9 +3,17 @@
 import { Object3D } from "./Object3D.js";
 import { Octree } from "./Octree.js";
 import { Fog } from "./Fog.js";
+import { Matrix4 } from "../math/Matrix4.js";
+import { Frustum } from "../math/Frustum.js";
+import { Vector3D } from "../math/Vector3D.js";
 import { BoundingBox } from "../physix/index.js";
 import { BoundingType, Topology } from "../enums/index.js";
 import { DirectionalLight } from "./lights/index.js";
+
+export interface RenderList {
+  opaque: Map<string, Map<string, Map<string, Object3D[]>>>;
+  transparent: Object3D[];
+}
 
 /**
  * A scene that holds a collection of 3D objects.
@@ -130,47 +138,85 @@ export class Scene {
 
   /**
    * Returns visible objects, respecting BOTH user visibility and frustum state.
-   * Grouping: shaderId -> topology -> matUuid -> Object3D[]
+   * Separates opaque and transparent objects.
+   * Opaque Grouping: shaderId -> topology -> matUuid -> Object3D[]
+   * Transparent: Object3D[] sorted back-to-front
    */
-  public getVisibleObjectsSorted(): Map<string, Map<string, Map<string, Object3D[]>>> {
-    const sorted: Map<string, Map<string, Map<string, Object3D[]>>> = new Map();
+  public getVisibleObjectsSorted(vp: Float32Array, camPos: Vector3D): RenderList {
+    const renderList: RenderList = {
+      opaque: new Map(),
+      transparent: [],
+    };
+
+    const frustum = new Frustum();
+    const vpMat = new Matrix4();
+    vpMat.data.set(vp);
+    frustum.setFromMatrix(vpMat);
+
     for (let i: number = 0; i < this.objects.length; i++) {
-      this._collectVisible(this.objects[i]!, sorted);
+      this._collectVisible(this.objects[i]!, renderList, frustum);
     }
-    return sorted;
+
+    // Sort transparent objects back-to-front
+    renderList.transparent.sort((a, b) => {
+      const aData = a.worldMatrix.data;
+      const ax = aData[12]! - camPos.x;
+      const ay = aData[13]! - camPos.y;
+      const az = aData[14]! - camPos.z;
+      const distA = ax * ax + ay * ay + az * az;
+
+      const bData = b.worldMatrix.data;
+      const bx = bData[12]! - camPos.x;
+      const by = bData[13]! - camPos.y;
+      const bz = bData[14]! - camPos.z;
+      const distB = bx * bx + by * by + bz * bz;
+
+      return distB - distA; // Furthest first
+    });
+
+    return renderList;
   }
 
-  private _collectVisible(
-    obj: Object3D,
-    sorted: Map<string, Map<string, Map<string, Object3D[]>>>,
-  ): void {
+  private _collectVisible(obj: Object3D, renderList: RenderList, frustum: Frustum): void {
     // Only proceed if object is visible
     if (!obj.isVisible) return;
+
+    // Frustum Culling
+    if (obj.frustumCulled && obj.bounds) {
+      if (!frustum.intersectsVolume(obj.bounds)) {
+        return;
+      }
+    }
 
     if (
       (obj.geometry || (obj as Object3D & { positionBuffer?: unknown }).positionBuffer) &&
       obj.material
     ) {
       const manifest = obj.material.getRenderManifest();
-      const shaderId = manifest.shaderId;
-      const topology =
-        manifest.state?.topology ||
-        obj.geometry?.topology ||
-        (obj.geometry?.indices?.length === 2 ? Topology.LINE_LIST : Topology.TRIANGLE_LIST);
-      const matUuid = obj.material.uuid;
 
-      if (!sorted.has(shaderId)) sorted.set(shaderId, new Map());
-      const topologyMap = sorted.get(shaderId)!;
+      if (manifest.state?.transparent) {
+        renderList.transparent.push(obj);
+      } else {
+        const shaderId = manifest.shaderId;
+        const topology =
+          manifest.state?.topology ||
+          obj.geometry?.topology ||
+          (obj.geometry?.indices?.length === 2 ? Topology.LINE_LIST : Topology.TRIANGLE_LIST);
+        const matUuid = obj.material.uuid;
 
-      if (!topologyMap.has(topology)) topologyMap.set(topology, new Map());
-      const matMap = topologyMap.get(topology)!;
+        if (!renderList.opaque.has(shaderId)) renderList.opaque.set(shaderId, new Map());
+        const topologyMap = renderList.opaque.get(shaderId)!;
 
-      if (!matMap.has(matUuid)) matMap.set(matUuid, []);
-      matMap.get(matUuid)!.push(obj);
+        if (!topologyMap.has(topology)) topologyMap.set(topology, new Map());
+        const matMap = topologyMap.get(topology)!;
+
+        if (!matMap.has(matUuid)) matMap.set(matUuid, []);
+        matMap.get(matUuid)!.push(obj);
+      }
     }
 
     for (let i: number = 0; i < obj.children.length; i++) {
-      this._collectVisible(obj.children[i]!, sorted);
+      this._collectVisible(obj.children[i]!, renderList, frustum);
     }
   }
 
