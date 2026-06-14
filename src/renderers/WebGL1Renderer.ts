@@ -65,6 +65,9 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
   private _texCache: Map<Texture, WebGLTexture> = new Map();
   private _texCubeCache: Map<CubeTexture, WebGLTexture> = new Map();
 
+  public _opaqueTexture?: WebGLTexture;
+  public _opaqueTextureWrapper?: Texture;
+
   private _scratchModelMatrix: Float32Array = new Float32Array(16);
 
   /** @inheritdoc */
@@ -150,6 +153,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
         "u_snowMap",
         "u_texOffset",
         "u_texRepeat",
+        "u_opaqueMap",
         "u_fogMode",
         "u_fogColor",
         "u_fogDensity",
@@ -306,26 +310,64 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
       }
     }
 
-    // --- PASS 3: Transparent Objects ---
-    for (const obj of renderList.transparent) {
-      const manifest = obj.material!.getRenderManifest();
-      const shaderId = manifest.shaderId;
-      const topology =
-        manifest.state?.topology ||
-        obj.geometry?.topology ||
-        (obj.geometry?.indices?.length === 2 ? "line-list" : "triangle-list");
+    if (renderList.transparent.length > 0) {
+      // Create/Update Opaque Texture
+      if (!this._opaqueTexture) {
+        const tex = this.gl.createTexture();
+        this.gl.bindTexture(this.gl.TEXTURE_2D, tex);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
+        this._opaqueTexture = tex!;
 
-      const materialMap = new Map<string, Object3D[]>([[obj.material!.uuid, [obj]]]);
-      this._renderGroup(
-        shaderId,
-        materialMap,
-        vp,
-        camPos,
-        extractedLights,
-        vMat,
-        topology,
-        scene.fog,
+        // Create a dummy Texture wrapper to serve as the key in _texCache
+        const dummyTex = { isLoaded: true } as unknown as Texture;
+        this._opaqueTextureWrapper = dummyTex;
+
+        // Directly inject into the cache so _getWebGLTexture uses it
+        this._texCache.set(dummyTex, tex!);
+      } else {
+        this.gl.bindTexture(this.gl.TEXTURE_2D, this._opaqueTexture);
+      }
+
+      // Copy current framebuffer to texture
+      this.gl.copyTexImage2D(
+        this.gl.TEXTURE_2D,
+        0,
+        this.gl.RGBA,
+        0,
+        0,
+        this.gl.canvas.width,
+        this.gl.canvas.height,
+        0,
       );
+
+      // --- PASS 3: Transparent Objects ---
+      for (const obj of renderList.transparent) {
+        const manifest = obj.material!.getRenderManifest();
+        if (obj.material && obj.material.type === MaterialType.GLASS) {
+          manifest.textures["u_opaqueMap"] = this._opaqueTextureWrapper;
+        }
+
+        const shaderId = manifest.shaderId;
+        const topology =
+          manifest.state?.topology ||
+          obj.geometry?.topology ||
+          (obj.geometry?.indices?.length === 2 ? "line-list" : "triangle-list");
+
+        const materialMap = new Map<string, Object3D[]>([[obj.material!.uuid, [obj]]]);
+        this._renderGroup(
+          shaderId,
+          materialMap,
+          vp,
+          camPos,
+          extractedLights,
+          vMat,
+          topology,
+          scene.fog,
+        );
+      }
     }
   }
 
@@ -478,6 +520,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
           u_diffuseMap: 0,
           u_normalMap: 1,
           u_specularMap: 2,
+          u_opaqueMap: 3,
         };
         for (const [uniformName, unit] of Object.entries(samplerUnits)) {
           const loc = u.get(uniformName);

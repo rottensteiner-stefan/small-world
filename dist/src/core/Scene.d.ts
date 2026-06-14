@@ -1,7 +1,12 @@
 import { Object3D } from './Object3D.js';
 import { Octree } from './Octree.js';
 import { Fog } from './Fog.js';
+import { Vector3D } from '../math/Vector3D.js';
 import { BoundingBox } from '../physix/index.js';
+export interface RenderList {
+    opaque: Map<string, Map<string, Map<string, Object3D[]>>>;
+    transparent: Object3D[];
+}
 /**
  * A scene that holds a collection of 3D objects.
  */
@@ -24,9 +29,11 @@ export declare class Scene {
     private _updateBehaviorsRecursive;
     /**
      * Returns visible objects, respecting BOTH user visibility and frustum state.
-     * Grouping: shaderId -> topology -> matUuid -> Object3D[]
+     * Separates opaque and transparent objects.
+     * Opaque Grouping: shaderId -> topology -> matUuid -> Object3D[]
+     * Transparent: Object3D[] sorted back-to-front
      */
-    getVisibleObjectsSorted(): Map<string, Map<string, Map<string, Object3D[]>>>;
+    getVisibleObjectsSorted(vp: Float32Array, camPos: Vector3D): RenderList;
     private _collectVisible;
     get octree(): Octree | undefined;
 }

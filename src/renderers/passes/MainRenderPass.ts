@@ -3,6 +3,7 @@ import { MaterialType } from "../../enums/index.js";
 import { WebGPURenderer } from "../WebGPURenderer.js";
 import { RenderPass } from "../RenderPass.js";
 import { Vector3D } from "../../math/index.js";
+import { Object3D } from "../../core/index.js";
 
 /**
  * Standard render pass for opaque and skybox objects.
@@ -15,11 +16,11 @@ export class MainRenderPass implements RenderPass {
     scene: Scene,
     ce: GPUCommandEncoder,
     targetView: GPUTextureView,
-    _vp: Float32Array,
-    _camPos: Vector3D,
+    vp: Float32Array,
+    camPos: Vector3D,
     vMat?: Float32Array,
   ): void {
-    const sortedGroups = scene.getVisibleObjectsSorted();
+    const renderList = scene.getVisibleObjectsSorted(vp, camPos);
 
     const rp = ce.beginRenderPass({
       colorAttachments: [
@@ -39,7 +40,7 @@ export class MainRenderPass implements RenderPass {
     });
 
     // 1. Skybox first
-    const skyboxShaderMap = sortedGroups.get(MaterialType.SKYBOX);
+    const skyboxShaderMap = renderList.opaque.get(MaterialType.SKYBOX);
     if (skyboxShaderMap) {
       for (const [topology, materialGroups] of skyboxShaderMap.entries()) {
         renderer._renderGroup(
@@ -50,16 +51,63 @@ export class MainRenderPass implements RenderPass {
           topology as GPUPrimitiveTopology,
         );
       }
-      sortedGroups.delete(MaterialType.SKYBOX);
+      renderList.opaque.delete(MaterialType.SKYBOX);
     }
 
-    // 2. All other materials
-    for (const [shaderId, topologyMap] of sortedGroups.entries()) {
+    // 2. All other opaque objects
+    for (const [shaderId, topologyMap] of renderList.opaque.entries()) {
       for (const [topology, materialGroups] of topologyMap.entries()) {
         renderer._renderGroup(rp, shaderId, materialGroups, vMat, topology as GPUPrimitiveTopology);
       }
     }
 
-    rp.end();
+    if (renderList.transparent.length > 0) {
+      // End opaque pass
+      rp.end();
+
+      // Capture opaque texture for transparent materials (like glass)
+      const ctx = renderer._context;
+      const targetTex = ctx.getCurrentTexture();
+      renderer.captureOpaqueTexture(ce, targetTex);
+
+      // Start transparent pass
+      const rpTransparent = ce.beginRenderPass({
+        colorAttachments: [
+          {
+            view: targetView,
+            loadOp: "load",
+            storeOp: "store",
+          },
+        ],
+        depthStencilAttachment: {
+          view: renderer._depthTexture.createView(),
+          depthLoadOp: "load",
+          depthStoreOp: "store",
+        },
+      });
+
+      // 3. Transparent objects
+      for (const obj of renderList.transparent) {
+        const manifest = obj.material!.getRenderManifest();
+
+        const shaderId = manifest.shaderId;
+        const topology =
+          manifest.state?.topology ||
+          obj.geometry?.topology ||
+          (obj.geometry?.indices?.length === 2 ? "line-list" : "triangle-list");
+
+        const matGroups = new Map<string, Object3D[]>([[obj.material!.uuid, [obj]]]);
+        renderer._renderGroup(
+          rpTransparent,
+          shaderId,
+          matGroups,
+          vMat,
+          topology as GPUPrimitiveTopology,
+        );
+      }
+      rpTransparent.end();
+    } else {
+      rp.end();
+    }
   }
 }

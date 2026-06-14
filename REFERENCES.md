@@ -39,3 +39,19 @@ Dieses Dokument dient dazu, externe Quellen, Algorithmen, mathematische Herleitu
 ### Data-Oriented Design (DOD)
 - **Autoren/Gurus:** Mike Acton (Insomniac Games, Unity)
 - **Verwendung:** Die Architekturrichtlinie, dass Datenstrukturen (wie TypedArrays und flache Arrays) gegenüber OOP und tief verschachtelten Objekten bevorzugt werden sollen, um CPU-Cache-Misses während der Rendering-Schleife zu vermeiden.
+
+## Graphics APIs (WebGPU / WebGL)
+
+### W3C WebGPU Specification
+- **Quelle:** [WebGPU W3C Working Draft](https://www.w3.org/TR/webgpu/)
+- **Verwendung:** Die absolute Single Source of Truth für WebGPU-Mechanismen. Sie begründet die strengen Validierungsregeln und expliziten Ressourcen-Anforderungen (z.B. warum `GPUTextureUsage` exakt definiert werden muss, bevor eine Operation wie `copyTextureToTexture` ausgeführt werden kann).
+
+### WebGPU Fundamentals
+- **Autoren/Gurus:** Gregg Tavares
+- **Quelle:** [WebGPU Fundamentals](https://webgpufundamentals.org/)
+- **Verwendung:** Eine hervorragende Quelle, um den konzeptionellen Unterschied zwischen implizitem Status (WebGL) und expliziten Pipelines/Layouts (WebGPU) zu verstehen. Dient als Vorlage für Best Practices rund um Texture-Bindings, Memory Alignments (Uniforms/UBOs) und den sicheren Umgang mit Render Passes.
+
+### Tour of WebGPU
+- **Autoren/Gurus:** Alain Galvan
+- **Quelle:** [Raw WebGPU (Tour of WebGPU)](https://alain.xyz/blog/raw-webgpu)
+- **Verwendung:** Dient als wichtige architektonische Referenz zum Verständnis der Bind Group Layouts, Command Buffer Encoding und dem Mapping von Konzepten wie Vulkan/Metal/D3D12 auf den Web-Standard.

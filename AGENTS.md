@@ -32,10 +32,31 @@ Before implementing:
 - **Regression Testing:** Any change to `src/math/` or index-generating logic MUST be accompanied by tests that verify the orientation, winding order, and coordinate system integrity (e.g., ensuring objects don't end up "upside down" or mirrored). Use `npm test tests/core/FPSController.test.ts` for movement verification.
 - **Global Impact Analysis:** If a core mathematical method _must_ be changed (e.g., to fix a fundamental bug), you MUST identify and update ALL call sites across the entire codebase.
 
+## Rendering Architecture
+
+**Correct rendering order and culling are non-negotiable for visual integrity.**
+
+- **Opaque vs. Transparent Separation:** Renderers MUST strictly separate the rendering of opaque objects from transparent objects.
+  - Opaque objects MUST be drawn FIRST.
+  - Transparent objects MUST be drawn AFTER all opaque objects.
+  - Failure to do this will result in transparent objects being overwritten by opaque objects behind them (due to disabled depth writes on transparents).
+- **Back-to-Front Sorting (Transparency):** Transparent objects MUST be sorted back-to-front (furthest from the camera to nearest) before drawing.
+  - Always calculate squared distance from the camera position to the object's world position.
+  - Sort descending: `distB - distA`.
+- **Frustum Culling:** The scene graph MUST prune objects outside the camera's view frustum before sending them to the renderer.
+  - Extract the Frustum from the Camera's View-Projection matrix.
+  - Use `frustum.intersectsVolume(obj.bounds)` to skip rendering invisible objects.
+- **Pipeline State Consistency:** When grouping objects by shader or material, ensure the rendering pipeline (blend modes, depth states, culling) is updated per-material or per-group, not just once per shader type.
+- **Linear Color Space & Gamma Correctness:** All lighting calculations MUST be performed in Linear Space. Any texture containing color data (Albedo/Diffuse) MUST be converted from sRGB to Linear Space before lighting calculations. The final output MUST be gamma-corrected (Linear to sRGB) before being drawn to the screen.
+- **Energy Conservation (PBR):** A material cannot reflect more light than it receives. Ensure that `Diffuse + Specular <= 1.0`. Metallic surfaces reflect almost all light as specular and have little to no diffuse component.
+- **Explicit Resource Usage & Pipeline Strictness (WebGPU/WebGL):** Modern graphics APIs require explicit upfront declaration of resource intent. Never assume implicit capabilities. When allocating buffers or textures (especially SwapChain or FBOs), carefully analyze *all* stages the resource will pass through (e.g., Binding, Copying, Rendering) and bitwise-OR the exact usage flags (e.g., `GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT`). Always bind error callbacks (`onuncapturederror`) and check for validation warnings during development.
+
+
 ## Industry Standards & Defaults
 
 **When in doubt, align with the giants.**
 
+- **Adhere to `REFERENCES.md`:** Always consult and strictly adhere to the sources, gurus, and best practices documented in `REFERENCES.md`. These references (e.g., PBRT, Real-Time Rendering, WebGPU Spec) form the absolute baseline for mathematical and architectural decisions.
 - **Default Values & Settings:** When defining default parameters, behaviors, or settings, orient yourself towards industry standards established by engines like **Unreal Engine**, **Three.js**, or **Unity**.
 - **Clarification:** If there is a conflict between standards or if the "best" standard is unclear, you MUST ask for clarification before proceeding.
 

@@ -26,6 +26,8 @@ export declare const MaterialType: {
     readonly SLIME: "SlimeMaterial";
     /** Depth material for shadow mapping. */
     readonly DEPTH: "DepthMaterial";
+    /** Physically based rendering material with transmission/refraction. */
+    readonly GLASS: "GlassMaterial";
 };
 /** Type definition for MaterialType. */
 export type MaterialType = (typeof MaterialType)[keyof typeof MaterialType];

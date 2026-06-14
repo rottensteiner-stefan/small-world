@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.23.00] - 2026-06-15
+
+- **Major Feature: Multi-Backend Opaque Texture Capture (Refraction Pipeline)**:
+  - Implemented real-time Framebuffer/Color-buffer capturing in `WebGPURenderer`, `WebGL2Renderer`, and `WebGL1Renderer`.
+  - Added dedicated pass isolation for transparent objects. Opaque objects are rendered first, the canvas/framebuffer is captured and copied into a read-only texture (`u_opaqueMap`), and then transparent objects are drawn.
+  - Developed a cross-platform dummy-texture wrapping system to bypass standard binding limitations in WebGL2/WebGPU while utilizing the existing `RenderManifest` and pipeline infrastructure.
+- **Advanced Glass Material (PBR + Beer's Law)**:
+  - Transformed `GlassMaterial` from a simple alpha-blended material into a fully physical refractive dielectric.
+  - Implemented **Screen-Space Refraction** using exact IOR (Index of Refraction) math, perturbing UV coordinates based on View Vector and Surface Normals.
+  - Implemented **Beer-Lambert Law** (Beer's Law) for volumetric light absorption. The color is now physically dictated by `thickness`, where thicker glass absorbs exponentially more light.
+  - Added true PBR specular highlights (Cook-Torrance BRDF) on top of the glass surface across all lights (Directional, Point, Spot).
+- **Shader Pipeline Improvements**:
+  - Unified Gamma Correction and Tone Mapping across transparent shaders.
+  - Solved the "Black Glass" issue caused by missing exposure multipliers and linear-to-sRGB conversions in custom fragment outputs.
+- **Example 12 Polishing**:
+  - Upgraded laboratory glassware (`ErlenmeyerFlask`, `ApothecaryBottle`) to use physically accurate material values (e.g., Borosilicate Glass with IOR 1.474 and Cobalt Glass with IOR 1.52).
+
 ## [0.22.0] - 2026-06-13
 
 - **Core Architecture: Behavior System Refactoring**:

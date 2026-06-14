@@ -49,6 +49,8 @@ export declare class WebGPURenderer extends AbstractRenderer {
     protected _textureViewCache: Map<Texture, GPUTextureView>;
     protected _cubeTextureViewCache: Map<CubeTexture, GPUTextureView>;
     _depthTexture: GPUTexture;
+    _opaqueTexture?: GPUTexture;
+    _opaqueTextureView?: GPUTextureView;
     protected _passes: RenderPass[];
     _globalUniformBuffer: GPUBuffer;
     _pointLightBuffer: GPUBuffer;
@@ -77,6 +79,7 @@ export declare class WebGPURenderer extends AbstractRenderer {
     protected _getShaderModule(shaderId: string): GPUShaderModule;
     protected _getGeoCache(geo: GeometryDataInterface): WebGPUGeoCache;
     render(scene: Scene, vp: Float32Array, camPos?: Vector3D, vMat?: Float32Array): void;
+    captureOpaqueTexture(ce: GPUCommandEncoder, targetTex: GPUTexture): void;
     protected _pruneObjectBuffers(): void;
     _renderGroup(rp: GPURenderPassEncoder, _shaderId: string, materialGroups: Map<string, Object3D[]>, vMat?: Float32Array, topology?: GPUPrimitiveTopology): void;
     protected _getObjUniformBuffer(obj: Object3D): GPUBuffer;

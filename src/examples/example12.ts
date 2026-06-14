@@ -17,6 +17,7 @@ import {
   ProjectionType,
   PhongMaterial,
   StandardMaterial,
+  GlassMaterial,
   Texture,
   Torus,
   BoundingBox,
@@ -859,27 +860,31 @@ class AbyssalDecoExample extends AbstractExample {
     this.scene.add(tableLight);
 
     // 6.b Laboratory Glassware on the Table
-    const greenGlass = new StandardMaterial({
-      color: new Color(0.1, 0.8, 0.2, 0.25), // Rich green, very transparent
-      roughness: 0.05, // Smooth glass
-      metallic: 0.0,
-      transparent: true,
+    const borosilicateGlass = new GlassMaterial({
+      color: new Color(0.95, 0.98, 0.98, 1.0), // Very slight cyan/green tint of lab glass
+      roughness: 0.01, // Extremely smooth
+      metallic: 0.0, // Pure dielectric
+      ior: 1.474, // Borosilicate glass IOR
+      thickness: 0.05, // Thin walls
+      transmission: 0.98,
     });
-    greenGlass.cullMode = CullMode.NONE;
+    borosilicateGlass.cullMode = CullMode.NONE;
 
-    const blueGlass = new StandardMaterial({
-      color: new Color(0.1, 0.3, 0.9, 0.25), // Rich blue, very transparent
-      roughness: 0.05, // Smooth glass
+    const cobaltGlass = new GlassMaterial({
+      color: new Color(0.1, 0.25, 0.9, 1.0), // Rich Cobalt Blue
+      roughness: 0.03, // Slight surface imperfections
       metallic: 0.0,
-      transparent: true,
+      ior: 1.52, // Standard bottle glass
+      thickness: 0.3, // Thicker walls -> richer color absorption
+      transmission: 0.95,
     });
-    blueGlass.cullMode = CullMode.NONE;
+    cobaltGlass.cullMode = CullMode.NONE;
 
     // Erlenmeyer Flask
     const flask = new ErlenmeyerFlask("Erlenmeyer", {
       radius: 0.2,
       height: 0.5,
-      glassMaterial: greenGlass,
+      glassMaterial: borosilicateGlass,
     });
     // Place on table (Y=1)
     flask.position.set(4.5, 1, -18.8);
@@ -889,7 +894,7 @@ class AbyssalDecoExample extends AbstractExample {
     const bottle = new ApothecaryBottle("Apothecary", {
       radius: 0.15,
       height: 0.6,
-      glassMaterial: blueGlass,
+      glassMaterial: cobaltGlass,
     });
     // Place next to flask
     bottle.position.set(5.2, 1, -18.6);
