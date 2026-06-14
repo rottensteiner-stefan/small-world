@@ -5,20 +5,30 @@ import {
   BoundingBox,
   CameraStrategyType,
   Capsule,
+  Circle,
   Color,
   Cone,
+  Cube,
   Cylinder,
+  CylinderSector,
   DirectionalLight,
+  Disk,
+  ExtrudeGeometry,
   FPSController,
+  Gear,
   Geometry,
   Grid,
   Input,
   Object3D,
   PerspectiveProjection,
+  Plane,
   Pyramid,
   Sphere,
+  StandardMaterial,
   Torus,
+  Triangle,
   Tube,
+  Vector2D,
   Vector3D,
   WireframeMaterial,
   ZoomController,
@@ -83,84 +93,119 @@ export class Example6 extends AbstractExample {
     gridObj.isStatic = true;
     this.scene.add(gridObj);
 
-    // 5. Common Wireframe Material
     const wireMat: WireframeMaterial = new WireframeMaterial();
     wireMat.color = Color.CYAN;
 
-    const addExample = (name: string, geometry: Geometry, x: number, z: number): void => {
-      const obj: Object3D = new Object3D(name);
-      obj.geometry = geometry.getGeometryData();
-      obj.material = wireMat;
-      obj.position.set(x, 2, z);
-      obj.isStatic = true;
-      this.scene.add(obj);
+    const getRandomColor = (): Color => {
+      return new Color(
+        Math.random() * 0.8 + 0.2,
+        Math.random() * 0.8 + 0.2,
+        Math.random() * 0.8 + 0.2,
+      );
     };
 
-    const spacing: number = 10;
-    addExample(
-      "Sphere",
-      new Sphere({ radius: 2, widthSegments: 32, heightSegments: 24 }),
-      -spacing * 1.5,
-      spacing,
-    );
-    addExample(
-      "Pyramid",
-      new Pyramid({ base: 4, height: 4, radialSegments: 4 }),
-      -spacing * 0.5,
-      spacing,
-    );
-    addExample(
-      "Torus",
-      new Torus({
-        radius: 2,
-        tube: 0.6,
-        radialSegments: 16,
-        tubularSegments: 32,
-      }),
-      spacing * 0.5,
-      spacing,
-    );
-    addExample(
-      "Capsule",
-      new Capsule({
-        radius: 1,
-        length: 3,
-        radialSegments: 16,
-        capSegments: 8,
-      }),
-      spacing * 1.5,
-      spacing,
-    );
+    const addGeometryPair = (name: string, geometry: Geometry, x: number, z: number): void => {
+      // Wireframe version
+      const objWire: Object3D = new Object3D(`${name}_Wire`);
+      objWire.geometry = geometry.getGeometryData();
+      objWire.material = wireMat;
+      objWire.position.set(x, 2, z);
+      objWire.isStatic = true;
+      this.scene.add(objWire);
 
-    addExample("Cone", new Cone({ radius: 2, height: 4, radialSegments: 32 }), -spacing * 1.5, 0);
-    addExample(
-      "Frustum",
-      new Cylinder({
-        radiusTop: 1,
-        radiusBottom: 2,
-        height: 4,
-        radialSegments: 32,
-      }),
-      -spacing * 0.5,
-      0,
-    );
-    addExample(
-      "Cylinder",
-      new Cylinder({
-        radiusTop: 2,
-        radiusBottom: 2,
-        height: 4,
-        radialSegments: 32,
-      }),
-      spacing * 0.5,
-      0,
-    );
-    addExample(
-      "Tube",
-      new Tube({ radius: 2, innerRadius: 1.5, height: 4, radialSegments: 32 }),
-      spacing * 1.5,
-      0,
-    );
+      // Solid version
+      const objSolid: Object3D = new Object3D(`${name}_Solid`);
+      objSolid.geometry = geometry.getGeometryData();
+      const solidMat = new StandardMaterial({
+        color: getRandomColor(),
+        roughness: 0.5,
+        metallic: 0.1,
+      });
+      objSolid.material = solidMat;
+      objSolid.position.set(x, 2, z + 6); // Offset by +6 on Z axis
+      objSolid.isStatic = true;
+      this.scene.add(objSolid);
+    };
+
+    const geometries: { name: string; geom: Geometry }[] = [
+      { name: "Cube", geom: new Cube({ size: 3 }) },
+      { name: "Sphere", geom: new Sphere({ radius: 1.5, widthSegments: 32, heightSegments: 24 }) },
+      { name: "Pyramid", geom: new Pyramid({ base: 3, height: 3, radialSegments: 4 }) },
+      {
+        name: "Torus",
+        geom: new Torus({ radius: 1.5, tube: 0.5, radialSegments: 16, tubularSegments: 32 }),
+      },
+      {
+        name: "Capsule",
+        geom: new Capsule({ radius: 1, length: 2, radialSegments: 16, capSegments: 8 }),
+      },
+      { name: "Cone", geom: new Cone({ radius: 1.5, height: 3, radialSegments: 32 }) },
+      {
+        name: "Cylinder",
+        geom: new Cylinder({ radiusTop: 1.5, radiusBottom: 1.5, height: 3, radialSegments: 32 }),
+      },
+      {
+        name: "Frustum",
+        geom: new Cylinder({ radiusTop: 0.7, radiusBottom: 1.5, height: 3, radialSegments: 32 }),
+      },
+      {
+        name: "Tube",
+        geom: new Tube({ radius: 1.5, innerRadius: 1.0, height: 3, radialSegments: 32 }),
+      },
+      { name: "Circle", geom: new Circle({ radius: 1.5, segments: 32 }) },
+      { name: "Disk", geom: new Disk({ radius: 1.5, segments: 32, rings: 3 }) },
+      {
+        name: "CylinderSector",
+        geom: new CylinderSector({
+          radiusTop: 1.5,
+          radiusBottom: 1.5,
+          height: 3,
+          radialSegments: 16,
+          thetaStart: 0,
+          thetaLength: Math.PI,
+        }),
+      },
+      { name: "Plane", geom: new Plane({ width: 3, depth: 3 }) },
+      {
+        name: "Triangle",
+        geom: new Triangle(
+          new Vector3D(-1.5, 0, 0),
+          new Vector3D(1.5, 0, 0),
+          new Vector3D(0, 0, -2.6),
+        ),
+      },
+      {
+        name: "Gear",
+        geom: new Gear({ innerRadius: 1.0, toothHeight: 0.5, teeth: 12, thickness: 0.5 }),
+      },
+      {
+        name: "Extrude",
+        geom: new ExtrudeGeometry({
+          shape: [
+            new Vector2D(-1, -1),
+            new Vector2D(1, -1),
+            new Vector2D(1, 1),
+            new Vector2D(-1, 1),
+          ],
+          depth: 1,
+        }),
+      },
+    ];
+
+    const spacing: number = 5;
+    const itemsPerRow: number = 6;
+    const startX: number = -((itemsPerRow - 1) * spacing) / 2;
+
+    for (let i = 0; i < geometries.length; i++) {
+      const row = Math.floor(i / itemsPerRow);
+      const col = i % itemsPerRow;
+
+      const x = startX + col * spacing;
+      // We offset Z by 15 for each row, and solid versions are +6 from the wireframes
+      const z = -20 + row * 15;
+
+      addGeometryPair(geometries[i]!.name, geometries[i]!.geom, x, z);
+    }
 
     // IMPORTANT: Update all world matrices BEFORE computing bounds
     // and building the octree, otherwise bounds will be at (0,0,0).

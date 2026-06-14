@@ -12,6 +12,7 @@ import {
 } from "../core/index.js";
 import { EngineConfig, GeometryDataInterface, LightDataInterface } from "../interfaces/index.js";
 import {
+  BlendingMode,
   CullMode,
   MaterialType,
   RendererType,
@@ -108,7 +109,12 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
 
       Object.keys(def.layout.uniforms).forEach((name) => {
         const loc = this.gl.getUniformLocation(prog, name);
-        if (null === loc && name !== "u_thresholds" && name !== "u_liquidParams") {
+        if (
+          null === loc &&
+          name !== "u_thresholds" &&
+          name !== "u_liquidParams" &&
+          shaderId !== MaterialType.DEPTH
+        ) {
           console.warn(
             `[WebGL2Renderer] Uniform '${name}' defined in material layout but not found in shader '${shaderId}'. It might be unused or optimized away.`,
           );
@@ -276,10 +282,11 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     vMat?: Float32Array,
   ): void {
     const extractedLights = this.extractLights(scene);
-    const sortedGroups = scene.getVisibleObjectsSorted();
+    const renderList = scene.getVisibleObjectsSorted(vp, camPos);
 
     // --- PASS 0: Shadow Maps ---
-    this._renderShadowMaps(extractedLights, sortedGroups);
+    // Pass only the opaque map to shadow maps for now
+    this._renderShadowMaps(extractedLights, renderList.opaque);
 
     // --- SETUP MAIN PASS ---
     this._updateGlobalUBO(vp, camPos, extractedLights);
@@ -291,7 +298,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
 
     // --- PASS 1: Skybox / Background ---
-    const skyboxShaderMap = sortedGroups.get(MaterialType.SKYBOX);
+    const skyboxShaderMap = renderList.opaque.get(MaterialType.SKYBOX);
     if (skyboxShaderMap) {
       this.gl.depthMask(false);
       for (const [topology, materialGroups] of skyboxShaderMap.entries()) {
@@ -305,14 +312,27 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         );
       }
       this.gl.depthMask(true);
-      sortedGroups.delete(MaterialType.SKYBOX);
+      renderList.opaque.delete(MaterialType.SKYBOX);
     }
 
-    // --- PASS 2: All other Objects ---
-    for (const [shaderId, topologyMap] of sortedGroups.entries()) {
+    // --- PASS 2: All other Opaque Objects ---
+    for (const [shaderId, topologyMap] of renderList.opaque.entries()) {
       for (const [topology, materialGroups] of topologyMap.entries()) {
         this._renderGroup(shaderId, materialGroups, vMat, topology, extractedLights, scene.fog);
       }
+    }
+
+    // --- PASS 3: Transparent Objects ---
+    for (const obj of renderList.transparent) {
+      const manifest = obj.material!.getRenderManifest();
+      const shaderId = manifest.shaderId;
+      const topology =
+        manifest.state?.topology ||
+        obj.geometry?.topology ||
+        (obj.geometry?.indices?.length === 2 ? "line-list" : "triangle-list");
+
+      const materialMap = new Map<string, Object3D[]>([[obj.material!.uuid, [obj]]]);
+      this._renderGroup(shaderId, materialMap, vMat, topology, extractedLights, scene.fog);
     }
   }
 
@@ -664,6 +684,13 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
 
       if (state?.transparent) {
         this.gl.enable(this.gl.BLEND);
+        if (state.blending === BlendingMode.ADDITIVE) {
+          this.gl.blendFunc(this.gl.ONE, this.gl.ONE);
+        } else if (state.blending === BlendingMode.PREMULTIPLIED_ALPHA) {
+          this.gl.blendFunc(this.gl.ONE, this.gl.ONE_MINUS_SRC_ALPHA);
+        } else {
+          this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
+        }
         this.gl.depthMask(false);
       } else {
         this.gl.disable(this.gl.BLEND);
