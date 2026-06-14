@@ -51,6 +51,8 @@ export declare class WebGPURenderer extends AbstractRenderer {
     _depthTexture: GPUTexture;
     _opaqueTexture?: GPUTexture;
     _opaqueTextureView?: GPUTextureView;
+    _hdrTexture: GPUTexture | undefined;
+    _hdrTextureView: GPUTextureView | undefined;
     protected _passes: RenderPass[];
     _globalUniformBuffer: GPUBuffer;
     _pointLightBuffer: GPUBuffer;
