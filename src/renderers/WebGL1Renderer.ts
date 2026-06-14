@@ -1,6 +1,7 @@
 /// src/renderers/WebGL1Renderer.ts
 
 import { AbstractWebGLRenderer } from "./AbstractWebGLRenderer.js";
+import { PostProcessPassGL } from "./post/index.js";
 import {
   Color,
   CubeTexture,
@@ -67,6 +68,11 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
 
   public _opaqueTexture?: WebGLTexture;
   public _opaqueTextureWrapper?: Texture;
+
+  protected _hdrFbo: WebGLFramebuffer | undefined = undefined;
+  protected _hdrTexture: WebGLTexture | undefined = undefined;
+  protected _hdrRenderBuffer: WebGLRenderbuffer | undefined = undefined;
+  protected _postPassGL: PostProcessPassGL | undefined = undefined;
 
   private _scratchModelMatrix: Float32Array = new Float32Array(16);
 
@@ -259,6 +265,13 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
     vMat?: Float32Array,
   ): void {
     const extractedLights = this.extractLights(scene);
+
+    if (this.postConfig.enabled && this._hdrFbo) {
+      this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this._hdrFbo);
+    } else {
+      this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
+    }
+
     this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
     this.gl.enable(this.gl.BLEND);
     this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
@@ -368,6 +381,16 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
           scene.fog,
         );
       }
+    }
+
+    // --- PASS 4: Post-Process Blit (HDR -> Canvas) ---
+    if (this.postConfig.enabled && this._hdrTexture && this._postPassGL) {
+      this._postPassGL.execute(
+        this.gl,
+        this._hdrTexture,
+        this.postConfig.exposure,
+        this.postConfig.gamma,
+      );
     }
   }
 
@@ -595,6 +618,68 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
         );
         mesh.draw(topology === "line-list" ? this.gl.LINES : this.gl.TRIANGLES);
       }
+    }
+  }
+
+  /** @inheritdoc */
+  public override setSize(width: number, height: number): void {
+    super.setSize(width, height);
+
+    if (this.postConfig.enabled) {
+      if (!this._hdrFbo) {
+        this._hdrFbo = this.gl.createFramebuffer()!;
+        this._hdrTexture = this.gl.createTexture()!;
+        this._hdrRenderBuffer = this.gl.createRenderbuffer()!;
+      }
+
+      const w = this.gl.canvas.width;
+      const h = this.gl.canvas.height;
+
+      // In WebGL1, floating point textures require extensions.
+      // OES_texture_half_float allows HALF_FLOAT_OES.
+      // OES_texture_float allows FLOAT.
+      // WebGL1 framebuffers may not support rendering to float textures without WEBGL_color_buffer_float / EXT_color_buffer_half_float
+      const extHalf = this.gl.getExtension("OES_texture_half_float");
+      const extColorHalf = this.gl.getExtension("EXT_color_buffer_half_float");
+      const useHalfFloat = extHalf && extColorHalf;
+      const type = useHalfFloat ? extHalf.HALF_FLOAT_OES : this.gl.UNSIGNED_BYTE;
+
+      this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this._hdrFbo);
+
+      this.gl.bindTexture(this.gl.TEXTURE_2D, this._hdrTexture ?? null);
+      this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, w, h, 0, this.gl.RGBA, type, null);
+      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
+      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR);
+      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
+      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
+      this.gl.framebufferTexture2D(
+        this.gl.FRAMEBUFFER,
+        this.gl.COLOR_ATTACHMENT0,
+        this.gl.TEXTURE_2D,
+        this._hdrTexture ?? null,
+        0,
+      );
+
+      this.gl.bindRenderbuffer(this.gl.RENDERBUFFER, this._hdrRenderBuffer ?? null);
+      this.gl.renderbufferStorage(this.gl.RENDERBUFFER, this.gl.DEPTH_STENCIL, w, h);
+      this.gl.framebufferRenderbuffer(
+        this.gl.FRAMEBUFFER,
+        this.gl.DEPTH_STENCIL_ATTACHMENT,
+        this.gl.RENDERBUFFER,
+        this._hdrRenderBuffer ?? null,
+      );
+
+      this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
+      this._postPassGL ??= new PostProcessPassGL(this.gl, false);
+    } else if (this._hdrFbo) {
+      this._postPassGL?.destroy(this.gl);
+      this.gl.deleteFramebuffer(this._hdrFbo);
+      this.gl.deleteTexture(this._hdrTexture!);
+      this.gl.deleteRenderbuffer(this._hdrRenderBuffer!);
+      this._hdrFbo = undefined;
+      this._hdrTexture = undefined;
+      this._hdrRenderBuffer = undefined;
+      this._postPassGL = undefined;
     }
   }
 }

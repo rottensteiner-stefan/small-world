@@ -12,6 +12,7 @@ import { Fog } from "../core/Fog.js";
 import { AbstractRenderer } from "./AbstractRenderer.js";
 import { RenderPass } from "./RenderPass.js";
 import { MainRenderPass } from "./passes/MainRenderPass.js";
+import { PostProcessPass } from "./passes/PostProcessPass.js";
 import { UniformPacker } from "../core/renderers/shaders/UniformPacker.js";
 
 export interface WebGPUGeoCache {
@@ -71,6 +72,9 @@ export class WebGPURenderer extends AbstractRenderer {
   public _opaqueTexture?: GPUTexture;
   public _opaqueTextureView?: GPUTextureView;
 
+  public _hdrTexture: GPUTexture | undefined = undefined;
+  public _hdrTextureView: GPUTextureView | undefined = undefined;
+
   // Render Pass System
   protected _passes: RenderPass[] = [];
 
@@ -128,6 +132,9 @@ export class WebGPURenderer extends AbstractRenderer {
 
     // Default Pass Setup
     this._passes = [new MainRenderPass()];
+    if (this.postConfig.enabled) {
+      this._passes.push(new PostProcessPass());
+    }
   }
 
   /**
@@ -451,10 +458,12 @@ export class WebGPURenderer extends AbstractRenderer {
     this._updateGlobalBuffers(vp, camPos, lights, scene.fog);
     const ce = this._device.createCommandEncoder();
 
-    const currentView = this._context.getCurrentTexture().createView();
+    const screenView = this._context.getCurrentTexture().createView();
+    const renderTargetView =
+      this.postConfig.enabled && this._hdrTextureView ? this._hdrTextureView : screenView;
 
     for (const pass of this._passes) {
-      pass.execute(this, scene, ce, currentView, vp, camPos, vMat);
+      pass.execute(this, scene, ce, renderTargetView, vp, camPos, vMat);
     }
 
     this._device.queue.submit([ce.finish()]);
@@ -789,5 +798,19 @@ export class WebGPURenderer extends AbstractRenderer {
       format: "depth24plus",
       usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
     });
+
+    if (this.postConfig.enabled) {
+      if (this._hdrTexture) this._hdrTexture.destroy();
+      this._hdrTexture = this._device.createTexture({
+        size: [this._context.canvas.width, this._context.canvas.height],
+        format: "rgba16float",
+        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+      });
+      this._hdrTextureView = this._hdrTexture.createView();
+    } else if (this._hdrTexture) {
+      this._hdrTexture.destroy();
+      this._hdrTexture = undefined;
+      this._hdrTextureView = undefined;
+    }
   }
 }
