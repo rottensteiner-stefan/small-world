@@ -526,7 +526,7 @@ export class WebGPURenderer extends AbstractRenderer {
 
       for (const obj of objects) {
         if (!obj.geometry) continue;
-        const uBufferData = this._objectUniformBuffers.get(obj.uuid)!;
+        const uBufferData = this._getObjUniformBufferData(obj);
         this._updateObjUniformBuffer(uBufferData.buffer, obj, manifest, vMat);
         const texBindGroup = this._getTexBindGroup(uBufferData, manifest, cache.bgLayouts[1]!);
         rp.setBindGroup(1, texBindGroup);
@@ -557,7 +557,12 @@ export class WebGPURenderer extends AbstractRenderer {
     }
   }
 
-  protected _getObjUniformBuffer(obj: Object3D): GPUBuffer {
+  protected _getObjUniformBufferData(obj: Object3D): {
+    buffer: GPUBuffer;
+    lastFrame: number;
+    texBg?: GPUBindGroup;
+    texBgResources?: unknown[];
+  } {
     let data = this._objectUniformBuffers.get(obj.uuid);
     if (!data) {
       const buffer = this._device!.createBuffer({
@@ -568,7 +573,7 @@ export class WebGPURenderer extends AbstractRenderer {
       this._objectUniformBuffers.set(obj.uuid, data);
     }
     data.lastFrame = this._frameCount;
-    return data.buffer;
+    return data;
   }
 
   protected _updateObjUniformBuffer(
