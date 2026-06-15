@@ -55,17 +55,30 @@ export class WebGPURenderer extends AbstractRenderer {
 
   protected _whiteTexView!: GPUTextureView;
   protected _flatNormalTexView!: GPUTextureView;
+  protected _objectUniformBuffers = new Map<
+    string,
+    {
+      buffer: GPUBuffer;
+      lastFrame: number;
+      texBg?: GPUBindGroup;
+      texBgResources?: unknown[];
+    }
+  >();
+  protected _textureViewCache = new Map<Texture, GPUTextureView>();
+  protected _dummyNormalBuffer!: GPUBuffer;
+  protected _dummyUvBuffer!: GPUBuffer;
+  protected _dummyTangentBuffer!: GPUBuffer;
+  protected _geoCache = new Map<GeometryDataInterface, WebGPUGeoCache>();
+  protected _frameCount = 0;
+  protected _scratchModelMatrix = new Float32Array(16);
+  protected _scratchColorArray = new Float32Array(3);
+  protected _scratchUniformValues: Record<string, unknown> = {};
   protected _defaultCubeTexView!: GPUTextureView;
 
   protected _samplerCache: Map<string, GPUSampler> = new Map();
 
-  protected _dummyNormalBuffer!: GPUBuffer;
-  protected _dummyUvBuffer!: GPUBuffer;
-  protected _dummyTangentBuffer!: GPUBuffer;
   protected _dummyBufferSize: number = 0;
 
-  protected _geoCache: Map<GeometryDataInterface, WebGPUGeoCache> = new Map();
-  protected _textureViewCache: Map<Texture, GPUTextureView> = new Map();
   protected _cubeTextureViewCache: Map<CubeTexture, GPUTextureView> = new Map();
 
   public _depthTexture!: GPUTexture;
@@ -84,11 +97,6 @@ export class WebGPURenderer extends AbstractRenderer {
   public _areaLightBuffer!: GPUBuffer;
   public _globalBindGroup!: GPUBindGroup;
   public _globalBGL!: GPUBindGroupLayout;
-
-  protected _objectUniformBuffers: Map<string, { buffer: GPUBuffer; lastFrame: number }> =
-    new Map();
-  protected _frameCount: number = 0;
-  protected _scratchModelMatrix: Float32Array = new Float32Array(16);
 
   /** @inheritdoc */
   public async initialize(
@@ -518,9 +526,9 @@ export class WebGPURenderer extends AbstractRenderer {
 
       for (const obj of objects) {
         if (!obj.geometry) continue;
-        const uBuffer = this._getObjUniformBuffer(obj);
-        this._updateObjUniformBuffer(uBuffer, obj, manifest, vMat);
-        const texBindGroup = this._getTexBindGroup(uBuffer, manifest, cache.bgLayouts[1]!);
+        const uBufferData = this._objectUniformBuffers.get(obj.uuid)!;
+        this._updateObjUniformBuffer(uBufferData.buffer, obj, manifest, vMat);
+        const texBindGroup = this._getTexBindGroup(uBufferData, manifest, cache.bgLayouts[1]!);
         rp.setBindGroup(1, texBindGroup);
         const gCache = this._getGeoCache(obj.geometry!);
         this._ensureDummyBufferSize(gCache.vertexCount);
@@ -601,45 +609,84 @@ export class WebGPURenderer extends AbstractRenderer {
       this._scratchModelMatrix[10] = vMat[10]! * sz;
     }
 
-    const values: Record<string, unknown> = { ...m.properties };
+    const values = this._scratchUniformValues;
+    // Clear old values to avoid leaking
+    for (const k in values) delete values[k];
+
+    // Copy properties
+    for (const k in m.properties) {
+      values[k] = m.properties[k];
+    }
+
     values["u_model"] = this._scratchModelMatrix;
-    if (values["u_color"] === undefined) values["u_color"] = o.material?.color.toFloat32Array();
+    if (values["u_color"] === undefined && o.material) {
+      this._scratchColorArray[0] = o.material.color.r;
+      this._scratchColorArray[1] = o.material.color.g;
+      this._scratchColorArray[2] = o.material.color.b;
+      values["u_color"] = this._scratchColorArray;
+    }
 
     const packedData = UniformPacker.pack(shaderDef.layout, values);
     this._device!.queue.writeBuffer(b, 0, packedData);
   }
 
   protected _getTexBindGroup(
-    objBuffer: GPUBuffer,
+    objBufferData: { buffer: GPUBuffer; texBg?: GPUBindGroup; texBgResources?: unknown[] },
     m: RenderManifest,
     layout: GPUBindGroupLayout,
   ): GPUBindGroup {
+    const r1 = this._getSampler(m.textures["u_diffuseMap"] as Texture);
+    const r2 = this._getTextureView(m.textures["u_diffuseMap"] as Texture);
+    const r3 = this._getNormalTextureView(m.textures["u_normalMap"] as Texture);
+    const r4 = this._getTextureView(m.textures["u_specularMap"] as Texture);
+    const r5 = this._getTextureView(m.textures["u_sandMap"] as Texture);
+    const r6 = this._getTextureView(m.textures["u_grassMap"] as Texture);
+    const r7 = this._getTextureView(m.textures["u_rockMap"] as Texture);
+    const r8 = this._getTextureView(m.textures["u_snowMap"] as Texture);
+    const r9 = this._getTextureView(m.textures["u_metallicMap"] as Texture);
+    const r10 = this._getTextureView(m.textures["u_roughnessMap"] as Texture);
+    const r11 = this._getGPUCubeTextureView(m.textures["u_skybox"] as CubeTexture);
+    const r12 = this._getTextureView(m.textures["u_emissiveMap"] as Texture);
+    const r13 = this._getTextureView(m.textures["u_alphaMap"] as Texture);
+    const r14 = m.textures["u_opaqueMap"]
+      ? this._getTextureView(m.textures["u_opaqueMap"] as Texture)
+      : this._opaqueTextureView || this._whiteTexView;
+
+    const resources = [r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, layout];
+
+    // Check cache
+    if (objBufferData.texBg && objBufferData.texBgResources) {
+      let match = true;
+      for (let i = 0; i < resources.length; i++) {
+        if (resources[i] !== objBufferData.texBgResources[i]) {
+          match = false;
+          break;
+        }
+      }
+      if (match) return objBufferData.texBg;
+    }
+
     const entries: GPUBindGroupEntry[] = [
-      { binding: 0, resource: { buffer: objBuffer } },
-      { binding: 1, resource: this._getSampler(m.textures["u_diffuseMap"] as Texture) },
-      { binding: 2, resource: this._getTextureView(m.textures["u_diffuseMap"] as Texture) },
-      { binding: 3, resource: this._getNormalTextureView(m.textures["u_normalMap"] as Texture) },
-      { binding: 4, resource: this._getTextureView(m.textures["u_specularMap"] as Texture) },
-      { binding: 5, resource: this._getTextureView(m.textures["u_sandMap"] as Texture) },
-      { binding: 6, resource: this._getTextureView(m.textures["u_grassMap"] as Texture) },
-      { binding: 7, resource: this._getTextureView(m.textures["u_rockMap"] as Texture) },
-      { binding: 8, resource: this._getTextureView(m.textures["u_snowMap"] as Texture) },
-      { binding: 9, resource: this._getTextureView(m.textures["u_metallicMap"] as Texture) },
-      { binding: 10, resource: this._getTextureView(m.textures["u_roughnessMap"] as Texture) },
-      {
-        binding: 11,
-        resource: this._getGPUCubeTextureView(m.textures["u_skybox"] as CubeTexture),
-      },
-      { binding: 12, resource: this._getTextureView(m.textures["u_emissiveMap"] as Texture) },
-      { binding: 13, resource: this._getTextureView(m.textures["u_alphaMap"] as Texture) },
-      {
-        binding: 14,
-        resource: m.textures["u_opaqueMap"]
-          ? this._getTextureView(m.textures["u_opaqueMap"] as Texture)
-          : this._opaqueTextureView || this._whiteTexView,
-      },
+      { binding: 0, resource: { buffer: objBufferData.buffer } },
+      { binding: 1, resource: r1 },
+      { binding: 2, resource: r2 },
+      { binding: 3, resource: r3 },
+      { binding: 4, resource: r4 },
+      { binding: 5, resource: r5 },
+      { binding: 6, resource: r6 },
+      { binding: 7, resource: r7 },
+      { binding: 8, resource: r8 },
+      { binding: 9, resource: r9 },
+      { binding: 10, resource: r10 },
+      { binding: 11, resource: r11 },
+      { binding: 12, resource: r12 },
+      { binding: 13, resource: r13 },
+      { binding: 14, resource: r14 },
     ];
-    return this._device!.createBindGroup({ layout, entries });
+    const bg = this._device!.createBindGroup({ layout, entries });
+    objBufferData.texBg = bg;
+    objBufferData.texBgResources = resources;
+    return bg;
   }
 
   protected _getTextureView(tex: Texture | undefined): GPUTextureView {

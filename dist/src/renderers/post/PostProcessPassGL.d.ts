@@ -10,6 +10,7 @@ export declare class PostProcessPassGL {
     private _uHdrTexture;
     private _uExposure;
     private _uGamma;
+    private _aPos;
     private readonly _isWebGL2;
     constructor(gl: WebGLRenderingContext | WebGL2RenderingContext, isWebGL2: boolean);
     private _build;

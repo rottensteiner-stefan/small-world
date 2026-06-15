@@ -55,6 +55,14 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
   public override readonly type: RendererType = RendererType.WEB_GL1;
   declare protected gl: WebGLRenderingContext;
 
+  private _stateCullFaceEnabled: boolean | null = null;
+  private _stateCullFaceMode: number = -1;
+  private _stateBlendEnabled: boolean | null = null;
+  private _stateBlendSrc: number = -1;
+  private _stateBlendDst: number = -1;
+  private _stateDepthMask: boolean | null = null;
+  private _stateDepthTest: boolean | null = null;
+
   /** Satisfies Renderer interface */
   public get webglContext(): WebGLRenderingContext {
     return this.gl;
@@ -264,6 +272,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
     camPos: Vector3D = Vector3D.ZERO,
     vMat?: Float32Array,
   ): void {
+    this._resetStateCache();
     const extractedLights = this.extractLights(scene);
 
     if (this.postConfig.enabled && this._hdrFbo) {
@@ -487,33 +496,62 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
 
       // --- 1. Bind Material States ---
       const state = manifest.state;
-      if (state && CullMode.NONE === state.culling) this.gl.disable(this.gl.CULL_FACE);
-      else {
-        this.gl.enable(this.gl.CULL_FACE);
-        this.gl.cullFace(state && CullMode.FRONT === state.culling ? this.gl.FRONT : this.gl.BACK);
+      const enableCull = !(state && CullMode.NONE === state.culling);
+      if (this._stateCullFaceEnabled !== enableCull) {
+        if (enableCull) this.gl.enable(this.gl.CULL_FACE);
+        else this.gl.disable(this.gl.CULL_FACE);
+        this._stateCullFaceEnabled = enableCull;
       }
 
-      if (state?.transparent) {
-        this.gl.enable(this.gl.BLEND);
-        if (state.blending === BlendingMode.ADDITIVE) {
-          this.gl.blendFunc(this.gl.ONE, this.gl.ONE);
-        } else if (state.blending === BlendingMode.PREMULTIPLIED_ALPHA) {
-          this.gl.blendFunc(this.gl.ONE, this.gl.ONE_MINUS_SRC_ALPHA);
-        } else {
-          this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
+      if (enableCull) {
+        const cullMode = state && CullMode.FRONT === state.culling ? this.gl.FRONT : this.gl.BACK;
+        if (this._stateCullFaceMode !== cullMode) {
+          this.gl.cullFace(cullMode);
+          this._stateCullFaceMode = cullMode;
         }
-        this.gl.depthMask(false);
-      } else {
-        this.gl.disable(this.gl.BLEND);
-        this.gl.depthMask(true);
       }
 
-      if (state?.depthWrite === false) this.gl.depthMask(false);
-      if (state?.depthTest === false) this.gl.disable(this.gl.DEPTH_TEST);
-      else this.gl.enable(this.gl.DEPTH_TEST);
+      const enableBlend = !!state?.transparent;
+      if (this._stateBlendEnabled !== enableBlend) {
+        if (enableBlend) this.gl.enable(this.gl.BLEND);
+        else this.gl.disable(this.gl.BLEND);
+        this._stateBlendEnabled = enableBlend;
+      }
+
+      let depthMask = !enableBlend;
+      if (state?.depthWrite === false) depthMask = false;
+
+      if (this._stateDepthMask !== depthMask) {
+        this.gl.depthMask(depthMask);
+        this._stateDepthMask = depthMask;
+      }
+
+      if (enableBlend) {
+        let src: number = this.gl.SRC_ALPHA;
+        let dst: number = this.gl.ONE_MINUS_SRC_ALPHA;
+        if (state.blending === BlendingMode.ADDITIVE) {
+          src = this.gl.ONE;
+          dst = this.gl.ONE;
+        } else if (state.blending === BlendingMode.PREMULTIPLIED_ALPHA) {
+          src = this.gl.ONE;
+        }
+        if (this._stateBlendSrc !== src || this._stateBlendDst !== dst) {
+          this.gl.blendFunc(src, dst);
+          this._stateBlendSrc = src;
+          this._stateBlendDst = dst;
+        }
+      }
+
+      const enableDepthTest = state?.depthTest !== false;
+      if (this._stateDepthTest !== enableDepthTest) {
+        if (enableDepthTest) this.gl.enable(this.gl.DEPTH_TEST);
+        else this.gl.disable(this.gl.DEPTH_TEST);
+        this._stateDepthTest = enableDepthTest;
+      }
 
       // --- 2. Bind Generic Material Properties (Uniforms) ---
-      for (const [name, value] of Object.entries(manifest.properties)) {
+      for (const name in manifest.properties) {
+        const value = manifest.properties[name];
         const loc = u.get(name);
         if (!loc) continue;
 
@@ -545,7 +583,8 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
           u_specularMap: 2,
           u_opaqueMap: 3,
         };
-        for (const [uniformName, unit] of Object.entries(samplerUnits)) {
+        for (const uniformName in samplerUnits) {
+          const unit = samplerUnits[uniformName]!;
           const loc = u.get(uniformName);
           if (loc) {
             const maxUnits = DeviceCaps.getLimit(DeviceLimit.MAX_TEXTURE_IMAGE_UNITS);
@@ -681,5 +720,15 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
       this._hdrRenderBuffer = undefined;
       this._postPassGL = undefined;
     }
+  }
+
+  private _resetStateCache(): void {
+    this._stateCullFaceEnabled = null;
+    this._stateCullFaceMode = -1;
+    this._stateBlendEnabled = null;
+    this._stateBlendSrc = -1;
+    this._stateBlendDst = -1;
+    this._stateDepthMask = null;
+    this._stateDepthTest = null;
   }
 }

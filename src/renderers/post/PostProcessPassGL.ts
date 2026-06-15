@@ -65,15 +65,15 @@ precision mediump float;
 varying vec2 v_uv;
 uniform sampler2D u_hdrTexture;
 uniform float u_exposure;
-uniform float u_gamma;
+uniform float u_inverseGamma;
 
 vec3 toneMapReinhard(vec3 hdr, float exposure) {
     vec3 mapped = hdr * exposure;
     return mapped / (mapped + vec3(1.0));
 }
 
-vec3 linearToSRGB(vec3 linear, float gamma) {
-    return pow(clamp(linear, 0.0, 1.0), vec3(1.0 / gamma));
+vec3 linearToSRGB(vec3 linear, float invGamma) {
+    return pow(clamp(linear, 0.0, 1.0), vec3(invGamma));
 }
 
 void main() {
@@ -81,7 +81,7 @@ void main() {
     vec2 uv = vec2(v_uv.x, 1.0 - v_uv.y);
     vec3 hdr = texture2D(u_hdrTexture, uv).rgb;
     vec3 tonemapped = toneMapReinhard(hdr, u_exposure);
-    vec3 srgb = linearToSRGB(tonemapped, u_gamma);
+    vec3 srgb = linearToSRGB(tonemapped, u_inverseGamma);
     gl_FragColor = vec4(srgb, 1.0);
 }
 `;
@@ -98,6 +98,7 @@ export class PostProcessPassGL {
   private _uHdrTexture: WebGLUniformLocation | null = null;
   private _uExposure: WebGLUniformLocation | null = null;
   private _uGamma: WebGLUniformLocation | null = null;
+  private _aPos: number = -1;
   private readonly _isWebGL2: boolean;
 
   constructor(gl: WebGLRenderingContext | WebGL2RenderingContext, isWebGL2: boolean) {
@@ -133,7 +134,7 @@ export class PostProcessPassGL {
     this._prog = p;
     this._uHdrTexture = gl.getUniformLocation(p, "u_hdrTexture");
     this._uExposure = gl.getUniformLocation(p, "u_exposure");
-    this._uGamma = gl.getUniformLocation(p, "u_gamma");
+    this._uGamma = gl.getUniformLocation(p, "u_inverseGamma");
 
     if (this._isWebGL2) {
       const gl2 = gl as WebGL2RenderingContext;
@@ -141,6 +142,7 @@ export class PostProcessPassGL {
       // No geometry needed: fullscreen triangle driven by gl_VertexID in WebGL2
     } else {
       // WebGL1 needs a VBO with 3 clip-space positions
+      this._aPos = gl.getAttribLocation(p, "a_pos");
       this._vb = gl.createBuffer()!;
       gl.bindBuffer(gl.ARRAY_BUFFER, this._vb);
       gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
@@ -171,7 +173,7 @@ export class PostProcessPassGL {
     gl.bindTexture(gl.TEXTURE_2D, hdrTexture);
     if (this._uHdrTexture !== null) gl.uniform1i(this._uHdrTexture, 0);
     if (this._uExposure !== null) gl.uniform1f(this._uExposure, exposure);
-    if (this._uGamma !== null) gl.uniform1f(this._uGamma, gamma);
+    if (this._uGamma !== null) gl.uniform1f(this._uGamma, 1.0 / gamma);
 
     if (this._isWebGL2) {
       const gl2 = gl as WebGL2RenderingContext;
@@ -179,12 +181,11 @@ export class PostProcessPassGL {
       gl2.drawArrays(gl2.TRIANGLES, 0, 3);
       gl2.bindVertexArray(null);
     } else {
-      const posLoc = gl.getAttribLocation(this._prog, "a_pos");
       gl.bindBuffer(gl.ARRAY_BUFFER, this._vb!);
-      gl.enableVertexAttribArray(posLoc);
-      gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+      gl.enableVertexAttribArray(this._aPos);
+      gl.vertexAttribPointer(this._aPos, 2, gl.FLOAT, false, 0, 0);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
-      gl.disableVertexAttribArray(posLoc);
+      gl.disableVertexAttribArray(this._aPos);
       gl.bindBuffer(gl.ARRAY_BUFFER, null);
     }
 
