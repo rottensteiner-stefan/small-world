@@ -139,10 +139,7 @@ export class WebGPURenderer extends AbstractRenderer {
     this.setSize(canvas.clientWidth, canvas.clientHeight);
 
     // Default Pass Setup
-    this._passes = [new MainRenderPass()];
-    if (this.postConfig.enabled) {
-      this._passes.push(new PostProcessPass());
-    }
+    this._passes = [new MainRenderPass(), new PostProcessPass()];
   }
 
   /**
@@ -297,6 +294,7 @@ export class WebGPURenderer extends AbstractRenderer {
   ): WebGPUPipelineCache {
     const shaderId = manifest.shaderId;
     const state = manifest.state || {};
+    const targetFormat = this.postProcessing.enabled ? "rgba16float" : this._format;
     const key =
       shaderId +
       "_" +
@@ -308,7 +306,9 @@ export class WebGPURenderer extends AbstractRenderer {
       "_" +
       (state.depthWrite !== false) +
       "_" +
-      (state.depthTest !== false);
+      (state.depthTest !== false) +
+      "_" +
+      targetFormat;
     let cache = this._pipelines.get(key);
     if (!cache) {
       console.log("[WebGPURenderer] Creating new pipeline:", key);
@@ -361,7 +361,7 @@ export class WebGPURenderer extends AbstractRenderer {
         { arrayStride: 8, attributes: [{ shaderLocation: 2, offset: 0, format: "float32x2" }] },
         { arrayStride: 12, attributes: [{ shaderLocation: 3, offset: 0, format: "float32x3" }] },
       ];
-      const targets: GPUColorTargetState[] = [{ format: this._format }];
+      const targets: GPUColorTargetState[] = [{ format: targetFormat as GPUTextureFormat }];
       if (state.blending === BlendingMode.ALPHA) {
         targets[0]!.blend = {
           color: { srcFactor: "src-alpha", dstFactor: "one-minus-src-alpha", operation: "add" },
@@ -466,9 +466,24 @@ export class WebGPURenderer extends AbstractRenderer {
     this._updateGlobalBuffers(vp, camPos, lights, scene.fog);
     const ce = this._device.createCommandEncoder();
 
+    if (this.postProcessing.enabled && !this._hdrTexture) {
+      this._hdrTexture = this._device.createTexture({
+        size: [this._context.canvas.width, this._context.canvas.height],
+        format: "rgba16float",
+        usage:
+          GPUTextureUsage.RENDER_ATTACHMENT |
+          GPUTextureUsage.TEXTURE_BINDING |
+          GPUTextureUsage.COPY_SRC,
+      });
+      this._hdrTextureView = this._hdrTexture.createView();
+    } else if (!this.postProcessing.enabled && this._hdrTexture) {
+      this._hdrTexture.destroy();
+      this._hdrTexture = undefined;
+      this._hdrTextureView = undefined;
+    }
+
     const screenView = this._context.getCurrentTexture().createView();
-    const renderTargetView =
-      this.postConfig.enabled && this._hdrTextureView ? this._hdrTextureView : screenView;
+    const renderTargetView = this.postProcessing.enabled ? this._hdrTextureView! : screenView;
 
     for (const pass of this._passes) {
       pass.execute(this, scene, ce, renderTargetView, vp, camPos, vMat);
@@ -862,12 +877,15 @@ export class WebGPURenderer extends AbstractRenderer {
       usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
     });
 
-    if (this.postConfig.enabled) {
+    if (this.postProcessing.enabled) {
       if (this._hdrTexture) this._hdrTexture.destroy();
       this._hdrTexture = this._device.createTexture({
         size: [this._context.canvas.width, this._context.canvas.height],
         format: "rgba16float",
-        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+        usage:
+          GPUTextureUsage.RENDER_ATTACHMENT |
+          GPUTextureUsage.TEXTURE_BINDING |
+          GPUTextureUsage.COPY_SRC,
       });
       this._hdrTextureView = this._hdrTexture.createView();
     } else if (this._hdrTexture) {

@@ -66,8 +66,9 @@ export class MainRenderPass implements RenderPass {
       rp.end();
 
       // Capture opaque texture for transparent materials (like glass)
-      const ctx = renderer._context;
-      const targetTex = ctx.getCurrentTexture();
+      const targetTex = renderer.postProcessing.enabled
+        ? renderer._hdrTexture!
+        : renderer._context.getCurrentTexture();
       renderer.captureOpaqueTexture(ce, targetTex);
 
       // Start transparent pass

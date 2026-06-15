@@ -275,7 +275,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
     this._resetStateCache();
     const extractedLights = this.extractLights(scene);
 
-    if (this.postConfig.enabled && this._hdrFbo) {
+    if (this.postProcessing.enabled && this._hdrFbo) {
       this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this._hdrFbo);
     } else {
       this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
@@ -393,8 +393,8 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
     }
 
     // --- PASS 4: Post-Process Blit (HDR -> Canvas) ---
-    if (this.postConfig.enabled && this._hdrTexture && this._postPassGL) {
-      this._postPassGL.execute(this.gl, this._hdrTexture, this.postConfig);
+    if (this.postProcessing.enabled && this._hdrTexture && this._postPassGL) {
+      this._postPassGL.execute(this.gl, this._hdrTexture, this.postProcessing);
     }
   }
 
@@ -659,7 +659,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
   public override setSize(width: number, height: number): void {
     super.setSize(width, height);
 
-    if (this.postConfig.enabled) {
+    if (this.postProcessing.enabled) {
       if (!this._hdrFbo) {
         this._hdrFbo = this.gl.createFramebuffer()!;
         this._hdrTexture = this.gl.createTexture()!;

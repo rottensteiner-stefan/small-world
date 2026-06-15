@@ -9,6 +9,8 @@ import { EngineConfig } from './EngineConfig.js';
 export interface Renderer {
     /** The type of the renderer. */
     readonly type: RendererType;
+    /** The global post-processing volume/group. */
+    postProcessing: import('../renderers/post/index.js').PostProcessingGroup;
     /**
      * Initializes the renderer.
      */

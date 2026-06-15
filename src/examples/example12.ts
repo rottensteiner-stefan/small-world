@@ -37,7 +37,7 @@ import { WorkbenchTable } from "./objects/WorkbenchTable.js";
 import { ErlenmeyerFlask } from "./objects/ErlenmeyerFlask.js";
 import { ApothecaryBottle } from "./objects/ApothecaryBottle.js";
 
-class AbyssalDecoExample extends AbstractExample {
+class UnderwaterHideoutExample extends AbstractExample {
   private _portLight!: SpotLight;
   private _portLightBehavior!: FlickerBehavior;
   private _portLightBaseIntensity: number = 10.0;
@@ -48,6 +48,28 @@ class AbyssalDecoExample extends AbstractExample {
   private _waterDrops: { obj: Object3D; velocityY: number; active: boolean }[] = [];
 
   protected override async setupScene(): Promise<void> {
+    // THE MAGIC SWITCH: Enable Post-Processing
+    this.renderer.postProcessing.enabled = true;
+
+    // Post-Processing configuration
+    const vig =
+      this.renderer.postProcessing.get<
+        import("../renderers/post/PostProcessingElement.js").VignetteElement
+      >("Vignette");
+    if (vig) {
+      vig.offset = 0.55; // Etwas fetterer Rahmen
+      vig.darkness = 1.0; // 100% Schwarz
+      vig.roundness = 6.0; // Weiches Rechteck
+    }
+
+    const grain =
+      this.renderer.postProcessing.get<
+        import("../renderers/post/PostProcessingElement.js").GrainElement
+      >("Grain");
+    if (grain) {
+      grain.intensity = 0.15; // Wieder auf ein vernünftiges, atmosphärisches Level
+    }
+
     if (ProjectionType.PERSPECTIVE === this.camera.projection.type) {
       const aspect: number = window.innerWidth / window.innerHeight;
       this.camera.projection = new PerspectiveProjection({
@@ -999,13 +1021,13 @@ class AbyssalDecoExample extends AbstractExample {
 }
 
 // === START THE ENGINE ===
-const app: AbyssalDecoExample = new AbyssalDecoExample({
+const app: UnderwaterHideoutExample = new UnderwaterHideoutExample({
   rendererType: RendererType.WEB_GPU,
 });
 app
   .start()
   .then((): void => {
-    console.log("AbyssalDeco Example running");
+    console.log("UnderwaterHideout Example running");
   })
   .catch((err: Error): void => {
     console.error("Error while starting the engine: ", err);
