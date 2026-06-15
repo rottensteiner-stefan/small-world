@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.24.00] - 2026-06-15
+
+- **Core Performance & Memory Optimizations**:
+  - **WebGPU BindGroup Caching**: Replaced per-frame, per-object `createBindGroup` calls with a sophisticated caching mechanism in `WebGPURenderer`, drastically reducing CPU overhead and memory leaks.
+  - **Garbage Collection (GC) Elimination**: Replaced dynamic array allocations (`Object.entries`) in hot-paths (`_renderGroup`) with fast `for..in` loops across both WebGL and WebGPU renderers.
+  - **Object Reuse in Scene Graph**: Prevented the allocation of thousands of `Frustum` and `Matrix4` objects per second by utilizing class-level scratch variables in `Scene.getVisibleObjectsSorted`.
+  - **WebGL State Tracking**: Implemented a robust state caching system in `WebGL1Renderer` and `WebGL2Renderer` to prevent redundant API calls (`gl.enable`, `gl.cullFace`, `gl.blendFunc`, `gl.depthMask`), significantly lowering driver overhead.
+- **Shader & Post-Processing Improvements**:
+  - **WGSL Gamma Correction**: Shifted the `1.0 / gamma` division from the fragment shader (executed millions of times per frame) to the CPU, passing `inverseGamma` as a single uniform to the Uber-Shader.
+  - **WebGPU Pipeline Reusability**: Prevented the Post-Process Pipeline (`PostProcessPass.ts`) from rebuilding its layouts, modules, and pipelines every frame. It now only rebuilds intelligently upon HDR texture resizing.
+  - **WebGL1 Attribute Caching**: Extracted costly `gl.getAttribLocation("a_pos")` string lookups from the `execute()` render-loop in `PostProcessPassGL`, querying and caching it during initial build.
+
 ## [0.23.00] - 2026-06-15
 
 - **Major Feature: Multi-Backend Opaque Texture Capture (Refraction Pipeline)**:
