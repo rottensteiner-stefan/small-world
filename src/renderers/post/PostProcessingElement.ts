@@ -1,6 +1,6 @@
 /// src/renderers/post/PostProcessingElement.ts
 
-import { ToneMappingMode } from "../../enums/index.js";
+import { ToneMappingMode, PostProcessingEffectType } from "../../enums/index.js";
 
 /**
  * Base class for a post-processing element (effect).
@@ -9,14 +9,14 @@ export abstract class PostProcessingElement {
   /** If false, the effect will be bypassed (cheap). */
   public enabled: boolean = true;
   /** Unique string identifier for the effect. */
-  public abstract readonly type: string;
+  public abstract readonly type: PostProcessingEffectType;
 }
 
 /**
  * Tone Mapping and Gamma Correction parameters.
  */
 export class ToneMappingElement extends PostProcessingElement {
-  public readonly type = "ToneMapping";
+  public readonly type = PostProcessingEffectType.TONE_MAPPING;
 
   public mode: ToneMappingMode = ToneMappingMode.ACES_FILMIC;
   public exposure: number = 1.0;
@@ -27,7 +27,7 @@ export class ToneMappingElement extends PostProcessingElement {
  * Vignette effect parameters.
  */
 export class VignetteElement extends PostProcessingElement {
-  public readonly type = "Vignette";
+  public readonly type = PostProcessingEffectType.VIGNETTE;
 
   /** Controls the outer radius of the vignette effect (default: 0.8). */
   public offset: number = 0.8;
@@ -38,7 +38,7 @@ export class VignetteElement extends PostProcessingElement {
 }
 
 export class GrainElement extends PostProcessingElement {
-  public readonly type = "Grain";
+  public readonly type = PostProcessingEffectType.GRAIN;
 
   /** Controls the intensity/opacity of the film grain (default: 0.05) */
   public intensity: number = 0.05;
