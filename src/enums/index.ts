@@ -19,3 +19,4 @@ export * from "./CullMode.js";
 export * from "./ShaderPropertyType.js";
 export * from "./Topology.js";
 export * from "./OscillatorType.js";
+export * from "./ToneMappingMode.js";

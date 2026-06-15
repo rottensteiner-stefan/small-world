@@ -25,11 +25,29 @@ out vec4 fragColor;
 uniform sampler2D u_hdrTexture;
 uniform float u_exposure;
 uniform float u_gamma;
+uniform int u_toneMappingMode;
 
 // Reinhard tone mapping
 vec3 toneMapReinhard(vec3 hdr, float exposure) {
     vec3 mapped = hdr * exposure;
     return mapped / (mapped + vec3(1.0));
+}
+
+// Cineon tone mapping
+vec3 toneMapCineon(vec3 hdr, float exposure) {
+    vec3 mapped = max(vec3(0.0), hdr * exposure - vec3(0.004));
+    return (mapped * (6.2 * mapped + vec3(0.5))) / (mapped * (6.2 * mapped + vec3(1.7)) + vec3(0.06));
+}
+
+// ACES Filmic tone mapping
+vec3 toneMapACESFilmic(vec3 hdr, float exposure) {
+    vec3 mapped = hdr * exposure;
+    float a = 2.51;
+    float b = 0.03;
+    float c = 2.43;
+    float d = 0.59;
+    float e = 0.14;
+    return clamp((mapped * (a * mapped + b)) / (mapped * (c * mapped + d) + e), 0.0, 1.0);
 }
 
 // Linear -> sRGB gamma correction
@@ -41,7 +59,16 @@ void main() {
     // Flip Y: WebGL FBO is stored bottom-up, screen is top-down
     vec2 uv = vec2(v_uv.x, 1.0 - v_uv.y);
     vec3 hdr = texture(u_hdrTexture, uv).rgb;
-    vec3 tonemapped = toneMapReinhard(hdr, u_exposure);
+    
+    vec3 tonemapped = hdr * u_exposure;
+    if (u_toneMappingMode == 1) {
+        tonemapped = toneMapReinhard(hdr, u_exposure);
+    } else if (u_toneMappingMode == 2) {
+        tonemapped = toneMapCineon(hdr, u_exposure);
+    } else if (u_toneMappingMode == 3) {
+        tonemapped = toneMapACESFilmic(hdr, u_exposure);
+    }
+
     vec3 srgb = linearToSRGB(tonemapped, u_gamma);
     fragColor = vec4(srgb, 1.0);
 }
@@ -66,10 +93,26 @@ varying vec2 v_uv;
 uniform sampler2D u_hdrTexture;
 uniform float u_exposure;
 uniform float u_inverseGamma;
+uniform int u_toneMappingMode;
 
 vec3 toneMapReinhard(vec3 hdr, float exposure) {
     vec3 mapped = hdr * exposure;
     return mapped / (mapped + vec3(1.0));
+}
+
+vec3 toneMapCineon(vec3 hdr, float exposure) {
+    vec3 mapped = max(vec3(0.0), hdr * exposure - vec3(0.004));
+    return (mapped * (6.2 * mapped + vec3(0.5))) / (mapped * (6.2 * mapped + vec3(1.7)) + vec3(0.06));
+}
+
+vec3 toneMapACESFilmic(vec3 hdr, float exposure) {
+    vec3 mapped = hdr * exposure;
+    float a = 2.51;
+    float b = 0.03;
+    float c = 2.43;
+    float d = 0.59;
+    float e = 0.14;
+    return clamp((mapped * (a * mapped + b)) / (mapped * (c * mapped + d) + e), 0.0, 1.0);
 }
 
 vec3 linearToSRGB(vec3 linear, float invGamma) {
@@ -80,7 +123,16 @@ void main() {
     // Flip Y: WebGL FBO is stored bottom-up, screen is top-down
     vec2 uv = vec2(v_uv.x, 1.0 - v_uv.y);
     vec3 hdr = texture2D(u_hdrTexture, uv).rgb;
-    vec3 tonemapped = toneMapReinhard(hdr, u_exposure);
+
+    vec3 tonemapped = hdr * u_exposure;
+    if (u_toneMappingMode == 1) {
+        tonemapped = toneMapReinhard(hdr, u_exposure);
+    } else if (u_toneMappingMode == 2) {
+        tonemapped = toneMapCineon(hdr, u_exposure);
+    } else if (u_toneMappingMode == 3) {
+        tonemapped = toneMapACESFilmic(hdr, u_exposure);
+    }
+
     vec3 srgb = linearToSRGB(tonemapped, u_inverseGamma);
     gl_FragColor = vec4(srgb, 1.0);
 }
@@ -98,6 +150,7 @@ export class PostProcessPassGL {
   private _uHdrTexture: WebGLUniformLocation | null = null;
   private _uExposure: WebGLUniformLocation | null = null;
   private _uGamma: WebGLUniformLocation | null = null;
+  private _uToneMappingMode: WebGLUniformLocation | null = null;
   private _aPos: number = -1;
   private readonly _isWebGL2: boolean;
 
@@ -135,6 +188,7 @@ export class PostProcessPassGL {
     this._uHdrTexture = gl.getUniformLocation(p, "u_hdrTexture");
     this._uExposure = gl.getUniformLocation(p, "u_exposure");
     this._uGamma = gl.getUniformLocation(p, "u_inverseGamma");
+    this._uToneMappingMode = gl.getUniformLocation(p, "u_toneMappingMode");
 
     if (this._isWebGL2) {
       const gl2 = gl as WebGL2RenderingContext;
@@ -156,8 +210,7 @@ export class PostProcessPassGL {
   public execute(
     gl: WebGLRenderingContext | WebGL2RenderingContext,
     hdrTexture: WebGLTexture,
-    exposure: number,
-    gamma: number,
+    config: import("./PostProcessConfig.js").PostProcessConfig,
   ): void {
     if (!this._prog) return;
 
@@ -172,8 +225,9 @@ export class PostProcessPassGL {
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, hdrTexture);
     if (this._uHdrTexture !== null) gl.uniform1i(this._uHdrTexture, 0);
-    if (this._uExposure !== null) gl.uniform1f(this._uExposure, exposure);
-    if (this._uGamma !== null) gl.uniform1f(this._uGamma, 1.0 / gamma);
+    if (this._uExposure !== null) gl.uniform1f(this._uExposure, config.exposure);
+    if (this._uGamma !== null) gl.uniform1f(this._uGamma, 1.0 / config.gamma);
+    if (this._uToneMappingMode !== null) gl.uniform1i(this._uToneMappingMode, config.toneMapping);
 
     if (this._isWebGL2) {
       const gl2 = gl as WebGL2RenderingContext;
