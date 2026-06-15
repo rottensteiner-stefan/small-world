@@ -49,8 +49,7 @@ Before implementing:
 - **Pipeline State Consistency:** When grouping objects by shader or material, ensure the rendering pipeline (blend modes, depth states, culling) is updated per-material or per-group, not just once per shader type.
 - **Linear Color Space & Gamma Correctness:** All lighting calculations MUST be performed in Linear Space. Any texture containing color data (Albedo/Diffuse) MUST be converted from sRGB to Linear Space before lighting calculations. The final output MUST be gamma-corrected (Linear to sRGB) before being drawn to the screen.
 - **Energy Conservation (PBR):** A material cannot reflect more light than it receives. Ensure that `Diffuse + Specular <= 1.0`. Metallic surfaces reflect almost all light as specular and have little to no diffuse component.
-- **Explicit Resource Usage & Pipeline Strictness (WebGPU/WebGL):** Modern graphics APIs require explicit upfront declaration of resource intent. Never assume implicit capabilities. When allocating buffers or textures (especially SwapChain or FBOs), carefully analyze *all* stages the resource will pass through (e.g., Binding, Copying, Rendering) and bitwise-OR the exact usage flags (e.g., `GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT`). Always bind error callbacks (`onuncapturederror`) and check for validation warnings during development.
-
+- **Explicit Resource Usage & Pipeline Strictness (WebGPU/WebGL):** Modern graphics APIs require explicit upfront declaration of resource intent. Never assume implicit capabilities. When allocating buffers or textures (especially SwapChain or FBOs), carefully analyze _all_ stages the resource will pass through (e.g., Binding, Copying, Rendering) and bitwise-OR the exact usage flags (e.g., `GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT`). Always bind error callbacks (`onuncapturederror`) and check for validation warnings during development.
 
 ## Post-Processing Architecture
 
@@ -60,7 +59,6 @@ Before implementing:
 - **Pass Consolidation (The "Uber-Shader"):** Do NOT build a modular "Ping-Pong" Effect Composer (like Three.js) that renders a fullscreen quad for every single effect. Each read/write cycle kills memory bandwidth on modern and mobile GPUs. Instead, consolidate all standard effects (Tone Mapping, Color Grading/LUT, Vignette, Gamma Correction) into **one single final Post-Process Pass**.
 - **WebGPU Compute Shaders:** For spatially heavy operations that require reading neighboring pixels (like Gaussian Blur for Bloom or Depth of Field), prefer **Compute Shaders** over fullscreen Fragment Shaders in WebGPU. Compute shaders allow for shared workgroup memory, dramatically accelerating these algorithms.
 - **Data-Oriented Post-Process State:** Manage post-processing settings via flat configuration structures rather than deeply nested OOP class hierarchies, allowing the renderer to quickly assemble the final Uber-Shader.
-
 
 ## Industry Standards & Defaults
 
