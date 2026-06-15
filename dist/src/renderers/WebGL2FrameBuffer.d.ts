@@ -30,6 +30,8 @@ export declare class WebGL2FrameBuffer {
      * @param options Width, height, and optional format overrides.
      */
     constructor(gl: WebGL2RenderingContext, options: WebGL2FrameBufferOptions);
+    get width(): number;
+    get height(): number;
     /**
      * Binds the framebuffer for rendering.
      */
