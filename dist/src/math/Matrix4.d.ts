@@ -27,4 +27,5 @@ export declare class Matrix4 {
     static rotateZ(angle: number, target: Matrix4): void;
     static translate(x: number, y: number, z: number, target: Matrix4): void;
     static scale(x: number, y: number | Matrix4, z?: number, target?: Matrix4): void;
+    static readonly ZO_CORRECTION: Matrix4;
 }
