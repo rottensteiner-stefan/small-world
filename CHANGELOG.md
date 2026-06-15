@@ -1,6 +1,14 @@
 # Changelog
 
-## [0.24.00] - 2026-06-15
+## [0.24.1] - 2026-06-15
+
+- **Mathematical Consistency & WebGPU Z-Clipping Fix**:
+  - Validated `Matrix4`, `Quaternion`, and `Vector3D` against standard Right-Handed, Column-Major OpenGL conventions as referenced in the architecture guidelines (David Nadlinger).
+  - Addressed a fundamental architectural mismatch where `Matrix4.perspective` natively returns `[-1, 1]` Z depth mapping (correct for OpenGL), causing WebGPU (which natively requires `[0, 1]`) to clip geometry in the near-half of the view frustum.
+  - Implemented `Matrix4.ZO_CORRECTION`, a zero-to-one correction matrix, and applied it globally inside the `WebGPURenderer` to the view-projection matrix prior to shader upload.
+  - Removed localized, incomplete `z`-correction hacks from `.wgsl` shaders, universally resolving frustum clipping issues for all materials, pipelines, and wireframes in WebGPU while maintaining math library independence.
+
+## [0.24.0] - 2026-06-15
 
 - **Core Performance & Memory Optimizations**:
   - **WebGPU BindGroup Caching**: Replaced per-frame, per-object `createBindGroup` calls with a sophisticated caching mechanism in `WebGPURenderer`, drastically reducing CPU overhead and memory leaks.

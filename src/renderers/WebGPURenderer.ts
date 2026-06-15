@@ -4,7 +4,7 @@ import { CubeTexture, RenderManifest, ShaderRegistry, Texture, DeviceCaps } from
 import { GeometryDataInterface, LightDataInterface } from "../interfaces/index.js";
 import { Object3D } from "../core/Object3D.js";
 import { Scene } from "../core/Scene.js";
-import { MathPool, Vector3D } from "../math/index.js";
+import { MathPool, Vector3D, Matrix4 } from "../math/index.js";
 import { BlendingMode, RendererType, TextureFilter, TextureWrap } from "../enums/index.js";
 import { EngineConfig } from "../interfaces/EngineConfig.js";
 import { Fog } from "../core/Fog.js";
@@ -752,9 +752,20 @@ export class WebGPURenderer extends AbstractRenderer {
     lights: LightDataInterface,
     fog?: Fog,
   ): void {
+    const correctedVp = MathPool.acquireMatrix();
+    const originalVp = MathPool.acquireMatrix();
+    originalVp.data.set(vp);
+
+    // WebGPU uses [0, 1] depth range, but our projection matrices use [-1, 1] (OpenGL standard).
+    // Apply ZO (Zero-to-One) correction matrix to fix clipping without modifying shaders.
+    Matrix4.multiply(Matrix4.ZO_CORRECTION, originalVp, correctedVp);
+
     const gData = new Float32Array(48); // 192 bytes = 48 floats
-    gData.set(vp, 0);
+    gData.set(correctedVp.data, 0);
     gData.set([camPos.x, camPos.y, camPos.z, 1], 16);
+
+    MathPool.releaseMatrix(originalVp);
+    MathPool.releaseMatrix(correctedVp);
     gData.set(
       [
         lights.aCol.r * lights.aIntensity,

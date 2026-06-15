@@ -463,4 +463,10 @@ export class Matrix4 {
     m.data[5] = y as number;
     m.data[10] = z!;
   }
+
+  public static readonly ZO_CORRECTION: Matrix4 = ((): Matrix4 => {
+    const m = new Matrix4();
+    m.data.set([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0.5, 0, 0, 0, 0.5, 1]);
+    return m;
+  })();
 }

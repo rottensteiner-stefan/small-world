@@ -9,7 +9,6 @@
     let worldPos = obj.model * vec4f(pos, 1.0);
     o.wp = worldPos.xyz;
     o.pos = global.vp * worldPos;
-    o.pos.z = (o.pos.z + o.pos.w) * 0.5;
     o.uv = uv * obj.texRepeat + obj.texOffset;
     o.original_uv = uv;
     
