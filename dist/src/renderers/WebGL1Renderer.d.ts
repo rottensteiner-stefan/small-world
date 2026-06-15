@@ -12,6 +12,13 @@ export declare class WebGL1Renderer extends AbstractWebGLRenderer {
     /** @inheritdoc */
     readonly type: RendererType;
     protected gl: WebGLRenderingContext;
+    private _stateCullFaceEnabled;
+    private _stateCullFaceMode;
+    private _stateBlendEnabled;
+    private _stateBlendSrc;
+    private _stateBlendDst;
+    private _stateDepthMask;
+    private _stateDepthTest;
     /** Satisfies Renderer interface */
     get webglContext(): WebGLRenderingContext;
     private _programs;
@@ -35,4 +42,5 @@ export declare class WebGL1Renderer extends AbstractWebGLRenderer {
     private _renderGroup;
     /** @inheritdoc */
     setSize(width: number, height: number): void;
+    private _resetStateCache;
 }

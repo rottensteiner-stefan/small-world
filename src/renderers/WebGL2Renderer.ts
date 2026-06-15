@@ -59,6 +59,14 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
 
   private _globalUBO!: WebGL2UniformBuffer;
 
+  private _stateCullFaceEnabled: boolean | null = null;
+  private _stateCullFaceMode: number = -1;
+  private _stateBlendEnabled: boolean | null = null;
+  private _stateBlendSrc: number = -1;
+  private _stateBlendDst: number = -1;
+  private _stateDepthMask: boolean | null = null;
+  private _stateDepthTest: boolean | null = null;
+
   private _shadowMaps: Map<AbstractLight, WebGL2DepthFrameBuffer> = new Map();
   private _dummyShadowMap!: WebGL2DepthFrameBuffer;
 
@@ -89,6 +97,16 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     new DepthMaterial();
 
     this._globalUBO = new WebGL2UniformBuffer(this.gl, 1280, 0);
+  }
+
+  private _resetStateCache(): void {
+    this._stateCullFaceEnabled = null;
+    this._stateCullFaceMode = -1;
+    this._stateBlendEnabled = null;
+    this._stateBlendSrc = -1;
+    this._stateBlendDst = -1;
+    this._stateDepthMask = null;
+    this._stateDepthTest = null;
   }
 
   private _getProgram(shaderId: string): ProgramCache {
@@ -289,6 +307,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     camPos: Vector3D = Vector3D.ZERO,
     vMat?: Float32Array,
   ): void {
+    this._resetStateCache();
     const extractedLights = this.extractLights(scene);
     const renderList = scene.getVisibleObjectsSorted(vp, camPos);
 
@@ -737,34 +756,62 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
 
       // --- 1. Bind Material States (Once per material group) ---
       const state = manifest.state;
-      if (state && CullMode.NONE === state.culling) this.gl.disable(this.gl.CULL_FACE);
-      else {
-        this.gl.enable(this.gl.CULL_FACE);
-        this.gl.cullFace(state && CullMode.FRONT === state.culling ? this.gl.FRONT : this.gl.BACK);
+      const enableCull = !(state && CullMode.NONE === state.culling);
+      if (this._stateCullFaceEnabled !== enableCull) {
+        if (enableCull) this.gl.enable(this.gl.CULL_FACE);
+        else this.gl.disable(this.gl.CULL_FACE);
+        this._stateCullFaceEnabled = enableCull;
       }
 
-      if (state?.transparent) {
-        this.gl.enable(this.gl.BLEND);
-        if (state.blending === BlendingMode.ADDITIVE) {
-          this.gl.blendFunc(this.gl.ONE, this.gl.ONE);
-        } else if (state.blending === BlendingMode.PREMULTIPLIED_ALPHA) {
-          this.gl.blendFunc(this.gl.ONE, this.gl.ONE_MINUS_SRC_ALPHA);
-        } else {
-          this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
+      if (enableCull) {
+        const cullMode = state && CullMode.FRONT === state.culling ? this.gl.FRONT : this.gl.BACK;
+        if (this._stateCullFaceMode !== cullMode) {
+          this.gl.cullFace(cullMode);
+          this._stateCullFaceMode = cullMode;
         }
-        this.gl.depthMask(false);
-      } else {
-        this.gl.disable(this.gl.BLEND);
-        this.gl.depthMask(true);
       }
 
-      if (state?.depthWrite === false) this.gl.depthMask(false);
-      // depthTest is true by default in initialize, but we should respect overrides
-      if (state?.depthTest === false) this.gl.disable(this.gl.DEPTH_TEST);
-      else this.gl.enable(this.gl.DEPTH_TEST);
+      const enableBlend = !!state?.transparent;
+      if (this._stateBlendEnabled !== enableBlend) {
+        if (enableBlend) this.gl.enable(this.gl.BLEND);
+        else this.gl.disable(this.gl.BLEND);
+        this._stateBlendEnabled = enableBlend;
+      }
+
+      let depthMask = !enableBlend;
+      if (state?.depthWrite === false) depthMask = false;
+
+      if (this._stateDepthMask !== depthMask) {
+        this.gl.depthMask(depthMask);
+        this._stateDepthMask = depthMask;
+      }
+
+      if (enableBlend) {
+        let src: number = this.gl.SRC_ALPHA;
+        let dst: number = this.gl.ONE_MINUS_SRC_ALPHA;
+        if (state.blending === BlendingMode.ADDITIVE) {
+          src = this.gl.ONE;
+          dst = this.gl.ONE;
+        } else if (state.blending === BlendingMode.PREMULTIPLIED_ALPHA) {
+          src = this.gl.ONE;
+        }
+        if (this._stateBlendSrc !== src || this._stateBlendDst !== dst) {
+          this.gl.blendFunc(src, dst);
+          this._stateBlendSrc = src;
+          this._stateBlendDst = dst;
+        }
+      }
+
+      const enableDepthTest = state?.depthTest !== false;
+      if (this._stateDepthTest !== enableDepthTest) {
+        if (enableDepthTest) this.gl.enable(this.gl.DEPTH_TEST);
+        else this.gl.disable(this.gl.DEPTH_TEST);
+        this._stateDepthTest = enableDepthTest;
+      }
 
       // --- 2. Bind Generic Material Properties (Uniforms) ---
-      for (const [name, value] of Object.entries(manifest.properties)) {
+      for (const name in manifest.properties) {
+        const value = manifest.properties[name];
         const loc = u.get(name);
         if (!loc) continue;
 
@@ -777,9 +824,9 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
           else if (v.length === 2) this.gl.uniform2fv(loc, v);
           else if (v.length === 16) this.gl.uniformMatrix4fv(loc, false, v);
         } else if (Array.isArray(value)) {
-          if (value.length === 4) this.gl.uniform4fv(loc, new Float32Array(value));
-          else if (value.length === 3) this.gl.uniform3fv(loc, new Float32Array(value));
-          else if (value.length === 2) this.gl.uniform2fv(loc, new Float32Array(value));
+          if (value.length === 4) this.gl.uniform4fv(loc, value as number[]);
+          else if (value.length === 3) this.gl.uniform3fv(loc, value as number[]);
+          else if (value.length === 2) this.gl.uniform2fv(loc, value as number[]);
         }
       }
 
@@ -805,7 +852,8 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
           u_snowMap: 6,
           u_opaqueMap: 7,
         };
-        for (const [uniformName, unit] of Object.entries(samplerUnits)) {
+        for (const uniformName in samplerUnits) {
+          const unit = samplerUnits[uniformName]!;
           const loc = u.get(uniformName);
           if (loc) {
             const maxUnits = DeviceCaps.getLimit(DeviceLimit.MAX_TEXTURE_IMAGE_UNITS);

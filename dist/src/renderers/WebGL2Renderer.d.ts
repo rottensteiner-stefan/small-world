@@ -23,10 +23,18 @@ export declare class WebGL2Renderer extends AbstractWebGLRenderer {
     protected _postPassGL: PostProcessPassGL | undefined;
     private _scratchModelMatrix;
     private _globalUBO;
+    private _stateCullFaceEnabled;
+    private _stateCullFaceMode;
+    private _stateBlendEnabled;
+    private _stateBlendSrc;
+    private _stateBlendDst;
+    private _stateDepthMask;
+    private _stateDepthTest;
     private _shadowMaps;
     private _dummyShadowMap;
     /** @inheritdoc */
     initialize(canvas: HTMLCanvasElement, attributes?: Record<string, unknown>, config?: EngineConfig): Promise<void>;
+    private _resetStateCache;
     private _getProgram;
     private _getWebGLTexture;
     private _getWebGLCubeTexture;

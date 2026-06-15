@@ -25,6 +25,9 @@ export class Scene {
   public dynamicOctree: Octree | undefined = undefined;
   public fog?: Fog;
 
+  private _scratchFrustum: Frustum = new Frustum();
+  private _scratchMatrix: Matrix4 = new Matrix4();
+
   public add(...objs: Object3D[]): void {
     for (const obj of objs) {
       this.objects.push(obj);
@@ -148,8 +151,8 @@ export class Scene {
       transparent: [],
     };
 
-    const frustum = new Frustum();
-    const vpMat = new Matrix4();
+    const frustum = this._scratchFrustum;
+    const vpMat = this._scratchMatrix;
     vpMat.data.set(vp);
     frustum.setFromMatrix(vpMat);
 

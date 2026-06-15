@@ -24,7 +24,7 @@ const POST_PROCESS_FRAG_WGSL = /* wgsl */ `
 
 struct PostUniforms {
     exposure: f32,
-    gamma:    f32,
+    inverseGamma: f32,
     _pad0:    f32,
     _pad1:    f32,
 }
@@ -37,8 +37,8 @@ fn toneMapReinhard(hdr: vec3f, exposure: f32) -> vec3f {
 }
 
 // Linear -> sRGB gamma correction
-fn linearToSRGB(linear: vec3f, gamma: f32) -> vec3f {
-    return pow(clamp(linear, vec3f(0.0), vec3f(1.0)), vec3f(1.0 / gamma));
+fn linearToSRGB(linear: vec3f, invGamma: f32) -> vec3f {
+    return pow(clamp(linear, vec3f(0.0), vec3f(1.0)), vec3f(invGamma));
 }
 
 @fragment
@@ -48,7 +48,7 @@ fn fs_main(@builtin(position) coord: vec4f) -> @location(0) vec4f {
 
     let hdr = textureSample(hdrTexture, hdrSampler, uv).rgb;
     let tonemapped = toneMapReinhard(hdr, u.exposure);
-    let srgb = linearToSRGB(tonemapped, u.gamma);
+    let srgb = linearToSRGB(tonemapped, u.inverseGamma);
 
     return vec4f(srgb, 1.0);
 }
@@ -66,6 +66,8 @@ export class PostProcessPass implements RenderPass {
   private _bindGroup?: GPUBindGroup;
   private _uniformBuffer?: GPUBuffer;
   private _sampler?: GPUSampler;
+  private _uniformData: Float32Array = new Float32Array(4);
+  private _builtTextureView?: GPUTextureView;
 
   /**
    * Lazily initialises or rebuilds the pipeline when the HDR texture changes.
@@ -132,16 +134,19 @@ export class PostProcessPass implements RenderPass {
   ): void {
     if (!renderer.postConfig.enabled || !renderer._hdrTextureView) return;
 
-    this._build(renderer);
+    // Rebuild only if we haven't built yet, or if the texture view changed (e.g. resize)
+    if (!this._pipeline || this._builtTextureView !== renderer._hdrTextureView) {
+      this._build(renderer);
+      this._builtTextureView = renderer._hdrTextureView;
+    }
 
     // Write post-process uniforms
-    const uniforms = new Float32Array([
-      renderer.postConfig.exposure,
-      renderer.postConfig.gamma,
-      0,
-      0,
-    ]);
-    renderer._device!.queue.writeBuffer(this._uniformBuffer!, 0, uniforms);
+    this._uniformData[0] = renderer.postConfig.exposure;
+    this._uniformData[1] = 1.0 / renderer.postConfig.gamma;
+    this._uniformData[2] = 0;
+    this._uniformData[3] = 0;
+
+    renderer._device!.queue.writeBuffer(this._uniformBuffer!, 0, this._uniformData);
 
     // Final blit directly to the swap-chain (canvas)
     const screenView = renderer._context.getCurrentTexture().createView();

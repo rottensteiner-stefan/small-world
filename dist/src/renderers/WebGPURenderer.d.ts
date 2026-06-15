@@ -39,14 +39,24 @@ export declare class WebGPURenderer extends AbstractRenderer {
     protected _shaderModules: Map<string, GPUShaderModule>;
     protected _whiteTexView: GPUTextureView;
     protected _flatNormalTexView: GPUTextureView;
-    protected _defaultCubeTexView: GPUTextureView;
-    protected _samplerCache: Map<string, GPUSampler>;
+    protected _objectUniformBuffers: Map<string, {
+        buffer: GPUBuffer;
+        lastFrame: number;
+        texBg?: GPUBindGroup;
+        texBgResources?: unknown[];
+    }>;
+    protected _textureViewCache: Map<Texture, GPUTextureView>;
     protected _dummyNormalBuffer: GPUBuffer;
     protected _dummyUvBuffer: GPUBuffer;
     protected _dummyTangentBuffer: GPUBuffer;
-    protected _dummyBufferSize: number;
     protected _geoCache: Map<GeometryDataInterface, WebGPUGeoCache>;
-    protected _textureViewCache: Map<Texture, GPUTextureView>;
+    protected _frameCount: number;
+    protected _scratchModelMatrix: Float32Array<ArrayBuffer>;
+    protected _scratchColorArray: Float32Array<ArrayBuffer>;
+    protected _scratchUniformValues: Record<string, unknown>;
+    protected _defaultCubeTexView: GPUTextureView;
+    protected _samplerCache: Map<string, GPUSampler>;
+    protected _dummyBufferSize: number;
     protected _cubeTextureViewCache: Map<CubeTexture, GPUTextureView>;
     _depthTexture: GPUTexture;
     _opaqueTexture?: GPUTexture;
@@ -60,12 +70,6 @@ export declare class WebGPURenderer extends AbstractRenderer {
     _areaLightBuffer: GPUBuffer;
     _globalBindGroup: GPUBindGroup;
     _globalBGL: GPUBindGroupLayout;
-    protected _objectUniformBuffers: Map<string, {
-        buffer: GPUBuffer;
-        lastFrame: number;
-    }>;
-    protected _frameCount: number;
-    protected _scratchModelMatrix: Float32Array;
     /** @inheritdoc */
     initialize(canvas: HTMLCanvasElement, attributes?: Record<string, unknown>, config?: EngineConfig): Promise<void>;
     /**
@@ -86,7 +90,11 @@ export declare class WebGPURenderer extends AbstractRenderer {
     _renderGroup(rp: GPURenderPassEncoder, _shaderId: string, materialGroups: Map<string, Object3D[]>, vMat?: Float32Array, topology?: GPUPrimitiveTopology): void;
     protected _getObjUniformBuffer(obj: Object3D): GPUBuffer;
     protected _updateObjUniformBuffer(b: GPUBuffer, o: Object3D, m: RenderManifest, vMat?: Float32Array): void;
-    protected _getTexBindGroup(objBuffer: GPUBuffer, m: RenderManifest, layout: GPUBindGroupLayout): GPUBindGroup;
+    protected _getTexBindGroup(objBufferData: {
+        buffer: GPUBuffer;
+        texBg?: GPUBindGroup;
+        texBgResources?: unknown[];
+    }, m: RenderManifest, layout: GPUBindGroupLayout): GPUBindGroup;
     protected _getTextureView(tex: Texture | undefined): GPUTextureView;
     protected _getNormalTextureView(tex: Texture | undefined): GPUTextureView;
     protected _getGPUCubeTextureView(tex: CubeTexture | undefined): GPUTextureView;
