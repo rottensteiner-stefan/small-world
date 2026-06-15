@@ -3,9 +3,9 @@ in vec3 a_position;
 
 struct PointLight {
     vec3 pos;
-    float _pad;
+    float distance;
     vec3 color;
-    float _pad2;
+    float decay;
 };
 
 struct SpotLight {

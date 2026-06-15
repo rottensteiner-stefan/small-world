@@ -5,6 +5,9 @@ in vec2 v_uv;
 out vec4 fragColor;
 
 uniform sampler2D u_hdrTexture;
+uniform sampler2D u_bloomTexture;
+uniform int u_bloomEnabled;
+uniform float u_bloomIntensity;
 uniform float u_exposure;
 uniform float u_gamma;
 uniform int u_toneMappingMode;
@@ -55,6 +58,11 @@ void main() {
     // Flip Y: WebGL FBO is stored bottom-up, screen is top-down
     vec2 uv = vec2(v_uv.x, 1.0 - v_uv.y);
     vec3 hdr = texture(u_hdrTexture, uv).rgb;
+    
+    if (u_bloomEnabled == 1) {
+        vec3 bloom = texture(u_bloomTexture, uv).rgb;
+        hdr += bloom * u_bloomIntensity;
+    }
     
     vec3 tonemapped = hdr * u_exposure;
     if (u_toneMappingMode == 1) {
