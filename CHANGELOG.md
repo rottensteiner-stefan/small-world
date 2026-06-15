@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.25.0] - 2026-06-15
+
+- **Post-Processing Architecture & Effects**:
+  - **Modular Post-Processing Group**: Decoupled post-processing configuration from renderers. Introduced `PostProcessingGroup` containing modular elements (`ToneMappingElement`, `VignetteElement`, `GrainElement`) to dynamically assemble the final Uber-Shader pass.
+  - **Advanced Vignette Math**: Completely rewrote the Vignette shader math to decouple the radius (`offset`) from the intensity (`darkness`).
+  - **Superellipse Vignette Shapes**: Added a new `roundness` parameter to the Vignette effect. Users can now seamlessly transition between perfect elliptical vignettes and rounded rectangular ("TV-screen") vignettes.
+  - **Film Grain**: Implemented hardware-accelerated animated Film Grain. Utilizes a time-seeded Hash12 generator directly within the fragment shader to avoid floating-point precision loss (`sin()` breakdown) during long sessions.
+  - **WebGPU Transparent Capture Fix**: Resolved "Invalid CommandBuffer" errors in WebGPU by ensuring the HDR render target explicitly requests `GPUTextureUsage.COPY_SRC` so transparent passes can correctly capture the opaque scene behind them.
+
 ## [0.24.1] - 2026-06-15
 
 - **Mathematical Consistency & WebGPU Z-Clipping Fix**:

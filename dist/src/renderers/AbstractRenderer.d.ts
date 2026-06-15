@@ -4,7 +4,7 @@ import { RendererType } from '../enums/index.js';
 import { Scene } from '../core/Scene.js';
 import { Vector3D } from '../math/index.js';
 import { EngineConfig, QualityConfig } from '../interfaces/EngineConfig.js';
-import { PostProcessConfig } from './post/index.js';
+import { PostProcessingGroup } from './post/index.js';
 /**
  * Base class for all renderer implementations.
  *
@@ -20,8 +20,8 @@ export declare abstract class AbstractRenderer implements Renderer {
     protected _clearColor: Color;
     /** Global quality settings. */
     protected _quality: QualityConfig;
-    /** Post processing configuration */
-    postConfig: PostProcessConfig;
+    /** The global post processing volume/group. */
+    postProcessing: PostProcessingGroup;
     /** Cached light data to avoid GC pressure. */
     protected _lightData: LightDataInterface;
     /** @inheritdoc */

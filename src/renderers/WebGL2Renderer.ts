@@ -318,7 +318,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     // --- SETUP MAIN PASS ---
     this._updateGlobalUBO(vp, camPos, extractedLights);
 
-    if (this.postConfig.enabled && this._hdrFbo) {
+    if (this.postProcessing.enabled && this._hdrFbo) {
       this._hdrFbo.bind();
     } else {
       this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
@@ -406,8 +406,8 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     }
 
     // --- PASS 4: Post-Process Blit (HDR -> Canvas) ---
-    if (this.postConfig.enabled && this._hdrFbo && this._postPassGL) {
-      this._postPassGL.execute(this.gl, this._hdrFbo.texture, this.postConfig);
+    if (this.postProcessing.enabled && this._hdrFbo && this._postPassGL) {
+      this._postPassGL.execute(this.gl, this._hdrFbo.texture, this.postProcessing);
     }
   }
 
@@ -1041,7 +1041,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
   public override setSize(width: number, height: number): void {
     super.setSize(width, height);
 
-    if (this.postConfig.enabled) {
+    if (this.postProcessing.enabled) {
       this.gl.getExtension("EXT_color_buffer_float");
       if (!this._hdrFbo) {
         this._hdrFbo = new WebGL2FrameBuffer(this.gl, {

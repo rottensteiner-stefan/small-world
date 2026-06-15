@@ -7,7 +7,7 @@ import { Object3D } from "../core/Object3D.js";
 import { Scene } from "../core/Scene.js";
 import { Vector3D } from "../math/index.js";
 import { EngineConfig, QualityConfig, ToneMapping } from "../interfaces/EngineConfig.js";
-import { PostProcessConfig, DefaultPostProcessConfig } from "./post/index.js";
+import { PostProcessingGroup } from "./post/index.js";
 
 /**
  * Base class for all renderer implementations.
@@ -35,8 +35,8 @@ export abstract class AbstractRenderer implements Renderer {
     exposure: 1.0,
   };
 
-  /** Post processing configuration */
-  public postConfig: PostProcessConfig = { ...DefaultPostProcessConfig };
+  /** The global post processing volume/group. */
+  public postProcessing: PostProcessingGroup = new PostProcessingGroup();
 
   /** Cached light data to avoid GC pressure. */
   protected _lightData: LightDataInterface = {
