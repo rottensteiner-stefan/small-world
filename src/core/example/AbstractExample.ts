@@ -49,7 +49,10 @@ export abstract class AbstractExample extends Application {
    * By default, it binds the click event to request PointerLock. Inheriting classes can override this if needed.
    */
   protected onCanvasRecreated(): void {
-    this.canvas.addEventListener("click", (): void => {
+    this.canvas.addEventListener("click", (event: MouseEvent): void => {
+      // Wenn SHIFT gedrückt ist, ignorieren wir den PointerLock (damit der Inspector arbeiten kann)
+      if (event.shiftKey) return;
+
       if (false === Input.isPointerLocked) {
         Input.requestPointerLock(this.canvas);
       }

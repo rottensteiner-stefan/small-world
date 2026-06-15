@@ -4,13 +4,13 @@ import { ShaderLayout } from './ShaderDefinition.js';
  */
 export declare class UniformPacker {
     /**
-     * Packs properties into a buffer.
+     * Packs properties into a pre-allocated buffer.
      * @param layout The shader layout defining the sequence.
      * @param values The actual values to pack.
-     * @param bufferSize Minimum size of the resulting buffer in bytes (default 256 for WebGPU alignment).
-     * @returns A Float32Array ready for GPU upload.
+     * @param targetArray The Float32Array to write into.
+     * @returns The same Float32Array for chaining.
      */
-    static pack(layout: ShaderLayout, values: Record<string, unknown>, bufferSize?: number): Float32Array;
+    static packInto(layout: ShaderLayout, values: Record<string, unknown>, data: Float32Array): Float32Array;
     private static _getTypeSize;
     private static _getTypeAlignment;
 }

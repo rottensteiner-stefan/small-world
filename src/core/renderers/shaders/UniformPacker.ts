@@ -8,18 +8,18 @@ import { Color } from "../../colors/Color.js";
  */
 export class UniformPacker {
   /**
-   * Packs properties into a buffer.
+   * Packs properties into a pre-allocated buffer.
    * @param layout The shader layout defining the sequence.
    * @param values The actual values to pack.
-   * @param bufferSize Minimum size of the resulting buffer in bytes (default 256 for WebGPU alignment).
-   * @returns A Float32Array ready for GPU upload.
+   * @param targetArray The Float32Array to write into.
+   * @returns The same Float32Array for chaining.
    */
-  public static pack(
+  public static packInto(
     layout: ShaderLayout,
     values: Record<string, unknown>,
-    bufferSize: number = 256,
+    data: Float32Array,
   ): Float32Array {
-    const data = new Float32Array(bufferSize / 4);
+    data.fill(0);
     if (!layout.uniformLayout) {
       console.error(
         `[UniformPacker] Material layout is missing 'uniformLayout'. This will result in empty data being sent to the GPU!`,

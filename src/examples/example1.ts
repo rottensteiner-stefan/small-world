@@ -13,6 +13,7 @@ import {
   Plane,
 } from "../index.js";
 import { AbstractExample } from "../core/index.js";
+import { GadgetInspector } from "../tools/GadgetInspector.js";
 import { RendererType } from "../enums/index.js";
 
 class Example1 extends AbstractExample {
@@ -20,6 +21,7 @@ class Example1 extends AbstractExample {
     super({ rendererType: RendererType.WEB_GL2 });
   }
   private _myCube!: Object3D;
+  private _inspector!: GadgetInspector;
 
   protected override async setupScene(): Promise<void> {
     if (ProjectionType.PERSPECTIVE === this.camera.projection.type) {
@@ -67,6 +69,8 @@ class Example1 extends AbstractExample {
     this.camera.position.set(0, 3, 6);
     this.camera.target.set(0, 0, 0);
     this.camera.updateViewMatrix();
+
+    this._inspector = new GadgetInspector(this.scene, this.camera, this.canvas);
   }
 
   protected override update(deltaTime: number): void {
@@ -75,6 +79,7 @@ class Example1 extends AbstractExample {
     this._myCube.rotation.y += 1.5 * deltaTime;
 
     this.scene.update();
+    this._inspector.update();
   }
 }
 

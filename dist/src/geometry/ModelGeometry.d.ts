@@ -11,7 +11,7 @@ export declare class ModelGeometry extends AbstractGeometry {
      * @param normals Raw vertex normals.
      * @param indices Raw triangle indices.
      */
-    constructor(vertices: number[], uvs: number[], normals: number[], indices: number[]);
+    constructor(vertices: number[] | Float32Array, uvs: number[] | Float32Array, normals: number[] | Float32Array, indices: number[] | Uint16Array | Uint32Array);
     /** @inheritdoc */
     protected generateGeometryData(): void;
 }

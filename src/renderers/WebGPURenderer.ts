@@ -81,6 +81,12 @@ export class WebGPURenderer extends AbstractRenderer {
 
   protected _cubeTextureViewCache: Map<CubeTexture, GPUTextureView> = new Map();
 
+  protected _scratchGlobalBufferData = new Float32Array(48);
+  protected _scratchPointLightData = new Float32Array(32); // Max 4 lights
+  protected _scratchSpotLightData = new Float32Array(64); // Max 4 lights
+  protected _scratchAreaLightData = new Float32Array(96); // Max 4 lights
+  protected _scratchObjBufferData = new Float32Array(256 / 4); // Max 256 bytes
+
   public _depthTexture!: GPUTexture;
   public _opaqueTexture?: GPUTexture;
   public _opaqueTextureView?: GPUTextureView;
@@ -646,8 +652,8 @@ export class WebGPURenderer extends AbstractRenderer {
       values["u_color"] = this._scratchColorArray;
     }
 
-    const packedData = UniformPacker.pack(shaderDef.layout, values);
-    this._device!.queue.writeBuffer(b, 0, packedData);
+    UniformPacker.packInto(shaderDef.layout, values, this._scratchObjBufferData);
+    this._device!.queue.writeBuffer(b, 0, this._scratchObjBufferData);
   }
 
   protected _getTexBindGroup(
@@ -775,7 +781,7 @@ export class WebGPURenderer extends AbstractRenderer {
     // Apply ZO (Zero-to-One) correction matrix to fix clipping without modifying shaders.
     Matrix4.multiply(Matrix4.ZO_CORRECTION, originalVp, correctedVp);
 
-    const gData = new Float32Array(48); // 192 bytes = 48 floats
+    const gData = this._scratchGlobalBufferData;
     gData.set(correctedVp.data, 0);
     gData.set([camPos.x, camPos.y, camPos.z, 1], 16);
 
@@ -817,19 +823,27 @@ export class WebGPURenderer extends AbstractRenderer {
     }
     this._device!.queue.writeBuffer(this._globalUniformBuffer, 0, gData);
 
-    const plData = new Float32Array(Math.max(lights.pLights.length * 8, 8));
+    const plDataSize = Math.max(lights.pLights.length * 8, 8);
+    if (this._scratchPointLightData.length < plDataSize) {
+      this._scratchPointLightData = new Float32Array(plDataSize);
+    }
+    const plData = this._scratchPointLightData;
     for (let i = 0; i < lights.pLights.length; i++) {
       const l = lights.pLights[i]!;
       const d = l.worldMatrix.data;
-      plData.set([d[12]!, d[13]!, d[14]!, 1], i * 8);
+      plData.set([d[12]!, d[13]!, d[14]!, l.distance], i * 8);
       plData.set(
-        [l.color.r * l.intensity, l.color.g * l.intensity, l.color.b * l.intensity, 1],
+        [l.color.r * l.intensity, l.color.g * l.intensity, l.color.b * l.intensity, l.decay],
         i * 8 + 4,
       );
     }
-    this._device!.queue.writeBuffer(this._pointLightBuffer, 0, plData);
+    this._device!.queue.writeBuffer(this._pointLightBuffer, 0, plData.subarray(0, plDataSize));
 
-    const slData = new Float32Array(Math.max(lights.sLights.length * 16, 16));
+    const slDataSize = Math.max(lights.sLights.length * 16, 16);
+    if (this._scratchSpotLightData.length < slDataSize) {
+      this._scratchSpotLightData = new Float32Array(slDataSize);
+    }
+    const slData = this._scratchSpotLightData;
     for (let i = 0; i < lights.sLights.length; i++) {
       const l = lights.sLights[i]!;
       const d = l.worldMatrix.data;
@@ -846,9 +860,13 @@ export class WebGPURenderer extends AbstractRenderer {
       );
       MathPool.releaseVector(dir);
     }
-    this._device!.queue.writeBuffer(this._spotLightBuffer, 0, slData);
+    this._device!.queue.writeBuffer(this._spotLightBuffer, 0, slData.subarray(0, slDataSize));
 
-    const alData = new Float32Array(Math.max(lights.aLights.length * 24, 24));
+    const alDataSize = Math.max(lights.aLights.length * 24, 24);
+    if (this._scratchAreaLightData.length < alDataSize) {
+      this._scratchAreaLightData = new Float32Array(alDataSize);
+    }
+    const alData = this._scratchAreaLightData;
     for (let i = 0; i < lights.aLights.length; i++) {
       const l = lights.aLights[i]!;
       const m = l.worldMatrix.data;
@@ -863,7 +881,7 @@ export class WebGPURenderer extends AbstractRenderer {
       alData.set([m[8]!, m[9]!, m[10]!, 0], off + 16);
       alData.set([l.width / 2, l.height / 2, 0, 0], off + 20);
     }
-    this._device!.queue.writeBuffer(this._areaLightBuffer, 0, alData);
+    this._device!.queue.writeBuffer(this._areaLightBuffer, 0, alData.subarray(0, alDataSize));
   }
 
   public override setSize(width: number, height: number): void {

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.26.0] - 2026-06-15
+
+- **Inspector & UI Integration**:
+  - **Gadget Inspector**: Introduced `GadgetInspector` (powered by `tweakpane`), a decoupled UI overlay module for real-time scene debugging and property tweaking.
+  - **Raycaster & 3D Picking**: Implemented mathematical `Ray` and `Raycaster` classes leveraging slab-method AABB intersections. Converts 2D NDC mouse coordinates into 3D world rays for highly performant object selection.
+  - **Dynamic Highlighting & Bounds**: Picked objects are visually marked with a neon-cyan wireframe `BoundingBox`. Bounding volumes are lazily computed on-the-fly during raycasting to guarantee selection works perfectly in minimal scenes (without Octrees).
+
 ## [0.25.0] - 2026-06-15
 
 - **Post-Processing Architecture & Effects**:

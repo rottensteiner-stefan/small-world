@@ -37,22 +37,37 @@ for(var j=0u; j<u32(global.numPointLights); j++) {
     let lightVec = pLights[j].pos.xyz - i.wp;
     let dist = length(lightVec);
     let L = lightVec / dist;
-    let H = normalize(V + L);
-    let attenuation = 1.0 / (dist * dist + 0.0001);
-    let radiance = pLights[j].col.xyz * attenuation;
+    let lDist = max(pLights[j].pos.w, 0.001);
+    let decay = pLights[j].col.w;
+    let distFalloff = 1.0 / max(dist * dist, 0.01);
+    
+    let distRatio = dist / lDist;
+    let distRatio4 = distRatio * distRatio * distRatio * distRatio;
+    let window = clamp(1.0 - distRatio4, 0.0, 1.0);
+    let cutoff = window * window;
+    
+    var attenuation = clamp(1.0 - dist / lDist, 0.0, 1.0);
+    if (decay > 0.0) {
+        attenuation = distFalloff * cutoff;
+    }
+    
+    if (attenuation > 0.0) {
+        let H = normalize(V + L);
+        let radiance = pLights[j].col.xyz * attenuation;
+        
+        let dotNL = max(dot(N, L), 0.0);
+        let dotNH = max(dot(N, H), 0.0);
+        let dotVH = max(dot(V, H), 0.0);
 
-    let dotNL = max(dot(N, L), 0.0);
-    let dotNH = max(dot(N, H), 0.0);
-    let dotVH = max(dot(V, H), 0.0);
+        let D = D_GGX(dotNH, roughness);
+        let G = G_SchlickGGX(dotNL, dotNV, roughness);
+        let F = F_Schlick(dotVH, F0);
 
-    let D = D_GGX(dotNH, roughness);
-    let G = G_SchlickGGX(dotNL, dotNV, roughness);
-    let F = F_Schlick(dotVH, F0);
-
-    let kS = F;
-    let kD = (vec3f(1.0) - kS) * (1.0 - metallic);
-    let specular = (D * G * F) / (4.0 * dotNV * dotNL + 0.0001);
-    Lo += (kD * albedo / 3.14159265359 + specular) * radiance * dotNL;
+        let kS = F;
+        let kD = (vec3f(1.0) - kS) * (1.0 - metallic);
+        let specular = (D * G * F) / (4.0 * dotNV * dotNL + 0.0001);
+        Lo += (kD * albedo / 3.14159265359 + specular) * radiance * dotNL;
+    }
 }
 
 // Spot Lights

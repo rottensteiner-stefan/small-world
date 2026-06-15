@@ -25,6 +25,8 @@ export declare class WebGL1Renderer extends AbstractWebGLRenderer {
     private _cache;
     private _texCache;
     private _texCubeCache;
+    private _scratchTransparentMap;
+    private readonly _samplerUnits;
     _opaqueTexture?: WebGLTexture;
     _opaqueTextureWrapper?: Texture;
     protected _hdrFbo: WebGLFramebuffer | undefined;

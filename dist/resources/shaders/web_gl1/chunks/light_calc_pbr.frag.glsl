@@ -30,15 +30,29 @@ vec3 Lo = vec3(0.0);
     Lo += (kD * albedo / 3.14159265359 + specular) * radiance * dotNL;
 }
 
-// Point Lights
+// -- Point Lights --
 for(int i = 0; i < 4; i++) {
     if (i >= u_numPointLights) break;
     vec3 lightVec = u_pointLightPos[i] - v_worldPos;
     float dist = length(lightVec);
-    vec3 L = lightVec / dist;
+    vec3 L = normalize(lightVec);
     vec3 H = normalize(V + L);
 
-    float attenuation = 1.0 / (dist * dist);
+    // Compute attenuation
+    float lightDistance = max(u_pointLightDistance[i], 0.001);
+    float decay = u_pointLightDecay[i];
+    
+    // PBR physically based attenuation: 1 / (distance^2)
+    float distanceFalloff = 1.0 / max(dist * dist, 0.01);
+    
+    // Windowing function to zero out light at max distance
+    float distRatio = dist / lightDistance;
+    float distRatio4 = distRatio * distRatio * distRatio * distRatio;
+    float window = clamp(1.0 - distRatio4, 0.0, 1.0);
+    float cutoff = window * window;
+    
+    // If decay is 0, we don't fall off physically, we just do linear/constant
+    float attenuation = (decay > 0.0) ? (distanceFalloff * cutoff) : clamp(1.0 - dist / lightDistance, 0.0, 1.0);
     vec3 radiance = u_pointLightColor[i] * attenuation;
 
     float dotNL = max(dot(N, L), 0.0);

@@ -25,6 +25,9 @@ export class Scene {
   public dynamicOctree: Octree | undefined = undefined;
   public fog?: Fog;
 
+  // Persistent cache for rendering
+  private readonly _renderList: RenderList = { opaque: new Map(), transparent: [] };
+
   private _scratchFrustum: Frustum = new Frustum();
   private _scratchMatrix: Matrix4 = new Matrix4();
 
@@ -146,10 +149,15 @@ export class Scene {
    * Transparent: Object3D[] sorted back-to-front
    */
   public getVisibleObjectsSorted(vp: Float32Array, camPos: Vector3D): RenderList {
-    const renderList: RenderList = {
-      opaque: new Map(),
-      transparent: [],
-    };
+    // Clear the persistent list without destroying the structures (Monomorphism/GC optimization)
+    this._renderList.transparent.length = 0;
+    for (const topologyMap of this._renderList.opaque.values()) {
+      for (const matMap of topologyMap.values()) {
+        for (const objectsArray of matMap.values()) {
+          objectsArray.length = 0;
+        }
+      }
+    }
 
     const frustum = this._scratchFrustum;
     const vpMat = this._scratchMatrix;
@@ -157,11 +165,11 @@ export class Scene {
     frustum.setFromMatrix(vpMat);
 
     for (let i: number = 0; i < this.objects.length; i++) {
-      this._collectVisible(this.objects[i]!, renderList, frustum);
+      this._collectVisible(this.objects[i]!, this._renderList, frustum);
     }
 
     // Sort transparent objects back-to-front
-    renderList.transparent.sort((a, b) => {
+    this._renderList.transparent.sort((a, b) => {
       const aData = a.worldMatrix.data;
       const ax = aData[12]! - camPos.x;
       const ay = aData[13]! - camPos.y;
@@ -177,7 +185,7 @@ export class Scene {
       return distB - distA; // Furthest first
     });
 
-    return renderList;
+    return this._renderList;
   }
 
   private _collectVisible(obj: Object3D, renderList: RenderList, frustum: Frustum): void {

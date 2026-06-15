@@ -7,5 +7,6 @@ import { Vector3D } from '../../math/index.js';
  */
 export declare class MainRenderPass implements RenderPass {
     name: string;
+    private _scratchTransparentMap;
     execute(renderer: WebGPURenderer, scene: Scene, ce: GPUCommandEncoder, targetView: GPUTextureView, vp: Float32Array, camPos: Vector3D, vMat?: Float32Array): void;
 }
