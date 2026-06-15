@@ -88,7 +88,12 @@ export declare class WebGPURenderer extends AbstractRenderer {
     captureOpaqueTexture(ce: GPUCommandEncoder, targetTex: GPUTexture): void;
     protected _pruneObjectBuffers(): void;
     _renderGroup(rp: GPURenderPassEncoder, _shaderId: string, materialGroups: Map<string, Object3D[]>, vMat?: Float32Array, topology?: GPUPrimitiveTopology): void;
-    protected _getObjUniformBuffer(obj: Object3D): GPUBuffer;
+    protected _getObjUniformBufferData(obj: Object3D): {
+        buffer: GPUBuffer;
+        lastFrame: number;
+        texBg?: GPUBindGroup;
+        texBgResources?: unknown[];
+    };
     protected _updateObjUniformBuffer(b: GPUBuffer, o: Object3D, m: RenderManifest, vMat?: Float32Array): void;
     protected _getTexBindGroup(objBufferData: {
         buffer: GPUBuffer;
