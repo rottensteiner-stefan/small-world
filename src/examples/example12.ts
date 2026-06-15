@@ -27,11 +27,11 @@ import {
   FlickerBehavior,
   ProximitySensorBehavior,
   Fog,
-  FogMode,
   PulsatingBehavior,
   RendererType,
   CullMode,
 } from "../index.js";
+import { FogMode, PostProcessingEffectType } from "../enums/index.js";
 import { AbstractExample, Input } from "../core/index.js";
 import { WorkbenchTable } from "./objects/WorkbenchTable.js";
 import { ErlenmeyerFlask } from "./objects/ErlenmeyerFlask.js";
@@ -52,20 +52,18 @@ class UnderwaterHideoutExample extends AbstractExample {
     this.renderer.postProcessing.enabled = true;
 
     // Post-Processing configuration
-    const vig =
-      this.renderer.postProcessing.get<
-        import("../renderers/post/PostProcessingElement.js").VignetteElement
-      >("Vignette");
+    const vig = this.renderer.postProcessing.get<
+      import("../renderers/post/PostProcessingElement.js").VignetteElement
+    >(PostProcessingEffectType.VIGNETTE);
     if (vig) {
       vig.offset = 0.55; // Etwas fetterer Rahmen
       vig.darkness = 1.0; // 100% Schwarz
       vig.roundness = 6.0; // Weiches Rechteck
     }
 
-    const grain =
-      this.renderer.postProcessing.get<
-        import("../renderers/post/PostProcessingElement.js").GrainElement
-      >("Grain");
+    const grain = this.renderer.postProcessing.get<
+      import("../renderers/post/PostProcessingElement.js").GrainElement
+    >(PostProcessingEffectType.GRAIN);
     if (grain) {
       grain.intensity = 0.15; // Wieder auf ein vernünftiges, atmosphärisches Level
     }

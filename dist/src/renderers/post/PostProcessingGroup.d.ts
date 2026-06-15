@@ -1,4 +1,5 @@
 import { PostProcessingElement } from './PostProcessingElement.js';
+import { PostProcessingEffectType } from '../../enums/index.js';
 /**
  * A logical grouping of post-processing elements.
  * Currently acts as a "Global Volume", applying its elements to the entire scene.
@@ -17,13 +18,12 @@ export declare class PostProcessingGroup {
      */
     add(element: PostProcessingElement): this;
     /**
-     * Retrieves an element by its type name.
-     * @param type The type name (e.g. "Vignette")
+     * Get an element by its type.
+     * @param type The type
      */
-    get<T extends PostProcessingElement>(type: string): T | undefined;
+    get<T extends PostProcessingElement>(type: PostProcessingEffectType): T | undefined;
     /**
-     * Removes an element by its type name.
-     * @param type The type name
+     * Removes an element by its type.
      */
-    remove(type: string): boolean;
+    delete(type: PostProcessingEffectType): boolean;
 }
