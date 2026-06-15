@@ -28,6 +28,12 @@ export class PostProcessPassGL {
   private _uGrainEnabled: WebGLUniformLocation | null = null;
   private _uGrainIntensity: WebGLUniformLocation | null = null;
   private _uTime: WebGLUniformLocation | null = null;
+
+  // Bloom
+  private _uBloomTexture: WebGLUniformLocation | null = null;
+  private _uBloomEnabled: WebGLUniformLocation | null = null;
+  private _uBloomIntensity: WebGLUniformLocation | null = null;
+
   private _aPos: number = -1;
   private readonly _isWebGL2: boolean;
 
@@ -74,6 +80,10 @@ export class PostProcessPassGL {
     this._uGrainIntensity = gl.getUniformLocation(p, "u_grainIntensity");
     this._uTime = gl.getUniformLocation(p, "u_time");
 
+    this._uBloomTexture = gl.getUniformLocation(p, "u_bloomTexture");
+    this._uBloomEnabled = gl.getUniformLocation(p, "u_bloomEnabled");
+    this._uBloomIntensity = gl.getUniformLocation(p, "u_bloomIntensity");
+
     if (this._isWebGL2) {
       const gl2 = gl as WebGL2RenderingContext;
       this._vao = gl2.createVertexArray()!;
@@ -95,19 +105,44 @@ export class PostProcessPassGL {
     gl: WebGLRenderingContext | WebGL2RenderingContext,
     hdrTexture: WebGLTexture,
     group: import("./PostProcessingGroup.js").PostProcessingGroup,
+    bloomTexture: WebGLTexture | null = null,
   ): void {
     if (!this._prog) return;
+
+    gl.useProgram(this._prog);
+
+    // Disable depth testing and writing
+    gl.disable(gl.DEPTH_TEST);
+    gl.depthMask(false);
+    gl.disable(gl.CULL_FACE);
+    gl.disable(gl.BLEND);
+
+    // HDR texture
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, hdrTexture);
+    gl.uniform1i(this._uHdrTexture, 0);
+
+    // Bloom
+    if (
+      bloomTexture &&
+      group.get<import("./PostProcessingElement.js").BloomElement>(PostProcessingEffectType.BLOOM)
+        ?.enabled
+    ) {
+      const bloom = group.get<import("./PostProcessingElement.js").BloomElement>(
+        PostProcessingEffectType.BLOOM,
+      )!;
+      gl.uniform1i(this._uBloomEnabled, 1);
+      gl.uniform1f(this._uBloomIntensity, bloom.intensity);
+      gl.activeTexture(gl.TEXTURE1);
+      gl.bindTexture(gl.TEXTURE_2D, bloomTexture);
+      gl.uniform1i(this._uBloomTexture, 1);
+    } else {
+      gl.uniform1i(this._uBloomEnabled, 0);
+    }
 
     // Blit to the default (canvas) framebuffer
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-    gl.disable(gl.DEPTH_TEST);
-    gl.disable(gl.BLEND);
-
-    gl.useProgram(this._prog);
-
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, hdrTexture);
 
     const tm = group.get<import("./PostProcessingElement.js").ToneMappingElement>(
       PostProcessingEffectType.TONE_MAPPING,

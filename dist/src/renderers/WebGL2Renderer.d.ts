@@ -1,5 +1,5 @@
 import { AbstractWebGLRenderer } from './AbstractWebGLRenderer.js';
-import { PostProcessPassGL } from './post/index.js';
+import { PostProcessPassGL, BloomPassGL } from './post/index.js';
 import { Texture } from '../core/index.js';
 import { EngineConfig } from '../interfaces/index.js';
 import { RendererType } from '../enums/index.js';
@@ -24,6 +24,7 @@ export declare class WebGL2Renderer extends AbstractWebGLRenderer {
     _opaqueTextureWrapper?: Texture;
     protected _hdrFbo: WebGL2FrameBuffer | undefined;
     protected _postPassGL: PostProcessPassGL | undefined;
+    protected _bloomPassGL: BloomPassGL | undefined;
     private _scratchModelMatrix;
     private _globalUBO;
     private _stateCullFaceEnabled;

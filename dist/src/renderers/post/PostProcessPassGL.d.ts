@@ -18,6 +18,9 @@ export declare class PostProcessPassGL {
     private _uGrainEnabled;
     private _uGrainIntensity;
     private _uTime;
+    private _uBloomTexture;
+    private _uBloomEnabled;
+    private _uBloomIntensity;
     private _aPos;
     private readonly _isWebGL2;
     constructor(gl: WebGLRenderingContext | WebGL2RenderingContext, isWebGL2: boolean);
@@ -25,7 +28,7 @@ export declare class PostProcessPassGL {
     /**
      * Blits the HDR texture to the canvas framebuffer.
      */
-    execute(gl: WebGLRenderingContext | WebGL2RenderingContext, hdrTexture: WebGLTexture, group: import('./PostProcessingGroup.js').PostProcessingGroup): void;
+    execute(gl: WebGLRenderingContext | WebGL2RenderingContext, hdrTexture: WebGLTexture, group: import('./PostProcessingGroup.js').PostProcessingGroup, bloomTexture?: WebGLTexture | null): void;
     /** Releases GPU resources. */
     destroy(gl: WebGLRenderingContext | WebGL2RenderingContext): void;
 }

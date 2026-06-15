@@ -1,7 +1,7 @@
 /// src/renderers/WebGL2Renderer.ts
 
 import { AbstractWebGLRenderer } from "./AbstractWebGLRenderer.js";
-import { PostProcessPassGL } from "./post/index.js";
+import { PostProcessPassGL, BloomPassGL } from "./post/index.js";
 import {
   CubeTexture,
   ShaderRegistry,
@@ -20,6 +20,7 @@ import {
   TextureFilter,
   TextureWrap,
   Topology,
+  PostProcessingEffectType,
 } from "../enums/index.js";
 import { Mesh } from "./Mesh.js";
 import { Object3D } from "../core/Object3D.js";
@@ -68,6 +69,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
   public _opaqueTextureWrapper?: Texture;
   protected _hdrFbo: WebGL2FrameBuffer | undefined = undefined;
   protected _postPassGL: PostProcessPassGL | undefined = undefined;
+  protected _bloomPassGL: BloomPassGL | undefined = undefined;
 
   private _scratchModelMatrix: Float32Array = new Float32Array(16);
 
@@ -429,7 +431,21 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
 
     // --- PASS 4: Post-Process Blit (HDR -> Canvas) ---
     if (this.postProcessing.enabled && this._hdrFbo && this._postPassGL) {
-      this._postPassGL.execute(this.gl, this._hdrFbo.texture, this.postProcessing);
+      let bloomTex: WebGLTexture | null = null;
+      if (this._bloomPassGL) {
+        const bloomNode = this.postProcessing.get<
+          import("./post/PostProcessingElement.js").BloomElement
+        >(PostProcessingEffectType.BLOOM);
+        if (bloomNode && bloomNode.enabled) {
+          bloomTex = this._bloomPassGL.execute(
+            this._hdrFbo.texture,
+            this.gl.canvas.width,
+            this.gl.canvas.height,
+            bloomNode,
+          );
+        }
+      }
+      this._postPassGL.execute(this.gl, this._hdrFbo.texture, this.postProcessing, bloomTex);
     }
   }
 
@@ -1078,14 +1094,17 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
           type: this.gl.HALF_FLOAT,
         });
         this._postPassGL ??= new PostProcessPassGL(this.gl, true);
+        this._bloomPassGL ??= new BloomPassGL(this.gl, true);
       } else {
         this._hdrFbo.resize(this.gl.canvas.width, this.gl.canvas.height);
       }
     } else if (this._hdrFbo) {
-      this._postPassGL?.destroy(this.gl);
+      this._postPassGL?.destroy?.(this.gl);
+      // bloomPass doesn't have destroy yet, we should add it if needed, or omit
       this._hdrFbo.destroy();
       this._hdrFbo = undefined;
       this._postPassGL = undefined;
+      this._bloomPassGL = undefined;
     }
   }
 }
