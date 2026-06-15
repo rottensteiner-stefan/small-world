@@ -10,6 +10,7 @@ import { Object3D } from "../../core/index.js";
  */
 export class MainRenderPass implements RenderPass {
   public name = "MainRenderPass";
+  private _scratchTransparentMap: Map<string, Object3D[]> = new Map();
 
   public execute(
     renderer: WebGPURenderer,
@@ -97,11 +98,12 @@ export class MainRenderPass implements RenderPass {
           obj.geometry?.topology ||
           (obj.geometry?.indices?.length === 2 ? "line-list" : "triangle-list");
 
-        const matGroups = new Map<string, Object3D[]>([[obj.material!.uuid, [obj]]]);
+        this._scratchTransparentMap.clear();
+        this._scratchTransparentMap.set(obj.material!.uuid, [obj]);
         renderer._renderGroup(
           rpTransparent,
           shaderId,
-          matGroups,
+          this._scratchTransparentMap,
           vMat,
           topology as GPUPrimitiveTopology,
         );

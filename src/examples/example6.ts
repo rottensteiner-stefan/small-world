@@ -18,7 +18,6 @@ import {
   Gear,
   Geometry,
   Grid,
-  Input,
   Object3D,
   PerspectiveProjection,
   Plane,
@@ -34,6 +33,7 @@ import {
   ZoomController,
 } from "../index.js";
 import { AbstractExample } from "../core/index.js";
+import { GadgetInspector } from "../tools/GadgetInspector.js";
 
 /**
  * Example 6: Geometry Showcase.
@@ -41,13 +41,7 @@ import { AbstractExample } from "../core/index.js";
 export class Example6 extends AbstractExample {
   private _moveSpeed: number = 10.0;
 
-  protected override onCanvasRecreated(): void {
-    super.onCanvasRecreated();
-    this.canvas.addEventListener("click", (): void => {
-      if (!Input.isPointerLocked) Input.requestPointerLock(this.canvas);
-    });
-  }
-
+  private _inspector!: GadgetInspector;
   /** @inheritdoc */
   protected override async setupScene(): Promise<void> {
     this.onCanvasRecreated();
@@ -217,10 +211,13 @@ export class Example6 extends AbstractExample {
     }
 
     this.scene.updateStaticOctree();
+    this._inspector = new GadgetInspector(this.scene, this.camera, this.canvas);
     console.log("Example 6: Scene ready.");
   }
 
-  protected override update(_deltaTime: number): void {}
+  protected override update(_deltaTime: number): void {
+    this._inspector.update();
+  }
 
   protected override getDebugInfo(): Record<string, string | number> {
     const base = super.getDebugInfo();

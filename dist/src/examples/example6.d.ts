@@ -4,7 +4,7 @@ import { AbstractExample } from '../core/index.js';
  */
 export declare class Example6 extends AbstractExample {
     private _moveSpeed;
-    protected onCanvasRecreated(): void;
+    private _inspector;
     /** @inheritdoc */
     protected setupScene(): Promise<void>;
     protected update(_deltaTime: number): void;

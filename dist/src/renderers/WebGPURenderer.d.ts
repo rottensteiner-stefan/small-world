@@ -58,6 +58,11 @@ export declare class WebGPURenderer extends AbstractRenderer {
     protected _samplerCache: Map<string, GPUSampler>;
     protected _dummyBufferSize: number;
     protected _cubeTextureViewCache: Map<CubeTexture, GPUTextureView>;
+    protected _scratchGlobalBufferData: Float32Array<ArrayBuffer>;
+    protected _scratchPointLightData: Float32Array<ArrayBuffer>;
+    protected _scratchSpotLightData: Float32Array<ArrayBuffer>;
+    protected _scratchAreaLightData: Float32Array<ArrayBuffer>;
+    protected _scratchObjBufferData: Float32Array<ArrayBuffer>;
     _depthTexture: GPUTexture;
     _opaqueTexture?: GPUTexture;
     _opaqueTextureView?: GPUTextureView;

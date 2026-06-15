@@ -15,6 +15,7 @@ export declare class Example10 extends AbstractExample {
     private _lavaMaterials;
     private _lavaLights;
     private _time;
+    private _inspector;
     protected setupScene(): Promise<void>;
     protected update(deltaTime: number): void;
     protected getDebugInfo(): Record<string, string | number>;

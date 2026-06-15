@@ -1,7 +1,7 @@
 /// src/loaders/GltfLoader.ts
 
 import { AssetManager, AbstractLoader } from "./index.js";
-import { EventType } from "../enums/index.js";
+import { EventType, CullMode } from "../enums/index.js";
 import { ModelGeometry } from "../geometry/index.js";
 import { Object3D, StandardMaterial, Color, Texture } from "../core/index.js";
 import { LoaderOptions, GeometryDataInterface } from "../interfaces/index.js";
@@ -42,10 +42,18 @@ interface GltfJson {
       baseColorTexture?: { index: number };
       metallicFactor?: number;
       roughnessFactor?: number;
+      metallicRoughnessTexture?: { index: number };
     };
+    normalTexture?: { index: number; scale?: number };
+    occlusionTexture?: { index: number; strength?: number };
+    emissiveTexture?: { index: number };
+    emissiveFactor?: number[];
+    alphaMode?: "OPAQUE" | "MASK" | "BLEND";
+    alphaCutoff?: number;
+    doubleSided?: boolean;
   }[];
-  textures?: { source: number }[];
-  images?: { uri?: string }[];
+  textures?: { source?: number; sampler?: number }[];
+  images?: { uri?: string; bufferView?: number; mimeType?: string }[];
 }
 
 interface GltfData {
@@ -154,7 +162,7 @@ export class GltfLoader extends AbstractLoader<Object3D> {
 
     // 1. Parse Materials
     const materials = await Promise.all(
-      (json.materials || []).map((m) => this._parseMaterial(m, json, folderPath)),
+      (json.materials || []).map((m) => this._parseMaterial(m, json, folderPath, buffers)),
     );
 
     // 2. Create Scene Root
@@ -287,10 +295,10 @@ export class GltfLoader extends AbstractLoader<Object3D> {
         : undefined;
 
     return new ModelGeometry(
-      Array.from(positions as Float32Array),
-      uvs ? Array.from(uvs as Float32Array) : [],
-      normals ? Array.from(normals as Float32Array) : [],
-      indices ? Array.from(indices as Uint16Array | Uint32Array) : [],
+      positions as Float32Array,
+      uvs ? (uvs as Float32Array) : new Float32Array(0),
+      normals ? (normals as Float32Array) : new Float32Array(0),
+      indices ? (indices as Uint16Array | Uint32Array) : new Uint16Array(0),
     ).getGeometryData();
   }
 
@@ -347,6 +355,7 @@ export class GltfLoader extends AbstractLoader<Object3D> {
     m: NonNullable<GltfJson["materials"]>[number],
     json: GltfJson,
     folderPath: string,
+    buffers: ArrayBuffer[],
   ): Promise<StandardMaterial> {
     const mat = new StandardMaterial();
     const pbr = m.pbrMetallicRoughness || {};
@@ -360,22 +369,104 @@ export class GltfLoader extends AbstractLoader<Object3D> {
       );
     }
 
-    if (pbr.baseColorTexture && json.textures && json.images) {
-      const texIdx = pbr.baseColorTexture.index;
-      const textureDef = json.textures[texIdx];
-      if (textureDef) {
-        const imageDef = json.images[textureDef.source];
-        if (imageDef && imageDef.uri) {
-          const texUrl = folderPath + imageDef.uri;
-          mat.diffuseMap = Texture.fromImage(await AssetManager.loadImage(texUrl));
+    if (pbr.baseColorTexture) {
+      const tex = await this._resolveTexture(pbr.baseColorTexture.index, json, folderPath, buffers);
+      if (tex) mat.diffuseMap = tex;
+    }
+
+    if (pbr.metallicRoughnessTexture) {
+      const tex = await this._resolveTexture(
+        pbr.metallicRoughnessTexture.index,
+        json,
+        folderPath,
+        buffers,
+      );
+      if (tex) {
+        mat.metallicMap = tex;
+        mat.roughnessMap = tex;
+      }
+    }
+
+    if (m.normalTexture) {
+      const tex = await this._resolveTexture(m.normalTexture.index, json, folderPath, buffers);
+      if (tex) mat.normalMap = tex;
+    }
+
+    if (m.emissiveTexture) {
+      const tex = await this._resolveTexture(m.emissiveTexture.index, json, folderPath, buffers);
+      if (tex) mat.emissiveMap = tex;
+    }
+
+    if (m.emissiveFactor) {
+      mat.emissiveColor = new Color(
+        m.emissiveFactor[0]!,
+        m.emissiveFactor[1]!,
+        m.emissiveFactor[2]!,
+        1.0,
+      );
+    }
+
+    mat.metallic = pbr.metallicFactor !== undefined ? pbr.metallicFactor : 1.0;
+    mat.roughness = pbr.roughnessFactor !== undefined ? pbr.roughnessFactor : 1.0;
+
+    if (m.alphaMode === "BLEND") {
+      mat.transparent = true;
+    } else if (m.alphaMode === "MASK") {
+      mat.transparent = true; // Typically alpha cutoffs require shader support, marking transparent as a fallback.
+      mat.alphaTest = m.alphaCutoff !== undefined ? m.alphaCutoff : 0.5;
+    }
+
+    if (m.doubleSided) {
+      mat.cullMode = CullMode.NONE;
+    }
+
+    return mat;
+  }
+
+  private async _resolveTexture(
+    texIdx: number,
+    json: GltfJson,
+    folderPath: string,
+    buffers: ArrayBuffer[],
+  ): Promise<Texture | null> {
+    if (!json.textures || !json.images) return null;
+    const textureDef = json.textures[texIdx];
+    if (!textureDef || textureDef.source === undefined) return null;
+
+    const imageDef = json.images[textureDef.source];
+    if (!imageDef) return null;
+
+    let url = "";
+    let objectUrl = false;
+
+    if (imageDef.uri) {
+      if (imageDef.uri.startsWith("data:")) {
+        url = imageDef.uri;
+      } else {
+        url = folderPath + imageDef.uri;
+      }
+    } else if (imageDef.bufferView !== undefined && json.bufferViews) {
+      const bv = json.bufferViews[imageDef.bufferView];
+      if (bv) {
+        const buffer = buffers[bv.buffer];
+        if (buffer) {
+          const byteOffset = bv.byteOffset || 0;
+          const chunk = buffer.slice(byteOffset, byteOffset + bv.byteLength);
+          const blob = new Blob([chunk], { type: imageDef.mimeType || "image/jpeg" });
+          url = URL.createObjectURL(blob);
+          objectUrl = true;
         }
       }
     }
 
-    mat.metallic = pbr.metallicFactor !== undefined ? pbr.metallicFactor : 0.0;
-    mat.roughness = pbr.roughnessFactor !== undefined ? pbr.roughnessFactor : 0.5;
+    if (!url) return null;
 
-    return mat;
+    try {
+      const img = await AssetManager.loadImage(url);
+      return Texture.fromImage(img);
+    } finally {
+      if (objectUrl) URL.revokeObjectURL(url);
+    }
   }
 }
 

@@ -1,6 +1,6 @@
 {
   "name": "small-world",
-  "version": "0.25.0",
+  "version": "0.26.0",
   "description": "A very small 3D engine focusing on raw WebGL performance",
   "type": "module",
   "scripts": {
@@ -55,7 +55,8 @@
   },
   "dependencies": {
     "gl-matrix": "^3.4.4",
-    "pngjs": "^7.0.0"
+    "pngjs": "^7.0.0",
+    "tweakpane": "^4.0.5"
   },
   "lint-staged": {
     "*.ts": [

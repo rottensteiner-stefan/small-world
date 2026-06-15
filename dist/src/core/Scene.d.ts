@@ -16,6 +16,7 @@ export declare class Scene {
     staticOctree: Octree | undefined;
     dynamicOctree: Octree | undefined;
     fog?: Fog;
+    private readonly _renderList;
     private _scratchFrustum;
     private _scratchMatrix;
     add(...objs: Object3D[]): void;

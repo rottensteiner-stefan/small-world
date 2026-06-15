@@ -16,4 +16,5 @@ export declare class GltfLoader extends AbstractLoader<Object3D> {
     private _getBufferData;
     private _getComponentCount;
     private _parseMaterial;
+    private _resolveTexture;
 }

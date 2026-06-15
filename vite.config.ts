@@ -52,6 +52,7 @@ export default defineConfig({
         example10: resolve(__dirname, "public/examples/example10.html"),
         example11: resolve(__dirname, "public/examples/example11.html"),
         example12: resolve(__dirname, "public/examples/example12.html"),
+        example13: resolve(__dirname, "public/examples/example13.html"),
         yad: resolve(__dirname, "public/examples/yad.html"),
         main: resolve(__dirname, "public/index.html"),
       },

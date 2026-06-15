@@ -49,6 +49,20 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
   private _cache: Map<GeometryDataInterface, Mesh> = new Map();
   private _texCache: Map<Texture, WebGLTexture> = new Map();
   private _texCubeCache: Map<CubeTexture, WebGLTexture> = new Map();
+  private _scratchTransparentMap: Map<string, Object3D[]> = new Map();
+
+  private _scratchFloat4: Float32Array = new Float32Array(4);
+
+  private readonly _samplerUnits: Record<string, number> = {
+    u_diffuseMap: 0,
+    u_normalMap: 1,
+    u_specularMap: 2,
+    u_sandMap: 3,
+    u_grassMap: 4,
+    u_rockMap: 5,
+    u_snowMap: 6,
+    u_opaqueMap: 7,
+  };
 
   public _opaqueTexture?: WebGLTexture;
   public _opaqueTextureWrapper?: Texture;
@@ -400,8 +414,16 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
           obj.geometry?.topology ||
           (obj.geometry?.indices?.length === 2 ? "line-list" : "triangle-list");
 
-        const materialMap = new Map<string, Object3D[]>([[obj.material!.uuid, [obj]]]);
-        this._renderGroup(shaderId, materialMap, vMat, topology, extractedLights, scene.fog);
+        this._scratchTransparentMap.clear();
+        this._scratchTransparentMap.set(obj.material!.uuid, [obj]);
+        this._renderGroup(
+          shaderId,
+          this._scratchTransparentMap,
+          vMat,
+          topology,
+          extractedLights,
+          scene.fog,
+        );
       }
     }
 
@@ -652,16 +674,23 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
               if (mapLoc) this.gl.uniform1i(mapLoc, texUnit);
               if (matLoc)
                 this.gl.uniformMatrix4fv(matLoc, false, light.shadowCamera.viewProjectionMatrix);
-              // x: bias, y: normalBias, z: castShadow (1.0 = true)
-              if (infoLoc)
-                this.gl.uniform4fv(
-                  infoLoc,
-                  new Float32Array([light.shadowBias, light.shadowNormalBias, 1.0, 0.0]),
-                );
+              if (infoLoc) {
+                this._scratchFloat4[0] = light.shadowBias;
+                this._scratchFloat4[1] = light.shadowNormalBias;
+                this._scratchFloat4[2] = 1.0;
+                this._scratchFloat4[3] = 0.0;
+                this.gl.uniform4fv(infoLoc, this._scratchFloat4);
+              }
             }
           }
         } else {
-          if (infoLoc) this.gl.uniform4fv(infoLoc, new Float32Array([0.0, 0.0, 0.0, 0.0]));
+          if (infoLoc) {
+            this._scratchFloat4[0] = 0.0;
+            this._scratchFloat4[1] = 0.0;
+            this._scratchFloat4[2] = 0.0;
+            this._scratchFloat4[3] = 0.0;
+            this.gl.uniform4fv(infoLoc, this._scratchFloat4);
+          }
         }
       }
     }
@@ -698,27 +727,32 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
           }
 
           if (splitsLoc) {
-            const splits = new Float32Array([
-              light.cascadeSplits[0] ?? 0,
-              light.cascadeSplits[1] ?? 0,
-              light.cascadeSplits[2] ?? 0,
-              light.cascadeSplits[3] ?? 0,
-            ]);
-            this.gl.uniform4fv(splitsLoc, splits);
+            this._scratchFloat4[0] = light.cascadeSplits[0] ?? 0;
+            this._scratchFloat4[1] = light.cascadeSplits[1] ?? 0;
+            this._scratchFloat4[2] = light.cascadeSplits[2] ?? 0;
+            this._scratchFloat4[3] = light.cascadeSplits[3] ?? 0;
+            this.gl.uniform4fv(splitsLoc, this._scratchFloat4);
           }
 
           if (infoLoc) {
             // x: bias, y: normalBias, z: castShadow, w: numCascades
-            this.gl.uniform4fv(
-              infoLoc,
-              new Float32Array([light.shadowBias, light.shadowNormalBias, 1.0, light.numCascades]),
-            );
+            this._scratchFloat4[0] = light.shadowBias;
+            this._scratchFloat4[1] = light.shadowNormalBias;
+            this._scratchFloat4[2] = 1.0;
+            this._scratchFloat4[3] = light.numCascades;
+            this.gl.uniform4fv(infoLoc, this._scratchFloat4);
           }
         }
       }
     } else {
       const infoLoc = cache.uniforms.get("u_dirShadowInfo");
-      if (infoLoc) this.gl.uniform4fv(infoLoc, new Float32Array([0.0, 0.0, 0.0, 0.0]));
+      if (infoLoc) {
+        this._scratchFloat4[0] = 0.0;
+        this._scratchFloat4[1] = 0.0;
+        this._scratchFloat4[2] = 0.0;
+        this._scratchFloat4[3] = 0.0;
+        this.gl.uniform4fv(infoLoc, this._scratchFloat4);
+      }
     }
 
     for (const materialGroup of materialGroups.values()) {
@@ -837,18 +871,8 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         const uSkybox = u.get("u_skybox");
         if (uSkybox) this.gl.uniform1i(uSkybox, 0);
       } else {
-        const samplerUnits: Record<string, number> = {
-          u_diffuseMap: 0,
-          u_normalMap: 1,
-          u_specularMap: 2,
-          u_sandMap: 3,
-          u_grassMap: 4,
-          u_rockMap: 5,
-          u_snowMap: 6,
-          u_opaqueMap: 7,
-        };
-        for (const uniformName in samplerUnits) {
-          const unit = samplerUnits[uniformName]!;
+        for (const uniformName in this._samplerUnits) {
+          const unit = this._samplerUnits[uniformName]!;
           const loc = u.get(uniformName);
           if (loc) {
             const maxUnits = DeviceCaps.getLimit(DeviceLimit.MAX_TEXTURE_IMAGE_UNITS);
@@ -980,6 +1004,8 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
             pl.color.b * pl.intensity,
           ),
         );
+        ubo.setFloat(offset + 12, pl.distance);
+        ubo.setFloat(offset + 28, pl.decay);
       }
     }
 

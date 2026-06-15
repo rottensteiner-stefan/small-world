@@ -52,12 +52,31 @@
         if (i >= u_numPointLights) break;
         vec3 lightVec = u_pointLights[i].pos - v_worldPos;
         float dist = length(lightVec);
-        vec3 L_pt = lightVec / dist;
-        float attenuation = 1.0 / (1.0 + 0.1 * dist + 0.01 * dist * dist);
-        float diff_pt = max(dot(N, L_pt), 0.0);
-        finalLight += diff_pt * u_pointLights[i].color * attenuation;
-        if (u_shininess > 0.0 && diff_pt > 0.0) {
-            specular += pow(max(dot(V, reflect(-L_pt, N)), 0.0), u_shininess) * u_pointLights[i].color * attenuation;
+        
+        // Compute attenuation
+        float lightDistance = max(u_pointLights[i].distance, 0.001);
+        float decay = u_pointLights[i].decay;
+        
+        // PBR physically based attenuation: 1 / (distance^2)
+        // With smooth cutoff at max distance
+        float distanceFalloff = 1.0 / max(dist * dist, 0.01);
+        
+        // Windowing function to zero out light at max distance (Unreal Engine 4 style)
+        float distRatio = dist / lightDistance;
+        float distRatio4 = distRatio * distRatio * distRatio * distRatio;
+        float window = clamp(1.0 - distRatio4, 0.0, 1.0);
+        float cutoff = window * window;
+        
+        // If decay is 0, we don't fall off physically, we just do linear/constant
+        float attenuation = (decay > 0.0) ? (distanceFalloff * cutoff) : clamp(1.0 - dist / lightDistance, 0.0, 1.0);
+        
+        if (attenuation > 0.0) {
+            vec3 L_pt = lightVec / dist;
+            float diff_pt = max(dot(N, L_pt), 0.0);
+            finalLight += diff_pt * u_pointLights[i].color * attenuation;
+            if (u_shininess > 0.0 && diff_pt > 0.0) {
+                specular += pow(max(dot(V, reflect(-L_pt, N)), 0.0), u_shininess) * u_pointLights[i].color * attenuation;
+            }
         }
       }
 

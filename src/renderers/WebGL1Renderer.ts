@@ -30,6 +30,8 @@ interface ProgramCache {
   pointLightLocs: {
     pos: WebGLUniformLocation | undefined;
     col: WebGLUniformLocation | undefined;
+    distance: WebGLUniformLocation | undefined;
+    decay: WebGLUniformLocation | undefined;
   }[];
   spotLightLocs: {
     pos: WebGLUniformLocation | undefined;
@@ -73,6 +75,14 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
   private _cache: Map<GeometryDataInterface, Mesh> = new Map();
   private _texCache: Map<Texture, WebGLTexture> = new Map();
   private _texCubeCache: Map<CubeTexture, WebGLTexture> = new Map();
+  private _scratchTransparentMap: Map<string, Object3D[]> = new Map();
+
+  private readonly _samplerUnits: Record<string, number> = {
+    u_diffuseMap: 0,
+    u_normalMap: 1,
+    u_specularMap: 2,
+    u_opaqueMap: 3,
+  };
 
   public _opaqueTexture?: WebGLTexture;
   public _opaqueTextureWrapper?: Texture;
@@ -188,6 +198,8 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
         pointLightLocs.push({
           pos: this.gl.getUniformLocation(prog, `u_pointLightPos[${i}]`) ?? undefined,
           col: this.gl.getUniformLocation(prog, `u_pointLightColor[${i}]`) ?? undefined,
+          distance: this.gl.getUniformLocation(prog, `u_pointLightDistance[${i}]`) ?? undefined,
+          decay: this.gl.getUniformLocation(prog, `u_pointLightDecay[${i}]`) ?? undefined,
         });
         spotLightLocs.push({
           pos: this.gl.getUniformLocation(prog, `u_spotLightPos[${i}]`) ?? undefined,
@@ -378,10 +390,11 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
           obj.geometry?.topology ||
           (obj.geometry?.indices?.length === 2 ? "line-list" : "triangle-list");
 
-        const materialMap = new Map<string, Object3D[]>([[obj.material!.uuid, [obj]]]);
+        this._scratchTransparentMap.clear();
+        this._scratchTransparentMap.set(obj.material!.uuid, [obj]);
         this._renderGroup(
           shaderId,
-          materialMap,
+          this._scratchTransparentMap,
           vp,
           camPos,
           extractedLights,
@@ -460,6 +473,8 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
           pl.color.g * pl.intensity,
           pl.color.b * pl.intensity,
         );
+      if (loc?.distance) this.gl.uniform1f(loc.distance, pl.distance);
+      if (loc?.decay) this.gl.uniform1f(loc.decay, pl.decay);
     }
 
     for (const [_, objects] of materialGroups.entries()) {
@@ -572,14 +587,8 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
         const uSkybox = u.get("u_skybox");
         if (uSkybox) this.gl.uniform1i(uSkybox, 0);
       } else {
-        const samplerUnits: Record<string, number> = {
-          u_diffuseMap: 0,
-          u_normalMap: 1,
-          u_specularMap: 2,
-          u_opaqueMap: 3,
-        };
-        for (const uniformName in samplerUnits) {
-          const unit = samplerUnits[uniformName]!;
+        for (const uniformName in this._samplerUnits) {
+          const unit = this._samplerUnits[uniformName]!;
           const loc = u.get(uniformName);
           if (loc) {
             const maxUnits = DeviceCaps.getLimit(DeviceLimit.MAX_TEXTURE_IMAGE_UNITS);

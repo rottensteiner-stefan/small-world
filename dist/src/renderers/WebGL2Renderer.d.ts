@@ -17,6 +17,9 @@ export declare class WebGL2Renderer extends AbstractWebGLRenderer {
     private _cache;
     private _texCache;
     private _texCubeCache;
+    private _scratchTransparentMap;
+    private _scratchFloat4;
+    private readonly _samplerUnits;
     _opaqueTexture?: WebGLTexture;
     _opaqueTextureWrapper?: Texture;
     protected _hdrFbo: WebGL2FrameBuffer | undefined;

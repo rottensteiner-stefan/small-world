@@ -5,6 +5,8 @@ uniform vec3 u_dirLightDir;
 uniform int u_numPointLights;
 uniform vec3 u_pointLightPos[4];
 uniform vec3 u_pointLightColor[4];
+uniform float u_pointLightDistance[4];
+uniform float u_pointLightDecay[4];
 
 uniform int u_numSpotLights;
 uniform vec3 u_spotLightPos[4];

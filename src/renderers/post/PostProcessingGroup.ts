@@ -3,6 +3,7 @@ import {
   ToneMappingElement,
   VignetteElement,
   GrainElement,
+  BloomElement,
 } from "./PostProcessingElement.js";
 import { PostProcessingEffectType } from "../../enums/index.js";
 
@@ -25,6 +26,7 @@ export class PostProcessingGroup {
     this.add(new ToneMappingElement());
     this.add(new VignetteElement());
     this.add(new GrainElement());
+    this.add(new BloomElement());
   }
 
   /**

@@ -964,11 +964,7 @@ class UnderwaterHideoutExample extends AbstractExample {
       this._portMaterial.emissiveIntensity = (this._portLight.intensity / 10.0) * 3.0;
     }
 
-    if (Math.floor(this._time) > Math.floor(this._time - deltaTime)) {
-      console.log(
-        `[Debug] portLight intensity: ${this._portLight?.intensity}, color: ${this._portLight?.color.r}, ${this._portLight?.color.g}, ${this._portLight?.color.b}`,
-      );
-    } // Adjust base porthole light intensity via NumpadAdd (+) and NumpadSubtract (-)
+    // Adjust base porthole light intensity via NumpadAdd (+) and NumpadSubtract (-)
     if (
       Input.isPressed("NumpadAdd") ||
       Input.isPressed("Equal") ||
