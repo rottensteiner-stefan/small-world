@@ -6,13 +6,15 @@
 
 - **Hybrid PBR Rendering:** High-performance rendering pipeline supporting **WebGPU**, **WebGL 2**, and **WebGL 1** with industry-standard physically based shading (Cook-Torrance BRDF).
 - **Linear Lighting Workflow:** All lighting calculations are performed in linear space with automatic sRGB gamma correction for realistic color falloffs and high visual fidelity.
+- **Advanced Materials:** Includes standard PBR (Metallic/Roughness), but also physical **Glass/Dielectric** materials with real-time **Screen-Space Refraction**, Index of Refraction (IOR), and Beer's Law for volumetric light absorption.
 - **Advanced Camera System:** Unified, strategy-based camera control (Smooth, Stiff, Fixed, FPS, Isometric). Features a modular `ZoomController` and procedural effects like Shake and Flash.
-- **High-Performance Architecture:** Optimized for memory efficiency through **Object Pooling** (`MathPool`), **RenderManifest Caching**, and zero-allocation hot paths.
+- **High-Performance Architecture:** Optimized for memory efficiency through **Object Pooling** (`MathPool`).
+- **BindGroup & Pipeline Caching** (WebGPU), and zero-allocation hot paths to eliminate Garbage Collection pressure.
+- **Lighting & Shadows:** Supports Ambient, Directional, Point, Spot, and Area lights. Features robust **Shadow Mapping** (WebGL 2) with Hardware Shadow Sampling and Percentage-Closer Filtering (PCF) for buttery-smooth soft shadows.
+- **Component Behaviors:** Robust, callback-driven behavior system to attach complex logic (`FlickerBehavior`, `PulsatingBehavior`, `ProximitySensorBehavior`) directly to 3D objects or materials.
 - **Scene Graph:** Hierarchical scene management using a clean `Object3D` architecture.
-- **Lighting & Materials:** Support for Standard PBR (Metallic/Roughness), Phong, Lambert, and specialized materials like Triplanar Mapping and Splatmapped Terrain. Supports Ambient, Directional, Point, Spot, and Area lights.
 - **2D/2.5D Support:** First-class support for Sprites, Billboard rendering, and Pixel-Perfect Isometric perspectives.
-- **Geometry Library:** Comprehensive set of primitives (Cube, Sphere, Pyramid, Torus, Cylinder, Plane, etc.) and dynamic terrain generation.
-- **Asset Loaders:** Integrated async loaders for OBJ models, MTLLib materials, textures, and engine configurations.
+- **Geometry & Asset Loaders:** Dynamic terrain generation, comprehensive primitive library, and async loaders for OBJ models, MTLLib materials, and textures.
 
 ## 📦 Installation
 
