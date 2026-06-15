@@ -4,6 +4,7 @@ import {
   VignetteElement,
   GrainElement,
 } from "./PostProcessingElement.js";
+import { PostProcessingEffectType } from "../../enums/index.js";
 
 /**
  * A logical grouping of post-processing elements.
@@ -17,7 +18,7 @@ export class PostProcessingGroup {
   /** Currently always true (Global Volume). */
   public isGlobal: boolean = true;
 
-  private _elements: Map<string, PostProcessingElement> = new Map();
+  private _elements: Map<PostProcessingEffectType, PostProcessingElement> = new Map();
 
   constructor() {
     // Add defaults so when enabled, it behaves like before
@@ -36,18 +37,17 @@ export class PostProcessingGroup {
   }
 
   /**
-   * Retrieves an element by its type name.
-   * @param type The type name (e.g. "Vignette")
+   * Get an element by its type.
+   * @param type The type
    */
-  public get<T extends PostProcessingElement>(type: string): T | undefined {
+  public get<T extends PostProcessingElement>(type: PostProcessingEffectType): T | undefined {
     return this._elements.get(type) as T;
   }
 
   /**
-   * Removes an element by its type name.
-   * @param type The type name
+   * Removes an element by its type.
    */
-  public remove(type: string): boolean {
+  public delete(type: PostProcessingEffectType): boolean {
     return this._elements.delete(type);
   }
 }
