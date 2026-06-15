@@ -25,7 +25,7 @@ const POST_PROCESS_FRAG_WGSL = /* wgsl */ `
 struct PostUniforms {
     exposure: f32,
     inverseGamma: f32,
-    _pad0:    f32,
+    toneMappingMode: u32,
     _pad1:    f32,
 }
 @group(0) @binding(2) var<uniform> u: PostUniforms;
@@ -34,6 +34,23 @@ struct PostUniforms {
 fn toneMapReinhard(hdr: vec3f, exposure: f32) -> vec3f {
     let mapped = hdr * exposure;
     return mapped / (mapped + vec3f(1.0));
+}
+
+// Cineon tone mapping (Optimized filmic operator by Jim Hejl and Richard Burgess-Dawson)
+fn toneMapCineon(hdr: vec3f, exposure: f32) -> vec3f {
+    let mapped = max(vec3f(0.0), hdr * exposure - vec3f(0.004));
+    return (mapped * (6.2 * mapped + vec3f(0.5))) / (mapped * (6.2 * mapped + vec3f(1.7)) + vec3f(0.06));
+}
+
+// ACES Filmic tone mapping (Narkowicz fit)
+fn toneMapACESFilmic(hdr: vec3f, exposure: f32) -> vec3f {
+    let mapped = hdr * exposure;
+    let a = 2.51;
+    let b = 0.03;
+    let c = 2.43;
+    let d = 0.59;
+    let e = 0.14;
+    return clamp((mapped * (a * mapped + b)) / (mapped * (c * mapped + d) + e), vec3f(0.0), vec3f(1.0));
 }
 
 // Linear -> sRGB gamma correction
@@ -47,7 +64,16 @@ fn fs_main(@builtin(position) coord: vec4f) -> @location(0) vec4f {
     let uv = coord.xy / dims;
 
     let hdr = textureSample(hdrTexture, hdrSampler, uv).rgb;
-    let tonemapped = toneMapReinhard(hdr, u.exposure);
+    
+    var tonemapped = hdr * u.exposure;
+    if (u.toneMappingMode == 1u) {
+        tonemapped = toneMapReinhard(hdr, u.exposure);
+    } else if (u.toneMappingMode == 2u) {
+        tonemapped = toneMapCineon(hdr, u.exposure);
+    } else if (u.toneMappingMode == 3u) {
+        tonemapped = toneMapACESFilmic(hdr, u.exposure);
+    }
+    
     let srgb = linearToSRGB(tonemapped, u.inverseGamma);
 
     return vec4f(srgb, 1.0);
@@ -143,7 +169,12 @@ export class PostProcessPass implements RenderPass {
     // Write post-process uniforms
     this._uniformData[0] = renderer.postConfig.exposure;
     this._uniformData[1] = 1.0 / renderer.postConfig.gamma;
-    this._uniformData[2] = 0;
+
+    // Using Float32Array to write u32 is a bit tricky:
+    // we can use a DataView or Uint32Array on the same buffer.
+    const u32View = new Uint32Array(this._uniformData.buffer);
+    u32View[2] = renderer.postConfig.toneMapping;
+
     this._uniformData[3] = 0;
 
     renderer._device!.queue.writeBuffer(this._uniformBuffer!, 0, this._uniformData);

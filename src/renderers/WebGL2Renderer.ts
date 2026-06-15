@@ -407,12 +407,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
 
     // --- PASS 4: Post-Process Blit (HDR -> Canvas) ---
     if (this.postConfig.enabled && this._hdrFbo && this._postPassGL) {
-      this._postPassGL.execute(
-        this.gl,
-        this._hdrFbo.texture,
-        this.postConfig.exposure,
-        this.postConfig.gamma,
-      );
+      this._postPassGL.execute(this.gl, this._hdrFbo.texture, this.postConfig);
     }
   }
 

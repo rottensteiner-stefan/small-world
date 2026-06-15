@@ -10,6 +10,7 @@ export declare class PostProcessPassGL {
     private _uHdrTexture;
     private _uExposure;
     private _uGamma;
+    private _uToneMappingMode;
     private _aPos;
     private readonly _isWebGL2;
     constructor(gl: WebGLRenderingContext | WebGL2RenderingContext, isWebGL2: boolean);
@@ -17,7 +18,7 @@ export declare class PostProcessPassGL {
     /**
      * Blits the HDR texture to the canvas framebuffer.
      */
-    execute(gl: WebGLRenderingContext | WebGL2RenderingContext, hdrTexture: WebGLTexture, exposure: number, gamma: number): void;
+    execute(gl: WebGLRenderingContext | WebGL2RenderingContext, hdrTexture: WebGLTexture, config: import('./PostProcessConfig.js').PostProcessConfig): void;
     /** Releases GPU resources. */
     destroy(gl: WebGLRenderingContext | WebGL2RenderingContext): void;
 }
