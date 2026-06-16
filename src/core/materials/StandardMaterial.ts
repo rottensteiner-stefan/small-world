@@ -1,7 +1,7 @@
 import { AbstractMaterial } from "./AbstractMaterial.js";
 import { Color } from "../colors/index.js";
 import { MaterialType, ShaderPropertyType, BlendingMode } from "../../enums/index.js";
-import { Texture } from "../textures/index.js";
+import { Texture, CubeTexture } from "../textures/index.js";
 import { RenderManifest } from "../renderers/shaders/RenderManifest.js";
 import { ShaderDefinition } from "../renderers/shaders/ShaderDefinition.js";
 import { StandardWebGPULayout } from "../renderers/shaders/StandardWebGPULayout.js";
@@ -39,6 +39,8 @@ export interface StandardMaterialOptions {
   emissiveMap?: Texture | undefined;
   /** The alpha mask texture map. */
   alphaMap?: Texture | undefined;
+  /** Environment map for Image-Based Lighting reflections. */
+  envMap?: CubeTexture | undefined;
   /** The intensity of the emissive light. Defaults to 1.0. */
   emissiveIntensity?: number;
   /** Whether the material is transparent. Defaults to false. */
@@ -82,6 +84,9 @@ export class StandardMaterial extends AbstractMaterial {
   /** The alpha mask texture map. */
   public alphaMap: Texture | undefined;
 
+  /** The environment map for reflections. */
+  public envMap: CubeTexture | undefined;
+
   /** The intensity of the emissive glow. */
   public emissiveIntensity: number;
 
@@ -107,6 +112,7 @@ export class StandardMaterial extends AbstractMaterial {
       emissiveColor = new Color(0, 0, 0),
       emissiveMap = undefined,
       alphaMap = undefined,
+      envMap = undefined,
       emissiveIntensity = 1.0,
       transparent = false,
       alphaTest = 0.0,
@@ -123,6 +129,7 @@ export class StandardMaterial extends AbstractMaterial {
     this.emissiveColor = emissiveColor;
     this.emissiveMap = emissiveMap;
     this.alphaMap = alphaMap;
+    this.envMap = envMap;
     this.emissiveIntensity = emissiveIntensity;
     this.transparent = transparent;
     this.alphaTest = alphaTest;
@@ -150,6 +157,7 @@ export class StandardMaterial extends AbstractMaterial {
           u_texRepeat: [1, 1],
           u_shininess: 32.0,
           u_isTerrain: 0.0,
+          u_useEnvMap: this.envMap ? 1.0 : 0.0,
         },
         textures: {
           u_diffuseMap: this.diffuseMap,
@@ -158,6 +166,7 @@ export class StandardMaterial extends AbstractMaterial {
           u_roughnessMap: this.roughnessMap,
           u_emissiveMap: this.emissiveMap,
           u_alphaMap: this.alphaMap,
+          u_envMap: this.envMap,
         },
       };
     }
@@ -195,6 +204,8 @@ export class StandardMaterial extends AbstractMaterial {
     texs["u_roughnessMap"] = this.roughnessMap;
     texs["u_emissiveMap"] = this.emissiveMap;
     texs["u_alphaMap"] = this.alphaMap;
+    texs["u_envMap"] = this.envMap;
+    props["u_useEnvMap"] = this.envMap ? 1.0 : 0.0;
 
     this._renderManifest.state = {
       ...this._renderManifest.state,

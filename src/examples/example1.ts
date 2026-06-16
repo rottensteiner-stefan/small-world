@@ -18,7 +18,7 @@ import { RendererType } from "../enums/index.js";
 
 class Example1 extends AbstractExample {
   constructor() {
-    super({ rendererType: RendererType.WEB_GL2 });
+    super({ rendererType: RendererType.BEST });
   }
   private _myCube!: Object3D;
   private _inspector!: GadgetInspector;

@@ -11,9 +11,11 @@ uniform sampler2D u_metallicMap;
 uniform sampler2D u_roughnessMap;
 uniform sampler2D u_emissiveMap;
 uniform sampler2D u_alphaMap;
+uniform samplerCube u_envMap;
 
 uniform vec2 u_texOffset;
 uniform vec2 u_texRepeat;
+uniform float u_useEnvMap;
 
 void main() {
     vec2 original_uv = v_uv / u_texRepeat;

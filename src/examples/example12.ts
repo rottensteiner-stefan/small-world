@@ -1016,7 +1016,7 @@ class UnderwaterHideoutExample extends AbstractExample {
 
 // === START THE ENGINE ===
 const app: UnderwaterHideoutExample = new UnderwaterHideoutExample({
-  rendererType: RendererType.WEB_GPU,
+  rendererType: RendererType.BEST,
 });
 app
   .start()

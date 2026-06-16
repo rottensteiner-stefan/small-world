@@ -1,4 +1,5 @@
-[BASE_FS_HEADER]
+precision highp float;
+
 varying vec3 v_uvw;
 uniform samplerCube u_skybox;
 

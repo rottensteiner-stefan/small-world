@@ -1,6 +1,7 @@
 import { defineConfig } from "vitest/config";
 import { resolve } from "path";
 import mkcert from "vite-plugin-mkcert";
+import http from "http";
 
 export default defineConfig({
   publicDir: "public",
@@ -18,6 +19,38 @@ export default defineConfig({
             req.url = "/index.html";
           }
           next();
+        });
+      },
+    },
+    {
+      name: "http-to-https-redirect",
+      configureServer(server) {
+        server.httpServer?.once("listening", () => {
+          const address = server.httpServer?.address();
+          if (typeof address === "object" && address !== null) {
+            const httpsPort = address.port;
+            const redirectServer = http.createServer((req, res) => {
+              const host = req.headers.host ? req.headers.host.split(":")[0] : "localhost";
+              res.writeHead(301, { Location: `https://${host}:${httpsPort}${req.url || "/"}` });
+              res.end();
+            });
+
+            // Versuche Port 80 (Standard HTTP), ansonsten Fallback auf httpsPort + 1
+            redirectServer
+              .listen(80, () => {
+                console.log(
+                  `\n  ➜  HTTP Redirect: http://localhost/ -> https://localhost:${httpsPort}/`,
+                );
+              })
+              .on("error", () => {
+                const altPort = httpsPort + 1;
+                redirectServer.listen(altPort, () => {
+                  console.log(
+                    `\n  ➜  HTTP Redirect: http://localhost:${altPort}/ -> https://localhost:${httpsPort}/`,
+                  );
+                });
+              });
+          }
         });
       },
     },

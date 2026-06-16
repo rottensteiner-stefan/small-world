@@ -108,7 +108,18 @@ for(var j=0u; j<u32(global.numSpotLights); j++) {
     }
 }
 
-let ambient = global.ambientColor.rgb * albedo * ao;
+var ambient = global.ambientColor.rgb * albedo * ao;
+var specularAmbient = vec3f(0.0);
+
+if (obj.useEnvMap > 0.5) {
+    let R = reflect(-V, N);
+    let lod = roughness * 5.0;
+    let envColor = sRGBToLinear(textureSampleLevel(u_skybox, s, R, lod).rgb);
+    let F_env = F_Schlick(dotNV, F0);
+    specularAmbient = envColor * F_env;
+    ambient = (global.ambientColor.rgb * albedo * (1.0 - metallic) + specularAmbient) * ao;
+}
+
 var color = ambient + Lo;
 
 // Emissive
@@ -119,7 +130,9 @@ color += emissive;
 color *= global.exposure;
 
 // Tone Mapping
-color = color / (color + vec3f(1.0));
+if (global.gamma != 1.0) {
+    color = color / (color + vec3f(1.0));
+}
 
 // Gamma Correction
 color = linearToSRGB(color);

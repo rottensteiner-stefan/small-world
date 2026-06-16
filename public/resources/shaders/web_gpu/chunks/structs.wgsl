@@ -33,7 +33,11 @@ struct ObjectUniforms {
     roughness: f32,
     extraParams: vec4f, // [ao, time, flowSpeed, noiseScale]
     liquidParams: vec4f, // [waveFreq, waveAmp, 0, 0]
-    thresholds: vec4f   // [sandToGrass, grassToRock, rockToSnow, softness]
+    thresholds: vec4f,  // [sandToGrass, grassToRock, rockToSnow, softness]
+    useEnvMap: f32,
+    _padObj0: f32,
+    _padObj1: f32,
+    _padObj2: f32
 }
 
 struct Out {

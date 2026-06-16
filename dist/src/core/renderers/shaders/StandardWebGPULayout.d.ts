@@ -40,6 +40,18 @@ export declare const StandardWebGPULayout: {
         u_thresholds: {
             type: "vec4";
         };
+        u_useEnvMap: {
+            type: "float";
+        };
+        _padObj0: {
+            type: "float";
+        };
+        _padObj1: {
+            type: "float";
+        };
+        _padObj2: {
+            type: "float";
+        };
     };
     uniformLayout: string[];
 };

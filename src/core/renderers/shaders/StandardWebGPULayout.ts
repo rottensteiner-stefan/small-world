@@ -18,6 +18,10 @@ export const StandardWebGPULayout = {
     u_extraParams: { type: ShaderPropertyType.VEC4 },
     u_liquidParams: { type: ShaderPropertyType.VEC4 },
     u_thresholds: { type: ShaderPropertyType.VEC4 },
+    u_useEnvMap: { type: ShaderPropertyType.FLOAT },
+    _padObj0: { type: ShaderPropertyType.FLOAT },
+    _padObj1: { type: ShaderPropertyType.FLOAT },
+    _padObj2: { type: ShaderPropertyType.FLOAT },
   },
   uniformLayout: [
     "u_model",
@@ -32,5 +36,9 @@ export const StandardWebGPULayout = {
     "u_extraParams",
     "u_liquidParams",
     "u_thresholds",
+    "u_useEnvMap",
+    "_padObj0",
+    "_padObj1",
+    "_padObj2",
   ],
 };

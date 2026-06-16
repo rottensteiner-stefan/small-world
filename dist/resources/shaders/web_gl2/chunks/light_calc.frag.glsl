@@ -3,7 +3,7 @@
       vec3 specular = vec3(0.0);
 
       // Directional Light
-      vec3 L_dir = normalize(u_dirLightDir);
+      vec3 L_dir = normalize(-u_dirLightDir);
       float diff_dir = max(dot(N, L_dir), 0.0);
       
       float dirShadow = 1.0;
