@@ -671,7 +671,8 @@ export class WebGPURenderer extends AbstractRenderer {
     const r8 = this._getTextureView(m.textures["u_snowMap"] as Texture);
     const r9 = this._getTextureView(m.textures["u_metallicMap"] as Texture);
     const r10 = this._getTextureView(m.textures["u_roughnessMap"] as Texture);
-    const r11 = this._getGPUCubeTextureView(m.textures["u_skybox"] as CubeTexture);
+    const envOrSkybox = m.textures["u_skybox"] || m.textures["u_envMap"];
+    const r11 = this._getGPUCubeTextureView(envOrSkybox as CubeTexture);
     const r12 = this._getTextureView(m.textures["u_emissiveMap"] as Texture);
     const r13 = this._getTextureView(m.textures["u_alphaMap"] as Texture);
     const r14 = m.textures["u_opaqueMap"]
@@ -807,8 +808,10 @@ export class WebGPURenderer extends AbstractRenderer {
     );
     // Fix: lights.dDir is already negated to point TO the light in applyTo.
     gData.set([lights.dDir.x, lights.dDir.y, lights.dDir.z, 0], 28);
-    gData.set([lights.pLights.length, lights.sLights.length, lights.aLights.length, 2.2], 32);
-    gData[36] = 1.0; // exposure
+    const gamma = this.postProcessing.enabled ? 1.0 : (this._quality.gamma ?? 2.2);
+    const exposure = this.postProcessing.enabled ? 1.0 : (this._quality.exposure ?? 1.0);
+    gData.set([lights.pLights.length, lights.sLights.length, lights.aLights.length, gamma], 32);
+    gData[36] = exposure; // exposure
     if (fog) {
       gData[37] = fog.mode;
       gData[38] = fog.density;

@@ -59,10 +59,15 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     u_normalMap: 1,
     u_specularMap: 2,
     u_sandMap: 3,
+    u_metallicMap: 3,
     u_grassMap: 4,
+    u_roughnessMap: 4,
     u_rockMap: 5,
+    u_emissiveMap: 5,
     u_snowMap: 6,
+    u_alphaMap: 6,
     u_opaqueMap: 7,
+    u_envMap: 7,
   };
 
   public _opaqueTexture?: WebGLTexture;
@@ -182,6 +187,11 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         "u_diffuseMap",
         "u_normalMap",
         "u_specularMap",
+        "u_metallicMap",
+        "u_roughnessMap",
+        "u_emissiveMap",
+        "u_alphaMap",
+        "u_envMap",
         "u_skybox",
         "u_sandMap",
         "u_grassMap",
@@ -700,6 +710,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
             }
           }
         } else {
+          if (mapLoc) this.gl.uniform1i(mapLoc, 13);
           if (infoLoc) {
             this._scratchFloat4[0] = 0.0;
             this._scratchFloat4[1] = 0.0;
@@ -761,6 +772,8 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         }
       }
     } else {
+      const mapLoc = cache.uniforms.get("u_dirShadowMap");
+      if (mapLoc) this.gl.uniform1i(mapLoc, 13);
       const infoLoc = cache.uniforms.get("u_dirShadowInfo");
       if (infoLoc) {
         this._scratchFloat4[0] = 0.0;
@@ -879,6 +892,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       const texs = manifest.textures;
       if (shaderId === MaterialType.SKYBOX) {
         this.gl.activeTexture(this.gl.TEXTURE0);
+        this.gl.bindTexture(this.gl.TEXTURE_2D, null); // Unbind 2D to prevent conflict
         const skyTex = texs["u_skybox"] as CubeTexture;
         this.gl.bindTexture(
           this.gl.TEXTURE_CUBE_MAP,
@@ -899,15 +913,26 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
             } else {
               this.gl.activeTexture(this.gl.TEXTURE0 + unit);
               const t = texs[uniformName] as Texture;
-              if (uniformName === "u_normalMap" && !t)
+              if (uniformName === "u_normalMap" && !t) {
+                this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, null);
                 this.gl.bindTexture(this.gl.TEXTURE_2D, this.defaultNormalMap);
-              else if (uniformName === "u_specularMap" && !t)
+              } else if (uniformName === "u_specularMap" && !t) {
+                this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, null);
                 this.gl.bindTexture(this.gl.TEXTURE_2D, this.defaultSpecularMap);
-              else
+              } else if (uniformName === "u_envMap") {
+                this.gl.bindTexture(this.gl.TEXTURE_2D, null);
+                const ct = texs[uniformName] as CubeTexture;
+                this.gl.bindTexture(
+                  this.gl.TEXTURE_CUBE_MAP,
+                  ct ? this._getWebGLCubeTexture(ct) : this.defaultCubeTexture,
+                );
+              } else {
+                this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, null);
                 this.gl.bindTexture(
                   this.gl.TEXTURE_2D,
                   t ? this._getWebGLTexture(t) : this.defaultTexture,
                 );
+              }
               this.gl.uniform1i(loc, unit);
             }
           }
@@ -969,6 +994,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         );
 
         const drawMode = topology === Topology.LINE_LIST ? this.gl.LINES : this.gl.TRIANGLES;
+
         mesh.draw(drawMode);
       }
     }
@@ -996,7 +1022,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     ubo.setVector3(112, lights.dDir);
     ubo.setInt(128, lights.pLights.length);
     ubo.setInt(132, lights.sLights.length);
-    ubo.setFloat(136, lights.aLights.length);
+    ubo.setInt(136, lights.aLights.length);
     ubo.setFloat(140, this._quality.gamma ?? 2.2);
     ubo.setFloat(144, this._quality.exposure ?? 1.0);
 

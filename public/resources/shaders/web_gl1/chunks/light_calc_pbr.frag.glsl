@@ -70,7 +70,24 @@ for(int i = 0; i < 4; i++) {
     Lo += (kD * albedo / 3.14159265359 + specular) * radiance * dotNL;
 }
 
-vec3 ambient = u_ambientColor * albedo * ao;
+vec3 irradiance = u_ambientColor;
+vec3 diffuseAmbient = irradiance * albedo;
+vec3 specularAmbient = vec3(0.0);
+
+if (u_useEnvMap > 0.5) {
+    vec3 R = reflect(-V, N);
+    // In WebGL1, textureCubeLod is not universally available without extension, 
+    // so we just sample the base cubemap or let hardware handle mip-mapping.
+    vec3 envColor = sRGBToLinear(textureCube(u_envMap, R).rgb);
+    
+    vec3 F_env = F_Schlick(dotNV, F0);
+    specularAmbient = envColor * F_env;
+}
+
+vec3 ambient = (diffuseAmbient * (1.0 - metallic) + specularAmbient) * ao;
+if (u_useEnvMap <= 0.5) {
+    ambient = u_ambientColor * albedo * ao;
+}
 vec3 color = ambient + Lo;
 
 // Emissive

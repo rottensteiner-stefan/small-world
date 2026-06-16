@@ -52,7 +52,7 @@ layout(std140) uniform GlobalUniforms {
     int u_numAreaLights;
     float u_gamma;
     float u_exposure;
-    float _pad4[3]; 
+    float _pad4, _pad5, _pad6; 
     PointLight u_pointLights[4];
     SpotLight u_spotLights[4];
     AreaLight u_areaLights[4];

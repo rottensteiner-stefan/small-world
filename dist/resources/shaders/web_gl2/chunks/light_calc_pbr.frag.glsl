@@ -12,7 +12,7 @@ vec3 Lo = vec3(0.0);
 
 // -- Directional Light --
 {
-    vec3 L = normalize(u_dirLightDir);
+    vec3 L = normalize(-u_dirLightDir);
     vec3 H = normalize(V + L);
     float dotNL = max(dot(N, L), 0.0);
     float dotNH = max(dot(N, H), 0.0);
@@ -180,7 +180,26 @@ for(int i = 0; i < 4; i++) {
     }
 }
 
-vec3 ambient = u_ambientColor * albedo * ao;
+vec3 irradiance = u_ambientColor;
+vec3 diffuseAmbient = irradiance * albedo;
+vec3 specularAmbient = vec3(0.0);
+
+if (u_useEnvMap > 0.5) {
+    vec3 R = reflect(-V, N);
+    // Simple LOD approximation based on roughness. Max LOD is assumed to be ~5 to 8 for a typical cubemap.
+    float lod = roughness * 5.0;
+    vec3 envColor = sRGBToLinear(textureLod(u_envMap, R, lod).rgb);
+    
+    // Rough approximation of split-sum without a BRDF integration map:
+    // We just multiply the environment reflection by the Fresnel term based on normal-view angle.
+    vec3 F_env = F_Schlick(dotNV, F0);
+    specularAmbient = envColor * F_env;
+}
+
+vec3 ambient = (diffuseAmbient * (1.0 - metallic) + specularAmbient) * ao;
+if (u_useEnvMap <= 0.5) {
+    ambient = u_ambientColor * albedo * ao; // Fallback
+}
 vec3 color = ambient + Lo;
 
 // Emissive

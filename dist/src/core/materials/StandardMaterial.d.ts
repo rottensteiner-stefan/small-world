@@ -1,6 +1,6 @@
 import { AbstractMaterial } from './AbstractMaterial.js';
 import { Color } from '../colors/index.js';
-import { Texture } from '../textures/index.js';
+import { Texture, CubeTexture } from '../textures/index.js';
 import { RenderManifest } from '../renderers/shaders/RenderManifest.js';
 import { ShaderDefinition } from '../renderers/shaders/ShaderDefinition.js';
 import { Vector2D } from '../../math/index.js';
@@ -32,6 +32,8 @@ export interface StandardMaterialOptions {
     emissiveMap?: Texture | undefined;
     /** The alpha mask texture map. */
     alphaMap?: Texture | undefined;
+    /** Environment map for Image-Based Lighting reflections. */
+    envMap?: CubeTexture | undefined;
     /** The intensity of the emissive light. Defaults to 1.0. */
     emissiveIntensity?: number;
     /** Whether the material is transparent. Defaults to false. */
@@ -65,6 +67,8 @@ export declare class StandardMaterial extends AbstractMaterial {
     emissiveMap: Texture | undefined;
     /** The alpha mask texture map. */
     alphaMap: Texture | undefined;
+    /** The environment map for reflections. */
+    envMap: CubeTexture | undefined;
     /** The intensity of the emissive glow. */
     emissiveIntensity: number;
     /** Alpha cutoff threshold. */

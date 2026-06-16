@@ -81,7 +81,12 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
     u_diffuseMap: 0,
     u_normalMap: 1,
     u_specularMap: 2,
-    u_opaqueMap: 3,
+    u_metallicMap: 3,
+    u_roughnessMap: 4,
+    u_emissiveMap: 5,
+    u_alphaMap: 6,
+    u_opaqueMap: 7,
+    u_envMap: 7,
   };
 
   public _opaqueTexture?: WebGLTexture;
@@ -579,6 +584,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
       // --- 3. Bind Textures ---
       if (shaderId === MaterialType.SKYBOX) {
         this.gl.activeTexture(this.gl.TEXTURE0);
+        this.gl.bindTexture(this.gl.TEXTURE_2D, null); // Unbind 2D to prevent conflict
         const skyTex = texs["u_skybox"] as CubeTexture;
         this.gl.bindTexture(
           this.gl.TEXTURE_CUBE_MAP,
@@ -598,15 +604,25 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
               );
             } else {
               this.gl.activeTexture(this.gl.TEXTURE0 + unit);
-              const t = texs[uniformName] as Texture;
-              this.gl.bindTexture(
-                this.gl.TEXTURE_2D,
-                t
-                  ? this._getWebGLTexture(t)
-                  : uniformName === "u_normalMap"
-                    ? this.defaultNormalMap
-                    : this.defaultTexture,
-              );
+              if (uniformName === "u_envMap") {
+                this.gl.bindTexture(this.gl.TEXTURE_2D, null);
+                const ct = texs[uniformName] as CubeTexture;
+                this.gl.bindTexture(
+                  this.gl.TEXTURE_CUBE_MAP,
+                  ct ? this._getWebGLCubeTexture(ct) : this.defaultCubeTexture,
+                );
+              } else {
+                this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, null);
+                const t = texs[uniformName] as Texture;
+                this.gl.bindTexture(
+                  this.gl.TEXTURE_2D,
+                  t
+                    ? this._getWebGLTexture(t)
+                    : uniformName === "u_normalMap"
+                      ? this.defaultNormalMap
+                      : this.defaultTexture,
+                );
+              }
               this.gl.uniform1i(loc, unit);
             }
           }

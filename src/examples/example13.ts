@@ -11,8 +11,11 @@ import {
   ProjectionType,
   RendererType,
   PostProcessingEffectType,
+  CubeTexture,
 } from "../index.js";
 import { AbstractExample } from "../core/index.js";
+import { Cube } from "../geometry/Cube.js";
+import { SkyboxMaterial } from "../core/materials/SkyboxMaterial.js";
 import { GltfLoader } from "../loaders/GltfLoader.js";
 import { GadgetInspector } from "../tools/GadgetInspector.js";
 import { BloomElement } from "../renderers/post/PostProcessingElement.js";
@@ -80,14 +83,40 @@ class GLTFExample extends AbstractExample {
     // Setup Gadget Inspector for debugging/presentation
     this._inspector = new GadgetInspector(this.scene, this.camera, this.canvas);
 
+    // Load an environment map for reflections
+    const envTexture = new CubeTexture();
+    try {
+      await envTexture.loadFrom("/resources/examples/7/skybox-1.jpg");
+
+      // Add skybox to the background
+      const skybox = new Object3D("Skybox");
+      skybox.geometry = new Cube({ size: 1000 }).getGeometryData();
+      skybox.material = new SkyboxMaterial({ cubeMap: envTexture });
+      skybox.frustumCulled = false;
+      this.scene.add(skybox);
+    } catch (e) {
+      console.warn("Could not load envmap:", e);
+    }
+
     // Load the GLTF Model
     try {
       const gltfLoader = new GltfLoader({ basePath: "/assets/models/" });
       const helmet = await gltfLoader.load("DamagedHelmet.glb");
 
-      // The helmet might be small or large depending on the unit scale
-      // DamagedHelmet is usually around 2x2x2 units
       helmet.position.set(0, 0, 0);
+
+      // Assign the environment map to all standard materials on the helmet
+      if (envTexture) {
+        const applyEnvMap = (node: Object3D): void => {
+          if (node.material && "envMap" in node.material) {
+            (
+              node.material as import("../core/materials/StandardMaterial.js").StandardMaterial
+            ).envMap = envTexture;
+          }
+          node.children.forEach(applyEnvMap);
+        };
+        applyEnvMap(helmet);
+      }
 
       this._helmet = helmet;
       this.scene.add(helmet);
@@ -107,6 +136,12 @@ class GLTFExample extends AbstractExample {
       this._helmet.updateMatrixWorld();
     }
 
+    const skybox = this.scene.objects.find((o) => o.name === "Skybox");
+    if (skybox) {
+      skybox.position.copyFrom(this.camera.position);
+      skybox.updateMatrixWorld();
+    }
+
     this._inspector.update();
   }
 }
@@ -115,7 +150,7 @@ class GLTFExample extends AbstractExample {
 // Bootstrap the example
 // ----------------------------------------------------------------------------
 const app = new GLTFExample({
-  rendererType: RendererType.WEB_GL2,
+  rendererType: RendererType.WEB_GPU,
 });
 app
   .start()

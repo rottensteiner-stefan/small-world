@@ -152,7 +152,10 @@ export class GadgetInspector {
       this._folder.dispose();
     }
 
-    this._folder = this._pane.addFolder({ title: `Object: ${obj.constructor.name}` });
+    // Workaround for Tweakpane Pane type definitions missing addFolder in older versions
+    this._folder = (
+      this._pane as unknown as { addFolder: (params: { title: string }) => FolderApi }
+    ).addFolder({ title: `Object: ${obj.constructor.name}` });
 
     if (obj.name && "" !== obj.name) {
       this._folder.addBinding(obj, "name", { readonly: true, label: "Name" });
@@ -245,7 +248,7 @@ export class GadgetInspector {
     // Lights
     const maybeLight = obj as unknown as Record<string, unknown>;
     if ("intensity" in maybeLight && "color" in maybeLight) {
-      const lightCol = maybeLight.color as Color;
+      const lightCol = maybeLight["color"] as Color;
       if (typeof lightCol.r === "number") {
         const lightFolder = this._folder.addFolder({ title: "Light Properties" });
 
