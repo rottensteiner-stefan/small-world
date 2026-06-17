@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.28.0] - 2026-06-17
+
+- **Bugfix: UniformPacker Console Warnings**:
+  - Added `defaultValue: 0` to `u_useEnvMap`, `_padObj0`, `_padObj1`, and `_padObj2` in `StandardWebGPULayout`. These fields had no value and no fallback, causing repeated `[UniformPacker] Property '...' has no value and no default.` console warnings for every material that does not explicitly supply them (e.g. `SpriteMaterial`, `WireframeMaterial`, `BasicMaterial`, etc.).
+
+- **Bugfix: CubeTexture Layout Detection for Non-Standard Dimensions**:
+  - Replaced the exact pixel-perfect ratio comparisons in `CubeTexture.loadFrom` (e.g. `w * 3 === 4 * h`) with rounded integer checks (`Math.round(w / 4) === Math.round(h / 3)`). Images whose dimensions don't divide evenly — such as `skybox.png` at 245×184 px, which is a horizontal cross layout off by a single pixel — are now correctly identified instead of silently falling back to the "use same image 6 times" path.
+  - All face-size calculations during slicing (`STRIP_HORIZONTAL`, `STRIP_VERTICAL`, `GRID_3X2`, `CROSS_HORIZONTAL`, `CROSS_VERTICAL`) now use `Math.round` to produce integer pixel coordinates, preventing sub-pixel boundary errors in `createImageBitmap`.
+  - Resolves the WebGPU validation error `texture width (245) and height (184) are not equal` that caused an `[Invalid TextureView]` → `[Invalid BindGroup]` → `[Invalid CommandBuffer]` cascade and prevented the skybox from rendering in Example 7 and Example 13.
+
+- **Asset: Unified Skybox Source**:
+  - Both Example 7 and Example 13 now load their skybox from `/resources/examples/13/skybox.png` instead of the previously referenced `/resources/examples/7/skybox-1.jpg`.
+
 ## [0.27.0] - 2026-06-16
 
 - **PBR & Image-Based Lighting (IBL)**:

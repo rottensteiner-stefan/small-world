@@ -86,7 +86,7 @@ class GLTFExample extends AbstractExample {
     // Load an environment map for reflections
     const envTexture = new CubeTexture();
     try {
-      await envTexture.loadFrom("/resources/examples/7/skybox-1.jpg");
+      await envTexture.loadFrom("/resources/examples/13/skybox.png");
 
       // Add skybox to the background
       const skybox = new Object3D("Skybox");
