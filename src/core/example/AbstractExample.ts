@@ -1,12 +1,12 @@
 /// src/core/example/AbstractExample.ts
 
-import { Application } from "../Application.js";
+import { SmallWorld } from "../SmallWorld.js";
 import { Input } from "../Input.js";
 import { EngineConfig } from "../../interfaces/index.js";
 import { Keys } from "../../enums/Keys.js";
 import { AssetManager } from "../../loaders/index.js";
 
-export abstract class AbstractExample extends Application {
+export abstract class AbstractExample extends SmallWorld {
   /**
    * The constructor is passed to Application.
    * Also registers the global keyboard listener for demos.
