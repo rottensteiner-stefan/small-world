@@ -42,15 +42,19 @@ export declare const StandardWebGPULayout: {
         };
         u_useEnvMap: {
             type: "float";
+            defaultValue: number;
         };
         _padObj0: {
             type: "float";
+            defaultValue: number;
         };
         _padObj1: {
             type: "float";
+            defaultValue: number;
         };
         _padObj2: {
             type: "float";
+            defaultValue: number;
         };
     };
     uniformLayout: string[];
