@@ -1,32 +1,53 @@
-import { Renderer, EngineConfig } from '../interfaces/index.js';
+import { CameraInterfaceData, EngineConfig } from '../interfaces/index.js';
+import { Renderer } from '../interfaces/Renderer.js';
+import { Scene } from './Scene.js';
+/** The current engine version. */
+export declare const ENGINE_VERSION = "0.28.0";
 /**
- * Global world configuration.
+ * Base class for applications built with the SmallWorld engine.
  */
-export interface WorldConfig extends EngineConfig {
-    /** Whether debug mode is enabled. */
-    debug?: boolean;
-    /** The size of the world. */
-    worldSize?: number;
-    /** The background sky color. */
-    skyColor?: string;
-    /** Whether to show the HUD. */
-    showHUD?: boolean;
-}
-/**
- * Main entry point for the SmallWorld engine.
- */
-export declare class SmallWorld {
-    /** The current world configuration. */
-    config: WorldConfig;
-    /** The currently active renderer. */
-    activeRenderer: Renderer;
+export declare abstract class SmallWorld {
+    /** The engine configuration. */
+    config: EngineConfig;
+    /** The current scene. */
+    scene: Scene;
+    /** The main camera. */
+    camera: CameraInterfaceData;
+    /** The active renderer. */
+    renderer: Renderer;
+    /** The canvas element. */
+    canvas: HTMLCanvasElement;
+    /** Whether debug visualization is enabled. */
+    debug: boolean;
+    private _lastTime;
+    private _isRunning;
+    private _isInitialized;
+    private _userConfig;
     /**
-     * Creates a new SmallWorld instance.
+     * Creates a new SmallWorld application.
+     * @param userConfig Optional configuration to override defaults.
      */
-    constructor();
+    protected constructor(userConfig?: EngineConfig);
     /**
-     * Initializes the engine with the given configuration file.
-     * @param configPath Path to the configuration JSON file.
+     * Called to setup the scene after the engine is initialized.
      */
-    init(configPath: string): Promise<void>;
+    protected abstract setupScene(): Promise<void>;
+    /**
+     * Called every frame to update application logic.
+     * @param deltaTime Time elapsed since the last frame in seconds.
+     */
+    protected abstract update(deltaTime: number): void;
+    /**
+     * Initializes and starts the application loop.
+     */
+    start(): Promise<void>;
+    /**
+     * Stops the application loop.
+     */
+    stop(): void;
+    /**
+     * The main application loop.
+     * @param currentTime The current timestamp.
+     */
+    private _loop;
 }

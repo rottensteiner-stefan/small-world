@@ -1,6 +1,6 @@
-import { Application } from '../Application.js';
+import { SmallWorld } from '../SmallWorld.js';
 import { EngineConfig } from '../../interfaces/index.js';
-export declare abstract class AbstractExample extends Application {
+export declare abstract class AbstractExample extends SmallWorld {
     /**
      * The constructor is passed to Application.
      * Also registers the global keyboard listener for demos.

@@ -1,10 +1,9 @@
 /// src/core/index.ts
 
-export * from "./Application.js";
+export * from "./SmallWorld.js";
 export * from "./Camera.js";
 export * from "./ConfigLoader.js";
 export * from "./DeviceCaps.js";
-export * from "./Engine.js";
 export * from "./FPSCounter.js";
 export * from "./FrustumCuller.js";
 export * from "./Fog.js";
@@ -15,7 +14,6 @@ export * from "./Object3D.js";
 export * from "./Scene.js";
 export * from "./Skybox.js";
 export * from "./Skydome.js";
-export * from "./SmallWorld.js";
 export * from "./Sprite.js";
 export * from "./example/AbstractExample.js";
 export * from "./controllers/index.js";
