@@ -62,35 +62,43 @@ export class CubeTexture {
       let effectiveLayout: CubeLayout | undefined = layout;
       if (undefined === effectiveLayout) {
         if (w > h) {
-          if (w === 6 * h) {
+          if (Math.round(w / 6) === h) {
             effectiveLayout = CubeLayout.STRIP_HORIZONTAL;
-          } else if (w * 2 === 3 * h) {
+          } else if (Math.round(w / 3) === Math.round(h / 2)) {
             effectiveLayout = CubeLayout.GRID_3X2;
-          } else if (w * 3 === 4 * h) {
+          } else if (Math.round(w / 4) === Math.round(h / 3)) {
             effectiveLayout = CubeLayout.CROSS_HORIZONTAL;
           }
         } else {
-          if (h === 6 * w) {
+          if (Math.round(h / 6) === w) {
             effectiveLayout = CubeLayout.STRIP_VERTICAL;
-          } else if (h * 3 === 4 * w) {
+          } else if (Math.round(h / 4) === Math.round(w / 3)) {
             effectiveLayout = CubeLayout.CROSS_VERTICAL;
           }
         }
       }
 
       switch (effectiveLayout) {
-        case CubeLayout.STRIP_HORIZONTAL:
+        case CubeLayout.STRIP_HORIZONTAL: {
+          const faceSize: number = Math.round(w / 6);
           for (let i: number = 0; 6 > i; i++) {
-            this.images.push(await createImageBitmap(fullImage, i * h, 0, h, h));
+            this.images.push(
+              await createImageBitmap(fullImage, i * faceSize, 0, faceSize, faceSize),
+            );
           }
           break;
-        case CubeLayout.STRIP_VERTICAL:
+        }
+        case CubeLayout.STRIP_VERTICAL: {
+          const faceSize: number = Math.round(h / 6);
           for (let i: number = 0; 6 > i; i++) {
-            this.images.push(await createImageBitmap(fullImage, 0, i * w, w, w));
+            this.images.push(
+              await createImageBitmap(fullImage, 0, i * faceSize, faceSize, faceSize),
+            );
           }
           break;
+        }
         case CubeLayout.GRID_3X2: {
-          const gridSize: number = w / 3;
+          const gridSize: number = Math.round(w / 3);
           for (let y: number = 0; 2 > y; y++) {
             for (let x: number = 0; 3 > x; x++) {
               this.images.push(
@@ -101,7 +109,7 @@ export class CubeTexture {
           break;
         }
         case CubeLayout.CROSS_HORIZONTAL: {
-          const crossSize: number = w / 4;
+          const crossSize: number = Math.round(w / 4);
           // +X: (2, 1)
           this.images.push(
             await createImageBitmap(fullImage, 2 * crossSize, crossSize, crossSize, crossSize),
@@ -125,7 +133,7 @@ export class CubeTexture {
           break;
         }
         case CubeLayout.CROSS_VERTICAL: {
-          const crossSize: number = h / 4;
+          const crossSize: number = Math.round(h / 4);
           // +X: (2, 1)
           this.images.push(
             await createImageBitmap(fullImage, 2 * crossSize, crossSize, crossSize, crossSize),
