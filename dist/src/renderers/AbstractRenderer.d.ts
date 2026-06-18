@@ -1,9 +1,8 @@
 import { Color } from '../core/index.js';
-import { Renderer, LightDataInterface } from '../interfaces/index.js';
+import { Renderer, LightDataInterface, EngineOptions, QualityConfig } from '../interfaces/index.js';
 import { RendererType } from '../enums/index.js';
 import { Scene } from '../core/Scene.js';
 import { Vector3D } from '../math/index.js';
-import { EngineOptions, QualityConfig } from '../interfaces/EngineOptions.js';
 import { PostProcessingGroup } from './post/index.js';
 /**
  * Base class for all renderer implementations.

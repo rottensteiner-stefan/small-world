@@ -1,7 +1,7 @@
 import { Matrix4 } from '../Matrix4.js';
 import { AbstractProjection } from './AbstractProjection.js';
 import { ProjectionType } from '../../enums/index.js';
-import { ProjectionOptions } from '../../interfaces/EngineOptions.js';
+import { ProjectionOptions } from '../../interfaces/index.js';
 /**
  * Configuration options for perspective projection.
  */
@@ -37,7 +37,7 @@ export declare class PerspectiveProjection extends AbstractProjection {
     /**
      * Creates a PerspectiveProjection from engine config options.
      * @param options The projection options from EngineOptions.
-     * @param aspect The initial aspect ratio.
+     * @param initialAspect The initial aspect ratio.
      */
     static fromConfig(options: ProjectionOptions | undefined, initialAspect: number): PerspectiveProjection;
     /** @inheritdoc */

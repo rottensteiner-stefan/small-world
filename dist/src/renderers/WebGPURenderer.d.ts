@@ -1,10 +1,9 @@
 import { CubeTexture, RenderManifest, Texture } from '../core/index.js';
-import { GeometryDataInterface } from '../interfaces/index.js';
+import { EngineOptions, GeometryDataInterface } from '../interfaces/index.js';
 import { Object3D } from '../core/Object3D.js';
 import { Scene } from '../core/Scene.js';
 import { Vector3D } from '../math/index.js';
 import { RendererType } from '../enums/index.js';
-import { EngineOptions } from '../interfaces/EngineOptions.js';
 import { AbstractRenderer } from './AbstractRenderer.js';
 import { RenderPass } from './RenderPass.js';
 export interface WebGPUGeoCache {

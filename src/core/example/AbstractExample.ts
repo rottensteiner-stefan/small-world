@@ -53,7 +53,7 @@ export abstract class AbstractExample extends SmallWorld {
       // Wenn SHIFT gedrückt ist, ignorieren wir den PointerLock (damit der Inspector arbeiten kann)
       if (event.shiftKey) return;
 
-      if (false === Input.isPointerLocked) {
+      if (!Input.isPointerLocked) {
         Input.requestPointerLock(this.canvas);
       }
     });

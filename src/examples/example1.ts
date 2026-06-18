@@ -71,7 +71,7 @@ class Example1 extends AbstractExample {
 
   protected override update(deltaTime: number): void {
     // Rotate the cube around all axes every frame
-    this._myCube.rotation.x += 1.0 * deltaTime;
+    this._myCube.rotation.x += deltaTime;
     this._myCube.rotation.y += 1.5 * deltaTime;
 
     this.scene.update();
