@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.29.0] - 2026-06-19
+
+- **Core Performance & WebGPU Architecture Upgrades**:
+  - **CPU Frustum Culling Cleanup**: Optimized culling logic in `Scene.ts` (`_collectVisible`) to read the pre-calculated `inFrustum` state instead of repeating duplicate `intersectsVolume` calculations, reducing CPU overhead by half in rendering loops.
+  - **WebGPU Bind Group Reorganization (Frequency-of-Change)**: Restructured standard shader bindings to split object uniforms and material textures. The material bind group (sampler and 13 textures) is now bound once per material, while the object bind group (transforms) is bound once per object, significantly reducing driver validation overhead and state changes.
+  - **WebGPU Caching & JIT Friendliness**: Implemented material bind group caching on the renderer and object bind group caching on uniform buffer data to avoid dynamic allocation. Avoided dynamic key deletion (`delete`) on reuse objects to maintain V8 hidden class stability.
+  - **WebGPU Compute-equivalent Bloom**: Implemented Dual Kawase downsampling and upsampling filters using WebGPU render passes and fragment shaders. This mirrors WebGL2's bloom quality and provides hardware-accelerated bilinear filtering and 100% device compatibility.
+
 ## [0.28.0] - 2026-06-17
 
 - **Bugfix: UniformPacker Console Warnings**:
