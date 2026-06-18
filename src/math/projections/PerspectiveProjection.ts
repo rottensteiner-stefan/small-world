@@ -4,6 +4,7 @@ import { Matrix4 } from "../Matrix4.js";
 import { AbstractProjection } from "./AbstractProjection.js";
 import { ProjectionType } from "../../enums/index.js";
 import { MathUtils } from "../MathUtils.js";
+import type { ProjectionOptions } from "../../interfaces/EngineOptions.js";
 
 /**
  * Configuration options for perspective projection.
@@ -47,6 +48,23 @@ export class PerspectiveProjection extends AbstractProjection {
     this.near = near;
     this.far = far;
     this.update();
+  }
+
+  /**
+   * Creates a PerspectiveProjection from engine config options.
+   * @param options The projection options from EngineOptions.
+   * @param aspect The initial aspect ratio.
+   */
+  public static fromConfig(
+    options: ProjectionOptions | undefined,
+    initialAspect: number,
+  ): PerspectiveProjection {
+    return new PerspectiveProjection({
+      fov: options?.fov ?? MathUtils.degToRad(75),
+      aspect: initialAspect,
+      near: options?.near ?? 0.1,
+      far: options?.far ?? 1000,
+    });
   }
 
   /** @inheritdoc */

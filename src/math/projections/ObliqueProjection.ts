@@ -3,6 +3,7 @@
 import { Matrix4 } from "../Matrix4.js";
 import { AbstractProjection } from "./AbstractProjection.js";
 import { ProjectionType } from "../../enums/index.js";
+import type { ProjectionOptions } from "../../interfaces/EngineOptions.js";
 
 /**
  * Configuration options for oblique projection.
@@ -41,6 +42,26 @@ export class ObliqueProjection extends AbstractProjection {
 
   /** @inheritdoc */
   public override readonly type: ProjectionType = ProjectionType.OBLIQUE;
+
+  /**
+   * Creates an ObliqueProjection from engine config options.
+   * @param options The projection options from EngineOptions.
+   * @param aspect The initial aspect ratio.
+   */
+  public static fromConfig(
+    options: ProjectionOptions | undefined,
+    initialAspect: number,
+  ): ObliqueProjection {
+    const size = options?.orthoSize ?? 10;
+    return new ObliqueProjection({
+      left: -size * initialAspect,
+      right: size * initialAspect,
+      bottom: -size,
+      top: size,
+      near: options?.near ?? 0.1,
+      far: options?.far ?? 1000,
+    });
+  }
 
   /**
    * Creates a new ObliqueProjection.

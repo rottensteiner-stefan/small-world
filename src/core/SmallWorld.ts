@@ -7,7 +7,7 @@ import {
   PerspectiveProjection,
 } from "../math/index.js";
 import { Camera } from "./Camera.js";
-import { CameraInterfaceData, EngineConfig } from "../interfaces/index.js";
+import { CameraInterfaceData, EngineOptions, ProjectionOptions } from "../interfaces/index.js";
 import { Renderer } from "../interfaces/Renderer.js";
 import { ProjectionType, RendererType } from "../enums/index.js";
 import { RendererFactory } from "../renderers/index.js";
@@ -15,7 +15,6 @@ import { Scene } from "./Scene.js";
 import { Input } from "./Input.js";
 import { ConfigLoader } from "./ConfigLoader.js";
 import { DeviceCaps } from "./DeviceCaps.js";
-import { MathUtils } from "../math/MathUtils.js";
 import { ShaderBootstrap } from "./renderers/shaders/ShaderBootstrap.js";
 import { FrustumCuller } from "./FrustumCuller.js";
 import { CollisionVisualizer, OctreeVisualizer } from "../utils/index.js";
@@ -28,7 +27,7 @@ export const ENGINE_VERSION = "0.28.0";
  */
 export abstract class SmallWorld {
   /** The engine configuration. */
-  public config: EngineConfig;
+  public config: EngineOptions;
   /** The current scene. */
   public scene: Scene;
   /** The main camera. */
@@ -43,54 +42,43 @@ export abstract class SmallWorld {
   private _lastTime: number = 0;
   private _isRunning: boolean = false;
   private _isInitialized: boolean = false;
-  private _userConfig: EngineConfig;
+  private _userConfig: EngineOptions;
 
   /**
    * Creates a new SmallWorld application.
    * @param userConfig Optional configuration to override defaults.
    */
-  protected constructor(userConfig: EngineConfig = {}) {
+  protected constructor(userConfig: EngineOptions = {}) {
     this._userConfig = userConfig;
     this.config = {
       canvasId: "SmallWorld",
-      rendererType: RendererType.WEB_GPU,
-      projection: ProjectionType.PERSPECTIVE,
+      rendererType: RendererType.BEST,
+      projectionType: ProjectionType.PERSPECTIVE,
       fullscreen: true,
       ...userConfig,
     };
 
     this.scene = new Scene();
 
-    const aspect: number = window.innerWidth / window.innerHeight;
-    let projection: AbstractProjection;
-
-    if (ProjectionType.ORTHOGRAPHIC === this.config.projection) {
-      projection = new OrthographicProjection({
-        left: -10 * aspect,
-        right: 10 * aspect,
-        bottom: -10,
-        top: 10,
-        near: 0.1,
-        far: 1000,
-      });
-    } else if (ProjectionType.OBLIQUE === this.config.projection) {
-      projection = new ObliqueProjection({
-        left: -10 * aspect,
-        right: 10 * aspect,
-        bottom: -10,
-        top: 10,
-        near: 0.1,
-        far: 1000,
-      });
-    } else {
-      projection = new PerspectiveProjection({
-        fov: MathUtils.degToRad(75),
-        aspect,
-        near: 0.1,
-        far: 1000,
-      });
-    }
-
+    const initialAspect: number = window.innerWidth / window.innerHeight;
+    const projection: AbstractProjection =
+      this.config.projectionInstance ??
+      ((): AbstractProjection => {
+        const projectionBuilders: Partial<
+          Record<
+            ProjectionType,
+            (opts: ProjectionOptions | undefined, initialAspect: number) => AbstractProjection
+          >
+        > = {
+          [ProjectionType.PERSPECTIVE]: PerspectiveProjection.fromConfig,
+          [ProjectionType.ORTHOGRAPHIC]: OrthographicProjection.fromConfig,
+          [ProjectionType.OBLIQUE]: ObliqueProjection.fromConfig,
+        };
+        const build =
+          projectionBuilders[this.config.projectionType ?? ProjectionType.PERSPECTIVE] ??
+          PerspectiveProjection.fromConfig;
+        return build(this.config.projectionOptions, initialAspect);
+      })();
     this.camera = new Camera(projection);
     this.renderer = undefined!; // Initialized in start()
 
@@ -119,7 +107,7 @@ export abstract class SmallWorld {
     if (!this._isInitialized) {
       try {
         const jsonConfig = await ConfigLoader.load("/config/small-world.json");
-        this.config = { ...this.config, ...(jsonConfig as EngineConfig), ...this._userConfig };
+        this.config = { ...this.config, ...(jsonConfig as EngineOptions), ...this._userConfig };
       } catch {
         console.warn("Using fallback configuration (No JSON found).");
       }

@@ -1,10 +1,5 @@
 {
-  "inputMode": "tank",
   "canvasId": "SmallWorld",
-  "debug": false,
-  "worldSize": 100,
-  "skyColor": "midnightblue",
-  "showHUD": true,
   "quality": {
     "exposure": 2.2,
     "gamma": 2.2

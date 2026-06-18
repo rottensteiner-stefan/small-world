@@ -1,11 +1,11 @@
 import { SmallWorld } from '../SmallWorld.js';
-import { EngineConfig } from '../../interfaces/index.js';
+import { EngineOptions } from '../../interfaces/index.js';
 export declare abstract class AbstractExample extends SmallWorld {
     /**
      * The constructor is passed to Application.
      * Also registers the global keyboard listener for demos.
      */
-    constructor(config?: EngineConfig);
+    constructor(config?: EngineOptions);
     /**
      * Helper to wait for all currently loading assets to finish.
      * Useful to call at the end of setupScene.

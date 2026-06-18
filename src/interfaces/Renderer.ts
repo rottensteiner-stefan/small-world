@@ -4,7 +4,7 @@ import { Scene } from "../core/Scene.js";
 import { Color } from "../core/colors/Color.js";
 import { Vector3D } from "../math/Vector3D.js";
 import { RendererType } from "../enums/RendererType.js";
-import { EngineConfig } from "./EngineConfig.js";
+import { EngineOptions } from "./EngineOptions.js";
 
 /**
  * Interface for all renderer implementations.
@@ -22,7 +22,7 @@ export interface Renderer {
   initialize(
     canvas: HTMLCanvasElement,
     attributes?: Record<string, unknown>,
-    config?: EngineConfig,
+    config?: EngineOptions,
   ): Promise<void>;
 
   /**

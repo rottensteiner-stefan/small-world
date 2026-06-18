@@ -1,5 +1,5 @@
 /// src/renderers/RendererFactory.ts
-import { Renderer, EngineConfig } from "../interfaces/index.js";
+import { Renderer, EngineOptions } from "../interfaces/index.js";
 import { RendererType } from "../enums/index.js";
 import { WebGL1Renderer } from "./WebGL1Renderer.js";
 import { WebGL2Renderer } from "./WebGL2Renderer.js";
@@ -15,7 +15,7 @@ export class RendererFactory {
   public static async create(
     type: RendererType | string,
     canvas: HTMLCanvasElement,
-    config?: EngineConfig,
+    config?: EngineOptions,
   ): Promise<Renderer> {
     let actualType: RendererType | string = type;
     if (RendererType.BEST === actualType) {

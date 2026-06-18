@@ -11,7 +11,7 @@ import {
   DeviceLimit,
   DepthMaterial,
 } from "../core/index.js";
-import { EngineConfig, GeometryDataInterface, LightDataInterface } from "../interfaces/index.js";
+import { EngineOptions, GeometryDataInterface, LightDataInterface } from "../interfaces/index.js";
 import {
   BlendingMode,
   CullMode,
@@ -95,7 +95,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
   public async initialize(
     canvas: HTMLCanvasElement,
     attributes?: Record<string, unknown>,
-    config?: EngineConfig,
+    config?: EngineOptions,
   ): Promise<void> {
     const gl = canvas.getContext("webgl2", attributes);
     if (!gl) throw new Error("[WebGL2Renderer] WebGL2 context could not be initialized.");

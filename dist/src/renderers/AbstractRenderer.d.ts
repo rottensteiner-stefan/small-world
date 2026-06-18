@@ -3,7 +3,7 @@ import { Renderer, LightDataInterface } from '../interfaces/index.js';
 import { RendererType } from '../enums/index.js';
 import { Scene } from '../core/Scene.js';
 import { Vector3D } from '../math/index.js';
-import { EngineConfig, QualityConfig } from '../interfaces/EngineConfig.js';
+import { EngineOptions, QualityConfig } from '../interfaces/EngineOptions.js';
 import { PostProcessingGroup } from './post/index.js';
 /**
  * Base class for all renderer implementations.
@@ -25,7 +25,7 @@ export declare abstract class AbstractRenderer implements Renderer {
     /** Cached light data to avoid GC pressure. */
     protected _lightData: LightDataInterface;
     /** @inheritdoc */
-    abstract initialize(canvas: HTMLCanvasElement, attributes?: Record<string, unknown>, config?: EngineConfig): Promise<void>;
+    abstract initialize(canvas: HTMLCanvasElement, attributes?: Record<string, unknown>, config?: EngineOptions): Promise<void>;
     /** @inheritdoc */
     abstract render(scene: Scene, vpMatrix: Float32Array, camPos?: Vector3D): void;
     /** @inheritdoc */

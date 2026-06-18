@@ -6,7 +6,7 @@ import { RendererType } from "../enums/index.js";
 import { Object3D } from "../core/Object3D.js";
 import { Scene } from "../core/Scene.js";
 import { Vector3D } from "../math/index.js";
-import { EngineConfig, QualityConfig, ToneMapping } from "../interfaces/EngineConfig.js";
+import { EngineOptions, QualityConfig, ToneMapping } from "../interfaces/EngineOptions.js";
 import { PostProcessingGroup } from "./post/index.js";
 
 /**
@@ -54,7 +54,7 @@ export abstract class AbstractRenderer implements Renderer {
   public abstract initialize(
     canvas: HTMLCanvasElement,
     attributes?: Record<string, unknown>,
-    config?: EngineConfig,
+    config?: EngineOptions,
   ): Promise<void>;
 
   /** @inheritdoc */

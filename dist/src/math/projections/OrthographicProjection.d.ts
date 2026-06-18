@@ -1,6 +1,7 @@
 import { Matrix4 } from '../Matrix4.js';
 import { AbstractProjection } from './AbstractProjection.js';
 import { ProjectionType } from '../../enums/index.js';
+import { ProjectionOptions } from '../../interfaces/EngineOptions.js';
 /**
  * Configuration options for orthographic projection.
  */
@@ -23,6 +24,12 @@ export declare class OrthographicProjection extends AbstractProjection {
     near: number;
     far: number;
     readonly type: ProjectionType;
+    /**
+     * Creates an OrthographicProjection from engine config options.
+     * @param options The projection options from EngineOptions.
+     * @param aspect The initial aspect ratio.
+     */
+    static fromConfig(options: ProjectionOptions | undefined, initialAspect: number): OrthographicProjection;
     constructor(options?: OrthographicOptions);
     update(): void;
     /**

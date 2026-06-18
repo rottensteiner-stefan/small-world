@@ -9,3 +9,4 @@ node_modules/
 /collected.txt
 /var/
 **/.DS_Store
+/.claude/

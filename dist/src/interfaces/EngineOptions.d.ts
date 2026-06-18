@@ -45,7 +45,7 @@ export interface QualityConfig {
 }
 /**
  * Projection-specific startup parameters.
- * Passed through EngineConfig and consumed by each projection's fromConfig factory.
+ * Passed through EngineOptions and consumed by each projection's fromConfig factory.
  */
 export interface ProjectionOptions {
     /** Field of view in radians (Perspective only). Defaults to 75°. */
@@ -60,7 +60,7 @@ export interface ProjectionOptions {
 /**
  * Global engine configuration options.
  */
-export interface EngineConfig {
+export interface EngineOptions {
     /** The ID of the canvas element in the DOM. Defaults to "SmallWorld". */
     canvasId?: string;
     /** Whether the engine should automatically resize the canvas to full screen. */
