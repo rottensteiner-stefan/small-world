@@ -16,7 +16,7 @@
 ## [0.27.0] - 2026-06-16
 
 - **PBR & Image-Based Lighting (IBL)**:
-  - **Environment Map Reflections**: Resolved missing PBR reflections by ensuring `u_useEnvMap` is correctly included in the `StandardWebGPULayout` and evaluated by the `WebGL2Renderer`. 
+  - **Environment Map Reflections**: Resolved missing PBR reflections by ensuring `u_useEnvMap` is correctly included in the `StandardWebGPULayout` and evaluated by the `WebGL2Renderer`.
   - **GLTF Spec Compliance**: Fixed incorrect texture channel sampling in `Standard.frag.glsl`. The engine now correctly reads the Blue channel (`.b`) for metallic and Green channel (`.g`) for roughness, strictly adhering to the glTF 2.0 `metallicRoughnessTexture` standard.
   - **Skybox Architecture**: Updated the legacy `Skybox.vert.glsl` and `Skybox.frag.glsl` shaders to seamlessly integrate with the modern Uniform Buffer Object (`GlobalUniforms`) architecture using `[BASE_VERTEX_HEADER]`.
   - **Texture Binding State**: Corrected `WebGL2Renderer` to properly evaluate and bind `CubeTexture` instances to `TEXTURE_CUBE_MAP` targets instead of blindly falling back to `TEXTURE_2D`, preventing silent `GL_INVALID_OPERATION` conflicts.
