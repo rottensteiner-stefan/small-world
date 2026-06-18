@@ -6,7 +6,7 @@ import { RendererType } from "../enums/index.js";
 import { Object3D } from "../core/Object3D.js";
 import { Scene } from "../core/Scene.js";
 import { Vector3D } from "../math/index.js";
-import { EngineOptions, QualityConfig, ToneMapping } from "../interfaces/EngineOptions.js";
+import { EngineOptions, QualityConfig, ToneMapping } from "../interfaces/index.js";
 import { PostProcessingGroup } from "./post/index.js";
 
 /**

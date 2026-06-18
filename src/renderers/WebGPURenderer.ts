@@ -1,12 +1,11 @@
 /// src/renderers/WebGPURenderer.ts
 
 import { CubeTexture, RenderManifest, ShaderRegistry, Texture, DeviceCaps } from "../core/index.js";
-import { GeometryDataInterface, LightDataInterface } from "../interfaces/index.js";
+import { EngineOptions, GeometryDataInterface, LightDataInterface } from "../interfaces/index.js";
 import { Object3D } from "../core/Object3D.js";
 import { Scene } from "../core/Scene.js";
 import { MathPool, Vector3D, Matrix4 } from "../math/index.js";
 import { BlendingMode, RendererType, TextureFilter, TextureWrap } from "../enums/index.js";
-import { EngineOptions } from "../interfaces/EngineOptions.js";
 import { Fog } from "../core/Fog.js";
 
 import { AbstractRenderer } from "./AbstractRenderer.js";

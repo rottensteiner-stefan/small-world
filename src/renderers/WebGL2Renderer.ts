@@ -3,6 +3,7 @@
 import { AbstractWebGLRenderer } from "./AbstractWebGLRenderer.js";
 import { PostProcessPassGL, BloomPassGL } from "./post/index.js";
 import {
+  AbstractLight,
   CubeTexture,
   ShaderRegistry,
   Texture,
@@ -29,7 +30,6 @@ import { MathPool, Vector3D } from "../math/index.js";
 import { WebGL2UniformBuffer } from "./WebGL2UniformBuffer.js";
 import { WebGL2DepthFrameBuffer } from "./WebGL2DepthFrameBuffer.js";
 import { WebGL2FrameBuffer } from "./WebGL2FrameBuffer.js";
-import { AbstractLight } from "../core/lights/AbstractLight.js";
 
 interface ProgramCache {
   prog: WebGLProgram;
