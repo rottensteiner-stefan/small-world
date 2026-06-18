@@ -2,204 +2,43 @@
 
 This document outlines the commands, coding standards, and architectural guidelines for the "small-world" project.
 
-- **Knowledge :** You are an expert in JavaScript, TypeScript, Node.js, and scalable web application development. You write secure, maintainable, and performant code following TypeScript and JavaScript best practices.
-  Additionally, you are an expert in 3D rendering and calculations techniques. You know all the big names in the industry, such as Unity, Three.js and the Unreal Engine. Fast yet memory-efficient code is your passion.
+- **Knowledge:** Expert in JavaScript, TypeScript, Node.js, and 3D rendering (WebGL/WebGPU).
 
-## Think Before Coding
+## Core Rules & Workflow
 
-**Don't assume. Don't hide confusion. Surface tradeoffs.**
+- **Mandatory Planning:** ALWAYS create a detailed plan before making any code changes or file modifications. Code execution and modifications must only proceed AFTER the user has explicitly approved the plan.
+- **Surgical Changes:** ALWAYS use the `replace` tool for existing files. NEVER use `write_file` unless explicitly replacing the entire content or after verifying full content.
+- **Data Integrity:** Preserve all historical entries in logs and changelogs.
+- **Verification:** Run `npm run build:lib` and `npm test` after any logic changes. Run `npm test tests/core/FPSController.test.ts` for movement verification.
+- **Simplicity First:** Write the minimum code that solves the problem. No speculative features or abstractions.
 
-Before implementing:
+## Mathematical Integrity & Coordinate System
 
-- State your assumptions explicitly. If uncertain, ask.
-- If multiple interpretations exist, present them - don't pick silently.
-- If a simpler approach exists, say so. Push back when warranted.
-- If something is unclear, stop. Name what's confusing. Ask.
-- **Mandatory Planning:** ALWAYS create a detailed plan before making any code changes or file modifications, unless explicitly instructed otherwise. Code execution and modifications must only proceed AFTER the user has explicitly approved the plan. This ensures mutual safety and alignment.
+- **Coordinate System (Right-Handed):**
+  - **X:** Positive is **Right**.
+  - **Y:** Positive is **Up**.
+  - **Z:** Positive is **Backward**. Negative is **Forward/Front**.
+- **Input & Controls:**
+  - `theta = 0, phi = 0`: Camera looks **Forward** (`-Z`). `theta` increases looking **Right**.
+  - **FPS Movement (WASD):** `W` (Forward, `-Z`) moves in look direction (`LookVector * moveSpeed`). `S` (Backward, `+Z`) moves opposite. `A/D` moves perpendicular.
+  - `FPSController` calculation: `dirX = -moveZ * sin; dirZ = moveZ * cos;` (where W=-1, S=+1).
+- **Global Impact:** Update all call sites if core mathematical logic is changed.
 
-## Mathematical Integrity
+## Rendering & Post-Processing Architecture
 
-**Stability of core logic is paramount. No "local" fixes for global math.**
+- **Rendering Order:** Opaque objects MUST be drawn FIRST. Transparent objects MUST be drawn AFTER, sorted back-to-front (descending by squared distance from camera: `distB - distA`).
+- **Frustum Culling:** Prune objects outside the frustum using `frustum.intersectsVolume(obj.bounds)`.
+- **Lighting & Color:** Perform calculations in Linear Space (convert sRGB textures to Linear). Final output must be gamma-corrected (Linear to sRGB).
+- **Energy Conservation (PBR):** `Diffuse + Specular <= 1.0`. Metallic surfaces have little to no diffuse component.
+- **Resource Usage (WebGPU/WebGL):** Bitwise-OR exact usage flags explicitly when allocating textures/buffers. Bind error callbacks (`onuncapturederror`).
+- **Post-Processing (Uber-Shader):** Consolidate tone mapping, color grading, vignette, and gamma correction into **one single final post-process pass**. Avoid modular ping-pong passes.
+- **Compute Shaders:** Prefer WebGPU compute shaders with workgroup memory for heavy spatial operations (e.g., Gaussian Blur, Bloom).
 
-- **Coordinate System:** Adhere strictly to the project's coordinate system (Right-Handed):
-  - **X-Axis:** Positive is **Right**.
-  - **Y-Axis:** Positive is **Up**.
-  - **Z-Axis:** Positive is **Backward** (towards the viewer). Negative is **Forward/Front**.
-- **Input & Controls Standard:** To prevent regressions in movement logic, the following standards must be adhered to:
-  - **Camera Orientation:** When `theta = 0` and `phi = 0`, the camera looks directly **Forward** (towards `-Z`). `theta` (Rotation around Y) increases when looking **Right** (Clockwise from top).
-  - **FPS Movement (WASD):** **W (Forward)** must move the target in the current look direction. In code: `pos += LookVector * moveSpeed`. **S (Backward)** must move exactly in the opposite direction. **A/D (Strafe)** must move perpendicular to the look direction (Right vector).
-  - **Implementation Reference:** The `FPSController` calculation must always follow this logic: `dirX = -moveZ * sin; dirZ = moveZ * cos;` (where W=-1, S=+1).
-- **Regression Testing:** Any change to `src/math/` or index-generating logic MUST be accompanied by tests that verify the orientation, winding order, and coordinate system integrity (e.g., ensuring objects don't end up "upside down" or mirrored). Use `npm test tests/core/FPSController.test.ts` for movement verification.
-- **Global Impact Analysis:** If a core mathematical method _must_ be changed (e.g., to fix a fundamental bug), you MUST identify and update ALL call sites across the entire codebase.
+## Coding Standards
 
-## Rendering Architecture
-
-**Correct rendering order and culling are non-negotiable for visual integrity.**
-
-- **Opaque vs. Transparent Separation:** Renderers MUST strictly separate the rendering of opaque objects from transparent objects.
-  - Opaque objects MUST be drawn FIRST.
-  - Transparent objects MUST be drawn AFTER all opaque objects.
-  - Failure to do this will result in transparent objects being overwritten by opaque objects behind them (due to disabled depth writes on transparents).
-- **Back-to-Front Sorting (Transparency):** Transparent objects MUST be sorted back-to-front (furthest from the camera to nearest) before drawing.
-  - Always calculate squared distance from the camera position to the object's world position.
-  - Sort descending: `distB - distA`.
-- **Frustum Culling:** The scene graph MUST prune objects outside the camera's view frustum before sending them to the renderer.
-  - Extract the Frustum from the Camera's View-Projection matrix.
-  - Use `frustum.intersectsVolume(obj.bounds)` to skip rendering invisible objects.
-- **Pipeline State Consistency:** When grouping objects by shader or material, ensure the rendering pipeline (blend modes, depth states, culling) is updated per-material or per-group, not just once per shader type.
-- **Linear Color Space & Gamma Correctness:** All lighting calculations MUST be performed in Linear Space. Any texture containing color data (Albedo/Diffuse) MUST be converted from sRGB to Linear Space before lighting calculations. The final output MUST be gamma-corrected (Linear to sRGB) before being drawn to the screen.
-- **Energy Conservation (PBR):** A material cannot reflect more light than it receives. Ensure that `Diffuse + Specular <= 1.0`. Metallic surfaces reflect almost all light as specular and have little to no diffuse component.
-- **Explicit Resource Usage & Pipeline Strictness (WebGPU/WebGL):** Modern graphics APIs require explicit upfront declaration of resource intent. Never assume implicit capabilities. When allocating buffers or textures (especially SwapChain or FBOs), carefully analyze _all_ stages the resource will pass through (e.g., Binding, Copying, Rendering) and bitwise-OR the exact usage flags (e.g., `GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT`). Always bind error callbacks (`onuncapturederror`) and check for validation warnings during development.
-
-## Post-Processing Architecture
-
-**Bandwidth is King. Avoid naive Ping-Pong passes.**
-
-- **Render-to-Texture (FBO):** The `MainRenderPass` MUST render to a high-precision off-screen texture (e.g., `RGBA16F` for HDR) instead of directly to the canvas/backbuffer. This HDR buffer forms the foundation for all post-processing.
-- **Pass Consolidation (The "Uber-Shader"):** Do NOT build a modular "Ping-Pong" Effect Composer (like Three.js) that renders a fullscreen quad for every single effect. Each read/write cycle kills memory bandwidth on modern and mobile GPUs. Instead, consolidate all standard effects (Tone Mapping, Color Grading/LUT, Vignette, Gamma Correction) into **one single final Post-Process Pass**.
-- **WebGPU Compute Shaders:** For spatially heavy operations that require reading neighboring pixels (like Gaussian Blur for Bloom or Depth of Field), prefer **Compute Shaders** over fullscreen Fragment Shaders in WebGPU. Compute shaders allow for shared workgroup memory, dramatically accelerating these algorithms.
-- **Data-Oriented Post-Process State:** Manage post-processing settings via flat configuration structures rather than deeply nested OOP class hierarchies, allowing the renderer to quickly assemble the final Uber-Shader.
-
-## Industry Standards & Defaults
-
-**When in doubt, align with the giants.**
-
-- **Adhere to `REFERENCES.md`:** Always consult and strictly adhere to the sources, gurus, and best practices documented in `REFERENCES.md`. These references (e.g., PBRT, Real-Time Rendering, WebGPU Spec) form the absolute baseline for mathematical and architectural decisions.
-- **Default Values & Settings:** When defining default parameters, behaviors, or settings, orient yourself towards industry standards established by engines like **Unreal Engine**, **Three.js**, or **Unity**.
-- **Clarification:** If there is a conflict between standards or if the "best" standard is unclear, you MUST ask for clarification before proceeding.
-
-## Simplicity First
-
-**Minimum code that solves the problem. Nothing speculative.**
-
-- No features beyond what was asked.
-- No abstractions for single-use code.
-- No "flexibility" or "configurability" that wasn't requested.
-- No error handling for impossible scenarios.
-- If you write 200 lines and it could be 50, rewrite it.
-
-Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
-
-- **Surgical Changes:**
-  - **Mandatory `replace`:** ALWAYS use the `replace` tool for existing files to ensure only the intended lines are changed. NEVER use `write_file` to update an existing file unless you have explicitly verified the full content of the file in the current turn or are instructed to replace it entirely.
-  - **Preserve History:** When updating logs or changelogs, ensure all previous entries are preserved. Use `read_file` to gather context if the file history is not already fully visible in the current session.
-  - **No Accidental Truncation:** Double-check that your `new_string` or `content` does not omit existing code or data.
-- **Incremental Progress:** Make small, logical changes. Verify after each significant step (build/lint/test).
-- **Mandatory Verification:**
-  - **Full Build:** ALWAYS run `npm run build:lib` before finishing a task, especially when refactoring types, interfaces, or updating dependencies. This ensures that TypeScript errors in declaration files are caught.
-  - **Test Coverage:** Run `npm test` after any logic change.
-- **Quality & Stability:**
-  - **Regression Testing:** Every bug fix must include a test case or a verification step that ensures the bug does not return.
-  - **Geometric Integrity:** When modifying or adding geometries, verify winding orders and normals.
-  - **Cross-Renderer Verification:** Changes to shaders or renderer state must be considered for all supported renderers (WebGL1, WebGL2, WebGPU).
-- **Touch only what you must. Clean up only your own mess.**
-
-When editing existing code:
-
-- Don't "improve" adjacent code, comments, or formatting.
-- Don't refactor things that aren't broken.
-- Match existing style, even if you'd do it differently.
-- If you notice unrelated dead code, mention it - don't delete it.
-
-When your changes create orphans:
-
-- Remove imports/variables/functions that YOUR changes made unused.
-- Don't remove pre-existing dead code unless asked.
-
-The test: Every changed line should trace directly to the user's request.
-
-## TypeScript Performance & Memory Optimization Rules
-
-Follow these rules to ensure the generated code is optimized for modern JavaScript engines (V8) and minimizes Garbage Collection (GC) overhead.
-
-### 1. Object Stability (Hidden Classes)
-
-- **Prefer Fixed Shapes:** Always initialize objects with all their expected properties. Avoid adding properties dynamically (`obj.prop = value`).
-- **Consistent Order:** Initialize properties in the same order to allow the engine to reuse "Hidden Classes" (Shapes).
-- **Interfaces over Types:** Use `interface` for object definitions to encourage stable structures.
-
-### 2. Memory Management & GC Pressure
-
-- **Avoid Frequent Allocations:** In performance-critical loops (hot paths), reuse objects or arrays instead of creating new ones (Object Pooling).
-- **Minimize Spread Operator:** Avoid using `{ ...obj }` or `[ ...arr ]` inside tight loops, as this creates a new instance every time, triggering frequent GC cycles.
-- **Use `const` for Scope:** Help the engine track lifetimes, but prefer in-place mutations over immutability ONLY in heavy computational logic.
-
-### 3. Data Structures
-
-- **TypedArrays for Numbers:** Use `Int32Array`, `Float64Array`, or `Uint8Array` for large numeric datasets to ensure contiguous memory allocation and avoid boxing.
-- **Maps for Dynamic Keys:** Use `Map` instead of plain objects `{}` when keys are frequently added or deleted.
-- **Monomorphism:** Ensure functions are called with arguments of the same "shape" to stay in the JIT "fast path" (avoiding megamorphic calls).
-
-### 4. Array Optimizations
-
-- **Pre-allocate Arrays:** If the final size is known, use `new Array(size)` or a TypedArray to avoid costly re-sizing/re-allocating operations.
-- **Avoid Hole-y Arrays:** Do not create "holes" in arrays (e.g., `arr[100] = 'x'` on a 5-element array), as this pushes the array into "dictionary mode."
-
-### 5. Modern Syntax vs. Performance
-
-- **For-loops vs. Array Methods:** Use standard `for` or `for...of` loops for massive datasets. While `.forEach`, `.map`, and `.filter` are elegant, they introduce a functional overhead (callback creation) that can be significant in hot paths.
-
-## Commands
-
-- **Start Development Server:** `npm run dev`
-- **Build Everything:** `npm run build`
-- **Build Library Only:** `npm run build:lib`
-- **Lint & Format:** `npm run format`
-
-## TypeScript Coding Standards
-
-ESLint Sync: These rules are synchronized with the linter configuration (eslint.config.js). Notes are included for points that require additional plugins.
-
-### 1. General & Strictness
-
-- **Strict Mode:** The `tsconfig.json` must be configured with `strict: true` and related strictness flags.
-- **Explicit Types:** Always use explicit types.
-  - **Access Modifiers:** Use `public`, `protected`, `private`. Do not rely on implicit `public`.
-  - **Return Types:** Specify return types for all functions and methods, even `void`.
-- **`any` is Forbidden:** Avoid `any`. Use `unknown` for data of unknown type and perform safe type checks.
-- **`const` over `let`:** Use `const` by default. Use `let` only for variables that must be reassigned.
-- **File Headers:** Every `.ts` file must start with a comment, followed by an empty line, containing its relative path (e.g., `/// src/core/Scene.ts`).
-- **Import Placement:** All `import` statements must be placed at the very top of the file. No imports are allowed at the end or in the middle of a file.
-
-### 2. Naming Conventions
-
-- **`PascalCase`:** For classes, interfaces, enums, and type aliases (e.g., `class TerrainManager`, `interface GeometryDataInterface`).
-- **`camelCase`:** For variables, functions, and methods (e.g., `let carSpeed`, `function updateScene()`).
-- **File Names:** Must match the primary exported class/interface name exactly (e.g., `TerrainManager.ts`).
-- **No Prefixes for Interfaces:** Do not use `I` as a prefix for interfaces (e.g., `interface GeometryInterface` instead of `IGeometry`). The name should be descriptive on its own.
-- **`Abstract` Prefix:** Use the `Abstract` prefix for abstract base classes that are designed for extension (e.g., `abstract class AbstractLoader`).
-- **Private Properties:** Prefix `private` properties with an underscore `_` (e.g., `private _dispatcher`). This is a convention for "soft" privacy. For "hard" privacy (runtime enforced), consider using the ECMAScript `#` prefix.
-
-### 3. Code Style & Architectural Patterns
-
-- **ESM Imports:** Always include the `.js` extension in relative import paths to ensure native ESM compatibility (e.g., `import { Scene } from './Scene.js'`).
-- **Barrel Files:** Maintain `index.ts` barrel files at each directory level to simplify imports. Use shortened imports where it doesn't create circular dependencies.
-- **`interface` vs. `type`:**
-  - Use `interface` for defining public object shapes and APIs that can be extended.
-  - Use `type` for all other cases: defining unions, intersections, tuples, or for use with utility types like `Pick` or `Omit`.
-- **Open/Closed Principle (OCP):** Software entities (classes, modules, functions) should be open for extension but closed for modification. Design components—especially renderers, geometries, and loaders—using stable interfaces or abstract classes to allow for new implementations without altering core engine logic. Always balance this with **Simplicity First**: do not introduce abstractions until they are required by at least two distinct use cases.
-- **Factories over Complex Constructors:** For objects that can be created in multiple ways (e.g., from an image vs. from raw data), use static factory methods (e.g., `Terrain.fromImage(...)`) and keep the constructor `protected` or `private`.
-- **Constructor Strategy:**
-  - Use positional arguments for simple types (e.g., `Vector3D(x, y, z)`, `Color(r, g, b)`).
-  - Use **Configuration Objects** (Options-Interfaces) for complex entities with more than two optional parameters (e.g., `AmbientLight({ color, intensity })`) to improve readability and extensibility.
-- **Geometry Segmentation:** All primitive geometries (Cube, Sphere, Plane, etc.) must support segmentation (subdivisions) via constructor options to allow control over detail levels.
-- **Immutability:** Use `readonly` for properties that should not be changed after initialization.
-- **Functional Patterns:** Prefer functional patterns (`.map()`, `.filter()`) over imperative loops where it improves readability.
-- **`undefined` over `null`:** Use `undefined` for optional or uninitialized values. Avoid using `null`.
-- **No Magic Strings:** Avoid using hardcoded strings for configuration, state, or identifiers (e.g., `"alpha"`, `"back"`). Instead, use `Enums` or `Const Objects` (e.g., `BlendingMode.ALPHA`, `CullMode.BACK`) to ensure type safety and maintainability.
-- **Comments:** All code comments must be written in English. If you find comments in a language other than English, translate them.
-- **Yoda:** Use Yoda-style value comparisons.
-- **Early Returns & Guard Clauses**: Prioritize "Early Returns" to enhance readability, reduce cognitive load, and avoid deeply nested logic.
-  - **Guard Clauses First:** Validate inputs, permissions, and preconditions at the very beginning of the function.
-  - **No 'else' after Return:** Do not use `else` or `else if` blocks if the preceding `if` block ends with a `return`, `throw`, or `break`.
-  - **Minimize Nesting:** Keep the nesting level as shallow as possible. Avoid nesting `if` statements more than 2 levels deep.
-  - **The Happy Path:** The primary successful execution logic (the "Happy Path") should remain non-indented at the end of the function.
-
-### 4. Asynchronicity
-
-- **`async/await`:** Prefer `async/await` over promise-chaining with `.then()` for cleaner and more readable asynchronous code.
-
-### 5. Documentation
-
-- **JSDoc:** All public APIs (classes, methods, properties) must be documented with JSDoc (`/** ... */`).
-- **Language:** All comments, documentation, etc. must be written in English.
+- **Strictness:** TypeScript `strict: true`. Use explicit types, access modifiers (`public`, `protected`, `private`), and return types. Avoid `any`.
+- **Early Returns & Guard Clauses:** Prioritize guard clauses at the beginning. No `else` after a return. Minimize nesting.
+- **Naming:** `PascalCase` for classes/interfaces/enums. `camelCase` for variables/functions. Prefix private properties with `_`.
+- **Files:** File name must match primary export. Every `.ts` file must start with its relative path as a comment (e.g. `/// src/core/Scene.ts`).
+- **Imports:** Always include `.js` extension in relative ESM imports. Place imports at the very top.
+- **Yoda Comparisons:** Use Yoda-style value comparisons.
