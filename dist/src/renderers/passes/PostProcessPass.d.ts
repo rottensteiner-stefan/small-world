@@ -15,6 +15,7 @@ export declare class PostProcessPass implements RenderPass {
     private _sampler?;
     private _uniformData;
     private _builtTextureView?;
+    private _builtBloomTextureView?;
     /**
      * Lazily initialises or rebuilds the pipeline when the HDR texture changes.
      */
