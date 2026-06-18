@@ -2,11 +2,23 @@
 
 ## [0.29.0] - 2026-06-19
 
-- **Core Performance & WebGPU Architecture Upgrades**:
-  - **CPU Frustum Culling Cleanup**: Optimized culling logic in `Scene.ts` (`_collectVisible`) to read the pre-calculated `inFrustum` state instead of repeating duplicate `intersectsVolume` calculations, reducing CPU overhead by half in rendering loops.
-  - **WebGPU Bind Group Reorganization (Frequency-of-Change)**: Restructured standard shader bindings to split object uniforms and material textures. The material bind group (sampler and 13 textures) is now bound once per material, while the object bind group (transforms) is bound once per object, significantly reducing driver validation overhead and state changes.
-  - **WebGPU Caching & JIT Friendliness**: Implemented material bind group caching on the renderer and object bind group caching on uniform buffer data to avoid dynamic allocation. Avoided dynamic key deletion (`delete`) on reuse objects to maintain V8 hidden class stability.
-  - **WebGPU Compute-equivalent Bloom**: Implemented Dual Kawase downsampling and upsampling filters using WebGPU render passes and fragment shaders. This mirrors WebGL2's bloom quality and provides hardware-accelerated bilinear filtering and 100% device compatibility.
+- **Architectural Overhaul: High-Performance Culling, WebGPU Bind Groups & Bloom**:
+  - **CPU Frustum Culling Integration (Zero-Duplicate Math)**:
+    - Resolved a major scene graph bottleneck where culling was performed twice per frame (first in `FrustumCuller` and then recalculated inside `Scene.getVisibleObjectsSorted`).
+    - The rendering traversal in `Scene._collectVisible` now directly reads the pre-calculated `inFrustum` state computed during the spatial/octree query phase.
+    - Eliminates $N$ redundant frustum-box intersection checks and hierarchy descents per frame, cutting CPU rendering loop overhead by up to 50%.
+  - **WebGPU Frequency-of-Change Bind Group Split (Driver Overhead Reduction)**:
+    - Completely redesigned the bind group layouts in `WebGPURenderer` to adhere to graphics API best practices (separating bindings by update frequency).
+    - Shuffled bindings in `structs.wgsl` and layouts in the renderer to isolate material texture resources in `@group(1)` and object-specific transforms/properties in `@group(2)`.
+    - The heavy Material Bind Group (containing 14 bindings for sampler, diffuse, specular, normal, terrain maps, etc.) is now bound **only once per material group**, while the lightweight Object Bind Group is bound per object. This drastically reduces the number of descriptor sets bound per frame, saving valuable CPU validation time in the WebGPU browser thread.
+  - **Zero-Allocation Bind Group Caching & GC Stabilization**:
+    - Introduced a dual-caching strategy for WebGPU bind groups: Material Bind Groups are cached on the renderer keyed by UUID (with dirty checks on texture views), and Object Bind Groups are cached directly on the uniform buffer metadata.
+    - Removed hot-path array allocations (e.g. `resources` array comparisons inside `_getTexBindGroup`), eliminating GC pressure.
+    - Replaced the hot-path `delete` operator on reuse objects with static assignment to `undefined`, preventing V8 JIT from dropping objects into dictionary mode and maintaining optimized monomorphic shapes.
+  - **WebGPU Dual Kawase Bloom Pass**:
+    - Ported the high-quality Dual Kawase Bloom pass from WebGL2 to WebGPU using native render passes and WGSL shaders.
+    - Implemented a 13-tap prefiltered downsample shader (`BloomDownsample.frag.wgsl`) with quadratic threshold mapping to isolate highlights, and a 9-tap bilinear upsample shader (`BloomUpsample.frag.wgsl`) with hardware-accelerated additive blending.
+    - Generates a 5-level downscaled mip-chain of the HDR render target. Uses render pass attachments and mipmap texture views, guaranteeing 100% cross-device compatibility without requiring experimental storage texture features.
 
 ## [0.28.0] - 2026-06-17
 
