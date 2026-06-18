@@ -5,13 +5,20 @@ import { EngineOptions, GeometryDataInterface, LightDataInterface } from "../int
 import { Object3D } from "../core/Object3D.js";
 import { Scene } from "../core/Scene.js";
 import { MathPool, Vector3D, Matrix4 } from "../math/index.js";
-import { BlendingMode, RendererType, TextureFilter, TextureWrap } from "../enums/index.js";
+import {
+  BlendingMode,
+  RendererType,
+  TextureFilter,
+  TextureWrap,
+  PostProcessingEffectType,
+} from "../enums/index.js";
 import { Fog } from "../core/Fog.js";
 
 import { AbstractRenderer } from "./AbstractRenderer.js";
 import { RenderPass } from "./RenderPass.js";
 import { MainRenderPass } from "./passes/MainRenderPass.js";
 import { PostProcessPass } from "./passes/PostProcessPass.js";
+import { BloomPassGPU } from "./post/BloomPassGPU.js";
 import { UniformPacker } from "../core/renderers/shaders/UniformPacker.js";
 
 export interface WebGPUGeoCache {
@@ -52,15 +59,21 @@ export class WebGPURenderer extends AbstractRenderer {
   protected _pipelines: Map<string, WebGPUPipelineCache> = new Map();
   protected _shaderModules: Map<string, GPUShaderModule> = new Map();
 
-  protected _whiteTexView!: GPUTextureView;
+  public _whiteTexView!: GPUTextureView;
   protected _flatNormalTexView!: GPUTextureView;
   protected _objectUniformBuffers = new Map<
     string,
     {
       buffer: GPUBuffer;
       lastFrame: number;
-      texBg?: GPUBindGroup;
-      texBgResources?: unknown[];
+      objBg?: GPUBindGroup;
+    }
+  >();
+  protected _materialBindGroups = new Map<
+    string,
+    {
+      bg: GPUBindGroup;
+      resources: unknown[];
     }
   >();
   protected _textureViewCache = new Map<Texture, GPUTextureView>();
@@ -92,6 +105,8 @@ export class WebGPURenderer extends AbstractRenderer {
 
   public _hdrTexture: GPUTexture | undefined = undefined;
   public _hdrTextureView: GPUTextureView | undefined = undefined;
+  public _bloomPassGPU: BloomPassGPU | undefined = undefined;
+  public _bloomTextureView: GPUTextureView | undefined = undefined;
 
   // Render Pass System
   protected _passes: RenderPass[] = [];
@@ -102,6 +117,8 @@ export class WebGPURenderer extends AbstractRenderer {
   public _areaLightBuffer!: GPUBuffer;
   public _globalBindGroup!: GPUBindGroup;
   public _globalBGL!: GPUBindGroupLayout;
+  public _materialBGL!: GPUBindGroupLayout;
+  public _objectBGL!: GPUBindGroupLayout;
 
   /** @inheritdoc */
   public async initialize(
@@ -291,6 +308,50 @@ export class WebGPURenderer extends AbstractRenderer {
         { binding: 3, resource: { buffer: this._areaLightBuffer } },
       ],
     });
+
+    const matEntries: GPUBindGroupLayoutEntry[] = [
+      { binding: 1, visibility: GPUShaderStage.FRAGMENT, sampler: { type: "filtering" } },
+    ];
+    for (let i = 2; i <= 10; i++) {
+      matEntries.push({
+        binding: i,
+        visibility: GPUShaderStage.FRAGMENT,
+        texture: { sampleType: "float" },
+      });
+    }
+    matEntries.push({
+      binding: 11,
+      visibility: GPUShaderStage.FRAGMENT,
+      texture: { viewDimension: "cube" },
+    });
+    matEntries.push(
+      {
+        binding: 12,
+        visibility: GPUShaderStage.FRAGMENT,
+        texture: { viewDimension: "2d", sampleType: "float" },
+      },
+      {
+        binding: 13,
+        visibility: GPUShaderStage.FRAGMENT,
+        texture: { viewDimension: "2d", sampleType: "float" },
+      },
+      {
+        binding: 14,
+        visibility: GPUShaderStage.FRAGMENT,
+        texture: { viewDimension: "2d", sampleType: "float" },
+      },
+    );
+    this._materialBGL = this._device!.createBindGroupLayout({ entries: matEntries });
+
+    this._objectBGL = this._device!.createBindGroupLayout({
+      entries: [
+        {
+          binding: 0,
+          visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+          buffer: { type: "uniform" },
+        },
+      ],
+    });
   }
 
   protected _getPipeline(
@@ -318,46 +379,8 @@ export class WebGPURenderer extends AbstractRenderer {
     if (!cache) {
       console.log("[WebGPURenderer] Creating new pipeline:", key);
       const sm = this._getShaderModule(shaderId);
-      const objEntries: GPUBindGroupLayoutEntry[] = [
-        {
-          binding: 0,
-          visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-          buffer: { type: "uniform" },
-        },
-        { binding: 1, visibility: GPUShaderStage.FRAGMENT, sampler: { type: "filtering" } },
-      ];
-      for (let i = 2; i <= 10; i++) {
-        objEntries.push({
-          binding: i,
-          visibility: GPUShaderStage.FRAGMENT,
-          texture: { sampleType: "float" },
-        });
-      }
-      objEntries.push({
-        binding: 11,
-        visibility: GPUShaderStage.FRAGMENT,
-        texture: { viewDimension: "cube" },
-      });
-      objEntries.push(
-        {
-          binding: 12,
-          visibility: GPUShaderStage.FRAGMENT,
-          texture: { viewDimension: "2d", sampleType: "float" },
-        },
-        {
-          binding: 13,
-          visibility: GPUShaderStage.FRAGMENT,
-          texture: { viewDimension: "2d", sampleType: "float" },
-        },
-        {
-          binding: 14,
-          visibility: GPUShaderStage.FRAGMENT,
-          texture: { viewDimension: "2d", sampleType: "float" },
-        },
-      );
-      const objBGL = this._device!.createBindGroupLayout({ entries: objEntries });
       const pipelineLayout = this._device!.createPipelineLayout({
-        bindGroupLayouts: [this._globalBGL, objBGL],
+        bindGroupLayouts: [this._globalBGL, this._materialBGL, this._objectBGL],
       });
 
       const vertexBuffers: GPUVertexBufferLayout[] = [
@@ -394,7 +417,11 @@ export class WebGPURenderer extends AbstractRenderer {
           format: "depth24plus",
         },
       });
-      cache = { pipeline, layout: pipelineLayout, bgLayouts: [this._globalBGL, objBGL] };
+      cache = {
+        pipeline,
+        layout: pipelineLayout,
+        bgLayouts: [this._globalBGL, this._materialBGL, this._objectBGL],
+      };
       this._pipelines.set(key, cache);
     }
     return cache;
@@ -490,7 +517,25 @@ export class WebGPURenderer extends AbstractRenderer {
     const screenView = this._context.getCurrentTexture().createView();
     const renderTargetView = this.postProcessing.enabled ? this._hdrTextureView! : screenView;
 
+    const bloomNode = this.postProcessing.get<
+      import("./post/PostProcessingElement.js").BloomElement
+    >(PostProcessingEffectType.BLOOM);
+
     for (const pass of this._passes) {
+      if (
+        pass.name === "PostProcessPass" &&
+        bloomNode &&
+        bloomNode.enabled &&
+        this._hdrTexture &&
+        this._hdrTextureView
+      ) {
+        this._bloomPassGPU ??= new BloomPassGPU(this._device);
+        this._bloomTextureView =
+          this._bloomPassGPU.execute(ce, this._hdrTexture, this._hdrTextureView, bloomNode) ??
+          undefined;
+      } else if (pass.name === "PostProcessPass") {
+        this._bloomTextureView = undefined;
+      }
       pass.execute(this, scene, ce, renderTargetView, vp, camPos, vMat);
     }
 
@@ -537,19 +582,23 @@ export class WebGPURenderer extends AbstractRenderer {
     topology: GPUPrimitiveTopology = "triangle-list",
   ): void {
     rp.setBindGroup(0, this._globalBindGroup);
-    for (const objects of materialGroups.values()) {
+    for (const [matUuid, objects] of materialGroups.entries()) {
       const mat = objects[0]?.material;
       if (!mat) continue;
       const manifest = mat.getRenderManifest();
       const cache = this._getPipeline(manifest, topology);
       rp.setPipeline(cache.pipeline);
 
+      const matBindGroup = this._getMaterialBindGroup(matUuid, manifest, cache.bgLayouts[1]!);
+      rp.setBindGroup(1, matBindGroup);
+
       for (const obj of objects) {
         if (!obj.geometry) continue;
         const uBufferData = this._getObjUniformBufferData(obj);
         this._updateObjUniformBuffer(uBufferData.buffer, obj, manifest, vMat);
-        const texBindGroup = this._getTexBindGroup(uBufferData, manifest, cache.bgLayouts[1]!);
-        rp.setBindGroup(1, texBindGroup);
+        const objBindGroup = this._getObjBindGroup(uBufferData, cache.bgLayouts[2]!);
+        rp.setBindGroup(2, objBindGroup);
+
         const gCache = this._getGeoCache(obj.geometry!);
         this._ensureDummyBufferSize(gCache.vertexCount);
         rp.setVertexBuffer(0, gCache.vb);
@@ -580,8 +629,7 @@ export class WebGPURenderer extends AbstractRenderer {
   protected _getObjUniformBufferData(obj: Object3D): {
     buffer: GPUBuffer;
     lastFrame: number;
-    texBg?: GPUBindGroup;
-    texBgResources?: unknown[];
+    objBg?: GPUBindGroup;
   } {
     let data = this._objectUniformBuffers.get(obj.uuid);
     if (!data) {
@@ -635,8 +683,10 @@ export class WebGPURenderer extends AbstractRenderer {
     }
 
     const values = this._scratchUniformValues;
-    // Clear old values to avoid leaking
-    for (const k in values) delete values[k];
+    // Clear old values to avoid leaking without modifying the hidden class shape
+    for (const k in values) {
+      values[k] = undefined;
+    }
 
     // Copy properties
     for (const k in m.properties) {
@@ -655,8 +705,8 @@ export class WebGPURenderer extends AbstractRenderer {
     this._device!.queue.writeBuffer(b, 0, this._scratchObjBufferData);
   }
 
-  protected _getTexBindGroup(
-    objBufferData: { buffer: GPUBuffer; texBg?: GPUBindGroup; texBgResources?: unknown[] },
+  protected _getMaterialBindGroup(
+    matUuid: string,
     m: RenderManifest,
     layout: GPUBindGroupLayout,
   ): GPUBindGroup {
@@ -678,22 +728,30 @@ export class WebGPURenderer extends AbstractRenderer {
       ? this._getTextureView(m.textures["u_opaqueMap"] as Texture)
       : this._opaqueTextureView || this._whiteTexView;
 
-    const resources = [r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, layout];
-
-    // Check cache
-    if (objBufferData.texBg && objBufferData.texBgResources) {
-      let match = true;
-      for (let i = 0; i < resources.length; i++) {
-        if (resources[i] !== objBufferData.texBgResources[i]) {
-          match = false;
-          break;
-        }
+    const cache = this._materialBindGroups.get(matUuid);
+    if (cache) {
+      const resources = cache.resources;
+      if (
+        resources[0] === r1 &&
+        resources[1] === r2 &&
+        resources[2] === r3 &&
+        resources[3] === r4 &&
+        resources[4] === r5 &&
+        resources[5] === r6 &&
+        resources[6] === r7 &&
+        resources[7] === r8 &&
+        resources[8] === r9 &&
+        resources[9] === r10 &&
+        resources[10] === r11 &&
+        resources[11] === r12 &&
+        resources[12] === r13 &&
+        resources[13] === r14
+      ) {
+        return cache.bg;
       }
-      if (match) return objBufferData.texBg;
     }
 
     const entries: GPUBindGroupEntry[] = [
-      { binding: 0, resource: { buffer: objBufferData.buffer } },
       { binding: 1, resource: r1 },
       { binding: 2, resource: r2 },
       { binding: 3, resource: r3 },
@@ -710,9 +768,24 @@ export class WebGPURenderer extends AbstractRenderer {
       { binding: 14, resource: r14 },
     ];
     const bg = this._device!.createBindGroup({ layout, entries });
-    objBufferData.texBg = bg;
-    objBufferData.texBgResources = resources;
+    this._materialBindGroups.set(matUuid, {
+      bg,
+      resources: [r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14],
+    });
     return bg;
+  }
+
+  protected _getObjBindGroup(
+    objBufferData: { buffer: GPUBuffer; objBg?: GPUBindGroup },
+    layout: GPUBindGroupLayout,
+  ): GPUBindGroup {
+    if (objBufferData.objBg) return objBufferData.objBg;
+
+    objBufferData.objBg = this._device!.createBindGroup({
+      layout,
+      entries: [{ binding: 0, resource: { buffer: objBufferData.buffer } }],
+    });
+    return objBufferData.objBg;
   }
 
   protected _getTextureView(tex: Texture | undefined): GPUTextureView {

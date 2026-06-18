@@ -23,11 +23,12 @@ export class PostProcessPass implements RenderPass {
   private _sampler?: GPUSampler;
   private _uniformData: Float32Array = new Float32Array(12);
   private _builtTextureView?: GPUTextureView;
+  private _builtBloomTextureView?: GPUTextureView;
 
   /**
    * Lazily initialises or rebuilds the pipeline when the HDR texture changes.
    */
-  private _build(renderer: WebGPURenderer): void {
+  private _build(renderer: WebGPURenderer, bloomActiveView: GPUTextureView): void {
     const device = renderer._device!;
 
     this._sampler ??= device.createSampler({
@@ -49,6 +50,7 @@ export class PostProcessPass implements RenderPass {
         { binding: 0, visibility: GPUShaderStage.FRAGMENT, sampler: {} },
         { binding: 1, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: "float" } },
         { binding: 2, visibility: GPUShaderStage.FRAGMENT, buffer: { type: "uniform" } },
+        { binding: 3, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: "float" } },
       ],
     });
 
@@ -74,6 +76,7 @@ export class PostProcessPass implements RenderPass {
         { binding: 0, resource: this._sampler },
         { binding: 1, resource: renderer._hdrTextureView! },
         { binding: 2, resource: { buffer: this._uniformBuffer } },
+        { binding: 3, resource: bloomActiveView },
       ],
     });
   }
@@ -89,10 +92,23 @@ export class PostProcessPass implements RenderPass {
     const group = renderer.postProcessing;
     if (!group.enabled || !renderer._hdrTextureView) return;
 
-    // Rebuild only if we haven't built yet, or if the texture view changed (e.g. resize)
-    if (!this._pipeline || this._builtTextureView !== renderer._hdrTextureView) {
-      this._build(renderer);
+    const bloom = group.get<import("../post/PostProcessingElement.js").BloomElement>(
+      PostProcessingEffectType.BLOOM,
+    );
+    const bloomActiveView =
+      bloom && bloom.enabled && renderer._bloomTextureView
+        ? renderer._bloomTextureView
+        : renderer._whiteTexView;
+
+    // Rebuild only if we haven't built yet, or if the texture view changed (e.g. resize or bloom toggle)
+    if (
+      !this._pipeline ||
+      this._builtTextureView !== renderer._hdrTextureView ||
+      this._builtBloomTextureView !== bloomActiveView
+    ) {
+      this._build(renderer, bloomActiveView);
       this._builtTextureView = renderer._hdrTextureView;
+      this._builtBloomTextureView = bloomActiveView;
     }
 
     const tm = group.get<import("../post/PostProcessingElement.js").ToneMappingElement>(
@@ -126,8 +142,10 @@ export class PostProcessPass implements RenderPass {
     u32View[7] = grain && grain.enabled ? 1 : 0;
     this._uniformData[8] = grain ? grain.intensity : 0.05;
     this._uniformData[9] = (performance.now() % 100000) / 1000.0; // Time in seconds
-    this._uniformData[10] = 0;
-    this._uniformData[11] = 0;
+
+    // Repurpose offset 10 and 11 for bloom
+    u32View[10] = bloom && bloom.enabled ? 1 : 0;
+    this._uniformData[11] = bloom && bloom.enabled ? bloom.intensity : 0.0;
 
     renderer._device!.queue.writeBuffer(this._uniformBuffer!, 0, this._uniformData);
 

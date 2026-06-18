@@ -1,5 +1,6 @@
 @group(0) @binding(0) var hdrSampler: sampler;
 @group(0) @binding(1) var hdrTexture: texture_2d<f32>;
+@group(0) @binding(3) var bloomTexture: texture_2d<f32>;
 
 struct PostUniforms {
     exposure: f32,
@@ -12,7 +13,8 @@ struct PostUniforms {
     grainEnabled: u32,
     grainIntensity: f32,
     time: f32,
-    _pad2: f32,
+    bloomEnabled: u32,
+    bloomIntensity: f32,
 }
 @group(0) @binding(2) var<uniform> u: PostUniforms;
 
@@ -56,14 +58,19 @@ fn fs_main(@builtin(position) coord: vec4f) -> @location(0) vec4f {
     let uv = coord.xy / dims;
 
     let hdr = textureSample(hdrTexture, hdrSampler, uv).rgb;
+    var hdrVal = hdr;
+    if (u.bloomEnabled == 1u) {
+        let bloom = textureSample(bloomTexture, hdrSampler, uv).rgb;
+        hdrVal += bloom * u.bloomIntensity;
+    }
     
-    var tonemapped = hdr * u.exposure;
+    var tonemapped = hdrVal * u.exposure;
     if (u.toneMappingMode == 1u) {
-        tonemapped = toneMapReinhard(hdr, u.exposure);
+        tonemapped = toneMapReinhard(hdrVal, u.exposure);
     } else if (u.toneMappingMode == 2u) {
-        tonemapped = toneMapCineon(hdr, u.exposure);
+        tonemapped = toneMapCineon(hdrVal, u.exposure);
     } else if (u.toneMappingMode == 3u) {
-        tonemapped = toneMapACESFilmic(hdr, u.exposure);
+        tonemapped = toneMapACESFilmic(hdrVal, u.exposure);
     }
     
     var srgb = linearToSRGB(tonemapped, u.inverseGamma);

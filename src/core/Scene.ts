@@ -194,7 +194,7 @@ export class Scene {
 
     // Frustum Culling
     if (obj.frustumCulled && obj.bounds) {
-      if (!frustum.intersectsVolume(obj.bounds)) {
+      if (!obj.inFrustum) {
         return;
       }
     }

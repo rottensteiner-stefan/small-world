@@ -76,7 +76,6 @@ struct AreaLight {
 @group(0) @binding(2) var<storage> sLights: array<SpotLight>;
 @group(0) @binding(3) var<storage> aLights: array<AreaLight>;
 
-@group(1) @binding(0) var<uniform> obj: ObjectUniforms;
 @group(1) @binding(1) var s: sampler;
 @group(1) @binding(2) var u_diffuseMap: texture_2d<f32>;
 @group(1) @binding(3) var u_normalMap: texture_2d<f32>;
@@ -90,3 +89,5 @@ struct AreaLight {
 @group(1) @binding(11) var u_skybox: texture_cube<f32>;
 @group(1) @binding(12) var u_emissiveMap: texture_2d<f32>;
 @group(1) @binding(13) var u_alphaMap: texture_2d<f32>;
+
+@group(2) @binding(0) var<uniform> obj: ObjectUniforms;

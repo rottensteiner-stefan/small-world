@@ -6,6 +6,7 @@ import { Vector3D } from '../math/index.js';
 import { RendererType } from '../enums/index.js';
 import { AbstractRenderer } from './AbstractRenderer.js';
 import { RenderPass } from './RenderPass.js';
+import { BloomPassGPU } from './post/BloomPassGPU.js';
 export interface WebGPUGeoCache {
     vb: GPUBuffer;
     nb: GPUBuffer | undefined;
@@ -36,13 +37,16 @@ export declare class WebGPURenderer extends AbstractRenderer {
     _format: GPUTextureFormat;
     protected _pipelines: Map<string, WebGPUPipelineCache>;
     protected _shaderModules: Map<string, GPUShaderModule>;
-    protected _whiteTexView: GPUTextureView;
+    _whiteTexView: GPUTextureView;
     protected _flatNormalTexView: GPUTextureView;
     protected _objectUniformBuffers: Map<string, {
         buffer: GPUBuffer;
         lastFrame: number;
-        texBg?: GPUBindGroup;
-        texBgResources?: unknown[];
+        objBg?: GPUBindGroup;
+    }>;
+    protected _materialBindGroups: Map<string, {
+        bg: GPUBindGroup;
+        resources: unknown[];
     }>;
     protected _textureViewCache: Map<Texture, GPUTextureView>;
     protected _dummyNormalBuffer: GPUBuffer;
@@ -67,6 +71,8 @@ export declare class WebGPURenderer extends AbstractRenderer {
     _opaqueTextureView?: GPUTextureView;
     _hdrTexture: GPUTexture | undefined;
     _hdrTextureView: GPUTextureView | undefined;
+    _bloomPassGPU: BloomPassGPU | undefined;
+    _bloomTextureView: GPUTextureView | undefined;
     protected _passes: RenderPass[];
     _globalUniformBuffer: GPUBuffer;
     _pointLightBuffer: GPUBuffer;
@@ -74,6 +80,8 @@ export declare class WebGPURenderer extends AbstractRenderer {
     _areaLightBuffer: GPUBuffer;
     _globalBindGroup: GPUBindGroup;
     _globalBGL: GPUBindGroupLayout;
+    _materialBGL: GPUBindGroupLayout;
+    _objectBGL: GPUBindGroupLayout;
     /** @inheritdoc */
     initialize(canvas: HTMLCanvasElement, attributes?: Record<string, unknown>, config?: EngineOptions): Promise<void>;
     /**
@@ -95,15 +103,14 @@ export declare class WebGPURenderer extends AbstractRenderer {
     protected _getObjUniformBufferData(obj: Object3D): {
         buffer: GPUBuffer;
         lastFrame: number;
-        texBg?: GPUBindGroup;
-        texBgResources?: unknown[];
+        objBg?: GPUBindGroup;
     };
     protected _updateObjUniformBuffer(b: GPUBuffer, o: Object3D, m: RenderManifest, vMat?: Float32Array): void;
-    protected _getTexBindGroup(objBufferData: {
+    protected _getMaterialBindGroup(matUuid: string, m: RenderManifest, layout: GPUBindGroupLayout): GPUBindGroup;
+    protected _getObjBindGroup(objBufferData: {
         buffer: GPUBuffer;
-        texBg?: GPUBindGroup;
-        texBgResources?: unknown[];
-    }, m: RenderManifest, layout: GPUBindGroupLayout): GPUBindGroup;
+        objBg?: GPUBindGroup;
+    }, layout: GPUBindGroupLayout): GPUBindGroup;
     protected _getTextureView(tex: Texture | undefined): GPUTextureView;
     protected _getNormalTextureView(tex: Texture | undefined): GPUTextureView;
     protected _getGPUCubeTextureView(tex: CubeTexture | undefined): GPUTextureView;
