@@ -1,4 +1,4 @@
-import { CameraInterfaceData, EngineConfig } from '../interfaces/index.js';
+import { CameraInterfaceData, EngineOptions } from '../interfaces/index.js';
 import { Renderer } from '../interfaces/Renderer.js';
 import { Scene } from './Scene.js';
 /** The current engine version. */
@@ -8,7 +8,7 @@ export declare const ENGINE_VERSION = "0.28.0";
  */
 export declare abstract class SmallWorld {
     /** The engine configuration. */
-    config: EngineConfig;
+    config: EngineOptions;
     /** The current scene. */
     scene: Scene;
     /** The main camera. */
@@ -27,7 +27,7 @@ export declare abstract class SmallWorld {
      * Creates a new SmallWorld application.
      * @param userConfig Optional configuration to override defaults.
      */
-    protected constructor(userConfig?: EngineConfig);
+    protected constructor(userConfig?: EngineOptions);
     /**
      * Called to setup the scene after the engine is initialized.
      */

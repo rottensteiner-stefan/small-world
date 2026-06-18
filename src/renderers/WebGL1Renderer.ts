@@ -10,7 +10,7 @@ import {
   DeviceCaps,
   DeviceLimit,
 } from "../core/index.js";
-import { EngineConfig, GeometryDataInterface, LightDataInterface } from "../interfaces/index.js";
+import { EngineOptions, GeometryDataInterface, LightDataInterface } from "../interfaces/index.js";
 import {
   MaterialType,
   RendererType,
@@ -103,7 +103,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
   public async initialize(
     canvas: HTMLCanvasElement,
     attributes?: Record<string, unknown>,
-    config?: EngineConfig,
+    config?: EngineOptions,
   ): Promise<void> {
     const gl =
       canvas.getContext("webgl", attributes) || canvas.getContext("experimental-webgl", attributes);

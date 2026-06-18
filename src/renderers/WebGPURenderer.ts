@@ -6,7 +6,7 @@ import { Object3D } from "../core/Object3D.js";
 import { Scene } from "../core/Scene.js";
 import { MathPool, Vector3D, Matrix4 } from "../math/index.js";
 import { BlendingMode, RendererType, TextureFilter, TextureWrap } from "../enums/index.js";
-import { EngineConfig } from "../interfaces/EngineConfig.js";
+import { EngineOptions } from "../interfaces/EngineOptions.js";
 import { Fog } from "../core/Fog.js";
 
 import { AbstractRenderer } from "./AbstractRenderer.js";
@@ -108,7 +108,7 @@ export class WebGPURenderer extends AbstractRenderer {
   public async initialize(
     canvas: HTMLCanvasElement,
     attributes?: Record<string, unknown>,
-    config?: EngineConfig,
+    config?: EngineOptions,
   ): Promise<void> {
     this._adapter = (await navigator.gpu.requestAdapter(attributes)) ?? undefined;
     if (!this._adapter) throw new Error("[WebGPURenderer] No adapter found.");

@@ -1,6 +1,7 @@
-/// src/interfaces/EngineConfig.ts
+/// src/interfaces/EngineOptions.ts
 
 import { ProjectionType, RendererType, InputMode } from "../enums/index.js";
+import type { AbstractProjection } from "../math/projections/AbstractProjection.js";
 
 /**
  * Configuration for a single renderer backend.
@@ -50,9 +51,24 @@ export interface QualityConfig {
 }
 
 /**
+ * Projection-specific startup parameters.
+ * Passed through EngineOptions and consumed by each projection's fromConfig factory.
+ */
+export interface ProjectionOptions {
+  /** Field of view in radians (Perspective only). Defaults to 75°. */
+  fov?: number;
+  /** Near clip plane distance. Defaults to 0.1. */
+  near?: number;
+  /** Far clip plane distance. Defaults to 1000. */
+  far?: number;
+  /** Half-height of the orthographic/oblique view volume. Defaults to 10. */
+  orthoSize?: number;
+}
+
+/**
  * Global engine configuration options.
  */
-export interface EngineConfig {
+export interface EngineOptions {
   /** The ID of the canvas element in the DOM. Defaults to "SmallWorld". */
   canvasId?: string;
   /** Whether the engine should automatically resize the canvas to full screen. */
@@ -62,7 +78,7 @@ export interface EngineConfig {
   /** Fixed width in pixels (ignored if fullscreen is true). */
   width?: number;
   /** Default camera projection type. */
-  projection?: ProjectionType;
+  projectionType?: ProjectionType;
   /** Primary renderer type to attempt initialization. */
   rendererType?: RendererType;
   /** The behavior of horizontal input keys (A/D). Defaults to TANK. */
@@ -71,4 +87,12 @@ export interface EngineConfig {
   renderer?: EngineRendererConfig[];
   /** Optional quality settings. */
   quality?: QualityConfig;
+  /** Projection startup parameters (near, far, fov, orthoSize). */
+  projectionOptions?: ProjectionOptions;
+  /**
+   * A fully constructed projection instance.
+   * When provided, projectionOptions and projection type are ignored.
+   * Use this to supply a custom or third-party projection.
+   */
+  projectionInstance?: AbstractProjection;
 }

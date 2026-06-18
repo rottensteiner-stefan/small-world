@@ -2,7 +2,7 @@
 
 import { SmallWorld } from "../SmallWorld.js";
 import { Input } from "../Input.js";
-import { EngineConfig } from "../../interfaces/index.js";
+import { EngineOptions } from "../../interfaces/index.js";
 import { Keys } from "../../enums/Keys.js";
 import { AssetManager } from "../../loaders/index.js";
 
@@ -11,7 +11,7 @@ export abstract class AbstractExample extends SmallWorld {
    * The constructor is passed to Application.
    * Also registers the global keyboard listener for demos.
    */
-  constructor(config: EngineConfig = {}) {
+  constructor(config: EngineOptions = {}) {
     super(config);
     window.addEventListener("keydown", (event: KeyboardEvent): void => this.onKeyDown(event));
   }

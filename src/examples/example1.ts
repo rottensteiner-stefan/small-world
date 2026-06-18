@@ -13,13 +13,9 @@ import {
   Plane,
 } from "../index.js";
 import { AbstractExample } from "../core/index.js";
-import { GadgetInspector } from "../tools/GadgetInspector.js";
-import { RendererType } from "../enums/index.js";
+import { GadgetInspector } from "../tools/index.js";
 
 class Example1 extends AbstractExample {
-  constructor() {
-    super({ rendererType: RendererType.BEST });
-  }
   private _myCube!: Object3D;
   private _inspector!: GadgetInspector;
 

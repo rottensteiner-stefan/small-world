@@ -28,7 +28,6 @@ import {
   ProximitySensorBehavior,
   Fog,
   PulsatingBehavior,
-  RendererType,
   CullMode,
 } from "../index.js";
 import { FogMode, PostProcessingEffectType } from "../enums/index.js";
@@ -1015,9 +1014,7 @@ class UnderwaterHideoutExample extends AbstractExample {
 }
 
 // === START THE ENGINE ===
-const app: UnderwaterHideoutExample = new UnderwaterHideoutExample({
-  rendererType: RendererType.BEST,
-});
+const app: UnderwaterHideoutExample = new UnderwaterHideoutExample();
 app
   .start()
   .then((): void => {

@@ -4,7 +4,7 @@ import { Object3D } from '../core/Object3D.js';
 import { Scene } from '../core/Scene.js';
 import { Vector3D } from '../math/index.js';
 import { RendererType } from '../enums/index.js';
-import { EngineConfig } from '../interfaces/EngineConfig.js';
+import { EngineOptions } from '../interfaces/EngineOptions.js';
 import { AbstractRenderer } from './AbstractRenderer.js';
 import { RenderPass } from './RenderPass.js';
 export interface WebGPUGeoCache {
@@ -76,7 +76,7 @@ export declare class WebGPURenderer extends AbstractRenderer {
     _globalBindGroup: GPUBindGroup;
     _globalBGL: GPUBindGroupLayout;
     /** @inheritdoc */
-    initialize(canvas: HTMLCanvasElement, attributes?: Record<string, unknown>, config?: EngineConfig): Promise<void>;
+    initialize(canvas: HTMLCanvasElement, attributes?: Record<string, unknown>, config?: EngineOptions): Promise<void>;
     /**
      * Adds a render pass to the pipeline.
      * @param pass The pass to add.

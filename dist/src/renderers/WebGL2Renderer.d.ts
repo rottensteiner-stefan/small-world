@@ -1,7 +1,7 @@
 import { AbstractWebGLRenderer } from './AbstractWebGLRenderer.js';
 import { PostProcessPassGL, BloomPassGL } from './post/index.js';
 import { Texture } from '../core/index.js';
-import { EngineConfig } from '../interfaces/index.js';
+import { EngineOptions } from '../interfaces/index.js';
 import { RendererType } from '../enums/index.js';
 import { Scene } from '../core/Scene.js';
 import { Vector3D } from '../math/index.js';
@@ -37,7 +37,7 @@ export declare class WebGL2Renderer extends AbstractWebGLRenderer {
     private _shadowMaps;
     private _dummyShadowMap;
     /** @inheritdoc */
-    initialize(canvas: HTMLCanvasElement, attributes?: Record<string, unknown>, config?: EngineConfig): Promise<void>;
+    initialize(canvas: HTMLCanvasElement, attributes?: Record<string, unknown>, config?: EngineOptions): Promise<void>;
     private _resetStateCache;
     private _getProgram;
     private _getWebGLTexture;
