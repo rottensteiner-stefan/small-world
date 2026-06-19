@@ -23,9 +23,7 @@ fn prefilter(color: vec3f) -> vec3f {
 }
 
 @fragment
-fn fs_main(@builtin(position) coord: vec4f) -> @location(0) vec4f {
-    let dims = vec2f(textureDimensions(u_texture, 0));
-    let uv = coord.xy / dims;
+fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     let texelSize = vec2f(u.texelWidth, u.texelHeight);
 
     var a = textureSample(u_texture, s, vec2f(uv.x - 2.0 * texelSize.x, uv.y + 2.0 * texelSize.y)).rgb;
@@ -45,7 +43,7 @@ fn fs_main(@builtin(position) coord: vec4f) -> @location(0) vec4f {
     var l = textureSample(u_texture, s, vec2f(uv.x - texelSize.x, uv.y - texelSize.y)).rgb;
     var m = textureSample(u_texture, s, vec2f(uv.x + texelSize.x, uv.y - texelSize.y)).rgb;
 
-    if (u.isFirstPass > 0.5) {
+    if (0.5 < u.isFirstPass) {
         a = prefilter(a); b = prefilter(b); c = prefilter(c);
         d = prefilter(d); e = prefilter(e); f = prefilter(f);
         g = prefilter(g); h = prefilter(h); i = prefilter(i);

@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.30.0] - 2026-06-19
+
+- **Bugfix: WebGPU Bloom Ghosting & Doubling (Kawase Filtering UV Alignment)**:
+  - Resolved a bug where WebGPU bloom downsample (`BloomDownsample.frag.wgsl`) and upsample (`BloomUpsample.frag.wgsl`) shaders manually computed UV coordinates from `coord.xy` divided by the source texture size. Since downsampling viewports are half the size of the source texture, this restricted UV coordinates to `[0.0, 0.5]`, shifting the glowing highlights towards the bottom-right and accumulating a ghostly double image.
+  - Refactored `PostProcess.vert.wgsl` to output correctly interpolated screen-space UV coordinates at `@location(0) uv: vec2f`.
+  - Updated `BloomDownsample.frag.wgsl`, `BloomUpsample.frag.wgsl`, and `PostProcess.frag.wgsl` to accept and use the interpolated UV coordinates directly, eliminating offset distortions and resolving the helmet doubling artifact in Example 13.
+  - Refactored equality comparisons in the modified WGSL shaders to use Yoda-style syntax (`1u == u.bloomEnabled`, etc.) in compliance with project guidelines.
+
 ## [0.29.0] - 2026-06-19
 
 - **Architectural Overhaul: High-Performance Culling, WebGPU Bind Groups & Bloom**:

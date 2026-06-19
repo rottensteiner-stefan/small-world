@@ -53,30 +53,29 @@ fn linearToSRGB(linear: vec3f, invGamma: f32) -> vec3f {
 }
 
 @fragment
-fn fs_main(@builtin(position) coord: vec4f) -> @location(0) vec4f {
+fn fs_main(@location(0) uv: vec2f, @builtin(position) coord: vec4f) -> @location(0) vec4f {
     let dims = vec2f(textureDimensions(hdrTexture, 0));
-    let uv = coord.xy / dims;
 
     let hdr = textureSample(hdrTexture, hdrSampler, uv).rgb;
     var hdrVal = hdr;
-    if (u.bloomEnabled == 1u) {
+    if (1u == u.bloomEnabled) {
         let bloom = textureSample(bloomTexture, hdrSampler, uv).rgb;
         hdrVal += bloom * u.bloomIntensity;
     }
     
     var tonemapped = hdrVal * u.exposure;
-    if (u.toneMappingMode == 1u) {
+    if (1u == u.toneMappingMode) {
         tonemapped = toneMapReinhard(hdrVal, u.exposure);
-    } else if (u.toneMappingMode == 2u) {
+    } else if (2u == u.toneMappingMode) {
         tonemapped = toneMapCineon(hdrVal, u.exposure);
-    } else if (u.toneMappingMode == 3u) {
+    } else if (3u == u.toneMappingMode) {
         tonemapped = toneMapACESFilmic(hdrVal, u.exposure);
     }
     
     var srgb = linearToSRGB(tonemapped, u.inverseGamma);
 
     // Apply Vignette if enabled
-    if (u.vignetteEnabled == 1u) {
+    if (1u == u.vignetteEnabled) {
         let d_uv = abs(uv - vec2f(0.5)) * 2.0;
         let d = pow(pow(d_uv.x, u.vignetteRoundness) + pow(d_uv.y, u.vignetteRoundness), 1.0 / u.vignetteRoundness);
         let d_old_scale = d * 0.5;
@@ -86,7 +85,7 @@ fn fs_main(@builtin(position) coord: vec4f) -> @location(0) vec4f {
     }
 
     // Apply Film Grain
-    if (u.grainEnabled == 1u) {
+    if (1u == u.grainEnabled) {
         let noise = random(uv * dims + vec2f(u.time, -u.time));
         let grain = (noise - 0.5) * u.grainIntensity;
         srgb += vec3f(grain);

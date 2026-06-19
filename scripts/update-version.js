@@ -5,21 +5,23 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const pkgPath = path.resolve(__dirname, "../package.json");
+const swPath = path.resolve(__dirname, "../src/core/SmallWorld.ts");
 
 try {
   const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
 
-  const tsContent = `// AUTO-GENERATED FILE - DO NOT EDIT
-import { RendererType } from '../enums/index.js';
-
-export { RendererType };
-export const ENGINE_VERSION = "${pkg.version}";
-export const DEFAULT_RENDERER = RendererType.BEST;
-`;
-
-  const outPath = path.resolve(__dirname, "../src/core/Engine.ts");
-  fs.writeFileSync(outPath, tsContent);
-  console.log(`[Build] Engine.ts (v${pkg.version}) aktualisiert.`);
+  if (fs.existsSync(swPath)) {
+    let content = fs.readFileSync(swPath, "utf8");
+    content = content.replace(
+      /export const ENGINE_VERSION = "[^"]*";/,
+      `export const ENGINE_VERSION = "${pkg.version}";`
+    );
+    fs.writeFileSync(swPath, content);
+    console.log(`[Build] SmallWorld.ts (v${pkg.version}) aktualisiert.`);
+  } else {
+    console.error(`[Build] SmallWorld.ts nicht gefunden unter: ${swPath}`);
+    process.exit(1);
+  }
 } catch (err) {
   console.error("[Build] Fehler:", err.message);
   process.exit(1);
