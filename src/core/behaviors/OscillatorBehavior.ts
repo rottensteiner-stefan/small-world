@@ -1,6 +1,6 @@
 /// src/core/behaviors/OscillatorBehavior.ts
 
-import { Behavior } from "./Behavior.js";
+import { Behavior, InspectorField } from "./Behavior.js";
 import { OscillatorType } from "../../enums/OscillatorType.js";
 import { Noise } from "../../utils/Noise.js";
 
@@ -28,6 +28,21 @@ export interface OscillatorOptions {
  * It does not know *what* it is animating, it only generates a value and calls the `onUpdate` callback.
  */
 export class OscillatorBehavior extends Behavior {
+  public static override readonly inspector: Record<string, InspectorField> = {
+    type: {
+      type: "choice",
+      label: "Type",
+      options: {
+        Sine: OscillatorType.SINE,
+        Cosine: OscillatorType.COSINE,
+        Noise: OscillatorType.NOISE,
+      },
+    },
+    amplitude: { type: "number", min: 0, max: 20, step: 0.1, label: "Amplitude" },
+    frequency: { type: "number", min: 0, max: 50, step: 0.1, label: "Frequency" },
+    offset: { type: "number", min: -100, max: 100, step: 0.5, label: "Offset" },
+  };
+
   public type: OscillatorType;
   public amplitude: number;
   public frequency: number;

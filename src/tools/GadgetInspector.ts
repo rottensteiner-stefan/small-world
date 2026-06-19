@@ -2,6 +2,7 @@ import { Pane, FolderApi } from "tweakpane";
 import { Scene } from "../core/Scene.js";
 import { CameraInterfaceData } from "../interfaces/index.js";
 import { Object3D } from "../core/Object3D.js";
+import { Behavior } from "../core/behaviors/Behavior.js";
 import { Raycaster } from "../physix/index.js";
 import { Vector2D, Vector3D } from "../math/index.js";
 import { BoundingBox } from "../physix/index.js";
@@ -270,6 +271,79 @@ export class GadgetInspector {
         }
         if ("decay" in maybeLight) {
           lightFolder.addBinding(maybeLight, "decay", { min: 0, max: 5, label: "Decay" });
+        }
+      }
+    }
+
+    // Behaviors
+    if (obj.behaviors && obj.behaviors.length > 0) {
+      const behaviorsFolder = this._folder.addFolder({ title: "Behaviors", expanded: true });
+      for (const behavior of obj.behaviors) {
+        const behaviorClass = behavior.constructor as typeof Behavior & {
+          inspector?: Record<
+            string,
+            {
+              type: "number" | "boolean" | "string" | "choice";
+              label?: string;
+              min?: number;
+              max?: number;
+              step?: number;
+              options?: string[] | Record<string, string | number>;
+              path?: string;
+            }
+          >;
+        };
+
+        const behaviorFolder = behaviorsFolder.addFolder({
+          title: behaviorClass.name,
+          expanded: true,
+        });
+
+        // Add Active status
+        behaviorFolder.addBinding(behavior, "isActive", { label: "Active" });
+
+        // Add custom inspector bindings if defined
+        if (behaviorClass.inspector) {
+          for (const [key, config] of Object.entries(behaviorClass.inspector)) {
+            // Determine target object and target key
+            let targetObj: Record<string, unknown> = behavior as unknown as Record<string, unknown>;
+            let targetKey: string = key;
+            if (config.path) {
+              const parts = config.path.split(".");
+              for (let i = 0; i < parts.length - 1; i++) {
+                if (targetObj) {
+                  targetObj = targetObj[parts[i]!] as Record<string, unknown>;
+                }
+              }
+              targetKey = parts[parts.length - 1]!;
+            }
+
+            if (targetObj && targetKey in targetObj) {
+              const options: Record<string, unknown> = {
+                label: config.label || key,
+              };
+
+              if (config.type === "number") {
+                if (typeof config.min === "number") options["min"] = config.min;
+                if (typeof config.max === "number") options["max"] = config.max;
+                if (typeof config.step === "number") options["step"] = config.step;
+              } else if (config.type === "choice") {
+                if (config.options) {
+                  if (Array.isArray(config.options)) {
+                    const optObj: Record<string, unknown> = {};
+                    for (const opt of config.options) {
+                      optObj[opt] = opt;
+                    }
+                    options["options"] = optObj;
+                  } else {
+                    options["options"] = config.options;
+                  }
+                }
+              }
+
+              behaviorFolder.addBinding(targetObj, targetKey, options);
+            }
+          }
         }
       }
     }
