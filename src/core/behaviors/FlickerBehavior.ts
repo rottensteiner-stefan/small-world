@@ -1,6 +1,6 @@
 /// src/core/behaviors/FlickerBehavior.ts
 
-import { Behavior } from "./Behavior.js";
+import { Behavior, InspectorField } from "./Behavior.js";
 import { Object3D } from "../Object3D.js";
 import { Noise } from "../../utils/Noise.js";
 
@@ -32,6 +32,57 @@ export interface FlickerBehaviorOptions {
  * It calculates a multiplier (0.0 to 1.0) and passes it to the `onUpdate` callback.
  */
 export class FlickerBehavior extends Behavior {
+  public static override readonly inspector: Record<string, InspectorField> = {
+    minStableTime: {
+      type: "number",
+      min: 0.1,
+      max: 10,
+      step: 0.1,
+      label: "Min Stable Time",
+      path: "options.minStableTime",
+    },
+    maxStableTime: {
+      type: "number",
+      min: 0.1,
+      max: 20,
+      step: 0.1,
+      label: "Max Stable Time",
+      path: "options.maxStableTime",
+    },
+    minFlickerTime: {
+      type: "number",
+      min: 0.05,
+      max: 5,
+      step: 0.05,
+      label: "Min Flicker Time",
+      path: "options.minFlickerTime",
+    },
+    maxFlickerTime: {
+      type: "number",
+      min: 0.05,
+      max: 10,
+      step: 0.05,
+      label: "Max Flicker Time",
+      path: "options.maxFlickerTime",
+    },
+    minMultiplier: {
+      type: "number",
+      min: 0.0,
+      max: 1.0,
+      step: 0.05,
+      label: "Min Multiplier",
+      path: "options.minMultiplier",
+    },
+    smoothness: {
+      type: "number",
+      min: 0.0,
+      max: 1.0,
+      step: 0.05,
+      label: "Smoothness",
+      path: "options.smoothness",
+    },
+  };
+
   public options: Required<FlickerBehaviorOptions>;
 
   private _timeAcc: number = 0;

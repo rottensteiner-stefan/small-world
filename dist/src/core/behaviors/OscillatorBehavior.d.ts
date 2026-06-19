@@ -1,4 +1,4 @@
-import { Behavior } from './Behavior.js';
+import { Behavior, InspectorField } from './Behavior.js';
 import { OscillatorType } from '../../enums/OscillatorType.js';
 /**
  * Configuration options for the OscillatorBehavior.
@@ -23,6 +23,7 @@ export interface OscillatorOptions {
  * It does not know *what* it is animating, it only generates a value and calls the `onUpdate` callback.
  */
 export declare class OscillatorBehavior extends Behavior {
+    static readonly inspector: Record<string, InspectorField>;
     type: OscillatorType;
     amplitude: number;
     frequency: number;

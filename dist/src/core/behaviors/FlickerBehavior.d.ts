@@ -1,4 +1,4 @@
-import { Behavior } from './Behavior.js';
+import { Behavior, InspectorField } from './Behavior.js';
 import { Object3D } from '../Object3D.js';
 /**
  * Configuration options for the FlickerBehavior.
@@ -27,6 +27,7 @@ export interface FlickerBehaviorOptions {
  * It calculates a multiplier (0.0 to 1.0) and passes it to the `onUpdate` callback.
  */
 export declare class FlickerBehavior extends Behavior {
+    static readonly inspector: Record<string, InspectorField>;
     options: Required<FlickerBehaviorOptions>;
     private _timeAcc;
     private _flickerTimer;

@@ -5,9 +5,24 @@ import { CameraInterfaceData } from "../../interfaces/index.js";
 import { MathUtils } from "../../math/MathUtils.js";
 
 /**
+ * Definition of a single configurable field inside the Gadget Inspector.
+ */
+export interface InspectorField {
+  type: "number" | "boolean" | "string" | "choice";
+  label?: string;
+  min?: number;
+  max?: number;
+  step?: number;
+  options?: string[] | Record<string, string | number>;
+  path?: string; // Optional path for nested values like 'options.smoothness'
+}
+
+/**
  * Base class for all behaviors attached to an Object3D.
  */
 export abstract class Behavior {
+  public static readonly inspector?: Record<string, InspectorField>;
+
   public readonly uuid: string = MathUtils.generateUUID();
   public isActive: boolean = true;
 
