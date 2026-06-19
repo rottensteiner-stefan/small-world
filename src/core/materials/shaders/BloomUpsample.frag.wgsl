@@ -10,9 +10,7 @@ struct UpUniforms {
 @group(0) @binding(2) var<uniform> u: UpUniforms;
 
 @fragment
-fn fs_main(@builtin(position) coord: vec4f) -> @location(0) vec4f {
-    let dims = vec2f(textureDimensions(u_texture, 0));
-    let uv = coord.xy / dims;
+fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     let x = u.radius * u.texelWidth;
     let y = u.radius * u.texelHeight;
 

@@ -20,7 +20,7 @@ import { FrustumCuller } from "./FrustumCuller.js";
 import { CollisionVisualizer, OctreeVisualizer } from "../utils/index.js";
 
 /** The current engine version. */
-export const ENGINE_VERSION = "0.28.0";
+export const ENGINE_VERSION = "0.30.0";
 
 /**
  * Base class for applications built with the SmallWorld engine.
