@@ -18,6 +18,7 @@ import { DeviceCaps } from "./DeviceCaps.js";
 import { ShaderBootstrap } from "./renderers/shaders/ShaderBootstrap.js";
 import { FrustumCuller } from "./FrustumCuller.js";
 import { CollisionVisualizer, OctreeVisualizer } from "../utils/index.js";
+import type { GadgetInspector } from "../tools/GadgetInspector.js";
 
 /** The current engine version. */
 export const ENGINE_VERSION = "0.30.0";
@@ -39,6 +40,8 @@ export abstract class SmallWorld {
   /** Whether debug visualization is enabled. */
   public debug: boolean = false;
 
+  private _inspector?: GadgetInspector;
+
   private _lastTime: number = 0;
   private _isRunning: boolean = false;
   private _isInitialized: boolean = false;
@@ -55,6 +58,7 @@ export abstract class SmallWorld {
       rendererType: RendererType.BEST,
       projectionType: ProjectionType.PERSPECTIVE,
       fullscreen: true,
+      enableInspector: true,
       ...userConfig,
     };
 
@@ -176,6 +180,12 @@ export abstract class SmallWorld {
       this.camera.updateProjectionMatrix();
 
       await this.setupScene();
+
+      if (true === this.config.enableInspector) {
+        const { GadgetInspector } = await import("../tools/GadgetInspector.js");
+        this._inspector = new GadgetInspector(this.scene, this.camera, this.canvas, this.renderer);
+      }
+
       this._isInitialized = true;
     }
 
@@ -204,6 +214,10 @@ export abstract class SmallWorld {
     this._lastTime = currentTime;
 
     this.update(deltaTime);
+
+    if (this._inspector) {
+      this._inspector.update();
+    }
 
     this.scene.update(deltaTime);
     this.scene.updateLights(this.camera);

@@ -15,5 +15,4 @@ export declare class Example9 extends AbstractExample {
     private _getAABB;
     private _checkCollision;
     protected update(deltaTime: number): void;
-    protected getDebugInfo(): Record<string, string | number>;
 }

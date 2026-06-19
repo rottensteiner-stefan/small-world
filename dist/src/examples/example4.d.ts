@@ -6,5 +6,4 @@ export declare class Example4 extends AbstractExample {
     protected setupScene(): Promise<void>;
     protected onCanvasRecreated(): void;
     protected update(deltaTime: number): void;
-    protected getDebugInfo(): Record<string, string | number>;
 }

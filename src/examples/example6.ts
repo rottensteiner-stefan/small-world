@@ -33,7 +33,6 @@ import {
   ZoomController,
 } from "../index.js";
 import { AbstractExample } from "../core/index.js";
-import { GadgetInspector } from "../tools/GadgetInspector.js";
 
 /**
  * Example 6: Geometry Showcase.
@@ -41,7 +40,6 @@ import { GadgetInspector } from "../tools/GadgetInspector.js";
 export class Example6 extends AbstractExample {
   private _moveSpeed: number = 10.0;
 
-  private _inspector!: GadgetInspector;
   /** @inheritdoc */
   protected override async setupScene(): Promise<void> {
     this.onCanvasRecreated();
@@ -211,21 +209,10 @@ export class Example6 extends AbstractExample {
     }
 
     this.scene.updateStaticOctree();
-    this._inspector = new GadgetInspector(this.scene, this.camera, this.canvas);
     console.log("Example 6: Scene ready.");
   }
 
-  protected override update(_deltaTime: number): void {
-    this._inspector.update();
-  }
-
-  protected override getDebugInfo(): Record<string, string | number> {
-    const base = super.getDebugInfo();
-    return {
-      ...base,
-      Example: "06 - Geometry Showcase",
-    };
-  }
+  protected override update(_deltaTime: number): void {}
 }
 
 const app: Example6 = new Example6();

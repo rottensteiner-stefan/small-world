@@ -218,17 +218,6 @@ export class Example9 extends AbstractExample {
     const camTarget = new Vector3D(this._player.position.x, this._player.position.y, 0);
     this.camera.update(camTarget, 0, 0, deltaTime);
   }
-
-  protected override getDebugInfo(): Record<string, string | number> {
-    const base = super.getDebugInfo();
-    return {
-      ...base,
-      Example: "09 - 2.5D Jump & Run",
-      "Player X": this._player.position.x.toFixed(2),
-      "Player Y": this._player.position.y.toFixed(2),
-      Grounded: this._isGrounded ? "Yes" : "No",
-    };
-  }
 }
 
 const app = new Example9();

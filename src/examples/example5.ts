@@ -201,17 +201,6 @@ export class Example5 extends AbstractExample {
       this._moveEnd.set(tx, 0, tz);
     }
   }
-
-  protected override getDebugInfo(): Record<string, string | number> {
-    const base = super.getDebugInfo();
-    return {
-      ...base,
-      Example: "05 - Isometric World",
-      "Gird Size": "15x15",
-      "Player Pos": `(${this._player.position.x.toFixed(1)}, ${this._player.position.z.toFixed(1)})`,
-      Enemies: this._enemies.length,
-    };
-  }
 }
 
 // === START THE ENGINE ===

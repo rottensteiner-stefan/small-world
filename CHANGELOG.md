@@ -2,6 +2,12 @@
 
 ## [0.30.0] - 2026-06-19
 
+- **Feature: Engine-Wide Integrated Gadget Inspector**:
+  - Centralized the `GadgetInspector` overlay directly inside the `SmallWorld` base class.
+  - Added `enableInspector` property to `EngineOptions` (defaulting to `true` globally since the panel starts hidden).
+  - Used type-only compile-time imports combined with asynchronous runtime dynamic imports (`import()`) to avoid circular dependencies between the tools and the core scene graph.
+  - Removed manual inspector boilerplate code (imports, properties, instantiation, and manual updates) from Example 1, Example 6, Example 10, and Example 13.
+
 - **Feature: Configurable Bloom Highlight Color Tinting**:
   - Added a `color` property to `BloomElement` allowing developers to tint the glow of highlights.
   - Updated WebGPU and WebGL2 post-processing pipelines and fragment shaders to accept and multiply bloom highlights by the configured color.

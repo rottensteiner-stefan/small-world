@@ -160,12 +160,6 @@ export class YadApp extends AbstractExample {
       light.intensity = 3.0 + pulse * 2.0;
     }
   }
-
-  /** @inheritdoc */
-  protected override getDebugInfo(): Record<string, string | number> {
-    const base: Record<string, string | number> = super.getDebugInfo();
-    return { ...base, Example: "YAD (Retro Game)", Status: "Alpha" };
-  }
 }
 
 const app: YadApp = new YadApp();

@@ -8,7 +8,6 @@ import {
   DirectionalLight,
   FPSController,
   ZoomController,
-  Input,
   MathUtils,
   Object3D,
   PerspectiveProjection,
@@ -95,18 +94,6 @@ export class Example8 extends AbstractExample {
     if (undefined !== this._skydome) {
       this._skydome.position.copyFrom(this.camera.position);
     }
-  }
-
-  protected override getDebugInfo(): Record<string, string | number> {
-    const base: Record<string, string | number> = super.getDebugInfo();
-    return {
-      ...base,
-      Example: "08 - Skydome Implementation",
-      "Pointer Locked": Input.isPointerLocked ? "Yes" : "No",
-      "Cam X": this.camera.position.x.toFixed(2),
-      "Cam Y": this.camera.position.y.toFixed(2),
-      "Cam Z": this.camera.position.z.toFixed(2),
-    };
   }
 }
 

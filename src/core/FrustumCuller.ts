@@ -15,6 +15,9 @@ export class FrustumCuller {
   /** The octree nodes that were intersected during the last cull operation. */
   public static lastIntersectedNodes: Set<OctreeNode> = new Set();
 
+  /** The number of visible objects during the last cull operation. */
+  public static lastVisibleCount: number = 0;
+
   /**
    * Culls objects in the scene that are outside the camera frustum.
    */
@@ -55,6 +58,7 @@ export class FrustumCuller {
         count += this._countVisible(scene.objects[i]!);
       }
 
+      FrustumCuller.lastVisibleCount = count;
       return count;
     }
 
@@ -64,6 +68,7 @@ export class FrustumCuller {
       visibleCount += this._checkNode(scene.objects[i]!);
     }
 
+    FrustumCuller.lastVisibleCount = visibleCount;
     return visibleCount;
   }
 

@@ -13,6 +13,4 @@ export declare class YadApp extends AbstractExample {
     protected setupScene(): Promise<void>;
     /** @inheritdoc */
     protected update(deltaTime: number): void;
-    /** @inheritdoc */
-    protected getDebugInfo(): Record<string, string | number>;
 }

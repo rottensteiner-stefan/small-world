@@ -17,5 +17,4 @@ export declare class Example5 extends AbstractExample {
     private _createActor;
     protected update(deltaTime: number): void;
     private _startMove;
-    protected getDebugInfo(): Record<string, string | number>;
 }
