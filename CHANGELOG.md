@@ -2,6 +2,11 @@
 
 ## [0.30.0] - 2026-06-19
 
+- **Feature: Configurable Bloom Highlight Color Tinting**:
+  - Added a `color` property to `BloomElement` allowing developers to tint the glow of highlights.
+  - Updated WebGPU and WebGL2 post-processing pipelines and fragment shaders to accept and multiply bloom highlights by the configured color.
+  - Tinted the bloom highlights in Example 13 with a beautiful purple shade (`Color(1.2, 0.8, 1.6)`) to make the helmet's glimmers shine with a lila touch.
+
 - **Bugfix: WebGPU Bloom Ghosting & Doubling (Kawase Filtering UV Alignment)**:
   - Resolved a bug where WebGPU bloom downsample (`BloomDownsample.frag.wgsl`) and upsample (`BloomUpsample.frag.wgsl`) shaders manually computed UV coordinates from `coord.xy` divided by the source texture size. Since downsampling viewports are half the size of the source texture, this restricted UV coordinates to `[0.0, 0.5]`, shifting the glowing highlights towards the bottom-right and accumulating a ghostly double image.
   - Refactored `PostProcess.vert.wgsl` to output correctly interpolated screen-space UV coordinates at `@location(0) uv: vec2f`.

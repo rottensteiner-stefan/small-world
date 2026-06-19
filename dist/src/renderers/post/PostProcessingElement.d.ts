@@ -1,4 +1,5 @@
 import { ToneMappingMode, PostProcessingEffectType } from '../../enums/index.js';
+import { Color } from '../../core/colors/Color.js';
 /**
  * Base class for a post-processing element (effect).
  */
@@ -47,4 +48,6 @@ export declare class BloomElement extends PostProcessingElement {
     intensity: number;
     /** Radius/spread of the bloom. Controls the filter weights or mip level accumulation (default: 1.0). */
     radius: number;
+    /** Color tint applied to the bloom highlights (default: white). */
+    color: Color;
 }

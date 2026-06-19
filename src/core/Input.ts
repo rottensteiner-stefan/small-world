@@ -165,7 +165,13 @@ export class Input implements InputInterface {
     });
   }
 
+  /** Global block flag to temporarily disable PointerLock requests (e.g. for inspector). */
+  public static preventPointerLock: boolean = false;
+
   public static requestPointerLock(element: HTMLElement): void {
+    if (true === Input.preventPointerLock) {
+      return;
+    }
     try {
       element.requestPointerLock();
     } catch (e: unknown) {

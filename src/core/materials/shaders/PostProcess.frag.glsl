@@ -8,6 +8,7 @@ uniform sampler2D u_hdrTexture;
 uniform sampler2D u_bloomTexture;
 uniform int u_bloomEnabled;
 uniform float u_bloomIntensity;
+uniform vec3 u_bloomColor;
 uniform float u_exposure;
 uniform float u_gamma;
 uniform int u_toneMappingMode;
@@ -61,7 +62,7 @@ void main() {
     
     if (u_bloomEnabled == 1) {
         vec3 bloom = texture(u_bloomTexture, uv).rgb;
-        hdr += bloom * u_bloomIntensity;
+        hdr += bloom * u_bloomIntensity * u_bloomColor;
     }
     
     vec3 tonemapped = hdr * u_exposure;
