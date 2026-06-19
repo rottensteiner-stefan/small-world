@@ -21,7 +21,7 @@ export class PostProcessPass implements RenderPass {
   private _bindGroup?: GPUBindGroup;
   private _uniformBuffer?: GPUBuffer;
   private _sampler?: GPUSampler;
-  private _uniformData: Float32Array = new Float32Array(12);
+  private _uniformData: Float32Array = new Float32Array(16);
   private _builtTextureView?: GPUTextureView;
   private _builtBloomTextureView?: GPUTextureView;
 
@@ -40,7 +40,7 @@ export class PostProcessPass implements RenderPass {
 
     if (!this._uniformBuffer) {
       this._uniformBuffer = device.createBuffer({
-        size: 48,
+        size: 64,
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
       });
     }
@@ -146,6 +146,18 @@ export class PostProcessPass implements RenderPass {
     // Repurpose offset 10 and 11 for bloom
     u32View[10] = bloom && bloom.enabled ? 1 : 0;
     this._uniformData[11] = bloom && bloom.enabled ? bloom.intensity : 0.0;
+
+    // Add bloom tint color at offsets 12, 13, 14
+    if (bloom && bloom.enabled) {
+      this._uniformData[12] = bloom.color.r;
+      this._uniformData[13] = bloom.color.g;
+      this._uniformData[14] = bloom.color.b;
+    } else {
+      this._uniformData[12] = 1.0;
+      this._uniformData[13] = 1.0;
+      this._uniformData[14] = 1.0;
+    }
+    this._uniformData[15] = 0.0; // padding
 
     renderer._device!.queue.writeBuffer(this._uniformBuffer!, 0, this._uniformData);
 

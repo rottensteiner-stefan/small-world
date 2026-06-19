@@ -33,6 +33,7 @@ class GLTFExample extends AbstractExample {
       bloom.intensity = 1.5;
       bloom.threshold = 0.5; // Lower threshold to ensure visor glows visibly
       bloom.radius = 1.0;
+      bloom.color = new Color(1.2, 0.8, 1.6);
     }
 
     // Camera setup

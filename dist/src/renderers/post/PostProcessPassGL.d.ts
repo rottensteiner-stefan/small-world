@@ -21,6 +21,7 @@ export declare class PostProcessPassGL {
     private _uBloomTexture;
     private _uBloomEnabled;
     private _uBloomIntensity;
+    private _uBloomColor;
     private _aPos;
     private readonly _isWebGL2;
     constructor(gl: WebGLRenderingContext | WebGL2RenderingContext, isWebGL2: boolean);

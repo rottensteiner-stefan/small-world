@@ -52,6 +52,8 @@ export declare class Input implements InputInterface {
      * Initializes the input listeners.
      */
     static init(): void;
+    /** Global block flag to temporarily disable PointerLock requests (e.g. for inspector). */
+    static preventPointerLock: boolean;
     static requestPointerLock(element: HTMLElement): void;
     /** @inheritdoc */
     isPressed(code: string | Keys): boolean;

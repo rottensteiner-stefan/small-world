@@ -15,6 +15,8 @@ struct PostUniforms {
     time: f32,
     bloomEnabled: u32,
     bloomIntensity: f32,
+    bloomColor: vec3f,
+    _pad: f32,
 }
 @group(0) @binding(2) var<uniform> u: PostUniforms;
 
@@ -60,7 +62,7 @@ fn fs_main(@location(0) uv: vec2f, @builtin(position) coord: vec4f) -> @location
     var hdrVal = hdr;
     if (1u == u.bloomEnabled) {
         let bloom = textureSample(bloomTexture, hdrSampler, uv).rgb;
-        hdrVal += bloom * u.bloomIntensity;
+        hdrVal += bloom * u.bloomIntensity * u.bloomColor;
     }
     
     var tonemapped = hdrVal * u.exposure;

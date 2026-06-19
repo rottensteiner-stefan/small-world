@@ -2,14 +2,15 @@ import { Pane, FolderApi } from "tweakpane";
 import { Scene } from "../core/Scene.js";
 import { CameraInterfaceData } from "../interfaces/index.js";
 import { Object3D } from "../core/Object3D.js";
-import { Behavior } from "../core/behaviors/Behavior.js";
+import { Behavior } from "../core/index.js";
 import { Raycaster } from "../physix/index.js";
 import { Vector2D, Vector3D } from "../math/index.js";
 import { BoundingBox } from "../physix/index.js";
 import { Cube } from "../geometry/Cube.js";
 import { WireframeMaterial } from "../core/index.js";
-import { Color } from "../core/colors/index.js";
+import { Color } from "../core/index.js";
 import { BoundingType } from "../enums/index.js";
+import { Input } from "../core/Input.js";
 
 /**
  * A lightweight editor/inspector overlay for small-world.
@@ -34,8 +35,9 @@ export class GadgetInspector {
     private _camera: CameraInterfaceData,
     private _canvas: HTMLCanvasElement,
   ) {
-    // 1. Initialize Tweakpane
+    // 1. Initialize Tweakpane (hidden by default)
     this._pane = new Pane({ title: "Gadget Inspector" });
+    this._pane.element.style.display = "none";
 
     // 2. Create Highlight Mesh (Neon Cyan Wireframe)
     const geo = new Cube({ size: 1 });
@@ -48,10 +50,57 @@ export class GadgetInspector {
 
     // 3. Setup Interaction
     this._canvas.addEventListener("pointerdown", (event: PointerEvent) => {
-      // Nur picken, wenn SHIFT gedrückt ist (verhindert Konflikte mit PointerLock in Examples)
-      if (!event.shiftKey) return;
+      // Pick directly if the inspector is visible
+      if ("none" === this._pane.element.style.display) {
+        return;
+      }
 
       this._onPointerDown(event);
+    });
+
+    // 4. Global key listener for toggling the inspector via Option(left) + Command(left) + G
+    window.addEventListener("keydown", (event: KeyboardEvent) => {
+      // Suppress toggling if currently typing in an input field or textarea
+      if (
+        document.activeElement &&
+        ("INPUT" === document.activeElement.tagName ||
+          "TEXTAREA" === document.activeElement.tagName)
+      ) {
+        return;
+      }
+
+      // Ignore key holding repeats
+      if (true === event.repeat) {
+        return;
+      }
+
+      // Check if KeyG is pressed (using physical code to ignore modifier character shifts)
+      if ("KeyG" === event.code) {
+        // Option(left) + Command(left) [macOS] OR Option(left) + Control(left) [Windows/Linux fallback]
+        const altLeft = Input.instance.isPressed("AltLeft") || event.altKey;
+        const metaLeft = Input.instance.isPressed("MetaLeft") || event.metaKey;
+        const ctrlLeft = Input.instance.isPressed("ControlLeft") || event.ctrlKey;
+
+        if (true === altLeft && (true === metaLeft || true === ctrlLeft)) {
+          event.preventDefault();
+
+          const isHidden = "none" === this._pane.element.style.display;
+
+          if (isHidden) {
+            // Inspector opened: block pointer lock and exit active pointer lock
+            this._pane.element.style.display = "";
+            Input.preventPointerLock = true;
+            if (null !== document.pointerLockElement) {
+              document.exitPointerLock();
+            }
+          } else {
+            // Inspector closed: unblock pointer lock and deselect
+            this._pane.element.style.display = "none";
+            Input.preventPointerLock = false;
+            this.deselect();
+          }
+        }
+      }
     });
   }
 

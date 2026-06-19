@@ -33,6 +33,7 @@ export class PostProcessPassGL {
   private _uBloomTexture: WebGLUniformLocation | null = null;
   private _uBloomEnabled: WebGLUniformLocation | null = null;
   private _uBloomIntensity: WebGLUniformLocation | null = null;
+  private _uBloomColor: WebGLUniformLocation | null = null;
 
   private _aPos: number = -1;
   private readonly _isWebGL2: boolean;
@@ -83,6 +84,7 @@ export class PostProcessPassGL {
     this._uBloomTexture = gl.getUniformLocation(p, "u_bloomTexture");
     this._uBloomEnabled = gl.getUniformLocation(p, "u_bloomEnabled");
     this._uBloomIntensity = gl.getUniformLocation(p, "u_bloomIntensity");
+    this._uBloomColor = gl.getUniformLocation(p, "u_bloomColor");
 
     if (this._isWebGL2) {
       const gl2 = gl as WebGL2RenderingContext;
@@ -133,6 +135,9 @@ export class PostProcessPassGL {
       )!;
       gl.uniform1i(this._uBloomEnabled, 1);
       gl.uniform1f(this._uBloomIntensity, bloom.intensity);
+      if (this._uBloomColor !== null) {
+        gl.uniform3f(this._uBloomColor, bloom.color.r, bloom.color.g, bloom.color.b);
+      }
       gl.activeTexture(gl.TEXTURE1);
       gl.bindTexture(gl.TEXTURE_2D, bloomTexture);
       gl.uniform1i(this._uBloomTexture, 1);
