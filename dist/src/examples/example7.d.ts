@@ -9,5 +9,4 @@ export declare class Example7 extends AbstractExample {
     protected onCanvasRecreated(): void;
     protected setupScene(): Promise<void>;
     protected update(_deltaTime: number): void;
-    protected getDebugInfo(): Record<string, string | number>;
 }

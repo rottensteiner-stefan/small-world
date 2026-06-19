@@ -10,6 +10,4 @@ export declare class Example2 extends AbstractExample {
     protected onCanvasRecreated(): void;
     /** @inheritdoc */
     protected update(_deltaTime: number): void;
-    /** @inheritdoc */
-    protected getDebugInfo(): Record<string, string | number>;
 }

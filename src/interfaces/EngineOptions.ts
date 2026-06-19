@@ -95,4 +95,6 @@ export interface EngineOptions {
    * Use this to supply a custom or third-party projection.
    */
   projectionInstance?: AbstractProjection;
+  /** Whether to enable the built-in Gadget Inspector overlay (defaults to false/true depending on setup). */
+  enableInspector?: boolean;
 }

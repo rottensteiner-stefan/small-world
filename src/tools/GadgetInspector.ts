@@ -1,3 +1,4 @@
+/// src/tools/GadgetInspector.ts
 import { Pane, FolderApi } from "tweakpane";
 import { Scene } from "../core/Scene.js";
 import { CameraInterfaceData } from "../interfaces/index.js";
@@ -11,6 +12,12 @@ import { WireframeMaterial } from "../core/index.js";
 import { Color } from "../core/index.js";
 import { BoundingType } from "../enums/index.js";
 import { Input } from "../core/Input.js";
+import { Renderer } from "../interfaces/Renderer.js";
+import { FrustumCuller } from "../core/FrustumCuller.js";
+
+interface BindingLike {
+  refresh(): void;
+}
 
 /**
  * A lightweight editor/inspector overlay for small-world.
@@ -24,20 +31,62 @@ export class GadgetInspector {
   private _highlightMesh: Object3D;
   private _folder: FolderApi | null = null;
 
+  private _stats = {
+    renderer: "None",
+    resolution: "0x0",
+    fps: 0,
+    objects: 0,
+    visible: 0,
+  };
+
+  private _resolutionBinding?: BindingLike;
+  private _fpsBinding?: BindingLike;
+  private _objectsBinding?: BindingLike;
+  private _visibleBinding?: BindingLike;
+  private _lastFpsUpdate: number = 0;
+  private _frameCount: number = 0;
+
   /**
    * Creates a new Gadget Inspector overlay.
    * @param _scene The scene to inspect.
    * @param _camera The camera used to raycast.
    * @param _canvas The canvas to attach picking events to.
+   * @param _renderer The active renderer instance.
    */
   constructor(
     private _scene: Scene,
     private _camera: CameraInterfaceData,
     private _canvas: HTMLCanvasElement,
+    private _renderer?: Renderer,
   ) {
     // 1. Initialize Tweakpane (hidden by default)
     this._pane = new Pane({ title: "Gadget Inspector" });
     this._pane.element.style.display = "none";
+
+    // Setup Diagnostics folder
+    if (undefined !== this._renderer) {
+      this._stats.renderer = this._renderer.constructor.name;
+    }
+    const diagFolder = (
+      this._pane as unknown as {
+        addFolder: (params: { title: string; expanded?: boolean }) => FolderApi;
+      }
+    ).addFolder({ title: "Diagnostics", expanded: true });
+
+    diagFolder.addBinding(this._stats, "renderer", { readonly: true, label: "Renderer" });
+    this._resolutionBinding = diagFolder.addBinding(this._stats, "resolution", {
+      readonly: true,
+      label: "Resolution",
+    });
+    this._fpsBinding = diagFolder.addBinding(this._stats, "fps", { readonly: true, label: "FPS" });
+    this._objectsBinding = diagFolder.addBinding(this._stats, "objects", {
+      readonly: true,
+      label: "Total Objects",
+    });
+    this._visibleBinding = diagFolder.addBinding(this._stats, "visible", {
+      readonly: true,
+      label: "Visible Objects",
+    });
 
     // 2. Create Highlight Mesh (Neon Cyan Wireframe)
     const geo = new Cube({ size: 1 });
@@ -402,6 +451,50 @@ export class GadgetInspector {
    * Updates the inspector logic (should be called in the render loop).
    */
   public update(): void {
+    const isHidden = "none" === this._pane.element.style.display;
+    if (true === isHidden) {
+      this._lastFpsUpdate = performance.now();
+      this._frameCount = 0;
+      return;
+    }
+
+    // 1. Calculate FPS
+    const now = performance.now();
+    this._frameCount++;
+    if (1000 <= now - this._lastFpsUpdate) {
+      this._stats.fps = Math.round((this._frameCount * 1000) / (now - this._lastFpsUpdate));
+      this._frameCount = 0;
+      this._lastFpsUpdate = now;
+      if (undefined !== this._fpsBinding) {
+        this._fpsBinding.refresh();
+      }
+    }
+
+    // 2. Resolution
+    const resString = `${this._canvas.width}x${this._canvas.height}`;
+    if (this._stats.resolution !== resString) {
+      this._stats.resolution = resString;
+      if (undefined !== this._resolutionBinding) {
+        this._resolutionBinding.refresh();
+      }
+    }
+
+    // 3. Count total objects
+    let totalObjects = 0;
+    for (let i = 0; i < this._scene.objects.length; i++) {
+      totalObjects += this._countSceneObjects(this._scene.objects[i]!);
+    }
+    this._stats.objects = totalObjects;
+    if (undefined !== this._objectsBinding) {
+      this._objectsBinding.refresh();
+    }
+
+    // 4. Visible objects from FrustumCuller
+    this._stats.visible = FrustumCuller.lastVisibleCount;
+    if (undefined !== this._visibleBinding) {
+      this._visibleBinding.refresh();
+    }
+
     if (this._selectedObject && this._highlightMesh.isVisible) {
       // Keep highlight mesh synced with the object's bounds
       const obj = this._selectedObject;
@@ -417,5 +510,13 @@ export class GadgetInspector {
         this._highlightMesh.updateMatrixWorld(true);
       }
     }
+  }
+
+  private _countSceneObjects(obj: Object3D): number {
+    let count = 1;
+    for (let i = 0; i < obj.children.length; i++) {
+      count += this._countSceneObjects(obj.children[i]!);
+    }
+    return count;
   }
 }

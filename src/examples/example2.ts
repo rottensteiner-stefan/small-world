@@ -120,15 +120,6 @@ export class Example2 extends AbstractExample {
   protected override update(_deltaTime: number): void {
     // Movement and looking is now handled by the FPSController registered in setupScene.
   }
-
-  /** @inheritdoc */
-  protected override getDebugInfo(): Record<string, string | number> {
-    const base: Record<string, string | number> = super.getDebugInfo();
-    return {
-      ...base,
-      Example: "02 - FPS Camera",
-    };
-  }
 }
 
 // === START THE ENGINE ===

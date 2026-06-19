@@ -19,6 +19,7 @@ export declare abstract class SmallWorld {
     canvas: HTMLCanvasElement;
     /** Whether debug visualization is enabled. */
     debug: boolean;
+    private _inspector?;
     private _lastTime;
     private _isRunning;
     private _isInitialized;

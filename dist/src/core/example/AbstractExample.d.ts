@@ -26,6 +26,4 @@ export declare abstract class AbstractExample extends SmallWorld {
      * @param _deltaTime Time elapsed since the last frame.
      */
     protected update(_deltaTime: number): void;
-    protected getDebugInfo(): Record<string, string | number>;
-    protected printDebug(): void;
 }

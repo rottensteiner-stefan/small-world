@@ -23,7 +23,6 @@ import {
   CullMode,
 } from "../index.js";
 import { AbstractExample } from "../core/index.js";
-import { GadgetInspector } from "../tools/GadgetInspector.js";
 
 /**
  * Example 10: Textured Floor & Organic Fire Bowls.
@@ -43,7 +42,6 @@ export class Example10 extends AbstractExample {
   private _lavaMaterials: LavaMaterial[] = [];
   private _lavaLights: PointLight[] = [];
   private _time: number = 0;
-  private _inspector!: GadgetInspector;
 
   protected override async setupScene(): Promise<void> {
     this.onCanvasRecreated();
@@ -189,7 +187,6 @@ export class Example10 extends AbstractExample {
     this.camera.addBehavior(new FPSController({ moveSpeed: this._moveSpeed }));
     this.camera.addBehavior(new ZoomController());
 
-    this._inspector = new GadgetInspector(this.scene, this.camera, this.canvas);
     this.scene.update();
 
     await this.waitForAssets();
@@ -209,13 +206,6 @@ export class Example10 extends AbstractExample {
       light.intensity = 3.0 + pulse * 4.0;
       light.color.g = 0.4 + pulse * 0.3;
     }
-
-    this._inspector.update();
-  }
-
-  protected override getDebugInfo(): Record<string, string | number> {
-    const base = super.getDebugInfo();
-    return { ...base, Example: "10 - Lava Bowl Fix", "Lava Shape": "Disk (r=1.75)" };
   }
 }
 

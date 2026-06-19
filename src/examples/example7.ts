@@ -97,15 +97,6 @@ export class Example7 extends AbstractExample {
       skybox.position.copyFrom(this.camera.position);
     }
   }
-
-  protected override getDebugInfo(): Record<string, string | number> {
-    const base = super.getDebugInfo();
-    return {
-      ...base,
-      Example: "07 - Skybox & FPS Controls",
-      "Pointer Locked": Input.isPointerLocked ? "Yes" : "No",
-    };
-  }
 }
 
 const app = new Example7();

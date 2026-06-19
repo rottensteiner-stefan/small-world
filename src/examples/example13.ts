@@ -17,12 +17,9 @@ import { AbstractExample } from "../core/index.js";
 import { Cube } from "../geometry/Cube.js";
 import { SkyboxMaterial } from "../core/materials/SkyboxMaterial.js";
 import { GltfLoader } from "../loaders/GltfLoader.js";
-import { GadgetInspector } from "../tools/GadgetInspector.js";
 import { BloomElement } from "../renderers/post/PostProcessingElement.js";
-
 class GLTFExample extends AbstractExample {
   private _helmet?: Object3D;
-  private _inspector!: GadgetInspector;
 
   protected override async setupScene(): Promise<void> {
     // Post-Processing is nice for PBR
@@ -80,9 +77,6 @@ class GLTFExample extends AbstractExample {
     fillLight.position.set(-5, 0, 0);
     fillLight.direction.set(1, 0, 0);
     this.scene.add(fillLight);
-
-    // Setup Gadget Inspector for debugging/presentation
-    this._inspector = new GadgetInspector(this.scene, this.camera, this.canvas);
 
     // Load an environment map for reflections
     const envTexture = new CubeTexture();
@@ -142,8 +136,6 @@ class GLTFExample extends AbstractExample {
       skybox.position.copyFrom(this.camera.position);
       skybox.updateMatrixWorld();
     }
-
-    this._inspector.update();
   }
 }
 

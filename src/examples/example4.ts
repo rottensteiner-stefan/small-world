@@ -7,7 +7,6 @@ import {
   Color,
   DirectionalLight,
   Input,
-  Keys,
   Object3D,
   ObjLoader,
   PerspectiveProjection,
@@ -124,10 +123,6 @@ export class Example4 extends AbstractExample {
   }
 
   protected override update(deltaTime: number): void {
-    if (Input.isPressed(Keys.I)) {
-      this.printDebug();
-    }
-
     const dx: number = Input.isPointerLocked ? Input.mouse.dx : 0;
     const dy: number = Input.isPointerLocked ? Input.mouse.dy : 0;
 
@@ -144,19 +139,6 @@ export class Example4 extends AbstractExample {
       // Simple tracking: We set the camera target to the car
       this._targetPos.copyFrom(this._car.position);
     }
-  }
-
-  protected override getDebugInfo(): Record<string, string | number> {
-    const baseInfo: Record<string, string | number> = super.getDebugInfo();
-    return {
-      ...baseInfo,
-      Example: "04 - Infinite Terrain & Car",
-      "Objects in scene": this.scene.objects.length,
-      "Car Position": this._car
-        ? `(${this._car.position.x.toFixed(1)}, ${this._car.position.y.toFixed(1)}, ${this._car.position.z.toFixed(1)})`
-        : "N/A",
-      "Debug Mode": this.debug ? "ON (B to toggle)" : "OFF (B to toggle)",
-    };
   }
 }
 

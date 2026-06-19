@@ -9,5 +9,4 @@ export declare class Example8 extends AbstractExample {
     private _time;
     protected setupScene(): Promise<void>;
     protected update(deltaTime: number): void;
-    protected getDebugInfo(): Record<string, string | number>;
 }
