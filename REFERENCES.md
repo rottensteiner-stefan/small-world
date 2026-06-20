@@ -65,3 +65,42 @@ Dieses Dokument dient dazu, externe Quellen, Algorithmen, mathematische Herleitu
 - **Autoren/Gurus:** Alain Galvan
 - **Quelle:** [Raw WebGPU (Tour of WebGPU)](https://alain.xyz/blog/raw-webgpu)
 - **Verwendung:** Dient als wichtige architektonische Referenz zum Verständnis der Bind Group Layouts, Command Buffer Encoding und dem Mapping von Konzepten wie Vulkan/Metal/D3D12 auf den Web-Standard.
+
+## Bildverarbeitung & Texturgenerierung (Image Processing & Texture Generation)
+
+### Perlin Noise (2D Rauschen)
+
+- **Datei:** `public/tools/splatter-gen.html` (sowie Engine-Noise in `src/utils/Noise.ts`)
+- **Autoren/Gurus:** Ken Perlin (1985 / Improved Noise 2002)
+- **Quelle:** [Making Noise (Ken Perlin)](https://mrl.cs.nyu.edu/~perlin/doc/oscar.html)
+- **Verwendung:** Das 2D Perlin-Rauschen wird verwendet, um weiche, organische Störungen und Kräuselungen auf Kreisen zu berechnen (Noise Warp). So entstehen aus einfachen geometrischen Formen natürlich wirkende Spritzkanten für Flüssigkeiten und Matsch-Splatters.
+
+### Flüssigkeits-Metaballs (Liquid Blobs)
+
+- **Datei:** `public/tools/splatter-gen.html`
+- **Autoren/Gurus:** James Blinn (1982)
+- **Verwendung:** Das physikalische Konzept der Metaballs beschreibt organisch verschmelzende Kugeloberflächen. Im Splatter-Generator zeichnen wir dazu mehrere Kreise auf einer Offscreen-Leinwand, zeichnen sie weich (Dichtefeld) und schneiden sie über einen Schwellenwert (Alpha-Thresholding) wieder scharf ab. So verschmelzen nebeneinander liegende Tropfen wie Flüssigkeiten ineinander.
+
+### Box-Blur (Weichzeichner)
+
+- **Datei:** `public/tools/splatter-gen.html`, `public/tools/pbr-gen.html`
+- **Verwendung:** Zur Simulation von Gaußscher Unschärfe auf Pixel-Arrays wird ein zweistufiger, linearer Box-Blur (horizontaler und vertikaler Durchlauf) in reinem JavaScript implementiert. Dies ermöglicht extrem schnelle Bildglättung in Echtzeit bei O(N) Komplexität (unabhängig vom Radius).
+
+### Normal-Map Generierung (Sobel-Filter)
+
+- **Datei:** `public/tools/pbr-gen.html`, `src/tools/pbr-preview.ts`
+- **Autoren/Gurus:** Irwin Sobel (1968)
+- **Quelle:** Sobel-Operatoren zur Bildsegmentierung / Kantendetektion.
+- **Verwendung:** Die Normalenkarte wird erzeugt, indem die Ableitungen der Höhenkarte in X- und Y-Richtung mithilfe eines diskreten 3x3 Sobel-Faltungs-Kernels berechnet werden. Der Normalenvektor berechnet sich aus n = normalize(-dx * s, -dy * s, 1.0) und wird in RGB-Farbwerte im Bereich [0, 255] codiert.
+
+### Sigmoidaler Kontrast (Specular S-Kurven)
+
+- **Datei:** `public/tools/pbr-gen.html`
+- **Quelle:** ImageMagick `-sigmoidal-contrast` Funktion.
+- **Verwendung:** Um Glanzlichter weich aber kontrastreich anzuheben, wird eine sigmoidale Kurvenfunktion f(x) = 1 / (1 + exp(-c * (x - t))) auf die Helligkeitswerte angewendet. Dies verhindert ein hartes Abschneiden (Clipping) und simuliert realistischeres Specular-Verhalten.
+
+### Laplacian Crevice Cavity Mapping (Ambient Occlusion)
+
+- **Datei:** `public/tools/pbr-gen.html`
+- **Quelle:** Diskrete Laplace-Filter / Kantenoperatoren.
+- **Verwendung:** Zur Approximation lokaler Selbstbeschattung (Ambient Occlusion / Risse) wird die Krümmung (zweite Ableitung) der Höhenwerte über einen Laplace-Kernel berechnet (4 * center - sum(neighbors)). Dies hebt Vertiefungen und Spalten hervor, die mit einer weichgezeichneten Makro-Höhenkarte multipliziert werden.
