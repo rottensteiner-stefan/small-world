@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.31.0] - 2026-06-20
+
+- **Feature: PBR Map Generator Tool (Client-Side Canvas Processing)**:
+  - Created a browser-based utility at `public/tools/pbr-gen.html` in the style of the Splatter Generator.
+  - Implemented real-time texture map generation from user-uploaded images or presets:
+    - **Normal Map**: Computed using a discrete 3x3 Sobel kernel to obtain image gradients in X and Y, mapped into tangential coordinate space.
+    - **Specular Map**: Derived using a sigmoidal-contrast S-curve function to raise highlight brightness without clipping.
+    - **Ambient Occlusion Map**: Calculated using discrete Laplacian cavity operators (`4 * center - sum(neighbors)`) to map micro-crevices, combined with blurred height values.
+    - **Roughness & Height Maps**: Generated from intensity mappings with adjustable box blur and inversion filters.
+  - Added material presets (Default, Stone, Wood, Metal) for quick parameters adjustment.
+
+- **Feature: Custom 3D Engine PBR Preview**:
+  - Developed `PbrPreviewApp` in `src/tools/pbr-preview.ts` which extends `SmallWorld` to render a rotating mesh (Sphere, Cube, Torus, Plane) with custom-generated PBR textures in real-time.
+  - Resolved initialization blank-screen bug: Replaced `display: none` tab toggles with absolute offscreen rendering (`position: absolute; left: -9999px`) to maintain client dimensions and avoid `NaN` camera aspect ratios during WebGL setup.
+  - Added real-time property bindings (Normal strength, Metallic, Roughness slider updates) dynamically linked to the preview shader.
+
+- **Infrastructure & Maintenance**:
+  - Registered `pbrgen` in `vite.config.ts` rollup options to include the tool in production builds.
+  - Satisfied TypeScript `strict: true` type safety by replacing `any` references with `GeometryDataInterface` and adding explicit return types.
+  - Linked PBR Generator and Splatter Generator to the main index page (`public/index.html`).
+  - Appended detailed mathematical sources and references to `REFERENCES.md`.
+
 ## [0.30.0] - 2026-06-19
 
 - **Feature: Engine-Wide Integrated Gadget Inspector**:
