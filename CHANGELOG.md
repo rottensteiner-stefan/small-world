@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.32.0] - 2026-06-22
+
+- **Feature: Local Retro Screen Effects (RetroScreenMaterial)**:
+  - Created a specialized `RetroScreenMaterial` designed to run locally on meshes (e.g. TV screens) to simulate custom camera/display artifacts.
+  - Implemented two distinct retro simulation modes:
+    - **1950s TV Mode**: Converts output to grayscale, renders horizontal scanlines, adds animated static snow/noise, simulates horizontal tearing/waves, and implements vertical rolling.
+    - **19th Century Film Mode**: Applies grayscale and sepia tint, simulates random exposure flicker, adds vignette shadow, spawns dynamic dust/dirt spots, and renders jittering vertical hair scratches.
+  - Fully compatible with WebGL2 (GLSL 300), WebGL1 (GLSL 100) fallbacks, and WebGPU (WGSL) rendering pipelines.
+  - Added unit test suite in `tests/core/RetroScreenMaterial.test.ts` to verify default states, custom config options, and RenderManifest properties.
+
+- **Cleanup: Removed Toxin/Slime Material**:
+  - Removed obsolete `SlimeMaterial.ts` class and its registration in `MaterialType.ts`.
+  - Re-routed toxin floor tiles (`"T"`) in the Yad Level Builder to use the more performant `LavaMaterial` instead.
+  - Cleaned up unused slime assets and maps in `YadApp.ts` and `YadLevelBuilder.ts`.
+
 ## [0.31.0] - 2026-06-20
 
 - **Feature: PBR Map Generator Tool (Client-Side Canvas Processing)**:
