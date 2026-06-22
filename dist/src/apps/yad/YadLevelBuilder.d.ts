@@ -24,16 +24,6 @@ export interface YadLevelConfig {
     barrelTexture?: Texture;
     /** Texture for torch sprites. */
     torchTexture?: Texture;
-    /** Noise map for toxin/slime floor. */
-    slimeNoiseMap?: Texture;
-    /** Displacement map for slime floor. */
-    slimeDisplacementMap?: Texture;
-    /** Normal map for slime floor. */
-    slimeNormalMap?: Texture;
-    /** Specular map for slime floor. */
-    slimeSpecularMap?: Texture;
-    /** Ambient map for slime floor. */
-    slimeAmbientMap?: Texture;
 }
 /**
  * Utility to build a 3D level from an ASCII grid string.
