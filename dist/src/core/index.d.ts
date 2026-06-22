@@ -7,6 +7,7 @@ export * from './FrustumCuller.js';
 export * from './Fog.js';
 export * from './Octree.js';
 export * from './Input.js';
+export * from './UniversalGamepadController.js';
 export * from './Object3D.js';
 export * from './Scene.js';
 export * from './Skybox.js';

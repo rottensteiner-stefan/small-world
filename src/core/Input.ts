@@ -1,6 +1,7 @@
 /// src/core/Input.ts
 
 import { Keys } from "../enums/Keys.js";
+import { UniversalGamepadController } from "./UniversalGamepadController.js";
 
 /**
  * Interface for mouse state.
@@ -35,6 +36,7 @@ export interface InputInterface {
 export class Input implements InputInterface {
   private static _instance: Input;
   private _keys: Map<string, boolean> = new Map<string, boolean>();
+  private _gamepadController: UniversalGamepadController = new UniversalGamepadController();
 
   /** Mouse state including position and button status. */
   public mouse: MouseState = {
@@ -81,6 +83,12 @@ export class Input implements InputInterface {
   }
   public static set debug(v: boolean) {
     this.instance.debug = v;
+  }
+  public static get gamepadController(): UniversalGamepadController {
+    return this.instance._gamepadController;
+  }
+  public static requestJoyConConnection(): Promise<void> {
+    return this.instance._gamepadController.requestJoyConConnection();
   }
 
   /**
@@ -163,6 +171,15 @@ export class Input implements InputInterface {
       inst.mouse.dx = 0;
       inst.mouse.dy = 0;
     });
+
+    window.addEventListener("gamepadconnected", (e: GamepadEvent): void => {
+      console.log(
+        `[Input] Gamepad connected: ${e.gamepad.id} | Mapping: ${e.gamepad.mapping} | Axes: ${e.gamepad.axes.length} | Buttons: ${e.gamepad.buttons.length}`,
+      );
+    });
+    window.addEventListener("gamepaddisconnected", (e: GamepadEvent): void => {
+      console.log(`[Input] Gamepad disconnected: ${e.gamepad.id}`);
+    });
   }
 
   /** Global block flag to temporarily disable PointerLock requests (e.g. for inspector). */
@@ -181,7 +198,49 @@ export class Input implements InputInterface {
 
   /** @inheritdoc */
   public isPressed(code: string | Keys): boolean {
-    return true === this._keys.get(code);
+    if (true === this._keys.get(code)) {
+      return true;
+    }
+
+    const gp = this._gamepadController.getActiveDevice();
+    if (gp) {
+      const deadzone = 0.5;
+
+      // Map left stick directions to movement keys
+      if (code === Keys.W || code === Keys.UP) {
+        if (gp.getAxis(1) < -deadzone) return true;
+      }
+      if (code === Keys.S || code === Keys.DOWN) {
+        if (gp.getAxis(1) > deadzone) return true;
+      }
+      if (code === Keys.A || code === Keys.LEFT) {
+        if (gp.getAxis(0) < -deadzone) return true;
+      }
+      if (code === Keys.D || code === Keys.RIGHT) {
+        if (gp.getAxis(0) > deadzone) return true;
+      }
+
+      // Map gamepad button 0 (A / Cross) to Space
+      if (code === Keys.SPACE) {
+        if (gp.isButtonPressed(0)) return true;
+      }
+
+      // Map D-Pad buttons
+      if (code === Keys.UP) {
+        if (gp.isButtonPressed(12)) return true;
+      }
+      if (code === Keys.DOWN) {
+        if (gp.isButtonPressed(13)) return true;
+      }
+      if (code === Keys.LEFT) {
+        if (gp.isButtonPressed(14)) return true;
+      }
+      if (code === Keys.RIGHT) {
+        if (gp.isButtonPressed(15)) return true;
+      }
+    }
+
+    return false;
   }
 
   /** @inheritdoc */
@@ -189,7 +248,77 @@ export class Input implements InputInterface {
     let v: number = 0;
     if (this.isPressed(neg)) v -= 1;
     if (this.isPressed(pos)) v += 1;
-    return v;
+
+    const gp = this._gamepadController.getActiveDevice();
+    if (gp) {
+      const deadzone = 0.15;
+      if ((neg === Keys.W || neg === Keys.UP) && (pos === Keys.S || pos === Keys.DOWN)) {
+        const val = gp.getAxis(1);
+        if (Math.abs(val) > deadzone) {
+          v += val;
+        }
+      }
+      if ((neg === Keys.A || neg === Keys.LEFT) && (pos === Keys.D || pos === Keys.RIGHT)) {
+        const val = gp.getAxis(0);
+        if (Math.abs(val) > deadzone) {
+          v += val;
+        }
+      }
+    }
+
+    return Math.max(-1.0, Math.min(1.0, v));
+  }
+
+  private _lastDebugLog: number = 0;
+
+  /**
+   * Polls gamepad look axes and accumulates them into mouse deltas.
+   * Should be called once per frame.
+   */
+  public update(): void {
+    this._gamepadController.update();
+    const gp = this._gamepadController.getActiveDevice();
+    if (!gp) return;
+
+    const deadzone = 0.15;
+    const rx = gp.getAxis(2);
+    const ry = gp.getAxis(3);
+
+    // Accumulate right stick movements into mouse.dx / mouse.dy
+    if (Math.abs(rx) > deadzone) {
+      this.mouse.dx += rx * 15.0;
+    }
+    if (Math.abs(ry) > deadzone) {
+      this.mouse.dy += ry * 15.0;
+    }
+
+    // Diagnostics logging when debug is enabled
+    if (this.debug) {
+      const now = performance.now();
+      if (now - this._lastDebugLog > 500) {
+        // throttle log to every 500ms
+        const axes: string[] = [];
+        for (let i = 0; i < 4; i++) {
+          const val = gp.getAxis(i);
+          if (Math.abs(val) > 0.05) {
+            axes.push(`Axis ${i}: ${val.toFixed(2)}`);
+          }
+        }
+        const buttons: string[] = [];
+        for (let i = 0; i < 18; i++) {
+          if (gp.isButtonPressed(i)) {
+            buttons.push(`Btn ${i}: Pressed`);
+          }
+        }
+
+        if (axes.length > 0 || buttons.length > 0) {
+          console.log(
+            `[Input Gamepad Debug] ${gp.id} | Axes: [${axes.join(", ")}] | Buttons: [${buttons.join(", ")}]`,
+          );
+          this._lastDebugLog = now;
+        }
+      }
+    }
   }
 
   /** Static wrappers */
@@ -198,6 +327,9 @@ export class Input implements InputInterface {
   }
   public static getAxis(neg: string | Keys, pos: string | Keys): number {
     return this.instance.getAxis(neg, pos);
+  }
+  public static update(): void {
+    this.instance.update();
   }
 
   /**
