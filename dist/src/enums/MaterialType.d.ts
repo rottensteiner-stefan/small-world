@@ -22,12 +22,12 @@ export declare const MaterialType: {
     readonly WORLD: "WorldMaterial";
     /** Specialized animated lava material. */
     readonly LAVA: "LavaMaterial";
-    /** Specialized animated toxic slime material. */
-    readonly SLIME: "SlimeMaterial";
     /** Depth material for shadow mapping. */
     readonly DEPTH: "DepthMaterial";
     /** Physically based rendering material with transmission/refraction. */
     readonly GLASS: "GlassMaterial";
+    /** Specialized screen shader with retro TV and early film effects. */
+    readonly RETRO_SCREEN: "RetroScreenMaterial";
 };
 /** Type definition for MaterialType. */
 export type MaterialType = (typeof MaterialType)[keyof typeof MaterialType];
