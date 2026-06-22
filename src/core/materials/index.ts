@@ -11,6 +11,6 @@ export * from "./SpriteMaterial.js";
 export * from "./WorldMaterial.js";
 export * from "./PhongMaterial.js";
 export * from "./LavaMaterial.js";
-export * from "./SlimeMaterial.js";
 export * from "./LiquidMaterial.js";
 export * from "./DepthMaterial.js";
+export * from "./RetroScreenMaterial.js";

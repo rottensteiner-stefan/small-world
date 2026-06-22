@@ -24,12 +24,12 @@ export const MaterialType = {
   WORLD: "WorldMaterial",
   /** Specialized animated lava material. */
   LAVA: "LavaMaterial",
-  /** Specialized animated toxic slime material. */
-  SLIME: "SlimeMaterial",
   /** Depth material for shadow mapping. */
   DEPTH: "DepthMaterial",
   /** Physically based rendering material with transmission/refraction. */
   GLASS: "GlassMaterial",
+  /** Specialized screen shader with retro TV and early film effects. */
+  RETRO_SCREEN: "RetroScreenMaterial",
 } as const;
 
 /** Type definition for MaterialType. */
