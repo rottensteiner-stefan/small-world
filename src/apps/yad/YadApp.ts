@@ -78,25 +78,6 @@ export class YadApp extends AbstractExample {
     const lavaAmb: Texture = await Texture.fromUrl("/resources/examples/10/lava_ambient.png", {
       flipY: true,
     });
-    const slimeNoise: Texture = await Texture.fromUrl("/resources/examples/10/slime.png", {
-      flipY: true,
-    });
-    const slimeDisp: Texture = await Texture.fromUrl(
-      "/resources/examples/10/slime_displacement.png",
-      {
-        flipY: true,
-      },
-    );
-    const slimeNorm: Texture = await Texture.fromUrl("/resources/examples/10/slime_normal.png", {
-      flipY: true,
-    });
-    const slimeSpec: Texture = await Texture.fromUrl("/resources/examples/10/slime_specular.png", {
-      flipY: true,
-    });
-    const slimeAmb: Texture = await Texture.fromUrl("/resources/examples/10/slime_ambient.png", {
-      flipY: true,
-    });
-
     // Reuse some generic textures or placeholders
     const barrelTex: Texture = await Texture.fromUrl("/resources/examples/10/rock.png", {
       flipY: true,
@@ -119,11 +100,6 @@ export class YadApp extends AbstractExample {
       lavaDisplacementMap: lavaDisp,
       lavaSpecularMap: lavaSpec,
       lavaAmbientMap: lavaAmb,
-      slimeNoiseMap: slimeNoise,
-      slimeDisplacementMap: slimeDisp,
-      slimeNormalMap: slimeNorm,
-      slimeSpecularMap: slimeSpec,
-      slimeAmbientMap: slimeAmb,
       barrelTexture: barrelTex,
       torchTexture: torchTex,
     });
