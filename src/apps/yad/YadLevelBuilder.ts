@@ -4,12 +4,7 @@ import { Object3D } from "../../core/Object3D.js";
 import { Scene } from "../../core/Scene.js";
 import { Vector3D } from "../../math/index.js";
 import { Cube, Plane, Sphere } from "../../geometry/index.js";
-import {
-  StandardMaterial,
-  LavaMaterial,
-  SlimeMaterial,
-  SpriteMaterial,
-} from "../../core/materials/index.js";
+import { StandardMaterial, LavaMaterial, SpriteMaterial } from "../../core/materials/index.js";
 import { PointLight, Color, Texture, Sprite } from "../../core/index.js";
 import { CullMode } from "../../enums/index.js";
 import { GeometryDataInterface } from "../../interfaces/index.js";
@@ -36,16 +31,6 @@ export interface YadLevelConfig {
   barrelTexture?: Texture;
   /** Texture for torch sprites. */
   torchTexture?: Texture;
-  /** Noise map for toxin/slime floor. */
-  slimeNoiseMap?: Texture;
-  /** Displacement map for slime floor. */
-  slimeDisplacementMap?: Texture;
-  /** Normal map for slime floor. */
-  slimeNormalMap?: Texture;
-  /** Specular map for slime floor. */
-  slimeSpecularMap?: Texture;
-  /** Ambient map for slime floor. */
-  slimeAmbientMap?: Texture;
 }
 
 /**
@@ -93,16 +78,6 @@ export class YadLevelBuilder {
     lavaMat.cullMode = CullMode.NONE;
     lavaMaterials.push(lavaMat);
 
-    const slimeMat: SlimeMaterial = new SlimeMaterial({
-      noiseMap: config.slimeNoiseMap,
-      displacementMap: config.slimeDisplacementMap,
-      normalMap: config.slimeNormalMap,
-      specularMap: config.slimeSpecularMap,
-      ambientMap: config.slimeAmbientMap,
-    });
-    slimeMat.cullMode = CullMode.NONE;
-    lavaMaterials.push(slimeMat);
-
     const wallGeo: GeometryDataInterface = new Cube({ size: this._gridSize }).getGeometryData();
     const floorGeo: GeometryDataInterface = new Plane({
       width: this._gridSize,
@@ -139,10 +114,8 @@ export class YadLevelBuilder {
         // If it's a floating LavaBall, we STILL want floor/ceiling
         const floor: Object3D = new Object3D(`Floor_${x}_${y}`);
         floor.geometry = floorGeo;
-        if ("~" === char) {
+        if ("~" === char || "T" === char) {
           floor.material = lavaMat;
-        } else if ("T" === char) {
-          floor.material = slimeMat;
         } else {
           floor.material = floorMat;
         }
