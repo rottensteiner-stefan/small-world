@@ -1,6 +1,18 @@
 # Changelog
 
+## [0.33.0] - 2026-06-22
+
+- **Feature: Unified Gamepad Support & WebHID Nintendo Integration**:
+  - Implemented the `UniversalGamepadController` to unify and abstract input handling from both the native standard browser Gamepad API (Xbox, PlayStation, mapped generic controllers) and the WebHID API (Nintendo Joy-Cons via `joy-con-webhid`).
+  - Added dynamic loader/import for `joy-con-webhid` to ensure compatibility with Node.js environments (vitest) and SSR setups.
+  - Implemented automatic grouping of Left and Right Joy-Cons into a single logical `GamepadDevice` when both are active, mapping physical buttons (A/B/X/Y, triggers, system buttons, and sticks) to standard gamepad indices (0-17).
+  - Integrated `UniversalGamepadController` into the core `Input` class, keeping keyboard and mouse inputs functional while seamlessly falling back to gamepad input.
+  - Provided static accessors `Input.gamepadController` and `Input.requestJoyConConnection()` to trigger browser pairing dialogs in response to user gestures.
+  - Wrote a comprehensive unit test suite in `tests/core/controllers/UniversalGamepadController.test.ts` to verify standard gamepad mapping, raw/mocked Joy-Con packet parsers, and connection management.
+  - Adapted the **Gamepad Diagnostic Tool** (`public/tools/gamepad-test.html`) to support WebHID controller pairing and display the normalized outputs of the new unified gamepad system.
+
 ## [0.32.0] - 2026-06-22
+
 
 - **Feature: Local Retro Screen Effects (RetroScreenMaterial)**:
   - Created a specialized `RetroScreenMaterial` designed to run locally on meshes (e.g. TV screens) to simulate custom camera/display artifacts.

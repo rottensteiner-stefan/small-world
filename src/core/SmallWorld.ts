@@ -21,7 +21,7 @@ import { CollisionVisualizer, OctreeVisualizer } from "../utils/index.js";
 import type { GadgetInspector } from "../tools/GadgetInspector.js";
 
 /** The current engine version. */
-export const ENGINE_VERSION = "0.32.0";
+export const ENGINE_VERSION = "0.33.0";
 
 /**
  * Base class for applications built with the SmallWorld engine.
@@ -213,6 +213,7 @@ export abstract class SmallWorld {
     const deltaTime: number = Math.min((currentTime - this._lastTime) / 1000.0, 0.1);
     this._lastTime = currentTime;
 
+    Input.update();
     this.update(deltaTime);
 
     if (this._inspector) {

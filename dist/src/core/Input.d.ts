@@ -1,4 +1,5 @@
 import { Keys } from '../enums/Keys.js';
+import { UniversalGamepadController } from './UniversalGamepadController.js';
 /**
  * Interface for mouse state.
  */
@@ -30,6 +31,7 @@ export interface InputInterface {
 export declare class Input implements InputInterface {
     private static _instance;
     private _keys;
+    private _gamepadController;
     /** Mouse state including position and button status. */
     mouse: MouseState;
     /** Whether the pointer is currently locked. */
@@ -48,6 +50,8 @@ export declare class Input implements InputInterface {
     static set isPointerLocked(v: boolean);
     static get debug(): boolean;
     static set debug(v: boolean);
+    static get gamepadController(): UniversalGamepadController;
+    static requestJoyConConnection(): Promise<void>;
     /**
      * Initializes the input listeners.
      */
@@ -59,9 +63,16 @@ export declare class Input implements InputInterface {
     isPressed(code: string | Keys): boolean;
     /** @inheritdoc */
     getAxis(neg: string | Keys, pos: string | Keys): number;
+    private _lastDebugLog;
+    /**
+     * Polls gamepad look axes and accumulates them into mouse deltas.
+     * Should be called once per frame.
+     */
+    update(): void;
     /** Static wrappers */
     static isPressed(code: string | Keys): boolean;
     static getAxis(neg: string | Keys, pos: string | Keys): number;
+    static update(): void;
     /**
      * Helper for testing to manually set key state.
      */

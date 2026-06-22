@@ -50,6 +50,7 @@ export class Example9 extends AbstractExample {
 
   protected override async setupScene(): Promise<void> {
     Input.init();
+    Input.debug = true;
     this.renderer.setClearColor(new Color(0.5, 0.7, 1.0));
 
     // 1. Camera Setup
