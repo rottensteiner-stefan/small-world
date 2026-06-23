@@ -3,7 +3,7 @@
 ## [0.34.0] - 2026-06-23
 
 - **Feature: Interactive HTML Slide Presentation & Live 3D Showcase**:
-  - Developed a custom, premium 5-slide HTML presentation for the Small World Engine at `public/presentation.html`.
+  - Developed a custom, premium 5-slide HTML presentation for the Small World at `public/presentation.html`.
   - Implemented responsive keyboard and mouse controls for slide transitions (Space, Arrow keys, PageUp/PageDown, and previous/next buttons).
   - Designed the presentation with a modern glassmorphism aesthetic using high-end dark-themed HSL gradients and Outfit/Inter typography.
   - Implemented a resource-friendly activation system that automatically starts the 3D rendering loop only when the showcase slide is active and stops it when leaving the slide.
