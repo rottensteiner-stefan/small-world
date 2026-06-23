@@ -32,6 +32,27 @@ async function loadChunks() {
   const chunks = new Map<string, string>();
   await loadChunksFromDir(chunksDir, chunks);
   await loadChunksFromDir(localChunksDir, chunks);
+
+  // Dynamically assemble FILTER_COLOR_GRADING for the linter
+  const gradingWgsl = `
+  if (1u == u.filterMode) {
+      ${chunks.get("FILTER_NIGHT_VISION") || ""}
+  } else if (2u == u.filterMode) {
+      ${chunks.get("FILTER_NOIR") || ""}
+  } else if (3u == u.filterMode) {
+      ${chunks.get("FILTER_CYBER_GLITCH") || ""}
+  } else if (4u == u.filterMode) {
+      ${chunks.get("FILTER_VHS_TAPE") || ""}
+  } else if (5u == u.filterMode) {
+      ${chunks.get("FILTER_UNDERWORLD") || ""}
+  } else if (6u == u.filterMode) {
+      ${chunks.get("FILTER_OLD_PROJECTOR") || ""}
+  } else if (7u == u.filterMode) {
+      ${chunks.get("FILTER_THERMAL_VISION") || ""}
+  }
+  `;
+  chunks.set("FILTER_COLOR_GRADING", gradingWgsl);
+
   return chunks;
 }
 

@@ -9,8 +9,24 @@ import FILTER_GLITCH_DISTORT_GLSL from "../../materials/shaders/chunks/filter_gl
 import FILTER_GLITCH_DISTORT_WGSL from "../../materials/shaders/chunks/filter_glitch_distort.wgsl?raw";
 import FILTER_VHS_DISTORT_GLSL from "../../materials/shaders/chunks/filter_vhs_distort.glsl?raw";
 import FILTER_VHS_DISTORT_WGSL from "../../materials/shaders/chunks/filter_vhs_distort.wgsl?raw";
-import FILTER_COLOR_GRADING_GLSL from "../../materials/shaders/chunks/filter_color_grading.glsl?raw";
-import FILTER_COLOR_GRADING_WGSL from "../../materials/shaders/chunks/filter_color_grading.wgsl?raw";
+
+// Individual color grading GLSL filter imports
+import filterNightVisionGLSL from "../../materials/shaders/chunks/filter_night_vision.glsl?raw";
+import filterNoirGLSL from "../../materials/shaders/chunks/filter_noir.glsl?raw";
+import filterCyberGlitchGLSL from "../../materials/shaders/chunks/filter_cyber_glitch.glsl?raw";
+import filterVhsTapeGLSL from "../../materials/shaders/chunks/filter_vhs_tape.glsl?raw";
+import filterUnderworldGLSL from "../../materials/shaders/chunks/filter_underworld.glsl?raw";
+import filterOldProjectorGLSL from "../../materials/shaders/chunks/filter_old_projector.glsl?raw";
+import filterThermalVisionGLSL from "../../materials/shaders/chunks/filter_thermal_vision.glsl?raw";
+
+// Individual color grading WGSL filter imports
+import filterNightVisionWGSL from "../../materials/shaders/chunks/filter_night_vision.wgsl?raw";
+import filterNoirWGSL from "../../materials/shaders/chunks/filter_noir.wgsl?raw";
+import filterCyberGlitchWGSL from "../../materials/shaders/chunks/filter_cyber_glitch.wgsl?raw";
+import filterVhsTapeWGSL from "../../materials/shaders/chunks/filter_vhs_tape.wgsl?raw";
+import filterUnderworldWGSL from "../../materials/shaders/chunks/filter_underworld.wgsl?raw";
+import filterOldProjectorWGSL from "../../materials/shaders/chunks/filter_old_projector.wgsl?raw";
+import filterThermalVisionWGSL from "../../materials/shaders/chunks/filter_thermal_vision.wgsl?raw";
 
 /**
  * Utility to load and register all standard shader chunks used by the engine.
@@ -111,8 +127,46 @@ export class CoreShaderChunks {
     registry.registerChunk("FILTER_VHS_DISTORT", FILTER_VHS_DISTORT_GLSL, "glsl300");
     registry.registerChunk("FILTER_VHS_DISTORT", FILTER_VHS_DISTORT_WGSL, "wgsl");
 
-    registry.registerChunk("FILTER_COLOR_GRADING", FILTER_COLOR_GRADING_GLSL, "glsl300");
-    registry.registerChunk("FILTER_COLOR_GRADING", FILTER_COLOR_GRADING_WGSL, "wgsl");
+    // Dynamically assemble GLSL color grading filters
+    const filterColorGradingGLSL = `
+    if (u_filterMode == 1) { // Night Vision
+        ${filterNightVisionGLSL}
+    } else if (u_filterMode == 2) { // Noir Detective
+        ${filterNoirGLSL}
+    } else if (u_filterMode == 3) { // Cyber Glitch
+        ${filterCyberGlitchGLSL}
+    } else if (u_filterMode == 4) { // VHS Tape
+        ${filterVhsTapeGLSL}
+    } else if (u_filterMode == 5) { // Underworld
+        ${filterUnderworldGLSL}
+    } else if (u_filterMode == 6) { // Old Projector
+        ${filterOldProjectorGLSL}
+    } else if (u_filterMode == 7) { // Thermal Vision
+        ${filterThermalVisionGLSL}
+    }
+    `;
+
+    // Dynamically assemble WGSL color grading filters
+    const filterColorGradingWGSL = `
+    if (1u == u.filterMode) { // Night Vision
+        ${filterNightVisionWGSL}
+    } else if (2u == u.filterMode) { // Noir Detective
+        ${filterNoirWGSL}
+    } else if (3u == u.filterMode) { // Cyber Glitch
+        ${filterCyberGlitchWGSL}
+    } else if (4u == u.filterMode) { // VHS Tape
+        ${filterVhsTapeWGSL}
+    } else if (5u == u.filterMode) { // Underworld
+        ${filterUnderworldWGSL}
+    } else if (6u == u.filterMode) { // Old Projector
+        ${filterOldProjectorWGSL}
+    } else if (7u == u.filterMode) { // Thermal Vision
+        ${filterThermalVisionWGSL}
+    }
+    `;
+
+    registry.registerChunk("FILTER_COLOR_GRADING", filterColorGradingGLSL, "glsl300");
+    registry.registerChunk("FILTER_COLOR_GRADING", filterColorGradingWGSL, "wgsl");
 
     this._isInitialized = true;
   }
