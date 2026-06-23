@@ -10,6 +10,8 @@ export declare class PostProcessingGroup {
     enabled: boolean;
     /** Currently always true (Global Volume). */
     isGlobal: boolean;
+    /** The active shader filter mode (e.g. 0 = clean, 1 = nightvision, 2 = noir, 3 = cyber, 4 = vhs, 5 = underworld). */
+    filterMode: number;
     private _elements;
     constructor();
     /**

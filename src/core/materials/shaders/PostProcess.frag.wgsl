@@ -16,7 +16,7 @@ struct PostUniforms {
     bloomEnabled: u32,
     bloomIntensity: f32,
     bloomColor: vec3f,
-    _pad: f32,
+    filterMode: u32,
 }
 @group(0) @binding(2) var<uniform> u: PostUniforms;
 
@@ -58,27 +58,97 @@ fn linearToSRGB(linear: vec3f, invGamma: f32) -> vec3f {
 fn fs_main(@location(0) uv: vec2f, @builtin(position) coord: vec4f) -> @location(0) vec4f {
     let dims = vec2f(textureDimensions(hdrTexture, 0));
 
-    let hdr = textureSample(hdrTexture, hdrSampler, uv).rgb;
-    var hdrVal = hdr;
+    var distortUv = uv;
+
+    // Cyber Glitch (mode 3)
+    if (3u == u.filterMode) {
+[FILTER_GLITCH_DISTORT]
+    }
+    // VHS Tape (mode 4)
+    else if (4u == u.filterMode) {
+[FILTER_VHS_DISTORT]
+    }
+    // Night Vision (mode 1)
+    else if (1u == u.filterMode) {
+        let jitter = (random(vec2f(u.time * 10.0, uv.y)) - 0.5) * 0.001;
+        distortUv.x += jitter;
+    }
+    // Old Projector (mode 6)
+    else if (6u == u.filterMode) {
+        let shakeX = (random(vec2f(u.time * 6.0, 1.0)) - 0.5) * 0.002;
+        let shakeY = (random(vec2f(u.time * 10.0, 2.0)) - 0.5) * 0.004;
+        var jump = 0.0;
+        if (random(vec2f(floor(u.time * 4.0), 3.0)) > 0.88) {
+            jump = (random(vec2f(u.time, 4.0)) - 0.5) * 0.012;
+        }
+        distortUv.x += shakeX;
+        distortUv.y += shakeY + jump;
+    }
+
+    var hdr: vec3f;
+    if (3u == u.filterMode) { // Cyber Glitch (High CA)
+        let dir = distortUv - 0.5;
+        let shift = 0.025 + 0.015 * sin(u.time * 4.0);
+        hdr = vec3f(
+            textureSample(hdrTexture, hdrSampler, distortUv - dir * shift).r,
+            textureSample(hdrTexture, hdrSampler, distortUv).g,
+            textureSample(hdrTexture, hdrSampler, distortUv + dir * shift).b
+        );
+    } else if (4u == u.filterMode) { // VHS Tape (Linear CA)
+        hdr = vec3f(
+            textureSample(hdrTexture, hdrSampler, distortUv - vec2f(0.008, 0.0)).r,
+            textureSample(hdrTexture, hdrSampler, distortUv).g,
+            textureSample(hdrTexture, hdrSampler, distortUv + vec2f(0.008, 0.0)).b
+        );
+    } else if (2u == u.filterMode) { // Noir Detective (Edge CA)
+        let dir = distortUv - 0.5;
+        let shift = 0.006 * length(dir);
+        hdr = vec3f(
+            textureSample(hdrTexture, hdrSampler, distortUv - dir * shift).r,
+            textureSample(hdrTexture, hdrSampler, distortUv).g,
+            textureSample(hdrTexture, hdrSampler, distortUv + dir * shift).b
+        );
+    } else {
+        hdr = textureSample(hdrTexture, hdrSampler, distortUv).rgb;
+    }
+
+    // Bloom
     if (1u == u.bloomEnabled) {
-        let bloom = textureSample(bloomTexture, hdrSampler, uv).rgb;
-        hdrVal += bloom * u.bloomIntensity * u.bloomColor;
+        var bloom: vec3f;
+        if (3u == u.filterMode) {
+            let dir = distortUv - 0.5;
+            let shift = 0.025 + 0.015 * sin(u.time * 4.0);
+            bloom = vec3f(
+                textureSample(bloomTexture, hdrSampler, distortUv - dir * shift).r,
+                textureSample(bloomTexture, hdrSampler, distortUv).g,
+                textureSample(bloomTexture, hdrSampler, distortUv + dir * shift).b
+            );
+        } else if (4u == u.filterMode) {
+            bloom = vec3f(
+                textureSample(bloomTexture, hdrSampler, distortUv - vec2f(0.008, 0.0)).r,
+                textureSample(bloomTexture, hdrSampler, distortUv).g,
+                textureSample(bloomTexture, hdrSampler, distortUv + vec2f(0.008, 0.0)).b
+            );
+        } else {
+            bloom = textureSample(bloomTexture, hdrSampler, distortUv).rgb;
+        }
+        hdr += bloom * u.bloomIntensity * u.bloomColor;
     }
-    
-    var tonemapped = hdrVal * u.exposure;
+
+    var tonemapped = hdr * u.exposure;
     if (1u == u.toneMappingMode) {
-        tonemapped = toneMapReinhard(hdrVal, u.exposure);
+        tonemapped = toneMapReinhard(hdr, u.exposure);
     } else if (2u == u.toneMappingMode) {
-        tonemapped = toneMapCineon(hdrVal, u.exposure);
+        tonemapped = toneMapCineon(hdr, u.exposure);
     } else if (3u == u.toneMappingMode) {
-        tonemapped = toneMapACESFilmic(hdrVal, u.exposure);
+        tonemapped = toneMapACESFilmic(hdr, u.exposure);
     }
-    
+
     var srgb = linearToSRGB(tonemapped, u.inverseGamma);
 
     // Apply Vignette if enabled
     if (1u == u.vignetteEnabled) {
-        let d_uv = abs(uv - vec2f(0.5)) * 2.0;
+        let d_uv = abs(distortUv - vec2f(0.5)) * 2.0;
         let d = pow(pow(d_uv.x, u.vignetteRoundness) + pow(d_uv.y, u.vignetteRoundness), 1.0 / u.vignetteRoundness);
         let d_old_scale = d * 0.5;
         let innerRadius = u.vignetteOffset * 0.5;
@@ -92,6 +162,9 @@ fn fs_main(@location(0) uv: vec2f, @builtin(position) coord: vec4f) -> @location
         let grain = (noise - 0.5) * u.grainIntensity;
         srgb += vec3f(grain);
     }
+
+    // Filter modes
+[FILTER_COLOR_GRADING]
 
     return vec4f(srgb, 1.0);
 }

@@ -22,6 +22,24 @@ async function loadChunks() {
       chunks.set(key, content);
     }
   }
+
+  // Load dynamic chunks from CoreShaderChunks.ts
+  try {
+    const coreChunksPath = path.resolve("src/core/renderers/shaders/CoreShaderChunks.ts");
+    const coreChunksContent = await fs.readFile(coreChunksPath, "utf8");
+    const extractChunk = (varName: string) => {
+      const regex = new RegExp(`const\\s+${varName}\\s*=\\s*\`([\\s\\S]*?)\`;`);
+      const match = regex.exec(coreChunksContent);
+      return match ? match[1] : "";
+    };
+
+    chunks.set("FILTER_GLITCH_DISTORT", extractChunk("filterGlitchDistortWGSL"));
+    chunks.set("FILTER_VHS_DISTORT", extractChunk("filterVhsDistortWGSL"));
+    chunks.set("FILTER_COLOR_GRADING", extractChunk("filterColorGradingWGSL"));
+  } catch (e) {
+    console.warn("Could not load dynamic filter chunks from CoreShaderChunks.ts:", e);
+  }
+
   return chunks;
 }
 

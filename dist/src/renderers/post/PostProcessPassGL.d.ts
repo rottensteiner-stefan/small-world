@@ -18,6 +18,7 @@ export declare class PostProcessPassGL {
     private _uGrainEnabled;
     private _uGrainIntensity;
     private _uTime;
+    private _uFilterMode;
     private _uBloomTexture;
     private _uBloomEnabled;
     private _uBloomIntensity;
