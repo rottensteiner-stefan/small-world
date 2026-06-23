@@ -143,7 +143,12 @@ void main() {
     // Apply Vignette
     if (u_vignetteEnabled == 1) {
         vec2 d_uv = abs(distortUv - vec2(0.5)) * 2.0;
-        float d = pow(pow(d_uv.x, u_vignetteRoundness) + pow(d_uv.y, u_vignetteRoundness), 1.0 / u_vignetteRoundness);
+        float d = 0.0;
+        if (u_vignetteRoundness == 2.0) {
+            d = length(d_uv);
+        } else {
+            d = pow(pow(d_uv.x, u_vignetteRoundness) + pow(d_uv.y, u_vignetteRoundness), 1.0 / u_vignetteRoundness);
+        }
         float d_old_scale = d * 0.5;
         float innerRadius = u_vignetteOffset * 0.5;
         float vignette = 1.0 - smoothstep(innerRadius, u_vignetteOffset, d_old_scale);

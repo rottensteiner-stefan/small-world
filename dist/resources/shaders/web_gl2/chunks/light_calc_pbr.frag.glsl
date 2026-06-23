@@ -214,7 +214,7 @@ color = color / (color + vec3(1.0));
 // Gamma Correction
 color = linearToSRGB(color);
 
-fragColor = vec4(color, u_color.a * texture(u_diffuseMap, v_uv).a);
+fragColor = vec4(color, u_color.a * texColor.a);
 
 if (fragColor.a < u_extraParams.y) {
     discard;
