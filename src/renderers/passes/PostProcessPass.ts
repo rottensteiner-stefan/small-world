@@ -5,6 +5,7 @@ import { WebGPURenderer } from "../WebGPURenderer.js";
 import { RenderPass } from "../RenderPass.js";
 import { Vector3D } from "../../math/index.js";
 import { PostProcessingEffectType } from "../../enums/index.js";
+import { ShaderRegistry } from "../../core/renderers/shaders/ShaderRegistry.js";
 
 import FULLSCREEN_VERT_WGSL from "../../core/materials/shaders/PostProcess.vert.wgsl?raw";
 import POST_PROCESS_FRAG_WGSL from "../../core/materials/shaders/PostProcess.frag.wgsl?raw";
@@ -57,7 +58,8 @@ export class PostProcessPass implements RenderPass {
     const layout = device.createPipelineLayout({ bindGroupLayouts: [bgl] });
 
     const vertModule = device.createShaderModule({ code: FULLSCREEN_VERT_WGSL });
-    const fragModule = device.createShaderModule({ code: POST_PROCESS_FRAG_WGSL });
+    const assembledFrag = ShaderRegistry.instance.assemble(POST_PROCESS_FRAG_WGSL, "wgsl");
+    const fragModule = device.createShaderModule({ code: assembledFrag });
 
     this._pipeline = device.createRenderPipeline({
       layout,
@@ -157,7 +159,7 @@ export class PostProcessPass implements RenderPass {
       this._uniformData[13] = 1.0;
       this._uniformData[14] = 1.0;
     }
-    this._uniformData[15] = 0.0; // padding
+    u32View[15] = group.filterMode; // Replaced padding with filterMode
 
     renderer._device!.queue.writeBuffer(this._uniformBuffer!, 0, this._uniformData);
 

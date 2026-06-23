@@ -20,6 +20,8 @@ uniform int u_grainEnabled;
 uniform float u_grainIntensity;
 uniform float u_time;
 
+uniform int u_filterMode;
+
 // Random noise
 float random(vec2 st) {
     vec3 p3  = fract(vec3(st.xyx) * 0.1031);
@@ -58,13 +60,74 @@ vec3 linearToSRGB(vec3 linear, float gamma) {
 void main() {
     // Flip Y: WebGL FBO is stored bottom-up, screen is top-down
     vec2 uv = vec2(v_uv.x, 1.0 - v_uv.y);
-    vec3 hdr = texture(u_hdrTexture, uv).rgb;
     
+    vec2 distortUv = uv;
+    
+    // Cyber Glitch (mode 3) - horizontal block glitch offset
+    if (u_filterMode == 3) {
+[FILTER_GLITCH_DISTORT]
+    }
+    // VHS Tape (mode 4) - tape tracking distortion & horizontal jitter
+    else if (u_filterMode == 4) {
+[FILTER_VHS_DISTORT]
+    }
+    // Night Vision (mode 1) - scanline jitter
+    else if (u_filterMode == 1) {
+        float jitter = (random(vec2(u_time * 10.0, uv.y)) - 0.5) * 0.001;
+        distortUv.x += jitter;
+    }
+    // Old Projector (mode 6) - frame shake and bounce
+    else if (u_filterMode == 6) {
+        float shakeX = (random(vec2(u_time * 6.0, 1.0)) - 0.5) * 0.002;
+        float shakeY = (random(vec2(u_time * 10.0, 2.0)) - 0.5) * 0.004;
+        if (random(vec2(floor(u_time * 4.0), 3.0)) > 0.88) {
+            shakeY += (random(vec2(u_time, 4.0)) - 0.5) * 0.012;
+        }
+        distortUv += vec2(shakeX, shakeY);
+    }
+
+    // Chromatic Aberration (sampling R, G, B at slightly different coordinates)
+    vec3 hdr;
+    if (u_filterMode == 3) { // Cyber Glitch (High CA)
+        vec2 dir = distortUv - 0.5;
+        float shift = 0.025 + 0.015 * sin(u_time * 4.0);
+        hdr.r = texture(u_hdrTexture, distortUv - dir * shift).r;
+        hdr.g = texture(u_hdrTexture, distortUv).g;
+        hdr.b = texture(u_hdrTexture, distortUv + dir * shift).b;
+    } else if (u_filterMode == 4) { // VHS Tape (Linear CA)
+        hdr.r = texture(u_hdrTexture, distortUv - vec2(0.008, 0.0)).r;
+        hdr.g = texture(u_hdrTexture, distortUv).g;
+        hdr.b = texture(u_hdrTexture, distortUv + vec2(0.008, 0.0)).b;
+    } else if (u_filterMode == 2) { // Noir Detective (Edge CA)
+        vec2 dir = distortUv - 0.5;
+        float shift = 0.006 * length(dir);
+        hdr.r = texture(u_hdrTexture, distortUv - dir * shift).r;
+        hdr.g = texture(u_hdrTexture, distortUv).g;
+        hdr.b = texture(u_hdrTexture, distortUv + dir * shift).b;
+    } else {
+        hdr = texture(u_hdrTexture, distortUv).rgb;
+    }
+
+    // Bloom mixing
     if (u_bloomEnabled == 1) {
-        vec3 bloom = texture(u_bloomTexture, uv).rgb;
+        vec3 bloom;
+        if (u_filterMode == 3) {
+            vec2 dir = distortUv - 0.5;
+            float shift = 0.025 + 0.015 * sin(u_time * 4.0);
+            bloom.r = texture(u_bloomTexture, distortUv - dir * shift).r;
+            bloom.g = texture(u_bloomTexture, distortUv).g;
+            bloom.b = texture(u_bloomTexture, distortUv + dir * shift).b;
+        } else if (u_filterMode == 4) {
+            bloom.r = texture(u_bloomTexture, distortUv - vec2(0.008, 0.0)).r;
+            bloom.g = texture(u_bloomTexture, distortUv).g;
+            bloom.b = texture(u_bloomTexture, distortUv + vec2(0.008, 0.0)).b;
+        } else {
+            bloom = texture(u_bloomTexture, distortUv).rgb;
+        }
         hdr += bloom * u_bloomIntensity * u_bloomColor;
     }
-    
+
+    // Tone Mapping
     vec3 tonemapped = hdr * u_exposure;
     if (u_toneMappingMode == 1) {
         tonemapped = toneMapReinhard(hdr, u_exposure);
@@ -74,11 +137,12 @@ void main() {
         tonemapped = toneMapACESFilmic(hdr, u_exposure);
     }
 
+    // Gamma correction
     vec3 srgb = linearToSRGB(tonemapped, u_gamma);
 
     // Apply Vignette
     if (u_vignetteEnabled == 1) {
-        vec2 d_uv = abs(uv - vec2(0.5)) * 2.0;
+        vec2 d_uv = abs(distortUv - vec2(0.5)) * 2.0;
         float d = pow(pow(d_uv.x, u_vignetteRoundness) + pow(d_uv.y, u_vignetteRoundness), 1.0 / u_vignetteRoundness);
         float d_old_scale = d * 0.5;
         float innerRadius = u_vignetteOffset * 0.5;
@@ -88,12 +152,13 @@ void main() {
 
     // Apply Film Grain
     if (u_grainEnabled == 1) {
-        // We don't have dims directly in WebGL unless passed, but we can just use uv with a large multiplier
-        // gl_FragCoord.xy works well for screen pixel coordinates
         float noise = random(gl_FragCoord.xy + vec2(u_time, -u_time));
         float grain = (noise - 0.5) * u_grainIntensity;
         srgb += vec3(grain);
     }
+
+    // Apply Filter Color Grading
+[FILTER_COLOR_GRADING]
 
     fragColor = vec4(srgb, 1.0);
 }

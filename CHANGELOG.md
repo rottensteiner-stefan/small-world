@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.35.0] - 2026-06-23
+
+- **Feature: Highly Stylized Surveillance Video Wall Filters**:
+  - Refactored post-processing to support a custom `filterMode` attribute on `PostProcessingGroup`.
+  - Added modular shader chunks (`FILTER_GLITCH_DISTORT`, `FILTER_VHS_DISTORT`, `FILTER_COLOR_GRADING`) in `CoreShaderChunks.ts` for both GLSL and WGSL.
+  - Implemented 8 distinct, premium post-processing configurations (Aces Filmic, phosphor-green Night Vision with scrolling scanlines and luma flickering, Noir Film with warm highlights and cool shadows with edge chromatic aberration, Cyber Glitch with cyan/magenta neon tint and blocky line offset shifts, VHS Tape with signal tracking distortion, desaturated colors and line noise, Underworld with warm sepia amber contrast, Old Projector with screen vertical jumps, white vertical scratches and hair/dirt spots, and Thermal Sensor heat map vision).
+  - Toggled monitor power saving: Clicking on any of the 8 monitor green LEDs turns it red and pauses the respective 3D rendering loop (`app.stop()`) saving CPU/GPU execution cycles, while applying a smooth CSS fade-out transition.
+- **Maintenance & Testing**:
+  - Created a robust unit test suite in `tests/renderers/PostProcessing.test.ts` verifying that `filterMode` registers successfully, shader chunks contain correct keywords, and the post-processing shader template assembles correctly in WebGL2 and WebGPU.
+  - Bumped engine minor version to `0.35.0` in `package.json` (propagated to `SmallWorld.ts` via the prebuild build-step).
+
 ## [0.34.0] - 2026-06-23
 
 - **Feature: Interactive HTML Slide Presentation & Live 3D Showcase**:
@@ -9,6 +20,13 @@
   - Implemented a resource-friendly activation system that automatically starts the 3D rendering loop only when the showcase slide is active and stops it when leaving the slide.
   - Integrated the "Damaged Helmet" interactive PBR 3D demo with cinematic letterbox sliding bars and custom overlays for camera control instructions.
   - Modified `vite.config.ts` to register the presentation entry point for production compilation, and linked the slides deck on the main index page (`public/index.html`).
+
+- **Feature: Surveillance Video Wall Showcase (Example 14)**:
+  - Designed and developed a dark-themed retail store "Video Wall" mockup at `public/examples/example14.html`.
+  - Configured a grid of 6 monitors, each running a separate rendering instance of a procedural interrogation room scene.
+  - Implemented 6 distinct post-processing configurations (Clean Feed, Night Vision green bloom, Noir B&W, Cyberpunk hot magenta bloom, VHS analog tape, Underworld amber glow) demonstrating the engine's ToneMapping, Vignette, Grain, and Bloom elements.
+  - Created a synchronized surveillance sweep animation (panning security camera) and animated swinging/flickering light fixtures controlled by a shared simulation panel.
+  - Added entry configurations in `vite.config.ts` and registered the new example on the landing page index.
 
 ## [0.33.0] - 2026-06-22
 

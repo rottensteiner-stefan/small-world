@@ -1,6 +1,7 @@
 /// src/renderers/post/PostProcessPassGL.ts
 
 import { PostProcessingEffectType } from "../../enums/index.js";
+import { ShaderRegistry } from "../../core/renderers/shaders/ShaderRegistry.js";
 
 import FULLSCREEN_VERT_GLSL from "../../core/materials/shaders/PostProcess.vert.glsl?raw";
 import POST_PROCESS_FRAG_GLSL from "../../core/materials/shaders/PostProcess.frag.glsl?raw";
@@ -28,6 +29,7 @@ export class PostProcessPassGL {
   private _uGrainEnabled: WebGLUniformLocation | null = null;
   private _uGrainIntensity: WebGLUniformLocation | null = null;
   private _uTime: WebGLUniformLocation | null = null;
+  private _uFilterMode: WebGLUniformLocation | null = null;
 
   // Bloom
   private _uBloomTexture: WebGLUniformLocation | null = null;
@@ -45,7 +47,8 @@ export class PostProcessPassGL {
 
   private _build(gl: WebGLRenderingContext | WebGL2RenderingContext): void {
     const vert = this._isWebGL2 ? FULLSCREEN_VERT_GLSL : FULLSCREEN_VERT_GLSL100;
-    const frag = this._isWebGL2 ? POST_PROCESS_FRAG_GLSL : POST_PROCESS_FRAG_GLSL100;
+    const rawFrag = this._isWebGL2 ? POST_PROCESS_FRAG_GLSL : POST_PROCESS_FRAG_GLSL100;
+    const frag = this._isWebGL2 ? ShaderRegistry.instance.assemble(rawFrag, "glsl300") : rawFrag;
 
     const v = gl.createShader(gl.VERTEX_SHADER)!;
     gl.shaderSource(v, vert);
@@ -80,6 +83,7 @@ export class PostProcessPassGL {
     this._uGrainEnabled = gl.getUniformLocation(p, "u_grainEnabled");
     this._uGrainIntensity = gl.getUniformLocation(p, "u_grainIntensity");
     this._uTime = gl.getUniformLocation(p, "u_time");
+    this._uFilterMode = gl.getUniformLocation(p, "u_filterMode");
 
     this._uBloomTexture = gl.getUniformLocation(p, "u_bloomTexture");
     this._uBloomEnabled = gl.getUniformLocation(p, "u_bloomEnabled");
@@ -182,6 +186,7 @@ export class PostProcessPassGL {
       if (this._uGrainIntensity) gl.uniform1f(this._uGrainIntensity, grain.intensity);
     }
     if (this._uTime !== null) gl.uniform1f(this._uTime, (performance.now() % 100000) / 1000.0);
+    if (this._uFilterMode !== null) gl.uniform1i(this._uFilterMode, group.filterMode);
 
     if (this._isWebGL2) {
       const gl2 = gl as WebGL2RenderingContext;

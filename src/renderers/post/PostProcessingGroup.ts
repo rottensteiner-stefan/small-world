@@ -19,6 +19,9 @@ export class PostProcessingGroup {
   /** Currently always true (Global Volume). */
   public isGlobal: boolean = true;
 
+  /** The active shader filter mode (e.g. 0 = clean, 1 = nightvision, 2 = noir, 3 = cyber, 4 = vhs, 5 = underworld). */
+  public filterMode: number = 0;
+
   private _elements: Map<PostProcessingEffectType, PostProcessingElement> = new Map();
 
   constructor() {
