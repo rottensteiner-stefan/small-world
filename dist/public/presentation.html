@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="de">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Small World Engine — Projekt-Präsentation</title>
+    <title>Small World Engine — Project Presentation</title>
     <!-- Google Fonts: Outfit (modern, tech-focused headings) & Inter (highly readable body text) -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -232,7 +232,6 @@
         border-color: rgba(255, 255, 255, 0.15);
       }
 
-      /* Glass Cards Layout */
       .glass-card {
         background: var(--glass-bg);
         backdrop-filter: blur(16px);
@@ -240,12 +239,15 @@
         border: 1px solid var(--glass-border);
         border-radius: 24px;
         padding: 3rem;
-        max-width: 900px;
+        min-width: 1100px;
+        max-width: 1100px;
         width: 100%;
+        min-height: 580px;
         box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
         position: relative;
         z-index: 10;
         transition: all 0.5s ease;
+        box-sizing: border-box;
       }
 
       .glass-card::before {
@@ -316,6 +318,7 @@
 
       .feature-list {
         list-style: none;
+        padding-left: 1.2rem;
       }
 
       .feature-list li {
@@ -323,9 +326,7 @@
         font-size: 0.95rem;
         line-height: 1.5;
         color: var(--text-color);
-        display: flex;
-        align-items: flex-start;
-        gap: 0.5rem;
+        position: relative;
         text-align: left;
       }
 
@@ -333,6 +334,9 @@
         content: "✦";
         color: var(--primary);
         font-weight: bold;
+        position: absolute;
+        left: -1.2rem;
+        top: 0;
       }
 
       /* Co-Creation Slides */
@@ -386,29 +390,16 @@
         margin-bottom: 0.6rem;
         font-size: 0.95rem;
         color: #e5e7eb;
-        outline: none;
         padding: 0.3rem 0.6rem;
-        border-radius: 6px;
-        transition: background 0.2s;
-        cursor: text;
         display: flex;
         align-items: center;
         gap: 0.5rem;
       }
 
       .user-notes-list li::before {
-        content: "✏️";
+        content: "✦";
         font-size: 0.85rem;
-        opacity: 0.7;
-      }
-
-      .user-notes-list li:hover {
-        background: rgba(255, 255, 255, 0.05);
-      }
-
-      .user-notes-list li:focus {
-        background: rgba(255, 255, 255, 0.1);
-        border-bottom: 1px solid var(--accent);
+        color: var(--accent);
       }
 
       /* Slide 5: Cinematic Demo */
@@ -632,9 +623,7 @@
       }
 
       /* Title Slide grid & Assembler Terminal */
-      .title-slide .glass-card {
-        max-width: 1100px;
-      }
+
 
       .title-slide-grid {
         display: grid;
@@ -736,6 +725,56 @@
       .tp-dfgv, .tp-dfwv, .td-dfwv {
         z-index: 999999 !important;
       }
+
+      @media print {
+        body {
+          height: auto !important;
+          overflow: visible !important;
+          background: #0b0f19 !important;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+        .bg-glows, .nav-overlay, .home-link, .progress-bar-container, .key-guide, .cinema-bar {
+          display: none !important;
+        }
+        .slides-wrapper {
+          width: 100vw !important;
+          height: auto !important;
+          overflow: visible !important;
+        }
+        .slides-container {
+          display: block !important;
+          width: 100% !important;
+          transform: none !important;
+        }
+        .slide {
+          width: 100vw !important;
+          height: 100vh !important;
+          page-break-after: always !important;
+          break-after: page !important;
+          display: flex !important;
+          justify-content: center !important;
+          align-items: center !important;
+          box-sizing: border-box !important;
+          padding: 2rem !important;
+        }
+        .glass-card {
+          max-width: 90% !important;
+          min-width: 0 !important;
+          min-height: 0 !important;
+          box-shadow: none !important;
+          border: 1px solid rgba(255, 255, 255, 0.15) !important;
+          background: rgba(17, 24, 39, 0.8) !important;
+        }
+      }
+      @media (max-width: 1200px) {
+        .glass-card {
+          min-width: auto !important;
+          max-width: 90% !important;
+          width: 90% !important;
+          min-height: auto !important;
+        }
+      }
     </style>
     <script type="module" crossorigin src="/examples/presentation/demo.js"></script>
     <link rel="modulepreload" crossorigin href="/js/src.js">
@@ -751,7 +790,7 @@
 
     <!-- Navigation Header link -->
     <a href="/" class="home-link">
-      <span>←</span> Zurück zur Übersicht
+      <span>←</span> Back to Overview
     </a>
 
     <!-- Top Progress Bar -->
@@ -769,7 +808,7 @@
             <div class="title-slide-text">
               <span class="badge">TypeScript 3D Engine</span>
               <h1>Small World Engine</h1>
-              <h2>Ein modularer, hochperformanter 3D-Engine für WebGL & WebGPU. Co-designed mit Gemini.</h2>
+              <h2>A modular, high-performance 3D engine for WebGL & WebGPU. Co-designed with <a href="https://gemini.google.com" target="_blank" style="color: var(--accent); text-decoration: none; border-bottom: 1px dashed var(--accent); transition: color 0.3s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='var(--accent)'">Gemini</a>.</h2>
               <div class="repo-link-container">
                 <a href="https://github.com/rottensteiner-stefan/small-world" target="_blank" class="github-link">
                   <svg class="github-icon" viewBox="0 0 16 16" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>
@@ -777,8 +816,8 @@
                 </a>
               </div>
               <div class="key-guide">
-                <span>Nächste Folie: <span class="key-cap">Leertaste</span> oder <span class="key-cap">→</span></span>
-                <span>Vorherige Folie: <span class="key-cap">←</span></span>
+                <span>Next Slide: <span class="key-cap">Space</span> or <span class="key-cap">→</span></span>
+                <span>Previous Slide: <span class="key-cap">←</span></span>
               </div>
             </div>
             <div class="title-slide-visual">
@@ -811,25 +850,25 @@ int 16h         ; BIOS Keyboard Interrupt</code></pre>
         <div class="slide">
           <div class="glass-card">
             <span class="badge">Architecture & Features</span>
-            <h2 class="slide-title">Features & Architektur</h2>
-            <p class="slide-subtitle">Modularer Aufbau, moderne Grafikpipelines und flexible Kontrollmechanismen</p>
+            <h2 class="slide-title">Features & Architecture</h2>
+            <p class="slide-subtitle">Modular structure, modern graphics pipelines, and flexible control mechanisms</p>
             
             <div class="features-grid">
               <div class="feature-col">
                 <h3>Hybrid Rendering Pipeline</h3>
                 <ul class="feature-list">
-                  <li>Unterstützung für modernstes <strong>WebGPU</strong> mit nahtlosem Fallback auf WebGL 2 und WebGL 1.</li>
-                  <li>Physikalisch basierte PBR-Shading-Pipeline (Cook-Torrance BRDF) für hochpräzise Metall- und Rauheitsdarstellung.</li>
-                  <li>Fortgeschrittene Glaseffekte mit Screen-Space Refraction (SSR) und Lichtabsorption (Beer'sches Gesetz).</li>
-                  <li>Shadow Mapping mit PCF (Percentage-Closer Filtering) für weiche, flüssige Schatten.</li>
+                  <li>Support for state-of-the-art <strong>WebGPU</strong> with seamless fallback to WebGL 2 and WebGL 1.</li>
+                  <li>Physically-based PBR shading pipeline (Cook-Torrance BRDF) for high-precision metalness and roughness representation.</li>
+                  <li>Advanced glass effects with screen-space refraction (SSR) and light absorption (Beer's law).</li>
+                  <li>Shadow mapping with PCF (Percentage-Closer Filtering) for soft, smooth shadows.</li>
                 </ul>
               </div>
               <div class="feature-col">
-                <h3>Kamera- & Verhalten-System</h3>
+                <h3>Camera & Behavior System</h3>
                 <ul class="feature-list">
-                  <li><strong>Strategy-based Cameras</strong>: Flexibler Wechsel zwischen Smooth-Follow, stiff fixed, Isometric oder FPS-Steuerung.</li>
-                  <li>Modulare ZoomController, Camera-Shake (Erdbeben-Effekte) und Camera-Flash (prozedurale Blitz-Effekte).</li>
-                  <li>Callback-driven Component Behaviors zur Kapselung von Anwendungslogik wie <code>FlickerBehavior</code> oder Kollisions-Sensoren.</li>
+                  <li><strong>Strategy-based Cameras</strong>: Flexible switching between Smooth-Follow, stiff fixed, Isometric, or FPS control.</li>
+                  <li>Modular ZoomController, Camera-Shake (earthquake effects), and Camera-Flash (procedural lightning effects).</li>
+                  <li>Callback-driven Component Behaviors to encapsulate application logic like <code>FlickerBehavior</code> or collision sensors.</li>
                 </ul>
               </div>
             </div>
@@ -840,21 +879,22 @@ int 16h         ; BIOS Keyboard Interrupt</code></pre>
         <div class="slide">
           <div class="glass-card">
             <span class="badge">Co-Creation Part I</span>
-            <h2 class="slide-title">Co-Creation mit Gemini</h2>
-            <p class="slide-subtitle">Vom ersten Entwurf zum sauberen Architektur-Skelett</p>
+            <h2 class="slide-title">Co-Creation with Gemini</h2>
+            <p class="slide-subtitle">From initial draft to a clean architectural skeleton</p>
             
             <p class="co-creation-body">
-              Das gesamte Projekt wurde von Grund auf in enger Partnerschaft mit Gemini konzipiert und implementiert. 
-              Gemini fungierte hierbei nicht nur als Schreibhilfe, sondern als echter Co-Architekt: Von der Planung der Ordnerstruktur über die Definition streng typisierter Schnittstellen (TypeScript <code>strict: true</code>) bis hin zur Abstimmung von Entwurfsmustern (wie dem modularen Kamera-Strategie-System).
+              The entire project was conceived and implemented from the ground up in close partnership with Gemini. 
+              Gemini acted not just as a coding assistant, but as a true co-architect: from planning the folder structure and defining strictly typed interfaces (TypeScript <code>strict: true</code>) to aligning on design patterns (like the modular camera strategy system).
             </p>
-
+ 
             <div class="user-notes-section">
-              <h4>✍️ Meine Notizen (Doppelklick zum Editieren)</h4>
+              <h4>📌 Key Takeaways</h4>
               <ul class="user-notes-list">
-                <li contenteditable="true">Architektur-Entwurf und Ordnerstruktur gemeinsam in iterativen Chats erarbeitet.</li>
-                <li contenteditable="true">Strenge Typensicherheit und Vermeidung von 'any' im gesamten Core.</li>
-                <li contenteditable="true">Hier klicken, um eigene Notiz einzufügen...</li>
-                <li contenteditable="true">Hier klicken, um eigene Notiz einzufügen...</li>
+                <li>Be concise, but always polite</li>
+                <li>Anything that can go wrong will go wrong - just faster with an AI</li>
+                <li>Planning mode and well-thought-out work packages</li>
+                <li>Set clear boundaries</li>
+                <li>Adhere to official best practices of the domain</li>
               </ul>
             </div>
           </div>
@@ -864,20 +904,20 @@ int 16h         ; BIOS Keyboard Interrupt</code></pre>
         <div class="slide">
           <div class="glass-card">
             <span class="badge">Co-Creation Part II</span>
-            <h2 class="slide-title">Co-Creation mit Gemini</h2>
-            <p class="slide-subtitle">Komplexe Algorithmen & Hot-Path-Optimierung</p>
+            <h2 class="slide-title">Co-Creation with Gemini</h2>
+            <p class="slide-subtitle">Complex Algorithms & Hot-Path Optimization</p>
             
             <p class="co-creation-body">
-              Für maximale Renderleistung wurden zeitkritische Abschnitte optimiert: Gemini half bei der Entwicklung von hocheffizienten WGSL/GLSL-Shadern, der Realisierung von Screen-Space Refraktion für Echtzeit-Glas und der Konzeption eines <code>MathPool</code>. Dieser Object-Pool eliminiert Garbage Collection Overhead während der Render-Schleife vollständig.
+              To maximize render performance, time-critical paths were optimized: Gemini assisted in developing highly efficient WGSL/GLSL shaders, implementing screen-space refraction for real-time glass, and designing a <code>MathPool</code>. This object pool completely eliminates garbage collection overhead during the render loop.
             </p>
-
+ 
             <div class="user-notes-section">
-              <h4>✍️ Meine Notizen (Doppelklick zum Editieren)</h4>
+              <h4>📌 Key Takeaways</h4>
               <ul class="user-notes-list">
-                <li contenteditable="true">Shaders optimiert für WebGPU (WGSL) und WebGL2 (GLSL 300 es).</li>
-                <li contenteditable="true">Zero-Allocation Pipeline dank intensivem Object-Pooling (MathPool).</li>
-                <li contenteditable="true">Hier klicken, um eigene Notiz einzufügen...</li>
-                <li contenteditable="true">Hier klicken, um eigene Notiz einzufügen...</li>
+                <li>Analyze strengths, habits, and weaknesses (Sun Tzu)</li>
+                <li>Blue or red pill? Desires, lies & hallucinations</li>
+                <li></li>
+                <li>AGENTS.md</li>
               </ul>
             </div>
           </div>
@@ -897,7 +937,7 @@ int 16h         ; BIOS Keyboard Interrupt</code></pre>
             <!-- Loader inside canvas -->
             <div class="canvas-loader" id="canvasLoader">
               <div class="spinner"></div>
-              <p>LADE DAMAGED HELMET PBR MODEL (WebGPU / WebGL)...</p>
+              <p>LOADING DAMAGED HELMET PBR MODEL (WebGPU / WebGL)...</p>
             </div>
 
             <!-- Small World Canvas -->
@@ -907,10 +947,10 @@ int 16h         ; BIOS Keyboard Interrupt</code></pre>
             <div class="cinema-overlay">
               <div class="cinema-meta">
                 <div class="cinema-title">GLTF Damaged Helmet Showcase</div>
-                <div class="cinema-subtitle">Echtzeit PBR StandardMaterial, Roughness/Metallic & Environment Mapping</div>
+                <div class="cinema-subtitle">Real-time PBR StandardMaterial, Roughness/Metallic & Environment Mapping</div>
               </div>
               <div class="cinema-tips">
-                🕹️ Dragge mit Maus zum Rotieren | WASD zum Bewegen
+                🕹️ Drag with mouse to rotate | WASD to move
               </div>
             </div>
           </div>
