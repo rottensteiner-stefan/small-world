@@ -97,7 +97,7 @@ color += emissive;
 color = color / (color + vec3(1.0));
 color = linearToSRGB(color);
 
-gl_FragColor = vec4(color, u_color.a * texture2D(u_diffuseMap, v_uv).a);
+gl_FragColor = vec4(color, u_color.a * texColor.a);
 if (gl_FragColor.a < u_extraParams.y) {
     discard;
 }

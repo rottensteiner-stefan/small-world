@@ -149,7 +149,12 @@ fn fs_main(@location(0) uv: vec2f, @builtin(position) coord: vec4f) -> @location
     // Apply Vignette if enabled
     if (1u == u.vignetteEnabled) {
         let d_uv = abs(distortUv - vec2f(0.5)) * 2.0;
-        let d = pow(pow(d_uv.x, u.vignetteRoundness) + pow(d_uv.y, u.vignetteRoundness), 1.0 / u.vignetteRoundness);
+        var d = 0.0;
+        if (u.vignetteRoundness == 2.0) {
+            d = length(d_uv);
+        } else {
+            d = pow(pow(d_uv.x, u.vignetteRoundness) + pow(d_uv.y, u.vignetteRoundness), 1.0 / u.vignetteRoundness);
+        }
         let d_old_scale = d * 0.5;
         let innerRadius = u.vignetteOffset * 0.5;
         let vignette = 1.0 - smoothstep(innerRadius, u.vignetteOffset, d_old_scale);

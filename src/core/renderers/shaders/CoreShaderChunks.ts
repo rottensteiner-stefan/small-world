@@ -251,13 +251,10 @@ uniform float u_fogHeightFalloff;
         vec3 warm = vec3(0.85, 0.1, 0.05);
         vec3 hot = vec3(0.95, 0.9, 0.05);
         vec3 whiteHot = vec3(1.0, 1.0, 1.0);
-        if (luma < 0.3) {
-            srgb = mix(cold, warm, luma / 0.3);
-        } else if (luma < 0.7) {
-            srgb = mix(warm, hot, (luma - 0.3) / 0.4);
-        } else {
-            srgb = mix(hot, whiteHot, (luma - 0.7) / 0.3);
-        }
+        
+        vec3 c1 = mix(cold, warm, clamp(luma / 0.3, 0.0, 1.0));
+        vec3 c2 = mix(c1, hot, clamp((luma - 0.3) / 0.4, 0.0, 1.0));
+        srgb = mix(c2, whiteHot, clamp((luma - 0.7) / 0.3, 0.0, 1.0));
     }
     `;
 
@@ -338,13 +335,10 @@ uniform float u_fogHeightFalloff;
         let warm = vec3f(0.85, 0.1, 0.05);
         let hot = vec3f(0.95, 0.9, 0.05);
         let whiteHot = vec3f(1.0, 1.0, 1.0);
-        if (luma < 0.3) {
-            srgb = mix(cold, warm, luma / 0.3);
-        } else if (luma < 0.7) {
-            srgb = mix(warm, hot, (luma - 0.3) / 0.4);
-        } else {
-            srgb = mix(hot, whiteHot, (luma - 0.7) / 0.3);
-        }
+
+        let c1 = mix(cold, warm, clamp(luma / 0.3, 0.0, 1.0));
+        let c2 = mix(c1, hot, clamp((luma - 0.3) / 0.4, 0.0, 1.0));
+        srgb = mix(c2, whiteHot, clamp((luma - 0.7) / 0.3, 0.0, 1.0));
     }
     `;
 

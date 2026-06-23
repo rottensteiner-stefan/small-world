@@ -5,22 +5,13 @@
     let snow = textureSample(u_snowMap, s, i.uv);
 
     let h = i.wp.y;
-    var texCol: vec4f;
+    let t_sand_grass = clamp((h - obj.thresholds.x) / (obj.thresholds.y - obj.thresholds.x), 0.0, 1.0);
+    let t_grass_rock = clamp((h - obj.thresholds.y) / (obj.thresholds.z - obj.thresholds.y), 0.0, 1.0);
+    let t_rock_snow  = clamp((h - obj.thresholds.z) / (obj.thresholds.w - obj.thresholds.z), 0.0, 1.0);
 
-    if (h < obj.thresholds.x) {
-        texCol = sand;
-    } else if (h < obj.thresholds.y) {
-        let t = (h - obj.thresholds.x) / (obj.thresholds.y - obj.thresholds.x);
-        texCol = mix(sand, grass, t);
-    } else if (h < obj.thresholds.z) {
-        let t = (h - obj.thresholds.y) / (obj.thresholds.z - obj.thresholds.y);
-        texCol = mix(grass, rock, t);
-    } else if (h < obj.thresholds.w) {
-        let t = (h - obj.thresholds.z) / (obj.thresholds.w - obj.thresholds.z);
-        texCol = mix(rock, snow, t);
-    } else {
-        texCol = snow;
-    }
+    let c1 = mix(sand, grass, t_sand_grass);
+    let c2 = mix(c1, rock, t_grass_rock);
+    let texCol = mix(c2, snow, t_rock_snow);
 
     // Note: N is now defined inside WGSL_LIGHTING via normalize(i.n)
     [WGSL_LIGHTING]
