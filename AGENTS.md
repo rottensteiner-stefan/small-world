@@ -17,6 +17,7 @@
 - **Colors:** Linear space math, final output gamma-corrected (sRGB). Diffuse + Specular <= 1.0.
 - **Resources:** Explicit bitwise-OR usage flags. Bind `onuncapturederror`.
 - **Shaders:** One final post-process pass (tone map, color grade, vignette, gamma). Compute shaders with workgroup memory for spatial ops.
+- **Optimization:** Prefer analytical/procedural math calculations over texturing/memory lookups where feasible (Inigo Quilez: "Math is cheaper than memory").
 
 ## 4. Coding Standards (TS strict: true)
 - **Types:** Explicit types, return types, access modifiers. No `any`.
