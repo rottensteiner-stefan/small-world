@@ -2,7 +2,7 @@
 
 import { Object3D } from "../Object3D.js";
 import { CameraInterfaceData } from "../../interfaces/index.js";
-import { MathUtils } from "../../math/MathUtils.js";
+import { MathUtils } from "../../math/index.js";
 
 /**
  * Definition of a single configurable field inside the Gadget Inspector.

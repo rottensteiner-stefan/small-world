@@ -1,7 +1,7 @@
 /// src/core/behaviors/OscillatorBehavior.ts
 
 import { Behavior, InspectorField } from "./Behavior.js";
-import { OscillatorType } from "../../enums/OscillatorType.js";
+import { OscillatorType } from "../../enums/index.js";
 import { Noise } from "../../utils/Noise.js";
 
 /**
