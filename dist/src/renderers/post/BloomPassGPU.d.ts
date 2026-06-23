@@ -15,6 +15,7 @@ export declare class BloomPassGPU {
     private _width;
     private _height;
     private _mipCount;
+    private _builtSourceView?;
     constructor(device: GPUDevice);
     private _buildPipelines;
     private _resizeMipChain;
