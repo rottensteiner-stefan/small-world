@@ -3,43 +3,35 @@ import path from "path";
 import { WgslReflect } from "wgsl_reflect/wgsl_reflect.module.js";
 
 const chunksDir = path.resolve("public/resources/shaders/web_gpu/chunks");
+const localChunksDir = path.resolve("src/core/materials/shaders/chunks");
 const materialsDir = path.resolve("src/core/materials/shaders");
+
+async function loadChunksFromDir(dir: string, chunks: Map<string, string>) {
+  try {
+    const files = await fs.readdir(dir);
+    for (const file of files) {
+      if (file.endsWith(".wgsl")) {
+        const name = file.replace(".wgsl", "").toUpperCase();
+        const content = await fs.readFile(path.join(dir, file), "utf8");
+
+        // WGSL chunks often correspond to standard keys
+        let key = name;
+        if (name === "LIGHTING_PBR") key = "WGSL_PBR_LIGHTING";
+        if (name === "LIGHTING") key = "WGSL_LIGHTING";
+        if (name === "FOG_CALC") key = "WGSL_FOG_CALC";
+
+        chunks.set(key, content);
+      }
+    }
+  } catch (e) {
+    console.warn(`Could not read chunks from directory: ${dir}`, e);
+  }
+}
 
 async function loadChunks() {
   const chunks = new Map<string, string>();
-  const files = await fs.readdir(chunksDir);
-  for (const file of files) {
-    if (file.endsWith(".wgsl")) {
-      const name = file.replace(".wgsl", "").toUpperCase();
-      const content = await fs.readFile(path.join(chunksDir, file), "utf8");
-
-      // WGSL chunks often correspond to standard keys
-      let key = name;
-      if (name === "LIGHTING_PBR") key = "WGSL_PBR_LIGHTING";
-      if (name === "LIGHTING") key = "WGSL_LIGHTING";
-      if (name === "FOG_CALC") key = "WGSL_FOG_CALC";
-
-      chunks.set(key, content);
-    }
-  }
-
-  // Load dynamic chunks from CoreShaderChunks.ts
-  try {
-    const coreChunksPath = path.resolve("src/core/renderers/shaders/CoreShaderChunks.ts");
-    const coreChunksContent = await fs.readFile(coreChunksPath, "utf8");
-    const extractChunk = (varName: string) => {
-      const regex = new RegExp(`const\\s+${varName}\\s*=\\s*\`([\\s\\S]*?)\`;`);
-      const match = regex.exec(coreChunksContent);
-      return match ? match[1] : "";
-    };
-
-    chunks.set("FILTER_GLITCH_DISTORT", extractChunk("filterGlitchDistortWGSL"));
-    chunks.set("FILTER_VHS_DISTORT", extractChunk("filterVhsDistortWGSL"));
-    chunks.set("FILTER_COLOR_GRADING", extractChunk("filterColorGradingWGSL"));
-  } catch (e) {
-    console.warn("Could not load dynamic filter chunks from CoreShaderChunks.ts:", e);
-  }
-
+  await loadChunksFromDir(chunksDir, chunks);
+  await loadChunksFromDir(localChunksDir, chunks);
   return chunks;
 }
 
