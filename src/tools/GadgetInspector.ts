@@ -62,6 +62,7 @@ export class GadgetInspector {
     // 1. Initialize Tweakpane (hidden by default)
     this._pane = new Pane({ title: "Gadget Inspector" });
     this._pane.element.style.display = "none";
+    this._pane.element.style.setProperty("z-index", "999999", "important");
 
     // Setup Diagnostics folder
     if (undefined !== this._renderer) {

@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.34.0] - 2026-06-23
+
+- **Feature: Interactive HTML Slide Presentation & Live 3D Showcase**:
+  - Developed a custom, premium 5-slide HTML presentation for the Small World Engine at `public/presentation.html`.
+  - Implemented responsive keyboard and mouse controls for slide transitions (Space, Arrow keys, PageUp/PageDown, and previous/next buttons).
+  - Designed the presentation with a modern glassmorphism aesthetic using high-end dark-themed HSL gradients and Outfit/Inter typography.
+  - Implemented a resource-friendly activation system that automatically starts the 3D rendering loop only when the showcase slide is active and stops it when leaving the slide.
+  - Integrated the "Damaged Helmet" interactive PBR 3D demo with cinematic letterbox sliding bars and custom overlays for camera control instructions.
+  - Modified `vite.config.ts` to register the presentation entry point for production compilation, and linked the slides deck on the main index page (`public/index.html`).
+
 ## [0.33.0] - 2026-06-22
 
 - **Feature: Unified Gamepad Support & WebHID Nintendo Integration**:

@@ -1,5 +1,5 @@
 import { Behavior, InspectorField } from './Behavior.js';
-import { OscillatorType } from '../../enums/OscillatorType.js';
+import { OscillatorType } from '../../enums/index.js';
 /**
  * Configuration options for the OscillatorBehavior.
  */

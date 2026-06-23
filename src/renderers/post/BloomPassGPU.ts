@@ -25,6 +25,7 @@ export class BloomPassGPU {
   private _width = 0;
   private _height = 0;
   private _mipCount = 5;
+  private _builtSourceView?: GPUTextureView;
 
   constructor(device: GPUDevice) {
     this._device = device;
@@ -88,7 +89,12 @@ export class BloomPassGPU {
     const bloomW = Math.max(1, Math.floor(width / 2));
     const bloomH = Math.max(1, Math.floor(height / 2));
 
-    if (this._bloomTexture && this._width === bloomW && this._height === bloomH) {
+    if (
+      this._bloomTexture &&
+      this._width === bloomW &&
+      this._height === bloomH &&
+      this._builtSourceView === sourceView
+    ) {
       return;
     }
 
@@ -100,6 +106,7 @@ export class BloomPassGPU {
 
     this._width = bloomW;
     this._height = bloomH;
+    this._builtSourceView = sourceView;
 
     this._bloomTexture = this._device.createTexture({
       size: [bloomW, bloomH, 1],
