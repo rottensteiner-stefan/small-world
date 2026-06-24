@@ -43,6 +43,12 @@ export class ExampleMaterial extends Material {
 }
 ```
 
+### Naming Conventions
+*   **PascalCase** for types, classes, interfaces, and enums (e.g. `ExampleMaterial`, `Vector3D`).
+*   **camelCase** for variables, properties, methods, and parameters (e.g. `color`, `setShininess`).
+*   **Underscore prefix (`_`)** for private and protected class members and properties (e.g. `_shininess`).
+
+
 ---
 
 ## 2. Control Flow: Guard Clauses & Early Returns
