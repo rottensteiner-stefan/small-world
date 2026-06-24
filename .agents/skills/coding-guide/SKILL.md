@@ -219,4 +219,3 @@ vi.stubGlobal("document", {
   })),
 });
 ```
-```
