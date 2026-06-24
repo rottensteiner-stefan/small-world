@@ -3,3 +3,4 @@ export * from './FlickerBehavior.js';
 export * from './ProximitySensorBehavior.js';
 export * from './OscillatorBehavior.js';
 export * from './PulsatingBehavior.js';
+export * from './StateMachineBehavior.js';

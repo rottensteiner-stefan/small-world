@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.38.0] - 2026-06-24
+
+- **Feature: Core Generic Finite State Machine (FSM) Framework**:
+  - Implemented a fully generic, type-safe, and zero-allocation `StateMachine` class in [StateMachine.ts](file:///Users/srottensteiner/PhpstormProjects/small-world/src/core/fsm/StateMachine.ts).
+  - Added support for state configs defining custom `onEnter`, `onUpdate`, and `onExit` lifecycle callbacks, auto-transitions based on elapsed state duration, and event-based transitions mapped to events.
+  - Implemented the `StateMachineBehavior` component in [StateMachineBehavior.ts](file:///Users/srottensteiner/PhpstormProjects/small-world/src/core/behaviors/StateMachineBehavior.ts) to seamlessly integrate state machines into the engine's standard update tick loop (`Scene.update()`).
+  - Added full test coverage for the FSM framework in [StateMachine.test.ts](file:///Users/srottensteiner/PhpstormProjects/small-world/tests/core/fsm/StateMachine.test.ts) verifying event transitions, update ticks, auto-transitions, and `StateMachineBehavior` operation.
+- **Refactor: FSM-Driven Bouncing Balls Simulation (Example 15)**:
+  - Refactored [example15.ts](file:///Users/srottensteiner/PhpstormProjects/small-world/src/examples/example15.ts) to decouple physics, collision detection, and lifecycle states from the monolithic example update loop.
+  - Attached a `StateMachineBehavior` to each bouncing ball, managing `"active" | "falling" | "exploding"` states and updating them natively within the engine's recursive behavior tick.
+  - Moved initial ball positioning, restitution velocity resets, and dissolution scales into corresponding state enter/update lifecycle callbacks, leaving the example's update loop clean and modular.
+
+## [0.37.0] - 2026-06-24
+
+- **Feature: Example 15 "Amiga Zen Nostalgia" & Advanced Planar/Sphere Reflections**:
+  - Developed and integrated Example 15 (`public/examples/example15.html` and `src/examples/example15.ts`), a tribute to classic Amiga 500 demos rendered with high-fidelity PBR.
+  - Implemented **Procedural Checkerboard Diffuse & Roughness Map Generation**: Utilizes an offscreen canvas to dynamically paint reflective black tiles (`roughness = 0.06`) and rough white tiles (`roughness = 0.9`), repeated and loaded into StandardMaterials without static assets.
+  - Developed **Planar Floor Reflections (Virtual Geometry / Mirror Room)**: Renders 100 bouncing balls and 3 large spheres flipped symmetrically across the Y axis under a transparent floor (`transparent: true` with `alpha = 0.45`), blending PBR envMap reflections on top of the reflected geometry.
+  - Developed **Dynamic Sphere Inversion Reflections**: Calculates real-time conformal reflections of all 100 bouncing balls inside 3D mirror spheres by inverting position vectors ($P' = C + V \cdot \frac{R^2}{d^2 - r^2}$) and radius scale ($r' = \frac{r \cdot R^2}{d^2 - r^2}$).
+  - Configured the smallest mirror sphere (Rose) as a **highly reflective mirror** (`transparent: true`, `alpha = 0.80`, `metallic = 1.0`, `roughness = 0.02`), while keeping the other two spheres semi-transparent (`alpha = 0.78`) to show the ball-reflections.
+  - Created a **Physics State Machine & Lifecycle Loop**: Bouncing balls now transition from `active` bouncing to `falling` (scaling down and dissolving over 1s when rolling off limits) or `exploding` (scaling up 4x and fading out over 0.5s when resting on the floor for 2s), continuously recycling via `respawnBall` to maintain exactly 100 active balls.
+- **Feature: Scrollable Gadget Inspector Overlay**:
+  - Constrained the main Tweakpane panel height to `90vh` and added auto vertical scrolling (`overflow-y: auto`, `overflow-x: hidden`). This prevents the inspector overlay from overflowing off the bottom of the screen when numerous folders are open.
+
 ## [0.36.0] - 2026-06-24
 
 - **Feature: Global Post-Processing Configuration & Static Shader Specialization**:
