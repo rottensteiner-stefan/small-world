@@ -10,3 +10,9 @@ node_modules/
 /var/
 **/.DS_Store
 /.claude/
+
+# Docs
+docs/public/api/
+docs/.vitepress/dist/
+docs/.vitepress/cache/
+
