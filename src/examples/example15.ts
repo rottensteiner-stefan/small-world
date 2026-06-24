@@ -19,26 +19,22 @@ import {
   Sphere,
   StandardMaterial,
   StateMachine,
-  StateMachineBehavior,
   Texture,
   TextureFilter,
+  InstancedMesh,
+  Matrix4,
+  Vector3D,
 } from "../index.js";
 
-interface ReflectedBall {
-  object: Object3D;
-  largeSphereIndex: number;
-}
-
 interface Ball {
-  object: Object3D;
   position: { x: number; y: number; z: number };
   velocity: { x: number; y: number; z: number };
   radius: number;
-  reflectedBalls: ReflectedBall[];
-  reflectedFloorBall: Object3D;
   stateMachine: StateMachine<"active" | "falling" | "exploding", BallContext>;
   timeOnFloor: number;
   lifeTime: number;
+  scale: number;
+  alpha: number;
 }
 
 interface BallContext {
@@ -52,6 +48,17 @@ export class Example15 extends AbstractExample {
     [];
   private _orbitingLight!: PointLight;
   private _time: number = 0;
+
+  // Instanced Meshes (split into 5 color groups to maintain multi-colored aesthetic)
+  private _mainBallsMeshes: InstancedMesh[] = [];
+  private _floorReflectedMeshes: InstancedMesh[] = [];
+  private _sphereReflectedMeshes: InstancedMesh[][] = [];
+
+  // Scratch variables to avoid per-frame allocations
+  private _scratchPos: Vector3D = new Vector3D();
+  private _scratchRot: Vector3D = new Vector3D();
+  private _scratchScale: Vector3D = new Vector3D();
+  private _tempMatrix: Matrix4 = new Matrix4();
 
   protected override async setupScene(): Promise<void> {
     this.onCanvasRecreated();
@@ -179,7 +186,7 @@ export class Example15 extends AbstractExample {
     floor.receiveShadow = true;
     this.scene.add(floor);
 
-    // 5. Create 3 Large Mirrored Spheres (dezent farbig, voll verspiegelt)
+    // 5. Create 3 Large Mirrored Spheres
     const sphereGeom = new Sphere({
       radius: 1,
       widthSegments: 32,
@@ -259,12 +266,13 @@ export class Example15 extends AbstractExample {
     refSphere3.receiveShadow = false;
     this.scene.add(refSphere3);
 
-    // 6. Spawn 100 Small Bouncing Rubber Balls
+    // 6. Setup Instanced Meshes for Small Bouncing Rubber Balls
     const ballGeom = new Sphere({
       radius: 0.2,
       widthSegments: 16,
       heightSegments: 12,
     }).getGeometryData();
+
     const ballColors = [
       new Color(1.0, 0.45, 0.35), // Neon peach
       new Color(0.4, 0.85, 0.4), // Lime
@@ -273,63 +281,55 @@ export class Example15 extends AbstractExample {
       new Color(0.9, 0.4, 0.75), // Magenta
     ];
 
-    for (let i = 0; i < 100; i++) {
-      const ballObj = new Object3D(`Ball_${i}`);
-      ballObj.geometry = ballGeom;
-
-      const randomColor = ballColors[Math.floor(Math.random() * ballColors.length)]!;
-      ballObj.material = new StandardMaterial({
-        color: new Color(randomColor.r, randomColor.g, randomColor.b, 1.0),
+    for (let c = 0; c < 5; c++) {
+      const ballMat = new StandardMaterial({
+        color: ballColors[c]!,
         metallic: 0.0,
-        roughness: 0.95, // High roughness for a matte rubber look
+        roughness: 0.95,
         transparent: true,
       });
-      ballObj.castShadow = true;
 
-      this.scene.add(ballObj);
+      const mainMesh = new InstancedMesh(`MainBalls_${c}`, ballGeom, ballMat, 20);
+      mainMesh.castShadow = true;
+      mainMesh.frustumCulled = false;
+      this.scene.add(mainMesh);
+      this._mainBallsMeshes.push(mainMesh);
 
-      // Create reflected virtual balls inside the large spheres
-      const reflectedBalls: ReflectedBall[] = [];
-      for (let s = 0; s < this._largeSpheres.length; s++) {
-        // Reflect inside all large spheres
-        const refObj = new Object3D(`Ball_${i}_Ref_${s}`);
-        refObj.geometry = ballGeom;
-        refObj.material = new StandardMaterial({
-          color: new Color(randomColor.r, randomColor.g, randomColor.b, 1.0),
-          metallic: 0.0,
-          roughness: 0.95,
-          transparent: true,
-        });
-        refObj.castShadow = false;
-        refObj.receiveShadow = false;
-        this.scene.add(refObj);
-        reflectedBalls.push({ object: refObj, largeSphereIndex: s });
+      const floorRefMesh = new InstancedMesh(`FloorReflectedBalls_${c}`, ballGeom, ballMat, 20);
+      floorRefMesh.castShadow = false;
+      floorRefMesh.receiveShadow = false;
+      floorRefMesh.frustumCulled = false;
+      this.scene.add(floorRefMesh);
+      this._floorReflectedMeshes.push(floorRefMesh);
+    }
+
+    for (let s = 0; s < 3; s++) {
+      this._sphereReflectedMeshes.push([]);
+      for (let c = 0; c < 5; c++) {
+        const ballMat = this._mainBallsMeshes[c]!.material as StandardMaterial;
+        const refMesh = new InstancedMesh(`SphereReflectedBalls_${s}_${c}`, ballGeom, ballMat, 20);
+        refMesh.castShadow = false;
+        refMesh.receiveShadow = false;
+        refMesh.frustumCulled = false;
+        this.scene.add(refMesh);
+        this._sphereReflectedMeshes[s]!.push(refMesh);
       }
+    }
 
-      // Create floor-reflected ball under the floor (Y = -y)
-      const floorRefObj = new Object3D(`Ball_${i}_FloorRef`);
-      floorRefObj.geometry = ballGeom;
-      floorRefObj.material = ballObj.material;
-      floorRefObj.castShadow = false;
-      floorRefObj.receiveShadow = false;
-      this.scene.add(floorRefObj);
-
+    // 7. Spawn Bouncing Ball Data
+    for (let i = 0; i < 100; i++) {
       const ball: Partial<Ball> = {
-        object: ballObj,
         position: { x: 0, y: 0, z: 0 },
         velocity: { x: 0, y: 0, z: 0 },
         radius: 0.2,
-        reflectedBalls,
-        reflectedFloorBall: floorRefObj,
         timeOnFloor: 0,
         lifeTime: 0,
+        scale: 1.0,
+        alpha: 1.0,
       };
 
       const stateMachine = this._createBallStateMachine(ball as Ball);
       ball.stateMachine = stateMachine;
-
-      const fsmBehavior = new StateMachineBehavior(stateMachine);
-      ballObj.addBehavior(fsmBehavior);
 
       this._balls.push(ball as Ball);
     }
@@ -350,21 +350,8 @@ export class Example15 extends AbstractExample {
         const b = ctx.ball;
         b.timeOnFloor = 0;
         b.lifeTime = 0;
-
-        // Reset scale
-        b.object.setScale(1.0);
-        b.reflectedFloorBall.setScale(1.0);
-        for (const ref of b.reflectedBalls) {
-          ref.object.setScale(1.0);
-        }
-
-        // Reset alpha
-        const mat = b.object.material as StandardMaterial;
-        mat.color.a = 1.0;
-        for (const ref of b.reflectedBalls) {
-          const refMat = ref.object.material as StandardMaterial;
-          refMat.color.a = 1.0;
-        }
+        b.scale = 1.0;
+        b.alpha = 1.0;
 
         // Reset position in cloud above
         const x = (Math.random() - 0.5) * 12;
@@ -373,8 +360,6 @@ export class Example15 extends AbstractExample {
         b.position.x = x;
         b.position.y = y;
         b.position.z = z;
-        b.object.setPosition(x, y, z);
-        b.reflectedFloorBall.setPosition(x, -y, z);
 
         // Reset velocity
         b.velocity.x = (Math.random() - 0.5) * 4.0;
@@ -385,10 +370,8 @@ export class Example15 extends AbstractExample {
         const b = ctx.ball;
         const gravity = -9.81;
 
-        // 1. Gravity
         b.velocity.y += gravity * deltaTime;
 
-        // 2. Position update
         b.position.x += b.velocity.x * deltaTime;
         b.position.y += b.velocity.y * deltaTime;
         b.position.z += b.velocity.z * deltaTime;
@@ -397,18 +380,15 @@ export class Example15 extends AbstractExample {
         const isOverFloor = Math.abs(b.position.x) <= limit && Math.abs(b.position.z) <= limit;
 
         if (isOverFloor) {
-          // 3. Collision with procedural floor (y = 0)
           const floorRestitution = 0.82;
           const floorFriction = 0.98;
           if (b.position.y < b.radius) {
             b.position.y = b.radius;
             b.velocity.y = -b.velocity.y * floorRestitution;
-            // Friction on floor contact
             b.velocity.x *= floorFriction;
             b.velocity.z *= floorFriction;
           }
 
-          // Track time resting on the floor
           if (b.position.y <= b.radius + 0.01) {
             b.timeOnFloor += deltaTime;
             if (b.timeOnFloor > 2.0) {
@@ -419,12 +399,11 @@ export class Example15 extends AbstractExample {
             b.timeOnFloor = 0;
           }
         } else {
-          // Off floor, transitions to falling
           b.stateMachine.transitionTo("falling");
           return;
         }
 
-        // 4. Collision with 3 Large Spheres
+        // Collision with 3 Large Spheres
         const sphereRestitution = 0.85;
         for (const large of ctx.example._largeSpheres) {
           const dx = b.position.x - large.x;
@@ -434,30 +413,22 @@ export class Example15 extends AbstractExample {
           const minDist = large.radius + b.radius;
 
           if (dist < minDist) {
-            // Normal vector of contact
             const nx = dx / dist;
             const ny = dy / dist;
             const nz = dz / dist;
 
-            // Push ball out of collision
             b.position.x = large.x + nx * minDist;
             b.position.y = large.y + ny * minDist;
             b.position.z = large.z + nz * minDist;
 
-            // Reflect velocity vector along normal N
             const dotProd = b.velocity.x * nx + b.velocity.y * ny + b.velocity.z * nz;
             b.velocity.x = (b.velocity.x - 2.0 * dotProd * nx) * sphereRestitution;
             b.velocity.y = (b.velocity.y - 2.0 * dotProd * ny) * sphereRestitution;
             b.velocity.z = (b.velocity.z - 2.0 * dotProd * nz) * sphereRestitution;
 
-            // Reset time on floor if it hit a sphere and bounced
             b.timeOnFloor = 0;
           }
         }
-
-        // Sync Object3D position
-        b.object.setPosition(b.position.x, b.position.y, b.position.z);
-        b.reflectedFloorBall.setPosition(b.position.x, -b.position.y, b.position.z);
       },
     });
 
@@ -469,30 +440,15 @@ export class Example15 extends AbstractExample {
         const b = ctx.ball;
         const gravity = -9.81;
 
-        // Fall under gravity
         b.velocity.y += gravity * deltaTime;
         b.position.x += b.velocity.x * deltaTime;
         b.position.y += b.velocity.y * deltaTime;
         b.position.z += b.velocity.z * deltaTime;
 
         b.lifeTime = stateDuration;
-        const progress = Math.min(b.lifeTime / 1.0, 1.0); // 1s dissolve
-        const scale = 1.0 - progress;
-        const alpha = 1.0 - progress;
-
-        b.object.setScale(scale);
-        b.reflectedFloorBall.setScale(scale);
-        const mat = b.object.material as StandardMaterial;
-        mat.color.a = alpha;
-
-        for (const ref of b.reflectedBalls) {
-          ref.object.setScale(scale);
-          const refMat = ref.object.material as StandardMaterial;
-          refMat.color.a = alpha;
-        }
-
-        b.object.setPosition(b.position.x, b.position.y, b.position.z);
-        b.reflectedFloorBall.setPosition(b.position.x, -b.position.y, b.position.z);
+        const progress = Math.min(b.lifeTime / 1.0, 1.0);
+        b.scale = 1.0 - progress;
+        b.alpha = 1.0 - progress;
 
         if (progress >= 1.0 || b.position.y < -10.0) {
           b.stateMachine.transitionTo("active");
@@ -510,19 +466,9 @@ export class Example15 extends AbstractExample {
       onUpdate: (ctx, _deltaTime, stateDuration) => {
         const b = ctx.ball;
         b.lifeTime = stateDuration;
-        const progress = Math.min(b.lifeTime / 0.5, 1.0); // 0.5s explosion
-        const scale = 1.0 + progress * 3.0; // expand up to 4x
-        const alpha = 1.0 - progress;
-
-        b.object.setScale(scale);
-        b.reflectedFloorBall.setScale(scale);
-        const mat = b.object.material as StandardMaterial;
-        mat.color.a = alpha;
-
-        for (const ref of b.reflectedBalls) {
-          const refMat = ref.object.material as StandardMaterial;
-          refMat.color.a = alpha;
-        }
+        const progress = Math.min(b.lifeTime / 0.5, 1.0);
+        b.scale = 1.0 + progress * 3.0; // expand up to 4x
+        b.alpha = 1.0 - progress;
 
         if (progress >= 1.0) {
           b.stateMachine.transitionTo("active");
@@ -551,13 +497,34 @@ export class Example15 extends AbstractExample {
       skybox.updateMatrixWorld();
     }
 
-    // 1. Update scene (this ticks behaviors including the StateMachineBehavior for each ball)
+    // 1. Tick state machine physics for all balls
+    for (const ball of this._balls) {
+      ball.stateMachine.update(deltaTime);
+    }
+
+    // 2. Scene update (matrix calculations of normal static / non-instanced objects)
     this.scene.update(deltaTime);
 
-    // 2. Sync reflected balls positions & scales using sphere inversion
-    for (const ball of this._balls) {
-      for (const ref of ball.reflectedBalls) {
-        const large = this._largeSpheres[ref.largeSphereIndex]!;
+    // 3. Construct and upload instance matrices
+    for (let i = 0; i < this._balls.length; i++) {
+      const ball = this._balls[i]!;
+      const colorIdx = i % 5;
+      const instanceIdx = Math.floor(i / 5);
+
+      // 3.1 Main Ball transform
+      this._scratchPos.set(ball.position.x, ball.position.y, ball.position.z);
+      this._scratchScale.set(ball.scale, ball.scale, ball.scale);
+      this._tempMatrix.compose(this._scratchPos, this._scratchRot, this._scratchScale);
+      this._mainBallsMeshes[colorIdx]!.setMatrixAt(instanceIdx, this._tempMatrix);
+
+      // 3.2 Floor Reflected Ball transform
+      this._scratchPos.set(ball.position.x, -ball.position.y, ball.position.z);
+      this._tempMatrix.compose(this._scratchPos, this._scratchRot, this._scratchScale);
+      this._floorReflectedMeshes[colorIdx]!.setMatrixAt(instanceIdx, this._tempMatrix);
+
+      // 3.3 Sphere Reflected Ball transforms
+      for (let s = 0; s < this._largeSpheres.length; s++) {
+        const large = this._largeSpheres[s]!;
         const dx = ball.position.x - large.x;
         const dy = ball.position.y - large.y;
         const dz = ball.position.z - large.z;
@@ -573,22 +540,18 @@ export class Example15 extends AbstractExample {
           const refZ = large.z + dz * factor;
           const refRadius = r * factor;
 
-          ref.object.setPosition(refX, refY, refZ);
+          const refScale = (refRadius / 0.2) * Math.max(ball.scale, 0.0);
 
-          const currentStateName = ball.stateMachine.currentState;
-          const currentScale =
-            currentStateName === "falling"
-              ? 1.0 - ball.lifeTime / 1.0
-              : currentStateName === "exploding"
-                ? 1.0 + (ball.lifeTime / 0.5) * 3.0
-                : 1.0;
-          ref.object.setScale((refRadius / 0.2) * Math.max(currentScale, 0.0));
-          ref.object.isVisible = true;
-
-          // Update matrices for rendering as coordinates were updated post scene.update()
-          ref.object.updateMatrixWorld(true);
+          this._scratchPos.set(refX, refY, refZ);
+          this._scratchScale.set(refScale, refScale, refScale);
+          this._tempMatrix.compose(this._scratchPos, this._scratchRot, this._scratchScale);
+          this._sphereReflectedMeshes[s]![colorIdx]!.setMatrixAt(instanceIdx, this._tempMatrix);
         } else {
-          ref.object.isVisible = false;
+          // Hide reflected ball if it lies inside the sphere center math
+          this._scratchPos.set(0, -999, 0);
+          this._scratchScale.set(0, 0, 0);
+          this._tempMatrix.compose(this._scratchPos, this._scratchRot, this._scratchScale);
+          this._sphereReflectedMeshes[s]![colorIdx]!.setMatrixAt(instanceIdx, this._tempMatrix);
         }
       }
     }
@@ -602,7 +565,7 @@ const app = new Example15({
 app
   .start()
   .then((): void => {
-    console.log("Example 15 running");
+    console.log("Example 15 running with Instanced Rendering");
   })
   .catch((err: Error): void => {
     console.error("Error while starting the engine: ", err);

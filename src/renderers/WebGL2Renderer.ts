@@ -11,6 +11,8 @@ import {
   DeviceCaps,
   DeviceLimit,
   DepthMaterial,
+  InstancedMesh,
+  RenderManifest,
 } from "../core/index.js";
 import { EngineOptions, GeometryDataInterface, LightDataInterface } from "../interfaces/index.js";
 import {
@@ -50,6 +52,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
   private _cache: Map<GeometryDataInterface, Mesh> = new Map();
   private _texCache: Map<Texture, WebGLTexture> = new Map();
   private _texCubeCache: Map<CubeTexture, WebGLTexture> = new Map();
+  private _instanceBuffers: WeakMap<InstancedMesh, WebGLBuffer> = new WeakMap();
   private _scratchTransparentMap: Map<string, Object3D[]> = new Map();
 
   private _scratchFloat4: Float32Array = new Float32Array(4);
@@ -133,8 +136,9 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     this._stateDepthTest = null;
   }
 
-  private _getProgram(shaderId: string): ProgramCache {
-    let cache = this._programs.get(shaderId);
+  private _getProgram(shaderId: string, isInstanced: boolean = false): ProgramCache {
+    const key = isInstanced ? `${shaderId}_instanced` : shaderId;
+    let cache = this._programs.get(key);
     if (!cache) {
       const def = ShaderRegistry.instance.get(shaderId);
       if (!def || !def.sources.glsl300) {
@@ -143,8 +147,11 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         );
       }
 
-      const vs = ShaderRegistry.instance.assemble(def.sources.glsl300.vs, "glsl300");
+      let vs = ShaderRegistry.instance.assemble(def.sources.glsl300.vs, "glsl300");
       const fs = ShaderRegistry.instance.assemble(def.sources.glsl300.fs, "glsl300");
+      if (isInstanced) {
+        vs = vs.replace("#version 300 es", "#version 300 es\n#define USE_INSTANCING 1");
+      }
       const prog = this.createShaderProgram(vs, fs);
 
       const uniforms = new Map<string, WebGLUniformLocation | undefined>();
@@ -152,7 +159,11 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
 
       this._globalUBO.bindToProgram(prog, "GlobalUniforms");
 
-      ["a_position", "a_normal", "a_uv", "a_tangent"].forEach((name) => {
+      const attribsToQuery = ["a_position", "a_normal", "a_uv", "a_tangent"];
+      if (isInstanced) {
+        attribsToQuery.push("a_instanceMatrix");
+      }
+      attribsToQuery.forEach((name) => {
         attributes.set(name, this.gl.getAttribLocation(prog, name));
       });
 
@@ -236,7 +247,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       }
 
       cache = { prog, uniforms, attributes };
-      this._programs.set(shaderId, cache);
+      this._programs.set(key, cache);
     }
     return cache;
   }
@@ -663,9 +674,6 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     }
   }
 
-  /**
-   * Renders a group of objects sharing the same shader and topology.
-   */
   private _renderGroup(
     shaderId: string,
     materialGroups: Map<string, Object3D[]>,
@@ -674,7 +682,63 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     lights?: LightDataInterface,
     fog?: import("../core/Fog.js").Fog,
   ): void {
-    const cache = this._getProgram(shaderId);
+    for (const materialGroup of materialGroups.values()) {
+      if (materialGroup.length === 0) continue;
+
+      const instancedObjects: Object3D[] = [];
+      const standardObjects: Object3D[] = [];
+
+      for (const o of materialGroup) {
+        if (o instanceof InstancedMesh) {
+          instancedObjects.push(o);
+        } else {
+          standardObjects.push(o);
+        }
+      }
+
+      const firstObj = materialGroup[0]!;
+      const mat = firstObj.material!;
+      const manifest = mat.getRenderManifest();
+
+      if (standardObjects.length > 0) {
+        this._renderSubgroup(
+          shaderId,
+          standardObjects,
+          false,
+          manifest,
+          vMat,
+          topology,
+          lights,
+          fog,
+        );
+      }
+
+      if (instancedObjects.length > 0) {
+        this._renderSubgroup(
+          shaderId,
+          instancedObjects,
+          true,
+          manifest,
+          vMat,
+          topology,
+          lights,
+          fog,
+        );
+      }
+    }
+  }
+
+  private _renderSubgroup(
+    shaderId: string,
+    objects: Object3D[],
+    isInstanced: boolean,
+    manifest: RenderManifest,
+    vMat?: Float32Array,
+    topology: string = "triangle-list",
+    lights?: LightDataInterface,
+    fog?: import("../core/Fog.js").Fog,
+  ): void {
+    const cache = this._getProgram(shaderId, isInstanced);
     this.gl.useProgram(cache.prog);
 
     this._bindDummyShadowMaps(cache);
@@ -765,7 +829,6 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
           }
 
           if (infoLoc) {
-            // x: bias, y: normalBias, z: castShadow, w: numCascades
             this._scratchFloat4[0] = light.shadowBias;
             this._scratchFloat4[1] = light.shadowNormalBias;
             this._scratchFloat4[2] = 1.0;
@@ -787,165 +850,226 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       }
     }
 
-    for (const materialGroup of materialGroups.values()) {
-      const objects = materialGroup;
-      const firstObj = objects[0]!;
-      const mat = firstObj.material!;
-      const manifest = mat.getRenderManifest();
-      const u = cache.uniforms;
+    const u = cache.uniforms;
 
-      // --- Fog Uniforms ---
-      if (fog) {
-        const modeLoc = u.get("u_fogMode");
-        if (modeLoc) this.gl.uniform1i(modeLoc, fog.mode);
-        const colLoc = u.get("u_fogColor");
-        if (colLoc) this.gl.uniform3f(colLoc, fog.color.r, fog.color.g, fog.color.b);
-        const densLoc = u.get("u_fogDensity");
-        if (densLoc) this.gl.uniform1f(densLoc, fog.density);
-        const nearLoc = u.get("u_fogNear");
-        if (nearLoc) this.gl.uniform1f(nearLoc, fog.near);
-        const farLoc = u.get("u_fogFar");
-        if (farLoc) this.gl.uniform1f(farLoc, fog.far);
-        const heightLoc = u.get("u_fogHeight");
-        if (heightLoc) this.gl.uniform1f(heightLoc, fog.height);
-        const hFalloffLoc = u.get("u_fogHeightFalloff");
-        if (hFalloffLoc) this.gl.uniform1f(hFalloffLoc, fog.heightFalloff);
-      } else {
-        const modeLoc = u.get("u_fogMode");
-        if (modeLoc) this.gl.uniform1i(modeLoc, 0); // NONE
+    // --- Fog Uniforms ---
+    if (fog) {
+      const modeLoc = u.get("u_fogMode");
+      if (modeLoc) this.gl.uniform1i(modeLoc, fog.mode);
+      const colLoc = u.get("u_fogColor");
+      if (colLoc) this.gl.uniform3f(colLoc, fog.color.r, fog.color.g, fog.color.b);
+      const densLoc = u.get("u_fogDensity");
+      if (densLoc) this.gl.uniform1f(densLoc, fog.density);
+      const nearLoc = u.get("u_fogNear");
+      if (nearLoc) this.gl.uniform1f(nearLoc, fog.near);
+      const farLoc = u.get("u_fogFar");
+      if (farLoc) this.gl.uniform1f(farLoc, fog.far);
+      const heightLoc = u.get("u_fogHeight");
+      if (heightLoc) this.gl.uniform1f(heightLoc, fog.height);
+      const hFalloffLoc = u.get("u_fogHeightFalloff");
+      if (hFalloffLoc) this.gl.uniform1f(hFalloffLoc, fog.heightFalloff);
+    } else {
+      const modeLoc = u.get("u_fogMode");
+      if (modeLoc) this.gl.uniform1i(modeLoc, 0); // NONE
+    }
+
+    // --- 1. Bind Material States ---
+    const state = manifest.state;
+    const enableCull = !(state && CullMode.NONE === state.culling);
+    if (this._stateCullFaceEnabled !== enableCull) {
+      if (enableCull) this.gl.enable(this.gl.CULL_FACE);
+      else this.gl.disable(this.gl.CULL_FACE);
+      this._stateCullFaceEnabled = enableCull;
+    }
+
+    if (enableCull) {
+      const cullMode = state && CullMode.FRONT === state.culling ? this.gl.FRONT : this.gl.BACK;
+      if (this._stateCullFaceMode !== cullMode) {
+        this.gl.cullFace(cullMode);
+        this._stateCullFaceMode = cullMode;
       }
+    }
 
-      // --- 1. Bind Material States (Once per material group) ---
-      const state = manifest.state;
-      const enableCull = !(state && CullMode.NONE === state.culling);
-      if (this._stateCullFaceEnabled !== enableCull) {
-        if (enableCull) this.gl.enable(this.gl.CULL_FACE);
-        else this.gl.disable(this.gl.CULL_FACE);
-        this._stateCullFaceEnabled = enableCull;
+    const enableBlend = !!state?.transparent;
+    if (this._stateBlendEnabled !== enableBlend) {
+      if (enableBlend) this.gl.enable(this.gl.BLEND);
+      else this.gl.disable(this.gl.BLEND);
+      this._stateBlendEnabled = enableBlend;
+    }
+
+    let depthMask = !enableBlend;
+    if (state?.depthWrite === false) depthMask = false;
+
+    if (this._stateDepthMask !== depthMask) {
+      this.gl.depthMask(depthMask);
+      this._stateDepthMask = depthMask;
+    }
+
+    if (enableBlend) {
+      let src: number = this.gl.SRC_ALPHA;
+      let dst: number = this.gl.ONE_MINUS_SRC_ALPHA;
+      if (state.blending === BlendingMode.ADDITIVE) {
+        src = this.gl.ONE;
+        dst = this.gl.ONE;
+      } else if (state.blending === BlendingMode.PREMULTIPLIED_ALPHA) {
+        src = this.gl.ONE;
       }
-
-      if (enableCull) {
-        const cullMode = state && CullMode.FRONT === state.culling ? this.gl.FRONT : this.gl.BACK;
-        if (this._stateCullFaceMode !== cullMode) {
-          this.gl.cullFace(cullMode);
-          this._stateCullFaceMode = cullMode;
-        }
+      if (this._stateBlendSrc !== src || this._stateBlendDst !== dst) {
+        this.gl.blendFunc(src, dst);
+        this._stateBlendSrc = src;
+        this._stateBlendDst = dst;
       }
+    }
 
-      const enableBlend = !!state?.transparent;
-      if (this._stateBlendEnabled !== enableBlend) {
-        if (enableBlend) this.gl.enable(this.gl.BLEND);
-        else this.gl.disable(this.gl.BLEND);
-        this._stateBlendEnabled = enableBlend;
+    const enableDepthTest = state?.depthTest !== false;
+    if (this._stateDepthTest !== enableDepthTest) {
+      if (enableDepthTest) this.gl.enable(this.gl.DEPTH_TEST);
+      else this.gl.disable(this.gl.DEPTH_TEST);
+      this._stateDepthTest = enableDepthTest;
+    }
+
+    // --- 2. Bind Generic Material Properties (Uniforms) ---
+    for (const name in manifest.properties) {
+      const value = manifest.properties[name];
+      const loc = u.get(name);
+      if (!loc) continue;
+
+      if (typeof value === "number") {
+        this.gl.uniform1f(loc, value);
+      } else if (ArrayBuffer.isView(value)) {
+        const v = value as Float32Array;
+        if (v.length === 4) this.gl.uniform4fv(loc, v);
+        else if (v.length === 3) this.gl.uniform3fv(loc, v);
+        else if (v.length === 2) this.gl.uniform2fv(loc, v);
+        else if (v.length === 16) this.gl.uniformMatrix4fv(loc, false, v);
+      } else if (Array.isArray(value)) {
+        if (value.length === 4) this.gl.uniform4fv(loc, value as number[]);
+        else if (value.length === 3) this.gl.uniform3fv(loc, value as number[]);
+        else if (value.length === 2) this.gl.uniform2fv(loc, value as number[]);
       }
+    }
 
-      let depthMask = !enableBlend;
-      if (state?.depthWrite === false) depthMask = false;
-
-      if (this._stateDepthMask !== depthMask) {
-        this.gl.depthMask(depthMask);
-        this._stateDepthMask = depthMask;
-      }
-
-      if (enableBlend) {
-        let src: number = this.gl.SRC_ALPHA;
-        let dst: number = this.gl.ONE_MINUS_SRC_ALPHA;
-        if (state.blending === BlendingMode.ADDITIVE) {
-          src = this.gl.ONE;
-          dst = this.gl.ONE;
-        } else if (state.blending === BlendingMode.PREMULTIPLIED_ALPHA) {
-          src = this.gl.ONE;
-        }
-        if (this._stateBlendSrc !== src || this._stateBlendDst !== dst) {
-          this.gl.blendFunc(src, dst);
-          this._stateBlendSrc = src;
-          this._stateBlendDst = dst;
-        }
-      }
-
-      const enableDepthTest = state?.depthTest !== false;
-      if (this._stateDepthTest !== enableDepthTest) {
-        if (enableDepthTest) this.gl.enable(this.gl.DEPTH_TEST);
-        else this.gl.disable(this.gl.DEPTH_TEST);
-        this._stateDepthTest = enableDepthTest;
-      }
-
-      // --- 2. Bind Generic Material Properties (Uniforms) ---
-      for (const name in manifest.properties) {
-        const value = manifest.properties[name];
-        const loc = u.get(name);
-        if (!loc) continue;
-
-        if (typeof value === "number") {
-          this.gl.uniform1f(loc, value);
-        } else if (ArrayBuffer.isView(value)) {
-          const v = value as Float32Array;
-          if (v.length === 4) this.gl.uniform4fv(loc, v);
-          else if (v.length === 3) this.gl.uniform3fv(loc, v);
-          else if (v.length === 2) this.gl.uniform2fv(loc, v);
-          else if (v.length === 16) this.gl.uniformMatrix4fv(loc, false, v);
-        } else if (Array.isArray(value)) {
-          if (value.length === 4) this.gl.uniform4fv(loc, value as number[]);
-          else if (value.length === 3) this.gl.uniform3fv(loc, value as number[]);
-          else if (value.length === 2) this.gl.uniform2fv(loc, value as number[]);
-        }
-      }
-
-      // --- 3. Bind Textures ---
-      const texs = manifest.textures;
-      if (shaderId === MaterialType.SKYBOX) {
-        this.gl.activeTexture(this.gl.TEXTURE0);
-        this.gl.bindTexture(this.gl.TEXTURE_2D, null); // Unbind 2D to prevent conflict
-        const skyTex = texs["u_skybox"] as CubeTexture;
-        this.gl.bindTexture(
-          this.gl.TEXTURE_CUBE_MAP,
-          skyTex ? this._getWebGLCubeTexture(skyTex) : this.defaultCubeTexture,
-        );
-        const uSkybox = u.get("u_skybox");
-        if (uSkybox) this.gl.uniform1i(uSkybox, 0);
-      } else {
-        for (const uniformName in this._samplerUnits) {
-          const unit = this._samplerUnits[uniformName]!;
-          const loc = u.get(uniformName);
-          if (loc) {
-            const maxUnits = DeviceCaps.getLimit(DeviceLimit.MAX_TEXTURE_IMAGE_UNITS);
-            if (unit >= maxUnits) {
-              console.warn(
-                `[WebGL2Renderer] Exceeded MAX_TEXTURE_IMAGE_UNITS (${maxUnits}). Cannot bind material texture ${uniformName} to unit ${unit}.`,
+    // --- 3. Bind Textures ---
+    const texs = manifest.textures;
+    if (shaderId === MaterialType.SKYBOX) {
+      this.gl.activeTexture(this.gl.TEXTURE0);
+      this.gl.bindTexture(this.gl.TEXTURE_2D, null);
+      const skyTex = texs["u_skybox"] as CubeTexture;
+      this.gl.bindTexture(
+        this.gl.TEXTURE_CUBE_MAP,
+        skyTex ? this._getWebGLCubeTexture(skyTex) : this.defaultCubeTexture,
+      );
+      const uSkybox = u.get("u_skybox");
+      if (uSkybox) this.gl.uniform1i(uSkybox, 0);
+    } else {
+      for (const uniformName in this._samplerUnits) {
+        const unit = this._samplerUnits[uniformName]!;
+        const loc = u.get(uniformName);
+        if (loc) {
+          const maxUnits = DeviceCaps.getLimit(DeviceLimit.MAX_TEXTURE_IMAGE_UNITS);
+          if (unit >= maxUnits) {
+            console.warn(
+              `[WebGL2Renderer] Exceeded MAX_TEXTURE_IMAGE_UNITS (${maxUnits}). Cannot bind material texture ${uniformName} to unit ${unit}.`,
+            );
+          } else {
+            this.gl.activeTexture(this.gl.TEXTURE0 + unit);
+            const t = texs[uniformName] as Texture;
+            if (uniformName === "u_normalMap" && !t) {
+              this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, null);
+              this.gl.bindTexture(this.gl.TEXTURE_2D, this.defaultNormalMap);
+            } else if (uniformName === "u_specularMap" && !t) {
+              this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, null);
+              this.gl.bindTexture(this.gl.TEXTURE_2D, this.defaultSpecularMap);
+            } else if (uniformName === "u_envMap") {
+              this.gl.bindTexture(this.gl.TEXTURE_2D, null);
+              const ct = texs[uniformName] as CubeTexture;
+              this.gl.bindTexture(
+                this.gl.TEXTURE_CUBE_MAP,
+                ct ? this._getWebGLCubeTexture(ct) : this.defaultCubeTexture,
               );
             } else {
-              this.gl.activeTexture(this.gl.TEXTURE0 + unit);
-              const t = texs[uniformName] as Texture;
-              if (uniformName === "u_normalMap" && !t) {
-                this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, null);
-                this.gl.bindTexture(this.gl.TEXTURE_2D, this.defaultNormalMap);
-              } else if (uniformName === "u_specularMap" && !t) {
-                this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, null);
-                this.gl.bindTexture(this.gl.TEXTURE_2D, this.defaultSpecularMap);
-              } else if (uniformName === "u_envMap") {
-                this.gl.bindTexture(this.gl.TEXTURE_2D, null);
-                const ct = texs[uniformName] as CubeTexture;
-                this.gl.bindTexture(
-                  this.gl.TEXTURE_CUBE_MAP,
-                  ct ? this._getWebGLCubeTexture(ct) : this.defaultCubeTexture,
-                );
-              } else {
-                this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, null);
-                this.gl.bindTexture(
-                  this.gl.TEXTURE_2D,
-                  t ? this._getWebGLTexture(t) : this.defaultTexture,
-                );
-              }
-              this.gl.uniform1i(loc, unit);
+              this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, null);
+              this.gl.bindTexture(
+                this.gl.TEXTURE_2D,
+                t ? this._getWebGLTexture(t) : this.defaultTexture,
+              );
             }
+            this.gl.uniform1i(loc, unit);
           }
         }
       }
+    }
 
-      // --- 4. Render each object in the material group ---
-      for (const o of objects) {
-        if (!o.geometry) continue;
+    // --- 4. Render each object ---
+    for (const o of objects) {
+      if (!o.geometry) continue;
 
+      if (isInstanced) {
+        const instMesh = o as InstancedMesh;
+
+        this._scratchModelMatrix.set(instMesh.worldMatrix.data);
+        const uModel = u.get("u_model");
+        if (uModel) this.gl.uniformMatrix4fv(uModel, false, this._scratchModelMatrix);
+
+        let matrixBuf = this._instanceBuffers.get(instMesh);
+        if (!matrixBuf) {
+          matrixBuf = this.gl.createBuffer()!;
+          this._instanceBuffers.set(instMesh, matrixBuf);
+        }
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, matrixBuf);
+        if (instMesh.instanceMatrixNeedsUpdate) {
+          this.gl.bufferData(this.gl.ARRAY_BUFFER, instMesh.instanceMatrices, this.gl.DYNAMIC_DRAW);
+          instMesh.instanceMatrixNeedsUpdate = false;
+        }
+
+        let mesh = this._cache.get(instMesh.geometry!);
+        if (!mesh) {
+          mesh = new Mesh(this.gl, instMesh.geometry!);
+          this._cache.set(instMesh.geometry!, mesh);
+        } else if (instMesh.geometry!.needsUpdate) {
+          mesh.update(instMesh.geometry!);
+          instMesh.geometry!.needsUpdate = false;
+        }
+
+        mesh.bind(
+          cache.attributes.get("a_position")!,
+          cache.attributes.get("a_normal")!,
+          cache.attributes.get("a_uv")!,
+          cache.attributes.get("a_tangent")!,
+        );
+
+        const loc = cache.attributes.get("a_instanceMatrix");
+        if (loc !== undefined && loc >= 0) {
+          this.gl.bindBuffer(this.gl.ARRAY_BUFFER, matrixBuf);
+          for (let i = 0; i < 4; i++) {
+            const attribLoc = loc + i;
+            this.gl.enableVertexAttribArray(attribLoc);
+            this.gl.vertexAttribPointer(attribLoc, 4, this.gl.FLOAT, false, 64, i * 16);
+            this.gl.vertexAttribDivisor(attribLoc, 1);
+          }
+        }
+
+        const drawMode = topology === Topology.LINE_LIST ? this.gl.LINES : this.gl.TRIANGLES;
+        if (mesh.isIndexed) {
+          this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, mesh.ebo ?? null);
+          this.gl.drawElementsInstanced(
+            drawMode,
+            mesh.count,
+            mesh.indexType,
+            0,
+            instMesh.instanceCount,
+          );
+        } else {
+          this.gl.drawArraysInstanced(drawMode, 0, mesh.count, instMesh.instanceCount);
+        }
+
+        if (loc !== undefined && loc >= 0) {
+          for (let i = 0; i < 4; i++) {
+            this.gl.vertexAttribDivisor(loc + i, 0);
+            this.gl.disableVertexAttribArray(loc + i);
+          }
+        }
+      } else {
         // Model Matrix & Billboarding
         this._scratchModelMatrix.set(o.worldMatrix.data);
         if (state?.isSprite && vMat) {
@@ -964,8 +1088,6 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
               this._scratchModelMatrix[9]! ** 2 +
               this._scratchModelMatrix[10]! ** 2,
           );
-          // Set rotation part of model matrix to transpose of view matrix rotation
-          // This cancels camera rotation.
           this._scratchModelMatrix[0] = vMat[0]! * sx;
           this._scratchModelMatrix[1] = vMat[4]! * sx;
           this._scratchModelMatrix[2] = vMat[8]! * sx;
@@ -997,7 +1119,6 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         );
 
         const drawMode = topology === Topology.LINE_LIST ? this.gl.LINES : this.gl.TRIANGLES;
-
         mesh.draw(drawMode);
       }
     }

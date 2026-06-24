@@ -4,6 +4,10 @@ in vec3 a_normal;
 in vec2 a_uv;
 in vec3 a_tangent;
 
+#ifdef USE_INSTANCING
+in mat4 a_instanceMatrix;
+#endif
+
 struct PointLight {
     vec3 pos;
     float distance;
