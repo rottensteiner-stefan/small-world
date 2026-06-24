@@ -2,7 +2,7 @@ import { CameraInterfaceData, EngineOptions } from '../interfaces/index.js';
 import { Renderer } from '../interfaces/Renderer.js';
 import { Scene } from './Scene.js';
 /** The current engine version. */
-export declare const ENGINE_VERSION = "0.36.0";
+export declare const ENGINE_VERSION = "0.35.1";
 /**
  * Base class for applications built with the SmallWorld engine.
  */

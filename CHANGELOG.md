@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.36.0] - 2026-06-24
+## [0.35.1] - 2026-06-24
 
 - **Optimization: Shader Performance refactoring ("Math is Cheaper than Memory")**:
   - Eliminated redundant texture sampling inside [Standard.frag.wgsl](src/core/materials/shaders/Standard.frag.wgsl) (WGSL diffuse map) and PBR lighting chunks (`light_calc_pbr.frag.glsl` for WebGL1 & 2), reducing memory fetch bandwidth.
