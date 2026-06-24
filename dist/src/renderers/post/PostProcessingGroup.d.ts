@@ -1,0 +1,35 @@
+import { PostProcessingElement } from './PostProcessingElement.js';
+import { PostProcessingEffectType } from '../../enums/index.js';
+/**
+ * A logical grouping of post-processing elements.
+ * Currently acts as a "Global Volume", applying its elements to the entire scene.
+ * In the future, this can be extended into a spatial BoundingVolume for local overrides.
+ */
+export declare class PostProcessingGroup {
+    /** If false, the entire post-processing group is bypassed. */
+    enabled: boolean;
+    /** Currently always true (Global Volume). */
+    isGlobal: boolean;
+    /** The active shader filter mode (e.g. 0 = clean, 1 = nightvision, 2 = noir, 3 = cyber, 4 = vhs, 5 = underworld). */
+    filterMode: number;
+    private _elements;
+    constructor();
+    /**
+     * Adds or overwrites a post-processing element in this group.
+     * @param element The element to add (e.g. VignetteElement)
+     */
+    add(element: PostProcessingElement): this;
+    /**
+     * Get an element by its type.
+     * @param type The type
+     */
+    get<T extends PostProcessingElement>(type: PostProcessingEffectType): T | undefined;
+    /**
+     * Removes an element by its type.
+     */
+    delete(type: PostProcessingEffectType): boolean;
+    /**
+     * Loads configurations into elements from a configuration object.
+     */
+    loadConfig(config?: import('../../interfaces/EngineOptions.js').PostProcessingConfig): void;
+}

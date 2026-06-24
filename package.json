@@ -1,7 +1,6 @@
 {
   "name": "small-world",
   "version": "0.38.0",
-
   "description": "A very small 3D engine focusing on raw WebGL performance",
   "type": "module",
   "scripts": {
@@ -20,7 +19,12 @@
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
     "start": "npm run build && npx serve dist",
-    "prepare": "husky"
+    "prepare": "husky",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs",
+    "docs:api": "typedoc",
+    "docs:build-all": "npm run docs:api && npm run docs:build"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -41,12 +45,15 @@
     "simplex-noise": "^4.0.3",
     "terser": "^5.48.0",
     "tsx": "^4.22.4",
+    "typedoc": "^0.28.19",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.60.0",
     "vite": "^8.0.16",
     "vite-plugin-dts": "^5.0.2",
     "vite-plugin-mkcert": "^2.0.0",
+    "vitepress": "^1.6.4",
     "vitest": "^4.1.8",
+    "vue": "^3.5.38",
     "wgsl_reflect": "^1.4.0"
   },
   "overrides": {
