@@ -15,40 +15,146 @@ import POST_PROCESS_FRAG_GLSL100 from "../../core/materials/shaders/PostProcess1
  * gamma-corrected output to the default (canvas) framebuffer.
  */
 export class PostProcessPassGL {
-  private _prog?: WebGLProgram;
-  private _vao?: WebGLVertexArrayObject;
-  private _vb?: WebGLBuffer;
+  private _prog: WebGLProgram | undefined = undefined;
+  private _vao: WebGLVertexArrayObject | undefined = undefined;
+  private _vb: WebGLBuffer | undefined = undefined;
   private _uHdrTexture: WebGLUniformLocation | null = null;
-  private _uExposure: WebGLUniformLocation | null = null;
-  private _uGamma: WebGLUniformLocation | null = null;
-  private _uToneMappingMode: WebGLUniformLocation | null = null;
-  private _uVignetteEnabled: WebGLUniformLocation | null = null;
-  private _uVignetteOffset: WebGLUniformLocation | null = null;
-  private _uVignetteDarkness: WebGLUniformLocation | null = null;
-  private _uVignetteRoundness: WebGLUniformLocation | null = null;
-  private _uGrainEnabled: WebGLUniformLocation | null = null;
-  private _uGrainIntensity: WebGLUniformLocation | null = null;
-  private _uTime: WebGLUniformLocation | null = null;
-  private _uFilterMode: WebGLUniformLocation | null = null;
-
-  // Bloom
   private _uBloomTexture: WebGLUniformLocation | null = null;
-  private _uBloomEnabled: WebGLUniformLocation | null = null;
-  private _uBloomIntensity: WebGLUniformLocation | null = null;
-  private _uBloomColor: WebGLUniformLocation | null = null;
+  private _uTime: WebGLUniformLocation | null = null;
 
   private _aPos: number = -1;
   private readonly _isWebGL2: boolean;
+  private _compiledSignature?: string;
 
-  constructor(gl: WebGLRenderingContext | WebGL2RenderingContext, isWebGL2: boolean) {
+  constructor(_gl: WebGLRenderingContext | WebGL2RenderingContext, isWebGL2: boolean) {
     this._isWebGL2 = isWebGL2;
-    this._build(gl);
   }
 
-  private _build(gl: WebGLRenderingContext | WebGL2RenderingContext): void {
+  private _getSignature(group: import("./PostProcessingGroup.js").PostProcessingGroup): string {
+    const tm = group.get<import("./PostProcessingElement.js").ToneMappingElement>(
+      PostProcessingEffectType.TONE_MAPPING,
+    );
+    const vig = group.get<import("./PostProcessingElement.js").VignetteElement>(
+      PostProcessingEffectType.VIGNETTE,
+    );
+    const grain = group.get<import("./PostProcessingElement.js").GrainElement>(
+      PostProcessingEffectType.GRAIN,
+    );
+    const bloom = group.get<import("./PostProcessingElement.js").BloomElement>(
+      PostProcessingEffectType.BLOOM,
+    );
+
+    return [
+      group.filterMode,
+      tm && tm.enabled ? 1 : 0,
+      tm && tm.enabled ? tm.mode : 0,
+      tm && tm.enabled ? tm.exposure : 1.0,
+      tm && tm.enabled ? tm.gamma : 2.2,
+      vig && vig.enabled ? 1 : 0,
+      vig && vig.enabled ? vig.offset : 0.8,
+      vig && vig.enabled ? vig.darkness : 0.5,
+      vig && vig.enabled ? vig.roundness : 2.0,
+      grain && grain.enabled ? 1 : 0,
+      grain && grain.enabled ? grain.intensity : 0.05,
+      bloom && bloom.enabled ? 1 : 0,
+      bloom && bloom.enabled ? bloom.intensity : 1.0,
+      bloom && bloom.enabled ? `${bloom.color.r},${bloom.color.g},${bloom.color.b}` : "1,1,1",
+    ].join("|");
+  }
+
+  private _build(
+    gl: WebGLRenderingContext | WebGL2RenderingContext,
+    group: import("./PostProcessingGroup.js").PostProcessingGroup,
+  ): void {
+    if (this._prog) {
+      gl.deleteProgram(this._prog);
+      this._prog = undefined;
+    }
+    if (this._vb) {
+      gl.deleteBuffer(this._vb);
+      this._vb = undefined;
+    }
+    if (this._isWebGL2 && this._vao) {
+      (gl as WebGL2RenderingContext).deleteVertexArray(this._vao);
+      this._vao = undefined;
+    }
+
     const vert = this._isWebGL2 ? FULLSCREEN_VERT_GLSL : FULLSCREEN_VERT_GLSL100;
     const rawFrag = this._isWebGL2 ? POST_PROCESS_FRAG_GLSL : POST_PROCESS_FRAG_GLSL100;
-    const frag = this._isWebGL2 ? ShaderRegistry.instance.assemble(rawFrag, "glsl300") : rawFrag;
+    let frag = this._isWebGL2 ? ShaderRegistry.instance.assemble(rawFrag, "glsl300") : rawFrag;
+
+    const tm = group.get<import("./PostProcessingElement.js").ToneMappingElement>(
+      PostProcessingEffectType.TONE_MAPPING,
+    );
+    const vig = group.get<import("./PostProcessingElement.js").VignetteElement>(
+      PostProcessingEffectType.VIGNETTE,
+    );
+    const grain = group.get<import("./PostProcessingElement.js").GrainElement>(
+      PostProcessingEffectType.GRAIN,
+    );
+    const bloom = group.get<import("./PostProcessingElement.js").BloomElement>(
+      PostProcessingEffectType.BLOOM,
+    );
+
+    const tmEnabled = tm && tm.enabled;
+    const vigEnabled = vig && vig.enabled;
+    const grainEnabled = grain && grain.enabled;
+    const bloomEnabled = bloom && bloom.enabled;
+
+    // Inject static parameters as macros, replacing uniform declarations
+    frag = frag.replace(
+      "uniform int u_bloomEnabled;",
+      `#define u_bloomEnabled ${bloomEnabled ? 1 : 0}`,
+    );
+    frag = frag.replace(
+      "uniform float u_bloomIntensity;",
+      `#define u_bloomIntensity ${bloom ? bloom.intensity.toFixed(6) : "0.0"}`,
+    );
+    frag = frag.replace(
+      "uniform vec3 u_bloomColor;",
+      `#define u_bloomColor vec3(${bloom ? `${bloom.color.r.toFixed(6)}, ${bloom.color.g.toFixed(6)}, ${bloom.color.b.toFixed(6)}` : "1.0, 1.0, 1.0"})`,
+    );
+    frag = frag.replace(
+      "uniform float u_exposure;",
+      `#define u_exposure ${tmEnabled ? tm.exposure.toFixed(6) : "1.0"}`,
+    );
+    frag = frag.replace(
+      "uniform float u_gamma;",
+      `#define u_gamma ${tmEnabled ? tm.gamma.toFixed(6) : "2.2"}`,
+    );
+    frag = frag.replace(
+      "uniform float u_inverseGamma;",
+      `#define u_inverseGamma ${tmEnabled ? (1.0 / tm.gamma).toFixed(6) : "1.0"}`,
+    );
+    frag = frag.replace(
+      "uniform int u_toneMappingMode;",
+      `#define u_toneMappingMode ${tmEnabled ? tm.mode : 0}`,
+    );
+    frag = frag.replace(
+      "uniform int u_vignetteEnabled;",
+      `#define u_vignetteEnabled ${vigEnabled ? 1 : 0}`,
+    );
+    frag = frag.replace(
+      "uniform float u_vignetteOffset;",
+      `#define u_vignetteOffset ${vig ? vig.offset.toFixed(6) : "0.8"}`,
+    );
+    frag = frag.replace(
+      "uniform float u_vignetteDarkness;",
+      `#define u_vignetteDarkness ${vig ? vig.darkness.toFixed(6) : "0.5"}`,
+    );
+    frag = frag.replace(
+      "uniform float u_vignetteRoundness;",
+      `#define u_vignetteRoundness ${vig ? vig.roundness.toFixed(6) : "2.0"}`,
+    );
+    frag = frag.replace(
+      "uniform int u_grainEnabled;",
+      `#define u_grainEnabled ${grainEnabled ? 1 : 0}`,
+    );
+    frag = frag.replace(
+      "uniform float u_grainIntensity;",
+      `#define u_grainIntensity ${grain ? grain.intensity.toFixed(6) : "0.05"}`,
+    );
+    frag = frag.replace("uniform int u_filterMode;", `#define u_filterMode ${group.filterMode}`);
 
     const v = gl.createShader(gl.VERTEX_SHADER)!;
     gl.shaderSource(v, vert);
@@ -73,29 +179,13 @@ export class PostProcessPassGL {
 
     this._prog = p;
     this._uHdrTexture = gl.getUniformLocation(p, "u_hdrTexture");
-    this._uExposure = gl.getUniformLocation(p, "u_exposure");
-    this._uGamma = gl.getUniformLocation(p, "u_inverseGamma");
-    this._uToneMappingMode = gl.getUniformLocation(p, "u_toneMappingMode");
-    this._uVignetteEnabled = gl.getUniformLocation(p, "u_vignetteEnabled");
-    this._uVignetteOffset = gl.getUniformLocation(p, "u_vignetteOffset");
-    this._uVignetteDarkness = gl.getUniformLocation(p, "u_vignetteDarkness");
-    this._uVignetteRoundness = gl.getUniformLocation(p, "u_vignetteRoundness");
-    this._uGrainEnabled = gl.getUniformLocation(p, "u_grainEnabled");
-    this._uGrainIntensity = gl.getUniformLocation(p, "u_grainIntensity");
-    this._uTime = gl.getUniformLocation(p, "u_time");
-    this._uFilterMode = gl.getUniformLocation(p, "u_filterMode");
-
     this._uBloomTexture = gl.getUniformLocation(p, "u_bloomTexture");
-    this._uBloomEnabled = gl.getUniformLocation(p, "u_bloomEnabled");
-    this._uBloomIntensity = gl.getUniformLocation(p, "u_bloomIntensity");
-    this._uBloomColor = gl.getUniformLocation(p, "u_bloomColor");
+    this._uTime = gl.getUniformLocation(p, "u_time");
 
     if (this._isWebGL2) {
       const gl2 = gl as WebGL2RenderingContext;
       this._vao = gl2.createVertexArray()!;
-      // No geometry needed: fullscreen triangle driven by gl_VertexID in WebGL2
     } else {
-      // WebGL1 needs a VBO with 3 clip-space positions
       this._aPos = gl.getAttribLocation(p, "a_pos");
       this._vb = gl.createBuffer()!;
       gl.bindBuffer(gl.ARRAY_BUFFER, this._vb);
@@ -113,6 +203,12 @@ export class PostProcessPassGL {
     group: import("./PostProcessingGroup.js").PostProcessingGroup,
     bloomTexture: WebGLTexture | null = null,
   ): void {
+    const sig = this._getSignature(group);
+    if (!this._prog || sig !== this._compiledSignature) {
+      this._build(gl, group);
+      this._compiledSignature = sig;
+    }
+
     if (!this._prog) return;
 
     gl.useProgram(this._prog);
@@ -129,64 +225,22 @@ export class PostProcessPassGL {
     gl.uniform1i(this._uHdrTexture, 0);
 
     // Bloom
-    if (
-      bloomTexture &&
-      group.get<import("./PostProcessingElement.js").BloomElement>(PostProcessingEffectType.BLOOM)
-        ?.enabled
-    ) {
-      const bloom = group.get<import("./PostProcessingElement.js").BloomElement>(
-        PostProcessingEffectType.BLOOM,
-      )!;
-      gl.uniform1i(this._uBloomEnabled, 1);
-      gl.uniform1f(this._uBloomIntensity, bloom.intensity);
-      if (this._uBloomColor !== null) {
-        gl.uniform3f(this._uBloomColor, bloom.color.r, bloom.color.g, bloom.color.b);
-      }
+    const bloom = group.get<import("./PostProcessingElement.js").BloomElement>(
+      PostProcessingEffectType.BLOOM,
+    );
+    if (bloom && bloom.enabled && bloomTexture) {
       gl.activeTexture(gl.TEXTURE1);
       gl.bindTexture(gl.TEXTURE_2D, bloomTexture);
       gl.uniform1i(this._uBloomTexture, 1);
-    } else {
-      gl.uniform1i(this._uBloomEnabled, 0);
     }
 
     // Blit to the default (canvas) framebuffer
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
-    const tm = group.get<import("./PostProcessingElement.js").ToneMappingElement>(
-      PostProcessingEffectType.TONE_MAPPING,
-    );
-    const vig = group.get<import("../post/PostProcessingElement.js").VignetteElement>(
-      PostProcessingEffectType.VIGNETTE,
-    );
-    const grain = group.get<import("../post/PostProcessingElement.js").GrainElement>(
-      PostProcessingEffectType.GRAIN,
-    );
-
-    if (this._uHdrTexture !== null) gl.uniform1i(this._uHdrTexture, 0);
-    if (this._uExposure !== null)
-      gl.uniform1f(this._uExposure, tm && tm.enabled ? tm.exposure : 1.0);
-    if (this._uGamma !== null) gl.uniform1f(this._uGamma, tm && tm.enabled ? 1.0 / tm.gamma : 1.0);
-    if (this._uToneMappingMode !== null)
-      gl.uniform1i(this._uToneMappingMode, tm && tm.enabled ? tm.mode : 0);
-    if (this._uVignetteEnabled !== null)
-      gl.uniform1i(this._uVignetteEnabled, vig && vig.enabled ? 1 : 0);
-
-    if (vig && vig.enabled) {
-      if (this._uVignetteOffset) gl.uniform1f(this._uVignetteOffset, vig.offset);
-      if (this._uVignetteDarkness) gl.uniform1f(this._uVignetteDarkness, vig.darkness);
-      if (this._uVignetteRoundness) gl.uniform1f(this._uVignetteRoundness, vig.roundness);
-    } else {
-      if (this._uVignetteEnabled) gl.uniform1i(this._uVignetteEnabled, 0);
+    if (this._uTime !== null) {
+      gl.uniform1f(this._uTime, (performance.now() % 100000) / 1000.0);
     }
-
-    if (this._uGrainEnabled !== null)
-      gl.uniform1i(this._uGrainEnabled, grain && grain.enabled ? 1 : 0);
-    if (grain && grain.enabled) {
-      if (this._uGrainIntensity) gl.uniform1f(this._uGrainIntensity, grain.intensity);
-    }
-    if (this._uTime !== null) gl.uniform1f(this._uTime, (performance.now() % 100000) / 1000.0);
-    if (this._uFilterMode !== null) gl.uniform1i(this._uFilterMode, group.filterMode);
 
     if (this._isWebGL2) {
       const gl2 = gl as WebGL2RenderingContext;

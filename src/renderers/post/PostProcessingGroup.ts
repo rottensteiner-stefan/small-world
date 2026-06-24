@@ -55,4 +55,63 @@ export class PostProcessingGroup {
   public delete(type: PostProcessingEffectType): boolean {
     return this._elements.delete(type);
   }
+
+  /**
+   * Loads configurations into elements from a configuration object.
+   */
+  public loadConfig(
+    config?: import("../../interfaces/EngineOptions.js").PostProcessingConfig,
+  ): void {
+    if (!config) return;
+    if (config.enabled !== undefined) this.enabled = config.enabled;
+    if (config.filterMode !== undefined) this.filterMode = config.filterMode;
+
+    if (config.toneMapping) {
+      const tm = this.get<ToneMappingElement>(PostProcessingEffectType.TONE_MAPPING);
+      if (tm) {
+        if (config.toneMapping.enabled !== undefined) tm.enabled = config.toneMapping.enabled;
+        if (config.toneMapping.mode !== undefined) tm.mode = config.toneMapping.mode;
+        if (config.toneMapping.exposure !== undefined) tm.exposure = config.toneMapping.exposure;
+        if (config.toneMapping.gamma !== undefined) tm.gamma = config.toneMapping.gamma;
+      }
+    }
+
+    if (config.vignette) {
+      const vig = this.get<VignetteElement>(PostProcessingEffectType.VIGNETTE);
+      if (vig) {
+        if (config.vignette.enabled !== undefined) vig.enabled = config.vignette.enabled;
+        if (config.vignette.offset !== undefined) vig.offset = config.vignette.offset;
+        if (config.vignette.darkness !== undefined) vig.darkness = config.vignette.darkness;
+        if (config.vignette.roundness !== undefined) vig.roundness = config.vignette.roundness;
+      }
+    }
+
+    if (config.grain) {
+      const grain = this.get<GrainElement>(PostProcessingEffectType.GRAIN);
+      if (grain) {
+        if (config.grain.enabled !== undefined) grain.enabled = config.grain.enabled;
+        if (config.grain.intensity !== undefined) grain.intensity = config.grain.intensity;
+      }
+    }
+
+    if (config.bloom) {
+      const bloom = this.get<BloomElement>(PostProcessingEffectType.BLOOM);
+      if (bloom) {
+        if (config.bloom.enabled !== undefined) bloom.enabled = config.bloom.enabled;
+        if (config.bloom.threshold !== undefined) bloom.threshold = config.bloom.threshold;
+        if (config.bloom.softThreshold !== undefined)
+          bloom.softThreshold = config.bloom.softThreshold;
+        if (config.bloom.intensity !== undefined) bloom.intensity = config.bloom.intensity;
+        if (config.bloom.radius !== undefined) bloom.radius = config.bloom.radius;
+        if (config.bloom.color !== undefined) {
+          const col = config.bloom.color;
+          if (Array.isArray(col)) {
+            bloom.color.set(col[0], col[1], col[2]);
+          } else if (typeof col === "object" && col !== null) {
+            bloom.color.set(col.r, col.g, col.b);
+          }
+        }
+      }
+    }
+  }
 }

@@ -146,6 +146,9 @@ export class WebGPURenderer extends AbstractRenderer {
     if (config?.quality) {
       this._quality = { ...this._quality, ...config.quality };
     }
+    if (config?.postProcessing) {
+      this.postProcessing.loadConfig(config.postProcessing);
+    }
 
     this._context = canvas.getContext("webgpu") as GPUCanvasContext;
     this._format = navigator.gpu.getPreferredCanvasFormat();

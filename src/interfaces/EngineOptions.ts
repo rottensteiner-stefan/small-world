@@ -87,6 +87,8 @@ export interface EngineOptions {
   renderer?: EngineRendererConfig[];
   /** Optional quality settings. */
   quality?: QualityConfig;
+  /** Optional post-processing settings. */
+  postProcessing?: PostProcessingConfig;
   /** Projection startup parameters (near, far, fov, orthoSize). */
   projectionOptions?: ProjectionOptions;
   /**
@@ -97,4 +99,36 @@ export interface EngineOptions {
   projectionInstance?: AbstractProjection;
   /** Whether to enable the built-in Gadget Inspector overlay (defaults to false/true depending on setup). */
   enableInspector?: boolean;
+}
+
+/**
+ * Configuration for post-processing effects.
+ */
+export interface PostProcessingConfig {
+  enabled?: boolean;
+  filterMode?: number;
+  toneMapping?: {
+    enabled?: boolean;
+    mode?: number;
+    exposure?: number;
+    gamma?: number;
+  };
+  vignette?: {
+    enabled?: boolean;
+    offset?: number;
+    darkness?: number;
+    roundness?: number;
+  };
+  grain?: {
+    enabled?: boolean;
+    intensity?: number;
+  };
+  bloom?: {
+    enabled?: boolean;
+    threshold?: number;
+    softThreshold?: number;
+    intensity?: number;
+    radius?: number;
+    color?: { r: number; g: number; b: number } | [number, number, number];
+  };
 }

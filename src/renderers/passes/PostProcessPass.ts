@@ -22,14 +22,53 @@ export class PostProcessPass implements RenderPass {
   private _bindGroup?: GPUBindGroup;
   private _uniformBuffer?: GPUBuffer;
   private _sampler?: GPUSampler;
-  private _uniformData: Float32Array = new Float32Array(16);
+  private _uniformData: Float32Array = new Float32Array(4); // Only needs 16 bytes for time
   private _builtTextureView?: GPUTextureView;
   private _builtBloomTextureView?: GPUTextureView;
+  private _compiledSignature?: string;
+
+  private _getSignature(
+    group: import("../post/PostProcessingGroup.js").PostProcessingGroup,
+  ): string {
+    const tm = group.get<import("../post/PostProcessingElement.js").ToneMappingElement>(
+      PostProcessingEffectType.TONE_MAPPING,
+    );
+    const vig = group.get<import("../post/PostProcessingElement.js").VignetteElement>(
+      PostProcessingEffectType.VIGNETTE,
+    );
+    const grain = group.get<import("../post/PostProcessingElement.js").GrainElement>(
+      PostProcessingEffectType.GRAIN,
+    );
+    const bloom = group.get<import("../post/PostProcessingElement.js").BloomElement>(
+      PostProcessingEffectType.BLOOM,
+    );
+
+    return [
+      group.filterMode,
+      tm && tm.enabled ? 1 : 0,
+      tm && tm.enabled ? tm.mode : 0,
+      tm && tm.enabled ? tm.exposure : 1.0,
+      tm && tm.enabled ? tm.gamma : 2.2,
+      vig && vig.enabled ? 1 : 0,
+      vig && vig.enabled ? vig.offset : 0.8,
+      vig && vig.enabled ? vig.darkness : 0.5,
+      vig && vig.enabled ? vig.roundness : 2.0,
+      grain && grain.enabled ? 1 : 0,
+      grain && grain.enabled ? grain.intensity : 0.05,
+      bloom && bloom.enabled ? 1 : 0,
+      bloom && bloom.enabled ? bloom.intensity : 1.0,
+      bloom && bloom.enabled ? `${bloom.color.r},${bloom.color.g},${bloom.color.b}` : "1,1,1",
+    ].join("|");
+  }
 
   /**
    * Lazily initialises or rebuilds the pipeline when the HDR texture changes.
    */
-  private _build(renderer: WebGPURenderer, bloomActiveView: GPUTextureView): void {
+  private _build(
+    renderer: WebGPURenderer,
+    bloomActiveView: GPUTextureView,
+    group: import("../post/PostProcessingGroup.js").PostProcessingGroup,
+  ): void {
     const device = renderer._device!;
 
     this._sampler ??= device.createSampler({
@@ -41,7 +80,7 @@ export class PostProcessPass implements RenderPass {
 
     if (!this._uniformBuffer) {
       this._uniformBuffer = device.createBuffer({
-        size: 64,
+        size: 16, // Only u_time uniform
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
       });
     }
@@ -58,7 +97,80 @@ export class PostProcessPass implements RenderPass {
     const layout = device.createPipelineLayout({ bindGroupLayouts: [bgl] });
 
     const vertModule = device.createShaderModule({ code: FULLSCREEN_VERT_WGSL });
-    const assembledFrag = ShaderRegistry.instance.assemble(POST_PROCESS_FRAG_WGSL, "wgsl");
+    let assembledFrag = ShaderRegistry.instance.assemble(POST_PROCESS_FRAG_WGSL, "wgsl");
+
+    const tm = group.get<import("../post/PostProcessingElement.js").ToneMappingElement>(
+      PostProcessingEffectType.TONE_MAPPING,
+    );
+    const vig = group.get<import("../post/PostProcessingElement.js").VignetteElement>(
+      PostProcessingEffectType.VIGNETTE,
+    );
+    const grain = group.get<import("../post/PostProcessingElement.js").GrainElement>(
+      PostProcessingEffectType.GRAIN,
+    );
+    const bloom = group.get<import("../post/PostProcessingElement.js").BloomElement>(
+      PostProcessingEffectType.BLOOM,
+    );
+
+    const tmEnabled = tm && tm.enabled;
+    const vigEnabled = vig && vig.enabled;
+    const grainEnabled = grain && grain.enabled;
+    const bloomEnabled = bloom && bloom.enabled;
+
+    // Inject static parameters as WGSL constants, replacing default fallback declarations
+    assembledFrag = assembledFrag.replace(
+      "const u_exposure: f32 = 1.0;",
+      `const u_exposure: f32 = ${tmEnabled ? tm.exposure.toFixed(6) : "1.0"};`,
+    );
+    assembledFrag = assembledFrag.replace(
+      "const u_inverseGamma: f32 = 1.0;",
+      `const u_inverseGamma: f32 = ${tmEnabled ? (1.0 / tm.gamma).toFixed(6) : "1.0"};`,
+    );
+    assembledFrag = assembledFrag.replace(
+      "const u_toneMappingMode: u32 = 0u;",
+      `const u_toneMappingMode: u32 = ${tmEnabled ? tm.mode : 0}u;`,
+    );
+    assembledFrag = assembledFrag.replace(
+      "const u_vignetteEnabled: u32 = 0u;",
+      `const u_vignetteEnabled: u32 = ${vigEnabled ? 1 : 0}u;`,
+    );
+    assembledFrag = assembledFrag.replace(
+      "const u_vignetteOffset: f32 = 0.8;",
+      `const u_vignetteOffset: f32 = ${vig ? vig.offset.toFixed(6) : "0.8"};`,
+    );
+    assembledFrag = assembledFrag.replace(
+      "const u_vignetteDarkness: f32 = 0.5;",
+      `const u_vignetteDarkness: f32 = ${vig ? vig.darkness.toFixed(6) : "0.5"};`,
+    );
+    assembledFrag = assembledFrag.replace(
+      "const u_vignetteRoundness: f32 = 2.0;",
+      `const u_vignetteRoundness: f32 = ${vig ? vig.roundness.toFixed(6) : "2.0"};`,
+    );
+    assembledFrag = assembledFrag.replace(
+      "const u_grainEnabled: u32 = 0u;",
+      `const u_grainEnabled: u32 = ${grainEnabled ? 1 : 0}u;`,
+    );
+    assembledFrag = assembledFrag.replace(
+      "const u_grainIntensity: f32 = 0.05;",
+      `const u_grainIntensity: f32 = ${grain ? grain.intensity.toFixed(6) : "0.05"};`,
+    );
+    assembledFrag = assembledFrag.replace(
+      "const u_bloomEnabled: u32 = 0u;",
+      `const u_bloomEnabled: u32 = ${bloomEnabled ? 1 : 0}u;`,
+    );
+    assembledFrag = assembledFrag.replace(
+      "const u_bloomIntensity: f32 = 1.0;",
+      `const u_bloomIntensity: f32 = ${bloom ? bloom.intensity.toFixed(6) : "1.0"};`,
+    );
+    assembledFrag = assembledFrag.replace(
+      "const u_bloomColor: vec3f = vec3f(1.0, 1.0, 1.0);",
+      `const u_bloomColor: vec3f = vec3f(${bloom ? `${bloom.color.r.toFixed(6)}, ${bloom.color.g.toFixed(6)}, ${bloom.color.b.toFixed(6)}` : "1.0, 1.0, 1.0"});`,
+    );
+    assembledFrag = assembledFrag.replace(
+      "const u_filterMode: u32 = 0u;",
+      `const u_filterMode: u32 = ${group.filterMode}u;`,
+    );
+
     const fragModule = device.createShaderModule({ code: assembledFrag });
 
     this._pipeline = device.createRenderPipeline({
@@ -102,64 +214,23 @@ export class PostProcessPass implements RenderPass {
         ? renderer._bloomTextureView
         : renderer._whiteTexView;
 
-    // Rebuild only if we haven't built yet, or if the texture view changed (e.g. resize or bloom toggle)
+    const sig = this._getSignature(group);
+
+    // Rebuild if we haven't built yet, if the signature changed, or if the texture views changed
     if (
       !this._pipeline ||
+      sig !== this._compiledSignature ||
       this._builtTextureView !== renderer._hdrTextureView ||
       this._builtBloomTextureView !== bloomActiveView
     ) {
-      this._build(renderer, bloomActiveView);
+      this._build(renderer, bloomActiveView, group);
+      this._compiledSignature = sig;
       this._builtTextureView = renderer._hdrTextureView;
       this._builtBloomTextureView = bloomActiveView;
     }
 
-    const tm = group.get<import("../post/PostProcessingElement.js").ToneMappingElement>(
-      PostProcessingEffectType.TONE_MAPPING,
-    );
-    const vig = group.get<import("../post/PostProcessingElement.js").VignetteElement>(
-      PostProcessingEffectType.VIGNETTE,
-    );
-    const grain = group.get<import("../post/PostProcessingElement.js").GrainElement>(
-      PostProcessingEffectType.GRAIN,
-    );
-
-    // Write post-process uniforms
-    this._uniformData[0] = tm && tm.enabled ? tm.exposure : 1.0;
-    this._uniformData[1] = tm && tm.enabled ? 1.0 / tm.gamma : 1.0;
-
-    // Using Float32Array to write u32 is a bit tricky:
-    // we can use a DataView or Uint32Array on the same buffer.
-    const u32View = new Uint32Array(
-      this._uniformData.buffer,
-      this._uniformData.byteOffset,
-      this._uniformData.length,
-    );
-    u32View[2] = tm && tm.enabled ? tm.mode : 0;
-    u32View[3] = vig && vig.enabled ? 1 : 0;
-
-    this._uniformData[4] = vig ? vig.offset : 1.0;
-    this._uniformData[5] = vig ? vig.darkness : 1.0;
-    this._uniformData[6] = vig ? vig.roundness : 2.0;
-
-    u32View[7] = grain && grain.enabled ? 1 : 0;
-    this._uniformData[8] = grain ? grain.intensity : 0.05;
-    this._uniformData[9] = (performance.now() % 100000) / 1000.0; // Time in seconds
-
-    // Repurpose offset 10 and 11 for bloom
-    u32View[10] = bloom && bloom.enabled ? 1 : 0;
-    this._uniformData[11] = bloom && bloom.enabled ? bloom.intensity : 0.0;
-
-    // Add bloom tint color at offsets 12, 13, 14
-    if (bloom && bloom.enabled) {
-      this._uniformData[12] = bloom.color.r;
-      this._uniformData[13] = bloom.color.g;
-      this._uniformData[14] = bloom.color.b;
-    } else {
-      this._uniformData[12] = 1.0;
-      this._uniformData[13] = 1.0;
-      this._uniformData[14] = 1.0;
-    }
-    u32View[15] = group.filterMode; // Replaced padding with filterMode
+    // Write post-process dynamic uniforms (only time uniform is active)
+    this._uniformData[0] = (performance.now() % 100000) / 1000.0; // Time in seconds
 
     renderer._device!.queue.writeBuffer(this._uniformBuffer!, 0, this._uniformData);
 
@@ -171,6 +242,7 @@ export class PostProcessPass implements RenderPass {
           view: screenView,
           loadOp: "clear",
           storeOp: "store",
+          clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
         },
       ],
     });
