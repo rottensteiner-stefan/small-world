@@ -63,6 +63,9 @@ export class GadgetInspector {
     this._pane = new Pane({ title: "Gadget Inspector" });
     this._pane.element.style.display = "none";
     this._pane.element.style.setProperty("z-index", "999999", "important");
+    this._pane.element.style.maxHeight = "90vh";
+    this._pane.element.style.overflowY = "auto";
+    this._pane.element.style.overflowX = "hidden";
 
     // Setup Diagnostics folder
     if (undefined !== this._renderer) {
