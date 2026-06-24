@@ -17,6 +17,7 @@ export declare class WebGL2Renderer extends AbstractWebGLRenderer {
     private _cache;
     private _texCache;
     private _texCubeCache;
+    private _instanceBuffers;
     private _scratchTransparentMap;
     private _scratchFloat4;
     private readonly _samplerUnits;
@@ -56,10 +57,8 @@ export declare class WebGL2Renderer extends AbstractWebGLRenderer {
      * Binds dummy depth textures to shadow samplers to satisfy WebGL2 sampler2DShadow validation rules.
      */
     private _bindDummyShadowMaps;
-    /**
-     * Renders a group of objects sharing the same shader and topology.
-     */
     private _renderGroup;
+    private _renderSubgroup;
     private _updateGlobalUBO;
     /** @inheritdoc */
     setSize(width: number, height: number): void;

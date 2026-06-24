@@ -9,6 +9,7 @@ export * from './Octree.js';
 export * from './Input.js';
 export * from './UniversalGamepadController.js';
 export * from './Object3D.js';
+export * from './InstancedMesh.js';
 export * from './Scene.js';
 export * from './Skybox.js';
 export * from './Skydome.js';
