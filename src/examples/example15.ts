@@ -289,13 +289,13 @@ export class Example15 extends AbstractExample {
         transparent: true,
       });
 
-      const mainMesh = new InstancedMesh(`MainBalls_${c}`, ballGeom, ballMat, 20);
+      const mainMesh = new InstancedMesh(`MainBalls_${c}`, ballGeom, ballMat, 200);
       mainMesh.castShadow = true;
       mainMesh.frustumCulled = false;
       this.scene.add(mainMesh);
       this._mainBallsMeshes.push(mainMesh);
 
-      const floorRefMesh = new InstancedMesh(`FloorReflectedBalls_${c}`, ballGeom, ballMat, 20);
+      const floorRefMesh = new InstancedMesh(`FloorReflectedBalls_${c}`, ballGeom, ballMat, 200);
       floorRefMesh.castShadow = false;
       floorRefMesh.receiveShadow = false;
       floorRefMesh.frustumCulled = false;
@@ -307,7 +307,7 @@ export class Example15 extends AbstractExample {
       this._sphereReflectedMeshes.push([]);
       for (let c = 0; c < 5; c++) {
         const ballMat = this._mainBallsMeshes[c]!.material as StandardMaterial;
-        const refMesh = new InstancedMesh(`SphereReflectedBalls_${s}_${c}`, ballGeom, ballMat, 20);
+        const refMesh = new InstancedMesh(`SphereReflectedBalls_${s}_${c}`, ballGeom, ballMat, 200);
         refMesh.castShadow = false;
         refMesh.receiveShadow = false;
         refMesh.frustumCulled = false;
@@ -317,7 +317,7 @@ export class Example15 extends AbstractExample {
     }
 
     // 7. Spawn Bouncing Ball Data
-    for (let i = 0; i < 100; i++) {
+    for (let i = 0; i < 1000; i++) {
       const ball: Partial<Ball> = {
         position: { x: 0, y: 0, z: 0 },
         velocity: { x: 0, y: 0, z: 0 },
