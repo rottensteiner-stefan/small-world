@@ -17,10 +17,7 @@
 - **Colors:** Linear space math, final output gamma-corrected (sRGB). Diffuse + Specular <= 1.0.
 - **Resources:** Explicit bitwise-OR usage flags. Bind `onuncapturederror`.
 - **Shaders:** One final post-process pass (tone map, color grade, vignette, gamma). Compute shaders with workgroup memory for spatial ops.
-- **Optimization:** Prefer analytical/procedural math calculations over texturing/memory lookups where feasible (Inigo Quilez: "Math is cheaper than memory").
 
-## 4. Coding Standards (TS strict: true)
+## 4. Coding Constraints (TS strict: true)
 - **Types:** Explicit types, return types, access modifiers. No `any`.
-- **Flow:** Guard clauses, early returns, minimize nesting, Yoda comparisons.
-- **Files & Imports:** File name = primary export. Start `.ts` files with `/// path/to/file.ts`. Relative imports must end with `.js`.
-- **Naming:** PascalCase for types/classes/enums, camelCase for variables/functions, `_` prefix for private properties.
+- **Files & Imports:** Start `.ts` files with `/// path/to/file.ts`. Relative imports must end with `.js`.
