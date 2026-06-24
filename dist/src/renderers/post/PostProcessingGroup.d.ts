@@ -28,4 +28,8 @@ export declare class PostProcessingGroup {
      * Removes an element by its type.
      */
     delete(type: PostProcessingEffectType): boolean;
+    /**
+     * Loads configurations into elements from a configuration object.
+     */
+    loadConfig(config?: import('../../interfaces/EngineOptions.js').PostProcessingConfig): void;
 }

@@ -113,6 +113,9 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
     if (config?.quality) {
       this._quality = { ...this._quality, ...config.quality };
     }
+    if (config?.postProcessing) {
+      this.postProcessing.loadConfig(config.postProcessing);
+    }
 
     this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, false);
     this.initDefaultTextures();

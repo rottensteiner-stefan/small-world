@@ -104,6 +104,9 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     if (config?.quality) {
       this._quality = { ...this._quality, ...config.quality };
     }
+    if (config?.postProcessing) {
+      this.postProcessing.loadConfig(config.postProcessing);
+    }
 
     this._dummyShadowMap = new WebGL2DepthFrameBuffer(this.gl, 1, 1);
     this._dummyShadowMap.bind();

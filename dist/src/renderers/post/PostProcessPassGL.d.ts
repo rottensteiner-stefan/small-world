@@ -4,28 +4,17 @@
  * gamma-corrected output to the default (canvas) framebuffer.
  */
 export declare class PostProcessPassGL {
-    private _prog?;
-    private _vao?;
-    private _vb?;
+    private _prog;
+    private _vao;
+    private _vb;
     private _uHdrTexture;
-    private _uExposure;
-    private _uGamma;
-    private _uToneMappingMode;
-    private _uVignetteEnabled;
-    private _uVignetteOffset;
-    private _uVignetteDarkness;
-    private _uVignetteRoundness;
-    private _uGrainEnabled;
-    private _uGrainIntensity;
-    private _uTime;
-    private _uFilterMode;
     private _uBloomTexture;
-    private _uBloomEnabled;
-    private _uBloomIntensity;
-    private _uBloomColor;
+    private _uTime;
     private _aPos;
     private readonly _isWebGL2;
-    constructor(gl: WebGLRenderingContext | WebGL2RenderingContext, isWebGL2: boolean);
+    private _compiledSignature?;
+    constructor(_gl: WebGLRenderingContext | WebGL2RenderingContext, isWebGL2: boolean);
+    private _getSignature;
     private _build;
     /**
      * Blits the HDR texture to the canvas framebuffer.
