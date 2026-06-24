@@ -8,10 +8,11 @@
 - **Linear Lighting Workflow:** All lighting calculations are performed in linear space with automatic sRGB gamma correction for realistic color falloffs and high visual fidelity.
 - **Advanced Materials:** Includes standard PBR (Metallic/Roughness), but also physical **Glass/Dielectric** materials with real-time **Screen-Space Refraction**, Index of Refraction (IOR), and Beer's Law for volumetric light absorption.
 - **Advanced Camera System:** Unified, strategy-based camera control (Smooth, Stiff, Fixed, FPS, Isometric). Features a modular `ZoomController` and procedural effects like Shake and Flash.
-- **High-Performance Architecture:** Optimized for memory efficiency through **Object Pooling** (`MathPool`).
-- **BindGroup & Pipeline Caching** (WebGPU), and zero-allocation hot paths to eliminate Garbage Collection pressure.
+- **High-Performance Architecture:** Optimized for memory efficiency through **Object Pooling** (`MathPool`), BindGroup & Pipeline Caching (WebGPU), and zero-allocation hot paths to eliminate Garbage Collection pressure.
 - **Lighting & Shadows:** Supports Ambient, Directional, Point, Spot, and Area lights. Features robust **Shadow Mapping** (WebGL 2) with Hardware Shadow Sampling and Percentage-Closer Filtering (PCF) for buttery-smooth soft shadows.
-- **Component Behaviors:** Robust, callback-driven behavior system to attach complex logic (`FlickerBehavior`, `PulsatingBehavior`, `ProximitySensorBehavior`) directly to 3D objects or materials.
+- **Planar & Conformal Reflections:** Real-time planar floor reflections (virtual mirror geometries) and dynamic sphere inversion reflections ($P' = C + V \cdot \frac{R^2}{d^2 - r^2}$) for PBR objects.
+- **Component Behaviors & State Machines:** Robust, callback-driven behavior system to attach complex logic (`FlickerBehavior`, `PulsatingBehavior`, `ProximitySensorBehavior`) directly to 3D objects or materials. Includes a built-in, type-safe, zero-allocation **Finite State Machine (FSM)** framework (`StateMachine` & `StateMachineBehavior`) to cleanly manage game actor lifecycles.
+- **Stylized Post-Processing Pipeline:** Built-in cinematic and retro filters (Phosphor Green Night Vision, Film Noir with chromatic aberration, Cyber Glitch, VHS Tape tracking, Amber/Sepia Underworld, Old Projector scratching/hair spots, and Thermal Vision). Configured via static parameter specialization for optimal compilation without dynamic uniform cost.
 - **Scene Graph:** Hierarchical scene management using a clean `Object3D` architecture.
 - **2D/2.5D Support:** First-class support for Sprites, Billboard rendering, and Pixel-Perfect Isometric perspectives.
 - **Geometry & Asset Loaders:** Dynamic terrain generation, comprehensive primitive library, and async loaders for OBJ models, MTLLib materials, and textures.
@@ -119,7 +120,9 @@ For an isolated development environment, this project includes a **Dev Container
 ## 📂 Project Structure
 
 - `src/core`: Core engine logic (Application, Object3D, Scene, Input, Color).
+- `src/core/behaviors`: Modular runtime behavior components (e.g. Proximity Sensors, Oscillators).
 - `src/core/cameras`: Camera strategies, projections, effects, and modular controllers.
+- `src/core/fsm`: Type-safe, zero-allocation Finite State Machine utility.
 - `src/core/materials`: Material definitions and PBR shader assets.
 - `src/core/lights`: Light source implementations (Standard & PBR).
 - `src/geometry`: Geometric primitives and terrain logic.
