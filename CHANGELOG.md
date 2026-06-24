@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.38.1] - 2026-06-25
+
+- **Feature: Instanced Draw Calls (Instancing) support**:
+  - Implemented `InstancedMesh` class in [InstancedMesh.ts](file:///Users/srottensteiner/PhpstormProjects/small-world/src/core/InstancedMesh.ts) to manage instance counts and dynamic transform matrices.
+  - Added support in [WebGL2Renderer.ts](file:///Users/srottensteiner/PhpstormProjects/small-world/src/renderers/WebGL2Renderer.ts) for dynamically compiling instanced shader variants using `#define USE_INSTANCING 1` and rendering via `gl.drawElementsInstanced`/`gl.drawArraysInstanced` with vertex divisor attributes.
+  - Added support in [WebGPURenderer.ts](file:///Users/srottensteiner/PhpstormProjects/small-world/src/renderers/WebGPURenderer.ts) for dynamically rewriting WGSL vertex shader sources to include instanced layouts and rendering via `rp.drawIndexed`/`rp.draw` with an instance count parameter.
+  - Added full unit test coverage in [InstancedMesh.test.ts](file:///Users/srottensteiner/PhpstormProjects/small-world/tests/core/InstancedMesh.test.ts) to verify matrix initialization, indexing, and dirty flagging.
+
 ## [0.38.0] - 2026-06-24
 
 - **Feature: Core Generic Finite State Machine (FSM) Framework**:

@@ -1,6 +1,13 @@
 /// src/renderers/WebGPURenderer.ts
 
-import { CubeTexture, RenderManifest, ShaderRegistry, Texture, DeviceCaps } from "../core/index.js";
+import {
+  CubeTexture,
+  RenderManifest,
+  ShaderRegistry,
+  Texture,
+  DeviceCaps,
+  InstancedMesh,
+} from "../core/index.js";
 import { EngineOptions, GeometryDataInterface, LightDataInterface } from "../interfaces/index.js";
 import { Object3D } from "../core/Object3D.js";
 import { Scene } from "../core/Scene.js";
@@ -81,6 +88,7 @@ export class WebGPURenderer extends AbstractRenderer {
   protected _dummyUvBuffer!: GPUBuffer;
   protected _dummyTangentBuffer!: GPUBuffer;
   protected _geoCache = new Map<GeometryDataInterface, WebGPUGeoCache>();
+  protected _gpuInstanceBuffers: WeakMap<InstancedMesh, GPUBuffer> = new WeakMap();
   protected _frameCount = 0;
   protected _scratchModelMatrix = new Float32Array(16);
   protected _scratchColorArray = new Float32Array(3);
@@ -360,6 +368,7 @@ export class WebGPURenderer extends AbstractRenderer {
   protected _getPipeline(
     manifest: RenderManifest,
     topology: GPUPrimitiveTopology,
+    isInstanced: boolean = false,
   ): WebGPUPipelineCache {
     const shaderId = manifest.shaderId;
     const state = manifest.state || {};
@@ -377,11 +386,12 @@ export class WebGPURenderer extends AbstractRenderer {
       "_" +
       (state.depthTest !== false) +
       "_" +
-      targetFormat;
+      targetFormat +
+      (isInstanced ? "_instanced" : "");
     let cache = this._pipelines.get(key);
     if (!cache) {
       console.log("[WebGPURenderer] Creating new pipeline:", key);
-      const sm = this._getShaderModule(shaderId);
+      const sm = this._getShaderModule(shaderId, isInstanced);
       const pipelineLayout = this._device!.createPipelineLayout({
         bindGroupLayouts: [this._globalBGL, this._materialBGL, this._objectBGL],
       });
@@ -392,6 +402,20 @@ export class WebGPURenderer extends AbstractRenderer {
         { arrayStride: 8, attributes: [{ shaderLocation: 2, offset: 0, format: "float32x2" }] },
         { arrayStride: 12, attributes: [{ shaderLocation: 3, offset: 0, format: "float32x3" }] },
       ];
+
+      if (isInstanced) {
+        vertexBuffers.push({
+          arrayStride: 64, // 16 floats * 4 bytes
+          stepMode: "instance",
+          attributes: [
+            { shaderLocation: 4, offset: 0, format: "float32x4" },
+            { shaderLocation: 5, offset: 16, format: "float32x4" },
+            { shaderLocation: 6, offset: 32, format: "float32x4" },
+            { shaderLocation: 7, offset: 48, format: "float32x4" },
+          ],
+        });
+      }
+
       const targets: GPUColorTargetState[] = [{ format: targetFormat as GPUTextureFormat }];
       if (state.blending === BlendingMode.ALPHA) {
         targets[0]!.blend = {
@@ -430,13 +454,34 @@ export class WebGPURenderer extends AbstractRenderer {
     return cache;
   }
 
-  protected _getShaderModule(shaderId: string): GPUShaderModule {
-    let sm = this._shaderModules.get(shaderId);
+  protected _getShaderModule(shaderId: string, isInstanced: boolean = false): GPUShaderModule {
+    const key = isInstanced ? `${shaderId}_instanced` : shaderId;
+    let sm = this._shaderModules.get(key);
     if (!sm) {
       const def = ShaderRegistry.instance.get(shaderId);
-      const code = ShaderRegistry.instance.assemble(def!.sources.wgsl!, "wgsl");
+      let code = ShaderRegistry.instance.assemble(def!.sources.wgsl!, "wgsl");
+
+      if (isInstanced) {
+        // Match the entire function signature fn vs(...) -> Out {
+        code = code.replace(/fn\s+vs\s*\(([\s\S]*?)\)\s*->\s*Out\s*\{/, (_match, params) => {
+          const trimmedParams = params.trim();
+          const comma = trimmedParams.length > 0 ? "," : "";
+          return `fn vs(
+  ${trimmedParams}${comma}
+  @location(4) inst_col0: vec4f,
+  @location(5) inst_col1: vec4f,
+  @location(6) inst_col2: vec4f,
+  @location(7) inst_col3: vec4f
+) -> Out {
+  let instMatrix = mat4x4f(inst_col0, inst_col1, inst_col2, inst_col3);`;
+        });
+
+        // Replace obj.model with (obj.model * instMatrix)
+        code = code.replace(/obj\.model/g, "(obj.model * instMatrix)");
+      }
+
       sm = this._device!.createShaderModule({ code });
-      this._shaderModules.set(shaderId, sm);
+      this._shaderModules.set(key, sm);
     }
     return sm;
   }
@@ -586,29 +631,102 @@ export class WebGPURenderer extends AbstractRenderer {
   ): void {
     rp.setBindGroup(0, this._globalBindGroup);
     for (const [matUuid, objects] of materialGroups.entries()) {
+      if (objects.length === 0) continue;
+
+      const instancedObjects: Object3D[] = [];
+      const standardObjects: Object3D[] = [];
+
+      for (const o of objects) {
+        if (o instanceof InstancedMesh) {
+          instancedObjects.push(o);
+        } else {
+          standardObjects.push(o);
+        }
+      }
+
       const mat = objects[0]?.material;
       if (!mat) continue;
       const manifest = mat.getRenderManifest();
-      const cache = this._getPipeline(manifest, topology);
-      rp.setPipeline(cache.pipeline);
 
-      const matBindGroup = this._getMaterialBindGroup(matUuid, manifest, cache.bgLayouts[1]!);
-      rp.setBindGroup(1, matBindGroup);
+      if (standardObjects.length > 0) {
+        this._renderSubgroup(rp, standardObjects, false, matUuid, manifest, vMat, topology);
+      }
 
-      for (const obj of objects) {
-        if (!obj.geometry) continue;
-        const uBufferData = this._getObjUniformBufferData(obj);
-        this._updateObjUniformBuffer(uBufferData.buffer, obj, manifest, vMat);
-        const objBindGroup = this._getObjBindGroup(uBufferData, cache.bgLayouts[2]!);
-        rp.setBindGroup(2, objBindGroup);
+      if (instancedObjects.length > 0) {
+        this._renderSubgroup(rp, instancedObjects, true, matUuid, manifest, vMat, topology);
+      }
+    }
+  }
 
-        const gCache = this._getGeoCache(obj.geometry!);
-        this._ensureDummyBufferSize(gCache.vertexCount);
-        rp.setVertexBuffer(0, gCache.vb);
-        rp.setVertexBuffer(1, gCache.nb || this._dummyNormalBuffer);
-        rp.setVertexBuffer(2, gCache.uvb || this._dummyUvBuffer);
-        rp.setVertexBuffer(3, gCache.tb || this._dummyTangentBuffer);
+  private _renderSubgroup(
+    rp: GPURenderPassEncoder,
+    objects: Object3D[],
+    isInstanced: boolean,
+    matUuid: string,
+    manifest: RenderManifest,
+    vMat?: Float32Array,
+    topology: GPUPrimitiveTopology = "triangle-list",
+  ): void {
+    const cache = this._getPipeline(manifest, topology, isInstanced);
+    rp.setPipeline(cache.pipeline);
 
+    const matBindGroup = this._getMaterialBindGroup(matUuid, manifest, cache.bgLayouts[1]!);
+    rp.setBindGroup(1, matBindGroup);
+
+    for (const obj of objects) {
+      if (!obj.geometry) continue;
+
+      const uBufferData = this._getObjUniformBufferData(obj);
+      this._updateObjUniformBuffer(uBufferData.buffer, obj, manifest, vMat);
+      const objBindGroup = this._getObjBindGroup(uBufferData, cache.bgLayouts[2]!);
+      rp.setBindGroup(2, objBindGroup);
+
+      const gCache = this._getGeoCache(obj.geometry!);
+      this._ensureDummyBufferSize(gCache.vertexCount);
+      rp.setVertexBuffer(0, gCache.vb);
+      rp.setVertexBuffer(1, gCache.nb || this._dummyNormalBuffer);
+      rp.setVertexBuffer(2, gCache.uvb || this._dummyUvBuffer);
+      rp.setVertexBuffer(3, gCache.tb || this._dummyTangentBuffer);
+
+      if (isInstanced) {
+        const instMesh = obj as InstancedMesh;
+        let instanceBuf = this._gpuInstanceBuffers.get(instMesh);
+        const matrixByteLength = instMesh.instanceMatrices.byteLength;
+
+        if (!instanceBuf || instanceBuf.size < matrixByteLength) {
+          if (instanceBuf) instanceBuf.destroy();
+          instanceBuf = this._device!.createBuffer({
+            size: matrixByteLength,
+            usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+          });
+          this._gpuInstanceBuffers.set(instMesh, instanceBuf);
+          instMesh.instanceMatrixNeedsUpdate = true;
+        }
+
+        if (instMesh.instanceMatrixNeedsUpdate) {
+          this._device!.queue.writeBuffer(instanceBuf, 0, instMesh.instanceMatrices);
+          instMesh.instanceMatrixNeedsUpdate = false;
+        }
+
+        rp.setVertexBuffer(4, instanceBuf);
+
+        if (topology === "line-list") {
+          if (gCache.wib) {
+            rp.setIndexBuffer(gCache.wib, gCache.format!);
+            rp.drawIndexed(gCache.wireframeIndexCount, instMesh.instanceCount);
+          } else if (gCache.ib) {
+            rp.setIndexBuffer(gCache.ib, gCache.format!);
+            rp.drawIndexed(gCache.indexCount, instMesh.instanceCount);
+          } else {
+            rp.draw(gCache.vertexCount, instMesh.instanceCount);
+          }
+        } else if (gCache.ib) {
+          rp.setIndexBuffer(gCache.ib, gCache.format!);
+          rp.drawIndexed(gCache.indexCount, instMesh.instanceCount);
+        } else {
+          rp.draw(gCache.vertexCount, instMesh.instanceCount);
+        }
+      } else {
         if (topology === "line-list") {
           if (gCache.wib) {
             rp.setIndexBuffer(gCache.wib, gCache.format!);

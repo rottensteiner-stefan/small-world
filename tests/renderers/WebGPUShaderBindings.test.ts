@@ -31,4 +31,47 @@ describe("WebGPU Shader Bindings & Layouts", () => {
 
     expect(emissiveBindingRegex.test(wgslContent)).toBe(true);
   });
+
+  it("should correctly rewrite base.vert.wgsl for instanced rendering without corrupting parameters", () => {
+    const wgslPath = path.resolve(
+      __dirname,
+      "../../public/resources/shaders/web_gpu/base.vert.wgsl",
+    );
+    let code = fs.readFileSync(wgslPath, "utf-8");
+
+    // Apply the instancing rewrite logic
+    code = code.replace(/fn\s+vs\s*\(([\s\S]*?)\)\s*->\s*Out\s*\{/, (_match, params) => {
+      const trimmedParams = params.trim();
+      const comma = trimmedParams.length > 0 ? "," : "";
+      return `fn vs(
+  ${trimmedParams}${comma}
+  @location(4) inst_col0: vec4f,
+  @location(5) inst_col1: vec4f,
+  @location(6) inst_col2: vec4f,
+  @location(7) inst_col3: vec4f
+) -> Out {
+  let instMatrix = mat4x4f(inst_col0, inst_col1, inst_col2, inst_col3);`;
+    });
+    code = code.replace(/obj\.model/g, "(obj.model * instMatrix)");
+
+    // Assertions
+    // 1. Should contain location 4, 5, 6, 7
+    expect(code).toContain("@location(4) inst_col0: vec4f");
+    expect(code).toContain("@location(5) inst_col1: vec4f");
+    expect(code).toContain("@location(6) inst_col2: vec4f");
+    expect(code).toContain("@location(7) inst_col3: vec4f");
+
+    // 2. Original parameters should still be completely intact
+    expect(code).toContain("@location(0) pos: vec3f");
+    expect(code).toContain("@location(1) normal: vec3f");
+    expect(code).toContain("@location(2) uv: vec2f");
+    expect(code).toContain("@location(3) tangent: vec3f");
+
+    // 3. instMatrix should be instantiated
+    expect(code).toContain("let instMatrix = mat4x4f(inst_col0, inst_col1, inst_col2, inst_col3);");
+
+    // 4. obj.model should be replaced
+    expect(code).toContain("(obj.model * instMatrix)");
+    expect(code).not.toContain("obj.model * vec4f(pos, 1.0)");
+  });
 });
