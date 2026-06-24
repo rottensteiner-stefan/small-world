@@ -1,6 +1,15 @@
 # Changelog
 
+## [0.36.0] - 2026-06-24
+
+- **Feature: Global Post-Processing Configuration & Static Shader Specialization**:
+  - Implemented static parameter injection for post-processing shaders, compiling settings (Vignette offset/roundness/darkness, Film Grain intensity, Bloom threshold/intensity, ToneMapping mode) directly into shader pipelines.
+  - Configured dynamic shader recompilation triggered automatically when the post-processing configuration signature changes (providing optimal production performance while retaining developer flexibility in the inspector).
+  - Reduced per-frame uniform updates to write only the dynamic `time` uniform, saving CPU cycles and GPU uniform register bandwidth.
+  - Added global `postProcessing` configuration schema to `small-world.json` and `EngineOptions` types to enable app-wide default parameters.
+
 ## [0.35.1] - 2026-06-24
+
 
 - **Optimization: Shader Performance refactoring ("Math is Cheaper than Memory")**:
   - Eliminated redundant texture sampling inside [Standard.frag.wgsl](src/core/materials/shaders/Standard.frag.wgsl) (WGSL diffuse map) and PBR lighting chunks (`light_calc_pbr.frag.glsl` for WebGL1 & 2), reducing memory fetch bandwidth.
