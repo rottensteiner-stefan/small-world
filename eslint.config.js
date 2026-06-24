@@ -91,6 +91,6 @@ export default [
 
   // 5. Globale Ignorier-Regeln (Kompilierte Dateien in Ruhe lassen)
   {
-    ignores: ["node_modules/", "dist/", "build/", "**/*.d.ts"],
+    ignores: ["node_modules/", "dist/", "build/", "docs/", "**/*.d.ts"],
   },
 ];
