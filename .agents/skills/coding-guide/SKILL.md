@@ -122,4 +122,101 @@ if (luma < 0.3) {
 let c1 = mix(cold, warm, clamp(luma / 0.3, 0.0, 1.0));
 let c2 = mix(c1, hot, clamp((luma - 0.3) / 0.4, 0.0, 1.0));
 srgb = mix(c2, whiteHot, clamp((luma - 0.7) / 0.3, 0.0, 1.0));
+
+---
+
+## 4. WebGL2 & WebGPU Shader Parity
+
+Since the engine supports both pipelines, use this mapping guide to keep GLSL (WebGL2) and WGSL (WebGPU) shaders aligned.
+
+### A. Common Syntax Translation Table
+
+| Feature / Concept | WebGL2 GLSL (glsl300) | WebGPU WGSL (wgsl) | Notes / Details |
+| :--- | :--- | :--- | :--- |
+| **Float Vectors** | `vec2`, `vec3`, `vec4` | `vec2f`, `vec3f`, `vec4f` | Or use `vec2<f32>` format |
+| **Integers / Unsigned** | `int`, `uint` | `i32`, `u32` | WGSL uses `u` suffix for unsigned (e.g. `1u`) |
+| **Texture Sample** | `texture(sampler, uv)` | `textureSample(texture, sampler, uv)` | WGSL separates sampler and texture bindings |
+| **Condition Mix / Selection** | `mix(a, b, t)` / `cond ? a : b` | `mix(a, b, t)` / `select(a, b, cond)` | WGSL **does not support** ternary `? :` operators |
+| **Matrix Type** | `mat4` | `mat4x4f` | Or `mat4x4<f32>` |
+| **Matrix Multiply** | `projection * view * pos` | `projection * view * pos` | Both are column-major, right-to-left evaluation |
+
+### B. WGSL Uniform Buffer Layout (The 16-byte Alignment Rule)
+WebGPU uniform buffers require strict memory alignments. Members of structs must align to 16 bytes for vector types:
+*   `vec3f` (and `vec4f`) takes 16 bytes.
+*   If a `vec3f` is followed by an `f32`, they can sit in the same 16-byte boundary (12 bytes for vec3 + 4 bytes for float).
+*   If a `vec3f` is followed by another struct or array, it requires 4 bytes of padding.
+
+```wgsl
+struct PostUniforms {
+    exposure: f32,          // offset 0 (4 bytes)
+    inverseGamma: f32,      // offset 4 (4 bytes)
+    toneMappingMode: u32,   // offset 8 (4 bytes)
+    vignetteEnabled: u32,   // offset 12 (4 bytes) -> Total 16 bytes boundary
+    
+    vignetteOffset: f32,    // offset 16 (4 bytes)
+    vignetteDarkness: f32,  // offset 20 (4 bytes)
+    vignetteRoundness: f32, // offset 24 (4 bytes)
+    grainEnabled: u32,      // offset 28 (4 bytes) -> Total 16 bytes boundary
+    
+    grainIntensity: f32,    // offset 32 (4 bytes)
+    time: f32,              // offset 36 (4 bytes)
+    bloomEnabled: u32,      // offset 40 (4 bytes)
+    bloomIntensity: f32,    // offset 44 (4 bytes) -> Total 16 bytes boundary
+    
+    bloomColor: vec3f,      // offset 48 (12 bytes)
+    filterMode: u32,        // offset 60 (4 bytes) -> Packs perfectly with vec3f into 16 bytes!
+}
+```
+Ensure CPU-side memory mapping (`Float32Array` or `DataView`) matches this layout index-for-index.
+
+---
+
+## 5. Testing Guide & Mocking Patterns
+
+We use **Vitest** for running unit tests on behaviors, math, and materials without requiring a browser window or GPU hardware.
+
+### A. Material Parameter Test Template
+Tests for materials should verify that parameter modifications update CPU storage correctly, and that shaders compile.
+
+```typescript
+import { describe, it, expect } from "vitest";
+import { ExampleMaterial } from "../../src/core/materials/ExampleMaterial.js";
+import { Color } from "../../src/math/Color.js";
+
+describe("ExampleMaterial", () => {
+  it("should store and update color and shininess parameters", () => {
+    const mat = new ExampleMaterial(Color.RED, 30);
+    expect(mat.color.equals(Color.RED)).toBe(true);
+    expect(mat.getShininess()).toBe(30);
+
+    mat.setShininess(50);
+    expect(mat.getShininess()).toBe(50);
+  });
+});
+```
+
+### B. Mocking WebGL/Canvas Contexts
+When a test instantiates parts of the renderer, mock the DOM `HTMLCanvasElement` using Vitest:
+
+```typescript
+import { vi } from "vitest";
+
+// Mock minimal canvas and WebGL context
+const mockContext = {
+  viewport: vi.fn(),
+  clearColor: vi.fn(),
+  clear: vi.fn(),
+  createShader: vi.fn(() => ({})),
+  shaderSource: vi.fn(),
+  compileShader: vi.fn(),
+  getShaderParameter: vi.fn(() => true),
+};
+
+vi.stubGlobal("document", {
+  createElement: vi.fn(() => ({
+    getContext: vi.fn(() => mockContext),
+    addEventListener: vi.fn(),
+  })),
+});
+```
 ```
