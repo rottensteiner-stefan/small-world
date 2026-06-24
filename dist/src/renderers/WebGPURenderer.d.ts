@@ -1,4 +1,4 @@
-import { CubeTexture, RenderManifest, Texture } from '../core/index.js';
+import { CubeTexture, RenderManifest, Texture, InstancedMesh } from '../core/index.js';
 import { EngineOptions, GeometryDataInterface } from '../interfaces/index.js';
 import { Object3D } from '../core/Object3D.js';
 import { Scene } from '../core/Scene.js';
@@ -53,6 +53,7 @@ export declare class WebGPURenderer extends AbstractRenderer {
     protected _dummyUvBuffer: GPUBuffer;
     protected _dummyTangentBuffer: GPUBuffer;
     protected _geoCache: Map<GeometryDataInterface, WebGPUGeoCache>;
+    protected _gpuInstanceBuffers: WeakMap<InstancedMesh, GPUBuffer>;
     protected _frameCount: number;
     protected _scratchModelMatrix: Float32Array<ArrayBuffer>;
     protected _scratchColorArray: Float32Array<ArrayBuffer>;
@@ -93,13 +94,14 @@ export declare class WebGPURenderer extends AbstractRenderer {
     protected _getSampler(tex: Texture | undefined): GPUSampler;
     protected _ensureDummyBufferSize(vertexCount: number): void;
     private _initGlobalBuffers;
-    protected _getPipeline(manifest: RenderManifest, topology: GPUPrimitiveTopology): WebGPUPipelineCache;
-    protected _getShaderModule(shaderId: string): GPUShaderModule;
+    protected _getPipeline(manifest: RenderManifest, topology: GPUPrimitiveTopology, isInstanced?: boolean): WebGPUPipelineCache;
+    protected _getShaderModule(shaderId: string, isInstanced?: boolean): GPUShaderModule;
     protected _getGeoCache(geo: GeometryDataInterface): WebGPUGeoCache;
     render(scene: Scene, vp: Float32Array, camPos?: Vector3D, vMat?: Float32Array): void;
     captureOpaqueTexture(ce: GPUCommandEncoder, targetTex: GPUTexture): void;
     protected _pruneObjectBuffers(): void;
     _renderGroup(rp: GPURenderPassEncoder, _shaderId: string, materialGroups: Map<string, Object3D[]>, vMat?: Float32Array, topology?: GPUPrimitiveTopology): void;
+    private _renderSubgroup;
     protected _getObjUniformBufferData(obj: Object3D): {
         buffer: GPUBuffer;
         lastFrame: number;
