@@ -1,4 +1,5 @@
 # AGENTS Instructions & Coding Standards
+**Context:** Small World is a custom, lightweight 3D engine written in strict TypeScript supporting hybrid WebGL2/WebGPU rendering pipelines.
 
 ## 1. Core Workflow & Token Saving
 - **Planning:** Detailed plan required before any code/file change. Proceed only after user approval.
