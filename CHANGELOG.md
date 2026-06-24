@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.36.0] - 2026-06-24
+
+- **Optimization: Shader Performance refactoring ("Math is Cheaper than Memory")**:
+  - Eliminated redundant texture sampling inside [Standard.frag.wgsl](src/core/materials/shaders/Standard.frag.wgsl) (WGSL diffuse map) and PBR lighting chunks (`light_calc_pbr.frag.glsl` for WebGL1 & 2), reducing memory fetch bandwidth.
+  - Converted divergent branch logic inside the Thermal Vision post-processing filters (WGSL & GLSL) into flat, branch-free step-wise linear interpolation mixes.
+  - Replaced nested branching inside [Terrain.frag.wgsl](src/core/materials/shaders/Terrain.frag.wgsl) with clamp/mix linear structures.
+  - Removed conditional normal mapping branch logic in Phong shaders ([Phong.frag.glsl](src/core/materials/shaders/Phong.frag.glsl) & `glsl100`), running normal perturbations unconditionally.
+  - Added length-based mathematical fast-path for vignettes in post-processing shaders (`PostProcess.frag.wgsl` and `glsl`), avoiding slow power calculations (`pow`) for circular shapes.
+- **Refactor: Modular Shader Chunk Extraction**:
+  - Decomposed all inline shader chunk strings inside [CoreShaderChunks.ts](src/core/renderers/shaders/CoreShaderChunks.ts) (fog and color grading filters) into 16 individual file assets under `src/core/materials/shaders/chunks/`.
+  - Configured CoreShaderChunks to statically raw-import chunks using Vite `?raw` suffix, maintaining zero HTTP request runtime overhead.
+  - Upgraded the WGSL linter (`scripts/lint-wgsl.ts`) to dynamically scan the local chunks folder and assemble the color grading logic in memory.
+- **Documentation & Customization Rules**:
+  - Moved `AGENTS.md` rules into the `.agents/` customization root to declutter the workspace.
+  - Expanded the `coding-guide` skill [SKILL.md](.agents/skills/coding-guide/SKILL.md) with comprehensive TypeScript templates, clean code flow rules, WebGL/WebGPU parity tables, and Vitest unit testing mock patterns.
+
 ## [0.35.0] - 2026-06-23
 
 - **Feature: Highly Stylized Surveillance Video Wall Filters**:
