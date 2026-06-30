@@ -1,6 +1,8 @@
 # Small World Engine
 
-**Small World Engine** is a lightweight, high-performance, modular 3D game engine for the web, built with TypeScript. It provides a modern, Physically Based Rendering (PBR) pipeline and a simple API for managing 3D scenes, cameras, lighting, and geometry—with a particular focus on flexible camera orchestration and native support for 2D/2.5D workflows.
+<img width="320" alt="Damaged Helmet" src="https://github.com/user-attachments/assets/862a835b-0d89-413a-9949-e1b9c177d9fe" />
+
+**Small World Engine** is a lightweight, high-performance, modular 3D game engine for the web, built with TypeScript. It provides a modern, Physically Based Rendering (PBR) pipeline and a simple API for managing 3D scenes, cameras, lighting, and geometry—with a particular focus on flexible camera orchestration and native support for 2D/2.5D workflows. 
 
 ## 🚀 Features
 
