@@ -27,7 +27,7 @@ class Example16 extends AbstractExample {
     this.camera.position.set(0, 10, 20);
     this.camera.target.set(0, 0, 0);
 
-    const sun = new DirectionalLight(Color.WHITE, 1.0);
+    const sun = new DirectionalLight({ color: Color.WHITE, intensity: 1.0 });
     sun.position.set(10, 20, 10);
     sun.lookAt(new Vector3D(0, 0, 0));
     this.scene.add(sun);
