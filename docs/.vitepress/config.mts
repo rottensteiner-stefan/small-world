@@ -19,6 +19,7 @@ export default defineConfig({
         {
           text: 'Core Concepts',
           items: [
+            { text: 'Architecture & Overview', link: '/guides/architecture' },
             { text: 'Coordinate System & Camera Strategies', link: '/guides/coordinate-system' },
             { text: 'Finite State Machines (FSM)', link: '/guides/state-machines' }
           ]
