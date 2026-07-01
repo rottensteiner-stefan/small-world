@@ -1,31 +1,31 @@
-# Architektur & Code-Beispiele
+# Architecture & Code Examples
 
-Die Small World Engine ist modular aufgebaut und nutzt Composition über tiefe Vererbung. Im Folgenden findest du einen Überblick über die wichtigsten Klassen, Interfaces und Parameter, mit denen du im Alltag arbeiten wirst, sowie konkrete Code-Beispiele für den Einstieg.
+The Small World Engine has a modular design and uses composition over deep inheritance. Below is an overview of the most important classes, interfaces, and parameters that you will work with on a daily basis, as well as concrete code examples to get you started.
 
-::: tip API Referenz
-Für eine vollständige Liste *aller* Klassen, Methoden und Typdeklarationen (inkl. Konstruktor-Parametern) öffne bitte die automatisch generierte **[API Reference](/api/index.html)**.
+::: tip API Reference
+For a complete list of *all* classes, methods, and type declarations (incl. constructor parameters), please open the automatically generated **[API Reference](/api/index.html)**.
 :::
 
 ---
 
 ## 1. Scene Graph (`Object3D`)
 
-Das Herzstück der Engine ist die `Object3D` Klasse. Alles, was in der Welt existiert (Meshes, Kameras, virtuelle Anker), ist oder erbt von `Object3D`. Es verwaltet die lokale sowie globale Transformations-Matrix, Geometrie und das Material.
+The heart of the engine is the `Object3D` class. Everything that exists in the world (meshes, cameras, virtual anchors) is or inherits from `Object3D`. It manages the local and global transformation matrices, geometry, and material.
 
-### Beispiel: Ein Objekt erstellen und platzieren
+### Example: Creating and placing an object
 ```typescript
 import { Object3D, Cube, StandardMaterial, Color } from "small-world";
 
 const player = new Object3D("Player");
 
-// Position (X=Rechts, Y=Oben, Z=Hinten)
+// Position (X=Right, Y=Up, Z=Backward)
 player.position.set(0, 1, 0);
 
-// Skalierung und Rotation
+// Scale and Rotation
 player.scale.set(2, 2, 2);
-player.rotation.y = Math.PI / 4; // 45 Grad
+player.rotation.y = Math.PI / 4; // 45 degrees
 
-// Geometrie und Material zuweisen
+// Assign geometry and material
 player.geometry = new Cube({ size: 1 }).getGeometryData();
 player.material = new StandardMaterial({ 
   color: Color.RED, 
@@ -33,60 +33,60 @@ player.material = new StandardMaterial({
   roughness: 0.8 
 });
 
-// Kind-Objekte (Hierarchie) anhängen
+// Attach child objects (Hierarchy)
 const weapon = new Object3D("Weapon");
-weapon.position.set(1, 0, 0); // Relativ zum Player!
+weapon.position.set(1, 0, 0); // Relative to the player!
 player.add(weapon);
 
-// In die Szene einfügen
+// Add to the scene
 this.scene.add(player);
 ```
 
 ---
 
-## 2. Kameras & Controller
+## 2. Cameras & Controllers
 
-Die Engine verwendet kein starres Kameramodell. Stattdessen gibt es eine Basis-`Camera`, die von flexiblen **Strategien** (wie `SmoothStrategy`, `IsometricStrategy`) und **Controllern** (`FPSController`, `ZoomController`) gesteuert wird.
+The engine does not use a rigid camera model. Instead, there is a base `Camera` that is controlled by flexible **strategies** (like `SmoothStrategy`, `IsometricStrategy`) and **controllers** (`FPSController`, `ZoomController`).
 
-### Beispiel: First-Person Shooter Kamera (FPS)
+### Example: First-Person Shooter Camera (FPS)
 ```typescript
-import { FPSController } from "small-world";
+import { FPSController, StiffStrategy } from "small-world";
 
-// Die Strategie definiert, wie die Kamera Updates interpoliert (Stiff = direkt, Smooth = weich)
+// The strategy defines how the camera interpolates updates (Stiff = direct, Smooth = soft)
 this.camera.setStrategy(new StiffStrategy());
 
-// Der FPS Controller greift direkt auf Mauseingaben (PointerLock) und WASD zu
+// The FPS controller directly accesses mouse input (PointerLock) and WASD
 const fpsController = new FPSController(this.camera, {
   moveSpeed: 10.0,
   lookSpeed: 0.002
 });
 
-// Dem Application-Lebenszyklus hinzufügen, damit er Updates erhält
+// Add it to the Application lifecycle so it receives updates
 this.controllers.push(fpsController);
 ```
 
 ---
 
-## 3. Materialien (PBR & Spezifische Shader)
+## 3. Materials (PBR & Specific Shaders)
 
-Small World nutzt einen hybriden Rendering-Ansatz (WebGL2 & WebGPU) basierend auf dem Cook-Torrance BRDF-Modell. Materialien definieren Parameter, die vom Shader gelesen werden.
+Small World uses a hybrid rendering approach (WebGL2 & WebGPU) based on the Cook-Torrance BRDF model. Materials define parameters that are read by the shader.
 
-### Übersicht der wichtigsten Materialien
-- `StandardMaterial`: Für 90% der Objekte. Unterstützt `color`, `metallic`, `roughness`, sowie Diffuse-, Normal- und Roughness-Maps.
-- `GlassMaterial`: Ein refraktives Material für Glas oder Wasser mit echter Brechung (`ior`) und Volumen-Absorption (`absorptionColor`).
-- `SpriteMaterial`: Für 2D/2.5D Billboards, die immer zur Kamera schauen.
+### Overview of key materials
+- `StandardMaterial`: For 90% of objects. Supports `color`, `metallic`, `roughness`, as well as diffuse, normal, and roughness maps.
+- `GlassMaterial`: A refractive material for glass or water with true refraction (`ior`) and volume absorption (`absorptionColor`).
+- `SpriteMaterial`: For 2D/2.5D billboards that always face the camera.
 
-### Beispiel: Glas/Wasser Material mit Brechungsindex
+### Example: Glass/Water Material with Index of Refraction
 ```typescript
 import { GlassMaterial, Color } from "small-world";
 
 const water = new GlassMaterial({
   color: new Color(0.9, 0.95, 1.0),
   roughness: 0.05,
-  ior: 1.33,               // Brechungsindex von Wasser
-  dispersion: 0.02,        // Leichte chromatische Aberration an Kanten
+  ior: 1.33,               // Index of Refraction for water
+  dispersion: 0.02,        // Slight chromatic aberration at edges
   absorptionColor: new Color(0.1, 0.5, 0.8),
-  absorptionDistance: 5.0  // Je tiefer, desto blauer
+  absorptionDistance: 5.0  // The deeper, the bluer
 });
 
 waterSurface.material = water;
@@ -96,9 +96,9 @@ waterSurface.material = water;
 
 ## 4. Behaviors & Finite State Machines (FSM)
 
-Komplexe Logik solltest du nicht in eine riesige `update()`-Schleife schreiben. Nutze stattdessen das **Behavior-System**, um isolierte Logik-Blöcke (Komponenten) an ein `Object3D` zu heften.
+You shouldn't write complex logic into a giant `update()` loop. Instead, use the **Behavior system** to attach isolated logic blocks (components) to an `Object3D`.
 
-### Beispiel: Ein Blink-Behavior
+### Example: A Pulse Behavior
 ```typescript
 import { Behavior, Object3D } from "small-world";
 
@@ -112,24 +112,24 @@ export class PulseBehavior extends Behavior {
     this._baseScale = 1.0;
   }
 
-  // Wird aufgerufen, wenn das Behavior dem Objekt per obj.addBehavior() zugewiesen wird
+  // Called when the behavior is attached to the object via obj.addBehavior()
   public override onAttach(target: Object3D): void {
     this._baseScale = target.scale.x;
   }
 
-  // Wird jeden Frame automatisch durch die Scene aufgerufen
+  // Called automatically every frame by the Scene
   public override update(deltaTime: number, totalTime: number): void {
     if (!this.target) return;
     
-    // Sinus-Pulsieren berechnen
+    // Calculate sine pulse
     const scale = this._baseScale + Math.sin(totalTime * this._speed) * 0.2;
     this.target.scale.set(scale, scale, scale);
   }
 }
 
-// Nutzung:
+// Usage:
 const heart = new Object3D("Heart");
 heart.addBehavior(new PulseBehavior(5.0));
 ```
 
-Wenn Zustände noch komplexer werden (z. B. `IDLE` -> `WALK` -> `ATTACK`), nutze das eingebaute `StateMachine` Modul, welches nahtlos mit den Behaviors via `StateMachineBehavior` integriert ist.
+If states become more complex (e.g., `IDLE` -> `WALK` -> `ATTACK`), use the built-in `StateMachine` module, which integrates seamlessly with Behaviors via `StateMachineBehavior`.
