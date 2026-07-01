@@ -1,3 +1,5 @@
+/// src/core/materials/WireframeMaterial.ts
+
 import { AbstractMaterial } from "./AbstractMaterial.js";
 import { MaterialType, CullMode, Topology } from "../../enums/index.js";
 import { Color } from "../colors/index.js";

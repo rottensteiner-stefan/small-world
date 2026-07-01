@@ -1,3 +1,5 @@
+/// src/core/materials/SkyboxMaterial.ts
+
 import { AbstractMaterial } from "./AbstractMaterial.js";
 import { CubeTexture } from "../textures/index.js";
 import { CullMode, MaterialType, ShaderPropertyType } from "../../enums/index.js";

@@ -1,3 +1,5 @@
+/// src/renderers/passes/MainRenderPass.ts
+
 import { Scene } from "../../core/Scene.js";
 import { MaterialType } from "../../enums/index.js";
 import { WebGPURenderer } from "../WebGPURenderer.js";

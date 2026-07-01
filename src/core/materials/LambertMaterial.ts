@@ -1,3 +1,5 @@
+/// src/core/materials/LambertMaterial.ts
+
 import { AbstractMaterial } from "./AbstractMaterial.js";
 import { MaterialType, ShaderPropertyType } from "../../enums/index.js";
 import { Color } from "../colors/index.js";

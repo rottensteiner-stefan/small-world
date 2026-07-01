@@ -1,4 +1,4 @@
-/// src/examples/example15.ts
+/// src/examples/example15_v2.ts
 
 import {
   AbstractExample,

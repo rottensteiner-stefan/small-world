@@ -1,3 +1,5 @@
+/// src/core/materials/TerrainMaterial.ts
+
 import { AbstractMaterial } from "./AbstractMaterial.js";
 import { MaterialType, ShaderPropertyType } from "../../enums/index.js";
 import { Texture } from "../textures/Texture.js";
