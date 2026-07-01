@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.42.2] - 2026-07-02
+
+- **Feature: Dynamic Environment Probes (Phase 2)**:
+  - Added `RenderTargetCube` and `DynamicReflectionProbe` for real-time cube map rendering.
+  - Implemented Time-Slicing logic to update one cube face per frame, drastically reducing CPU/GPU overhead.
+  - Extended `WebGL2Renderer` (`WebGL2CubeFrameBuffer`) and `WebGPURenderer` to natively support dynamic CubeMap Array-Layer rendering via `Renderer.setRenderTarget(target, activeCubeFace)`.
+  - Upgraded Example 15 with dynamic reflections on the large spheres.
+
+## [0.42.1] - 2026-07-02
+
+- **Terrain WGSL Fix**: Fixed an issue in `Terrain.frag.wgsl` where `thresholds.w` was incorrectly used as a hard upper bound instead of the softness blend width for the `smoothstep` transition. Restored slope blending for rock textures on steep surfaces.
+- **Engine Capabilities Logging**: Added a nice startup banner to `SmallWorld.ts` which prints the engine version, active renderer, and full hardware capabilities via `console.table`.
+- **GadgetInspector**: Integrated a comprehensive "Capabilities" folder in the Tweakpane UI overlay (`CMD+ALT+G`) to view device capability limits live across all examples.
+
 ## [0.42.0] - 2026-07-02
 
 - **Bugfix: Production Build Path Resolution**:
