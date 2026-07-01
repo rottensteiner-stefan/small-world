@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.42.0] - 2026-07-02
+
+- **Bugfix: Production Build Path Resolution**:
+  - Fixed a major Vite configuration issue where production builds (`npm run start`) served unprocessed, unbundled HTML files due to `publicDir` copying conflicts. Added a script step (`cp -a dist/public/. dist/ && rm -rf dist/public`) to properly merge and overwrite raw assets with processed bundles.
+- **Bugfix: Example 17 Runtime / Types**:
+  - Corrected the `ProceduralTerrain` mesh generation loop in Example 17 to instantiate an `Object3D` node instead of `Mesh`.
+  - Switched from a non-existent `GeometryData` constructor to `ModelGeometry` for passing Float32Arrays safely to the GPU.
+
 ## [0.41.0] - 2026-07-01
 
 - **Feature: Multithreading & Web Workers**:
