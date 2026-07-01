@@ -7,7 +7,7 @@ import {
   PerspectiveProjection,
 } from "../math/index.js";
 import { Camera } from "./Camera.js";
-import { CameraInterfaceData, EngineOptions, ProjectionOptions } from "../interfaces/index.js";
+import { EngineOptions, ProjectionOptions } from "../interfaces/index.js";
 import { Renderer } from "../interfaces/Renderer.js";
 import { ProjectionType, RendererType } from "../enums/index.js";
 import { RendererFactory } from "../renderers/index.js";
@@ -32,7 +32,7 @@ export abstract class SmallWorld {
   /** The current scene. */
   public scene: Scene;
   /** The main camera. */
-  public camera: CameraInterfaceData;
+  public camera: Camera;
   /** The active renderer. */
   public renderer: Renderer;
   /** The canvas element. */

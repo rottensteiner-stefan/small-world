@@ -1,4 +1,5 @@
-import { CameraInterfaceData, EngineOptions } from '../interfaces/index.js';
+import { Camera } from './Camera.js';
+import { EngineOptions } from '../interfaces/index.js';
 import { Renderer } from '../interfaces/Renderer.js';
 import { Scene } from './Scene.js';
 import { GadgetInspector } from '../tools/GadgetInspector.js';
@@ -13,7 +14,7 @@ export declare abstract class SmallWorld {
     /** The current scene. */
     scene: Scene;
     /** The main camera. */
-    camera: CameraInterfaceData;
+    camera: Camera;
     /** The active renderer. */
     renderer: Renderer;
     /** The canvas element. */

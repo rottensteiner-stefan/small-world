@@ -18,6 +18,20 @@ import {
   GeometryDataInterface,
 } from "../index.js";
 
+declare global {
+  interface Window {
+    update3DTextures?: (
+      diffuseCanvas: HTMLCanvasElement,
+      normalCanvas: HTMLCanvasElement,
+      roughnessCanvas: HTMLCanvasElement,
+      normalStrength: number,
+      metallicValue: number,
+      roughnessValue: number,
+    ) => Promise<void>;
+    update3DGeometry?: (geomType: string) => void;
+  }
+}
+
 class PbrPreviewApp extends SmallWorld {
   private _previewObject!: Object3D;
   private _pbrMaterial!: StandardMaterial;
@@ -96,7 +110,7 @@ class PbrPreviewApp extends SmallWorld {
     this.scene.add(this._previewObject);
 
     // Register global communication helpers
-    (window as Record<string, unknown>).update3DTextures = async (
+    window.update3DTextures = async (
       diffuseCanvas: HTMLCanvasElement,
       normalCanvas: HTMLCanvasElement,
       roughnessCanvas: HTMLCanvasElement,
@@ -129,7 +143,7 @@ class PbrPreviewApp extends SmallWorld {
       }
     };
 
-    (window as Record<string, unknown>).update3DGeometry = (geomType: string): void => {
+    window.update3DGeometry = (geomType: string): void => {
       if (!this._previewObject) return;
 
       switch (geomType) {

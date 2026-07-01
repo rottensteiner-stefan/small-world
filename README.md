@@ -133,6 +133,22 @@ For an isolated development environment, this project includes a **Dev Container
 - `src/renderers`: Implementation of WebGL1, WebGL2, and WebGPU backends.
 - `examples`: Interactive functional demos showcasing engine capabilities.
 
+## 📚 Documentation
+
+This project uses [TypeDoc](https://typedoc.org/) for automated API reference generation and [VitePress](https://vitepress.dev/) for developer guides and tutorials.
+
+1.  **Generate API Reference:**
+    ```bash
+    npm run docs:api
+    ```
+    This automatically extracts all classes, interfaces, and methods from the TypeScript source and generates a static HTML site under `docs/public/api`.
+
+2.  **Start the VitePress Dev Server:**
+    ```bash
+    npm run docs:dev
+    ```
+    This serves the developer documentation locally. You can browse the guides and the newly generated API documentation.
+
 ## 📄 License
 
 This project is licensed under the MIT License.
