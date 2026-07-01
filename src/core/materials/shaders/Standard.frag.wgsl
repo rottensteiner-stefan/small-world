@@ -13,6 +13,20 @@
     if (finalAlpha < obj.extraParams.y) {
         discard;
     }
+    
+    if (obj.useReflectionMap > 0.5) {
+        let clipPos = global.vp * vec4f(i.wp, 1.0);
+        let ndc = clipPos.xy / clipPos.w;
+        let screenUV = vec2f(ndc.x * 0.5 + 0.5, ndc.y * -0.5 + 0.5); // WebGPU Y is down
+        let reflectionColor = sRGBToLinear(textureSample(u_reflectionMap, s, screenUV).rgb);
+        let V_dir = normalize(global.viewPos.xyz - i.wp);
+        let dotNV_refl = max(dot(normalize(i.n), V_dir), 0.0);
+        let F0_refl = mix(vec3f(0.04), albedo, metallic);
+        let F_refl = F_Schlick(dotNV_refl, F0_refl).x;
+        let f = obj.reflectivity * mix(1.0, F_refl, 0.5);
+        color = mix(color, reflectionColor, f);
+    }
+    
     [WGSL_FOG_CALC]
     return vec4f(color, finalAlpha);
 }

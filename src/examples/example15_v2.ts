@@ -1,0 +1,434 @@
+/// src/examples/example15.ts
+
+import {
+  AbstractExample,
+  AmbientLight,
+  CameraStrategyType,
+  Color,
+  Cube,
+  CubeTexture,
+  DirectionalLight,
+  FPSController,
+  Object3D,
+  PerspectiveProjection,
+  Plane,
+  PointLight,
+  ProjectionType,
+  RendererType,
+  SkyboxMaterial,
+  Sphere,
+  StandardMaterial,
+  StateMachine,
+  Texture,
+  TextureFilter,
+  InstancedMesh,
+  Matrix4,
+  Vector3D,
+  Quaternion,
+  PlanarReflectionNode,
+  DynamicReflectionProbe,
+} from "../index.js";
+import type { GadgetInspector } from "../tools/GadgetInspector.js";
+
+interface Ball {
+  position: { x: number; y: number; z: number };
+  velocity: { x: number; y: number; z: number };
+  radius: number;
+  stateMachine: StateMachine<"active" | "falling" | "exploding", BallContext>;
+  timeOnFloor: number;
+  lifeTime: number;
+  scale: number;
+  alpha: number;
+}
+
+interface BallContext {
+  ball: Ball;
+  example: Example15V2;
+}
+
+export class Example15V2 extends AbstractExample {
+  protected _balls: Ball[] = [];
+  protected _largeSpheres: { object: Object3D; radius: number; x: number; y: number; z: number }[] =
+    [];
+  protected _orbitingLight!: PointLight;
+  protected _time: number = 0;
+
+  // Instanced Meshes (split into 5 color groups to maintain multi-colored aesthetic)
+  protected _mainBallsMeshes: InstancedMesh[] = [];
+
+  // Dynamic Reflection Probes
+  protected _probes: DynamicReflectionProbe[] = [];
+
+  // Moons orbiting the spheres
+  protected _moonPivots: Object3D[] = [];
+
+  protected _reflectionNode!: PlanarReflectionNode;
+
+  // Scratch variables to avoid per-frame allocations
+  protected _scratchPos: Vector3D = new Vector3D();
+  protected _scratchRot: Quaternion = new Quaternion();
+  protected _scratchScale: Vector3D = new Vector3D();
+  protected _tempMatrix: Matrix4 = new Matrix4();
+
+  protected override async setupScene(): Promise<void> {
+    this.onCanvasRecreated();
+
+    // Set up camera
+    if (ProjectionType.PERSPECTIVE === this.camera.projection.type) {
+      const aspect: number = window.innerWidth / window.innerHeight;
+      this.camera.projection = new PerspectiveProjection({
+        fov: (65 * Math.PI) / 180,
+        aspect,
+        near: 0.1,
+        far: 1000,
+      });
+      this.camera.updateProjectionMatrix();
+    }
+
+    this.camera.setStrategy(CameraStrategyType.FPS);
+    this.camera.position.set(0, 5, 15);
+    this.camera.theta = 0;
+    this.camera.phi = 0;
+
+    const fpsController = new FPSController({
+      moveSpeed: 8.0,
+      enableCollision: false,
+      scene: this.scene,
+    });
+    this.camera.addBehavior(fpsController);
+
+    // 1. Lights
+    this.scene.add(new AmbientLight({ color: Color.WHITE, intensity: 0.15 }));
+
+    const sun = new DirectionalLight({
+      color: new Color(1.0, 0.95, 0.9),
+      intensity: 1.2,
+    });
+    sun.position.set(10, 20, 10);
+    sun.direction.set(-0.5, -1.0, -0.5).normalize();
+    sun.castShadow = true;
+    this.scene.add(sun);
+
+    // Orbiting point light
+    this._orbitingLight = new PointLight({
+      color: new Color(1.0, 0.6, 0.3),
+      intensity: 2.0,
+      distance: 30,
+    });
+    this.scene.add(this._orbitingLight);
+
+    // 2. Load environment texture for skybox & PBR reflections
+    const envTexture = new CubeTexture();
+    try {
+      await envTexture.loadFrom("/resources/examples/13/skybox.png");
+
+      const skybox = new Object3D("Skybox");
+      skybox.geometry = new Cube({ size: 1000 }).getGeometryData();
+      skybox.material = new SkyboxMaterial({ cubeMap: envTexture });
+      skybox.frustumCulled = false;
+      this.scene.add(skybox);
+    } catch (e) {
+      console.warn("Skybox image not loaded:", e);
+    }
+
+    // 3. Generate Checkered and Roughness maps procedurally via canvas
+    const checkCanvas = document.createElement("canvas");
+    checkCanvas.width = 512;
+    checkCanvas.height = 512;
+    const ctx = checkCanvas.getContext("2d")!;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, 512, 512);
+    ctx.fillStyle = "#111111"; // Very dark gray for black tiles
+    const tileSize = 64;
+    for (let y = 0; y < 8; y++) {
+      for (let x = 0; x < 8; x++) {
+        if ((x + y) % 2 === 0) {
+          ctx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
+        }
+      }
+    }
+
+    const roughCanvas = document.createElement("canvas");
+    roughCanvas.width = 512;
+    roughCanvas.height = 512;
+    const rCtx = roughCanvas.getContext("2d")!;
+    rCtx.fillStyle = "rgb(230, 230, 230)"; // White tiles are rough (0.9)
+    rCtx.fillRect(0, 0, 512, 512);
+    rCtx.fillStyle = "rgb(15, 15, 15)"; // Black tiles are smooth/shiny (0.06)
+    for (let y = 0; y < 8; y++) {
+      for (let x = 0; x < 8; x++) {
+        if ((x + y) % 2 === 0) {
+          rCtx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
+        }
+      }
+    }
+
+    const diffuseBitmap = await createImageBitmap(checkCanvas);
+    const roughBitmap = await createImageBitmap(roughCanvas);
+
+    const checkTexture = Texture.fromImage(diffuseBitmap, {
+      magFilter: TextureFilter.NEAREST,
+      minFilter: TextureFilter.NEAREST,
+    });
+    const roughTexture = Texture.fromImage(roughBitmap, {
+      magFilter: TextureFilter.NEAREST,
+      minFilter: TextureFilter.NEAREST,
+    });
+
+    // We repeat the checkerboard pattern
+    checkTexture.repeat.x = 6;
+    checkTexture.repeat.y = 6;
+    roughTexture.repeat.x = 6;
+    roughTexture.repeat.y = 6;
+
+    // 4. Create PlanarReflectionNode for the Floor
+    this._reflectionNode = new PlanarReflectionNode("FloorReflection", 1024, 1024);
+    // Move it to match floor position
+    this._reflectionNode.position.set(0, 0, 0);
+    this.scene.add(this._reflectionNode);
+
+    // 5. Checkered Floor plane
+    const floor = new Object3D("Floor").setPosition(0, 0, 0);
+    floor.geometry = new Plane({ width: 30, depth: 30 }).getGeometryData();
+    floor.material = new StandardMaterial({
+      color: new Color(1.0, 1.0, 1.0),
+      metallic: 0.1,
+      roughness: 1.0, // Multiplied by roughnessMap
+      diffuseMap: checkTexture,
+      roughnessMap: roughTexture,
+      envMap: envTexture,
+      reflectionMap: this._reflectionNode.renderTarget,
+      reflectivity: 0.6, // 60% Planar Reflection
+      transparent: false,
+    });
+    floor.receiveShadow = true;
+    this.scene.add(floor);
+
+    // 5. Create 3 Large Mirrored Spheres
+    const sphereGeom = new Sphere({
+      radius: 1,
+      widthSegments: 32,
+      heightSegments: 24,
+    }).getGeometryData();
+
+    // Large Sphere 1: Lavender
+    const sphere1 = new Object3D("LargeSphere1").setPosition(-3.5, 2.0, -1.5);
+    sphere1.geometry = sphereGeom;
+    sphere1.setScale(2.0); // radius = 2.0
+    sphere1.material = new StandardMaterial({
+      color: new Color(0.9, 0.85, 0.95), // Lavender tint
+      metallic: 1.0,
+      roughness: 0.02,
+      envMap: envTexture,
+      transparent: false,
+    });
+    sphere1.castShadow = true;
+    sphere1.receiveShadow = true;
+    this.scene.add(sphere1);
+
+    const probe1 = new DynamicReflectionProbe("Probe1", 256);
+    probe1.facesPerFrame = 1;
+    sphere1.add(probe1);
+    this._probes.push(probe1);
+    (sphere1.material as StandardMaterial).envMap = probe1.renderTarget;
+    this._largeSpheres.push({ object: sphere1, radius: 2.0, x: -3.5, y: 2.0, z: -1.5 });
+
+    // Large Sphere 2: Pale Mint
+    const sphere2 = new Object3D("LargeSphere2").setPosition(3.5, 1.5, -2.0);
+    sphere2.geometry = sphereGeom;
+    sphere2.setScale(1.5); // radius = 1.5
+    sphere2.material = new StandardMaterial({
+      color: new Color(0.85, 0.95, 0.9), // Mint tint
+      metallic: 1.0,
+      roughness: 0.02,
+      envMap: envTexture,
+      transparent: false,
+    });
+    sphere2.castShadow = true;
+    sphere2.receiveShadow = true;
+    this.scene.add(sphere2);
+
+    const probe2 = new DynamicReflectionProbe("Probe2", 256);
+    probe2.facesPerFrame = 1;
+    sphere2.add(probe2);
+    this._probes.push(probe2);
+    (sphere2.material as StandardMaterial).envMap = probe2.renderTarget;
+    this._largeSpheres.push({ object: sphere2, radius: 1.5, x: 3.5, y: 1.5, z: -2.0 });
+
+    // Large Sphere 3: Pale Rose
+    const sphere3 = new Object3D("LargeSphere3").setPosition(0.0, 1.0, 3.0);
+    sphere3.geometry = sphereGeom;
+    sphere3.setScale(1.0); // radius = 1.0
+    sphere3.material = new StandardMaterial({
+      color: new Color(0.95, 0.85, 0.88), // Rose tint
+      metallic: 1.0,
+      roughness: 0.02,
+      envMap: envTexture,
+      transparent: false,
+    });
+    sphere3.castShadow = true;
+    sphere3.receiveShadow = true;
+    this.scene.add(sphere3);
+
+    const probe3 = new DynamicReflectionProbe("Probe3", 256);
+    probe3.facesPerFrame = 1;
+    sphere3.add(probe3);
+    this._probes.push(probe3);
+    (sphere3.material as StandardMaterial).envMap = probe3.renderTarget;
+    this._largeSpheres.push({ object: sphere3, radius: 1.0, x: 0.0, y: 1.0, z: 3.0 });
+
+    // Large Spheres cast and receive shadows. Reflected fake spheres are removed.
+
+    // 6. Setup Moons
+    const ballColors = [
+      new Color(1.0, 0.45, 0.35), // Neon peach
+      new Color(0.4, 0.85, 0.4), // Lime
+      new Color(1.0, 0.85, 0.2), // Neon yellow
+      new Color(0.2, 0.8, 0.85), // Neon cyan
+      new Color(0.9, 0.4, 0.75), // Magenta
+    ];
+
+    const moonGeom = new Sphere({
+      radius: 0.4, // etwas größer
+      widthSegments: 24,
+      heightSegments: 16,
+    }).getGeometryData();
+
+    // Moon 1 (orbiting sphere1)
+    const moonMat1 = new StandardMaterial({
+      color: ballColors[0]!,
+      metallic: 0.0,
+      roughness: 0.95,
+    });
+    const moon1 = new Object3D("Moon1").setPosition(3.0, 0, 0); // orbit distance
+    moon1.geometry = moonGeom;
+    moon1.material = moonMat1;
+    moon1.castShadow = true;
+    moon1.receiveShadow = true;
+    const pivot1 = new Object3D("Pivot1");
+    pivot1.position.copyFrom(sphere1.position);
+    pivot1.add(moon1);
+    this.scene.add(pivot1);
+    this._moonPivots.push(pivot1);
+
+    // Moon 2 (orbiting sphere2)
+    const moonMat2 = new StandardMaterial({
+      color: ballColors[1]!,
+      metallic: 0.0,
+      roughness: 0.95,
+    });
+    const moon2 = new Object3D("Moon2").setPosition(2.2, 0, 0);
+    moon2.geometry = moonGeom;
+    moon2.material = moonMat2;
+    moon2.castShadow = true;
+    moon2.receiveShadow = true;
+    const pivot2 = new Object3D("Pivot2");
+    pivot2.position.copyFrom(sphere2.position);
+    pivot2.add(moon2);
+    this.scene.add(pivot2);
+    this._moonPivots.push(pivot2);
+
+    // Moon 3 (orbiting sphere3)
+    const moonMat3 = new StandardMaterial({
+      color: ballColors[2]!,
+      metallic: 0.0,
+      roughness: 0.95,
+    });
+    const moon3 = new Object3D("Moon3").setPosition(1.7, 0, 0);
+    moon3.geometry = moonGeom;
+    moon3.material = moonMat3;
+    moon3.castShadow = true;
+    moon3.receiveShadow = true;
+    const pivot3 = new Object3D("Pivot3");
+    pivot3.position.copyFrom(sphere3.position);
+    pivot3.add(moon3);
+    this.scene.add(pivot3);
+    this._moonPivots.push(pivot3);
+  }
+
+  /** @inheritdoc */
+  protected override onInspectorReady(_inspector: GadgetInspector): void {
+    // Moons have no controls for now
+  }
+
+  protected override update(deltaTime: number): void {
+    super.update(deltaTime);
+    this._time += deltaTime;
+
+    // Orbit point light
+    const orbitRadius = 8.0;
+    const lightX = Math.cos(this._time * 0.8) * orbitRadius;
+    const lightZ = Math.sin(this._time * 0.8) * orbitRadius;
+    this._orbitingLight.position.set(lightX, 5.0, lightZ);
+
+    const skybox = this.scene.objects.find((o) => o.name === "Skybox");
+    if (skybox) {
+      skybox.position.copyFrom(this.camera.position);
+      skybox.updateMatrixWorld();
+    }
+
+    // 1. Tick state machine physics only for active balls
+    /*
+    const activeCount = this._activeBallCount;
+    for (let i = 0; i < activeCount; i++) {
+      this._balls[i]!.stateMachine.update(deltaTime);
+    }
+    */
+
+    // 2. Scene update (matrix calculations of normal static / non-instanced objects)
+    this.scene.update(deltaTime);
+
+    // 3. Construct and upload instance matrices
+    /*
+    const active = this._activeBallCount;
+    for (let i = 0; i < Example15V2.MAX_BALLS; i++) {
+      const ball = this._balls[i]!;
+      const colorIdx = i % 5;
+      const instanceIdx = Math.floor(i / 5);
+
+      if (i >= active) {
+        // Hide this slot: scale to zero, park far off-screen
+        this._scratchPos.set(0, -9999, 0);
+        this._scratchScale.set(0, 0, 0);
+        this._tempMatrix.compose(this._scratchPos, this._scratchRot, this._scratchScale);
+        this._mainBallsMeshes[colorIdx]!.setMatrixAt(instanceIdx, this._tempMatrix);
+        continue;
+      }
+
+      // 3.1 Main Ball transform
+      this._scratchPos.set(ball.position.x, ball.position.y, ball.position.z);
+      this._scratchScale.set(ball.scale, ball.scale, ball.scale);
+      this._tempMatrix.compose(this._scratchPos, this._scratchRot, this._scratchScale);
+      this._mainBallsMeshes[colorIdx]!.setMatrixAt(instanceIdx, this._tempMatrix);
+    }
+    */
+
+    // Update moons
+    for (let i = 0; i < this._moonPivots.length; i++) {
+      // Rotation speed offsets so they don't look completely identical
+      const speed = 1.0 + i * 0.2;
+      this._moonPivots[i]!.setRotation(0, this._time * speed, 0);
+    }
+
+    // 4. Update the planar reflection
+    this._reflectionNode.updateReflection(this.scene, this.camera!, this.renderer);
+
+    // 5. Update dynamic probes
+    for (const probe of this._probes) {
+      probe.updateReflection(this.scene, this.renderer);
+    }
+  }
+}
+
+// === START THE ENGINE ===
+const app = new Example15V2({
+  rendererType: RendererType.BEST,
+});
+app
+  .start()
+  .then((): void => {
+    console.log("Example 15 running with Instanced Rendering");
+  })
+  .catch((err: Error): void => {
+    console.error("Error while starting the engine: ", err);
+  });

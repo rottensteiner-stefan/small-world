@@ -33,7 +33,7 @@ export class MainRenderPass implements RenderPass {
         },
       ],
       depthStencilAttachment: {
-        view: renderer._depthTexture.createView(),
+        view: renderer.activeDepthView,
         depthClearValue: 1.0,
         depthLoadOp: "clear",
         depthStoreOp: "store",
@@ -82,7 +82,7 @@ export class MainRenderPass implements RenderPass {
           },
         ],
         depthStencilAttachment: {
-          view: renderer._depthTexture.createView(),
+          view: renderer.activeDepthView,
           depthLoadOp: "load",
           depthStoreOp: "store",
         },

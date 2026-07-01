@@ -44,11 +44,11 @@ export declare const StandardWebGPULayout: {
             type: "float";
             defaultValue: number;
         };
-        _padObj0: {
+        u_useReflectionMap: {
             type: "float";
             defaultValue: number;
         };
-        _padObj1: {
+        u_reflectivity: {
             type: "float";
             defaultValue: number;
         };

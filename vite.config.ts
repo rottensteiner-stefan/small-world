@@ -2,6 +2,9 @@ import { defineConfig } from "vitest/config";
 import { resolve } from "path";
 import mkcert from "vite-plugin-mkcert";
 import http from "http";
+import EventEmitter from "events";
+
+EventEmitter.defaultMaxListeners = 50;
 
 export default defineConfig({
   publicDir: "public",
@@ -87,7 +90,8 @@ export default defineConfig({
         example12: resolve(__dirname, "public/examples/example12.html"),
         example13: resolve(__dirname, "public/examples/example13.html"),
         example14: resolve(__dirname, "public/examples/example14.html"),
-        example15: resolve(__dirname, "public/examples/example15.html"),
+        example15_v1: resolve(__dirname, "public/examples/example15_v1.html"),
+        example15_v2: resolve(__dirname, "public/examples/example15_v2.html"),
         yad: resolve(__dirname, "public/examples/yad.html"),
         pbrgen: resolve(__dirname, "public/tools/pbr-gen.html"),
         presentation: resolve(__dirname, "public/presentation.html"),

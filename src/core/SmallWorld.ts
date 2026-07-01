@@ -21,7 +21,7 @@ import { CollisionVisualizer, OctreeVisualizer } from "../utils/index.js";
 import type { GadgetInspector } from "../tools/GadgetInspector.js";
 
 /** The current engine version. */
-export const ENGINE_VERSION = "0.38.0";
+export const ENGINE_VERSION = "0.39.0";
 
 /**
  * Base class for applications built with the SmallWorld engine.
@@ -93,6 +93,16 @@ export abstract class SmallWorld {
    * Called to setup the scene after the engine is initialized.
    */
   protected abstract setupScene(): Promise<void>;
+
+  /**
+   * Called once after the GadgetInspector is created.
+   * Override in subclasses to register scene-specific inspector controls.
+   * @param _inspector The newly created inspector instance.
+   */
+
+  protected onInspectorReady(_inspector: GadgetInspector): void {
+    // Default: no-op
+  }
 
   /**
    * Called every frame to update application logic.
@@ -184,6 +194,7 @@ export abstract class SmallWorld {
       if (true === this.config.enableInspector) {
         const { GadgetInspector } = await import("../tools/GadgetInspector.js");
         this._inspector = new GadgetInspector(this.scene, this.camera, this.canvas, this.renderer);
+        this.onInspectorReady(this._inspector);
       }
 
       this._isInitialized = true;

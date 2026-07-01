@@ -36,6 +36,20 @@ export interface Renderer {
   setSize(width: number, height: number): void;
 
   /**
+   * Sets the active render target for off-screen rendering.
+   * If null, the renderer targets the screen/post-processing buffer.
+   * @param target The target to render into.
+   * @param activeCubeFace Optional. Which face (0-5) of the RenderTargetCube to render into.
+   */
+  setRenderTarget(
+    target:
+      | import("../core/textures/RenderTarget.js").RenderTarget
+      | import("../core/textures/RenderTargetCube.js").RenderTargetCube
+      | null,
+    activeCubeFace?: number,
+  ): void;
+
+  /**
    * Sets the clear color of the renderer.
    */
   setClearColor(color: Color): void;

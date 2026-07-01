@@ -7,6 +7,9 @@ import {
   SpriteMaterial,
   TerrainMaterial,
   WorldMaterial,
+  GlassMaterial,
+  RetroScreenMaterial,
+  DepthMaterial,
 } from "../../src/index.js";
 import { ShaderRegistry } from "../../src/index.js";
 import { CoreShaderChunks } from "../../src/core/renderers/shaders/CoreShaderChunks.js";
@@ -64,7 +67,46 @@ describe("Shader Assembly & Linter", () => {
     new SpriteMaterial(),
     new TerrainMaterial(),
     new WorldMaterial(),
+    new GlassMaterial(),
+    new RetroScreenMaterial(),
+    new DepthMaterial(),
   ];
+
+  const checkDuplicatesWGSL = (shaderCode: string, materialName: string, shaderType: string) => {
+    const lines = shaderCode.split("\n");
+    const declarations = new Set<string>();
+
+    for (let i = 0; i < lines.length; i++) {
+      let line = lines[i]!.trim();
+      if (line.includes("//")) {
+        line = line.split("//")[0]!.trim();
+      }
+
+      // Match global WGSL variable declarations:
+      // @group(x) @binding(y) var name: type
+      // var<uniform> name: type
+      // var name: type
+      const match = line.match(
+        /(?:@group\(\d+\)\s*)?(?:@binding\(\d+\)\s*)?var(?:<[^>]+>)?\s+([a-zA-Z0-9_]+)\s*:/,
+      );
+      if (match && match[1]) {
+        const varName = match[1];
+        // Ignore loop variables or local vars (indentation could filter, but let's assume globals start at beginning of line)
+        // A simple heuristic: if it's not indented or has @group, it's a global
+        if (
+          (!lines[i]!.startsWith(" ") && !lines[i]!.startsWith("\t")) ||
+          line.includes("@group")
+        ) {
+          if (declarations.has(varName)) {
+            throw new Error(
+              `${materialName} ${shaderType} Error: Redefinition of WGSL variable '${varName}' on line ${i + 1}:\n${lines[i]}`,
+            );
+          }
+          declarations.add(varName);
+        }
+      }
+    }
+  };
 
   for (const mat of materials) {
     const matName = mat.constructor.name;
@@ -101,6 +143,37 @@ describe("Shader Assembly & Linter", () => {
 
       const finalFs = assemble(fs);
       checkDuplicates(finalFs, matName, "Fragment Shader");
+    });
+
+    it(`should compile and lint ${matName} for WebGPU (wgsl) without duplicate uniforms`, () => {
+      const def = mat.getShaderDefinition();
+      const vs = def.sources.wgsl?.vs;
+      const fs = def.sources.wgsl?.fs;
+
+      if (!vs || !fs) {
+        // Some materials might not support WGSL yet, but if they do, we check them
+        return;
+      }
+
+      const assemble = (code: string) => {
+        let assembled = code;
+        const registry = ShaderRegistry.instance;
+        const chunkRegex = /\[([A-Z_]+)\]/g;
+        let match;
+        while ((match = chunkRegex.exec(assembled)) !== null) {
+          if (match[1]) {
+            const chunkCode = registry.getChunk(match[1], "wgsl");
+            if (chunkCode) {
+              assembled = assembled.replace(match[0], chunkCode);
+              chunkRegex.lastIndex = 0;
+            }
+          }
+        }
+        return assembled;
+      };
+
+      const finalFs = assemble(fs);
+      checkDuplicatesWGSL(finalFs, matName, "Fragment Shader");
     });
   }
 });

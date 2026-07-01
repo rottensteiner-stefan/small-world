@@ -11,6 +11,8 @@ export * from "./Octree.js";
 export * from "./Input.js";
 export * from "./UniversalGamepadController.js";
 export * from "./Object3D.js";
+export * from "./PlanarReflectionNode.js";
+export * from "./DynamicReflectionProbe.js";
 export * from "./InstancedMesh.js";
 
 export * from "./Scene.js";

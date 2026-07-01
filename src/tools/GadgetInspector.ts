@@ -452,6 +452,20 @@ export class GadgetInspector {
   }
 
   /**
+   * Adds a top-level scene control folder to the inspector.
+   * Use this from examples to expose custom runtime parameters (e.g. ball count sliders).
+   * @param title The folder title shown in the UI.
+   * @returns The created FolderApi instance for adding bindings.
+   */
+  public addSceneFolder(title: string): FolderApi {
+    return (
+      this._pane as unknown as {
+        addFolder: (params: { title: string; expanded?: boolean }) => FolderApi;
+      }
+    ).addFolder({ title, expanded: true });
+  }
+
+  /**
    * Updates the inspector logic (should be called in the render loop).
    */
   public update(): void {

@@ -1,24 +1,11 @@
-#version 300 es
-precision highp float;
-
-in vec3 v_worldPos;
-in vec3 v_normal;
-in vec2 v_uv;
-in vec3 v_tangent;
-in vec3 v_bitangent;
-
-out vec4 fragColor;
 
 [BASE_FRAGMENT_HEADER]
 [LIGHT_DEFS]
 [PBR_MATH]
 
-uniform vec4 u_color;
 uniform float u_metallic;
 uniform float u_roughness;
-uniform vec4 u_extraParams;
 uniform vec4 u_liquidParams;
-uniform sampler2D u_normalMap;
 uniform sampler2D u_opaqueMap;
 
 void main() {

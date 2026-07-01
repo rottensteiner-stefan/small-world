@@ -1,4 +1,4 @@
-import { CubeTexture, RenderManifest, Texture, InstancedMesh } from '../core/index.js';
+import { CubeTexture, RenderManifest, Texture, InstancedMesh, RenderTarget, RenderTargetCube } from '../core/index.js';
 import { EngineOptions, GeometryDataInterface } from '../interfaces/index.js';
 import { Object3D } from '../core/Object3D.js';
 import { Scene } from '../core/Scene.js';
@@ -68,12 +68,38 @@ export declare class WebGPURenderer extends AbstractRenderer {
     protected _scratchAreaLightData: Float32Array<ArrayBuffer>;
     protected _scratchObjBufferData: Float32Array<ArrayBuffer>;
     _depthTexture: GPUTexture;
-    _opaqueTexture?: GPUTexture;
+    protected _opaqueTextures: WeakMap<object, {
+        tex: GPUTexture;
+        view: GPUTextureView;
+        width: number;
+        height: number;
+    }>;
+    protected _screenOpaqueTexture?: {
+        tex: GPUTexture;
+        view: GPUTextureView;
+        width: number;
+        height: number;
+    };
     _opaqueTextureView?: GPUTextureView;
     _hdrTexture: GPUTexture | undefined;
     _hdrTextureView: GPUTextureView | undefined;
     _bloomPassGPU: BloomPassGPU | undefined;
     _bloomTextureView: GPUTextureView | undefined;
+    protected _activeRenderTarget: RenderTarget | RenderTargetCube | null;
+    protected _activeCubeFace: number;
+    protected _renderTargetTextures: Map<RenderTarget, {
+        tex: GPUTexture;
+        view: GPUTextureView;
+        depth?: GPUTexture;
+        depthView?: GPUTextureView;
+    }>;
+    protected _renderTargetCubeTextures: Map<RenderTargetCube, {
+        tex: GPUTexture;
+        cubeView: GPUTextureView;
+        faceViews: GPUTextureView[];
+        depth?: GPUTexture;
+        depthView?: GPUTextureView;
+    }>;
     protected _passes: RenderPass[];
     _globalUniformBuffer: GPUBuffer;
     _pointLightBuffer: GPUBuffer;
@@ -83,6 +109,9 @@ export declare class WebGPURenderer extends AbstractRenderer {
     _globalBGL: GPUBindGroupLayout;
     _materialBGL: GPUBindGroupLayout;
     _objectBGL: GPUBindGroupLayout;
+    /** @inheritdoc */
+    setRenderTarget(target: RenderTarget | RenderTargetCube | null, activeCubeFace?: number): void;
+    get activeDepthView(): GPUTextureView;
     /** @inheritdoc */
     initialize(canvas: HTMLCanvasElement, attributes?: Record<string, unknown>, config?: EngineOptions): Promise<void>;
     /**

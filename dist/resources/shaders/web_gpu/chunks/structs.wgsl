@@ -35,8 +35,8 @@ struct ObjectUniforms {
     liquidParams: vec4f, // [waveFreq, waveAmp, 0, 0]
     thresholds: vec4f,  // [sandToGrass, grassToRock, rockToSnow, softness]
     useEnvMap: f32,
-    _padObj0: f32,
-    _padObj1: f32,
+    useReflectionMap: f32,
+    reflectivity: f32,
     _padObj2: f32
 }
 
@@ -89,5 +89,7 @@ struct AreaLight {
 @group(1) @binding(11) var u_skybox: texture_cube<f32>;
 @group(1) @binding(12) var u_emissiveMap: texture_2d<f32>;
 @group(1) @binding(13) var u_alphaMap: texture_2d<f32>;
+@group(1) @binding(14) var u_opaqueMap: texture_2d<f32>;
+@group(1) @binding(15) var u_reflectionMap: texture_2d<f32>;
 
 @group(2) @binding(0) var<uniform> obj: ObjectUniforms;

@@ -5,7 +5,7 @@
 - **Planning:** Detailed plan required before any code/file change. Proceed only after user approval.
 - **Surgical Changes:** Use `replace` tool for edits. NEVER use `write_file` on existing files.
 - **Data Integrity:** Preserve historical entries in logs/changelogs.
-- **Verification:** Run `npm run build:lib && npm test` (and specific tests like `tests/core/FPSController.test.ts`).
+- **Verification:** Run `npm run lint:fix`, `npm run build:lib` and `npm run test` proactively after making changes to catch errors before committing.
 - **Communication:** Telegram-style (concise), use Markdown artifacts for plans/details, precise links (file/lines) instead of copying code, surgical diffs, delegate research to subagents.
 
 ## 2. Math & Coordinate System (Right-Handed)
