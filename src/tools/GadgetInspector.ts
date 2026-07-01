@@ -3,13 +3,18 @@ import { Pane, FolderApi } from "tweakpane";
 import { Scene } from "../core/Scene.js";
 import { CameraInterfaceData } from "../interfaces/index.js";
 import { Object3D } from "../core/Object3D.js";
-import { Behavior } from "../core/index.js";
+import {
+  Behavior,
+  WireframeMaterial,
+  Color,
+  DeviceCaps,
+  DeviceFeature,
+  DeviceLimit,
+} from "../core/index.js";
 import { Raycaster } from "../physix/index.js";
 import { Vector2D, Vector3D } from "../math/index.js";
 import { BoundingBox } from "../physix/index.js";
 import { Cube } from "../geometry/Cube.js";
-import { WireframeMaterial } from "../core/index.js";
-import { Color } from "../core/index.js";
 import { BoundingType } from "../enums/index.js";
 import { Input } from "../core/Input.js";
 import { Renderer } from "../interfaces/Renderer.js";
@@ -91,6 +96,28 @@ export class GadgetInspector {
       readonly: true,
       label: "Visible Objects",
     });
+
+    const capsFolder = (
+      this._pane as unknown as {
+        addFolder: (params: { title: string; expanded?: boolean }) => FolderApi;
+      }
+    ).addFolder({ title: "Capabilities", expanded: false });
+
+    const caps = {
+      WebGL1: DeviceCaps.hasFeature(DeviceFeature.WEBGL1),
+      WebGL2: DeviceCaps.hasFeature(DeviceFeature.WEBGL2),
+      WebGPU: DeviceCaps.hasFeature(DeviceFeature.WEBGPU),
+      MaxTexSize: DeviceCaps.getLimit(DeviceLimit.MAX_TEXTURE_SIZE),
+      MaxAnisotropy: DeviceCaps.getLimit(DeviceLimit.MAX_ANISOTROPY),
+      MaxUBOSize: DeviceCaps.getLimit(DeviceLimit.MAX_UNIFORM_BUFFER_SIZE),
+    };
+
+    capsFolder.addBinding(caps, "WebGL1", { readonly: true, label: "WebGL1" });
+    capsFolder.addBinding(caps, "WebGL2", { readonly: true, label: "WebGL2" });
+    capsFolder.addBinding(caps, "WebGPU", { readonly: true, label: "WebGPU" });
+    capsFolder.addBinding(caps, "MaxTexSize", { readonly: true, label: "Max Tex Size" });
+    capsFolder.addBinding(caps, "MaxAnisotropy", { readonly: true, label: "Max Anisotropy" });
+    capsFolder.addBinding(caps, "MaxUBOSize", { readonly: true, label: "Max UBO Size" });
 
     // 2. Create Highlight Mesh (Neon Cyan Wireframe)
     const geo = new Cube({ size: 1 });
