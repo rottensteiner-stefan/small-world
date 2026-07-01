@@ -22,3 +22,4 @@
 ## 4. Coding Constraints (TS strict: true)
 - **Types:** Explicit types, return types, access modifiers. No `any`.
 - **Files & Imports:** Start `.ts` files with `/// path/to/file.ts`. Relative imports must end with `.js`.
+- **Simplicity:** Keep things as simple as possible. Strictly avoid overengineering or preemptive abstraction. "Kompliziert werden die Dinge eh immer von alleine."

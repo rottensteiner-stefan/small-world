@@ -96,8 +96,7 @@ class PbrPreviewApp extends SmallWorld {
     this.scene.add(this._previewObject);
 
     // Register global communication helpers
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (window as any).update3DTextures = async (
+    (window as Record<string, unknown>).update3DTextures = async (
       diffuseCanvas: HTMLCanvasElement,
       normalCanvas: HTMLCanvasElement,
       roughnessCanvas: HTMLCanvasElement,
@@ -130,8 +129,7 @@ class PbrPreviewApp extends SmallWorld {
       }
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (window as any).update3DGeometry = (geomType: string): void => {
+    (window as Record<string, unknown>).update3DGeometry = (geomType: string): void => {
       if (!this._previewObject) return;
 
       switch (geomType) {

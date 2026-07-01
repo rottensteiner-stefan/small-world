@@ -1,3 +1,5 @@
+/// src/core/renderers/shaders/StandardWebGPULayout.ts
+
 import { ShaderPropertyType } from "../../../enums/index.js";
 
 /**

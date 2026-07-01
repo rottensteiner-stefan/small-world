@@ -1,3 +1,5 @@
+/// src/renderers/post/PostProcessingGroup.ts
+
 import {
   PostProcessingElement,
   ToneMappingElement,

@@ -22,27 +22,17 @@
         justify-content: flex-start;
       }
 
-      header {
+      header#info {
+        position: relative; /* override absolute */
+        background: none;
         text-align: center;
         margin-bottom: 2rem;
         width: 100%;
         max-width: 1400px;
+        padding-top: 0;
       }
 
-      h1 {
-        margin: 0;
-        font-size: 2.2rem;
-        letter-spacing: 2px;
-        text-transform: uppercase;
-        color: #00ffff;
-        text-shadow: 0 0 15px rgba(0, 255, 255, 0.4);
-      }
 
-      .description {
-        margin: 0.5rem 0 1.5rem 0;
-        color: #888;
-        font-size: 1rem;
-      }
 
       .controls {
         background: rgba(18, 20, 24, 0.85);
@@ -270,14 +260,21 @@
     </style>
   </head>
   <body>
-    <a href="/" class="back-btn">← Back to Overview</a>
-    
-    <header>
+    <div class="example-nav">
+      <a href="example13.html" class="nav-btn">← Zurück</a>
+      <a href="/" class="nav-btn">Übersicht</a>
+      <a href="example15_v1.html" class="nav-btn">Weiter →</a>
+    </div>
+
+    <header id="info">
       <h1>📺 Surveillance Video Wall</h1>
       <p class="description">
         Synchronized surveillance feed of a police interrogation room, showing different post-processing passes.
       </p>
     </header>
+    
+    
+    
 
     <div class="controls">
       <div class="control-group">

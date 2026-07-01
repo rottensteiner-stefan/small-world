@@ -1,3 +1,5 @@
+/// src/core/materials/SpriteMaterial.ts
+
 import { Color } from "../colors/index.js";
 import { AbstractMaterial } from "./AbstractMaterial.js";
 import { MaterialType, BlendingMode, ShaderPropertyType, CullMode } from "../../enums/index.js";

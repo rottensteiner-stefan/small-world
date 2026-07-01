@@ -1,3 +1,5 @@
+/// src/core/materials/GlassMaterial.ts
+
 import { AbstractMaterial } from "./AbstractMaterial.js";
 import { Color } from "../colors/index.js";
 import { MaterialType, ShaderPropertyType, BlendingMode } from "../../enums/index.js";
