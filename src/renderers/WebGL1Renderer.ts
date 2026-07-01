@@ -9,6 +9,7 @@ import {
   Texture,
   DeviceCaps,
   DeviceLimit,
+  RenderTarget,
 } from "../core/index.js";
 import { EngineOptions, GeometryDataInterface, LightDataInterface } from "../interfaces/index.js";
 import {
@@ -87,6 +88,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
     u_alphaMap: 6,
     u_opaqueMap: 7,
     u_envMap: 7,
+    u_reflectionMap: 8,
   };
 
   public _opaqueTexture?: WebGLTexture;
@@ -96,6 +98,9 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
   protected _hdrTexture: WebGLTexture | undefined = undefined;
   protected _hdrRenderBuffer: WebGLRenderbuffer | undefined = undefined;
   protected _postPassGL: PostProcessPassGL | undefined = undefined;
+
+  protected _activeRenderTarget: RenderTarget | null = null;
+  private _renderTargetFbos: Map<RenderTarget, WebGLFramebuffer> = new Map();
 
   private _scratchModelMatrix: Float32Array = new Float32Array(16);
 
@@ -286,6 +291,11 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
   }
 
   /** @inheritdoc */
+  public override setRenderTarget(target: RenderTarget | null): void {
+    this._activeRenderTarget = target;
+  }
+
+  /** @inheritdoc */
   public render(
     scene: Scene,
     vp: Float32Array,
@@ -295,10 +305,72 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
     this._resetStateCache();
     const extractedLights = this.extractLights(scene);
 
-    if (this.postProcessing.enabled && this._hdrFbo) {
+    let isOffscreen = false;
+
+    if (this._activeRenderTarget) {
+      isOffscreen = true;
+      let fbo = this._renderTargetFbos.get(this._activeRenderTarget);
+      if (!fbo || !this._activeRenderTarget.isLoaded) {
+        if (fbo) this.gl.deleteFramebuffer(fbo);
+        fbo = this.gl.createFramebuffer()!;
+        this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, fbo);
+
+        const tex = this.gl.createTexture()!;
+        this.gl.bindTexture(this.gl.TEXTURE_2D, tex);
+        this.gl.texImage2D(
+          this.gl.TEXTURE_2D,
+          0,
+          this.gl.RGBA,
+          this._activeRenderTarget.width,
+          this._activeRenderTarget.height,
+          0,
+          this.gl.RGBA,
+          this.gl.UNSIGNED_BYTE,
+          null,
+        );
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
+
+        this.gl.framebufferTexture2D(
+          this.gl.FRAMEBUFFER,
+          this.gl.COLOR_ATTACHMENT0,
+          this.gl.TEXTURE_2D,
+          tex,
+          0,
+        );
+
+        if (this._activeRenderTarget.depth) {
+          const depthRb = this.gl.createRenderbuffer()!;
+          this.gl.bindRenderbuffer(this.gl.RENDERBUFFER, depthRb);
+          this.gl.renderbufferStorage(
+            this.gl.RENDERBUFFER,
+            this.gl.DEPTH_COMPONENT16,
+            this._activeRenderTarget.width,
+            this._activeRenderTarget.height,
+          );
+          this.gl.framebufferRenderbuffer(
+            this.gl.FRAMEBUFFER,
+            this.gl.DEPTH_ATTACHMENT,
+            this.gl.RENDERBUFFER,
+            depthRb,
+          );
+        }
+
+        this._renderTargetFbos.set(this._activeRenderTarget, fbo);
+        this._texCache.set(this._activeRenderTarget, tex);
+        this._activeRenderTarget.isLoaded = true;
+      } else {
+        this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, fbo);
+      }
+      this.gl.viewport(0, 0, this._activeRenderTarget.width, this._activeRenderTarget.height);
+    } else if (this.postProcessing.enabled && this._hdrFbo) {
       this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this._hdrFbo);
+      this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
     } else {
       this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
+      this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
     }
 
     this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
@@ -414,7 +486,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
     }
 
     // --- PASS 4: Post-Process Blit (HDR -> Canvas) ---
-    if (this.postProcessing.enabled && this._hdrTexture && this._postPassGL) {
+    if (!isOffscreen && this.postProcessing.enabled && this._hdrTexture && this._postPassGL) {
       this._postPassGL.execute(this.gl, this._hdrTexture, this.postProcessing);
     }
   }

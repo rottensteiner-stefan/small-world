@@ -7,6 +7,8 @@ import {
   Texture,
   DeviceCaps,
   InstancedMesh,
+  RenderTarget,
+  RenderTargetCube,
 } from "../core/index.js";
 import { EngineOptions, GeometryDataInterface, LightDataInterface } from "../interfaces/index.js";
 import { Object3D } from "../core/Object3D.js";
@@ -108,13 +110,40 @@ export class WebGPURenderer extends AbstractRenderer {
   protected _scratchObjBufferData = new Float32Array(256 / 4); // Max 256 bytes
 
   public _depthTexture!: GPUTexture;
-  public _opaqueTexture?: GPUTexture;
+
+  protected _opaqueTextures = new WeakMap<
+    object,
+    { tex: GPUTexture; view: GPUTextureView; width: number; height: number }
+  >();
+  protected _screenOpaqueTexture?: {
+    tex: GPUTexture;
+    view: GPUTextureView;
+    width: number;
+    height: number;
+  };
   public _opaqueTextureView?: GPUTextureView;
 
   public _hdrTexture: GPUTexture | undefined = undefined;
   public _hdrTextureView: GPUTextureView | undefined = undefined;
   public _bloomPassGPU: BloomPassGPU | undefined = undefined;
   public _bloomTextureView: GPUTextureView | undefined = undefined;
+
+  protected _activeRenderTarget: RenderTarget | RenderTargetCube | null = null;
+  protected _activeCubeFace: number = 0;
+  protected _renderTargetTextures: Map<
+    RenderTarget,
+    { tex: GPUTexture; view: GPUTextureView; depth?: GPUTexture; depthView?: GPUTextureView }
+  > = new Map();
+  protected _renderTargetCubeTextures: Map<
+    RenderTargetCube,
+    {
+      tex: GPUTexture;
+      cubeView: GPUTextureView;
+      faceViews: GPUTextureView[];
+      depth?: GPUTexture;
+      depthView?: GPUTextureView;
+    }
+  > = new Map();
 
   // Render Pass System
   protected _passes: RenderPass[] = [];
@@ -127,6 +156,28 @@ export class WebGPURenderer extends AbstractRenderer {
   public _globalBGL!: GPUBindGroupLayout;
   public _materialBGL!: GPUBindGroupLayout;
   public _objectBGL!: GPUBindGroupLayout;
+
+  /** @inheritdoc */
+  public override setRenderTarget(
+    target: RenderTarget | RenderTargetCube | null,
+    activeCubeFace?: number,
+  ): void {
+    this._activeRenderTarget = target;
+    this._activeCubeFace = activeCubeFace ?? 0;
+  }
+
+  public get activeDepthView(): GPUTextureView {
+    if (this._activeRenderTarget) {
+      if (this._activeRenderTarget instanceof RenderTargetCube) {
+        const data = this._renderTargetCubeTextures.get(this._activeRenderTarget);
+        if (data && data.depthView) return data.depthView;
+      } else {
+        const data = this._renderTargetTextures.get(this._activeRenderTarget);
+        if (data && data.depthView) return data.depthView;
+      }
+    }
+    return this._depthTexture.createView();
+  }
 
   /** @inheritdoc */
   public async initialize(
@@ -351,6 +402,11 @@ export class WebGPURenderer extends AbstractRenderer {
         visibility: GPUShaderStage.FRAGMENT,
         texture: { viewDimension: "2d", sampleType: "float" },
       },
+      {
+        binding: 15,
+        visibility: GPUShaderStage.FRAGMENT,
+        texture: { viewDimension: "2d", sampleType: "float" },
+      },
     );
     this._materialBGL = this._device!.createBindGroupLayout({ entries: matEntries });
 
@@ -563,7 +619,101 @@ export class WebGPURenderer extends AbstractRenderer {
     }
 
     const screenView = this._context.getCurrentTexture().createView();
-    const renderTargetView = this.postProcessing.enabled ? this._hdrTextureView! : screenView;
+    let renderTargetView = this.postProcessing.enabled ? this._hdrTextureView! : screenView;
+    let isOffscreen = false;
+
+    if (this._activeRenderTarget) {
+      isOffscreen = true;
+
+      if (this._activeRenderTarget instanceof RenderTargetCube) {
+        let data = this._renderTargetCubeTextures.get(this._activeRenderTarget);
+        if (!data || !this._activeRenderTarget.isLoaded) {
+          if (data) {
+            data.tex.destroy();
+            if (data.depth) data.depth.destroy();
+          }
+
+          const tex = this._device!.createTexture({
+            size: {
+              width: this._activeRenderTarget.width,
+              height: this._activeRenderTarget.height,
+              depthOrArrayLayers: 6,
+            },
+            format: this._format,
+            usage:
+              GPUTextureUsage.RENDER_ATTACHMENT |
+              GPUTextureUsage.TEXTURE_BINDING |
+              GPUTextureUsage.COPY_SRC,
+          });
+
+          const cubeView = tex.createView({ dimension: "cube" });
+          const faceViews: GPUTextureView[] = [];
+          for (let i = 0; i < 6; i++) {
+            faceViews.push(
+              tex.createView({ dimension: "2d", baseArrayLayer: i, arrayLayerCount: 1 }),
+            );
+          }
+
+          let depth: GPUTexture | undefined;
+          let depthView: GPUTextureView | undefined;
+
+          if (this._activeRenderTarget.depth) {
+            depth = this._device!.createTexture({
+              size: [this._activeRenderTarget.width, this._activeRenderTarget.height],
+              format: "depth24plus",
+              usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+            });
+            depthView = depth.createView();
+          }
+
+          data = { tex, cubeView, faceViews };
+          if (depth !== undefined) data.depth = depth;
+          if (depthView !== undefined) data.depthView = depthView;
+          this._renderTargetCubeTextures.set(this._activeRenderTarget, data);
+          this._cubeTextureViewCache.set(this._activeRenderTarget, cubeView);
+          this._activeRenderTarget.isLoaded = true;
+        }
+        renderTargetView = data.faceViews[this._activeCubeFace]!;
+      } else {
+        let data = this._renderTargetTextures.get(this._activeRenderTarget);
+        if (!data || !this._activeRenderTarget.isLoaded) {
+          if (data) {
+            data.tex.destroy();
+            if (data.depth) data.depth.destroy();
+          }
+
+          const tex = this._device.createTexture({
+            size: [this._activeRenderTarget.width, this._activeRenderTarget.height],
+            format: this._format,
+            usage:
+              GPUTextureUsage.RENDER_ATTACHMENT |
+              GPUTextureUsage.TEXTURE_BINDING |
+              GPUTextureUsage.COPY_SRC,
+          });
+          const view = tex.createView();
+
+          let depth: GPUTexture | undefined;
+          let depthView: GPUTextureView | undefined;
+
+          if (this._activeRenderTarget.depth) {
+            depth = this._device.createTexture({
+              size: [this._activeRenderTarget.width, this._activeRenderTarget.height],
+              format: "depth24plus",
+              usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+            });
+            depthView = depth.createView();
+          }
+
+          data = { tex, view };
+          if (depth !== undefined) data.depth = depth;
+          if (depthView !== undefined) data.depthView = depthView;
+          this._renderTargetTextures.set(this._activeRenderTarget, data);
+          this._textureViewCache.set(this._activeRenderTarget, view);
+          this._activeRenderTarget.isLoaded = true;
+        }
+        renderTargetView = data.view;
+      }
+    }
 
     const bloomNode = this.postProcessing.get<
       import("./post/PostProcessingElement.js").BloomElement
@@ -584,6 +734,11 @@ export class WebGPURenderer extends AbstractRenderer {
       } else if (pass.name === "PostProcessPass") {
         this._bloomTextureView = undefined;
       }
+
+      if (pass.name === "PostProcessPass" && isOffscreen) {
+        continue;
+      }
+
       pass.execute(this, scene, ce, renderTargetView, vp, camPos, vMat);
     }
 
@@ -592,21 +747,30 @@ export class WebGPURenderer extends AbstractRenderer {
   }
 
   public captureOpaqueTexture(ce: GPUCommandEncoder, targetTex: GPUTexture): void {
-    if (
-      !this._opaqueTexture ||
-      this._opaqueTexture.width !== targetTex.width ||
-      this._opaqueTexture.height !== targetTex.height
-    ) {
-      if (this._opaqueTexture) this._opaqueTexture.destroy();
-      this._opaqueTexture = this._device!.createTexture({
+    let cacheObj = this._activeRenderTarget
+      ? this._opaqueTextures.get(this._activeRenderTarget)
+      : this._screenOpaqueTexture;
+
+    if (!cacheObj || cacheObj.width !== targetTex.width || cacheObj.height !== targetTex.height) {
+      if (cacheObj) cacheObj.tex.destroy();
+
+      const tex = this._device!.createTexture({
         size: [targetTex.width, targetTex.height, 1],
         format: targetTex.format,
         usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
       });
-      this._opaqueTextureView = this._opaqueTexture.createView();
+      cacheObj = { tex, view: tex.createView(), width: targetTex.width, height: targetTex.height };
+
+      if (this._activeRenderTarget) {
+        this._opaqueTextures.set(this._activeRenderTarget, cacheObj);
+      } else {
+        this._screenOpaqueTexture = cacheObj;
+      }
     }
 
-    ce.copyTextureToTexture({ texture: targetTex }, { texture: this._opaqueTexture }, [
+    this._opaqueTextureView = cacheObj.view;
+
+    ce.copyTextureToTexture({ texture: targetTex }, { texture: cacheObj.tex }, [
       targetTex.width,
       targetTex.height,
       1,
@@ -848,6 +1012,7 @@ export class WebGPURenderer extends AbstractRenderer {
     const r14 = m.textures["u_opaqueMap"]
       ? this._getTextureView(m.textures["u_opaqueMap"] as Texture)
       : this._opaqueTextureView || this._whiteTexView;
+    const r15 = this._getTextureView(m.textures["u_reflectionMap"] as Texture);
 
     const cache = this._materialBindGroups.get(matUuid);
     if (cache) {
@@ -866,7 +1031,8 @@ export class WebGPURenderer extends AbstractRenderer {
         resources[10] === r11 &&
         resources[11] === r12 &&
         resources[12] === r13 &&
-        resources[13] === r14
+        resources[13] === r14 &&
+        resources[14] === r15
       ) {
         return cache.bg;
       }
@@ -887,11 +1053,12 @@ export class WebGPURenderer extends AbstractRenderer {
       { binding: 12, resource: r12 },
       { binding: 13, resource: r13 },
       { binding: 14, resource: r14 },
+      { binding: 15, resource: r15 },
     ];
     const bg = this._device!.createBindGroup({ layout, entries });
     this._materialBindGroups.set(matUuid, {
       bg,
-      resources: [r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14],
+      resources: [r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, r15],
     });
     return bg;
   }
@@ -937,7 +1104,12 @@ export class WebGPURenderer extends AbstractRenderer {
   }
 
   protected _getGPUCubeTextureView(tex: CubeTexture | undefined): GPUTextureView {
-    if (!tex || !tex.isLoaded || tex.images.length !== 6) return this._defaultCubeTexView;
+    if (!tex || !tex.isLoaded) return this._defaultCubeTexView;
+    if (tex instanceof RenderTargetCube) {
+      const v = this._cubeTextureViewCache.get(tex);
+      return v || this._defaultCubeTexView;
+    }
+    if (tex.images.length !== 6) return this._defaultCubeTexView;
     let v = this._cubeTextureViewCache.get(tex);
     if (!v) {
       const img = tex.images[0]!;

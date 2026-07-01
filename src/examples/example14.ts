@@ -34,6 +34,7 @@ class SharedState {
   public static sweepSpeed: number = 1.0;
   public static cameraAngle: "high" | "desk" | "door" = "high";
   public static lightMode: "swing" | "flicker" = "swing";
+  public static sirensActive: boolean = true;
   public static paperTexture?: Texture;
   public static floorTexture?: Texture;
   public static wallTexture?: Texture;
@@ -302,7 +303,6 @@ function buildInterrogationRoom(
     metallic: 1.0,
   });
 
-  // Tischplatte aus Sicherheitsglas (GlassMaterial)
   const deskTopMat = new GlassMaterial({
     color: new Color(0.6, 0.85, 0.72, 0.35),
     roughness: 0.05, // Highly reflective glass top
@@ -915,24 +915,28 @@ class InterrogationRoomApp extends AbstractExample {
 
     // 3. Police Sirens outside (flashing red and blue)
     if (this._redBlueLight) {
-      const cycle = Math.floor(this._time * 4.0) % 2;
-      if (cycle === 0) {
-        // Red Flash
-        if (this._presetName === "noir") {
-          this._redBlueLight.color.set(6.0, 6.0, 6.0); // Boosted grayscale intensity
+      if (SharedState.sirensActive) {
+        const cycle = Math.floor(this._time * 4.0) % 2;
+        if (cycle === 0) {
+          // Red Flash
+          if (this._presetName === "noir") {
+            this._redBlueLight.color.set(6.0, 6.0, 6.0); // Boosted grayscale intensity
+          } else {
+            this._redBlueLight.color.set(8.0, 0.1, 0.1); // Stark red flash
+          }
         } else {
-          this._redBlueLight.color.set(8.0, 0.1, 0.1); // Stark red flash
+          // Blue Flash
+          if (this._presetName === "noir") {
+            this._redBlueLight.color.set(0.1, 0.1, 0.1);
+          } else {
+            this._redBlueLight.color.set(0.1, 0.1, 8.0); // Stark blue flash
+          }
         }
+        // Pulsing intensity
+        this._redBlueLight.intensity = 4.0 + 4.0 * Math.sin(this._time * 15.0);
       } else {
-        // Blue Flash
-        if (this._presetName === "noir") {
-          this._redBlueLight.color.set(0.1, 0.1, 0.1);
-        } else {
-          this._redBlueLight.color.set(0.1, 0.1, 8.0); // Stark blue flash
-        }
+        this._redBlueLight.intensity = 0.0;
       }
-      // Pulsing intensity
-      this._redBlueLight.intensity = 4.0 + 4.0 * Math.sin(this._time * 15.0);
     }
 
     // Trigger matrix updates
@@ -1050,6 +1054,21 @@ function setupUIControls(): void {
   }
   if (lightFlickerBtn) {
     lightFlickerBtn.addEventListener("click", () => setLightModeActive(lightFlickerBtn, "flicker"));
+  }
+
+  // Sirens toggle
+  const sirensToggleBtn = document.getElementById("btn-sirens-toggle");
+  if (sirensToggleBtn) {
+    sirensToggleBtn.addEventListener("click", () => {
+      SharedState.sirensActive = !SharedState.sirensActive;
+      if (SharedState.sirensActive) {
+        sirensToggleBtn.textContent = "ON";
+        sirensToggleBtn.classList.add("active");
+      } else {
+        sirensToggleBtn.textContent = "OFF";
+        sirensToggleBtn.classList.remove("active");
+      }
+    });
   }
 
   // Toggle monitor power via LED

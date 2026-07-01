@@ -63,6 +63,15 @@ export abstract class AbstractRenderer implements Renderer {
   /** @inheritdoc */
   public abstract setSize(width: number, height: number): void;
 
+  /** @inheritdoc */
+  public abstract setRenderTarget(
+    target:
+      | import("../core/textures/RenderTarget.js").RenderTarget
+      | import("../core/textures/RenderTargetCube.js").RenderTargetCube
+      | null,
+    activeCubeFace?: number,
+  ): void;
+
   public destroy(): void {
     // Base implementation does nothing
   }

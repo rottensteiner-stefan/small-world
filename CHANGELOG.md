@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.39.0] - 2026-07-01
+
+- **Bugfix: Node EventEmitter Memory Leak in Dev Server**: Increased `EventEmitter.defaultMaxListeners` in `vite.config.ts` to prevent warning/crashes when multiple Vite examples trigger hot reloads simultaneously.
+- **Bugfix: DynamicReflectionProbe FOV Calculation**: Fixed FOV calculation in `DynamicReflectionProbe` (`fov: Math.PI / 2`) by using correct radian conversion instead of degrees. This fixed incorrect culling / frustum rendering anomalies in dynamic cube maps.
+- **Bugfix: WGSL Shader Compilation Errors (Duplicate Uniforms)**: Removed duplicate global uniform variable declarations (`u_color`, `u_normalMap`, `u_extraParams`, etc.) from `Glass.frag.wgsl`, `Glass.frag.glsl`, and `Glass.frag.glsl100` that conflicted with injected base header chunks, causing `Invalid RenderPipeline` state in WebGPU.
+- **Feature: Robust Regression Integrity Tests**: 
+  - Created `PerspectiveProjection.test.ts` to mathematically guarantee scale factors (proving radians are expected and avoiding FOV distortions).
+  - Extended `ShaderAssembly.test.ts` to statically analyze assembled WGSL source strings and catch duplicate global `var` and `@binding` declarations in WebGPU pipelines.
+- **Feature: Example 15 "Mirror Planets" Variants**:
+  - Implemented `example15_v1` with 1000 bouncing instanced rubber balls inside the mirror room.
+  - Implemented `example15_v2` with rotating moons around perfectly reflective mirror planets.
+
 ## [0.38.1] - 2026-06-25
 
 - **Feature: Instanced Draw Calls (Instancing) support**:

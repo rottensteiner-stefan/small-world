@@ -1,5 +1,3 @@
-@group(1) @binding(14) var u_opaqueMap: texture_2d<f32>;
-
 @fragment fn fs(i: Out) -> @location(0) vec4f {
     let original_uv = i.uv / obj.texRepeat;
     

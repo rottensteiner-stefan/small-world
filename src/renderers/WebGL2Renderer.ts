@@ -13,6 +13,8 @@ import {
   DepthMaterial,
   InstancedMesh,
   RenderManifest,
+  RenderTarget,
+  RenderTargetCube,
 } from "../core/index.js";
 import { EngineOptions, GeometryDataInterface, LightDataInterface } from "../interfaces/index.js";
 import {
@@ -32,6 +34,7 @@ import { MathPool, Vector3D } from "../math/index.js";
 import { WebGL2UniformBuffer } from "./WebGL2UniformBuffer.js";
 import { WebGL2DepthFrameBuffer } from "./WebGL2DepthFrameBuffer.js";
 import { WebGL2FrameBuffer } from "./WebGL2FrameBuffer.js";
+import { WebGL2CubeFrameBuffer } from "./WebGL2CubeFrameBuffer.js";
 
 interface ProgramCache {
   prog: WebGLProgram;
@@ -71,6 +74,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     u_alphaMap: 6,
     u_opaqueMap: 7,
     u_envMap: 7,
+    u_reflectionMap: 10,
   };
 
   public _opaqueTexture?: WebGLTexture;
@@ -78,6 +82,11 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
   protected _hdrFbo: WebGL2FrameBuffer | undefined = undefined;
   protected _postPassGL: PostProcessPassGL | undefined = undefined;
   protected _bloomPassGL: BloomPassGL | undefined = undefined;
+
+  protected _activeRenderTarget: RenderTarget | RenderTargetCube | null = null;
+  protected _activeCubeFace: number = 0;
+  private _renderTargetFbos: Map<RenderTarget, WebGL2FrameBuffer> = new Map();
+  private _renderTargetCubeFbos: Map<RenderTargetCube, WebGL2CubeFrameBuffer> = new Map();
 
   private _scratchModelMatrix: Float32Array = new Float32Array(16);
 
@@ -308,7 +317,12 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
   }
 
   private _getWebGLCubeTexture(tex: CubeTexture): WebGLTexture {
-    if (!tex.isLoaded || tex.images.length !== 6) return this.defaultCubeTexture;
+    if (!tex.isLoaded) return this.defaultCubeTexture;
+    if (tex instanceof RenderTargetCube) {
+      const glTex = this._texCubeCache.get(tex);
+      return glTex || this.defaultCubeTexture;
+    }
+    if (tex.images.length !== 6) return this.defaultCubeTexture;
     let glTex: WebGLTexture | undefined = this._texCubeCache.get(tex);
     if (!glTex) {
       glTex = this.gl.createTexture()!;
@@ -341,6 +355,15 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
   }
 
   /** @inheritdoc */
+  public override setRenderTarget(
+    target: RenderTarget | RenderTargetCube | null,
+    activeCubeFace?: number,
+  ): void {
+    this._activeRenderTarget = target;
+    this._activeCubeFace = activeCubeFace ?? 0;
+  }
+
+  /** @inheritdoc */
   public render(
     scene: Scene,
     vp: Float32Array,
@@ -358,7 +381,46 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     // --- SETUP MAIN PASS ---
     this._updateGlobalUBO(vp, camPos, extractedLights);
 
-    if (this.postProcessing.enabled && this._hdrFbo) {
+    let isOffscreen = false;
+
+    if (this._activeRenderTarget) {
+      isOffscreen = true;
+      if (this._activeRenderTarget instanceof RenderTargetCube) {
+        let fbo = this._renderTargetCubeFbos.get(this._activeRenderTarget);
+        if (!fbo || !this._activeRenderTarget.isLoaded) {
+          if (fbo) fbo.destroy();
+          fbo = new WebGL2CubeFrameBuffer(this.gl, {
+            width: this._activeRenderTarget.width,
+            height: this._activeRenderTarget.height,
+            format: this.gl.RGBA,
+            internalFormat: this.gl.RGBA8,
+            type: this.gl.UNSIGNED_BYTE,
+          });
+          this._renderTargetCubeFbos.set(this._activeRenderTarget, fbo);
+          this._texCubeCache.set(this._activeRenderTarget, fbo.texture);
+          this._activeRenderTarget.isLoaded = true;
+        }
+        fbo.bindFace(this._activeCubeFace);
+      } else {
+        let fbo = this._renderTargetFbos.get(this._activeRenderTarget);
+        if (!fbo || !this._activeRenderTarget.isLoaded) {
+          if (fbo) fbo.destroy();
+          fbo = new WebGL2FrameBuffer(this.gl, {
+            width: this._activeRenderTarget.width,
+            height: this._activeRenderTarget.height,
+            format: this.gl.RGBA,
+            internalFormat: this.gl.RGBA8,
+            type: this.gl.UNSIGNED_BYTE,
+          });
+
+          this._renderTargetFbos.set(this._activeRenderTarget, fbo);
+          this._texCache.set(this._activeRenderTarget, fbo.texture);
+          this._activeRenderTarget.isLoaded = true;
+        }
+        fbo.bind();
+        this.gl.viewport(0, 0, this._activeRenderTarget.width, this._activeRenderTarget.height);
+      }
+    } else if (this.postProcessing.enabled && this._hdrFbo) {
       this._hdrFbo.bind();
     } else {
       this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
@@ -454,7 +516,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     }
 
     // --- PASS 4: Post-Process Blit (HDR -> Canvas) ---
-    if (this.postProcessing.enabled && this._hdrFbo && this._postPassGL) {
+    if (!isOffscreen && this.postProcessing.enabled && this._hdrFbo && this._postPassGL) {
       let bloomTex: WebGLTexture | null = null;
       if (this._bloomPassGL) {
         const bloomNode = this.postProcessing.get<

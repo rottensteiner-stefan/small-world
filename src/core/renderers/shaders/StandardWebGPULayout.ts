@@ -19,8 +19,8 @@ export const StandardWebGPULayout = {
     u_liquidParams: { type: ShaderPropertyType.VEC4 },
     u_thresholds: { type: ShaderPropertyType.VEC4 },
     u_useEnvMap: { type: ShaderPropertyType.FLOAT, defaultValue: 0 },
-    _padObj0: { type: ShaderPropertyType.FLOAT, defaultValue: 0 },
-    _padObj1: { type: ShaderPropertyType.FLOAT, defaultValue: 0 },
+    u_useReflectionMap: { type: ShaderPropertyType.FLOAT, defaultValue: 0 },
+    u_reflectivity: { type: ShaderPropertyType.FLOAT, defaultValue: 1.0 },
     _padObj2: { type: ShaderPropertyType.FLOAT, defaultValue: 0 },
   },
   uniformLayout: [
@@ -37,8 +37,8 @@ export const StandardWebGPULayout = {
     "u_liquidParams",
     "u_thresholds",
     "u_useEnvMap",
-    "_padObj0",
-    "_padObj1",
+    "u_useReflectionMap",
+    "u_reflectivity",
     "_padObj2",
   ],
 };

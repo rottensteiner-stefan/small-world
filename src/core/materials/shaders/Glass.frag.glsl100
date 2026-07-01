@@ -1,21 +1,12 @@
-precision highp float;
 
-varying vec3 v_worldPos;
-varying vec3 v_normal;
-varying vec2 v_uv;
-varying vec3 v_tangent;
-varying vec3 v_bitangent;
 
 [BASE_FS_HEADER]
 [LIGHT_DEFS]
 [PBR_MATH]
 
-uniform vec4 u_color;
 uniform float u_metallic;
 uniform float u_roughness;
-uniform vec4 u_extraParams;
 uniform vec4 u_liquidParams;
-uniform sampler2D u_normalMap;
 uniform sampler2D u_opaqueMap;
 
 void main() {

@@ -41,6 +41,10 @@ export interface StandardMaterialOptions {
   alphaMap?: Texture | undefined;
   /** Environment map for Image-Based Lighting reflections. */
   envMap?: CubeTexture | undefined;
+  /** Planar reflection map. */
+  reflectionMap?: Texture | undefined;
+  /** Planar reflection intensity. Defaults to 1.0. */
+  reflectivity?: number;
   /** The intensity of the emissive light. Defaults to 1.0. */
   emissiveIntensity?: number;
   /** Whether the material is transparent. Defaults to false. */
@@ -87,6 +91,12 @@ export class StandardMaterial extends AbstractMaterial {
   /** The environment map for reflections. */
   public envMap: CubeTexture | undefined;
 
+  /** The planar reflection map. */
+  public reflectionMap: Texture | undefined;
+
+  /** The intensity of the planar reflection. */
+  public reflectivity: number;
+
   /** The intensity of the emissive glow. */
   public emissiveIntensity: number;
 
@@ -113,6 +123,8 @@ export class StandardMaterial extends AbstractMaterial {
       emissiveMap = undefined,
       alphaMap = undefined,
       envMap = undefined,
+      reflectionMap = undefined,
+      reflectivity = 1.0,
       emissiveIntensity = 1.0,
       transparent = false,
       alphaTest = 0.0,
@@ -130,6 +142,8 @@ export class StandardMaterial extends AbstractMaterial {
     this.emissiveMap = emissiveMap;
     this.alphaMap = alphaMap;
     this.envMap = envMap;
+    this.reflectionMap = reflectionMap;
+    this.reflectivity = reflectivity;
     this.emissiveIntensity = emissiveIntensity;
     this.transparent = transparent;
     this.alphaTest = alphaTest;
@@ -158,6 +172,8 @@ export class StandardMaterial extends AbstractMaterial {
           u_shininess: 32.0,
           u_isTerrain: 0.0,
           u_useEnvMap: this.envMap ? 1.0 : 0.0,
+          u_useReflectionMap: this.reflectionMap ? 1.0 : 0.0,
+          u_reflectivity: this.reflectivity,
         },
         textures: {
           u_diffuseMap: this.diffuseMap,
@@ -167,6 +183,7 @@ export class StandardMaterial extends AbstractMaterial {
           u_emissiveMap: this.emissiveMap,
           u_alphaMap: this.alphaMap,
           u_envMap: this.envMap,
+          u_reflectionMap: this.reflectionMap,
         },
       };
     }
@@ -205,7 +222,10 @@ export class StandardMaterial extends AbstractMaterial {
     texs["u_emissiveMap"] = this.emissiveMap;
     texs["u_alphaMap"] = this.alphaMap;
     texs["u_envMap"] = this.envMap;
+    texs["u_reflectionMap"] = this.reflectionMap;
     props["u_useEnvMap"] = this.envMap ? 1.0 : 0.0;
+    props["u_useReflectionMap"] = this.reflectionMap ? 1.0 : 0.0;
+    props["u_reflectivity"] = this.reflectivity;
 
     this._renderManifest.state = {
       ...this._renderManifest.state,
@@ -242,6 +262,7 @@ export class StandardMaterial extends AbstractMaterial {
           u_roughnessMap: { type: ShaderPropertyType.TEXTURE },
           u_emissiveMap: { type: ShaderPropertyType.TEXTURE },
           u_alphaMap: { type: ShaderPropertyType.TEXTURE },
+          u_reflectionMap: { type: ShaderPropertyType.TEXTURE },
         },
       },
     };

@@ -1,3 +1,6 @@
+npm run prebuild
+git add src/core/SmallWorld.ts
 npx lint-staged
-npm run build:lib
+npm run build
+git add dist/
 npm test

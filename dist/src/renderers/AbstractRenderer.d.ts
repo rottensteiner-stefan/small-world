@@ -29,6 +29,8 @@ export declare abstract class AbstractRenderer implements Renderer {
     abstract render(scene: Scene, vpMatrix: Float32Array, camPos?: Vector3D): void;
     /** @inheritdoc */
     abstract setSize(width: number, height: number): void;
+    /** @inheritdoc */
+    abstract setRenderTarget(target: import('../core/textures/RenderTarget.js').RenderTarget | import('../core/textures/RenderTargetCube.js').RenderTargetCube | null, activeCubeFace?: number): void;
     destroy(): void;
     /** @inheritdoc */
     setClearColor(color: Color): void;

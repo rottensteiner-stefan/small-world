@@ -1,8 +1,9 @@
 import { CameraInterfaceData, EngineOptions } from '../interfaces/index.js';
 import { Renderer } from '../interfaces/Renderer.js';
 import { Scene } from './Scene.js';
+import { GadgetInspector } from '../tools/GadgetInspector.js';
 /** The current engine version. */
-export declare const ENGINE_VERSION = "0.38.0";
+export declare const ENGINE_VERSION = "0.39.0";
 /**
  * Base class for applications built with the SmallWorld engine.
  */
@@ -33,6 +34,12 @@ export declare abstract class SmallWorld {
      * Called to setup the scene after the engine is initialized.
      */
     protected abstract setupScene(): Promise<void>;
+    /**
+     * Called once after the GadgetInspector is created.
+     * Override in subclasses to register scene-specific inspector controls.
+     * @param _inspector The newly created inspector instance.
+     */
+    protected onInspectorReady(_inspector: GadgetInspector): void;
     /**
      * Called every frame to update application logic.
      * @param deltaTime Time elapsed since the last frame in seconds.

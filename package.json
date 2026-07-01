@@ -1,6 +1,6 @@
 {
   "name": "small-world",
-  "version": "0.38.0",
+  "version": "0.39.0",
   "description": "A very small 3D engine focusing on raw WebGL performance",
   "type": "module",
   "scripts": {
@@ -8,7 +8,7 @@
     "build:demo": "vite build",
     "build:lib": "vite build --config vite.lib.config.ts",
     "changelog": "node scripts/generate-changelog.js",
-    "dev": "vite --host",
+    "dev": "NODE_OPTIONS='--max-old-space-size=4096' vite --host",
     "format": "prettier --write . && eslint . --fix",
     "lint": "eslint .",
     "lint:wgsl": "tsx scripts/lint-wgsl.ts",

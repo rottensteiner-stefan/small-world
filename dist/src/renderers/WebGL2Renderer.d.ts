@@ -1,6 +1,6 @@
 import { AbstractWebGLRenderer } from './AbstractWebGLRenderer.js';
 import { PostProcessPassGL, BloomPassGL } from './post/index.js';
-import { Texture } from '../core/index.js';
+import { Texture, RenderTarget, RenderTargetCube } from '../core/index.js';
 import { EngineOptions } from '../interfaces/index.js';
 import { RendererType } from '../enums/index.js';
 import { Scene } from '../core/Scene.js';
@@ -26,6 +26,10 @@ export declare class WebGL2Renderer extends AbstractWebGLRenderer {
     protected _hdrFbo: WebGL2FrameBuffer | undefined;
     protected _postPassGL: PostProcessPassGL | undefined;
     protected _bloomPassGL: BloomPassGL | undefined;
+    protected _activeRenderTarget: RenderTarget | RenderTargetCube | null;
+    protected _activeCubeFace: number;
+    private _renderTargetFbos;
+    private _renderTargetCubeFbos;
     private _scratchModelMatrix;
     private _globalUBO;
     private _stateCullFaceEnabled;
@@ -43,6 +47,8 @@ export declare class WebGL2Renderer extends AbstractWebGLRenderer {
     private _getProgram;
     private _getWebGLTexture;
     private _getWebGLCubeTexture;
+    /** @inheritdoc */
+    setRenderTarget(target: RenderTarget | RenderTargetCube | null, activeCubeFace?: number): void;
     /** @inheritdoc */
     render(scene: Scene, vp: Float32Array, camPos?: Vector3D, vMat?: Float32Array): void;
     /**

@@ -24,7 +24,10 @@ import {
   InstancedMesh,
   Matrix4,
   Vector3D,
+  PlanarReflectionNode,
+  DynamicReflectionProbe,
 } from "../index.js";
+import type { GadgetInspector } from "../tools/GadgetInspector.js";
 
 interface Ball {
   position: { x: number; y: number; z: number };
@@ -39,26 +42,39 @@ interface Ball {
 
 interface BallContext {
   ball: Ball;
-  example: Example15;
+  example: Example15V1;
 }
 
-export class Example15 extends AbstractExample {
-  private _balls: Ball[] = [];
-  private _largeSpheres: { object: Object3D; radius: number; x: number; y: number; z: number }[] =
+export class Example15V1 extends AbstractExample {
+  protected _balls: Ball[] = [];
+  protected _largeSpheres: { object: Object3D; radius: number; x: number; y: number; z: number }[] =
     [];
-  private _orbitingLight!: PointLight;
-  private _time: number = 0;
+  protected _orbitingLight!: PointLight;
+  protected _time: number = 0;
+
+  /** Max supported balls = 5 color groups × 2000 slots. */
+  public static readonly MAX_BALLS = 1000;
+  public static readonly MAX_PER_GROUP = Math.floor(1000 / 5); // MAX_BALLS / 5 color groups
+
+  /** How many balls are currently active (controlled by inspector slider). */
+  protected _activeBallCount: number = 250;
 
   // Instanced Meshes (split into 5 color groups to maintain multi-colored aesthetic)
-  private _mainBallsMeshes: InstancedMesh[] = [];
-  private _floorReflectedMeshes: InstancedMesh[] = [];
-  private _sphereReflectedMeshes: InstancedMesh[][] = [];
+  protected _mainBallsMeshes: InstancedMesh[] = [];
+
+  // Dynamic Reflection Probes
+  protected _probes: DynamicReflectionProbe[] = [];
+
+  // Moons orbiting the spheres
+  protected _moonPivots: Object3D[] = [];
+
+  protected _reflectionNode!: PlanarReflectionNode;
 
   // Scratch variables to avoid per-frame allocations
-  private _scratchPos: Vector3D = new Vector3D();
-  private _scratchRot: Vector3D = new Vector3D();
-  private _scratchScale: Vector3D = new Vector3D();
-  private _tempMatrix: Matrix4 = new Matrix4();
+  protected _scratchPos: Vector3D = new Vector3D();
+  protected _scratchRot: Vector3D = new Vector3D();
+  protected _scratchScale: Vector3D = new Vector3D();
+  protected _tempMatrix: Matrix4 = new Matrix4();
 
   protected override async setupScene(): Promise<void> {
     this.onCanvasRecreated();
@@ -171,17 +187,25 @@ export class Example15 extends AbstractExample {
     roughTexture.repeat.x = 6;
     roughTexture.repeat.y = 6;
 
-    // 4. Checkered Floor plane
+    // 4. Create PlanarReflectionNode for the Floor
+    this._reflectionNode = new PlanarReflectionNode("FloorReflection", 1024, 1024);
+    // Move it to match floor position
+    this._reflectionNode.position.set(0, 0, 0);
+    this.scene.add(this._reflectionNode);
+
+    // 5. Checkered Floor plane
     const floor = new Object3D("Floor").setPosition(0, 0, 0);
     floor.geometry = new Plane({ width: 30, depth: 30 }).getGeometryData();
     floor.material = new StandardMaterial({
-      color: new Color(1.0, 1.0, 1.0, 0.45), // 45% opacity for floor mirror reflections
-      metallic: 0.05,
+      color: new Color(1.0, 1.0, 1.0),
+      metallic: 0.1,
       roughness: 1.0, // Multiplied by roughnessMap
       diffuseMap: checkTexture,
       roughnessMap: roughTexture,
       envMap: envTexture,
-      transparent: true,
+      reflectionMap: this._reflectionNode.renderTarget,
+      reflectivity: 0.6, // 60% Planar Reflection
+      transparent: false,
     });
     floor.receiveShadow = true;
     this.scene.add(floor);
@@ -198,15 +222,21 @@ export class Example15 extends AbstractExample {
     sphere1.geometry = sphereGeom;
     sphere1.setScale(2.0); // radius = 2.0
     sphere1.material = new StandardMaterial({
-      color: new Color(0.9, 0.85, 0.95, 0.78), // Lavender tint (alpha = 0.78)
+      color: new Color(0.9, 0.85, 0.95), // Lavender tint
       metallic: 1.0,
       roughness: 0.02,
       envMap: envTexture,
-      transparent: true,
+      transparent: false,
     });
     sphere1.castShadow = true;
     sphere1.receiveShadow = true;
     this.scene.add(sphere1);
+
+    const probe1 = new DynamicReflectionProbe("Probe1", 256);
+    probe1.facesPerFrame = 1;
+    sphere1.add(probe1);
+    this._probes.push(probe1);
+    (sphere1.material as StandardMaterial).envMap = probe1.renderTarget;
     this._largeSpheres.push({ object: sphere1, radius: 2.0, x: -3.5, y: 2.0, z: -1.5 });
 
     // Large Sphere 2: Pale Mint
@@ -214,15 +244,21 @@ export class Example15 extends AbstractExample {
     sphere2.geometry = sphereGeom;
     sphere2.setScale(1.5); // radius = 1.5
     sphere2.material = new StandardMaterial({
-      color: new Color(0.85, 0.95, 0.9, 0.78), // Mint tint (alpha = 0.78)
+      color: new Color(0.85, 0.95, 0.9), // Mint tint
       metallic: 1.0,
       roughness: 0.02,
       envMap: envTexture,
-      transparent: true,
+      transparent: false,
     });
     sphere2.castShadow = true;
     sphere2.receiveShadow = true;
     this.scene.add(sphere2);
+
+    const probe2 = new DynamicReflectionProbe("Probe2", 256);
+    probe2.facesPerFrame = 1;
+    sphere2.add(probe2);
+    this._probes.push(probe2);
+    (sphere2.material as StandardMaterial).envMap = probe2.renderTarget;
     this._largeSpheres.push({ object: sphere2, radius: 1.5, x: 3.5, y: 1.5, z: -2.0 });
 
     // Large Sphere 3: Pale Rose
@@ -230,45 +266,28 @@ export class Example15 extends AbstractExample {
     sphere3.geometry = sphereGeom;
     sphere3.setScale(1.0); // radius = 1.0
     sphere3.material = new StandardMaterial({
-      color: new Color(0.95, 0.85, 0.88, 0.8), // Rose tint (highly reflective, alpha = 0.80)
+      color: new Color(0.95, 0.85, 0.88), // Rose tint
       metallic: 1.0,
       roughness: 0.02,
       envMap: envTexture,
-      transparent: true,
+      transparent: false,
     });
     sphere3.castShadow = true;
     sphere3.receiveShadow = true;
     this.scene.add(sphere3);
+
+    const probe3 = new DynamicReflectionProbe("Probe3", 256);
+    probe3.facesPerFrame = 1;
+    sphere3.add(probe3);
+    this._probes.push(probe3);
+    (sphere3.material as StandardMaterial).envMap = probe3.renderTarget;
     this._largeSpheres.push({ object: sphere3, radius: 1.0, x: 0.0, y: 1.0, z: 3.0 });
 
-    // Create static floor-reflected large spheres
-    const refSphere1 = new Object3D("ReflectedLargeSphere1").setPosition(-3.5, -2.0, -1.5);
-    refSphere1.geometry = sphereGeom;
-    refSphere1.setScale(2.0);
-    refSphere1.material = sphere1.material;
-    refSphere1.castShadow = false;
-    refSphere1.receiveShadow = false;
-    this.scene.add(refSphere1);
-
-    const refSphere2 = new Object3D("ReflectedLargeSphere2").setPosition(3.5, -1.5, -2.0);
-    refSphere2.geometry = sphereGeom;
-    refSphere2.setScale(1.5);
-    refSphere2.material = sphere2.material;
-    refSphere2.castShadow = false;
-    refSphere2.receiveShadow = false;
-    this.scene.add(refSphere2);
-
-    const refSphere3 = new Object3D("ReflectedLargeSphere3").setPosition(0.0, -1.0, 3.0);
-    refSphere3.geometry = sphereGeom;
-    refSphere3.setScale(1.0);
-    refSphere3.material = sphere3.material;
-    refSphere3.castShadow = false;
-    refSphere3.receiveShadow = false;
-    this.scene.add(refSphere3);
+    // Large Spheres cast and receive shadows. Reflected fake spheres are removed.
 
     // 6. Setup Instanced Meshes for Small Bouncing Rubber Balls
     const ballGeom = new Sphere({
-      radius: 0.2,
+      radius: 0.2, // standard size
       widthSegments: 16,
       heightSegments: 12,
     }).getGeometryData();
@@ -286,38 +305,22 @@ export class Example15 extends AbstractExample {
         color: ballColors[c]!,
         metallic: 0.0,
         roughness: 0.95,
-        transparent: true,
+        transparent: false,
       });
 
-      const mainMesh = new InstancedMesh(`MainBalls_${c}`, ballGeom, ballMat, 200);
-      mainMesh.castShadow = true;
+      const mainMesh = new InstancedMesh(
+        `MainBalls_${c}`,
+        ballGeom,
+        ballMat,
+        Example15V1.MAX_PER_GROUP,
+      );
       mainMesh.frustumCulled = false;
       this.scene.add(mainMesh);
       this._mainBallsMeshes.push(mainMesh);
-
-      const floorRefMesh = new InstancedMesh(`FloorReflectedBalls_${c}`, ballGeom, ballMat, 200);
-      floorRefMesh.castShadow = false;
-      floorRefMesh.receiveShadow = false;
-      floorRefMesh.frustumCulled = false;
-      this.scene.add(floorRefMesh);
-      this._floorReflectedMeshes.push(floorRefMesh);
     }
 
-    for (let s = 0; s < 3; s++) {
-      this._sphereReflectedMeshes.push([]);
-      for (let c = 0; c < 5; c++) {
-        const ballMat = this._mainBallsMeshes[c]!.material as StandardMaterial;
-        const refMesh = new InstancedMesh(`SphereReflectedBalls_${s}_${c}`, ballGeom, ballMat, 200);
-        refMesh.castShadow = false;
-        refMesh.receiveShadow = false;
-        refMesh.frustumCulled = false;
-        this.scene.add(refMesh);
-        this._sphereReflectedMeshes[s]!.push(refMesh);
-      }
-    }
-
-    // 7. Spawn Bouncing Ball Data
-    for (let i = 0; i < 1000; i++) {
+    // 7. Spawn Bouncing Ball Data (pre-allocate full capacity; only _activeBallCount are simulated)
+    for (let i = 0; i < Example15V1.MAX_BALLS; i++) {
       const ball: Partial<Ball> = {
         position: { x: 0, y: 0, z: 0 },
         velocity: { x: 0, y: 0, z: 0 },
@@ -335,7 +338,38 @@ export class Example15 extends AbstractExample {
     }
   }
 
-  private _createBallStateMachine(
+  /** @inheritdoc */
+  protected override onInspectorReady(inspector: GadgetInspector): void {
+    const sceneFolder = inspector.addSceneFolder("Scene Controls");
+
+    // Shared proxy object — slider writes ballCount, display reads activeInstances
+    const params = {
+      ballCount: this._activeBallCount,
+      activeInstances: this._activeBallCount,
+    };
+
+    // Readonly display — updated whenever the slider changes
+    const activeBinding = sceneFolder.addBinding(params, "activeInstances", {
+      readonly: true,
+      label: "Active Instances",
+    });
+
+    sceneFolder
+      .addBinding(params, "ballCount", {
+        label: "Gummibälchen",
+        min: 0,
+        max: Example15V1.MAX_BALLS,
+        step: 1,
+      })
+      .on("change", (ev: { value: number }) => {
+        const count = Math.round(ev.value);
+        this._activeBallCount = count;
+        params.activeInstances = count;
+        activeBinding.refresh();
+      });
+  }
+
+  protected _createBallStateMachine(
     ball: Ball,
   ): StateMachine<"active" | "falling" | "exploding", BallContext> {
     const context: BallContext = {
@@ -497,69 +531,50 @@ export class Example15 extends AbstractExample {
       skybox.updateMatrixWorld();
     }
 
-    // 1. Tick state machine physics for all balls
-    for (const ball of this._balls) {
-      ball.stateMachine.update(deltaTime);
+    // 1. Tick state machine physics only for active balls
+    const activeCount = this._activeBallCount;
+    for (let i = 0; i < activeCount; i++) {
+      this._balls[i]!.stateMachine.update(deltaTime);
     }
 
     // 2. Scene update (matrix calculations of normal static / non-instanced objects)
     this.scene.update(deltaTime);
 
     // 3. Construct and upload instance matrices
-    for (let i = 0; i < this._balls.length; i++) {
+    const active = this._activeBallCount;
+    for (let i = 0; i < Example15V1.MAX_BALLS; i++) {
       const ball = this._balls[i]!;
       const colorIdx = i % 5;
       const instanceIdx = Math.floor(i / 5);
+
+      if (i >= active) {
+        // Hide this slot: scale to zero, park far off-screen
+        this._scratchPos.set(0, -9999, 0);
+        this._scratchScale.set(0, 0, 0);
+        this._tempMatrix.compose(this._scratchPos, this._scratchRot, this._scratchScale);
+        this._mainBallsMeshes[colorIdx]!.setMatrixAt(instanceIdx, this._tempMatrix);
+        continue;
+      }
 
       // 3.1 Main Ball transform
       this._scratchPos.set(ball.position.x, ball.position.y, ball.position.z);
       this._scratchScale.set(ball.scale, ball.scale, ball.scale);
       this._tempMatrix.compose(this._scratchPos, this._scratchRot, this._scratchScale);
       this._mainBallsMeshes[colorIdx]!.setMatrixAt(instanceIdx, this._tempMatrix);
+    }
 
-      // 3.2 Floor Reflected Ball transform
-      this._scratchPos.set(ball.position.x, -ball.position.y, ball.position.z);
-      this._tempMatrix.compose(this._scratchPos, this._scratchRot, this._scratchScale);
-      this._floorReflectedMeshes[colorIdx]!.setMatrixAt(instanceIdx, this._tempMatrix);
+    // 4. Update the planar reflection
+    this._reflectionNode.updateReflection(this.scene, this.camera!, this.renderer);
 
-      // 3.3 Sphere Reflected Ball transforms
-      for (let s = 0; s < this._largeSpheres.length; s++) {
-        const large = this._largeSpheres[s]!;
-        const dx = ball.position.x - large.x;
-        const dy = ball.position.y - large.y;
-        const dz = ball.position.z - large.z;
-        const d = Math.sqrt(dx * dx + dy * dy + dz * dz);
-        const r = ball.radius;
-        const R = large.radius;
-
-        const denom = d * d - r * r;
-        if (denom > 0.001) {
-          const factor = (R * R) / denom;
-          const refX = large.x + dx * factor;
-          const refY = large.y + dy * factor;
-          const refZ = large.z + dz * factor;
-          const refRadius = r * factor;
-
-          const refScale = (refRadius / 0.2) * Math.max(ball.scale, 0.0);
-
-          this._scratchPos.set(refX, refY, refZ);
-          this._scratchScale.set(refScale, refScale, refScale);
-          this._tempMatrix.compose(this._scratchPos, this._scratchRot, this._scratchScale);
-          this._sphereReflectedMeshes[s]![colorIdx]!.setMatrixAt(instanceIdx, this._tempMatrix);
-        } else {
-          // Hide reflected ball if it lies inside the sphere center math
-          this._scratchPos.set(0, -999, 0);
-          this._scratchScale.set(0, 0, 0);
-          this._tempMatrix.compose(this._scratchPos, this._scratchRot, this._scratchScale);
-          this._sphereReflectedMeshes[s]![colorIdx]!.setMatrixAt(instanceIdx, this._tempMatrix);
-        }
-      }
+    // 5. Update dynamic probes
+    for (const probe of this._probes) {
+      probe.updateReflection(this.scene, this.renderer);
     }
   }
 }
 
 // === START THE ENGINE ===
-const app = new Example15({
+const app = new Example15V1({
   rendererType: RendererType.BEST,
 });
 app

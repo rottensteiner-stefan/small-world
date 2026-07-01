@@ -34,6 +34,10 @@ export interface StandardMaterialOptions {
     alphaMap?: Texture | undefined;
     /** Environment map for Image-Based Lighting reflections. */
     envMap?: CubeTexture | undefined;
+    /** Planar reflection map. */
+    reflectionMap?: Texture | undefined;
+    /** Planar reflection intensity. Defaults to 1.0. */
+    reflectivity?: number;
     /** The intensity of the emissive light. Defaults to 1.0. */
     emissiveIntensity?: number;
     /** Whether the material is transparent. Defaults to false. */
@@ -69,6 +73,10 @@ export declare class StandardMaterial extends AbstractMaterial {
     alphaMap: Texture | undefined;
     /** The environment map for reflections. */
     envMap: CubeTexture | undefined;
+    /** The planar reflection map. */
+    reflectionMap: Texture | undefined;
+    /** The intensity of the planar reflection. */
+    reflectivity: number;
     /** The intensity of the emissive glow. */
     emissiveIntensity: number;
     /** Alpha cutoff threshold. */
