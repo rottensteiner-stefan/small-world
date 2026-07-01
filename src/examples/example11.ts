@@ -32,14 +32,6 @@ import { AbstractExample } from "../core/index.js";
  */
 class Example11 extends AbstractExample {
   protected override async setupScene(): Promise<void> {
-    // Log device capabilities for debugging
-    console.log("[Example 11] Device Capabilities:", {
-      WebGL1: DeviceCaps.hasFeature(DeviceFeature.WEBGL1),
-      WebGL2: DeviceCaps.hasFeature(DeviceFeature.WEBGL2),
-      WebGPU: DeviceCaps.hasFeature(DeviceFeature.WEBGPU),
-      roundRect: DeviceCaps.hasFeature(DeviceFeature.CANVAS_ROUND_RECT),
-    });
-
     // Setup input listeners (e.g. pointer lock)
     this.onCanvasRecreated();
 

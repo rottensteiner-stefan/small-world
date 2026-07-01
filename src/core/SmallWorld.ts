@@ -14,14 +14,14 @@ import { RendererFactory } from "../renderers/index.js";
 import { Scene } from "./Scene.js";
 import { Input } from "./Input.js";
 import { ConfigLoader } from "./ConfigLoader.js";
-import { DeviceCaps } from "./DeviceCaps.js";
+import { DeviceCaps, DeviceFeature, DeviceLimit } from "./DeviceCaps.js";
 import { ShaderBootstrap } from "./renderers/shaders/ShaderBootstrap.js";
 import { FrustumCuller } from "./FrustumCuller.js";
 import { CollisionVisualizer, OctreeVisualizer } from "../utils/index.js";
 import type { GadgetInspector } from "../tools/GadgetInspector.js";
 
 /** The current engine version. */
-export const ENGINE_VERSION = "0.42.0";
+export const ENGINE_VERSION = "0.42.1";
 
 /**
  * Base class for applications built with the SmallWorld engine.
@@ -196,6 +196,22 @@ export abstract class SmallWorld {
         this._inspector = new GadgetInspector(this.scene, this.camera, this.canvas, this.renderer);
         this.onInspectorReady(this._inspector);
       }
+
+      console.log(
+        `%c🌍 Small World Engine v${ENGINE_VERSION} initialized\n%cRenderer: ${this.renderer.constructor.name}`,
+        "color: #00ffcc; font-size: 14px; font-weight: bold;",
+        "color: #aaaaaa; font-size: 12px;",
+      );
+
+      console.table({
+        WebGL1: DeviceCaps.hasFeature(DeviceFeature.WEBGL1) ? "Yes" : "No",
+        WebGL2: DeviceCaps.hasFeature(DeviceFeature.WEBGL2) ? "Yes" : "No",
+        WebGPU: DeviceCaps.hasFeature(DeviceFeature.WEBGPU) ? "Yes" : "No",
+        "Max Texture Size": DeviceCaps.getLimit(DeviceLimit.MAX_TEXTURE_SIZE),
+        "Max Anisotropy": DeviceCaps.getLimit(DeviceLimit.MAX_ANISOTROPY),
+        "Max Uniform Buffer": DeviceCaps.getLimit(DeviceLimit.MAX_UNIFORM_BUFFER_SIZE),
+        "Max MSAA Samples": DeviceCaps.getLimit(DeviceLimit.MAX_MSAA_SAMPLES),
+      });
 
       this._isInitialized = true;
     }

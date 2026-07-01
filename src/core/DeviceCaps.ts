@@ -141,29 +141,6 @@ export class DeviceCaps {
     this._hasWebGPU = !!(navigator as unknown as { gpu: unknown }).gpu;
 
     this._isInitialized = true;
-
-    console.log("[DeviceCaps] Initialized:", {
-      renderers: { WebGL1: this._hasWebGL1, WebGL2: this._hasWebGL2, WebGPU: this._hasWebGPU },
-      limits: {
-        textureSize: this._maxTextureSize,
-        anisotropy: this._maxAnisotropy,
-        uniformBuffer: this._maxUniformBufferSize,
-        msaa: this._maxMsaaSamples,
-        textureUnits: this._maxTextureImageUnits,
-        vertexUniforms: this._maxVertexUniformVectors,
-        fragmentUniforms: this._maxFragmentUniformVectors,
-      },
-      features: {
-        floatTex: this._hasFloatTextures,
-        compressedTex: this._hasCompressedTextures,
-        roundRect: this._hasCanvasRoundRect,
-      },
-      platform: {
-        touch: this._hasTouch,
-        gamepad: this._hasGamepad,
-        offscreen: this._hasOffscreenCanvas,
-      },
-    });
   }
 
   /**
