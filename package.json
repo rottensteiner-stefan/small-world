@@ -1,6 +1,6 @@
 {
   "name": "small-world",
-  "version": "0.41.0",
+  "version": "0.42.0",
   "description": "A very small 3D engine focusing on raw WebGL performance",
   "type": "module",
   "scripts": {
