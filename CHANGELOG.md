@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.41.0] - 2026-07-01
+
+- **Feature: Multithreading & Web Workers**:
+  - Implemented a generalized `ThreadPool` utility (`src/core/threading/ThreadPool.ts`) allowing dynamic, non-blocking execution of heavy logic without bundler configuration by using Blob URLs.
+  - Added `Example 16` to demonstrate `ThreadPool` usage against a blocked main thread.
+  - Fixed a syntax error during `ThreadPool` execution by building a robust object-wrapping deserializer fallback for ES6 class method stringifications.
+- **UI/UX (Tron: Legacy Aesthetic)**:
+  - Overhauled the central `index.html` dashboard, HTML Slides Presentation (`presentation.html`), and `examples.css` with a high-fidelity "Tron: Legacy" aesthetic, featuring glassmorphism, neon glows (`#00e5ff`, `#ff6600`), and the `Rajdhani` font.
+  - Translated all UI navigation labels across all 18 HTML examples to English.
 ## [0.40.0] - 2026-07-01
 
 - **Feature: Developer Documentation**:
