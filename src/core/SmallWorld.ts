@@ -204,13 +204,26 @@ export abstract class SmallWorld {
       );
 
       console.table({
-        WebGL1: DeviceCaps.hasFeature(DeviceFeature.WEBGL1) ? "Yes" : "No",
-        WebGL2: DeviceCaps.hasFeature(DeviceFeature.WEBGL2) ? "Yes" : "No",
-        WebGPU: DeviceCaps.hasFeature(DeviceFeature.WEBGPU) ? "Yes" : "No",
+        "API - WebGL1": DeviceCaps.hasFeature(DeviceFeature.WEBGL1) ? "Yes" : "No",
+        "API - WebGL2": DeviceCaps.hasFeature(DeviceFeature.WEBGL2) ? "Yes" : "No",
+        "API - WebGPU": DeviceCaps.hasFeature(DeviceFeature.WEBGPU) ? "Yes" : "No",
         "Max Texture Size": DeviceCaps.getLimit(DeviceLimit.MAX_TEXTURE_SIZE),
+        "Max Texture Units": DeviceCaps.getLimit(DeviceLimit.MAX_TEXTURE_IMAGE_UNITS),
         "Max Anisotropy": DeviceCaps.getLimit(DeviceLimit.MAX_ANISOTROPY),
-        "Max Uniform Buffer": DeviceCaps.getLimit(DeviceLimit.MAX_UNIFORM_BUFFER_SIZE),
+        "Max Uniform Buffer Size": DeviceCaps.getLimit(DeviceLimit.MAX_UNIFORM_BUFFER_SIZE),
         "Max MSAA Samples": DeviceCaps.getLimit(DeviceLimit.MAX_MSAA_SAMPLES),
+        "Max Vertex Attributes": DeviceCaps.getLimit(DeviceLimit.MAX_VERTEX_ATTRIBUTES),
+        "Max Vertex Uniforms": DeviceCaps.getLimit(DeviceLimit.MAX_VERTEX_UNIFORM_VECTORS),
+        "Max Fragment Uniforms": DeviceCaps.getLimit(DeviceLimit.MAX_FRAGMENT_UNIFORM_VECTORS),
+        "Feature - Float Textures": DeviceCaps.hasFeature(DeviceFeature.FLOAT_TEXTURES)
+          ? "Yes"
+          : "No",
+        "Feature - Compressed Textures": DeviceCaps.hasFeature(DeviceFeature.COMPRESSED_TEXTURES)
+          ? "Yes"
+          : "No",
+        "Feature - Offscreen Canvas": DeviceCaps.hasFeature(DeviceFeature.OFFSCREEN_CANVAS)
+          ? "Yes"
+          : "No",
       });
 
       this._isInitialized = true;
