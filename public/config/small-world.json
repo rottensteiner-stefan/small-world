@@ -33,7 +33,6 @@
     }
   },
   "renderer": [
-
     {
       "type": "WEB_GPU",
       "attributes": {

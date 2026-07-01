@@ -2,7 +2,7 @@
 
 <img width="320" alt="Damaged Helmet" src="https://github.com/user-attachments/assets/862a835b-0d89-413a-9949-e1b9c177d9fe" />
 
-**Small World Engine** is a lightweight, high-performance, modular 3D game engine for the web, built with TypeScript. It provides a modern, Physically Based Rendering (PBR) pipeline and a simple API for managing 3D scenes, cameras, lighting, and geometry—with a particular focus on flexible camera orchestration and native support for 2D/2.5D workflows. 
+**Small World Engine** is a lightweight, high-performance, modular 3D game engine for the web, built with TypeScript. It provides a modern, Physically Based Rendering (PBR) pipeline and a simple API for managing 3D scenes, cameras, lighting, and geometry—with a particular focus on flexible camera orchestration and native support for 2D/2.5D workflows.
 
 ## 🚀 Features
 
@@ -138,9 +138,11 @@ For an isolated development environment, this project includes a **Dev Container
 This project uses [TypeDoc](https://typedoc.org/) for automated API reference generation and [VitePress](https://vitepress.dev/) for developer guides and tutorials.
 
 1.  **Generate API Reference:**
+
     ```bash
     npm run docs:api
     ```
+
     This automatically extracts all classes, interfaces, and methods from the TypeScript source and generates a static HTML site under `docs/public/api`.
 
 2.  **Start the VitePress Dev Server:**
