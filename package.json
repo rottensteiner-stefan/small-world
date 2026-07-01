@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "npm-run-all build:demo build:lib",
-    "build:demo": "vite build",
+    "build:demo": "vite build && cp -a dist/public/. dist/ && rm -rf dist/public",
     "build:lib": "vite build --config vite.lib.config.ts",
     "changelog": "node scripts/generate-changelog.js",
     "dev": "NODE_OPTIONS='--max-old-space-size=4096' vite --host",

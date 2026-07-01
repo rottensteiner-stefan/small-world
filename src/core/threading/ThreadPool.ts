@@ -10,6 +10,8 @@ export interface ThreadTask<TData, TResult> {
   fnString: string;
   /** The serializable data to pass to the function. */
   data: TData;
+  /** Optional objects to transfer ownership to the worker. */
+  transferables: Transferable[];
   /** Resolve callback for the Promise. */
   resolve: (value: TResult) => void;
   /** Reject callback for the Promise. */
@@ -60,7 +62,20 @@ export class ThreadPool {
             fn = Object.values(obj)[0];
           }
           const result = await fn(data);
-          self.postMessage({ id, success: true, result });
+          
+          // Auto-extract transferables (ArrayBuffers) for zero-copy return
+          const transferables = new Set();
+          const scan = (obj) => {
+            if (!obj) return;
+            if (obj instanceof ArrayBuffer) transferables.add(obj);
+            else if (ArrayBuffer.isView(obj)) transferables.add(obj.buffer);
+            else if (typeof obj === 'object') {
+              for (const key in obj) scan(obj[key]);
+            }
+          };
+          scan(result);
+          
+          self.postMessage({ id, success: true, result }, Array.from(transferables));
         } catch (err) {
           self.postMessage({ id, success: false, error: err.message || err.toString() });
         }
@@ -86,17 +101,20 @@ export class ThreadPool {
    *           It cannot access variables, imports, or context outside its own scope.
    *           Everything it needs must be passed in via the `data` parameter.
    * @param data The input data passed to the function. Must be JSON serializable.
+   * @param transferables Optional array of Transferable objects to pass by reference (zero-copy).
    * @returns A Promise resolving with the function's return value.
    */
   public async execute<TData, TResult>(
     fn: (data: TData) => TResult | Promise<TResult>,
     data: TData,
+    transferables: Transferable[] = [],
   ): Promise<TResult> {
     return new Promise((resolve, reject) => {
       const task: ThreadTask<TData, TResult> = {
         id: ++this._taskCounter,
         fnString: fn.toString(),
         data,
+        transferables,
         resolve,
         reject,
       };
@@ -119,11 +137,14 @@ export class ThreadPool {
 
     this._taskMap.set(task.id, task);
 
-    worker.postMessage({
-      id: task.id,
-      fnString: task.fnString,
-      data: task.data,
-    });
+    worker.postMessage(
+      {
+        id: task.id,
+        fnString: task.fnString,
+        data: task.data,
+      },
+      task.transferables,
+    );
   }
 
   /**
