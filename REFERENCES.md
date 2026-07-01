@@ -1,106 +1,106 @@
-# Quellen & Referenzen (Sources & References)
+# Sources & References
 
-Dieses Dokument dient dazu, externe Quellen, Algorithmen, mathematische Herleitungen und Inspirationen festzuhalten, die in die Entwicklung von **small-world** geflossen sind.
+This document serves to record external sources, algorithms, mathematical derivations, and inspirations that flowed into the development of **small-world**.
 
-## Geometrien & Mathematik
+## Geometry & Mathematics
 
-### `Gear` (Zahnrad)
+### `Gear`
 
-- **Datei:** `src/geometry/Gear.ts`
-- **Quelle:** [Rechneronline - Zahnrad berechnen](https://rechneronline.de/pi/zahnrad.php)
-- **Verwendung:** Die zugrundeliegenden Formeln zur Generierung der isometrischen Trapez-Zähne, Teilkreise, und Radien für das 3D-Zahnrad wurden aus diesem Tool entnommen und adaptiert.
+- **File:** `src/geometry/Gear.ts`
+- **Source:** [Rechneronline - Zahnrad berechnen](https://rechneronline.de/pi/zahnrad.php)
+- **Usage:** The underlying formulas for generating isometric trapezoidal teeth, pitch circles, and radii for the 3D gear were taken from this tool and adapted.
 
-### Matrix- und Quaternionen-Herleitungen (Allgemeines Nachschlagewerk)
+### Matrix and Quaternion Derivations (General Reference)
 
-- **Datei:** Betrifft hauptsächlich `src/math/Matrix4x4.ts`, `src/math/Quaternion.ts`, `src/math/Matrix3x3.ts` sowie die Kameras/Projektionen.
-- **Quelle:** [Mathematische Grundlagen der 3D-Grafik (David Nadlinger, 2008/2009)](https://klickverbot.at/science/3d-mathematics/3d-mathematics.pdf)
-- **Verwendung:** Eine hervorragende und kompakte deutschsprachige Zusammenfassung der zugrundeliegenden 3D-Mathematik. Enthält Herleitungen für Rotationen (Vermeidung von Gimbal Lock durch Quaternionen), View Matrix und Projektionsmatrix (inkl. Frustum und Clipping). Dient als generelles Nachschlagewerk für die Engine-Mathematik, da `small-world` wie dort beschrieben das OpenGL-Konzept (rechtshändiges System, Spaltenvektoren) nutzt.
+- **File:** Mainly affects `src/math/Matrix4.ts`, `src/math/Quaternion.ts`, `src/math/Matrix3.ts` as well as cameras/projections.
+- **Source:** [Mathematische Grundlagen der 3D-Grafik (David Nadlinger, 2008/2009)](https://klickverbot.at/science/3d-mathematics/3d-mathematics.pdf)
+- **Usage:** An excellent and compact German summary of the underlying 3D mathematics. Contains derivations for rotations (avoiding gimbal lock via quaternions), view matrix, and projection matrix (incl. frustum and clipping). Serves as a general reference for the engine's math, since `small-world` uses the OpenGL convention (right-handed system, column vectors) as described there.
 
-### Einführung in die 3D-Grafik und Rendering-Pipeline (David Scherfgen)
+### Introduction to 3D Graphics and Rendering Pipeline (David Scherfgen)
 
-- **Datei:** Betrifft die generelle Architektur der Engine (z.B. Beleuchtung, Shader, Geometrie-Puffer, Kameras).
-- **Quelle:** [Einführung in die 3D-Grafik (David Scherfgen)](https://www.david-scherfgen.de/downloads/neues-buch-kapitel-3d-grafik.pdf)
-- **Verwendung:** Dieses Buchkapitel bietet einen phänomenalen Überblick über die gesamte Rendering-Pipeline (vom Vektor bis zum Pixel auf dem Bildschirm). Es behandelt detailliert Themen wie das Phong-Beleuchtungsmodell (Ambient, Diffuse, Specular), Shading-Arten (Flat, Gouraud, Phong), Texturierung (MIP-Mapping, Anti-Aliasing) und den Z-Buffer. **Achtung:** Im Gegensatz zu `small-world` (OpenGL-Konvention) verwendet dieses Skript primär die Direct3D-Konvention (linkshändiges Koordinatensystem, Zeilenvektoren).
+- **File:** Affects the general architecture of the engine (e.g., lighting, shaders, geometry buffers, cameras).
+- **Source:** [Einführung in die 3D-Grafik (David Scherfgen)](https://www.david-scherfgen.de/downloads/neues-buch-kapitel-3d-grafik.pdf)
+- **Usage:** This book chapter provides a phenomenal overview of the entire rendering pipeline (from vector to pixel on the screen). It details topics such as the Phong lighting model (Ambient, Diffuse, Specular), shading types (Flat, Gouraud, Phong), texturing (MIP-mapping, Anti-Aliasing), and the Z-Buffer. **Note:** In contrast to `small-world` (OpenGL convention), this script primarily uses the Direct3D convention (left-handed coordinate system, row vectors).
 
 ## Rendering Architecture & Best Practices
 
 ### Physically Based Rendering (PBR)
 
-- **Autoren/Gurus:** Matt Pharr, Wenzel Jakob, Greg Humphreys
-- **Quelle:** [Physically Based Rendering: From Theory to Implementation (PBRT)](https://www.pbrt.org/)
-- **Verwendung:** Die mathematische Basis für PBR, Raytracing, Refraction (Lichtbrechung) und Energieerhaltung (Energy Conservation: `Diffuse + Specular <= 1.0`).
+- **Authors/Gurus:** Matt Pharr, Wenzel Jakob, Greg Humphreys
+- **Source:** [Physically Based Rendering: From Theory to Implementation (PBRT)](https://www.pbrt.org/)
+- **Usage:** The mathematical basis for PBR, raytracing, refraction, and energy conservation (`Diffuse + Specular <= 1.0`).
 
 ### Real-Time Rendering Pipeline & State Minimization
 
-- **Autoren/Gurus:** Tomas Akenine-Möller, Eric Haines, Naty Hoffman
-- **Quelle:** [Real-Time Rendering (RTR)](https://www.realtimerendering.com/)
-- **Verwendung:** Die Bibel für Echtzeit-Rendering. Daraus leiten sich grundlegende Konzepte wie Opaque vs. Transparent Rendering Order, Back-to-Front Sorting und State Minimization ab (Minimierung der Draw Calls durch effizientes Gruppieren nach Pass -> Shader -> Material).
+- **Authors/Gurus:** Tomas Akenine-Möller, Eric Haines, Naty Hoffman
+- **Source:** [Real-Time Rendering (RTR)](https://www.realtimerendering.com/)
+- **Usage:** The bible for real-time rendering. Fundamental concepts such as Opaque vs. Transparent rendering order, back-to-front sorting, and state minimization (minimizing draw calls by efficiently grouping by pass -> shader -> material) are derived from here.
 
 ### Linear Color Space & Gamma Correctness
 
-- **Autoren/Gurus:** Naty Hoffman, Sebastien Lagarde (Frostbite Engine)
-- **Quelle:** SIGGRAPH Presentations & "Moving Frostbite to Physically Based Rendering"
-- **Verwendung:** Das Gesetz des linearen Farbraums: Alle Farbtexturen (Albedo) müssen vor der Lichtberechnung im Shader in den Linear Space (sRGB -> Linear) umgewandelt werden. Nach allen Lichtberechnungen muss das Resultat vor der Ausgabe auf den Bildschirm in den sRGB Space (Gamma Correction) umgewandelt werden.
+- **Authors/Gurus:** Naty Hoffman, Sebastien Lagarde (Frostbite Engine)
+- **Source:** SIGGRAPH Presentations & "Moving Frostbite to Physically Based Rendering"
+- **Usage:** The law of linear color space: All color textures (albedo) must be converted to linear space (sRGB -> Linear) in the shader before lighting calculations. After all lighting calculations, the result must be converted back to sRGB space (Gamma Correction) before being output to the screen.
 
 ### Data-Oriented Design (DOD)
 
-- **Autoren/Gurus:** Mike Acton (Insomniac Games, Unity)
-- **Verwendung:** Die Architekturrichtlinie, dass Datenstrukturen (wie TypedArrays und flache Arrays) gegenüber OOP und tief verschachtelten Objekten bevorzugt werden sollen, um CPU-Cache-Misses während der Rendering-Schleife zu vermeiden.
+- **Authors/Gurus:** Mike Acton (Insomniac Games, Unity)
+- **Usage:** The architectural guideline that data structures (like TypedArrays and flat arrays) should be preferred over OOP and deeply nested objects to avoid CPU cache misses during the rendering loop.
 
 ## Graphics APIs (WebGPU / WebGL)
 
 ### W3C WebGPU Specification
 
-- **Quelle:** [WebGPU W3C Working Draft](https://www.w3.org/TR/webgpu/)
-- **Verwendung:** Die absolute Single Source of Truth für WebGPU-Mechanismen. Sie begründet die strengen Validierungsregeln und expliziten Ressourcen-Anforderungen (z.B. warum `GPUTextureUsage` exakt definiert werden muss, bevor eine Operation wie `copyTextureToTexture` ausgeführt werden kann).
+- **Source:** [WebGPU W3C Working Draft](https://www.w3.org/TR/webgpu/)
+- **Usage:** The absolute single source of truth for WebGPU mechanisms. It establishes the strict validation rules and explicit resource requirements (e.g., why `GPUTextureUsage` must be exactly defined before an operation like `copyTextureToTexture` can be executed).
 
 ### WebGPU Fundamentals
 
-- **Autoren/Gurus:** Gregg Tavares
-- **Quelle:** [WebGPU Fundamentals](https://webgpufundamentals.org/)
-- **Verwendung:** Eine hervorragende Quelle, um den konzeptionellen Unterschied zwischen implizitem Status (WebGL) und expliziten Pipelines/Layouts (WebGPU) zu verstehen. Dient als Vorlage für Best Practices rund um Texture-Bindings, Memory Alignments (Uniforms/UBOs) und den sicheren Umgang mit Render Passes.
+- **Authors/Gurus:** Gregg Tavares
+- **Source:** [WebGPU Fundamentals](https://webgpufundamentals.org/)
+- **Usage:** An excellent source for understanding the conceptual difference between implicit state (WebGL) and explicit pipelines/layouts (WebGPU). Serves as a template for best practices around texture bindings, memory alignments (Uniforms/UBOs), and the safe handling of render passes.
 
 ### Tour of WebGPU
 
-- **Autoren/Gurus:** Alain Galvan
-- **Quelle:** [Raw WebGPU (Tour of WebGPU)](https://alain.xyz/blog/raw-webgpu)
-- **Verwendung:** Dient als wichtige architektonische Referenz zum Verständnis der Bind Group Layouts, Command Buffer Encoding und dem Mapping von Konzepten wie Vulkan/Metal/D3D12 auf den Web-Standard.
+- **Authors/Gurus:** Alain Galvan
+- **Source:** [Raw WebGPU (Tour of WebGPU)](https://alain.xyz/blog/raw-webgpu)
+- **Usage:** Serves as an important architectural reference for understanding bind group layouts, command buffer encoding, and mapping concepts like Vulkan/Metal/D3D12 to the web standard.
 
-## Bildverarbeitung & Texturgenerierung (Image Processing & Texture Generation)
+## Image Processing & Texture Generation
 
-### Perlin Noise (2D Rauschen)
+### Perlin Noise (2D Noise)
 
-- **Datei:** `public/tools/splatter-gen.html` (sowie Engine-Noise in `src/utils/Noise.ts`)
-- **Autoren/Gurus:** Ken Perlin (1985 / Improved Noise 2002)
-- **Quelle:** [Making Noise (Ken Perlin)](https://mrl.cs.nyu.edu/~perlin/doc/oscar.html)
-- **Verwendung:** Das 2D Perlin-Rauschen wird verwendet, um weiche, organische Störungen und Kräuselungen auf Kreisen zu berechnen (Noise Warp). So entstehen aus einfachen geometrischen Formen natürlich wirkende Spritzkanten für Flüssigkeiten und Matsch-Splatters.
+- **File:** `public/tools/splatter-gen.html` (as well as engine noise in `src/utils/Noise.ts`)
+- **Authors/Gurus:** Ken Perlin (1985 / Improved Noise 2002)
+- **Source:** [Making Noise (Ken Perlin)](https://mrl.cs.nyu.edu/~perlin/doc/oscar.html)
+- **Usage:** 2D Perlin noise is used to calculate soft, organic disturbances and ripples on circles (Noise Warp). This creates natural-looking splash edges for liquids and mud splatters from simple geometric shapes.
 
-### Flüssigkeits-Metaballs (Liquid Blobs)
+### Liquid Metaballs (Liquid Blobs)
 
-- **Datei:** `public/tools/splatter-gen.html`
-- **Autoren/Gurus:** James Blinn (1982)
-- **Verwendung:** Das physikalische Konzept der Metaballs beschreibt organisch verschmelzende Kugeloberflächen. Im Splatter-Generator zeichnen wir dazu mehrere Kreise auf einer Offscreen-Leinwand, zeichnen sie weich (Dichtefeld) und schneiden sie über einen Schwellenwert (Alpha-Thresholding) wieder scharf ab. So verschmelzen nebeneinander liegende Tropfen wie Flüssigkeiten ineinander.
+- **File:** `public/tools/splatter-gen.html`
+- **Authors/Gurus:** James Blinn (1982)
+- **Usage:** The physical concept of metaballs describes organically merging spherical surfaces. In the splatter generator, we draw multiple circles on an offscreen canvas, blur them (density field), and cut them off sharply using a threshold (alpha thresholding). This allows adjacent drops to merge into each other like liquids.
 
-### Box-Blur (Weichzeichner)
+### Box-Blur
 
-- **Datei:** `public/tools/splatter-gen.html`, `public/tools/pbr-gen.html`
-- **Verwendung:** Zur Simulation von Gaußscher Unschärfe auf Pixel-Arrays wird ein zweistufiger, linearer Box-Blur (horizontaler und vertikaler Durchlauf) in reinem JavaScript implementiert. Dies ermöglicht extrem schnelle Bildglättung in Echtzeit bei O(N) Komplexität (unabhängig vom Radius).
+- **File:** `public/tools/splatter-gen.html`, `public/tools/pbr-gen.html`
+- **Usage:** To simulate Gaussian blur on pixel arrays, a two-stage, linear box-blur (horizontal and vertical pass) is implemented in pure JavaScript. This enables extremely fast real-time image smoothing with O(N) complexity (independent of the radius).
 
-### Normal-Map Generierung (Sobel-Filter)
+### Normal Map Generation (Sobel Filter)
 
-- **Datei:** `public/tools/pbr-gen.html`, `src/tools/pbr-preview.ts`
-- **Autoren/Gurus:** Irwin Sobel (1968)
-- **Quelle:** Sobel-Operatoren zur Bildsegmentierung / Kantendetektion.
-- **Verwendung:** Die Normalenkarte wird erzeugt, indem die Ableitungen der Höhenkarte in X- und Y-Richtung mithilfe eines diskreten 3x3 Sobel-Faltungs-Kernels berechnet werden. Der Normalenvektor berechnet sich aus n = normalize(-dx * s, -dy * s, 1.0) und wird in RGB-Farbwerte im Bereich [0, 255] codiert.
+- **File:** `public/tools/pbr-gen.html`, `src/tools/pbr-preview.ts`
+- **Authors/Gurus:** Irwin Sobel (1968)
+- **Source:** Sobel operators for image segmentation / edge detection.
+- **Usage:** The normal map is generated by calculating the derivatives of the height map in the X and Y directions using a discrete 3x3 Sobel convolution kernel. The normal vector is calculated from n = normalize(-dx * s, -dy * s, 1.0) and encoded into RGB color values in the range [0, 255].
 
-### Sigmoidaler Kontrast (Specular S-Kurven)
+### Sigmoidal Contrast (Specular S-Curves)
 
-- **Datei:** `public/tools/pbr-gen.html`
-- **Quelle:** ImageMagick `-sigmoidal-contrast` Funktion.
-- **Verwendung:** Um Glanzlichter weich aber kontrastreich anzuheben, wird eine sigmoidale Kurvenfunktion f(x) = 1 / (1 + exp(-c * (x - t))) auf die Helligkeitswerte angewendet. Dies verhindert ein hartes Abschneiden (Clipping) und simuliert realistischeres Specular-Verhalten.
+- **File:** `public/tools/pbr-gen.html`
+- **Source:** ImageMagick `-sigmoidal-contrast` function.
+- **Usage:** To raise highlights softly but with high contrast, a sigmoidal curve function f(x) = 1 / (1 + exp(-c * (x - t))) is applied to the brightness values. This prevents hard clipping and simulates more realistic specular behavior.
 
 ### Laplacian Crevice Cavity Mapping (Ambient Occlusion)
 
-- **Datei:** `public/tools/pbr-gen.html`
-- **Quelle:** Diskrete Laplace-Filter / Kantenoperatoren.
-- **Verwendung:** Zur Approximation lokaler Selbstbeschattung (Ambient Occlusion / Risse) wird die Krümmung (zweite Ableitung) der Höhenwerte über einen Laplace-Kernel berechnet (4 * center - sum(neighbors)). Dies hebt Vertiefungen und Spalten hervor, die mit einer weichgezeichneten Makro-Höhenkarte multipliziert werden.
+- **File:** `public/tools/pbr-gen.html`
+- **Source:** Discrete Laplace filters / edge operators.
+- **Usage:** To approximate local self-shadowing (ambient occlusion / crevices), the curvature (second derivative) of the height values is calculated using a Laplace kernel (4 * center - sum(neighbors)). This highlights depressions and crevices, which are multiplied with a blurred macro height map.
