@@ -8,6 +8,8 @@ export interface ThreadTask<TData, TResult> {
     fnString: string;
     /** The serializable data to pass to the function. */
     data: TData;
+    /** Optional objects to transfer ownership to the worker. */
+    transferables: Transferable[];
     /** Resolve callback for the Promise. */
     resolve: (value: TResult) => void;
     /** Reject callback for the Promise. */
@@ -43,9 +45,10 @@ export declare class ThreadPool {
      *           It cannot access variables, imports, or context outside its own scope.
      *           Everything it needs must be passed in via the `data` parameter.
      * @param data The input data passed to the function. Must be JSON serializable.
+     * @param transferables Optional array of Transferable objects to pass by reference (zero-copy).
      * @returns A Promise resolving with the function's return value.
      */
-    execute<TData, TResult>(fn: (data: TData) => TResult | Promise<TResult>, data: TData): Promise<TResult>;
+    execute<TData, TResult>(fn: (data: TData) => TResult | Promise<TResult>, data: TData, transferables?: Transferable[]): Promise<TResult>;
     /**
      * Processes the next task in the queue if an idle worker is available.
      */
