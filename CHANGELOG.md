@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.40.0] - 2026-07-01
+
+- **Feature: Developer Documentation**:
+  - Implemented VitePress for developer guides and tutorials under `/docs`.
+  - Added automated API extraction via TypeDoc to `docs/public/api`.
+  - Authored a comprehensive Architecture Overview and translated all concepts (`getting-started`, `coordinate-system`, `state-machines`, `REFERENCES.md`) to English.
+- **Housekeeping**:
+  - Added file headers (`/// src/path/to/file.ts`) to 18 files.
+  - Standardized all relative ES module imports to use explicit `.js` extensions across the codebase for runtime resolution.
+  - Fixed strict TypeScript issues (e.g. `any` casting in `pbr-preview.ts` by declaring a strict global `Window` interface, fixing `?raw.js` imports, and correcting `Camera` vs `CameraInterfaceData` assignments).
+- **UI/UX**:
+  - Standardized the UI and Navigation for all 17 interactive examples in `public/examples/*.html` using a centralized, sleek layout in `examples.css`.
+
 ## [0.39.0] - 2026-07-01
 
 - **Bugfix: Node EventEmitter Memory Leak in Dev Server**: Increased `EventEmitter.defaultMaxListeners` in `vite.config.ts` to prevent warning/crashes when multiple Vite examples trigger hot reloads simultaneously.
