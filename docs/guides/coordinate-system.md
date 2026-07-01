@@ -45,11 +45,13 @@ The camera system supports several strategy patterns:
 ```typescript
 // Snapping FPS strategy on setup
 this.camera.setStrategy(CameraStrategyType.FPS);
-this.camera.addBehavior(new FPSController({
-  moveSpeed: 8.0,
-  enableCollision: false,
-  scene: this.scene
-}));
+this.camera.addBehavior(
+  new FPSController({
+    moveSpeed: 8.0,
+    enableCollision: false,
+    scene: this.scene,
+  }),
+);
 ```
 
 ## Frustum Culling
@@ -62,4 +64,5 @@ if (frustum.intersectsVolume(object.bounds)) {
   renderList.opaque.add(object);
 }
 ```
+
 All geometries compute an axis-aligned bounding box (AABB) dynamically. You can disable frustum culling on static background overlays by setting `frustumCulled = false` on an object (e.g., Skybox).

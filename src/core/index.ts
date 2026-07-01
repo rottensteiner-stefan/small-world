@@ -32,3 +32,4 @@ export * from "./lights/index.js";
 export * from "./materials/index.js";
 export * from "./textures/index.js";
 export * from "./fsm/index.js";
+export * from "./threading/index.js";

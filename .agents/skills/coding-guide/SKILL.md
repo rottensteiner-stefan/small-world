@@ -14,6 +14,7 @@ This guide provides templates, clean code standards, and shader optimization pat
 All TypeScript source files must adhere to strict type-safety, explicit visibility modifiers, and correct relative imports.
 
 ### File Header and Import Template
+
 Start every `.ts` file with its relative path as a comment, and ensure relative imports explicitly end in `.js` (required by runtime resolution).
 
 ```typescript
@@ -44,10 +45,10 @@ export class ExampleMaterial extends Material {
 ```
 
 ### Naming Conventions
-*   **PascalCase** for types, classes, interfaces, and enums (e.g. `ExampleMaterial`, `Vector3D`).
-*   **camelCase** for variables, properties, methods, and parameters (e.g. `color`, `setShininess`).
-*   **Underscore prefix (`_`)** for private and protected class members and properties (e.g. `_shininess`).
 
+- **PascalCase** for types, classes, interfaces, and enums (e.g. `ExampleMaterial`, `Vector3D`).
+- **camelCase** for variables, properties, methods, and parameters (e.g. `color`, `setShininess`).
+- **Underscore prefix (`_`)** for private and protected class members and properties (e.g. `_shininess`).
 
 ---
 
@@ -56,6 +57,7 @@ export class ExampleMaterial extends Material {
 To maximize readability and reduce nesting, use guard clauses instead of deep `if-else` branching.
 
 ### ❌ Bad (Deeply Nested)
+
 ```typescript
 public processInput(input: InputDevice): void {
   if (input.isConnected()) {
@@ -69,6 +71,7 @@ public processInput(input: InputDevice): void {
 ```
 
 ### ✅ Good (Flat Guard Clauses)
+
 ```typescript
 public processInput(input: InputDevice): void {
   if (!input.isConnected()) {
@@ -92,6 +95,7 @@ public processInput(input: InputDevice): void {
 When writing WGSL or GLSL shaders, minimize texture fetches and branching in favor of analytical math and branch-free step-wise interpolations.
 
 ### A. Replacing Noise Textures with Procedural Hash
+
 Instead of sampling a high-latency noise texture for grain, water, or glitch effects, generate pseudo-random numbers analytically on the GPU.
 
 ```wgsl
@@ -104,9 +108,11 @@ fn random(st: vec2f) -> f32 {
 ```
 
 ### B. Branch-Free Interpolation (GLSL & WGSL)
+
 Avoid branching (`if/else`) inside pixel shaders. Replace them with `clamp` and `mix` / `select` functions to keep GPU pipelines linear.
 
 #### ❌ Bad (Branching Color Grading)
+
 ```wgsl
 if (luma < 0.3) {
     srgb = mix(cold, warm, luma / 0.3);
@@ -118,7 +124,8 @@ if (luma < 0.3) {
 ```
 
 #### ✅ Good (Branch-Free Clamp and Mix)
-```wgsl
+
+````wgsl
 let c1 = mix(cold, warm, clamp(luma / 0.3, 0.0, 1.0));
 let c2 = mix(c1, hot, clamp((luma - 0.3) / 0.4, 0.0, 1.0));
 srgb = mix(c2, whiteHot, clamp((luma - 0.7) / 0.3, 0.0, 1.0));
@@ -152,21 +159,22 @@ struct PostUniforms {
     inverseGamma: f32,      // offset 4 (4 bytes)
     toneMappingMode: u32,   // offset 8 (4 bytes)
     vignetteEnabled: u32,   // offset 12 (4 bytes) -> Total 16 bytes boundary
-    
+
     vignetteOffset: f32,    // offset 16 (4 bytes)
     vignetteDarkness: f32,  // offset 20 (4 bytes)
     vignetteRoundness: f32, // offset 24 (4 bytes)
     grainEnabled: u32,      // offset 28 (4 bytes) -> Total 16 bytes boundary
-    
+
     grainIntensity: f32,    // offset 32 (4 bytes)
     time: f32,              // offset 36 (4 bytes)
     bloomEnabled: u32,      // offset 40 (4 bytes)
     bloomIntensity: f32,    // offset 44 (4 bytes) -> Total 16 bytes boundary
-    
+
     bloomColor: vec3f,      // offset 48 (12 bytes)
     filterMode: u32,        // offset 60 (4 bytes) -> Packs perfectly with vec3f into 16 bytes!
 }
-```
+````
+
 Ensure CPU-side memory mapping (`Float32Array` or `DataView`) matches this layout index-for-index.
 
 ---
@@ -176,6 +184,7 @@ Ensure CPU-side memory mapping (`Float32Array` or `DataView`) matches this layou
 We use **Vitest** for running unit tests on behaviors, math, and materials without requiring a browser window or GPU hardware.
 
 ### A. Material Parameter Test Template
+
 Tests for materials should verify that parameter modifications update CPU storage correctly, and that shaders compile.
 
 ```typescript
@@ -196,6 +205,7 @@ describe("ExampleMaterial", () => {
 ```
 
 ### B. Mocking WebGL/Canvas Contexts
+
 When a test instantiates parts of the renderer, mock the DOM `HTMLCanvasElement` using Vitest:
 
 ```typescript

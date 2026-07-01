@@ -14,7 +14,7 @@ try {
     let content = fs.readFileSync(swPath, "utf8");
     content = content.replace(
       /export const ENGINE_VERSION = "[^"]*";/,
-      `export const ENGINE_VERSION = "${pkg.version}";`
+      `export const ENGINE_VERSION = "${pkg.version}";`,
     );
     fs.writeFileSync(swPath, content);
     console.log(`[Build] SmallWorld.ts (v${pkg.version}) aktualisiert.`);

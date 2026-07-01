@@ -44,7 +44,7 @@ import {
   Cube,
   Object3D,
   RendererType,
-  StandardMaterial
+  StandardMaterial,
 } from "small-world";
 
 class MyFirstWorld extends AbstractExample {
@@ -55,7 +55,7 @@ class MyFirstWorld extends AbstractExample {
     cubeObj.material = new StandardMaterial({
       color: Color.GREEN,
       metallic: 0.5,
-      roughness: 0.3
+      roughness: 0.3,
     });
     cubeObj.setPosition(0, 1.0, 0);
 
@@ -83,7 +83,7 @@ class MyFirstWorld extends AbstractExample {
 
 // Instantiate and start
 const app = new MyFirstWorld({
-  rendererType: RendererType.BEST
+  rendererType: RendererType.BEST,
 });
 
 app.start().then(() => {

@@ -34,11 +34,11 @@ fsm.addState("idle", {
   },
   autoTransition: {
     duration: 5.0,
-    nextState: "patrolling"
+    nextState: "patrolling",
   },
   transitions: {
-    SEE_PLAYER: "alert"
-  }
+    SEE_PLAYER: "alert",
+  },
 });
 
 // State: Patrolling
@@ -48,15 +48,15 @@ fsm.addState("patrolling", {
     ctx.object.position.x += 1.0 * deltaTime;
   },
   transitions: {
-    SEE_PLAYER: "alert"
-  }
+    SEE_PLAYER: "alert",
+  },
 });
 
 // State: Alert
 fsm.addState("alert", {
   onEnter: (ctx) => {
     console.warn("Player spotted!");
-  }
+  },
 });
 
 // 3. Attach StateMachineBehavior to object

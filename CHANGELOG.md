@@ -18,7 +18,7 @@
 - **Bugfix: Node EventEmitter Memory Leak in Dev Server**: Increased `EventEmitter.defaultMaxListeners` in `vite.config.ts` to prevent warning/crashes when multiple Vite examples trigger hot reloads simultaneously.
 - **Bugfix: DynamicReflectionProbe FOV Calculation**: Fixed FOV calculation in `DynamicReflectionProbe` (`fov: Math.PI / 2`) by using correct radian conversion instead of degrees. This fixed incorrect culling / frustum rendering anomalies in dynamic cube maps.
 - **Bugfix: WGSL Shader Compilation Errors (Duplicate Uniforms)**: Removed duplicate global uniform variable declarations (`u_color`, `u_normalMap`, `u_extraParams`, etc.) from `Glass.frag.wgsl`, `Glass.frag.glsl`, and `Glass.frag.glsl100` that conflicted with injected base header chunks, causing `Invalid RenderPipeline` state in WebGPU.
-- **Feature: Robust Regression Integrity Tests**: 
+- **Feature: Robust Regression Integrity Tests**:
   - Created `PerspectiveProjection.test.ts` to mathematically guarantee scale factors (proving radians are expected and avoiding FOV distortions).
   - Extended `ShaderAssembly.test.ts` to statically analyze assembled WGSL source strings and catch duplicate global `var` and `@binding` declarations in WebGPU pipelines.
 - **Feature: Example 15 "Mirror Planets" Variants**:
@@ -66,7 +66,6 @@
   - Added global `postProcessing` configuration schema to `small-world.json` and `EngineOptions` types to enable app-wide default parameters.
 
 ## [0.35.1] - 2026-06-24
-
 
 - **Optimization: Shader Performance refactoring ("Math is Cheaper than Memory")**:
   - Eliminated redundant texture sampling inside [Standard.frag.wgsl](src/core/materials/shaders/Standard.frag.wgsl) (WGSL diffuse map) and PBR lighting chunks (`light_calc_pbr.frag.glsl` for WebGL1 & 2), reducing memory fetch bandwidth.
@@ -122,7 +121,6 @@
   - Adapted the **Gamepad Diagnostic Tool** (`public/tools/gamepad-test.html`) to support WebHID controller pairing and display the normalized outputs of the new unified gamepad system.
 
 ## [0.32.0] - 2026-06-22
-
 
 - **Feature: Local Retro Screen Effects (RetroScreenMaterial)**:
   - Created a specialized `RetroScreenMaterial` designed to run locally on meshes (e.g. TV screens) to simulate custom camera/display artifacts.
