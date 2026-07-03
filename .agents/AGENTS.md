@@ -25,6 +25,7 @@
 
 ## 4. Coding Constraints (TS strict: true)
 
-- **Types:** Explicit types, return types, access modifiers. No `any`.
+- **Types:** Explicit types, access modifiers, and NO `any` (use `unknown` for catch blocks). **Every function and method MUST have an explicit return type** (e.g., `(): void`, `(): string`).
+- **Naming:** All `private` and `protected` class properties MUST start with exactly one leading underscore (e.g., `private _myProperty`).
 - **Files & Imports:** Start `.ts` files with `/// path/to/file.ts`. Relative imports must end with `.js`.
 - **Simplicity:** Keep things as simple as possible. Strictly avoid overengineering or preemptive abstraction. "Kompliziert werden die Dinge eh immer von alleine."

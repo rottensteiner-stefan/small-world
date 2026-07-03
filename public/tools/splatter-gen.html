@@ -57,27 +57,15 @@
       }
 
       header {
-        padding: 1.5rem 2rem;
-        border-bottom: 1px solid var(--border);
-        backdrop-filter: blur(10px);
-        background-color: rgba(15, 17, 26, 0.8);
-        z-index: 10;
+        padding: 1rem 2rem;
+        border-bottom: 1px solid rgba(0, 229, 255, 0.2);
         display: flex;
         justify-content: space-between;
         align-items: center;
+        background: linear-gradient(90deg, rgba(11,15,25,1) 0%, rgba(20,25,40,1) 100%);
+        z-index: 10;
       }
-
-      h1 {
-        font-size: 1.5rem;
-        font-weight: 700;
-        letter-spacing: -0.025em;
-        background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-      }
+      h1 { margin: 0; font-size: 1.5rem; text-transform: uppercase; letter-spacing: 2px; }
 
       .badge {
         font-size: 0.75rem;
@@ -407,25 +395,8 @@
   </head>
   <body>
     <header>
-      <h1>
-        <svg
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2.5"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-        </svg>
-        Procedural Splatter Generator
-        <span class="badge">v1.0</span>
-      </h1>
-      <div style="font-size: 0.9rem; color: var(--text-muted)">
-        Generate realistic dirt, mud, and fluid splashes
-      </div>
+      <h1>Procedural Splatter Generator <span style="color:var(--accent)">// Small World</span></h1>
+      <a href="/" style="color:white; text-decoration:none;">Back to Engine</a>
     </header>
 
     <div class="app-container">

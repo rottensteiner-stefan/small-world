@@ -6,6 +6,5 @@ export * from "./ImageLoader.js";
 export * from "./TextLoader.js";
 export * from "./MtlLoader.js";
 export * from "./ObjLoader.js";
-export * from "./ShaderLoader.js";
 export * from "./SkyboxLoader.js";
 export * from "./GltfLoader.js";

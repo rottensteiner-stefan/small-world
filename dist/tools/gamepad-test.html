@@ -14,11 +14,17 @@
         max-width: 900px;
         margin: 0 auto;
       }
-      h1 {
-        color: #38bdf8;
-        border-bottom: 2px solid #334155;
-        padding-bottom: 0.5rem;
+      header {
+        padding: 1rem 2rem;
+        border-bottom: 1px solid rgba(0, 229, 255, 0.2);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: linear-gradient(90deg, rgba(11,15,25,1) 0%, rgba(20,25,40,1) 100%);
+        margin: -2rem -2rem 2rem -2rem; /* Negate body padding */
       }
+      h1 { margin: 0; font-size: 1.5rem; text-transform: uppercase; letter-spacing: 2px; color: #fff; border-bottom: none; }
+      h1 span { color: #00e5ff; }
       .meta-box {
         background: #1e293b;
         padding: 1rem;
@@ -159,7 +165,10 @@
     </style>
   </head>
   <body>
-    <h1>Gamepad Calibration Wizard</h1>
+    <header>
+      <h1>Gamepad Diagnostic & Calibration <span style="color:var(--accent)">// Small World</span></h1>
+      <a href="/" style="color:white; text-decoration:none;">Back to Engine</a>
+    </header>
 
     <!-- Calibration Wizard Box -->
     <div class="wizard-box" id="wizard-panel">

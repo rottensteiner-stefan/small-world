@@ -20,22 +20,23 @@ describe("WebGPU Shader Bindings & Layouts", () => {
     // Read the WebGPU structs definition
     const wgslPath = path.resolve(
       __dirname,
-      "../../public/resources/shaders/web_gpu/chunks/structs.wgsl",
+      "../../src/core/renderers/shaders/source/web_gpu/chunks/structs.wgsl",
     );
     const wgslContent = fs.readFileSync(wgslPath, "utf-8");
 
     // The strict typing of WebGPU requires an exact @binding mapping
-    // We expect binding 12 to be u_emissiveMap
-    const emissiveBindingRegex =
-      /@group\(\d+\)\s+@binding\(12\)\s+var\s+u_emissiveMap\s*:\s*texture_2d<f32>/;
-
-    expect(emissiveBindingRegex.test(wgslContent)).toBe(true);
+    // for textures in the material.
+    // 1: sampler
+    // 2-10: 2D maps
+    // 11: Skybox (Cube)
+    // 12: Emissive Map
+    expect(wgslContent).toContain("@group(1) @binding(12) var u_emissiveMap: texture_2d<f32>;");
   });
 
   it("should correctly rewrite base.vert.wgsl for instanced rendering without corrupting parameters", () => {
     const wgslPath = path.resolve(
       __dirname,
-      "../../public/resources/shaders/web_gpu/base.vert.wgsl",
+      "../../src/core/renderers/shaders/source/web_gpu/base.vert.wgsl",
     );
     let code = fs.readFileSync(wgslPath, "utf-8");
 

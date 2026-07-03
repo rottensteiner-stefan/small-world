@@ -11,6 +11,8 @@ export class CubeTexture {
   public uuid: string = crypto.randomUUID();
   /** The six images comprising the cube map. */
   public images: (ImageBitmap | HTMLImageElement)[] = [];
+  /** Explicitly pre-baked mipmap levels. Each entry is an array of 6 images. */
+  public mipmaps: (ImageBitmap | HTMLImageElement)[][] = [];
   /** Whether the texture is fully loaded. */
   public isLoaded: boolean = false;
 
@@ -167,6 +169,31 @@ export class CubeTexture {
       this.isLoaded = true;
     } catch (e: unknown) {
       console.error(`Error loading CubeTexture: ${urls}`, e);
+    }
+  }
+
+  /**
+   * Loads explicit mipmap levels for this CubeTexture.
+   * Useful for prefiltered IBL maps (e.g. mip0, mip1, mip2...).
+   * @param urls Array of URLs, one per mip level (typically horizontal cross maps).
+   * @param layout Optional layout hint.
+   */
+  public async loadMipmapsFrom(urls: string[], layout?: CubeLayout): Promise<void> {
+    try {
+      this.mipmaps = [];
+      for (const url of urls) {
+        // Create a temporary CubeTexture to parse the layout
+        const tempCube = new CubeTexture();
+        await tempCube.loadFrom(url, layout);
+        if (tempCube.images.length === 6) {
+          this.mipmaps.push(tempCube.images);
+        }
+      }
+      if (this.mipmaps.length > 0) {
+        this.isLoaded = true;
+      }
+    } catch (e: unknown) {
+      console.error(`Error loading CubeTexture mipmaps`, e);
     }
   }
 }

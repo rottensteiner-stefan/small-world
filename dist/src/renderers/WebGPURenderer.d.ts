@@ -37,8 +37,6 @@ export declare class WebGPURenderer extends AbstractRenderer {
     _format: GPUTextureFormat;
     protected _pipelines: Map<string, WebGPUPipelineCache>;
     protected _shaderModules: Map<string, GPUShaderModule>;
-    _whiteTexView: GPUTextureView;
-    protected _flatNormalTexView: GPUTextureView;
     protected _objectUniformBuffers: Map<string, {
         buffer: GPUBuffer;
         lastFrame: number;
@@ -49,6 +47,12 @@ export declare class WebGPURenderer extends AbstractRenderer {
         resources: unknown[];
     }>;
     protected _textureViewCache: Map<Texture, GPUTextureView>;
+    _whiteTexView: GPUTextureView;
+    _blackTexView: GPUTextureView;
+    protected _flatNormalTexView: GPUTextureView;
+    protected _defaultCubeTexView: GPUTextureView;
+    protected _blackCubeTexView: GPUTextureView;
+    protected _defaultBrdfTexView: GPUTextureView;
     protected _dummyNormalBuffer: GPUBuffer;
     protected _dummyUvBuffer: GPUBuffer;
     protected _dummyTangentBuffer: GPUBuffer;
@@ -58,7 +62,6 @@ export declare class WebGPURenderer extends AbstractRenderer {
     protected _scratchModelMatrix: Float32Array<ArrayBuffer>;
     protected _scratchColorArray: Float32Array<ArrayBuffer>;
     protected _scratchUniformValues: Record<string, unknown>;
-    protected _defaultCubeTexView: GPUTextureView;
     protected _samplerCache: Map<string, GPUSampler>;
     protected _dummyBufferSize: number;
     protected _cubeTextureViewCache: Map<CubeTexture, GPUTextureView>;
@@ -123,6 +126,10 @@ export declare class WebGPURenderer extends AbstractRenderer {
     protected _getSampler(tex: Texture | undefined): GPUSampler;
     protected _ensureDummyBufferSize(vertexCount: number): void;
     private _initGlobalBuffers;
+    private _currentIrradianceMap?;
+    private _currentPrefilterMap?;
+    private _currentBrdfLUT?;
+    private _createGlobalBindGroup;
     protected _getPipeline(manifest: RenderManifest, topology: GPUPrimitiveTopology, isInstanced?: boolean): WebGPUPipelineCache;
     protected _getShaderModule(shaderId: string, isInstanced?: boolean): GPUShaderModule;
     protected _getGeoCache(geo: GeometryDataInterface): WebGPUGeoCache;

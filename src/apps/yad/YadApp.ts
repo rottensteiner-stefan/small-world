@@ -54,41 +54,38 @@ export class YadApp extends AbstractExample {
     this.scene.add(sun);
 
     // 2. Load Textures
-    const wallTex: Texture = await Texture.fromUrl("/resources/examples/10/rock.png", {
+    const wallTex: Texture = await Texture.fromUrl("./assets/textures/rock.png", {
       flipY: true,
     });
-    const floorTex: Texture = await Texture.fromUrl("/resources/examples/10/sand.png", {
+    const floorTex: Texture = await Texture.fromUrl("./assets/textures/sand.png", {
       flipY: true,
     });
-    const lavaNoise: Texture = await Texture.fromUrl("/resources/examples/10/lava.png", {
+    const lavaNoise: Texture = await Texture.fromUrl("./assets/textures/lava.png", {
       flipY: true,
     });
-    const lavaNorm: Texture = await Texture.fromUrl("/resources/examples/10/lava_normal.png", {
+    const lavaNorm: Texture = await Texture.fromUrl("./assets/textures/lava_normal.png", {
       flipY: true,
     });
-    const lavaDisp: Texture = await Texture.fromUrl(
-      "/resources/examples/10/lava_displacement.png",
-      {
-        flipY: true,
-      },
-    );
-    const lavaSpec: Texture = await Texture.fromUrl("/resources/examples/10/lava_specular.png", {
+    const lavaDisp: Texture = await Texture.fromUrl("./assets/textures/lava_displacement.png", {
       flipY: true,
     });
-    const lavaAmb: Texture = await Texture.fromUrl("/resources/examples/10/lava_ambient.png", {
+    const lavaSpec: Texture = await Texture.fromUrl("./assets/textures/lava_specular.png", {
+      flipY: true,
+    });
+    const lavaAmb: Texture = await Texture.fromUrl("./assets/textures/lava_ambient.png", {
       flipY: true,
     });
     // Reuse some generic textures or placeholders
-    const barrelTex: Texture = await Texture.fromUrl("/resources/examples/10/rock.png", {
+    const barrelTex: Texture = await Texture.fromUrl("./assets/textures/rock.png", {
       flipY: true,
     });
-    const torchTex: Texture = await Texture.fromUrl("/resources/examples/10/lava.png", {
+    const torchTex: Texture = await Texture.fromUrl("./assets/textures/lava.png", {
       flipY: true,
     });
 
     // 3. Load Level Data
     const loader: TextLoader = new TextLoader();
-    const mapData: string = await loader.load("/resources/levels/level1.txt");
+    const mapData: string = await loader.load("./assets/levels/level1.txt");
 
     // 4. Build Level
     const builder: YadLevelBuilder = new YadLevelBuilder();

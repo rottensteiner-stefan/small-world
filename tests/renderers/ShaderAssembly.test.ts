@@ -13,18 +13,9 @@ import {
 } from "../../src/index.js";
 import { ShaderRegistry } from "../../src/index.js";
 import { CoreShaderChunks } from "../../src/core/renderers/shaders/CoreShaderChunks.js";
-import { ShaderLoader } from "../../src/index.js";
-import fs from "fs";
-import path from "path";
 
 describe("Shader Assembly & Linter", () => {
   beforeAll(async () => {
-    // Override the ShaderLoader's fetch behavior for Node.js
-    ShaderLoader.prototype.load = async function (url: string) {
-      const fullPath = path.join(process.cwd(), "public", this.basePath || "", url);
-      return fs.readFileSync(fullPath, "utf-8");
-    };
-
     await CoreShaderChunks.init();
   });
 

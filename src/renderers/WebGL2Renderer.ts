@@ -75,6 +75,9 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     u_opaqueMap: 7,
     u_envMap: 7,
     u_reflectionMap: 10,
+    u_irradianceMap: 12,
+    u_prefilterMap: 14,
+    u_brdfLUT: 15,
   };
 
   public _opaqueTexture?: WebGLTexture;
@@ -322,11 +325,13 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       const glTex = this._texCubeCache.get(tex);
       return glTex || this.defaultCubeTexture;
     }
-    if (tex.images.length !== 6) return this.defaultCubeTexture;
+    if (tex.images.length !== 6 && tex.mipmaps.length === 0) return this.defaultCubeTexture;
     let glTex: WebGLTexture | undefined = this._texCubeCache.get(tex);
     if (!glTex) {
       glTex = this.gl.createTexture()!;
       this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, glTex);
+
+      const baseImages = tex.mipmaps.length > 0 ? tex.mipmaps[0]! : tex.images;
       for (let i: number = 0; i < 6; i++) {
         this.gl.texImage2D(
           this.gl.TEXTURE_CUBE_MAP_POSITIVE_X + i,
@@ -334,10 +339,32 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
           this.gl.RGBA,
           this.gl.RGBA,
           this.gl.UNSIGNED_BYTE,
-          tex.images[i] as ImageBitmap,
+          baseImages[i] as ImageBitmap,
         );
       }
-      this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
+
+      if (tex.mipmaps.length > 1) {
+        for (let m = 1; m < tex.mipmaps.length; m++) {
+          const mipImages = tex.mipmaps[m]!;
+          for (let i = 0; i < 6; i++) {
+            this.gl.texImage2D(
+              this.gl.TEXTURE_CUBE_MAP_POSITIVE_X + i,
+              m,
+              this.gl.RGBA,
+              this.gl.RGBA,
+              this.gl.UNSIGNED_BYTE,
+              mipImages[i] as ImageBitmap,
+            );
+          }
+        }
+        this.gl.texParameteri(
+          this.gl.TEXTURE_CUBE_MAP,
+          this.gl.TEXTURE_MIN_FILTER,
+          this.gl.LINEAR_MIPMAP_LINEAR,
+        );
+      } else {
+        this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
+      }
       this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR);
       this.gl.texParameteri(
         this.gl.TEXTURE_CUBE_MAP,
@@ -442,7 +469,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
           vMat,
           topology,
           extractedLights,
-          scene.fog,
+          scene,
         );
       }
       this.gl.depthMask(true);
@@ -452,7 +479,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     // --- PASS 2: All other Opaque Objects ---
     for (const [shaderId, topologyMap] of renderList.opaque.entries()) {
       for (const [topology, materialGroups] of topologyMap.entries()) {
-        this._renderGroup(shaderId, materialGroups, vMat, topology, extractedLights, scene.fog);
+        this._renderGroup(shaderId, materialGroups, vMat, topology, extractedLights, scene);
       }
     }
 
@@ -510,7 +537,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
           vMat,
           topology,
           extractedLights,
-          scene.fog,
+          scene,
         );
       }
     }
@@ -742,7 +769,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     vMat?: Float32Array,
     topology: string = "triangle-list",
     lights?: LightDataInterface,
-    fog?: import("../core/Fog.js").Fog,
+    scene?: Scene,
   ): void {
     for (const materialGroup of materialGroups.values()) {
       if (materialGroup.length === 0) continue;
@@ -771,7 +798,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
           vMat,
           topology,
           lights,
-          fog,
+          scene,
         );
       }
 
@@ -784,7 +811,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
           vMat,
           topology,
           lights,
-          fog,
+          scene,
         );
       }
     }
@@ -798,7 +825,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     vMat?: Float32Array,
     topology: string = "triangle-list",
     lights?: LightDataInterface,
-    fog?: import("../core/Fog.js").Fog,
+    scene?: Scene,
   ): void {
     const cache = this._getProgram(shaderId, isInstanced);
     this.gl.useProgram(cache.prog);
@@ -915,6 +942,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     const u = cache.uniforms;
 
     // --- Fog Uniforms ---
+    const fog = scene?.fog;
     if (fog) {
       const modeLoc = u.get("u_fogMode");
       if (modeLoc) this.gl.uniform1i(modeLoc, fog.mode);
@@ -933,6 +961,45 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     } else {
       const modeLoc = u.get("u_fogMode");
       if (modeLoc) this.gl.uniform1i(modeLoc, 0); // NONE
+    }
+
+    // --- Global IBL Uniforms ---
+    if (scene) {
+      const intLoc = u.get("u_envIntensity");
+      if (intLoc) this.gl.uniform1f(intLoc, scene.environmentIntensity);
+
+      // Irradiance Map (Unit 12)
+      const irrUnit = this._samplerUnits["u_irradianceMap"]!;
+      const irrLoc = u.get("u_irradianceMap");
+      if (irrLoc && scene.irradianceMap) {
+        this.gl.activeTexture(this.gl.TEXTURE0 + irrUnit);
+        this.gl.bindTexture(
+          this.gl.TEXTURE_CUBE_MAP,
+          this._getWebGLCubeTexture(scene.irradianceMap),
+        );
+        this.gl.uniform1i(irrLoc, irrUnit);
+      }
+
+      // Prefilter Map (Unit 14)
+      const prefUnit = this._samplerUnits["u_prefilterMap"]!;
+      const prefLoc = u.get("u_prefilterMap");
+      if (prefLoc && scene.prefilterMap) {
+        this.gl.activeTexture(this.gl.TEXTURE0 + prefUnit);
+        this.gl.bindTexture(
+          this.gl.TEXTURE_CUBE_MAP,
+          this._getWebGLCubeTexture(scene.prefilterMap),
+        );
+        this.gl.uniform1i(prefLoc, prefUnit);
+      }
+
+      // BRDF LUT (Unit 15)
+      const brdfUnit = this._samplerUnits["u_brdfLUT"]!;
+      const brdfLoc = u.get("u_brdfLUT");
+      if (brdfLoc && scene.brdfLUT) {
+        this.gl.activeTexture(this.gl.TEXTURE0 + brdfUnit);
+        this.gl.bindTexture(this.gl.TEXTURE_2D, this._getWebGLTexture(scene.brdfLUT));
+        this.gl.uniform1i(brdfLoc, brdfUnit);
+      }
     }
 
     // --- 1. Bind Material States ---

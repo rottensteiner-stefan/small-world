@@ -21,7 +21,7 @@ import {
   TextureWrap,
   PostProcessingEffectType,
 } from "../enums/index.js";
-import { Fog } from "../core/Fog.js";
+// Removed Fog import
 
 import { AbstractRenderer } from "./AbstractRenderer.js";
 import { RenderPass } from "./RenderPass.js";
@@ -68,8 +68,6 @@ export class WebGPURenderer extends AbstractRenderer {
   protected _pipelines: Map<string, WebGPUPipelineCache> = new Map();
   protected _shaderModules: Map<string, GPUShaderModule> = new Map();
 
-  public _whiteTexView!: GPUTextureView;
-  protected _flatNormalTexView!: GPUTextureView;
   protected _objectUniformBuffers = new Map<
     string,
     {
@@ -86,6 +84,12 @@ export class WebGPURenderer extends AbstractRenderer {
     }
   >();
   protected _textureViewCache = new Map<Texture, GPUTextureView>();
+  public _whiteTexView!: GPUTextureView;
+  public _blackTexView!: GPUTextureView;
+  protected _flatNormalTexView!: GPUTextureView;
+  protected _defaultCubeTexView!: GPUTextureView;
+  protected _blackCubeTexView!: GPUTextureView;
+  protected _defaultBrdfTexView!: GPUTextureView;
   protected _dummyNormalBuffer!: GPUBuffer;
   protected _dummyUvBuffer!: GPUBuffer;
   protected _dummyTangentBuffer!: GPUBuffer;
@@ -95,7 +99,6 @@ export class WebGPURenderer extends AbstractRenderer {
   protected _scratchModelMatrix = new Float32Array(16);
   protected _scratchColorArray = new Float32Array(3);
   protected _scratchUniformValues: Record<string, unknown> = {};
-  protected _defaultCubeTexView!: GPUTextureView;
 
   protected _samplerCache: Map<string, GPUSampler> = new Map();
 
@@ -188,7 +191,37 @@ export class WebGPURenderer extends AbstractRenderer {
     this._adapter = (await navigator.gpu.requestAdapter(attributes)) ?? undefined;
     if (!this._adapter) throw new Error("[WebGPURenderer] No adapter found.");
 
-    this._device = await this._adapter.requestDevice();
+    const requiredLimits: Record<string, number> = {};
+
+    if (this._adapter.limits.maxSampledTexturesPerShaderStage) {
+      requiredLimits["maxSampledTexturesPerShaderStage"] =
+        this._adapter.limits.maxSampledTexturesPerShaderStage;
+    }
+    if (this._adapter.limits.maxUniformBuffersPerShaderStage) {
+      requiredLimits["maxUniformBuffersPerShaderStage"] =
+        this._adapter.limits.maxUniformBuffersPerShaderStage;
+    }
+    if (this._adapter.limits.maxStorageBuffersPerShaderStage) {
+      requiredLimits["maxStorageBuffersPerShaderStage"] =
+        this._adapter.limits.maxStorageBuffersPerShaderStage;
+    }
+    if (this._adapter.limits.maxBindGroups) {
+      requiredLimits["maxBindGroups"] = this._adapter.limits.maxBindGroups;
+    }
+    if (this._adapter.limits.maxBindingsPerBindGroup) {
+      requiredLimits["maxBindingsPerBindGroup"] = this._adapter.limits.maxBindingsPerBindGroup;
+    }
+    if (this._adapter.limits.maxTextureDimension2D) {
+      requiredLimits["maxTextureDimension2D"] = this._adapter.limits.maxTextureDimension2D;
+    }
+    if (this._adapter.limits.maxUniformBufferBindingSize) {
+      requiredLimits["maxUniformBufferBindingSize"] =
+        this._adapter.limits.maxUniformBufferBindingSize;
+    }
+
+    this._device = await this._adapter.requestDevice({
+      requiredLimits,
+    });
 
     // Update DeviceCaps with actual WebGPU limits
     DeviceCaps.updateLimits({
@@ -253,25 +286,32 @@ export class WebGPURenderer extends AbstractRenderer {
       return t.createView();
     };
     this._whiteTexView = create1x1([255, 255, 255, 255]);
+    this._blackTexView = create1x1([0, 0, 0, 255]);
+    this._defaultBrdfTexView = create1x1([255, 0, 0, 255]); // scale=1, bias=0
     this._flatNormalTexView = create1x1([128, 128, 255, 255]);
 
-    const whiteCube = this._device!.createTexture({
-      size: [1, 1, 6],
-      format: "rgba8unorm",
-      usage:
-        GPUTextureUsage.TEXTURE_BINDING |
-        GPUTextureUsage.COPY_DST |
-        GPUTextureUsage.RENDER_ATTACHMENT,
-    });
-    for (let i = 0; i < 6; i++) {
-      this._device!.queue.writeTexture(
-        { texture: whiteCube, origin: [0, 0, i] },
-        new Uint8Array([50, 50, 100, 255]),
-        { bytesPerRow: 4 },
-        [1, 1],
-      );
-    }
-    this._defaultCubeTexView = whiteCube.createView({ dimension: "cube" });
+    const createCube = (col: number[]): GPUTextureView => {
+      const cube = this._device!.createTexture({
+        size: [1, 1, 6],
+        format: "rgba8unorm",
+        usage:
+          GPUTextureUsage.TEXTURE_BINDING |
+          GPUTextureUsage.COPY_DST |
+          GPUTextureUsage.RENDER_ATTACHMENT,
+      });
+      for (let i = 0; i < 6; i++) {
+        this._device!.queue.writeTexture(
+          { texture: cube, origin: [0, 0, i] },
+          new Uint8Array(col),
+          { bytesPerRow: 4 },
+          [1, 1],
+        );
+      }
+      return cube.createView({ dimension: "cube" });
+    };
+
+    this._defaultCubeTexView = createCube([50, 50, 100, 255]);
+    this._blackCubeTexView = createCube([0, 0, 0, 255]);
 
     this._ensureDummyBufferSize(1000);
   }
@@ -358,18 +398,14 @@ export class WebGPURenderer extends AbstractRenderer {
         { binding: 1, visibility: GPUShaderStage.FRAGMENT, buffer: { type: "read-only-storage" } },
         { binding: 2, visibility: GPUShaderStage.FRAGMENT, buffer: { type: "read-only-storage" } },
         { binding: 3, visibility: GPUShaderStage.FRAGMENT, buffer: { type: "read-only-storage" } },
+        { binding: 4, visibility: GPUShaderStage.FRAGMENT, texture: { viewDimension: "cube" } },
+        { binding: 5, visibility: GPUShaderStage.FRAGMENT, texture: { viewDimension: "cube" } },
+        { binding: 6, visibility: GPUShaderStage.FRAGMENT, texture: { viewDimension: "2d" } },
+        { binding: 7, visibility: GPUShaderStage.FRAGMENT, sampler: { type: "filtering" } },
       ],
     });
 
-    this._globalBindGroup = this._device!.createBindGroup({
-      layout: this._globalBGL,
-      entries: [
-        { binding: 0, resource: { buffer: this._globalUniformBuffer } },
-        { binding: 1, resource: { buffer: this._pointLightBuffer } },
-        { binding: 2, resource: { buffer: this._spotLightBuffer } },
-        { binding: 3, resource: { buffer: this._areaLightBuffer } },
-      ],
-    });
+    this._globalBindGroup = this._createGlobalBindGroup();
 
     const matEntries: GPUBindGroupLayoutEntry[] = [
       { binding: 1, visibility: GPUShaderStage.FRAGMENT, sampler: { type: "filtering" } },
@@ -417,6 +453,37 @@ export class WebGPURenderer extends AbstractRenderer {
           visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
           buffer: { type: "uniform" },
         },
+      ],
+    });
+  }
+
+  private _currentIrradianceMap?: import("../core/textures/CubeTexture.js").CubeTexture | undefined;
+  private _currentPrefilterMap?: import("../core/textures/CubeTexture.js").CubeTexture | undefined;
+  private _currentBrdfLUT?: import("../core/textures/Texture.js").Texture | undefined;
+
+  private _createGlobalBindGroup(scene?: Scene): GPUBindGroup {
+    const irrView = scene?.irradianceMap
+      ? this._getGPUCubeTextureView(scene.irradianceMap)
+      : this._blackCubeTexView!;
+    const prefView = scene?.prefilterMap
+      ? this._getGPUCubeTextureView(scene.prefilterMap)
+      : this._blackCubeTexView!;
+    const brdfView = scene?.brdfLUT
+      ? this._getTextureView(scene.brdfLUT)
+      : this._defaultBrdfTexView!;
+    const sampler = this._getSampler(scene?.brdfLUT); // Use default sampler for global maps
+
+    return this._device!.createBindGroup({
+      layout: this._globalBGL,
+      entries: [
+        { binding: 0, resource: { buffer: this._globalUniformBuffer } },
+        { binding: 1, resource: { buffer: this._pointLightBuffer } },
+        { binding: 2, resource: { buffer: this._spotLightBuffer } },
+        { binding: 3, resource: { buffer: this._areaLightBuffer } },
+        { binding: 4, resource: irrView },
+        { binding: 5, resource: prefView },
+        { binding: 6, resource: brdfView },
+        { binding: 7, resource: sampler },
       ],
     });
   }
@@ -599,7 +666,7 @@ export class WebGPURenderer extends AbstractRenderer {
     if (!this._device) return;
     this._frameCount++;
     const lights = this.extractLights(scene);
-    this._updateGlobalBuffers(vp, camPos, lights, scene.fog);
+    this._updateGlobalBuffers(vp, camPos, lights, scene);
     const ce = this._device.createCommandEncoder();
 
     if (this.postProcessing.enabled && !this._hdrTexture) {
@@ -1109,24 +1176,41 @@ export class WebGPURenderer extends AbstractRenderer {
       const v = this._cubeTextureViewCache.get(tex);
       return v || this._defaultCubeTexView;
     }
-    if (tex.images.length !== 6) return this._defaultCubeTexView;
+    if (tex.images.length !== 6 && tex.mipmaps.length === 0) return this._defaultCubeTexView;
     let v = this._cubeTextureViewCache.get(tex);
     if (!v) {
-      const img = tex.images[0]!;
+      const img = tex.mipmaps.length > 0 ? tex.mipmaps[0]![0]! : tex.images[0]!;
+      const mipLevelCount = tex.mipmaps.length > 0 ? tex.mipmaps.length : 1;
       const t = this._device!.createTexture({
         size: [img.width, img.height, 6],
         format: "rgba8unorm",
+        mipLevelCount,
         usage:
           GPUTextureUsage.TEXTURE_BINDING |
           GPUTextureUsage.COPY_DST |
           GPUTextureUsage.RENDER_ATTACHMENT,
       });
-      for (let i = 0; i < 6; i++)
+
+      const baseImages = tex.mipmaps.length > 0 ? tex.mipmaps[0]! : tex.images;
+      for (let i = 0; i < 6; i++) {
         this._device!.queue.copyExternalImageToTexture(
-          { source: tex.images[i]! },
-          { texture: t, origin: [0, 0, i] },
+          { source: baseImages[i]! },
+          { texture: t, mipLevel: 0, origin: [0, 0, i] },
           [img.width, img.height],
         );
+      }
+
+      for (let m = 1; m < mipLevelCount; m++) {
+        const mipImages = tex.mipmaps[m]!;
+        const mipSize = Math.max(1, Math.floor(img.width / Math.pow(2, m)));
+        for (let i = 0; i < 6; i++) {
+          this._device!.queue.copyExternalImageToTexture(
+            { source: mipImages[i]! },
+            { texture: t, mipLevel: m, origin: [0, 0, i] },
+            [mipSize, mipSize],
+          );
+        }
+      }
       v = t.createView({ dimension: "cube" });
       this._cubeTextureViewCache.set(tex, v);
     }
@@ -1137,8 +1221,19 @@ export class WebGPURenderer extends AbstractRenderer {
     vp: Float32Array,
     camPos: Vector3D,
     lights: LightDataInterface,
-    fog?: Fog,
+    scene: Scene,
   ): void {
+    if (
+      this._currentIrradianceMap !== scene.irradianceMap ||
+      this._currentPrefilterMap !== scene.prefilterMap ||
+      this._currentBrdfLUT !== scene.brdfLUT
+    ) {
+      this._currentIrradianceMap = scene.irradianceMap;
+      this._currentPrefilterMap = scene.prefilterMap;
+      this._currentBrdfLUT = scene.brdfLUT;
+      this._globalBindGroup = this._createGlobalBindGroup(scene);
+    }
+
     const correctedVp = MathPool.acquireMatrix();
     const originalVp = MathPool.acquireMatrix();
     originalVp.data.set(vp);
@@ -1177,6 +1272,8 @@ export class WebGPURenderer extends AbstractRenderer {
     const exposure = this.postProcessing.enabled ? 1.0 : (this._quality.exposure ?? 1.0);
     gData.set([lights.pLights.length, lights.sLights.length, lights.aLights.length, gamma], 32);
     gData[36] = exposure; // exposure
+
+    const fog = scene.fog;
     if (fog) {
       gData[37] = fog.mode;
       gData[38] = fog.density;
@@ -1184,10 +1281,11 @@ export class WebGPURenderer extends AbstractRenderer {
       gData[40] = fog.far;
       gData[41] = fog.height;
       gData[42] = fog.heightFalloff;
-      gData[43] = 0.0; // _pad
+      gData[43] = scene.environmentIntensity; // envIntensity instead of _pad
       gData.set([fog.color.r, fog.color.g, fog.color.b, 1.0], 44);
     } else {
       gData[37] = 0.0; // fogMode NONE
+      gData[43] = scene.environmentIntensity; // envIntensity
     }
     this._device!.queue.writeBuffer(this._globalUniformBuffer, 0, gData);
 

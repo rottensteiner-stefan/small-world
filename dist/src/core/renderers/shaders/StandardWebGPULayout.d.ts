@@ -58,4 +58,30 @@ export declare const StandardWebGPULayout: {
         };
     };
     uniformLayout: string[];
+    textures: {
+        u_diffuseMap: {
+            type: "texture";
+        };
+        u_normalMap: {
+            type: "texture";
+        };
+        u_metallicMap: {
+            type: "texture";
+        };
+        u_roughnessMap: {
+            type: "texture";
+        };
+        u_emissiveMap: {
+            type: "texture";
+        };
+        u_alphaMap: {
+            type: "texture";
+        };
+        u_envMap: {
+            type: "texture";
+        };
+        u_reflectionMap: {
+            type: "texture";
+        };
+    };
 };

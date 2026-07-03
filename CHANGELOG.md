@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.43.0] - 2026-07-03
+
+- **Feature: Image-Based Lighting (IBL) Generator Tool**:
+  - Added a new browser-based tool (`public/tools/ibl-gen.html`, `src/tools/ibl-gen.ts`, `src/tools/IBLShaders.ts`) for real-time client-side generation of PBR Environment Maps (Irradiance/Radiance).
+- **Refactor: Project Structure & Asset Management**:
+  - Moved interactive examples from `src/examples` to the root `examples/` directory and restructured them into dedicated folders.
+  - Migrated static engine assets (models, textures, levels, etc.) from `public/resources/` to `public/engine/`.
+  - Moved shader files from `public/resources/shaders/` directly into the core source tree (`src/core/renderers/shaders/source/`) to allow better code bundling.
+
 ## [0.42.2] - 2026-07-02
 
 - **Feature: Dynamic Environment Probes (Phase 2)**:

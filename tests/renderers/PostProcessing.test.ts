@@ -2,7 +2,6 @@ import { describe, expect, it, beforeAll } from "vitest";
 import {
   PostProcessingGroup,
   ShaderRegistry,
-  ShaderLoader,
   ToneMappingElement,
   VignetteElement,
   GrainElement,
@@ -14,12 +13,6 @@ import * as path from "path";
 
 describe("Post-Processing Shader Chunks & Groups", () => {
   beforeAll(async () => {
-    // Override the ShaderLoader's fetch behavior for Node.js
-    ShaderLoader.prototype.load = async function (url: string) {
-      const fullPath = path.join(process.cwd(), "public", this.basePath || "", url);
-      return fs.readFileSync(fullPath, "utf-8");
-    };
-
     await CoreShaderChunks.init();
   });
 
