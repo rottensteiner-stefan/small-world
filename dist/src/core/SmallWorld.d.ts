@@ -2,6 +2,7 @@ import { Camera } from './Camera.js';
 import { EngineOptions } from '../interfaces/index.js';
 import { Renderer } from '../interfaces/Renderer.js';
 import { Scene } from './Scene.js';
+import { InteractionManager } from './InteractionManager.js';
 import { GadgetInspector } from '../tools/GadgetInspector.js';
 /** The current engine version. */
 export declare const ENGINE_VERSION = "0.42.2";
@@ -17,6 +18,8 @@ export declare abstract class SmallWorld {
     camera: Camera;
     /** The active renderer. */
     renderer: Renderer;
+    /** The interaction manager for gamification / picking. */
+    interactionManager: InteractionManager;
     /** The canvas element. */
     canvas: HTMLCanvasElement;
     /** Whether debug visualization is enabled. */

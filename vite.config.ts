@@ -94,6 +94,7 @@ export default defineConfig({
         example15_v2: resolve(__dirname, "examples/15_v2/index.html"),
         example16: resolve(__dirname, "examples/16/index.html"),
         example17: resolve(__dirname, "examples/17/index.html"),
+        example18: resolve(__dirname, "examples/18/index.html"),
         yad: resolve(__dirname, "examples/yad/index.html"),
         pbrgen: resolve(__dirname, "public/tools/pbr-gen.html"),
         presentation: resolve(__dirname, "public/presentation.html"),
