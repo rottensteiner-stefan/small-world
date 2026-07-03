@@ -590,7 +590,7 @@ document.addEventListener("DOMContentLoaded", () => {
     baker = new IBLBaker();
   } catch (e: unknown) {
     console.error(e);
-    alert("Initialization failed: " + e.message);
+    alert("Initialization failed: " + (e as Error).message);
   }
 
   const dropzone = document.getElementById("dropzone")!;
