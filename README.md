@@ -129,9 +129,19 @@ For an isolated development environment, this project includes a **Dev Container
 - `src/core/lights`: Light source implementations (Standard & PBR).
 - `src/geometry`: Geometric primitives and terrain logic.
 - `src/math`: Linear algebra, vectors, matrices, and object pooling.
-- `src/loaders`: Asset loading pipeline (OBJ, MTL, Textures, Shaders).
+- `src/loaders`: Asset loading pipeline (OBJ, MTL, Textures).
 - `src/renderers`: Implementation of WebGL1, WebGL2, and WebGPU backends.
+  - `src/core/renderers/shaders/source`: Core shader assets directly bundled with the engine.
 - `examples`: Interactive functional demos showcasing engine capabilities.
+- `public/engine`: Static assets including models, textures, and levels used across examples.
+
+## 🧰 Tools
+
+The engine includes several browser-based tools to help generate assets directly on the client side without relying on external software:
+
+- **PBR Map Generator** (`public/tools/pbr-gen.html`): Generate Normal, Specular, AO, and Height maps from a single diffuse image.
+- **Splatter Generator** (`public/tools/splatter-gen.html`): Generate procedural splatters and decals.
+- **IBL Generator** (`public/tools/ibl-gen.html`): Generate Image-Based Lighting (Irradiance and Radiance) environment maps.
 
 ## 📚 Documentation
 

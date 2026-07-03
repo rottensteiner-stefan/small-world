@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>IBL Generator - Small World</title>
+    <style>
+      :root {
+        --bg-color: #0b0f19;
+        --card-bg: rgba(20, 25, 40, 0.7);
+        --text-color: #e0e0e0;
+        --accent: #00e5ff;
+        --border-radius: 12px;
+      }
+      body {
+        margin: 0;
+        font-family: 'Rajdhani', sans-serif;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        overflow: hidden;
+      }
+      header {
+        padding: 1rem 2rem;
+        border-bottom: 1px solid rgba(0, 229, 255, 0.2);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: linear-gradient(90deg, rgba(11,15,25,1) 0%, rgba(20,25,40,1) 100%);
+      }
+      h1 { margin: 0; font-size: 1.5rem; text-transform: uppercase; letter-spacing: 2px; }
+      .container {
+        display: flex;
+        flex: 1;
+        overflow: hidden;
+      }
+      .panel {
+        padding: 1.5rem;
+        background: var(--card-bg);
+        border-right: 1px solid rgba(255,255,255,0.05);
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        width: 300px;
+        backdrop-filter: blur(10px);
+      }
+      .preview-area {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        padding: 2rem;
+        gap: 1rem;
+        overflow-y: auto;
+      }
+      .control-group { display: flex; flex-direction: column; gap: 0.5rem; }
+      label { font-weight: 600; font-size: 0.9rem; text-transform: uppercase; color: #aaa; }
+      input[type="file"] {
+        padding: 0.5rem;
+        background: rgba(0,0,0,0.3);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 4px;
+        color: white;
+      }
+      button {
+        background: var(--accent);
+        color: #000;
+        border: none;
+        padding: 0.8rem 1.5rem;
+        font-family: inherit;
+        font-weight: 700;
+        font-size: 1rem;
+        border-radius: 4px;
+        cursor: pointer;
+        text-transform: uppercase;
+        transition: all 0.2s;
+        box-shadow: 0 0 10px rgba(0, 229, 255, 0.3);
+      }
+      button:hover {
+        background: #fff;
+        box-shadow: 0 0 20px rgba(0, 229, 255, 0.6);
+      }
+      button:disabled {
+        background: #333;
+        color: #666;
+        box-shadow: none;
+        cursor: not-allowed;
+      }
+      
+      .canvas-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(256px, 1fr));
+        gap: 1rem;
+      }
+      .card {
+        background: rgba(0,0,0,0.4);
+        padding: 1rem;
+        border-radius: var(--border-radius);
+        border: 1px solid rgba(255,255,255,0.1);
+        text-align: center;
+      }
+      .card h3 { margin-top: 0; font-size: 1rem; color: var(--accent); }
+      .preview-canvas {
+        max-width: 100%;
+        max-height: 250px;
+        border-radius: 8px;
+        background: #000;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        width: 100%; /* force stretch to container */
+        object-fit: contain; /* keep aspect ratio */
+        image-rendering: pixelated;
+      }
+      
+      /* Dropzone */
+      .dropzone {
+        border: 2px dashed rgba(255,255,255,0.2);
+        border-radius: 12px;
+        padding: 1.5rem 1rem;
+        text-align: center;
+        cursor: pointer;
+        background: rgba(26, 31, 53, 0.2);
+        transition: all 0.3s ease;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .dropzone:hover,
+      .dropzone.dragover {
+        border-color: var(--accent);
+        background: rgba(0, 229, 255, 0.05);
+      }
+      .dropzone-icon {
+        color: var(--accent);
+        transition: transform 0.3s ease;
+      }
+      .dropzone:hover .dropzone-icon {
+        transform: translateY(-3px);
+      }
+      .dropzone-text {
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: var(--text-muted);
+      }
+      .dropzone-sub {
+        font-size: 0.7rem;
+        color: rgba(255,255,255,0.6);
+      }
+      .hidden { display: none !important; }
+      
+      .progress {
+        display: none;
+        font-size: 0.9rem;
+        color: #ff6600;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>IBL Generator <span style="color:var(--accent)">// Small World</span></h1>
+      <a href="/" style="color:white; text-decoration:none;">Back to Engine</a>
+    </header>
+    
+    <div class="container">
+      <div class="panel">
+        <div class="control-group">
+          <label>1. Select HDR/Panorama (Equirectangular)</label>
+          <div id="dropzone" class="dropzone">
+            <svg class="dropzone-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />
+            </svg>
+            <div class="dropzone-text">Upload / Drag & Drop Image</div>
+            <div class="dropzone-sub">PNG, JPG, WebP up to 8MB</div>
+            <input type="file" id="skyboxInput" class="hidden" accept="image/png, image/jpeg, image/webp" />
+          </div>
+          <small style="color:#666; margin-top:0.5rem;">Note: Must be a 2:1 aspect ratio image (e.g. 2048x1024).</small>
+        </div>
+        
+        <div class="control-group">
+          <label>2. Generate Maps</label>
+          <button id="generateBtn" disabled>Bake IBL</button>
+          <div id="progressText" class="progress">Processing...</div>
+        </div>
+        
+        <div class="control-group">
+          <label>3. Export</label>
+          <button id="exportBtn" disabled>Download Maps (.zip)</button>
+        </div>
+      </div>
+      
+      <div class="preview-area">
+        <h2>Generated Textures</h2>
+        <div class="canvas-container">
+          <div class="card">
+            <h3>Environment (Base)</h3>
+            <canvas id="envCanvas" width="256" height="256" class="preview-canvas"></canvas>
+            <small>Face: +Z</small>
+          </div>
+          <div class="card">
+            <h3>Irradiance (Diffuse)</h3>
+            <canvas id="irradianceCanvas" width="256" height="256" class="preview-canvas"></canvas>
+            <small>Face: +Z</small>
+          </div>
+          <div class="card">
+            <h3>Prefiltered (Roughness = 0.5)</h3>
+            <canvas id="prefilterCanvas" width="256" height="256" class="preview-canvas"></canvas>
+            <small>Face: +Z (MipLevel 2)</small>
+          </div>
+          <div class="card">
+            <h3>BRDF LUT</h3>
+            <canvas id="brdfCanvas" width="256" height="256" class="preview-canvas"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script type="module" src="../../src/tools/ibl-gen.ts"></script>
+  </body>
+</html>

@@ -7,6 +7,8 @@ export declare class CubeTexture {
     uuid: string;
     /** The six images comprising the cube map. */
     images: (ImageBitmap | HTMLImageElement)[];
+    /** Explicitly pre-baked mipmap levels. Each entry is an array of 6 images. */
+    mipmaps: (ImageBitmap | HTMLImageElement)[][];
     /** Whether the texture is fully loaded. */
     isLoaded: boolean;
     /**
@@ -20,4 +22,11 @@ export declare class CubeTexture {
      * @param layout Optional layout hint for single images (e.g. 6x1 strip, 3x2 grid, or crosses).
      */
     loadFrom(urls: string | string[], layout?: CubeLayout): Promise<void>;
+    /**
+     * Loads explicit mipmap levels for this CubeTexture.
+     * Useful for prefiltered IBL maps (e.g. mip0, mip1, mip2...).
+     * @param urls Array of URLs, one per mip level (typically horizontal cross maps).
+     * @param layout Optional layout hint.
+     */
+    loadMipmapsFrom(urls: string[], layout?: CubeLayout): Promise<void>;
 }

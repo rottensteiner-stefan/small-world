@@ -43,4 +43,14 @@ export const StandardWebGPULayout = {
     "u_reflectivity",
     "_padObj2",
   ],
+  textures: {
+    u_diffuseMap: { type: ShaderPropertyType.TEXTURE },
+    u_normalMap: { type: ShaderPropertyType.TEXTURE },
+    u_metallicMap: { type: ShaderPropertyType.TEXTURE },
+    u_roughnessMap: { type: ShaderPropertyType.TEXTURE },
+    u_emissiveMap: { type: ShaderPropertyType.TEXTURE },
+    u_alphaMap: { type: ShaderPropertyType.TEXTURE },
+    u_envMap: { type: ShaderPropertyType.TEXTURE },
+    u_reflectionMap: { type: ShaderPropertyType.TEXTURE },
+  },
 };

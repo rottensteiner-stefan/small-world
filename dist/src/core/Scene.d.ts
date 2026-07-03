@@ -16,6 +16,10 @@ export declare class Scene {
     staticOctree: Octree | undefined;
     dynamicOctree: Octree | undefined;
     fog?: Fog;
+    irradianceMap?: import('./textures/CubeTexture.js').CubeTexture;
+    prefilterMap?: import('./textures/CubeTexture.js').CubeTexture;
+    brdfLUT?: import('./textures/Texture.js').Texture;
+    environmentIntensity: number;
     private readonly _renderList;
     private _scratchFrustum;
     private _scratchMatrix;

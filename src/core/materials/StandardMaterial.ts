@@ -184,7 +184,7 @@ export class StandardMaterial extends AbstractMaterial {
           u_roughnessMap: this.roughnessMap,
           u_emissiveMap: this.emissiveMap,
           u_alphaMap: this.alphaMap,
-          u_envMap: this.envMap,
+          u_skybox: this.envMap,
           u_reflectionMap: this.reflectionMap,
         },
       };
@@ -223,7 +223,7 @@ export class StandardMaterial extends AbstractMaterial {
     texs["u_roughnessMap"] = this.roughnessMap;
     texs["u_emissiveMap"] = this.emissiveMap;
     texs["u_alphaMap"] = this.alphaMap;
-    texs["u_envMap"] = this.envMap;
+    texs["u_skybox"] = this.envMap;
     texs["u_reflectionMap"] = this.reflectionMap;
     props["u_useEnvMap"] = this.envMap ? 1.0 : 0.0;
     props["u_useReflectionMap"] = this.reflectionMap ? 1.0 : 0.0;
@@ -264,6 +264,7 @@ export class StandardMaterial extends AbstractMaterial {
           u_roughnessMap: { type: ShaderPropertyType.TEXTURE },
           u_emissiveMap: { type: ShaderPropertyType.TEXTURE },
           u_alphaMap: { type: ShaderPropertyType.TEXTURE },
+          u_envMap: { type: ShaderPropertyType.TEXTURE },
           u_reflectionMap: { type: ShaderPropertyType.TEXTURE },
         },
       },

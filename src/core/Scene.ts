@@ -25,6 +25,12 @@ export class Scene {
   public dynamicOctree: Octree | undefined = undefined;
   public fog?: Fog;
 
+  // Global Environment (IBL)
+  public irradianceMap?: import("./textures/CubeTexture.js").CubeTexture;
+  public prefilterMap?: import("./textures/CubeTexture.js").CubeTexture;
+  public brdfLUT?: import("./textures/Texture.js").Texture;
+  public environmentIntensity: number = 1.0;
+
   // Persistent cache for rendering
   private readonly _renderList: RenderList = { opaque: new Map(), transparent: [] };
 
