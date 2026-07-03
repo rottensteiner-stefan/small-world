@@ -13,6 +13,7 @@ import { ProjectionType, RendererType } from "../enums/index.js";
 import { RendererFactory } from "../renderers/index.js";
 import { Scene } from "./Scene.js";
 import { Input } from "./Input.js";
+import { InteractionManager } from "./InteractionManager.js";
 import { ConfigLoader } from "./ConfigLoader.js";
 import { DeviceCaps, DeviceFeature, DeviceLimit } from "./DeviceCaps.js";
 import { ShaderBootstrap } from "./renderers/shaders/ShaderBootstrap.js";
@@ -35,6 +36,8 @@ export abstract class SmallWorld {
   public camera: Camera;
   /** The active renderer. */
   public renderer: Renderer;
+  /** The interaction manager for gamification / picking. */
+  public interactionManager!: InteractionManager;
   /** The canvas element. */
   public canvas!: HTMLCanvasElement;
   /** Whether debug visualization is enabled. */
@@ -189,6 +192,8 @@ export abstract class SmallWorld {
       this.camera.aspect = this.canvas.clientWidth / this.canvas.clientHeight;
       this.camera.updateProjectionMatrix();
 
+      this.interactionManager = new InteractionManager(this.scene, this.camera, this.canvas);
+
       await this.setupScene();
 
       if (true === this.config.enableInspector) {
@@ -263,6 +268,10 @@ export abstract class SmallWorld {
     this.scene.update(deltaTime);
     this.scene.updateLights(this.camera);
     this.camera.update(this.camera.target, 0, 0, deltaTime);
+
+    if (this.interactionManager) {
+      this.interactionManager.update();
+    }
 
     FrustumCuller.cull(this.scene, this.camera.viewProjectionMatrix4);
 

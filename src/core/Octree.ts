@@ -148,6 +148,25 @@ export class OctreeNode {
   }
 
   /**
+   * Queries the octree for objects that intersect with a ray.
+   */
+  public queryRay(
+    ray: import("../physix/Ray.js").Ray,
+    result: Set<Object3D>,
+    intersectedNodes?: Set<OctreeNode>,
+  ): void {
+    if (ray.intersectsBox(this.bounds) < 0) return;
+    if (intersectedNodes) intersectedNodes.add(this);
+
+    for (let i: number = 0; i < this.objects.length; i++) {
+      result.add(this.objects[i]!);
+    }
+    for (let i: number = 0; i < this.children.length; i++) {
+      this.children[i]!.queryRay(ray, result, intersectedNodes);
+    }
+  }
+
+  /**
    * Queries the octree for objects that intersect with a specific volume.
    */
   public queryVolume(volume: BoundingVolume, result: Object3D[]): void {
@@ -189,6 +208,15 @@ export class Octree {
     const result: Object3D[] = [];
     this.root.query(frustum, result, intersectedNodes);
     return result;
+  }
+
+  public queryRay(
+    ray: import("../physix/Ray.js").Ray,
+    intersectedNodes?: Set<OctreeNode>,
+  ): Object3D[] {
+    const result = new Set<Object3D>();
+    this.root.queryRay(ray, result, intersectedNodes);
+    return Array.from(result);
   }
 
   /**

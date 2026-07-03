@@ -25,6 +25,10 @@ export declare class Object3D {
     inFrustum: boolean;
     castShadow: boolean;
     receiveShadow: boolean;
+    isPickable: boolean;
+    onPointerEnter?: () => void;
+    onPointerLeave?: () => void;
+    onPointerClick?: () => void;
     constructor(name?: string);
     add(...children: Object3D[]): void;
     remove(...children: Object3D[]): void;

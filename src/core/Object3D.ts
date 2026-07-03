@@ -34,6 +34,11 @@ export class Object3D {
   public castShadow: boolean = false;
   public receiveShadow: boolean = false;
 
+  public isPickable: boolean = false;
+  public onPointerEnter?: () => void;
+  public onPointerLeave?: () => void;
+  public onPointerClick?: () => void;
+
   constructor(name?: string) {
     this.name = name || MathUtils.generateUUID();
   }
