@@ -20,6 +20,7 @@ export default defineConfig({
           items: [
             { text: "Architecture & Overview", link: "/guides/architecture" },
             { text: "Coordinate System & Camera Strategies", link: "/guides/coordinate-system" },
+            { text: "Gamification & Interactions", link: "/guides/interactions" },
             { text: "Finite State Machines (FSM)", link: "/guides/state-machines" },
           ],
         },

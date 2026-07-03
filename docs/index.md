@@ -26,4 +26,7 @@ features:
   - icon: 📐
     title: Conformal reflections
     details: Mirror geometries, procedural checkerboard maps, and real-time sphere inversion math.
+  - icon: 🖱️
+    title: Octree Interactions
+    details: Built-in DOM-like pointer events (Hover, Click) backed by highly optimized O(log n) Octree raycasting.
 ---
