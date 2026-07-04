@@ -5,5 +5,5 @@ srgb -= vec3f(scanline);
 srgb.x *= 1.15;
 srgb.y *= 0.95;
 srgb.z *= 0.82;
-let lineNoise = step(0.99, random(vec2f(u.time, distortUv.y)));
+let lineNoise = step(0.99, random(vec2f(u_time, distortUv.y)));
 srgb += vec3f(lineNoise * 0.2);

@@ -2,15 +2,15 @@ import { describe, it, expect, vi } from "vitest";
 import { DynamicReflectionProbe, Scene } from "../../src/index.js";
 import { Renderer } from "../../src/interfaces/Renderer.js";
 
-describe("DynamicReflectionProbe", () => {
-  it("initializes with 1 face per frame by default", () => {
+describe("DynamicReflectionProbe", (): void => {
+  it("initializes with 1 face per frame by default", (): void => {
     const probe = new DynamicReflectionProbe("TestProbe", 128);
     expect(probe.facesPerFrame).toBe(1);
     expect(probe.renderTarget.width).toBe(128);
     expect(probe.renderTarget.height).toBe(128);
   });
 
-  it("updates correct number of faces and cycles through them", () => {
+  it("updates correct number of faces and cycles through them", (): void => {
     const probe = new DynamicReflectionProbe();
     probe.facesPerFrame = 2;
 

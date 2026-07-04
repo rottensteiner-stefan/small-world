@@ -114,9 +114,9 @@ class Example19 extends SmallWorld {
     // Quick custom behavior just to pipe the camera position into the spring lerp target
     companion.addBehavior({
       target: companion,
-      onAttach: () => {},
-      onDetach: () => {},
-      update: () => {
+      onAttach: (): void => {},
+      onDetach: (): void => {},
+      update: (): void => {
         // Offset the companion relative to the camera
         const targetPos = new Vector3D().copyFrom(this.camera.position);
         // Put it slightly in front and to the right
@@ -180,7 +180,7 @@ class Example19 extends SmallWorld {
         maxFlickerTime: 0.4,
         minMultiplier: 0.2,
         smoothness: 0.2,
-        onUpdate: (multiplier) => {
+        onUpdate: (multiplier: number): void => {
           // Modulate the HDR emissive brightness based on flicker multiplier
           thrusterMat.emissiveColor.set(0, multiplier * 5.0, multiplier * 5.0);
         },
@@ -206,7 +206,7 @@ class Example19 extends SmallWorld {
     this.camera.target.set(0, 3, 0);
     this.camera.addBehavior(new OrbitController());
 
-    this.canvas.addEventListener("click", () => {
+    this.canvas.addEventListener("click", (): void => {
       if (!Input.isPointerLocked) {
         Input.requestPointerLock(this.canvas);
       }
