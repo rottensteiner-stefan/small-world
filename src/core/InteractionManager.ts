@@ -15,6 +15,7 @@ export class InteractionManager {
   private _raycaster: Raycaster = new Raycaster();
   private _ndcCoords: Vector2D = new Vector2D();
   private _hoveredObject: Object3D | null = null;
+  private _activeObject: Object3D | null = null;
   private _wasLeftDown: boolean = false;
 
   constructor(
@@ -91,11 +92,28 @@ export class InteractionManager {
     const isLeftDown = mouse.left;
     if (!this._wasLeftDown && isLeftDown) {
       // Mouse just pressed
+      if (this._hoveredObject) {
+        this._activeObject = this._hoveredObject;
+        if (this._activeObject.onPointerDown) {
+          const point = this._raycaster.ray.at(firstIntersect ? firstIntersect.distance : 0);
+          this._activeObject.onPointerDown(this._raycaster.ray, point);
+        }
+      }
     } else if (this._wasLeftDown && !isLeftDown) {
       // Mouse just released
-      if (this._hoveredObject && this._hoveredObject.onPointerClick) {
-        this._hoveredObject.onPointerClick();
+      if (this._activeObject) {
+        if (this._activeObject.onPointerUp) {
+          this._activeObject.onPointerUp();
+        }
+        if (this._activeObject === this._hoveredObject && this._activeObject.onPointerClick) {
+          this._activeObject.onPointerClick();
+        }
       }
+      this._activeObject = null;
+    }
+
+    if (this._activeObject && this._activeObject.onPointerMove) {
+      this._activeObject.onPointerMove(this._raycaster.ray);
     }
 
     this._wasLeftDown = isLeftDown;

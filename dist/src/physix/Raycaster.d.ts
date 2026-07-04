@@ -31,4 +31,8 @@ export declare class Raycaster {
      * @returns An array of intersections.
      */
     intersectObjects(objects: Object3D[], sort?: boolean): Intersection[];
+    /**
+     * Möller-Trumbore intersection algorithm.
+     */
+    private _intersectTriangle;
 }

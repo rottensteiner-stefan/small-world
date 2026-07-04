@@ -11,6 +11,7 @@ export declare class InteractionManager {
     private _raycaster;
     private _ndcCoords;
     private _hoveredObject;
+    private _activeObject;
     private _wasLeftDown;
     constructor(scene: Scene, camera: Camera, canvas: HTMLCanvasElement);
     /**

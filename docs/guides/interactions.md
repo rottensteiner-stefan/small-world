@@ -70,4 +70,25 @@ const hover = new HoverBehavior(1.5);
 mesh.addBehavior(hover);
 ```
 
+### DraggableBehavior
+
+Allows users to freely drag and drop objects in 3D space. The object moves along a plane perfectly aligned with the camera.
+
+```typescript
+import { DraggableBehavior } from "small-world";
+
+// Requires the active camera to project the dragging plane
+const draggable = new DraggableBehavior(this.camera);
+mesh.addBehavior(draggable);
+```
+
 > **Note:** These behaviors automatically set `isPickable = true` when attached to an object.
+
+## 4. Pixel-Perfect Picking (Möller-Trumbore)
+
+For high-precision applications like CAD tools or Shooters, the Raycaster uses a hybrid approach:
+1. It first queries the **Octree** (or AABB BoundingBox) to quickly reject objects the ray misses.
+2. If the object has `geometry`, it dynamically iterates over the actual triangle vertices of the mesh, transforming them into world-space.
+3. It performs a **Möller-Trumbore Intersection** to find the exact intersection distance `t`.
+
+This guarantees that transparent gaps or irregular meshes can be clicked with pixel-perfect accuracy!

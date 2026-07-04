@@ -38,6 +38,9 @@ export class Object3D {
   public onPointerEnter?: () => void;
   public onPointerLeave?: () => void;
   public onPointerClick?: () => void;
+  public onPointerDown?: (ray: import("../physix/Ray.js").Ray, intersectionPoint: Vector3D) => void;
+  public onPointerUp?: () => void;
+  public onPointerMove?: (ray: import("../physix/Ray.js").Ray) => void;
 
   constructor(name?: string) {
     this.name = name || MathUtils.generateUUID();
@@ -99,9 +102,24 @@ export class Object3D {
   public computeBounds(): this {
     if (this.geometry) {
       // 1. Get local bounds from geometry
-      this.bounds = this.geometry.getBoundingVolume();
-      // 2. Transform bounds to world space
-      this.bounds.transform(this.worldMatrix);
+      const localBounds = this.geometry.getBoundingVolume();
+      // 2. Transform bounds to world space without re-allocating
+      if (!this.bounds) {
+        // Create a fresh copy
+        if (localBounds.type === 1 /* BoundingType.BOX */) {
+          const lb = localBounds as import("../physix/BoundingBox.js").BoundingBox;
+          const BoxType = lb.constructor as new (min: Vector3D, max: Vector3D) => BoundingVolume;
+          this.bounds = new BoxType(lb.min.clone(), lb.max.clone());
+        }
+      }
+
+      if (this.bounds && this.bounds.type === 1 /* BoundingType.BOX */) {
+        const lb = localBounds as import("../physix/BoundingBox.js").BoundingBox;
+        const b = this.bounds as import("../physix/BoundingBox.js").BoundingBox;
+        b.min.copyFrom(lb.min);
+        b.max.copyFrom(lb.max);
+        b.transform(this.worldMatrix);
+      }
     }
     return this;
   }

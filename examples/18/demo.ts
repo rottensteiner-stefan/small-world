@@ -6,6 +6,7 @@ import {
   Color,
   DirectionalLight,
   HoverBehavior,
+  DraggableBehavior,
   Texture,
   AmbientLight,
   Object3D,
@@ -66,10 +67,6 @@ class Example18 extends SmallWorld {
     this.camera.position.set(0, 12, 18);
     this.camera.target.set(0, 0, 0);
 
-    // Initialize octree for Phase 2 Raycasting
-    const bounds = new BoundingBox(new Vector3D(-50, -50, -50), new Vector3D(50, 50, 50));
-    this.scene.initOctrees(bounds);
-
     this.scene.add(new AmbientLight({ color: Color.WHITE, intensity: 0.3 }));
 
     const dirLight = new DirectionalLight({ color: Color.WHITE, intensity: 1.0 });
@@ -79,11 +76,18 @@ class Example18 extends SmallWorld {
     this.scene.add(dirLight);
 
     const texture = await this.generateHexTexture();
-    const cubeGeo = new Cube({ size: 1.0 }).getGeometryData();
+    this.scene.ambientLight = new AmbientLight(new Color(0.2, 0.2, 0.2));
 
-    const gridSize = 10;
+    // Initialize Octree with a higher maxObjects to prevent massive subdivision lag
+    // for 1600 moving cubes every frame!
+    const bounds = new BoundingBox(new Vector3D(-50, -5, -50), new Vector3D(50, 50, 50));
+    this.scene.initOctrees(bounds, { maxObjects: 200 });
+
+    const gridSize = 40; // 40x40 = 1600 cubes
     const spacing = 1.5;
     const offset = (gridSize * spacing) / 2 - spacing / 2;
+
+    const cubeGeo = new Cube({ size: 1.0 }).getGeometryData();
 
     for (let x = 0; x < gridSize; x++) {
       for (let z = 0; z < gridSize; z++) {
@@ -98,10 +102,12 @@ class Example18 extends SmallWorld {
         mesh.setPosition(x * spacing - offset, 0, z * spacing - offset);
         mesh.castShadow = true;
         mesh.receiveShadow = true;
-        mesh.isStatic = true; // For Octree
 
         // Add Phase 1 Gamification (Hover scales up and glows)
         mesh.addBehavior(new HoverBehavior(1.4));
+
+        // Add Phase 3 Gamification (Drag & Drop)
+        mesh.addBehavior(new DraggableBehavior(this.camera));
 
         // Add click interaction (Changes color permanently)
         mesh.onPointerClick = () => {
