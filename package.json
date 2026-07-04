@@ -1,8 +1,9 @@
 {
   "name": "small-world",
-  "version": "0.44.0",
+  "version": "0.45.0",
   "description": "A very small 3D engine focusing on raw WebGL performance",
   "type": "module",
+  "license": "MIT",
   "scripts": {
     "build": "npm-run-all build:demo build:lib",
     "build:demo": "vite build && cp -a dist/public/. dist/ && rm -rf dist/public",

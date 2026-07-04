@@ -5,7 +5,7 @@ import { Scene } from './Scene.js';
 import { InteractionManager } from './InteractionManager.js';
 import { GadgetInspector } from '../tools/GadgetInspector.js';
 /** The current engine version. */
-export declare const ENGINE_VERSION = "0.44.0";
+export declare const ENGINE_VERSION = "0.45.0";
 /**
  * Base class for applications built with the SmallWorld engine.
  */

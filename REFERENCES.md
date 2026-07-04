@@ -75,6 +75,15 @@ This document serves to record external sources, algorithms, mathematical deriva
 - **Authors/Gurus:** Mike Acton (Insomniac Games, Unity)
 - **Usage:** The architectural guideline that data structures (like TypedArrays and flat arrays) should be preferred over OOP and deeply nested objects to avoid CPU cache misses during the rendering loop.
 
+### Component & Behavior Architecture
+
+- **Concepts:** Component-based programming, Unity Behaviors.
+- **Usage:** Small World uses a strict behavior-driven architecture where logical components (`Behavior`) are attached directly to nodes like `Object3D` or `Camera` via `.addBehavior()`. This eliminates rigid inheritance structures for controllers (like `OrbitController` or `FPSController`), allowing them to be dynamically composed at runtime.
+
+### Asynchronous Asset Loading
+
+- **Usage:** Provides unified static factories like `Texture.fromUrl()` with promise-based loading. This ensures asynchronous image decoding integrates smoothly into the synchronous render loop, often falling back to a placeholder pixel until the GPU upload is fully complete.
+
 ## Graphics APIs (WebGPU / WebGL)
 
 ### W3C WebGPU Specification

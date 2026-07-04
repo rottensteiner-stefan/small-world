@@ -205,11 +205,18 @@ export class StandardMaterial extends AbstractMaterial {
     (props["u_extraParams"] as number[])[2] = this.normalScale.x;
     (props["u_extraParams"] as number[])[3] = this.normalScale.y;
 
-    if (this.diffuseMap) {
-      (props["u_texOffset"] as number[])[0] = this.diffuseMap.offset.x;
-      (props["u_texOffset"] as number[])[1] = this.diffuseMap.offset.y;
-      (props["u_texRepeat"] as number[])[0] = this.diffuseMap.repeat.x;
-      (props["u_texRepeat"] as number[])[1] = this.diffuseMap.repeat.y;
+    const tex =
+      this.diffuseMap ||
+      this.emissiveMap ||
+      this.normalMap ||
+      this.metallicMap ||
+      this.roughnessMap ||
+      this.alphaMap;
+    if (tex) {
+      (props["u_texOffset"] as number[])[0] = tex.offset.x;
+      (props["u_texOffset"] as number[])[1] = tex.offset.y;
+      (props["u_texRepeat"] as number[])[0] = tex.repeat.x;
+      (props["u_texRepeat"] as number[])[1] = tex.repeat.y;
     } else {
       (props["u_texOffset"] as number[])[0] = 0;
       (props["u_texOffset"] as number[])[1] = 0;

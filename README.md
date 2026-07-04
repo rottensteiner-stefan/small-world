@@ -9,16 +9,16 @@
 - **Hybrid PBR Rendering:** High-performance rendering pipeline supporting **WebGPU**, **WebGL 2**, and **WebGL 1** with industry-standard physically based shading (Cook-Torrance BRDF).
 - **Linear Lighting Workflow:** All lighting calculations are performed in linear space with automatic sRGB gamma correction for realistic color falloffs and high visual fidelity.
 - **Advanced Materials:** Includes standard PBR (Metallic/Roughness), but also physical **Glass/Dielectric** materials with real-time **Screen-Space Refraction**, Index of Refraction (IOR), and Beer's Law for volumetric light absorption.
-- **Advanced Camera System:** Unified, strategy-based camera control (Smooth, Stiff, Fixed, FPS, Isometric). Features a modular `ZoomController` and procedural effects like Shake and Flash.
+- **Advanced Camera System:** Unified camera setup where controllers (e.g., `OrbitController`, `FPSController`, `ZoomController`) are standard `Behavior` components attached via `camera.addBehavior()`. Features procedural effects like camera shake and flash.
 - **High-Performance Architecture:** Optimized for memory efficiency through **Object Pooling** (`MathPool`), BindGroup & Pipeline Caching (WebGPU), and zero-allocation hot paths to eliminate Garbage Collection pressure.
 - **Lighting & Shadows:** Supports Ambient, Directional, Point, Spot, and Area lights. Features robust **Shadow Mapping** (WebGL 2) with Hardware Shadow Sampling and Percentage-Closer Filtering (PCF) for buttery-smooth soft shadows.
 - **Planar & Conformal Reflections:** Real-time planar floor reflections (virtual mirror geometries) and dynamic sphere inversion reflections ($P' = C + V \cdot \frac{R^2}{d^2 - r^2}$) for PBR objects.
-- **Component Behaviors & State Machines:** Robust, callback-driven behavior system to attach complex logic (`FlickerBehavior`, `PulsatingBehavior`, `ProximitySensorBehavior`) directly to 3D objects or materials. Includes a built-in, type-safe, zero-allocation **Finite State Machine (FSM)** framework (`StateMachine` & `StateMachineBehavior`) to cleanly manage game actor lifecycles.
+- **Component Behaviors & State Machines:** Robust, callback-driven behavior system to attach complex logic (`FlickerBehavior`, `PulsatingBehavior`, `ProximitySensorBehavior`, `RainbowBehavior`, `BobbingBehavior`, `RotatorBehavior`, `HoverBehavior`, `DraggableBehavior`, etc.) directly to 3D objects, cameras, or materials. Includes a built-in, type-safe, zero-allocation **Finite State Machine (FSM)** framework (`StateMachine` & `StateMachineBehavior`) to cleanly manage game actor lifecycles.
 - **Interactions & Gamification:** A built-in `InteractionManager` allowing objects to instantly react to mouse/touch pointer events (`onPointerEnter`, `onPointerClick`, `onPointerDown`, `onPointerMove`, etc.). Pickable elements are queried via highly performant $O(\log n)$ **Octrees** and resolved to exact pixels via the **Möller-Trumbore** intersection algorithm. 
 - **Stylized Post-Processing Pipeline:** Built-in cinematic and retro filters (Phosphor Green Night Vision, Film Noir with chromatic aberration, Cyber Glitch, VHS Tape tracking, Amber/Sepia Underworld, Old Projector scratching/hair spots, and Thermal Vision). Configured via static parameter specialization for optimal compilation without dynamic uniform cost.
 - **Scene Graph:** Hierarchical scene management using a clean `Object3D` architecture.
 - **2D/2.5D Support:** First-class support for Sprites, Billboard rendering, and Pixel-Perfect Isometric perspectives.
-- **Geometry & Asset Loaders:** Dynamic terrain generation, comprehensive primitive library, and async loaders for OBJ models, MTLLib materials, and textures.
+- **Geometry & Asset Loaders:** Dynamic terrain generation, comprehensive primitive library, and async loaders for OBJ models, MTLLib materials, and textures (via unified static factories like `Texture.fromUrl()`).
 
 ## 📦 Installation
 
@@ -54,13 +54,15 @@ By default, the engine looks for a configuration file at `/config/small-world.js
 ### 2. Implementation Example
 
 ```typescript
-import { Application, Cube, Color, StandardMaterial, Object3D, ZoomController } from "small-world";
+import { Application, Cube, Color, StandardMaterial, Object3D, OrbitController, ZoomController, Texture } from "small-world";
 
 class MyGame extends Application {
   protected async setupScene(): Promise<void> {
-    // 1. Create a PBR geometry and material
+    // 1. Load a texture and create a PBR material
+    const albedoTex = await Texture.fromUrl("./assets/textures/diffuse.png");
     const geometry = new Cube({ size: 2 }).getGeometryData();
     const material = new StandardMaterial({
+      map: albedoTex,
       color: Color.DODGERBLUE,
       metallic: 0.7,
       roughness: 0.2,
@@ -74,12 +76,13 @@ class MyGame extends Application {
 
     this.scene.add(cube);
 
-    // 3. Configure the camera and modular controllers
+    // 3. Configure the camera and attach behaviors (controllers)
     this.camera.position.set(5, 5, 5);
     this.camera.target.set(0, 0, 0);
 
-    // Add a standalone zoom controller
-    this.controllers.push(new ZoomController(this.camera));
+    // Camera controllers are now behaviors!
+    this.camera.addBehavior(new OrbitController());
+    this.camera.addBehavior(new ZoomController());
   }
 
   protected override update(deltaTime: number): void {
