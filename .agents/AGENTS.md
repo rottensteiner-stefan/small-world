@@ -29,3 +29,8 @@
 - **Naming:** All `private` and `protected` class properties MUST start with exactly one leading underscore (e.g., `private _myProperty`).
 - **Files & Imports:** Start `.ts` files with `/// path/to/file.ts`. Relative imports must end with `.js`.
 - **Simplicity:** Keep things as simple as possible. Strictly avoid overengineering or preemptive abstraction. "Kompliziert werden die Dinge eh immer von alleine."
+
+## 5. Architectural Patterns
+
+- **Behavior System:** Entities like Cameras use the Behavior system rather than specific controller arrays. Use `camera.addBehavior(new OrbitController())` instead of managing controllers directly.
+- **Resource Loading:** Instantiate and load resources using static factory methods. For example, use `Texture.fromUrl()` instead of `new Texture().loadFrom()`.

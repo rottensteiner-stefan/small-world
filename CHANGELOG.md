@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.45.0] - 2026-07-04
+
+- **Bugfix: StandardMaterial UV Scaling**: Fixed a critical bug in the core engine where `StandardMaterial` defaulted `u_texRepeat` and `u_texOffset` to `[1, 1]` if a `diffuseMap` was missing, even when other maps (like `emissiveMap` or `normalMap`) were present and configured with custom UV repeating.
+- **Feature: MIT License**: Officially published the engine under the permissive MIT License. Added a `LICENSE` file and updated the `package.json` license metadata.
+- **Enhancement: Procedural Grid Rendering**: Replaced 1px `WireframeMaterial` grids with a dynamically generated procedural Canvas texture on a `Plane` geometry using `BasicMaterial` in Example 19, eliminating Moiré aliasing and enabling true physical HDR Bloom for Tron-like aesthetics without PBR tone mapping interference.
+
 ## [0.44.0] - 2026-07-04
 
 - **Feature: Gamification & Interactions (Phase 1-4)**:

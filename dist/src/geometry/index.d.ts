@@ -19,3 +19,4 @@ export * from './TerrainManager.js';
 export * from './Torus.js';
 export * from './Triangle.js';
 export * from './Tube.js';
+export * from './Octahedron.js';

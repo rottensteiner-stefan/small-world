@@ -1,10 +1,16 @@
 /// src/core/behaviors/index.ts
 
 export * from "./Behavior.js";
-export * from "./FlickerBehavior.js";
-export * from "./ProximitySensorBehavior.js";
-export * from "./OscillatorBehavior.js";
-export * from "./PulsatingBehavior.js";
-export * from "./StateMachineBehavior.js";
 export * from "./HoverBehavior.js";
 export * from "./DraggableBehavior.js";
+export * from "./FlickerBehavior.js";
+export * from "./PulsatingBehavior.js";
+export * from "./ProximitySensorBehavior.js";
+export * from "./OscillatorBehavior.js";
+export * from "./StateMachineBehavior.js";
+export * from "./RotatorBehavior.js";
+export * from "./BobbingBehavior.js";
+export * from "./LookAtBehavior.js";
+export * from "./RainbowBehavior.js";
+export * from "./SpringLerpBehavior.js";
+export * from "./PathFollowerBehavior.js";

@@ -4,6 +4,8 @@ export * from "./Frustum.js";
 export * from "./GearMath.js";
 export * from "./MathUtils.js";
 export * from "./MathPool.js";
+export * from "./Curve3D.js";
+export * from "./CatmullRomSpline.js";
 export * from "./Matrix3.js";
 export * from "./Matrix4.js";
 export * from "./Quaternion.js";

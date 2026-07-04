@@ -118,14 +118,14 @@ export class Example15V2 extends AbstractExample {
     this.scene.add(this._orbitingLight);
 
     // 2. Load environment texture for skybox & PBR reflections
-    const brdfTexture = new Texture();
+    let brdfTexture: Texture;
     const irradianceTexture = new CubeTexture();
     const prefilterTexture = new CubeTexture();
     const envTexture = new CubeTexture();
 
     try {
-      await Promise.all([
-        brdfTexture.loadFrom("./assets/ibl/brdf_lut.png"),
+      [brdfTexture] = await Promise.all([
+        Texture.fromUrl("./assets/ibl/brdf_lut.png"),
         irradianceTexture.loadFrom("./assets/ibl/irradiance.png", CubeLayout.CROSS_HORIZONTAL),
         prefilterTexture.loadMipmapsFrom(
           [
