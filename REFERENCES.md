@@ -22,6 +22,20 @@ This document serves to record external sources, algorithms, mathematical deriva
 - **Source:** [Einführung in die 3D-Grafik (David Scherfgen)](https://www.david-scherfgen.de/downloads/neues-buch-kapitel-3d-grafik.pdf)
 - **Usage:** This book chapter provides a phenomenal overview of the entire rendering pipeline (from vector to pixel on the screen). It details topics such as the Phong lighting model (Ambient, Diffuse, Specular), shading types (Flat, Gouraud, Phong), texturing (MIP-mapping, Anti-Aliasing), and the Z-Buffer. **Note:** In contrast to `small-world` (OpenGL convention), this script primarily uses the Direct3D convention (left-handed coordinate system, row vectors).
 
+### Fast, Minimum Storage Ray/Triangle Intersection (Möller-Trumbore)
+
+- **File:** `src/physix/Raycaster.ts`
+- **Authors/Gurus:** Tomas Möller and Ben Trumbore (1997)
+- **Source:** [Fast, Minimum Storage Ray-Triangle Intersection](https://cadxfem.org/inf/Fast%20MinimumStorage%20RayTriangle%20Intersection.pdf)
+- **Usage:** This is the mathematical gold standard for ray-triangle intersection testing without requiring precomputed plane equations. Used in the `Raycaster` to provide mathematically exact, pixel-perfect polygon picking of 3D objects, directly against their `GeometryDataInterface` vertices after accelerating the queries with `Octree` AABB bounding box checks.
+
+### Octree Spatial Partitioning
+
+- **File:** `src/core/Octree.ts`
+- **Authors/Gurus:** Donald Meagher (1980)
+- **Source:** [Octree Encoding: A New Solid Representation for Computer Graphics](https://rpi.edu/)
+- **Usage:** Used as the fundamental spatial acceleration structure for the engine. It recursively divides 3D space into eight octants, allowing collision detection, frustum culling, and raycasting (picking) to operate in $O(\log n)$ time instead of $O(n)$, drastically improving performance in scenes with many objects.
+
 ## Rendering Architecture & Best Practices
 
 ### Physically Based Rendering (PBR)
@@ -35,6 +49,20 @@ This document serves to record external sources, algorithms, mathematical deriva
 - **Authors/Gurus:** Tomas Akenine-Möller, Eric Haines, Naty Hoffman
 - **Source:** [Real-Time Rendering (RTR)](https://www.realtimerendering.com/)
 - **Usage:** The bible for real-time rendering. Fundamental concepts such as Opaque vs. Transparent rendering order, back-to-front sorting, and state minimization (minimizing draw calls by efficiently grouping by pass -> shader -> material) are derived from here.
+
+### Percentage-Closer Filtering (PCF) for Soft Shadows
+
+- **File:** `WebGL2Renderer.ts`, `Phong.frag.glsl`, `Standard.frag.glsl`
+- **Authors/Gurus:** William T. Reeves, David H. Salesin, and Robert L. Cook (1987)
+- **Source:** [Rendering antialiased shadows with depth maps (SIGGRAPH 1987)](https://dl.acm.org/doi/10.1145/37402.37425)
+- **Usage:** The foundational technique for generating soft edges on shadow maps. By sampling the depth map multiple times around the target fragment and averaging the binary visibility results, jagged aliased shadows become smoothly blurred (especially when combined with hardware `sampler2DShadow`).
+
+### Dual Kawase Bloom (Post-Processing)
+
+- **File:** `BloomDownsample.frag.wgsl`, `BloomUpsample.frag.wgsl`, `PostProcessPass.ts`
+- **Authors/Gurus:** Masaki Kawase (2003) and Marius Bjørge (2014)
+- **Source:** [Bandwidth-Efficient Rendering (ARM)](https://community.arm.com/cfs-file/__key/communityserver-blogs-components-weblogfiles/00-00-00-20-66/siggraph2015_2D00_mmg_2D00_marius_2D00_notes.pdf)
+- **Usage:** Used as the high-performance WebGPU bloom filter. By downsampling using a 13-tap filter and upsampling using a 9-tap tent filter across a mip-chain, this technique produces extremely soft, high-quality glows spanning large screen areas at a fraction of the cost of a traditional Gaussian blur.
 
 ### Linear Color Space & Gamma Correctness
 
