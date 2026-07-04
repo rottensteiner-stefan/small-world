@@ -29,6 +29,9 @@ export declare class Object3D {
     onPointerEnter?: () => void;
     onPointerLeave?: () => void;
     onPointerClick?: () => void;
+    onPointerDown?: (ray: import('../physix/Ray.js').Ray, intersectionPoint: Vector3D) => void;
+    onPointerUp?: () => void;
+    onPointerMove?: (ray: import('../physix/Ray.js').Ray) => void;
     constructor(name?: string);
     add(...children: Object3D[]): void;
     remove(...children: Object3D[]): void;

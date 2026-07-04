@@ -26,6 +26,8 @@ export abstract class AbstractGeometry implements Geometry {
   protected _uvs: Float32Array = new Float32Array();
   /** Whether the geometry is purely line-based. */
   protected _isLineGeometry: boolean = false;
+  /** Cached bounding volume to prevent re-allocation */
+  protected _cachedBoundingVolume: BoundingVolume | undefined = undefined;
 
   /**
    * Generates the raw geometry data. Must be implemented by subclasses.
@@ -68,7 +70,10 @@ export abstract class AbstractGeometry implements Geometry {
 
   /** @inheritdoc */
   public getBoundingVolume(): BoundingVolume {
-    return BoundingBox.fromVertices(this._vertices);
+    if (!this._cachedBoundingVolume) {
+      this._cachedBoundingVolume = BoundingBox.fromVertices(this._vertices);
+    }
+    return this._cachedBoundingVolume;
   }
 
   /**

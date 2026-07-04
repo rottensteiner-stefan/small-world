@@ -20,6 +20,8 @@ export declare abstract class AbstractGeometry implements Geometry {
     protected _uvs: Float32Array;
     /** Whether the geometry is purely line-based. */
     protected _isLineGeometry: boolean;
+    /** Cached bounding volume to prevent re-allocation */
+    protected _cachedBoundingVolume: BoundingVolume | undefined;
     /**
      * Generates the raw geometry data. Must be implemented by subclasses.
      */

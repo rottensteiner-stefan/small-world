@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.44.0] - 2026-07-04
+
+- **Feature: Gamification & Interactions (Phase 1-4)**:
+  - **InteractionManager**: Added a built-in interaction layer to `SmallWorld` that listens to mouse and touch events and projects them into the 3D scene.
+  - **Object Events**: `Object3D` now natively supports `onPointerEnter`, `onPointerLeave`, `onPointerClick`, `onPointerDown`, `onPointerUp`, and `onPointerMove`.
+  - **Behaviors**: Introduced `HoverBehavior` (scales and emits neon glow on hover) and `DraggableBehavior` (allows free 3D drag & drop aligned with the camera's viewing plane).
+  - **Octree Acceleration**: Integrated $O(\log n)$ Raycasting via the engine's `Octree`. The `InteractionManager` will automatically use the `staticOctree` and `dynamicOctree` if present to skip thousands of intersections.
+  - **Pixel-Perfect Picking (Möller-Trumbore)**: Upgraded `Raycaster.ts` to perform a hybrid intersection strategy. After passing the AABB check, it performs mathematically precise Möller-Trumbore ray-triangle intersections against the object's geometry, allowing selection of exact pixels, irregular meshes, and holes.
+  - **Performance Optimization**: Extracted local bounding box caching into `AbstractGeometry` and optimized `Object3D.computeBounds()` to be zero-allocation (reusing instances), preventing GC freezes in scenes with thousands of moving objects.
+
 ## [0.43.0] - 2026-07-03
 
 - **Feature: Image-Based Lighting (IBL) Generator Tool**:
