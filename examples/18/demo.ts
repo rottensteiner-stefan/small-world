@@ -110,7 +110,7 @@ class Example18 extends SmallWorld {
         mesh.addBehavior(new DraggableBehavior(this.camera));
 
         // Add click interaction (Changes color permanently)
-        mesh.onPointerClick = () => {
+        mesh.onPointerClick = (): void => {
           (mesh.material as StandardMaterial).color.set(
             Math.random(),
             Math.random(),

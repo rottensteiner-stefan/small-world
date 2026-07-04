@@ -17,22 +17,7 @@ const u_bloomIntensity: f32 = 1.0;
 const u_bloomColor: vec3f = vec3f(1.0, 1.0, 1.0);
 const u_filterMode: u32 = 0u;
 
-struct LocalUniforms {
-    exposure: f32,
-    inverseGamma: f32,
-    toneMappingMode: u32,
-    vignetteEnabled: u32,
-    vignetteOffset: f32,
-    vignetteDarkness: f32,
-    vignetteRoundness: f32,
-    grainEnabled: u32,
-    grainIntensity: f32,
-    time: f32,
-    bloomEnabled: u32,
-    bloomIntensity: f32,
-    bloomColor: vec3f,
-    filterMode: u32,
-}
+
 
 struct TimeUniform {
     time: f32,
@@ -75,67 +60,53 @@ fn linearToSRGB(linear: vec3f, invGamma: f32) -> vec3f {
 
 @fragment
 fn fs_main(@location(0) uv: vec2f, @builtin(position) coord: vec4f) -> @location(0) vec4f {
-    var u: LocalUniforms;
-    u.exposure = u_exposure;
-    u.inverseGamma = u_inverseGamma;
-    u.toneMappingMode = u_toneMappingMode;
-    u.vignetteEnabled = u_vignetteEnabled;
-    u.vignetteOffset = u_vignetteOffset;
-    u.vignetteDarkness = u_vignetteDarkness;
-    u.vignetteRoundness = u_vignetteRoundness;
-    u.grainEnabled = u_grainEnabled;
-    u.grainIntensity = u_grainIntensity;
-    u.time = dyn.time;
-    u.bloomEnabled = u_bloomEnabled;
-    u.bloomIntensity = u_bloomIntensity;
-    u.bloomColor = u_bloomColor;
-    u.filterMode = u_filterMode;
+    let u_time = dyn.time;
 
     let dims = vec2f(textureDimensions(hdrTexture, 0));
 
     var distortUv = uv;
 
     // Cyber Glitch (mode 3)
-    if (3u == u.filterMode) {
+    if (3u == u_filterMode) {
 [FILTER_GLITCH_DISTORT]
     }
     // VHS Tape (mode 4)
-    else if (4u == u.filterMode) {
+    else if (4u == u_filterMode) {
 [FILTER_VHS_DISTORT]
     }
     // Night Vision (mode 1)
-    else if (1u == u.filterMode) {
-        let jitter = (random(vec2f(u.time * 10.0, uv.y)) - 0.5) * 0.001;
+    else if (1u == u_filterMode) {
+        let jitter = (random(vec2f(u_time * 10.0, uv.y)) - 0.5) * 0.001;
         distortUv.x += jitter;
     }
     // Old Projector (mode 6)
-    else if (6u == u.filterMode) {
-        let shakeX = (random(vec2f(u.time * 6.0, 1.0)) - 0.5) * 0.002;
-        let shakeY = (random(vec2f(u.time * 10.0, 2.0)) - 0.5) * 0.004;
+    else if (6u == u_filterMode) {
+        let shakeX = (random(vec2f(u_time * 6.0, 1.0)) - 0.5) * 0.002;
+        let shakeY = (random(vec2f(u_time * 10.0, 2.0)) - 0.5) * 0.004;
         var jump = 0.0;
-        if (random(vec2f(floor(u.time * 4.0), 3.0)) > 0.88) {
-            jump = (random(vec2f(u.time, 4.0)) - 0.5) * 0.012;
+        if (random(vec2f(floor(u_time * 4.0), 3.0)) > 0.88) {
+            jump = (random(vec2f(u_time, 4.0)) - 0.5) * 0.012;
         }
         distortUv.x += shakeX;
         distortUv.y += shakeY + jump;
     }
 
     var hdr: vec3f;
-    if (3u == u.filterMode) { // Cyber Glitch (High CA)
+    if (3u == u_filterMode) { // Cyber Glitch (High CA)
         let dir = distortUv - 0.5;
-        let shift = 0.025 + 0.015 * sin(u.time * 4.0);
+        let shift = 0.025 + 0.015 * sin(u_time * 4.0);
         hdr = vec3f(
             textureSample(hdrTexture, hdrSampler, distortUv - dir * shift).r,
             textureSample(hdrTexture, hdrSampler, distortUv).g,
             textureSample(hdrTexture, hdrSampler, distortUv + dir * shift).b
         );
-    } else if (4u == u.filterMode) { // VHS Tape (Linear CA)
+    } else if (4u == u_filterMode) { // VHS Tape (Linear CA)
         hdr = vec3f(
             textureSample(hdrTexture, hdrSampler, distortUv - vec2f(0.008, 0.0)).r,
             textureSample(hdrTexture, hdrSampler, distortUv).g,
             textureSample(hdrTexture, hdrSampler, distortUv + vec2f(0.008, 0.0)).b
         );
-    } else if (2u == u.filterMode) { // Noir Detective (Edge CA)
+    } else if (2u == u_filterMode) { // Noir Detective (Edge CA)
         let dir = distortUv - 0.5;
         let shift = 0.006 * length(dir);
         hdr = vec3f(
@@ -148,17 +119,17 @@ fn fs_main(@location(0) uv: vec2f, @builtin(position) coord: vec4f) -> @location
     }
 
     // Bloom
-    if (1u == u.bloomEnabled) {
+    if (1u == u_bloomEnabled) {
         var bloom: vec3f;
-        if (3u == u.filterMode) {
+        if (3u == u_filterMode) {
             let dir = distortUv - 0.5;
-            let shift = 0.025 + 0.015 * sin(u.time * 4.0);
+            let shift = 0.025 + 0.015 * sin(u_time * 4.0);
             bloom = vec3f(
                 textureSample(bloomTexture, hdrSampler, distortUv - dir * shift).r,
                 textureSample(bloomTexture, hdrSampler, distortUv).g,
                 textureSample(bloomTexture, hdrSampler, distortUv + dir * shift).b
             );
-        } else if (4u == u.filterMode) {
+        } else if (4u == u_filterMode) {
             bloom = vec3f(
                 textureSample(bloomTexture, hdrSampler, distortUv - vec2f(0.008, 0.0)).r,
                 textureSample(bloomTexture, hdrSampler, distortUv).g,
@@ -167,39 +138,39 @@ fn fs_main(@location(0) uv: vec2f, @builtin(position) coord: vec4f) -> @location
         } else {
             bloom = textureSample(bloomTexture, hdrSampler, distortUv).rgb;
         }
-        hdr += bloom * u.bloomIntensity * u.bloomColor;
+        hdr += bloom * u_bloomIntensity * u_bloomColor;
     }
 
-    var tonemapped = hdr * u.exposure;
-    if (1u == u.toneMappingMode) {
-        tonemapped = toneMapReinhard(hdr, u.exposure);
-    } else if (2u == u.toneMappingMode) {
-        tonemapped = toneMapCineon(hdr, u.exposure);
-    } else if (3u == u.toneMappingMode) {
-        tonemapped = toneMapACESFilmic(hdr, u.exposure);
+    var tonemapped = hdr * u_exposure;
+    if (1u == u_toneMappingMode) {
+        tonemapped = toneMapReinhard(hdr, u_exposure);
+    } else if (2u == u_toneMappingMode) {
+        tonemapped = toneMapCineon(hdr, u_exposure);
+    } else if (3u == u_toneMappingMode) {
+        tonemapped = toneMapACESFilmic(hdr, u_exposure);
     }
 
-    var srgb = linearToSRGB(tonemapped, u.inverseGamma);
+    var srgb = linearToSRGB(tonemapped, u_inverseGamma);
 
     // Apply Vignette if enabled
-    if (1u == u.vignetteEnabled) {
+    if (1u == u_vignetteEnabled) {
         let d_uv = abs(distortUv - vec2f(0.5)) * 2.0;
         var d = 0.0;
-        if (u.vignetteRoundness == 2.0) {
+        if (u_vignetteRoundness == 2.0) {
             d = length(d_uv);
         } else {
-            d = pow(pow(d_uv.x, u.vignetteRoundness) + pow(d_uv.y, u.vignetteRoundness), 1.0 / u.vignetteRoundness);
+            d = pow(pow(d_uv.x, u_vignetteRoundness) + pow(d_uv.y, u_vignetteRoundness), 1.0 / u_vignetteRoundness);
         }
         let d_old_scale = d * 0.5;
-        let innerRadius = u.vignetteOffset * 0.5;
-        let vignette = 1.0 - smoothstep(innerRadius, u.vignetteOffset, d_old_scale);
-        srgb *= mix(1.0, vignette, clamp(u.vignetteDarkness, 0.0, 1.0));
+        let innerRadius = u_vignetteOffset * 0.5;
+        let vignette = 1.0 - smoothstep(innerRadius, u_vignetteOffset, d_old_scale);
+        srgb *= mix(1.0, vignette, clamp(u_vignetteDarkness, 0.0, 1.0));
     }
 
     // Apply Film Grain
-    if (1u == u.grainEnabled) {
-        let noise = random(uv * dims + vec2f(u.time, -u.time));
-        let grain = (noise - 0.5) * u.grainIntensity;
+    if (1u == u_grainEnabled) {
+        let noise = random(uv * dims + vec2f(u_time, -u_time));
+        let grain = (noise - 0.5) * u_grainIntensity;
         srgb += vec3f(grain);
     }
 

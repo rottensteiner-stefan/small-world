@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.46.0] - 2026-07-05
+
+- **Housekeeping & Optimization**: 
+  - **TypeScript Strictness**: Enforced explicit `: void` return types on all Arrow Functions across demos, examples, and tools (`demo.ts`, `ibl-gen.ts`, tests) to perfectly align with engine coding guidelines.
+  - **WebGPU Shader Optimization**: Eradicated dynamic branching (`if / else if`) inside the `PostProcess.frag.wgsl` pipeline. Migrated parameters from mutable `LocalUniforms` structs back to globally evaluated compile-time `const` flags (`u_filterMode`, `u_vignetteEnabled`, etc.), ensuring absolute dead-code elimination by the shader compiler. This ensures massive performance gains on the GPU for branch-free pipeline execution.
+
 ## [0.45.0] - 2026-07-04
 
 - **Bugfix: StandardMaterial UV Scaling**: Fixed a critical bug in the core engine where `StandardMaterial` defaulted `u_texRepeat` and `u_texOffset` to `[1, 1]` if a `diffuseMap` was missing, even when other maps (like `emissiveMap` or `normalMap`) were present and configured with custom UV repeating.

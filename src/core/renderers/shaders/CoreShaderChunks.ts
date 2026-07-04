@@ -123,19 +123,19 @@ export class CoreShaderChunks {
 
     // Dynamically assemble WGSL color grading filters
     const filterColorGradingWGSL = `
-    if (1u == u.filterMode) { // Night Vision
+    if (1u == u_filterMode) { // Night Vision
         ${filterNightVisionWGSL}
-    } else if (2u == u.filterMode) { // Noir Detective
+    } else if (2u == u_filterMode) { // Noir Detective
         ${filterNoirWGSL}
-    } else if (3u == u.filterMode) { // Cyber Glitch
+    } else if (3u == u_filterMode) { // Cyber Glitch
         ${filterCyberGlitchWGSL}
-    } else if (4u == u.filterMode) { // VHS Tape
+    } else if (4u == u_filterMode) { // VHS Tape
         ${filterVhsTapeWGSL}
-    } else if (5u == u.filterMode) { // Underworld
+    } else if (5u == u_filterMode) { // Underworld
         ${filterUnderworldWGSL}
-    } else if (6u == u.filterMode) { // Old Projector
+    } else if (6u == u_filterMode) { // Old Projector
         ${filterOldProjectorWGSL}
-    } else if (7u == u.filterMode) { // Thermal Vision
+    } else if (7u == u_filterMode) { // Thermal Vision
         ${filterThermalVisionWGSL}
     }
     `;

@@ -579,7 +579,7 @@ class IBLBaker {
   }
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", (): void => {
   const input = document.getElementById("skyboxInput") as HTMLInputElement;
   const generateBtn = document.getElementById("generateBtn") as HTMLButtonElement;
   const exportBtn = document.getElementById("exportBtn") as HTMLButtonElement;
@@ -603,7 +603,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  input.addEventListener("change", () => {
+  input.addEventListener("change", (): void => {
     if (input.files && input.files.length > 0) {
       handleFileSelect(input.files[0]!);
     }
@@ -616,7 +616,7 @@ document.addEventListener("DOMContentLoaded", () => {
     dropzone.classList.add("dragover");
   });
 
-  dropzone.addEventListener("dragleave", () => {
+  dropzone.addEventListener("dragleave", (): void => {
     dropzone.classList.remove("dragover");
   });
 
@@ -633,7 +633,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let generatedIrradianceCube: WebGLTexture | null = null;
   let generatedPrefilteredCube: WebGLTexture | null = null;
 
-  generateBtn.addEventListener("click", async () => {
+  generateBtn.addEventListener("click", async (): Promise<void> => {
     if (!baker || !input.files || input.files.length === 0) return;
     generateBtn.disabled = true;
     exportBtn.disabled = true;
@@ -672,7 +672,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  exportBtn.addEventListener("click", async () => {
+  exportBtn.addEventListener("click", async (): Promise<void> => {
     if (!baker || !generatedEnvCube || !generatedIrradianceCube || !generatedPrefilteredCube)
       return;
     exportBtn.disabled = true;
@@ -708,7 +708,7 @@ document.addEventListener("DOMContentLoaded", () => {
       URL.revokeObjectURL(url);
 
       exportBtn.innerText = "Export Complete!";
-      setTimeout(() => {
+      setTimeout((): void => {
         exportBtn.innerText = originalText;
         exportBtn.disabled = false;
       }, 2000);

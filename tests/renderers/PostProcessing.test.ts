@@ -49,7 +49,7 @@ describe("Post-Processing Shader Chunks & Groups", () => {
     expect(gradingGLSL).toBeDefined();
     expect(gradingWGSL).toBeDefined();
     expect(gradingGLSL).toContain("u_filterMode");
-    expect(gradingWGSL).toContain("u.filterMode");
+    expect(gradingWGSL).toContain("u_filterMode");
   });
 
   it("should assemble GLSL post-processing fragment shader resolving all chunks", () => {
@@ -94,10 +94,10 @@ describe("Post-Processing Shader Chunks & Groups", () => {
     expect(wgslAssembled).not.toContain("[FILTER_GLITCH_DISTORT]");
     expect(wgslAssembled).not.toContain("[FILTER_VHS_DISTORT]");
     expect(wgslAssembled).not.toContain("[FILTER_COLOR_GRADING]");
-    expect(wgslAssembled).toContain("let glitchTime = u.time * 3.0;");
-    expect(wgslAssembled).toContain("if (1u == u.filterMode)");
-    expect(wgslAssembled).toContain("else if (6u == u.filterMode)");
-    expect(wgslAssembled).toContain("else if (7u == u.filterMode)");
+    expect(wgslAssembled).toContain("let glitchTime = u_time * 3.0;");
+    expect(wgslAssembled).toContain("if (1u == u_filterMode)");
+    expect(wgslAssembled).toContain("else if (6u == u_filterMode)");
+    expect(wgslAssembled).toContain("else if (7u == u_filterMode)");
   });
 
   it("should correctly load settings from config and inject them into GLSL and WGSL source templates", () => {
