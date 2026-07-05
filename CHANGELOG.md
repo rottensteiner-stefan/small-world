@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.46.2] - 2026-07-05
+
+- **Feature (Mobile Optimization):** Implemented a rigorous `DeviceDetector` that calculates a device `PerformanceTier` based on experimental navigator features (`hardwareConcurrency`, `deviceMemory`, `navigator.gpu`) and thermal throttling estimates. Mobile devices are now aggressively down-scaled (Bloom off, HDR off, 0 MSAA, 512px Shadows) to guarantee 60fps on smartphone GPUs.
+- **Feature (Gadget Inspector):** Added a global toggle switch `disableTextures` inside the `Renderer Settings` folder, which overrides rendering on all backends (WebGL1/2, WebGPU) with a 1x1 fallback texture to visually debug geometry and lighting instantly.
+- **Bugfix (Build Pipeline):** Changed `drop_console` to `false` in the Terser minification config. `console.log` statements are now properly preserved in production, ensuring engine initialization logs and performance tier reports are visible in deployed builds.
+- **Bugfix (ConfigLoader):** Fixed a 404 error when loading `small-world.json` on GitHub Pages by adapting the fetch logic to first probe the correct repository sub-path (`/small-world/config/small-world.json`) before falling back to local domain root.
+- **UI Enhancement:** Responsive design logic injected into the showcase templates. Navigation UI automatically scales down and drops verbose text labels on smartphones (`max-width: 768px`), leaving only arrows and improving viewport clarity.
+
 ## [0.46.1] - 2026-07-05
 
 - **CI/CD & Housekeeping**: Upgraded GitHub Actions workflow dependencies (`checkout@v7`, `setup-node@v6`, `configure-pages@v6`, `deploy-pages@v5`, `upload-pages-artifact@v5`) to their latest major versions. This completely resolves the Node 20 deprecation warnings on GitHub Actions runners during documentation deployment.
