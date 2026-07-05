@@ -33,6 +33,7 @@ export abstract class AbstractRenderer implements Renderer {
     toneMapping: ToneMapping.NONE,
     gamma: 2.2,
     exposure: 1.0,
+    disableTextures: false,
   };
 
   /** The global post processing volume/group. */
