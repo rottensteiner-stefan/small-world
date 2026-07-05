@@ -60,6 +60,11 @@ export interface Renderer {
   readonly clearColor: Color;
 
   /**
+   * Gets the global quality settings of the renderer.
+   */
+  readonly quality: import("./EngineOptions.js").QualityConfig;
+
+  /**
    * Destroys the renderer and releases its resources.
    */
   destroy?(): void;

@@ -48,6 +48,8 @@ export interface QualityConfig {
   gamma?: number;
   /** Global exposure factor for brightness control. Defaults to 1.0. */
   exposure?: number;
+  /** Global toggle to disable all textures (renders default fallback textures). Defaults to false. */
+  disableTextures?: boolean;
 }
 
 /**

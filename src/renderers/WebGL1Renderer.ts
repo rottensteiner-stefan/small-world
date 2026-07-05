@@ -237,6 +237,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
   }
 
   private _getWebGLTexture(tex: Texture): WebGLTexture {
+    if (this._quality?.disableTextures) return this.defaultTexture;
     if (!tex.isLoaded || !tex.image) return this.defaultTexture;
     let glTex: WebGLTexture | undefined = this._texCache.get(tex);
     if (!glTex) {
@@ -268,6 +269,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
   }
 
   private _getWebGLCubeTexture(tex: CubeTexture): WebGLTexture {
+    if (this._quality?.disableTextures) return this.defaultCubeTexture;
     if (!tex.isLoaded || tex.images.length !== 6) return this.defaultCubeTexture;
     let glTex: WebGLTexture | undefined = this._texCubeCache.get(tex);
     if (!glTex) {

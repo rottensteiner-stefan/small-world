@@ -86,6 +86,11 @@ export abstract class AbstractRenderer implements Renderer {
     return this._clearColor;
   }
 
+  /** @inheritdoc */
+  public get quality(): QualityConfig {
+    return this._quality;
+  }
+
   /**
    * Extracts all lights from the scene for rendering.
    * @param scene The scene to extract lights from.
