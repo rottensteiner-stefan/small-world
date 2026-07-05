@@ -3,7 +3,7 @@ import { EngineOptions } from '../../interfaces/index.js';
 export declare abstract class AbstractShowcase extends SmallWorld {
     /**
      * The constructor is passed to Application.
-     * Also registers the global keyboard listener for showcasess.
+     * Also registers the global keyboard listener for showcases.
      */
     constructor(config?: EngineOptions);
     /**
