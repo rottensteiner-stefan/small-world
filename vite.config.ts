@@ -3,6 +3,8 @@ import { resolve } from "path";
 import mkcert from "vite-plugin-mkcert";
 import http from "http";
 import EventEmitter from "events";
+import fs from "fs";
+import path from "path";
 
 EventEmitter.defaultMaxListeners = 50;
 
@@ -56,6 +58,26 @@ export default defineConfig({
               });
           }
         });
+      },
+    },
+    {
+      name: "copy-assets",
+      closeBundle() {
+        const copyRecursiveSync = (src: string, dest: string) => {
+          if (!fs.existsSync(src)) return;
+          const stats = fs.statSync(src);
+          if (stats.isDirectory()) {
+            fs.mkdirSync(dest, { recursive: true });
+            fs.readdirSync(src).forEach((child) => {
+              copyRecursiveSync(path.join(src, child), path.join(dest, child));
+            });
+          } else {
+            if (!src.endsWith(".ts") && !src.endsWith(".html")) {
+              fs.copyFileSync(src, dest);
+            }
+          }
+        };
+        copyRecursiveSync("showcases", "dist/showcases");
       },
     },
     mkcert(),
