@@ -1,6 +1,7 @@
 import { defineConfig } from "vitepress";
 
 export default defineConfig({
+  base: "/small-world/",
   title: "Small World Engine",
   description:
     "A lightweight, high-performance, modular 3D game engine for the web built with TypeScript.",
