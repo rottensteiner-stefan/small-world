@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.46.1] - 2026-07-05
+
+- **CI/CD & Housekeeping**: Upgraded GitHub Actions workflow dependencies (`checkout@v7`, `setup-node@v6`, `configure-pages@v6`, `deploy-pages@v5`, `upload-pages-artifact@v5`) to their latest major versions. This completely resolves the Node 20 deprecation warnings on GitHub Actions runners during documentation deployment.
+
 ## [0.46.0] - 2026-07-05
 
 - **Housekeeping & Optimization**: 
