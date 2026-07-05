@@ -1,4 +1,4 @@
-# Architecture & Code Examples
+# Architecture & Code Showcases
 
 The Small World Engine has a modular design and uses composition over deep inheritance. Below is an overview of the most important classes, interfaces, and parameters that you will work with on a daily basis, as well as concrete code examples to get you started.
 
@@ -12,7 +12,7 @@ For a complete list of _all_ classes, methods, and type declarations (incl. cons
 
 The heart of the engine is the `Object3D` class. Everything that exists in the world (meshes, cameras, virtual anchors) is or inherits from `Object3D`. It manages the local and global transformation matrices, geometry, and material.
 
-### Example: Creating and placing an object
+### Showcase: Creating and placing an object
 
 ```typescript
 import { Object3D, Cube, StandardMaterial, Color } from "small-world";
@@ -49,7 +49,7 @@ this.scene.add(player);
 
 The engine does not use a rigid camera model. Instead, there is a base `Camera` that is controlled by flexible **strategies** (like `SmoothStrategy`, `IsometricStrategy`) and **controllers** (`FPSController`, `ZoomController`).
 
-### Example: First-Person Shooter Camera (FPS)
+### Showcase: First-Person Shooter Camera (FPS)
 
 ```typescript
 import { FPSController, StiffStrategy } from "small-world";
@@ -79,7 +79,7 @@ Small World uses a hybrid rendering approach (WebGL2 & WebGPU) based on the Cook
 - `GlassMaterial`: A refractive material for glass or water with true refraction (`ior`) and volume absorption (`absorptionColor`).
 - `SpriteMaterial`: For 2D/2.5D billboards that always face the camera.
 
-### Example: Glass/Water Material with Index of Refraction
+### Showcase: Glass/Water Material with Index of Refraction
 
 ```typescript
 import { GlassMaterial, Color } from "small-world";
@@ -102,7 +102,7 @@ waterSurface.material = water;
 
 You shouldn't write complex logic into a giant `update()` loop. Instead, use the **Behavior system** to attach isolated logic blocks (components) to an `Object3D`.
 
-### Example: A Pulse Behavior
+### Showcase: A Pulse Behavior
 
 ```typescript
 import { Behavior, Object3D } from "small-world";

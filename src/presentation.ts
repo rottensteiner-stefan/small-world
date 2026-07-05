@@ -12,7 +12,7 @@ import {
   RendererType,
   PostProcessingEffectType,
   CubeTexture,
-  AbstractExample,
+  AbstractShowcase,
   Cube,
   SkyboxMaterial,
   GltfLoader,
@@ -23,7 +23,7 @@ import {
 // 2. Interactive 3D App for Slide 5
 // ============================================================================
 
-class PresentationDemoApp extends AbstractExample {
+class PresentationDemoApp extends AbstractShowcase {
   private _helmet?: Object3D;
   private _isDragging = false;
   private _lastMouseX = 0;
@@ -99,7 +99,7 @@ class PresentationDemoApp extends AbstractExample {
     // Load Environment Map
     const envTexture = new CubeTexture();
     try {
-      await envTexture.loadFrom("/examples/13/assets/skybox.png");
+      await envTexture.loadFrom("/showcases/13/assets/skybox.png");
 
       const skybox = new Object3D("Skybox");
       skybox.geometry = new Cube({ size: 1000 }).getGeometryData();
@@ -107,12 +107,12 @@ class PresentationDemoApp extends AbstractExample {
       skybox.frustumCulled = false;
       this.scene.add(skybox);
     } catch (e) {
-      console.warn("Could not load envmap for presentation demo:", e);
+      console.warn("Could not load envmap for presentation showcases:", e);
     }
 
     // Load GLTF Model (Damaged Helmet)
     try {
-      const gltfLoader = new GltfLoader({ basePath: "/examples/13/assets/" });
+      const gltfLoader = new GltfLoader({ basePath: "/showcases/13/assets/" });
       const helmet = await gltfLoader.load("DamagedHelmet.glb");
       helmet.position.set(0, 0, 0);
 
@@ -131,7 +131,7 @@ class PresentationDemoApp extends AbstractExample {
       this._helmet = helmet;
       this.scene.add(helmet);
     } catch (e) {
-      console.error("Failed to load DamagedHelmet in presentation demo:", e);
+      console.error("Failed to load DamagedHelmet in presentation showcases:", e);
     }
 
     // Hide loader overlay once ready

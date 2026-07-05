@@ -24,7 +24,7 @@ import { Material } from "./Material.js";
 import { Color } from "../../math/Color.js";
 import { Vector3D } from "../../math/Vector3D.js";
 
-export class ExampleMaterial extends Material {
+export class ShowcaseMaterial extends Material {
   public color: Color;
   private _shininess: number;
 
