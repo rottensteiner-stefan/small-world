@@ -20,7 +20,7 @@ export default defineConfig({
         comments: false, // Strips out absolutely ALL comments
       },
       compress: {
-        drop_console: true,
+        drop_console: false,
         drop_debugger: true,
         passes: 2, // Runs the optimizer twice over the code (for maximum compression)
       },

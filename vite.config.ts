@@ -91,7 +91,7 @@ export default defineConfig({
         comments: false,
       },
       compress: {
-        drop_console: true,
+        drop_console: false,
         drop_debugger: true,
         passes: 2,
       },

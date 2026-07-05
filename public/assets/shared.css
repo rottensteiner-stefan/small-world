@@ -101,6 +101,23 @@ header#info p.credits {
   text-shadow: none;
 }
 
+/* --- Mobile Responsive Navigation --- */
+@media (max-width: 768px) {
+  .example-nav {
+    top: 10px;
+    left: 10px;
+    gap: 8px;
+  }
+  .example-nav .nav-btn {
+    padding: 6px 12px;
+    font-size: 1rem;
+    letter-spacing: 1px;
+  }
+  .hide-mobile {
+    display: none;
+  }
+}
+
 /* --- Global Footer --- */
 .app-footer {
   position: fixed;
