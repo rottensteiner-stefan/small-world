@@ -39,6 +39,13 @@ jobs:
       - name: Build VitePress
         run: npm run docs:build
 
+      - name: Build Showcases
+        run: |
+          npx vite build --base=/small-world/showcases/
+          cp -a dist/public/. dist/
+          rm -rf dist/public
+          mv dist docs/.vitepress/dist/showcases
+
       - name: Setup Pages
         uses: actions/configure-pages@v6
 
