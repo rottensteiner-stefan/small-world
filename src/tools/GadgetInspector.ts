@@ -97,6 +97,18 @@ export class GadgetInspector {
       label: "Visible Objects",
     });
 
+    if (this._renderer && this._renderer.quality) {
+      const renderFolder = (
+        this._pane as unknown as {
+          addFolder: (params: { title: string; expanded?: boolean }) => FolderApi;
+        }
+      ).addFolder({ title: "Renderer Settings", expanded: true });
+
+      renderFolder.addBinding(this._renderer.quality, "disableTextures", {
+        label: "Disable Textures",
+      });
+    }
+
     const capsFolder = (
       this._pane as unknown as {
         addFolder: (params: { title: string; expanded?: boolean }) => FolderApi;

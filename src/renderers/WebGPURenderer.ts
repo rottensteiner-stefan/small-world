@@ -1144,6 +1144,7 @@ export class WebGPURenderer extends AbstractRenderer {
   }
 
   protected _getTextureView(tex: Texture | undefined): GPUTextureView {
+    if (this._quality?.disableTextures) return this._whiteTexView;
     if (!tex || !tex.isLoaded || !tex.image) return this._whiteTexView;
     let v = this._textureViewCache.get(tex);
     if (!v) {
@@ -1171,6 +1172,7 @@ export class WebGPURenderer extends AbstractRenderer {
   }
 
   protected _getGPUCubeTextureView(tex: CubeTexture | undefined): GPUTextureView {
+    if (this._quality?.disableTextures) return this._defaultCubeTexView;
     if (!tex || !tex.isLoaded) return this._defaultCubeTexView;
     if (tex instanceof RenderTargetCube) {
       const v = this._cubeTextureViewCache.get(tex);
