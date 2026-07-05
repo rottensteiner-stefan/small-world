@@ -16,6 +16,7 @@ import { Input } from "./Input.js";
 import { InteractionManager } from "./InteractionManager.js";
 import { ConfigLoader } from "./ConfigLoader.js";
 import { DeviceCaps, DeviceFeature, DeviceLimit } from "./DeviceCaps.js";
+import { DeviceDetector } from "./DeviceDetector.js";
 import { ShaderBootstrap } from "./renderers/shaders/ShaderBootstrap.js";
 import { FrustumCuller } from "./FrustumCuller.js";
 import { CollisionVisualizer, OctreeVisualizer } from "../utils/index.js";
@@ -127,6 +128,33 @@ export abstract class SmallWorld {
         this.config = { ...this.config, ...(jsonConfig as EngineOptions), ...this._userConfig };
       } catch {
         console.warn("Using fallback configuration (No JSON found).");
+      }
+
+      const tier = DeviceDetector.getPerformanceTier();
+      if (tier === "LOW") {
+        console.warn(
+          `📉 Low Performance Tier detected (${DeviceDetector.isMobile() ? "Mobile" : "Desktop"}). Applying aggressive performance downgrades.`,
+        );
+        this.config.quality = {
+          ...this.config.quality,
+          hdr: false,
+          msaa: 0,
+          maxAnisotropy: 1,
+          maxShadowResolution: 512,
+        };
+        this.config.postProcessing = {
+          ...this.config.postProcessing,
+          enabled: false,
+        };
+      } else if (tier === "MEDIUM") {
+        console.log("📊 Medium Performance Tier detected. Adjusting some settings.");
+        this.config.quality = {
+          ...this.config.quality,
+          msaa: 2,
+          maxAnisotropy: 2,
+        };
+      } else {
+        console.log("🚀 High Performance Tier detected. Running at full throttle.");
       }
 
       this.canvas = document.getElementById(this.config.canvasId!) as HTMLCanvasElement;
