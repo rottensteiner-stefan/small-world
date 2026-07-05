@@ -7,6 +7,7 @@ import EventEmitter from "events";
 EventEmitter.defaultMaxListeners = 50;
 
 export default defineConfig({
+  base: "./",
   publicDir: "public",
   test: {
     globals: true,
