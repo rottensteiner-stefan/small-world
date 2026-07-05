@@ -123,11 +123,21 @@ export abstract class SmallWorld {
     }
 
     if (!this._isInitialized) {
+      let jsonConfig;
       try {
-        const jsonConfig = await ConfigLoader.load("/config/small-world.json");
-        this.config = { ...this.config, ...(jsonConfig as EngineOptions), ...this._userConfig };
+        // Try GitHub Pages path first
+        jsonConfig = await ConfigLoader.load("/small-world/config/small-world.json");
       } catch {
-        console.warn("Using fallback configuration (No JSON found).");
+        try {
+          // Fallback to local root path
+          jsonConfig = await ConfigLoader.load("/config/small-world.json");
+        } catch {
+          console.warn("Using fallback configuration (No JSON found).");
+        }
+      }
+
+      if (jsonConfig) {
+        this.config = { ...this.config, ...(jsonConfig as EngineOptions), ...this._userConfig };
       }
 
       const tier = DeviceDetector.getPerformanceTier();
@@ -217,6 +227,12 @@ export abstract class SmallWorld {
 
       this.renderer.setSize(this.canvas.width, this.canvas.height);
 
+      console.log(
+        `%c🌍 Small World Engine v${ENGINE_VERSION} initialized\n%cRenderer: ${this.renderer.constructor.name}`,
+        "color: #00ffcc; font-size: 14px; font-weight: bold;",
+        "color: #aaaaaa; font-size: 12px;",
+      );
+
       this.camera.aspect = this.canvas.clientWidth / this.canvas.clientHeight;
       this.camera.updateProjectionMatrix();
 
@@ -229,12 +245,6 @@ export abstract class SmallWorld {
         this._inspector = new GadgetInspector(this.scene, this.camera, this.canvas, this.renderer);
         this.onInspectorReady(this._inspector);
       }
-
-      console.log(
-        `%c🌍 Small World Engine v${ENGINE_VERSION} initialized\n%cRenderer: ${this.renderer.constructor.name}`,
-        "color: #00ffcc; font-size: 14px; font-weight: bold;",
-        "color: #aaaaaa; font-size: 12px;",
-      );
 
       console.table({
         "API - WebGL1": DeviceCaps.hasFeature(DeviceFeature.WEBGL1) ? "Yes" : "No",
