@@ -17,7 +17,7 @@ export * from './Scene.js';
 export * from './Skybox.js';
 export * from './Skydome.js';
 export * from './Sprite.js';
-export * from './example/AbstractExample.js';
+export * from './showcase/AbstractShowcase.js';
 export * from './controllers/index.js';
 export * from './renderers/shaders/RenderManifest.js';
 export * from './renderers/shaders/ShaderDefinition.js';

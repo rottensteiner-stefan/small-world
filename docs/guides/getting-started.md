@@ -12,7 +12,7 @@ npm install small-world
 
 ## Basic Setup
 
-The engine uses a strategy-based lifecycle. You subclass `AbstractExample` (or `Application` depending on your wrapper) and override the `setupScene` and `update` lifecycle methods.
+The engine uses a strategy-based lifecycle. You subclass `AbstractShowcase` (or `Application` depending on your wrapper) and override the `setupScene` and `update` lifecycle methods.
 
 ### 1. Engine Configuration (`public/config/small-world.json`)
 
@@ -33,13 +33,13 @@ By default, the engine loads its configuration from a static JSON file. This fil
 }
 ```
 
-### 2. Basic Example Implementation
+### 2. Basic Showcase Implementation
 
 Create a file named `app.ts` to boot the engine:
 
 ```typescript
 import {
-  AbstractExample,
+  AbstractShowcase,
   Color,
   Cube,
   Object3D,
@@ -47,7 +47,7 @@ import {
   StandardMaterial,
 } from "small-world";
 
-class MyFirstWorld extends AbstractExample {
+class MyFirstWorld extends AbstractShowcase {
   protected override async setupScene(): Promise<void> {
     // 1. Create a green PBR cube
     const cubeObj = new Object3D("RotatingCube");

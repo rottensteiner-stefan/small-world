@@ -1,9 +1,9 @@
-import { AbstractExample } from '../../index.js';
+import { AbstractShowcase } from '../../index.js';
 /**
  * YAD (Yet Another Doom)
  * Building a grid-based level from a text file.
  */
-export declare class YadApp extends AbstractExample {
+export declare class YadApp extends AbstractShowcase {
     private _time;
     private _lavaMaterials;
     private _lavaLights;

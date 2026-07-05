@@ -7,14 +7,14 @@
 ## [0.46.0] - 2026-07-05
 
 - **Housekeeping & Optimization**: 
-  - **TypeScript Strictness**: Enforced explicit `: void` return types on all Arrow Functions across demos, examples, and tools (`demo.ts`, `ibl-gen.ts`, tests) to perfectly align with engine coding guidelines.
+  - **TypeScript Strictness**: Enforced explicit `: void` return types on all Arrow Functions across showcasess, examples, and tools (`showcase.ts`, `ibl-gen.ts`, tests) to perfectly align with engine coding guidelines.
   - **WebGPU Shader Optimization**: Eradicated dynamic branching (`if / else if`) inside the `PostProcess.frag.wgsl` pipeline. Migrated parameters from mutable `LocalUniforms` structs back to globally evaluated compile-time `const` flags (`u_filterMode`, `u_vignetteEnabled`, etc.), ensuring absolute dead-code elimination by the shader compiler. This ensures massive performance gains on the GPU for branch-free pipeline execution.
 
 ## [0.45.0] - 2026-07-04
 
 - **Bugfix: StandardMaterial UV Scaling**: Fixed a critical bug in the core engine where `StandardMaterial` defaulted `u_texRepeat` and `u_texOffset` to `[1, 1]` if a `diffuseMap` was missing, even when other maps (like `emissiveMap` or `normalMap`) were present and configured with custom UV repeating.
 - **Feature: MIT License**: Officially published the engine under the permissive MIT License. Added a `LICENSE` file and updated the `package.json` license metadata.
-- **Enhancement: Procedural Grid Rendering**: Replaced 1px `WireframeMaterial` grids with a dynamically generated procedural Canvas texture on a `Plane` geometry using `BasicMaterial` in Example 19, eliminating Moiré aliasing and enabling true physical HDR Bloom for Tron-like aesthetics without PBR tone mapping interference.
+- **Enhancement: Procedural Grid Rendering**: Replaced 1px `WireframeMaterial` grids with a dynamically generated procedural Canvas texture on a `Plane` geometry using `BasicMaterial` in Showcase 19, eliminating Moiré aliasing and enabling true physical HDR Bloom for Tron-like aesthetics without PBR tone mapping interference.
 
 ## [0.44.0] - 2026-07-04
 
@@ -31,7 +31,7 @@
 - **Feature: Image-Based Lighting (IBL) Generator Tool**:
   - Added a new browser-based tool (`public/tools/ibl-gen.html`, `src/tools/ibl-gen.ts`, `src/tools/IBLShaders.ts`) for real-time client-side generation of PBR Environment Maps (Irradiance/Radiance).
 - **Refactor: Project Structure & Asset Management**:
-  - Moved interactive examples from `src/examples` to the root `examples/` directory and restructured them into dedicated folders.
+  - Moved interactive examples from `src/showcases` to the root `showcases/` directory and restructured them into dedicated folders.
   - Migrated static engine assets (models, textures, levels, etc.) from `public/resources/` to `public/engine/`.
   - Moved shader files from `public/resources/shaders/` directly into the core source tree (`src/core/renderers/shaders/source/`) to allow better code bundling.
 
@@ -41,7 +41,7 @@
   - Added `RenderTargetCube` and `DynamicReflectionProbe` for real-time cube map rendering.
   - Implemented Time-Slicing logic to update one cube face per frame, drastically reducing CPU/GPU overhead.
   - Extended `WebGL2Renderer` (`WebGL2CubeFrameBuffer`) and `WebGPURenderer` to natively support dynamic CubeMap Array-Layer rendering via `Renderer.setRenderTarget(target, activeCubeFace)`.
-  - Upgraded Example 15 with dynamic reflections on the large spheres.
+  - Upgraded Showcase 15 with dynamic reflections on the large spheres.
 
 ## [0.42.1] - 2026-07-02
 
@@ -53,15 +53,15 @@
 
 - **Bugfix: Production Build Path Resolution**:
   - Fixed a major Vite configuration issue where production builds (`npm run start`) served unprocessed, unbundled HTML files due to `publicDir` copying conflicts. Added a script step (`cp -a dist/public/. dist/ && rm -rf dist/public`) to properly merge and overwrite raw assets with processed bundles.
-- **Bugfix: Example 17 Runtime / Types**:
-  - Corrected the `ProceduralTerrain` mesh generation loop in Example 17 to instantiate an `Object3D` node instead of `Mesh`.
+- **Bugfix: Showcase 17 Runtime / Types**:
+  - Corrected the `ProceduralTerrain` mesh generation loop in Showcase 17 to instantiate an `Object3D` node instead of `Mesh`.
   - Switched from a non-existent `GeometryData` constructor to `ModelGeometry` for passing Float32Arrays safely to the GPU.
 
 ## [0.41.0] - 2026-07-01
 
 - **Feature: Multithreading & Web Workers**:
   - Implemented a generalized `ThreadPool` utility (`src/core/threading/ThreadPool.ts`) allowing dynamic, non-blocking execution of heavy logic without bundler configuration by using Blob URLs.
-  - Added `Example 16` to demonstrate `ThreadPool` usage against a blocked main thread.
+  - Added `Showcase 16` to showcasesnstrate `ThreadPool` usage against a blocked main thread.
   - Fixed a syntax error during `ThreadPool` execution by building a robust object-wrapping deserializer fallback for ES6 class method stringifications.
 - **UI/UX (Tron: Legacy Aesthetic)**:
   - Overhauled the central `index.html` dashboard, HTML Slides Presentation (`presentation.html`), and `examples.css` with a high-fidelity "Tron: Legacy" aesthetic, featuring glassmorphism, neon glows (`#00e5ff`, `#ff6600`), and the `Rajdhani` font.
@@ -78,7 +78,7 @@
   - Standardized all relative ES module imports to use explicit `.js` extensions across the codebase for runtime resolution.
   - Fixed strict TypeScript issues (e.g. `any` casting in `pbr-preview.ts` by declaring a strict global `Window` interface, fixing `?raw.js` imports, and correcting `Camera` vs `CameraInterfaceData` assignments).
 - **UI/UX**:
-  - Standardized the UI and Navigation for all 17 interactive examples in `public/examples/*.html` using a centralized, sleek layout in `examples.css`.
+  - Standardized the UI and Navigation for all 17 interactive examples in `public/showcases/*.html` using a centralized, sleek layout in `examples.css`.
 
 ## [0.39.0] - 2026-07-01
 
@@ -88,9 +88,9 @@
 - **Feature: Robust Regression Integrity Tests**:
   - Created `PerspectiveProjection.test.ts` to mathematically guarantee scale factors (proving radians are expected and avoiding FOV distortions).
   - Extended `ShaderAssembly.test.ts` to statically analyze assembled WGSL source strings and catch duplicate global `var` and `@binding` declarations in WebGPU pipelines.
-- **Feature: Example 15 "Mirror Planets" Variants**:
-  - Implemented `example15_v1` with 1000 bouncing instanced rubber balls inside the mirror room.
-  - Implemented `example15_v2` with rotating moons around perfectly reflective mirror planets.
+- **Feature: Showcase 15 "Mirror Planets" Variants**:
+  - Implemented `showcase15_v1` with 1000 bouncing instanced rubber balls inside the mirror room.
+  - Implemented `showcase15_v2` with rotating moons around perfectly reflective mirror planets.
 
 ## [0.38.1] - 2026-06-25
 
@@ -107,15 +107,15 @@
   - Added support for state configs defining custom `onEnter`, `onUpdate`, and `onExit` lifecycle callbacks, auto-transitions based on elapsed state duration, and event-based transitions mapped to events.
   - Implemented the `StateMachineBehavior` component in [StateMachineBehavior.ts](file:///Users/srottensteiner/PhpstormProjects/small-world/src/core/behaviors/StateMachineBehavior.ts) to seamlessly integrate state machines into the engine's standard update tick loop (`Scene.update()`).
   - Added full test coverage for the FSM framework in [StateMachine.test.ts](file:///Users/srottensteiner/PhpstormProjects/small-world/tests/core/fsm/StateMachine.test.ts) verifying event transitions, update ticks, auto-transitions, and `StateMachineBehavior` operation.
-- **Refactor: FSM-Driven Bouncing Balls Simulation (Example 15)**:
-  - Refactored [example15.ts](file:///Users/srottensteiner/PhpstormProjects/small-world/src/examples/example15.ts) to decouple physics, collision detection, and lifecycle states from the monolithic example update loop.
+- **Refactor: FSM-Driven Bouncing Balls Simulation (Showcase 15)**:
+  - Refactored [showcase15.ts](file:///Users/srottensteiner/PhpstormProjects/small-world/src/showcases/showcase15.ts) to decouple physics, collision detection, and lifecycle states from the monolithic example update loop.
   - Attached a `StateMachineBehavior` to each bouncing ball, managing `"active" | "falling" | "exploding"` states and updating them natively within the engine's recursive behavior tick.
   - Moved initial ball positioning, restitution velocity resets, and dissolution scales into corresponding state enter/update lifecycle callbacks, leaving the example's update loop clean and modular.
 
 ## [0.37.0] - 2026-06-24
 
-- **Feature: Example 15 "Amiga Zen Nostalgia" & Advanced Planar/Sphere Reflections**:
-  - Developed and integrated Example 15 (`public/examples/example15.html` and `src/examples/example15.ts`), a tribute to classic Amiga 500 demos rendered with high-fidelity PBR.
+- **Feature: Showcase 15 "Amiga Zen Nostalgia" & Advanced Planar/Sphere Reflections**:
+  - Developed and integrated Showcase 15 (`public/showcases/showcase15.html` and `src/showcases/showcase15.ts`), a tribute to classic Amiga 500 showcasess rendered with high-fidelity PBR.
   - Implemented **Procedural Checkerboard Diffuse & Roughness Map Generation**: Utilizes an offscreen canvas to dynamically paint reflective black tiles (`roughness = 0.06`) and rough white tiles (`roughness = 0.9`), repeated and loaded into StandardMaterials without static assets.
   - Developed **Planar Floor Reflections (Virtual Geometry / Mirror Room)**: Renders 100 bouncing balls and 3 large spheres flipped symmetrically across the Y axis under a transparent floor (`transparent: true` with `alpha = 0.45`), blending PBR envMap reflections on top of the reflected geometry.
   - Developed **Dynamic Sphere Inversion Reflections**: Calculates real-time conformal reflections of all 100 bouncing balls inside 3D mirror spheres by inverting position vectors ($P' = C + V \cdot \frac{R^2}{d^2 - r^2}$) and radius scale ($r' = \frac{r \cdot R^2}{d^2 - r^2}$).
@@ -166,13 +166,13 @@
   - Implemented responsive keyboard and mouse controls for slide transitions (Space, Arrow keys, PageUp/PageDown, and previous/next buttons).
   - Designed the presentation with a modern glassmorphism aesthetic using high-end dark-themed HSL gradients and Outfit/Inter typography.
   - Implemented a resource-friendly activation system that automatically starts the 3D rendering loop only when the showcase slide is active and stops it when leaving the slide.
-  - Integrated the "Damaged Helmet" interactive PBR 3D demo with cinematic letterbox sliding bars and custom overlays for camera control instructions.
+  - Integrated the "Damaged Helmet" interactive PBR 3D showcases with cinematic letterbox sliding bars and custom overlays for camera control instructions.
   - Modified `vite.config.ts` to register the presentation entry point for production compilation, and linked the slides deck on the main index page (`public/index.html`).
 
-- **Feature: Surveillance Video Wall Showcase (Example 14)**:
-  - Designed and developed a dark-themed retail store "Video Wall" mockup at `public/examples/example14.html`.
+- **Feature: Surveillance Video Wall Showcase (Showcase 14)**:
+  - Designed and developed a dark-themed retail store "Video Wall" mockup at `public/showcases/showcase14.html`.
   - Configured a grid of 6 monitors, each running a separate rendering instance of a procedural interrogation room scene.
-  - Implemented 6 distinct post-processing configurations (Clean Feed, Night Vision green bloom, Noir B&W, Cyberpunk hot magenta bloom, VHS analog tape, Underworld amber glow) demonstrating the engine's ToneMapping, Vignette, Grain, and Bloom elements.
+  - Implemented 6 distinct post-processing configurations (Clean Feed, Night Vision green bloom, Noir B&W, Cyberpunk hot magenta bloom, VHS analog tape, Underworld amber glow) showcasesnstrating the engine's ToneMapping, Vignette, Grain, and Bloom elements.
   - Created a synchronized surveillance sweep animation (panning security camera) and animated swinging/flickering light fixtures controlled by a shared simulation panel.
   - Added entry configurations in `vite.config.ts` and registered the new example on the landing page index.
 
@@ -230,17 +230,17 @@
   - Centralized the `GadgetInspector` overlay directly inside the `SmallWorld` base class.
   - Added `enableInspector` property to `EngineOptions` (defaulting to `true` globally since the panel starts hidden).
   - Used type-only compile-time imports combined with asynchronous runtime dynamic imports (`import()`) to avoid circular dependencies between the tools and the core scene graph.
-  - Removed manual inspector boilerplate code (imports, properties, instantiation, and manual updates) from Example 1, Example 6, Example 10, and Example 13.
+  - Removed manual inspector boilerplate code (imports, properties, instantiation, and manual updates) from Showcase 1, Showcase 6, Showcase 10, and Showcase 13.
 
 - **Feature: Configurable Bloom Highlight Color Tinting**:
   - Added a `color` property to `BloomElement` allowing developers to tint the glow of highlights.
   - Updated WebGPU and WebGL2 post-processing pipelines and fragment shaders to accept and multiply bloom highlights by the configured color.
-  - Tinted the bloom highlights in Example 13 with a beautiful purple shade (`Color(1.2, 0.8, 1.6)`) to make the helmet's glimmers shine with a lila touch.
+  - Tinted the bloom highlights in Showcase 13 with a beautiful purple shade (`Color(1.2, 0.8, 1.6)`) to make the helmet's glimmers shine with a lila touch.
 
 - **Bugfix: WebGPU Bloom Ghosting & Doubling (Kawase Filtering UV Alignment)**:
   - Resolved a bug where WebGPU bloom downsample (`BloomDownsample.frag.wgsl`) and upsample (`BloomUpsample.frag.wgsl`) shaders manually computed UV coordinates from `coord.xy` divided by the source texture size. Since downsampling viewports are half the size of the source texture, this restricted UV coordinates to `[0.0, 0.5]`, shifting the glowing highlights towards the bottom-right and accumulating a ghostly double image.
   - Refactored `PostProcess.vert.wgsl` to output correctly interpolated screen-space UV coordinates at `@location(0) uv: vec2f`.
-  - Updated `BloomDownsample.frag.wgsl`, `BloomUpsample.frag.wgsl`, and `PostProcess.frag.wgsl` to accept and use the interpolated UV coordinates directly, eliminating offset distortions and resolving the helmet doubling artifact in Example 13.
+  - Updated `BloomDownsample.frag.wgsl`, `BloomUpsample.frag.wgsl`, and `PostProcess.frag.wgsl` to accept and use the interpolated UV coordinates directly, eliminating offset distortions and resolving the helmet doubling artifact in Showcase 13.
   - Refactored equality comparisons in the modified WGSL shaders to use Yoda-style syntax (`1u == u.bloomEnabled`, etc.) in compliance with project guidelines.
 
 ## [0.29.0] - 2026-06-19
@@ -271,10 +271,10 @@
 - **Bugfix: CubeTexture Layout Detection for Non-Standard Dimensions**:
   - Replaced the exact pixel-perfect ratio comparisons in `CubeTexture.loadFrom` (e.g. `w * 3 === 4 * h`) with rounded integer checks (`Math.round(w / 4) === Math.round(h / 3)`). Images whose dimensions don't divide evenly — such as `skybox.png` at 245×184 px, which is a horizontal cross layout off by a single pixel — are now correctly identified instead of silently falling back to the "use same image 6 times" path.
   - All face-size calculations during slicing (`STRIP_HORIZONTAL`, `STRIP_VERTICAL`, `GRID_3X2`, `CROSS_HORIZONTAL`, `CROSS_VERTICAL`) now use `Math.round` to produce integer pixel coordinates, preventing sub-pixel boundary errors in `createImageBitmap`.
-  - Resolves the WebGPU validation error `texture width (245) and height (184) are not equal` that caused an `[Invalid TextureView]` → `[Invalid BindGroup]` → `[Invalid CommandBuffer]` cascade and prevented the skybox from rendering in Example 7 and Example 13.
+  - Resolves the WebGPU validation error `texture width (245) and height (184) are not equal` that caused an `[Invalid TextureView]` → `[Invalid BindGroup]` → `[Invalid CommandBuffer]` cascade and prevented the skybox from rendering in Showcase 7 and Showcase 13.
 
 - **Asset: Unified Skybox Source**:
-  - Both Example 7 and Example 13 now load their skybox from `/resources/examples/13/skybox.png` instead of the previously referenced `/resources/examples/7/skybox-1.jpg`.
+  - Both Showcase 7 and Showcase 13 now load their skybox from `/resources/showcases/13/skybox.png` instead of the previously referenced `/resources/showcases/7/skybox-1.jpg`.
 
 ## [0.27.0] - 2026-06-16
 
@@ -334,7 +334,7 @@
 - **Shader Pipeline Improvements**:
   - Unified Gamma Correction and Tone Mapping across transparent shaders.
   - Solved the "Black Glass" issue caused by missing exposure multipliers and linear-to-sRGB conversions in custom fragment outputs.
-- **Example 12 Polishing**:
+- **Showcase 12 Polishing**:
   - Upgraded laboratory glassware (`ErlenmeyerFlask`, `ApothecaryBottle`) to use physically accurate material values (e.g., Borosilicate Glass with IOR 1.474 and Cobalt Glass with IOR 1.52).
 
 ## [0.22.0] - 2026-06-13
@@ -348,8 +348,8 @@
   - Implemented 3 extensive new test suites (`PulsatingBehavior.test.ts`, `FlickerBehavior.test.ts`, `ProximitySensorBehavior.test.ts`) covering simulated frame runtimes to strictly verify mathematical bounds, linear interpolations, and phase transitions.
   - Total test suite now spans 66 rigorously passing unit tests across Mathematics, Materials, Rendering, and Behaviors.
 - **Bugfixes & Rendering Fixes**:
-  - Fixed a critical "disappearing light cone" bug in Example 12. Correctly identified and resolved a situation where 4 decorative Porthole-Spotlights entirely consumed the engine's internal WebGPU SpotLight limit (`sLights[4]`), forcing the main shadow-casting spotlight to be silently dropped by the forward renderer.
-  - Adjusted Example 12 to rely on `emissiveIntensity` pulsation on the Portholes instead of spawning hidden Spotlights, recovering crucial light slots and saving performance.
+  - Fixed a critical "disappearing light cone" bug in Showcase 12. Correctly identified and resolved a situation where 4 decorative Porthole-Spotlights entirely consumed the engine's internal WebGPU SpotLight limit (`sLights[4]`), forcing the main shadow-casting spotlight to be silently dropped by the forward renderer.
+  - Adjusted Showcase 12 to rely on `emissiveIntensity` pulsation on the Portholes instead of spawning hidden Spotlights, recovering crucial light slots and saving performance.
 
 ## [0.21.00] - 2026-06-11
 
@@ -362,9 +362,9 @@
   - Deployed a **Percentage-Closer Filtering (PCF) Kernel** (3x3 footprint) working alongside the hardware sampler for exceptionally soft and smooth shadow edges.
   - Adopted the **Front-Face Culling Trick** during the shadow depth pass (`gl.cullFace(gl.FRONT)`) to physically eliminate self-shadowing artifacts (Shadow Acne) on lighted geometry.
   - Shader variables `u_spotShadowMap`, `u_spotShadowMatrix` and `u_spotShadowInfo` are dynamically parsed, bound and piped into both standard and PBR lighting models.
-- **Engine Defaults & Examples**:
+- **Engine Defaults & Showcases**:
   - `DEFAULT_RENDERER` was globally switched from `BEST` to `RendererType.WEB_GL2` to guarantee consistent out-of-the-box shadow support across all examples.
-  - Redesigned **Example 12 (Abyssal Deco)** to heavily showcase the new shadow pipeline with multiple PBR materials, a flickering `SpotLight` casting high-resolution soft shadows, and various geometrical primitives utilizing `castShadow` and `receiveShadow`.
+  - Redesigned **Showcase 12 (Abyssal Deco)** to heavily showcase the new shadow pipeline with multiple PBR materials, a flickering `SpotLight` casting high-resolution soft shadows, and various geometrical primitives utilizing `castShadow` and `receiveShadow`.
 
 ## [0.20.03] - 2026-06-01
 
@@ -383,7 +383,7 @@
 ## [0.20.02] - 2026-05-26
 
 - **Housekeeping**:
-  - Removed **Example 11: Baptismal Fonts (Fluid Simulation)** and **Example 12: Controls Verification** as requested.
+  - Removed **Showcase 11: Baptismal Fonts (Fluid Simulation)** and **Showcase 12: Controls Verification** as requested.
   - Cleaned up entry points in `vite.config.ts` and updated the main example index.
 
 ## [0.20.01] - 2026-05-10
@@ -392,8 +392,8 @@
   - Fixed a critical issue in **WebGL 2.0** where global uniforms (like `u_vp`) were incorrectly declared, causing depth calculation failures.
   - Implemented full **Uniform Buffer Object (UBO)** integration for `LiquidMaterial` and standard shader headers in WebGL 2.0.
   - Added support for `depthWrite`, `depthTest`, and `transparent` state management across all renderers (WebGL 1/2, WebGPU).
-  - Resolved "lava leaking" artifacts in Example 10 by synchronizing UBO layouts and refining vertex displacement parameters.
-- **Example 10 Improvements**:
+  - Resolved "lava leaking" artifacts in Showcase 10 by synchronizing UBO layouts and refining vertex displacement parameters.
+- **Showcase 10 Improvements**:
   - Adjusted starting camera height to eye level (`y=2.0`) and set initial rotation to look straight ahead.
   - Optimized fire bowl rendering by refining lava radius and wave amplitude to prevent geometry clipping.
   - Cleaned up unreferenced imports and fixed missing `Input` references.
@@ -413,14 +413,14 @@
   - Replaced `GEMINI.md` with a symbolic link to `AGENTS.md` to ensure a single source of truth for engine standards.
   - Added explicit documentation for the right-handed coordinate system and camera orientation standards.
 - **Examples**:
-  - Added **Example 12: Controls Verification** for visual validation of coordinate axes and movement directions.
-  - Fixed various coordinate and assembly issues in **Example 11 (Baptismal Font)**, including incorrect torus rotations and component alignment.
+  - Added **Showcase 12: Controls Verification** for visual validation of coordinate axes and movement directions.
+  - Fixed various coordinate and assembly issues in **Showcase 11 (Baptismal Font)**, including incorrect torus rotations and component alignment.
 
 ## [0.19.09] - 2026-04-27
 
 - **Geometry & Visual Enhancements**:
   - Introduced `Disk` geometry with concentric rings, providing superior tessellation for circular surfaces that require vertex displacement.
-  - Fixed "square lava" issue in Example 10 by replacing the rectangular plane with a high-fidelity `Disk` geometry, ensuring the lava fits perfectly within the circular fire bowls.
+  - Fixed "square lava" issue in Showcase 10 by replacing the rectangular plane with a high-fidelity `Disk` geometry, ensuring the lava fits perfectly within the circular fire bowls.
   - Refined `LavaMaterial` application to work seamlessly with the new disk tessellation.
 
 ## [0.19.08] - 2026-04-27
@@ -481,7 +481,7 @@
 
 - **Stability & Polishing**:
   - Validated world-space bounding volume transformations across all geometries.
-  - Optimized Example 6 as a "Geometry Showcase" with optimized frustum culling.
+  - Optimized Showcase 6 as a "Geometry Showcase" with optimized frustum culling.
   - Ensured all internal engine events and matrix updates are synchronized before spatial tree generation.
 
 ## [0.19.02] - 2026-04-21
@@ -490,7 +490,7 @@
   - Implemented `BoundingVolume.transform(matrix)` to support world-space culling and octree placement.
   - Fixed "disappearing objects" bug by ensuring `Object3D.computeBounds()` correctly transforms local geometry bounds into world coordinates.
   - Corrected `Frustum` plane extraction logic for column-major matrices (Near/Far plane flip).
-  - Renamed Example 6 to **"Geometry Showcase"** and removed collision test walls.
+  - Renamed Showcase 6 to **"Geometry Showcase"** and removed collision test walls.
   - Fixed `FPSStrategy` vertical look direction (positive phi now looks up).
 - **Critical Fixes**:
   - Resolved `TypeError: BoundingBox.fromVertices is not a function` by fixing cyclic/broken imports in `AbstractGeometry.ts`.
@@ -530,7 +530,7 @@
     - **Dynamic Crust Simulation**: Threshold-based logic for rendering cooled rock (crust) floating on top of molten magma.
     - **Customizable Viscosity**: Added `flowSpeed` and `noiseScale` parameters to control the sluggishness and scale of the lava flow.
   - Updated all renderers to generically handle new lava-specific uniforms (`u_time`, `u_flowSpeed`, `u_noiseScale`).
-  - Refactored Example 10 to utilize the new `LavaMaterial`, eliminating all legacy CPU-based noise logic and improving visual quality significantly.
+  - Refactored Showcase 10 to utilize the new `LavaMaterial`, eliminating all legacy CPU-based noise logic and improving visual quality significantly.
 
 ## [0.18.00] - 2026-04-20
 
@@ -565,11 +565,11 @@
   - **Robustness**: Added division-by-zero protection in tangent calculations for degenerate UV coordinates.
   - **Cross-Environment Compatibility**: Switched to `MathUtils.generateUUID()` for safer ID generation across various browser environments.
 - **Architectural Refinement**:
-  - **Example Restructuring**: Reorganized the project structure by moving example TypeScript files to `src/examples/` and HTML files to `public/examples/` for better build integration and cleaner separation of concerns.
+  - **Showcase Restructuring**: Reorganized the project structure by moving example TypeScript files to `src/showcases/` and HTML files to `public/showcases/` for better build integration and cleaner separation of concerns.
   - **Smart Camera Updates**: Integrated `updateViewMatrix()` directly into `Camera.update()` to ensure every strategy or effect update is immediately reflected in the render.
 - **Visual & Performance Tuning**:
-  - **Example 10 Polish**: Mellowed the pointedness of bubbling lava animation by 50% and slowed down the light pulsing speed by 30% via a new `_lightPulseSpeed` constant for a more organic feel.
-  - **Build System**: Added `example10` to the Vite production build configuration.
+  - **Showcase 10 Polish**: Mellowed the pointedness of bubbling lava animation by 50% and slowed down the light pulsing speed by 30% via a new `_lightPulseSpeed` constant for a more organic feel.
+  - **Build System**: Added `showcase10` to the Vite production build configuration.
 
 ## [0.17.00] - 2026-04-19
 
@@ -582,7 +582,7 @@
   - **Matrix4 Restoration**: Rebuilt the `Matrix4` class with a complete set of static and instance methods, including `lookAt`, `orthographic`, `decompose`, and `transformVector`.
   - **Visibility System Overhaul**: Introduced the `Object3D.inFrustum` flag to decouple culling state from user-defined visibility, ensuring `isVisible = false` is always respected.
   - **Native Material Features**: Added `cullMode` property to `AbstractMaterial`, allowing per-material control over GPU face culling (Front, Back, None).
-- **Example 10 Evolution**:
+- **Showcase 10 Evolution**:
   - **Organic Fire Bowls**: Replaced rigid cube-based structures with a high-poly `Tube` geometry for a realistic, rounded stone look.
   - **High-Resolution Bubbling Lava**: Implemented a 32x32 `Plane`-based lava surface with enhanced SimplexNoise displacement and circular edge damping.
   - **Enhanced Visuals**: Significantly boosted lava brightness and point light intensity for a more feury, atmospheric aesthetic.
@@ -630,7 +630,7 @@
   - **PointerLock Fix**: Fixed an issue where the camera would still follow the mouse after exiting PointerLock via ESC.
   - **Collision Visualizer**: Added `CollisionVisualizer` utility to render wireframe bounding boxes and spheres for physics debugging.
   - **WebGL2 Support**: Added `WebGL2FrameBuffer` class to support future post-processing passes.
-- **Example 10 Improvements**:
+- **Showcase 10 Improvements**:
   - Enhanced Lava animation with multi-layered wandering noise for flowing wave effects.
   - Added organic pulsing for lava light intensity and color (heat glow effect).
   - Improved wave damping at geometry edges for a cleaner visual look.
@@ -641,7 +641,7 @@
   - Added `needsUpdate` flag to `GeometryDataInterface` to allow manual buffer re-uploads.
   - Implemented `Mesh.update()` (WebGL) and buffer write logic (WebGPU) to support real-time vertex displacement.
   - Updated all renderers (WebGL 1, WebGL 2, WebGPU) to check for geometry updates before each draw call.
-- **Improved Lava Animation**: Refactored Example 10 with SimplexNoise-based bubbling lava and individual offsets per fire bowl.
+- **Improved Lava Animation**: Refactored Showcase 10 with SimplexNoise-based bubbling lava and individual offsets per fire bowl.
 
 ## [0.15.05] - 2026-04-15
 
@@ -666,8 +666,8 @@
   - Major update to the **WebGPU Renderer** to implement defensive material property application, matching the reliability of the WebGL backends.
   - Improved WebGPU shader stability with fallback logic for missing normal/specular maps and minimum ambient visibility.
 - **Model & Texture Fixes**:
-  - **Kenney Car (Example 3/4)**: Fixed "black/gray car" issue by removing redundant UV flips in `ObjLoader` and enforcing `NEAREST` filtering in `MtlLoader` to prevent color bleeding on small texture atlases.
-  - **Skydome (Example 9)**: Corrected upside-down texture by removing manual UV flipping in `Sphere` geometry, ensuring alignment with global renderer standards.
+  - **Kenney Car (Showcase 3/4)**: Fixed "black/gray car" issue by removing redundant UV flips in `ObjLoader` and enforcing `NEAREST` filtering in `MtlLoader` to prevent color bleeding on small texture atlases.
+  - **Skydome (Showcase 9)**: Corrected upside-down texture by removing manual UV flipping in `Sphere` geometry, ensuring alignment with global renderer standards.
 - **Renderer Property Handling**: Standardized the use of `Float32Array` for all material color properties (`u_color`, `u_specColor`) in manifests, improving performance and type safety across all rendering APIs.
 - **Material Enhancements**: All core materials (`Basic`, `Phong`, `Lambert`, `Sprite`, `Terrain`, `World`, `Wireframe`, `Skybox`) now correctly expose UV transformation properties in their render manifests.
 
@@ -689,7 +689,7 @@
 
 ## [0.15.01] - 2026-04-13
 
-- **Texture Animation**: Added support for UV offset animation in the update loop (showcased with flowing lava in Example 10).
+- **Texture Animation**: Added support for UV offset animation in the update loop (showcased with flowing lava in Showcase 10).
 - **AssetManager Fix**: Improved URL resolution to correctly handle root-relative paths (starting with `/`) even when no `baseUrl` is set.
 - **Improved Path Handling**: Standardized on absolute paths for core assets like shaders and global configuration.
 - **Canvas ID Synchronization**: Unified `canvasId` across `small-world.json` and all example HTML files (standardized to `SmallWorld`).
@@ -700,15 +700,15 @@
 - **AssetManager**: Introduced a centralized manager for loading and caching assets (images, text) with global progress tracking, base URL support, and custom headers.
 - **Normal & Specular Maps**: Added support for normal maps and specular maps in `PhongMaterial` and `LambertMaterial` across all renderers.
 - **WorldMaterial**: New material type using triplanar mapping for seamless, world-space textures—ideal for terrain, rocks, and large structures.
-- **Skydome**: Added `Skydome` implementation for immersive 360-degree backgrounds (see Example 9).
+- **Skydome**: Added `Skydome` implementation for immersive 360-degree backgrounds (see Showcase 9).
 - **Major Renderer Rework**: Significant architectural updates to WebGL1, WebGL2, and WebGPU renderers for more modular and efficient shader handling.
 - **Spatial Partitioning & Optimization**: Implemented `Octree` for efficient spatial querying and `FrustumCuller` to skip rendering objects outside the camera's view.
 - **Enhanced Texture Quality**: Added support for anisotropic filtering and improved mipmap generation.
-- **New Examples**:
-  - `Example 8`: A classic 2.5D Jump & Run demonstrating physics, collision detection, and sprite-based player movement.
-  - `Example 9`: Immersive environment with a Skydome and FPS-style camera.
-  - `Example 10`: Advanced scene composition with fire bowls, point lights, and materials using normal/specular maps.
-- **Physics**: Basic AABB collision detection and gravity implementation (showcased in Example 8).
+- **New Showcases**:
+  - `Showcase 8`: A classic 2.5D Jump & Run showcasesnstrating physics, collision detection, and sprite-based player movement.
+  - `Showcase 9`: Immersive environment with a Skydome and FPS-style camera.
+  - `Showcase 10`: Advanced scene composition with fire bowls, point lights, and materials using normal/specular maps.
+- **Physics**: Basic AABB collision detection and gravity implementation (showcased in Showcase 8).
 
 ## [0.14.00] - 2026-04-03
 
@@ -718,10 +718,10 @@
 
 - Fix PointerLocked issues
 - Fix Skybox (added support for 4x3/3x4 cross layouts in `CubeTexture`)
-- Rename all Demos to Examples
-- Move AbstractDemo to `src/core/example/AbstractExample`
-- Fix Example 7 canvas initialization error (ID mismatch)
-- Add Example 7 with Skybox, infinite floor, and FPS controls
+- Rename all Demos to Showcases
+- Move AbstractDemo to `src/core/showcase/AbstractShowcase`
+- Fix Showcase 7 canvas initialization error (ID mismatch)
+- Add Showcase 7 with Skybox, infinite floor, and FPS controls
 - Improve error handling in `Application.ts` when canvas element is missing
 - Update Vite configuration and main index page
 - Add support for single-image (tiled) skybox textures in `CubeTexture`
@@ -754,7 +754,7 @@
 ## [0.12.02] - 2026-03-31
 
 - Add keyboard event handling to AbstractDemo
-- Implement renderer switching (WebGL1, WebGL2, WebGPU) via SHIFT+1/2/3 in all demos
+- Implement renderer switching (WebGL1, WebGL2, WebGPU) via SHIFT+1/2/3 in all showcasess
 
 ## [0.12.01] - 2026-03-29
 
@@ -830,7 +830,7 @@
 
 ## [0.10.10] - 2025-03-15
 
-- Prepare more than a single feature demo
+- Prepare more than a single feature showcases
 
 ## [0.10.9] - 2025-03-15
 
@@ -918,7 +918,7 @@
 ## [0.8.50] - 2025-03-10
 
 - Re-work camera system (strategy pattern plus factor)
-- Re-work demo1.ts
+- Re-work showcases1.ts
 - Add FPS camera strategy
 
 ## [0.8.47] - 2025-03-10

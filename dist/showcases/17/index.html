@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Small World Engine - Showcase 17</title>
+    <link rel="stylesheet" href="/assets/showcases.css" />
+    <style>
+      .ui-panel {
+        position: absolute;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 15, 25, 0.8);
+        border: 1px solid #00e5ff;
+        padding: 20px;
+        border-radius: 4px;
+        color: #d1fdff;
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        align-items: center;
+        box-shadow: 0 0 20px rgba(0, 229, 255, 0.2);
+        backdrop-filter: blur(8px);
+        font-family: "Rajdhani", sans-serif;
+        text-align: center;
+        z-index: 1000;
+        min-width: 320px;
+      }
+      .ui-panel h3 {
+        margin: 0;
+        color: #00e5ff;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        text-shadow: 0 0 10px rgba(0, 229, 255, 0.4);
+      }
+      .btn-row {
+        display: flex;
+        gap: 10px;
+      }
+      button {
+        background: rgba(0, 229, 255, 0.1);
+        border: 1px solid #00e5ff;
+        color: #00e5ff;
+        padding: 8px 16px;
+        border-radius: 2px;
+        cursor: pointer;
+        font-family: "Rajdhani", sans-serif;
+        font-size: 1rem;
+        font-weight: bold;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        transition: all 0.2s;
+      }
+      button:hover:not(:disabled) {
+        background: #00e5ff;
+        color: #000;
+        box-shadow: 0 0 15px #00e5ff;
+      }
+      button:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+      }
+      #resultText {
+        font-size: 1rem;
+        color: #ff6600;
+        text-shadow: 0 0 10px rgba(255, 102, 0, 0.4);
+        font-weight: 600;
+      }
+    </style>
+    <script type="module" crossorigin src="/showcases/showcase17/showcase.js"></script>
+    <link rel="modulepreload" crossorigin href="/js/src.js">
+    <link rel="modulepreload" crossorigin href="/js/ThreadPool.js">
+  </head>
+  <body>
+    <div class="example-nav">
+      <a href="../16/index.html" class="nav-btn">← Back</a>
+      <a href="/" class="nav-btn">Overview</a>
+      <a href="../18/index.html" class="nav-btn">Next →</a>
+    </div>
+
+    <header id="info">
+      <h1>Procedural Terrain (Multithreaded)</h1>
+      <p>Generating a high-poly terrain chunk on the Main Thread vs Worker Thread</p>
+    </header>
+
+    <div class="ui-panel">
+      <h3>Terrain Generator</h3>
+      <div class="btn-row">
+        <button id="btnMainThread">Generate (Main Thread)</button>
+        <button id="btnWorkerThread">Generate (Worker Thread)</button>
+      </div>
+      <div id="resultText">Waiting... (Move the camera to see stuttering)</div>
+      <button id="btnClear">Clear Terrain</button>
+    </div>
+
+    <canvas id="SmallWorld"></canvas>
+
+  </body>
+</html>

@@ -53,7 +53,7 @@ By default, the engine looks for a configuration file at `/config/small-world.js
 }
 ```
 
-### 2. Implementation Example
+### 2. Implementation Showcase
 
 ```typescript
 import { Application, Cube, Color, StandardMaterial, Object3D, OrbitController, ZoomController, Texture } from "small-world";
@@ -138,7 +138,7 @@ For an isolated development environment, this project includes a **Dev Container
 - `src/loaders`: Asset loading pipeline (OBJ, MTL, Textures).
 - `src/renderers`: Implementation of WebGL1, WebGL2, and WebGPU backends.
   - `src/core/renderers/shaders/source`: Core shader assets directly bundled with the engine.
-- `examples`: Interactive functional demos showcasing engine capabilities.
+- `examples`: Interactive functional showcasess showcasing engine capabilities.
 - `public/engine`: Static assets including models, textures, and levels used across examples.
 
 ## 🧰 Tools

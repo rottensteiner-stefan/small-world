@@ -1,7 +1,7 @@
 /// src/apps/yad/YadApp.ts
 
 import {
-  AbstractExample,
+  AbstractShowcase,
   AmbientLight,
   CameraStrategyType,
   Color,
@@ -23,7 +23,7 @@ import { Vector3D } from "../../math/index.js";
  * YAD (Yet Another Doom)
  * Building a grid-based level from a text file.
  */
-export class YadApp extends AbstractExample {
+export class YadApp extends AbstractShowcase {
   private _time: number = 0;
   private _lavaMaterials: LavaMaterial[] = [];
   private _lavaLights: PointLight[] = [];
