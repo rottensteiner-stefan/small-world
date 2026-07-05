@@ -12,6 +12,9 @@ hero:
     - theme: alt
       text: View on GitHub
       link: https://github.com/rottensteiner-stefan/small-world
+    - theme: alt
+      text: Showcases
+      link: /showcases/index.html
 
 features:
   - icon: 🚀
