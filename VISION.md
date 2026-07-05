@@ -26,6 +26,8 @@ In a landscape where enterprise 3D web frameworks pull megabytes of JavaScript i
 
 1. **Lightweight over Exhaustive:** If a feature requires 500KB of polyfills to support 1% of edge cases, it doesn't belong in the core.
 2. **DX is King:** Built-in tools like the `GadgetInspector` and the `IBL Generator` ship with the engine because developers shouldn't have to spend a day configuring external UI libraries just to tweak a light's intensity.
-3. **Data-Oriented & Zero Allocation:** In hot paths (like `Object3D.computeBounds()` or Raycasting), we avoid object instantiation to eliminate Garbage Collection pauses. 
+3. **Data-Oriented & Zero Allocation:** In hot paths (like the main render loop, `Object3D.computeBounds()`, or Raycasting), we strictly avoid object instantiation to completely eliminate unpredictable Garbage Collection (GC) pauses.
+4. **Absolute "Zero Dependency" Foundation:** No external math libraries (like `glMatrix`), no bloated polyfills. We build custom, highly-optimized systems from the ground up (like our right-handed coordinate math engine) to guarantee maximum performance and minimal footprint.
+5. **Modern By Default:** We leverage the latest web technologies directly. True utilization of WebGPU compute shaders and unified linear space post-processing pipelines are standard, not an afterthought. 
 
 Small World is the engine for the modern TypeScript developer who wants the raw power of WebGPU, the architectural elegance of a real game engine, and a bundle size that loads before the user even blinks.
