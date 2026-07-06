@@ -5,24 +5,247 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SmallWorld - YAD (Yet Another Doom)</title>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Teko:wght@700&display=swap');
+      
+      #hud {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 120px;
+        background: url('data:image/png;base64,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') repeat;
+        background-size: 64px 64px;
+        border-top: 4px solid #444;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        user-select: none;
+        box-shadow: inset 0 5px 10px rgba(0,0,0,0.5);
+      }
+      
+      .hud-section {
+        height: 100%;
+        border-right: 3px solid #222;
+        border-left: 3px solid #777;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 15px;
+        box-sizing: border-box;
+      }
+      
+      .hud-section:first-child { border-left: none; }
+      
+      .hud-section:last-child { border-right: none; }
+      
+      .hud-label {
+        color: #999;
+        font-size: 16px;
+        font-family: monospace;
+        font-weight: bold;
+        letter-spacing: 2px;
+        text-shadow: 1px 1px 0 #000;
+        margin-top: auto;
+      }
+      
+      .hud-value {
+        color: #c00;
+        font-family: 'Teko', 'Impact', sans-serif;
+        font-size: 64px;
+        line-height: 0.8;
+        text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+        display: flex;
+        align-items: baseline;
+      }
+      
+      .hud-value-small {
+        font-size: 32px;
+      }
+      
+      /* Specific Sections */
+      
+      .hud-ammo { width: 120px; }
+      
+      .hud-health { width: 160px; }
+      
+      .hud-armor { width: 160px; }
+      
+      /* Arms Grid */
+      
+      .hud-arms {
+        width: 120px;
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        grid-template-rows: 1fr 1fr;
+        gap: 2px;
+        padding: 15px;
+        align-items: center;
+        justify-items: center;
+      }
+      
+      .arm-slot {
+        color: #555;
+        font-family: monospace;
+        font-size: 14px;
+        font-weight: bold;
+      }
+      
+      .arm-slot.active { color: #cc0; }
+      
+      /* Face */
+      
+      .hud-face {
+        width: 100px;
+        background: #000;
+        border: 4px inset #555;
+        margin: 0 10px;
+        height: 100px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+      
+      .hud-face-placeholder {
+        color: #c00;
+        font-weight: bold;
+        font-family: monospace;
+      }
+      
+      /* Ammo Details */
+      
+      .hud-details {
+        width: 180px;
+        display: grid;
+        grid-template-columns: 2fr 1fr 1fr;
+        font-family: monospace;
+        font-size: 14px;
+        font-weight: bold;
+        color: #999;
+        row-gap: 5px;
+        padding-top: 15px;
+      }
+      
+      .hud-details > div { text-shadow: 1px 1px 0 #000; }
+      
+      .hud-details .val { color: #cc0; text-align: right; }
+      
+      .hud-details .max { color: #cc0; text-align: right; }
+      
+      /* Weapon */
+      
+      #weapon-container {
+        position: fixed;
+        bottom: 120px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 9000;
+        pointer-events: none;
+      }
+      
+      #weapon-img {
+        height: 300px;
+        image-rendering: pixelated;
+        transform-origin: bottom center;
+        transition: transform 0.1s;
+      }
+      
+      .weapon-shoot {
+        transform: scale(1.1) translateY(20px) rotate(-5deg);
+      }
+    </style>
     <script type="module" crossorigin src="../../showcases/yad/showcase.js"></script>
+    <link rel="modulepreload" crossorigin href="../../js/Behavior.js">
     <link rel="modulepreload" crossorigin href="../../js/src.js">
     <link rel="stylesheet" crossorigin href="../../assets/shared.css">
   </head>
   <body>
-    <div class="example-nav">
-      <a href="../17/index.html" class="nav-btn">←<span class="hide-mobile"> Back</span></a>
-      <a href="/" class="nav-btn"><span class="hide-mobile">Overview</span></a>
-      <a href="../1/index.html" class="nav-btn"><span class="hide-mobile">Next </span>→</a>
+    <canvas id="SmallWorld"></canvas>
+    
+    <div id="weapon-container">
+      <img id="weapon-img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABYAAAAPCAYAAADgbT9oAAAACXBIWXMAABCcAAAQnAEmzTo0AAAA8UlEQVQ4y6WTMQ6DMAxFIzGyMjOwsjKwMnEQDsDSW3DotM/iIydUKk0sWT/B9s+PY0LIbN/3uG1bDIV2HEeEI/kI4bqucVkWIyeBxHEcb+jjcolKhLF5hRCnabJCnHXXdXGe5xsiQCK8E6PWSEnQaZANw5CQUwB6F5H2ylfNpViEfd9bEPx8NsSJ5a4Yzk3wtm0N897bRxLPU42gaRpDYh5FCNmvR01USLWIRSR8NCa6vi/U2vftMaFMZDrgfFlboxj/m5TX9Y+m/kpx6c9ibfDX9i0pJkWtn4S8DVVqvULtXUvKzI3ONQnVbfDkX+a3yt6vbgdDZoQ/1QAAAABJRU5ErkJggg==" alt="Weapon" />
+    </div>
+    
+    <div id="hud">
+      <div class="hud-section hud-ammo">
+        <div class="hud-value" id="hud-ammo">50</div>
+        <div class="hud-label">AMMO</div>
+      </div>
+      
+      <div class="hud-section hud-health">
+        <div class="hud-value"><span id="hud-health">100</span><span class="hud-value-small">%</span></div>
+        <div class="hud-label">HEALTH</div>
+      </div>
+      
+      <div class="hud-section hud-arms">
+        <div class="arm-slot active">2</div><div class="arm-slot">3</div><div class="arm-slot">4</div>
+        <div class="arm-slot">5</div><div class="arm-slot">6</div><div class="arm-slot">7</div>
+        <div class="hud-label" style="grid-column: 1 / 4; margin-top: 5px;">ARMS</div>
+      </div>
+      
+      <div class="hud-face">
+        <span class="hud-face-placeholder">FACE</span>
+      </div>
+      
+      <div class="hud-section hud-armor">
+        <div class="hud-value"><span id="hud-armor">0</span><span class="hud-value-small">%</span></div>
+        <div class="hud-label">ARMOR</div>
+      </div>
+      
+      <div class="hud-section hud-details">
+        <div>BULL</div><div class="val">50</div><div class="max">200</div>
+        <div>SHEL</div><div class="val">0</div><div class="max">50</div>
+        <div>RCKT</div><div class="val">0</div><div class="max">50</div>
+        <div>CELL</div><div class="val">0</div><div class="max">300</div>
+      </div>
     </div>
 
-    <header id="info">
-      <h1>YAD – Yet Another Doom</h1>
-      <p>Retro Controller: Arrow Keys / WASD to move and turn.</p>
-      <p>A retro-style level built from an ASCII grid file.</p>
-    </header>
-
-    <canvas id="SmallWorld"></canvas>
-    <footer class="app-footer">Copyright 2026 Stefan Rottensteiner // Small World</footer>
+    
+    <script>
+      let health = 100;
+      let armor = 0;
+      let ammo = 50;
+      
+      const healthEl = document.getElementById("hud-health");
+      const armorEl = document.getElementById("hud-armor");
+      const ammoEl = document.getElementById("hud-ammo");
+      const weaponImg = document.getElementById("weapon-img");
+      
+      window.addEventListener("yad-pickup", (e) => {
+        if (e.detail.type === "armor") {
+          armor = Math.min(200, armor + e.detail.amount);
+          armorEl.innerText = armor;
+          armorEl.style.color = "#0f0";
+          setTimeout(() => armorEl.style.color = "#d00", 200);
+        }
+      });
+      
+      window.addEventListener("yad-damage", (e) => {
+        if (armor > 0) {
+          armor = Math.max(0, armor - e.detail.amount);
+          armorEl.innerText = armor;
+        } else {
+          health = Math.max(0, health - e.detail.amount);
+          healthEl.innerText = health;
+          healthEl.style.color = "#f00";
+          setTimeout(() => healthEl.style.color = "#d00", 200);
+        }
+      });
+      
+      // Simple shooting hook for ammo & animation
+      window.addEventListener("keydown", (e) => {
+        if (e.code === "Space" && ammo > 0) {
+           ammo--;
+           ammoEl.innerText = ammo;
+           
+           // Weapon recoil animation
+           weaponImg.classList.add("weapon-shoot");
+           setTimeout(() => weaponImg.classList.remove("weapon-shoot"), 100);
+        }
+      });
+    </script>
+    <footer class="app-footer" style="bottom: 60px;">Copyright 2026 Stefan Rottensteiner // Small World</footer>
   </body>
 </html>

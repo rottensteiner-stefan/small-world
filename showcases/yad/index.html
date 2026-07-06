@@ -6,22 +6,223 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SmallWorld - YAD (Yet Another Doom)</title>
     <link rel="stylesheet" href="../../public/assets/shared.css" />
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Teko:wght@700&display=swap');
+      
+      #hud {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 120px;
+        background: url('./assets/stwall.png') repeat;
+        background-size: 64px 64px;
+        border-top: 4px solid #444;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        user-select: none;
+        box-shadow: inset 0 5px 10px rgba(0,0,0,0.5);
+      }
+      .hud-section {
+        height: 100%;
+        border-right: 3px solid #222;
+        border-left: 3px solid #777;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 15px;
+        box-sizing: border-box;
+      }
+      .hud-section:first-child { border-left: none; }
+      .hud-section:last-child { border-right: none; }
+      
+      .hud-label {
+        color: #999;
+        font-size: 16px;
+        font-family: monospace;
+        font-weight: bold;
+        letter-spacing: 2px;
+        text-shadow: 1px 1px 0 #000;
+        margin-top: auto;
+      }
+      .hud-value {
+        color: #c00;
+        font-family: 'Teko', 'Impact', sans-serif;
+        font-size: 64px;
+        line-height: 0.8;
+        text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+        display: flex;
+        align-items: baseline;
+      }
+      .hud-value-small {
+        font-size: 32px;
+      }
+      
+      /* Specific Sections */
+      .hud-ammo { width: 120px; }
+      .hud-health { width: 160px; }
+      .hud-armor { width: 160px; }
+      
+      /* Arms Grid */
+      .hud-arms {
+        width: 120px;
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        grid-template-rows: 1fr 1fr;
+        gap: 2px;
+        padding: 15px;
+        align-items: center;
+        justify-items: center;
+      }
+      .arm-slot {
+        color: #555;
+        font-family: monospace;
+        font-size: 14px;
+        font-weight: bold;
+      }
+      .arm-slot.active { color: #cc0; }
+      
+      /* Face */
+      .hud-face {
+        width: 100px;
+        background: #000;
+        border: 4px inset #555;
+        margin: 0 10px;
+        height: 100px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+      .hud-face-placeholder {
+        color: #c00;
+        font-weight: bold;
+        font-family: monospace;
+      }
+      
+      /* Ammo Details */
+      .hud-details {
+        width: 180px;
+        display: grid;
+        grid-template-columns: 2fr 1fr 1fr;
+        font-family: monospace;
+        font-size: 14px;
+        font-weight: bold;
+        color: #999;
+        row-gap: 5px;
+        padding-top: 15px;
+      }
+      .hud-details > div { text-shadow: 1px 1px 0 #000; }
+      .hud-details .val { color: #cc0; text-align: right; }
+      .hud-details .max { color: #cc0; text-align: right; }
+      /* Weapon */
+      #weapon-container {
+        position: fixed;
+        bottom: 120px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 9000;
+        pointer-events: none;
+      }
+      #weapon-img {
+        height: 300px;
+        image-rendering: pixelated;
+        transform-origin: bottom center;
+        transition: transform 0.1s;
+      }
+      .weapon-shoot {
+        transform: scale(1.1) translateY(20px) rotate(-5deg);
+      }
+    </style>
   </head>
   <body>
-    <div class="example-nav">
-      <a href="../17/index.html" class="nav-btn">←<span class="hide-mobile"> Back</span></a>
-      <a href="/" class="nav-btn"><span class="hide-mobile">Overview</span></a>
-      <a href="../1/index.html" class="nav-btn"><span class="hide-mobile">Next </span>→</a>
+    <canvas id="SmallWorld"></canvas>
+    
+    <div id="weapon-container">
+      <img id="weapon-img" src="./assets/weapon.png" alt="Weapon" />
+    </div>
+    
+    <div id="hud">
+      <div class="hud-section hud-ammo">
+        <div class="hud-value" id="hud-ammo">50</div>
+        <div class="hud-label">AMMO</div>
+      </div>
+      
+      <div class="hud-section hud-health">
+        <div class="hud-value"><span id="hud-health">100</span><span class="hud-value-small">%</span></div>
+        <div class="hud-label">HEALTH</div>
+      </div>
+      
+      <div class="hud-section hud-arms">
+        <div class="arm-slot active">2</div><div class="arm-slot">3</div><div class="arm-slot">4</div>
+        <div class="arm-slot">5</div><div class="arm-slot">6</div><div class="arm-slot">7</div>
+        <div class="hud-label" style="grid-column: 1 / 4; margin-top: 5px;">ARMS</div>
+      </div>
+      
+      <div class="hud-face">
+        <span class="hud-face-placeholder">FACE</span>
+      </div>
+      
+      <div class="hud-section hud-armor">
+        <div class="hud-value"><span id="hud-armor">0</span><span class="hud-value-small">%</span></div>
+        <div class="hud-label">ARMOR</div>
+      </div>
+      
+      <div class="hud-section hud-details">
+        <div>BULL</div><div class="val">50</div><div class="max">200</div>
+        <div>SHEL</div><div class="val">0</div><div class="max">50</div>
+        <div>RCKT</div><div class="val">0</div><div class="max">50</div>
+        <div>CELL</div><div class="val">0</div><div class="max">300</div>
+      </div>
     </div>
 
-    <header id="info">
-      <h1>YAD – Yet Another Doom</h1>
-      <p>Retro Controller: Arrow Keys / WASD to move and turn.</p>
-      <p>A retro-style level built from an ASCII grid file.</p>
-    </header>
-
-    <canvas id="SmallWorld"></canvas>
     <script type="module" src="/src/apps/yad/YadApp.ts"></script>
-    <footer class="app-footer">Copyright 2026 Stefan Rottensteiner // Small World</footer>
+    
+    <script>
+      let health = 100;
+      let armor = 0;
+      let ammo = 50;
+      
+      const healthEl = document.getElementById("hud-health");
+      const armorEl = document.getElementById("hud-armor");
+      const ammoEl = document.getElementById("hud-ammo");
+      const weaponImg = document.getElementById("weapon-img");
+      
+      window.addEventListener("yad-pickup", (e) => {
+        if (e.detail.type === "armor") {
+          armor = Math.min(200, armor + e.detail.amount);
+          armorEl.innerText = armor;
+          armorEl.style.color = "#0f0";
+          setTimeout(() => armorEl.style.color = "#d00", 200);
+        }
+      });
+      
+      window.addEventListener("yad-damage", (e) => {
+        if (armor > 0) {
+          armor = Math.max(0, armor - e.detail.amount);
+          armorEl.innerText = armor;
+        } else {
+          health = Math.max(0, health - e.detail.amount);
+          healthEl.innerText = health;
+          healthEl.style.color = "#f00";
+          setTimeout(() => healthEl.style.color = "#d00", 200);
+        }
+      });
+      
+      // Simple shooting hook for ammo & animation
+      window.addEventListener("keydown", (e) => {
+        if (e.code === "Space" && ammo > 0) {
+           ammo--;
+           ammoEl.innerText = ammo;
+           
+           // Weapon recoil animation
+           weaponImg.classList.add("weapon-shoot");
+           setTimeout(() => weaponImg.classList.remove("weapon-shoot"), 100);
+        }
+      });
+    </script>
+    <footer class="app-footer" style="bottom: 60px;">Copyright 2026 Stefan Rottensteiner // Small World</footer>
   </body>
 </html>

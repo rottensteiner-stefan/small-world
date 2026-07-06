@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.46.3] - 2026-07-06
+
+- **Feature (AudioSystem Upgrade):**
+  - Upgraded the rudimentary `AudioSystem` with a complete Audio Mixer (Master, Music, SFX channels).
+  - Implemented procedural Reverb (ConvolverNode with procedurally decaying white noise impulse response) for dungeon atmosphere, eliminating external asset dependencies.
+  - Routed existing procedural synthesizers (`startFire`, `playFootstep`, `playShoot`, `playHurt`) to the SFX channel and `startDrone` to the Music channel.
+- **Documentation:**
+  - Added formal documentation for `AudioSystem` and recent application behaviors (`EnemyBehavior`, `YadController`, `BobbingBehavior`) to the `README.md`.
+
 ## [0.46.2] - 2026-07-05
 
 - **Feature (Mobile Optimization):** Implemented a rigorous `DeviceDetector` that calculates a device `PerformanceTier` based on experimental navigator features (`hardwareConcurrency`, `deviceMemory`, `navigator.gpu`) and thermal throttling estimates. Mobile devices are now aggressively down-scaled (Bloom off, HDR off, 0 MSAA, 512px Shadows) to guarantee 60fps on smartphone GPUs.
