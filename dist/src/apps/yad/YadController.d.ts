@@ -29,6 +29,9 @@ export declare class YadController extends Behavior {
     enabled: boolean;
     private _options;
     private _collider?;
+    private _distanceMoved;
+    private _lastShotTime;
+    private _lastHurtTime;
     /**
      * Creates a new YadController.
      * @param options The configuration options.
