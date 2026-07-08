@@ -1,5 +1,5 @@
-import { MaterialType } from '../../enums/index.js';
 import { LiquidMaterial, LiquidMaterialOptions } from './LiquidMaterial.js';
+import { MaterialType } from '../../enums/index.js';
 /**
  * Configuration options for LavaMaterial.
  */

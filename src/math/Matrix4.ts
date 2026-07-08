@@ -1,5 +1,4 @@
 /// src/math/Matrix4.ts
-
 import { Vector3D } from "./Vector3D.js";
 import { MathPool } from "./MathPool.js";
 

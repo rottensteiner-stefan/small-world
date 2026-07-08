@@ -1,8 +1,6 @@
 import { FolderApi } from 'tweakpane';
-import { Scene } from '../core/Scene.js';
-import { CameraInterfaceData } from '../interfaces/index.js';
-import { Object3D } from '../core/Object3D.js';
-import { Renderer } from '../interfaces/Renderer.js';
+import { Scene, Object3D } from '../core/index.js';
+import { CameraInterfaceData, Renderer } from '../interfaces/index.js';
 /**
  * A lightweight editor/inspector overlay for small-world.
  * Uses Raycasting for object picking and Tweakpane for property editing.

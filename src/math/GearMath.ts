@@ -1,5 +1,4 @@
 /// src/math/GearMath.ts
-
 import { Vector3D } from "./Vector3D.js";
 import { MathUtils } from "./MathUtils.js";
 

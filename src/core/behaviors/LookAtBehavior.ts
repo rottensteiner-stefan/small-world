@@ -1,8 +1,7 @@
 /// src/core/behaviors/LookAtBehavior.ts
-
 import { Behavior } from "./Behavior.js";
-import { Object3D } from "../Object3D.js";
-import { Vector3D } from "../../math/Vector3D.js";
+import { Object3D } from "../index.js";
+import { Vector3D } from "../../math/index.js";
 
 /**
  * Constantly rotates the object to face a target position or another object.

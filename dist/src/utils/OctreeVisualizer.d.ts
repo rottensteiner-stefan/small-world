@@ -1,5 +1,4 @@
-import { Scene } from '../core/index.js';
-import { OctreeNode } from '../core/Octree.js';
+import { Scene, OctreeNode } from '../core/index.js';
 /**
  * Utility to visualize the Octree structure in the scene.
  */

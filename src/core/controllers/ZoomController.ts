@@ -1,8 +1,7 @@
 /// src/core/controllers/ZoomController.ts
-
-import { Behavior } from "../behaviors/Behavior.js";
+import { Behavior } from "../behaviors/index.js";
 import { CameraInterfaceData } from "../../interfaces/index.js";
-import { Input } from "../Input.js";
+import { Input } from "../index.js";
 
 /**
  * Configuration for the ZoomController.

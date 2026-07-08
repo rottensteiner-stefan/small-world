@@ -1,9 +1,8 @@
 /// src/loaders/SkyboxLoader.ts
-
 import { AssetManager } from "./AssetManager.js";
-import { CubeTexture } from "../core/index.js";
-import { EventType } from "../enums/index.js";
 import { AbstractLoader } from "./AbstractLoader.js";
+import { CubeTexture } from "../core/textures/index.js";
+import { EventType } from "../enums/index.js";
 import { LoaderOptions } from "../interfaces/index.js";
 
 /**

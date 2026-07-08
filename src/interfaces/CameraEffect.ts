@@ -1,6 +1,6 @@
-/// src/interfaces/CameraEffect.ts
+import { Vector3D } from "../math/index.js";
 
-import { Vector3D } from "../math/Vector3D.js";
+/// src/interfaces/CameraEffect.ts
 
 /**
  * Interface for camera effects that can be applied to a camera.

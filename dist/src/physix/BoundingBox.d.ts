@@ -1,7 +1,7 @@
+import { BoundingSphere } from './BoundingSphere.js';
 import { BoundingVolume, FrustumInterface } from '../interfaces/index.js';
 import { Vector3D, Matrix4 } from '../math/index.js';
 import { BoundingType } from '../enums/index.js';
-import { BoundingSphere } from './BoundingSphere.js';
 /**
  * Represents an axis-aligned bounding box (AABB).
  */

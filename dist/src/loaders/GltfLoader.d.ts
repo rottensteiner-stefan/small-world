@@ -1,4 +1,4 @@
-import { AbstractLoader } from './index.js';
+import { AbstractLoader } from './AbstractLoader.js';
 import { Object3D } from '../core/index.js';
 import { LoaderOptions } from '../interfaces/index.js';
 /**

@@ -1,6 +1,6 @@
-import { BoundingBox } from '../physix/index.js';
 import { Object3D } from './Object3D.js';
-import { Frustum } from '../math/Frustum.js';
+import { BoundingBox } from '../physix/index.js';
+import { Frustum } from '../math/index.js';
 import { BoundingVolume } from '../interfaces/index.js';
 /**
  * Configuration options for an octree node.
@@ -42,7 +42,7 @@ export declare class OctreeNode {
     /**
      * Queries the octree for objects that intersect with a ray.
      */
-    queryRay(ray: import('../physix/Ray.js').Ray, result: Set<Object3D>, intersectedNodes?: Set<OctreeNode>): void;
+    queryRay(ray: import('../physix/index.js').Ray, result: Set<Object3D>, intersectedNodes?: Set<OctreeNode>): void;
     /**
      * Queries the octree for objects that intersect with a specific volume.
      */
@@ -57,7 +57,7 @@ export declare class Octree {
     constructor(bounds: BoundingBox, options?: OctreeOptions);
     insert(obj: Object3D): boolean;
     query(frustum: Frustum, intersectedNodes?: Set<OctreeNode>): Object3D[];
-    queryRay(ray: import('../physix/Ray.js').Ray, intersectedNodes?: Set<OctreeNode>): Object3D[];
+    queryRay(ray: import('../physix/index.js').Ray, intersectedNodes?: Set<OctreeNode>): Object3D[];
     /**
      * Queries the octree for objects intersecting with a volume.
      */

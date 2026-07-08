@@ -1,4 +1,4 @@
-import { Vector3D } from '../math/Vector3D.js';
+import { Vector3D } from '../math/index.js';
 /**
  * Interface for camera effects that can be applied to a camera.
  * Effects modify the position and target of the camera over time.

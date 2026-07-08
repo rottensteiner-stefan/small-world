@@ -1,6 +1,6 @@
-/// src/geometry/Plane.ts
-
 import { AbstractGeometry } from "./AbstractGeometry.js";
+
+/// src/geometry/Plane.ts
 
 /**
  * Configuration options for plane geometry.

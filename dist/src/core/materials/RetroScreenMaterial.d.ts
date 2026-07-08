@@ -1,7 +1,6 @@
 import { AbstractMaterial } from './AbstractMaterial.js';
 import { Texture } from '../textures/index.js';
-import { RenderManifest } from '../renderers/shaders/RenderManifest.js';
-import { ShaderDefinition } from '../renderers/shaders/ShaderDefinition.js';
+import { RenderManifest, ShaderDefinition } from '../renderers/shaders/index.js';
 /**
  * Modes supported by RetroScreenMaterial.
  */

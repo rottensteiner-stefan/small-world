@@ -1,5 +1,5 @@
 import { Behavior } from './Behavior.js';
-import { Curve3D } from '../../math/Curve3D.js';
+import { Curve3D } from '../../math/index.js';
 /**
  * Moves an object along a 3D curve (e.g., CatmullRomSpline) over time.
  * Optionally orients the object to face the direction of travel.

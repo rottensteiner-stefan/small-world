@@ -1,10 +1,11 @@
 /// src/physix/BoundingBox.ts
-
-import { BoundingVolume, FrustumInterface } from "../interfaces/index.js";
-import { Vector3D, MathPool, Matrix4 } from "../math/index.js";
-import { BoundingType } from "../enums/index.js";
 import { Collision } from "./Collision.js";
 import { BoundingSphere } from "./BoundingSphere.js";
+import { BoundingVolume, FrustumInterface } from "../interfaces/index.js";
+import { Vector3D } from "../math/index.js";
+import { MathPool } from "../math/index.js";
+import { Matrix4 } from "../math/index.js";
+import { BoundingType } from "../enums/index.js";
 
 /**
  * Represents an axis-aligned bounding box (AABB).

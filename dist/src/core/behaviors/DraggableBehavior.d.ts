@@ -1,6 +1,5 @@
 import { Behavior } from './Behavior.js';
-import { Object3D } from '../Object3D.js';
-import { Camera } from '../Camera.js';
+import { Object3D, Camera } from '../index.js';
 /**
  * Allows an object to be dragged around in 3D space.
  * Dragging happens on a plane parallel to the camera view.

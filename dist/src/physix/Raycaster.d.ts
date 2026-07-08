@@ -1,7 +1,7 @@
+import { Ray } from './Ray.js';
 import { Vector2D } from '../math/index.js';
 import { CameraInterfaceData } from '../interfaces/index.js';
-import { Object3D } from '../core/Object3D.js';
-import { Ray } from './Ray.js';
+import { Object3D } from '../core/index.js';
 /**
  * Represents an intersection result from a raycast.
  */

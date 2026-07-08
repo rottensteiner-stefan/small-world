@@ -1,8 +1,8 @@
 import { Object3D } from './Object3D.js';
 import { Camera } from './Camera.js';
 import { Scene } from './Scene.js';
-import { Renderer } from '../interfaces/Renderer.js';
-import { RenderTargetCube } from './textures/RenderTargetCube.js';
+import { Renderer } from '../interfaces/index.js';
+import { RenderTargetCube } from './textures/index.js';
 /**
  * A probe that renders the environment into a CubeMap from its position.
  * Features time-slicing to update only a subset of faces per frame for better performance.

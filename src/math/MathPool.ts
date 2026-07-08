@@ -1,5 +1,4 @@
 /// src/math/MathPool.ts
-
 import { Vector3D } from "./Vector3D.js";
 import { Matrix4 } from "./Matrix4.js";
 import { Quaternion } from "./Quaternion.js";

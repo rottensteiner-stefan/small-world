@@ -1,18 +1,18 @@
 /// src/core/materials/SkyboxMaterial.ts
-
-import { AbstractMaterial } from "./AbstractMaterial.js";
-import { CubeTexture } from "../textures/index.js";
-import { CullMode, MaterialType, ShaderPropertyType } from "../../enums/index.js";
-import { Color } from "../colors/Color.js";
-import { RenderManifest } from "../renderers/shaders/RenderManifest.js";
-import { ShaderDefinition } from "../renderers/shaders/ShaderDefinition.js";
-import { StandardWebGPULayout } from "../renderers/shaders/StandardWebGPULayout.js";
-
 import vertGLSL from "./shaders/Skybox.vert.glsl?raw";
 import fragGLSL from "./shaders/Skybox.frag.glsl?raw";
 import vertGLSL100 from "./shaders/Skybox.vert.glsl100?raw";
 import fragGLSL100 from "./shaders/Skybox.frag.glsl100?raw";
 import fragWGSL from "./shaders/Skybox.frag.wgsl?raw";
+import { AbstractMaterial } from "./AbstractMaterial.js";
+import { CubeTexture } from "../textures/index.js";
+import { CullMode } from "../../enums/index.js";
+import { MaterialType } from "../../enums/index.js";
+import { ShaderPropertyType } from "../../enums/index.js";
+import { Color } from "../colors/index.js";
+import { RenderManifest } from "../renderers/shaders/index.js";
+import { ShaderDefinition } from "../renderers/shaders/index.js";
+import { StandardWebGPULayout } from "../renderers/shaders/index.js";
 
 /**
  * Configuration options for skybox material.

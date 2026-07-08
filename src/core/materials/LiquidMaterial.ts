@@ -1,19 +1,18 @@
 /// src/core/materials/LiquidMaterial.ts
-
-import { AbstractMaterial } from "./AbstractMaterial.js";
-import { Color } from "../colors/index.js";
-import { MaterialType, ShaderPropertyType } from "../../enums/index.js";
-import { Texture } from "../textures/index.js";
-import { RenderManifest } from "../renderers/shaders/RenderManifest.js";
-import { ShaderDefinition } from "../renderers/shaders/ShaderDefinition.js";
-import { StandardWebGPULayout } from "../renderers/shaders/StandardWebGPULayout.js";
-
 import vertGLSL from "./shaders/Liquid.vert.glsl?raw";
 import fragGLSL from "./shaders/Liquid.frag.glsl?raw";
 import vertGLSL100 from "./shaders/Liquid.vert.glsl100?raw";
 import fragGLSL100 from "./shaders/Liquid.frag.glsl100?raw";
 import vertWGSL from "./shaders/Liquid.vert.wgsl?raw";
 import fragWGSL from "./shaders/Liquid.frag.wgsl?raw";
+import { AbstractMaterial } from "./AbstractMaterial.js";
+import { Color } from "../colors/index.js";
+import { MaterialType } from "../../enums/index.js";
+import { ShaderPropertyType } from "../../enums/index.js";
+import { Texture } from "../textures/index.js";
+import { RenderManifest } from "../renderers/shaders/index.js";
+import { ShaderDefinition } from "../renderers/shaders/index.js";
+import { StandardWebGPULayout } from "../renderers/shaders/index.js";
 
 /**
  * Configuration options for LiquidMaterial.

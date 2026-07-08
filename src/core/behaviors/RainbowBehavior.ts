@@ -1,10 +1,9 @@
 /// src/core/behaviors/RainbowBehavior.ts
-
 import { Behavior } from "./Behavior.js";
-import { Object3D } from "../Object3D.js";
-import { StandardMaterial } from "../materials/StandardMaterial.js";
-import { Color } from "../colors/Color.js";
-import { AbstractLight } from "../lights/AbstractLight.js";
+import { Object3D } from "../index.js";
+import { StandardMaterial } from "../materials/index.js";
+import { Color } from "../colors/index.js";
+import { AbstractLight } from "../lights/index.js";
 
 /**
  * Shifts the color of a Material or Light continuously through the HSL spectrum.

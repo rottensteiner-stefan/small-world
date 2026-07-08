@@ -1,8 +1,9 @@
 /// src/physix/Collision.ts
-
-import { BoundingBox, BoundingSphere } from "./index.js";
+import { BoundingBox } from "./BoundingBox.js";
+import { BoundingSphere } from "./BoundingSphere.js";
 import { BoundingVolume } from "../interfaces/index.js";
-import { Vector3D, MathPool } from "../math/index.js";
+import { Vector3D } from "../math/index.js";
+import { MathPool } from "../math/index.js";
 import { BoundingType } from "../enums/index.js";
 
 /**

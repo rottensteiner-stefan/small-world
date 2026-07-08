@@ -1,6 +1,6 @@
-/// src/geometry/ModelGeometry.ts
-
 import { AbstractGeometry } from "./AbstractGeometry.js";
+
+/// src/geometry/ModelGeometry.ts
 
 /**
  * A geometry implementation for externally loaded models (e.g. from OBJ files).

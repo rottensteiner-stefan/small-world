@@ -1,8 +1,7 @@
 /// src/core/behaviors/FlickerBehavior.ts
-
 import { Behavior, InspectorField } from "./Behavior.js";
-import { Object3D } from "../Object3D.js";
-import { Noise } from "../../utils/Noise.js";
+import { Object3D } from "../index.js";
+import { Noise } from "../../utils/index.js";
 
 /**
  * Configuration options for the FlickerBehavior.

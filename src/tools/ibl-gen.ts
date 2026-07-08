@@ -1,7 +1,8 @@
 /// src/tools/ibl-gen.ts
-
+import { Matrix4 } from "../math/index.js";
+import { Vector3D } from "../math/index.js";
+import { PerspectiveProjection } from "../math/projections/index.js";
 import { IBLShaders } from "./IBLShaders.js";
-import { Matrix4, Vector3D, PerspectiveProjection } from "../index.js";
 
 // Utility for WebGL2
 function compileShader(gl: WebGL2RenderingContext, type: number, source: string): WebGLShader {
@@ -579,144 +580,149 @@ class IBLBaker {
   }
 }
 
-document.addEventListener("DOMContentLoaded", (): void => {
-  const input = document.getElementById("skyboxInput") as HTMLInputElement;
-  const generateBtn = document.getElementById("generateBtn") as HTMLButtonElement;
-  const exportBtn = document.getElementById("exportBtn") as HTMLButtonElement;
+if (typeof document !== "undefined") {
+  document.addEventListener("DOMContentLoaded", (): void => {
+    const input = document.getElementById("skyboxInput") as HTMLInputElement;
+    const generateBtn = document.getElementById("generateBtn") as HTMLButtonElement;
+    const exportBtn = document.getElementById("exportBtn") as HTMLButtonElement;
 
-  let baker: IBLBaker | null = null;
-
-  try {
-    baker = new IBLBaker();
-  } catch (e: unknown) {
-    console.error(e);
-    alert("Initialization failed: " + (e as Error).message);
-  }
-
-  const dropzone = document.getElementById("dropzone")!;
-  const dropzoneText = dropzone.querySelector(".dropzone-text") as HTMLElement;
-
-  function handleFileSelect(file: File): void {
-    if (file) {
-      dropzoneText.innerText = file.name;
-      generateBtn.disabled = false;
-    }
-  }
-
-  input.addEventListener("change", (): void => {
-    if (input.files && input.files.length > 0) {
-      handleFileSelect(input.files[0]!);
-    }
-  });
-
-  dropzone.addEventListener("click", () => input.click());
-
-  dropzone.addEventListener("dragover", (e) => {
-    e.preventDefault();
-    dropzone.classList.add("dragover");
-  });
-
-  dropzone.addEventListener("dragleave", (): void => {
-    dropzone.classList.remove("dragover");
-  });
-
-  dropzone.addEventListener("drop", (e) => {
-    e.preventDefault();
-    dropzone.classList.remove("dragover");
-    if (e.dataTransfer && e.dataTransfer.files.length > 0) {
-      input.files = e.dataTransfer.files;
-      handleFileSelect(e.dataTransfer.files[0]!);
-    }
-  });
-
-  let generatedEnvCube: WebGLTexture | null = null;
-  let generatedIrradianceCube: WebGLTexture | null = null;
-  let generatedPrefilteredCube: WebGLTexture | null = null;
-
-  generateBtn.addEventListener("click", async (): Promise<void> => {
-    if (!baker || !input.files || input.files.length === 0) return;
-    generateBtn.disabled = true;
-    exportBtn.disabled = true;
-    const text = document.getElementById("progressText")!;
-    text.style.display = "block";
-    text.innerText = "Generating BRDF LUT...";
+    let baker: IBLBaker | null = null;
 
     try {
-      await baker.generateBRDF("brdfCanvas");
-      text.innerText = "BRDF LUT Generated! Equirectangular coming next...";
-
-      text.innerText = "Loading HDR/Panorama...";
-      const equiTex = await baker.loadEquirectangularImage(input.files[0]!);
-
-      text.innerText = "Generating Environment CubeMap...";
-      generatedEnvCube = await baker.generateEnvironmentCubemap(equiTex, "envCanvas");
-
-      text.innerText = "Base CubeMap Generated! Generating Irradiance Convolution...";
-      generatedIrradianceCube = await baker.generateIrradianceCubemap(
-        generatedEnvCube,
-        "irradianceCanvas",
-      );
-
-      text.innerText = "Irradiance Map Generated! Generating GGX Prefilter...";
-      generatedPrefilteredCube = await baker.generatePrefilteredCubemap(
-        generatedEnvCube,
-        "prefilterCanvas",
-      );
-
-      text.innerText = "All Maps Generated! Ready for Export.";
-      exportBtn.disabled = false;
-      exportBtn.style.opacity = "1";
-    } catch (e) {
+      baker = new IBLBaker();
+    } catch (e: unknown) {
       console.error(e);
-      text.innerText = "Error occurred.";
+      alert("Initialization failed: " + (e as Error).message);
     }
-  });
 
-  exportBtn.addEventListener("click", async (): Promise<void> => {
-    if (!baker || !generatedEnvCube || !generatedIrradianceCube || !generatedPrefilteredCube)
-      return;
-    exportBtn.disabled = true;
-    const originalText = exportBtn.innerText;
-    exportBtn.innerText = "Zipping...";
+    const dropzone = document.getElementById("dropzone")!;
+    const dropzoneText = dropzone.querySelector(".dropzone-text") as HTMLElement;
 
-    try {
-      // @ts-expect-error - JSZip is loaded globally
-      const zip = new JSZip();
-
-      zip.file("env.png", await baker.exportCubemapToCross(generatedEnvCube, 512, 0));
-      zip.file("irradiance.png", await baker.exportCubemapToCross(generatedIrradianceCube, 32, 0));
-
-      // Export 5 mip levels for prefiltered
-      const prefilterFolder = zip.folder("prefilter");
-      let prefilterSize = 128;
-      for (let i = 0; i < 5; i++) {
-        prefilterFolder.file(
-          `mip${i}.png`,
-          await baker.exportCubemapToCross(generatedPrefilteredCube, prefilterSize, i),
-        );
-        prefilterSize = Math.floor(prefilterSize / 2);
+    function handleFileSelect(file: File): void {
+      if (file) {
+        dropzoneText.innerText = file.name;
+        generateBtn.disabled = false;
       }
+    }
 
-      zip.file("brdf_lut.png", await baker.exportBRDFToBlob("brdfCanvas"));
+    input.addEventListener("change", (): void => {
+      if (input.files && input.files.length > 0) {
+        handleFileSelect(input.files[0]!);
+      }
+    });
 
-      const content = await zip.generateAsync({ type: "blob" });
-      const url = URL.createObjectURL(content);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "ibl_maps.zip";
-      a.click();
-      URL.revokeObjectURL(url);
+    dropzone.addEventListener("click", () => input.click());
 
-      exportBtn.innerText = "Export Complete!";
-      setTimeout((): void => {
+    dropzone.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      dropzone.classList.add("dragover");
+    });
+
+    dropzone.addEventListener("dragleave", (): void => {
+      dropzone.classList.remove("dragover");
+    });
+
+    dropzone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      dropzone.classList.remove("dragover");
+      if (e.dataTransfer && e.dataTransfer.files.length > 0) {
+        input.files = e.dataTransfer.files;
+        handleFileSelect(e.dataTransfer.files[0]!);
+      }
+    });
+
+    let generatedEnvCube: WebGLTexture | null = null;
+    let generatedIrradianceCube: WebGLTexture | null = null;
+    let generatedPrefilteredCube: WebGLTexture | null = null;
+
+    generateBtn.addEventListener("click", async (): Promise<void> => {
+      if (!baker || !input.files || input.files.length === 0) return;
+      generateBtn.disabled = true;
+      exportBtn.disabled = true;
+      const text = document.getElementById("progressText")!;
+      text.style.display = "block";
+      text.innerText = "Generating BRDF LUT...";
+
+      try {
+        await baker.generateBRDF("brdfCanvas");
+        text.innerText = "BRDF LUT Generated! Equirectangular coming next...";
+
+        text.innerText = "Loading HDR/Panorama...";
+        const equiTex = await baker.loadEquirectangularImage(input.files[0]!);
+
+        text.innerText = "Generating Environment CubeMap...";
+        generatedEnvCube = await baker.generateEnvironmentCubemap(equiTex, "envCanvas");
+
+        text.innerText = "Base CubeMap Generated! Generating Irradiance Convolution...";
+        generatedIrradianceCube = await baker.generateIrradianceCubemap(
+          generatedEnvCube,
+          "irradianceCanvas",
+        );
+
+        text.innerText = "Irradiance Map Generated! Generating GGX Prefilter...";
+        generatedPrefilteredCube = await baker.generatePrefilteredCubemap(
+          generatedEnvCube,
+          "prefilterCanvas",
+        );
+
+        text.innerText = "All Maps Generated! Ready for Export.";
+        exportBtn.disabled = false;
+        exportBtn.style.opacity = "1";
+      } catch (e) {
+        console.error(e);
+        text.innerText = "Error occurred.";
+      }
+    });
+
+    exportBtn.addEventListener("click", async (): Promise<void> => {
+      if (!baker || !generatedEnvCube || !generatedIrradianceCube || !generatedPrefilteredCube)
+        return;
+      exportBtn.disabled = true;
+      const originalText = exportBtn.innerText;
+      exportBtn.innerText = "Zipping...";
+
+      try {
+        // @ts-expect-error - JSZip is loaded globally
+        const zip = new JSZip();
+
+        zip.file("env.png", await baker.exportCubemapToCross(generatedEnvCube, 512, 0));
+        zip.file(
+          "irradiance.png",
+          await baker.exportCubemapToCross(generatedIrradianceCube, 32, 0),
+        );
+
+        // Export 5 mip levels for prefiltered
+        const prefilterFolder = zip.folder("prefilter");
+        let prefilterSize = 128;
+        for (let i = 0; i < 5; i++) {
+          prefilterFolder.file(
+            `mip${i}.png`,
+            await baker.exportCubemapToCross(generatedPrefilteredCube, prefilterSize, i),
+          );
+          prefilterSize = Math.floor(prefilterSize / 2);
+        }
+
+        zip.file("brdf_lut.png", await baker.exportBRDFToBlob("brdfCanvas"));
+
+        const content = await zip.generateAsync({ type: "blob" });
+        const url = URL.createObjectURL(content);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "ibl_maps.zip";
+        a.click();
+        URL.revokeObjectURL(url);
+
+        exportBtn.innerText = "Export Complete!";
+        setTimeout((): void => {
+          exportBtn.innerText = originalText;
+          exportBtn.disabled = false;
+        }, 2000);
+      } catch (e) {
+        console.error(e);
+        alert("Error during export.");
         exportBtn.innerText = originalText;
         exportBtn.disabled = false;
-      }, 2000);
-    } catch (e) {
-      console.error(e);
-      alert("Error during export.");
-      exportBtn.innerText = originalText;
-      exportBtn.disabled = false;
-    }
+      }
+    });
   });
-});
+}

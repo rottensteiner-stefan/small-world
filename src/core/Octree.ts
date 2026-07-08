@@ -1,9 +1,10 @@
 /// src/core/Octree.ts
-
-import { BoundingBox, Collision } from "../physix/index.js";
 import { Object3D } from "./Object3D.js";
-import { Frustum } from "../math/Frustum.js";
-import { MathPool, Vector3D } from "../math/index.js";
+import { BoundingBox } from "../physix/index.js";
+import { Collision } from "../physix/index.js";
+import { Frustum } from "../math/index.js";
+import { MathPool } from "../math/index.js";
+import { Vector3D } from "../math/index.js";
 import { BoundingVolume } from "../interfaces/index.js";
 
 /**
@@ -151,7 +152,7 @@ export class OctreeNode {
    * Queries the octree for objects that intersect with a ray.
    */
   public queryRay(
-    ray: import("../physix/Ray.js").Ray,
+    ray: import("../physix/index.js").Ray,
     result: Set<Object3D>,
     intersectedNodes?: Set<OctreeNode>,
   ): void {
@@ -211,7 +212,7 @@ export class Octree {
   }
 
   public queryRay(
-    ray: import("../physix/Ray.js").Ray,
+    ray: import("../physix/index.js").Ray,
     intersectedNodes?: Set<OctreeNode>,
   ): Object3D[] {
     const result = new Set<Object3D>();

@@ -1,5 +1,5 @@
-import { CubeTexture } from './textures/index.js';
 import { Object3D } from './Object3D.js';
+import { CubeTexture } from './textures/index.js';
 /**
  * Configuration options for the Skydome.
  */

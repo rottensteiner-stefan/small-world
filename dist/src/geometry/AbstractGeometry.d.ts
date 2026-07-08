@@ -1,4 +1,4 @@
-import { Matrix4 } from '../math/Matrix4.js';
+import { Matrix4 } from '../math/index.js';
 import { GeometryDataInterface, Geometry, BoundingVolume } from '../interfaces/index.js';
 /**
  * Base class for all geometry types.

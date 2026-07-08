@@ -1,6 +1,6 @@
-/// src/math/Vector2D.ts
+import { Vector } from "../interfaces/index.js";
 
-import { Vector } from "../interfaces/Vector.js";
+/// src/math/Vector2D.ts
 
 /**
  * A class representing a 2D vector.

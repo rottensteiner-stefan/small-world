@@ -1,9 +1,4 @@
 /// src/interfaces/GeometryData.ts
-
-/**
- * Interface representing raw geometry data for GPU upload and rendering.
- * All numeric data is stored in TypedArrays for maximum performance.
- */
 import { BoundingVolume } from "./BoundingVolume.js";
 import { Topology } from "../enums/index.js";
 

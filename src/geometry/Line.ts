@@ -1,7 +1,6 @@
 /// src/geometry/Line.ts
-
 import { AbstractGeometry } from "./AbstractGeometry.js";
-import { Vector3D } from "../math/Vector3D.js";
+import { Vector3D } from "../math/index.js";
 
 /**
  * A simple line geometry connecting two points.

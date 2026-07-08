@@ -1,5 +1,6 @@
+import { AssetManager } from "../loaders/index.js";
+
 /// src/core/ConfigLoader.ts
-import { AssetManager } from "../loaders/AssetManager.js";
 
 /**
  * Utility class for loading configuration files.

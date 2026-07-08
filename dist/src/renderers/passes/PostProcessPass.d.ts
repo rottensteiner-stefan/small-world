@@ -1,6 +1,6 @@
-import { Scene } from '../../core/Scene.js';
-import { WebGPURenderer } from '../WebGPURenderer.js';
-import { RenderPass } from '../RenderPass.js';
+import { Scene } from '../../core/index.js';
+import { WebGPURenderer } from '../WebGPU/index.js';
+import { RenderPass } from '../index.js';
 import { Vector3D } from '../../math/index.js';
 /**
  * Full-screen post-processing pass (Uber-Shader).

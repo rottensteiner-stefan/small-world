@@ -1,4 +1,4 @@
-export * from './AbstractMaterial.js';
+export { AbstractMaterial } from './AbstractMaterial.js';
 export * from './BasicMaterial.js';
 export * from './LambertMaterial.js';
 export * from './StandardMaterial.js';

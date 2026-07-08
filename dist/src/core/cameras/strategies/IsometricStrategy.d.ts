@@ -1,5 +1,5 @@
 import { CameraConstraints, CameraStrategy, CameraInterfaceData } from '../../../interfaces/index.js';
-import { Vector3D } from '../../../math/Vector3D.js';
+import { Vector3D } from '../../../math/index.js';
 /**
  * Strategy for an isometric 2D/3D camera.
  * Uses an orthographic projection and fixed angles.

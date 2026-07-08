@@ -1,6 +1,6 @@
-/// src/core/textures/RenderTarget.ts
-
 import { Texture, TextureOptions } from "./Texture.js";
+
+/// src/core/textures/RenderTarget.ts
 
 /**
  * Configuration options for creating a RenderTarget.

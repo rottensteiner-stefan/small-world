@@ -1,7 +1,7 @@
+import { AbstractLight, LightOptions } from './AbstractLight.js';
 import { LightType } from '../../enums/index.js';
 import { LightDataInterface } from '../../interfaces/index.js';
-import { AbstractLight, LightOptions } from './AbstractLight.js';
-import { Vector3D } from '../../math/Vector3D.js';
+import { Vector3D } from '../../math/index.js';
 /**
  * Configuration options for spotlight.
  */

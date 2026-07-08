@@ -1,7 +1,6 @@
-/// src/core/renderers/shaders/StandardWebGPULayout.ts
-
 import { ShaderPropertyType } from "../../../enums/index.js";
 
+/// src/core/renderers/shaders/StandardWebGPULayout.ts
 /**
  * The standard uniform layout for objects using the [WGSL_STRUCTS] chunk.
  * This MUST match the ObjectUniforms struct in structs.wgsl.

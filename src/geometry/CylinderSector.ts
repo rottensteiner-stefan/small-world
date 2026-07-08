@@ -1,5 +1,4 @@
 /// src/geometry/CylinderSector.ts
-
 import { Cylinder, CylinderOptions } from "./Cylinder.js";
 import { MathUtils } from "../math/index.js";
 

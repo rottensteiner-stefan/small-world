@@ -1,7 +1,6 @@
 /// src/core/Fog.ts
-
-import { Color } from "./colors/Color.js";
-import { FogMode } from "../enums/FogMode.js";
+import { Color } from "./colors/index.js";
+import { FogMode } from "../enums/index.js";
 
 export interface FogOptions {
   color?: Color;

@@ -1,5 +1,4 @@
 /// src/interfaces/Geometry.ts
-
 import { BoundingVolume } from "./BoundingVolume.js";
 import { GeometryDataInterface } from "./GeometryData.js";
 

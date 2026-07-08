@@ -1,5 +1,6 @@
-import { Color, PointLight, SpotLight, AreaLight } from '../core/index.js';
-import { Vector3D } from '../math/Vector3D.js';
+import { Color } from '../core/colors/index.js';
+import { Vector3D } from '../math/index.js';
+import { PointLight, SpotLight, AreaLight } from '../core/lights/index.js';
 /**
  * Interface representing the data for all lights in a scene.
  */
@@ -15,7 +16,7 @@ export interface LightDataInterface {
     /** Directional light intensity. */
     dIntensity: number;
     /** Reference to the active directional light, if any. */
-    dLight?: import('../core/lights/DirectionalLight.js').DirectionalLight;
+    dLight?: import('../core/lights/index.js').DirectionalLight;
     /** List of point lights. */
     pLights: PointLight[];
     /** List of spot lights. */

@@ -1,10 +1,9 @@
 /// src/interfaces/LightData.ts
-
-import { Color } from "../core/index.js";
-import { Vector3D } from "../math/Vector3D.js";
-import { PointLight } from "../core/index.js";
-import { SpotLight } from "../core/index.js";
-import { AreaLight } from "../core/index.js";
+import { Color } from "../core/colors/index.js";
+import { Vector3D } from "../math/index.js";
+import { PointLight } from "../core/lights/index.js";
+import { SpotLight } from "../core/lights/index.js";
+import { AreaLight } from "../core/lights/index.js";
 
 /**
  * Interface representing the data for all lights in a scene.
@@ -21,7 +20,7 @@ export interface LightDataInterface {
   /** Directional light intensity. */
   dIntensity: number;
   /** Reference to the active directional light, if any. */
-  dLight?: import("../core/lights/DirectionalLight.js").DirectionalLight;
+  dLight?: import("../core/lights/index.js").DirectionalLight;
   /** List of point lights. */
   pLights: PointLight[];
   /** List of spot lights. */

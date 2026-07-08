@@ -1,5 +1,5 @@
 import { AbstractRenderer } from './AbstractRenderer.js';
-import { Color } from '../core/index.js';
+import { Color } from '../core/colors/index.js';
 export declare abstract class AbstractWebGLRenderer extends AbstractRenderer {
     protected gl: WebGLRenderingContext | WebGL2RenderingContext;
     protected defaultTexture: WebGLTexture;

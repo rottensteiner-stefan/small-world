@@ -1,9 +1,12 @@
 /// src/core/Object3D.ts
-
 import { AbstractMaterial } from "./materials/index.js";
-import { BoundingVolume, GeometryDataInterface } from "../interfaces/index.js";
-import { MathUtils, Matrix4, Quaternion, Vector3D } from "../math/index.js";
-import { Behavior } from "./behaviors/Behavior.js";
+import { BoundingVolume } from "../interfaces/index.js";
+import { GeometryDataInterface } from "../interfaces/index.js";
+import { MathUtils } from "../math/index.js";
+import { Matrix4 } from "../math/index.js";
+import { Quaternion } from "../math/index.js";
+import { Vector3D } from "../math/index.js";
+import { Behavior } from "./behaviors/index.js";
 
 /**
  * Base class for all 3D objects in the scene.
@@ -38,9 +41,12 @@ export class Object3D {
   public onPointerEnter?: () => void;
   public onPointerLeave?: () => void;
   public onPointerClick?: () => void;
-  public onPointerDown?: (ray: import("../physix/Ray.js").Ray, intersectionPoint: Vector3D) => void;
+  public onPointerDown?: (
+    ray: import("../physix/index.js").Ray,
+    intersectionPoint: Vector3D,
+  ) => void;
   public onPointerUp?: () => void;
-  public onPointerMove?: (ray: import("../physix/Ray.js").Ray) => void;
+  public onPointerMove?: (ray: import("../physix/index.js").Ray) => void;
 
   constructor(name?: string) {
     this.name = name || MathUtils.generateUUID();
@@ -107,15 +113,15 @@ export class Object3D {
       if (!this.bounds) {
         // Create a fresh copy
         if (localBounds.type === 1 /* BoundingType.BOX */) {
-          const lb = localBounds as import("../physix/BoundingBox.js").BoundingBox;
+          const lb = localBounds as import("../physix/index.js").BoundingBox;
           const BoxType = lb.constructor as new (min: Vector3D, max: Vector3D) => BoundingVolume;
           this.bounds = new BoxType(lb.min.clone(), lb.max.clone());
         }
       }
 
       if (this.bounds && this.bounds.type === 1 /* BoundingType.BOX */) {
-        const lb = localBounds as import("../physix/BoundingBox.js").BoundingBox;
-        const b = this.bounds as import("../physix/BoundingBox.js").BoundingBox;
+        const lb = localBounds as import("../physix/index.js").BoundingBox;
+        const b = this.bounds as import("../physix/index.js").BoundingBox;
         b.min.copyFrom(lb.min);
         b.max.copyFrom(lb.max);
         b.transform(this.worldMatrix);

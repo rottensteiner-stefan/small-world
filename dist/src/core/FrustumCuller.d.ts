@@ -1,6 +1,6 @@
-import { Matrix4 } from '../math/Matrix4.js';
 import { Scene } from './Scene.js';
 import { OctreeNode } from './Octree.js';
+import { Matrix4 } from '../math/index.js';
 /**
  * Handles frustum culling for objects in a scene.
  */

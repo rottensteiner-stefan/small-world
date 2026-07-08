@@ -1,5 +1,6 @@
-/// src/renderers/Mesh.ts
 import { GeometryDataInterface } from "../interfaces/index.js";
+
+/// src/renderers/Mesh.ts
 
 /**
  * Wrapper for WebGL vertex and index buffers.

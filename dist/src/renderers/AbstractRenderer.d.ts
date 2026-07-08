@@ -1,9 +1,9 @@
-import { Color } from '../core/index.js';
+import { Color } from '../core/colors/index.js';
 import { Renderer, LightDataInterface, EngineOptions, QualityConfig } from '../interfaces/index.js';
 import { RendererType } from '../enums/index.js';
 import { Scene } from '../core/Scene.js';
 import { Vector3D } from '../math/index.js';
-import { PostProcessingGroup } from './post/index.js';
+import { PostProcessingGroup } from './post/PostProcessingGroup.js';
 /**
  * Base class for all renderer implementations.
  *
@@ -30,7 +30,7 @@ export declare abstract class AbstractRenderer implements Renderer {
     /** @inheritdoc */
     abstract setSize(width: number, height: number): void;
     /** @inheritdoc */
-    abstract setRenderTarget(target: import('../core/textures/RenderTarget.js').RenderTarget | import('../core/textures/RenderTargetCube.js').RenderTargetCube | null, activeCubeFace?: number): void;
+    abstract setRenderTarget(target: import('../core/textures/index.js').RenderTarget | import('../core/textures/index.js').RenderTargetCube | null, activeCubeFace?: number): void;
     destroy(): void;
     /** @inheritdoc */
     setClearColor(color: Color): void;

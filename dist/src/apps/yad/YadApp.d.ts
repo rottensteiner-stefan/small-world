@@ -1,5 +1,5 @@
-import { AbstractShowcase } from '../../index.js';
 import { YadHud } from './YadHud.js';
+import { AbstractShowcase } from '../../core/showcase/index.js';
 /**
  * YAD (Yet Another Doom)
  * Building a grid-based level from a text file.

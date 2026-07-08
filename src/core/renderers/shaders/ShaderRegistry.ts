@@ -1,5 +1,4 @@
 /// src/core/renderers/shaders/ShaderRegistry.ts
-
 import { ShaderDefinition } from "./ShaderDefinition.js";
 import { ShaderProvider } from "../../../interfaces/index.js";
 

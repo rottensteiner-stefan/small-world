@@ -1,5 +1,5 @@
 import { Behavior } from './Behavior.js';
-import { Vector3D } from '../../math/Vector3D.js';
+import { Vector3D } from '../../math/index.js';
 /**
  * Smoothly interpolates an object towards a target position, creating an inertia/spring-like effect.
  */

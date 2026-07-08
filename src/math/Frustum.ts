@@ -1,7 +1,5 @@
 /// src/math/Frustum.ts
-
 import { Matrix4 } from "./Matrix4.js";
-
 import { BoundingVolume } from "../interfaces/index.js";
 import { BoundingBox } from "../physix/index.js";
 

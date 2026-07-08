@@ -1,22 +1,21 @@
 /// src/tools/pbr-preview.ts
+import { SmallWorld } from "../core/index.js";
+import { Object3D } from "../core/index.js";
+import { Sphere } from "../geometry/index.js";
+import { Cube } from "../geometry/index.js";
+import { Torus } from "../geometry/index.js";
+import { Plane } from "../geometry/index.js";
+import { StandardMaterial } from "../core/materials/index.js";
+import { Texture } from "../core/textures/index.js";
+import { Color } from "../core/colors/index.js";
+import { DirectionalLight } from "../core/lights/index.js";
+import { AmbientLight } from "../core/lights/index.js";
+import { PerspectiveProjection } from "../math/projections/index.js";
+import { CameraStrategyType } from "../enums/index.js";
+import { Vector2D } from "../math/index.js";
+import { GeometryDataInterface } from "../interfaces/index.js";
 
-import {
-  SmallWorld,
-  Object3D,
-  Sphere,
-  Cube,
-  Torus,
-  Plane,
-  StandardMaterial,
-  Texture,
-  Color,
-  DirectionalLight,
-  AmbientLight,
-  PerspectiveProjection,
-  CameraStrategyType,
-  Vector2D,
-  GeometryDataInterface,
-} from "../index.js";
+/// src/tools/pbr-preview.ts
 
 declare global {
   interface Window {
@@ -185,9 +184,11 @@ class PbrPreviewApp extends SmallWorld {
 }
 
 // Start application
-window.addEventListener("DOMContentLoaded", () => {
-  const app = new PbrPreviewApp();
-  app.start().catch((err) => {
-    console.error("Failed to start SmallWorld PBR Preview:", err);
+if (typeof window !== "undefined") {
+  window.addEventListener("DOMContentLoaded", () => {
+    const app = new PbrPreviewApp();
+    app.start().catch((err) => {
+      console.error("Failed to start SmallWorld PBR Preview:", err);
+    });
   });
-});
+}

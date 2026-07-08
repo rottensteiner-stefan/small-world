@@ -1,6 +1,6 @@
-/// src/interfaces/ShaderProvider.ts
+import { ShaderDefinition } from "../core/renderers/shaders/index.js";
 
-import { ShaderDefinition } from "../core/renderers/shaders/ShaderDefinition.js";
+/// src/interfaces/ShaderProvider.ts
 
 /**
  * Interface for components that provide their own shader definitions.

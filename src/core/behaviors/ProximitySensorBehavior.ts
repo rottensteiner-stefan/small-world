@@ -1,9 +1,8 @@
 /// src/core/behaviors/ProximitySensorBehavior.ts
-
 import { Behavior } from "./Behavior.js";
-import { Object3D } from "../Object3D.js";
+import { Object3D } from "../index.js";
 import { CameraInterfaceData } from "../../interfaces/index.js";
-import { Vector3D } from "../../math/Vector3D.js";
+import { Vector3D } from "../../math/index.js";
 
 /**
  * Configuration options for the ProximitySensorBehavior.

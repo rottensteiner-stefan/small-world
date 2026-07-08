@@ -1,26 +1,25 @@
 /// src/core/SmallWorld.ts
-
-import {
-  AbstractProjection,
-  ObliqueProjection,
-  OrthographicProjection,
-  PerspectiveProjection,
-} from "../math/index.js";
 import { Camera } from "./Camera.js";
-import { EngineOptions, ProjectionOptions } from "../interfaces/index.js";
-import { Renderer } from "../interfaces/Renderer.js";
-import { ProjectionType, RendererType } from "../enums/index.js";
-import { RendererFactory } from "../renderers/index.js";
 import { Scene } from "./Scene.js";
 import { Input } from "./Input.js";
 import { InteractionManager } from "./InteractionManager.js";
 import { ConfigLoader } from "./ConfigLoader.js";
 import { DeviceCaps, DeviceFeature, DeviceLimit } from "./DeviceCaps.js";
 import { DeviceDetector } from "./DeviceDetector.js";
-import { ShaderBootstrap } from "./renderers/shaders/ShaderBootstrap.js";
 import { FrustumCuller } from "./FrustumCuller.js";
-import { CollisionVisualizer, OctreeVisualizer } from "../utils/index.js";
-import type { GadgetInspector } from "../tools/GadgetInspector.js";
+import { AbstractProjection } from "../math/projections/index.js";
+import { ObliqueProjection } from "../math/projections/index.js";
+import { OrthographicProjection } from "../math/projections/index.js";
+import { PerspectiveProjection } from "../math/projections/index.js";
+import { EngineOptions, ProjectionOptions } from "../interfaces/index.js";
+import { Renderer } from "../interfaces/index.js";
+import { ProjectionType } from "../enums/index.js";
+import { RendererType } from "../enums/index.js";
+import { RendererFactory } from "../renderers/index.js";
+import { ShaderBootstrap } from "./renderers/shaders/index.js";
+import { CollisionVisualizer } from "../utils/index.js";
+import { OctreeVisualizer } from "../utils/index.js";
+import { GadgetInspector } from "../tools/index.js";
 
 /** The current engine version. */
 export const ENGINE_VERSION = "0.47.0";

@@ -1,4 +1,5 @@
-import { Scene, TerrainMaterial } from '../core/index.js';
+import { Scene } from '../core/index.js';
+import { TerrainMaterial } from '../core/materials/index.js';
 import { Vector3D } from '../math/index.js';
 /**
  * Algorithm types for procedural terrain generation.

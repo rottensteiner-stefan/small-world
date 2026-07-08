@@ -1,11 +1,13 @@
 /// src/physix/Raycaster.ts
-
-import { Vector2D, Vector3D, MathPool, Matrix4 } from "../math/index.js";
-import { CameraInterfaceData } from "../interfaces/index.js";
-import { Object3D } from "../core/Object3D.js";
 import { BoundingBox } from "./BoundingBox.js";
-import { BoundingType } from "../enums/index.js";
 import { Ray } from "./Ray.js";
+import { Vector2D } from "../math/index.js";
+import { Vector3D } from "../math/index.js";
+import { MathPool } from "../math/index.js";
+import { Matrix4 } from "../math/index.js";
+import { CameraInterfaceData } from "../interfaces/index.js";
+import { Object3D } from "../core/index.js";
+import { BoundingType } from "../enums/index.js";
 
 /**
  * Represents an intersection result from a raycast.

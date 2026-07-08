@@ -1,5 +1,5 @@
 /// src/core/lights/index.ts
-export * from "./AbstractLight.js";
+export { AbstractLight } from "./AbstractLight.js";
 export * from "./AmbientLight.js";
 export * from "./AreaLight.js";
 export * from "./DirectionalLight.js";

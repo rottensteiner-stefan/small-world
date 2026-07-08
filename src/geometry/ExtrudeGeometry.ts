@@ -1,5 +1,4 @@
 /// src/geometry/ExtrudeGeometry.ts
-
 import { AbstractGeometry } from "./AbstractGeometry.js";
 import { Vector2D } from "../math/index.js";
 

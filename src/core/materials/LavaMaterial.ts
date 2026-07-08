@@ -1,8 +1,7 @@
 /// src/core/materials/LavaMaterial.ts
-
+import { LiquidMaterial, LiquidMaterialOptions } from "./LiquidMaterial.js";
 import { Color } from "../colors/index.js";
 import { MaterialType } from "../../enums/index.js";
-import { LiquidMaterial, LiquidMaterialOptions } from "./LiquidMaterial.js";
 
 /**
  * Configuration options for LavaMaterial.

@@ -1,5 +1,4 @@
 /// src/core/lights/AreaLight.ts
-
 import { LightOptions, AbstractLight } from "./AbstractLight.js";
 import { LightType } from "../../enums/index.js";
 import { LightDataInterface } from "../../interfaces/index.js";

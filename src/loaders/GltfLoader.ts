@@ -1,11 +1,17 @@
 /// src/loaders/GltfLoader.ts
-
-import { AssetManager, AbstractLoader } from "./index.js";
-import { EventType, CullMode } from "../enums/index.js";
+import { AssetManager } from "./AssetManager.js";
+import { AbstractLoader } from "./AbstractLoader.js";
+import { EventType } from "../enums/index.js";
+import { CullMode } from "../enums/index.js";
 import { ModelGeometry } from "../geometry/index.js";
-import { Object3D, StandardMaterial, Color, Texture } from "../core/index.js";
-import { LoaderOptions, GeometryDataInterface } from "../interfaces/index.js";
-import { Matrix4, Vector3D } from "../math/index.js";
+import { Object3D } from "../core/index.js";
+import { StandardMaterial } from "../core/materials/index.js";
+import { Color } from "../core/colors/index.js";
+import { Texture } from "../core/textures/index.js";
+import { LoaderOptions } from "../interfaces/index.js";
+import { GeometryDataInterface } from "../interfaces/index.js";
+import { Matrix4 } from "../math/index.js";
+import { Vector3D } from "../math/index.js";
 
 interface GltfJson {
   buffers?: { uri?: string }[];

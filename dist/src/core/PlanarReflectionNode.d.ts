@@ -1,8 +1,8 @@
 import { Object3D } from './Object3D.js';
 import { Camera } from './Camera.js';
 import { Scene } from './Scene.js';
-import { Renderer } from '../interfaces/Renderer.js';
-import { RenderTarget } from './textures/RenderTarget.js';
+import { Renderer } from '../interfaces/index.js';
+import { RenderTarget } from './textures/index.js';
 /**
  * A node that renders the scene from a mirrored perspective into a RenderTarget.
  */

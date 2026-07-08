@@ -1,12 +1,11 @@
 /// src/core/PlanarReflectionNode.ts
-
 import { Object3D } from "./Object3D.js";
-import { PerspectiveProjection } from "../math/index.js";
 import { Camera } from "./Camera.js";
 import { Scene } from "./Scene.js";
-import { Renderer } from "../interfaces/Renderer.js";
-import { RenderTarget } from "./textures/RenderTarget.js";
-import { Vector3D } from "../math/Vector3D.js";
+import { PerspectiveProjection } from "../math/projections/index.js";
+import { Renderer } from "../interfaces/index.js";
+import { RenderTarget } from "./textures/index.js";
+import { Vector3D } from "../math/index.js";
 
 /**
  * A node that renders the scene from a mirrored perspective into a RenderTarget.

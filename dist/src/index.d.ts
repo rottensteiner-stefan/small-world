@@ -9,3 +9,5 @@ export * from './renderers/index.js';
 export * from './tools/index.js';
 export * from './utils/index.js';
 export * from './audio/index.js';
+export * from './presentation.js';
+export * from './apps/index.js';

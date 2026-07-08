@@ -1,12 +1,14 @@
 /// src/core/controllers/FPSController.ts
-
-import { Behavior } from "../behaviors/Behavior.js";
+import { Behavior } from "../behaviors/index.js";
 import { CameraInterfaceData } from "../../interfaces/index.js";
-import { Object3D } from "../Object3D.js";
-import { Input, InputInterface } from "../Input.js";
-import { InputMode, Keys } from "../../enums/index.js";
-import { Scene } from "../Scene.js";
-import { BoundingBox, BoundingSphere, Collision } from "../../physix/index.js";
+import { Object3D } from "../index.js";
+import { Input, InputInterface } from "../index.js";
+import { InputMode } from "../../enums/index.js";
+import { Keys } from "../../enums/index.js";
+import { Scene } from "../index.js";
+import { BoundingBox } from "../../physix/index.js";
+import { BoundingSphere } from "../../physix/index.js";
+import { Collision } from "../../physix/index.js";
 import { MathPool } from "../../math/index.js";
 
 /**
@@ -66,7 +68,7 @@ export class FPSController extends Behavior {
     };
   }
 
-  public override onAttach(target: import("../Object3D.js").Object3D | CameraInterfaceData): void {
+  public override onAttach(target: import("../index.js").Object3D | CameraInterfaceData): void {
     super.onAttach(target);
     this._collider = new BoundingSphere(
       this.target!.position.clone(),
@@ -109,7 +111,7 @@ export class FPSController extends Behavior {
         // If it's a camera, we use its current look direction (theta)
         const theta = isCamera
           ? (this.target as unknown as CameraInterfaceData).theta
-          : (this.target as import("../Object3D.js").Object3D).rotation.y;
+          : (this.target as import("../index.js").Object3D).rotation.y;
 
         const sin = Math.sin(theta);
         const cos = Math.cos(theta);

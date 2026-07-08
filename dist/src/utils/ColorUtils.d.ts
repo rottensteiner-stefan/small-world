@@ -1,4 +1,4 @@
-import { Color } from '../core/index.js';
+import { Color } from '../core/colors/index.js';
 /**
  * Utility class for color conversions and manipulations.
  */
