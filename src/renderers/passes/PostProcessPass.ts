@@ -42,6 +42,9 @@ export class PostProcessPass implements RenderPass {
     const bloom = group.get<import("../post/PostProcessingElement.js").BloomElement>(
       PostProcessingEffectType.BLOOM,
     );
+    const quant = group.get<import("../post/PostProcessingElement.js").QuantizeElement>(
+      PostProcessingEffectType.QUANTIZE,
+    );
 
     return [
       group.filterMode,
@@ -58,6 +61,8 @@ export class PostProcessPass implements RenderPass {
       bloom && bloom.enabled ? 1 : 0,
       bloom && bloom.enabled ? bloom.intensity : 1.0,
       bloom && bloom.enabled ? `${bloom.color.r},${bloom.color.g},${bloom.color.b}` : "1,1,1",
+      quant && quant.enabled ? 1 : 0,
+      quant && quant.enabled ? quant.steps : 8.0,
     ].join("|");
   }
 
@@ -111,11 +116,15 @@ export class PostProcessPass implements RenderPass {
     const bloom = group.get<import("../post/PostProcessingElement.js").BloomElement>(
       PostProcessingEffectType.BLOOM,
     );
+    const quant = group.get<import("../post/PostProcessingElement.js").QuantizeElement>(
+      PostProcessingEffectType.QUANTIZE,
+    );
 
     const tmEnabled = tm && tm.enabled;
     const vigEnabled = vig && vig.enabled;
     const grainEnabled = grain && grain.enabled;
     const bloomEnabled = bloom && bloom.enabled;
+    const quantEnabled = quant && quant.enabled;
 
     // Inject static parameters as WGSL constants, replacing default fallback declarations
     assembledFrag = assembledFrag.replace(
@@ -165,6 +174,14 @@ export class PostProcessPass implements RenderPass {
     assembledFrag = assembledFrag.replace(
       "const u_bloomColor: vec3f = vec3f(1.0, 1.0, 1.0);",
       `const u_bloomColor: vec3f = vec3f(${bloom ? `${bloom.color.r.toFixed(6)}, ${bloom.color.g.toFixed(6)}, ${bloom.color.b.toFixed(6)}` : "1.0, 1.0, 1.0"});`,
+    );
+    assembledFrag = assembledFrag.replace(
+      "const u_quantizeEnabled: u32 = 0u;",
+      `const u_quantizeEnabled: u32 = ${quantEnabled ? 1 : 0}u;`,
+    );
+    assembledFrag = assembledFrag.replace(
+      "const u_quantizeSteps: f32 = 8.0;",
+      `const u_quantizeSteps: f32 = ${quant ? quant.steps.toFixed(6) : "8.0"};`,
     );
     assembledFrag = assembledFrag.replace(
       "const u_filterMode: u32 = 0u;",

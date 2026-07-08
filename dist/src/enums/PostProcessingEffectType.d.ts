@@ -5,5 +5,6 @@ export declare enum PostProcessingEffectType {
     TONE_MAPPING = "ToneMapping",
     VIGNETTE = "Vignette",
     GRAIN = "Grain",
-    BLOOM = "Bloom"
+    BLOOM = "Bloom",
+    QUANTIZE = "Quantize"
 }

@@ -43,6 +43,9 @@ export class PostProcessPassGL {
     const bloom = group.get<import("./PostProcessingElement.js").BloomElement>(
       PostProcessingEffectType.BLOOM,
     );
+    const quant = group.get<import("./PostProcessingElement.js").QuantizeElement>(
+      PostProcessingEffectType.QUANTIZE,
+    );
 
     return [
       group.filterMode,
@@ -59,6 +62,8 @@ export class PostProcessPassGL {
       bloom && bloom.enabled ? 1 : 0,
       bloom && bloom.enabled ? bloom.intensity : 1.0,
       bloom && bloom.enabled ? `${bloom.color.r},${bloom.color.g},${bloom.color.b}` : "1,1,1",
+      quant && quant.enabled ? 1 : 0,
+      quant && quant.enabled ? quant.steps : 8.0,
     ].join("|");
   }
 
@@ -95,11 +100,15 @@ export class PostProcessPassGL {
     const bloom = group.get<import("./PostProcessingElement.js").BloomElement>(
       PostProcessingEffectType.BLOOM,
     );
+    const quant = group.get<import("./PostProcessingElement.js").QuantizeElement>(
+      PostProcessingEffectType.QUANTIZE,
+    );
 
     const tmEnabled = tm && tm.enabled;
     const vigEnabled = vig && vig.enabled;
     const grainEnabled = grain && grain.enabled;
     const bloomEnabled = bloom && bloom.enabled;
+    const quantEnabled = quant && quant.enabled;
 
     // Inject static parameters as macros, replacing uniform declarations
     frag = frag.replace(
@@ -153,6 +162,14 @@ export class PostProcessPassGL {
     frag = frag.replace(
       "uniform float u_grainIntensity;",
       `#define u_grainIntensity ${grain ? grain.intensity.toFixed(6) : "0.05"}`,
+    );
+    frag = frag.replace(
+      "uniform int u_quantizeEnabled;",
+      `#define u_quantizeEnabled ${quantEnabled ? 1 : 0}`,
+    );
+    frag = frag.replace(
+      "uniform float u_quantizeSteps;",
+      `#define u_quantizeSteps ${quant ? quant.steps.toFixed(6) : "8.0"}`,
     );
     frag = frag.replace("uniform int u_filterMode;", `#define u_filterMode ${group.filterMode}`);
 

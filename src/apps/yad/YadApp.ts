@@ -13,10 +13,12 @@ import {
   LavaMaterial,
   PointLight,
   AudioSystem,
+  QuantizeElement,
 } from "../../index.js";
 import { YadLevelBuilder } from "./YadLevelBuilder.js";
 import { TextLoader } from "../../loaders/TextLoader.js";
 import { YadController } from "./YadController.js";
+import { YadHud } from "./YadHud.js";
 import { BoundingBox } from "../../physix/index.js";
 import { Vector3D } from "../../math/index.js";
 
@@ -25,9 +27,18 @@ import { Vector3D } from "../../math/index.js";
  * Building a grid-based level from a text file.
  */
 export class YadApp extends AbstractShowcase {
+  constructor() {
+    super({ fullscreen: false });
+  }
+
   private _time: number = 0;
   private _lavaMaterials: LavaMaterial[] = [];
   private _lavaLights: PointLight[] = [];
+  private _hud!: YadHud;
+
+  public get hud(): YadHud {
+    return this._hud;
+  }
 
   /** @inheritdoc */
   protected override onCanvasRecreated(): void {
@@ -36,11 +47,39 @@ export class YadApp extends AbstractShowcase {
 
   /** @inheritdoc */
   protected override async setupScene(): Promise<void> {
+    // 0. Force Exact 320x200 Retro Resolution with Pillarboxing
+    const resizeCanvas = (): void => {
+      this.camera.aspect = 320 / 200;
+      this.camera.updateProjectionMatrix();
+
+      if (this.renderer) {
+        const d = window.devicePixelRatio || 1;
+        this.renderer.setSize(320 / d, 200 / d);
+      }
+
+      this.canvas.style.width = "100%";
+      this.canvas.style.height = "100%";
+      this.canvas.style.objectFit = "fill";
+      this.canvas.style.imageRendering = "pixelated";
+      this.canvas.style.backgroundColor = "transparent";
+
+      const retroScreen = document.getElementById("retro-screen");
+      if (retroScreen) {
+        const scale = Math.min(window.innerWidth / 320, window.innerHeight / 200);
+        retroScreen.style.width = "320px";
+        retroScreen.style.height = "200px";
+        retroScreen.style.transform = `translate(-50%, -50%) scale(${scale})`;
+        retroScreen.style.transformOrigin = "center center";
+      }
+    };
+
+    window.addEventListener("resize", resizeCanvas);
+    resizeCanvas(); // Trigger immediately to scale the view
+
     // 1. Camera Setup
-    const aspect: number = window.innerWidth / window.innerHeight;
     this.camera.projection = new PerspectiveProjection({
       fov: MathUtils.degToRad(75),
-      aspect,
+      aspect: this.camera.aspect,
       near: 0.1,
       far: 500,
     });
@@ -188,7 +227,7 @@ export class YadApp extends AbstractShowcase {
     // Start ambient creepy music
     document.addEventListener(
       "click",
-      () => {
+      (): void => {
         audio.startDrone();
       },
       { once: true },
@@ -206,6 +245,18 @@ export class YadApp extends AbstractShowcase {
     console.log("[YadApp] Updating static octree...");
     this.scene.updateStaticOctree();
     this.debug = false; // Disable visual debugging for collisions by default
+
+    // 7. Initialize HUD
+    this._hud = new YadHud();
+
+    // 8. Apply Retro Color Banding (Quantization)
+    if (this.renderer) {
+      this.renderer.postProcessing.enabled = true;
+      const quant = new QuantizeElement();
+      quant.enabled = true;
+      quant.steps = 8.0; // 8 levels per RGB channel (3-bit color approximation)
+      this.renderer.postProcessing.add(quant);
+    }
 
     console.log("YAD: Level 1 built.");
   }

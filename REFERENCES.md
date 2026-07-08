@@ -141,3 +141,17 @@ This document serves to record external sources, algorithms, mathematical deriva
 - **File:** `public/tools/pbr-gen.html`
 - **Source:** Discrete Laplace filters / edge operators.
 - **Usage:** To approximate local self-shadowing (ambient occlusion / crevices), the curvature (second derivative) of the height values is calculated using a Laplace kernel (4 \* center - sum(neighbors)). This highlights depressions and crevices, which are multiplied with a blurred macro height map.
+
+## Assets & Fonts
+
+### DooM Font (Yet Another Doom HUD)
+
+- **File:** `showcases/yad/assets/fonts/DooM.ttf`
+- **Source:** [DooM Font auf DaFont](https://www.dafont.com/doom.font)
+- **Usage:** Used to render the iconic red numbers and UI text in the YAD (Yet Another Doom) showcase. A huge thanks to the unknown author who originally created and shared this authentic TTF replica!
+
+### DOOM Texture & Sprite Pack
+
+- **File:** `showcases/yad/assets/doom_pack/`
+- **Source:** Original assets by **id Software** (DOOM, 1993). 
+- **Usage:** Used in the YAD showcase for authentic wall textures, flats, and weapon/enemy sprites. Thank you to the DOOM community and id Software for making these legendary assets available for educational and nostalgic projects!

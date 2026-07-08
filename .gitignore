@@ -16,3 +16,4 @@ docs/public/api/
 docs/.vitepress/dist/
 docs/.vitepress/cache/
 
+/.agents/scratches/

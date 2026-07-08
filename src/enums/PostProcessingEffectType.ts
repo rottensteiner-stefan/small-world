@@ -8,4 +8,5 @@ export enum PostProcessingEffectType {
   VIGNETTE = "Vignette",
   GRAIN = "Grain",
   BLOOM = "Bloom",
+  QUANTIZE = "Quantize",
 }

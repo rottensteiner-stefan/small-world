@@ -15,9 +15,9 @@ const u_grainIntensity: f32 = 0.05;
 const u_bloomEnabled: u32 = 0u;
 const u_bloomIntensity: f32 = 1.0;
 const u_bloomColor: vec3f = vec3f(1.0, 1.0, 1.0);
+const u_quantizeEnabled: u32 = 0u;
+const u_quantizeSteps: f32 = 8.0;
 const u_filterMode: u32 = 0u;
-
-
 
 struct TimeUniform {
     time: f32,
@@ -176,6 +176,11 @@ fn fs_main(@location(0) uv: vec2f, @builtin(position) coord: vec4f) -> @location
 
     // Filter modes
 [FILTER_COLOR_GRADING]
+
+    // Quantize Colors (Posterization / Color Banding)
+    if (1u == u_quantizeEnabled) {
+        srgb = floor(srgb * u_quantizeSteps) / u_quantizeSteps;
+    }
 
     return vec4f(srgb, 1.0);
 }
