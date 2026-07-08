@@ -125,12 +125,23 @@ export class YadController extends Behavior {
       }
     }
 
+    // Weapon Selection (Keys 1-6)
+    for (let i = 1; i <= 6; i++) {
+      // Map 1-6 to their KeyCodes (Digit1 is usually "1")
+      // Since Input.isPressed might use string keys depending on implementation,
+      // let's check the numeric key directly.
+      if (Input.isPressed(i.toString() as Keys) || Input.isPressed(`Digit${i}` as Keys)) {
+        window.dispatchEvent(new CustomEvent("yad-weapon", { detail: { index: i } }));
+      }
+    }
+
     // Shoot on Spacebar (Key.SPACE) or Mouse Click? Input might not have Space mapped, let's check Keys.SPACE if it exists.
     // For safety, let's just use a basic throttle
     const now = performance.now();
     if (Input.isPressed(Keys.SPACE) && now - this._lastShotTime > 500) {
       this._lastShotTime = now;
       AudioSystem.instance.play("shoot", false, 0.6);
+      window.dispatchEvent(new CustomEvent("yad-shoot"));
 
       // Raycast or distance/angle check for Enemies
       if (this._options.scene) {

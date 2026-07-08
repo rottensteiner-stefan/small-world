@@ -19,6 +19,8 @@ import { BoundingType } from "../enums/index.js";
 import { Input } from "../core/Input.js";
 import { Renderer } from "../interfaces/Renderer.js";
 import { FrustumCuller } from "../core/FrustumCuller.js";
+import { AudioSystem } from "../audio/AudioSystem.js";
+import * as CamerakitPlugin from "@kitschpatrol/tweakpane-plugin-camerakit";
 
 interface BindingLike {
   refresh(): void;
@@ -66,6 +68,7 @@ export class GadgetInspector {
   ) {
     // 1. Initialize Tweakpane (hidden by default)
     this._pane = new Pane({ title: "Gadget Inspector" });
+    this._pane.registerPlugin(CamerakitPlugin);
     this._pane.element.style.display = "none";
     this._pane.element.style.setProperty("z-index", "999999", "important");
     this._pane.element.style.maxHeight = "90vh";
@@ -144,6 +147,102 @@ export class GadgetInspector {
     capsFolder.addBinding(caps, "FragUnis", { readonly: true, label: "Max Frag Unis" });
     capsFolder.addBinding(caps, "FloatTex", { readonly: true, label: "Float Tex" });
     capsFolder.addBinding(caps, "CompTex", { readonly: true, label: "Compressed Tex" });
+
+    const audioFolder = (
+      this._pane as unknown as {
+        addFolder: (params: { title: string; expanded?: boolean }) => FolderApi;
+      }
+    ).addFolder({ title: "Audio Mixer", expanded: true });
+
+    // Inject CSS for horizontal row layout
+    if (!document.getElementById("tp-custom-styles")) {
+      const style = document.createElement("style");
+      style.id = "tp-custom-styles";
+      style.innerHTML = `
+        .audio-mixer-row .tp-fldv_c {
+          display: flex;
+          flex-direction: row;
+          flex-wrap: wrap;
+          justify-content: space-around;
+          padding: 12px 4px;
+        }
+        .audio-mixer-row .tp-fldv_c > .tp-brkv {
+          flex: 1 1 25%;
+          margin-right: 8px;
+          margin-bottom: 8px;
+        }
+        .audio-mixer-row .tp-fldv_c > .tp-brkv:nth-child(3n) {
+          margin-right: 8px; /* keep uniform spacing */
+        }
+        .audio-mixer-row .tp-fldv_c > .tp-brkv:last-child {
+          margin-right: 0;
+        }
+        .audio-mixer-row .tp-lblv {
+          flex-direction: column;
+          align-items: center;
+        }
+        .audio-mixer-row .tp-lblv_l {
+          padding-right: 0;
+          text-align: center;
+          width: 100%;
+          margin-bottom: 8px;
+          opacity: 0.8;
+        }
+        .audio-mixer-row .tp-lblv_v {
+          width: 100%;
+          display: flex;
+          justify-content: center;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    audioFolder.element.classList.add("audio-mixer-row");
+
+    const audioSettings = {
+      master: 1.0,
+      music: 1.0,
+      sfx: 1.0,
+      reverb: 0.3,
+    };
+
+    // Use view: "cameraring" to create rotary knobs
+    audioFolder
+      .addBinding(audioSettings, "master", {
+        label: "Master",
+        min: 0,
+        max: 1,
+        step: 0.01,
+        view: "cameraring",
+      })
+      .on("change", (ev: { value: number }) => AudioSystem.instance.setMasterVolume(ev.value));
+    audioFolder
+      .addBinding(audioSettings, "music", {
+        label: "Music",
+        min: 0,
+        max: 1,
+        step: 0.01,
+        view: "cameraring",
+      })
+      .on("change", (ev: { value: number }) => AudioSystem.instance.setMusicVolume(ev.value));
+    audioFolder
+      .addBinding(audioSettings, "sfx", {
+        label: "SFX",
+        min: 0,
+        max: 1,
+        step: 0.01,
+        view: "cameraring",
+      })
+      .on("change", (ev: { value: number }) => AudioSystem.instance.setSFXVolume(ev.value));
+    audioFolder
+      .addBinding(audioSettings, "reverb", {
+        label: "Reverb",
+        min: 0,
+        max: 1,
+        step: 0.01,
+        view: "cameraring",
+      })
+      .on("change", (ev: { value: number }) => AudioSystem.instance.setReverbLevel(ev.value));
 
     // 2. Create Highlight Mesh (Neon Cyan Wireframe)
     const geo = new Cube({ size: 1 });

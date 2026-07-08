@@ -9,6 +9,9 @@ uniform int u_vignetteEnabled;
 uniform float u_vignetteOffset;
 uniform float u_vignetteDarkness;
 
+uniform int u_quantizeEnabled;
+uniform float u_quantizeSteps;
+
 vec3 toneMapReinhard(vec3 hdr, float exposure) {
     vec3 mapped = hdr * exposure;
     return mapped / (mapped + vec3(1.0));
@@ -55,6 +58,11 @@ void main() {
         float v_edge0 = u_vignetteOffset - u_vignetteDarkness;
         float vignette = 1.0 - smoothstep(v_edge0, u_vignetteOffset, d);
         srgb *= mix(1.0, vignette, clamp(u_vignetteDarkness, 0.0, 1.0));
+    }
+
+    // Quantize Colors (Posterization / Color Banding)
+    if (u_quantizeEnabled == 1) {
+        srgb = floor(srgb * u_quantizeSteps) / u_quantizeSteps;
     }
 
     gl_FragColor = vec4(srgb, 1.0);

@@ -62,3 +62,13 @@ export class BloomElement extends PostProcessingElement {
   /** Color tint applied to the bloom highlights (default: white). */
   public color: Color = new Color(1.0, 1.0, 1.0);
 }
+
+/**
+ * Quantize/Posterize effect parameters for 8-bit retro banding.
+ */
+export class QuantizeElement extends PostProcessingElement {
+  public readonly type = PostProcessingEffectType.QUANTIZE;
+
+  /** Number of color steps per RGB channel. E.g. 8.0 = 3 bits per channel. */
+  public steps: number = 8.0;
+}

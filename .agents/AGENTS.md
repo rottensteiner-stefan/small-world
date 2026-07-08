@@ -7,6 +7,7 @@
 - **Planning:** Detailed plan required before any code/file change. Proceed only after user approval.
 - **Surgical Changes:** Use `replace` tool for edits. NEVER use `write_file` on existing files.
 - **Data Integrity:** Preserve historical entries in logs/changelogs.
+- **File Storage:** Speichere Scratchpads, Skizzen und temporäre Dateien lokal im Projekt unter `.agents/scratches/`, nicht im schwer erreichbaren agent-spezifischen AppData-Verzeichnis. Ausgenommen sind reguläre Assets oder Artefakte, deren Ablageort bekannt und logisch ist.
 - **Verification:** Run `npm run lint:fix`, `npm run build:lib` and `npm run test` proactively after making changes to catch errors before committing.
 - **Communication:** Telegram-style (concise), use Markdown artifacts for plans/details, precise links (file/lines) instead of copying code, surgical diffs, delegate research to subagents.
 

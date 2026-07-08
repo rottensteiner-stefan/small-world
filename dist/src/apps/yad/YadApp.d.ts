@@ -1,12 +1,16 @@
 import { AbstractShowcase } from '../../index.js';
+import { YadHud } from './YadHud.js';
 /**
  * YAD (Yet Another Doom)
  * Building a grid-based level from a text file.
  */
 export declare class YadApp extends AbstractShowcase {
+    constructor();
     private _time;
     private _lavaMaterials;
     private _lavaLights;
+    private _hud;
+    get hud(): YadHud;
     /** @inheritdoc */
     protected onCanvasRecreated(): void;
     /** @inheritdoc */

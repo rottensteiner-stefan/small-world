@@ -1,7 +1,9 @@
 # Changelog
 
-## [0.46.3] - 2026-07-06
+## [0.47.0] - 2026-07-08
 
+- **Feature (YAD Showcase & Engine Features):**
+  - Added a complete "Yet Another Doom" (YAD) clone showcase featuring an advanced `YadLevelBuilder`, `YadController`, and raycasted `EnemyBehavior`.
 - **Feature (AudioSystem Upgrade):**
   - Upgraded the rudimentary `AudioSystem` with a complete Audio Mixer (Master, Music, SFX channels).
   - Implemented procedural Reverb (ConvolverNode with procedurally decaying white noise impulse response) for dungeon atmosphere, eliminating external asset dependencies.

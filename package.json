@@ -1,6 +1,6 @@
 {
   "name": "small-world",
-  "version": "0.46.2",
+  "version": "0.47.0",
   "description": "A very small 3D engine focusing on raw WebGL performance",
   "type": "module",
   "license": "MIT",
@@ -63,6 +63,7 @@
     }
   },
   "dependencies": {
+    "@kitschpatrol/tweakpane-plugin-camerakit": "^0.3.1-beta.3",
     "gl-matrix": "^3.4.4",
     "joy-con-webhid": "^0.11.0",
     "jpeg-js": "^0.4.4",

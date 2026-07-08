@@ -18,6 +18,8 @@ uniform float u_vignetteDarkness;
 uniform float u_vignetteRoundness;
 uniform int u_grainEnabled;
 uniform float u_grainIntensity;
+uniform int u_quantizeEnabled;
+uniform float u_quantizeSteps;
 uniform float u_time;
 
 uniform int u_filterMode;
@@ -164,6 +166,11 @@ void main() {
 
     // Apply Filter Color Grading
 [FILTER_COLOR_GRADING]
+
+    // Quantize Colors (Posterization / Color Banding)
+    if (u_quantizeEnabled == 1) {
+        srgb = floor(srgb * u_quantizeSteps) / u_quantizeSteps;
+    }
 
     fragColor = vec4(srgb, 1.0);
 }
