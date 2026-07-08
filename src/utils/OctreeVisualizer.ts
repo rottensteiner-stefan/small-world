@@ -1,8 +1,10 @@
 /// src/utils/OctreeVisualizer.ts
-
-import { Color, Object3D, Scene, WireframeMaterial } from "../core/index.js";
-import { Cube } from "../geometry/Cube.js";
-import { OctreeNode } from "../core/Octree.js";
+import { Color } from "../core/colors/index.js";
+import { Object3D } from "../core/index.js";
+import { Scene } from "../core/index.js";
+import { WireframeMaterial } from "../core/materials/index.js";
+import { Cube } from "../geometry/index.js";
+import { OctreeNode } from "../core/index.js";
 import { BoundingBox } from "../physix/index.js";
 
 /**

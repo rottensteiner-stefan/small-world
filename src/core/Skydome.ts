@@ -1,9 +1,8 @@
 /// src/core/Skydome.ts
-
 import { Object3D } from "./Object3D.js";
-import { Sphere, type SphereOptions } from "../geometry/Sphere.js";
+import { Sphere, type SphereOptions } from "../geometry/index.js";
 import { BasicMaterial, type BasicMaterialOptions } from "./materials/index.js";
-import type { Texture } from "./textures/index.js";
+import { Texture } from "./textures/index.js";
 
 /**
  * Configuration options for the Skydome.

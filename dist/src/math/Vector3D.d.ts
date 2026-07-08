@@ -1,5 +1,5 @@
-import { Vector } from '../interfaces/Vector.js';
 import { Matrix4 } from './Matrix4.js';
+import { Vector } from '../interfaces/index.js';
 /**
  * A class representing a 3D vector.
  * Data is stored as individual properties for fast access in JS engines.

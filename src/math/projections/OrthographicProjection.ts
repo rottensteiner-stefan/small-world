@@ -1,9 +1,8 @@
 /// src/math/projections/OrthographicProjection.ts
-
-import { Matrix4 } from "../Matrix4.js";
 import { AbstractProjection } from "./AbstractProjection.js";
+import { Matrix4 } from "../index.js";
 import { ProjectionType } from "../../enums/index.js";
-import type { ProjectionOptions } from "../../interfaces/index.js";
+import { ProjectionOptions } from "../../interfaces/index.js";
 
 /**
  * Configuration options for orthographic projection.

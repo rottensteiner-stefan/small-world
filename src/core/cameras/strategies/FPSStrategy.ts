@@ -1,9 +1,9 @@
 /// src/core/cameras/strategies/FPSStrategy.ts
-
-import { CameraConstraints, CameraStrategy } from "../../../interfaces/index.js";
+import { CameraConstraints } from "../../../interfaces/index.js";
+import { CameraStrategy } from "../../../interfaces/index.js";
 import { CameraInterfaceData } from "../../../interfaces/index.js";
 import { CameraStrategyType } from "../../../enums/index.js";
-import { Vector3D } from "../../../math/Vector3D.js";
+import { Vector3D } from "../../../math/index.js";
 import { MathUtils } from "../../../math/index.js";
 
 /**

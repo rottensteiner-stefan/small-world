@@ -1,7 +1,9 @@
-import { Scene } from '../../core/Scene.js';
+import { Scene } from '../../core/index.js';
 import { Vector3D } from '../../math/index.js';
 import { LavaMaterial } from '../../core/materials/index.js';
-import { PointLight, Color, Texture } from '../../core/index.js';
+import { PointLight } from '../../core/lights/index.js';
+import { Color } from '../../core/colors/index.js';
+import { Texture } from '../../core/textures/index.js';
 import { CameraInterfaceData } from '../../interfaces/index.js';
 export type YadTileType = "wall" | "door" | "sprite" | "column" | "lavaBall" | "playerSpawn" | "floor";
 export interface YadLegendEntry {

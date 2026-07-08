@@ -1,7 +1,7 @@
 import { AbstractMaterial } from './materials/index.js';
 import { BoundingVolume, GeometryDataInterface } from '../interfaces/index.js';
 import { Matrix4, Vector3D } from '../math/index.js';
-import { Behavior } from './behaviors/Behavior.js';
+import { Behavior } from './behaviors/index.js';
 /**
  * Base class for all 3D objects in the scene.
  */
@@ -29,9 +29,9 @@ export declare class Object3D {
     onPointerEnter?: () => void;
     onPointerLeave?: () => void;
     onPointerClick?: () => void;
-    onPointerDown?: (ray: import('../physix/Ray.js').Ray, intersectionPoint: Vector3D) => void;
+    onPointerDown?: (ray: import('../physix/index.js').Ray, intersectionPoint: Vector3D) => void;
     onPointerUp?: () => void;
-    onPointerMove?: (ray: import('../physix/Ray.js').Ray) => void;
+    onPointerMove?: (ray: import('../physix/index.js').Ray) => void;
     constructor(name?: string);
     add(...children: Object3D[]): void;
     remove(...children: Object3D[]): void;

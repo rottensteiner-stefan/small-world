@@ -1,4 +1,4 @@
-import { Behavior } from '../behaviors/Behavior.js';
+import { Behavior } from '../behaviors/index.js';
 /**
  * Configuration for the ZoomController.
  */

@@ -1,6 +1,6 @@
-/// src/geometry/Cube.ts
-
 import { AbstractGeometry } from "./AbstractGeometry.js";
+
+/// src/geometry/Cube.ts
 
 /**
  * Configuration options for cube geometry.

@@ -1,10 +1,9 @@
 /// src/core/lights/AbstractLight.ts
-
-import { Color } from "../colors/Color.js";
-import { LightType } from "../../enums/LightType.js";
+import { Color } from "../colors/index.js";
+import { LightType } from "../../enums/index.js";
 import { Object3D } from "../Object3D.js";
 import { LightDataInterface } from "../../interfaces/index.js";
-import type { Camera } from "../Camera.js";
+import { Camera } from "../Camera.js";
 
 /**
  * Configuration options for lights.

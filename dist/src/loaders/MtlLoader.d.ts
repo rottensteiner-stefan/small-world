@@ -1,5 +1,5 @@
 import { AbstractLoader } from './AbstractLoader.js';
-import { PhongMaterial } from '../core/index.js';
+import { PhongMaterial } from '../core/materials/index.js';
 import { LoaderOptions } from '../interfaces/index.js';
 export declare class MtlLoader extends AbstractLoader<Map<string, PhongMaterial>> {
     /**

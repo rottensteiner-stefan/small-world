@@ -1,5 +1,5 @@
 import { CameraConstraints, CameraStrategy, CameraInterfaceData } from '../../../interfaces/index.js';
-import { Vector3D } from '../../../math/Vector3D.js';
+import { Vector3D } from '../../../math/index.js';
 /**
  * A first-person camera strategy.
  */

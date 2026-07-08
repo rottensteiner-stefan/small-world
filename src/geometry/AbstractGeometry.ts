@@ -1,9 +1,10 @@
 /// src/geometry/AbstractGeometry.ts
-
-import { Matrix4 } from "../math/Matrix4.js";
-import { Vector3D } from "../math/Vector3D.js";
-import { BoundingBox } from "../physix/BoundingBox.js";
-import { GeometryDataInterface, Geometry, BoundingVolume } from "../interfaces/index.js";
+import { Matrix4 } from "../math/index.js";
+import { Vector3D } from "../math/index.js";
+import { BoundingBox } from "../physix/index.js";
+import { GeometryDataInterface } from "../interfaces/index.js";
+import { Geometry } from "../interfaces/index.js";
+import { BoundingVolume } from "../interfaces/index.js";
 import { Topology } from "../enums/index.js";
 
 /**

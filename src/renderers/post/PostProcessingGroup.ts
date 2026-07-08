@@ -1,12 +1,9 @@
 /// src/renderers/post/PostProcessingGroup.ts
-
-import {
-  PostProcessingElement,
-  ToneMappingElement,
-  VignetteElement,
-  GrainElement,
-  BloomElement,
-} from "./PostProcessingElement.js";
+import { PostProcessingElement } from "./PostProcessingElement.js";
+import { ToneMappingElement } from "./elements/index.js";
+import { VignetteElement } from "./elements/index.js";
+import { GrainElement } from "./elements/index.js";
+import { BloomElement } from "./elements/index.js";
 import { PostProcessingEffectType } from "../../enums/index.js";
 
 /**
@@ -61,9 +58,7 @@ export class PostProcessingGroup {
   /**
    * Loads configurations into elements from a configuration object.
    */
-  public loadConfig(
-    config?: import("../../interfaces/EngineOptions.js").PostProcessingConfig,
-  ): void {
+  public loadConfig(config?: import("../../interfaces/index.js").PostProcessingConfig): void {
     if (!config) return;
     if (config.enabled !== undefined) this.enabled = config.enabled;
     if (config.filterMode !== undefined) this.filterMode = config.filterMode;

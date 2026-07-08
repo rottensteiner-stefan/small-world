@@ -1,4 +1,4 @@
-import { Vector } from '../interfaces/Vector.js';
+import { Vector } from '../interfaces/index.js';
 /**
  * A class representing a 2D vector.
  * Data is stored as individual properties for fast access in JS engines.

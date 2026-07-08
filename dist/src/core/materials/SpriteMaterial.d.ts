@@ -1,8 +1,7 @@
-import { Color } from '../colors/index.js';
 import { AbstractMaterial } from './AbstractMaterial.js';
-import { Texture } from '../textures/Texture.js';
-import { RenderManifest } from '../renderers/shaders/RenderManifest.js';
-import { ShaderDefinition } from '../renderers/shaders/ShaderDefinition.js';
+import { Color } from '../colors/index.js';
+import { Texture } from '../textures/index.js';
+import { RenderManifest, ShaderDefinition } from '../renderers/shaders/index.js';
 /**
  * Material for rendering 2D sprites.
  */

@@ -1,5 +1,5 @@
 import { CameraInterfaceData, CameraConstraints, CameraStrategy } from '../../../interfaces/index.js';
-import { Vector3D } from '../../../math/Vector3D.js';
+import { Vector3D } from '../../../math/index.js';
 /**
  * A hybrid camera strategy that synchronizes manual position changes
  * with orbital spherical coordinates.

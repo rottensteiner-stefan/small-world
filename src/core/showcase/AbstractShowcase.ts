@@ -1,9 +1,8 @@
 /// src/core/showcase/AbstractShowcase.ts
-
-import { SmallWorld } from "../SmallWorld.js";
-import { Input } from "../Input.js";
+import { SmallWorld } from "../index.js";
+import { Input } from "../index.js";
 import { EngineOptions } from "../../interfaces/index.js";
-import { Keys } from "../../enums/Keys.js";
+import { Keys } from "../../enums/index.js";
 import { AssetManager } from "../../loaders/index.js";
 
 export abstract class AbstractShowcase extends SmallWorld {

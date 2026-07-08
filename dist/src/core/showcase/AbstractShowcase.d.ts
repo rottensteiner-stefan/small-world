@@ -1,4 +1,4 @@
-import { SmallWorld } from '../SmallWorld.js';
+import { SmallWorld } from '../index.js';
 import { EngineOptions } from '../../interfaces/index.js';
 export declare abstract class AbstractShowcase extends SmallWorld {
     /**

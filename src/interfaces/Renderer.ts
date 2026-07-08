@@ -1,10 +1,9 @@
 /// src/interfaces/Renderer.ts
-
-import { Scene } from "../core/Scene.js";
-import { Color } from "../core/index.js";
-import { Vector3D } from "../math/Vector3D.js";
-import { RendererType } from "../enums/index.js";
 import { EngineOptions } from "./EngineOptions.js";
+import { Scene } from "../core/index.js";
+import { Color } from "../core/colors/index.js";
+import { Vector3D } from "../math/index.js";
+import { RendererType } from "../enums/index.js";
 
 /**
  * Interface for all renderer implementations.
@@ -43,8 +42,8 @@ export interface Renderer {
    */
   setRenderTarget(
     target:
-      | import("../core/textures/RenderTarget.js").RenderTarget
-      | import("../core/textures/RenderTargetCube.js").RenderTargetCube
+      | import("../core/textures/index.js").RenderTarget
+      | import("../core/textures/index.js").RenderTargetCube
       | null,
     activeCubeFace?: number,
   ): void;
@@ -62,7 +61,7 @@ export interface Renderer {
   /**
    * Gets the global quality settings of the renderer.
    */
-  readonly quality: import("./EngineOptions.js").QualityConfig;
+  readonly quality: import("./index.js").QualityConfig;
 
   /**
    * Destroys the renderer and releases its resources.

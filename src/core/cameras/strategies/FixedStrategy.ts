@@ -1,9 +1,9 @@
 /// src/core/cameras/strategies/FixedStrategy.ts
-
 import { CameraInterfaceData } from "../../../interfaces/index.js";
 import { CameraStrategyType } from "../../../enums/index.js";
-import { CameraConstraints, CameraStrategy } from "../../../interfaces/index.js";
-import { Vector3D } from "../../../math/Vector3D.js";
+import { CameraConstraints } from "../../../interfaces/index.js";
+import { CameraStrategy } from "../../../interfaces/index.js";
+import { Vector3D } from "../../../math/index.js";
 
 /**
  * A camera strategy where the camera stays at its current position but looks at a target.

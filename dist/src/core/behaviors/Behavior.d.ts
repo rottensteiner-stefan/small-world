@@ -1,4 +1,4 @@
-import { Object3D } from '../Object3D.js';
+import { Object3D } from '../index.js';
 import { CameraInterfaceData } from '../../interfaces/index.js';
 /**
  * Definition of a single configurable field inside the Gadget Inspector.

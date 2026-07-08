@@ -1,10 +1,9 @@
 /// src/math/projections/PerspectiveProjection.ts
-
-import { Matrix4 } from "../Matrix4.js";
 import { AbstractProjection } from "./AbstractProjection.js";
+import { Matrix4 } from "../index.js";
 import { ProjectionType } from "../../enums/index.js";
-import { MathUtils } from "../MathUtils.js";
-import type { ProjectionOptions } from "../../interfaces/index.js";
+import { MathUtils } from "../index.js";
+import { ProjectionOptions } from "../../interfaces/index.js";
 
 /**
  * Configuration options for perspective projection.

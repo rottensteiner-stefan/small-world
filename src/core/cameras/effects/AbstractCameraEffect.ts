@@ -1,5 +1,4 @@
 /// src/core/cameras/effects/AbstractCameraEffect.ts
-
 import { CameraEffect } from "../../../interfaces/index.js";
 import { Vector3D } from "../../../math/index.js";
 

@@ -1,7 +1,6 @@
 /// src/core/behaviors/StateMachineBehavior.ts
-
 import { Behavior } from "./Behavior.js";
-import { StateMachine } from "../fsm/StateMachine.js";
+import { StateMachine } from "../fsm/index.js";
 
 export class StateMachineBehavior<
   TState extends string,

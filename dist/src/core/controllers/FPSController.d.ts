@@ -1,8 +1,7 @@
-import { Behavior } from '../behaviors/Behavior.js';
+import { Behavior } from '../behaviors/index.js';
 import { CameraInterfaceData } from '../../interfaces/index.js';
-import { InputInterface } from '../Input.js';
+import { InputInterface, Scene } from '../index.js';
 import { InputMode } from '../../enums/index.js';
-import { Scene } from '../Scene.js';
 /**
  * Configuration for the FPSController.
  */
@@ -40,7 +39,7 @@ export declare class FPSController extends Behavior {
      * @param options The configuration options.
      */
     constructor(options?: FPSControllerOptions);
-    onAttach(target: import('../Object3D.js').Object3D | CameraInterfaceData): void;
+    onAttach(target: import('../index.js').Object3D | CameraInterfaceData): void;
     update(deltaTime: number): void;
     private _resolveCollisions;
 }

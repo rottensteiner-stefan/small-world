@@ -1,14 +1,12 @@
 /// src/renderers/passes/PostProcessPass.ts
-
-import { Scene } from "../../core/Scene.js";
-import { WebGPURenderer } from "../WebGPURenderer.js";
-import { RenderPass } from "../RenderPass.js";
-import { Vector3D } from "../../math/index.js";
-import { PostProcessingEffectType } from "../../enums/index.js";
-import { ShaderRegistry } from "../../core/renderers/shaders/ShaderRegistry.js";
-
 import FULLSCREEN_VERT_WGSL from "../../core/materials/shaders/PostProcess.vert.wgsl?raw";
 import POST_PROCESS_FRAG_WGSL from "../../core/materials/shaders/PostProcess.frag.wgsl?raw";
+import { Scene } from "../../core/index.js";
+import { WebGPURenderer } from "../WebGPU/index.js";
+import { RenderPass } from "../index.js";
+import { Vector3D } from "../../math/index.js";
+import { PostProcessingEffectType } from "../../enums/index.js";
+import { ShaderRegistry } from "../../core/renderers/shaders/index.js";
 
 /**
  * Full-screen post-processing pass (Uber-Shader).
@@ -27,22 +25,20 @@ export class PostProcessPass implements RenderPass {
   private _builtBloomTextureView?: GPUTextureView;
   private _compiledSignature?: string;
 
-  private _getSignature(
-    group: import("../post/PostProcessingGroup.js").PostProcessingGroup,
-  ): string {
-    const tm = group.get<import("../post/PostProcessingElement.js").ToneMappingElement>(
+  private _getSignature(group: import("../post/index.js").PostProcessingGroup): string {
+    const tm = group.get<import("../post/index.js").ToneMappingElement>(
       PostProcessingEffectType.TONE_MAPPING,
     );
-    const vig = group.get<import("../post/PostProcessingElement.js").VignetteElement>(
+    const vig = group.get<import("../post/index.js").VignetteElement>(
       PostProcessingEffectType.VIGNETTE,
     );
-    const grain = group.get<import("../post/PostProcessingElement.js").GrainElement>(
+    const grain = group.get<import("../post/index.js").GrainElement>(
       PostProcessingEffectType.GRAIN,
     );
-    const bloom = group.get<import("../post/PostProcessingElement.js").BloomElement>(
+    const bloom = group.get<import("../post/index.js").BloomElement>(
       PostProcessingEffectType.BLOOM,
     );
-    const quant = group.get<import("../post/PostProcessingElement.js").QuantizeElement>(
+    const quant = group.get<import("../post/index.js").QuantizeElement>(
       PostProcessingEffectType.QUANTIZE,
     );
 
@@ -72,7 +68,7 @@ export class PostProcessPass implements RenderPass {
   private _build(
     renderer: WebGPURenderer,
     bloomActiveView: GPUTextureView,
-    group: import("../post/PostProcessingGroup.js").PostProcessingGroup,
+    group: import("../post/index.js").PostProcessingGroup,
   ): void {
     const device = renderer._device!;
 
@@ -104,19 +100,19 @@ export class PostProcessPass implements RenderPass {
     const vertModule = device.createShaderModule({ code: FULLSCREEN_VERT_WGSL });
     let assembledFrag = ShaderRegistry.instance.assemble(POST_PROCESS_FRAG_WGSL, "wgsl");
 
-    const tm = group.get<import("../post/PostProcessingElement.js").ToneMappingElement>(
+    const tm = group.get<import("../post/index.js").ToneMappingElement>(
       PostProcessingEffectType.TONE_MAPPING,
     );
-    const vig = group.get<import("../post/PostProcessingElement.js").VignetteElement>(
+    const vig = group.get<import("../post/index.js").VignetteElement>(
       PostProcessingEffectType.VIGNETTE,
     );
-    const grain = group.get<import("../post/PostProcessingElement.js").GrainElement>(
+    const grain = group.get<import("../post/index.js").GrainElement>(
       PostProcessingEffectType.GRAIN,
     );
-    const bloom = group.get<import("../post/PostProcessingElement.js").BloomElement>(
+    const bloom = group.get<import("../post/index.js").BloomElement>(
       PostProcessingEffectType.BLOOM,
     );
-    const quant = group.get<import("../post/PostProcessingElement.js").QuantizeElement>(
+    const quant = group.get<import("../post/index.js").QuantizeElement>(
       PostProcessingEffectType.QUANTIZE,
     );
 
@@ -223,7 +219,7 @@ export class PostProcessPass implements RenderPass {
     const group = renderer.postProcessing;
     if (!group.enabled || !renderer._hdrTextureView) return;
 
-    const bloom = group.get<import("../post/PostProcessingElement.js").BloomElement>(
+    const bloom = group.get<import("../post/index.js").BloomElement>(
       PostProcessingEffectType.BLOOM,
     );
     const bloomActiveView =

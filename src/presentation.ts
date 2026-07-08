@@ -1,24 +1,22 @@
 /// src/presentation.ts
+import { AmbientLight } from "./core/lights/index.js";
+import { CameraStrategyType } from "./enums/index.js";
+import { Color } from "./core/colors/index.js";
+import { DirectionalLight } from "./core/lights/index.js";
+import { FPSController } from "./core/controllers/index.js";
+import { Object3D } from "./core/index.js";
+import { PerspectiveProjection } from "./math/projections/index.js";
+import { ProjectionType } from "./enums/index.js";
+import { RendererType } from "./enums/index.js";
+import { PostProcessingEffectType } from "./enums/index.js";
+import { CubeTexture } from "./core/textures/index.js";
+import { AbstractShowcase } from "./core/showcase/index.js";
+import { Cube } from "./geometry/index.js";
+import { SkyboxMaterial } from "./core/materials/index.js";
+import { GltfLoader } from "./loaders/index.js";
+import { BloomElement } from "./renderers/post/elements/index.js";
 
-import {
-  AmbientLight,
-  CameraStrategyType,
-  Color,
-  DirectionalLight,
-  FPSController,
-  Object3D,
-  PerspectiveProjection,
-  ProjectionType,
-  RendererType,
-  PostProcessingEffectType,
-  CubeTexture,
-  AbstractShowcase,
-  Cube,
-  SkyboxMaterial,
-  GltfLoader,
-  BloomElement,
-} from "./index.js";
-
+/// src/presentation.ts
 // ============================================================================
 // 2. Interactive 3D App for Slide 5
 // ============================================================================
@@ -119,9 +117,8 @@ class PresentationDemoApp extends AbstractShowcase {
       if (envTexture) {
         const applyEnvMap = (node: Object3D): void => {
           if (node.material && "envMap" in node.material) {
-            (
-              node.material as import("./core/materials/StandardMaterial.js").StandardMaterial
-            ).envMap = envTexture;
+            (node.material as import("./core/materials/index.js").StandardMaterial).envMap =
+              envTexture;
           }
           node.children.forEach(applyEnvMap);
         };
@@ -405,6 +402,8 @@ class PresentationController {
 }
 
 // Bootstrap presentation viewer on content load
-window.addEventListener("DOMContentLoaded", (): void => {
-  new PresentationController();
-});
+if (typeof window !== "undefined") {
+  window.addEventListener("DOMContentLoaded", (): void => {
+    new PresentationController();
+  });
+}

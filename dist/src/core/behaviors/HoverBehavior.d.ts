@@ -1,5 +1,5 @@
 import { Behavior } from './Behavior.js';
-import { Object3D } from '../Object3D.js';
+import { Object3D } from '../index.js';
 /**
  * A gamification behavior that scales up the object and adds a glow when hovered.
  */

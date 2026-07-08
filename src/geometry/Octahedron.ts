@@ -1,6 +1,6 @@
-/// src/geometry/Octahedron.ts
-
 import { AbstractGeometry } from "./AbstractGeometry.js";
+
+/// src/geometry/Octahedron.ts
 
 /**
  * Configuration options for octahedron geometry.

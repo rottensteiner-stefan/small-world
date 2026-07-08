@@ -1,13 +1,14 @@
 /// src/core/cameras/CameraStrategyFactory.ts
 import { CameraStrategyType } from "../../enums/index.js";
-import { FixedStrategy } from "./strategies/FixedStrategy.js";
-import { ManualStrategy } from "./strategies/ManualStrategy.js";
-import { HybridSyncStrategy } from "./strategies/HybridSyncStrategy.js";
-import { FPSStrategy } from "./strategies/FPSStrategy.js";
+import { FixedStrategy } from "./strategies/index.js";
+import { ManualStrategy } from "./strategies/index.js";
+import { HybridSyncStrategy } from "./strategies/index.js";
+import { FPSStrategy } from "./strategies/index.js";
 import { CameraStrategy } from "../../interfaces/index.js";
-import { SmoothStrategy } from "./strategies/SmoothStrategy.js";
-import { StiffStrategy } from "./strategies/StiffStrategy.js";
-import { IsometricStrategy } from "./strategies/IsometricStrategy.js";
+import { SmoothStrategy } from "./strategies/index.js";
+import { StiffStrategy } from "./strategies/index.js";
+import { IsometricStrategy } from "./strategies/index.js";
+
 export class CameraStrategyFactory {
   private static _strategies = new Map<CameraStrategyType, CameraStrategy>([
     [CameraStrategyType.MANUAL, new ManualStrategy()],

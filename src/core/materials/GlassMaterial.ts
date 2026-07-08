@@ -1,16 +1,16 @@
 /// src/core/materials/GlassMaterial.ts
-
-import { AbstractMaterial } from "./AbstractMaterial.js";
-import { Color } from "../colors/index.js";
-import { MaterialType, ShaderPropertyType, BlendingMode } from "../../enums/index.js";
-import { Texture } from "../textures/index.js";
-import { RenderManifest } from "../renderers/shaders/RenderManifest.js";
-import { ShaderDefinition } from "../renderers/shaders/ShaderDefinition.js";
-import { StandardWebGPULayout } from "../renderers/shaders/StandardWebGPULayout.js";
-
 import fragGLSL from "./shaders/Glass.frag.glsl?raw";
 import fragGLSL100 from "./shaders/Glass.frag.glsl100?raw";
 import fragWGSL from "./shaders/Glass.frag.wgsl?raw";
+import { AbstractMaterial } from "./AbstractMaterial.js";
+import { Color } from "../colors/index.js";
+import { MaterialType } from "../../enums/index.js";
+import { ShaderPropertyType } from "../../enums/index.js";
+import { BlendingMode } from "../../enums/index.js";
+import { Texture } from "../textures/index.js";
+import { RenderManifest } from "../renderers/shaders/index.js";
+import { ShaderDefinition } from "../renderers/shaders/index.js";
+import { StandardWebGPULayout } from "../renderers/shaders/index.js";
 
 export interface GlassMaterialOptions {
   color?: Color;

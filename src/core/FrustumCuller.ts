@@ -1,10 +1,9 @@
 /// src/core/FrustumCuller.ts
-
-import { Frustum } from "../math/Frustum.js";
-import { Matrix4 } from "../math/Matrix4.js";
 import { Object3D } from "./Object3D.js";
 import { Scene } from "./Scene.js";
 import { OctreeNode } from "./Octree.js";
+import { Frustum } from "../math/index.js";
+import { Matrix4 } from "../math/index.js";
 
 /**
  * Handles frustum culling for objects in a scene.

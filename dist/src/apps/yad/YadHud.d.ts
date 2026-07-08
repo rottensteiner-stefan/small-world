@@ -21,6 +21,7 @@ export declare class YadHud {
     private _updateMainStatCanvas;
     private _armsCanvas?;
     private _createWeaponButtons;
+    private _updateWeaponDisplay;
     private _createKeycardButtons;
     private _createAmmoInfo;
     private _drawAmmoInfo;

@@ -1,6 +1,6 @@
-/// src/core/colors/Color.ts
-
 import { Vector3D } from "../../math/index.js";
+
+/// src/core/colors/Color.ts
 
 export class Color {
   /**

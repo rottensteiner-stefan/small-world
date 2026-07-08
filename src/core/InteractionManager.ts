@@ -1,11 +1,10 @@
 /// src/core/InteractionManager.ts
-
 import { Scene } from "./Scene.js";
 import { Camera } from "./Camera.js";
-import { Raycaster, Intersection } from "../physix/Raycaster.js";
 import { Input } from "./Input.js";
 import { Object3D } from "./Object3D.js";
-import { Vector2D } from "../math/Vector2D.js";
+import { Raycaster, Intersection } from "../physix/index.js";
+import { Vector2D } from "../math/index.js";
 
 /**
  * Handles Gamification events: raycasts into the scene and triggers pointer events

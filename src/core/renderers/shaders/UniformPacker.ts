@@ -1,9 +1,9 @@
 /// src/core/renderers/shaders/UniformPacker.ts
-
-import { ShaderPropertyType } from "../../../enums/index.js";
 import { ShaderLayout } from "./ShaderDefinition.js";
-import { Vector3D, Matrix4 } from "../../../math/index.js";
-import { Color } from "../../colors/Color.js";
+import { ShaderPropertyType } from "../../../enums/index.js";
+import { Vector3D } from "../../../math/index.js";
+import { Matrix4 } from "../../../math/index.js";
+import { Color } from "../../colors/index.js";
 
 /**
  * Utility to pack uniform data into a Float32Array based on a layout.

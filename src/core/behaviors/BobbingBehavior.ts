@@ -1,7 +1,6 @@
 /// src/core/behaviors/BobbingBehavior.ts
-
 import { Behavior } from "./Behavior.js";
-import { Object3D } from "../Object3D.js";
+import { Object3D } from "../index.js";
 
 /**
  * Makes an object bob up and down on the Y-axis using a sine wave.

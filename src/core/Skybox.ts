@@ -1,8 +1,7 @@
 /// src/core/Skybox.ts
-
-import { Cube } from "../geometry/Cube.js";
-import { CubeTexture } from "./textures/index.js";
 import { Object3D } from "./Object3D.js";
+import { Cube } from "../geometry/index.js";
+import { CubeTexture } from "./textures/index.js";
 import { SkyboxMaterial } from "./materials/index.js";
 
 /**

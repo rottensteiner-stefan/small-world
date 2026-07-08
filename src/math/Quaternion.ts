@@ -1,5 +1,4 @@
 /// src/math/Quaternion.ts
-
 import { Vector3D } from "./Vector3D.js";
 import { Matrix4 } from "./Matrix4.js";
 

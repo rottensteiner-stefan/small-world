@@ -1,9 +1,8 @@
 /// src/core/behaviors/PathFollowerBehavior.ts
-
 import { Behavior } from "./Behavior.js";
-import { Object3D } from "../Object3D.js";
-import { Curve3D } from "../../math/Curve3D.js";
-import { Vector3D } from "../../math/Vector3D.js";
+import { Object3D } from "../index.js";
+import { Curve3D } from "../../math/index.js";
+import { Vector3D } from "../../math/index.js";
 
 /**
  * Moves an object along a 3D curve (e.g., CatmullRomSpline) over time.

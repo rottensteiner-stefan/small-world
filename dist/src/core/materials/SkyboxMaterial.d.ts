@@ -1,8 +1,7 @@
 import { AbstractMaterial } from './AbstractMaterial.js';
 import { CubeTexture } from '../textures/index.js';
-import { Color } from '../colors/Color.js';
-import { RenderManifest } from '../renderers/shaders/RenderManifest.js';
-import { ShaderDefinition } from '../renderers/shaders/ShaderDefinition.js';
+import { Color } from '../colors/index.js';
+import { RenderManifest, ShaderDefinition } from '../renderers/shaders/index.js';
 /**
  * Configuration options for skybox material.
  */

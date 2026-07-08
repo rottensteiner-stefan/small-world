@@ -1,5 +1,4 @@
 /// src/core/lights/PointLight.ts
-
 import { AbstractLight, LightOptions } from "./AbstractLight.js";
 import { LightType } from "../../enums/index.js";
 import { LightDataInterface } from "../../interfaces/index.js";

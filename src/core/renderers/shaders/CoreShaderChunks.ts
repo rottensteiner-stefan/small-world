@@ -1,7 +1,4 @@
 /// src/core/renderers/shaders/CoreShaderChunks.ts
-
-import { ShaderRegistry } from "./ShaderRegistry.js";
-
 import FOG_DEFS from "../../materials/shaders/chunks/fog_defs.glsl?raw";
 import FOG_CALC from "../../materials/shaders/chunks/fog_calc.glsl?raw";
 import FILTER_GLITCH_DISTORT_GLSL from "../../materials/shaders/chunks/filter_glitch_distort.glsl?raw";
@@ -49,6 +46,7 @@ import wgslPbrMath from "./source/web_gpu/chunks/pbr_math.wgsl?raw";
 import wgslPbrLighting from "./source/web_gpu/chunks/lighting_pbr.wgsl?raw";
 import wgslFogCalc from "./source/web_gpu/chunks/fog_calc.wgsl?raw";
 import wgslBaseVs from "./source/web_gpu/base.vert.wgsl?raw";
+import { ShaderRegistry } from "./ShaderRegistry.js";
 
 /**
  * Utility to load and register all standard shader chunks used by the engine.

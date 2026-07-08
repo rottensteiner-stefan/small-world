@@ -129,19 +129,6 @@ export class YadHud {
     });
   }
 
-  private _updateWeaponDisplay(activeIndex: number): void {
-    if (!this._weaponContainer) return;
-    const buttons = this._weaponContainer.children;
-    for (let i = 0; i < buttons.length; i++) {
-      const btn = buttons[i] as HTMLDivElement;
-      if (i + 1 === activeIndex) {
-        btn.style.color = "#cc0"; // Active: Doom yellow
-      } else {
-        btn.style.color = "#555"; // Inactive: Dimmed grey
-      }
-    }
-  }
-
   private _updateDisplay(): void {
     if (this._healthEl) {
       this._updateMainStatCanvas(this._healthEl, `${this._health}%`, "HEALTH");
@@ -266,7 +253,7 @@ export class YadHud {
     const imgData = ctx.getImageData(0, 0, width, height);
     const data = imgData.data;
     for (let i = 0; i < data.length; i += 4) {
-      if (data[i + 3] > 100) {
+      if (data[i + 3]! > 100) {
         data[i + 3] = 255; // Force solid
       } else {
         data[i + 3] = 0; // Force transparent
@@ -494,7 +481,7 @@ export class YadHud {
 
       // 2. Remove white background (r>240, g>240, b>240)
       for (let i = 0; i < data.length; i += 4) {
-        if (data[i] > 240 && data[i + 1] > 240 && data[i + 2] > 240) {
+        if (data[i]! > 240 && data[i + 1]! > 240 && data[i + 2]! > 240) {
           data[i + 3] = 0; // Make transparent
         }
       }
@@ -512,7 +499,7 @@ export class YadHud {
         for (let y = currentY; y < offCanvas.height; y++) {
           for (let x = 0; x < scanWidth; x++) {
             const alpha = data[(y * offCanvas.width + x) * 4 + 3];
-            if (alpha > 0) {
+            if (alpha! > 0) {
               minY = y;
               foundTop = true;
               break;
@@ -531,7 +518,7 @@ export class YadHud {
           for (let y = minY; y < minY + faceScanH; y++) {
             for (let x = 0; x < scanWidth; x++) {
               const alpha = data[(y * offCanvas.width + x) * 4 + 3];
-              if (alpha > 0) {
+              if (alpha! > 0) {
                 if (x < minX) minX = x;
                 if (x > maxX) maxX = x;
               }

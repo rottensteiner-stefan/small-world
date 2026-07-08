@@ -1,4 +1,4 @@
-import { Vector3D } from '../math/Vector3D.js';
+import { Vector3D } from '../math/index.js';
 import { CameraInterfaceData } from '../interfaces/index.js';
 /**
  * A basic Audio System that wraps the Web Audio API.

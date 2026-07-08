@@ -1,4 +1,4 @@
-import { Events, LoaderOptions, EventHandler } from '../interfaces/index.js';
+import { Events, EventHandler, LoaderOptions } from '../interfaces/index.js';
 import { EventType } from '../enums/index.js';
 /**
  * Abstract base class for all resource loaders.

@@ -1,7 +1,6 @@
-import { Behavior } from '../../core/behaviors/Behavior.js';
+import { Behavior } from '../../core/behaviors/index.js';
 import { CameraInterfaceData } from '../../interfaces/index.js';
-import { Object3D } from '../../core/Object3D.js';
-import { Scene } from '../../core/Scene.js';
+import { Object3D, Scene } from '../../core/index.js';
 /**
  * Configuration for the YadController.
  */

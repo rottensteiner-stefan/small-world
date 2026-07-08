@@ -1,15 +1,15 @@
 /// src/core/materials/WireframeMaterial.ts
-
-import { AbstractMaterial } from "./AbstractMaterial.js";
-import { MaterialType, CullMode, Topology } from "../../enums/index.js";
-import { Color } from "../colors/index.js";
-import { RenderManifest } from "../renderers/shaders/RenderManifest.js";
-import { ShaderDefinition } from "../renderers/shaders/ShaderDefinition.js";
-import { StandardWebGPULayout } from "../renderers/shaders/StandardWebGPULayout.js";
-
 import fragGLSL from "./shaders/Wireframe.frag.glsl?raw";
 import fragGLSL100 from "./shaders/Wireframe.frag.glsl100?raw";
 import fragWGSL from "./shaders/Wireframe.frag.wgsl?raw";
+import { AbstractMaterial } from "./AbstractMaterial.js";
+import { MaterialType } from "../../enums/index.js";
+import { CullMode } from "../../enums/index.js";
+import { Topology } from "../../enums/index.js";
+import { Color } from "../colors/index.js";
+import { RenderManifest } from "../renderers/shaders/index.js";
+import { ShaderDefinition } from "../renderers/shaders/index.js";
+import { StandardWebGPULayout } from "../renderers/shaders/index.js";
 
 /**
  * A material for wireframe rendering.

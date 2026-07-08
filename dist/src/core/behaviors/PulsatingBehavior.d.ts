@@ -1,5 +1,5 @@
 import { Behavior } from './Behavior.js';
-import { Object3D } from '../Object3D.js';
+import { Object3D } from '../index.js';
 /**
  * Configuration options for the PulsatingBehavior.
  */

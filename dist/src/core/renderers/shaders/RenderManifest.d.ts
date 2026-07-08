@@ -1,5 +1,4 @@
-import { Texture } from '../../textures/Texture.js';
-import { CubeTexture } from '../../textures/CubeTexture.js';
+import { Texture, CubeTexture } from '../../textures/index.js';
 import { BlendingMode, CullMode, Topology } from '../../../enums/index.js';
 /**
  * The RenderManifest is the "order sheet" that a material

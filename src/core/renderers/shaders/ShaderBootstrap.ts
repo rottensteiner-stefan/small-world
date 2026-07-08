@@ -1,6 +1,6 @@
-/// src/core/renderers/shaders/ShaderBootstrap.ts
-
 import { CoreShaderChunks } from "./CoreShaderChunks.js";
+
+/// src/core/renderers/shaders/ShaderBootstrap.ts
 
 /**
  * Modern Bootstrapper for the ShaderRegistry.

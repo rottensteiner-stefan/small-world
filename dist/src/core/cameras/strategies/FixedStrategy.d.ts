@@ -1,5 +1,5 @@
 import { CameraInterfaceData, CameraConstraints, CameraStrategy } from '../../../interfaces/index.js';
-import { Vector3D } from '../../../math/Vector3D.js';
+import { Vector3D } from '../../../math/index.js';
 /**
  * A camera strategy where the camera stays at its current position but looks at a target.
  * This strategy allows manual movement of the camera's position property while

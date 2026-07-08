@@ -1,16 +1,15 @@
 /// src/core/materials/LambertMaterial.ts
-
-import { AbstractMaterial } from "./AbstractMaterial.js";
-import { MaterialType, ShaderPropertyType } from "../../enums/index.js";
-import { Color } from "../colors/index.js";
-import { Texture } from "../textures/index.js";
-import { RenderManifest } from "../renderers/shaders/RenderManifest.js";
-import { ShaderDefinition } from "../renderers/shaders/ShaderDefinition.js";
-import { StandardWebGPULayout } from "../renderers/shaders/StandardWebGPULayout.js";
-
 import fragGLSL from "./shaders/Lambert.frag.glsl?raw";
 import fragGLSL100 from "./shaders/Lambert.frag.glsl100?raw";
 import fragWGSL from "./shaders/Lambert.frag.wgsl?raw";
+import { AbstractMaterial } from "./AbstractMaterial.js";
+import { MaterialType } from "../../enums/index.js";
+import { ShaderPropertyType } from "../../enums/index.js";
+import { Color } from "../colors/index.js";
+import { Texture } from "../textures/index.js";
+import { RenderManifest } from "../renderers/shaders/index.js";
+import { ShaderDefinition } from "../renderers/shaders/index.js";
+import { StandardWebGPULayout } from "../renderers/shaders/index.js";
 import { Vector2D } from "../../math/index.js";
 
 /**

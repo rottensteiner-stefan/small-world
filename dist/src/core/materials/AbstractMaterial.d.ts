@@ -1,8 +1,7 @@
 import { Color } from '../colors/index.js';
 import { MaterialType, CullMode } from '../../enums/index.js';
-import { RenderManifest } from '../renderers/shaders/RenderManifest.js';
+import { RenderManifest, ShaderDefinition } from '../renderers/shaders/index.js';
 import { ShaderProvider } from '../../interfaces/index.js';
-import { ShaderDefinition } from '../renderers/shaders/ShaderDefinition.js';
 /**
  * Base class for all material types.
  */

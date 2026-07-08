@@ -1,13 +1,14 @@
 /// src/renderers/AbstractRenderer.ts
-
-import { AbstractLight, Color } from "../core/index.js";
-import { Renderer, LightDataInterface } from "../interfaces/index.js";
+import { AbstractLight } from "../core/lights/index.js";
+import { Color } from "../core/colors/index.js";
+import { Renderer } from "../interfaces/index.js";
+import { LightDataInterface } from "../interfaces/index.js";
 import { RendererType } from "../enums/index.js";
 import { Object3D } from "../core/Object3D.js";
 import { Scene } from "../core/Scene.js";
 import { Vector3D } from "../math/index.js";
 import { EngineOptions, QualityConfig, ToneMapping } from "../interfaces/index.js";
-import { PostProcessingGroup } from "./post/index.js";
+import { PostProcessingGroup } from "./post/PostProcessingGroup.js";
 
 /**
  * Base class for all renderer implementations.
@@ -67,8 +68,8 @@ export abstract class AbstractRenderer implements Renderer {
   /** @inheritdoc */
   public abstract setRenderTarget(
     target:
-      | import("../core/textures/RenderTarget.js").RenderTarget
-      | import("../core/textures/RenderTargetCube.js").RenderTargetCube
+      | import("../core/textures/index.js").RenderTarget
+      | import("../core/textures/index.js").RenderTargetCube
       | null,
     activeCubeFace?: number,
   ): void;

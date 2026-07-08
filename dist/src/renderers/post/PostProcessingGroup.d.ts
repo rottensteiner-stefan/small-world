@@ -31,5 +31,5 @@ export declare class PostProcessingGroup {
     /**
      * Loads configurations into elements from a configuration object.
      */
-    loadConfig(config?: import('../../interfaces/EngineOptions.js').PostProcessingConfig): void;
+    loadConfig(config?: import('../../interfaces/index.js').PostProcessingConfig): void;
 }

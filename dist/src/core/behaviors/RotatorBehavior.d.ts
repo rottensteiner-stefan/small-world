@@ -1,5 +1,5 @@
 import { Behavior } from './Behavior.js';
-import { Vector3D } from '../../math/Vector3D.js';
+import { Vector3D } from '../../math/index.js';
 /**
  * Continuously rotates the attached object along specified axes.
  */

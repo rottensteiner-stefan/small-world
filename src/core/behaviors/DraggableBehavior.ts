@@ -1,10 +1,9 @@
 /// src/core/behaviors/DraggableBehavior.ts
-
 import { Behavior } from "./Behavior.js";
-import { Object3D } from "../Object3D.js";
-import { Vector3D } from "../../math/Vector3D.js";
-import { Ray } from "../../physix/Ray.js";
-import { Camera } from "../Camera.js";
+import { Object3D } from "../index.js";
+import { Vector3D } from "../../math/index.js";
+import { Ray } from "../../physix/index.js";
+import { Camera } from "../index.js";
 
 /**
  * Allows an object to be dragged around in 3D space.

@@ -1,14 +1,15 @@
 /// src/apps/yad/YadController.ts
-
-import { Behavior } from "../../core/behaviors/Behavior.js";
+import { Behavior } from "../../core/behaviors/index.js";
 import { CameraInterfaceData } from "../../interfaces/index.js";
-import { Object3D } from "../../core/Object3D.js";
-import { Input } from "../../core/Input.js";
-import { Keys } from "../../enums/Keys.js";
-import { Scene } from "../../core/Scene.js";
-import { BoundingBox, BoundingSphere, Collision } from "../../physix/index.js";
+import { Object3D } from "../../core/index.js";
+import { Input } from "../../core/index.js";
+import { Keys } from "../../enums/index.js";
+import { Scene } from "../../core/index.js";
+import { BoundingBox } from "../../physix/index.js";
+import { BoundingSphere } from "../../physix/index.js";
+import { Collision } from "../../physix/index.js";
 import { MathPool } from "../../math/index.js";
-import { AudioSystem } from "../../audio/AudioSystem.js";
+import { AudioSystem } from "../../audio/index.js";
 
 /**
  * Configuration for the YadController.

@@ -1,7 +1,7 @@
 import { Object3D } from './Object3D.js';
 import { Octree } from './Octree.js';
 import { Fog } from './Fog.js';
-import { Vector3D } from '../math/Vector3D.js';
+import { Vector3D } from '../math/index.js';
 import { BoundingBox } from '../physix/index.js';
 export interface RenderList {
     opaque: Map<string, Map<string, Map<string, Object3D[]>>>;
@@ -16,9 +16,9 @@ export declare class Scene {
     staticOctree: Octree | undefined;
     dynamicOctree: Octree | undefined;
     fog?: Fog;
-    irradianceMap?: import('./textures/CubeTexture.js').CubeTexture;
-    prefilterMap?: import('./textures/CubeTexture.js').CubeTexture;
-    brdfLUT?: import('./textures/Texture.js').Texture;
+    irradianceMap?: import('./textures/index.js').CubeTexture;
+    prefilterMap?: import('./textures/index.js').CubeTexture;
+    brdfLUT?: import('./textures/index.js').Texture;
     environmentIntensity: number;
     private readonly _renderList;
     private _scratchFrustum;

@@ -1,9 +1,10 @@
 /// src/renderers/RendererFactory.ts
-import { Renderer, EngineOptions } from "../interfaces/index.js";
+import { Renderer } from "../interfaces/index.js";
+import { EngineOptions } from "../interfaces/index.js";
 import { RendererType } from "../enums/index.js";
-import { WebGL1Renderer } from "./WebGL1Renderer.js";
-import { WebGL2Renderer } from "./WebGL2Renderer.js";
-import { WebGPURenderer } from "./WebGPURenderer.js";
+import { WebGL1Renderer } from "./WebGL1/index.js";
+import { WebGL2Renderer } from "./WebGL2/index.js";
+import { WebGPURenderer } from "./WebGPU/index.js";
 
 /**
  * Factory for creating renderer instances.

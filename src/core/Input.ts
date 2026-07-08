@@ -1,7 +1,6 @@
 /// src/core/Input.ts
-
-import { Keys } from "../enums/Keys.js";
 import { UniversalGamepadController } from "./UniversalGamepadController.js";
+import { Keys } from "../enums/index.js";
 
 /**
  * Interface for mouse state.

@@ -1,9 +1,12 @@
 /// src/geometry/TerrainManager.ts
-
-import { Object3D, Scene, TerrainMaterial, Texture } from "../core/index.js";
-import { Vector3D } from "../math/index.js";
-import { HeightmapGenerator, TextureGenerator } from "../utils/index.js";
 import { Terrain } from "./Terrain.js";
+import { Object3D } from "../core/index.js";
+import { Scene } from "../core/index.js";
+import { TerrainMaterial } from "../core/materials/index.js";
+import { Texture } from "../core/textures/index.js";
+import { Vector3D } from "../math/index.js";
+import { HeightmapGenerator } from "../utils/index.js";
+import { TextureGenerator } from "../utils/index.js";
 
 /**
  * Algorithm types for procedural terrain generation.

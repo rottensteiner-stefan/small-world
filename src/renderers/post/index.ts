@@ -2,6 +2,9 @@
 
 export * from "./PostProcessingElement.js";
 export * from "./PostProcessingGroup.js";
-export * from "./PostProcessPassGL.js";
-export * from "./BloomPassGL.js";
-export * from "./BloomPassGPU.js";
+export * from "./passes/PostProcessPassGL.js";
+export * from "./passes/BloomPassGL.js";
+export * from "./passes/BloomPassGPU.js";
+
+export * from "./elements/index.js";
+export * from "./passes/index.js";

@@ -1,9 +1,8 @@
 import { Camera } from './Camera.js';
-import { EngineOptions } from '../interfaces/index.js';
-import { Renderer } from '../interfaces/Renderer.js';
 import { Scene } from './Scene.js';
 import { InteractionManager } from './InteractionManager.js';
-import { GadgetInspector } from '../tools/GadgetInspector.js';
+import { EngineOptions, Renderer } from '../interfaces/index.js';
+import { GadgetInspector } from '../tools/index.js';
 /** The current engine version. */
 export declare const ENGINE_VERSION = "0.47.0";
 /**

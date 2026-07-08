@@ -1,11 +1,10 @@
 /// src/core/lights/SpotLight.ts
-
+import { AbstractLight, LightOptions } from "./AbstractLight.js";
 import { LightType } from "../../enums/index.js";
 import { LightDataInterface } from "../../interfaces/index.js";
-import { AbstractLight, LightOptions } from "./AbstractLight.js";
-import { Vector3D } from "../../math/Vector3D.js";
-import { PerspectiveProjection } from "../../math/index.js";
-import { Camera } from "../Camera.js";
+import { Vector3D } from "../../math/index.js";
+import { PerspectiveProjection } from "../../math/projections/index.js";
+import { Camera } from "../index.js";
 
 /**
  * Configuration options for spotlight.

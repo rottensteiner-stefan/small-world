@@ -1,4 +1,4 @@
-import { ShaderDefinition } from '../core/renderers/shaders/ShaderDefinition.js';
+import { ShaderDefinition } from '../core/renderers/shaders/index.js';
 /**
  * Interface for components that provide their own shader definitions.
  * Typically implemented by Material classes.

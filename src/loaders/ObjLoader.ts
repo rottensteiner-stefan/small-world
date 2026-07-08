@@ -1,10 +1,11 @@
 /// src/loaders/ObjLoader.ts
-
-import { AssetManager, AbstractLoader, MtlLoader } from "./index.js";
+import { AssetManager } from "./AssetManager.js";
+import { AbstractLoader } from "./AbstractLoader.js";
+import { MtlLoader } from "./MtlLoader.js";
 import { EventType } from "../enums/index.js";
 import { ModelGeometry } from "../geometry/index.js";
 import { Object3D } from "../core/index.js";
-import { PhongMaterial } from "../core/index.js";
+import { PhongMaterial } from "../core/materials/index.js";
 import { LoaderOptions } from "../interfaces/index.js";
 
 // Helper class to sort geometry parts by material

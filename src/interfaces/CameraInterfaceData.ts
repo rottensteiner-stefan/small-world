@@ -1,12 +1,13 @@
 /// src/interfaces/CameraInterfaceData.ts
-
-import { AbstractProjection, Matrix4 } from "../math/index.js";
-import { CameraEffectType, CameraStrategyType } from "../enums/index.js";
-import { Vector3D } from "../math/index.js";
 import { CameraStrategy } from "./CameraStrategy.js";
 import { CameraConstraints } from "./CameraConstraints.js";
 import { CameraEffect } from "./CameraEffect.js";
-import { Behavior } from "../core/behaviors/Behavior.js";
+import { AbstractProjection } from "../math/projections/index.js";
+import { Matrix4 } from "../math/index.js";
+import { CameraEffectType } from "../enums/index.js";
+import { CameraStrategyType } from "../enums/index.js";
+import { Vector3D } from "../math/index.js";
+import { Behavior } from "../core/behaviors/index.js";
 
 /**
  * Interface representing the core data and API of a camera.

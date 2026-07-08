@@ -1,7 +1,6 @@
 /// src/physix/Ray.ts
-
-import { Vector3D } from "../math/Vector3D.js";
 import { BoundingBox } from "./BoundingBox.js";
+import { Vector3D } from "../math/index.js";
 
 /**
  * Represents a mathematical ray in 3D space.

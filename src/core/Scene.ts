@@ -1,13 +1,13 @@
 /// src/core/Scene.ts
-
 import { Object3D } from "./Object3D.js";
 import { Octree } from "./Octree.js";
 import { Fog } from "./Fog.js";
-import { Matrix4 } from "../math/Matrix4.js";
-import { Frustum } from "../math/Frustum.js";
-import { Vector3D } from "../math/Vector3D.js";
+import { Matrix4 } from "../math/index.js";
+import { Frustum } from "../math/index.js";
+import { Vector3D } from "../math/index.js";
 import { BoundingBox } from "../physix/index.js";
-import { BoundingType, Topology } from "../enums/index.js";
+import { BoundingType } from "../enums/index.js";
+import { Topology } from "../enums/index.js";
 import { DirectionalLight } from "./lights/index.js";
 
 export interface RenderList {
@@ -26,9 +26,9 @@ export class Scene {
   public fog?: Fog;
 
   // Global Environment (IBL)
-  public irradianceMap?: import("./textures/CubeTexture.js").CubeTexture;
-  public prefilterMap?: import("./textures/CubeTexture.js").CubeTexture;
-  public brdfLUT?: import("./textures/Texture.js").Texture;
+  public irradianceMap?: import("./textures/index.js").CubeTexture;
+  public prefilterMap?: import("./textures/index.js").CubeTexture;
+  public brdfLUT?: import("./textures/index.js").Texture;
   public environmentIntensity: number = 1.0;
 
   // Persistent cache for rendering
