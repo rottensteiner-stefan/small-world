@@ -23,24 +23,6 @@
         background-color: #000;
         container-type: size;
       }
-      /* Weapon */
-      #weapon-container {
-        position: absolute;
-        bottom: 32px; /* Offset to sit exactly on top of the 32px HUD */
-        left: 50%;
-        transform: translateX(-50%);
-        z-index: 9000;
-        pointer-events: none;
-      }
-      #weapon-img {
-        height: 100px; /* Sized for 200px tall screen */
-        image-rendering: pixelated;
-        transform-origin: bottom center;
-        transition: transform 0.1s;
-      }
-      .weapon-shoot {
-        transform: scale(1.1) translateY(20px) rotate(-5deg);
-      }
     </style>
     <script type="module" crossorigin src="../../js/core.js"></script>
     <script type="module" crossorigin src="../../js/AudioSystem2.js"></script>
@@ -50,21 +32,7 @@
   <body>
     <div id="retro-screen">
       <canvas id="SmallWorld"></canvas>
-      
-      <div id="weapon-container">
-        <img id="weapon-img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABYAAAAPCAYAAADgbT9oAAAACXBIWXMAABCcAAAQnAEmzTo0AAAA8UlEQVQ4y6WTMQ6DMAxFIzGyMjOwsjKwMnEQDsDSW3DotM/iIydUKk0sWT/B9s+PY0LIbN/3uG1bDIV2HEeEI/kI4bqucVkWIyeBxHEcb+jjcolKhLF5hRCnabJCnHXXdXGe5xsiQCK8E6PWSEnQaZANw5CQUwB6F5H2ylfNpViEfd9bEPx8NsSJ5a4Yzk3wtm0N897bRxLPU42gaRpDYh5FCNmvR01USLWIRSR8NCa6vi/U2vftMaFMZDrgfFlboxj/m5TX9Y+m/kpx6c9ibfDX9i0pJkWtn4S8DVVqvULtXUvKzI3ONQnVbfDkX+a3yt6vbgdDZoQ/1QAAAABJRU5ErkJggg==" alt="Weapon" />
-      </div>
     </div>
 
-    
-    <script>
-      const weaponImg = document.getElementById("weapon-img");
-      
-      // Weapon recoil animation
-      window.addEventListener("yad-shoot", () => {
-         weaponImg.classList.add("weapon-shoot");
-         setTimeout(() => weaponImg.classList.remove("weapon-shoot"), 100);
-      });
-    </script>
   </body>
 </html>

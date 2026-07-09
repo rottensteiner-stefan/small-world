@@ -3,7 +3,6 @@ import { Object3D } from "../../core/index.js";
 import { Scene } from "../../core/index.js";
 import { Vector3D } from "../../math/index.js";
 import { Cube } from "../../geometry/index.js";
-import { Plane } from "../../geometry/index.js";
 import { Sphere } from "../../geometry/index.js";
 import { StandardMaterial } from "../../core/materials/index.js";
 import { LavaMaterial } from "../../core/materials/index.js";
@@ -13,10 +12,10 @@ import { Color } from "../../core/colors/index.js";
 import { Texture } from "../../core/textures/index.js";
 import { Sprite } from "../../core/index.js";
 import { CullMode } from "../../enums/index.js";
-import { GeometryDataInterface } from "../../interfaces/index.js";
 import { CameraInterfaceData } from "../../interfaces/index.js";
 import { ProximitySensorBehavior } from "../../core/behaviors/index.js";
 import { BobbingBehavior } from "../../core/behaviors/index.js";
+import { GridLevelBuilder, GridLegend } from "../../extensions/grid-builder/GridLevelBuilder.js";
 
 export type YadTileType =
   | "wall"
@@ -42,6 +41,7 @@ export interface YadLegendEntry {
   bobbing?: boolean;
   isEnemy?: boolean;
   isItem?: boolean;
+  itemType?: string;
   /** Wall/Door specific settings */
   doorSpeed?: number;
   doorSound?: string;
@@ -49,70 +49,38 @@ export interface YadLegendEntry {
 
 export type YadLegend = Record<string, YadLegendEntry>;
 
-/**
- * Configuration for the YadLevelBuilder.
- */
 export interface YadLevelConfig {
-  /** The dictionary mapping characters to logic */
   legend: YadLegend;
-  /** Texture for standard floors. */
   floorTexture?: Texture;
-  /** Texture for ceilings. */
   ceilingTexture?: Texture;
-  /** Noise map for lava animation. */
   lavaNoiseMap?: Texture;
-  /** Normal map for lava. */
   lavaNormalMap?: Texture;
-  /** Displacement map for lava. */
   lavaDisplacementMap?: Texture;
-  /** Specular map for lava. */
   lavaSpecularMap?: Texture;
-  /** Ambient map for lava. */
   lavaAmbientMap?: Texture;
-  /** Set characters that should use lava material for the floor instead of the default floor */
   lavaFloorChars?: string[];
-  /** Set characters that should be treated as slime floor */
   slimeFloorChars?: string[];
-  /** The player camera (for proximity sensing on doors) */
   playerCamera?: CameraInterfaceData;
 }
 
 /**
- * Utility to build a 3D level from an ASCII grid string.
- * Each character represents a 2x2x2 meter block.
+ * YadLevelBuilder now wraps the generic GridLevelBuilder.
  */
 export class YadLevelBuilder {
   private _gridSize: number = 2.0;
   private _wallHeight: number = 3.0;
 
-  /**
-   * Builds a level into the provided scene.
-   * @param scene The scene to add objects to.
-   * @param mapData The raw string map data.
-   * @param config Texture and material configuration.
-   * @returns An object with playerStart and created materials for animation.
-   */
   public async build(
     scene: Scene,
     mapData: string,
     config: YadLevelConfig,
   ): Promise<{ playerStart: Vector3D; lavaMaterials: LavaMaterial[]; lavaLights: PointLight[] }> {
-    console.log("[YadLevelBuilder] Starting build...");
-    const lines: string[] = mapData.trim().split("\n");
-    const height: number = lines.length;
-    const width: number = lines[0]!.length;
-    const playerStart: Vector3D = new Vector3D(0, 1, 0);
+    console.log("[YadLevelBuilder] Starting build via GridLevelBuilder...");
 
     const lavaMaterials: LavaMaterial[] = [];
     const lavaLights: PointLight[] = [];
 
-    // 1. Common Materials
-    const floorMat: StandardMaterial = new StandardMaterial({ diffuseMap: config.floorTexture });
-    const ceilMat: StandardMaterial = new StandardMaterial({
-      diffuseMap: config.ceilingTexture ?? config.floorTexture,
-    });
-
-    const lavaMat: LavaMaterial = new LavaMaterial({
+    const lavaMat = new LavaMaterial({
       noiseMap: config.lavaNoiseMap,
       normalMap: config.lavaNormalMap,
       displacementMap: config.lavaDisplacementMap,
@@ -124,41 +92,37 @@ export class YadLevelBuilder {
     lavaMat.cullMode = CullMode.NONE;
     lavaMaterials.push(lavaMat);
 
-    const wallGeo: GeometryDataInterface = new Cube({ size: this._gridSize }).getGeometryData();
-    const floorGeo: GeometryDataInterface = new Plane({
-      width: this._gridSize,
-      depth: this._gridSize,
-      widthSegments: 8,
-      depthSegments: 8,
-    }).getGeometryData();
-    const sphereGeo: GeometryDataInterface = new Sphere({ radius: 0.6 }).getGeometryData();
+    const wallGeo = new Cube({ size: this._gridSize }).getGeometryData();
+    const sphereGeo = new Sphere({ radius: 0.6 }).getGeometryData();
 
-    for (let y: number = 0; y < height; y++) {
-      const line: string = lines[y]!;
-      for (let x: number = 0; x < width; x++) {
-        const char: string = line[x]!;
-        if (" " === char) continue;
+    const playerStart = new Vector3D(0, 1, 0);
 
-        const worldX: number = x * this._gridSize - (width * this._gridSize) / 2;
-        const worldZ: number = y * this._gridSize - (height * this._gridSize) / 2;
+    // Convert YadLegend to GridLegend
+    const gridLegend: GridLegend = {};
+    for (const [char, entry] of Object.entries(config.legend)) {
+      if (entry.type === "wall") {
+        gridLegend[char] = {
+          type: "block",
+          ...(entry.texture && { texture: entry.texture }),
+        };
+      } else if (entry.type === "floor") {
+        gridLegend[char] = {
+          type: "floor",
+          ...(entry.texture && { texture: entry.texture }),
+          ...(entry.ceilingTexture && { ceilingTexture: entry.ceilingTexture }),
+        };
+      } else if (entry.type === "door") {
+        gridLegend[char] = {
+          type: "custom",
+          onBuild: (x, y, worldX, worldZ): Object3D | undefined => {
+            const block = new Object3D(`Door_${x}_${y}`);
+            block.geometry = wallGeo;
+            block.material = new StandardMaterial({ diffuseMap: entry.texture });
 
-        const entry = config.legend[char];
-        const isLavaFloor = config.lavaFloorChars?.includes(char);
-        const isSlimeFloor = config.slimeFloorChars?.includes(char);
-
-        // 1. Structural Elements (Walls, Doors)
-        if (entry?.type === "wall" || entry?.type === "door") {
-          const isDoor = entry.type === "door";
-          const block: Object3D = new Object3D(isDoor ? `Door_${x}_${y}` : `Wall_${x}_${y}`);
-          block.geometry = wallGeo;
-          block.material = new StandardMaterial({ diffuseMap: entry.texture });
-
-          const initialY = this._wallHeight / 2;
-          block.position.set(worldX, initialY, worldZ);
-          block.scale.y = this._wallHeight / this._gridSize;
-
-          if (isDoor) {
-            block.isStatic = false; // Need to be dynamic to open
+            const initialY = this._wallHeight / 2;
+            block.position.set(worldX, initialY, worldZ);
+            block.scale.y = this._wallHeight / this._gridSize;
+            block.isStatic = false;
             block.updateMatrixWorld(true);
             block.computeBounds();
 
@@ -170,172 +134,165 @@ export class YadLevelBuilder {
                   targetObj: config.playerCamera,
                   radius: 4.0,
                   minDistance: 0.0,
-                  onUpdate: (_factor: number, distance: number, deltaTime: number): void => {
-                    // Open door fully if within 3.5 units
-                    if (distance <= 3.5) {
-                      if (!isOpen) {
-                        isOpen = true;
-                        import("../../audio/AudioSystem.js").then((m) => {
-                          m.AudioSystem.instance.playSpatial(
-                            dSound,
-                            block.position,
-                            false,
-                            0.8,
-                            3.0,
-                            30.0,
-                          );
-                        });
-                      }
-                    } else if (distance >= 4.5) {
-                      if (isOpen) {
-                        isOpen = false;
-                        import("../../audio/AudioSystem.js").then((m) => {
-                          m.AudioSystem.instance.playSpatial(
-                            dSound,
-                            block.position,
-                            false,
-                            0.8,
-                            3.0,
-                            30.0,
-                          );
-                        });
-                      }
+                  onUpdate: (_factor, distance, deltaTime): void => {
+                    if (distance <= 3.5 && !isOpen) {
+                      isOpen = true;
+                      import("../../audio/AudioSystem.js").then((m) => {
+                        m.AudioSystem.instance.playSpatial(
+                          dSound,
+                          block.position,
+                          false,
+                          0.8,
+                          3.0,
+                          30.0,
+                        );
+                      });
+                    } else if (distance >= 4.5 && isOpen) {
+                      isOpen = false;
+                      import("../../audio/AudioSystem.js").then((m) => {
+                        m.AudioSystem.instance.playSpatial(
+                          dSound,
+                          block.position,
+                          false,
+                          0.8,
+                          3.0,
+                          30.0,
+                        );
+                      });
                     }
-
                     const targetY = isOpen ? initialY + this._wallHeight : initialY;
                     block.position.y += (targetY - block.position.y) * 5.0 * deltaTime;
-
                     block.updateMatrixWorld(true);
                     block.computeBounds();
                   },
                 }),
               );
             }
-          } else {
-            block.isStatic = true;
-            block.updateMatrixWorld(true);
-            block.computeBounds();
-            scene.add(block);
-            continue; // Static walls don't have floors/ceilings
-          }
-          scene.add(block);
-          // Doors will fall through to create a floor and ceiling below them!
-        }
+            return block; // The grid builder will add this to the scene
+          },
+        };
+      } else if (entry.type === "sprite") {
+        gridLegend[char] = {
+          type: "custom",
+          onBuild: (x, y, worldX, worldZ, sceneRef): Object3D | undefined => {
+            const sprite = new Sprite(new SpriteMaterial({ texture: entry.texture }));
+            let spriteName = `Sprite_${x}_${y}`;
+            if (entry.isEnemy) spriteName = `Enemy_${x}_${y}`;
+            if (entry.isItem) spriteName = `Item_${entry.itemType ?? "unknown"}_${x}_${y}`;
+            sprite.name = spriteName;
+            sprite.position.set(worldX, entry.spriteY ?? 1.0, worldZ);
+            const scale = entry.spriteScale ?? 1.0;
+            sprite.scale.set(scale, scale, scale);
 
-        // 2. Floor & Ceiling (For everything else)
-        const isSecretFloor = entry?.type === "floor";
+            if (entry.bobbing) {
+              sprite.addBehavior(new BobbingBehavior(0.1, 1.5));
+            }
+            if (entry.isEnemy && config.playerCamera) {
+              import("./EnemyBehavior.js").then((m) => {
+                sprite.addBehavior(
+                  new m.EnemyBehavior({
+                    player: config.playerCamera!,
+                    scene: sceneRef,
+                    speed: 6.0,
+                    detectionRange: 30.0,
+                  }),
+                );
+              });
+            }
 
-        let floorName = `Floor_${x}_${y}`;
-        if (isLavaFloor) floorName = `Floor_Lava_${x}_${y}`;
-        if (isSlimeFloor) floorName = `Floor_Slime_${x}_${y}`;
+            if (entry.lightColor) {
+              const light = new PointLight({
+                color: entry.lightColor,
+                intensity: entry.lightIntensity ?? 3.0,
+                distance: 8,
+              });
+              light.position.set(worldX, (entry.spriteY ?? 1.0) + 0.3, worldZ);
+              sceneRef.add(light);
 
-        const floor: Object3D = new Object3D(floorName);
-        floor.geometry = floorGeo;
-        floor.material =
-          isSecretFloor && entry.texture
-            ? new StandardMaterial({ diffuseMap: entry.texture })
-            : isLavaFloor
-              ? lavaMat
-              : floorMat;
-        floor.position.set(worldX, 0, worldZ);
-        floor.isStatic = true;
-        scene.add(floor);
-
-        // Ceiling (optional, but good for Doom feel)
-        if (!isLavaFloor) {
-          const ceil: Object3D = new Object3D(`Ceiling_${x}_${y}`);
-          ceil.geometry = floorGeo;
-          ceil.material =
-            isSecretFloor && entry.ceilingTexture
-              ? new StandardMaterial({ diffuseMap: entry.ceilingTexture })
-              : ceilMat;
-          ceil.position.set(worldX, this._wallHeight, worldZ);
-          ceil.rotation.x = Math.PI; // Flip it
-          ceil.isStatic = true;
-          scene.add(ceil);
-        }
-
-        // 3. Specific Objects (Sprites, Lights, LavaBalls, etc.)
-        if (!entry) continue;
-
-        if (entry.type === "sprite") {
-          const sprite: Sprite = new Sprite(new SpriteMaterial({ texture: entry.texture }));
-          let spriteName = `Sprite_${x}_${y}`;
-          if (entry.isEnemy) spriteName = `Enemy_${x}_${y}`;
-          if (entry.isItem) spriteName = `Item_${x}_${y}`;
-          sprite.name = spriteName;
-          sprite.position.set(worldX, entry.spriteY ?? 1.0, worldZ);
-          const scale = entry.spriteScale ?? 1.0;
-          sprite.scale.set(scale, scale, scale);
-
-          if (entry.bobbing) {
-            sprite.addBehavior(new BobbingBehavior(0.1, 1.5));
-          }
-          if (entry.isEnemy && config.playerCamera) {
-            import("./EnemyBehavior.js").then((m) => {
-              sprite.addBehavior(
-                new m.EnemyBehavior({
-                  player: config.playerCamera!,
-                  scene: scene,
-                  speed: 3.0,
-                  detectionRange: 15.0,
-                }),
-              );
+              import("../../audio/AudioSystem.js").then((m) => {
+                m.AudioSystem.instance.startFire(light.position, 0.4);
+              });
+            }
+            return sprite;
+          },
+        };
+      } else if (entry.type === "column") {
+        gridLegend[char] = {
+          type: "custom",
+          onBuild: (x, y, worldX, worldZ): Object3D | undefined => {
+            const col = new Object3D(`Column_${x}_${y}`);
+            col.geometry = new Cube({ size: 1 }).getGeometryData();
+            col.material = new StandardMaterial({ diffuseMap: entry.texture });
+            col.position.set(worldX, this._wallHeight / 2, worldZ);
+            col.scale.set(0.5, this._wallHeight / this._gridSize, 0.5);
+            col.isStatic = true;
+            col.updateMatrixWorld(true);
+            col.computeBounds();
+            return col;
+          },
+        };
+      } else if (entry.type === "lavaBall") {
+        gridLegend[char] = {
+          type: "custom",
+          onBuild: (x, y, worldX, worldZ, sceneRef): Object3D | undefined => {
+            const lavaBall = new Object3D(`LavaBall_${x}_${y}`);
+            lavaBall.geometry = sphereGeo;
+            const ballMat = new LavaMaterial({
+              noiseMap: config.lavaNoiseMap,
+              color: new Color(2.0, 0.8, 0.0),
+              flowSpeed: 1.5,
             });
-          }
-          scene.add(sprite);
+            lavaMaterials.push(ballMat);
+            lavaBall.material = ballMat;
+            lavaBall.position.set(worldX, 1.5, worldZ);
 
-          if (entry.lightColor) {
-            const light: PointLight = new PointLight({
-              color: entry.lightColor,
-              intensity: entry.lightIntensity ?? 3.0,
-              distance: 8,
+            const light = new PointLight({
+              color: new Color(1.0, 0.4, 0.0),
+              intensity: 4.0,
+              distance: 10,
             });
-            light.position.set(worldX, (entry.spriteY ?? 1.0) + 0.3, worldZ);
-            scene.add(light);
+            light.position.set(worldX, 1.5, worldZ);
+            sceneRef.add(light);
+            lavaLights.push(light);
 
-            // Add fire crackling sound
-            import("../../audio/AudioSystem.js").then((m) => {
-              m.AudioSystem.instance.startFire(light.position, 0.4);
-            });
-          }
-        } else if (entry.type === "column") {
-          const col: Object3D = new Object3D(`Column_${x}_${y}`);
-          col.geometry = new Cube({ size: 1 }).getGeometryData();
-          col.material = new StandardMaterial({ diffuseMap: entry.texture });
-          col.position.set(worldX, this._wallHeight / 2, worldZ);
-          col.scale.set(0.5, this._wallHeight / this._gridSize, 0.5);
-          col.isStatic = true;
-          col.updateMatrixWorld(true);
-          col.computeBounds();
-          scene.add(col);
-        } else if (entry.type === "lavaBall") {
-          const lavaBall: Object3D = new Object3D(`LavaBall_${x}_${y}`);
-          lavaBall.geometry = sphereGeo;
-
-          const ballMat = new LavaMaterial({
-            noiseMap: config.lavaNoiseMap,
-            color: new Color(2.0, 0.8, 0.0), // Extra bright core
-            flowSpeed: 1.5, // Faster flow for the ball
-          });
-          lavaMaterials.push(ballMat);
-          lavaBall.material = ballMat;
-          lavaBall.position.set(worldX, 1.5, worldZ); // Floating at 1.5m
-          scene.add(lavaBall);
-
-          const light: PointLight = new PointLight({
-            color: new Color(1.0, 0.4, 0.0),
-            intensity: 4.0,
-            distance: 10,
-          });
-          light.position.set(worldX, 1.5, worldZ);
-          scene.add(light);
-          lavaLights.push(light);
-        } else if (entry.type === "playerSpawn") {
-          playerStart.set(worldX, 1.0, worldZ);
-        }
+            return lavaBall;
+          },
+        };
+      } else if (entry.type === "playerSpawn") {
+        gridLegend[char] = {
+          type: "custom",
+          onBuild: (_x, _y, worldX, worldZ): Object3D | undefined => {
+            playerStart.set(worldX, 1.0, worldZ);
+            return undefined; // Nothing added to scene
+          },
+        };
       }
     }
+
+    // Pass lava and slime floor chars to GridLegend floor overrides
+    // But GridLevelBuilder doesn't have a direct char match for default floor overrides!
+    // So we need to add explicit floor entries for 'char' if they are lava/slime.
+    // Wait, the lava chars are usually just '~' or 'w' mapped to "floor" type.
+    // We already handle this in the outer loop for 'char'.
+    // Let's refine how lava floors are made:
+    for (const char of Object.keys(config.legend)) {
+      if (config.lavaFloorChars?.includes(char)) {
+        if (gridLegend[char]) gridLegend[char]!.material = lavaMat;
+      }
+    }
+
+    const gridBuilder = new GridLevelBuilder();
+    await gridBuilder.build(scene, mapData, {
+      legend: gridLegend,
+      ...(config.floorTexture && { defaultFloorTexture: config.floorTexture }),
+      ...(config.ceilingTexture
+        ? { defaultCeilingTexture: config.ceilingTexture }
+        : config.floorTexture
+          ? { defaultCeilingTexture: config.floorTexture }
+          : {}),
+      gridSize: this._gridSize,
+      wallHeight: this._wallHeight,
+    });
 
     return { playerStart, lavaMaterials, lavaLights };
   }

@@ -14,10 +14,10 @@ import { Vector3D } from "../math/index.js";
 import { BoundingBox } from "../physix/index.js";
 import { Cube } from "../geometry/index.js";
 import { BoundingType } from "../enums/index.js";
-import { Input } from "../core/index.js";
 import { Renderer } from "../interfaces/index.js";
 import { FrustumCuller } from "../core/index.js";
 import { AudioSystem } from "../audio/index.js";
+import { ForgeTool, ForgeToolOptions } from "./forge/ForgeTool.js";
 
 interface BindingLike {
   refresh(): void;
@@ -27,7 +27,7 @@ interface BindingLike {
  * A lightweight editor/inspector overlay for small-world.
  * Uses Raycasting for object picking and Tweakpane for property editing.
  */
-export class GadgetInspector {
+export class GadgetInspector extends ForgeTool {
   private _pane: Pane;
   private _raycaster: Raycaster = new Raycaster();
   private _mouse: Vector2D = new Vector2D();
@@ -62,13 +62,17 @@ export class GadgetInspector {
     private _camera: CameraInterfaceData,
     private _canvas: HTMLCanvasElement,
     private _renderer?: Renderer,
+    options: ForgeToolOptions = {},
   ) {
-    // 1. Initialize Tweakpane (hidden by default)
-    this._pane = new Pane({ title: "Gadget Inspector" });
+    super(options);
+
+    // 1. Initialize Tweakpane
+    this._pane = new Pane({ container: this._container, title: "Gadget Inspector" });
     this._pane.registerPlugin(CamerakitPlugin);
-    this._pane.element.style.display = "none";
-    this._pane.element.style.setProperty("z-index", "999999", "important");
-    this._pane.element.style.maxHeight = "90vh";
+
+    // We don't need absolute positioning anymore since ForgeWindow handles it
+    this._pane.element.style.width = "100%";
+    this._pane.element.style.maxHeight = "100%";
     this._pane.element.style.overflowY = "auto";
     this._pane.element.style.overflowX = "hidden";
 
@@ -258,51 +262,6 @@ export class GadgetInspector {
       }
 
       this._onPointerDown(event);
-    });
-
-    // 4. Global key listener for toggling the inspector via Option(left) + Command(left) + G
-    window.addEventListener("keydown", (event: KeyboardEvent) => {
-      // Suppress toggling if currently typing in an input field or textarea
-      if (
-        document.activeElement &&
-        ("INPUT" === document.activeElement.tagName ||
-          "TEXTAREA" === document.activeElement.tagName)
-      ) {
-        return;
-      }
-
-      // Ignore key holding repeats
-      if (true === event.repeat) {
-        return;
-      }
-
-      // Check if KeyG is pressed (using physical code to ignore modifier character shifts)
-      if ("KeyG" === event.code) {
-        // Option(left) + Command(left) [macOS] OR Option(left) + Control(left) [Windows/Linux fallback]
-        const altLeft = Input.instance.isPressed("AltLeft") || event.altKey;
-        const metaLeft = Input.instance.isPressed("MetaLeft") || event.metaKey;
-        const ctrlLeft = Input.instance.isPressed("ControlLeft") || event.ctrlKey;
-
-        if (true === altLeft && (true === metaLeft || true === ctrlLeft)) {
-          event.preventDefault();
-
-          const isHidden = "none" === this._pane.element.style.display;
-
-          if (isHidden) {
-            // Inspector opened: block pointer lock and exit active pointer lock
-            this._pane.element.style.display = "";
-            Input.preventPointerLock = true;
-            if (null !== document.pointerLockElement) {
-              document.exitPointerLock();
-            }
-          } else {
-            // Inspector closed: unblock pointer lock and deselect
-            this._pane.element.style.display = "none";
-            Input.preventPointerLock = false;
-            this.deselect();
-          }
-        }
-      }
     });
   }
 
@@ -685,5 +644,13 @@ export class GadgetInspector {
       count += this._countSceneObjects(obj.children[i]!);
     }
     return count;
+  }
+
+  public getState(): unknown {
+    return null; // Gadget inspector doesn't need to save state yet
+  }
+
+  public setState(_state: unknown): void {
+    // Currently no state logic implemented
   }
 }

@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.48.0] - 2026-07-08
+
+- **Refactor (Project Structure):**
+  - Enforced strict Barrel-File (`index.ts`) architecture across all `src/` subdirectories.
+  - Resolved massive circular dependencies that broke class inheritance (`TypeError: Class extends value undefined is not a constructor or null`) during Vite/Rollup initialization by migrating `export *` statements to Named Exports (`export { ClassName }`) for critical base classes.
+  - Re-routed internal imports for base classes (`AbstractRenderer`, `AbstractWebGLRenderer`, `AbstractLight`) to use direct file references (`./AbstractRenderer.js`), fully breaking evaluation loops involving `PostProcessingGroup` and `Scene`.
+  - Reorganized renderer architecture, moving backend-specific components cleanly into `WebGL1/`, `WebGL2/`, and `WebGPU/` directories.
+  - Standardized TS file headers (`/// src/path/to/file.ts`) across the entire repository.
+
 ## [0.47.0] - 2026-07-08
 
 - **Feature (YAD Showcase & Engine Features):**

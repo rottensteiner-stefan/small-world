@@ -8,6 +8,10 @@ export class YadHud {
   private _faceCanvas!: HTMLCanvasElement;
   private _faceImages: HTMLCanvasElement[] = [];
 
+  private _fontSmallWhite: Map<string, HTMLCanvasElement> = new Map();
+  private _fontSmallYellow: Map<string, HTMLCanvasElement> = new Map();
+  private _fontSmallGrey: Map<string, HTMLCanvasElement> = new Map();
+
   private _keycardSlots: HTMLDivElement[] = [];
   private _keycards: string[] = [];
 
@@ -17,7 +21,10 @@ export class YadHud {
   private _armor: number = 0;
   private _ammo: number = 50;
 
-  constructor() {
+  private _events?: import("../../interfaces/index.js").Events | undefined;
+
+  constructor(events?: import("../../interfaces/index.js").Events) {
+    if (events) this._events = events;
     // Load VT323 Font from Google Fonts
     if (!document.getElementById("vt323-font")) {
       const link = document.createElement("link");
@@ -66,6 +73,7 @@ export class YadHud {
     const retroScreen = document.getElementById("retro-screen");
     if (retroScreen) {
       retroScreen.appendChild(this._container);
+      this._createWeaponOverlay(retroScreen);
     } else {
       document.body.appendChild(this._container);
     }
@@ -74,16 +82,164 @@ export class YadHud {
 
     // Wait for DOOM font to load before first render
     document.fonts.ready.then((): void => {
+      this._generateSpriteFonts();
       this._updateDisplay();
     });
 
     this._bindEvents();
   }
 
+  private _weaponCanvas!: HTMLCanvasElement;
+  private _flashOverlay!: HTMLElement;
+  private _shootTimer: number = 0;
+  private _pistolSprites: HTMLImageElement[] = [];
+  private _pistolFlash!: HTMLImageElement;
+  private _weaponFrame: number = 0;
+
+  private _loadWeaponSprites(): void {
+    const frames = ["pisga0", "pisgb0", "pisgc0", "pisgd0", "pisge0"];
+    for (const frame of frames) {
+      const img = new Image();
+      img.src = `./assets/doom_pack/sprites/${frame}.png`;
+      img.onload = (): void => this._drawWeapon();
+      this._pistolSprites.push(img);
+    }
+    this._pistolFlash = new Image();
+    this._pistolFlash.src = `./assets/doom_pack/sprites/pisfa0.png`;
+  }
+
+  private _createWeaponOverlay(parent: HTMLElement): void {
+    // 0. Create Flash Overlay
+    this._flashOverlay = document.createElement("div");
+    Object.assign(this._flashOverlay.style, {
+      position: "absolute",
+      inset: "0",
+      pointerEvents: "none",
+      zIndex: "60",
+      transition: "background-color 0.3s ease",
+      backgroundColor: "transparent",
+    });
+    parent.appendChild(this._flashOverlay);
+
+    // 1. Create Crosshair
+    const crosshair = document.createElement("div");
+    Object.assign(crosshair.style, {
+      position: "absolute",
+      top: "50%",
+      left: "50%",
+      transform: "translate(-50%, -50%)",
+      width: "4px",
+      height: "4px",
+      backgroundColor: "rgba(255, 255, 255, 0.5)",
+      pointerEvents: "none",
+      zIndex: "40",
+      borderRadius: "50%", // a simple dot or square crosshair
+    });
+    parent.appendChild(crosshair);
+
+    // 2. Create Weapon Canvas
+    this._weaponCanvas = document.createElement("canvas");
+    this._weaponCanvas.width = 128; // Original doom weapon sprites are usually around 100x100
+    this._weaponCanvas.height = 128;
+    Object.assign(this._weaponCanvas.style, {
+      position: "absolute",
+      bottom: "32px",
+      left: "50%",
+      transform: "translateX(-50%)",
+      width: "128px", // Native retro size
+      height: "128px",
+      imageRendering: "pixelated",
+      pointerEvents: "none",
+      zIndex: "50",
+    });
+
+    parent.appendChild(this._weaponCanvas);
+    this._loadWeaponSprites();
+  }
+
+  private _drawWeapon(): void {
+    const ctx = this._weaponCanvas.getContext("2d");
+    if (!ctx) return;
+
+    ctx.clearRect(0, 0, this._weaponCanvas.width, this._weaponCanvas.height);
+
+    const sprite = this._pistolSprites[this._weaponFrame];
+    if (sprite && sprite.complete && sprite.naturalWidth > 0) {
+      // Draw centered at the bottom
+      const dx = (this._weaponCanvas.width - sprite.width) / 2;
+      const dy = this._weaponCanvas.height - sprite.height;
+      ctx.drawImage(sprite, dx, dy);
+    }
+
+    // Draw flash if frame is 1 (the moment of firing)
+    if (
+      this._weaponFrame === 1 &&
+      this._pistolFlash &&
+      this._pistolFlash.complete &&
+      this._pistolFlash.naturalWidth > 0
+    ) {
+      // Pistol flash position is roughly above the barrel. Needs tweaking based on sprite dimensions.
+      // Usually DOOM engine handles offsets via wad metadata, but we'll hardcode a decent offset.
+      const dx = (this._weaponCanvas.width - this._pistolFlash.width) / 2 - 10;
+      const dy =
+        this._weaponCanvas.height - (sprite ? sprite.height : 64) - this._pistolFlash.height + 20;
+      ctx.drawImage(this._pistolFlash, dx, dy);
+    }
+  }
+
+  public triggerShoot(): void {
+    if (this._weaponFrame > 0) return; // Already shooting
+    this._shootTimer = 400; // 400ms total animation (100ms per frame)
+    this._weaponFrame = 1;
+    this._drawWeapon();
+  }
+
+  public update(deltaTime: number, bobPhase: number): void {
+    if (this._shootTimer > 0) {
+      this._shootTimer -= deltaTime * 1000;
+
+      // Determine frame based on remaining time (4 frames: 1, 2, 3, 4)
+      let newFrame = 1;
+      if (this._shootTimer < 100)
+        newFrame = 4; // pisge0
+      else if (this._shootTimer < 200)
+        newFrame = 3; // pisgd0
+      else if (this._shootTimer < 300) newFrame = 2; // pisgc0
+
+      if (newFrame !== this._weaponFrame) {
+        this._weaponFrame = newFrame;
+        this._drawWeapon();
+      }
+
+      if (this._shootTimer <= 0) {
+        this._weaponFrame = 0;
+        this._drawWeapon();
+      }
+
+      // Apply slight recoil to the whole canvas while shooting
+      this._weaponCanvas.style.transform = `translate(calc(-50%), 10px)`;
+    } else {
+      // Apply bobbing when not shooting
+      // Reduced by ~25% for a smoother feel
+      const bobX = Math.sin(bobPhase) * 11;
+      const bobY = Math.abs(Math.sin(bobPhase)) * 7.5;
+      this._weaponCanvas.style.transform = `translate(calc(-50% + ${bobX}px), ${bobY}px)`;
+    }
+  }
+
+  private _triggerFlash(color: string): void {
+    if (!this._flashOverlay) return;
+    this._flashOverlay.style.transition = "none";
+    this._flashOverlay.style.backgroundColor = color;
+    // Force reflow
+    void this._flashOverlay.offsetWidth;
+    this._flashOverlay.style.transition = "background-color 0.5s ease-out";
+    this._flashOverlay.style.backgroundColor = "transparent";
+  }
+
   private _bindEvents(): void {
-    window.addEventListener("yad-damage", (e: Event) => {
-      const customEvent = e as CustomEvent;
-      const amount = customEvent.detail?.amount || 0;
+    this._events?.addEventListener("yad-damage", (e: Record<string, unknown>) => {
+      const amount = (e["amount"] as number) || 0;
       if (this._armor > 0) {
         this._armor -= amount;
         if (this._armor < 0) {
@@ -95,38 +251,194 @@ export class YadHud {
       }
       if (this._health < 0) this._health = 0;
       this._updateDisplay();
+
+      this._triggerFlash("rgba(255, 0, 0, 0.4)"); // Red flash
     });
 
-    window.addEventListener("yad-pickup", (e: Event) => {
-      const customEvent = e as CustomEvent;
-      const type = customEvent.detail?.type;
-      const amount = customEvent.detail?.amount || 0;
+    this._events?.addEventListener("yad-pickup", (e: Record<string, unknown>) => {
+      const type = e["type"] as string;
+      const amount = (e["amount"] as number) || 0;
       if (type === "armor") {
         this._armor = Math.min(200, this._armor + amount);
+        this._triggerFlash("rgba(0, 255, 0, 0.3)"); // Green flash
       } else if (type === "health") {
         this._health = Math.min(200, this._health + amount);
+        this._triggerFlash("rgba(0, 0, 255, 0.3)"); // Blue flash
+      } else if (type === "weapon") {
+        // Weapon flash
+        this._triggerFlash("rgba(255, 255, 0, 0.3)"); // Yellow flash
       } else if (type === "ammo") {
         this._ammo = Math.min(200, this._ammo + amount);
-      } else if (type === "keycard" && customEvent.detail?.color) {
-        if (!this._keycards.includes(customEvent.detail.color)) {
-          this._keycards.push(customEvent.detail.color);
+        this._triggerFlash("rgba(255, 255, 255, 0.3)"); // White flash
+      } else if (type === "keycard" && e["color"]) {
+        if (!this._keycards.includes(e["color"] as string)) {
+          this._keycards.push(e["color"] as string);
         }
       }
       this._updateDisplay();
     });
 
-    window.addEventListener("yad-shoot", (): void => {
+    this._events?.addEventListener("yad-shoot", (): void => {
       if (this._ammo > 0) {
         this._ammo -= 1;
         this._updateDisplay();
       }
     });
 
-    window.addEventListener("yad-weapon", (e: Event) => {
-      const customEvent = e as CustomEvent;
-      const index = customEvent.detail?.index || 1;
-      this._updateWeaponDisplay(index);
+    this._events?.addEventListener("yad-weapon", (e: Record<string, unknown>) => {
+      const index = e["index"] as number;
+      if (index) {
+        this._updateWeaponDisplay(index);
+      }
     });
+
+    this._events?.addEventListener("yad-shoot", (): void => {
+      this.triggerShoot();
+    });
+  }
+
+  private _generateSpriteFonts(): void {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ/% ".split("");
+    const configs = [
+      { map: this._fontSmallWhite, hex: "#ffffff" },
+      { map: this._fontSmallYellow, hex: "#ffff00" },
+      { map: this._fontSmallGrey, hex: "#555555" },
+    ];
+
+    // 4x5 pixel font data for A-Z, /, %
+    const pixelFont: Record<string, number[]> = {
+      A: [0, 1, 1, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1],
+      B: [1, 1, 1, 0, 1, 0, 0, 1, 1, 1, 1, 0, 1, 0, 0, 1, 1, 1, 1, 0],
+      C: [0, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1],
+      D: [1, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 0],
+      E: [1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 1, 0, 0, 0, 1, 1, 1, 1],
+      F: [1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0],
+      G: [0, 1, 1, 1, 1, 0, 0, 0, 1, 0, 1, 1, 1, 0, 0, 1, 0, 1, 1, 0],
+      H: [1, 0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1],
+      I: [0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0],
+      J: [0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0],
+      K: [1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1],
+      L: [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1],
+      M: [1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1],
+      N: [1, 0, 0, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1],
+      O: [0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0],
+      P: [1, 1, 1, 0, 1, 0, 0, 1, 1, 1, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0],
+      Q: [0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1],
+      R: [1, 1, 1, 0, 1, 0, 0, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1],
+      S: [0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0],
+      T: [1, 1, 1, 1, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0],
+      U: [1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0],
+      V: [1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0],
+      W: [1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1],
+      X: [1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1],
+      Y: [1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0],
+      Z: [1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1],
+      "/": [0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0],
+      "%": [1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1],
+    };
+
+    for (const char of chars) {
+      if (char === " ") continue;
+
+      const data = pixelFont[char];
+
+      for (const config of configs) {
+        const canvas = document.createElement("canvas");
+        canvas.width = 5; // 4px char + 1px drop shadow
+        canvas.height = 6; // 5px char + 1px drop shadow
+        const ctx = canvas.getContext("2d");
+        if (!ctx) continue;
+
+        if (data) {
+          // Draw Drop Shadow
+          ctx.fillStyle = "#000000";
+          for (let i = 0; i < data.length; i++) {
+            if (data[i]) {
+              const x = i % 4;
+              const y = Math.floor(i / 4);
+              ctx.fillRect(x + 1, y + 1, 1, 1);
+            }
+          }
+
+          // Draw Foreground Color
+          ctx.fillStyle = config.hex;
+          for (let i = 0; i < data.length; i++) {
+            if (data[i]) {
+              const x = i % 4;
+              const y = Math.floor(i / 4);
+              ctx.fillRect(x, y, 1, 1);
+            }
+          }
+        }
+
+        config.map.set(char, canvas);
+      }
+    }
+
+    const img = new Image();
+    img.src =
+      "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAFCAYAAABSIVz6AAAASklEQVR4Xo2OSQ4AIAwC+/9PuyUmI1LrXOgC1mggBtSMav+DPTT7DXvu1au5PXP+pUcDdfUv+p7jOqhKONOaOd05f/qjDIZfVL4OUeaadFyNh+cAAAAASUVORK5CYII=";
+    img.onload = (): void => {
+      for (let i = 0; i < 10; i++) {
+        const char = i.toString();
+        for (const config of configs) {
+          const canvas = document.createElement("canvas");
+          canvas.width = 4;
+          canvas.height = 6; // 3x5 + 1px drop shadow
+          const ctx = canvas.getContext("2d");
+          if (!ctx) continue;
+
+          // Colored foreground
+          const fgCanvas = document.createElement("canvas");
+          fgCanvas.width = 3;
+          fgCanvas.height = 5;
+          const fgCtx = fgCanvas.getContext("2d")!;
+          fgCtx.drawImage(img, i * 3, 0, 3, 5, 0, 0, 3, 5);
+          fgCtx.globalCompositeOperation = "source-in";
+          fgCtx.fillStyle = config.hex;
+          fgCtx.fillRect(0, 0, 3, 5);
+
+          // Black drop shadow
+          const shCanvas = document.createElement("canvas");
+          shCanvas.width = 3;
+          shCanvas.height = 5;
+          const shCtx = shCanvas.getContext("2d")!;
+          shCtx.drawImage(img, i * 3, 0, 3, 5, 0, 0, 3, 5);
+          shCtx.globalCompositeOperation = "source-in";
+          shCtx.fillStyle = "#000000";
+          shCtx.fillRect(0, 0, 3, 5);
+
+          // Combine
+          ctx.drawImage(shCanvas, 1, 1);
+          ctx.drawImage(fgCanvas, 0, 0);
+
+          config.map.set(char, canvas);
+        }
+      }
+      this._updateDisplay(); // Redraw HUD with new numbers
+    };
+  }
+
+  private _drawSpriteText(
+    ctx: CanvasRenderingContext2D,
+    text: string,
+    x: number,
+    y: number,
+    fontMap: Map<string, HTMLCanvasElement>,
+    align: "left" | "center" = "left",
+    charSpacing: number = 5,
+  ): void {
+    let currentX = align === "center" ? Math.floor(x - (text.length * charSpacing) / 2) : x;
+
+    for (const char of text) {
+      if (char !== " ") {
+        const sprite = fontMap.get(char);
+        if (sprite) {
+          ctx.drawImage(sprite, currentX, y);
+        }
+      }
+      currentX += charSpacing;
+    }
   }
 
   private _updateDisplay(): void {
@@ -247,21 +559,6 @@ export class YadHud {
     return el;
   }
 
-  // --- ANTI-ALIASING DESTROYER ---
-  // Removes all semi-transparent pixels to create a hard 1-bit pixel look
-  private _removeAntiAliasing(ctx: CanvasRenderingContext2D, width: number, height: number): void {
-    const imgData = ctx.getImageData(0, 0, width, height);
-    const data = imgData.data;
-    for (let i = 0; i < data.length; i += 4) {
-      if (data[i + 3]! > 100) {
-        data[i + 3] = 255; // Force solid
-      } else {
-        data[i + 3] = 0; // Force transparent
-      }
-    }
-    ctx.putImageData(imgData, 0, 0);
-  }
-
   private _addMainStat(
     container: HTMLDivElement,
     topVal: string,
@@ -293,18 +590,8 @@ export class YadHud {
 
     const x = canvas.width / 2;
 
-    // --- Kleines Label (wird pixelgenau hart gemacht) ---
-    ctx.font = "8px 'VT323', monospace";
-    ctx.textBaseline = "top";
-    const ySmall = 20;
-
-    ctx.fillStyle = "#000000";
-    ctx.fillText(bottomLabel, x + 1, ySmall + 1);
-    ctx.fillStyle = "#ffffff";
-    ctx.fillText(bottomLabel, x, ySmall);
-
-    // Anti-Aliasing nur für die kleinen Texte zerstören
-    this._removeAntiAliasing(ctx, canvas.width, canvas.height);
+    // --- Kleines Label ---
+    this._drawSpriteText(ctx, bottomLabel, x, 20, this._fontSmallWhite, "center", 5);
 
     // --- Große rote Zahlen (behalten ihr weiches Anti-Aliasing für den Custom-Font) ---
     ctx.font = "bold 13px 'DooM', 'Impact', sans-serif";
@@ -342,13 +629,9 @@ export class YadHud {
     ctx.clearRect(0, 0, this._armsCanvas.width, this._armsCanvas.height);
 
     const colW = 12;
-    const rowH = 7;
+    const rowH = 5;
     const startX = (this._armsCanvas.width - (colW * 2 + 2)) / 2;
-    const startY = 1;
-
-    ctx.font = "8px 'VT323', monospace";
-    ctx.textBaseline = "top";
-    ctx.textAlign = "center";
+    const startY = 0;
 
     const weapons = [1, 2, 3, 4, 5, 6];
     for (let i = 0; i < 6; i++) {
@@ -370,18 +653,20 @@ export class YadHud {
       ctx.fillRect(boxX, boxY + rowH - 1, colW, 1);
       ctx.fillRect(boxX + colW - 1, boxY, 1, rowH);
 
-      ctx.fillStyle = activeIndex === wpn ? "#ffff00" : "#555555";
-      ctx.fillText(wpn.toString(), boxX + colW / 2 + 1, boxY + 1);
+      const mapToUse = activeIndex === wpn ? this._fontSmallYellow : this._fontSmallGrey;
+      this._drawSpriteText(ctx, wpn.toString(), boxX + 3, boxY - 1, mapToUse, "left", 5);
     }
 
     // Explicit placement to avoid overlap
-    const ySmall = 20;
-    ctx.fillStyle = "#000000";
-    ctx.fillText("ARMS", this._armsCanvas.width / 2 + 1, ySmall + 1);
-    ctx.fillStyle = "#ffffff";
-    ctx.fillText("ARMS", this._armsCanvas.width / 2, ySmall);
-
-    this._removeAntiAliasing(ctx, this._armsCanvas.width, this._armsCanvas.height);
+    this._drawSpriteText(
+      ctx,
+      "ARMS",
+      this._armsCanvas.width / 2,
+      20,
+      this._fontSmallWhite,
+      "center",
+      5,
+    );
   }
 
   private _createKeycardButtons(container: HTMLDivElement): void {
@@ -428,9 +713,6 @@ export class YadHud {
 
     ctx.clearRect(0, 0, this._ammoInfoCanvas.width, this._ammoInfoCanvas.height);
 
-    ctx.font = "8px 'VT323', monospace";
-    ctx.textBaseline = "top";
-
     const ammos = [
       { name: "BULL", current: this._ammo, max: 200 },
       { name: "SHEL", current: 0, max: 50 },
@@ -440,27 +722,19 @@ export class YadHud {
 
     let y = 1;
     for (const ammo of ammos) {
-      ctx.fillStyle = "#000";
-      ctx.fillText(ammo.name, 4, y + 1);
-      ctx.fillStyle = "#fff";
-      ctx.fillText(ammo.name, 3, y);
+      this._drawSpriteText(ctx, ammo.name, 3, y, this._fontSmallWhite, "left", 5);
 
       const curStr = ammo.current.toString().padStart(3, " ");
       const maxStr = ammo.max.toString().padStart(3, " ");
       const valStr = `${curStr} / ${maxStr}`;
 
-      const fixedWidth = ctx.measureText("999 / 999").width;
-      const x = this._ammoInfoCanvas.width - fixedWidth - 4;
+      const fixedWidth = 9 * 5; // 9 chars * 5px monospace width
+      const startX = this._ammoInfoCanvas.width - fixedWidth - 4;
 
-      ctx.fillStyle = "#000";
-      ctx.fillText(valStr, x + 1, y + 1);
-      ctx.fillStyle = "#fff";
-      ctx.fillText(valStr, x, y);
+      this._drawSpriteText(ctx, valStr, startX, y, this._fontSmallYellow, "left", 5);
 
       y += 7;
     }
-
-    this._removeAntiAliasing(ctx, this._ammoInfoCanvas.width, this._ammoInfoCanvas.height);
   }
 
   private _loadAndSliceFace(): void {

@@ -11,8 +11,9 @@ import { AbstractProjection } from "../math/projections/index.js";
 import { ObliqueProjection } from "../math/projections/index.js";
 import { OrthographicProjection } from "../math/projections/index.js";
 import { PerspectiveProjection } from "../math/projections/index.js";
-import { EngineOptions, ProjectionOptions } from "../interfaces/index.js";
+import { EngineOptions, ProjectionOptions, Events } from "../interfaces/index.js";
 import { Renderer } from "../interfaces/index.js";
+import { EventDispatcherImpl } from "./events/EventDispatcherImpl.js";
 import { ProjectionType } from "../enums/index.js";
 import { RendererType } from "../enums/index.js";
 import { RendererFactory } from "../renderers/index.js";
@@ -22,7 +23,7 @@ import { OctreeVisualizer } from "../utils/index.js";
 import { GadgetInspector } from "../tools/index.js";
 
 /** The current engine version. */
-export const ENGINE_VERSION = "0.47.0";
+export const ENGINE_VERSION = "0.48.0";
 
 /**
  * Base class for applications built with the SmallWorld engine.
@@ -38,8 +39,11 @@ export abstract class SmallWorld {
   public renderer: Renderer;
   /** The interaction manager for gamification / picking. */
   public interactionManager!: InteractionManager;
+  public forge?: unknown;
   /** The canvas element. */
   public canvas!: HTMLCanvasElement;
+  /** The global event dispatcher for the engine. */
+  public events: Events;
   /** Whether debug visualization is enabled. */
   public debug: boolean = false;
 
@@ -66,6 +70,7 @@ export abstract class SmallWorld {
     };
 
     this.scene = new Scene();
+    this.events = new EventDispatcherImpl();
 
     const initialAspect: number = window.innerWidth / window.innerHeight;
     const projection: AbstractProjection =
@@ -240,8 +245,57 @@ export abstract class SmallWorld {
       await this.setupScene();
 
       if (true === this.config.enableInspector) {
+        const { Forge } = await import("../tools/forge/Forge.js");
         const { GadgetInspector } = await import("../tools/GadgetInspector.js");
+        const { MapGenerator } = await import("../tools/MapGenerator.js");
+
+        // wir erstellen einen globalen Forge Hub
+        this.forge = new Forge();
+
+        // Hotkey Logik in SmallWorld verankern
+        window.addEventListener("keydown", (event: KeyboardEvent) => {
+          if (
+            document.activeElement &&
+            ("INPUT" === document.activeElement.tagName ||
+              "TEXTAREA" === document.activeElement.tagName)
+          ) {
+            return;
+          }
+
+          if (true === event.repeat) return;
+
+          const altLeft = Input.instance?.isPressed("AltLeft") || event.altKey;
+          const metaLeft = Input.instance?.isPressed("MetaLeft") || event.metaKey;
+          const ctrlLeft = Input.instance?.isPressed("ControlLeft") || event.ctrlKey;
+
+          if (true === altLeft && (true === metaLeft || true === ctrlLeft)) {
+            if ("KeyF" === event.code || "KeyM" === event.code || "KeyG" === event.code) {
+              event.preventDefault();
+              this.forge.toggle();
+
+              if (this.forge.isVisible) {
+                Input.preventPointerLock = true;
+                if (null !== document.pointerLockElement) {
+                  document.exitPointerLock();
+                }
+              } else {
+                Input.preventPointerLock = false;
+              }
+            }
+          }
+        });
+
         this._inspector = new GadgetInspector(this.scene, this.camera, this.canvas, this.renderer);
+        this.forge.openWindow("Inspector", this._inspector, 20, 20);
+
+        const mapGen = new MapGenerator();
+        // Read custom map if it exists, to preserve states across reloads!
+        const savedMap = localStorage.getItem("yad_custom_map");
+        if (savedMap) {
+          mapGen.loadMapString(savedMap);
+        }
+        this.forge.openWindow("Map Generator", mapGen, 60, 60);
+
         this.onInspectorReady(this._inspector);
       }
 
