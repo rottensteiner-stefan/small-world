@@ -248,6 +248,9 @@ export abstract class SmallWorld {
         const { Forge } = await import("../tools/forge/Forge.js");
         const { GadgetInspector } = await import("../tools/GadgetInspector.js");
         const { MapGenerator } = await import("../tools/MapGenerator.js");
+        const { Pixler } = await import("../tools/Pixler.js");
+        const { IXtractor } = await import("../tools/IXtractor.js");
+        const { MaterialStudio } = await import("../tools/MaterialStudio.js");
 
         // wir erstellen einen globalen Forge Hub
         this.forge = new Forge();
@@ -295,6 +298,10 @@ export abstract class SmallWorld {
           mapGen.loadMapString(savedMap);
         }
         this.forge.openWindow("Map Generator", mapGen, 60, 60);
+
+        this.forge.openWindow("Pixler Editor", new Pixler(), 50, 200);
+        this.forge.openWindow("Asset Extractor", new IXtractor(), 400, 60);
+        this.forge.openWindow("Material Studio", new MaterialStudio(), 750, 60);
 
         this.onInspectorReady(this._inspector);
       }
