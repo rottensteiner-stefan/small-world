@@ -22,88 +22,46 @@ export class IXtractor extends ForgeTool {
     const style = document.createElement("style");
     style.id = "ixtractor-style";
     style.innerHTML = `
-    body {
-      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-      background: #121214;
-      color: #e2e8f0;
-      margin: 0;
-      padding: 0;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-    header {
-      padding: 1rem 2rem;
-      border-bottom: 1px solid rgba(0, 229, 255, 0.2);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: linear-gradient(90deg, rgba(11,15,25,1) 0%, rgba(20,25,40,1) 100%);
-      flex-shrink: 0;
-    }
-    h1 { margin: 0; font-size: 1.5rem; text-transform: uppercase; letter-spacing: 2px; color: #fff; }
-    h1 span { color: #00e5ff; }
-    
-    .main-container {
+    .swf-ix-main-container {
       display: flex;
       flex: 1;
       overflow: hidden;
+      width: 100%;
+      height: 100%;
+      background: var(--swf-bg);
+      color: var(--swf-text);
     }
-
-    /* Left Side: Workbench */
-    .workbench {
+    .swf-ix-workbench {
       flex: 1;
       display: flex;
       flex-direction: column;
-      background: #0f172a;
+      background: rgba(15, 23, 42, 0.4);
       position: relative;
       min-width: 0;
     }
-    .toolbar {
+    .swf-ix-toolbar {
       padding: 0.5rem 1rem;
-      background: #1e293b;
-      border-bottom: 1px solid #334155;
+      background: var(--swf-panel);
+      border-bottom: 1px solid var(--swf-border);
       display: flex;
       flex-wrap: wrap;
       align-items: center;
       gap: 15px;
     }
-    .toolbar-group {
+    .swf-ix-toolbar-group {
       display: flex;
       gap: 5px;
-      background: #0f172a;
+      background: rgba(0,0,0,0.2);
       padding: 4px;
       border-radius: 6px;
-      border: 1px solid #334155;
+      border: 1px solid var(--swf-border);
     }
-    .btn {
-      background: #38bdf8;
-      color: #0f172a;
-      border: none;
-      padding: 0.5rem 1rem;
-      font-weight: bold;
-      border-radius: 4px;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    .btn:hover { background: #7dd3fc; }
-    .btn.secondary { background: #475569; color: #e2e8f0; }
-    .btn.secondary:hover { background: #64748b; }
-    
-    .tool-btn {
-      background: transparent;
-      color: #94a3b8;
-    }
-    .tool-btn:hover { background: rgba(56, 189, 248, 0.2); color: #fff; }
-    .tool-btn.active { background: #38bdf8; color: #0f172a; }
-    
-    .canvas-container {
+    .swf-ix-canvas-container {
       flex: 1;
       overflow: auto;
       padding: 2rem;
       position: relative;
-      background: repeating-conic-gradient(#1e293b 0% 25%, #0f172a 0% 50%) 50% / 20px 20px;
+      background: repeating-conic-gradient(rgba(30, 41, 59, 0.5) 0% 25%, rgba(15, 23, 42, 0.5) 0% 50%) 50% / 20px 20px;
     }
     #canvas-stage {
       position: relative; 
@@ -112,7 +70,7 @@ export class IXtractor extends ForgeTool {
       transition: transform 0.1s ease-out;
     }
     #image-canvas {
-      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      box-shadow: var(--swf-shadow);
       cursor: crosshair;
       max-width: 100%;
     }
@@ -124,48 +82,42 @@ export class IXtractor extends ForgeTool {
       justify-content: center;
       align-items: center;
       font-size: 1.5rem;
-      color: #38bdf8;
-      border: 4px dashed #38bdf8;
+      color: var(--swf-accent);
+      border: 4px dashed var(--swf-accent);
       z-index: 10;
       display: none;
     }
-    /* Splitter */
-    .splitter {
+    .swf-ix-splitter {
       width: 8px;
-      background: #1e293b;
+      background: var(--swf-panel);
       cursor: col-resize;
       display: flex;
       justify-content: center;
       align-items: center;
-      border-left: 1px solid #334155;
-      border-right: 1px solid #334155;
+      border-left: 1px solid var(--swf-border);
+      border-right: 1px solid var(--swf-border);
       transition: background 0.2s;
       flex-shrink: 0;
       z-index: 50;
     }
-    .splitter:hover, .splitter.active {
-      background: #38bdf8;
+    .swf-ix-splitter:hover, .swf-ix-splitter.active {
+      background: var(--swf-accent);
     }
-    .splitter::after {
+    .swf-ix-splitter::after {
       content: '||';
-      color: #94a3b8;
+      color: var(--swf-text-muted);
       font-size: 10px;
       letter-spacing: -1px;
     }
-    .splitter:hover::after, .splitter.active::after {
-      color: #0f172a;
-    }
-
-    /* Right Side: Chat & Results */
-    .sidebar {
+    .swf-ix-sidebar {
       width: 400px;
       min-width: 250px;
       flex-shrink: 0;
       display: flex;
       flex-direction: column;
-      background: #121214;
+      background: rgba(15, 23, 42, 0.6);
     }
-    .chat-history {
+    .swf-ix-chat-history {
       flex: 1;
       overflow-y: auto;
       padding: 1rem;
@@ -173,69 +125,52 @@ export class IXtractor extends ForgeTool {
       flex-direction: column;
       gap: 1rem;
     }
-    .message {
+    .swf-ix-message {
       padding: 1rem;
       border-radius: 8px;
       max-width: 85%;
     }
     .msg-ai {
-      background: #1e293b;
+      background: var(--swf-panel);
       align-self: flex-start;
-      border: 1px solid #334155;
+      border: 1px solid var(--swf-border);
     }
     .msg-user {
-      background: #0284c7;
-      color: white;
+      background: var(--swf-accent);
+      color: #000;
       align-self: flex-end;
     }
-    
-    .chat-input-area {
+    .swf-ix-chat-input-area {
       padding: 1rem;
-      background: #1e293b;
-      border-top: 1px solid #334155;
+      background: var(--swf-panel);
+      border-top: 1px solid var(--swf-border);
       display: flex;
       flex-direction: column;
       gap: 0.5rem;
     }
-    .context-pill {
+    .swf-ix-context-pill {
       display: flex;
       align-items: center;
       gap: 10px;
-      background: #0f172a;
+      background: rgba(0,0,0,0.3);
       padding: 0.5rem;
       border-radius: 4px;
-      border: 1px solid #38bdf8;
+      border: 1px solid var(--swf-accent);
       display: none;
     }
-    .context-pill canvas {
+    .swf-ix-context-pill canvas {
       height: 40px;
-      border: 1px solid #475569;
+      border: 1px solid var(--swf-border);
     }
-    .context-pill-text {
-      font-size: 0.8rem;
-      color: #94a3b8;
-    }
-    .chat-input-row {
+    .swf-ix-chat-input-row {
       display: flex;
       gap: 10px;
     }
-    input[type="text"] {
-      flex: 1;
-      padding: 0.75rem;
-      border-radius: 4px;
-      border: 1px solid #475569;
-      background: #0f172a;
-      color: white;
-      outline: none;
-    }
-    input[type="text"]:focus { border-color: #38bdf8; }
-
-    /* Selection Box & Props */
     #selection-box {
       position: absolute;
-      border: 2px dashed #00e5ff;
+      border: 2px dashed var(--swf-accent);
       background: rgba(0, 229, 255, 0.2);
-      pointer-events: none; /* Let canvas handle events */
+      pointer-events: none;
       display: none;
       z-index: 5;
     }
@@ -243,74 +178,52 @@ export class IXtractor extends ForgeTool {
       position: absolute;
       bottom: 20px;
       left: 20px;
-      background: #1e293b;
+      background: var(--swf-panel);
       padding: 10px 15px;
       border-radius: 6px;
-      border: 1px solid #334155;
+      border: 1px solid var(--swf-border);
       display: flex;
       gap: 15px;
       z-index: 20;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+      box-shadow: var(--swf-shadow);
     }
-    .prop-group {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      color: #94a3b8;
-      font-size: 0.9rem;
-      font-weight: bold;
-    }
-    .prop-input {
-      width: 50px;
-      background: #0f172a;
-      color: white;
-      border: 1px solid #475569;
-      padding: 4px;
-      border-radius: 4px;
-      outline: none;
-    }
-    .prop-input:focus { border-color: #38bdf8; }
   `;
     document.head.appendChild(style);
   }
 
   private _buildUI(): void {
-    this._container.style.width = "100%";
-    this._container.style.height = "100%";
-    this._container.style.display = "flex";
-    this._container.style.flexDirection = "row";
+    this._container.className = "swf-ix-main-container";
     this._container.innerHTML = `
     <!-- WORKBENCH -->
-    <div class="workbench">
-      <div class="toolbar">
-        <label class="btn">
+    <div class="swf-ix-workbench">
+      <div class="swf-ix-toolbar">
+        <label class="swf-btn">
           Upload Image/PDF
           <input type="file" id="file-input" style="display:none;" accept="image/*,application/pdf" />
         </label>
         
-        <div class="toolbar-group">
-          <input type="text" id="url-input" class="prop-input" style="width: 150px; font-weight:normal;" placeholder="https://... (Image URL)" />
-          <button class="btn secondary" id="btn-load-url" style="padding: 0.25rem 0.5rem; margin-left: 2px;">Load URL</button>
+        <div class="swf-ix-toolbar-group">
+          <input type="text" id="url-input" class="swf-input" style="width: 150px; font-weight:normal;" placeholder="https://..." />
+          <button class="swf-btn secondary" id="btn-load-url" style="padding: 0.25rem 0.5rem; margin-left: 2px;">Load</button>
         </div>
         
-        <div class="toolbar-group">
-          <button class="btn tool-btn" id="btn-tool-pan" title="Hand Tool">Hand</button>
-          <button class="btn tool-btn active" id="btn-tool-rect" title="Rechteck Auswahl">Rechteck</button>
-          <button class="btn tool-btn" id="btn-tool-circle" title="Kreis Auswahl">Kreis</button>
+        <div class="swf-ix-toolbar-group">
+          <button class="swf-btn secondary" id="btn-tool-pan" title="Hand Tool">Hand</button>
+          <button class="swf-btn active" id="btn-tool-rect" title="Rechteck Auswahl">Rect</button>
+          <button class="swf-btn secondary" id="btn-tool-circle" title="Kreis Auswahl">Circle</button>
         </div>
         
-        <div class="toolbar-group">
-          <button class="btn tool-btn" id="btn-zoom-out">-</button>
-          <span style="color: #94a3b8; padding: 0 5px; font-weight: bold; font-size: 0.9rem; align-self: center;" id="zoom-label">100%</span>
-          <button class="btn tool-btn" id="btn-zoom-in">+</button>
+        <div class="swf-ix-toolbar-group">
+          <button class="swf-btn secondary" id="btn-zoom-out">-</button>
+          <span style="color: var(--swf-text-muted); padding: 0 5px; font-weight: bold; font-size: 0.9rem; align-self: center;" id="zoom-label">100%</span>
+          <button class="swf-btn secondary" id="btn-zoom-in">+</button>
         </div>
         
-        <button class="btn secondary" style="margin-left: auto;" id="btn-clear-selection">Clear Selection</button>
+        <button class="swf-btn secondary" style="margin-left: auto;" id="btn-clear-selection">Clear Selection</button>
       </div>
       
-      <div class="canvas-container" id="canvas-wrapper">
+      <div class="swf-ix-canvas-container" id="canvas-wrapper">
         <div id="drop-overlay">Drop File Here</div>
-        <!-- We wrap the canvas in a div that exactly matches the image size to position absolute elements easily -->
         <div id="canvas-stage">
             <canvas id="image-canvas"></canvas>
             <div id="selection-box"></div>
@@ -318,33 +231,34 @@ export class IXtractor extends ForgeTool {
         
         <!-- Precision Input Panel -->
         <div id="selection-props" style="display: none;">
-          <div class="prop-group"><label>X:</label> <input type="number" id="prop-x" class="prop-input"/></div>
-          <div class="prop-group"><label>Y:</label> <input type="number" id="prop-y" class="prop-input"/></div>
-          <div class="prop-group"><label>W:</label> <input type="number" id="prop-w" class="prop-input"/></div>
-          <div class="prop-group"><label>H:</label> <input type="number" id="prop-h" class="prop-input"/></div>
+          <div style="display: flex; align-items: center; gap: 5px; color: var(--swf-text-muted); font-size: 0.9rem; font-weight: bold;"><label>X:</label> <input type="number" id="prop-x" class="swf-input" style="width: 50px;"/></div>
+          <div style="display: flex; align-items: center; gap: 5px; color: var(--swf-text-muted); font-size: 0.9rem; font-weight: bold;"><label>Y:</label> <input type="number" id="prop-y" class="swf-input" style="width: 50px;"/></div>
+          <div style="display: flex; align-items: center; gap: 5px; color: var(--swf-text-muted); font-size: 0.9rem; font-weight: bold;"><label>W:</label> <input type="number" id="prop-w" class="swf-input" style="width: 50px;"/></div>
+          <div style="display: flex; align-items: center; gap: 5px; color: var(--swf-text-muted); font-size: 0.9rem; font-weight: bold;"><label>H:</label> <input type="number" id="prop-h" class="swf-input" style="width: 50px;"/></div>
         </div>
       </div>
+    </div>
     <!-- SPLITTER -->
-    <div class="splitter" id="splitter"></div>
+    <div class="swf-ix-splitter" id="splitter"></div>
 
     <!-- CHAT & AI INTERFACE -->
-    <div class="sidebar" id="sidebar">
-      <div class="chat-history" id="chat-history">
-        <div class="message msg-ai">
+    <div class="swf-ix-sidebar" id="sidebar">
+      <div class="swf-ix-chat-history" id="chat-history">
+        <div class="swf-ix-message msg-ai">
           Willkommen beim IXtractor! Lade ein Bild hoch (oder ziehe es per Drag & Drop rein) und markiere einen Bereich, den ich für dich analysieren oder zuschneiden soll.
         </div>
       </div>
       
-      <div class="chat-input-area">
-        <div class="context-pill" id="context-pill">
+      <div class="swf-ix-chat-input-area">
+        <div class="swf-ix-context-pill" id="context-pill">
           <canvas id="crop-preview-canvas"></canvas>
-          <div class="context-pill-text">Ausschnitt markiert.</div>
-          <button class="btn secondary" style="padding: 0.2rem 0.5rem; margin-left: auto; margin-right: 5px;" id="btn-send-pixler">An Pixler</button>
-          <button class="btn secondary" style="padding: 0.2rem 0.5rem;" id="btn-cancel-crop">X</button>
+          <div style="font-size: 0.8rem; color: var(--swf-text-muted);">Ausschnitt markiert.</div>
+          <button class="swf-btn secondary" style="padding: 0.2rem 0.5rem; margin-left: auto; margin-right: 5px;" id="btn-send-pixler">An Pixler</button>
+          <button class="swf-btn secondary" style="padding: 0.2rem 0.5rem;" id="btn-cancel-crop">✖</button>
         </div>
-        <div class="chat-input-row">
-          <input type="text" id="chat-input" placeholder="Z. B. 'Extrahiere alle Zahlen aus dem Bild...'" />
-          <button class="btn" id="btn-send">Senden</button>
+        <div class="swf-ix-chat-input-row">
+          <input type="text" id="chat-input" class="swf-input" style="flex:1;" placeholder="Z. B. 'Extrahiere alle Zahlen...'" />
+          <button class="swf-btn" id="btn-send">Senden</button>
         </div>
       </div>
     </div>`;
@@ -817,7 +731,7 @@ export class IXtractor extends ForgeTool {
 
     function addMessage(text: string, type: "user" | "ai"): void {
       const msg = document.createElement("div");
-      msg.className = `message msg-${type}`;
+      msg.className = `swf-ix-message msg-${type}`;
       msg.innerText = text;
       chatHistory.appendChild(msg);
       chatHistory.scrollTop = chatHistory.scrollHeight;

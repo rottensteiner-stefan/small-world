@@ -251,10 +251,12 @@ export class Pixler extends ForgeTool {
     actions.style.gap = "5px";
 
     const btnClear = document.createElement("button");
+    btnClear.className = "swf-btn secondary";
     btnClear.textContent = "Clear";
     btnClear.onclick = (): void => this._ctx.clearRect(0, 0, this._width, this._height);
 
     const btnBase64 = document.createElement("button");
+    btnBase64.className = "swf-btn secondary";
     btnBase64.textContent = "Copy B64";
     btnBase64.onclick = (): void => {
       navigator.clipboard.writeText(this._canvas.toDataURL());
@@ -262,6 +264,7 @@ export class Pixler extends ForgeTool {
     };
 
     const btnImage = document.createElement("button");
+    btnImage.className = "swf-btn secondary";
     btnImage.textContent = "Copy Image";
     btnImage.onclick = (): void => {
       this._canvas.toBlob((blob) => {
@@ -275,6 +278,7 @@ export class Pixler extends ForgeTool {
     };
 
     const btnTemplate = document.createElement("button");
+    btnTemplate.className = "swf-btn secondary";
     btnTemplate.textContent = "A-Z";
     btnTemplate.title = "Load A-Z Template";
     btnTemplate.onclick = (): void => this.loadTemplateA2Z();

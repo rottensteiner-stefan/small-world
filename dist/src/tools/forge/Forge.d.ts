@@ -7,6 +7,7 @@ export declare class Forge {
     private _overlay;
     private _isVisible;
     private _windows;
+    get isVisible(): boolean;
     constructor(options?: ForgeOptions);
     toggle(): void;
     get windows(): ForgeWindow[];

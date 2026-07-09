@@ -1,5 +1,6 @@
 import { ForgeWindow } from "./ForgeWindow.js";
 import { ForgeTool } from "./ForgeTool.js";
+import { FORGE_THEME_CSS } from "./ForgeTheme.js";
 
 export interface ForgeOptions {
   toggleKey?: string; // e.g. "F12" or "~"
@@ -9,6 +10,10 @@ export class Forge {
   private _overlay: HTMLDivElement;
   private _isVisible: boolean = false;
   private _windows: ForgeWindow[] = [];
+
+  public get isVisible(): boolean {
+    return this._isVisible;
+  }
 
   constructor(options: ForgeOptions = {}) {
     this._injectCSS();
@@ -123,108 +128,7 @@ export class Forge {
     if (document.getElementById("sw-forge-style")) return;
     const style = document.createElement("style");
     style.id = "sw-forge-style";
-    style.innerHTML = `
-      :root {
-        --swf-bg: rgba(26, 26, 26, 0.95);
-        --swf-panel: #2a2a2a;
-        --swf-border: #444444;
-        --swf-accent: #ff00ff;
-        --swf-text: #eeeeee;
-        --swf-font: "Courier New", Courier, monospace;
-      }
-      .swf-forge-overlay {
-        position: fixed;
-        top: 0; left: 0; right: 0; bottom: 0;
-        pointer-events: none;
-        z-index: 10000;
-        display: flex;
-        flex-direction: column;
-      }
-      .swf-taskbar {
-        position: absolute;
-        bottom: 0; left: 0; right: 0;
-        height: 32px;
-        background: rgba(20, 20, 20, 0.9);
-        border-top: 1px solid var(--swf-border);
-        display: flex;
-        align-items: center;
-        padding: 0 8px;
-        gap: 8px;
-        pointer-events: auto;
-        z-index: 99999;
-      }
-      .swf-taskbar-btn {
-        background: rgba(255,255,255,0.1);
-        border: 1px solid var(--swf-border);
-        color: var(--swf-text);
-        padding: 2px 12px;
-        cursor: pointer;
-        font-family: var(--swf-font);
-        font-size: 12px;
-        font-weight: bold;
-        display: flex;
-        align-items: center;
-        height: 20px;
-        user-select: none;
-      }
-      .swf-taskbar-btn:hover {
-        background: var(--swf-accent);
-      }
-      .swf-taskbar-btn.hidden {
-        opacity: 0.4;
-        background: transparent;
-      }
-      .swf-window {
-        position: absolute;
-        pointer-events: auto;
-        background: var(--swf-panel);
-        border: 1px solid var(--swf-border);
-        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        font-family: var(--swf-font);
-        color: var(--swf-text);
-        display: flex;
-        flex-direction: column;
-        min-width: 200px;
-        min-height: 150px;
-      }
-      .swf-window-resize-handle {
-        position: absolute;
-        bottom: 0;
-        right: 0;
-        width: 16px;
-        height: 16px;
-        cursor: se-resize;
-        background: repeating-linear-gradient(-45deg, transparent, transparent 2px, rgba(255, 255, 255, 0.3) 2px, rgba(255, 255, 255, 0.3) 4px);
-        z-index: 10;
-      }
-      .swf-window-header {
-        background: rgba(255, 255, 255, 0.05);
-        border-bottom: 1px solid var(--swf-border);
-        padding: 4px 8px;
-        cursor: grab;
-        user-select: none;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-weight: bold;
-        font-size: 12px;
-      }
-      .swf-window-header:active {
-        cursor: grabbing;
-      }
-      .swf-window-content {
-        padding: 8px;
-        flex: 1;
-        overflow: auto;
-      }
-      .swf-close-btn {
-        cursor: pointer;
-        color: #888;
-      }
-      .swf-close-btn:hover {
-        color: var(--swf-accent);
-      }
-    `;
+    style.innerHTML = FORGE_THEME_CSS;
     document.head.appendChild(style);
   }
 }

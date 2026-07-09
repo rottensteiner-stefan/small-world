@@ -1,0 +1,184 @@
+export const FORGE_THEME_CSS = `
+  :root {
+    --swf-bg: rgba(15, 23, 42, 0.85); /* Dark slate with high opacity for glass effect */
+    --swf-panel: rgba(30, 41, 59, 0.9);
+    --swf-panel-hover: rgba(51, 65, 85, 0.95);
+    --swf-border: rgba(0, 229, 255, 0.2);
+    --swf-border-focus: rgba(0, 229, 255, 0.6);
+    --swf-accent: #00e5ff;
+    --swf-accent-alt: #ff00ff;
+    --swf-text: #e2e8f0;
+    --swf-text-muted: #94a3b8;
+    --swf-font: "Rajdhani", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    --swf-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+  }
+
+  /* Forge Global Container */
+  .swf-forge-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    font-family: var(--swf-font);
+    color: var(--swf-text);
+  }
+
+  /* Taskbar */
+  .swf-taskbar {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 36px;
+    background: rgba(15, 23, 42, 0.95);
+    border-top: 1px solid var(--swf-border);
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 8px;
+    pointer-events: auto;
+    z-index: 99999;
+    backdrop-filter: blur(10px);
+  }
+
+  /* Forge Window */
+  .swf-window {
+    position: absolute;
+    background: var(--swf-bg);
+    border: 1px solid var(--swf-border);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: var(--swf-shadow);
+    pointer-events: auto;
+    overflow: hidden;
+    backdrop-filter: blur(12px);
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+  .swf-window:focus-within {
+    border-color: var(--swf-accent);
+    box-shadow: 0 0 15px rgba(0, 229, 255, 0.15);
+  }
+
+  /* Forge Window Header */
+  .swf-window-header {
+    height: 32px;
+    background: linear-gradient(90deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 41, 59, 0.9) 100%);
+    border-bottom: 1px solid var(--swf-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 12px;
+    cursor: move;
+    user-select: none;
+    flex-shrink: 0;
+  }
+  .swf-window-title {
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--swf-accent);
+  }
+  .swf-window-close {
+    background: none;
+    border: none;
+    color: var(--swf-text-muted);
+    font-size: 16px;
+    cursor: pointer;
+    padding: 0 4px;
+    transition: color 0.2s;
+  }
+  .swf-window-close:hover {
+    color: #ef4444;
+  }
+
+  .swf-window-content {
+    padding: 8px;
+    flex: 1;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .swf-window-resize-handle {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 16px;
+    height: 16px;
+    cursor: se-resize;
+    background: repeating-linear-gradient(-45deg, transparent, transparent 2px, rgba(255, 255, 255, 0.3) 2px, rgba(255, 255, 255, 0.3) 4px);
+    z-index: 10;
+  }
+
+  /* Buttons */
+  .swf-btn {
+    background: var(--swf-panel);
+    color: var(--swf-text);
+    border: 1px solid var(--swf-border);
+    border-radius: 4px;
+    padding: 6px 12px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .swf-btn:hover {
+    background: var(--swf-panel-hover);
+    border-color: var(--swf-accent);
+    color: var(--swf-accent);
+    box-shadow: 0 0 8px rgba(0, 229, 255, 0.2);
+  }
+  .swf-btn.active {
+    background: var(--swf-accent);
+    color: #000;
+    border-color: var(--swf-accent);
+  }
+  .swf-btn.secondary {
+    background: transparent;
+    border-color: var(--swf-text-muted);
+    color: var(--swf-text-muted);
+  }
+  .swf-btn.secondary:hover {
+    border-color: var(--swf-accent-alt);
+    color: var(--swf-accent-alt);
+    box-shadow: 0 0 8px rgba(255, 0, 255, 0.2);
+  }
+
+  /* Inputs */
+  .swf-input {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--swf-border);
+    border-radius: 4px;
+    color: var(--swf-text);
+    padding: 6px 8px;
+    font-family: inherit;
+    font-size: 13px;
+    transition: border-color 0.2s ease;
+    outline: none;
+  }
+  .swf-input:focus {
+    border-color: var(--swf-accent);
+    box-shadow: 0 0 5px rgba(0, 229, 255, 0.2);
+  }
+
+  /* Scrollbars */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--swf-panel);
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--swf-accent);
+  }
+`;
