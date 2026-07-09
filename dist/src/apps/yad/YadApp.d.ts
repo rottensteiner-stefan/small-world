@@ -10,6 +10,7 @@ export declare class YadApp extends AbstractShowcase {
     private _lavaMaterials;
     private _lavaLights;
     private _hud;
+    private _playerController;
     get hud(): YadHud;
     /** @inheritdoc */
     protected onCanvasRecreated(): void;

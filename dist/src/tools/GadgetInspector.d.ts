@@ -1,11 +1,12 @@
 import { FolderApi } from 'tweakpane';
 import { Scene, Object3D } from '../core/index.js';
 import { CameraInterfaceData, Renderer } from '../interfaces/index.js';
+import { ForgeTool, ForgeToolOptions } from './forge/ForgeTool.js';
 /**
  * A lightweight editor/inspector overlay for small-world.
  * Uses Raycasting for object picking and Tweakpane for property editing.
  */
-export declare class GadgetInspector {
+export declare class GadgetInspector extends ForgeTool {
     private _scene;
     private _camera;
     private _canvas;
@@ -30,7 +31,7 @@ export declare class GadgetInspector {
      * @param _canvas The canvas to attach picking events to.
      * @param _renderer The active renderer instance.
      */
-    constructor(_scene: Scene, _camera: CameraInterfaceData, _canvas: HTMLCanvasElement, _renderer?: Renderer | undefined);
+    constructor(_scene: Scene, _camera: CameraInterfaceData, _canvas: HTMLCanvasElement, _renderer?: Renderer | undefined, options?: ForgeToolOptions);
     private _getAllObjects;
     private _onPointerDown;
     /**
@@ -59,4 +60,6 @@ export declare class GadgetInspector {
      */
     update(): void;
     private _countSceneObjects;
+    getState(): unknown;
+    setState(_state: unknown): void;
 }

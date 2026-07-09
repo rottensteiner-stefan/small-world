@@ -1,7 +1,5 @@
 /// src/tools/ibl-gen.ts
-import { Matrix4 } from "../math/index.js";
-import { Vector3D } from "../math/index.js";
-import { PerspectiveProjection } from "../math/projections/index.js";
+import { Matrix4, Vector3D, PerspectiveProjection } from "../math/index.js";
 import { IBLShaders } from "./IBLShaders.js";
 
 // Utility for WebGL2

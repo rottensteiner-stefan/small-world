@@ -14,3 +14,4 @@ export * from "./LookAtBehavior.js";
 export * from "./RainbowBehavior.js";
 export * from "./SpringLerpBehavior.js";
 export * from "./PathFollowerBehavior.js";
+export * from "./FirstPersonController.js";

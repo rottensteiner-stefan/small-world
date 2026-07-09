@@ -32,6 +32,7 @@ export class YadApp extends AbstractShowcase {
   private _lavaMaterials: LavaMaterial[] = [];
   private _lavaLights: PointLight[] = [];
   private _hud!: YadHud;
+  private _playerController!: YadController;
 
   public get hud(): YadHud {
     return this._hud;
@@ -154,7 +155,13 @@ export class YadApp extends AbstractShowcase {
     const enemyTex: Texture = await Texture.fromUrl("./assets/doom_pack/sprites/possa1.png", {
       flipY: true,
     });
-    const itemTex: Texture = await Texture.fromUrl("./assets/doom_pack/sprites/arm1a0.png", {
+    const itemTexArmor: Texture = await Texture.fromUrl("./assets/doom_pack/sprites/bon2a0.png", {
+      flipY: true,
+    });
+    const itemTexHealth: Texture = await Texture.fromUrl("./assets/doom_pack/sprites/bon1a0.png", {
+      flipY: true,
+    });
+    const itemTexWeapon: Texture = await Texture.fromUrl("./assets/doom_pack/sprites/pista0.png", {
       flipY: true,
     });
 
@@ -170,8 +177,13 @@ export class YadApp extends AbstractShowcase {
     await audio.load("./assets/sounds/pickup.wav", "pickup");
 
     // 3. Load Level Data
-    const loader: TextLoader = new TextLoader();
-    const mapData: string = await loader.load("./assets/levels/level1.txt");
+    let mapData = localStorage.getItem("yad_custom_map");
+    if (!mapData) {
+      const loader: TextLoader = new TextLoader();
+      mapData = await loader.load("./assets/levels/level1.txt");
+    } else {
+      console.log("[YadApp] Loaded custom map from localStorage.");
+    }
 
     // 4. Build Level
     const builder: YadLevelBuilder = new YadLevelBuilder();
@@ -194,13 +206,33 @@ export class YadApp extends AbstractShowcase {
         O: { type: "door", texture: secretDoorTex, doorSound: "secret_door" }, // Secret door looks like wall
         P: { type: "playerSpawn" },
         b: { type: "sprite", texture: barrelTex, spriteScale: 1.5, spriteY: 0.8 },
-        E: { type: "sprite", texture: enemyTex, spriteScale: 2.0, spriteY: 1.0, isEnemy: true },
-        I: {
+        E: { type: "sprite", texture: enemyTex, spriteScale: 2.0, spriteY: 0.85, isEnemy: true },
+        // Items mapping
+        1: {
           type: "sprite",
-          texture: itemTex,
-          spriteScale: 1.0,
-          spriteY: 0.8,
+          texture: itemTexHealth,
+          spriteScale: 0.8,
+          spriteY: 0.6,
           isItem: true,
+          itemType: "health",
+          bobbing: true,
+        },
+        2: {
+          type: "sprite",
+          texture: itemTexArmor,
+          spriteScale: 0.8,
+          spriteY: 0.6,
+          isItem: true,
+          itemType: "armor",
+          bobbing: true,
+        },
+        3: {
+          type: "sprite",
+          texture: itemTexWeapon,
+          spriteScale: 1.0,
+          spriteY: 0.6,
+          isItem: true,
+          itemType: "weapon",
           bobbing: true,
         },
         l: {
@@ -225,13 +257,19 @@ export class YadApp extends AbstractShowcase {
     document.addEventListener(
       "click",
       (): void => {
+        audio.resume();
         audio.startDrone();
       },
       { once: true },
     );
 
     // 5. Controllers
-    this.camera.addBehavior(new YadController({ moveSpeed: 10.0, scene: this.scene }));
+    this._playerController = new YadController({
+      moveSpeed: 10.0,
+      scene: this.scene,
+      events: this.events,
+    });
+    this.camera.addBehavior(this._playerController);
     this.camera.addBehavior(new ZoomController());
 
     // 6. Final Scene Prep
@@ -244,7 +282,7 @@ export class YadApp extends AbstractShowcase {
     this.debug = false; // Disable visual debugging for collisions by default
 
     // 7. Initialize HUD
-    this._hud = new YadHud();
+    this._hud = new YadHud(this.events);
 
     // 8. Apply Retro Color Banding (Quantization)
     if (this.renderer) {
@@ -268,6 +306,10 @@ export class YadApp extends AbstractShowcase {
       const light = this._lavaLights[l]!;
       const pulse = Math.sin(this._time * 2.1 + l) * 0.5 + 0.5;
       light.intensity = 3.0 + pulse * 2.0;
+    }
+
+    if (this._hud && this._playerController) {
+      this._hud.update(deltaTime, this._playerController.bobPhase);
     }
 
     AudioSystem.instance.updateListener(this.camera);
