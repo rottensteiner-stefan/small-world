@@ -13,7 +13,7 @@ Read our full [Vision & Strategy (VISION.md)](VISION.md).
 - **Hybrid PBR Rendering:** High-performance rendering pipeline supporting **WebGPU**, **WebGL 2**, and **WebGL 1** with industry-standard physically based shading (Cook-Torrance BRDF).
 - **Linear Lighting Workflow:** All lighting calculations are performed in linear space with automatic sRGB gamma correction for realistic color falloffs and high visual fidelity.
 - **Advanced Materials:** Includes standard PBR (Metallic/Roughness), but also physical **Glass/Dielectric** materials with real-time **Screen-Space Refraction**, Index of Refraction (IOR), and Beer's Law for volumetric light absorption.
-- **Advanced Camera System:** Unified camera setup where controllers (e.g., `OrbitController`, `FPSController`, `ZoomController`) are standard `Behavior` components attached via `camera.addBehavior()`. Features procedural effects like camera shake and flash.
+- **Advanced Camera System:** Unified camera setup where controllers (e.g., `OrbitController`, `FirstPersonController`, `ZoomController`) are standard `Behavior` components attached via `camera.addBehavior()`. Features procedural effects like camera shake and flash.
 - **High-Performance Architecture:** Optimized for memory efficiency through **Object Pooling** (`MathPool`), BindGroup & Pipeline Caching (WebGPU), and zero-allocation hot paths to eliminate Garbage Collection pressure.
 - **Lighting & Shadows:** Supports Ambient, Directional, Point, Spot, and Area lights. Features robust **Shadow Mapping** (WebGL 2) with Hardware Shadow Sampling and Percentage-Closer Filtering (PCF) for buttery-smooth soft shadows.
 - **Planar & Conformal Reflections:** Real-time planar floor reflections (virtual mirror geometries) and dynamic sphere inversion reflections ($P' = C + V \cdot \frac{R^2}{d^2 - r^2}$) for PBR objects.
@@ -23,6 +23,8 @@ Read our full [Vision & Strategy (VISION.md)](VISION.md).
 - **Scene Graph:** Hierarchical scene management using a clean `Object3D` architecture.
 - **2D/2.5D Support:** First-class support for Sprites, Billboard rendering, and Pixel-Perfect Isometric perspectives.
 - **Audio System:** Built-in `AudioSystem` with 3D Spatial Audio (HRTF), a procedural Retro Synthesizer (footsteps, lasers, drones, fire), and a built-in Mixer with procedural Reverb.
+- **Decoupled Architecture:** Features a high-performance, strictly-typed global `EventBus` injected into all systems (`this.events`), separating Gameloop, Behaviors, and UI without relying on garbage-heavy DOM `CustomEvent` objects.
+- **Extensions Ecosystem:** Includes modular drop-in utilities like the `GridLevelBuilder` to instantly generate complete dungeon levels from simple ASCII maps (`["###", "#P#", "###"]`).
 - **Geometry & Asset Loaders:** Dynamic terrain generation, comprehensive primitive library, and async loaders for OBJ models, MTLLib materials, and textures (via unified static factories like `Texture.fromUrl()`).
 
 ### ⚡ Under the Hood (Hardcore Engineering)
@@ -156,6 +158,10 @@ For an isolated development environment, this project includes a **Dev Container
 
 The engine includes several browser-based tools to help generate assets directly on the client side without relying on external software:
 
+- **The Forge (In-Game Overlay):** A built-in window manager providing a suite of developer tools directly inside your game (`~` to toggle).
+  - **Pixler:** A retro 2D pixel-art editor to draw and export sprites on the fly.
+  - **IXtractor:** An image manipulation tool to crop, slice, and generate tile-maps or sprite atlases.
+  - **MapGenerator:** A visual grid editor to paint ASCII levels for the `GridLevelBuilder`.
 - **PBR Map Generator** (`public/tools/pbr-gen.html`): Generate Normal, Specular, AO, and Height maps from a single diffuse image.
 - **Splatter Generator** (`public/tools/splatter-gen.html`): Generate procedural splatters and decals.
 - **IBL Generator** (`public/tools/ibl-gen.html`): Generate Image-Based Lighting (Irradiance and Radiance) environment maps.

@@ -1,4 +1,4 @@
-import { FirstPersonController, FirstPersonControllerOptions } from '../../core/behaviors/FirstPersonController.js';
+import { FirstPersonController, FirstPersonControllerOptions } from '../../core/index.js';
 /**
  * A retro style controller for forward/backward movement and left/right rotation.
  * It extends FirstPersonController and adds shooting, weapon selection, and damage logic.

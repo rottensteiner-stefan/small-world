@@ -19,7 +19,7 @@ export declare abstract class SmallWorld {
     renderer: Renderer;
     /** The interaction manager for gamification / picking. */
     interactionManager: InteractionManager;
-    forge?: unknown;
+    forge: import('../tools/forge/Forge.js').Forge;
     /** The canvas element. */
     canvas: HTMLCanvasElement;
     /** The global event dispatcher for the engine. */

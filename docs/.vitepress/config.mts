@@ -26,6 +26,7 @@ export default defineConfig({
             { text: "Finite State Machines (FSM)", link: "/guides/state-machines" },
             { text: "EventBus & Gameloop", link: "/guides/eventbus" },
             { text: "Extensions & Ecosystem", link: "/guides/extensions" },
+            { text: "Forge (In-Game Tools)", link: "/guides/forge" },
             { text: "Building a Custom Game", link: "/guides/custom-game" },
           ],
         },

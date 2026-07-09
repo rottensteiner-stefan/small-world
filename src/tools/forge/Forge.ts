@@ -26,6 +26,48 @@ export class Forge {
         }
       });
     }
+
+    // Global Paste Listener for Tools
+    window.addEventListener("paste", (e) => {
+      if (!this._isVisible) return;
+
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      let blob: File | null = null;
+      for (let i = 0; i < items.length; i++) {
+        if (items[i]!.type.indexOf("image") !== -1) {
+          blob = items[i]!.getAsFile();
+          break;
+        }
+      }
+
+      if (blob) {
+        // Find topmost window
+        let activeWin: ForgeWindow | null = null;
+        let maxZ = -1;
+        for (const win of this._windows) {
+          if (win.isVisible) {
+            const z = parseInt(win.getElement().style.zIndex || "0", 10);
+            if (z > maxZ) {
+              maxZ = z;
+              activeWin = win;
+            }
+          }
+        }
+
+        if (activeWin && activeWin.tool) {
+          const reader = new FileReader();
+          reader.onload = (event): void => {
+            const base64 = event.target?.result as string;
+            if (base64 && activeWin?.tool) {
+              activeWin.tool.onPasteImage(base64);
+            }
+          };
+          reader.readAsDataURL(blob);
+        }
+      }
+    });
   }
 
   public toggle(): void {
