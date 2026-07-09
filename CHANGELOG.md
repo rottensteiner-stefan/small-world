@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.51.0] - 2026-07-10
+
+- **Feature (MaterialStudio):**
+  - Added support for generating PBR maps directly from clipboard images via `Cmd+V` or `Ctrl+V`.
+  - Implemented one-click texture downloads by clicking directly on the 2D map preview.
+  - Improved UI layout: the preview canvases are now consistently aligned to the top.
+  - Irrelevant parameters in the sidebar are now automatically hidden when a specific texture map is active.
+- **Fix (Forge Window):**
+  - Prevented window bounding boxes from being dragged or resized above the visible browser viewport, eliminating the risk of unreachable title bars.
+- **Fix (GridLevelBuilder):**
+  - Corrected custom tile parsing logic so that custom sprites no longer erroneously block floor and ceiling generation on the same tile.
+- **Refactor (Code Quality):**
+  - Consolidated redundant import statements across all source files via a new `import/no-duplicates` ESLint rule.
+  - Improved strict TypeScript typings in `MaterialStudio` and resolved outstanding pre-commit hook ESLint errors.
+
 ## [0.50.0] - 2026-07-09
 
 - **Refactor (Forge & Glassmorphism Theme):**
