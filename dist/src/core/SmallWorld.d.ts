@@ -4,7 +4,7 @@ import { InteractionManager } from './InteractionManager.js';
 import { EngineOptions, Events, Renderer } from '../interfaces/index.js';
 import { GadgetInspector } from '../tools/index.js';
 /** The current engine version. */
-export declare const ENGINE_VERSION = "0.50.0";
+export declare const ENGINE_VERSION = "0.51.0";
 /**
  * Base class for applications built with the SmallWorld engine.
  */
