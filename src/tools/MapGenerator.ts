@@ -85,7 +85,7 @@ export class MapGenerator extends ForgeTool {
         flex-direction: row;
         width: 100%;
         height: 100%;
-        background: var(--swf-bg);
+        background: transparent;
         color: var(--swf-text);
         font-family: var(--swf-font);
       }

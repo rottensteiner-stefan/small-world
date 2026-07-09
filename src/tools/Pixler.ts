@@ -156,11 +156,8 @@ export class Pixler extends ForgeTool {
     );
 
     const paletteSelect = document.createElement("select");
+    paletteSelect.className = "swf-input";
     Object.assign(paletteSelect.style, {
-      backgroundColor: "#333",
-      color: "#fff",
-      border: "1px solid #555",
-      fontSize: "12px",
       padding: "2px",
     });
     Object.keys(PIXLER_PALETTES).forEach((p) => {
@@ -181,10 +178,10 @@ export class Pixler extends ForgeTool {
     const canvasContainer = document.createElement("div");
     Object.assign(canvasContainer.style, {
       position: "relative",
-      backgroundColor: "#111",
+      backgroundColor: "var(--swf-panel)",
       overflow: "auto",
       maxHeight: "400px",
-      border: "1px solid #000",
+      border: "1px solid var(--swf-border)",
       padding: "20px", // give some breathing room around the canvas
     });
 
@@ -326,11 +323,9 @@ export class Pixler extends ForgeTool {
     this._inputs[label] = inp;
     inp.type = "number";
     inp.value = value.toString();
+    inp.className = "swf-input";
     Object.assign(inp.style, {
       width: "40px",
-      backgroundColor: "#333",
-      color: "#fff",
-      border: "1px solid #555",
     });
     inp.onchange = (e): void => onChange(parseInt((e.target as HTMLInputElement).value) || 1);
 
@@ -582,7 +577,7 @@ export class Pixler extends ForgeTool {
       Object.assign(btn.style, {
         height: "24px",
         backgroundColor: color === "transparent" ? "#000" : color,
-        border: "1px solid #555",
+        border: "1px solid var(--swf-border)",
         cursor: "pointer",
         position: "relative",
       });

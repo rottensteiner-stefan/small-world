@@ -72,9 +72,6 @@ export class GadgetInspector extends ForgeTool {
 
     // We don't need absolute positioning anymore since ForgeWindow handles it
     this._pane.element.style.width = "100%";
-    this._pane.element.style.maxHeight = "100%";
-    this._pane.element.style.overflowY = "auto";
-    this._pane.element.style.overflowX = "hidden";
 
     // Setup Diagnostics folder
     if (undefined !== this._renderer) {
