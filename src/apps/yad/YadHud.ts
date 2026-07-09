@@ -1,4 +1,4 @@
-/// src/apps/yad/YadHud.ts
+import { AppEvents } from "../../enums/AppEvents.js";
 
 export class YadHud {
   private _container: HTMLDivElement;
@@ -238,7 +238,7 @@ export class YadHud {
   }
 
   private _bindEvents(): void {
-    this._events?.addEventListener("yad-damage", (e: Record<string, unknown>) => {
+    this._events?.addEventListener(AppEvents.Yad.DAMAGE, (e: Record<string, unknown>) => {
       const amount = (e["amount"] as number) || 0;
       if (this._armor > 0) {
         this._armor -= amount;
@@ -255,7 +255,7 @@ export class YadHud {
       this._triggerFlash("rgba(255, 0, 0, 0.4)"); // Red flash
     });
 
-    this._events?.addEventListener("yad-pickup", (e: Record<string, unknown>) => {
+    this._events?.addEventListener(AppEvents.Yad.PICKUP, (e: Record<string, unknown>) => {
       const type = e["type"] as string;
       const amount = (e["amount"] as number) || 0;
       if (type === "armor") {
@@ -278,21 +278,21 @@ export class YadHud {
       this._updateDisplay();
     });
 
-    this._events?.addEventListener("yad-shoot", (): void => {
+    this._events?.addEventListener(AppEvents.Yad.SHOOT, (): void => {
       if (this._ammo > 0) {
         this._ammo -= 1;
         this._updateDisplay();
       }
     });
 
-    this._events?.addEventListener("yad-weapon", (e: Record<string, unknown>) => {
+    this._events?.addEventListener(AppEvents.Yad.WEAPON, (e: Record<string, unknown>) => {
       const index = e["index"] as number;
       if (index) {
         this._updateWeaponDisplay(index);
       }
     });
 
-    this._events?.addEventListener("yad-shoot", (): void => {
+    this._events?.addEventListener(AppEvents.Yad.SHOOT, (): void => {
       this.triggerShoot();
     });
   }
@@ -305,80 +305,55 @@ export class YadHud {
       { map: this._fontSmallGrey, hex: "#555555" },
     ];
 
-    // 4x5 pixel font data for A-Z, /, %
-    const pixelFont: Record<string, number[]> = {
-      A: [0, 1, 1, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1],
-      B: [1, 1, 1, 0, 1, 0, 0, 1, 1, 1, 1, 0, 1, 0, 0, 1, 1, 1, 1, 0],
-      C: [0, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1],
-      D: [1, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 0],
-      E: [1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 1, 0, 0, 0, 1, 1, 1, 1],
-      F: [1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0],
-      G: [0, 1, 1, 1, 1, 0, 0, 0, 1, 0, 1, 1, 1, 0, 0, 1, 0, 1, 1, 0],
-      H: [1, 0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1],
-      I: [0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0],
-      J: [0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0],
-      K: [1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1],
-      L: [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1],
-      M: [1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1],
-      N: [1, 0, 0, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1],
-      O: [0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0],
-      P: [1, 1, 1, 0, 1, 0, 0, 1, 1, 1, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0],
-      Q: [0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1],
-      R: [1, 1, 1, 0, 1, 0, 0, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1],
-      S: [0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0],
-      T: [1, 1, 1, 1, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0],
-      U: [1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0],
-      V: [1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0],
-      W: [1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1],
-      X: [1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1],
-      Y: [1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0],
-      Z: [1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1],
-      "/": [0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0],
-      "%": [1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1],
+    const imgLetters = new Image();
+    imgLetters.src = "./assets/fonts/font-letters.png";
+    imgLetters.onload = (): void => {
+      for (let i = 0; i < chars.length; i++) {
+        const char = chars[i];
+        if (!char || char === " ") continue;
+
+        for (const config of configs) {
+          const canvas = document.createElement("canvas");
+          canvas.width = 5; // 4px char + 1px drop shadow
+          canvas.height = 6; // 5px char + 1px drop shadow
+          const ctx = canvas.getContext("2d");
+          if (!ctx) continue;
+
+          // Colored foreground
+          const fgCanvas = document.createElement("canvas");
+          fgCanvas.width = 4;
+          fgCanvas.height = 5;
+          const fgCtx = fgCanvas.getContext("2d");
+          if (!fgCtx) continue;
+          fgCtx.drawImage(imgLetters, i * 4, 0, 4, 5, 0, 0, 4, 5);
+          fgCtx.globalCompositeOperation = "source-in";
+          fgCtx.fillStyle = config.hex;
+          fgCtx.fillRect(0, 0, 4, 5);
+
+          // Black drop shadow
+          const shCanvas = document.createElement("canvas");
+          shCanvas.width = 4;
+          shCanvas.height = 5;
+          const shCtx = shCanvas.getContext("2d");
+          if (!shCtx) continue;
+          shCtx.drawImage(imgLetters, i * 4, 0, 4, 5, 0, 0, 4, 5);
+          shCtx.globalCompositeOperation = "source-in";
+          shCtx.fillStyle = "#000000";
+          shCtx.fillRect(0, 0, 4, 5);
+
+          // Combine
+          ctx.drawImage(shCanvas, 1, 1);
+          ctx.drawImage(fgCanvas, 0, 0);
+
+          config.map.set(char, canvas);
+        }
+      }
+      this._updateDisplay();
     };
 
-    for (const char of chars) {
-      if (char === " ") continue;
-
-      const data = pixelFont[char];
-
-      for (const config of configs) {
-        const canvas = document.createElement("canvas");
-        canvas.width = 5; // 4px char + 1px drop shadow
-        canvas.height = 6; // 5px char + 1px drop shadow
-        const ctx = canvas.getContext("2d");
-        if (!ctx) continue;
-
-        if (data) {
-          // Draw Drop Shadow
-          ctx.fillStyle = "#000000";
-          for (let i = 0; i < data.length; i++) {
-            if (data[i]) {
-              const x = i % 4;
-              const y = Math.floor(i / 4);
-              ctx.fillRect(x + 1, y + 1, 1, 1);
-            }
-          }
-
-          // Draw Foreground Color
-          ctx.fillStyle = config.hex;
-          for (let i = 0; i < data.length; i++) {
-            if (data[i]) {
-              const x = i % 4;
-              const y = Math.floor(i / 4);
-              ctx.fillRect(x, y, 1, 1);
-            }
-          }
-        }
-
-        config.map.set(char, canvas);
-      }
-    }
-
-    const img = new Image();
-    img.src =
-      "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAFCAYAAABSIVz6AAAASklEQVR4Xo2OSQ4AIAwC+/9PuyUmI1LrXOgC1mggBtSMav+DPTT7DXvu1au5PXP+pUcDdfUv+p7jOqhKONOaOd05f/qjDIZfVL4OUeaadFyNh+cAAAAASUVORK5CYII=";
-    img.onload = (): void => {
+    const imgNumbers = new Image();
+    imgNumbers.src = "./assets/fonts/font-numbers.png";
+    imgNumbers.onload = (): void => {
       for (let i = 0; i < 10; i++) {
         const char = i.toString();
         for (const config of configs) {
@@ -392,8 +367,9 @@ export class YadHud {
           const fgCanvas = document.createElement("canvas");
           fgCanvas.width = 3;
           fgCanvas.height = 5;
-          const fgCtx = fgCanvas.getContext("2d")!;
-          fgCtx.drawImage(img, i * 3, 0, 3, 5, 0, 0, 3, 5);
+          const fgCtx = fgCanvas.getContext("2d");
+          if (!fgCtx) continue;
+          fgCtx.drawImage(imgNumbers, i * 3, 0, 3, 5, 0, 0, 3, 5);
           fgCtx.globalCompositeOperation = "source-in";
           fgCtx.fillStyle = config.hex;
           fgCtx.fillRect(0, 0, 3, 5);
@@ -402,8 +378,9 @@ export class YadHud {
           const shCanvas = document.createElement("canvas");
           shCanvas.width = 3;
           shCanvas.height = 5;
-          const shCtx = shCanvas.getContext("2d")!;
-          shCtx.drawImage(img, i * 3, 0, 3, 5, 0, 0, 3, 5);
+          const shCtx = shCanvas.getContext("2d");
+          if (!shCtx) continue;
+          shCtx.drawImage(imgNumbers, i * 3, 0, 3, 5, 0, 0, 3, 5);
           shCtx.globalCompositeOperation = "source-in";
           shCtx.fillStyle = "#000000";
           shCtx.fillRect(0, 0, 3, 5);

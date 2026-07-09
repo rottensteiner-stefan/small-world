@@ -48,6 +48,7 @@ export abstract class SmallWorld {
   public debug: boolean = false;
 
   private _inspector?: GadgetInspector;
+  public forge!: import("../tools/forge/Forge.js").Forge;
 
   private _lastTime: number = 0;
   private _isRunning: boolean = false;

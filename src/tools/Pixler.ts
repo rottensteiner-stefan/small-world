@@ -1,5 +1,6 @@
 /// src/tools/Pixler.ts
 import { ForgeTool, ForgeToolOptions } from "./forge/ForgeTool.js";
+import { ToolEvents } from "../enums/ToolEvents.js";
 
 export const PIXLER_PALETTES = {
   DEFAULT: [
@@ -289,6 +290,18 @@ export class Pixler extends ForgeTool {
 
     this._resize(this._width, this._height);
     this._bindEvents();
+
+    if (this._options.events) {
+      this._options.events.addEventListener(
+        ToolEvents.Pixler.LOAD_BASE64,
+        (e: Record<string, unknown>) => {
+          const base64 = e["base64"] as string;
+          if (base64) {
+            this.loadFromBase64(base64).catch((err) => console.error(err));
+          }
+        },
+      );
+    }
   }
 
   private _createInput(
@@ -643,7 +656,13 @@ export class Pixler extends ForgeTool {
     this._renderPaletteUI();
   }
 
-  public getState(): string {
+  public override onPasteImage(base64: string): void {
+    this.loadFromBase64(base64).catch((e) =>
+      console.error("Failed to paste image into Pixler:", e),
+    );
+  }
+
+  public getState(): unknown {
     return this.getBase64();
   }
 

@@ -1,6 +1,7 @@
 import { ForgeTool } from "./ForgeTool.js";
 
 export class ForgeWindow {
+  public static _maxZIndex: number = 10;
   private _windowEl: HTMLDivElement;
   private _contentEl: HTMLDivElement;
   private _tool: ForgeTool | null = null;
@@ -47,9 +48,7 @@ export class ForgeWindow {
 
     // Bring to front on click
     this._windowEl.addEventListener("mousedown", () => {
-      if (this._windowEl.parentNode) {
-        this._windowEl.parentNode.appendChild(this._windowEl);
-      }
+      this.bringToFront();
     });
 
     this._bindDrag(header);
@@ -75,6 +74,14 @@ export class ForgeWindow {
     return this._title;
   }
 
+  public get tool(): ForgeTool | null {
+    return this._tool;
+  }
+
+  public getElement(): HTMLDivElement {
+    return this._windowEl;
+  }
+
   public get isVisible(): boolean {
     return this._windowEl.style.display !== "none";
   }
@@ -84,11 +91,13 @@ export class ForgeWindow {
       this._windowEl.style.display = "none";
     } else {
       this._windowEl.style.display = "flex";
-      // Bring to front
-      if (this._windowEl.parentNode) {
-        this._windowEl.parentNode.appendChild(this._windowEl);
-      }
+      this.bringToFront();
     }
+  }
+
+  public bringToFront(): void {
+    ForgeWindow._maxZIndex++;
+    this._windowEl.style.zIndex = ForgeWindow._maxZIndex.toString();
   }
 
   public setOnClose(cb: () => void): void {

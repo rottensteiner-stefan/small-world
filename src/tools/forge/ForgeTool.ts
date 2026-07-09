@@ -1,6 +1,7 @@
 export interface ForgeToolOptions {
   parent?: HTMLElement;
   initialState?: unknown;
+  events?: import("../../interfaces/index.js").Events;
 }
 
 export abstract class ForgeTool {
@@ -34,6 +35,10 @@ export abstract class ForgeTool {
 
   public resize(_w: number, _h: number): void {
     // Optional hook for tools that need to react to window resizing
+  }
+
+  public onPasteImage(_base64: string): void {
+    // Optional hook for tools that can accept pasted images
   }
 
   public abstract getState(): unknown;

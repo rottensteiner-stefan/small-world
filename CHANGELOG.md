@@ -8,8 +8,10 @@
   - Implemented a unified `EventBus` (`EventDispatcherImpl`) injected globally into `SmallWorld` instances as `this.events`. Removed direct `window.addEventListener` and DOM-coupled custom events, fully separating the UI, gameloop, and game behaviors.
 - **Feature (Loot System):**
   - Added pickups for armor, health, and weapons in the YAD showcase with corresponding HUD logic and UI flashes.
-- **Feature (Tools):**
-  - Minor type and ESLint cleanups in tools (`IXtractor`, `Pixler`).
+- **Feature (Tools & Forge):**
+  - Integrated the **Forge**, an extensible in-game window manager and developer overlay.
+  - Added new visual utilities: `Pixler` (in-game sprite editor), `IXtractor` (asset extractor/cropper), and `MapGenerator` (grid map painter).
+  - Minor type and ESLint cleanups across all tool classes.
 
 
 ## [0.48.0] - 2026-07-08

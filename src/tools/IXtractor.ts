@@ -1,6 +1,15 @@
 import { ForgeTool, ForgeToolOptions } from "./forge/ForgeTool.js";
+import { ToolEvents } from "../enums/ToolEvents.js";
 
 export class IXtractor extends ForgeTool {
+  public loadFromBase64?: (base64: string) => void;
+
+  public override onPasteImage(base64: string): void {
+    if (this.loadFromBase64) {
+      this.loadFromBase64(base64);
+    }
+  }
+
   constructor(options: ForgeToolOptions = {}) {
     super(options);
     this._injectCSS();
@@ -330,7 +339,8 @@ export class IXtractor extends ForgeTool {
         <div class="context-pill" id="context-pill">
           <canvas id="crop-preview-canvas"></canvas>
           <div class="context-pill-text">Ausschnitt markiert.</div>
-          <button class="btn secondary" style="padding: 0.2rem 0.5rem; margin-left: auto;" id="btn-cancel-crop">X</button>
+          <button class="btn secondary" style="padding: 0.2rem 0.5rem; margin-left: auto; margin-right: 5px;" id="btn-send-pixler">An Pixler</button>
+          <button class="btn secondary" style="padding: 0.2rem 0.5rem;" id="btn-cancel-crop">X</button>
         </div>
         <div class="chat-input-row">
           <input type="text" id="chat-input" placeholder="Z. B. 'Extrahiere alle Zahlen aus dem Bild...'" />
@@ -366,6 +376,7 @@ export class IXtractor extends ForgeTool {
     const cropCtx = cropPreviewCanvas.getContext("2d")!;
     const btnCancelCrop = this._container.querySelector<HTMLElement>("#btn-cancel-crop")!;
     const btnClearSelection = this._container.querySelector<HTMLElement>("#btn-clear-selection")!;
+    const btnSendPixler = this._container.querySelector<HTMLElement>("#btn-send-pixler")!;
 
     // State
     let currentImage: HTMLImageElement | null = null;
@@ -486,7 +497,20 @@ export class IXtractor extends ForgeTool {
       }
     });
 
-    function loadFile(file: File): void {
+    this.loadFromBase64 = (base64: string): void => {
+      const img = new Image();
+      img.onload = (): void => {
+        currentImage = img;
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+        clearSelection();
+        addMessage(`Bild aus Zwischenablage geladen (${img.width}x${img.height}px).`, "ai");
+      };
+      img.src = base64;
+    };
+
+    const loadFile = (file: File): void => {
       if (file.type === "application/pdf") {
         alert("PDF Konvertierung bauen wir in Phase 2 ein (via PDF.js). Bitte ein Bild nutzen.");
         return;
@@ -494,18 +518,14 @@ export class IXtractor extends ForgeTool {
 
       const reader = new FileReader();
       reader.onload = (e): void => {
-        const img = new Image();
-        img.onload = (): void => {
-          currentImage = img;
-          canvas.width = img.width;
-          canvas.height = img.height;
-          ctx.drawImage(img, 0, 0);
-          clearSelection();
-        };
-        img.src = e.target!.result as string;
+        const base64 = e.target!.result as string;
+        // Call the mapped function
+        if (this.loadFromBase64) {
+          this.loadFromBase64(base64);
+        }
       };
       reader.readAsDataURL(file);
-    }
+    };
 
     // URL Loading Logic
     btnLoadUrl.addEventListener("click", () => {
@@ -780,6 +800,15 @@ export class IXtractor extends ForgeTool {
 
     btnCancelCrop.addEventListener("click", clearSelection);
     btnClearSelection.addEventListener("click", clearSelection);
+
+    btnSendPixler.addEventListener("click", () => {
+      if (currentRect && this._options.events) {
+        const base64 = cropPreviewCanvas.toDataURL("image/png");
+        this._options.events.dispatchEvent(ToolEvents.Pixler.LOAD_BASE64, { base64 });
+      } else if (!this._options.events) {
+        alert("EventBus not found on ToolOptions");
+      }
+    });
 
     // 3. Mock Chat Logic
     const chatInput = this._container.querySelector<HTMLInputElement>("#chat-input")!;

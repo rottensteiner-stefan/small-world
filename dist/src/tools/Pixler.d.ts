@@ -53,6 +53,7 @@ export declare class Pixler extends ForgeTool {
     getBase64(): string;
     loadFromBase64(base64: string): Promise<void>;
     setPalette(colors: string[]): void;
-    getState(): string;
+    onPasteImage(base64: string): void;
+    getState(): unknown;
     setState(state: unknown): void;
 }
