@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.49.0] - 2026-07-09
+
+- **Refactor (Engine Generalization):**
+  - Abstracted the core logic of the DOOM clone showcase (YAD) into a reusable `GridLevelBuilder` extension, genericizing ASCII-based level map generation.
+  - Extracted the FPS-style logic out of `YadController` and introduced a dedicated `FirstPersonController` inside the engine core (`src/core/behaviors`), promoting reuse for custom FPS or adventure games.
+  - Implemented a unified `EventBus` (`EventDispatcherImpl`) injected globally into `SmallWorld` instances as `this.events`. Removed direct `window.addEventListener` and DOM-coupled custom events, fully separating the UI, gameloop, and game behaviors.
+- **Feature (Loot System):**
+  - Added pickups for armor, health, and weapons in the YAD showcase with corresponding HUD logic and UI flashes.
+- **Feature (Tools):**
+  - Minor type and ESLint cleanups in tools (`IXtractor`, `Pixler`).
+
+
 ## [0.48.0] - 2026-07-08
 
 - **Refactor (Project Structure):**
