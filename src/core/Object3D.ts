@@ -1,11 +1,7 @@
 /// src/core/Object3D.ts
 import { AbstractMaterial } from "./materials/index.js";
-import { BoundingVolume } from "../interfaces/index.js";
-import { GeometryDataInterface } from "../interfaces/index.js";
-import { MathUtils } from "../math/index.js";
-import { Matrix4 } from "../math/index.js";
-import { Quaternion } from "../math/index.js";
-import { Vector3D } from "../math/index.js";
+import { BoundingVolume, GeometryDataInterface } from "../interfaces/index.js";
+import { MathUtils, Matrix4, Quaternion, Vector3D } from "../math/index.js";
 import { Behavior } from "./behaviors/index.js";
 
 /**

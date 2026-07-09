@@ -1,9 +1,11 @@
 /// src/renderers/post/PostProcessingGroup.ts
 import { PostProcessingElement } from "./PostProcessingElement.js";
-import { ToneMappingElement } from "./elements/index.js";
-import { VignetteElement } from "./elements/index.js";
-import { GrainElement } from "./elements/index.js";
-import { BloomElement } from "./elements/index.js";
+import {
+  ToneMappingElement,
+  VignetteElement,
+  GrainElement,
+  BloomElement,
+} from "./elements/index.js";
 import { PostProcessingEffectType } from "../../enums/index.js";
 
 /**

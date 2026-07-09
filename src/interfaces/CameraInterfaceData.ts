@@ -3,10 +3,8 @@ import { CameraStrategy } from "./CameraStrategy.js";
 import { CameraConstraints } from "./CameraConstraints.js";
 import { CameraEffect } from "./CameraEffect.js";
 import { AbstractProjection } from "../math/projections/index.js";
-import { Matrix4 } from "../math/index.js";
-import { CameraEffectType } from "../enums/index.js";
-import { CameraStrategyType } from "../enums/index.js";
-import { Vector3D } from "../math/index.js";
+import { Matrix4, Vector3D } from "../math/index.js";
+import { CameraEffectType, CameraStrategyType } from "../enums/index.js";
 import { Behavior } from "../core/behaviors/index.js";
 
 /**

@@ -1,11 +1,11 @@
 /// src/core/cameras/strategies/HybridSyncStrategy.ts
-import { CameraInterfaceData } from "../../../interfaces/index.js";
+import {
+  CameraInterfaceData,
+  CameraConstraints,
+  CameraStrategy,
+} from "../../../interfaces/index.js";
 import { CameraStrategyType } from "../../../enums/index.js";
-import { CameraConstraints } from "../../../interfaces/index.js";
-import { CameraStrategy } from "../../../interfaces/index.js";
-import { Vector3D } from "../../../math/index.js";
-import { MathUtils } from "../../../math/index.js";
-
+import { Vector3D, MathUtils } from "../../../math/index.js";
 /**
  * A hybrid camera strategy that synchronizes manual position changes
  * with orbital spherical coordinates.

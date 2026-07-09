@@ -1,11 +1,8 @@
 /// src/apps/yad/EnemyBehavior.ts
 import { Behavior } from "../../core/behaviors/index.js";
-import { Object3D } from "../../core/index.js";
+import { Object3D, Scene } from "../../core/index.js";
 import { CameraInterfaceData } from "../../interfaces/index.js";
-import { Scene } from "../../core/index.js";
-import { BoundingSphere } from "../../physix/index.js";
-import { Collision } from "../../physix/index.js";
-import { BoundingBox } from "../../physix/index.js";
+import { BoundingSphere, Collision, BoundingBox } from "../../physix/index.js";
 import { MathPool } from "../../math/index.js";
 
 export interface EnemyBehaviorOptions {

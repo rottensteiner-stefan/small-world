@@ -1,8 +1,7 @@
 /// src/core/renderers/shaders/UniformPacker.ts
 import { ShaderLayout } from "./ShaderDefinition.js";
 import { ShaderPropertyType } from "../../../enums/index.js";
-import { Vector3D } from "../../../math/index.js";
-import { Matrix4 } from "../../../math/index.js";
+import { Vector3D, Matrix4 } from "../../../math/index.js";
 import { Color } from "../../colors/index.js";
 
 /**

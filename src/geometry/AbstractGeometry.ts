@@ -1,12 +1,8 @@
 /// src/geometry/AbstractGeometry.ts
-import { Matrix4 } from "../math/index.js";
-import { Vector3D } from "../math/index.js";
+import { Matrix4, Vector3D } from "../math/index.js";
 import { BoundingBox } from "../physix/index.js";
-import { GeometryDataInterface } from "../interfaces/index.js";
-import { Geometry } from "../interfaces/index.js";
-import { BoundingVolume } from "../interfaces/index.js";
+import { GeometryDataInterface, Geometry, BoundingVolume } from "../interfaces/index.js";
 import { Topology } from "../enums/index.js";
-
 /**
  * Base class for all geometry types.
  * Manages vertex, index, normal, and UV data.

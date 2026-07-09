@@ -1,10 +1,8 @@
 /// src/core/showcase/AbstractShowcase.ts
-import { SmallWorld } from "../index.js";
-import { Input } from "../index.js";
+import { SmallWorld, Input } from "../index.js";
 import { EngineOptions } from "../../interfaces/index.js";
 import { Keys } from "../../enums/index.js";
 import { AssetManager } from "../../loaders/index.js";
-
 export abstract class AbstractShowcase extends SmallWorld {
   /**
    * The constructor is passed to Application.

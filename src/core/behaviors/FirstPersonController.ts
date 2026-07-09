@@ -1,13 +1,9 @@
 /// src/core/behaviors/FirstPersonController.ts
 import { Behavior } from "./Behavior.js";
 import { CameraInterfaceData, Events } from "../../interfaces/index.js";
-import { Object3D } from "../index.js";
-import { Input } from "../index.js";
+import { Object3D, Input, Scene } from "../index.js";
 import { Keys } from "../../enums/index.js";
-import { Scene } from "../index.js";
-import { BoundingBox } from "../../physix/index.js";
-import { BoundingSphere } from "../../physix/index.js";
-import { Collision } from "../../physix/index.js";
+import { BoundingBox, BoundingSphere, Collision } from "../../physix/index.js";
 import { MathPool } from "../../math/index.js";
 
 /**

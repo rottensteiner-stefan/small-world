@@ -1,9 +1,7 @@
 /// src/core/controllers/WASDController.ts
 import { Behavior } from "../behaviors/index.js";
-import { Object3D } from "../index.js";
-import { Input } from "../index.js";
-import { InputMode } from "../../enums/index.js";
-import { Keys } from "../../enums/index.js";
+import { Object3D, Input } from "../index.js";
+import { InputMode, Keys } from "../../enums/index.js";
 import { MathPool } from "../../math/index.js";
 
 /**

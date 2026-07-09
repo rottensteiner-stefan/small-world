@@ -1,8 +1,7 @@
 /// src/loaders/MtlLoader.ts
 import { AbstractLoader } from "./AbstractLoader.js";
 import { AssetManager } from "./AssetManager.js";
-import { EventType } from "../enums/index.js";
-import { TextureFilter } from "../enums/index.js";
+import { EventType, TextureFilter } from "../enums/index.js";
 import { PhongMaterial } from "../core/materials/index.js";
 import { Texture } from "../core/textures/index.js";
 import { LoaderOptions } from "../interfaces/index.js";

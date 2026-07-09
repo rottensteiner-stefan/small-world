@@ -1,9 +1,7 @@
 /// src/interfaces/LightData.ts
 import { Color } from "../core/colors/index.js";
 import { Vector3D } from "../math/index.js";
-import { PointLight } from "../core/lights/index.js";
-import { SpotLight } from "../core/lights/index.js";
-import { AreaLight } from "../core/lights/index.js";
+import { PointLight, SpotLight, AreaLight } from "../core/lights/index.js";
 
 /**
  * Interface representing the data for all lights in a scene.

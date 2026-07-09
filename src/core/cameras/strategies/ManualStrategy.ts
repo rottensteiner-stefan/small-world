@@ -1,10 +1,11 @@
 /// src/core/cameras/strategies/ManualStrategy.ts
-import { CameraInterfaceData } from "../../../interfaces/index.js";
+import {
+  CameraInterfaceData,
+  CameraConstraints,
+  CameraStrategy,
+} from "../../../interfaces/index.js";
 import { CameraStrategyType } from "../../../enums/index.js";
-import { CameraConstraints } from "../../../interfaces/index.js";
-import { CameraStrategy } from "../../../interfaces/index.js";
 import { Vector3D } from "../../../math/index.js";
-
 /**
  * A camera strategy where the developer has full manual control.
  * The engine performs no automatic position or target updates.

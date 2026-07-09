@@ -2,8 +2,7 @@
 import { Object3D } from "./Object3D.js";
 import { Scene } from "./Scene.js";
 import { OctreeNode } from "./Octree.js";
-import { Frustum } from "../math/index.js";
-import { Matrix4 } from "../math/index.js";
+import { Frustum, Matrix4 } from "../math/index.js";
 
 /**
  * Handles frustum culling for objects in a scene.

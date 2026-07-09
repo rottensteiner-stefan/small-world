@@ -3,13 +3,14 @@ import fragGLSL from "./shaders/Terrain.frag.glsl?raw";
 import fragGLSL100 from "./shaders/Terrain.frag.glsl100?raw";
 import fragWGSL from "./shaders/Terrain.frag.wgsl?raw";
 import { AbstractMaterial } from "./AbstractMaterial.js";
-import { MaterialType } from "../../enums/index.js";
-import { ShaderPropertyType } from "../../enums/index.js";
+import { MaterialType, ShaderPropertyType } from "../../enums/index.js";
 import { Texture } from "../textures/index.js";
 import { Color } from "../colors/index.js";
-import { RenderManifest } from "../renderers/shaders/index.js";
-import { ShaderDefinition } from "../renderers/shaders/index.js";
-import { StandardWebGPULayout } from "../renderers/shaders/index.js";
+import {
+  RenderManifest,
+  ShaderDefinition,
+  StandardWebGPULayout,
+} from "../renderers/shaders/index.js";
 
 /**
  * Configuration options for terrain material.

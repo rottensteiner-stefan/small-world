@@ -1,7 +1,6 @@
 /// src/renderers/post/elements/ToneMappingElement.ts
 import { PostProcessingElement } from "../PostProcessingElement.js";
-import { ToneMappingMode } from "../../../enums/index.js";
-import { PostProcessingEffectType } from "../../../enums/index.js";
+import { ToneMappingMode, PostProcessingEffectType } from "../../../enums/index.js";
 
 /**
  * Tone Mapping and Gamma Correction parameters.

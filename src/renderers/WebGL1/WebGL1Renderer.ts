@@ -2,22 +2,22 @@
 import { AbstractWebGLRenderer } from "../AbstractWebGLRenderer.js";
 import { PostProcessPassGL } from "../post/passes/index.js";
 import { Color } from "../../core/colors/index.js";
-import { CubeTexture } from "../../core/textures/index.js";
+import { CubeTexture, Texture, RenderTarget } from "../../core/textures/index.js";
 import { ShaderRegistry } from "../../core/renderers/shaders/index.js";
-import { Texture } from "../../core/textures/index.js";
-import { DeviceCaps, DeviceLimit } from "../../core/index.js";
-import { RenderTarget } from "../../core/textures/index.js";
-import { EngineOptions } from "../../interfaces/index.js";
-import { GeometryDataInterface } from "../../interfaces/index.js";
-import { LightDataInterface } from "../../interfaces/index.js";
-import { MaterialType } from "../../enums/index.js";
-import { RendererType } from "../../enums/index.js";
-import { TextureFilter } from "../../enums/index.js";
-import { CullMode } from "../../enums/index.js";
-import { BlendingMode } from "../../enums/index.js";
+import { DeviceCaps, DeviceLimit, Object3D, Scene } from "../../core/index.js";
+import {
+  EngineOptions,
+  GeometryDataInterface,
+  LightDataInterface,
+} from "../../interfaces/index.js";
+import {
+  MaterialType,
+  RendererType,
+  TextureFilter,
+  CullMode,
+  BlendingMode,
+} from "../../enums/index.js";
 import { Mesh } from "../Mesh.js";
-import { Object3D } from "../../core/index.js";
-import { Scene } from "../../core/index.js";
 import { Vector3D } from "../../math/index.js";
 
 interface ProgramCache {

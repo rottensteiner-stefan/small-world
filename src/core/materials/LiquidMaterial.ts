@@ -7,12 +7,13 @@ import vertWGSL from "./shaders/Liquid.vert.wgsl?raw";
 import fragWGSL from "./shaders/Liquid.frag.wgsl?raw";
 import { AbstractMaterial } from "./AbstractMaterial.js";
 import { Color } from "../colors/index.js";
-import { MaterialType } from "../../enums/index.js";
-import { ShaderPropertyType } from "../../enums/index.js";
+import { MaterialType, ShaderPropertyType } from "../../enums/index.js";
 import { Texture } from "../textures/index.js";
-import { RenderManifest } from "../renderers/shaders/index.js";
-import { ShaderDefinition } from "../renderers/shaders/index.js";
-import { StandardWebGPULayout } from "../renderers/shaders/index.js";
+import {
+  RenderManifest,
+  ShaderDefinition,
+  StandardWebGPULayout,
+} from "../renderers/shaders/index.js";
 
 /**
  * Configuration options for LiquidMaterial.

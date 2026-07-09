@@ -1,13 +1,10 @@
 /// src/apps/yad/YadController.ts
-import { FirstPersonController, FirstPersonControllerOptions } from "../../core/index.js";
+import { FirstPersonController, FirstPersonControllerOptions, Input } from "../../core/index.js";
 import { CameraInterfaceData } from "../../interfaces/index.js";
-import { Input } from "../../core/index.js";
-import { Keys } from "../../enums/index.js";
-import { AppEvents } from "../../enums/index.js";
+import { Keys, AppEvents } from "../../enums/index.js";
 import { Raycaster } from "../../physix/index.js";
 import { Vector2D } from "../../math/index.js";
 import { AudioSystem } from "../../audio/index.js";
-
 /**
  * A retro style controller for forward/backward movement and left/right rotation.
  * It extends FirstPersonController and adds shooting, weapon selection, and damage logic.
