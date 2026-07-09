@@ -12,7 +12,8 @@ export declare class ForgeWindow {
     get tool(): ForgeTool | null;
     getElement(): HTMLDivElement;
     get isVisible(): boolean;
-    toggleVisibility(): void;
+    toggleVisibility(forceState?: boolean): void;
+    restoreState(): void;
     bringToFront(): void;
     setOnClose(cb: () => void): void;
     close(): void;

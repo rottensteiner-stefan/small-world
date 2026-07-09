@@ -20,10 +20,10 @@ export const FORGE_THEME_CSS = `
     --tp-button-background-color-focus: var(--swf-panel-hover);
     --tp-button-background-color-hover: var(--swf-panel-hover);
     --tp-button-foreground-color: var(--swf-text);
-    --tp-container-background-color: transparent;
-    --tp-container-background-color-active: rgba(0, 0, 0, 0.2);
-    --tp-container-background-color-focus: rgba(0, 0, 0, 0.2);
-    --tp-container-background-color-hover: rgba(0, 0, 0, 0.2);
+    --tp-container-background-color: rgba(0, 0, 0, 0.2);
+    --tp-container-background-color-active: rgba(0, 0, 0, 0.4);
+    --tp-container-background-color-focus: rgba(0, 0, 0, 0.3);
+    --tp-container-background-color-hover: rgba(0, 0, 0, 0.3);
     --tp-container-foreground-color: var(--swf-text);
     --tp-groove-foreground-color: rgba(0, 0, 0, 0.2);
     --tp-input-background-color: rgba(0, 0, 0, 0.3);
@@ -34,10 +34,10 @@ export const FORGE_THEME_CSS = `
     --tp-label-foreground-color: var(--swf-text-muted);
     --tp-monitor-background-color: rgba(0, 0, 0, 0.3);
     --tp-monitor-foreground-color: var(--swf-accent);
-    --tp-folder-background-color: transparent;
-    --tp-folder-background-color-active: transparent;
-    --tp-folder-background-color-focus: transparent;
-    --tp-folder-background-color-hover: transparent;
+    --tp-folder-background-color: rgba(15, 23, 42, 0.4);
+    --tp-folder-background-color-active: rgba(15, 23, 42, 0.8);
+    --tp-folder-background-color-focus: rgba(15, 23, 42, 0.6);
+    --tp-folder-background-color-hover: rgba(15, 23, 42, 0.6);
   }
 
   /* Forge Global Container */
@@ -90,7 +90,7 @@ export const FORGE_THEME_CSS = `
     color: var(--swf-accent);
     box-shadow: 0 0 10px rgba(0, 229, 255, 0.3);
   }
-  .swf-taskbar-btn.hidden {
+  .swf-taskbar-btn.inactive {
     opacity: 0.5;
     background: transparent;
     border-color: var(--swf-text-muted);
@@ -129,6 +129,8 @@ export const FORGE_THEME_CSS = `
     cursor: move;
     user-select: none;
     flex-shrink: 0;
+    position: relative;
+    z-index: 100;
   }
   .swf-window-title {
     font-weight: 600;
@@ -160,15 +162,27 @@ export const FORGE_THEME_CSS = `
 
   .swf-window-resize-handle {
     position: absolute;
-    bottom: 0;
-    right: 0;
-    width: 16px;
-    height: 16px;
-    cursor: se-resize;
-    background: repeating-linear-gradient(-45deg, transparent, transparent 2px, rgba(255, 255, 255, 0.3) 2px, rgba(255, 255, 255, 0.3) 4px);
-    z-index: 10;
+    width: 10px;
+    height: 10px;
+    background: transparent;
+    z-index: 100;
   }
-
+  .swf-resize-nw {
+    top: 0; left: 0;
+    cursor: nw-resize;
+  }
+  .swf-resize-ne {
+    top: 0; right: 0;
+    cursor: ne-resize;
+  }
+  .swf-resize-sw {
+    bottom: 0; left: 0;
+    cursor: sw-resize;
+  }
+  .swf-resize-se {
+    bottom: 0; right: 0;
+    cursor: se-resize;
+  }
   /* Buttons */
   .swf-btn {
     background: var(--swf-panel);

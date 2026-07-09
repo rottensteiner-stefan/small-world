@@ -8,11 +8,13 @@ declare global {
 export declare class MaterialStudio extends ForgeTool {
     private _app;
     private _canvas;
+    private _onBase64Image;
     constructor(options?: ForgeToolOptions);
     private _injectCSS;
     private _buildUI;
     private _bindLogic;
     mount(container: HTMLElement): void;
+    onPasteImage(base64: string): void;
     unmount(): void;
     resize(width: number, height: number): void;
 }

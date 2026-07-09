@@ -838,8 +838,9 @@ export class IXtractor extends ForgeTool {
 
     document.addEventListener("mousemove", (e) => {
       if (!isSplitting) return;
-      const newWidth = window.innerWidth - e.clientX;
-      if (newWidth > 250 && newWidth < window.innerWidth - 300) {
+      const containerRect = this._container.getBoundingClientRect();
+      const newWidth = containerRect.right - e.clientX;
+      if (newWidth > 250 && newWidth < containerRect.width - 300) {
         sidebar.style.width = newWidth + "px";
       }
     });

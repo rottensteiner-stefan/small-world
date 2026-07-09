@@ -29,6 +29,8 @@ export interface GridLegendEntry {
   isDynamic?: boolean;
   /** Custom builder callback for total control */
   onBuild?: (x: number, y: number, worldX: number, worldZ: number, scene: Scene) => Object3D | void;
+  /** If true, the floor and ceiling won't be generated for this tile */
+  preventFloorCeiling?: boolean;
 }
 
 export type GridLegend = Record<string, GridLegendEntry>;
@@ -112,7 +114,7 @@ export class GridLevelBuilder {
           if (obj) {
             scene.add(obj);
           }
-          continue;
+          if (entry.preventFloorCeiling) continue;
         }
 
         // 1. Build Walls / Blocks
