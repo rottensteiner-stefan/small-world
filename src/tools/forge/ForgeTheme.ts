@@ -11,6 +11,33 @@ export const FORGE_THEME_CSS = `
     --swf-text-muted: #94a3b8;
     --swf-font: "Rajdhani", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
     --swf-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+
+    /* Tweakpane Integration */
+    --tp-base-background-color: transparent;
+    --tp-base-shadow-color: transparent;
+    --tp-button-background-color: var(--swf-panel);
+    --tp-button-background-color-active: var(--swf-accent);
+    --tp-button-background-color-focus: var(--swf-panel-hover);
+    --tp-button-background-color-hover: var(--swf-panel-hover);
+    --tp-button-foreground-color: var(--swf-text);
+    --tp-container-background-color: transparent;
+    --tp-container-background-color-active: rgba(0, 0, 0, 0.2);
+    --tp-container-background-color-focus: rgba(0, 0, 0, 0.2);
+    --tp-container-background-color-hover: rgba(0, 0, 0, 0.2);
+    --tp-container-foreground-color: var(--swf-text);
+    --tp-groove-foreground-color: rgba(0, 0, 0, 0.2);
+    --tp-input-background-color: rgba(0, 0, 0, 0.3);
+    --tp-input-background-color-active: rgba(0, 0, 0, 0.5);
+    --tp-input-background-color-focus: rgba(0, 0, 0, 0.5);
+    --tp-input-background-color-hover: rgba(0, 0, 0, 0.5);
+    --tp-input-foreground-color: var(--swf-accent);
+    --tp-label-foreground-color: var(--swf-text-muted);
+    --tp-monitor-background-color: rgba(0, 0, 0, 0.3);
+    --tp-monitor-foreground-color: var(--swf-accent);
+    --tp-folder-background-color: transparent;
+    --tp-folder-background-color-active: transparent;
+    --tp-folder-background-color-focus: transparent;
+    --tp-folder-background-color-hover: transparent;
   }
 
   /* Forge Global Container */
@@ -39,6 +66,36 @@ export const FORGE_THEME_CSS = `
     pointer-events: auto;
     z-index: 99999;
     backdrop-filter: blur(10px);
+  }
+
+  /* Taskbar Buttons */
+  .swf-taskbar-btn {
+    background: var(--swf-panel);
+    border: 1px solid var(--swf-border);
+    color: var(--swf-text);
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .swf-taskbar-btn:hover {
+    background: var(--swf-panel-hover);
+    border-color: var(--swf-accent);
+    color: var(--swf-accent);
+    box-shadow: 0 0 10px rgba(0, 229, 255, 0.3);
+  }
+  .swf-taskbar-btn.hidden {
+    opacity: 0.5;
+    background: transparent;
+    border-color: var(--swf-text-muted);
+    color: var(--swf-text-muted);
+    box-shadow: none;
   }
 
   /* Forge Window */
