@@ -20,10 +20,11 @@ export class ForgeWindow {
     header.className = "swf-window-header";
 
     const titleEl = document.createElement("span");
+    titleEl.className = "swf-window-title";
     titleEl.textContent = title;
 
-    const closeBtn = document.createElement("span");
-    closeBtn.className = "swf-close-btn";
+    const closeBtn = document.createElement("button");
+    closeBtn.className = "swf-window-close";
     closeBtn.textContent = "✖";
     closeBtn.addEventListener("mousedown", (e) => {
       e.stopPropagation();

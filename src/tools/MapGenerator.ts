@@ -85,14 +85,14 @@ export class MapGenerator extends ForgeTool {
         flex-direction: row;
         width: 100%;
         height: 100%;
-        background: #0f172a;
-        color: #e2e8f0;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: var(--swf-bg);
+        color: var(--swf-text);
+        font-family: var(--swf-font);
       }
       .mapgen-toolbar {
         width: 280px;
-        background: #1e293b;
-        border-right: 1px solid #334155;
+        background: var(--swf-panel);
+        border-right: 1px solid var(--swf-border);
         display: flex;
         flex-direction: column;
         padding: 1rem;
@@ -105,10 +105,10 @@ export class MapGenerator extends ForgeTool {
         display: flex;
         justify-content: center;
         align-items: center;
-        background: repeating-conic-gradient(#1e293b 0% 25%, #0f172a 0% 50%) 50% / 20px 20px;
+        background: repeating-conic-gradient(rgba(30, 41, 59, 0.5) 0% 25%, rgba(15, 23, 42, 0.5) 0% 50%) 50% / 20px 20px;
       }
       .mapgen-canvas {
-        box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        box-shadow: var(--swf-shadow);
         cursor: crosshair;
         background: #1a1a1a;
       }
@@ -118,9 +118,9 @@ export class MapGenerator extends ForgeTool {
         gap: 5px;
       }
       .mapgen-palette-btn {
-        background: #0f172a;
-        color: white;
-        border: 1px solid #334155;
+        background: rgba(0,0,0,0.3);
+        color: var(--swf-text);
+        border: 1px solid var(--swf-border);
         padding: 8px 4px;
         cursor: pointer;
         text-align: center;
@@ -133,29 +133,18 @@ export class MapGenerator extends ForgeTool {
         gap: 2px;
       }
       .mapgen-palette-btn:hover {
-        background: #475569;
+        background: var(--swf-panel-hover);
       }
       .mapgen-palette-btn.active {
-        border-color: #00e5ff;
+        border-color: var(--swf-accent);
         background: rgba(0, 229, 255, 0.2);
       }
-      .mapgen-btn {
-        background: #38bdf8;
-        color: #0f172a;
-        border: none;
-        padding: 0.5rem;
-        font-weight: bold;
-        border-radius: 4px;
-        cursor: pointer;
-        transition: background 0.2s;
-      }
-      .mapgen-btn:hover { background: #7dd3fc; }
       .mapgen-textarea {
         width: 100%;
         height: 120px;
-        background: #0f172a;
-        color: #00e5ff;
-        border: 1px solid #475569;
+        background: rgba(0,0,0,0.3);
+        color: var(--swf-accent);
+        border: 1px solid var(--swf-border);
         padding: 8px;
         font-size: 10px;
         font-family: monospace;
@@ -169,11 +158,6 @@ export class MapGenerator extends ForgeTool {
       }
       .mapgen-inputs input {
         width: 50px;
-        background: #0f172a;
-        color: white;
-        border: 1px solid #475569;
-        border-radius: 4px;
-        padding: 4px;
       }
       .mapgen-btn-play {
         background: #10b981;
@@ -185,7 +169,7 @@ export class MapGenerator extends ForgeTool {
         padding: 0.75rem;
       }
       .mapgen-btn-play:hover { background: #34d399; }
-      .mapgen-header { margin:0; font-size:1.1em; color:#94a3b8; border-bottom:1px solid #334155; padding-bottom:5px;}
+      .mapgen-header { margin:0; font-size:1.1em; color:var(--swf-text-muted); border-bottom:1px solid var(--swf-border); padding-bottom:5px;}
     `;
     document.head.appendChild(style);
   }
@@ -196,23 +180,23 @@ export class MapGenerator extends ForgeTool {
         <div class="mapgen-toolbar">
           <h3 class="mapgen-header">Grid Size</h3>
           <div class="mapgen-inputs">
-            W: <input type="number" id="mapgen-w" value="${this._gridWidth}">
-            H: <input type="number" id="mapgen-h" value="${this._gridHeight}">
-            <button class="mapgen-btn" id="mapgen-btn-resize" style="padding:4px 8px;">Resize</button>
+            W: <input type="number" id="mapgen-w" class="swf-input" value="${this._gridWidth}">
+            H: <input type="number" id="mapgen-h" class="swf-input" value="${this._gridHeight}">
+            <button class="swf-btn" id="mapgen-btn-resize" style="padding:4px 8px;">Resize</button>
           </div>
 
           <h3 class="mapgen-header" style="margin-top:10px;">Palette</h3>
           <div class="mapgen-palette" id="mapgen-palette"></div>
           
-          <button class="mapgen-btn" id="mapgen-btn-fill">Bucket Fill (Empty)</button>
-          <button class="mapgen-btn" id="mapgen-btn-clear" style="background:#ef4444; color:white;">Clear Map</button>
+          <button class="swf-btn" id="mapgen-btn-fill">Bucket Fill (Empty)</button>
+          <button class="swf-btn" id="mapgen-btn-clear" style="background:#ef4444; color:white; border-color:#b91c1c;">Clear Map</button>
 
           <h3 class="mapgen-header" style="margin-top:10px;">Data</h3>
-          <button class="mapgen-btn" id="mapgen-btn-export">Export String \u2193</button>
+          <button class="swf-btn secondary" id="mapgen-btn-export">Export String \u2193</button>
           <textarea class="mapgen-textarea" id="mapgen-textarea" placeholder="Map data here..."></textarea>
-          <button class="mapgen-btn" id="mapgen-btn-import">Import String \u2191</button>
+          <button class="swf-btn secondary" id="mapgen-btn-import">Import String \u2191</button>
           
-          <button class="mapgen-btn mapgen-btn-play" id="mapgen-btn-play">\u25B6 Play in YAD</button>
+          <button class="swf-btn mapgen-btn-play" id="mapgen-btn-play" style="border-color:#059669;">\u25B6 Play in YAD</button>
         </div>
         <div class="mapgen-canvas-wrapper">
           <canvas class="mapgen-canvas" id="mapgen-canvas"></canvas>
