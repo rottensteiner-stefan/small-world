@@ -1,6 +1,5 @@
-import { CubeTexture, Texture, RenderTarget, RenderTargetCube } from '../../core/textures/index.js';
-import { RenderManifest } from '../../core/renderers/shaders/index.js';
-import { InstancedMesh, Object3D, Scene } from '../../core/index.js';
+import { CubeTexture, RenderManifest, Texture, InstancedMesh, Object3D, Scene } from '../../core/index.js';
+import { RenderTarget, RenderTargetCube } from '../../core/textures/index.js';
 import { EngineOptions, GeometryDataInterface } from '../../interfaces/index.js';
 import { Vector3D } from '../../math/index.js';
 import { RendererType } from '../../enums/index.js';
