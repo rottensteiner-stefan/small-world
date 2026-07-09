@@ -1,13 +1,10 @@
 /// src/utils/CollisionVisualizer.ts
 import { Color } from "../core/colors/index.js";
-import { Object3D } from "../core/index.js";
-import { Scene } from "../core/index.js";
+import { Object3D, Scene } from "../core/index.js";
 import { WireframeMaterial } from "../core/materials/index.js";
-import { Cube } from "../geometry/index.js";
-import { Sphere } from "../geometry/index.js";
+import { Cube, Sphere } from "../geometry/index.js";
 import { BoundingType } from "../enums/index.js";
-import { BoundingBox } from "../physix/index.js";
-import { BoundingSphere } from "../physix/index.js";
+import { BoundingBox, BoundingSphere } from "../physix/index.js";
 
 /**
  * Utility to visualize collision boundaries (AABBs and Spheres) in the scene.

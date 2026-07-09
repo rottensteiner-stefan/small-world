@@ -4,14 +4,13 @@ import fragGLSL100 from "./shaders/Sprite.frag.glsl100?raw";
 import fragWGSL from "./shaders/Sprite.frag.wgsl?raw";
 import { AbstractMaterial } from "./AbstractMaterial.js";
 import { Color } from "../colors/index.js";
-import { MaterialType } from "../../enums/index.js";
-import { BlendingMode } from "../../enums/index.js";
-import { ShaderPropertyType } from "../../enums/index.js";
-import { CullMode } from "../../enums/index.js";
+import { MaterialType, BlendingMode, ShaderPropertyType, CullMode } from "../../enums/index.js";
 import { Texture } from "../textures/index.js";
-import { RenderManifest } from "../renderers/shaders/index.js";
-import { ShaderDefinition } from "../renderers/shaders/index.js";
-import { StandardWebGPULayout } from "../renderers/shaders/index.js";
+import {
+  RenderManifest,
+  ShaderDefinition,
+  StandardWebGPULayout,
+} from "../renderers/shaders/index.js";
 
 /**
  * Material for rendering 2D sprites.

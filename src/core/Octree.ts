@@ -1,10 +1,7 @@
 /// src/core/Octree.ts
 import { Object3D } from "./Object3D.js";
-import { BoundingBox } from "../physix/index.js";
-import { Collision } from "../physix/index.js";
-import { Frustum } from "../math/index.js";
-import { MathPool } from "../math/index.js";
-import { Vector3D } from "../math/index.js";
+import { BoundingBox, Collision } from "../physix/index.js";
+import { Frustum, MathPool, Vector3D } from "../math/index.js";
 import { BoundingVolume } from "../interfaces/index.js";
 
 /**

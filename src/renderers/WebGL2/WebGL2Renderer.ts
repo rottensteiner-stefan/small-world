@@ -4,35 +4,30 @@ import { WebGL2DepthFrameBuffer } from "./WebGL2DepthFrameBuffer.js";
 import { WebGL2FrameBuffer } from "./WebGL2FrameBuffer.js";
 import { WebGL2CubeFrameBuffer } from "./WebGL2CubeFrameBuffer.js";
 import { AbstractWebGLRenderer } from "../AbstractWebGLRenderer.js";
-import { PostProcessPassGL } from "../post/passes/index.js";
-import { BloomPassGL } from "../post/passes/index.js";
+import { PostProcessPassGL, BloomPassGL } from "../post/passes/index.js";
 import { AbstractLight } from "../../core/lights/index.js";
-import { CubeTexture } from "../../core/textures/index.js";
-import { ShaderRegistry } from "../../core/renderers/shaders/index.js";
-import { Texture } from "../../core/textures/index.js";
+import { CubeTexture, Texture, RenderTarget, RenderTargetCube } from "../../core/textures/index.js";
+import { ShaderRegistry, RenderManifest } from "../../core/renderers/shaders/index.js";
 import { Color } from "../../core/colors/index.js";
-import { DeviceCaps, DeviceLimit } from "../../core/index.js";
+import { DeviceCaps, DeviceLimit, InstancedMesh, Object3D, Scene } from "../../core/index.js";
 import { DepthMaterial } from "../../core/materials/index.js";
-import { InstancedMesh } from "../../core/index.js";
-import { RenderManifest } from "../../core/renderers/shaders/index.js";
-import { RenderTarget } from "../../core/textures/index.js";
-import { RenderTargetCube } from "../../core/textures/index.js";
-import { EngineOptions } from "../../interfaces/index.js";
-import { GeometryDataInterface } from "../../interfaces/index.js";
-import { LightDataInterface } from "../../interfaces/index.js";
-import { BlendingMode } from "../../enums/index.js";
-import { CullMode } from "../../enums/index.js";
-import { MaterialType } from "../../enums/index.js";
-import { RendererType } from "../../enums/index.js";
-import { TextureFilter } from "../../enums/index.js";
-import { TextureWrap } from "../../enums/index.js";
-import { Topology } from "../../enums/index.js";
-import { PostProcessingEffectType } from "../../enums/index.js";
+import {
+  EngineOptions,
+  GeometryDataInterface,
+  LightDataInterface,
+} from "../../interfaces/index.js";
+import {
+  BlendingMode,
+  CullMode,
+  MaterialType,
+  RendererType,
+  TextureFilter,
+  TextureWrap,
+  Topology,
+  PostProcessingEffectType,
+} from "../../enums/index.js";
 import { Mesh } from "../Mesh.js";
-import { Object3D } from "../../core/index.js";
-import { Scene } from "../../core/index.js";
-import { MathPool } from "../../math/index.js";
-import { Vector3D } from "../../math/index.js";
+import { MathPool, Vector3D } from "../../math/index.js";
 
 interface ProgramCache {
   prog: WebGLProgram;

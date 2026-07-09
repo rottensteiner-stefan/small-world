@@ -2,8 +2,7 @@
 // @ts-nocheck
 
 import { ForgeTool, ForgeToolOptions } from "./forge/ForgeTool.js";
-import { SmallWorld } from "../core/index.js";
-import { Object3D } from "../core/index.js";
+import { SmallWorld, Object3D } from "../core/index.js";
 import { Sphere, Cube, Torus, Plane } from "../geometry/index.js";
 import { StandardMaterial } from "../core/materials/index.js";
 import { Texture } from "../core/textures/index.js";

@@ -1,11 +1,11 @@
 /// src/core/cameras/strategies/FPSStrategy.ts
-import { CameraConstraints } from "../../../interfaces/index.js";
-import { CameraStrategy } from "../../../interfaces/index.js";
-import { CameraInterfaceData } from "../../../interfaces/index.js";
+import {
+  CameraConstraints,
+  CameraStrategy,
+  CameraInterfaceData,
+} from "../../../interfaces/index.js";
 import { CameraStrategyType } from "../../../enums/index.js";
-import { Vector3D } from "../../../math/index.js";
-import { MathUtils } from "../../../math/index.js";
-
+import { Vector3D, MathUtils } from "../../../math/index.js";
 /**
  * A first-person camera strategy.
  */

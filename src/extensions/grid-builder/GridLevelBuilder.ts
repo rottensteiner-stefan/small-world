@@ -1,15 +1,9 @@
 /// src/extensions/grid-builder/GridLevelBuilder.ts
-import { Object3D } from "../../core/index.js";
-import { Scene } from "../../core/index.js";
+import { Object3D, Scene, Sprite } from "../../core/index.js";
 import { Vector3D } from "../../math/index.js";
-import { Cube } from "../../geometry/index.js";
-import { Plane } from "../../geometry/index.js";
-import { StandardMaterial } from "../../core/materials/index.js";
-import { AbstractMaterial } from "../../core/materials/index.js";
+import { Cube, Plane } from "../../geometry/index.js";
+import { StandardMaterial, AbstractMaterial, SpriteMaterial } from "../../core/materials/index.js";
 import { Texture } from "../../core/textures/index.js";
-import { SpriteMaterial } from "../../core/materials/index.js";
-import { Sprite } from "../../core/index.js";
-
 export type GridTileType = "block" | "floor" | "sprite" | "custom";
 
 export interface GridLegendEntry {

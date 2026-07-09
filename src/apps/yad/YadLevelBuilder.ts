@@ -1,22 +1,15 @@
 /// src/apps/yad/YadLevelBuilder.ts
-import { Object3D } from "../../core/index.js";
-import { Scene } from "../../core/index.js";
+import { Object3D, Scene, Sprite } from "../../core/index.js";
 import { Vector3D } from "../../math/index.js";
-import { Cube } from "../../geometry/index.js";
-import { Sphere } from "../../geometry/index.js";
-import { StandardMaterial } from "../../core/materials/index.js";
-import { LavaMaterial } from "../../core/materials/index.js";
-import { SpriteMaterial } from "../../core/materials/index.js";
+import { Cube, Sphere } from "../../geometry/index.js";
+import { StandardMaterial, LavaMaterial, SpriteMaterial } from "../../core/materials/index.js";
 import { PointLight } from "../../core/lights/index.js";
 import { Color } from "../../core/colors/index.js";
 import { Texture } from "../../core/textures/index.js";
-import { Sprite } from "../../core/index.js";
 import { CullMode } from "../../enums/index.js";
 import { CameraInterfaceData } from "../../interfaces/index.js";
-import { ProximitySensorBehavior } from "../../core/behaviors/index.js";
-import { BobbingBehavior } from "../../core/behaviors/index.js";
+import { ProximitySensorBehavior, BobbingBehavior } from "../../core/behaviors/index.js";
 import { GridLevelBuilder, GridLegend } from "../../extensions/grid-builder/GridLevelBuilder.js";
-
 export type YadTileType =
   | "wall"
   | "door"

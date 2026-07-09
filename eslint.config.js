@@ -66,6 +66,9 @@ export default [
 
       // 5) ESM-Imports benötigen .js-Endung (Packages sind ausgenommen)
       "import/extensions": ["error", "ignorePackages"],
+      
+      // Combine multiple imports from the same module
+      "import/no-duplicates": "error",
 
       "no-restricted-syntax": [
         "error",

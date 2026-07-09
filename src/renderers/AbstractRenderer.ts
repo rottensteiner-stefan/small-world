@@ -1,13 +1,17 @@
 /// src/renderers/AbstractRenderer.ts
 import { AbstractLight } from "../core/lights/index.js";
 import { Color } from "../core/colors/index.js";
-import { Renderer } from "../interfaces/index.js";
-import { LightDataInterface } from "../interfaces/index.js";
+import {
+  Renderer,
+  LightDataInterface,
+  EngineOptions,
+  QualityConfig,
+  ToneMapping,
+} from "../interfaces/index.js";
 import { RendererType } from "../enums/index.js";
 import { Object3D } from "../core/Object3D.js";
 import { Scene } from "../core/Scene.js";
 import { Vector3D } from "../math/index.js";
-import { EngineOptions, QualityConfig, ToneMapping } from "../interfaces/index.js";
 import { PostProcessingGroup } from "./post/PostProcessingGroup.js";
 
 /**

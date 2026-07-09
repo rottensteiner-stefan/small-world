@@ -1,8 +1,7 @@
 /// src/core/cameras/CameraEffectFactory.ts
 import { CameraEffectType } from "../../enums/index.js";
 import { CameraEffect } from "../../interfaces/index.js";
-import { ShakeEffect } from "./effects/index.js";
-import { FlashEffect } from "./effects/index.js";
+import { ShakeEffect, FlashEffect } from "./effects/index.js";
 
 /**
  * Factory for creating camera effects.

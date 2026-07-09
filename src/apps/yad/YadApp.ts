@@ -3,21 +3,18 @@ import { YadLevelBuilder } from "./YadLevelBuilder.js";
 import { YadController } from "./YadController.js";
 import { YadHud } from "./YadHud.js";
 import { AbstractShowcase } from "../../core/showcase/index.js";
-import { AmbientLight } from "../../core/lights/index.js";
+import { AmbientLight, DirectionalLight, PointLight } from "../../core/lights/index.js";
 import { CameraStrategyType } from "../../enums/index.js";
 import { Color } from "../../core/colors/index.js";
-import { DirectionalLight } from "../../core/lights/index.js";
-import { MathUtils } from "../../math/index.js";
+import { MathUtils, Vector3D } from "../../math/index.js";
 import { PerspectiveProjection } from "../../math/projections/index.js";
 import { Texture } from "../../core/textures/index.js";
 import { ZoomController } from "../../core/controllers/index.js";
 import { LavaMaterial } from "../../core/materials/index.js";
-import { PointLight } from "../../core/lights/index.js";
 import { AudioSystem } from "../../audio/index.js";
 import { QuantizeElement } from "../../renderers/post/elements/index.js";
 import { TextLoader } from "../../loaders/index.js";
 import { BoundingBox } from "../../physix/index.js";
-import { Vector3D } from "../../math/index.js";
 
 /**
  * YAD (Yet Another Doom)

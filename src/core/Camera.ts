@@ -1,16 +1,14 @@
 /// src/core/Camera.ts
 import { AbstractProjection } from "../math/projections/index.js";
-import { MathPool } from "../math/index.js";
-import { CameraEffectFactory } from "./cameras/index.js";
-import { CameraStrategyFactory } from "./cameras/index.js";
-import { CameraEffectType } from "../enums/index.js";
-import { CameraStrategyType } from "../enums/index.js";
-import { CameraConstraints } from "../interfaces/index.js";
-import { CameraEffect } from "../interfaces/index.js";
-import { CameraInterfaceData } from "../interfaces/index.js";
-import { CameraStrategy } from "../interfaces/index.js";
-import { Matrix4 } from "../math/index.js";
-import { Vector3D } from "../math/index.js";
+import { MathPool, Matrix4, Vector3D } from "../math/index.js";
+import { CameraEffectFactory, CameraStrategyFactory } from "./cameras/index.js";
+import { CameraEffectType, CameraStrategyType } from "../enums/index.js";
+import {
+  CameraConstraints,
+  CameraEffect,
+  CameraInterfaceData,
+  CameraStrategy,
+} from "../interfaces/index.js";
 import { Behavior } from "./behaviors/index.js";
 
 /**

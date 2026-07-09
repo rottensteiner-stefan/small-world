@@ -1,8 +1,6 @@
 /// src/interfaces/BoundingVolume.ts
-import { Matrix4 } from "../math/index.js";
-import { Vector3D } from "../math/index.js";
+import { Matrix4, Vector3D } from "../math/index.js";
 import { BoundingType } from "../enums/index.js";
-
 /**
  * Minimal interface for a Frustum to avoid circular dependencies.
  */

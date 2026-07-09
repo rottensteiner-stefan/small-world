@@ -4,14 +4,13 @@ import fragGLSL100 from "./shaders/Standard.frag.glsl100?raw";
 import fragWGSL from "./shaders/Standard.frag.wgsl?raw";
 import { AbstractMaterial } from "./AbstractMaterial.js";
 import { Color } from "../colors/index.js";
-import { MaterialType } from "../../enums/index.js";
-import { ShaderPropertyType } from "../../enums/index.js";
-import { BlendingMode } from "../../enums/index.js";
-import { Texture } from "../textures/index.js";
-import { CubeTexture } from "../textures/index.js";
-import { RenderManifest } from "../renderers/shaders/index.js";
-import { ShaderDefinition } from "../renderers/shaders/index.js";
-import { StandardWebGPULayout } from "../renderers/shaders/index.js";
+import { MaterialType, ShaderPropertyType, BlendingMode } from "../../enums/index.js";
+import { Texture, CubeTexture } from "../textures/index.js";
+import {
+  RenderManifest,
+  ShaderDefinition,
+  StandardWebGPULayout,
+} from "../renderers/shaders/index.js";
 import { Vector2D } from "../../math/index.js";
 
 /**

@@ -1,21 +1,22 @@
 /// src/tools/GadgetInspector.ts
 import { Pane, FolderApi } from "tweakpane";
 import * as CamerakitPlugin from "@kitschpatrol/tweakpane-plugin-camerakit";
-import { Scene } from "../core/index.js";
-import { CameraInterfaceData } from "../interfaces/index.js";
-import { Object3D } from "../core/index.js";
+import {
+  Scene,
+  Object3D,
+  DeviceCaps,
+  DeviceFeature,
+  DeviceLimit,
+  FrustumCuller,
+} from "../core/index.js";
+import { CameraInterfaceData, Renderer } from "../interfaces/index.js";
 import { Behavior } from "../core/behaviors/index.js";
 import { WireframeMaterial } from "../core/materials/index.js";
 import { Color } from "../core/colors/index.js";
-import { DeviceCaps, DeviceFeature, DeviceLimit } from "../core/index.js";
-import { Raycaster } from "../physix/index.js";
-import { Vector2D } from "../math/index.js";
-import { Vector3D } from "../math/index.js";
-import { BoundingBox } from "../physix/index.js";
+import { Raycaster, BoundingBox } from "../physix/index.js";
+import { Vector2D, Vector3D } from "../math/index.js";
 import { Cube } from "../geometry/index.js";
 import { BoundingType } from "../enums/index.js";
-import { Renderer } from "../interfaces/index.js";
-import { FrustumCuller } from "../core/index.js";
 import { AudioSystem } from "../audio/index.js";
 import { ForgeTool, ForgeToolOptions } from "./forge/ForgeTool.js";
 

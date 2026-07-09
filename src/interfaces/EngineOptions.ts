@@ -1,9 +1,6 @@
 /// src/interfaces/EngineOptions.ts
-import { ProjectionType } from "../enums/index.js";
-import { RendererType } from "../enums/index.js";
-import { InputMode } from "../enums/index.js";
+import { ProjectionType, RendererType, InputMode } from "../enums/index.js";
 import { AbstractProjection } from "../math/projections/index.js";
-
 /**
  * Configuration for a single renderer backend.
  */

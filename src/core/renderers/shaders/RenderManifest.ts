@@ -1,10 +1,6 @@
 /// src/core/renderers/shaders/RenderManifest.ts
-import { Texture } from "../../textures/index.js";
-import { CubeTexture } from "../../textures/index.js";
-import { BlendingMode } from "../../../enums/index.js";
-import { CullMode } from "../../../enums/index.js";
-import { Topology } from "../../../enums/index.js";
-
+import { Texture, CubeTexture } from "../../textures/index.js";
+import { BlendingMode, CullMode, Topology } from "../../../enums/index.js";
 /**
  * The RenderManifest is the "order sheet" that a material
  * passes to the renderer to describe its requirements.

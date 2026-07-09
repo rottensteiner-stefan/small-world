@@ -2,12 +2,9 @@
 import { Object3D } from "./Object3D.js";
 import { Octree } from "./Octree.js";
 import { Fog } from "./Fog.js";
-import { Matrix4 } from "../math/index.js";
-import { Frustum } from "../math/index.js";
-import { Vector3D } from "../math/index.js";
+import { Matrix4, Frustum, Vector3D } from "../math/index.js";
 import { BoundingBox } from "../physix/index.js";
-import { BoundingType } from "../enums/index.js";
-import { Topology } from "../enums/index.js";
+import { BoundingType, Topology } from "../enums/index.js";
 import { DirectionalLight } from "./lights/index.js";
 
 export interface RenderList {

@@ -1,7 +1,6 @@
 /// src/loaders/AbstractLoader.ts
 import { EventDispatcherImpl } from "../core/events/index.js";
-import { Events, EventHandler } from "../interfaces/index.js";
-import { LoaderOptions } from "../interfaces/index.js";
+import { Events, EventHandler, LoaderOptions } from "../interfaces/index.js";
 import { EventType } from "../enums/index.js";
 
 /**

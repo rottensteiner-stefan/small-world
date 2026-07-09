@@ -1,7 +1,5 @@
 /// src/core/textures/Texture.ts
-import { TextureFilter } from "../../enums/index.js";
-import { TextureWrap } from "../../enums/index.js";
-
+import { TextureFilter, TextureWrap } from "../../enums/index.js";
 /**
  * Configuration options for creating a texture.
  */
