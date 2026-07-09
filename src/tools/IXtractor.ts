@@ -28,7 +28,7 @@ export class IXtractor extends ForgeTool {
       overflow: hidden;
       width: 100%;
       height: 100%;
-      background: var(--swf-bg);
+      background: transparent;
       color: var(--swf-text);
     }
     .swf-ix-workbench {

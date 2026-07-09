@@ -15,6 +15,7 @@ Small World Engine provides several built-in Forge tools to accelerate your work
 1. **Pixler:** A retro 2D pixel-art editor to draw sprites directly in-game. Features a color palette, fill bucket, zooming, and a template generator.
 2. **IXtractor:** An image manipulation tool to crop, slice, and generate tile-maps or sprite atlases from existing images or URLs.
 3. **MapGenerator:** A visual grid editor to paint generic maps/levels and export them as `GridLevelBuilder` compatible ASCII strings.
+4. **GadgetInspector:** An advanced scene inspector that uses Tweakpane to let you adjust lighting, audio, fog, post-processing effects, and object properties in real-time.
 
 ## Integrating the Forge into your App
 

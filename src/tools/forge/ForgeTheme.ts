@@ -1,16 +1,16 @@
 export const FORGE_THEME_CSS = `
   :root {
-    --swf-bg: rgba(15, 23, 42, 0.85); /* Dark slate with high opacity for glass effect */
-    --swf-panel: rgba(30, 41, 59, 0.9);
-    --swf-panel-hover: rgba(51, 65, 85, 0.95);
-    --swf-border: rgba(0, 229, 255, 0.2);
-    --swf-border-focus: rgba(0, 229, 255, 0.6);
+    --swf-bg: rgba(15, 23, 42, 0.65); /* More transparent for better glass effect */
+    --swf-panel: rgba(30, 41, 59, 0.5);
+    --swf-panel-hover: rgba(51, 65, 85, 0.65);
+    --swf-border: rgba(0, 229, 255, 0.3);
+    --swf-border-focus: rgba(0, 229, 255, 0.8);
     --swf-accent: #00e5ff;
     --swf-accent-alt: #ff00ff;
     --swf-text: #e2e8f0;
     --swf-text-muted: #94a3b8;
     --swf-font: "Rajdhani", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-    --swf-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+    --swf-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
   }
 
   /* Forge Global Container */

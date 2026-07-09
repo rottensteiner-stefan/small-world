@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.50.0] - 2026-07-09
+
+- **Refactor (Forge & Glassmorphism Theme):**
+  - Consolidated and extracted inline CSS styles from all Forge tools (`IXtractor`, `MapGenerator`, `Pixler`, `GadgetInspector`) into a central `ForgeTheme.ts`.
+  - Upgraded the `Forge` window manager with a modern, high-fidelity **Glassmorphism** aesthetic using dynamic blur (`backdrop-filter`), neon borders, and drop shadows.
+  - Eliminated global CSS bleeding by scoping all tool elements to specific namespaces (`.swf-ix-*`, `.swf-btn`, etc.).
+- **Documentation (Guides & Reference):**
+  - Expanded `custom-game.md` to reference the **YAD (Yet Another Dungeon)** showcase as the canonical example for custom controllers, finite state machines, and decoupled UI integration.
+  - Updated `eventbus.md` to formally document and encourage the use of strongly-typed `as const` object registries (`AppEvents`, `ToolEvents`) over magic strings.
+  - Added the powerful `GadgetInspector` to the list of official tools in `forge.md`.
+
 ## [0.49.0] - 2026-07-09
 
 - **Refactor (Engine Generalization):**
