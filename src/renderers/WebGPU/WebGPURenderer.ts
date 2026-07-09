@@ -1,30 +1,33 @@
 /// src/renderers/WebGPU/WebGPURenderer.ts
 // Removed Fog import
-import { CubeTexture } from "../../core/textures/index.js";
-import { RenderManifest } from "../../core/renderers/shaders/index.js";
-import { ShaderRegistry } from "../../core/renderers/shaders/index.js";
-import { Texture } from "../../core/textures/index.js";
-import { DeviceCaps } from "../../core/index.js";
-import { InstancedMesh } from "../../core/index.js";
-import { RenderTarget } from "../../core/textures/index.js";
-import { RenderTargetCube } from "../../core/textures/index.js";
-import { EngineOptions } from "../../interfaces/index.js";
-import { GeometryDataInterface } from "../../interfaces/index.js";
-import { LightDataInterface } from "../../interfaces/index.js";
-import { Object3D } from "../../core/index.js";
-import { Scene } from "../../core/index.js";
-import { MathPool } from "../../math/index.js";
-import { Vector3D } from "../../math/index.js";
-import { Matrix4 } from "../../math/index.js";
-import { BlendingMode } from "../../enums/index.js";
-import { RendererType } from "../../enums/index.js";
-import { TextureFilter } from "../../enums/index.js";
-import { TextureWrap } from "../../enums/index.js";
-import { PostProcessingEffectType } from "../../enums/index.js";
+import {
+  CubeTexture,
+  RenderManifest,
+  ShaderRegistry,
+  Texture,
+  DeviceCaps,
+  InstancedMesh,
+  Object3D,
+  Scene,
+} from "../../core/index.js";
+import { RenderTarget, RenderTargetCube } from "../../core/textures/index.js";
+import {
+  EngineOptions,
+  GeometryDataInterface,
+  LightDataInterface,
+} from "../../interfaces/index.js";
+
+import { MathPool, Vector3D, Matrix4 } from "../../math/index.js";
+import {
+  BlendingMode,
+  RendererType,
+  TextureFilter,
+  TextureWrap,
+  PostProcessingEffectType,
+} from "../../enums/index.js";
 import { AbstractRenderer } from "../AbstractRenderer.js";
 import { RenderPass } from "../RenderPass.js";
-import { MainRenderPass } from "../passes/index.js";
-import { PostProcessPass } from "../passes/index.js";
+import { MainRenderPass, PostProcessPass } from "../passes/index.js";
 import { BloomPassGPU } from "../post/passes/index.js";
 import { UniformPacker } from "../../core/renderers/shaders/index.js";
 

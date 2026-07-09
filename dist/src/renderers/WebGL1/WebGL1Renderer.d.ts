@@ -1,9 +1,9 @@
 import { AbstractWebGLRenderer } from '../AbstractWebGLRenderer.js';
 import { PostProcessPassGL } from '../post/passes/index.js';
 import { Texture, RenderTarget } from '../../core/textures/index.js';
+import { Scene } from '../../core/index.js';
 import { EngineOptions } from '../../interfaces/index.js';
 import { RendererType } from '../../enums/index.js';
-import { Scene } from '../../core/index.js';
 import { Vector3D } from '../../math/index.js';
 /**
  * WebGL 1.0 implementation of the renderer.

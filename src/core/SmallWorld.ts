@@ -7,19 +7,18 @@ import { ConfigLoader } from "./ConfigLoader.js";
 import { DeviceCaps, DeviceFeature, DeviceLimit } from "./DeviceCaps.js";
 import { DeviceDetector } from "./DeviceDetector.js";
 import { FrustumCuller } from "./FrustumCuller.js";
-import { AbstractProjection } from "../math/projections/index.js";
-import { ObliqueProjection } from "../math/projections/index.js";
-import { OrthographicProjection } from "../math/projections/index.js";
-import { PerspectiveProjection } from "../math/projections/index.js";
-import { EngineOptions, ProjectionOptions, Events } from "../interfaces/index.js";
-import { Renderer } from "../interfaces/index.js";
+import {
+  AbstractProjection,
+  ObliqueProjection,
+  OrthographicProjection,
+  PerspectiveProjection,
+} from "../math/projections/index.js";
+import { EngineOptions, ProjectionOptions, Events, Renderer } from "../interfaces/index.js";
 import { EventDispatcherImpl } from "./events/EventDispatcherImpl.js";
-import { ProjectionType } from "../enums/index.js";
-import { RendererType } from "../enums/index.js";
+import { ProjectionType, RendererType } from "../enums/index.js";
 import { RendererFactory } from "../renderers/index.js";
 import { ShaderBootstrap } from "./renderers/shaders/index.js";
-import { CollisionVisualizer } from "../utils/index.js";
-import { OctreeVisualizer } from "../utils/index.js";
+import { CollisionVisualizer, OctreeVisualizer } from "../utils/index.js";
 import { GadgetInspector } from "../tools/index.js";
 
 /** The current engine version. */

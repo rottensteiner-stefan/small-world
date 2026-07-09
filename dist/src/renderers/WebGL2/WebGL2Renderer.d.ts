@@ -2,9 +2,9 @@ import { WebGL2FrameBuffer } from './WebGL2FrameBuffer.js';
 import { AbstractWebGLRenderer } from '../AbstractWebGLRenderer.js';
 import { PostProcessPassGL, BloomPassGL } from '../post/passes/index.js';
 import { Texture, RenderTarget, RenderTargetCube } from '../../core/textures/index.js';
+import { Scene } from '../../core/index.js';
 import { EngineOptions } from '../../interfaces/index.js';
 import { RendererType } from '../../enums/index.js';
-import { Scene } from '../../core/index.js';
 import { Vector3D } from '../../math/index.js';
 /**
  * WebGL 2.0 implementation of the renderer.
