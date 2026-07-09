@@ -220,9 +220,9 @@ export class YadHud {
       this._weaponCanvas.style.transform = `translate(calc(-50%), 10px)`;
     } else {
       // Apply bobbing when not shooting
-      // Reduced by ~25% for a smoother feel
-      const bobX = Math.sin(bobPhase) * 11;
-      const bobY = Math.abs(Math.sin(bobPhase)) * 7.5;
+      // Calmed down: half frequency for left-right (one sweep per 2 steps) and lower amplitude
+      const bobX = Math.sin(bobPhase * 0.5) * 6;
+      const bobY = Math.abs(Math.sin(bobPhase)) * 4;
       this._weaponCanvas.style.transform = `translate(calc(-50% + ${bobX}px), ${bobY}px)`;
     }
   }

@@ -40,10 +40,14 @@ export class ForgeWindow {
     this._contentEl.className = "swf-window-content";
     this._windowEl.appendChild(this._contentEl);
 
-    // Resize Handle
-    const resizeHandle = document.createElement("div");
-    resizeHandle.className = "swf-window-resize-handle";
-    this._windowEl.appendChild(resizeHandle);
+    // Resize Handles
+    const directions = ["nw", "ne", "sw", "se"] as const;
+    directions.forEach((dir) => {
+      const handle = document.createElement("div");
+      handle.className = `swf-window-resize-handle swf-resize-${dir}`;
+      this._windowEl.appendChild(handle);
+      this._bindResize(handle, dir);
+    });
 
     parent.appendChild(this._windowEl);
 
@@ -53,7 +57,6 @@ export class ForgeWindow {
     });
 
     this._bindDrag(header);
-    this._bindResize(resizeHandle);
   }
 
   public mountTool(tool: ForgeTool): void {
@@ -87,12 +90,23 @@ export class ForgeWindow {
     return this._windowEl.style.display !== "none";
   }
 
-  public toggleVisibility(): void {
-    if (this.isVisible) {
+  public toggleVisibility(forceState?: boolean): void {
+    const nextState = forceState !== undefined ? forceState : !this.isVisible;
+    if (!nextState) {
       this._windowEl.style.display = "none";
     } else {
       this._windowEl.style.display = "flex";
       this.bringToFront();
+    }
+    localStorage.setItem(`swf_win_${this._title}`, nextState ? "1" : "0");
+  }
+
+  public restoreState(): void {
+    const state = localStorage.getItem(`swf_win_${this._title}`);
+    if (state === "1") {
+      this.toggleVisibility(true);
+    } else {
+      this.toggleVisibility(false);
     }
   }
 
@@ -142,7 +156,10 @@ export class ForgeWindow {
       const dx = e.clientX - startX;
       const dy = e.clientY - startY;
       this._windowEl.style.left = `${initialLeft + dx}px`;
-      this._windowEl.style.top = `${initialTop + dy}px`;
+
+      let newTop = initialTop + dy;
+      if (newTop < 0) newTop = 0; // Prevent dragging out of the top bounds
+      this._windowEl.style.top = `${newTop}px`;
     });
 
     window.addEventListener("mouseup", () => {
@@ -150,12 +167,14 @@ export class ForgeWindow {
     });
   }
 
-  private _bindResize(handle: HTMLElement): void {
+  private _bindResize(handle: HTMLElement, direction: "nw" | "ne" | "sw" | "se"): void {
     let isResizing = false;
     let startX = 0,
       startY = 0;
     let startWidth = 0,
       startHeight = 0;
+    let startLeft = 0,
+      startTop = 0;
 
     handle.addEventListener("mousedown", (e) => {
       isResizing = true;
@@ -163,6 +182,8 @@ export class ForgeWindow {
       startY = e.clientY;
       startWidth = this._windowEl.offsetWidth;
       startHeight = this._windowEl.offsetHeight;
+      startLeft = parseInt(this._windowEl.style.left || "0", 10);
+      startTop = parseInt(this._windowEl.style.top || "0", 10);
       e.stopPropagation(); // prevent window dragging or other events
     });
 
@@ -170,8 +191,36 @@ export class ForgeWindow {
       if (!isResizing) return;
       const dx = e.clientX - startX;
       const dy = e.clientY - startY;
-      this._windowEl.style.width = `${startWidth + dx}px`;
-      this._windowEl.style.height = `${startHeight + dy}px`;
+
+      if (direction === "se") {
+        this._windowEl.style.width = `${startWidth + dx}px`;
+        this._windowEl.style.height = `${startHeight + dy}px`;
+      } else if (direction === "sw") {
+        this._windowEl.style.width = `${startWidth - dx}px`;
+        this._windowEl.style.left = `${startLeft + dx}px`;
+        this._windowEl.style.height = `${startHeight + dy}px`;
+      } else if (direction === "ne") {
+        this._windowEl.style.width = `${startWidth + dx}px`;
+        let newTop = startTop + dy;
+        let newHeight = startHeight - dy;
+        if (newTop < 0) {
+          newHeight = startHeight + startTop;
+          newTop = 0;
+        }
+        this._windowEl.style.height = `${newHeight}px`;
+        this._windowEl.style.top = `${newTop}px`;
+      } else if (direction === "nw") {
+        this._windowEl.style.width = `${startWidth - dx}px`;
+        this._windowEl.style.left = `${startLeft + dx}px`;
+        let newTop = startTop + dy;
+        let newHeight = startHeight - dy;
+        if (newTop < 0) {
+          newHeight = startHeight + startTop;
+          newTop = 0;
+        }
+        this._windowEl.style.height = `${newHeight}px`;
+        this._windowEl.style.top = `${newTop}px`;
+      }
     });
 
     window.addEventListener("mouseup", () => {

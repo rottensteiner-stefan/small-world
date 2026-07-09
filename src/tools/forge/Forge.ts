@@ -98,6 +98,7 @@ export class Forge {
     });
 
     this._updateTaskbar();
+    win.restoreState();
     return win;
   }
 
@@ -113,7 +114,7 @@ export class Forge {
     this._taskbarEl.innerHTML = "";
     for (const win of this._windows) {
       const btn = document.createElement("div");
-      btn.className = "swf-taskbar-btn" + (win.isVisible ? "" : " hidden");
+      btn.className = "swf-taskbar-btn" + (win.isVisible ? "" : " inactive");
       btn.textContent = win.title;
       btn.addEventListener("mousedown", (e) => {
         e.stopPropagation();

@@ -272,7 +272,7 @@ export abstract class SmallWorld {
           const ctrlLeft = Input.instance?.isPressed("ControlLeft") || event.ctrlKey;
 
           if (true === altLeft && (true === metaLeft || true === ctrlLeft)) {
-            if ("KeyF" === event.code || "KeyM" === event.code || "KeyG" === event.code) {
+            if ("KeyF" === event.code) {
               event.preventDefault();
               this.forge.toggle();
 
@@ -378,12 +378,14 @@ export abstract class SmallWorld {
       OctreeVisualizer.instance.update(this.scene, FrustumCuller.lastIntersectedNodes);
     }
 
-    this.renderer.render(
-      this.scene,
-      this.camera.viewProjectionMatrix,
-      this.camera.position,
-      this.camera.viewMatrix,
-    );
+    if (this.canvas.clientWidth > 0 && this.canvas.clientHeight > 0) {
+      this.renderer.render(
+        this.scene,
+        this.camera.viewProjectionMatrix,
+        this.camera.position,
+        this.camera.viewMatrix,
+      );
+    }
 
     Input.mouse.dx = 0;
     Input.mouse.dy = 0;
