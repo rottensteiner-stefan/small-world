@@ -20,5 +20,14 @@ export declare class Collision {
     static resolveSphereBox(s: BoundingSphere, b: BoundingBox, result: Vector3D): boolean;
     private static _sphereSphere;
     private static _boxBox;
+    /**
+     * Performs the Separating Axis Theorem (SAT) test for two OBBs.
+     * Returns true if they intersect.
+     */
+    private static _obbObb;
+    /**
+     * Tests a single axis for SAT. Returns false if a separating gap is found.
+     */
+    private static _testAxis;
     private static _sphereBox;
 }

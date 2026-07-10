@@ -1,6 +1,7 @@
 /// src/physix/Collision.ts
 import { BoundingBox } from "./BoundingBox.js";
 import { BoundingSphere } from "./BoundingSphere.js";
+import { OBB } from "./OBB.js";
 import { BoundingVolume } from "../interfaces/index.js";
 import { Vector3D, MathPool } from "../math/index.js";
 import { BoundingType } from "../enums/index.js";
@@ -30,6 +31,10 @@ export class Collision {
     if (BoundingType.BOX === a.type && BoundingType.SPHERE === b.type) {
       return this._sphereBox(b as BoundingSphere, a as BoundingBox);
     }
+    if (BoundingType.OBB === a.type && BoundingType.OBB === b.type) {
+      return this._obbObb(a as OBB, b as OBB);
+    }
+    // Implement other permutations (OBB vs BOX, OBB vs Sphere) as needed
     return false;
   }
 
@@ -104,6 +109,66 @@ export class Collision {
       b1.min.z <= b2.max.z &&
       b1.max.z >= b2.min.z
     );
+  }
+
+  /**
+   * Performs the Separating Axis Theorem (SAT) test for two OBBs.
+   * Returns true if they intersect.
+   */
+  private static _obbObb(a: OBB, b: OBB): boolean {
+    const t = MathPool.acquireVector().copyFrom(b.center).sub(a.center);
+
+    // We have 15 potential separating axes:
+    // 3 from A, 3 from B, 9 cross products of A and B
+    for (let i = 0; i < 3; i++) {
+      if (!this._testAxis(a.axes[i]!, a, b, t)) return false;
+    }
+    for (let i = 0; i < 3; i++) {
+      if (!this._testAxis(b.axes[i]!, a, b, t)) return false;
+    }
+
+    const crossAxis = MathPool.acquireVector();
+    for (let i = 0; i < 3; i++) {
+      for (let j = 0; j < 3; j++) {
+        crossAxis.copyFrom(a.axes[i]!).cross(b.axes[j]!);
+        // If axes are parallel, cross product is nearly zero, skip
+        if (crossAxis.lengthSq() > 0.0001) {
+          crossAxis.normalize();
+          if (!this._testAxis(crossAxis, a, b, t)) {
+            MathPool.releaseVector(crossAxis);
+            MathPool.releaseVector(t);
+            return false;
+          }
+        }
+      }
+    }
+
+    MathPool.releaseVector(crossAxis);
+    MathPool.releaseVector(t);
+    return true;
+  }
+
+  /**
+   * Tests a single axis for SAT. Returns false if a separating gap is found.
+   */
+  private static _testAxis(axis: Vector3D, a: OBB, b: OBB, t: Vector3D): boolean {
+    // Project OBB A's half-extents onto the axis
+    const rA =
+      a.halfExtents.x * Math.abs(axis.dot(a.axes[0]!)) +
+      a.halfExtents.y * Math.abs(axis.dot(a.axes[1]!)) +
+      a.halfExtents.z * Math.abs(axis.dot(a.axes[2]!));
+
+    // Project OBB B's half-extents onto the axis
+    const rB =
+      b.halfExtents.x * Math.abs(axis.dot(b.axes[0]!)) +
+      b.halfExtents.y * Math.abs(axis.dot(b.axes[1]!)) +
+      b.halfExtents.z * Math.abs(axis.dot(b.axes[2]!));
+
+    // Project the distance vector between centers onto the axis
+    const dist = Math.abs(t.dot(axis));
+
+    // If the distance is greater than the sum of projected radii, we have a gap!
+    return dist <= rA + rB;
   }
 
   private static _sphereBox(s: BoundingSphere, b: BoundingBox): boolean {
