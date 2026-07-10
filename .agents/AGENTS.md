@@ -29,6 +29,8 @@
 - **Types:** Explicit types, access modifiers, and NO `any` (use `unknown` for catch blocks). **Every function and method MUST have an explicit return type** (e.g., `(): void`, `(): string`).
 - **Naming:** All `private` and `protected` class properties MUST start with exactly one leading underscore (e.g., `private _myProperty`).
 - **Files & Imports:** Start `.ts` files with `/// path/to/file.ts`. Relative imports must end with `.js`.
+- **UI/DOM:** Never use `@ts-nocheck` or `any` when dealing with DOM elements. Always cast explicitly to specific types like `HTMLElement`, `HTMLCanvasElement`, `HTMLInputElement`.
+- **DOM Assignments:** Never use optional chaining on the left side of an assignment (e.g. `el?.style.cursor = 'pointer'`). It crashes bundlers like Esbuild/Rolldown. Always use explicit `if (el)` checks.
 - **Simplicity:** Keep things as simple as possible. Strictly avoid overengineering or preemptive abstraction. "Kompliziert werden die Dinge eh immer von alleine."
 
 ## 5. Architectural Patterns
