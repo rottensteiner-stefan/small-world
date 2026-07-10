@@ -4,6 +4,7 @@ import { Object3D, Scene } from "../../core/index.js";
 import { CameraInterfaceData } from "../../interfaces/index.js";
 import { BoundingSphere, Collision, BoundingBox } from "../../physix/index.js";
 import { MathPool } from "../../math/index.js";
+import { AudioSystem } from "../../audio/index.js";
 
 export interface EnemyBehaviorOptions {
   player: CameraInterfaceData;
@@ -18,6 +19,7 @@ export class EnemyBehavior extends Behavior {
   private _speed: number;
   private _detectionRange: number;
   private _collider?: BoundingSphere;
+  private _gruntTimer: number = 0;
 
   constructor(options: EnemyBehaviorOptions) {
     super();
@@ -41,6 +43,13 @@ export class EnemyBehavior extends Behavior {
 
     if (distance > this._detectionRange || distance < 1.5) {
       return; // Too far away or already close enough to attack
+    }
+
+    // Play random grunt sound spatially
+    this._gruntTimer -= deltaTime;
+    if (this._gruntTimer <= 0) {
+      AudioSystem.instance.playSpatial("enemy_grunt", this.target.position, false, 0.5, 2.0, 25.0);
+      this._gruntTimer = 3.0 + Math.random() * 5.0; // Grunt every 3-8 seconds
     }
 
     // Move towards player
