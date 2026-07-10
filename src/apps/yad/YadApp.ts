@@ -17,7 +17,7 @@ import { TextLoader } from "../../loaders/index.js";
 import { BoundingBox } from "../../physix/index.js";
 
 /**
- * YAD (Yet Another Doom)
+ * YAD (Yet Another Dungeon)
  * Building a grid-based level from a text file.
  */
 export class YadApp extends AbstractShowcase {
@@ -89,26 +89,26 @@ export class YadApp extends AbstractShowcase {
     this.scene.add(sun);
 
     // 2. Load Textures
-    const wallTex: Texture = await Texture.fromUrl("./assets/doom_pack/textures/brbrick.png", {
+    const wallTex: Texture = await Texture.fromUrl("./assets/dungeon_pack/textures/brbrick.png", {
       flipY: true,
     });
-    const floorTex: Texture = await Texture.fromUrl("./assets/doom_pack/textures/flat1_1.png", {
+    const floorTex: Texture = await Texture.fromUrl("./assets/dungeon_pack/textures/flat1_1.png", {
       flipY: true,
     });
-    const ceilTex: Texture = await Texture.fromUrl("./assets/doom_pack/textures/ceil3_5.png", {
+    const ceilTex: Texture = await Texture.fromUrl("./assets/dungeon_pack/textures/ceil3_5.png", {
       flipY: true,
     });
-    const slimeTex: Texture = await Texture.fromUrl("./assets/doom_pack/textures/slime01.png", {
+    const slimeTex: Texture = await Texture.fromUrl("./assets/dungeon_pack/textures/slime01.png", {
       flipY: true,
     });
     const secretFloorTex: Texture = await Texture.fromUrl(
-      "./assets/doom_pack/textures/flat5_4.png",
+      "./assets/dungeon_pack/textures/flat5_4.png",
       {
         flipY: true,
       },
     );
     const secretCeilTex: Texture = await Texture.fromUrl(
-      "./assets/doom_pack/textures/ceil1_1.png",
+      "./assets/dungeon_pack/textures/ceil1_1.png",
       {
         flipY: true,
       },
@@ -132,35 +132,44 @@ export class YadApp extends AbstractShowcase {
       flipY: true,
     });
 
-    // Use proper DOOM sprites
-    const barrelTex: Texture = await Texture.fromUrl("./assets/doom_pack/sprites/bar1a0.png", {
+    // Use proper Dungeon sprites
+    const barrelTex: Texture = await Texture.fromUrl("./assets/dungeon_pack/sprites/bar1a0.png", {
       flipY: true,
     });
-    const torchTex: Texture = await Texture.fromUrl("./assets/doom_pack/sprites/firea0.png", {
+    const torchTex: Texture = await Texture.fromUrl("./assets/dungeon_pack/sprites/firea0.png", {
       flipY: true,
     });
-    const doorTex: Texture = await Texture.fromUrl("./assets/doom_pack/textures/door9_1.png", {
+    const doorTex: Texture = await Texture.fromUrl("./assets/dungeon_pack/textures/door9_1.png", {
       flipY: true,
     });
     const secretDoorTex: Texture = await Texture.fromUrl(
-      "./assets/doom_pack/textures/brbrick.png",
+      "./assets/dungeon_pack/textures/brbrick.png",
       {
         // Looks like wall
         flipY: true,
       },
     );
-    const enemyTex: Texture = await Texture.fromUrl("./assets/doom_pack/sprites/possa1.png", {
+    const enemyTex: Texture = await Texture.fromUrl("./assets/dungeon_pack/sprites/possa1.png", {
       flipY: true,
     });
-    const itemTexArmor: Texture = await Texture.fromUrl("./assets/doom_pack/sprites/bon2a0.png", {
-      flipY: true,
-    });
-    const itemTexHealth: Texture = await Texture.fromUrl("./assets/doom_pack/sprites/bon1a0.png", {
-      flipY: true,
-    });
-    const itemTexWeapon: Texture = await Texture.fromUrl("./assets/doom_pack/sprites/pista0.png", {
-      flipY: true,
-    });
+    const itemTexArmor: Texture = await Texture.fromUrl(
+      "./assets/dungeon_pack/sprites/bon2a0.png",
+      {
+        flipY: true,
+      },
+    );
+    const itemTexHealth: Texture = await Texture.fromUrl(
+      "./assets/dungeon_pack/sprites/bon1a0.png",
+      {
+        flipY: true,
+      },
+    );
+    const itemTexWeapon: Texture = await Texture.fromUrl(
+      "./assets/dungeon_pack/sprites/pista0.png",
+      {
+        flipY: true,
+      },
+    );
 
     // 2.5 Load Audio
     const audio = AudioSystem.instance;

@@ -32,14 +32,14 @@ export class YadHud {
       document.head.appendChild(link);
     }
 
-    // Load local DOOM font
-    if (!document.getElementById("doom-font-style")) {
+    // Load local Dungeon font
+    if (!document.getElementById("dungeon-font-style")) {
       const style = document.createElement("style");
-      style.id = "doom-font-style";
+      style.id = "dungeon-font-style";
       style.innerHTML = `
         @font-face {
-          font-family: 'DooM';
-          src: url('./assets/fonts/DooM.ttf') format('truetype');
+          font-family: 'Dungeon';
+          src: url('./assets/fonts/Dungeon.ttf') format('truetype');
           font-weight: normal;
           font-style: normal;
         }
@@ -54,10 +54,10 @@ export class YadHud {
       bottom: "0",
       left: "0",
       width: "100%",
-      height: "32px", // 32px is exactly 16% of the 200px screen, authentic DOOM scale
+      height: "32px", // 32px is exactly 16% of the 200px screen, authentic Dungeon scale
       display: "flex",
       flexDirection: "row",
-      backgroundImage: "url('./assets/doom_pack/textures/graywide.png')",
+      backgroundImage: "url('./assets/dungeon_pack/textures/graywide.png')",
       backgroundRepeat: "repeat",
       backgroundSize: "64px 64px", // Scale down the background texture appropriately
       fontFamily: "'VT323', monospace", // Webfont for all standard text
@@ -78,7 +78,7 @@ export class YadHud {
 
     this._loadAndSliceFace();
 
-    // Wait for DOOM font to load before first render
+    // Wait for Dungeon font to load before first render
     document.fonts.ready.then((): void => {
       this._generateSpriteFonts();
       this._updateDisplay();
@@ -98,12 +98,12 @@ export class YadHud {
     const frames = ["pisga0", "pisgb0", "pisgc0", "pisgd0", "pisge0"];
     for (const frame of frames) {
       const img = new Image();
-      img.src = `./assets/doom_pack/sprites/${frame}.png`;
+      img.src = `./assets/dungeon_pack/sprites/${frame}.png`;
       img.onload = (): void => this._drawWeapon();
       this._pistolSprites.push(img);
     }
     this._pistolFlash = new Image();
-    this._pistolFlash.src = `./assets/doom_pack/sprites/pisfa0.png`;
+    this._pistolFlash.src = `./assets/dungeon_pack/sprites/pisfa0.png`;
   }
 
   private _createWeaponOverlay(parent: HTMLElement): void {
@@ -137,7 +137,7 @@ export class YadHud {
 
     // 2. Create Weapon Canvas
     this._weaponCanvas = document.createElement("canvas");
-    this._weaponCanvas.width = 128; // Original doom weapon sprites are usually around 100x100
+    this._weaponCanvas.width = 128; // Original retro dungeon weapon sprites are usually around 100x100
     this._weaponCanvas.height = 128;
     Object.assign(this._weaponCanvas.style, {
       position: "absolute",
@@ -177,7 +177,7 @@ export class YadHud {
       this._pistolFlash.naturalWidth > 0
     ) {
       // Pistol flash position is roughly above the barrel. Needs tweaking based on sprite dimensions.
-      // Usually DOOM engine handles offsets via wad metadata, but we'll hardcode a decent offset.
+      // Usually Dungeon engine handles offsets via wad metadata, but we'll hardcode a decent offset.
       const dx = (this._weaponCanvas.width - this._pistolFlash.width) / 2 - 10;
       const dy =
         this._weaponCanvas.height - (sprite ? sprite.height : 64) - this._pistolFlash.height + 20;
@@ -474,7 +474,7 @@ export class YadHud {
   }
 
   private _createSegments(): void {
-    // Original DOOM HUD pixel widths (sum = 320)
+    // Original Dungeon HUD pixel widths (sum = 320)
     // Ammo: 45, Health: 48, Weapons: 45, Face: 32, Armor: 48, Keys: 14, Ammo Info: 88
 
     // Segment 1 (Ammo)
@@ -569,7 +569,7 @@ export class YadHud {
     this._drawSpriteText(ctx, bottomLabel, x, 20, this._fontSmallWhite, "center", 5);
 
     // --- Große rote Zahlen (behalten ihr weiches Anti-Aliasing für den Custom-Font) ---
-    ctx.font = "bold 13px 'DooM', 'Impact', sans-serif";
+    ctx.font = "bold 13px 'Dungeon', 'Impact', sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     const yBig = 12;
@@ -715,7 +715,7 @@ export class YadHud {
   private _loadAndSliceFace(): void {
     const img = new Image();
     img.crossOrigin = "anonymous";
-    img.src = "./assets/doom_pack/sprites/doomguy.png";
+    img.src = "./assets/dungeon_pack/sprites/dungeonguy.png";
     img.onload = (): void => {
       // 1. Draw to offscreen canvas to manipulate pixels
       const offCanvas = document.createElement("canvas");
@@ -809,11 +809,11 @@ export class YadHud {
         }
       }
 
-      console.log(`[YadHud] Extracted ${this._faceImages.length} faces from doomguy.png`);
+      console.log(`[YadHud] Extracted ${this._faceImages.length} faces from dungeonguy.png`);
       this._updateDisplay();
     };
     img.onerror = (): void => {
-      console.warn("[YadHud] Could not load doomguy.png from assets/doom_pack/sprites/");
+      console.warn("[YadHud] Could not load dungeonguy.png from assets/dungeon_pack/sprites/");
     };
   }
 }

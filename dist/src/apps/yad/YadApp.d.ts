@@ -1,7 +1,7 @@
 import { YadHud } from './YadHud.js';
 import { AbstractShowcase } from '../../core/showcase/index.js';
 /**
- * YAD (Yet Another Doom)
+ * YAD (Yet Another Dungeon)
  * Building a grid-based level from a text file.
  */
 export declare class YadApp extends AbstractShowcase {
