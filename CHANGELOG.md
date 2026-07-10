@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.52.0] - 2026-07-10
+
+- **Refactor (Architecture & Universal EventBus):**
+  - Removed "prop-drilling" of the core `EventDispatcher` through deeply nested constructors (e.g. `FirstPersonControllerOptions`, `ForgeToolOptions`).
+  - Introduced `UniversalEventBus`, a globally exported singleton instance of `EventDispatcherImpl` residing in `src/core/events`.
+  - Replaced all legacy `this.events` and `this._options.events` usages in `YadController`, `YadHud`, `IXtractor`, and `Pixler` with direct `UniversalEventBus` imports.
+  - Eliminated the `events` property from the `SmallWorld` base class entirely to enforce the pure "1 Engine Instance per Page" architecture.
+- **Documentation:**
+  - Rewrote the EventBus guide (`eventbus.md`) to reflect the new `UniversalEventBus` singleton pattern.
+  - Added "Universal Singletons" to the official engine architectural patterns in `AGENTS.md`.
+
 ## [0.51.0] - 2026-07-10
 
 - **Feature (MaterialStudio):**

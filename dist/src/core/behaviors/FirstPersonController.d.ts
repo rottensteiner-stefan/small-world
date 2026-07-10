@@ -1,5 +1,5 @@
 import { Behavior } from './Behavior.js';
-import { CameraInterfaceData, Events } from '../../interfaces/index.js';
+import { CameraInterfaceData } from '../../interfaces/index.js';
 import { Object3D, Scene } from '../index.js';
 import { BoundingSphere } from '../../physix/index.js';
 /**
@@ -16,8 +16,6 @@ export interface FirstPersonControllerOptions {
     collisionRadius?: number;
     /** The scene to check for collisions. */
     scene?: Scene;
-    /** The global event bus */
-    events?: Events;
     /** Enable classic retro tank controls (turning with A/D) vs modern strafing. Defaults to true. */
     retroTankControls?: boolean;
 }
@@ -26,9 +24,8 @@ export interface FirstPersonControllerOptions {
  */
 export declare class FirstPersonController extends Behavior {
     enabled: boolean;
-    protected _options: Required<Omit<FirstPersonControllerOptions, "scene" | "events">> & {
+    protected _options: Required<Omit<FirstPersonControllerOptions, "scene">> & {
         scene: Scene | undefined;
-        events: Events | undefined;
     };
     protected _collider?: BoundingSphere;
     distanceMoved: number;

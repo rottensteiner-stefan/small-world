@@ -1,5 +1,10 @@
 /// src/apps/yad/YadController.ts
-import { FirstPersonController, FirstPersonControllerOptions, Input } from "../../core/index.js";
+import {
+  FirstPersonController,
+  FirstPersonControllerOptions,
+  Input,
+  UniversalEventBus,
+} from "../../core/index.js";
 import { CameraInterfaceData } from "../../interfaces/index.js";
 import { Keys, AppEvents } from "../../enums/index.js";
 import { Raycaster } from "../../physix/index.js";
@@ -42,7 +47,7 @@ export class YadController extends FirstPersonController {
     // 3. Weapon Selection (Keys 1-6)
     for (let i = 1; i <= 6; i++) {
       if (Input.isPressed(i.toString() as Keys) || Input.isPressed(`Digit${i}` as Keys)) {
-        this._options.events?.dispatchEvent(AppEvents.Yad.WEAPON, { index: i });
+        UniversalEventBus.dispatchEvent(AppEvents.Yad.WEAPON, { index: i });
       }
     }
 
@@ -51,7 +56,7 @@ export class YadController extends FirstPersonController {
     if (Input.isPressed(Keys.SPACE) && now - this._lastShotTime > 500) {
       this._lastShotTime = now;
       AudioSystem.instance.play("shoot", false, 0.6);
-      this._options.events?.dispatchEvent(AppEvents.Yad.SHOOT);
+      UniversalEventBus.dispatchEvent(AppEvents.Yad.SHOOT);
 
       // Raycast for Enemies
       if (this._options.scene && isCamera) {
@@ -104,7 +109,7 @@ export class YadController extends FirstPersonController {
             AudioSystem.instance.play("pickup", false, 0.8);
 
             // Dispatch custom event for HUD
-            this._options.events?.dispatchEvent(AppEvents.Yad.PICKUP, {
+            UniversalEventBus.dispatchEvent(AppEvents.Yad.PICKUP, {
               type: itemType,
               amount: 20,
             });
@@ -124,7 +129,7 @@ export class YadController extends FirstPersonController {
             AudioSystem.instance.play("hurt", false, 0.8);
 
             // Dispatch custom event for HUD
-            this._options.events?.dispatchEvent(AppEvents.Yad.DAMAGE, { amount: 10 });
+            UniversalEventBus.dispatchEvent(AppEvents.Yad.DAMAGE, { amount: 10 });
           }
         }
       }

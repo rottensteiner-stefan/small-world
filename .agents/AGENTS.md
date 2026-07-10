@@ -35,3 +35,4 @@
 
 - **Behavior System:** Entities like Cameras use the Behavior system rather than specific controller arrays. Use `camera.addBehavior(new OrbitController())` instead of managing controllers directly.
 - **Resource Loading:** Instantiate and load resources using static factory methods. For example, use `Texture.fromUrl()` instead of `new Texture().loadFrom()`.
+- **Universal Singletons:** Small World enforces a "1 Engine Instance per Page" rule. To avoid prop-drilling core dependencies (like `events`), prefer using globally exported singletons (e.g., `UniversalEventBus`) over passing them through constructor options.

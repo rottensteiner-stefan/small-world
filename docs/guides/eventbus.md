@@ -2,19 +2,17 @@
 
 In modern 3D applications, coupling your UI directly to your 3D engine or gameloop creates spaghetti code and performance bottlenecks. The **Small World Engine** provides a built-in, type-safe, and zero-allocation **EventBus** (`EventDispatcherImpl`) to cleanly decouple your systems.
 
-## The Global EventBus
+## The Universal EventBus
 
-When you instantiate your game or app via the `SmallWorld` base class, it automatically initializes a global event dispatcher available as `this.events`.
+Because Small World enforces a "1 Engine Instance per Page" architecture, the EventBus is implemented as a global singleton. This eliminates the need for tedious "prop-drilling" (passing the event bus through deeply nested constructors).
+
+You can import and use `UniversalEventBus` anywhere in your application:
 
 ```typescript
-import { Application } from "small-world";
+import { UniversalEventBus } from "small-world/core";
 
-class MyGame extends Application {
-  constructor() {
-    super();
-    // this.events is now available and ready to use!
-  }
-}
+// Use it directly!
+UniversalEventBus.dispatchEvent("MyEvent", { data: 123 });
 ```
 
 ## Defining Strongly-Typed Events
@@ -40,7 +38,9 @@ Instead of using the DOM's `window.dispatchEvent` (which incurs heavy garbage co
 
 ```typescript
 // Inside a Behavior or Controller
-this._options.events?.dispatchEvent(AppEvents.PLAYER.DAMAGE, { amount: 15, source: "lava" });
+import { UniversalEventBus } from "small-world/core";
+
+UniversalEventBus.dispatchEvent(AppEvents.PLAYER.DAMAGE, { amount: 15, source: "lava" });
 ```
 
 ## Listening to Events
@@ -48,19 +48,16 @@ this._options.events?.dispatchEvent(AppEvents.PLAYER.DAMAGE, { amount: 15, sourc
 Your UI components (e.g., a HUD) or other decoupled systems can simply accept the `Events` interface and listen for specific events from your registry.
 
 ```typescript
-import { Events } from "small-world/interfaces";
+import { UniversalEventBus } from "small-world/core";
 import { AppEvents } from "./events.js";
 
 export class MyHud {
-  private _events?: Events;
-
-  constructor(events?: Events) {
-    this._events = events;
+  constructor() {
     this._bindEvents();
   }
 
   private _bindEvents(): void {
-    this._events?.addEventListener(AppEvents.PLAYER.DAMAGE, (e: Record<string, unknown>) => {
+    UniversalEventBus.addEventListener(AppEvents.PLAYER.DAMAGE, (e: Record<string, unknown>) => {
       const damage = e['amount'] as number;
       console.log(`Player took ${damage} damage!`);
       // Update your UI here...

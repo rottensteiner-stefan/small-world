@@ -14,8 +14,7 @@ export declare class YadHud {
     private _health;
     private _armor;
     private _ammo;
-    private _events?;
-    constructor(events?: import('../../interfaces/index.js').Events);
+    constructor();
     private _weaponCanvas;
     private _flashOverlay;
     private _shootTimer;
