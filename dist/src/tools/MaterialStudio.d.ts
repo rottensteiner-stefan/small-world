@@ -10,6 +10,8 @@ export declare class MaterialStudio extends ForgeTool {
     private _canvas;
     private _onBase64Image;
     constructor(options?: ForgeToolOptions);
+    getState(): unknown;
+    setState(_state: unknown): void;
     private _injectCSS;
     private _buildUI;
     private _bindLogic;
