@@ -13,6 +13,7 @@ export declare class EnemyBehavior extends Behavior {
     private _speed;
     private _detectionRange;
     private _collider?;
+    private _gruntTimer;
     constructor(options: EnemyBehaviorOptions);
     onAttach(target: Object3D): void;
     update(deltaTime: number): void;
