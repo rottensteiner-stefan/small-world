@@ -3,6 +3,7 @@ import { AbstractMaterial } from "./materials/index.js";
 import { BoundingVolume, GeometryDataInterface, Collidable } from "../interfaces/index.js";
 import { MathUtils, Matrix4, Quaternion, Vector3D } from "../math/index.js";
 import { Behavior } from "./behaviors/index.js";
+import { RigidBody } from "../physix/RigidBody.js";
 
 /**
  * Base class for all 3D objects in the scene.
@@ -10,6 +11,8 @@ import { Behavior } from "./behaviors/index.js";
 export class Object3D implements Collidable {
   public readonly uuid: string = MathUtils.generateUUID();
   public name: string = "";
+
+  public rigidBody?: RigidBody;
 
   public geometry: GeometryDataInterface | undefined = undefined;
   public material: AbstractMaterial | undefined = undefined;
