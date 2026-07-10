@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.53.0] - 2026-07-10
+
+- **Feature (Pixler):**
+  - Added a new Toolbar UI using lightweight emojis instead of external icon libraries.
+  - Implemented an Active Color Indicator in the palette.
+  - Added a "Trim" button to automatically crop the canvas to its non-background pixels.
+  - Added a Bucket Fill (Flood Fill) tool for quickly filling enclosed areas (`F`).
+  - Added a Color Picker (Eyedropper) tool (`I`), also accessible via `Alt+Click`.
+  - Added a Line Tool (`L`) for drawing straight lines, also accessible by pressing `Shift+Click`.
+  - Added Symmetry Mode (X and Y axis) for drawing symmetrical sprites or tiles.
+  - Added Panning capability with wrapping by using `Shift + Arrow Keys`.
+  - Added Flipping (Mirroring) capability horizontally and vertically by using `Shift + Cmd + Arrow Keys`.
+  - Added Undo and Redo functionality with full history support (`Cmd+Z` / `Cmd+Shift+Z`).
+- **Fix (Build):**
+  - Resolved `[INEFFECTIVE_DYNAMIC_IMPORT]` Vite warnings across `YadLevelBuilder`, `CubeTexture`, `Texture`, and `TextureArray` by replacing ineffective dynamic imports with standard static imports.
+
 ## [0.52.0] - 2026-07-10
 
 - **Refactor (Architecture & Universal EventBus):**

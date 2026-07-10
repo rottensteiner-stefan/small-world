@@ -1,4 +1,4 @@
-import { CubeTexture, RenderManifest, Texture, InstancedMesh, Object3D, Scene } from '../../core/index.js';
+import { CubeTexture, RenderManifest, InstancedMesh, Object3D, Scene, Texture } from '../../core/index.js';
 import { RenderTarget, RenderTargetCube } from '../../core/textures/index.js';
 import { EngineOptions, GeometryDataInterface } from '../../interfaces/index.js';
 import { Vector3D } from '../../math/index.js';
@@ -57,6 +57,8 @@ export declare class WebGPURenderer extends AbstractRenderer {
     protected _dummyTangentBuffer: GPUBuffer;
     protected _geoCache: Map<GeometryDataInterface, WebGPUGeoCache>;
     protected _gpuInstanceBuffers: WeakMap<InstancedMesh, GPUBuffer>;
+    protected _gpuInstanceDataBuffers: WeakMap<InstancedMesh, GPUBuffer>;
+    protected _materialBGLCache: Map<string, GPUBindGroupLayout>;
     protected _frameCount: number;
     protected _scratchModelMatrix: Float32Array<ArrayBuffer>;
     protected _scratchColorArray: Float32Array<ArrayBuffer>;
@@ -129,8 +131,9 @@ export declare class WebGPURenderer extends AbstractRenderer {
     private _currentPrefilterMap?;
     private _currentBrdfLUT?;
     private _createGlobalBindGroup;
+    protected _getMaterialBGL(flags: string[]): GPUBindGroupLayout;
     protected _getPipeline(manifest: RenderManifest, topology: GPUPrimitiveTopology, isInstanced?: boolean): WebGPUPipelineCache;
-    protected _getShaderModule(shaderId: string, isInstanced?: boolean): GPUShaderModule;
+    protected _getShaderModule(shaderId: string, isInstanced?: boolean, flags?: string[]): GPUShaderModule;
     protected _getGeoCache(geo: GeometryDataInterface): WebGPUGeoCache;
     render(scene: Scene, vp: Float32Array, camPos?: Vector3D, vMat?: Float32Array): void;
     captureOpaqueTexture(ce: GPUCommandEncoder, targetTex: GPUTexture): void;

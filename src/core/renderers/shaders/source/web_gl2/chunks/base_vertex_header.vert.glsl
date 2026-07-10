@@ -6,6 +6,10 @@ in vec3 a_tangent;
 
 #ifdef USE_INSTANCING
 in mat4 a_instanceMatrix;
+#ifdef USE_TEXTURE_ARRAY
+in vec4 a_instanceData;
+out float v_texIndex;
+#endif
 #endif
 
 struct PointLight {

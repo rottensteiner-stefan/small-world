@@ -8,12 +8,20 @@ in vec3 v_normal;
 in vec2 v_uv;
 in mat3 v_tbn;
 
+#if defined(USE_INSTANCING) && defined(USE_TEXTURE_ARRAY)
+in float v_texIndex;
+#endif
+
 uniform vec4 u_color;
 uniform vec4 u_specColor;
 uniform float u_shininess;
 uniform vec4 u_extraParams;
 
+#ifdef USE_TEXTURE_ARRAY
+uniform sampler2DArray u_diffuseMap;
+#else
 uniform sampler2D u_diffuseMap;
+#endif
 uniform sampler2D u_normalMap;
 uniform sampler2D u_specularMap;
 

@@ -102,6 +102,8 @@ export interface PixlerOptions extends ForgeToolOptions {
   palette?: string[];
 }
 
+export type PixlerToolMode = "pencil" | "bucket" | "picker" | "line";
+
 export class Pixler extends ForgeTool {
   private _canvas: HTMLCanvasElement;
   private _ctx: CanvasRenderingContext2D;
@@ -116,6 +118,7 @@ export class Pixler extends ForgeTool {
   private _scale: number = 16;
 
   private _inputs: Record<string, HTMLInputElement> = {};
+  private _toolbarBtns!: Record<string, HTMLButtonElement>;
 
   private _currentColor: string = "#ffffff";
   private _isDrawing: boolean = false;
@@ -123,6 +126,13 @@ export class Pixler extends ForgeTool {
   private _cursorPos = { x: 0, y: 0 };
 
   private _palette = [...PIXLER_PALETTES.DEFAULT];
+
+  private _activeTool: PixlerToolMode = "pencil";
+  private _symmetryX: boolean = false;
+  private _symmetryY: boolean = false;
+  private _lineStartPos: { x: number; y: number } | null = null;
+  private _history: ImageData[] = [];
+  private _historyIndex: number = -1;
 
   constructor(options: PixlerOptions = {}) {
     super(options);
@@ -174,6 +184,90 @@ export class Pixler extends ForgeTool {
     controls.appendChild(paletteSelect);
 
     this._container.appendChild(controls);
+
+    // Toolbar (Tools & Symmetry)
+    const toolbar = document.createElement("div");
+    toolbar.style.display = "flex";
+    toolbar.style.gap = "5px";
+    toolbar.style.marginBottom = "5px";
+
+    const createToolBtn = (
+      icon: string,
+      mode: PixlerToolMode,
+      title: string,
+    ): HTMLButtonElement => {
+      const btn = document.createElement("button");
+      btn.className = "swf-btn secondary";
+      btn.innerHTML = icon;
+      btn.title = title;
+      btn.style.padding = "2px 8px";
+      btn.onclick = (): void => {
+        this._activeTool = mode;
+        this._updateToolbarUI();
+      };
+      return btn;
+    };
+
+    const btnPencil = createToolBtn("✏️", "pencil", "Pencil (P)");
+    const btnBucket = createToolBtn("🪣", "bucket", "Bucket Fill (F)");
+    const btnPicker = createToolBtn("💧", "picker", "Color Picker (I)");
+    const btnLine = createToolBtn("📏", "line", "Line Tool (L)");
+
+    const btnSymX = document.createElement("button");
+    btnSymX.className = "swf-btn secondary";
+    btnSymX.innerHTML = "🪞X";
+    btnSymX.title = "Symmetry X";
+    btnSymX.style.padding = "2px 8px";
+    btnSymX.onclick = (): void => {
+      this._symmetryX = !this._symmetryX;
+      this._updateToolbarUI();
+    };
+
+    const btnSymY = document.createElement("button");
+    btnSymY.className = "swf-btn secondary";
+    btnSymY.innerHTML = "🪞Y";
+    btnSymY.title = "Symmetry Y";
+    btnSymY.style.padding = "2px 8px";
+    btnSymY.onclick = (): void => {
+      this._symmetryY = !this._symmetryY;
+      this._updateToolbarUI();
+    };
+
+    const btnUndo = document.createElement("button");
+    btnUndo.className = "swf-btn secondary";
+    btnUndo.innerHTML = "↩️";
+    btnUndo.title = "Undo (CMD+Z)";
+    btnUndo.style.padding = "2px 8px";
+    btnUndo.style.marginLeft = "auto";
+    btnUndo.onclick = (): void => this.undo();
+
+    const btnRedo = document.createElement("button");
+    btnRedo.className = "swf-btn secondary";
+    btnRedo.innerHTML = "↪️";
+    btnRedo.title = "Redo (CMD+SHIFT+Z)";
+    btnRedo.style.padding = "2px 8px";
+    btnRedo.onclick = (): void => this.redo();
+
+    this._toolbarBtns = {
+      pencil: btnPencil,
+      bucket: btnBucket,
+      picker: btnPicker,
+      line: btnLine,
+      symX: btnSymX,
+      symY: btnSymY,
+    };
+
+    toolbar.appendChild(btnPencil);
+    toolbar.appendChild(btnBucket);
+    toolbar.appendChild(btnPicker);
+    toolbar.appendChild(btnLine);
+    toolbar.appendChild(btnSymX);
+    toolbar.appendChild(btnSymY);
+    toolbar.appendChild(btnUndo);
+    toolbar.appendChild(btnRedo);
+
+    this._container.appendChild(toolbar);
+    this._updateToolbarUI();
 
     // Canvas Area
     const canvasContainer = document.createElement("div");
@@ -250,12 +344,15 @@ export class Pixler extends ForgeTool {
 
     const btnClear = document.createElement("button");
     btnClear.className = "swf-btn secondary";
-    btnClear.textContent = "Clear";
-    btnClear.onclick = (): void => this._ctx.clearRect(0, 0, this._width, this._height);
+    btnClear.innerHTML = "🗑️ Clear";
+    btnClear.onclick = (): void => {
+      this._ctx.clearRect(0, 0, this._width, this._height);
+      this._saveHistory();
+    };
 
     const btnBase64 = document.createElement("button");
     btnBase64.className = "swf-btn secondary";
-    btnBase64.textContent = "Copy B64";
+    btnBase64.innerHTML = "📋 B64";
     btnBase64.onclick = (): void => {
       navigator.clipboard.writeText(this._canvas.toDataURL());
       alert("Base64 copied!");
@@ -263,7 +360,7 @@ export class Pixler extends ForgeTool {
 
     const btnImage = document.createElement("button");
     btnImage.className = "swf-btn secondary";
-    btnImage.textContent = "Copy Image";
+    btnImage.innerHTML = "💾 Image";
     btnImage.onclick = (): void => {
       this._canvas.toBlob((blob) => {
         if (blob) {
@@ -277,11 +374,17 @@ export class Pixler extends ForgeTool {
 
     const btnTemplate = document.createElement("button");
     btnTemplate.className = "swf-btn secondary";
-    btnTemplate.textContent = "A-Z";
+    btnTemplate.innerHTML = "🔠 A-Z";
     btnTemplate.title = "Load A-Z Template";
     btnTemplate.onclick = (): void => this.loadTemplateA2Z();
 
-    [btnClear, btnBase64, btnImage, btnTemplate].forEach((b) => {
+    const btnTrim = document.createElement("button");
+    btnTrim.className = "swf-btn secondary";
+    btnTrim.innerHTML = "✂️ Trim";
+    btnTrim.title = "Auto-Crop transparent or selected color border";
+    btnTrim.onclick = (): void => this.trim();
+
+    [btnClear, btnBase64, btnImage, btnTemplate, btnTrim].forEach((b) => {
       b.style.flex = "1";
       b.style.padding = "5px";
       b.style.cursor = "pointer";
@@ -333,6 +436,19 @@ export class Pixler extends ForgeTool {
     return div;
   }
 
+  private _updateToolbarUI(): void {
+    if (!this._toolbarBtns) return;
+    for (const [key, btn] of Object.entries(this._toolbarBtns)) {
+      let active = false;
+      if (key === this._activeTool) active = true;
+      if (key === "symX" && this._symmetryX) active = true;
+      if (key === "symY" && this._symmetryY) active = true;
+
+      btn.style.borderColor = active ? "var(--swf-primary)" : "var(--swf-border)";
+      btn.style.color = active ? "var(--swf-primary)" : "inherit";
+    }
+  }
+
   private _resize(w: number, h: number): void {
     const oldData = this._ctx.getImageData(0, 0, this._width, this._height);
     this._width = w;
@@ -341,6 +457,7 @@ export class Pixler extends ForgeTool {
     this._canvas.height = h;
     this._ctx.putImageData(oldData, 0, 0);
     this._updateGrid();
+    this._saveHistory();
   }
 
   private _updateGrid(): void {
@@ -423,7 +540,7 @@ export class Pixler extends ForgeTool {
     this._ctx.clearRect(0, 0, this._width, this._height);
 
     if (this._currentColor === "transparent") {
-      this._currentColor = "#ffffff";
+      this._setCurrentColor("#ffffff");
     }
 
     font.forEach((charStr, i) => {
@@ -440,6 +557,15 @@ export class Pixler extends ForgeTool {
         }
       });
     });
+    this._saveHistory();
+  }
+
+  private _drawPixelSymmetric(x: number, y: number, erase: boolean = false): void {
+    this._drawPixel(x, y, erase);
+    if (this._symmetryX) this._drawPixel(this._width - 1 - x, y, erase);
+    if (this._symmetryY) this._drawPixel(x, this._height - 1 - y, erase);
+    if (this._symmetryX && this._symmetryY)
+      this._drawPixel(this._width - 1 - x, this._height - 1 - y, erase);
   }
 
   private _drawPixel(x: number, y: number, erase: boolean = false): void {
@@ -449,6 +575,93 @@ export class Pixler extends ForgeTool {
     } else {
       this._ctx.fillStyle = this._currentColor;
       this._ctx.fillRect(x, y, 1, 1);
+    }
+  }
+
+  private _drawLine(x0: number, y0: number, x1: number, y1: number, erase: boolean): void {
+    const dx = Math.abs(x1 - x0);
+    const dy = Math.abs(y1 - y0);
+    const sx = x0 < x1 ? 1 : -1;
+    const sy = y0 < y1 ? 1 : -1;
+    let err = dx - dy;
+
+    let cx = x0;
+    let cy = y0;
+    while (true) {
+      this._drawPixelSymmetric(cx, cy, erase);
+      if (cx === x1 && cy === y1) break;
+      const e2 = 2 * err;
+      if (e2 > -dy) {
+        err -= dy;
+        cx += sx;
+      }
+      if (e2 < dx) {
+        err += dx;
+        cy += sy;
+      }
+    }
+  }
+
+  private _bucketFill(startX: number, startY: number, targetColor: string): void {
+    if (startX < 0 || startX >= this._width || startY < 0 || startY >= this._height) return;
+
+    const imgData = this._ctx.getImageData(0, 0, this._width, this._height);
+    const data = imgData.data;
+    const targetIdx = (startY * this._width + startX) * 4;
+    const r = data[targetIdx]!;
+    const g = data[targetIdx + 1]!;
+    const b = data[targetIdx + 2]!;
+    const a = data[targetIdx + 3]!;
+
+    let fr = 0,
+      fg = 0,
+      fb = 0,
+      fa = 0;
+    if (targetColor !== "transparent") {
+      const hex = targetColor.replace("#", "");
+      fr = parseInt(hex.substring(0, 2), 16);
+      fg = parseInt(hex.substring(2, 4), 16);
+      fb = parseInt(hex.substring(4, 6), 16);
+      fa = 255;
+    }
+
+    if (r === fr && g === fg && b === fb && a === fa) return;
+
+    const match = (idx: number): boolean => {
+      return data[idx] === r && data[idx + 1] === g && data[idx + 2] === b && data[idx + 3] === a;
+    };
+
+    const setPx = (idx: number): void => {
+      data[idx] = fr;
+      data[idx + 1] = fg;
+      data[idx + 2] = fb;
+      data[idx + 3] = fa;
+    };
+
+    const stack: [number, number][] = [[startX, startY]];
+    while (stack.length > 0) {
+      const [x, y] = stack.pop() as [number, number];
+      const idx = (y * this._width + x) * 4;
+
+      if (match(idx)) {
+        setPx(idx);
+        if (x > 0) stack.push([x - 1, y]);
+        if (x < this._width - 1) stack.push([x + 1, y]);
+        if (y > 0) stack.push([x, y - 1]);
+        if (y < this._height - 1) stack.push([x, y + 1]);
+      }
+    }
+
+    this._ctx.putImageData(imgData, 0, 0);
+  }
+
+  private _pickColor(x: number, y: number): void {
+    const p = this._ctx.getImageData(x, y, 1, 1).data;
+    if (p[3] === 0) {
+      this._setCurrentColor("transparent");
+    } else {
+      const toHex = (c: number): string => c.toString(16).padStart(2, "0");
+      this._setCurrentColor(`#${toHex(p[0]!)}${toHex(p[1]!)}${toHex(p[2]!)}`.toLowerCase());
     }
   }
 
@@ -481,6 +694,34 @@ export class Pixler extends ForgeTool {
       const { x, y } = getPos(e);
       this._cursorPos = { x, y };
 
+      if (e.altKey || this._activeTool === "picker") {
+        this._pickColor(x, y);
+        if (this._activeTool === "picker") {
+          this._activeTool = "pencil";
+          this._updateToolbarUI();
+        }
+        return;
+      }
+
+      if (this._activeTool === "bucket") {
+        this._bucketFill(x, y, this._currentColor);
+        this._saveHistory();
+        return;
+      }
+
+      if (e.shiftKey || this._activeTool === "line") {
+        if (!this._lineStartPos) {
+          this._lineStartPos = { x, y };
+        } else {
+          this._drawLine(this._lineStartPos.x, this._lineStartPos.y, x, y, e.button === 2);
+          this._lineStartPos = { x, y };
+          this._saveHistory();
+        }
+        return;
+      }
+
+      this._lineStartPos = { x, y }; // Remember for next shift-click
+
       if (e.button === 2) {
         this._isErasing = true;
       } else {
@@ -488,7 +729,7 @@ export class Pixler extends ForgeTool {
       }
 
       this._isDrawing = true;
-      this._drawPixel(x, y, this._isErasing);
+      this._drawPixelSymmetric(x, y, this._isErasing);
       this._updateCursorVisual();
     });
 
@@ -497,11 +738,14 @@ export class Pixler extends ForgeTool {
       this._cursorPos = { x, y };
       this._updateCursorVisual();
       if (this._isDrawing) {
-        this._drawPixel(x, y, this._isErasing);
+        this._drawPixelSymmetric(x, y, this._isErasing);
       }
     });
 
     window.addEventListener("mouseup", () => {
+      if (this._isDrawing) {
+        this._saveHistory();
+      }
       this._isDrawing = false;
     });
 
@@ -513,21 +757,78 @@ export class Pixler extends ForgeTool {
       if (document.activeElement?.tagName === "INPUT") return;
 
       const k = e.key.toLowerCase();
+
+      // Undo / Redo
+      if ((e.metaKey || e.ctrlKey) && k === "z") {
+        if (e.shiftKey) this.redo();
+        else this.undo();
+        e.preventDefault();
+        return;
+      }
+
+      // Tool shortcuts
+      if (k === "f") {
+        this._activeTool = "bucket";
+        this._updateToolbarUI();
+        return;
+      }
+      if (k === "i") {
+        this._activeTool = "picker";
+        this._updateToolbarUI();
+        return;
+      }
+      if (k === "l") {
+        this._activeTool = "line";
+        this._updateToolbarUI();
+        return;
+      }
+      if (k === "p") {
+        this._activeTool = "pencil";
+        this._updateToolbarUI();
+        return;
+      }
+
       let moved = false;
 
       if (k === "arrowup" || k === "w") {
+        if (e.shiftKey) {
+          if (e.metaKey || e.ctrlKey) this.flip(false, true);
+          else this.pan(0, -1);
+          e.preventDefault();
+          return;
+        }
         this._cursorPos.y = Math.max(0, this._cursorPos.y - 1);
         moved = true;
       }
       if (k === "arrowdown" || k === "s") {
+        if (e.shiftKey) {
+          if (e.metaKey || e.ctrlKey)
+            this.flip(false, true); // Flip vertically is the same for up/down
+          else this.pan(0, 1);
+          e.preventDefault();
+          return;
+        }
         this._cursorPos.y = Math.min(this._height - 1, this._cursorPos.y + 1);
         moved = true;
       }
       if (k === "arrowleft" || k === "a") {
+        if (e.shiftKey) {
+          if (e.metaKey || e.ctrlKey) this.flip(true, false);
+          else this.pan(-1, 0);
+          e.preventDefault();
+          return;
+        }
         this._cursorPos.x = Math.max(0, this._cursorPos.x - 1);
         moved = true;
       }
       if (k === "arrowright" || k === "d") {
+        if (e.shiftKey) {
+          if (e.metaKey || e.ctrlKey)
+            this.flip(true, false); // Flip horizontally is the same for left/right
+          else this.pan(1, 0);
+          e.preventDefault();
+          return;
+        }
         this._cursorPos.x = Math.min(this._width - 1, this._cursorPos.x + 1);
         moved = true;
       }
@@ -535,7 +836,7 @@ export class Pixler extends ForgeTool {
       if (moved) {
         this._updateCursorVisual();
         if (this._isDrawing || isSpaceDown) {
-          this._drawPixel(this._cursorPos.x, this._cursorPos.y, this._isErasing);
+          this._drawPixelSymmetric(this._cursorPos.x, this._cursorPos.y, this._isErasing);
         }
         e.preventDefault();
       }
@@ -553,14 +854,15 @@ export class Pixler extends ForgeTool {
         e.preventDefault();
       }
       if (k === "x" || e.key === "Delete" || e.key === "Backspace") {
-        this._drawPixel(this._cursorPos.x, this._cursorPos.y, true);
+        this._drawPixelSymmetric(this._cursorPos.x, this._cursorPos.y, true);
+        this._saveHistory();
         e.preventDefault();
       }
 
       // Palette shortcuts 1-9
       const num = parseInt(e.key);
       if (num >= 1 && num <= 9 && num <= this._palette.length) {
-        this._currentColor = this._palette[num - 1]!;
+        this._setCurrentColor(this._palette[num - 1]!);
       }
     });
   }
@@ -586,12 +888,136 @@ export class Pixler extends ForgeTool {
         btn.style.lineHeight = "24px";
         btn.style.fontSize = "10px";
       }
+      if (color === this._currentColor) {
+        btn.style.borderColor = "var(--swf-primary)";
+        btn.style.outline = "2px solid var(--swf-primary)";
+        btn.style.zIndex = "1";
+      }
+
       btn.title = `Key ${i + 1 > 9 ? "" : i + 1}`;
       btn.onclick = (): void => {
-        this._currentColor = color;
+        this._setCurrentColor(color);
       };
       this._paletteContainer.appendChild(btn);
     });
+  }
+
+  private _setCurrentColor(color: string): void {
+    this._currentColor = color;
+    this._renderPaletteUI();
+  }
+
+  // --- HISTORY ---
+
+  private _saveHistory(): void {
+    this._history = this._history.slice(0, this._historyIndex + 1);
+    this._history.push(this._ctx.getImageData(0, 0, this._width, this._height));
+    if (this._history.length > 50) this._history.shift();
+    else this._historyIndex++;
+  }
+
+  public undo(): void {
+    if (this._historyIndex > 0) {
+      this._historyIndex--;
+      this._ctx.putImageData(this._history[this._historyIndex]!, 0, 0);
+    }
+  }
+
+  public redo(): void {
+    if (this._historyIndex < this._history.length - 1) {
+      this._historyIndex++;
+      this._ctx.putImageData(this._history[this._historyIndex]!, 0, 0);
+    }
+  }
+
+  // --- ACTIONS ---
+
+  public trim(): void {
+    const imgData = this._ctx.getImageData(0, 0, this._width, this._height);
+    const data = imgData.data;
+
+    let minX = this._width;
+    let minY = this._height;
+    let maxX = -1;
+    let maxY = -1;
+
+    const isBackground = (x: number, y: number): boolean => {
+      const i = (y * this._width + x) * 4;
+      const a = data[i + 3]!;
+      if (a === 0) return true; // Transparent is background
+      if (this._currentColor === "transparent") return false;
+
+      const toHex = (c: number): string => c.toString(16).padStart(2, "0");
+      const hex = `#${toHex(data[i]!)}${toHex(data[i + 1]!)}${toHex(data[i + 2]!)}`.toLowerCase();
+      return hex === this._currentColor.toLowerCase();
+    };
+
+    for (let y = 0; y < this._height; y++) {
+      for (let x = 0; x < this._width; x++) {
+        if (!isBackground(x, y)) {
+          if (x < minX) minX = x;
+          if (x > maxX) maxX = x;
+          if (y < minY) minY = y;
+          if (y > maxY) maxY = y;
+        }
+      }
+    }
+
+    if (maxX < minX || maxY < minY) {
+      this._ctx.clearRect(0, 0, this._width, this._height);
+      return;
+    }
+
+    const newW = maxX - minX + 1;
+    const newH = maxY - minY + 1;
+
+    const croppedData = this._ctx.getImageData(minX, minY, newW, newH);
+
+    this._width = newW;
+    this._height = newH;
+    if (this._inputs["W"]) this._inputs["W"].value = newW.toString();
+    if (this._inputs["H"]) this._inputs["H"].value = newH.toString();
+
+    this._canvas.width = newW;
+    this._canvas.height = newH;
+    this._ctx.putImageData(croppedData, 0, 0);
+    this._updateGrid();
+    this._saveHistory();
+  }
+
+  public pan(dx: number, dy: number): void {
+    const oldData = this._ctx.getImageData(0, 0, this._width, this._height);
+    this._ctx.clearRect(0, 0, this._width, this._height);
+
+    const tempCanvas = document.createElement("canvas");
+    tempCanvas.width = this._width;
+    tempCanvas.height = this._height;
+    tempCanvas.getContext("2d", { willReadFrequently: true })!.putImageData(oldData, 0, 0);
+
+    const x = ((dx % this._width) + this._width) % this._width;
+    const y = ((dy % this._height) + this._height) % this._height;
+
+    this._ctx.drawImage(tempCanvas, x, y);
+    this._ctx.drawImage(tempCanvas, x - this._width, y);
+    this._ctx.drawImage(tempCanvas, x, y - this._height);
+    this._ctx.drawImage(tempCanvas, x - this._width, y - this._height);
+    this._saveHistory();
+  }
+
+  public flip(horizontal: boolean, vertical: boolean): void {
+    const oldData = this._ctx.getImageData(0, 0, this._width, this._height);
+    const tempCanvas = document.createElement("canvas");
+    tempCanvas.width = this._width;
+    tempCanvas.height = this._height;
+    tempCanvas.getContext("2d", { willReadFrequently: true })!.putImageData(oldData, 0, 0);
+
+    this._ctx.clearRect(0, 0, this._width, this._height);
+    this._ctx.save();
+    this._ctx.translate(horizontal ? this._width : 0, vertical ? this._height : 0);
+    this._ctx.scale(horizontal ? -1 : 1, vertical ? -1 : 1);
+    this._ctx.drawImage(tempCanvas, 0, 0);
+    this._ctx.restore();
+    this._saveHistory();
   }
 
   // --- PUBLIC API ---

@@ -1,5 +1,6 @@
 /// src/core/textures/Texture.ts
 import { TextureFilter, TextureWrap } from "../../enums/index.js";
+import { AssetManager } from "../../loaders/AssetManager.js";
 /**
  * Configuration options for creating a texture.
  */
@@ -123,7 +124,6 @@ export class Texture {
    * @returns A promise that resolves to a new Texture instance.
    */
   public static async fromUrl(url: string, options?: TextureOptions): Promise<Texture> {
-    const { AssetManager } = await import("../../loaders/index.js");
     const image = await AssetManager.loadImage(url, undefined, options?.flipY);
     return new Texture(image, options);
   }

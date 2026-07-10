@@ -1,5 +1,6 @@
 /// src/core/textures/CubeTexture.ts
 import { CubeLayout } from "../../enums/index.js";
+import { AssetManager } from "../../loaders/AssetManager.js";
 
 /**
  * Represents a cube map texture.
@@ -39,7 +40,6 @@ export class CubeTexture {
         6 === urls.length &&
         (undefined === layout || CubeLayout.SIX_IMAGES === layout)
       ) {
-        const { AssetManager } = await import("../../loaders/index.js");
         this.images = await Promise.all(
           urls.map((url: string) => AssetManager.loadImage(url, undefined, false)),
         );
@@ -48,7 +48,6 @@ export class CubeTexture {
       }
 
       const url: string = Array.isArray(urls) ? urls[0]! : urls;
-      const { AssetManager } = await import("../../loaders/index.js");
       const fullImage: ImageBitmap | HTMLImageElement = await AssetManager.loadImage(
         url,
         undefined,

@@ -1,15 +1,17 @@
 /// src/apps/yad/YadLevelBuilder.ts
-import { Object3D, Scene, Sprite } from "../../core/index.js";
-import { Vector3D } from "../../math/index.js";
+import { Object3D, Scene, Sprite, InstancedMesh } from "../../core/index.js";
+import { Vector3D, Matrix4 } from "../../math/index.js";
 import { Cube, Sphere } from "../../geometry/index.js";
 import { StandardMaterial, LavaMaterial, SpriteMaterial } from "../../core/materials/index.js";
 import { PointLight } from "../../core/lights/index.js";
 import { Color } from "../../core/colors/index.js";
-import { Texture } from "../../core/textures/index.js";
-import { CullMode } from "../../enums/index.js";
+import { Texture, TextureArray } from "../../core/textures/index.js";
+import { CullMode, TextureFilter, TextureWrap } from "../../enums/index.js";
 import { CameraInterfaceData } from "../../interfaces/index.js";
 import { ProximitySensorBehavior, BobbingBehavior } from "../../core/behaviors/index.js";
 import { GridLevelBuilder, GridLegend } from "../../extensions/grid-builder/GridLevelBuilder.js";
+import { AudioSystem } from "../../audio/index.js";
+import { EnemyBehavior } from "./EnemyBehavior.js";
 export type YadTileType =
   | "wall"
   | "door"
@@ -90,13 +92,35 @@ export class YadLevelBuilder {
 
     const playerStart = new Vector3D(0, 1, 0);
 
+    const wallPositions: { x: number; y: number; z: number; texIndex: number }[] = [];
+    const wallTextures: Texture[] = [];
+    const charToTexIndex: Record<string, number> = {};
+
+    // First pass to register wall textures for the array
+    for (const [char, entry] of Object.entries(config.legend)) {
+      if (entry.type === "wall" && entry.texture && entry.texture.image) {
+        charToTexIndex[char] = wallTextures.length;
+        wallTextures.push(entry.texture);
+      }
+    }
+
     // Convert YadLegend to GridLegend
     const gridLegend: GridLegend = {};
     for (const [char, entry] of Object.entries(config.legend)) {
       if (entry.type === "wall") {
         gridLegend[char] = {
-          type: "block",
-          ...(entry.texture && { texture: entry.texture }),
+          type: "custom",
+          preventFloorCeiling: true,
+          onBuild: (
+            _x: number,
+            _y: number,
+            worldX: number,
+            worldZ: number,
+          ): Object3D | undefined => {
+            const tIdx = charToTexIndex[char] ?? 0;
+            wallPositions.push({ x: worldX, y: this._wallHeight / 2, z: worldZ, texIndex: tIdx });
+            return undefined;
+          },
         };
       } else if (entry.type === "floor") {
         gridLegend[char] = {
@@ -130,28 +154,24 @@ export class YadLevelBuilder {
                   onUpdate: (_factor, distance, deltaTime): void => {
                     if (distance <= 3.5 && !isOpen) {
                       isOpen = true;
-                      import("../../audio/AudioSystem.js").then((m) => {
-                        m.AudioSystem.instance.playSpatial(
-                          dSound,
-                          block.position,
-                          false,
-                          0.8,
-                          3.0,
-                          30.0,
-                        );
-                      });
+                      AudioSystem.instance.playSpatial(
+                        dSound,
+                        block.position,
+                        false,
+                        0.8,
+                        3.0,
+                        30.0,
+                      );
                     } else if (distance >= 4.5 && isOpen) {
                       isOpen = false;
-                      import("../../audio/AudioSystem.js").then((m) => {
-                        m.AudioSystem.instance.playSpatial(
-                          dSound,
-                          block.position,
-                          false,
-                          0.8,
-                          3.0,
-                          30.0,
-                        );
-                      });
+                      AudioSystem.instance.playSpatial(
+                        dSound,
+                        block.position,
+                        false,
+                        0.8,
+                        3.0,
+                        30.0,
+                      );
                     }
                     const targetY = isOpen ? initialY + this._wallHeight : initialY;
                     block.position.y += (targetY - block.position.y) * 5.0 * deltaTime;
@@ -181,16 +201,14 @@ export class YadLevelBuilder {
               sprite.addBehavior(new BobbingBehavior(0.1, 1.5));
             }
             if (entry.isEnemy && config.playerCamera) {
-              import("./EnemyBehavior.js").then((m) => {
-                sprite.addBehavior(
-                  new m.EnemyBehavior({
-                    player: config.playerCamera!,
-                    scene: sceneRef,
-                    speed: 6.0,
-                    detectionRange: 30.0,
-                  }),
-                );
-              });
+              sprite.addBehavior(
+                new EnemyBehavior({
+                  player: config.playerCamera!,
+                  scene: sceneRef,
+                  speed: 6.0,
+                  detectionRange: 30.0,
+                }),
+              );
             }
 
             if (entry.lightColor) {
@@ -202,9 +220,7 @@ export class YadLevelBuilder {
               light.position.set(worldX, (entry.spriteY ?? 1.0) + 0.3, worldZ);
               sceneRef.add(light);
 
-              import("../../audio/AudioSystem.js").then((m) => {
-                m.AudioSystem.instance.startFire(light.position, 0.4);
-              });
+              AudioSystem.instance.startFire(light.position, 0.4);
             }
             return sprite;
           },
@@ -286,6 +302,54 @@ export class YadLevelBuilder {
       gridSize: this._gridSize,
       wallHeight: this._wallHeight,
     });
+
+    if (wallPositions.length > 0 && wallTextures.length > 0) {
+      const texArray = TextureArray.fromImages(
+        wallTextures.map((t) => t.image as HTMLImageElement),
+        {
+          magFilter: TextureFilter.NEAREST,
+          minFilter: TextureFilter.NEAREST,
+          addressModeU: TextureWrap.REPEAT,
+          addressModeV: TextureWrap.REPEAT,
+        },
+      );
+      const wallMat = new StandardMaterial({ diffuseMap: texArray });
+      const wallInstanced = new InstancedMesh(
+        "InstancedWalls",
+        wallGeo,
+        wallMat,
+        wallPositions.length,
+      );
+      wallInstanced.initInstanceData(4);
+
+      for (let i = 0; i < wallPositions.length; i++) {
+        const pos = wallPositions[i]!;
+        const mat4 = new Matrix4();
+        mat4.compose(
+          new Vector3D(pos.x, pos.y, pos.z),
+          new Vector3D(0, 0, 0),
+          new Vector3D(1, this._wallHeight / this._gridSize, 1),
+        );
+        wallInstanced.setMatrixAt(i, mat4);
+        wallInstanced.setInstanceDataAt(i, [pos.texIndex, 0, 0, 0]);
+
+        // Add a hidden collider for physics
+        const collider = new Object3D(`WallCollider_${i}`);
+        collider.position.set(pos.x, pos.y, pos.z);
+        collider.scale.set(1, this._wallHeight / this._gridSize, 1);
+        collider.geometry = wallGeo;
+        collider.isVisible = false;
+        collider.isStatic = true;
+        collider.updateMatrixWorld(true);
+        collider.computeBounds();
+        scene.add(collider);
+      }
+      wallInstanced.isStatic = true;
+      wallInstanced.frustumCulled = false;
+      wallInstanced.updateMatrixWorld(true);
+      wallInstanced.computeBounds();
+      scene.add(wallInstanced);
+    }
 
     return { playerStart, lavaMaterials, lavaLights };
   }
