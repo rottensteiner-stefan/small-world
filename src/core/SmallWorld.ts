@@ -21,7 +21,7 @@ import { CollisionVisualizer, OctreeVisualizer } from "../utils/index.js";
 import { GadgetInspector } from "../tools/index.js";
 
 /** The current engine version. */
-export const ENGINE_VERSION = "0.53.0";
+export const ENGINE_VERSION = "0.54.0";
 
 /**
  * Base class for applications built with the SmallWorld engine.
@@ -156,14 +156,13 @@ export abstract class SmallWorld {
           enabled: false,
         };
       } else if (tier === "MEDIUM") {
-        console.log("📊 Medium Performance Tier detected. Adjusting some settings.");
         this.config.quality = {
           ...this.config.quality,
           msaa: 2,
           maxAnisotropy: 2,
         };
       } else {
-        console.log("🚀 High Performance Tier detected. Running at full throttle.");
+        // High tier, no overrides needed
       }
 
       this.canvas = document.getElementById(this.config.canvasId!) as HTMLCanvasElement;
@@ -226,11 +225,43 @@ export abstract class SmallWorld {
 
       this.renderer.setSize(this.canvas.width, this.canvas.height);
 
-      console.log(
-        `%c🌍 Small World Engine v${ENGINE_VERSION} initialized\n%cRenderer: ${this.renderer.constructor.name}`,
-        "color: #00ffcc; font-size: 14px; font-weight: bold;",
-        "color: #aaaaaa; font-size: 12px;",
-      );
+      if (!(window as unknown as Record<string, boolean>)["__SMALLWORLD_BANNER__"]) {
+        (window as unknown as Record<string, boolean>)["__SMALLWORLD_BANNER__"] = true;
+        const bannerStyle1 =
+          "font-size: 24px; font-weight: bold; font-family: sans-serif; color: #B000FF; text-shadow: 0 0 10px rgba(176, 0, 255, 0.5); line-height: 30px;";
+        const bannerStyle2 =
+          "font-size: 14px; font-weight: bold; background: #222; color: #fff; padding: 2px 6px; border-radius: 4px; border: 1px solid #B000FF; margin-left: 8px; line-height: 30px;";
+        const bannerStyle3 = "font-size: 12px; font-family: sans-serif; color: #aaa;";
+        console.log(
+          `%c Small World Engine %c v${ENGINE_VERSION} %c\n\n%c A very small 3D engine focusing on raw WebGL performance.\n https://github.com/rottensteiner-stefan/small-world\n\n`,
+          bannerStyle1,
+          bannerStyle2,
+          "",
+          bannerStyle3,
+        );
+        console.table({
+          "API - WebGL1": DeviceCaps.hasFeature(DeviceFeature.WEBGL1) ? "Yes" : "No",
+          "API - WebGL2": DeviceCaps.hasFeature(DeviceFeature.WEBGL2) ? "Yes" : "No",
+          "API - WebGPU": DeviceCaps.hasFeature(DeviceFeature.WEBGPU) ? "Yes" : "No",
+          "Max Texture Size": DeviceCaps.getLimit(DeviceLimit.MAX_TEXTURE_SIZE),
+          "Max Texture Units": DeviceCaps.getLimit(DeviceLimit.MAX_TEXTURE_IMAGE_UNITS),
+          "Max Anisotropy": DeviceCaps.getLimit(DeviceLimit.MAX_ANISOTROPY),
+          "Max Uniform Buffer Size": DeviceCaps.getLimit(DeviceLimit.MAX_UNIFORM_BUFFER_SIZE),
+          "Max MSAA Samples": DeviceCaps.getLimit(DeviceLimit.MAX_MSAA_SAMPLES),
+          "Max Vertex Attributes": DeviceCaps.getLimit(DeviceLimit.MAX_VERTEX_ATTRIBUTES),
+          "Max Vertex Uniforms": DeviceCaps.getLimit(DeviceLimit.MAX_VERTEX_UNIFORM_VECTORS),
+          "Max Fragment Uniforms": DeviceCaps.getLimit(DeviceLimit.MAX_FRAGMENT_UNIFORM_VECTORS),
+          "Feature - Float Textures": DeviceCaps.hasFeature(DeviceFeature.FLOAT_TEXTURES)
+            ? "Yes"
+            : "No",
+          "Feature - Compressed Textures": DeviceCaps.hasFeature(DeviceFeature.COMPRESSED_TEXTURES)
+            ? "Yes"
+            : "No",
+          "Feature - Offscreen Canvas": DeviceCaps.hasFeature(DeviceFeature.OFFSCREEN_CANVAS)
+            ? "Yes"
+            : "No",
+        });
+      }
 
       this.camera.aspect = this.canvas.clientWidth / this.canvas.clientHeight;
       this.camera.updateProjectionMatrix();
@@ -300,29 +331,6 @@ export abstract class SmallWorld {
 
         this.onInspectorReady(this._inspector);
       }
-
-      console.table({
-        "API - WebGL1": DeviceCaps.hasFeature(DeviceFeature.WEBGL1) ? "Yes" : "No",
-        "API - WebGL2": DeviceCaps.hasFeature(DeviceFeature.WEBGL2) ? "Yes" : "No",
-        "API - WebGPU": DeviceCaps.hasFeature(DeviceFeature.WEBGPU) ? "Yes" : "No",
-        "Max Texture Size": DeviceCaps.getLimit(DeviceLimit.MAX_TEXTURE_SIZE),
-        "Max Texture Units": DeviceCaps.getLimit(DeviceLimit.MAX_TEXTURE_IMAGE_UNITS),
-        "Max Anisotropy": DeviceCaps.getLimit(DeviceLimit.MAX_ANISOTROPY),
-        "Max Uniform Buffer Size": DeviceCaps.getLimit(DeviceLimit.MAX_UNIFORM_BUFFER_SIZE),
-        "Max MSAA Samples": DeviceCaps.getLimit(DeviceLimit.MAX_MSAA_SAMPLES),
-        "Max Vertex Attributes": DeviceCaps.getLimit(DeviceLimit.MAX_VERTEX_ATTRIBUTES),
-        "Max Vertex Uniforms": DeviceCaps.getLimit(DeviceLimit.MAX_VERTEX_UNIFORM_VECTORS),
-        "Max Fragment Uniforms": DeviceCaps.getLimit(DeviceLimit.MAX_FRAGMENT_UNIFORM_VECTORS),
-        "Feature - Float Textures": DeviceCaps.hasFeature(DeviceFeature.FLOAT_TEXTURES)
-          ? "Yes"
-          : "No",
-        "Feature - Compressed Textures": DeviceCaps.hasFeature(DeviceFeature.COMPRESSED_TEXTURES)
-          ? "Yes"
-          : "No",
-        "Feature - Offscreen Canvas": DeviceCaps.hasFeature(DeviceFeature.OFFSCREEN_CANVAS)
-          ? "Yes"
-          : "No",
-      });
 
       this._isInitialized = true;
     }

@@ -576,7 +576,6 @@ export class WebGPURenderer extends AbstractRenderer {
       flagKey;
     let cache = this._pipelines.get(key);
     if (!cache) {
-      console.log("[WebGPURenderer] Creating new pipeline:", key);
       const sm = this._getShaderModule(shaderId, isInstanced, flags);
       const materialBGL = this._getMaterialBGL(flags);
       const pipelineLayout = this._device!.createPipelineLayout({

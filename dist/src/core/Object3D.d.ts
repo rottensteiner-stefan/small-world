@@ -1,11 +1,11 @@
 import { AbstractMaterial } from './materials/index.js';
-import { BoundingVolume, GeometryDataInterface } from '../interfaces/index.js';
+import { BoundingVolume, GeometryDataInterface, Collidable } from '../interfaces/index.js';
 import { Matrix4, Vector3D } from '../math/index.js';
 import { Behavior } from './behaviors/index.js';
 /**
  * Base class for all 3D objects in the scene.
  */
-export declare class Object3D {
+export declare class Object3D implements Collidable {
     readonly uuid: string;
     name: string;
     geometry: GeometryDataInterface | undefined;

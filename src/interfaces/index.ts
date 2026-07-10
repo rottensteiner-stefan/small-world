@@ -13,4 +13,5 @@ export * from "./LoaderOptions.js";
 export * from "./LightData.js";
 export * from "./Renderer.js";
 export * from "./Vector.js";
+export * from "./Collidable.js";
 export * from "./ShaderProvider.js";

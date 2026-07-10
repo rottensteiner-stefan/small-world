@@ -3,9 +3,9 @@ export const FORGE_THEME_CSS = `
     --swf-bg: rgba(15, 23, 42, 0.65); /* More transparent for better glass effect */
     --swf-panel: rgba(30, 41, 59, 0.5);
     --swf-panel-hover: rgba(51, 65, 85, 0.65);
-    --swf-border: rgba(0, 229, 255, 0.3);
-    --swf-border-focus: rgba(0, 229, 255, 0.8);
-    --swf-accent: #00e5ff;
+    --swf-border: rgba(176, 0, 255, 0.3);
+    --swf-border-focus: rgba(176, 0, 255, 0.8);
+    --swf-accent: #b000ff;
     --swf-accent-alt: #ff00ff;
     --swf-text: #e2e8f0;
     --swf-text-muted: #94a3b8;

@@ -33,7 +33,7 @@ export class FrustumCuller {
         const visibleStatic: Object3D[] = scene.staticOctree.query(
           this._frustum,
           this.lastIntersectedNodes,
-        );
+        ) as Object3D[];
         for (let i: number = 0; i < visibleStatic.length; i++) {
           const obj = visibleStatic[i]!;
           if (obj.isVisible) obj.inFrustum = true;
@@ -44,7 +44,7 @@ export class FrustumCuller {
         const visibleDynamic: Object3D[] = scene.dynamicOctree.query(
           this._frustum,
           this.lastIntersectedNodes,
-        );
+        ) as Object3D[];
         for (let i: number = 0; i < visibleDynamic.length; i++) {
           const obj = visibleDynamic[i]!;
           if (obj.isVisible) obj.inFrustum = true;

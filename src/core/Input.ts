@@ -171,13 +171,11 @@ export class Input implements InputInterface {
       inst.mouse.dy = 0;
     });
 
-    window.addEventListener("gamepadconnected", (e: GamepadEvent): void => {
-      console.log(
-        `[Input] Gamepad connected: ${e.gamepad.id} | Mapping: ${e.gamepad.mapping} | Axes: ${e.gamepad.axes.length} | Buttons: ${e.gamepad.buttons.length}`,
-      );
+    window.addEventListener("gamepadconnected", (): void => {
+      // Gamepad connected
     });
-    window.addEventListener("gamepaddisconnected", (e: GamepadEvent): void => {
-      console.log(`[Input] Gamepad disconnected: ${e.gamepad.id}`);
+    window.addEventListener("gamepaddisconnected", (): void => {
+      // Gamepad disconnected
     });
   }
 
@@ -310,12 +308,8 @@ export class Input implements InputInterface {
           }
         }
 
-        if (axes.length > 0 || buttons.length > 0) {
-          console.log(
-            `[Input Gamepad Debug] ${gp.id} | Axes: [${axes.join(", ")}] | Buttons: [${buttons.join(", ")}]`,
-          );
-          this._lastDebugLog = now;
-        }
+        // Debug logging removed
+        this._lastDebugLog = now;
       }
     }
   }

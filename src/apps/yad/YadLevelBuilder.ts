@@ -12,6 +12,7 @@ import { ProximitySensorBehavior, BobbingBehavior } from "../../core/behaviors/i
 import { GridLevelBuilder, GridLegend } from "../../extensions/grid-builder/GridLevelBuilder.js";
 import { AudioSystem } from "../../audio/index.js";
 import { EnemyBehavior } from "./EnemyBehavior.js";
+import { BoundingBox, SpatialHash, StaticCollider } from "../../physix/index.js";
 export type YadTileType =
   | "wall"
   | "door"
@@ -70,8 +71,6 @@ export class YadLevelBuilder {
     mapData: string,
     config: YadLevelConfig,
   ): Promise<{ playerStart: Vector3D; lavaMaterials: LavaMaterial[]; lavaLights: PointLight[] }> {
-    console.log("[YadLevelBuilder] Starting build via GridLevelBuilder...");
-
     const lavaMaterials: LavaMaterial[] = [];
     const lavaLights: PointLight[] = [];
 
@@ -334,15 +333,16 @@ export class YadLevelBuilder {
         wallInstanced.setInstanceDataAt(i, [pos.texIndex, 0, 0, 0]);
 
         // Add a hidden collider for physics
-        const collider = new Object3D(`WallCollider_${i}`);
-        collider.position.set(pos.x, pos.y, pos.z);
-        collider.scale.set(1, this._wallHeight / this._gridSize, 1);
-        collider.geometry = wallGeo;
-        collider.isVisible = false;
-        collider.isStatic = true;
-        collider.updateMatrixWorld(true);
-        collider.computeBounds();
-        scene.add(collider);
+        if (!scene.spatialHash) {
+          scene.spatialHash = new SpatialHash(this._gridSize);
+        }
+
+        const bounds = new BoundingBox(
+          new Vector3D(pos.x - this._gridSize / 2, 0, pos.z - this._gridSize / 2),
+          new Vector3D(pos.x + this._gridSize / 2, this._wallHeight, pos.z + this._gridSize / 2),
+        );
+        const collider = new StaticCollider(bounds);
+        scene.spatialHash.insert(collider);
       }
       wallInstanced.isStatic = true;
       wallInstanced.frustumCulled = false;

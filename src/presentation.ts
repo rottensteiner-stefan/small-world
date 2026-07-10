@@ -258,7 +258,6 @@ class PresentationController {
     this._app
       .start()
       .then((): void => {
-        console.log("3D App initialized.");
         this._app?.resizeToContainer();
         // Pause loop immediately because we start on slide 1 (index 0)
         if (4 !== this._currentSlideIndex) {

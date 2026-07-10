@@ -19,11 +19,7 @@ export abstract class AbstractShowcase extends SmallWorld {
    */
   protected async waitForAssets(): Promise<void> {
     if (!AssetManager.isLoaded) {
-      console.log(
-        `Waiting for assets... (${(AssetManager.getGlobalProgress() * 100).toFixed(0)}%)`,
-      );
       await AssetManager.onLoaded();
-      console.log("All assets loaded.");
     }
   }
 
@@ -34,7 +30,6 @@ export abstract class AbstractShowcase extends SmallWorld {
   protected onKeyDown(event: KeyboardEvent): void {
     if (Keys.B === event.code) {
       this.debug = !this.debug;
-      console.log(`Debug visualization: ${this.debug ? "ON" : "OFF"}`);
     }
   }
 

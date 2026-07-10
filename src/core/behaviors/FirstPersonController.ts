@@ -160,9 +160,11 @@ export class FirstPersonController extends Behavior {
     this._collider.center.copyFrom(this.target.position);
     this._collider.center.y += 0.5; // Offset slightly up
 
-    const potentialHits: Object3D[] = [];
+    const potentialHits: import("../../interfaces/index.js").Collidable[] = [];
     if (this._options.scene.staticOctree)
       potentialHits.push(...this._options.scene.staticOctree.queryVolume(this._collider));
+    if (this._options.scene.spatialHash)
+      potentialHits.push(...this._options.scene.spatialHash.query(this._collider));
     if (this._options.scene.dynamicOctree)
       potentialHits.push(...this._options.scene.dynamicOctree.queryVolume(this._collider));
 

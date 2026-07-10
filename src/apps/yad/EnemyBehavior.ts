@@ -68,9 +68,11 @@ export class EnemyBehavior extends Behavior {
     this._collider.center.copyFrom(this.target.position);
     this._collider.center.y += 0.5; // Offset slightly up
 
-    const potentialHits: Object3D[] = [];
+    const potentialHits: import("../../interfaces/index.js").Collidable[] = [];
     if (this._scene.staticOctree)
       potentialHits.push(...this._scene.staticOctree.queryVolume(this._collider));
+    if (this._scene.spatialHash)
+      potentialHits.push(...this._scene.spatialHash.query(this._collider));
 
     const correction = MathPool.acquireVector().set(0, 0, 0);
     const hitCorrection = MathPool.acquireVector();
