@@ -8,6 +8,8 @@ export const BoundingType = {
   BOX: 1,
   /** Bounding sphere. */
   SPHERE: 0,
+  /** Oriented bounding box. */
+  OBB: 2,
 } as const;
 
 /** Type definition for BoundingType. */
