@@ -23,7 +23,7 @@ export class YadController extends FirstPersonController {
    * @param options The configuration options.
    */
   constructor(options: FirstPersonControllerOptions = {}) {
-    // Force retro tank controls for DOOM feel
+    // Force retro tank controls for Dungeon feel
     super({ ...options, retroTankControls: true });
   }
 

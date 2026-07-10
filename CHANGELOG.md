@@ -40,7 +40,7 @@
 ## [0.49.0] - 2026-07-09
 
 - **Refactor (Engine Generalization):**
-  - Abstracted the core logic of the DOOM clone showcase (YAD) into a reusable `GridLevelBuilder` extension, genericizing ASCII-based level map generation.
+  - Abstracted the core logic of the Dungeon clone showcase (YAD) into a reusable `GridLevelBuilder` extension, genericizing ASCII-based level map generation.
   - Extracted the FPS-style logic out of `YadController` and introduced a dedicated `FirstPersonController` inside the engine core (`src/core/behaviors`), promoting reuse for custom FPS or adventure games.
   - Implemented a unified `EventBus` (`EventDispatcherImpl`) injected globally into `SmallWorld` instances as `this.events`. Removed direct `window.addEventListener` and DOM-coupled custom events, fully separating the UI, gameloop, and game behaviors.
 - **Feature (Loot System):**
@@ -63,7 +63,7 @@
 ## [0.47.0] - 2026-07-08
 
 - **Feature (YAD Showcase & Engine Features):**
-  - Added a complete "Yet Another Doom" (YAD) clone showcase featuring an advanced `YadLevelBuilder`, `YadController`, and raycasted `EnemyBehavior`.
+  - Added a complete "Yet Another Dungeon" (YAD) clone showcase featuring an advanced `YadLevelBuilder`, `YadController`, and raycasted `EnemyBehavior`.
 - **Feature (AudioSystem Upgrade):**
   - Upgraded the rudimentary `AudioSystem` with a complete Audio Mixer (Master, Music, SFX channels).
   - Implemented procedural Reverb (ConvolverNode with procedurally decaying white noise impulse response) for dungeon atmosphere, eliminating external asset dependencies.

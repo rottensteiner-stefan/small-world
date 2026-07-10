@@ -144,14 +144,15 @@ This document serves to record external sources, algorithms, mathematical deriva
 
 ## Assets & Fonts
 
-### DooM Font (Yet Another Doom HUD)
+### Dungeon Font (Yet Another Dungeon HUD)
 
-- **File:** `showcases/yad/assets/fonts/DooM.ttf`
+- **File:** `showcases/yad/assets/fonts/Dungeon.ttf`
 - **Source:** [DooM Font auf DaFont](https://www.dafont.com/doom.font)
-- **Usage:** Used to render the iconic red numbers and UI text in the YAD (Yet Another Doom) showcase. A huge thanks to the unknown author who originally created and shared this authentic TTF replica!
+- **Usage:** Used to render the iconic red numbers and UI text in the YAD (Yet Another Dungeon) showcase. A huge thanks to the unknown author who originally created and shared this authentic TTF replica!
+  *Note: While the project uses the name "Yet Another Dungeon" (YAD), its aesthetic and assets are deeply inspired by the legendary DOOM (1993).*
 
-### DOOM Texture & Sprite Pack
+### Retro Dungeon Texture & Sprite Pack
 
-- **File:** `showcases/yad/assets/doom_pack/`
+- **File:** `showcases/yad/assets/dungeon_pack/`
 - **Source:** Original assets by **id Software** (DOOM, 1993). 
 - **Usage:** Used in the YAD showcase for authentic wall textures, flats, and weapon/enemy sprites. Thank you to the DOOM community and id Software for making these legendary assets available for educational and nostalgic projects!
