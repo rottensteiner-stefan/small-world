@@ -264,7 +264,6 @@ export class YadApp extends AbstractShowcase {
     this._playerController = new YadController({
       moveSpeed: 10.0,
       scene: this.scene,
-      events: this.events,
     });
     this.camera.addBehavior(this._playerController);
     this.camera.addBehavior(new ZoomController());
@@ -279,7 +278,7 @@ export class YadApp extends AbstractShowcase {
     this.debug = false; // Disable visual debugging for collisions by default
 
     // 7. Initialize HUD
-    this._hud = new YadHud(this.events);
+    this._hud = new YadHud();
 
     // 8. Apply Retro Color Banding (Quantization)
     if (this.renderer) {

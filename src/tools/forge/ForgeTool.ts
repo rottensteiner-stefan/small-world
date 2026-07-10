@@ -1,7 +1,6 @@
 export interface ForgeToolOptions {
   parent?: HTMLElement;
   initialState?: unknown;
-  events?: import("../../interfaces/index.js").Events;
 }
 
 export abstract class ForgeTool {

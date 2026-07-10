@@ -1,5 +1,6 @@
 import { ForgeTool, ForgeToolOptions } from "./forge/ForgeTool.js";
 import { ToolEvents } from "../enums/ToolEvents.js";
+import { UniversalEventBus } from "../core/index.js";
 
 export class IXtractor extends ForgeTool {
   public loadFromBase64?: (base64: string) => void;
@@ -716,11 +717,9 @@ export class IXtractor extends ForgeTool {
     btnClearSelection.addEventListener("click", clearSelection);
 
     btnSendPixler.addEventListener("click", () => {
-      if (currentRect && this._options.events) {
+      if (currentRect) {
         const base64 = cropPreviewCanvas.toDataURL("image/png");
-        this._options.events.dispatchEvent(ToolEvents.Pixler.LOAD_BASE64, { base64 });
-      } else if (!this._options.events) {
-        alert("EventBus not found on ToolOptions");
+        UniversalEventBus.dispatchEvent(ToolEvents.Pixler.LOAD_BASE64, { base64 });
       }
     });
 

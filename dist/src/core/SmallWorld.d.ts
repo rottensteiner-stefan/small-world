@@ -1,10 +1,10 @@
 import { Camera } from './Camera.js';
 import { Scene } from './Scene.js';
 import { InteractionManager } from './InteractionManager.js';
-import { EngineOptions, Events, Renderer } from '../interfaces/index.js';
+import { EngineOptions, Renderer } from '../interfaces/index.js';
 import { GadgetInspector } from '../tools/index.js';
 /** The current engine version. */
-export declare const ENGINE_VERSION = "0.51.0";
+export declare const ENGINE_VERSION = "0.52.0";
 /**
  * Base class for applications built with the SmallWorld engine.
  */
@@ -22,8 +22,6 @@ export declare abstract class SmallWorld {
     forge: import('../tools/forge/Forge.js').Forge;
     /** The canvas element. */
     canvas: HTMLCanvasElement;
-    /** The global event dispatcher for the engine. */
-    events: Events;
     /** Whether debug visualization is enabled. */
     debug: boolean;
     private _inspector?;

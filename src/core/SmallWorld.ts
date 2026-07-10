@@ -13,8 +13,7 @@ import {
   OrthographicProjection,
   PerspectiveProjection,
 } from "../math/projections/index.js";
-import { EngineOptions, ProjectionOptions, Events, Renderer } from "../interfaces/index.js";
-import { EventDispatcherImpl } from "./events/EventDispatcherImpl.js";
+import { EngineOptions, ProjectionOptions, Renderer } from "../interfaces/index.js";
 import { ProjectionType, RendererType } from "../enums/index.js";
 import { RendererFactory } from "../renderers/index.js";
 import { ShaderBootstrap } from "./renderers/shaders/index.js";
@@ -22,7 +21,7 @@ import { CollisionVisualizer, OctreeVisualizer } from "../utils/index.js";
 import { GadgetInspector } from "../tools/index.js";
 
 /** The current engine version. */
-export const ENGINE_VERSION = "0.51.0";
+export const ENGINE_VERSION = "0.52.0";
 
 /**
  * Base class for applications built with the SmallWorld engine.
@@ -41,8 +40,6 @@ export abstract class SmallWorld {
   public forge!: import("../tools/forge/Forge.js").Forge;
   /** The canvas element. */
   public canvas!: HTMLCanvasElement;
-  /** The global event dispatcher for the engine. */
-  public events: Events;
   /** Whether debug visualization is enabled. */
   public debug: boolean = false;
 
@@ -69,7 +66,6 @@ export abstract class SmallWorld {
     };
 
     this.scene = new Scene();
-    this.events = new EventDispatcherImpl();
 
     const initialAspect: number = window.innerWidth / window.innerHeight;
     const projection: AbstractProjection =

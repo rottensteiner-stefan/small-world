@@ -1,4 +1,5 @@
 import { AppEvents } from "../../enums/AppEvents.js";
+import { UniversalEventBus } from "../../core/index.js";
 
 export class YadHud {
   private _container: HTMLDivElement;
@@ -21,10 +22,7 @@ export class YadHud {
   private _armor: number = 0;
   private _ammo: number = 50;
 
-  private _events?: import("../../interfaces/index.js").Events | undefined;
-
-  constructor(events?: import("../../interfaces/index.js").Events) {
-    if (events) this._events = events;
+  constructor() {
     // Load VT323 Font from Google Fonts
     if (!document.getElementById("vt323-font")) {
       const link = document.createElement("link");
@@ -238,7 +236,7 @@ export class YadHud {
   }
 
   private _bindEvents(): void {
-    this._events?.addEventListener(AppEvents.Yad.DAMAGE, (e: Record<string, unknown>) => {
+    UniversalEventBus.addEventListener(AppEvents.Yad.DAMAGE, (e: Record<string, unknown>) => {
       const amount = (e["amount"] as number) || 0;
       if (this._armor > 0) {
         this._armor -= amount;
@@ -255,7 +253,7 @@ export class YadHud {
       this._triggerFlash("rgba(255, 0, 0, 0.4)"); // Red flash
     });
 
-    this._events?.addEventListener(AppEvents.Yad.PICKUP, (e: Record<string, unknown>) => {
+    UniversalEventBus.addEventListener(AppEvents.Yad.PICKUP, (e: Record<string, unknown>) => {
       const type = e["type"] as string;
       const amount = (e["amount"] as number) || 0;
       if (type === "armor") {
@@ -278,21 +276,21 @@ export class YadHud {
       this._updateDisplay();
     });
 
-    this._events?.addEventListener(AppEvents.Yad.SHOOT, (): void => {
+    UniversalEventBus.addEventListener(AppEvents.Yad.SHOOT, (): void => {
       if (this._ammo > 0) {
         this._ammo -= 1;
         this._updateDisplay();
       }
     });
 
-    this._events?.addEventListener(AppEvents.Yad.WEAPON, (e: Record<string, unknown>) => {
+    UniversalEventBus.addEventListener(AppEvents.Yad.WEAPON, (e: Record<string, unknown>) => {
       const index = e["index"] as number;
       if (index) {
         this._updateWeaponDisplay(index);
       }
     });
 
-    this._events?.addEventListener(AppEvents.Yad.SHOOT, (): void => {
+    UniversalEventBus.addEventListener(AppEvents.Yad.SHOOT, (): void => {
       this.triggerShoot();
     });
   }

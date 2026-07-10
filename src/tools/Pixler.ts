@@ -1,6 +1,7 @@
 /// src/tools/Pixler.ts
 import { ForgeTool, ForgeToolOptions } from "./forge/ForgeTool.js";
 import { ToolEvents } from "../enums/ToolEvents.js";
+import { UniversalEventBus } from "../core/index.js";
 
 export const PIXLER_PALETTES = {
   DEFAULT: [
@@ -292,17 +293,15 @@ export class Pixler extends ForgeTool {
     this._resize(this._width, this._height);
     this._bindEvents();
 
-    if (this._options.events) {
-      this._options.events.addEventListener(
-        ToolEvents.Pixler.LOAD_BASE64,
-        (e: Record<string, unknown>) => {
-          const base64 = e["base64"] as string;
-          if (base64) {
-            this.loadFromBase64(base64).catch((err) => console.error(err));
-          }
-        },
-      );
-    }
+    UniversalEventBus.addEventListener(
+      ToolEvents.Pixler.LOAD_BASE64,
+      (e: Record<string, unknown>) => {
+        const base64 = e["base64"] as string;
+        if (base64) {
+          this.loadFromBase64(base64).catch((err) => console.error(err));
+        }
+      },
+    );
   }
 
   private _createInput(
