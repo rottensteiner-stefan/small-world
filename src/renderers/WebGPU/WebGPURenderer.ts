@@ -4,11 +4,12 @@ import {
   CubeTexture,
   RenderManifest,
   ShaderRegistry,
-  Texture,
   DeviceCaps,
   InstancedMesh,
   Object3D,
   Scene,
+  TextureArray,
+  Texture,
 } from "../../core/index.js";
 import { RenderTarget, RenderTargetCube } from "../../core/textures/index.js";
 import {
@@ -96,6 +97,8 @@ export class WebGPURenderer extends AbstractRenderer {
   protected _dummyTangentBuffer!: GPUBuffer;
   protected _geoCache = new Map<GeometryDataInterface, WebGPUGeoCache>();
   protected _gpuInstanceBuffers: WeakMap<InstancedMesh, GPUBuffer> = new WeakMap();
+  protected _gpuInstanceDataBuffers: WeakMap<InstancedMesh, GPUBuffer> = new WeakMap();
+  protected _materialBGLCache = new Map<string, GPUBindGroupLayout>();
   protected _frameCount = 0;
   protected _scratchModelMatrix = new Float32Array(16);
   protected _scratchColorArray = new Float32Array(3);
@@ -445,7 +448,7 @@ export class WebGPURenderer extends AbstractRenderer {
         texture: { viewDimension: "2d", sampleType: "float" },
       },
     );
-    this._materialBGL = this._device!.createBindGroupLayout({ entries: matEntries });
+    this._materialBGLCache.set("", this._device!.createBindGroupLayout({ entries: matEntries }));
 
     this._objectBGL = this._device!.createBindGroupLayout({
       entries: [
@@ -489,12 +492,70 @@ export class WebGPURenderer extends AbstractRenderer {
     });
   }
 
+  protected _getMaterialBGL(flags: string[]): GPUBindGroupLayout {
+    const key = flags.join("_");
+    let bgl = this._materialBGLCache.get(key);
+    if (!bgl) {
+      const matEntries: GPUBindGroupLayoutEntry[] = [
+        { binding: 1, visibility: GPUShaderStage.FRAGMENT, sampler: { type: "filtering" } },
+      ];
+      for (let i = 2; i <= 10; i++) {
+        // Assume diffuseMap is binding 2
+        if (i === 2 && flags.includes("USE_TEXTURE_ARRAY")) {
+          matEntries.push({
+            binding: i,
+            visibility: GPUShaderStage.FRAGMENT,
+            texture: { viewDimension: "2d-array", sampleType: "float" },
+          });
+        } else {
+          matEntries.push({
+            binding: i,
+            visibility: GPUShaderStage.FRAGMENT,
+            texture: { sampleType: "float" },
+          });
+        }
+      }
+      matEntries.push({
+        binding: 11,
+        visibility: GPUShaderStage.FRAGMENT,
+        texture: { viewDimension: "cube" },
+      });
+      matEntries.push(
+        {
+          binding: 12,
+          visibility: GPUShaderStage.FRAGMENT,
+          texture: { viewDimension: "2d", sampleType: "float" },
+        },
+        {
+          binding: 13,
+          visibility: GPUShaderStage.FRAGMENT,
+          texture: { viewDimension: "2d", sampleType: "float" },
+        },
+        {
+          binding: 14,
+          visibility: GPUShaderStage.FRAGMENT,
+          texture: { viewDimension: "2d", sampleType: "float" },
+        },
+        {
+          binding: 15,
+          visibility: GPUShaderStage.FRAGMENT,
+          texture: { viewDimension: "2d", sampleType: "float" },
+        },
+      );
+      bgl = this._device!.createBindGroupLayout({ entries: matEntries });
+      this._materialBGLCache.set(key, bgl);
+    }
+    return bgl;
+  }
+
   protected _getPipeline(
     manifest: RenderManifest,
     topology: GPUPrimitiveTopology,
     isInstanced: boolean = false,
   ): WebGPUPipelineCache {
     const shaderId = manifest.shaderId;
+    const flags = manifest.flags || [];
+    const flagKey = flags.length > 0 ? "_" + flags.join("_") : "";
     const state = manifest.state || {};
     const targetFormat = this.postProcessing.enabled ? "rgba16float" : this._format;
     const key =
@@ -511,13 +572,15 @@ export class WebGPURenderer extends AbstractRenderer {
       (state.depthTest !== false) +
       "_" +
       targetFormat +
-      (isInstanced ? "_instanced" : "");
+      (isInstanced ? "_instanced" : "") +
+      flagKey;
     let cache = this._pipelines.get(key);
     if (!cache) {
       console.log("[WebGPURenderer] Creating new pipeline:", key);
-      const sm = this._getShaderModule(shaderId, isInstanced);
+      const sm = this._getShaderModule(shaderId, isInstanced, flags);
+      const materialBGL = this._getMaterialBGL(flags);
       const pipelineLayout = this._device!.createPipelineLayout({
-        bindGroupLayouts: [this._globalBGL, this._materialBGL, this._objectBGL],
+        bindGroupLayouts: [this._globalBGL, materialBGL, this._objectBGL],
       });
 
       const vertexBuffers: GPUVertexBufferLayout[] = [
@@ -537,6 +600,12 @@ export class WebGPURenderer extends AbstractRenderer {
             { shaderLocation: 6, offset: 32, format: "float32x4" },
             { shaderLocation: 7, offset: 48, format: "float32x4" },
           ],
+        });
+
+        vertexBuffers.push({
+          arrayStride: 16, // 4 floats * 4 bytes for instanceData
+          stepMode: "instance",
+          attributes: [{ shaderLocation: 8, offset: 0, format: "float32x4" }],
         });
       }
 
@@ -571,19 +640,45 @@ export class WebGPURenderer extends AbstractRenderer {
       cache = {
         pipeline,
         layout: pipelineLayout,
-        bgLayouts: [this._globalBGL, this._materialBGL, this._objectBGL],
+        bgLayouts: [this._globalBGL, materialBGL, this._objectBGL],
       };
       this._pipelines.set(key, cache);
     }
     return cache;
   }
 
-  protected _getShaderModule(shaderId: string, isInstanced: boolean = false): GPUShaderModule {
-    const key = isInstanced ? `${shaderId}_instanced` : shaderId;
+  protected _getShaderModule(
+    shaderId: string,
+    isInstanced: boolean = false,
+    flags: string[] = [],
+  ): GPUShaderModule {
+    const flagKey = flags.length > 0 ? "_" + flags.join("_") : "";
+    const key = isInstanced ? `${shaderId}_instanced${flagKey}` : `${shaderId}${flagKey}`;
     let sm = this._shaderModules.get(key);
     if (!sm) {
       const def = ShaderRegistry.instance.get(shaderId);
       let code = ShaderRegistry.instance.assemble(def!.sources.wgsl!, "wgsl");
+
+      let wgslConstants = "";
+      if (flags.includes("USE_TEXTURE_ARRAY")) {
+        wgslConstants += "const USE_TEXTURE_ARRAY: bool = true;\n";
+        code = code.replace(
+          /var u_diffuseMap:\s*texture_2d<f32>;/g,
+          "var u_diffuseMap: texture_2d_array<f32>;",
+        );
+        code = code.replace(
+          /textureSample\(u_diffuseMap,\s*s,\s*([^)]+)\)/g,
+          "textureSample(u_diffuseMap, s, $1, u32(i.texIndex))",
+        );
+      } else {
+        wgslConstants += "const USE_TEXTURE_ARRAY: bool = false;\n";
+      }
+      if (isInstanced) {
+        wgslConstants += "const USE_INSTANCING: bool = true;\n";
+      } else {
+        wgslConstants += "const USE_INSTANCING: bool = false;\n";
+      }
+      code = wgslConstants + "\n" + code;
 
       if (isInstanced) {
         // Match the entire function signature fn vs(...) -> Out {
@@ -597,7 +692,8 @@ export class WebGPURenderer extends AbstractRenderer {
   @location(4) inst_col0: vec4f,
   @location(5) inst_col1: vec4f,
   @location(6) inst_col2: vec4f,
-  @location(7) inst_col3: vec4f
+  @location(7) inst_col3: vec4f,
+  @location(8) inst_data: vec4f
 ) -> Out {
   let instMatrix = mat4x4f(inst_col0, inst_col1, inst_col2, inst_col3);`;
           },
@@ -605,6 +701,10 @@ export class WebGPURenderer extends AbstractRenderer {
 
         // Replace obj.model with (obj.model * instMatrix)
         code = code.replace(/obj\.model/g, "(obj.model * instMatrix)");
+
+        code = code.replace(/return\s+o;/g, "o.texIndex = inst_data.x;\n    return o;");
+      } else {
+        code = code.replace(/return\s+o;/g, "o.texIndex = 0.0;\n    return o;");
       }
 
       sm = this._device!.createShaderModule({ code });
@@ -945,6 +1045,31 @@ export class WebGPURenderer extends AbstractRenderer {
 
         rp.setVertexBuffer(4, instanceBuf);
 
+        // Instance Data
+        if (instMesh.instanceData) {
+          let instanceDataBuf = this._gpuInstanceDataBuffers.get(instMesh);
+          const dataByteLength = instMesh.instanceData.byteLength;
+
+          if (!instanceDataBuf || instanceDataBuf.size < dataByteLength) {
+            if (instanceDataBuf) instanceDataBuf.destroy();
+            instanceDataBuf = this._device!.createBuffer({
+              size: dataByteLength,
+              usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+            });
+            this._gpuInstanceDataBuffers.set(instMesh, instanceDataBuf);
+            instMesh.instanceDataNeedsUpdate = true;
+          }
+
+          if (instMesh.instanceDataNeedsUpdate) {
+            this._device!.queue.writeBuffer(instanceDataBuf, 0, instMesh.instanceData);
+            instMesh.instanceDataNeedsUpdate = false;
+          }
+          rp.setVertexBuffer(5, instanceDataBuf);
+        } else {
+          this._ensureDummyBufferSize(16);
+          rp.setVertexBuffer(5, this._dummyUvBuffer);
+        }
+
         if (topology === "line-list") {
           if (gCache.wib) {
             rp.setIndexBuffer(gCache.wib, gCache.format!);
@@ -1152,19 +1277,50 @@ export class WebGPURenderer extends AbstractRenderer {
     if (!tex || !tex.isLoaded || !tex.image) return this._whiteTexView;
     let v = this._textureViewCache.get(tex);
     if (!v) {
-      const t = this._device!.createTexture({
-        size: [tex.image.width, tex.image.height],
-        format: "rgba8unorm",
-        usage:
-          GPUTextureUsage.TEXTURE_BINDING |
-          GPUTextureUsage.COPY_DST |
-          GPUTextureUsage.RENDER_ATTACHMENT,
-      });
-      this._device!.queue.copyExternalImageToTexture({ source: tex.image }, { texture: t }, [
-        tex.image.width,
-        tex.image.height,
-      ]);
-      v = t.createView();
+      if ("isTextureArray" in tex && (tex as TextureArray).isTextureArray) {
+        const texArray = tex as TextureArray;
+        const width = texArray.image!.width;
+        const height = texArray.image!.height;
+        const depth = texArray.images.length;
+
+        const t = this._device!.createTexture({
+          size: [width, height, depth],
+          format: "rgba8unorm",
+          usage:
+            GPUTextureUsage.TEXTURE_BINDING |
+            GPUTextureUsage.COPY_DST |
+            GPUTextureUsage.RENDER_ATTACHMENT,
+        });
+
+        for (let i = 0; i < depth; i++) {
+          this._device!.queue.copyExternalImageToTexture(
+            {
+              source: texArray.images[i] as
+                | ImageBitmap
+                | HTMLImageElement
+                | HTMLCanvasElement
+                | OffscreenCanvas,
+            },
+            { texture: t, origin: [0, 0, i] },
+            [width, height],
+          );
+        }
+        v = t.createView({ dimension: "2d-array" });
+      } else {
+        const t = this._device!.createTexture({
+          size: [tex.image.width, tex.image.height],
+          format: "rgba8unorm",
+          usage:
+            GPUTextureUsage.TEXTURE_BINDING |
+            GPUTextureUsage.COPY_DST |
+            GPUTextureUsage.RENDER_ATTACHMENT,
+        });
+        this._device!.queue.copyExternalImageToTexture({ source: tex.image }, { texture: t }, [
+          tex.image.width,
+          tex.image.height,
+        ]);
+        v = t.createView();
+      }
       this._textureViewCache.set(tex, v);
     }
     return v;

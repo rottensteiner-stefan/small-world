@@ -1,6 +1,9 @@
 void main() {
 #ifdef USE_INSTANCING
   mat4 modelMat = u_model * a_instanceMatrix;
+#ifdef USE_TEXTURE_ARRAY
+  v_texIndex = a_instanceData.x;
+#endif
 #else
   mat4 modelMat = u_model;
 #endif

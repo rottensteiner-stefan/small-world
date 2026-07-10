@@ -25,7 +25,11 @@ void main() {
     vec2 original_uv = v_uv / u_texRepeat;
 
     // Convert sampled albedo to linear space
+#if defined(USE_INSTANCING) && defined(USE_TEXTURE_ARRAY)
+    vec4 texColor = texture(u_diffuseMap, vec3(v_uv, v_texIndex));
+#else
     vec4 texColor = texture(u_diffuseMap, v_uv);
+#endif
     
     texColor.a *= texture(u_alphaMap, original_uv).r;
 

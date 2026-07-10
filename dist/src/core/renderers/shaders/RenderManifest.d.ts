@@ -17,6 +17,8 @@ export interface RenderManifest {
      * Key: Texture name as defined in ShaderDefinition layout.
      */
     textures: Record<string, Texture | CubeTexture | undefined>;
+    /** Optional shader flags to compile variants (e.g. USE_TEXTURE_ARRAY) */
+    flags?: string[];
     /**
      * Optional GPU state overrides for this specific draw call.
      */

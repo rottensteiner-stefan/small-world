@@ -12,6 +12,9 @@ export class InstancedMesh extends Object3D {
   public instanceCount: number;
   public instanceMatrices: Float32Array;
   public instanceMatrixNeedsUpdate: boolean = true;
+  public instanceData?: Float32Array;
+  public instanceDataNeedsUpdate: boolean = false;
+  public instanceDataSize: number = 0;
 
   constructor(
     name: string,
@@ -31,6 +34,15 @@ export class InstancedMesh extends Object3D {
     }
   }
 
+  /**
+   * Initializes the extra instance data buffer.
+   * @param sizePerInstance How many floats per instance (e.g. 4 for a vec4).
+   */
+  public initInstanceData(sizePerInstance: number): void {
+    this.instanceDataSize = sizePerInstance;
+    this.instanceData = new Float32Array(this.instanceCount * sizePerInstance);
+  }
+
   public setMatrixAt(index: number, matrix: Matrix4): void {
     const offset = index * 16;
     this.instanceMatrices.set(matrix.data, offset);
@@ -40,5 +52,19 @@ export class InstancedMesh extends Object3D {
   public getMatrixAt(index: number, out: Matrix4): void {
     const offset = index * 16;
     out.data.set(this.instanceMatrices.subarray(offset, offset + 16));
+  }
+
+  /**
+   * Sets the instance data at a specific index.
+   * @param index The instance index.
+   * @param data The data array (length must match `instanceDataSize`).
+   */
+  public setInstanceDataAt(index: number, data: number[]): void {
+    if (!this.instanceData) return;
+    const offset = index * this.instanceDataSize;
+    for (let i = 0; i < this.instanceDataSize; i++) {
+      this.instanceData[offset + i] = data[i] || 0;
+    }
+    this.instanceDataNeedsUpdate = true;
   }
 }

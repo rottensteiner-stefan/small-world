@@ -15,6 +15,7 @@ export interface PixlerOptions extends ForgeToolOptions {
     scale?: number;
     palette?: string[];
 }
+export type PixlerToolMode = "pencil" | "bucket" | "picker" | "line";
 export declare class Pixler extends ForgeTool {
     private _canvas;
     private _ctx;
@@ -27,21 +28,40 @@ export declare class Pixler extends ForgeTool {
     private _gridY;
     private _scale;
     private _inputs;
+    private _toolbarBtns;
     private _currentColor;
     private _isDrawing;
     private _isErasing;
     private _cursorPos;
     private _palette;
+    private _activeTool;
+    private _symmetryX;
+    private _symmetryY;
+    private _lineStartPos;
+    private _history;
+    private _historyIndex;
     constructor(options?: PixlerOptions);
     private _createInput;
+    private _updateToolbarUI;
     private _resize;
     private _updateGrid;
     private _updateCursorVisual;
     loadTemplateA2Z(): void;
+    private _drawPixelSymmetric;
     private _drawPixel;
+    private _drawLine;
+    private _bucketFill;
+    private _pickColor;
     private _isSameColor;
     private _bindEvents;
     private _renderPaletteUI;
+    private _setCurrentColor;
+    private _saveHistory;
+    undo(): void;
+    redo(): void;
+    trim(): void;
+    pan(dx: number, dy: number): void;
+    flip(horizontal: boolean, vertical: boolean): void;
     get width(): number;
     set width(v: number);
     get height(): number;

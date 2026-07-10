@@ -22,6 +22,8 @@ describe("Shader Assembly & Linter", () => {
   const checkDuplicates = (shaderCode: string, materialName: string, shaderType: string) => {
     const lines = shaderCode.split("\n");
     const declarations = new Set<string>();
+    let conditionalDepth = 0;
+    let currentConditionalVars: Set<string> | null = null;
 
     for (let i = 0; i < lines.length; i++) {
       let line = lines[i].trim();
@@ -30,13 +32,30 @@ describe("Shader Assembly & Linter", () => {
         line = line.split("//")[0].trim();
       }
 
+      if (line.startsWith("#ifdef") || line.startsWith("#ifndef") || line.startsWith("#if ")) {
+        conditionalDepth++;
+        if (conditionalDepth === 1) currentConditionalVars = new Set<string>();
+      } else if (line.startsWith("#else") || line.startsWith("#elif")) {
+        if (conditionalDepth === 1 && currentConditionalVars) {
+          // Remove vars declared in the true-branch so the false-branch can declare them
+          currentConditionalVars.forEach((v) => declarations.delete(v));
+          currentConditionalVars.clear();
+        }
+      } else if (line.startsWith("#endif")) {
+        conditionalDepth--;
+        if (conditionalDepth <= 0) {
+          conditionalDepth = 0;
+          currentConditionalVars = null;
+        }
+      }
+
       if (line.startsWith("uniform ") || line.startsWith("in ") || line.startsWith("out ")) {
         // e.g. "uniform sampler2D u_diffuseMap;"
         const parts = line.split(/\s+/);
         if (parts.length >= 3) {
-          const varNameWithSemicolon = parts[2];
+          const varNameWithSemicolon = parts[2]!;
           // Handle arrays like "u_spotShadowMap[4];"
-          const varName = varNameWithSemicolon.split("[")[0].replace(";", "");
+          const varName = varNameWithSemicolon.split("[")[0]!.replace(";", "");
 
           if (declarations.has(varName)) {
             throw new Error(
@@ -44,6 +63,9 @@ describe("Shader Assembly & Linter", () => {
             );
           }
           declarations.add(varName);
+          if (conditionalDepth === 1 && currentConditionalVars) {
+            currentConditionalVars.add(varName);
+          }
         }
       }
     }

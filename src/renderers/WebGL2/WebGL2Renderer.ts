@@ -9,7 +9,14 @@ import { AbstractLight } from "../../core/lights/index.js";
 import { CubeTexture, Texture, RenderTarget, RenderTargetCube } from "../../core/textures/index.js";
 import { ShaderRegistry, RenderManifest } from "../../core/renderers/shaders/index.js";
 import { Color } from "../../core/colors/index.js";
-import { DeviceCaps, DeviceLimit, InstancedMesh, Object3D, Scene } from "../../core/index.js";
+import {
+  DeviceCaps,
+  DeviceLimit,
+  InstancedMesh,
+  Object3D,
+  Scene,
+  TextureArray,
+} from "../../core/index.js";
 import { DepthMaterial } from "../../core/materials/index.js";
 import {
   EngineOptions,
@@ -49,6 +56,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
   private _texCache: Map<Texture, WebGLTexture> = new Map();
   private _texCubeCache: Map<CubeTexture, WebGLTexture> = new Map();
   private _instanceBuffers: WeakMap<InstancedMesh, WebGLBuffer> = new WeakMap();
+  private _instanceDataBuffers: WeakMap<InstancedMesh, WebGLBuffer> = new WeakMap();
   private _scratchTransparentMap: Map<string, Object3D[]> = new Map();
 
   private _scratchFloat4: Float32Array = new Float32Array(4);
@@ -141,8 +149,13 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     this._stateDepthTest = null;
   }
 
-  private _getProgram(shaderId: string, isInstanced: boolean = false): ProgramCache {
-    const key = isInstanced ? `${shaderId}_instanced` : shaderId;
+  private _getProgram(
+    shaderId: string,
+    isInstanced: boolean = false,
+    flags: string[] = [],
+  ): ProgramCache {
+    const flagKey = flags.length > 0 ? "_" + flags.join("_") : "";
+    const key = isInstanced ? `${shaderId}_instanced${flagKey}` : `${shaderId}${flagKey}`;
     let cache = this._programs.get(key);
     if (!cache) {
       const def = ShaderRegistry.instance.get(shaderId);
@@ -153,9 +166,17 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       }
 
       let vs = ShaderRegistry.instance.assemble(def.sources.glsl300.vs, "glsl300");
-      const fs = ShaderRegistry.instance.assemble(def.sources.glsl300.fs, "glsl300");
-      if (isInstanced) {
-        vs = vs.replace("#version 300 es", "#version 300 es\n#define USE_INSTANCING 1");
+      let fs = ShaderRegistry.instance.assemble(def.sources.glsl300.fs, "glsl300");
+
+      let defines = "";
+      if (isInstanced) defines += "#define USE_INSTANCING 1\n";
+      for (const flag of flags) {
+        defines += `#define ${flag} 1\n`;
+      }
+
+      if (defines) {
+        vs = vs.replace("#version 300 es", `#version 300 es\n${defines}`);
+        fs = fs.replace("#version 300 es", `#version 300 es\n${defines}`);
       }
       const prog = this.createShaderProgram(vs, fs);
 
@@ -166,7 +187,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
 
       const attribsToQuery = ["a_position", "a_normal", "a_uv", "a_tangent"];
       if (isInstanced) {
-        attribsToQuery.push("a_instanceMatrix");
+        attribsToQuery.push("a_instanceMatrix", "a_instanceData");
       }
       attribsToQuery.forEach((name) => {
         attributes.set(name, this.gl.getAttribLocation(prog, name));
@@ -263,50 +284,122 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     let glTex: WebGLTexture | undefined = this._texCache.get(tex);
     if (!glTex) {
       glTex = this.gl.createTexture()!;
-      this.gl.bindTexture(this.gl.TEXTURE_2D, glTex);
-      this.gl.texImage2D(
-        this.gl.TEXTURE_2D,
-        0,
-        this.gl.RGBA,
-        this.gl.RGBA,
-        this.gl.UNSIGNED_BYTE,
-        tex.image,
-      );
 
-      const useMipmaps = this._quality.mipmapping && tex.generateMipmaps;
-      if (useMipmaps) this.gl.generateMipmap(this.gl.TEXTURE_2D);
+      if ("isTextureArray" in tex && (tex as TextureArray).isTextureArray) {
+        const texArray = tex as TextureArray;
+        this.gl.bindTexture(this.gl.TEXTURE_2D_ARRAY, glTex);
+        const width = texArray.image!.width;
+        const height = texArray.image!.height;
+        const depth = texArray.images.length;
 
-      this.gl.texParameteri(
-        this.gl.TEXTURE_2D,
-        this.gl.TEXTURE_MAG_FILTER,
-        TextureFilter.NEAREST === tex.magFilter ? this.gl.NEAREST : this.gl.LINEAR,
-      );
+        this.gl.texImage3D(
+          this.gl.TEXTURE_2D_ARRAY,
+          0,
+          this.gl.RGBA,
+          width,
+          height,
+          depth,
+          0,
+          this.gl.RGBA,
+          this.gl.UNSIGNED_BYTE,
+          null,
+        );
+        for (let i = 0; i < depth; i++) {
+          this.gl.texSubImage3D(
+            this.gl.TEXTURE_2D_ARRAY,
+            0,
+            0,
+            0,
+            i,
+            width,
+            height,
+            1,
+            this.gl.RGBA,
+            this.gl.UNSIGNED_BYTE,
+            texArray.images[i] as TexImageSource,
+          );
+        }
 
-      let minFilter: number = this.gl.LINEAR;
-      if (useMipmaps) {
-        minFilter =
-          TextureFilter.NEAREST === tex.minFilter
-            ? this.gl.NEAREST_MIPMAP_LINEAR
-            : this.gl.LINEAR_MIPMAP_LINEAR;
+        const useMipmaps = this._quality.mipmapping && tex.generateMipmaps;
+        if (useMipmaps) this.gl.generateMipmap(this.gl.TEXTURE_2D_ARRAY);
+
+        this.gl.texParameteri(
+          this.gl.TEXTURE_2D_ARRAY,
+          this.gl.TEXTURE_MAG_FILTER,
+          TextureFilter.NEAREST === tex.magFilter ? this.gl.NEAREST : this.gl.LINEAR,
+        );
+
+        let minFilter: number = this.gl.LINEAR;
+        if (useMipmaps) {
+          minFilter =
+            TextureFilter.NEAREST === tex.minFilter
+              ? this.gl.NEAREST_MIPMAP_LINEAR
+              : this.gl.LINEAR_MIPMAP_LINEAR;
+        } else {
+          if (TextureFilter.NEAREST === tex.minFilter) minFilter = this.gl.NEAREST;
+        }
+        this.gl.texParameteri(this.gl.TEXTURE_2D_ARRAY, this.gl.TEXTURE_MIN_FILTER, minFilter);
+
+        const wrapS =
+          TextureWrap.REPEAT === tex.addressModeU
+            ? this.gl.REPEAT
+            : TextureWrap.MIRRORED_REPEAT === tex.addressModeU
+              ? this.gl.MIRRORED_REPEAT
+              : this.gl.CLAMP_TO_EDGE;
+        const wrapT =
+          TextureWrap.REPEAT === tex.addressModeV
+            ? this.gl.REPEAT
+            : TextureWrap.MIRRORED_REPEAT === tex.addressModeV
+              ? this.gl.MIRRORED_REPEAT
+              : this.gl.CLAMP_TO_EDGE;
+        this.gl.texParameteri(this.gl.TEXTURE_2D_ARRAY, this.gl.TEXTURE_WRAP_S, wrapS);
+        this.gl.texParameteri(this.gl.TEXTURE_2D_ARRAY, this.gl.TEXTURE_WRAP_T, wrapT);
       } else {
-        if (TextureFilter.NEAREST === tex.minFilter) minFilter = this.gl.NEAREST;
-      }
-      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, minFilter);
+        this.gl.bindTexture(this.gl.TEXTURE_2D, glTex);
+        this.gl.texImage2D(
+          this.gl.TEXTURE_2D,
+          0,
+          this.gl.RGBA,
+          this.gl.RGBA,
+          this.gl.UNSIGNED_BYTE,
+          tex.image,
+        );
 
-      const wrapS =
-        TextureWrap.REPEAT === tex.addressModeU
-          ? this.gl.REPEAT
-          : TextureWrap.MIRRORED_REPEAT === tex.addressModeU
-            ? this.gl.MIRRORED_REPEAT
-            : this.gl.CLAMP_TO_EDGE;
-      const wrapT =
-        TextureWrap.REPEAT === tex.addressModeV
-          ? this.gl.REPEAT
-          : TextureWrap.MIRRORED_REPEAT === tex.addressModeV
-            ? this.gl.MIRRORED_REPEAT
-            : this.gl.CLAMP_TO_EDGE;
-      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, wrapS);
-      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, wrapT);
+        const useMipmaps = this._quality.mipmapping && tex.generateMipmaps;
+        if (useMipmaps) this.gl.generateMipmap(this.gl.TEXTURE_2D);
+
+        this.gl.texParameteri(
+          this.gl.TEXTURE_2D,
+          this.gl.TEXTURE_MAG_FILTER,
+          TextureFilter.NEAREST === tex.magFilter ? this.gl.NEAREST : this.gl.LINEAR,
+        );
+
+        let minFilter: number = this.gl.LINEAR;
+        if (useMipmaps) {
+          minFilter =
+            TextureFilter.NEAREST === tex.minFilter
+              ? this.gl.NEAREST_MIPMAP_LINEAR
+              : this.gl.LINEAR_MIPMAP_LINEAR;
+        } else {
+          if (TextureFilter.NEAREST === tex.minFilter) minFilter = this.gl.NEAREST;
+        }
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, minFilter);
+
+        const wrapS =
+          TextureWrap.REPEAT === tex.addressModeU
+            ? this.gl.REPEAT
+            : TextureWrap.MIRRORED_REPEAT === tex.addressModeU
+              ? this.gl.MIRRORED_REPEAT
+              : this.gl.CLAMP_TO_EDGE;
+        const wrapT =
+          TextureWrap.REPEAT === tex.addressModeV
+            ? this.gl.REPEAT
+            : TextureWrap.MIRRORED_REPEAT === tex.addressModeV
+              ? this.gl.MIRRORED_REPEAT
+              : this.gl.CLAMP_TO_EDGE;
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, wrapS);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, wrapT);
+      }
 
       this._texCache.set(tex, glTex);
     }
@@ -822,7 +915,24 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     lights?: LightDataInterface,
     scene?: Scene,
   ): void {
-    const cache = this._getProgram(shaderId, isInstanced);
+    // --- 3. Build & Bind Shader ---
+    const isInst =
+      "instanceCount" in objects[0]! && (objects[0] as InstancedMesh).instanceCount > 0;
+    const shaderFlags = manifest.flags || [];
+
+    // Check if texture array is used
+    if (manifest.textures) {
+      for (const tex of Object.values(manifest.textures)) {
+        if (tex && "isTextureArray" in tex && (tex as TextureArray).isTextureArray) {
+          if (!shaderFlags.includes("USE_TEXTURE_ARRAY")) {
+            shaderFlags.push("USE_TEXTURE_ARRAY");
+          }
+          break;
+        }
+      }
+    }
+
+    const cache = this._getProgram(manifest.shaderId, isInst, shaderFlags);
     this.gl.useProgram(cache.prog);
 
     this._bindDummyShadowMaps(cache);
@@ -1113,10 +1223,12 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
               );
             } else {
               this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, null);
-              this.gl.bindTexture(
-                this.gl.TEXTURE_2D,
-                t ? this._getWebGLTexture(t) : this.defaultTexture,
-              );
+              const glTex = t ? this._getWebGLTexture(t) : this.defaultTexture;
+              if (t && "isTextureArray" in t && (t as TextureArray).isTextureArray) {
+                this.gl.bindTexture(this.gl.TEXTURE_2D_ARRAY, glTex);
+              } else {
+                this.gl.bindTexture(this.gl.TEXTURE_2D, glTex);
+              }
             }
             this.gl.uniform1i(loc, unit);
           }
@@ -1173,6 +1285,30 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
           }
         }
 
+        const dataLoc = cache.attributes.get("a_instanceData");
+        if (dataLoc !== undefined && dataLoc >= 0 && instMesh.instanceData) {
+          let dataBuf = this._instanceDataBuffers.get(instMesh);
+          if (!dataBuf) {
+            dataBuf = this.gl.createBuffer()!;
+            this._instanceDataBuffers.set(instMesh, dataBuf);
+          }
+          this.gl.bindBuffer(this.gl.ARRAY_BUFFER, dataBuf);
+          if (instMesh.instanceDataNeedsUpdate) {
+            this.gl.bufferData(this.gl.ARRAY_BUFFER, instMesh.instanceData, this.gl.DYNAMIC_DRAW);
+            instMesh.instanceDataNeedsUpdate = false;
+          }
+          this.gl.enableVertexAttribArray(dataLoc);
+          this.gl.vertexAttribPointer(
+            dataLoc,
+            instMesh.instanceDataSize,
+            this.gl.FLOAT,
+            false,
+            0,
+            0,
+          );
+          this.gl.vertexAttribDivisor(dataLoc, 1);
+        }
+
         const drawMode = topology === Topology.LINE_LIST ? this.gl.LINES : this.gl.TRIANGLES;
         if (mesh.isIndexed) {
           this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, mesh.ebo ?? null);
@@ -1192,6 +1328,10 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
             this.gl.vertexAttribDivisor(loc + i, 0);
             this.gl.disableVertexAttribArray(loc + i);
           }
+        }
+        if (dataLoc !== undefined && dataLoc >= 0) {
+          this.gl.vertexAttribDivisor(dataLoc, 0);
+          this.gl.disableVertexAttribArray(dataLoc);
         }
       } else {
         // Model Matrix & Billboarding

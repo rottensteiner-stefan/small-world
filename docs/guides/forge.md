@@ -12,7 +12,7 @@ The `Forge` class is an overlay that hosts draggable, resizable windows containi
 
 Small World Engine provides several built-in Forge tools to accelerate your workflow:
 
-1. **Pixler:** A retro 2D pixel-art editor to draw sprites directly in-game. Features a color palette, fill bucket, zooming, and a template generator.
+1. **Pixler:** A retro 2D pixel-art editor to draw sprites directly in-game. Features a full UI toolbar with tools like Pencil, Bucket Fill, Color Picker, and Line drawing. Also supports Symmetry Mode (X/Y axis), auto-trimming borders, canvas panning, flipping, and full Undo/Redo history.
 2. **IXtractor:** An image manipulation tool to crop, slice, and generate tile-maps or sprite atlases from existing images or URLs.
 3. **MapGenerator:** A visual grid editor to paint generic maps/levels and export them as `GridLevelBuilder` compatible ASCII strings.
 4. **GadgetInspector:** An advanced scene inspector that uses Tweakpane to let you adjust lighting, audio, fog, post-processing effects, and object properties in real-time.
