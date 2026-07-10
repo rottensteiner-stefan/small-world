@@ -261,9 +261,7 @@ export class UniversalGamepadController {
           await joyCon.enableVibration();
 
           this._initializedJoyCons.add(joyCon);
-          console.log(
-            `[UniversalGamepadController] Initialized WebHID device: ${joyCon.device.productName}`,
-          );
+          // Device initialized
         } catch (e) {
           console.error("[UniversalGamepadController] Error opening Joy-Con WebHID", e);
         }

@@ -2,7 +2,7 @@ import { Object3D } from './Object3D.js';
 import { Octree } from './Octree.js';
 import { Fog } from './Fog.js';
 import { Vector3D } from '../math/index.js';
-import { BoundingBox } from '../physix/index.js';
+import { BoundingBox, SpatialHash } from '../physix/index.js';
 export interface RenderList {
     opaque: Map<string, Map<string, Map<string, Object3D[]>>>;
     transparent: Object3D[];
@@ -15,6 +15,7 @@ export declare class Scene {
     private readonly _objectsByName;
     staticOctree: Octree | undefined;
     dynamicOctree: Octree | undefined;
+    spatialHash: SpatialHash | undefined;
     fog?: Fog;
     irradianceMap?: import('./textures/index.js').CubeTexture;
     prefilterMap?: import('./textures/index.js').CubeTexture;

@@ -39,10 +39,10 @@ header#info h1 {
   text-transform: uppercase;
   color: #d1fdff;
   text-shadow:
-    0 0 5px #00e5ff,
-    0 0 10px #00e5ff,
-    0 0 20px #00e5ff,
-    0 0 40px #00b3cc;
+    0 0 5px #b000ff,
+    0 0 10px #b000ff,
+    0 0 20px #b000ff,
+    0 0 40px #7a00cc;
 }
 
 header#info p {
@@ -74,8 +74,8 @@ header#info p.credits {
 
 .example-nav .nav-btn {
   background: rgba(0, 15, 25, 0.6);
-  border: 1px solid #00e5ff;
-  color: #00e5ff;
+  border: 1px solid #b000ff;
+  color: #b000ff;
   padding: 8px 18px;
   border-radius: 2px;
   cursor: pointer;
@@ -93,11 +93,11 @@ header#info p.credits {
 }
 
 .example-nav .nav-btn:hover {
-  background: #00e5ff;
+  background: #b000ff;
   color: #000;
   box-shadow:
-    0 0 20px rgba(0, 229, 255, 0.8),
-    0 0 40px rgba(0, 229, 255, 0.4);
+    0 0 20px rgba(176, 0, 255, 0.8),
+    0 0 40px rgba(176, 0, 255, 0.4);
   text-shadow: none;
 }
 

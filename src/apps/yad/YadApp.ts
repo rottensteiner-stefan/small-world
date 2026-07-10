@@ -188,7 +188,7 @@ export class YadApp extends AbstractShowcase {
       const loader: TextLoader = new TextLoader();
       mapData = await loader.load("./assets/levels/level1.txt");
     } else {
-      console.log("[YadApp] Loaded custom map from localStorage.");
+      // Custom map loaded
     }
 
     // 4. Build Level
@@ -282,7 +282,6 @@ export class YadApp extends AbstractShowcase {
     this.scene.initOctrees(
       new BoundingBox(new Vector3D(-200, -50, -200), new Vector3D(200, 100, 200)),
     );
-    console.log("[YadApp] Updating static octree...");
     this.scene.updateStaticOctree();
     this.debug = false; // Disable visual debugging for collisions by default
 
@@ -297,8 +296,6 @@ export class YadApp extends AbstractShowcase {
       quant.steps = 8.0; // 8 levels per RGB channel (3-bit color approximation)
       this.renderer.postProcessing.add(quant);
     }
-
-    console.log("YAD: Level 1 built.");
   }
 
   /** @inheritdoc */

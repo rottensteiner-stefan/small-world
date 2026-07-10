@@ -809,7 +809,6 @@ export class YadHud {
         }
       }
 
-      console.log(`[YadHud] Extracted ${this._faceImages.length} faces from dungeonguy.png`);
       this._updateDisplay();
     };
     img.onerror = (): void => {

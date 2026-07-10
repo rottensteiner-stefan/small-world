@@ -1,8 +1,7 @@
 /// src/core/Octree.ts
-import { Object3D } from "./Object3D.js";
+import { Collidable, BoundingVolume } from "../interfaces/index.js";
 import { BoundingBox, Collision } from "../physix/index.js";
 import { Frustum, MathPool, Vector3D } from "../math/index.js";
-import { BoundingVolume } from "../interfaces/index.js";
 
 /**
  * Configuration options for an octree node.
@@ -21,7 +20,7 @@ export class OctreeNode {
   /** The children of this node. */
   public children: OctreeNode[] = [];
   /** The objects stored in this node. */
-  public objects: Object3D[] = [];
+  public objects: Collidable[] = [];
 
   private readonly _depth: number;
   private readonly _maxDepth: number;
@@ -47,7 +46,7 @@ export class OctreeNode {
   /**
    * Inserts an object into the octree.
    */
-  public insert(obj: Object3D): boolean {
+  public insert(obj: Collidable): boolean {
     if (undefined === obj.bounds) {
       return false;
     }
@@ -110,10 +109,10 @@ export class OctreeNode {
     }
 
     MathPool.releaseVector(center);
-    const oldObjects: Object3D[] = this.objects;
+    const oldObjects: Collidable[] = this.objects;
     this.objects = [];
     for (let i: number = 0; i < oldObjects.length; i++) {
-      const obj: Object3D = oldObjects[i]!;
+      const obj: Collidable = oldObjects[i]!;
       let insertedInChild: boolean = false;
       for (let j: number = 0; j < this.children.length; j++) {
         if (this.children[j]!.insert(obj)) {
@@ -130,7 +129,7 @@ export class OctreeNode {
   /**
    * Queries the octree for objects that intersect with the frustum.
    */
-  public query(frustum: Frustum, result: Object3D[], intersectedNodes?: Set<OctreeNode>): void {
+  public query(frustum: Frustum, result: Collidable[], intersectedNodes?: Set<OctreeNode>): void {
     if (!frustum.intersectsBox(this.bounds)) return;
     if (intersectedNodes) intersectedNodes.add(this);
 
@@ -150,7 +149,7 @@ export class OctreeNode {
    */
   public queryRay(
     ray: import("../physix/index.js").Ray,
-    result: Set<Object3D>,
+    result: Set<Collidable>,
     intersectedNodes?: Set<OctreeNode>,
   ): void {
     if (ray.intersectsBox(this.bounds) < 0) return;
@@ -167,7 +166,7 @@ export class OctreeNode {
   /**
    * Queries the octree for objects that intersect with a specific volume.
    */
-  public queryVolume(volume: BoundingVolume, result: Object3D[]): void {
+  public queryVolume(volume: BoundingVolume, result: Collidable[]): void {
     if (!Collision.test(this.bounds, volume)) return;
 
     for (let i: number = 0; i < this.objects.length; i++) {
@@ -198,12 +197,12 @@ export class Octree {
     this.root = new OctreeNode(bounds, 0, options);
   }
 
-  public insert(obj: Object3D): boolean {
+  public insert(obj: Collidable): boolean {
     return this.root.insert(obj);
   }
 
-  public query(frustum: Frustum, intersectedNodes?: Set<OctreeNode>): Object3D[] {
-    const result: Object3D[] = [];
+  public query(frustum: Frustum, intersectedNodes?: Set<OctreeNode>): Collidable[] {
+    const result: Collidable[] = [];
     this.root.query(frustum, result, intersectedNodes);
     return result;
   }
@@ -211,8 +210,8 @@ export class Octree {
   public queryRay(
     ray: import("../physix/index.js").Ray,
     intersectedNodes?: Set<OctreeNode>,
-  ): Object3D[] {
-    const result = new Set<Object3D>();
+  ): Collidable[] {
+    const result = new Set<Collidable>();
     this.root.queryRay(ray, result, intersectedNodes);
     return Array.from(result);
   }
@@ -220,8 +219,8 @@ export class Octree {
   /**
    * Queries the octree for objects intersecting with a volume.
    */
-  public queryVolume(volume: BoundingVolume): Object3D[] {
-    const result: Object3D[] = [];
+  public queryVolume(volume: BoundingVolume): Collidable[] {
+    const result: Collidable[] = [];
     this.root.queryVolume(volume, result);
     return result;
   }

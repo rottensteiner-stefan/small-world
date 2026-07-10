@@ -236,6 +236,16 @@ export class StandardMaterial extends AbstractMaterial {
     props["u_useReflectionMap"] = this.reflectionMap ? 1.0 : 0.0;
     props["u_reflectivity"] = this.reflectivity;
 
+    const flags: string[] = [];
+    if (
+      this.diffuseMap &&
+      "isTextureArray" in this.diffuseMap &&
+      (this.diffuseMap as import("../textures/index.js").TextureArray).isTextureArray
+    ) {
+      flags.push("USE_TEXTURE_ARRAY");
+    }
+    this._renderManifest.flags = flags;
+
     this._renderManifest.state = {
       ...this._renderManifest.state,
       culling: this.cullMode,

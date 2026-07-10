@@ -51,15 +51,22 @@ export class InteractionManager {
     this._raycaster.setFromCamera(this._ndcCoords, this.camera);
 
     let pickables: Object3D[] = [];
-    if (this.scene.staticOctree || this.scene.dynamicOctree) {
+    if (this.scene.staticOctree || this.scene.dynamicOctree || this.scene.spatialHash) {
       const candidates = new Set<Object3D>();
       if (this.scene.staticOctree) {
         const staticHits = this.scene.staticOctree.queryRay(this._raycaster.ray);
-        for (const obj of staticHits) if (obj.isPickable) candidates.add(obj);
+        for (const obj of staticHits)
+          if ((obj as Object3D).isPickable) candidates.add(obj as Object3D);
+      }
+      if (this.scene.spatialHash) {
+        const hashHits = this.scene.spatialHash.queryRay(this._raycaster.ray);
+        for (const obj of hashHits)
+          if ((obj as Object3D).isPickable) candidates.add(obj as Object3D);
       }
       if (this.scene.dynamicOctree) {
         const dynamicHits = this.scene.dynamicOctree.queryRay(this._raycaster.ray);
-        for (const obj of dynamicHits) if (obj.isPickable) candidates.add(obj);
+        for (const obj of dynamicHits)
+          if ((obj as Object3D).isPickable) candidates.add(obj as Object3D);
       }
       pickables = Array.from(candidates);
     } else {

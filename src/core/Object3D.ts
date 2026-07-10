@@ -1,13 +1,13 @@
 /// src/core/Object3D.ts
 import { AbstractMaterial } from "./materials/index.js";
-import { BoundingVolume, GeometryDataInterface } from "../interfaces/index.js";
+import { BoundingVolume, GeometryDataInterface, Collidable } from "../interfaces/index.js";
 import { MathUtils, Matrix4, Quaternion, Vector3D } from "../math/index.js";
 import { Behavior } from "./behaviors/index.js";
 
 /**
  * Base class for all 3D objects in the scene.
  */
-export class Object3D {
+export class Object3D implements Collidable {
   public readonly uuid: string = MathUtils.generateUUID();
   public name: string = "";
 

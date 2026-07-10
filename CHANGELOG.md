@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.54.0] - 2026-07-10
+
+- **Feature (Physics & Collisions):**
+  - Implemented `SpatialHash` for O(1) grid-based collision broad-phase checks, highly optimized for large grid maps (like YAD).
+  - Refactored `Object3D` to implement the new lightweight `Collidable` interface instead of relying on heavy inheritance for physics.
+  - Introduced `StaticCollider`, a minimal `Collidable` object, preventing massive `Object3D` overhead when building static walls in maps.
+  - Updated `Octree`, `FPSController`, `EnemyBehavior`, and `InteractionManager` to seamlessly query the new `SpatialHash`.
+- **Refactor (Engine Core):**
+  - Replaced the old "I"-prefixed interface (`ICollidable` -> `Collidable`) to match modern TypeScript guidelines.
+  - Implemented `TextureArray` capabilities directly into the engine, allowing `YadLevelBuilder` to render entire levels in a single draw call via `InstancedMesh`.
+  - Removed outdated global `events` drilling.
+- **Design & UX:**
+  - Established a new brand color: **Cyber Purple** (`#B000FF`).
+  - Updated the developer console welcome banner to reflect the new Cyber Purple brand identity.
+  - Upgraded global CSS variables and Forge UI themes to match the new engine aesthetic.
+
 ## [0.53.0] - 2026-07-10
 
 - **Feature (Pixler):**
