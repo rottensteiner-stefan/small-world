@@ -1,6 +1,3 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
-// @ts-nocheck
-
 import { ForgeTool, ForgeToolOptions } from "./forge/ForgeTool.js";
 import { SmallWorld, Object3D } from "../core/index.js";
 import { Sphere, Cube, Torus, Plane } from "../geometry/index.js";
@@ -174,6 +171,12 @@ export class MaterialStudio extends ForgeTool {
     // delay bind logic to ensure DOM is ready
     setTimeout(() => this._bindLogic(), 100);
   }
+
+  public getState(): unknown {
+    return {};
+  }
+
+  public setState(_state: unknown): void {}
 
   private _injectCSS(): void {
     if (document.getElementById("material-studio-style")) return;
@@ -1591,9 +1594,9 @@ export class MaterialStudio extends ForgeTool {
       document.querySelectorAll(".collapsible-header").forEach((header) => {
         header.addEventListener("click", () => {
           header.classList.toggle("active");
-          const targetId = header.getAttribute("data-target");
+          const targetId = header.getAttribute("data-target") || "";
           const content = document.getElementById(targetId);
-          content.classList.toggle("open");
+          if (content) content.classList.toggle("open");
         });
       });
 
@@ -1601,39 +1604,41 @@ export class MaterialStudio extends ForgeTool {
       // Drag and Drop & Upload Files
       // ----------------------------------------------------
       const dropzone = document.getElementById("dropzone");
-      const fileInput = document.getElementById("file-input");
+      const fileInput = document.getElementById("file-input") as HTMLInputElement | null;
 
-      dropzone.addEventListener("click", () => fileInput.click());
+      if (dropzone && fileInput) {
+        dropzone.addEventListener("click", () => fileInput.click());
 
-      dropzone.addEventListener("dragover", (e) => {
-        e.preventDefault();
-        dropzone.classList.add("dragover");
-      });
+        dropzone.addEventListener("dragover", (e) => {
+          e.preventDefault();
+          dropzone.classList.add("dragover");
+        });
 
-      dropzone.addEventListener("dragleave", () => {
-        dropzone.classList.remove("dragover");
-      });
+        dropzone.addEventListener("dragleave", () => {
+          dropzone.classList.remove("dragover");
+        });
 
-      dropzone.addEventListener("drop", (e) => {
-        e.preventDefault();
-        dropzone.classList.remove("dragover");
-        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-          handleFile(e.dataTransfer.files[0]);
-        }
-      });
+        dropzone.addEventListener("drop", (e) => {
+          e.preventDefault();
+          dropzone.classList.remove("dragover");
+          if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) {
+            handleFile(e.dataTransfer.files[0]);
+          }
+        });
 
-      fileInput.addEventListener("change", () => {
-        if (fileInput.files && fileInput.files[0]) {
-          handleFile(fileInput.files[0]);
-        }
-      });
+        fileInput.addEventListener("change", () => {
+          if (fileInput.files && fileInput.files[0]) {
+            handleFile(fileInput.files[0]);
+          }
+        });
+      }
 
-      function handleFile(file): void {
+      function handleFile(file: File): void {
         if (!file.type.match("image.*")) {
           alert("Please upload an image file (PNG, JPG, WebP).");
           return;
         }
-        originalFileName = file.name.split(".")[0];
+        originalFileName = file.name.split(".")[0] || "unknown";
 
         const reader = new FileReader();
         reader.onload = (e): void => {
@@ -1678,13 +1683,15 @@ export class MaterialStudio extends ForgeTool {
         canvas.width = 256;
         canvas.height = 256;
         const ctx = canvas.getContext("2d");
-        for (let y = 0; y < 256; y++) {
-          for (let x = 0; x < 256; x++) {
-            const v = Math.floor(
-              128 + Math.sin(x * 0.1) * 30 + Math.cos(y * 0.1) * 30 + Math.random() * 20,
-            );
-            ctx.fillStyle = `rgb(${v},${v - 10},${v - 20})`;
-            ctx.fillRect(x, y, 1, 1);
+        if (ctx) {
+          for (let y = 0; y < 256; y++) {
+            for (let x = 0; x < 256; x++) {
+              const v = Math.floor(
+                128 + Math.sin(x * 0.1) * 30 + Math.cos(y * 0.1) * 30 + Math.random() * 20,
+              );
+              ctx.fillStyle = `rgb(${v},${v - 10},${v - 20})`;
+              ctx.fillRect(x, y, 1, 1);
+            }
           }
         }
         originalFileName = "procedural_fallback";
@@ -1712,13 +1719,16 @@ export class MaterialStudio extends ForgeTool {
 
         // Set offscreen sizes
         for (const k in canvases) {
-          canvases[k].width = w;
-          canvases[k].height = h;
+          const key = k as keyof typeof canvases;
+          canvases[key].width = w;
+          canvases[key].height = h;
         }
 
         const ctx = canvases.original.getContext("2d", { willReadFrequently: true });
-        ctx.drawImage(originalImage, 0, 0, w, h);
-        loadedData = ctx.getImageData(0, 0, w, h);
+        if (ctx) {
+          ctx.drawImage(originalImage, 0, 0, w, h);
+          loadedData = ctx.getImageData(0, 0, w, h);
+        }
 
         // Trigger update
         triggerPBRUpdate();
@@ -1744,92 +1754,82 @@ export class MaterialStudio extends ForgeTool {
       ];
 
       sliders.forEach((s) => {
-        const slider = document.getElementById(s.id + "-slider");
+        const slider = document.getElementById(s.id + "-slider") as HTMLInputElement | null;
         const valDisp = document.getElementById(s.id + "-val");
 
-        slider.addEventListener("input", () => {
-          valDisp.innerText = slider.value + s.suffix;
-          triggerPBRUpdate();
-        });
+        if (slider && valDisp) {
+          slider.addEventListener("input", () => {
+            valDisp.innerText = slider.value + s.suffix;
+            triggerPBRUpdate();
+          });
+        }
       });
 
       document.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
         cb.addEventListener("change", triggerPBRUpdate);
       });
 
-      document.getElementById("normal-format").addEventListener("change", triggerPBRUpdate);
-      document.getElementById("export-size").addEventListener("change", initializeImageData);
+      document.getElementById("normal-format")?.addEventListener("change", triggerPBRUpdate);
+      document.getElementById("export-size")?.addEventListener("change", initializeImageData);
 
       // Profile select changes preset values
-      document.getElementById("profile-select").addEventListener("change", (e) => {
-        const profile = e.target.value;
-        if (PRESETS[profile]) {
-          applyPreset(PRESETS[profile]);
+      document.getElementById("profile-select")?.addEventListener("change", (e) => {
+        const profile = (e.target as HTMLSelectElement)?.value;
+        if (PRESETS[profile as keyof typeof PRESETS]) {
+          applyPreset(PRESETS[profile as keyof typeof PRESETS], profile);
         }
       });
 
-      function applyPreset(preset): void {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      function applyPreset(preset: any, profileName: string): void {
+        const updateSliderAndVal = (
+          id: string,
+          val: string | number | boolean,
+          postfix: string = "",
+        ): void => {
+          const slider = document.getElementById(id + "-slider") as HTMLInputElement | null;
+          if (slider) slider.value = String(val);
+          const valEl = document.getElementById(id + "-val");
+          if (valEl) valEl.innerText = String(val) + postfix;
+        };
+
+        const updateCheckbox = (id: string, checked: unknown): void => {
+          const cb = document.getElementById(id) as HTMLInputElement | null;
+          if (cb) cb.checked = Boolean(checked);
+        };
+
         // Loop sliders and checkboxes
-        (document.getElementById("height-blur-slider") as HTMLInputElement).value =
-          preset.heightBlur;
-        document.getElementById("height-blur-val").innerText = preset.heightBlur;
+        updateSliderAndVal("height-blur", preset.heightBlur);
+        updateSliderAndVal("height-contrast", preset.heightContrast);
+        updateCheckbox("height-invert", preset.heightInvert);
 
-        (document.getElementById("height-contrast-slider") as HTMLInputElement).value =
-          preset.heightContrast;
-        document.getElementById("height-contrast-val").innerText = preset.heightContrast;
+        updateSliderAndVal("normal-strength", preset.normalStrength, "%");
 
-        (document.getElementById("height-invert") as HTMLInputElement).checked =
-          preset.heightInvert;
+        const normalFormat = document.getElementById("normal-format") as HTMLInputElement | null;
+        if (normalFormat) normalFormat.value = preset.normalFormat;
 
-        (document.getElementById("normal-strength-slider") as HTMLInputElement).value =
-          preset.normalStrength;
-        document.getElementById("normal-strength-val").innerText = preset.normalStrength + "%";
+        updateCheckbox("normal-invert-r", preset.normalInvertR);
 
-        (document.getElementById("normal-format") as HTMLInputElement).value = preset.normalFormat;
-        (document.getElementById("normal-invert-r") as HTMLInputElement).checked =
-          preset.normalInvertR;
+        updateSliderAndVal("spec-contrast", preset.specContrast);
+        updateSliderAndVal("spec-thresh", preset.specThresh, "%");
+        updateCheckbox("spec-invert", preset.specInvert);
 
-        (document.getElementById("spec-contrast-slider") as HTMLInputElement).value =
-          preset.specContrast;
-        document.getElementById("spec-contrast-val").innerText = preset.specContrast;
+        updateSliderAndVal("rough-gamma", preset.roughGamma);
+        updateCheckbox("rough-invert", preset.roughInvert);
 
-        (document.getElementById("spec-thresh-slider") as HTMLInputElement).value =
-          preset.specThresh;
-        document.getElementById("spec-thresh-val").innerText = preset.specThresh + "%";
+        updateSliderAndVal("ao-soft", preset.aoSoft, "px");
+        updateSliderAndVal("ao-fine", preset.aoFine);
+        updateSliderAndVal("ao-level", preset.aoLevel, "%");
 
-        (document.getElementById("spec-invert") as HTMLInputElement).checked = preset.specInvert;
-
-        (document.getElementById("rough-gamma-slider") as HTMLInputElement).value =
-          preset.roughGamma;
-        document.getElementById("rough-gamma-val").innerText = preset.roughGamma;
-
-        (document.getElementById("rough-invert") as HTMLInputElement).checked = preset.roughInvert;
-
-        (document.getElementById("ao-soft-slider") as HTMLInputElement).value = preset.aoSoft;
-        document.getElementById("ao-soft-val").innerText = preset.aoSoft + "px";
-
-        (document.getElementById("ao-fine-slider") as HTMLInputElement).value = preset.aoFine;
-        document.getElementById("ao-fine-val").innerText = preset.aoFine;
-
-        (document.getElementById("ao-level-slider") as HTMLInputElement).value = preset.aoLevel;
-        document.getElementById("ao-level-val").innerText = preset.aoLevel + "%";
-
-        (document.getElementById("edge-thresh-slider") as HTMLInputElement).value =
-          preset.edgeThresh;
-        document.getElementById("edge-thresh-val").innerText = preset.edgeThresh + "%";
-
-        (document.getElementById("edge-thick-slider") as HTMLInputElement).value = preset.edgeThick;
-        document.getElementById("edge-thick-val").innerText = preset.edgeThick;
-
-        (document.getElementById("edge-invert") as HTMLInputElement).checked = preset.edgeInvert;
+        updateSliderAndVal("edge-thresh", preset.edgeThresh, "%");
+        updateSliderAndVal("edge-thick", preset.edgeThick);
+        updateCheckbox("edge-invert", preset.edgeInvert);
 
         // Adjust preview material based on preset
-        if (profile === "metal") {
-          (document.getElementById("metallic-slider") as HTMLInputElement).value = 90;
-          document.getElementById("metallic-val").innerText = "90%";
+        if (profileName === "metal") {
+          updateSliderAndVal("metallic", 90, "%");
         } else {
-          (document.getElementById("metallic-slider") as HTMLInputElement).value = 0;
-          document.getElementById("metallic-val").innerText = "0%";
+          updateSliderAndVal("metallic", 0, "%");
         }
 
         triggerPBRUpdate();
@@ -1841,33 +1841,33 @@ export class MaterialStudio extends ForgeTool {
           document.querySelectorAll(".tab").forEach((t) => t.classList.remove("active"));
           tab.classList.add("active");
 
-          activeTab = tab.getAttribute("data-tab");
+          activeTab = tab.getAttribute("data-tab") || "";
 
           const gridView = document.getElementById("grid-view-container");
           const singleView = document.getElementById("single-view-container");
           const preview3dContainer = document.getElementById("preview3d-container");
 
           if (activeTab === "grid") {
-            gridView.classList.remove("tab-content-hidden");
-            singleView.classList.add("tab-content-hidden");
-            preview3dContainer.classList.add("tab-content-hidden");
+            gridView?.classList.remove("tab-content-hidden");
+            singleView?.classList.add("tab-content-hidden");
+            preview3dContainer?.classList.add("tab-content-hidden");
           } else if (activeTab === "preview3d") {
-            gridView.classList.add("tab-content-hidden");
-            singleView.classList.add("tab-content-hidden");
-            preview3dContainer.classList.remove("tab-content-hidden");
+            gridView?.classList.add("tab-content-hidden");
+            singleView?.classList.add("tab-content-hidden");
+            preview3dContainer?.classList.remove("tab-content-hidden");
             // Trigger immediate push of textures to 3D view
             pushTexturesTo3D();
           } else {
-            gridView.classList.add("tab-content-hidden");
-            singleView.classList.remove("tab-content-hidden");
-            preview3dContainer.classList.add("tab-content-hidden");
+            gridView?.classList.add("tab-content-hidden");
+            singleView?.classList.remove("tab-content-hidden");
+            preview3dContainer?.classList.add("tab-content-hidden");
 
             // Draw active map onto preview canvas
             const mainPreview = displays.preview as HTMLCanvasElement;
             mainPreview.width = canvases[activeTab as keyof typeof canvases].width;
             mainPreview.height = canvases[activeTab as keyof typeof canvases].height;
             const ctx = mainPreview.getContext("2d");
-            ctx.drawImage(canvases[activeTab as keyof typeof canvases], 0, 0);
+            if (ctx) ctx.drawImage(canvases[activeTab as keyof typeof canvases], 0, 0);
           }
 
           // Show/hide relevant settings in the sidebar
@@ -1920,9 +1920,11 @@ export class MaterialStudio extends ForgeTool {
         downloadMap(activeTab);
       });
       // Add cursor style to indicate it's clickable
-      document.getElementById("canvas-main-preview").style.cursor = "pointer";
-      (document.getElementById("canvas-main-preview") as HTMLElement).title =
-        "Click to download this map";
+      const mainPreviewCanvas = document.getElementById("canvas-main-preview");
+      if (mainPreviewCanvas) {
+        mainPreviewCanvas.style.cursor = "pointer";
+        mainPreviewCanvas.title = "Click to download this map";
+      }
 
       document.getElementById("btn-download-all")?.addEventListener("click", () => {
         const mapsToDownload = ["height", "normal", "specular", "roughness", "ao", "edge"];
@@ -2167,9 +2169,9 @@ export class MaterialStudio extends ForgeTool {
 
         // 1. HEIGHT MAP (Grayscale + optional contrast + blur)
         for (let i = 0; i < pixels.length; i += 4) {
-          const r = pixels[i];
-          const g = pixels[i + 1];
-          const b = pixels[i + 2];
+          const r = pixels[i] || 0;
+          const g = pixels[i + 1] || 0;
+          const b = pixels[i + 2] || 0;
 
           // Grayscale conversion (luminance weight)
           let gray = (0.299 * r + 0.587 * g + 0.114 * b) / 255.0;
@@ -2400,12 +2402,12 @@ export class MaterialStudio extends ForgeTool {
             mainPreview.width = w;
             mainPreview.height = h;
             const ctx = mainPreview.getContext("2d");
-            if (ctx)
-              ctx.drawImage(
-                (canvases as unknown as Record<string, HTMLCanvasElement>)[activeTab],
-                0,
-                0,
-              );
+            if (ctx) {
+              const targetCanvas = (canvases as unknown as Record<string, HTMLCanvasElement>)[
+                activeTab
+              ];
+              if (targetCanvas) ctx.drawImage(targetCanvas, 0, 0);
+            }
           }
         }
       }
