@@ -2,6 +2,9 @@
 import { Object3D } from "../core/Object3D.js";
 import { Scene } from "../core/Scene.js";
 import { Vector3D, MathPool } from "../math/index.js";
+import { Collision } from "./Collision.js";
+import { BoundingSphere } from "./BoundingSphere.js";
+import { BoundingBox } from "./BoundingBox.js";
 
 /**
  * A lightweight physics solver using Semi-Implicit Euler integration.
@@ -55,8 +58,53 @@ export class PhysicsSystem {
       obj.position.add(deltaP);
       MathPool.releaseVector(deltaP);
 
+      // --- Angular Integration ---
+      // angularAcceleration = torque / inertia
+      rb.angularAcceleration.copyFrom(rb.torque).scale(rb.inverseInertia);
+
+      // w = w + alpha * dt
+      const deltaW = MathPool.acquireVector().copyFrom(rb.angularAcceleration).scale(dt);
+      rb.angularVelocity.add(deltaW);
+      MathPool.releaseVector(deltaW);
+
+      // Apply Angular Damping
+      rb.angularVelocity.scale(rb.angularDamping);
+
+      // Apply angular velocity to Object3D rotation
+      const wLength = rb.angularVelocity.length();
+      if (wLength > 0.000001) {
+        // 1. Create delta quaternion
+        const axis = MathPool.acquireVector()
+          .copyFrom(rb.angularVelocity)
+          .scale(1.0 / wLength);
+        const deltaQ = MathPool.acquireQuaternion().setFromAxisAngle(axis, wLength * dt);
+
+        // 2. Create current rotation quaternion from Euler angles (YXZ via compose)
+        const currentMatrix = MathPool.acquireMatrix().compose(
+          MathPool.acquireVector().set(0, 0, 0),
+          obj.rotation,
+          MathPool.acquireVector().set(1, 1, 1),
+        );
+        const currentQ = MathPool.acquireQuaternion().setFromRotationMatrix(currentMatrix);
+
+        // 3. Apply deltaQ
+        currentQ.premultiply(deltaQ).normalize();
+
+        // 4. Convert back to Euler angles
+        currentMatrix.setFromQuaternion(currentQ);
+        currentMatrix.decompose(MathPool.acquireVector(), obj.rotation, MathPool.acquireVector());
+
+        // Release pool objects
+        MathPool.releaseVector(axis);
+        MathPool.releaseQuaternion(deltaQ);
+        MathPool.releaseQuaternion(currentQ);
+        MathPool.releaseMatrix(currentMatrix);
+        // Note: The temporary vectors used in compose/decompose will naturally be GC'd or we could pool them.
+      }
+      // -------------------------
+
       // Update bounds if necessary
-      obj.updateMatrix();
+      obj.updateMatrixWorld();
 
       // Clear forces for next frame
       rb.clearForces();
@@ -67,8 +115,122 @@ export class PhysicsSystem {
     this._resolveCollisions(scene, bodies, dt);
   }
 
-  private _resolveCollisions(scene: Scene, bodies: Object3D[], dt: number): void {
-    // TODO: Implement Separation Axis Theorem (SAT) resolution here.
-    // We will push objects apart (positional correction) and apply restitution (bounce).
+  private _resolveCollisions(scene: Scene, bodies: Object3D[], _dt: number): void {
+    // Collect all colliders (both static and dynamic) that have bounds
+    const allColliders: Object3D[] = [];
+    for (const obj of scene.objects) {
+      if (obj.bounds) {
+        allColliders.push(obj);
+      }
+    }
+
+    const result = MathPool.acquireVector();
+    const rv = MathPool.acquireVector();
+
+    for (let i = 0; i < bodies.length; i++) {
+      const dynObj = bodies[i]!;
+      const rbA = dynObj.rigidBody!;
+      if (!dynObj.bounds) continue;
+
+      for (let j = 0; j < allColliders.length; j++) {
+        const otherObj = allColliders[j]!;
+        if (dynObj === otherObj) continue;
+
+        // Avoid double resolution for dynamic vs dynamic pairs
+        const otherIdx = bodies.indexOf(otherObj);
+        if (otherIdx !== -1 && otherIdx <= i) continue;
+
+        const boundsA = dynObj.bounds;
+        const boundsB = otherObj.bounds!;
+
+        let collisionFound = false;
+
+        // BoundingType.SPHERE = 0, BOX = 1
+        if (boundsA.type === 0 && boundsB.type === 0) {
+          collisionFound = Collision.resolveSphereSphere(
+            boundsA as BoundingSphere,
+            boundsB as BoundingSphere,
+            result,
+          );
+        } else if (boundsA.type === 0 && boundsB.type === 1) {
+          collisionFound = Collision.resolveSphereBox(
+            boundsA as BoundingSphere,
+            boundsB as BoundingBox,
+            result,
+          );
+        } else if (boundsA.type === 1 && boundsB.type === 0) {
+          collisionFound = Collision.resolveSphereBox(
+            boundsB as BoundingSphere,
+            boundsA as BoundingBox,
+            result,
+          );
+          if (collisionFound) result.scale(-1); // Reverse direction
+        }
+
+        if (collisionFound) {
+          const depth = result.length();
+          if (depth > 0) {
+            const normal = result.scale(1.0 / depth);
+            const rbB = otherObj.rigidBody;
+            const invMassA = rbA.inverseMass;
+            const invMassB = rbB ? rbB.inverseMass : 0;
+            const totalInvMass = invMassA + invMassB;
+
+            if (totalInvMass > 0) {
+              // 1. Positional correction (prevent sinking)
+              // We use a simple linear projection to separate objects based on mass ratio
+              const correction = depth / totalInvMass;
+
+              const posCorrA = MathPool.acquireVector()
+                .copyFrom(normal)
+                .scale(correction * invMassA);
+              dynObj.position.add(posCorrA);
+              MathPool.releaseVector(posCorrA);
+
+              if (rbB) {
+                const posCorrB = MathPool.acquireVector()
+                  .copyFrom(normal)
+                  .scale(-correction * invMassB);
+                otherObj.position.add(posCorrB);
+                MathPool.releaseVector(posCorrB);
+              }
+
+              dynObj.updateMatrixWorld();
+              if (rbB) otherObj.updateMatrixWorld();
+
+              // 2. Impulse Resolution (Bouncing)
+              const velA = rbA.velocity;
+              const velB = rbB ? rbB.velocity : MathPool.acquireVector().set(0, 0, 0);
+
+              rv.copyFrom(velA).sub(velB);
+              const velAlongNormal = rv.dot(normal);
+
+              // Do not resolve if velocities are already separating
+              if (velAlongNormal < 0) {
+                const e = Math.min(rbA.restitution, rbB ? rbB.restitution : 0.2);
+                let jMag = -(1 + e) * velAlongNormal;
+                jMag /= totalInvMass;
+
+                const impulse = MathPool.acquireVector().copyFrom(normal).scale(jMag);
+                rbA.applyImpulse(impulse);
+                if (rbB) {
+                  impulse.scale(-1);
+                  rbB.applyImpulse(impulse);
+                }
+                MathPool.releaseVector(impulse);
+              }
+
+              // Release temp static zero vector if rbB didn't exist
+              if (!rbB) {
+                MathPool.releaseVector(velB);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    MathPool.releaseVector(result);
+    MathPool.releaseVector(rv);
   }
 }

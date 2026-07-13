@@ -1,0 +1,228 @@
+import { describe, it, expect, beforeEach } from "vitest";
+import { PhysicsSystem } from "../../src/physix/PhysicsSystem.js";
+import { Scene } from "../../src/core/Scene.js";
+import { Object3D } from "../../src/core/Object3D.js";
+import { RigidBody } from "../../src/physix/RigidBody.js";
+import { Vector3D } from "../../src/math/index.js";
+
+describe("PhysicsSystem", () => {
+  let system: PhysicsSystem;
+  let scene: Scene;
+
+  beforeEach(() => {
+    system = new PhysicsSystem();
+    // Default gravity is -9.81 on Y, set to 0 for controlled tests
+    system.gravity.set(0, 0, 0);
+    scene = new Scene();
+  });
+
+  it("should integrate linear velocity and position", () => {
+    const obj = new Object3D();
+    const rb = new RigidBody(1.0);
+    rb.friction = 1.0; // no damping
+    obj.rigidBody = rb;
+    scene.add(obj);
+
+    rb.applyForce(new Vector3D(10, 0, 0));
+
+    // dt = 1.0s
+    system.step(scene, 1.0);
+
+    // a = 10 / 1 = 10
+    // v = v + a*dt = 10
+    // p = p + v*dt = 10
+    expect(rb.acceleration.x).toBe(10);
+    expect(rb.velocity.x).toBe(10);
+    expect(obj.position.x).toBe(10);
+
+    // Forces should be cleared
+    expect(rb.forces.x).toBe(0);
+  });
+
+  it("should apply global gravity", () => {
+    const obj = new Object3D();
+    const rb = new RigidBody(2.0);
+    rb.friction = 1.0;
+    obj.rigidBody = rb;
+    scene.add(obj);
+
+    system.gravity.set(0, -10, 0);
+
+    system.step(scene, 0.5);
+
+    // Force = mass * gravity = 2 * -10 = -20
+    // a = -20 / 2 = -10
+    // v = 0 + (-10) * 0.5 = -5
+    // p = 0 + (-5) * 0.5 = -2.5
+    expect(rb.velocity.y).toBe(-5);
+    expect(obj.position.y).toBe(-2.5);
+  });
+
+  it("should apply linear friction", () => {
+    const obj = new Object3D();
+    const rb = new RigidBody(1.0);
+    rb.friction = 0.5;
+    obj.rigidBody = rb;
+    scene.add(obj);
+
+    rb.velocity.set(10, 0, 0);
+
+    system.step(scene, 1.0);
+
+    // After friction, velocity should be 10 * 0.5 = 5
+    expect(rb.velocity.x).toBe(5);
+    // position = p + v * dt = 0 + 5 * 1 = 5
+    expect(obj.position.x).toBe(5);
+  });
+
+  it("should integrate angular velocity and apply rotation via Quaternions", () => {
+    const obj = new Object3D();
+    const rb = new RigidBody(1.0, 1.0);
+    rb.angularDamping = 1.0; // no damping
+    obj.rigidBody = rb;
+    scene.add(obj);
+
+    // Apply torque on Y axis
+    rb.applyTorque(new Vector3D(0, Math.PI, 0));
+
+    // step 0.5s
+    system.step(scene, 0.5);
+
+    // a_angular = PI / 1 = PI
+    // w = 0 + PI * 0.5 = PI/2 (90 degrees)
+    expect(rb.angularVelocity.y).toBeCloseTo(Math.PI / 2);
+
+    // object rotation around Y should be approx PI/2 * dt = PI/4 (45 degrees)
+    // Wait, step does: deltaW = a_angular * dt -> w += deltaW -> apply w * dt
+    // w = PI/2. Then angle = w * dt = (PI/2) * 0.5 = PI/4.
+    expect(obj.rotation.y).toBeCloseTo(Math.PI / 4, 5);
+
+    // Torque should be cleared
+    expect(rb.torque.lengthSq()).toBe(0);
+  });
+
+  it("should not move static bodies (mass = 0)", () => {
+    const obj = new Object3D();
+    const rb = new RigidBody(0);
+    obj.rigidBody = rb;
+    scene.add(obj);
+
+    system.gravity.set(0, -10, 0);
+    rb.applyForce(new Vector3D(100, 100, 100));
+    rb.applyTorque(new Vector3D(100, 100, 100));
+
+    system.step(scene, 1.0);
+
+    expect(rb.velocity.lengthSq()).toBe(0);
+    expect(rb.angularVelocity.lengthSq()).toBe(0);
+    expect(obj.position.lengthSq()).toBe(0);
+    expect(obj.rotation.lengthSq()).toBe(0);
+  });
+
+  it("should safely ignore dt <= 0 without modifying anything", () => {
+    const obj = new Object3D();
+    const rb = new RigidBody(1.0);
+    obj.rigidBody = rb;
+    scene.add(obj);
+
+    rb.applyForce(new Vector3D(100, 100, 100));
+    rb.velocity.set(10, 10, 10);
+    obj.position.set(5, 5, 5);
+
+    system.step(scene, 0);
+    expect(rb.forces.lengthSq()).toBe(30000); // not cleared
+    expect(rb.velocity.x).toBe(10);
+    expect(obj.position.x).toBe(5);
+
+    system.step(scene, -1.0);
+    expect(rb.forces.lengthSq()).toBe(30000);
+  });
+
+  it("should not crash if objects have no RigidBody", () => {
+    const obj1 = new Object3D();
+    const obj2 = new Object3D();
+    obj2.rigidBody = new RigidBody(1.0);
+    scene.add(obj1, obj2);
+
+    expect(() => system.step(scene, 1.0)).not.toThrow();
+  });
+
+  it("should handle extremely small angular velocities gracefully (wLength < epsilon)", () => {
+    const obj = new Object3D();
+    const rb = new RigidBody(1.0, 1.0);
+    obj.rigidBody = rb;
+    scene.add(obj);
+
+    rb.applyTorque(new Vector3D(0.0000001, 0, 0));
+
+    expect(() => system.step(scene, 1.0)).not.toThrow();
+    expect(obj.rotation.x).toBeCloseTo(0, 5);
+  });
+
+  it("should handle large impulses without NaNing out (stability check)", () => {
+    const obj = new Object3D();
+    const rb = new RigidBody(1.0);
+    obj.rigidBody = rb;
+    scene.add(obj);
+
+    rb.applyImpulse(new Vector3D(1e10, -1e10, 1e10));
+
+    expect(Number.isNaN(rb.velocity.x)).toBe(false);
+    expect(rb.velocity.x).toBe(1e10);
+
+    system.step(scene, 1.0);
+
+    expect(Number.isNaN(obj.position.x)).toBe(false);
+    expect(obj.position.x).toBeCloseTo(1e10 * 0.98, -8);
+  });
+
+  it("should resolve Sphere-Sphere collisions (push apart and bounce)", async () => {
+    const { BoundingSphere } = await import("../../src/physix/BoundingSphere.js");
+
+    const sphere1 = new Object3D();
+    sphere1.position.set(0, 0, 0);
+    const rb1 = new RigidBody(1.0);
+    rb1.restitution = 1.0;
+    rb1.friction = 1.0;
+    sphere1.rigidBody = rb1;
+    sphere1.bounds = new BoundingSphere(sphere1.position, 1.0);
+
+    const sphere2 = new Object3D();
+    sphere2.position.set(1.5, 0, 0); // Penetrating by 0.5
+    const rb2 = new RigidBody(1.0);
+    rb2.restitution = 1.0;
+    rb2.friction = 1.0;
+    sphere2.rigidBody = rb2;
+    sphere2.bounds = new BoundingSphere(sphere2.position, 1.0);
+
+    scene.add(sphere1, sphere2);
+
+    // We want them to bounce back.
+    // They are already penetrating, so let's set velocities so they bounce.
+    rb1.velocity.set(1, 0, 0);
+    rb2.velocity.set(-1, 0, 0);
+
+    // Call resolveCollisions directly by casting to any to avoid integration step tunneling
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (system as any)._resolveCollisions(scene, [sphere1, sphere2], 0.1);
+
+    // After positional correction:
+    // depth is 0.5. totalInvMass is 2. correction is 0.25.
+    // normal points from s2(1.5) to s1(0) -> (-1, 0, 0).
+    // so s1 is pushed left by 0.25 -> x = -0.25
+    // so s2 is pushed right by 0.25 -> x = 1.75
+    expect(sphere1.position.x).toBeCloseTo(-0.25);
+    expect(sphere2.position.x).toBeCloseTo(1.75);
+
+    // After impulse:
+    // normal = (-1, 0, 0)
+    // velA = 1, velB = -1. rv = (2, 0, 0)
+    // velAlongNormal = -2
+    // e = 1.0. jMag = -(2) * -2 / 2 = 2.
+    // impulse = normal * jMag = (-2, 0, 0)
+    // rb1 gets (-2, 0, 0). new vel = (1 - 2) = -1.
+    // rb2 gets (2, 0, 0). new vel = (-1 + 2) = 1.
+    expect(rb1.velocity.x).toBeCloseTo(-1);
+    expect(rb2.velocity.x).toBeCloseTo(1);
+  });
+});

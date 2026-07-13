@@ -32,7 +32,7 @@ export class Collision {
       return this._sphereBox(b as BoundingSphere, a as BoundingBox);
     }
     if (BoundingType.OBB === a.type && BoundingType.OBB === b.type) {
-      return this._obbObb(a as OBB, b as OBB);
+      return this._obbObb(a as unknown as OBB, b as unknown as OBB);
     }
     // Implement other permutations (OBB vs BOX, OBB vs Sphere) as needed
     return false;
@@ -90,6 +90,39 @@ export class Collision {
     }
 
     MathPool.releaseVector(closest);
+    MathPool.releaseVector(diff);
+    return true;
+  }
+
+  /**
+   * Resolves collision between two spheres, returning a correction vector.
+   * @param s1 The first sphere.
+   * @param s2 The second sphere.
+   * @param result Vector to store the correction (points from s2 to s1).
+   * @returns True if collision was resolved.
+   */
+  public static resolveSphereSphere(
+    s1: BoundingSphere,
+    s2: BoundingSphere,
+    result: Vector3D,
+  ): boolean {
+    const diff = MathPool.acquireVector().copyFrom(s1.center).sub(s2.center);
+    const distSq = diff.lengthSq();
+    const sumRad = s1.radius + s2.radius;
+
+    if (distSq >= sumRad * sumRad) {
+      MathPool.releaseVector(diff);
+      return false;
+    }
+
+    const dist = Math.sqrt(distSq);
+    if (dist < 0.0001) {
+      // Exactly same center, push up
+      result.set(0, 1, 0).scale(sumRad);
+    } else {
+      const overlap = sumRad - dist;
+      result.copyFrom(diff).normalize().scale(overlap);
+    }
     MathPool.releaseVector(diff);
     return true;
   }

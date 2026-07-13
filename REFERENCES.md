@@ -36,6 +36,28 @@ This document serves to record external sources, algorithms, mathematical deriva
 - **Source:** [Octree Encoding: A New Solid Representation for Computer Graphics](https://rpi.edu/)
 - **Usage:** Used as the fundamental spatial acceleration structure for the engine. It recursively divides 3D space into eight octants, allowing collision detection, frustum culling, and raycasting (picking) to operate in $O(\log n)$ time instead of $O(n)$, drastically improving performance in scenes with many objects.
 
+## Physics & Collision Detection
+
+### Sequential Impulse & Rigid Body Dynamics
+
+- **Authors/Gurus:** Erin Catto (Creator of Box2D)
+- **Usage:** Essential concepts for resolving constraints, joints, and stable resting contacts using sequential impulses, which heavily influence how we stabilize physics loops and design our collision impulse resolution.
+
+### Real-Time Collision Detection
+
+- **Authors/Gurus:** Christer Ericson
+- **Usage:** The ultimate reference for implementing the Separating Axis Theorem (SAT), efficient intersection testing, and robust handling of floating-point inaccuracies in spatial math.
+
+### Advanced Collision Detection and Simulation
+
+- **Authors/Gurus:** Ming C. Lin and Nadia Magnenat Thalmann
+- **Usage:** Prof. Ming C. Lin is a pioneer in the field of collision detection (I-COLLIDE, SWIFT, V-COLLIDE). Her foundational research in bounding volume hierarchies and fast continuous collision detection provided the theoretical groundwork for modern rigid body physics. Nadia Magnenat Thalmann's pioneering work in simulating virtual humans and deformable objects is a profound inspiration for expanding interactive 3D systems beyond simple rigid bodies.
+
+### Physics-based Character Animation
+
+- **Authors/Gurus:** Jessica Hodgins
+- **Usage:** Her foundational research in integrating physical simulations with character animation serves as an ongoing inspiration for adding complex kinematics and physics-driven behaviors to game engines.
+
 ## Rendering Architecture & Best Practices
 
 ### Physically Based Rendering (PBR)

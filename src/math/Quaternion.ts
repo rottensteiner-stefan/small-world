@@ -54,7 +54,20 @@ export class Quaternion {
   }
 
   /**
-   * Multiplies this quaternion by another.
+   * Copies the values from another quaternion.
+   * @param q The other quaternion.
+   * @returns this
+   */
+  public copyFrom(q: Quaternion): this {
+    this.x = q.x;
+    this.y = q.y;
+    this.z = q.z;
+    this.w = q.w;
+    return this;
+  }
+
+  /**
+   * Multiplies this quaternion by another (this = this * q).
    * @param q The other quaternion.
    * @returns this
    */
@@ -67,6 +80,29 @@ export class Quaternion {
       qby: number = q.y,
       qbz: number = q.z,
       qbw: number = q.w;
+
+    this.x = qax * qbw + qaw * qbx + qay * qbz - qaz * qby;
+    this.y = qay * qbw + qaw * qby + qaz * qbx - qax * qbz;
+    this.z = qaz * qbw + qaw * qbz + qax * qby - qay * qbx;
+    this.w = qaw * qbw - qax * qbx - qay * qby - qaz * qbz;
+
+    return this;
+  }
+
+  /**
+   * Pre-multiplies this quaternion by another (this = q * this).
+   * @param q The other quaternion.
+   * @returns this
+   */
+  public premultiply(q: Quaternion): this {
+    const qax: number = q.x,
+      qay: number = q.y,
+      qaz: number = q.z,
+      qaw: number = q.w;
+    const qbx: number = this.x,
+      qby: number = this.y,
+      qbz: number = this.z,
+      qbw: number = this.w;
 
     this.x = qax * qbw + qaw * qbx + qay * qbz - qaz * qby;
     this.y = qay * qbw + qaw * qby + qaz * qbx - qax * qbz;

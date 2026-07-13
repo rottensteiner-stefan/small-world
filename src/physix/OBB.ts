@@ -1,5 +1,5 @@
 /// src/physix/OBB.ts
-import { Vector3D, Matrix4, MathPool } from "../math/index.js";
+import { Vector3D, Matrix4 } from "../math/index.js";
 import { BoundingVolume, FrustumInterface } from "../interfaces/index.js";
 import { BoundingType } from "../enums/index.js";
 
@@ -26,18 +26,18 @@ export class OBB implements BoundingVolume {
     return this.halfExtents.length();
   }
 
-  public intersectsFrustum(frustum: FrustumInterface): boolean {
+  public intersectsFrustum(_frustum: FrustumInterface): boolean {
     // A simplified broad-phase check (treat as sphere for frustum)
     // For a fully exact OBB-Frustum check, we'd test all 8 corners.
     return true;
   }
 
-  public intersectsVolume(other: BoundingVolume): boolean {
+  public intersectsVolume(_other: BoundingVolume): boolean {
     // We defer actual OBB-Volume intersection logic to the Collision class (SAT).
     return true;
   }
 
-  public containsVolume(other: BoundingVolume): boolean {
+  public containsVolume(_other: BoundingVolume): boolean {
     // Not implemented for broad phase yet
     return false;
   }
@@ -46,27 +46,20 @@ export class OBB implements BoundingVolume {
    * Transforms this OBB using a world matrix.
    * @param matrix The transformation matrix.
    */
-  public applyMatrix4(matrix: Matrix4): this {
+  public transform(matrix: Matrix4): void {
+    const e = matrix.data;
+
     // 1. Extract position
-    matrix.getTranslation(this.center);
+    this.center.set(e[12]!, e[13]!, e[14]!);
 
     // 2. Extract rotation (local axes)
-    // The columns of the upper 3x3 matrix are the local X, Y, Z axes.
-    const e = matrix.elements;
-
-    this.axes[0].set(e[0], e[1], e[2]).normalize();
-    this.axes[1].set(e[4], e[5], e[6]).normalize();
-    this.axes[2].set(e[8], e[9], e[10]).normalize();
+    this.axes[0].set(e[0]!, e[1]!, e[2]!).normalize();
+    this.axes[1].set(e[4]!, e[5]!, e[6]!).normalize();
+    this.axes[2].set(e[8]!, e[9]!, e[10]!).normalize();
 
     // 3. Extract scale and apply to half extents
-    const sx = Math.hypot(e[0], e[1], e[2]);
-    const sy = Math.hypot(e[4], e[5], e[6]);
-    const sz = Math.hypot(e[8], e[9], e[10]);
-
-    // Assuming base halfExtents are initialized to original geometry size,
-    // we would multiply them here. For now, we assume the OBB is updated
-    // freshly each frame or scale is baked into halfExtents.
-
-    return this;
+    // const sx = Math.hypot(e[0]!, e[1]!, e[2]!);
+    // const sy = Math.hypot(e[4]!, e[5]!, e[6]!);
+    // const sz = Math.hypot(e[8]!, e[9]!, e[10]!);
   }
 }

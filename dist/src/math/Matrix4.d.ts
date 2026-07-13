@@ -15,6 +15,12 @@ export declare class Matrix4 {
      * Composes matrix from pos, rot (Euler YXZ), scale.
      */
     compose(pos: Vector3D, rot: Vector3D, scale: Vector3D): this;
+    setFromQuaternion(q: {
+        x: number;
+        y: number;
+        z: number;
+        w: number;
+    }): this;
     decompose(position: Vector3D, rotation: Vector3D, scale: Vector3D): this;
     determinant(): number;
     static multiply(a: Matrix4, b: Matrix4, result: Matrix4): void;
