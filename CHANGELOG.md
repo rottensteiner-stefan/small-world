@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.55.0] - 2026-07-13
+
+### The Physics & Dynamics Update ("In God we trust, all others pay cash.")
+
+- **Feature (Lightweight Physics Engine):**
+  - Introduced a completely custom, impulse-based physics engine integrated directly into `PhysicsSystem`, utilizing a **Semi-Implicit Euler** integration loop.
+  - Implemented `RigidBody` component for managing linear and angular dynamics (`velocity`, `force`, `torque`, `inertia`, `friction`, `angularDamping`).
+  - Added support for perfectly elastic and inelastic collisions via the `restitution` property.
+  - Introduced exact rotation mapping between `Quaternion` physics states and `Euler` angles for `Object3D` sync.
+- **Feature (Collision Resolution):**
+  - Transitioned from simple overlap tests to full **Separating Axis Theorem (SAT)** resolution.
+  - Implemented `Collision.resolveSphereBox` and `Collision.resolveSphereSphere` to calculate exact correction vectors.
+  - Added **Positional Correction** based on inverse mass ratios to prevent objects from sinking into each other.
+  - Added **Impulse Resolution** to simulate realistic bouncing and momentum transfer between dynamic and static bodies.
+- **Refactoring & Code Quality:**
+  - Enforced strict `@typescript-eslint/no-explicit-any` checks across the entire codebase to maintain absolute type safety.
+  - Refactored `AbstractWebGLRenderer`, `WebGL1Renderer`, and `WebGL2Renderer` to correctly use `_`-prefixed protected variables (`_gl`, `_defaultTexture`, etc.) adhering strictly to internal engine coding standards.
+  - Expanded unit test coverage in `tests/physix/` with 150+ tests covering extreme math edge cases (negative mass/inertia, tunneling, $dt \le 0$ safety).
+- **Documentation:**
+  - Expanded `REFERENCES.md` to credit pioneering physicists and collision detection researchers (including Jessica Hodgins, Ming C. Lin, and Nadia Magnenat Thalmann).
+  - Wrote a comprehensive `physics.md` guide for VitePress explaining the internal math and usage of the physics system.
+  - Updated `README.md` to reflect the new physics capabilities.
 ## [0.54.0] - 2026-07-10
 
 - **Feature (Physics & Collisions):**

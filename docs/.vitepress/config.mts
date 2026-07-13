@@ -23,6 +23,7 @@ export default defineConfig({
             { text: "Architecture & Overview", link: "/guides/architecture" },
             { text: "Coordinate System & Camera Strategies", link: "/guides/coordinate-system" },
             { text: "Gamification & Interactions", link: "/guides/interactions" },
+            { text: "Physics & RigidBodies", link: "/guides/physics" },
             { text: "Finite State Machines (FSM)", link: "/guides/state-machines" },
             { text: "EventBus & Gameloop", link: "/guides/eventbus" },
             { text: "Extensions & Ecosystem", link: "/guides/extensions" },
