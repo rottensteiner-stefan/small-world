@@ -94,7 +94,7 @@ void main() {
         vec2 dir = uv - vec2(0.5);
         dir.x *= aspect;
         float dist = length(dir);
-        float eh = 0.15; // Much larger Event Horizon (15% of screen)
+        float eh = 0.03; // Much larger Event Horizon (15% of screen) -> now reduced to 3%
         if (dist > eh) {
             float bending = (eh * eh) / (dist * dist);
             vec2 disp = dir / dist;
@@ -132,7 +132,7 @@ void main() {
         float aspect = float(dims.x) / float(dims.y);
         vec2 dir = uv - vec2(0.5);
         dir.x *= aspect;
-        if (length(dir) < 0.15) {
+        if (length(dir) < 0.03) {
             hdr = vec3(0.0); // Absolute pitch black Event Horizon
         }
     }
@@ -158,7 +158,7 @@ void main() {
             float aspect = float(dims.x) / float(dims.y);
             vec2 dir = uv - vec2(0.5);
             dir.x *= aspect;
-            if (length(dir) < 0.15) {
+            if (length(dir) < 0.03) {
                 bloom = vec3(0.0);
             }
         }

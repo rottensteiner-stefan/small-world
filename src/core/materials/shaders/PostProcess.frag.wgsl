@@ -96,7 +96,7 @@ fn fs_main(@location(0) uv: vec2f, @builtin(position) coord: vec4f) -> @location
         var dir = uv - vec2f(0.5);
         dir.x *= aspect; // Make circle instead of ellipse
         let dist = length(dir);
-        let eh = 0.15; // Event Horizon screen radius
+        let eh = 0.03; // Event Horizon screen radius
         if (dist > eh) {
             let bending = (eh * eh) / (dist * dist);
             var disp = dir / dist; // normalized
@@ -138,7 +138,7 @@ fn fs_main(@location(0) uv: vec2f, @builtin(position) coord: vec4f) -> @location
         let aspect = dims.x / dims.y;
         var dir = uv - vec2f(0.5);
         dir.x *= aspect;
-        if (length(dir) < 0.15) {
+        if (length(dir) < 0.03) {
             hdr = vec3f(0.0);
         }
     }
@@ -168,7 +168,7 @@ fn fs_main(@location(0) uv: vec2f, @builtin(position) coord: vec4f) -> @location
             let aspect = dims.x / dims.y;
             var dir = uv - vec2f(0.5);
             dir.x *= aspect;
-            if (length(dir) < 0.15) {
+            if (length(dir) < 0.03) {
                 bloom = vec3f(0.0);
             }
         }

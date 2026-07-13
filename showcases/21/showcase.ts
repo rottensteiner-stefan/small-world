@@ -63,7 +63,7 @@ class Showcase21 extends SmallWorld {
     this.scene.add(ambient, dirLight);
 
     // 2. Camera Setup
-    this.camera.setStrategy(CameraStrategyType.ORBIT);
+    this.camera.setStrategy(CameraStrategyType.HYBRID_SYNC);
     this.camera.position.set(0, 20, 40);
     this.camera.target.set(0, 0, 0);
     this.camera.addBehavior(new OrbitController());
@@ -82,7 +82,7 @@ class Showcase21 extends SmallWorld {
     // We add a tiny visual marker for the singularity, but it has no physical bounds.
     const singularity = new Object3D("Singularity");
     singularity.geometry = new Sphere({
-      radius: 1.0,
+      radius: 0.2,
       widthSegments: 16,
       heightSegments: 16,
     }).getGeometryData();
@@ -96,7 +96,7 @@ class Showcase21 extends SmallWorld {
     this.scene.add(singularity);
 
     // 4. Pre-allocate sphere geometry (make them large enough to overlap into a solid ring)
-    const geo = new Sphere({ radius: 0.5, widthSegments: 8, heightSegments: 8 }).getGeometryData();
+    const geo = new Sphere({ radius: 0.1, widthSegments: 8, heightSegments: 8 }).getGeometryData();
 
     // Spawn 400 spheres packed closely together
     for (let i = 0; i < 400; i++) {
@@ -111,9 +111,9 @@ class Showcase21 extends SmallWorld {
         emissiveColor: new Color(1.0, 0.3, 0.05), // Fiery orange by default
       });
 
-      // Spawn in a very tight, dense torus (r=3.0 to r=8.0)
+      // Spawn in a very tight, dense torus (r=0.6 to r=3.0)
       const angle = Math.random() * Math.PI * 2;
-      const radius = 3.0 + Math.pow(Math.random(), 2) * 5.0;
+      const radius = 0.6 + Math.pow(Math.random(), 2) * 2.4;
 
       // Extremely flat disk
       const yOffset = (Math.random() - 0.5) * 0.2;
@@ -139,7 +139,7 @@ class Showcase21 extends SmallWorld {
       );
 
       s.rigidBody = rb;
-      s.bounds = new BoundingSphere(s.position, 0.25);
+      s.bounds = new BoundingSphere(s.position, 0.05);
 
       this._spheres.push(s);
 
@@ -180,9 +180,9 @@ class Showcase21 extends SmallWorld {
       const distC = Math.sqrt(distSqC) || 1.0;
 
       // Event Horizon: Consumed!
-      if (distC < 2.0) {
+      if (distC < 0.4) {
         const angle = Math.random() * Math.PI * 2;
-        const radius = 8.0; // Respawn at the outer edge of the dense disk
+        const radius = 3.0; // Respawn at the outer edge of the dense disk
         pA.set(Math.cos(angle) * radius, (Math.random() - 0.5) * 0.2, Math.sin(angle) * radius);
         const orbitalSpeed = Math.sqrt(400.0 / radius) * 0.98;
         a.rigidBody!.velocity.set(
@@ -242,8 +242,8 @@ class Showcase21 extends SmallWorld {
 
       // Increase heat based on pressure (proximity to singularity center)
       const distC = s.position.length();
-      if (distC < 5.0) {
-        heat += (5.0 - distC) * dt * 2.0;
+      if (distC < 1.0) {
+        heat += (1.0 - distC) * dt * 10.0;
       }
 
       // Cool down over time in the void of space
