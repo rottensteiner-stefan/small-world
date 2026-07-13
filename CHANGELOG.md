@@ -6,7 +6,10 @@
 
 - **Feature (Audio):**
   - Implemented a procedural Gaussian White Noise generator via Box-Muller transform in `AudioSystem.startDrone()`.
-  - Replaced uniform random noise with normal-distributed noise, filtered through a slow bandpass at 400Hz, perfectly simulating cosmic microwave background radiation and deep space solar winds.
+  - Upgraded the drone to a full **Cinematic Deep Space Ambient** generator:
+    - Added a massive 42Hz Sub-bass rumble to simulate the gravitational weight of the singularity.
+    - Added a ghostly, atonal sine-wave choir (minor 9th cluster) to evoke cosmic isolation.
+    - Modulated the Gaussian noise through a 250Hz lowpass filter with a 20-second LFO to create a "breathing" stellar wind effect.
 
 ## [0.56.0] - 2026-07-13
 

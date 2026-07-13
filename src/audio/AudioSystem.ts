@@ -228,106 +228,101 @@ export class AudioSystem {
   public startDrone(): void {
     this.resume();
 
-    // Base oscillator (smooth, deep sine wave)
-    const osc = this.context.createOscillator();
-    osc.type = "sine";
-    osc.frequency.value = 35; // Even lower bass tone
+    // 1. GIGANTIC SUB-BASS (The Black Hole's mass)
+    const subOsc = this.context.createOscillator();
+    subOsc.type = "sine";
+    subOsc.frequency.value = 42; // Deep rumble
 
-    // Add a second oscillator slightly detuned for dissonance
-    const osc2 = this.context.createOscillator();
-    osc2.type = "triangle";
-    osc2.frequency.value = 36.2; // Beating effect
+    const subOsc2 = this.context.createOscillator();
+    subOsc2.type = "triangle";
+    subOsc2.frequency.value = 43.5; // Beating effect for slow pulsing
 
-    // Replaced the "beeping" 8000Hz shimmer with a low, airy rumble
-    const shimmer = this.context.createOscillator();
-    shimmer.type = "triangle";
-    shimmer.frequency.value = 110; // Low ominous drone
+    // 2. GHOSTLY CHOIR / DRONE (Atonal minor 9th cluster)
+    // We create a very slow, hollow pad sound using a few sine waves
+    const pad1 = this.context.createOscillator();
+    pad1.type = "sine";
+    pad1.frequency.value = 110; // A2
 
-    const shimmerGain = this.context.createGain();
-    shimmerGain.gain.value = 0.05;
+    const pad2 = this.context.createOscillator();
+    pad2.type = "sine";
+    pad2.frequency.value = 164.81; // E3 (Perfect 5th)
 
-    // An LFO to make the drone pulse very slowly
-    const shimmerLfo = this.context.createOscillator();
-    shimmerLfo.type = "sine";
-    shimmerLfo.frequency.value = 0.02; // 50 second cycle (extremely slow)
-    const shimmerLfoGain = this.context.createGain();
-    shimmerLfoGain.gain.value = 0.05;
-    shimmerLfo.connect(shimmerLfoGain);
-    shimmerLfoGain.connect(shimmerGain.gain);
+    const pad3 = this.context.createOscillator();
+    pad3.type = "sine";
+    pad3.frequency.value = 233.08; // Bb3 (Minor 9th, creates dark dissonance)
 
-    const filter = this.context.createBiquadFilter();
-    filter.type = "lowpass";
-    filter.frequency.value = 80; // Very muffled
-
-    // LFO to create slow pulsing of the lowpass filter
-    const lfo = this.context.createOscillator();
-    lfo.type = "sine";
-    lfo.frequency.value = 0.08; // Slower filter pulse
-
-    const lfoGain = this.context.createGain();
-    lfoGain.gain.value = 60; // Depth of the pulse filter
-
-    lfo.connect(lfoGain);
-    lfoGain.connect(filter.frequency);
-
-    const mainGain = this.context.createGain();
-    mainGain.gain.value = 0.9; // Boost volume slightly to compensate for deep frequencies
-
-    // White Noise Generator for Cosmic Background Radiation
-    const bufferSize = this.context.sampleRate * 2; // 2 seconds
+    // 3. BROWN NOISE (Cosmic Wind)
+    const bufferSize = this.context.sampleRate * 2;
     const noiseBuffer = this.context.createBuffer(1, bufferSize, this.context.sampleRate);
     const output = noiseBuffer.getChannelData(0);
     for (let i = 0; i < bufferSize; i++) {
-      // Box-Muller transform for Gaussian (Normal) distribution
       let u1 = Math.random();
       const u2 = Math.random();
-      // Prevent log(0)
       if (u1 === 0) u1 = 1e-7;
-
       const z0 = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
-
-      // Scale and clip to [-1.0, 1.0] to prevent audio clipping
-      // We use std_dev of 0.25 so most values are small, with occasional peaks
-      const val = z0 * 0.25;
-      output[i] = Math.max(-1.0, Math.min(1.0, val));
+      output[i] = Math.max(-1.0, Math.min(1.0, z0 * 0.25));
     }
     const noiseSrc = this.context.createBufferSource();
     noiseSrc.buffer = noiseBuffer;
     noiseSrc.loop = true;
 
-    // Filter the white noise so it sounds like a deep rushing wind or distant radiation
-    const noiseFilter = this.context.createBiquadFilter();
-    noiseFilter.type = "bandpass";
-    noiseFilter.frequency.value = 400; // Low-mid rumbling wind
-    noiseFilter.Q.value = 0.5; // Very wide band
+    // 4. BREATHING LOWPASS FILTER (LFO Modulation)
+    // Instead of a static bandpass, we use a lowpass that opens and closes
+    const windFilter = this.context.createBiquadFilter();
+    windFilter.type = "lowpass";
+    windFilter.frequency.value = 250; // Base cutoff
+    windFilter.Q.value = 2.0; // Adds a slight resonant whistle
 
-    const noiseGain = this.context.createGain();
-    noiseGain.gain.value = 0.15; // Keep it subtle and atmospheric
+    const windLFO = this.context.createOscillator();
+    windLFO.type = "sine";
+    windLFO.frequency.value = 0.05; // 20-second cycle! "Breathing"
 
-    noiseSrc.connect(noiseFilter);
-    noiseFilter.connect(noiseGain);
-    noiseGain.connect(mainGain);
+    const windLFOGain = this.context.createGain();
+    windLFOGain.gain.value = 200; // Modulates cutoff by +/- 200Hz
 
-    osc.connect(filter);
-    osc2.connect(filter);
-    filter.connect(mainGain);
+    windLFO.connect(windLFOGain);
+    windLFOGain.connect(windFilter.frequency);
 
-    shimmer.connect(shimmerGain);
-    shimmerGain.connect(mainGain);
+    // 5. MIXING GAINS
+    const subGain = this.context.createGain();
+    subGain.gain.value = 0.8;
 
-    // Route drone through heavy reverb!
+    const padGain = this.context.createGain();
+    padGain.gain.value = 0.05; // Extremely quiet, ghostly presence
+
+    const windGain = this.context.createGain();
+    windGain.gain.value = 0.6; // Prominent, but softened by lowpass
+
+    const mainGain = this.context.createGain();
+    mainGain.gain.value = 0.8;
+
+    // 6. ROUTING
+    subOsc.connect(subGain);
+    subOsc2.connect(subGain);
+    subGain.connect(mainGain);
+
+    pad1.connect(padGain);
+    pad2.connect(padGain);
+    pad3.connect(padGain);
+    padGain.connect(mainGain);
+
+    noiseSrc.connect(windFilter);
+    windFilter.connect(windGain);
+    windGain.connect(mainGain);
+
+    // 7. ENDLESS VOID (Reverb)
     mainGain.connect(this._reverbNode);
-    // Also dry signal
+    // Add a tiny bit of dry signal to keep the rumble punchy
     mainGain.connect(this.musicGain);
 
-    // User requested ONLY white noise
-    // osc.start();
-    // osc2.start();
-    // lfo.start();
-    // shimmer.start();
-    // shimmerLfo.start();
-
+    // 8. START THE ENGINES
+    subOsc.start();
+    subOsc2.start();
+    pad1.start();
+    pad2.start();
+    pad3.start();
     noiseSrc.start();
+    windLFO.start();
   }
 
   /**
