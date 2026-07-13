@@ -228,42 +228,106 @@ export class AudioSystem {
   public startDrone(): void {
     this.resume();
 
-    // Base oscillator
+    // Base oscillator (smooth, deep sine wave)
     const osc = this.context.createOscillator();
-    osc.type = "sawtooth";
-    osc.frequency.value = 45; // Very low bass tone
+    osc.type = "sine";
+    osc.frequency.value = 35; // Even lower bass tone
 
     // Add a second oscillator slightly detuned for dissonance
     const osc2 = this.context.createOscillator();
     osc2.type = "triangle";
-    osc2.frequency.value = 46.5;
+    osc2.frequency.value = 36.2; // Beating effect
+
+    // Replaced the "beeping" 8000Hz shimmer with a low, airy rumble
+    const shimmer = this.context.createOscillator();
+    shimmer.type = "triangle";
+    shimmer.frequency.value = 110; // Low ominous drone
+
+    const shimmerGain = this.context.createGain();
+    shimmerGain.gain.value = 0.05;
+
+    // An LFO to make the drone pulse very slowly
+    const shimmerLfo = this.context.createOscillator();
+    shimmerLfo.type = "sine";
+    shimmerLfo.frequency.value = 0.02; // 50 second cycle (extremely slow)
+    const shimmerLfoGain = this.context.createGain();
+    shimmerLfoGain.gain.value = 0.05;
+    shimmerLfo.connect(shimmerLfoGain);
+    shimmerLfoGain.connect(shimmerGain.gain);
 
     const filter = this.context.createBiquadFilter();
     filter.type = "lowpass";
-    filter.frequency.value = 150; // Muffled
+    filter.frequency.value = 80; // Very muffled
 
-    // LFO to create slow pulsing
+    // LFO to create slow pulsing of the lowpass filter
     const lfo = this.context.createOscillator();
     lfo.type = "sine";
-    lfo.frequency.value = 0.15; // Extremely slow pulse
+    lfo.frequency.value = 0.08; // Slower filter pulse
 
     const lfoGain = this.context.createGain();
-    lfoGain.gain.value = 100; // Depth of the pulse filter
+    lfoGain.gain.value = 60; // Depth of the pulse filter
 
     lfo.connect(lfoGain);
     lfoGain.connect(filter.frequency);
 
     const mainGain = this.context.createGain();
-    mainGain.gain.value = 0.6; // Keep volume low and atmospheric
+    mainGain.gain.value = 0.9; // Boost volume slightly to compensate for deep frequencies
+
+    // White Noise Generator for Cosmic Background Radiation
+    const bufferSize = this.context.sampleRate * 2; // 2 seconds
+    const noiseBuffer = this.context.createBuffer(1, bufferSize, this.context.sampleRate);
+    const output = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      // Box-Muller transform for Gaussian (Normal) distribution
+      let u1 = Math.random();
+      const u2 = Math.random();
+      // Prevent log(0)
+      if (u1 === 0) u1 = 1e-7;
+
+      const z0 = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
+
+      // Scale and clip to [-1.0, 1.0] to prevent audio clipping
+      // We use std_dev of 0.25 so most values are small, with occasional peaks
+      const val = z0 * 0.25;
+      output[i] = Math.max(-1.0, Math.min(1.0, val));
+    }
+    const noiseSrc = this.context.createBufferSource();
+    noiseSrc.buffer = noiseBuffer;
+    noiseSrc.loop = true;
+
+    // Filter the white noise so it sounds like a deep rushing wind or distant radiation
+    const noiseFilter = this.context.createBiquadFilter();
+    noiseFilter.type = "bandpass";
+    noiseFilter.frequency.value = 400; // Low-mid rumbling wind
+    noiseFilter.Q.value = 0.5; // Very wide band
+
+    const noiseGain = this.context.createGain();
+    noiseGain.gain.value = 0.15; // Keep it subtle and atmospheric
+
+    noiseSrc.connect(noiseFilter);
+    noiseFilter.connect(noiseGain);
+    noiseGain.connect(mainGain);
 
     osc.connect(filter);
     osc2.connect(filter);
     filter.connect(mainGain);
+
+    shimmer.connect(shimmerGain);
+    shimmerGain.connect(mainGain);
+
+    // Route drone through heavy reverb!
+    mainGain.connect(this._reverbNode);
+    // Also dry signal
     mainGain.connect(this.musicGain);
 
-    osc.start();
-    osc2.start();
-    lfo.start();
+    // User requested ONLY white noise
+    // osc.start();
+    // osc2.start();
+    // lfo.start();
+    // shimmer.start();
+    // shimmerLfo.start();
+
+    noiseSrc.start();
   }
 
   /**
