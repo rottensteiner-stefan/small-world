@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.57.0] - 2026-07-13
+
+### The Gaussian Void Update ("In God we trust, all others pay cash.")
+
+- **Feature (Audio):**
+  - Implemented a procedural Gaussian White Noise generator via Box-Muller transform in `AudioSystem.startDrone()`.
+  - Replaced uniform random noise with normal-distributed noise, filtered through a slow bandpass at 400Hz, perfectly simulating cosmic microwave background radiation and deep space solar winds.
+
 ## [0.56.0] - 2026-07-13
 
 ### The Showcase 20 & Optimization Update ("In God we trust, all others pay cash.")
