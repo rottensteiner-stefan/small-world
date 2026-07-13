@@ -90,6 +90,22 @@ fn fs_main(@location(0) uv: vec2f, @builtin(position) coord: vec4f) -> @location
         distortUv.x += shakeX;
         distortUv.y += shakeY + jump;
     }
+    // Gravitational Lensing (mode 8)
+    if (8u == u_filterMode) {
+        let aspect = dims.x / dims.y;
+        var dir = uv - vec2f(0.5);
+        dir.x *= aspect; // Make circle instead of ellipse
+        let dist = length(dir);
+        let eh = 0.15; // Event Horizon screen radius
+        if (dist > eh) {
+            let bending = (eh * eh) / (dist * dist);
+            var disp = dir / dist; // normalized
+            disp.x /= aspect; // back to uv space
+            distortUv = uv + disp * bending * 0.25;
+        } else {
+            distortUv = vec2f(-1.0);
+        }
+    }
 
     var hdr: vec3f;
     if (3u == u_filterMode) { // Cyber Glitch (High CA)
@@ -118,6 +134,15 @@ fn fs_main(@location(0) uv: vec2f, @builtin(position) coord: vec4f) -> @location
         hdr = textureSample(hdrTexture, hdrSampler, distortUv).rgb;
     }
 
+    if (8u == u_filterMode) {
+        let aspect = dims.x / dims.y;
+        var dir = uv - vec2f(0.5);
+        dir.x *= aspect;
+        if (length(dir) < 0.15) {
+            hdr = vec3f(0.0);
+        }
+    }
+
     // Bloom
     if (1u == u_bloomEnabled) {
         var bloom: vec3f;
@@ -138,6 +163,16 @@ fn fs_main(@location(0) uv: vec2f, @builtin(position) coord: vec4f) -> @location
         } else {
             bloom = textureSample(bloomTexture, hdrSampler, distortUv).rgb;
         }
+
+        if (8u == u_filterMode) {
+            let aspect = dims.x / dims.y;
+            var dir = uv - vec2f(0.5);
+            dir.x *= aspect;
+            if (length(dir) < 0.15) {
+                bloom = vec3f(0.0);
+            }
+        }
+
         hdr += bloom * u_bloomIntensity * u_bloomColor;
     }
 

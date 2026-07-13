@@ -87,11 +87,28 @@ void main() {
         }
         distortUv += vec2(shakeX, shakeY);
     }
+    // Gravitational Lensing (mode 8)
+    if (u_filterMode == 8) {
+        ivec2 dims = textureSize(u_hdrTexture, 0);
+        float aspect = float(dims.x) / float(dims.y);
+        vec2 dir = uv - vec2(0.5);
+        dir.x *= aspect;
+        float dist = length(dir);
+        float eh = 0.15; // Much larger Event Horizon (15% of screen)
+        if (dist > eh) {
+            float bending = (eh * eh) / (dist * dist);
+            vec2 disp = dir / dist;
+            disp.x /= aspect;
+            distortUv = uv + disp * bending * 0.25;
+        } else {
+            distortUv = vec2(-1.0); // Sample nowhere
+        }
+    }
 
     // Chromatic Aberration (sampling R, G, B at slightly different coordinates)
     vec3 hdr;
     if (u_filterMode == 3) { // Cyber Glitch (High CA)
-        vec2 dir = distortUv - 0.5;
+        vec2 dir = distortUv - vec2(0.5);
         float shift = 0.025 + 0.015 * sin(u_time * 4.0);
         hdr.r = texture(u_hdrTexture, distortUv - dir * shift).r;
         hdr.g = texture(u_hdrTexture, distortUv).g;
@@ -101,13 +118,23 @@ void main() {
         hdr.g = texture(u_hdrTexture, distortUv).g;
         hdr.b = texture(u_hdrTexture, distortUv + vec2(0.008, 0.0)).b;
     } else if (u_filterMode == 2) { // Noir Detective (Edge CA)
-        vec2 dir = distortUv - 0.5;
-        float shift = 0.006 * length(dir);
-        hdr.r = texture(u_hdrTexture, distortUv - dir * shift).r;
+        vec2 dDir = distortUv - vec2(0.5);
+        float shift = 0.006 * length(dDir);
+        hdr.r = texture(u_hdrTexture, distortUv - dDir * shift).r;
         hdr.g = texture(u_hdrTexture, distortUv).g;
-        hdr.b = texture(u_hdrTexture, distortUv + dir * shift).b;
+        hdr.b = texture(u_hdrTexture, distortUv + dDir * shift).b;
     } else {
         hdr = texture(u_hdrTexture, distortUv).rgb;
+    }
+
+    if (u_filterMode == 8) {
+        ivec2 dims = textureSize(u_hdrTexture, 0);
+        float aspect = float(dims.x) / float(dims.y);
+        vec2 dir = uv - vec2(0.5);
+        dir.x *= aspect;
+        if (length(dir) < 0.15) {
+            hdr = vec3(0.0); // Absolute pitch black Event Horizon
+        }
     }
 
     // Bloom mixing
@@ -125,6 +152,15 @@ void main() {
             bloom.b = texture(u_bloomTexture, distortUv + vec2(0.008, 0.0)).b;
         } else {
             bloom = texture(u_bloomTexture, distortUv).rgb;
+        }
+        if (u_filterMode == 8) {
+            ivec2 dims = textureSize(u_hdrTexture, 0);
+            float aspect = float(dims.x) / float(dims.y);
+            vec2 dir = uv - vec2(0.5);
+            dir.x *= aspect;
+            if (length(dir) < 0.15) {
+                bloom = vec3(0.0);
+            }
         }
         hdr += bloom * u_bloomIntensity * u_bloomColor;
     }

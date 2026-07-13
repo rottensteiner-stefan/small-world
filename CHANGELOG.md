@@ -4,12 +4,19 @@
 
 ### The Gaussian Void Update ("In God we trust, all others pay cash.")
 
+- **Feature (Visuals & Rendering):**
+  - **Showcase 21 (Supermassive Black Hole):** Created a new interactive showcase demonstrating extreme gravity and physical accretion disks.
+  - Added a procedural, ultra-dense glowing Accretion Disk simulated via 400 overlapping inelastic rigid bodies spiraling toward the singularity.
+  - Implemented **Gravitational Lensing** in both WGSL and GLSL post-processing shaders, accurately calculating the aspect-ratio-corrected Einstein Ring and light-bending distortions caused by the event horizon.
+  - Added Event Horizon masking to ensure absolute zero light emission from the singularity center.
 - **Feature (Audio):**
   - Implemented a procedural Gaussian White Noise generator via Box-Muller transform in `AudioSystem.startDrone()`.
   - Upgraded the drone to a full **Cinematic Deep Space Ambient** generator:
     - Added a massive 42Hz Sub-bass rumble to simulate the gravitational weight of the singularity.
     - Added a ghostly, atonal sine-wave choir (minor 9th cluster) to evoke cosmic isolation.
     - Modulated the Gaussian noise through a 250Hz lowpass filter with a 20-second LFO to create a "breathing" stellar wind effect.
+- **Documentation:**
+  - Updated `REFERENCES.md` to formally credit Dr. Katie Bouman and Dr. Sara Issaoun for their groundbreaking work on the Event Horizon Telescope and the first visual proofs of black holes.
 
 ## [0.56.0] - 2026-07-13
 
