@@ -15,6 +15,7 @@ export declare class Color {
     private _cachedArray;
     set(r?: number, g?: number, b?: number, a?: number): this;
     copyFrom(color: Color): this;
+    lerp(target: Color, t: number): this;
     static get BLACK(): Color;
     static get SILVER(): Color;
     static get GRAY(): Color;

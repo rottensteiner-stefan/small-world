@@ -249,6 +249,7 @@ class PresentationController {
 
   constructor() {
     this._initDOMElements();
+    if (!this._slidesContainer) return;
     this._setupEvents();
     this._updateUI();
     this._startTimer();
@@ -304,8 +305,10 @@ class PresentationController {
     });
 
     // Navigation buttons
-    this._prevBtn.addEventListener("click", (): void => this.prevSlide());
-    this._nextBtn.addEventListener("click", (): void => this.nextSlide());
+    if (this._prevBtn && this._nextBtn) {
+      this._prevBtn.addEventListener("click", (): void => this.prevSlide());
+      this._nextBtn.addEventListener("click", (): void => this.nextSlide());
+    }
   }
 
   public goToSlide(index: number): void {

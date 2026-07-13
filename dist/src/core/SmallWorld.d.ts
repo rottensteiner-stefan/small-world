@@ -2,9 +2,9 @@ import { Camera } from './Camera.js';
 import { Scene } from './Scene.js';
 import { InteractionManager } from './InteractionManager.js';
 import { EngineOptions, Renderer } from '../interfaces/index.js';
-import { GadgetInspector } from '../tools/index.js';
+import { GadgetInspector } from '../tools/GadgetInspector.js';
 /** The current engine version. */
-export declare const ENGINE_VERSION = "0.55.0";
+export declare const ENGINE_VERSION = "0.56.0";
 /**
  * Base class for applications built with the SmallWorld engine.
  */

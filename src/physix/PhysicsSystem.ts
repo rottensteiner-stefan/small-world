@@ -5,6 +5,7 @@ import { Vector3D, MathPool } from "../math/index.js";
 import { Collision } from "./Collision.js";
 import { BoundingSphere } from "./BoundingSphere.js";
 import { BoundingBox } from "./BoundingBox.js";
+import { UniversalEventBus } from "../core/events/UniversalEventBus.js";
 
 /**
  * A lightweight physics solver using Semi-Implicit Euler integration.
@@ -218,6 +219,12 @@ export class PhysicsSystem {
                   rbB.applyImpulse(impulse);
                 }
                 MathPool.releaseVector(impulse);
+
+                UniversalEventBus.dispatchEvent("physics:collision", {
+                  objectA: dynObj,
+                  objectB: otherObj,
+                  impulse: jMag,
+                });
               }
 
               // Release temp static zero vector if rbB didn't exist
