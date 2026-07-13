@@ -24,6 +24,7 @@ Read our full [Vision & Strategy (VISION.md)](VISION.md).
 - **2D/2.5D Support:** First-class support for Sprites, Billboard rendering, and Pixel-Perfect Isometric perspectives.
 - **Audio System:** Built-in `AudioSystem` with 3D Spatial Audio (HRTF), a procedural Retro Synthesizer (footsteps, lasers, drones, fire), and a built-in Mixer with procedural Reverb.
 - **Decoupled Architecture:** Features a high-performance, strictly-typed global `EventBus` injected into all systems (`this.events`), separating Gameloop, Behaviors, and UI without relying on garbage-heavy DOM `CustomEvent` objects.
+- **Lightweight Physics System:** A custom, impulse-based physics engine integrated directly into the `PhysicsSystem`. Supports **RigidBodies** with linear and angular dynamics (velocity, torque, inertia, damping), precise collision detection using the Separating Axis Theorem (SAT) for OBB vs. OBB and Spheres, and realistic impulse resolution (bouncing/restitution) via Semi-Implicit Euler integration.
 - **Extensions Ecosystem:** Includes modular drop-in utilities like the `GridLevelBuilder` to instantly generate complete dungeon levels from simple ASCII maps (`["###", "#P#", "###"]`).
 - **Geometry & Asset Loaders:** Dynamic terrain generation, comprehensive primitive library, and async loaders for OBJ models, MTLLib materials, and textures (via unified static factories like `Texture.fromUrl()`).
 
