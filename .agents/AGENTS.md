@@ -26,7 +26,7 @@
 
 ## 4. Coding Constraints (TS strict: true)
 
-- **Types:** Explicit types, access modifiers, and NO `any` (use `unknown` for catch blocks). **Every function and method MUST have an explicit return type** (e.g., `(): void`, `(): string`).
+- **Types:** Explicit types, access modifiers, and **NO `any`**. The linter will instantly reject it with `Unexpected any. Specify a different type @typescript-eslint/no-explicit-any`. Use explicit casting (e.g. `as BoundingBox`) or generics. In test files, if you MUST bypass a private method, explicitly mute the line with `// eslint-disable-next-line @typescript-eslint/no-explicit-any`. Every function and method MUST have an explicit return type (e.g., `(): void`, `(): string`).
 - **Naming:** All `private` and `protected` class properties MUST start with exactly one leading underscore (e.g., `private _myProperty`).
 - **Files & Imports:** Start `.ts` files with `/// path/to/file.ts`. Relative imports must end with `.js`.
 - **UI/DOM:** Never use `@ts-nocheck` or `any` when dealing with DOM elements. Always cast explicitly to specific types like `HTMLElement`, `HTMLCanvasElement`, `HTMLInputElement`.
