@@ -68,4 +68,12 @@ export declare class AudioSystem {
      * Generates a retro "Ugh!" hurt sound.
      */
     playHurt(): void;
+    /**
+     * Generates a procedural synth tone (e.g., for musical instruments or physical impacts).
+     * @param frequency The base frequency in Hz.
+     * @param duration The duration of the tone in seconds.
+     * @param volume The starting volume.
+     * @param type The oscillator type.
+     */
+    playTone(frequency?: number, duration?: number, volume?: number, type?: OscillatorType): void;
 }

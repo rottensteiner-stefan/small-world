@@ -50,6 +50,21 @@ describe("StandardMaterial", () => {
     expect(material.transparent).toBe(true);
   });
 
+  it("should ignore 'emissive' in options and require 'emissiveColor' (regression test)", () => {
+    // This test ensures we don't accidentally pass 'emissive' to the constructor
+    // which was a previous bug in Showcase 20.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const options: any = {
+      emissive: new Color(1.0, 1.0, 1.0),
+    };
+    const material = new StandardMaterial(options);
+
+    // 'emissiveColor' should remain the default (black) because 'emissive' is ignored
+    expect(material.emissiveColor.r).toBe(0.0);
+    expect(material.emissiveColor.g).toBe(0.0);
+    expect(material.emissiveColor.b).toBe(0.0);
+  });
+
   it("should properly map properties to RenderManifest", () => {
     const emissiveColor = new Color(0.5, 0.6, 0.7);
     const material = new StandardMaterial({

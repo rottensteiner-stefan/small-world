@@ -35,6 +35,14 @@ export class Color {
     return this;
   }
 
+  public lerp(target: Color, t: number): this {
+    this.r += (target.r - this.r) * t;
+    this.g += (target.g - this.g) * t;
+    this.b += (target.b - this.b) * t;
+    this.a += (target.a - this.a) * t;
+    return this;
+  }
+
   // --- CSS Level 1 / Basic Colors ---
   public static get BLACK(): Color {
     return new Color();

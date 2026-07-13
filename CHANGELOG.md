@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.56.0] - 2026-07-13
+
+### The Showcase 20 & Optimization Update ("In God we trust, all others pay cash.")
+
+- **Feature (Showcase 20 - Generative Audio Sculpture):**
+  - Created a dynamic, physics-based Galton Board / Plinko machine using the new physics engine.
+  - Implemented event-driven generative audio: objects emit pentatonic synth notes based on collision impulses (`physics:collision` events) and vertical position.
+  - Showcased advanced materials with refractive glass pegs and glowing/flashing cyber-pink emissive spheres.
+- **Performance Optimizations:**
+  - Introduced **Object Pooling** (`_spherePool`) in `Showcase20` to prevent real-time `StandardMaterial` instantiations, completely eliminating WebGPU shader recompilation stuttering during the simulation loop.
+  - Reduced dynamic object count in showcases to drastically improve `O(N^2)` collision detection performance.
+  - Disabled the `GadgetInspector` by default (`enableInspector: false` in `SmallWorld` base class) to prevent unnecessary background overhead and unwanted asset loading (e.g. `rock.png`) in simple showcases.
+- **Bug Fixes:**
+  - Fixed a critical physics bug where extreme damping (`friction = 0.1`) caused RigidBodies to lose 90% of their velocity per frame, leading to extreme slow-motion falling and negligible collision impulses.
+  - Restored the missing `PhysicsSystem.instance` instantiation and `step()` loop in `Showcase20` to properly drive gravitational and collision physics.
+  - Fixed an undefined property crash (`lerp` on `emissive`) by manually implementing RGB interpolation for hit-flash cooling effects.
+
 ## [0.55.0] - 2026-07-13
 
 ### The Physics & Dynamics Update ("In God we trust, all others pay cash.")

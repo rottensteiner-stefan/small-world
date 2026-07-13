@@ -593,7 +593,11 @@ if (typeof document !== "undefined") {
       alert("Initialization failed: " + (e as Error).message);
     }
 
-    const dropzone = document.getElementById("dropzone")!;
+    const dropzone = document.getElementById("dropzone");
+    if (!dropzone) {
+      console.warn("IBL Gen: Could not find #dropzone element. Aborting setup.");
+      return;
+    }
     const dropzoneText = dropzone.querySelector(".dropzone-text") as HTMLElement;
 
     function handleFileSelect(file: File): void {

@@ -382,4 +382,35 @@ export class AudioSystem {
     osc.start();
     osc.stop(this.context.currentTime + 0.3);
   }
+
+  /**
+   * Generates a procedural synth tone (e.g., for musical instruments or physical impacts).
+   * @param frequency The base frequency in Hz.
+   * @param duration The duration of the tone in seconds.
+   * @param volume The starting volume.
+   * @param type The oscillator type.
+   */
+  public playTone(
+    frequency: number = 440,
+    duration: number = 0.5,
+    volume: number = 0.5,
+    type: OscillatorType = "sine",
+  ): void {
+    this.resume();
+    const osc = this.context.createOscillator();
+    osc.type = type;
+
+    osc.frequency.setValueAtTime(frequency, this.context.currentTime);
+
+    const gain = this.context.createGain();
+    // Quick attack, exponential decay for a percussive strike
+    gain.gain.setValueAtTime(volume, this.context.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, this.context.currentTime + duration);
+
+    osc.connect(gain);
+    gain.connect(this.sfxGain);
+
+    osc.start();
+    osc.stop(this.context.currentTime + duration);
+  }
 }

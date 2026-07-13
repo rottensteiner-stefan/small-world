@@ -7,10 +7,7 @@ export * from "./loaders/index.js";
 export * from "./math/index.js";
 export * from "./physix/index.js";
 export * from "./renderers/index.js";
-export * from "./tools/index.js";
 export * from "./utils/index.js";
 export * from "./audio/index.js";
 
-export * from "./presentation.js";
-export * from "./apps/index.js";
 export * from "./extensions/index.js";

@@ -18,10 +18,10 @@ import { ProjectionType, RendererType } from "../enums/index.js";
 import { RendererFactory } from "../renderers/index.js";
 import { ShaderBootstrap } from "./renderers/shaders/index.js";
 import { CollisionVisualizer, OctreeVisualizer } from "../utils/index.js";
-import { GadgetInspector } from "../tools/index.js";
+import { GadgetInspector } from "../tools/GadgetInspector.js";
 
 /** The current engine version. */
-export const ENGINE_VERSION = "0.55.0";
+export const ENGINE_VERSION = "0.56.0";
 
 /**
  * Base class for applications built with the SmallWorld engine.
@@ -61,7 +61,7 @@ export abstract class SmallWorld {
       rendererType: RendererType.BEST,
       projectionType: ProjectionType.PERSPECTIVE,
       fullscreen: true,
-      enableInspector: true,
+      enableInspector: false,
       ...userConfig,
     };
 
