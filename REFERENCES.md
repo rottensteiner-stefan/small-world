@@ -38,6 +38,14 @@ This document serves to record external sources, algorithms, mathematical deriva
 
 ## Physics & Collision Detection
 
+### Gravitational Lensing (Black Hole Shadow & Einstein Ring)
+
+- **File:** `src/core/materials/shaders/PostProcess.frag.glsl`, `showcases/21/showcase.ts`
+- **Inspiration:** Dr. Katie Bouman, Dr. Sara Issaoun, and the Event Horizon Telescope (EHT) Collaboration (2019, 2022)
+- **Source:** First imaging of M87* and Sagittarius A* (Sgr A*).
+- **Usage:** The visual representation of the Super Massive Black Hole in Showcase 21 is profoundly inspired by the groundbreaking imaging work of the EHT team. The custom post-processing shader approximates the gravitational lensing, deflecting light rays near the simulated event horizon to recreate the iconic asymmetric glowing ring and the absolute black shadow at its core.
+
+
 ### Sequential Impulse & Rigid Body Dynamics
 
 - **Authors/Gurus:** Erin Catto (Creator of Box2D)
