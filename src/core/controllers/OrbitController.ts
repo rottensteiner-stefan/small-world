@@ -50,7 +50,7 @@ export class OrbitController extends Behavior {
 
     // 1. Handle Rotation
     if (this._options.enableRotation) {
-      if (Input.isPointerLocked) {
+      if (Input.isPointerLocked || Input.mouse.left) {
         cam.pendingDx += Input.mouse.dx;
         cam.pendingDy += Input.mouse.dy;
       }
