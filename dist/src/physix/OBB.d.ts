@@ -14,12 +14,12 @@ export declare class OBB implements BoundingVolume {
     /** The 3 orthogonal local axes of the OBB (X, Y, Z). */
     axes: [Vector3D, Vector3D, Vector3D];
     getBroadRadius(): number;
-    intersectsFrustum(frustum: FrustumInterface): boolean;
-    intersectsVolume(other: BoundingVolume): boolean;
-    containsVolume(other: BoundingVolume): boolean;
+    intersectsFrustum(_frustum: FrustumInterface): boolean;
+    intersectsVolume(_other: BoundingVolume): boolean;
+    containsVolume(_other: BoundingVolume): boolean;
     /**
      * Transforms this OBB using a world matrix.
      * @param matrix The transformation matrix.
      */
-    applyMatrix4(matrix: Matrix4): this;
+    transform(matrix: Matrix4): void;
 }

@@ -1,0 +1,124 @@
+import { describe, it, expect } from "vitest";
+import { Collision } from "../../src/physix/Collision.js";
+import { BoundingBox } from "../../src/physix/BoundingBox.js";
+import { BoundingSphere } from "../../src/physix/BoundingSphere.js";
+import { OBB } from "../../src/physix/OBB.js";
+import { Vector3D, Matrix4 } from "../../src/math/index.js";
+
+describe("Collision", () => {
+  it("should accurately detect Sphere-Sphere collisions", () => {
+    const s1 = new BoundingSphere(new Vector3D(0, 0, 0), 1.0);
+    const s2 = new BoundingSphere(new Vector3D(1.5, 0, 0), 1.0);
+    const s3 = new BoundingSphere(new Vector3D(2.5, 0, 0), 1.0);
+
+    expect(Collision.test(s1, s2)).toBe(true); // Distance 1.5 < 1+1
+    expect(Collision.test(s1, s3)).toBe(false); // Distance 2.5 > 1+1
+  });
+
+  it("should accurately detect Box-Box collisions", () => {
+    const b1 = new BoundingBox(new Vector3D(-1, -1, -1), new Vector3D(1, 1, 1));
+    const b2 = new BoundingBox(new Vector3D(0.5, 0.5, 0.5), new Vector3D(2, 2, 2));
+    const b3 = new BoundingBox(new Vector3D(2, 2, 2), new Vector3D(3, 3, 3));
+
+    expect(Collision.test(b1, b2)).toBe(true);
+    expect(Collision.test(b1, b3)).toBe(false);
+  });
+
+  it("should accurately detect Sphere-Box collisions", () => {
+    const s = new BoundingSphere(new Vector3D(1.5, 0, 0), 1.0);
+    const b = new BoundingBox(new Vector3D(-1, -1, -1), new Vector3D(1, 1, 1));
+
+    // Distance from center (1.5,0,0) to box edge (1,0,0) is 0.5. Radius is 1. -> Intersect
+    expect(Collision.test(s, b)).toBe(true);
+    // Reverse test (Box-Sphere)
+    expect(Collision.test(b, s)).toBe(true);
+
+    s.center.set(3, 0, 0);
+    expect(Collision.test(s, b)).toBe(false);
+  });
+
+  it("should handle OBB-OBB collisions using SAT", () => {
+    const obb1 = new OBB();
+    obb1.center.set(0, 0, 0);
+    obb1.halfExtents.set(1, 1, 1);
+
+    const obb2 = new OBB();
+    obb2.center.set(1.5, 0, 0);
+    obb2.halfExtents.set(1, 1, 1);
+
+    // Axis-aligned, should intersect
+    expect(Collision.test(obb1, obb2)).toBe(true);
+
+    // Rotate obb2 by 45 degrees on Y.
+    // Wait, let's just use transform
+    const m = new Matrix4();
+    Matrix4.rotateY(Math.PI / 4, m);
+    m.data[12] = 2.5; // Translate X by 2.5
+    obb2.transform(m);
+
+    // Distance 2.5. Half extents 1 + 1*sqrt(2) approx 1 + 1.41 = 2.41. Should not intersect.
+    expect(Collision.test(obb1, obb2)).toBe(false);
+
+    // Move closer
+    m.data[12] = 2.0;
+    obb2.transform(m);
+    expect(Collision.test(obb1, obb2)).toBe(true);
+  });
+
+  it("should resolve Sphere-Box collisions correctly", () => {
+    const s = new BoundingSphere(new Vector3D(1.5, 0, 0), 1.0);
+    const b = new BoundingBox(new Vector3D(-1, -1, -1), new Vector3D(1, 1, 1));
+    const result = new Vector3D();
+
+    const resolved = Collision.resolveSphereBox(s, b, result);
+    expect(resolved).toBe(true);
+    // Overlap = radius(1.0) - dist(0.5) = 0.5. Direction is X+.
+    expect(result.x).toBeCloseTo(0.5);
+    expect(result.y).toBe(0);
+    expect(result.z).toBe(0);
+  });
+
+  it("should handle exact boundaries correctly (distance == sum of radii)", () => {
+    const s1 = new BoundingSphere(new Vector3D(0, 0, 0), 1.0);
+    const s2 = new BoundingSphere(new Vector3D(2.0, 0, 0), 1.0); // Exact boundary
+
+    // According to Collision._sphereSphere: d2 <= r2. So 4 <= 4 is true.
+    expect(Collision.test(s1, s2)).toBe(true);
+
+    s2.center.set(2.0001, 0, 0); // Barely separated
+    expect(Collision.test(s1, s2)).toBe(false);
+  });
+
+  it("should handle exact boundaries for Box-Box", () => {
+    const b1 = new BoundingBox(new Vector3D(0, 0, 0), new Vector3D(1, 1, 1));
+    const b2 = new BoundingBox(new Vector3D(1, 0, 0), new Vector3D(2, 1, 1)); // Touching on X=1
+
+    // Box vs Box uses >= and <=. 1 <= 2 && 1 >= 1. Should be true.
+    expect(Collision.test(b1, b2)).toBe(true);
+
+    b2.min.x = 1.0001; // Barely separated
+    expect(Collision.test(b1, b2)).toBe(false);
+  });
+
+  it("should handle Sphere-Box center exactly inside the box", () => {
+    const s = new BoundingSphere(new Vector3D(0, 0, 0), 1.0);
+    const b = new BoundingBox(new Vector3D(-1, -1, -1), new Vector3D(1, 1, 1));
+    const result = new Vector3D();
+
+    const resolved = Collision.resolveSphereBox(s, b, result);
+    expect(resolved).toBe(true);
+    // Depth should be 1.0 (radius) along the axis of least penetration
+    // Wait, the least penetration distance from center to bounds.
+    // Center is 0, bounds are -1, 1. Distance to edge is 1. Radius is 1. Overlap = radius + distance = 2.
+    // Let's check resolveSphereBox logic. If center is EXACTLY inside, it pushes along least penetration.
+    expect(Math.abs(result.x) + Math.abs(result.y) + Math.abs(result.z)).toBeCloseTo(2.0);
+  });
+
+  it("should gracefully handle unhandled collision permutations", () => {
+    const s = new BoundingSphere(new Vector3D(), 1);
+    const obb = new OBB();
+
+    // Sphere vs OBB is currently unhandled in the switch, should default to false
+    expect(Collision.test(s, obb)).toBe(false);
+  });
+});

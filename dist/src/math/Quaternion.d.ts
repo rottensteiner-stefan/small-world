@@ -35,11 +35,23 @@ export declare class Quaternion {
      */
     identity(): this;
     /**
-     * Multiplies this quaternion by another.
+     * Copies the values from another quaternion.
+     * @param q The other quaternion.
+     * @returns this
+     */
+    copyFrom(q: Quaternion): this;
+    /**
+     * Multiplies this quaternion by another (this = this * q).
      * @param q The other quaternion.
      * @returns this
      */
     multiply(q: Quaternion): this;
+    /**
+     * Pre-multiplies this quaternion by another (this = q * this).
+     * @param q The other quaternion.
+     * @returns this
+     */
+    premultiply(q: Quaternion): this;
     /**
      * Sets the quaternion from axis and angle.
      * @param axis The rotation axis (must be normalized).

@@ -113,6 +113,47 @@ export class Matrix4 {
     return this;
   }
 
+  public setFromQuaternion(q: { x: number; y: number; z: number; w: number }): this {
+    const te = this.data;
+    const x = q.x,
+      y = q.y,
+      z = q.z,
+      w = q.w;
+    const x2 = x + x,
+      y2 = y + y,
+      z2 = z + z;
+    const xx = x * x2,
+      xy = x * y2,
+      xz = x * z2;
+    const yy = y * y2,
+      yz = y * z2,
+      zz = z * z2;
+    const wx = w * x2,
+      wy = w * y2,
+      wz = w * z2;
+
+    te[0] = 1 - (yy + zz);
+    te[4] = xy - wz;
+    te[8] = xz + wy;
+    te[12] = 0;
+
+    te[1] = xy + wz;
+    te[5] = 1 - (xx + zz);
+    te[9] = yz - wx;
+    te[13] = 0;
+
+    te[2] = xz - wy;
+    te[6] = yz + wx;
+    te[10] = 1 - (xx + yy);
+    te[14] = 0;
+
+    te[3] = 0;
+    te[7] = 0;
+    te[11] = 0;
+    te[15] = 1;
+    return this;
+  }
+
   public decompose(position: Vector3D, rotation: Vector3D, scale: Vector3D): this {
     const te = this.data;
     position.set(te[12]!, te[13]!, te[14]!);
