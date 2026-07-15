@@ -120,6 +120,7 @@ export default defineConfig({
         showcase18: resolve(__dirname, "showcases/18/index.html"),
         showcase19: resolve(__dirname, "showcases/19/index.html"),
         showcase20: resolve(__dirname, "showcases/20/index.html"),
+        showcase21: resolve(__dirname, "showcases/21/index.html"),
         yad: resolve(__dirname, "showcases/yad/index.html"),
         pbrgen: resolve(__dirname, "public/tools/pbr-gen.html"),
         presentation: resolve(__dirname, "public/presentation.html"),
