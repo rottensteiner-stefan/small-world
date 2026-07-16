@@ -21,7 +21,7 @@ import { CollisionVisualizer, OctreeVisualizer } from "../utils/index.js";
 import { GadgetInspector } from "../tools/GadgetInspector.js";
 
 /** The current engine version. */
-export const ENGINE_VERSION = "0.58.0";
+export const ENGINE_VERSION = "0.59.0";
 
 /**
  * Base class for applications built with the SmallWorld engine.
@@ -230,7 +230,7 @@ export abstract class SmallWorld {
         const bannerStyle1 =
           "font-size: 24px; font-weight: bold; font-family: sans-serif; color: #B000FF; text-shadow: 0 0 10px rgba(176, 0, 255, 0.5); line-height: 30px;";
         const bannerStyle2 =
-          "font-size: 14px; font-weight: bold; background: #222; color: #fff; padding: 2px 6px; border-radius: 4px; border: 1px solid #B000FF; margin-left: 8px; line-height: 30px;";
+          "font-size: 16px; font-weight: bold; font-family: sans-serif; color: #00e5ff; text-shadow: 0 0 8px rgba(0, 229, 255, 0.6); margin-left: 8px; line-height: 30px;";
         const bannerStyle3 = "font-size: 12px; font-family: sans-serif; color: #aaa;";
         console.log(
           `%c Small World Engine %c v${ENGINE_VERSION} %c\n\n%c A very small 3D engine focusing on raw WebGL performance.\n https://github.com/rottensteiner-stefan/small-world\n\n`,
