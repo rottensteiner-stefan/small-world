@@ -6,6 +6,9 @@ import { Vector3D } from '../math/index.js';
 export declare class PhysicsSystem {
     /** Global gravity vector (default: -9.81 on Y) */
     gravity: Vector3D;
+    private _bodies;
+    private _allColliders;
+    private _collisionEvent;
     /**
      * Steps the physics simulation forward.
      * @param scene The scene containing objects with RigidBodies.

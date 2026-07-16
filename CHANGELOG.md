@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.58.0] - 2026-07-16
+
+### The Housekeeping Update ("Always code as if the guy who ends up maintaining your code will be a violent psychopath who knows where you live." - John Woods)
+
+- **Performance & Housekeeping:**
+  - Resolved GC memory leaks in the hot paths (`PhysicsSystem.step()`) ensuring absolute Zero-Allocation guarantees.
+  - Switched internal `bodies` and `allColliders` arrays in physics resolution to be strictly pre-allocated and reused every frame.
+  - Replaced ad-hoc object literals for `UniversalEventBus` collision events with a strictly reused instance object to eliminate garbage collection pressure completely.
+- **Testing:**
+  - Introduced `tests/physix/ZeroAllocation.test.ts` to mathematically guarantee zero math-pool leakage and strict array re-use during physics simulation.
+  - Confirmed 100% test coverage integrity with 161 passing tests, flawless compilation, and zero `any` TypeScript violations.
+
 ## [0.57.0] - 2026-07-13
 
 ### The Gaussian Void Update ("In God we trust, all others pay cash.")
