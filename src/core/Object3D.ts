@@ -108,13 +108,20 @@ export class Object3D implements Collidable {
     if (this.geometry) {
       // 1. Get local bounds from geometry
       const localBounds = this.geometry.getBoundingVolume();
-      // 2. Transform bounds to world space without re-allocating
-      if (!this.bounds) {
+      // 2. Transform bounds to world space without re-allocating (if types match)
+      if (!this.bounds || this.bounds.type !== localBounds.type) {
         // Create a fresh copy
         if (localBounds.type === 1 /* BoundingType.BOX */) {
           const lb = localBounds as import("../physix/index.js").BoundingBox;
           const BoxType = lb.constructor as new (min: Vector3D, max: Vector3D) => BoundingVolume;
           this.bounds = new BoxType(lb.min.clone(), lb.max.clone());
+        } else if (localBounds.type === 0 /* BoundingType.SPHERE */) {
+          const ls = localBounds as import("../physix/index.js").BoundingSphere;
+          const SphereType = ls.constructor as new (
+            center: Vector3D,
+            radius: number,
+          ) => BoundingVolume;
+          this.bounds = new SphereType(ls.center.clone(), ls.radius);
         }
       }
 
@@ -123,6 +130,12 @@ export class Object3D implements Collidable {
         const b = this.bounds as import("../physix/index.js").BoundingBox;
         b.min.copyFrom(lb.min);
         b.max.copyFrom(lb.max);
+        b.transform(this.worldMatrix);
+      } else if (this.bounds && this.bounds.type === 0 /* BoundingType.SPHERE */) {
+        const ls = localBounds as import("../physix/index.js").BoundingSphere;
+        const b = this.bounds as import("../physix/index.js").BoundingSphere;
+        b.center.copyFrom(ls.center);
+        b.radius = ls.radius;
         b.transform(this.worldMatrix);
       }
     }

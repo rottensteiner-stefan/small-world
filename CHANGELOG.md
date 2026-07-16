@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.59.0] - 2026-07-16
+
+### The Sentinel Swarm Update ("I am a brain, Watson. The rest of me is a mere appendix." - Sherlock Holmes)
+
+- **Feature (Showcases & Simulation):**
+  - **Showcase 22 (Drone Swarm):** Implemented a rigorous 120-drone swarming simulation spawning symmetrically from 4 outer corners (`+/- 34.0`) and converging organically toward the center.
+  - Replaced ad-hoc coordinate sign flips with an elegant `Round-Robin` math logic to strictly manage quad-directional symmetric corner allocations.
+- **Bugfixes & Physics Integrity:**
+  - **Collision Broadphase Optimization:** Solved a critical ghost-collision bug where 2400 pre-allocated, invisible `DroneTrail` objects artificially triggered PhysicsSystem impulses. The broadphase now strictly ignores `obj.isVisible === false` objects, granting a massive performance boost.
+  - **High-Velocity Tunneling Fixed:** Prevented the dynamic `Marble` from tunneling through the floor at high frame-deltas by correctly recalculating and expanding the static floor's physical `Y`-depth to 10.0 units, without modifying its visual rendering surface.
+
 ## [0.58.0] - 2026-07-16
 
 ### The Housekeeping Update ("Always code as if the guy who ends up maintaining your code will be a violent psychopath who knows where you live." - John Woods)

@@ -115,6 +115,7 @@ export class PhysicsSystem {
 
       // Update bounds if necessary
       obj.updateMatrixWorld();
+      obj.computeBounds();
 
       // Clear forces for next frame
       rb.clearForces();
@@ -130,7 +131,7 @@ export class PhysicsSystem {
     const allColliders = this._allColliders;
     allColliders.length = 0;
     for (const obj of scene.objects) {
-      if (obj.bounds) {
+      if (obj.bounds && obj.isVisible) {
         allColliders.push(obj);
       }
     }
@@ -218,7 +219,11 @@ export class PhysicsSystem {
 
               // Do not resolve if velocities are already separating
               if (velAlongNormal < 0) {
-                const e = Math.min(rbA.restitution, rbB ? rbB.restitution : 0.2);
+                // If velocity is low (resting contact), set e=0 to prevent infinite jitter
+                const e =
+                  velAlongNormal > -0.5
+                    ? 0
+                    : Math.min(rbA.restitution, rbB ? rbB.restitution : 0.2);
                 let jMag = -(1 + e) * velAlongNormal;
                 jMag /= totalInvMass;
 
