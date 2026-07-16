@@ -14,6 +14,14 @@ export class PhysicsSystem {
   /** Global gravity vector (default: -9.81 on Y) */
   public gravity: Vector3D = new Vector3D(0, -9.81, 0);
 
+  private _bodies: Object3D[] = [];
+  private _allColliders: Object3D[] = [];
+  private _collisionEvent = {
+    objectA: null as unknown as Object3D,
+    objectB: null as unknown as Object3D,
+    impulse: 0,
+  };
+
   /**
    * Steps the physics simulation forward.
    * @param scene The scene containing objects with RigidBodies.
@@ -23,7 +31,8 @@ export class PhysicsSystem {
     if (dt <= 0) return;
 
     // 1. Collect all dynamic rigidbodies
-    const bodies: Object3D[] = [];
+    const bodies = this._bodies;
+    bodies.length = 0;
 
     // In a highly optimized engine, the Scene might maintain a flat list of dynamic bodies.
     // For now, we iterate over all objects.
@@ -118,7 +127,8 @@ export class PhysicsSystem {
 
   private _resolveCollisions(scene: Scene, bodies: Object3D[], _dt: number): void {
     // Collect all colliders (both static and dynamic) that have bounds
-    const allColliders: Object3D[] = [];
+    const allColliders = this._allColliders;
+    allColliders.length = 0;
     for (const obj of scene.objects) {
       if (obj.bounds) {
         allColliders.push(obj);
@@ -220,11 +230,10 @@ export class PhysicsSystem {
                 }
                 MathPool.releaseVector(impulse);
 
-                UniversalEventBus.dispatchEvent("physics:collision", {
-                  objectA: dynObj,
-                  objectB: otherObj,
-                  impulse: jMag,
-                });
+                this._collisionEvent.objectA = dynObj;
+                this._collisionEvent.objectB = otherObj;
+                this._collisionEvent.impulse = jMag;
+                UniversalEventBus.dispatchEvent("physics:collision", this._collisionEvent);
               }
 
               // Release temp static zero vector if rbB didn't exist
