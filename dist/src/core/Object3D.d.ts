@@ -39,6 +39,7 @@ export declare class Object3D implements Collidable {
     constructor(name?: string);
     add(...children: Object3D[]): void;
     remove(...children: Object3D[]): void;
+    getObjectByName(name: string): Object3D | undefined;
     addBehavior(behavior: Behavior): this;
     removeBehavior(behavior: Behavior): this;
     translate(v: Vector3D): this;

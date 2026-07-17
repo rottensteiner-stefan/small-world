@@ -71,6 +71,15 @@ export class Object3D implements Collidable {
     }
   }
 
+  public getObjectByName(name: string): Object3D | undefined {
+    if (this.name === name) return this;
+    for (let i = 0; i < this.children.length; i++) {
+      const found = this.children[i]!.getObjectByName(name);
+      if (found) return found;
+    }
+    return undefined;
+  }
+
   public addBehavior(behavior: Behavior): this {
     behavior.onAttach(this);
     this.behaviors.push(behavior);

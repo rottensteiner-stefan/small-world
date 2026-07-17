@@ -1,5 +1,8 @@
 # Changelog
 
+## [0.60.2] - 2026-07-17
+- **Fixed:** `Scene` now uses an internal `root: Object3D` node to manage its hierarchy. This resolves the architectural bug where objects could exist simultaneously in `scene.objects` and as a child of another `Object3D` group, causing them to be updated/rendered twice. `scene.objects` is now a safe getter returning `scene.root.children`.
+
 ## [0.60.1] - 2026-07-17
 - **Fixed:** Physics system now collects dynamic rigidbodies and static colliders recursively. Complex objects (e.g. cars with child wheels) are now processed correctly.
 

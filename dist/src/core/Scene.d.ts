@@ -11,8 +11,8 @@ export interface RenderList {
  * A scene that holds a collection of 3D objects.
  */
 export declare class Scene {
-    objects: Object3D[];
-    private readonly _objectsByName;
+    readonly root: Object3D;
+    get objects(): Object3D[];
     staticOctree: Octree | undefined;
     dynamicOctree: Octree | undefined;
     spatialHash: SpatialHash | undefined;
