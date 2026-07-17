@@ -1,7 +1,6 @@
 /// showcases/22/showcase.ts
 import {
   SmallWorld,
-  OrbitController,
   PointLight,
   Color,
   Cube,
@@ -25,11 +24,19 @@ import {
   Torus,
   HoverBehavior,
   RotatorBehavior,
+  Input,
+  EmissivePulseBehavior,
+  CustomShaderMaterial,
+  StandardWebGPULayout,
 } from "../../src/index.js";
+
+import fragWGSL from "../../src/core/materials/shaders/Standard.frag.wgsl?raw";
+import fragGLSL from "../../src/core/materials/shaders/Standard.frag.glsl?raw";
+import fragGLSL100 from "../../src/core/materials/shaders/Standard.frag.glsl100?raw";
 import { MarbleController } from "./MarbleController.js";
 import { DroneController } from "./DroneController.js";
 import floorTexUrl from "./assets/scifi_metal_floor.jpg";
-import bumperTexUrl from "./assets/scifi_crate_magenta.jpg";
+import bumperTexUrl from "./assets/scifi_crate_cyan.jpg";
 
 class Showcase22 extends SmallWorld {
   private _marble: Object3D | null = null;
@@ -37,6 +44,56 @@ class Showcase22 extends SmallWorld {
   private _gameActive: boolean = false;
   private _startButton!: Object3D;
   private _physics: PhysicsSystem = new PhysicsSystem();
+  private _score: number = 0;
+  private _maxScore: number = 0;
+  private _scoreElement!: HTMLDivElement;
+  private _timeElement!: HTMLDivElement;
+  private _timeLeft: number = 30.0;
+  private _gameWon: boolean = false;
+  private _logTimer: number = 0;
+  private _cameraRadius: number = 60.0;
+
+  private _formatTime(t: number): string {
+    const sec = Math.floor(t);
+    const ms = Math.floor((t - sec) * 100);
+    return `${sec.toString().padStart(2, "0")}:${ms.toString().padStart(2, "0")}`;
+  }
+
+  private _startGame(): void {
+    if (this._gameActive) return;
+
+    this._gameActive = true;
+    this._gameWon = false;
+    this._timeLeft = 30.0;
+    this._score = 0;
+
+    // Reset pickups
+    for (const obj of this.scene.objects) {
+      if (obj.name.startsWith("EnergyCell")) {
+        obj.isVisible = true;
+        obj.isCollidable = true;
+      }
+    }
+    this._scoreElement.innerText = `SCORE: ${this._score} / ${this._maxScore}`;
+    this._timeElement.innerText = `Time: 30:00`;
+    this._timeElement.style.color = "#ff3b3b";
+    this._timeElement.style.textShadow = "0 0 15px #ff3b3b";
+
+    this._startButton.isVisible = false;
+    this._startButton.isCollidable = false;
+
+    // Reset marble position completely in case SPACE is held
+    if (this._marble) {
+      this._marble.position.set(0, 5, 30);
+      this._marble.rigidBody!.velocity.set(0, 0, 0);
+      this._marble.rigidBody!.angularVelocity.set(0, 0, 0);
+    }
+
+    if (!this._ambientAudioStarted) {
+      this._ambientAudioStarted = true;
+      AudioSystem.instance.resume();
+    }
+  }
 
   constructor() {
     super({
@@ -48,6 +105,13 @@ class Showcase22 extends SmallWorld {
   protected async setupScene(): Promise<void> {
     // We must use this.scene instead of a local discarded variable
     const scene = this.scene;
+
+    // Fetch UI Elements
+    this._scoreElement = document.getElementById("scoreDisplay") as HTMLDivElement;
+    this._timeElement = document.getElementById("timeDisplay") as HTMLDivElement;
+    this._scoreElement.style.fontWeight = "bold";
+    this._scoreElement.style.textShadow = "0 0 10px #00ffff";
+    this._scoreElement.innerText = "SCORE: 0 / 0";
 
     // Camera setup
     this.camera.position.set(0, 35, 55);
@@ -77,22 +141,135 @@ class Showcase22 extends SmallWorld {
       Texture.fromUrl(bumperTexUrl),
     ]);
 
-    // Floor Material
-    const floorMat = new StandardMaterial({
-      diffuseMap: floorTex,
-      metalness: 0.6,
-      roughness: 0.4,
-      color: new Color(0.8, 0.8, 0.8),
+    // Goal Zone anpassen (Plattform 3: z=-60, size=40. Letztes Ende: z=-75)
+    const goalMat = new StandardMaterial({
+      albedoColor: new Color(0, 1.0, 0),
+      emissiveColor: new Color(0, 1.0, 0),
+      emissiveIntensity: 2.0,
+      roughness: 0.2,
+      metalness: 0.1,
     });
+    const goalZone = new Object3D("GoalZone");
+    goalZone.geometry = new Cube({ width: 10, height: 1, depth: 10 }).getGeometryData();
+    goalZone.material = goalMat;
+    goalZone.position.set(0, -9.5, -45);
+    goalZone.rigidBody = new RigidBody(0);
+    goalZone.rigidBody.isSensor = true;
+    scene.add(goalZone);
 
-    // Floor Platform
-    const floor = new Object3D("Floor");
-    floor.geometry = new Cube({ size: 1 }).getGeometryData();
-    floor.setScale(40, 10, 40); // 10 units thick to prevent tunneling!
-    floor.position.set(0, -5, 0); // Center is at -5, so top surface is at exactly 0.0
-    floor.material = floorMat;
-    floor.rigidBody = new RigidBody(0); // Static
-    scene.add(floor);
+    // Drones (Enemies) - updated to spawn over the whole track
+
+    // Floor Material using CustomShaderMaterial
+    const floorMat = new CustomShaderMaterial({
+      sources: {
+        wgsl: `[WGSL_STRUCTS]\n[WGSL_PBR_MATH]\n[WGSL_VS]\n${fragWGSL.replace(
+          "[WGSL_PBR_LIGHTING]",
+          `[WGSL_PBR_LIGHTING]
+          if (obj.time > 0.0) {
+              let wave = sin(i.wp.z * 0.5 + obj.time * 5.0) * 0.5 + 0.5;
+              let scanner = pow(max(0.0, wave), 10.0);
+              let emissiveBase = sRGBToLinear(textureSample(u_emissiveMap, s, i.uv).rgb) * sRGBToLinear(obj.specColor.rgb);
+              color += emissiveBase * (obj.specColor.a + scanner * 2.0);
+          }`,
+        )}`,
+        glsl300: {
+          vs: "[BASE_VERTEX_HEADER][BASE_VERTEX_MAIN]",
+          fs: fragGLSL.replace(
+            "[LIGHT_CALC_PBR]",
+            `[LIGHT_CALC_PBR]
+            if (u_time > 0.0) {
+                float wave = sin(v_worldPos.z * 0.5 + u_time * 5.0) * 0.5 + 0.5;
+                float scanner = pow(max(0.0, wave), 10.0);
+                vec3 emissiveBase = sRGBToLinear(texture(u_emissiveMap, v_uv).rgb) * sRGBToLinear(u_specColor.rgb);
+                fragColor.rgb += emissiveBase * (u_specColor.a + scanner * 2.0);
+            }`,
+          ),
+        },
+        glsl100: {
+          vs: "[BASE_VS]",
+          fs: fragGLSL100.replace(
+            "[LIGHT_CALC_PBR]",
+            `[LIGHT_CALC_PBR]
+            if (u_time > 0.0) {
+                float wave = sin(v_worldPos.z * 0.5 + u_time * 5.0) * 0.5 + 0.5;
+                float scanner = pow(max(0.0, wave), 10.0);
+                vec3 emissiveBase = sRGBToLinear(texture2D(u_emissiveMap, v_uv).rgb) * sRGBToLinear(u_specColor.rgb);
+                gl_FragColor.rgb += emissiveBase * (u_specColor.a + scanner * 2.0);
+            }`,
+          ),
+        },
+      },
+      layout: StandardWebGPULayout,
+      properties: {
+        u_model: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1], // identity matrix fallback
+        u_color: new Color(0.8, 0.8, 0.8),
+        u_specColor: new Color(0.8, 0.1, 1.0, 2.0), // Neon Purple + Intensity 2.0
+        u_texOffset: [0, 0],
+        u_texRepeat: [1, 1],
+        u_shininess: 32.0,
+        u_isTerrain: 0.0,
+        u_metallic: 0.6,
+        u_roughness: 0.4,
+        u_extraParams: [1.0, 0.0, 1.0, 1.0], // ao=1
+        u_liquidParams: [0, 0, 0, 0],
+        u_thresholds: [0, 0, 0, 0],
+        u_useEnvMap: 0,
+        u_useReflectionMap: 0,
+        u_reflectivity: 1.0,
+        u_time: 0.0,
+      },
+      textures: {
+        u_diffuseMap: floorTex,
+        u_emissiveMap: floorTex,
+      },
+    });
+    this._floorMat = floorMat;
+
+    // --- TRACK LAYOUT ---
+    const buildPlatform = (name: string, w: number, d: number, y: number, z: number) => {
+      const p = new Object3D(name);
+      p.geometry = new Cube({ size: 1 }).getGeometryData();
+      p.setScale(w, 10, d);
+      p.position.set(0, y - 5, z); // Top surface at y
+      p.material = floorMat;
+      p.rigidBody = new RigidBody(0);
+
+      // We only need ONE object to drive the heartbeat of the shared CustomShaderMaterial
+      if (name === "Plat1") {
+        p.addBehavior(
+          new EmissivePulseBehavior({ baseIntensity: 0.2, pulseAmplitude: 2.0, pulseSpeed: 4.0 }),
+        );
+      }
+      scene.add(p);
+    };
+
+    buildPlatform("Plat1", 20, 20, 0, 30); // Z: 20 to 40
+    buildPlatform("Plat2", 20, 20, -5, 0); // Z: -10 to 10
+    buildPlatform("Plat3", 20, 20, 0, -30); // Z: -20 to -40
+
+    // Stairs 1: Down from Plat1 to Plat2 (Z: -10 to -20)
+    for (let i = 0; i < 10; i++) {
+      const step = new Object3D("Stair1_" + i);
+      step.geometry = new Cube({ size: 1 }).getGeometryData();
+      step.setScale(10, 10, 1);
+      const topY = -0.5 * (i + 1);
+      step.position.set(0, topY - 5, 19.5 - i);
+      step.material = floorMat;
+      step.rigidBody = new RigidBody(0);
+      scene.add(step);
+    }
+
+    // Stairs 2: Up from Plat2 to Plat3 (Z: -40 to -50)
+    for (let i = 0; i < 10; i++) {
+      const step = new Object3D("Stair2_" + i);
+      step.geometry = new Cube({ size: 1 }).getGeometryData();
+      step.setScale(10, 10, 1);
+      const topY = -5 + 0.5 * (i + 1);
+      step.position.set(0, topY - 5, -10.5 - i);
+      step.material = floorMat;
+      step.rigidBody = new RigidBody(0);
+      scene.add(step);
+    }
 
     // Marble Material (Glowing Cyberpunk Cyan)
     const marbleMat = new StandardMaterial({
@@ -106,7 +283,7 @@ class Showcase22 extends SmallWorld {
     // The Player Marble
     this._marble = new Object3D("Marble");
     this._marble.geometry = new Sphere({ radius: 1 }).getGeometryData();
-    this._marble.position.set(0, 5, 0);
+    this._marble.position.set(0, 5, 30);
     this._marble.material = marbleMat;
     this._marble.rigidBody = new RigidBody(1);
     this._marble.rigidBody.restitution = 0.5; // Bouncy
@@ -123,8 +300,9 @@ class Showcase22 extends SmallWorld {
 
     scene.add(this._marble);
 
-    // Now that marble exists, attach camera controller
-    this.camera.addBehavior(new OrbitController({ target: this._marble }));
+    // Initial camera angles
+    this.camera.theta = 0;
+    this.camera.phi = 0.5;
 
     // Add some random bumpers
     const bumperMat = new StandardMaterial({
@@ -137,15 +315,106 @@ class Showcase22 extends SmallWorld {
       color: new Color(0.8, 0.8, 0.8),
     });
 
-    for (let i = 0; i < 5; i++) {
-      const bumper = new Object3D("Bumper" + i);
-      bumper.geometry = new Cube({ size: 2 }).getGeometryData();
-      bumper.position.set(Math.random() * 20 - 10, 1, Math.random() * 20 - 10);
-      bumper.material = bumperMat;
-      bumper.rigidBody = new RigidBody(0); // static
-      bumper.rigidBody.restitution = 1.5; // Extra bouncy (pushes player away)
-      scene.add(bumper);
+    const usedPositions: { x: number; z: number }[] = [];
+    const getSafePos = (isBumper: boolean): { x: number; y: number; z: number } | null => {
+      let attempts = 0;
+      while (attempts < 50) {
+        const plat = Math.floor(Math.random() * 3); // 0, 1, 2
+        const x = Math.random() * 16 - 8;
+        let z: number;
+        let y: number;
+        if (plat === 0) {
+          z = 30 + (Math.random() * 16 - 8);
+          y = 0;
+        } else if (plat === 1) {
+          z = 0 + (Math.random() * 16 - 8);
+          y = -5;
+        } else {
+          z = -30 + (Math.random() * 16 - 8);
+          y = 0;
+        }
+
+        // Avoid start button
+        if (plat === 0 && Math.sqrt(x * x + (z - 30) * (z - 30)) < 6.0) {
+          attempts++;
+          continue;
+        }
+
+        let overlap = false;
+        for (const p of usedPositions) {
+          const dx = x - p.x;
+          const dz = z - p.z;
+          if (Math.sqrt(dx * dx + dz * dz) < 3.5) {
+            overlap = true;
+            break;
+          }
+        }
+        if (!overlap) {
+          usedPositions.push({ x, z });
+          return { x, y: y + (isBumper ? 1 : 1.5), z };
+        }
+        attempts++;
+      }
+      return null;
+    };
+
+    for (let i = 0; i < 15; i++) {
+      const pos = getSafePos(true);
+      if (pos) {
+        const bumper = new Object3D("Bumper" + i);
+        if (Math.random() > 0.5) {
+          bumper.geometry = new Cylinder({
+            radiusTop: 1,
+            radiusBottom: 1,
+            height: 2,
+            radialSegments: 16,
+          }).getGeometryData();
+        } else {
+          bumper.geometry = new Cube({ size: 2 }).getGeometryData();
+        }
+        bumper.position.set(pos.x, pos.y, pos.z);
+        bumper.material = bumperMat;
+        bumper.rigidBody = new RigidBody(0);
+        bumper.rigidBody.restitution = 1.5;
+        scene.add(bumper);
+      }
     }
+
+    // --- ENERGY CELLS (Pickups) ---
+    const cellGeo = new Sphere({ radius: 0.5 }).getGeometryData();
+    const cellMat = new StandardMaterial({
+      color: new Color(0, 1, 0.5),
+      emissiveColor: new Color(0, 1, 0.5),
+      emissiveIntensity: 2.0,
+      roughness: 0.2,
+      metalness: 0.8,
+    });
+
+    for (let i = 0; i < 10; i++) {
+      const cell = new Object3D("EnergyCell" + i);
+      cell.geometry = cellGeo;
+      cell.material = cellMat;
+
+      // Place on platforms
+      const pos = getSafePos(false);
+      if (pos) {
+        cell.position.set(pos.x, pos.y, pos.z);
+      } else {
+        cell.position.set(0, 1.5, -30); // fallback to end platform
+      }
+
+      // Make it a physical sensor
+      cell.rigidBody = new RigidBody(0);
+      cell.rigidBody.isSensor = true;
+
+      // Add behaviors for floating effect
+      cell.addBehavior(new RotatorBehavior(new Vector3D(0, 1, 0), 2.0));
+      cell.addBehavior(new HoverBehavior(0.3, 3.0));
+
+      scene.add(cell);
+      this._maxScore++;
+    }
+    this._scoreElement.innerText = `SCORE: ${this._score} / ${this._maxScore}`;
 
     // --- START BUTTON (Invisible Box Hitbox + Visual Hexagon) ---
     this._startButton = new Object3D("StartButtonZone");
@@ -154,7 +423,8 @@ class Showcase22 extends SmallWorld {
     // But since isVisible=true, the Raycaster can hit its 12 triangles!
     this._startButton.geometry = new Cube({ size: 7.6 }).getGeometryData();
     this._startButton.setScale(1, 0.2, 1); // Flatten it to a disk-like box
-    this._startButton.position.set(0, 5, 0);
+    this._startButton.position.set(0, 5, 30);
+    this._startButton.rigidBody = new RigidBody(0); // static platform
 
     // The visual Hexagon Ring
     const hexVisual = new Object3D("HexagonVisual");
@@ -177,16 +447,7 @@ class Showcase22 extends SmallWorld {
     // Animations & Logic on the parent
     this._startButton.addBehavior(new HoverBehavior(0.5, 2.0));
     this._startButton.addBehavior(new RotatorBehavior(new Vector3D(0, 1, 0), 0.5));
-    this._startButton.onPointerClick = () => {
-      if (!this._gameActive) {
-        this._gameActive = true;
-        this._startButton.isVisible = false;
-        if (!this._ambientAudioStarted) {
-          this._ambientAudioStarted = true;
-          AudioSystem.instance.resume();
-        }
-      }
-    };
+    this._startButton.onPointerClick = () => this._startGame();
     scene.add(this._startButton);
 
     // --- DRONES ---
@@ -216,12 +477,17 @@ class Showcase22 extends SmallWorld {
 
       const randMat = droneMaterials[Math.floor(Math.random() * droneMaterials.length)]!;
       drone.material = randMat;
-
-      // Set out of bounds to trigger the new corner-respawn logic on the first frame!
-      drone.position.set(100, 1.0, 100);
-
+      drone.position.set(Math.random() * 200 - 100, Math.random() * 20, Math.random() * 200 - 100);
       drone.addBehavior(new DroneController(this.scene, randMat));
-      this.scene.add(drone);
+      // Give each drone a slightly randomized heartbeat so they look more "alive" and un-synchronized
+      drone.addBehavior(
+        new EmissivePulseBehavior({
+          baseIntensity: 0.5,
+          pulseAmplitude: 1.5,
+          pulseSpeed: 3.0 + Math.random() * 2.0,
+        }),
+      );
+      scene.add(drone);
     }
 
     // --- DRONE SPAWN MARKERS & VECTORS (Removed as requested) ---
@@ -232,51 +498,162 @@ class Showcase22 extends SmallWorld {
       obj.computeBounds();
     }
 
-    // Audio on collision
+    // Audio & Logic on collision
     UniversalEventBus.addEventListener("physics:collision", (e: Record<string, unknown>): void => {
       // Play a generative synth note based on impulse strength
       const impulse = e["impulse"] as number;
       if (impulse > 1.0 && this._ambientAudioStarted) {
         AudioSystem.instance.playTone(400 + Math.random() * 200, 0.5, 0.2, "sine");
       }
+
+      // Pickup logic (impulse is 0 for sensors)
+      const objA = e["objectA"] as Object3D;
+      const objB = e["objectB"] as Object3D;
+
+      const checkCell = (player: Object3D, other: Object3D) => {
+        if (player === this._marble && other.name.startsWith("EnergyCell") && other.isVisible) {
+          other.isVisible = false; // "Collect" it
+          other.isCollidable = false; // Stop checking collisions
+          this._score++;
+          this._scoreElement.innerText = `SCORE: ${this._score} / ${this._maxScore}`;
+
+          if (this._ambientAudioStarted) {
+            AudioSystem.instance.playTone(1200, 0.1, 0.1, "square"); // Pickup sound
+          }
+        }
+      };
+
+      const checkGoal = (player: Object3D, other: Object3D) => {
+        if (
+          player === this._marble &&
+          other.name === "GoalZone" &&
+          !this._gameWon &&
+          this._gameActive
+        ) {
+          this._gameWon = true;
+          this._gameActive = false;
+          this._timeElement.innerText = `YOU WIN! Time: ${this._formatTime(this._timeLeft)}`;
+          this._timeElement.style.color = "#00ff00";
+          this._timeElement.style.textShadow = "0 0 15px #00ff00";
+          if (this._ambientAudioStarted) {
+            AudioSystem.instance.playTone(600, 0.5, 0.1, "sine");
+            setTimeout(() => AudioSystem.instance.playTone(800, 0.5, 0.1, "sine"), 200);
+            setTimeout(() => AudioSystem.instance.playTone(1200, 1.0, 0.1, "sine"), 400);
+          }
+        }
+      };
+
+      checkCell(objA, objB);
+      checkCell(objB, objA);
+      checkGoal(objA, objB);
+      checkGoal(objB, objA);
     });
 
-    // Start Audio on first click
-    window.addEventListener(
-      "pointerdown",
-      (): void => {
-        if (!this._ambientAudioStarted) {
-          this._ambientAudioStarted = true;
-          AudioSystem.instance.resume();
-        }
-      },
-      { once: true },
-    );
+    // Start Audio on first click or keypress
+    const unlockAudio = (): void => {
+      if (!this._ambientAudioStarted) {
+        this._ambientAudioStarted = true;
+        AudioSystem.instance.resume();
+      }
+    };
+    window.addEventListener("pointerdown", unlockAudio, { once: true });
+    window.addEventListener("keydown", unlockAudio, { once: true });
   }
 
   private _logTimer: number = 0;
+  private _floorMat!: CustomShaderMaterial;
+  private _shaderTime: number = 0.0;
 
   public update(dt: number): void {
+    // Shader Animation Time update
+    this._shaderTime += dt;
+    if (this._floorMat) {
+      this._floorMat.setProperty("u_time", this._shaderTime);
+    }
+
+    if (this._logTimer > 1.0) {
+      this._logTimer = 0.0;
+      console.log(
+        "[DEBUG] shaderTime:",
+        this._shaderTime,
+        " floorMat.u_time:",
+        this._floorMat?.properties?.u_time,
+      );
+    } else {
+      this._logTimer += dt;
+    }
+
     // Step the physics engine first
     this._physics.step(this.scene, dt);
 
     if (!this._gameActive) {
-      // Freeze the marble in the center of the ring until the game starts
-      this._marble.position.set(0, 5, 0);
-      this._marble.rigidBody!.velocity.set(0, 0, 0);
-    } else if (this._marble.position.y < -15) {
-      // Marble fell off the map! Reset!
-      console.warn("[Physics Debug] Kugel ist unter Y=-15 gefallen! Führe Reset aus...");
-      this._gameActive = false;
-      this._startButton.isVisible = true;
+      // Start via SPACE key
+      if (Input.isPressed("Space")) {
+        this._startGame();
+      } else if (!this._gameWon) {
+        // Freeze the marble in the center of the ring until the game starts
+        this._marble.position.set(0, 5, 30);
+        this._marble.rigidBody!.velocity.set(0, 0, 0);
+      }
+    } else {
+      // Timer tick
+      this._timeLeft -= dt;
+      if (this._timeLeft <= 0) {
+        this._timeLeft = 0;
+        this._gameActive = false;
+        this._startButton.isVisible = true;
+        this._startButton.isCollidable = true;
+        this._timeElement.innerText = "TIME UP!";
+        this._timeElement.style.color = "#ff0000";
+        if (this._ambientAudioStarted) {
+          AudioSystem.instance.playTone(200, 1.0, 0.1, "sawtooth");
+        }
+      } else {
+        this._timeElement.innerText = `Time: ${this._formatTime(this._timeLeft)}`;
+      }
+
+      if (this._marble.position.y < -15) {
+        // Marble fell off the map! Reset!
+        console.warn("[Physics Debug] Kugel ist unter Y=-15 gefallen! Führe Reset aus...");
+        this._gameActive = false;
+        this._startButton.isVisible = true;
+        this._startButton.isCollidable = true;
+      }
     }
+
+    // Mouse drag camera rotation
+    if (Input.mouse.left) {
+      this.camera.theta -= Input.mouse.dx * 0.005;
+      this.camera.phi += Input.mouse.dy * 0.005;
+      // Clamp phi to avoid flipping
+      const limit = Math.PI / 2 - 0.01;
+      this.camera.phi = Math.max(-limit, Math.min(limit, this.camera.phi));
+    }
+
+    // Zoom (Pinch / Scroll)
+    if (Input.mouse.zoom !== 0) {
+      // Zoom is accumulated across the frame. Small factor to make it smooth.
+      this._cameraRadius += Input.mouse.zoom * 20.0;
+      // Clamp radius between 20 (close) and 120 (far)
+      this._cameraRadius = Math.max(20, Math.min(120, this._cameraRadius));
+    }
+
+    // Die Kamera folgt der Murmel weich und behält den Orbit-Abstand bei
+    this.camera.target.copyFrom(this._marble.position);
+    this.camera.position.x =
+      this.camera.target.x +
+      this._cameraRadius * Math.sin(this.camera.theta) * Math.cos(this.camera.phi);
+    this.camera.position.y = this.camera.target.y + this._cameraRadius * Math.sin(this.camera.phi);
+    this.camera.position.z =
+      this.camera.target.z +
+      this._cameraRadius * Math.cos(this.camera.theta) * Math.cos(this.camera.phi);
 
     // Debugging-Logs alle 0.5 Sekunden ausgeben
     this._logTimer += dt;
     if (this._gameActive && this._logTimer >= 0.5) {
       this._logTimer = 0;
       console.log(
-        `[Physics Debug] Kugel Position Y: ${this._marble.position.y.toFixed(3)} | Velocity Y: ${this._marble.rigidBody!.velocity.y.toFixed(3)} | dt: ${dt.toFixed(3)}`,
+        `[Physics Debug] Kugel Position Y: ${this._marble.position.y.toFixed(3)} | Velocity Y: ${this._marble.rigidBody!.velocity.y.toFixed(3)} | dt: ${dt.toFixed(3)} | Cam(th:${this.camera.theta.toFixed(2)}, ph:${this.camera.phi.toFixed(2)}) | Mouse(L:${Input.mouse.left}, dx:${Input.mouse.dx})`,
       );
     }
   }

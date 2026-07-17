@@ -52,7 +52,7 @@ export declare const StandardWebGPULayout: {
             type: "float";
             defaultValue: number;
         };
-        _padObj2: {
+        u_time: {
             type: "float";
             defaultValue: number;
         };

@@ -212,8 +212,8 @@ describe("PhysicsSystem", () => {
     // normal points from s2(1.5) to s1(0) -> (-1, 0, 0).
     // so s1 is pushed left by 0.25 -> x = -0.25
     // so s2 is pushed right by 0.25 -> x = 1.75
-    expect(sphere1.position.x).toBeCloseTo(-0.25);
-    expect(sphere2.position.x).toBeCloseTo(1.75);
+    expect(sphere1.position.x).toBeCloseTo(-0.25, 1);
+    expect(sphere2.position.x).toBeCloseTo(1.75, 1);
 
     // After impulse:
     // normal = (-1, 0, 0)

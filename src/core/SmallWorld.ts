@@ -21,7 +21,7 @@ import { CollisionVisualizer, OctreeVisualizer } from "../utils/index.js";
 import { GadgetInspector } from "../tools/GadgetInspector.js";
 
 /** The current engine version. */
-export const ENGINE_VERSION = "0.60.2";
+export const ENGINE_VERSION = "0.61.0";
 
 /**
  * Base class for applications built with the SmallWorld engine.

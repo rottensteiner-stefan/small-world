@@ -43,6 +43,8 @@ export interface StandardMaterialOptions {
     transparent?: boolean;
     /** Alpha cutoff threshold. Fragments with alpha below this value are discarded. Defaults to 0.0. */
     alphaTest?: number;
+    /** Time parameter for shader animations. Defaults to 0.0. */
+    time?: number;
 }
 /**
  * A physically based rendering (PBR) material using the Metallic-Roughness workflow.
@@ -80,6 +82,8 @@ export declare class StandardMaterial extends AbstractMaterial {
     emissiveIntensity: number;
     /** Alpha cutoff threshold. */
     alphaTest: number;
+    /** Time parameter for shader animations. */
+    time: number;
     /**
      * Creates a new StandardMaterial.
      * @param options The configuration options for the material.

@@ -37,7 +37,7 @@ struct ObjectUniforms {
     useEnvMap: f32,
     useReflectionMap: f32,
     reflectivity: f32,
-    _padObj2: f32
+    time: f32
 }
 
 struct Out {

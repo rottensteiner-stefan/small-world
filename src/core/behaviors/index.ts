@@ -15,3 +15,7 @@ export * from "./RainbowBehavior.js";
 export * from "./SpringLerpBehavior.js";
 export * from "./PathFollowerBehavior.js";
 export * from "./FirstPersonController.js";
+export * from "./TrailRendererBehavior.js";
+export * from "./GridMovementBehavior.js";
+export * from "./EmissivePulseBehavior.js";
+export * from "./ExternalShaderUniformBehavior.js";

@@ -217,10 +217,22 @@ export class PhysicsSystem {
             const invMassB = rbB ? rbB.inverseMass : 0;
             const totalInvMass = invMassA + invMassB;
 
+            if (rbA.isSensor || (rbB && rbB.isSensor)) {
+              UniversalEventBus.dispatchEvent("physics:collision", {
+                objectA: dynObj,
+                objectB: otherObj,
+                normal: normal,
+                depth: depth,
+                impulse: 0,
+              });
+              continue;
+            }
+
             if (totalInvMass > 0) {
               // 1. Positional correction (prevent sinking)
               // We use a simple linear projection to separate objects based on mass ratio
-              const correction = depth / totalInvMass;
+              // Added a tiny epsilon (0.005) to counteract visual polygon intersection.
+              const correction = depth / totalInvMass + 0.005;
 
               const posCorrA = MathPool.acquireVector()
                 .copyFrom(normal)

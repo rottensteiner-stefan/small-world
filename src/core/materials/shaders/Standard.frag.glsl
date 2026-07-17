@@ -19,6 +19,7 @@ uniform vec2 u_texRepeat;
 uniform float u_useEnvMap;
 uniform float u_useReflectionMap;
 uniform float u_reflectivity;
+uniform float u_time;
 
 void main() {
     // Reconstruct original UV for static alpha map

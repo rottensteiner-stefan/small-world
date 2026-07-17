@@ -22,7 +22,7 @@ export const StandardWebGPULayout = {
     u_useEnvMap: { type: ShaderPropertyType.FLOAT, defaultValue: 0 },
     u_useReflectionMap: { type: ShaderPropertyType.FLOAT, defaultValue: 0 },
     u_reflectivity: { type: ShaderPropertyType.FLOAT, defaultValue: 1.0 },
-    _padObj2: { type: ShaderPropertyType.FLOAT, defaultValue: 0 },
+    u_time: { type: ShaderPropertyType.FLOAT, defaultValue: 0.0 },
   },
   uniformLayout: [
     "u_model",
@@ -40,7 +40,7 @@ export const StandardWebGPULayout = {
     "u_useEnvMap",
     "u_useReflectionMap",
     "u_reflectivity",
-    "_padObj2",
+    "u_time",
   ],
   textures: {
     u_diffuseMap: { type: ShaderPropertyType.TEXTURE },

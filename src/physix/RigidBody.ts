@@ -10,6 +10,9 @@ export class RigidBody {
   /** Precalculated inverse mass for performance. */
   public readonly inverseMass: number;
 
+  /** If true, the body detects collisions but does not physically resolve them. */
+  public isSensor: boolean = false;
+
   /** Current velocity vector. */
   public velocity: Vector3D = new Vector3D();
   /** Current acceleration vector. */

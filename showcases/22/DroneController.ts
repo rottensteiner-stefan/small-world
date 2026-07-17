@@ -1,4 +1,6 @@
 import { Behavior, Object3D, Vector3D, Scene, Sphere, StandardMaterial } from "../../src/index.js";
+import { TrailRendererBehavior } from "../../src/core/behaviors/TrailRendererBehavior.js";
+import { GridMovementBehavior } from "../../src/core/behaviors/GridMovementBehavior.js";
 
 // Static round-robin counter to ensure all 4 corners spawn drones equally
 let cornerSpawnIndex = 0;
@@ -6,19 +8,14 @@ let cornerSpawnIndex = 0;
 export class DroneController extends Behavior {
   private _scene: Scene;
   private _speed: number = 20.0;
-  private _direction: Vector3D = new Vector3D(1, 0, 0);
+  private _gridSize: number = 4.0;
 
   // The allowed directions for this specific drone to ensure it moves ACROSS the board
   private _allowedDirX: number = 1;
   private _allowedDirZ: number = 1;
 
-  private _trailTimer: number = 0;
-  private _trailInterval: number = 0.05;
-
-  private _trails: Object3D[] = [];
-  private _trailIndex: number = 0;
-
-  private _distanceMoved: number = 0;
+  private _movementBehavior!: GridMovementBehavior;
+  private _trailBehavior!: TrailRendererBehavior;
 
   constructor(scene: Scene, sharedMaterial: StandardMaterial) {
     super();
@@ -31,85 +28,56 @@ export class DroneController extends Behavior {
       heightSegments: 8,
     }).getGeometryData();
 
-    // Pre-allocate 20 trail objects per drone to avoid GC / slowdowns!
-    for (let i = 0; i < 20; i++) {
-      const trail = new Object3D("DroneTrail");
-      trail.geometry = sharedGeometry;
-      trail.material = sharedMaterial;
-      trail.isVisible = false; // Using isVisible avoids massive draw calls!
-      trail.isCollidable = false; // Trails are purely visual and should NEVER enter the physics engine!
+    // Prepare the generic behaviors
+    this._trailBehavior = new TrailRendererBehavior({
+      scene: this._scene,
+      geometry: sharedGeometry,
+      material: sharedMaterial,
+      poolSize: 20,
+      spawnInterval: 0.05,
+      shrinkRate: 4.0,
+      offset: new Vector3D(0, -0.15, 0),
+    });
 
-      this._trails.push(trail);
-      this._scene.add(trail);
-    }
+    this._movementBehavior = new GridMovementBehavior({
+      speed: this._speed,
+      gridSize: this._gridSize,
+      onGridIntersection: () => this._handleGridIntersection(),
+    });
   }
 
-  public override update(deltaTime: number): void {
+  public override onAttach(target: Object3D): void {
+    super.onAttach(target);
+    // Attach our generic building blocks to the same target!
+    target.addBehavior(this._trailBehavior);
+    target.addBehavior(this._movementBehavior);
+
+    // Initial spawn
+    this._respawn(target);
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  public override update(_deltaTime: number): void {
     if (!this.target) return;
     const obj = this.target as Object3D;
 
     // Out of bounds -> Respawn at corners (bounds extended to 34)
-    // Using > 34.1 so it doesn't instantly trigger when spawning at exactly 34.0
     if (Math.abs(obj.position.x) > 34.1 || Math.abs(obj.position.z) > 34.1) {
       this._respawn(obj);
     }
+  }
 
-    // Move
-    const dist = this._speed * deltaTime;
-    obj.position.x += this._direction.x * dist;
-    obj.position.z += this._direction.z * dist;
-    this._distanceMoved += dist;
-
-    // Grid alignment check (turn every 4 units)
-    if (this._distanceMoved >= 4.0) {
-      this._distanceMoved -= 4.0;
-
-      // Correct any floating point drift ONLY on the axis we are currently moving on
-      // This prevents the stationary off-grid axis (e.g. 34.0) from being rounded to 36.0 (out of bounds)
-      if (Math.abs(this._direction.x) > 0) {
-        obj.position.x = Math.round(obj.position.x / 4.0) * 4.0;
+  private _handleGridIntersection(): Vector3D | null {
+    // 30% chance to turn. We ONLY turn in the allowed directions so the drone stair-steps!
+    if (Math.random() < 0.3) {
+      const currentDir = this._movementBehavior.direction;
+      if (Math.abs(currentDir.x) > 0) {
+        return new Vector3D(0, 0, this._allowedDirZ);
       } else {
-        obj.position.z = Math.round(obj.position.z / 4.0) * 4.0;
-      }
-
-      // 30% chance to turn.
-      // We ONLY turn in the allowed directions so the drone stair-steps to the opposite corner!
-      if (Math.random() < 0.3) {
-        if (Math.abs(this._direction.x) > 0) {
-          this._direction.set(0, 0, this._allowedDirZ);
-        } else {
-          this._direction.set(this._allowedDirX, 0, 0);
-        }
+        return new Vector3D(this._allowedDirX, 0, 0);
       }
     }
-
-    // Update existing trails (shrink them)
-    const shrink = 1.0 - 4.0 * deltaTime;
-    for (const trail of this._trails) {
-      if (trail.isVisible) {
-        trail.scale.x *= shrink;
-        trail.scale.y *= shrink;
-        trail.scale.z *= shrink;
-        if (trail.scale.x <= 0.001) {
-          trail.isVisible = false;
-        }
-      }
-    }
-
-    // Spawn new trail segment
-    this._trailTimer += deltaTime;
-    if (this._trailTimer >= this._trailInterval) {
-      this._trailTimer -= this._trailInterval;
-
-      const trailObj = this._trails[this._trailIndex]!;
-      trailObj.position.copyFrom(obj.position);
-      // Drop it slightly lower than the drone's hover height (but stay visible!)
-      trailObj.position.y -= 0.15;
-      trailObj.scale.set(1, 1, 1);
-      trailObj.isVisible = true;
-
-      this._trailIndex = (this._trailIndex + 1) % this._trails.length;
-    }
+    return null;
   }
 
   private _respawn(obj: Object3D): void {
@@ -120,7 +88,7 @@ export class DroneController extends Behavior {
       { x: 34, z: 34 }, // Spawn 4 (Magenta)
     ];
 
-    // Round-robin selection (will select corners sequentially)
+    // Round-robin selection
     const corner = corners[cornerSpawnIndex % corners.length]!;
     cornerSpawnIndex++;
 
@@ -131,18 +99,14 @@ export class DroneController extends Behavior {
     this._allowedDirX = corner.x > 0 ? -1 : 1;
     this._allowedDirZ = corner.z > 0 ? -1 : 1;
 
-    // Pick initial direction inwards (randomly X or Z axis)
+    // Pick initial direction inwards
     if (Math.random() > 0.5) {
-      this._direction.set(this._allowedDirX, 0, 0);
+      this._movementBehavior.direction.set(this._allowedDirX, 0, 0);
     } else {
-      this._direction.set(0, 0, this._allowedDirZ);
+      this._movementBehavior.direction.set(0, 0, this._allowedDirZ);
     }
 
-    // Clear all trails when respawning
-    for (const trail of this._trails) {
-      trail.isVisible = false;
-    }
-
-    this._distanceMoved = 0;
+    this._movementBehavior.resetMovement();
+    this._trailBehavior.clear();
   }
 }

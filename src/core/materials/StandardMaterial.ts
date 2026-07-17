@@ -53,6 +53,8 @@ export interface StandardMaterialOptions {
   transparent?: boolean;
   /** Alpha cutoff threshold. Fragments with alpha below this value are discarded. Defaults to 0.0. */
   alphaTest?: number;
+  /** Time parameter for shader animations. Defaults to 0.0. */
+  time?: number;
 }
 
 /**
@@ -105,6 +107,9 @@ export class StandardMaterial extends AbstractMaterial {
   /** Alpha cutoff threshold. */
   public alphaTest: number;
 
+  /** Time parameter for shader animations. */
+  public time: number;
+
   /**
    * Creates a new StandardMaterial.
    * @param options The configuration options for the material.
@@ -130,6 +135,7 @@ export class StandardMaterial extends AbstractMaterial {
       emissiveIntensity = 1.0,
       transparent = false,
       alphaTest = 0.0,
+      time = 0.0,
     } = options;
     this.color = color;
     this.metallic = metallic;
@@ -149,6 +155,7 @@ export class StandardMaterial extends AbstractMaterial {
     this.emissiveIntensity = emissiveIntensity;
     this.transparent = transparent;
     this.alphaTest = alphaTest;
+    this.time = time;
   }
 
   /** @inheritdoc */
@@ -176,6 +183,7 @@ export class StandardMaterial extends AbstractMaterial {
           u_useEnvMap: this.envMap ? 1.0 : 0.0,
           u_useReflectionMap: this.reflectionMap ? 1.0 : 0.0,
           u_reflectivity: this.reflectivity,
+          u_time: this.time,
         },
         textures: {
           u_diffuseMap: this.diffuseMap,
@@ -235,6 +243,7 @@ export class StandardMaterial extends AbstractMaterial {
     props["u_useEnvMap"] = this.envMap ? 1.0 : 0.0;
     props["u_useReflectionMap"] = this.reflectionMap ? 1.0 : 0.0;
     props["u_reflectivity"] = this.reflectivity;
+    props["u_time"] = this.time;
 
     const flags: string[] = [];
     if (

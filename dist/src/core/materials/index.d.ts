@@ -13,3 +13,5 @@ export * from './LavaMaterial.js';
 export * from './LiquidMaterial.js';
 export * from './DepthMaterial.js';
 export * from './RetroScreenMaterial.js';
+export * from './CustomShaderMaterial.js';
+export * from './importers/index.js';

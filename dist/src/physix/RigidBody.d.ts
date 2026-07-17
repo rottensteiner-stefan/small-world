@@ -7,6 +7,8 @@ export declare class RigidBody {
     mass: number;
     /** Precalculated inverse mass for performance. */
     readonly inverseMass: number;
+    /** If true, the body detects collisions but does not physically resolve them. */
+    isSensor: boolean;
     /** Current velocity vector. */
     velocity: Vector3D;
     /** Current acceleration vector. */
