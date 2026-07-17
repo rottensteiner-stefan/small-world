@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.60.0] - 2026-07-17
+
+### The Deceptive Fact Update ("There is nothing more deceptive than an obvious fact." – Arthur Conan Doyle)
+
+- **Fixed:**
+  - **Zombie Bounds Physics Crash:** Fixed a critical issue where `Object3D.computeBounds()` would implicitly recreate bounds for objects (like visual drone trails) that were explicitly stripped of them. This caused thousands of ghost hitboxes to spawn at `(0,0,0)`, overloading the collision resolver and causing `NaN` physics states and tunneling.
+  - **Drone Collisions:** Drones and trails now override `computeBounds()` with an empty function to guarantee they never participate in the physics engine.
+  - **NaN Restitution Safety:** Safeguarded the `PhysicsSystem.step()` logic to handle restitution correctly even if one of the colliding objects lacks a `RigidBody`.
+- **Added:**
+  - **Start Portal (Showcase 22):** Added a beautiful, glowing Sci-Fi Hexagon portal as a start trigger.
+  - **Invisible Hitboxes (Best Practice):** Implemented an invisible `Cube` without a material to act as a pure, zero-draw-call collision body for the Start Portal. This resolves raycast flickering (jittering) that occurred when hovering over the hollow Torus shape.
+  - **Physics Regression Tests:** Added strict test cases for the `NaN` crash bug and sphere-vs-box tunneling to the Vitest suite.
+
 ## [0.59.0] - 2026-07-16
 
 ### The Sentinel Swarm Update ("I am a brain, Watson. The rest of me is a mere appendix." - Sherlock Holmes)
