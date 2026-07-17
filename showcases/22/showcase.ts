@@ -212,8 +212,7 @@ class Showcase22 extends SmallWorld {
     for (let i = 0; i < 120; i++) {
       const drone = new Object3D("Drone" + i);
       drone.geometry = droneGeo;
-      drone.bounds = undefined; // Force disable bounds! Drones should NOT collide with anything.
-      drone.computeBounds = () => {}; // Prevent Scene.update() from recreating bounds!
+      drone.isCollidable = false; // Drones should NOT collide with anything.
 
       const randMat = droneMaterials[Math.floor(Math.random() * droneMaterials.length)]!;
       drone.material = randMat;

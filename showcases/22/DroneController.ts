@@ -37,11 +37,7 @@ export class DroneController extends Behavior {
       trail.geometry = sharedGeometry;
       trail.material = sharedMaterial;
       trail.isVisible = false; // Using isVisible avoids massive draw calls!
-
-      // CRITICAL FIX: Object3D.computeBounds() will recreate trail.bounds from the geometry
-      // if it's undefined. We must permanently disable computeBounds for trails!
-      trail.bounds = undefined;
-      trail.computeBounds = () => {};
+      trail.isCollidable = false; // Trails are purely visual and should NEVER enter the physics engine!
 
       this._trails.push(trail);
       this._scene.add(trail);
