@@ -16,8 +16,12 @@ export interface RenderList {
  * A scene that holds a collection of 3D objects.
  */
 export class Scene {
-  public objects: Object3D[] = [];
-  private readonly _objectsByName: Map<string, Object3D> = new Map();
+  public readonly root: Object3D = new Object3D("SceneRoot");
+
+  public get objects(): Object3D[] {
+    return this.root.children;
+  }
+
   public staticOctree: Octree | undefined = undefined;
   public dynamicOctree: Octree | undefined = undefined;
   public spatialHash: SpatialHash | undefined = undefined;
@@ -36,20 +40,11 @@ export class Scene {
   private _scratchMatrix: Matrix4 = new Matrix4();
 
   public add(...objs: Object3D[]): void {
-    for (const obj of objs) {
-      this.objects.push(obj);
-      this._objectsByName.set(obj.name, obj);
-    }
+    this.root.add(...objs);
   }
 
   public remove(...objs: Object3D[]): void {
-    for (const obj of objs) {
-      const index: number = this.objects.indexOf(obj);
-      if (-1 !== index) {
-        this.objects.splice(index, 1);
-        this._objectsByName.delete(obj.name);
-      }
-    }
+    this.root.remove(...objs);
   }
 
   public initOctrees(bounds: BoundingBox): void {
@@ -58,7 +53,9 @@ export class Scene {
   }
 
   public getObjectByName(name: string): Object3D | undefined {
-    return this._objectsByName.get(name);
+    // Avoid returning the hidden root itself
+    const found = this.root.getObjectByName(name);
+    return found === this.root ? undefined : found;
   }
 
   public update(deltaTime: number = 0): void {
