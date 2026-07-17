@@ -22,6 +22,8 @@ export declare class Object3D implements Collidable {
     children: Object3D[];
     behaviors: Behavior[];
     isVisible: boolean;
+    /** Whether this object should generate bounds and participate in physics/raycasting. Defaults to true. */
+    isCollidable: boolean;
     frustumCulled: boolean;
     isStatic: boolean;
     inFrustum: boolean;

@@ -1,5 +1,8 @@
 # Changelog
 
+## [0.60.1] - 2026-07-17
+- **Fixed:** Physics system now collects dynamic rigidbodies and static colliders recursively. Complex objects (e.g. cars with child wheels) are now processed correctly.
+
 ## [0.60.0] - 2026-07-17
 
 ### The Deceptive Fact Update ("There is nothing more deceptive than an obvious fact." – Arthur Conan Doyle)

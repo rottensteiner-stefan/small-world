@@ -60,7 +60,7 @@ export class Raycaster {
     const intersects: Intersection[] = [];
 
     for (const obj of objects) {
-      if (!obj.isVisible || !obj.bounds || obj.bounds.type !== BoundingType.BOX) {
+      if (!obj.isCollidable || !obj.bounds || obj.bounds.type !== BoundingType.BOX) {
         continue;
       }
 

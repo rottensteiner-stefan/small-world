@@ -9,11 +9,20 @@ export declare class PhysicsSystem {
     private _bodies;
     private _allColliders;
     private _collisionEvent;
+    private _warnedObjects;
+    /**
+     * Recursively collects dynamic rigidbodies.
+     */
+    private _collectBodiesRecursive;
     /**
      * Steps the physics simulation forward.
      * @param scene The scene containing objects with RigidBodies.
      * @param dt Delta time in seconds.
      */
     step(scene: Scene, dt: number): void;
+    /**
+     * Recursively collects all objects that have bounds and are collidable.
+     */
+    private _collectCollidersRecursive;
     private _resolveCollisions;
 }

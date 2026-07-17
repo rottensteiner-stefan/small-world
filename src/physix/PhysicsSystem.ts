@@ -22,6 +22,28 @@ export class PhysicsSystem {
     impulse: 0,
   };
 
+  private _warnedObjects = new Set<Object3D>();
+
+  /**
+   * Recursively collects dynamic rigidbodies.
+   */
+  private _collectBodiesRecursive(obj: Object3D, bodies: Object3D[]): void {
+    if (obj.isCollidable) {
+      if (obj.rigidBody && obj.rigidBody.inverseMass > 0) {
+        bodies.push(obj);
+      } else if (obj.bounds && !obj.rigidBody && !this._warnedObjects.has(obj)) {
+        // Fail Fast / Warning: Static collidable objects should explicitly declare RigidBody(0).
+        console.warn(
+          `[PhysicsSystem] Warning: Object '${obj.name}' is collidable but lacks a RigidBody. Treating as static (mass=0). Add 'obj.rigidBody = new RigidBody(0);' to suppress this warning.`,
+        );
+        this._warnedObjects.add(obj);
+      }
+    }
+    for (let i = 0; i < obj.children.length; i++) {
+      this._collectBodiesRecursive(obj.children[i]!, bodies);
+    }
+  }
+
   /**
    * Steps the physics simulation forward.
    * @param scene The scene containing objects with RigidBodies.
@@ -30,16 +52,12 @@ export class PhysicsSystem {
   public step(scene: Scene, dt: number): void {
     if (dt <= 0) return;
 
-    // 1. Collect all dynamic rigidbodies
+    // 1. Collect all dynamic rigidbodies (now recursively traversing children!)
     const bodies = this._bodies;
     bodies.length = 0;
 
-    // In a highly optimized engine, the Scene might maintain a flat list of dynamic bodies.
-    // For now, we iterate over all objects.
-    for (const obj of scene.objects) {
-      if (obj.rigidBody && obj.rigidBody.inverseMass > 0) {
-        bodies.push(obj);
-      }
+    for (let i = 0; i < scene.objects.length; i++) {
+      this._collectBodiesRecursive(scene.objects[i]!, bodies);
     }
 
     // 2. Integration Step (Semi-Implicit Euler)
@@ -126,14 +144,25 @@ export class PhysicsSystem {
     this._resolveCollisions(scene, bodies, dt);
   }
 
+  /**
+   * Recursively collects all objects that have bounds and are collidable.
+   */
+  private _collectCollidersRecursive(obj: Object3D, colliders: Object3D[]): void {
+    if (obj.isCollidable && obj.bounds) {
+      colliders.push(obj);
+    }
+    for (let i = 0; i < obj.children.length; i++) {
+      this._collectCollidersRecursive(obj.children[i]!, colliders);
+    }
+  }
+
   private _resolveCollisions(scene: Scene, bodies: Object3D[], _dt: number): void {
-    // Collect all colliders (both static and dynamic) that have bounds
+    // Collect all colliders (both static and dynamic) recursively!
     const allColliders = this._allColliders;
     allColliders.length = 0;
-    for (const obj of scene.objects) {
-      if (obj.bounds && obj.isVisible) {
-        allColliders.push(obj);
-      }
+
+    for (let i = 0; i < scene.objects.length; i++) {
+      this._collectCollidersRecursive(scene.objects[i]!, allColliders);
     }
 
     const result = MathPool.acquireVector();

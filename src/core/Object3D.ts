@@ -30,6 +30,8 @@ export class Object3D implements Collidable {
   public behaviors: Behavior[] = [];
 
   public isVisible: boolean = true;
+  /** Whether this object should generate bounds and participate in physics/raycasting. Defaults to true. */
+  public isCollidable: boolean = true;
   public frustumCulled: boolean = true;
   public isStatic: boolean = false;
   public inFrustum: boolean = true;
@@ -105,6 +107,11 @@ export class Object3D implements Collidable {
   }
 
   public computeBounds(): this {
+    if (!this.isCollidable) {
+      this.bounds = undefined;
+      return this;
+    }
+
     if (this.geometry) {
       // 1. Get local bounds from geometry
       const localBounds = this.geometry.getBoundingVolume();
