@@ -4,6 +4,7 @@ import { Scene } from "../../src/core/Scene.js";
 import { Object3D } from "../../src/core/Object3D.js";
 import { RigidBody } from "../../src/physix/RigidBody.js";
 import { Vector3D } from "../../src/math/index.js";
+import { Cube, Sphere } from "../../src/geometry/index.js";
 
 describe("PhysicsSystem", () => {
   let system: PhysicsSystem;
@@ -224,5 +225,70 @@ describe("PhysicsSystem", () => {
     // rb2 gets (2, 0, 0). new vel = (-1 + 2) = 1.
     expect(rb1.velocity.x).toBeCloseTo(-1);
     expect(rb2.velocity.x).toBeCloseTo(1);
+  });
+  it("should not crash with NaN if an object lacks a RigidBody (restitution bug)", () => {
+    // Dynamic object
+    const dynObj = new Object3D();
+    dynObj.geometry = new Sphere({ radius: 1 }).getGeometryData();
+    dynObj.rigidBody = new RigidBody(1.0);
+    dynObj.position.set(0, 1, 0); // slightly overlapping the static object
+    scene.add(dynObj);
+
+    // Static object WITHOUT a rigid body
+    const staticObj = new Object3D();
+    staticObj.geometry = new Sphere({ radius: 1 }).getGeometryData();
+    staticObj.position.set(0, 0, 0);
+    scene.add(staticObj);
+
+    // Initial bounds
+    scene.update();
+    for (const obj of scene.objects) {
+      obj.computeBounds();
+    }
+
+    // Step physics
+    system.gravity.set(0, -10, 0);
+    expect(() => {
+      system.step(scene, 0.1);
+    }).not.toThrow();
+
+    // The dynamic object should not have NaN velocity
+    expect(Number.isNaN(dynObj.rigidBody.velocity.y)).toBe(false);
+  });
+
+  it("should correctly resolve Sphere vs Box collision (Tunneling regression)", () => {
+    // Large static floor
+    const floor = new Object3D("Floor");
+    floor.geometry = new Cube({ size: 1 }).getGeometryData();
+    floor.setScale(40, 10, 40);
+    floor.position.set(0, -5, 0);
+    floor.rigidBody = new RigidBody(0);
+    scene.add(floor);
+
+    // Dynamic marble
+    const marble = new Object3D("Marble");
+    marble.geometry = new Sphere({ radius: 1 }).getGeometryData();
+    marble.position.set(0, 5, 0); // Drop from Y=5
+    marble.rigidBody = new RigidBody(1);
+    scene.add(marble);
+
+    // Initial setup
+    scene.update();
+    for (const obj of scene.objects) {
+      obj.computeBounds();
+    }
+
+    // Gravity
+    system.gravity.set(0, -9.81, 0);
+
+    // Step for 100 frames
+    for (let i = 0; i < 100; i++) {
+      system.step(scene, 0.016);
+      scene.update();
+    }
+
+    // Marble should have bounced and come to rest around Y=1.0 (radius)
+    // Floating point math might not be exactly 1.0, but it should be above 0.
+    expect(marble.position.y).toBeGreaterThan(0.9);
   });
 });

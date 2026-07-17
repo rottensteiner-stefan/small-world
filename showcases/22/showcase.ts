@@ -22,6 +22,9 @@ import {
   DeviceFeature,
   Sprite,
   SpriteMaterial,
+  Torus,
+  HoverBehavior,
+  RotatorBehavior,
 } from "../../src/index.js";
 import { MarbleController } from "./MarbleController.js";
 import { DroneController } from "./DroneController.js";
@@ -31,6 +34,8 @@ import bumperTexUrl from "./assets/scifi_crate_magenta.jpg";
 class Showcase22 extends SmallWorld {
   private _marble: Object3D | null = null;
   private _ambientAudioStarted: boolean = false;
+  private _gameActive: boolean = false;
+  private _startButton!: Object3D;
   private _physics: PhysicsSystem = new PhysicsSystem();
 
   constructor() {
@@ -142,6 +147,48 @@ class Showcase22 extends SmallWorld {
       scene.add(bumper);
     }
 
+    // --- START BUTTON (Invisible Box Hitbox + Visual Hexagon) ---
+    this._startButton = new Object3D("StartButtonZone");
+    // An invisible BOX as a pure collision body.
+    // Since it has NO material, the renderer completely ignores it (0 draw calls).
+    // But since isVisible=true, the Raycaster can hit its 12 triangles!
+    this._startButton.geometry = new Cube({ size: 7.6 }).getGeometryData();
+    this._startButton.setScale(1, 0.2, 1); // Flatten it to a disk-like box
+    this._startButton.position.set(0, 5, 0);
+
+    // The visual Hexagon Ring
+    const hexVisual = new Object3D("HexagonVisual");
+    hexVisual.geometry = new Torus({
+      radius: 3,
+      tube: 0.5,
+      tubularSegments: 6, // 6 segments = Hexagon
+      radialSegments: 16,
+    }).getGeometryData();
+    hexVisual.material = new StandardMaterial({
+      color: new Color(1, 0.8, 0),
+      emissiveColor: new Color(1, 0.5, 0),
+      emissiveIntensity: 1.5,
+      metalness: 0.8,
+      roughness: 0.2,
+    });
+    hexVisual.rotation.x = MathUtils.HALF_PI; // Lay flat
+    this._startButton.add(hexVisual);
+
+    // Animations & Logic on the parent
+    this._startButton.addBehavior(new HoverBehavior(0.5, 2.0));
+    this._startButton.addBehavior(new RotatorBehavior(new Vector3D(0, 1, 0), 0.5));
+    this._startButton.onPointerClick = () => {
+      if (!this._gameActive) {
+        this._gameActive = true;
+        this._startButton.isVisible = false;
+        if (!this._ambientAudioStarted) {
+          this._ambientAudioStarted = true;
+          AudioSystem.instance.resume();
+        }
+      }
+    };
+    scene.add(this._startButton);
+
     // --- DRONES ---
     const droneColors = [
       new Color(1, 0, 1), // Magenta
@@ -165,6 +212,8 @@ class Showcase22 extends SmallWorld {
     for (let i = 0; i < 120; i++) {
       const drone = new Object3D("Drone" + i);
       drone.geometry = droneGeo;
+      drone.bounds = undefined; // Force disable bounds! Drones should NOT collide with anything.
+      drone.computeBounds = () => {}; // Prevent Scene.update() from recreating bounds!
 
       const randMat = droneMaterials[Math.floor(Math.random() * droneMaterials.length)]!;
       drone.material = randMat;
@@ -206,9 +255,31 @@ class Showcase22 extends SmallWorld {
     );
   }
 
+  private _logTimer: number = 0;
+
   public update(dt: number): void {
     // Step the physics engine first
     this._physics.step(this.scene, dt);
+
+    if (!this._gameActive) {
+      // Freeze the marble in the center of the ring until the game starts
+      this._marble.position.set(0, 5, 0);
+      this._marble.rigidBody!.velocity.set(0, 0, 0);
+    } else if (this._marble.position.y < -15) {
+      // Marble fell off the map! Reset!
+      console.warn("[Physics Debug] Kugel ist unter Y=-15 gefallen! Führe Reset aus...");
+      this._gameActive = false;
+      this._startButton.isVisible = true;
+    }
+
+    // Debugging-Logs alle 0.5 Sekunden ausgeben
+    this._logTimer += dt;
+    if (this._gameActive && this._logTimer >= 0.5) {
+      this._logTimer = 0;
+      console.log(
+        `[Physics Debug] Kugel Position Y: ${this._marble.position.y.toFixed(3)} | Velocity Y: ${this._marble.rigidBody!.velocity.y.toFixed(3)} | dt: ${dt.toFixed(3)}`,
+      );
+    }
   }
 
   // --- Helper methods for Orientation Cross ---

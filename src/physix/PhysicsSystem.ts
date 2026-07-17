@@ -220,10 +220,9 @@ export class PhysicsSystem {
               // Do not resolve if velocities are already separating
               if (velAlongNormal < 0) {
                 // If velocity is low (resting contact), set e=0 to prevent infinite jitter
-                const e =
-                  velAlongNormal > -0.5
-                    ? 0
-                    : Math.min(rbA.restitution, rbB ? rbB.restitution : 0.2);
+                const restA = rbA ? rbA.restitution : 0.2;
+                const restB = rbB ? rbB.restitution : 0.2;
+                const e = velAlongNormal > -0.5 ? 0 : Math.min(restA, restB);
                 let jMag = -(1 + e) * velAlongNormal;
                 jMag /= totalInvMass;
 
