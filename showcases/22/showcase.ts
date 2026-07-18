@@ -50,7 +50,7 @@ class Showcase22 extends SmallWorld {
   private _timeElement!: HTMLDivElement;
   private _timeLeft: number = 30.0;
   private _gameWon: boolean = false;
-  private _logTimer: number = 0;
+
   private _cameraRadius: number = 60.0;
 
   private _formatTime(t: number): string {
@@ -570,18 +570,6 @@ class Showcase22 extends SmallWorld {
       this._floorMat.setProperty("u_time", this._shaderTime);
     }
 
-    if (this._logTimer > 1.0) {
-      this._logTimer = 0.0;
-      console.log(
-        "[DEBUG] shaderTime:",
-        this._shaderTime,
-        " floorMat.u_time:",
-        this._floorMat?.properties?.u_time,
-      );
-    } else {
-      this._logTimer += dt;
-    }
-
     // Step the physics engine first
     this._physics.step(this.scene, dt);
 
@@ -646,15 +634,6 @@ class Showcase22 extends SmallWorld {
     this.camera.position.z =
       this.camera.target.z +
       this._cameraRadius * Math.cos(this.camera.theta) * Math.cos(this.camera.phi);
-
-    // Debugging-Logs alle 0.5 Sekunden ausgeben
-    this._logTimer += dt;
-    if (this._gameActive && this._logTimer >= 0.5) {
-      this._logTimer = 0;
-      console.log(
-        `[Physics Debug] Kugel Position Y: ${this._marble.position.y.toFixed(3)} | Velocity Y: ${this._marble.rigidBody!.velocity.y.toFixed(3)} | dt: ${dt.toFixed(3)} | Cam(th:${this.camera.theta.toFixed(2)}, ph:${this.camera.phi.toFixed(2)}) | Mouse(L:${Input.mouse.left}, dx:${Input.mouse.dx})`,
-      );
-    }
   }
 
   // --- Helper methods for Orientation Cross ---

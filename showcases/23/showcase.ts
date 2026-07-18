@@ -280,7 +280,6 @@ class Showcase23Engine extends SmallWorld {
   public api: string;
 
   constructor(container: HTMLElement, api: string) {
-    console.log("[Showcase23] Engine Constructor. API:", api);
     super({
       canvasId: container.id,
       rendererType: api === "webgl2" ? RendererType.WEB_GL2 : RendererType.WEB_GPU,
@@ -289,7 +288,6 @@ class Showcase23Engine extends SmallWorld {
   }
 
   protected async setupScene(): Promise<void> {
-    console.log("[Showcase23] setupScene starting...");
     // Setup Camera
     this.camera.position.set(0, 0, 5);
     this.camera.setStrategy(CameraStrategyType.HYBRID_SYNC);
@@ -301,7 +299,7 @@ class Showcase23Engine extends SmallWorld {
     this.scene.add(dirLight);
 
     // Build the Gallery Billboards based on API
-    console.log("[Showcase23] Building gallery for API:", this.api);
+
     if (this.api === "webgl2") {
       this.buildWebGL2Gallery();
     } else {
@@ -365,28 +363,18 @@ class Showcase23Engine extends SmallWorld {
 }
 
 async function init() {
-  console.log("[Showcase23] init called.");
   const container = document.getElementById("container") as HTMLElement;
   container.innerHTML = '<canvas id="canvas23"></canvas>';
-  console.log("[Showcase23] canvas appended.");
 
   const params = new URLSearchParams(window.location.search);
   const api = params.get("api") || "off";
-  console.log("[Showcase23] URL api parameter:", api);
 
   if (api === "off") {
     return; // Wait for UI toggle
   }
 
-  try {
-    console.log("[Showcase23] Instantiating Showcase23Engine...");
-    const engine = new Showcase23Engine(document.getElementById("canvas23") as HTMLElement, api);
-    console.log("[Showcase23] Starting engine...");
-    await engine.start();
-    console.log("[Showcase23] Engine started successfully.");
-  } catch (err) {
-    console.error("[Showcase23] Engine crashed:", err);
-  }
+  const engine = new Showcase23Engine(document.getElementById("canvas23") as HTMLElement, api);
+  await engine.start();
 }
 
 init().catch(console.error);

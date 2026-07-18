@@ -19,6 +19,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
+    "test:showcases": "node scripts/check-showcases.js",
     "start": "npm run build && npx serve dist",
     "prepare": "husky",
     "docs:dev": "vitepress dev docs",

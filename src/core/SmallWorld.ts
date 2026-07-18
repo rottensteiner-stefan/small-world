@@ -229,17 +229,23 @@ export abstract class SmallWorld {
         (window as unknown as Record<string, boolean>)["__SMALLWORLD_BANNER__"] = true;
         const bannerStyle1 =
           "font-size: 24px; font-weight: bold; font-family: sans-serif; color: #B000FF; text-shadow: 0 0 10px rgba(176, 0, 255, 0.5); line-height: 30px;";
-        const bannerStyle2 =
-          "font-size: 16px; font-weight: bold; font-family: sans-serif; color: #00e5ff; text-shadow: 0 0 8px rgba(0, 229, 255, 0.6); margin-left: 8px; line-height: 30px;";
+
         const bannerStyle3 = "font-size: 12px; font-family: sans-serif; color: #aaa;";
         console.log(
-          `%c Small World Engine %c v${ENGINE_VERSION} %c\n\n%c A very small 3D engine focusing on raw WebGL performance.\n https://github.com/rottensteiner-stefan/small-world\n\n`,
+          `%c Small World Engine, v${ENGINE_VERSION} %c\n\n%c A very small 3D engine focusing on raw WebGL performance.\n https://github.com/rottensteiner-stefan/small-world\n\n`,
           bannerStyle1,
-          bannerStyle2,
           "",
           bannerStyle3,
         );
         console.table({
+          "Device Type": DeviceDetector.isMobile() ? "Mobile" : "Desktop",
+          "Performance Tier": DeviceDetector.getPerformanceTier(),
+          "GPU Model": DeviceCaps.gpuModel,
+          "CPU Cores": navigator.hardwareConcurrency || "Unknown",
+          "Memory (GB)":
+            (navigator as unknown as { deviceMemory?: number }).deviceMemory || "Unknown",
+          "Screen Resolution": `${window.screen.width}x${window.screen.height}`,
+          "Pixel Ratio": window.devicePixelRatio,
           "API - WebGL1": DeviceCaps.hasFeature(DeviceFeature.WEBGL1) ? "Yes" : "No",
           "API - WebGL2": DeviceCaps.hasFeature(DeviceFeature.WEBGL2) ? "Yes" : "No",
           "API - WebGPU": DeviceCaps.hasFeature(DeviceFeature.WEBGPU) ? "Yes" : "No",

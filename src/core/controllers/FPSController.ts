@@ -3,7 +3,7 @@ import { Behavior } from "../behaviors/index.js";
 import { CameraInterfaceData } from "../../interfaces/index.js";
 import { Object3D, Input, InputInterface, Scene } from "../index.js";
 import { InputMode, Keys } from "../../enums/index.js";
-import { BoundingBox, BoundingSphere, Collision } from "../../physix/index.js";
+import { BoundingSphere, Collision } from "../../physix/index.js";
 import { MathPool } from "../../math/index.js";
 
 /**
@@ -176,7 +176,22 @@ export class FPSController extends Behavior {
 
     for (const obj of potentialHits) {
       if (!obj.bounds || obj === this.target) continue;
-      if (Collision.resolveSphereBox(this._collider, obj.bounds as BoundingBox, hitCorrection)) {
+      let resolved: boolean;
+      if (obj.bounds.type === 0 /* BoundingType.SPHERE */) {
+        resolved = Collision.resolveSphereSphere(
+          this._collider,
+          obj.bounds as import("../../physix/index.js").BoundingSphere,
+          hitCorrection,
+        );
+      } else {
+        resolved = Collision.resolveSphereBox(
+          this._collider,
+          obj.bounds as import("../../physix/index.js").BoundingBox,
+          hitCorrection,
+        );
+      }
+
+      if (resolved) {
         correction.add(hitCorrection);
         this._collider.center.add(hitCorrection);
       }

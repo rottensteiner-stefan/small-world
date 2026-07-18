@@ -60,6 +60,7 @@ export class DeviceCaps {
   // Specialized Features
   private static _hasFloatTextures: boolean = false;
   private static _hasCompressedTextures: boolean = false;
+  private static _gpuModel: string = "Unknown";
 
   /**
    * Initializes the feature detection.
@@ -102,6 +103,12 @@ export class DeviceCaps {
 
         // Check Compressed Textures (Standard S3TC)
         this._hasCompressedTextures = !!gl.getExtension("WEBGL_compressed_texture_s3tc");
+
+        // Check GPU Model
+        const debugInfo = gl.getExtension("WEBGL_debug_renderer_info");
+        if (debugInfo) {
+          this._gpuModel = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+        }
       }
     } catch {
       this._hasWebGL1 = false;
@@ -239,5 +246,12 @@ export class DeviceCaps {
       default:
         return 0;
     }
+  }
+
+  /**
+   * Returns the unmasked GPU model if available.
+   */
+  public static get gpuModel(): string {
+    return this._gpuModel;
   }
 }

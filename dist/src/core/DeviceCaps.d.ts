@@ -48,6 +48,7 @@ export declare class DeviceCaps {
     private static _maxFragmentUniformVectors;
     private static _hasFloatTextures;
     private static _hasCompressedTextures;
+    private static _gpuModel;
     /**
      * Initializes the feature detection.
      * This is called automatically by the Engine, but can be called manually.
@@ -75,4 +76,8 @@ export declare class DeviceCaps {
      * @param limit The limit to query.
      */
     static getLimit(limit: DeviceLimit): number;
+    /**
+     * Returns the unmasked GPU model if available.
+     */
+    static get gpuModel(): string;
 }

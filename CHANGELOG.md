@@ -13,8 +13,12 @@
   - **ExternalShaderUniformBehavior:** Developed a dedicated behavior system to automatically bind dynamic uniform data (like `iTime`, `iResolution`, `custom.time`, `custom.resolution`) required by imported external shaders.
   - **WGSL Compilation Error Logging:** Integrated `getCompilationInfo()` into `WebGPURenderer.ts` to surface hidden pipeline creation failures and syntax errors (e.g. reserved keywords) directly to the browser console.
   - **ComputeToysImporter UV Resolution:** Fixed a critical Y-axis inversion and screen-space UV mapping bug where compute shaders incorrectly evaluated global screen coordinates instead of the local 3D billboard geometry coordinates.
+  - **Collision Resolution (Deslop):** Fixed `TypeError: Cannot read properties of undefined (reading 'x')` in `FPSController`, `FirstPersonController`, and `EnemyBehavior` by explicitly branching on `obj.bounds.type` (SPHERE vs BOX) before resolving collisions.
   - **Showcase 23 Layout:** Added the standard layout template (Navigation, Header, Footer) to Showcase 23 to match the rest of the application.
 - **Housekeeping & Docs:**
+  - **DeviceCaps & Telemetry:** Enhanced the engine initialization banner. `DeviceDetector` and `DeviceCaps` now log the device type, performance tier, active GPU model (`WEBGL_debug_renderer_info`), CPU core count, and memory limit directly into the console table.
+  - **AI Deslopping:** Audited and cleaned up redundant AI-generated slop (unnecessary `try/catch` blocks around engine startup, overzealous defensive logs, and duplicate `_logTimer` fields) across Showcases 22 and 23.
+  - **Testing Infrastructure:** Successfully implemented and verified `scripts/check-showcases.js` using Puppeteer. All showcases now run flawlessly in CI without errors.
   - **REFERENCES.md:** Added a new "Shaders & Procedural Art" section to officially credit Kali, Kishimisu, and Inigo Quilez for their foundational shader mathematics.
 
 ## [0.60.2] - 2026-07-17
