@@ -18,6 +18,32 @@ export default defineConfig({
   },
   plugins: [
     {
+      name: "showcase-layout",
+      transformIndexHtml(html) {
+        const layoutRegex =
+          /<showcase-layout\s+title="([^"]*)"\s+subtitle-b64="([^"]*)"\s+prev="([^"]*)"\s+next="([^"]*)"><\/showcase-layout>/;
+        const match = html.match(layoutRegex);
+        if (match) {
+          const [full, title, subtitleB64, prev, next] = match;
+          const subtitle = Buffer.from(subtitleB64, "base64").toString("utf-8");
+          const headerHtml = `
+<div class="example-nav">
+  <a href="${prev}" class="nav-btn">←<span class="hide-mobile"> Back</span></a>
+  <a href="/" class="nav-btn"><span class="hide-mobile">Overview</span></a>
+  <a href="${next}" class="nav-btn"><span class="hide-mobile">Next </span>→</a>
+</div>
+<header id="info">
+  <h1>${title}</h1>
+  ${subtitle}
+</header>`;
+          const footerHtml = `<footer class="app-footer">Copyright 2026 Stefan Rottensteiner // Small World</footer>`;
+          html = html.replace(full, headerHtml);
+          html = html.replace("</body>", footerHtml + "\n  </body>");
+        }
+        return html;
+      },
+    },
+    {
       name: "serve-index-from-public",
       configureServer(server) {
         server.middlewares.use((req, _res, next) => {

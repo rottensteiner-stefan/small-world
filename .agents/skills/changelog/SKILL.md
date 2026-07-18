@@ -29,17 +29,13 @@ Every entry in the `CHANGELOG.md` MUST strictly follow this exact structure:
 2. **Categories:** Always use exactly these three categories: `- **Features:**`, `- **Architecture & Bugfixes:**`, and `- **Housekeeping & Docs:**`. If a category is empty for a specific release, you may omit it.
 3. **Preserve History:** NEVER delete old entries. Always prepend the new version block directly under the `# Changelog` header.
 
-## 2. Git Release Commit Rule
+## 2. Git Commit Rule
 
-When making the final Git commit for a version release (the commit that bumps the version and pushes to main), the commit message MUST be unconventional.
-
-Instead of standard Conventional Commits (like `feat: release 0.63.0`), the commit message MUST be **exactly the quote** used in the changelog, but **WITHOUT the author** and **WITHOUT the surrounding quotation marks**.
+EVERY single Git commit (not just version bumps) MUST use this unconventional format.
+The commit message MUST be **exactly a quote**, but **WITHOUT the author** and **WITHOUT the surrounding quotation marks**. Do NOT use standard Conventional Commits (like `feat: added something` or `docs: fixed typo`).
 
 **Example:**
-If the changelog subheader is:
-`### "Pure mathematics is, in its way, the poetry of logical ideas." - Albert Einstein`
+If you want to commit a layout refactoring, use an appropriate quote:
+`git commit -m "Perfection is achieved, not when there is nothing more to add, but when there is nothing left to take away."`
 
-The git commit command MUST be:
-`git commit -m "Pure mathematics is, in its way, the poetry of logical ideas."`
-
-Never use anything else for the version bump commit.
+Never use anything else for any commit.

@@ -77,18 +77,18 @@
   <link rel="stylesheet" crossorigin href="../../assets/shared.css">
 </head>
 <body>
+
 <div class="example-nav">
   <a href="../22/index.html" class="nav-btn">←<span class="hide-mobile"> Back</span></a>
   <a href="/" class="nav-btn"><span class="hide-mobile">Overview</span></a>
   <a href="../yad/index.html" class="nav-btn"><span class="hide-mobile">Next </span>→</a>
 </div>
-
 <header id="info">
   <h1>The Shader Gallery</h1>
   <p>Multi-API compute and fragment shaders on dynamic billboards.</p>
 </header>
 
-<div id="ui-bar" style="top: 80px;">
+    <div id="ui-bar" style="top: 80px;">
     <label class="switch-label">
         <input type="radio" name="api" value="webgl2" onchange="switchApi('webgl2')"> WebGL2 (GLSL)
     </label>
@@ -103,8 +103,6 @@
 <div id="off-text">Select Graphics API to power up the gallery</div>
 
 <div id="container" style="width: 100vw; height: 100vh;"></div>
-
-<footer class="app-footer">Copyright 2026 Stefan Rottensteiner // Small World</footer>
 
 <script>
     const params = new URLSearchParams(window.location.search);
@@ -128,5 +126,6 @@
     }
 </script>
 
-</body>
+<footer class="app-footer">Copyright 2026 Stefan Rottensteiner // Small World</footer>
+  </body>
 </html>
