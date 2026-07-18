@@ -141,7 +141,7 @@ class Showcase22 extends SmallWorld {
       Texture.fromUrl(bumperTexUrl),
     ]);
 
-    // Goal Zone anpassen (Plattform 3: z=-60, size=40. Letztes Ende: z=-75)
+    // Goal Zone (Plattform 3: Z=-20 to -40. Placement at the end of the track)
     const goalMat = new StandardMaterial({
       albedoColor: new Color(0, 1.0, 0),
       emissiveColor: new Color(0, 1.0, 0),
@@ -152,7 +152,7 @@ class Showcase22 extends SmallWorld {
     const goalZone = new Object3D("GoalZone");
     goalZone.geometry = new Cube({ width: 10, height: 1, depth: 10 }).getGeometryData();
     goalZone.material = goalMat;
-    goalZone.position.set(0, -9.5, -45);
+    goalZone.position.set(0, 0.5, -35); // Y=0.5 (Plat3 top is Y=0), Z=-35 (End of Plat3)
     goalZone.rigidBody = new RigidBody(0);
     goalZone.rigidBody.isSensor = true;
     scene.add(goalZone);
@@ -560,7 +560,6 @@ class Showcase22 extends SmallWorld {
     window.addEventListener("keydown", unlockAudio, { once: true });
   }
 
-  private _logTimer: number = 0;
   private _floorMat!: CustomShaderMaterial;
   private _shaderTime: number = 0.0;
 
