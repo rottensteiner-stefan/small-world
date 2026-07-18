@@ -25,9 +25,9 @@
     }
     #ui-bar {
         position: absolute;
-        top: 20px;
+        top: 70px; /* Snug under the title */
         left: 50%;
-        transform: translateX(-50%);
+        transform: translateX(-50%) scale(0.6); /* Even smaller! */
         z-index: 100;
         background: rgba(0, 15, 25, 0.8);
         padding: 10px 30px;
@@ -76,14 +76,11 @@
     </style>
   </head>
   <body>
-    <showcase-layout title="The Shader Gallery" subtitle-b64="PHA+TXVsdGktQVBJIGNvbXB1dGUgYW5kIGZyYWdtZW50IHNoYWRlcnMgb24gZHluYW1pYyBiaWxsYm9hcmRzLjwvcD4=" prev="../22/index.html" next="../yad/index.html"></showcase-layout>
+    <showcase-layout title="The Shader Gallery" subtitle-b64="" prev="../22/index.html" next="../yad/index.html"></showcase-layout>
 
-    <div id="ui-bar" style="top: 80px;">
+    <div id="ui-bar">
     <label class="switch-label">
         <input type="radio" name="api" value="webgl2" onchange="switchApi('webgl2')"> WebGL2 (GLSL)
-    </label>
-    <label class="switch-label">
-        <input type="radio" name="api" value="off" onchange="switchApi('off')"> OFF
     </label>
     <label class="switch-label">
         <input type="radio" name="api" value="webgpu" onchange="switchApi('webgpu')"> WebGPU (WGSL)
@@ -97,7 +94,8 @@
 <script>
     const params = new URLSearchParams(window.location.search);
     const api = params.get('api') || 'off';
-    document.querySelector(`input[value="${api}"]`).checked = true;
+    const inputEl = document.querySelector(`input[value="${api}"]`);
+    if (inputEl) inputEl.checked = true;
 
     if (api === 'off') {
         document.getElementById('off-text').style.display = 'block';

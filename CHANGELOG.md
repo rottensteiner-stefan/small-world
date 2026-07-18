@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.66.0] - 2026-07-19
+
+### "Out of nothing I have created a strange new universe." - János Bolyai
+
+- **Features:**
+  - Expanded Showcase 23 (The Shader Gallery) into a fully interactive 3D gallery with dynamic zooming and raycasted screen selection.
+  - Moved monitor shader source codes to individual asset files to clean up engine boilerplate.
+- **Architecture & Bugfixes:**
+  - Resolved raycaster bounding box logic where `computeBounds()` was not reliably accounting for shifted world matrices during interaction loops.
+  - Fixed an issue where WebGL2 contexts assigned inverted shaders to Monitor 2 and Monitor 3.
+- **Housekeeping & Docs:**
+  - Removed outdated OFF switch from Showcase 23 HTML layout.
+  - Added new `Escape` key binding to reset camera behavior states.
+
+
 ## [0.65.0] - 2026-07-19
 
 ### "Simplicity is the ultimate sophistication." - Leonardo da Vinci

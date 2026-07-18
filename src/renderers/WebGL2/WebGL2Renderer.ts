@@ -195,15 +195,8 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
 
       Object.keys(def.layout.uniforms).forEach((name) => {
         const loc = this.gl.getUniformLocation(prog, name);
-        if (
-          null === loc &&
-          name !== "u_thresholds" &&
-          name !== "u_liquidParams" &&
-          shaderId !== MaterialType.DEPTH
-        ) {
-          console.warn(
-            `[WebGL2Renderer] Uniform '${name}' defined in material layout but not found in shader '${shaderId}'. It might be unused or optimized away.`,
-          );
+        if (null === loc) {
+          // Uniform was optimized away by the shader compiler (very common, e.g. for unused CustomShaderMaterial uniforms).
         }
         uniforms.set(name, loc ?? undefined);
       });
