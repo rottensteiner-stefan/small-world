@@ -12,7 +12,7 @@ npm install small-world
 
 ## Basic Setup
 
-The engine uses a strategy-based lifecycle. You subclass `AbstractShowcase` (or `Application` depending on your wrapper) and override the `setupScene` and `update` lifecycle methods.
+The engine uses a strategy-based lifecycle. You subclass `SmallWorld` (or `AbstractShowcase`, which adds a few demo/debug conveniences on top of `SmallWorld`) and override the `setupScene` and `update` lifecycle methods.
 
 ### 1. Engine Configuration (`public/config/small-world.json`)
 
@@ -22,7 +22,7 @@ By default, the engine loads its configuration from a static JSON file. This fil
 {
   "canvasId": "SmallWorldCanvas",
   "rendererType": "BEST",
-  "projection": "PERSPECTIVE",
+  "projectionType": "PERSPECTIVE",
   "fullscreen": true,
   "renderer": [
     {

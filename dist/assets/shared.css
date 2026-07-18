@@ -191,4 +191,78 @@ header.tool-header .nav-btn:hover {
 body:has(.tool-header) .app-footer {
   position: relative;
   flex-shrink: 0;
+  margin-top: auto;
 }
+
+/* --- SWF Design Tokens (Forge Theme) ---
+ * These variables are normally injected by the Forge overlay system.
+ * Defining them here makes all standalone tool pages (map-gen, xtractor, etc.)
+ * fully self-contained without depending on new Forge() being instantiated.
+ */
+:root {
+  --swf-bg: rgba(15, 23, 42, 0.65);
+  --swf-panel: rgba(30, 41, 59, 0.5);
+  --swf-panel-hover: rgba(51, 65, 85, 0.65);
+  --swf-border: rgba(176, 0, 255, 0.3);
+  --swf-border-focus: rgba(176, 0, 255, 0.8);
+  --swf-accent: #b000ff;
+  --swf-accent-alt: #ff00ff;
+  --swf-text: #e2e8f0;
+  --swf-text-muted: #94a3b8;
+  --swf-font: "Rajdhani", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  --swf-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+.swf-btn {
+  background: var(--swf-panel);
+  color: var(--swf-text);
+  border: 1px solid var(--swf-border);
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  width: 100%;
+}
+.swf-btn:hover {
+  background: var(--swf-panel-hover);
+  border-color: var(--swf-accent);
+  color: var(--swf-accent);
+  box-shadow: 0 0 8px rgba(176, 0, 255, 0.2);
+}
+.swf-btn.active {
+  background: var(--swf-accent);
+  color: #000;
+  border-color: var(--swf-accent);
+}
+.swf-btn.secondary {
+  background: transparent;
+  border-color: var(--swf-text-muted);
+  color: var(--swf-text-muted);
+}
+.swf-btn.secondary:hover {
+  border-color: var(--swf-accent-alt);
+  color: var(--swf-accent-alt);
+  box-shadow: 0 0 8px rgba(255, 0, 255, 0.2);
+}
+
+.swf-input {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--swf-border);
+  border-radius: 4px;
+  color: var(--swf-text);
+  padding: 6px 8px;
+  font-family: inherit;
+  font-size: 13px;
+  transition: border-color 0.2s ease;
+  outline: none;
+}
+.swf-input:focus {
+  border-color: var(--swf-accent);
+  box-shadow: 0 0 5px rgba(176, 0, 255, 0.2);
+}
+

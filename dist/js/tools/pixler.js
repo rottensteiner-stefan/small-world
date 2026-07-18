@@ -1,0 +1,1 @@
+import"../modulepreload-polyfill.js";import{t as e}from"../Pixler.js";var o=new e({parent:document.getElementById("tool-container")});window.pixlerInstance=o;

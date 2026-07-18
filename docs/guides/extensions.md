@@ -17,41 +17,38 @@ If you want to build a tile-based dungeon crawler, writing placement logic for e
 ### Usage
 
 ```typescript
-import { GridLevelBuilder } from "small-world/extensions";
+import { GridLevelBuilder, GridLevelConfig, Object3D } from "small-world";
 
-const builder = new GridLevelBuilder({
-  scene: this.scene,
-  blockSize: 2.0,
-});
+const builder = new GridLevelBuilder();
 
 // Define your legend mapping ASCII characters to meshes or logic
-builder.setLegend({
-  "#": {
-    type: "custom",
-    onBuild: (x, y, worldX, worldZ) => {
-      const wall = new Object3D(`Wall_${x}_${y}`);
-      // Add geometry, materials...
-      wall.position.set(worldX, 1.0, worldZ);
-      return wall; // Returns the built object to the scene automatically
-    }
+const config: GridLevelConfig = {
+  gridSize: 2.0,
+  legend: {
+    "#": {
+      type: "custom",
+      onBuild: (x, y, worldX, worldZ) => {
+        const wall = new Object3D(`Wall_${x}_${y}`);
+        // Add geometry, materials...
+        wall.position.set(worldX, 1.0, worldZ);
+        return wall; // Returned object is added to the scene automatically
+      },
+    },
+    "P": {
+      type: "custom",
+      onBuild: (x, y, worldX, worldZ) => {
+        this.camera.position.set(worldX, 1.0, worldZ);
+        return undefined; // We don't add an object, we just move the camera
+      },
+    },
   },
-  "P": {
-    type: "playerSpawn",
-    onBuild: (x, y, worldX, worldZ) => {
-      this.camera.position.set(worldX, 1.0, worldZ);
-      return undefined; // We don't add an object, we just move the camera
-    }
-  }
-});
+};
 
-// Build the map
-const myMap = [
-  "#######",
-  "#P    #",
-  "#######"
-];
+// Define your map as a single newline-separated string
+const myMap = ["#######", "#P    #", "#######"].join("\n");
 
-builder.build(myMap);
+// Build the map (async — resolves to the world position of the first "P" spawn, or the map center)
+await builder.build(this.scene, myMap, config);
 ```
 
 By leveraging `Extensions`, you can drastically reduce boilerplate code while keeping the core engine bundle size absolutely minimal.

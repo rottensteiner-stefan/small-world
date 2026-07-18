@@ -52,19 +52,19 @@ The engine does not use a rigid camera model. Instead, there is a base `Camera` 
 ### Showcase: First-Person Shooter Camera (FPS)
 
 ```typescript
-import { FPSController, StiffStrategy } from "small-world";
+import { FPSController, CameraStrategyType } from "small-world";
 
-// The strategy defines how the camera interpolates updates (Stiff = direct, Smooth = soft)
-this.camera.setStrategy(new StiffStrategy());
+// The strategy defines how the camera updates (STIFF = direct, SMOOTH = interpolated)
+this.camera.setStrategy(CameraStrategyType.STIFF);
 
-// The FPS controller directly accesses mouse input (PointerLock) and WASD
-const fpsController = new FPSController(this.camera, {
-  moveSpeed: 10.0,
-  lookSpeed: 0.002,
-});
-
-// Add it to the Application lifecycle so it receives updates
-this.controllers.push(fpsController);
+// Controllers are Behaviors – attach them directly to the camera.
+// Do NOT use this.controllers.push() (deprecated pattern).
+this.camera.addBehavior(
+  new FPSController({
+    moveSpeed: 10.0,
+    lookSensitivity: 0.002,
+  })
+);
 ```
 
 ---
@@ -76,7 +76,7 @@ Small World uses a hybrid rendering approach (WebGL2 & WebGPU) based on the Cook
 ### Overview of key materials
 
 - `StandardMaterial`: For 90% of objects. Supports `color`, `metallic`, `roughness`, as well as diffuse, normal, and roughness maps.
-- `GlassMaterial`: A refractive material for glass or water with true refraction (`ior`) and volume absorption (`absorptionColor`).
+- `GlassMaterial`: A refractive material for glass or water with true refraction (`ior`), configurable `thickness`, and `transmission`.
 - `SpriteMaterial`: For 2D/2.5D billboards that always face the camera.
 
 ### Showcase: Glass/Water Material with Index of Refraction
@@ -88,9 +88,8 @@ const water = new GlassMaterial({
   color: new Color(0.9, 0.95, 1.0),
   roughness: 0.05,
   ior: 1.33, // Index of Refraction for water
-  dispersion: 0.02, // Slight chromatic aberration at edges
-  absorptionColor: new Color(0.1, 0.5, 0.8),
-  absorptionDistance: 5.0, // The deeper, the bluer
+  thickness: 2.0, // Affects refraction depth
+  transmission: 0.9, // How much light passes through vs. reflects
 });
 
 waterSurface.material = water;
@@ -110,6 +109,7 @@ import { Behavior, Object3D } from "small-world";
 export class PulseBehavior extends Behavior {
   private _speed: number;
   private _baseScale: number;
+  private _elapsed: number = 0;
 
   constructor(speed: number = 2.0) {
     super();
@@ -122,12 +122,13 @@ export class PulseBehavior extends Behavior {
     this._baseScale = target.scale.x;
   }
 
-  // Called automatically every frame by the Scene
-  public override update(deltaTime: number, totalTime: number): void {
+  // Called automatically every frame by the Scene, only receives deltaTime
+  public override update(deltaTime: number): void {
     if (!this.target) return;
+    this._elapsed += deltaTime;
 
     // Calculate sine pulse
-    const scale = this._baseScale + Math.sin(totalTime * this._speed) * 0.2;
+    const scale = this._baseScale + Math.sin(this._elapsed * this._speed) * 0.2;
     this.target.scale.set(scale, scale, scale);
   }
 }

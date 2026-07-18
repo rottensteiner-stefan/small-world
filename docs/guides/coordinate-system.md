@@ -29,7 +29,7 @@ When writing custom look/orbit math or relative movement controls (e.g. WASD), u
 
 - **Angle orientation:** Theta ($\theta$) and phi ($\phi$) angles are defined relative to the $-Z$ vector.
 - **Direction vector:**
-  $$\text{dirX} = -\sin(\theta) \cdot \cos(\phi)$$
+  $$\text{dirX} = \sin(\theta) \cdot \cos(\phi)$$
   $$\text{dirY} = \sin(\phi)$$
   $$\text{dirZ} = -\cos(\theta) \cdot \cos(\phi)$$
 

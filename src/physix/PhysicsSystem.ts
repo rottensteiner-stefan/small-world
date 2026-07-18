@@ -108,11 +108,9 @@ export class PhysicsSystem {
         const deltaQ = MathPool.acquireQuaternion().setFromAxisAngle(axis, wLength * dt);
 
         // 2. Create current rotation quaternion from Euler angles (YXZ via compose)
-        const currentMatrix = MathPool.acquireMatrix().compose(
-          MathPool.acquireVector().set(0, 0, 0),
-          obj.rotation,
-          MathPool.acquireVector().set(1, 1, 1),
-        );
+        const zeroPos = MathPool.acquireVector().set(0, 0, 0);
+        const unitScale = MathPool.acquireVector().set(1, 1, 1);
+        const currentMatrix = MathPool.acquireMatrix().compose(zeroPos, obj.rotation, unitScale);
         const currentQ = MathPool.acquireQuaternion().setFromRotationMatrix(currentMatrix);
 
         // 3. Apply deltaQ
@@ -120,14 +118,19 @@ export class PhysicsSystem {
 
         // 4. Convert back to Euler angles
         currentMatrix.setFromQuaternion(currentQ);
-        currentMatrix.decompose(MathPool.acquireVector(), obj.rotation, MathPool.acquireVector());
+        const outPos = MathPool.acquireVector();
+        const outScale = MathPool.acquireVector();
+        currentMatrix.decompose(outPos, obj.rotation, outScale);
 
         // Release pool objects
         MathPool.releaseVector(axis);
+        MathPool.releaseVector(zeroPos);
+        MathPool.releaseVector(unitScale);
+        MathPool.releaseVector(outPos);
+        MathPool.releaseVector(outScale);
         MathPool.releaseQuaternion(deltaQ);
         MathPool.releaseQuaternion(currentQ);
         MathPool.releaseMatrix(currentMatrix);
-        // Note: The temporary vectors used in compose/decompose will naturally be GC'd or we could pool them.
       }
       // -------------------------
 

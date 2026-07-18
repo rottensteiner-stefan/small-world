@@ -35,7 +35,7 @@ If you pass `0` to the `RigidBody` constructor, its inverse mass becomes `0`, ma
 ## Collision Detection (Bounds)
 
 The `PhysicsSystem` uses the `bounds` property of an `Object3D` to perform collision detection. Without `bounds`, an object cannot collide.
-Small World currently supports resolving collisions between **BoundingSpheres** and **BoundingBoxes**.
+Small World currently resolves **sphere-vs-sphere** and **sphere-vs-box** collisions. Box-vs-box pairs are not yet resolved by the physics step.
 
 ```typescript
 import { BoundingSphere } from "small-world";
@@ -61,7 +61,14 @@ myCube.rigidBody.applyImpulse(new Vector3D(0, 10, 0));
 
 ## The Simulation Loop
 
-The engine's `Application` base class automatically calls `PhysicsSystem.step(scene, dt)` before the rendering phase.
+Physics stepping is **not** automatic — call `PhysicsSystem.step(scene, dt)` yourself, typically at the start of your `SmallWorld` subclass's `update()` override, before your own game logic runs:
+
+```typescript
+protected override update(deltaTime: number): void {
+  this._physics.step(this.scene, deltaTime);
+  // ...your game logic
+}
+```
 
 During this step, the engine:
 1. **Integrates Velocity:** Applies gravity and accumulated forces to update linear and angular velocity.
@@ -73,4 +80,4 @@ During this step, the engine:
 ## Stability and Zero-Allocation
 
 Physics engines are notoriously hard on memory due to the massive amount of vector mathematics required per frame. Small World mitigates this by exclusively utilizing the `MathPool`.
-All temporary vectors and matrices used during collision checking and integration are acquired from and released back into the pool. This guarantees a flat memory profile and no GC stuttering during intense physics simulations.
+All temporary vectors and matrices used during collision checking and integration — including the rotation-integration branch (angular velocity → quaternion → Euler conversion) — are acquired from and released back into the pool. This guarantees a flat memory profile and no GC stuttering during intense physics simulations.

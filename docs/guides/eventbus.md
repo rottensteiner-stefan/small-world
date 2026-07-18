@@ -9,7 +9,7 @@ Because Small World enforces a "1 Engine Instance per Page" architecture, the Ev
 You can import and use `UniversalEventBus` anywhere in your application:
 
 ```typescript
-import { UniversalEventBus } from "small-world/core";
+import { UniversalEventBus } from "small-world";
 
 // Use it directly!
 UniversalEventBus.dispatchEvent("MyEvent", { data: 123 });
@@ -20,17 +20,21 @@ UniversalEventBus.dispatchEvent("MyEvent", { data: 123 });
 To avoid brittle "magic strings" and typos across your codebase, you should always define your events as structured constants (`as const`) or `enums`. This provides maximum autocomplete and type safety.
 
 ```typescript
-// Event definitions
-export const AppEvents = {
+// Event definitions (your own game-specific registry)
+export const MyGameEvents = {
   PLAYER: {
-    DAMAGE: "AppEvents:PLAYER:DAMAGE",
-    HEAL: "AppEvents:PLAYER:HEAL",
+    DAMAGE: "MyGameEvents:PLAYER:DAMAGE",
+    HEAL: "MyGameEvents:PLAYER:HEAL",
   },
   WEAPON: {
-    FIRE: "AppEvents:WEAPON:FIRE",
+    FIRE: "MyGameEvents:WEAPON:FIRE",
   }
 } as const;
 ```
+
+::: tip Built-in AppEvents
+The engine itself ships a reference event registry, `AppEvents`, used by the YAD showcase (e.g. `AppEvents.Yad.DAMAGE`, `AppEvents.Yad.SHOOT`). Define your own registry (as above) for your game's events instead of extending the built-in one.
+:::
 
 ## Emitting Events
 
@@ -38,9 +42,9 @@ Instead of using the DOM's `window.dispatchEvent` (which incurs heavy garbage co
 
 ```typescript
 // Inside a Behavior or Controller
-import { UniversalEventBus } from "small-world/core";
+import { UniversalEventBus } from "small-world";
 
-UniversalEventBus.dispatchEvent(AppEvents.PLAYER.DAMAGE, { amount: 15, source: "lava" });
+UniversalEventBus.dispatchEvent(MyGameEvents.PLAYER.DAMAGE, { amount: 15, source: "lava" });
 ```
 
 ## Listening to Events
@@ -48,8 +52,8 @@ UniversalEventBus.dispatchEvent(AppEvents.PLAYER.DAMAGE, { amount: 15, source: "
 Your UI components (e.g., a HUD) or other decoupled systems can simply accept the `Events` interface and listen for specific events from your registry.
 
 ```typescript
-import { UniversalEventBus } from "small-world/core";
-import { AppEvents } from "./events.js";
+import { UniversalEventBus } from "small-world";
+import { MyGameEvents } from "./events.js";
 
 export class MyHud {
   constructor() {
@@ -57,7 +61,7 @@ export class MyHud {
   }
 
   private _bindEvents(): void {
-    UniversalEventBus.addEventListener(AppEvents.PLAYER.DAMAGE, (e: Record<string, unknown>) => {
+    UniversalEventBus.addEventListener(MyGameEvents.PLAYER.DAMAGE, (e: Record<string, unknown>) => {
       const damage = e['amount'] as number;
       console.log(`Player took ${damage} damage!`);
       // Update your UI here...

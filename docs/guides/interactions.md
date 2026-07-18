@@ -34,7 +34,7 @@ this.scene.add(mesh);
 
 ## 2. Octree Acceleration (Performance)
 
-A naive raycaster iterates over all $O(n)$ objects in the scene every frame, which ruins framerates for large scenes. Small World accelerates interactions natively to $O(\log n)$ using an **Octree**.
+A naive raycaster iterates over all $O(n)$ objects in the scene every frame, which ruins framerates for large scenes. Small World accelerates interactions using a spatial-partitioning **Octree**, which prunes the vast majority of objects with cheap bounds checks instead of a full linear scan.
 
 To take advantage of Octree acceleration, initialize the scene's octrees and declare your static objects:
 
