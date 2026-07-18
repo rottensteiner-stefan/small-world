@@ -186,3 +186,37 @@ This document serves to record external sources, algorithms, mathematical deriva
 - **File:** `showcases/yad/assets/dungeon_pack/`
 - **Source:** Original assets by **id Software** (DOOM, 1993). 
 - **Usage:** Used in the YAD showcase for authentic wall textures, flats, and weapon/enemy sprites. Thank you to the DOOM community and id Software for making these legendary assets available for educational and nostalgic projects!
+
+## Shaders & Procedural Art
+
+### Star Nest (Volumetric Cosmic Raymarching)
+
+- **File:** `showcases/23/showcase.ts` (SHADERTOY_STAR_NEST)
+- **Authors/Gurus:** Kali
+- **Source:** [Star Nest on Shadertoy](https://www.shadertoy.com/view/XlfGRj)
+- **Usage:** This iconic Shadertoy creates a stunning, volumetric deep-space effect using iterative distance folding. It beautifully demonstrates how WebGL2 handles heavy loops and spatial transformations on our dynamic billboards.
+
+### Neon Fractal (Kishimisu)
+
+- **File:** `showcases/23/showcase.ts` (COMPUTETOYS_KISHIMISU and SHADERTOY_FRACTAL)
+- **Authors/Gurus:** Kishimisu
+- **Source:** [An introduction to Shader Art Coding](https://www.youtube.com/watch?v=f4s1h2YETNY)
+- **Usage:** This hypnotic, colorful fractal shader is a direct adaptation of Kishimisu's legendary shader art tutorial. It uses space folding, sine-wave color palettes, and iterative distance field manipulation to create an infinitely zooming neon landscape. A masterpiece of procedural math, featured in both the WebGL2 and WebGPU galleries!
+
+### Plasma (GLSLSandbox)
+
+- **File:** `showcases/23/showcase.ts` (GLSLSANDBOX_PLASMA)
+- **Source:** Generic / Public Domain (GLSLSandbox)
+- **Usage:** A classic, foundational plasma effect built using overlaid sine/cosine waves and time offsets. It serves as a minimalist, high-performance reference implementation for WebGL2 custom materials.
+
+### Raymarching & SDFs
+
+- **File:** `showcases/23/showcase.ts` (COMPUTETOYS_RAYMARCH)
+- **Authors/Gurus:** Inigo Quilez
+- **Source:** [Inigo Quilez - Computer Graphics, Mathematics, Shaders](https://iquilezles.org/)
+- **Usage:** The morphing cube-sphere raymarching shader is built upon the foundational techniques popularized by Inigo Quilez. His extensive documentation on Signed Distance Functions (SDFs) and normal approximation techniques forms the mathematical backbone of modern real-time procedural rendering.
+
+### Retro Synthwave Grid
+
+- **File:** `showcases/23/showcase.ts` (COMPUTETOYS_SYNTHWAVE)
+- **Usage:** A classic 80s outrun-style shader featuring an endless glowing grid and a sunset. It demonstrates the use of simple coordinate manipulations and smoothstep functions to recreate nostalgic procedural aesthetics.

@@ -12,7 +12,7 @@ import {
   GearParameters,
   Object3D,
   PerspectiveProjection,
-  Plane,
+  Ground,
   Sphere,
   ProjectionType,
   PhongMaterial,
@@ -382,7 +382,7 @@ class UnderwaterHideoutShowcase extends AbstractShowcase {
         container.rotation.set(face.rot[0], face.rot[1], face.rot[2]);
 
         const faceObj = new Object3D(`${name}_${face.name}_Plane`);
-        faceObj.geometry = new Plane({ width: size, depth: size }).getGeometryData();
+        faceObj.geometry = new Ground({ width: size, depth: size }).getGeometryData();
         faceObj.material = isBranded ? brandingMaterial : crateMaterial;
         faceObj.castShadow = true;
         faceObj.receiveShadow = true;
@@ -402,7 +402,7 @@ class UnderwaterHideoutShowcase extends AbstractShowcase {
 
     // 1. Floor (Art Deco)
     const floor = new Object3D("Floor").setPosition(0, 0, 0);
-    floor.geometry = new Plane({ width: 20, depth: 40 }).getGeometryData();
+    floor.geometry = new Ground({ width: 20, depth: 40 }).getGeometryData();
     floor.material = floorMaterial;
     floor.castShadow = false; // Floor usually doesn't cast shadow on itself, but receives
     floor.receiveShadow = true;
@@ -410,7 +410,7 @@ class UnderwaterHideoutShowcase extends AbstractShowcase {
 
     // 2. Ceiling (Steampunk)
     const ceiling = new Object3D("Ceiling").setPosition(0, 8, 0);
-    ceiling.geometry = new Plane({ width: 20, depth: 40 }).getGeometryData();
+    ceiling.geometry = new Ground({ width: 20, depth: 40 }).getGeometryData();
     ceiling.rotation.x = Math.PI; // Face downwards
     ceiling.material = ceilingMaterial;
     ceiling.castShadow = false;
@@ -770,7 +770,7 @@ class UnderwaterHideoutShowcase extends AbstractShowcase {
 
     // The Light Surface (Decal with Baugitter)
     const baulichtSurface = new Object3D("Baulicht_Surface");
-    baulichtSurface.geometry = new Plane({ width: 2.8, depth: 2.8 }).getGeometryData();
+    baulichtSurface.geometry = new Ground({ width: 2.8, depth: 2.8 }).getGeometryData();
     baulichtSurface.material = portMaterial;
     baulichtSurface.castShadow = false;
     // Plane is on XZ plane (+Y normal). Rotate X by 90deg to face +Z

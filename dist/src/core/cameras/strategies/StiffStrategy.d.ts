@@ -14,6 +14,7 @@ export declare class StiffStrategy implements CameraStrategy {
     maxRadius: number;
     /** @inheritdoc */
     constraints?: CameraConstraints;
+    private _isInitialized;
     /** @inheritdoc */
     update(camera: CameraInterfaceData, targetPos: Vector3D, dx: number, dy: number): void;
     /** @inheritdoc */

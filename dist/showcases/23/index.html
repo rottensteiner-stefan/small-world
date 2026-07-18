@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Small World Showcase 23 - The Shader Gallery</title>
+  <style>
+    body {
+        margin: 0;
+        overflow: hidden;
+        background: #111; /* Changed to dark grey to verify cache refresh */
+        transition: transform 0.6s cubic-bezier(0.11, 0, 0.5, 0), opacity 0.6s ease;
+    }
+    canvas {
+        display: block;
+        width: 100vw;
+        height: 100vh;
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 10;
+    }
+    #ui-bar {
+        position: absolute;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 100;
+        background: rgba(0, 15, 25, 0.8);
+        padding: 10px 30px;
+        border-radius: 30px;
+        border: 1px solid #00e5ff;
+        display: flex;
+        gap: 20px;
+        font-family: "Rajdhani", sans-serif;
+        box-shadow: 0 0 20px rgba(0, 229, 255, 0.3);
+        backdrop-filter: blur(10px);
+    }
+    .switch-label {
+        color: #d1fdff;
+        cursor: pointer;
+        font-size: 1.2rem;
+        font-weight: bold;
+        letter-spacing: 1px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        text-transform: uppercase;
+        transition: text-shadow 0.2s;
+    }
+    .switch-label:hover {
+        text-shadow: 0 0 10px #00e5ff;
+    }
+    input[type="radio"] {
+        accent-color: #00e5ff;
+        transform: scale(1.2);
+    }
+    #off-text {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: #fff;
+        font-family: "Rajdhani", sans-serif;
+        font-size: 2rem;
+        text-transform: uppercase;
+        letter-spacing: 5px;
+        text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        pointer-events: none;
+        display: none;
+    }
+  </style>
+  <script type="module" crossorigin src="../../showcases/showcase23/showcase.js"></script>
+  <link rel="modulepreload" crossorigin href="../../js/core.js">
+  <link rel="modulepreload" crossorigin href="../../js/GridLevelBuilder.js">
+  <link rel="modulepreload" crossorigin href="../../js/src.js">
+  <link rel="stylesheet" crossorigin href="../../assets/shared.css">
+</head>
+<body>
+<div class="example-nav">
+  <a href="../22/index.html" class="nav-btn">←<span class="hide-mobile"> Back</span></a>
+  <a href="/" class="nav-btn"><span class="hide-mobile">Overview</span></a>
+  <a href="../yad/index.html" class="nav-btn"><span class="hide-mobile">Next </span>→</a>
+</div>
+
+<header id="info">
+  <h1>The Shader Gallery</h1>
+  <p>Multi-API compute and fragment shaders on dynamic billboards.</p>
+</header>
+
+<div id="ui-bar" style="top: 80px;">
+    <label class="switch-label">
+        <input type="radio" name="api" value="webgl2" onchange="switchApi('webgl2')"> WebGL2 (GLSL)
+    </label>
+    <label class="switch-label">
+        <input type="radio" name="api" value="off" onchange="switchApi('off')"> OFF
+    </label>
+    <label class="switch-label">
+        <input type="radio" name="api" value="webgpu" onchange="switchApi('webgpu')"> WebGPU (WGSL)
+    </label>
+</div>
+
+<div id="off-text">Select Graphics API to power up the gallery</div>
+
+<div id="container" style="width: 100vw; height: 100vh;"></div>
+
+<footer class="app-footer">Copyright 2026 Stefan Rottensteiner // Small World</footer>
+
+<script>
+    const params = new URLSearchParams(window.location.search);
+    const api = params.get('api') || 'off';
+    document.querySelector(`input[value="${api}"]`).checked = true;
+
+    if (api === 'off') {
+        document.getElementById('off-text').style.display = 'block';
+    }
+
+    function switchApi(newApi) {
+        if (newApi === api) return;
+        
+        // Dramatic Zoom-in Effect before reload
+        document.body.style.transform = 'scale(3)';
+        document.body.style.opacity = '0';
+        
+        setTimeout(() => {
+            window.location.search = '?api=' + newApi;
+        }, 600);
+    }
+</script>
+
+</body>
+</html>

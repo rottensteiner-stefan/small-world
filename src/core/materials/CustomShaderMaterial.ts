@@ -1,6 +1,6 @@
 /// src/core/materials/CustomShaderMaterial.ts
 import { AbstractMaterial } from "./AbstractMaterial.js";
-import { CullMode, BlendingMode } from "../../enums/index.js";
+import { CullMode, BlendingMode, ShaderPropertyType } from "../../enums/index.js";
 import { MathUtils } from "../../math/index.js";
 import { Texture, CubeTexture } from "../textures/index.js";
 import { RenderManifest, ShaderDefinition, ShaderLayout } from "../renderers/shaders/index.js";
@@ -55,6 +55,28 @@ export class CustomShaderMaterial extends AbstractMaterial {
     this.cullMode = options.cullMode ?? CullMode.BACK;
     this.depthWrite = options.depthWrite ?? true;
     this.depthTest = options.depthTest ?? true;
+
+    // Safety Net: Inject default base uniforms if missing,
+    // as they are required by core vertex chunks like [BASE_VERTEX_HEADER]
+    if (undefined === this.properties["u_texRepeat"]) {
+      this.properties["u_texRepeat"] = [1.0, 1.0];
+      if (this.layout.uniforms) {
+        this.layout.uniforms["u_texRepeat"] = { type: ShaderPropertyType.VEC2 };
+      }
+      if (this.layout.uniformLayout && !this.layout.uniformLayout.includes("u_texRepeat")) {
+        this.layout.uniformLayout.push("u_texRepeat");
+      }
+    }
+
+    if (undefined === this.properties["u_texOffset"]) {
+      this.properties["u_texOffset"] = [0.0, 0.0];
+      if (this.layout.uniforms) {
+        this.layout.uniforms["u_texOffset"] = { type: ShaderPropertyType.VEC2 };
+      }
+      if (this.layout.uniformLayout && !this.layout.uniformLayout.includes("u_texOffset")) {
+        this.layout.uniformLayout.push("u_texOffset");
+      }
+    }
   }
 
   /**

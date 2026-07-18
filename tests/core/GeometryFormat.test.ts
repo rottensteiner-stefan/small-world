@@ -9,7 +9,7 @@ import {
   Disk,
   ExtrudeGeometry,
   Gear,
-  Plane,
+  Ground,
   Pyramid,
   Sphere,
   Torus,
@@ -33,7 +33,7 @@ describe("Geometry Buffer Types", () => {
       new Circle({ radius: 1.5 }),
       new Disk({ radius: 1.5 }),
       new CylinderSector({ radiusTop: 1.5, radiusBottom: 1.5, height: 3 }),
-      new Plane({ width: 3, depth: 3 }),
+      new Ground({ width: 3, depth: 3 }),
       new Triangle(new Vector3D(-1, 0, 0), new Vector3D(1, 0, 0), new Vector3D(0, 0, -1)),
       new Gear({ innerRadius: 1.0, toothHeight: 0.5, teeth: 12, thickness: 0.5 }),
       new ExtrudeGeometry({

@@ -2,7 +2,6 @@
 import { Object3D } from "./Object3D.js";
 import { SpriteMaterial } from "./materials/index.js";
 import { Plane } from "../geometry/index.js";
-import { MathUtils } from "../math/index.js";
 
 /**
  * A Sprite is a 2D plane that typically always faces the camera.
@@ -21,6 +20,6 @@ export class Sprite extends Object3D {
     // The Plane in this engine is on the XZ plane by default.
     // For a sprite, we typically want it to be "upright" in local space if it's on the XY plane,
     // but the billboard logic will align it anyway.
-    this.geometry = new Plane({ width: 1, depth: 1 }).rotateX(MathUtils.HALF_PI).getGeometryData();
+    this.geometry = new Plane({ width: 1, height: 1 }).getGeometryData();
   }
 }

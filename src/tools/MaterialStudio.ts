@@ -1,6 +1,6 @@
 import { ForgeTool, ForgeToolOptions } from "./forge/ForgeTool.js";
 import { SmallWorld, Object3D } from "../core/index.js";
-import { Sphere, Cube, Torus, Plane } from "../geometry/index.js";
+import { Sphere, Cube, Torus, Ground } from "../geometry/index.js";
 import { StandardMaterial } from "../core/materials/index.js";
 import { Texture } from "../core/textures/index.js";
 import { Color } from "../core/colors/index.js";
@@ -85,7 +85,7 @@ class MaterialStudioApp extends SmallWorld {
       radialSegments: 24,
       tubularSegments: 32,
     }).getGeometryData();
-    this._planeGeometry = new Plane({ width: 2, depth: 2 }).getGeometryData();
+    this._planeGeometry = new Ground({ width: 2, depth: 2 }).getGeometryData();
 
     this._previewObject = new Object3D("PreviewObject").setPosition(0, 0, 0);
     this._previewObject.geometry = this._sphereGeometry;

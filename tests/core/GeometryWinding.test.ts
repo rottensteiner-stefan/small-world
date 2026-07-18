@@ -5,7 +5,7 @@ import {
   Torus,
   Pyramid,
   Sphere,
-  Plane,
+  Ground,
   Vector3D,
   Capsule,
   Circle,
@@ -40,7 +40,7 @@ describe("Geometry Winding Order (Analytical)", () => {
   };
 
   it("Plane triangles should point to +Y (Right-Handed CCW Winding)", () => {
-    const geo = new Plane().getGeometryData();
+    const geo = new Ground().getGeometryData();
     const indices = geo.indices;
     for (let i = 0; i < indices.length / 3; i++) {
       const { normal } = getTriangleNormal(geo.vertices, indices, i);

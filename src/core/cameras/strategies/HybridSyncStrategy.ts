@@ -87,4 +87,29 @@ export class HybridSyncStrategy implements CameraStrategy {
     camera.position.y = camera.target.y + radius * Math.sin(camera.phi);
     camera.position.z = camera.target.z + radius * Math.cos(camera.theta) * Math.cos(camera.phi);
   }
+
+  /** @inheritdoc */
+  public zoom(camera: CameraInterfaceData, delta: number): boolean {
+    const relX = camera.position.x - camera.target.x;
+    const relY = camera.position.y - camera.target.y;
+    const relZ = camera.position.z - camera.target.z;
+
+    let radius = Math.sqrt(relX * relX + relY * relY + relZ * relZ);
+    if (radius < 0.0001) return true;
+
+    // Default min/max radius for HybridSync since it doesn't store them internally
+    const minRadius = 2;
+    const maxRadius = 500;
+
+    radius += delta * radius; // Proportional zoom, similar to Stiff/Smooth
+    radius = MathUtils.clamp(radius, minRadius, maxRadius);
+
+    camera.position.x = camera.target.x + radius * Math.sin(camera.theta) * Math.cos(camera.phi);
+    camera.position.y = camera.target.y + radius * Math.sin(camera.phi);
+    camera.position.z = camera.target.z + radius * Math.cos(camera.theta) * Math.cos(camera.phi);
+
+    this._lastPosition.copyFrom(camera.position);
+
+    return true;
+  }
 }

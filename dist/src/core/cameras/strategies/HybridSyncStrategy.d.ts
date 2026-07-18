@@ -21,4 +21,6 @@ export declare class HybridSyncStrategy implements CameraStrategy {
      * Updates the Cartesian position based on current Theta, Phi, and distance.
      */
     private _syncCartesianFromSpherical;
+    /** @inheritdoc */
+    zoom(camera: CameraInterfaceData, delta: number): boolean;
 }

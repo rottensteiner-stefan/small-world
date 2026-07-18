@@ -9,19 +9,8 @@ import { ShaderPropertyType } from "../../../enums/index.js";
  */
 export class GLSLSandboxImporter implements ShaderImporter {
   public parse(sourceCode: string): CustomShaderMaterialOptions {
-    const vsGLSL300 = `#version 300 es
-layout(location = 0) in vec3 a_position;
-layout(location = 1) in vec2 a_uv;
-
-uniform mat4 u_model;
-uniform mat4 u_viewProjection;
-
-out vec2 v_uv;
-
-void main() {
-    v_uv = a_uv;
-    gl_Position = u_viewProjection * u_model * vec4(a_position, 1.0);
-}`;
+    const vsGLSL300 = `[BASE_VERTEX_HEADER]
+[BASE_VERTEX_MAIN]`;
 
     const fsGLSL300 = `#version 300 es
 precision highp float;
@@ -37,8 +26,7 @@ uniform vec2 mouse;
 // We provide a macro so that legacy GLSLSandbox code using gl_FragColor writes to fragColor instead.
 #define gl_FragColor fragColor
 // Also replace v_uv with gl_FragCoord equivalent for sandbox compatibility
-vec2 gl_FragCoord_alias = v_uv * resolution;
-#define gl_FragCoord vec4(gl_FragCoord_alias.x, gl_FragCoord_alias.y, 0.0, 1.0)
+#define gl_FragCoord vec4(v_uv * resolution, 0.0, 1.0)
 
 // --- GLSLSANDBOX SOURCE START ---
 ${sourceCode}
@@ -52,17 +40,19 @@ ${sourceCode}
       layout: {
         uniforms: {
           u_model: { type: ShaderPropertyType.MAT4 },
-          u_viewProjection: { type: ShaderPropertyType.MAT4 },
+          u_texOffset: { type: ShaderPropertyType.VEC2 },
+          u_texRepeat: { type: ShaderPropertyType.VEC2 },
           resolution: { type: ShaderPropertyType.VEC2 },
           time: { type: ShaderPropertyType.FLOAT },
           mouse: { type: ShaderPropertyType.VEC2 },
         },
-        uniformLayout: ["u_model", "u_viewProjection", "resolution", "time", "mouse"],
+        uniformLayout: ["u_model", "u_texOffset", "u_texRepeat", "resolution", "time", "mouse"],
         textures: {},
       },
       properties: {
         u_model: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
-        u_viewProjection: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+        u_texOffset: [0.0, 0.0],
+        u_texRepeat: [1.0, 1.0],
         resolution: [800, 600],
         time: 0.0,
         mouse: [0, 0],

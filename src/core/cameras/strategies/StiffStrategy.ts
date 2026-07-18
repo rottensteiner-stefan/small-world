@@ -21,8 +21,25 @@ export class StiffStrategy implements CameraStrategy {
   /** @inheritdoc */
   public constraints?: CameraConstraints;
 
+  private _isInitialized: boolean = false;
+
   /** @inheritdoc */
   public update(camera: CameraInterfaceData, targetPos: Vector3D, dx: number, dy: number): void {
+    if (!this._isInitialized) {
+      const relX = camera.position.x - targetPos.x;
+      const relY = camera.position.y - targetPos.y;
+      const relZ = camera.position.z - targetPos.z;
+      this.radius = Math.max(
+        this.minRadius,
+        Math.min(this.maxRadius, Math.sqrt(relX * relX + relY * relY + relZ * relZ)),
+      );
+      if (this.radius > 0.0001) {
+        camera.theta = Math.atan2(relX, relZ);
+        camera.phi = Math.asin(relY / this.radius);
+      }
+      this._isInitialized = true;
+    }
+
     if (0 !== dx || 0 !== dy) {
       camera.theta -= dx * 0.005;
       camera.phi += dy * 0.005;

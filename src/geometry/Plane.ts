@@ -1,33 +1,33 @@
+/// src/geometry/Plane.ts
 import { AbstractGeometry } from "./AbstractGeometry.js";
 
-/// src/geometry/Plane.ts
-
 /**
- * Configuration options for plane geometry.
+ * Configuration for the Plane geometry.
  */
 export interface PlaneOptions {
-  /** The total width of the plane. Defaults to 1. */
+  /** Width of the plane (along the X axis). Defaults to 1. */
   width?: number;
-  /** The total depth of the plane. Defaults to 1. */
-  depth?: number;
-  /** The number of segments along the width (subdivisions). Defaults to 1. */
+  /** Height of the plane (along the Y axis). Defaults to 1. */
+  height?: number;
+  /** Number of segments along the width. Defaults to 1. */
   widthSegments?: number;
-  /** The number of segments along the depth (subdivisions). Defaults to 1. */
-  depthSegments?: number;
+  /** Number of segments along the height. Defaults to 1. */
+  heightSegments?: number;
 }
 
 /**
- * A simple flat plane geometry on the XZ plane.
+ * A vertical flat plane geometry on the X-Y plane, facing +Z.
+ * Useful for UI, Sprites, Billboards, and walls.
  */
 export class Plane extends AbstractGeometry {
   /** The width of the plane. */
   public width: number;
-  /** The depth of the plane. */
-  public depth: number;
+  /** The height of the plane. */
+  public height: number;
   /** The number of segments along the width. */
   public widthSegments: number;
-  /** The number of segments along the depth. */
-  public depthSegments: number;
+  /** The number of segments along the height. */
+  public heightSegments: number;
 
   /**
    * Creates a new Plane geometry.
@@ -35,11 +35,11 @@ export class Plane extends AbstractGeometry {
    */
   constructor(options: PlaneOptions = {}) {
     super();
-    const { width = 1, depth = 1, widthSegments = 1, depthSegments = 1 } = options;
+    const { width = 1, height = 1, widthSegments = 1, heightSegments = 1 } = options;
     this.width = width;
-    this.depth = depth;
+    this.height = height;
     this.widthSegments = widthSegments;
-    this.depthSegments = depthSegments;
+    this.heightSegments = heightSegments;
     this.generateGeometryData();
   }
 
@@ -49,26 +49,35 @@ export class Plane extends AbstractGeometry {
     const uv: number[] = [];
     const idx: number[] = [];
     const hW: number = this.width / 2.0;
-    const hD: number = this.depth / 2.0;
+    const hH: number = this.height / 2.0;
 
-    for (let z: number = 0; z <= this.depthSegments; z++) {
-      const vRatio: number = z / this.depthSegments;
+    for (let y: number = 0; y <= this.heightSegments; y++) {
+      const vRatio: number = y / this.heightSegments;
       for (let x: number = 0; x <= this.widthSegments; x++) {
         const uRatio: number = x / this.widthSegments;
-        v.push(uRatio * this.width - hW, 0, vRatio * this.depth - hD);
+
+        // Vertices: centered at origin.
+        // x goes from -hW to +hW
+        // y goes from +hH to -hH (so top-left is first)
+        v.push(uRatio * this.width - hW, hH - vRatio * this.height, 0);
+
+        // UVs: U goes 0 to 1 (left to right), V goes 1 to 0 (top to bottom)
         uv.push(uRatio, 1.0 - vRatio);
       }
     }
 
-    for (let z: number = 0; z < this.depthSegments; z++) {
+    // Indices
+    for (let y: number = 0; y < this.heightSegments; y++) {
       for (let x: number = 0; x < this.widthSegments; x++) {
-        const a: number = x + (this.widthSegments + 1) * z;
-        const b: number = x + (this.widthSegments + 1) * (z + 1);
-        const c: number = x + 1 + (this.widthSegments + 1) * (z + 1);
-        const d: number = x + 1 + (this.widthSegments + 1) * z;
+        const row1 = y * (this.widthSegments + 1);
+        const row2 = (y + 1) * (this.widthSegments + 1);
+        const i1 = row1 + x;
+        const i2 = row1 + x + 1;
+        const i3 = row2 + x;
+        const i4 = row2 + x + 1;
 
-        idx.push(a, b, d);
-        idx.push(b, c, d);
+        idx.push(i1, i3, i2);
+        idx.push(i2, i3, i4);
       }
     }
 

@@ -20,7 +20,7 @@ import {
   Grid,
   Object3D,
   PerspectiveProjection,
-  Plane,
+  Ground,
   Pyramid,
   Sphere,
   StandardMaterial,
@@ -157,7 +157,7 @@ export class Showcase6 extends AbstractShowcase {
           thetaLength: Math.PI,
         }),
       },
-      { name: "Plane", geom: new Plane({ width: 3, depth: 3 }) },
+      { name: "Plane", geom: new Ground({ width: 3, depth: 3 }) },
       {
         name: "Triangle",
         geom: new Triangle(

@@ -10,7 +10,8 @@ import {
   PhongMaterial,
   ProjectionType,
   AmbientLight,
-  Plane,
+  Ground,
+  OrbitController,
 } from "../../../src/index.js";
 import { AbstractShowcase } from "../../../src/core/index.js";
 
@@ -53,15 +54,16 @@ class Showcase1 extends AbstractShowcase {
 
     // Floor to receive shadows
     const floor = new Object3D("Floor").setPosition(0, -2, -1);
-    floor.geometry = new Plane({ width: 10, depth: 6 }).getGeometryData();
+    floor.geometry = new Ground({ width: 10, depth: 6 }).getGeometryData();
     floor.material = new PhongMaterial({ color: Color.WHITE });
     floor.receiveShadow = true;
     this.scene.add(floor);
 
-    // 3. Position camera rigidly
-    this.camera.setStrategy(CameraStrategyType.FIXED);
+    // 3. Position camera
+    this.camera.setStrategy(CameraStrategyType.SMOOTH);
     this.camera.position.set(0, 3, 6);
     this.camera.target.set(0, 0, 0);
+    this.camera.addBehavior(new OrbitController());
     this.camera.updateViewMatrix();
   }
 

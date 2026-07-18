@@ -707,6 +707,18 @@ export class WebGPURenderer extends AbstractRenderer {
       }
 
       sm = this._device!.createShaderModule({ code });
+
+      // Async compile check to surface WGSL errors
+      sm.getCompilationInfo().then((info) => {
+        const errors = info.messages.filter((m) => m.type === "error");
+        if (errors.length > 0) {
+          console.error("[WebGPU] WGSL Compilation Failed. Source:\n", code);
+          for (const err of errors) {
+            console.error(`[WebGPU] Line ${err.lineNum}, Pos ${err.linePos}: ${err.message}`);
+          }
+        }
+      });
+
       this._shaderModules.set(key, sm);
     }
     return sm;

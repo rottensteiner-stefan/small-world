@@ -11,7 +11,7 @@ import {
   FPSController,
   Object3D,
   PerspectiveProjection,
-  Plane,
+  Ground,
   PointLight,
   ProjectionType,
   RendererType,
@@ -195,7 +195,7 @@ export class Showcase15V1 extends AbstractShowcase {
 
     // 5. Checkered Floor plane
     const floor = new Object3D("Floor").setPosition(0, 0, 0);
-    floor.geometry = new Plane({ width: 30, depth: 30 }).getGeometryData();
+    floor.geometry = new Ground({ width: 30, depth: 30 }).getGeometryData();
     floor.material = new StandardMaterial({
       color: new Color(1.0, 1.0, 1.0),
       metallic: 0.1,

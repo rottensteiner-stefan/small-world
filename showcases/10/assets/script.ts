@@ -9,10 +9,9 @@ import {
   DirectionalLight,
   FPSController,
   ZoomController,
-  MathUtils,
   Object3D,
   PerspectiveProjection,
-  Plane,
+  Ground,
   PointLight,
   Texture,
   WorldMaterial,
@@ -21,6 +20,7 @@ import {
   Disk,
   LavaMaterial,
   CullMode,
+  MathUtils,
 } from "../../../src/index.js";
 import { AbstractShowcase } from "../../../src/core/index.js";
 
@@ -105,7 +105,7 @@ export class Showcase10 extends AbstractShowcase {
     });
 
     const floor = new Object3D("Floor");
-    floor.geometry = new Plane({ width: 100, depth: 100 }).getGeometryData();
+    floor.geometry = new Ground({ width: 100, depth: 100 }).getGeometryData();
     floor.material = new BasicMaterial({ diffuseMap: sandTexture });
     this.scene.add(floor);
 

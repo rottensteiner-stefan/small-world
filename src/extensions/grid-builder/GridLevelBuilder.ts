@@ -1,7 +1,7 @@
 /// src/extensions/grid-builder/GridLevelBuilder.ts
 import { Object3D, Scene, Sprite } from "../../core/index.js";
 import { Vector3D } from "../../math/index.js";
-import { Cube, Plane } from "../../geometry/index.js";
+import { Cube, Ground } from "../../geometry/index.js";
 import { StandardMaterial, AbstractMaterial, SpriteMaterial } from "../../core/materials/index.js";
 import { Texture } from "../../core/textures/index.js";
 export type GridTileType = "block" | "floor" | "sprite" | "custom";
@@ -74,7 +74,7 @@ export class GridLevelBuilder {
     const offsetX = (width * gridSize) / 2;
     const offsetZ = (depth * gridSize) / 2;
 
-    const floorGeo = new Plane({ width: gridSize, depth: gridSize }).getGeometryData();
+    const floorGeo = new Ground({ width: gridSize, depth: gridSize }).getGeometryData();
     const blockGeo = new Cube({ size: gridSize }).getGeometryData();
 
     // Default materials

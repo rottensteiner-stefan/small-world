@@ -31,29 +31,49 @@ export class ComputeToysImporter implements ShaderImporter {
     );
 
     const wgslSource = `
-struct ObjectUniforms {
-  model: mat4x4f,
+struct ComputeToysCustom {
   time: f32,
-  timeDelta: f32,
-  frame: f32,
-  padding1: f32,
   resolution: vec2f,
-  padding2: vec2f,
   mouse: vec4f,
 }
 
-@group(1) @binding(0) var<uniform> custom: ObjectUniforms;
+var<private> custom: ComputeToysCustom;
+
+fn init_custom() {
+    custom.time = obj.time;
+    custom.resolution = obj.extraParams.xy;
+    custom.mouse = obj.liquidParams;
+}
 
 ${adaptedCode}
 
 @vertex
-fn vs(@location(0) a_position: vec3f, @location(1) a_uv: vec2f) -> @builtin(position) vec4f {
-    return global.vp * custom.model * vec4f(a_position, 1.0);
+fn vs(
+  @location(0) a_position: vec3f, 
+  @location(1) a_normal: vec3f, 
+  @location(2) a_uv: vec2f, 
+  @location(3) a_tangent: vec3f
+) -> Out {
+    var o: Out;
+    o.pos = global.vp * obj.model * vec4f(a_position, 1.0);
+    o.wp = (obj.model * vec4f(a_position, 1.0)).xyz;
+    o.n = a_normal;
+    o.uv = a_uv;
+    o.t = a_tangent;
+    o.b = cross(a_normal, a_tangent);
+    o.original_uv = a_uv;
+    o.texIndex = 0.0;
+    return o;
 }
 
 @fragment
-fn fs(@builtin(position) fragCoord: vec4f) -> @location(0) vec4f {
-    let id = vec3<u32>(u32(fragCoord.x), u32(fragCoord.y), 0u);
+fn fs(in: Out) -> @location(0) vec4f {
+    init_custom();
+    // Compute.toys expects id to be pixel coordinates from 0 to resolution
+    // We map the billboard's UVs to this resolution to keep it local to the geometry
+    let id_x = u32(in.uv.x * custom.resolution.x);
+    let id_y = u32(in.uv.y * custom.resolution.y); // UV.y is 0 at bottom, 1 at top in Small World Plane
+    let id = vec3<u32>(id_x, id_y, 0u);
     return compute_toys_main(id);
 }
 `;
@@ -64,36 +84,60 @@ fn fs(@builtin(position) fragCoord: vec4f) -> @location(0) vec4f {
       },
       layout: {
         uniforms: {
-          model: { type: ShaderPropertyType.MAT4 },
-          time: { type: ShaderPropertyType.FLOAT },
-          timeDelta: { type: ShaderPropertyType.FLOAT },
-          frame: { type: ShaderPropertyType.FLOAT },
-          padding1: { type: ShaderPropertyType.FLOAT },
-          resolution: { type: ShaderPropertyType.VEC2 },
-          padding2: { type: ShaderPropertyType.VEC2 },
-          mouse: { type: ShaderPropertyType.VEC4 },
+          u_model: { type: ShaderPropertyType.MAT4 },
+          u_color: { type: ShaderPropertyType.COLOR },
+          u_specColor: { type: ShaderPropertyType.COLOR },
+          u_texOffset: { type: ShaderPropertyType.VEC2 },
+          u_texRepeat: { type: ShaderPropertyType.VEC2 },
+          u_shininess: { type: ShaderPropertyType.FLOAT },
+          u_isTerrain: { type: ShaderPropertyType.FLOAT },
+          u_metallic: { type: ShaderPropertyType.FLOAT },
+          u_roughness: { type: ShaderPropertyType.FLOAT },
+          resolution: { type: ShaderPropertyType.VEC4 }, // Replaces u_extraParams
+          mouse: { type: ShaderPropertyType.VEC4 }, // Replaces u_liquidParams
+          u_thresholds: { type: ShaderPropertyType.VEC4 },
+          u_useEnvMap: { type: ShaderPropertyType.FLOAT, defaultValue: 0 },
+          u_useReflectionMap: { type: ShaderPropertyType.FLOAT, defaultValue: 0 },
+          u_reflectivity: { type: ShaderPropertyType.FLOAT, defaultValue: 1.0 },
+          time: { type: ShaderPropertyType.FLOAT, defaultValue: 0.0 }, // Replaces u_time
         },
         uniformLayout: [
-          "model",
-          "time",
-          "timeDelta",
-          "frame",
-          "padding1",
+          "u_model",
+          "u_color",
+          "u_specColor",
+          "u_texOffset",
+          "u_texRepeat",
+          "u_shininess",
+          "u_isTerrain",
+          "u_metallic",
+          "u_roughness",
           "resolution",
-          "padding2",
           "mouse",
+          "u_thresholds",
+          "u_useEnvMap",
+          "u_useReflectionMap",
+          "u_reflectivity",
+          "time",
         ],
         textures: {},
       },
       properties: {
-        model: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
-        time: 0.0,
-        timeDelta: 0.0,
-        frame: 0.0,
-        padding1: 0.0,
-        resolution: [800, 600],
-        padding2: [0, 0],
-        mouse: [0, 0, 0, 0],
+        u_model: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+        u_color: [1, 1, 1, 1],
+        u_specColor: [1, 1, 1, 1],
+        u_texOffset: [0, 0],
+        u_texRepeat: [1, 1],
+        u_shininess: 32,
+        u_isTerrain: 0,
+        u_metallic: 0,
+        u_roughness: 1,
+        resolution: [800, 600, 0, 0], // extraParams
+        mouse: [0, 0, 0, 0], // liquidParams
+        u_thresholds: [0, 0, 0, 0],
+        u_useEnvMap: 0,
+        u_useReflectionMap: 0,
+        u_reflectivity: 1,
+        time: 0.0, // time
       },
     };
   }

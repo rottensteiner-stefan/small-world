@@ -8,14 +8,14 @@ import {
   FPSController,
   ZoomController,
   Input,
-  MathUtils,
   Object3D,
   PerspectiveProjection,
   PhongMaterial,
-  Plane,
+  Ground,
   ProjectionType,
   WireframeMaterial,
   AmbientLight,
+  MathUtils,
 } from "../../../src/index.js";
 import { AbstractShowcase } from "../../../src/core/index.js";
 
@@ -70,7 +70,7 @@ export class Showcase2 extends AbstractShowcase {
 
     // 4. Create a large floor (Plane)
     const floor: Object3D = new Object3D("Floor");
-    floor.geometry = new Plane({
+    floor.geometry = new Ground({
       width: 50,
       depth: 50,
       widthSegments: 10,

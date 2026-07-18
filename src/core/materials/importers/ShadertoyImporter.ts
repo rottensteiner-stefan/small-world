@@ -9,19 +9,8 @@ import { ShaderPropertyType } from "../../../enums/index.js";
  */
 export class ShadertoyImporter implements ShaderImporter {
   public parse(sourceCode: string): CustomShaderMaterialOptions {
-    const vsGLSL300 = `#version 300 es
-layout(location = 0) in vec3 a_position;
-layout(location = 1) in vec2 a_uv;
-
-uniform mat4 u_model;
-uniform mat4 u_viewProjection;
-
-out vec2 v_uv;
-
-void main() {
-    v_uv = a_uv;
-    gl_Position = u_viewProjection * u_model * vec4(a_position, 1.0);
-}`;
+    const vsGLSL300 = `[BASE_VERTEX_HEADER]
+[BASE_VERTEX_MAIN]`;
 
     const fsGLSL300 = `#version 300 es
 precision highp float;
@@ -53,7 +42,8 @@ void main() {
       layout: {
         uniforms: {
           u_model: { type: ShaderPropertyType.MAT4 },
-          u_viewProjection: { type: ShaderPropertyType.MAT4 },
+          u_texOffset: { type: ShaderPropertyType.VEC2 },
+          u_texRepeat: { type: ShaderPropertyType.VEC2 },
           iResolution: { type: ShaderPropertyType.VEC3 },
           iTime: { type: ShaderPropertyType.FLOAT },
           iTimeDelta: { type: ShaderPropertyType.FLOAT },
@@ -63,7 +53,8 @@ void main() {
         },
         uniformLayout: [
           "u_model",
-          "u_viewProjection",
+          "u_texOffset",
+          "u_texRepeat",
           "iResolution",
           "iTime",
           "iTimeDelta",
@@ -75,7 +66,8 @@ void main() {
       },
       properties: {
         u_model: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
-        u_viewProjection: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+        u_texOffset: [0.0, 0.0],
+        u_texRepeat: [1.0, 1.0],
         iResolution: [800, 600, 1.0],
         iTime: 0.0,
         iTimeDelta: 0.0,

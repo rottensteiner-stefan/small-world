@@ -6,7 +6,7 @@ import {
   Octahedron,
   AmbientLight,
   DirectionalLight,
-  Plane,
+  Ground,
   Texture,
   Cone,
   BasicMaterial,
@@ -46,7 +46,7 @@ class Showcase19 extends SmallWorld {
 
     // 1. Grid & Lighting
     const floor = new Object3D("Floor");
-    floor.geometry = new Plane({ width: 50, depth: 50 }).getGeometryData();
+    floor.geometry = new Ground({ width: 50, depth: 50 }).getGeometryData();
 
     // Create a procedural grid texture using Canvas 2D to avoid 1px line aliasing
     const canvas = document.createElement("canvas");
