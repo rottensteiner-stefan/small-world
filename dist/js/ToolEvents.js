@@ -1,1 +1,1 @@
-var t={Pixler:{LOAD_BASE64:"tool:pixler:loadBase64",IMAGE_SAVED:"tool:pixler:imageSaved"},IXtractor:{EXTRACTED:"tool:ixtractor:extracted"}};export{t};
+var t={Pixler:{LOAD_BASE64:"tool:pixler:loadBase64",IMAGE_SAVED:"tool:pixler:imageSaved"},Xtractor:{EXTRACTED:"tool:xtractor:extracted"}};export{t};

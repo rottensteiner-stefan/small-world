@@ -1,29 +1,14 @@
 <!doctype html>
-<html lang="de">
+<html lang="en" data-theme="dark">
   <head>
-    <link rel="icon" type="image/png" href="/favicon.png" />
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel=stylesheet href=/assets/shared.css />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="stylesheet" href="/assets/shared.css" />
     <title>Gamepad Diagnostic & Calibration Tool</title>
     <style>
-      body {
-        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-        background: #121214;
-        color: #e2e8f0;
-        padding: 2rem;
-        max-width: 900px;
-        margin: 0 auto;
-      }
-      header {
-        padding: 1rem 2rem;
-        border-bottom: 1px solid rgba(0, 229, 255, 0.2);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        background: linear-gradient(90deg, rgba(11,15,25,1) 0%, rgba(20,25,40,1) 100%);
-        margin: -2rem -2rem 2rem -2rem; /* Negate body padding */
-      }
+body { margin: 0; font-family: "Rajdhani", sans-serif; background-color: var(--bg-color, #0b0f19); color: var(--text-color, #e0e0e0); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+      
       h1 { margin: 0; font-size: 1.5rem; text-transform: uppercase; letter-spacing: 2px; color: #fff; border-bottom: none; }
       h1 span { color: #00e5ff; }
       .meta-box {
@@ -164,14 +149,13 @@
         background: #7dd3fc;
       }
     </style>
-      <link rel="stylesheet" href="../assets/shared.css" />
   </head>
   <body>
-    <header>
-      <h1>Gamepad Diagnostic & Calibration <span style="color:var(--accent)">// Small World</span></h1>
-      <a href="/" style="color:white; text-decoration:none;">Back to Engine</a>
+    <header class="tool-header">
+      <h1>Gamepad Diagnostic & Calibration Tool</h1>
+      <a href="/" class="nav-btn">Back to Engine</a>
     </header>
-
+    
     <!-- Calibration Wizard Box -->
     <div class="wizard-box" id="wizard-panel">
       <h2>Schritt-für-Schritt-Kalibrierung</h2>
@@ -215,6 +199,8 @@
         <div class="button-grid" id="buttons-container"></div>
       </div>
     </div>
+
+    <footer class="app-footer">Copyright 2026 Stefan Rottensteiner // Small World</footer>
 
     <script type="module">
       import { Input } from "/src/core/Input.ts";
@@ -464,6 +450,5 @@
 
       requestAnimationFrame(updateLoop);
     </script>
-    <footer class="app-footer">Copyright 2026 Stefan Rottensteiner // Small World</footer>
   </body>
 </html>

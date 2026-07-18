@@ -1,6 +1,6 @@
 {
   "name": "small-world",
-  "version": "0.63.0",
+  "version": "0.64.0",
   "description": "A lightweight 3D engine for hybrid WebGL2/WebGPU rendering pipelines.",
   "type": "module",
   "license": "MIT",
@@ -20,6 +20,8 @@
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
     "test:showcases": "node scripts/check-showcases.js",
+    "sync-templates": "node scripts/sync-templates.js",
+    "sync-tools": "node scripts/sync-tools.js",
     "start": "npm run build && npx serve dist",
     "prepare": "husky",
     "docs:dev": "vitepress dev docs",

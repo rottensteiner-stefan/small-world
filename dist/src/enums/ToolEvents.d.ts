@@ -3,8 +3,8 @@ export declare const ToolEvents: {
         readonly LOAD_BASE64: "tool:pixler:loadBase64";
         readonly IMAGE_SAVED: "tool:pixler:imageSaved";
     };
-    readonly IXtractor: {
-        readonly EXTRACTED: "tool:ixtractor:extracted";
+    readonly Xtractor: {
+        readonly EXTRACTED: "tool:xtractor:extracted";
     };
 };
 export type ToolEvents = typeof ToolEvents;

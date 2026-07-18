@@ -31,6 +31,31 @@ export class DeviceDetector {
     return false;
   }
 
+  public static get cores(): number {
+    if (typeof navigator === "undefined") return 4;
+    return navigator.hardwareConcurrency || 4;
+  }
+
+  public static get memoryGB(): number {
+    if (typeof navigator === "undefined") return 4;
+    return (navigator as unknown as { deviceMemory?: number }).deviceMemory || 4;
+  }
+
+  public static get pixelRatio(): number {
+    if (typeof window === "undefined") return 1;
+    return window.devicePixelRatio || 1;
+  }
+
+  public static get screenWidth(): number {
+    if (typeof window === "undefined") return 1920;
+    return window.screen.width;
+  }
+
+  public static get screenHeight(): number {
+    if (typeof window === "undefined") return 1080;
+    return window.screen.height;
+  }
+
   /**
    * Uses experimental flags and hardware information to guess the device's performance capability.
    */
@@ -40,12 +65,12 @@ export class DeviceDetector {
     let score = 0;
 
     // 1. Hardware Concurrency (Logical CPU cores)
-    const cores = navigator.hardwareConcurrency || 4;
+    const cores = this.cores;
     if (cores >= 8) score += 2;
     else if (cores > 4) score += 1;
 
     // 2. Device Memory (Experimental Web API - returns RAM in GB, capped usually at 8)
-    const memory = (navigator as unknown as { deviceMemory?: number }).deviceMemory || 4;
+    const memory = this.memoryGB;
     if (memory >= 8) score += 2;
     else if (memory > 4) score += 1;
 

@@ -21,7 +21,7 @@ import { CollisionVisualizer, OctreeVisualizer } from "../utils/index.js";
 import { GadgetInspector } from "../tools/GadgetInspector.js";
 
 /** The current engine version. */
-export const ENGINE_VERSION = "0.63.0";
+export const ENGINE_VERSION = "0.64.0";
 
 /**
  * Base class for applications built with the SmallWorld engine.
@@ -241,11 +241,10 @@ export abstract class SmallWorld {
           "Device Type": DeviceDetector.isMobile() ? "Mobile" : "Desktop",
           "Performance Tier": DeviceDetector.getPerformanceTier(),
           "GPU Model": DeviceCaps.gpuModel,
-          "CPU Cores": navigator.hardwareConcurrency || "Unknown",
-          "Memory (GB)":
-            (navigator as unknown as { deviceMemory?: number }).deviceMemory || "Unknown",
-          "Screen Resolution": `${window.screen.width}x${window.screen.height}`,
-          "Pixel Ratio": window.devicePixelRatio,
+          "CPU Cores": DeviceDetector.cores,
+          "Memory (GB)": DeviceDetector.memoryGB,
+          "Screen Resolution": `${DeviceDetector.screenWidth}x${DeviceDetector.screenHeight}`,
+          "Pixel Ratio": DeviceDetector.pixelRatio,
           "API - WebGL1": DeviceCaps.hasFeature(DeviceFeature.WEBGL1) ? "Yes" : "No",
           "API - WebGL2": DeviceCaps.hasFeature(DeviceFeature.WEBGL2) ? "Yes" : "No",
           "API - WebGPU": DeviceCaps.hasFeature(DeviceFeature.WEBGPU) ? "Yes" : "No",
@@ -281,7 +280,7 @@ export abstract class SmallWorld {
         const { GadgetInspector } = await import("../tools/GadgetInspector.js");
         const { MapGenerator } = await import("../tools/MapGenerator.js");
         const { Pixler } = await import("../tools/Pixler.js");
-        const { IXtractor } = await import("../tools/IXtractor.js");
+        const { Xtractor } = await import("../tools/Xtractor.js");
         const { MaterialStudio } = await import("../tools/MaterialStudio.js");
 
         // wir erstellen einen globalen Forge Hub
@@ -332,7 +331,7 @@ export abstract class SmallWorld {
         this.forge.openWindow("Map Generator", mapGen, 60, 60);
 
         this.forge.openWindow("Pixler Editor", new Pixler(), 50, 200);
-        this.forge.openWindow("Asset Extractor", new IXtractor(), 400, 60);
+        this.forge.openWindow("Asset Extractor", new Xtractor(), 400, 60);
         this.forge.openWindow("Material Studio", new MaterialStudio(), 750, 60);
 
         this.onInspectorReady(this._inspector);

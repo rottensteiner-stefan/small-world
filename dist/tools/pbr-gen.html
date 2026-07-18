@@ -1,19 +1,19 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
   <head>
-    <link rel="icon" type="image/png" href="/favicon.png" />
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel=stylesheet href=/assets/shared.css />
-    <title>PBR Texture Map Generator</title>
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="stylesheet" href="/assets/shared.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
       rel="stylesheet"
     />
+    <title>PBR Texture Map Generator</title>
     <style>
-      :root {
+:root {
         --bg-dark: #0f111a;
         --bg-panel: rgba(22, 28, 45, 0.7);
         --bg-control: #1a1f35;
@@ -33,15 +33,7 @@
         padding: 0;
       }
 
-      body {
-        font-family: "Outfit", sans-serif;
-        background-color: var(--bg-dark);
-        color: var(--text-main);
-        min-height: 100vh;
-        overflow-x: hidden;
-        display: flex;
-        flex-direction: column;
-      }
+      body { margin: 0; font-family: "Rajdhani", sans-serif; background-color: var(--bg-color, #0b0f19); color: var(--text-color, #e0e0e0); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 
       /* Custom Scrollbar */
       ::-webkit-scrollbar {
@@ -59,15 +51,7 @@
         background: var(--accent);
       }
 
-      header {
-        padding: 1rem 2rem;
-        border-bottom: 1px solid rgba(0, 229, 255, 0.2);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        background: linear-gradient(90deg, rgba(11,15,25,1) 0%, rgba(20,25,40,1) 100%);
-        z-index: 10;
-      }
+      
       h1 { margin: 0; font-size: 1.5rem; text-transform: uppercase; letter-spacing: 2px; }
 
       .badge {
@@ -574,20 +558,7 @@
       }
 
       /* Expandable sections */
-      .collapsible-header {
-        background: rgba(26, 31, 53, 0.5);
-        border: 1px solid var(--border);
-        border-radius: 8px;
-        padding: 0.75rem 1rem;
-        margin-bottom: 0.5rem;
-        cursor: pointer;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-size: 0.85rem;
-        font-weight: 600;
-        transition: all 0.2s ease;
-      }
+      .collapsible-
 
       .collapsible-header:hover {
         border-color: rgba(148, 163, 184, 0.2);
@@ -616,14 +587,13 @@
         padding: 0.75rem 0.5rem 1.25rem 0.5rem;
       }
     </style>
-      <link rel="stylesheet" href="../assets/shared.css" />
   </head>
   <body>
-    <header>
-      <h1>PBR Texture Map Generator <span style="color:var(--accent)">// Small World</span></h1>
-      <a href="/" style="color:white; text-decoration:none;">Back to Engine</a>
+    <header class="tool-header">
+      <h1>PBR Texture Map Generator</h1>
+      <a href="/" class="nav-btn">Back to Engine</a>
     </header>
-
+    
     <div class="app-container">
       <!-- Loading Screen -->
       <div id="loading-overlay" class="loading-overlay active">
@@ -1312,8 +1282,10 @@
     </div>
 
     <!-- Load SmallWorld 3D Preview Engine Entry -->
-    <script type="module" src="/src/tools/MaterialStudio.ts"></script>
 
+    <footer class="app-footer">Copyright 2026 Stefan Rottensteiner // Small World</footer>
+
+    <script type="module" src="/src/tools/MaterialStudio.ts"></script>
     <script>
       // ----------------------------------------------------
       // Presets Configuration (Derived from pbr.profiles)
@@ -2174,6 +2146,5 @@
         }
       }
     </script>
-    <footer class="app-footer">Copyright 2026 Stefan Rottensteiner // Small World</footer>
   </body>
 </html>

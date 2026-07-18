@@ -2,7 +2,7 @@ import { ForgeTool, ForgeToolOptions } from "./forge/ForgeTool.js";
 import { ToolEvents } from "../enums/ToolEvents.js";
 import { UniversalEventBus } from "../core/index.js";
 
-export class IXtractor extends ForgeTool {
+export class Xtractor extends ForgeTool {
   public loadFromBase64?: (base64: string) => void;
 
   public override onPasteImage(base64: string): void {
@@ -19,9 +19,9 @@ export class IXtractor extends ForgeTool {
   }
 
   private _injectCSS(): void {
-    if (document.getElementById("ixtractor-style")) return;
+    if (document.getElementById("xtractor-style")) return;
     const style = document.createElement("style");
-    style.id = "ixtractor-style";
+    style.id = "xtractor-style";
     style.innerHTML = `
     .swf-ix-main-container {
       display: flex;
@@ -246,7 +246,7 @@ export class IXtractor extends ForgeTool {
     <div class="swf-ix-sidebar" id="sidebar">
       <div class="swf-ix-chat-history" id="chat-history">
         <div class="swf-ix-message msg-ai">
-          Willkommen beim IXtractor! Lade ein Bild hoch (oder ziehe es per Drag & Drop rein) und markiere einen Bereich, den ich für dich analysieren oder zuschneiden soll.
+          Willkommen beim Xtractor! Lade ein Bild hoch (oder ziehe es per Drag & Drop rein) und markiere einen Bereich, den ich für dich analysieren oder zuschneiden soll.
         </div>
       </div>
       
@@ -736,6 +736,13 @@ export class IXtractor extends ForgeTool {
       chatHistory.scrollTop = chatHistory.scrollHeight;
     }
 
+    /**
+     * @DEVELOPER_NOTE: MOCK AI UI
+     * This is a hardcoded mock UI mimicking an AI assistant.
+     * NO actual AI API (OpenAI/Gemini) is connected here!
+     * It uses simple regex matching to slice sprites for testing.
+     * Replace this logic with a real fetch() to a vision model backend if needed.
+     */
     btnSend.addEventListener("click", () => {
       const text = chatInput.value.trim();
       if (!text) return;

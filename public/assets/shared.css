@@ -61,6 +61,42 @@ header#info p.credits {
   color: #559da8;
 }
 
+/* Tool Header */
+header.tool-header {
+  padding: 1rem 2rem;
+  border-bottom: 1px solid rgba(0, 229, 255, 0.2);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(90deg, rgba(11,15,25,1) 0%, rgba(20,25,40,1) 100%);
+}
+
+header.tool-header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: #fff;
+}
+
+header.tool-header .nav-btn {
+  color: white;
+  text-decoration: none;
+  font-weight: bold;
+  background: rgba(0, 15, 25, 0.6);
+  border: 1px solid #b000ff;
+  padding: 8px 18px;
+  border-radius: 2px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: all 0.3s ease;
+}
+header.tool-header .nav-btn:hover {
+  background: #b000ff;
+  color: #000;
+  box-shadow: 0 0 20px rgba(176, 0, 255, 0.8);
+}
+
 /* Tron-style Navigation Controls */
 .example-nav {
   position: absolute;
@@ -116,6 +152,20 @@ header#info p.credits {
   .hide-mobile {
     display: none;
   }
+  
+  header.tool-header {
+    padding: 1rem;
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
+  }
+  header.tool-header h1 {
+    font-size: 1.2rem;
+  }
+  header.tool-header .nav-btn {
+    padding: 6px 12px;
+    font-size: 0.9rem;
+  }
 }
 
 /* --- Global Footer --- */
@@ -136,4 +186,9 @@ header#info p.credits {
   z-index: 10000;
   font-family: "Rajdhani", sans-serif;
   text-shadow: 0 0 5px rgba(0, 229, 255, 0.2);
+}
+
+body:has(.tool-header) .app-footer {
+  position: relative;
+  flex-shrink: 0;
 }

@@ -4,6 +4,8 @@ import { RendererType } from "../enums/index.js";
 import { WebGL1Renderer } from "./WebGL1/index.js";
 import { WebGL2Renderer } from "./WebGL2/index.js";
 import { WebGPURenderer } from "./WebGPU/index.js";
+import { DeviceCaps, DeviceFeature } from "../core/DeviceCaps.js";
+
 /**
  * Factory for creating renderer instances.
  */
@@ -16,9 +18,13 @@ export class RendererFactory {
     canvas: HTMLCanvasElement,
     config?: EngineOptions,
   ): Promise<Renderer> {
+    DeviceCaps.init();
+
     let actualType: RendererType | string = type;
     if (RendererType.BEST === actualType) {
-      actualType = navigator.gpu ? RendererType.WEB_GPU : RendererType.WEB_GL2;
+      actualType = DeviceCaps.hasFeature(DeviceFeature.WEBGPU)
+        ? RendererType.WEB_GPU
+        : RendererType.WEB_GL2;
     }
 
     let renderer: Renderer;
@@ -26,7 +32,7 @@ export class RendererFactory {
 
     switch (actualType) {
       case RendererType.WEB_GPU:
-        if (undefined === navigator.gpu) {
+        if (!DeviceCaps.hasFeature(DeviceFeature.WEBGPU)) {
           console.warn("[RendererFactory] WebGPU is not supported. Falling back to WebGL2.");
           renderer = new WebGL2Renderer();
           fallbackToWebGL2 = true;
@@ -35,9 +41,17 @@ export class RendererFactory {
         }
         break;
       case RendererType.WEB_GL2:
-        renderer = new WebGL2Renderer();
+        if (!DeviceCaps.hasFeature(DeviceFeature.WEBGL2)) {
+          console.warn("[RendererFactory] WebGL2 is not supported. Falling back to WebGL1.");
+          renderer = new WebGL1Renderer();
+        } else {
+          renderer = new WebGL2Renderer();
+        }
         break;
       case RendererType.WEB_GL1:
+        if (!DeviceCaps.hasFeature(DeviceFeature.WEBGL1)) {
+          throw new Error("[RendererFactory] No WebGL1 support detected. Cannot run engine.");
+        }
         renderer = new WebGL1Renderer();
         break;
       default:

@@ -5,7 +5,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SmallWorld - YAD (Yet Another Dungeon)</title>
+    <link rel="stylesheet" href="../../assets/shared.css" />
     <style>
+
       body {
         background-color: black;
         background-image: url('data:image/png;base64,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');
@@ -23,12 +25,12 @@
         background-color: #000;
         container-type: size;
       }
+    
     </style>
     <script type="module" crossorigin src="../../showcases/yad/showcase.js"></script>
     <link rel="modulepreload" crossorigin href="../../js/core.js">
     <link rel="modulepreload" crossorigin href="../../js/AudioSystem.js">
     <link rel="modulepreload" crossorigin href="../../js/GridLevelBuilder.js">
-    <link rel="stylesheet" crossorigin href="../../assets/shared.css">
   </head>
   <body>
     <div id="retro-screen">

@@ -3,8 +3,8 @@ export const ToolEvents = {
     LOAD_BASE64: "tool:pixler:loadBase64",
     IMAGE_SAVED: "tool:pixler:imageSaved",
   },
-  IXtractor: {
-    EXTRACTED: "tool:ixtractor:extracted",
+  Xtractor: {
+    EXTRACTED: "tool:xtractor:extracted",
   },
 } as const;
 

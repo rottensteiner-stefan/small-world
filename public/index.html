@@ -135,6 +135,43 @@
         color: #ffffff;
         text-shadow: 0 0 10px #00e5ff;
       }
+
+      /* --- Mobile Responsive Navigation --- */
+      @media (max-width: 768px) {
+        body {
+          padding: 1.5rem 1rem;
+        }
+        h1 {
+          font-size: 2rem;
+          letter-spacing: 2px;
+        }
+        p.subtitle {
+          font-size: 1rem;
+          margin-bottom: 2rem;
+        }
+        .presentation-banner {
+          padding: 1rem;
+          margin-bottom: 2rem;
+        }
+        .presentation-banner a {
+          font-size: 1.1rem;
+          text-align: center;
+        }
+        h2 {
+          font-size: 1.5rem;
+          letter-spacing: 1px;
+        }
+        .grid-container {
+          grid-template-columns: 1fr;
+          gap: 15px;
+        }
+        .grid-item {
+          padding: 12px 15px;
+        }
+        .grid-item a {
+          font-size: 1rem;
+        }
+      }
     </style>
   </head>
   <body>
@@ -148,86 +185,41 @@
     <h2>Interactive Showcases</h2>
     <div class="grid-container">
       <div class="grid-item"><a href="./showcases/1/index.html">01: Rotating Cube</a></div>
-      <div class="grid-item">
-        <a href="./showcases/2/index.html">02: Interactive Camera (FPS)</a>
-      </div>
-      <div class="grid-item">
-        <a href="./showcases/3/index.html">03: OBJ & MTL Loader for Kenney Car</a>
-      </div>
-      <div class="grid-item">
-        <a href="./showcases/4/index.html">04: Procedural Terrain & Kenney Car</a>
-      </div>
+      <div class="grid-item"><a href="./showcases/2/index.html">02: Interactive Camera (FPS)</a></div>
+      <div class="grid-item"><a href="./showcases/3/index.html">03: OBJ & MTL Loader for Kenney Car</a></div>
+      <div class="grid-item"><a href="./showcases/4/index.html">04: Procedural Terrain & Kenney Car</a></div>
       <div class="grid-item"><a href="./showcases/5/index.html">05: Isometric Camera & 2D</a></div>
       <div class="grid-item"><a href="./showcases/6/index.html">06: Geometry Showcase</a></div>
       <div class="grid-item"><a href="./showcases/7/index.html">07: Skybox & FPS Controls</a></div>
       <div class="grid-item"><a href="./showcases/8/index.html">08: Skydome & FPS Controls</a></div>
       <div class="grid-item"><a href="./showcases/9/index.html">09: 2.5D Jump & Run</a></div>
-      <div class="grid-item">
-        <a href="./showcases/10/index.html">10: Textured Floor & Fire Bowl</a>
-      </div>
+      <div class="grid-item"><a href="./showcases/10/index.html">10: Textured Floor & Fire Bowl</a></div>
       <div class="grid-item"><a href="./showcases/11/index.html">11: Orientation</a></div>
       <div class="grid-item"><a href="./showcases/12/index.html">12: Underwater Hideout</a></div>
       <div class="grid-item"><a href="./showcases/13/index.html">13: AAA GLTF Loader</a></div>
-      <div class="grid-item">
-        <a href="./showcases/14/index.html">14: Surveillance Video Wall (Post-Fx)</a>
-      </div>
-      <div class="grid-item">
-        <a href="./showcases/15_v1/index.html">15 V1: Reflections & Physics Balls</a>
-      </div>
+      <div class="grid-item"><a href="./showcases/14/index.html">14: Surveillance Video Wall (Post-Fx)</a></div>
+      <div class="grid-item"><a href="./showcases/15_v1/index.html">15 V1: Reflections & Physics Balls</a></div>
       <div class="grid-item"><a href="./showcases/15_v2/index.html">15 V2: Reflection Moons</a></div>
-      <div class="grid-item">
-        <a href="./showcases/16/index.html">16: ThreadPool (Web Workers)</a>
-      </div>
-      <div class="grid-item">
-        <a href="./showcases/17/index.html">17: Procedural Terrain (Workers)</a>
-      </div>
-      <div class="grid-item">
-        <a href="./showcases/18/index.html">18: Gamification & Picking</a>
-      </div>
-      <div class="grid-item">
-        <a href="./showcases/19/index.html">19: Behaviors Showcase</a>
-      </div>
-      <div class="grid-item" style="border-color: #00ffaa; box-shadow: inset 0 0 10px rgba(0, 255, 170, 0.1)">
-        <a href="./showcases/20/index.html" style="color: #00ffaa; text-shadow: 0 0 10px #00ffaa;">20: Audio-Kinetic Sculpture (New!)</a>
-      </div>
-      <div class="grid-item" style="border-color: #cc00ff; box-shadow: inset 0 0 10px rgba(204, 0, 255, 0.1)">
-        <a href="./showcases/21/index.html" style="color: #cc00ff; text-shadow: 0 0 10px #cc00ff;">21: Super Massive Black Hole</a>
-      </div>
-      <div class="grid-item" style="border-color: #00e5ff; box-shadow: inset 0 0 10px rgba(0, 229, 255, 0.1)">
-        <a href="./showcases/22/index.html" style="color: #00e5ff; text-shadow: 0 0 10px #00e5ff;">22: Neon Marble Run</a>
-      </div>
-      <div class="grid-item" style="border-color: #ff00ff; box-shadow: inset 0 0 10px rgba(255, 0, 255, 0.1)">
-        <a href="./showcases/23/index.html" style="color: #ff00ff; text-shadow: 0 0 10px #ff00ff;">23: Shader Art Gallery (New!)</a>
-      </div>
-      <div
-        class="grid-item"
-        style="border-color: #ff6600; box-shadow: inset 0 0 10px rgba(255, 102, 0, 0.1)"
-      >
-        <a href="./showcases/yad/index.html" style="color: #ff6600">APP: YAD (Yet Another Doom)</a>
-      </div>
+      <div class="grid-item"><a href="./showcases/16/index.html">16: ThreadPool (Web Workers)</a></div>
+      <div class="grid-item"><a href="./showcases/17/index.html">17: Procedural Terrain (Workers)</a></div>
+      <div class="grid-item"><a href="./showcases/18/index.html">18: Gamification & Picking</a></div>
+      <div class="grid-item"><a href="./showcases/19/index.html">19: Behaviors Showcase</a></div>
+      <div class="grid-item"><a href="./showcases/20/index.html">20: Audio-Kinetic Sculpture</a></div>
+      <div class="grid-item"><a href="./showcases/21/index.html">21: Super Massive Black Hole</a></div>
+      <div class="grid-item"><a href="./showcases/22/index.html">22: Neon Marble Run</a></div>
+      <div class="grid-item"><a href="./showcases/23/index.html">23: Shader Art Gallery</a></div>
+      <div class="grid-item"><a href="./showcases/yad/index.html">APP: YAD (Yet Another Doom)</a></div>
     </div>
 
     <h2>Development Tools</h2>
     <div class="grid-container">
-      <div class="grid-item">
-        <a href="./tools/splatter-gen.html">T-01: Procedural Splatter Generator</a>
-      </div>
+      <div class="grid-item"><a href="./tools/splatter-gen.html">T-01: Procedural Splatter Generator</a></div>
       <div class="grid-item"><a href="./tools/pbr-gen.html">T-02: PBR Texture Map Generator</a></div>
-      <div class="grid-item">
-        <a href="./tools/gamepad-test.html">T-03: Gamepad Diagnostic Tool</a>
-      </div>
-      <div class="grid-item">
-        <a href="./tools/ibl-gen.html">T-04: IBL (Image Based Lighting) Generator</a>
-      </div>
-      <div class="grid-item">
-        <a href="./tools/ixtractor.html" style="color: #38bdf8">T-05: IXtractor (AI Image Workbench)</a>
-      </div>
-      <div class="grid-item" style="border-color: #ff00ff; box-shadow: inset 0 0 10px rgba(255, 0, 255, 0.1)">
-        <a href="./tools/pixler.html" style="color: #ff00ff">T-06: Pixler (Retro Sprite Editor)</a>
-      </div>
-      <div class="grid-item" style="border-color: #00e5ff; box-shadow: inset 0 0 10px rgba(0, 229, 255, 0.1)">
-        <a href="./tools/map-gen.html" style="color: #00e5ff">T-07: Map Generator (Level Architect)</a>
-      </div>
+      <div class="grid-item"><a href="./tools/gamepad-test.html">T-03: Gamepad Diagnostic Tool</a></div>
+      <div class="grid-item"><a href="./tools/ibl-gen.html">T-04: IBL (Image Based Lighting) Generator</a></div>
+      <div class="grid-item"><a href="./tools/xtractor.html">T-05: Xtractor (AI Image Workbench)</a></div>
+      <div class="grid-item"><a href="./tools/pixler.html">T-06: Pixler (Retro Sprite Editor)</a></div>
+      <div class="grid-item"><a href="./tools/map-gen.html">T-07: Map Generator (Level Architect)</a></div>
     </div>
   </body>
 </html>

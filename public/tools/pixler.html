@@ -3,82 +3,46 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="stylesheet" href="/assets/shared.css" />
     <title>Pixler - Small World</title>
     <style>
-      :root {
+:root {
         --bg-color: #0b0f19;
         --card-bg: rgba(20, 25, 40, 0.7);
         --text-color: #e0e0e0;
         --accent: #ff00ff;
         --border-radius: 12px;
       }
-      body {
-        margin: 0;
-        font-family: 'Rajdhani', sans-serif;
-        background-color: var(--bg-color);
-        color: var(--text-color);
-        display: flex;
-        flex-direction: column;
-        height: 100vh;
-        overflow: hidden;
-      }
-      header {
-        padding: 1rem 2rem;
-        border-bottom: 1px solid rgba(255, 0, 255, 0.2);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        background: linear-gradient(90deg, rgba(11,15,25,1) 0%, rgba(20,25,40,1) 100%);
-      }
+      body { margin: 0; font-family: "Rajdhani", sans-serif; background-color: var(--bg-color, #0b0f19); color: var(--text-color, #e0e0e0); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+      
       h1 { margin: 0; font-size: 1.5rem; text-transform: uppercase; letter-spacing: 2px; }
       
       .container {
         display: flex;
         flex: 1;
-        justify-content: center;
-        align-items: center;
-        flex-direction: column;
-        text-align: center;
-        padding: 2rem;
-        gap: 1rem;
-      }
-      .instruction {
-        color: #888;
-        font-size: 1.2rem;
-        max-width: 600px;
-        line-height: 1.5;
+        overflow: hidden;
+        background: #0f172a;
       }
     </style>
   </head>
   <body>
-    <header>
-      <h1>Pixler <span style="color:var(--accent)">// Retro Sprite Editor</span></h1>
-      <a href="/" style="color:white; text-decoration:none;">Back to Engine</a>
+    <header class="tool-header">
+      <h1>Pixler - Small World</h1>
+      <a href="/" class="nav-btn">Back to Engine</a>
     </header>
     
-    <div class="container">
-      <h2 style="color: var(--accent); letter-spacing: 2px;">PIXLER IS ACTIVE</h2>
-      <p class="instruction">
-        The Pixler tool overlay is running in this window.<br/>
-        You can instantiate Pixler in any other app or showcase by simply importing it and calling <code>new Pixler()</code>.
-      </p>
+    <div class="container" id="tool-container">
     </div>
-    
-    <footer class="app-footer" style="padding: 10px; text-align: center; color: #555; font-size: 0.8rem; position: absolute; bottom: 0; width: 100%;">
-      Copyright 2026 Stefan Rottensteiner // Small World
-    </footer>
+
+    <footer class="app-footer">Copyright 2026 Stefan Rottensteiner // Small World</footer>
 
     <script type="module">
-      import { Forge } from "../../src/tools/forge/Forge.ts";
       import { Pixler } from "../../src/tools/Pixler.ts";
       
-      const forge = new Forge();
-      forge.toggle(); // Make visible immediately
-      
-      const pixler = new Pixler();
+      const container = document.getElementById("tool-container");
+      const pixler = new Pixler({ parent: container });
       window.pixlerInstance = pixler;
-      forge.openWindow("PIXLER", pixler, 20, 20);
     </script>
   </body>
 </html>

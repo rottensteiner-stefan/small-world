@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.64.0] - 2026-07-18
+
+### "Out of clutter, find simplicity." - Albert Einstein
+
+- **Features:**
+  - None
+- **Architecture & Bugfixes:**
+  - **Tool UI Refactor:** Removed the legacy `Forge` taskbar architecture from `Pixler` and `MapGenerator`. All tools now instantiate directly as full-screen native apps in `.container` divs, resulting in a cleaner and 100% unified tool experience.
+  - **Xtractor Rename:** Officially renamed `IXtractor` to `Xtractor` across all files, classes, and routing paths.
+  - **App Footer Overlap Fix:** Added a `:has(.tool-header)` CSS selector to switch `.app-footer` from `fixed` to `relative` only on tool pages. This ensures the footer dynamically sits at the bottom of the flex layout instead of covering tool UI elements.
+  - **Splatter-Gen Layout Fix:** Removed the hardcoded `calc(100vh - 75px)` height from `splatter-gen.html`'s `.app-container` and added `overflow: hidden`, allowing the footer to render correctly at the bottom of the layout.
+  - **Renderer Safety:** Added `DeviceCaps` checks inside `RendererFactory` to enforce safe fallbacks from WebGPU to WebGL2, mitigating crashes on unsupported hardware.
+- **Housekeeping & Docs:**
+  - **Mobile Responsive Showcases:** Overhauled `public/index.html` and `public/assets/shared.css` with unified grid styles and `@media (max-width: 768px)` queries. Headers, example navigation, and grids now scale correctly on mobile devices without relying on inline CSS overrides.
+  - **Xtractor AI Mock:** Added a clear, explicit `@DEVELOPER_NOTE` JSDoc in `Xtractor.ts` to document that the "AI chat" is currently a hardcoded regex mock, preventing confusion for future developers looking for a backend API connection.
+  - **Hardware Diagnostics:** `DeviceDetector` and `DeviceCaps` now log extended hardware capabilities (cores, resolution, device type) into the console banner at engine startup.
+
 ## [0.63.0] - 2026-07-18
 
 ### "Pure mathematics is, in its way, the poetry of logical ideas." - Albert Einstein

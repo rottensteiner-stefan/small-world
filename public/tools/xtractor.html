@@ -1,31 +1,14 @@
 <!doctype html>
-<html lang="de">
-<head>
-  <link rel="icon" type="image/png" href="/favicon.png" />
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>IXtractor - AI Image Workbench</title>
-  <style>
-    body {
-      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-      background: #121214;
-      color: #e2e8f0;
-      margin: 0;
-      padding: 0;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-    header {
-      padding: 1rem 2rem;
-      border-bottom: 1px solid rgba(0, 229, 255, 0.2);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: linear-gradient(90deg, rgba(11,15,25,1) 0%, rgba(20,25,40,1) 100%);
-      flex-shrink: 0;
-    }
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="stylesheet" href="/assets/shared.css" />
+    <title>Xtractor - AI Image Workbench</title>
+    <style>
+body { margin: 0; font-family: "Rajdhani", sans-serif; background-color: var(--bg-color, #0b0f19); color: var(--text-color, #e0e0e0); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+    
     h1 { margin: 0; font-size: 1.5rem; text-transform: uppercase; letter-spacing: 2px; color: #fff; }
     h1 span { color: #00e5ff; }
     
@@ -254,15 +237,14 @@
       outline: none;
     }
     .prop-input:focus { border-color: #38bdf8; }
-  </style>
-  <link rel="stylesheet" href="../assets/shared.css" />
-</head>
-<body>
-  <header>
-    <h1>IXtractor <span style="color:var(--accent)">// Image Extractor</span></h1>
-    <a href="/" style="color:white; text-decoration:none;">Back to Engine</a>
-  </header>
-
+    </style>
+  </head>
+  <body>
+    <header class="tool-header">
+      <h1>Xtractor - AI Image Workbench</h1>
+      <a href="/" class="nav-btn">Back to Engine</a>
+    </header>
+    
     <div class="main-container">
     <!-- WORKBENCH -->
     <div class="workbench">
@@ -317,7 +299,7 @@
     <div class="sidebar" id="sidebar">
       <div class="chat-history" id="chat-history">
         <div class="message msg-ai">
-          Willkommen beim IXtractor! Lade ein Bild hoch (oder ziehe es per Drag & Drop rein) und markiere einen Bereich, den ich für dich analysieren oder zuschneiden soll.
+          Willkommen beim Xtractor! Lade ein Bild hoch (oder ziehe es per Drag & Drop rein) und markiere einen Bereich, den ich für dich analysieren oder zuschneiden soll.
         </div>
       </div>
       
@@ -335,7 +317,9 @@
     </div>
   </div>
 
-  <script>
+    <footer class="app-footer">Copyright 2026 Stefan Rottensteiner // Small World</footer>
+
+    <script>
     // Elements
     const canvas = document.getElementById('image-canvas');
     const ctx = canvas.getContext('2d');
@@ -827,5 +811,5 @@
         }
     });
   </script>
-</body>
+  </body>
 </html>
