@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.65.0] - 2026-07-19
+
+### "Simplicity is the ultimate sophistication." - Leonardo da Vinci
+
+- **Features:**
+  - **Showcase 23 (Shader Gallery Expansion):** Doubled the gallery to 6 screens per API. New WebGL2 examples: a comic/toon-shaded raymarched creature (cel-shading bands, grazing-angle ink outline, halftone shadow dots), a Voronoi stained-glass mosaic, and a procedural retro CRT/ASCII terminal. New WebGPU examples: a toon-shaded spinning raymarched toy, a hex-grid sci-fi hologram, and a Matrix-style digital rain.
+- **Architecture & Bugfixes:**
+  - **PhysicsSystem Memory Leak:** Fixed the rotation-integration branch leaking 4 pooled vectors per frame for bodies with angular velocity; all `MathPool` vectors acquired during `compose`/`decompose` are now correctly released, restoring the true zero-allocation guarantee.
+  - **WGSL Reserved Keywords:** Fixed two shader-creation errors in the new Showcase 23 compute shaders caused by using `target` and `active` as identifiers — both are reserved words in the WGSL spec.
+  - **`small-world/tools` Barrel Exports:** Added the missing `Forge`, `ForgeTool`, `Xtractor`, and `MapGenerator` exports to `src/tools/index.ts`.
+- **Housekeeping & Docs:**
+  - **Documentation Accuracy Audit:** Cross-checked all 10 files in `docs/guides/` against the actual source. Corrected references to a non-existent `Application` class (use `SmallWorld`), fabricated `GlassMaterial`/`GridLevelBuilder` API options, a wrong `FPSController` option name, a sign error in the look-direction formula, an overstated Octree complexity claim, and clarified that the `small-world/tools` subpath isn't a resolvable package export yet.
+  - **Commit Convention:** `.agents/AGENTS.md` now explicitly forbids reusing a commit-message quote already present in `git log`.
+
 ## [0.64.0] - 2026-07-18
 
 ### "Out of clutter, find simplicity." - Albert Einstein
