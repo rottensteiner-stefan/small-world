@@ -151,11 +151,32 @@ export default defineConfig({
         showcase23: resolve(__dirname, "showcases/23/index.html"),
         yad: resolve(__dirname, "showcases/yad/index.html"),
         pbrgen: resolve(__dirname, "public/tools/pbr-gen.html"),
+        iblgen: resolve(__dirname, "public/tools/ibl-gen.html"),
+        pixler: resolve(__dirname, "public/tools/pixler.html"),
+        mapgen: resolve(__dirname, "public/tools/map-gen.html"),
+        xtractor: resolve(__dirname, "public/tools/xtractor.html"),
+        splattergen: resolve(__dirname, "public/tools/splatter-gen.html"),
+        gamepadtest: resolve(__dirname, "public/tools/gamepad-test.html"),
         presentation: resolve(__dirname, "public/presentation.html"),
         main: resolve(__dirname, "public/index.html"),
       },
       output: {
-        entryFileNames: () => {
+        entryFileNames: (chunk) => {
+          const toolNames = [
+            "pbrgen",
+            "iblgen",
+            "pixler",
+            "mapgen",
+            "xtractor",
+            "splattergen",
+            "gamepadtest",
+          ];
+          if (toolNames.includes(chunk.name)) {
+            return `js/tools/[name].js`;
+          }
+          if (chunk.name === "main" || chunk.name === "presentation") {
+            return `js/[name].js`;
+          }
           return `showcases/[name]/showcase.js`;
         },
         assetFileNames: "assets/[name].[ext]",

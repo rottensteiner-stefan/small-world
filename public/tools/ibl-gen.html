@@ -7,15 +7,7 @@
     <link rel="stylesheet" href="/assets/shared.css" />
     <title>IBL Generator - Small World</title>
     <style>
-:root {
-        --bg-color: #0b0f19;
-        --card-bg: rgba(20, 25, 40, 0.7);
-        --text-color: #e0e0e0;
-        --accent: #00e5ff;
-        --border-radius: 12px;
-      }
-      body { margin: 0; font-family: "Rajdhani", sans-serif; background-color: var(--bg-color, #0b0f19); color: var(--text-color, #e0e0e0); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-      
+      body { margin: 0; font-family: "Rajdhani", sans-serif; background-color: #0b0f19; color: #e0e0e0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
       h1 { margin: 0; font-size: 1.5rem; text-transform: uppercase; letter-spacing: 2px; }
       .container {
         display: flex;
@@ -24,8 +16,8 @@
       }
       .panel {
         padding: 1.5rem;
-        background: var(--card-bg);
-        border-right: 1px solid rgba(255,255,255,0.05);
+        background: var(--swf-panel);
+        border-right: 1px solid var(--swf-border);
         display: flex;
         flex-direction: column;
         gap: 1.5rem;
@@ -41,39 +33,22 @@
         overflow-y: auto;
       }
       .control-group { display: flex; flex-direction: column; gap: 0.5rem; }
-      label { font-weight: 600; font-size: 0.9rem; text-transform: uppercase; color: #aaa; }
+      label { font-weight: 600; font-size: 0.9rem; text-transform: uppercase; color: var(--swf-text-muted); }
       input[type="file"] {
         padding: 0.5rem;
         background: rgba(0,0,0,0.3);
-        border: 1px solid rgba(255,255,255,0.1);
+        border: 1px solid var(--swf-border);
         border-radius: 4px;
-        color: white;
+        color: var(--swf-text);
       }
-      button {
-        background: var(--accent);
-        color: #000;
-        border: none;
-        padding: 0.8rem 1.5rem;
-        font-family: inherit;
-        font-weight: 700;
-        font-size: 1rem;
-        border-radius: 4px;
-        cursor: pointer;
-        text-transform: uppercase;
-        transition: all 0.2s;
-        box-shadow: 0 0 10px rgba(0, 229, 255, 0.3);
-      }
-      button:hover {
-        background: #fff;
-        box-shadow: 0 0 20px rgba(0, 229, 255, 0.6);
-      }
-      button:disabled {
-        background: #333;
-        color: #666;
+      .swf-btn:disabled {
+        background: rgba(30, 41, 59, 0.3);
+        color: var(--swf-text-muted);
+        border-color: transparent;
         box-shadow: none;
         cursor: not-allowed;
+        pointer-events: none;
       }
-      
       .canvas-container {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(256px, 1fr));
@@ -82,25 +57,23 @@
       .card {
         background: rgba(0,0,0,0.4);
         padding: 1rem;
-        border-radius: var(--border-radius);
-        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 12px;
+        border: 1px solid var(--swf-border);
         text-align: center;
       }
-      .card h3 { margin-top: 0; font-size: 1rem; color: var(--accent); }
+      .card h3 { margin-top: 0; font-size: 1rem; color: var(--swf-accent); }
       .preview-canvas {
         max-width: 100%;
         max-height: 250px;
         border-radius: 8px;
         background: #000;
         box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-        width: 100%; /* force stretch to container */
-        object-fit: contain; /* keep aspect ratio */
+        width: 100%;
+        object-fit: contain;
         image-rendering: pixelated;
       }
-      
-      /* Dropzone */
       .dropzone {
-        border: 2px dashed rgba(255,255,255,0.2);
+        border: 2px dashed var(--swf-border);
         border-radius: 12px;
         padding: 1.5rem 1rem;
         text-align: center;
@@ -112,34 +85,16 @@
         align-items: center;
         gap: 0.5rem;
       }
-      .dropzone:hover,
-      .dropzone.dragover {
-        border-color: var(--accent);
-        background: rgba(0, 229, 255, 0.05);
+      .dropzone:hover, .dropzone.dragover {
+        border-color: var(--swf-accent);
+        background: rgba(176, 0, 255, 0.05);
       }
-      .dropzone-icon {
-        color: var(--accent);
-        transition: transform 0.3s ease;
-      }
-      .dropzone:hover .dropzone-icon {
-        transform: translateY(-3px);
-      }
-      .dropzone-text {
-        font-size: 0.85rem;
-        font-weight: 500;
-        color: var(--text-muted);
-      }
-      .dropzone-sub {
-        font-size: 0.7rem;
-        color: rgba(255,255,255,0.6);
-      }
+      .dropzone-icon { color: var(--swf-accent); transition: transform 0.3s ease; }
+      .dropzone:hover .dropzone-icon { transform: translateY(-3px); }
+      .dropzone-text { font-size: 0.85rem; font-weight: 500; color: var(--swf-text-muted); }
+      .dropzone-sub { font-size: 0.7rem; color: rgba(255,255,255,0.6); }
       .hidden { display: none !important; }
-      
-      .progress {
-        display: none;
-        font-size: 0.9rem;
-        color: #ff6600;
-      }
+      .progress { display: none; font-size: 0.9rem; color: #ff6600; }
     </style>
   </head>
   <body>
@@ -165,13 +120,13 @@
         
         <div class="control-group">
           <label>2. Generate Maps</label>
-          <button id="generateBtn" disabled>Bake IBL</button>
+          <button id="generateBtn" class="swf-btn" disabled>Bake IBL</button>
           <div id="progressText" class="progress">Processing...</div>
         </div>
         
         <div class="control-group">
           <label>3. Export</label>
-          <button id="exportBtn" disabled>Download Maps (.zip)</button>
+          <button id="exportBtn" class="swf-btn" disabled>Download Maps (.zip)</button>
         </div>
       </div>
       
@@ -204,6 +159,6 @@
     <footer class="app-footer">Copyright 2026 Stefan Rottensteiner // Small World</footer>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <script type="module" src="../../src/tools/ibl-gen.ts"></script>
+    <script type="module" src="/src/tools/ibl-gen.ts"></script>
   </body>
 </html>
