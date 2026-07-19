@@ -90,3 +90,41 @@ app.start().then(() => {
   console.log("Small World initialized!");
 });
 ```
+
+### 3. SPA & Framework Integration (React / Vue / Angular)
+
+When embedding Small World inside a Single Page Application (SPA), the browser does not automatically refresh when you change routes. To prevent memory leaks or multiple render loops running simultaneously in the background, you must cleanly destroy the engine when your component unmounts.
+
+Simply call the `destroy()` method. This will instantly halt the `requestAnimationFrame` loop, detach all global window event listeners, and flush the WebGPU/WebGL memory.
+
+```tsx
+import { useEffect, useRef } from "react";
+import { MyFirstWorld } from "./MyFirstWorld";
+
+export function GameComponent() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    let app: MyFirstWorld | null = null;
+    
+    if (canvasRef.current) {
+      app = new MyFirstWorld({
+        canvasId: "SmallWorldCanvas"
+      });
+      app.start();
+    }
+
+    return () => {
+      // Clean up the engine completely when the React component unmounts!
+      if (app) {
+        app.destroy();
+      }
+    };
+  }, []);
+
+  return <canvas id="SmallWorldCanvas" ref={canvasRef} />;
+}
+```
+
+*Note: The engine features an automatic safety net out of the box. If it detects that its canvas element has been forcefully removed from the DOM by a framework without `destroy()` being explicitly called, it will catch this and auto-destroy itself safely!*
+

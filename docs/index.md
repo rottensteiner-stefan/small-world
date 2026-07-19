@@ -32,4 +32,7 @@ features:
   - icon: 🖱️
     title: Octree Interactions
     details: Built-in DOM-like pointer events (Hover, Click) backed by highly optimized O(log n) Octree raycasting.
+  - icon: 📱
+    title: Hardware & SPA Ready
+    details: Hardware feature telemetry via DeviceCaps, native gyroscope behaviors, and auto-destroy lifecycles for React/Vue.
 ---
