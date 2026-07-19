@@ -28,7 +28,7 @@ import {
 } from "../../enums/index.js";
 import { AbstractRenderer } from "../AbstractRenderer.js";
 import { RenderPass } from "../RenderPass.js";
-import { MainRenderPass, PostProcessPass } from "../passes/index.js";
+import { MainRenderPass, PostProcessPass, CascadedShadowPassGPU } from "../passes/index.js";
 import { BloomPassGPU } from "../post/passes/index.js";
 import { UniformPacker } from "../../core/renderers/shaders/index.js";
 
@@ -95,6 +95,10 @@ export class WebGPURenderer extends AbstractRenderer {
   protected _dummyNormalBuffer!: GPUBuffer;
   protected _dummyUvBuffer!: GPUBuffer;
   protected _dummyTangentBuffer!: GPUBuffer;
+
+  public _defaultDirShadowTexView!: GPUTextureView;
+  protected _defaultSpotShadowTexView!: GPUTextureView;
+  protected _shadowSampler!: GPUSampler;
   protected _geoCache = new Map<GeometryDataInterface, WebGPUGeoCache>();
   protected _gpuInstanceBuffers: WeakMap<InstancedMesh, GPUBuffer> = new WeakMap();
   protected _gpuInstanceDataBuffers: WeakMap<InstancedMesh, GPUBuffer> = new WeakMap();
@@ -110,7 +114,7 @@ export class WebGPURenderer extends AbstractRenderer {
 
   protected _cubeTextureViewCache: Map<CubeTexture, GPUTextureView> = new Map();
 
-  protected _scratchGlobalBufferData = new Float32Array(48);
+  public _scratchGlobalBufferData = new Float32Array(200);
   protected _scratchPointLightData = new Float32Array(32); // Max 4 lights
   protected _scratchSpotLightData = new Float32Array(64); // Max 4 lights
   protected _scratchAreaLightData = new Float32Array(96); // Max 4 lights
@@ -130,12 +134,20 @@ export class WebGPURenderer extends AbstractRenderer {
   };
   public _opaqueTextureView?: GPUTextureView;
 
+  public _shadowMaps = new Map<
+    import("../../core/index.js").DirectionalLight | import("../../core/index.js").SpotLight,
+    GPUTexture
+  >();
+
   public _hdrTexture: GPUTexture | undefined = undefined;
   public _hdrTextureView: GPUTextureView | undefined = undefined;
   public _bloomPassGPU: BloomPassGPU | undefined = undefined;
   public _bloomTextureView: GPUTextureView | undefined = undefined;
 
-  protected _activeRenderTarget: RenderTarget | RenderTargetCube | null = null;
+  public _activeRenderTarget:
+    | import("../../core/index.js").RenderTarget
+    | import("../../core/index.js").RenderTargetCube
+    | null = null;
   protected _activeCubeFace: number = 0;
   protected _renderTargetTextures: Map<
     RenderTarget,
@@ -259,8 +271,7 @@ export class WebGPURenderer extends AbstractRenderer {
     this._initGlobalBuffers();
     this.setSize(canvas.clientWidth, canvas.clientHeight);
 
-    // Default Pass Setup
-    this._passes = [new MainRenderPass(), new PostProcessPass()];
+    this._passes = [new CascadedShadowPassGPU(), new MainRenderPass(), new PostProcessPass()];
   }
 
   /**
@@ -353,6 +364,30 @@ export class WebGPURenderer extends AbstractRenderer {
     if (this._dummyTangentBuffer) this._dummyTangentBuffer.destroy();
     const normalData = new Float32Array(newSize).fill(0);
     for (let i = 0; i < newSize; i += 3) normalData[i + 1] = 1.0;
+
+    // Default dummy shadow textures (2D Arrays, Depth24Plus)
+    const dummyDirShadow = this._device!.createTexture({
+      size: [1, 1, 4],
+      format: "depth24plus",
+      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT,
+    });
+    this._defaultDirShadowTexView = dummyDirShadow.createView({ dimension: "2d-array" });
+
+    const dummySpotShadow = this._device!.createTexture({
+      size: [1, 1, 16],
+      format: "depth24plus",
+      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT,
+    });
+    this._defaultSpotShadowTexView = dummySpotShadow.createView({ dimension: "2d-array" });
+
+    this._shadowSampler = this._device!.createSampler({
+      magFilter: "linear",
+      minFilter: "linear",
+      compare: "less",
+      addressModeU: "clamp-to-edge",
+      addressModeV: "clamp-to-edge",
+    });
+
     this._dummyNormalBuffer = this._device!.createBuffer({
       size: normalData.byteLength,
       usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
@@ -376,7 +411,7 @@ export class WebGPURenderer extends AbstractRenderer {
 
   private _initGlobalBuffers(): void {
     this._globalUniformBuffer = this._device!.createBuffer({
-      size: 256,
+      size: 800,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
     this._pointLightBuffer = this._device!.createBuffer({
@@ -406,6 +441,17 @@ export class WebGPURenderer extends AbstractRenderer {
         { binding: 5, visibility: GPUShaderStage.FRAGMENT, texture: { viewDimension: "cube" } },
         { binding: 6, visibility: GPUShaderStage.FRAGMENT, texture: { viewDimension: "2d" } },
         { binding: 7, visibility: GPUShaderStage.FRAGMENT, sampler: { type: "filtering" } },
+        {
+          binding: 8,
+          visibility: GPUShaderStage.FRAGMENT,
+          texture: { viewDimension: "2d-array", sampleType: "depth" },
+        },
+        {
+          binding: 9,
+          visibility: GPUShaderStage.FRAGMENT,
+          texture: { viewDimension: "2d-array", sampleType: "depth" },
+        },
+        { binding: 10, visibility: GPUShaderStage.FRAGMENT, sampler: { type: "comparison" } },
       ],
     });
 
@@ -465,7 +511,7 @@ export class WebGPURenderer extends AbstractRenderer {
   private _currentPrefilterMap?: import("../../core/textures/index.js").CubeTexture | undefined;
   private _currentBrdfLUT?: import("../../core/textures/index.js").Texture | undefined;
 
-  private _createGlobalBindGroup(scene?: Scene): GPUBindGroup {
+  public _createGlobalBindGroup(scene?: Scene): GPUBindGroup {
     const irrView = scene?.irradianceMap
       ? this._getGPUCubeTextureView(scene.irradianceMap)
       : this._blackCubeTexView!;
@@ -488,6 +534,9 @@ export class WebGPURenderer extends AbstractRenderer {
         { binding: 5, resource: prefView },
         { binding: 6, resource: brdfView },
         { binding: 7, resource: sampler },
+        { binding: 8, resource: this._defaultDirShadowTexView },
+        { binding: 9, resource: this._defaultSpotShadowTexView },
+        { binding: 10, resource: this._shadowSampler },
       ],
     });
   }
@@ -1004,7 +1053,7 @@ export class WebGPURenderer extends AbstractRenderer {
     }
   }
 
-  private _renderSubgroup(
+  public _renderSubgroup(
     rp: GPURenderPassEncoder,
     objects: Object3D[],
     isInstanced: boolean,
@@ -1390,7 +1439,7 @@ export class WebGPURenderer extends AbstractRenderer {
     return v;
   }
 
-  private _updateGlobalBuffers(
+  public _updateGlobalBuffers(
     vp: Float32Array,
     camPos: Vector3D,
     lights: LightDataInterface,
@@ -1460,6 +1509,23 @@ export class WebGPURenderer extends AbstractRenderer {
       gData[37] = 0.0; // fogMode NONE
       gData[43] = scene.environmentIntensity; // envIntensity
     }
+
+    // Default shadow values in case there are no shadows.
+    // Struct order in structs.wgsl is cascadeMatrices (128-191) -> cascadeSplits
+    // (192-195) -> dirShadowInfo (196-199); CascadedShadowPassGPU overwrites these
+    // with real values (at these same, correct offsets) once a shadow-casting
+    // directional light is actually rendered this frame.
+    gData[192] = 0.0; // cascadeSplits.x
+    gData[193] = 0.0;
+    gData[194] = 0.0;
+    gData[195] = 0.0;
+
+    // dirShadowInfo (bias, normalBias, castShadow, numCascades)
+    gData[196] = 0.001;
+    gData[197] = 0.002;
+    gData[198] = 0.0; // castShadow off by default
+    gData[199] = 4.0;
+
     this._device!.queue.writeBuffer(this._globalUniformBuffer, 0, gData);
 
     const plDataSize = Math.max(lights.pLights.length * 8, 8);

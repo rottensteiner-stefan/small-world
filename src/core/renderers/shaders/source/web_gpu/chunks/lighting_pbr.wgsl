@@ -20,7 +20,24 @@ var Lo = vec3f(0.0);
     let dotNL = max(dot(N, L), 0.0);
     let dotNH = max(dot(N, H), 0.0);
     let dotVH = max(dot(V, H), 0.0);
-    let radiance = global.dirLightColor.xyz;
+    
+    var shadow: f32 = 1.0;
+    if (global.dirShadowInfo.z > 0.5) {
+        let numCascades = u32(global.dirShadowInfo.w);
+        var cascadeIndex = 0u;
+        let viewDist = length(global.viewPos.xyz - i.wp);
+        for (var c: u32 = 0u; c < numCascades; c++) {
+            if (viewDist < global.cascadeSplits[c]) {
+                cascadeIndex = c;
+                break;
+            }
+        }
+        let cascadeMat = global.cascadeMatrices[cascadeIndex];
+        let shadowPos = cascadeMat * vec4f(i.wp + N * global.dirShadowInfo.y, 1.0);
+        shadow = getShadowPCF(u_dirShadowMap, shadowSampler, shadowPos, cascadeIndex, global.dirShadowInfo.x);
+    }
+    
+    let radiance = global.dirLightColor.xyz * shadow;
 
     let D = D_GGX(dotNH, roughness);
     let G = G_SchlickGGX(dotNL, dotNV, roughness);
@@ -91,7 +108,14 @@ for(var j=0u; j<u32(global.numSpotLights); j++) {
         let H = normalize(V + L);
         let distanceAttenuation = pow(clamp(1.0 - dist / maxDist, 0.0, 1.0), decay);
         let attenuation = distanceAttenuation * intensity;
-        let radiance = sLights[j].col.xyz * attenuation;
+        
+        var shadow: f32 = 1.0;
+        if (global.spotShadowInfo[j].z > 0.5) {
+            let shadowPos = global.spotShadowMatrices[j] * vec4f(i.wp + N * global.spotShadowInfo[j].y, 1.0);
+            shadow = getShadowPCF(u_spotShadowMap, shadowSampler, shadowPos, j, global.spotShadowInfo[j].x);
+        }
+        
+        let radiance = sLights[j].col.xyz * attenuation * shadow;
 
         let dotNL = max(dot(N, L), 0.0);
         let dotNH = max(dot(N, H), 0.0);

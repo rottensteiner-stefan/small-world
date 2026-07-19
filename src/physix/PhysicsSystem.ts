@@ -1,11 +1,15 @@
 /// src/physix/PhysicsSystem.ts
 import { Object3D } from "../core/Object3D.js";
 import { Scene } from "../core/Scene.js";
+import { Octree } from "../core/Octree.js";
 import { Vector3D, MathPool } from "../math/index.js";
 import { Collision } from "./Collision.js";
 import { BoundingSphere } from "./BoundingSphere.js";
 import { BoundingBox } from "./BoundingBox.js";
 import { UniversalEventBus } from "../core/events/UniversalEventBus.js";
+
+/** Padding added to the computed world AABB to guard against boundary floating-point edge cases. */
+const BROADPHASE_EPSILON: number = 0.01;
 
 /**
  * A lightweight physics solver using Semi-Implicit Euler integration.
@@ -21,6 +25,12 @@ export class PhysicsSystem {
     objectB: null as unknown as Object3D,
     impulse: 0,
   };
+
+  private _broadphaseTree?: Octree;
+  private _broadphaseWorldMin: Vector3D = new Vector3D();
+  private _broadphaseWorldMax: Vector3D = new Vector3D();
+  private _bodyIndex = new Map<Object3D, number>();
+  private _broadphaseFallback: Object3D[] = [];
 
   private _warnedObjects = new Set<Object3D>();
 
@@ -153,6 +163,18 @@ export class PhysicsSystem {
   private _collectCollidersRecursive(obj: Object3D, colliders: Object3D[]): void {
     if (obj.isCollidable && obj.bounds) {
       colliders.push(obj);
+      const r = obj.bounds.getBroadRadius();
+      const cx = obj.bounds.center.x;
+      const cy = obj.bounds.center.y;
+      const cz = obj.bounds.center.z;
+
+      if (cx - r < this._broadphaseWorldMin.x) this._broadphaseWorldMin.x = cx - r;
+      if (cy - r < this._broadphaseWorldMin.y) this._broadphaseWorldMin.y = cy - r;
+      if (cz - r < this._broadphaseWorldMin.z) this._broadphaseWorldMin.z = cz - r;
+
+      if (cx + r > this._broadphaseWorldMax.x) this._broadphaseWorldMax.x = cx + r;
+      if (cy + r > this._broadphaseWorldMax.y) this._broadphaseWorldMax.y = cy + r;
+      if (cz + r > this._broadphaseWorldMax.z) this._broadphaseWorldMax.z = cz + r;
     }
     for (let i = 0; i < obj.children.length; i++) {
       this._collectCollidersRecursive(obj.children[i]!, colliders);
@@ -164,8 +186,48 @@ export class PhysicsSystem {
     const allColliders = this._allColliders;
     allColliders.length = 0;
 
+    this._broadphaseWorldMin.set(Infinity, Infinity, Infinity);
+    this._broadphaseWorldMax.set(-Infinity, -Infinity, -Infinity);
+
     for (let i = 0; i < scene.objects.length; i++) {
       this._collectCollidersRecursive(scene.objects[i]!, allColliders);
+    }
+
+    this._broadphaseWorldMin.x -= BROADPHASE_EPSILON;
+    this._broadphaseWorldMin.y -= BROADPHASE_EPSILON;
+    this._broadphaseWorldMin.z -= BROADPHASE_EPSILON;
+    this._broadphaseWorldMax.x += BROADPHASE_EPSILON;
+    this._broadphaseWorldMax.y += BROADPHASE_EPSILON;
+    this._broadphaseWorldMax.z += BROADPHASE_EPSILON;
+
+    // Lazily construct the broadphase tree once; on every subsequent frame its root
+    // BoundingBox.min/max are the *same* Vector3D instances as
+    // _broadphaseWorldMin/_broadphaseWorldMax (BoundingBox stores them by reference),
+    // so mutating those fields above already moved the tree's bounds. Only `center`
+    // is a value computed once at construction time and must be refreshed manually.
+    if (!this._broadphaseTree) {
+      this._broadphaseTree = new Octree(
+        new BoundingBox(this._broadphaseWorldMin, this._broadphaseWorldMax),
+      );
+    } else {
+      this._broadphaseTree.root.bounds.center
+        .copyFrom(this._broadphaseWorldMin)
+        .add(this._broadphaseWorldMax)
+        .scale(0.5);
+      this._broadphaseTree.clear();
+    }
+    const broadphaseTree = this._broadphaseTree;
+
+    this._broadphaseFallback.length = 0;
+    for (let i = 0; i < allColliders.length; i++) {
+      if (!broadphaseTree.insert(allColliders[i]!)) {
+        this._broadphaseFallback.push(allColliders[i]!);
+      }
+    }
+
+    this._bodyIndex.clear();
+    for (let i = 0; i < bodies.length; i++) {
+      this._bodyIndex.set(bodies[i]!, i);
     }
 
     const result = MathPool.acquireVector();
@@ -176,13 +238,19 @@ export class PhysicsSystem {
       const rbA = dynObj.rigidBody!;
       if (!dynObj.bounds) continue;
 
-      for (let j = 0; j < allColliders.length; j++) {
-        const otherObj = allColliders[j]!;
+      const broadResult = broadphaseTree.queryVolume(dynObj.bounds);
+      // Append fallback
+      for (let f = 0; f < this._broadphaseFallback.length; f++) {
+        broadResult.push(this._broadphaseFallback[f]!);
+      }
+
+      for (let j = 0; j < broadResult.length; j++) {
+        const otherObj = broadResult[j] as Object3D;
         if (dynObj === otherObj) continue;
 
         // Avoid double resolution for dynamic vs dynamic pairs
-        const otherIdx = bodies.indexOf(otherObj);
-        if (otherIdx !== -1 && otherIdx <= i) continue;
+        const otherIdx = this._bodyIndex.get(otherObj);
+        if (otherIdx !== undefined && otherIdx <= i) continue;
 
         const boundsA = dynObj.bounds;
         const boundsB = otherObj.bounds!;

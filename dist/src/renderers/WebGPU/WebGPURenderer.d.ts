@@ -1,6 +1,6 @@
 import { CubeTexture, RenderManifest, InstancedMesh, Object3D, Scene, Texture } from '../../core/index.js';
 import { RenderTarget, RenderTargetCube } from '../../core/textures/index.js';
-import { EngineOptions, GeometryDataInterface } from '../../interfaces/index.js';
+import { EngineOptions, GeometryDataInterface, LightDataInterface } from '../../interfaces/index.js';
 import { Vector3D } from '../../math/index.js';
 import { RendererType } from '../../enums/index.js';
 import { AbstractRenderer } from '../AbstractRenderer.js';
@@ -55,6 +55,9 @@ export declare class WebGPURenderer extends AbstractRenderer {
     protected _dummyNormalBuffer: GPUBuffer;
     protected _dummyUvBuffer: GPUBuffer;
     protected _dummyTangentBuffer: GPUBuffer;
+    _defaultDirShadowTexView: GPUTextureView;
+    protected _defaultSpotShadowTexView: GPUTextureView;
+    protected _shadowSampler: GPUSampler;
     protected _geoCache: Map<GeometryDataInterface, WebGPUGeoCache>;
     protected _gpuInstanceBuffers: WeakMap<InstancedMesh, GPUBuffer>;
     protected _gpuInstanceDataBuffers: WeakMap<InstancedMesh, GPUBuffer>;
@@ -66,7 +69,7 @@ export declare class WebGPURenderer extends AbstractRenderer {
     protected _samplerCache: Map<string, GPUSampler>;
     protected _dummyBufferSize: number;
     protected _cubeTextureViewCache: Map<CubeTexture, GPUTextureView>;
-    protected _scratchGlobalBufferData: Float32Array<ArrayBuffer>;
+    _scratchGlobalBufferData: Float32Array<ArrayBuffer>;
     protected _scratchPointLightData: Float32Array<ArrayBuffer>;
     protected _scratchSpotLightData: Float32Array<ArrayBuffer>;
     protected _scratchAreaLightData: Float32Array<ArrayBuffer>;
@@ -85,11 +88,12 @@ export declare class WebGPURenderer extends AbstractRenderer {
         height: number;
     };
     _opaqueTextureView?: GPUTextureView;
+    _shadowMaps: Map<import('../../index.js').DirectionalLight | import('../../index.js').SpotLight, GPUTexture>;
     _hdrTexture: GPUTexture | undefined;
     _hdrTextureView: GPUTextureView | undefined;
     _bloomPassGPU: BloomPassGPU | undefined;
     _bloomTextureView: GPUTextureView | undefined;
-    protected _activeRenderTarget: RenderTarget | RenderTargetCube | null;
+    _activeRenderTarget: import('../../core/index.js').RenderTarget | import('../../core/index.js').RenderTargetCube | null;
     protected _activeCubeFace: number;
     protected _renderTargetTextures: Map<RenderTarget, {
         tex: GPUTexture;
@@ -130,7 +134,7 @@ export declare class WebGPURenderer extends AbstractRenderer {
     private _currentIrradianceMap?;
     private _currentPrefilterMap?;
     private _currentBrdfLUT?;
-    private _createGlobalBindGroup;
+    _createGlobalBindGroup(scene?: Scene): GPUBindGroup;
     protected _getMaterialBGL(flags: string[]): GPUBindGroupLayout;
     protected _getPipeline(manifest: RenderManifest, topology: GPUPrimitiveTopology, isInstanced?: boolean): WebGPUPipelineCache;
     protected _getShaderModule(shaderId: string, isInstanced?: boolean, flags?: string[]): GPUShaderModule;
@@ -139,7 +143,7 @@ export declare class WebGPURenderer extends AbstractRenderer {
     captureOpaqueTexture(ce: GPUCommandEncoder, targetTex: GPUTexture): void;
     protected _pruneObjectBuffers(): void;
     _renderGroup(rp: GPURenderPassEncoder, _shaderId: string, materialGroups: Map<string, Object3D[]>, vMat?: Float32Array, topology?: GPUPrimitiveTopology): void;
-    private _renderSubgroup;
+    _renderSubgroup(rp: GPURenderPassEncoder, objects: Object3D[], isInstanced: boolean, matUuid: string, manifest: RenderManifest, vMat?: Float32Array, topology?: GPUPrimitiveTopology): void;
     protected _getObjUniformBufferData(obj: Object3D): {
         buffer: GPUBuffer;
         lastFrame: number;
@@ -154,6 +158,6 @@ export declare class WebGPURenderer extends AbstractRenderer {
     protected _getTextureView(tex: Texture | undefined): GPUTextureView;
     protected _getNormalTextureView(tex: Texture | undefined): GPUTextureView;
     protected _getGPUCubeTextureView(tex: CubeTexture | undefined): GPUTextureView;
-    private _updateGlobalBuffers;
+    _updateGlobalBuffers(vp: Float32Array, camPos: Vector3D, lights: LightDataInterface, scene: Scene): void;
     setSize(width: number, height: number): void;
 }

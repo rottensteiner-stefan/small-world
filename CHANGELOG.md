@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.67.0] - 2026-07-19
+
+### "Where there is much light, the shadow is deep." - Johann Wolfgang von Goethe
+
+- **Features:**
+  - **Cascaded Shadow Maps (WebGPU):** Implemented a complete `CascadedShadowPassGPU` supporting directional lights. Resolved command encoder queuing synchronization to correctly record and execute shadow depth textures per cascade.
+- **Architecture & Bugfixes:**
+  - **Physics Broadphase Implementation:** Replaced the legacy collision loop in `PhysicsSystem` with an Octree-based broadphase filtering approach, including a robust `_broadphaseFallback` for out-of-bounds objects.
+  - **WebGPU Shader Fixes:** Fixed WGSL uniform buffer offsets (`cascadeSplits` and `dirShadowInfo`) and ensured shadow-casting passes use a dedicated depth-only shader instead of the full scene lighting shader.
+  - Fixed VP corruption bugs in WebGPU shadow matrices and rebuilt global bind groups correctly when shadow textures update.
+- **Housekeeping & Docs:**
+  - Tracked new research and analysis text files documenting physics broadphase and shadow mapping structures.
+
 ## [0.66.0] - 2026-07-19
 
 ### "Out of nothing I have created a strange new universe." - János Bolyai
@@ -8,6 +21,7 @@
   - Expanded Showcase 23 (The Shader Gallery) into a fully interactive 3D gallery with dynamic zooming and raycasted screen selection.
   - Moved monitor shader source codes to individual asset files to clean up engine boilerplate.
 - **Architecture & Bugfixes:**
+  - **Physics Broadphase Optimization:** Replaced the legacy $O(n^2)$ brute-force collision loop in `PhysicsSystem` with an Octree-based spatial partitioning system. Implemented dynamic AABB tracking and O(1) deduplication via Map, vastly improving collision detection performance for scenes with high object counts while consciously accepting acceptable array allocations.
   - Resolved raycaster bounding box logic where `computeBounds()` was not reliably accounting for shifted world matrices during interaction loops.
   - Fixed an issue where WebGL2 contexts assigned inverted shaders to Monitor 2 and Monitor 3.
 - **Housekeeping & Docs:**

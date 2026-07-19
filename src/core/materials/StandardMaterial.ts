@@ -158,50 +158,24 @@ export class StandardMaterial extends AbstractMaterial {
     this.time = time;
   }
 
-  /** @inheritdoc */
   public override getRenderManifest(): RenderManifest {
     if (undefined === this._renderManifest) {
-      this._renderManifest = {
-        shaderId: this.type,
-        properties: {
-          u_color: this.color.toFloat32Array(),
-          u_specColor: new Float32Array([
-            this.emissiveColor.r,
-            this.emissiveColor.g,
-            this.emissiveColor.b,
-            this.emissiveIntensity,
-          ]),
-          u_metallic: this.metallic,
-          u_roughness: this.roughness,
-          u_extraParams: [this.ao, this.alphaTest, this.normalScale.x, this.normalScale.y], // ao, alphaTest, normalScaleX, normalScaleY
-          u_liquidParams: [0, 0, 0, 0],
-          u_thresholds: [0, 0, 0, 0],
-          u_texOffset: [0, 0],
-          u_texRepeat: [1, 1],
-          u_shininess: 32.0,
-          u_isTerrain: 0.0,
-          u_useEnvMap: this.envMap ? 1.0 : 0.0,
-          u_useReflectionMap: this.reflectionMap ? 1.0 : 0.0,
-          u_reflectivity: this.reflectivity,
-          u_time: this.time,
-        },
-        textures: {
-          u_diffuseMap: this.diffuseMap,
-          u_normalMap: this.normalMap,
-          u_metallicMap: this.metallicMap,
-          u_roughnessMap: this.roughnessMap,
-          u_emissiveMap: this.emissiveMap,
-          u_alphaMap: this.alphaMap,
-          u_skybox: this.envMap,
-          u_reflectionMap: this.reflectionMap,
-        },
-      };
+      this._renderManifest = this._createBaseManifest();
     }
+
+    this._syncBaseManifestState();
+    this._syncTexOffsetRepeat(
+      this.diffuseMap ||
+        this.emissiveMap ||
+        this.normalMap ||
+        this.metallicMap ||
+        this.roughnessMap ||
+        this.alphaMap,
+    );
 
     const props = this._renderManifest.properties;
     const texs = this._renderManifest.textures;
 
-    props["u_color"] = this.color.toFloat32Array();
     (props["u_specColor"] as Float32Array)[0] = this.emissiveColor.r;
     (props["u_specColor"] as Float32Array)[1] = this.emissiveColor.g;
     (props["u_specColor"] as Float32Array)[2] = this.emissiveColor.b;
@@ -213,25 +187,6 @@ export class StandardMaterial extends AbstractMaterial {
     (props["u_extraParams"] as number[])[2] = this.normalScale.x;
     (props["u_extraParams"] as number[])[3] = this.normalScale.y;
 
-    const tex =
-      this.diffuseMap ||
-      this.emissiveMap ||
-      this.normalMap ||
-      this.metallicMap ||
-      this.roughnessMap ||
-      this.alphaMap;
-    if (tex) {
-      (props["u_texOffset"] as number[])[0] = tex.offset.x;
-      (props["u_texOffset"] as number[])[1] = tex.offset.y;
-      (props["u_texRepeat"] as number[])[0] = tex.repeat.x;
-      (props["u_texRepeat"] as number[])[1] = tex.repeat.y;
-    } else {
-      (props["u_texOffset"] as number[])[0] = 0;
-      (props["u_texOffset"] as number[])[1] = 0;
-      (props["u_texRepeat"] as number[])[0] = 1;
-      (props["u_texRepeat"] as number[])[1] = 1;
-    }
-
     texs["u_diffuseMap"] = this.diffuseMap;
     texs["u_normalMap"] = this.normalMap;
     texs["u_metallicMap"] = this.metallicMap;
@@ -240,6 +195,7 @@ export class StandardMaterial extends AbstractMaterial {
     texs["u_alphaMap"] = this.alphaMap;
     texs["u_skybox"] = this.envMap;
     texs["u_reflectionMap"] = this.reflectionMap;
+
     props["u_useEnvMap"] = this.envMap ? 1.0 : 0.0;
     props["u_useReflectionMap"] = this.reflectionMap ? 1.0 : 0.0;
     props["u_reflectivity"] = this.reflectivity;
@@ -255,13 +211,12 @@ export class StandardMaterial extends AbstractMaterial {
     }
     this._renderManifest.flags = flags;
 
-    this._renderManifest.state = {
-      ...this._renderManifest.state,
-      culling: this.cullMode,
-      transparent: this.transparent,
-      blending: this.transparent ? BlendingMode.ALPHA : BlendingMode.OPAQUE,
-      depthWrite: !this.transparent,
-    };
+    if (this._renderManifest.state) {
+      this._renderManifest.state.blending = this.transparent
+        ? BlendingMode.ALPHA
+        : BlendingMode.OPAQUE;
+      this._renderManifest.state.depthWrite = !this.transparent;
+    }
 
     return this._renderManifest;
   }

@@ -28,3 +28,28 @@ fn linearToSRGB(color: vec3f) -> vec3f {
 fn sRGBToLinear(color: vec3f) -> vec3f {
     return pow(color, vec3f(global.gamma));
 }
+
+fn getShadowPCF(map: texture_depth_2d_array, samp: sampler_comparison, shadowPos: vec4f, layer: u32, bias: f32) -> f32 {
+    let ndc = shadowPos.xyz / shadowPos.w;
+    let uv = vec2f(ndc.x * 0.5 + 0.5, 0.5 - ndc.y * 0.5);
+    
+    if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0 || ndc.z > 1.0 || ndc.z < 0.0) {
+        return 1.0;
+    }
+    
+    let depthRef = ndc.z - bias;
+    var shadow: f32 = 0.0;
+    
+    // Get texture dimensions for the specific mip level (level 0)
+    let dims = textureDimensions(map);
+    let texelSize = vec2f(1.0 / f32(dims.x), 1.0 / f32(dims.y));
+    
+    for (var y: i32 = -1; y <= 1; y++) {
+        for (var x: i32 = -1; x <= 1; x++) {
+            let offset = vec2f(f32(x), f32(y)) * texelSize;
+            shadow += textureSampleCompareLevel(map, samp, uv + offset, layer, depthRef);
+        }
+    }
+    return shadow / 9.0;
+}
+

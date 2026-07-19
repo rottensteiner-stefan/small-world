@@ -43,7 +43,7 @@ export declare abstract class AbstractRenderer implements Renderer {
      * @param scene The scene to extract lights from.
      * @returns An object containing all extracted light data.
      */
-    protected extractLights(scene: Scene): LightDataInterface;
+    extractLights(scene: Scene): LightDataInterface;
     /**
      * Recursively traverses the scene to find lights.
      * @param node The current node to traverse.

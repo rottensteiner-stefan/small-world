@@ -46,41 +46,27 @@ export class GlassMaterial extends AbstractMaterial {
 
   public getRenderManifest(): RenderManifest {
     if (!this._renderManifest) {
-      this._renderManifest = {
-        shaderId: MaterialType.GLASS,
-        properties: {
-          u_color: this.color.toFloat32Array(),
-          u_specColor: new Float32Array([0, 0, 0, 0]),
-          u_metallic: this.metallic,
-          u_roughness: this.roughness,
-          u_extraParams: [0.0, 0.0, 1.0, 1.0], // ao, alphaTest, normalScaleX, normalScaleY
-          u_liquidParams: [this.ior, this.thickness, this.transmission, 0], // Reusing for Glass params
-          u_thresholds: [0, 0, 0, 0],
-          u_texOffset: [0, 0],
-          u_texRepeat: [1, 1],
-          u_shininess: 32.0,
-          u_isTerrain: 0.0,
-        },
-        textures: {
-          u_diffuseMap: undefined,
-          u_normalMap: this.normalMap || undefined,
-          u_opaqueMap: undefined, // The opaque map texture!
-        },
-        state: {
-          transparent: true,
-          blending: BlendingMode.ALPHA,
-          depthWrite: false,
-        },
-      };
+      this._renderManifest = this._createBaseManifest();
+      this._renderManifest.textures["u_opaqueMap"] = undefined;
     }
 
+    this._syncBaseManifestState();
+    this._syncTexOffsetRepeat(this.normalMap);
+
     const props = this._renderManifest.properties;
-    props["u_color"] = this.color.toFloat32Array();
     props["u_metallic"] = this.metallic;
     props["u_roughness"] = this.roughness;
     (props["u_liquidParams"] as number[])[0] = this.ior;
     (props["u_liquidParams"] as number[])[1] = this.thickness;
     (props["u_liquidParams"] as number[])[2] = this.transmission;
+
+    this._renderManifest.textures["u_normalMap"] = this.normalMap;
+
+    if (this._renderManifest.state) {
+      this._renderManifest.state.transparent = true;
+      this._renderManifest.state.blending = BlendingMode.ALPHA;
+      this._renderManifest.state.depthWrite = false;
+    }
 
     return this._renderManifest;
   }

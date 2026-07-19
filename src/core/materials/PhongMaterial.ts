@@ -93,28 +93,11 @@ export class PhongMaterial extends AbstractMaterial {
   /** @inheritdoc */
   public override getRenderManifest(): RenderManifest {
     if (undefined === this._renderManifest) {
-      this._renderManifest = {
-        shaderId: this.type,
-        properties: {
-          u_color: this.color.toFloat32Array(),
-          u_specColor: this.specularColor.toFloat32Array(),
-          u_texOffset: [0, 0],
-          u_texRepeat: [1, 1],
-          u_shininess: this.shininess,
-          u_isTerrain: 0.0,
-          u_metallic: 0.0,
-          u_roughness: 0.5,
-          u_extraParams: [1.0, this.alphaTest, this.normalScale.x, this.normalScale.y],
-          u_liquidParams: [0, 0, 0, 0],
-          u_thresholds: [0, 0, 0, 0],
-        },
-        textures: {
-          u_diffuseMap: this.diffuseMap,
-          u_normalMap: this.normalMap,
-          u_specularMap: this.specularMap,
-        },
-      };
+      this._renderManifest = this._createBaseManifest();
     }
+
+    this._syncBaseManifestState();
+    this._syncTexOffsetRepeat(this.diffuseMap);
 
     const props = this._renderManifest.properties as Record<string, unknown>;
     const texs = this._renderManifest.textures as Record<string, unknown>;
@@ -126,29 +109,16 @@ export class PhongMaterial extends AbstractMaterial {
     (props["u_extraParams"] as number[])[2] = this.normalScale.x;
     (props["u_extraParams"] as number[])[3] = this.normalScale.y;
 
-    if (this.diffuseMap) {
-      (props["u_texOffset"] as number[])[0] = this.diffuseMap.offset.x;
-      (props["u_texOffset"] as number[])[1] = this.diffuseMap.offset.y;
-      (props["u_texRepeat"] as number[])[0] = this.diffuseMap.repeat.x;
-      (props["u_texRepeat"] as number[])[1] = this.diffuseMap.repeat.y;
-    } else {
-      (props["u_texOffset"] as number[])[0] = 0;
-      (props["u_texOffset"] as number[])[1] = 0;
-      (props["u_texRepeat"] as number[])[0] = 1;
-      (props["u_texRepeat"] as number[])[1] = 1;
-    }
-
     texs["u_diffuseMap"] = this.diffuseMap;
     texs["u_normalMap"] = this.normalMap;
     texs["u_specularMap"] = this.specularMap;
 
-    this._renderManifest.state = {
-      ...this._renderManifest.state,
-      culling: this.cullMode,
-      transparent: this.transparent,
-      blending: this.transparent ? BlendingMode.ALPHA : BlendingMode.OPAQUE,
-      depthWrite: !this.transparent,
-    };
+    if (this._renderManifest.state) {
+      this._renderManifest.state.blending = this.transparent
+        ? BlendingMode.ALPHA
+        : BlendingMode.OPAQUE;
+      this._renderManifest.state.depthWrite = !this.transparent;
+    }
 
     return this._renderManifest;
   }

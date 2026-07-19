@@ -1,0 +1,282 @@
+PHYSIK-BROADPHASE AN EINE RAEUMLICHE STRUKTUR ANSCHLIESSEN
+Analyse- & Planungsdokument (noch nicht implementiert)
+==================================================
+
+
+KONTEXT
+--------------------------------------------------
+
+PhysicsSystem._resolveCollisions (src/physix/PhysicsSystem.ts:162-299) testet heute
+jeden dynamischen Body gegen JEDEN Collider der Szene in einer verschachtelten
+Schleife (PhysicsSystem.ts:174-294, O(bodies x allColliders)), zusaetzlich mit einem
+bodies.indexOf(otherObj)-Aufruf INNERHALB der inneren Schleife (PhysicsSystem.ts:184),
+was den Dedup-Check selbst nochmal O(bodies) macht. Der Code traegt bereits einen
+unerfuellten Verweis auf genau diese Aufgabe:
+
+  // Here we will query the SpatialHash/Octree and resolve collisions via SAT.
+  (PhysicsSystem.ts:145-146)
+
+Octree (src/core/Octree.ts) und SpatialHash (src/physix/SpatialHash.ts) existieren
+fertig und werden hier nicht genutzt.
+
+Wichtiger Kontextpunkt aus der Recherche: PhysicsSystem.step() wird aktuell von
+KEINER App aufgerufen (weder SmallWorld.ts noch YadApp.ts) - nur die vier
+Testdateien in tests/physix/ rufen es auf. Diese Aenderung ist also ein Fundament
+fuer zukuenftige Nutzung, kein Fix eines aktiven Produktionsproblems. Das senkt das
+Risiko (keine Live-App kann durch diese Aenderung brechen), erhoeht aber die
+Sorgfaltspflicht bei den Tests, da sie aktuell die einzige Verifikation der
+Korrektheit sind.
+
+Ziel: Die Broadphase durch eine echte raeumliche Vorfilterung ersetzen, ohne die
+Narrowphase (Collision.resolveSphereSphere/resolveSphereBox), die oeffentliche API
+(step(scene, dt)) oder die private Testschnittstelle
+(_resolveCollisions(scene, bodies, dt), direkt aufgerufen in
+tests/physix/PhysicsSystem.test.ts:208) zu veraendern.
+
+
+ENTSCHEIDUNG 1 — OCTREE STATT SPATIALHASH
+--------------------------------------------------
+
+SpatialHash (src/physix/SpatialHash.ts) ist laut eigenem Docstring ("A simple 2D
+spatial hash ... on the XZ plane", Zeile 4-7) und Code (_getKey nutzt nur x/z, kein
+Y, Zeilen 27-35, 121-123) explizit ein 2D-XZ-Gitter fuer YAD-artige Grid-Spiele -
+bestaetigt durch CHANGELOG.md:180-183 ("highly optimized for large grid maps (like
+YAD)"). Es wird heute genau einmal beim Level-Bau befuellt
+(YadLevelBuilder.ts:336-345, statische Wand-Collider) und danach nur gelesen - es
+gibt KEIN remove(), KEIN Re-Insert-per-Frame, keine Hoehen-Partitionierung. Fuer
+PhysicsSystems generischen 3D-Broadphase (beliebige Sphere/Box-Bodies, jeden Frame
+neu positioniert) muesste die Klasse selbst erst um eine Z-Achsen-Erweiterung und
+eine Update-Faehigkeit fuer bewegte Objekte erweitert werden - ein groesserer,
+riskanterer Eingriff in eine Klasse mit eigenem, klar begrenztem Zweck.
+
+Octree (src/core/Octree.ts) arbeitet dagegen bereits echt 3D, akzeptiert jedes
+Objekt, das die Collidable-Schnittstelle erfuellt ({ bounds: BoundingVolume |
+undefined }, src/interfaces/Collidable.ts:7-10) - Object3D erfuellt das strukturell
+bereits ueber sein bounds-Feld, ganz ohne Adapter. queryVolume(volume):
+Collidable[] (Octree.ts:169-181 / 222-226) liefert exakt das, was eine Broadphase
+braucht: alle Objekte, deren Bounds ein gegebenes Volumen schneiden.
+
+--> Octree wird verwendet. SpatialHash bleibt unangetastet (weiterhin
+YAD-spezifisch fuer statische Wand-Kollision in Controllern/Enemy-Bewegung, siehe
+FirstPersonController.ts:166-167, EnemyBehavior.ts:74-75 - unveraendert).
+
+
+ENTSCHEIDUNG 2 — PHYSICSSYSTEM BAUT SEINEN EIGENEN BAUM
+--------------------------------------------------
+(statt scene.dynamicOctree zu nutzen)
+
+Naheliegend waere, den bereits vorhandenen scene.dynamicOctree/scene.staticOctree
+(Scene.ts:25-26, jeden Frame per Scene.updateDynamicOctree() neu aufgebaut,
+Scene.ts:99-103, aufgerufen aus Scene.update() -> Scene.ts:70-72) zu benutzen. Das
+ist aber aus zwei Gruenden falsch:
+
+1. Reihenfolge/Staleness: Scene.update() (rebuilds dynamicOctree) und
+   PhysicsSystem.step() haben heute KEINE erzwungene Aufrufreihenfolge - es gibt
+   noch keine App, die beide im richtigen Verhaeltnis zueinander aufruft. Wuerde
+   PhysicsSystem in scene.dynamicOctree nach der Integration lesen, aber der Baum
+   wurde vor der Integration (oder in einem frueheren Frame) gebaut, saehe die
+   Broadphase die alten Positionen anderer Bodies - ein Kandidat koennte
+   faelschlich fehlen (Tunneling-Risiko) oder faelschlich vorhanden sein.
+
+2. Optionalitaet: scene.dynamicOctree/staticOctree existieren nur, wenn eine App
+   explizit scene.initOctrees(bounds) aufgerufen hat (heute nur YadApp.ts:282-284,
+   mit hartcodierter Welt-Box -200..200/-50..100). Fuer jede andere Scene waeren
+   beide undefined - PhysicsSystem muesste einen Fallback ohnehin beherrschen.
+
+--> PhysicsSystem haelt seinen eigenen, privaten Broadphase-Octree und baut ihn
+innerhalb von _resolveCollisions frisch auf, direkt nachdem alle dynamischen
+Bodies integriert wurden (also garantiert mit aktuellen Bounds). Keine
+Abhaengigkeit von Scene's Lifecycle, keine hartcodierte Weltgroesse noetig.
+
+
+ENTSCHEIDUNG 3 — ALLOKATIONSKOSTEN: BEWUSST IN KAUF GENOMMEN
+--------------------------------------------------
+(nicht wegoptimiert)
+
+tests/physix/ZeroAllocation.test.ts prueft AUSSCHLIESSLICH MathPool-Poolgroessen
+(Vector/Matrix/Quaternion, Zeilen 31-56) und Instanz-Identitaet von
+_bodies/_allColliders/_collisionEvent (Zeilen 59-90) - NICHT die
+Octree-Allokationen. Trotzdem ist es ehrlich, das Kostenmodell offenzulegen, bevor
+es implementiert wird:
+
+OctreeNode.clear() (Octree.ts:183-187) setzt this.objects = [] und this.children =
+[] - NEUE Arrays bei jedem Aufruf. _subdivide() (Octree.ts:74-127) legt bei jeder
+Ueberfuellung eines Knotens 8 neue OctreeNode- und BoundingBox-Instanzen plus 16
+neue Vector3D-Instanzen an. Da mein Baum jeden Frame geleert und neu befuellt wird,
+subdividiert er auch jeden Frame neu - ein echtes, bounded, aber nicht-null
+Allokationsprofil. Das ist exakt das Profil, das Scene.updateDynamicOctree()
+(Scene.ts:99-103) heute schon jeden Frame in Produktion erzeugt (dort
+unbeanstandet), und Octree.queryVolume() selbst allokiert pro Aufruf ein neues
+Ergebnis-Array (Octree.ts:222-226) - genau das Muster, das
+FirstPersonController/FPSController/EnemyBehavior bereits jeden Frame pro Charakter
+akzeptieren (FirstPersonController.ts:166-167 u.a.).
+
+Entscheidung: Dieses bestehende, bereits an mehreren Stellen akzeptierte
+Allokationsprofil wird fuer die Physik-Broadphase uebernommen (Option
+"pragmatisch"), NICHT eine echte zero-alloc-Ueberarbeitung von Octree/OctreeNode
+selbst angegangen (Option "rigoros": clear() muesste Kindknoten wiederverwenden
+statt verwerfen, queryVolume braeuchte eine gepoolte Output-Array-Variante).
+Begruendung:
+
+- Octree.ts wird von drei weiteren, unabhaengigen Subsystemen genutzt (Scene,
+  FrustumCuller, InteractionManager) - ein Umbau dort vergroessert die
+  Regressionsflaeche erheblich fuer einen Nutzen, der heute (PhysicsSystem laeuft
+  in keiner Live-App) durch nichts belegt ist.
+- Verstoesst sonst gegen die eigene Regel des Projekts, nicht fuer hypothetische
+  zukuenftige Anforderungen zu bauen ("Kompliziert werden die Dinge eh immer von
+  alleine").
+- Wird explizit als Folge-Task benannt (siehe "Out of Scope"), falls Profiling
+  einer echten laufenden App das je noetig macht.
+
+
+KONKRETER ENTWURF (alles in src/physix/PhysicsSystem.ts)
+--------------------------------------------------
+
+Neue private Felder:
+
+  private _broadphaseTree?: Octree;
+  private _broadphaseWorldMin: Vector3D = new Vector3D();
+  private _broadphaseWorldMax: Vector3D = new Vector3D();
+  private _bodyIndex = new Map<Object3D, number>();
+  private _broadphaseFallback: Object3D[] = []; // Objekte, die die Baum-Bounds sprengen
+
+(Vector3D, Map - keine neuen Imports noetig ausser Octree aus ../core/Octree.js;
+Achtung Zirkularimport pruefen: core/Octree.ts importiert bereits aus
+physix/index.js - ein Import von Octree in physix/PhysicsSystem.ts zurueck in core
+ist ein Kreisimport-Kandidat. Falls das ESM/Vite-Build Probleme macht, den
+bestehenden Projekt-Trick aus Object3D.ts:130-151 nutzen: type-only oder inline
+import("../core/Octree.js"), wie es die Codebase an vergleichbaren Stellen bereits
+tut.)
+
+In _resolveCollisions(scene, bodies, _dt) (ersetzt Zeilen 162-299 innen, Signatur
+bleibt exakt gleich):
+
+  1. Wie heute: allColliders per _collectCollidersRecursive neu befuellen
+     (PhysicsSystem.ts:164-169 unveraendert lassen - enthaelt bereits alle Bodies
+     als Teilmenge, siehe unten).
+
+  2. Neu, waehrend derselben Sammel-Schleife (kein zusaetzlicher Pass): laufendes
+     Welt-AABB ueber center +/- getBroadRadius() jedes Colliders tracken (plain
+     number-Lokalvariablen, keine MathPool-Nutzung noetig - getBroadRadius()
+     liefert bereits eine konservative, d.h. nie zu kleine Huellkugel, sicher fuer
+     Containment). Am Ende einen kleinen fixen Epsilon-Rand (z. B. 0.01) addieren,
+     um Boundary-Floating-Point-Faelle bei containsVolume abzufangen.
+
+  3. _broadphaseWorldMin/_broadphaseWorldMax per .set(...) auf die neuen Werte
+     mutieren (keine neue Vector3D-Instanz - diese beiden Felder leben die ganze
+     Objekt-Lebensdauer von PhysicsSystem).
+
+  4. Baum lazy anlegen (this._broadphaseTree ??= new Octree(new
+     BoundingBox(this._broadphaseWorldMin, this._broadphaseWorldMax))) oder - da
+     BoundingBox seine min/max-Vektoren per Referenz haelt (bestaetigt:
+     Octree._subdivide, Octree.ts:91-100, uebergibt frisch erzeugte Vektoren
+     direkt, keine Kopie) - beim ersten Aufruf einmalig konstruieren; ab dann nur
+     this._broadphaseTree.clear() + erneutes insert(). Die Bounds-Vektoren selbst
+     sind bereits dieselbe Instanz (Referenz auf _broadphaseWorldMin/Max), ein
+     Neubau der BoundingBox/Octree-Huelle pro Frame ist NICHT noetig, nur clear() +
+     insert(...) fuer jeden Collider.
+
+  5. Alle Eintraege aus allColliders einfuegen:
+       if (!this._broadphaseTree.insert(obj)) this._broadphaseFallback.push(obj);
+     Wichtig: anders als Scene._addObjectToOctree (Scene.ts:115-127), das einen
+     gescheiterten Insert nur mit console.warn quittiert und das Objekt fuer den
+     Frame fallen laesst (fuer Culling akzeptabel, fuer Physik nicht), darf hier
+     KEIN Objekt stillschweigend aus der Kollisionspruefung verschwinden.
+     _broadphaseFallback wird danach ganz normal linear (wie heute) gegen jeden
+     Body getestet - im Normalfall leer, nur ein Sicherheitsnetz fuer den
+     Boundary-Edge-Case.
+
+  6. _bodyIndex aus bodies neu befuellen (.clear() dann .set(body, i) in der
+     bestehenden for (let i = 0; i < bodies.length; i++)-Schleife) - ersetzt den
+     heutigen bodies.indexOf(otherObj)-Aufruf (PhysicsSystem.ts:184) durch eine
+     O(1)-Map-Lookup. Das behebt nebenbei eine bereits heute vorhandene, von der
+     raeumlichen Struktur unabhaengige Ineffizienz.
+
+  7. Innere Schleife: statt for (j = 0; j < allColliders.length; j++) ->
+     this._broadphaseTree.queryVolume(dynObj.bounds) aufrufen (liefert die
+     Kandidatenliste fuer genau diesen Body) PLUS _broadphaseFallback
+     durchlaufen. Selbstausschluss (dynObj === otherObj, heute Zeile 181) und
+     Doppelte-Aufloesung-Guard (jetzt ueber _bodyIndex.get(otherObj)) unveraendert
+     beibehalten. Narrowphase-Dispatch (Zeilen 190-293: Sphere-Sphere/Sphere-Box,
+     Positions-Korrektur, Impuls-Aufloesung, Event-Dispatch) BLEIBT KOMPLETT
+     UNVERAENDERT - nur die Kandidatenquelle der inneren Schleife aendert sich.
+
+Wichtig, nicht vergessen: bodies ist bereits eine Teilmenge von allColliders (jeder
+Body mit bounds erfuellt auch _collectCollidersRecursive's Bedingung,
+PhysicsSystem.ts:154) - NUR allColliders in den Baum einfuegen, nicht zusaetzlich
+bodies, sonst landen Bodies doppelt im Baum und queryVolume liefert Duplikate, die
+die Kollisionsschleife zweimal aufloesen wuerde.
+
+
+OUT OF SCOPE (bewusst nicht Teil dieser Aenderung)
+--------------------------------------------------
+
+- Box-Box/OBB-Kollisionen: Collision._boxBox/_obbObb erkennen sie
+  (Collision.ts:25-27, 34-36), PhysicsSystems Dispatch-Block
+  (PhysicsSystem.ts:192-212) hat aber keinen (1,1)-Zweig - diese Paare werden
+  weiterhin erkannt, aber nicht aufgeloest. Unabhaengiger, vorbestehender Gap,
+  nicht Teil dieser Aufgabe.
+
+- PhysicsSystem in eine Live-App verdrahten (SmallWorld.ts/YadApp.ts rufen .step()
+  nirgends auf) - separate Entscheidung mit eigenen Implikationen (Reihenfolge im
+  Frame-Loop, welche Objekte rigidBody bekommen), nicht Teil dieser
+  Broadphase-Aenderung.
+
+- Echter zero-alloc Octree-Umbau (clear()/queryVolume mit Wiederverwendung statt
+  Neuallokation) - siehe Entscheidung 3. Als Folge-Task benennen, falls Profiling
+  das spaeter rechtfertigt.
+
+- SpatialHash erweitern (3D/Y-Achse, Remove/Update-API) - siehe Entscheidung 1.
+
+- Zusammenlegen der zwei separaten Rekursions-Walks (_collectBodiesRecursive in
+  step(), _collectCollidersRecursive in _resolveCollisions(), aktuell zwei
+  getrennte volle Szenengraph-Traversen pro Frame) - guenstige, aber unabhaengige
+  Verbesserung; nur erwaehnt, damit sie nicht versehentlich "mit reinrutscht".
+
+
+KRITISCHE DATEI
+--------------------------------------------------
+
+src/physix/PhysicsSystem.ts - einzige zu aendernde Datei. Kein Eingriff in
+Octree.ts, Collision.ts, SpatialHash.ts, Scene.ts.
+
+
+VERIFIKATION
+--------------------------------------------------
+
+1. Bestehende Tests muessen unveraendert gruen bleiben, insbesondere:
+
+   - tests/physix/PhysicsSystem.test.ts:208 (direkter Aufruf von
+     _resolveCollisions mit [sphere1, sphere2] - Signatur muss identisch bleiben)
+     und der 100-Schritte-Tunneling-Regressionstest
+     (PhysicsSystem.test.ts:259-293) - das Endresultat (Ruhehoehe nach 100 Steps)
+     muss EXAKT IDENTISCH bleiben, da die Narrowphase-Mathematik nicht veraendert
+     wird.
+
+   - tests/physix/ZeroAllocation.test.ts (Pool-Groessen + Instanz-Identitaet von
+     _bodies/_allColliders/_collisionEvent) - jede neu hinzugefuegte
+     MathPool-Nutzung (falls ueberhaupt eine gebraucht wird) muss exakt gepaart
+     acquire/release sein, sonst schlaegt der Test nach 1000 Steps fehl.
+
+   - tests/physix/Collision.test.ts, tests/physix/RigidBody.test.ts - unberuehrt,
+     zur Kontrolle trotzdem mitlaufen lassen.
+
+2. Neue Tests ergaenzen (gleiche Datei tests/physix/PhysicsSystem.test.ts oder neue
+   tests/physix/PhysicsSystemBroadphase.test.ts):
+
+   - Aequivalenz-Test: eine Szene mit z. B. 30-50 verstreuten Bodies/Collidern, von
+     denen nur ein kleiner, bekannter Teil tatsaechlich nahe beieinander liegt -
+     assert, dass exakt dieselben Kollisionspaare aufgeloest werden wie mit der
+     alten Brute-Force-Schleife (am einfachsten: bekannte kollidierende Paare
+     loesen aus, bekannte weit entfernte Paare loesen nicht aus).
+
+   - Boundary-Edge-Case: ein Objekt, dessen Bounds knapp ausserhalb der
+     berechneten Baum-Box liegen (z. B. durch Manipulation vor dem Insert), landet
+     garantiert im _broadphaseFallback-Pfad und wird trotzdem korrekt aufgeloest -
+     nie stillschweigend uebersprungen.
+
+3. npm run lint:fix, npm run build:lib, npm test ausfuehren (Standard-Workflow
+   laut AGENTS.md) bevor als fertig gemeldet wird.
+
+4. CHANGELOG.md Eintrag ergaenzen (bestehende Eintraege nicht veraendern, laut
+   Projektkonvention "Data Integrity: Preserve historical entries").

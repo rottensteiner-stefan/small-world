@@ -5,6 +5,7 @@ import { Object3D } from "../../src/core/Object3D.js";
 import { RigidBody } from "../../src/physix/RigidBody.js";
 import { Vector3D } from "../../src/math/index.js";
 import { Cube, Sphere } from "../../src/geometry/index.js";
+import { BoundingSphere } from "../../src/physix/BoundingSphere.js";
 
 describe("PhysicsSystem", () => {
   let system: PhysicsSystem;
@@ -290,5 +291,78 @@ describe("PhysicsSystem", () => {
     // Marble should have bounced and come to rest around Y=1.0 (radius)
     // Floating point math might not be exactly 1.0, but it should be above 0.
     expect(marble.position.y).toBeGreaterThan(0.9);
+  });
+
+  it("should correctly identify collisions in a dispersed scene (Broadphase Equivalence)", () => {
+    // 30 scattered bodies.
+    const bodies: Object3D[] = [];
+    for (let i = 0; i < 30; i++) {
+      const obj = new Object3D();
+      obj.rigidBody = new RigidBody(1);
+      // Place them far apart
+      obj.position.set(i * 10, 0, i * 10);
+      obj.bounds = new BoundingSphere(obj.position, 1.0);
+      scene.add(obj);
+      bodies.push(obj);
+    }
+
+    // Pair 1: explicitly colliding
+    bodies[0]!.position.set(0, 0, 0);
+    bodies[1]!.position.set(0.5, 0, 0);
+    bodies[0]!.rigidBody!.velocity.set(1, 0, 0);
+    bodies[1]!.rigidBody!.velocity.set(-1, 0, 0);
+
+    // Pair 2: explicitly colliding far away
+    bodies[20]!.position.set(200, 0, 200);
+    bodies[21]!.position.set(200.5, 0, 200);
+    bodies[20]!.rigidBody!.velocity.set(1, 0, 0);
+    bodies[21]!.rigidBody!.velocity.set(-1, 0, 0);
+
+    // Only these 2 pairs should be processed and bounce.
+    system.step(scene, 0.1);
+
+    // Check Pair 1
+    expect(bodies[0]!.position.x).toBeLessThan(0); // bounced left
+    expect(bodies[1]!.position.x).toBeGreaterThan(0.5); // bounced right
+
+    // Check Pair 2
+    expect(bodies[20]!.position.x).toBeLessThan(200);
+    expect(bodies[21]!.position.x).toBeGreaterThan(200.5);
+
+    // Check others didn't move (e.g. index 10)
+    expect(bodies[10]!.position.x).toBe(100);
+  });
+
+  it("should correctly resolve objects that fall into the broadphase fallback list (Boundary Edge Case)", async () => {
+    const s1 = new Object3D();
+    s1.rigidBody = new RigidBody(1);
+    s1.position.set(0, 0, 0);
+    s1.bounds = new BoundingSphere(s1.position, 1.0);
+
+    const s2 = new Object3D();
+    s2.rigidBody = new RigidBody(1);
+    s2.position.set(0.5, 0, 0);
+    s2.bounds = new BoundingSphere(s2.position, 1.0);
+
+    scene.add(s1, s2);
+
+    s1.rigidBody.velocity.set(1, 0, 0);
+    s2.rigidBody.velocity.set(-1, 0, 0);
+
+    // Mock Octree to reject s2, forcing it into _broadphaseFallback
+    const { Octree } = await import("../../src/core/Octree.js");
+    const originalInsert = Octree.prototype.insert;
+    Octree.prototype.insert = function (obj: import("../../src/interfaces/index.js").Collidable) {
+      if (obj === s2) return false;
+      return originalInsert.call(this, obj);
+    };
+
+    system.step(scene, 0.1);
+
+    Octree.prototype.insert = originalInsert;
+
+    // The collision should still resolve because s2 is in the fallback list!
+    expect(s1.position.x).toBeLessThan(0);
+    expect(s2.position.x).toBeGreaterThan(0.5);
   });
 });

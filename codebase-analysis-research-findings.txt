@@ -1,0 +1,858 @@
+CODEBASE-ANALYSE — VOLLSTAENDIGE RECHERCHE-ROHDATEN (ERSTER DURCHLAUF)
+Alle Einzelbefunde der fuenf parallelen Tiefen-Analysen zu Struktur, Patterns und
+Code-Style, unverkuerzt (Ergaenzung zu code-analysis.txt, das nur die daraus
+abgeleitete, verdichtete Einschaetzung zeigt)
+==================================================
+
+Dieses Dokument enthaelt die vollstaendigen Rohberichte der fuenf parallelen
+Recherche-Agenten, die die Codebase unter src/ durchleuchtet haben:
+  1. Core / Behaviors / Cameras
+  2. Renderer-Stack (WebGL1/WebGL2/WebGPU, Shader, Post-Processing)
+  3. Math / Physix / Geometrie
+  4. Materials / Loaders / Tools (Forge-Suite)
+  5. Apps/Yad und Extensions (was die Engine konkret zeigt)
+
+Jeder Bericht wird hier so wiedergegeben, wie er zurueckgeliefert wurde — nichts
+gekuerzt, nichts weggelassen. code-analysis.txt ist die daraus abgeleitete,
+meinungsbasierte Verdichtung; dieses Dokument ist die Grundlage dafuer.
+
+
+==================================================
+TEIL 1: CORE / BEHAVIORS / CAMERAS
+==================================================
+
+Gelesene Dateien: src/core/SmallWorld.ts, Scene.ts, Object3D.ts, Camera.ts,
+Input.ts, InteractionManager.ts, core/behaviors/Behavior.ts + mehrere weitere
+(FirstPersonController.ts, GridMovementBehavior.ts, StateMachineBehavior.ts,
+TrailRendererBehavior.ts, ProximitySensorBehavior.ts), core/cameras/
+CameraStrategyFactory.ts, CameraEffectFactory.ts, alle Dateien in
+core/cameras/strategies/, alle Dateien in core/controllers/,
+core/events/UniversalEventBus.ts und EventDispatcherImpl.ts,
+core/fsm/StateMachine.ts.
+
+--------------------------------------------------
+1.1 Design Patterns: konsistentes Grundgeruest, inkonsistente Durchsetzung
+--------------------------------------------------
+
+Strategy ist das sauberste Pattern in der Codebase. Sieben austauschbare
+CameraStrategy-Implementierungen (src/core/cameras/strategies/*.ts)
+implementieren alle denselben update(camera, targetPos, dx, dy)/zoom()-Vertrag,
+ausgewaehlt ueber CameraStrategyFactory (CameraStrategyFactory.ts:14-27, eine
+vorinstanziierte Map). Aber der Constraint-Clamping-Block (if min && max… else if
+min… else if max…) ist nahezu wortgleich in FPSStrategy.ts:40-52,
+SmoothStrategy.ts:57-69 und StiffStrategy.ts:53-65 kopiert — ein gemeinsamer
+clampVector(v, constraints)-Helper wurde nie extrahiert.
+
+Zwei Factories, zwei Philosophien. CameraStrategyFactory.get() faellt bei
+unbekanntem Typ still auf MANUAL zurueck (CameraStrategyFactory.ts:26), waehrend
+CameraEffectFactory.create() bei unbekanntem Typ wirft (CameraEffectFactory.ts:28).
+Gleiches Verzeichnis, gleiches "Factory"-Label, entgegengesetzte
+Fehlersemantik.
+
+Behavior/Component-Pattern (Behavior.ts:22-50) wird identisch ueber
+addBehavior/removeBehavior angehaengt, aber diese Logik ist Byte fuer Byte
+zwischen Object3D.ts:83-96 und Camera.ts:188-201 dupliziert, statt geteilt zu
+werden (Camera erbt nicht von Object3D oder teilt ein Mixin/Interface dafuer).
+
+Singleton/Observer: UniversalEventBus (UniversalEventBus.ts:9) ist eine simple
+exportierte Singleton-Instanz mit einem expliziten Architektur-Kommentar
+("Assumes a 1 Engine Instance per Page"). EventDispatcherImpl.dispatchEvent
+kopiert korrekt das Listener-Array, bevor es iteriert (EventDispatcherImpl.ts:44),
+um Mutate-during-Dispatch-Bugs zu vermeiden — ein wirklich sorgfaeltiges Detail.
+
+FSM: StateMachine.ts ist eine kleine, gut abgegrenzte generische Zustands-
+maschine (Transitions, autoTransition, onEnter/onExit/onUpdate,
+Dauer-Tracking) mit StateMachineBehavior.ts:17-22 als duennem, ehrlichem Adapter
+— kein Overreach.
+
+--------------------------------------------------
+1.2 Szenengraph und Transform-Propagation
+--------------------------------------------------
+
+Scene versteckt ihre Wurzel hinter einem oeffentlichen objects-Getter
+(Scene.ts:19-23) und leakt sie bewusst nicht in getObjectByName (Scene.ts:56-59:
+liefert undefined, wenn der Treffer die versteckte Wurzel ist). Die Update-
+Reihenfolge ist zweiphasig: erst laufen alle Behaviors rekursiv (Scene.ts:63-65,
+_updateBehaviorsRecursive), DANN werden alle Weltmatrizen neu berechnet
+(Scene.ts:67-69).
+
+Ueberraschende Befunde: updateMatrixWorld(force: boolean = false) akzeptiert und
+propagiert force rekursiv (Object3D.ts:169,177), liest es aber nie — jedes
+Objekt rekomponiert seine lokale Matrix jeden Frame, unabhaengig vom Flag. Ein
+vestigialer Parameter fuer eine Dirty-Flag-Optimierung, die nie implementiert
+wurde. Ausserdem baut Object3D.lookAt() (Object3D.ts:161-167) eine Look-At-
+Matrix und ein Quaternion daraus, weist das Ergebnis aber nie this.rotation zu —
+die Methode berechnet eine Orientierung und verwirft sie dann wieder,
+unveraendert zurueckkehrend.
+
+--------------------------------------------------
+1.3 Code-Style
+--------------------------------------------------
+
+- Datei-Header ///-path-Konvention: 100% konsistent ueber alle 20+ gelesenen
+  Dateien.
+- Explizite Return-Types sind fast universell, sogar bei trivialen Gettern
+  (Scene.ts:21).
+- Underscore-praefixierte Privates/Protecteds sind konsistent (Camera.ts:38-46,
+  FirstPersonController.ts:32-35 nutzt protected _options/_collider).
+- "No any" wird tatsaechlich gelebt — kein einziges nacktes any in irgendeiner
+  gelesenen Datei. Stattdessen setzt der Haus-Stil auf unknown + Assertions
+  (as unknown as CameraInterfaceData, vier Fundstellen:
+  FirstPersonController.ts:90, FPSController.ts:98, OrbitController.ts:49,
+  ZoomController.ts:37) und wiederholte INLINE import(...)-Typen, um
+  Zirkular-Imports zu umgehen — Object3D.ts:130-151 allein importiert
+  "../physix/index.js" inline vier separate Male innerhalb einer Methode.
+- Yoda-Vergleiche (0 !== rotationDelta, FirstPersonController.ts:88; undefined
+  !== this.parent, Object3D.ts:171) sind haeufig, aber nicht universell —
+  simple Truthy-Checks (if (!this.enabled || !this.target),
+  FirstPersonController.ts:64) stehen direkt daneben.
+- Ein auffaelliger Kommentar-Ausreisser: FPSStrategy.ts:30-33 ist eine lange,
+  in Ich-Form geschriebene "IMPORTANT FIX"-Debugging-Erzaehlung, stilistisch
+  komplett anders als das knappe /** @inheritdoc */, das sonst ueberall im
+  Strategies-Verzeichnis verwendet wird.
+- SmallWorld.ts:286 enthaelt einen deutschen Kommentar ("wir erstellen einen
+  globalen Forge Hub") in einer sonst durchgehend englischen Codebase.
+
+--------------------------------------------------
+1.4 Uebergreifende Inkonsistenzen
+--------------------------------------------------
+
+FirstPersonController und FPSController sind nahezu duplizierte Klassen —
+_resolveCollisions() ist fast wortgleich kopiert (FirstPersonController.ts:
+158-200 vs. FPSController.ts:161-203), aber NUR FPSController akzeptiert ein
+injizierbares InputInterface fuer Testbarkeit (FPSController.ts:32,62), waehrend
+GridMovementBehavior, WASDController, OrbitController, ZoomController und
+FirstPersonController alle die statische Input.*-Klasse direkt aufrufen —
+DI-fuer-Testbarkeit sieht wie eine beabsichtigte Regel aus, der nur eine Klasse
+tatsaechlich folgt. Fehlerbehandlung variiert ebenfalls je nach Kontext: hartes
+throw beim Bootstrap (SmallWorld.ts:194-198), stiller Fallback in
+CameraStrategyFactory (Zeile 26), und console.warn-und-weitermachen in
+Scene._addObjectToOctree (Scene.ts:125-127) — drei Philosophien, aber
+argumentierbar konsistent mit "wirf nur bei einmaliger Initialisierung, degradiere
+graceful pro Frame".
+
+--------------------------------------------------
+1.5 Handwerk vs. Drift
+--------------------------------------------------
+
+Echtes Handwerk: die MathPool.acquire/release-Scratch-Vektor-Disziplin wird
+korrekt und durchgaengig angewendet (Camera.ts:117-129, IsometricStrategy.ts:
+29-61, WASDController.ts:56-80), keine unpassenden acquire/release-Paare
+gefunden; Scene.getVisibleObjectsSorted wiederverwendet persistente
+verschachtelte Maps und kuerzt Arrays nur, statt sie neu zu allozieren, mit
+explizitem "Monomorphism/GC optimization"-Kommentar (Scene.ts:152-161). Drift:
+duplizierter addBehavior/Kollisionsaufloesungs-Code, der tote force-Parameter,
+und das No-Op-lookAt.
+
+
+==================================================
+TEIL 2: RENDERER-STACK (WEBGL1/WEBGL2/WEBGPU, SHADER, POST-PROCESSING)
+==================================================
+
+Gelesene Dateien: src/renderers/AbstractRenderer.ts, AbstractWebGLRenderer.ts,
+RendererFactory.ts, Mesh.ts, RenderPass.ts, WebGL1/WebGL1Renderer.ts,
+WebGL2/WebGL2Renderer.ts (Hinweis: diese Datei hatte zum Recherchezeitpunkt einen
+unbezogenen WIP-Diff einer anderen Session — bewusst ignoriert, nur der
+aktuelle Dateiinhalt wurde bewertet), WebGPU/WebGPURenderer.ts,
+passes/MainRenderPass.ts, PostProcessPass.ts, post/PostProcessingElement.ts,
+PostProcessingGroup.ts, alle Dateien in post/elements/, alle Dateien in
+post/passes/, core/renderers/shaders/RenderManifest.ts, ShaderRegistry.ts,
+ShaderBootstrap.ts, ShaderDefinition.ts, UniformPacker.ts,
+StandardWebGPULayout.ts, CoreShaderChunks.ts.
+
+--------------------------------------------------
+2.1 Hybride WebGL2/WebGPU-Abstraktion: duenne gemeinsame Basis, aber zwei echt unterschiedliche Pipeline-Architekturen
+--------------------------------------------------
+
+AbstractRenderer (src/renderers/AbstractRenderer.ts:25-138) ist bewusst
+minimal: vier abstrakte Methoden (initialize, render, setSize,
+setRenderTarget) plus geteilte Licht-Extraktion (extractLights/
+_traverseLights, Zeilen 105-137). Das ist ehrliches Design — es tut nicht so,
+als koennten WebGL und WebGPU mehr teilen, als sie tatsaechlich tun.
+
+Aber die Pipeline darunter ist NICHT symmetrisch. WebGPU hat ein echtes
+komponierbares Pass-System: _passes: RenderPass[] (WebGPURenderer.ts:156,
+befuellt bei Zeile 263 mit [MainRenderPass(), PostProcessPass()]) plus ein
+oeffentliches addPass() (Zeilen 270-272) fuer Apps zum Erweitern. WebGL1/
+WebGL2 haben kein Aequivalent — ihre gesamte Pipeline (Skybox -> Opaque ->
+Opaque-Textur-Erfassung -> Transparent -> Post-Blit) ist prozedural in einer
+grossen render()-Methode eingebettet (WebGL1Renderer.ts:297-490,
+WebGL2Renderer.ts:475-644), fast Zeile fuer Zeile zwischen beiden
+GL-Renderern dupliziert.
+
+Feature-Paritaet ist ebenfalls ungleich: WebGL2 hat vollstaendiges Cascaded-
+Shadow-Mapping (WebGL2Renderer.ts:649-819, _renderShadowMaps/
+_renderShadowScene/_bindDummyShadowMaps), das WebGPU komplett fehlt (kein
+Shadow-Code irgendwo in WebGPURenderer.ts). Umgekehrt verdrahten sowohl WebGPU
+als auch WebGL2 IBL (Irradiance/Prefilter/BRDF-LUT — WebGL2Renderer.ts:64-82,
+WebGPURenderer.ts:405-408,468-493), waehrend WebGL1 weder Shadows noch IBL hat.
+Die drei Backends bilden also eine strikte Qualitaetsleiter (WebGL2 > WebGPU >
+WebGL1), keine parallelen Implementierungen eines Vertrags — WebGL2 ist klar
+das am aktivsten gepflegte Backend.
+
+--------------------------------------------------
+2.2 Shader: ein handgerollter Text-Praeprozessor, kein echter Compiler
+--------------------------------------------------
+
+ShaderRegistry.assemble() (ShaderRegistry.ts:101-112) macht Regex-basierte
+[CHUNK_ID]-Substitution ueber rohen GLSL/WGSL-Text, der ueber ?raw-Imports
+eingebunden wird — kein AST, keine Validierung ausser einem console.warn fuer
+fehlende Chunks. Die Backend-Auswahl ist manuell und dupliziert: jeder
+Renderer waehlt unabhaengig def.sources.glsl100/glsl300/wgsl aus und ruft
+assemble() mit einem hartcodierten Sprach-Tag auf (WebGL1Renderer.ts:136-137,
+WebGL2Renderer.ts:168-169, WebGPURenderer.ts:658-659) — es gibt keinen
+einzigen zentralen Dispatcher.
+
+Der WebGPU-Pfad geht noch weiter und macht LIVE-REGEX-UMSCHREIBUNG von
+kompiliertem WGSL-Quelltext fuer Feature-Varianten: tauscht texture_2d<f32>
+gegen texture_2d_array<f32> und injiziert Instance-Attribut-Parameter in die
+vs()-Funktionssignatur per Regex (WebGPURenderer.ts:662-707). Das ist clever,
+aber fragil: jede Reformatierung des WGSL-Quelltexts koennte die
+Transformation stillschweigend brechen, ohne Compile-Zeit-Signal. Der
+rettende Faktor ist ein Laufzeit-Sicherheitsnetz: sm.getCompilationInfo().
+then(...) (Zeilen 712-720), das WGSL-Compile-Fehler asynchron loggt — passend
+zur "defensive rendering"-Philosophie in AbstractRenderer.ts:20-23.
+
+UniformPacker (UniformPacker.ts:18-140) ist im Gegensatz dazu ein sauberer,
+kleiner, ausrichtungs-bewusster std140-artiger Packer — wird aber NUR vom
+WebGPU-Objekt-Uniform-Pfad genutzt (WebGPURenderer.ts:1196). WebGL-Renderer
+nutzen ihn nie; sie rufen gl.uniformXfv pro Location einzeln auf. Die schoene
+Abstraktion dient nur einem Backend.
+
+--------------------------------------------------
+2.3 Post-Processing: komponierbar auf WebGPU, hartcodiert auf WebGL — und ein totes Feature
+--------------------------------------------------
+
+BloomPassGL und BloomPassGPU sind wirklich parallel, nicht copy-paste-
+gedriftet: beide implementieren Kawase-Dual-Filter-Bloom mit einer 5-Level-
+Mip-Kette (BloomPassGL.ts:14, BloomPassGPU.ts:25), identische Threshold/
+Knee-Mathematik (BloomPassGL.ts:163-165 vs. BloomPassGPU.ts:188-189), und
+dieselbe Downsample->Upsample-Struktur. Das ist solide, treue Dual-Backend-
+Ingenieurskunst.
+
+QuantizeElement ist jedoch ein durch Auslassung totes Feature: sowohl
+PostProcessPassGL.ts:38,89 als auch PostProcessPass.ts:41,115 (WebGPU) rufen
+group.get(QUANTIZE) auf und erwarten, dass es existiert, aber
+PostProcessingGroups Konstruktor (PostProcessingGroup.ts:29-34) fuegt NUR
+ToneMapping/Vignette/Grain/Bloom hinzu — nie Quantize. loadConfig() (Zeilen
+63-115) hat keinen config.quantize-Zweig, und PostProcessingConfig
+(EngineOptions.ts:107) deklariert das Feld nicht einmal. Der Posterize-
+Shader-Pfad ist ueber die oeffentliche Config-API also UNERREICHBAR; er
+funktioniert nur, wenn eine App manuell group.add(new QuantizeElement())
+aufruft — genau das tut src/apps/yad/YadApp.ts:294 als Workaround. Das ist
+eine echte "halb verdrahtete" Luecke, keine hypothetische.
+
+--------------------------------------------------
+2.4 Style, Cleanup, Fehler-Oberflaeche
+--------------------------------------------------
+
+Yoda-Vergleiche und ///-Datei-Header-Kommentare werden konsistent angewendet
+(WebGL2Renderer.ts:198 null === loc, Mesh.ts:133 6 > i). Kein nacktes any
+gesehen; unknown + as-Casts sind die Norm.
+
+Cleanup ist asymmetrisch: AbstractWebGLRenderer.destroy() ruft nur
+WEBGL_lose_context auf (AbstractWebGLRenderer.ts:14-22), ohne irgendwas in
+_programs/_texCache/_renderTargetFbos freizugeben, verlaesst sich auf
+Context-Loss zur Speicherfreigabe. WebGPURenderer hat ueberhaupt kein
+destroy()-Override — sein einziger Reklamations-Mechanismus ist
+_pruneObjectBuffers() (Zeilen 962-969), ein periodischer Sweep, der nur
+Pro-Objekt-Uniform-Buffer freigibt, die aelter als 100 Frames sind; Pipelines,
+Geometrie-Caches und Bind-Groups werden nie freigegeben.
+
+Fehler-Oberflaeche unterscheidet sich ebenfalls je nach Backend: WebGPU hat
+einen immer aktiven Kanal ueber device.onuncapturederror
+(WebGPURenderer.ts:238-240); WebGL prueft nur Compile-/Link-Status zur
+Shader-Bauzeit (AbstractWebGLRenderer.ts:51-70), ohne gl.getError()-Polling
+irgendwo im Render-Loop.
+
+--------------------------------------------------
+2.5 Handwerk vs. Schulden
+--------------------------------------------------
+
+Echtes Handwerk: redundante-State-Change-Vermeidung ueber gecachten GL-State
+(_stateCullFaceEnabled etc., WebGL1Renderer.ts:57-63,588-638, gespiegelt in
+WebGL2Renderer.ts:99-105,1106-1156), und das Frustum/Octree-Culling in
+Scene.ts. Schulden: CoreShaderChunks.ts:147-150 endet mit vier woertlichen
+// FORCE_REBUILD/_2/_3/_4-Kommentaren — ein Bundler-Cache-Busting-Hack, der ins
+Repo committed wurde. RendererFactory.ts:81 loggt einen deutschsprachigen
+Fehler ("Fehler bei der Initialisierung von...") in einer sonst durchgehend
+englischen Codebase.
+
+--------------------------------------------------
+2.6 Rendering-Reihenfolge — stimmt mit Dokumentation ueberein
+--------------------------------------------------
+
+Bestaetigt: opake Objekte gruppiert nach shaderId -> topology -> material
+(Scene.ts:219-227), Skybox zuerst gerendert mit deaktiviertem Depth-Write
+(WebGL1Renderer.ts:381-407, WebGL2Renderer.ts:544-558, MainRenderPass.ts:
+43-55), und transparente Objekte sortiert back-to-front via distB - distA
+auf quadrierter Kameradistanz (Scene.ts:173-187), gerendert nach einer
+Opaque-Textur-Erfassung fuer Refraktion (WebGL1Renderer.ts:425-484,
+WebGL2Renderer.ts:567-624, MainRenderPass.ts:64-113). Die Implementierung
+stimmt exakt mit der dokumentierten Konvention ueber alle drei Backends
+hinweg ueberein.
+
+
+==================================================
+TEIL 3: MATH / PHYSIX / GEOMETRIE
+==================================================
+
+Gelesene Dateien: src/math/Vector3D.ts, Vector2D.ts, Matrix3.ts, Matrix4.ts,
+Quaternion.ts, MathPool.ts, MathUtils.ts, Frustum.ts, CatmullRomSpline.ts,
+Curve3D.ts, GearMath.ts, math/projections/AbstractProjection.ts,
+PerspectiveProjection.ts, OrthographicProjection.ts, ObliqueProjection.ts,
+src/physix/BoundingBox.ts, BoundingSphere.ts, OBB.ts, Collision.ts, Ray.ts,
+Raycaster.ts, RigidBody.ts, SpatialHash.ts, StaticCollider.ts,
+PhysicsSystem.ts, src/geometry/AbstractGeometry.ts und Cube.ts, Sphere.ts,
+Terrain.ts, ExtrudeGeometry.ts.
+
+--------------------------------------------------
+3.1 Vector/Matrix/Quaternion-API — mutate-in-place, konsistent, mit halb-adoptiertem Pool
+--------------------------------------------------
+
+Alle fuenf Math-Klassen folgen derselben Konvention: Instanzmethoden mutieren
+this und geben this fuer Chaining zurueck (Vector3D.add/sub/scale/cross,
+src/math/Vector3D.ts:44-132; Quaternion.multiply/premultiply,
+src/math/Quaternion.ts:74-113), waehrend "berechne ein neues Ding aus zwei
+Inputs"-Operationen statisch sind und in einen expliziten target-/out-
+Parameter schreiben (Matrix4.multiply(a,b,result) Matrix4.ts:247,
+Matrix4.lookAt(eye,target,up,result) Zeile 363, Matrix3.multiply(a,b,out)
+Matrix3.ts:111). Das ist wirklich konsistent ueber Vector2D, Vector3D,
+Matrix3, Matrix4, Quaternion — keine Klasse bricht das Muster.
+
+MathPool.ts (src/math/MathPool.ts:9-73) ist ein einfacher Free-List-Pool fuer
+Vector3D/Matrix4/Quaternion, um GC-Churn von den vielen statischen Helfern zu
+vermeiden, die sonst new bräuchten. Es ist nicht dekorativ: es wird in 18
+Dateien importiert, darunter Matrix4.ts selbst (lookAt, decompose),
+Collision.ts, PhysicsSystem.ts, Octree.ts, Raycaster.ts und Renderer.
+PhysicsSystem.step alleine holt sich pro Body/Frame ~10 gepoolte Objekte
+(src/physix/PhysicsSystem.ts:68-133), und jedes acquire ist im selben Scope
+mit einem release gepaart. Es ist echtes, breit adoptiertes Plumbing, kein
+halb-fertiges Experiment — auch wenn AbstractGeometry.applyMatrix4
+(src/geometry/AbstractGeometry.ts:312-325) ausserhalb des Hot-Loops einen
+rohen new Vector3D() pro Aufruf alloziert, und Ray.at standardmaessig auf
+new Vector3D() defaultet (src/physix/Ray.ts:37) — Pool-Nutzung folgt also
+"wird jeden Frame aufgerufen", nicht "jede Allokation ueberall".
+
+--------------------------------------------------
+3.2 Physik — echtes semi-implizites Euler, SAT fuer OBB, aber Brute-Force-Broadphase
+--------------------------------------------------
+
+PhysicsSystem.step ist ein echter semi-impliziter Euler-Integrator
+(src/physix/PhysicsSystem.ts:63-99: Geschwindigkeit wird aus Beschleunigung
+zuerst aktualisiert, dann Position aus der neuen Geschwindigkeit), mit
+separater Winkelintegration ueber Quaternions (Zeilen 100-134) statt naiver
+Euler-Winkel-Addition — eine legitime Feinheit. Kollisionsaufloesung
+(Zeilen 214-292) macht Positions-Korrektur nach Inverse-Masse-Verhaeltnis
+plus ein 0.005-Anti-Sinking-Epsilon (Zeile 238) und eine impulsbasierte
+Bounce mit einem Restitutions-Floor fuer Ruhekontakt
+(e = velAlongNormal > -0.5 ? 0 : Math.min(restA, restB), Zeile 269) — ein
+Standard-, solider Ansatz, nicht hand-wavy.
+
+Collision._obbObb (src/physix/Collision.ts:151-182) ist ein echter
+15-Achsen-SAT-Test, der korrekt fast-parallele Kreuzachsen unterhalb von
+0.0001 ueberspringt (Zeile 168). Aber OBB.intersectsVolume/
+intersectsFrustum (src/physix/OBB.ts:29-38) liefern bedingungslos true —
+SAT ist nur ueber Collision.test erreichbar, das selbst nur OBB-vs-OBB
+dispatcht (Zeile 34); OBB-vs-Box/Sphere geben still false zurueck (Zeile
+38). Und PhysicsSystem._resolveCollisions loest tatsaechlich nur
+Sphere-Sphere- und Sphere-Box-Paare auf (Zeilen 193-212) — Box-Box-
+Kollisionen zwischen dynamischen Objekten werden zwar von Collision.test
+als MOEGLICHE Ueberlappung erkannt, aber vom Physiksystem nie aufgeloest.
+
+Am auffaelligsten: die Broadphase ist eine O(bodies x allColliders)
+verschachtelte Schleife (Zeilen 174-295) mit einem Kommentar, der wortwoertlich
+sagt "Here we will query the SpatialHash/Octree and resolve collisions via
+SAT" (Zeile 146) — ein bestaetigter TODO, der in Produktionscode
+stehengeblieben ist. SpatialHash (src/physix/SpatialHash.ts) und Octree
+(src/core/Octree.ts) existieren und sind gut gebaut, aber keins von beiden
+wird irgendwo in PhysicsSystem.ts ausser in diesem Kommentar referenziert.
+
+--------------------------------------------------
+3.3 Raycaster / SpatialHash / Octree — Octree ist echt, SpatialHash ist fuer seinen genannten Zweck ein Waisenkind
+--------------------------------------------------
+
+Octree (src/core/Octree.ts) ist eine legitime 8-fach-raeumliche Unterteilung
+mit Tiefen-/Objektzahl-Limits (Zeilen 35-44), fauler Subdivision bei
+Ueberfuellung (Zeilen 67-69), und Frustum-/Ray-/Volumen-Query-Methoden, die
+per Knoten-Bounds vorfiltern, bevor sie rekursieren (Zeilen 132-181) — das
+sieht so aus, als wuerde es Frustum-Culling tatsaechlich helfen. SpatialHash
+(src/physix/SpatialHash.ts) ist ein korrektes 2D-(XZ-)Uniform-Gitter mit
+richtiger Zellbereichs-Einfuegung/-Abfrage (Zeilen 22-91), aber sein eigener
+Docstring grenzt es explizit auf "grid-based games like YAD" (Zeile 6) ein,
+und tatsaechlich ist sein einziger echter Konsument YadLevelBuilder.ts, nicht
+der allgemeine Physik-/Render-Pfad — es als allgemeine Beschleunigungs-
+struktur zu bezeichnen, waere uebertrieben. Raycaster.intersectObjects
+(src/physix/Raycaster.ts:59-140) macht korrekte AABB-Vorfilterung vor einem
+echten Moeller-Trumbore-Dreieckstest (Zeilen 145-193), iteriert aber das
+flache objects-Array ohne jede Octree-/Hash-Beschleunigung — bei einem echten
+verfuegbaren Octree ist das eine verpasste Gelegenheit.
+
+--------------------------------------------------
+3.4 Geometrie — ein echt geteilter Vertrag, konsistent genutzt
+--------------------------------------------------
+
+AbstractGeometry (src/geometry/AbstractGeometry.ts) zentralisiert
+Normalenberechnung (Zeilen 236-305, winkelgewichtet-nach-Flaeche akkumuliert
+dann normalisiert), Tangentenberechnung fuer Normal-Mapping (Zeilen 80-177,
+echte Gram-Schmidt-Orthogonalisierung bei Zeilen 164-175), Wireframe-Index-
+Ableitung (Zeilen 182-216), und 16/32-Bit-Index-Array-Groessenberechnung
+(Zeilen 224-230). Cube, Sphere, Terrain, ExtrudeGeometry folgen alle
+demselben Muster: bauen flache number[]-Arrays, new Float32Array(...), rufen
+_createIndexArray, dann computeNormals() auf — keine Subklasse erfindet
+Normal-/Index-Handling neu. Sphere ueberschreibt getBoundingVolume(), um eine
+BoundingSphere statt der Basis-BoundingBox zurueckzugeben
+(src/geometry/Sphere.ts:99-104), eine sinnvolle, gezielte Ausnahme statt
+Duplikation.
+
+--------------------------------------------------
+3.5 Style — explizite Typen sind die Norm, wenige echte Escape-Hatches, aber starke Non-Null-Assertion-Nutzung
+--------------------------------------------------
+
+Jede ueberpruefte Methode hat einen expliziten Return-Type; Grep ueber src/
+fand NULL as any und nur ein @ts-ignore — wirklich stark fuer eine Codebase
+dieser Groesse. Allerdings tauchen Non-Null-Assertions (!) 170-mal auf,
+konzentriert in der Math-/Physix-Schicht (Matrix4.ts, Collision.ts,
+Quaternion.setFromRotationMatrix), wo Float32Array-Indizierung unter
+noUncheckedIndexedAccess number | undefined zurueckgibt; die Team-Konvention
+ist d[0]! statt anders zu destrukturieren, was konsistent ist, aber
+bedeutet, dass Korrektheit davon abhaengt, dass die Index-Arithmetik richtig
+ist, statt dass der Type-Checker einen OOB-Read abfaengt. Yoda-Vergleiche
+(0 === det, 3 > len) werden einheitlich angewendet, passend zu den
+dokumentierten TS-Standards des Projekts. Math-Code ist entrollt/inline
+(lokale const a11, a12... vor Multiplikationen in Matrix4.multiply/invert,
+Zeilen 252-322 und 402-455) — optimiert-fuer-Performance statt Lehrbuch-
+Klarheit, aber Kommentare und konsistente Benennung halten es lesbar.
+
+--------------------------------------------------
+3.6 Ausreisser
+--------------------------------------------------
+
+Gut gemacht: GearMath.ts (Zeilen 1-127) — echte DIN-780-Modul-System-
+Zahnradmathematik (Teilkreis/Kopf-/Fusshoehe, Achsabstand, Eingriffsrotation
+via atan2), ein Rigor-Level jenseits von generischem Engine-Boilerplate.
+Frustum.setFromMatrix4/BoundingBox.intersectsFrustum (Gribb-Hartmann-Ebenen-
+Extraktion mit dem "positive vertex"-Trick der Box, src/math/Frustum.ts:
+21-77, src/physix/BoundingBox.ts:138-160) ist korrektes, idiomatisches,
+lehrbuchmaessiges Frustum-Culling.
+
+Fragil/dekorativ: OBB.intersectsVolume/intersectsFrustum, hartcodiert auf
+true (src/physix/OBB.ts:29-38), ist eine tote API-Oberflaeche, die bei
+direktem Aufruf (statt ueber Collision.test) still falsches Verhalten
+liefern wuerde. ObliqueProjection (src/math/projections/ObliqueProjection.ts)
+ist Byte fuer Byte identisch im Verhalten zu OrthographicProjection — es
+ruft dieselbe Matrix4.orthographic ohne Scherungsterm auf, die Klasse
+existiert also, tut aber noch nichts "Schiefes".
+
+Echte Luecke, nicht nur Stil: Die anerkannt-im-Kommentar-Brute-Force der
+Physik-Broadphase (PhysicsSystem.ts:146,174-295), obwohl zwei funktionierende
+raeumliche Strukturen direkt daneben ungenutzt herumliegen, ist der
+konkreteste "an einer Stelle overengineered, an einer anderen
+underengineered"-Befund der ganzen Codebase.
+
+
+==================================================
+TEIL 4: MATERIALS / LOADERS / TOOLS (FORGE-SUITE)
+==================================================
+
+Gelesene Dateien: src/core/materials/AbstractMaterial.ts, StandardMaterial.ts,
+GlassMaterial.ts, LavaMaterial.ts, LiquidMaterial.ts, RetroScreenMaterial.ts,
+TerrainMaterial.ts, CustomShaderMaterial.ts, WorldMaterial.ts,
+materials/importers/ShaderImporter.ts, ShadertoyImporter.ts,
+GLSLSandboxImporter.ts, ComputeToysImporter.ts, src/loaders/AbstractLoader.ts,
+AssetManager.ts, GltfLoader.ts, ObjLoader.ts, MtlLoader.ts, SkyboxLoader.ts,
+src/tools/forge/Forge.ts, ForgeWindow.ts, ForgeTool.ts, ForgeTheme.ts,
+src/tools/GadgetInspector.ts, MaterialStudio.ts, Pixler.ts, Xtractor.ts,
+MapGenerator.ts.
+
+--------------------------------------------------
+4.1 Material-System — echte Vereinheitlichung, aber undichte Uniform-Layout
+--------------------------------------------------
+
+AbstractMaterial (src/core/materials/AbstractMaterial.ts:11-49) ist eine
+echte Abstraktion: definiert uuid, color, cullMode, depthWrite/Test,
+transparent, einen Manifest-Cache, und erzwingt zwei abstrakte Methoden
+(getRenderManifest, getShaderDefinition). Die Selbstregistrierung im
+Konstruktor — ShaderRegistry.instance.registerProvider(this.type, this)
+(AbstractMaterial.ts:37) — bedeutet, dass JEDER new StandardMaterial()-
+Aufruf sich in einer globalen Singleton, keyed nach MaterialType.STANDARD,
+neu registriert und die vorherige Instanz-Registrierung still ueberschreibt.
+Heute harmlos (alle Instanzen emittieren denselben Shader), aber es ist ein
+mutabler globaler Seiteneffekt, versteckt in einem Konstruktor, was ein Smell
+ist, falls ein zukuenftiger Material-Typ je Pro-Instanz-Shader-Varianten
+braucht.
+
+Unterhalb dieser Abstraktion reimplementiert aber jedes konkrete Material
+den Manifest-Bau per Hand, statt ihn zu teilen. StandardMaterial.
+getRenderManifest() (StandardMaterial.ts:162-267), GlassMaterial.
+getRenderManifest() (GlassMaterial.ts:47-86), LiquidMaterial.
+getRenderManifest() (LiquidMaterial.ts:108-161), TerrainMaterial.
+getRenderManifest() (TerrainMaterial.ts:87-132), RetroScreenMaterial.
+getRenderManifest() (RetroScreenMaterial.ts:89-139), und WorldMaterial.
+getRenderManifest() (WorldMaterial.ts:39-83) bauen alle EXAKT DASSELBE
+BASIS-UNIFORM-BLOCK (u_color, u_specColor, u_texOffset, u_texRepeat,
+u_shininess, u_isTerrain, u_metallic, u_roughness, u_extraParams,
+u_liquidParams, u_thresholds) per Hand, jedes stopft seine eigenen
+fachfremden Daten in die geteilten, generisch benannten u_extraParams/
+u_liquidParams/u_thresholds-Slots mit einem Inline-Kommentar, der die
+aktuelle Wiederverwendung erklaert (z. B. GlassMaterial.ts:57:
+u_liquidParams: [this.ior, this.thickness, this.transmission, 0], //
+Reusing for Glass params). Das ist ein echtes "Uber-Uniform-Buffer"-Muster
+(wahrscheinlich um ein festes Layout ueber WebGL1/2/WebGPU hinweg
+einzuhalten), aber es ist nicht DRY — ein geteilter
+createBaseManifestProperties()-Helper auf AbstractMaterial wuerde ~80% der
+duplizierten Boilerplate ueber sieben Dateien beseitigen. Die
+Mutate-in-place-Logik (Schreiben in gecachte typisierte Arrays Feld fuer
+Feld, z. B. StandardMaterial.ts:204-246) ist eine legitime Perf-
+Optimierung (vermeidet GC-Churn pro Frame), macht aber jedes Override zu
+Low-Level-, leicht-falsch-abzuschreibendem Code (man beachte
+props["u_useEnvMap"] etc. als String-indizierter Dictionary-Zugriff ohne
+Compile-Zeit-Uniform-Namens-Pruefung).
+
+LavaMaterial ist wirklich duenn — es ist nur LiquidMaterial mit anderen
+Defaults (LavaMaterial.ts:14-32, ~20 Zeilen, kein Override von Manifest-/
+Shader-Logik). LiquidMaterial und GlassMaterial sind da, wo die echte,
+nicht-triviale Shader-Verdrahtung lebt (Welle/Fluss/Rausch-Uniforms, IOR/
+Dicke/Transmission fuer Refraktion); RetroScreenMaterial ist aehnlich ein
+echter, zweckgebauter Effekt (Modus-abhaengige Scanline-/Tearing-/Kratzer-/
+Sepia-Parameter, RetroScreenMaterial.ts:74-85), kein Config-Wrapper.
+CustomShaderMaterial (CustomShaderMaterial.ts) ist das interessanteste
+Design: es generiert einen synthetischen Pro-Instanz-MaterialType-String
+via UUID (CustomShaderMaterial.ts:47) speziell damit die geteilte Registry
+nicht ueber mehrere Custom-Shader-Instanzen hinweg kollidiert, und injiziert
+defensiv Default-u_texRepeat/u_texOffset-Uniforms, falls das Layout des
+Aufrufers sie auslaesst (CustomShaderMaterial.ts:61-79) — ein
+"Sicherheitsnetz"-Kommentar, der echte Produktions-Debugging-Geschichte
+verraet.
+
+--------------------------------------------------
+4.2 Shader-Importer — legitim, aber flache Text-Substitutions-Adapter
+--------------------------------------------------
+
+Die Importer-Schicht (ShaderImporter.ts ist ein Ein-Methoden-Interface,
+ShaderImporter.ts:10-17) konvertiert echt externe Shader-Dialekte in
+CustomShaderMaterialOptions. ShadertoyImporter (ShadertoyImporter.ts:11-79)
+wickelt mainImage() in eine #version 300 es-Huelle mit iResolution/iTime/
+iMouse-Uniforms und einer main(), die UV zu fragCoord konvertiert
+(ShadertoyImporter.ts:33-35) — korrekt und idiomatisch fuer den
+Standardfall, aber es ist reine Stringverkettung mit KEINER ECHTEN
+PARSING: nichts validiert, dass die Quelle mainImage definiert, iChannel0..3-
+Sampler-Inputs behandelt (fehlen komplett im Uniform-Layout), oder Multi-
+Pass-Buffer (die Mehrheit echter Shadertoy-Shader nutzt Buffer A-D, die
+dieser Importer still nicht unterstuetzen kann).
+
+GLSLSandboxImporter (GLSLSandboxImporter.ts:10-62) ist aehnlich eine
+Template-Substitution: es #definet gl_FragColor/gl_FragCoord, um Legacy-
+WebGL1-artigen Code in eine WebGL2-#version 300 es-Huelle zu bruecken
+(GLSLSandboxImporter.ts:27-29) — ein netter, pragmatischer Trick, aber
+Makro-basiert statt eine echte AST-Transformation, wird also bei jedem
+GLSLSandbox-Shader brechen, der nicht unterstuetzte Legacy-Builtins nutzt.
+
+ComputeToysImporter (ComputeToysImporter.ts:12-144) ist am fragilsten: es
+nutzt drei sequenzielle Regexes, um @compute @workgroup_size(...) zu
+entfernen (ComputeToysImporter.ts:18), textureStore(screen, id.xy, X); zu
+return X; umzuschreiben (Zeilen 22-25), und die Entry-Funktion umzubenennen
+(Zeilen 28-31). Das ist explizit als Heuristik selbstbeschrieben ("Basic
+heuristic: Replace compute signature...", ComputeToysImporter.ts:14) und
+wird jeden compute.toys-Shader still fehl-transformieren, dessen
+textureStore-Aufruf mehrere Zeilen umfasst, verschachtelte Klammern im
+Farbausdruck nutzt, oder mehr als einmal pro Aufruf in screen schreibt — der
+Regex [^,]+ fuers zweite Argument und das gierige (.*) fuer das
+Farbargument sind beide fragil gegen reale Formatierungsvarianz.
+Gesamtbild: eine clevere, funktionierende Idee fuer den einfachen/haeufigen
+Fall, gebaut auf "Demo-Adapter"- statt "robuster Compiler"-Niveau.
+
+--------------------------------------------------
+4.3 Loaders — konsistente Async-Form, echte Duplikation, und eine Fetch-Progress-Anomalie
+--------------------------------------------------
+
+Alle Loader erben von AbstractLoader<T> (AbstractLoader.ts:10-54) und
+folgen einer Konvention: load(url) dispatcht LOADER_START/LOADER_END/
+LOADER_ERROR und wirft bei Fehlschlag erneut (z. B. GltfLoader.ts:75-97,
+ObjLoader.ts:31-54, MtlLoader.ts:18-39, SkyboxLoader.ts:21-78). Das ist
+wirklich konsistent — jeder Loader wickelt seinen Body in
+try {...} catch (error: unknown) { dispatchEvent(...); throw error; }, vier
+Mal woertlich dupliziert. Ein geteilter protected async _run(url, fn)-
+Template-Method auf AbstractLoader wuerde diese Boilerplate zusammenfassen;
+so wie geschrieben ist es kopiert, nicht geteilt.
+
+AssetManager (AssetManager.ts) zentralisiert Caching (_imageCache/
+_textCache/_jsonCache/_binaryCache, Zeilen 18-21) und Streaming-Progress
+via eine manuelle reader.read()-Schleife (AssetManager.ts:126-141) —
+solide, bewusste Ingenieursarbeit, inklusive eines AssetManager.loadImage-
+Fallback-Pfads, der von createImageBitmap zu einem einfachen Image-Element
+bei Fehlschlag degradiert (AssetManager.ts:172-195), mit einem
+DEUTSCHSPRACHIGEN FEHLERSTRING, DER IN EINE OEFFENTLICHE API LEAKT:
+"[AssetManager] Fallback fehlgeschlagen: ${url}" (AssetManager.ts:193) —
+inkonsistent mit dem Rest der englischen Codebase und ein Zeichen, dass
+diese Datei unter Zeitdruck gepatcht wurde, statt reviewed.
+
+Fehlerbehandlung fuer fehlerhafte Assets ist ueber Loader hinweg
+inkonsistent: GltfLoader._loadBinary validiert die GLB-Magic-Number und
+Version und wirft aussagekraeftige Fehler (GltfLoader.ts:120-123, 148),
+aber ObjLoader._parse und MtlLoader._parse validieren ueberhaupt nicht —
+eine fehlerhafte f-Zeile produziert still NaN-Positionen (ObjLoader.ts:171
+macht parseInt(parts[0]!) - 1 ohne Bounds-/NaN-Check) statt fehlzuschlagen.
+MtlLoader wickelt try/catch um map_Kd-Textur-Loads (MtlLoader.ts:82-94,
+loggt und macht weiter), hat aber KEIN try/catch um den map_Bump-Textur-
+Load zwei Bloecke weiter unten (MtlLoader.ts:99-107) — eine identische
+Operation, inkonsistent abgesichert, sodass ein kaputter Bump-Map-Pfad
+ungefangen wirft, waehrend ein kaputter Diffuse-Map-Pfad das nicht tut.
+
+Es gibt echte, teilbare Duplikation zwischen ObjLoader/MtlLoader/
+GltfLoader: alle drei leiten folderPath erneut ueber
+url.substring(0, url.lastIndexOf("/") + 1) ab (ObjLoader.ts:44,
+MtlLoader.ts:30, GltfLoader.ts:101, 164) und alle drei machen Ad-hoc-
+Textur-Laden + Texture.fromImage(...)-Verdrahtung mit leicht
+unterschiedlichen Filter-Defaults (MtlLoader.ts:88-91 hartcodiert NEAREST/
+NEAREST; GltfLoader._resolveTexture nutzt gar keine expliziten Filter-
+Optionen, GltfLoader.ts:467-469) — ein geteiltes resolveFolderPath()/
+loadTextureFromUrl()-Utility auf AbstractLoader faellt auffaellig ab.
+
+--------------------------------------------------
+4.4 Forge-Tool-Suite — handgerollt, ohne Framework, ueberraschend vollstaendiger Fenster-Manager
+--------------------------------------------------
+
+Forge/ForgeWindow/ForgeTool ist ein von-Grund-auf, zero-dependency
+Fenster-System: plain document.createElement DOM-Konstruktion, manuelles
+Drag (ForgeWindow.ts:138-168) und 4-Richtungs-Resize (ForgeWindow.ts:
+170-229) via rohe mousedown/mousemove/mouseup-Listener auf window,
+Z-Index-Buchhaltung ueber einen statischen Zaehler (ForgeWindow.
+_maxZIndex, ForgeWindow.ts:4,113-116), und Fenster-Sichtbarkeits-
+Persistenz via localStorage.setItem(`swf_win_${this._title}`, ...)
+(ForgeWindow.ts:101) — GEKEYT NACH TITEL-STRING, sodass zwei Fenster mit
+demselben Titel kollidieren, und das Umbenennen des Titels eines Tools in
+einem spaeteren Release das gespeicherte Layout des Nutzers verwaist.
+Forge.ts fuegt einen globalen Paste-Listener hinzu, der das "oberste
+sichtbare Fenster" findet, indem er parseInt(win.getElement().style.
+zIndex) scannt (Forge.ts:52-62), statt eine aktive-Fenster-Referenz direkt
+zu verfolgen — funktional, aber rueckwaerts gegenueber wie man es mit dem
+bereits vorhandenen Z-Index-Zaehler designen wuerde.
+
+Das ist unverkennbar ernsthaftes, bewusst entworfenes internes Tooling,
+kein angeflanschter Hack: es hat einen echten Plugin-Vertrag (ForgeTool
+abstract class mit mount/unmount/resize/getState/setState/onPasteImage-
+Lifecycle-Hooks, ForgeTool.ts:6-45), eine Taskleiste, resizable/
+draggable Glasmorphismus-Fenster mit einem vollen themisierten CSS-System
+(ForgeTheme.ts, 255 Zeilen CSS Custom Properties, die sogar in die
+--tp-*-Variablen des Drittanbieter-Tweakpane hineinwirken, ForgeTheme.ts:
+15-40), und fuenf verschiedene Tools, die gegen diesen Vertrag gebaut sind.
+Die fuenf konkreten Tools variieren stark in ihrem Ambitionsniveau:
+GadgetInspector (654 Zeilen) ist ein legitimer Tweakpane-basierter
+Szenen-Inspektor mit Raycasting-basiertem Objekt-Picking
+(GadgetInspector.ts:279-310) und dynamischer Pro-Behavior-Inspektor-
+Metadaten-Reflexion (GadgetInspector.ts:490-556, liest eine statische
+inspector-Konfiguration von der Behavior-Subklasse); MapGenerator
+(446 Zeilen) ist ein sauberer, in sich geschlossener Tilemap-Maler mit
+Bucket-Fill, ASCII-Import/Export, und einem "im Spiel abspielen"-Hook
+(MapGenerator.ts:295-299); Xtractor und Pixler bauen echte interaktive
+Canvas-Editoren (Rechteck-/Kreis-Crop-Tool mit Pan/Zoom in Xtractor,
+Xtractor.ts:318-661; vollstaendiger Pinsel-/Eimer-/Pipette-/Linien-Pixel-
+Editor mit Undo-Historie und X/Y-Symmetrie in Pixler, Pixler.ts:563-931).
+
+--------------------------------------------------
+4.5 Code-Style — solide Typisierungs-Disziplin, unterlaufen von DOM-Query-Stil in den grossen Tools
+--------------------------------------------------
+
+Der Library-facing Code (materials/, loaders/) ist durchgaengig sauber
+typisiert: explizite Return-Types auf jeder oeffentlichen/privaten Methode,
+unknown statt any fast ueberall, Yoda-artige Gleichheitspruefungen nach
+Projekt-Konvention (z. B. AbstractMaterial.ts:37-Muster taucht als
+0 === this._activeLoaders.size in AssetManager.ts:54,69 auf, undefined ===
+this._renderManifest ueberall in materials/), und JSDoc auf praktisch
+jedem oeffentlichen Member. Das ist klar gepflegter, reviewter Code.
+
+Die Forge-Tools (besonders MaterialStudio.ts, 2456 Zeilen) sind ein
+anderes Register: _buildUI() (MaterialStudio.ts:791-1473, ~680 Zeilen) ist
+ein einziger riesiger Template-Literal-innerHTML-String, und _bindLogic()
+(MaterialStudio.ts:1474-2418, ~950 Zeilen) ist eine lange imperative
+Funktion, gespickt mit document.getElementById(...) as HTMLInputElement-
+Casts, die Dutzende Male wiederholt werden (z. B. sechs Aufrufe in
+generatePBRMaps() allein nur um Slider-Werte zu lesen, MaterialStudio.ts:
+2114-2163), statt Element-Referenzen einmal zu cachen. Xtractor.ts und
+Pixler.ts folgen demselben "grossen HTML-String bauen / imperative Event-
+Verdrahtungsfunktion"-Muster statt dem Klassenfeld-pro-Steuerelement-Stil,
+den GadgetInspector und MapGenerator nutzen. Xtractor.ts:739-745 traegt
+sogar einen expliziten Entwickler-Disclaimer-Kommentar
+(@DEVELOPER_NOTE: MOCK AI UI... NO actual AI API... is connected here!),
+der bestaetigt, dass das "Chat mit KI"-Panel ein skriptgesteuerter Regex-
+Matching-Stub ist, kein echtes Feature — ein ehrliches Eingestaendnis,
+dass genau dieses Tool ein Work-in-Progress-Platzhalter ist, anders als
+die anderen.
+
+--------------------------------------------------
+4.6 Echtes Handwerk vs. Zusammengeworfenes
+--------------------------------------------------
+
+Das herausragende Stueck echter Ingenieurskunst ist
+MaterialStudio.generatePBRMaps() (MaterialStudio.ts:2108-2382): eine von-
+Grund-auf, dependency-freie Bild-zu-PBR-Pipeline, die Hoehe (Luminanz +
+Kontrast + Box-Blur), eine echte Sobel-Operator-Normalmap mit OpenGL/
+DirectX-Y-Flip-Toggle (MaterialStudio.ts:2215-2245), sigmoidale-Kontrast-
+Specular, gammakorrigierte Roughness, eine Laplace-basierte Ambient
+Occlusion, die feine Ritzendetektion mit weicher Makro-Schattierung
+kombiniert (MaterialStudio.ts:2306-2336), und eine thresholdete Sobel-
+Magnitude-Edge-Map berechnet — sechs unabhaengige, korrekt implementierte
+Bildverarbeitungsalgorithmen mit sinnvoller Parametrisierung und Presets
+(MaterialStudio.ts:1479-1556). Das ist wirklich gute Arbeit, begraben in
+einer Datei, deren UI-Konstruktionscode drumherum vergleichsweise roh ist.
+
+Im Gegensatz dazu sind die Shader-Importer der "sieht beeindruckend aus,
+ist eigentlich flach"-Fall: Shadertoy/GLSLSandbox/ComputeToys-Importer
+lesen sich an der Oberflaeche wie ein ueberzeugendes Feature ("diese Engine
+kann Shadertoy-Code importieren!"), sind aber Regex-/Template-
+Substitutionen ohne echtes Parsing, ohne Multi-Pass-/Multi-Channel-
+Unterstuetzung, und Heuristiken, die die Autoren selbst als Heuristiken
+kennzeichnen (ComputeToysImporter.ts:14). Das Material-System liegt
+dazwischen: eine echte geteilte Basisklasse existiert, aber konkrete
+Materialien duplizieren ~10 Uniform-Felder pro Stueck, statt einen
+gemeinsamen Builder zu faktorisieren, und nutzen Felder wie
+u_liquidParams ueber unabhaengige Materialien hinweg wieder (Glas-IOR vs.
+Lava-Wellenparameter) rein um in ein festes Uniform-Buffer-Layout zu
+passen — pragmatisch, aber eine Wartungsfalle fuer das naechste
+hinzugefuegte Material.
+
+
+==================================================
+TEIL 5: APPS/YAD UND EXTENSIONS
+==================================================
+
+Gelesene Dateien: src/apps/yad/YadApp.ts, YadController.ts,
+EnemyBehavior.ts, YadHud.ts, YadLevelBuilder.ts, index.ts,
+src/extensions/grid-builder/GridLevelBuilder.ts, extensions/index.ts,
+src/presentation.ts. Zusaetzlich gesichtet: showcases/-Verzeichnis (nur
+Auflistung + einzelne Titel/Kommentare, nicht showcase.ts im Detail wegen
+unbezogenem WIP), docs/guides/custom-game.md, forge.md, interactions.md,
+physics.md (vollstaendig gelesen).
+
+--------------------------------------------------
+5.1 Was ist "Yad" als Spiel/App
+--------------------------------------------------
+
+Yad = "Yet Another Dungeon" (src/apps/yad/YadApp.ts:20), nicht hebraeisch
+fuer "Hand" — das Akronym ist ein Augenzwinkern zum hebraeischen Wort, kein
+Design-Thema. Es ist ein Wolfenstein-3D-artiger Retro-FPS: rasterbasiertes
+Dungeon, Kachel-Texturen fuer Waende/Boeden/Decken, Billboard-Sprites fuer
+Gegner/Items, erzwungene 320x200-Retro-Aufloesung mit pixelierter
+Skalierung und 8-Stufen-Farbquantisierungs-Post-Processing (YadApp.ts:
+45-68, 291-298), und DOOM-artige HUD-Chrome (Statusleiste, Waffen-Sway,
+Gesichts-Portrait), fast woertlich vom Statusleisten-Layout von id Software
+uebernommen (Segmentbreiten-Kommentar "45/48/45/32/48/14/88" bei
+YadHud.ts:477-478, Keycard-Grid, Munitionsanzeigen).
+
+Kern-Loop: Spieler spawnt von einer P-Kachel in einer ASCII-Karte
+(YadApp.ts:186-256), laeuft durch ein Labyrinth (YadController.ts —
+Retro-Panzer-Steuerung, Fussschritte alle 2 Einheiten, Zeilen 41-45),
+schiesst (SPACE, Raycast-basiertes Hitscan gegen Enemy*/Wall*/Door*-
+benannte Objekte, YadController.ts:54-91), sammelt Gesundheit/Ruestung/
+Waffen-Sprites via Naehe-Check (Zeilen 94-117) auf, und nimmt Schaden von
+Lava-/Schleim-Bodenkacheln (Zeilen 119-136). Gegner (EnemyBehavior.ts) sind
+dumme Distanz-Verfolger: erkennen innerhalb von detectionRange (Standard
+20 Einheiten), bewegen sich direkt auf den Spieler zu, loesen Sphere-vs-
+Box/Sphere-Kollisionen gegen den statischen Octree/Spatial-Hash auf
+(_resolveCollisions, Zeilen 66-106), grunzen periodisch. Kein Pathfinding,
+keine Zustandsmaschine (explizit bestaetigt in docs/guides/custom-game.md:
+88: "YAD does not use the engine's StateMachine/FSM module for enemies").
+
+Pipeline: YadLevelBuilder (YadLevelBuilder.ts) uebersetzt eine
+spielspezifische Legende (Waende/Tueren/Sprites/Lavabaelle/Spieler-Spawn) in
+Aufrufe gegen den generischen, wiederverwendbaren GridLevelBuilder
+(src/extensions/grid-builder/GridLevelBuilder.ts), der einfach ein ASCII-
+Grid durchlaeuft und Boden-/Decken-/Block-/Sprite-Object3Ds ueber einen
+onBuild-Custom-Callback-Escape-Hatch emittiert. YadHud ist ein reines
+DOM-/Canvas-Overlay, komplett von der Spiellogik entkoppelt — es hoert
+nur auf AppEvents.Yad.*-Events ueber den UniversalEventBus
+(YadHud.ts:239-296, Events definiert src/enums/AppEvents.ts:2-8).
+
+--------------------------------------------------
+5.2 Ernsthaftes Beispiel vs. minimaler Testharness
+--------------------------------------------------
+
+Das ist eine ERNSTHAFTE, bewusst verfasste Referenz-App, kein Smoke-Test.
+docs/guides/custom-game.md:81-92 bezeichnet sie explizit als "die
+kanonische Referenzarchitektur fuer den Bau eines echten Spiels" und weist
+neue Nutzer an, src/apps/yad zu lesen, wenn sie ein eigenes Projekt
+beginnen. Belege fuer echte Investition: 1.749 Zeilen ueber 5 Dateien,
+handgetunte Sprite-Font-Rasterisierung aus Spritesheets mit Alpha-Keying
+und Auto-Cropping (YadHud.ts:715-817), eine volle 8-Frame-Waffen-
+Animations-Zustandsmaschine (_shootTimer/_weaponFrame-Logik),
+raeumlicher Sound (Fussschritte, Grunzen, Ambient-Drone), und
+Instanced-Mesh-Wand-Rendering mit einer TextureArray fuer Draw-Call-
+Batching (YadLevelBuilder.ts:305-352). Die Trennung zwischen generisch
+(GridLevelBuilder, eine "Extension") und spielspezifisch (YadLevelBuilder,
+eine "App") ist beabsichtigt und dokumentiert (extensions.md, referenziert
+in custom-game.md), was zeigt, dass dies gleichzeitig als Demo UND als
+Design-Pattern fuer Nutzer der Engine dient.
+
+--------------------------------------------------
+5.3 Was die Showcases ueber die Breite der Engine nahelegen
+--------------------------------------------------
+
+ls showcases zeigt 23 nummerierte Demos plus yad — gefundene Titel sind
+generisch ("Small World Engine - Showcase N") ausser zwei informativen:
+Showcase 13 = "GLTF Damaged Helmet" (PBR-/glTF-Laden, Envmaps, Bloom —
+bestaetigt in src/presentation.ts:97-132, das genau dieses Asset fuer eine
+Konferenz-Slide-Deck-Demo-App wiederverwendet) und Showcase 20 =
+"Audio-Kinetic Sculpture". Das, zusammen mit dem Doku-Set (physics.md,
+interactions.md, state-machines.md, forge.md), deutet darauf hin, dass die
+Showcases primaer RENDERING-/TECHNIK-DEMOS sind (PBR-Materialien, Post-
+Processing, Physik, audio-reaktive Visuals, Interaktion/Picking) statt
+Gameplay-Demos — Yad steht allein als das eine vollstaendig spielbare-
+Spiel-Beispiel.
+
+--------------------------------------------------
+5.4 Code-Style: App-Ebene vs. Engine-Kern
+--------------------------------------------------
+
+Style ist weitgehend KONSISTENT mit Engine-Kern-Konventionen: Underscore-
+praefixierte Privates (YadController.ts:18-19, EnemyBehavior.ts:17-22),
+explizite Return-Types auf allen Methoden, ///-path-Datei-Header-
+Kommentare (YadApp.ts:1, passt zu Object3D.ts:1), JSDoc auf oeffentlichen
+APIs. Allerdings merklich LOCKERER an ein paar Stellen, die wie
+Prototyping-Rueckstand wirken: ein Inline-as-unknown-as-CameraInterfaceData-
+Cast (YadController.ts:65), Ad-hoc-import("../../physix/index.js").
+BoundingSphere Typ-only-Inline-Imports statt Top-Level-Imports
+(EnemyBehavior.ts:86,92), stringly-typed Objekt-Identifikation via
+obj.name.startsWith("Enemy")/"Wall"/"Item_"-Praefixen statt eines
+typisierten Tags/einer Komponente (YadController.ts:73,87,98), und
+Record<string, unknown> + Bracket-indizierte Event-Payloads in
+YadHud.ts:239-296 statt typisierter Event-Interfaces. Mehrere verstreute
+Kommentare zeigen sichtbares Hin-und-Her ("We can keep lavaNoiseMap
+around... For now, let's keep it," YadApp.ts:117-118; ein deutschsprachiger
+interner Kommentar bei YadLevelBuilder.ts:280-284 beim Debuggen der Lava-
+Boden-Zeichen-Logik) — Zeichen von iterativer, Mensch-in-der-Schleife-
+Entwicklung statt einer bis zum Exzess reviewten Referenz.
+
+--------------------------------------------------
+5.5 Gesamteindruck
+--------------------------------------------------
+
+Das liest sich wie ein HOBBY-/PERSOENLICHES 3D-Engine-Projekt, aufgebaut
+durch iterative, werkzeug-unterstuetzte Entwicklung, das einen kompletten
+DOOM-/Wolfenstein-Klon als sein Flaggschiff-Dogfooding-Ziel nutzt, um zu
+beweisen, dass die Engine ein echtes Spiel end-to-end handhabt (Raycasting,
+raeumliche Partitionierung, Audio, Physik, Retro-Post-FX), waehrend ~20
+kleinere nummerierte Showcases einzelne Rendering-/Effekt-Features
+durchspielen. Die docs/guides/* sind mit echter paedagogischer Absicht
+geschrieben (Yad wird als Referenzarchitektur positioniert), und die
+forge.md/interactions.md/physics.md-Dokus beschreiben einen ueberraschend
+breiten, professionell abgesteckten Feature-Umfang (In-Engine-Tool-Overlay
+mit Pixel-Editor, Sprite-Atlas-Extraktor, Szenen-Inspektor). Kombiniert mit
+der Speicher-Notiz, dass es keine Application-Klasse gibt und tools kein
+echter Package-Subpath ist, sieht das Projekt aus wie ein FUNDAMENT-IN-
+ARBEIT FUER EIN KONKRETES RETRO-FPS-SPIEL, das gleichzeitig als Portfolio-/
+Lehr-Artefakt fuer die Engine selbst dient, statt ein fertiges Produkt oder
+reines Lehrspielzeug zu sein.
+
+
+==================================================
+ENDE DES DOKUMENTS
+==================================================
+
+Diese Rohdaten wurden zur verdichteten, meinungsbasierten Einschaetzung in
+code-analysis.txt zusammengefasst. Alles hier Stehende floss in diese
+Bewertung ein — auch Details, die dort nur knapp erwaehnt oder aus
+Platzgruenden weggelassen wurden (z. B. die Segmentbreiten-Kommentare in
+YadHud.ts, die genaue GearMath-Zahnrad-Terminologie, die vollstaendige
+Forge-Theme-CSS-Variablen-Liste, die einzelnen Testabdeckungsdetails pro
+Loader).

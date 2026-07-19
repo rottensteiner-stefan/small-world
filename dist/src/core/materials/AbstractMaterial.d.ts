@@ -28,10 +28,30 @@ export declare abstract class AbstractMaterial implements ShaderProvider {
     protected constructor(type: MaterialType | string);
     /**
      * Returns a manifest describing the requirements for rendering this material.
-  ...
      * @returns The render manifest.
      */
     abstract getRenderManifest(): RenderManifest;
     /** @inheritdoc */
     abstract getShaderDefinition(): ShaderDefinition;
+    /**
+     * Helper to create a fully-populated base RenderManifest layout.
+     */
+    protected _createBaseManifest(): RenderManifest;
+    /**
+     * Helper to synchronize the base material state (color, culling, etc.) without allocating new objects.
+     */
+    protected _syncBaseManifestState(): void;
+    /**
+     * Helper to synchronize texture offset and repeat from a given texture.
+     */
+    protected _syncTexOffsetRepeat(tex: {
+        offset: {
+            x: number;
+            y: number;
+        };
+        repeat: {
+            x: number;
+            y: number;
+        };
+    } | undefined): void;
 }

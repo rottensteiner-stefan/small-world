@@ -18,7 +18,12 @@ struct GlobalUniforms {
     fogHeight: f32,
     fogHeightFalloff: f32,
     envIntensity: f32,
-    fogColor: vec4f
+    fogColor: vec4f,
+    spotShadowMatrices: array<mat4x4f, 4>,
+    spotShadowInfo: array<vec4f, 4>, // [bias, normalBias, castShadow, pad]
+    cascadeMatrices: array<mat4x4f, 4>,
+    cascadeSplits: vec4f,
+    dirShadowInfo: vec4f // [bias, normalBias, castShadow, numCascades]
 }
 
 struct ObjectUniforms {
@@ -80,6 +85,9 @@ struct AreaLight {
 @group(0) @binding(5) var u_prefilterMap: texture_cube<f32>;
 @group(0) @binding(6) var u_brdfLUT: texture_2d<f32>;
 @group(0) @binding(7) var globalSampler: sampler;
+@group(0) @binding(8) var u_dirShadowMap: texture_depth_2d_array;
+@group(0) @binding(9) var u_spotShadowMap: texture_depth_2d_array;
+@group(0) @binding(10) var shadowSampler: sampler_comparison;
 
 @group(1) @binding(1) var s: sampler;
 @group(1) @binding(2) var u_diffuseMap: texture_2d<f32>;

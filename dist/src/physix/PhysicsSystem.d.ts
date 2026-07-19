@@ -9,6 +9,11 @@ export declare class PhysicsSystem {
     private _bodies;
     private _allColliders;
     private _collisionEvent;
+    private _broadphaseTree?;
+    private _broadphaseWorldMin;
+    private _broadphaseWorldMax;
+    private _bodyIndex;
+    private _broadphaseFallback;
     private _warnedObjects;
     /**
      * Recursively collects dynamic rigidbodies.

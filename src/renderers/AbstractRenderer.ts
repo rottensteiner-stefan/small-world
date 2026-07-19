@@ -102,7 +102,7 @@ export abstract class AbstractRenderer implements Renderer {
    * @param scene The scene to extract lights from.
    * @returns An object containing all extracted light data.
    */
-  protected extractLights(scene: Scene): LightDataInterface {
+  public extractLights(scene: Scene): LightDataInterface {
     this._lightData.pLights.length = 0;
     this._lightData.sLights.length = 0;
     this._lightData.aLights.length = 0;

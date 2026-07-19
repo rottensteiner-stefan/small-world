@@ -16,7 +16,6 @@ export declare class BasicMaterial extends AbstractMaterial {
     /** The diffuse texture map. */
     diffuseMap: Texture | undefined;
     constructor(options?: BasicMaterialOptions);
-    /** @inheritdoc */
     getRenderManifest(): RenderManifest;
     /** @inheritdoc */
     getShaderDefinition(): ShaderDefinition;

@@ -89,7 +89,6 @@ export declare class StandardMaterial extends AbstractMaterial {
      * @param options The configuration options for the material.
      */
     constructor(options?: StandardMaterialOptions);
-    /** @inheritdoc */
     getRenderManifest(): RenderManifest;
     /** @inheritdoc */
     getShaderDefinition(): ShaderDefinition;

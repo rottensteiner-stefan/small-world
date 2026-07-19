@@ -8,11 +8,26 @@ var spec = vec3f(0.0);
 
 // Directional Light
 let L_dir = normalize(global.dirLightDir.xyz); 
-let diff_dir = max(dot(N, L_dir), 0.0); 
-fL += diff_dir * global.dirLightColor.xyz;
-if (obj.shininess > 0.0 && diff_dir > 0.0) { 
-    spec += pow(max(dot(V, reflect(-L_dir, N)), 0.0), obj.shininess) * global.dirLightColor.xyz; 
-}
+let diff_dir = max(dot(N, L_dir), 0.0);    var shadow: f32 = 1.0;
+    if (global.dirShadowInfo.z > 0.5) {
+        let numCascades = u32(global.dirShadowInfo.w);
+        var cascadeIndex = 0u;
+        let viewDist = length(global.viewPos.xyz - i.wp);
+        for (var c: u32 = 0u; c < numCascades; c++) {
+            if (viewDist < global.cascadeSplits[c]) {
+                cascadeIndex = c;
+                break;
+            }
+        }
+        let cascadeMat = global.cascadeMatrices[cascadeIndex];
+        let shadowPos = cascadeMat * vec4f(i.wp + N * global.dirShadowInfo.y, 1.0);
+        shadow = getShadowPCF(u_dirShadowMap, shadowSampler, shadowPos, cascadeIndex, global.dirShadowInfo.x);
+    }
+    
+    fL += diff_dir * global.dirLightColor.xyz * shadow;
+    if (obj.shininess > 0.0 && diff_dir > 0.0) { 
+        spec += pow(max(dot(V, reflect(-L_dir, N)), 0.0), obj.shininess) * global.dirLightColor.xyz * shadow; 
+    }
 
 // Point Lights
 for(var j=0u; j<u32(global.numPointLights); j++) {
@@ -54,9 +69,15 @@ for(var j=0u; j<u32(global.numSpotLights); j++) {
     let sEff = smoothstep(sLights[j].params.x, sLights[j].params.y, theta);
     let atten = 1.0 / (1.0 + 0.1*d + 0.01*d*d); 
     let diff = max(dot(N, L), 0.0); 
-    fL += diff * sLights[j].col.xyz * atten * sEff;
+    var shadow: f32 = 1.0;
+    if (global.spotShadowInfo[j].z > 0.5) {
+        let shadowPos = global.spotShadowMatrices[j] * vec4f(i.wp + N * global.spotShadowInfo[j].y, 1.0);
+        shadow = getShadowPCF(u_spotShadowMap, shadowSampler, shadowPos, j, global.spotShadowInfo[j].x);
+    }
+    
+    fL += diff * sLights[j].col.xyz * atten * sEff * shadow;
     if (obj.shininess > 0.0 && diff > 0.0) { 
-        spec += pow(max(dot(V, reflect(-L, N)), 0.0), obj.shininess) * sLights[j].col.xyz * atten * sEff; 
+        spec += pow(max(dot(V, reflect(-L, N)), 0.0), obj.shininess) * sLights[j].col.xyz * atten * sEff * shadow; 
     }
   }
 }
