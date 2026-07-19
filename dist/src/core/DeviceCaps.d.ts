@@ -1,3 +1,8 @@
+export declare enum PerformanceTier {
+    LOW = "LOW",
+    MEDIUM = "MEDIUM",
+    HIGH = "HIGH"
+}
 /**
  * Supported boolean features for device capability detection.
  */
@@ -10,7 +15,13 @@ export declare enum DeviceFeature {
     TOUCH = "TOUCH",
     GAMEPAD = "GAMEPAD",
     FLOAT_TEXTURES = "FLOAT_TEXTURES",
-    COMPRESSED_TEXTURES = "COMPRESSED_TEXTURES"
+    COMPRESSED_TEXTURES = "COMPRESSED_TEXTURES",
+    ASYNC = "ASYNC",
+    WASM = "WASM",
+    WORKERS = "WORKERS",
+    DEVICE_ORIENTATION = "DEVICE_ORIENTATION",
+    DEVICE_MOTION = "DEVICE_MOTION",
+    GENERIC_SENSORS = "GENERIC_SENSORS"
 }
 /**
  * Supported numeric limits for hardware detection.
@@ -49,6 +60,12 @@ export declare class DeviceCaps {
     private static _hasFloatTextures;
     private static _hasCompressedTextures;
     private static _gpuModel;
+    private static _hasAsync;
+    private static _hasWasm;
+    private static _hasWorkers;
+    private static _hasDeviceOrientation;
+    private static _hasDeviceMotion;
+    private static _hasGenericSensors;
     /**
      * Initializes the feature detection.
      * This is called automatically by the Engine, but can be called manually.
@@ -80,4 +97,17 @@ export declare class DeviceCaps {
      * Returns the unmasked GPU model if available.
      */
     static get gpuModel(): string;
+    /**
+     * Returns true if the application is running on a mobile device (phone or tablet).
+     */
+    static isMobile(): boolean;
+    static get cores(): number;
+    static get memoryGB(): number;
+    static get pixelRatio(): number;
+    static get screenWidth(): number;
+    static get screenHeight(): number;
+    /**
+     * Uses experimental flags and hardware information to guess the device's performance capability.
+     */
+    static getPerformanceTier(): PerformanceTier;
 }

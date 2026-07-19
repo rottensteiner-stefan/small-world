@@ -1,6 +1,6 @@
 {
   "name": "small-world",
-  "version": "0.67.0",
+  "version": "0.68.0",
   "description": "A lightweight 3D engine for hybrid WebGL2/WebGPU rendering pipelines.",
   "type": "module",
   "license": "MIT",

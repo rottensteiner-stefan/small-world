@@ -173,6 +173,46 @@ export class Input implements InputInterface {
     window.addEventListener("gamepaddisconnected", (): void => {
       // Gamepad disconnected
     });
+
+    let lastTouchX = 0;
+    let lastTouchY = 0;
+
+    window.addEventListener(
+      "touchstart",
+      (e: TouchEvent): void => {
+        if (e.touches.length > 0) {
+          lastTouchX = e.touches[0]!.clientX;
+          lastTouchY = e.touches[0]!.clientY;
+          inst.mouse.x = lastTouchX;
+          inst.mouse.y = lastTouchY;
+          inst.mouse.left = true;
+        }
+      },
+      { passive: true },
+    );
+
+    window.addEventListener(
+      "touchmove",
+      (e: TouchEvent): void => {
+        if (e.touches.length > 0) {
+          const currentX = e.touches[0]!.clientX;
+          const currentY = e.touches[0]!.clientY;
+          inst.mouse.dx += currentX - lastTouchX;
+          inst.mouse.dy += currentY - lastTouchY;
+          inst.mouse.x = currentX;
+          inst.mouse.y = currentY;
+          lastTouchX = currentX;
+          lastTouchY = currentY;
+        }
+      },
+      { passive: true },
+    );
+
+    window.addEventListener("touchend", (e: TouchEvent): void => {
+      if (e.touches.length === 0) {
+        inst.mouse.left = false;
+      }
+    });
   }
 
   /** Global block flag to temporarily disable PointerLock requests (e.g. for inspector). */

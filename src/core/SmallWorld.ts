@@ -5,7 +5,6 @@ import { Input } from "./Input.js";
 import { InteractionManager } from "./InteractionManager.js";
 import { ConfigLoader } from "./ConfigLoader.js";
 import { DeviceCaps, DeviceFeature, DeviceLimit } from "./DeviceCaps.js";
-import { DeviceDetector } from "./DeviceDetector.js";
 import { FrustumCuller } from "./FrustumCuller.js";
 import {
   AbstractProjection,
@@ -22,7 +21,7 @@ import { GadgetInspector } from "../tools/GadgetInspector.js";
 import { PhysicsSystem } from "../physix/PhysicsSystem.js";
 
 /** The current engine version. */
-export const ENGINE_VERSION = "0.67.0";
+export const ENGINE_VERSION = "0.68.0";
 
 /**
  * Base class for applications built with the SmallWorld engine.
@@ -147,10 +146,10 @@ export abstract class SmallWorld {
         this.config = { ...this.config, ...(jsonConfig as EngineOptions), ...this._userConfig };
       }
 
-      const tier = DeviceDetector.getPerformanceTier();
+      const tier = DeviceCaps.getPerformanceTier();
       if (tier === "LOW") {
         console.warn(
-          `📉 Low Performance Tier detected (${DeviceDetector.isMobile() ? "Mobile" : "Desktop"}). Applying aggressive performance downgrades.`,
+          `📉 Low Performance Tier detected (${DeviceCaps.isMobile() ? "Mobile" : "Desktop"}). Applying aggressive performance downgrades.`,
         );
         this.config.quality = {
           ...this.config.quality,
@@ -207,15 +206,7 @@ export abstract class SmallWorld {
       if (this.config.fullscreen) {
         this.canvas.width = window.innerWidth;
         this.canvas.height = window.innerHeight;
-        window.addEventListener("resize", (): void => {
-          this.canvas.width = window.innerWidth;
-          this.canvas.height = window.innerHeight;
-          this.camera.aspect = this.canvas.clientWidth / this.canvas.clientHeight;
-          this.camera.updateProjectionMatrix();
-          if (this.renderer) {
-            this.renderer.setSize(this.canvas.width, this.canvas.height);
-          }
-        });
+        window.addEventListener("resize", this._onResize);
       } else if (this.config.width && this.config.height) {
         this.canvas.width = this.config.width;
         this.canvas.height = this.config.height;
@@ -246,13 +237,13 @@ export abstract class SmallWorld {
           bannerStyle3,
         );
         console.table({
-          "Device Type": DeviceDetector.isMobile() ? "Mobile" : "Desktop",
-          "Performance Tier": DeviceDetector.getPerformanceTier(),
+          "Device Type": DeviceCaps.isMobile() ? "Mobile" : "Desktop",
+          "Performance Tier": DeviceCaps.getPerformanceTier(),
           "GPU Model": DeviceCaps.gpuModel,
-          "CPU Cores": DeviceDetector.cores,
-          "Memory (GB)": DeviceDetector.memoryGB,
-          "Screen Resolution": `${DeviceDetector.screenWidth}x${DeviceDetector.screenHeight}`,
-          "Pixel Ratio": DeviceDetector.pixelRatio,
+          "CPU Cores": DeviceCaps.cores,
+          "Memory (GB)": DeviceCaps.memoryGB,
+          "Screen Resolution": `${DeviceCaps.screenWidth}x${DeviceCaps.screenHeight}`,
+          "Pixel Ratio": DeviceCaps.pixelRatio,
           "API - WebGL1": DeviceCaps.hasFeature(DeviceFeature.WEBGL1) ? "Yes" : "No",
           "API - WebGL2": DeviceCaps.hasFeature(DeviceFeature.WEBGL2) ? "Yes" : "No",
           "API - WebGPU": DeviceCaps.hasFeature(DeviceFeature.WEBGPU) ? "Yes" : "No",
@@ -295,37 +286,7 @@ export abstract class SmallWorld {
         this.forge = new Forge();
 
         // Anchor hotkey logic in SmallWorld
-        window.addEventListener("keydown", (event: KeyboardEvent) => {
-          if (
-            document.activeElement &&
-            ("INPUT" === document.activeElement.tagName ||
-              "TEXTAREA" === document.activeElement.tagName)
-          ) {
-            return;
-          }
-
-          if (true === event.repeat) return;
-
-          const altLeft = Input.instance?.isPressed("AltLeft") || event.altKey;
-          const metaLeft = Input.instance?.isPressed("MetaLeft") || event.metaKey;
-          const ctrlLeft = Input.instance?.isPressed("ControlLeft") || event.ctrlKey;
-
-          if (true === altLeft && (true === metaLeft || true === ctrlLeft)) {
-            if ("KeyG" === event.code) {
-              event.preventDefault();
-              this.forge.toggle();
-
-              if (this.forge.isVisible) {
-                Input.preventPointerLock = true;
-                if (null !== document.pointerLockElement) {
-                  document.exitPointerLock();
-                }
-              } else {
-                Input.preventPointerLock = false;
-              }
-            }
-          }
-        });
+        window.addEventListener("keydown", this._onKeyDown);
 
         this._inspector = new GadgetInspector(this.scene, this.camera, this.canvas, this.renderer);
         this.forge.openWindow("Gadget Inspector", this._inspector, 20, 20, "gadgetInspector");
@@ -348,6 +309,7 @@ export abstract class SmallWorld {
       this._isInitialized = true;
     }
 
+    window.addEventListener("pagehide", this._onPageHide);
     this._isRunning = true;
     this._lastTime = performance.now();
     requestAnimationFrame((time: number) => this._loop(time));
@@ -361,11 +323,79 @@ export abstract class SmallWorld {
   }
 
   /**
+   * Destroys the engine instance, freeing memory and removing all global event listeners.
+   */
+  public destroy(): void {
+    this.stop();
+    this._isInitialized = false;
+
+    window.removeEventListener("resize", this._onResize);
+    window.removeEventListener("keydown", this._onKeyDown);
+    window.removeEventListener("pagehide", this._onPageHide);
+
+    if (this.renderer && this.renderer.destroy) {
+      this.renderer.destroy();
+    }
+  }
+
+  private _onPageHide = (): void => {
+    this.destroy();
+  };
+
+  private _onResize = (): void => {
+    if (!this.canvas) return;
+    this.canvas.width = window.innerWidth;
+    this.canvas.height = window.innerHeight;
+    this.camera.aspect = this.canvas.clientWidth / this.canvas.clientHeight;
+    this.camera.updateProjectionMatrix();
+    if (this.renderer) {
+      this.renderer.setSize(this.canvas.width, this.canvas.height);
+    }
+  };
+
+  private _onKeyDown = (event: KeyboardEvent): void => {
+    if (
+      document.activeElement &&
+      ("INPUT" === document.activeElement.tagName || "TEXTAREA" === document.activeElement.tagName)
+    ) {
+      return;
+    }
+
+    if (true === event.repeat) return;
+
+    const altLeft = Input.instance?.isPressed("AltLeft") || event.altKey;
+    const metaLeft = Input.instance?.isPressed("MetaLeft") || event.metaKey;
+    const ctrlLeft = Input.instance?.isPressed("ControlLeft") || event.ctrlKey;
+
+    if (true === altLeft && (true === metaLeft || true === ctrlLeft)) {
+      if ("KeyG" === event.code && this.forge) {
+        event.preventDefault();
+        this.forge.toggle();
+
+        if (this.forge.isVisible) {
+          Input.preventPointerLock = true;
+          if (null !== document.pointerLockElement) {
+            document.exitPointerLock();
+          }
+        } else {
+          Input.preventPointerLock = false;
+        }
+      }
+    }
+  };
+
+  /**
    * The main application loop.
    * @param currentTime The current timestamp.
    */
   private _loop(currentTime: number): void {
     if (!this._isRunning) {
+      return;
+    }
+
+    if (this.canvas && !document.body.contains(this.canvas)) {
+      console.warn("[SmallWorld] Canvas removed from DOM. Auto-destroying engine.");
+      this.destroy();
       return;
     }
 

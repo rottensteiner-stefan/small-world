@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.68.0] - 2026-07-19
+
+### "Progress is not created by contented people." - Frank Tyger
+
+- **Features:**
+  - **DeviceOrientationController:** Created a new behavior to translate physical smartphone orientation (`alpha`, `beta`, `gamma` Euler angles) directly into engine `theta`/`phi` polar coordinates, enabling gyroscope/accelerometer-based camera and object rotation.
+- **Architecture & Bugfixes:**
+  - **DeviceCaps Modernization:** Completely replaced the legacy `DeviceDetector` (User-Agent sniffing) with robust API feature detection inside `DeviceCaps` (Async, Wasm, Workers, Sensors, Touch Media Queries).
+  - **Auto-Destroy Lifecycle:** Added `destroy()` logic to `SmallWorld` engine base class. Hooked it to `window.pagehide` and added a DOM detachment check (`!document.body.contains(this.canvas)`) in the `_loop` to automatically free GPU memory and halt RAF when frontend frameworks (React/Vue) destroy the canvas node.
+
+
 ## [0.67.0] - 2026-07-19
 
 ### "Where there is much light, the shadow is deep." - Johann Wolfgang von Goethe

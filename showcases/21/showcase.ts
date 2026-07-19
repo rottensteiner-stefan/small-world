@@ -21,6 +21,7 @@ import {
   AudioSystem,
 } from "../../src/index.js";
 import { AmbientLight } from "../../src/core/lights/index.js";
+import { DeviceCaps, PerformanceTier } from "../../src/core/DeviceCaps.js";
 
 class Showcase21 extends SmallWorld {
   private _spheres: Object3D[] = [];
@@ -35,25 +36,34 @@ class Showcase21 extends SmallWorld {
 
   protected async setupScene(): Promise<void> {
     let droneStarted = false;
-    this.canvas.addEventListener("click", () => {
+    // Use pointerdown to support both mouse clicks and mobile touch
+    this.canvas.addEventListener("pointerdown", () => {
       if (!droneStarted) {
         AudioSystem.instance.startDrone();
         droneStarted = true;
       }
-      if (!Input.isPointerLocked) {
+      if (!DeviceCaps.isMobile() && !Input.isPointerLocked) {
         Input.requestPointerLock(this.canvas);
       }
     });
 
+    const tier = DeviceCaps.getPerformanceTier();
+
     // 0. Enable Bloom & Gravitational Lensing!
     this.renderer.postProcessing.enabled = true;
     this.renderer.postProcessing.filterMode = 8; // Our new Black Hole Shader!
+
     const bloom = this.renderer.postProcessing.get<BloomElement>(PostProcessingEffectType.BLOOM);
     if (bloom) {
-      bloom.enabled = true;
-      bloom.intensity = 2.0;
-      bloom.threshold = 0.2;
-      bloom.radius = 1.0;
+      if (tier === PerformanceTier.LOW) {
+        // Disable bloom for low-end devices to save fill rate
+        bloom.enabled = false;
+      } else {
+        bloom.enabled = true;
+        bloom.intensity = tier === PerformanceTier.MEDIUM ? 1.0 : 2.0;
+        bloom.threshold = 0.2;
+        bloom.radius = 1.0;
+      }
     }
 
     // 1. Lighting Setup
@@ -98,8 +108,12 @@ class Showcase21 extends SmallWorld {
     // 4. Pre-allocate sphere geometry (make them large enough to overlap into a solid ring)
     const geo = new Sphere({ radius: 0.1, widthSegments: 8, heightSegments: 8 }).getGeometryData();
 
-    // Spawn 400 spheres packed closely together
-    for (let i = 0; i < 400; i++) {
+    let sphereCount = 400;
+    if (tier === PerformanceTier.LOW) sphereCount = 100;
+    else if (tier === PerformanceTier.MEDIUM) sphereCount = 200;
+
+    // Spawn spheres packed closely together
+    for (let i = 0; i < sphereCount; i++) {
       const s = new Object3D();
       s.geometry = geo;
 
@@ -124,9 +138,9 @@ class Showcase21 extends SmallWorld {
       rb.restitution = 0.0; // Perfect inelasticity (friction heats it up instead of bouncing)
       rb.friction = 1.0;
 
-      // Orbital velocity: v = Math.sqrt(GM / r). GM = 400.0.
+      // Orbital velocity: v = Math.sqrt(GM / r). GM = sphereCount
       // 98% of orbital velocity so it slowly spirals in
-      const orbitalSpeed = Math.sqrt(400.0 / radius) * 0.98;
+      const orbitalSpeed = Math.sqrt(sphereCount / radius) * 0.98;
 
       // Tangential velocity
       const tangentX = -Math.sin(angle);
@@ -184,7 +198,7 @@ class Showcase21 extends SmallWorld {
         const angle = Math.random() * Math.PI * 2;
         const radius = 3.0; // Respawn at the outer edge of the dense disk
         pA.set(Math.cos(angle) * radius, (Math.random() - 0.5) * 0.2, Math.sin(angle) * radius);
-        const orbitalSpeed = Math.sqrt(400.0 / radius) * 0.98;
+        const orbitalSpeed = Math.sqrt(this._spheres.length / radius) * 0.98;
         a.rigidBody!.velocity.set(
           -Math.sin(angle) * orbitalSpeed,
           0,
@@ -195,7 +209,7 @@ class Showcase21 extends SmallWorld {
         continue;
       }
       // Force scales with 1/d^2
-      const pullC = 400.0 / Math.max(distSqC, 2.0);
+      const pullC = this._spheres.length / Math.max(distSqC, 2.0);
 
       let fx = -(pA.x / distC) * pullC;
       let fy = -(pA.y / distC) * pullC;

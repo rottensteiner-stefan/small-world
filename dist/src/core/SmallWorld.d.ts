@@ -5,7 +5,7 @@ import { EngineOptions, Renderer } from '../interfaces/index.js';
 import { GadgetInspector } from '../tools/GadgetInspector.js';
 import { PhysicsSystem } from '../physix/PhysicsSystem.js';
 /** The current engine version. */
-export declare const ENGINE_VERSION = "0.67.0";
+export declare const ENGINE_VERSION = "0.68.0";
 /**
  * Base class for applications built with the SmallWorld engine.
  */
@@ -60,6 +60,13 @@ export declare abstract class SmallWorld {
      * Stops the application loop.
      */
     stop(): void;
+    /**
+     * Destroys the engine instance, freeing memory and removing all global event listeners.
+     */
+    destroy(): void;
+    private _onPageHide;
+    private _onResize;
+    private _onKeyDown;
     /**
      * The main application loop.
      * @param currentTime The current timestamp.

@@ -5,7 +5,6 @@ export { SmallWorld } from "./SmallWorld.js";
 export { Camera } from "./Camera.js";
 export * from "./ConfigLoader.js";
 export * from "./DeviceCaps.js";
-export * from "./DeviceDetector.js";
 export * from "./FPSCounter.js";
 export * from "./FrustumCuller.js";
 export * from "./Fog.js";

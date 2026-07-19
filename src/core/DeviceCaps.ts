@@ -1,5 +1,11 @@
 /// src/core/DeviceCaps.ts
 
+export enum PerformanceTier {
+  LOW = "LOW",
+  MEDIUM = "MEDIUM",
+  HIGH = "HIGH",
+}
+
 /**
  * Supported boolean features for device capability detection.
  */
@@ -13,6 +19,12 @@ export enum DeviceFeature {
   GAMEPAD = "GAMEPAD",
   FLOAT_TEXTURES = "FLOAT_TEXTURES",
   COMPRESSED_TEXTURES = "COMPRESSED_TEXTURES",
+  ASYNC = "ASYNC",
+  WASM = "WASM",
+  WORKERS = "WORKERS",
+  DEVICE_ORIENTATION = "DEVICE_ORIENTATION",
+  DEVICE_MOTION = "DEVICE_MOTION",
+  GENERIC_SENSORS = "GENERIC_SENSORS",
 }
 
 /**
@@ -61,6 +73,12 @@ export class DeviceCaps {
   private static _hasFloatTextures: boolean = false;
   private static _hasCompressedTextures: boolean = false;
   private static _gpuModel: string = "Unknown";
+  private static _hasAsync: boolean = false;
+  private static _hasWasm: boolean = false;
+  private static _hasWorkers: boolean = false;
+  private static _hasDeviceOrientation: boolean = false;
+  private static _hasDeviceMotion: boolean = false;
+  private static _hasGenericSensors: boolean = false;
 
   /**
    * Initializes the feature detection.
@@ -74,6 +92,19 @@ export class DeviceCaps {
     this._hasOffscreenCanvas = typeof OffscreenCanvas !== "undefined";
     this._hasTouch = "ontouchstart" in window || navigator.maxTouchPoints > 0;
     this._hasGamepad = !!navigator.getGamepads;
+
+    try {
+      this._hasAsync = typeof new Function("return async () => {}")() === "function";
+    } catch {
+      this._hasAsync = false;
+    }
+    this._hasWasm =
+      typeof WebAssembly === "object" && typeof WebAssembly.instantiate === "function";
+    this._hasWorkers = typeof Worker !== "undefined";
+    this._hasDeviceOrientation =
+      typeof window !== "undefined" && "DeviceOrientationEvent" in window;
+    this._hasDeviceMotion = typeof window !== "undefined" && "DeviceMotionEvent" in window;
+    this._hasGenericSensors = typeof window !== "undefined" && "Sensor" in window;
 
     // 2. Check WebGL support & limits
     // WebGL 1
@@ -215,6 +246,18 @@ export class DeviceCaps {
         return this._hasFloatTextures;
       case DeviceFeature.COMPRESSED_TEXTURES:
         return this._hasCompressedTextures;
+      case DeviceFeature.ASYNC:
+        return this._hasAsync;
+      case DeviceFeature.WASM:
+        return this._hasWasm;
+      case DeviceFeature.WORKERS:
+        return this._hasWorkers;
+      case DeviceFeature.DEVICE_ORIENTATION:
+        return this._hasDeviceOrientation;
+      case DeviceFeature.DEVICE_MOTION:
+        return this._hasDeviceMotion;
+      case DeviceFeature.GENERIC_SENSORS:
+        return this._hasGenericSensors;
       default:
         return false;
     }
@@ -253,5 +296,81 @@ export class DeviceCaps {
    */
   public static get gpuModel(): string {
     return this._gpuModel;
+  }
+
+  /**
+   * Returns true if the application is running on a mobile device (phone or tablet).
+   */
+  public static isMobile(): boolean {
+    if (typeof window === "undefined") {
+      return false;
+    }
+
+    if (window.matchMedia && window.matchMedia("(pointer: coarse)").matches) {
+      return true;
+    }
+
+    const hasTouch = "ontouchstart" in window || navigator.maxTouchPoints > 0;
+    if (hasTouch && window.innerWidth <= 1024) {
+      return true;
+    }
+
+    return false;
+  }
+
+  public static get cores(): number {
+    if (typeof navigator === "undefined") return 4;
+    return navigator.hardwareConcurrency || 4;
+  }
+
+  public static get memoryGB(): number {
+    if (typeof navigator === "undefined") return 4;
+    return (navigator as unknown as { deviceMemory?: number }).deviceMemory || 4;
+  }
+
+  public static get pixelRatio(): number {
+    if (typeof window === "undefined") return 1;
+    return window.devicePixelRatio || 1;
+  }
+
+  public static get screenWidth(): number {
+    if (typeof window === "undefined") return 1920;
+    return window.screen.width;
+  }
+
+  public static get screenHeight(): number {
+    if (typeof window === "undefined") return 1080;
+    return window.screen.height;
+  }
+
+  /**
+   * Uses experimental flags and hardware information to guess the device's performance capability.
+   */
+  public static getPerformanceTier(): PerformanceTier {
+    if (typeof navigator === "undefined") return PerformanceTier.MEDIUM;
+
+    let score = 0;
+
+    // 1. Hardware Concurrency (Logical CPU cores)
+    const cores = this.cores;
+    if (cores >= 8) score += 2;
+    else if (cores > 4) score += 1;
+
+    // 2. Device Memory (Experimental Web API - returns RAM in GB, capped usually at 8)
+    const memory = this.memoryGB;
+    if (memory >= 8) score += 2;
+    else if (memory > 4) score += 1;
+
+    // 3. Next-Gen API presence (WebGPU)
+    if (navigator.gpu) score += 1;
+
+    // 4. Form factor penalty (Mobile devices thermally throttle much faster)
+    if (this.isMobile()) {
+      score -= 2;
+    }
+
+    if (score >= 4) return PerformanceTier.HIGH;
+    if (score >= 2) return PerformanceTier.MEDIUM;
+    return PerformanceTier.LOW;
   }
 }
