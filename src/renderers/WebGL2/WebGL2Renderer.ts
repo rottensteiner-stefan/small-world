@@ -1507,11 +1507,51 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       }
     } else if (this._hdrFbo) {
       this._postPassGL?.destroy?.(this.gl);
-      // bloomPass doesn't have destroy yet, we should add it if needed, or omit
+      this._bloomPassGL?.destroy();
       this._hdrFbo.destroy();
       this._hdrFbo = undefined;
       this._postPassGL = undefined;
       this._bloomPassGL = undefined;
     }
+  }
+
+  /** @inheritdoc */
+  public override destroy(): void {
+    const gl = this.gl;
+    if (gl) {
+      for (const cache of this._programs.values()) gl.deleteProgram(cache.prog);
+      for (const tex of this._texCache.values()) gl.deleteTexture(tex);
+      for (const tex of this._texCubeCache.values()) gl.deleteTexture(tex);
+      for (const mesh of this._cache.values()) {
+        if (mesh.vbo) gl.deleteBuffer(mesh.vbo);
+        if (mesh.ebo) gl.deleteBuffer(mesh.ebo);
+        if (mesh.webo) gl.deleteBuffer(mesh.webo);
+        if (mesh.nbo) gl.deleteBuffer(mesh.nbo);
+        if (mesh.tanbo) gl.deleteBuffer(mesh.tanbo);
+        if (mesh.tbo) gl.deleteBuffer(mesh.tbo);
+      }
+      for (const fbo of this._renderTargetFbos.values()) fbo.destroy();
+      for (const fbo of this._renderTargetCubeFbos.values()) fbo.destroy();
+      for (const shadowFbo of this._shadowMaps.values()) shadowFbo.destroy();
+      this._dummyShadowMap?.destroy();
+      this._hdrFbo?.destroy();
+      this._postPassGL?.destroy(gl);
+      this._bloomPassGL?.destroy();
+      this._globalUBO?.destroy();
+    }
+
+    this._programs.clear();
+    this._cache.clear();
+    this._texCache.clear();
+    this._texCubeCache.clear();
+    this._renderTargetFbos.clear();
+    this._renderTargetCubeFbos.clear();
+    this._shadowMaps.clear();
+    this._scratchTransparentMap.clear();
+    this._hdrFbo = undefined;
+    this._postPassGL = undefined;
+    this._bloomPassGL = undefined;
+
+    super.destroy();
   }
 }

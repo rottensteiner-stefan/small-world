@@ -79,12 +79,17 @@ class Showcase19 extends SmallWorld {
       diffuseMap: gridTexture,
     });
     floor.material = gridMat;
+    floor.receiveShadow = true;
     this.scene.add(floor);
 
     this.scene.add(new AmbientLight({ color: Color.WHITE, intensity: 0.4 }));
 
-    const dirLight = new DirectionalLight(new Color(1, 1, 1), 1.0);
-    dirLight.direction.set(-1, -1, -0.5);
+    const dirLight = new DirectionalLight({
+      color: new Color(1, 1, 1),
+      intensity: 0.2,
+      castShadow: true,
+      direction: new Vector3D(-1, -1, -0.5).normalize(),
+    });
     this.scene.add(dirLight);
 
     // 2. The "Magic Crystal" (Bobbing, Rotating, Rainbow)
@@ -96,6 +101,8 @@ class Showcase19 extends SmallWorld {
     crystal.addBehavior(new BobbingBehavior(1.0, 2.0));
     crystal.addBehavior(new RotatorBehavior(new Vector3D(1.0, 1.5, 0.5)));
     crystal.addBehavior(new RainbowBehavior(0.2));
+    crystal.castShadow = true;
+    crystal.receiveShadow = true;
     this.scene.add(crystal);
 
     // 3. The "Companion Sphere" (SpringLerpBehavior following the camera)
@@ -128,6 +135,8 @@ class Showcase19 extends SmallWorld {
         springLerp.targetPosition.copyFrom(targetPos);
       },
     });
+    companion.castShadow = true;
+    companion.receiveShadow = true;
     this.scene.add(companion);
 
     // 4. The Patrolling Spaceship (PathFollowerBehavior)
@@ -151,6 +160,8 @@ class Showcase19 extends SmallWorld {
     body.material = new StandardMaterial({ color: Color.HOTPINK, metallic: 1.0, roughness: 0.1 });
     // Point the cone forward (-Z) instead of up (+Y)
     body.rotation.x = Math.PI / 2;
+    body.castShadow = true;
+    body.receiveShadow = true;
     ship.add(body);
 
     // Spaceship wings (Cube)
@@ -159,6 +170,8 @@ class Showcase19 extends SmallWorld {
     wings.material = new StandardMaterial({ color: Color.WHITE, metallic: 0.8, roughness: 0.2 });
     wings.scale.set(3.5, 0.2, 1.0);
     wings.position.set(0, -0.2, 0.5); // slightly below and towards the back
+    wings.castShadow = true;
+    wings.receiveShadow = true;
     ship.add(wings);
 
     // Flickering Thrusters
@@ -193,12 +206,17 @@ class Showcase19 extends SmallWorld {
     this.scene.add(ship);
 
     // 5. The Surveillance Spotlight (LookAtBehavior)
-    const spot = new SpotLight(Color.YELLOW, 50.0);
+    const spot = new SpotLight({
+      color: Color.YELLOW,
+      distance: 50.0,
+      angle: Math.PI / 8,
+      intensity: 100.0, // Scheinwerfer etwas rauf
+      castShadow: true,
+    });
     spot.position.set(0, 15, 0); // High up in the center
-    spot.innerConeAngle = Math.PI / 16;
-    spot.outerConeAngle = Math.PI / 8;
     // Always look at the spaceship!
     spot.addBehavior(new LookAtBehavior(ship));
+
     this.scene.add(spot);
 
     this.camera.setStrategy(CameraStrategyType.SMOOTH);
@@ -218,5 +236,5 @@ class Showcase19 extends SmallWorld {
   }
 }
 
-const app = new Showcase19();
+const app = new Showcase19({ enableInspector: true });
 app.start();

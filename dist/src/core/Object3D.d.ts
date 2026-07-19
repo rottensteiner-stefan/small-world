@@ -9,6 +9,8 @@ import { RigidBody } from '../physix/RigidBody.js';
 export declare class Object3D implements Collidable {
     readonly uuid: string;
     name: string;
+    /** Optional app-defined category tag, for typed identification instead of matching on `name`. */
+    tag?: string;
     rigidBody?: RigidBody;
     geometry: GeometryDataInterface | undefined;
     material: AbstractMaterial | undefined;
@@ -48,5 +50,5 @@ export declare class Object3D implements Collidable {
     setScale(x: number, y?: number, z?: number): this;
     computeBounds(): this;
     lookAt(target: Vector3D, up?: Vector3D): this;
-    updateMatrixWorld(force?: boolean): void;
+    updateMatrixWorld(): void;
 }

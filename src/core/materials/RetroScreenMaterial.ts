@@ -88,31 +88,16 @@ export class RetroScreenMaterial extends AbstractMaterial {
   /** @inheritdoc */
   public override getRenderManifest(): RenderManifest {
     if (undefined === this._renderManifest) {
-      this._renderManifest = {
-        shaderId: this.type,
-        properties: {
-          u_color: this.color.toFloat32Array(),
-          u_specColor: new Float32Array([1.0, 1.0, 1.0, 1.0]),
-          u_texOffset: [0.0, 0.0],
-          u_texRepeat: [1.0, 1.0],
-          u_shininess: 32.0,
-          u_isTerrain: 0.0,
-          u_metallic: 0.0,
-          u_roughness: 0.5,
-          u_extraParams: [this.intensity, this.time, this.speed, this.mode === "tv50s" ? 0.0 : 1.0],
-          u_liquidParams: [this.param1, this.param2, this.param3, this.param4],
-          u_thresholds: [0.0, 0.0, 0.0, 0.0],
-        },
-        textures: {
-          u_diffuseMap: this.diffuseMap,
-        },
-      };
+      this._renderManifest = this._createBaseManifest();
+      this._renderManifest.properties["u_specColor"] = new Float32Array([1.0, 1.0, 1.0, 1.0]);
+      this._renderManifest.textures["u_diffuseMap"] = this.diffuseMap;
     }
+
+    this._syncBaseManifestState();
 
     const props = this._renderManifest.properties as Record<string, unknown>;
     const texs = this._renderManifest.textures as Record<string, unknown>;
 
-    props["u_color"] = this.color.toFloat32Array();
     texs["u_diffuseMap"] = this.diffuseMap;
 
     const extra = props["u_extraParams"] as number[];
@@ -126,14 +111,6 @@ export class RetroScreenMaterial extends AbstractMaterial {
     params[1] = this.param2;
     params[2] = this.param3;
     params[3] = this.param4;
-
-    this._renderManifest.state = {
-      ...this._renderManifest.state,
-      culling: this.cullMode,
-      depthWrite: this.depthWrite,
-      depthTest: this.depthTest,
-      transparent: this.transparent,
-    };
 
     return this._renderManifest;
   }

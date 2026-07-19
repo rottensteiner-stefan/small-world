@@ -11,7 +11,7 @@ export declare class Forge {
     constructor(options?: ForgeOptions);
     toggle(): void;
     get windows(): ForgeWindow[];
-    openWindow(title: string, tool: ForgeTool, x?: number, y?: number): ForgeWindow;
+    openWindow(title: string, tool: ForgeTool, x?: number, y?: number, persistenceKey?: string): ForgeWindow;
     private _taskbarEl?;
     private _updateTaskbar;
     private _injectCSS;

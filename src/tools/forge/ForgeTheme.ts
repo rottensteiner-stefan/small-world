@@ -57,6 +57,7 @@ export const FORGE_THEME_CSS = `
     position: absolute;
     bottom: 0; left: 0; right: 0;
     height: 36px;
+    box-sizing: border-box;
     background: rgba(15, 23, 42, 0.95);
     border-top: 1px solid var(--swf-border);
     display: flex;

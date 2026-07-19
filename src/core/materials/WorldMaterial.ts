@@ -38,31 +38,16 @@ export class WorldMaterial extends AbstractMaterial {
   /** @inheritdoc */
   public override getRenderManifest(): RenderManifest {
     if (undefined === this._renderManifest) {
-      this._renderManifest = {
-        shaderId: this.type,
-        properties: {
-          u_color: this.color.toFloat32Array(),
-          u_specColor: new Float32Array([1, 1, 1, 1]),
-          u_texOffset: [0, 0],
-          u_texRepeat: [1, 1],
-          u_shininess: 32.0,
-          u_isTerrain: 0.0,
-          u_metallic: 0.0,
-          u_roughness: 0.5,
-          u_extraParams: [1.0, 0, 0, 0],
-          u_liquidParams: [0, 0, 0, 0],
-          u_thresholds: [0, 0, 0, 0],
-        },
-        textures: {
-          u_diffuseMap: this.diffuseMap,
-        },
-      };
+      this._renderManifest = this._createBaseManifest();
+      this._renderManifest.properties["u_specColor"] = new Float32Array([1, 1, 1, 1]);
+      this._renderManifest.properties["u_extraParams"] = [1.0, 0, 0, 0];
+      this._renderManifest.textures["u_diffuseMap"] = this.diffuseMap;
     }
+
+    this._syncBaseManifestState();
 
     const props = this._renderManifest.properties as Record<string, unknown>;
     const texs = this._renderManifest.textures as Record<string, unknown>;
-
-    props["u_color"] = this.color.toFloat32Array();
 
     if (this.diffuseMap) {
       (props["u_texRepeat"] as number[])[0] = this.diffuseMap.repeat.x;
@@ -73,11 +58,6 @@ export class WorldMaterial extends AbstractMaterial {
     }
 
     texs["u_diffuseMap"] = this.diffuseMap;
-
-    this._renderManifest.state = {
-      ...this._renderManifest.state,
-      culling: this.cullMode,
-    };
 
     return this._renderManifest;
   }

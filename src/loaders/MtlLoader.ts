@@ -96,15 +96,19 @@ export class MtlLoader extends AbstractLoader<Map<string, PhongMaterial>> {
         const texPath: string = line.substring(line.indexOf(" ") + 1).trim();
         const texUrl: string = folderPath + texPath;
 
-        const image: ImageBitmap | HTMLImageElement = await AssetManager.loadImage(
-          texUrl,
-          undefined,
-          true,
-        );
-        currentMat.normalMap = Texture.fromImage(image, {
-          magFilter: TextureFilter.NEAREST,
-          minFilter: TextureFilter.NEAREST,
-        });
+        try {
+          const image: ImageBitmap | HTMLImageElement = await AssetManager.loadImage(
+            texUrl,
+            undefined,
+            true,
+          );
+          currentMat.normalMap = Texture.fromImage(image, {
+            magFilter: TextureFilter.NEAREST,
+            minFilter: TextureFilter.NEAREST,
+          });
+        } catch (e) {
+          console.error(`[MtlLoader] Failed to load bump texture: ${texUrl}`, e);
+        }
       }
     }
 

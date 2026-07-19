@@ -5,6 +5,7 @@ import { CameraInterfaceData } from "../../interfaces/index.js";
 import { BoundingSphere, Collision } from "../../physix/index.js";
 import { MathPool } from "../../math/index.js";
 import { AudioSystem } from "../../audio/index.js";
+import { YadObjectTags } from "./YadObjectTags.js";
 
 export interface EnemyBehaviorOptions {
   player: CameraInterfaceData;
@@ -35,7 +36,7 @@ export class EnemyBehavior extends Behavior {
   }
 
   public override update(deltaTime: number): void {
-    if (!this.target || (this.target as Object3D).name === "DeadEnemy") return;
+    if (!this.target || (this.target as Object3D).tag === YadObjectTags.DEAD_ENEMY) return;
 
     const dx = this._player.position.x - this.target.position.x;
     const dz = this._player.position.z - this.target.position.z;

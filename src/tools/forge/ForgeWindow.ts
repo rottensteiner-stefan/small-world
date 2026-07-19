@@ -7,9 +7,20 @@ export class ForgeWindow {
   private _tool: ForgeTool | null = null;
   private _onClose?: () => void;
   private _title: string;
+  private _persistenceKey: string;
 
-  constructor(title: string, parent: HTMLElement, x: number = 10, y: number = 10) {
+  constructor(
+    title: string,
+    parent: HTMLElement,
+    x: number = 10,
+    y: number = 10,
+    // Persistence uses a stable key instead of the display title, so renaming a
+    // window's title (or two windows sharing a title) doesn't collide or orphan
+    // previously saved visibility state.
+    persistenceKey: string = title,
+  ) {
     this._title = title;
+    this._persistenceKey = persistenceKey;
     this._windowEl = document.createElement("div");
     this._windowEl.className = "swf-window";
     this._windowEl.style.left = `${x}px`;
@@ -52,8 +63,22 @@ export class ForgeWindow {
     parent.appendChild(this._windowEl);
 
     // Bring to front on click
-    this._windowEl.addEventListener("mousedown", () => {
+    this._windowEl.addEventListener("mousedown", (e) => {
       this.bringToFront();
+      e.stopPropagation();
+    });
+    this._windowEl.addEventListener("pointerdown", (e) => {
+      e.stopPropagation();
+    });
+    this._windowEl.addEventListener("touchstart", (e) => {
+      e.stopPropagation();
+    });
+    this._windowEl.addEventListener("wheel", (e) => {
+      e.stopPropagation();
+    });
+    // Prevent context menu (right click) from leaking
+    this._windowEl.addEventListener("contextmenu", (e) => {
+      e.stopPropagation();
     });
 
     this._bindDrag(header);
@@ -98,11 +123,11 @@ export class ForgeWindow {
       this._windowEl.style.display = "flex";
       this.bringToFront();
     }
-    localStorage.setItem(`swf_win_${this._title}`, nextState ? "1" : "0");
+    localStorage.setItem(`swf_win_${this._persistenceKey}`, nextState ? "1" : "0");
   }
 
   public restoreState(): void {
-    const state = localStorage.getItem(`swf_win_${this._title}`);
+    const state = localStorage.getItem(`swf_win_${this._persistenceKey}`);
     if (state === "1") {
       this.toggleVisibility(true);
     } else {

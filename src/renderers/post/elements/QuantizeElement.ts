@@ -8,6 +8,9 @@ import { PostProcessingEffectType } from "../../../enums/index.js";
 export class QuantizeElement extends PostProcessingElement {
   public readonly type = PostProcessingEffectType.QUANTIZE;
 
+  /** Opt-in: unlike the other default effects, posterization should not silently apply. */
+  public override enabled: boolean = false;
+
   /** Number of color steps per RGB channel. E.g. 8.0 = 3 bits per channel. */
   public steps: number = 8.0;
 }

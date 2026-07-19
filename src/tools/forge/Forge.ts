@@ -87,8 +87,14 @@ export class Forge {
     return this._windows;
   }
 
-  public openWindow(title: string, tool: ForgeTool, x: number = 20, y: number = 20): ForgeWindow {
-    const win = new ForgeWindow(title, this._overlay, x, y);
+  public openWindow(
+    title: string,
+    tool: ForgeTool,
+    x: number = 20,
+    y: number = 20,
+    persistenceKey: string = title,
+  ): ForgeWindow {
+    const win = new ForgeWindow(title, this._overlay, x, y, persistenceKey);
     win.mountTool(tool);
     this._windows.push(win);
 

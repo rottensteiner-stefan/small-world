@@ -26,6 +26,14 @@ export declare class Collision {
      * @returns True if collision was resolved.
      */
     static resolveSphereSphere(s1: BoundingSphere, s2: BoundingSphere, result: Vector3D): boolean;
+    /**
+     * Resolves collision between two axis-aligned boxes, returning a correction vector.
+     * @param b1 The first box.
+     * @param b2 The second box.
+     * @param result Vector to store the correction (points from b2 to b1, along the axis of least penetration).
+     * @returns True if collision was resolved.
+     */
+    static resolveBoxBox(b1: BoundingBox, b2: BoundingBox, result: Vector3D): boolean;
     private static _sphereSphere;
     private static _boxBox;
     /**

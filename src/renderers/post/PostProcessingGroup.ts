@@ -5,6 +5,7 @@ import {
   VignetteElement,
   GrainElement,
   BloomElement,
+  QuantizeElement,
 } from "./elements/index.js";
 import { PostProcessingEffectType } from "../../enums/index.js";
 
@@ -31,6 +32,7 @@ export class PostProcessingGroup {
     this.add(new VignetteElement());
     this.add(new GrainElement());
     this.add(new BloomElement());
+    this.add(new QuantizeElement());
   }
 
   /**
@@ -110,6 +112,14 @@ export class PostProcessingGroup {
             bloom.color.set(col.r, col.g, col.b);
           }
         }
+      }
+    }
+
+    if (config.quantize) {
+      const quant = this.get<QuantizeElement>(PostProcessingEffectType.QUANTIZE);
+      if (quant) {
+        if (config.quantize.enabled !== undefined) quant.enabled = config.quantize.enabled;
+        if (config.quantize.steps !== undefined) quant.steps = config.quantize.steps;
       }
     }
   }

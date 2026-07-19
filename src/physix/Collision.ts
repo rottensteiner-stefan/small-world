@@ -127,6 +127,36 @@ export class Collision {
     return true;
   }
 
+  /**
+   * Resolves collision between two axis-aligned boxes, returning a correction vector.
+   * @param b1 The first box.
+   * @param b2 The second box.
+   * @param result Vector to store the correction (points from b2 to b1, along the axis of least penetration).
+   * @returns True if collision was resolved.
+   */
+  public static resolveBoxBox(b1: BoundingBox, b2: BoundingBox, result: Vector3D): boolean {
+    const overlapX = Math.min(b1.max.x, b2.max.x) - Math.max(b1.min.x, b2.min.x);
+    if (overlapX <= 0) return false;
+    const overlapY = Math.min(b1.max.y, b2.max.y) - Math.max(b1.min.y, b2.min.y);
+    if (overlapY <= 0) return false;
+    const overlapZ = Math.min(b1.max.z, b2.max.z) - Math.max(b1.min.z, b2.min.z);
+    if (overlapZ <= 0) return false;
+
+    // Push out along the single axis of least penetration.
+    if (overlapX <= overlapY && overlapX <= overlapZ) {
+      const dir = b1.center.x - b2.center.x >= 0 ? 1 : -1;
+      result.set(overlapX * dir, 0, 0);
+    } else if (overlapY <= overlapX && overlapY <= overlapZ) {
+      const dir = b1.center.y - b2.center.y >= 0 ? 1 : -1;
+      result.set(0, overlapY * dir, 0);
+    } else {
+      const dir = b1.center.z - b2.center.z >= 0 ? 1 : -1;
+      result.set(0, 0, overlapZ * dir);
+    }
+
+    return true;
+  }
+
   private static _sphereSphere(s1: BoundingSphere, s2: BoundingSphere): boolean {
     const d2: number = s1.center.distanceToSq(s2.center);
     const r2: number = (s1.radius + s2.radius) * (s1.radius + s2.radius);

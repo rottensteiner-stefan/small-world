@@ -6,6 +6,7 @@ import { RigidBody } from "../../src/physix/RigidBody.js";
 import { Vector3D } from "../../src/math/index.js";
 import { Cube, Sphere } from "../../src/geometry/index.js";
 import { BoundingSphere } from "../../src/physix/BoundingSphere.js";
+import { BoundingBox } from "../../src/physix/BoundingBox.js";
 
 describe("PhysicsSystem", () => {
   let system: PhysicsSystem;
@@ -227,6 +228,40 @@ describe("PhysicsSystem", () => {
     expect(rb1.velocity.x).toBeCloseTo(-1);
     expect(rb2.velocity.x).toBeCloseTo(1);
   });
+  it("should resolve Box-Box collisions (push apart and bounce)", () => {
+    const box1 = new Object3D();
+    box1.position.set(0, 0, 0);
+    const rb1 = new RigidBody(1.0);
+    rb1.restitution = 1.0;
+    rb1.friction = 1.0;
+    box1.rigidBody = rb1;
+    box1.bounds = new BoundingBox(new Vector3D(-1, -1, -1), new Vector3D(1, 1, 1));
+
+    const box2 = new Object3D();
+    box2.position.set(1.5, 0, 0);
+    const rb2 = new RigidBody(1.0);
+    rb2.restitution = 1.0;
+    rb2.friction = 1.0;
+    box2.rigidBody = rb2;
+    box2.bounds = new BoundingBox(new Vector3D(0.5, -1, -1), new Vector3D(2.5, 1, 1));
+
+    scene.add(box1, box2);
+
+    rb1.velocity.set(1, 0, 0);
+    rb2.velocity.set(-1, 0, 0);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (system as any)._resolveCollisions(scene, [box1, box2], 0.1);
+
+    // Overlap on X is 0.5 (box1 max.x=1, box2 min.x=0.5), Y/Z fully overlap -> X is least penetration.
+    // Same depth/mass/velocity setup as the Sphere-Sphere test above, so the correction and
+    // impulse math resolve identically: box1 pushed left, box2 pushed right, velocities reverse.
+    expect(box1.position.x).toBeCloseTo(-0.25, 1);
+    expect(box2.position.x).toBeCloseTo(1.75, 1);
+    expect(rb1.velocity.x).toBeCloseTo(-1);
+    expect(rb2.velocity.x).toBeCloseTo(1);
+  });
+
   it("should not crash with NaN if an object lacks a RigidBody (restitution bug)", () => {
     // Dynamic object
     const dynObj = new Object3D();

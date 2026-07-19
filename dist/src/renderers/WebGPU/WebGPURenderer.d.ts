@@ -56,7 +56,7 @@ export declare class WebGPURenderer extends AbstractRenderer {
     protected _dummyUvBuffer: GPUBuffer;
     protected _dummyTangentBuffer: GPUBuffer;
     _defaultDirShadowTexView: GPUTextureView;
-    protected _defaultSpotShadowTexView: GPUTextureView;
+    _defaultSpotShadowTexView: GPUTextureView;
     protected _shadowSampler: GPUSampler;
     protected _geoCache: Map<GeometryDataInterface, WebGPUGeoCache>;
     protected _gpuInstanceBuffers: WeakMap<InstancedMesh, GPUBuffer>;
@@ -160,4 +160,6 @@ export declare class WebGPURenderer extends AbstractRenderer {
     protected _getGPUCubeTextureView(tex: CubeTexture | undefined): GPUTextureView;
     _updateGlobalBuffers(vp: Float32Array, camPos: Vector3D, lights: LightDataInterface, scene: Scene): void;
     setSize(width: number, height: number): void;
+    /** @inheritdoc */
+    destroy(): void;
 }

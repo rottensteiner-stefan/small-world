@@ -18,6 +18,10 @@ export interface ObliqueOptions {
     near?: number;
     /** Far plane distance. Defaults to 1000. */
     far?: number;
+    /** Angle (radians) of the receding depth axis in screen space. Defaults to 45deg. */
+    shearAngle?: number;
+    /** Scale factor applied to the depth-axis shear (0 = orthographic, 1 = cavalier, 0.5 = cabinet). Defaults to 0.5 (cabinet). */
+    shearScale?: number;
 }
 /**
  * Oblique camera projection for specialized 2.5D views.
@@ -35,8 +39,14 @@ export declare class ObliqueProjection extends AbstractProjection {
     near: number;
     /** Far clip plane. */
     far: number;
+    /** Angle (radians) of the receding depth axis in screen space. */
+    shearAngle: number;
+    /** Scale factor applied to the depth-axis shear. */
+    shearScale: number;
     /** @inheritdoc */
     readonly type: ProjectionType;
+    /** Scratch matrix holding the depth-axis shear, combined with the orthographic matrix in {@link update}. */
+    private _shearMatrix;
     /**
      * Creates an ObliqueProjection from engine config options.
      * @param options The projection options from EngineOptions.

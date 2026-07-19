@@ -27,7 +27,7 @@ import {
   ExternalShaderUniformBehavior,
   GLSLSandboxImporter,
   Object3D,
-  OrbitController,
+  FPSController,
   PhongMaterial,
   Plane,
   Raycaster,
@@ -60,12 +60,12 @@ class CameraZoomBehavior extends Behavior {
   public targetPosition: Vector3D | null = null;
   public targetLook: Vector3D | null = null;
   public isFocused: boolean = false;
-  public orbitController: OrbitController;
+  public fpsController: FPSController;
 
-  constructor(basePos: Vector3D, orbit: OrbitController) {
+  constructor(basePos: Vector3D, fps: FPSController) {
     super();
     this.basePosition = basePos.clone();
-    this.orbitController = orbit;
+    this.fpsController = fps;
   }
 
   public update(deltaTime: number): void {
@@ -73,14 +73,12 @@ class CameraZoomBehavior extends Behavior {
     const cam = this.target as unknown as CameraInterfaceData;
 
     let goalPos = this.basePosition;
-    let goalLook = new Vector3D(0, 0, 0);
 
     if (this.targetPosition) {
       goalPos = this.targetPosition;
-      if (this.targetLook) goalLook = this.targetLook;
 
-      if (this.orbitController.enabled) {
-        this.orbitController.enabled = false;
+      if (this.fpsController.enabled) {
+        this.fpsController.enabled = false;
         this.isFocused = true;
       }
     } else if (this.isFocused) {
@@ -91,7 +89,7 @@ class CameraZoomBehavior extends Behavior {
         Math.abs(goalPos.z - cam.position.z);
       if (dist < 0.2) {
         this.isFocused = false;
-        this.orbitController.enabled = true;
+        this.fpsController.enabled = true;
       }
     }
 
@@ -100,10 +98,25 @@ class CameraZoomBehavior extends Behavior {
     cam.position.y += (goalPos.y - cam.position.y) * deltaTime * 5.0;
     cam.position.z += (goalPos.z - cam.position.z) * deltaTime * 5.0;
 
-    // Smooth damp camera target
-    cam.target.x += (goalLook.x - cam.target.x) * deltaTime * 5.0;
-    cam.target.y += (goalLook.y - cam.target.y) * deltaTime * 5.0;
-    cam.target.z += (goalLook.z - cam.target.z) * deltaTime * 5.0;
+    // Smooth damp camera target angles
+    if (this.targetLook) {
+      const lookDirX = this.targetLook.x - cam.position.x;
+      const lookDirY = this.targetLook.y - cam.position.y;
+      const lookDirZ = this.targetLook.z - cam.position.z;
+
+      const dist = Math.sqrt(lookDirX * lookDirX + lookDirY * lookDirY + lookDirZ * lookDirZ);
+      if (dist > 0.001) {
+        const targetTheta = Math.atan2(lookDirX / dist, -lookDirZ / dist);
+        const targetPhi = Math.asin(lookDirY / dist);
+
+        let dTheta = targetTheta - cam.theta;
+        while (dTheta > Math.PI) dTheta -= Math.PI * 2;
+        while (dTheta < -Math.PI) dTheta += Math.PI * 2;
+
+        cam.theta += dTheta * deltaTime * 5.0;
+        cam.phi += (targetPhi - cam.phi) * deltaTime * 5.0;
+      }
+    }
   }
 }
 
@@ -119,14 +132,18 @@ class Showcase23Engine extends SmallWorld {
   }
 
   protected async setupScene(): Promise<void> {
-    // Setup Camera (pulled back further than before to frame three rows of screens)
-    this.camera.position.set(0, 0, 11.5);
-    this.camera.setStrategy(CameraStrategyType.HYBRID_SYNC);
+    // Setup Camera (center of the sphere)
+    this.camera.position.set(0, 0, 0);
+    this.camera.setStrategy(CameraStrategyType.FPS);
 
-    const orbit = new OrbitController();
-    this.camera.addBehavior(orbit);
+    const fps = new FPSController({
+      enableMovement: false,
+      enableVertical: false,
+      enableCollision: false,
+    });
+    this.camera.addBehavior(fps);
 
-    const zoomBehavior = new CameraZoomBehavior(new Vector3D(0, 0, 11.5), orbit);
+    const zoomBehavior = new CameraZoomBehavior(new Vector3D(0, 0, 0), fps);
     this.camera.addBehavior(zoomBehavior);
 
     // Basic Light
@@ -205,15 +222,17 @@ class Showcase23Engine extends SmallWorld {
               const screen = container.children.find((c) => c.name.startsWith("screen_"));
               if (screen) {
                 // Calculate position slightly in front of the screen
-                const screenWorldPos = screen.position.clone().add(container.position);
+                const screenWorldPos = container.position.clone();
                 const zoomDist = 2.5; // distance from screen
 
-                // The screen is rotated around Y, so we need to push the camera back along its local Z normal
-                const angle = container.rotation.y;
+                // For a sphere layout, the normal pointing towards the center is -container.position.normalize()
+                // The vector from center to screen is just the normalized position.
+                const dir = container.position.clone().normalize();
+
                 zoomBehavior.targetPosition = new Vector3D(
-                  screenWorldPos.x + Math.sin(angle) * zoomDist,
-                  screenWorldPos.y,
-                  screenWorldPos.z + Math.cos(angle) * zoomDist,
+                  screenWorldPos.x - dir.x * zoomDist,
+                  screenWorldPos.y - dir.y * zoomDist,
+                  screenWorldPos.z - dir.z * zoomDist,
                 );
                 // Look directly at the screen's center
                 zoomBehavior.targetLook = screenWorldPos;
@@ -285,19 +304,19 @@ class Showcase23Engine extends SmallWorld {
       mat.backfaceCulling = false;
     }
 
-    // Top row: the original gallery
-    this.createScreen(-4.5, 3.6, Math.PI / 6, shadertoyMat1);
-    this.createScreen(0, 3.6, 0, shadertoyMat2);
-    this.createScreen(4.5, 3.6, -Math.PI / 6, sandboxMat);
+    // Top row
+    this.createScreen(-Math.PI / 6, Math.PI / 6, shadertoyMat1);
+    this.createScreen(0, Math.PI / 6, shadertoyMat2);
+    this.createScreen(Math.PI / 6, Math.PI / 6, sandboxMat);
 
-    // Middle row: comic-style toon shading + 2 more
-    this.createScreen(-4.5, 0, Math.PI / 6, toonMat);
-    this.createScreen(0, 0, 0, asciiMat);
-    this.createScreen(4.5, 0, -Math.PI / 6, voronoiMat);
+    // Middle row
+    this.createScreen(-Math.PI / 6, 0, toonMat);
+    this.createScreen(0, 0, asciiMat);
+    this.createScreen(Math.PI / 6, 0, voronoiMat);
 
-    // Bottom row: Sin City & Code Tunnel
-    this.createScreen(-2.5, -3.6, 0, sinCityMat);
-    this.createScreen(2.5, -3.6, 0, codeTunnelMat);
+    // Bottom row
+    this.createScreen(-Math.PI / 12, -Math.PI / 6, sinCityMat);
+    this.createScreen(Math.PI / 12, -Math.PI / 6, codeTunnelMat);
   }
 
   private buildWebGPUGallery() {
@@ -333,40 +352,39 @@ class Showcase23Engine extends SmallWorld {
       mat.backfaceCulling = false;
     }
 
-    // Top row: the original gallery
-    this.createScreen(-4.5, 3.6, Math.PI / 6, wMat1);
-    this.createScreen(0, 3.6, 0, wMat2);
-    this.createScreen(4.5, 3.6, -Math.PI / 6, wMat3);
+    // Top row
+    this.createScreen(-Math.PI / 6, Math.PI / 6, wMat1);
+    this.createScreen(0, Math.PI / 6, wMat2);
+    this.createScreen(Math.PI / 6, Math.PI / 6, wMat3);
 
-    // Middle row: comic-style toon shading + 2 more
-    this.createScreen(-4.5, 0, Math.PI / 6, toonMat);
-    this.createScreen(0, 0, 0, hexMat);
-    this.createScreen(4.5, 0, -Math.PI / 6, matrixMat);
+    // Middle row
+    this.createScreen(-Math.PI / 6, 0, toonMat);
+    this.createScreen(0, 0, hexMat);
+    this.createScreen(Math.PI / 6, 0, matrixMat);
 
-    // Bottom row: Sin City & Code Tunnel
-    this.createScreen(-2.5, -3.6, 0, sinCityMat);
-    this.createScreen(2.5, -3.6, 0, codeTunnelMat);
+    // Bottom row
+    this.createScreen(-Math.PI / 12, -Math.PI / 6, sinCityMat);
+    this.createScreen(Math.PI / 12, -Math.PI / 6, codeTunnelMat);
   }
 
-  private createScreen(
-    xOffset: number,
-    yOffset: number,
-    yRotation: number,
-    material: CustomShaderMaterial,
-  ) {
+  private createScreen(yaw: number, pitch: number, material: CustomShaderMaterial) {
+    const radius = 10;
     // Parent container for the screen and its frame
-    const container = new Object3D(`container_${xOffset}_${yOffset}`);
+    const container = new Object3D(`container_${yaw.toFixed(2)}_${pitch.toFixed(2)}`);
 
-    // Position it in a cylindrical layout
-    const zOffset = Math.abs(xOffset) > 0 ? 1.5 : 0.0;
-    container.position.set(xOffset, yOffset, zOffset);
-    container.rotation.set(0, yRotation, 0);
+    // Position it in a spherical layout
+    const x = radius * Math.cos(pitch) * Math.sin(yaw);
+    const y = radius * Math.sin(pitch);
+    const z = -radius * Math.cos(pitch) * Math.cos(yaw);
+
+    container.position.set(x, y, z);
+    container.rotation.set(pitch, -yaw, 0);
 
     // Add Bobbing Animation
     container.addBehavior(new BobbingBehavior());
 
     // Frame (Dark Metallic)
-    const frame = new Object3D(`frame_${xOffset}_${yOffset}`);
+    const frame = new Object3D(`frame_${yaw.toFixed(2)}_${pitch.toFixed(2)}`);
     frame.geometry = new Cube({ size: 1 }).getGeometryData();
     const frameMat = new PhongMaterial();
     frameMat.color.set(0.2, 0.2, 0.2);
@@ -378,7 +396,7 @@ class Showcase23Engine extends SmallWorld {
     container.add(frame);
 
     // Screen
-    const screen = new Object3D(`screen_${xOffset}_${yOffset}`);
+    const screen = new Object3D(`screen_${yaw.toFixed(2)}_${pitch.toFixed(2)}`);
     screen.geometry = new Plane({
       width: 4,
       height: 3,

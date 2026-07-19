@@ -78,7 +78,7 @@ export class RendererFactory {
     try {
       await renderer.initialize(canvas, attributes, config);
     } catch (e) {
-      console.error(`Fehler bei der Initialisierung von ${actualType}:`, e);
+      console.error(`Error initializing ${actualType}:`, e);
       throw e;
     }
     return renderer;

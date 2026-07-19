@@ -25,4 +25,8 @@ export declare class BloomPassGL {
      * Returns the final bloom texture.
      */
     execute(hdrTexture: WebGLTexture, width: number, height: number, bloomConfig: BloomElement): WebGLTexture | null;
+    /**
+     * Destroys the programs, VAO, and mip chain framebuffers.
+     */
+    destroy(): void;
 }

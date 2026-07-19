@@ -14,7 +14,7 @@ describe("Octree", () => {
     const obj = new Object3D("TestObj");
     obj.geometry = new Cube({ size: 1 }).getGeometryData();
     obj.position.set(0, 0, 0);
-    obj.updateMatrixWorld(true);
+    obj.updateMatrixWorld();
     obj.computeBounds();
 
     const result = octree.insert(obj);
@@ -27,7 +27,7 @@ describe("Octree", () => {
     );
     const sprite = new Sprite();
     sprite.position.set(-14, 1.5, -5);
-    sprite.updateMatrixWorld(true);
+    sprite.updateMatrixWorld();
     sprite.computeBounds();
 
     const result = octree.insert(sprite);
@@ -41,7 +41,7 @@ describe("Octree", () => {
     const obj = new Object3D("TestObj");
     obj.geometry = new Cube({ size: 1 }).getGeometryData();
     obj.position.set(20, 20, 20);
-    obj.updateMatrixWorld(true);
+    obj.updateMatrixWorld();
     obj.computeBounds();
 
     const result = octree.insert(obj);

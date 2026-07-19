@@ -168,8 +168,16 @@ export class ObjLoader extends AbstractLoader<Object3D> {
     const parts: string[] = faceStr.split("/");
 
     // 1. Position (Mandatory)
-    const vIdx: number = (parseInt(parts[0]!) - 1) * 3;
-    group.outVertices.push(tempV[vIdx]!, tempV[vIdx + 1]!, tempV[vIdx + 2]!);
+    const vRaw: number = parseInt(parts[0]!);
+    const vIdx: number = (vRaw - 1) * 3;
+    if (!Number.isFinite(vRaw) || vIdx < 0 || vIdx + 2 >= tempV.length) {
+      console.warn(
+        `[ObjLoader] Malformed face vertex index "${parts[0]}" in "${faceStr}", using (0,0,0).`,
+      );
+      group.outVertices.push(0, 0, 0);
+    } else {
+      group.outVertices.push(tempV[vIdx]!, tempV[vIdx + 1]!, tempV[vIdx + 2]!);
+    }
 
     // 2. UV Coordinates (Optional)
     if (parts.length > 1 && parts[1] !== "") {

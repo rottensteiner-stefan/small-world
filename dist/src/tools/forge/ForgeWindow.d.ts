@@ -6,7 +6,8 @@ export declare class ForgeWindow {
     private _tool;
     private _onClose?;
     private _title;
-    constructor(title: string, parent: HTMLElement, x?: number, y?: number);
+    private _persistenceKey;
+    constructor(title: string, parent: HTMLElement, x?: number, y?: number, persistenceKey?: string);
     mountTool(tool: ForgeTool): void;
     get title(): string;
     get tool(): ForgeTool | null;

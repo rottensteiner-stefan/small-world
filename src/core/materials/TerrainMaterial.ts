@@ -86,34 +86,20 @@ export class TerrainMaterial extends AbstractMaterial {
   /** @inheritdoc */
   public override getRenderManifest(): RenderManifest {
     if (undefined === this._renderManifest) {
-      this._renderManifest = {
-        shaderId: this.type,
-        properties: {
-          u_color: this.color.toFloat32Array(),
-          u_specColor: new Float32Array([1, 1, 1, 1]),
-          u_texOffset: [0, 0],
-          u_texRepeat: this.texRepeat,
-          u_shininess: this.shininess,
-          u_isTerrain: 1.0,
-          u_metallic: 0.0,
-          u_roughness: 0.5,
-          u_extraParams: [1.0, 0, 1.0, 1.0], // ao, time, flow, noise
-          u_liquidParams: [0, 0, 0, 0],
-          u_thresholds: this.thresholds,
-        },
-        textures: {
-          u_sandMap: this.sandMap,
-          u_grassMap: this.grassMap,
-          u_rockMap: this.rockMap,
-          u_snowMap: this.snowMap,
-        },
-      };
+      this._renderManifest = this._createBaseManifest();
+      this._renderManifest.properties["u_specColor"] = new Float32Array([1, 1, 1, 1]);
+      this._renderManifest.properties["u_isTerrain"] = 1.0;
+      this._renderManifest.textures["u_sandMap"] = this.sandMap;
+      this._renderManifest.textures["u_grassMap"] = this.grassMap;
+      this._renderManifest.textures["u_rockMap"] = this.rockMap;
+      this._renderManifest.textures["u_snowMap"] = this.snowMap;
     }
+
+    this._syncBaseManifestState();
 
     const props = this._renderManifest.properties as Record<string, unknown>;
     const texs = this._renderManifest.textures as Record<string, unknown>;
 
-    props["u_color"] = this.color.toFloat32Array();
     props["u_shininess"] = this.shininess;
     props["u_texRepeat"] = this.texRepeat;
     props["u_thresholds"] = new Float32Array(this.thresholds);
@@ -122,11 +108,6 @@ export class TerrainMaterial extends AbstractMaterial {
     texs["u_grassMap"] = this.grassMap;
     texs["u_rockMap"] = this.rockMap;
     texs["u_snowMap"] = this.snowMap;
-
-    this._renderManifest.state = {
-      ...this._renderManifest.state,
-      culling: this.cullMode,
-    };
 
     return this._renderManifest;
   }

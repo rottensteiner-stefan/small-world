@@ -615,7 +615,7 @@ export class MaterialStudio extends ForgeTool {
         transition: all 0.3s ease;
       }
 
-      canvas {
+      .swf-ms-content canvas {
         max-width: 100%;
         max-height: 70vh;
         object-fit: contain;

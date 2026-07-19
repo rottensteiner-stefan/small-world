@@ -190,7 +190,7 @@ export class AssetManager {
           img.crossOrigin = "anonymous";
           img.src = url;
           img.onload = (): void => resolve(img);
-          img.onerror = (): void => reject(`[AssetManager] Fallback fehlgeschlagen: ${url}`);
+          img.onerror = (): void => reject(`[AssetManager] Fallback failed: ${url}`);
         });
       });
 

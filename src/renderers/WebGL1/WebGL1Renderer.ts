@@ -815,6 +815,42 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
     }
   }
 
+  /** @inheritdoc */
+  public override destroy(): void {
+    const gl = this.gl;
+    if (gl) {
+      for (const cache of this._programs.values()) gl.deleteProgram(cache.prog);
+      for (const tex of this._texCache.values()) gl.deleteTexture(tex);
+      for (const tex of this._texCubeCache.values()) gl.deleteTexture(tex);
+      for (const fbo of this._renderTargetFbos.values()) gl.deleteFramebuffer(fbo);
+      for (const mesh of this._cache.values()) {
+        if (mesh.vbo) gl.deleteBuffer(mesh.vbo);
+        if (mesh.ebo) gl.deleteBuffer(mesh.ebo);
+        if (mesh.webo) gl.deleteBuffer(mesh.webo);
+        if (mesh.nbo) gl.deleteBuffer(mesh.nbo);
+        if (mesh.tanbo) gl.deleteBuffer(mesh.tanbo);
+        if (mesh.tbo) gl.deleteBuffer(mesh.tbo);
+      }
+      if (this._hdrFbo) gl.deleteFramebuffer(this._hdrFbo);
+      if (this._hdrTexture) gl.deleteTexture(this._hdrTexture);
+      if (this._hdrRenderBuffer) gl.deleteRenderbuffer(this._hdrRenderBuffer);
+      this._postPassGL?.destroy(gl);
+    }
+
+    this._programs.clear();
+    this._cache.clear();
+    this._texCache.clear();
+    this._texCubeCache.clear();
+    this._renderTargetFbos.clear();
+    this._scratchTransparentMap.clear();
+    this._hdrFbo = undefined;
+    this._hdrTexture = undefined;
+    this._hdrRenderBuffer = undefined;
+    this._postPassGL = undefined;
+
+    super.destroy();
+  }
+
   private _resetStateCache(): void {
     this._stateCullFaceEnabled = null;
     this._stateCullFaceMode = -1;

@@ -27,6 +27,8 @@ export interface GridLegendEntry {
   preventFloorCeiling?: boolean;
   /** Index for texture array (if the material uses one) */
   textureIndex?: number;
+  /** Optional generic identification tag applied to the built floor object (e.g. for gameplay hazard checks) */
+  tag?: string;
 }
 
 export type GridLegend = Record<string, GridLegendEntry>;
@@ -131,7 +133,7 @@ export class GridLevelBuilder {
           }
 
           block.isStatic = !entry.isDynamic;
-          block.updateMatrixWorld(true);
+          block.updateMatrixWorld();
           block.computeBounds();
           scene.add(block);
           continue; // Blocks usually fill the entire vertical space, no floor/ceiling needed
@@ -150,6 +152,9 @@ export class GridLevelBuilder {
           floor.material = currentFloorMat;
           floor.position.set(worldX, 0, worldZ);
           floor.isStatic = true;
+          if (entry?.type === "floor" && entry.tag) {
+            floor.tag = entry.tag;
+          }
           scene.add(floor);
         }
 

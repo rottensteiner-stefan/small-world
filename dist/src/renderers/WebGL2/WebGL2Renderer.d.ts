@@ -69,4 +69,6 @@ export declare class WebGL2Renderer extends AbstractWebGLRenderer {
     private _updateGlobalUBO;
     /** @inheritdoc */
     setSize(width: number, height: number): void;
+    /** @inheritdoc */
+    destroy(): void;
 }

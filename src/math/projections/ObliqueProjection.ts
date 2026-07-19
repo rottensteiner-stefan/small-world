@@ -20,6 +20,10 @@ export interface ObliqueOptions {
   near?: number;
   /** Far plane distance. Defaults to 1000. */
   far?: number;
+  /** Angle (radians) of the receding depth axis in screen space. Defaults to 45deg. */
+  shearAngle?: number;
+  /** Scale factor applied to the depth-axis shear (0 = orthographic, 1 = cavalier, 0.5 = cabinet). Defaults to 0.5 (cabinet). */
+  shearScale?: number;
 }
 
 /**
@@ -38,9 +42,16 @@ export class ObliqueProjection extends AbstractProjection {
   public near: number;
   /** Far clip plane. */
   public far: number;
+  /** Angle (radians) of the receding depth axis in screen space. */
+  public shearAngle: number;
+  /** Scale factor applied to the depth-axis shear. */
+  public shearScale: number;
 
   /** @inheritdoc */
   public override readonly type: ProjectionType = ProjectionType.OBLIQUE;
+
+  /** Scratch matrix holding the depth-axis shear, combined with the orthographic matrix in {@link update}. */
+  private _shearMatrix: Matrix4 = new Matrix4();
 
   /**
    * Creates an ObliqueProjection from engine config options.
@@ -68,13 +79,24 @@ export class ObliqueProjection extends AbstractProjection {
    */
   constructor(options: ObliqueOptions = {}) {
     super();
-    const { left = -1, right = 1, bottom = -1, top = 1, near = 0.1, far = 1000 } = options;
+    const {
+      left = -1,
+      right = 1,
+      bottom = -1,
+      top = 1,
+      near = 0.1,
+      far = 1000,
+      shearAngle = Math.PI / 4,
+      shearScale = 0.5,
+    } = options;
     this.left = left;
     this.right = right;
     this.bottom = bottom;
     this.top = top;
     this.near = near;
     this.far = far;
+    this.shearAngle = shearAngle;
+    this.shearScale = shearScale;
     this.update();
   }
 
@@ -89,6 +111,13 @@ export class ObliqueProjection extends AbstractProjection {
       this.far,
       this._matrix,
     );
+
+    // Shear the depth axis into X/Y before the orthographic projection is applied,
+    // producing an actual oblique (cavalier/cabinet-style) view instead of a plain orthographic one.
+    this._shearMatrix.identity();
+    this._shearMatrix.data[8] = -Math.cos(this.shearAngle) * this.shearScale;
+    this._shearMatrix.data[9] = -Math.sin(this.shearAngle) * this.shearScale;
+    Matrix4.multiply(this._matrix, this._shearMatrix, this._matrix);
   }
 
   public override setAspect(aspect: number): void {

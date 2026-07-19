@@ -277,6 +277,12 @@ export class PhysicsSystem {
             result,
           );
           if (collisionFound) result.scale(-1); // Reverse direction
+        } else if (boundsA.type === 1 && boundsB.type === 1) {
+          collisionFound = Collision.resolveBoxBox(
+            boundsA as BoundingBox,
+            boundsB as BoundingBox,
+            result,
+          );
         }
 
         if (collisionFound) {

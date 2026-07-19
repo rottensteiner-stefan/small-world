@@ -112,9 +112,7 @@ export abstract class AbstractRenderer implements Renderer {
     this._lightData.dIntensity = 0;
     this._lightData.dDir.set(0, 1, 0);
 
-    for (const obj of scene.objects) {
-      this._traverseLights(obj);
-    }
+    this._traverseLights(scene.root);
 
     return this._lightData;
   }

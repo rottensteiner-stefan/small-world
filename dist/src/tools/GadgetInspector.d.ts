@@ -16,12 +16,13 @@ export declare class GadgetInspector extends ForgeTool {
     private _mouse;
     private _selectedObject;
     private _highlightMesh;
+    private _sceneTab;
     private _folder;
     private _stats;
-    private _resolutionBinding?;
-    private _fpsBinding?;
-    private _objectsBinding?;
-    private _visibleBinding?;
+    private _resolutionBinding;
+    private _fpsBinding;
+    private _objectsBinding;
+    private _visibleBinding;
     private _lastFpsUpdate;
     private _frameCount;
     /**

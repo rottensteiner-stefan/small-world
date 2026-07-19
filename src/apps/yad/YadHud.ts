@@ -1,6 +1,20 @@
 import { AppEvents } from "../../enums/AppEvents.js";
 import { UniversalEventBus } from "../../core/index.js";
 
+interface YadDamagePayload {
+  amount: number;
+}
+
+interface YadPickupPayload {
+  type: string;
+  amount: number;
+  color?: string;
+}
+
+interface YadWeaponPayload {
+  index: number;
+}
+
 export class YadHud {
   private _container: HTMLDivElement;
   private _healthEl!: HTMLCanvasElement;
@@ -237,7 +251,8 @@ export class YadHud {
 
   private _bindEvents(): void {
     UniversalEventBus.addEventListener(AppEvents.Yad.DAMAGE, (e: Record<string, unknown>) => {
-      const amount = (e["amount"] as number) || 0;
+      const payload = e as unknown as YadDamagePayload;
+      const amount = payload.amount || 0;
       if (this._armor > 0) {
         this._armor -= amount;
         if (this._armor < 0) {
@@ -254,8 +269,9 @@ export class YadHud {
     });
 
     UniversalEventBus.addEventListener(AppEvents.Yad.PICKUP, (e: Record<string, unknown>) => {
-      const type = e["type"] as string;
-      const amount = (e["amount"] as number) || 0;
+      const payload = e as unknown as YadPickupPayload;
+      const { type } = payload;
+      const amount = payload.amount || 0;
       if (type === "armor") {
         this._armor = Math.min(200, this._armor + amount);
         this._triggerFlash("rgba(0, 255, 0, 0.3)"); // Green flash
@@ -268,9 +284,9 @@ export class YadHud {
       } else if (type === "ammo") {
         this._ammo = Math.min(200, this._ammo + amount);
         this._triggerFlash("rgba(255, 255, 255, 0.3)"); // White flash
-      } else if (type === "keycard" && e["color"]) {
-        if (!this._keycards.includes(e["color"] as string)) {
-          this._keycards.push(e["color"] as string);
+      } else if (type === "keycard" && payload.color) {
+        if (!this._keycards.includes(payload.color)) {
+          this._keycards.push(payload.color);
         }
       }
       this._updateDisplay();
@@ -284,7 +300,8 @@ export class YadHud {
     });
 
     UniversalEventBus.addEventListener(AppEvents.Yad.WEAPON, (e: Record<string, unknown>) => {
-      const index = e["index"] as number;
+      const payload = e as unknown as YadWeaponPayload;
+      const { index } = payload;
       if (index) {
         this._updateWeaponDisplay(index);
       }

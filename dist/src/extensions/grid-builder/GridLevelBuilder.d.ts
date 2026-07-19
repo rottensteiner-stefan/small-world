@@ -24,6 +24,8 @@ export interface GridLegendEntry {
     preventFloorCeiling?: boolean;
     /** Index for texture array (if the material uses one) */
     textureIndex?: number;
+    /** Optional generic identification tag applied to the built floor object (e.g. for gameplay hazard checks) */
+    tag?: string;
 }
 export type GridLegend = Record<string, GridLegendEntry>;
 export interface GridLevelConfig {

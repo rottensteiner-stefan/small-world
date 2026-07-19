@@ -221,4 +221,15 @@ export class BloomPassGL {
     // The final bloom texture is the largest Mip FBO (index 0)
     return this._mipChain[0]!.texture;
   }
+
+  /**
+   * Destroys the programs, VAO, and mip chain framebuffers.
+   */
+  public destroy(): void {
+    if (this._downsampleProg) this._gl.deleteProgram(this._downsampleProg);
+    if (this._upsampleProg) this._gl.deleteProgram(this._upsampleProg);
+    if (this._vao) this._gl.deleteVertexArray(this._vao);
+    for (const fbo of this._mipChain) fbo.destroy();
+    this._mipChain = [];
+  }
 }

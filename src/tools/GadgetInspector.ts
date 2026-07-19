@@ -1,5 +1,5 @@
 /// src/tools/GadgetInspector.ts
-import { Pane, FolderApi } from "tweakpane";
+import { Pane, FolderApi, TabPageApi } from "tweakpane";
 import * as CamerakitPlugin from "@kitschpatrol/tweakpane-plugin-camerakit";
 import {
   Scene,
@@ -9,18 +9,19 @@ import {
   DeviceLimit,
   FrustumCuller,
 } from "../core/index.js";
+import { AudioSystem } from "../audio/index.js";
+import { BoundingType } from "../enums/index.js";
 import { CameraInterfaceData, Renderer } from "../interfaces/index.js";
 import { Behavior } from "../core/behaviors/index.js";
 import { WireframeMaterial } from "../core/materials/index.js";
 import { Color } from "../core/colors/index.js";
 import { Raycaster, BoundingBox } from "../physix/index.js";
-import { Vector2D, Vector3D } from "../math/index.js";
 import { Cube } from "../geometry/index.js";
-import { BoundingType } from "../enums/index.js";
-import { AudioSystem } from "../audio/index.js";
+import { Vector2D, Vector3D } from "../math/index.js";
 import { ForgeTool, ForgeToolOptions } from "./forge/ForgeTool.js";
 
-interface BindingLike {
+/** Minimal shape shared by Tweakpane binding APIs — only what this file actually calls. */
+interface RefreshableBinding {
   refresh(): void;
 }
 
@@ -30,10 +31,11 @@ interface BindingLike {
  */
 export class GadgetInspector extends ForgeTool {
   private _pane: Pane;
-  private _raycaster: Raycaster = new Raycaster();
-  private _mouse: Vector2D = new Vector2D();
+  private _raycaster = new Raycaster();
+  private _mouse = new Vector2D();
   private _selectedObject: Object3D | null = null;
   private _highlightMesh: Object3D;
+  private _sceneTab!: TabPageApi;
   private _folder: FolderApi | null = null;
 
   private _stats = {
@@ -44,10 +46,10 @@ export class GadgetInspector extends ForgeTool {
     visible: 0,
   };
 
-  private _resolutionBinding?: BindingLike;
-  private _fpsBinding?: BindingLike;
-  private _objectsBinding?: BindingLike;
-  private _visibleBinding?: BindingLike;
+  private _resolutionBinding: RefreshableBinding | undefined;
+  private _fpsBinding: RefreshableBinding | undefined;
+  private _objectsBinding: RefreshableBinding | undefined;
+  private _visibleBinding: RefreshableBinding | undefined;
   private _lastFpsUpdate: number = 0;
   private _frameCount: number = 0;
 
@@ -68,21 +70,74 @@ export class GadgetInspector extends ForgeTool {
     super(options);
 
     // 1. Initialize Tweakpane
-    this._pane = new Pane({ container: this._container, title: "Gadget Inspector" });
+    this._pane = new Pane({ container: this._container });
     this._pane.registerPlugin(CamerakitPlugin);
 
     // We don't need absolute positioning anymore since ForgeWindow handles it
     this._pane.element.style.width = "100%";
 
+    // Create Tool-bar (Tabs)
+    const tabs = this._pane.addTab({
+      pages: [
+        { title: "🌍" }, // Scene
+        { title: "🔍" }, // Search
+        { title: "📈" }, // Stats & Diag
+        { title: "⚙️" }, // Renderer
+        { title: "🔊" }, // Audio
+      ],
+    });
+
+    this._sceneTab = tabs.pages[0]!;
+    const searchTab = tabs.pages[1]!;
+    const statsTab = tabs.pages[2]!;
+    const renderTab = tabs.pages[3]!;
+    const audioTab = tabs.pages[4]!;
+
+    // Add Search Object feature
+    const searchParams = { name: "" };
+    const searchResultBlades: { dispose: () => void }[] = [];
+
+    searchTab
+      .addBinding(searchParams, "name", { label: "🔍" })
+      .on("change", (ev: { value: string }) => {
+        for (const blade of searchResultBlades) {
+          blade.dispose();
+        }
+        searchResultBlades.length = 0;
+
+        const query = ev.value.toLowerCase().trim();
+        if (!query) return;
+
+        const allObjects: Object3D[] = [];
+        for (const child of this._scene.objects) {
+          this._getAllObjects(child, allObjects);
+        }
+
+        const matches = allObjects.filter(
+          (obj: Object3D) => obj.name && obj.name.toLowerCase().includes(query),
+        );
+
+        const limit = Math.min(matches.length, 10);
+        for (let i = 0; i < limit; i++) {
+          const match = matches[i]!;
+          const btn = searchTab.addButton({ title: `↳ ${match.name}` });
+          btn.on("click", () => {
+            this.selectObject(match);
+          });
+          searchResultBlades.push(btn);
+        }
+
+        if (matches.length > limit) {
+          const btn = searchTab.addButton({ title: `... and ${matches.length - limit} more` });
+          searchResultBlades.push(btn);
+        }
+      });
+
     // Setup Diagnostics folder
     if (undefined !== this._renderer) {
       this._stats.renderer = this._renderer.constructor.name;
     }
-    const diagFolder = (
-      this._pane as unknown as {
-        addFolder: (params: { title: string; expanded?: boolean }) => FolderApi;
-      }
-    ).addFolder({ title: "Diagnostics", expanded: true });
+    const diagFolder = statsTab.addFolder({ title: "Diagnostics", expanded: true });
 
     diagFolder.addBinding(this._stats, "renderer", { readonly: true, label: "Renderer" });
     this._resolutionBinding = diagFolder.addBinding(this._stats, "resolution", {
@@ -100,22 +155,14 @@ export class GadgetInspector extends ForgeTool {
     });
 
     if (this._renderer && this._renderer.quality) {
-      const renderFolder = (
-        this._pane as unknown as {
-          addFolder: (params: { title: string; expanded?: boolean }) => FolderApi;
-        }
-      ).addFolder({ title: "Renderer Settings", expanded: true });
+      const renderFolder = renderTab.addFolder({ title: "Renderer Settings", expanded: true });
 
       renderFolder.addBinding(this._renderer.quality, "disableTextures", {
         label: "Disable Textures",
       });
     }
 
-    const capsFolder = (
-      this._pane as unknown as {
-        addFolder: (params: { title: string; expanded?: boolean }) => FolderApi;
-      }
-    ).addFolder({ title: "Capabilities", expanded: false });
+    const capsFolder = statsTab.addFolder({ title: "Capabilities", expanded: false });
 
     const caps = {
       WebGL1: DeviceCaps.hasFeature(DeviceFeature.WEBGL1) ? "Yes" : "No",
@@ -147,11 +194,7 @@ export class GadgetInspector extends ForgeTool {
     capsFolder.addBinding(caps, "FloatTex", { readonly: true, label: "Float Tex" });
     capsFolder.addBinding(caps, "CompTex", { readonly: true, label: "Compressed Tex" });
 
-    const audioFolder = (
-      this._pane as unknown as {
-        addFolder: (params: { title: string; expanded?: boolean }) => FolderApi;
-      }
-    ).addFolder({ title: "Audio Mixer", expanded: true });
+    const audioFolder = audioTab.addFolder({ title: "Audio Mixer", expanded: true });
 
     // Inject CSS for horizontal row layout
     if (!document.getElementById("tp-custom-styles")) {
@@ -331,7 +374,7 @@ export class GadgetInspector extends ForgeTool {
 
       this._highlightMesh.position.copyFrom(box.center);
       this._highlightMesh.scale.copyFrom(size);
-      this._highlightMesh.updateMatrixWorld(true);
+      this._highlightMesh.updateMatrixWorld();
       this._highlightMesh.isVisible = true;
     } else {
       this._highlightMesh.isVisible = false;
@@ -362,9 +405,7 @@ export class GadgetInspector extends ForgeTool {
     }
 
     // Workaround for Tweakpane Pane type definitions missing addFolder in older versions
-    this._folder = (
-      this._pane as unknown as { addFolder: (params: { title: string }) => FolderApi }
-    ).addFolder({ title: `Object: ${obj.constructor.name}` });
+    this._folder = this._sceneTab.addFolder({ title: `Object: ${obj.constructor.name}` });
 
     if (obj.name && "" !== obj.name) {
       this._folder.addBinding(obj, "name", { readonly: true, label: "Name" });
@@ -472,13 +513,43 @@ export class GadgetInspector extends ForgeTool {
             lightCol.b = ev.value.b / 255;
           });
 
-        lightFolder.addBinding(maybeLight, "intensity", { min: 0, max: 20, label: "Intensity" });
+        const lightProps = {
+          intensity: (maybeLight["intensity"] as number) || 0,
+          distance: (maybeLight["distance"] as number) || 0,
+          decay: (maybeLight["decay"] as number) || 0,
+        };
+
+        lightFolder
+          .addBinding(lightProps, "intensity", {
+            min: 0,
+            max: 200,
+            step: 0.01,
+            label: "Intensity",
+          })
+          .on("change", (ev: { value: number }) => {
+            maybeLight["intensity"] = ev.value;
+          });
 
         if ("distance" in maybeLight) {
-          lightFolder.addBinding(maybeLight, "distance", { min: 0, max: 100, label: "Distance" });
+          lightFolder
+            .addBinding(lightProps, "distance", { min: 0, max: 100, label: "Distance" })
+            .on("change", (ev: { value: number }) => {
+              maybeLight["distance"] = ev.value;
+              // If it's a SpotLight or PointLight, it might need to update its shadow camera!
+              const updateShadowCamera = maybeLight["updateShadowCamera"] as
+                | (() => void)
+                | undefined;
+              if (typeof updateShadowCamera === "function") {
+                updateShadowCamera.call(maybeLight);
+              }
+            });
         }
         if ("decay" in maybeLight) {
-          lightFolder.addBinding(maybeLight, "decay", { min: 0, max: 5, label: "Decay" });
+          lightFolder
+            .addBinding(lightProps, "decay", { min: 0, max: 5, label: "Decay" })
+            .on("change", (ev: { value: number }) => {
+              maybeLight["decay"] = ev.value;
+            });
         }
       }
     }
@@ -631,7 +702,7 @@ export class GadgetInspector extends ForgeTool {
         size.add(new Vector3D(0.02, 0.02, 0.02));
         this._highlightMesh.position.copyFrom(box.center);
         this._highlightMesh.scale.copyFrom(size);
-        this._highlightMesh.updateMatrixWorld(true);
+        this._highlightMesh.updateMatrixWorld();
       }
     }
   }

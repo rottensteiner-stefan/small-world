@@ -60,22 +60,16 @@ export class Scene {
 
   public update(deltaTime: number = 0): void {
     // 1. Update behaviors
-    for (const obj of this.objects) {
-      this._updateBehaviorsRecursive(obj, deltaTime);
-    }
+    this._updateBehaviorsRecursive(this.root, deltaTime);
     // 2. Update matrices
-    for (const obj of this.objects) {
-      obj.updateMatrixWorld(true);
-    }
+    this.root.updateMatrixWorld();
     if (undefined !== this.dynamicOctree) {
       this.updateDynamicOctree();
     }
   }
 
   public updateLights(camera: import("../interfaces/index.js").CameraInterfaceData): void {
-    for (const obj of this.objects) {
-      this._updateLightsRecursive(obj, camera);
-    }
+    this._updateLightsRecursive(this.root, camera);
   }
 
   private _updateLightsRecursive(
@@ -93,13 +87,13 @@ export class Scene {
   public updateStaticOctree(): void {
     if (!this.staticOctree) return;
     this.staticOctree.clear();
-    for (const obj of this.objects) this._addObjectToOctree(obj, true);
+    this._addObjectToOctree(this.root, true);
   }
 
   public updateDynamicOctree(): void {
     if (!this.dynamicOctree) return;
     this.dynamicOctree.clear();
-    for (const obj of this.objects) this._addObjectToOctree(obj, false);
+    this._addObjectToOctree(this.root, false);
   }
 
   private _addObjectToOctree(obj: Object3D, checkStatic: boolean): void {
@@ -165,9 +159,7 @@ export class Scene {
     vpMat.data.set(vp);
     frustum.setFromMatrix(vpMat);
 
-    for (let i: number = 0; i < this.objects.length; i++) {
-      this._collectVisible(this.objects[i]!, this._renderList, frustum);
-    }
+    this._collectVisible(this.root, this._renderList, frustum);
 
     // Sort transparent objects back-to-front
     this._renderList.transparent.sort((a, b) => {

@@ -3,6 +3,7 @@ import { Scene } from './Scene.js';
 import { InteractionManager } from './InteractionManager.js';
 import { EngineOptions, Renderer } from '../interfaces/index.js';
 import { GadgetInspector } from '../tools/GadgetInspector.js';
+import { PhysicsSystem } from '../physix/PhysicsSystem.js';
 /** The current engine version. */
 export declare const ENGINE_VERSION = "0.67.0";
 /**
@@ -17,6 +18,8 @@ export declare abstract class SmallWorld {
     camera: Camera;
     /** The active renderer. */
     renderer: Renderer;
+    /** The built-in physics system. Stepped automatically each frame when `config.enablePhysics` is true. */
+    physics: PhysicsSystem;
     /** The interaction manager for gamification / picking. */
     interactionManager: InteractionManager;
     forge: import('../tools/forge/Forge.js').Forge;

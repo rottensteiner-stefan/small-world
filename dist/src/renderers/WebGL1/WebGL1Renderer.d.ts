@@ -48,5 +48,7 @@ export declare class WebGL1Renderer extends AbstractWebGLRenderer {
     private _renderGroup;
     /** @inheritdoc */
     setSize(width: number, height: number): void;
+    /** @inheritdoc */
+    destroy(): void;
     private _resetStateCache;
 }

@@ -3,6 +3,7 @@ import {
   FirstPersonController,
   FirstPersonControllerOptions,
   Input,
+  Object3D,
   UniversalEventBus,
 } from "../../core/index.js";
 import { CameraInterfaceData } from "../../interfaces/index.js";
@@ -10,6 +11,7 @@ import { Keys, AppEvents } from "../../enums/index.js";
 import { Raycaster } from "../../physix/index.js";
 import { Vector2D } from "../../math/index.js";
 import { AudioSystem } from "../../audio/index.js";
+import { YadObjectTags } from "./YadObjectTags.js";
 /**
  * A retro style controller for forward/backward movement and left/right rotation.
  * It extends FirstPersonController and adds shooting, weapon selection, and damage logic.
@@ -64,15 +66,32 @@ export class YadController extends FirstPersonController {
         const center = new Vector2D(0, 0); // Screen center in NDC
         raycaster.setFromCamera(center, this.target as unknown as CameraInterfaceData);
 
+        const scene = this._options.scene;
+        let candidates: Object3D[] = scene.objects;
+        if (scene.staticOctree || scene.dynamicOctree || scene.spatialHash) {
+          const hits = new Set<Object3D>();
+          if (scene.staticOctree) {
+            for (const obj of scene.staticOctree.queryRay(raycaster.ray)) hits.add(obj as Object3D);
+          }
+          if (scene.dynamicOctree) {
+            for (const obj of scene.dynamicOctree.queryRay(raycaster.ray))
+              hits.add(obj as Object3D);
+          }
+          if (scene.spatialHash) {
+            for (const obj of scene.spatialHash.queryRay(raycaster.ray)) hits.add(obj as Object3D);
+          }
+          candidates = Array.from(hits);
+        }
+
         // intersectObjects sorts by distance closest to furthest by default
-        const intersects = raycaster.intersectObjects(this._options.scene.objects, true);
+        const intersects = raycaster.intersectObjects(candidates, true);
 
         for (const intersect of intersects) {
           const obj = intersect.object;
 
-          if (obj.name.startsWith("Enemy") && obj.isVisible && obj.scale.y > 0.5) {
+          if (obj.tag === YadObjectTags.ENEMY && obj.isVisible && obj.scale.y > 0.5) {
             // HIT AN ENEMY!
-            obj.name = "DeadEnemy"; // prevent shooting again
+            obj.tag = YadObjectTags.DEAD_ENEMY; // prevent shooting again
             obj.scale.y = 0.2; // squash to "dead"
             obj.position.y = 0.2; // drop to floor
 
@@ -83,8 +102,9 @@ export class YadController extends FirstPersonController {
             break; // Bullet stops at the enemy
           }
 
-          // If we hit a wall or a door first, the bullet stops!
-          if (obj.name.startsWith("Wall") || obj.name.startsWith("Door")) {
+          // If we hit a door first, the bullet stops! (Walls are a single merged
+          // InstancedMesh, not individual collidable objects, so they can't be tagged here.)
+          if (obj.tag === YadObjectTags.DOOR) {
             break;
           }
         }
@@ -95,7 +115,7 @@ export class YadController extends FirstPersonController {
     if (this._options.scene) {
       for (const obj of this._options.scene.objects) {
         // Item Pickup
-        if (obj.name.startsWith("Item_") && obj.isVisible) {
+        if (obj.tag === YadObjectTags.ITEM && obj.isVisible) {
           const parts = obj.name.split("_");
           const itemType = parts[1] ?? "unknown";
 
@@ -118,7 +138,7 @@ export class YadController extends FirstPersonController {
 
         // Damage (Lava / Slime)
         if (
-          (obj.name.startsWith("Floor_Lava_") || obj.name.startsWith("Floor_Slime_")) &&
+          (obj.tag === YadObjectTags.LAVA || obj.tag === YadObjectTags.SLIME) &&
           now - this._lastHurtTime > 1000
         ) {
           const dx = obj.position.x - this.target.position.x;

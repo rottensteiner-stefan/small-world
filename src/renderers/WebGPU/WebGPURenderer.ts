@@ -28,7 +28,12 @@ import {
 } from "../../enums/index.js";
 import { AbstractRenderer } from "../AbstractRenderer.js";
 import { RenderPass } from "../RenderPass.js";
-import { MainRenderPass, PostProcessPass, CascadedShadowPassGPU } from "../passes/index.js";
+import {
+  MainRenderPass,
+  PostProcessPass,
+  CascadedShadowPassGPU,
+  SpotShadowPassGPU,
+} from "../passes/index.js";
 import { BloomPassGPU } from "../post/passes/index.js";
 import { UniformPacker } from "../../core/renderers/shaders/index.js";
 
@@ -97,7 +102,7 @@ export class WebGPURenderer extends AbstractRenderer {
   protected _dummyTangentBuffer!: GPUBuffer;
 
   public _defaultDirShadowTexView!: GPUTextureView;
-  protected _defaultSpotShadowTexView!: GPUTextureView;
+  public _defaultSpotShadowTexView!: GPUTextureView;
   protected _shadowSampler!: GPUSampler;
   protected _geoCache = new Map<GeometryDataInterface, WebGPUGeoCache>();
   protected _gpuInstanceBuffers: WeakMap<InstancedMesh, GPUBuffer> = new WeakMap();
@@ -271,7 +276,12 @@ export class WebGPURenderer extends AbstractRenderer {
     this._initGlobalBuffers();
     this.setSize(canvas.clientWidth, canvas.clientHeight);
 
-    this._passes = [new CascadedShadowPassGPU(), new MainRenderPass(), new PostProcessPass()];
+    this._passes = [
+      new CascadedShadowPassGPU(),
+      new SpotShadowPassGPU(),
+      new MainRenderPass(),
+      new PostProcessPass(),
+    ];
   }
 
   /**
@@ -1526,6 +1536,14 @@ export class WebGPURenderer extends AbstractRenderer {
     gData[198] = 0.0; // castShadow off by default
     gData[199] = 4.0;
 
+    // Default spot shadow values
+    for (let i = 0; i < 4; i++) {
+      gData[112 + i * 4] = 0.001; // bias
+      gData[112 + i * 4 + 1] = 0.002; // normalBias
+      gData[112 + i * 4 + 2] = 0.0; // castShadow off
+      gData[112 + i * 4 + 3] = -1.0; // layer index (-1 = no shadow)
+    }
+
     this._device!.queue.writeBuffer(this._globalUniformBuffer, 0, gData);
 
     const plDataSize = Math.max(lights.pLights.length * 8, 8);
@@ -1616,5 +1634,60 @@ export class WebGPURenderer extends AbstractRenderer {
       this._hdrTexture = undefined;
       this._hdrTextureView = undefined;
     }
+  }
+
+  /** @inheritdoc */
+  public override destroy(): void {
+    for (const data of this._objectUniformBuffers.values()) data.buffer.destroy();
+    for (const geo of this._geoCache.values()) {
+      geo.vb.destroy();
+      geo.nb?.destroy();
+      geo.uvb?.destroy();
+      geo.tb?.destroy();
+      geo.ib?.destroy();
+      geo.wib?.destroy();
+    }
+    for (const tex of this._shadowMaps.values()) tex.destroy();
+    for (const data of this._renderTargetTextures.values()) {
+      data.tex.destroy();
+      data.depth?.destroy();
+    }
+    for (const data of this._renderTargetCubeTextures.values()) {
+      data.tex.destroy();
+      data.depth?.destroy();
+    }
+
+    this._dummyNormalBuffer?.destroy();
+    this._dummyUvBuffer?.destroy();
+    this._dummyTangentBuffer?.destroy();
+    this._globalUniformBuffer?.destroy();
+    this._pointLightBuffer?.destroy();
+    this._spotLightBuffer?.destroy();
+    this._areaLightBuffer?.destroy();
+    this._depthTexture?.destroy();
+    this._hdrTexture?.destroy();
+    this._bloomPassGPU?.destroy();
+
+    this._objectUniformBuffers.clear();
+    this._materialBindGroups.clear();
+    this._textureViewCache.clear();
+    this._geoCache.clear();
+    this._materialBGLCache.clear();
+    this._samplerCache.clear();
+    this._cubeTextureViewCache.clear();
+    this._shadowMaps.clear();
+    this._renderTargetTextures.clear();
+    this._renderTargetCubeTextures.clear();
+    this._pipelines.clear();
+    this._shaderModules.clear();
+
+    this._hdrTexture = undefined;
+    this._hdrTextureView = undefined;
+    this._bloomPassGPU = undefined;
+
+    // Tears down the whole GPU context; all buffers/textures/pipelines created
+    // from this device become invalid, freeing their underlying GPU memory.
+    this._device?.destroy();
+    this._device = undefined;
   }
 }

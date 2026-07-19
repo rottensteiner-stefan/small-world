@@ -14,8 +14,8 @@ export declare class OBB implements BoundingVolume {
     /** The 3 orthogonal local axes of the OBB (X, Y, Z). */
     axes: [Vector3D, Vector3D, Vector3D];
     getBroadRadius(): number;
-    intersectsFrustum(_frustum: FrustumInterface): boolean;
-    intersectsVolume(_other: BoundingVolume): boolean;
+    intersectsFrustum(frustum: FrustumInterface): boolean;
+    intersectsVolume(other: BoundingVolume): boolean;
     containsVolume(_other: BoundingVolume): boolean;
     /**
      * Transforms this OBB using a world matrix.

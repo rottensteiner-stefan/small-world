@@ -56,4 +56,8 @@ export declare class WebGL2UniformBuffer {
      * Uploads the local data to the GPU.
      */
     update(): void;
+    /**
+     * Destroys the underlying buffer.
+     */
+    destroy(): void;
 }

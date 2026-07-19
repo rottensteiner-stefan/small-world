@@ -2,6 +2,7 @@
 import { Vector3D, Matrix4 } from "../math/index.js";
 import { BoundingVolume, FrustumInterface } from "../interfaces/index.js";
 import { BoundingType } from "../enums/index.js";
+import { Collision } from "./Collision.js";
 
 /**
  * An Oriented Bounding Box (OBB).
@@ -26,15 +27,25 @@ export class OBB implements BoundingVolume {
     return this.halfExtents.length();
   }
 
-  public intersectsFrustum(_frustum: FrustumInterface): boolean {
-    // A simplified broad-phase check (treat as sphere for frustum)
+  public intersectsFrustum(frustum: FrustumInterface): boolean {
+    // Conservative broad-phase check: treat the OBB as a bounding sphere.
     // For a fully exact OBB-Frustum check, we'd test all 8 corners.
+    const c: Vector3D = this.center;
+    const r: number = this.getBroadRadius();
+    const p: Float32Array = frustum.planes;
+
+    for (let i: number = 0; 6 > i; i++) {
+      const idx: number = i * 4;
+      const dist: number = p[idx]! * c.x + p[idx + 1]! * c.y + p[idx + 2]! * c.z + p[idx + 3]!;
+      if (-r > dist) {
+        return false;
+      }
+    }
     return true;
   }
 
-  public intersectsVolume(_other: BoundingVolume): boolean {
-    // We defer actual OBB-Volume intersection logic to the Collision class (SAT).
-    return true;
+  public intersectsVolume(other: BoundingVolume): boolean {
+    return Collision.test(this, other);
   }
 
   public containsVolume(_other: BoundingVolume): boolean {

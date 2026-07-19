@@ -1,7 +1,7 @@
 /// src/core/Object3D.ts
 import { AbstractMaterial } from "./materials/index.js";
 import { BoundingVolume, GeometryDataInterface, Collidable } from "../interfaces/index.js";
-import { MathUtils, Matrix4, Quaternion, Vector3D } from "../math/index.js";
+import { MathUtils, Matrix4, Vector3D, MathPool } from "../math/index.js";
 import { Behavior } from "./behaviors/index.js";
 import { RigidBody } from "../physix/RigidBody.js";
 
@@ -11,6 +11,8 @@ import { RigidBody } from "../physix/RigidBody.js";
 export class Object3D implements Collidable {
   public readonly uuid: string = MathUtils.generateUUID();
   public name: string = "";
+  /** Optional app-defined category tag, for typed identification instead of matching on `name`. */
+  public tag?: string;
 
   public rigidBody?: RigidBody;
 
@@ -159,14 +161,19 @@ export class Object3D implements Collidable {
   }
 
   public lookAt(target: Vector3D, up: Vector3D = new Vector3D(0, 1, 0)): this {
-    const m = new Matrix4();
+    const m = MathPool.acquireMatrix();
     Matrix4.lookAt(this.position, target, up, m);
-    const q = new Quaternion();
-    q.setFromRotationMatrix(m);
+    m.invert();
+    const pos = MathPool.acquireVector();
+    const scale = MathPool.acquireVector();
+    m.decompose(pos, this.rotation, scale);
+    MathPool.releaseVector(pos);
+    MathPool.releaseVector(scale);
+    MathPool.releaseMatrix(m);
     return this;
   }
 
-  public updateMatrixWorld(force: boolean = false): void {
+  public updateMatrixWorld(): void {
     this.localMatrix.compose(this.position, this.rotation, this.scale);
     if (undefined === this.parent) {
       this.worldMatrix.data.set(this.localMatrix.data);
@@ -174,7 +181,7 @@ export class Object3D implements Collidable {
       Matrix4.multiply(this.parent.worldMatrix, this.localMatrix, this.worldMatrix);
     }
     for (const child of this.children) {
-      child.updateMatrixWorld(force);
+      child.updateMatrixWorld();
     }
   }
 }

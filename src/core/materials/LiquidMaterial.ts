@@ -107,31 +107,28 @@ export abstract class LiquidMaterial extends AbstractMaterial {
   /** @inheritdoc */
   public override getRenderManifest(): RenderManifest {
     if (undefined === this._renderManifest) {
-      this._renderManifest = {
-        shaderId: this.type,
-        properties: {
-          u_color: this.color.toFloat32Array(),
-          u_specColor: this.crustColor.toFloat32Array(),
-          u_texOffset: [0, 0],
-          u_texRepeat: [1, 1],
-          u_shininess: 32.0,
-          u_isTerrain: 0.0,
-          u_metallic: 0.0,
-          u_roughness: 0.5,
-          u_extraParams: [1.0, this.time, this.flowSpeed, this.noiseScale],
-          u_liquidParams: [this.waveFrequency, this.waveAmplitude, 0, 0],
-          u_thresholds: [0, 0, 0, 0],
-        },
-        textures: {
-          u_diffuseMap: this.noiseMap,
-        },
-      };
+      this._renderManifest = this._createBaseManifest();
+      this._renderManifest.properties["u_specColor"] = this.crustColor.toFloat32Array();
+      this._renderManifest.properties["u_extraParams"] = [
+        1.0,
+        this.time,
+        this.flowSpeed,
+        this.noiseScale,
+      ];
+      this._renderManifest.properties["u_liquidParams"] = [
+        this.waveFrequency,
+        this.waveAmplitude,
+        0,
+        0,
+      ];
+      this._renderManifest.textures["u_diffuseMap"] = this.noiseMap;
     }
+
+    this._syncBaseManifestState();
 
     const props = this._renderManifest.properties as Record<string, unknown>;
     const texs = this._renderManifest.textures as Record<string, unknown>;
 
-    props["u_color"] = this.color.toFloat32Array();
     props["u_specColor"] = this.crustColor.toFloat32Array();
 
     const extra = props["u_extraParams"] as number[];
@@ -148,14 +145,6 @@ export abstract class LiquidMaterial extends AbstractMaterial {
     if (this.normalMap) texs["u_normalMap"] = this.normalMap;
     if (this.specularMap) texs["u_specularMap"] = this.specularMap;
     if (this.ambientMap) texs["u_ambientMap"] = this.ambientMap;
-
-    this._renderManifest.state = {
-      ...this._renderManifest.state,
-      culling: this.cullMode,
-      depthWrite: this.depthWrite,
-      depthTest: this.depthTest,
-      transparent: this.transparent,
-    };
 
     return this._renderManifest;
   }

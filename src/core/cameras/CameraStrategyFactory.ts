@@ -23,6 +23,10 @@ export class CameraStrategyFactory {
   ]);
 
   public static get(type: CameraStrategyType): CameraStrategy {
-    return this._strategies.get(type) || this._strategies.get(CameraStrategyType.MANUAL)!;
+    const strategy = this._strategies.get(type);
+    if (!strategy) {
+      throw new Error(`Unknown camera strategy type: ${type}`);
+    }
+    return strategy;
   }
 }

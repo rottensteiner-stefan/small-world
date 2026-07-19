@@ -20,15 +20,15 @@ export class LookAtBehavior extends Behavior {
       const targetPos =
         this.targetPoint instanceof Object3D ? this.targetPoint.position : this.targetPoint;
 
-      const dx = targetPos.x - this.target.position.x;
-      const dy = targetPos.y - this.target.position.y;
-      const dz = targetPos.z - this.target.position.z;
+      this.target.lookAt(targetPos);
 
-      // The engine uses a Right-Handed system where -Z is forward.
-      const yaw = Math.atan2(dx, -dz);
-      const pitch = Math.atan2(-dy, Math.sqrt(dx * dx + dz * dz));
-
-      this.target.rotation.set(pitch, yaw, 0);
+      // If the object is a Light, its primary aiming mechanism is the .direction vector.
+      if ("direction" in this.target && this.target.direction instanceof Vector3D) {
+        const dx = targetPos.x - this.target.position.x;
+        const dy = targetPos.y - this.target.position.y;
+        const dz = targetPos.z - this.target.position.z;
+        this.target.direction.set(dx, dy, dz).normalize();
+      }
     }
   }
 }

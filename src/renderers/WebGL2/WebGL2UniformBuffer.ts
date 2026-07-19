@@ -105,4 +105,11 @@ export class WebGL2UniformBuffer {
     this._gl.bufferSubData(this._gl.UNIFORM_BUFFER, 0, this._data);
     this._gl.bindBuffer(this._gl.UNIFORM_BUFFER, null);
   }
+
+  /**
+   * Destroys the underlying buffer.
+   */
+  public destroy(): void {
+    this._gl.deleteBuffer(this._buffer);
+  }
 }

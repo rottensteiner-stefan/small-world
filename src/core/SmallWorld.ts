@@ -19,6 +19,7 @@ import { RendererFactory } from "../renderers/index.js";
 import { ShaderBootstrap } from "./renderers/shaders/index.js";
 import { CollisionVisualizer, OctreeVisualizer } from "../utils/index.js";
 import { GadgetInspector } from "../tools/GadgetInspector.js";
+import { PhysicsSystem } from "../physix/PhysicsSystem.js";
 
 /** The current engine version. */
 export const ENGINE_VERSION = "0.67.0";
@@ -35,6 +36,8 @@ export abstract class SmallWorld {
   public camera: Camera;
   /** The active renderer. */
   public renderer: Renderer;
+  /** The built-in physics system. Stepped automatically each frame when `config.enablePhysics` is true. */
+  public physics: PhysicsSystem;
   /** The interaction manager for gamification / picking. */
   public interactionManager!: InteractionManager;
   public forge!: import("../tools/forge/Forge.js").Forge;
@@ -66,6 +69,11 @@ export abstract class SmallWorld {
     };
 
     this.scene = new Scene();
+
+    this.physics = new PhysicsSystem();
+    if (this.config.gravity) {
+      this.physics.gravity.set(...this.config.gravity);
+    }
 
     const initialAspect: number = window.innerWidth / window.innerHeight;
     const projection: AbstractProjection =
@@ -283,10 +291,10 @@ export abstract class SmallWorld {
         const { Xtractor } = await import("../tools/Xtractor.js");
         const { MaterialStudio } = await import("../tools/MaterialStudio.js");
 
-        // wir erstellen einen globalen Forge Hub
+        // Create a global Forge hub
         this.forge = new Forge();
 
-        // Hotkey Logik in SmallWorld verankern
+        // Anchor hotkey logic in SmallWorld
         window.addEventListener("keydown", (event: KeyboardEvent) => {
           if (
             document.activeElement &&
@@ -303,7 +311,7 @@ export abstract class SmallWorld {
           const ctrlLeft = Input.instance?.isPressed("ControlLeft") || event.ctrlKey;
 
           if (true === altLeft && (true === metaLeft || true === ctrlLeft)) {
-            if ("KeyF" === event.code) {
+            if ("KeyG" === event.code) {
               event.preventDefault();
               this.forge.toggle();
 
@@ -320,7 +328,7 @@ export abstract class SmallWorld {
         });
 
         this._inspector = new GadgetInspector(this.scene, this.camera, this.canvas, this.renderer);
-        this.forge.openWindow("Inspector", this._inspector, 20, 20);
+        this.forge.openWindow("Gadget Inspector", this._inspector, 20, 20, "gadgetInspector");
 
         const mapGen = new MapGenerator();
         // Read custom map if it exists, to preserve states across reloads!
@@ -328,11 +336,11 @@ export abstract class SmallWorld {
         if (savedMap) {
           mapGen.loadMapString(savedMap);
         }
-        this.forge.openWindow("Map Generator", mapGen, 60, 60);
+        this.forge.openWindow("Map Generator", mapGen, 60, 60, "mapGenerator");
 
-        this.forge.openWindow("Pixler Editor", new Pixler(), 50, 200);
-        this.forge.openWindow("Asset Extractor", new Xtractor(), 400, 60);
-        this.forge.openWindow("Material Studio", new MaterialStudio(), 750, 60);
+        this.forge.openWindow("Pixler Editor", new Pixler(), 50, 200, "pixlerEditor");
+        this.forge.openWindow("Asset Extractor", new Xtractor(), 400, 60, "assetExtractor");
+        this.forge.openWindow("Material Studio", new MaterialStudio(), 750, 60, "materialStudio");
 
         this.onInspectorReady(this._inspector);
       }
@@ -369,6 +377,10 @@ export abstract class SmallWorld {
 
     if (this._inspector) {
       this._inspector.update();
+    }
+
+    if (this.config.enablePhysics) {
+      this.physics.step(this.scene, deltaTime);
     }
 
     this.scene.update(deltaTime);

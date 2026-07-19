@@ -24,9 +24,7 @@ export class FrustumCuller {
     this.lastIntersectedNodes.clear();
 
     // Reset culling state for all objects
-    for (let i: number = 0; i < scene.objects.length; i++) {
-      this._resetCulling(scene.objects[i]!);
-    }
+    this._resetCulling(scene.root);
 
     if (scene.staticOctree || scene.dynamicOctree) {
       if (scene.staticOctree) {
@@ -51,10 +49,7 @@ export class FrustumCuller {
         }
       }
 
-      let count: number = 0;
-      for (let i: number = 0; i < scene.objects.length; i++) {
-        count += this._countVisible(scene.objects[i]!);
-      }
+      const count: number = this._countVisible(scene.root);
 
       FrustumCuller.lastVisibleCount = count;
       return count;

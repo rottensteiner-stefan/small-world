@@ -13,6 +13,7 @@ import { GridLevelBuilder, GridLegend } from "../../extensions/grid-builder/Grid
 import { AudioSystem } from "../../audio/index.js";
 import { EnemyBehavior } from "./EnemyBehavior.js";
 import { BoundingBox, SpatialHash, StaticCollider } from "../../physix/index.js";
+import { YadObjectTags } from "./YadObjectTags.js";
 export type YadTileType =
   | "wall"
   | "door"
@@ -132,6 +133,7 @@ export class YadLevelBuilder {
           type: "custom",
           onBuild: (x, y, worldX, worldZ): Object3D | undefined => {
             const block = new Object3D(`Door_${x}_${y}`);
+            block.tag = YadObjectTags.DOOR;
             block.geometry = wallGeo;
             block.material = new StandardMaterial({ diffuseMap: entry.texture });
 
@@ -139,7 +141,7 @@ export class YadLevelBuilder {
             block.position.set(worldX, initialY, worldZ);
             block.scale.y = this._wallHeight / this._gridSize;
             block.isStatic = false;
-            block.updateMatrixWorld(true);
+            block.updateMatrixWorld();
             block.computeBounds();
 
             if (config.playerCamera) {
@@ -174,7 +176,7 @@ export class YadLevelBuilder {
                     }
                     const targetY = isOpen ? initialY + this._wallHeight : initialY;
                     block.position.y += (targetY - block.position.y) * 5.0 * deltaTime;
-                    block.updateMatrixWorld(true);
+                    block.updateMatrixWorld();
                     block.computeBounds();
                   },
                 }),
@@ -189,8 +191,14 @@ export class YadLevelBuilder {
           onBuild: (x, y, worldX, worldZ, sceneRef): Object3D | undefined => {
             const sprite = new Sprite(new SpriteMaterial({ texture: entry.texture }));
             let spriteName = `Sprite_${x}_${y}`;
-            if (entry.isEnemy) spriteName = `Enemy_${x}_${y}`;
-            if (entry.isItem) spriteName = `Item_${entry.itemType ?? "unknown"}_${x}_${y}`;
+            if (entry.isEnemy) {
+              spriteName = `Enemy_${x}_${y}`;
+              sprite.tag = YadObjectTags.ENEMY;
+            }
+            if (entry.isItem) {
+              spriteName = `Item_${entry.itemType ?? "unknown"}_${x}_${y}`;
+              sprite.tag = YadObjectTags.ITEM;
+            }
             sprite.name = spriteName;
             sprite.position.set(worldX, entry.spriteY ?? 1.0, worldZ);
             const scale = entry.spriteScale ?? 1.0;
@@ -234,7 +242,7 @@ export class YadLevelBuilder {
             col.position.set(worldX, this._wallHeight / 2, worldZ);
             col.scale.set(0.5, this._wallHeight / this._gridSize, 0.5);
             col.isStatic = true;
-            col.updateMatrixWorld(true);
+            col.updateMatrixWorld();
             col.computeBounds();
             return col;
           },
@@ -284,8 +292,11 @@ export class YadLevelBuilder {
     // We already handle this in the outer loop for 'char'.
     // Let's refine how lava floors are made:
     for (const char of Object.keys(config.legend)) {
-      if (config.lavaFloorChars?.includes(char)) {
-        if (gridLegend[char]) gridLegend[char]!.material = lavaMat;
+      if (config.lavaFloorChars?.includes(char) && gridLegend[char]) {
+        gridLegend[char]!.material = lavaMat;
+        gridLegend[char]!.tag = YadObjectTags.LAVA;
+      } else if (config.slimeFloorChars?.includes(char) && gridLegend[char]) {
+        gridLegend[char]!.tag = YadObjectTags.SLIME;
       }
     }
 
@@ -346,7 +357,7 @@ export class YadLevelBuilder {
       }
       wallInstanced.isStatic = true;
       wallInstanced.frustumCulled = false;
-      wallInstanced.updateMatrixWorld(true);
+      wallInstanced.updateMatrixWorld();
       wallInstanced.computeBounds();
       scene.add(wallInstanced);
     }

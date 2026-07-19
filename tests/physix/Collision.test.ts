@@ -100,6 +100,28 @@ describe("Collision", () => {
     expect(Collision.test(b1, b2)).toBe(false);
   });
 
+  it("should resolve Box-Box collisions along the axis of least penetration", () => {
+    const b1 = new BoundingBox(new Vector3D(-1, -1, -1), new Vector3D(1, 1, 1));
+    const b2 = new BoundingBox(new Vector3D(0.5, -1, -1), new Vector3D(2.5, 1, 1));
+    const result = new Vector3D();
+
+    const resolved = Collision.resolveBoxBox(b1, b2, result);
+    expect(resolved).toBe(true);
+    // Overlap on X is 0.5 (from x=0.5 to x=1), Y/Z fully overlap (2.0). X is the least penetration axis.
+    // b1.center.x(0) - b2.center.x(1.5) < 0, so b1 is pushed further negative.
+    expect(result.x).toBeCloseTo(-0.5);
+    expect(result.y).toBe(0);
+    expect(result.z).toBe(0);
+  });
+
+  it("should return false for non-overlapping Box-Box", () => {
+    const b1 = new BoundingBox(new Vector3D(-1, -1, -1), new Vector3D(1, 1, 1));
+    const b2 = new BoundingBox(new Vector3D(3, -1, -1), new Vector3D(5, 1, 1));
+    const result = new Vector3D();
+
+    expect(Collision.resolveBoxBox(b1, b2, result)).toBe(false);
+  });
+
   it("should handle Sphere-Box center exactly inside the box", () => {
     const s = new BoundingSphere(new Vector3D(0, 0, 0), 1.0);
     const b = new BoundingBox(new Vector3D(-1, -1, -1), new Vector3D(1, 1, 1));
