@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.69.0] - 2026-07-22
+
+### "The hardest part of design is keeping features out." - Donald Norman
+
+- **Features:**
+  - **Box-OBB Collision:** Implemented Box-OBB detection and resolution logic utilizing a zero-alloc temporary OBB to recycle existing SAT tests without memory overhead.
+- **Architecture & Bugfixes:**
+  - **WebGL Renderer Pass-System:** Dismantled the monolithic rendering loop from WebGL1/WebGL2 renderers. Ported the modular, composable pass-based architecture (`WebGLRenderPass`, `WebGLMainPass`, `WebGLShadowPass`) to ensure structural symmetry with the WebGPU path. 
+  - **UniformPacker Rejection:** Actively rejected the `UniformPacker` in WebGL paths to prevent redundant float array unpack loops and maintain maximum performance on native WebGL calls.
+- **Housekeeping & Docs:**
+  - Removed outdated prototyping comments for `lavaNoiseMap` in YadApp.
+  - Updated `PROJECT_FINDINGS.md` and moved completed findings to the resolved section.
+
 ## [0.68.0] - 2026-07-19
 
 ### "Progress is not created by contented people." - Frank Tyger
