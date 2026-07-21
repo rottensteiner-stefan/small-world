@@ -6,6 +6,9 @@ import { Object3D } from "../../src/core/Object3D.js";
 import { MathPool } from "../../src/math/MathPool.js";
 import { RigidBody } from "../../src/physix/RigidBody.js";
 import { BoundingSphere } from "../../src/physix/BoundingSphere.js";
+import { OBB } from "../../src/physix/OBB.js";
+import { BoundingBox } from "../../src/physix/BoundingBox.js";
+import { Vector3D } from "../../src/math/Vector3D.js";
 
 describe("Zero-Allocation Guarantees", () => {
   it("PhysicsSystem.step() should not leak any MathPool objects during simulation", () => {
@@ -24,6 +27,19 @@ describe("Zero-Allocation Guarantees", () => {
     obj2.bounds = new BoundingSphere(1);
     obj2.position.set(0, 0, 0);
     scene.add(obj2);
+
+    const obj3 = new Object3D();
+    obj3.rigidBody = new RigidBody(1);
+    obj3.bounds = new OBB();
+    obj3.position.set(2, 5, 2);
+    obj3.rotation.set(0, 0, 0, 1);
+    scene.add(obj3);
+
+    const obj4 = new Object3D();
+    obj4.rigidBody = new RigidBody(0); // static
+    obj4.bounds = new BoundingBox(new Vector3D(-1, -1, -1), new Vector3D(1, 1, 1));
+    obj4.position.set(2, 0, 2);
+    scene.add(obj4);
 
     // Warm up the system (compiles functions, populates caches)
     physics.step(scene, 1 / 60);
