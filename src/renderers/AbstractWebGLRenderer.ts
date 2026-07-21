@@ -1,16 +1,61 @@
 /// src/renderers/AbstractWebGLRenderer.ts
 import { AbstractRenderer } from "./AbstractRenderer.js";
 import { Color } from "../core/colors/index.js";
-
+import { Scene, Object3D } from "../core/index.js";
+import { Vector3D } from "../math/index.js";
+import { LightDataInterface } from "../interfaces/index.js";
+import { WebGLRenderPass } from "./WebGLRenderPass.js";
 export abstract class AbstractWebGLRenderer extends AbstractRenderer {
   // WebGL2 context inherits from WebGL1 context
   protected gl!: WebGLRenderingContext | WebGL2RenderingContext;
+
+  public get webglContext(): WebGLRenderingContext | WebGL2RenderingContext {
+    return this.gl;
+  }
 
   protected defaultTexture!: WebGLTexture;
   protected defaultNormalMap!: WebGLTexture;
   protected defaultSpecularMap!: WebGLTexture;
   protected defaultCubeTexture!: WebGLTexture;
 
+  protected _passes: WebGLRenderPass[] = [];
+
+  public addPass(pass: WebGLRenderPass): void {
+    this._passes.push(pass);
+  }
+
+  public render(
+    scene: Scene,
+    vp: Float32Array,
+    camPos: Vector3D = Vector3D.ZERO,
+    vMat?: Float32Array,
+  ): void {
+    this.resetStateCache();
+    const extractedLights = this.extractLights(scene);
+    const renderList = scene.getVisibleObjectsSorted(vp, camPos);
+
+    for (const pass of this._passes) {
+      pass.execute(this, scene, vp, camPos, vMat, renderList, extractedLights);
+    }
+  }
+
+  public abstract resetStateCache(): void;
+
+  public abstract bindMainRenderTarget(): boolean;
+  public abstract bindPostProcessRenderTarget(): void;
+  public abstract copyToOpaqueTexture(): void;
+  public abstract flushPostProcess(): void;
+
+  public abstract renderGroup(
+    shaderId: string,
+    materialGroups: Map<string, Object3D[]>,
+    vMat: Float32Array | undefined,
+    topology: string,
+    vp: Float32Array,
+    camPos: Vector3D,
+    lights: LightDataInterface,
+    scene: Scene,
+  ): void;
   public override destroy(): void {
     if (this.gl) {
       const ext: WEBGL_lose_context | undefined =

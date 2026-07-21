@@ -136,11 +136,97 @@ describe("Collision", () => {
     expect(Math.abs(result.x) + Math.abs(result.y) + Math.abs(result.z)).toBeCloseTo(2.0);
   });
 
-  it("should gracefully handle unhandled collision permutations", () => {
-    const s = new BoundingSphere(new Vector3D(), 1);
+  it("should accurately detect and resolve Box-OBB collisions", () => {
+    const b = new BoundingBox(new Vector3D(-1, -1, -1), new Vector3D(1, 1, 1));
     const obb = new OBB();
+    obb.center.set(1.5, 0, 0);
+    obb.halfExtents.set(1, 1, 1);
 
-    // Sphere vs OBB is currently unhandled in the switch, should default to false
+    expect(Collision.test(b, obb)).toBe(true);
+    expect(Collision.test(obb, b)).toBe(true);
+
+    const result = new Vector3D();
+    const resolved = Collision.resolveBoxObb(b, obb, result);
+    expect(resolved).toBe(true);
+    // Overlap is 0.5. result points from obb to b, so towards -X.
+    expect(result.x).toBeCloseTo(-0.5);
+    expect(result.y).toBeCloseTo(0);
+    expect(result.z).toBeCloseTo(0);
+
+    obb.center.set(5, 0, 0);
+    expect(Collision.test(b, obb)).toBe(false);
+  });
+
+  it("should accurately detect Sphere-OBB collisions", () => {
+    const s = new BoundingSphere(new Vector3D(1.5, 0, 0), 1.0);
+    const obb = new OBB();
+    obb.center.set(0, 0, 0);
+    obb.halfExtents.set(1, 1, 1);
+
+    // Same geometry as the axis-aligned Sphere-Box test: distance to face is 0.5, radius 1 -> intersect.
+    expect(Collision.test(s, obb)).toBe(true);
+    // Reverse order (OBB-Sphere)
+    expect(Collision.test(obb, s)).toBe(true);
+
+    s.center.set(3, 0, 0);
     expect(Collision.test(s, obb)).toBe(false);
+  });
+
+  it("should resolve Sphere-OBB collisions correctly", () => {
+    const s = new BoundingSphere(new Vector3D(1.5, 0, 0), 1.0);
+    const obb = new OBB();
+    obb.center.set(0, 0, 0);
+    obb.halfExtents.set(1, 1, 1);
+    const result = new Vector3D();
+
+    const resolved = Collision.resolveSphereObb(s, obb, result);
+    expect(resolved).toBe(true);
+    // Axis-aligned OBB with these values behaves identically to resolveSphereBox's test above.
+    expect(result.x).toBeCloseTo(0.5);
+    expect(result.y).toBeCloseTo(0);
+    expect(result.z).toBeCloseTo(0);
+  });
+
+  it("should handle Sphere-OBB center exactly inside the OBB", () => {
+    const s = new BoundingSphere(new Vector3D(0, 0, 0), 1.0);
+    const obb = new OBB();
+    obb.center.set(0, 0, 0);
+    obb.halfExtents.set(1, 1, 1);
+    const result = new Vector3D();
+
+    const resolved = Collision.resolveSphereObb(s, obb, result);
+    expect(resolved).toBe(true);
+    expect(Math.abs(result.x) + Math.abs(result.y) + Math.abs(result.z)).toBeCloseTo(2.0);
+  });
+
+  it("should resolve OBB-OBB collisions via the minimum-translation vector", () => {
+    const obb1 = new OBB();
+    obb1.center.set(0, 0, 0);
+    obb1.halfExtents.set(1, 1, 1);
+
+    const obb2 = new OBB();
+    obb2.center.set(1.5, 0, 0);
+    obb2.halfExtents.set(1, 1, 1);
+
+    const result = new Vector3D();
+    const resolved = Collision.resolveObbObb(obb1, obb2, result);
+    expect(resolved).toBe(true);
+    // Same axis-aligned geometry as the Box-Box MTV test: overlap 0.5 on X, obb1 pushed toward -X.
+    expect(result.x).toBeCloseTo(-0.5);
+    expect(result.y).toBeCloseTo(0);
+    expect(result.z).toBeCloseTo(0);
+  });
+
+  it("should return false for non-overlapping OBB-OBB", () => {
+    const obb1 = new OBB();
+    obb1.center.set(0, 0, 0);
+    obb1.halfExtents.set(1, 1, 1);
+
+    const obb2 = new OBB();
+    obb2.center.set(5, 0, 0);
+    obb2.halfExtents.set(1, 1, 1);
+
+    const result = new Vector3D();
+    expect(Collision.resolveObbObb(obb1, obb2, result)).toBe(false);
   });
 });

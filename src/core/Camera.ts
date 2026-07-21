@@ -9,7 +9,7 @@ import {
   CameraInterfaceData,
   CameraStrategy,
 } from "../interfaces/index.js";
-import { Behavior } from "./behaviors/index.js";
+import { Behavior, attachBehavior, detachBehavior } from "./behaviors/Behavior.js";
 
 /**
  * Standard implementation of the CameraInterfaceData.
@@ -186,17 +186,12 @@ export class Camera implements CameraInterfaceData {
   }
 
   public addBehavior(behavior: Behavior): this {
-    behavior.onAttach(this);
-    this.behaviors.push(behavior);
+    attachBehavior(this.behaviors, behavior, this);
     return this;
   }
 
   public removeBehavior(behavior: Behavior): this {
-    const index = this.behaviors.indexOf(behavior);
-    if (index !== -1) {
-      behavior.onDetach();
-      this.behaviors.splice(index, 1);
-    }
+    detachBehavior(this.behaviors, behavior);
     return this;
   }
 

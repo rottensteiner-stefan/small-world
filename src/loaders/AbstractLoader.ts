@@ -51,4 +51,15 @@ export abstract class AbstractLoader<T> implements Events {
    * @returns A promise resolving to the loaded resource.
    */
   public abstract load(url: string): Promise<T>;
+
+  /**
+   * Derives the folder path (everything up to and including the last `/`)
+   * from a URL, so sibling resources (materials, textures, buffers) can be
+   * resolved relative to it.
+   * @param url The URL to derive the folder path from.
+   * @returns The folder path, including a trailing slash.
+   */
+  protected static getFolderPath(url: string): string {
+    return url.substring(0, url.lastIndexOf("/") + 1);
+  }
 }

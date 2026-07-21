@@ -7,6 +7,8 @@ import { Vector3D } from "../../src/math/index.js";
 import { Cube, Sphere } from "../../src/geometry/index.js";
 import { BoundingSphere } from "../../src/physix/BoundingSphere.js";
 import { BoundingBox } from "../../src/physix/BoundingBox.js";
+import { OBB } from "../../src/physix/OBB.js";
+import { StaticCollider } from "../../src/physix/StaticCollider.js";
 
 describe("PhysicsSystem", () => {
   let system: PhysicsSystem;
@@ -260,6 +262,66 @@ describe("PhysicsSystem", () => {
     expect(box2.position.x).toBeCloseTo(1.75, 1);
     expect(rb1.velocity.x).toBeCloseTo(-1);
     expect(rb2.velocity.x).toBeCloseTo(1);
+  });
+
+  it("should resolve OBB-OBB collisions (push apart and bounce)", () => {
+    const obb1 = new Object3D();
+    obb1.position.set(0, 0, 0);
+    const rb1 = new RigidBody(1.0);
+    rb1.restitution = 1.0;
+    rb1.friction = 1.0;
+    obb1.rigidBody = rb1;
+    const bounds1 = new OBB();
+    bounds1.center.set(0, 0, 0);
+    bounds1.halfExtents.set(1, 1, 1);
+    obb1.bounds = bounds1;
+
+    const obb2 = new Object3D();
+    obb2.position.set(1.5, 0, 0);
+    const rb2 = new RigidBody(1.0);
+    rb2.restitution = 1.0;
+    rb2.friction = 1.0;
+    obb2.rigidBody = rb2;
+    const bounds2 = new OBB();
+    bounds2.center.set(1.5, 0, 0);
+    bounds2.halfExtents.set(1, 1, 1);
+    obb2.bounds = bounds2;
+
+    scene.add(obb1, obb2);
+
+    rb1.velocity.set(1, 0, 0);
+    rb2.velocity.set(-1, 0, 0);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (system as any)._resolveCollisions(scene, [obb1, obb2], 0.1);
+
+    // Same depth/mass/velocity setup as the axis-aligned Box-Box test above -> identical math.
+    expect(obb1.position.x).toBeCloseTo(-0.25, 1);
+    expect(obb2.position.x).toBeCloseTo(1.75, 1);
+    expect(rb1.velocity.x).toBeCloseTo(-1);
+    expect(rb2.velocity.x).toBeCloseTo(1);
+  });
+
+  it("should resolve collisions against Scene.staticColliders (colliders outside the Object3D graph)", () => {
+    const dynObj = new Object3D();
+    dynObj.rigidBody = new RigidBody(1);
+    dynObj.position.set(0, 0, 0);
+    dynObj.bounds = new BoundingSphere(dynObj.position, 1.0);
+    scene.add(dynObj);
+
+    // A static wall that lives entirely outside the Object3D scene graph.
+    const wallBounds = new BoundingBox(new Vector3D(0.5, -1, -1), new Vector3D(2.5, 1, 1));
+    const wall = new StaticCollider(wallBounds);
+    scene.staticColliders.push(wall);
+
+    dynObj.rigidBody.velocity.set(1, 0, 0);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (system as any)._resolveCollisions(scene, [dynObj], 0.1);
+
+    // Sphere (r=1 at x=0) overlaps the wall (box x=0.5..2.5) by 0.5. The wall has no RigidBody
+    // (infinite mass), so all positional correction lands on dynObj, pushing it left of x=0.
+    expect(dynObj.position.x).toBeLessThan(0);
   });
 
   it("should not crash with NaN if an object lacks a RigidBody (restitution bug)", () => {

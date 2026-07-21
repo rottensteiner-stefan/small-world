@@ -2,7 +2,7 @@
 import { AbstractMaterial } from "./materials/index.js";
 import { BoundingVolume, GeometryDataInterface, Collidable } from "../interfaces/index.js";
 import { MathUtils, Matrix4, Vector3D, MathPool } from "../math/index.js";
-import { Behavior } from "./behaviors/index.js";
+import { Behavior, attachBehavior, detachBehavior } from "./behaviors/Behavior.js";
 import { RigidBody } from "../physix/RigidBody.js";
 
 /**
@@ -83,17 +83,12 @@ export class Object3D implements Collidable {
   }
 
   public addBehavior(behavior: Behavior): this {
-    behavior.onAttach(this);
-    this.behaviors.push(behavior);
+    attachBehavior(this.behaviors, behavior, this);
     return this;
   }
 
   public removeBehavior(behavior: Behavior): this {
-    const index = this.behaviors.indexOf(behavior);
-    if (index !== -1) {
-      behavior.onDetach();
-      this.behaviors.splice(index, 1);
-    }
+    detachBehavior(this.behaviors, behavior);
     return this;
   }
 

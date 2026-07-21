@@ -1,10 +1,11 @@
 /// src/apps/yad/EnemyBehavior.ts
 import { Behavior } from "../../core/behaviors/index.js";
 import { Object3D, Scene } from "../../core/index.js";
-import { CameraInterfaceData } from "../../interfaces/index.js";
-import { BoundingSphere, Collision } from "../../physix/index.js";
+import { CameraInterfaceData, Collidable } from "../../interfaces/index.js";
+import { BoundingBox, BoundingSphere, Collision } from "../../physix/index.js";
 import { MathPool } from "../../math/index.js";
 import { AudioSystem } from "../../audio/index.js";
+import { BoundingType } from "../../enums/index.js";
 import { YadObjectTags } from "./YadObjectTags.js";
 
 export interface EnemyBehaviorOptions {
@@ -69,7 +70,7 @@ export class EnemyBehavior extends Behavior {
     this._collider.center.copyFrom(this.target.position);
     this._collider.center.y += 0.5; // Offset slightly up
 
-    const potentialHits: import("../../interfaces/index.js").Collidable[] = [];
+    const potentialHits: Collidable[] = [];
     if (this._scene.staticOctree)
       potentialHits.push(...this._scene.staticOctree.queryVolume(this._collider));
     if (this._scene.spatialHash)
@@ -81,16 +82,16 @@ export class EnemyBehavior extends Behavior {
     for (const obj of potentialHits) {
       if (!obj.bounds || obj === this.target) continue;
       let resolved: boolean;
-      if (obj.bounds.type === 0 /* BoundingType.SPHERE */) {
+      if (BoundingType.SPHERE === obj.bounds.type) {
         resolved = Collision.resolveSphereSphere(
           this._collider,
-          obj.bounds as import("../../physix/index.js").BoundingSphere,
+          obj.bounds as BoundingSphere,
           hitCorrection,
         );
       } else {
         resolved = Collision.resolveSphereBox(
           this._collider,
-          obj.bounds as import("../../physix/index.js").BoundingBox,
+          obj.bounds as BoundingBox,
           hitCorrection,
         );
       }

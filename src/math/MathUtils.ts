@@ -90,6 +90,20 @@ export class MathUtils {
   }
 
   /**
+   * Reads an element from a fixed-size array whose bounds are guaranteed
+   * correct by construction (e.g. Float32Array components of a Matrix4/
+   * Quaternion, or a small fixed axis list) — centralizes the
+   * `noUncheckedIndexedAccess` trust boundary in one place instead of a raw
+   * non-null assertion at every call site.
+   * @param arr The array-like to read from.
+   * @param index The index to read.
+   * @returns The element at the given index.
+   */
+  public static at<T>(arr: ArrayLike<T>, index: number): T {
+    return arr[index] as T;
+  }
+
+  /**
    * Generates a unique identifier (UUID v4).
    * Uses crypto.randomUUID() if available.
    * @returns A string representation of a UUID.

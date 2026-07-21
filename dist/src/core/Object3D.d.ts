@@ -1,7 +1,7 @@
 import { AbstractMaterial } from './materials/index.js';
 import { BoundingVolume, GeometryDataInterface, Collidable } from '../interfaces/index.js';
 import { Matrix4, Vector3D } from '../math/index.js';
-import { Behavior } from './behaviors/index.js';
+import { Behavior } from './behaviors/Behavior.js';
 import { RigidBody } from '../physix/RigidBody.js';
 /**
  * Base class for all 3D objects in the scene.

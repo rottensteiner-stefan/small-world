@@ -1,8 +1,8 @@
 import { AbstractWebGLRenderer } from '../AbstractWebGLRenderer.js';
 import { PostProcessPassGL } from '../post/passes/index.js';
 import { Texture, RenderTarget } from '../../core/textures/index.js';
-import { Scene } from '../../core/index.js';
-import { EngineOptions } from '../../interfaces/index.js';
+import { Object3D, Scene } from '../../core/index.js';
+import { EngineOptions, LightDataInterface } from '../../interfaces/index.js';
 import { RendererType } from '../../enums/index.js';
 import { Vector3D } from '../../math/index.js';
 /**
@@ -43,12 +43,14 @@ export declare class WebGL1Renderer extends AbstractWebGLRenderer {
     private _getWebGLCubeTexture;
     /** @inheritdoc */
     setRenderTarget(target: RenderTarget | null): void;
-    /** @inheritdoc */
-    render(scene: Scene, vp: Float32Array, camPos?: Vector3D, vMat?: Float32Array): void;
-    private _renderGroup;
+    resetStateCache(): void;
+    bindMainRenderTarget(): boolean;
+    bindPostProcessRenderTarget(): void;
+    copyToOpaqueTexture(): void;
+    flushPostProcess(): void;
+    renderGroup(shaderId: string, materialGroups: Map<string, Object3D[]>, vMat: Float32Array | undefined, topology: string, vp: Float32Array, camPos: Vector3D, lights: LightDataInterface, scene: Scene): void;
     /** @inheritdoc */
     setSize(width: number, height: number): void;
     /** @inheritdoc */
     destroy(): void;
-    private _resetStateCache;
 }

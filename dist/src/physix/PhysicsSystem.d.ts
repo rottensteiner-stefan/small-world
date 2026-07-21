@@ -26,6 +26,11 @@ export declare class PhysicsSystem {
      */
     step(scene: Scene, dt: number): void;
     /**
+     * Expands the running world AABB (min/max) to include a collider's bounds.
+     * Shared by the Object3D scene-graph walk and the flat `scene.staticColliders` pass.
+     */
+    private _trackColliderBounds;
+    /**
      * Recursively collects all objects that have bounds and are collidable.
      */
     private _collectCollidersRecursive;

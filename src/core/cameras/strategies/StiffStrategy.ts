@@ -6,6 +6,7 @@ import {
 } from "../../../interfaces/index.js";
 import { CameraStrategyType } from "../../../enums/index.js";
 import { Vector3D, MathUtils } from "../../../math/index.js";
+import { clampVector } from "./CameraStrategyUtils.js";
 /**
  * A camera strategy that rigidly follows a target.
  */
@@ -50,19 +51,7 @@ export class StiffStrategy implements CameraStrategy {
 
     camera.target.copyFrom(targetPos);
 
-    if (undefined !== this.constraints) {
-      if (undefined !== this.constraints.min && undefined !== this.constraints.max) {
-        camera.target.clamp(this.constraints.min, this.constraints.max);
-      } else if (undefined !== this.constraints.min) {
-        camera.target.x = Math.max(this.constraints.min.x, camera.target.x);
-        camera.target.y = Math.max(this.constraints.min.y, camera.target.y);
-        camera.target.z = Math.max(this.constraints.min.z, camera.target.z);
-      } else if (undefined !== this.constraints.max) {
-        camera.target.x = Math.min(this.constraints.max.x, camera.target.x);
-        camera.target.y = Math.min(this.constraints.max.y, camera.target.y);
-        camera.target.z = Math.min(this.constraints.max.z, camera.target.z);
-      }
-    }
+    clampVector(camera.target, this.constraints);
 
     camera.position.x =
       camera.target.x + this.radius * Math.sin(camera.theta) * Math.cos(camera.phi);

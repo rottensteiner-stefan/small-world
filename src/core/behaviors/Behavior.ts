@@ -48,3 +48,28 @@ export abstract class Behavior {
    */
   public abstract update(deltaTime: number): void;
 }
+
+/**
+ * Attaches a behavior to a host (Object3D or Camera) and appends it to its
+ * behaviors list. Shared by every host so they don't each reimplement the
+ * same attach-then-push logic.
+ */
+export function attachBehavior(
+  behaviors: Behavior[],
+  behavior: Behavior,
+  target: Object3D | CameraInterfaceData,
+): void {
+  behavior.onAttach(target);
+  behaviors.push(behavior);
+}
+
+/**
+ * Detaches a behavior from a host's behaviors list, if present.
+ */
+export function detachBehavior(behaviors: Behavior[], behavior: Behavior): void {
+  const index: number = behaviors.indexOf(behavior);
+  if (-1 !== index) {
+    behavior.onDetach();
+    behaviors.splice(index, 1);
+  }
+}

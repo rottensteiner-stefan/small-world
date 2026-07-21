@@ -354,6 +354,7 @@ export class YadLevelBuilder {
         );
         const collider = new StaticCollider(bounds);
         scene.spatialHash.insert(collider);
+        scene.staticColliders.push(collider);
       }
       wallInstanced.isStatic = true;
       wallInstanced.frustumCulled = false;

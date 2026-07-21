@@ -1,6 +1,7 @@
 /// src/math/Matrix4.ts
 import { Vector3D } from "./Vector3D.js";
 import { MathPool } from "./MathPool.js";
+import { MathUtils } from "./MathUtils.js";
 
 /**
  * A 4x4 matrix class for 3D transformations (Column-Major).
@@ -38,23 +39,23 @@ export class Matrix4 {
   public transpose(): this {
     const te = this.data;
     let tmp: number;
-    tmp = te[1]!;
-    te[1] = te[4]!;
+    tmp = MathUtils.at(te, 1);
+    te[1] = MathUtils.at(te, 4);
     te[4] = tmp;
-    tmp = te[2]!;
-    te[2] = te[8]!;
+    tmp = MathUtils.at(te, 2);
+    te[2] = MathUtils.at(te, 8);
     te[8] = tmp;
-    tmp = te[6]!;
-    te[6] = te[9]!;
+    tmp = MathUtils.at(te, 6);
+    te[6] = MathUtils.at(te, 9);
     te[9] = tmp;
-    tmp = te[3]!;
-    te[3] = te[12]!;
+    tmp = MathUtils.at(te, 3);
+    te[3] = MathUtils.at(te, 12);
     te[12] = tmp;
-    tmp = te[7]!;
-    te[7] = te[13]!;
+    tmp = MathUtils.at(te, 7);
+    te[7] = MathUtils.at(te, 13);
     te[13] = tmp;
-    tmp = te[11]!;
-    te[11] = te[14]!;
+    tmp = MathUtils.at(te, 11);
+    te[11] = MathUtils.at(te, 14);
     te[14] = tmp;
     return this;
   }
@@ -64,10 +65,30 @@ export class Matrix4 {
       y = v.y,
       z = v.z;
     const e = this.data;
-    const w = 1 / (e[3]! * x + e[7]! * y + e[11]! * z + e[15]!);
-    result.x = (e[0]! * x + e[4]! * y + e[8]! * z + e[12]!) * w;
-    result.y = (e[1]! * x + e[5]! * y + e[9]! * z + e[13]!) * w;
-    result.z = (e[2]! * x + e[6]! * y + e[10]! * z + e[14]!) * w;
+    const w =
+      1 /
+      (MathUtils.at(e, 3) * x +
+        MathUtils.at(e, 7) * y +
+        MathUtils.at(e, 11) * z +
+        MathUtils.at(e, 15));
+    result.x =
+      (MathUtils.at(e, 0) * x +
+        MathUtils.at(e, 4) * y +
+        MathUtils.at(e, 8) * z +
+        MathUtils.at(e, 12)) *
+      w;
+    result.y =
+      (MathUtils.at(e, 1) * x +
+        MathUtils.at(e, 5) * y +
+        MathUtils.at(e, 9) * z +
+        MathUtils.at(e, 13)) *
+      w;
+    result.z =
+      (MathUtils.at(e, 2) * x +
+        MathUtils.at(e, 6) * y +
+        MathUtils.at(e, 10) * z +
+        MathUtils.at(e, 14)) *
+      w;
     return result;
   }
 
@@ -156,10 +177,22 @@ export class Matrix4 {
 
   public decompose(position: Vector3D, rotation: Vector3D, scale: Vector3D): this {
     const te = this.data;
-    position.set(te[12]!, te[13]!, te[14]!);
-    const v1 = MathPool.acquireVector().set(te[0]!, te[1]!, te[2]!);
-    const v2 = MathPool.acquireVector().set(te[4]!, te[5]!, te[6]!);
-    const v3 = MathPool.acquireVector().set(te[8]!, te[9]!, te[10]!);
+    position.set(MathUtils.at(te, 12), MathUtils.at(te, 13), MathUtils.at(te, 14));
+    const v1 = MathPool.acquireVector().set(
+      MathUtils.at(te, 0),
+      MathUtils.at(te, 1),
+      MathUtils.at(te, 2),
+    );
+    const v2 = MathPool.acquireVector().set(
+      MathUtils.at(te, 4),
+      MathUtils.at(te, 5),
+      MathUtils.at(te, 6),
+    );
+    const v3 = MathPool.acquireVector().set(
+      MathUtils.at(te, 8),
+      MathUtils.at(te, 9),
+      MathUtils.at(te, 10),
+    );
     let sx = v1.length();
     const sy = v2.length();
     const sz = v3.length();
@@ -170,6 +203,8 @@ export class Matrix4 {
     const invSX = 1 / sx;
     const invSY = 1 / sy;
     const invSZ = 1 / sz;
+    // Compound-assignment targets: `MathUtils.at(...)` returns a value, not an
+    // lvalue, so these keep the direct array-index assertion.
     m.data[0]! *= invSX;
     m.data[1]! *= invSX;
     m.data[2]! *= invSX;
@@ -179,12 +214,12 @@ export class Matrix4 {
     m.data[8]! *= invSZ;
     m.data[9]! *= invSZ;
     m.data[10]! *= invSZ;
-    rotation.x = Math.asin(-Math.max(-1, Math.min(1, m.data[9]!))); // Fixed decompose index
-    if (Math.abs(m.data[9]!) < 0.99999) {
-      rotation.y = Math.atan2(m.data[8]!, m.data[10]!);
-      rotation.z = Math.atan2(m.data[1]!, m.data[5]!);
+    rotation.x = Math.asin(-Math.max(-1, Math.min(1, MathUtils.at(m.data, 9)))); // Fixed decompose index
+    if (Math.abs(MathUtils.at(m.data, 9)) < 0.99999) {
+      rotation.y = Math.atan2(MathUtils.at(m.data, 8), MathUtils.at(m.data, 10));
+      rotation.z = Math.atan2(MathUtils.at(m.data, 1), MathUtils.at(m.data, 5));
     } else {
-      rotation.y = Math.atan2(-m.data[2]!, m.data[0]!);
+      rotation.y = Math.atan2(-MathUtils.at(m.data, 2), MathUtils.at(m.data, 0));
       rotation.z = 0;
     }
     MathPool.releaseVector(v1);
@@ -196,22 +231,22 @@ export class Matrix4 {
 
   public determinant(): number {
     const te = this.data;
-    const n11 = te[0]!,
-      n12 = te[4]!,
-      n13 = te[8]!,
-      n14 = te[12]!;
-    const n21 = te[1]!,
-      n22 = te[5]!,
-      n23 = te[9]!,
-      n24 = te[13]!;
-    const n31 = te[2]!,
-      n32 = te[6]!,
-      n33 = te[10]!,
-      n34 = te[14]!;
-    const n41 = te[3]!,
-      n42 = te[7]!,
-      n43 = te[11]!,
-      n44 = te[15]!;
+    const n11 = MathUtils.at(te, 0),
+      n12 = MathUtils.at(te, 4),
+      n13 = MathUtils.at(te, 8),
+      n14 = MathUtils.at(te, 12);
+    const n21 = MathUtils.at(te, 1),
+      n22 = MathUtils.at(te, 5),
+      n23 = MathUtils.at(te, 9),
+      n24 = MathUtils.at(te, 13);
+    const n31 = MathUtils.at(te, 2),
+      n32 = MathUtils.at(te, 6),
+      n33 = MathUtils.at(te, 10),
+      n34 = MathUtils.at(te, 14);
+    const n41 = MathUtils.at(te, 3),
+      n42 = MathUtils.at(te, 7),
+      n43 = MathUtils.at(te, 11),
+      n44 = MathUtils.at(te, 15);
     return (
       n41 *
         (+n14 * n23 * n32 -
@@ -249,39 +284,39 @@ export class Matrix4 {
     const be = b.data;
     const te = result.data;
 
-    const a11 = ae[0]!,
-      a12 = ae[4]!,
-      a13 = ae[8]!,
-      a14 = ae[12]!;
-    const a21 = ae[1]!,
-      a22 = ae[5]!,
-      a23 = ae[9]!,
-      a24 = ae[13]!;
-    const a31 = ae[2]!,
-      a32 = ae[6]!,
-      a33 = ae[10]!,
-      a34 = ae[14]!;
-    const a41 = ae[3]!,
-      a42 = ae[7]!,
-      a43 = ae[11]!,
-      a44 = ae[15]!;
+    const a11 = MathUtils.at(ae, 0),
+      a12 = MathUtils.at(ae, 4),
+      a13 = MathUtils.at(ae, 8),
+      a14 = MathUtils.at(ae, 12);
+    const a21 = MathUtils.at(ae, 1),
+      a22 = MathUtils.at(ae, 5),
+      a23 = MathUtils.at(ae, 9),
+      a24 = MathUtils.at(ae, 13);
+    const a31 = MathUtils.at(ae, 2),
+      a32 = MathUtils.at(ae, 6),
+      a33 = MathUtils.at(ae, 10),
+      a34 = MathUtils.at(ae, 14);
+    const a41 = MathUtils.at(ae, 3),
+      a42 = MathUtils.at(ae, 7),
+      a43 = MathUtils.at(ae, 11),
+      a44 = MathUtils.at(ae, 15);
 
-    const b11 = be[0]!,
-      b12 = be[4]!,
-      b13 = be[8]!,
-      b14 = be[12]!;
-    const b21 = be[1]!,
-      b22 = be[5]!,
-      b23 = be[9]!,
-      b24 = be[13]!;
-    const b31 = be[2]!,
-      b32 = be[6]!,
-      b33 = be[10]!,
-      b34 = be[14]!;
-    const b41 = be[3]!,
-      b42 = be[7]!,
-      b43 = be[11]!,
-      b44 = be[15]!;
+    const b11 = MathUtils.at(be, 0),
+      b12 = MathUtils.at(be, 4),
+      b13 = MathUtils.at(be, 8),
+      b14 = MathUtils.at(be, 12);
+    const b21 = MathUtils.at(be, 1),
+      b22 = MathUtils.at(be, 5),
+      b23 = MathUtils.at(be, 9),
+      b24 = MathUtils.at(be, 13);
+    const b31 = MathUtils.at(be, 2),
+      b32 = MathUtils.at(be, 6),
+      b33 = MathUtils.at(be, 10),
+      b34 = MathUtils.at(be, 14);
+    const b41 = MathUtils.at(be, 3),
+      b42 = MathUtils.at(be, 7),
+      b43 = MathUtils.at(be, 11),
+      b44 = MathUtils.at(be, 15);
 
     const r11 = a11 * b11 + a12 * b21 + a13 * b31 + a14 * b41;
     const r12 = a11 * b12 + a12 * b22 + a13 * b32 + a14 * b42;
@@ -399,22 +434,22 @@ export class Matrix4 {
     const te = target.data;
     const n = src.data;
 
-    const a0 = n[0]!,
-      a1 = n[1]!,
-      a2 = n[2]!,
-      a3 = n[3]!;
-    const b0 = n[4]!,
-      b1 = n[5]!,
-      b2 = n[6]!,
-      b3 = n[7]!;
-    const c0 = n[8]!,
-      c1 = n[9]!,
-      c2 = n[10]!,
-      c3 = n[11]!;
-    const d0 = n[12]!,
-      d1 = n[13]!,
-      d2 = n[14]!,
-      d3 = n[15]!;
+    const a0 = MathUtils.at(n, 0),
+      a1 = MathUtils.at(n, 1),
+      a2 = MathUtils.at(n, 2),
+      a3 = MathUtils.at(n, 3);
+    const b0 = MathUtils.at(n, 4),
+      b1 = MathUtils.at(n, 5),
+      b2 = MathUtils.at(n, 6),
+      b3 = MathUtils.at(n, 7);
+    const c0 = MathUtils.at(n, 8),
+      c1 = MathUtils.at(n, 9),
+      c2 = MathUtils.at(n, 10),
+      c3 = MathUtils.at(n, 11);
+    const d0 = MathUtils.at(n, 12),
+      d1 = MathUtils.at(n, 13),
+      d2 = MathUtils.at(n, 14),
+      d3 = MathUtils.at(n, 15);
 
     const b01 = a0 * b1 - a1 * b0;
     const b02 = a0 * b2 - a2 * b0;

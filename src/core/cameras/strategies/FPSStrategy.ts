@@ -6,6 +6,7 @@ import {
 } from "../../../interfaces/index.js";
 import { CameraStrategyType } from "../../../enums/index.js";
 import { Vector3D, MathUtils } from "../../../math/index.js";
+import { clampVector } from "./CameraStrategyUtils.js";
 /**
  * A first-person camera strategy.
  */
@@ -37,19 +38,7 @@ export class FPSStrategy implements CameraStrategy {
       camera.position.z = targetPos.z;
     }
 
-    if (undefined !== this.constraints) {
-      if (undefined !== this.constraints.min && undefined !== this.constraints.max) {
-        camera.position.clamp(this.constraints.min, this.constraints.max);
-      } else if (undefined !== this.constraints.min) {
-        camera.position.x = Math.max(this.constraints.min.x, camera.position.x);
-        camera.position.y = Math.max(this.constraints.min.y, camera.position.y);
-        camera.position.z = Math.max(this.constraints.min.z, camera.position.z);
-      } else if (undefined !== this.constraints.max) {
-        camera.position.x = Math.min(this.constraints.max.x, camera.position.x);
-        camera.position.y = Math.min(this.constraints.max.y, camera.position.y);
-        camera.position.z = Math.min(this.constraints.max.z, camera.position.z);
-      }
-    }
+    clampVector(camera.position, this.constraints);
 
     camera.target.x = camera.position.x + Math.sin(camera.theta) * Math.cos(camera.phi);
     camera.target.y = camera.position.y + Math.sin(camera.phi);

@@ -1,7 +1,8 @@
 /// src/renderers/WebGL1/WebGL1Renderer.ts
 import { AbstractWebGLRenderer } from "../AbstractWebGLRenderer.js";
+import { WebGLMainPass } from "../passes/WebGLMainPass.js";
+import { WebGLPostProcessPass } from "../passes/WebGLPostProcessPass.js";
 import { PostProcessPassGL } from "../post/passes/index.js";
-import { Color } from "../../core/colors/index.js";
 import { CubeTexture, Texture, RenderTarget } from "../../core/textures/index.js";
 import { ShaderRegistry } from "../../core/renderers/shaders/index.js";
 import { DeviceCaps, DeviceLimit, Object3D, Scene } from "../../core/index.js";
@@ -63,7 +64,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
   private _stateDepthTest: boolean | null = null;
 
   /** Satisfies Renderer interface */
-  public get webglContext(): WebGLRenderingContext {
+  public override get webglContext(): WebGLRenderingContext {
     return this.gl;
   }
 
@@ -121,6 +122,9 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
     this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, false);
     this.initDefaultTextures();
     this.gl.enable(this.gl.DEPTH_TEST);
+
+    this.addPass(new WebGLMainPass());
+    this.addPass(new WebGLPostProcessPass());
   }
 
   private _getProgram(shaderId: string): ProgramCache {
@@ -293,16 +297,17 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
     this._activeRenderTarget = target;
   }
 
-  /** @inheritdoc */
-  public render(
-    scene: Scene,
-    vp: Float32Array,
-    camPos: Vector3D = Vector3D.ZERO,
-    vMat?: Float32Array,
-  ): void {
-    this._resetStateCache();
-    const extractedLights = this.extractLights(scene);
+  public resetStateCache(): void {
+    this._stateCullFaceEnabled = null;
+    this._stateCullFaceMode = -1;
+    this._stateBlendEnabled = null;
+    this._stateBlendSrc = -1;
+    this._stateBlendDst = -1;
+    this._stateDepthMask = null;
+    this._stateDepthTest = null;
+  }
 
+  public bindMainRenderTarget(): boolean {
     let isOffscreen = false;
 
     if (this._activeRenderTarget) {
@@ -371,134 +376,60 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
       this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
     }
 
-    this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
-    this.gl.enable(this.gl.BLEND);
-    this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
+    return isOffscreen;
+  }
 
-    const renderList = scene.getVisibleObjectsSorted(vp, camPos);
+  public bindPostProcessRenderTarget(): void {
+    // Unused in WebGL1 directly as FBO is bound in bindMainRenderTarget
+  }
 
-    // --- PASS 1: Skybox ---
-    const skyboxShaderMap = renderList.opaque.get(MaterialType.SKYBOX);
-    if (skyboxShaderMap) {
-      this.gl.depthMask(false);
-      for (const [topology, materialGroups] of skyboxShaderMap.entries()) {
-        this._renderGroup(
-          MaterialType.SKYBOX,
-          materialGroups,
-          vp,
-          camPos,
-          {
-            aCol: Color.BLACK,
-            aIntensity: 0,
-            dCol: Color.BLACK,
-            dIntensity: 0,
-            dDir: Vector3D.ZERO,
-            pLights: [],
-            sLights: [],
-            aLights: [],
-          },
-          vMat,
-          topology,
-          scene.fog,
-        );
-      }
-      this.gl.depthMask(true);
-      renderList.opaque.delete(MaterialType.SKYBOX);
+  public copyToOpaqueTexture(): void {
+    if (!this._opaqueTexture) {
+      const tex = this.gl.createTexture();
+      this.gl.bindTexture(this.gl.TEXTURE_2D, tex);
+      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST);
+      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST);
+      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
+      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
+      this._opaqueTexture = tex!;
+
+      const dummyTex = { isLoaded: true } as unknown as Texture;
+      this._opaqueTextureWrapper = dummyTex;
+      this._texCache.set(dummyTex, tex!);
+    } else {
+      this.gl.bindTexture(this.gl.TEXTURE_2D, this._opaqueTexture);
     }
 
-    // --- PASS 2: Opaque Objects ---
-    for (const [shaderId, topologyMap] of renderList.opaque.entries()) {
-      for (const [topology, materialGroups] of topologyMap.entries()) {
-        this._renderGroup(
-          shaderId,
-          materialGroups,
-          vp,
-          camPos,
-          extractedLights,
-          vMat,
-          topology,
-          scene.fog,
-        );
-      }
-    }
+    this.gl.copyTexImage2D(
+      this.gl.TEXTURE_2D,
+      0,
+      this.gl.RGBA,
+      0,
+      0,
+      this.gl.canvas.width,
+      this.gl.canvas.height,
+      0,
+    );
+  }
 
-    if (renderList.transparent.length > 0) {
-      // Create/Update Opaque Texture
-      if (!this._opaqueTexture) {
-        const tex = this.gl.createTexture();
-        this.gl.bindTexture(this.gl.TEXTURE_2D, tex);
-        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST);
-        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST);
-        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
-        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
-        this._opaqueTexture = tex!;
-
-        // Create a dummy Texture wrapper to serve as the key in _texCache
-        const dummyTex = { isLoaded: true } as unknown as Texture;
-        this._opaqueTextureWrapper = dummyTex;
-
-        // Directly inject into the cache so _getWebGLTexture uses it
-        this._texCache.set(dummyTex, tex!);
-      } else {
-        this.gl.bindTexture(this.gl.TEXTURE_2D, this._opaqueTexture);
-      }
-
-      // Copy current framebuffer to texture
-      this.gl.copyTexImage2D(
-        this.gl.TEXTURE_2D,
-        0,
-        this.gl.RGBA,
-        0,
-        0,
-        this.gl.canvas.width,
-        this.gl.canvas.height,
-        0,
-      );
-
-      // --- PASS 3: Transparent Objects ---
-      for (const obj of renderList.transparent) {
-        const manifest = obj.material!.getRenderManifest();
-        if (obj.material && obj.material.type === MaterialType.GLASS) {
-          manifest.textures["u_opaqueMap"] = this._opaqueTextureWrapper;
-        }
-
-        const shaderId = manifest.shaderId;
-        const topology =
-          manifest.state?.topology ||
-          obj.geometry?.topology ||
-          (obj.geometry?.indices?.length === 2 ? "line-list" : "triangle-list");
-
-        this._scratchTransparentMap.clear();
-        this._scratchTransparentMap.set(obj.material!.uuid, [obj]);
-        this._renderGroup(
-          shaderId,
-          this._scratchTransparentMap,
-          vp,
-          camPos,
-          extractedLights,
-          vMat,
-          topology,
-          scene.fog,
-        );
-      }
-    }
-
-    // --- PASS 4: Post-Process Blit (HDR -> Canvas) ---
+  public flushPostProcess(): void {
+    const isOffscreen = this._activeRenderTarget !== null;
     if (!isOffscreen && this.postProcessing.enabled && this._hdrTexture && this._postPassGL) {
       this._postPassGL.execute(this.gl, this._hdrTexture, this.postProcessing);
     }
   }
 
-  private _renderGroup(
+  public renderGroup(
     shaderId: string,
     materialGroups: Map<string, Object3D[]>,
+    vMat: Float32Array | undefined,
+    topology: string,
     vp: Float32Array,
     camPos: Vector3D,
     lights: LightDataInterface,
-    vMat?: Float32Array,
-    topology: string = "triangle-list",
-    fog?: import("../../core/index.js").Fog,
+    scene: Scene,
   ): void {
+    const fog = scene.fog;
     const cache = this._getProgram(shaderId);
     this.gl.useProgram(cache.prog);
 
@@ -849,15 +780,5 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
     this._postPassGL = undefined;
 
     super.destroy();
-  }
-
-  private _resetStateCache(): void {
-    this._stateCullFaceEnabled = null;
-    this._stateCullFaceMode = -1;
-    this._stateBlendEnabled = null;
-    this._stateBlendSrc = -1;
-    this._stateBlendDst = -1;
-    this._stateDepthMask = null;
-    this._stateDepthTest = null;
   }
 }

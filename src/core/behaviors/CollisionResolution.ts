@@ -1,0 +1,53 @@
+/// src/core/behaviors/CollisionResolution.ts
+import { CameraInterfaceData, Collidable } from "../../interfaces/index.js";
+import { Object3D } from "../Object3D.js";
+import { Scene } from "../Scene.js";
+import { BoundingBox, BoundingSphere, Collision } from "../../physix/index.js";
+import { MathPool } from "../../math/index.js";
+
+/**
+ * Resolves sphere-vs-scene collisions for a character-style controller, pushing
+ * `target.position` out of any overlapping static/dynamic/spatial-hash geometry.
+ * Shared by FirstPersonController and FPSController.
+ */
+export function resolveSphereCollisions(
+  collider: BoundingSphere | undefined,
+  target: (Object3D | CameraInterfaceData) | undefined,
+  scene: Scene | undefined,
+): void {
+  if (!scene || !target || !collider) return;
+
+  collider.center.copyFrom(target.position);
+  collider.center.y += 0.5; // Offset slightly up
+
+  const potentialHits: Collidable[] = [];
+  if (scene.staticOctree) potentialHits.push(...scene.staticOctree.queryVolume(collider));
+  if (scene.spatialHash) potentialHits.push(...scene.spatialHash.query(collider));
+  if (scene.dynamicOctree) potentialHits.push(...scene.dynamicOctree.queryVolume(collider));
+
+  const correction = MathPool.acquireVector().set(0, 0, 0);
+  const hitCorrection = MathPool.acquireVector();
+
+  for (const obj of potentialHits) {
+    if (!obj.bounds || obj === target) continue;
+    let resolved: boolean;
+    if (0 === obj.bounds.type /* BoundingType.SPHERE */) {
+      resolved = Collision.resolveSphereSphere(
+        collider,
+        obj.bounds as BoundingSphere,
+        hitCorrection,
+      );
+    } else {
+      resolved = Collision.resolveSphereBox(collider, obj.bounds as BoundingBox, hitCorrection);
+    }
+
+    if (resolved) {
+      correction.add(hitCorrection);
+      collider.center.add(hitCorrection); // update sphere center iteratively
+    }
+  }
+
+  target.position.add(correction);
+  MathPool.releaseVector(correction);
+  MathPool.releaseVector(hitCorrection);
+}

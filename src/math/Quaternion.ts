@@ -1,6 +1,7 @@
 /// src/math/Quaternion.ts
 import { Vector3D } from "./Vector3D.js";
 import { Matrix4 } from "./Matrix4.js";
+import { MathUtils } from "./MathUtils.js";
 
 /**
  * A class representing a quaternion for rotations.
@@ -137,15 +138,15 @@ export class Quaternion {
    */
   public setFromRotationMatrix(m: Matrix4): this {
     const te: Float32Array = m.data;
-    const m11: number = te[0]!,
-      m12: number = te[4]!,
-      m13: number = te[8]!;
-    const m21: number = te[1]!,
-      m22: number = te[5]!,
-      m23: number = te[9]!;
-    const m31: number = te[2]!,
-      m32: number = te[6]!,
-      m33: number = te[10]!;
+    const m11: number = MathUtils.at(te, 0),
+      m12: number = MathUtils.at(te, 4),
+      m13: number = MathUtils.at(te, 8);
+    const m21: number = MathUtils.at(te, 1),
+      m22: number = MathUtils.at(te, 5),
+      m23: number = MathUtils.at(te, 9);
+    const m31: number = MathUtils.at(te, 2),
+      m32: number = MathUtils.at(te, 6),
+      m33: number = MathUtils.at(te, 10);
     const trace: number = m11 + m22 + m33;
 
     if (0 < trace) {

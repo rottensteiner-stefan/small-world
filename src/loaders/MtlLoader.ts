@@ -27,7 +27,7 @@ export class MtlLoader extends AbstractLoader<Map<string, PhongMaterial>> {
         },
       );
 
-      const folderPath: string = fullUrl.substring(0, fullUrl.lastIndexOf("/") + 1);
+      const folderPath: string = MtlLoader.getFolderPath(fullUrl);
       const materials: Map<string, PhongMaterial> = await this._parse(text, folderPath);
 
       this.dispatchEvent(EventType.LOADER_END, { url: fullUrl, data: materials });

@@ -2,7 +2,7 @@ import { AbstractProjection } from '../math/projections/index.js';
 import { Matrix4, Vector3D } from '../math/index.js';
 import { CameraEffectType, CameraStrategyType } from '../enums/index.js';
 import { CameraConstraints, CameraEffect, CameraInterfaceData, CameraStrategy } from '../interfaces/index.js';
-import { Behavior } from './behaviors/index.js';
+import { Behavior } from './behaviors/Behavior.js';
 /**
  * Standard implementation of the CameraInterfaceData.
  */

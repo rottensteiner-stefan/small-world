@@ -4,6 +4,9 @@ import { WebGL2DepthFrameBuffer } from "./WebGL2DepthFrameBuffer.js";
 import { WebGL2FrameBuffer } from "./WebGL2FrameBuffer.js";
 import { WebGL2CubeFrameBuffer } from "./WebGL2CubeFrameBuffer.js";
 import { AbstractWebGLRenderer } from "../AbstractWebGLRenderer.js";
+import { WebGLShadowPass } from "../passes/WebGLShadowPass.js";
+import { WebGLMainPass } from "../passes/WebGLMainPass.js";
+import { WebGLPostProcessPass } from "../passes/WebGLPostProcessPass.js";
 import { PostProcessPassGL, BloomPassGL } from "../post/passes/index.js";
 import { AbstractLight } from "../../core/lights/index.js";
 import { CubeTexture, Texture, RenderTarget, RenderTargetCube } from "../../core/textures/index.js";
@@ -137,9 +140,13 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     new DepthMaterial();
 
     this._globalUBO = new WebGL2UniformBuffer(this.gl, 1280, 0);
+
+    this.addPass(new WebGLShadowPass());
+    this.addPass(new WebGLMainPass());
+    this.addPass(new WebGLPostProcessPass());
   }
 
-  private _resetStateCache(): void {
+  public resetStateCache(): void {
     this._stateCullFaceEnabled = null;
     this._stateCullFaceMode = -1;
     this._stateBlendEnabled = null;
@@ -471,24 +478,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     this._activeCubeFace = activeCubeFace ?? 0;
   }
 
-  /** @inheritdoc */
-  public render(
-    scene: Scene,
-    vp: Float32Array,
-    camPos: Vector3D = Vector3D.ZERO,
-    vMat?: Float32Array,
-  ): void {
-    this._resetStateCache();
-    const extractedLights = this.extractLights(scene);
-    const renderList = scene.getVisibleObjectsSorted(vp, camPos);
-
-    // --- PASS 0: Shadow Maps ---
-    // Pass only the opaque map to shadow maps for now
-    this._renderShadowMaps(extractedLights, renderList.opaque);
-
-    // --- SETUP MAIN PASS ---
-    this._updateGlobalUBO(vp, camPos, extractedLights);
-
+  public bindMainRenderTarget(): boolean {
     let isOffscreen = false;
 
     if (this._activeRenderTarget) {
@@ -535,95 +525,44 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
     }
 
-    this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
-    this.gl.enable(this.gl.BLEND);
-    this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
+    return isOffscreen;
+  }
 
-    // --- PASS 1: Skybox / Background ---
-    const skyboxShaderMap = renderList.opaque.get(MaterialType.SKYBOX);
-    if (skyboxShaderMap) {
-      this.gl.depthMask(false);
-      for (const [topology, materialGroups] of skyboxShaderMap.entries()) {
-        this._renderGroup(
-          MaterialType.SKYBOX,
-          materialGroups,
-          vMat,
-          topology,
-          extractedLights,
-          scene,
-        );
-      }
-      this.gl.depthMask(true);
-      renderList.opaque.delete(MaterialType.SKYBOX);
+  public bindPostProcessRenderTarget(): void {
+    // FBO is already bound in bindMainRenderTarget if needed, handled implicitly for now
+  }
+
+  public copyToOpaqueTexture(): void {
+    if (!this._opaqueTexture) {
+      const tex = this.gl.createTexture();
+      this.gl.bindTexture(this.gl.TEXTURE_2D, tex);
+      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST);
+      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST);
+      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
+      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
+      this._opaqueTexture = tex!;
+
+      const dummyTex = { isLoaded: true } as unknown as Texture;
+      this._opaqueTextureWrapper = dummyTex;
+      this._texCache.set(dummyTex, tex!);
+    } else {
+      this.gl.bindTexture(this.gl.TEXTURE_2D, this._opaqueTexture);
     }
 
-    // --- PASS 2: All other Opaque Objects ---
-    for (const [shaderId, topologyMap] of renderList.opaque.entries()) {
-      for (const [topology, materialGroups] of topologyMap.entries()) {
-        this._renderGroup(shaderId, materialGroups, vMat, topology, extractedLights, scene);
-      }
-    }
+    this.gl.copyTexImage2D(
+      this.gl.TEXTURE_2D,
+      0,
+      this.gl.RGBA,
+      0,
+      0,
+      this.gl.canvas.width,
+      this.gl.canvas.height,
+      0,
+    );
+  }
 
-    if (renderList.transparent.length > 0) {
-      // Create/Update Opaque Texture
-      if (!this._opaqueTexture) {
-        const tex = this.gl.createTexture();
-        this.gl.bindTexture(this.gl.TEXTURE_2D, tex);
-        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST);
-        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST);
-        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
-        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
-        this._opaqueTexture = tex!;
-
-        // Create a dummy Texture wrapper to serve as the key in _texCache
-        const dummyTex = { isLoaded: true } as unknown as Texture;
-        this._opaqueTextureWrapper = dummyTex;
-
-        // Directly inject into the cache so _getWebGLTexture uses it
-        this._texCache.set(dummyTex, tex!);
-      } else {
-        this.gl.bindTexture(this.gl.TEXTURE_2D, this._opaqueTexture);
-      }
-
-      // Copy current framebuffer to texture
-      this.gl.copyTexImage2D(
-        this.gl.TEXTURE_2D,
-        0,
-        this.gl.RGBA,
-        0,
-        0,
-        this.gl.canvas.width,
-        this.gl.canvas.height,
-        0,
-      );
-
-      // --- PASS 3: Transparent Objects ---
-      for (const obj of renderList.transparent) {
-        const manifest = obj.material!.getRenderManifest();
-        if (obj.material && obj.material.type === MaterialType.GLASS) {
-          manifest.textures["u_opaqueMap"] = this._opaqueTextureWrapper;
-        }
-
-        const shaderId = manifest.shaderId;
-        const topology =
-          manifest.state?.topology ||
-          obj.geometry?.topology ||
-          (obj.geometry?.indices?.length === 2 ? "line-list" : "triangle-list");
-
-        this._scratchTransparentMap.clear();
-        this._scratchTransparentMap.set(obj.material!.uuid, [obj]);
-        this._renderGroup(
-          shaderId,
-          this._scratchTransparentMap,
-          vMat,
-          topology,
-          extractedLights,
-          scene,
-        );
-      }
-    }
-
-    // --- PASS 4: Post-Process Blit (HDR -> Canvas) ---
+  public flushPostProcess(): void {
+    const isOffscreen = this._activeRenderTarget !== null;
     if (!isOffscreen && this.postProcessing.enabled && this._hdrFbo && this._postPassGL) {
       let bloomTex: WebGLTexture | null = null;
       if (this._bloomPassGL) {
@@ -646,7 +585,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
   /**
    * Renders shadow maps for all shadow-casting lights.
    */
-  private _renderShadowMaps(
+  public renderShadowMaps(
     lights: LightDataInterface,
     sortedGroups: Map<string, Map<string, Map<string, Object3D[]>>>,
   ): void {
@@ -677,7 +616,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       this.gl.clear(this.gl.DEPTH_BUFFER_BIT);
 
       // Update Global UBO with light's camera
-      this._updateGlobalUBO(
+      this.updateGlobalUBO(
         light.shadowCamera.viewProjectionMatrix,
         light.shadowCamera.position,
         emptyLights,
@@ -740,7 +679,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         const row = Math.floor(i / cols);
         this.gl.viewport(col * res, row * res, res, res);
 
-        this._updateGlobalUBO(cascadeCam.viewProjectionMatrix, cascadeCam.position, emptyLights);
+        this.updateGlobalUBO(cascadeCam.viewProjectionMatrix, cascadeCam.position, emptyLights);
 
         this._renderShadowScene(cache, sortedGroups);
       }
@@ -844,13 +783,15 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     }
   }
 
-  private _renderGroup(
+  public renderGroup(
     shaderId: string,
     materialGroups: Map<string, Object3D[]>,
-    vMat?: Float32Array,
-    topology: string = "triangle-list",
-    lights?: LightDataInterface,
-    scene?: Scene,
+    vMat: Float32Array | undefined,
+    topology: string,
+    _vp: Float32Array,
+    _camPos: Vector3D,
+    lights: LightDataInterface,
+    scene: Scene,
   ): void {
     for (const materialGroup of materialGroups.values()) {
       if (materialGroup.length === 0) continue;
@@ -1381,7 +1322,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     }
   }
 
-  private _updateGlobalUBO(vp: Float32Array, camPos: Vector3D, lights: LightDataInterface): void {
+  public updateGlobalUBO(vp: Float32Array, camPos: Vector3D, lights: LightDataInterface): void {
     const ubo = this._globalUBO;
     ubo.setMatrix(0, vp);
     ubo.setVector3(64, camPos);

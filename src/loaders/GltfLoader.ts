@@ -98,7 +98,7 @@ export class GltfLoader extends AbstractLoader<Object3D> {
 
   private async _loadJson(url: string): Promise<GltfData> {
     const json = (await AssetManager.loadJson(url)) as GltfJson;
-    const folderPath = url.substring(0, url.lastIndexOf("/") + 1);
+    const folderPath = GltfLoader.getFolderPath(url);
 
     const bufferPromises = (json.buffers || []).map((buf) => {
       if (buf.uri?.startsWith("data:")) {
@@ -161,7 +161,7 @@ export class GltfLoader extends AbstractLoader<Object3D> {
 
   private async _parse(gltf: GltfData, baseUrl: string): Promise<Object3D> {
     const { json, buffers } = gltf;
-    const folderPath = baseUrl.substring(0, baseUrl.lastIndexOf("/") + 1);
+    const folderPath = GltfLoader.getFolderPath(baseUrl);
 
     // 1. Parse Materials
     const materials = await Promise.all(

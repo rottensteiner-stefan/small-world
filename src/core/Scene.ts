@@ -6,6 +6,7 @@ import { Matrix4, Frustum, Vector3D } from "../math/index.js";
 import { BoundingBox, SpatialHash } from "../physix/index.js";
 import { BoundingType, Topology } from "../enums/index.js";
 import { DirectionalLight } from "./lights/index.js";
+import { Collidable } from "../interfaces/index.js";
 
 export interface RenderList {
   opaque: Map<string, Map<string, Map<string, Object3D[]>>>;
@@ -25,6 +26,13 @@ export class Scene {
   public staticOctree: Octree | undefined = undefined;
   public dynamicOctree: Octree | undefined = undefined;
   public spatialHash: SpatialHash | undefined = undefined;
+  /**
+   * Lightweight static colliders (e.g. `StaticCollider`) that aren't part of
+   * the `Object3D` scene graph. `PhysicsSystem` reads this in addition to
+   * walking `objects`, so non-Object3D obstacles participate in collision
+   * resolution too.
+   */
+  public staticColliders: Collidable[] = [];
   public fog?: Fog;
 
   // Global Environment (IBL)

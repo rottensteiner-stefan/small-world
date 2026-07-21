@@ -1,10 +1,10 @@
 /// src/core/controllers/FPSController.ts
-import { Behavior } from "../behaviors/index.js";
+import { Behavior } from "../behaviors/Behavior.js";
 import { CameraInterfaceData } from "../../interfaces/index.js";
 import { Object3D, Input, InputInterface, Scene } from "../index.js";
 import { InputMode, Keys } from "../../enums/index.js";
-import { BoundingSphere, Collision } from "../../physix/index.js";
-import { MathPool } from "../../math/index.js";
+import { BoundingSphere } from "../../physix/index.js";
+import { resolveSphereCollisions } from "../behaviors/CollisionResolution.js";
 
 /**
  * Configuration for the FPSController.
@@ -136,7 +136,7 @@ export class FPSController extends Behavior {
 
     // 3. Resolve Collisions (BEFORE rotation application)
     if (this._options.enableCollision && this._options.scene) {
-      this._resolveCollisions();
+      resolveSphereCollisions(this._collider, this.target, this._options.scene);
     }
 
     // 4. Apply Rotation / View Update
@@ -156,49 +156,5 @@ export class FPSController extends Behavior {
         obj.rotation.x = Math.max(-limit, Math.min(limit, obj.rotation.x));
       }
     }
-  }
-
-  private _resolveCollisions(): void {
-    if (!this._options.scene || !this.target || !this._collider) return;
-    this._collider.center.copyFrom(this.target.position);
-    this._collider.center.y += 0.5;
-
-    const potentialHits: import("../../interfaces/index.js").Collidable[] = [];
-    if (this._options.scene.staticOctree)
-      potentialHits.push(...this._options.scene.staticOctree.queryVolume(this._collider));
-    if (this._options.scene.spatialHash)
-      potentialHits.push(...this._options.scene.spatialHash.query(this._collider));
-    if (this._options.scene.dynamicOctree)
-      potentialHits.push(...this._options.scene.dynamicOctree.queryVolume(this._collider));
-
-    const correction = MathPool.acquireVector().set(0, 0, 0);
-    const hitCorrection = MathPool.acquireVector();
-
-    for (const obj of potentialHits) {
-      if (!obj.bounds || obj === this.target) continue;
-      let resolved: boolean;
-      if (obj.bounds.type === 0 /* BoundingType.SPHERE */) {
-        resolved = Collision.resolveSphereSphere(
-          this._collider,
-          obj.bounds as import("../../physix/index.js").BoundingSphere,
-          hitCorrection,
-        );
-      } else {
-        resolved = Collision.resolveSphereBox(
-          this._collider,
-          obj.bounds as import("../../physix/index.js").BoundingBox,
-          hitCorrection,
-        );
-      }
-
-      if (resolved) {
-        correction.add(hitCorrection);
-        this._collider.center.add(hitCorrection);
-      }
-    }
-
-    this.target.position.add(correction);
-    MathPool.releaseVector(correction);
-    MathPool.releaseVector(hitCorrection);
   }
 }

@@ -1,10 +1,10 @@
 /// src/core/behaviors/FirstPersonController.ts
 import { Behavior } from "./Behavior.js";
 import { CameraInterfaceData } from "../../interfaces/index.js";
-import { Object3D, Input, Scene } from "../index.js";
+import { Object3D, Input, InputInterface, Scene } from "../index.js";
 import { Keys } from "../../enums/index.js";
-import { BoundingSphere, Collision } from "../../physix/index.js";
-import { MathPool } from "../../math/index.js";
+import { BoundingSphere } from "../../physix/index.js";
+import { resolveSphereCollisions } from "./CollisionResolution.js";
 
 /**
  * Configuration for the FirstPersonController.
@@ -22,6 +22,8 @@ export interface FirstPersonControllerOptions {
   scene?: Scene;
   /** Enable classic retro tank controls (turning with A/D) vs modern strafing. Defaults to true. */
   retroTankControls?: boolean;
+  /** Optional input source (for testing). Defaults to global Input.instance. */
+  input?: InputInterface;
 }
 
 /**
@@ -29,8 +31,9 @@ export interface FirstPersonControllerOptions {
  */
 export class FirstPersonController extends Behavior {
   public enabled: boolean = true;
-  protected _options: Required<Omit<FirstPersonControllerOptions, "scene">> & {
+  protected _options: Required<Omit<FirstPersonControllerOptions, "scene" | "input">> & {
     scene: Scene | undefined;
+    input: InputInterface;
   };
   protected _collider?: BoundingSphere;
 
@@ -52,6 +55,7 @@ export class FirstPersonController extends Behavior {
       collisionRadius: options.collisionRadius ?? 0.7,
       scene: options.scene,
       retroTankControls: options.retroTankControls ?? true,
+      input: options.input ?? Input.instance,
     };
   }
 
@@ -65,22 +69,23 @@ export class FirstPersonController extends Behavior {
       return;
     }
 
+    const input = this._options.input;
     const isCamera = "updateProjectionMatrix" in this.target;
     this.isMoving = false;
 
     // 1. Rotation (Turn Left/Right)
     let rotationDelta: number = 0;
     if (this._options.retroTankControls) {
-      if (Input.isPressed(Keys.A) || Input.isPressed(Keys.LEFT)) {
+      if (input.isPressed(Keys.A) || input.isPressed(Keys.LEFT)) {
         rotationDelta -= 1;
       }
-      if (Input.isPressed(Keys.D) || Input.isPressed(Keys.RIGHT)) {
+      if (input.isPressed(Keys.D) || input.isPressed(Keys.RIGHT)) {
         rotationDelta += 1;
       }
     } else {
       // Modern mouse look or pointer lock logic could go here if implemented
-      if (Input.isPressed(Keys.LEFT)) rotationDelta -= 1;
-      if (Input.isPressed(Keys.RIGHT)) rotationDelta += 1;
+      if (input.isPressed(Keys.LEFT)) rotationDelta -= 1;
+      if (input.isPressed(Keys.RIGHT)) rotationDelta += 1;
     }
 
     const rotationAmount = rotationDelta * this._options.rotationSpeed * deltaTime;
@@ -97,17 +102,17 @@ export class FirstPersonController extends Behavior {
     let moveZ: number = 0;
     let moveX: number = 0;
 
-    if (Input.isPressed(Keys.W) || Input.isPressed(Keys.UP)) {
+    if (input.isPressed(Keys.W) || input.isPressed(Keys.UP)) {
       moveZ += 1;
     }
-    if (Input.isPressed(Keys.S) || Input.isPressed(Keys.DOWN)) {
+    if (input.isPressed(Keys.S) || input.isPressed(Keys.DOWN)) {
       moveZ -= 1;
     }
 
     if (!this._options.retroTankControls) {
       // Strafing
-      if (Input.isPressed(Keys.A)) moveX -= 1;
-      if (Input.isPressed(Keys.D)) moveX += 1;
+      if (input.isPressed(Keys.A)) moveX -= 1;
+      if (input.isPressed(Keys.D)) moveX += 1;
     }
 
     if (0 !== moveZ || 0 !== moveX) {
@@ -148,54 +153,7 @@ export class FirstPersonController extends Behavior {
 
     // 4. Resolve Collisions
     if (true === this._options.enableCollision && undefined !== this._options.scene) {
-      this._resolveCollisions();
+      resolveSphereCollisions(this._collider, this.target, this._options.scene);
     }
-  }
-
-  /**
-   * Internal helper to resolve physical collisions against scene geometry.
-   */
-  private _resolveCollisions(): void {
-    if (!this._options.scene || !this.target || !this._collider) return;
-    this._collider.center.copyFrom(this.target.position);
-    this._collider.center.y += 0.5; // Offset slightly up
-
-    const potentialHits: import("../../interfaces/index.js").Collidable[] = [];
-    if (this._options.scene.staticOctree)
-      potentialHits.push(...this._options.scene.staticOctree.queryVolume(this._collider));
-    if (this._options.scene.spatialHash)
-      potentialHits.push(...this._options.scene.spatialHash.query(this._collider));
-    if (this._options.scene.dynamicOctree)
-      potentialHits.push(...this._options.scene.dynamicOctree.queryVolume(this._collider));
-
-    const correction = MathPool.acquireVector().set(0, 0, 0);
-    const hitCorrection = MathPool.acquireVector();
-
-    for (const obj of potentialHits) {
-      if (!obj.bounds || obj === this.target) continue;
-      let resolved: boolean;
-      if (obj.bounds.type === 0 /* BoundingType.SPHERE */) {
-        resolved = Collision.resolveSphereSphere(
-          this._collider,
-          obj.bounds as import("../../physix/index.js").BoundingSphere,
-          hitCorrection,
-        );
-      } else {
-        resolved = Collision.resolveSphereBox(
-          this._collider,
-          obj.bounds as import("../../physix/index.js").BoundingBox,
-          hitCorrection,
-        );
-      }
-
-      if (resolved) {
-        correction.add(hitCorrection);
-        this._collider.center.add(hitCorrection); // update sphere center iteratively
-      }
-    }
-
-    this.target.position.add(correction);
-    MathPool.releaseVector(correction);
-    MathPool.releaseVector(hitCorrection);
   }
 }

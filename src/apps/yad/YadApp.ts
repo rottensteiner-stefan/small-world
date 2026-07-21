@@ -114,8 +114,6 @@ export class YadApp extends AbstractShowcase {
       },
     );
 
-    // We can keep lavaNoiseMap around if we still want LavaBalls, or remove them
-    // For now, let's keep it to not break LavaBall
     const lavaNoise: Texture = await Texture.fromUrl("./assets/textures/lava.png", {
       flipY: true,
     });

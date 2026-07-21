@@ -6,7 +6,10 @@ import { Vector3D, MathPool } from "../math/index.js";
 import { Collision } from "./Collision.js";
 import { BoundingSphere } from "./BoundingSphere.js";
 import { BoundingBox } from "./BoundingBox.js";
+import { OBB } from "./OBB.js";
 import { UniversalEventBus } from "../core/events/UniversalEventBus.js";
+import { Collidable, BoundingVolume } from "../interfaces/index.js";
+import { BoundingType } from "../enums/index.js";
 
 /** Padding added to the computed world AABB to guard against boundary floating-point edge cases. */
 const BROADPHASE_EPSILON: number = 0.01;
@@ -19,10 +22,10 @@ export class PhysicsSystem {
   public gravity: Vector3D = new Vector3D(0, -9.81, 0);
 
   private _bodies: Object3D[] = [];
-  private _allColliders: Object3D[] = [];
+  private _allColliders: Collidable[] = [];
   private _collisionEvent = {
     objectA: null as unknown as Object3D,
-    objectB: null as unknown as Object3D,
+    objectB: null as unknown as Collidable,
     impulse: 0,
   };
 
@@ -30,7 +33,7 @@ export class PhysicsSystem {
   private _broadphaseWorldMin: Vector3D = new Vector3D();
   private _broadphaseWorldMax: Vector3D = new Vector3D();
   private _bodyIndex = new Map<Object3D, number>();
-  private _broadphaseFallback: Object3D[] = [];
+  private _broadphaseFallback: Collidable[] = [];
 
   private _warnedObjects = new Set<Object3D>();
 
@@ -158,23 +161,31 @@ export class PhysicsSystem {
   }
 
   /**
+   * Expands the running world AABB (min/max) to include a collider's bounds.
+   * Shared by the Object3D scene-graph walk and the flat `scene.staticColliders` pass.
+   */
+  private _trackColliderBounds(bounds: BoundingVolume): void {
+    const r = bounds.getBroadRadius();
+    const cx = bounds.center.x;
+    const cy = bounds.center.y;
+    const cz = bounds.center.z;
+
+    if (cx - r < this._broadphaseWorldMin.x) this._broadphaseWorldMin.x = cx - r;
+    if (cy - r < this._broadphaseWorldMin.y) this._broadphaseWorldMin.y = cy - r;
+    if (cz - r < this._broadphaseWorldMin.z) this._broadphaseWorldMin.z = cz - r;
+
+    if (cx + r > this._broadphaseWorldMax.x) this._broadphaseWorldMax.x = cx + r;
+    if (cy + r > this._broadphaseWorldMax.y) this._broadphaseWorldMax.y = cy + r;
+    if (cz + r > this._broadphaseWorldMax.z) this._broadphaseWorldMax.z = cz + r;
+  }
+
+  /**
    * Recursively collects all objects that have bounds and are collidable.
    */
-  private _collectCollidersRecursive(obj: Object3D, colliders: Object3D[]): void {
+  private _collectCollidersRecursive(obj: Object3D, colliders: Collidable[]): void {
     if (obj.isCollidable && obj.bounds) {
       colliders.push(obj);
-      const r = obj.bounds.getBroadRadius();
-      const cx = obj.bounds.center.x;
-      const cy = obj.bounds.center.y;
-      const cz = obj.bounds.center.z;
-
-      if (cx - r < this._broadphaseWorldMin.x) this._broadphaseWorldMin.x = cx - r;
-      if (cy - r < this._broadphaseWorldMin.y) this._broadphaseWorldMin.y = cy - r;
-      if (cz - r < this._broadphaseWorldMin.z) this._broadphaseWorldMin.z = cz - r;
-
-      if (cx + r > this._broadphaseWorldMax.x) this._broadphaseWorldMax.x = cx + r;
-      if (cy + r > this._broadphaseWorldMax.y) this._broadphaseWorldMax.y = cy + r;
-      if (cz + r > this._broadphaseWorldMax.z) this._broadphaseWorldMax.z = cz + r;
+      this._trackColliderBounds(obj.bounds);
     }
     for (let i = 0; i < obj.children.length; i++) {
       this._collectCollidersRecursive(obj.children[i]!, colliders);
@@ -191,6 +202,15 @@ export class PhysicsSystem {
 
     for (let i = 0; i < scene.objects.length; i++) {
       this._collectCollidersRecursive(scene.objects[i]!, allColliders);
+    }
+
+    // Lightweight static colliders (e.g. StaticCollider) that live outside the
+    // Object3D scene graph — see Scene.staticColliders.
+    for (let i = 0; i < scene.staticColliders.length; i++) {
+      const c = scene.staticColliders[i]!;
+      if (!c.bounds) continue;
+      allColliders.push(c);
+      this._trackColliderBounds(c.bounds);
     }
 
     this._broadphaseWorldMin.x -= BROADPHASE_EPSILON;
@@ -245,11 +265,16 @@ export class PhysicsSystem {
       }
 
       for (let j = 0; j < broadResult.length; j++) {
-        const otherObj = broadResult[j] as Object3D;
+        const otherObj = broadResult[j]!;
         if (dynObj === otherObj) continue;
 
+        // Non-Object3D colliders (e.g. StaticCollider) have no rigidBody and
+        // can never be a dynamic body themselves.
+        const otherAsBody: Object3D | undefined =
+          otherObj instanceof Object3D ? otherObj : undefined;
+
         // Avoid double resolution for dynamic vs dynamic pairs
-        const otherIdx = this._bodyIndex.get(otherObj);
+        const otherIdx = otherAsBody ? this._bodyIndex.get(otherAsBody) : undefined;
         if (otherIdx !== undefined && otherIdx <= i) continue;
 
         const boundsA = dynObj.bounds;
@@ -257,30 +282,61 @@ export class PhysicsSystem {
 
         let collisionFound = false;
 
-        // BoundingType.SPHERE = 0, BOX = 1
-        if (boundsA.type === 0 && boundsB.type === 0) {
+        if (BoundingType.SPHERE === boundsA.type && BoundingType.SPHERE === boundsB.type) {
           collisionFound = Collision.resolveSphereSphere(
             boundsA as BoundingSphere,
             boundsB as BoundingSphere,
             result,
           );
-        } else if (boundsA.type === 0 && boundsB.type === 1) {
+        } else if (BoundingType.SPHERE === boundsA.type && BoundingType.BOX === boundsB.type) {
           collisionFound = Collision.resolveSphereBox(
             boundsA as BoundingSphere,
             boundsB as BoundingBox,
             result,
           );
-        } else if (boundsA.type === 1 && boundsB.type === 0) {
+        } else if (BoundingType.BOX === boundsA.type && BoundingType.SPHERE === boundsB.type) {
           collisionFound = Collision.resolveSphereBox(
             boundsB as BoundingSphere,
             boundsA as BoundingBox,
             result,
           );
           if (collisionFound) result.scale(-1); // Reverse direction
-        } else if (boundsA.type === 1 && boundsB.type === 1) {
+        } else if (BoundingType.BOX === boundsA.type && BoundingType.BOX === boundsB.type) {
           collisionFound = Collision.resolveBoxBox(
             boundsA as BoundingBox,
             boundsB as BoundingBox,
+            result,
+          );
+        } else if (BoundingType.SPHERE === boundsA.type && BoundingType.OBB === boundsB.type) {
+          collisionFound = Collision.resolveSphereObb(
+            boundsA as BoundingSphere,
+            boundsB as unknown as OBB,
+            result,
+          );
+        } else if (BoundingType.OBB === boundsA.type && BoundingType.SPHERE === boundsB.type) {
+          collisionFound = Collision.resolveSphereObb(
+            boundsB as BoundingSphere,
+            boundsA as unknown as OBB,
+            result,
+          );
+          if (collisionFound) result.scale(-1); // Reverse direction
+        } else if (BoundingType.BOX === boundsA.type && BoundingType.OBB === boundsB.type) {
+          collisionFound = Collision.resolveBoxObb(
+            boundsA as BoundingBox,
+            boundsB as unknown as OBB,
+            result,
+          );
+        } else if (BoundingType.OBB === boundsA.type && BoundingType.BOX === boundsB.type) {
+          collisionFound = Collision.resolveBoxObb(
+            boundsB as BoundingBox,
+            boundsA as unknown as OBB,
+            result,
+          );
+          if (collisionFound) result.scale(-1); // Reverse direction
+        } else if (BoundingType.OBB === boundsA.type && BoundingType.OBB === boundsB.type) {
+          collisionFound = Collision.resolveObbObb(
+            boundsA as unknown as OBB,
+            boundsB as unknown as OBB,
             result,
           );
         }
@@ -289,7 +345,7 @@ export class PhysicsSystem {
           const depth = result.length();
           if (depth > 0) {
             const normal = result.scale(1.0 / depth);
-            const rbB = otherObj.rigidBody;
+            const rbB = otherAsBody?.rigidBody;
             const invMassA = rbA.inverseMass;
             const invMassB = rbB ? rbB.inverseMass : 0;
             const totalInvMass = invMassA + invMassB;
@@ -317,16 +373,16 @@ export class PhysicsSystem {
               dynObj.position.add(posCorrA);
               MathPool.releaseVector(posCorrA);
 
-              if (rbB) {
+              if (rbB && otherAsBody) {
                 const posCorrB = MathPool.acquireVector()
                   .copyFrom(normal)
                   .scale(-correction * invMassB);
-                otherObj.position.add(posCorrB);
+                otherAsBody.position.add(posCorrB);
                 MathPool.releaseVector(posCorrB);
               }
 
               dynObj.updateMatrixWorld();
-              if (rbB) otherObj.updateMatrixWorld();
+              if (rbB && otherAsBody) otherAsBody.updateMatrixWorld();
 
               // 2. Impulse Resolution (Bouncing)
               const velA = rbA.velocity;

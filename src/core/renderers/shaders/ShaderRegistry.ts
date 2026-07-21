@@ -46,6 +46,9 @@ export class ShaderRegistry {
    * @param provider The provider instance.
    */
   public registerProvider(id: string, provider: ShaderProvider): void {
+    if (this._providers.has(id)) {
+      console.debug(`[ShaderRegistry] Overwriting shader provider: ${id}`);
+    }
     this._providers.set(id, provider);
   }
 

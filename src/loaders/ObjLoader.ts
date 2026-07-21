@@ -41,7 +41,7 @@ export class ObjLoader extends AbstractLoader<Object3D> {
       );
 
       // Extract folder path to know where to look for the .mtl file
-      const folderPath: string = fullUrl.substring(0, fullUrl.lastIndexOf("/") + 1);
+      const folderPath: string = ObjLoader.getFolderPath(fullUrl);
 
       const rootObject: Object3D = await this._parse(text, folderPath);
 
