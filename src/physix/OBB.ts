@@ -28,15 +28,32 @@ export class OBB implements BoundingVolume {
   }
 
   public intersectsFrustum(frustum: FrustumInterface): boolean {
-    // Conservative broad-phase check: treat the OBB as a bounding sphere.
-    // For a fully exact OBB-Frustum check, we'd test all 8 corners.
     const c: Vector3D = this.center;
-    const r: number = this.getBroadRadius();
+    const hx: number = this.halfExtents.x;
+    const hy: number = this.halfExtents.y;
+    const hz: number = this.halfExtents.z;
+    const a0: Vector3D = this.axes[0];
+    const a1: Vector3D = this.axes[1];
+    const a2: Vector3D = this.axes[2];
     const p: Float32Array = frustum.planes;
 
     for (let i: number = 0; 6 > i; i++) {
       const idx: number = i * 4;
-      const dist: number = p[idx]! * c.x + p[idx + 1]! * c.y + p[idx + 2]! * c.z + p[idx + 3]!;
+      const nx: number = p[idx]!;
+      const ny: number = p[idx + 1]!;
+      const nz: number = p[idx + 2]!;
+      const dPlane: number = p[idx + 3]!;
+
+      // Project the OBB's half-extents onto the frustum plane normal
+      // This is mathematically equivalent to checking all 8 corners.
+      const r: number =
+        hx * Math.abs(nx * a0.x + ny * a0.y + nz * a0.z) +
+        hy * Math.abs(nx * a1.x + ny * a1.y + nz * a1.z) +
+        hz * Math.abs(nx * a2.x + ny * a2.y + nz * a2.z);
+
+      // Distance from the OBB center to the plane
+      const dist: number = nx * c.x + ny * c.y + nz * c.z + dPlane;
+
       if (-r > dist) {
         return false;
       }

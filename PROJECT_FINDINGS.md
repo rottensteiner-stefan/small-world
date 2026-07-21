@@ -112,11 +112,7 @@ vielen Stellen bereits veraltet, siehe Abschnitt "Bereits behoben" pro Teil.
 
 ### Noch offen
 
-1. **`OBB.intersectsFrustum` behandelt die OBB nur als Bounding-Sphere**
-   (`src/physix/OBB.ts:30-45`, Kommentar "Conservative broad-phase check"),
-   kein exakter 8-Eckpunkte-Test. Echte Geometriearbeit, bewusst
-   zurückgestellt (Gruppe C).
-2. **`Raycaster.intersectObjects` ohne räumliche Beschleunigung**
+1. **`Raycaster.intersectObjects` ohne räumliche Beschleunigung**
    (`src/physix/Raycaster.ts:59-99`) — reiner linearer Scan vor dem
    Möller-Trumbore-Test. **Einschränkung beim Review:** fraglich, ob das
    überhaupt noch ein Bug ist — `InteractionManager.ts` filtert vor dem
@@ -129,6 +125,10 @@ vielen Stellen bereits veraltet, siehe Abschnitt "Bereits behoben" pro Teil.
    Raycaster-interne Beschleunigung tatsächlich zusätzlichen Nutzen hätte.
 
 ### Bereits behoben (in der Original-Analyse noch als Bug gelistet)
+
+- **`OBB.intersectsFrustum` exakter 8-Eckpunkte-Test (2026-07-22).** Der alte,
+  konservative Bounding-Sphere-Test wurde durch einen exakten Projektions-Test ersetzt
+  (Projektion der OBB-Halbachsen auf die Frustum-Ebenen-Normalen). Zero-Alloc.
 
 - **DI-Parität `FirstPersonController`/`FPSController` behoben
   (2026-07-21).** `FirstPersonController` akzeptiert jetzt ebenfalls ein
