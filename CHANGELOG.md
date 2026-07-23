@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.69.1] - 2026-07-23
+
+### "In union there is strength." - Aesop
+
+- **Architecture & Bugfixes:**
+  - **Physics Broadphase Single Pass:** Merged the historically separate scene-graph traversals (`_collectBodiesRecursive` and `_collectCollidersRecursive`) into a unified `_collectRecursive` loop, collecting both rigidbodies and generic colliders in O(N). Simplifies testing and slightly reduces CPU overhead during the physics `step()`.
+
 ## [0.69.0] - 2026-07-22
 
 ### "The hardest part of design is keeping features out." - Donald Norman

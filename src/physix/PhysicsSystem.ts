@@ -38,10 +38,13 @@ export class PhysicsSystem {
   private _warnedObjects = new Set<Object3D>();
 
   /**
-   * Recursively collects dynamic rigidbodies.
+   * Recursively collects both dynamic rigidbodies and collidable objects in a single pass.
    */
-  private _collectBodiesRecursive(obj: Object3D, bodies: Object3D[]): void {
+  private _collectRecursive(obj: Object3D, bodies: Object3D[], colliders: Collidable[]): void {
     if (obj.isCollidable) {
+      if (obj.bounds) {
+        colliders.push(obj);
+      }
       if (obj.rigidBody && obj.rigidBody.inverseMass > 0) {
         bodies.push(obj);
       } else if (obj.bounds && !obj.rigidBody && !this._warnedObjects.has(obj)) {
@@ -53,7 +56,7 @@ export class PhysicsSystem {
       }
     }
     for (let i = 0; i < obj.children.length; i++) {
-      this._collectBodiesRecursive(obj.children[i]!, bodies);
+      this._collectRecursive(obj.children[i]!, bodies, colliders);
     }
   }
 
@@ -65,12 +68,22 @@ export class PhysicsSystem {
   public step(scene: Scene, dt: number): void {
     if (dt <= 0) return;
 
-    // 1. Collect all dynamic rigidbodies (now recursively traversing children!)
+    // 1. Collect all dynamic rigidbodies and colliders in a SINGLE pass
     const bodies = this._bodies;
+    const allColliders = this._allColliders;
     bodies.length = 0;
+    allColliders.length = 0;
 
     for (let i = 0; i < scene.objects.length; i++) {
-      this._collectBodiesRecursive(scene.objects[i]!, bodies);
+      this._collectRecursive(scene.objects[i]!, bodies, allColliders);
+    }
+
+    // Add static colliders outside the Object3D hierarchy
+    for (let i = 0; i < scene.staticColliders.length; i++) {
+      const c = scene.staticColliders[i]!;
+      if (c.bounds) {
+        allColliders.push(c);
+      }
     }
 
     // 2. Integration Step (Semi-Implicit Euler)
@@ -156,13 +169,11 @@ export class PhysicsSystem {
     }
 
     // 3. Collision Detection (Broad Phase & Narrow Phase)
-    // Here we will query the SpatialHash/Octree and resolve collisions via SAT.
-    this._resolveCollisions(scene, bodies, dt);
+    this._resolveCollisions(bodies, allColliders);
   }
 
   /**
    * Expands the running world AABB (min/max) to include a collider's bounds.
-   * Shared by the Object3D scene-graph walk and the flat `scene.staticColliders` pass.
    */
   private _trackColliderBounds(bounds: BoundingVolume): void {
     const r = bounds.getBroadRadius();
@@ -179,38 +190,12 @@ export class PhysicsSystem {
     if (cz + r > this._broadphaseWorldMax.z) this._broadphaseWorldMax.z = cz + r;
   }
 
-  /**
-   * Recursively collects all objects that have bounds and are collidable.
-   */
-  private _collectCollidersRecursive(obj: Object3D, colliders: Collidable[]): void {
-    if (obj.isCollidable && obj.bounds) {
-      colliders.push(obj);
-      this._trackColliderBounds(obj.bounds);
-    }
-    for (let i = 0; i < obj.children.length; i++) {
-      this._collectCollidersRecursive(obj.children[i]!, colliders);
-    }
-  }
-
-  private _resolveCollisions(scene: Scene, bodies: Object3D[], _dt: number): void {
-    // Collect all colliders (both static and dynamic) recursively!
-    const allColliders = this._allColliders;
-    allColliders.length = 0;
-
+  private _resolveCollisions(bodies: Object3D[], allColliders: Collidable[]): void {
     this._broadphaseWorldMin.set(Infinity, Infinity, Infinity);
     this._broadphaseWorldMax.set(-Infinity, -Infinity, -Infinity);
 
-    for (let i = 0; i < scene.objects.length; i++) {
-      this._collectCollidersRecursive(scene.objects[i]!, allColliders);
-    }
-
-    // Lightweight static colliders (e.g. StaticCollider) that live outside the
-    // Object3D scene graph — see Scene.staticColliders.
-    for (let i = 0; i < scene.staticColliders.length; i++) {
-      const c = scene.staticColliders[i]!;
-      if (!c.bounds) continue;
-      allColliders.push(c);
-      this._trackColliderBounds(c.bounds);
+    for (let i = 0; i < allColliders.length; i++) {
+      this._trackColliderBounds(allColliders[i]!.bounds!);
     }
 
     this._broadphaseWorldMin.x -= BROADPHASE_EPSILON;

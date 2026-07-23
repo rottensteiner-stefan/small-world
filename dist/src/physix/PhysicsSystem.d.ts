@@ -16,9 +16,9 @@ export declare class PhysicsSystem {
     private _broadphaseFallback;
     private _warnedObjects;
     /**
-     * Recursively collects dynamic rigidbodies.
+     * Recursively collects both dynamic rigidbodies and collidable objects in a single pass.
      */
-    private _collectBodiesRecursive;
+    private _collectRecursive;
     /**
      * Steps the physics simulation forward.
      * @param scene The scene containing objects with RigidBodies.
@@ -27,12 +27,7 @@ export declare class PhysicsSystem {
     step(scene: Scene, dt: number): void;
     /**
      * Expands the running world AABB (min/max) to include a collider's bounds.
-     * Shared by the Object3D scene-graph walk and the flat `scene.staticColliders` pass.
      */
     private _trackColliderBounds;
-    /**
-     * Recursively collects all objects that have bounds and are collidable.
-     */
-    private _collectCollidersRecursive;
     private _resolveCollisions;
 }

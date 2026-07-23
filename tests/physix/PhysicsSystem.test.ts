@@ -209,7 +209,7 @@ describe("PhysicsSystem", () => {
 
     // Call resolveCollisions directly by casting to any to avoid integration step tunneling
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (system as any)._resolveCollisions(scene, [sphere1, sphere2], 0.1);
+    (system as any)._resolveCollisions([sphere1, sphere2], [sphere1, sphere2]);
 
     // After positional correction:
     // depth is 0.5. totalInvMass is 2. correction is 0.25.
@@ -253,7 +253,7 @@ describe("PhysicsSystem", () => {
     rb2.velocity.set(-1, 0, 0);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (system as any)._resolveCollisions(scene, [box1, box2], 0.1);
+    (system as any)._resolveCollisions([box1, box2], [box1, box2]);
 
     // Overlap on X is 0.5 (box1 max.x=1, box2 min.x=0.5), Y/Z fully overlap -> X is least penetration.
     // Same depth/mass/velocity setup as the Sphere-Sphere test above, so the correction and
@@ -293,7 +293,7 @@ describe("PhysicsSystem", () => {
     rb2.velocity.set(-1, 0, 0);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (system as any)._resolveCollisions(scene, [obb1, obb2], 0.1);
+    (system as any)._resolveCollisions([obb1, obb2], [obb1, obb2]);
 
     // Same depth/mass/velocity setup as the axis-aligned Box-Box test above -> identical math.
     expect(obb1.position.x).toBeCloseTo(-0.25, 1);
@@ -317,7 +317,7 @@ describe("PhysicsSystem", () => {
     dynObj.rigidBody.velocity.set(1, 0, 0);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (system as any)._resolveCollisions(scene, [dynObj], 0.1);
+    (system as any)._resolveCollisions([dynObj], [dynObj, wall]);
 
     // Sphere (r=1 at x=0) overlaps the wall (box x=0.5..2.5) by 0.5. The wall has no RigidBody
     // (infinite mass), so all positional correction lands on dynObj, pushing it left of x=0.

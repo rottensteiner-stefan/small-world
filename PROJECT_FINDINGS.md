@@ -71,25 +71,16 @@ vielen Stellen bereits veraltet, siehe Abschnitt "Bereits behoben" pro Teil.
    vermeiden und den bestehenden OBB-OBB SAT-Algorithmus wiederzuverwenden.
    Integriert in `Collision.test()` und `PhysicsSystem._resolveCollisions()`.
    Lint, `build:lib` und volle Testsuite (180 Tests) grün.
+8. **Zwei getrennte volle Szenengraph-Durchläufe pro Frame behoben (2026-07-23).**
+   `step()` (vormals `_collectBodiesRecursive`) und `_resolveCollisions()` (vormals
+   `_collectCollidersRecursive`) iterieren nicht länger zweimal unabhängig über `scene.objects`.
+   Es gibt jetzt eine einzige Methode `_collectRecursive(obj, bodies, colliders)`, die beide Listen in einem einzigen
+   Szenengraph-Walk aufbaut. Die Signatur von `_resolveCollisions` wurde entschlackt (`(bodies, allColliders)`), und
+   die betroffenen Tests wurden angepasst.
 
 ### Noch offen
 
-1. **Zwei getrennte volle Szenengraph-Durchläufe pro Frame.**
-   `_collectBodiesRecursive` (in `step()`, Zeilen 69-71) und
-   `_collectCollidersRecursive` (in `_resolveCollisions()`, Zeilen 192-194)
-   laufen unabhängig über `scene.objects`. **Zurückgestellt (bewusste
-   Entscheidung, 2026-07-21):** Ein echtes Zusammenlegen ist nicht
-   risikofrei möglich, weil `_resolveCollisions(scene, bodies, dt)` laut
-   Test (`tests/physix/PhysicsSystem.test.ts`, mehrere `(system as
-   any)._resolveCollisions(...)`-Aufrufe) direkt, standalone, mit exakt
-   dieser Signatur aufrufbar sein muss — unabhängig von `step()`. Ein echter
-   Ein-Durchlauf-Merge würde `_resolveCollisions` eine von `step()`
-   vorbereitete Kandidatenliste als Parameter geben müssen, was die
-   Signatur ändert und diese Tests bricht. Alternative (ein impliziter,
-   instanzinterner Cache) wäre fragil bei atypischen Aufrufmustern (z. B.
-   `_resolveCollisions` standalone mit einer anderen Scene als der zuletzt
-   per `step()` verwendeten). Bliebe nur mit einer bewussten, expliziten
-   Änderung der getesteten privaten API möglich.
+(Keine offenen Punkte mehr in dieser Kategorie.)
 
 ### Bewusst nicht geplant (Design-Entscheidung, kein Bug)
 
