@@ -8,6 +8,13 @@ export declare class PhysicsSystem {
     private events;
     /** Global gravity vector (default: -9.81 on Y) */
     gravity: Vector3D;
+    /** The fixed time step for physics calculations (e.g. 1/60). */
+    fixedTimeStep: number;
+    /** Maximum number of sub-steps per frame to prevent spiral of death. */
+    maxSubSteps: number;
+    /** Maximum delta time allowed per frame. */
+    maxDeltaTime: number;
+    private _accumulator;
     private _bodies;
     private _allColliders;
     private _collisionEvent;
@@ -33,6 +40,7 @@ export declare class PhysicsSystem {
      * @param dt Delta time in seconds.
      */
     step(scene: Scene, dt: number): void;
+    private _internalStep;
     /**
      * Expands the running world AABB (min/max) to include a collider's bounds.
      */

@@ -20,6 +20,14 @@ const BROADPHASE_EPSILON: number = 0.01;
 export class PhysicsSystem {
   /** Global gravity vector (default: -9.81 on Y) */
   public gravity: Vector3D = new Vector3D(0, -9.81, 0);
+  /** The fixed time step for physics calculations (e.g. 1/60). */
+  public fixedTimeStep: number = 1 / 60;
+  /** Maximum number of sub-steps per frame to prevent spiral of death. */
+  public maxSubSteps: number = 10;
+  /** Maximum delta time allowed per frame. */
+  public maxDeltaTime: number = 0.25;
+
+  private _accumulator: number = 0;
 
   private _bodies: Object3D[] = [];
   private _allColliders: Collidable[] = [];
@@ -75,6 +83,11 @@ export class PhysicsSystem {
   public step(scene: Scene, dt: number): void {
     if (dt <= 0) return;
 
+    // Cap dt to avoid massive lag spikes causing a spiral of death
+    if (dt > this.maxDeltaTime) dt = this.maxDeltaTime;
+
+    this._accumulator += dt;
+
     // 1. Collect all dynamic rigidbodies and colliders in a SINGLE pass
     const bodies = this._bodies;
     const allColliders = this._allColliders;
@@ -93,17 +106,21 @@ export class PhysicsSystem {
       }
     }
 
+    let subSteps = 0;
+    while (this._accumulator >= this.fixedTimeStep && subSteps < this.maxSubSteps) {
+      this._internalStep(bodies, allColliders, this.fixedTimeStep);
+      this._accumulator -= this.fixedTimeStep;
+      subSteps++;
+    }
+  }
+
+  private _internalStep(bodies: Object3D[], allColliders: Collidable[], dt: number): void {
     // 2. Integration Step (Semi-Implicit Euler)
     for (const obj of bodies) {
       const rb = obj.rigidBody!;
 
-      // Apply Gravity
-      const gravityForce = MathPool.acquireVector().copyFrom(this.gravity).scale(rb.mass);
-      rb.applyForce(gravityForce);
-      MathPool.releaseVector(gravityForce);
-
-      // acceleration = forces / mass
-      rb.acceleration.copyFrom(rb.forces).scale(rb.inverseMass);
+      // acceleration = (forces / mass) + gravity
+      rb.acceleration.copyFrom(rb.forces).scale(rb.inverseMass).add(this.gravity);
 
       // Semi-Implicit Euler: Update velocity first, then position
       // v = v + a * dt

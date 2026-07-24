@@ -18,7 +18,7 @@ export interface FirstPersonControllerOptions {
     scene?: Scene;
     /** Enable classic retro tank controls (turning with A/D) vs modern strafing. Defaults to true. */
     retroTankControls?: boolean;
-    /** Optional input source (for testing). Defaults to global Input.instance. */
+    /** Input source. Required — no global fallback. */
     input?: InputInterface;
 }
 /**

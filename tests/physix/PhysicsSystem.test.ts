@@ -21,6 +21,7 @@ describe("PhysicsSystem", () => {
     system = new PhysicsSystem(events);
     // Default gravity is -9.81 on Y, set to 0 for controlled tests
     system.gravity.set(0, 0, 0);
+    system.maxDeltaTime = 1000.0;
     scene = new Scene();
   });
 
@@ -34,6 +35,7 @@ describe("PhysicsSystem", () => {
     rb.applyForce(new Vector3D(10, 0, 0));
 
     // dt = 1.0s
+    system.fixedTimeStep = 1.0;
     system.step(scene, 1.0);
 
     // a = 10 / 1 = 10
@@ -56,6 +58,7 @@ describe("PhysicsSystem", () => {
 
     system.gravity.set(0, -10, 0);
 
+    system.fixedTimeStep = 0.5;
     system.step(scene, 0.5);
 
     // Force = mass * gravity = 2 * -10 = -20
@@ -75,6 +78,7 @@ describe("PhysicsSystem", () => {
 
     rb.velocity.set(10, 0, 0);
 
+    system.fixedTimeStep = 1.0;
     system.step(scene, 1.0);
 
     // After friction, velocity should be 10 * 0.5 = 5
@@ -94,6 +98,7 @@ describe("PhysicsSystem", () => {
     rb.applyTorque(new Vector3D(0, Math.PI, 0));
 
     // step 0.5s
+    system.fixedTimeStep = 0.5;
     system.step(scene, 0.5);
 
     // a_angular = PI / 1 = PI
@@ -119,6 +124,7 @@ describe("PhysicsSystem", () => {
     rb.applyForce(new Vector3D(100, 100, 100));
     rb.applyTorque(new Vector3D(100, 100, 100));
 
+    system.fixedTimeStep = 1.0;
     system.step(scene, 1.0);
 
     expect(rb.velocity.lengthSq()).toBe(0);
@@ -137,6 +143,7 @@ describe("PhysicsSystem", () => {
     rb.velocity.set(10, 10, 10);
     obj.position.set(5, 5, 5);
 
+    system.fixedTimeStep = 0;
     system.step(scene, 0);
     expect(rb.forces.lengthSq()).toBe(30000); // not cleared
     expect(rb.velocity.x).toBe(10);
@@ -178,6 +185,7 @@ describe("PhysicsSystem", () => {
     expect(Number.isNaN(rb.velocity.x)).toBe(false);
     expect(rb.velocity.x).toBe(1e10);
 
+    system.fixedTimeStep = 1.0;
     system.step(scene, 1.0);
 
     expect(Number.isNaN(obj.position.x)).toBe(false);
@@ -350,6 +358,7 @@ describe("PhysicsSystem", () => {
     // Step physics
     system.gravity.set(0, -10, 0);
     expect(() => {
+      system.fixedTimeStep = 0.1;
       system.step(scene, 0.1);
     }).not.toThrow();
 
@@ -384,6 +393,7 @@ describe("PhysicsSystem", () => {
 
     // Step for 100 frames
     for (let i = 0; i < 100; i++) {
+      system.fixedTimeStep = 0.016;
       system.step(scene, 0.016);
       scene.update();
     }
@@ -419,6 +429,7 @@ describe("PhysicsSystem", () => {
     bodies[21]!.rigidBody!.velocity.set(-1, 0, 0);
 
     // Only these 2 pairs should be processed and bounce.
+    system.fixedTimeStep = 0.1;
     system.step(scene, 0.1);
 
     // Check Pair 1
@@ -457,6 +468,7 @@ describe("PhysicsSystem", () => {
       return originalInsert.call(this, obj);
     };
 
+    system.fixedTimeStep = 0.1;
     system.step(scene, 0.1);
 
     Octree.prototype.insert = originalInsert;
