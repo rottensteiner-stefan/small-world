@@ -4,7 +4,7 @@ import { Scene, Object3D } from "../../core/index.js";
 import { Vector3D } from "../../math/index.js";
 import { LightDataInterface } from "../../interfaces/index.js";
 import { RenderList } from "../../core/Scene.js";
-import { MaterialType } from "../../enums/index.js";
+import { Topology, MaterialType } from "../../enums/index.js";
 import { Color } from "../../core/colors/index.js";
 
 export class WebGLMainPass implements WebGLRenderPass {

@@ -12,10 +12,6 @@ import { Vector2D } from "../../math/index.js";
 import { AudioSystem } from "../../audio/index.js";
 import { YadObjectTags } from "./YadObjectTags.js";
 
-export interface YadControllerOptions extends FirstPersonControllerOptions {
-  audio?: AudioSystem | undefined;
-}
-
 /**
  * A retro style controller for forward/backward movement and left/right rotation.
  * It extends FirstPersonController and adds shooting, weapon selection, and damage logic.
@@ -36,7 +32,7 @@ export class YadController extends FirstPersonController {
    */
   constructor(
     private events: EventDispatcherImpl,
-    options: YadControllerOptions = {},
+    options: FirstPersonControllerOptions = {},
   ) {
     // Force retro tank controls for Dungeon feel
     super({ ...options, retroTankControls: true });

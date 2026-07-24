@@ -33,6 +33,7 @@ export class ZoomController extends Behavior {
     this._options = {
       input: options.input,
       zoomSensitivity: options.zoomSensitivity ?? 0.5,
+      audio: options.audio as AudioSystem,
     };
   }
 

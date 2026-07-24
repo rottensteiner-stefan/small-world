@@ -40,6 +40,7 @@ export class OrbitController extends Behavior {
     if (!options.input) throw new Error("OrbitController requires an 'input' option.");
     this._options = {
       input: options.input,
+      audio: options.audio as AudioSystem,
       lookSensitivity: options.lookSensitivity ?? 0.005,
       rotationSpeed: options.rotationSpeed ?? 2.0,
       minPhi: options.minPhi ?? 0.01,

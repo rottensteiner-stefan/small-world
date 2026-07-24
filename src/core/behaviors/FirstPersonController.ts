@@ -59,6 +59,7 @@ export class FirstPersonController extends Behavior {
       scene: options.scene,
       retroTankControls: options.retroTankControls ?? true,
       input: options.input as InputInterface,
+      audio: options.audio as AudioSystem,
     };
     if (!this._options.input) {
       throw new Error("FirstPersonController requires an 'input' option.");

@@ -41,6 +41,7 @@ export class WASDController extends Behavior {
       moveSpeed: options.moveSpeed ?? 10.0,
       inputMode: options.inputMode ?? InputMode.TANK,
       enableVertical: options.enableVertical ?? false,
+      audio: options.audio as AudioSystem,
     };
   }
 

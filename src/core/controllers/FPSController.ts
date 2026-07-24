@@ -63,6 +63,7 @@ export class FPSController extends Behavior {
       collisionRadius: options.collisionRadius ?? 0.5,
       scene: options.scene,
       input: options.input as InputInterface,
+      audio: options.audio as AudioSystem,
     };
     if (!this._options.input) {
       throw new Error("FPSController requires an 'input' option.");

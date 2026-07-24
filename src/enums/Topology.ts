@@ -8,6 +8,10 @@ export const Topology = {
   TRIANGLE_LIST: "triangle-list",
   /** A list of lines. */
   LINE_LIST: "line-list",
+  /** A list of points. */
+  POINT_LIST: "point-list",
+  /** A strip of lines. */
+  LINE_STRIP: "line-strip",
 } as const;
 
 /** Type definition for Topology. */

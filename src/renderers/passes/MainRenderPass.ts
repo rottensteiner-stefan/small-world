@@ -1,6 +1,6 @@
 /// src/renderers/passes/MainRenderPass.ts
 import { Scene } from "../../core/index.js";
-import { MaterialType } from "../../enums/index.js";
+import { MaterialType, Topology } from "../../enums/index.js";
 import { WebGPURenderer } from "../WebGPU/index.js";
 import { RenderPass } from "../index.js";
 import { Vector3D } from "../../math/index.js";
