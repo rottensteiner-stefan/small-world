@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.69.5] - 2026-07-24
+
+### "Simplicity is the ultimate sophistication." - Leonardo da Vinci
+
+- **Architecture & Bugfixes:**
+  - **Zero-Allocation Spatial Partitioning:** Replaced `Map<string, Collidable[]>` in `SpatialHash` with a highly optimized flat array buffer and integer hashing to eliminate dynamic string keys and array instantiation per frame.
+  - **Zero-Allocation Octree Node Pooling:** Introduced a static `OctreeNode` pool. Nodes are now recycled on `clear()` and retrieved via `OctreeNode.acquire()` during subdivisions, preventing garbage collector spikes.
+  - **Zero-Allocation Render Queries:** Eliminated `.filter()` calls inside the WebGPU shadow passes (`CascadedShadowPassGPU`, `SpotShadowPassGPU`), reusing module-level scratch arrays.
+  - **Zero-Allocation Physics Queries:** Core physical sub-systems (`PhysicsSystem`, `FrustumCuller`, `InteractionManager`) and controllers (`EnemyBehavior`, `YadController`) now utilize module-level `outResult` cache arrays instead of creating new Array structures.
+  - **Transform Math Pooling:** `AbstractGeometry` vertex transformers (`scale`, `rotateX`, etc.) now acquire and release `Matrix4` instances from `MathPool` instead of instantiating new objects.
+
 ## [0.69.4] - 2026-07-24
 
 ### "The function of good software is to make the complex appear to be simple." - Grady Booch

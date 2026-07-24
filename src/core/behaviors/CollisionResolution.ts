@@ -5,6 +5,8 @@ import { Scene } from "../Scene.js";
 import { BoundingBox, BoundingSphere, Collision } from "../../physix/index.js";
 import { MathPool } from "../../math/index.js";
 
+const _scratchHits: Collidable[] = [];
+
 /**
  * Resolves sphere-vs-scene collisions for a character-style controller, pushing
  * `target.position` out of any overlapping static/dynamic/spatial-hash geometry.
@@ -20,15 +22,15 @@ export function resolveSphereCollisions(
   collider.center.copyFrom(target.position);
   collider.center.y += 0.5; // Offset slightly up
 
-  const potentialHits: Collidable[] = [];
-  if (scene.staticOctree) potentialHits.push(...scene.staticOctree.queryVolume(collider));
-  if (scene.spatialHash) potentialHits.push(...scene.spatialHash.query(collider));
-  if (scene.dynamicOctree) potentialHits.push(...scene.dynamicOctree.queryVolume(collider));
+  _scratchHits.length = 0;
+  if (scene.staticOctree) scene.staticOctree.queryVolume(collider, _scratchHits);
+  if (scene.spatialHash) scene.spatialHash.query(collider, _scratchHits);
+  if (scene.dynamicOctree) scene.dynamicOctree.queryVolume(collider, _scratchHits);
 
   const correction = MathPool.acquireVector().set(0, 0, 0);
   const hitCorrection = MathPool.acquireVector();
 
-  for (const obj of potentialHits) {
+  for (const obj of _scratchHits) {
     if (!obj.bounds || obj === target) continue;
     let resolved: boolean;
     if (0 === obj.bounds.type /* BoundingType.SPHERE */) {

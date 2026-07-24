@@ -5,7 +5,7 @@ import {
   Object3D,
   EventDispatcherImpl,
 } from "../../core/index.js";
-import { CameraInterfaceData } from "../../interfaces/index.js";
+import { CameraInterfaceData, Collidable } from "../../interfaces/index.js";
 import { Keys, AppEvents } from "../../enums/index.js";
 import { Raycaster } from "../../physix/index.js";
 import { Vector2D } from "../../math/index.js";
@@ -25,6 +25,9 @@ export class YadController extends FirstPersonController {
   private _lastHurtTime: number = 0;
 
   private _audio?: AudioSystem | undefined;
+  private _raycaster: Raycaster = new Raycaster();
+  private _screenCenter: Vector2D = new Vector2D(0, 0);
+  private _queryHits: Collidable[] = [];
 
   /**
    * Creates a new YadController.
@@ -77,29 +80,29 @@ export class YadController extends FirstPersonController {
 
       // Raycast for Enemies
       if (this._options.scene && isCamera) {
-        const raycaster = new Raycaster();
-        const center = new Vector2D(0, 0); // Screen center in NDC
-        raycaster.setFromCamera(center, this.target as unknown as CameraInterfaceData);
+        this._raycaster.setFromCamera(
+          this._screenCenter,
+          this.target as unknown as CameraInterfaceData,
+        );
 
         const scene = this._options.scene;
         let candidates: Object3D[] = scene.objects;
         if (scene.staticOctree || scene.dynamicOctree || scene.spatialHash) {
-          const hits = new Set<Object3D>();
+          this._queryHits.length = 0;
           if (scene.staticOctree) {
-            for (const obj of scene.staticOctree.queryRay(raycaster.ray)) hits.add(obj as Object3D);
+            scene.staticOctree.queryRay(this._raycaster.ray, this._queryHits);
           }
           if (scene.dynamicOctree) {
-            for (const obj of scene.dynamicOctree.queryRay(raycaster.ray))
-              hits.add(obj as Object3D);
+            scene.dynamicOctree.queryRay(this._raycaster.ray, this._queryHits);
           }
           if (scene.spatialHash) {
-            for (const obj of scene.spatialHash.queryRay(raycaster.ray)) hits.add(obj as Object3D);
+            scene.spatialHash.queryRay(this._raycaster.ray, this._queryHits);
           }
-          candidates = Array.from(hits);
+          candidates = this._queryHits as Object3D[];
         }
 
         // intersectObjects sorts by distance closest to furthest by default
-        const intersects = raycaster.intersectObjects(candidates, true);
+        const intersects = this._raycaster.intersectObjects(candidates, true);
 
         for (const intersect of intersects) {
           const obj = intersect.object;

@@ -22,9 +22,48 @@ export class OctreeNode {
   /** The objects stored in this node. */
   public objects: Collidable[] = [];
 
-  private readonly _depth: number;
-  private readonly _maxDepth: number;
-  private readonly _maxObjects: number;
+  private _depth: number;
+  private _maxDepth: number;
+  private _maxObjects: number;
+
+  private static _nodePool: OctreeNode[] = [];
+
+  public static acquire(
+    boundsMin: Vector3D,
+    boundsMax: Vector3D,
+    depth: number,
+    options: OctreeOptions,
+  ): OctreeNode {
+    const node = this._nodePool.pop();
+    if (node) {
+      node.bounds.min.copyFrom(boundsMin);
+      node.bounds.max.copyFrom(boundsMax);
+      node.bounds.center.copyFrom(boundsMin).add(boundsMax).scale(0.5);
+      node._depth = depth;
+      node._maxDepth = options.maxDepth ?? 8;
+      node._maxObjects = options.maxObjects ?? 10;
+      node.objects.length = 0;
+      node.children.length = 0;
+      return node;
+    }
+    return new OctreeNode(
+      new BoundingBox(
+        new Vector3D(boundsMin.x, boundsMin.y, boundsMin.z),
+        new Vector3D(boundsMax.x, boundsMax.y, boundsMax.z),
+      ),
+      depth,
+      options,
+    );
+  }
+
+  public static release(node: OctreeNode): void {
+    node.objects.length = 0;
+    for (let i = 0; i < node.children.length; i++) {
+      OctreeNode.release(node.children[i]!);
+    }
+    node.children.length = 0;
+    this._nodePool.push(node);
+  }
 
   /**
    * Creates a new OctreeNode.
@@ -88,40 +127,50 @@ export class OctreeNode {
     for (let x: number = 0; x < 2; x++) {
       for (let y: number = 0; y < 2; y++) {
         for (let z: number = 0; z < 2; z++) {
-          const childMin: Vector3D = new Vector3D(
-            dims[0]?.[x] ?? 0,
-            dims[2]?.[y] ?? 0,
-            dims[4]?.[z] ?? 0,
-          );
-          const childMax: Vector3D = new Vector3D(
-            dims[1]?.[x] ?? 0,
-            dims[3]?.[y] ?? 0,
-            dims[5]?.[z] ?? 0,
-          );
+          const childMinX = dims[0]?.[x] ?? 0;
+          const childMinY = dims[2]?.[y] ?? 0;
+          const childMinZ = dims[4]?.[z] ?? 0;
+          const childMaxX = dims[1]?.[x] ?? 0;
+          const childMaxY = dims[3]?.[y] ?? 0;
+          const childMaxZ = dims[5]?.[z] ?? 0;
+
+          const childMin = MathPool.acquireVector().set(childMinX, childMinY, childMinZ);
+          const childMax = MathPool.acquireVector().set(childMaxX, childMaxY, childMaxZ);
+
           this.children.push(
-            new OctreeNode(new BoundingBox(childMin, childMax), this._depth + 1, {
+            OctreeNode.acquire(childMin, childMax, this._depth + 1, {
               maxDepth: this._maxDepth,
               maxObjects: this._maxObjects,
             }),
           );
+
+          MathPool.releaseVector(childMin);
+          MathPool.releaseVector(childMax);
         }
       }
     }
 
     MathPool.releaseVector(center);
-    const oldObjects: Collidable[] = this.objects;
-    this.objects = [];
-    for (let i: number = 0; i < oldObjects.length; i++) {
-      const obj: Collidable = oldObjects[i]!;
+
+    // Process objects from the back to avoid shifting or creating new arrays
+    for (let i = this.objects.length - 1; i >= 0; i--) {
+      const obj: Collidable = this.objects[i]!;
       let insertedInChild: boolean = false;
-      for (let j: number = 0; j < this.children.length; j++) {
+      for (let j = 0; j < this.children.length; j++) {
         if (this.children[j]!.insert(obj)) {
           insertedInChild = true;
           break;
         }
       }
-      if (false === insertedInChild) {
-        this.objects.push(obj);
+
+      // If it went into a child, remove it from this node
+      if (insertedInChild) {
+        // Fast remove (swap with last element and pop)
+        const lastIdx = this.objects.length - 1;
+        if (i !== lastIdx) {
+          this.objects[i] = this.objects[lastIdx]!;
+        }
+        this.objects.pop();
       }
     }
   }
@@ -149,14 +198,14 @@ export class OctreeNode {
    */
   public queryRay(
     ray: import("../physix/index.js").Ray,
-    result: Set<Collidable>,
+    result: Collidable[],
     intersectedNodes?: Set<OctreeNode>,
   ): void {
     if (ray.intersectsBox(this.bounds) < 0) return;
     if (intersectedNodes) intersectedNodes.add(this);
 
     for (let i: number = 0; i < this.objects.length; i++) {
-      result.add(this.objects[i]!);
+      result.push(this.objects[i]!);
     }
     for (let i: number = 0; i < this.children.length; i++) {
       this.children[i]!.queryRay(ray, result, intersectedNodes);
@@ -181,9 +230,11 @@ export class OctreeNode {
   }
 
   public clear(): void {
-    this.objects = [];
-    for (let i: number = 0; i < this.children.length; i++) this.children[i]!.clear();
-    this.children = [];
+    this.objects.length = 0;
+    for (let i = 0; i < this.children.length; i++) {
+      OctreeNode.release(this.children[i]!);
+    }
+    this.children.length = 0;
   }
 }
 
@@ -201,28 +252,24 @@ export class Octree {
     return this.root.insert(obj);
   }
 
-  public query(frustum: Frustum, intersectedNodes?: Set<OctreeNode>): Collidable[] {
-    const result: Collidable[] = [];
-    this.root.query(frustum, result, intersectedNodes);
-    return result;
+  public query(
+    frustum: Frustum,
+    outResult: Collidable[],
+    intersectedNodes?: Set<OctreeNode>,
+  ): void {
+    this.root.query(frustum, outResult, intersectedNodes);
   }
 
   public queryRay(
     ray: import("../physix/index.js").Ray,
+    outResult: Collidable[],
     intersectedNodes?: Set<OctreeNode>,
-  ): Collidable[] {
-    const result = new Set<Collidable>();
-    this.root.queryRay(ray, result, intersectedNodes);
-    return Array.from(result);
+  ): void {
+    this.root.queryRay(ray, outResult, intersectedNodes);
   }
 
-  /**
-   * Queries the octree for objects intersecting with a volume.
-   */
-  public queryVolume(volume: BoundingVolume): Collidable[] {
-    const result: Collidable[] = [];
-    this.root.queryVolume(volume, result);
-    return result;
+  public queryVolume(volume: BoundingVolume, outResult: Collidable[]): void {
+    this.root.queryVolume(volume, outResult);
   }
 
   public clear(): void {

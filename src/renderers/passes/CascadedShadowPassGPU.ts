@@ -8,6 +8,10 @@ import { InstancedMesh } from "../../core/InstancedMesh.js";
 import { Object3D } from "../../core/Object3D.js";
 import { Matrix4, MathPool, Vector3D } from "../../math/index.js";
 
+const _scratchCasters: Object3D[] = [];
+const _scratchInstanced: InstancedMesh[] = [];
+const _scratchStandard: Object3D[] = [];
+
 export class CascadedShadowPassGPU implements RenderPass {
   public name = "CascadedShadowPassGPU";
 
@@ -144,18 +148,27 @@ export class CascadedShadowPassGPU implements RenderPass {
 
         for (const [topology, materialGroups] of topologyMap.entries()) {
           for (const objects of materialGroups.values()) {
-            const casters = objects.filter((o: Object3D) => o.castShadow);
-            if (casters.length === 0) continue;
+            _scratchCasters.length = 0;
+            for (let i = 0; i < objects.length; i++) {
+              if (objects[i]!.castShadow) _scratchCasters.push(objects[i]!);
+            }
+            if (_scratchCasters.length === 0) continue;
 
-            const instancedObjects = casters.filter(
-              (o: Object3D): o is InstancedMesh => o instanceof InstancedMesh,
-            );
-            const standardObjects = casters.filter((o: Object3D) => !(o instanceof InstancedMesh));
+            _scratchInstanced.length = 0;
+            _scratchStandard.length = 0;
+            for (let i = 0; i < _scratchCasters.length; i++) {
+              const obj = _scratchCasters[i]!;
+              if (obj instanceof InstancedMesh) {
+                _scratchInstanced.push(obj);
+              } else {
+                _scratchStandard.push(obj);
+              }
+            }
 
-            if (standardObjects.length > 0) {
+            if (_scratchStandard.length > 0) {
               renderer._renderSubgroup(
                 rp,
-                standardObjects,
+                _scratchStandard,
                 false,
                 this._depthMaterial.uuid,
                 depthManifest,
@@ -163,10 +176,11 @@ export class CascadedShadowPassGPU implements RenderPass {
                 topology as GPUPrimitiveTopology,
               );
             }
-            if (instancedObjects.length > 0) {
+
+            if (_scratchInstanced.length > 0) {
               renderer._renderSubgroup(
                 rp,
-                instancedObjects,
+                _scratchInstanced,
                 true,
                 this._depthMaterial.uuid,
                 depthManifest,

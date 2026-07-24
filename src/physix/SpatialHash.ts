@@ -7,13 +7,19 @@ import { Collidable, BoundingVolume } from "../interfaces/index.js";
  */
 export class SpatialHash {
   public cellSize: number;
-  private _grid: Map<string, Collidable[]> = new Map();
+  private _cells: Collidable[][] = [];
+  private _tableSize: number;
 
   /**
    * @param cellSize The size of a single grid cell. E.g. if walls are 2 units, use 2.
+   * @param tableSize The number of hash buckets. Use a prime number for fewer collisions.
    */
-  constructor(cellSize: number = 2) {
+  constructor(cellSize: number = 2, tableSize: number = 4093) {
     this.cellSize = cellSize;
+    this._tableSize = tableSize;
+    for (let i = 0; i < this._tableSize; i++) {
+      this._cells.push([]);
+    }
   }
 
   /**
@@ -36,12 +42,8 @@ export class SpatialHash {
 
     for (let x = startCellX; x <= endCellX; x++) {
       for (let z = startCellZ; z <= endCellZ; z++) {
-        const key = this._getKey(x, z);
-        let list = this._grid.get(key);
-        if (!list) {
-          list = [];
-          this._grid.set(key, list);
-        }
+        const hash = this._getHash(x, z);
+        const list = this._cells[hash]!;
         if (!list.includes(obj)) {
           list.push(obj);
         }
@@ -53,14 +55,15 @@ export class SpatialHash {
    * Clears the spatial hash.
    */
   public clear(): void {
-    this._grid.clear();
+    for (let i = 0; i < this._tableSize; i++) {
+      this._cells[i]!.length = 0;
+    }
   }
 
   /**
    * Queries for potential collisions in the given volume's area.
    */
-  public query(volume: BoundingVolume): Collidable[] {
-    const result = new Set<Collidable>();
+  public query(volume: BoundingVolume, outResult: Collidable[]): void {
     const r = volume.getBroadRadius();
     const minX = volume.center.x - r;
     const maxX = volume.center.x + r;
@@ -74,29 +77,29 @@ export class SpatialHash {
 
     for (let x = startCellX; x <= endCellX; x++) {
       for (let z = startCellZ; z <= endCellZ; z++) {
-        const key = this._getKey(x, z);
-        const list = this._grid.get(key);
-        if (list) {
-          for (let i = 0; i < list.length; i++) {
-            const obj = list[i]!;
-            if (obj.bounds && obj.bounds.intersectsVolume(volume)) {
-              result.add(obj);
+        const hash = this._getHash(x, z);
+        const list = this._cells[hash]!;
+        for (let i = 0; i < list.length; i++) {
+          const obj = list[i]!;
+          if (obj.bounds && obj.bounds.intersectsVolume(volume)) {
+            if (!outResult.includes(obj)) {
+              outResult.push(obj);
             }
           }
         }
       }
     }
-
-    return Array.from(result);
   }
 
   /**
    * Queries for potential collisions along a ray on the XZ plane.
    * This is a simple broad-phase approach stepping along the ray direction.
    */
-  public queryRay(ray: import("./Ray.js").Ray, maxDistance: number = 100): Collidable[] {
-    const result = new Set<Collidable>();
-
+  public queryRay(
+    ray: import("./Ray.js").Ray,
+    outResult: Collidable[],
+    maxDistance: number = 100,
+  ): void {
     // Step size roughly half a cell to not miss any cells
     const stepSize = this.cellSize * 0.5;
     for (let d = 0; d <= maxDistance; d += stepSize) {
@@ -105,20 +108,22 @@ export class SpatialHash {
 
       const cx = Math.floor(px / this.cellSize);
       const cz = Math.floor(pz / this.cellSize);
-      const key = this._getKey(cx, cz);
+      const hash = this._getHash(cx, cz);
 
-      const list = this._grid.get(key);
-      if (list) {
-        for (let i = 0; i < list.length; i++) {
-          result.add(list[i]!);
+      const list = this._cells[hash]!;
+      for (let i = 0; i < list.length; i++) {
+        const obj = list[i]!;
+        if (!outResult.includes(obj)) {
+          outResult.push(obj);
         }
       }
     }
-
-    return Array.from(result);
   }
 
-  private _getKey(x: number, z: number): string {
-    return `${x},${z}`;
+  private _getHash(x: number, z: number): number {
+    let hash = (x * 73856093) ^ (z * 19349663);
+    hash = hash % this._tableSize;
+    if (hash < 0) hash += this._tableSize;
+    return hash;
   }
 }

@@ -1,12 +1,18 @@
 /// src/renderers/passes/SpotShadowPassGPU.ts
 import { Scene, Color } from "../../core/index.js";
 import { DepthMaterial } from "../../core/materials/index.js";
-import { MaterialType } from "../../enums/index.js";
+import { MaterialType } from "../../enums/MaterialType.js";
 import { WebGPURenderer } from "../WebGPU/WebGPURenderer.js";
 import { RenderPass } from "../index.js";
 import { InstancedMesh } from "../../core/InstancedMesh.js";
 import { Object3D } from "../../core/Object3D.js";
+import { SpotLight } from "../../core/lights/SpotLight.js";
 import { Matrix4, MathPool, Vector3D, Frustum } from "../../math/index.js";
+
+const _scratchLightCasters: SpotLight[] = [];
+const _scratchCasters: Object3D[] = [];
+const _scratchInstanced: InstancedMesh[] = [];
+const _scratchStandard: Object3D[] = [];
 
 export class SpotShadowPassGPU implements RenderPass {
   public name = "SpotShadowPassGPU";
@@ -28,7 +34,11 @@ export class SpotShadowPassGPU implements RenderPass {
     camPos: Vector3D,
   ): void {
     const lights = renderer.extractLights(scene);
-    const casters = lights.sLights.filter((l) => l.castShadow);
+    _scratchLightCasters.length = 0;
+    for (let i = 0; i < lights.sLights.length; i++) {
+      if (lights.sLights[i]!.castShadow) _scratchLightCasters.push(lights.sLights[i]!);
+    }
+    const casters = _scratchLightCasters;
     if (casters.length === 0) return;
 
     this._depthMaterial ??= new DepthMaterial();
@@ -115,23 +125,28 @@ export class SpotShadowPassGPU implements RenderPass {
         if (shaderId === MaterialType.SKYBOX) continue;
         for (const [topology, materialGroups] of topologyMap.entries()) {
           for (const objects of materialGroups.values()) {
-            const objCasters = objects.filter((o: Object3D) => o.castShadow);
-            if (objCasters.length === 0) continue;
+            _scratchCasters.length = 0;
+            _scratchInstanced.length = 0;
+            _scratchStandard.length = 0;
 
-            const culled = objCasters.filter(
-              (o) => !o.bounds || this._frustum.intersectsVolume(o.bounds),
-            );
-            if (culled.length === 0) continue;
+            for (let i = 0; i < objects.length; i++) {
+              const o = objects[i]!;
+              if (o.castShadow && (!o.bounds || this._frustum.intersectsVolume(o.bounds))) {
+                _scratchCasters.push(o);
+                if (o instanceof InstancedMesh) {
+                  _scratchInstanced.push(o);
+                } else {
+                  _scratchStandard.push(o);
+                }
+              }
+            }
 
-            const instancedObjects = culled.filter(
-              (o: Object3D): o is InstancedMesh => o instanceof InstancedMesh,
-            );
-            const standardObjects = culled.filter((o: Object3D) => !(o instanceof InstancedMesh));
+            if (_scratchCasters.length === 0) continue;
 
-            if (standardObjects.length > 0) {
+            if (_scratchStandard.length > 0) {
               renderer._renderSubgroup(
                 rp,
-                standardObjects,
+                _scratchStandard,
                 false,
                 this._depthMaterial.uuid,
                 depthManifest,
@@ -139,10 +154,11 @@ export class SpotShadowPassGPU implements RenderPass {
                 topology as GPUPrimitiveTopology,
               );
             }
-            if (instancedObjects.length > 0) {
+
+            if (_scratchInstanced.length > 0) {
               renderer._renderSubgroup(
                 rp,
-                instancedObjects,
+                _scratchInstanced,
                 true,
                 this._depthMaterial.uuid,
                 depthManifest,

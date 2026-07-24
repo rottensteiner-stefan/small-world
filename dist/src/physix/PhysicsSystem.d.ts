@@ -21,6 +21,7 @@ export declare class PhysicsSystem {
     private _broadphaseWorldMax;
     private _bodyIndex;
     private _broadphaseFallback;
+    private _broadphaseQueryHits;
     private _warnedObjects;
     /**
      * Recursively collects both dynamic rigidbodies and collidable objects in a single pass.

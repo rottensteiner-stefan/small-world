@@ -1,5 +1,5 @@
 /// src/geometry/AbstractGeometry.ts
-import { Matrix4, Vector3D } from "../math/index.js";
+import { MathPool, Matrix4, Vector3D } from "../math/index.js";
 import { BoundingBox } from "../physix/index.js";
 import { GeometryDataInterface, Geometry, BoundingVolume } from "../interfaces/index.js";
 import { Topology } from "../enums/index.js";
@@ -330,9 +330,11 @@ export abstract class AbstractGeometry implements Geometry {
    * @returns this
    */
   public scale(f: number): this {
-    const m: Matrix4 = new Matrix4();
+    const m: Matrix4 = MathPool.acquireMatrix();
     Matrix4.scale(f, m);
-    return this.applyMatrix4(m);
+    this.applyMatrix4(m);
+    MathPool.releaseMatrix(m);
+    return this;
   }
 
   /**
@@ -341,9 +343,11 @@ export abstract class AbstractGeometry implements Geometry {
    * @returns this
    */
   public rotateX(a: number): this {
-    const m: Matrix4 = new Matrix4();
+    const m: Matrix4 = MathPool.acquireMatrix();
     Matrix4.rotateX(a, m);
-    return this.applyMatrix4(m);
+    this.applyMatrix4(m);
+    MathPool.releaseMatrix(m);
+    return this;
   }
 
   /**
@@ -352,9 +356,11 @@ export abstract class AbstractGeometry implements Geometry {
    * @returns this
    */
   public rotateY(a: number): this {
-    const m: Matrix4 = new Matrix4();
+    const m: Matrix4 = MathPool.acquireMatrix();
     Matrix4.rotateY(a, m);
-    return this.applyMatrix4(m);
+    this.applyMatrix4(m);
+    MathPool.releaseMatrix(m);
+    return this;
   }
 
   /**
@@ -363,8 +369,10 @@ export abstract class AbstractGeometry implements Geometry {
    * @returns this
    */
   public rotateZ(a: number): this {
-    const m: Matrix4 = new Matrix4();
+    const m: Matrix4 = MathPool.acquireMatrix();
     Matrix4.rotateZ(a, m);
-    return this.applyMatrix4(m);
+    this.applyMatrix4(m);
+    MathPool.releaseMatrix(m);
+    return this;
   }
 }

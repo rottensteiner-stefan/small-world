@@ -3,12 +3,14 @@ import { Object3D } from "./Object3D.js";
 import { Scene } from "./Scene.js";
 import { OctreeNode } from "./Octree.js";
 import { Frustum, Matrix4 } from "../math/index.js";
+import { Collidable } from "../interfaces/index.js";
 
 /**
  * Handles frustum culling for objects in a scene.
  */
 export class FrustumCuller {
   private static _frustum: Frustum = new Frustum();
+  private static _queryHits: Collidable[] = [];
 
   /** The octree nodes that were intersected during the last cull operation. */
   public static lastIntersectedNodes: Set<OctreeNode> = new Set();
@@ -28,23 +30,19 @@ export class FrustumCuller {
 
     if (scene.staticOctree || scene.dynamicOctree) {
       if (scene.staticOctree) {
-        const visibleStatic: Object3D[] = scene.staticOctree.query(
-          this._frustum,
-          this.lastIntersectedNodes,
-        ) as Object3D[];
-        for (let i: number = 0; i < visibleStatic.length; i++) {
-          const obj = visibleStatic[i]!;
+        this._queryHits.length = 0;
+        scene.staticOctree.query(this._frustum, this._queryHits, this.lastIntersectedNodes);
+        for (let i: number = 0; i < this._queryHits.length; i++) {
+          const obj = this._queryHits[i] as Object3D;
           if (obj.isVisible) obj.inFrustum = true;
         }
       }
 
       if (scene.dynamicOctree) {
-        const visibleDynamic: Object3D[] = scene.dynamicOctree.query(
-          this._frustum,
-          this.lastIntersectedNodes,
-        ) as Object3D[];
-        for (let i: number = 0; i < visibleDynamic.length; i++) {
-          const obj = visibleDynamic[i]!;
+        this._queryHits.length = 0;
+        scene.dynamicOctree.query(this._frustum, this._queryHits, this.lastIntersectedNodes);
+        for (let i: number = 0; i < this._queryHits.length; i++) {
+          const obj = this._queryHits[i] as Object3D;
           if (obj.isVisible) obj.inFrustum = true;
         }
       }

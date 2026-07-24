@@ -13,6 +13,7 @@ import { Vector2D } from "../math/index.js";
 export class InteractionManager {
   private _raycaster: Raycaster = new Raycaster();
   private _ndcCoords: Vector2D = new Vector2D();
+  private _queryHits: Object3D[] = [];
   private _hoveredObject: Object3D | null = null;
   private _activeObject: Object3D | null = null;
   private _wasLeftDown: boolean = false;
@@ -51,25 +52,23 @@ export class InteractionManager {
 
     this._raycaster.setFromCamera(this._ndcCoords, this.camera);
 
-    let pickables: Object3D[] = [];
+    const pickables: Object3D[] = [];
     if (this.scene.staticOctree || this.scene.dynamicOctree || this.scene.spatialHash) {
-      const candidates = new Set<Object3D>();
+      this._queryHits.length = 0;
       if (this.scene.staticOctree) {
-        const staticHits = this.scene.staticOctree.queryRay(this._raycaster.ray);
-        for (const obj of staticHits)
-          if ((obj as Object3D).isPickable) candidates.add(obj as Object3D);
+        this.scene.staticOctree.queryRay(this._raycaster.ray, this._queryHits);
       }
       if (this.scene.spatialHash) {
-        const hashHits = this.scene.spatialHash.queryRay(this._raycaster.ray);
-        for (const obj of hashHits)
-          if ((obj as Object3D).isPickable) candidates.add(obj as Object3D);
+        this.scene.spatialHash.queryRay(this._raycaster.ray, this._queryHits);
       }
       if (this.scene.dynamicOctree) {
-        const dynamicHits = this.scene.dynamicOctree.queryRay(this._raycaster.ray);
-        for (const obj of dynamicHits)
-          if ((obj as Object3D).isPickable) candidates.add(obj as Object3D);
+        this.scene.dynamicOctree.queryRay(this._raycaster.ray, this._queryHits);
       }
-      pickables = Array.from(candidates);
+      for (const obj of this._queryHits) {
+        if ((obj as Object3D).isPickable && !pickables.includes(obj as Object3D)) {
+          pickables.push(obj as Object3D);
+        }
+      }
     } else {
       for (const obj of this.scene.objects) {
         this._getPickableObjects(obj, pickables);

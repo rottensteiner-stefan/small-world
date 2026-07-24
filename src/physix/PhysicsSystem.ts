@@ -40,6 +40,7 @@ export class PhysicsSystem {
   private _broadphaseWorldMax: Vector3D = new Vector3D();
   private _bodyIndex = new Map<Object3D, number>();
   private _broadphaseFallback: Collidable[] = [];
+  private _broadphaseQueryHits: Collidable[] = [];
 
   private _warnedObjects = new Set<Object3D>();
 
@@ -249,14 +250,15 @@ export class PhysicsSystem {
       const rbA = dynObj.rigidBody!;
       if (!dynObj.bounds) continue;
 
-      const broadResult = broadphaseTree.queryVolume(dynObj.bounds);
+      this._broadphaseQueryHits.length = 0;
+      broadphaseTree.queryVolume(dynObj.bounds, this._broadphaseQueryHits);
       // Append fallback
       for (let f = 0; f < this._broadphaseFallback.length; f++) {
-        broadResult.push(this._broadphaseFallback[f]!);
+        this._broadphaseQueryHits.push(this._broadphaseFallback[f]!);
       }
 
-      for (let j = 0; j < broadResult.length; j++) {
-        const otherObj = broadResult[j]!;
+      for (let j = 0; j < this._broadphaseQueryHits.length; j++) {
+        const otherObj = this._broadphaseQueryHits[j]!;
         if (dynObj === otherObj) continue;
 
         // Non-Object3D colliders (e.g. StaticCollider) have no rigidBody and

@@ -15,6 +15,7 @@ export declare class EnemyBehavior extends Behavior {
     private _speed;
     private _detectionRange;
     private _collider?;
+    private _potentialHits;
     private _audio?;
     private _gruntTimer;
     constructor(options: EnemyBehaviorOptions);

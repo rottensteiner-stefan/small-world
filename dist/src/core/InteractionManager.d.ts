@@ -12,6 +12,7 @@ export declare class InteractionManager {
     input: InputInterface;
     private _raycaster;
     private _ndcCoords;
+    private _queryHits;
     private _hoveredObject;
     private _activeObject;
     private _wasLeftDown;

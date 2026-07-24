@@ -22,6 +22,7 @@ export class EnemyBehavior extends Behavior {
   private _speed: number;
   private _detectionRange: number;
   private _collider?: BoundingSphere;
+  private _potentialHits: Collidable[] = [];
   private _audio?: AudioSystem | undefined;
   private _gruntTimer: number = 0;
 
@@ -74,16 +75,15 @@ export class EnemyBehavior extends Behavior {
     this._collider.center.copyFrom(this.target.position);
     this._collider.center.y += 0.5; // Offset slightly up
 
-    const potentialHits: Collidable[] = [];
+    this._potentialHits.length = 0;
     if (this._scene.staticOctree)
-      potentialHits.push(...this._scene.staticOctree.queryVolume(this._collider));
-    if (this._scene.spatialHash)
-      potentialHits.push(...this._scene.spatialHash.query(this._collider));
+      this._scene.staticOctree.queryVolume(this._collider, this._potentialHits);
+    if (this._scene.spatialHash) this._scene.spatialHash.query(this._collider, this._potentialHits);
 
     const correction = MathPool.acquireVector().set(0, 0, 0);
     const hitCorrection = MathPool.acquireVector();
 
-    for (const obj of potentialHits) {
+    for (const obj of this._potentialHits) {
       if (!obj.bounds || obj === this.target) continue;
       let resolved: boolean;
       if (BoundingType.SPHERE === obj.bounds.type) {

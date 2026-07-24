@@ -1,6 +1,6 @@
 import { Collidable, BoundingVolume } from '../interfaces/index.js';
 import { BoundingBox } from '../physix/index.js';
-import { Frustum } from '../math/index.js';
+import { Frustum, Vector3D } from '../math/index.js';
 /**
  * Configuration options for an octree node.
  */
@@ -19,9 +19,12 @@ export declare class OctreeNode {
     children: OctreeNode[];
     /** The objects stored in this node. */
     objects: Collidable[];
-    private readonly _depth;
-    private readonly _maxDepth;
-    private readonly _maxObjects;
+    private _depth;
+    private _maxDepth;
+    private _maxObjects;
+    private static _nodePool;
+    static acquire(boundsMin: Vector3D, boundsMax: Vector3D, depth: number, options: OctreeOptions): OctreeNode;
+    static release(node: OctreeNode): void;
     /**
      * Creates a new OctreeNode.
      * @param bounds The bounds of this node.
@@ -41,7 +44,7 @@ export declare class OctreeNode {
     /**
      * Queries the octree for objects that intersect with a ray.
      */
-    queryRay(ray: import('../physix/index.js').Ray, result: Set<Collidable>, intersectedNodes?: Set<OctreeNode>): void;
+    queryRay(ray: import('../physix/index.js').Ray, result: Collidable[], intersectedNodes?: Set<OctreeNode>): void;
     /**
      * Queries the octree for objects that intersect with a specific volume.
      */
@@ -55,11 +58,8 @@ export declare class Octree {
     root: OctreeNode;
     constructor(bounds: BoundingBox, options?: OctreeOptions);
     insert(obj: Collidable): boolean;
-    query(frustum: Frustum, intersectedNodes?: Set<OctreeNode>): Collidable[];
-    queryRay(ray: import('../physix/index.js').Ray, intersectedNodes?: Set<OctreeNode>): Collidable[];
-    /**
-     * Queries the octree for objects intersecting with a volume.
-     */
-    queryVolume(volume: BoundingVolume): Collidable[];
+    query(frustum: Frustum, outResult: Collidable[], intersectedNodes?: Set<OctreeNode>): void;
+    queryRay(ray: import('../physix/index.js').Ray, outResult: Collidable[], intersectedNodes?: Set<OctreeNode>): void;
+    queryVolume(volume: BoundingVolume, outResult: Collidable[]): void;
     clear(): void;
 }

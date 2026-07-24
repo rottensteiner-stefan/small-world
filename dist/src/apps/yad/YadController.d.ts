@@ -12,6 +12,9 @@ export declare class YadController extends FirstPersonController {
     private _lastShotTime;
     private _lastHurtTime;
     private _audio?;
+    private _raycaster;
+    private _screenCenter;
+    private _queryHits;
     /**
      * Creates a new YadController.
      * @param events The event bus

@@ -6,6 +6,7 @@ import { Matrix4 } from '../math/index.js';
  */
 export declare class FrustumCuller {
     private static _frustum;
+    private static _queryHits;
     /** The octree nodes that were intersected during the last cull operation. */
     static lastIntersectedNodes: Set<OctreeNode>;
     /** The number of visible objects during the last cull operation. */
