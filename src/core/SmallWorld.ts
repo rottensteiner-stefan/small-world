@@ -3,7 +3,6 @@ import { Camera } from "./Camera.js";
 import { Scene } from "./Scene.js";
 import { Input } from "./Input.js";
 import { InteractionManager } from "./InteractionManager.js";
-import { ConfigLoader } from "./ConfigLoader.js";
 import { EventDispatcherImpl } from "./events/EventDispatcherImpl.js";
 import { DeviceCaps, DeviceFeature, DeviceLimit } from "./DeviceCaps.js";
 import { FrustumCuller } from "./FrustumCuller.js";
@@ -22,7 +21,7 @@ import { GadgetInspector } from "../tools/GadgetInspector.js";
 import { PhysicsSystem } from "../physix/PhysicsSystem.js";
 
 /** The current engine version. */
-export const ENGINE_VERSION = "0.69.2";
+export const ENGINE_VERSION = "0.69.3";
 
 /**
  * Base class for applications built with the SmallWorld engine.
@@ -54,14 +53,12 @@ export abstract class SmallWorld {
   private _lastTime: number = 0;
   private _isRunning: boolean = false;
   private _isInitialized: boolean = false;
-  private _userConfig: EngineOptions;
 
   /**
    * Creates a new SmallWorld application.
    * @param userConfig Optional configuration to override defaults.
    */
   protected constructor(userConfig: EngineOptions = {}) {
-    this._userConfig = userConfig;
     this.config = {
       canvasId: "SmallWorld",
       rendererType: RendererType.BEST,
@@ -133,47 +130,33 @@ export abstract class SmallWorld {
     }
 
     if (!this._isInitialized) {
-      let jsonConfig;
-      try {
-        // Try GitHub Pages path first
-        jsonConfig = await ConfigLoader.load("/small-world/config/small-world.json");
-      } catch {
-        try {
-          // Fallback to local root path
-          jsonConfig = await ConfigLoader.load("/config/small-world.json");
-        } catch {
-          console.warn("Using fallback configuration (No JSON found).");
+      const autoDowngrade = this.config.quality?.autoDowngrade ?? true;
+      if (autoDowngrade) {
+        const tier = DeviceCaps.getPerformanceTier();
+        if (tier === "LOW") {
+          console.warn(
+            `📉 Low Performance Tier detected (${DeviceCaps.isMobile() ? "Mobile" : "Desktop"}). Applying aggressive performance downgrades.`,
+          );
+          this.config.quality = {
+            ...this.config.quality,
+            hdr: false,
+            msaa: 0,
+            maxAnisotropy: 1,
+            maxShadowResolution: 512,
+          };
+          this.config.postProcessing = {
+            ...this.config.postProcessing,
+            enabled: false,
+          };
+        } else if (tier === "MEDIUM") {
+          this.config.quality = {
+            ...this.config.quality,
+            msaa: 2,
+            maxAnisotropy: 2,
+          };
+        } else {
+          // High tier, no overrides needed
         }
-      }
-
-      if (jsonConfig) {
-        this.config = { ...this.config, ...(jsonConfig as EngineOptions), ...this._userConfig };
-      }
-
-      const tier = DeviceCaps.getPerformanceTier();
-      if (tier === "LOW") {
-        console.warn(
-          `📉 Low Performance Tier detected (${DeviceCaps.isMobile() ? "Mobile" : "Desktop"}). Applying aggressive performance downgrades.`,
-        );
-        this.config.quality = {
-          ...this.config.quality,
-          hdr: false,
-          msaa: 0,
-          maxAnisotropy: 1,
-          maxShadowResolution: 512,
-        };
-        this.config.postProcessing = {
-          ...this.config.postProcessing,
-          enabled: false,
-        };
-      } else if (tier === "MEDIUM") {
-        this.config.quality = {
-          ...this.config.quality,
-          msaa: 2,
-          maxAnisotropy: 2,
-        };
-      } else {
-        // High tier, no overrides needed
       }
 
       this.canvas = document.getElementById(this.config.canvasId!) as HTMLCanvasElement;

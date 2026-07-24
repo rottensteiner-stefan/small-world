@@ -48,7 +48,8 @@ export class YadApp extends AbstractShowcase {
       this.camera.updateProjectionMatrix();
 
       if (this.renderer) {
-        const d = window.devicePixelRatio || 1;
+        const maxRatio = this.renderer.quality.maxPixelRatio ?? 2;
+        const d = Math.min(window.devicePixelRatio || 1, maxRatio);
         this.renderer.setSize(320 / d, 200 / d);
       }
 

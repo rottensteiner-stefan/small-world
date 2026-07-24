@@ -50,31 +50,30 @@ npm install small-world
 
 The engine provides an `Application` base class that handles the render loop and hardware initialization automatically.
 
-### 1. Configuration (`small-world.json`)
+### 1. Configuration
 
-By default, the engine looks for a configuration file at `/config/small-world.json`.
+You can configure the engine by passing an options object to the constructor. In modern bundlers (like Vite), you can also import a JSON file directly.
 
-```json
-{
-  "canvasId": "SmallWorld",
-  "rendererType": "BEST",
-  "projection": "PERSPECTIVE",
-  "fullscreen": true,
-  "renderer": [
-    {
-      "type": "WEB_GPU",
-      "attributes": { "antialias": true }
-    }
-  ]
-}
+```typescript
+import config from "./config/small-world.json";
+
+class MyGame extends SmallWorld {
+  constructor() {
+    // Pass the configuration to the engine
+    super(config);
+  }
+// ...
 ```
 
 ### 2. Implementation Showcase
 
 ```typescript
-import { Application, Cube, Color, StandardMaterial, Object3D, OrbitController, ZoomController, Texture } from "small-world";
+import { SmallWorld, Cube, Color, StandardMaterial, Object3D, OrbitController, Texture } from "small-world";
 
-class MyGame extends Application {
+class MyGame extends SmallWorld {
+  constructor() {
+    super(); // Or pass config here
+  }
   protected async setupScene(): Promise<void> {
     // 1. Load a texture and create a PBR material
     const albedoTex = await Texture.fromUrl("./assets/textures/diffuse.png");

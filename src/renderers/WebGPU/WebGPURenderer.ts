@@ -1609,7 +1609,8 @@ export class WebGPURenderer extends AbstractRenderer {
 
   public override setSize(width: number, height: number): void {
     if (!this._device || width <= 0 || height <= 0) return;
-    const d = devicePixelRatio;
+    const maxRatio = this._quality.maxPixelRatio ?? 2;
+    const d = Math.min(devicePixelRatio, maxRatio);
     this._context.canvas.width = width * d;
     this._context.canvas.height = height * d;
     this._depthTexture = this._device.createTexture({

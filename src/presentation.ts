@@ -178,7 +178,8 @@ class PresentationDemoApp extends AbstractShowcase {
     // Auto-resize check: dynamically adapt canvas WebGPU swapchain if container dimensions change
     const container = this.canvas.parentElement;
     if (container) {
-      const d = window.devicePixelRatio || 1;
+      const maxRatio = this.renderer?.quality.maxPixelRatio ?? 2;
+      const d = Math.min(window.devicePixelRatio || 1, maxRatio);
       const targetW = container.clientWidth;
       const targetH = container.clientHeight;
       if (

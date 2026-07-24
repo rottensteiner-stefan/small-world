@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.69.3] - 2026-07-24
+
+### "Read, not to contradict and confute; nor to believe and take for granted; nor to find talk and discourse; but to weigh and consider." - Francis Bacon
+
+- **Architecture & Bugfixes:**
+  - **Inversion of Control (IoC) for Configuration:** Removed internal asynchronous loading of `small-world.json` via `fetch`. The engine now accepts configuration synchronously via its constructor (`new SmallWorld(config)`). This removes network waterfalls during startup and improves bundler compatibility.
+  - Implemented exact `devicePixelRatio` clamping via `quality.maxPixelRatio` (defaults to 2). Rendering now cleanly handles 3x mobile displays without sacrificing exact resolutions for Retro modes.
+  - Enhanced `quality.autoDowngrade` to be optionally toggleable.
+- **Housekeeping & Docs:**
+  - Added comprehensive `configuration.md` guide and updated README to reflect the new configuration instantiation pattern.
 ## [0.69.2] - 2026-07-24
 
 ### "The secret of change is to focus all of your energy, not on fighting the old, but on building the new."

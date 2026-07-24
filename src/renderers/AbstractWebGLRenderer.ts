@@ -67,7 +67,8 @@ export abstract class AbstractWebGLRenderer extends AbstractRenderer {
   }
 
   public setSize(w: number, h: number): void {
-    const d: number = devicePixelRatio;
+    const maxRatio = this._quality.maxPixelRatio ?? 2;
+    const d = Math.min(devicePixelRatio, maxRatio);
     this.gl.canvas.width = w * d;
     this.gl.canvas.height = h * d;
 
