@@ -7,7 +7,7 @@ import { Collision } from "./Collision.js";
 import { BoundingSphere } from "./BoundingSphere.js";
 import { BoundingBox } from "./BoundingBox.js";
 import { OBB } from "./OBB.js";
-import { UniversalEventBus } from "../core/events/UniversalEventBus.js";
+import { EventDispatcherImpl } from "../core/events/EventDispatcherImpl.js";
 import { Collidable, BoundingVolume } from "../interfaces/index.js";
 import { BoundingType } from "../enums/index.js";
 
@@ -28,6 +28,12 @@ export class PhysicsSystem {
     objectB: null as unknown as Collidable,
     impulse: 0,
   };
+
+  /**
+   * Creates a new PhysicsSystem.
+   * @param events The event bus to dispatch collision events.
+   */
+  constructor(private events: EventDispatcherImpl) {}
 
   private _broadphaseTree?: Octree;
   private _broadphaseWorldMin: Vector3D = new Vector3D();
@@ -336,7 +342,7 @@ export class PhysicsSystem {
             const totalInvMass = invMassA + invMassB;
 
             if (rbA.isSensor || (rbB && rbB.isSensor)) {
-              UniversalEventBus.dispatchEvent("physics:collision", {
+              this.events.dispatchEvent("physics:collision", {
                 objectA: dynObj,
                 objectB: otherObj,
                 normal: normal,
@@ -396,7 +402,7 @@ export class PhysicsSystem {
                 this._collisionEvent.objectA = dynObj;
                 this._collisionEvent.objectB = otherObj;
                 this._collisionEvent.impulse = jMag;
-                UniversalEventBus.dispatchEvent("physics:collision", this._collisionEvent);
+                this.events.dispatchEvent("physics:collision", this._collisionEvent);
               }
 
               // Release temp static zero vector if rbB didn't exist

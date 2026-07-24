@@ -1,4 +1,6 @@
+import { EventDispatcherImpl } from '../../core/index.js';
 export declare class YadHud {
+    private events;
     private _container;
     private _healthEl;
     private _armorEl;
@@ -14,7 +16,7 @@ export declare class YadHud {
     private _health;
     private _armor;
     private _ammo;
-    constructor();
+    constructor(events: EventDispatcherImpl);
     private _weaponCanvas;
     private _flashOverlay;
     private _shootTimer;

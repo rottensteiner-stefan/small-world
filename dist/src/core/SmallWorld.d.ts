@@ -1,11 +1,12 @@
 import { Camera } from './Camera.js';
 import { Scene } from './Scene.js';
 import { InteractionManager } from './InteractionManager.js';
+import { EventDispatcherImpl } from './events/EventDispatcherImpl.js';
 import { EngineOptions, Renderer } from '../interfaces/index.js';
 import { GadgetInspector } from '../tools/GadgetInspector.js';
 import { PhysicsSystem } from '../physix/PhysicsSystem.js';
 /** The current engine version. */
-export declare const ENGINE_VERSION = "0.69.1";
+export declare const ENGINE_VERSION = "0.69.2";
 /**
  * Base class for applications built with the SmallWorld engine.
  */
@@ -27,6 +28,8 @@ export declare abstract class SmallWorld {
     canvas: HTMLCanvasElement;
     /** Whether debug visualization is enabled. */
     debug: boolean;
+    /** The global event bus for this engine instance. */
+    events: EventDispatcherImpl;
     private _inspector?;
     private _lastTime;
     private _isRunning;

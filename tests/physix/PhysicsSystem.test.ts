@@ -9,13 +9,16 @@ import { BoundingSphere } from "../../src/physix/BoundingSphere.js";
 import { BoundingBox } from "../../src/physix/BoundingBox.js";
 import { OBB } from "../../src/physix/OBB.js";
 import { StaticCollider } from "../../src/physix/StaticCollider.js";
+import { EventDispatcherImpl } from "../../src/core/events/EventDispatcherImpl.js";
 
 describe("PhysicsSystem", () => {
   let system: PhysicsSystem;
   let scene: Scene;
+  let events: EventDispatcherImpl;
 
   beforeEach(() => {
-    system = new PhysicsSystem();
+    events = new EventDispatcherImpl();
+    system = new PhysicsSystem(events);
     // Default gravity is -9.81 on Y, set to 0 for controlled tests
     system.gravity.set(0, 0, 0);
     scene = new Scene();

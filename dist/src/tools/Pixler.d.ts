@@ -1,4 +1,5 @@
 import { ForgeTool, ForgeToolOptions } from './forge/ForgeTool.js';
+import { EventDispatcherImpl } from '../core/index.js';
 export declare const PIXLER_PALETTES: {
     DEFAULT: string[];
     EGA: string[];
@@ -17,6 +18,7 @@ export interface PixlerOptions extends ForgeToolOptions {
 }
 export type PixlerToolMode = "pencil" | "bucket" | "picker" | "line";
 export declare class Pixler extends ForgeTool {
+    private events;
     private _canvas;
     private _ctx;
     private _gridOverlay;
@@ -40,7 +42,7 @@ export declare class Pixler extends ForgeTool {
     private _lineStartPos;
     private _history;
     private _historyIndex;
-    constructor(options?: PixlerOptions);
+    constructor(events: EventDispatcherImpl, options?: PixlerOptions);
     private _createInput;
     private _updateToolbarUI;
     private _resize;

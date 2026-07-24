@@ -8,7 +8,6 @@ import {
   StandardMaterial,
   RigidBody,
   Texture,
-  UniversalEventBus,
   AudioSystem,
   Object3D,
   PhysicsSystem,
@@ -499,7 +498,7 @@ class Showcase22 extends SmallWorld {
     }
 
     // Audio & Logic on collision
-    UniversalEventBus.addEventListener("physics:collision", (e: Record<string, unknown>): void => {
+    this.events.addEventListener("physics:collision", (e: Record<string, unknown>): void => {
       // Play a generative synth note based on impulse strength
       const impulse = e["impulse"] as number;
       if (impulse > 1.0 && this._ambientAudioStarted) {

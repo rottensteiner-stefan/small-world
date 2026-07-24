@@ -15,7 +15,6 @@ import {
   BoundingSphere,
   RigidBody,
   PhysicsSystem,
-  UniversalEventBus,
   Skydome,
   Texture,
   AudioSystem,
@@ -164,7 +163,7 @@ class Showcase21 extends SmallWorld {
     }
 
     // 5. Subscribe to Physics Collisions for heat transfer & Fuzz Audio!
-    UniversalEventBus.addEventListener(
+    this.events.addEventListener(
       "physics:collision",
       (data: { objectA: Object3D; objectB: Object3D; impulse: number }) => {
         const heatA = this._heatMap.get(data.objectA) || 0;

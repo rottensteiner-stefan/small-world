@@ -4,6 +4,7 @@ import { Scene } from "./Scene.js";
 import { Input } from "./Input.js";
 import { InteractionManager } from "./InteractionManager.js";
 import { ConfigLoader } from "./ConfigLoader.js";
+import { EventDispatcherImpl } from "./events/EventDispatcherImpl.js";
 import { DeviceCaps, DeviceFeature, DeviceLimit } from "./DeviceCaps.js";
 import { FrustumCuller } from "./FrustumCuller.js";
 import {
@@ -21,7 +22,7 @@ import { GadgetInspector } from "../tools/GadgetInspector.js";
 import { PhysicsSystem } from "../physix/PhysicsSystem.js";
 
 /** The current engine version. */
-export const ENGINE_VERSION = "0.69.1";
+export const ENGINE_VERSION = "0.69.2";
 
 /**
  * Base class for applications built with the SmallWorld engine.
@@ -44,6 +45,9 @@ export abstract class SmallWorld {
   public canvas!: HTMLCanvasElement;
   /** Whether debug visualization is enabled. */
   public debug: boolean = false;
+
+  /** The global event bus for this engine instance. */
+  public events: EventDispatcherImpl = new EventDispatcherImpl();
 
   private _inspector?: GadgetInspector;
 
@@ -69,7 +73,7 @@ export abstract class SmallWorld {
 
     this.scene = new Scene();
 
-    this.physics = new PhysicsSystem();
+    this.physics = new PhysicsSystem(this.events);
     if (this.config.gravity) {
       this.physics.gravity.set(...this.config.gravity);
     }
@@ -299,8 +303,14 @@ export abstract class SmallWorld {
         }
         this.forge.openWindow("Map Generator", mapGen, 60, 60, "mapGenerator");
 
-        this.forge.openWindow("Pixler Editor", new Pixler(), 50, 200, "pixlerEditor");
-        this.forge.openWindow("Asset Extractor", new Xtractor(), 400, 60, "assetExtractor");
+        this.forge.openWindow("Pixler Editor", new Pixler(this.events), 50, 200, "pixlerEditor");
+        this.forge.openWindow(
+          "Asset Extractor",
+          new Xtractor(this.events),
+          400,
+          60,
+          "assetExtractor",
+        );
         this.forge.openWindow("Material Studio", new MaterialStudio(), 750, 60, "materialStudio");
 
         this.onInspectorReady(this._inspector);

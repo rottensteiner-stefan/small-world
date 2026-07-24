@@ -1,14 +1,21 @@
 import { Scene } from '../core/Scene.js';
 import { Vector3D } from '../math/index.js';
+import { EventDispatcherImpl } from '../core/events/EventDispatcherImpl.js';
 /**
  * A lightweight physics solver using Semi-Implicit Euler integration.
  */
 export declare class PhysicsSystem {
+    private events;
     /** Global gravity vector (default: -9.81 on Y) */
     gravity: Vector3D;
     private _bodies;
     private _allColliders;
     private _collisionEvent;
+    /**
+     * Creates a new PhysicsSystem.
+     * @param events The event bus to dispatch collision events.
+     */
+    constructor(events: EventDispatcherImpl);
     private _broadphaseTree?;
     private _broadphaseWorldMin;
     private _broadphaseWorldMax;

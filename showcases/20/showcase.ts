@@ -16,7 +16,6 @@ import {
   BoundingSphere,
   RigidBody,
   PhysicsSystem,
-  UniversalEventBus,
   ColorUtils,
 } from "../../src/index.js";
 import { AmbientLight } from "../../src/core/lights/index.js";
@@ -176,7 +175,7 @@ class Showcase20 extends SmallWorld {
     }
 
     // 5. Subscribe to Physics Collisions for Generative Audio
-    UniversalEventBus.addEventListener(
+    this.events.addEventListener(
       "physics:collision",
       (data: { objectA: Object3D; objectB: Object3D; impulse: number }) => {
         const impulseMag = data.impulse;

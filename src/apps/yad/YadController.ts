@@ -4,7 +4,7 @@ import {
   FirstPersonControllerOptions,
   Input,
   Object3D,
-  UniversalEventBus,
+  EventDispatcherImpl,
 } from "../../core/index.js";
 import { CameraInterfaceData } from "../../interfaces/index.js";
 import { Keys, AppEvents } from "../../enums/index.js";
@@ -22,9 +22,13 @@ export class YadController extends FirstPersonController {
 
   /**
    * Creates a new YadController.
+   * @param events The event bus
    * @param options The configuration options.
    */
-  constructor(options: FirstPersonControllerOptions = {}) {
+  constructor(
+    private events: EventDispatcherImpl,
+    options: FirstPersonControllerOptions = {},
+  ) {
     // Force retro tank controls for Dungeon feel
     super({ ...options, retroTankControls: true });
   }
@@ -49,7 +53,7 @@ export class YadController extends FirstPersonController {
     // 3. Weapon Selection (Keys 1-6)
     for (let i = 1; i <= 6; i++) {
       if (Input.isPressed(i.toString() as Keys) || Input.isPressed(`Digit${i}` as Keys)) {
-        UniversalEventBus.dispatchEvent(AppEvents.Yad.WEAPON, { index: i });
+        this.events.dispatchEvent(AppEvents.Yad.WEAPON, { index: i });
       }
     }
 
@@ -58,7 +62,7 @@ export class YadController extends FirstPersonController {
     if (Input.isPressed(Keys.SPACE) && now - this._lastShotTime > 500) {
       this._lastShotTime = now;
       AudioSystem.instance.play("shoot", false, 0.6);
-      UniversalEventBus.dispatchEvent(AppEvents.Yad.SHOOT);
+      this.events.dispatchEvent(AppEvents.Yad.SHOOT);
 
       // Raycast for Enemies
       if (this._options.scene && isCamera) {
@@ -129,7 +133,7 @@ export class YadController extends FirstPersonController {
             AudioSystem.instance.play("pickup", false, 0.8);
 
             // Dispatch custom event for HUD
-            UniversalEventBus.dispatchEvent(AppEvents.Yad.PICKUP, {
+            this.events.dispatchEvent(AppEvents.Yad.PICKUP, {
               type: itemType,
               amount: 20,
             });
@@ -149,7 +153,7 @@ export class YadController extends FirstPersonController {
             AudioSystem.instance.play("hurt", false, 0.8);
 
             // Dispatch custom event for HUD
-            UniversalEventBus.dispatchEvent(AppEvents.Yad.DAMAGE, { amount: 10 });
+            this.events.dispatchEvent(AppEvents.Yad.DAMAGE, { amount: 10 });
           }
         }
       }

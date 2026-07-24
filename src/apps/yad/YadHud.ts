@@ -1,5 +1,5 @@
 import { AppEvents } from "../../enums/AppEvents.js";
-import { UniversalEventBus } from "../../core/index.js";
+import { EventDispatcherImpl } from "../../core/index.js";
 
 interface YadDamagePayload {
   amount: number;
@@ -36,7 +36,7 @@ export class YadHud {
   private _armor: number = 0;
   private _ammo: number = 50;
 
-  constructor() {
+  constructor(private events: EventDispatcherImpl) {
     // Load VT323 Font from Google Fonts
     if (!document.getElementById("vt323-font")) {
       const link = document.createElement("link");
@@ -250,7 +250,7 @@ export class YadHud {
   }
 
   private _bindEvents(): void {
-    UniversalEventBus.addEventListener(AppEvents.Yad.DAMAGE, (e: Record<string, unknown>) => {
+    this.events.addEventListener(AppEvents.Yad.DAMAGE, (e: Record<string, unknown>) => {
       const payload = e as unknown as YadDamagePayload;
       const amount = payload.amount || 0;
       if (this._armor > 0) {
@@ -268,7 +268,7 @@ export class YadHud {
       this._triggerFlash("rgba(255, 0, 0, 0.4)"); // Red flash
     });
 
-    UniversalEventBus.addEventListener(AppEvents.Yad.PICKUP, (e: Record<string, unknown>) => {
+    this.events.addEventListener(AppEvents.Yad.PICKUP, (e: Record<string, unknown>) => {
       const payload = e as unknown as YadPickupPayload;
       const { type } = payload;
       const amount = payload.amount || 0;
@@ -292,14 +292,14 @@ export class YadHud {
       this._updateDisplay();
     });
 
-    UniversalEventBus.addEventListener(AppEvents.Yad.SHOOT, (): void => {
+    this.events.addEventListener(AppEvents.Yad.SHOOT, (): void => {
       if (this._ammo > 0) {
         this._ammo -= 1;
         this._updateDisplay();
       }
     });
 
-    UniversalEventBus.addEventListener(AppEvents.Yad.WEAPON, (e: Record<string, unknown>) => {
+    this.events.addEventListener(AppEvents.Yad.WEAPON, (e: Record<string, unknown>) => {
       const payload = e as unknown as YadWeaponPayload;
       const { index } = payload;
       if (index) {
@@ -307,7 +307,7 @@ export class YadHud {
       }
     });
 
-    UniversalEventBus.addEventListener(AppEvents.Yad.SHOOT, (): void => {
+    this.events.addEventListener(AppEvents.Yad.SHOOT, (): void => {
       this.triggerShoot();
     });
   }

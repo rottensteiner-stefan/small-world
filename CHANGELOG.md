@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.69.2] - 2026-07-24
+
+### "The secret of change is to focus all of your energy, not on fighting the old, but on building the new."
+
+- **Architecture & Bugfixes:**
+  - **UniversalEventBus Removal:** Eradicated the global `UniversalEventBus` singleton to strictly enforce the "No Global Singletons" architecture and support proper multi-instancing.
+  - **EventBus Injection:** The engine base class (`SmallWorld`) now manages its own local `this.events: EventDispatcherImpl`. This instance is strictly propagated via dependency injection to all subsystems (`PhysicsSystem`), Tools (`Pixler`, `Xtractor`), and Application logic (`YadController`, `YadHud`), ensuring total isolation between engine contexts.
+  - Updated documentation (`custom-game.md`, `eventbus.md`) to reflect the new dependency injection pattern.
+
 ## [0.69.1] - 2026-07-23
 
 ### "In union there is strength." - Aesop

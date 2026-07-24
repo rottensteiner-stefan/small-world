@@ -1,6 +1,6 @@
 import { ForgeTool, ForgeToolOptions } from "./forge/ForgeTool.js";
 import { ToolEvents } from "../enums/ToolEvents.js";
-import { UniversalEventBus } from "../core/index.js";
+import { EventDispatcherImpl } from "../core/index.js";
 
 export class Xtractor extends ForgeTool {
   public loadFromBase64?: (base64: string) => void;
@@ -11,7 +11,10 @@ export class Xtractor extends ForgeTool {
     }
   }
 
-  constructor(options: ForgeToolOptions = {}) {
+  constructor(
+    private events: EventDispatcherImpl,
+    options: ForgeToolOptions = {},
+  ) {
     super(options);
     this._injectCSS();
     this._buildUI();
@@ -719,7 +722,7 @@ export class Xtractor extends ForgeTool {
     btnSendPixler.addEventListener("click", () => {
       if (currentRect) {
         const base64 = cropPreviewCanvas.toDataURL("image/png");
-        UniversalEventBus.dispatchEvent(ToolEvents.Pixler.LOAD_BASE64, { base64 });
+        this.events.dispatchEvent(ToolEvents.Pixler.LOAD_BASE64, { base64 });
       }
     });
 

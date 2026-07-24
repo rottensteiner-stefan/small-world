@@ -16,7 +16,7 @@ In Small World, controllers are simply `Behavior` components attached to a camer
 
 ```typescript
 import { FirstPersonController, FirstPersonControllerOptions } from "small-world";
-import { Input, Keys, UniversalEventBus } from "small-world";
+import { Input, Keys } from "small-world";
 
 export class MyController extends FirstPersonController {
   constructor(options: FirstPersonControllerOptions = {}) {
@@ -32,9 +32,8 @@ export class MyController extends FirstPersonController {
        // Fire a bullet, do a raycast...
        console.log("Pew pew!");
 
-       // Use the global UniversalEventBus – no prop-drilling needed.
-       // Small World enforces a "1 Engine Instance per Page" rule.
-       UniversalEventBus.dispatchEvent("shoot-weapon", { ammoCost: 1 });
+       // Use the injected EventBus
+       this.events.dispatchEvent("shoot-weapon", { ammoCost: 1 });
     }
   }
 }
@@ -53,8 +52,8 @@ export class MyGameApp extends SmallWorld {
   private _hud!: MyHud;
 
   protected async setupScene(): Promise<void> {
-    // Initialize the UI – it uses UniversalEventBus internally, no prop-drilling needed.
-    this._hud = new MyHud();
+    // Initialize the UI – pass the event bus explicitly
+    this._hud = new MyGameHUD(this.events);
 
     // Attach our custom controller to the camera as a Behavior.
     // The Behavior system handles the update loop automatically.
@@ -83,7 +82,7 @@ By structuring your code this way, you ensure that your Game Logic (Controller),
 The Small World Engine includes a complete, functional showcase called **YAD (Yet Another Dungeon)**. YAD is the canonical reference architecture for building a real game.
 
 YAD demonstrates:
-1. **Seamless Tool Integration:** How standalone tools (`Pixler`, `MapGenerator`, `Xtractor`) communicate with the game via `UniversalEventBus` without interrupting the render loop – no Forge overlay required.
+1. **Seamless Tool Integration:** How standalone tools (`Pixler`, `MapGenerator`, `Xtractor`) communicate with the game via `app.events` without interrupting the render loop – no Forge overlay required.
 2. **Procedural Level Generation:** How the `GridLevelBuilder` extension parses an ASCII string map into 3D meshes, spawning `EnemyBehavior`-driven enemy sprites and pickup sprites.
 3. **Enemy Logic:** How `EnemyBehavior` implements simple distance-based chase logic (detection range, chase, attack proximity). YAD does not use the engine's `StateMachine`/FSM module for enemies — but it's available (see [State Machines](./state-machines)) for cases where richer state logic is needed.
 4. **Custom Controllers:** `YadController` inherits from `FirstPersonController`, adding footsteps via `AudioSystem`, weapon-sway animation (rendered by `YadHud`), and raycasted attacks.

@@ -2,17 +2,15 @@
 
 In modern 3D applications, coupling your UI directly to your 3D engine or gameloop creates spaghetti code and performance bottlenecks. The **Small World Engine** provides a built-in, type-safe, and zero-allocation **EventBus** (`EventDispatcherImpl`) to cleanly decouple your systems.
 
-## The Universal EventBus
+## The Application EventBus
 
-Because Small World enforces a "1 Engine Instance per Page" architecture, the EventBus is implemented as a global singleton. This eliminates the need for tedious "prop-drilling" (passing the event bus through deeply nested constructors).
+Because Small World enforces strict multi-instancing support (no global singletons), the EventBus is attached to your `SmallWorld` application instance.
 
-You can import and use `UniversalEventBus` anywhere in your application:
+You can access it via `app.events` (or pass it via constructor injection):
 
 ```typescript
-import { UniversalEventBus } from "small-world";
-
-// Use it directly!
-UniversalEventBus.dispatchEvent("MyEvent", { data: 123 });
+// Assuming `app` is your SmallWorld instance
+app.events.dispatchEvent("MyEvent", { data: 123 });
 ```
 
 ## Defining Strongly-Typed Events
@@ -41,10 +39,12 @@ The engine itself ships a reference event registry, `AppEvents`, used by the YAD
 Instead of using the DOM's `window.dispatchEvent` (which incurs heavy garbage collection overhead and is not strictly typed), you should use the engine's built-in `events` property to broadcast game events using your typed constants.
 
 ```typescript
-// Inside a Behavior or Controller
-import { UniversalEventBus } from "small-world";
+takeDamage(amount: number) {
+  this.health -= amount;
 
-UniversalEventBus.dispatchEvent(MyGameEvents.PLAYER.DAMAGE, { amount: 15, source: "lava" });
+  // Dispatch via an injected EventDispatcherImpl (e.g. this.events)
+  this.events.dispatchEvent(MyGameEvents.PLAYER.DAMAGE, { amount: 15, source: "lava" });
+}
 ```
 
 ## Listening to Events
@@ -52,22 +52,18 @@ UniversalEventBus.dispatchEvent(MyGameEvents.PLAYER.DAMAGE, { amount: 15, source
 Your UI components (e.g., a HUD) or other decoupled systems can simply accept the `Events` interface and listen for specific events from your registry.
 
 ```typescript
-import { UniversalEventBus } from "small-world";
 import { MyGameEvents } from "./events.js";
 
-export class MyHud {
-  constructor() {
-    this._bindEvents();
-  }
+export function buildHUD(app: SmallWorld) {
+  const healthLabel = document.createElement("div");
 
-  private _bindEvents(): void {
-    UniversalEventBus.addEventListener(MyGameEvents.PLAYER.DAMAGE, (e: Record<string, unknown>) => {
+  // The UI listens to the Application-level events
+  app.events.addEventListener(MyGameEvents.PLAYER.DAMAGE, (e: Record<string, unknown>) => {
       const damage = e['amount'] as number;
       console.log(`Player took ${damage} damage!`);
       // Update your UI here...
     });
   }
-}
 ```
 
 ## Why Not Native DOM Events?
