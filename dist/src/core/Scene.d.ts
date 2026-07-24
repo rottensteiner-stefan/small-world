@@ -4,8 +4,15 @@ import { Fog } from './Fog.js';
 import { Vector3D } from '../math/index.js';
 import { BoundingBox, SpatialHash } from '../physix/index.js';
 import { Collidable } from '../interfaces/index.js';
+export interface RenderBatch {
+    shaderId: string;
+    topology: number | string;
+    matUuid: string;
+    objects: Object3D[];
+}
 export interface RenderList {
-    opaque: Map<string, Map<string, Map<string, Object3D[]>>>;
+    opaqueLookup: Map<string, Map<number | string, Map<string, RenderBatch>>>;
+    opaqueBatches: RenderBatch[];
     transparent: Object3D[];
 }
 /**

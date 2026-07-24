@@ -1,7 +1,7 @@
 import { AbstractWebGLRenderer } from '../AbstractWebGLRenderer.js';
 import { PostProcessPassGL } from '../post/passes/index.js';
 import { Texture, RenderTarget } from '../../core/textures/index.js';
-import { Object3D, Scene } from '../../core/index.js';
+import { Scene } from '../../core/index.js';
 import { EngineOptions, LightDataInterface } from '../../interfaces/index.js';
 import { RendererType } from '../../enums/index.js';
 import { Vector3D } from '../../math/index.js';
@@ -48,7 +48,7 @@ export declare class WebGL1Renderer extends AbstractWebGLRenderer {
     bindPostProcessRenderTarget(): void;
     copyToOpaqueTexture(): void;
     flushPostProcess(): void;
-    renderGroup(shaderId: string, materialGroups: Map<string, Object3D[]>, vMat: Float32Array | undefined, topology: string, vp: Float32Array, camPos: Vector3D, lights: LightDataInterface, scene: Scene): void;
+    renderBatch(batch: import('../../core/Scene.js').RenderBatch, vMat: Float32Array | undefined, vp: Float32Array, camPos: Vector3D, lights: LightDataInterface, scene: Scene): void;
     /** @inheritdoc */
     setSize(width: number, height: number): void;
     /** @inheritdoc */

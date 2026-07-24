@@ -1,5 +1,5 @@
 /// src/renderers/passes/MainRenderPass.ts
-import { Scene, Object3D } from "../../core/index.js";
+import { Scene } from "../../core/index.js";
 import { MaterialType } from "../../enums/index.js";
 import { WebGPURenderer } from "../WebGPU/index.js";
 import { RenderPass } from "../index.js";
@@ -9,7 +9,6 @@ import { Vector3D } from "../../math/index.js";
  */
 export class MainRenderPass implements RenderPass {
   public name = "MainRenderPass";
-  private _scratchTransparentMap: Map<string, Object3D[]> = new Map();
 
   public execute(
     renderer: WebGPURenderer,
@@ -40,24 +39,18 @@ export class MainRenderPass implements RenderPass {
     });
 
     // 1. Skybox first
-    const skyboxShaderMap = renderList.opaque.get(MaterialType.SKYBOX);
-    if (skyboxShaderMap) {
-      for (const [topology, materialGroups] of skyboxShaderMap.entries()) {
-        renderer._renderGroup(
-          rp,
-          MaterialType.SKYBOX,
-          materialGroups,
-          vMat,
-          topology as GPUPrimitiveTopology,
-        );
+    for (let i = 0; i < renderList.opaqueBatches.length; i++) {
+      const batch = renderList.opaqueBatches[i];
+      if (batch!.shaderId === MaterialType.SKYBOX && batch!.objects.length > 0) {
+        renderer._renderBatch(rp, batch!, vMat);
       }
-      renderList.opaque.delete(MaterialType.SKYBOX);
     }
 
     // 2. All other opaque objects
-    for (const [shaderId, topologyMap] of renderList.opaque.entries()) {
-      for (const [topology, materialGroups] of topologyMap.entries()) {
-        renderer._renderGroup(rp, shaderId, materialGroups, vMat, topology as GPUPrimitiveTopology);
+    for (let i = 0; i < renderList.opaqueBatches.length; i++) {
+      const batch = renderList.opaqueBatches[i];
+      if (batch!.shaderId !== MaterialType.SKYBOX && batch!.objects.length > 0) {
+        renderer._renderBatch(rp, batch!, vMat);
       }
     }
 
@@ -97,15 +90,14 @@ export class MainRenderPass implements RenderPass {
           obj.geometry?.topology ||
           (obj.geometry?.indices?.length === 2 ? "line-list" : "triangle-list");
 
-        this._scratchTransparentMap.clear();
-        this._scratchTransparentMap.set(obj.material!.uuid, [obj]);
-        renderer._renderGroup(
-          rpTransparent,
+        const tempBatch = {
           shaderId,
-          this._scratchTransparentMap,
-          vMat,
-          topology as GPUPrimitiveTopology,
-        );
+          topology: topology as string | number,
+          matUuid: obj.material!.uuid,
+          objects: [obj],
+        };
+
+        renderer._renderBatch(rpTransparent, tempBatch, vMat);
       }
       rpTransparent.end();
     } else {

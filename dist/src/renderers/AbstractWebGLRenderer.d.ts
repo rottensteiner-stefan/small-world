@@ -1,6 +1,6 @@
 import { AbstractRenderer } from './AbstractRenderer.js';
 import { Color } from '../core/colors/index.js';
-import { Scene, Object3D } from '../core/index.js';
+import { Scene } from '../core/index.js';
 import { Vector3D } from '../math/index.js';
 import { LightDataInterface } from '../interfaces/index.js';
 import { WebGLRenderPass } from './WebGLRenderPass.js';
@@ -19,7 +19,7 @@ export declare abstract class AbstractWebGLRenderer extends AbstractRenderer {
     abstract bindPostProcessRenderTarget(): void;
     abstract copyToOpaqueTexture(): void;
     abstract flushPostProcess(): void;
-    abstract renderGroup(shaderId: string, materialGroups: Map<string, Object3D[]>, vMat: Float32Array | undefined, topology: string, vp: Float32Array, camPos: Vector3D, lights: LightDataInterface, scene: Scene): void;
+    abstract renderBatch(batch: import('../core/Scene.js').RenderBatch, vMat: Float32Array | undefined, vp: Float32Array, camPos: Vector3D, lights: LightDataInterface, scene: Scene): void;
     destroy(): void;
     setSize(w: number, h: number): void;
     setClearColor(color: Color): void;

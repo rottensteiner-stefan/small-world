@@ -419,16 +419,17 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
     }
   }
 
-  public renderGroup(
-    shaderId: string,
-    materialGroups: Map<string, Object3D[]>,
+  public renderBatch(
+    batch: import("../../core/Scene.js").RenderBatch,
     vMat: Float32Array | undefined,
-    topology: string,
     vp: Float32Array,
     camPos: Vector3D,
     lights: LightDataInterface,
     scene: Scene,
   ): void {
+    const shaderId = batch.shaderId;
+    const materialGroups = new Map([[batch.topology as string, batch.objects]]);
+    const topology = batch.topology as string;
     const fog = scene.fog;
     const cache = this._getProgram(shaderId);
     this.gl.useProgram(cache.prog);

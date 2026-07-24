@@ -18,12 +18,15 @@ export class WebGLShadowPass implements WebGLRenderPass {
     extractedLights: LightDataInterface,
   ): void {
     const r = renderer as unknown as {
-      renderShadowMaps?: (lights: LightDataInterface, opaque: typeof renderList.opaque) => void;
+      renderShadowMaps?: (
+        lights: LightDataInterface,
+        opaqueBatches: import("../../core/Scene.js").RenderBatch[],
+      ) => void;
       updateGlobalUBO?: (vp: Float32Array, camPos: Vector3D, lights: LightDataInterface) => void;
     };
 
     if (r.renderShadowMaps) {
-      r.renderShadowMaps(extractedLights, renderList.opaque);
+      r.renderShadowMaps(extractedLights, renderList.opaqueBatches);
     }
 
     if (r.updateGlobalUBO) {

@@ -9,6 +9,7 @@
   - **Zero-Allocation Octree Node Pooling:** Introduced a static `OctreeNode` pool. Nodes are now recycled on `clear()` and retrieved via `OctreeNode.acquire()` during subdivisions, preventing garbage collector spikes.
   - **Zero-Allocation Render Queries:** Eliminated `.filter()` calls inside the WebGPU shadow passes (`CascadedShadowPassGPU`, `SpotShadowPassGPU`), reusing module-level scratch arrays.
   - **Zero-Allocation Physics Queries:** Core physical sub-systems (`PhysicsSystem`, `FrustumCuller`, `InteractionManager`) and controllers (`EnemyBehavior`, `YadController`) now utilize module-level `outResult` cache arrays instead of creating new Array structures.
+  - **Zero-Allocation Render Batching:** Removed the deeply nested `Map<string, Map<string, Object3D[]>>` in `RenderList`, replacing it with a flat `RenderBatch[]` array. This eliminates thousands of temporary iterators (`entries()`, `values()`) per frame across all renderers (WebGL1, WebGL2, WebGPU) and shadow passes, significantly reducing GC pressure.
   - **Transform Math Pooling:** `AbstractGeometry` vertex transformers (`scale`, `rotateX`, etc.) now acquire and release `Matrix4` instances from `MathPool` instead of instantiating new objects.
 
 ## [0.69.4] - 2026-07-24

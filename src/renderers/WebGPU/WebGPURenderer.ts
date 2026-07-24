@@ -1027,39 +1027,44 @@ export class WebGPURenderer extends AbstractRenderer {
     }
   }
 
-  public _renderGroup(
+  public _renderBatch(
     rp: GPURenderPassEncoder,
-    _shaderId: string,
-    materialGroups: Map<string, Object3D[]>,
+    batch: import("../../core/Scene.js").RenderBatch,
     vMat?: Float32Array,
-    topology: GPUPrimitiveTopology = "triangle-list",
   ): void {
+    const objects = batch.objects;
+    if (objects.length === 0) return;
+
     rp.setBindGroup(0, this._globalBindGroup);
-    for (const [matUuid, objects] of materialGroups.entries()) {
-      if (objects.length === 0) continue;
 
-      const instancedObjects: Object3D[] = [];
-      const standardObjects: Object3D[] = [];
+    const instancedObjects: Object3D[] = [];
+    const standardObjects: Object3D[] = [];
 
-      for (const o of objects) {
-        if (o instanceof InstancedMesh) {
-          instancedObjects.push(o);
-        } else {
-          standardObjects.push(o);
-        }
+    for (let i = 0; i < objects.length; i++) {
+      const o = objects[i];
+      if (o instanceof InstancedMesh) {
+        instancedObjects.push(o!);
+      } else {
+        standardObjects.push(o!);
       }
+    }
 
-      const mat = objects[0]?.material;
-      if (!mat) continue;
-      const manifest = mat.getRenderManifest();
+    const mat = objects[0]?.material;
+    if (!mat) return;
+    const manifest = mat.getRenderManifest();
 
-      if (standardObjects.length > 0) {
-        this._renderSubgroup(rp, standardObjects, false, matUuid, manifest, vMat, topology);
-      }
+    // WebGPU topology strings:
+    let topologyStr: GPUPrimitiveTopology = "triangle-list";
+    if (batch.topology === 1) topologyStr = "point-list";
+    else if (batch.topology === 2) topologyStr = "line-list";
+    else if (batch.topology === 3) topologyStr = "line-strip";
 
-      if (instancedObjects.length > 0) {
-        this._renderSubgroup(rp, instancedObjects, true, matUuid, manifest, vMat, topology);
-      }
+    if (standardObjects.length > 0) {
+      this._renderSubgroup(rp, standardObjects, false, batch.matUuid, manifest, vMat, topologyStr);
+    }
+
+    if (instancedObjects.length > 0) {
+      this._renderSubgroup(rp, instancedObjects, true, batch.matUuid, manifest, vMat, topologyStr);
     }
   }
 

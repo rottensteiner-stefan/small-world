@@ -2,7 +2,7 @@ import { WebGL2FrameBuffer } from './WebGL2FrameBuffer.js';
 import { AbstractWebGLRenderer } from '../AbstractWebGLRenderer.js';
 import { PostProcessPassGL, BloomPassGL } from '../post/passes/index.js';
 import { Texture, RenderTarget, RenderTargetCube } from '../../core/textures/index.js';
-import { Object3D, Scene } from '../../core/index.js';
+import { Scene } from '../../core/index.js';
 import { EngineOptions, LightDataInterface } from '../../interfaces/index.js';
 import { RendererType } from '../../enums/index.js';
 import { Vector3D } from '../../math/index.js';
@@ -57,7 +57,7 @@ export declare class WebGL2Renderer extends AbstractWebGLRenderer {
     /**
      * Renders shadow maps for all shadow-casting lights.
      */
-    renderShadowMaps(lights: LightDataInterface, sortedGroups: Map<string, Map<string, Map<string, Object3D[]>>>): void;
+    renderShadowMaps(lights: import('../../interfaces/index.js').LightDataInterface, sortedGroups: import('../../core/Scene.js').RenderBatch[]): void;
     /**
      * Helper to render the actual geometry for a shadow pass.
      */
@@ -66,7 +66,7 @@ export declare class WebGL2Renderer extends AbstractWebGLRenderer {
      * Binds dummy depth textures to shadow samplers to satisfy WebGL2 sampler2DShadow validation rules.
      */
     private _bindDummyShadowMaps;
-    renderGroup(shaderId: string, materialGroups: Map<string, Object3D[]>, vMat: Float32Array | undefined, topology: string, _vp: Float32Array, _camPos: Vector3D, lights: LightDataInterface, scene: Scene): void;
+    renderBatch(batch: import('../../core/Scene.js').RenderBatch, vMat: Float32Array | undefined, _vp: Float32Array, _camPos: Vector3D, lights: import('../../interfaces/index.js').LightDataInterface, scene: Scene): void;
     private _renderSubgroup;
     updateGlobalUBO(vp: Float32Array, camPos: Vector3D, lights: LightDataInterface): void;
     /** @inheritdoc */

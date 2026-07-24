@@ -143,52 +143,56 @@ export class CascadedShadowPassGPU implements RenderPass {
       // shared DepthMaterial pipeline -- regardless of each object's own material --
       // mirroring WebGL2's "bind one depth program, source only the model matrix per
       // object" approach (WebGL2Renderer._renderShadowScene).
-      for (const [shaderId, topologyMap] of renderList.opaque.entries()) {
-        if (shaderId === MaterialType.SKYBOX) continue;
+      for (let batchIdx = 0; batchIdx < renderList.opaqueBatches.length; batchIdx++) {
+        const batch = renderList.opaqueBatches[batchIdx];
+        if (batch!.shaderId === MaterialType.SKYBOX || batch!.objects.length === 0) continue;
 
-        for (const [topology, materialGroups] of topologyMap.entries()) {
-          for (const objects of materialGroups.values()) {
-            _scratchCasters.length = 0;
-            for (let i = 0; i < objects.length; i++) {
-              if (objects[i]!.castShadow) _scratchCasters.push(objects[i]!);
-            }
-            if (_scratchCasters.length === 0) continue;
+        let topology: GPUPrimitiveTopology = "triangle-list";
+        if (batch!.topology === 1) topology = "point-list";
+        else if (batch!.topology === 2) topology = "line-list";
+        else if (batch!.topology === 3) topology = "line-strip";
 
-            _scratchInstanced.length = 0;
-            _scratchStandard.length = 0;
-            for (let i = 0; i < _scratchCasters.length; i++) {
-              const obj = _scratchCasters[i]!;
-              if (obj instanceof InstancedMesh) {
-                _scratchInstanced.push(obj);
-              } else {
-                _scratchStandard.push(obj);
-              }
-            }
+        const objects = batch!.objects;
 
-            if (_scratchStandard.length > 0) {
-              renderer._renderSubgroup(
-                rp,
-                _scratchStandard,
-                false,
-                this._depthMaterial.uuid,
-                depthManifest,
-                cascadeCam.viewMatrix,
-                topology as GPUPrimitiveTopology,
-              );
-            }
+        _scratchCasters.length = 0;
+        for (let i = 0; i < objects.length; i++) {
+          if (objects[i]!.castShadow) _scratchCasters.push(objects[i]!);
+        }
+        if (_scratchCasters.length === 0) continue;
 
-            if (_scratchInstanced.length > 0) {
-              renderer._renderSubgroup(
-                rp,
-                _scratchInstanced,
-                true,
-                this._depthMaterial.uuid,
-                depthManifest,
-                cascadeCam.viewMatrix,
-                topology as GPUPrimitiveTopology,
-              );
-            }
+        _scratchInstanced.length = 0;
+        _scratchStandard.length = 0;
+        for (let i = 0; i < _scratchCasters.length; i++) {
+          const obj = _scratchCasters[i]!;
+          if (obj instanceof InstancedMesh) {
+            _scratchInstanced.push(obj);
+          } else {
+            _scratchStandard.push(obj);
           }
+        }
+
+        if (_scratchStandard.length > 0) {
+          renderer._renderSubgroup(
+            rp,
+            _scratchStandard,
+            false,
+            this._depthMaterial.uuid,
+            depthManifest,
+            cascadeCam.viewMatrix,
+            topology,
+          );
+        }
+
+        if (_scratchInstanced.length > 0) {
+          renderer._renderSubgroup(
+            rp,
+            _scratchInstanced,
+            true,
+            this._depthMaterial.uuid,
+            depthManifest,
+            cascadeCam.viewMatrix,
+            topology,
+          );
         }
       }
 

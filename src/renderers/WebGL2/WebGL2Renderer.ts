@@ -586,8 +586,8 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
    * Renders shadow maps for all shadow-casting lights.
    */
   public renderShadowMaps(
-    lights: LightDataInterface,
-    sortedGroups: Map<string, Map<string, Map<string, Object3D[]>>>,
+    lights: import("../../interfaces/index.js").LightDataInterface,
+    sortedGroups: import("../../core/Scene.js").RenderBatch[],
   ): void {
     const emptyLights: LightDataInterface = {
       aCol: new Color(0, 0, 0, 1),
@@ -694,65 +694,62 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
    */
   private _renderShadowScene(
     cache: ProgramCache,
-    sortedGroups: Map<string, Map<string, Map<string, Object3D[]>>>,
+    sortedGroups: import("../../core/Scene.js").RenderBatch[],
   ): void {
-    for (const [shaderId, topologyMap] of sortedGroups.entries()) {
-      if (shaderId === MaterialType.SKYBOX) continue;
+    for (let i = 0; i < sortedGroups.length; i++) {
+      const batch = sortedGroups[i];
+      if (batch!.shaderId === MaterialType.SKYBOX || batch!.objects.length === 0) continue;
 
-      for (const [topology, materialGroups] of topologyMap.entries()) {
-        const drawMode = topology === Topology.LINE_LIST ? this.gl.LINES : this.gl.TRIANGLES;
+      const drawMode = batch!.topology === Topology.LINE_LIST ? this.gl.LINES : this.gl.TRIANGLES;
+      const objects = batch!.objects;
+      const firstObj = objects[0]!;
+      if (!firstObj.material) continue;
 
-        for (const objects of materialGroups.values()) {
-          const firstObj = objects[0]!;
-          if (!firstObj.material) continue;
+      const manifest = firstObj.material.getRenderManifest();
+      const uExtraLoc = cache.uniforms.get("u_extraParams");
+      const extraParams = manifest.properties["u_extraParams"] as Float32Array | number[];
 
-          const manifest = firstObj.material.getRenderManifest();
-          const uExtraLoc = cache.uniforms.get("u_extraParams");
-          const extraParams = manifest.properties["u_extraParams"] as Float32Array | number[];
+      let hasAlpha = false;
+      if (extraParams && extraParams[1]! > 0.0 && manifest.textures["u_diffuseMap"]) {
+        hasAlpha = true;
+        this.gl.activeTexture(this.gl.TEXTURE0);
+        const tex = manifest.textures["u_diffuseMap"] as Texture;
+        this.gl.bindTexture(this.gl.TEXTURE_2D, this._getWebGLTexture(tex));
+        const uDiffuseLoc = cache.uniforms.get("u_diffuseMap");
+        if (uDiffuseLoc) this.gl.uniform1i(uDiffuseLoc, 0);
 
-          let hasAlpha = false;
-          if (extraParams && extraParams[1]! > 0.0 && manifest.textures["u_diffuseMap"]) {
-            hasAlpha = true;
-            this.gl.activeTexture(this.gl.TEXTURE0);
-            const tex = manifest.textures["u_diffuseMap"] as Texture;
-            this.gl.bindTexture(this.gl.TEXTURE_2D, this._getWebGLTexture(tex));
-            const uDiffuseLoc = cache.uniforms.get("u_diffuseMap");
-            if (uDiffuseLoc) this.gl.uniform1i(uDiffuseLoc, 0);
-
-            if (uExtraLoc) {
-              this.gl.uniform4fv(uExtraLoc, extraParams as Float32Array);
-            }
-          }
-
-          if (!hasAlpha && uExtraLoc) {
-            this.gl.uniform4fv(uExtraLoc, new Float32Array([0, 0, 0, 0]));
-          }
-
-          for (const o of objects) {
-            if (!o.castShadow || !o.geometry) continue;
-
-            this._scratchModelMatrix.set(o.worldMatrix.data);
-            const uModel = cache.uniforms.get("u_model");
-            if (uModel) this.gl.uniformMatrix4fv(uModel, false, this._scratchModelMatrix);
-
-            let mesh = this._cache.get(o.geometry);
-            if (!mesh) {
-              mesh = new Mesh(this.gl, o.geometry);
-              this._cache.set(o.geometry, mesh);
-            } else if (o.geometry.needsUpdate) {
-              mesh.update(o.geometry);
-              o.geometry.needsUpdate = false;
-            }
-
-            mesh.bind(
-              cache.attributes.get("a_position")!,
-              cache.attributes.get("a_normal")!,
-              cache.attributes.get("a_uv")!,
-              cache.attributes.get("a_tangent")!,
-            );
-            mesh.draw(drawMode);
-          }
+        if (uExtraLoc) {
+          this.gl.uniform4fv(uExtraLoc, extraParams as Float32Array);
         }
+      }
+
+      if (!hasAlpha && uExtraLoc) {
+        this.gl.uniform4fv(uExtraLoc, new Float32Array([0, 0, 0, 0]));
+      }
+
+      for (const o of objects) {
+        if (!o.castShadow || !o.geometry) continue;
+
+        this._scratchModelMatrix.set(o.worldMatrix.data);
+        const uModel = cache.uniforms.get("u_model");
+        if (uModel) this.gl.uniformMatrix4fv(uModel, false, this._scratchModelMatrix);
+
+        let mesh = this._cache.get(o.geometry);
+        if (!mesh) {
+          mesh = new Mesh(this.gl, o.geometry);
+          this._cache.set(o.geometry, mesh);
+        } else if (o.geometry.needsUpdate) {
+          mesh.update(o.geometry);
+          o.geometry.needsUpdate = false;
+        }
+
+        mesh.bind(
+          cache.attributes.get("a_position")!,
+          cache.attributes.get("a_normal")!,
+          cache.attributes.get("a_uv")!,
+          cache.attributes.get("a_tangent")!,
+        );
+        mesh.draw(drawMode);
       }
     }
   }
@@ -783,59 +780,64 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     }
   }
 
-  public renderGroup(
-    shaderId: string,
-    materialGroups: Map<string, Object3D[]>,
+  public renderBatch(
+    batch: import("../../core/Scene.js").RenderBatch,
     vMat: Float32Array | undefined,
-    topology: string,
     _vp: Float32Array,
     _camPos: Vector3D,
-    lights: LightDataInterface,
+    lights: import("../../interfaces/index.js").LightDataInterface,
     scene: Scene,
   ): void {
-    for (const materialGroup of materialGroups.values()) {
-      if (materialGroup.length === 0) continue;
+    const objects = batch!.objects;
+    if (objects.length === 0) return;
 
-      const instancedObjects: Object3D[] = [];
-      const standardObjects: Object3D[] = [];
+    const instancedObjects: Object3D[] = [];
+    const standardObjects: Object3D[] = [];
 
-      for (const o of materialGroup) {
-        if (o instanceof InstancedMesh) {
-          instancedObjects.push(o);
-        } else {
-          standardObjects.push(o);
-        }
+    for (let i = 0; i < objects.length; i++) {
+      const o = objects[i];
+      if (o instanceof InstancedMesh) {
+        instancedObjects.push(o!);
+      } else {
+        standardObjects.push(o!);
       }
+    }
 
-      const firstObj = materialGroup[0]!;
-      const mat = firstObj.material!;
-      const manifest = mat.getRenderManifest();
+    const firstObj = objects[0]!;
+    const mat = firstObj.material!;
+    const manifest = mat.getRenderManifest();
 
-      if (standardObjects.length > 0) {
-        this._renderSubgroup(
-          shaderId,
-          standardObjects,
-          false,
-          manifest,
-          vMat,
-          topology,
-          lights,
-          scene,
-        );
-      }
+    // WebGL topology: 4 is TRIANGLES, 1 is LINES... we just use the number directly or let subgroup handle it.
+    // Wait, the interface expects topology to be string? No, in WebGL it was string or number. Wait.
+    // In WebGL2Renderer topology was string in the signature above? Let's check the old signature string.
+    // It says `topology: string` in the match. Let's pass `batch!.topology as string`.
 
-      if (instancedObjects.length > 0) {
-        this._renderSubgroup(
-          shaderId,
-          instancedObjects,
-          true,
-          manifest,
-          vMat,
-          topology,
-          lights,
-          scene,
-        );
-      }
+    const topo = batch!.topology as string;
+
+    if (standardObjects.length > 0) {
+      this._renderSubgroup(
+        batch!.shaderId,
+        standardObjects,
+        false,
+        manifest,
+        vMat,
+        topo,
+        lights,
+        scene,
+      );
+    }
+
+    if (instancedObjects.length > 0) {
+      this._renderSubgroup(
+        batch!.shaderId,
+        instancedObjects,
+        true,
+        manifest,
+        vMat,
+        topo,
+        lights,
+        scene,
+      );
     }
   }
 

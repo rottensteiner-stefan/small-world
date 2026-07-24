@@ -30,15 +30,13 @@ export class WebGLMainPass implements WebGLRenderPass {
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
     // 3. Render Skybox
-    const skyboxShaderMap = renderList.opaque.get(MaterialType.SKYBOX);
-    if (skyboxShaderMap) {
-      gl.depthMask(false);
-      for (const [topology, materialGroups] of skyboxShaderMap.entries()) {
-        renderer.renderGroup(
-          MaterialType.SKYBOX,
-          materialGroups,
+    gl.depthMask(false);
+    for (let i = 0; i < renderList.opaqueBatches.length; i++) {
+      const batch = renderList.opaqueBatches[i];
+      if (batch!.shaderId === MaterialType.SKYBOX && batch!.objects.length > 0) {
+        (renderer as AbstractWebGLRenderer).renderBatch(
+          batch!,
           vMat,
-          topology,
           vp,
           camPos,
           {
@@ -54,18 +52,16 @@ export class WebGLMainPass implements WebGLRenderPass {
           scene,
         );
       }
-      gl.depthMask(true);
-      renderList.opaque.delete(MaterialType.SKYBOX);
     }
+    gl.depthMask(true);
 
     // 4. Render Opaque
-    for (const [shaderId, topologyMap] of renderList.opaque.entries()) {
-      for (const [topology, materialGroups] of topologyMap.entries()) {
-        renderer.renderGroup(
-          shaderId,
-          materialGroups,
+    for (let i = 0; i < renderList.opaqueBatches.length; i++) {
+      const batch = renderList.opaqueBatches[i];
+      if (batch!.shaderId !== MaterialType.SKYBOX && batch!.objects.length > 0) {
+        (renderer as AbstractWebGLRenderer).renderBatch(
+          batch!,
           vMat,
-          topology,
           vp,
           camPos,
           extractedLights,
@@ -93,11 +89,15 @@ export class WebGLMainPass implements WebGLRenderPass {
         transparentMap.clear();
         transparentMap.set(obj.material.uuid, [obj]);
 
-        renderer.renderGroup(
+        const batch = {
           shaderId,
-          transparentMap,
+          topology: topology as string | number,
+          matUuid: obj.material.uuid,
+          objects: [obj],
+        };
+        (renderer as AbstractWebGLRenderer).renderBatch(
+          batch,
           vMat,
-          topology,
           vp,
           camPos,
           extractedLights,

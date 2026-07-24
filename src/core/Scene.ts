@@ -8,8 +8,16 @@ import { BoundingType, Topology } from "../enums/index.js";
 import { DirectionalLight } from "./lights/index.js";
 import { Collidable } from "../interfaces/index.js";
 
+export interface RenderBatch {
+  shaderId: string;
+  topology: number | string;
+  matUuid: string;
+  objects: Object3D[];
+}
+
 export interface RenderList {
-  opaque: Map<string, Map<string, Map<string, Object3D[]>>>;
+  opaqueLookup: Map<string, Map<number | string, Map<string, RenderBatch>>>;
+  opaqueBatches: RenderBatch[];
   transparent: Object3D[];
 }
 
@@ -42,7 +50,11 @@ export class Scene {
   public environmentIntensity: number = 1.0;
 
   // Persistent cache for rendering
-  private readonly _renderList: RenderList = { opaque: new Map(), transparent: [] };
+  private readonly _renderList: RenderList = {
+    opaqueLookup: new Map(),
+    opaqueBatches: [],
+    transparent: [],
+  };
 
   private _scratchFrustum: Frustum = new Frustum();
   private _scratchMatrix: Matrix4 = new Matrix4();
@@ -154,12 +166,9 @@ export class Scene {
   public getVisibleObjectsSorted(vp: Float32Array, camPos: Vector3D): RenderList {
     // Clear the persistent list without destroying the structures (Monomorphism/GC optimization)
     this._renderList.transparent.length = 0;
-    for (const topologyMap of this._renderList.opaque.values()) {
-      for (const matMap of topologyMap.values()) {
-        for (const objectsArray of matMap.values()) {
-          objectsArray.length = 0;
-        }
-      }
+    const batches = this._renderList.opaqueBatches;
+    for (let i = 0; i < batches.length; i++) {
+      batches[i]!.objects.length = 0;
     }
 
     const frustum = this._scratchFrustum;
@@ -216,14 +225,20 @@ export class Scene {
           (obj.geometry?.indices?.length === 2 ? Topology.LINE_LIST : Topology.TRIANGLE_LIST);
         const matUuid = obj.material.uuid;
 
-        if (!renderList.opaque.has(shaderId)) renderList.opaque.set(shaderId, new Map());
-        const topologyMap = renderList.opaque.get(shaderId)!;
+        if (!renderList.opaqueLookup.has(shaderId))
+          renderList.opaqueLookup.set(shaderId, new Map());
+        const topologyMap = renderList.opaqueLookup.get(shaderId)!;
 
         if (!topologyMap.has(topology)) topologyMap.set(topology, new Map());
         const matMap = topologyMap.get(topology)!;
 
-        if (!matMap.has(matUuid)) matMap.set(matUuid, []);
-        matMap.get(matUuid)!.push(obj);
+        let batch = matMap.get(matUuid);
+        if (!batch) {
+          batch = { shaderId, topology, matUuid, objects: [] };
+          matMap.set(matUuid, batch);
+          renderList.opaqueBatches.push(batch);
+        }
+        batch!.objects.push(obj);
       }
     }
 

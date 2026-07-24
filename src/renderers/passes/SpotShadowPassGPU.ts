@@ -121,52 +121,52 @@ export class SpotShadowPassGPU implements RenderPass {
 
       rp.setBindGroup(0, this._shadowCasterBindGroup!);
 
-      for (const [shaderId, topologyMap] of renderList.opaque.entries()) {
-        if (shaderId === MaterialType.SKYBOX) continue;
-        for (const [topology, materialGroups] of topologyMap.entries()) {
-          for (const objects of materialGroups.values()) {
-            _scratchCasters.length = 0;
-            _scratchInstanced.length = 0;
-            _scratchStandard.length = 0;
+      for (let batchIdx = 0; batchIdx < renderList.opaqueBatches.length; batchIdx++) {
+        const batch = renderList.opaqueBatches[batchIdx];
+        if (batch!.shaderId === MaterialType.SKYBOX || batch!.objects.length === 0) continue;
+        const objects = batch!.objects;
+        const topology: string = batch!.topology;
 
-            for (let i = 0; i < objects.length; i++) {
-              const o = objects[i]!;
-              if (o.castShadow && (!o.bounds || this._frustum.intersectsVolume(o.bounds))) {
-                _scratchCasters.push(o);
-                if (o instanceof InstancedMesh) {
-                  _scratchInstanced.push(o);
-                } else {
-                  _scratchStandard.push(o);
-                }
-              }
-            }
+        _scratchCasters.length = 0;
+        _scratchInstanced.length = 0;
+        _scratchStandard.length = 0;
 
-            if (_scratchCasters.length === 0) continue;
-
-            if (_scratchStandard.length > 0) {
-              renderer._renderSubgroup(
-                rp,
-                _scratchStandard,
-                false,
-                this._depthMaterial.uuid,
-                depthManifest,
-                shadowCam.viewMatrix,
-                topology as GPUPrimitiveTopology,
-              );
-            }
-
-            if (_scratchInstanced.length > 0) {
-              renderer._renderSubgroup(
-                rp,
-                _scratchInstanced,
-                true,
-                this._depthMaterial.uuid,
-                depthManifest,
-                shadowCam.viewMatrix,
-                topology as GPUPrimitiveTopology,
-              );
+        for (let i = 0; i < objects.length; i++) {
+          const o = objects[i]!;
+          if (o.castShadow && (!o.bounds || this._frustum.intersectsVolume(o.bounds))) {
+            _scratchCasters.push(o);
+            if (o instanceof InstancedMesh) {
+              _scratchInstanced.push(o);
+            } else {
+              _scratchStandard.push(o);
             }
           }
+        }
+
+        if (_scratchCasters.length === 0) continue;
+
+        if (_scratchStandard.length > 0) {
+          renderer._renderSubgroup(
+            rp,
+            _scratchStandard,
+            false,
+            this._depthMaterial.uuid,
+            depthManifest,
+            shadowCam.viewMatrix,
+            topology,
+          );
+        }
+
+        if (_scratchInstanced.length > 0) {
+          renderer._renderSubgroup(
+            rp,
+            _scratchInstanced,
+            true,
+            this._depthMaterial.uuid,
+            depthManifest,
+            shadowCam.viewMatrix,
+            topology,
+          );
         }
       }
 
