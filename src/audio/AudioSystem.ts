@@ -7,7 +7,6 @@ import { CameraInterfaceData } from "../interfaces/index.js";
  * Supports loading sounds and playing them globally or spatially.
  */
 export class AudioSystem {
-  private static _instance: AudioSystem;
   public context: AudioContext;
   private _buffers: Map<string, AudioBuffer> = new Map();
 
@@ -18,7 +17,7 @@ export class AudioSystem {
   private _reverbNode!: ConvolverNode;
   private _reverbGain!: GainNode;
 
-  private constructor() {
+  constructor() {
     const AudioContextClass =
       window.AudioContext ||
       (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
@@ -73,14 +72,6 @@ export class AudioSystem {
   /** Set the Reverb level (0.0 to 1.0) */
   public setReverbLevel(value: number): void {
     this._reverbGain.gain.value = Math.max(0, Math.min(1, value));
-  }
-
-  /** Gets the singleton instance of the AudioSystem. */
-  public static get instance(): AudioSystem {
-    if (!AudioSystem._instance) {
-      AudioSystem._instance = new AudioSystem();
-    }
-    return AudioSystem._instance;
   }
 
   /** Must be called after a user interaction to resume the audio context on some browsers. */

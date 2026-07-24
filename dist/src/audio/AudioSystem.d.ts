@@ -5,7 +5,6 @@ import { CameraInterfaceData } from '../interfaces/index.js';
  * Supports loading sounds and playing them globally or spatially.
  */
 export declare class AudioSystem {
-    private static _instance;
     context: AudioContext;
     private _buffers;
     masterGain: GainNode;
@@ -13,7 +12,7 @@ export declare class AudioSystem {
     musicGain: GainNode;
     private _reverbNode;
     private _reverbGain;
-    private constructor();
+    constructor();
     private _buildMixer;
     /** Set the global master volume (0.0 to 1.0) */
     setMasterVolume(value: number): void;
@@ -23,8 +22,6 @@ export declare class AudioSystem {
     setMusicVolume(value: number): void;
     /** Set the Reverb level (0.0 to 1.0) */
     setReverbLevel(value: number): void;
-    /** Gets the singleton instance of the AudioSystem. */
-    static get instance(): AudioSystem;
     /** Must be called after a user interaction to resume the audio context on some browsers. */
     resume(): void;
     /**

@@ -11,7 +11,6 @@ import { PerspectiveProjection } from "../../math/projections/index.js";
 import { Texture } from "../../core/textures/index.js";
 import { ZoomController } from "../../core/controllers/index.js";
 import { LavaMaterial } from "../../core/materials/index.js";
-import { AudioSystem } from "../../audio/index.js";
 import { QuantizeElement } from "../../renderers/post/elements/index.js";
 import { TextLoader } from "../../loaders/index.js";
 import { BoundingBox } from "../../physix/index.js";
@@ -171,7 +170,7 @@ export class YadApp extends AbstractShowcase {
     );
 
     // 2.5 Load Audio
-    const audio = AudioSystem.instance;
+    const audio = this.audio;
     await audio.load("./assets/sounds/door.wav", "door");
     await audio.load("./assets/sounds/secret.wav", "secret_door");
     await audio.load("./assets/sounds/enemy_grunt.wav", "enemy_grunt");
@@ -201,6 +200,7 @@ export class YadApp extends AbstractShowcase {
       lavaSpecularMap: lavaSpec,
       lavaAmbientMap: lavaAmb,
       playerCamera: this.camera,
+      audio: this.audio,
       lavaFloorChars: ["T"], // Only T is lava now
       slimeFloorChars: ["~"],
       legend: {
@@ -272,9 +272,11 @@ export class YadApp extends AbstractShowcase {
     this._playerController = new YadController(this.events, {
       moveSpeed: 10.0,
       scene: this.scene,
+      input: this.input,
+      audio: this.audio,
     });
     this.camera.addBehavior(this._playerController);
-    this.camera.addBehavior(new ZoomController());
+    this.camera.addBehavior(new ZoomController({ input: this.input }));
 
     // 6. Final Scene Prep
     this.scene.update(); // Update all world matrices first
@@ -313,7 +315,7 @@ export class YadApp extends AbstractShowcase {
       this._hud.update(deltaTime, this._playerController.bobPhase);
     }
 
-    AudioSystem.instance.updateListener(this.camera);
+    this.audio.updateListener(this.camera);
   }
 }
 

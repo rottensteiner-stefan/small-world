@@ -1,6 +1,6 @@
 /// src/core/controllers/WASDController.ts
 import { Behavior } from "../behaviors/index.js";
-import { Object3D, Input } from "../index.js";
+import { Object3D, InputInterface } from "../index.js";
 import { InputMode, Keys } from "../../enums/index.js";
 import { MathPool } from "../../math/index.js";
 
@@ -8,6 +8,8 @@ import { MathPool } from "../../math/index.js";
  * Configuration for the WASDController.
  */
 export interface WASDControllerOptions {
+  /** The input source. Required for reading keys. */
+  input?: InputInterface;
   /** Movement speed in units per second. Defaults to 10. */
   moveSpeed?: number;
   /** Input mode for A/D keys (STRAFE or TANK). Defaults to TANK. */
@@ -28,9 +30,11 @@ export class WASDController extends Behavior {
    * Creates a new WASDController.
    * @param options Configuration options.
    */
-  constructor(options: WASDControllerOptions = {}) {
+  constructor(options: WASDControllerOptions) {
     super();
+    if (!options.input) throw new Error("WASDController requires an 'input' option.");
     this._options = {
+      input: options.input,
       moveSpeed: options.moveSpeed ?? 10.0,
       inputMode: options.inputMode ?? InputMode.TANK,
       enableVertical: options.enableVertical ?? false,
@@ -42,8 +46,8 @@ export class WASDController extends Behavior {
       return;
     }
 
-    const moveZ = Input.getAxis(Keys.W, Keys.S);
-    const horizontalAxis = Input.getAxis(Keys.A, Keys.D);
+    const moveZ = this._options.input.getAxis(Keys.W, Keys.S);
+    const horizontalAxis = this._options.input.getAxis(Keys.A, Keys.D);
 
     // Handle Rotation (A/D in TANK mode)
     const obj = this.target as Object3D;
@@ -81,7 +85,7 @@ export class WASDController extends Behavior {
     }
 
     if (this._options.enableVertical) {
-      const moveY = Input.getAxis(Keys.Q, Keys.E);
+      const moveY = this._options.input.getAxis(Keys.Q, Keys.E);
       if (0 !== moveY) {
         obj.position.y += moveY * this._options.moveSpeed * deltaTime;
       }

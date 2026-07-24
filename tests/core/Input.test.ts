@@ -5,10 +5,11 @@ import { Keys } from "../../src/enums/Keys.js";
 
 describe("Input Gamepad Support", () => {
   let originalGetGamepads: (() => (Gamepad | null)[]) | undefined;
+  let input: Input;
 
   beforeEach(() => {
     // Reset keys and mouse state
-    const input = Input.instance;
+    input = new Input();
     // Clear private keys map using helper or setting key states to false
     for (const key of Object.values(Keys)) {
       input.setKeyState(key, false);
@@ -41,8 +42,8 @@ describe("Input Gamepad Support", () => {
     const gamepad = mockGamepad([0, 0, 0, 0], [{ pressed: true }]);
     navigator.getGamepads = () => [gamepad];
 
-    expect(Input.isPressed(Keys.SPACE)).toBe(true);
-    expect(Input.isPressed(Keys.ESCAPE)).toBe(false);
+    expect(input.isPressed(Keys.SPACE)).toBe(true);
+    expect(input.isPressed(Keys.ESCAPE)).toBe(false);
   });
 
   it("should map left stick to isPressed for directions", () => {
@@ -50,17 +51,17 @@ describe("Input Gamepad Support", () => {
     const gamepad = mockGamepad([0.0, -1.0, 0.0, 0.0], []);
     navigator.getGamepads = () => [gamepad];
 
-    expect(Input.isPressed(Keys.W)).toBe(true);
-    expect(Input.isPressed(Keys.UP)).toBe(true);
-    expect(Input.isPressed(Keys.S)).toBe(false);
+    expect(input.isPressed(Keys.W)).toBe(true);
+    expect(input.isPressed(Keys.UP)).toBe(true);
+    expect(input.isPressed(Keys.S)).toBe(false);
 
     // Left stick pushed fully right (axis 0 = 1.0)
     const gamepad2 = mockGamepad([1.0, 0.0, 0.0, 0.0], []);
     navigator.getGamepads = () => [gamepad2];
 
-    expect(Input.isPressed(Keys.D)).toBe(true);
-    expect(Input.isPressed(Keys.RIGHT)).toBe(true);
-    expect(Input.isPressed(Keys.A)).toBe(false);
+    expect(input.isPressed(Keys.D)).toBe(true);
+    expect(input.isPressed(Keys.RIGHT)).toBe(true);
+    expect(input.isPressed(Keys.A)).toBe(false);
   });
 
   it("should map D-Pad buttons to directions", () => {
@@ -71,8 +72,8 @@ describe("Input Gamepad Support", () => {
     const gamepad = mockGamepad([0, 0, 0, 0], buttons);
     navigator.getGamepads = () => [gamepad];
 
-    expect(Input.isPressed(Keys.UP)).toBe(true);
-    expect(Input.isPressed(Keys.DOWN)).toBe(false);
+    expect(input.isPressed(Keys.UP)).toBe(true);
+    expect(input.isPressed(Keys.DOWN)).toBe(false);
   });
 
   it("should interpolate axis from analog left stick in getAxis", () => {
@@ -80,7 +81,7 @@ describe("Input Gamepad Support", () => {
     const gamepad = mockGamepad([0.0, 0.5, 0.0, 0.0], []);
     navigator.getGamepads = () => [gamepad];
 
-    const vertical = Input.getAxis(Keys.W, Keys.S);
+    const vertical = input.getAxis(Keys.W, Keys.S);
     expect(vertical).toBeCloseTo(0.5, 2);
   });
 
@@ -89,9 +90,9 @@ describe("Input Gamepad Support", () => {
     const gamepad = mockGamepad([0.0, 0.0, 0.8, 0.5], []);
     navigator.getGamepads = () => [gamepad];
 
-    Input.update();
+    input.update();
 
-    expect(Input.mouse.dx).toBeCloseTo(0.8 * 15.0, 2);
-    expect(Input.mouse.dy).toBeCloseTo(0.5 * 15.0, 2);
+    expect(input.mouse.dx).toBeCloseTo(0.8 * 15.0, 2);
+    expect(input.mouse.dy).toBeCloseTo(0.5 * 15.0, 2);
   });
 });

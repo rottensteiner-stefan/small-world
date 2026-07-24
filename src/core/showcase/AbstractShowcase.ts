@@ -1,5 +1,4 @@
-/// src/core/showcase/AbstractShowcase.ts
-import { SmallWorld, Input } from "../index.js";
+import { SmallWorld } from "../index.js";
 import { EngineOptions } from "../../interfaces/index.js";
 import { Keys } from "../../enums/index.js";
 import { AssetManager } from "../../loaders/index.js";
@@ -42,8 +41,8 @@ export abstract class AbstractShowcase extends SmallWorld {
       // Wenn SHIFT gedrückt ist, ignorieren wir den PointerLock (damit der Inspector arbeiten kann)
       if (event.shiftKey) return;
 
-      if (!Input.isPointerLocked) {
-        Input.requestPointerLock(this.canvas);
+      if (!this.input.isPointerLocked) {
+        this.input.requestPointerLock(this.canvas);
       }
     });
   }

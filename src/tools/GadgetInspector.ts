@@ -9,7 +9,6 @@ import {
   DeviceLimit,
   FrustumCuller,
 } from "../core/index.js";
-import { AudioSystem } from "../audio/index.js";
 import { BoundingType } from "../enums/index.js";
 import { CameraInterfaceData, Renderer } from "../interfaces/index.js";
 import { Behavior } from "../core/behaviors/index.js";
@@ -257,7 +256,10 @@ export class GadgetInspector extends ForgeTool {
         step: 0.01,
         view: "cameraring",
       })
-      .on("change", (ev: { value: number }) => AudioSystem.instance.setMasterVolume(ev.value));
+      .on("change", (ev: { value: number }) => {
+        // In a real app we'd dispatch an event. Let's dispatch it.
+        window.dispatchEvent(new CustomEvent("gadget:audio:master", { detail: ev.value }));
+      });
     audioFolder
       .addBinding(audioSettings, "music", {
         label: "Music",
@@ -266,7 +268,9 @@ export class GadgetInspector extends ForgeTool {
         step: 0.01,
         view: "cameraring",
       })
-      .on("change", (ev: { value: number }) => AudioSystem.instance.setMusicVolume(ev.value));
+      .on("change", (ev: { value: number }) => {
+        window.dispatchEvent(new CustomEvent("gadget:audio:music", { detail: ev.value }));
+      });
     audioFolder
       .addBinding(audioSettings, "sfx", {
         label: "SFX",
@@ -275,7 +279,9 @@ export class GadgetInspector extends ForgeTool {
         step: 0.01,
         view: "cameraring",
       })
-      .on("change", (ev: { value: number }) => AudioSystem.instance.setSFXVolume(ev.value));
+      .on("change", (ev: { value: number }) => {
+        window.dispatchEvent(new CustomEvent("gadget:audio:sfx", { detail: ev.value }));
+      });
     audioFolder
       .addBinding(audioSettings, "reverb", {
         label: "Reverb",
@@ -284,7 +290,9 @@ export class GadgetInspector extends ForgeTool {
         step: 0.01,
         view: "cameraring",
       })
-      .on("change", (ev: { value: number }) => AudioSystem.instance.setReverbLevel(ev.value));
+      .on("change", (ev: { value: number }) => {
+        window.dispatchEvent(new CustomEvent("gadget:audio:reverb", { detail: ev.value }));
+      });
 
     // 2. Create Highlight Mesh (Neon Cyan Wireframe)
     const geo = new Cube({ size: 1 });

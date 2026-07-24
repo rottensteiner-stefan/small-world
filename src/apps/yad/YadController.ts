@@ -2,7 +2,6 @@
 import {
   FirstPersonController,
   FirstPersonControllerOptions,
-  Input,
   Object3D,
   EventDispatcherImpl,
 } from "../../core/index.js";
@@ -12,6 +11,11 @@ import { Raycaster } from "../../physix/index.js";
 import { Vector2D } from "../../math/index.js";
 import { AudioSystem } from "../../audio/index.js";
 import { YadObjectTags } from "./YadObjectTags.js";
+
+export interface YadControllerOptions extends FirstPersonControllerOptions {
+  audio?: AudioSystem | undefined;
+}
+
 /**
  * A retro style controller for forward/backward movement and left/right rotation.
  * It extends FirstPersonController and adds shooting, weapon selection, and damage logic.
@@ -20,6 +24,8 @@ export class YadController extends FirstPersonController {
   private _lastShotTime: number = 0;
   private _lastHurtTime: number = 0;
 
+  private _audio?: AudioSystem | undefined;
+
   /**
    * Creates a new YadController.
    * @param events The event bus
@@ -27,10 +33,12 @@ export class YadController extends FirstPersonController {
    */
   constructor(
     private events: EventDispatcherImpl,
-    options: FirstPersonControllerOptions = {},
+    options: YadControllerOptions = {},
   ) {
     // Force retro tank controls for Dungeon feel
     super({ ...options, retroTankControls: true });
+    this._audio = options.audio;
+    if (!options.input) throw new Error("YadController requires an 'input' option.");
   }
 
   public override update(deltaTime: number): void {
@@ -46,22 +54,25 @@ export class YadController extends FirstPersonController {
     // 2. Play Footsteps (base class calculates distanceMoved)
     if (this.distanceMoved > 2.0) {
       // Play footstep every 2 units moved
-      AudioSystem.instance.play("footstep", false, 0.4);
+      if (this._audio) this._audio.play("footstep", false, 0.4);
       this.distanceMoved = 0;
     }
 
     // 3. Weapon Selection (Keys 1-6)
     for (let i = 1; i <= 6; i++) {
-      if (Input.isPressed(i.toString() as Keys) || Input.isPressed(`Digit${i}` as Keys)) {
+      if (
+        this._options.input.isPressed(i.toString() as Keys) ||
+        this._options.input.isPressed(`Digit${i}` as Keys)
+      ) {
         this.events.dispatchEvent(AppEvents.Yad.WEAPON, { index: i });
       }
     }
 
     // 4. Shoot
     const now = performance.now();
-    if (Input.isPressed(Keys.SPACE) && now - this._lastShotTime > 500) {
+    if (this._options.input.isPressed(Keys.SPACE) && now - this._lastShotTime > 500) {
       this._lastShotTime = now;
-      AudioSystem.instance.play("shoot", false, 0.6);
+      if (this._audio) this._audio.play("shoot", false, 0.6);
       this.events.dispatchEvent(AppEvents.Yad.SHOOT);
 
       // Raycast for Enemies
@@ -102,7 +113,8 @@ export class YadController extends FirstPersonController {
             // Stop bobbing and other behaviors
             [...obj.behaviors].forEach((b) => obj.removeBehavior(b));
 
-            AudioSystem.instance.playSpatial("enemy_death", obj.position, false, 0.8, 2.0, 20.0);
+            if (this._audio)
+              this._audio.playSpatial("enemy_death", obj.position, false, 0.8, 2.0, 20.0);
             break; // Bullet stops at the enemy
           }
 
@@ -130,7 +142,7 @@ export class YadController extends FirstPersonController {
             obj.isVisible = false;
             // Stop bobbing
             [...obj.behaviors].forEach((b) => obj.removeBehavior(b));
-            AudioSystem.instance.play("pickup", false, 0.8);
+            if (this._audio) this._audio.play("pickup", false, 0.8);
 
             // Dispatch custom event for HUD
             this.events.dispatchEvent(AppEvents.Yad.PICKUP, {
@@ -150,7 +162,7 @@ export class YadController extends FirstPersonController {
           if (dx * dx + dz * dz < 1.0) {
             // Standing right on it
             this._lastHurtTime = now;
-            AudioSystem.instance.play("hurt", false, 0.8);
+            if (this._audio) this._audio.play("hurt", false, 0.8);
 
             // Dispatch custom event for HUD
             this.events.dispatchEvent(AppEvents.Yad.DAMAGE, { amount: 10 });

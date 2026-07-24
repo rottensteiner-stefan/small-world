@@ -1,12 +1,14 @@
 import { Camera } from './Camera.js';
 import { Scene } from './Scene.js';
+import { Input } from './Input.js';
 import { InteractionManager } from './InteractionManager.js';
+import { AudioSystem } from '../audio/AudioSystem.js';
 import { EventDispatcherImpl } from './events/EventDispatcherImpl.js';
 import { EngineOptions, Renderer } from '../interfaces/index.js';
 import { GadgetInspector } from '../tools/GadgetInspector.js';
 import { PhysicsSystem } from '../physix/PhysicsSystem.js';
 /** The current engine version. */
-export declare const ENGINE_VERSION = "0.69.3";
+export declare const ENGINE_VERSION = "0.69.4";
 /**
  * Base class for applications built with the SmallWorld engine.
  */
@@ -23,6 +25,8 @@ export declare abstract class SmallWorld {
     physics: PhysicsSystem;
     /** The interaction manager for gamification / picking. */
     interactionManager: InteractionManager;
+    readonly input: Input;
+    readonly audio: AudioSystem;
     forge: import('../tools/forge/Forge.js').Forge;
     /** The canvas element. */
     canvas: HTMLCanvasElement;

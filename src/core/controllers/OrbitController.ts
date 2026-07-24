@@ -1,12 +1,14 @@
 /// src/core/controllers/OrbitController.ts
 import { Behavior } from "../behaviors/index.js";
 import { CameraInterfaceData } from "../../interfaces/index.js";
-import { Input } from "../index.js";
+import { InputInterface } from "../index.js";
 
 /**
  * Configuration for the OrbitController.
  */
 export interface OrbitControllerOptions {
+  /** The input source. Required for reading mouse/pointer lock state. */
+  input?: InputInterface;
   /** Look sensitivity. Defaults to 0.005. */
   lookSensitivity?: number;
   /** Rotation speed for keyboard. Defaults to 2.0. */
@@ -30,9 +32,11 @@ export class OrbitController extends Behavior {
    * Creates a new OrbitController.
    * @param options Configuration options.
    */
-  constructor(options: OrbitControllerOptions = {}) {
+  constructor(options: OrbitControllerOptions) {
     super();
+    if (!options.input) throw new Error("OrbitController requires an 'input' option.");
     this._options = {
+      input: options.input,
       lookSensitivity: options.lookSensitivity ?? 0.005,
       rotationSpeed: options.rotationSpeed ?? 2.0,
       minPhi: options.minPhi ?? 0.01,
@@ -50,17 +54,17 @@ export class OrbitController extends Behavior {
 
     // 1. Handle Rotation
     if (this._options.enableRotation) {
-      if (Input.isPointerLocked || Input.mouse.left) {
-        cam.pendingDx += Input.mouse.dx;
-        cam.pendingDy += Input.mouse.dy;
+      if (this._options.input.isPointerLocked || this._options.input.mouse.left) {
+        cam.pendingDx += this._options.input.mouse.dx;
+        cam.pendingDy += this._options.input.mouse.dy;
       }
     }
 
     // 2. Handle Zoom (Mouse Wheel / Touchpad Pinch)
-    if (Input.mouse.zoom !== 0) {
+    if (this._options.input.mouse.zoom !== 0) {
       // Delegate zooming to the camera's strategy instead of hardcoding position updates
       // The strategy maintains its own 'radius' state which would otherwise overwrite this.
-      cam.zoom(Input.mouse.zoom * 0.1);
+      cam.zoom(this._options.input.mouse.zoom * 0.1);
     }
   }
 }

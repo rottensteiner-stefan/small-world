@@ -1,7 +1,7 @@
 /// src/core/InteractionManager.ts
 import { Scene } from "./Scene.js";
 import { Camera } from "./Camera.js";
-import { Input } from "./Input.js";
+import { InputInterface } from "./Input.js";
 import { Object3D } from "./Object3D.js";
 import { Raycaster, Intersection } from "../physix/index.js";
 import { Vector2D } from "../math/index.js";
@@ -21,19 +21,20 @@ export class InteractionManager {
     public scene: Scene,
     public camera: Camera,
     public canvas: HTMLCanvasElement,
+    public input: InputInterface,
   ) {}
 
   /**
    * Called every frame to process input and fire events.
    */
   public update(): void {
-    if (Input.isPointerLocked) {
+    if (this.input.isPointerLocked) {
       this._clearHover();
-      this._wasLeftDown = Input.mouse.left;
+      this._wasLeftDown = this.input.mouse.left;
       return;
     }
 
-    const mouse = Input.mouse;
+    const mouse = this.input.mouse;
     const rect = this.canvas.getBoundingClientRect();
     const x = mouse.x - rect.left;
     const y = mouse.y - rect.top;
@@ -41,7 +42,7 @@ export class InteractionManager {
     // Check if mouse is outside canvas
     if (x < 0 || x > rect.width || y < 0 || y > rect.height) {
       this._clearHover();
-      this._wasLeftDown = Input.mouse.left;
+      this._wasLeftDown = this.input.mouse.left;
       return;
     }
 

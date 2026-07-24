@@ -91,4 +91,6 @@ For high-precision applications like CAD tools or Shooters, the Raycaster uses a
 2. If the object has `geometry`, it dynamically iterates over the actual triangle vertices of the mesh, transforming them into world-space.
 3. It performs a **Möller-Trumbore Intersection** to find the exact intersection distance `t`.
 
+> **Architecture Note (Broadphase vs. Narrowphase):** The core `Raycaster` class itself is strictly designed as a linear *Narrowphase* evaluator. It deliberately does not contain internal spatial acceleration (like BVH or internal Octrees). Instead, spatial filtering (the *Broadphase*) is handled one layer up by systems like the `InteractionManager` (via `scene.staticOctree.queryRay`), which then feed only the heavily reduced list of candidate objects into the `Raycaster`. This clear separation of concerns keeps the Raycaster simple and prevents redundant acceleration structures.
+
 This guarantees that transparent gaps or irregular meshes can be clicked with pixel-perfect accuracy!

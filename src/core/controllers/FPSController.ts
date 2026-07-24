@@ -1,7 +1,7 @@
 /// src/core/controllers/FPSController.ts
 import { Behavior } from "../behaviors/Behavior.js";
 import { CameraInterfaceData } from "../../interfaces/index.js";
-import { Object3D, Input, InputInterface, Scene } from "../index.js";
+import { Object3D, InputInterface, Scene } from "../index.js";
 import { InputMode, Keys } from "../../enums/index.js";
 import { BoundingSphere } from "../../physix/index.js";
 import { resolveSphereCollisions } from "../behaviors/CollisionResolution.js";
@@ -59,8 +59,11 @@ export class FPSController extends Behavior {
       enableCollision: options.enableCollision ?? !!options.scene,
       collisionRadius: options.collisionRadius ?? 0.5,
       scene: options.scene,
-      input: options.input ?? Input.instance,
+      input: options.input as InputInterface,
     };
+    if (!this._options.input) {
+      throw new Error("FPSController requires an 'input' option.");
+    }
   }
 
   public override onAttach(target: import("../index.js").Object3D | CameraInterfaceData): void {

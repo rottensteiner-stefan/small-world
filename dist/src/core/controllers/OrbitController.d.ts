@@ -1,8 +1,11 @@
 import { Behavior } from '../behaviors/index.js';
+import { InputInterface } from '../index.js';
 /**
  * Configuration for the OrbitController.
  */
 export interface OrbitControllerOptions {
+    /** The input source. Required for reading mouse/pointer lock state. */
+    input?: InputInterface;
     /** Look sensitivity. Defaults to 0.005. */
     lookSensitivity?: number;
     /** Rotation speed for keyboard. Defaults to 2.0. */
@@ -24,6 +27,6 @@ export declare class OrbitController extends Behavior {
      * Creates a new OrbitController.
      * @param options Configuration options.
      */
-    constructor(options?: OrbitControllerOptions);
+    constructor(options: OrbitControllerOptions);
     update(_deltaTime: number): void;
 }

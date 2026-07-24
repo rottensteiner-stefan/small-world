@@ -5,6 +5,7 @@ import { PointLight } from '../../core/lights/index.js';
 import { Color } from '../../core/colors/index.js';
 import { Texture } from '../../core/textures/index.js';
 import { CameraInterfaceData } from '../../interfaces/index.js';
+import { AudioSystem } from '../../audio/index.js';
 export type YadTileType = "wall" | "door" | "sprite" | "column" | "lavaBall" | "playerSpawn" | "floor";
 export interface YadLegendEntry {
     type: YadTileType;
@@ -39,6 +40,7 @@ export interface YadLevelConfig {
     lavaFloorChars?: string[];
     slimeFloorChars?: string[];
     playerCamera?: CameraInterfaceData;
+    audio?: AudioSystem | undefined;
 }
 /**
  * YadLevelBuilder now wraps the generic GridLevelBuilder.

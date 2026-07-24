@@ -11,6 +11,7 @@ import { YadObjectTags } from "./YadObjectTags.js";
 export interface EnemyBehaviorOptions {
   player: CameraInterfaceData;
   scene: Scene;
+  audio?: AudioSystem | undefined;
   speed?: number;
   detectionRange?: number;
 }
@@ -21,12 +22,14 @@ export class EnemyBehavior extends Behavior {
   private _speed: number;
   private _detectionRange: number;
   private _collider?: BoundingSphere;
+  private _audio?: AudioSystem | undefined;
   private _gruntTimer: number = 0;
 
   constructor(options: EnemyBehaviorOptions) {
     super();
     this._player = options.player;
     this._scene = options.scene;
+    this._audio = options.audio;
     this._speed = options.speed ?? 3.0;
     this._detectionRange = options.detectionRange ?? 20.0;
   }
@@ -50,7 +53,8 @@ export class EnemyBehavior extends Behavior {
     // Play random grunt sound spatially
     this._gruntTimer -= deltaTime;
     if (this._gruntTimer <= 0) {
-      AudioSystem.instance.playSpatial("enemy_grunt", this.target.position, false, 0.5, 2.0, 25.0);
+      if (this._audio)
+        this._audio.playSpatial("enemy_grunt", this.target.position, false, 0.5, 2.0, 25.0);
       this._gruntTimer = 3.0 + Math.random() * 5.0; // Grunt every 3-8 seconds
     }
 

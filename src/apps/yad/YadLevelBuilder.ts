@@ -58,6 +58,7 @@ export interface YadLevelConfig {
   lavaFloorChars?: string[];
   slimeFloorChars?: string[];
   playerCamera?: CameraInterfaceData;
+  audio?: AudioSystem | undefined;
 }
 
 /**
@@ -155,24 +156,14 @@ export class YadLevelBuilder {
                   onUpdate: (_factor, distance, deltaTime): void => {
                     if (distance <= 3.5 && !isOpen) {
                       isOpen = true;
-                      AudioSystem.instance.playSpatial(
-                        dSound,
-                        block.position,
-                        false,
-                        0.8,
-                        3.0,
-                        30.0,
-                      );
+                      if (config.audio) {
+                        config.audio.playSpatial(dSound, block.position, false, 0.8, 3.0, 30.0);
+                      }
                     } else if (distance >= 4.5 && isOpen) {
                       isOpen = false;
-                      AudioSystem.instance.playSpatial(
-                        dSound,
-                        block.position,
-                        false,
-                        0.8,
-                        3.0,
-                        30.0,
-                      );
+                      if (config.audio) {
+                        config.audio.playSpatial(dSound, block.position, false, 0.8, 3.0, 30.0);
+                      }
                     }
                     const targetY = isOpen ? initialY + this._wallHeight : initialY;
                     block.position.y += (targetY - block.position.y) * 5.0 * deltaTime;
@@ -212,6 +203,7 @@ export class YadLevelBuilder {
                 new EnemyBehavior({
                   player: config.playerCamera!,
                   scene: sceneRef,
+                  audio: config.audio,
                   speed: 6.0,
                   detectionRange: 30.0,
                 }),
@@ -227,7 +219,9 @@ export class YadLevelBuilder {
               light.position.set(worldX, (entry.spriteY ?? 1.0) + 0.3, worldZ);
               sceneRef.add(light);
 
-              AudioSystem.instance.startFire(light.position, 0.4);
+              if (config.audio) {
+                config.audio.startFire(light.position, 0.4);
+              }
             }
             return sprite;
           },

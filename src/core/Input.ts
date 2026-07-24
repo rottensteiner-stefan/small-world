@@ -33,7 +33,7 @@ export interface InputInterface {
  * but can be instantiated or mocked for testing.
  */
 export class Input implements InputInterface {
-  private static _instance: Input;
+  public preventPointerLock: boolean = false;
   private _keys: Map<string, boolean> = new Map<string, boolean>();
   private _gamepadController: UniversalGamepadController = new UniversalGamepadController();
 
@@ -55,78 +55,49 @@ export class Input implements InputInterface {
   /** Whether debug mode is enabled for input. */
   public debug: boolean = false;
 
-  /**
-   * Gets the global singleton instance.
-   */
-  public static get instance(): Input {
-    if (!this._instance) {
-      this._instance = new Input();
-    }
-    return this._instance;
+  public get gamepadController(): UniversalGamepadController {
+    return this._gamepadController;
   }
-
-  /**
-   * Static accessors to maintain backward compatibility.
-   */
-  public static get mouse(): MouseState {
-    return this.instance.mouse;
-  }
-  public static get isPointerLocked(): boolean {
-    return this.instance.isPointerLocked;
-  }
-  public static set isPointerLocked(v: boolean) {
-    this.instance.isPointerLocked = v;
-  }
-  public static get debug(): boolean {
-    return this.instance.debug;
-  }
-  public static set debug(v: boolean) {
-    this.instance.debug = v;
-  }
-  public static get gamepadController(): UniversalGamepadController {
-    return this.instance._gamepadController;
-  }
-  public static requestJoyConConnection(): Promise<void> {
-    return this.instance._gamepadController.requestJoyConConnection();
+  public requestJoyConConnection(): Promise<void> {
+    return this._gamepadController.requestJoyConConnection();
   }
 
   /**
    * Initializes the input listeners.
    */
-  public static init(): void {
-    const inst = this.instance;
+  public init(): void {
     window.addEventListener("keydown", (e: KeyboardEvent): void => {
-      inst._keys.set(e.code, true);
+      this._keys.set(e.code, true);
     });
     window.addEventListener("keyup", (e: KeyboardEvent): void => {
-      inst._keys.set(e.code, false);
+      this._keys.set(e.code, false);
     });
     window.addEventListener("mousedown", (e: MouseEvent): void => {
-      inst.mouse.x = e.clientX;
-      inst.mouse.y = e.clientY;
+      this.mouse.x = e.clientX;
+      this.mouse.y = e.clientY;
       if (0 === e.button) {
-        inst.mouse.left = true;
+        this.mouse.left = true;
       }
       if (2 === e.button) {
-        inst.mouse.right = true;
+        this.mouse.right = true;
       }
     });
     window.addEventListener("mouseup", (e: MouseEvent): void => {
-      inst.mouse.x = e.clientX;
-      inst.mouse.y = e.clientY;
+      this.mouse.x = e.clientX;
+      this.mouse.y = e.clientY;
       if (0 === e.button) {
-        inst.mouse.left = false;
+        this.mouse.left = false;
       }
       if (2 === e.button) {
-        inst.mouse.right = false;
+        this.mouse.right = false;
       }
     });
     window.addEventListener("mousemove", (e: MouseEvent): void => {
-      inst.mouse.x = e.clientX;
-      inst.mouse.y = e.clientY;
+      this.mouse.x = e.clientX;
+      this.mouse.y = e.clientY;
       // Track movement deltas regardless of pointer lock state
-      inst.mouse.dx += e.movementX;
-      inst.mouse.dy += e.movementY;
+      this.mouse.dx += e.movementX;
+      this.mouse.dy += e.movementY;
     });
     window.addEventListener(
       "wheel",
@@ -134,37 +105,36 @@ export class Input implements InputInterface {
         // Pinch-to-zoom on trackpads is often sent as a wheel event with ctrlKey
         if (e.ctrlKey) {
           e.preventDefault();
-          inst.mouse.zoom += e.deltaY * 0.01;
+          this.mouse.zoom += e.deltaY * 0.01;
         } else {
-          inst.mouse.wheelX += e.deltaX;
-          inst.mouse.wheelY += e.deltaY;
-          inst.mouse.zoom += e.deltaY * 0.001;
+          this.mouse.wheelX += e.deltaX;
+          this.mouse.wheelY += e.deltaY;
+          this.mouse.zoom += e.deltaY * 0.001;
         }
       },
       { passive: false },
     );
-
     window.addEventListener("gesturechange", (e: Event): void => {
       e.preventDefault();
       const gestureEvent = e as unknown as { scale: number };
-      inst.mouse.zoom += (1.0 - gestureEvent.scale) * 2.0;
+      this.mouse.zoom += (1.0 - gestureEvent.scale) * 2.0;
     });
 
     window.addEventListener("contextmenu", (e: MouseEvent): void => e.preventDefault());
 
     window.addEventListener("blur", (): void => {
-      inst._keys.clear();
-      inst.mouse.left = false;
-      inst.mouse.right = false;
-      inst.mouse.dx = 0;
-      inst.mouse.dy = 0;
+      this._keys.clear();
+      this.mouse.left = false;
+      this.mouse.right = false;
+      this.mouse.dx = 0;
+      this.mouse.dy = 0;
     });
 
     document.addEventListener("pointerlockchange", (): void => {
-      inst.isPointerLocked = null !== document.pointerLockElement;
+      this.isPointerLocked = null !== document.pointerLockElement;
       // Reset deltas when lock state changes to prevent jumping
-      inst.mouse.dx = 0;
-      inst.mouse.dy = 0;
+      this.mouse.dx = 0;
+      this.mouse.dy = 0;
     });
 
     window.addEventListener("gamepadconnected", (): void => {
@@ -183,9 +153,9 @@ export class Input implements InputInterface {
         if (e.touches.length > 0) {
           lastTouchX = e.touches[0]!.clientX;
           lastTouchY = e.touches[0]!.clientY;
-          inst.mouse.x = lastTouchX;
-          inst.mouse.y = lastTouchY;
-          inst.mouse.left = true;
+          this.mouse.x = lastTouchX;
+          this.mouse.y = lastTouchY;
+          this.mouse.left = true;
         }
       },
       { passive: true },
@@ -197,10 +167,10 @@ export class Input implements InputInterface {
         if (e.touches.length > 0) {
           const currentX = e.touches[0]!.clientX;
           const currentY = e.touches[0]!.clientY;
-          inst.mouse.dx += currentX - lastTouchX;
-          inst.mouse.dy += currentY - lastTouchY;
-          inst.mouse.x = currentX;
-          inst.mouse.y = currentY;
+          this.mouse.dx += currentX - lastTouchX;
+          this.mouse.dy += currentY - lastTouchY;
+          this.mouse.x = currentX;
+          this.mouse.y = currentY;
           lastTouchX = currentX;
           lastTouchY = currentY;
         }
@@ -210,16 +180,13 @@ export class Input implements InputInterface {
 
     window.addEventListener("touchend", (e: TouchEvent): void => {
       if (e.touches.length === 0) {
-        inst.mouse.left = false;
+        this.mouse.left = false;
       }
     });
   }
 
-  /** Global block flag to temporarily disable PointerLock requests (e.g. for inspector). */
-  public static preventPointerLock: boolean = false;
-
-  public static requestPointerLock(element: HTMLElement): void {
-    if (true === Input.preventPointerLock) {
+  public requestPointerLock(element: HTMLElement): void {
+    if (true === this.preventPointerLock) {
       return;
     }
     try {
@@ -348,17 +315,6 @@ export class Input implements InputInterface {
         this._lastDebugLog = now;
       }
     }
-  }
-
-  /** Static wrappers */
-  public static isPressed(code: string | Keys): boolean {
-    return this.instance.isPressed(code);
-  }
-  public static getAxis(neg: string | Keys, pos: string | Keys): number {
-    return this.instance.getAxis(neg, pos);
-  }
-  public static update(): void {
-    this.instance.update();
   }
 
   /**

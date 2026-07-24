@@ -1,9 +1,12 @@
 import { Behavior } from '../behaviors/index.js';
+import { InputInterface } from '../index.js';
 import { InputMode } from '../../enums/index.js';
 /**
  * Configuration for the WASDController.
  */
 export interface WASDControllerOptions {
+    /** The input source. Required for reading keys. */
+    input?: InputInterface;
     /** Movement speed in units per second. Defaults to 10. */
     moveSpeed?: number;
     /** Input mode for A/D keys (STRAFE or TANK). Defaults to TANK. */
@@ -22,6 +25,6 @@ export declare class WASDController extends Behavior {
      * Creates a new WASDController.
      * @param options Configuration options.
      */
-    constructor(options?: WASDControllerOptions);
+    constructor(options: WASDControllerOptions);
     update(deltaTime: number): void;
 }

@@ -1,7 +1,7 @@
 /// src/core/behaviors/FirstPersonController.ts
 import { Behavior } from "./Behavior.js";
 import { CameraInterfaceData } from "../../interfaces/index.js";
-import { Object3D, Input, InputInterface, Scene } from "../index.js";
+import { Object3D, InputInterface, Scene } from "../index.js";
 import { Keys } from "../../enums/index.js";
 import { BoundingSphere } from "../../physix/index.js";
 import { resolveSphereCollisions } from "./CollisionResolution.js";
@@ -55,8 +55,11 @@ export class FirstPersonController extends Behavior {
       collisionRadius: options.collisionRadius ?? 0.7,
       scene: options.scene,
       retroTankControls: options.retroTankControls ?? true,
-      input: options.input ?? Input.instance,
+      input: options.input as InputInterface,
     };
+    if (!this._options.input) {
+      throw new Error("FirstPersonController requires an 'input' option.");
+    }
   }
 
   public override onAttach(target: Object3D | CameraInterfaceData): void {

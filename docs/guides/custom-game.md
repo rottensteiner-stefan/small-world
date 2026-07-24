@@ -16,7 +16,7 @@ In Small World, controllers are simply `Behavior` components attached to a camer
 
 ```typescript
 import { FirstPersonController, FirstPersonControllerOptions } from "small-world";
-import { Input, Keys } from "small-world";
+import { Keys } from "small-world";
 
 export class MyController extends FirstPersonController {
   constructor(options: FirstPersonControllerOptions = {}) {
@@ -28,7 +28,7 @@ export class MyController extends FirstPersonController {
     super.update(deltaTime);
 
     // 2. Add your custom logic (e.g. Shooting)
-    if (Input.isPressed(Keys.SPACE)) {
+    if (this._options.input.isPressed(Keys.SPACE)) {
        // Fire a bullet, do a raycast...
        console.log("Pew pew!");
 
@@ -60,6 +60,7 @@ export class MyGameApp extends SmallWorld {
     this.camera.addBehavior(
       new MyController({
         scene: this.scene,
+        input: this.input,
         moveSpeed: 15.0,
       })
     );
@@ -85,7 +86,7 @@ YAD demonstrates:
 1. **Seamless Tool Integration:** How standalone tools (`Pixler`, `MapGenerator`, `Xtractor`) communicate with the game via `app.events` without interrupting the render loop – no Forge overlay required.
 2. **Procedural Level Generation:** How the `GridLevelBuilder` extension parses an ASCII string map into 3D meshes, spawning `EnemyBehavior`-driven enemy sprites and pickup sprites.
 3. **Enemy Logic:** How `EnemyBehavior` implements simple distance-based chase logic (detection range, chase, attack proximity). YAD does not use the engine's `StateMachine`/FSM module for enemies — but it's available (see [State Machines](./state-machines)) for cases where richer state logic is needed.
-4. **Custom Controllers:** `YadController` inherits from `FirstPersonController`, adding footsteps via `AudioSystem`, weapon-sway animation (rendered by `YadHud`), and raycasted attacks.
+4. **Custom Controllers:** `YadController` inherits from `FirstPersonController`, adding footsteps (using an injected `AudioSystem` instance), weapon-sway animation (rendered by `YadHud`), and raycasted attacks.
 5. **Decoupled UI (`YadHud`):** A strict HTML overlay that listens to `AppEvents` to update health bars and log chat messages.
 
 When starting a new project, we highly recommend reading through `src/apps/yad` to understand how the architecture scales!

@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.69.4] - 2026-07-24
+
+### "The function of good software is to make the complex appear to be simple." - Grady Booch
+
+- **Architecture & Bugfixes:**
+  - **Singleton Eradication (Audio & Input):** Removed the final remaining global singletons `Input.instance` and `AudioSystem.instance`.
+  - **Dependency Injection Enforcement:** Controllers (`FirstPersonController`, `FPSController`, `YadController`) and Behaviors (`EnemyBehavior`) now strictly require `input` and `audio` dependencies via their constructor options.
+  - Refactored `GadgetInspector` to communicate audio changes via native browser `CustomEvent` dispatching (`gadget:audio:master`, etc.) to the `SmallWorld` application context to maintain loose coupling.
+- **Housekeeping & Docs:**
+  - `custom-game.md` updated to showcase the dependency injection pattern in controllers.
+  - `Input.test.ts` updated to remove all Singleton references.
+
 ## [0.69.3] - 2026-07-24
 
 ### "Read, not to contradict and confute; nor to believe and take for granted; nor to find talk and discourse; but to weigh and consider." - Francis Bacon

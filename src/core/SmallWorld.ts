@@ -3,6 +3,7 @@ import { Camera } from "./Camera.js";
 import { Scene } from "./Scene.js";
 import { Input } from "./Input.js";
 import { InteractionManager } from "./InteractionManager.js";
+import { AudioSystem } from "../audio/AudioSystem.js";
 import { EventDispatcherImpl } from "./events/EventDispatcherImpl.js";
 import { DeviceCaps, DeviceFeature, DeviceLimit } from "./DeviceCaps.js";
 import { FrustumCuller } from "./FrustumCuller.js";
@@ -21,7 +22,7 @@ import { GadgetInspector } from "../tools/GadgetInspector.js";
 import { PhysicsSystem } from "../physix/PhysicsSystem.js";
 
 /** The current engine version. */
-export const ENGINE_VERSION = "0.69.3";
+export const ENGINE_VERSION = "0.69.4";
 
 /**
  * Base class for applications built with the SmallWorld engine.
@@ -39,6 +40,8 @@ export abstract class SmallWorld {
   public physics: PhysicsSystem;
   /** The interaction manager for gamification / picking. */
   public interactionManager!: InteractionManager;
+  public readonly input: Input = new Input();
+  public readonly audio: AudioSystem = new AudioSystem();
   public forge!: import("../tools/forge/Forge.js").Forge;
   /** The canvas element. */
   public canvas!: HTMLCanvasElement;
@@ -97,7 +100,23 @@ export abstract class SmallWorld {
     this.camera = new Camera(projection);
     this.renderer = undefined!; // Initialized in start()
 
-    Input.init();
+    this.input.init();
+
+    // Bind GadgetInspector audio events
+    if (typeof window !== "undefined") {
+      window.addEventListener("gadget:audio:master", (e: Event) =>
+        this.audio.setMasterVolume((e as CustomEvent).detail),
+      );
+      window.addEventListener("gadget:audio:music", (e: Event) =>
+        this.audio.setMusicVolume((e as CustomEvent).detail),
+      );
+      window.addEventListener("gadget:audio:sfx", (e: Event) =>
+        this.audio.setSFXVolume((e as CustomEvent).detail),
+      );
+      window.addEventListener("gadget:audio:reverb", (e: Event) =>
+        this.audio.setReverbLevel((e as CustomEvent).detail),
+      );
+    }
   }
 
   /**
@@ -257,7 +276,12 @@ export abstract class SmallWorld {
       this.camera.aspect = this.canvas.clientWidth / this.canvas.clientHeight;
       this.camera.updateProjectionMatrix();
 
-      this.interactionManager = new InteractionManager(this.scene, this.camera, this.canvas);
+      this.interactionManager = new InteractionManager(
+        this.scene,
+        this.camera,
+        this.canvas,
+        this.input,
+      );
 
       await this.setupScene();
 
@@ -356,9 +380,9 @@ export abstract class SmallWorld {
 
     if (true === event.repeat) return;
 
-    const altLeft = Input.instance?.isPressed("AltLeft") || event.altKey;
-    const metaLeft = Input.instance?.isPressed("MetaLeft") || event.metaKey;
-    const ctrlLeft = Input.instance?.isPressed("ControlLeft") || event.ctrlKey;
+    const altLeft = this.input.isPressed("AltLeft") || event.altKey;
+    const metaLeft = this.input.isPressed("MetaLeft") || event.metaKey;
+    const ctrlLeft = this.input.isPressed("ControlLeft") || event.ctrlKey;
 
     if (true === altLeft && (true === metaLeft || true === ctrlLeft)) {
       if ("KeyG" === event.code && this.forge) {
@@ -366,12 +390,12 @@ export abstract class SmallWorld {
         this.forge.toggle();
 
         if (this.forge.isVisible) {
-          Input.preventPointerLock = true;
+          this.input.preventPointerLock = true;
           if (null !== document.pointerLockElement) {
             document.exitPointerLock();
           }
         } else {
-          Input.preventPointerLock = false;
+          this.input.preventPointerLock = false;
         }
       }
     }
@@ -395,7 +419,7 @@ export abstract class SmallWorld {
     const deltaTime: number = Math.min((currentTime - this._lastTime) / 1000.0, 0.1);
     this._lastTime = currentTime;
 
-    Input.update();
+    this.input.update();
     this.update(deltaTime);
 
     if (this._inspector) {
@@ -430,11 +454,11 @@ export abstract class SmallWorld {
       );
     }
 
-    Input.mouse.dx = 0;
-    Input.mouse.dy = 0;
-    Input.mouse.wheelX = 0;
-    Input.mouse.wheelY = 0;
-    Input.mouse.zoom = 0;
+    this.input.mouse.dx = 0;
+    this.input.mouse.dy = 0;
+    this.input.mouse.wheelX = 0;
+    this.input.mouse.wheelY = 0;
+    this.input.mouse.zoom = 0;
 
     requestAnimationFrame((time: number) => this._loop(time));
   }
