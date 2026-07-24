@@ -10,6 +10,9 @@
   - **Strict Topology Enforcement:** Removed legacy `number | string` typing from `RenderBatch.topology` and enforced strict `Topology` string enums (`"triangle-list"`, `"line-list"`).
   - **Renderer Cleanup:** Eradicated magical fallback checks (e.g. `topology === 2`) in WebGL1, WebGL2, WebGPU, and all Shadow Passes.
   - **Dependency Injection:** Enforced `audio` option passing across all controllers (`FPSController`, `OrbitController`, `WASDController`, etc.) to resolve type errors and respect strict DI.
+- **Housekeeping & Docs:**
+  - **Showcase Navigation:** Fixed looping logic across all showcases (1-23 and yad) to correctly circle back and forth without dead ends.
+  - **Agent Guidelines:** Cemented strict rule against unprompted Git commits into the core AI workflow skills.
 
 ## [0.69.5] - 2026-07-24
 

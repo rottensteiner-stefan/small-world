@@ -31,6 +31,8 @@ Every entry in the `CHANGELOG.md` MUST strictly follow this exact structure:
 
 ## 2. Git Commit Rule
 
+**CRITICAL MANDATE: NEVER make a commit or push without explicit user request. Do NOT even ask for permission to commit. Either the user explicitly requests a commit, or no commit happens.**
+
 EVERY single Git commit (not just version bumps) MUST use this unconventional format.
 The commit message MUST be **exactly a quote**, but **WITHOUT the author** and **WITHOUT the surrounding quotation marks**. Do NOT use standard Conventional Commits (like `feat: added something` or `docs: fixed typo`).
 
