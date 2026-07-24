@@ -19,7 +19,6 @@ import {
   ColorUtils,
 } from "../../src/index.js";
 import { AmbientLight } from "../../src/core/lights/index.js";
-import { AudioSystem } from "../../src/audio/AudioSystem.js";
 
 /**
  * A pentatonic scale for musical physical collisions.
@@ -196,7 +195,7 @@ class Showcase20 extends SmallWorld {
           }
 
           // Play the generative synth tone
-          AudioSystem.instance.playTone(freq, 0.3, volume, "triangle");
+          this.audio.playTone(freq, 0.3, volume, "triangle");
         }
       },
     );
@@ -205,8 +204,8 @@ class Showcase20 extends SmallWorld {
     window.addEventListener(
       "pointerdown",
       () => {
-        if (AudioSystem.instance.context.state === "suspended") {
-          AudioSystem.instance.context.resume();
+        if (this.audio.context.state === "suspended") {
+          this.audio.context.resume();
         }
       },
       { once: true },

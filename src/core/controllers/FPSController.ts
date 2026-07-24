@@ -28,7 +28,7 @@ export interface FPSControllerOptions {
   collisionRadius?: number;
   /** The scene to check for collisions. */
   scene?: Scene;
-  /** Optional input source (for testing). Defaults to global Input.instance. */
+  /** Input source. Required — no global fallback. */
   input?: InputInterface;
 }
 

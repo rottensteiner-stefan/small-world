@@ -8,7 +8,6 @@ import {
   StandardMaterial,
   RigidBody,
   Texture,
-  AudioSystem,
   Object3D,
   PhysicsSystem,
   AmbientLight,
@@ -89,7 +88,7 @@ class Showcase22 extends SmallWorld {
 
     if (!this._ambientAudioStarted) {
       this._ambientAudioStarted = true;
-      AudioSystem.instance.resume();
+      this.audio.resume();
     }
   }
 
@@ -502,7 +501,7 @@ class Showcase22 extends SmallWorld {
       // Play a generative synth note based on impulse strength
       const impulse = e["impulse"] as number;
       if (impulse > 1.0 && this._ambientAudioStarted) {
-        AudioSystem.instance.playTone(400 + Math.random() * 200, 0.5, 0.2, "sine");
+        this.audio.playTone(400 + Math.random() * 200, 0.5, 0.2, "sine");
       }
 
       // Pickup logic (impulse is 0 for sensors)
@@ -517,7 +516,7 @@ class Showcase22 extends SmallWorld {
           this._scoreElement.innerText = `SCORE: ${this._score} / ${this._maxScore}`;
 
           if (this._ambientAudioStarted) {
-            AudioSystem.instance.playTone(1200, 0.1, 0.1, "square"); // Pickup sound
+            this.audio.playTone(1200, 0.1, 0.1, "square"); // Pickup sound
           }
         }
       };
@@ -535,9 +534,9 @@ class Showcase22 extends SmallWorld {
           this._timeElement.style.color = "#00ff00";
           this._timeElement.style.textShadow = "0 0 15px #00ff00";
           if (this._ambientAudioStarted) {
-            AudioSystem.instance.playTone(600, 0.5, 0.1, "sine");
-            setTimeout(() => AudioSystem.instance.playTone(800, 0.5, 0.1, "sine"), 200);
-            setTimeout(() => AudioSystem.instance.playTone(1200, 1.0, 0.1, "sine"), 400);
+            this.audio.playTone(600, 0.5, 0.1, "sine");
+            setTimeout(() => this.audio.playTone(800, 0.5, 0.1, "sine"), 200);
+            setTimeout(() => this.audio.playTone(1200, 1.0, 0.1, "sine"), 400);
           }
         }
       };
@@ -552,7 +551,7 @@ class Showcase22 extends SmallWorld {
     const unlockAudio = (): void => {
       if (!this._ambientAudioStarted) {
         this._ambientAudioStarted = true;
-        AudioSystem.instance.resume();
+        this.audio.resume();
       }
     };
     window.addEventListener("pointerdown", unlockAudio, { once: true });
@@ -592,7 +591,7 @@ class Showcase22 extends SmallWorld {
         this._timeElement.innerText = "TIME UP!";
         this._timeElement.style.color = "#ff0000";
         if (this._ambientAudioStarted) {
-          AudioSystem.instance.playTone(200, 1.0, 0.1, "sawtooth");
+          this.audio.playTone(200, 1.0, 0.1, "sawtooth");
         }
       } else {
         this._timeElement.innerText = `Time: ${this._formatTime(this._timeLeft)}`;

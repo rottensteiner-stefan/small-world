@@ -16,7 +16,6 @@ import {
   PhysicsSystem,
   Skydome,
   Texture,
-  AudioSystem,
 } from "../../src/index.js";
 import { AmbientLight } from "../../src/core/lights/index.js";
 import { DeviceCaps, PerformanceTier } from "../../src/core/DeviceCaps.js";
@@ -37,7 +36,7 @@ class Showcase21 extends SmallWorld {
     // Use pointerdown to support both mouse clicks and mobile touch
     this.canvas.addEventListener("pointerdown", () => {
       if (!droneStarted) {
-        AudioSystem.instance.startDrone();
+        this.audio.startDrone();
         droneStarted = true;
       }
       if (!DeviceCaps.isMobile() && !this.input.isPointerLocked) {
