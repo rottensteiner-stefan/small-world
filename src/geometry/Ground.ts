@@ -79,4 +79,26 @@ export class Ground extends AbstractGeometry {
     this._indices.set(idx);
     this.computeNormals();
   }
+
+  /**
+   * Computes the wireframe indices (line-segments) specifically for Ground.
+   */
+  public override computeWireframeIndices(): void {
+    const lines: number[] = [];
+    for (let z = 0; z <= this.depthSegments; z++) {
+      for (let x = 0; x < this.widthSegments; x++) {
+        const row = z * (this.widthSegments + 1);
+        lines.push(row + x, row + x + 1);
+      }
+    }
+    for (let x = 0; x <= this.widthSegments; x++) {
+      for (let z = 0; z < this.depthSegments; z++) {
+        const current = z * (this.widthSegments + 1) + x;
+        const below = (z + 1) * (this.widthSegments + 1) + x;
+        lines.push(current, below);
+      }
+    }
+    this._wireframeIndices = this._createIndexArray(lines.length);
+    this._wireframeIndices.set(lines);
+  }
 }

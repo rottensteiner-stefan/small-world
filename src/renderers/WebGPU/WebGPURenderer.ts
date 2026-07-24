@@ -1053,11 +1053,10 @@ export class WebGPURenderer extends AbstractRenderer {
     if (!mat) return;
     const manifest = mat.getRenderManifest();
 
-    // WebGPU topology strings:
     let topologyStr: GPUPrimitiveTopology = "triangle-list";
-    if (batch.topology === 1) topologyStr = "point-list";
-    else if (batch.topology === 2) topologyStr = "line-list";
-    else if (batch.topology === 3) topologyStr = "line-strip";
+    if (batch.topology === "point-list") topologyStr = "point-list";
+    else if (batch.topology === "line-list") topologyStr = "line-list";
+    else if (batch.topology === "line-strip") topologyStr = "line-strip";
 
     if (standardObjects.length > 0) {
       this._renderSubgroup(rp, standardObjects, false, batch.matUuid, manifest, vMat, topologyStr);

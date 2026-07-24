@@ -1,5 +1,6 @@
 import { Behavior } from '../behaviors/index.js';
 import { InputInterface } from '../index.js';
+import { AudioSystem } from '../../audio/AudioSystem.js';
 import { InputMode } from '../../enums/index.js';
 /**
  * Configuration for the WASDController.
@@ -7,6 +8,8 @@ import { InputMode } from '../../enums/index.js';
 export interface WASDControllerOptions {
     /** The input source. Required for reading keys. */
     input?: InputInterface;
+    /** Audio system reference. Required — no global fallback. */
+    audio?: AudioSystem;
     /** Movement speed in units per second. Defaults to 10. */
     moveSpeed?: number;
     /** Input mode for A/D keys (STRAFE or TANK). Defaults to TANK. */

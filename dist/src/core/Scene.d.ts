@@ -3,15 +3,16 @@ import { Octree } from './Octree.js';
 import { Fog } from './Fog.js';
 import { Vector3D } from '../math/index.js';
 import { BoundingBox, SpatialHash } from '../physix/index.js';
+import { Topology } from '../enums/index.js';
 import { Collidable } from '../interfaces/index.js';
 export interface RenderBatch {
     shaderId: string;
-    topology: number | string;
+    topology: Topology;
     matUuid: string;
     objects: Object3D[];
 }
 export interface RenderList {
-    opaqueLookup: Map<string, Map<number | string, Map<string, RenderBatch>>>;
+    opaqueLookup: Map<string, Map<Topology, Map<string, RenderBatch>>>;
     opaqueBatches: RenderBatch[];
     transparent: Object3D[];
 }

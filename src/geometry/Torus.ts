@@ -88,4 +88,26 @@ export class Torus extends AbstractGeometry {
     this._indices.set(idx);
     this.computeNormals();
   }
+
+  /**
+   * Computes the wireframe indices (line-segments) specifically for Torus.
+   */
+  public override computeWireframeIndices(): void {
+    const lines: number[] = [];
+    for (let j = 0; j <= this.radialSegments; j++) {
+      for (let i = 0; i < this.tubularSegments; i++) {
+        const row = j * (this.tubularSegments + 1);
+        lines.push(row + i, row + i + 1);
+      }
+    }
+    for (let i = 0; i <= this.tubularSegments; i++) {
+      for (let j = 0; j < this.radialSegments; j++) {
+        const current = j * (this.tubularSegments + 1) + i;
+        const below = (j + 1) * (this.tubularSegments + 1) + i;
+        lines.push(current, below);
+      }
+    }
+    this._wireframeIndices = this._createIndexArray(lines.length);
+    this._wireframeIndices.set(lines);
+  }
 }

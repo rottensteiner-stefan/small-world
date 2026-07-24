@@ -43,6 +43,7 @@ export class Pyramid extends AbstractGeometry {
     const v: number[] = [];
     const uv: number[] = [];
     const idx: number[] = [];
+    const wireframeLines: number[] = [];
     const hh: number = this.height / 2.0;
     const rb: number = this.base / 2.0;
 
@@ -60,6 +61,8 @@ export class Pyramid extends AbstractGeometry {
 
     for (let i: number = 0; i < this.radialSegments; i++) {
       idx.push(tipIndex, i + 1, i + 2);
+      wireframeLines.push(tipIndex, i + 1);
+      wireframeLines.push(i + 1, i + 2);
     }
 
     // --- Base cap ---
@@ -82,6 +85,10 @@ export class Pyramid extends AbstractGeometry {
     this._uvs = new Float32Array(uv);
     this._indices = this._createIndexArray(idx.length);
     this._indices.set(idx);
+
+    this._wireframeIndices = this._createIndexArray(wireframeLines.length);
+    this._wireframeIndices.set(wireframeLines);
+
     this.computeNormals();
   }
 }

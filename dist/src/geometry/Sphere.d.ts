@@ -30,4 +30,9 @@ export declare class Sphere extends AbstractGeometry {
     protected generateGeometryData(): void;
     /** @inheritdoc */
     getBoundingVolume(): BoundingVolume;
+    /**
+     * Computes the wireframe indices (line-segments) specifically for a Sphere to
+     * avoid rendering diagonal quad lines.
+     */
+    computeWireframeIndices(): void;
 }

@@ -59,6 +59,7 @@ export class Tube extends AbstractGeometry {
     const v: number[] = [];
     const uv: number[] = [];
     const idx: number[] = [];
+    const wireframeLines: number[] = [];
     const hh: number = this.height / 2.0;
 
     /**
@@ -89,7 +90,16 @@ export class Tube extends AbstractGeometry {
             idx.push(first, first + 1, second);
             idx.push(first + 1, second + 1, second);
           }
+          wireframeLines.push(first, first + 1);
+          wireframeLines.push(first, second);
         }
+        const last = offset + y * (this.radialSegments + 1) + this.radialSegments;
+        const belowLast = offset + (y + 1) * (this.radialSegments + 1) + this.radialSegments;
+        wireframeLines.push(last, belowLast);
+      }
+      const bottomRow = offset + this.heightSegments * (this.radialSegments + 1);
+      for (let x: number = 0; x < this.radialSegments; x++) {
+        wireframeLines.push(bottomRow + x, bottomRow + x + 1);
       }
     };
 
@@ -121,7 +131,9 @@ export class Tube extends AbstractGeometry {
           idx.push(o1, i1, o2);
           idx.push(i1, i2, o2);
         }
+        wireframeLines.push(o1, i1);
       }
+      wireframeLines.push(outerOffset + this.radialSegments, innerOffset + this.radialSegments);
     };
 
     connectCaps(true);
@@ -131,6 +143,10 @@ export class Tube extends AbstractGeometry {
     this._uvs = new Float32Array(uv);
     this._indices = this._createIndexArray(idx.length);
     this._indices.set(idx);
+
+    this._wireframeIndices = this._createIndexArray(wireframeLines.length);
+    this._wireframeIndices.set(wireframeLines);
+
     this.computeNormals();
   }
 }

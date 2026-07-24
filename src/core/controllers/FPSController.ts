@@ -3,6 +3,7 @@ import { Behavior } from "../behaviors/Behavior.js";
 import { CameraInterfaceData } from "../../interfaces/index.js";
 import { Object3D, InputInterface, Scene } from "../index.js";
 import { InputMode, Keys } from "../../enums/index.js";
+import { AudioSystem } from "../../audio/AudioSystem.js";
 import { BoundingSphere } from "../../physix/index.js";
 import { resolveSphereCollisions } from "../behaviors/CollisionResolution.js";
 
@@ -30,6 +31,8 @@ export interface FPSControllerOptions {
   scene?: Scene;
   /** Input source. Required — no global fallback. */
   input?: InputInterface;
+  /** Audio system reference. Required — no global fallback. */
+  audio?: AudioSystem;
 }
 
 /**

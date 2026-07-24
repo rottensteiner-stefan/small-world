@@ -75,6 +75,7 @@ export class Cylinder extends AbstractGeometry {
     const v: number[] = [];
     const uv: number[] = [];
     const idx: number[] = [];
+    const wireframeLines: number[] = [];
     const hh: number = this.height / 2.0;
 
     // --- Side surface ---
@@ -97,7 +98,20 @@ export class Cylinder extends AbstractGeometry {
         const second: number = first + this.radialSegments + 1;
         idx.push(first, first + 1, second);
         idx.push(first + 1, second + 1, second);
+
+        // Structural lines for the side surface
+        wireframeLines.push(first, first + 1);
+        wireframeLines.push(first, second);
       }
+      // Close the horizontal loop for the last segment
+      const last = y * (this.radialSegments + 1) + this.radialSegments;
+      const belowLast = (y + 1) * (this.radialSegments + 1) + this.radialSegments;
+      wireframeLines.push(last, belowLast);
+    }
+    // Bottom edge loop
+    const bottomRow = this.heightSegments * (this.radialSegments + 1);
+    for (let x: number = 0; x < this.radialSegments; x++) {
+      wireframeLines.push(bottomRow + x, bottomRow + x + 1);
     }
 
     // --- Top cap ---
@@ -113,7 +127,10 @@ export class Cylinder extends AbstractGeometry {
       }
       for (let x: number = 0; x < this.radialSegments; x++) {
         idx.push(topOffset, topOffset + x + 1, topOffset + x + 2);
+        wireframeLines.push(topOffset, topOffset + x + 1);
+        wireframeLines.push(topOffset + x + 1, topOffset + x + 2);
       }
+      wireframeLines.push(topOffset, topOffset + this.radialSegments + 1);
     }
 
     // --- Bottom cap ---
@@ -129,7 +146,10 @@ export class Cylinder extends AbstractGeometry {
       }
       for (let x: number = 0; x < this.radialSegments; x++) {
         idx.push(bottomOffset, bottomOffset + x + 2, bottomOffset + x + 1);
+        wireframeLines.push(bottomOffset, bottomOffset + x + 1);
+        wireframeLines.push(bottomOffset + x + 1, bottomOffset + x + 2);
       }
+      wireframeLines.push(bottomOffset, bottomOffset + this.radialSegments + 1);
     }
 
     // --- Side caps (for partial sectors) ---
@@ -161,7 +181,12 @@ export class Cylinder extends AbstractGeometry {
             idx.push(base, base + 2, base + 1);
             idx.push(base + 2, base + 3, base + 1);
           }
+          wireframeLines.push(base, base + 2);
+          wireframeLines.push(base + 1, base + 3);
+          wireframeLines.push(base, base + 1);
         }
+        const lastBase: number = offset + this.heightSegments * 2;
+        wireframeLines.push(lastBase, lastBase + 1);
       };
 
       buildSideCap(true);
@@ -172,6 +197,10 @@ export class Cylinder extends AbstractGeometry {
     this._uvs = new Float32Array(uv);
     this._indices = this._createIndexArray(idx.length);
     this._indices.set(idx);
+
+    this._wireframeIndices = this._createIndexArray(wireframeLines.length);
+    this._wireframeIndices.set(wireframeLines);
+
     this.computeNormals();
   }
 }

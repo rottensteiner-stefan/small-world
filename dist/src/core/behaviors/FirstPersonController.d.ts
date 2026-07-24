@@ -1,6 +1,7 @@
 import { Behavior } from './Behavior.js';
 import { CameraInterfaceData } from '../../interfaces/index.js';
 import { Object3D, InputInterface, Scene } from '../index.js';
+import { AudioSystem } from '../../audio/AudioSystem.js';
 import { BoundingSphere } from '../../physix/index.js';
 /**
  * Configuration for the FirstPersonController.
@@ -20,6 +21,8 @@ export interface FirstPersonControllerOptions {
     retroTankControls?: boolean;
     /** Input source. Required — no global fallback. */
     input?: InputInterface;
+    /** Audio system reference. Required — no global fallback. */
+    audio?: AudioSystem;
 }
 /**
  * A generalized First Person Controller handling movement, rotation, and collisions.

@@ -92,7 +92,7 @@ export class MainRenderPass implements RenderPass {
 
         const tempBatch = {
           shaderId,
-          topology: topology as string | number,
+          topology: topology as Topology,
           matUuid: obj.material!.uuid,
           objects: [obj],
         };

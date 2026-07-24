@@ -2,6 +2,7 @@
 import { Behavior } from "../behaviors/index.js";
 import { CameraInterfaceData } from "../../interfaces/index.js";
 import { InputInterface } from "../index.js";
+import { AudioSystem } from "../../audio/AudioSystem.js";
 
 /**
  * Configuration for the ZoomController.
@@ -9,6 +10,8 @@ import { InputInterface } from "../index.js";
 export interface ZoomControllerOptions {
   /** The input source. Required for reading zoom delta. */
   input?: InputInterface;
+  /** Audio system reference. Required — no global fallback. */
+  audio?: AudioSystem;
   /** Zoom sensitivity. Defaults to 0.5. */
   zoomSensitivity?: number;
 }

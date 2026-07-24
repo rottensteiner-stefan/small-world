@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.69.6] - 2026-07-24
+
+### "Out of clutter, find simplicity. From discord, find harmony." - Albert Einstein
+
+- **Features:**
+  - **Clean Wireframes:** Refactored geometry generation across all 13 primitives (Cube, Sphere, Cylinder, etc.) to compute purely structural `wireframeIndices`. Unnecessary and distracting quad-diagonals are now removed.
+- **Architecture & Bugfixes:**
+  - **Strict Topology Enforcement:** Removed legacy `number | string` typing from `RenderBatch.topology` and enforced strict `Topology` string enums (`"triangle-list"`, `"line-list"`).
+  - **Renderer Cleanup:** Eradicated magical fallback checks (e.g. `topology === 2`) in WebGL1, WebGL2, WebGPU, and all Shadow Passes.
+  - **Dependency Injection:** Enforced `audio` option passing across all controllers (`FPSController`, `OrbitController`, `WASDController`, etc.) to resolve type errors and respect strict DI.
+
 ## [0.69.5] - 2026-07-24
 
 ### "Simplicity is the ultimate sophistication." - Leonardo da Vinci

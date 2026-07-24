@@ -23,4 +23,8 @@ export declare class Grid extends AbstractGeometry {
     constructor(options?: GridOptions);
     /** @inheritdoc */
     protected generateGeometryData(): void;
+    /**
+     * Computes the wireframe indices (line-segments) specifically for Grid.
+     */
+    computeWireframeIndices(): void;
 }

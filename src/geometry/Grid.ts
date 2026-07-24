@@ -65,4 +65,13 @@ export class Grid extends AbstractGeometry {
     this._indices = this._createIndexArray(idx.length);
     this._indices.set(idx);
   }
+
+  /**
+   * Computes the wireframe indices (line-segments) specifically for Grid.
+   */
+  public override computeWireframeIndices(): void {
+    if (this._indices) {
+      this._wireframeIndices = this._indices;
+    }
+  }
 }

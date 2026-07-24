@@ -2,6 +2,7 @@
 import { Behavior } from "../behaviors/index.js";
 import { CameraInterfaceData } from "../../interfaces/index.js";
 import { InputInterface } from "../index.js";
+import { AudioSystem } from "../../audio/AudioSystem.js";
 
 /**
  * Configuration for the OrbitController.
@@ -9,6 +10,8 @@ import { InputInterface } from "../index.js";
 export interface OrbitControllerOptions {
   /** The input source. Required for reading mouse/pointer lock state. */
   input?: InputInterface;
+  /** Audio system reference. Required — no global fallback. */
+  audio?: AudioSystem;
   /** Look sensitivity. Defaults to 0.005. */
   lookSensitivity?: number;
   /** Rotation speed for keyboard. Defaults to 2.0. */

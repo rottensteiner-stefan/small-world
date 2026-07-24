@@ -91,4 +91,8 @@ export declare class Terrain extends AbstractGeometry {
     static fromImage(options: TerrainImageOptions): Promise<Terrain>;
     /** @inheritdoc */
     protected generateGeometryData(): void;
+    /**
+     * Computes the wireframe indices (line-segments) specifically for Terrain.
+     */
+    computeWireframeIndices(): void;
 }

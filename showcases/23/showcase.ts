@@ -21,21 +21,21 @@ import {
   CameraStrategyType,
   Color,
   ComputeToysImporter,
-  Cube,
   CustomShaderMaterial,
   DirectionalLight,
   ExternalShaderUniformBehavior,
   GLSLSandboxImporter,
   Object3D,
   FPSController,
-  PhongMaterial,
   Plane,
   Raycaster,
   RendererType,
   ShadertoyImporter,
   SmallWorld,
+  Sphere,
   Vector2D,
   Vector3D,
+  WireframeMaterial,
 } from "../../src/index.js";
 
 class BobbingBehavior extends Behavior {
@@ -120,6 +120,78 @@ class CameraZoomBehavior extends Behavior {
   }
 }
 
+/**
+ * Bends a screen's Plane geometry so it hugs the inside of the gallery sphere
+ * (curvature = 1) or lies perfectly flat (curvature = 0), animating between
+ * the two whenever `targetCurvature` changes (e.g. on click-to-zoom).
+ */
+class ScreenCurvatureBehavior extends Behavior {
+  public targetCurvature: number = 1.0;
+  private _curvature: number = 1.0;
+  private _flatVertices: Float32Array = new Float32Array(0);
+  private readonly _radius: number;
+
+  constructor(radius: number) {
+    super();
+    this._radius = radius;
+  }
+
+  public onAttach(target: Object3D): void {
+    super.onAttach(target);
+    if (target.geometry) {
+      this._flatVertices = target.geometry.vertices.slice();
+    }
+    this._bend();
+  }
+
+  public update(deltaTime: number): void {
+    const diff = this.targetCurvature - this._curvature;
+    if (Math.abs(diff) < 0.001) return;
+
+    this._curvature += diff * Math.min(1, deltaTime * 6.0);
+    if (Math.abs(this.targetCurvature - this._curvature) < 0.001) {
+      this._curvature = this.targetCurvature;
+    }
+    this._bend();
+  }
+
+  private _bend(): void {
+    const target = this.target as Object3D;
+    const geometry = target.geometry;
+    if (!geometry) return;
+
+    const flat = this._flatVertices;
+    const out = geometry.vertices;
+    const radius = this._radius;
+
+    for (let i = 0; i < flat.length; i += 3) {
+      const x = flat[i]!;
+      const y = flat[i + 1]!;
+      const rho = Math.sqrt(x * x + y * y);
+
+      let bx = 0;
+      let by = 0;
+      let bz = 0;
+      if (rho > 1e-6) {
+        // Treat (x, y) as an arc-length offset on the sphere: bend it along
+        // the great-circle direction so it curves toward the sphere's center
+        // (local +Z, since the container already faces the center).
+        const theta = rho / radius;
+        const s = Math.sin(theta);
+        bx = (radius * s * x) / rho;
+        by = (radius * s * y) / rho;
+        bz = radius * (1 - Math.cos(theta));
+      }
+
+      out[i] = x + (bx - x) * this._curvature;
+      out[i + 1] = y + (by - y) * this._curvature;
+      out[i + 2] = bz * this._curvature;
+    }
+
+    geometry.needsUpdate = true;
+  }
+}
+
 class Showcase23Engine extends SmallWorld {
   public api: string;
 
@@ -162,6 +234,16 @@ class Showcase23Engine extends SmallWorld {
     const ambLight = new AmbientLight(new Color(1, 1, 1), 0.3);
     this.scene.add(ambLight);
 
+    // Wireframe sphere: the "structure" the curved screens are glued to
+    const wireSphere = new Object3D("wireSphere");
+    wireSphere.geometry = new Sphere({
+      radius: 10,
+      widthSegments: 32,
+      heightSegments: 24,
+    }).getGeometryData();
+    wireSphere.material = new WireframeMaterial(new Color(0.3, 0.6, 1.0));
+    this.scene.add(wireSphere);
+
     // Build the Gallery Billboards based on API
     if (this.api === "webgl2") {
       this.buildWebGL2Gallery();
@@ -192,15 +274,10 @@ class Showcase23Engine extends SmallWorld {
 
         raycaster.setFromCamera(mouseCoords, this.camera);
 
-        // Flatten scene to find frames
+        // Flatten scene to find screens
         const interactables: Object3D[] = [];
         for (const container of this.scene.objects) {
           if (container.name.startsWith("container_")) {
-            const frame = container.children.find((c) => c.name.startsWith("frame_"));
-            if (frame) {
-              frame.computeBounds(); // Update bounds to current world matrix!
-              interactables.push(frame);
-            }
             const screen = container.children.find((c) => c.name.startsWith("screen_"));
             if (screen) {
               screen.computeBounds(); // Update bounds to current world matrix!
@@ -238,6 +315,7 @@ class Showcase23Engine extends SmallWorld {
                 );
                 // Look directly at the screen's center
                 zoomBehavior.targetLook = screenWorldPos;
+                this._setFocusedScreen(screen);
               }
             }
           }
@@ -250,6 +328,7 @@ class Showcase23Engine extends SmallWorld {
             zoomBehavior.targetPosition = null;
             zoomBehavior.targetLook = null;
           }
+          this._setFocusedScreen(null);
         }
       } catch (err) {
         console.error("ERROR in mousedown handler:", err);
@@ -265,8 +344,31 @@ class Showcase23Engine extends SmallWorld {
           zoomBehavior.targetPosition = null;
           zoomBehavior.targetLook = null;
         }
+        this._setFocusedScreen(null);
       }
     });
+  }
+
+  private _focusedScreen: Object3D | null = null;
+
+  private _setFocusedScreen(screen: Object3D | null): void {
+    if (this._focusedScreen === screen) return;
+
+    if (this._focusedScreen) {
+      const behavior = this._focusedScreen.behaviors.find(
+        (b) => b instanceof ScreenCurvatureBehavior,
+      ) as ScreenCurvatureBehavior | undefined;
+      if (behavior) behavior.targetCurvature = 1.0;
+    }
+
+    this._focusedScreen = screen;
+
+    if (screen) {
+      const behavior = screen.behaviors.find((b) => b instanceof ScreenCurvatureBehavior) as
+        | ScreenCurvatureBehavior
+        | undefined;
+      if (behavior) behavior.targetCurvature = 0.0;
+    }
   }
 
   private buildWebGL2Gallery() {
@@ -371,7 +473,7 @@ class Showcase23Engine extends SmallWorld {
 
   private createScreen(yaw: number, pitch: number, material: CustomShaderMaterial) {
     const radius = 10;
-    // Parent container for the screen and its frame
+    // Parent container for the screen, anchored on the gallery sphere
     const container = new Object3D(`container_${yaw.toFixed(2)}_${pitch.toFixed(2)}`);
 
     // Position it in a spherical layout
@@ -385,29 +487,17 @@ class Showcase23Engine extends SmallWorld {
     // Add Bobbing Animation
     container.addBehavior(new BobbingBehavior());
 
-    // Frame (Dark Metallic)
-    const frame = new Object3D(`frame_${yaw.toFixed(2)}_${pitch.toFixed(2)}`);
-    frame.geometry = new Cube({ size: 1 }).getGeometryData();
-    const frameMat = new PhongMaterial();
-    frameMat.color.set(0.2, 0.2, 0.2);
-    frameMat.specular = new Color(0.5, 0.5, 0.5);
-    frameMat.shininess = 30;
-    frame.material = frameMat;
-    frame.scale.set(4.2, 3.2, 0.1);
-    frame.position.set(0, 0, -0.05); // Push behind the screen
-    container.add(frame);
-
-    // Screen
+    // Screen: glued to the sphere's curvature at rest, flattens on click
     const screen = new Object3D(`screen_${yaw.toFixed(2)}_${pitch.toFixed(2)}`);
     screen.geometry = new Plane({
       width: 4,
       height: 3,
-      widthSegments: 1,
-      heightSegments: 1,
+      widthSegments: 16,
+      heightSegments: 12,
     }).getGeometryData();
     screen.material = material;
     screen.addBehavior(new ExternalShaderUniformBehavior(800, 600));
-    screen.position.set(0, 0, 0.01);
+    screen.addBehavior(new ScreenCurvatureBehavior(radius));
     container.add(screen);
 
     this.scene.add(container);

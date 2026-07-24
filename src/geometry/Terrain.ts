@@ -229,4 +229,26 @@ export class Terrain extends AbstractGeometry {
 
     this.computeNormals();
   }
+
+  /**
+   * Computes the wireframe indices (line-segments) specifically for Terrain.
+   */
+  public override computeWireframeIndices(): void {
+    const lines: number[] = [];
+    for (let z = 0; z <= this.meshDepthSegments; z++) {
+      for (let x = 0; x < this.meshWidthSegments; x++) {
+        const row = z * (this.meshWidthSegments + 1);
+        lines.push(row + x, row + x + 1);
+      }
+    }
+    for (let x = 0; x <= this.meshWidthSegments; x++) {
+      for (let z = 0; z < this.meshDepthSegments; z++) {
+        const current = z * (this.meshWidthSegments + 1) + x;
+        const below = (z + 1) * (this.meshWidthSegments + 1) + x;
+        lines.push(current, below);
+      }
+    }
+    this._wireframeIndices = this._createIndexArray(lines.length);
+    this._wireframeIndices.set(lines);
+  }
 }

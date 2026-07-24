@@ -35,6 +35,7 @@ export class ExtrudeGeometry extends AbstractGeometry {
     const v: number[] = [];
     const uv: number[] = [];
     const idx: number[] = [];
+    const wireframeLines: number[] = [];
     const hh = this.depth / 2.0;
     const len = this.shape.length;
 
@@ -76,6 +77,7 @@ export class ExtrudeGeometry extends AbstractGeometry {
         const nextI = (i + 1) % len;
         // Front faces CCW (+Z outward)
         idx.push(frontCenterIdx, frontCenterIdx + 1 + i, frontCenterIdx + 1 + nextI);
+        wireframeLines.push(frontCenterIdx + 1 + i, frontCenterIdx + 1 + nextI);
       }
     } else {
       const frontOuterIdx = vOffset;
@@ -100,6 +102,8 @@ export class ExtrudeGeometry extends AbstractGeometry {
         const inner2 = frontInnerIdx + nextI;
         idx.push(outer1, outer2, inner2);
         idx.push(outer1, inner2, inner1);
+        wireframeLines.push(outer1, outer2);
+        wireframeLines.push(inner1, inner2);
       }
     }
 
@@ -121,6 +125,7 @@ export class ExtrudeGeometry extends AbstractGeometry {
         const nextI = (i + 1) % len;
         // Back faces CW (-Z outward) => reverse winding
         idx.push(backCenterIdx, backCenterIdx + 1 + nextI, backCenterIdx + 1 + i);
+        wireframeLines.push(backCenterIdx + 1 + i, backCenterIdx + 1 + nextI);
       }
     } else {
       const backOuterIdx = vOffset;
@@ -145,6 +150,8 @@ export class ExtrudeGeometry extends AbstractGeometry {
         const inner2 = backInnerIdx + nextI;
         idx.push(outer1, inner2, outer2);
         idx.push(outer1, inner1, inner2);
+        wireframeLines.push(outer1, outer2);
+        wireframeLines.push(inner1, inner2);
       }
     }
 
@@ -184,6 +191,8 @@ export class ExtrudeGeometry extends AbstractGeometry {
       idx.push(sideVOffset + 0, sideVOffset + 2, sideVOffset + 1);
       idx.push(sideVOffset + 1, sideVOffset + 2, sideVOffset + 3);
 
+      wireframeLines.push(sideVOffset + 0, sideVOffset + 2); // vertical edge
+
       sideVOffset += 4;
     }
 
@@ -220,6 +229,8 @@ export class ExtrudeGeometry extends AbstractGeometry {
         idx.push(sideVOffset + 0, sideVOffset + 1, sideVOffset + 2);
         idx.push(sideVOffset + 1, sideVOffset + 3, sideVOffset + 2);
 
+        wireframeLines.push(sideVOffset + 0, sideVOffset + 2); // inner vertical edge
+
         sideVOffset += 4;
       }
     }
@@ -228,6 +239,9 @@ export class ExtrudeGeometry extends AbstractGeometry {
     this._uvs = new Float32Array(uv);
     this._indices = this._createIndexArray(idx.length);
     this._indices.set(idx);
+
+    this._wireframeIndices = this._createIndexArray(wireframeLines.length);
+    this._wireframeIndices.set(wireframeLines);
 
     this.computeNormals();
   }

@@ -112,6 +112,11 @@ export class PhysicsSystem {
       this._accumulator -= this.fixedTimeStep;
       subSteps++;
     }
+
+    // 5. Clear Forces for next frame
+    for (const obj of bodies) {
+      obj.rigidBody!.clearForces();
+    }
   }
 
   private _internalStep(bodies: Object3D[], allColliders: Collidable[], dt: number): void {

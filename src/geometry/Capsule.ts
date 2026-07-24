@@ -49,6 +49,7 @@ export class Capsule extends AbstractGeometry {
     const n: number[] = [];
     const uv: number[] = [];
     const idx: number[] = [];
+    const wireframeLines: number[] = [];
 
     const halfLength: number = this.length / 2.0;
 
@@ -105,7 +106,16 @@ export class Capsule extends AbstractGeometry {
         const second: number = first + this.radialSegments + 1;
         idx.push(first, second, first + 1);
         idx.push(second, second + 1, first + 1);
+        wireframeLines.push(first, first + 1);
+        wireframeLines.push(first, second);
       }
+      const last = y * (this.radialSegments + 1) + this.radialSegments;
+      const belowLast = (y + 1) * (this.radialSegments + 1) + this.radialSegments;
+      wireframeLines.push(last, belowLast);
+    }
+    const bottomRow = (this.capSegments * 2 + 1) * (this.radialSegments + 1);
+    for (let x: number = 0; x < this.radialSegments; x++) {
+      wireframeLines.push(bottomRow + x, bottomRow + x + 1);
     }
 
     this._vertices = new Float32Array(v);
@@ -113,5 +123,8 @@ export class Capsule extends AbstractGeometry {
     this._uvs = new Float32Array(uv);
     this._indices = this._createIndexArray(idx.length);
     this._indices.set(idx);
+
+    this._wireframeIndices = this._createIndexArray(wireframeLines.length);
+    this._wireframeIndices.set(wireframeLines);
   }
 }

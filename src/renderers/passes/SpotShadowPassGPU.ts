@@ -125,7 +125,13 @@ export class SpotShadowPassGPU implements RenderPass {
         const batch = renderList.opaqueBatches[batchIdx];
         if (batch!.shaderId === MaterialType.SKYBOX || batch!.objects.length === 0) continue;
         const objects = batch!.objects;
-        const topology: string = batch!.topology;
+        let topologyStr: GPUPrimitiveTopology = "triangle-list";
+        if (batch!.topology === "point-list") topologyStr = "point-list";
+        else if (batch!.topology === "line-list") topologyStr = "line-list";
+        else if (batch!.topology === "line-strip") topologyStr = "line-strip";
+        else if (typeof batch!.topology === "string")
+          topologyStr = batch!.topology as GPUPrimitiveTopology;
+        const topology: GPUPrimitiveTopology = topologyStr;
 
         _scratchCasters.length = 0;
         _scratchInstanced.length = 0;

@@ -2,6 +2,7 @@ import { Behavior } from '../behaviors/Behavior.js';
 import { CameraInterfaceData } from '../../interfaces/index.js';
 import { InputInterface, Scene } from '../index.js';
 import { InputMode } from '../../enums/index.js';
+import { AudioSystem } from '../../audio/AudioSystem.js';
 /**
  * Configuration for the FPSController.
  */
@@ -26,6 +27,8 @@ export interface FPSControllerOptions {
     scene?: Scene;
     /** Input source. Required — no global fallback. */
     input?: InputInterface;
+    /** Audio system reference. Required — no global fallback. */
+    audio?: AudioSystem;
 }
 /**
  * A controller for first-person style movement and looking.

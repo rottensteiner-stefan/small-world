@@ -31,4 +31,8 @@ export declare class Torus extends AbstractGeometry {
     constructor(options?: TorusOptions);
     /** @inheritdoc */
     protected generateGeometryData(): void;
+    /**
+     * Computes the wireframe indices (line-segments) specifically for Torus.
+     */
+    computeWireframeIndices(): void;
 }

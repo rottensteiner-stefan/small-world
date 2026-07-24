@@ -102,4 +102,33 @@ export class Sphere extends AbstractGeometry {
     }
     return this._cachedBoundingVolume;
   }
+
+  /**
+   * Computes the wireframe indices (line-segments) specifically for a Sphere to
+   * avoid rendering diagonal quad lines.
+   */
+  public override computeWireframeIndices(): void {
+    const lines: number[] = [];
+
+    // Latitude lines (horizontal circles)
+    for (let y = 1; y < this.heightSegments; y++) {
+      for (let x = 0; x < this.widthSegments; x++) {
+        const current = y * (this.widthSegments + 1) + x;
+        const next = current + 1;
+        lines.push(current, next);
+      }
+    }
+
+    // Longitude lines (vertical semi-circles)
+    for (let x = 0; x < this.widthSegments; x++) {
+      for (let y = 0; y < this.heightSegments; y++) {
+        const current = y * (this.widthSegments + 1) + x;
+        const below = (y + 1) * (this.widthSegments + 1) + x;
+        lines.push(current, below);
+      }
+    }
+
+    this._wireframeIndices = this._createIndexArray(lines.length);
+    this._wireframeIndices.set(lines);
+  }
 }

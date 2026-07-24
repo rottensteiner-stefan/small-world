@@ -148,9 +148,9 @@ export class CascadedShadowPassGPU implements RenderPass {
         if (batch!.shaderId === MaterialType.SKYBOX || batch!.objects.length === 0) continue;
 
         let topology: GPUPrimitiveTopology = "triangle-list";
-        if (batch!.topology === 1) topology = "point-list";
-        else if (batch!.topology === 2) topology = "line-list";
-        else if (batch!.topology === 3) topology = "line-strip";
+        if (batch!.topology === "point-list") topology = "point-list";
+        else if (batch!.topology === "line-list") topology = "line-list";
+        else if (batch!.topology === "line-strip") topology = "line-strip";
 
         const objects = batch!.objects;
 

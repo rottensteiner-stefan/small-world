@@ -47,6 +47,7 @@ export class Cube extends AbstractGeometry {
   protected override generateGeometryData(): void {
     const vertices: number[] = [];
     const indices: number[] = [];
+    const wireframeIndices: number[] = [];
     const uvs: number[] = [];
     let vertexCount: number = 0;
 
@@ -92,6 +93,12 @@ export class Cube extends AbstractGeometry {
 
             indices.push(a, b, d);
             indices.push(b, c, d);
+
+            // Structural edges for the quad (bottom and left to avoid duplicates, plus right/top edges at the boundaries)
+            wireframeIndices.push(a, d); // bottom
+            wireframeIndices.push(a, b); // left
+            if (iy === gridY - 1) wireframeIndices.push(b, c); // top boundary
+            if (ix === gridX - 1) wireframeIndices.push(d, c); // right boundary
           }
         }
       }
@@ -176,6 +183,8 @@ export class Cube extends AbstractGeometry {
     this._uvs = new Float32Array(uvs);
     this._indices = this._createIndexArray(indices.length);
     this._indices.set(indices);
+    this._wireframeIndices = this._createIndexArray(wireframeIndices.length);
+    this._wireframeIndices.set(wireframeIndices);
 
     this.computeNormals();
   }

@@ -32,4 +32,8 @@ export declare class Ground extends AbstractGeometry {
     constructor(options?: GroundOptions);
     /** @inheritdoc */
     protected generateGeometryData(): void;
+    /**
+     * Computes the wireframe indices (line-segments) specifically for Ground.
+     */
+    computeWireframeIndices(): void;
 }

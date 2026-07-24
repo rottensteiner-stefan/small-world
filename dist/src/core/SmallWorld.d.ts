@@ -8,7 +8,7 @@ import { EngineOptions, Renderer } from '../interfaces/index.js';
 import { GadgetInspector } from '../tools/GadgetInspector.js';
 import { PhysicsSystem } from '../physix/PhysicsSystem.js';
 /** The current engine version. */
-export declare const ENGINE_VERSION = "0.69.5";
+export declare const ENGINE_VERSION = "0.69.6";
 /**
  * Base class for applications built with the SmallWorld engine.
  */

@@ -32,4 +32,8 @@ export declare class Plane extends AbstractGeometry {
     constructor(options?: PlaneOptions);
     /** @inheritdoc */
     protected generateGeometryData(): void;
+    /**
+     * Computes the wireframe indices (line-segments) specifically for Plane.
+     */
+    computeWireframeIndices(): void;
 }

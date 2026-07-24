@@ -87,4 +87,26 @@ export class Plane extends AbstractGeometry {
     this._indices.set(idx);
     this.computeNormals();
   }
+
+  /**
+   * Computes the wireframe indices (line-segments) specifically for Plane.
+   */
+  public override computeWireframeIndices(): void {
+    const lines: number[] = [];
+    for (let y = 0; y <= this.heightSegments; y++) {
+      for (let x = 0; x < this.widthSegments; x++) {
+        const row = y * (this.widthSegments + 1);
+        lines.push(row + x, row + x + 1);
+      }
+    }
+    for (let x = 0; x <= this.widthSegments; x++) {
+      for (let y = 0; y < this.heightSegments; y++) {
+        const current = y * (this.widthSegments + 1) + x;
+        const below = (y + 1) * (this.widthSegments + 1) + x;
+        lines.push(current, below);
+      }
+    }
+    this._wireframeIndices = this._createIndexArray(lines.length);
+    this._wireframeIndices.set(lines);
+  }
 }
