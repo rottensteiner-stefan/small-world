@@ -13,7 +13,6 @@ import {
   Vector3D,
   WireframeMaterial,
   PhongMaterial,
-  Input,
   Keys,
 } from "../../../src/index.js";
 import { AbstractShowcase } from "../../../src/core/index.js";
@@ -138,13 +137,13 @@ export class Showcase5 extends AbstractShowcase {
     // 2. Keyboard Input
     if (false === this._isMoving) {
       let dz: number = 0;
-      if (Input.isPressed(Keys.W)) dz = -1;
-      else if (Input.isPressed(Keys.S)) dz = 1;
+      if (this.input.isPressed(Keys.W)) dz = -1;
+      else if (this.input.isPressed(Keys.S)) dz = 1;
 
       // Rotation (A/D)
-      if (Input.isPressed(Keys.A)) {
+      if (this.input.isPressed(Keys.A)) {
         this._player.rotation.y -= 2.0 * deltaTime;
-      } else if (Input.isPressed(Keys.D)) {
+      } else if (this.input.isPressed(Keys.D)) {
         this._player.rotation.y += 2.0 * deltaTime;
       }
 
@@ -154,11 +153,11 @@ export class Showcase5 extends AbstractShowcase {
     }
 
     // 3. Mouse Click (Single click check)
-    const isMouseDown: boolean = true === Input.mouse.left;
+    const isMouseDown: boolean = true === this.input.mouse.left;
     if (true === isMouseDown && false === this._mouseWasDown && false === this._isMoving) {
       const rect: DOMRect = this.canvas.getBoundingClientRect();
-      const mx: number = ((Input.mouse.x - rect.left) / rect.width) * 2 - 1;
-      const my: number = -((Input.mouse.y - rect.top) / rect.height) * 2 + 1;
+      const mx: number = ((this.input.mouse.x - rect.left) / rect.width) * 2 - 1;
+      const my: number = -((this.input.mouse.y - rect.top) / rect.height) * 2 + 1;
 
       const worldPos: Vector3D = this.camera.screenToWorld(mx, my);
 

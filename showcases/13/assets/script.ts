@@ -49,6 +49,8 @@ class GLTFShowcase extends AbstractShowcase {
     this.camera.position.set(0, 0, 3);
 
     const fpsController = new FPSController({
+      input: this.input,
+      audio: this.audio,
       moveSpeed: 5.0,
       enableCollision: false,
       scene: this.scene,

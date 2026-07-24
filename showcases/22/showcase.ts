@@ -23,7 +23,6 @@ import {
   Torus,
   HoverBehavior,
   RotatorBehavior,
-  Input,
   EmissivePulseBehavior,
   CustomShaderMaterial,
   StandardWebGPULayout,
@@ -42,7 +41,7 @@ class Showcase22 extends SmallWorld {
   private _ambientAudioStarted: boolean = false;
   private _gameActive: boolean = false;
   private _startButton!: Object3D;
-  private _physics: PhysicsSystem = new PhysicsSystem();
+  private _physics!: PhysicsSystem;
   private _score: number = 0;
   private _maxScore: number = 0;
   private _scoreElement!: HTMLDivElement;
@@ -99,6 +98,7 @@ class Showcase22 extends SmallWorld {
       enableInspector: false,
       canvasId: "SmallWorld",
     });
+    this._physics = new PhysicsSystem(this.events);
   }
 
   protected async setupScene(): Promise<void> {
@@ -287,7 +287,7 @@ class Showcase22 extends SmallWorld {
     this._marble.rigidBody = new RigidBody(1);
     this._marble.rigidBody.restitution = 0.5; // Bouncy
     this._marble.rigidBody.friction = 0.999; // Less air resistance
-    this._marble.addBehavior(new MarbleController(this.camera));
+    this._marble.addBehavior(new MarbleController(this.camera, this.input, 25.0));
 
     // Add a point light to the marble to create a true "glow" on the environment
     const marbleGlow = new PointLight({
@@ -574,7 +574,7 @@ class Showcase22 extends SmallWorld {
 
     if (!this._gameActive) {
       // Start via SPACE key
-      if (Input.isPressed("Space")) {
+      if (this.input.isPressed("Space")) {
         this._startGame();
       } else if (!this._gameWon) {
         // Freeze the marble in the center of the ring until the game starts
@@ -608,18 +608,18 @@ class Showcase22 extends SmallWorld {
     }
 
     // Mouse drag camera rotation
-    if (Input.mouse.left) {
-      this.camera.theta -= Input.mouse.dx * 0.005;
-      this.camera.phi += Input.mouse.dy * 0.005;
+    if (this.input.mouse.left) {
+      this.camera.theta -= this.input.mouse.dx * 0.005;
+      this.camera.phi += this.input.mouse.dy * 0.005;
       // Clamp phi to avoid flipping
       const limit = Math.PI / 2 - 0.01;
       this.camera.phi = Math.max(-limit, Math.min(limit, this.camera.phi));
     }
 
     // Zoom (Pinch / Scroll)
-    if (Input.mouse.zoom !== 0) {
+    if (this.input.mouse.zoom !== 0) {
       // Zoom is accumulated across the frame. Small factor to make it smooth.
-      this._cameraRadius += Input.mouse.zoom * 20.0;
+      this._cameraRadius += this.input.mouse.zoom * 20.0;
       // Clamp radius between 20 (close) and 120 (far)
       this._cameraRadius = Math.max(20, Math.min(120, this._cameraRadius));
     }

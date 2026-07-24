@@ -54,7 +54,7 @@ class Showcase20 extends SmallWorld {
     super({
       enableInspector: false,
     });
-    this._physics = new PhysicsSystem();
+    this._physics = new PhysicsSystem(this.events);
   }
 
   protected async setupScene(): Promise<void> {
@@ -78,7 +78,7 @@ class Showcase20 extends SmallWorld {
     // 2. Camera Setup
     this.camera.position.set(0, 15, 30);
     this.camera.target.set(0, 5, 0);
-    this.camera.addBehavior(new OrbitController());
+    this.camera.addBehavior(new OrbitController({ input: this.input, audio: this.audio }));
 
     // 3. Environment: The Plinko/Galton Board
     const glassMaterial = new StandardMaterial({

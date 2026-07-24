@@ -25,7 +25,6 @@ import {
   RotatorBehavior,
   SpringLerpBehavior,
   FlickerBehavior,
-  Input,
   CameraStrategyType,
   PostProcessingEffectType,
   BloomElement,
@@ -222,11 +221,11 @@ class Showcase19 extends SmallWorld {
     this.camera.setStrategy(CameraStrategyType.SMOOTH);
     this.camera.position.set(0, 8, 20);
     this.camera.target.set(0, 3, 0);
-    this.camera.addBehavior(new OrbitController());
+    this.camera.addBehavior(new OrbitController({ input: this.input, audio: this.audio }));
 
     this.canvas.addEventListener("click", (): void => {
-      if (!Input.isPointerLocked) {
-        Input.requestPointerLock(this.canvas);
+      if (!this.input.isPointerLocked) {
+        this.input.requestPointerLock(this.canvas);
       }
     });
   }

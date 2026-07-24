@@ -7,7 +7,6 @@ import {
   Color,
   Cube,
   DirectionalLight,
-  Input,
   Keys,
   MathUtils,
   Object3D,
@@ -49,8 +48,7 @@ export class Showcase9 extends AbstractShowcase {
   ];
 
   protected override async setupScene(): Promise<void> {
-    Input.init();
-    Input.debug = true;
+    this.input.debug = true;
     this.renderer.setClearColor(new Color(0.5, 0.7, 1.0));
 
     // 1. Camera Setup
@@ -159,10 +157,10 @@ export class Showcase9 extends AbstractShowcase {
   protected override update(deltaTime: number): void {
     // --- 1. HORIZONTALE BEWEGUNG (X) & ROTATION ---
     this._velocity.x = 0;
-    if (Input.isPressed(Keys.A)) {
+    if (this.input.isPressed(Keys.A)) {
       this._velocity.x = -this._moveSpeed;
     }
-    if (Input.isPressed(Keys.D)) {
+    if (this.input.isPressed(Keys.D)) {
       this._velocity.x = this._moveSpeed;
     }
 
@@ -185,7 +183,7 @@ export class Showcase9 extends AbstractShowcase {
     // --- 2. VERTIKALE BEWEGUNG (Y) ---
     this._velocity.y += this._gravity * deltaTime;
 
-    if (this._isGrounded && Input.isPressed(Keys.SPACE)) {
+    if (this._isGrounded && this.input.isPressed(Keys.SPACE)) {
       this._velocity.y = this._jumpForce;
       this._isGrounded = false;
     }

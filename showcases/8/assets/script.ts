@@ -44,10 +44,12 @@ export class Showcase8 extends AbstractShowcase {
 
     this.camera.addBehavior(
       new FPSController({
+        input: this.input,
+        audio: this.audio,
         moveSpeed: this._moveSpeed,
       }),
     );
-    this.camera.addBehavior(new ZoomController());
+    this.camera.addBehavior(new ZoomController({ input: this.input, audio: this.audio }));
 
     // 2. Lighting
     this.scene.add(new AmbientLight({ color: Color.WHITE, intensity: 0.5 }));

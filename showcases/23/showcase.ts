@@ -137,6 +137,8 @@ class Showcase23Engine extends SmallWorld {
     this.camera.setStrategy(CameraStrategyType.FPS);
 
     const fps = new FPSController({
+      input: this.input,
+      audio: this.audio,
       enableMovement: false,
       enableVertical: false,
       enableCollision: false,

@@ -9,7 +9,6 @@ import {
   DeviceCaps,
   DeviceFeature,
   Grid,
-  Input,
   Keys,
   MathUtils,
   Object3D,
@@ -52,7 +51,7 @@ class Showcase11 extends AbstractShowcase {
     this.camera.position.set(20, 20, 40);
 
     // Re-add OrbitController to handle rotation via mouse
-    this.camera.addBehavior(new OrbitController());
+    this.camera.addBehavior(new OrbitController({ input: this.input, audio: this.audio }));
 
     // Create the ground grid (size 20x20)
     // Absolute (0,0,0) is in the middle of this grid.
@@ -96,12 +95,12 @@ class Showcase11 extends AbstractShowcase {
     const moveSpeed: number = 10 * deltaTime;
 
     // Movement along world axes
-    if (Input.isPressed(Keys.W)) this.camera.position.z -= moveSpeed; // Forward (-Z)
-    if (Input.isPressed(Keys.S)) this.camera.position.z += moveSpeed; // Backward (+Z)
-    if (Input.isPressed(Keys.A)) this.camera.position.x -= moveSpeed; // Left (-X)
-    if (Input.isPressed(Keys.D)) this.camera.position.x += moveSpeed; // Right (+X)
-    if (Input.isPressed(Keys.Q)) this.camera.position.y += moveSpeed; // Up (+Y)
-    if (Input.isPressed(Keys.E)) this.camera.position.y -= moveSpeed; // Down (-Y)
+    if (this.input.isPressed(Keys.W)) this.camera.position.z -= moveSpeed; // Forward (-Z)
+    if (this.input.isPressed(Keys.S)) this.camera.position.z += moveSpeed; // Backward (+Z)
+    if (this.input.isPressed(Keys.A)) this.camera.position.x -= moveSpeed; // Left (-X)
+    if (this.input.isPressed(Keys.D)) this.camera.position.x += moveSpeed; // Right (+X)
+    if (this.input.isPressed(Keys.Q)) this.camera.position.y += moveSpeed; // Up (+Y)
+    if (this.input.isPressed(Keys.E)) this.camera.position.y -= moveSpeed; // Down (-Y)
 
     // OrbitController will handle theta/phi rotation via mouse,
     // we keep the camera focused on the origin.

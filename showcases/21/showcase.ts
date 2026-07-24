@@ -8,7 +8,6 @@ import {
   Sphere,
   OrbitController,
   CameraStrategyType,
-  Input,
   DirectionalLight,
   PostProcessingEffectType,
   BloomElement,
@@ -29,7 +28,7 @@ class Showcase21 extends SmallWorld {
 
   constructor() {
     super({ enableInspector: false });
-    this._physics = new PhysicsSystem();
+    this._physics = new PhysicsSystem(this.events);
     this._physics.gravity.set(0, 0, 0); // No global gravity
   }
 
@@ -41,8 +40,8 @@ class Showcase21 extends SmallWorld {
         AudioSystem.instance.startDrone();
         droneStarted = true;
       }
-      if (!DeviceCaps.isMobile() && !Input.isPointerLocked) {
-        Input.requestPointerLock(this.canvas);
+      if (!DeviceCaps.isMobile() && !this.input.isPointerLocked) {
+        this.input.requestPointerLock(this.canvas);
       }
     });
 
@@ -75,7 +74,7 @@ class Showcase21 extends SmallWorld {
     this.camera.setStrategy(CameraStrategyType.HYBRID_SYNC);
     this.camera.position.set(0, 20, 40);
     this.camera.target.set(0, 0, 0);
-    this.camera.addBehavior(new OrbitController());
+    this.camera.addBehavior(new OrbitController({ input: this.input, audio: this.audio }));
 
     // 3. Environment: The Magnetic Singularity & Space Background
     const skyTexture = await Texture.fromUrl("./assets/space-2.jpg");

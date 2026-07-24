@@ -1,5 +1,5 @@
 /// showcases/22/MarbleController.ts
-import { Behavior, Input, Keys, Vector3D, CameraInterfaceData } from "../../src/index.js";
+import { Behavior, Keys, Vector3D, CameraInterfaceData, InputInterface } from "../../src/index.js";
 
 /**
  * Controller to move a physics-based marble using WASD.
@@ -9,18 +9,20 @@ export class MarbleController extends Behavior {
   private _torqueVector: Vector3D = new Vector3D();
   private _moveSpeed: number;
   private _camera: CameraInterfaceData;
+  private _input: InputInterface;
 
-  constructor(camera: CameraInterfaceData, moveSpeed: number = 25.0) {
+  constructor(camera: CameraInterfaceData, input: InputInterface, moveSpeed: number = 25.0) {
     super();
     this._camera = camera;
+    this._input = input;
     this._moveSpeed = moveSpeed;
   }
 
   public override update(): void {
     if (!this.target || !this.target.rigidBody) return;
 
-    const moveX = Input.getAxis(Keys.A, Keys.D);
-    const moveZ = Input.getAxis(Keys.W, Keys.S);
+    const moveX = this._input.getAxis(Keys.A, Keys.D);
+    const moveZ = this._input.getAxis(Keys.W, Keys.S);
 
     if (moveX !== 0 || moveZ !== 0) {
       // Look-relative movement (Right-handed: -Z is Forward)

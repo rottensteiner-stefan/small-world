@@ -7,7 +7,6 @@ import {
   DirectionalLight,
   FPSController,
   ZoomController,
-  Input,
   Object3D,
   PerspectiveProjection,
   PhongMaterial,
@@ -29,13 +28,13 @@ export class Showcase2 extends AbstractShowcase {
   /** @inheritdoc */
   protected override async setupScene(): Promise<void> {
     // 1. Initialize input (Keyboard & Mouse)
-    Input.init();
-    Input.debug = true;
+
+    this.input.debug = true;
 
     // Attach event listener directly to the canvas to activate PointerLock (mouse capture)
     this.canvas.addEventListener("click", (): void => {
-      if (!Input.isPointerLocked) {
-        Input.requestPointerLock(this.canvas);
+      if (!this.input.isPointerLocked) {
+        this.input.requestPointerLock(this.canvas);
       }
     });
 
@@ -56,10 +55,12 @@ export class Showcase2 extends AbstractShowcase {
 
     this.camera.addBehavior(
       new FPSController({
+        input: this.input,
+        audio: this.audio,
         moveSpeed: this._moveSpeed,
       }),
     );
-    this.camera.addBehavior(new ZoomController());
+    this.camera.addBehavior(new ZoomController({ input: this.input, audio: this.audio }));
 
     // 3. Add light
     const sun: DirectionalLight = new DirectionalLight({ color: Color.WHITE, intensity: 0.8 });
@@ -110,8 +111,8 @@ export class Showcase2 extends AbstractShowcase {
   protected override onCanvasRecreated(): void {
     // Since we recreated the canvas, we must reattach the click listener!
     this.canvas.addEventListener("click", (): void => {
-      if (!Input.isPointerLocked) {
-        Input.requestPointerLock(this.canvas);
+      if (!this.input.isPointerLocked) {
+        this.input.requestPointerLock(this.canvas);
       }
     });
   }

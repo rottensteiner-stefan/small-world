@@ -6,7 +6,6 @@ import {
   CameraStrategyType,
   Color,
   DirectionalLight,
-  Input,
   Object3D,
   ObjLoader,
   PerspectiveProjection,
@@ -28,11 +27,10 @@ export class Showcase4 extends AbstractShowcase {
   private _terrainManager: TerrainManager | undefined = undefined;
 
   protected override async setupScene(): Promise<void> {
-    Input.init();
-    Input.debug = true;
+    this.input.debug = true;
     this.canvas.addEventListener("click", (): void => {
-      if (!Input.isPointerLocked) {
-        Input.requestPointerLock(this.canvas);
+      if (!this.input.isPointerLocked) {
+        this.input.requestPointerLock(this.canvas);
       }
     });
 
@@ -105,6 +103,8 @@ export class Showcase4 extends AbstractShowcase {
       // Setup WASD Controller for the car
       this._car.addBehavior(
         new WASDController({
+          input: this.input,
+          audio: this.audio,
           moveSpeed: CAR_SPEED,
         }),
       );
@@ -116,15 +116,15 @@ export class Showcase4 extends AbstractShowcase {
   protected override onCanvasRecreated(): void {
     // Since we recreated the canvas, we must reattach the click listener!
     this.canvas.addEventListener("click", (): void => {
-      if (!Input.isPointerLocked) {
-        Input.requestPointerLock(this.canvas);
+      if (!this.input.isPointerLocked) {
+        this.input.requestPointerLock(this.canvas);
       }
     });
   }
 
   protected override update(deltaTime: number): void {
-    const dx: number = Input.isPointerLocked ? Input.mouse.dx : 0;
-    const dy: number = Input.isPointerLocked ? Input.mouse.dy : 0;
+    const dx: number = this.input.isPointerLocked ? this.input.mouse.dx : 0;
+    const dy: number = this.input.isPointerLocked ? this.input.mouse.dy : 0;
 
     this.camera.update(this._targetPos, dx, dy, deltaTime);
 

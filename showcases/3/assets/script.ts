@@ -5,7 +5,6 @@ import {
   Color,
   DirectionalLight,
   Grid,
-  Input,
   Keys,
   Object3D,
   ObjLoader,
@@ -21,11 +20,9 @@ class Showcase3 extends AbstractShowcase {
   private _carModel: Object3D | undefined;
 
   protected override async setupScene(): Promise<void> {
-    Input.init();
-
     this.canvas.addEventListener("click", (): void => {
-      if (!Input.isPointerLocked) {
-        Input.requestPointerLock(this.canvas);
+      if (!this.input.isPointerLocked) {
+        this.input.requestPointerLock(this.canvas);
       }
     });
 
@@ -43,7 +40,7 @@ class Showcase3 extends AbstractShowcase {
     this.camera.setStrategy(CameraStrategyType.SMOOTH);
     this.camera.position.set(0, 5, 15);
 
-    this.camera.addBehavior(new OrbitController());
+    this.camera.addBehavior(new OrbitController({ input: this.input, audio: this.audio }));
 
     const ambientLight: AmbientLight = new AmbientLight({ color: Color.WHITE, intensity: 0.3 });
     this.scene.add(ambientLight);
@@ -89,11 +86,11 @@ class Showcase3 extends AbstractShowcase {
 
   protected override update(): void {
     // Handle Color Switching
-    if (Input.isPressed(Keys.D1)) this._setCarColor(0);
-    if (Input.isPressed(Keys.D2)) this._setCarColor(1);
-    if (Input.isPressed(Keys.D3)) this._setCarColor(2);
-    if (Input.isPressed(Keys.D4)) this._setCarColor(3);
-    if (Input.isPressed(Keys.D5)) this._setCarColor(4);
+    if (this.input.isPressed(Keys.D1)) this._setCarColor(0);
+    if (this.input.isPressed(Keys.D2)) this._setCarColor(1);
+    if (this.input.isPressed(Keys.D3)) this._setCarColor(2);
+    if (this.input.isPressed(Keys.D4)) this._setCarColor(3);
+    if (this.input.isPressed(Keys.D5)) this._setCarColor(4);
   }
 }
 

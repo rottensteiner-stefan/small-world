@@ -97,6 +97,8 @@ export class Showcase15V1 extends AbstractShowcase {
     this.camera.phi = 0;
 
     const fpsController = new FPSController({
+      input: this.input,
+      audio: this.audio,
       moveSpeed: 8.0,
       enableCollision: false,
       scene: this.scene,

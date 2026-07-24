@@ -181,8 +181,14 @@ export class Showcase10 extends AbstractShowcase {
     this.scene.add(createFireBowl("FireBowlLeft", -4, 1, 0));
     this.scene.add(createFireBowl("FireBowlRight", 4, 1, 0));
 
-    this.camera.addBehavior(new FPSController({ moveSpeed: this._moveSpeed }));
-    this.camera.addBehavior(new ZoomController());
+    this.camera.addBehavior(
+      new FPSController({
+        input: this.input,
+        audio: this.audio,
+        moveSpeed: this._moveSpeed,
+      }),
+    );
+    this.camera.addBehavior(new ZoomController({ input: this.input, audio: this.audio }));
 
     this.scene.update();
 

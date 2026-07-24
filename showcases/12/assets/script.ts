@@ -31,7 +31,7 @@ import {
   CullMode,
 } from "../../../src/index.js";
 import { FogMode, PostProcessingEffectType } from "../../../src/enums/index.js";
-import { AbstractShowcase, Input } from "../../../src/core/index.js";
+import { AbstractShowcase } from "../../../src/core/index.js";
 import { WorkbenchTable } from "./objects/WorkbenchTable.js";
 import { ErlenmeyerFlask } from "./objects/ErlenmeyerFlask.js";
 import { ApothecaryBottle } from "./objects/ApothecaryBottle.js";
@@ -938,6 +938,8 @@ class UnderwaterHideoutShowcase extends AbstractShowcase {
 
     // Add WASD/Mouse controller with collisions
     const fpsController = new FPSController({
+      input: this.input,
+      audio: this.audio,
       moveSpeed: 5.0,
       enableCollision: true,
       scene: this.scene,
@@ -947,8 +949,8 @@ class UnderwaterHideoutShowcase extends AbstractShowcase {
 
     // Pointer Lock
     this.canvas.addEventListener("click", (): void => {
-      if (!Input.isPointerLocked) {
-        Input.requestPointerLock(this.canvas);
+      if (!this.input.isPointerLocked) {
+        this.input.requestPointerLock(this.canvas);
       }
     });
   }
@@ -963,14 +965,18 @@ class UnderwaterHideoutShowcase extends AbstractShowcase {
 
     // Adjust base porthole light intensity via NumpadAdd (+) and NumpadSubtract (-)
     if (
-      Input.isPressed("NumpadAdd") ||
-      Input.isPressed("Equal") ||
-      Input.isPressed("BracketRight")
+      this.input.isPressed("NumpadAdd") ||
+      this.input.isPressed("Equal") ||
+      this.input.isPressed("BracketRight")
     ) {
       this._portLightBaseIntensity += deltaTime * 5.0;
       console.log(`[Porthole] Base Intensity: ${this._portLightBaseIntensity.toFixed(2)}`);
     }
-    if (Input.isPressed("NumpadSubtract") || Input.isPressed("Minus") || Input.isPressed("Slash")) {
+    if (
+      this.input.isPressed("NumpadSubtract") ||
+      this.input.isPressed("Minus") ||
+      this.input.isPressed("Slash")
+    ) {
       this._portLightBaseIntensity = Math.max(0.0, this._portLightBaseIntensity - deltaTime * 5.0);
       console.log(`[Porthole] Base Intensity: ${this._portLightBaseIntensity.toFixed(2)}`);
     }

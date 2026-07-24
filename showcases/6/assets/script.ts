@@ -63,12 +63,14 @@ export class Showcase6 extends AbstractShowcase {
 
     this.camera.addBehavior(
       new FPSController({
+        input: this.input,
+        audio: this.audio,
         moveSpeed: this._moveSpeed,
         collisionRadius: 0.6,
         scene: this.scene,
       }),
     );
-    this.camera.addBehavior(new ZoomController());
+    this.camera.addBehavior(new ZoomController({ input: this.input, audio: this.audio }));
 
     // 3. Lights
     this.scene.add(new AmbientLight({ color: Color.WHITE, intensity: 0.4 }));

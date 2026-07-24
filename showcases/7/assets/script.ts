@@ -9,7 +9,6 @@ import {
   DirectionalLight,
   FPSController,
   ZoomController,
-  Input,
   MathUtils,
   Object3D,
   PerspectiveProjection,
@@ -29,8 +28,8 @@ export class Showcase7 extends AbstractShowcase {
   protected override onCanvasRecreated(): void {
     super.onCanvasRecreated();
     this.canvas.addEventListener("click", (): void => {
-      if (!Input.isPointerLocked) {
-        Input.requestPointerLock(this.canvas);
+      if (!this.input.isPointerLocked) {
+        this.input.requestPointerLock(this.canvas);
       }
     });
   }
@@ -52,10 +51,12 @@ export class Showcase7 extends AbstractShowcase {
 
     this.camera.addBehavior(
       new FPSController({
+        input: this.input,
+        audio: this.audio,
         moveSpeed: this._moveSpeed,
       }),
     );
-    this.camera.addBehavior(new ZoomController());
+    this.camera.addBehavior(new ZoomController({ input: this.input, audio: this.audio }));
 
     // 2. Lighting
     this.scene.add(new AmbientLight({ color: Color.WHITE, intensity: 0.5 }));
