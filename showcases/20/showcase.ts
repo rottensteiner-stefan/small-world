@@ -1,264 +1,239 @@
-/// showcases/20/showcase.ts
+/// showcases/19/showcase.ts
 
 import {
-  SmallWorld,
+  AbstractShowcase,
   Color,
+  Octahedron,
+  AmbientLight,
+  DirectionalLight,
+  Ground,
+  Texture,
+  Cone,
+  BasicMaterial,
+  Cube,
+  OrbitController,
   Object3D,
   StandardMaterial,
-  Cube,
-  Sphere,
-  OrbitController,
-  DirectionalLight,
   Vector3D,
+  Sphere,
+  SpotLight,
+  CatmullRomSpline,
+  PathFollowerBehavior,
+  LookAtBehavior,
+  RainbowBehavior,
+  BobbingBehavior,
+  RotatorBehavior,
+  SpringLerpBehavior,
+  FlickerBehavior,
+  CameraStrategyType,
   PostProcessingEffectType,
   BloomElement,
-  BoundingBox,
-  BoundingSphere,
-  RigidBody,
-  PhysicsSystem,
-  ColorUtils,
 } from "../../src/index.js";
-import { AmbientLight } from "../../src/core/lights/index.js";
 
-/**
- * A pentatonic scale for musical physical collisions.
- */
-const PENTATONIC_SCALE = [
-  130.81, // C3
-  146.83, // D3
-  164.81, // E3
-  196.0, // G3
-  220.0, // A3
-  261.63, // C4
-  293.66, // D4
-  329.63, // E4
-  392.0, // G4
-  440.0, // A4
-  523.25, // C5
-  587.33, // D5
-  659.25, // E5
-  783.99, // G5
-  880.0, // A5
-];
-
-class Showcase20 extends SmallWorld {
-  private _spheres: Object3D[] = [];
-  private _spherePool: Object3D[] = [];
-  private _spawnTimer: number = 0;
-  private _sphereGeo!: import("../../src/index.js").GeometryData;
-  private _sphereMat!: StandardMaterial;
-  private _physics: PhysicsSystem;
-
-  constructor() {
-    super({
-      enableInspector: false,
-    });
-    this._physics = new PhysicsSystem(this.events);
-  }
-
+class Showcase19 extends AbstractShowcase {
   protected async setupScene(): Promise<void> {
-    // 0. Enable Post Processing for glowing bloom
+    // 0. Enable Post Processing for Tron Bloom!
     this.renderer.postProcessing.enabled = true;
     const bloom = this.renderer.postProcessing.get<BloomElement>(PostProcessingEffectType.BLOOM);
     if (bloom) {
       bloom.enabled = true;
-      bloom.intensity = 2.0;
-      bloom.threshold = 0.5;
-      bloom.radius = 1.0;
+      bloom.intensity = 2.5;
+      bloom.threshold = 0.8;
+      bloom.radius = 1.5;
+      bloom.color = new Color(0.2, 0.8, 1.5);
     }
 
-    // 1. Lighting Setup
-    const ambient = new AmbientLight({ color: new Color(0.1, 0.1, 0.2), intensity: 1.0 });
-    const dirLight = new DirectionalLight({ color: new Color(0.8, 0.9, 1.0), intensity: 2.0 });
-    dirLight.position.set(10, 20, 10);
-    dirLight.direction.set(-10, -20, -10).normalize();
-    this.scene.add(ambient, dirLight);
+    // 1. Grid & Lighting
+    const floor = new Object3D("Floor");
+    floor.geometry = new Ground({ width: 50, depth: 50 }).getGeometryData();
 
-    // 2. Camera Setup
-    this.camera.position.set(0, 15, 30);
-    this.camera.target.set(0, 5, 0);
-    this.camera.addBehavior(new OrbitController({ input: this.input, audio: this.audio }));
+    // Create a procedural grid texture using Canvas 2D to avoid 1px line aliasing
+    const canvas = document.createElement("canvas");
+    canvas.width = 512;
+    canvas.height = 512;
+    const ctx = canvas.getContext("2d")!;
+    ctx.fillStyle = "#000000"; // Black background
+    ctx.fillRect(0, 0, 512, 512);
+    ctx.strokeStyle = "#ffffff"; // White lines (will be tinted by HDR color)
+    ctx.lineWidth = 4; // Thick lines to prevent aliasing dropouts
+    ctx.beginPath();
+    // Draw top and left borders so when it repeats it forms a grid
+    ctx.moveTo(0, 0);
+    ctx.lineTo(512, 0);
+    ctx.moveTo(0, 0);
+    ctx.lineTo(0, 512);
+    // Draw bottom and right borders (half thickness to merge nicely)
+    ctx.moveTo(512, 0);
+    ctx.lineTo(512, 512);
+    ctx.moveTo(0, 512);
+    ctx.lineTo(512, 512);
+    ctx.stroke();
 
-    // 3. Environment: The Plinko/Galton Board
-    const glassMaterial = new StandardMaterial({
-      color: new Color(0.1, 0.1, 0.1),
-      metallic: 0.1,
-      roughness: 0.1,
-      transmission: 0.9, // Refractive Glass
-      ior: 1.5,
-      thickness: 1.0,
-      envMapIntensity: 1.0,
+    const gridBitmap = await createImageBitmap(canvas);
+    const gridTexture = Texture.fromImage(gridBitmap);
+    gridTexture.repeat = { x: 10, y: 10 }; // 10x10 grid tiles
+
+    const gridMat = new BasicMaterial({
+      color: new Color(0.6, 1.8, 3.0), // HDR Blue for heavy Bloom!
+      diffuseMap: gridTexture,
+    });
+    floor.material = gridMat;
+    floor.receiveShadow = true;
+    this.scene.add(floor);
+
+    this.scene.add(new AmbientLight({ color: Color.WHITE, intensity: 0.4 }));
+
+    const dirLight = new DirectionalLight({
+      color: new Color(1, 1, 1),
+      intensity: 0.2,
+      castShadow: true,
+      direction: new Vector3D(-1, -1, -0.5).normalize(),
+    });
+    this.scene.add(dirLight);
+
+    // 2. The "Magic Crystal" (Bobbing, Rotating, Rainbow)
+    const crystal = new Object3D("Crystal");
+    crystal.geometry = new Octahedron({ radius: 1.5 }).getGeometryData();
+    crystal.material = new StandardMaterial({ color: Color.RED, metallic: 0.8, roughness: 0.2 });
+    crystal.position.set(0, 3, 0);
+
+    crystal.addBehavior(new BobbingBehavior(1.0, 2.0));
+    crystal.addBehavior(new RotatorBehavior(new Vector3D(1.0, 1.5, 0.5)));
+    crystal.addBehavior(new RainbowBehavior(0.2));
+    crystal.castShadow = true;
+    crystal.receiveShadow = true;
+    this.scene.add(crystal);
+
+    // 3. The "Companion Sphere" (SpringLerpBehavior following the camera)
+    const companion = new Object3D("Companion");
+    companion.geometry = new Sphere({ radius: 0.5 }).getGeometryData();
+    companion.material = new StandardMaterial({
+      color: Color.CORNFLOWERBLUE,
+      metallic: 0.2,
+      roughness: 0.8,
     });
 
-    const boxGeo = new Cube({ size: 1 }).getGeometryData();
+    // We attach a custom behavior that constantly updates the SpringLerp target
+    const springLerp = new SpringLerpBehavior(new Vector3D(), 0.05);
+    companion.addBehavior(springLerp);
 
-    // Create a pyramid of pegs
-    const rows = 8;
-    const spacing = 3.0;
-    for (let r = 0; r < rows; r++) {
-      const pegsInRow = r + 1;
-      const startX = -((pegsInRow - 1) * spacing) / 2;
-      for (let i = 0; i < pegsInRow; i++) {
-        const peg = new Object3D(`Peg_${r}_${i}`);
-        peg.geometry = boxGeo;
-        peg.material = glassMaterial;
+    // Quick custom behavior just to pipe the camera position into the spring lerp target
+    companion.addBehavior({
+      target: companion,
+      onAttach: (): void => {},
+      onDetach: (): void => {},
+      update: (): void => {
+        // Offset the companion relative to the camera
+        const targetPos = new Vector3D().copyFrom(this.camera.position);
+        // Put it slightly in front and to the right
+        const forward = new Vector3D()
+          .copyFrom(this.camera.target)
+          .sub(this.camera.position)
+          .normalize();
+        targetPos.add(forward.scale(5)).add(new Vector3D(2, 0, 0));
+        springLerp.targetPosition.copyFrom(targetPos);
+      },
+    });
+    companion.castShadow = true;
+    companion.receiveShadow = true;
+    this.scene.add(companion);
 
-        // Tilt the pegs slightly to make bouncing chaotic
-        peg.rotation.z = Math.PI / 4;
+    // 4. The Patrolling Spaceship (PathFollowerBehavior)
+    const spline = new CatmullRomSpline(
+      [
+        new Vector3D(10, 5, 10),
+        new Vector3D(-10, 2, 10),
+        new Vector3D(-15, 8, 0),
+        new Vector3D(-10, 4, -10),
+        new Vector3D(10, 5, -10),
+        new Vector3D(15, 8, 0),
+      ],
+      true,
+    ); // Closed loop
 
-        const x = startX + i * spacing;
-        const y = 15 - r * spacing;
-        peg.position.set(x, y, 0);
+    const ship = new Object3D("Ship");
 
-        // Make it a STATIC rigid body (mass = 0)
-        peg.rigidBody = new RigidBody(0);
-        peg.rigidBody.restitution = 0.9; // Bouncy pegs
+    // Spaceship body (Cone)
+    const body = new Object3D("ShipBody");
+    body.geometry = new Cone({ radius: 0.8, height: 3.0 }).getGeometryData();
+    body.material = new StandardMaterial({ color: Color.HOTPINK, metallic: 1.0, roughness: 0.1 });
+    // Point the cone forward (-Z) instead of up (+Y)
+    body.rotation.x = Math.PI / 2;
+    body.castShadow = true;
+    body.receiveShadow = true;
+    ship.add(body);
 
-        // Scale it up
-        peg.scale.set(1.5, 1.5, 1.5);
-        peg.updateMatrixWorld();
+    // Spaceship wings (Cube)
+    const wings = new Object3D("ShipWings");
+    wings.geometry = new Cube({ size: 1 }).getGeometryData();
+    wings.material = new StandardMaterial({ color: Color.WHITE, metallic: 0.8, roughness: 0.2 });
+    wings.scale.set(3.5, 0.2, 1.0);
+    wings.position.set(0, -0.2, 0.5); // slightly below and towards the back
+    wings.castShadow = true;
+    wings.receiveShadow = true;
+    ship.add(wings);
 
-        // Calculate world bounds
-        peg.bounds = new BoundingBox(
-          new Vector3D(-0.75, -0.75, -0.75),
-          new Vector3D(0.75, 0.75, 0.75),
-        );
+    // Flickering Thrusters
+    const thruster = new Object3D("Thruster");
+    thruster.geometry = new Sphere({ radius: 0.3 }).getGeometryData();
+    const thrusterMat = new StandardMaterial({
+      color: new Color(0, 0, 0),
+      emissiveColor: new Color(0, 5.0, 5.0),
+      metallic: 0.0,
+      roughness: 1.0,
+    });
+    thruster.material = thrusterMat;
+    thruster.position.set(0, 0, 1.5); // back of the ship
+    thruster.addBehavior(
+      new FlickerBehavior({
+        minStableTime: 0.0,
+        maxStableTime: 0.2,
+        minFlickerTime: 0.1,
+        maxFlickerTime: 0.4,
+        minMultiplier: 0.2,
+        smoothness: 0.2,
+        onUpdate: (multiplier: number): void => {
+          // Modulate the HDR emissive brightness based on flicker multiplier
+          thrusterMat.emissiveColor.set(0, multiplier * 5.0, multiplier * 5.0);
+        },
+      }),
+    );
+    ship.add(thruster);
 
-        this.scene.add(peg);
+    // Ship flies along the spline, completes loop every 10 seconds, and always looks forward
+    ship.addBehavior(new PathFollowerBehavior(spline, 10.0, true, false));
+    this.scene.add(ship);
+
+    // 5. The Surveillance Spotlight (LookAtBehavior)
+    const spot = new SpotLight({
+      color: Color.YELLOW,
+      distance: 50.0,
+      angle: Math.PI / 8,
+      intensity: 100.0, // Scheinwerfer etwas rauf
+      castShadow: true,
+    });
+    spot.position.set(0, 15, 0); // High up in the center
+    // Always look at the spaceship!
+    spot.addBehavior(new LookAtBehavior(ship));
+
+    this.scene.add(spot);
+
+    this.camera.setStrategy(CameraStrategyType.SMOOTH);
+    this.camera.position.set(0, 8, 20);
+    this.camera.target.set(0, 3, 0);
+    this.camera.addBehavior(new OrbitController({ input: this.input, audio: this.audio }));
+
+    this.canvas.addEventListener("click", (): void => {
+      if (!this.input.isPointerLocked) {
+        this.input.requestPointerLock(this.canvas);
       }
-    }
-
-    // Add boundaries to funnel them back
-    const createWall = (x: number, rotZ: number) => {
-      const wall = new Object3D();
-      wall.geometry = boxGeo;
-      wall.material = glassMaterial;
-      wall.position.set(x, 5, 0);
-      wall.scale.set(1, 20, 3);
-      wall.rotation.z = rotZ;
-      wall.rigidBody = new RigidBody(0);
-      wall.rigidBody.restitution = 0.5;
-      wall.bounds = new BoundingBox(new Vector3D(-0.5, -10, -1.5), new Vector3D(0.5, 10, 1.5));
-      this.scene.add(wall);
-    };
-    createWall(-15, -Math.PI / 8);
-    createWall(15, Math.PI / 8);
-
-    // 4. Pre-allocate sphere geometry and material
-    this._sphereGeo = new Sphere({
-      radius: 0.5,
-      widthSegments: 16,
-      heightSegments: 16,
-    }).getGeometryData();
-
-    // Pre-warm the sphere pool to prevent mid-simulation shader compilations and stuttering
-    for (let i = 0; i < 100; i++) {
-      const s = new Object3D();
-      s.geometry = this._sphereGeo;
-
-      const hue = Math.floor(Math.random() * 360);
-      s.material = new StandardMaterial({
-        color: ColorUtils.fromCSS(`hsl(${hue}, 100%, 50%)`),
-        metallic: 0.9,
-        roughness: 0.1,
-        emissiveColor: new Color(0.2, 0.0, 0.2),
-      });
-
-      const rb = new RigidBody(1.0);
-      rb.restitution = 0.8;
-      rb.friction = 0.99; // Air resistance / damping. 0.1 was killing all velocity instantly!
-      s.rigidBody = rb;
-      s.bounds = new BoundingSphere(s.position, 0.5);
-
-      this._spherePool.push(s);
-    }
-
-    // 5. Subscribe to Physics Collisions for Generative Audio
-    this.events.addEventListener(
-      "physics:collision",
-      (data: { objectA: Object3D; objectB: Object3D; impulse: number }) => {
-        const impulseMag = data.impulse;
-        if (impulseMag > 0.5) {
-          // Threshold to prevent micro-collision spam
-          // Map Y position to a note in the pentatonic scale
-          const yPos = Math.max(0, Math.min(15, data.objectA.position.y));
-          const noteIndex = Math.floor((yPos / 15) * (PENTATONIC_SCALE.length - 1));
-          const freq = PENTATONIC_SCALE[noteIndex]!;
-
-          // Map impulse magnitude to volume (cap at 0.5)
-          const volume = Math.min(0.5, impulseMag * 0.05);
-
-          // Flash the sphere's color based on impact
-          if (data.objectA.material instanceof StandardMaterial) {
-            const origR = data.objectA.material.color.r;
-            data.objectA.material.emissiveColor.set(origR * 2, origR, origR * 2);
-          }
-
-          // Play the generative synth tone
-          this.audio.playTone(freq, 0.3, volume, "triangle");
-        }
-      },
-    );
-
-    // Start audio context on first click
-    window.addEventListener(
-      "pointerdown",
-      () => {
-        if (this.audio.context.state === "suspended") {
-          this.audio.context.resume();
-        }
-      },
-      { once: true },
-    );
+    });
   }
 
-  private _spawnSphere(): void {
-    let s: Object3D;
-
-    if (this._spherePool.length > 0) {
-      s = this._spherePool.pop()!;
-      this.scene.add(s);
-      this._spheres.push(s);
-    } else {
-      // Pool empty, recycle oldest active sphere
-      s = this._spheres.shift()!;
-      this._spheres.push(s);
-    }
-
-    s.position.set((Math.random() - 0.5) * 4, 22, Math.random() - 0.5);
-    s.rigidBody!.velocity.set(0, -2, 0);
-    s.rigidBody!.angularVelocity.set(0, 0, 0);
-    s.rigidBody!.clearForces();
-  }
-
-  protected override update(dt: number): void {
-    // 1. Step the physics simulation
-    this._physics.step(this.scene, dt);
-
-    this._spawnTimer += dt;
-    if (this._spawnTimer > 0.25) {
-      // Spawn 4 spheres per second
-      this._spawnTimer = 0;
-      this._spawnSphere();
-    }
-
-    // Cool down emissive colors
-    for (const s of this._spheres) {
-      if (s.material instanceof StandardMaterial) {
-        const t = dt * 5.0;
-        const c = s.material.emissiveColor;
-        c.r += (0.0 - c.r) * t;
-        c.g += (0.0 - c.g) * t;
-        c.b += (0.0 - c.b) * t;
-      }
-
-      // Keep them in 2D plane for the Plinko effect
-      s.position.z = 0;
-      s.rigidBody!.velocity.z = 0;
-      s.updateMatrixWorld();
-    }
+  protected override update(): void {
+    // Logic is entirely handled by the behaviors!
   }
 }
 
-const app = new Showcase20();
+const app = new Showcase19({ enableInspector: true });
 app.start();

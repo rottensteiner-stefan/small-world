@@ -11,6 +11,7 @@
 - **File Storage:** Store scratchpads, sketches, and temporary files locally in the project under `.agents/scratches/`, not in the hard-to-reach agent-specific AppData directory. Exceptions are regular assets or artifacts where the target location is known and logical.
 - **Verification:** Run `npm run lint:fix`, `npm run build:lib` and `npm run test` proactively after making changes to catch errors before committing.
 - **Communication:** Telegram-style (concise), use Markdown artifacts for plans/details, precise links (file/lines) instead of copying code, surgical diffs, delegate research to subagents.
+- **Terminal Commands:** You are explicitly allowed to run read-only shell commands (like `grep`, `tail`, `cat`, `ls`, `find`, `git log`, `git diff`) as well as safe project scripts (`npm run lint`, `npm run build`, `npm run test`) in the terminal WITHOUT asking for permission.
 - **Simplicity:** Keep things as simple as possible. Strictly avoid overengineering or preemptive abstraction. Complexity arises naturally on its own.
 
 ## 2. Math & Coordinate System (Right-Handed)

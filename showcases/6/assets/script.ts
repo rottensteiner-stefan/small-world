@@ -105,6 +105,7 @@ export class Showcase6 extends AbstractShowcase {
       objWire.material = wireMat;
       objWire.position.set(x, 2, z);
       objWire.isStatic = true;
+      objWire.isCollidable = true;
       this.scene.add(objWire);
 
       // Solid version
@@ -118,6 +119,7 @@ export class Showcase6 extends AbstractShowcase {
       objSolid.material = solidMat;
       objSolid.position.set(x, 2, z + 6); // Offset by +6 on Z axis
       objSolid.isStatic = true;
+      objSolid.isCollidable = true;
       this.scene.add(objSolid);
     };
 
@@ -217,5 +219,5 @@ export class Showcase6 extends AbstractShowcase {
   protected override update(): void {}
 }
 
-const app: Showcase6 = new Showcase6();
+const app: Showcase6 = new Showcase6({ enableInspector: true });
 app.start();

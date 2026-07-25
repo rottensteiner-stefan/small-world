@@ -1,526 +1,722 @@
-import SHADERTOY_STAR_NEST from "./assets/shadertoy_star_nest.glsl?raw";
-import GLSLSANDBOX_PLASMA from "./assets/glslsandbox_plasma.glsl?raw";
-import SHADERTOY_FRACTAL from "./assets/shadertoy_fractal.glsl?raw";
-import SHADERTOY_TOON_CREATURE from "./assets/shadertoy_toon_creature.glsl?raw";
-import SHADERTOY_VORONOI_STAINED_GLASS from "./assets/shadertoy_voronoi_stained_glass.glsl?raw";
-import GLSLSANDBOX_RETRO_ASCII from "./assets/glslsandbox_retro_ascii.glsl?raw";
-import SHADERTOY_SIN_CITY from "./assets/shadertoy_sin_city.glsl?raw";
-import SHADERTOY_CODE_TUNNEL from "./assets/shadertoy_code_tunnel.glsl?raw";
-import COMPUTETOYS_SYNTHWAVE from "./assets/computetoys_synthwave.wgsl?raw";
-import COMPUTETOYS_KISHIMISU from "./assets/computetoys_kishimisu.wgsl?raw";
-import COMPUTETOYS_RAYMARCH from "./assets/computetoys_raymarch.wgsl?raw";
-import COMPUTETOYS_TOON_SHAPE from "./assets/computetoys_toon_shape.wgsl?raw";
-import COMPUTETOYS_HEX_HOLOGRAM from "./assets/computetoys_hex_hologram.wgsl?raw";
-import COMPUTETOYS_MATRIX_RAIN from "./assets/computetoys_matrix_rain.wgsl?raw";
-import COMPUTETOYS_SIN_CITY from "./assets/computetoys_sin_city.wgsl?raw";
-import COMPUTETOYS_CODE_TUNNEL from "./assets/computetoys_code_tunnel.wgsl?raw";
+/// showcases/22/showcase.ts
 import {
-  AmbientLight,
-  Behavior,
-  CameraInterfaceData,
-  CameraStrategyType,
+  AbstractShowcase,
+  PointLight,
   Color,
-  ComputeToysImporter,
-  CustomShaderMaterial,
-  DirectionalLight,
-  ExternalShaderUniformBehavior,
-  GLSLSandboxImporter,
-  Object3D,
-  FPSController,
-  Plane,
-  Raycaster,
-  RendererType,
-  ShadertoyImporter,
-  SmallWorld,
+  Cube,
   Sphere,
-  Vector2D,
+  StandardMaterial,
+  RigidBody,
+  Texture,
+  Object3D,
+  PhysicsSystem,
+  AmbientLight,
   Vector3D,
-  WireframeMaterial,
+  MathUtils,
+  Cylinder,
+  BasicMaterial,
+  DeviceCaps,
+  DeviceFeature,
+  Sprite,
+  SpriteMaterial,
+  Torus,
+  HoverBehavior,
+  RotatorBehavior,
+  EmissivePulseBehavior,
+  CustomShaderMaterial,
+  StandardWebGPULayout,
 } from "../../src/index.js";
 
-class BobbingBehavior extends Behavior {
-  private timeOffset: number = Math.random() * Math.PI * 2;
-  private initialY: number = 0;
-  private speed: number = 1.0 + Math.random() * 0.5;
+import fragWGSL from "../../src/core/materials/shaders/Standard.frag.wgsl?raw";
+import fragGLSL from "../../src/core/materials/shaders/Standard.frag.glsl?raw";
+import fragGLSL100 from "../../src/core/materials/shaders/Standard.frag.glsl100?raw";
+import { MarbleController } from "./MarbleController.js";
+import { DroneController } from "./DroneController.js";
+import floorTexUrl from "./assets/scifi_metal_floor.jpg";
+import bumperTexUrl from "./assets/scifi_crate_cyan.jpg";
 
-  public onAttach(target: Object3D): void {
-    super.onAttach(target);
-    this.initialY = target.position.y;
+class Showcase22 extends AbstractShowcase {
+  private _marble: Object3D | null = null;
+  private _ambientAudioStarted: boolean = false;
+  private _gameActive: boolean = false;
+  private _startButton!: Object3D;
+  private _physics!: PhysicsSystem;
+  private _score: number = 0;
+  private _maxScore: number = 0;
+  private _scoreElement!: HTMLDivElement;
+  private _timeElement!: HTMLDivElement;
+  private _timeLeft: number = 30.0;
+  private _gameWon: boolean = false;
+
+  private _cameraRadius: number = 60.0;
+
+  private _formatTime(t: number): string {
+    const sec = Math.floor(t);
+    const ms = Math.floor((t - sec) * 100);
+    return `${sec.toString().padStart(2, "0")}:${ms.toString().padStart(2, "0")}`;
   }
 
-  public update(deltaTime: number): void {
-    if (!this.target) return;
-    this.timeOffset += deltaTime * this.speed;
-    (this.target as Object3D).position.y = this.initialY + Math.sin(this.timeOffset) * 0.15;
-  }
-}
+  private _startGame(): void {
+    if (this._gameActive) return;
 
-class CameraZoomBehavior extends Behavior {
-  public basePosition: Vector3D;
-  public targetPosition: Vector3D | null = null;
-  public targetLook: Vector3D | null = null;
-  public isFocused: boolean = false;
-  public fpsController: FPSController;
+    this._gameActive = true;
+    this._gameWon = false;
+    this._timeLeft = 30.0;
+    this._score = 0;
 
-  constructor(basePos: Vector3D, fps: FPSController) {
-    super();
-    this.basePosition = basePos.clone();
-    this.fpsController = fps;
-  }
-
-  public update(deltaTime: number): void {
-    if (!this.target) return;
-    const cam = this.target as unknown as CameraInterfaceData;
-
-    let goalPos = this.basePosition;
-
-    if (this.targetPosition) {
-      goalPos = this.targetPosition;
-
-      if (this.fpsController.enabled) {
-        this.fpsController.enabled = false;
-        this.isFocused = true;
-      }
-    } else if (this.isFocused) {
-      // Zooming out
-      const dist =
-        Math.abs(goalPos.x - cam.position.x) +
-        Math.abs(goalPos.y - cam.position.y) +
-        Math.abs(goalPos.z - cam.position.z);
-      if (dist < 0.2) {
-        this.isFocused = false;
-        this.fpsController.enabled = true;
+    // Reset pickups
+    for (const obj of this.scene.objects) {
+      if (obj.name.startsWith("EnergyCell")) {
+        obj.isVisible = true;
+        obj.isCollidable = true;
       }
     }
+    this._scoreElement.innerText = `SCORE: ${this._score} / ${this._maxScore}`;
+    this._timeElement.innerText = `Time: 30:00`;
+    this._timeElement.style.color = "#ff3b3b";
+    this._timeElement.style.textShadow = "0 0 15px #ff3b3b";
 
-    // Smooth damp camera position
-    cam.position.x += (goalPos.x - cam.position.x) * deltaTime * 5.0;
-    cam.position.y += (goalPos.y - cam.position.y) * deltaTime * 5.0;
-    cam.position.z += (goalPos.z - cam.position.z) * deltaTime * 5.0;
+    this._startButton.isVisible = false;
+    this._startButton.isCollidable = false;
 
-    // Smooth damp camera target angles
-    if (this.targetLook) {
-      const lookDirX = this.targetLook.x - cam.position.x;
-      const lookDirY = this.targetLook.y - cam.position.y;
-      const lookDirZ = this.targetLook.z - cam.position.z;
-
-      const dist = Math.sqrt(lookDirX * lookDirX + lookDirY * lookDirY + lookDirZ * lookDirZ);
-      if (dist > 0.001) {
-        const targetTheta = Math.atan2(lookDirX / dist, -lookDirZ / dist);
-        const targetPhi = Math.asin(lookDirY / dist);
-
-        let dTheta = targetTheta - cam.theta;
-        while (dTheta > Math.PI) dTheta -= Math.PI * 2;
-        while (dTheta < -Math.PI) dTheta += Math.PI * 2;
-
-        cam.theta += dTheta * deltaTime * 5.0;
-        cam.phi += (targetPhi - cam.phi) * deltaTime * 5.0;
-      }
-    }
-  }
-}
-
-/**
- * Bends a screen's Plane geometry so it hugs the inside of the gallery sphere
- * (curvature = 1) or lies perfectly flat (curvature = 0), animating between
- * the two whenever `targetCurvature` changes (e.g. on click-to-zoom).
- */
-class ScreenCurvatureBehavior extends Behavior {
-  public targetCurvature: number = 1.0;
-  private _curvature: number = 1.0;
-  private _flatVertices: Float32Array = new Float32Array(0);
-  private readonly _radius: number;
-
-  constructor(radius: number) {
-    super();
-    this._radius = radius;
-  }
-
-  public onAttach(target: Object3D): void {
-    super.onAttach(target);
-    if (target.geometry) {
-      this._flatVertices = target.geometry.vertices.slice();
-    }
-    this._bend();
-  }
-
-  public update(deltaTime: number): void {
-    const diff = this.targetCurvature - this._curvature;
-    if (Math.abs(diff) < 0.001) return;
-
-    this._curvature += diff * Math.min(1, deltaTime * 6.0);
-    if (Math.abs(this.targetCurvature - this._curvature) < 0.001) {
-      this._curvature = this.targetCurvature;
-    }
-    this._bend();
-  }
-
-  private _bend(): void {
-    const target = this.target as Object3D;
-    const geometry = target.geometry;
-    if (!geometry) return;
-
-    const flat = this._flatVertices;
-    const out = geometry.vertices;
-    const radius = this._radius;
-
-    for (let i = 0; i < flat.length; i += 3) {
-      const x = flat[i]!;
-      const y = flat[i + 1]!;
-      const rho = Math.sqrt(x * x + y * y);
-
-      let bx = 0;
-      let by = 0;
-      let bz = 0;
-      if (rho > 1e-6) {
-        // Treat (x, y) as an arc-length offset on the sphere: bend it along
-        // the great-circle direction so it curves toward the sphere's center
-        // (local +Z, since the container already faces the center).
-        const theta = rho / radius;
-        const s = Math.sin(theta);
-        bx = (radius * s * x) / rho;
-        by = (radius * s * y) / rho;
-        bz = radius * (1 - Math.cos(theta));
-      }
-
-      out[i] = x + (bx - x) * this._curvature;
-      out[i + 1] = y + (by - y) * this._curvature;
-      out[i + 2] = bz * this._curvature;
+    // Reset marble position completely in case SPACE is held
+    if (this._marble) {
+      this._marble.position.set(0, 5, 30);
+      this._marble.rigidBody!.velocity.set(0, 0, 0);
+      this._marble.rigidBody!.angularVelocity.set(0, 0, 0);
     }
 
-    geometry.needsUpdate = true;
+    if (!this._ambientAudioStarted) {
+      this._ambientAudioStarted = true;
+      this.audio.resume();
+    }
   }
-}
 
-class Showcase23Engine extends SmallWorld {
-  public api: string;
-
-  constructor(container: HTMLElement, api: string) {
+  constructor() {
     super({
-      canvasId: container.id,
-      rendererType: api === "webgl2" ? RendererType.WEB_GL2 : RendererType.WEB_GPU,
+      enableInspector: false,
+      canvasId: "SmallWorld",
     });
-    this.api = api;
+    this._physics = new PhysicsSystem(this.events);
   }
 
   protected async setupScene(): Promise<void> {
-    // Setup Camera (center of the sphere)
-    this.camera.position.set(0, 0, 0);
-    this.camera.setStrategy(CameraStrategyType.FPS);
+    // We must use this.scene instead of a local discarded variable
+    const scene = this.scene;
 
-    const fps = new FPSController({
-      input: this.input,
-      audio: this.audio,
-      enableMovement: false,
-      enableVertical: false,
-      enableCollision: false,
+    // Fetch UI Elements
+    this._scoreElement = document.getElementById("scoreDisplay") as HTMLDivElement;
+    this._timeElement = document.getElementById("timeDisplay") as HTMLDivElement;
+    this._scoreElement.style.fontWeight = "bold";
+    this._scoreElement.style.textShadow = "0 0 10px #00ffff";
+    this._scoreElement.innerText = "SCORE: 0 / 0";
+
+    // Camera setup
+    this.camera.position.set(0, 35, 55);
+    // OrbitController will be attached to the camera later, once the marble is created
+
+    // Lighting (Cyberpunk Neon vibe)
+    this.scene.add(new AmbientLight({ color: Color.WHITE, intensity: 0.2 }));
+
+    // Orientation Cross (Removed)
+    /*
+    await this._addAxis("X", new Vector3D(1, 0, 0), Color.RED);
+    await this._addAxis("Y", new Vector3D(0, 1, 0), Color.GREEN);
+    await this._addAxis("Z", new Vector3D(0, 0, 1), Color.BLUE);
+    */
+
+    const purpleLight = new PointLight(new Color(0.69, 0.0, 1.0), 5.0, 50.0);
+    purpleLight.position.set(-10, 10, 0);
+    scene.add(purpleLight);
+
+    const blueLight = new PointLight(new Color(0.0, 0.8, 1.0), 3.0, 50.0);
+    blueLight.position.set(10, 10, 10);
+    scene.add(blueLight);
+
+    // Textures (Vite static import)
+    const [floorTex, bumperTex] = await Promise.all([
+      Texture.fromUrl(floorTexUrl),
+      Texture.fromUrl(bumperTexUrl),
+    ]);
+
+    // Goal Zone (Plattform 3: Z=-20 to -40. Placement at the end of the track)
+    const goalMat = new StandardMaterial({
+      albedoColor: new Color(0, 1.0, 0),
+      emissiveColor: new Color(0, 1.0, 0),
+      emissiveIntensity: 2.0,
+      roughness: 0.2,
+      metalness: 0.1,
     });
-    this.camera.addBehavior(fps);
+    const goalZone = new Object3D("GoalZone");
+    goalZone.geometry = new Cube({ width: 10, height: 1, depth: 10 }).getGeometryData();
+    goalZone.material = goalMat;
+    goalZone.position.set(0, 0.5, -35); // Y=0.5 (Plat3 top is Y=0), Z=-35 (End of Plat3)
+    goalZone.rigidBody = new RigidBody(0);
+    goalZone.rigidBody.isSensor = true;
+    scene.add(goalZone);
 
-    const zoomBehavior = new CameraZoomBehavior(new Vector3D(0, 0, 0), fps);
-    this.camera.addBehavior(zoomBehavior);
+    // Drones (Enemies) - updated to spawn over the whole track
 
-    // Basic Light
-    const dirLight = new DirectionalLight(new Color(1, 1, 1), 1.0);
-    dirLight.direction.set(-1, -1, -1);
-    this.scene.add(dirLight);
+    // Floor Material using CustomShaderMaterial
+    const floorMat = new CustomShaderMaterial({
+      sources: {
+        wgsl: `[WGSL_STRUCTS]\n[WGSL_PBR_MATH]\n[WGSL_VS]\n${fragWGSL.replace(
+          "[WGSL_PBR_LIGHTING]",
+          `[WGSL_PBR_LIGHTING]
+          if (obj.time > 0.0) {
+              let wave = sin(i.wp.z * 0.5 + obj.time * 5.0) * 0.5 + 0.5;
+              let scanner = pow(max(0.0, wave), 10.0);
+              let emissiveBase = sRGBToLinear(textureSample(u_emissiveMap, s, i.uv).rgb) * sRGBToLinear(obj.specColor.rgb);
+              color += emissiveBase * (obj.specColor.a + scanner * 2.0);
+          }`,
+        )}`,
+        glsl300: {
+          vs: "[BASE_VERTEX_HEADER][BASE_VERTEX_MAIN]",
+          fs: fragGLSL.replace(
+            "[LIGHT_CALC_PBR]",
+            `[LIGHT_CALC_PBR]
+            if (u_time > 0.0) {
+                float wave = sin(v_worldPos.z * 0.5 + u_time * 5.0) * 0.5 + 0.5;
+                float scanner = pow(max(0.0, wave), 10.0);
+                vec3 emissiveBase = sRGBToLinear(texture(u_emissiveMap, v_uv).rgb) * sRGBToLinear(u_specColor.rgb);
+                fragColor.rgb += emissiveBase * (u_specColor.a + scanner * 2.0);
+            }`,
+          ),
+        },
+        glsl100: {
+          vs: "[BASE_VS]",
+          fs: fragGLSL100.replace(
+            "[LIGHT_CALC_PBR]",
+            `[LIGHT_CALC_PBR]
+            if (u_time > 0.0) {
+                float wave = sin(v_worldPos.z * 0.5 + u_time * 5.0) * 0.5 + 0.5;
+                float scanner = pow(max(0.0, wave), 10.0);
+                vec3 emissiveBase = sRGBToLinear(texture2D(u_emissiveMap, v_uv).rgb) * sRGBToLinear(u_specColor.rgb);
+                gl_FragColor.rgb += emissiveBase * (u_specColor.a + scanner * 2.0);
+            }`,
+          ),
+        },
+      },
+      layout: StandardWebGPULayout,
+      properties: {
+        u_model: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1], // identity matrix fallback
+        u_color: new Color(0.8, 0.8, 0.8),
+        u_specColor: new Color(0.8, 0.1, 1.0, 2.0), // Neon Purple + Intensity 2.0
+        u_texOffset: [0, 0],
+        u_texRepeat: [1, 1],
+        u_shininess: 32.0,
+        u_isTerrain: 0.0,
+        u_metallic: 0.6,
+        u_roughness: 0.4,
+        u_extraParams: [1.0, 0.0, 1.0, 1.0], // ao=1
+        u_liquidParams: [0, 0, 0, 0],
+        u_thresholds: [0, 0, 0, 0],
+        u_useEnvMap: 0,
+        u_useReflectionMap: 0,
+        u_reflectivity: 1.0,
+        u_time: 0.0,
+      },
+      textures: {
+        u_diffuseMap: floorTex,
+        u_emissiveMap: floorTex,
+      },
+    });
+    this._floorMat = floorMat;
 
-    // Fill Light for the right side
-    const dirLight2 = new DirectionalLight(new Color(0.8, 0.8, 1.0), 0.5);
-    dirLight2.direction.set(1, -0.5, -1);
-    this.scene.add(dirLight2);
+    // --- TRACK LAYOUT ---
+    const buildPlatform = (name: string, w: number, d: number, y: number, z: number) => {
+      const p = new Object3D(name);
+      p.geometry = new Cube({ size: 1 }).getGeometryData();
+      p.setScale(w, 10, d);
+      p.position.set(0, y - 5, z); // Top surface at y
+      p.material = floorMat;
+      p.rigidBody = new RigidBody(0);
 
-    // Ambient Light to illuminate dark metallic surfaces
-    const ambLight = new AmbientLight(new Color(1, 1, 1), 0.3);
-    this.scene.add(ambLight);
+      // We only need ONE object to drive the heartbeat of the shared CustomShaderMaterial
+      if (name === "Plat1") {
+        p.addBehavior(
+          new EmissivePulseBehavior({ baseIntensity: 0.2, pulseAmplitude: 2.0, pulseSpeed: 4.0 }),
+        );
+      }
+      scene.add(p);
+    };
 
-    // Wireframe sphere: the "structure" the curved screens are glued to
-    const wireSphere = new Object3D("wireSphere");
-    wireSphere.geometry = new Sphere({
-      radius: 10,
-      widthSegments: 32,
-      heightSegments: 24,
-    }).getGeometryData();
-    wireSphere.material = new WireframeMaterial(new Color(0.3, 0.6, 1.0));
-    this.scene.add(wireSphere);
+    buildPlatform("Plat1", 20, 20, 0, 30); // Z: 20 to 40
+    buildPlatform("Plat2", 20, 20, -5, 0); // Z: -10 to 10
+    buildPlatform("Plat3", 20, 20, 0, -30); // Z: -20 to -40
 
-    // Build the Gallery Billboards based on API
-    if (this.api === "webgl2") {
-      this.buildWebGL2Gallery();
-    } else {
-      this.buildWebGPUGallery();
+    // Stairs 1: Down from Plat1 to Plat2 (Z: -10 to -20)
+    for (let i = 0; i < 10; i++) {
+      const step = new Object3D("Stair1_" + i);
+      step.geometry = new Cube({ size: 1 }).getGeometryData();
+      step.setScale(10, 10, 1);
+      const topY = -0.5 * (i + 1);
+      step.position.set(0, topY - 5, 19.5 - i);
+      step.material = floorMat;
+      step.rigidBody = new RigidBody(0);
+      scene.add(step);
     }
 
-    // Setup Interaction
-    const raycaster = new Raycaster();
-    const mouseCoords = new Vector2D();
-    const canvas = document.getElementById("canvas23") as HTMLCanvasElement;
+    // Stairs 2: Up from Plat2 to Plat3 (Z: -40 to -50)
+    for (let i = 0; i < 10; i++) {
+      const step = new Object3D("Stair2_" + i);
+      step.geometry = new Cube({ size: 1 }).getGeometryData();
+      step.setScale(10, 10, 1);
+      const topY = -5 + 0.5 * (i + 1);
+      step.position.set(0, topY - 5, -10.5 - i);
+      step.material = floorMat;
+      step.rigidBody = new RigidBody(0);
+      scene.add(step);
+    }
 
-    window.addEventListener("mousedown", (e) => {
-      try {
-        // Don't intercept clicks on the UI
-        const targetElement = e.target as HTMLElement;
-        if (
-          targetElement.tagName === "INPUT" ||
-          targetElement.tagName === "A" ||
-          targetElement.tagName === "LABEL"
-        ) {
-          return;
-        }
+    // Marble Material (Glowing Cyberpunk Cyan)
+    const marbleMat = new StandardMaterial({
+      roughness: 0.2,
+      metalness: 0.5,
+      color: new Color(0.1, 0.8, 1.0), // Cyan
+      emissiveColor: new Color(0.0, 0.4, 0.8), // Inner glow
+      emissiveIntensity: 0.4, // Reduced so it doesn't become a 100% flat 2D circle!
+    });
 
-        const rect = canvas.getBoundingClientRect();
-        mouseCoords.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-        mouseCoords.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+    // The Player Marble
+    this._marble = new Object3D("Marble");
+    this._marble.geometry = new Sphere({ radius: 1 }).getGeometryData();
+    this._marble.position.set(0, 5, 30);
+    this._marble.material = marbleMat;
+    this._marble.rigidBody = new RigidBody(1);
+    this._marble.rigidBody.restitution = 0.5; // Bouncy
+    this._marble.rigidBody.friction = 0.999; // Less air resistance
+    this._marble.addBehavior(new MarbleController(this.camera, this.input, 25.0));
 
-        raycaster.setFromCamera(mouseCoords, this.camera);
+    // Add a point light to the marble to create a true "glow" on the environment
+    const marbleGlow = new PointLight({
+      color: new Color(0.1, 0.8, 1.0),
+      intensity: 100.0, // PBR needs high intensity to visibly illuminate the floor!
+      distance: 30.0,
+    });
+    this._marble.add(marbleGlow);
 
-        // Flatten scene to find screens
-        const interactables: Object3D[] = [];
-        for (const container of this.scene.objects) {
-          if (container.name.startsWith("container_")) {
-            const screen = container.children.find((c) => c.name.startsWith("screen_"));
-            if (screen) {
-              screen.computeBounds(); // Update bounds to current world matrix!
-              interactables.push(screen);
-            }
-          }
-        }
+    scene.add(this._marble);
 
-        const intersects = raycaster.intersectObjects(interactables, true);
+    // Initial camera angles
+    this.camera.theta = 0;
+    this.camera.phi = 0.5;
 
-        if (intersects.length > 0) {
-          const hit = intersects[0].object;
-          const container = hit.parent; // container_x_y
+    // Add some random bumpers
+    const bumperMat = new StandardMaterial({
+      diffuseMap: bumperTex,
+      emissiveMap: bumperTex,
+      emissiveColor: new Color(0.2, 0.2, 0.2), // Slight boost to the pink lines
+      emissiveIntensity: 1.2,
+      roughness: 0.3,
+      metalness: 0.7,
+      color: new Color(0.8, 0.8, 0.8),
+    });
 
-          if (container) {
-            const zoomBehavior = this.camera.behaviors.find(
-              (b) => b instanceof CameraZoomBehavior,
-            ) as CameraZoomBehavior;
-            if (zoomBehavior) {
-              // Zoom into the screen specifically
-              const screen = container.children.find((c) => c.name.startsWith("screen_"));
-              if (screen) {
-                // Calculate position slightly in front of the screen
-                const screenWorldPos = container.position.clone();
-                const zoomDist = 2.5; // distance from screen
-
-                // For a sphere layout, the normal pointing towards the center is -container.position.normalize()
-                // The vector from center to screen is just the normalized position.
-                const dir = container.position.clone().normalize();
-
-                zoomBehavior.targetPosition = new Vector3D(
-                  screenWorldPos.x - dir.x * zoomDist,
-                  screenWorldPos.y - dir.y * zoomDist,
-                  screenWorldPos.z - dir.z * zoomDist,
-                );
-                // Look directly at the screen's center
-                zoomBehavior.targetLook = screenWorldPos;
-                this._setFocusedScreen(screen);
-              }
-            }
-          }
+    const usedPositions: { x: number; z: number }[] = [];
+    const getSafePos = (isBumper: boolean): { x: number; y: number; z: number } | null => {
+      let attempts = 0;
+      while (attempts < 50) {
+        const plat = Math.floor(Math.random() * 3); // 0, 1, 2
+        const x = Math.random() * 16 - 8;
+        let z: number;
+        let y: number;
+        if (plat === 0) {
+          z = 30 + (Math.random() * 16 - 8);
+          y = 0;
+        } else if (plat === 1) {
+          z = 0 + (Math.random() * 16 - 8);
+          y = -5;
         } else {
-          // Clicked on nothing, zoom out
-          const zoomBehavior = this.camera.behaviors.find(
-            (b) => b instanceof CameraZoomBehavior,
-          ) as CameraZoomBehavior;
-          if (zoomBehavior) {
-            zoomBehavior.targetPosition = null;
-            zoomBehavior.targetLook = null;
+          z = -30 + (Math.random() * 16 - 8);
+          y = 0;
+        }
+
+        // Avoid start button
+        if (plat === 0 && Math.sqrt(x * x + (z - 30) * (z - 30)) < 6.0) {
+          attempts++;
+          continue;
+        }
+
+        let overlap = false;
+        for (const p of usedPositions) {
+          const dx = x - p.x;
+          const dz = z - p.z;
+          if (Math.sqrt(dx * dx + dz * dz) < 3.5) {
+            overlap = true;
+            break;
           }
-          this._setFocusedScreen(null);
         }
-      } catch (err) {
-        console.error("ERROR in mousedown handler:", err);
+        if (!overlap) {
+          usedPositions.push({ x, z });
+          return { x, y: y + (isBumper ? 1 : 1.5), z };
+        }
+        attempts++;
       }
+      return null;
+    };
+
+    for (let i = 0; i < 15; i++) {
+      const pos = getSafePos(true);
+      if (pos) {
+        const bumper = new Object3D("Bumper" + i);
+        if (Math.random() > 0.5) {
+          bumper.geometry = new Cylinder({
+            radiusTop: 1,
+            radiusBottom: 1,
+            height: 2,
+            radialSegments: 16,
+          }).getGeometryData();
+        } else {
+          bumper.geometry = new Cube({ size: 2 }).getGeometryData();
+        }
+        bumper.position.set(pos.x, pos.y, pos.z);
+        bumper.material = bumperMat;
+        bumper.rigidBody = new RigidBody(0);
+        bumper.rigidBody.restitution = 1.5;
+        scene.add(bumper);
+      }
+    }
+
+    // --- ENERGY CELLS (Pickups) ---
+    const cellGeo = new Sphere({ radius: 0.5 }).getGeometryData();
+    const cellMat = new StandardMaterial({
+      color: new Color(0, 1, 0.5),
+      emissiveColor: new Color(0, 1, 0.5),
+      emissiveIntensity: 2.0,
+      roughness: 0.2,
+      metalness: 0.8,
     });
 
-    window.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") {
-        const zoomBehavior = this.camera.behaviors.find(
-          (b) => b instanceof CameraZoomBehavior,
-        ) as CameraZoomBehavior;
-        if (zoomBehavior) {
-          zoomBehavior.targetPosition = null;
-          zoomBehavior.targetLook = null;
-        }
-        this._setFocusedScreen(null);
+    for (let i = 0; i < 10; i++) {
+      const cell = new Object3D("EnergyCell" + i);
+      cell.geometry = cellGeo;
+      cell.material = cellMat;
+
+      // Place on platforms
+      const pos = getSafePos(false);
+      if (pos) {
+        cell.position.set(pos.x, pos.y, pos.z);
+      } else {
+        cell.position.set(0, 1.5, -30); // fallback to end platform
       }
-    });
-  }
 
-  private _focusedScreen: Object3D | null = null;
+      // Make it a physical sensor
+      cell.rigidBody = new RigidBody(0);
+      cell.rigidBody.isSensor = true;
 
-  private _setFocusedScreen(screen: Object3D | null): void {
-    if (this._focusedScreen === screen) return;
+      // Add behaviors for floating effect
+      cell.addBehavior(new RotatorBehavior(new Vector3D(0, 1, 0), 2.0));
+      cell.addBehavior(new HoverBehavior(0.3, 3.0));
 
-    if (this._focusedScreen) {
-      const behavior = this._focusedScreen.behaviors.find(
-        (b) => b instanceof ScreenCurvatureBehavior,
-      ) as ScreenCurvatureBehavior | undefined;
-      if (behavior) behavior.targetCurvature = 1.0;
+      scene.add(cell);
+      this._maxScore++;
     }
+    this._scoreElement.innerText = `SCORE: ${this._score} / ${this._maxScore}`;
 
-    this._focusedScreen = screen;
+    // --- START BUTTON (Invisible Box Hitbox + Visual Hexagon) ---
+    this._startButton = new Object3D("StartButtonZone");
+    // An invisible BOX as a pure collision body.
+    // Since it has NO material, the renderer completely ignores it (0 draw calls).
+    // But since isVisible=true, the Raycaster can hit its 12 triangles!
+    this._startButton.geometry = new Cube({ size: 7.6 }).getGeometryData();
+    this._startButton.setScale(1, 0.2, 1); // Flatten it to a disk-like box
+    this._startButton.position.set(0, 5, 30);
+    this._startButton.rigidBody = new RigidBody(0); // static platform
 
-    if (screen) {
-      const behavior = screen.behaviors.find((b) => b instanceof ScreenCurvatureBehavior) as
-        | ScreenCurvatureBehavior
-        | undefined;
-      if (behavior) behavior.targetCurvature = 0.0;
-    }
-  }
-
-  private buildWebGL2Gallery() {
-    const shadertoyMat1 = new CustomShaderMaterial(
-      new ShadertoyImporter().parse(SHADERTOY_STAR_NEST),
-    );
-    const sandboxMat = new CustomShaderMaterial(
-      new GLSLSandboxImporter().parse(GLSLSANDBOX_PLASMA),
-    );
-    const shadertoyMat2 = new CustomShaderMaterial(
-      new ShadertoyImporter().parse(SHADERTOY_FRACTAL),
-    );
-    const toonMat = new CustomShaderMaterial(
-      new ShadertoyImporter().parse(SHADERTOY_TOON_CREATURE),
-    );
-    const voronoiMat = new CustomShaderMaterial(
-      new ShadertoyImporter().parse(SHADERTOY_VORONOI_STAINED_GLASS),
-    );
-    const asciiMat = new CustomShaderMaterial(
-      new GLSLSandboxImporter().parse(GLSLSANDBOX_RETRO_ASCII),
-    );
-    const sinCityMat = new CustomShaderMaterial(new ShadertoyImporter().parse(SHADERTOY_SIN_CITY));
-    const codeTunnelMat = new CustomShaderMaterial(
-      new ShadertoyImporter().parse(SHADERTOY_CODE_TUNNEL),
-    );
-
-    for (const mat of [
-      shadertoyMat1,
-      sandboxMat,
-      shadertoyMat2,
-      toonMat,
-      voronoiMat,
-      asciiMat,
-      sinCityMat,
-      codeTunnelMat,
-    ]) {
-      mat.backfaceCulling = false;
-    }
-
-    // Top row
-    this.createScreen(-Math.PI / 6, Math.PI / 6, shadertoyMat1);
-    this.createScreen(0, Math.PI / 6, shadertoyMat2);
-    this.createScreen(Math.PI / 6, Math.PI / 6, sandboxMat);
-
-    // Middle row
-    this.createScreen(-Math.PI / 6, 0, toonMat);
-    this.createScreen(0, 0, asciiMat);
-    this.createScreen(Math.PI / 6, 0, voronoiMat);
-
-    // Bottom row
-    this.createScreen(-Math.PI / 12, -Math.PI / 6, sinCityMat);
-    this.createScreen(Math.PI / 12, -Math.PI / 6, codeTunnelMat);
-  }
-
-  private buildWebGPUGallery() {
-    const wMat1 = new CustomShaderMaterial(new ComputeToysImporter().parse(COMPUTETOYS_SYNTHWAVE));
-    const wMat2 = new CustomShaderMaterial(new ComputeToysImporter().parse(COMPUTETOYS_KISHIMISU));
-    const wMat3 = new CustomShaderMaterial(new ComputeToysImporter().parse(COMPUTETOYS_RAYMARCH));
-    const toonMat = new CustomShaderMaterial(
-      new ComputeToysImporter().parse(COMPUTETOYS_TOON_SHAPE),
-    );
-    const hexMat = new CustomShaderMaterial(
-      new ComputeToysImporter().parse(COMPUTETOYS_HEX_HOLOGRAM),
-    );
-    const matrixMat = new CustomShaderMaterial(
-      new ComputeToysImporter().parse(COMPUTETOYS_MATRIX_RAIN),
-    );
-    const sinCityMat = new CustomShaderMaterial(
-      new ComputeToysImporter().parse(COMPUTETOYS_SIN_CITY),
-    );
-    const codeTunnelMat = new CustomShaderMaterial(
-      new ComputeToysImporter().parse(COMPUTETOYS_CODE_TUNNEL),
-    );
-
-    for (const mat of [
-      wMat1,
-      wMat2,
-      wMat3,
-      toonMat,
-      hexMat,
-      matrixMat,
-      sinCityMat,
-      codeTunnelMat,
-    ]) {
-      mat.backfaceCulling = false;
-    }
-
-    // Top row
-    this.createScreen(-Math.PI / 6, Math.PI / 6, wMat1);
-    this.createScreen(0, Math.PI / 6, wMat2);
-    this.createScreen(Math.PI / 6, Math.PI / 6, wMat3);
-
-    // Middle row
-    this.createScreen(-Math.PI / 6, 0, toonMat);
-    this.createScreen(0, 0, hexMat);
-    this.createScreen(Math.PI / 6, 0, matrixMat);
-
-    // Bottom row
-    this.createScreen(-Math.PI / 12, -Math.PI / 6, sinCityMat);
-    this.createScreen(Math.PI / 12, -Math.PI / 6, codeTunnelMat);
-  }
-
-  private createScreen(yaw: number, pitch: number, material: CustomShaderMaterial) {
-    const radius = 10;
-    // Parent container for the screen, anchored on the gallery sphere
-    const container = new Object3D(`container_${yaw.toFixed(2)}_${pitch.toFixed(2)}`);
-
-    // Position it in a spherical layout
-    const x = radius * Math.cos(pitch) * Math.sin(yaw);
-    const y = radius * Math.sin(pitch);
-    const z = -radius * Math.cos(pitch) * Math.cos(yaw);
-
-    container.position.set(x, y, z);
-    container.rotation.set(pitch, -yaw, 0);
-
-    // Add Bobbing Animation
-    container.addBehavior(new BobbingBehavior());
-
-    // Screen: glued to the sphere's curvature at rest, flattens on click
-    const screen = new Object3D(`screen_${yaw.toFixed(2)}_${pitch.toFixed(2)}`);
-    screen.geometry = new Plane({
-      width: 4,
-      height: 3,
-      widthSegments: 16,
-      heightSegments: 12,
+    // The visual Hexagon Ring
+    const hexVisual = new Object3D("HexagonVisual");
+    hexVisual.geometry = new Torus({
+      radius: 3,
+      tube: 0.5,
+      tubularSegments: 6, // 6 segments = Hexagon
+      radialSegments: 16,
     }).getGeometryData();
-    screen.material = material;
-    screen.addBehavior(new ExternalShaderUniformBehavior(800, 600));
-    screen.addBehavior(new ScreenCurvatureBehavior(radius));
-    container.add(screen);
+    hexVisual.material = new StandardMaterial({
+      color: new Color(1, 0.8, 0),
+      emissiveColor: new Color(1, 0.5, 0),
+      emissiveIntensity: 1.5,
+      metalness: 0.8,
+      roughness: 0.2,
+    });
+    hexVisual.rotation.x = MathUtils.HALF_PI; // Lay flat
+    this._startButton.add(hexVisual);
 
-    this.scene.add(container);
+    // Animations & Logic on the parent
+    this._startButton.addBehavior(new HoverBehavior(0.5, 2.0));
+    this._startButton.addBehavior(new RotatorBehavior(new Vector3D(0, 1, 0), 0.5));
+    this._startButton.onPointerClick = () => this._startGame();
+    scene.add(this._startButton);
+
+    // --- DRONES ---
+    const droneColors = [
+      new Color(1, 0, 1), // Magenta
+      new Color(0, 1, 1), // Cyan
+      new Color(0.5, 1, 0), // Lime Green
+      new Color(1, 0.5, 0), // Neon Orange
+      new Color(1, 1, 1), // Bright White
+    ];
+    const droneMaterials = droneColors.map(
+      (c) =>
+        new StandardMaterial({
+          color: c,
+          emissiveColor: c,
+          emissiveIntensity: 1.5,
+          roughness: 1.0,
+          metalness: 0.0,
+        }),
+    );
+    const droneGeo = new Sphere({ radius: 0.15 }).getGeometryData();
+
+    for (let i = 0; i < 120; i++) {
+      const drone = new Object3D("Drone" + i);
+      drone.geometry = droneGeo;
+      drone.isCollidable = false; // Drones should NOT collide with anything.
+
+      const randMat = droneMaterials[Math.floor(Math.random() * droneMaterials.length)]!;
+      drone.material = randMat;
+      drone.position.set(Math.random() * 200 - 100, Math.random() * 20, Math.random() * 200 - 100);
+      drone.addBehavior(new DroneController(this.scene, randMat));
+      // Give each drone a slightly randomized heartbeat so they look more "alive" and un-synchronized
+      drone.addBehavior(
+        new EmissivePulseBehavior({
+          baseIntensity: 0.5,
+          pulseAmplitude: 1.5,
+          pulseSpeed: 3.0 + Math.random() * 2.0,
+        }),
+      );
+      scene.add(drone);
+    }
+
+    // --- DRONE SPAWN MARKERS & VECTORS (Removed as requested) ---
+
+    // Ensure all objects have their world matrices and bounds properly initialized for the first frame
+    scene.update();
+    for (const obj of scene.objects) {
+      obj.computeBounds();
+    }
+
+    // Audio & Logic on collision
+    this.events.addEventListener("physics:collision", (e: Record<string, unknown>): void => {
+      // Play a generative synth note based on impulse strength
+      const impulse = e["impulse"] as number;
+      if (impulse > 1.0 && this._ambientAudioStarted) {
+        this.audio.playTone(400 + Math.random() * 200, 0.5, 0.2, "sine");
+      }
+
+      // Pickup logic (impulse is 0 for sensors)
+      const objA = e["objectA"] as Object3D;
+      const objB = e["objectB"] as Object3D;
+
+      const checkCell = (player: Object3D, other: Object3D) => {
+        if (player === this._marble && other.name.startsWith("EnergyCell") && other.isVisible) {
+          other.isVisible = false; // "Collect" it
+          other.isCollidable = false; // Stop checking collisions
+          this._score++;
+          this._scoreElement.innerText = `SCORE: ${this._score} / ${this._maxScore}`;
+
+          if (this._ambientAudioStarted) {
+            this.audio.playTone(1200, 0.1, 0.1, "square"); // Pickup sound
+          }
+        }
+      };
+
+      const checkGoal = (player: Object3D, other: Object3D) => {
+        if (
+          player === this._marble &&
+          other.name === "GoalZone" &&
+          !this._gameWon &&
+          this._gameActive
+        ) {
+          this._gameWon = true;
+          this._gameActive = false;
+          this._timeElement.innerText = `YOU WIN! Time: ${this._formatTime(this._timeLeft)}`;
+          this._timeElement.style.color = "#00ff00";
+          this._timeElement.style.textShadow = "0 0 15px #00ff00";
+          if (this._ambientAudioStarted) {
+            this.audio.playTone(600, 0.5, 0.1, "sine");
+            setTimeout(() => this.audio.playTone(800, 0.5, 0.1, "sine"), 200);
+            setTimeout(() => this.audio.playTone(1200, 1.0, 0.1, "sine"), 400);
+          }
+        }
+      };
+
+      checkCell(objA, objB);
+      checkCell(objB, objA);
+      checkGoal(objA, objB);
+      checkGoal(objB, objA);
+    });
+
+    // Start Audio on first click or keypress
+    const unlockAudio = (): void => {
+      if (!this._ambientAudioStarted) {
+        this._ambientAudioStarted = true;
+        this.audio.resume();
+      }
+    };
+    window.addEventListener("pointerdown", unlockAudio, { once: true });
+    window.addEventListener("keydown", unlockAudio, { once: true });
   }
 
-  protected update(): void {
-    // Engine base update takes care of scene and behaviors
+  private _floorMat!: CustomShaderMaterial;
+  private _shaderTime: number = 0.0;
+
+  public update(dt: number): void {
+    // Shader Animation Time update
+    this._shaderTime += dt;
+    if (this._floorMat) {
+      this._floorMat.setProperty("u_time", this._shaderTime);
+    }
+
+    // Step the physics engine first
+    this._physics.step(this.scene, dt);
+
+    if (!this._gameActive) {
+      // Start via SPACE key
+      if (this.input.isPressed("Space")) {
+        this._startGame();
+      } else if (!this._gameWon) {
+        // Freeze the marble in the center of the ring until the game starts
+        this._marble.position.set(0, 5, 30);
+        this._marble.rigidBody!.velocity.set(0, 0, 0);
+      }
+    } else {
+      // Timer tick
+      this._timeLeft -= dt;
+      if (this._timeLeft <= 0) {
+        this._timeLeft = 0;
+        this._gameActive = false;
+        this._startButton.isVisible = true;
+        this._startButton.isCollidable = true;
+        this._timeElement.innerText = "TIME UP!";
+        this._timeElement.style.color = "#ff0000";
+        if (this._ambientAudioStarted) {
+          this.audio.playTone(200, 1.0, 0.1, "sawtooth");
+        }
+      } else {
+        this._timeElement.innerText = `Time: ${this._formatTime(this._timeLeft)}`;
+      }
+
+      if (this._marble.position.y < -15) {
+        // Marble fell off the map! Reset!
+        console.warn("[Physics Debug] Kugel ist unter Y=-15 gefallen! Führe Reset aus...");
+        this._gameActive = false;
+        this._startButton.isVisible = true;
+        this._startButton.isCollidable = true;
+      }
+    }
+
+    // Mouse drag camera rotation
+    if (this.input.mouse.left) {
+      this.camera.theta -= this.input.mouse.dx * 0.005;
+      this.camera.phi += this.input.mouse.dy * 0.005;
+      // Clamp phi to avoid flipping
+      const limit = Math.PI / 2 - 0.01;
+      this.camera.phi = Math.max(-limit, Math.min(limit, this.camera.phi));
+    }
+
+    // Zoom (Pinch / Scroll)
+    if (this.input.mouse.zoom !== 0) {
+      // Zoom is accumulated across the frame. Small factor to make it smooth.
+      this._cameraRadius += this.input.mouse.zoom * 20.0;
+      // Clamp radius between 20 (close) and 120 (far)
+      this._cameraRadius = Math.max(20, Math.min(120, this._cameraRadius));
+    }
+
+    // Die Kamera folgt der Murmel weich und behält den Orbit-Abstand bei
+    this.camera.target.copyFrom(this._marble.position);
+    this.camera.position.x =
+      this.camera.target.x +
+      this._cameraRadius * Math.sin(this.camera.theta) * Math.cos(this.camera.phi);
+    this.camera.position.y = this.camera.target.y + this._cameraRadius * Math.sin(this.camera.phi);
+    this.camera.position.z =
+      this.camera.target.z +
+      this._cameraRadius * Math.cos(this.camera.theta) * Math.cos(this.camera.phi);
+  }
+
+  // --- Helper methods for Orientation Cross ---
+  private async _addAxis(axis: string, direction: Vector3D, color: Color): Promise<void> {
+    const length: number = 14;
+    const halfLen: number = length / 2;
+    const axisRadius: number = 0.1;
+    const sphereRadius: number = 0.5;
+
+    const axisLine: Object3D = new Object3D(`${axis}_Axis`);
+    axisLine.geometry = new Cylinder({
+      radiusTop: axisRadius,
+      radiusBottom: axisRadius,
+      height: length,
+    }).getGeometryData();
+    axisLine.material = new BasicMaterial({ color });
+
+    if ("X" === axis) axisLine.rotation.z = -MathUtils.HALF_PI;
+    if ("Z" === axis) axisLine.rotation.x = MathUtils.HALF_PI;
+
+    // Move the entire cross up by 10 units so it's not buried in the floor
+    axisLine.position.y = 10;
+
+    this.scene.add(axisLine);
+
+    const posPos: Vector3D = new Vector3D().copyFrom(direction).scale(halfLen);
+    const negPos: Vector3D = new Vector3D().copyFrom(direction).scale(-halfLen);
+
+    posPos.y += 10;
+    negPos.y += 10;
+
+    this._addSphere(posPos, sphereRadius, color);
+    this._addSphere(negPos, sphereRadius, color);
+
+    const posLabel: string = "+";
+    const negLabel: string = "-";
+
+    await Promise.all([
+      this._addLabel(`${axis}${posLabel}`, posPos.clone().add(direction), color),
+      this._addLabel(`${axis}${negLabel}`, negPos.clone().sub(direction), color),
+    ]);
+  }
+
+  private _addSphere(position: Vector3D, radius: number, color: Color): void {
+    const sphere: Object3D = new Object3D();
+    sphere.geometry = new Sphere({ radius }).getGeometryData();
+    sphere.material = new BasicMaterial({ color });
+    sphere.position.copyFrom(position);
+    this.scene.add(sphere);
+  }
+
+  private async _addLabel(text: string, position: Vector3D, color: Color): Promise<void> {
+    const canvas: HTMLCanvasElement = document.createElement("canvas");
+    canvas.width = 128;
+    canvas.height = 128;
+    const ctx: CanvasRenderingContext2D = canvas.getContext("2d")!;
+
+    ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+    if (DeviceCaps.hasFeature(DeviceFeature.CANVAS_ROUND_RECT)) {
+      ctx.beginPath();
+      ctx.roundRect(10, 10, 108, 108, 20);
+      ctx.fill();
+    } else {
+      ctx.fillRect(10, 10, 108, 108);
+    }
+
+    ctx.fillStyle = color.toHex();
+    ctx.font = "bold 60px Arial";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(text, 64, 64);
+
+    try {
+      const bitmap: ImageBitmap = await createImageBitmap(canvas);
+      const texture: Texture = Texture.fromImage(bitmap);
+      const material: SpriteMaterial = new SpriteMaterial({ texture });
+      const sprite: Sprite = new Sprite(material, `Label_${text}`);
+
+      sprite.position.copyFrom(position);
+      sprite.scale.set(3, 3, 3);
+      this.scene.add(sprite);
+    } catch (e) {
+      console.error(`Error creating label texture for ${text}:`, e);
+    }
   }
 }
 
-async function init() {
-  const container = document.getElementById("container") as HTMLElement;
-  container.innerHTML = '<canvas id="canvas23"></canvas>';
-
-  const params = new URLSearchParams(window.location.search);
-  const api = params.get("api") || "off";
-
-  if (api === "off") {
-    return; // Wait for UI toggle
-  }
-
-  const engine = new Showcase23Engine(document.getElementById("canvas23") as HTMLElement, api);
-  await engine.start();
-}
-
-init().catch(console.error);
+new Showcase22().start();

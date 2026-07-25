@@ -4,89 +4,90 @@
     <link rel="icon" type="image/png" href="/favicon.png" />
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Small World Engine - Showcase 17</title>
+    <title>Small World - Showcase 17 (ThreadPool)</title>
     <link rel="stylesheet" href="/assets/shared.css" />
     <style>
 
       .ui-panel {
         position: absolute;
-        bottom: 30px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: rgba(0, 15, 25, 0.8);
-        border: 1px solid #00e5ff;
+        top: 150px;
+        left: 20px;
+        background: rgba(10, 10, 20, 0.85);
+        border: 1px solid rgba(0, 255, 255, 0.3);
+        border-radius: 8px;
         padding: 20px;
-        border-radius: 4px;
-        color: #d1fdff;
-        display: flex;
-        flex-direction: column;
-        gap: 15px;
-        align-items: center;
-        box-shadow: 0 0 20px rgba(0, 229, 255, 0.2);
-        backdrop-filter: blur(8px);
-        font-family: "Rajdhani", sans-serif;
-        text-align: center;
-        z-index: 1000;
-        min-width: 320px;
+        color: #fff;
+        font-family: "Inter", sans-serif;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(5px);
+        width: 320px;
       }
       .ui-panel h3 {
-        margin: 0;
-        color: #00e5ff;
-        text-transform: uppercase;
-        letter-spacing: 2px;
-        text-shadow: 0 0 10px rgba(0, 229, 255, 0.4);
+        margin-top: 0;
+        margin-bottom: 10px;
+        font-size: 1.2rem;
+        color: #00ffff;
       }
-      .btn-row {
-        display: flex;
-        gap: 10px;
+      .ui-panel p {
+        font-size: 0.9rem;
+        color: #ccc;
+        margin-bottom: 20px;
+        line-height: 1.4;
       }
-      button {
-        background: rgba(0, 229, 255, 0.1);
-        border: 1px solid #00e5ff;
-        color: #00e5ff;
-        padding: 8px 16px;
-        border-radius: 2px;
+      .ui-panel button {
+        display: block;
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 10px;
+        background: transparent;
+        border: 1px solid #00ffff;
+        color: #00ffff;
+        border-radius: 4px;
         cursor: pointer;
-        font-family: "Rajdhani", sans-serif;
-        font-size: 1rem;
-        font-weight: bold;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        transition: all 0.2s;
+        font-size: 0.9rem;
+        transition: all 0.2s ease;
       }
-      button:hover:not(:disabled) {
-        background: #00e5ff;
-        color: #000;
-        box-shadow: 0 0 15px #00e5ff;
+      .ui-panel button:hover {
+        background: rgba(0, 255, 255, 0.2);
       }
-      button:disabled {
-        opacity: 0.3;
+      .ui-panel button:disabled {
+        border-color: #555;
+        color: #555;
         cursor: not-allowed;
+        background: transparent;
       }
       #resultText {
-        font-size: 1rem;
-        color: #ff6600;
-        text-shadow: 0 0 10px rgba(255, 102, 0, 0.4);
-        font-weight: 600;
+        margin-top: 15px;
+        font-weight: bold;
+        color: #ff0055;
+        min-height: 20px;
       }
     
     </style>
   </head>
   <body>
-    <showcase-layout title="Procedural Terrain (Multithreaded)" subtitle-b64="PHA+R2VuZXJhdGluZyBhIGhpZ2gtcG9seSB0ZXJyYWluIGNodW5rIG9uIHRoZSBNYWluIFRocmVhZCB2cyBXb3JrZXIgVGhyZWFkPC9wPg==" prev="../16/index.html" next="../18/index.html"></showcase-layout>
+    <showcase-layout title="ThreadPool (Web Workers)" subtitle-b64="PHA+V2ViIFdvcmtlcnMgKFRocmVhZFBvb2wpIHZzIE1haW4gVGhyZWFkIEJsb2NraW5nPC9wPg==" prev="../15_v2/index.html" next="../17/index.html"></showcase-layout>
 
     <div class="ui-panel">
-      <h3>Terrain Generator</h3>
-      <div class="btn-row">
-        <button id="btnMainThread">Generate (Main Thread)</button>
-        <button id="btnWorkerThread">Generate (Worker Thread)</button>
-      </div>
-      <div id="resultText">Waiting... (Move the camera to see stuttering)</div>
-      <button id="btnClear">Clear Terrain</button>
+      <h3>Multithreading Test</h3>
+      <p>
+        Watch the spinning cubes. Clicking the Main Thread button will completely freeze the browser
+        (0 FPS) while calculating 5,000,000 primes.
+        <br /><br />
+        The Worker Pool button offloads the exact same calculation to a background thread, keeping
+        the engine running butter-smooth.
+      </p>
+
+      <button id="btnMainThread">Run Heavy Task (Main Thread)</button>
+      <button id="btnWorkerThread">Run Heavy Task (Worker Pool)</button>
+
+      <div id="resultText">Waiting...</div>
     </div>
 
+    <!-- The WebGL Canvas -->
     <canvas id="SmallWorld"></canvas>
 
+    <!-- App Module -->
     <script type="module" src="./assets/script.ts"></script>
   </body>
 </html>

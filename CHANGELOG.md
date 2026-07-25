@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.69.8] - 2026-07-25
+
+### "A user interface is like a joke. If you have to explain it, it's not that good." - Martin LeBlanc
+
+- **Features:**
+  - **Tron Navigation:** Centralized the UI panel for showcase navigation into `AbstractShowcase`, rolling out consistent neon-styled ◀ / ▶ buttons across all showcases.
+- **Housekeeping & Docs:**
+  - **Showcase Restructuring:** Renamed branching paths (15_v1 and 15_v2) into a linear sequence (15 through 24). Replaced raw `SmallWorld` instantiation with `AbstractShowcase` in later examples to inherit the new UI.
 ## [0.69.7] - 2026-07-25
 
 ### "The details are not the details. They make the design." - Charles Eames

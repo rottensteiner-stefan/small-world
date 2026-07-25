@@ -1,288 +1,264 @@
-/// showcases/21/showcase.ts
+/// showcases/20/showcase.ts
 
 import {
-  SmallWorld,
+  AbstractShowcase,
   Color,
   Object3D,
   StandardMaterial,
+  Cube,
   Sphere,
   OrbitController,
-  CameraStrategyType,
   DirectionalLight,
+  Vector3D,
   PostProcessingEffectType,
   BloomElement,
+  BoundingBox,
   BoundingSphere,
   RigidBody,
   PhysicsSystem,
-  Skydome,
-  Texture,
+  ColorUtils,
 } from "../../src/index.js";
 import { AmbientLight } from "../../src/core/lights/index.js";
-import { DeviceCaps, PerformanceTier } from "../../src/core/DeviceCaps.js";
 
-class Showcase21 extends SmallWorld {
+/**
+ * A pentatonic scale for musical physical collisions.
+ */
+const PENTATONIC_SCALE = [
+  130.81, // C3
+  146.83, // D3
+  164.81, // E3
+  196.0, // G3
+  220.0, // A3
+  261.63, // C4
+  293.66, // D4
+  329.63, // E4
+  392.0, // G4
+  440.0, // A4
+  523.25, // C5
+  587.33, // D5
+  659.25, // E5
+  783.99, // G5
+  880.0, // A5
+];
+
+class Showcase20 extends AbstractShowcase {
   private _spheres: Object3D[] = [];
+  private _spherePool: Object3D[] = [];
+  private _spawnTimer: number = 0;
+  private _sphereGeo!: import("../../src/index.js").GeometryData;
+  private _sphereMat!: StandardMaterial;
   private _physics: PhysicsSystem;
-  private _heatMap: Map<Object3D, number> = new Map();
 
   constructor() {
-    super({ enableInspector: false });
+    super({
+      enableInspector: false,
+    });
     this._physics = new PhysicsSystem(this.events);
-    this._physics.gravity.set(0, 0, 0); // No global gravity
   }
 
   protected async setupScene(): Promise<void> {
-    let droneStarted = false;
-    // Use pointerdown to support both mouse clicks and mobile touch
-    this.canvas.addEventListener("pointerdown", () => {
-      if (!droneStarted) {
-        this.audio.startDrone();
-        droneStarted = true;
-      }
-      if (!DeviceCaps.isMobile() && !this.input.isPointerLocked) {
-        this.input.requestPointerLock(this.canvas);
-      }
-    });
-
-    const tier = DeviceCaps.getPerformanceTier();
-
-    // 0. Enable Bloom & Gravitational Lensing!
+    // 0. Enable Post Processing for glowing bloom
     this.renderer.postProcessing.enabled = true;
-    this.renderer.postProcessing.filterMode = 8; // Our new Black Hole Shader!
-
     const bloom = this.renderer.postProcessing.get<BloomElement>(PostProcessingEffectType.BLOOM);
     if (bloom) {
-      if (tier === PerformanceTier.LOW) {
-        // Disable bloom for low-end devices to save fill rate
-        bloom.enabled = false;
-      } else {
-        bloom.enabled = true;
-        bloom.intensity = tier === PerformanceTier.MEDIUM ? 1.0 : 2.0;
-        bloom.threshold = 0.2;
-        bloom.radius = 1.0;
-      }
+      bloom.enabled = true;
+      bloom.intensity = 2.0;
+      bloom.threshold = 0.5;
+      bloom.radius = 1.0;
     }
 
     // 1. Lighting Setup
     const ambient = new AmbientLight({ color: new Color(0.1, 0.1, 0.2), intensity: 1.0 });
     const dirLight = new DirectionalLight({ color: new Color(0.8, 0.9, 1.0), intensity: 2.0 });
     dirLight.position.set(10, 20, 10);
+    dirLight.direction.set(-10, -20, -10).normalize();
     this.scene.add(ambient, dirLight);
 
     // 2. Camera Setup
-    this.camera.setStrategy(CameraStrategyType.HYBRID_SYNC);
-    this.camera.position.set(0, 20, 40);
-    this.camera.target.set(0, 0, 0);
+    this.camera.position.set(0, 15, 30);
+    this.camera.target.set(0, 5, 0);
     this.camera.addBehavior(new OrbitController({ input: this.input, audio: this.audio }));
 
-    // 3. Environment: The Magnetic Singularity & Space Background
-    const skyTexture = await Texture.fromUrl("./assets/space-2.jpg");
-    const skydome = new Skydome({
-      texture: skyTexture,
-      radius: 1000,
-      widthSegments: 32,
-      heightSegments: 32,
+    // 3. Environment: The Plinko/Galton Board
+    const glassMaterial = new StandardMaterial({
+      color: new Color(0.1, 0.1, 0.1),
+      metallic: 0.1,
+      roughness: 0.1,
+      transmission: 0.9, // Refractive Glass
+      ior: 1.5,
+      thickness: 1.0,
+      envMapIntensity: 1.0,
     });
-    skydome.name = "Skydome";
-    this.scene.add(skydome);
 
-    // We add a tiny visual marker for the singularity, but it has no physical bounds.
-    const singularity = new Object3D("Singularity");
-    singularity.geometry = new Sphere({
-      radius: 0.2,
+    const boxGeo = new Cube({ size: 1 }).getGeometryData();
+
+    // Create a pyramid of pegs
+    const rows = 8;
+    const spacing = 3.0;
+    for (let r = 0; r < rows; r++) {
+      const pegsInRow = r + 1;
+      const startX = -((pegsInRow - 1) * spacing) / 2;
+      for (let i = 0; i < pegsInRow; i++) {
+        const peg = new Object3D(`Peg_${r}_${i}`);
+        peg.geometry = boxGeo;
+        peg.material = glassMaterial;
+
+        // Tilt the pegs slightly to make bouncing chaotic
+        peg.rotation.z = Math.PI / 4;
+
+        const x = startX + i * spacing;
+        const y = 15 - r * spacing;
+        peg.position.set(x, y, 0);
+
+        // Make it a STATIC rigid body (mass = 0)
+        peg.rigidBody = new RigidBody(0);
+        peg.rigidBody.restitution = 0.9; // Bouncy pegs
+
+        // Scale it up
+        peg.scale.set(1.5, 1.5, 1.5);
+        peg.updateMatrixWorld();
+
+        // Calculate world bounds
+        peg.bounds = new BoundingBox(
+          new Vector3D(-0.75, -0.75, -0.75),
+          new Vector3D(0.75, 0.75, 0.75),
+        );
+
+        this.scene.add(peg);
+      }
+    }
+
+    // Add boundaries to funnel them back
+    const createWall = (x: number, rotZ: number) => {
+      const wall = new Object3D();
+      wall.geometry = boxGeo;
+      wall.material = glassMaterial;
+      wall.position.set(x, 5, 0);
+      wall.scale.set(1, 20, 3);
+      wall.rotation.z = rotZ;
+      wall.rigidBody = new RigidBody(0);
+      wall.rigidBody.restitution = 0.5;
+      wall.bounds = new BoundingBox(new Vector3D(-0.5, -10, -1.5), new Vector3D(0.5, 10, 1.5));
+      this.scene.add(wall);
+    };
+    createWall(-15, -Math.PI / 8);
+    createWall(15, Math.PI / 8);
+
+    // 4. Pre-allocate sphere geometry and material
+    this._sphereGeo = new Sphere({
+      radius: 0.5,
       widthSegments: 16,
       heightSegments: 16,
     }).getGeometryData();
-    singularity.material = new StandardMaterial({
-      color: new Color(0.0, 0.0, 0.0),
-      emissiveColor: new Color(0.0, 0.5, 1.0),
-      metallic: 1.0,
-      roughness: 0.0,
-    });
-    // No RigidBody and No Bounds means it's a ghost object
-    this.scene.add(singularity);
 
-    // 4. Pre-allocate sphere geometry (make them large enough to overlap into a solid ring)
-    const geo = new Sphere({ radius: 0.1, widthSegments: 8, heightSegments: 8 }).getGeometryData();
-
-    let sphereCount = 400;
-    if (tier === PerformanceTier.LOW) sphereCount = 100;
-    else if (tier === PerformanceTier.MEDIUM) sphereCount = 200;
-
-    // Spawn spheres packed closely together
-    for (let i = 0; i < sphereCount; i++) {
+    // Pre-warm the sphere pool to prevent mid-simulation shader compilations and stuttering
+    for (let i = 0; i < 100; i++) {
       const s = new Object3D();
-      s.geometry = geo;
+      s.geometry = this._sphereGeo;
 
-      // Base accretion disk material (extremely hot and glowing)
+      const hue = Math.floor(Math.random() * 360);
       s.material = new StandardMaterial({
-        color: new Color(0.1, 0.05, 0.0),
-        metallic: 0.5,
-        roughness: 0.8,
-        emissiveColor: new Color(1.0, 0.3, 0.05), // Fiery orange by default
+        color: ColorUtils.fromCSS(`hsl(${hue}, 100%, 50%)`),
+        metallic: 0.9,
+        roughness: 0.1,
+        emissiveColor: new Color(0.2, 0.0, 0.2),
       });
 
-      // Spawn in a very tight, dense torus (r=0.6 to r=3.0)
-      const angle = Math.random() * Math.PI * 2;
-      const radius = 0.6 + Math.pow(Math.random(), 2) * 2.4;
-
-      // Extremely flat disk
-      const yOffset = (Math.random() - 0.5) * 0.2;
-
-      s.position.set(Math.cos(angle) * radius, yOffset, Math.sin(angle) * radius);
-
       const rb = new RigidBody(1.0);
-      rb.restitution = 0.0; // Perfect inelasticity (friction heats it up instead of bouncing)
-      rb.friction = 1.0;
-
-      // Orbital velocity: v = Math.sqrt(GM / r). GM = sphereCount
-      // 98% of orbital velocity so it slowly spirals in
-      const orbitalSpeed = Math.sqrt(sphereCount / radius) * 0.98;
-
-      // Tangential velocity
-      const tangentX = -Math.sin(angle);
-      const tangentZ = Math.cos(angle);
-
-      rb.velocity.set(
-        tangentX * orbitalSpeed,
-        (Math.random() - 0.5) * 0.5, // Tiny vertical perturbation
-        tangentZ * orbitalSpeed,
-      );
-
+      rb.restitution = 0.8;
+      rb.friction = 0.99; // Air resistance / damping. 0.1 was killing all velocity instantly!
       s.rigidBody = rb;
-      s.bounds = new BoundingSphere(s.position, 0.05);
+      s.bounds = new BoundingSphere(s.position, 0.5);
 
-      this._spheres.push(s);
-
-      // Base heat depends on how close it is to the event horizon!
-      const baseHeat = Math.max(0, 10.0 - radius);
-      this._heatMap.set(s, baseHeat);
-      this.scene.add(s);
+      this._spherePool.push(s);
     }
 
-    // 5. Subscribe to Physics Collisions for heat transfer & Fuzz Audio!
+    // 5. Subscribe to Physics Collisions for Generative Audio
     this.events.addEventListener(
       "physics:collision",
       (data: { objectA: Object3D; objectB: Object3D; impulse: number }) => {
-        const heatA = this._heatMap.get(data.objectA) || 0;
-        const heatB = this._heatMap.get(data.objectB) || 0;
+        const impulseMag = data.impulse;
+        if (impulseMag > 0.5) {
+          // Threshold to prevent micro-collision spam
+          // Map Y position to a note in the pentatonic scale
+          const yPos = Math.max(0, Math.min(15, data.objectA.position.y));
+          const noteIndex = Math.floor((yPos / 15) * (PENTATONIC_SCALE.length - 1));
+          const freq = PENTATONIC_SCALE[noteIndex]!;
 
-        // Heat generation is extremely violent now
-        this._heatMap.set(data.objectA, heatA + data.impulse * 8.0);
-        this._heatMap.set(data.objectB, heatB + data.impulse * 8.0);
+          // Map impulse magnitude to volume (cap at 0.5)
+          const volume = Math.min(0.5, impulseMag * 0.05);
 
-        // User requested NO other sounds except White Noise
-        // if (data.impulse > 2.0) {
-        //    const freq = 41.2 + (Math.random() * 5.0);
-        //    const vol = Math.min(1.0, data.impulse * 0.1);
-        //    AudioSystem.instance.playTone(freq, 0.4, vol, "square");
-        // }
+          // Flash the sphere's color based on impact
+          if (data.objectA.material instanceof StandardMaterial) {
+            const origR = data.objectA.material.color.r;
+            data.objectA.material.emissiveColor.set(origR * 2, origR, origR * 2);
+          }
+
+          // Play the generative synth tone
+          this.audio.playTone(freq, 0.3, volume, "triangle");
+        }
       },
+    );
+
+    // Start audio context on first click
+    window.addEventListener(
+      "pointerdown",
+      () => {
+        if (this.audio.context.state === "suspended") {
+          this.audio.context.resume();
+        }
+      },
+      { once: true },
     );
   }
 
-  protected override update(dt: number): void {
-    // 1. N-Body Gravity Simulation (O(N^2))
-    for (let i = 0; i < this._spheres.length; i++) {
-      const a = this._spheres[i]!;
-      const pA = a.position;
+  private _spawnSphere(): void {
+    let s: Object3D;
 
-      const distSqC = pA.x * pA.x + pA.y * pA.y + pA.z * pA.z;
-      const distC = Math.sqrt(distSqC) || 1.0;
-
-      // Event Horizon: Consumed!
-      if (distC < 0.4) {
-        const angle = Math.random() * Math.PI * 2;
-        const radius = 3.0; // Respawn at the outer edge of the dense disk
-        pA.set(Math.cos(angle) * radius, (Math.random() - 0.5) * 0.2, Math.sin(angle) * radius);
-        const orbitalSpeed = Math.sqrt(this._spheres.length / radius) * 0.98;
-        a.rigidBody!.velocity.set(
-          -Math.sin(angle) * orbitalSpeed,
-          0,
-          Math.cos(angle) * orbitalSpeed,
-        );
-        a.rigidBody!.angularVelocity.set(0, 0, 0);
-        this._heatMap.set(a, 2.0); // Reset heat to a moderate orange
-        continue;
-      }
-      // Force scales with 1/d^2
-      const pullC = this._spheres.length / Math.max(distSqC, 2.0);
-
-      let fx = -(pA.x / distC) * pullC;
-      let fy = -(pA.y / distC) * pullC;
-      let fz = -(pA.z / distC) * pullC;
-
-      // Sphere-Sphere Micro-Gravity
-      for (let j = i + 1; j < this._spheres.length; j++) {
-        const b = this._spheres[j]!;
-        const pB = b.position;
-        const dx = pB.x - pA.x;
-        const dy = pB.y - pA.y;
-        const dz = pB.z - pA.z;
-        const distSq = dx * dx + dy * dy + dz * dz;
-
-        if (distSq > 0.1) {
-          const forceMag = 2.0 / distSq;
-          const dist = Math.sqrt(distSq);
-          const fxG = (dx / dist) * forceMag;
-          const fyG = (dy / dist) * forceMag;
-          const fzG = (dz / dist) * forceMag;
-
-          fx += fxG;
-          fy += fyG;
-          fz += fzG;
-
-          // Newton's third law
-          b.rigidBody!.forces.x -= fxG;
-          b.rigidBody!.forces.y -= fyG;
-          b.rigidBody!.forces.z -= fzG;
-        }
-      }
-
-      a.rigidBody!.forces.x += fx;
-      a.rigidBody!.forces.y += fy;
-      a.rigidBody!.forces.z += fz;
+    if (this._spherePool.length > 0) {
+      s = this._spherePool.pop()!;
+      this.scene.add(s);
+      this._spheres.push(s);
+    } else {
+      // Pool empty, recycle oldest active sphere
+      s = this._spheres.shift()!;
+      this._spheres.push(s);
     }
 
-    // 2. Step Physics Engine (SAT Collision & Integration)
+    s.position.set((Math.random() - 0.5) * 4, 22, Math.random() - 0.5);
+    s.rigidBody!.velocity.set(0, -2, 0);
+    s.rigidBody!.angularVelocity.set(0, 0, 0);
+    s.rigidBody!.clearForces();
+  }
+
+  protected override update(dt: number): void {
+    // 1. Step the physics simulation
     this._physics.step(this.scene, dt);
 
-    // 3. Update Heat and Emissive Colors
-    for (const s of this._spheres) {
-      let heat = this._heatMap.get(s)!;
-
-      // Increase heat based on pressure (proximity to singularity center)
-      const distC = s.position.length();
-      if (distC < 1.0) {
-        heat += (1.0 - distC) * dt * 10.0;
-      }
-
-      // Cool down over time in the void of space
-      heat -= dt * 1.5;
-      heat = Math.max(0, Math.min(10.0, heat));
-      this._heatMap.set(s, heat);
-
-      // Interpolate Color to match EHT Black Hole: Deep Red -> Orange -> Yellow/White
-      if (s.material instanceof StandardMaterial) {
-        const t = Math.min(1.0, heat / 8.0);
-
-        // Cool (0) = 0.5, 0.0, 0.0 (Deep Dark Red)
-        // Hot (1) = 1.0, 1.0, 1.0 (Blinding White)
-        const r = 0.6 + t * 0.4;
-        const g = Math.max(0, (t - 0.2) / 0.8);
-        const b = Math.max(0, (t - 0.7) / 0.3);
-
-        s.material.emissiveColor.set(r, g, b);
-      }
+    this._spawnTimer += dt;
+    if (this._spawnTimer > 0.25) {
+      // Spawn 4 spheres per second
+      this._spawnTimer = 0;
+      this._spawnSphere();
     }
 
-    // 4. Update Skydome position to follow camera (infinite background)
-    const skydome = this.scene.objects.find((o) => o.name === "Skydome");
-    if (skydome) {
-      skydome.position.copyFrom(this.camera.position);
+    // Cool down emissive colors
+    for (const s of this._spheres) {
+      if (s.material instanceof StandardMaterial) {
+        const t = dt * 5.0;
+        const c = s.material.emissiveColor;
+        c.r += (0.0 - c.r) * t;
+        c.g += (0.0 - c.g) * t;
+        c.b += (0.0 - c.b) * t;
+      }
+
+      // Keep them in 2D plane for the Plinko effect
+      s.position.z = 0;
+      s.rigidBody!.velocity.z = 0;
+      s.updateMatrixWorld();
     }
   }
 }
 
-const app = new Showcase21();
+const app = new Showcase20();
 app.start();
