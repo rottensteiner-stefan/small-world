@@ -45,7 +45,7 @@ export declare class Mesh {
      * Draws the mesh using the appropriate GL call.
      * @param mode The draw mode (e.g. TRIANGLES, LINES).
      */
-    draw(mode: number): void;
+    draw(mode: number, wireframeMode?: "structural" | "triangles"): void;
     /**
      * Updates the GPU buffers with new geometry data.
      * Currently updates vertices, normals and tangents.

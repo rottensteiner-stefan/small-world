@@ -138,8 +138,8 @@ export class Mesh {
    * Draws the mesh using the appropriate GL call.
    * @param mode The draw mode (e.g. TRIANGLES, LINES).
    */
-  public draw(mode: number): void {
-    if (mode === this._gl.LINES && this.webo) {
+  public draw(mode: number, wireframeMode: "structural" | "triangles" = "structural"): void {
+    if (mode === this._gl.LINES && wireframeMode === "structural" && this.webo) {
       this._gl.bindBuffer(this._gl.ELEMENT_ARRAY_BUFFER, this.webo);
       this._gl.drawElements(mode, this.wireframeCount, this.wireframeIndexType, 0);
     } else if (this.isIndexed) {

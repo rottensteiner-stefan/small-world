@@ -78,9 +78,9 @@ export class Forge {
   public toggle(): void {
     this._isVisible = !this._isVisible;
     this._overlay.style.display = this._isVisible ? "block" : "none";
-    // Optional: add a semi-transparent dark background when visible so it feels like a real overlay
-    this._overlay.style.pointerEvents = this._isVisible ? "auto" : "none";
-    this._overlay.style.backgroundColor = this._isVisible ? "rgba(0,0,0,0.3)" : "transparent";
+    // We must NOT block pointer events on the overlay itself, otherwise the canvas underneath cannot be clicked!
+    this._overlay.style.pointerEvents = "none";
+    this._overlay.style.backgroundColor = "transparent";
   }
 
   public get windows(): ForgeWindow[] {

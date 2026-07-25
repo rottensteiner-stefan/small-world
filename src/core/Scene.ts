@@ -12,6 +12,7 @@ export interface RenderBatch {
   shaderId: string;
   topology: Topology;
   matUuid: string;
+  wireframeMode?: "structural" | "triangles";
   objects: Object3D[];
 }
 
@@ -224,6 +225,7 @@ export class Scene {
           obj.geometry?.topology ||
           (obj.geometry?.indices?.length === 2 ? Topology.LINE_LIST : Topology.TRIANGLE_LIST);
         const matUuid = obj.material.uuid;
+        const wireframeMode = manifest.state?.wireframeMode || "structural";
 
         if (!renderList.opaqueLookup.has(shaderId))
           renderList.opaqueLookup.set(shaderId, new Map());
@@ -234,9 +236,12 @@ export class Scene {
 
         let batch = matMap.get(matUuid);
         if (!batch) {
-          batch = { shaderId, topology, matUuid, objects: [] };
+          batch = { shaderId, topology, matUuid, wireframeMode, objects: [] };
           matMap.set(matUuid, batch);
           renderList.opaqueBatches.push(batch);
+        } else {
+          // The batch is reused to save GC, but properties like wireframeMode can change at runtime!
+          batch.wireframeMode = wireframeMode;
         }
         batch!.objects.push(obj);
       }

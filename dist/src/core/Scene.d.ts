@@ -9,6 +9,7 @@ export interface RenderBatch {
     shaderId: string;
     topology: Topology;
     matUuid: string;
+    wireframeMode?: "structural" | "triangles";
     objects: Object3D[];
 }
 export interface RenderList {

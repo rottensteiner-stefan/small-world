@@ -15,9 +15,15 @@ import {
  * A material for wireframe rendering.
  */
 export class WireframeMaterial extends AbstractMaterial {
-  constructor(color: Color = Color.WHITE) {
+  public wireframeMode: "structural" | "triangles" = "structural";
+
+  constructor(
+    color: Color = Color.WHITE,
+    wireframeMode: "structural" | "triangles" = "structural",
+  ) {
     super(MaterialType.WIREFRAME);
     this.color = color;
+    this.wireframeMode = wireframeMode;
   }
 
   /** @inheritdoc */
@@ -42,12 +48,16 @@ export class WireframeMaterial extends AbstractMaterial {
         state: {
           culling: CullMode.NONE, // Often useful for wireframes to see the back
           topology: Topology.LINE_LIST,
+          wireframeMode: this.wireframeMode,
         },
       };
     }
 
     const props = this._renderManifest.properties as Record<string, unknown>;
     props["u_color"] = this.color.toFloat32Array();
+    if (this._renderManifest.state) {
+      this._renderManifest.state.wireframeMode = this.wireframeMode;
+    }
 
     return this._renderManifest!;
   }

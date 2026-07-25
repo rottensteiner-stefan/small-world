@@ -5,7 +5,8 @@ import { RenderManifest, ShaderDefinition } from '../renderers/shaders/index.js'
  * A material for wireframe rendering.
  */
 export declare class WireframeMaterial extends AbstractMaterial {
-    constructor(color?: Color);
+    wireframeMode: "structural" | "triangles";
+    constructor(color?: Color, wireframeMode?: "structural" | "triangles");
     /** @inheritdoc */
     getRenderManifest(): RenderManifest;
     /** @inheritdoc */

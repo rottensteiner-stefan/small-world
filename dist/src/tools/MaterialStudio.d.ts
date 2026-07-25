@@ -1,9 +1,22 @@
 import { ForgeTool, ForgeToolOptions } from './forge/ForgeTool.js';
+import { SmallWorld } from '../core/index.js';
 declare global {
     interface Window {
         update3DTextures?: (diffuseCanvas: HTMLCanvasElement, normalCanvas: HTMLCanvasElement, roughnessCanvas: HTMLCanvasElement, normalStrength: number, metallicValue: number, roughnessValue: number) => Promise<void>;
         update3DGeometry?: (geomType: string) => void;
     }
+}
+export declare class MaterialStudioApp extends SmallWorld {
+    private _previewObject;
+    private _pbrMaterial;
+    private _time;
+    private _sphereGeometry;
+    private _cubeGeometry;
+    private _torusGeometry;
+    private _planeGeometry;
+    constructor(canvasId: string);
+    protected setupScene(): Promise<void>;
+    protected update(deltaTime: number): void;
 }
 export declare class MaterialStudio extends ForgeTool {
     private _app;

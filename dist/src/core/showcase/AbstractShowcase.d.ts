@@ -7,6 +7,10 @@ export declare abstract class AbstractShowcase extends SmallWorld {
      */
     constructor(config?: EngineOptions);
     /**
+     * Initializes the NEXT/PREV pointers for numeric showcases.
+     */
+    private _initShowcaseNavigation;
+    /**
      * Helper to wait for all currently loading assets to finish.
      * Useful to call at the end of setupScene.
      */

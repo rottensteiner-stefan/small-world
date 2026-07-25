@@ -24,14 +24,9 @@ export default defineConfig({
           /<showcase-layout\s+title="([^"]*)"\s+subtitle-b64="([^"]*)"\s+prev="([^"]*)"\s+next="([^"]*)"><\/showcase-layout>/;
         const match = html.match(layoutRegex);
         if (match) {
-          const [full, title, subtitleB64, prev, next] = match;
+          const [full, title, subtitleB64] = match;
           const subtitle = Buffer.from(subtitleB64, "base64").toString("utf-8");
           const headerHtml = `
-<div class="example-nav">
-  <a href="${prev}" class="nav-btn">←<span class="hide-mobile"> Back</span></a>
-  <a href="/" class="nav-btn"><span class="hide-mobile">Overview</span></a>
-  <a href="${next}" class="nav-btn"><span class="hide-mobile">Next </span>→</a>
-</div>
 <header id="info">
   <h1>${title}</h1>
   ${subtitle}
@@ -139,8 +134,7 @@ export default defineConfig({
         showcase12: resolve(__dirname, "showcases/12/index.html"),
         showcase13: resolve(__dirname, "showcases/13/index.html"),
         showcase14: resolve(__dirname, "showcases/14/index.html"),
-        showcase15_v1: resolve(__dirname, "showcases/15_v1/index.html"),
-        showcase15_v2: resolve(__dirname, "showcases/15_v2/index.html"),
+        showcase15: resolve(__dirname, "showcases/15/index.html"),
         showcase16: resolve(__dirname, "showcases/16/index.html"),
         showcase17: resolve(__dirname, "showcases/17/index.html"),
         showcase18: resolve(__dirname, "showcases/18/index.html"),
@@ -149,6 +143,7 @@ export default defineConfig({
         showcase21: resolve(__dirname, "showcases/21/index.html"),
         showcase22: resolve(__dirname, "showcases/22/index.html"),
         showcase23: resolve(__dirname, "showcases/23/index.html"),
+        showcase24: resolve(__dirname, "showcases/24/index.html"),
         yad: resolve(__dirname, "showcases/yad/index.html"),
         pbrgen: resolve(__dirname, "public/tools/pbr-gen.html"),
         iblgen: resolve(__dirname, "public/tools/ibl-gen.html"),

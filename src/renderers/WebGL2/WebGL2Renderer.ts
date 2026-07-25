@@ -749,7 +749,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
           cache.attributes.get("a_uv")!,
           cache.attributes.get("a_tangent")!,
         );
-        mesh.draw(drawMode);
+        mesh.draw(drawMode, batch!.wireframeMode);
       }
     }
   }
@@ -824,6 +824,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         topo,
         lights,
         scene,
+        batch!.wireframeMode,
       );
     }
 
@@ -837,6 +838,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         topo,
         lights,
         scene,
+        batch!.wireframeMode,
       );
     }
   }
@@ -850,6 +852,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     topology: string = "triangle-list",
     lights?: LightDataInterface,
     scene?: Scene,
+    wireframeMode?: "structural" | "triangles",
   ): void {
     // --- 3. Build & Bind Shader ---
     const isInst =
@@ -1319,7 +1322,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         );
 
         const drawMode = topology === Topology.LINE_LIST ? this.gl.LINES : this.gl.TRIANGLES;
-        mesh.draw(drawMode);
+        mesh.draw(drawMode, wireframeMode);
       }
     }
   }

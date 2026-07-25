@@ -680,7 +680,10 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
           cache.attributes.get("a_uv")!,
           cache.attributes.get("a_tangent")!,
         );
-        mesh.draw(topology === "line-list" ? this.gl.LINES : this.gl.TRIANGLES);
+        mesh.draw(
+          topology === "line-list" ? this.gl.LINES : this.gl.TRIANGLES,
+          batch.wireframeMode,
+        );
       }
     }
   }

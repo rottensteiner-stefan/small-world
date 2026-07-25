@@ -96,16 +96,22 @@ export class GadgetInspector extends ForgeTool {
     const searchParams = { name: "" };
     const searchResultBlades: { dispose: () => void }[] = [];
 
-    searchTab
-      .addBinding(searchParams, "name", { label: "🔍" })
-      .on("change", (ev: { value: string }) => {
+    const binding = searchTab.addBinding(searchParams, "name", { label: "🔍" });
+
+    // Use DOM events to get immediate input feedback instead of waiting for change/blur
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const inputEl = (binding as any).controller.view.valueElement.querySelector("input");
+    if (inputEl) {
+      inputEl.addEventListener("input", (e: Event) => {
+        const query = (e.target as HTMLInputElement).value.toLowerCase().trim();
+        searchParams.name = query;
+
         for (const blade of searchResultBlades) {
           blade.dispose();
         }
         searchResultBlades.length = 0;
 
-        const query = ev.value.toLowerCase().trim();
-        if (!query) return;
+        if (query.length < 3) return;
 
         const allObjects: Object3D[] = [];
         for (const child of this._scene.objects) {
@@ -122,6 +128,7 @@ export class GadgetInspector extends ForgeTool {
           const btn = searchTab.addButton({ title: `↳ ${match.name}` });
           btn.on("click", () => {
             this.selectObject(match);
+            this._sceneTab.selected = true;
           });
           searchResultBlades.push(btn);
         }
@@ -131,6 +138,7 @@ export class GadgetInspector extends ForgeTool {
           searchResultBlades.push(btn);
         }
       });
+    }
 
     // Setup Diagnostics folder
     if (undefined !== this._renderer) {
@@ -341,6 +349,10 @@ export class GadgetInspector extends ForgeTool {
     this._mouse.x = (x / rect.width) * 2 - 1;
     this._mouse.y = -(y / rect.height) * 2 + 1;
 
+    console.log(
+      `[GadgetInspector] PointerDown: CSS(x:${x}, y:${y}) -> NDC(x:${this._mouse.x}, y:${this._mouse.y})`,
+    );
+
     // Raycast
     this._raycaster.setFromCamera(this._mouse, this._camera);
 
@@ -350,12 +362,20 @@ export class GadgetInspector extends ForgeTool {
       this._getAllObjects(child, pickableObjects);
     }
 
+    console.log(
+      `[GadgetInspector] Raycasting against ${pickableObjects.length} pickable objects. Ray origin: ${this._raycaster.ray.origin.toString()}, dir: ${this._raycaster.ray.direction.toString()}`,
+    );
+
     const intersects = this._raycaster.intersectObjects(pickableObjects, true);
 
     if (0 < intersects.length) {
       const hit = intersects[0]!;
+      console.log(
+        `[GadgetInspector] Hit object! Distance: ${hit.distance}, Name: ${hit.object.name}`,
+      );
       this.selectObject(hit.object);
     } else {
+      console.log(`[GadgetInspector] Ray hit nothing. Deselecting.`);
       this.deselect();
     }
   }
@@ -495,6 +515,11 @@ export class GadgetInspector extends ForgeTool {
       if ("alphaTest" in mat) matFolder.addBinding(mat, "alphaTest", { min: 0, max: 1 });
       if ("depthTest" in mat) matFolder.addBinding(mat, "depthTest");
       if ("depthWrite" in mat) matFolder.addBinding(mat, "depthWrite");
+      if ("wireframeMode" in mat) {
+        matFolder.addBinding(mat, "wireframeMode", {
+          options: { structural: "structural", triangles: "triangles" },
+        });
+      }
       if ("wireframe" in mat) matFolder.addBinding(mat, "wireframe");
       if ("opacity" in mat) matFolder.addBinding(mat, "opacity", { min: 0, max: 1 });
       if ("emissiveIntensity" in mat)

@@ -134,17 +134,30 @@ export class Pixler extends ForgeTool {
   private _history: ImageData[] = [];
   private _historyIndex: number = -1;
 
-  constructor(
-    private events: EventDispatcherImpl,
-    options: PixlerOptions = {},
-  ) {
-    super(options);
-    if (options.width !== undefined) this._width = options.width;
-    if (options.height !== undefined) this._height = options.height;
-    if (options.gridX !== undefined) this._gridX = options.gridX;
-    if (options.gridY !== undefined) this._gridY = options.gridY;
-    if (options.scale !== undefined) this._scale = options.scale;
-    if (options.palette !== undefined) this._palette = [...options.palette];
+  private _events: EventDispatcherImpl | undefined = undefined;
+
+  constructor(eventsOrOptions?: EventDispatcherImpl | PixlerOptions, options?: PixlerOptions) {
+    let events: EventDispatcherImpl | undefined;
+    let finalOptions: PixlerOptions = {};
+
+    if (eventsOrOptions) {
+      if ("addEventListener" in eventsOrOptions) {
+        events = eventsOrOptions as EventDispatcherImpl;
+        if (options) finalOptions = options;
+      } else {
+        finalOptions = eventsOrOptions as PixlerOptions;
+      }
+    }
+
+    super(finalOptions);
+    this._events = events;
+
+    if (finalOptions.width !== undefined) this._width = finalOptions.width;
+    if (finalOptions.height !== undefined) this._height = finalOptions.height;
+    if (finalOptions.gridX !== undefined) this._gridX = finalOptions.gridX;
+    if (finalOptions.gridY !== undefined) this._gridY = finalOptions.gridY;
+    if (finalOptions.scale !== undefined) this._scale = finalOptions.scale;
+    if (finalOptions.palette !== undefined) this._palette = [...finalOptions.palette];
 
     Object.assign(this._container.style, {
       display: "flex",
@@ -399,12 +412,14 @@ export class Pixler extends ForgeTool {
     this._resize(this._width, this._height);
     this._bindEvents();
 
-    this.events.addEventListener(ToolEvents.Pixler.LOAD_BASE64, (e: Record<string, unknown>) => {
-      const base64 = e["base64"] as string;
-      if (base64) {
-        this.loadFromBase64(base64).catch((err) => console.error(err));
-      }
-    });
+    if (this._events) {
+      this._events.addEventListener(ToolEvents.Pixler.LOAD_BASE64, (e: Record<string, unknown>) => {
+        const base64 = e["base64"] as string;
+        if (base64) {
+          this.loadFromBase64(base64).catch((err) => console.error(err));
+        }
+      });
+    }
   }
 
   private _createInput(

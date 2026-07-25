@@ -143,7 +143,7 @@ export declare class WebGPURenderer extends AbstractRenderer {
     captureOpaqueTexture(ce: GPUCommandEncoder, targetTex: GPUTexture): void;
     protected _pruneObjectBuffers(): void;
     _renderBatch(rp: GPURenderPassEncoder, batch: import('../../core/Scene.js').RenderBatch, vMat?: Float32Array): void;
-    _renderSubgroup(rp: GPURenderPassEncoder, objects: Object3D[], isInstanced: boolean, matUuid: string, manifest: RenderManifest, vMat?: Float32Array, topology?: GPUPrimitiveTopology): void;
+    _renderSubgroup(rp: GPURenderPassEncoder, objects: Object3D[], isInstanced: boolean, matUuid: string, manifest: RenderManifest, vMat?: Float32Array, topology?: GPUPrimitiveTopology, wireframeMode?: "structural" | "triangles"): void;
     protected _getObjUniformBufferData(obj: Object3D): {
         buffer: GPUBuffer;
         lastFrame: number;

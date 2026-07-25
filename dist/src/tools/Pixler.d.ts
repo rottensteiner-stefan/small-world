@@ -18,7 +18,6 @@ export interface PixlerOptions extends ForgeToolOptions {
 }
 export type PixlerToolMode = "pencil" | "bucket" | "picker" | "line";
 export declare class Pixler extends ForgeTool {
-    private events;
     private _canvas;
     private _ctx;
     private _gridOverlay;
@@ -42,7 +41,8 @@ export declare class Pixler extends ForgeTool {
     private _lineStartPos;
     private _history;
     private _historyIndex;
-    constructor(events: EventDispatcherImpl, options?: PixlerOptions);
+    private _events;
+    constructor(eventsOrOptions?: EventDispatcherImpl | PixlerOptions, options?: PixlerOptions);
     private _createInput;
     private _updateToolbarUI;
     private _resize;

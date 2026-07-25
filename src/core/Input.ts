@@ -67,9 +67,17 @@ export class Input implements InputInterface {
    */
   public init(): void {
     window.addEventListener("keydown", (e: KeyboardEvent): void => {
+      const active = document.activeElement;
+      if (active && ["INPUT", "TEXTAREA", "SELECT"].includes(active.tagName)) {
+        return;
+      }
       this._keys.set(e.code, true);
     });
     window.addEventListener("keyup", (e: KeyboardEvent): void => {
+      const active = document.activeElement;
+      if (active && ["INPUT", "TEXTAREA", "SELECT"].includes(active.tagName)) {
+        return;
+      }
       this._keys.set(e.code, false);
     });
     window.addEventListener("mousedown", (e: MouseEvent): void => {

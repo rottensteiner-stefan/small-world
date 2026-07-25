@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.69.7] - 2026-07-25
+
+### "The details are not the details. They make the design." - Charles Eames
+
+- **Features:**
+  - **Standalone Tool Exports:** Exported `MaterialStudioApp` to allow proper independent instantiation of the PBR Map Generator tool without relying on internal `Forge` execution flows.
+- **Housekeeping & Docs:**
+  - **Strict Linting Compliance:** Resolved trailing syntax warnings and missing explicit types in `GadgetInspector`, `Pixler`, and `AbstractShowcase` to return the engine to 100% strict compliance.
 ## [0.69.6] - 2026-07-24
 
 ### "Out of clutter, find simplicity. From discord, find harmony." - Albert Einstein

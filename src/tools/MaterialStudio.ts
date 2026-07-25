@@ -24,7 +24,7 @@ declare global {
   }
 }
 
-class MaterialStudioApp extends SmallWorld {
+export class MaterialStudioApp extends SmallWorld {
   private _previewObject!: Object3D;
   private _pbrMaterial!: StandardMaterial;
   private _time: number = 0;
@@ -1675,7 +1675,7 @@ export class MaterialStudio extends ForgeTool {
         createProceduralFallback();
       };
       // Load rock texture
-      originalImage.src = "/resources/showcases/10/rock.png";
+      originalImage.src = "/showcases/10/assets/rock.png";
 
       function createProceduralFallback(): void {
         // Simple canvas fallback texture (256x256 simple rock noise)

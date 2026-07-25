@@ -1059,11 +1059,29 @@ export class WebGPURenderer extends AbstractRenderer {
     else if (batch.topology === "line-strip") topologyStr = "line-strip";
 
     if (standardObjects.length > 0) {
-      this._renderSubgroup(rp, standardObjects, false, batch.matUuid, manifest, vMat, topologyStr);
+      this._renderSubgroup(
+        rp,
+        standardObjects,
+        false,
+        batch.matUuid,
+        manifest,
+        vMat,
+        topologyStr,
+        batch.wireframeMode,
+      );
     }
 
     if (instancedObjects.length > 0) {
-      this._renderSubgroup(rp, instancedObjects, true, batch.matUuid, manifest, vMat, topologyStr);
+      this._renderSubgroup(
+        rp,
+        instancedObjects,
+        true,
+        batch.matUuid,
+        manifest,
+        vMat,
+        topologyStr,
+        batch.wireframeMode,
+      );
     }
   }
 
@@ -1075,6 +1093,7 @@ export class WebGPURenderer extends AbstractRenderer {
     manifest: RenderManifest,
     vMat?: Float32Array,
     topology: GPUPrimitiveTopology = "triangle-list",
+    wireframeMode?: "structural" | "triangles",
   ): void {
     const cache = this._getPipeline(manifest, topology, isInstanced);
     rp.setPipeline(cache.pipeline);
@@ -1145,7 +1164,7 @@ export class WebGPURenderer extends AbstractRenderer {
         }
 
         if (topology === "line-list") {
-          if (gCache.wib) {
+          if (wireframeMode === "structural" && gCache.wib) {
             rp.setIndexBuffer(gCache.wib, gCache.format!);
             rp.drawIndexed(gCache.wireframeIndexCount, instMesh.instanceCount);
           } else if (gCache.ib) {
@@ -1154,15 +1173,17 @@ export class WebGPURenderer extends AbstractRenderer {
           } else {
             rp.draw(gCache.vertexCount, instMesh.instanceCount);
           }
-        } else if (gCache.ib) {
-          rp.setIndexBuffer(gCache.ib, gCache.format!);
-          rp.drawIndexed(gCache.indexCount, instMesh.instanceCount);
         } else {
-          rp.draw(gCache.vertexCount, instMesh.instanceCount);
+          if (gCache.ib) {
+            rp.setIndexBuffer(gCache.ib, gCache.format!);
+            rp.drawIndexed(gCache.indexCount, instMesh.instanceCount);
+          } else {
+            rp.draw(gCache.vertexCount, instMesh.instanceCount);
+          }
         }
       } else {
         if (topology === "line-list") {
-          if (gCache.wib) {
+          if (wireframeMode === "structural" && gCache.wib) {
             rp.setIndexBuffer(gCache.wib, gCache.format!);
             rp.drawIndexed(gCache.wireframeIndexCount);
           } else if (gCache.ib) {

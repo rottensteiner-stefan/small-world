@@ -1285,7 +1285,11 @@
 
     <footer class="app-footer">Copyright 2026 Stefan Rottensteiner // Small World</footer>
 
-    <script type="module" src="/src/tools/MaterialStudio.ts"></script>
+    <script type="module">
+      import { MaterialStudioApp } from "/src/tools/MaterialStudio.ts";
+      const previewApp = new MaterialStudioApp("SmallWorldPreview");
+      previewApp.start().catch((err) => console.error("Failed to start preview:", err));
+    </script>
     <script>
       // ----------------------------------------------------
       // Presets Configuration (Derived from pbr.profiles)
@@ -1474,7 +1478,7 @@
           createProceduralFallback();
         };
         // Load rock texture
-        originalImage.src = "/resources/showcases/10/rock.png";
+        originalImage.src = "/showcases/10/assets/rock.png";
       });
 
       function createProceduralFallback() {
