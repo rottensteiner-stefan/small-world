@@ -1,5 +1,3 @@
-/// src/enums/FogMode.ts
-
 /**
  * Defines the mathematical mode used for calculating fog density.
  */

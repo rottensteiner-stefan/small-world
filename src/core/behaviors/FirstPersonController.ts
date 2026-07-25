@@ -1,4 +1,3 @@
-/// src/core/behaviors/FirstPersonController.ts
 import { Behavior } from "./Behavior.js";
 import { CameraInterfaceData } from "../../interfaces/index.js";
 import { Object3D, InputInterface, Scene } from "../index.js";

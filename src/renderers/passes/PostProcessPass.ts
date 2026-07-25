@@ -1,4 +1,3 @@
-/// src/renderers/passes/PostProcessPass.ts
 import FULLSCREEN_VERT_WGSL from "../../core/materials/shaders/PostProcess.vert.wgsl?raw";
 import POST_PROCESS_FRAG_WGSL from "../../core/materials/shaders/PostProcess.frag.wgsl?raw";
 import { Scene } from "../../core/index.js";

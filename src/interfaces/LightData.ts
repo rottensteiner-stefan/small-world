@@ -1,4 +1,3 @@
-/// src/interfaces/LightData.ts
 import { Color } from "../core/colors/index.js";
 import { Vector3D } from "../math/index.js";
 import { PointLight, SpotLight, AreaLight } from "../core/lights/index.js";

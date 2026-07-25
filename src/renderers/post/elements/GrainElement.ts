@@ -1,4 +1,3 @@
-/// src/renderers/post/elements/GrainElement.ts
 import { PostProcessingElement } from "../PostProcessingElement.js";
 import { PostProcessingEffectType } from "../../../enums/index.js";
 

@@ -1,4 +1,3 @@
-/// src/core/SmallWorld.ts
 import { Camera } from "./Camera.js";
 import { Scene } from "./Scene.js";
 import { Input } from "./Input.js";
@@ -22,7 +21,7 @@ import { GadgetInspector } from "../tools/GadgetInspector.js";
 import { PhysicsSystem } from "../physix/PhysicsSystem.js";
 
 /** The current engine version. */
-export const ENGINE_VERSION = "0.69.8";
+export const ENGINE_VERSION = "0.69.9";
 
 /**
  * Base class for applications built with the SmallWorld engine.

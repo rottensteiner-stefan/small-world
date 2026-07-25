@@ -1,7 +1,5 @@
 import { Vector } from "../interfaces/index.js";
 
-/// src/math/Vector2D.ts
-
 /**
  * A class representing a 2D vector.
  * Data is stored as individual properties for fast access in JS engines.

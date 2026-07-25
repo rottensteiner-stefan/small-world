@@ -1,4 +1,3 @@
-/// src/core/textures/Texture.ts
 import { TextureFilter, TextureWrap } from "../../enums/index.js";
 import { AssetManager } from "../../loaders/AssetManager.js";
 /**

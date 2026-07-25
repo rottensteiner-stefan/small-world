@@ -1,4 +1,3 @@
-/// src/core/behaviors/StateMachineBehavior.ts
 import { Behavior } from "./Behavior.js";
 import { StateMachine } from "../fsm/index.js";
 

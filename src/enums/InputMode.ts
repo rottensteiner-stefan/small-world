@@ -1,5 +1,3 @@
-/// src/enums/InputMode.ts
-
 /**
  * Defines how the horizontal input keys (A/D) behave.
  */

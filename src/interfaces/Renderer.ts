@@ -1,4 +1,3 @@
-/// src/interfaces/Renderer.ts
 import { EngineOptions } from "./EngineOptions.js";
 import { Scene } from "../core/index.js";
 import { Color } from "../core/colors/index.js";

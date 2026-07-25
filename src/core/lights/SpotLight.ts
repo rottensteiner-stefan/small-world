@@ -1,4 +1,3 @@
-/// src/core/lights/SpotLight.ts
 import { AbstractLight, LightOptions } from "./AbstractLight.js";
 import { LightType } from "../../enums/index.js";
 import { LightDataInterface } from "../../interfaces/index.js";

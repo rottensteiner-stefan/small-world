@@ -1,4 +1,3 @@
-/// src/interfaces/CameraInterfaceData.ts
 import { CameraStrategy } from "./CameraStrategy.js";
 import { CameraConstraints } from "./CameraConstraints.js";
 import { CameraEffect } from "./CameraEffect.js";

@@ -1,4 +1,3 @@
-/// src/core/cameras/strategies/FPSStrategy.ts
 import {
   CameraConstraints,
   CameraStrategy,

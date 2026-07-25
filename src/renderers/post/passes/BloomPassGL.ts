@@ -1,5 +1,3 @@
-/// src/renderers/post/passes/BloomPassGL.ts
-
 import FULLSCREEN_VERT_GLSL from "../../../core/materials/shaders/PostProcess.vert.glsl?raw";
 
 import BLOOM_DOWNSAMPLE_FRAG_GLSL from "../../../core/materials/shaders/BloomDownsample.frag.glsl?raw";

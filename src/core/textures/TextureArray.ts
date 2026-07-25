@@ -1,4 +1,3 @@
-/// src/core/textures/TextureArray.ts
 import { Texture, TextureOptions } from "./Texture.js";
 import { AssetManager } from "../../loaders/AssetManager.js";
 

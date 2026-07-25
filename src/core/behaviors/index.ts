@@ -1,5 +1,3 @@
-/// src/core/behaviors/index.ts
-
 export * from "./Behavior.js";
 export * from "./HoverBehavior.js";
 export * from "./DraggableBehavior.js";

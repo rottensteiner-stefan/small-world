@@ -1,4 +1,3 @@
-/// tests/renderers/AbstractWebGLRenderer.test.ts
 import "../../src/index.js";
 import { describe, expect, it, vi } from "vitest";
 import { AbstractWebGLRenderer } from "../../src/renderers/AbstractWebGLRenderer.js";

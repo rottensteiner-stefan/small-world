@@ -1,4 +1,3 @@
-/// src/core/controllers/FPSController.ts
 import { Behavior } from "../behaviors/Behavior.js";
 import { CameraInterfaceData } from "../../interfaces/index.js";
 import { Object3D, InputInterface, Scene } from "../index.js";

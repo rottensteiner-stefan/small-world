@@ -1,4 +1,3 @@
-/// src/core/materials/SkyboxMaterial.ts
 import vertGLSL from "./shaders/Skybox.vert.glsl?raw";
 import fragGLSL from "./shaders/Skybox.frag.glsl?raw";
 import vertGLSL100 from "./shaders/Skybox.vert.glsl100?raw";

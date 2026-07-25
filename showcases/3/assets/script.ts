@@ -1,4 +1,3 @@
-/// src/showcases/showcase3.ts
 import {
   AmbientLight,
   CameraStrategyType,

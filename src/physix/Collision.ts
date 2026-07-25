@@ -1,4 +1,3 @@
-/// src/physix/Collision.ts
 import { BoundingBox } from "./BoundingBox.js";
 import { BoundingSphere } from "./BoundingSphere.js";
 import { OBB } from "./OBB.js";

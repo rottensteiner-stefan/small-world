@@ -1,4 +1,3 @@
-/// src/audio/AudioSystem.ts
 import { Vector3D } from "../math/index.js";
 import { CameraInterfaceData } from "../interfaces/index.js";
 

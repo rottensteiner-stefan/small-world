@@ -1,7 +1,5 @@
 import { AbstractGeometry } from "./AbstractGeometry.js";
 
-/// src/geometry/Grid.ts
-
 /**
  * Configuration options for grid geometry.
  */

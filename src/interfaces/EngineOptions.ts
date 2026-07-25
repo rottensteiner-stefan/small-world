@@ -1,4 +1,3 @@
-/// src/interfaces/EngineOptions.ts
 import { ProjectionType, RendererType, InputMode } from "../enums/index.js";
 import { AbstractProjection } from "../math/projections/index.js";
 /**

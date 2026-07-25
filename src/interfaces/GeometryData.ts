@@ -1,4 +1,3 @@
-/// src/interfaces/GeometryData.ts
 import { BoundingVolume } from "./BoundingVolume.js";
 import { Topology } from "../enums/index.js";
 

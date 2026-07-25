@@ -1,4 +1,3 @@
-/// src/geometry/Plane.ts
 import { AbstractGeometry } from "./AbstractGeometry.js";
 
 /**

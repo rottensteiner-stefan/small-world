@@ -1,4 +1,3 @@
-/// src/index.ts
 export * from "./core/index.js";
 export * from "./enums/index.js";
 export * from "./geometry/index.js";

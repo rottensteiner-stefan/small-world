@@ -1,4 +1,3 @@
-/// src/core/behaviors/PathFollowerBehavior.ts
 import { Behavior } from "./Behavior.js";
 import { Object3D } from "../index.js";
 import { Curve3D, Vector3D } from "../../math/index.js";

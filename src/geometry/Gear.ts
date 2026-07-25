@@ -1,4 +1,3 @@
-/// src/geometry/Gear.ts
 import { ExtrudeGeometry } from "./ExtrudeGeometry.js";
 import { Vector2D, MathUtils } from "../math/index.js";
 

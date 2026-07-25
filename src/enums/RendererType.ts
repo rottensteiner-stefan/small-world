@@ -1,5 +1,3 @@
-/// src/enums/RendererType.ts
-
 /**
  * Types of renderers supported by the engine.
  */

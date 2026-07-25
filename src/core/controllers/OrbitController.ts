@@ -1,4 +1,3 @@
-/// src/core/controllers/OrbitController.ts
 import { Behavior } from "../behaviors/index.js";
 import { CameraInterfaceData } from "../../interfaces/index.js";
 import { InputInterface } from "../index.js";

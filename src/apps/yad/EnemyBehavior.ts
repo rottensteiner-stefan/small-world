@@ -1,4 +1,3 @@
-/// src/apps/yad/EnemyBehavior.ts
 import { Behavior } from "../../core/behaviors/index.js";
 import { Object3D, Scene } from "../../core/index.js";
 import { CameraInterfaceData, Collidable } from "../../interfaces/index.js";

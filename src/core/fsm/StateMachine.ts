@@ -1,5 +1,3 @@
-/// src/core/fsm/StateMachine.ts
-
 export interface StateConfig<TState extends string, TContext, TEvent extends string = string> {
   onEnter?: (context: TContext, previousState: TState | null) => void;
   onUpdate?: (context: TContext, deltaTime: number, stateDuration: number) => void;

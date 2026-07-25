@@ -1,7 +1,5 @@
 import { Noise } from "./Noise.js";
 
-/// src/utils/HeightmapGenerator.ts
-
 /**
  * Utility class for heightmap generation using various algorithms.
  */

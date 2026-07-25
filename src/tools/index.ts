@@ -1,4 +1,3 @@
-/// src/tools/index.ts
 export * from "./GadgetInspector.js";
 
 export * from "./IBLShaders.js";

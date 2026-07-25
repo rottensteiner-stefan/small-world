@@ -1,7 +1,5 @@
 import { Vector3D } from "../../math/index.js";
 
-/// src/core/colors/Color.ts
-
 export class Color {
   /**
    * Creates a new Color.

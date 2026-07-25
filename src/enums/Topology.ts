@@ -1,5 +1,3 @@
-/// src/enums/Topology.ts
-
 /**
  * Primitive topologies for rendering.
  */

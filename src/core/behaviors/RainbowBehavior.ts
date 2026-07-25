@@ -1,4 +1,3 @@
-/// src/core/behaviors/RainbowBehavior.ts
 import { Behavior } from "./Behavior.js";
 import { Object3D } from "../index.js";
 import { StandardMaterial } from "../materials/index.js";

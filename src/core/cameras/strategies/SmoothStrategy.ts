@@ -1,4 +1,3 @@
-/// src/core/cameras/strategies/SmoothStrategy.ts
 import {
   CameraInterfaceData,
   CameraConstraints,

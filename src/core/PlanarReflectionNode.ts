@@ -1,4 +1,3 @@
-/// src/core/PlanarReflectionNode.ts
 import { Object3D } from "./Object3D.js";
 import { Camera } from "./Camera.js";
 import { Scene } from "./Scene.js";

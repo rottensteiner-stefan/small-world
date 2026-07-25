@@ -1,7 +1,5 @@
 import { Vector3D } from "../math/index.js";
 
-/// src/interfaces/CameraEffect.ts
-
 /**
  * Interface for camera effects that can be applied to a camera.
  * Effects modify the position and target of the camera over time.

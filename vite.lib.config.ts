@@ -1,5 +1,3 @@
-/// vite.lib.config.ts
-
 import { defineConfig } from "vitest/config";
 import dts from "vite-plugin-dts";
 

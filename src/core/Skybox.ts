@@ -1,4 +1,3 @@
-/// src/core/Skybox.ts
 import { Object3D } from "./Object3D.js";
 import { Cube } from "../geometry/index.js";
 import { CubeTexture } from "./textures/index.js";

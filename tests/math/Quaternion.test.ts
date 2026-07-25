@@ -1,5 +1,3 @@
-/// tests/math/Quaternion.test.ts
-
 import { describe, expect, it } from "vitest";
 import { Quaternion, Vector3D } from "../../src/index.js";
 

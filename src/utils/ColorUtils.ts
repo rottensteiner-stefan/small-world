@@ -1,7 +1,5 @@
 import { Color } from "../core/colors/index.js";
 
-/// src/utils/ColorUtils.ts
-
 /**
  * Utility class for color conversions and manipulations.
  */

@@ -1,4 +1,3 @@
-/// src/core/cameras/strategies/StiffStrategy.ts
 import {
   CameraInterfaceData,
   CameraConstraints,

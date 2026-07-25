@@ -1,4 +1,3 @@
-/// src/physix/StaticCollider.ts
 import { Collidable, BoundingVolume } from "../interfaces/index.js";
 
 /**

@@ -1,4 +1,3 @@
-/// src/core/cameras/CameraStrategyFactory.ts
 import { CameraStrategyType } from "../../enums/index.js";
 import {
   FixedStrategy,

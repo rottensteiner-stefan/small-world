@@ -1,4 +1,3 @@
-/// src/core/FrustumCuller.ts
 import { Object3D } from "./Object3D.js";
 import { Scene } from "./Scene.js";
 import { OctreeNode } from "./Octree.js";

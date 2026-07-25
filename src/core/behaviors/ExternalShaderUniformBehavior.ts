@@ -1,4 +1,3 @@
-/// src/core/behaviors/ExternalShaderUniformBehavior.ts
 import { Behavior } from "./Behavior.js";
 import { Object3D, CustomShaderMaterial } from "../index.js";
 

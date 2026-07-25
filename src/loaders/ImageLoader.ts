@@ -1,4 +1,3 @@
-/// src/loaders/ImageLoader.ts
 import { AbstractLoader } from "./AbstractLoader.js";
 import { AssetManager } from "./AssetManager.js";
 import { EventType } from "../enums/index.js";

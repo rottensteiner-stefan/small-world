@@ -1,5 +1,3 @@
-/// src/enums/TextureFilter.ts
-
 /**
  * Texture filtering modes.
  */

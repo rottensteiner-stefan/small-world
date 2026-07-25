@@ -1,4 +1,3 @@
-/// src/tools/GadgetInspector.ts
 import { Pane, FolderApi, TabPageApi } from "tweakpane";
 import * as CamerakitPlugin from "@kitschpatrol/tweakpane-plugin-camerakit";
 import {

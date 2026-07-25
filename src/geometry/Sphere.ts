@@ -1,4 +1,3 @@
-/// src/geometry/Sphere.ts
 import { AbstractGeometry } from "./AbstractGeometry.js";
 import { MathUtils, Vector3D } from "../math/index.js";
 import { BoundingSphere } from "../physix/BoundingSphere.js";

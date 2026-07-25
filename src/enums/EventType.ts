@@ -1,5 +1,3 @@
-/// src/enums/EventType.ts
-
 /**
  * Types of events dispatched by the engine.
  */

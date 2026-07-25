@@ -1,4 +1,3 @@
-/// src/apps/yad/YadLevelBuilder.ts
 import { Object3D, Scene, Sprite, InstancedMesh } from "../../core/index.js";
 import { Vector3D, Matrix4 } from "../../math/index.js";
 import { Cube, Sphere } from "../../geometry/index.js";

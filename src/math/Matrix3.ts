@@ -1,5 +1,3 @@
-/// src/math/Matrix3.ts
-
 /**
  * A class representing a 3x3 matrix.
  * Used for 2D transformations or normal matrices.

@@ -1,5 +1,3 @@
-/// src/showcases/objects/ErlenmeyerFlask.ts
-
 import { Object3D } from "../../../../src/core/index.js";
 import { Cylinder } from "../../../../src/geometry/index.js";
 import { AbstractMaterial } from "../../../../src/core/materials/AbstractMaterial.js";

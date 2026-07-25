@@ -1,5 +1,3 @@
-/// src/geometry/index.ts
-
 export * from "./AbstractGeometry.js";
 export * from "./Capsule.js";
 export * from "./Circle.js";

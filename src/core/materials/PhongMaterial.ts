@@ -1,4 +1,3 @@
-/// src/core/materials/PhongMaterial.ts
 import fragGLSL from "./shaders/Phong.frag.glsl?raw";
 import fragGLSL100 from "./shaders/Phong.frag.glsl100?raw";
 import fragWGSL from "./shaders/Phong.frag.wgsl?raw";

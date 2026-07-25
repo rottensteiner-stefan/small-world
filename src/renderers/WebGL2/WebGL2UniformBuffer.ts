@@ -1,7 +1,5 @@
 import { Vector3D } from "../../math/index.js";
 
-/// src/renderers/WebGL2/WebGL2UniformBuffer.ts
-
 /**
  * Wrapper for a WebGL2 Uniform Buffer Object (UBO).
  */

@@ -1,4 +1,3 @@
-/// src/physix/Ray.ts
 import { BoundingBox } from "./BoundingBox.js";
 import { Vector3D } from "../math/index.js";
 

@@ -1,5 +1,3 @@
-/// src/core/index.ts
-
 export { Object3D } from "./Object3D.js";
 export { SmallWorld } from "./SmallWorld.js";
 export { Camera } from "./Camera.js";

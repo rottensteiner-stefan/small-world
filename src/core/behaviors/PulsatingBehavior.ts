@@ -1,4 +1,3 @@
-/// src/core/behaviors/PulsatingBehavior.ts
 import { Behavior } from "./Behavior.js";
 import { Object3D } from "../index.js";
 

@@ -1,5 +1,3 @@
-/// src/enums/CameraEffectType.ts
-
 /**
  * Types of camera effects.
  */

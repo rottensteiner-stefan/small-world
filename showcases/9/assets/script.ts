@@ -1,5 +1,3 @@
-/// src/showcases/showcase9.ts
-
 import {
   AmbientLight,
   BoundingBox,

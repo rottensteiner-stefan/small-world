@@ -1,4 +1,3 @@
-/// src/core/materials/DepthMaterial.ts
 import fragGLSL from "./shaders/Depth.frag.glsl?raw";
 import fragGLSL100 from "./shaders/Depth.frag.glsl100?raw";
 import fragWGSL from "./shaders/Depth.frag.wgsl?raw";

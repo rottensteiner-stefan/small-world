@@ -1,4 +1,3 @@
-/// src/core/controllers/DeviceOrientationController.ts
 import { Behavior } from "../behaviors/index.js";
 import { Object3D } from "../index.js";
 import { CameraInterfaceData } from "../../interfaces/index.js";

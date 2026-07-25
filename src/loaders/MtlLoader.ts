@@ -1,4 +1,3 @@
-/// src/loaders/MtlLoader.ts
 import { AbstractLoader } from "./AbstractLoader.js";
 import { AssetManager } from "./AssetManager.js";
 import { EventType, TextureFilter } from "../enums/index.js";

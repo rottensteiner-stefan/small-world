@@ -1,4 +1,3 @@
-/// src/core/materials/StandardMaterial.ts
 import fragGLSL from "./shaders/Standard.frag.glsl?raw";
 import fragGLSL100 from "./shaders/Standard.frag.glsl100?raw";
 import fragWGSL from "./shaders/Standard.frag.wgsl?raw";

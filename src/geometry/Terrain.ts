@@ -1,6 +1,5 @@
 import { AbstractGeometry } from "./AbstractGeometry.js";
 
-/// src/geometry/Terrain.ts
 /**
  * Strategy function type for extracting height from color data.
  */

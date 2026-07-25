@@ -1,4 +1,3 @@
-/// src/core/behaviors/TrailRendererBehavior.ts
 import { Behavior } from "./Behavior.js";
 import { Object3D, Scene, AbstractMaterial } from "../index.js";
 import { GeometryDataInterface } from "../../interfaces/index.js";

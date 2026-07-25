@@ -1,7 +1,5 @@
 import { Vector3D } from "../math/index.js";
 
-/// src/interfaces/CameraConstraints.ts
-
 /**
  * Interface defining spatial constraints for the camera position or target.
  */

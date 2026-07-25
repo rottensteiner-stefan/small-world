@@ -1,6 +1,5 @@
 import { EventType } from "../enums/index.js";
 
-/// src/interfaces/Events.ts
 /** Type for event handler functions. */
 export type EventHandler = (event: Record<string, unknown>) => void;
 

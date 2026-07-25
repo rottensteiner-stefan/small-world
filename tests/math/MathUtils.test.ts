@@ -1,5 +1,3 @@
-/// tests/math/MathUtils.test.ts
-
 import { describe, it, expect, beforeAll } from "vitest";
 import { MathUtils } from "../../src/index.js";
 

@@ -1,5 +1,3 @@
-/// tests/core/Object3D.test.ts
-
 import { Object3D, Vector3D } from "../../src/index.js";
 import { describe, it, expect } from "vitest";
 

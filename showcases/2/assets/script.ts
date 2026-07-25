@@ -1,5 +1,3 @@
-/// src/showcases/showcase2.ts
-
 import {
   CameraStrategyType,
   Color,

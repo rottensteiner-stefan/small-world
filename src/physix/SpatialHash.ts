@@ -1,4 +1,3 @@
-/// src/physix/SpatialHash.ts
 import { Collidable, BoundingVolume } from "../interfaces/index.js";
 
 /**

@@ -1,4 +1,3 @@
-/// src/core/lights/AbstractLight.ts
 import { Color } from "../colors/index.js";
 import { LightType } from "../../enums/index.js";
 import { Object3D } from "../Object3D.js";

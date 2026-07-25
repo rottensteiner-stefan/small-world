@@ -1,4 +1,3 @@
-/// src/core/renderers/shaders/index.ts
 export * from "./CoreShaderChunks.js";
 export * from "./RenderManifest.js";
 export * from "./ShaderBootstrap.js";

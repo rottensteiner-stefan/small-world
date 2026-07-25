@@ -1,4 +1,3 @@
-/// src/apps/yad/YadApp.ts
 import { YadLevelBuilder } from "./YadLevelBuilder.js";
 import { YadController } from "./YadController.js";
 import { YadHud } from "./YadHud.js";

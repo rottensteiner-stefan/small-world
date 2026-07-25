@@ -1,4 +1,3 @@
-/// src/loaders/GltfLoader.ts
 import { AssetManager } from "./AssetManager.js";
 import { AbstractLoader } from "./AbstractLoader.js";
 import { EventType, CullMode } from "../enums/index.js";

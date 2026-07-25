@@ -1,4 +1,3 @@
-/// src/renderers/post/elements/QuantizeElement.ts
 import { PostProcessingElement } from "../PostProcessingElement.js";
 import { PostProcessingEffectType } from "../../../enums/index.js";
 

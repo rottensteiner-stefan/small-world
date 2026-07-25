@@ -1,5 +1,3 @@
-/// src/interfaces/Vector.ts
-
 /**
  * Interface representing a mathematical vector with basic operations.
  * Designed to be implemented by Vector2D and Vector3D.

@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.69.9] - 2026-07-25
+
+### "To attain knowledge, add things everyday. To attain wisdom, subtract things everyday." - Lao Tzu
+
+- **Housekeeping & Docs:**
+  - **Comment Purge:** Executed a massive codebase sweep removing over 300 redundant `/// src/path/to/file.ts` header comments from all TypeScript files to reduce visual noise and improve maintainability.
 ## [0.69.8] - 2026-07-25
 
 ### "A user interface is like a joke. If you have to explain it, it's not that good." - Martin LeBlanc

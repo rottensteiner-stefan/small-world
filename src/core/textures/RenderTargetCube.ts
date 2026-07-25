@@ -1,4 +1,3 @@
-/// src/core/textures/RenderTargetCube.ts
 import { CubeTexture } from "./CubeTexture.js";
 import { RenderTargetOptions } from "./RenderTarget.js";
 

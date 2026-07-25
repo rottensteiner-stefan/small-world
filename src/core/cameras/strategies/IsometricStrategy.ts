@@ -1,4 +1,3 @@
-/// src/core/cameras/strategies/IsometricStrategy.ts
 import {
   CameraConstraints,
   CameraStrategy,

@@ -1,5 +1,3 @@
-/// src/enums/BlendingMode.ts
-
 /**
  * Texture blending modes.
  */

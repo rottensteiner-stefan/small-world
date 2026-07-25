@@ -1,4 +1,3 @@
-/// src/physix/Raycaster.ts
 import { BoundingBox } from "./BoundingBox.js";
 import { Ray } from "./Ray.js";
 import { Vector2D, Vector3D, MathPool, Matrix4 } from "../math/index.js";

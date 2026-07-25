@@ -1,7 +1,5 @@
 import { WebGL2FrameBufferOptions } from "./WebGL2FrameBuffer.js";
 
-/// src/renderers/WebGL2/WebGL2CubeFrameBuffer.ts
-
 /**
  * Encapsulates a WebGL2 Framebuffer with a cube map color texture and depth/stencil renderbuffer.
  */

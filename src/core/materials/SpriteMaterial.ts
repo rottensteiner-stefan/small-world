@@ -1,4 +1,3 @@
-/// src/core/materials/SpriteMaterial.ts
 import fragGLSL from "./shaders/Sprite.frag.glsl?raw";
 import fragGLSL100 from "./shaders/Sprite.frag.glsl100?raw";
 import fragWGSL from "./shaders/Sprite.frag.wgsl?raw";

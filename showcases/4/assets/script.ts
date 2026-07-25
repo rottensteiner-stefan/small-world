@@ -1,5 +1,3 @@
-/// src/showcases/showcase4.ts
-
 import {
   AmbientLight,
   BoundingBox,

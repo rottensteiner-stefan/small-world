@@ -1,4 +1,3 @@
-/// src/renderers/post/PostProcessingGroup.ts
 import { PostProcessingElement } from "./PostProcessingElement.js";
 import {
   ToneMappingElement,

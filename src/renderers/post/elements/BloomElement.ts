@@ -1,4 +1,3 @@
-/// src/renderers/post/elements/BloomElement.ts
 import { PostProcessingElement } from "../PostProcessingElement.js";
 import { PostProcessingEffectType } from "../../../enums/index.js";
 import { Color } from "../../../core/colors/index.js";

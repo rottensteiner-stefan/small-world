@@ -1,5 +1,3 @@
-/// src/interfaces/LoaderOptions.ts
-
 /**
  * Common configuration options for all resource loaders.
  */

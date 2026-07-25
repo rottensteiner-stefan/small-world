@@ -1,4 +1,3 @@
-/// src/loaders/ObjLoader.ts
 import { AssetManager } from "./AssetManager.js";
 import { AbstractLoader } from "./AbstractLoader.js";
 import { MtlLoader } from "./MtlLoader.js";

@@ -1,7 +1,5 @@
 import { CoreShaderChunks } from "./CoreShaderChunks.js";
 
-/// src/core/renderers/shaders/ShaderBootstrap.ts
-
 /**
  * Modern Bootstrapper for the ShaderRegistry.
  * Handles global chunk initialization. Core materials register themselves automatically.

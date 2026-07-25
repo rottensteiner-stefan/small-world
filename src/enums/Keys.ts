@@ -1,5 +1,3 @@
-/// src/enums/Keys.ts
-
 /**
  * Key codes for user input.
  */

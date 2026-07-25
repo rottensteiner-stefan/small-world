@@ -1,4 +1,3 @@
-/// src/core/cameras/effects/FlashEffect.ts
 import { AbstractCameraEffect } from "./AbstractCameraEffect.js";
 import { CameraEffectType } from "../../../enums/index.js";
 

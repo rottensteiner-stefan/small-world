@@ -1,4 +1,3 @@
-/// src/core/materials/index.ts
 export { AbstractMaterial } from "./AbstractMaterial.js";
 export * from "./BasicMaterial.js";
 export * from "./LambertMaterial.js";

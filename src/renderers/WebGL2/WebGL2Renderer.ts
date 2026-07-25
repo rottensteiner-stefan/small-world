@@ -1,4 +1,3 @@
-/// src/renderers/WebGL2/WebGL2Renderer.ts
 import { WebGL2UniformBuffer } from "./WebGL2UniformBuffer.js";
 import { WebGL2DepthFrameBuffer } from "./WebGL2DepthFrameBuffer.js";
 import { WebGL2FrameBuffer } from "./WebGL2FrameBuffer.js";

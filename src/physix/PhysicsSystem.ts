@@ -1,4 +1,3 @@
-/// src/physix/PhysicsSystem.ts
 import { Object3D } from "../core/Object3D.js";
 import { Scene } from "../core/Scene.js";
 import { Octree } from "../core/Octree.js";

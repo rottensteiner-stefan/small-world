@@ -1,5 +1,3 @@
-/// tests/math/PerspectiveProjection.test.ts
-
 import { describe, expect, it } from "vitest";
 import { PerspectiveProjection } from "../../src/index.js";
 

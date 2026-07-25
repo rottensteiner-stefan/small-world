@@ -1,5 +1,3 @@
-/// tests/core/DepthMaterial.test.ts
-
 import { DepthMaterial } from "../../src/core/materials/DepthMaterial.js";
 import { MaterialType } from "../../src/enums/index.js";
 import { Texture } from "../../src/core/textures/Texture.js";

@@ -1,4 +1,3 @@
-/// showcases/22/MarbleController.ts
 import { Behavior, Keys, Vector3D, CameraInterfaceData, InputInterface } from "../../src/index.js";
 
 /**

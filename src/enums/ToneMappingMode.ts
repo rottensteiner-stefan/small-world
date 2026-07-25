@@ -1,5 +1,3 @@
-/// src/enums/ToneMappingMode.ts
-
 /**
  * Supported tone mapping algorithms.
  */

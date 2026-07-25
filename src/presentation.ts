@@ -1,4 +1,3 @@
-/// src/presentation.ts
 import { AmbientLight, DirectionalLight } from "./core/lights/index.js";
 import {
   CameraStrategyType,
@@ -16,7 +15,6 @@ import { Cube } from "./geometry/index.js";
 import { SkyboxMaterial } from "./core/materials/index.js";
 import { GltfLoader } from "./loaders/index.js";
 import { BloomElement } from "./renderers/post/elements/index.js";
-/// src/presentation.ts
 // ============================================================================
 // 2. Interactive 3D App for Slide 5
 // ============================================================================

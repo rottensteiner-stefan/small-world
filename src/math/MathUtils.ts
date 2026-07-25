@@ -1,5 +1,3 @@
-/// src/math/MathUtils.ts
-
 /**
  * Utility class for mathematical operations and constants.
  */

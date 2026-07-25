@@ -1,5 +1,3 @@
-/// src/enums/CullMode.ts
-
 /**
  * Culling modes for rendering.
  */

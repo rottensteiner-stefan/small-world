@@ -1,4 +1,3 @@
-/// src/math/projections/ObliqueProjection.ts
 import { AbstractProjection } from "./AbstractProjection.js";
 import { Matrix4 } from "../index.js";
 import { ProjectionType } from "../../enums/index.js";

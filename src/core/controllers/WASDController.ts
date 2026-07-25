@@ -1,4 +1,3 @@
-/// src/core/controllers/WASDController.ts
 import { Behavior } from "../behaviors/index.js";
 import { Object3D, InputInterface } from "../index.js";
 import { AudioSystem } from "../../audio/AudioSystem.js";

@@ -1,4 +1,3 @@
-/// src/physix/BoundingSphere.ts
 import { Collision } from "./Collision.js";
 import { BoundingBox } from "./BoundingBox.js";
 import { BoundingVolume, FrustumInterface } from "../interfaces/index.js";

@@ -1,4 +1,3 @@
-/// tests/physix/OBB.test.ts
 import { describe, expect, it } from "vitest";
 import { OBB } from "../../src/physix/OBB.js";
 import { Frustum } from "../../src/math/Frustum.js";

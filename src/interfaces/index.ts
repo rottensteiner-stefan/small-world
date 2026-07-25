@@ -1,5 +1,3 @@
-/// src/interfaces/index.ts
-
 export * from "./BoundingVolume.js";
 export * from "./CameraConstraints.js";
 export * from "./CameraEffect.js";

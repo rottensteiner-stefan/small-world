@@ -1,4 +1,3 @@
-/// src/geometry/TerrainManager.ts
 import { Terrain } from "./Terrain.js";
 import { Object3D, Scene } from "../core/index.js";
 import { TerrainMaterial } from "../core/materials/index.js";

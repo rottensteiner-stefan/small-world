@@ -1,4 +1,3 @@
-/// src/core/materials/CustomShaderMaterial.ts
 import { AbstractMaterial } from "./AbstractMaterial.js";
 import { CullMode, BlendingMode, ShaderPropertyType } from "../../enums/index.js";
 import { MathUtils } from "../../math/index.js";

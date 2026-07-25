@@ -1,4 +1,3 @@
-/// src/renderers/WebGL1/WebGL1Renderer.ts
 import { AbstractWebGLRenderer } from "../AbstractWebGLRenderer.js";
 import { WebGLMainPass } from "../passes/WebGLMainPass.js";
 import { WebGLPostProcessPass } from "../passes/WebGLPostProcessPass.js";

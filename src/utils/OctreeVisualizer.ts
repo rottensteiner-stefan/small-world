@@ -1,4 +1,3 @@
-/// src/utils/OctreeVisualizer.ts
 import { Color } from "../core/colors/index.js";
 import { Object3D, Scene, OctreeNode } from "../core/index.js";
 import { WireframeMaterial } from "../core/materials/index.js";

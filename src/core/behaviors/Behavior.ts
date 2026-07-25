@@ -1,4 +1,3 @@
-/// src/core/behaviors/Behavior.ts
 import { Object3D } from "../index.js";
 import { CameraInterfaceData } from "../../interfaces/index.js";
 import { MathUtils } from "../../math/index.js";

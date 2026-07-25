@@ -1,4 +1,3 @@
-/// src/core/cameras/strategies/index.ts
 export * from "./FPSStrategy.js";
 export * from "./FixedStrategy.js";
 export * from "./HybridSyncStrategy.js";

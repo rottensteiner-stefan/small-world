@@ -1,4 +1,3 @@
-/// src/math/Vector3D.ts
 import { Matrix4 } from "./Matrix4.js";
 import { Vector } from "../interfaces/index.js";
 

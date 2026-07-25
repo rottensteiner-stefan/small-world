@@ -1,4 +1,3 @@
-/// src/core/Camera.ts
 import { AbstractProjection } from "../math/projections/index.js";
 import { MathPool, Matrix4, Vector3D } from "../math/index.js";
 import { CameraEffectFactory, CameraStrategyFactory } from "./cameras/index.js";

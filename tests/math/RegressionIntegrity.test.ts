@@ -1,5 +1,3 @@
-/// tests/math/RegressionIntegrity.test.ts
-
 import { describe, expect, it } from "vitest";
 import { Matrix4, Vector3D, Cube } from "../../src/index.js";
 

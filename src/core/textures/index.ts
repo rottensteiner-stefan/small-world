@@ -1,4 +1,3 @@
-/// src/core/textures/index.ts
 export { CubeTexture } from "./CubeTexture.js";
 export { Texture } from "./Texture.js";
 export * from "./TextureArray.js";

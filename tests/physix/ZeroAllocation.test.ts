@@ -1,4 +1,3 @@
-/// tests/physix/ZeroAllocation.test.ts
 import { describe, expect, it } from "vitest";
 import { PhysicsSystem } from "../../src/physix/PhysicsSystem.js";
 import { Scene } from "../../src/core/Scene.js";

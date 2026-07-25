@@ -1,4 +1,3 @@
-/// src/math/CatmullRomSpline.ts
 import { Curve3D } from "./Curve3D.js";
 import { Vector3D } from "./Vector3D.js";
 

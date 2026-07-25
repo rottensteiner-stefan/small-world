@@ -1,5 +1,3 @@
-/// tests/core/fsm/StateMachine.test.ts
-
 import { StateMachine } from "../../../src/core/fsm/StateMachine.js";
 import { StateMachineBehavior } from "../../../src/core/behaviors/StateMachineBehavior.js";
 import { Object3D } from "../../../src/core/Object3D.js";

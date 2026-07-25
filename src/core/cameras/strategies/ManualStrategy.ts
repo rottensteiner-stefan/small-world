@@ -1,4 +1,3 @@
-/// src/core/cameras/strategies/ManualStrategy.ts
 import {
   CameraInterfaceData,
   CameraConstraints,

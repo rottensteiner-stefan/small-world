@@ -1,4 +1,3 @@
-/// src/core/behaviors/EmissivePulseBehavior.ts
 import { Behavior } from "./Behavior.js";
 import { Object3D, StandardMaterial, CustomShaderMaterial } from "../index.js";
 import { Color } from "../colors/index.js";

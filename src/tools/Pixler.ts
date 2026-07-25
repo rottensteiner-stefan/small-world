@@ -1,4 +1,3 @@
-/// src/tools/Pixler.ts
 import { ForgeTool, ForgeToolOptions } from "./forge/ForgeTool.js";
 import { ToolEvents } from "../enums/ToolEvents.js";
 import { EventDispatcherImpl } from "../core/index.js";

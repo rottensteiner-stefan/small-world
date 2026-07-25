@@ -1,5 +1,3 @@
-/// src/enums/CubeLayout.ts
-
 /**
  * Layouts for cube map textures.
  */

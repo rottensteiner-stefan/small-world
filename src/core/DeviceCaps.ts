@@ -1,5 +1,3 @@
-/// src/core/DeviceCaps.ts
-
 export enum PerformanceTier {
   LOW = "LOW",
   MEDIUM = "MEDIUM",

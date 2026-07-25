@@ -1,4 +1,3 @@
-/// src/core/materials/RetroScreenMaterial.ts
 import fragGLSL from "./shaders/RetroScreen.frag.glsl?raw";
 import fragGLSL100 from "./shaders/RetroScreen.frag.glsl100?raw";
 import fragWGSL from "./shaders/RetroScreen.frag.wgsl?raw";

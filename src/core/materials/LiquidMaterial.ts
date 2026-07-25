@@ -1,4 +1,3 @@
-/// src/core/materials/LiquidMaterial.ts
 import vertGLSL from "./shaders/Liquid.vert.glsl?raw";
 import fragGLSL from "./shaders/Liquid.frag.glsl?raw";
 import vertGLSL100 from "./shaders/Liquid.vert.glsl100?raw";

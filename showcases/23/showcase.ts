@@ -1,4 +1,3 @@
-/// showcases/22/showcase.ts
 import {
   AbstractShowcase,
   PointLight,

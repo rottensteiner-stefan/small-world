@@ -1,5 +1,3 @@
-/// src/core/FPSCounter.ts
-
 /**
  * Simple FPS counter that displays the current frames per second on the screen.
  */

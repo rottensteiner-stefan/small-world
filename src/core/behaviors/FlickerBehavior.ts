@@ -1,4 +1,3 @@
-/// src/core/behaviors/FlickerBehavior.ts
 import { Behavior, InspectorField } from "./Behavior.js";
 import { Object3D } from "../index.js";
 import { Noise } from "../../utils/index.js";

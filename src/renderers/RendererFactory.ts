@@ -1,4 +1,3 @@
-/// src/renderers/RendererFactory.ts
 import { Renderer, EngineOptions } from "../interfaces/index.js";
 import { RendererType } from "../enums/index.js";
 import { WebGL1Renderer } from "./WebGL1/index.js";

@@ -1,5 +1,3 @@
-/// tests/core/Plane.test.ts
-
 import { describe, it, expect } from "vitest";
 import { Ground, Cube } from "../../src/index.js";
 

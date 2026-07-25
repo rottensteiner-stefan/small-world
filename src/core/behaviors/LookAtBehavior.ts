@@ -1,4 +1,3 @@
-/// src/core/behaviors/LookAtBehavior.ts
 import { Behavior } from "./Behavior.js";
 import { Object3D } from "../index.js";
 import { Vector3D } from "../../math/index.js";

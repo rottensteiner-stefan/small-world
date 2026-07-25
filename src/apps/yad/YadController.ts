@@ -1,4 +1,3 @@
-/// src/apps/yad/YadController.ts
 import {
   FirstPersonController,
   FirstPersonControllerOptions,

@@ -1,4 +1,3 @@
-/// src/core/Sprite.ts
 import { Object3D } from "./Object3D.js";
 import { SpriteMaterial } from "./materials/index.js";
 import { Plane } from "../geometry/index.js";

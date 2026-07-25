@@ -1,5 +1,3 @@
-/// src/tools/IBLShaders.ts
-
 export const IBLShaders = {
   // Shared Vertex Shader for rendering a fullscreen quad (we pass the face direction from CPU or use UVs)
   // Instead of a simple fullscreen quad, we render a Cube for each face, so we get local 3D positions.

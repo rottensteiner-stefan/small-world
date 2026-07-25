@@ -1,4 +1,3 @@
-/// src/core/renderers/shaders/CoreShaderChunks.ts
 import FOG_DEFS from "../../materials/shaders/chunks/fog_defs.glsl?raw";
 import FOG_CALC from "../../materials/shaders/chunks/fog_calc.glsl?raw";
 import FILTER_GLITCH_DISTORT_GLSL from "../../materials/shaders/chunks/filter_glitch_distort.glsl?raw";

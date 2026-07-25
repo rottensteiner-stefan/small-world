@@ -1,4 +1,3 @@
-/// src/physix/OBB.ts
 import { Vector3D, Matrix4 } from "../math/index.js";
 import { BoundingVolume, FrustumInterface } from "../interfaces/index.js";
 import { BoundingType } from "../enums/index.js";

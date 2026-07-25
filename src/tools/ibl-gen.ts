@@ -1,4 +1,3 @@
-/// src/tools/ibl-gen.ts
 import { Matrix4, Vector3D, PerspectiveProjection } from "../math/index.js";
 import { IBLShaders } from "./IBLShaders.js";
 

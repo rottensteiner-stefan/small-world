@@ -1,4 +1,3 @@
-/// src/core/materials/importers/ShadertoyImporter.ts
 import { ShaderImporter } from "./ShaderImporter.js";
 import { CustomShaderMaterialOptions } from "../CustomShaderMaterial.js";
 import { ShaderPropertyType } from "../../../enums/index.js";

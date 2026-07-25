@@ -1,5 +1,3 @@
-/// src/enums/LightType.ts
-
 /**
  * Types of lights in the scene.
  */

@@ -1,4 +1,3 @@
-/// src/core/lights/index.ts
 export { AbstractLight } from "./AbstractLight.js";
 export * from "./AmbientLight.js";
 export * from "./AreaLight.js";

@@ -1,4 +1,3 @@
-/// src/apps/yad/index.ts
 export * from "./EnemyBehavior.js";
 export * from "./YadApp.js";
 export * from "./YadController.js";

@@ -1,4 +1,3 @@
-/// src/core/Fog.ts
 import { Color } from "./colors/index.js";
 import { FogMode } from "../enums/index.js";
 

@@ -1,5 +1,3 @@
-/// src/enums/OscillatorType.ts
-
 /**
  * Defines the mathematical function used by an oscillator.
  */

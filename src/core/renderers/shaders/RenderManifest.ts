@@ -1,4 +1,3 @@
-/// src/core/renderers/shaders/RenderManifest.ts
 import { Texture, CubeTexture } from "../../textures/index.js";
 import { BlendingMode, CullMode, Topology } from "../../../enums/index.js";
 /**

@@ -1,5 +1,3 @@
-/// src/showcases/showcase10.ts
-
 import {
   AmbientLight,
   BasicMaterial,

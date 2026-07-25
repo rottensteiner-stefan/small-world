@@ -1,5 +1,3 @@
-/// src/showcases/showcase17.ts
-
 import {
   AbstractShowcase,
   Color,

@@ -1,5 +1,3 @@
-/// tests/core/Input.test.ts
-
 import { Input } from "../../src/core/Input.js";
 import { Keys } from "../../src/enums/Keys.js";
 

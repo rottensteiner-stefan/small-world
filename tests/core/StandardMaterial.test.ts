@@ -1,5 +1,3 @@
-/// tests/core/StandardMaterial.test.ts
-
 import {
   StandardMaterial,
   StandardMaterialOptions,

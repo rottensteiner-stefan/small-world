@@ -1,4 +1,3 @@
-/// src/renderers/post/passes/PostProcessPassGL.ts
 import FULLSCREEN_VERT_GLSL from "../../../core/materials/shaders/PostProcess.vert.glsl?raw";
 import POST_PROCESS_FRAG_GLSL from "../../../core/materials/shaders/PostProcess.frag.glsl?raw";
 

@@ -1,4 +1,3 @@
-/// src/core/materials/LambertMaterial.ts
 import fragGLSL from "./shaders/Lambert.frag.glsl?raw";
 import fragGLSL100 from "./shaders/Lambert.frag.glsl100?raw";
 import fragWGSL from "./shaders/Lambert.frag.wgsl?raw";

@@ -1,5 +1,3 @@
-/// src/enums/MaterialType.ts
-
 /**
  * Types of materials.
  */

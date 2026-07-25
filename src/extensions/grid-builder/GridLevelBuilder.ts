@@ -1,4 +1,3 @@
-/// src/extensions/grid-builder/GridLevelBuilder.ts
 import { Object3D, Scene, Sprite } from "../../core/index.js";
 import { Vector3D } from "../../math/index.js";
 import { Cube, Ground } from "../../geometry/index.js";

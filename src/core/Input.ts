@@ -1,4 +1,3 @@
-/// src/core/Input.ts
 import { UniversalGamepadController } from "./UniversalGamepadController.js";
 import { Keys } from "../enums/index.js";
 

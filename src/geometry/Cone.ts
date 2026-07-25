@@ -1,7 +1,5 @@
 import { Cylinder, CylinderOptions } from "./Cylinder.js";
 
-/// src/geometry/Cone.ts
-
 /**
  * Configuration options for cone geometry.
  */

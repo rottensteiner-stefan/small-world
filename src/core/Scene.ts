@@ -1,4 +1,3 @@
-/// src/core/Scene.ts
 import { Object3D } from "./Object3D.js";
 import { Octree } from "./Octree.js";
 import { Fog } from "./Fog.js";

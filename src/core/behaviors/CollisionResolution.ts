@@ -1,4 +1,3 @@
-/// src/core/behaviors/CollisionResolution.ts
 import { CameraInterfaceData, Collidable } from "../../interfaces/index.js";
 import { Object3D } from "../Object3D.js";
 import { Scene } from "../Scene.js";

@@ -1,4 +1,3 @@
-/// src/core/InstancedMesh.ts
 import { Object3D } from "./Object3D.js";
 import { Matrix4 } from "../math/index.js";
 import { GeometryDataInterface } from "../interfaces/index.js";

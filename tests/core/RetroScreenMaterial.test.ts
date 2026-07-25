@@ -1,5 +1,3 @@
-/// tests/core/RetroScreenMaterial.test.ts
-
 import { RetroScreenMaterial } from "../../src/core/materials/RetroScreenMaterial.js";
 import { MaterialType } from "../../src/enums/index.js";
 import { Texture } from "../../src/core/textures/Texture.js";

@@ -1,5 +1,3 @@
-/// src/enums/PostProcessingEffectType.ts
-
 /**
  * Types of available post-processing effects.
  */

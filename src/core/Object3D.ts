@@ -1,4 +1,3 @@
-/// src/core/Object3D.ts
 import { AbstractMaterial } from "./materials/index.js";
 import { BoundingVolume, GeometryDataInterface, Collidable } from "../interfaces/index.js";
 import { MathUtils, Matrix4, Vector3D, MathPool } from "../math/index.js";

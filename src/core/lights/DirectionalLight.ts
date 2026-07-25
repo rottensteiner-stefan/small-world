@@ -1,4 +1,3 @@
-/// src/core/lights/DirectionalLight.ts
 import { AbstractLight, LightOptions } from "./AbstractLight.js";
 import { LightType, ProjectionType } from "../../enums/index.js";
 import { Vector3D, MathPool } from "../../math/index.js";

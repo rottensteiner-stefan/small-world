@@ -1,4 +1,3 @@
-/// src/interfaces/CameraStrategy.ts
 import { CameraConstraints } from "./CameraConstraints.js";
 import { CameraInterfaceData } from "./CameraInterfaceData.js";
 import { Vector3D } from "../math/index.js";

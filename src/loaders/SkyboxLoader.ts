@@ -1,4 +1,3 @@
-/// src/loaders/SkyboxLoader.ts
 import { AssetManager } from "./AssetManager.js";
 import { AbstractLoader } from "./AbstractLoader.js";
 import { CubeTexture } from "../core/textures/index.js";

@@ -1,4 +1,3 @@
-/// src/core/cameras/strategies/FixedStrategy.ts
 import {
   CameraInterfaceData,
   CameraConstraints,

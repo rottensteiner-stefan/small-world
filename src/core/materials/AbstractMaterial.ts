@@ -1,4 +1,3 @@
-/// src/core/materials/AbstractMaterial.ts
 import { Color } from "../colors/index.js";
 import { MaterialType, CullMode } from "../../enums/index.js";
 import { RenderManifest, ShaderDefinition, ShaderRegistry } from "../renderers/shaders/index.js";

@@ -1,4 +1,3 @@
-/// src/renderers/WebGPU/WebGPURenderer.ts
 // Removed Fog import
 import {
   CubeTexture,

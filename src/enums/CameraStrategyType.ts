@@ -1,5 +1,3 @@
-/// src/enums/CameraStrategyType.ts
-
 /**
  * Types of camera control strategies.
  */

@@ -1,5 +1,3 @@
-/// src/apps/yad/YadObjectTags.ts
-
 /**
  * Typed tags for identifying Yad gameplay objects via `Object3D.tag`,
  * used instead of matching on `Object3D.name` prefixes.

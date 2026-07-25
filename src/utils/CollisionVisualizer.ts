@@ -1,4 +1,3 @@
-/// src/utils/CollisionVisualizer.ts
 import { Color } from "../core/colors/index.js";
 import { Object3D, Scene } from "../core/index.js";
 import { WireframeMaterial } from "../core/materials/index.js";

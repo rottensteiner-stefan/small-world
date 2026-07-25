@@ -1,4 +1,3 @@
-/// src/renderers/post/passes/BloomPassGPU.ts
 import BLOOM_DOWNSAMPLE_WGSL from "../../../core/materials/shaders/BloomDownsample.frag.wgsl?raw";
 import BLOOM_UPSAMPLE_WGSL from "../../../core/materials/shaders/BloomUpsample.frag.wgsl?raw";
 // Fullscreen triangle vertex shader

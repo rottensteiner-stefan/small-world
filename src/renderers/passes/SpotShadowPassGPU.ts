@@ -1,4 +1,3 @@
-/// src/renderers/passes/SpotShadowPassGPU.ts
 import { Scene, Color } from "../../core/index.js";
 import { DepthMaterial } from "../../core/materials/index.js";
 import { MaterialType } from "../../enums/MaterialType.js";

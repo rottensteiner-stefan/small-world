@@ -1,4 +1,3 @@
-/// src/core/materials/importers/index.ts
 export * from "./ShaderImporter.js";
 export * from "./ShadertoyImporter.js";
 export * from "./GLSLSandboxImporter.js";

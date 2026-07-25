@@ -1,7 +1,5 @@
 import { BlendingMode, CullMode, ShaderPropertyType } from "../../../enums/index.js";
 
-/// src/core/renderers/shaders/ShaderDefinition.ts
-
 /**
  * Metadata for a shader property.
  */

@@ -1,5 +1,3 @@
-/// tests/core/InstancedMesh.test.ts
-
 import { InstancedMesh } from "../../src/core/InstancedMesh.js";
 import { Matrix4 } from "../../src/math/Matrix4.js";
 import { StandardMaterial } from "../../src/core/materials/StandardMaterial.js";

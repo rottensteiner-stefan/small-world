@@ -1,5 +1,3 @@
-/// src/utils/TextureGenerator.ts
-
 /**
  * Utility class for procedural texture generation.
  * Provides methods to create organic textures for terrain biomes.

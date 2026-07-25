@@ -1,4 +1,3 @@
-/// src/interfaces/BoundingVolume.ts
 import { Matrix4, Vector3D } from "../math/index.js";
 import { BoundingType } from "../enums/index.js";
 /**

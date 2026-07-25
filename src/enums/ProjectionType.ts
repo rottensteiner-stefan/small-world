@@ -1,5 +1,3 @@
-/// src/enums/ProjectionType.ts
-
 /**
  * Types of camera projections.
  */

@@ -1,4 +1,3 @@
-/// src/core/cameras/strategies/HybridSyncStrategy.ts
 import {
   CameraInterfaceData,
   CameraConstraints,

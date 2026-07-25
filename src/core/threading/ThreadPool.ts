@@ -1,5 +1,3 @@
-/// src/core/threading/ThreadPool.ts
-
 /**
  * Represents a task queued in the ThreadPool.
  */

@@ -1,4 +1,3 @@
-/// src/core/textures/CubeTexture.ts
 import { CubeLayout } from "../../enums/index.js";
 import { AssetManager } from "../../loaders/AssetManager.js";
 

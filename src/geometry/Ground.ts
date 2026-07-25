@@ -1,7 +1,5 @@
 import { AbstractGeometry } from "./AbstractGeometry.js";
 
-/// src/geometry/Ground.ts
-
 /**
  * Configuration for the Ground geometry.
  */

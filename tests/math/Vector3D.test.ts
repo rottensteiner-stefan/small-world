@@ -1,5 +1,3 @@
-/// src/math/Vector3D.test.ts
-
 import { describe, it, expect } from "vitest";
 import { Vector3D } from "../../src/index.js";
 

@@ -1,5 +1,3 @@
-/// src/math/projections/index.ts
-
 export * from "./AbstractProjection.js";
 export * from "./ObliqueProjection.js";
 export * from "./OrthographicProjection.js";

@@ -1,4 +1,3 @@
-/// src/physix/RigidBody.ts
 import { Vector3D, MathPool } from "../math/index.js";
 
 /**

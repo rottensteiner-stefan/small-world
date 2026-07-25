@@ -1,5 +1,3 @@
-/// src/enums/ShaderPropertyType.ts
-
 /**
  * Supported data types for shader properties.
  */

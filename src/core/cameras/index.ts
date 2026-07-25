@@ -1,5 +1,3 @@
-/// src/core/cameras/index.ts
-
 export * from "./CameraEffectFactory.js";
 export * from "./CameraStrategyFactory.js";
 export * from "./effects/AbstractCameraEffect.js";

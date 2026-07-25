@@ -1,5 +1,3 @@
-/// src/renderers/WebGL2/WebGL2DepthFrameBuffer.ts
-
 /**
  * Encapsulates a WebGL2 Framebuffer configured specifically for depth rendering (Shadow Maps).
  * It has NO color attachment and a DEPTH_COMPONENT32F texture attachment.

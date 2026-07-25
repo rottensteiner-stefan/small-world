@@ -1,4 +1,3 @@
-/// src/core/materials/GlassMaterial.ts
 import fragGLSL from "./shaders/Glass.frag.glsl?raw";
 import fragGLSL100 from "./shaders/Glass.frag.glsl100?raw";
 import fragWGSL from "./shaders/Glass.frag.wgsl?raw";

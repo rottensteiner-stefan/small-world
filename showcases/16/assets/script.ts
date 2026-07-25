@@ -1,5 +1,3 @@
-/// src/showcases/showcase15_v2.ts
-
 import {
   AbstractShowcase,
   AmbientLight,

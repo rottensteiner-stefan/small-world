@@ -1,5 +1,3 @@
-/// src/core/UniversalGamepadController.ts
-
 import type {
   JoyConLeft,
   JoyConRight,

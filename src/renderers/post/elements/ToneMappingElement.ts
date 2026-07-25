@@ -1,4 +1,3 @@
-/// src/renderers/post/elements/ToneMappingElement.ts
 import { PostProcessingElement } from "../PostProcessingElement.js";
 import { ToneMappingMode, PostProcessingEffectType } from "../../../enums/index.js";
 

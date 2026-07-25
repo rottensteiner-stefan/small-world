@@ -1,5 +1,3 @@
-/// tests/math/Matrix4.test.ts
-
 import { describe, expect, it } from "vitest";
 import { Matrix4, Vector3D } from "../../src/index.js";
 

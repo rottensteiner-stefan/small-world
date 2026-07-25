@@ -1,5 +1,3 @@
-/// src/showcases/objects/WorkbenchTable.ts
-
 import { Cube, Cylinder, Object3D } from "../../../../src/index.js";
 import { AbstractMaterial } from "../../../../src/index.js";
 import { GeometryDataInterface } from "../../../../src/interfaces/index.js";

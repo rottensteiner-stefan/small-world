@@ -1,4 +1,3 @@
-/// src/core/InteractionManager.ts
 import { Scene } from "./Scene.js";
 import { Camera } from "./Camera.js";
 import { InputInterface } from "./Input.js";

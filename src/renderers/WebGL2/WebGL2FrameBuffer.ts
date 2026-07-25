@@ -1,5 +1,3 @@
-/// src/renderers/WebGL2/WebGL2FrameBuffer.ts
-
 /** Configuration for WebGL2FrameBuffer. */
 export interface WebGL2FrameBufferOptions {
   /** Width in pixels. */

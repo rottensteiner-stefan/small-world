@@ -1,5 +1,3 @@
-/// tests/core/UniversalGamepadController.test.ts
-
 import {
   UniversalGamepadController,
   StandardGamepadDevice,

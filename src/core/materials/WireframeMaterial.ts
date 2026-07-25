@@ -1,4 +1,3 @@
-/// src/core/materials/WireframeMaterial.ts
 import fragGLSL from "./shaders/Wireframe.frag.glsl?raw";
 import fragGLSL100 from "./shaders/Wireframe.frag.glsl100?raw";
 import fragWGSL from "./shaders/Wireframe.frag.wgsl?raw";

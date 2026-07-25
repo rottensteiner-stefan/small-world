@@ -1,4 +1,3 @@
-/// src/core/materials/importers/ShaderImporter.ts
 import { CustomShaderMaterialOptions } from "../CustomShaderMaterial.js";
 
 /**

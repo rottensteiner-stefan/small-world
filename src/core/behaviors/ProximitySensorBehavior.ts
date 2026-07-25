@@ -1,4 +1,3 @@
-/// src/core/behaviors/ProximitySensorBehavior.ts
 import { Behavior } from "./Behavior.js";
 import { Object3D } from "../index.js";
 import { CameraInterfaceData } from "../../interfaces/index.js";

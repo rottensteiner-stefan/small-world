@@ -1,5 +1,3 @@
-/// src/loaders/AssetManager.ts
-
 export type ProgressCallback = (loaded: number, total: number) => void;
 
 /**

@@ -1,4 +1,3 @@
-/// src/renderers/RenderPass.ts
 import { AbstractRenderer } from "./AbstractRenderer.js";
 import { Scene } from "../core/index.js";
 import { Vector3D } from "../math/index.js";

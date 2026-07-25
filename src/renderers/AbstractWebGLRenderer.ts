@@ -1,4 +1,3 @@
-/// src/renderers/AbstractWebGLRenderer.ts
 import { AbstractRenderer } from "./AbstractRenderer.js";
 import { Color } from "../core/colors/index.js";
 import { Scene } from "../core/index.js";

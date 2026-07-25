@@ -1,4 +1,3 @@
-/// src/renderers/AbstractRenderer.ts
 import { AbstractLight } from "../core/lights/index.js";
 import { Color } from "../core/colors/index.js";
 import {

@@ -1,4 +1,3 @@
-/// src/core/materials/TerrainMaterial.ts
 import fragGLSL from "./shaders/Terrain.frag.glsl?raw";
 import fragGLSL100 from "./shaders/Terrain.frag.glsl100?raw";
 import fragWGSL from "./shaders/Terrain.frag.wgsl?raw";

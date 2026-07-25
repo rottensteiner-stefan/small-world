@@ -1,5 +1,3 @@
-/// src/enums/TextureWrap.ts
-
 /**
  * Texture wrapping modes.
  */

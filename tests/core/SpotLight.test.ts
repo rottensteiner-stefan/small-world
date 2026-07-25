@@ -1,5 +1,3 @@
-/// tests/core/SpotLight.test.ts
-
 import { SpotLight } from "../../src/core/lights/SpotLight.js";
 import { PerspectiveProjection } from "../../src/math/index.js";
 

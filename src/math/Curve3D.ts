@@ -1,7 +1,5 @@
 import { Vector3D } from "./Vector3D.js";
 
-/// src/math/Curve3D.ts
-
 /**
  * Base class for mathematical 3D curves.
  */
