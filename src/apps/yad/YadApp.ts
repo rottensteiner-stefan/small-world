@@ -9,7 +9,7 @@ import { MathUtils, Vector3D } from "../../math/index.js";
 import { PerspectiveProjection } from "../../math/projections/index.js";
 import { Texture } from "../../core/textures/index.js";
 import { ZoomController } from "../../core/controllers/index.js";
-import { LavaMaterial } from "../../core/materials/index.js";
+import { FluidSurfaceMaterial } from "../../core/materials/index.js";
 import { QuantizeElement } from "../../renderers/post/elements/index.js";
 import { TextLoader } from "../../loaders/index.js";
 import { BoundingBox } from "../../physix/index.js";
@@ -24,7 +24,7 @@ export class YadApp extends AbstractShowcase {
   }
 
   private _time: number = 0;
-  private _lavaMaterials: LavaMaterial[] = [];
+  private _lavaMaterials: FluidSurfaceMaterial[] = [];
   private _lavaLights: PointLight[] = [];
   private _hud!: YadHud;
   private _playerController!: YadController;
@@ -117,16 +117,7 @@ export class YadApp extends AbstractShowcase {
       flipY: true,
     });
     const lavaNorm: Texture = await Texture.fromUrl("./assets/textures/lava_normal.png", {
-      flipY: true,
-    });
-    const lavaDisp: Texture = await Texture.fromUrl("./assets/textures/lava_displacement.png", {
-      flipY: true,
-    });
-    const lavaSpec: Texture = await Texture.fromUrl("./assets/textures/lava_specular.png", {
-      flipY: true,
-    });
-    const lavaAmb: Texture = await Texture.fromUrl("./assets/textures/lava_ambient.png", {
-      flipY: true,
+      generateMipmaps: true,
     });
 
     // Use proper Dungeon sprites
@@ -195,9 +186,6 @@ export class YadApp extends AbstractShowcase {
       ceilingTexture: ceilTex,
       lavaNoiseMap: lavaNoise,
       lavaNormalMap: lavaNorm,
-      lavaDisplacementMap: lavaDisp,
-      lavaSpecularMap: lavaSpec,
-      lavaAmbientMap: lavaAmb,
       playerCamera: this.camera,
       audio: this.audio,
       lavaFloorChars: ["T"], // Only T is lava now

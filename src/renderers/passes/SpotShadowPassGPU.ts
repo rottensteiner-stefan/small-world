@@ -59,7 +59,7 @@ export class SpotShadowPassGPU implements RenderPass {
       // Always create 4 layers because maximum spotlights is 4.
       this._fbo = renderer._device!.createTexture({
         size: [shadowRes, shadowRes, 4],
-        format: "depth24plus",
+        format: "depth32float",
         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
       });
       this._spotShadowTexView = this._fbo.createView({ dimension: "2d-array" });

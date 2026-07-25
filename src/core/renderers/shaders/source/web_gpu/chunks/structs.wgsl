@@ -23,7 +23,8 @@ struct GlobalUniforms {
     spotShadowInfo: array<vec4f, 4>, // [bias, normalBias, castShadow, pad]
     cascadeMatrices: array<mat4x4f, 4>,
     cascadeSplits: vec4f,
-    dirShadowInfo: vec4f // [bias, normalBias, castShadow, numCascades]
+    dirShadowInfo: vec4f, // [bias, normalBias, castShadow, numCascades]
+    cameraNearFar: vec2f
 }
 
 struct ObjectUniforms {
@@ -104,5 +105,6 @@ struct AreaLight {
 @group(1) @binding(13) var u_alphaMap: texture_2d<f32>;
 @group(1) @binding(14) var u_opaqueMap: texture_2d<f32>;
 @group(1) @binding(15) var u_reflectionMap: texture_2d<f32>;
+@group(1) @binding(16) var u_opaqueDepthMap: texture_depth_2d;
 
 @group(2) @binding(0) var<uniform> obj: ObjectUniforms;

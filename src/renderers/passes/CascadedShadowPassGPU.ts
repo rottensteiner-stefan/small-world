@@ -61,7 +61,7 @@ export class CascadedShadowPassGPU implements RenderPass {
 
       fbo = renderer._device!.createTexture({
         size: [dLight.shadowResolution, dLight.shadowResolution, dLight.numCascades],
-        format: "depth24plus",
+        format: "depth32float",
         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
       });
       renderer._shadowMaps.set(dLight, fbo);

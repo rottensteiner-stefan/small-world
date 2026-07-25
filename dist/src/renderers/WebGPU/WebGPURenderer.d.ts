@@ -48,6 +48,7 @@ export declare class WebGPURenderer extends AbstractRenderer {
     protected _textureViewCache: Map<Texture, GPUTextureView>;
     _whiteTexView: GPUTextureView;
     _blackTexView: GPUTextureView;
+    _dummyDepthTexView: GPUTextureView;
     protected _flatNormalTexView: GPUTextureView;
     protected _defaultCubeTexView: GPUTextureView;
     protected _blackCubeTexView: GPUTextureView;
@@ -141,6 +142,9 @@ export declare class WebGPURenderer extends AbstractRenderer {
     protected _getGeoCache(geo: GeometryDataInterface): WebGPUGeoCache;
     render(scene: Scene, vp: Float32Array, camPos?: Vector3D, vMat?: Float32Array): void;
     captureOpaqueTexture(ce: GPUCommandEncoder, targetTex: GPUTexture): void;
+    _opaqueDepthTexture?: GPUTexture;
+    _opaqueDepthTextureView?: GPUTextureView;
+    captureOpaqueDepth(ce: GPUCommandEncoder): void;
     protected _pruneObjectBuffers(): void;
     _renderBatch(rp: GPURenderPassEncoder, batch: import('../../core/Scene.js').RenderBatch, vMat?: Float32Array): void;
     _renderSubgroup(rp: GPURenderPassEncoder, objects: Object3D[], isInstanced: boolean, matUuid: string, manifest: RenderManifest, vMat?: Float32Array, topology?: GPUPrimitiveTopology, wireframeMode?: "structural" | "triangles"): void;

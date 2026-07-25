@@ -62,6 +62,7 @@ export class MainRenderPass implements RenderPass {
         ? renderer._hdrTexture!
         : renderer._context.getCurrentTexture();
       renderer.captureOpaqueTexture(ce, targetTex);
+      renderer.captureOpaqueDepth(ce);
 
       // Start transparent pass
       const rpTransparent = ce.beginRenderPass({

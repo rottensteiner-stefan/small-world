@@ -1,6 +1,6 @@
 import { Scene } from '../../core/index.js';
 import { Vector3D } from '../../math/index.js';
-import { LavaMaterial } from '../../core/materials/index.js';
+import { FluidSurfaceMaterial } from '../../core/materials/index.js';
 import { PointLight } from '../../core/lights/index.js';
 import { Color } from '../../core/colors/index.js';
 import { Texture } from '../../core/textures/index.js';
@@ -34,9 +34,6 @@ export interface YadLevelConfig {
     ceilingTexture?: Texture;
     lavaNoiseMap?: Texture;
     lavaNormalMap?: Texture;
-    lavaDisplacementMap?: Texture;
-    lavaSpecularMap?: Texture;
-    lavaAmbientMap?: Texture;
     lavaFloorChars?: string[];
     slimeFloorChars?: string[];
     playerCamera?: CameraInterfaceData;
@@ -50,7 +47,7 @@ export declare class YadLevelBuilder {
     private _wallHeight;
     build(scene: Scene, mapData: string, config: YadLevelConfig): Promise<{
         playerStart: Vector3D;
-        lavaMaterials: LavaMaterial[];
+        lavaMaterials: FluidSurfaceMaterial[];
         lavaLights: PointLight[];
     }>;
 }

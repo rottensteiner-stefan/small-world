@@ -1,7 +1,11 @@
 import { Object3D, Scene, Sprite, InstancedMesh } from "../../core/index.js";
 import { Vector3D, Matrix4 } from "../../math/index.js";
 import { Cube, Sphere } from "../../geometry/index.js";
-import { StandardMaterial, LavaMaterial, SpriteMaterial } from "../../core/materials/index.js";
+import {
+  StandardMaterial,
+  FluidSurfaceMaterial,
+  SpriteMaterial,
+} from "../../core/materials/index.js";
 import { PointLight } from "../../core/lights/index.js";
 import { Color } from "../../core/colors/index.js";
 import { Texture, TextureArray } from "../../core/textures/index.js";
@@ -51,9 +55,6 @@ export interface YadLevelConfig {
   ceilingTexture?: Texture;
   lavaNoiseMap?: Texture;
   lavaNormalMap?: Texture;
-  lavaDisplacementMap?: Texture;
-  lavaSpecularMap?: Texture;
-  lavaAmbientMap?: Texture;
   lavaFloorChars?: string[];
   slimeFloorChars?: string[];
   playerCamera?: CameraInterfaceData;
@@ -71,18 +72,22 @@ export class YadLevelBuilder {
     scene: Scene,
     mapData: string,
     config: YadLevelConfig,
-  ): Promise<{ playerStart: Vector3D; lavaMaterials: LavaMaterial[]; lavaLights: PointLight[] }> {
-    const lavaMaterials: LavaMaterial[] = [];
+  ): Promise<{
+    playerStart: Vector3D;
+    lavaMaterials: FluidSurfaceMaterial[];
+    lavaLights: PointLight[];
+  }> {
+    const lavaMaterials: FluidSurfaceMaterial[] = [];
     const lavaLights: PointLight[] = [];
 
-    const lavaMat = new LavaMaterial({
+    const lavaMat = new FluidSurfaceMaterial({
       noiseMap: config.lavaNoiseMap,
       normalMap: config.lavaNormalMap,
-      displacementMap: config.lavaDisplacementMap,
-      specularMap: config.lavaSpecularMap,
-      ambientMap: config.lavaAmbientMap,
+      color: new Color(1.5, 0.5, 0.0),
+      edgeColor: new Color(0.1, 0.05, 0.05),
       flowSpeed: 0.3,
-      noiseScale: 2.0,
+      distortion: 2.0,
+      viscosity: 5.0,
     });
     lavaMat.cullMode = CullMode.NONE;
     lavaMaterials.push(lavaMat);
@@ -246,10 +251,13 @@ export class YadLevelBuilder {
           onBuild: (x, y, worldX, worldZ, sceneRef): Object3D | undefined => {
             const lavaBall = new Object3D(`LavaBall_${x}_${y}`);
             lavaBall.geometry = sphereGeo;
-            const ballMat = new LavaMaterial({
+            const ballMat = new FluidSurfaceMaterial({
               noiseMap: config.lavaNoiseMap,
               color: new Color(2.0, 0.8, 0.0),
+              edgeColor: new Color(0.1, 0.05, 0.05),
               flowSpeed: 1.5,
+              distortion: 2.0,
+              viscosity: 5.0,
             });
             lavaMaterials.push(ballMat);
             lavaBall.material = ballMat;

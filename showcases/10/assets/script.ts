@@ -16,7 +16,7 @@ import {
   Tube,
   Circle,
   Disk,
-  LavaMaterial,
+  FluidSurfaceMaterial,
   CullMode,
   MathUtils,
 } from "../../../src/index.js";
@@ -33,11 +33,8 @@ export class Showcase10 extends AbstractShowcase {
 
   private _lavaTexture: Texture | undefined;
   private _lavaNormalMap: Texture | undefined;
-  private _lavaDisplacementMap: Texture | undefined;
-  private _lavaSpecularMap: Texture | undefined;
-  private _lavaAmbientMap: Texture | undefined;
 
-  private _lavaMaterials: LavaMaterial[] = [];
+  private _lavaMaterials: FluidSurfaceMaterial[] = [];
   private _lavaLights: PointLight[] = [];
   private _time: number = 0;
 
@@ -89,18 +86,6 @@ export class Showcase10 extends AbstractShowcase {
       generateMipmaps: true,
       flipY: true,
     });
-    this._lavaDisplacementMap = await Texture.fromUrl("./assets/lava_displacement.png", {
-      generateMipmaps: true,
-      flipY: true,
-    });
-    this._lavaSpecularMap = await Texture.fromUrl("./assets/lava_specular.png", {
-      generateMipmaps: true,
-      flipY: true,
-    });
-    this._lavaAmbientMap = await Texture.fromUrl("./assets/lava_ambient.png", {
-      generateMipmaps: true,
-      flipY: true,
-    });
 
     const floor = new Object3D("Floor");
     floor.geometry = new Ground({ width: 100, depth: 100 }).getGeometryData();
@@ -147,17 +132,14 @@ export class Showcase10 extends AbstractShowcase {
       const disk = new Disk({ radius: 1.6, segments: 64, rings: 16 });
       lava.geometry = disk.getGeometryData();
 
-      const lavaMaterial = new LavaMaterial({
+      const lavaMaterial = new FluidSurfaceMaterial({
         color: new Color(1.5, 0.5, 0.0), // Bright magma glow
-        crustColor: new Color(0.1, 0.05, 0.05), // Dark cooled rock
+        edgeColor: new Color(0.1, 0.05, 0.05), // Dark cooled rock
         noiseMap: this._lavaTexture,
         normalMap: this._lavaNormalMap,
-        displacementMap: this._lavaDisplacementMap,
-        specularMap: this._lavaSpecularMap,
-        ambientMap: this._lavaAmbientMap,
         flowSpeed: 0.3,
-        noiseScale: 2.0,
-        waveAmplitude: 0.08, // Reduced from default 0.15 to prevent clipping
+        distortion: 2.0,
+        viscosity: 5.0,
       });
       lavaMaterial.cullMode = CullMode.NONE;
 

@@ -92,6 +92,7 @@ export class WebGPURenderer extends AbstractRenderer {
   protected _textureViewCache = new Map<Texture, GPUTextureView>();
   public _whiteTexView!: GPUTextureView;
   public _blackTexView!: GPUTextureView;
+  public _dummyDepthTexView!: GPUTextureView;
   protected _flatNormalTexView!: GPUTextureView;
   protected _defaultCubeTexView!: GPUTextureView;
   protected _blackCubeTexView!: GPUTextureView;
@@ -118,7 +119,7 @@ export class WebGPURenderer extends AbstractRenderer {
 
   protected _cubeTextureViewCache: Map<CubeTexture, GPUTextureView> = new Map();
 
-  public _scratchGlobalBufferData = new Float32Array(200);
+  public _scratchGlobalBufferData = new Float32Array(204);
   protected _scratchPointLightData = new Float32Array(32); // Max 4 lights
   protected _scratchSpotLightData = new Float32Array(64); // Max 4 lights
   protected _scratchAreaLightData = new Float32Array(96); // Max 4 lights
@@ -314,6 +315,13 @@ export class WebGPURenderer extends AbstractRenderer {
     this._defaultBrdfTexView = create1x1([255, 0, 0, 255]); // scale=1, bias=0
     this._flatNormalTexView = create1x1([128, 128, 255, 255]);
 
+    const dummyDepth = this._device!.createTexture({
+      size: [1, 1],
+      format: "depth32float",
+      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT,
+    });
+    this._dummyDepthTexView = dummyDepth.createView();
+
     const createCube = (col: number[]): GPUTextureView => {
       const cube = this._device!.createTexture({
         size: [1, 1, 6],
@@ -377,14 +385,14 @@ export class WebGPURenderer extends AbstractRenderer {
     // Default dummy shadow textures (2D Arrays, Depth24Plus)
     const dummyDirShadow = this._device!.createTexture({
       size: [1, 1, 4],
-      format: "depth24plus",
+      format: "depth32float",
       usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT,
     });
     this._defaultDirShadowTexView = dummyDirShadow.createView({ dimension: "2d-array" });
 
     const dummySpotShadow = this._device!.createTexture({
       size: [1, 1, 16],
-      format: "depth24plus",
+      format: "depth32float",
       usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT,
     });
     this._defaultSpotShadowTexView = dummySpotShadow.createView({ dimension: "2d-array" });
@@ -420,7 +428,7 @@ export class WebGPURenderer extends AbstractRenderer {
 
   private _initGlobalBuffers(): void {
     this._globalUniformBuffer = this._device!.createBuffer({
-      size: 800,
+      size: 816,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
     this._pointLightBuffer = this._device!.createBuffer({
@@ -501,6 +509,11 @@ export class WebGPURenderer extends AbstractRenderer {
         binding: 15,
         visibility: GPUShaderStage.FRAGMENT,
         texture: { viewDimension: "2d", sampleType: "float" },
+      },
+      {
+        binding: 16,
+        visibility: GPUShaderStage.FRAGMENT,
+        texture: { viewDimension: "2d", sampleType: "depth" },
       },
     );
     this._materialBGLCache.set("", this._device!.createBindGroupLayout({ entries: matEntries }));
@@ -599,6 +612,11 @@ export class WebGPURenderer extends AbstractRenderer {
           visibility: GPUShaderStage.FRAGMENT,
           texture: { viewDimension: "2d", sampleType: "float" },
         },
+        {
+          binding: 16,
+          visibility: GPUShaderStage.FRAGMENT,
+          texture: { viewDimension: "2d", sampleType: "depth" },
+        },
       );
       bgl = this._device!.createBindGroupLayout({ entries: matEntries });
       this._materialBGLCache.set(key, bgl);
@@ -691,7 +709,7 @@ export class WebGPURenderer extends AbstractRenderer {
         depthStencil: {
           depthWriteEnabled: state.depthWrite !== false,
           depthCompare: state.depthTest === false ? "always" : "less-equal",
-          format: "depth24plus",
+          format: "depth32float",
         },
       });
       cache = {
@@ -900,7 +918,7 @@ export class WebGPURenderer extends AbstractRenderer {
           if (this._activeRenderTarget.depth) {
             depth = this._device!.createTexture({
               size: [this._activeRenderTarget.width, this._activeRenderTarget.height],
-              format: "depth24plus",
+              format: "depth32float",
               usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
             });
             depthView = depth.createView();
@@ -938,7 +956,7 @@ export class WebGPURenderer extends AbstractRenderer {
           if (this._activeRenderTarget.depth) {
             depth = this._device.createTexture({
               size: [this._activeRenderTarget.width, this._activeRenderTarget.height],
-              format: "depth24plus",
+              format: "depth32float",
               usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
             });
             depthView = depth.createView();
@@ -1013,6 +1031,38 @@ export class WebGPURenderer extends AbstractRenderer {
     ce.copyTextureToTexture({ texture: targetTex }, { texture: cacheObj.tex }, [
       targetTex.width,
       targetTex.height,
+      1,
+    ]);
+  }
+
+  public _opaqueDepthTexture?: GPUTexture;
+  public _opaqueDepthTextureView?: GPUTextureView;
+
+  public captureOpaqueDepth(ce: GPUCommandEncoder): void {
+    const srcTex = this._activeRenderTarget
+      ? (this._activeRenderTarget instanceof RenderTargetCube
+          ? this._renderTargetCubeTextures.get(this._activeRenderTarget)?.depth
+          : this._renderTargetTextures.get(this._activeRenderTarget)?.depth) || this._depthTexture
+      : this._depthTexture;
+
+    if (
+      !this._opaqueDepthTexture ||
+      this._opaqueDepthTexture.width !== srcTex.width ||
+      this._opaqueDepthTexture.height !== srcTex.height
+    ) {
+      if (this._opaqueDepthTexture) this._opaqueDepthTexture.destroy();
+
+      this._opaqueDepthTexture = this._device!.createTexture({
+        size: [srcTex.width, srcTex.height, 1],
+        format: srcTex.format,
+        usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
+      });
+      this._opaqueDepthTextureView = this._opaqueDepthTexture.createView();
+    }
+
+    ce.copyTextureToTexture({ texture: srcTex }, { texture: this._opaqueDepthTexture }, [
+      srcTex.width,
+      srcTex.height,
       1,
     ]);
   }
@@ -1303,6 +1353,9 @@ export class WebGPURenderer extends AbstractRenderer {
       ? this._getTextureView(m.textures["u_opaqueMap"] as Texture)
       : this._opaqueTextureView || this._whiteTexView;
     const r15 = this._getTextureView(m.textures["u_reflectionMap"] as Texture);
+    const r16 = m.textures["u_opaqueDepthMap"]
+      ? this._getTextureView(m.textures["u_opaqueDepthMap"] as Texture)
+      : this._opaqueDepthTextureView || this._dummyDepthTexView;
 
     const cache = this._materialBindGroups.get(matUuid);
     if (cache) {
@@ -1322,33 +1375,38 @@ export class WebGPURenderer extends AbstractRenderer {
         resources[11] === r12 &&
         resources[12] === r13 &&
         resources[13] === r14 &&
-        resources[14] === r15
+        resources[14] === r15 &&
+        resources[15] === r16
       ) {
         return cache.bg;
       }
     }
 
-    const entries: GPUBindGroupEntry[] = [
-      { binding: 1, resource: r1 },
-      { binding: 2, resource: r2 },
-      { binding: 3, resource: r3 },
-      { binding: 4, resource: r4 },
-      { binding: 5, resource: r5 },
-      { binding: 6, resource: r6 },
-      { binding: 7, resource: r7 },
-      { binding: 8, resource: r8 },
-      { binding: 9, resource: r9 },
-      { binding: 10, resource: r10 },
-      { binding: 11, resource: r11 },
-      { binding: 12, resource: r12 },
-      { binding: 13, resource: r13 },
-      { binding: 14, resource: r14 },
-      { binding: 15, resource: r15 },
-    ];
-    const bg = this._device!.createBindGroup({ layout, entries });
+    const bg = this._device!.createBindGroup({
+      layout,
+      entries: [
+        { binding: 1, resource: r1 },
+        { binding: 2, resource: r2 },
+        { binding: 3, resource: r3 },
+        { binding: 4, resource: r4 },
+        { binding: 5, resource: r5 },
+        { binding: 6, resource: r6 },
+        { binding: 7, resource: r7 },
+        { binding: 8, resource: r8 },
+        { binding: 9, resource: r9 },
+        { binding: 10, resource: r10 },
+        { binding: 11, resource: r11 },
+        { binding: 12, resource: r12 },
+        { binding: 13, resource: r13 },
+        { binding: 14, resource: r14 },
+        { binding: 15, resource: r15 },
+        { binding: 16, resource: r16 },
+      ],
+    });
+
     this._materialBindGroups.set(matUuid, {
       bg,
-      resources: [r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, r15],
+      resources: [r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, r15, r16],
     });
     return bg;
   }
@@ -1560,6 +1618,9 @@ export class WebGPURenderer extends AbstractRenderer {
     gData[198] = 0.0; // castShadow off by default
     gData[199] = 4.0;
 
+    gData[200] = 0.1;
+    gData[201] = 1000.0;
+
     // Default spot shadow values
     for (let i = 0; i < 4; i++) {
       gData[112 + i * 4] = 0.001; // bias
@@ -1639,8 +1700,11 @@ export class WebGPURenderer extends AbstractRenderer {
     this._context.canvas.height = height * d;
     this._depthTexture = this._device.createTexture({
       size: [this._context.canvas.width, this._context.canvas.height],
-      format: "depth24plus",
-      usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+      format: "depth32float",
+      usage:
+        GPUTextureUsage.RENDER_ATTACHMENT |
+        GPUTextureUsage.TEXTURE_BINDING |
+        GPUTextureUsage.COPY_SRC,
     });
 
     if (this.postProcessing.enabled) {

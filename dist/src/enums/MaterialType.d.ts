@@ -20,8 +20,8 @@ export declare const MaterialType: {
     readonly SPRITE: "SpriteMaterial";
     /** Special triplanar mapping material for seamless tiling. */
     readonly WORLD: "WorldMaterial";
-    /** Specialized animated lava material. */
-    readonly LAVA: "LavaMaterial";
+    /** Specialized material for fluid surfaces with depth fade. */
+    readonly FLUID_SURFACE: "FluidSurfaceMaterial";
     /** Depth material for shadow mapping. */
     readonly DEPTH: "DepthMaterial";
     /** Physically based rendering material with transmission/refraction. */
