@@ -33,9 +33,6 @@ export class ShaderRegistry {
    * @param definition The shader definition to register.
    */
   public register(definition: ShaderDefinition): void {
-    if (this._shaders.has(definition.id)) {
-      console.debug(`[ShaderRegistry] Overwriting shader: ${definition.id}`);
-    }
     this._shaders.set(definition.id, definition);
   }
 
@@ -45,9 +42,6 @@ export class ShaderRegistry {
    * @param provider The provider instance.
    */
   public registerProvider(id: string, provider: ShaderProvider): void {
-    if (this._providers.has(id)) {
-      console.debug(`[ShaderRegistry] Overwriting shader provider: ${id}`);
-    }
     this._providers.set(id, provider);
   }
 

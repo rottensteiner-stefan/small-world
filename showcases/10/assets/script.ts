@@ -127,9 +127,10 @@ export class Showcase10 extends AbstractShowcase {
 
       // 3. Lava Surface (Circular Disk to stay inside the bowl)
       const lava = new Object3D("Lava");
-      // Use Disk instead of Plane or simple Circle for better tessellation and visual fit
-      // Reduced radius from 1.75 to 1.6 to prevent clipping through the bowl rim (inner radius 1.8)
-      const disk = new Disk({ radius: 1.6, segments: 64, rings: 16 });
+      // Disk (no corners, unlike Plane) fits snugly against the bowl's round inner wall.
+      // Radius stays just under the Tube inner wall's polygon apothem (1.8 * cos(PI/32) ≈ 1.791)
+      // so it can never poke through the rim.
+      const disk = new Disk({ radius: 1.78, segments: 64, rings: 16 });
       lava.geometry = disk.getGeometryData();
 
       const lavaMaterial = new FluidSurfaceMaterial({

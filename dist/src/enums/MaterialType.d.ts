@@ -2,6 +2,8 @@
  * Types of materials.
  */
 export declare const MaterialType: {
+    /** Material for open water rendering with Gerstner waves. */
+    readonly OPEN_WATER: "OpenWaterMaterial";
     /** Unlit basic material. */
     readonly BASIC: "BasicMaterial";
     /** Lambertian diffuse material. */

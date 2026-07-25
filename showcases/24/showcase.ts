@@ -508,16 +508,26 @@ class Showcase23Engine extends AbstractShowcase {
   }
 }
 
+/**
+ * Detects the best available Graphics API so the gallery starts right away,
+ * without requiring the visitor to pick one manually.
+ */
+async function detectApi(): Promise<string> {
+  if (!navigator.gpu) return "webgl2";
+  try {
+    const adapter = await navigator.gpu.requestAdapter();
+    return adapter ? "webgpu" : "webgl2";
+  } catch {
+    return "webgl2";
+  }
+}
+
 async function init() {
   const container = document.getElementById("container") as HTMLElement;
   container.innerHTML = '<canvas id="canvas23"></canvas>';
 
   const params = new URLSearchParams(window.location.search);
-  const api = params.get("api") || "off";
-
-  if (api === "off") {
-    return; // Wait for UI toggle
-  }
+  const api = params.get("api") || (await detectApi());
 
   const engine = new Showcase23Engine(document.getElementById("canvas23") as HTMLElement, api);
   await engine.start();

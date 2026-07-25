@@ -58,25 +58,10 @@
         accent-color: #00e5ff;
         transform: scale(1.2);
     }
-    #off-text {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        color: #fff;
-        font-family: "Rajdhani", sans-serif;
-        font-size: 2rem;
-        text-transform: uppercase;
-        letter-spacing: 5px;
-        text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-        pointer-events: none;
-        display: none;
-    }
-  
     </style>
   </head>
   <body>
-    <showcase-layout title="The Shader Gallery" subtitle-b64="" prev="../22/index.html" next="../yad/index.html"></showcase-layout>
+    <showcase-layout title="The Shader Gallery" subtitle-b64="" prev="../22/index.html" next="../25/index.html"></showcase-layout>
 
     <div id="ui-bar">
     <label class="switch-label">
@@ -87,27 +72,37 @@
     </label>
 </div>
 
-<div id="off-text">Select Graphics API to power up the gallery</div>
-
 <div id="container" style="width: 100vw; height: 100vh;"></div>
 
 <script>
     const params = new URLSearchParams(window.location.search);
-    const api = params.get('api') || 'off';
-    const inputEl = document.querySelector(`input[value="${api}"]`);
-    if (inputEl) inputEl.checked = true;
+    let api = params.get('api');
 
-    if (api === 'off') {
-        document.getElementById('off-text').style.display = 'block';
+    // Detects the best available Graphics API so the gallery starts right away,
+    // without requiring the visitor to pick one manually.
+    async function detectApi() {
+        if (!navigator.gpu) return 'webgl2';
+        try {
+            const adapter = await navigator.gpu.requestAdapter();
+            return adapter ? 'webgpu' : 'webgl2';
+        } catch {
+            return 'webgl2';
+        }
     }
+
+    (async () => {
+        if (!api) api = await detectApi();
+        const inputEl = document.querySelector(`input[value="${api}"]`);
+        if (inputEl) inputEl.checked = true;
+    })();
 
     function switchApi(newApi) {
         if (newApi === api) return;
-        
+
         // Dramatic Zoom-in Effect before reload
         document.body.style.transform = 'scale(3)';
         document.body.style.opacity = '0';
-        
+
         setTimeout(() => {
             window.location.search = '?api=' + newApi;
         }, 600);

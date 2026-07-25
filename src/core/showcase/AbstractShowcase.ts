@@ -23,7 +23,7 @@ export abstract class AbstractShowcase extends SmallWorld {
     const currentId = parseInt(match[1]!, 10);
     if (isNaN(currentId)) return;
 
-    const totalShowcases = 24;
+    const totalShowcases = 25;
 
     const createButton = (
       text: string,
@@ -52,12 +52,10 @@ export abstract class AbstractShowcase extends SmallWorld {
       };
 
       if (position === "left") {
-        style.top = "50%";
-        style.transform = "translateY(-50%)";
+        style.top = "24px";
         style.left = "20px";
       } else if (position === "right") {
-        style.top = "50%";
-        style.transform = "translateY(-50%)";
+        style.top = "24px";
         style.right = "20px";
       } else if (position === "top-left") {
         style.top = "20px";

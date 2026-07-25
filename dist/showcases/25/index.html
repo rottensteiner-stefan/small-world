@@ -4,9 +4,23 @@
     <link rel="icon" type="image/png" href="../../favicon.png" />
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Small World: Showcase 20 - Ready-Made Behaviors</title>
+    <title>Small World: Showcase 25 - Open Water</title>
     <link rel="stylesheet" href="../../assets/shared.css" />
-    <script type="module" crossorigin src="../../showcases/showcase20/showcase.js"></script>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+      }
+      canvas {
+        display: block;
+        width: 100vw;
+        height: 100vh;
+        position: absolute;
+        top: 0;
+        left: 0;
+      }
+    </style>
+    <script type="module" crossorigin src="../../showcases/showcase25/showcase.js"></script>
     <link rel="modulepreload" crossorigin href="../../js/modulepreload-polyfill.js">
     <link rel="modulepreload" crossorigin href="../../js/Input.js">
     <link rel="modulepreload" crossorigin href="../../js/math.js">
@@ -17,8 +31,8 @@
   <body>
     
 <header id="info">
-  <h1>Built-in Behaviors</h1>
-  <p>A showcase of ready-made behaviors: Rainbow, Bobbing, SpringLerp, Rotator, LookAt, and PathFollower (Spline).</p>
+  <h1>Open Water</h1>
+  <p>A Gerstner-wave open-water material rendered with WebGPU.</p>
 </header>
 
     <canvas id="SmallWorld"></canvas>

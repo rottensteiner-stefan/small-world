@@ -14,3 +14,4 @@ export * from "./DepthMaterial.js";
 export * from "./RetroScreenMaterial.js";
 export * from "./CustomShaderMaterial.js";
 export * from "./importers/index.js";
+export * from "./OpenWaterMaterial.js";

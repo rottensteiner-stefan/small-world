@@ -10,3 +10,4 @@ export * from "./utils/index.js";
 export * from "./audio/index.js";
 
 export * from "./extensions/index.js";
+export * from "./core/materials/OpenWaterMaterial.js";

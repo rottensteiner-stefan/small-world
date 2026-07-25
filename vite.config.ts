@@ -144,6 +144,7 @@ export default defineConfig({
         showcase22: resolve(__dirname, "showcases/22/index.html"),
         showcase23: resolve(__dirname, "showcases/23/index.html"),
         showcase24: resolve(__dirname, "showcases/24/index.html"),
+        showcase25: resolve(__dirname, "showcases/25/index.html"),
         yad: resolve(__dirname, "showcases/yad/index.html"),
         pbrgen: resolve(__dirname, "public/tools/pbr-gen.html"),
         iblgen: resolve(__dirname, "public/tools/ibl-gen.html"),
