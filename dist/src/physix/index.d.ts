@@ -4,6 +4,7 @@ export * from './SpatialHash.js';
 export * from './StaticCollider.js';
 export * from './OBB.js';
 export * from './PhysicsSystem.js';
+export * from './FluidVolume.js';
 export * from './RigidBody.js';
 export * from './Collision.js';
 export * from './Ray.js';

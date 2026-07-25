@@ -9,6 +9,7 @@ import { OBB } from "./OBB.js";
 import { EventDispatcherImpl } from "../core/events/EventDispatcherImpl.js";
 import { Collidable, BoundingVolume } from "../interfaces/index.js";
 import { BoundingType } from "../enums/index.js";
+import { FluidVolume } from "./FluidVolume.js";
 
 /** Padding added to the computed world AABB to guard against boundary floating-point edge cases. */
 const BROADPHASE_EPSILON: number = 0.01;
@@ -30,6 +31,7 @@ export class PhysicsSystem {
 
   private _bodies: Object3D[] = [];
   private _allColliders: Collidable[] = [];
+  private _fluidVolumes: FluidVolume[] = [];
   private _collisionEvent = {
     objectA: null as unknown as Object3D,
     objectB: null as unknown as Collidable,
@@ -50,6 +52,19 @@ export class PhysicsSystem {
   private _broadphaseQueryHits: Collidable[] = [];
 
   private _warnedObjects = new Set<Object3D>();
+
+  public addFluidVolume(fv: FluidVolume): void {
+    if (!this._fluidVolumes.includes(fv)) {
+      this._fluidVolumes.push(fv);
+    }
+  }
+
+  public removeFluidVolume(fv: FluidVolume): void {
+    const idx = this._fluidVolumes.indexOf(fv);
+    if (idx !== -1) {
+      this._fluidVolumes.splice(idx, 1);
+    }
+  }
 
   /**
    * Recursively collects both dynamic rigidbodies and collidable objects in a single pass.
@@ -123,6 +138,69 @@ export class PhysicsSystem {
     for (const obj of bodies) {
       const rb = obj.rigidBody!;
 
+      let fluidLinearDrag = 1.0;
+      let fluidAngularDrag = 1.0;
+
+      if (obj.bounds && this._fluidVolumes.length > 0) {
+        const boundsA = obj.bounds;
+        let submergedRatioTotal = 0;
+        let maxDensity = 0;
+        let maxDrag = 1.0;
+        let flowX = 0,
+          flowY = 0,
+          flowZ = 0;
+
+        for (let i = 0; i < this._fluidVolumes.length; i++) {
+          const fv = this._fluidVolumes[i]!;
+          if (fv.bounds.intersectsVolume(boundsA)) {
+            let aabbMinY, aabbMaxY;
+            if (boundsA.type === BoundingType.BOX) {
+              aabbMinY = (boundsA as BoundingBox).min.y;
+              aabbMaxY = (boundsA as BoundingBox).max.y;
+            } else if (boundsA.type === BoundingType.SPHERE) {
+              aabbMinY = boundsA.center.y - (boundsA as BoundingSphere).radius;
+              aabbMaxY = boundsA.center.y + (boundsA as BoundingSphere).radius;
+            } else {
+              const br = boundsA.getBroadRadius();
+              aabbMinY = boundsA.center.y - br;
+              aabbMaxY = boundsA.center.y + br;
+            }
+
+            const waterTop = fv.bounds.max.y;
+            if (aabbMinY < waterTop) {
+              const objectHeight = Math.max(0.001, aabbMaxY - aabbMinY);
+              const submergedDepth = Math.max(0, waterTop - aabbMinY);
+              const ratio = Math.min(1.0, submergedDepth / objectHeight);
+
+              if (ratio > submergedRatioTotal) {
+                submergedRatioTotal = ratio;
+                maxDensity = fv.density;
+                maxDrag = fv.drag;
+                flowX = fv.currentVelocity.x;
+                flowY = fv.currentVelocity.y;
+                flowZ = fv.currentVelocity.z;
+              }
+            }
+          }
+        }
+
+        if (submergedRatioTotal > 0 && rb.inverseMass > 0) {
+          const mass = 1.0 / rb.inverseMass;
+          const buoyForceY = -this.gravity.y * mass * maxDensity * submergedRatioTotal;
+          rb.forces.y += buoyForceY;
+
+          if (flowX !== 0 || flowY !== 0 || flowZ !== 0) {
+            const flowForceFactor = submergedRatioTotal * 5.0 * mass;
+            rb.forces.x += (flowX - rb.velocity.x) * flowForceFactor;
+            rb.forces.y += (flowY - rb.velocity.y) * flowForceFactor;
+            rb.forces.z += (flowZ - rb.velocity.z) * flowForceFactor;
+          }
+
+          fluidLinearDrag = 1.0 - (1.0 - maxDrag) * submergedRatioTotal;
+          fluidAngularDrag = fluidLinearDrag;
+        }
+      }
+
       // acceleration = (forces / mass) + gravity
       rb.acceleration.copyFrom(rb.forces).scale(rb.inverseMass).add(this.gravity);
 
@@ -133,7 +211,7 @@ export class PhysicsSystem {
       MathPool.releaseVector(deltaV);
 
       // Apply Friction/Damping (simple approach)
-      rb.velocity.scale(rb.friction);
+      rb.velocity.scale(rb.friction * fluidLinearDrag);
 
       // p = p + v * dt
       const deltaP = MathPool.acquireVector().copyFrom(rb.velocity).scale(dt);
@@ -150,7 +228,7 @@ export class PhysicsSystem {
       MathPool.releaseVector(deltaW);
 
       // Apply Angular Damping
-      rb.angularVelocity.scale(rb.angularDamping);
+      rb.angularVelocity.scale(rb.angularDamping * fluidAngularDrag);
 
       // Apply angular velocity to Object3D rotation
       const wLength = rb.angularVelocity.length();

@@ -1,6 +1,7 @@
 import { Scene } from '../core/Scene.js';
 import { Vector3D } from '../math/index.js';
 import { EventDispatcherImpl } from '../core/events/EventDispatcherImpl.js';
+import { FluidVolume } from './FluidVolume.js';
 /**
  * A lightweight physics solver using Semi-Implicit Euler integration.
  */
@@ -17,6 +18,7 @@ export declare class PhysicsSystem {
     private _accumulator;
     private _bodies;
     private _allColliders;
+    private _fluidVolumes;
     private _collisionEvent;
     /**
      * Creates a new PhysicsSystem.
@@ -30,6 +32,8 @@ export declare class PhysicsSystem {
     private _broadphaseFallback;
     private _broadphaseQueryHits;
     private _warnedObjects;
+    addFluidVolume(fv: FluidVolume): void;
+    removeFluidVolume(fv: FluidVolume): void;
     /**
      * Recursively collects both dynamic rigidbodies and collidable objects in a single pass.
      */
