@@ -24,9 +24,12 @@ fn vs(
     var b = vec3f(0.0, 0.0, 1.0);
     var displacement = vec3f(0.0, 0.0, 0.0);
     
-    let waves = array<vec4f, 3>(w1, w2, w3);
+    let w4 = vec4f(w1.y, -w1.x, w1.z * 0.4, w1.w * 0.45); // Detail wave 1 (perpendicular, shorter)
+    let w5 = vec4f(-w2.y, w2.x, w2.z * 0.3, w2.w * 0.35); // Detail wave 2
+
+    let waves = array<vec4f, 5>(w1, w2, w3, w4, w5);
     
-    for (var i = 0; i < 3; i++) {
+    for (var i = 0; i < 5; i++) {
         let wave = waves[i];
         let dir = normalize(wave.xy);
         let steepness = wave.z;
