@@ -35,7 +35,9 @@ Read our full [Vision & Strategy (VISION.md)](VISION.md).
 - **Zero-Allocation Render Loop:** The critical path is strictly structured to ensure **zero memory allocations** (garbage) during the main render loop. This eliminates unpredictable Garbage Collection (GC) pauses, guaranteeing consistently smooth framerates.
 - **Custom Math Engine from Scratch:** We don't rely on massive external math libraries like `glMatrix`. Small World features a bespoke, highly-optimized mathematics library for vectors and matrices, tailored exactly for our right-handed coordinate system.
 - **Advanced Rendering & Post-Processing:** Consistent linear space math through the entire pipeline, featuring a highly efficient, unified final pass for Tone-Mapping, Color-Grading, Vignette, and sRGB Gamma Correction.
+- **Advanced Materials & Shaders:** Built-in PBR, Retro Screen, and Fluid Surface materials (e.g. `OpenWaterMaterial` with Gerstner Waves and Opaque Depth-Fade for soft shores).
 - **WebGPU Compute Shaders:** True utilization of compute shaders, including workgroup memory for complex spatial operations—features that many traditional engines are still struggling to retrofit.
+- **Automated GPU Memory Management:** No more manual `geometry.dispose()` or `material.dispose()`. The engine utilizes rigorous internal reference counting across all renderers. When you remove an object from the scene, orphaned WebGL/WebGPU resources are safely and automatically garbage-collected.
 - **Absolute "Zero Dependency" Philosophy:** No Three.js, no Babylon.js. We built a complete 3D engine—including Frustum Culling (`frustum.intersectsVolume(obj.bounds)`), Scene Graph, and Resource Management—entirely from scratch. This keeps the footprint tiny and performance at the absolute maximum.
 
 ## 📦 Installation

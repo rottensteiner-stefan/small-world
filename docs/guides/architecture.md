@@ -139,3 +139,25 @@ heart.addBehavior(new PulseBehavior(5.0));
 ```
 
 If states become more complex (e.g., `IDLE` -> `WALK` -> `ATTACK`), use the built-in `StateMachine` module, which integrates seamlessly with Behaviors via `StateMachineBehavior`.
+
+---
+
+## 5. Resource Management & Garbage Collection
+
+Unlike older graphics engines where you must manually call `dispose()` on geometries, textures, and materials to prevent GPU memory leaks, **Small World uses automated internal Reference Counting**.
+
+### How it works
+Every geometry buffer, shader program, and texture is tracked by the active renderer (WebGL1, WebGL2, or WebGPU).
+When you remove an `Object3D` from the `Scene`, the engine decrements the reference counts for the object's resources. If a resource's reference count drops to zero, the engine automatically queues it for deletion and safely destroys the underlying GPU object.
+
+```typescript
+// Adding an object increments reference counts for its geometry and material textures
+this.scene.add(myObject);
+
+// ... Later ...
+
+// Removing the object decrements the reference counts.
+// If no other objects use the same geometry/textures, they are automatically purged from VRAM!
+this.scene.remove(myObject);
+```
+*(Note: `RenderTarget` textures are excluded from this automated cleanup, as their lifecycles are explicitly managed by the render pipeline rather than individual objects.)*

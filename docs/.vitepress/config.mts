@@ -21,6 +21,7 @@ export default defineConfig({
           text: "Core Concepts",
           items: [
             { text: "Architecture & Overview", link: "/guides/architecture" },
+            { text: "Materials & Shaders", link: "/guides/materials" },
             { text: "Configuration & Setup", link: "/guides/configuration" },
             { text: "Coordinate System & Camera Strategies", link: "/guides/coordinate-system" },
             { text: "Gamification & Interactions", link: "/guides/interactions" },
