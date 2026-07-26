@@ -93,7 +93,7 @@ async function run() {
   const browser = await puppeteer.launch({ 
     headless: true,
     userDataDir: tmpDir,
-    ignoreHTTPSErrors: true,
+    acceptInsecureCerts: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--ignore-certificate-errors'] 
   });
   
