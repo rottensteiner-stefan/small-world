@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.70.1] - 2026-07-27
+
+### "A place for everything, and everything in its place." - Benjamin Franklin
+
+- **Architecture & Bugfixes:**
+  - **Reference-Counted GPU Resource Disposal:** Implemented per-object reference counting for geometry buffers, shader programs/pipelines, and textures across the WebGL1, WebGL2, and WebGPU renderers, with a `Scene`-level removal queue driving release on object/scene teardown. `RenderTarget`/`RenderTargetCube` are explicitly protected from being destroyed via this path since their lifecycle is independent of any single material reference.
+  - **Fallback Cleanup:** Removed a fragile topology-guessing heuristic (`indices.length === 2 ? "line-list" : "triangle-list"`) from the render passes and `Scene`, replaced by an explicit `Topology.DEFAULT` fallback.
+- **Housekeeping & Docs:**
+  - **Continuous Integration:** Added a GitHub Actions workflow running typecheck/lint/test/build on every push and PR, plus a non-blocking showcase visual smoke-test job.
+  - **Magic String/Number Cleanup:** Replaced duplicated raw string literals with existing enum members (`CullMode`, `Topology`, `BlendingMode`, `TextureFilter`, `TextureWrap`) across the renderers and shadow passes.
+  - **Enum `DEFAULT` Convention:** Introduced a `DEFAULT` member on the 13 enums that have one real, consistently-used fallback value (`Topology`, `BlendingMode`, `CameraStrategyType`, `CubeLayout`, `CullMode`, `FogMode`, `InputMode`, `OscillatorType`, `ProjectionType`, `RendererType`, `TextureFilter`, `TextureWrap`, `ToneMappingMode`), replacing the repeated concrete literal at every fallback call site.
+
 ## [0.70.0] - 2026-07-26
 
 ### "Order is the shape upon which beauty depends." - Pearl S. Buck
