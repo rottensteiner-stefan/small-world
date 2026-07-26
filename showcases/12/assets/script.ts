@@ -56,7 +56,7 @@ class SinkingBehavior extends Behavior {
   // Randomized parameters per crate
   private _bobbingDamping: number;
   private _bobbingSpringK: number;
-  private _surfaceY: number = 0.25;
+  private _surfaceY: number = 0.05;
   private _sinkSpeed: number;
   private _tipSpeedX: number;
   private _tipSpeedZ: number;
@@ -258,7 +258,7 @@ class CrateSpawnerBehavior extends Behavior {
       const spawnPos = new Vector3D(
         (Math.random() - 0.5) * 4,
         7.0,
-        8.5 + (Math.random() - 0.5) * 4,
+        10.5 + (Math.random() - 0.5) * 4,
       );
 
       const teleporter = new Object3D("Teleporter_" + Date.now());
@@ -1057,8 +1057,8 @@ class UnderwaterHideoutShowcase extends AbstractShowcase {
       teleportGlowMaterial.depthWrite = false;
 
       const puddle = new Object3D("OilPuddle");
-      // Place slightly above the floor
-      puddle.position.set(0, 0.05, 8.5);
+
+      puddle.position.set(0, 0.05, 10.5);
       puddle.rotation.set(-Math.PI / 2, 0, 0); // Lay flat on the ground
       // High tessellation plane for ripples
       puddle.geometry = new Plane({
