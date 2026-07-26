@@ -6,6 +6,7 @@
 
 - **Housekeeping & Docs:**
   - **Memory Management & Materials:** Expanded `README.md` and added comprehensive VitePress documentation guides (`docs/guides/architecture.md`, `docs/guides/materials.md`) covering the new automated GPU resource Reference-Counting and advanced `OpenWaterMaterial` / `captureOpaqueDepth` shader logic.
+
 ## [0.70.1] - 2026-07-27
 
 ### "A place for everything, and everything in its place." - Benjamin Franklin
