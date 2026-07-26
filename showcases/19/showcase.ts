@@ -14,7 +14,7 @@ import {
   BoundingBox,
 } from "../../src/index.js";
 
-class Showcase18 extends AbstractShowcase {
+class Showcase19 extends AbstractShowcase {
   constructor() {
     super({
       canvasId: "SmallWorld",
@@ -89,16 +89,18 @@ class Showcase18 extends AbstractShowcase {
 
     const cubeGeo = new Cube({ size: 1.0 }).getGeometryData();
 
+    const sharedMaterial = new StandardMaterial({
+      color: new Color(0.8, 0.8, 0.9),
+      diffuseMap: texture,
+      roughness: 0.4,
+      metallic: 0.1,
+    });
+
     for (let x = 0; x < gridSize; x++) {
       for (let z = 0; z < gridSize; z++) {
         const mesh = new Object3D("Cube_" + x + "_" + z);
         mesh.geometry = cubeGeo;
-        mesh.material = new StandardMaterial({
-          color: new Color(0.8, 0.8, 0.9),
-          diffuseMap: texture,
-          roughness: 0.4,
-          metallic: 0.1,
-        });
+        mesh.material = sharedMaterial;
         mesh.setPosition(x * spacing - offset, 0, z * spacing - offset);
         mesh.castShadow = true;
         mesh.receiveShadow = true;
@@ -111,6 +113,14 @@ class Showcase18 extends AbstractShowcase {
 
         // Add click interaction (Changes color permanently)
         mesh.onPointerClick = (): void => {
+          if (mesh.material === sharedMaterial) {
+            mesh.material = new StandardMaterial({
+              color: new Color(0.8, 0.8, 0.9),
+              diffuseMap: texture,
+              roughness: 0.4,
+              metallic: 0.1,
+            });
+          }
           (mesh.material as StandardMaterial).color.set(
             Math.random(),
             Math.random(),
@@ -131,4 +141,4 @@ class Showcase18 extends AbstractShowcase {
   }
 }
 
-new Showcase18().start().catch(console.error);
+new Showcase19().start().catch(console.error);
