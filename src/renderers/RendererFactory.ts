@@ -77,8 +77,31 @@ export class RendererFactory {
     try {
       await renderer.initialize(canvas, attributes, config);
     } catch (e) {
-      console.error(`Error initializing ${actualType}:`, e);
-      throw e;
+      if (actualType === RendererType.WEB_GPU && !fallbackToWebGL2) {
+        console.warn(`[RendererFactory] WebGPU initialization failed. Falling back to WebGL2.`);
+        renderer = new WebGL2Renderer();
+
+        // Re-evaluate attributes for WebGL2
+        let fallbackAttributes: Record<string, unknown> | undefined = undefined;
+        if (config?.renderer) {
+          const match = config.renderer.find((rc) => rc.type === RendererType.WEB_GL2);
+          if (match) {
+            fallbackAttributes = { ...match.attributes };
+          }
+        }
+        if (config?.quality?.msaa !== undefined) {
+          fallbackAttributes = fallbackAttributes || {};
+          if (fallbackAttributes["antialias"] === undefined) {
+            fallbackAttributes["antialias"] = config.quality.msaa > 0;
+          }
+        }
+
+        // Initialize WebGL2 instead
+        await renderer.initialize(canvas, fallbackAttributes, config);
+      } else {
+        console.error(`Error initializing ${actualType}:`, e);
+        throw e;
+      }
     }
     return renderer;
   }
