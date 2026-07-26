@@ -35,12 +35,14 @@ class Showcase25 extends AbstractShowcase {
     });
 
     const water = new Object3D("Water");
-    water.geometry = new Plane({
+    const plane = new Plane({
       width: 100,
       height: 100,
       widthSegments: 128,
       heightSegments: 128,
-    }).getGeometryData();
+    });
+    plane.computeTangents();
+    water.geometry = plane.getGeometryData();
     water.material = this._water;
     water.rotation.x = -MathUtils.HALF_PI;
     this.scene.add(water);

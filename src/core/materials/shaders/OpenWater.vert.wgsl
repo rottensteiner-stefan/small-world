@@ -1,9 +1,5 @@
 [WGSL_STRUCTS]
 
-fn hash1(n: f32) -> f32 {
-    return fract(sin(n) * 43758.5453123);
-}
-
 @vertex
 fn vs(
     @location(0) pos: vec3f,
@@ -23,37 +19,14 @@ fn vs(
     let w1 = obj.extraParams;
     let w2 = obj.liquidParams;
     let w3 = obj.thresholds;
-
+    
     var t = vec3f(1.0, 0.0, 0.0);
     var b = vec3f(0.0, 0.0, 1.0);
     var displacement = vec3f(0.0, 0.0, 0.0);
-
-    let baseWaves = array<vec4f, 3>(w1, w2, w3);
-
-    // Real seas never repeat evenly: derive 3 extra "chaos" waves from the base
-    // set (rotated direction, shorter wavelength, varied steepness) so crest
-    // length and height differ across the surface instead of looking uniform.
-    var waves: array<vec4f, 6>;
+    
+    let waves = array<vec4f, 3>(w1, w2, w3);
+    
     for (var i = 0; i < 3; i++) {
-        waves[i] = baseWaves[i];
-
-        let base = baseWaves[i];
-        let seed = f32(i) * 17.0 + 3.0;
-        let angle = hash1(seed) * 6.28318;
-        let dir = normalize(base.xy);
-        let rotDir = vec2f(
-            dir.x * cos(angle) - dir.y * sin(angle),
-            dir.x * sin(angle) + dir.y * cos(angle),
-        );
-        // Stay well above the surface mesh's vertex spacing: a wavelength close to or
-        // below it can't be represented smoothly and shows up as a faceted moire grid
-        // in the specular highlight instead of a smooth wave.
-        let wavelengthScale = 0.7 + hash1(seed + 1.0) * 0.7;
-        let steepnessScale = 0.5 + hash1(seed + 2.0) * 0.9;
-        waves[3 + i] = vec4f(rotDir, base.z * steepnessScale, max(base.w * wavelengthScale, 1.5));
-    }
-
-    for (var i = 0; i < 6; i++) {
         let wave = waves[i];
         let dir = normalize(wave.xy);
         let steepness = wave.z;
