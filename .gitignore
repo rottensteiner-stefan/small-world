@@ -11,6 +11,9 @@ node_modules/
 **/.DS_Store
 /.claude/
 
+# Build output (GitHub Pages workflow builds this fresh from source; see .github/workflows/deploy-docs.yml)
+/dist/
+
 # Docs
 docs/public/api/
 docs/.vitepress/dist/

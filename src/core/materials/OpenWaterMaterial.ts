@@ -61,6 +61,9 @@ export class OpenWaterMaterial extends AbstractMaterial {
     if (undefined === this._renderManifest) {
       this._renderManifest = this._createBaseManifest();
       this._renderManifest.properties["u_specColor"] = this.deepWaterColor.toFloat32Array();
+      // u_texOffset/u_texRepeat carry edgeColor.rgb + edgeSoftness here, not actual texture
+      // UV offset/repeat — StandardWebGPULayout only has 3 free vec4 slots (already used by
+      // wave1/2/3 below), so these unrelated vec2 slots are repurposed to fit edge shading data.
       this._renderManifest.properties["u_texOffset"] = [this.edgeColor.r, this.edgeColor.g];
       this._renderManifest.properties["u_texRepeat"] = [this.edgeColor.b, this.edgeSoftness];
       this._renderManifest.properties["u_extraParams"] = [...this.wave1];

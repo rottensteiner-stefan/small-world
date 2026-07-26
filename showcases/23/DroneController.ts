@@ -42,7 +42,7 @@ export class DroneController extends Behavior {
     this._movementBehavior = new GridMovementBehavior({
       speed: this._speed,
       gridSize: this._gridSize,
-      onGridIntersection: () => this._handleGridIntersection(),
+      onGridIntersection: (): Vector3D | null => this._handleGridIntersection(),
     });
   }
 
@@ -56,7 +56,6 @@ export class DroneController extends Behavior {
     this._respawn(target);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   public override update(_deltaTime: number): void {
     if (!this.target) return;
     const obj = this.target as Object3D;

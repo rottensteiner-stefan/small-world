@@ -14,7 +14,7 @@ describe("ProximitySensorBehavior", () => {
       targetObj: player,
       radius: 10.0,
       minDistance: 2.0,
-      onUpdate: (factor) => {
+      onUpdate: (factor): void => {
         lastFactor = factor;
       },
     });

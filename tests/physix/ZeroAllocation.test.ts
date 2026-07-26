@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { PhysicsSystem } from "../../src/physix/PhysicsSystem.js";
+import { EventDispatcherImpl } from "../../src/core/events/EventDispatcherImpl.js";
 import { Scene } from "../../src/core/Scene.js";
 import { Object3D } from "../../src/core/Object3D.js";
 import { MathPool } from "../../src/math/MathPool.js";
@@ -11,19 +12,19 @@ import { Vector3D } from "../../src/math/Vector3D.js";
 
 describe("Zero-Allocation Guarantees", () => {
   it("PhysicsSystem.step() should not leak any MathPool objects during simulation", () => {
-    const physics = new PhysicsSystem();
+    const physics = new PhysicsSystem(new EventDispatcherImpl());
     const scene = new Scene();
 
     // Create a few dynamic objects that will collide
     const obj1 = new Object3D();
     obj1.rigidBody = new RigidBody(1);
-    obj1.bounds = new BoundingSphere(1);
+    obj1.bounds = new BoundingSphere(obj1.position, 1);
     obj1.position.set(0, 5, 0);
     scene.add(obj1);
 
     const obj2 = new Object3D();
     obj2.rigidBody = new RigidBody(0); // static
-    obj2.bounds = new BoundingSphere(1);
+    obj2.bounds = new BoundingSphere(obj2.position, 1);
     obj2.position.set(0, 0, 0);
     scene.add(obj2);
 
@@ -31,7 +32,7 @@ describe("Zero-Allocation Guarantees", () => {
     obj3.rigidBody = new RigidBody(1);
     obj3.bounds = new OBB();
     obj3.position.set(2, 5, 2);
-    obj3.rotation.set(0, 0, 0, 1);
+    obj3.rotation.set(0, 0, 0);
     scene.add(obj3);
 
     const obj4 = new Object3D();
@@ -72,7 +73,7 @@ describe("Zero-Allocation Guarantees", () => {
   });
 
   it("PhysicsSystem internal arrays and event objects should be strictly reused", () => {
-    const physics = new PhysicsSystem();
+    const physics = new PhysicsSystem(new EventDispatcherImpl());
     const scene = new Scene();
 
     const obj = new Object3D();

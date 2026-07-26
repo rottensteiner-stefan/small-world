@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { StandardMaterial } from "../../src/core/materials/StandardMaterial";
+import { StandardMaterial } from "../../src/core/materials/StandardMaterial.js";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -13,7 +13,7 @@ describe("WebGPU Shader Bindings & Layouts", () => {
 
     // WebGPURenderer requires explicit declaration of textures in the layout
     expect(layout!.textures).toHaveProperty("u_emissiveMap");
-    expect(layout!.textures!["u_emissiveMap"].type).toBe("texture");
+    expect(layout!.textures!["u_emissiveMap"]!.type).toBe("texture");
   });
 
   it("should have matching @binding(12) for u_emissiveMap in structs.wgsl", () => {

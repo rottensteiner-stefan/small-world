@@ -30,8 +30,12 @@ import {
   Plane,
   Behavior,
   PointLight,
-  Material,
+  AbstractMaterial,
   Scene,
+  DeviceCaps,
+  DeviceFeature,
+  VignetteElement,
+  GrainElement,
 } from "../../../src/index.js";
 import { FogMode, PostProcessingEffectType } from "../../../src/enums/index.js";
 import { AbstractShowcase } from "../../../src/core/index.js";
@@ -41,96 +45,97 @@ import { ApothecaryBottle } from "./objects/ApothecaryBottle.js";
 import { OilPuddleMaterial } from "./OilPuddleMaterial.js";
 
 class SinkingBehavior extends Behavior {
-  private timer: number = 0;
-  private hasSplashed: boolean = false;
-  private material: OilPuddleMaterial;
+  private _timer: number = 0;
+  private _hasSplashed: boolean = false;
+  private _material: OilPuddleMaterial;
 
   // Physics & Animation state
-  private state: "FALLING" | "BOBBING" | "SINKING" = "FALLING";
-  private velocityY: number = 0;
+  private _state: "FALLING" | "BOBBING" | "SINKING" = "FALLING";
+  private _velocityY: number = 0;
 
   // Randomized parameters per crate
-  private bobbingDamping: number;
-  private bobbingSpringK: number;
-  private surfaceY: number = 0.25;
-  private sinkSpeed: number;
-  private tipSpeedX: number;
-  private scene: Scene;
+  private _bobbingDamping: number;
+  private _bobbingSpringK: number;
+  private _surfaceY: number = 0.25;
+  private _sinkSpeed: number;
+  private _tipSpeedX: number;
+  private _tipSpeedZ: number;
+  private _scene: Scene;
 
   constructor(material: OilPuddleMaterial, scene: Scene) {
     super();
-    this.material = material;
-    this.scene = scene;
+    this._material = material;
+    this._scene = scene;
 
     // Randomize physical properties for natural variation
-    this.bobbingDamping = 2.5 + Math.random() * 2.0; // How fast it settles
-    this.bobbingSpringK = 30.0 + Math.random() * 20.0; // How "bouncy" the fluid is
-    this.sinkSpeed = 0.05 + Math.random() * 0.1; // Slow sinking speed
+    this._bobbingDamping = 2.5 + Math.random() * 2.0; // How fast it settles
+    this._bobbingSpringK = 30.0 + Math.random() * 20.0; // How "bouncy" the fluid is
+    this._sinkSpeed = 0.05 + Math.random() * 0.1; // Slow sinking speed
 
     // Random tipping directions when sinking/bobbing
-    this.tipSpeedX = (Math.random() - 0.5) * 0.4;
-    this.tipSpeedZ = (Math.random() - 0.5) * 0.4;
+    this._tipSpeedX = (Math.random() - 0.5) * 0.4;
+    this._tipSpeedZ = (Math.random() - 0.5) * 0.4;
   }
 
   public override update(deltaTime: number): void {
     const target = this.target as Object3D;
     if (!target) return;
 
-    if (this.state === "FALLING") {
-      this.velocityY -= 9.81 * deltaTime;
-      target.position.y += this.velocityY * deltaTime;
+    if (this._state === "FALLING") {
+      this._velocityY -= 9.81 * deltaTime;
+      target.position.y += this._velocityY * deltaTime;
 
       // Tumble while falling
       target.rotation.x += deltaTime * 0.5;
       target.rotation.y += deltaTime * 0.3;
 
-      if (target.position.y <= this.surfaceY) {
-        this.state = "BOBBING";
-        if (!this.hasSplashed) {
-          this.hasSplashed = true;
-          this.material.addRipple(target.position.x, target.position.z, 0.4);
-          this.spawnSplashDecals(target.position);
+      if (target.position.y <= this._surfaceY) {
+        this._state = "BOBBING";
+        if (!this._hasSplashed) {
+          this._hasSplashed = true;
+          this._material.addRipple(target.position.x, target.position.z, 0.4);
+          this._spawnSplashDecals(target.position);
         }
       }
-    } else if (this.state === "BOBBING") {
+    } else if (this._state === "BOBBING") {
       // Spring-damper physics for buoyancy
-      const displacement = target.position.y - this.surfaceY;
-      const springForce = -this.bobbingSpringK * displacement;
-      const dampingForce = -this.bobbingDamping * this.velocityY;
+      const displacement = target.position.y - this._surfaceY;
+      const springForce = -this._bobbingSpringK * displacement;
+      const dampingForce = -this._bobbingDamping * this._velocityY;
       const acceleration = springForce + dampingForce;
 
-      this.velocityY += acceleration * deltaTime;
-      target.position.y += this.velocityY * deltaTime;
+      this._velocityY += acceleration * deltaTime;
+      target.position.y += this._velocityY * deltaTime;
 
       // Slight tipping as it settles based on its vertical velocity
-      target.rotation.x += this.tipSpeedX * (Math.abs(this.velocityY) * 0.5) * deltaTime;
-      target.rotation.z += this.tipSpeedZ * (Math.abs(this.velocityY) * 0.5) * deltaTime;
+      target.rotation.x += this._tipSpeedX * (Math.abs(this._velocityY) * 0.5) * deltaTime;
+      target.rotation.z += this._tipSpeedZ * (Math.abs(this._velocityY) * 0.5) * deltaTime;
 
-      this.timer += deltaTime;
-      if (this.timer > 3.0) {
-        this.state = "SINKING";
+      this._timer += deltaTime;
+      if (this._timer > 3.0) {
+        this._state = "SINKING";
       }
-    } else if (this.state === "SINKING") {
+    } else if (this._state === "SINKING") {
       // Slow, ominous sinking into the abyss
-      target.position.y -= this.sinkSpeed * deltaTime;
-      target.rotation.x += this.tipSpeedX * deltaTime;
-      target.rotation.z += this.tipSpeedZ * deltaTime;
+      target.position.y -= this._sinkSpeed * deltaTime;
+      target.rotation.x += this._tipSpeedX * deltaTime;
+      target.rotation.z += this._tipSpeedZ * deltaTime;
     }
   }
 
-  private spawnSplashDecals(pos: Vector3D): void {
+  private _spawnSplashDecals(pos: Vector3D): void {
     const numDrops = 3 + Math.floor(Math.random() * 4); // 3 to 6 drops
     for (let i = 0; i < numDrops; i++) {
       const drop = new Object3D("OilSplash_" + Date.now() + "_" + i);
       drop.geometry = new Plane({ width: 1, height: 1 }).getGeometryData();
 
       const mat = new StandardMaterial({
-        albedoColor: new Color(0.01, 0.01, 0.01),
+        color: new Color(0.01, 0.01, 0.01),
         roughness: 0.1,
         metallic: 0.9,
       });
       mat.transparent = true;
-      mat.opacity = 0.8;
+      mat.color.a = 0.8;
       drop.material = mat;
 
       // Lay flat on ground slightly above zero
@@ -145,18 +150,18 @@ class SinkingBehavior extends Behavior {
       const s = 0.1 + Math.random() * 0.3;
       drop.scale.set(s, s, s);
 
-      this.scene.add(drop);
+      this._scene.add(drop);
 
       // Optional: fade out over time using a behavior
       drop.addBehavior(
         new (class extends Behavior {
-          private life = 0;
-          private maxLife = 10.0 + Math.random() * 5.0; // Stay for 10-15 seconds
-          public override update(dt: number) {
-            this.life += dt;
-            if (this.life > this.maxLife) {
-              mat.opacity -= dt * 0.5;
-              if (mat.opacity <= 0) drop.parent?.remove(drop);
+          private _life = 0;
+          private _maxLife = 10.0 + Math.random() * 5.0; // Stay for 10-15 seconds
+          public override update(dt: number): void {
+            this._life += dt;
+            if (this._life > this._maxLife) {
+              mat.color.a -= dt * 0.5;
+              if (mat.color.a <= 0) drop.parent?.remove(drop);
             }
           }
         })(),
@@ -166,12 +171,12 @@ class SinkingBehavior extends Behavior {
 }
 
 class TeleportSpawnerBehavior extends Behavior {
-  private time = 0;
-  private state = 0; // 0: grow, 1: fade
-  private light: PointLight;
-  private glowMesh: Object3D;
-  private spawnFn: (pos: Vector3D) => void;
-  private scene: Scene;
+  private _time = 0;
+  private _state = 0; // 0: grow, 1: fade
+  private _light: PointLight;
+  private _glowMesh: Object3D;
+  private _spawnFn: (pos: Vector3D) => void;
+  private _scene: Scene;
 
   constructor(
     light: PointLight,
@@ -180,75 +185,75 @@ class TeleportSpawnerBehavior extends Behavior {
     spawnFn: (pos: Vector3D) => void,
   ) {
     super();
-    this.light = light;
-    this.glowMesh = glowMesh;
-    this.scene = scene;
-    this.spawnFn = spawnFn;
+    this._light = light;
+    this._glowMesh = glowMesh;
+    this._scene = scene;
+    this._spawnFn = spawnFn;
   }
 
   public override update(deltaTime: number): void {
-    if (!this.target) return;
-    this.time += deltaTime;
+    if (!this.target || !(this.target instanceof Object3D)) return;
+    this._time += deltaTime;
 
-    if (this.state === 0) {
+    if (this._state === 0) {
       // Growing phase (1.2 seconds)
-      const t = Math.min(this.time / 1.2, 1.0);
+      const t = Math.min(this._time / 1.2, 1.0);
       const ease = 1.0 - Math.pow(1.0 - t, 3);
       const scale = ease * 2.0;
 
-      this.glowMesh.scale.set(scale, scale, scale);
-      this.glowMesh.rotation.y += deltaTime * 3.0;
-      this.glowMesh.rotation.x += deltaTime * 2.5;
+      this._glowMesh.scale.set(scale, scale, scale);
+      this._glowMesh.rotation.y += deltaTime * 3.0;
+      this._glowMesh.rotation.x += deltaTime * 2.5;
 
-      this.light.intensity = ease * 10.0;
+      this._light.intensity = ease * 10.0;
 
       if (t >= 1.0) {
-        this.spawnFn(this.target.position);
-        this.state = 1;
-        this.time = 0;
+        this._spawnFn(this.target.position);
+        this._state = 1;
+        this._time = 0;
       }
     } else {
       // Fading phase (0.4 seconds)
-      const t = Math.min(this.time / 0.4, 1.0);
+      const t = Math.min(this._time / 0.4, 1.0);
       const ease = 1.0 - t;
 
-      this.glowMesh.scale.set(2.0 + t, 2.0 + t, 2.0 + t);
-      this.glowMesh.rotation.y += deltaTime * 8.0;
+      this._glowMesh.scale.set(2.0 + t, 2.0 + t, 2.0 + t);
+      this._glowMesh.rotation.y += deltaTime * 8.0;
 
-      this.light.intensity = ease * 10.0;
+      this._light.intensity = ease * 10.0;
 
       if (t >= 1.0) {
-        this.scene.remove(this.target);
+        this._scene.remove(this.target);
       }
     }
   }
 }
 
 class CrateSpawnerBehavior extends Behavior {
-  private timer = 0;
-  private interval = 4.5; // Spawn every 4.5 seconds
-  private scene: Scene;
-  private teleportGlowMaterial: Material;
-  private oilMaterial: Material;
-  private createCrateFn: (name: string, size: number, numBrandings: number) => Object3D;
+  private _timer = 0;
+  private _interval = 4.5; // Spawn every 4.5 seconds
+  private _scene: Scene;
+  private _teleportGlowMaterial: AbstractMaterial;
+  private _oilMaterial: OilPuddleMaterial;
+  private _createCrateFn: (name: string, size: number, numBrandings: number) => Object3D;
 
   constructor(
     scene: Scene,
-    teleportGlowMaterial: Material,
-    oilMaterial: Material,
+    teleportGlowMaterial: AbstractMaterial,
+    oilMaterial: OilPuddleMaterial,
     createCrateFn: (name: string, size: number, numBrandings: number) => Object3D,
   ) {
     super();
-    this.scene = scene;
-    this.teleportGlowMaterial = teleportGlowMaterial;
-    this.oilMaterial = oilMaterial;
-    this.createCrateFn = createCrateFn;
+    this._scene = scene;
+    this._teleportGlowMaterial = teleportGlowMaterial;
+    this._oilMaterial = oilMaterial;
+    this._createCrateFn = createCrateFn;
   }
 
   public override update(deltaTime: number): void {
-    this.timer += deltaTime;
-    if (this.timer >= this.interval) {
-      this.timer = 0;
+    this._timer += deltaTime;
+    if (this._timer >= this._interval) {
+      this._timer = 0;
 
       const spawnPos = new Vector3D(
         (Math.random() - 0.5) * 4,
@@ -265,26 +270,29 @@ class CrateSpawnerBehavior extends Behavior {
         widthSegments: 32,
         heightSegments: 32,
       }).getGeometryData();
-      glowMesh.material = this.teleportGlowMaterial;
+      glowMesh.material = this._teleportGlowMaterial;
       glowMesh.scale.set(0.1, 0.1, 0.1);
       teleporter.add(glowMesh);
 
-      const spawnLight = new PointLight(new Vector3D(0.2, 0.8, 1.0), 0.0, 6.0);
+      const spawnLight = new PointLight({
+        color: new Color(0.2, 0.8, 1.0),
+        intensity: 0.0,
+        distance: 6.0,
+      });
       spawnLight.position.set(0, 0, 0);
       teleporter.add(spawnLight);
 
       const behavior = new TeleportSpawnerBehavior(
         spawnLight,
         glowMesh,
-        this.scene,
+        this._scene,
         (pos: Vector3D) => {
-          const dropCrate = this.createCrateFn("DropCrate_" + Date.now(), 0.75, 1);
+          const dropCrate = this._createCrateFn("DropCrate_" + Date.now(), 0.75, 1);
           dropCrate.position.copyFrom(pos);
           dropCrate.rotation.set(Math.random() * 0.5, Math.random(), Math.random() * 0.5);
           dropCrate.frustumCulled = false; // Never cull the parent group, let the engine cull its children!
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          dropCrate.addBehavior(new SinkingBehavior(this.oilMaterial as any, this.scene));
-          this.scene.add(dropCrate);
+          dropCrate.addBehavior(new SinkingBehavior(this._oilMaterial, this._scene));
+          this._scene.add(dropCrate);
 
           // Fix invisibility without rebuilding the octree (which causes the fan to spin up):
           // Disable culling for all parts of this dynamic crate so it bypasses the Octree entirely.
@@ -293,7 +301,8 @@ class CrateSpawnerBehavior extends Behavior {
             if (child) {
               child.frustumCulled = false;
               for (let j = 0; j < child.children.length; j++) {
-                if (child.children[j]) child.children[j].frustumCulled = false;
+                const grandchild = child.children[j];
+                if (grandchild) grandchild.frustumCulled = false;
               }
             }
           }
@@ -301,10 +310,10 @@ class CrateSpawnerBehavior extends Behavior {
           // Use a Behavior for removal instead of setTimeout to avoid memory leaks
           dropCrate.addBehavior(
             new (class extends Behavior {
-              private life = 0;
-              public override update(dt: number) {
-                this.life += dt;
-                if (this.life > 15.0 && this.target) {
+              private _life = 0;
+              public override update(dt: number): void {
+                this._life += dt;
+                if (this._life > 15.0 && this.target) {
                   dropCrate.parent?.remove(dropCrate); // Safely remove
                 }
               }
@@ -314,7 +323,7 @@ class CrateSpawnerBehavior extends Behavior {
       );
 
       teleporter.addBehavior(behavior);
-      this.scene.add(teleporter);
+      this._scene.add(teleporter);
     }
   }
 }
@@ -336,18 +345,16 @@ class UnderwaterHideoutShowcase extends AbstractShowcase {
     this.renderer.postProcessing.enabled = true;
 
     // Post-Processing configuration
-    const vig = this.renderer.postProcessing.get<
-      import("../renderers/post/PostProcessingElement.js").VignetteElement
-    >(PostProcessingEffectType.VIGNETTE);
+    const vig = this.renderer.postProcessing.get<VignetteElement>(
+      PostProcessingEffectType.VIGNETTE,
+    );
     if (vig) {
       vig.offset = 0.55; // Etwas fetterer Rahmen
       vig.darkness = 1.0; // 100% Schwarz
       vig.roundness = 6.0; // Weiches Rechteck
     }
 
-    const grain = this.renderer.postProcessing.get<
-      import("../renderers/post/PostProcessingElement.js").GrainElement
-    >(PostProcessingEffectType.GRAIN);
+    const grain = this.renderer.postProcessing.get<GrainElement>(PostProcessingEffectType.GRAIN);
     if (grain) {
       grain.intensity = 0.15; // Wieder auf ein vernünftiges, atmosphärisches Level
     }
@@ -1031,36 +1038,44 @@ class UnderwaterHideoutShowcase extends AbstractShowcase {
     }
 
     // 6.5 The Oil Puddle
-    const oilMaterial = new OilPuddleMaterial();
-    this._oilMaterial = oilMaterial;
+    // OilPuddleMaterial only has a WGSL implementation (no WebGL2/WebGL1 fallback shaders).
+    // This engine silently falls back to WebGL2 when WebGPU isn't available (RendererFactory),
+    // which would otherwise try to compile an empty shader source and break. Skip the feature
+    // entirely rather than crash on non-WebGPU browsers.
+    if (DeviceCaps.hasFeature(DeviceFeature.WEBGPU)) {
+      const oilMaterial = new OilPuddleMaterial();
+      this._oilMaterial = oilMaterial;
 
-    // Teleporter Glow Material (Simplified to StandardMaterial for debugging)
-    const teleportGlowMaterial = new StandardMaterial({
-      diffuseColor: new Color(0.1, 0.8, 1.0),
-      emissiveColor: new Color(0.1, 0.8, 1.0),
-      emissiveIntensity: 5.0,
-      transparent: true,
-      opacity: 0.8,
-      depthWrite: false,
-    });
+      // Teleporter Glow Material (Simplified to StandardMaterial for debugging)
+      const teleportGlowMaterial = new StandardMaterial({
+        color: new Color(0.1, 0.8, 1.0),
+        emissiveColor: new Color(0.1, 0.8, 1.0),
+        emissiveIntensity: 5.0,
+        transparent: true,
+      });
+      teleportGlowMaterial.color.a = 0.8;
+      teleportGlowMaterial.depthWrite = false;
 
-    const puddle = new Object3D("OilPuddle");
-    // Place slightly above the floor
-    puddle.position.set(0, 0.05, 8.5);
-    puddle.rotation.set(-Math.PI / 2, 0, 0); // Lay flat on the ground
-    // High tessellation plane for ripples
-    puddle.geometry = new Plane({
-      width: 10,
-      height: 10,
-      widthSegments: 64,
-      heightSegments: 64,
-    }).getGeometryData();
-    puddle.material = oilMaterial;
-    puddle.receiveShadow = true;
-    puddle.addBehavior(
-      new CrateSpawnerBehavior(this.scene, teleportGlowMaterial, oilMaterial, createCrate),
-    );
-    this.scene.add(puddle);
+      const puddle = new Object3D("OilPuddle");
+      // Place slightly above the floor
+      puddle.position.set(0, 0.05, 8.5);
+      puddle.rotation.set(-Math.PI / 2, 0, 0); // Lay flat on the ground
+      // High tessellation plane for ripples
+      puddle.geometry = new Plane({
+        width: 10,
+        height: 10,
+        widthSegments: 64,
+        heightSegments: 64,
+      }).getGeometryData();
+      puddle.material = oilMaterial;
+      puddle.receiveShadow = true;
+      puddle.addBehavior(
+        new CrateSpawnerBehavior(this.scene, teleportGlowMaterial, oilMaterial, createCrate),
+      );
+      this.scene.add(puddle);
+    } else {
+      console.warn("[Showcase12] WebGPU not available — skipping WGSL-only Oil Puddle feature.");
+    }
 
     // 7. Baulicht (Construction Light) on the Right Wall
     const baulichtGroup = new Object3D("BaulichtGroup").setPosition(9.49, 4, -5);

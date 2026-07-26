@@ -11,8 +11,8 @@ import {
   GlassMaterial,
   RetroScreenMaterial,
   DepthMaterial,
+  ShaderRegistry,
 } from "../../src/index.js";
-import { ShaderRegistry } from "../../src/index.js";
 import { CoreShaderChunks } from "../../src/core/renderers/shaders/CoreShaderChunks.js";
 
 describe("Shader Assembly & Linter", () => {
@@ -20,17 +20,17 @@ describe("Shader Assembly & Linter", () => {
     await CoreShaderChunks.init();
   });
 
-  const checkDuplicates = (shaderCode: string, materialName: string, shaderType: string) => {
+  const checkDuplicates = (shaderCode: string, materialName: string, shaderType: string): void => {
     const lines = shaderCode.split("\n");
     const declarations = new Set<string>();
     let conditionalDepth = 0;
     let currentConditionalVars: Set<string> | null = null;
 
     for (let i = 0; i < lines.length; i++) {
-      let line = lines[i].trim();
+      let line = lines[i]!.trim();
       // Remove comments
       if (line.includes("//")) {
-        line = line.split("//")[0].trim();
+        line = line.split("//")[0]!.trim();
       }
 
       if (line.startsWith("#ifdef") || line.startsWith("#ifndef") || line.startsWith("#if ")) {
@@ -87,7 +87,11 @@ describe("Shader Assembly & Linter", () => {
     new DepthMaterial(),
   ];
 
-  const checkDuplicatesWGSL = (shaderCode: string, materialName: string, shaderType: string) => {
+  const checkDuplicatesWGSL = (
+    shaderCode: string,
+    materialName: string,
+    shaderType: string,
+  ): void => {
     const lines = shaderCode.split("\n");
     const declarations = new Set<string>();
 
@@ -138,7 +142,7 @@ describe("Shader Assembly & Linter", () => {
       // The material returns chunks and defines. Let's assemble a basic mock of the final shader
       // For a real engine, we might call a mock renderer's assembleShader method.
       // Here we just use the registry to replace chunks.
-      const assemble = (code: string) => {
+      const assemble = (code: string): string => {
         let assembled = code;
         const registry = ShaderRegistry.instance;
         // simplistic replacement for testing
@@ -146,6 +150,7 @@ describe("Shader Assembly & Linter", () => {
         let match;
         while ((match = chunkRegex.exec(assembled)) !== null) {
           const chunkName = match[1];
+          if (!chunkName) continue;
           const chunkCode = registry.getChunk(chunkName, "glsl300");
           if (chunkCode) {
             assembled = assembled.replace(match[0], chunkCode);
@@ -162,15 +167,14 @@ describe("Shader Assembly & Linter", () => {
 
     it(`should compile and lint ${matName} for WebGPU (wgsl) without duplicate uniforms`, () => {
       const def = mat.getShaderDefinition();
-      const vs = def.sources.wgsl?.vs;
-      const fs = def.sources.wgsl?.fs;
+      const wgsl = def.sources.wgsl;
 
-      if (!vs || !fs) {
+      if (!wgsl) {
         // Some materials might not support WGSL yet, but if they do, we check them
         return;
       }
 
-      const assemble = (code: string) => {
+      const assemble = (code: string): string => {
         let assembled = code;
         const registry = ShaderRegistry.instance;
         const chunkRegex = /\[([A-Z_]+)\]/g;
@@ -187,8 +191,8 @@ describe("Shader Assembly & Linter", () => {
         return assembled;
       };
 
-      const finalFs = assemble(fs);
-      checkDuplicatesWGSL(finalFs, matName, "Fragment Shader");
+      const finalWgsl = assemble(wgsl);
+      checkDuplicatesWGSL(finalWgsl, matName, "Combined Shader");
     });
   }
 });

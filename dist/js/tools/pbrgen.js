@@ -1,1 +1,0 @@
-import"../modulepreload-polyfill.js";import{t as r}from"../MaterialStudio.js";new r("SmallWorldPreview").start().catch(r=>console.error("Failed to start preview:",r));

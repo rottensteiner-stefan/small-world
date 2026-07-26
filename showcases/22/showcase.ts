@@ -159,24 +159,24 @@ class Showcase21 extends AbstractShowcase {
     }
 
     // 5. Subscribe to Physics Collisions for heat transfer & Fuzz Audio!
-    this.events.addEventListener(
-      "physics:collision",
-      (data: { objectA: Object3D; objectB: Object3D; impulse: number }) => {
-        const heatA = this._heatMap.get(data.objectA) || 0;
-        const heatB = this._heatMap.get(data.objectB) || 0;
+    this.events.addEventListener("physics:collision", (event: Record<string, unknown>): void => {
+      const objectA = event["objectA"] as Object3D;
+      const objectB = event["objectB"] as Object3D;
+      const impulse = event["impulse"] as number;
+      const heatA = this._heatMap.get(objectA) || 0;
+      const heatB = this._heatMap.get(objectB) || 0;
 
-        // Heat generation is extremely violent now
-        this._heatMap.set(data.objectA, heatA + data.impulse * 8.0);
-        this._heatMap.set(data.objectB, heatB + data.impulse * 8.0);
+      // Heat generation is extremely violent now
+      this._heatMap.set(objectA, heatA + impulse * 8.0);
+      this._heatMap.set(objectB, heatB + impulse * 8.0);
 
-        // User requested NO other sounds except White Noise
-        // if (data.impulse > 2.0) {
-        //    const freq = 41.2 + (Math.random() * 5.0);
-        //    const vol = Math.min(1.0, data.impulse * 0.1);
-        //    AudioSystem.instance.playTone(freq, 0.4, vol, "square");
-        // }
-      },
-    );
+      // User requested NO other sounds except White Noise
+      // if (impulse > 2.0) {
+      //    const freq = 41.2 + (Math.random() * 5.0);
+      //    const vol = Math.min(1.0, impulse * 0.1);
+      //    AudioSystem.instance.playTone(freq, 0.4, vol, "square");
+      // }
+    });
   }
 
   protected override update(dt: number): void {

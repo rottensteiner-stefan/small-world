@@ -9,7 +9,11 @@
     "sourceMap": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "types": ["@webgpu/types", "@types/node"],
+    "types": [
+      "@webgpu/types",
+      "@types/node",
+      "vitest/globals"
+    ],
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
     "noPropertyAccessFromIndexSignature": true,
@@ -19,5 +23,9 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true
   },
-  "include": ["src/**/*"]
+  "include": [
+    "src/**/*",
+    "showcases/**/*",
+    "tests/**/*"
+  ]
 }

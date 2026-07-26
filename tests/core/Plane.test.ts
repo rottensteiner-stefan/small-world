@@ -5,7 +5,7 @@ describe("Plane UV Coordinate Integrity", () => {
   it("Plane UVs should map left-to-right (U) and bottom-to-top (V) on the X-Y plane", () => {
     const geo = new Plane({ width: 10, height: 10 }).getGeometryData();
     const vertices = geo.vertices;
-    const uvs = geo.uvs;
+    const uvs = geo.uvs!;
 
     // Plane faces +Z.
     // Top-Left vertex (-width/2, +height/2, 0)
@@ -20,8 +20,8 @@ describe("Plane UV Coordinate Integrity", () => {
       const x = vertices[i * 3];
       const y = vertices[i * 3 + 1];
 
-      const u = uvs[i * 2];
-      const v = uvs[i * 2 + 1];
+      const u = uvs[i * 2]!;
+      const v = uvs[i * 2 + 1]!;
 
       if (x === -5 && y === 5) {
         topLeftU = u;
@@ -45,7 +45,7 @@ describe("Plane UV Coordinate Integrity", () => {
   it("Cube Front Face (+Z) UVs should match Plane mapping logic", () => {
     const geo = new Cube({ size: 10 }).getGeometryData();
     const vertices = geo.vertices;
-    const uvs = geo.uvs;
+    const uvs = geo.uvs!;
 
     // Find top-left vertex of the Front face (+Z)
     // The front face (facing +Z) has x from -5 to +5, and y from -5 to +5.
@@ -63,8 +63,8 @@ describe("Plane UV Coordinate Integrity", () => {
       const z = vertices[i * 3 + 2];
 
       if (z === 5) {
-        const u = uvs[i * 2];
-        const v = uvs[i * 2 + 1];
+        const u = uvs[i * 2]!;
+        const v = uvs[i * 2 + 1]!;
 
         if (x === -5 && y === 5) {
           topLeftU = u;

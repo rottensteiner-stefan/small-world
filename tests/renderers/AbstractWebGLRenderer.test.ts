@@ -3,11 +3,21 @@ import { describe, expect, it, vi } from "vitest";
 import { AbstractWebGLRenderer } from "../../src/renderers/AbstractWebGLRenderer.js";
 import { type WebGLRenderPass } from "../../src/renderers/WebGLRenderPass.js";
 import { Scene } from "../../src/core/Scene.js";
+import { RendererType } from "../../src/enums/index.js";
 
 // Dummy implementation of the abstract base class
 class TestWebGLRenderer extends AbstractWebGLRenderer {
+  public override readonly type: RendererType = RendererType.WEB_GL2;
+
+  constructor(gl: WebGLRenderingContext | WebGL2RenderingContext) {
+    super();
+    this.gl = gl;
+  }
+
+  public override async initialize(): Promise<void> {}
+  public override setRenderTarget(): void {}
+  public override renderBatch(): void {}
   public override resetStateCache(): void {}
-  public override renderGroup(): void {}
   public override bindMainRenderTarget(): boolean {
     return true;
   }
@@ -57,8 +67,8 @@ describe("AbstractWebGLRenderer Pass System", () => {
     expect(pass2.execute).toHaveBeenCalledTimes(1);
 
     // Verify execution order (pass1 before pass2)
-    const order1 = (pass1.execute as import("vitest").Mock).mock.invocationCallOrder[0];
-    const order2 = (pass2.execute as import("vitest").Mock).mock.invocationCallOrder[0];
+    const order1 = (pass1.execute as import("vitest").Mock).mock.invocationCallOrder[0]!;
+    const order2 = (pass2.execute as import("vitest").Mock).mock.invocationCallOrder[0]!;
     expect(order1).toBeLessThan(order2);
   });
 });

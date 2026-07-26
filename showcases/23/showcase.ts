@@ -13,14 +13,10 @@ import {
   Vector3D,
   MathUtils,
   Cylinder,
-  BasicMaterial,
-  DeviceCaps,
-  DeviceFeature,
-  Sprite,
-  SpriteMaterial,
   Torus,
   HoverBehavior,
   RotatorBehavior,
+  BobbingBehavior,
   EmissivePulseBehavior,
   CustomShaderMaterial,
   StandardWebGPULayout,
@@ -31,8 +27,6 @@ import fragGLSL from "../../src/core/materials/shaders/Standard.frag.glsl?raw";
 import fragGLSL100 from "../../src/core/materials/shaders/Standard.frag.glsl100?raw";
 import { MarbleController } from "./MarbleController.js";
 import { DroneController } from "./DroneController.js";
-import floorTexUrl from "./assets/scifi_metal_floor.jpg";
-import bumperTexUrl from "./assets/scifi_crate_cyan.jpg";
 
 class Showcase22 extends AbstractShowcase {
   private _marble: Object3D | null = null;
@@ -117,37 +111,39 @@ class Showcase22 extends AbstractShowcase {
     // Lighting (Cyberpunk Neon vibe)
     this.scene.add(new AmbientLight({ color: Color.WHITE, intensity: 0.2 }));
 
-    // Orientation Cross (Removed)
-    /*
-    await this._addAxis("X", new Vector3D(1, 0, 0), Color.RED);
-    await this._addAxis("Y", new Vector3D(0, 1, 0), Color.GREEN);
-    await this._addAxis("Z", new Vector3D(0, 0, 1), Color.BLUE);
-    */
-
-    const purpleLight = new PointLight(new Color(0.69, 0.0, 1.0), 5.0, 50.0);
+    const purpleLight = new PointLight({
+      color: new Color(0.69, 0.0, 1.0),
+      intensity: 5.0,
+      distance: 50.0,
+    });
     purpleLight.position.set(-10, 10, 0);
     scene.add(purpleLight);
 
-    const blueLight = new PointLight(new Color(0.0, 0.8, 1.0), 3.0, 50.0);
+    const blueLight = new PointLight({
+      color: new Color(0.0, 0.8, 1.0),
+      intensity: 3.0,
+      distance: 50.0,
+    });
     blueLight.position.set(10, 10, 10);
     scene.add(blueLight);
 
-    // Textures (Vite static import)
+    // Textures
     const [floorTex, bumperTex] = await Promise.all([
-      Texture.fromUrl(floorTexUrl),
-      Texture.fromUrl(bumperTexUrl),
+      Texture.fromUrl("./assets/scifi_metal_floor.jpg"),
+      Texture.fromUrl("./assets/scifi_crate_cyan.jpg"),
     ]);
 
     // Goal Zone (Plattform 3: Z=-20 to -40. Placement at the end of the track)
     const goalMat = new StandardMaterial({
-      albedoColor: new Color(0, 1.0, 0),
+      color: new Color(0, 1.0, 0),
       emissiveColor: new Color(0, 1.0, 0),
       emissiveIntensity: 2.0,
       roughness: 0.2,
-      metalness: 0.1,
+      metallic: 0.1,
     });
     const goalZone = new Object3D("GoalZone");
-    goalZone.geometry = new Cube({ width: 10, height: 1, depth: 10 }).getGeometryData();
+    goalZone.geometry = new Cube({ size: 1 }).getGeometryData();
+    goalZone.scale.set(10, 1, 10);
     goalZone.material = goalMat;
     goalZone.position.set(0, 0.5, -35); // Y=0.5 (Plat3 top is Y=0), Z=-35 (End of Plat3)
     goalZone.rigidBody = new RigidBody(0);
@@ -223,7 +219,7 @@ class Showcase22 extends AbstractShowcase {
     this._floorMat = floorMat;
 
     // --- TRACK LAYOUT ---
-    const buildPlatform = (name: string, w: number, d: number, y: number, z: number) => {
+    const buildPlatform = (name: string, w: number, d: number, y: number, z: number): void => {
       const p = new Object3D(name);
       p.geometry = new Cube({ size: 1 }).getGeometryData();
       p.setScale(w, 10, d);
@@ -271,7 +267,7 @@ class Showcase22 extends AbstractShowcase {
     // Marble Material (Glowing Cyberpunk Cyan)
     const marbleMat = new StandardMaterial({
       roughness: 0.2,
-      metalness: 0.5,
+      metallic: 0.5,
       color: new Color(0.1, 0.8, 1.0), // Cyan
       emissiveColor: new Color(0.0, 0.4, 0.8), // Inner glow
       emissiveIntensity: 0.4, // Reduced so it doesn't become a 100% flat 2D circle!
@@ -308,7 +304,7 @@ class Showcase22 extends AbstractShowcase {
       emissiveColor: new Color(0.2, 0.2, 0.2), // Slight boost to the pink lines
       emissiveIntensity: 1.2,
       roughness: 0.3,
-      metalness: 0.7,
+      metallic: 0.7,
       color: new Color(0.8, 0.8, 0.8),
     });
 
@@ -384,7 +380,7 @@ class Showcase22 extends AbstractShowcase {
       emissiveColor: new Color(0, 1, 0.5),
       emissiveIntensity: 2.0,
       roughness: 0.2,
-      metalness: 0.8,
+      metallic: 0.8,
     });
 
     for (let i = 0; i < 10; i++) {
@@ -405,8 +401,8 @@ class Showcase22 extends AbstractShowcase {
       cell.rigidBody.isSensor = true;
 
       // Add behaviors for floating effect
-      cell.addBehavior(new RotatorBehavior(new Vector3D(0, 1, 0), 2.0));
-      cell.addBehavior(new HoverBehavior(0.3, 3.0));
+      cell.addBehavior(new RotatorBehavior(new Vector3D(0, 2.0, 0)));
+      cell.addBehavior(new BobbingBehavior(0.3, 3.0));
 
       scene.add(cell);
       this._maxScore++;
@@ -435,16 +431,16 @@ class Showcase22 extends AbstractShowcase {
       color: new Color(1, 0.8, 0),
       emissiveColor: new Color(1, 0.5, 0),
       emissiveIntensity: 1.5,
-      metalness: 0.8,
+      metallic: 0.8,
       roughness: 0.2,
     });
     hexVisual.rotation.x = MathUtils.HALF_PI; // Lay flat
     this._startButton.add(hexVisual);
 
     // Animations & Logic on the parent
-    this._startButton.addBehavior(new HoverBehavior(0.5, 2.0));
-    this._startButton.addBehavior(new RotatorBehavior(new Vector3D(0, 1, 0), 0.5));
-    this._startButton.onPointerClick = () => this._startGame();
+    this._startButton.addBehavior(new HoverBehavior(0.5));
+    this._startButton.addBehavior(new RotatorBehavior(new Vector3D(0, 0.5, 0)));
+    this._startButton.onPointerClick = (): void => this._startGame();
     scene.add(this._startButton);
 
     // --- DRONES ---
@@ -462,7 +458,7 @@ class Showcase22 extends AbstractShowcase {
           emissiveColor: c,
           emissiveIntensity: 1.5,
           roughness: 1.0,
-          metalness: 0.0,
+          metallic: 0.0,
         }),
     );
     const droneGeo = new Sphere({ radius: 0.15 }).getGeometryData();
@@ -507,7 +503,7 @@ class Showcase22 extends AbstractShowcase {
       const objA = e["objectA"] as Object3D;
       const objB = e["objectB"] as Object3D;
 
-      const checkCell = (player: Object3D, other: Object3D) => {
+      const checkCell = (player: Object3D, other: Object3D): void => {
         if (player === this._marble && other.name.startsWith("EnergyCell") && other.isVisible) {
           other.isVisible = false; // "Collect" it
           other.isCollidable = false; // Stop checking collisions
@@ -520,7 +516,7 @@ class Showcase22 extends AbstractShowcase {
         }
       };
 
-      const checkGoal = (player: Object3D, other: Object3D) => {
+      const checkGoal = (player: Object3D, other: Object3D): void => {
         if (
           player === this._marble &&
           other.name === "GoalZone" &&
@@ -560,7 +556,7 @@ class Showcase22 extends AbstractShowcase {
   private _floorMat!: CustomShaderMaterial;
   private _shaderTime: number = 0.0;
 
-  public update(dt: number): void {
+  public override update(dt: number): void {
     // Shader Animation Time update
     this._shaderTime += dt;
     if (this._floorMat) {
@@ -569,6 +565,8 @@ class Showcase22 extends AbstractShowcase {
 
     // Step the physics engine first
     this._physics.step(this.scene, dt);
+
+    if (!this._marble) return;
 
     if (!this._gameActive) {
       // Start via SPACE key
@@ -631,90 +629,6 @@ class Showcase22 extends AbstractShowcase {
     this.camera.position.z =
       this.camera.target.z +
       this._cameraRadius * Math.cos(this.camera.theta) * Math.cos(this.camera.phi);
-  }
-
-  // --- Helper methods for Orientation Cross ---
-  private async _addAxis(axis: string, direction: Vector3D, color: Color): Promise<void> {
-    const length: number = 14;
-    const halfLen: number = length / 2;
-    const axisRadius: number = 0.1;
-    const sphereRadius: number = 0.5;
-
-    const axisLine: Object3D = new Object3D(`${axis}_Axis`);
-    axisLine.geometry = new Cylinder({
-      radiusTop: axisRadius,
-      radiusBottom: axisRadius,
-      height: length,
-    }).getGeometryData();
-    axisLine.material = new BasicMaterial({ color });
-
-    if ("X" === axis) axisLine.rotation.z = -MathUtils.HALF_PI;
-    if ("Z" === axis) axisLine.rotation.x = MathUtils.HALF_PI;
-
-    // Move the entire cross up by 10 units so it's not buried in the floor
-    axisLine.position.y = 10;
-
-    this.scene.add(axisLine);
-
-    const posPos: Vector3D = new Vector3D().copyFrom(direction).scale(halfLen);
-    const negPos: Vector3D = new Vector3D().copyFrom(direction).scale(-halfLen);
-
-    posPos.y += 10;
-    negPos.y += 10;
-
-    this._addSphere(posPos, sphereRadius, color);
-    this._addSphere(negPos, sphereRadius, color);
-
-    const posLabel: string = "+";
-    const negLabel: string = "-";
-
-    await Promise.all([
-      this._addLabel(`${axis}${posLabel}`, posPos.clone().add(direction), color),
-      this._addLabel(`${axis}${negLabel}`, negPos.clone().sub(direction), color),
-    ]);
-  }
-
-  private _addSphere(position: Vector3D, radius: number, color: Color): void {
-    const sphere: Object3D = new Object3D();
-    sphere.geometry = new Sphere({ radius }).getGeometryData();
-    sphere.material = new BasicMaterial({ color });
-    sphere.position.copyFrom(position);
-    this.scene.add(sphere);
-  }
-
-  private async _addLabel(text: string, position: Vector3D, color: Color): Promise<void> {
-    const canvas: HTMLCanvasElement = document.createElement("canvas");
-    canvas.width = 128;
-    canvas.height = 128;
-    const ctx: CanvasRenderingContext2D = canvas.getContext("2d")!;
-
-    ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
-    if (DeviceCaps.hasFeature(DeviceFeature.CANVAS_ROUND_RECT)) {
-      ctx.beginPath();
-      ctx.roundRect(10, 10, 108, 108, 20);
-      ctx.fill();
-    } else {
-      ctx.fillRect(10, 10, 108, 108);
-    }
-
-    ctx.fillStyle = color.toHex();
-    ctx.font = "bold 60px Arial";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(text, 64, 64);
-
-    try {
-      const bitmap: ImageBitmap = await createImageBitmap(canvas);
-      const texture: Texture = Texture.fromImage(bitmap);
-      const material: SpriteMaterial = new SpriteMaterial({ texture });
-      const sprite: Sprite = new Sprite(material, `Label_${text}`);
-
-      sprite.position.copyFrom(position);
-      sprite.scale.set(3, 3, 3);
-      this.scene.add(sprite);
-    } catch (e) {
-      console.error(`Error creating label texture for ${text}:`, e);
-    }
   }
 }
 

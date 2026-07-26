@@ -21,6 +21,7 @@ import {
   CameraStrategyType,
   Color,
   ComputeToysImporter,
+  CullMode,
   CustomShaderMaterial,
   DirectionalLight,
   ExternalShaderUniformBehavior,
@@ -39,19 +40,19 @@ import {
 } from "../../src/index.js";
 
 class BobbingBehavior extends Behavior {
-  private timeOffset: number = Math.random() * Math.PI * 2;
-  private initialY: number = 0;
-  private speed: number = 1.0 + Math.random() * 0.5;
+  private _timeOffset: number = Math.random() * Math.PI * 2;
+  private _initialY: number = 0;
+  private _speed: number = 1.0 + Math.random() * 0.5;
 
-  public onAttach(target: Object3D): void {
+  public override onAttach(target: Object3D): void {
     super.onAttach(target);
-    this.initialY = target.position.y;
+    this._initialY = target.position.y;
   }
 
   public update(deltaTime: number): void {
     if (!this.target) return;
-    this.timeOffset += deltaTime * this.speed;
-    (this.target as Object3D).position.y = this.initialY + Math.sin(this.timeOffset) * 0.15;
+    this._timeOffset += deltaTime * this._speed;
+    (this.target as Object3D).position.y = this._initialY + Math.sin(this._timeOffset) * 0.15;
   }
 }
 
@@ -136,7 +137,7 @@ class ScreenCurvatureBehavior extends Behavior {
     this._radius = radius;
   }
 
-  public onAttach(target: Object3D): void {
+  public override onAttach(target: Object3D): void {
     super.onAttach(target);
     if (target.geometry) {
       this._flatVertices = target.geometry.vertices.slice();
@@ -221,17 +222,17 @@ class Showcase23Engine extends AbstractShowcase {
     this.camera.addBehavior(zoomBehavior);
 
     // Basic Light
-    const dirLight = new DirectionalLight(new Color(1, 1, 1), 1.0);
+    const dirLight = new DirectionalLight({ color: new Color(1, 1, 1), intensity: 1.0 });
     dirLight.direction.set(-1, -1, -1);
     this.scene.add(dirLight);
 
     // Fill Light for the right side
-    const dirLight2 = new DirectionalLight(new Color(0.8, 0.8, 1.0), 0.5);
+    const dirLight2 = new DirectionalLight({ color: new Color(0.8, 0.8, 1.0), intensity: 0.5 });
     dirLight2.direction.set(1, -0.5, -1);
     this.scene.add(dirLight2);
 
     // Ambient Light to illuminate dark metallic surfaces
-    const ambLight = new AmbientLight(new Color(1, 1, 1), 0.3);
+    const ambLight = new AmbientLight({ color: new Color(1, 1, 1), intensity: 0.3 });
     this.scene.add(ambLight);
 
     // Wireframe sphere: the "structure" the curved screens are glued to
@@ -246,9 +247,9 @@ class Showcase23Engine extends AbstractShowcase {
 
     // Build the Gallery Billboards based on API
     if (this.api === "webgl2") {
-      this.buildWebGL2Gallery();
+      this._buildWebGL2Gallery();
     } else {
-      this.buildWebGPUGallery();
+      this._buildWebGPUGallery();
     }
 
     // Setup Interaction
@@ -287,9 +288,10 @@ class Showcase23Engine extends AbstractShowcase {
         }
 
         const intersects = raycaster.intersectObjects(interactables, true);
+        const firstHit = intersects[0];
 
-        if (intersects.length > 0) {
-          const hit = intersects[0].object;
+        if (firstHit) {
+          const hit = firstHit.object;
           const container = hit.parent; // container_x_y
 
           if (container) {
@@ -371,7 +373,7 @@ class Showcase23Engine extends AbstractShowcase {
     }
   }
 
-  private buildWebGL2Gallery() {
+  private _buildWebGL2Gallery(): void {
     const shadertoyMat1 = new CustomShaderMaterial(
       new ShadertoyImporter().parse(SHADERTOY_STAR_NEST),
     );
@@ -405,25 +407,25 @@ class Showcase23Engine extends AbstractShowcase {
       sinCityMat,
       codeTunnelMat,
     ]) {
-      mat.backfaceCulling = false;
+      mat.cullMode = CullMode.NONE;
     }
 
     // Top row
-    this.createScreen(-Math.PI / 6, Math.PI / 6, shadertoyMat1);
-    this.createScreen(0, Math.PI / 6, shadertoyMat2);
-    this.createScreen(Math.PI / 6, Math.PI / 6, sandboxMat);
+    this._createScreen(-Math.PI / 6, Math.PI / 6, shadertoyMat1);
+    this._createScreen(0, Math.PI / 6, shadertoyMat2);
+    this._createScreen(Math.PI / 6, Math.PI / 6, sandboxMat);
 
     // Middle row
-    this.createScreen(-Math.PI / 6, 0, toonMat);
-    this.createScreen(0, 0, asciiMat);
-    this.createScreen(Math.PI / 6, 0, voronoiMat);
+    this._createScreen(-Math.PI / 6, 0, toonMat);
+    this._createScreen(0, 0, asciiMat);
+    this._createScreen(Math.PI / 6, 0, voronoiMat);
 
     // Bottom row
-    this.createScreen(-Math.PI / 12, -Math.PI / 6, sinCityMat);
-    this.createScreen(Math.PI / 12, -Math.PI / 6, codeTunnelMat);
+    this._createScreen(-Math.PI / 12, -Math.PI / 6, sinCityMat);
+    this._createScreen(Math.PI / 12, -Math.PI / 6, codeTunnelMat);
   }
 
-  private buildWebGPUGallery() {
+  private _buildWebGPUGallery(): void {
     const wMat1 = new CustomShaderMaterial(new ComputeToysImporter().parse(COMPUTETOYS_SYNTHWAVE));
     const wMat2 = new CustomShaderMaterial(new ComputeToysImporter().parse(COMPUTETOYS_KISHIMISU));
     const wMat3 = new CustomShaderMaterial(new ComputeToysImporter().parse(COMPUTETOYS_RAYMARCH));
@@ -453,25 +455,25 @@ class Showcase23Engine extends AbstractShowcase {
       sinCityMat,
       codeTunnelMat,
     ]) {
-      mat.backfaceCulling = false;
+      mat.cullMode = CullMode.NONE;
     }
 
     // Top row
-    this.createScreen(-Math.PI / 6, Math.PI / 6, wMat1);
-    this.createScreen(0, Math.PI / 6, wMat2);
-    this.createScreen(Math.PI / 6, Math.PI / 6, wMat3);
+    this._createScreen(-Math.PI / 6, Math.PI / 6, wMat1);
+    this._createScreen(0, Math.PI / 6, wMat2);
+    this._createScreen(Math.PI / 6, Math.PI / 6, wMat3);
 
     // Middle row
-    this.createScreen(-Math.PI / 6, 0, toonMat);
-    this.createScreen(0, 0, hexMat);
-    this.createScreen(Math.PI / 6, 0, matrixMat);
+    this._createScreen(-Math.PI / 6, 0, toonMat);
+    this._createScreen(0, 0, hexMat);
+    this._createScreen(Math.PI / 6, 0, matrixMat);
 
     // Bottom row
-    this.createScreen(-Math.PI / 12, -Math.PI / 6, sinCityMat);
-    this.createScreen(Math.PI / 12, -Math.PI / 6, codeTunnelMat);
+    this._createScreen(-Math.PI / 12, -Math.PI / 6, sinCityMat);
+    this._createScreen(Math.PI / 12, -Math.PI / 6, codeTunnelMat);
   }
 
-  private createScreen(yaw: number, pitch: number, material: CustomShaderMaterial) {
+  private _createScreen(yaw: number, pitch: number, material: CustomShaderMaterial): void {
     const radius = 10;
     // Parent container for the screen, anchored on the gallery sphere
     const container = new Object3D(`container_${yaw.toFixed(2)}_${pitch.toFixed(2)}`);
@@ -503,7 +505,7 @@ class Showcase23Engine extends AbstractShowcase {
     this.scene.add(container);
   }
 
-  protected update(): void {
+  protected override update(): void {
     // Engine base update takes care of scene and behaviors
   }
 }
@@ -522,7 +524,7 @@ async function detectApi(): Promise<string> {
   }
 }
 
-async function init() {
+async function init(): Promise<void> {
   const container = document.getElementById("container") as HTMLElement;
   container.innerHTML = '<canvas id="canvas23"></canvas>';
 

@@ -181,12 +181,11 @@ export class OilPuddleMaterial extends AbstractMaterial {
   private _ripple3 = [0, 0, 0, 0];
 
   constructor() {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    super("OIL_PUDDLE" as any);
+    super("OIL_PUDDLE");
     this.transparent = true;
   }
 
-  public addRipple(x: number, z: number, amplitude: number = 0.5) {
+  public addRipple(x: number, z: number, amplitude: number = 0.5): void {
     this._ripple3 = [...this._ripple2];
     this._ripple2 = [...this._ripple1];
     this._ripple1 = [x, z, this.time, amplitude];

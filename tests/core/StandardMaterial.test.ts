@@ -25,7 +25,7 @@ describe("StandardMaterial", () => {
   it("should initialize with custom values", () => {
     const customColor = new Color(0.1, 0.2, 0.3);
     const emissiveColor = new Color(1.0, 0.0, 0.0);
-    const emissiveTexture = new Texture("dummy");
+    const emissiveTexture = Texture.empty();
 
     const options: StandardMaterialOptions = {
       color: customColor,

@@ -38,7 +38,7 @@ describe("Input Gamepad Support", () => {
 
   it("should detect gamepad buttons mapping (A/Cross to SPACE)", () => {
     const gamepad = mockGamepad([0, 0, 0, 0], [{ pressed: true }]);
-    navigator.getGamepads = () => [gamepad];
+    navigator.getGamepads = (): Gamepad[] => [gamepad];
 
     expect(input.isPressed(Keys.SPACE)).toBe(true);
     expect(input.isPressed(Keys.ESCAPE)).toBe(false);
@@ -47,7 +47,7 @@ describe("Input Gamepad Support", () => {
   it("should map left stick to isPressed for directions", () => {
     // Left stick pushed fully up (axis 1 = -1.0)
     const gamepad = mockGamepad([0.0, -1.0, 0.0, 0.0], []);
-    navigator.getGamepads = () => [gamepad];
+    navigator.getGamepads = (): Gamepad[] => [gamepad];
 
     expect(input.isPressed(Keys.W)).toBe(true);
     expect(input.isPressed(Keys.UP)).toBe(true);
@@ -55,7 +55,7 @@ describe("Input Gamepad Support", () => {
 
     // Left stick pushed fully right (axis 0 = 1.0)
     const gamepad2 = mockGamepad([1.0, 0.0, 0.0, 0.0], []);
-    navigator.getGamepads = () => [gamepad2];
+    navigator.getGamepads = (): Gamepad[] => [gamepad2];
 
     expect(input.isPressed(Keys.D)).toBe(true);
     expect(input.isPressed(Keys.RIGHT)).toBe(true);
@@ -68,7 +68,7 @@ describe("Input Gamepad Support", () => {
       pressed: idx === 12,
     }));
     const gamepad = mockGamepad([0, 0, 0, 0], buttons);
-    navigator.getGamepads = () => [gamepad];
+    navigator.getGamepads = (): Gamepad[] => [gamepad];
 
     expect(input.isPressed(Keys.UP)).toBe(true);
     expect(input.isPressed(Keys.DOWN)).toBe(false);
@@ -77,7 +77,7 @@ describe("Input Gamepad Support", () => {
   it("should interpolate axis from analog left stick in getAxis", () => {
     // Left stick pushed 50% down (axis 1 = 0.5)
     const gamepad = mockGamepad([0.0, 0.5, 0.0, 0.0], []);
-    navigator.getGamepads = () => [gamepad];
+    navigator.getGamepads = (): Gamepad[] => [gamepad];
 
     const vertical = input.getAxis(Keys.W, Keys.S);
     expect(vertical).toBeCloseTo(0.5, 2);
@@ -86,7 +86,7 @@ describe("Input Gamepad Support", () => {
   it("should accumulate look stick to mouse delta in update", () => {
     // Right stick pushed 80% right and 50% down (axes 2 = 0.8, axis 3 = 0.5)
     const gamepad = mockGamepad([0.0, 0.0, 0.8, 0.5], []);
-    navigator.getGamepads = () => [gamepad];
+    navigator.getGamepads = (): Gamepad[] => [gamepad];
 
     input.update();
 

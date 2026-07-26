@@ -32,7 +32,7 @@ class MockInput implements InputInterface {
     return v;
   }
 
-  public setKey(code: string, pressed: boolean) {
+  public setKey(code: string, pressed: boolean): void {
     this._keys.set(code, pressed);
   }
 }

@@ -10,7 +10,7 @@ describe("PulsatingBehavior", () => {
       max: 10,
       minDuration: 1.0,
       maxDuration: 1.0,
-      onUpdate: (val) => {
+      onUpdate: (val): void => {
         lastValue = val;
       },
     });

@@ -1,1 +1,0 @@
-import"../modulepreload-polyfill.js";import{t as W}from"../MapGenerator.js";new W({parent:document.getElementById("tool-container")}).loadMapString("WWWWWWWWWW\nW........W\nW..P.....W\nW.....E..W\nW........W\nWWWWWWWWWW");

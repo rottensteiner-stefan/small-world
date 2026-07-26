@@ -143,7 +143,7 @@ export class Showcase15V2 extends AbstractShowcase {
       this.scene.brdfLUT = brdfTexture;
       this.scene.irradianceMap = irradianceTexture;
       this.scene.prefilterMap = prefilterTexture;
-      this.scene.global.envIntensity = 3.0; // Boost ambient light from dark space IBL
+      this.scene.environmentIntensity = 3.0; // Boost ambient light from dark space IBL
 
       const skybox = new Object3D("Skybox");
       skybox.geometry = new Cube({ size: 1000 }).getGeometryData();

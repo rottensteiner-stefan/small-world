@@ -97,9 +97,10 @@ export class GadgetInspector extends ForgeTool {
 
     const binding = searchTab.addBinding(searchParams, "name", { label: "🔍" });
 
-    // Use DOM events to get immediate input feedback instead of waiting for change/blur
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const inputEl = (binding as any).controller.view.valueElement.querySelector("input");
+    // Use DOM events to get immediate input feedback instead of waiting for change/blur.
+    // `element` is BladeApi's public, documented root-DOM-node getter — unlike reaching into
+    // `controller.view.valueElement` (Tweakpane internals not covered by its public API).
+    const inputEl = binding.element.querySelector("input");
     if (inputEl) {
       inputEl.addEventListener("input", (e: Event) => {
         const query = (e.target as HTMLInputElement).value.toLowerCase().trim();

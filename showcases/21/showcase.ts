@@ -3,6 +3,7 @@ import {
   Color,
   Object3D,
   StandardMaterial,
+  GlassMaterial,
   Cube,
   Sphere,
   OrbitController,
@@ -15,6 +16,7 @@ import {
   RigidBody,
   PhysicsSystem,
   ColorUtils,
+  GeometryDataInterface,
 } from "../../src/index.js";
 import { AmbientLight } from "../../src/core/lights/index.js";
 
@@ -43,8 +45,7 @@ class Showcase20 extends AbstractShowcase {
   private _spheres: Object3D[] = [];
   private _spherePool: Object3D[] = [];
   private _spawnTimer: number = 0;
-  private _sphereGeo!: import("../../src/index.js").GeometryData;
-  private _sphereMat!: StandardMaterial;
+  private _sphereGeo!: GeometryDataInterface;
   private _physics: PhysicsSystem;
 
   constructor() {
@@ -78,14 +79,13 @@ class Showcase20 extends AbstractShowcase {
     this.camera.addBehavior(new OrbitController({ input: this.input, audio: this.audio }));
 
     // 3. Environment: The Plinko/Galton Board
-    const glassMaterial = new StandardMaterial({
+    const glassMaterial = new GlassMaterial({
       color: new Color(0.1, 0.1, 0.1),
       metallic: 0.1,
       roughness: 0.1,
       transmission: 0.9, // Refractive Glass
       ior: 1.5,
       thickness: 1.0,
-      envMapIntensity: 1.0,
     });
 
     const boxGeo = new Cube({ size: 1 }).getGeometryData();
@@ -127,7 +127,7 @@ class Showcase20 extends AbstractShowcase {
     }
 
     // Add boundaries to funnel them back
-    const createWall = (x: number, rotZ: number) => {
+    const createWall = (x: number, rotZ: number): void => {
       const wall = new Object3D();
       wall.geometry = boxGeo;
       wall.material = glassMaterial;
@@ -172,31 +172,29 @@ class Showcase20 extends AbstractShowcase {
     }
 
     // 5. Subscribe to Physics Collisions for Generative Audio
-    this.events.addEventListener(
-      "physics:collision",
-      (data: { objectA: Object3D; objectB: Object3D; impulse: number }) => {
-        const impulseMag = data.impulse;
-        if (impulseMag > 0.5) {
-          // Threshold to prevent micro-collision spam
-          // Map Y position to a note in the pentatonic scale
-          const yPos = Math.max(0, Math.min(15, data.objectA.position.y));
-          const noteIndex = Math.floor((yPos / 15) * (PENTATONIC_SCALE.length - 1));
-          const freq = PENTATONIC_SCALE[noteIndex]!;
+    this.events.addEventListener("physics:collision", (event: Record<string, unknown>): void => {
+      const impulseMag = event["impulse"] as number;
+      const objectA = event["objectA"] as Object3D;
+      if (impulseMag > 0.5) {
+        // Threshold to prevent micro-collision spam
+        // Map Y position to a note in the pentatonic scale
+        const yPos = Math.max(0, Math.min(15, objectA.position.y));
+        const noteIndex = Math.floor((yPos / 15) * (PENTATONIC_SCALE.length - 1));
+        const freq = PENTATONIC_SCALE[noteIndex]!;
 
-          // Map impulse magnitude to volume (cap at 0.5)
-          const volume = Math.min(0.5, impulseMag * 0.05);
+        // Map impulse magnitude to volume (cap at 0.5)
+        const volume = Math.min(0.5, impulseMag * 0.05);
 
-          // Flash the sphere's color based on impact
-          if (data.objectA.material instanceof StandardMaterial) {
-            const origR = data.objectA.material.color.r;
-            data.objectA.material.emissiveColor.set(origR * 2, origR, origR * 2);
-          }
-
-          // Play the generative synth tone
-          this.audio.playTone(freq, 0.3, volume, "triangle");
+        // Flash the sphere's color based on impact
+        if (objectA.material instanceof StandardMaterial) {
+          const origR = objectA.material.color.r;
+          objectA.material.emissiveColor.set(origR * 2, origR, origR * 2);
         }
-      },
-    );
+
+        // Play the generative synth tone
+        this.audio.playTone(freq, 0.3, volume, "triangle");
+      }
+    });
 
     // Start audio context on first click
     window.addEventListener(

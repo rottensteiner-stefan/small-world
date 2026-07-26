@@ -1,5 +1,6 @@
 import {
   AbstractShowcase,
+  Behavior,
   Color,
   Octahedron,
   AmbientLight,
@@ -116,22 +117,19 @@ class Showcase19 extends AbstractShowcase {
     companion.addBehavior(springLerp);
 
     // Quick custom behavior just to pipe the camera position into the spring lerp target
-    companion.addBehavior({
-      target: companion,
-      onAttach: (): void => {},
-      onDetach: (): void => {},
-      update: (): void => {
-        // Offset the companion relative to the camera
-        const targetPos = new Vector3D().copyFrom(this.camera.position);
-        // Put it slightly in front and to the right
-        const forward = new Vector3D()
-          .copyFrom(this.camera.target)
-          .sub(this.camera.position)
-          .normalize();
-        targetPos.add(forward.scale(5)).add(new Vector3D(2, 0, 0));
-        springLerp.targetPosition.copyFrom(targetPos);
-      },
-    });
+    const camera = this.camera;
+    companion.addBehavior(
+      new (class extends Behavior {
+        public override update(): void {
+          // Offset the companion relative to the camera
+          const targetPos = new Vector3D().copyFrom(camera.position);
+          // Put it slightly in front and to the right
+          const forward = new Vector3D().copyFrom(camera.target).sub(camera.position).normalize();
+          targetPos.add(forward.scale(5)).add(new Vector3D(2, 0, 0));
+          springLerp.targetPosition.copyFrom(targetPos);
+        }
+      })(),
+    );
     companion.castShadow = true;
     companion.receiveShadow = true;
     this.scene.add(companion);

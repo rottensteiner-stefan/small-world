@@ -18,7 +18,7 @@ describe("RetroScreenMaterial", () => {
   });
 
   it("should initialize with custom options for tv50s", () => {
-    const texture = new Texture("dummy");
+    const texture = Texture.empty();
     const material = new RetroScreenMaterial({
       mode: "tv50s",
       intensity: 0.5,
@@ -84,8 +84,8 @@ describe("RetroScreenMaterial", () => {
     const shaderDef = material.getShaderDefinition();
 
     expect(shaderDef.id).toBe(MaterialType.RETRO_SCREEN);
-    expect(shaderDef.sources.glsl300.fs).toBeDefined();
-    expect(shaderDef.sources.glsl100.fs).toBeDefined();
+    expect(shaderDef.sources.glsl300?.fs).toBeDefined();
+    expect(shaderDef.sources.glsl100?.fs).toBeDefined();
     expect(shaderDef.sources.wgsl).toBeDefined();
     expect(shaderDef.layout.textures["u_diffuseMap"]).toEqual({
       type: "texture",

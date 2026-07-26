@@ -12,7 +12,7 @@ describe("FlickerBehavior", () => {
       maxFlickerTime: 0.2,
       minMultiplier: 0.0,
       smoothness: 0.0,
-      onUpdate: (multiplier) => {
+      onUpdate: (multiplier): void => {
         lastMultiplier = multiplier;
       },
     });

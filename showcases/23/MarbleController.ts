@@ -1,4 +1,11 @@
-import { Behavior, Keys, Vector3D, CameraInterfaceData, InputInterface } from "../../src/index.js";
+import {
+  Behavior,
+  Keys,
+  Vector3D,
+  CameraInterfaceData,
+  InputInterface,
+  Object3D,
+} from "../../src/index.js";
 
 /**
  * Controller to move a physics-based marble using WASD.
@@ -18,7 +25,7 @@ export class MarbleController extends Behavior {
   }
 
   public override update(): void {
-    if (!this.target || !this.target.rigidBody) return;
+    if (!this.target || !(this.target instanceof Object3D) || !this.target.rigidBody) return;
 
     const moveX = this._input.getAxis(Keys.A, Keys.D);
     const moveZ = this._input.getAxis(Keys.W, Keys.S);

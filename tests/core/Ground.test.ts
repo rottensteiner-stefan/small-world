@@ -7,7 +7,7 @@ describe("UV Coordinate Integrity", () => {
     // it maps standard math V coordinates where v=0 is bottom and v=1 is top.
     const geo = new Ground({ width: 10, depth: 10 }).getGeometryData();
     const vertices = geo.vertices;
-    const uvs = geo.uvs;
+    const uvs = geo.uvs!;
 
     // Find top-left vertex (-width/2, 0, -depth/2)
     let topLeftU = -1;
@@ -21,8 +21,8 @@ describe("UV Coordinate Integrity", () => {
       const x = vertices[i * 3];
       const z = vertices[i * 3 + 2];
 
-      const u = uvs[i * 2];
-      const v = uvs[i * 2 + 1];
+      const u = uvs[i * 2]!;
+      const v = uvs[i * 2 + 1]!;
 
       if (x === -5 && z === -5) {
         topLeftU = u;
@@ -46,7 +46,7 @@ describe("UV Coordinate Integrity", () => {
   it("Cube Front Face (+Z) UVs should match Ground mapping logic", () => {
     const geo = new Cube({ size: 10 }).getGeometryData();
     const vertices = geo.vertices;
-    const uvs = geo.uvs;
+    const uvs = geo.uvs!;
 
     // Find top-left vertex of the Front face (+Z)
     // The front face (facing +Z) has x from -5 to +5, and y from -5 to +5.
@@ -64,8 +64,8 @@ describe("UV Coordinate Integrity", () => {
       const z = vertices[i * 3 + 2];
 
       if (z === 5) {
-        const u = uvs[i * 2];
-        const v = uvs[i * 2 + 1];
+        const u = uvs[i * 2]!;
+        const v = uvs[i * 2 + 1]!;
 
         if (x === -5 && y === 5) {
           topLeftU = u;

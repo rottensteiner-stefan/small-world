@@ -24,7 +24,7 @@ class Showcase19 extends AbstractShowcase {
     });
   }
 
-  private async generateHexTexture(): Promise<Texture> {
+  private async _generateHexTexture(): Promise<Texture> {
     const canvas = document.createElement("canvas");
     canvas.width = 256;
     canvas.height = 256;
@@ -75,8 +75,7 @@ class Showcase19 extends AbstractShowcase {
     dirLight.castShadow = true;
     this.scene.add(dirLight);
 
-    const texture = await this.generateHexTexture();
-    this.scene.ambientLight = new AmbientLight(new Color(0.2, 0.2, 0.2));
+    const texture = await this._generateHexTexture();
 
     // Initialize Octree with a higher maxObjects to prevent massive subdivision lag
     // for 1600 moving cubes every frame!
@@ -136,7 +135,7 @@ class Showcase19 extends AbstractShowcase {
     this.scene.updateStaticOctree();
   }
 
-  protected update(): void {
+  protected override update(): void {
     // The InteractionManager and Behaviors handle the logic automatically!
   }
 }

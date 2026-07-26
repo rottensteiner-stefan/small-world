@@ -10,12 +10,13 @@ import {
   RendererType,
   PostProcessingEffectType,
   CubeTexture,
+  BloomElement,
+  StandardMaterial,
 } from "../../../src/index.js";
 import { AbstractShowcase } from "../../../src/core/index.js";
 import { Cube } from "../../../src/geometry/Cube.js";
 import { SkyboxMaterial } from "../../../src/core/materials/SkyboxMaterial.js";
 import { GltfLoader } from "../../../src/loaders/GltfLoader.js";
-import { BloomElement } from "../../../src/renderers/post/PostProcessingElement.js";
 class GLTFShowcase extends AbstractShowcase {
   private _helmet?: Object3D;
 
@@ -104,9 +105,7 @@ class GLTFShowcase extends AbstractShowcase {
       if (envTexture) {
         const applyEnvMap = (node: Object3D): void => {
           if (node.material && "envMap" in node.material) {
-            (
-              node.material as import("../core/materials/StandardMaterial.js").StandardMaterial
-            ).envMap = envTexture;
+            (node.material as StandardMaterial).envMap = envTexture;
           }
           node.children.forEach(applyEnvMap);
         };

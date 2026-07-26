@@ -12,7 +12,7 @@ describe("DepthMaterial", () => {
   });
 
   it("should initialize with custom options", () => {
-    const texture = new Texture("dummy");
+    const texture = Texture.empty();
     const material = new DepthMaterial({
       alphaTest: 0.5,
       diffuseMap: texture,

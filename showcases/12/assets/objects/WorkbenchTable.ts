@@ -1,5 +1,4 @@
-import { Cube, Cylinder, Object3D } from "../../../../src/index.js";
-import { AbstractMaterial } from "../../../../src/index.js";
+import { Cube, Cylinder, Object3D, AbstractMaterial } from "../../../../src/index.js";
 import { GeometryDataInterface } from "../../../../src/interfaces/index.js";
 
 const applyBoxUVs = (

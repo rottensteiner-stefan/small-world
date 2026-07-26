@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.70.0] - 2026-07-26
+
+### "Order is the shape upon which beauty depends." - Pearl S. Buck
+
+- **Features:**
+  - **Open Water Evolution:** Increased Gerstner wave octaves from 3 to 5 using shader-side derivations for highly organic, irregular water surfaces in `OpenWaterMaterial`.
+- **Housekeeping & Docs:**
+  - **Strict Scope Expansion:** Added `showcases/**/*` and `tests/**/*` to `tsconfig.json` for strict type checking.
+  - **Massive Type Refactoring:** Fixed countless null-assertion errors in tests (`!`), renamed hundreds of private class properties to use a leading underscore `_`, and standardized `AbstractMaterial` typing across all showcases to strictly adhere to engine guidelines.
+
 ## [0.69.9] - 2026-07-25
 
 ### "To attain knowledge, add things everyday. To attain wisdom, subtract things everyday." - Lao Tzu

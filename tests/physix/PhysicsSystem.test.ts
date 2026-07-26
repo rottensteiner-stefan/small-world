@@ -474,7 +474,9 @@ describe("PhysicsSystem", () => {
     // Mock Octree to reject s2, forcing it into _broadphaseFallback
     const { Octree } = await import("../../src/core/Octree.js");
     const originalInsert = Octree.prototype.insert;
-    Octree.prototype.insert = function (obj: import("../../src/interfaces/index.js").Collidable) {
+    Octree.prototype.insert = function (
+      obj: import("../../src/interfaces/index.js").Collidable,
+    ): boolean {
       if (obj === s2) return false;
       return originalInsert.call(this, obj);
     };

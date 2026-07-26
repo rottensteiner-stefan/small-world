@@ -1,5 +1,5 @@
 import { Object3D } from "./Object3D.js";
-import { Octree } from "./Octree.js";
+import { Octree, OctreeOptions } from "./Octree.js";
 import { Fog } from "./Fog.js";
 import { Matrix4, Frustum, Vector3D } from "../math/index.js";
 import { BoundingBox, SpatialHash } from "../physix/index.js";
@@ -67,9 +67,9 @@ export class Scene {
     this.root.remove(...objs);
   }
 
-  public initOctrees(bounds: BoundingBox): void {
-    this.staticOctree = new Octree(bounds);
-    this.dynamicOctree = new Octree(bounds);
+  public initOctrees(bounds: BoundingBox, options: OctreeOptions = {}): void {
+    this.staticOctree = new Octree(bounds, options);
+    this.dynamicOctree = new Octree(bounds, options);
   }
 
   public getObjectByName(name: string): Object3D | undefined {
