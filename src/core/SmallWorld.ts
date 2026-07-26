@@ -63,8 +63,8 @@ export abstract class SmallWorld {
   protected constructor(userConfig: EngineOptions = {}) {
     this.config = {
       canvasId: "SmallWorld",
-      rendererType: RendererType.BEST,
-      projectionType: ProjectionType.PERSPECTIVE,
+      rendererType: RendererType.DEFAULT,
+      projectionType: ProjectionType.DEFAULT,
       fullscreen: true,
       enableInspector: false,
       ...userConfig,
@@ -92,7 +92,7 @@ export abstract class SmallWorld {
           [ProjectionType.OBLIQUE]: ObliqueProjection.fromConfig,
         };
         const build =
-          projectionBuilders[this.config.projectionType ?? ProjectionType.PERSPECTIVE] ??
+          projectionBuilders[this.config.projectionType ?? ProjectionType.DEFAULT] ??
           PerspectiveProjection.fromConfig;
         return build(this.config.projectionOptions, initialAspect);
       })();

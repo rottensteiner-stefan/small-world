@@ -8,6 +8,8 @@ export const ProjectionType = {
   ORTHOGRAPHIC: "OrthographicProjection",
   /** Perspective projection. */
   PERSPECTIVE: "PerspectiveProjection",
+  /** The projection assumed when none is specified. */
+  DEFAULT: "PerspectiveProjection",
 } as const;
 
 /** Type definition for ProjectionType. */

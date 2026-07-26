@@ -14,6 +14,8 @@ export const TextureFilter = {
   NEAREST_MIPMAP_LINEAR: "nearest_mipmap_linear",
   /** Nearest filtering with nearest mipmap. */
   NEAREST_MIPMAP_NEAREST: "nearest_mipmap_nearest",
+  /** The filter assumed when none is specified. */
+  DEFAULT: "linear",
 } as const;
 
 /** Type definition for TextureFilter. */

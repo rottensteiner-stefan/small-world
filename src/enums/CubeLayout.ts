@@ -14,6 +14,8 @@ export const CubeLayout = {
   CROSS_HORIZONTAL: "cross_horizontal",
   /** 3x4 vertical cross. */
   CROSS_VERTICAL: "cross_vertical",
+  /** The layout assumed when none is specified. */
+  DEFAULT: "six_images",
 } as const;
 
 /** Type definition for CubeLayout. */

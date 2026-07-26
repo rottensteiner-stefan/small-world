@@ -55,7 +55,7 @@ export class OscillatorBehavior extends Behavior {
    */
   constructor(options: OscillatorOptions) {
     super();
-    this.type = options.type ?? OscillatorType.SINE;
+    this.type = options.type ?? OscillatorType.DEFAULT;
     this.amplitude = options.amplitude ?? 1.0;
     this.frequency = options.frequency ?? 1.0;
     this.offset = options.offset ?? 0.0;

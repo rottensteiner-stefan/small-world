@@ -32,7 +32,7 @@ export class Fog {
 
   constructor(options: FogOptions = {}) {
     this.color = options.color ?? new Color(0.5, 0.5, 0.5);
-    this.mode = options.mode ?? FogMode.EXP2;
+    this.mode = options.mode ?? FogMode.DEFAULT;
     this.density = options.density ?? 0.05;
     this.near = options.near ?? 1.0;
     this.far = options.far ?? 100.0;

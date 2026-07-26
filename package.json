@@ -15,6 +15,7 @@
     "lint": "eslint .",
     "lint:wgsl": "tsx scripts/lint-wgsl.ts",
     "lint:fix": "eslint . --fix",
+    "typecheck": "tsc --noEmit",
     "prebuild": "node scripts/update-version.js",
     "preview": "vite preview",
     "test": "vitest run",

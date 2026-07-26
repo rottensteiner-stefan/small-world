@@ -3,6 +3,7 @@ import BLOOM_UPSAMPLE_WGSL from "../../../core/materials/shaders/BloomUpsample.f
 // Fullscreen triangle vertex shader
 import FULLSCREEN_VERT_WGSL from "../../../core/materials/shaders/PostProcess.vert.wgsl?raw";
 import { BloomElement } from "../elements/index.js";
+import { TextureFilter, TextureWrap, Topology } from "../../../enums/index.js";
 
 /**
  * Handles the Bloom generation (Kawase Dual Filtering) for WebGPU.
@@ -31,10 +32,10 @@ export class BloomPassGPU {
 
   private _buildPipelines(): void {
     this._sampler = this._device.createSampler({
-      minFilter: "linear",
-      magFilter: "linear",
-      addressModeU: "clamp-to-edge",
-      addressModeV: "clamp-to-edge",
+      minFilter: TextureFilter.LINEAR,
+      magFilter: TextureFilter.LINEAR,
+      addressModeU: TextureWrap.CLAMP_TO_EDGE,
+      addressModeV: TextureWrap.CLAMP_TO_EDGE,
     });
 
     const bgl = this._device.createBindGroupLayout({
@@ -58,7 +59,7 @@ export class BloomPassGPU {
         entryPoint: "fs_main",
         targets: [{ format: "rgba16float" }],
       },
-      primitive: { topology: "triangle-list" },
+      primitive: { topology: Topology.TRIANGLE_LIST },
     });
 
     this._upsamplePipeline = this._device.createRenderPipeline({
@@ -77,7 +78,7 @@ export class BloomPassGPU {
           },
         ],
       },
-      primitive: { topology: "triangle-list" },
+      primitive: { topology: Topology.TRIANGLE_LIST },
     });
   }
 

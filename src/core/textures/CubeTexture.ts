@@ -37,7 +37,7 @@ export class CubeTexture {
       if (
         Array.isArray(urls) &&
         6 === urls.length &&
-        (undefined === layout || CubeLayout.SIX_IMAGES === layout)
+        (undefined === layout || CubeLayout.DEFAULT === layout)
       ) {
         this.images = await Promise.all(
           urls.map((url: string) => AssetManager.loadImage(url, undefined, false)),

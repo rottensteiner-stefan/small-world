@@ -7,7 +7,7 @@ import { ToneMappingMode, PostProcessingEffectType } from "../../../enums/index.
 export class ToneMappingElement extends PostProcessingElement {
   public readonly type = PostProcessingEffectType.TONE_MAPPING;
 
-  public mode: ToneMappingMode = ToneMappingMode.ACES_FILMIC;
+  public mode: ToneMappingMode = ToneMappingMode.DEFAULT;
   public exposure: number = 1.0;
   public gamma: number = 2.2;
 }

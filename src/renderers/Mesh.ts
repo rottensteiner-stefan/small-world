@@ -29,6 +29,9 @@ export class Mesh {
   /** The GL data type of the wireframe indices. */
   public wireframeIndexType: number = 0;
 
+  /** Number of live Object3D instances currently referencing this mesh's geometry. */
+  public refCount: number = 0;
+
   private _gl: WebGLRenderingContext | WebGL2RenderingContext;
 
   /**
@@ -166,5 +169,15 @@ export class Mesh {
       this._gl.bindBuffer(this._gl.ARRAY_BUFFER, this.tanbo);
       this._gl.bufferData(this._gl.ARRAY_BUFFER, data.tangents, this._gl.STATIC_DRAW);
     }
+  }
+
+  /** Deletes all GPU buffers owned by this mesh. Call only once its refCount reaches 0. */
+  public dispose(): void {
+    if (this.vbo) this._gl.deleteBuffer(this.vbo);
+    if (this.ebo) this._gl.deleteBuffer(this.ebo);
+    if (this.webo) this._gl.deleteBuffer(this.webo);
+    if (this.nbo) this._gl.deleteBuffer(this.nbo);
+    if (this.tanbo) this._gl.deleteBuffer(this.tanbo);
+    if (this.tbo) this._gl.deleteBuffer(this.tbo);
   }
 }

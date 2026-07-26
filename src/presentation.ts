@@ -31,7 +31,7 @@ class PresentationDemoApp extends AbstractShowcase {
     super({
       canvasId: "SmallWorldCanvas",
       fullscreen: false,
-      rendererType: RendererType.BEST,
+      rendererType: RendererType.DEFAULT,
     });
   }
 

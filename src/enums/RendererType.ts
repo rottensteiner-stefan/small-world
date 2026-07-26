@@ -12,6 +12,8 @@ export const RendererType = {
   WEB_GL1: "WEB_GL1",
   /** 2D Canvas fallback renderer. */
   CANVAS: "CANVAS",
+  /** The renderer type assumed when none is specified. */
+  DEFAULT: "BEST",
 } as const;
 
 /** Type definition for RendererType. */

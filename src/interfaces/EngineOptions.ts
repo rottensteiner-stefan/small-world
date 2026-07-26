@@ -1,4 +1,4 @@
-import { ProjectionType, RendererType, InputMode } from "../enums/index.js";
+import { ProjectionType, RendererType, InputMode, ToneMappingMode } from "../enums/index.js";
 import { AbstractProjection } from "../math/projections/index.js";
 /**
  * Configuration for a single renderer backend.
@@ -116,7 +116,7 @@ export interface PostProcessingConfig {
   filterMode?: number;
   toneMapping?: {
     enabled?: boolean;
-    mode?: number;
+    mode?: ToneMappingMode;
     exposure?: number;
     gamma?: number;
   };

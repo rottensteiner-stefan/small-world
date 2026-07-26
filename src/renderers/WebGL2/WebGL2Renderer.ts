@@ -42,6 +42,8 @@ interface ProgramCache {
   prog: WebGLProgram;
   uniforms: Map<string, WebGLUniformLocation | undefined>;
   attributes: Map<string, number>;
+  /** Number of live Object3D instances currently referencing this compiled program. */
+  refCount: number;
 }
 
 /**
@@ -55,8 +57,14 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
   private _programs: Map<string, ProgramCache> = new Map();
 
   private _cache: Map<GeometryDataInterface, Mesh> = new Map();
+  private _lastKnownGeometry: WeakMap<Object3D, GeometryDataInterface> = new WeakMap();
+  private _lastKnownProgramKey: WeakMap<Object3D, string> = new WeakMap();
   private _texCache: Map<Texture, WebGLTexture> = new Map();
   private _texCubeCache: Map<CubeTexture, WebGLTexture> = new Map();
+  private _texRefCounts: Map<Texture, number> = new Map();
+  private _texCubeRefCounts: Map<CubeTexture, number> = new Map();
+  private _lastKnownTextures: WeakMap<Object3D, Record<string, Texture | CubeTexture | undefined>> =
+    new WeakMap();
   private _instanceBuffers: WeakMap<InstancedMesh, WebGLBuffer> = new WeakMap();
   private _instanceDataBuffers: WeakMap<InstancedMesh, WebGLBuffer> = new WeakMap();
   private _scratchTransparentMap: Map<string, Object3D[]> = new Map();
@@ -155,13 +163,17 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     this._stateDepthTest = null;
   }
 
+  private _programCacheKey(shaderId: string, isInstanced: boolean, flags: string[]): string {
+    const flagKey = flags.length > 0 ? "_" + flags.join("_") : "";
+    return isInstanced ? `${shaderId}_instanced${flagKey}` : `${shaderId}${flagKey}`;
+  }
+
   private _getProgram(
     shaderId: string,
     isInstanced: boolean = false,
     flags: string[] = [],
   ): ProgramCache {
-    const flagKey = flags.length > 0 ? "_" + flags.join("_") : "";
-    const key = isInstanced ? `${shaderId}_instanced${flagKey}` : `${shaderId}${flagKey}`;
+    const key = this._programCacheKey(shaderId, isInstanced, flags);
     let cache = this._programs.get(key);
     if (!cache) {
       const def = ShaderRegistry.instance.get(shaderId);
@@ -271,10 +283,42 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         uniforms.set(name, this.gl.getUniformLocation(prog, name) ?? undefined);
       }
 
-      cache = { prog, uniforms, attributes };
+      cache = { prog, uniforms, attributes, refCount: 0 };
       this._programs.set(key, cache);
     }
     return cache;
+  }
+
+  /**
+   * Tracks that `obj` currently depends on the compiled program identified by `key`
+   * (same key format `_getProgram` computes internally). Called once per object per
+   * frame from the render loop, independent from `_getProgram`'s own batch-level
+   * lookup-or-create, since one program is typically shared by many objects at once
+   * (e.g. every shadow-caster shares the single DEPTH program).
+   */
+  private _acquireProgram(obj: Object3D, key: string): void {
+    const lastKey = this._lastKnownProgramKey.get(obj);
+    if (lastKey === key) return;
+    if (lastKey) this._releaseObjectProgram(obj);
+
+    const cache = this._programs.get(key);
+    if (cache) cache.refCount++;
+    this._lastKnownProgramKey.set(obj, key);
+  }
+
+  /** Releases the compiled program this object was referencing, if its refCount drops to zero. */
+  private _releaseObjectProgram(obj: Object3D): void {
+    const key = this._lastKnownProgramKey.get(obj);
+    if (!key) return;
+    this._lastKnownProgramKey.delete(obj);
+
+    const cache = this._programs.get(key);
+    if (!cache) return;
+    cache.refCount--;
+    if (cache.refCount <= 0) {
+      this.gl.deleteProgram(cache.prog);
+      this._programs.delete(key);
+    }
   }
 
   private _getWebGLTexture(tex: Texture): WebGLTexture {
@@ -729,18 +773,14 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       for (const o of objects) {
         if (!o.castShadow || !o.geometry) continue;
 
+        this._acquireProgram(o, this._programCacheKey(MaterialType.DEPTH, false, []));
+        this._acquireTextures(o, manifest.textures);
+
         this._scratchModelMatrix.set(o.worldMatrix.data);
         const uModel = cache.uniforms.get("u_model");
         if (uModel) this.gl.uniformMatrix4fv(uModel, false, this._scratchModelMatrix);
 
-        let mesh = this._cache.get(o.geometry);
-        if (!mesh) {
-          mesh = new Mesh(this.gl, o.geometry);
-          this._cache.set(o.geometry, mesh);
-        } else if (o.geometry.needsUpdate) {
-          mesh.update(o.geometry);
-          o.geometry.needsUpdate = false;
-        }
+        const mesh = this._getOrCreateMesh(o, o.geometry);
 
         mesh.bind(
           cache.attributes.get("a_position")!,
@@ -806,12 +846,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     const mat = firstObj.material!;
     const manifest = mat.getRenderManifest();
 
-    // WebGL topology: 4 is TRIANGLES, 1 is LINES... we just use the number directly or let subgroup handle it.
-    // Wait, the interface expects topology to be string? No, in WebGL it was string or number. Wait.
-    // In WebGL2Renderer topology was string in the signature above? Let's check the old signature string.
-    // It says `topology: string` in the match. Let's pass `batch!.topology as string`.
-
-    const topo = batch!.topology as string;
+    const topo = batch!.topology;
 
     if (standardObjects.length > 0) {
       this._renderSubgroup(
@@ -848,7 +883,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     isInstanced: boolean,
     manifest: RenderManifest,
     vMat?: Float32Array,
-    topology: string = "triangle-list",
+    topology: Topology = Topology.DEFAULT,
     lights?: LightDataInterface,
     scene?: Scene,
     wireframeMode?: "structural" | "triangles",
@@ -871,6 +906,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     }
 
     const cache = this._getProgram(manifest.shaderId, isInst, shaderFlags);
+    const programKey = this._programCacheKey(manifest.shaderId, isInst, shaderFlags);
     this.gl.useProgram(cache.prog);
 
     this._bindDummyShadowMaps(cache);
@@ -1178,6 +1214,9 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     for (const o of objects) {
       if (!o.geometry) continue;
 
+      this._acquireProgram(o, programKey);
+      this._acquireTextures(o, manifest.textures);
+
       if (isInstanced) {
         const instMesh = o as InstancedMesh;
 
@@ -1196,14 +1235,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
           instMesh.instanceMatrixNeedsUpdate = false;
         }
 
-        let mesh = this._cache.get(instMesh.geometry!);
-        if (!mesh) {
-          mesh = new Mesh(this.gl, instMesh.geometry!);
-          this._cache.set(instMesh.geometry!, mesh);
-        } else if (instMesh.geometry!.needsUpdate) {
-          mesh.update(instMesh.geometry!);
-          instMesh.geometry!.needsUpdate = false;
-        }
+        const mesh = this._getOrCreateMesh(instMesh, instMesh.geometry!);
 
         mesh.bind(
           cache.attributes.get("a_position")!,
@@ -1304,14 +1336,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         if (uModel) this.gl.uniformMatrix4fv(uModel, false, this._scratchModelMatrix);
 
         // Bind and Draw Geometry
-        let mesh = this._cache.get(o.geometry);
-        if (!mesh) {
-          mesh = new Mesh(this.gl, o.geometry);
-          this._cache.set(o.geometry, mesh);
-        } else if (o.geometry.needsUpdate) {
-          mesh.update(o.geometry);
-          o.geometry.needsUpdate = false;
-        }
+        const mesh = this._getOrCreateMesh(o, o.geometry);
 
         mesh.bind(
           cache.attributes.get("a_position")!,
@@ -1460,6 +1485,129 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     }
   }
 
+  /**
+   * Looks up (or lazily creates) the GPU mesh for an object's geometry, and tracks
+   * per-object geometry references so `releaseObjectResources` can correctly free
+   * buffers once nothing references them anymore -- even when geometry is shared
+   * across many objects (see showcases/19) or swapped on a live object at runtime.
+   */
+  private _getOrCreateMesh(obj: Object3D, geo: GeometryDataInterface): Mesh {
+    let mesh = this._cache.get(geo);
+    if (!mesh) {
+      mesh = new Mesh(this.gl, geo);
+      this._cache.set(geo, mesh);
+    } else if (geo.needsUpdate) {
+      mesh.update(geo);
+      geo.needsUpdate = false;
+    }
+
+    const lastGeo = this._lastKnownGeometry.get(obj);
+    if (lastGeo !== geo) {
+      if (lastGeo) this._releaseGeometryFor(obj);
+      mesh.refCount++;
+      this._lastKnownGeometry.set(obj, geo);
+    }
+
+    return mesh;
+  }
+
+  private _releaseGeometryFor(obj: Object3D): void {
+    const geo = this._lastKnownGeometry.get(obj);
+    if (!geo) return;
+    this._lastKnownGeometry.delete(obj);
+
+    const mesh = this._cache.get(geo);
+    if (!mesh) return;
+    mesh.refCount--;
+    if (mesh.refCount <= 0) {
+      mesh.dispose();
+      this._cache.delete(geo);
+    }
+  }
+
+  /**
+   * Tracks that `obj` currently depends on the textures in `textures` (typically
+   * `material.getRenderManifest().textures`). Called once per object per frame from
+   * the render loop. `textures` is diffed key-by-key against `obj`'s last-known
+   * snapshot rather than by container reference, since a material's manifest object
+   * is created once and mutated in place on every `getRenderManifest()` call.
+   */
+  private _acquireTextures(
+    obj: Object3D,
+    textures: Record<string, Texture | CubeTexture | undefined>,
+  ): void {
+    const lastTextures = this._lastKnownTextures.get(obj);
+    const snapshot: Record<string, Texture | CubeTexture | undefined> = {};
+
+    for (const key of Object.keys(textures)) {
+      const current = textures[key];
+      const last = lastTextures?.[key];
+      if (current !== last) {
+        if (last) this._releaseTexture(last);
+        if (current) this._acquireTexture(current);
+      }
+      snapshot[key] = current;
+    }
+
+    this._lastKnownTextures.set(obj, snapshot);
+  }
+
+  private _acquireTexture(tex: Texture | CubeTexture): void {
+    if (tex instanceof CubeTexture) {
+      this._texCubeRefCounts.set(tex, (this._texCubeRefCounts.get(tex) ?? 0) + 1);
+    } else {
+      this._texRefCounts.set(tex, (this._texRefCounts.get(tex) ?? 0) + 1);
+    }
+  }
+
+  private _releaseTexture(tex: Texture | CubeTexture): void {
+    // Render targets are backed by the same Texture/CubeTexture base classes (so they
+    // can be assigned directly to a material, e.g. for portals/mirrors/reflection
+    // probes) but are re-rendered into and reused across frames independently of any
+    // one object's material reference -- their lifecycle belongs to whoever owns the
+    // render target, not to this per-object refcount. Only untrack our reference to
+    // it, never delete the underlying WebGLTexture here.
+    if (tex instanceof RenderTarget || tex instanceof RenderTargetCube) return;
+
+    if (tex instanceof CubeTexture) {
+      const count = (this._texCubeRefCounts.get(tex) ?? 1) - 1;
+      if (count <= 0) {
+        const glTex = this._texCubeCache.get(tex);
+        if (glTex) this.gl.deleteTexture(glTex);
+        this._texCubeCache.delete(tex);
+        this._texCubeRefCounts.delete(tex);
+      } else {
+        this._texCubeRefCounts.set(tex, count);
+      }
+    } else {
+      const count = (this._texRefCounts.get(tex) ?? 1) - 1;
+      if (count <= 0) {
+        const glTex = this._texCache.get(tex);
+        if (glTex) this.gl.deleteTexture(glTex);
+        this._texCache.delete(tex);
+        this._texRefCounts.delete(tex);
+      } else {
+        this._texRefCounts.set(tex, count);
+      }
+    }
+  }
+
+  private _releaseObjectTextures(obj: Object3D): void {
+    const textures = this._lastKnownTextures.get(obj);
+    if (!textures) return;
+    this._lastKnownTextures.delete(obj);
+    for (const tex of Object.values(textures)) {
+      if (tex) this._releaseTexture(tex);
+    }
+  }
+
+  /** @inheritdoc */
+  protected override releaseObjectResources(obj: Object3D): void {
+    this._releaseGeometryFor(obj);
+    this._releaseObjectProgram(obj);
+    this._releaseObjectTextures(obj);
+  }
+
   /** @inheritdoc */
   public override destroy(): void {
     const gl = this.gl;
@@ -1467,14 +1615,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       for (const cache of this._programs.values()) gl.deleteProgram(cache.prog);
       for (const tex of this._texCache.values()) gl.deleteTexture(tex);
       for (const tex of this._texCubeCache.values()) gl.deleteTexture(tex);
-      for (const mesh of this._cache.values()) {
-        if (mesh.vbo) gl.deleteBuffer(mesh.vbo);
-        if (mesh.ebo) gl.deleteBuffer(mesh.ebo);
-        if (mesh.webo) gl.deleteBuffer(mesh.webo);
-        if (mesh.nbo) gl.deleteBuffer(mesh.nbo);
-        if (mesh.tanbo) gl.deleteBuffer(mesh.tanbo);
-        if (mesh.tbo) gl.deleteBuffer(mesh.tbo);
-      }
+      for (const mesh of this._cache.values()) mesh.dispose();
       for (const fbo of this._renderTargetFbos.values()) fbo.destroy();
       for (const fbo of this._renderTargetCubeFbos.values()) fbo.destroy();
       for (const shadowFbo of this._shadowMaps.values()) shadowFbo.destroy();

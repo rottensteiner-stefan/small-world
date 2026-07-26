@@ -1,6 +1,6 @@
 import { Scene, Color } from "../../core/index.js";
 import { DepthMaterial } from "../../core/materials/index.js";
-import { MaterialType } from "../../enums/index.js";
+import { MaterialType, Topology } from "../../enums/index.js";
 import { WebGPURenderer } from "../WebGPU/WebGPURenderer.js";
 import { RenderPass } from "../index.js";
 import { InstancedMesh } from "../../core/InstancedMesh.js";
@@ -146,10 +146,10 @@ export class CascadedShadowPassGPU implements RenderPass {
         const batch = renderList.opaqueBatches[batchIdx];
         if (batch!.shaderId === MaterialType.SKYBOX || batch!.objects.length === 0) continue;
 
-        let topology: GPUPrimitiveTopology = "triangle-list";
-        if (batch!.topology === "point-list") topology = "point-list";
-        else if (batch!.topology === "line-list") topology = "line-list";
-        else if (batch!.topology === "line-strip") topology = "line-strip";
+        let topology: GPUPrimitiveTopology = Topology.DEFAULT;
+        if (batch!.topology === Topology.POINT_LIST) topology = Topology.POINT_LIST;
+        else if (batch!.topology === Topology.LINE_LIST) topology = Topology.LINE_LIST;
+        else if (batch!.topology === Topology.LINE_STRIP) topology = Topology.LINE_STRIP;
 
         const objects = batch!.objects;
 

@@ -4,7 +4,12 @@ import { Scene } from "../../core/index.js";
 import { WebGPURenderer } from "../WebGPU/index.js";
 import { RenderPass } from "../index.js";
 import { Vector3D } from "../../math/index.js";
-import { PostProcessingEffectType } from "../../enums/index.js";
+import {
+  PostProcessingEffectType,
+  TextureFilter,
+  TextureWrap,
+  Topology,
+} from "../../enums/index.js";
 import { ShaderRegistry } from "../../core/renderers/shaders/index.js";
 
 /**
@@ -72,10 +77,10 @@ export class PostProcessPass implements RenderPass {
     const device = renderer._device!;
 
     this._sampler ??= device.createSampler({
-      minFilter: "linear",
-      magFilter: "linear",
-      addressModeU: "clamp-to-edge",
-      addressModeV: "clamp-to-edge",
+      minFilter: TextureFilter.LINEAR,
+      magFilter: TextureFilter.LINEAR,
+      addressModeU: TextureWrap.CLAMP_TO_EDGE,
+      addressModeV: TextureWrap.CLAMP_TO_EDGE,
     });
 
     if (!this._uniformBuffer) {
@@ -193,7 +198,7 @@ export class PostProcessPass implements RenderPass {
         entryPoint: "fs_main",
         targets: [{ format: renderer._format }],
       },
-      primitive: { topology: "triangle-list" },
+      primitive: { topology: Topology.TRIANGLE_LIST },
     });
 
     this._bindGroup = device.createBindGroup({

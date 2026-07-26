@@ -10,6 +10,8 @@ export const Topology = {
   POINT_LIST: "point-list",
   /** A strip of lines. */
   LINE_STRIP: "line-strip",
+  /** The topology assumed when none is specified. */
+  DEFAULT: "triangle-list",
 } as const;
 
 /** Type definition for Topology. */

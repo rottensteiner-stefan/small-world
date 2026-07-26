@@ -51,7 +51,7 @@ export class CustomShaderMaterial extends AbstractMaterial {
     this.textures = options.textures ?? {};
 
     this.transparent = options.transparent ?? false;
-    this.cullMode = options.cullMode ?? CullMode.BACK;
+    this.cullMode = options.cullMode ?? CullMode.DEFAULT;
     this.depthWrite = options.depthWrite ?? true;
     this.depthTest = options.depthTest ?? true;
 

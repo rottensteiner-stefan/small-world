@@ -20,9 +20,11 @@ import {
 import { MathPool, Vector3D, Matrix4 } from "../../math/index.js";
 import {
   BlendingMode,
+  CullMode,
   RendererType,
   TextureFilter,
   TextureWrap,
+  Topology,
   PostProcessingEffectType,
 } from "../../enums/index.js";
 import { AbstractRenderer } from "../AbstractRenderer.js";
@@ -47,12 +49,16 @@ export interface WebGPUGeoCache {
   wireframeIndexCount: number;
   vertexCount: number;
   format: GPUIndexFormat | undefined;
+  /** Number of live Object3D instances currently referencing this geometry. */
+  refCount: number;
 }
 
 export interface WebGPUPipelineCache {
   pipeline: GPURenderPipeline;
   layout: GPUPipelineLayout;
   bgLayouts: GPUBindGroupLayout[];
+  /** Number of live Object3D instances currently referencing this pipeline. */
+  refCount: number;
 }
 
 /**
@@ -89,7 +95,8 @@ export class WebGPURenderer extends AbstractRenderer {
       resources: unknown[];
     }
   >();
-  protected _textureViewCache = new Map<Texture, GPUTextureView>();
+  protected _textureViewCache = new Map<Texture, { texture: GPUTexture; view: GPUTextureView }>();
+  private _texRefCounts: Map<Texture, number> = new Map();
   public _whiteTexView!: GPUTextureView;
   public _blackTexView!: GPUTextureView;
   public _dummyDepthTexView!: GPUTextureView;
@@ -105,6 +112,8 @@ export class WebGPURenderer extends AbstractRenderer {
   public _defaultSpotShadowTexView!: GPUTextureView;
   protected _shadowSampler!: GPUSampler;
   protected _geoCache = new Map<GeometryDataInterface, WebGPUGeoCache>();
+  private _lastKnownGeometry = new WeakMap<Object3D, GeometryDataInterface>();
+  private _lastKnownPipelineKey = new WeakMap<Object3D, string>();
   protected _gpuInstanceBuffers: WeakMap<InstancedMesh, GPUBuffer> = new WeakMap();
   protected _gpuInstanceDataBuffers: WeakMap<InstancedMesh, GPUBuffer> = new WeakMap();
   protected _materialBGLCache = new Map<string, GPUBindGroupLayout>();
@@ -117,7 +126,11 @@ export class WebGPURenderer extends AbstractRenderer {
 
   protected _dummyBufferSize: number = 0;
 
-  protected _cubeTextureViewCache: Map<CubeTexture, GPUTextureView> = new Map();
+  protected _cubeTextureViewCache: Map<CubeTexture, { texture: GPUTexture; view: GPUTextureView }> =
+    new Map();
+  private _texCubeRefCounts: Map<CubeTexture, number> = new Map();
+  private _lastKnownTextures: WeakMap<Object3D, Record<string, Texture | CubeTexture | undefined>> =
+    new WeakMap();
 
   public _scratchGlobalBufferData = new Float32Array(204);
   protected _scratchPointLightData = new Float32Array(32); // Max 4 lights
@@ -349,12 +362,14 @@ export class WebGPURenderer extends AbstractRenderer {
   }
 
   protected _getSampler(tex: Texture | undefined): GPUSampler {
-    const mag = tex?.magFilter === TextureFilter.NEAREST ? "nearest" : "linear";
-    const min = tex?.minFilter === TextureFilter.NEAREST ? "nearest" : "linear";
+    const mag =
+      tex?.magFilter === TextureFilter.NEAREST ? TextureFilter.NEAREST : TextureFilter.LINEAR;
+    const min =
+      tex?.minFilter === TextureFilter.NEAREST ? TextureFilter.NEAREST : TextureFilter.LINEAR;
     const mapWrap = (w: TextureWrap | undefined): GPUAddressMode => {
-      if (w === TextureWrap.REPEAT) return "repeat";
-      if (w === TextureWrap.MIRRORED_REPEAT) return "mirror-repeat";
-      return "clamp-to-edge";
+      if (w === TextureWrap.REPEAT) return TextureWrap.REPEAT;
+      if (w === TextureWrap.MIRRORED_REPEAT) return TextureWrap.MIRRORED_REPEAT;
+      return TextureWrap.CLAMP_TO_EDGE;
     };
     const u = mapWrap(tex?.addressModeU);
     const v = mapWrap(tex?.addressModeV);
@@ -366,7 +381,7 @@ export class WebGPURenderer extends AbstractRenderer {
         minFilter: min,
         addressModeU: u,
         addressModeV: v,
-        mipmapFilter: "linear",
+        mipmapFilter: TextureFilter.LINEAR,
       });
       this._samplerCache.set(key, s);
     }
@@ -398,11 +413,11 @@ export class WebGPURenderer extends AbstractRenderer {
     this._defaultSpotShadowTexView = dummySpotShadow.createView({ dimension: "2d-array" });
 
     this._shadowSampler = this._device!.createSampler({
-      magFilter: "linear",
-      minFilter: "linear",
+      magFilter: TextureFilter.LINEAR,
+      minFilter: TextureFilter.LINEAR,
       compare: "less",
-      addressModeU: "clamp-to-edge",
-      addressModeV: "clamp-to-edge",
+      addressModeU: TextureWrap.CLAMP_TO_EDGE,
+      addressModeV: TextureWrap.CLAMP_TO_EDGE,
     });
 
     this._dummyNormalBuffer = this._device!.createBuffer({
@@ -624,24 +639,24 @@ export class WebGPURenderer extends AbstractRenderer {
     return bgl;
   }
 
-  protected _getPipeline(
+  protected _pipelineCacheKey(
     manifest: RenderManifest,
     topology: GPUPrimitiveTopology,
-    isInstanced: boolean = false,
-  ): WebGPUPipelineCache {
+    isInstanced: boolean,
+  ): string {
     const shaderId = manifest.shaderId;
     const flags = manifest.flags || [];
     const flagKey = flags.length > 0 ? "_" + flags.join("_") : "";
     const state = manifest.state || {};
     const targetFormat = this.postProcessing.enabled ? "rgba16float" : this._format;
-    const key =
+    return (
       shaderId +
       "_" +
       topology +
       "_" +
-      (state.culling || "back") +
+      (state.culling || CullMode.DEFAULT) +
       "_" +
-      (state.blending || "none") +
+      (state.blending || BlendingMode.DEFAULT) +
       "_" +
       (state.depthWrite !== false) +
       "_" +
@@ -649,7 +664,20 @@ export class WebGPURenderer extends AbstractRenderer {
       "_" +
       targetFormat +
       (isInstanced ? "_instanced" : "") +
-      flagKey;
+      flagKey
+    );
+  }
+
+  protected _getPipeline(
+    manifest: RenderManifest,
+    topology: GPUPrimitiveTopology,
+    isInstanced: boolean = false,
+  ): WebGPUPipelineCache {
+    const shaderId = manifest.shaderId;
+    const flags = manifest.flags || [];
+    const state = manifest.state || {};
+    const targetFormat = this.postProcessing.enabled ? "rgba16float" : this._format;
+    const key = this._pipelineCacheKey(manifest, topology, isInstanced);
     let cache = this._pipelines.get(key);
     if (!cache) {
       const sm = this._getShaderModule(shaderId, isInstanced, flags);
@@ -705,7 +733,7 @@ export class WebGPURenderer extends AbstractRenderer {
         layout: pipelineLayout,
         vertex: { module: sm, entryPoint: "vs", buffers: vertexBuffers },
         fragment: { module: sm, entryPoint: "fs", targets },
-        primitive: { topology, cullMode: state.culling || "back" },
+        primitive: { topology, cullMode: state.culling || CullMode.DEFAULT },
         depthStencil: {
           depthWriteEnabled: state.depthWrite !== false,
           depthCompare: state.depthTest === false ? "always" : "less-equal",
@@ -716,10 +744,44 @@ export class WebGPURenderer extends AbstractRenderer {
         pipeline,
         layout: pipelineLayout,
         bgLayouts: [this._globalBGL, materialBGL, this._objectBGL],
+        refCount: 0,
       };
       this._pipelines.set(key, cache);
     }
     return cache;
+  }
+
+  /**
+   * Tracks that `obj` currently depends on the pipeline identified by `key` (same key
+   * format `_pipelineCacheKey` computes). Called once per object per frame from the
+   * render loop, independent from `_getPipeline`'s own batch-level lookup-or-create,
+   * since one pipeline is typically shared by many objects at once.
+   */
+  private _acquirePipeline(obj: Object3D, key: string): void {
+    const lastKey = this._lastKnownPipelineKey.get(obj);
+    if (lastKey === key) return;
+    if (lastKey) this._releasePipelineFor(obj);
+
+    const cache = this._pipelines.get(key);
+    if (cache) cache.refCount++;
+    this._lastKnownPipelineKey.set(obj, key);
+  }
+
+  /** Releases the pipeline this object was referencing, if its refCount drops to zero. */
+  private _releasePipelineFor(obj: Object3D): void {
+    const key = this._lastKnownPipelineKey.get(obj);
+    if (!key) return;
+    this._lastKnownPipelineKey.delete(obj);
+
+    const cache = this._pipelines.get(key);
+    if (!cache) return;
+    cache.refCount--;
+    if (cache.refCount <= 0) {
+      // GPURenderPipeline has no explicit destroy(); dropping the cache entry (and all
+      // other references) lets it be garbage-collected. The dependent GPUPipelineLayout
+      // has no destroy() either.
+      this._pipelines.delete(key);
+    }
   }
 
   protected _getShaderModule(
@@ -800,7 +862,7 @@ export class WebGPURenderer extends AbstractRenderer {
     return sm;
   }
 
-  protected _getGeoCache(geo: GeometryDataInterface): WebGPUGeoCache {
+  protected _getGeoCache(obj: Object3D, geo: GeometryDataInterface): WebGPUGeoCache {
     let c = this._geoCache.get(geo);
     if (!c || geo.needsUpdate) {
       const createBuf = (data: ArrayBufferView, usage: number): GPUBuffer => {
@@ -819,6 +881,7 @@ export class WebGPURenderer extends AbstractRenderer {
         this._device!.queue.writeBuffer(c.vb, 0, geo.vertices);
         if (c.nb && geo.normals) this._device!.queue.writeBuffer(c.nb, 0, geo.normals);
         geo.needsUpdate = false;
+        this._acquireGeoCache(obj, geo, c);
         return c;
       }
       c = {
@@ -841,11 +904,130 @@ export class WebGPURenderer extends AbstractRenderer {
           geo.indices?.BYTES_PER_ELEMENT === 4 || geo.wireframeIndices?.BYTES_PER_ELEMENT === 4
             ? "uint32"
             : "uint16",
+        refCount: 0,
       };
       this._geoCache.set(geo, c);
       geo.needsUpdate = false;
     }
+    this._acquireGeoCache(obj, geo, c);
     return c;
+  }
+
+  /**
+   * Tracks per-object geometry references so `_releaseGeometryFor` can correctly
+   * free buffers once nothing references them anymore -- even when geometry is shared
+   * across many objects (see showcases/19) or swapped on a live object at runtime.
+   */
+  private _acquireGeoCache(obj: Object3D, geo: GeometryDataInterface, c: WebGPUGeoCache): void {
+    const lastGeo = this._lastKnownGeometry.get(obj);
+    if (lastGeo !== geo) {
+      if (lastGeo) this._releaseGeometryFor(obj);
+      c.refCount++;
+      this._lastKnownGeometry.set(obj, geo);
+    }
+  }
+
+  /**
+   * Releases the GPU geometry buffers this object was referencing, if its refCount
+   * drops to zero. Called once per removed object per frame.
+   */
+  private _releaseGeometryFor(obj: Object3D): void {
+    const geo = this._lastKnownGeometry.get(obj);
+    if (!geo) return;
+    this._lastKnownGeometry.delete(obj);
+
+    const c = this._geoCache.get(geo);
+    if (!c) return;
+    c.refCount--;
+    if (c.refCount <= 0) {
+      c.vb.destroy();
+      c.nb?.destroy();
+      c.uvb?.destroy();
+      c.tb?.destroy();
+      c.ib?.destroy();
+      c.wib?.destroy();
+      this._geoCache.delete(geo);
+    }
+  }
+
+  private _releaseObjectResources(obj: Object3D): void {
+    this._releaseGeometryFor(obj);
+    this._releasePipelineFor(obj);
+    this._releaseObjectTextures(obj);
+  }
+
+  /**
+   * Tracks that `obj` currently depends on the textures in `textures` (typically
+   * `material.getRenderManifest().textures`). Called once per object per frame from
+   * the render loop. `textures` is diffed key-by-key against `obj`'s last-known
+   * snapshot rather than by container reference, since a material's manifest object
+   * is created once and mutated in place on every `getRenderManifest()` call.
+   */
+  private _acquireTextures(
+    obj: Object3D,
+    textures: Record<string, Texture | CubeTexture | undefined>,
+  ): void {
+    const lastTextures = this._lastKnownTextures.get(obj);
+    const snapshot: Record<string, Texture | CubeTexture | undefined> = {};
+
+    for (const key of Object.keys(textures)) {
+      const current = textures[key];
+      const last = lastTextures?.[key];
+      if (current !== last) {
+        if (last) this._releaseTexture(last);
+        if (current) this._acquireTexture(current);
+      }
+      snapshot[key] = current;
+    }
+
+    this._lastKnownTextures.set(obj, snapshot);
+  }
+
+  private _acquireTexture(tex: Texture | CubeTexture): void {
+    if (tex instanceof CubeTexture) {
+      this._texCubeRefCounts.set(tex, (this._texCubeRefCounts.get(tex) ?? 0) + 1);
+    } else {
+      this._texRefCounts.set(tex, (this._texRefCounts.get(tex) ?? 0) + 1);
+    }
+  }
+
+  private _releaseTexture(tex: Texture | CubeTexture): void {
+    // Render targets are backed by the same Texture/CubeTexture base classes (so they
+    // can be assigned directly to a material, e.g. for portals/mirrors/reflection
+    // probes) but are re-rendered into and reused across frames independently of any
+    // one object's material reference -- their lifecycle belongs to whoever owns the
+    // render target, not to this per-object refcount. Only untrack our reference to
+    // it, never destroy the underlying GPUTexture here.
+    if (tex instanceof RenderTarget || tex instanceof RenderTargetCube) return;
+
+    if (tex instanceof CubeTexture) {
+      const count = (this._texCubeRefCounts.get(tex) ?? 1) - 1;
+      if (count <= 0) {
+        this._cubeTextureViewCache.get(tex)?.texture.destroy();
+        this._cubeTextureViewCache.delete(tex);
+        this._texCubeRefCounts.delete(tex);
+      } else {
+        this._texCubeRefCounts.set(tex, count);
+      }
+    } else {
+      const count = (this._texRefCounts.get(tex) ?? 1) - 1;
+      if (count <= 0) {
+        this._textureViewCache.get(tex)?.texture.destroy();
+        this._textureViewCache.delete(tex);
+        this._texRefCounts.delete(tex);
+      } else {
+        this._texRefCounts.set(tex, count);
+      }
+    }
+  }
+
+  private _releaseObjectTextures(obj: Object3D): void {
+    const textures = this._lastKnownTextures.get(obj);
+    if (!textures) return;
+    this._lastKnownTextures.delete(obj);
+    for (const tex of Object.values(textures)) {
+      if (tex) this._releaseTexture(tex);
+    }
   }
 
   public render(
@@ -855,6 +1037,11 @@ export class WebGPURenderer extends AbstractRenderer {
     vMat?: Float32Array,
   ): void {
     if (!this._device) return;
+
+    for (const obj of scene.consumeRemovedObjects()) {
+      this._releaseObjectResources(obj);
+    }
+
     this._frameCount++;
     const lights = this.extractLights(scene);
     this._updateGlobalBuffers(vp, camPos, lights, scene);
@@ -928,7 +1115,10 @@ export class WebGPURenderer extends AbstractRenderer {
           if (depth !== undefined) data.depth = depth;
           if (depthView !== undefined) data.depthView = depthView;
           this._renderTargetCubeTextures.set(this._activeRenderTarget, data);
-          this._cubeTextureViewCache.set(this._activeRenderTarget, cubeView);
+          this._cubeTextureViewCache.set(this._activeRenderTarget, {
+            texture: tex,
+            view: cubeView,
+          });
           this._activeRenderTarget.isLoaded = true;
         }
         renderTargetView = data.faceViews[this._activeCubeFace]!;
@@ -966,7 +1156,7 @@ export class WebGPURenderer extends AbstractRenderer {
           if (depth !== undefined) data.depth = depth;
           if (depthView !== undefined) data.depthView = depthView;
           this._renderTargetTextures.set(this._activeRenderTarget, data);
-          this._textureViewCache.set(this._activeRenderTarget, view);
+          this._textureViewCache.set(this._activeRenderTarget, { texture: tex, view });
           this._activeRenderTarget.isLoaded = true;
         }
         renderTargetView = data.view;
@@ -1102,10 +1292,10 @@ export class WebGPURenderer extends AbstractRenderer {
     if (!mat) return;
     const manifest = mat.getRenderManifest();
 
-    let topologyStr: GPUPrimitiveTopology = "triangle-list";
-    if (batch.topology === "point-list") topologyStr = "point-list";
-    else if (batch.topology === "line-list") topologyStr = "line-list";
-    else if (batch.topology === "line-strip") topologyStr = "line-strip";
+    let topologyStr: GPUPrimitiveTopology = Topology.DEFAULT;
+    if (batch.topology === Topology.POINT_LIST) topologyStr = Topology.POINT_LIST;
+    else if (batch.topology === Topology.LINE_LIST) topologyStr = Topology.LINE_LIST;
+    else if (batch.topology === Topology.LINE_STRIP) topologyStr = Topology.LINE_STRIP;
 
     if (standardObjects.length > 0) {
       this._renderSubgroup(
@@ -1141,10 +1331,11 @@ export class WebGPURenderer extends AbstractRenderer {
     matUuid: string,
     manifest: RenderManifest,
     vMat?: Float32Array,
-    topology: GPUPrimitiveTopology = "triangle-list",
+    topology: GPUPrimitiveTopology = Topology.DEFAULT,
     wireframeMode?: "structural" | "triangles",
   ): void {
     const cache = this._getPipeline(manifest, topology, isInstanced);
+    const pipelineKey = this._pipelineCacheKey(manifest, topology, isInstanced);
     rp.setPipeline(cache.pipeline);
 
     const matBindGroup = this._getMaterialBindGroup(matUuid, manifest, cache.bgLayouts[1]!);
@@ -1153,12 +1344,15 @@ export class WebGPURenderer extends AbstractRenderer {
     for (const obj of objects) {
       if (!obj.geometry) continue;
 
+      this._acquirePipeline(obj, pipelineKey);
+      this._acquireTextures(obj, manifest.textures);
+
       const uBufferData = this._getObjUniformBufferData(obj);
       this._updateObjUniformBuffer(uBufferData.buffer, obj, manifest, vMat);
       const objBindGroup = this._getObjBindGroup(uBufferData, cache.bgLayouts[2]!);
       rp.setBindGroup(2, objBindGroup);
 
-      const gCache = this._getGeoCache(obj.geometry!);
+      const gCache = this._getGeoCache(obj, obj.geometry!);
       this._ensureDummyBufferSize(gCache.vertexCount);
       rp.setVertexBuffer(0, gCache.vb);
       rp.setVertexBuffer(1, gCache.nb || this._dummyNormalBuffer);
@@ -1212,7 +1406,7 @@ export class WebGPURenderer extends AbstractRenderer {
           rp.setVertexBuffer(5, this._dummyUvBuffer);
         }
 
-        if (topology === "line-list") {
+        if (topology === Topology.LINE_LIST) {
           if (wireframeMode === "structural" && gCache.wib) {
             rp.setIndexBuffer(gCache.wib, gCache.format!);
             rp.drawIndexed(gCache.wireframeIndexCount, instMesh.instanceCount);
@@ -1231,7 +1425,7 @@ export class WebGPURenderer extends AbstractRenderer {
           }
         }
       } else {
-        if (topology === "line-list") {
+        if (topology === Topology.LINE_LIST) {
           if (wireframeMode === "structural" && gCache.wib) {
             rp.setIndexBuffer(gCache.wib, gCache.format!);
             rp.drawIndexed(gCache.wireframeIndexCount);
@@ -1427,15 +1621,17 @@ export class WebGPURenderer extends AbstractRenderer {
   protected _getTextureView(tex: Texture | undefined): GPUTextureView {
     if (this._quality?.disableTextures) return this._whiteTexView;
     if (!tex || !tex.isLoaded || !tex.image) return this._whiteTexView;
-    let v = this._textureViewCache.get(tex);
-    if (!v) {
+    let entry = this._textureViewCache.get(tex);
+    if (!entry) {
+      let t: GPUTexture;
+      let v: GPUTextureView;
       if ("isTextureArray" in tex && (tex as TextureArray).isTextureArray) {
         const texArray = tex as TextureArray;
         const width = texArray.image!.width;
         const height = texArray.image!.height;
         const depth = texArray.images.length;
 
-        const t = this._device!.createTexture({
+        t = this._device!.createTexture({
           size: [width, height, depth],
           format: "rgba8unorm",
           usage:
@@ -1459,7 +1655,7 @@ export class WebGPURenderer extends AbstractRenderer {
         }
         v = t.createView({ dimension: "2d-array" });
       } else {
-        const t = this._device!.createTexture({
+        t = this._device!.createTexture({
           size: [tex.image.width, tex.image.height],
           format: "rgba8unorm",
           usage:
@@ -1473,9 +1669,10 @@ export class WebGPURenderer extends AbstractRenderer {
         ]);
         v = t.createView();
       }
-      this._textureViewCache.set(tex, v);
+      entry = { texture: t, view: v };
+      this._textureViewCache.set(tex, entry);
     }
-    return v;
+    return entry.view;
   }
 
   protected _getNormalTextureView(tex: Texture | undefined): GPUTextureView {
@@ -1487,12 +1684,12 @@ export class WebGPURenderer extends AbstractRenderer {
     if (this._quality?.disableTextures) return this._defaultCubeTexView;
     if (!tex || !tex.isLoaded) return this._defaultCubeTexView;
     if (tex instanceof RenderTargetCube) {
-      const v = this._cubeTextureViewCache.get(tex);
-      return v || this._defaultCubeTexView;
+      const entry = this._cubeTextureViewCache.get(tex);
+      return entry?.view || this._defaultCubeTexView;
     }
     if (tex.images.length !== 6 && tex.mipmaps.length === 0) return this._defaultCubeTexView;
-    let v = this._cubeTextureViewCache.get(tex);
-    if (!v) {
+    let entry = this._cubeTextureViewCache.get(tex);
+    if (!entry) {
       const img = tex.mipmaps.length > 0 ? tex.mipmaps[0]![0]! : tex.images[0]!;
       const mipLevelCount = tex.mipmaps.length > 0 ? tex.mipmaps.length : 1;
       const t = this._device!.createTexture({
@@ -1525,10 +1722,10 @@ export class WebGPURenderer extends AbstractRenderer {
           );
         }
       }
-      v = t.createView({ dimension: "cube" });
-      this._cubeTextureViewCache.set(tex, v);
+      entry = { texture: t, view: t.createView({ dimension: "cube" }) };
+      this._cubeTextureViewCache.set(tex, entry);
     }
-    return v;
+    return entry.view;
   }
 
   public _updateGlobalBuffers(
@@ -1759,10 +1956,12 @@ export class WebGPURenderer extends AbstractRenderer {
 
     this._objectUniformBuffers.clear();
     this._materialBindGroups.clear();
+    for (const entry of this._textureViewCache.values()) entry.texture.destroy();
     this._textureViewCache.clear();
     this._geoCache.clear();
     this._materialBGLCache.clear();
     this._samplerCache.clear();
+    for (const entry of this._cubeTextureViewCache.values()) entry.texture.destroy();
     this._cubeTextureViewCache.clear();
     this._shadowMaps.clear();
     this._renderTargetTextures.clear();

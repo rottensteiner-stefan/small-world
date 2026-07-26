@@ -17,6 +17,7 @@ class TestWebGLRenderer extends AbstractWebGLRenderer {
   public override async initialize(): Promise<void> {}
   public override setRenderTarget(): void {}
   public override renderBatch(): void {}
+  protected override releaseObjectResources(): void {}
   public override resetStateCache(): void {}
   public override bindMainRenderTarget(): boolean {
     return true;

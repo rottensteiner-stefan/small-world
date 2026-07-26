@@ -30,13 +30,13 @@ export class Texture {
   public isLoaded: boolean = false;
 
   /** The magnification filter. */
-  public magFilter: TextureFilter = TextureFilter.LINEAR;
+  public magFilter: TextureFilter = TextureFilter.DEFAULT;
   /** The minification filter. */
-  public minFilter: TextureFilter = TextureFilter.LINEAR;
+  public minFilter: TextureFilter = TextureFilter.DEFAULT;
   /** The wrapping mode for the U coordinate. */
-  public addressModeU: TextureWrap = TextureWrap.REPEAT;
+  public addressModeU: TextureWrap = TextureWrap.DEFAULT;
   /** The wrapping mode for the V coordinate. */
-  public addressModeV: TextureWrap = TextureWrap.REPEAT;
+  public addressModeV: TextureWrap = TextureWrap.DEFAULT;
   /** Whether mipmaps should be generated for this texture. */
   public generateMipmaps: boolean = true;
   /** Desired anisotropic filtering level for this texture. */
@@ -58,10 +58,10 @@ export class Texture {
       this.isLoaded = true;
     }
     const {
-      magFilter = TextureFilter.LINEAR,
-      minFilter = TextureFilter.LINEAR,
-      addressModeU = TextureWrap.REPEAT,
-      addressModeV = TextureWrap.REPEAT,
+      magFilter = TextureFilter.DEFAULT,
+      minFilter = TextureFilter.DEFAULT,
+      addressModeU = TextureWrap.DEFAULT,
+      addressModeV = TextureWrap.DEFAULT,
       generateMipmaps = true,
       anisotropy = 1,
     } = options;

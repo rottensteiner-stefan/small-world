@@ -16,6 +16,8 @@ export const CameraStrategyType = {
   STIFF: "StiffCamera",
   /** Isometric camera. */
   ISOMETRIC: "IsometricCamera",
+  /** The strategy assumed when none is specified. */
+  DEFAULT: "ManualCamera",
 } as const;
 
 /** Type definition for CameraStrategyType. */

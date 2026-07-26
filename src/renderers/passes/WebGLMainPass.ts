@@ -81,10 +81,10 @@ export class WebGLMainPass implements WebGLRenderPass {
         if (!obj.material) continue;
         const manifest = obj.material.getRenderManifest();
         const shaderId = manifest.shaderId;
-        const topology =
-          manifest.state?.topology ||
-          obj.geometry?.topology ||
-          (obj.geometry?.indices?.length === 2 ? "line-list" : "triangle-list");
+        // AbstractGeometry always sets .topology explicitly, so this only matters for
+        // hand-built GeometryData that skips it -- default to triangles rather than
+        // guessing from index count (a 2-index geometry isn't reliably a line).
+        const topology = manifest.state?.topology || obj.geometry?.topology || Topology.DEFAULT;
 
         transparentMap.clear();
         transparentMap.set(obj.material.uuid, [obj]);

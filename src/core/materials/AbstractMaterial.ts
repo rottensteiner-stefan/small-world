@@ -14,7 +14,7 @@ export abstract class AbstractMaterial implements ShaderProvider {
   public color: Color = Color.WHITE;
 
   /** The culling mode for this material. Defaults to BACK. */
-  public cullMode: CullMode = CullMode.BACK;
+  public cullMode: CullMode = CullMode.DEFAULT;
 
   /** Whether the material writes to the depth buffer. Defaults to true. */
   public depthWrite: boolean = true;

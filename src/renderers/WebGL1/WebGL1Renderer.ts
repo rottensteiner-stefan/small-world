@@ -16,6 +16,7 @@ import {
   TextureFilter,
   CullMode,
   BlendingMode,
+  Topology,
 } from "../../enums/index.js";
 import { Mesh } from "../Mesh.js";
 import { Vector3D } from "../../math/index.js";
@@ -44,6 +45,8 @@ interface ProgramCache {
     up: WebGLUniformLocation | undefined;
     size: WebGLUniformLocation | undefined;
   }[];
+  /** Number of live Object3D instances currently referencing this compiled program. */
+  refCount: number;
 }
 
 /**
@@ -70,8 +73,14 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
   private _programs: Map<string, ProgramCache> = new Map();
 
   private _cache: Map<GeometryDataInterface, Mesh> = new Map();
+  private _lastKnownGeometry: WeakMap<Object3D, GeometryDataInterface> = new WeakMap();
+  private _lastKnownProgramKey: WeakMap<Object3D, string> = new WeakMap();
   private _texCache: Map<Texture, WebGLTexture> = new Map();
   private _texCubeCache: Map<CubeTexture, WebGLTexture> = new Map();
+  private _texRefCounts: Map<Texture, number> = new Map();
+  private _texCubeRefCounts: Map<CubeTexture, number> = new Map();
+  private _lastKnownTextures: WeakMap<Object3D, Record<string, Texture | CubeTexture | undefined>> =
+    new WeakMap();
   private _scratchTransparentMap: Map<string, Object3D[]> = new Map();
 
   private readonly _samplerUnits: Record<string, number> = {
@@ -229,10 +238,48 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
         });
       }
 
-      cache = { prog, uniforms, attributes, pointLightLocs, spotLightLocs, areaLightLocs };
+      cache = {
+        prog,
+        uniforms,
+        attributes,
+        pointLightLocs,
+        spotLightLocs,
+        areaLightLocs,
+        refCount: 0,
+      };
       this._programs.set(shaderId, cache);
     }
     return cache;
+  }
+
+  /**
+   * Tracks that `obj` currently depends on the compiled program identified by `shaderId`.
+   * Called once per object per frame from the render loop, independent from `_getProgram`'s
+   * own lookup-or-create, since one program is typically shared by many objects at once.
+   */
+  private _acquireProgram(obj: Object3D, shaderId: string): void {
+    const lastKey = this._lastKnownProgramKey.get(obj);
+    if (lastKey === shaderId) return;
+    if (lastKey) this._releaseObjectProgram(obj);
+
+    const cache = this._programs.get(shaderId);
+    if (cache) cache.refCount++;
+    this._lastKnownProgramKey.set(obj, shaderId);
+  }
+
+  /** Releases the compiled program this object was referencing, if its refCount drops to zero. */
+  private _releaseObjectProgram(obj: Object3D): void {
+    const shaderId = this._lastKnownProgramKey.get(obj);
+    if (!shaderId) return;
+    this._lastKnownProgramKey.delete(obj);
+
+    const cache = this._programs.get(shaderId);
+    if (!cache) return;
+    cache.refCount--;
+    if (cache.refCount <= 0) {
+      this.gl.deleteProgram(cache.prog);
+      this._programs.delete(shaderId);
+    }
   }
 
   private _getWebGLTexture(tex: Texture): WebGLTexture {
@@ -668,11 +715,10 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
         const uModel = u.get("u_model");
         if (uModel) this.gl.uniformMatrix4fv(uModel, false, this._scratchModelMatrix);
 
-        let mesh = this._cache.get(o.geometry);
-        if (!mesh) {
-          mesh = new Mesh(this.gl, o.geometry);
-          this._cache.set(o.geometry, mesh);
-        }
+        this._acquireProgram(o, shaderId);
+        this._acquireTextures(o, texs);
+
+        const mesh = this._getOrCreateMesh(o, o.geometry);
         mesh.bind(
           cache.attributes.get("a_position")!,
           cache.attributes.get("a_normal")!,
@@ -680,7 +726,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
           cache.attributes.get("a_tangent")!,
         );
         mesh.draw(
-          topology === "line-list" ? this.gl.LINES : this.gl.TRIANGLES,
+          topology === Topology.LINE_LIST ? this.gl.LINES : this.gl.TRIANGLES,
           batch.wireframeMode,
         );
       }
@@ -749,6 +795,126 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
     }
   }
 
+  /**
+   * Looks up (or lazily creates) the GPU mesh for an object's geometry, and tracks
+   * per-object geometry references so `releaseObjectGeometry` can correctly free
+   * buffers once nothing references them anymore -- even when geometry is shared
+   * across many objects (see showcases/19) or swapped on a live object at runtime.
+   */
+  private _getOrCreateMesh(obj: Object3D, geo: GeometryDataInterface): Mesh {
+    let mesh = this._cache.get(geo);
+    if (!mesh) {
+      mesh = new Mesh(this.gl, geo);
+      this._cache.set(geo, mesh);
+    }
+
+    const lastGeo = this._lastKnownGeometry.get(obj);
+    if (lastGeo !== geo) {
+      if (lastGeo) this._releaseGeometryFor(obj);
+      mesh.refCount++;
+      this._lastKnownGeometry.set(obj, geo);
+    }
+
+    return mesh;
+  }
+
+  private _releaseGeometryFor(obj: Object3D): void {
+    const geo = this._lastKnownGeometry.get(obj);
+    if (!geo) return;
+    this._lastKnownGeometry.delete(obj);
+
+    const mesh = this._cache.get(geo);
+    if (!mesh) return;
+    mesh.refCount--;
+    if (mesh.refCount <= 0) {
+      mesh.dispose();
+      this._cache.delete(geo);
+    }
+  }
+
+  /**
+   * Tracks that `obj` currently depends on the textures in `textures` (typically
+   * `material.getRenderManifest().textures`). Called once per object per frame from
+   * the render loop. `textures` is diffed key-by-key against `obj`'s last-known
+   * snapshot rather than by container reference, since a material's manifest object
+   * is created once and mutated in place on every `getRenderManifest()` call.
+   */
+  private _acquireTextures(
+    obj: Object3D,
+    textures: Record<string, Texture | CubeTexture | undefined>,
+  ): void {
+    const lastTextures = this._lastKnownTextures.get(obj);
+    const snapshot: Record<string, Texture | CubeTexture | undefined> = {};
+
+    for (const key of Object.keys(textures)) {
+      const current = textures[key];
+      const last = lastTextures?.[key];
+      if (current !== last) {
+        if (last) this._releaseTexture(last);
+        if (current) this._acquireTexture(current);
+      }
+      snapshot[key] = current;
+    }
+
+    this._lastKnownTextures.set(obj, snapshot);
+  }
+
+  private _acquireTexture(tex: Texture | CubeTexture): void {
+    if (tex instanceof CubeTexture) {
+      this._texCubeRefCounts.set(tex, (this._texCubeRefCounts.get(tex) ?? 0) + 1);
+    } else {
+      this._texRefCounts.set(tex, (this._texRefCounts.get(tex) ?? 0) + 1);
+    }
+  }
+
+  private _releaseTexture(tex: Texture | CubeTexture): void {
+    // Render targets are backed by the same Texture base class (so they can be
+    // assigned directly to a material, e.g. for portals/mirrors) but are re-rendered
+    // into and reused across frames independently of any one object's material
+    // reference -- their lifecycle belongs to whoever owns the render target, not to
+    // this per-object refcount. Only untrack our reference to it, never delete the
+    // underlying WebGLTexture here.
+    if (tex instanceof RenderTarget) return;
+
+    if (tex instanceof CubeTexture) {
+      const count = (this._texCubeRefCounts.get(tex) ?? 1) - 1;
+      if (count <= 0) {
+        const glTex = this._texCubeCache.get(tex);
+        if (glTex) this.gl.deleteTexture(glTex);
+        this._texCubeCache.delete(tex);
+        this._texCubeRefCounts.delete(tex);
+      } else {
+        this._texCubeRefCounts.set(tex, count);
+      }
+    } else {
+      const count = (this._texRefCounts.get(tex) ?? 1) - 1;
+      if (count <= 0) {
+        const glTex = this._texCache.get(tex);
+        if (glTex) this.gl.deleteTexture(glTex);
+        this._texCache.delete(tex);
+        this._texRefCounts.delete(tex);
+      } else {
+        this._texRefCounts.set(tex, count);
+      }
+    }
+  }
+
+  private _releaseObjectTextures(obj: Object3D): void {
+    const textures = this._lastKnownTextures.get(obj);
+    if (!textures) return;
+    this._lastKnownTextures.delete(obj);
+    for (const tex of Object.values(textures)) {
+      if (tex) this._releaseTexture(tex);
+    }
+  }
+
+  /** @inheritdoc */
+  protected override releaseObjectResources(obj: Object3D): void {
+    this._releaseGeometryFor(obj);
+    this._releaseObjectProgram(obj);
+    this._releaseObjectTextures(obj);
+  }
+
   /** @inheritdoc */
   public override destroy(): void {
     const gl = this.gl;
@@ -757,14 +923,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
       for (const tex of this._texCache.values()) gl.deleteTexture(tex);
       for (const tex of this._texCubeCache.values()) gl.deleteTexture(tex);
       for (const fbo of this._renderTargetFbos.values()) gl.deleteFramebuffer(fbo);
-      for (const mesh of this._cache.values()) {
-        if (mesh.vbo) gl.deleteBuffer(mesh.vbo);
-        if (mesh.ebo) gl.deleteBuffer(mesh.ebo);
-        if (mesh.webo) gl.deleteBuffer(mesh.webo);
-        if (mesh.nbo) gl.deleteBuffer(mesh.nbo);
-        if (mesh.tanbo) gl.deleteBuffer(mesh.tanbo);
-        if (mesh.tbo) gl.deleteBuffer(mesh.tbo);
-      }
+      for (const mesh of this._cache.values()) mesh.dispose();
       if (this._hdrFbo) gl.deleteFramebuffer(this._hdrFbo);
       if (this._hdrTexture) gl.deleteTexture(this._hdrTexture);
       if (this._hdrRenderBuffer) gl.deleteRenderbuffer(this._hdrRenderBuffer);

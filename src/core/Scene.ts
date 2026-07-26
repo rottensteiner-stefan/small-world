@@ -59,12 +59,40 @@ export class Scene {
   private _scratchFrustum: Frustum = new Frustum();
   private _scratchMatrix: Matrix4 = new Matrix4();
 
+  // Objects (plus their full descendant subtree) removed since the last time a
+  // renderer drained this queue. Consumed once per frame to release GPU resources
+  // (e.g. geometry buffers) tied to objects that have actually left the scene graph,
+  // as opposed to objects merely re-parented or temporarily hidden.
+  private _pendingRemovals: Object3D[] = [];
+
   public add(...objs: Object3D[]): void {
     this.root.add(...objs);
   }
 
   public remove(...objs: Object3D[]): void {
+    for (const obj of objs) {
+      this._collectSubtree(obj, this._pendingRemovals);
+    }
     this.root.remove(...objs);
+  }
+
+  private _collectSubtree(obj: Object3D, out: Object3D[]): void {
+    out.push(obj);
+    for (const child of obj.children) {
+      this._collectSubtree(child, out);
+    }
+  }
+
+  /**
+   * Drains and returns the objects removed from this scene since the last call.
+   * Renderers call this once per frame to release GPU resources tied to objects
+   * that have actually left the scene graph.
+   */
+  public consumeRemovedObjects(): Object3D[] {
+    if (0 === this._pendingRemovals.length) return this._pendingRemovals;
+    const removed = this._pendingRemovals;
+    this._pendingRemovals = [];
+    return removed;
   }
 
   public initOctrees(bounds: BoundingBox, options: OctreeOptions = {}): void {
@@ -219,10 +247,10 @@ export class Scene {
         renderList.transparent.push(obj);
       } else {
         const shaderId = manifest.shaderId;
-        const topology =
-          manifest.state?.topology ||
-          obj.geometry?.topology ||
-          (obj.geometry?.indices?.length === 2 ? Topology.LINE_LIST : Topology.TRIANGLE_LIST);
+        // AbstractGeometry always sets .topology explicitly, so this only matters for
+        // hand-built GeometryData that skips it -- default to triangles rather than
+        // guessing from index count (a 2-index geometry isn't reliably a line).
+        const topology = manifest.state?.topology || obj.geometry?.topology || Topology.DEFAULT;
         const matUuid = obj.material.uuid;
         const wireframeMode = manifest.state?.wireframeMode || "structural";
 

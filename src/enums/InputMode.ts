@@ -6,6 +6,8 @@ export const InputMode = {
   STRAFE: "strafe",
   /** A/D keys rotate the object/camera left/right (Tank Controls). */
   TANK: "tank",
+  /** The mode assumed when none is specified. */
+  DEFAULT: "tank",
 } as const;
 
 /**

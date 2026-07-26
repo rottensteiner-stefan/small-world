@@ -1,6 +1,7 @@
 import { Scene, Color } from "../../core/index.js";
 import { DepthMaterial } from "../../core/materials/index.js";
 import { MaterialType } from "../../enums/MaterialType.js";
+import { Topology } from "../../enums/Topology.js";
 import { WebGPURenderer } from "../WebGPU/WebGPURenderer.js";
 import { RenderPass } from "../index.js";
 import { InstancedMesh } from "../../core/InstancedMesh.js";
@@ -124,10 +125,10 @@ export class SpotShadowPassGPU implements RenderPass {
         const batch = renderList.opaqueBatches[batchIdx];
         if (batch!.shaderId === MaterialType.SKYBOX || batch!.objects.length === 0) continue;
         const objects = batch!.objects;
-        let topologyStr: GPUPrimitiveTopology = "triangle-list";
-        if (batch!.topology === "point-list") topologyStr = "point-list";
-        else if (batch!.topology === "line-list") topologyStr = "line-list";
-        else if (batch!.topology === "line-strip") topologyStr = "line-strip";
+        let topologyStr: GPUPrimitiveTopology = Topology.DEFAULT;
+        if (batch!.topology === Topology.POINT_LIST) topologyStr = Topology.POINT_LIST;
+        else if (batch!.topology === Topology.LINE_LIST) topologyStr = Topology.LINE_LIST;
+        else if (batch!.topology === Topology.LINE_STRIP) topologyStr = Topology.LINE_STRIP;
         else if (typeof batch!.topology === "string")
           topologyStr = batch!.topology as GPUPrimitiveTopology;
         const topology: GPUPrimitiveTopology = topologyStr;

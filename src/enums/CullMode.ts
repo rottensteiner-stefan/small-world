@@ -8,6 +8,8 @@ export const CullMode = {
   FRONT: "front",
   /** No culling. */
   NONE: "none",
+  /** The culling mode assumed when none is specified. */
+  DEFAULT: "back",
 } as const;
 
 /** Type definition for CullMode. */

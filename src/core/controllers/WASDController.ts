@@ -38,7 +38,7 @@ export class WASDController extends Behavior {
     this._options = {
       input: options.input,
       moveSpeed: options.moveSpeed ?? 10.0,
-      inputMode: options.inputMode ?? InputMode.TANK,
+      inputMode: options.inputMode ?? InputMode.DEFAULT,
       enableVertical: options.enableVertical ?? false,
       audio: options.audio as AudioSystem,
     };

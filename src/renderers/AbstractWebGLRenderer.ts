@@ -1,6 +1,6 @@
 import { AbstractRenderer } from "./AbstractRenderer.js";
 import { Color } from "../core/colors/index.js";
-import { Scene } from "../core/index.js";
+import { Scene, Object3D } from "../core/index.js";
 import { Vector3D } from "../math/index.js";
 import { LightDataInterface } from "../interfaces/index.js";
 import { WebGLRenderPass } from "./WebGLRenderPass.js";
@@ -29,6 +29,8 @@ export abstract class AbstractWebGLRenderer extends AbstractRenderer {
     camPos: Vector3D = Vector3D.ZERO,
     vMat?: Float32Array,
   ): void {
+    this._releaseRemovedObjects(scene.consumeRemovedObjects());
+
     this.resetStateCache();
     const extractedLights = this.extractLights(scene);
     const renderList = scene.getVisibleObjectsSorted(vp, camPos);
@@ -37,6 +39,20 @@ export abstract class AbstractWebGLRenderer extends AbstractRenderer {
       pass.execute(this, scene, vp, camPos, vMat, renderList, extractedLights);
     }
   }
+
+  private _releaseRemovedObjects(removed: Object3D[]): void {
+    for (const obj of removed) {
+      this.releaseObjectResources(obj);
+    }
+  }
+
+  /**
+   * Releases the GPU geometry buffer, compiled program, and textures this object was
+   * referencing, for whichever of those its refCount drops to zero. Called once per
+   * removed object per frame; implemented per-renderer since these caches are
+   * renderer-specific (each renderer has its own GL context).
+   */
+  protected abstract releaseObjectResources(obj: Object3D): void;
 
   public abstract resetStateCache(): void;
 

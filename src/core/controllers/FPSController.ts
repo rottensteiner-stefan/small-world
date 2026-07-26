@@ -54,7 +54,7 @@ export class FPSController extends Behavior {
     this._options = {
       moveSpeed: options.moveSpeed ?? 10.0,
       lookSensitivity: options.lookSensitivity ?? 0.005,
-      inputMode: options.inputMode ?? InputMode.TANK,
+      inputMode: options.inputMode ?? InputMode.DEFAULT,
       enableMovement: options.enableMovement ?? true,
       enableRotation: options.enableRotation ?? true,
       enableVertical: options.enableVertical ?? true,

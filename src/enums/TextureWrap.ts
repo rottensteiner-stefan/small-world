@@ -8,6 +8,8 @@ export const TextureWrap = {
   CLAMP_TO_EDGE: "clamp-to-edge",
   /** Repeat the texture mirrored. */
   MIRRORED_REPEAT: "mirror-repeat",
+  /** The wrap mode assumed when none is specified. */
+  DEFAULT: "repeat",
 } as const;
 
 /** Type definition for TextureWrap. */
