@@ -10,6 +10,8 @@ node_modules/
 /var/
 **/.DS_Store
 /.claude/
+/*.png
+/*.jpg
 
 # Build output (GitHub Pages workflow builds this fresh from source; see .github/workflows/deploy-docs.yml)
 /dist/
