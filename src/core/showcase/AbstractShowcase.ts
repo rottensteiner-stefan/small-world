@@ -1,14 +1,30 @@
 import { SmallWorld } from "../index.js";
 import { EngineOptions } from "../../interfaces/index.js";
-import { Keys } from "../../enums/index.js";
+import { Keys, RendererType } from "../../enums/index.js";
 import { AssetManager } from "../../loaders/index.js";
+
+/**
+ * Reads a `?rendererType=` override from the page URL (e.g. `?rendererType=WEB_GL2`),
+ * matched case-insensitively against `RendererType`'s members. Lets any showcase's
+ * renderer be swapped from the address bar without touching its source.
+ */
+function getRendererTypeFromQuery(): RendererType | undefined {
+  const raw = new URLSearchParams(window.location.search).get("rendererType");
+  if (!raw) return undefined;
+  const upper = raw.toUpperCase();
+  return (Object.values(RendererType) as string[]).includes(upper)
+    ? (upper as RendererType)
+    : undefined;
+}
+
 export abstract class AbstractShowcase extends SmallWorld {
   /**
    * The constructor is passed to Application.
    * Also registers the global keyboard listener for showcases.
    */
   constructor(config: EngineOptions = {}) {
-    super(config);
+    const rendererTypeOverride = getRendererTypeFromQuery();
+    super(rendererTypeOverride ? { ...config, rendererType: rendererTypeOverride } : config);
     window.addEventListener("keydown", (event: KeyboardEvent): void => this.onKeyDown(event));
     this._initShowcaseNavigation();
   }
