@@ -1,5 +1,6 @@
 import {
   AbstractShowcase,
+  EngineOptions,
   RendererType,
   Cube,
   StandardMaterial,
@@ -15,12 +16,13 @@ import {
 } from "../../src/index.js";
 
 class Showcase19 extends AbstractShowcase {
-  constructor() {
+  constructor(options: EngineOptions = {}) {
     super({
       canvasId: "SmallWorld",
       rendererType: RendererType.BEST,
       fullscreen: true,
       enableInspector: true,
+      ...options,
     });
   }
 
@@ -140,4 +142,5 @@ class Showcase19 extends AbstractShowcase {
   }
 }
 
-new Showcase19().start().catch(console.error);
+const app = new Showcase19();
+app.start().catch((err: unknown) => console.error("[Showcase19] Failed to start:", err));

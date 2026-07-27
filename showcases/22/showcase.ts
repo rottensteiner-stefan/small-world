@@ -1,6 +1,7 @@
 import {
   AbstractShowcase,
   Color,
+  EngineOptions,
   Object3D,
   StandardMaterial,
   Sphere,
@@ -18,13 +19,13 @@ import {
 import { AmbientLight } from "../../src/core/lights/index.js";
 import { DeviceCaps, PerformanceTier } from "../../src/core/DeviceCaps.js";
 
-class Showcase21 extends AbstractShowcase {
+class Showcase22 extends AbstractShowcase {
   private _spheres: Object3D[] = [];
   private _physics: PhysicsSystem;
   private _heatMap: Map<Object3D, number> = new Map();
 
-  constructor() {
-    super({ enableInspector: false });
+  constructor(options: EngineOptions = {}) {
+    super(options);
     this._physics = new PhysicsSystem(this.events);
     this._physics.gravity.set(0, 0, 0); // No global gravity
   }
@@ -282,5 +283,5 @@ class Showcase21 extends AbstractShowcase {
   }
 }
 
-const app = new Showcase21();
-app.start();
+const app = new Showcase22();
+app.start().catch((err: unknown) => console.error("[Showcase22] Failed to start:", err));

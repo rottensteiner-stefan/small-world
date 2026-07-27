@@ -32,12 +32,10 @@ import {
   PointLight,
   AbstractMaterial,
   Scene,
-  DeviceCaps,
-  DeviceFeature,
   VignetteElement,
   GrainElement,
 } from "../../src/index.js";
-import { FogMode, PostProcessingEffectType } from "../../src/enums/index.js";
+import { FogMode, PostProcessingEffectType, RendererType } from "../../src/enums/index.js";
 import { AbstractShowcase } from "../../src/core/index.js";
 import { WorkbenchTable } from "./assets/objects/WorkbenchTable.js";
 import { ErlenmeyerFlask } from "./assets/objects/ErlenmeyerFlask.js";
@@ -1039,10 +1037,11 @@ class UnderwaterHideoutShowcase extends AbstractShowcase {
 
     // 6.5 The Oil Puddle
     // OilPuddleMaterial only has a WGSL implementation (no WebGL2/WebGL1 fallback shaders).
-    // This engine silently falls back to WebGL2 when WebGPU isn't available (RendererFactory),
-    // which would otherwise try to compile an empty shader source and break. Skip the feature
-    // entirely rather than crash on non-WebGPU browsers.
-    if (DeviceCaps.hasFeature(DeviceFeature.WEBGPU)) {
+    // Check the renderer that actually got resolved (not just whether the browser's WebGPU API
+    // exists) -- DeviceCaps.hasFeature(WEBGPU) can be true even when RendererFactory fell back
+    // to WebGL2/WebGL1 (e.g. no real adapter, or an explicit ?rendererType= override), which
+    // would otherwise try to compile this material's empty GLSL source and crash.
+    if (this.renderer.type === RendererType.WEB_GPU) {
       const oilMaterial = new OilPuddleMaterial();
       this._oilMaterial = oilMaterial;
 

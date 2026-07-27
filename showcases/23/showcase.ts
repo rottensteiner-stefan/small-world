@@ -20,6 +20,7 @@ import {
   EmissivePulseBehavior,
   CustomShaderMaterial,
   StandardWebGPULayout,
+  EngineOptions,
 } from "../../src/index.js";
 
 import fragWGSL from "../../src/core/materials/shaders/Standard.frag.wgsl?raw";
@@ -28,7 +29,7 @@ import fragGLSL100 from "../../src/core/materials/shaders/Standard.frag.glsl100?
 import { MarbleController } from "./MarbleController.js";
 import { DroneController } from "./DroneController.js";
 
-class Showcase22 extends AbstractShowcase {
+class Showcase23 extends AbstractShowcase {
   private _marble: Object3D | null = null;
   private _ambientAudioStarted: boolean = false;
   private _gameActive: boolean = false;
@@ -85,11 +86,8 @@ class Showcase22 extends AbstractShowcase {
     }
   }
 
-  constructor() {
-    super({
-      enableInspector: false,
-      canvasId: "SmallWorld",
-    });
+  constructor(options: EngineOptions = {}) {
+    super({ canvasId: "SmallWorld", ...options });
     this._physics = new PhysicsSystem(this.events);
   }
 
@@ -632,4 +630,5 @@ class Showcase22 extends AbstractShowcase {
   }
 }
 
-new Showcase22().start();
+const app = new Showcase23();
+app.start().catch((err: unknown) => console.error("[Showcase23] Failed to start:", err));

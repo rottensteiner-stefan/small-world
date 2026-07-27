@@ -1,6 +1,7 @@
 import {
   AbstractShowcase,
   Color,
+  EngineOptions,
   Object3D,
   StandardMaterial,
   GlassMaterial,
@@ -48,10 +49,8 @@ class Showcase21 extends AbstractShowcase {
   private _sphereGeo!: GeometryDataInterface;
   private _physics: PhysicsSystem;
 
-  constructor() {
-    super({
-      enableInspector: false,
-    });
+  constructor(options: EngineOptions = {}) {
+    super(options);
     this._physics = new PhysicsSystem(this.events);
   }
 
@@ -257,4 +256,4 @@ class Showcase21 extends AbstractShowcase {
 }
 
 const app = new Showcase21();
-app.start();
+app.start().catch((err: unknown) => console.error("[Showcase21] Failed to start:", err));

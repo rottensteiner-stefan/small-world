@@ -29,7 +29,7 @@ import {
   BloomElement,
 } from "../../src/index.js";
 
-class Showcase19 extends AbstractShowcase {
+class Showcase20 extends AbstractShowcase {
   protected async setupScene(): Promise<void> {
     // 0. Enable Post Processing for Tron Bloom!
     this.renderer.postProcessing.enabled = true;
@@ -231,5 +231,5 @@ class Showcase19 extends AbstractShowcase {
   }
 }
 
-const app = new Showcase19({ enableInspector: true });
-app.start();
+const app = new Showcase20({ enableInspector: true });
+app.start().catch((err: unknown) => console.error("[Showcase20] Failed to start:", err));

@@ -193,15 +193,15 @@ class ScreenCurvatureBehavior extends Behavior {
   }
 }
 
-class Showcase23Engine extends AbstractShowcase {
+class Showcase24Engine extends AbstractShowcase {
   public api: string;
 
-  constructor(container: HTMLElement, api: string) {
-    super({
-      canvasId: container.id,
-      rendererType: api === "webgl2" ? RendererType.WEB_GL2 : RendererType.WEB_GPU,
-    });
-    this.api = api;
+  constructor(container: HTMLElement, defaultRendererType: RendererType) {
+    super({ canvasId: container.id, rendererType: defaultRendererType });
+    // Read back the *resolved* type -- AbstractShowcase may have already overridden it
+    // from a `?rendererType=` URL param, and the gallery content must match what's
+    // actually rendering, not just the pre-override default we passed in above.
+    this.api = this.config.rendererType === RendererType.WEB_GPU ? "webgpu" : "webgl2";
   }
 
   protected async setupScene(): Promise<void> {
@@ -511,16 +511,17 @@ class Showcase23Engine extends AbstractShowcase {
 }
 
 /**
- * Detects the best available Graphics API so the gallery starts right away,
- * without requiring the visitor to pick one manually.
+ * Detects the best available renderer so the gallery starts right away, without requiring
+ * the visitor to pick one manually. Only the default -- a `?rendererType=` URL param (parsed
+ * centrally by `AbstractShowcase`) always takes priority over this.
  */
-async function detectApi(): Promise<string> {
-  if (!navigator.gpu) return "webgl2";
+async function detectDefaultRendererType(): Promise<RendererType> {
+  if (!navigator.gpu) return RendererType.WEB_GL2;
   try {
     const adapter = await navigator.gpu.requestAdapter();
-    return adapter ? "webgpu" : "webgl2";
+    return adapter ? RendererType.WEB_GPU : RendererType.WEB_GL2;
   } catch {
-    return "webgl2";
+    return RendererType.WEB_GL2;
   }
 }
 
@@ -528,11 +529,12 @@ async function init(): Promise<void> {
   const container = document.getElementById("container") as HTMLElement;
   container.innerHTML = '<canvas id="canvas23"></canvas>';
 
-  const params = new URLSearchParams(window.location.search);
-  const api = params.get("api") || (await detectApi());
-
-  const engine = new Showcase23Engine(document.getElementById("canvas23") as HTMLElement, api);
-  await engine.start();
+  const defaultRendererType = await detectDefaultRendererType();
+  const engine = new Showcase24Engine(
+    document.getElementById("canvas23") as HTMLElement,
+    defaultRendererType,
+  );
+  await engine.start().catch((err: unknown) => console.error("[Showcase24] Failed to start:", err));
 }
 
-init().catch(console.error);
+init().catch((err: unknown) => console.error("[Showcase24] Failed to init:", err));
