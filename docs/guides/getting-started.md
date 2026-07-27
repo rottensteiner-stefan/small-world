@@ -14,26 +14,7 @@ npm install small-world
 
 The engine uses a strategy-based lifecycle. You subclass `SmallWorld` (or `AbstractShowcase`, which adds a few demo/debug conveniences on top of `SmallWorld`) and override the `setupScene` and `update` lifecycle methods.
 
-### 1. Engine Configuration (`public/config/small-world.json`)
-
-By default, the engine loads its configuration from a static JSON file. This file controls backend preferences, viewport options, and post-processing setups.
-
-```json
-{
-  "canvasId": "SmallWorldCanvas",
-  "rendererType": "BEST",
-  "projectionType": "PERSPECTIVE",
-  "fullscreen": true,
-  "renderer": [
-    {
-      "type": "WEB_GPU",
-      "attributes": { "antialias": true }
-    }
-  ]
-}
-```
-
-### 2. Basic Showcase Implementation
+### 1. Basic Showcase Implementation
 
 Create a file named `app.ts` to boot the engine:
 
@@ -91,7 +72,7 @@ app.start().then(() => {
 });
 ```
 
-### 3. SPA & Framework Integration (React / Vue / Angular)
+### 2. SPA & Framework Integration (React / Vue / Angular)
 
 When embedding Small World inside a Single Page Application (SPA), the browser does not automatically refresh when you change routes. To prevent memory leaks or multiple render loops running simultaneously in the background, you must cleanly destroy the engine when your component unmounts.
 

@@ -26,7 +26,14 @@ export interface Renderer {
   /**
    * Renders a scene.
    */
-  render(scene: Scene, vpMatrix: Float32Array, camPos?: Vector3D, viewMatrix?: Float32Array): void;
+  render(
+    scene: Scene,
+    vpMatrix: Float32Array,
+    camPos?: Vector3D,
+    viewMatrix?: Float32Array,
+    near?: number,
+    far?: number,
+  ): void;
 
   /**
    * Sets the size of the render viewport.

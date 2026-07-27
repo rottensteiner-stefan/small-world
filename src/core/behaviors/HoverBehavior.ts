@@ -23,6 +23,14 @@ export class HoverBehavior extends Behavior {
     this._currentScale = this._baseScale;
     this._targetScale = this._baseScale;
 
+    // Clone the material before ever mutating it: many callers share one material instance
+    // across a large batch of objects (e.g. an instanced grid) for performance, and directly
+    // tinting a shared material's emissive properties would visibly glow every object using it,
+    // not just the one actually hovered.
+    if (target.material instanceof StandardMaterial) {
+      target.material = target.material.clone();
+    }
+
     target.onPointerEnter = (): void => {
       this._targetScale = this._baseScale * this._hoverMultiplier;
       if (target.material instanceof StandardMaterial) {

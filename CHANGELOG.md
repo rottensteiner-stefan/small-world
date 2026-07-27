@@ -6,10 +6,15 @@
 
 - **Features:**
   - **Renderer Near/Far Planes:** Added support for camera near and far planes across all renderers and shadow passes, and enabled `copyToOpaqueDepthTexture()` in `WebGLMainPass`.
+  - **Materials & Shaders:** Introduced `OpenWaterMaterial` with accompanying WGSL and GLSL shaders. Refactored `Glass` and `Standard` shaders for improved lighting and shadow handling.
+  - **Math Projections:** Enhanced projection matrix calculations across `Oblique`, `Orthographic`, and `Perspective` projections.
 - **Architecture & Bugfixes:**
-  - **Refactoring:** Removed the `Singleton` pattern from `CollisionVisualizer` and `OctreeVisualizer`, converting them into standard instantiable classes to comply with engine strictness against global singletons.
+  - **Refactoring:** Removed the `Singleton` pattern from `CollisionVisualizer` and `OctreeVisualizer`, converting them into standard instantiable classes to comply with engine strictness.
+  - **Behaviors:** Improved `HoverBehavior` stability.
 - **Housekeeping & Docs:**
-  - **Git Optimization:** Removed heavy builds, unit tests, and showcase tests from the local `.husky/pre-commit` hook to dramatically speed up local commit times, shifting this responsibility fully to the GitHub Actions CI workflow.
+  - **Showcases Cleanup:** Removed outdated `script.ts` files across all showcases in favor of a centralized approach, updating `index.html` and `showcase.ts` files accordingly.
+  - **Git Optimization:** Removed heavy builds, unit tests, and showcase tests from the local `.husky/pre-commit` hook to dramatically speed up local commit times, shifting this responsibility fully to CI.
+  - **Docs & Configs:** Updated `getting-started.md` and cleaned up unused configuration files (`small-world.json`).
 
 ## [0.70.2] - 2026-07-27
 
