@@ -8,6 +8,11 @@ export abstract class AbstractProjection {
   /** The type of the projection. */
   public abstract readonly type: ProjectionType;
 
+  /** Near clip plane distance. */
+  public near: number = 0.1;
+  /** Far clip plane distance. */
+  public far: number = 1000;
+
   /** The projection matrix. */
   protected _matrix: Matrix4 = new Matrix4();
 

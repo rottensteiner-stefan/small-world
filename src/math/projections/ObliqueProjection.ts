@@ -37,10 +37,6 @@ export class ObliqueProjection extends AbstractProjection {
   public bottom: number;
   /** Top clip plane. */
   public top: number;
-  /** Near clip plane. */
-  public near: number;
-  /** Far clip plane. */
-  public far: number;
   /** Angle (radians) of the receding depth axis in screen space. */
   public shearAngle: number;
   /** Scale factor applied to the depth-axis shear. */

@@ -25,10 +25,6 @@ export class PerspectiveProjection extends AbstractProjection {
   public fov: number;
   /** Aspect ratio (width / height). */
   public aspect: number;
-  /** Near clip plane. */
-  public near: number;
-  /** Far clip plane. */
-  public far: number;
 
   /** @inheritdoc */
   public override readonly type: ProjectionType = ProjectionType.PERSPECTIVE;

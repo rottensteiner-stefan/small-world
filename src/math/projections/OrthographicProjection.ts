@@ -23,8 +23,6 @@ export class OrthographicProjection extends AbstractProjection {
   public right: number;
   public bottom: number;
   public top: number;
-  public near: number;
-  public far: number;
 
   public override readonly type: ProjectionType = ProjectionType.ORTHOGRAPHIC;
 
