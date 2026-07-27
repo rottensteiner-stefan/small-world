@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.71.2] - 2026-07-27
+
+### "Truth is ever to be found in simplicity, and not in the multiplicity and confusion of things."
+
+- **Architecture & Bugfixes:**
+  - **WebGL Renderers:** Fixed a console spam issue by throttling `MAX_TEXTURE_IMAGE_UNITS` warnings to only warn once per uniform/unit. Fixed WebGL1 NPOT (non-power-of-two) texture binding by disabling mipmaps and setting `CLAMP_TO_EDGE` wrap modes automatically.
+
 ## [0.71.1] - 2026-07-27
 
 ### "The most robust algorithm is the one you don't have to write."

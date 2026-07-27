@@ -102,6 +102,8 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
 
   /** Cached once at init instead of re-querying `DeviceCaps` on every texture bind. */
   private _maxTextureUnits: number = 0;
+  /** `${uniformName}:${unit}` keys already warned about in `_isTextureUnitAvailable`. */
+  private _warnedTextureUnits: Set<string> = new Set();
 
   /** @inheritdoc */
   public async initialize(
@@ -138,9 +140,15 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
    */
   private _isTextureUnitAvailable(unit: number, uniformName: string): boolean {
     if (unit < this._maxTextureUnits) return true;
-    console.warn(
-      `[WebGL1Renderer] Exceeded MAX_TEXTURE_IMAGE_UNITS (${this._maxTextureUnits}). Cannot bind material texture ${uniformName} to unit ${unit}.`,
-    );
+    // Warn once per (uniform, unit) instead of every draw call -- see WebGL2Renderer's matching
+    // helper for the full rationale.
+    const warnKey = `${uniformName}:${unit}`;
+    if (!this._warnedTextureUnits.has(warnKey)) {
+      this._warnedTextureUnits.add(warnKey);
+      console.warn(
+        `[WebGL1Renderer] Exceeded MAX_TEXTURE_IMAGE_UNITS (${this._maxTextureUnits}). Cannot bind material texture ${uniformName} to unit ${unit}.`,
+      );
+    }
     return false;
   }
 
@@ -286,6 +294,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
     if (!tex.isLoaded || !tex.image) return this.defaultTexture;
     let glTex: WebGLTexture | undefined = this._texCache.get(tex);
     if (!glTex) {
+      const img = tex.image;
       glTex = this.gl.createTexture()!;
       this.gl.bindTexture(this.gl.TEXTURE_2D, glTex);
       this.gl.texImage2D(
@@ -294,9 +303,15 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
         this.gl.RGBA,
         this.gl.RGBA,
         this.gl.UNSIGNED_BYTE,
-        tex.image,
+        img,
       );
-      const useMipmaps = this._quality.mipmapping && tex.generateMipmaps;
+
+      // WebGL1 only supports mipmaps and REPEAT/MIRRORED_REPEAT wrapping for power-of-two
+      // textures: generateMipmap() throws GL_INVALID_OPERATION on an NPOT texture, and leaving
+      // wrap at the REPEAT default makes an NPOT texture "incomplete" (silently samples black) --
+      // same underlying WebGL1 constraint as the cube-texture fix in `_getWebGLCubeTexture`.
+      const isPOT = 0 === (img.width & (img.width - 1)) && 0 === (img.height & (img.height - 1));
+      const useMipmaps = this._quality.mipmapping && tex.generateMipmaps && isPOT;
       if (useMipmaps) this.gl.generateMipmap(this.gl.TEXTURE_2D);
       this.gl.texParameteri(
         this.gl.TEXTURE_2D,
@@ -308,6 +323,10 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
         this.gl.TEXTURE_MIN_FILTER,
         useMipmaps ? this.gl.LINEAR_MIPMAP_LINEAR : this.gl.LINEAR,
       );
+      if (!isPOT) {
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
+      }
       this._texCache.set(tex, glTex);
     }
     return glTex;

@@ -136,6 +136,8 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
 
   /** Cached once at init instead of re-querying `DeviceCaps` on every texture bind. */
   private _maxTextureUnits: number = 0;
+  /** `${uniformName}:${unit}` keys already warned about in `_isTextureUnitAvailable`. */
+  private _warnedTextureUnits: Set<string> = new Set();
 
   /** @inheritdoc */
   public async initialize(
@@ -230,9 +232,16 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
    */
   private _isTextureUnitAvailable(unit: number, uniformName: string): boolean {
     if (unit < this._maxTextureUnits) return true;
-    console.warn(
-      `[WebGL2Renderer] Exceeded MAX_TEXTURE_IMAGE_UNITS (${this._maxTextureUnits}). Cannot bind material texture ${uniformName} to unit ${unit}.`,
-    );
+    // Warn once per (uniform, unit) instead of every draw call -- this triggers every frame for
+    // every affected object once a shader's live sampler count exceeds the device budget, and an
+    // unthrottled console.warn at that frequency floods the console and costs real time.
+    const warnKey = `${uniformName}:${unit}`;
+    if (!this._warnedTextureUnits.has(warnKey)) {
+      this._warnedTextureUnits.add(warnKey);
+      console.warn(
+        `[WebGL2Renderer] Exceeded MAX_TEXTURE_IMAGE_UNITS (${this._maxTextureUnits}). Cannot bind material texture ${uniformName} to unit ${unit}.`,
+      );
+    }
     return false;
   }
 
