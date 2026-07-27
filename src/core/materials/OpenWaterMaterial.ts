@@ -1,12 +1,12 @@
 import vertWGSL from "./shaders/OpenWater.vert.wgsl?raw";
 import fragWGSL from "./shaders/OpenWater.frag.wgsl?raw";
-import vertGLSL from "./shaders/FluidSurface.vert.glsl?raw";
-import fragGLSL from "./shaders/FluidSurface.frag.glsl?raw";
-import vertGLSL100 from "./shaders/FluidSurface.vert.glsl100?raw";
-import fragGLSL100 from "./shaders/FluidSurface.frag.glsl100?raw";
+import vertGLSL from "./shaders/OpenWater.vert.glsl?raw";
+import fragGLSL from "./shaders/OpenWater.frag.glsl?raw";
+import vertGLSL100 from "./shaders/OpenWater.vert.glsl100?raw";
+import fragGLSL100 from "./shaders/OpenWater.frag.glsl100?raw";
 import { AbstractMaterial } from "./AbstractMaterial.js";
 import { Color } from "../colors/index.js";
-import { MaterialType } from "../../enums/index.js";
+import { MaterialType, ShaderPropertyType } from "../../enums/index.js";
 import {
   RenderManifest,
   ShaderDefinition,
@@ -64,6 +64,9 @@ export class OpenWaterMaterial extends AbstractMaterial {
   public override getRenderManifest(): RenderManifest {
     if (undefined === this._renderManifest) {
       this._renderManifest = this._createBaseManifest();
+      // Left undefined so WebGL2 falls back to the live-captured opaque depth texture
+      // (see WebGL2Renderer's sampler-bind loop); WebGPU does the equivalent fallback itself.
+      this._renderManifest.textures["u_opaqueDepthMap"] = undefined;
       this._renderManifest.properties["u_specColor"] = this.deepWaterColor.toFloat32Array();
       // u_texOffset/u_texRepeat carry edgeColor.rgb + edgeSoftness here, not actual texture
       // UV offset/repeat — StandardWebGPULayout only has 3 free vec4 slots (already used by
@@ -130,6 +133,9 @@ export class OpenWaterMaterial extends AbstractMaterial {
       },
       layout: {
         ...StandardWebGPULayout,
+        textures: {
+          u_opaqueDepthMap: { type: ShaderPropertyType.TEXTURE },
+        },
       },
     };
   }

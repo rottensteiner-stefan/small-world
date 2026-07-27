@@ -220,6 +220,44 @@ export class StandardMaterial extends AbstractMaterial {
     return this._renderManifest;
   }
 
+  /**
+   * Creates an independent copy of this material. Useful before mutating per-instance
+   * properties (e.g. an emissive hover glow) on a material that might be shared across
+   * multiple objects, where a direct mutation would visibly affect all of them at once.
+   */
+  public clone(): StandardMaterial {
+    const copy = new StandardMaterial({
+      color: new Color(this.color.r, this.color.g, this.color.b, this.color.a),
+      metallic: this.metallic,
+      roughness: this.roughness,
+      ao: this.ao,
+      diffuseMap: this.diffuseMap,
+      normalMap: this.normalMap,
+      normalScale: this.normalScale.clone(),
+      metallicMap: this.metallicMap,
+      roughnessMap: this.roughnessMap,
+      emissiveColor: new Color(
+        this.emissiveColor.r,
+        this.emissiveColor.g,
+        this.emissiveColor.b,
+        this.emissiveColor.a,
+      ),
+      emissiveMap: this.emissiveMap,
+      alphaMap: this.alphaMap,
+      envMap: this.envMap,
+      reflectionMap: this.reflectionMap,
+      reflectivity: this.reflectivity,
+      emissiveIntensity: this.emissiveIntensity,
+      transparent: this.transparent,
+      alphaTest: this.alphaTest,
+      time: this.time,
+    });
+    copy.cullMode = this.cullMode;
+    copy.depthWrite = this.depthWrite;
+    copy.depthTest = this.depthTest;
+    return copy;
+  }
+
   /** @inheritdoc */
   public override getShaderDefinition(): ShaderDefinition {
     return {

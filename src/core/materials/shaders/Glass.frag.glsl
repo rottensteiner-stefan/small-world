@@ -1,5 +1,6 @@
 
 [BASE_FRAGMENT_HEADER]
+[FOG_DEFS]
 [LIGHT_DEFS]
 [PBR_MATH]
 
@@ -18,10 +19,9 @@ void main() {
     float roughness = clamp(u_roughness, 0.05, 1.0);
     
     vec3 V = normalize(u_viewPos - v_worldPos);
-    mat3 TBN = mat3(normalize(v_tangent), normalize(v_bitangent), normalize(v_normal));
     vec3 rawNormal = texture(u_normalMap, v_uv).rgb * 2.0 - 1.0;
     rawNormal.xy *= u_extraParams.zw;
-    vec3 N = normalize(TBN * rawNormal);
+    vec3 N = normalize(v_tbn * rawNormal);
     float dotNV = max(dot(N, V), 0.0001);
 
     vec3 F0 = vec3(0.04);

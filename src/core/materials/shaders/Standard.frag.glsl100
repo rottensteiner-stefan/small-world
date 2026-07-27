@@ -38,17 +38,10 @@ void main() {
     float ao = u_ao;
 
     [LIGHT_CALC_PBR]
-    
-    if (u_useReflectionMap > 0.5) {
-        vec4 clipPos = u_vp * vec4(v_worldPos, 1.0);
-        vec2 ndc = clipPos.xy / clipPos.w;
-        vec2 screenUV = ndc * 0.5 + 0.5;
-        vec3 reflectionColor = sRGBToLinear(texture2D(u_reflectionMap, screenUV).rgb);
-        
-        // Blend based on reflectivity and fresnel or fixed factor
-        float f = u_reflectivity * mix(1.0, F_Schlick(max(dot(normalize(v_normal), V), 0.0), F0).x, 0.5); // simple approx
-        fragColor.rgb = mix(fragColor.rgb, reflectionColor, f);
-    }
-    
+
+    // Screen-space reflections (u_useReflectionMap) are not available on WebGL1: they need the
+    // view-projection matrix in the fragment stage, which requires a varying here (no UBO on
+    // GLSL100) -- same simplification tradeoff as dropping TBN mapping in Glass.frag.glsl100.
+
     [FOG_CALC]
 }

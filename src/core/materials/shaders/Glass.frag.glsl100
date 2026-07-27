@@ -1,6 +1,7 @@
 
 
 [BASE_FS_HEADER]
+[FOG_DEFS]
 [LIGHT_DEFS]
 [PBR_MATH]
 
