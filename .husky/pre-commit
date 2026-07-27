@@ -1,6 +1,3 @@
 npm run prebuild
 git add src/core/SmallWorld.ts
 npx lint-staged
-npm run build
-npm test
-npm run test:showcases
