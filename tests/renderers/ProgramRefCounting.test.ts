@@ -28,10 +28,16 @@ function makeMockGl(): WebGL2RenderingContext {
     deleteProgram: vi.fn(),
     getAttribLocation: vi.fn(() => 0),
     getUniformLocation: vi.fn(() => ({})),
+    getActiveUniform: vi.fn(() => null),
     VERTEX_SHADER: 1,
     FRAGMENT_SHADER: 2,
     COMPILE_STATUS: 3,
     LINK_STATUS: 4,
+    ACTIVE_UNIFORMS: 5,
+    SAMPLER_2D: 6,
+    SAMPLER_CUBE: 7,
+    SAMPLER_2D_SHADOW: 8,
+    SAMPLER_2D_ARRAY: 9,
   } as unknown as WebGL2RenderingContext;
 }
 

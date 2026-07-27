@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.71.1] - 2026-07-27
+
+### "The most robust algorithm is the one you don't have to write."
+
+- **Architecture & Bugfixes:**
+  - **Renderer Updates:** Minor fixes and refinements in `WebGL1Renderer`, `WebGL2Renderer`, and the `Standard` GLSL 1.0.0 shader.
+  - **Tests:** Updated `ProgramRefCounting` tests to reflect renderer memory management changes.
+- **Housekeeping & Docs:**
+  - **Docs:** Added a new comprehensive guide (`adding-materials.md`) and updated the VitePress configuration.
+
 ## [0.71.0] - 2026-07-27
 
 ### "The best preparation for tomorrow is doing your best today." - H. Jackson Brown Jr.

@@ -21,7 +21,7 @@ import { GadgetInspector } from "../tools/GadgetInspector.js";
 import { PhysicsSystem } from "../physix/PhysicsSystem.js";
 
 /** The current engine version. */
-export const ENGINE_VERSION = "0.71.0";
+export const ENGINE_VERSION = "0.71.1";
 
 /**
  * Base class for applications built with the SmallWorld engine.
@@ -243,7 +243,13 @@ export abstract class SmallWorld {
           "",
           bannerStyle3,
         );
+        const rendererLabels: Record<string, string> = {
+          [RendererType.WEB_GPU]: "WebGPU",
+          [RendererType.WEB_GL2]: "WebGL2",
+          [RendererType.WEB_GL1]: "WebGL1",
+        };
         console.table({
+          "Active Renderer": rendererLabels[this.renderer.type] ?? this.renderer.type,
           "Device Type": DeviceCaps.isMobile() ? "Mobile" : "Desktop",
           "Performance Tier": DeviceCaps.getPerformanceTier(),
           "GPU Model": DeviceCaps.gpuModel,

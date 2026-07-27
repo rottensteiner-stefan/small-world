@@ -45,6 +45,10 @@ interface ProgramCache {
     up: WebGLUniformLocation | undefined;
     size: WebGLUniformLocation | undefined;
   }[];
+  /** Texture unit assigned to each active sampler uniform in THIS program, discovered via introspection. */
+  samplerUnits: Map<string, number>;
+  /** GL sampler type (SAMPLER_2D/SAMPLER_CUBE) of each active sampler uniform in THIS program. */
+  samplerTypes: Map<string, number>;
   /** Number of live Object3D instances currently referencing this compiled program. */
   refCount: number;
 }
@@ -82,19 +86,6 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
   private _lastKnownTextures: WeakMap<Object3D, Record<string, Texture | CubeTexture | undefined>> =
     new WeakMap();
   private _scratchTransparentMap: Map<string, Object3D[]> = new Map();
-
-  private readonly _samplerUnits: Record<string, number> = {
-    u_diffuseMap: 0,
-    u_normalMap: 1,
-    u_specularMap: 2,
-    u_metallicMap: 3,
-    u_roughnessMap: 4,
-    u_emissiveMap: 5,
-    u_alphaMap: 6,
-    u_opaqueMap: 7,
-    u_envMap: 7,
-    u_reflectionMap: 8,
-  };
 
   public _opaqueTexture?: WebGLTexture;
   public _opaqueTextureWrapper?: Texture;
@@ -169,15 +160,45 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
 
       const uniforms = new Map<string, WebGLUniformLocation | undefined>();
       const attributes = new Map<string, number>();
+      const samplerUnits = new Map<string, number>();
+      const samplerTypes = new Map<string, number>();
 
       ["a_position", "a_normal", "a_uv", "a_tangent"].forEach((name) => {
         attributes.set(name, this.gl.getAttribLocation(prog, name));
       });
 
-      Object.keys(def.layout.uniforms).forEach((name) => {
-        const loc = this.gl.getUniformLocation(prog, name);
+      // Ask the linked program for its actually-active uniforms instead of guessing names up
+      // front: a hand-maintained list can silently omit one, while introspection can't drift out
+      // of sync with the shader source. Every sampler uniform also gets a texture unit assigned
+      // here, dynamically per-program (WebGL1 has no shadow-map/IBL samplers to reserve units for).
+      const samplerTypeSet = new Set<number>([this.gl.SAMPLER_2D, this.gl.SAMPLER_CUBE]);
+      const activeCount = this.gl.getProgramParameter(prog, this.gl.ACTIVE_UNIFORMS) as number;
+      let nextSamplerUnit = 0;
+      for (let i = 0; i < activeCount; i++) {
+        const info = this.gl.getActiveUniform(prog, i);
+        if (!info) continue;
+        const isArray = info.size > 1 && info.name.endsWith("[0]");
+        const names = isArray
+          ? Array.from({ length: info.size }, (_, j) => `${info.name.slice(0, -3)}[${j}]`)
+          : [info.name];
+        const isSampler = samplerTypeSet.has(info.type);
+
+        for (const name of names) {
+          uniforms.set(name, this.gl.getUniformLocation(prog, name) ?? undefined);
+          if (isSampler) {
+            samplerUnits.set(name, nextSamplerUnit);
+            samplerTypes.set(name, info.type);
+            nextSamplerUnit++;
+          }
+        }
+      }
+
+      for (const name of [
+        ...Object.keys(def.layout.uniforms),
+        ...Object.keys(def.layout.textures),
+      ]) {
         if (
-          null === loc &&
+          !uniforms.has(name) &&
           name !== "u_thresholds" &&
           name !== "u_liquidParams" &&
           shaderId !== MaterialType.DEPTH
@@ -186,55 +207,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
             `[WebGL1Renderer] Uniform '${name}' defined in material layout but not found in shader '${shaderId}'. It might be unused or optimized away.`,
           );
         }
-        uniforms.set(name, loc ?? undefined);
-      });
-
-      [
-        "u_vp",
-        "u_model",
-        "u_viewPos",
-        "u_ambientColor",
-        "u_dirLightColor",
-        "u_dirLightDir",
-        "u_numPointLights",
-        "u_numSpotLights",
-        "u_numAreaLights",
-        "u_color",
-        "u_specColor",
-        "u_shininess",
-        "u_thresholds",
-        "u_time",
-        "u_flowSpeed",
-        "u_noiseScale",
-        "u_diffuseMap",
-        "u_normalMap",
-        "u_specularMap",
-        "u_skybox",
-        "u_sandMap",
-        "u_grassMap",
-        "u_rockMap",
-        "u_snowMap",
-        "u_metallicMap",
-        "u_roughnessMap",
-        "u_emissiveMap",
-        "u_alphaMap",
-        "u_envMap",
-        "u_reflectionMap",
-        "u_texOffset",
-        "u_texRepeat",
-        "u_opaqueMap",
-        "u_fogMode",
-        "u_fogColor",
-        "u_fogDensity",
-        "u_fogNear",
-        "u_fogFar",
-        "u_fogHeight",
-        "u_fogHeightFalloff",
-      ].forEach((name) => {
-        if (!uniforms.has(name)) {
-          uniforms.set(name, this.gl.getUniformLocation(prog, name) ?? undefined);
-        }
-      });
+      }
 
       const pointLightLocs = [];
       const spotLightLocs = [];
@@ -266,6 +239,8 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
         prog,
         uniforms,
         attributes,
+        samplerUnits,
+        samplerTypes,
         pointLightLocs,
         spotLightLocs,
         areaLightLocs,
@@ -357,6 +332,19 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
       }
       this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
       this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR);
+      // WebGL1 requires CLAMP_TO_EDGE for any non-power-of-two texture -- the default wrap mode
+      // is REPEAT, and leaving that in place makes an NPOT cubemap "incomplete" per spec, which
+      // silently samples as solid black (no GL error). Skybox/reflection cubemaps are rarely POT.
+      this.gl.texParameteri(
+        this.gl.TEXTURE_CUBE_MAP,
+        this.gl.TEXTURE_WRAP_S,
+        this.gl.CLAMP_TO_EDGE,
+      );
+      this.gl.texParameteri(
+        this.gl.TEXTURE_CUBE_MAP,
+        this.gl.TEXTURE_WRAP_T,
+        this.gl.CLAMP_TO_EDGE,
+      );
       this._texCubeCache.set(tex, glTex);
     }
     return glTex;
@@ -682,13 +670,15 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
         const uSkybox = u.get("u_skybox");
         if (uSkybox) this.gl.uniform1i(uSkybox, 0);
       } else {
-        for (const uniformName in this._samplerUnits) {
-          const unit = this._samplerUnits[uniformName]!;
+        for (const [uniformName, unit] of cache.samplerUnits) {
           const loc = u.get(uniformName);
           if (!loc || !this._isTextureUnitAvailable(unit, uniformName)) continue;
 
           this.gl.activeTexture(this.gl.TEXTURE0 + unit);
-          if (uniformName === "u_envMap") {
+          // Cube-vs-2D is a property of the sampler's declared GLSL type, not its name -- any
+          // samplerCube uniform (u_envMap today, potentially others in future materials) needs
+          // the cube-texture fallback path, not just one hardcoded name.
+          if (this.gl.SAMPLER_CUBE === cache.samplerTypes.get(uniformName)) {
             this.gl.bindTexture(this.gl.TEXTURE_2D, null);
             const ct = texs[uniformName] as CubeTexture;
             this.gl.bindTexture(

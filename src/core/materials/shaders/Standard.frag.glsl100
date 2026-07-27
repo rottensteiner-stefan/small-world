@@ -33,8 +33,8 @@ void main() {
 
     vec3 albedo = sRGBToLinear(texColor.rgb) * sRGBToLinear(u_color.rgb);
     
-    float metallic = u_metallic * texture2D(u_metallicMap, v_uv).r;
-    float roughness = clamp(u_roughness * texture2D(u_roughnessMap, v_uv).r, 0.05, 1.0);
+    float metallic = u_metallic * texture2D(u_metallicMap, v_uv).b;
+    float roughness = clamp(u_roughness * texture2D(u_roughnessMap, v_uv).g, 0.05, 1.0);
     float ao = u_ao;
 
     [LIGHT_CALC_PBR]

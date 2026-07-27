@@ -42,6 +42,10 @@ interface ProgramCache {
   prog: WebGLProgram;
   uniforms: Map<string, WebGLUniformLocation | undefined>;
   attributes: Map<string, number>;
+  /** Texture unit assigned to each active sampler uniform in THIS program, discovered via introspection. */
+  samplerUnits: Map<string, number>;
+  /** GL sampler type (SAMPLER_2D/SAMPLER_CUBE/...) of each active sampler uniform in THIS program. */
+  samplerTypes: Map<string, number>;
   /** Number of live Object3D instances currently referencing this compiled program. */
   refCount: number;
 }
@@ -71,39 +75,17 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
 
   private _scratchFloat4: Float32Array = new Float32Array(4);
 
-  private readonly _samplerUnits: Record<string, number> = {
-    u_diffuseMap: 0,
-    u_normalMap: 1,
-    u_specularMap: 2,
-    u_sandMap: 3,
-    u_metallicMap: 3,
-    u_grassMap: 4,
-    u_roughnessMap: 4,
-    u_rockMap: 5,
-    u_emissiveMap: 5,
-    u_snowMap: 6,
-    u_alphaMap: 6,
-    u_opaqueMap: 7,
-    u_envMap: 7,
-    // 8-11 (spot shadow atlas, 4 lights) and 12 (directional shadow atlas) are claimed by the
-    // hardcoded `texUnit` values in renderShadowMaps()/CSM binding below -- keep everything else
-    // out of that range, since two ACTIVE samplers of different types assigned the same unit
-    // number is a GL_INVALID_OPERATION at draw time regardless of what's actually bound there.
-    //
-    // u_irradianceMap deliberately reuses unit 2 (u_specularMap's slot): Standard.frag.glsl's
-    // PBR path (metallic/roughness workflow) never references u_specularMap even though it's
-    // declared in the shared [BASE_FRAGMENT_HEADER] chunk -- the GLSL compiler optimizes it out
-    // as genuinely unused, confirmed via getActiveUniform() on the compiled program -- while
-    // Phong-style materials that DO use u_specularMap never reference IBL. This keeps the
-    // worst-case simultaneous count (full PBR stack + 4 spot shadows + directional shadow +
-    // prefilter + brdfLUT = 15 distinct units) inside the WebGL2 spec's guaranteed minimum of 16
-    // texture image units, so IBL works on every conformant device, not just ones with >16 units.
-    u_irradianceMap: 2,
-    u_opaqueDepthMap: 16,
-    u_reflectionMap: 17,
-    u_prefilterMap: 14,
-    u_brdfLUT: 15,
-  };
+  /**
+   * Texture units 8-13 are permanently reserved for the shadow system (4x spot shadow atlas +
+   * 1x directional/CSM atlas + 1x dummy fallback), which binds them via hardcoded `activeTexture`
+   * calls in `_bindDummyShadowMaps`/`_renderSubgroup` rather than through `ProgramCache.samplerUnits`.
+   * The dynamic sampler-unit assignment in `_getProgram` skips this range for every other sampler so
+   * an unrelated material texture can never land on the same unit as an active shadow sampler --
+   * two ACTIVE samplers of different types sharing a unit is a GL_INVALID_OPERATION at draw time
+   * regardless of what's actually bound there.
+   */
+  private static readonly _RESERVED_SHADOW_UNIT_START = 8;
+  private static readonly _RESERVED_SHADOW_UNIT_END = 13;
 
   public _opaqueTexture?: WebGLTexture;
   public _opaqueTextureWrapper?: Texture;
@@ -135,6 +117,23 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
   private _shadowMaps: Map<AbstractLight, WebGL2DepthFrameBuffer> = new Map();
   private _dummyShadowMap!: WebGL2DepthFrameBuffer;
 
+  /**
+   * Dedicated black cube fallback for `u_irradianceMap`/`u_prefilterMap` when a scene has no real
+   * IBL data. `Standard.frag.glsl`'s PBR chunk detects "no IBL bound" via `length(irradiance) <
+   * 0.001` and only then falls back to `u_ambientColor` + a Fresnel-weighted `u_envMap` sample --
+   * reusing the generic `defaultCubeTexture` (a visibly-fake placeholder purple, RGB 50/50/100, so
+   * missing skyboxes/envMaps are easy to spot) here would make that length check never trip, so the
+   * shader would treat the placeholder color as real diffuse+specular lighting data instead.
+   */
+  private _blackCubeTexture!: WebGLTexture;
+  /**
+   * Dedicated `u_brdfLUT` fallback: (scale=1, bias=0) in the .rg channels the shader reads, so
+   * `specularAmbient` reduces to `prefilteredColor * kS_ambient` with no unintended `+1` bias term.
+   * The generic `defaultTexture` (opaque white, RGBA 255/255/255/255) would supply (scale=1,
+   * bias=1) instead. Matches `WebGPURenderer._defaultBrdfTexView`'s convention exactly.
+   */
+  private _defaultBrdfTexture!: WebGLTexture;
+
   /** Cached once at init instead of re-querying `DeviceCaps` on every texture bind. */
   private _maxTextureUnits: number = 0;
 
@@ -164,6 +163,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
 
     this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, false);
     this.initDefaultTextures();
+    this._initIblFallbackTextures();
     this.gl.enable(this.gl.DEPTH_TEST);
 
     // Pre-register internal materials
@@ -174,6 +174,41 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     this.addPass(new WebGLShadowPass());
     this.addPass(new WebGLMainPass());
     this.addPass(new WebGLPostProcessPass());
+  }
+
+  /** Builds the black cube / (scale=1, bias=0) fallbacks used when a scene has no real IBL data. */
+  private _initIblFallbackTextures(): void {
+    this._blackCubeTexture = this.gl.createTexture()!;
+    this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, this._blackCubeTexture);
+    for (let i: number = 0; 6 > i; i++) {
+      this.gl.texImage2D(
+        this.gl.TEXTURE_CUBE_MAP_POSITIVE_X + i,
+        0,
+        this.gl.RGBA,
+        1,
+        1,
+        0,
+        this.gl.RGBA,
+        this.gl.UNSIGNED_BYTE,
+        new Uint8Array([0, 0, 0, 255]),
+      );
+    }
+
+    this._defaultBrdfTexture = this.gl.createTexture()!;
+    this.gl.bindTexture(this.gl.TEXTURE_2D, this._defaultBrdfTexture);
+    this.gl.texImage2D(
+      this.gl.TEXTURE_2D,
+      0,
+      this.gl.RGBA,
+      1,
+      1,
+      0,
+      this.gl.RGBA,
+      this.gl.UNSIGNED_BYTE,
+      new Uint8Array([255, 0, 0, 255]),
+    );
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST);
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST);
   }
 
   public resetStateCache(): void {
@@ -241,6 +276,8 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
 
       const uniforms = new Map<string, WebGLUniformLocation | undefined>();
       const attributes = new Map<string, number>();
+      const samplerUnits = new Map<string, number>();
+      const samplerTypes = new Map<string, number>();
 
       this._globalUBO.bindToProgram(prog, "GlobalUniforms");
 
@@ -252,85 +289,49 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         attributes.set(name, this.gl.getAttribLocation(prog, name));
       });
 
-      Object.keys(def.layout.uniforms).forEach((name) => {
-        const loc = this.gl.getUniformLocation(prog, name);
-        if (null === loc) {
-          // Uniform was optimized away by the shader compiler (very common, e.g. for unused CustomShaderMaterial uniforms).
-        }
-        uniforms.set(name, loc ?? undefined);
-      });
+      // Ask the linked program for its actually-active uniforms instead of guessing names up
+      // front: a hand-maintained list can silently omit one (that's how a whole class of this
+      // project's rendering bugs happened), while introspection can't drift out of sync with the
+      // shader source. Every sampler uniform also gets a texture unit assigned here, dynamically
+      // per-program, except the shadow-map samplers (bound to fixed units 8-13 by the dedicated,
+      // unrelated shadow code below) and skybox's own single-texture path.
+      const samplerTypeSet = new Set<number>([
+        this.gl.SAMPLER_2D,
+        this.gl.SAMPLER_CUBE,
+        this.gl.SAMPLER_2D_SHADOW,
+        this.gl.SAMPLER_2D_ARRAY,
+      ]);
+      const activeCount = this.gl.getProgramParameter(prog, this.gl.ACTIVE_UNIFORMS) as number;
+      let nextSamplerUnit = 0;
+      for (let i = 0; i < activeCount; i++) {
+        const info = this.gl.getActiveUniform(prog, i);
+        if (!info) continue;
+        const isArray = info.size > 1 && info.name.endsWith("[0]");
+        const names = isArray
+          ? Array.from({ length: info.size }, (_, j) => `${info.name.slice(0, -3)}[${j}]`)
+          : [info.name];
 
-      [
-        "u_model",
-        "u_color",
-        "u_specColor",
-        "u_shininess",
-        "u_thresholds",
-        "u_time",
-        "u_flowSpeed",
-        "u_noiseScale",
-      ].forEach((name) => {
-        if (!uniforms.has(name)) {
+        const isShadowSampler =
+          "u_dirShadowMap" === info.name || info.name.startsWith("u_spotShadowMap[");
+        const isSampler = samplerTypeSet.has(info.type) && !isShadowSampler;
+
+        for (const name of names) {
           uniforms.set(name, this.gl.getUniformLocation(prog, name) ?? undefined);
+          if (isSampler) {
+            if (
+              nextSamplerUnit >= WebGL2Renderer._RESERVED_SHADOW_UNIT_START &&
+              nextSamplerUnit <= WebGL2Renderer._RESERVED_SHADOW_UNIT_END
+            ) {
+              nextSamplerUnit = WebGL2Renderer._RESERVED_SHADOW_UNIT_END + 1;
+            }
+            samplerUnits.set(name, nextSamplerUnit);
+            samplerTypes.set(name, info.type);
+            nextSamplerUnit++;
+          }
         }
-      });
-
-      [
-        "u_diffuseMap",
-        "u_normalMap",
-        "u_specularMap",
-        "u_metallicMap",
-        "u_roughnessMap",
-        "u_emissiveMap",
-        "u_alphaMap",
-        "u_envMap",
-        "u_skybox",
-        "u_sandMap",
-        "u_grassMap",
-        "u_rockMap",
-        "u_snowMap",
-        "u_texOffset",
-        "u_texRepeat",
-        "u_opaqueMap",
-        "u_opaqueDepthMap",
-        "u_irradianceMap",
-        "u_prefilterMap",
-        "u_brdfLUT",
-        "u_envIntensity",
-        "u_reflectionMap",
-        "u_fogMode",
-        "u_fogColor",
-        "u_fogDensity",
-        "u_fogNear",
-        "u_fogFar",
-        "u_fogHeight",
-        "u_fogHeightFalloff",
-      ].forEach((name) => {
-        if (!uniforms.has(name)) {
-          uniforms.set(name, this.gl.getUniformLocation(prog, name) ?? undefined);
-        }
-      });
-
-      // Shadow Uniform Arrays
-      for (let i = 0; i < 4; i++) {
-        const mapName = `u_spotShadowMap[${i}]`;
-        const matrixName = `u_spotShadowMatrix[${i}]`;
-        const infoName = `u_spotShadowInfo[${i}]`;
-        uniforms.set(mapName, this.gl.getUniformLocation(prog, mapName) ?? undefined);
-        uniforms.set(matrixName, this.gl.getUniformLocation(prog, matrixName) ?? undefined);
-        uniforms.set(infoName, this.gl.getUniformLocation(prog, infoName) ?? undefined);
       }
 
-      // Directional Shadow Uniforms
-      ["u_dirShadowMap", "u_cascadeSplits", "u_dirShadowInfo"].forEach((name) => {
-        uniforms.set(name, this.gl.getUniformLocation(prog, name) ?? undefined);
-      });
-      for (let i = 0; i < 4; i++) {
-        const name = `u_cascadeMatrices[${i}]`;
-        uniforms.set(name, this.gl.getUniformLocation(prog, name) ?? undefined);
-      }
-
-      cache = { prog, uniforms, attributes, refCount: 0 };
+      cache = { prog, uniforms, attributes, samplerUnits, samplerTypes, refCount: 0 };
       this._programs.set(key, cache);
     }
     return cache;
@@ -1158,44 +1159,56 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       // defaults it to unit 0, colliding with whatever 2D sampler (e.g. u_diffuseMap)
       // legitimately owns that unit ("two textures of different types use the same sampler
       // location" GL_INVALID_OPERATION).
-      const irrUnit = this._samplerUnits["u_irradianceMap"]!;
+      const irrUnit = cache.samplerUnits.get("u_irradianceMap");
       const irrLoc = u.get("u_irradianceMap");
-      if (irrLoc && this._isTextureUnitAvailable(irrUnit, "u_irradianceMap")) {
+      if (
+        irrLoc &&
+        undefined !== irrUnit &&
+        this._isTextureUnitAvailable(irrUnit, "u_irradianceMap")
+      ) {
         this.gl.activeTexture(this.gl.TEXTURE0 + irrUnit);
         this.gl.bindTexture(this.gl.TEXTURE_2D, null);
         this.gl.bindTexture(
           this.gl.TEXTURE_CUBE_MAP,
           scene.irradianceMap
             ? this._getWebGLCubeTexture(scene.irradianceMap)
-            : this.defaultCubeTexture,
+            : this._blackCubeTexture,
         );
         this.gl.uniform1i(irrLoc, irrUnit);
       }
 
       // Prefilter Map
-      const prefUnit = this._samplerUnits["u_prefilterMap"]!;
+      const prefUnit = cache.samplerUnits.get("u_prefilterMap");
       const prefLoc = u.get("u_prefilterMap");
-      if (prefLoc && this._isTextureUnitAvailable(prefUnit, "u_prefilterMap")) {
+      if (
+        prefLoc &&
+        undefined !== prefUnit &&
+        this._isTextureUnitAvailable(prefUnit, "u_prefilterMap")
+      ) {
         this.gl.activeTexture(this.gl.TEXTURE0 + prefUnit);
         this.gl.bindTexture(this.gl.TEXTURE_2D, null);
         this.gl.bindTexture(
           this.gl.TEXTURE_CUBE_MAP,
           scene.prefilterMap
             ? this._getWebGLCubeTexture(scene.prefilterMap)
-            : this.defaultCubeTexture,
+            : this._blackCubeTexture,
         );
         this.gl.uniform1i(prefLoc, prefUnit);
       }
 
       // BRDF LUT
-      const brdfUnit = this._samplerUnits["u_brdfLUT"]!;
+      const brdfUnit = cache.samplerUnits.get("u_brdfLUT");
       const brdfLoc = u.get("u_brdfLUT");
-      if (brdfLoc && this._isTextureUnitAvailable(brdfUnit, "u_brdfLUT")) {
+      if (
+        brdfLoc &&
+        undefined !== brdfUnit &&
+        this._isTextureUnitAvailable(brdfUnit, "u_brdfLUT")
+      ) {
         this.gl.activeTexture(this.gl.TEXTURE0 + brdfUnit);
         this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, null);
         this.gl.bindTexture(
           this.gl.TEXTURE_2D,
-          scene.brdfLUT ? this._getWebGLTexture(scene.brdfLUT) : this.defaultTexture,
+          scene.brdfLUT ? this._getWebGLTexture(scene.brdfLUT) : this._defaultBrdfTexture,
         );
         this.gl.uniform1i(brdfLoc, brdfUnit);
       }
@@ -1290,12 +1303,11 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       const uSkybox = u.get("u_skybox");
       if (uSkybox) this.gl.uniform1i(uSkybox, 0);
     } else {
-      for (const uniformName in this._samplerUnits) {
+      for (const [uniformName, unit] of cache.samplerUnits) {
         // IBL maps are scene-global, not per-object -- already bound once per draw call by the
         // dedicated "Global IBL Uniforms" block above. Letting this per-object loop also process
-        // them (it has no cube-aware branch for them) would rebind them as plain 2D textures,
-        // clobbering the correct cube binding and re-triggering the same sampler-type collision
-        // this loop is meant to avoid.
+        // them would rebind them, clobbering the correct binding and re-triggering the same
+        // sampler-type collision this loop is meant to avoid.
         if (
           "u_irradianceMap" === uniformName ||
           "u_prefilterMap" === uniformName ||
@@ -1303,38 +1315,41 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         ) {
           continue;
         }
-        const unit = this._samplerUnits[uniformName]!;
         const loc = u.get(uniformName);
         if (!loc || !this._isTextureUnitAvailable(unit, uniformName)) continue;
 
         this.gl.activeTexture(this.gl.TEXTURE0 + unit);
-        const t = texs[uniformName] as Texture;
-        if (uniformName === "u_normalMap" && !t) {
-          this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, null);
-          this.gl.bindTexture(this.gl.TEXTURE_2D, this.defaultNormalMap);
-        } else if (uniformName === "u_specularMap" && !t) {
-          this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, null);
-          this.gl.bindTexture(this.gl.TEXTURE_2D, this.defaultSpecularMap);
-        } else if (uniformName === "u_envMap") {
+        // Cube-vs-2D is a property of the sampler's declared GLSL type, not its name -- any
+        // samplerCube uniform (u_envMap today, potentially others in future materials) needs the
+        // cube-texture fallback path, not just one hardcoded name.
+        if (this.gl.SAMPLER_CUBE === cache.samplerTypes.get(uniformName)) {
           this.gl.bindTexture(this.gl.TEXTURE_2D, null);
           const ct = texs[uniformName] as CubeTexture;
           this.gl.bindTexture(
             this.gl.TEXTURE_CUBE_MAP,
             ct ? this._getWebGLCubeTexture(ct) : this.defaultCubeTexture,
           );
-        } else if (uniformName === "u_opaqueMap" && !t) {
-          this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, null);
-          this.gl.bindTexture(this.gl.TEXTURE_2D, this._opaqueTexture ?? this.defaultTexture);
-        } else if (uniformName === "u_opaqueDepthMap" && !t) {
-          this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, null);
-          this.gl.bindTexture(this.gl.TEXTURE_2D, this._opaqueDepthTexture ?? this.defaultTexture);
         } else {
           this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, null);
-          const glTex = t ? this._getWebGLTexture(t) : this.defaultTexture;
-          if (t && "isTextureArray" in t && (t as TextureArray).isTextureArray) {
-            this.gl.bindTexture(this.gl.TEXTURE_2D_ARRAY, glTex);
+          const t = texs[uniformName] as Texture;
+          if (uniformName === "u_normalMap" && !t) {
+            this.gl.bindTexture(this.gl.TEXTURE_2D, this.defaultNormalMap);
+          } else if (uniformName === "u_specularMap" && !t) {
+            this.gl.bindTexture(this.gl.TEXTURE_2D, this.defaultSpecularMap);
+          } else if (uniformName === "u_opaqueMap" && !t) {
+            this.gl.bindTexture(this.gl.TEXTURE_2D, this._opaqueTexture ?? this.defaultTexture);
+          } else if (uniformName === "u_opaqueDepthMap" && !t) {
+            this.gl.bindTexture(
+              this.gl.TEXTURE_2D,
+              this._opaqueDepthTexture ?? this.defaultTexture,
+            );
           } else {
-            this.gl.bindTexture(this.gl.TEXTURE_2D, glTex);
+            const glTex = t ? this._getWebGLTexture(t) : this.defaultTexture;
+            if (t && "isTextureArray" in t && (t as TextureArray).isTextureArray) {
+              this.gl.bindTexture(this.gl.TEXTURE_2D_ARRAY, glTex);
+            } else {
+              this.gl.bindTexture(this.gl.TEXTURE_2D, glTex);
+            }
           }
         }
         this.gl.uniform1i(loc, unit);
