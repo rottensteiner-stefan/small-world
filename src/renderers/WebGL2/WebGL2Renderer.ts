@@ -196,6 +196,9 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         vs = vs.replace("#version 300 es", `#version 300 es\n${defines}`);
         fs = fs.replace("#version 300 es", `#version 300 es\n${defines}`);
       }
+
+      vs = vs.trimStart();
+      fs = fs.trimStart();
       const prog = this.createShaderProgram(vs, fs);
 
       const uniforms = new Map<string, WebGLUniformLocation | undefined>();

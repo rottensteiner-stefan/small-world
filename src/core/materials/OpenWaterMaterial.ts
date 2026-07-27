@@ -1,5 +1,9 @@
 import vertWGSL from "./shaders/OpenWater.vert.wgsl?raw";
 import fragWGSL from "./shaders/OpenWater.frag.wgsl?raw";
+import vertGLSL from "./shaders/FluidSurface.vert.glsl?raw";
+import fragGLSL from "./shaders/FluidSurface.frag.glsl?raw";
+import vertGLSL100 from "./shaders/FluidSurface.vert.glsl100?raw";
+import fragGLSL100 from "./shaders/FluidSurface.frag.glsl100?raw";
 import { AbstractMaterial } from "./AbstractMaterial.js";
 import { Color } from "../colors/index.js";
 import { MaterialType } from "../../enums/index.js";
@@ -114,6 +118,14 @@ export class OpenWaterMaterial extends AbstractMaterial {
     return {
       id: this.type,
       sources: {
+        glsl300: {
+          vs: vertGLSL,
+          fs: fragGLSL,
+        },
+        glsl100: {
+          vs: vertGLSL100,
+          fs: fragGLSL100,
+        },
         wgsl: `${vertWGSL}\n[WGSL_PBR_MATH]\n${fragWGSL}`,
       },
       layout: {

@@ -41,7 +41,7 @@ const PENTATONIC_SCALE = [
   880.0, // A5
 ];
 
-class Showcase20 extends AbstractShowcase {
+class Showcase21 extends AbstractShowcase {
   private _spheres: Object3D[] = [];
   private _spherePool: Object3D[] = [];
   private _spawnTimer: number = 0;
@@ -256,5 +256,5 @@ class Showcase20 extends AbstractShowcase {
   }
 }
 
-const app = new Showcase20();
+const app = new Showcase21();
 app.start();

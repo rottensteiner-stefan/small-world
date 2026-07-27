@@ -2,6 +2,7 @@
 precision highp float;
 precision highp int;
 precision highp sampler2DShadow;
+precision highp sampler2DArray;
 
 in vec3 v_worldPos;
 in vec3 v_normal;
