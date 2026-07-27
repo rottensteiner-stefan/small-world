@@ -2,15 +2,29 @@ precision mediump float;
 
 varying vec2 v_uv;
 uniform sampler2D u_hdrTexture;
+uniform sampler2D u_bloomTexture;
+uniform int u_bloomEnabled;
+uniform float u_bloomIntensity;
+uniform vec3 u_bloomColor;
 uniform float u_exposure;
 uniform float u_inverseGamma;
 uniform int u_toneMappingMode;
 uniform int u_vignetteEnabled;
 uniform float u_vignetteOffset;
 uniform float u_vignetteDarkness;
+uniform int u_grainEnabled;
+uniform float u_grainIntensity;
+uniform float u_time;
 
 uniform int u_quantizeEnabled;
 uniform float u_quantizeSteps;
+
+// Random noise
+float random(vec2 st) {
+    vec3 p3 = fract(vec3(st.xyx) * 0.1031);
+    p3 += dot(p3, p3.yzx + 33.33);
+    return fract((p3.x + p3.y) * p3.z);
+}
 
 vec3 toneMapReinhard(vec3 hdr, float exposure) {
     vec3 mapped = hdr * exposure;
@@ -41,6 +55,12 @@ void main() {
     vec2 uv = vec2(v_uv.x, 1.0 - v_uv.y);
     vec3 hdr = texture2D(u_hdrTexture, uv).rgb;
 
+    // Bloom mixing
+    if (u_bloomEnabled == 1) {
+        vec3 bloom = texture2D(u_bloomTexture, uv).rgb;
+        hdr += bloom * u_bloomIntensity * u_bloomColor;
+    }
+
     vec3 tonemapped = hdr * u_exposure;
     if (u_toneMappingMode == 1) {
         tonemapped = toneMapReinhard(hdr, u_exposure);
@@ -58,6 +78,13 @@ void main() {
         float v_edge0 = u_vignetteOffset - u_vignetteDarkness;
         float vignette = 1.0 - smoothstep(v_edge0, u_vignetteOffset, d);
         srgb *= mix(1.0, vignette, clamp(u_vignetteDarkness, 0.0, 1.0));
+    }
+
+    // Apply Film Grain
+    if (u_grainEnabled == 1) {
+        float noise = random(gl_FragCoord.xy + vec2(u_time, -u_time));
+        float grain = (noise - 0.5) * u_grainIntensity;
+        srgb += vec3(grain);
     }
 
     // Quantize Colors (Posterization / Color Banding)

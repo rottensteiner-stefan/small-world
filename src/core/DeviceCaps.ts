@@ -23,6 +23,8 @@ export enum DeviceFeature {
   DEVICE_ORIENTATION = "DEVICE_ORIENTATION",
   DEVICE_MOTION = "DEVICE_MOTION",
   GENERIC_SENSORS = "GENERIC_SENSORS",
+  /** `navigator.connection` (Network Information API) -- Chrome/Edge only, absent on Firefox/Safari. */
+  NETWORK_INFO = "NETWORK_INFO",
 }
 
 /**
@@ -37,6 +39,23 @@ export enum DeviceLimit {
   MAX_TEXTURE_IMAGE_UNITS = "MAX_TEXTURE_IMAGE_UNITS",
   MAX_VERTEX_UNIFORM_VECTORS = "MAX_VERTEX_UNIFORM_VECTORS",
   MAX_FRAGMENT_UNIFORM_VECTORS = "MAX_FRAGMENT_UNIFORM_VECTORS",
+  /** WebGL2-only: max layers in a `TEXTURE_2D_ARRAY` (used by this engine's `TextureArray`/terrain atlasing). */
+  MAX_TEXTURE_ARRAY_LAYERS = "MAX_TEXTURE_ARRAY_LAYERS",
+  /** WebGL2-only: max simultaneous framebuffer color attachments (multiple-render-target/deferred rendering). */
+  MAX_COLOR_ATTACHMENTS = "MAX_COLOR_ATTACHMENTS",
+  /**
+   * WebGPU's own per-fragment-stage sampled-texture budget. Kept as its OWN field rather than
+   * folded into `MAX_TEXTURE_IMAGE_UNITS` -- that field is `Math.max()`'d across WebGL1/WebGL2
+   * probes taken unconditionally at `init()`, regardless of which renderer ends up active, so a
+   * higher WebGL number can silently mask a lower real WebGPU one (exactly how a 20-texture WebGPU
+   * bind group went undetected on a device whose WebGL2 context happened to report 32 units).
+   */
+  WEBGPU_MAX_SAMPLED_TEXTURES_PER_STAGE = "WEBGPU_MAX_SAMPLED_TEXTURES_PER_STAGE",
+  WEBGPU_MAX_SAMPLERS_PER_STAGE = "WEBGPU_MAX_SAMPLERS_PER_STAGE",
+  WEBGPU_MAX_BIND_GROUPS = "WEBGPU_MAX_BIND_GROUPS",
+  WEBGPU_MAX_BINDINGS_PER_BIND_GROUP = "WEBGPU_MAX_BINDINGS_PER_BIND_GROUP",
+  WEBGPU_MAX_UNIFORM_BUFFER_BINDING_SIZE = "WEBGPU_MAX_UNIFORM_BUFFER_BINDING_SIZE",
+  WEBGPU_MAX_TEXTURE_DIMENSION_2D = "WEBGPU_MAX_TEXTURE_DIMENSION_2D",
 }
 
 /**
@@ -66,17 +85,30 @@ export class DeviceCaps {
   private static _maxTextureImageUnits: number = 0;
   private static _maxVertexUniformVectors: number = 0;
   private static _maxFragmentUniformVectors: number = 0;
+  private static _maxTextureArrayLayers: number = 0;
+  private static _maxColorAttachments: number = 0;
+  private static _webgpuMaxSampledTexturesPerStage: number = 0;
+  private static _webgpuMaxSamplersPerStage: number = 0;
+  private static _webgpuMaxBindGroups: number = 0;
+  private static _webgpuMaxBindingsPerBindGroup: number = 0;
+  private static _webgpuMaxUniformBufferBindingSize: number = 0;
+  private static _webgpuMaxTextureDimension2D: number = 0;
 
   // Specialized Features
   private static _hasFloatTextures: boolean = false;
   private static _hasCompressedTextures: boolean = false;
   private static _gpuModel: string = "Unknown";
+  private static _gpuVendor: string = "Unknown";
   private static _hasAsync: boolean = false;
   private static _hasWasm: boolean = false;
   private static _hasWorkers: boolean = false;
   private static _hasDeviceOrientation: boolean = false;
   private static _hasDeviceMotion: boolean = false;
   private static _hasGenericSensors: boolean = false;
+  private static _hasNetworkInfo: boolean = false;
+  private static _networkInfo:
+    | { effectiveType: string; downlink: number; saveData: boolean }
+    | undefined = undefined;
 
   /**
    * Initializes the feature detection.
@@ -103,6 +135,20 @@ export class DeviceCaps {
       typeof window !== "undefined" && "DeviceOrientationEvent" in window;
     this._hasDeviceMotion = typeof window !== "undefined" && "DeviceMotionEvent" in window;
     this._hasGenericSensors = typeof window !== "undefined" && "Sensor" in window;
+
+    const connection = (
+      navigator as unknown as {
+        connection?: { effectiveType: string; downlink: number; saveData: boolean };
+      }
+    ).connection;
+    this._hasNetworkInfo = !!connection;
+    if (connection) {
+      this._networkInfo = {
+        effectiveType: connection.effectiveType,
+        downlink: connection.downlink,
+        saveData: connection.saveData,
+      };
+    }
 
     // 2. Check WebGL support & limits
     // WebGL 1
@@ -133,10 +179,11 @@ export class DeviceCaps {
         // Check Compressed Textures (Standard S3TC)
         this._hasCompressedTextures = !!gl.getExtension("WEBGL_compressed_texture_s3tc");
 
-        // Check GPU Model
+        // Check GPU Model & Vendor
         const debugInfo = gl.getExtension("WEBGL_debug_renderer_info");
         if (debugInfo) {
           this._gpuModel = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+          this._gpuVendor = gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL);
         }
       }
     } catch {
@@ -167,6 +214,8 @@ export class DeviceCaps {
           this._maxFragmentUniformVectors,
           gl2.getParameter(gl2.MAX_FRAGMENT_UNIFORM_VECTORS),
         );
+        this._maxTextureArrayLayers = gl2.getParameter(gl2.MAX_ARRAY_TEXTURE_LAYERS);
+        this._maxColorAttachments = gl2.getParameter(gl2.MAX_COLOR_ATTACHMENTS);
         this._hasFloatTextures = true; // Required by spec in WebGL2
       }
     } catch {
@@ -190,6 +239,12 @@ export class DeviceCaps {
     maxTextureImageUnits?: number;
     maxVertexUniformVectors?: number;
     maxFragmentUniformVectors?: number;
+    webgpuMaxSampledTexturesPerStage?: number;
+    webgpuMaxSamplersPerStage?: number;
+    webgpuMaxBindGroups?: number;
+    webgpuMaxBindingsPerBindGroup?: number;
+    webgpuMaxUniformBufferBindingSize?: number;
+    webgpuMaxTextureDimension2D?: number;
   }): void {
     if (limits.maxTextureSize)
       this._maxTextureSize = Math.max(this._maxTextureSize, limits.maxTextureSize);
@@ -216,6 +271,33 @@ export class DeviceCaps {
       this._maxFragmentUniformVectors = Math.max(
         this._maxFragmentUniformVectors,
         limits.maxFragmentUniformVectors,
+      );
+    if (limits.webgpuMaxSampledTexturesPerStage)
+      this._webgpuMaxSampledTexturesPerStage = Math.max(
+        this._webgpuMaxSampledTexturesPerStage,
+        limits.webgpuMaxSampledTexturesPerStage,
+      );
+    if (limits.webgpuMaxSamplersPerStage)
+      this._webgpuMaxSamplersPerStage = Math.max(
+        this._webgpuMaxSamplersPerStage,
+        limits.webgpuMaxSamplersPerStage,
+      );
+    if (limits.webgpuMaxBindGroups)
+      this._webgpuMaxBindGroups = Math.max(this._webgpuMaxBindGroups, limits.webgpuMaxBindGroups);
+    if (limits.webgpuMaxBindingsPerBindGroup)
+      this._webgpuMaxBindingsPerBindGroup = Math.max(
+        this._webgpuMaxBindingsPerBindGroup,
+        limits.webgpuMaxBindingsPerBindGroup,
+      );
+    if (limits.webgpuMaxUniformBufferBindingSize)
+      this._webgpuMaxUniformBufferBindingSize = Math.max(
+        this._webgpuMaxUniformBufferBindingSize,
+        limits.webgpuMaxUniformBufferBindingSize,
+      );
+    if (limits.webgpuMaxTextureDimension2D)
+      this._webgpuMaxTextureDimension2D = Math.max(
+        this._webgpuMaxTextureDimension2D,
+        limits.webgpuMaxTextureDimension2D,
       );
   }
 
@@ -256,6 +338,8 @@ export class DeviceCaps {
         return this._hasDeviceMotion;
       case DeviceFeature.GENERIC_SENSORS:
         return this._hasGenericSensors;
+      case DeviceFeature.NETWORK_INFO:
+        return this._hasNetworkInfo;
       default:
         return false;
     }
@@ -284,6 +368,82 @@ export class DeviceCaps {
         return this._maxVertexUniformVectors;
       case DeviceLimit.MAX_FRAGMENT_UNIFORM_VECTORS:
         return this._maxFragmentUniformVectors;
+      case DeviceLimit.MAX_TEXTURE_ARRAY_LAYERS:
+        return this._maxTextureArrayLayers;
+      case DeviceLimit.MAX_COLOR_ATTACHMENTS:
+        return this._maxColorAttachments;
+      case DeviceLimit.WEBGPU_MAX_SAMPLED_TEXTURES_PER_STAGE:
+        return this._webgpuMaxSampledTexturesPerStage;
+      case DeviceLimit.WEBGPU_MAX_SAMPLERS_PER_STAGE:
+        return this._webgpuMaxSamplersPerStage;
+      case DeviceLimit.WEBGPU_MAX_BIND_GROUPS:
+        return this._webgpuMaxBindGroups;
+      case DeviceLimit.WEBGPU_MAX_BINDINGS_PER_BIND_GROUP:
+        return this._webgpuMaxBindingsPerBindGroup;
+      case DeviceLimit.WEBGPU_MAX_UNIFORM_BUFFER_BINDING_SIZE:
+        return this._webgpuMaxUniformBufferBindingSize;
+      case DeviceLimit.WEBGPU_MAX_TEXTURE_DIMENSION_2D:
+        return this._webgpuMaxTextureDimension2D;
+      default:
+        return 0;
+    }
+  }
+
+  /**
+   * Returns the spec-guaranteed minimum for `limit` -- the value every conformant device must
+   * support, regardless of what THIS device's `getLimit()` actually reports. Useful for code that
+   * needs to work correctly even on the lowest-common-denominator device, rather than just the one
+   * it happened to be tested on (a higher-than-guaranteed value on a dev machine or this project's
+   * headless test sandbox has repeatedly masked real budget-overrun bugs that only surfaced on
+   * stricter, spec-minimum hardware).
+   */
+  public static getGuaranteedMinimum(limit: DeviceLimit): number {
+    switch (limit) {
+      // GLES3/WebGL2 minimum; GLES2/WebGL1 only guarantees 64.
+      case DeviceLimit.MAX_TEXTURE_SIZE:
+        return 2048;
+      // GLES3/WebGL2 minimum; GLES2/WebGL1 only guarantees 8 -- the exact number that caused a
+      // real texture-unit collision bug on real hardware earlier in this project's history.
+      case DeviceLimit.MAX_TEXTURE_IMAGE_UNITS:
+        return 16;
+      // GLES2 and GLES3 both guarantee at least 16.
+      case DeviceLimit.MAX_VERTEX_ATTRIBUTES:
+        return 16;
+      // GLES2 minimum (128); GLES3 raises it to 256, but WebGL1 is a real fallback in this engine.
+      case DeviceLimit.MAX_VERTEX_UNIFORM_VECTORS:
+        return 128;
+      // GLES2 minimum (16); GLES3 raises it to 224.
+      case DeviceLimit.MAX_FRAGMENT_UNIFORM_VECTORS:
+        return 16;
+      // GLES3/WebGL2 `MAX_UNIFORM_BLOCK_SIZE` minimum, in bytes.
+      case DeviceLimit.MAX_UNIFORM_BUFFER_SIZE:
+        return 16384;
+      // The anisotropic filtering extension itself is optional; no non-trivial degree is
+      // guaranteed, so the only safe floor is "none" (a max of 1).
+      case DeviceLimit.MAX_ANISOTROPY:
+        return 1;
+      // WebGL2 does not mandate a non-zero sample count for every color-renderable format; there
+      // is no honest non-zero guarantee to give here.
+      case DeviceLimit.MAX_MSAA_SAMPLES:
+        return 0;
+      // GLES3/WebGL2 minimum.
+      case DeviceLimit.MAX_TEXTURE_ARRAY_LAYERS:
+        return 256;
+      case DeviceLimit.MAX_COLOR_ATTACHMENTS:
+        return 4;
+      // WebGPU spec-mandated minimums (`GPUSupportedLimits` default/guaranteed values).
+      case DeviceLimit.WEBGPU_MAX_SAMPLED_TEXTURES_PER_STAGE:
+        return 16;
+      case DeviceLimit.WEBGPU_MAX_SAMPLERS_PER_STAGE:
+        return 16;
+      case DeviceLimit.WEBGPU_MAX_BIND_GROUPS:
+        return 4;
+      case DeviceLimit.WEBGPU_MAX_BINDINGS_PER_BIND_GROUP:
+        return 1000;
+      case DeviceLimit.WEBGPU_MAX_UNIFORM_BUFFER_BINDING_SIZE:
+        return 65536;
+      case DeviceLimit.WEBGPU_MAX_TEXTURE_DIMENSION_2D:
+        return 8192;
       default:
         return 0;
     }
@@ -294,6 +454,23 @@ export class DeviceCaps {
    */
   public static get gpuModel(): string {
     return this._gpuModel;
+  }
+
+  /**
+   * Returns the unmasked GPU vendor if available.
+   */
+  public static get gpuVendor(): string {
+    return this._gpuVendor;
+  }
+
+  /**
+   * Returns Network Information API data if the browser supports it (Chrome/Edge; absent on
+   * Firefox/Safari), or `undefined` otherwise.
+   */
+  public static get networkInfo():
+    | { effectiveType: string; downlink: number; saveData: boolean }
+    | undefined {
+    return this._networkInfo;
   }
 
   /**

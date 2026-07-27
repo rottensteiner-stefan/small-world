@@ -1,7 +1,7 @@
 import { AbstractWebGLRenderer } from "../AbstractWebGLRenderer.js";
 import { WebGLMainPass } from "../passes/WebGLMainPass.js";
 import { WebGLPostProcessPass } from "../passes/WebGLPostProcessPass.js";
-import { PostProcessPassGL } from "../post/passes/index.js";
+import { PostProcessPassGL, BloomPassGL } from "../post/passes/index.js";
 import { CubeTexture, Texture, RenderTarget } from "../../core/textures/index.js";
 import { ShaderRegistry } from "../../core/renderers/shaders/index.js";
 import { DeviceCaps, DeviceLimit, Object3D, Scene } from "../../core/index.js";
@@ -17,6 +17,7 @@ import {
   CullMode,
   BlendingMode,
   Topology,
+  PostProcessingEffectType,
 } from "../../enums/index.js";
 import { Mesh } from "../Mesh.js";
 import { Vector3D } from "../../math/index.js";
@@ -94,6 +95,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
   protected _hdrTexture: WebGLTexture | undefined = undefined;
   protected _hdrRenderBuffer: WebGLRenderbuffer | undefined = undefined;
   protected _postPassGL: PostProcessPassGL | undefined = undefined;
+  protected _bloomPassGL: BloomPassGL | undefined = undefined;
 
   protected _activeRenderTarget: RenderTarget | null = null;
   private _renderTargetFbos: Map<RenderTarget, WebGLFramebuffer> = new Map();
@@ -501,7 +503,21 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
   public flushPostProcess(): void {
     const isOffscreen = this._activeRenderTarget !== null;
     if (!isOffscreen && this.postProcessing.enabled && this._hdrTexture && this._postPassGL) {
-      this._postPassGL.execute(this.gl, this._hdrTexture, this.postProcessing);
+      let bloomTex: WebGLTexture | null = null;
+      if (this._bloomPassGL) {
+        const bloomNode = this.postProcessing.get<import("../post/index.js").BloomElement>(
+          PostProcessingEffectType.BLOOM,
+        );
+        if (bloomNode && bloomNode.enabled) {
+          bloomTex = this._bloomPassGL.execute(
+            this._hdrTexture,
+            this.gl.canvas.width,
+            this.gl.canvas.height,
+            bloomNode,
+          );
+        }
+      }
+      this._postPassGL.execute(this.gl, this._hdrTexture, this.postProcessing, bloomTex);
     }
   }
 
@@ -822,8 +838,10 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
 
       this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
       this._postPassGL ??= new PostProcessPassGL(this.gl, false);
+      this._bloomPassGL ??= new BloomPassGL(this.gl, false);
     } else if (this._hdrFbo) {
       this._postPassGL?.destroy(this.gl);
+      this._bloomPassGL?.destroy();
       this.gl.deleteFramebuffer(this._hdrFbo);
       this.gl.deleteTexture(this._hdrTexture!);
       this.gl.deleteRenderbuffer(this._hdrRenderBuffer!);
@@ -831,6 +849,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
       this._hdrTexture = undefined;
       this._hdrRenderBuffer = undefined;
       this._postPassGL = undefined;
+      this._bloomPassGL = undefined;
     }
   }
 
@@ -967,6 +986,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
       if (this._hdrTexture) gl.deleteTexture(this._hdrTexture);
       if (this._hdrRenderBuffer) gl.deleteRenderbuffer(this._hdrRenderBuffer);
       this._postPassGL?.destroy(gl);
+      this._bloomPassGL?.destroy();
     }
 
     this._programs.clear();
@@ -979,6 +999,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
     this._hdrTexture = undefined;
     this._hdrRenderBuffer = undefined;
     this._postPassGL = undefined;
+    this._bloomPassGL = undefined;
 
     super.destroy();
   }

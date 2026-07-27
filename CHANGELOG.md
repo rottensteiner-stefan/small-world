@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.71.3] - 2026-07-27
+
+### "Make it work, make it right, make it fast."
+
+- **Features:**
+  - **WebGL1 Bloom Post-Processing:** Added full fallback support for the high-quality Dual-Kawase Bloom effect in WebGL1 using GLSL 1.0.0 shaders and custom mip-chain targets.
+- **Architecture & Bugfixes:**
+  - **Renderers:** Updated `WebGL1Renderer` and `WebGPURenderer` for improved compatibility, and refined `DeviceCaps` hardware checks.
+  - **Materials:** Tweaked `FluidSurfaceMaterial` and post-process GLSL100 shaders for the new Bloom integration.
+
 ## [0.71.2] - 2026-07-27
 
 ### "Truth is ever to be found in simplicity, and not in the multiplicity and confusion of things."

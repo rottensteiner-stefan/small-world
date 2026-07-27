@@ -21,7 +21,7 @@ import { GadgetInspector } from "../tools/GadgetInspector.js";
 import { PhysicsSystem } from "../physix/PhysicsSystem.js";
 
 /** The current engine version. */
-export const ENGINE_VERSION = "0.71.2";
+export const ENGINE_VERSION = "0.71.3";
 
 /**
  * Base class for applications built with the SmallWorld engine.
@@ -253,6 +253,7 @@ export abstract class SmallWorld {
           "Device Type": DeviceCaps.isMobile() ? "Mobile" : "Desktop",
           "Performance Tier": DeviceCaps.getPerformanceTier(),
           "GPU Model": DeviceCaps.gpuModel,
+          "GPU Vendor": DeviceCaps.gpuVendor,
           "CPU Cores": DeviceCaps.cores,
           "Memory (GB)": DeviceCaps.memoryGB,
           "Screen Resolution": `${DeviceCaps.screenWidth}x${DeviceCaps.screenHeight}`,
@@ -277,6 +278,9 @@ export abstract class SmallWorld {
           "Feature - Offscreen Canvas": DeviceCaps.hasFeature(DeviceFeature.OFFSCREEN_CANVAS)
             ? "Yes"
             : "No",
+          Network: DeviceCaps.networkInfo
+            ? `${DeviceCaps.networkInfo.effectiveType}, ${DeviceCaps.networkInfo.downlink}Mbps${DeviceCaps.networkInfo.saveData ? ", data saver" : ""}`
+            : "N/A",
         });
       }
 

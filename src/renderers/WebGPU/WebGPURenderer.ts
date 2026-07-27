@@ -4,6 +4,7 @@ import {
   RenderManifest,
   ShaderRegistry,
   DeviceCaps,
+  DeviceLimit,
   InstancedMesh,
   Object3D,
   Scene,
@@ -62,6 +63,138 @@ export interface WebGPUPipelineCache {
 }
 
 /**
+ * GPU binding-slot metadata for every material texture that ISN'T always bound (see
+ * `_getMaterialBGL`'s fixed set: sampler/normalMap/envMap/emissiveMap). Mirrors `structs.wgsl`'s
+ * `@group(1)` binding numbers 1:1 -- this is stable GPU-type metadata (what shape is this
+ * texture?), not a "which material uses this?" list. That answer comes from each material's own
+ * `getShaderDefinition().layout.textures`, which is what `_getMaterialBGL`/`_getMaterialBindGroup`
+ * actually consult to decide which of these entries a given material's bind group needs.
+ *
+ * Built lazily (not a module-scope literal): it references the `GPUShaderStage` global, which
+ * only exists where the WebGPU API is present -- eagerly evaluating it at import time would break
+ * every environment without that global (e.g. Vitest), even for tests unrelated to WebGPU, since
+ * they transitively import this module via `RendererFactory`.
+ */
+let _optionalMaterialTextureBindings:
+  | Record<string, { binding: number; layoutEntry: GPUBindGroupLayoutEntry }>
+  | undefined;
+
+function getOptionalMaterialTextureBindings(): Record<
+  string,
+  { binding: number; layoutEntry: GPUBindGroupLayoutEntry }
+> {
+  if (!_optionalMaterialTextureBindings) {
+    _optionalMaterialTextureBindings = {
+      u_diffuseMap: {
+        binding: 2,
+        layoutEntry: {
+          binding: 2,
+          visibility: GPUShaderStage.FRAGMENT,
+          texture: { sampleType: "float" },
+        },
+      },
+      u_specularMap: {
+        binding: 4,
+        layoutEntry: {
+          binding: 4,
+          visibility: GPUShaderStage.FRAGMENT,
+          texture: { sampleType: "float" },
+        },
+      },
+      u_sandMap: {
+        binding: 5,
+        layoutEntry: {
+          binding: 5,
+          visibility: GPUShaderStage.FRAGMENT,
+          texture: { sampleType: "float" },
+        },
+      },
+      u_grassMap: {
+        binding: 6,
+        layoutEntry: {
+          binding: 6,
+          visibility: GPUShaderStage.FRAGMENT,
+          texture: { sampleType: "float" },
+        },
+      },
+      u_rockMap: {
+        binding: 7,
+        layoutEntry: {
+          binding: 7,
+          visibility: GPUShaderStage.FRAGMENT,
+          texture: { sampleType: "float" },
+        },
+      },
+      u_snowMap: {
+        binding: 8,
+        layoutEntry: {
+          binding: 8,
+          visibility: GPUShaderStage.FRAGMENT,
+          texture: { sampleType: "float" },
+        },
+      },
+      u_metallicMap: {
+        binding: 9,
+        layoutEntry: {
+          binding: 9,
+          visibility: GPUShaderStage.FRAGMENT,
+          texture: { sampleType: "float" },
+        },
+      },
+      u_roughnessMap: {
+        binding: 10,
+        layoutEntry: {
+          binding: 10,
+          visibility: GPUShaderStage.FRAGMENT,
+          texture: { sampleType: "float" },
+        },
+      },
+      u_alphaMap: {
+        binding: 13,
+        layoutEntry: {
+          binding: 13,
+          visibility: GPUShaderStage.FRAGMENT,
+          texture: { viewDimension: "2d", sampleType: "float" },
+        },
+      },
+      u_opaqueMap: {
+        binding: 14,
+        layoutEntry: {
+          binding: 14,
+          visibility: GPUShaderStage.FRAGMENT,
+          texture: { viewDimension: "2d", sampleType: "float" },
+        },
+      },
+      u_reflectionMap: {
+        binding: 15,
+        layoutEntry: {
+          binding: 15,
+          visibility: GPUShaderStage.FRAGMENT,
+          texture: { viewDimension: "2d", sampleType: "float" },
+        },
+      },
+      u_opaqueDepthMap: {
+        binding: 16,
+        layoutEntry: {
+          binding: 16,
+          visibility: GPUShaderStage.FRAGMENT,
+          texture: { viewDimension: "2d", sampleType: "depth" },
+        },
+      },
+    };
+  }
+  return _optionalMaterialTextureBindings;
+}
+
+/**
+ * Number of sampled-texture bindings in `_globalBGL` (irradianceMap, prefilterMap, brdfLUT,
+ * dirShadowMap, spotShadowMap -- bindings 4/5/6/8/9; binding 7 and 10 are samplers, not counted
+ * against the per-stage sampled-texture budget). Every material bind group's own texture count
+ * is added on top of this fixed cost when checking against the device's real per-stage limit.
+ */
+const GLOBAL_BIND_GROUP_TEXTURE_COUNT = 5;
+
+/**
  * Modern WebGPU implementation with dynamic vertex updates and memory management.
  */
 export class WebGPURenderer extends AbstractRenderer {
@@ -117,6 +250,8 @@ export class WebGPURenderer extends AbstractRenderer {
   protected _gpuInstanceBuffers: WeakMap<InstancedMesh, GPUBuffer> = new WeakMap();
   protected _gpuInstanceDataBuffers: WeakMap<InstancedMesh, GPUBuffer> = new WeakMap();
   protected _materialBGLCache = new Map<string, GPUBindGroupLayout>();
+  /** `shaderId`s already warned about in `_getMaterialBGL`'s sampled-texture budget guard. */
+  private _warnedMaterialTextureBudget = new Set<string>();
   protected _frameCount = 0;
   protected _scratchModelMatrix = new Float32Array(16);
   protected _scratchColorArray = new Float32Array(3);
@@ -257,11 +392,21 @@ export class WebGPURenderer extends AbstractRenderer {
       requiredLimits,
     });
 
-    // Update DeviceCaps with actual WebGPU limits
+    // Update DeviceCaps with actual WebGPU limits. `maxSampledTexturesPerShaderStage` deliberately
+    // goes into its own `webgpuMaxSampledTexturesPerStage` field, NOT the shared
+    // `maxTextureImageUnits` -- that field is `Math.max()`'d against WebGL1/WebGL2 probes taken
+    // unconditionally at `DeviceCaps.init()`, so a higher WebGL number could mask a lower real
+    // WebGPU one (exactly how a 20-texture WebGPU bind group went undetected on a device whose
+    // WebGL2 context happened to report more texture units than this API actually allows).
     DeviceCaps.updateLimits({
       maxTextureSize: this._device.limits.maxTextureDimension2D,
       maxUniformBufferSize: this._device.limits.maxUniformBufferBindingSize,
-      maxTextureImageUnits: this._device.limits.maxSampledTexturesPerShaderStage,
+      webgpuMaxSampledTexturesPerStage: this._device.limits.maxSampledTexturesPerShaderStage,
+      webgpuMaxSamplersPerStage: this._device.limits.maxSamplersPerShaderStage,
+      webgpuMaxBindGroups: this._device.limits.maxBindGroups,
+      webgpuMaxBindingsPerBindGroup: this._device.limits.maxBindingsPerBindGroup,
+      webgpuMaxUniformBufferBindingSize: this._device.limits.maxUniformBufferBindingSize,
+      webgpuMaxTextureDimension2D: this._device.limits.maxTextureDimension2D,
     });
 
     // Add uncapturederror listener
@@ -489,50 +634,6 @@ export class WebGPURenderer extends AbstractRenderer {
 
     this._globalBindGroup = this._createGlobalBindGroup();
 
-    const matEntries: GPUBindGroupLayoutEntry[] = [
-      { binding: 1, visibility: GPUShaderStage.FRAGMENT, sampler: { type: "filtering" } },
-    ];
-    for (let i = 2; i <= 10; i++) {
-      matEntries.push({
-        binding: i,
-        visibility: GPUShaderStage.FRAGMENT,
-        texture: { sampleType: "float" },
-      });
-    }
-    matEntries.push({
-      binding: 11,
-      visibility: GPUShaderStage.FRAGMENT,
-      texture: { viewDimension: "cube" },
-    });
-    matEntries.push(
-      {
-        binding: 12,
-        visibility: GPUShaderStage.FRAGMENT,
-        texture: { viewDimension: "2d", sampleType: "float" },
-      },
-      {
-        binding: 13,
-        visibility: GPUShaderStage.FRAGMENT,
-        texture: { viewDimension: "2d", sampleType: "float" },
-      },
-      {
-        binding: 14,
-        visibility: GPUShaderStage.FRAGMENT,
-        texture: { viewDimension: "2d", sampleType: "float" },
-      },
-      {
-        binding: 15,
-        visibility: GPUShaderStage.FRAGMENT,
-        texture: { viewDimension: "2d", sampleType: "float" },
-      },
-      {
-        binding: 16,
-        visibility: GPUShaderStage.FRAGMENT,
-        texture: { viewDimension: "2d", sampleType: "depth" },
-      },
-    );
-    this._materialBGLCache.set("", this._device!.createBindGroupLayout({ entries: matEntries }));
-
     this._objectBGL = this._device!.createBindGroupLayout({
       entries: [
         {
@@ -578,65 +679,92 @@ export class WebGPURenderer extends AbstractRenderer {
     });
   }
 
-  protected _getMaterialBGL(flags: string[]): GPUBindGroupLayout {
-    const key = flags.join("_");
+  /**
+   * Names from `shaderId`'s own `layout.textures` that also appear in
+   * `getOptionalMaterialTextureBindings()` -- i.e. the material-specific textures (beyond the
+   * always-bound sampler/normalMap/envMap/emissiveMap) this material's bind group actually needs.
+   */
+  private _getOptionalMaterialTextureNames(shaderId: string): string[] {
+    const declared = ShaderRegistry.instance.get(shaderId)?.layout.textures;
+    if (!declared) return [];
+    const bindings = getOptionalMaterialTextureBindings();
+    return Object.keys(declared).filter((name) => name in bindings);
+  }
+
+  /**
+   * Builds the material bind group layout for `shaderId`, containing only the texture bindings
+   * that material actually declares (plus normalMap/envMap/emissiveMap, which the shared PBR
+   * lighting chunk references regardless of what an individual material's own layout declares).
+   * A layout with every possible material texture bound at once (diffuse, normal, specular,
+   * terrain x4, metallic, roughness, env, emissive, alpha, opaque, reflection, opaqueDepth = 15,
+   * plus the 5 IBL/shadow textures in the global bind group = 20) exceeds WebGPU's guaranteed
+   * per-stage sampled-texture minimum of 16 on any device that doesn't happen to allow more.
+   */
+  protected _getMaterialBGL(shaderId: string, flags: string[]): GPUBindGroupLayout {
+    const key = shaderId + "_" + flags.join("_");
     let bgl = this._materialBGLCache.get(key);
     if (!bgl) {
       const matEntries: GPUBindGroupLayoutEntry[] = [
         { binding: 1, visibility: GPUShaderStage.FRAGMENT, sampler: { type: "filtering" } },
-      ];
-      for (let i = 2; i <= 10; i++) {
-        // Assume diffuseMap is binding 2
-        if (i === 2 && flags.includes("USE_TEXTURE_ARRAY")) {
-          matEntries.push({
-            binding: i,
-            visibility: GPUShaderStage.FRAGMENT,
-            texture: { viewDimension: "2d-array", sampleType: "float" },
-          });
-        } else {
-          matEntries.push({
-            binding: i,
-            visibility: GPUShaderStage.FRAGMENT,
-            texture: { sampleType: "float" },
-          });
-        }
-      }
-      matEntries.push({
-        binding: 11,
-        visibility: GPUShaderStage.FRAGMENT,
-        texture: { viewDimension: "cube" },
-      });
-      matEntries.push(
+        { binding: 3, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: "float" } },
+        { binding: 11, visibility: GPUShaderStage.FRAGMENT, texture: { viewDimension: "cube" } },
         {
           binding: 12,
           visibility: GPUShaderStage.FRAGMENT,
           texture: { viewDimension: "2d", sampleType: "float" },
         },
-        {
-          binding: 13,
-          visibility: GPUShaderStage.FRAGMENT,
-          texture: { viewDimension: "2d", sampleType: "float" },
-        },
-        {
-          binding: 14,
-          visibility: GPUShaderStage.FRAGMENT,
-          texture: { viewDimension: "2d", sampleType: "float" },
-        },
-        {
-          binding: 15,
-          visibility: GPUShaderStage.FRAGMENT,
-          texture: { viewDimension: "2d", sampleType: "float" },
-        },
-        {
-          binding: 16,
-          visibility: GPUShaderStage.FRAGMENT,
-          texture: { viewDimension: "2d", sampleType: "depth" },
-        },
-      );
+      ];
+      const bindingInfo = getOptionalMaterialTextureBindings();
+      for (const name of this._getOptionalMaterialTextureNames(shaderId)) {
+        const info = bindingInfo[name]!;
+        if ("u_diffuseMap" === name && flags.includes("USE_TEXTURE_ARRAY")) {
+          matEntries.push({
+            binding: info.binding,
+            visibility: GPUShaderStage.FRAGMENT,
+            texture: { viewDimension: "2d-array", sampleType: "float" },
+          });
+        } else {
+          matEntries.push(info.layoutEntry);
+        }
+      }
+      this._checkSampledTextureBudget(shaderId, matEntries);
       bgl = this._device!.createBindGroupLayout({ entries: matEntries });
       this._materialBGLCache.set(key, bgl);
     }
     return bgl;
+  }
+
+  /**
+   * Warns (once per `shaderId`) if `shaderId`'s material bind group, combined with the global
+   * bind group's fixed textures, would exceed this device's real per-stage sampled-texture
+   * budget -- or the WebGPU spec's guaranteed minimum if the real device limit isn't known yet.
+   * `createBindGroupLayout` itself doesn't validate this (the failure only surfaces later, as a
+   * cryptic "Invalid PipelineLayout"/"Invalid RenderPipeline" cascade at actual pipeline creation
+   * time); this gives an early, actionable diagnostic naming the actual offending material.
+   */
+  private _checkSampledTextureBudget(
+    shaderId: string,
+    matEntries: GPUBindGroupLayoutEntry[],
+  ): void {
+    if (this._warnedMaterialTextureBudget.has(shaderId)) return;
+
+    const materialTextureCount = matEntries.filter((e) => "texture" in e).length;
+    const total = GLOBAL_BIND_GROUP_TEXTURE_COUNT + materialTextureCount;
+    const deviceLimit = DeviceCaps.getLimit(DeviceLimit.WEBGPU_MAX_SAMPLED_TEXTURES_PER_STAGE);
+    const limit =
+      deviceLimit > 0
+        ? deviceLimit
+        : DeviceCaps.getGuaranteedMinimum(DeviceLimit.WEBGPU_MAX_SAMPLED_TEXTURES_PER_STAGE);
+
+    if (total > limit) {
+      this._warnedMaterialTextureBudget.add(shaderId);
+      console.warn(
+        `[WebGPURenderer] Material '${shaderId}' needs ${total} sampled textures in the ` +
+          `fragment stage (${GLOBAL_BIND_GROUP_TEXTURE_COUNT} global + ${materialTextureCount} ` +
+          `material-specific), exceeding this device's per-stage limit of ${limit}. Pipeline ` +
+          `creation for this material will likely fail.`,
+      );
+    }
   }
 
   protected _pipelineCacheKey(
@@ -681,7 +809,7 @@ export class WebGPURenderer extends AbstractRenderer {
     let cache = this._pipelines.get(key);
     if (!cache) {
       const sm = this._getShaderModule(shaderId, isInstanced, flags);
-      const materialBGL = this._getMaterialBGL(flags);
+      const materialBGL = this._getMaterialBGL(shaderId, flags);
       const pipelineLayout = this._device!.createPipelineLayout({
         bindGroupLayouts: [this._globalBGL, materialBGL, this._objectBGL],
       });
@@ -1526,84 +1654,55 @@ export class WebGPURenderer extends AbstractRenderer {
     this._device!.queue.writeBuffer(b, 0, this._scratchObjBufferData);
   }
 
+  /** Resolves the GPU resource for one of `getOptionalMaterialTextureBindings()`'s texture names. */
+  private _resolveOptionalMaterialTexture(name: string, m: RenderManifest): GPUBindingResource {
+    if ("u_opaqueMap" === name) {
+      return m.textures["u_opaqueMap"]
+        ? this._getTextureView(m.textures["u_opaqueMap"] as Texture)
+        : this._opaqueTextureView || this._whiteTexView;
+    }
+    if ("u_opaqueDepthMap" === name) {
+      return m.textures["u_opaqueDepthMap"]
+        ? this._getTextureView(m.textures["u_opaqueDepthMap"] as Texture)
+        : this._opaqueDepthTextureView || this._dummyDepthTexView;
+    }
+    return this._getTextureView(m.textures[name] as Texture);
+  }
+
   protected _getMaterialBindGroup(
     matUuid: string,
     m: RenderManifest,
     layout: GPUBindGroupLayout,
   ): GPUBindGroup {
-    const r1 = this._getSampler(m.textures["u_diffuseMap"] as Texture);
-    const r2 = this._getTextureView(m.textures["u_diffuseMap"] as Texture);
-    const r3 = this._getNormalTextureView(m.textures["u_normalMap"] as Texture);
-    const r4 = this._getTextureView(m.textures["u_specularMap"] as Texture);
-    const r5 = this._getTextureView(m.textures["u_sandMap"] as Texture);
-    const r6 = this._getTextureView(m.textures["u_grassMap"] as Texture);
-    const r7 = this._getTextureView(m.textures["u_rockMap"] as Texture);
-    const r8 = this._getTextureView(m.textures["u_snowMap"] as Texture);
-    const r9 = this._getTextureView(m.textures["u_metallicMap"] as Texture);
-    const r10 = this._getTextureView(m.textures["u_roughnessMap"] as Texture);
     const envOrSkybox = m.textures["u_skybox"] || m.textures["u_envMap"];
-    const r11 = this._getGPUCubeTextureView(envOrSkybox as CubeTexture);
-    const r12 = this._getTextureView(m.textures["u_emissiveMap"] as Texture);
-    const r13 = this._getTextureView(m.textures["u_alphaMap"] as Texture);
-    const r14 = m.textures["u_opaqueMap"]
-      ? this._getTextureView(m.textures["u_opaqueMap"] as Texture)
-      : this._opaqueTextureView || this._whiteTexView;
-    const r15 = this._getTextureView(m.textures["u_reflectionMap"] as Texture);
-    const r16 = m.textures["u_opaqueDepthMap"]
-      ? this._getTextureView(m.textures["u_opaqueDepthMap"] as Texture)
-      : this._opaqueDepthTextureView || this._dummyDepthTexView;
+    const bindings: number[] = [1, 3, 11, 12];
+    const resources: GPUBindingResource[] = [
+      this._getSampler(m.textures["u_diffuseMap"] as Texture),
+      this._getNormalTextureView(m.textures["u_normalMap"] as Texture),
+      this._getGPUCubeTextureView(envOrSkybox as CubeTexture),
+      this._getTextureView(m.textures["u_emissiveMap"] as Texture),
+    ];
+    const bindingInfo = getOptionalMaterialTextureBindings();
+    for (const name of this._getOptionalMaterialTextureNames(m.shaderId)) {
+      bindings.push(bindingInfo[name]!.binding);
+      resources.push(this._resolveOptionalMaterialTexture(name, m));
+    }
 
     const cache = this._materialBindGroups.get(matUuid);
-    if (cache) {
-      const resources = cache.resources;
-      if (
-        resources[0] === r1 &&
-        resources[1] === r2 &&
-        resources[2] === r3 &&
-        resources[3] === r4 &&
-        resources[4] === r5 &&
-        resources[5] === r6 &&
-        resources[6] === r7 &&
-        resources[7] === r8 &&
-        resources[8] === r9 &&
-        resources[9] === r10 &&
-        resources[10] === r11 &&
-        resources[11] === r12 &&
-        resources[12] === r13 &&
-        resources[13] === r14 &&
-        resources[14] === r15 &&
-        resources[15] === r16
-      ) {
-        return cache.bg;
-      }
+    if (
+      cache &&
+      cache.resources.length === resources.length &&
+      cache.resources.every((r, i) => r === resources[i])
+    ) {
+      return cache.bg;
     }
 
     const bg = this._device!.createBindGroup({
       layout,
-      entries: [
-        { binding: 1, resource: r1 },
-        { binding: 2, resource: r2 },
-        { binding: 3, resource: r3 },
-        { binding: 4, resource: r4 },
-        { binding: 5, resource: r5 },
-        { binding: 6, resource: r6 },
-        { binding: 7, resource: r7 },
-        { binding: 8, resource: r8 },
-        { binding: 9, resource: r9 },
-        { binding: 10, resource: r10 },
-        { binding: 11, resource: r11 },
-        { binding: 12, resource: r12 },
-        { binding: 13, resource: r13 },
-        { binding: 14, resource: r14 },
-        { binding: 15, resource: r15 },
-        { binding: 16, resource: r16 },
-      ],
+      entries: bindings.map((binding, i) => ({ binding, resource: resources[i]! })),
     });
 
-    this._materialBindGroups.set(matUuid, {
-      bg,
-      resources: [r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, r15, r16],
-    });
+    this._materialBindGroups.set(matUuid, { bg, resources });
     return bg;
   }
 

@@ -145,6 +145,7 @@ export class FluidSurfaceMaterial extends AbstractMaterial {
         textures: {
           u_diffuseMap: { type: ShaderPropertyType.TEXTURE },
           u_normalMap: { type: ShaderPropertyType.TEXTURE },
+          u_opaqueDepthMap: { type: ShaderPropertyType.TEXTURE },
         },
       },
     };
