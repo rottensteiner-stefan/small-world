@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.71.0] - 2026-07-27
+
+### "The best preparation for tomorrow is doing your best today." - H. Jackson Brown Jr.
+
+- **Features:**
+  - **Renderer Near/Far Planes:** Added support for camera near and far planes across all renderers and shadow passes, and enabled `copyToOpaqueDepthTexture()` in `WebGLMainPass`.
+- **Architecture & Bugfixes:**
+  - **Refactoring:** Removed the `Singleton` pattern from `CollisionVisualizer` and `OctreeVisualizer`, converting them into standard instantiable classes to comply with engine strictness against global singletons.
+- **Housekeeping & Docs:**
+  - **Git Optimization:** Removed heavy builds, unit tests, and showcase tests from the local `.husky/pre-commit` hook to dramatically speed up local commit times, shifting this responsibility fully to the GitHub Actions CI workflow.
+
 ## [0.70.2] - 2026-07-27
 
 ### "Words are, of course, the most powerful drug used by mankind." - Rudyard Kipling
