@@ -16,13 +16,21 @@ export class WebGLShadowPass implements WebGLRenderPass {
     _vMat: Float32Array | undefined,
     renderList: RenderList,
     extractedLights: LightDataInterface,
+    near?: number,
+    far?: number,
   ): void {
     const r = renderer as unknown as {
       renderShadowMaps?: (
         lights: LightDataInterface,
         opaqueBatches: import("../../core/Scene.js").RenderBatch[],
       ) => void;
-      updateGlobalUBO?: (vp: Float32Array, camPos: Vector3D, lights: LightDataInterface) => void;
+      updateGlobalUBO?: (
+        vp: Float32Array,
+        camPos: Vector3D,
+        lights: LightDataInterface,
+        near?: number,
+        far?: number,
+      ) => void;
     };
 
     if (r.renderShadowMaps) {
@@ -30,7 +38,7 @@ export class WebGLShadowPass implements WebGLRenderPass {
     }
 
     if (r.updateGlobalUBO) {
-      r.updateGlobalUBO(vp, camPos, extractedLights);
+      r.updateGlobalUBO(vp, camPos, extractedLights, near, far);
     }
   }
 }

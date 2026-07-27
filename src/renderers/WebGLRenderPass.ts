@@ -21,6 +21,8 @@ export interface WebGLRenderPass {
    * @param vMat View Matrix (optional).
    * @param renderList Die sortierte Liste der zu rendernden Objekte.
    * @param extractedLights Die extrahierten Lichter der Szene.
+   * @param near Kamera-Near-Plane.
+   * @param far Kamera-Far-Plane.
    */
   execute(
     renderer: AbstractWebGLRenderer,
@@ -30,5 +32,7 @@ export interface WebGLRenderPass {
     vMat: Float32Array | undefined,
     renderList: RenderList,
     extractedLights: LightDataInterface,
+    near?: number,
+    far?: number,
   ): void;
 }

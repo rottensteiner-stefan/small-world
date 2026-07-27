@@ -18,6 +18,8 @@ export class WebGLMainPass implements WebGLRenderPass {
     vMat: Float32Array | undefined,
     renderList: RenderList,
     extractedLights: LightDataInterface,
+    _near?: number,
+    _far?: number,
   ): void {
     const gl = renderer.webglContext;
 
@@ -73,6 +75,7 @@ export class WebGLMainPass implements WebGLRenderPass {
     // 5. Render Transparent
     if (renderList.transparent.length > 0) {
       renderer.copyToOpaqueTexture();
+      renderer.copyToOpaqueDepthTexture();
 
       // We group transparent objects dynamically
       const transparentMap = new Map<string, Object3D[]>();

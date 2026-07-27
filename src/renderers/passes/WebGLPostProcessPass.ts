@@ -16,6 +16,8 @@ export class WebGLPostProcessPass implements WebGLRenderPass {
     _vMat: Float32Array | undefined,
     _renderList: RenderList,
     _extractedLights: LightDataInterface,
+    _near?: number,
+    _far?: number,
   ): void {
     renderer.flushPostProcess();
   }

@@ -1035,6 +1035,8 @@ export class WebGPURenderer extends AbstractRenderer {
     vp: Float32Array,
     camPos: Vector3D = Vector3D.ZERO,
     vMat?: Float32Array,
+    near: number = 0.1,
+    far: number = 1000,
   ): void {
     if (!this._device) return;
 
@@ -1044,7 +1046,7 @@ export class WebGPURenderer extends AbstractRenderer {
 
     this._frameCount++;
     const lights = this.extractLights(scene);
-    this._updateGlobalBuffers(vp, camPos, lights, scene);
+    this._updateGlobalBuffers(vp, camPos, lights, scene, near, far);
     const ce = this._device.createCommandEncoder();
 
     if (this.postProcessing.enabled && !this._hdrTexture) {
@@ -1733,6 +1735,8 @@ export class WebGPURenderer extends AbstractRenderer {
     camPos: Vector3D,
     lights: LightDataInterface,
     scene: Scene,
+    near: number = 0.1,
+    far: number = 1000,
   ): void {
     if (
       this._currentIrradianceMap !== scene.irradianceMap ||
@@ -1815,8 +1819,8 @@ export class WebGPURenderer extends AbstractRenderer {
     gData[198] = 0.0; // castShadow off by default
     gData[199] = 4.0;
 
-    gData[200] = 0.1;
-    gData[201] = 1000.0;
+    gData[200] = near;
+    gData[201] = far;
 
     // Default spot shadow values
     for (let i = 0; i < 4; i++) {

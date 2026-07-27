@@ -28,6 +28,8 @@ export abstract class AbstractWebGLRenderer extends AbstractRenderer {
     vp: Float32Array,
     camPos: Vector3D = Vector3D.ZERO,
     vMat?: Float32Array,
+    near?: number,
+    far?: number,
   ): void {
     this._releaseRemovedObjects(scene.consumeRemovedObjects());
 
@@ -36,7 +38,7 @@ export abstract class AbstractWebGLRenderer extends AbstractRenderer {
     const renderList = scene.getVisibleObjectsSorted(vp, camPos);
 
     for (const pass of this._passes) {
-      pass.execute(this, scene, vp, camPos, vMat, renderList, extractedLights);
+      pass.execute(this, scene, vp, camPos, vMat, renderList, extractedLights, near, far);
     }
   }
 
@@ -59,6 +61,11 @@ export abstract class AbstractWebGLRenderer extends AbstractRenderer {
   public abstract bindMainRenderTarget(): boolean;
   public abstract bindPostProcessRenderTarget(): void;
   public abstract copyToOpaqueTexture(): void;
+  /**
+   * Captures the opaque depth buffer into a sampleable texture for underwater/refraction
+   * effects. No-op on renderers without a compatible depth-capture path (see WebGL1Renderer).
+   */
+  public abstract copyToOpaqueDepthTexture(): void;
   public abstract flushPostProcess(): void;
 
   public abstract renderBatch(

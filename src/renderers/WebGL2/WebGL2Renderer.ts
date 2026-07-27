@@ -85,14 +85,32 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     u_alphaMap: 6,
     u_opaqueMap: 7,
     u_envMap: 7,
-    u_reflectionMap: 10,
-    u_irradianceMap: 12,
+    // 8-11 (spot shadow atlas, 4 lights) and 12 (directional shadow atlas) are claimed by the
+    // hardcoded `texUnit` values in renderShadowMaps()/CSM binding below -- keep everything else
+    // out of that range, since two ACTIVE samplers of different types assigned the same unit
+    // number is a GL_INVALID_OPERATION at draw time regardless of what's actually bound there.
+    //
+    // u_irradianceMap deliberately reuses unit 2 (u_specularMap's slot): Standard.frag.glsl's
+    // PBR path (metallic/roughness workflow) never references u_specularMap even though it's
+    // declared in the shared [BASE_FRAGMENT_HEADER] chunk -- the GLSL compiler optimizes it out
+    // as genuinely unused, confirmed via getActiveUniform() on the compiled program -- while
+    // Phong-style materials that DO use u_specularMap never reference IBL. This keeps the
+    // worst-case simultaneous count (full PBR stack + 4 spot shadows + directional shadow +
+    // prefilter + brdfLUT = 15 distinct units) inside the WebGL2 spec's guaranteed minimum of 16
+    // texture image units, so IBL works on every conformant device, not just ones with >16 units.
+    u_irradianceMap: 2,
+    u_opaqueDepthMap: 16,
+    u_reflectionMap: 17,
     u_prefilterMap: 14,
     u_brdfLUT: 15,
   };
 
   public _opaqueTexture?: WebGLTexture;
   public _opaqueTextureWrapper?: Texture;
+  private _opaqueDepthTexture?: WebGLTexture;
+  private _opaqueDepthFbo?: WebGLFramebuffer;
+  private _opaqueDepthWidth: number = 0;
+  private _opaqueDepthHeight: number = 0;
   protected _hdrFbo: WebGL2FrameBuffer | undefined = undefined;
   protected _postPassGL: PostProcessPassGL | undefined = undefined;
   protected _bloomPassGL: BloomPassGL | undefined = undefined;
@@ -117,6 +135,9 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
   private _shadowMaps: Map<AbstractLight, WebGL2DepthFrameBuffer> = new Map();
   private _dummyShadowMap!: WebGL2DepthFrameBuffer;
 
+  /** Cached once at init instead of re-querying `DeviceCaps` on every texture bind. */
+  private _maxTextureUnits: number = 0;
+
   /** @inheritdoc */
   public async initialize(
     canvas: HTMLCanvasElement,
@@ -133,6 +154,8 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     if (config?.postProcessing) {
       this.postProcessing.loadConfig(config.postProcessing);
     }
+
+    this._maxTextureUnits = DeviceCaps.getLimit(DeviceLimit.MAX_TEXTURE_IMAGE_UNITS);
 
     this._dummyShadowMap = new WebGL2DepthFrameBuffer(this.gl, 1, 1);
     this._dummyShadowMap.bind();
@@ -161,6 +184,21 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     this._stateBlendDst = -1;
     this._stateDepthMask = null;
     this._stateDepthTest = null;
+  }
+
+  /**
+   * Whether `unit` is within the device's texture-unit budget. Centralizes the "not enough
+   * units" check + warning so every optional-texture bind site (per-object samplers, global IBL
+   * maps) degrades the same way instead of duplicating the comparison ad hoc -- easy to forget
+   * at a new call site otherwise, since exceeding the budget doesn't throw, it silently defaults
+   * the sampler to unit 0 and can collide with an unrelated, differently-typed sampler there.
+   */
+  private _isTextureUnitAvailable(unit: number, uniformName: string): boolean {
+    if (unit < this._maxTextureUnits) return true;
+    console.warn(
+      `[WebGL2Renderer] Exceeded MAX_TEXTURE_IMAGE_UNITS (${this._maxTextureUnits}). Cannot bind material texture ${uniformName} to unit ${unit}.`,
+    );
+    return false;
   }
 
   private _programCacheKey(shaderId: string, isInstanced: boolean, flags: string[]): string {
@@ -254,6 +292,12 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         "u_texOffset",
         "u_texRepeat",
         "u_opaqueMap",
+        "u_opaqueDepthMap",
+        "u_irradianceMap",
+        "u_prefilterMap",
+        "u_brdfLUT",
+        "u_envIntensity",
+        "u_reflectionMap",
         "u_fogMode",
         "u_fogColor",
         "u_fogDensity",
@@ -605,6 +649,65 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       this.gl.canvas.height,
       0,
     );
+  }
+
+  /**
+   * Captures the opaque depth buffer into a sampleable `DEPTH24_STENCIL8` texture, for
+   * underwater/refraction depth-fade effects (e.g. `OpenWaterMaterial`). Only possible while
+   * an HDR FBO is active: `_hdrFbo`'s depth/stencil renderbuffer has a known, fixed format
+   * (`DEPTH24_STENCIL8`), which `blitFramebuffer` requires to match the capture texture's
+   * format exactly. Without post-processing (rendering straight to the default framebuffer),
+   * the actual depth/stencil format is implementation-defined, so capture is skipped -- water
+   * materials fall back to their non-depth (Fresnel-based) blending in that case.
+   */
+  public copyToOpaqueDepthTexture(): void {
+    if (!this.postProcessing.enabled || !this._hdrFbo) {
+      return;
+    }
+
+    const gl = this.gl;
+    const w = gl.canvas.width;
+    const h = gl.canvas.height;
+
+    if (!this._opaqueDepthTexture) {
+      this._opaqueDepthTexture = gl.createTexture()!;
+      this._opaqueDepthFbo = gl.createFramebuffer()!;
+    }
+
+    if (this._opaqueDepthWidth !== w || this._opaqueDepthHeight !== h) {
+      gl.bindTexture(gl.TEXTURE_2D, this._opaqueDepthTexture);
+      gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.DEPTH24_STENCIL8,
+        w,
+        h,
+        0,
+        gl.DEPTH_STENCIL,
+        gl.UNSIGNED_INT_24_8,
+        null,
+      );
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+      gl.bindFramebuffer(gl.FRAMEBUFFER, this._opaqueDepthFbo!);
+      gl.framebufferTexture2D(
+        gl.FRAMEBUFFER,
+        gl.DEPTH_STENCIL_ATTACHMENT,
+        gl.TEXTURE_2D,
+        this._opaqueDepthTexture,
+        0,
+      );
+
+      this._opaqueDepthWidth = w;
+      this._opaqueDepthHeight = h;
+    }
+
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this._opaqueDepthFbo!);
+    gl.blitFramebuffer(0, 0, w, h, 0, 0, w, h, gl.DEPTH_BUFFER_BIT, gl.NEAREST);
+    this._hdrFbo.bind();
   }
 
   public flushPostProcess(): void {
@@ -1050,36 +1153,50 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       const intLoc = u.get("u_envIntensity");
       if (intLoc) this.gl.uniform1f(intLoc, scene.environmentIntensity);
 
-      // Irradiance Map (Unit 12)
+      // Irradiance Map -- always claim the unit with at least a dummy cube texture when the
+      // uniform is active, even without real IBL data: leaving an active sampler unassigned
+      // defaults it to unit 0, colliding with whatever 2D sampler (e.g. u_diffuseMap)
+      // legitimately owns that unit ("two textures of different types use the same sampler
+      // location" GL_INVALID_OPERATION).
       const irrUnit = this._samplerUnits["u_irradianceMap"]!;
       const irrLoc = u.get("u_irradianceMap");
-      if (irrLoc && scene.irradianceMap) {
+      if (irrLoc && this._isTextureUnitAvailable(irrUnit, "u_irradianceMap")) {
         this.gl.activeTexture(this.gl.TEXTURE0 + irrUnit);
+        this.gl.bindTexture(this.gl.TEXTURE_2D, null);
         this.gl.bindTexture(
           this.gl.TEXTURE_CUBE_MAP,
-          this._getWebGLCubeTexture(scene.irradianceMap),
+          scene.irradianceMap
+            ? this._getWebGLCubeTexture(scene.irradianceMap)
+            : this.defaultCubeTexture,
         );
         this.gl.uniform1i(irrLoc, irrUnit);
       }
 
-      // Prefilter Map (Unit 14)
+      // Prefilter Map
       const prefUnit = this._samplerUnits["u_prefilterMap"]!;
       const prefLoc = u.get("u_prefilterMap");
-      if (prefLoc && scene.prefilterMap) {
+      if (prefLoc && this._isTextureUnitAvailable(prefUnit, "u_prefilterMap")) {
         this.gl.activeTexture(this.gl.TEXTURE0 + prefUnit);
+        this.gl.bindTexture(this.gl.TEXTURE_2D, null);
         this.gl.bindTexture(
           this.gl.TEXTURE_CUBE_MAP,
-          this._getWebGLCubeTexture(scene.prefilterMap),
+          scene.prefilterMap
+            ? this._getWebGLCubeTexture(scene.prefilterMap)
+            : this.defaultCubeTexture,
         );
         this.gl.uniform1i(prefLoc, prefUnit);
       }
 
-      // BRDF LUT (Unit 15)
+      // BRDF LUT
       const brdfUnit = this._samplerUnits["u_brdfLUT"]!;
       const brdfLoc = u.get("u_brdfLUT");
-      if (brdfLoc && scene.brdfLUT) {
+      if (brdfLoc && this._isTextureUnitAvailable(brdfUnit, "u_brdfLUT")) {
         this.gl.activeTexture(this.gl.TEXTURE0 + brdfUnit);
-        this.gl.bindTexture(this.gl.TEXTURE_2D, this._getWebGLTexture(scene.brdfLUT));
+        this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, null);
+        this.gl.bindTexture(
+          this.gl.TEXTURE_2D,
+          scene.brdfLUT ? this._getWebGLTexture(scene.brdfLUT) : this.defaultTexture,
+        );
         this.gl.uniform1i(brdfLoc, brdfUnit);
       }
     }
@@ -1174,42 +1291,53 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       if (uSkybox) this.gl.uniform1i(uSkybox, 0);
     } else {
       for (const uniformName in this._samplerUnits) {
+        // IBL maps are scene-global, not per-object -- already bound once per draw call by the
+        // dedicated "Global IBL Uniforms" block above. Letting this per-object loop also process
+        // them (it has no cube-aware branch for them) would rebind them as plain 2D textures,
+        // clobbering the correct cube binding and re-triggering the same sampler-type collision
+        // this loop is meant to avoid.
+        if (
+          "u_irradianceMap" === uniformName ||
+          "u_prefilterMap" === uniformName ||
+          "u_brdfLUT" === uniformName
+        ) {
+          continue;
+        }
         const unit = this._samplerUnits[uniformName]!;
         const loc = u.get(uniformName);
-        if (loc) {
-          const maxUnits = DeviceCaps.getLimit(DeviceLimit.MAX_TEXTURE_IMAGE_UNITS);
-          if (unit >= maxUnits) {
-            console.warn(
-              `[WebGL2Renderer] Exceeded MAX_TEXTURE_IMAGE_UNITS (${maxUnits}). Cannot bind material texture ${uniformName} to unit ${unit}.`,
-            );
+        if (!loc || !this._isTextureUnitAvailable(unit, uniformName)) continue;
+
+        this.gl.activeTexture(this.gl.TEXTURE0 + unit);
+        const t = texs[uniformName] as Texture;
+        if (uniformName === "u_normalMap" && !t) {
+          this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, null);
+          this.gl.bindTexture(this.gl.TEXTURE_2D, this.defaultNormalMap);
+        } else if (uniformName === "u_specularMap" && !t) {
+          this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, null);
+          this.gl.bindTexture(this.gl.TEXTURE_2D, this.defaultSpecularMap);
+        } else if (uniformName === "u_envMap") {
+          this.gl.bindTexture(this.gl.TEXTURE_2D, null);
+          const ct = texs[uniformName] as CubeTexture;
+          this.gl.bindTexture(
+            this.gl.TEXTURE_CUBE_MAP,
+            ct ? this._getWebGLCubeTexture(ct) : this.defaultCubeTexture,
+          );
+        } else if (uniformName === "u_opaqueMap" && !t) {
+          this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, null);
+          this.gl.bindTexture(this.gl.TEXTURE_2D, this._opaqueTexture ?? this.defaultTexture);
+        } else if (uniformName === "u_opaqueDepthMap" && !t) {
+          this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, null);
+          this.gl.bindTexture(this.gl.TEXTURE_2D, this._opaqueDepthTexture ?? this.defaultTexture);
+        } else {
+          this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, null);
+          const glTex = t ? this._getWebGLTexture(t) : this.defaultTexture;
+          if (t && "isTextureArray" in t && (t as TextureArray).isTextureArray) {
+            this.gl.bindTexture(this.gl.TEXTURE_2D_ARRAY, glTex);
           } else {
-            this.gl.activeTexture(this.gl.TEXTURE0 + unit);
-            const t = texs[uniformName] as Texture;
-            if (uniformName === "u_normalMap" && !t) {
-              this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, null);
-              this.gl.bindTexture(this.gl.TEXTURE_2D, this.defaultNormalMap);
-            } else if (uniformName === "u_specularMap" && !t) {
-              this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, null);
-              this.gl.bindTexture(this.gl.TEXTURE_2D, this.defaultSpecularMap);
-            } else if (uniformName === "u_envMap") {
-              this.gl.bindTexture(this.gl.TEXTURE_2D, null);
-              const ct = texs[uniformName] as CubeTexture;
-              this.gl.bindTexture(
-                this.gl.TEXTURE_CUBE_MAP,
-                ct ? this._getWebGLCubeTexture(ct) : this.defaultCubeTexture,
-              );
-            } else {
-              this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, null);
-              const glTex = t ? this._getWebGLTexture(t) : this.defaultTexture;
-              if (t && "isTextureArray" in t && (t as TextureArray).isTextureArray) {
-                this.gl.bindTexture(this.gl.TEXTURE_2D_ARRAY, glTex);
-              } else {
-                this.gl.bindTexture(this.gl.TEXTURE_2D, glTex);
-              }
-            }
-            this.gl.uniform1i(loc, unit);
+            this.gl.bindTexture(this.gl.TEXTURE_2D, glTex);
           }
         }
+        this.gl.uniform1i(loc, unit);
       }
     }
 
@@ -1354,7 +1482,13 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     }
   }
 
-  public updateGlobalUBO(vp: Float32Array, camPos: Vector3D, lights: LightDataInterface): void {
+  public updateGlobalUBO(
+    vp: Float32Array,
+    camPos: Vector3D,
+    lights: LightDataInterface,
+    near: number = 0.1,
+    far: number = 1000,
+  ): void {
     const ubo = this._globalUBO;
     ubo.setMatrix(0, vp);
     ubo.setVector3(64, camPos);
@@ -1456,6 +1590,8 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         ubo.setFloat(offset + 84, al.height / 2.0);
       }
     }
+
+    ubo.setVec2(152, near, far);
     ubo.update();
   }
 

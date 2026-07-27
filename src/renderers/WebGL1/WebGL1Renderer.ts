@@ -109,6 +109,9 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
 
   private _scratchModelMatrix: Float32Array = new Float32Array(16);
 
+  /** Cached once at init instead of re-querying `DeviceCaps` on every texture bind. */
+  private _maxTextureUnits: number = 0;
+
   /** @inheritdoc */
   public async initialize(
     canvas: HTMLCanvasElement,
@@ -127,12 +130,27 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
       this.postProcessing.loadConfig(config.postProcessing);
     }
 
+    this._maxTextureUnits = DeviceCaps.getLimit(DeviceLimit.MAX_TEXTURE_IMAGE_UNITS);
+
     this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, false);
     this.initDefaultTextures();
     this.gl.enable(this.gl.DEPTH_TEST);
 
     this.addPass(new WebGLMainPass());
     this.addPass(new WebGLPostProcessPass());
+  }
+
+  /**
+   * Whether `unit` is within the device's texture-unit budget. Centralizes the "not enough
+   * units" check + warning so it can't drift out of sync between multiple bind sites -- see the
+   * matching helper in WebGL2Renderer for the full rationale.
+   */
+  private _isTextureUnitAvailable(unit: number, uniformName: string): boolean {
+    if (unit < this._maxTextureUnits) return true;
+    console.warn(
+      `[WebGL1Renderer] Exceeded MAX_TEXTURE_IMAGE_UNITS (${this._maxTextureUnits}). Cannot bind material texture ${uniformName} to unit ${unit}.`,
+    );
+    return false;
   }
 
   private _getProgram(shaderId: string): ProgramCache {
@@ -196,6 +214,12 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
         "u_grassMap",
         "u_rockMap",
         "u_snowMap",
+        "u_metallicMap",
+        "u_roughnessMap",
+        "u_emissiveMap",
+        "u_alphaMap",
+        "u_envMap",
+        "u_reflectionMap",
         "u_texOffset",
         "u_texRepeat",
         "u_opaqueMap",
@@ -458,6 +482,15 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
     );
   }
 
+  /**
+   * WebGL1 has no depth-texture-capable copy path (no `blitFramebuffer`, and the
+   * `WEBGL_depth_texture` extension is unused in this project) -- intentional no-op.
+   * Materials sampling `u_opaqueDepthMap` fall back to the default (far-depth) texture.
+   */
+  public copyToOpaqueDepthTexture(): void {
+    // Intentional no-op, see docstring.
+  }
+
   public flushPostProcess(): void {
     const isOffscreen = this._activeRenderTarget !== null;
     if (!isOffscreen && this.postProcessing.enabled && this._hdrTexture && this._postPassGL) {
@@ -629,6 +662,11 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
           else if (v.length === 3) this.gl.uniform3fv(loc, v);
           else if (v.length === 2) this.gl.uniform2fv(loc, v);
           else if (v.length === 16) this.gl.uniformMatrix4fv(loc, false, v);
+        } else if (Array.isArray(value)) {
+          if (value.length === 4) this.gl.uniform4fv(loc, value as number[]);
+          else if (value.length === 3) this.gl.uniform3fv(loc, value as number[]);
+          else if (value.length === 2) this.gl.uniform2fv(loc, value as number[]);
+          else if (value.length === 16) this.gl.uniformMatrix4fv(loc, false, value as number[]);
         }
       }
 
@@ -647,36 +685,28 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
         for (const uniformName in this._samplerUnits) {
           const unit = this._samplerUnits[uniformName]!;
           const loc = u.get(uniformName);
-          if (loc) {
-            const maxUnits = DeviceCaps.getLimit(DeviceLimit.MAX_TEXTURE_IMAGE_UNITS);
-            if (unit >= maxUnits) {
-              console.warn(
-                `[WebGL1Renderer] Exceeded MAX_TEXTURE_IMAGE_UNITS (${maxUnits}). Cannot bind material texture ${uniformName} to unit ${unit}.`,
-              );
-            } else {
-              this.gl.activeTexture(this.gl.TEXTURE0 + unit);
-              if (uniformName === "u_envMap") {
-                this.gl.bindTexture(this.gl.TEXTURE_2D, null);
-                const ct = texs[uniformName] as CubeTexture;
-                this.gl.bindTexture(
-                  this.gl.TEXTURE_CUBE_MAP,
-                  ct ? this._getWebGLCubeTexture(ct) : this.defaultCubeTexture,
-                );
-              } else {
-                this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, null);
-                const t = texs[uniformName] as Texture;
-                this.gl.bindTexture(
-                  this.gl.TEXTURE_2D,
-                  t
-                    ? this._getWebGLTexture(t)
-                    : uniformName === "u_normalMap"
-                      ? this.defaultNormalMap
-                      : this.defaultTexture,
-                );
-              }
-              this.gl.uniform1i(loc, unit);
+          if (!loc || !this._isTextureUnitAvailable(unit, uniformName)) continue;
+
+          this.gl.activeTexture(this.gl.TEXTURE0 + unit);
+          if (uniformName === "u_envMap") {
+            this.gl.bindTexture(this.gl.TEXTURE_2D, null);
+            const ct = texs[uniformName] as CubeTexture;
+            this.gl.bindTexture(
+              this.gl.TEXTURE_CUBE_MAP,
+              ct ? this._getWebGLCubeTexture(ct) : this.defaultCubeTexture,
+            );
+          } else {
+            this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, null);
+            const t = texs[uniformName] as Texture;
+            let fallback: WebGLTexture = this.defaultTexture;
+            if (uniformName === "u_normalMap") {
+              fallback = this.defaultNormalMap;
+            } else if (uniformName === "u_opaqueMap") {
+              fallback = this._opaqueTexture ?? this.defaultTexture;
             }
+            this.gl.bindTexture(this.gl.TEXTURE_2D, t ? this._getWebGLTexture(t) : fallback);
           }
+          this.gl.uniform1i(loc, unit);
         }
       }
 

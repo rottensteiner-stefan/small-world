@@ -24,6 +24,7 @@ class TestWebGLRenderer extends AbstractWebGLRenderer {
   }
   public override bindPostProcessRenderTarget(): void {}
   public override copyToOpaqueTexture(): void {}
+  public override copyToOpaqueDepthTexture(): void {}
   public override flushPostProcess(): void {}
 }
 
