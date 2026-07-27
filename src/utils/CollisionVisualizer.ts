@@ -7,35 +7,19 @@ import { BoundingBox, BoundingSphere } from "../physix/index.js";
 
 /**
  * Utility to visualize collision boundaries (AABBs and Spheres) in the scene.
- * This class is designed as a singleton for easy access during debugging.
  */
 export class CollisionVisualizer {
-  private static _instance: CollisionVisualizer;
   private _debugObjects: Map<string, Object3D> = new Map();
   private _cubeGeo: Cube;
   private _sphereGeo: Sphere;
   private _boxMat: WireframeMaterial;
   private _sphereMat: WireframeMaterial;
 
-  /**
-   * Private constructor to enforce singleton pattern.
-   */
-  private constructor() {
+  constructor() {
     this._cubeGeo = new Cube({ size: 1 });
     this._sphereGeo = new Sphere({ radius: 1, widthSegments: 16, heightSegments: 12 });
     this._boxMat = new WireframeMaterial(new Color(0, 255, 0, 1)); // Green for boxes
     this._sphereMat = new WireframeMaterial(new Color(255, 255, 0, 1)); // Yellow for spheres
-  }
-
-  /**
-   * Gets the singleton instance of the visualizer.
-   * @returns The visualizer instance.
-   */
-  public static get instance(): CollisionVisualizer {
-    if (!this._instance) {
-      this._instance = new CollisionVisualizer();
-    }
-    return this._instance;
   }
 
   /**

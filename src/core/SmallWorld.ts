@@ -41,6 +41,8 @@ export abstract class SmallWorld {
   public interactionManager!: InteractionManager;
   public readonly input: Input = new Input();
   public readonly audio: AudioSystem = new AudioSystem();
+  private readonly _octreeVisualizer: OctreeVisualizer = new OctreeVisualizer();
+  private readonly _collisionVisualizer: CollisionVisualizer = new CollisionVisualizer();
   public forge!: import("../tools/forge/Forge.js").Forge;
   /** The canvas element. */
   public canvas!: HTMLCanvasElement;
@@ -440,8 +442,8 @@ export abstract class SmallWorld {
     FrustumCuller.cull(this.scene, this.camera.viewProjectionMatrix4);
 
     if (this.debug) {
-      CollisionVisualizer.instance.update(this.scene);
-      OctreeVisualizer.instance.update(this.scene, FrustumCuller.lastIntersectedNodes);
+      this._collisionVisualizer.update(this.scene);
+      this._octreeVisualizer.update(this.scene, FrustumCuller.lastIntersectedNodes);
     }
 
     if (this.canvas.clientWidth > 0 && this.canvas.clientHeight > 0) {
@@ -450,6 +452,8 @@ export abstract class SmallWorld {
         this.camera.viewProjectionMatrix,
         this.camera.position,
         this.camera.viewMatrix,
+        this.camera.projection.near,
+        this.camera.projection.far,
       );
     }
 

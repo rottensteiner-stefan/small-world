@@ -8,32 +8,17 @@ import { BoundingBox } from "../physix/index.js";
  * Utility to visualize the Octree structure in the scene.
  */
 export class OctreeVisualizer {
-  private static _instance: OctreeVisualizer;
   private _debugObjects: Object3D[] = [];
   private _cubeGeo: Cube;
   private _nodeMat: WireframeMaterial;
   private _activeNodeMat: WireframeMaterial;
   private _dynamicNodeMat: WireframeMaterial;
 
-  /**
-   * Private constructor to enforce singleton pattern.
-   */
-  private constructor() {
+  constructor() {
     this._cubeGeo = new Cube({ size: 1 });
     this._nodeMat = new WireframeMaterial(new Color(100, 100, 100, 0.5)); // Gray for static nodes
     this._activeNodeMat = new WireframeMaterial(new Color(0, 255, 255, 1)); // Cyan for active nodes
     this._dynamicNodeMat = new WireframeMaterial(new Color(255, 165, 0, 0.5)); // Orange for dynamic nodes
-  }
-
-  /**
-   * Gets the singleton instance of the visualizer.
-   * @returns The visualizer instance.
-   */
-  public static get instance(): OctreeVisualizer {
-    if (!this._instance) {
-      this._instance = new OctreeVisualizer();
-    }
-    return this._instance;
   }
 
   /**
