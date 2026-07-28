@@ -455,6 +455,138 @@ describe("PhysicsSystem", () => {
     expect(bodies[10]!.position.x).toBe(100);
   });
 
+  describe("CCD (fast-moving sphere bodies)", () => {
+    // Dynamic bodies going through the full `step()` pipeline must have real geometry: unlike
+    // the direct-`_resolveCollisions()` tests above, `step()`'s integration loop calls
+    // `obj.computeBounds()` on every dynamic body every substep, which *derives* bounds from
+    // geometry + world matrix -- a manually-assigned `.bounds` with no geometry behind it gets
+    // wiped back to `undefined` the moment that runs. Static bodies (mass 0) are never touched by
+    // that loop, so they can keep the simpler manual-bounds shortcut used elsewhere in this file.
+    function makeDynamicMarble(radius: number): Object3D {
+      const marble = new Object3D("Marble");
+      marble.geometry = new Sphere({ radius }).getGeometryData();
+      marble.rigidBody = new RigidBody(1);
+      marble.rigidBody.friction = 1.0; // no damping -- keeps the velocity/displacement math exact
+      return marble;
+    }
+
+    it("should prevent a fast sphere from tunneling through a thin wall in a single substep", () => {
+      // A thin wall a fast marble would otherwise sail straight through in one substep without CCD.
+      const wall = new Object3D("Wall");
+      wall.rigidBody = new RigidBody(0);
+      wall.bounds = new BoundingBox(new Vector3D(4.9, -5, -5), new Vector3D(5.1, 5, 5));
+      scene.add(wall);
+
+      const marble = makeDynamicMarble(0.5);
+      marble.position.set(0, 0, 0);
+      marble.rigidBody!.restitution = 0;
+      scene.add(marble);
+      scene.update();
+      marble.computeBounds();
+
+      // 1000 units/sec straight at the wall -- at dt=1/60 that's ~16.7 units of travel, more
+      // than three times the distance to the wall, so an unprotected discrete check would never
+      // see an overlap at all.
+      marble.rigidBody!.velocity.set(1000, 0, 0);
+
+      system.fixedTimeStep = 1 / 60;
+      system.step(scene, 1 / 60);
+
+      // Without CCD this would land around x=16.7 (tunneled clean through). With CCD it must be
+      // stopped at/just past the wall's near face (x=4.9), well short of the far side.
+      expect(marble.position.x).toBeLessThan(5.1);
+      expect(marble.position.x).toBeGreaterThan(3.5);
+    });
+
+    it("should stop a fast sphere at a thin static sphere obstacle via CCD", () => {
+      const obstacle = new Object3D("Obstacle");
+      obstacle.rigidBody = new RigidBody(0);
+      obstacle.bounds = new BoundingSphere(new Vector3D(5, 0, 0), 0.5);
+      scene.add(obstacle);
+
+      const marble = makeDynamicMarble(0.5);
+      marble.position.set(0, 0, 0);
+      marble.rigidBody!.restitution = 0;
+      scene.add(marble);
+      scene.update();
+      marble.computeBounds();
+
+      marble.rigidBody!.velocity.set(1000, 0, 0);
+
+      system.fixedTimeStep = 1 / 60;
+      system.step(scene, 1 / 60);
+
+      // Combined radius is 1.0, so contact happens with centers 1 unit apart, i.e. around x=4.
+      expect(marble.position.x).toBeLessThan(4.5);
+      expect(marble.position.x).toBeGreaterThan(2.0);
+    });
+
+    it("should not alter slow-moving bodies that never cross the CCD threshold", () => {
+      const marble = makeDynamicMarble(0.5);
+      marble.position.set(0, 0, 0);
+      scene.add(marble);
+      scene.update();
+      marble.computeBounds();
+
+      marble.rigidBody!.velocity.set(1, 0, 0); // Well under the radius-per-substep CCD threshold.
+
+      system.fixedTimeStep = 1 / 60;
+      system.step(scene, 1 / 60);
+
+      // Plain, un-swept integration: p = v * dt.
+      expect(marble.position.x).toBeCloseTo(1 * (1 / 60));
+    });
+
+    it("should let a fast sphere tunnel through when CCD is disabled via ccdMotionThreshold = Infinity", () => {
+      system.ccdMotionThreshold = Infinity;
+
+      const wall = new Object3D("Wall");
+      wall.rigidBody = new RigidBody(0);
+      wall.bounds = new BoundingBox(new Vector3D(4.9, -5, -5), new Vector3D(5.1, 5, 5));
+      scene.add(wall);
+
+      const marble = makeDynamicMarble(0.5);
+      marble.position.set(0, 0, 0);
+      scene.add(marble);
+      scene.update();
+      marble.computeBounds();
+
+      marble.rigidBody!.velocity.set(1000, 0, 0);
+
+      system.fixedTimeStep = 1 / 60;
+      system.step(scene, 1 / 60);
+
+      // With CCD off, the marble simply integrates straight through the wall this substep.
+      expect(marble.position.x).toBeCloseTo(1000 * (1 / 60));
+      expect(marble.position.x).toBeGreaterThan(5.1);
+    });
+
+    it("should only sweep sphere bodies, leaving fast box/OBB bodies purely discrete", () => {
+      const wall = new Object3D("Wall");
+      wall.rigidBody = new RigidBody(0);
+      wall.bounds = new BoundingBox(new Vector3D(4.9, -5, -5), new Vector3D(5.1, 5, 5));
+      scene.add(wall);
+
+      const fastBox = new Object3D("FastBox");
+      fastBox.geometry = new Cube({ size: 1 }).getGeometryData();
+      fastBox.position.set(0, 0, 0);
+      fastBox.rigidBody = new RigidBody(1);
+      fastBox.rigidBody.friction = 1.0;
+      scene.add(fastBox);
+      scene.update();
+      fastBox.computeBounds();
+
+      fastBox.rigidBody.velocity.set(1000, 0, 0);
+
+      system.fixedTimeStep = 1 / 60;
+      system.step(scene, 1 / 60);
+
+      // Scope decision: CCD only covers sphere bodies. A fast box is expected to tunnel through
+      // in a single substep exactly like before this feature existed.
+      expect(fastBox.position.x).toBeCloseTo(1000 * (1 / 60));
+    });
+  });
+
   it("should correctly resolve objects that fall into the broadphase fallback list (Boundary Edge Case)", async () => {
     const s1 = new Object3D();
     s1.rigidBody = new RigidBody(1);

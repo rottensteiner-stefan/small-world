@@ -1,6 +1,7 @@
 import { BoundingBox } from "./BoundingBox.js";
 import { BoundingSphere } from "./BoundingSphere.js";
 import { OBB } from "./OBB.js";
+import { Ray } from "./Ray.js";
 import { BoundingVolume } from "../interfaces/index.js";
 import { Vector3D, MathPool, MathUtils } from "../math/index.js";
 import { BoundingType } from "../enums/index.js";
@@ -332,6 +333,104 @@ export class Collision {
 
     result.set(bestX, bestY, bestZ).scale(bestSign * minOverlap);
     return true;
+  }
+
+  /**
+   * Sweeps a moving sphere against a static sphere, used for Continuous Collision Detection
+   * (CCD) of fast-moving bodies that could otherwise tunnel through thin/small geometry in a
+   * single discrete step.
+   * @param origin The moving sphere's center at the start of this step.
+   * @param delta The moving sphere's displacement over this step (NOT normalized -- its length
+   * matters, since the returned time-of-impact is a fraction of this vector).
+   * @param radius The moving sphere's radius.
+   * @param s The static sphere to sweep against.
+   * @returns The time-of-impact as a fraction of `delta` in `[0, 1]`, or -1 if no impact occurs
+   * during this sweep (including if the two spheres already overlap at `origin`, since that's a
+   * pre-existing overlap the discrete resolver already handles, not a new tunneling event).
+   */
+  public static sweepSphereSphere(
+    origin: Vector3D,
+    delta: Vector3D,
+    radius: number,
+    s: BoundingSphere,
+  ): number {
+    const m = MathPool.acquireVector().copyFrom(origin).sub(s.center);
+    const sumRad = radius + s.radius;
+
+    const a = delta.lengthSq();
+    if (a < 1e-12) {
+      MathPool.releaseVector(m);
+      return -1;
+    }
+
+    const b = 2 * m.dot(delta);
+    const c = m.lengthSq() - sumRad * sumRad;
+    MathPool.releaseVector(m);
+
+    if (c <= 0) return -1;
+
+    const discriminant = b * b - 4 * a * c;
+    if (discriminant < 0) return -1;
+
+    const t = (-b - Math.sqrt(discriminant)) / (2 * a);
+    return t >= 0 && t <= 1 ? t : -1;
+  }
+
+  /**
+   * Sweeps a moving sphere against a static AABB for CCD. Approximates the swept volume as the
+   * box expanded by the sphere's radius on every axis (a cheap, standard approximation -- the
+   * true Minkowski sum would round the box's edges/corners, which this cheap version doesn't).
+   * @param origin The moving sphere's center at the start of this step.
+   * @param delta The moving sphere's displacement over this step (not normalized).
+   * @param radius The moving sphere's radius.
+   * @param b The static box to sweep against.
+   * @returns The time-of-impact as a fraction of `delta` in `[0, 1]`, or -1 if no impact.
+   */
+  public static sweepSphereBox(
+    origin: Vector3D,
+    delta: Vector3D,
+    radius: number,
+    b: BoundingBox,
+  ): number {
+    const expanded = new BoundingBox(
+      new Vector3D(b.min.x - radius, b.min.y - radius, b.min.z - radius),
+      new Vector3D(b.max.x + radius, b.max.y + radius, b.max.z + radius),
+    );
+    const t = new Ray(origin, delta).intersectsBox(expanded);
+    return t >= 0 && t <= 1 ? t : -1;
+  }
+
+  /**
+   * Sweeps a moving sphere against a static OBB for CCD, by transforming the sweep into the
+   * OBB's local space (where it becomes an axis-aligned sphere-vs-box sweep, same approach as
+   * {@link sweepSphereBox}).
+   * @param origin The moving sphere's center at the start of this step.
+   * @param delta The moving sphere's displacement over this step (not normalized).
+   * @param radius The moving sphere's radius.
+   * @param o The static OBB to sweep against.
+   * @returns The time-of-impact as a fraction of `delta` in `[0, 1]`, or -1 if no impact.
+   */
+  public static sweepSphereObb(origin: Vector3D, delta: Vector3D, radius: number, o: OBB): number {
+    const rel = MathPool.acquireVector().copyFrom(origin).sub(o.center);
+    const localOrigin = new Vector3D(
+      rel.dot(MathUtils.at(o.axes, 0)),
+      rel.dot(MathUtils.at(o.axes, 1)),
+      rel.dot(MathUtils.at(o.axes, 2)),
+    );
+    MathPool.releaseVector(rel);
+
+    const localDelta = new Vector3D(
+      delta.dot(MathUtils.at(o.axes, 0)),
+      delta.dot(MathUtils.at(o.axes, 1)),
+      delta.dot(MathUtils.at(o.axes, 2)),
+    );
+
+    const expanded = new BoundingBox(
+      new Vector3D(-o.halfExtents.x - radius, -o.halfExtents.y - radius, -o.halfExtents.z - radius),
+      new Vector3D(o.halfExtents.x + radius, o.halfExtents.y + radius, o.halfExtents.z + radius),
+    );
+    const t = new Ray(localOrigin, localDelta).intersectsBox(expanded);
+    return t >= 0 && t <= 1 ? t : -1;
   }
 
   private static _sphereSphere(s1: BoundingSphere, s2: BoundingSphere): boolean {

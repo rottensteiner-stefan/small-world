@@ -15,6 +15,27 @@ import { FluidVolume } from "./FluidVolume.js";
 const BROADPHASE_EPSILON: number = 0.01;
 
 /**
+ * How far past the exact contact point a CCD-corrected body is allowed to advance, as a
+ * fraction of its per-substep displacement. A small overshoot (rather than stopping exactly at
+ * the surface) guarantees the discrete resolver sees genuine, if tiny, penetration depth right
+ * away, so the impulse/bounce response happens in the same substep instead of one frame late.
+ */
+const CCD_CONTACT_OVERSHOOT: number = 0.01;
+
+/**
+ * A sphere-shaped dynamic body flagged during integration as moving fast enough (relative to
+ * its own radius) this substep that it could tunnel through thin/small geometry before the
+ * discrete narrow-phase ever sees an overlap. Resolved via a swept test in `_resolveCCD` before
+ * the normal discrete collision pass runs.
+ */
+interface CCDCandidate {
+  obj: Object3D;
+  prevPos: Vector3D;
+  delta: Vector3D;
+  radius: number;
+}
+
+/**
  * A lightweight physics solver using Semi-Implicit Euler integration.
  */
 export class PhysicsSystem {
@@ -26,8 +47,19 @@ export class PhysicsSystem {
   public maxSubSteps: number = 10;
   /** Maximum delta time allowed per frame. */
   public maxDeltaTime: number = 0.25;
+  /**
+   * Continuous Collision Detection (CCD) threshold, as a multiple of a sphere body's own radius.
+   * If a sphere-shaped body moves farther than `radius * ccdMotionThreshold` in a single
+   * substep, it's swept against nearby geometry instead of only being checked for overlap at its
+   * new position -- this catches fast/small bodies that would otherwise tunnel straight through
+   * thin walls or other small colliders. Only sphere bodies are covered; box/OBB bodies are
+   * always resolved discretely. Set to `Infinity` to disable CCD entirely.
+   */
+  public ccdMotionThreshold: number = 1.0;
 
   private _accumulator: number = 0;
+  private _ccdCandidates: CCDCandidate[] = [];
+  private _ccdQueryHits: Collidable[] = [];
 
   private _bodies: Object3D[] = [];
   private _allColliders: Collidable[] = [];
@@ -215,6 +247,27 @@ export class PhysicsSystem {
 
       // p = p + v * dt
       const deltaP = MathPool.acquireVector().copyFrom(rb.velocity).scale(dt);
+
+      // CCD candidate check: only sphere bodies are swept (see `ccdMotionThreshold`'s doc).
+      // Must read `obj.bounds` here, before `computeBounds()` below overwrites it with the
+      // post-move state -- at this point it still holds the pre-move sphere.
+      if (
+        obj.bounds &&
+        BoundingType.SPHERE === obj.bounds.type &&
+        Number.isFinite(this.ccdMotionThreshold)
+      ) {
+        const radius = (obj.bounds as BoundingSphere).radius;
+        const threshold = radius * this.ccdMotionThreshold;
+        if (deltaP.lengthSq() > threshold * threshold) {
+          this._ccdCandidates.push({
+            obj,
+            prevPos: MathPool.acquireVector().copyFrom(obj.position),
+            delta: MathPool.acquireVector().copyFrom(deltaP),
+            radius,
+          });
+        }
+      }
+
       obj.position.add(deltaP);
       MathPool.releaseVector(deltaP);
 
@@ -296,6 +349,75 @@ export class PhysicsSystem {
     if (cz + r > this._broadphaseWorldMax.z) this._broadphaseWorldMax.z = cz + r;
   }
 
+  /**
+   * Resolves this substep's CCD candidates (see `ccdMotionThreshold`'s doc) by sweeping each
+   * one against nearby colliders in `broadphaseTree` and clamping its position to just past the
+   * earliest impact along its path, instead of leaving it at its fully-integrated (and possibly
+   * tunneled-through) position. Only ever corrects position -- velocity/rotation are untouched
+   * here, so the discrete pass right after this naturally sees a genuinely (if barely)
+   * overlapping pair and resolves the actual bounce/impulse/event exactly as it always does.
+   */
+  private _resolveCCD(broadphaseTree: Octree): void {
+    for (let i = 0; i < this._ccdCandidates.length; i++) {
+      const candidate = this._ccdCandidates[i]!;
+      const { obj, prevPos, delta, radius } = candidate;
+
+      const sweptMin = MathPool.acquireVector().set(
+        Math.min(prevPos.x, prevPos.x + delta.x) - radius,
+        Math.min(prevPos.y, prevPos.y + delta.y) - radius,
+        Math.min(prevPos.z, prevPos.z + delta.z) - radius,
+      );
+      const sweptMax = MathPool.acquireVector().set(
+        Math.max(prevPos.x, prevPos.x + delta.x) + radius,
+        Math.max(prevPos.y, prevPos.y + delta.y) + radius,
+        Math.max(prevPos.z, prevPos.z + delta.z) + radius,
+      );
+      const sweptBox = new BoundingBox(sweptMin, sweptMax);
+
+      this._ccdQueryHits.length = 0;
+      broadphaseTree.queryVolume(sweptBox, this._ccdQueryHits);
+      for (let f = 0; f < this._broadphaseFallback.length; f++) {
+        this._ccdQueryHits.push(this._broadphaseFallback[f]!);
+      }
+      MathPool.releaseVector(sweptMin);
+      MathPool.releaseVector(sweptMax);
+
+      let earliestToi = 1;
+      for (let j = 0; j < this._ccdQueryHits.length; j++) {
+        const other = this._ccdQueryHits[j]!;
+        if (other === obj || !other.bounds) continue;
+
+        let toi = -1;
+        if (BoundingType.SPHERE === other.bounds.type) {
+          toi = Collision.sweepSphereSphere(prevPos, delta, radius, other.bounds as BoundingSphere);
+        } else if (BoundingType.BOX === other.bounds.type) {
+          toi = Collision.sweepSphereBox(prevPos, delta, radius, other.bounds as BoundingBox);
+        } else if (BoundingType.OBB === other.bounds.type) {
+          toi = Collision.sweepSphereObb(prevPos, delta, radius, other.bounds as unknown as OBB);
+        }
+
+        if (toi >= 0 && toi < earliestToi) {
+          earliestToi = toi;
+        }
+      }
+
+      if (earliestToi < 1) {
+        // Advance slightly *past* the exact contact point rather than stopping exactly on it --
+        // otherwise the discrete resolver right below would see zero penetration depth and skip
+        // the bounce/impulse response for this substep entirely.
+        const clampedToi = Math.min(1, earliestToi + CCD_CONTACT_OVERSHOOT);
+        obj.position.copyFrom(delta).scale(clampedToi).add(prevPos);
+        obj.updateMatrixWorld();
+        obj.computeBounds();
+      }
+
+      MathPool.releaseVector(prevPos);
+      MathPool.releaseVector(delta);
+    }
+
+    this._ccdCandidates.length = 0;
+  }
+
   private _resolveCollisions(bodies: Object3D[], allColliders: Collidable[]): void {
     this._broadphaseWorldMin.set(Infinity, Infinity, Infinity);
     this._broadphaseWorldMax.set(-Infinity, -Infinity, -Infinity);
@@ -334,6 +456,12 @@ export class PhysicsSystem {
       if (!broadphaseTree.insert(allColliders[i]!)) {
         this._broadphaseFallback.push(allColliders[i]!);
       }
+    }
+
+    // CCD must run against this same, fully-populated tree, and before the discrete pass below
+    // so it sees corrected (non-tunneled) positions for any bodies that needed a correction.
+    if (this._ccdCandidates.length > 0) {
+      this._resolveCCD(broadphaseTree);
     }
 
     this._bodyIndex.clear();

@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.73.0] - 2026-07-28
+
+### "The most incomprehensible thing about the universe is that it is comprehensible."
+
+- **Features:**
+  - **Physics (CCD):** Implemented Continuous Collision Detection (CCD) for fast-moving spherical bodies. Swept-sphere collision tests (against spheres, boxes, and OBBs) prevent high-velocity objects from tunneling through thin walls in a single substep.
+- **Housekeeping & Docs:**
+  - **Tests:** Added comprehensive test coverage for the new sweep algorithms and CCD integration in `PhysicsSystem`.
+  - **Docs:** Updated `physics.md` to document the new CCD capabilities and `ccdMotionThreshold` parameter.
+
 ## [0.72.3] - 2026-07-28
 
 ### "Clean code always looks like it was written by someone who cares."

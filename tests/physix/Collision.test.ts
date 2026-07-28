@@ -229,4 +229,74 @@ describe("Collision", () => {
     const result = new Vector3D();
     expect(Collision.resolveObbObb(obb1, obb2, result)).toBe(false);
   });
+
+  describe("CCD sweeps", () => {
+    it("should find the earliest time-of-impact for a sphere sweeping through a static sphere", () => {
+      const s = new BoundingSphere(new Vector3D(10, 0, 0), 1.0);
+      // Moving sphere starts far left and travels 20 units along +X, radius 1.
+      // Combined radius is 2, so contact happens when centers are 2 apart: at x=8, i.e. t=8/20=0.4.
+      const toi = Collision.sweepSphereSphere(
+        new Vector3D(0, 0, 0),
+        new Vector3D(20, 0, 0),
+        1.0,
+        s,
+      );
+      expect(toi).toBeCloseTo(0.4);
+    });
+
+    it("should return -1 for a sphere sweep that misses entirely", () => {
+      const s = new BoundingSphere(new Vector3D(10, 5, 0), 1.0);
+      const toi = Collision.sweepSphereSphere(
+        new Vector3D(0, 0, 0),
+        new Vector3D(20, 0, 0),
+        1.0,
+        s,
+      );
+      expect(toi).toBe(-1);
+    });
+
+    it("should return -1 for a sphere sweep already overlapping at the start", () => {
+      // Already-overlapping is a pre-existing penetration, not a new tunneling event -- the
+      // discrete resolver is responsible for that case, not the sweep test.
+      const s = new BoundingSphere(new Vector3D(0.5, 0, 0), 1.0);
+      const toi = Collision.sweepSphereSphere(new Vector3D(0, 0, 0), new Vector3D(5, 0, 0), 1.0, s);
+      expect(toi).toBe(-1);
+    });
+
+    it("should find the earliest time-of-impact for a sphere sweeping through a static box", () => {
+      const b = new BoundingBox(new Vector3D(9, -1, -1), new Vector3D(11, 1, 1));
+      // Box face expanded by radius 1 sits at x=8; sphere travels from x=0 to x=20.
+      const toi = Collision.sweepSphereBox(new Vector3D(0, 0, 0), new Vector3D(20, 0, 0), 1.0, b);
+      expect(toi).toBeCloseTo(0.4);
+    });
+
+    it("should return -1 for a sphere sweep that passes over a box (no overlap on other axes)", () => {
+      const b = new BoundingBox(new Vector3D(9, -1, -1), new Vector3D(11, 1, 1));
+      const toi = Collision.sweepSphereBox(new Vector3D(0, 5, 0), new Vector3D(20, 0, 0), 1.0, b);
+      expect(toi).toBe(-1);
+    });
+
+    it("should find the earliest time-of-impact for a sphere sweeping through a rotated OBB", () => {
+      const obb = new OBB();
+      obb.center.set(10, 0, 0);
+      obb.halfExtents.set(1, 1, 1);
+      // A 45-degree Y rotation widens the cube's silhouette along the sweep axis (the diagonal is
+      // longer than a face), so contact happens somewhere before the axis-aligned box case above --
+      // just assert it's a genuine, in-range hit rather than pinning an exact value.
+      const m = new Matrix4();
+      Matrix4.rotateY(Math.PI / 4, m);
+      m.data[12] = 10;
+      obb.transform(m);
+
+      const toi = Collision.sweepSphereObb(new Vector3D(0, 0, 0), new Vector3D(20, 0, 0), 1.0, obb);
+      expect(toi).toBeGreaterThan(0);
+      expect(toi).toBeLessThan(1);
+    });
+
+    it("should return -1 when the sweeping sphere isn't moving", () => {
+      const s = new BoundingSphere(new Vector3D(10, 0, 0), 1.0);
+      const toi = Collision.sweepSphereSphere(new Vector3D(0, 0, 0), new Vector3D(0, 0, 0), 1.0, s);
+      expect(toi).toBe(-1);
+    });
+  });
 });
