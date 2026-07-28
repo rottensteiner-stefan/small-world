@@ -3,11 +3,11 @@ import {
   FirstPersonControllerOptions,
   Scene,
   EventDispatcherImpl,
-} from "../../core/index.js";
-import { Vector3D } from "../../math/index.js";
-import { Keys } from "../../enums/index.js";
-import { Events } from "./Events.js";
-import { HollowCircuitObjectTags } from "./HollowCircuitObjectTags.js";
+} from "../../../../core/index.js";
+import { Vector3D } from "../../../../math/index.js";
+import { Keys } from "../../../../enums/index.js";
+import { Events } from "../../Events.js";
+import { HollowCircuitObjectTags } from "../../enums/HollowCircuitObjectTags.js";
 import { WispBehavior } from "./WispBehavior.js";
 import { FrostglassPanelBehavior } from "./FrostglassPanelBehavior.js";
 

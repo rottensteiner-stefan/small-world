@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.74.1] - 2026-07-29
+
+### "Leave the code cleaner than you found it."
+
+- **Architecture & Bugfixes:**
+  - **App Refactoring:** Restructured the internal architecture of the `YAD` app, organizing its components into dedicated `core/`, `enums/`, and `behaviors/` directories to match the engine's folder standards.
+  - **GadgetInspector:** Fixed the selection highlight mesh to correctly wrap and scale around `BoundingSphere` objects (previously only supported `BoundingBox`).
+
 ## [0.74.0] - 2026-07-29
 
 ### "Talk is cheap. Show me the code."

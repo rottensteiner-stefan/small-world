@@ -1,8 +1,8 @@
-import { Behavior } from "../../core/behaviors/index.js";
-import { Object3D } from "../../core/index.js";
-import { Vector3D, MathPool } from "../../math/index.js";
-import { StandardMaterial } from "../../core/materials/index.js";
-import { Color } from "../../core/colors/index.js";
+import { Behavior } from "../../../../core/behaviors/index.js";
+import { Object3D } from "../../../../core/index.js";
+import { Vector3D, MathPool } from "../../../../math/index.js";
+import { StandardMaterial } from "../../../../core/materials/index.js";
+import { Color } from "../../../../core/colors/index.js";
 
 export interface WispBehaviorOptions {
   /** One endpoint of the fixed patrol track. */

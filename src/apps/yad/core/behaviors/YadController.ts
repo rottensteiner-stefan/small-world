@@ -3,14 +3,14 @@ import {
   FirstPersonControllerOptions,
   Object3D,
   EventDispatcherImpl,
-} from "../../core/index.js";
-import { CameraInterfaceData, Collidable } from "../../interfaces/index.js";
-import { Keys } from "../../enums/index.js";
-import { Events } from "./Events.js";
-import { Raycaster } from "../../physix/index.js";
-import { Vector2D } from "../../math/index.js";
-import { AudioSystem } from "../../audio/index.js";
-import { YadObjectTags } from "./YadObjectTags.js";
+} from "../../../../core/index.js";
+import { CameraInterfaceData, Collidable } from "../../../../interfaces/index.js";
+import { Keys } from "../../../../enums/index.js";
+import { Events } from "../../Events.js";
+import { Raycaster } from "../../../../physix/index.js";
+import { Vector2D } from "../../../../math/index.js";
+import { AudioSystem } from "../../../../audio/index.js";
+import { YadObjectTags } from "../../enums/YadObjectTags.js";
 
 /**
  * A retro style controller for forward/backward movement and left/right rotation.

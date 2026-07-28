@@ -1,6 +1,6 @@
 export { App as HollowCircuitApp } from "./App.js";
-export * from "./HollowCircuitController.js";
-export * from "./HollowCircuitHud.js";
-export * from "./HollowCircuitObjectTags.js";
-export * from "./WispBehavior.js";
-export * from "./FrostglassPanelBehavior.js";
+export * from "./core/behaviors/HollowCircuitController.js";
+export * from "./core/HollowCircuitHud.js";
+export * from "./enums/HollowCircuitObjectTags.js";
+export * from "./core/behaviors/WispBehavior.js";
+export * from "./core/behaviors/FrostglassPanelBehavior.js";

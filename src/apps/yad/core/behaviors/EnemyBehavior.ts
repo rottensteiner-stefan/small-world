@@ -1,11 +1,11 @@
-import { Behavior } from "../../core/behaviors/index.js";
-import { Object3D, Scene } from "../../core/index.js";
-import { CameraInterfaceData, Collidable } from "../../interfaces/index.js";
-import { BoundingBox, BoundingSphere, Collision } from "../../physix/index.js";
-import { MathPool } from "../../math/index.js";
-import { AudioSystem } from "../../audio/index.js";
-import { BoundingType } from "../../enums/index.js";
-import { YadObjectTags } from "./YadObjectTags.js";
+import { Behavior } from "../../../../core/behaviors/index.js";
+import { Object3D, Scene } from "../../../../core/index.js";
+import { CameraInterfaceData, Collidable } from "../../../../interfaces/index.js";
+import { BoundingBox, BoundingSphere, Collision } from "../../../../physix/index.js";
+import { MathPool } from "../../../../math/index.js";
+import { AudioSystem } from "../../../../audio/index.js";
+import { BoundingType } from "../../../../enums/index.js";
+import { YadObjectTags } from "../../enums/YadObjectTags.js";
 
 export interface EnemyBehaviorOptions {
   player: CameraInterfaceData;

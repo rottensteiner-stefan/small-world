@@ -1,19 +1,18 @@
-import { AbstractShowcase } from "../../core/showcase/index.js";
+import { SmallWorld, Object3D } from "../../core/index.js";
 import { AmbientLight, PointLight } from "../../core/lights/index.js";
 import { Color } from "../../core/colors/index.js";
 import { StandardMaterial } from "../../core/materials/index.js";
 import { RotatorBehavior, BobbingBehavior } from "../../core/behaviors/index.js";
-import { Object3D } from "../../core/index.js";
 import { Cube, Sphere } from "../../geometry/index.js";
 import { Vector3D } from "../../math/index.js";
 import { CameraStrategyType, PostProcessingEffectType } from "../../enums/index.js";
 import { BloomElement } from "../../renderers/post/elements/index.js";
 import { BoundingBox } from "../../physix/index.js";
-import { HollowCircuitController } from "./HollowCircuitController.js";
-import { HollowCircuitHud } from "./HollowCircuitHud.js";
-import { WispBehavior } from "./WispBehavior.js";
-import { FrostglassPanelBehavior } from "./FrostglassPanelBehavior.js";
-import { HollowCircuitObjectTags } from "./HollowCircuitObjectTags.js";
+import { HollowCircuitController } from "./core/behaviors/HollowCircuitController.js";
+import { HollowCircuitHud } from "./core/HollowCircuitHud.js";
+import { WispBehavior } from "./core/behaviors/WispBehavior.js";
+import { FrostglassPanelBehavior } from "./core/behaviors/FrostglassPanelBehavior.js";
+import { HollowCircuitObjectTags } from "./enums/HollowCircuitObjectTags.js";
 
 /** Palette pulled straight from the concept dossier, kept as one source of truth. */
 const VOID = new Color(0.07, 0.07, 0.09);
@@ -38,7 +37,7 @@ const FROSTGLASS = new Color(0.66, 0.77, 0.85);
  * capture texture the way GlassMaterial already does for refraction) is a genuine
  * follow-up, not built here.
  */
-export class App extends AbstractShowcase {
+export class App extends SmallWorld {
   private _controller!: HollowCircuitController;
   private _hud!: HollowCircuitHud;
 

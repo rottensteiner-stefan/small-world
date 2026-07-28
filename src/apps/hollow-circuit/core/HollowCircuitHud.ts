@@ -1,5 +1,5 @@
-import { Events } from "./Events.js";
-import { EventDispatcherImpl } from "../../core/index.js";
+import { Events } from "../Events.js";
+import { EventDispatcherImpl } from "../../../core/index.js";
 
 /**
  * The whole HUD, per the "HUD Concept" sketch: Clarity Pulse charge pips

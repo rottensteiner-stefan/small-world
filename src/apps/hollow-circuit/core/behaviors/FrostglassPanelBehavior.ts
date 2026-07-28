@@ -1,7 +1,7 @@
-import { Behavior } from "../../core/behaviors/index.js";
-import { Object3D } from "../../core/index.js";
-import { StandardMaterial } from "../../core/materials/index.js";
-import { MathUtils } from "../../math/index.js";
+import { Behavior } from "../../../../core/behaviors/index.js";
+import { Object3D } from "../../../../core/index.js";
+import { StandardMaterial } from "../../../../core/materials/index.js";
+import { MathUtils } from "../../../../math/index.js";
 
 export interface FrostglassPanelBehaviorOptions {
   /** Opacity while at rest -- "milk-thick", per the material study. Defaults to 0.55. */

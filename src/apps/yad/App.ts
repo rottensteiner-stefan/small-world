@@ -1,7 +1,7 @@
-import { YadLevelBuilder } from "./YadLevelBuilder.js";
-import { YadController } from "./YadController.js";
-import { YadHud } from "./YadHud.js";
-import { AbstractShowcase } from "../../core/showcase/index.js";
+import { YadLevelBuilder } from "./core/YadLevelBuilder.js";
+import { YadController } from "./core/behaviors/YadController.js";
+import { YadHud } from "./core/YadHud.js";
+import { SmallWorld } from "../../core/index.js";
 import { AmbientLight, DirectionalLight, PointLight } from "../../core/lights/index.js";
 import { CameraStrategyType } from "../../enums/index.js";
 import { Color } from "../../core/colors/index.js";
@@ -18,7 +18,7 @@ import { BoundingBox } from "../../physix/index.js";
  * YAD (Yet Another Dungeon)
  * Building a grid-based level from a text file.
  */
-export class App extends AbstractShowcase {
+export class App extends SmallWorld {
   constructor() {
     super({ fullscreen: false });
   }
@@ -31,11 +31,6 @@ export class App extends AbstractShowcase {
 
   public get hud(): YadHud {
     return this._hud;
-  }
-
-  /** @inheritdoc */
-  protected override onCanvasRecreated(): void {
-    // Mouse capture disabled for this example
   }
 
   /** @inheritdoc */

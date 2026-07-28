@@ -1,22 +1,22 @@
-import { Object3D, Scene, Sprite, InstancedMesh } from "../../core/index.js";
-import { Vector3D, Matrix4 } from "../../math/index.js";
-import { Cube, Sphere } from "../../geometry/index.js";
+import { Object3D, Scene, Sprite, InstancedMesh } from "../../../core/index.js";
+import { Vector3D, Matrix4 } from "../../../math/index.js";
+import { Cube, Sphere } from "../../../geometry/index.js";
 import {
   StandardMaterial,
   FluidSurfaceMaterial,
   SpriteMaterial,
-} from "../../core/materials/index.js";
-import { PointLight } from "../../core/lights/index.js";
-import { Color } from "../../core/colors/index.js";
-import { Texture, TextureArray } from "../../core/textures/index.js";
-import { CullMode, TextureFilter, TextureWrap } from "../../enums/index.js";
-import { CameraInterfaceData } from "../../interfaces/index.js";
-import { ProximitySensorBehavior, BobbingBehavior } from "../../core/behaviors/index.js";
-import { GridLevelBuilder, GridLegend } from "../../extensions/grid-builder/GridLevelBuilder.js";
-import { AudioSystem } from "../../audio/index.js";
-import { EnemyBehavior } from "./EnemyBehavior.js";
-import { BoundingBox, SpatialHash, StaticCollider } from "../../physix/index.js";
-import { YadObjectTags } from "./YadObjectTags.js";
+} from "../../../core/materials/index.js";
+import { PointLight } from "../../../core/lights/index.js";
+import { Color } from "../../../core/colors/index.js";
+import { Texture, TextureArray } from "../../../core/textures/index.js";
+import { CullMode, TextureFilter, TextureWrap } from "../../../enums/index.js";
+import { CameraInterfaceData } from "../../../interfaces/index.js";
+import { ProximitySensorBehavior, BobbingBehavior } from "../../../core/behaviors/index.js";
+import { GridLevelBuilder, GridLegend } from "../../../extensions/grid-builder/GridLevelBuilder.js";
+import { AudioSystem } from "../../../audio/index.js";
+import { EnemyBehavior } from "./behaviors/EnemyBehavior.js";
+import { BoundingBox, SpatialHash, StaticCollider } from "../../../physix/index.js";
+import { YadObjectTags } from "../enums/YadObjectTags.js";
 export type YadTileType =
   | "wall"
   | "door"
