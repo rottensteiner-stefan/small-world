@@ -326,7 +326,7 @@ class CrateSpawnerBehavior extends Behavior {
   }
 }
 
-class UnderwaterHideoutShowcase extends AbstractShowcase {
+class Showcase12 extends AbstractShowcase {
   private _portLight!: SpotLight;
   private _portLightBehavior!: FlickerBehavior;
   private _portLightBaseIntensity: number = 10.0;
@@ -1355,5 +1355,5 @@ class UnderwaterHideoutShowcase extends AbstractShowcase {
 }
 
 // === START THE ENGINE ===
-const app = new UnderwaterHideoutShowcase();
+const app = new Showcase12();
 app.start().catch((err: unknown) => console.error("[Showcase12] Failed to start:", err));

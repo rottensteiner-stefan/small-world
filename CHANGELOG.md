@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.72.3] - 2026-07-28
+
+### "Clean code always looks like it was written by someone who cares."
+
+- **Housekeeping & Docs:**
+  - **Showcases Cleanup:** Standardized showcase class names (`Showcase12`, `Showcase13`, `Showcase14`, `Showcase24`) for better consistency across all examples.
+  - **Docs:** Improved `tools.md` guide with clearer explanations on how to integrate `enableInspector` and wire events into custom `Forge` overlay setups.
+
 ## [0.72.2] - 2026-07-28
 
 ### "Quality is not an act, it is a habit."

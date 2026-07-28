@@ -17,7 +17,7 @@ import { AbstractShowcase } from "../../src/core/index.js";
 import { Cube } from "../../src/geometry/Cube.js";
 import { SkyboxMaterial } from "../../src/core/materials/SkyboxMaterial.js";
 import { GltfLoader } from "../../src/loaders/GltfLoader.js";
-class GLTFShowcase extends AbstractShowcase {
+class Showcase13 extends AbstractShowcase {
   private _helmet?: Object3D;
 
   protected override async setupScene(): Promise<void> {
@@ -141,7 +141,7 @@ class GLTFShowcase extends AbstractShowcase {
 // ----------------------------------------------------------------------------
 // Bootstrap the example
 // ----------------------------------------------------------------------------
-const app = new GLTFShowcase({
+const app = new Showcase13({
   rendererType: RendererType.WEB_GPU,
 });
 app.start().catch((err: unknown) => console.error("[Showcase13] Failed to start:", err));

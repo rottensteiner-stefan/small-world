@@ -193,7 +193,7 @@ class ScreenCurvatureBehavior extends Behavior {
   }
 }
 
-class Showcase24Engine extends AbstractShowcase {
+class Showcase24 extends AbstractShowcase {
   public api: string;
 
   constructor(container: HTMLElement, defaultRendererType: RendererType) {
@@ -530,7 +530,7 @@ async function init(): Promise<void> {
   container.innerHTML = '<canvas id="canvas23"></canvas>';
 
   const defaultRendererType = await detectDefaultRendererType();
-  const engine = new Showcase24Engine(
+  const engine = new Showcase24(
     document.getElementById("canvas23") as HTMLElement,
     defaultRendererType,
   );

@@ -596,7 +596,7 @@ function buildInterrogationRoom(
 // 4. Monitor View Application
 // ============================================================================
 
-class InterrogationRoomApp extends AbstractShowcase {
+class Showcase14 extends AbstractShowcase {
   private _lightBulb?: Object3D;
   private _swingLight?: SpotLight;
   private _redBlueLight?: PointLight;
@@ -946,16 +946,16 @@ class InterrogationRoomApp extends AbstractShowcase {
 // 5. Bootstrapping
 // ============================================================================
 
-const cleanApp = new InterrogationRoomApp("SmallWorld-1", "clean");
-const nvApp = new InterrogationRoomApp("SmallWorld-2", "nightvision");
-const noirApp = new InterrogationRoomApp("SmallWorld-3", "noir");
-const cyberApp = new InterrogationRoomApp("SmallWorld-4", "cyber");
-const tapeApp = new InterrogationRoomApp("SmallWorld-5", "tape");
-const amberApp = new InterrogationRoomApp("SmallWorld-6", "underworld");
-const projectorApp = new InterrogationRoomApp("SmallWorld-7", "projector");
-const thermalApp = new InterrogationRoomApp("SmallWorld-8", "thermal");
+const cleanApp = new Showcase14("SmallWorld-1", "clean");
+const nvApp = new Showcase14("SmallWorld-2", "nightvision");
+const noirApp = new Showcase14("SmallWorld-3", "noir");
+const cyberApp = new Showcase14("SmallWorld-4", "cyber");
+const tapeApp = new Showcase14("SmallWorld-5", "tape");
+const amberApp = new Showcase14("SmallWorld-6", "underworld");
+const projectorApp = new Showcase14("SmallWorld-7", "projector");
+const thermalApp = new Showcase14("SmallWorld-8", "thermal");
 
-const apps: InterrogationRoomApp[] = [
+const apps: Showcase14[] = [
   cleanApp,
   nvApp,
   noirApp,

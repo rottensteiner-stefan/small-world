@@ -35,6 +35,16 @@ export default defineConfig({
             { text: "Building a Custom Game", link: "/guides/custom-game" },
           ],
         },
+        {
+          text: "Built-In Tools",
+          items: [
+            { text: "Gadget Inspector", link: "/guides/gadget-inspector" },
+            { text: "Material Studio", link: "/guides/material-studio" },
+            { text: "Pixler", link: "/guides/pixler" },
+            { text: "Xtractor", link: "/guides/xtractor" },
+            { text: "Map Generator", link: "/guides/map-generator" },
+          ],
+        },
       ],
     },
     socialLinks: [{ icon: "github", link: "https://github.com/rottensteiner-stefan/small-world" }],
