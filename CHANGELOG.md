@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.72.0] - 2026-07-28
+
+### "The ability to simplify means to eliminate the unnecessary so that the necessary may speak."
+
+- **Architecture & Bugfixes:**
+  - **Shader Cleanup:** Massive structural cleanup of the engine's shader source code. Deleted numerous deprecated and redundant material shaders (`.glsl` and `.wgsl`) across all renderers (WebGL1, WebGL2, WebGPU), centralizing the logic.
+  - **Renderers:** Cleaned up unused properties (`_materialBGL`) in `WebGPURenderer` and improved generic uniform validation logic in `WebGL1Renderer` using `StandardWebGPULayout`.
+  - **Materials:** Tweaked and improved `FluidSurfaceMaterial` and `Terrain` shaders.
+- **Housekeeping & Docs:**
+  - **Docs:** Updated `physics.md` documentation guide and synced internal `.agents/notes/`.
+
 ## [0.71.3] - 2026-07-27
 
 ### "Make it work, make it right, make it fast."

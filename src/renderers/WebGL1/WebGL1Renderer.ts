@@ -3,7 +3,7 @@ import { WebGLMainPass } from "../passes/WebGLMainPass.js";
 import { WebGLPostProcessPass } from "../passes/WebGLPostProcessPass.js";
 import { PostProcessPassGL, BloomPassGL } from "../post/passes/index.js";
 import { CubeTexture, Texture, RenderTarget } from "../../core/textures/index.js";
-import { ShaderRegistry } from "../../core/renderers/shaders/index.js";
+import { ShaderRegistry, StandardWebGPULayout } from "../../core/renderers/shaders/index.js";
 import { DeviceCaps, DeviceLimit, Object3D, Scene } from "../../core/index.js";
 import {
   EngineOptions,
@@ -203,16 +203,18 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
         }
       }
 
+      // `layout.uniforms` is near-universally `...StandardWebGPULayout.uniforms` (the fixed set
+      // every material spreads in to match WebGPU's shared `ObjectUniforms` struct) -- a lean
+      // shader legitimately using only a handful of those 16 names is the norm, not a mistake, so
+      // warning about the rest would just be noise. `layout.textures` is NOT spread from a shared
+      // constant the same way (each material lists only the textures it actually declares), so a
+      // texture name genuinely missing from the compiled shader is still worth flagging.
+      const genericUniformNames = new Set(Object.keys(StandardWebGPULayout.uniforms));
       for (const name of [
         ...Object.keys(def.layout.uniforms),
         ...Object.keys(def.layout.textures),
       ]) {
-        if (
-          !uniforms.has(name) &&
-          name !== "u_thresholds" &&
-          name !== "u_liquidParams" &&
-          shaderId !== MaterialType.DEPTH
-        ) {
+        if (!uniforms.has(name) && !genericUniformNames.has(name)) {
           console.warn(
             `[WebGL1Renderer] Uniform '${name}' defined in material layout but not found in shader '${shaderId}'. It might be unused or optimized away.`,
           );

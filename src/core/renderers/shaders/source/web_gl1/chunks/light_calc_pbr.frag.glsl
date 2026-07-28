@@ -84,10 +84,11 @@ if (u_useEnvMap > 0.5) {
     specularAmbient = envColor * F_env;
 }
 
+// `specularAmbient` is already `vec3(0.0)` when there's no envMap, so this one formula covers
+// both cases -- no need for a separate override that (until now) forgot the `(1.0 - metallic)`
+// factor the envMap branch already applies, incorrectly brightening the diffuse response of
+// metals with no envMap bound.
 vec3 ambient = (diffuseAmbient * (1.0 - metallic) + specularAmbient) * ao;
-if (u_useEnvMap <= 0.5) {
-    ambient = u_ambientColor * albedo * ao;
-}
 vec3 color = ambient + Lo;
 
 // Emissive

@@ -326,7 +326,6 @@ export class WebGPURenderer extends AbstractRenderer {
   public _areaLightBuffer!: GPUBuffer;
   public _globalBindGroup!: GPUBindGroup;
   public _globalBGL!: GPUBindGroupLayout;
-  public _materialBGL!: GPUBindGroupLayout;
   public _objectBGL!: GPUBindGroupLayout;
 
   /** @inheritdoc */

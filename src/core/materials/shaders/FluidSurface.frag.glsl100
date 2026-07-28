@@ -1,4 +1,3 @@
-
 precision highp float;
 
 varying vec2 v_uv;
@@ -7,36 +6,36 @@ varying vec3 v_normal;
 
 uniform vec4 u_color;
 uniform vec4 u_specColor;
-uniform float u_time;
-uniform float u_flowSpeed;
-uniform float u_noiseScale;
+uniform vec4 u_extraParams;
 
 uniform sampler2D u_diffuseMap;
-uniform sampler2D u_normalMap;
-uniform sampler2D u_specularMap;
-uniform sampler2D u_ambientMap;
 
+// WebGL1 has no depth-texture capture path (see WebGL1Renderer.copyToOpaqueDepthTexture), so the
+// depth-based edge/foam blend from FluidSurface.frag.wgsl/.frag.glsl is dropped entirely here --
+// unlike OpenWaterMaterial there's no natural view-dependent proxy for "distance to nearby opaque
+// geometry" for this material's flowing-glow look, so the noise-driven blend alone stands in.
 void main() {
-    vec2 uv = v_uv * u_noiseScale;
-    
-    vec2 uv1 = uv + vec2(u_time * 0.05, u_time * 0.02) * u_flowSpeed;
-    vec2 uv2 = uv + vec2(-u_time * 0.03, u_time * 0.04) * u_flowSpeed;
-    
+    float time = u_extraParams.y;
+    float flowSpeed = u_extraParams.z;
+    float noiseScale = u_extraParams.w;
+
+    vec2 worldUV = v_worldPos.xz * 0.5;
+    vec2 uv = worldUV * noiseScale;
+
+    vec2 uv1 = uv + vec2(time * 0.05, time * 0.02) * flowSpeed;
+    vec2 uv2 = uv + vec2(-time * 0.03, time * 0.04) * flowSpeed;
+
     float n1 = dot(texture2D(u_diffuseMap, uv1).rgb, vec3(0.299, 0.587, 0.114));
     float n2 = dot(texture2D(u_diffuseMap, uv2).rgb, vec3(0.299, 0.587, 0.114));
     float noise = (n1 + n2) * 0.5;
-    
-    vec4 ambient = texture2D(u_ambientMap, v_uv);
-    vec3 nMap = texture2D(u_normalMap, uv1).rgb * 2.0 - 1.0;
-    vec3 normal = normalize(v_normal + nMap * 0.5);
-    
-    float spec = texture2D(u_specularMap, uv2).r;
-    
-    float blend = smoothstep(0.6, 0.8, noise);
-    vec3 glow = u_color.rgb * (1.0 - smoothstep(0.0, 0.6, noise)) * 1.5;
-    
-    vec3 finalColor = mix(glow * ambient.rgb, u_specColor.rgb * ambient.rgb, blend);
-    finalColor += u_specColor.rgb * spec * 0.5;
-    
+
+    vec3 baseColor = pow(u_color.rgb, vec3(2.2)) * (1.0 - smoothstep(0.0, 0.6, noise)) * 1.5;
+    vec3 edgeColor = pow(u_specColor.rgb, vec3(2.2));
+
+    float finalBlend = smoothstep(0.6, 0.8, noise);
+    vec3 finalColor = mix(baseColor, edgeColor, finalBlend);
+
+    finalColor = pow(finalColor, vec3(1.0 / 2.2));
+
     gl_FragColor = vec4(finalColor, 1.0);
 }

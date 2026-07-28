@@ -21,7 +21,7 @@
     texCol = mix(texCol, rock, slopeBlend);
 
     let albedo = sRGBToLinear(texCol.rgb) * sRGBToLinear(obj.color.rgb);
-    var finalColor = fL * albedo;
+    var finalColor = fL * albedo + spec * sRGBToLinear(obj.specColor.rgb);
 
     // Exposure
     finalColor *= global.exposure;

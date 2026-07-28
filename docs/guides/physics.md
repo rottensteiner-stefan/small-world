@@ -35,7 +35,7 @@ If you pass `0` to the `RigidBody` constructor, its inverse mass becomes `0`, ma
 ## Collision Detection (Bounds)
 
 The `PhysicsSystem` uses the `bounds` property of an `Object3D` to perform collision detection. Without `bounds`, an object cannot collide.
-Small World currently resolves **sphere-vs-sphere** and **sphere-vs-box** collisions. Box-vs-box pairs are not yet resolved by the physics step.
+Small World resolves every pairing of **sphere**, **box (AABB)**, and **OBB** bounds — sphere-vs-sphere, box-vs-box, sphere-vs-box, sphere-vs-OBB, and box-vs-OBB/OBB-vs-OBB (full 15-axis SAT). Objects are also broad-phased through an octree, so collision checks scale with nearby objects rather than the whole scene.
 
 ```typescript
 import { BoundingSphere } from "small-world";
