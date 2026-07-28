@@ -1,0 +1,1384 @@
+<title>Hollow Circuit — Concept Dossier</title>
+<style>
+  /*
+    Deliberately single-theme: this is a dark neon-on-void world by design (the
+    whole pitch is "black, neon seams"), so no light-theme variant is provided —
+    per the artifact design guide, that's a choice here, not an omission.
+  */
+  :root {
+    --void: #07070a;
+    --void-deep: #020203;
+    --void-panel: #0d0e15;
+    --violet: #8a6bff;
+    --violet-dim: #4a3aa8;
+    --cyan: #5be9ef;
+    --amber: #ff8142;
+    --frost: #a9c4d9;
+    --frost-fill: rgba(169, 196, 217, 0.08);
+    --ink: #d3d6ea;
+    --ink-dim: #7d82a3;
+    --hair: rgba(138, 107, 255, 0.16);
+    --mono: ui-monospace, "SF Mono", "Cascadia Mono", "JetBrains Mono", Consolas, "Liberation Mono", monospace;
+    --sans: -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    background: var(--void);
+    color: var(--ink);
+    font-family: var(--sans);
+  }
+
+  body {
+    background-image:
+      repeating-linear-gradient(0deg, var(--hair) 0 1px, transparent 1px 96px),
+      repeating-linear-gradient(90deg, var(--hair) 0 1px, transparent 1px 96px);
+    background-attachment: fixed;
+  }
+
+  a { color: var(--cyan); }
+
+  .sheet {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 64px 28px 96px;
+    display: flex;
+    flex-direction: column;
+    gap: 72px;
+  }
+
+  /* ---------- Header ---------- */
+
+  .cover { display: flex; flex-direction: column; gap: 22px; }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .eyebrow::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--cyan);
+    box-shadow: 0 0 10px 2px var(--cyan);
+  }
+
+  h1 {
+    margin: 0;
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: clamp(40px, 8vw, 74px);
+    letter-spacing: 0.04em;
+    text-wrap: balance;
+    line-height: 0.98;
+    color: var(--ink);
+    text-shadow: 0 0 24px rgba(138, 107, 255, 0.55), 0 0 2px rgba(255,255,255,0.4);
+  }
+
+  .pitch {
+    max-width: 62ch;
+    font-size: 17px;
+    line-height: 1.6;
+    color: var(--ink);
+  }
+
+  .pitch b { color: var(--cyan); font-weight: 600; }
+
+  .palette {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    margin-top: 8px;
+  }
+
+  .swatch { display: flex; flex-direction: column; gap: 8px; width: 108px; }
+
+  .swatch .chip {
+    height: 44px;
+    border-radius: 3px;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .swatch .label {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.04em;
+    color: var(--ink-dim);
+    text-transform: uppercase;
+  }
+
+  .swatch .hex {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---------- Plates ---------- */
+
+  .plate { display: flex; flex-direction: column; gap: 14px; }
+
+  .frame {
+    position: relative;
+    border: 1px solid rgba(169, 196, 217, 0.22);
+    background: var(--void-panel);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .frame canvas { display: block; width: 100%; height: auto; }
+
+  .tag {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: var(--cyan);
+    background: rgba(3, 3, 6, 0.55);
+    border: 1px solid rgba(91, 233, 239, 0.3);
+    padding: 3px 8px;
+    border-radius: 2px;
+  }
+
+  .corner-mark {
+    position: absolute;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-dim);
+    bottom: 10px;
+    right: 12px;
+    letter-spacing: 0.06em;
+  }
+
+  figcaption { display: flex; flex-direction: column; gap: 6px; }
+
+  .cap-title {
+    font-family: var(--mono);
+    font-size: 13px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--ink);
+  }
+
+  .cap-title span { color: var(--violet); }
+
+  .cap-notes {
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--ink-dim);
+    max-width: 68ch;
+  }
+
+  .cap-notes b { color: var(--ink); font-weight: 600; }
+
+  /* ---------- Design notes ---------- */
+
+  .notes {
+    border-top: 1px solid rgba(169, 196, 217, 0.18);
+    padding-top: 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+  }
+
+  .notes h2 {
+    font-family: var(--mono);
+    font-size: 14px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    margin: 0;
+  }
+
+  dl.spec {
+    display: grid;
+    grid-template-columns: 160px 1fr;
+    gap: 14px 20px;
+    margin: 0;
+  }
+
+  dl.spec dt {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    letter-spacing: 0.03em;
+    color: var(--violet);
+  }
+
+  dl.spec dd {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--ink);
+  }
+
+  footer {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-dim);
+    letter-spacing: 0.04em;
+  }
+
+  @media (max-width: 620px) {
+    dl.spec { grid-template-columns: 1fr; gap: 4px 0; }
+    dl.spec dt { margin-top: 8px; }
+  }
+</style>
+
+<div class="sheet">
+
+  <section class="cover">
+    <div class="eyebrow">Concept Dossier · First-Person Neon Labyrinth</div>
+    <h1>HOLLOW&nbsp;CIRCUIT</h1>
+    <p class="pitch">
+      A black labyrinth lit only by its own wiring. You run its halls in first person,
+      pull <b>Flux Discs</b> out of the dark, and stay clear of the edges — there's no
+      rail where the floor stops. Small <b>Wisp</b> drones patrol the seams; nothing here
+      is a "final boss," just the maze pushing back. Its other half is built from
+      <b>Frostglass</b> — heavy, half-blind, and now the thing the whole game is about.
+    </p>
+    <div class="palette" id="palette"></div>
+  </section>
+
+  <figure class="plate">
+    <div class="frame"><span class="tag">PLATE 01</span><span class="corner-mark">EGO · CORRIDOR</span>
+      <canvas data-plate="corridor" width="1200" height="700"></canvas>
+    </div>
+    <figcaption>
+      <div class="cap-title"><span>Approach Corridor</span> — standard traversal unit</div>
+      <div class="cap-notes">
+        Seams pulse violet along the floor/wall joint — brighter as you close the
+        distance to a disc. The right wall simply <b>isn't there</b> past a point; the
+        floor keeps going a few steps, then doesn't. No barrier, no warning tone.
+      </div>
+    </figcaption>
+  </figure>
+
+  <figure class="plate">
+    <div class="frame"><span class="tag">PLATE 02</span><span class="corner-mark">ELEVATION · RAMP HALL</span>
+      <canvas data-plate="ramps" width="1200" height="700"></canvas>
+    </div>
+    <figcaption>
+      <div class="cap-title"><span>Switchback Hall</span> — vertical traversal unit</div>
+      <div class="cap-notes">
+        Open halls string walkways at different heights together with switchback
+        ramps instead of stairs — momentum carries through the turn. One or two
+        landings are cut from <b>Frostglass</b> (below) instead of solid deck, so you
+        can half-see what's under your feet.
+      </div>
+    </figcaption>
+  </figure>
+
+  <figure class="plate">
+    <div class="frame"><span class="tag">PLATE 03</span><span class="corner-mark">MATERIAL STUDY</span>
+      <canvas data-plate="frostglass" width="1200" height="700"></canvas>
+    </div>
+    <figcaption>
+      <div class="cap-title"><span>Frostglass</span> — the maze's other material</div>
+      <div class="cap-notes">
+        Not clear glass — <b>heavy</b>, milk-thick, load-bearing. Light gets through
+        but shapes don't: a corridor behind a Frostglass wall reads as a bloom of
+        moving light, never a clean silhouette. A whole chamber built from it (as
+        sketched here) turns "can I see the way out" into a real question.
+      </div>
+    </figcaption>
+  </figure>
+
+  <figure class="plate">
+    <div class="frame"><span class="tag">PLATE 04</span><span class="corner-mark">MECHANIC · PASSIVE READ</span>
+      <canvas data-plate="bloomsight" width="1200" height="700"></canvas>
+    </div>
+    <figcaption>
+      <div class="cap-title"><span>Bloomsight</span> — reading the wall instead of seeing it</div>
+      <div class="cap-notes">
+        Facing a Frostglass wall, you never get a silhouette — only color-blobs at
+        different sizes and depths. <b>Violet</b> reads as more wall/structure beyond,
+        <b>warm white</b> as a Disc, <b>amber</b> as a Wisp. Size and drift do the rest:
+        a held-still amber blob is a patrolling Wisp; a drifting one is closing in.
+        This is the default state — most of the Frostglass half of the maze is read
+        this way, not solved by walking through it.
+      </div>
+    </figcaption>
+  </figure>
+
+  <figure class="plate">
+    <div class="frame"><span class="tag">PLATE 05</span><span class="corner-mark">MECHANIC · ACTIVE REVEAL</span>
+      <canvas data-plate="clarity" width="1200" height="700"></canvas>
+    </div>
+    <figcaption>
+      <div class="cap-title"><span>Clarity Pulse</span> — the one tool against the blur</div>
+      <div class="cap-notes">
+        A short-range pulse from the player punches a small, genuinely sharp window
+        through the Frostglass for a moment — long enough to confirm what a blob
+        actually was, not long enough to plan the whole room around it. Limited
+        (charges, or a short cooldown — not decided yet), so Bloomsight stays the
+        main skill and Clarity Pulse stays a confirmation, not a floodlight.
+      </div>
+    </figcaption>
+  </figure>
+
+  <figure class="plate">
+    <div class="frame"><span class="tag">PLATE 06</span><span class="corner-mark">MECHANIC · FLOOR / RAMP</span>
+      <canvas data-plate="underfoot" width="1200" height="700"></canvas>
+    </div>
+    <figcaption>
+      <div class="cap-title"><span>Underfoot</span> — Bloomsight isn't just for walls</div>
+      <div class="cap-notes">
+        A Frostglass landing partway down a ramp reads the same way a wall does —
+        blobs, not shapes — except now what you're reading is <b>what's on the level
+        you're about to drop onto</b>. An amber blob under your feet means a Wisp is
+        down there; a warm-white one means a Disc is reachable from below. A patch
+        with <b>no blobs at all</b> is the one that should worry you — that's just void.
+      </div>
+    </figcaption>
+  </figure>
+
+  <figure class="plate">
+    <div class="frame"><span class="tag">PLATE 07</span><span class="corner-mark">DESIGN NOTE · AI PATROL</span>
+      <canvas data-plate="patrol" width="1200" height="700"></canvas>
+    </div>
+    <figcaption>
+      <div class="cap-title"><span>Patrol Read</span> — a Wisp behind Frostglass is a rhythm, not a shape</div>
+      <div class="cap-notes">
+        Two annotation layers on purpose: the dashed A↔B track and cycle time are
+        <b>what we know</b> as designers — a fixed back-and-forth patrol, no randomness.
+        The blurred amber trail is <b>what the player actually perceives</b> — a smeared
+        blob sliding back and forth. Watch it for one cycle and the rhythm is learnable
+        without ever seeing the Wisp itself. A Clarity Pulse timed at the track's
+        midpoint (marked here) is the fastest way to confirm it's a Wisp and not a
+        stationary hazard before committing to a run past it.
+      </div>
+    </figcaption>
+  </figure>
+
+  <figure class="plate">
+    <div class="frame"><span class="tag">PLATE 08</span><span class="corner-mark">SCHEMATIC · LEVEL FLOW</span>
+      <canvas data-plate="mazeflow" width="1200" height="700"></canvas>
+    </div>
+    <figcaption>
+      <div class="cap-title"><span>Maze Flow</span> — the same exit, two different asks</div>
+      <div class="cap-notes">
+        A slice of labyrinth as a node graph: Corridors and Switchback Halls chain
+        into a longer, safer route (violet) that never asks anything of the player;
+        a shorter route cuts straight through two Frostglass chambers (cyan) and
+        asks for Bloomsight, maybe a Clarity Pulse, to use confidently. Same exit,
+        same Discs on offer either way — the choice is entirely about which skill
+        you'd rather spend, not a hard gate.
+      </div>
+    </figcaption>
+  </figure>
+
+  <figure class="plate">
+    <div class="frame"><span class="tag">PLATE 09</span><span class="corner-mark">UI · HUD CONCEPT</span>
+      <canvas data-plate="hud" width="1200" height="700"></canvas>
+    </div>
+    <figcaption>
+      <div class="cap-title"><span>HUD</span> — as little as the palette allows</div>
+      <div class="cap-notes">
+        Three Clarity Pulse charges as hex pips (bottom-left, empty ones dim rather
+        than disappear, so you always see the ceiling) and a running Disc count
+        (bottom-right) — that's the whole HUD. No health bar; nothing here needed
+        one. A bare violet reticle only, faint enough to read as part of the world
+        rather than a UI layer bolted on top of it.
+      </div>
+    </figcaption>
+  </figure>
+
+  <figure class="plate">
+    <div class="frame"><span class="tag">PLATE 10</span><span class="corner-mark">EVENT · PICKUP</span>
+      <canvas data-plate="disc" width="1200" height="700"></canvas>
+    </div>
+    <figcaption>
+      <div class="cap-title"><span>Flux Disc</span> — collected</div>
+      <div class="cap-notes">
+        The only warm-white light in the palette, reserved for this one moment.
+        On pickup it doesn't just vanish — it unspools into the seams nearest to
+        you, like the disc was feeding the wall the whole time.
+      </div>
+    </figcaption>
+  </figure>
+
+  <figure class="plate">
+    <div class="frame"><span class="tag">PLATE 11</span><span class="corner-mark">EVENT · IMPACT</span>
+      <canvas data-plate="impact" width="1200" height="700"></canvas>
+    </div>
+    <figcaption>
+      <div class="cap-title"><span>Impact Trace</span> — the seams answer back</div>
+      <div class="cap-notes">
+        Bump a wall or floor hard enough and the impact doesn't just flash once —
+        it races outward <b>along the seams</b>, stair-stepping at right angles instead
+        of spreading as a round shockwave, and fades from a bright head to nothing
+        the further it travels. It reads as the maze's own wiring briefly carrying
+        your impact through itself, not a generic hit-effect layered on top of it.
+      </div>
+    </figcaption>
+  </figure>
+
+  <figure class="plate">
+    <div class="frame"><span class="tag">PLATE 12</span><span class="corner-mark">EVENT · WISP CONTACT</span>
+      <canvas data-plate="wisp" width="1200" height="700"></canvas>
+    </div>
+    <figcaption>
+      <div class="cap-title"><span>Wisp</span> — struck</div>
+      <div class="cap-notes">
+        Amber is spent on exactly one thing: trouble. A Wisp doesn't have a health
+        bar — it patrols a seam, and a hit knocks it into a short, sharp shatter of
+        light instead of a death animation. Small, deliberately un-threatening on
+        its own; the maze is the real opponent.
+      </div>
+    </figcaption>
+  </figure>
+
+  <section class="notes">
+    <h2>Working rules</h2>
+    <dl class="spec">
+      <dt>Core mechanic</dt>
+      <dd>Frostglass isn't set-dressing. Most orientation happens by reading color-blobs through it (<b>Bloomsight</b>) — a short-range <b>Clarity Pulse</b> is the only way to punch a temporary sharp window through the blur and confirm what's actually there.</dd>
+      <dt>Light language</dt>
+      <dd>Violet = the maze itself (seams, structure). Cyan-white = Flux Discs only. Amber = hazard/Wisp only. No fourth color enters this system.</dd>
+      <dt>Space types</dt>
+      <dd>Corridors (tight, linear, one hazard edge) · Rooms (smaller, contained beats between the bigger spaces — not everything is a hallway) · Switchback halls (open, vertical, ramps not stairs) · Frostglass chambers (material-led, visibility is the puzzle).</dd>
+      <dt>Hazard model</dt>
+      <dd>Falling, not fighting. Wisps redirect or startle; they don't chip a health bar. The edge of the floor is the real enemy.</dd>
+      <dt>Naming</dt>
+      <dd>No Grid, no Master Control, no Recognizers. Hollow Circuit / Flux Disc / Wisp / Frostglass are the whole vocabulary so far — extend from these, not from the reference.</dd>
+    </dl>
+  </section>
+
+  <footer>HOLLOW CIRCUIT — concept dossier, sketch pass 01</footer>
+</div>
+
+<script>
+  (function () {
+    "use strict";
+
+    var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    var PALETTE = [
+      { label: "Void", hex: "#07070A", css: "#07070a" },
+      { label: "Circuit Violet", hex: "#8A6BFF", css: "#8a6bff" },
+      { label: "Circuit Cyan", hex: "#5BE9EF", css: "#5be9ef" },
+      { label: "Danger Amber", hex: "#FF8142", css: "#ff8142" },
+      { label: "Frostglass", hex: "#A9C4D9", css: "#a9c4d9" }
+    ];
+
+    function buildPalette() {
+      var root = document.getElementById("palette");
+      PALETTE.forEach(function (p) {
+        var el = document.createElement("div");
+        el.className = "swatch";
+        el.innerHTML =
+          '<div class="chip" style="background:' + p.css + '; box-shadow: 0 0 18px -4px ' + p.css + '"></div>' +
+          '<div class="label">' + p.label + '</div>' +
+          '<div class="hex">' + p.hex + '</div>';
+        root.appendChild(el);
+      });
+    }
+
+    function glow(ctx, color, blur) {
+      ctx.shadowColor = color;
+      ctx.shadowBlur = blur;
+    }
+    function noGlow(ctx) { ctx.shadowBlur = 0; }
+
+    function bgWash(ctx, w, h, cx, cy) {
+      var g = ctx.createRadialGradient(cx, cy, 8, cx, cy, w * 0.75);
+      g.addColorStop(0, "#0e0f18");
+      g.addColorStop(1, "#020203");
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, w, h);
+    }
+
+    // ---------- Plate 1: corridor ----------
+    function drawCorridor(ctx, w, h, t) {
+      ctx.clearRect(0, 0, w, h);
+      var vx = w * 0.54, vy = h * 0.36;
+      bgWash(ctx, w, h, vx, vy);
+
+      var frames = 8;
+      for (var i = frames; i >= 1; i--) {
+        var f = i / frames;
+        var fw = w * 0.92 * f, fh = h * 0.86 * f;
+        var x0 = vx - fw / 2, y0 = vy - fh * 0.44 + h * 0.05;
+        var x1 = x0 + fw, y1 = y0 + fh;
+        var near = 1 - f;
+        var pulse = 0.5 + 0.5 * Math.sin(t * 1.6 + i * 0.7);
+
+        ctx.lineWidth = 1 + near * 1.5;
+        var a = 0.14 + near * 0.5;
+
+        // right wall fades out (the "missing rail" edge)
+        var rightFade = Math.max(0, 1 - near * 1.4);
+
+        ctx.strokeStyle = "rgba(138,107,255," + (a * 0.55) + ")";
+        glow(ctx, "rgba(138,107,255,0.5)", 4 + near * 6);
+
+        // floor seam (brighter, pulsing)
+        ctx.beginPath();
+        ctx.moveTo(x0, y1); ctx.lineTo(x1, y1);
+        ctx.strokeStyle = "rgba(138,107,255," + (a + pulse * 0.25 * near) + ")";
+        ctx.stroke();
+
+        // ceiling seam
+        ctx.beginPath();
+        ctx.moveTo(x0, y0); ctx.lineTo(x1, y0);
+        ctx.strokeStyle = "rgba(138,107,255," + a + ")";
+        ctx.stroke();
+
+        // left wall (present)
+        ctx.beginPath();
+        ctx.moveTo(x0, y0); ctx.lineTo(x0, y1);
+        ctx.stroke();
+
+        // right wall (fading -> void fall)
+        ctx.beginPath();
+        ctx.moveTo(x1, y0); ctx.lineTo(x1, y1);
+        ctx.strokeStyle = "rgba(138,107,255," + (a * rightFade) + ")";
+        ctx.stroke();
+
+        noGlow(ctx);
+      }
+
+      // connecting rails toward vanishing point
+      ctx.strokeStyle = "rgba(138,107,255,0.14)";
+      ctx.lineWidth = 1;
+      var fw0 = w * 0.92, fh0 = h * 0.86;
+      var corners = [
+        [vx - fw0 / 2, vy - fh0 * 0.44 + h * 0.05],
+        [vx + fw0 / 2, vy - fh0 * 0.44 + h * 0.05],
+        [vx - fw0 / 2, vy - fh0 * 0.44 + h * 0.05 + fh0],
+        [vx + fw0 / 2, vy - fh0 * 0.44 + h * 0.05 + fh0]
+      ];
+      corners.forEach(function (c) {
+        ctx.beginPath();
+        ctx.moveTo(c[0], c[1]);
+        ctx.lineTo(vx, vy);
+        ctx.stroke();
+      });
+
+      // floating flux disc, mid-corridor
+      var dx = vx - w * 0.04, dy = vy + h * 0.06;
+      var bob = Math.sin(t * 2.1) * 3;
+      drawDiscIcon(ctx, dx, dy + bob, 14, t, 0.9);
+
+      // wisp drone drifting near ceiling
+      var wx = vx + Math.sin(t * 0.6) * w * 0.08;
+      var wy = vy - h * 0.1 + Math.cos(t * 0.4) * 6;
+      drawWispIcon(ctx, wx, wy, 6, t, 0.55);
+    }
+
+    // ---------- Plate 2: switchback ramp hall (elevation) ----------
+    function drawRamps(ctx, w, h, t) {
+      ctx.clearRect(0, 0, w, h);
+      bgWash(ctx, w, h, w * 0.5, h * 0.55);
+
+      var levels = 4;
+      var margin = w * 0.08;
+      var top = h * 0.18, bottom = h * 0.86;
+      var stepY = (bottom - top) / (levels - 1);
+      var pts = [];
+
+      for (var i = 0; i < levels; i++) {
+        var y = top + stepY * i;
+        var goingRight = i % 2 === 0;
+        var x0 = goingRight ? margin : w - margin - w * 0.34;
+        var x1 = x0 + w * 0.34;
+        pts.push([x0, y, x1, y]);
+      }
+
+      ctx.lineWidth = 3;
+      pts.forEach(function (p, idx) {
+        var pulse = 0.55 + 0.45 * Math.sin(t * 1.3 + idx);
+        glow(ctx, "rgba(138,107,255,0.55)", 10);
+        ctx.strokeStyle = "rgba(138,107,255," + (0.55 + 0.25 * pulse) + ")";
+        ctx.beginPath();
+        ctx.moveTo(p[0], p[1]);
+        ctx.lineTo(p[2], p[3]);
+        ctx.stroke();
+        noGlow(ctx);
+
+        // support posts
+        ctx.strokeStyle = "rgba(138,107,255,0.18)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(p[0], p[1]); ctx.lineTo(p[0], bottom + h * 0.02);
+        ctx.moveTo(p[2], p[3]); ctx.lineTo(p[2], bottom + h * 0.02);
+        ctx.stroke();
+        ctx.lineWidth = 3;
+      });
+
+      // ramps connecting consecutive levels
+      ctx.strokeStyle = "rgba(91,233,239,0.5)";
+      ctx.lineWidth = 2;
+      for (var j = 0; j < levels - 1; j++) {
+        var a2 = pts[j], b2 = pts[j + 1];
+        var ax = j % 2 === 0 ? a2[2] : a2[0];
+        var bx = j % 2 === 0 ? b2[0] : b2[2];
+        glow(ctx, "rgba(91,233,239,0.5)", 8);
+        ctx.beginPath();
+        ctx.moveTo(ax, a2[1]);
+        ctx.lineTo(bx, b2[1]);
+        ctx.stroke();
+        noGlow(ctx);
+      }
+
+      // one frostglass landing panel
+      drawFrostPanel(ctx, pts[1][0] + w * 0.04, pts[1][1] - h * 0.05, w * 0.18, h * 0.08, t);
+      drawFrostPanel(ctx, pts[2][0] + w * 0.1, pts[2][1] - h * 0.05, w * 0.14, h * 0.07, t * 0.8 + 1);
+    }
+
+    // ---------- Plate 3: frostglass chamber ----------
+    function drawFrostglassChamber(ctx, w, h, t) {
+      ctx.clearRect(0, 0, w, h);
+      bgWash(ctx, w, h, w * 0.5, h * 0.5);
+
+      // outer chamber walls, sketched thin
+      ctx.strokeStyle = "rgba(138,107,255,0.18)";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(w * 0.08, h * 0.1, w * 0.84, h * 0.78);
+
+      // three heavy frostglass slabs (floor, back wall, ceiling-ish panel)
+      drawFrostPanel(ctx, w * 0.12, h * 0.62, w * 0.76, h * 0.22, t);
+      drawFrostPanel(ctx, w * 0.14, h * 0.16, w * 0.5, h * 0.4, t * 0.7 + 2);
+      drawFrostPanel(ctx, w * 0.62, h * 0.14, w * 0.24, h * 0.38, t * 0.9 + 4);
+
+      // a blurred silhouette suggesting a corridor continuing behind the glass
+      ctx.save();
+      ctx.filter = "blur(6px)";
+      ctx.fillStyle = "rgba(138,107,255,0.22)";
+      ctx.fillRect(w * 0.2, h * 0.24, w * 0.1, h * 0.28);
+      ctx.fillStyle = "rgba(91,233,239,0.18)";
+      var flicker = 0.5 + 0.5 * Math.sin(t * 1.8);
+      ctx.globalAlpha = 0.4 + flicker * 0.3;
+      ctx.beginPath();
+      ctx.arc(w * 0.34, h * 0.5, 10, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawFrostPanel(ctx, x, y, w, h, t) {
+      ctx.save();
+      var grad = ctx.createLinearGradient(x, y, x + w, y + h);
+      grad.addColorStop(0, "rgba(169,196,217,0.14)");
+      grad.addColorStop(1, "rgba(169,196,217,0.05)");
+      ctx.fillStyle = grad;
+      ctx.strokeStyle = "rgba(169,196,217,0.4)";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.rect(x, y, w, h);
+      ctx.fill();
+      ctx.stroke();
+
+      // faint internal seam lines to suggest thick, layered glass
+      ctx.strokeStyle = "rgba(169,196,217,0.12)";
+      ctx.lineWidth = 1;
+      for (var i = 1; i < 4; i++) {
+        ctx.beginPath();
+        ctx.moveTo(x, y + (h / 4) * i);
+        ctx.lineTo(x + w, y + (h / 4) * i);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // ---------- Shared: color-blobs behind a Frostglass wall ----------
+    // Same fixed layout used by both the Bloomsight (blurred) and Clarity Pulse
+    // (partially sharp) plates, so the two read as a clear before/after pair.
+    function blobPositions(w, h) {
+      return {
+        structure: { x: w * 0.5, y: h * 0.58, r: w * 0.16, color: "138,107,255" },
+        disc: { x: w * 0.63, y: h * 0.4, r: w * 0.045, color: "255,247,230" },
+        wisp: { x: w * 0.36, y: h * 0.32, r: w * 0.03, color: "255,129,66" }
+      };
+    }
+
+    function drawGlassBlobs(ctx, w, h, t, blurPx) {
+      var b = blobPositions(w, h);
+      var discPulse = reduceMotion ? 0.7 : (0.6 + 0.4 * Math.sin(t * 2));
+      var wispDrift = reduceMotion ? 0 : Math.sin(t * 0.9) * 6;
+
+      ctx.save();
+      if (blurPx > 0) ctx.filter = "blur(" + blurPx + "px)";
+
+      ctx.globalAlpha = 0.5;
+      ctx.fillStyle = "rgba(" + b.structure.color + ",0.5)";
+      ctx.beginPath();
+      ctx.ellipse(b.structure.x, b.structure.y, b.structure.r, b.structure.r * 0.6, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.globalAlpha = 0.55 + discPulse * 0.25;
+      ctx.fillStyle = "rgba(" + b.disc.color + ",0.9)";
+      ctx.beginPath();
+      ctx.arc(b.disc.x, b.disc.y, b.disc.r * (0.8 + discPulse * 0.3), 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.globalAlpha = 0.6;
+      ctx.fillStyle = "rgba(" + b.wisp.color + ",0.85)";
+      ctx.beginPath();
+      ctx.arc(b.wisp.x + wispDrift, b.wisp.y, b.wisp.r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // ---------- Plate 4: Bloomsight (passive read through Frostglass) ----------
+    function drawBloomsight(ctx, w, h, t) {
+      ctx.clearRect(0, 0, w, h);
+      bgWash(ctx, w, h, w * 0.5, h * 0.5);
+      drawGlassBlobs(ctx, w, h, t, 22);
+      drawFrostPanel(ctx, w * 0.06, h * 0.08, w * 0.88, h * 0.82, t);
+
+      ctx.strokeStyle = "rgba(138,107,255,0.25)";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(w * 0.03, h * 0.03, w * 0.94, h * 0.94);
+    }
+
+    // ---------- Plate 5: Clarity Pulse (active reveal through Frostglass) ----------
+    function drawClarityPulse(ctx, w, h, t) {
+      ctx.clearRect(0, 0, w, h);
+      bgWash(ctx, w, h, w * 0.5, h * 0.5);
+      drawGlassBlobs(ctx, w, h, t, 22);
+      drawFrostPanel(ctx, w * 0.06, h * 0.08, w * 0.88, h * 0.82, t);
+
+      var b = blobPositions(w, h);
+      var cx = w * 0.54, cy = h * 0.38;
+      var baseR = Math.min(w, h) * 0.17;
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, baseR, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.fillStyle = "#0d0e15";
+      ctx.fillRect(cx - baseR, cy - baseR, baseR * 2, baseR * 2);
+      drawDiscIcon(ctx, b.disc.x, b.disc.y, 11, t, 1);
+      drawWispIcon(ctx, b.wisp.x, b.wisp.y, 13, t, 1, false);
+      ctx.restore();
+
+      glow(ctx, "rgba(91,233,239,0.6)", 10);
+      ctx.strokeStyle = "rgba(91,233,239,0.85)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(cx, cy, baseR, 0, Math.PI * 2);
+      ctx.stroke();
+      noGlow(ctx);
+
+      // expanding pulse rings from the player, bottom-center
+      var px = w * 0.5, py = h * 0.98;
+      for (var k = 0; k < 3; k++) {
+        var phase = reduceMotion ? (k / 3) : ((t * 0.6 + k / 3) % 1);
+        var r = phase * w * 0.62;
+        ctx.strokeStyle = "rgba(138,107,255," + (0.5 * (1 - phase)) + ")";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(px, py, r, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+
+    // ---------- Plate 6: Underfoot (Bloomsight applied to a floor/ramp) ----------
+    function drawUnderfoot(ctx, w, h, t) {
+      ctx.clearRect(0, 0, w, h);
+      var vx = w * 0.5, vy = h * 0.16;
+      bgWash(ctx, w, h, vx, h * 0.55);
+
+      var nearY = h * 0.98, nearHalfW = w * 0.46;
+      var farY = h * 0.4, farHalfW = w * 0.08;
+
+      // ramp side-rails, receding
+      glow(ctx, "rgba(138,107,255,0.5)", 6);
+      ctx.strokeStyle = "rgba(138,107,255,0.55)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(vx - nearHalfW, nearY); ctx.lineTo(vx - farHalfW, farY);
+      ctx.moveTo(vx + nearHalfW, nearY); ctx.lineTo(vx + farHalfW, farY);
+      ctx.stroke();
+      noGlow(ctx);
+
+      // deck rungs
+      var rungs = 6;
+      for (var i = 1; i <= rungs; i++) {
+        var f = i / rungs;
+        var y = nearY + (farY - nearY) * f;
+        var halfW = nearHalfW + (farHalfW - nearHalfW) * f;
+        var pulse = reduceMotion ? 0.5 : (0.4 + 0.3 * Math.sin(t * 1.4 + i));
+        ctx.strokeStyle = "rgba(138,107,255," + (0.12 + pulse * 0.2) + ")";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(vx - halfW, y); ctx.lineTo(vx + halfW, y);
+        ctx.stroke();
+      }
+
+      // the Frostglass landing: a trapezoid patch partway down the ramp
+      var fA = 0.32, fB = 0.62;
+      var yA = nearY + (farY - nearY) * fA, hwA = nearHalfW + (farHalfW - nearHalfW) * fA;
+      var yB = nearY + (farY - nearY) * fB, hwB = nearHalfW + (farHalfW - nearHalfW) * fB;
+
+      function patchPath() {
+        ctx.beginPath();
+        ctx.moveTo(vx - hwA, yA); ctx.lineTo(vx + hwA, yA);
+        ctx.lineTo(vx + hwB, yB); ctx.lineTo(vx - hwB, yB);
+        ctx.closePath();
+      }
+
+      // blurred blobs from the level below, clipped to the patch
+      ctx.save();
+      patchPath();
+      ctx.clip();
+      ctx.filter = "blur(14px)";
+      var wispDrift = reduceMotion ? 0 : Math.sin(t * 0.8) * 4;
+      var discPulse = reduceMotion ? 0.7 : (0.6 + 0.4 * Math.sin(t * 2.3));
+      ctx.fillStyle = "rgba(255,129,66,0.7)";
+      ctx.beginPath();
+      ctx.arc(vx - hwB * 0.32 + wispDrift, (yA + yB) / 2, 10, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "rgba(255,247,230,0.75)";
+      ctx.beginPath();
+      ctx.arc(vx + hwB * 0.38, (yA + yB) / 2 + 6, 7 * (0.8 + discPulse * 0.3), 0, Math.PI * 2);
+      ctx.fill();
+      ctx.filter = "none";
+      ctx.restore();
+
+      // the glass surface itself, on top of the blur
+      ctx.save();
+      patchPath();
+      var grad = ctx.createLinearGradient(vx, yA, vx, yB);
+      grad.addColorStop(0, "rgba(169,196,217,0.18)");
+      grad.addColorStop(1, "rgba(169,196,217,0.08)");
+      ctx.fillStyle = grad;
+      ctx.fill();
+      ctx.strokeStyle = "rgba(169,196,217,0.5)";
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.restore();
+
+      // solid deck continuing beyond the patch, with a disc marker for continuity
+      drawDiscIcon(ctx, vx, farY + (nearY - farY) * 0.04, 6, t, 0.55);
+    }
+
+    // ---------- Plate 7: Patrol Read (Wisp patrol rhythm behind Frostglass) ----------
+    // Two deliberately separate layers: a crisp designer-facing schematic (the fixed
+    // A<->B track, endpoint labels, cycle time) drawn OUTSIDE any blur, versus the
+    // blurred amber trail, which is what the player actually perceives in-fiction.
+    function drawWispPatrol(ctx, w, h, t) {
+      ctx.clearRect(0, 0, w, h);
+      bgWash(ctx, w, h, w * 0.5, h * 0.5);
+
+      drawFrostPanel(ctx, w * 0.08, h * 0.22, w * 0.84, h * 0.5, t);
+
+      var trackY = h * 0.47;
+      var ax = w * 0.22, bx = w * 0.78;
+      var cycle = 4.8;
+
+      function triWaveAt(tt) {
+        var ph = reduceMotion ? 0.5 : ((((tt % cycle) + cycle) % cycle) / cycle);
+        return ph < 0.5 ? ph * 2 : 2 - ph * 2;
+      }
+
+      // blurred perceived trail (in-fiction: what the player actually sees)
+      ctx.save();
+      ctx.filter = "blur(13px)";
+      var trailCount = 5;
+      for (var i = trailCount; i >= 1; i--) {
+        var gt = t - i * 0.12;
+        var gx = ax + (bx - ax) * triWaveAt(gt);
+        var alpha = 0.22 * (1 - i / (trailCount + 1));
+        ctx.fillStyle = "rgba(255,129,66," + alpha + ")";
+        ctx.beginPath();
+        ctx.arc(gx, trackY, 10, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      var wx = ax + (bx - ax) * triWaveAt(t);
+      ctx.fillStyle = "rgba(255,129,66,0.55)";
+      ctx.beginPath();
+      ctx.arc(wx, trackY, 10, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      // crisp designer schematic layer, drawn on top, never blurred
+      ctx.save();
+      ctx.setLineDash([6, 6]);
+      ctx.strokeStyle = "rgba(255,129,66,0.4)";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(ax, trackY); ctx.lineTo(bx, trackY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.strokeStyle = "rgba(255,129,66,0.55)";
+      ctx.lineWidth = 2;
+      [ax, bx].forEach(function (x) {
+        ctx.beginPath();
+        ctx.moveTo(x, trackY - 10); ctx.lineTo(x, trackY + 10);
+        ctx.stroke();
+      });
+
+      ctx.font = "11px ui-monospace, 'SF Mono', 'JetBrains Mono', Consolas, monospace";
+      ctx.fillStyle = "rgba(255,129,66,0.75)";
+      ctx.textAlign = "center";
+      ctx.fillText("A", ax, trackY - 18);
+      ctx.fillText("B", bx, trackY - 18);
+      ctx.fillStyle = "rgba(169,196,217,0.7)";
+      ctx.fillText("PATROL A↔B · ~4.8S CYCLE", (ax + bx) / 2, h * 0.16);
+      ctx.restore();
+
+      // static Clarity Pulse marker at the track midpoint
+      var midX = (ax + bx) / 2;
+      glow(ctx, "rgba(91,233,239,0.6)", 8);
+      ctx.strokeStyle = "rgba(91,233,239,0.65)";
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([3, 5]);
+      ctx.beginPath();
+      ctx.arc(midX, trackY, w * 0.09, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      noGlow(ctx);
+      ctx.font = "10px ui-monospace, 'SF Mono', 'JetBrains Mono', Consolas, monospace";
+      ctx.fillStyle = "rgba(91,233,239,0.7)";
+      ctx.textAlign = "center";
+      ctx.fillText("CLARITY PULSE HERE CONFIRMS IT", midX, trackY + w * 0.09 + 18);
+    }
+
+    // ---------- Plate 8: Maze Flow (level graph schematic) ----------
+    function drawMazeFlow(ctx, w, h, t) {
+      ctx.clearRect(0, 0, w, h);
+      bgWash(ctx, w, h, w * 0.5, h * 0.5);
+
+      var startX = w * 0.08, startY = h * 0.5;
+      var exitX = w * 0.92, exitY = h * 0.5;
+
+      var pathA = [
+        [startX, startY],
+        [w * 0.24, h * 0.22],
+        [w * 0.42, h * 0.16],
+        [w * 0.6, h * 0.18],
+        [w * 0.78, h * 0.24],
+        [exitX, exitY]
+      ];
+      var pathB = [
+        [startX, startY],
+        [w * 0.35, h * 0.62],
+        [w * 0.58, h * 0.68],
+        [exitX, exitY]
+      ];
+
+      function drawPath(pts, color, alpha) {
+        ctx.strokeStyle = "rgba(" + color + "," + alpha + ")";
+        ctx.lineWidth = 2;
+        glow(ctx, "rgba(" + color + ",0.5)", 6);
+        ctx.beginPath();
+        ctx.moveTo(pts[0][0], pts[0][1]);
+        for (var i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+        ctx.stroke();
+        noGlow(ctx);
+      }
+
+      drawPath(pathA, "138,107,255", 0.45);
+      drawPath(pathB, "91,233,239", 0.5);
+
+      ctx.textAlign = "center";
+
+      // Start node
+      ctx.fillStyle = "rgba(211,214,234,0.85)";
+      ctx.beginPath(); ctx.arc(startX, startY, 7, 0, Math.PI * 2); ctx.fill();
+      ctx.font = "10px ui-monospace, 'SF Mono', monospace";
+      ctx.fillStyle = "rgba(211,214,234,0.7)";
+      ctx.fillText("START", startX, startY - 16);
+
+      // Exit node
+      var pulse = reduceMotion ? 0.7 : (0.6 + 0.4 * Math.sin(t * 2));
+      glow(ctx, "rgba(211,214,234,0.6)", 10 * pulse);
+      ctx.strokeStyle = "rgba(211,214,234,0.8)";
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(exitX, exitY, 9, 0, Math.PI * 2); ctx.stroke();
+      noGlow(ctx);
+      ctx.fillStyle = "rgba(211,214,234,0.7)";
+      ctx.fillText("EXIT", exitX, exitY - 18);
+
+      // Path A nodes: Corridor / Room / Hall / Corridor.
+      // Rooms render as circles (contained, self-similar in every direction) instead
+      // of the squares used for Corridors/Halls (directional, linear spaces).
+      var aLabels = ["COR", "ROOM", "HALL", "COR"];
+      for (var i = 1; i < pathA.length - 1; i++) {
+        var p = pathA[i];
+        var isRoom = aLabels[i - 1] === "ROOM";
+        ctx.fillStyle = "rgba(138,107,255,0.15)";
+        ctx.strokeStyle = "rgba(138,107,255,0.6)";
+        ctx.lineWidth = 1.5;
+        if (isRoom) {
+          ctx.beginPath(); ctx.arc(p[0], p[1], 9, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(p[0], p[1], 9, 0, Math.PI * 2); ctx.stroke();
+        } else {
+          ctx.fillRect(p[0] - 8, p[1] - 8, 16, 16);
+          ctx.strokeRect(p[0] - 8, p[1] - 8, 16, 16);
+        }
+        ctx.font = "9px ui-monospace, 'SF Mono', monospace";
+        ctx.fillStyle = "rgba(138,107,255,0.8)";
+        ctx.fillText(aLabels[i - 1], p[0], p[1] + 22);
+      }
+
+      // Path B nodes: Frostglass chambers (blurred-fill circles)
+      var bLabels = ["GLASS", "GLASS"];
+      for (var j = 1; j < pathB.length - 1; j++) {
+        var q = pathB[j];
+        ctx.save();
+        ctx.filter = "blur(3px)";
+        ctx.fillStyle = "rgba(169,196,217,0.35)";
+        ctx.beginPath(); ctx.arc(q[0], q[1], 9, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+        ctx.strokeStyle = "rgba(91,233,239,0.7)";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.arc(q[0], q[1], 9, 0, Math.PI * 2); ctx.stroke();
+        ctx.font = "9px ui-monospace, 'SF Mono', monospace";
+        ctx.fillStyle = "rgba(91,233,239,0.85)";
+        ctx.fillText(bLabels[j - 1], q[0], q[1] + 22);
+      }
+
+      ctx.textAlign = "left";
+      ctx.font = "10px ui-monospace, 'SF Mono', monospace";
+      ctx.fillStyle = "rgba(138,107,255,0.75)";
+      ctx.fillText("— SAFE ROUTE", w * 0.06, h * 0.9);
+      ctx.fillStyle = "rgba(91,233,239,0.75)";
+      ctx.fillText("— BLOOMSIGHT ROUTE", w * 0.06, h * 0.94);
+    }
+
+    function drawHexPip(ctx, x, y, r) {
+      ctx.beginPath();
+      for (var i = 0; i < 6; i++) {
+        var a = (i / 6) * Math.PI * 2;
+        var px = x + Math.cos(a) * r, py = y + Math.sin(a) * r;
+        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // ---------- Plate 9: HUD Concept ----------
+    function drawHud(ctx, w, h, t) {
+      ctx.clearRect(0, 0, w, h);
+      var g = ctx.createRadialGradient(w * 0.5, h * 0.5, 10, w * 0.5, h * 0.5, w * 0.75);
+      g.addColorStop(0, "#0a0b12");
+      g.addColorStop(1, "#020203");
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, w, h);
+
+      var cx = w * 0.5, cy = h * 0.5;
+      ctx.strokeStyle = "rgba(138,107,255,0.35)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(cx - 8, cy); ctx.lineTo(cx - 3, cy);
+      ctx.moveTo(cx + 3, cy); ctx.lineTo(cx + 8, cy);
+      ctx.moveTo(cx, cy - 8); ctx.lineTo(cx, cy - 3);
+      ctx.moveTo(cx, cy + 3); ctx.lineTo(cx, cy + 8);
+      ctx.stroke();
+
+      // Clarity Pulse pips, bottom-left (2 of 3 charged, for illustration)
+      var pipsX = w * 0.08, pipsY = h * 0.86;
+      var charges = 2;
+      for (var i = 0; i < 3; i++) {
+        var px = pipsX + i * 26;
+        var charged = i < charges;
+        var pulse = reduceMotion ? 0.7 : (0.6 + 0.4 * Math.sin(t * 3 + i));
+        if (charged) glow(ctx, "rgba(91,233,239,0.7)", 8 * pulse);
+        ctx.fillStyle = charged ? "rgba(91,233,239,0.85)" : "rgba(91,233,239,0.15)";
+        drawHexPip(ctx, px, pipsY, 9);
+        noGlow(ctx);
+      }
+      ctx.font = "9px ui-monospace, 'SF Mono', monospace";
+      ctx.fillStyle = "rgba(211,214,234,0.5)";
+      ctx.textAlign = "left";
+      ctx.fillText("CLARITY", pipsX - 2, pipsY + 26);
+
+      // Disc counter, bottom-right
+      var dcx = w * 0.9, dcy = h * 0.86;
+      drawDiscIcon(ctx, dcx - 40, dcy, 9, t, 0.9);
+      ctx.font = "16px ui-monospace, 'SF Mono', monospace";
+      ctx.fillStyle = "rgba(255,247,230,0.85)";
+      ctx.fillText("07", dcx - 22, dcy + 5);
+      ctx.font = "9px ui-monospace, 'SF Mono', monospace";
+      ctx.fillStyle = "rgba(211,214,234,0.5)";
+      ctx.fillText("DISCS", dcx - 40, dcy + 26);
+    }
+
+    // ---------- Plate 10 (was 4): disc pickup (event) ----------
+    function drawDisc(ctx, w, h, t) {
+      ctx.clearRect(0, 0, w, h);
+      bgWash(ctx, w, h, w * 0.5, h * 0.5);
+
+      var cx = w * 0.5, cy = h * 0.48;
+      var burst = reduceMotion ? 0.7 : (0.5 + 0.5 * Math.sin(t * 2.2));
+
+      // radiating collect-lines
+      var rays = 14;
+      for (var i = 0; i < rays; i++) {
+        var ang = (i / rays) * Math.PI * 2;
+        var len = w * 0.14 + burst * w * 0.12 + (i % 3) * 6;
+        glow(ctx, "rgba(255,247,230,0.6)", 8);
+        ctx.strokeStyle = "rgba(255,247,230," + (0.15 + burst * 0.35) + ")";
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.moveTo(cx + Math.cos(ang) * w * 0.05, cy + Math.sin(ang) * w * 0.05);
+        ctx.lineTo(cx + Math.cos(ang) * len, cy + Math.sin(ang) * len);
+        ctx.stroke();
+        noGlow(ctx);
+      }
+
+      drawDiscIcon(ctx, cx, cy, 46, t, 1);
+
+      // annotation ring (schematic feel)
+      ctx.strokeStyle = "rgba(91,233,239,0.35)";
+      ctx.setLineDash([4, 6]);
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(cx, cy, w * 0.22, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    function drawDiscIcon(ctx, x, y, r, t, alpha) {
+      var pulse = reduceMotion ? 0.7 : (0.6 + 0.4 * Math.sin(t * 3));
+      glow(ctx, "rgba(255,247,230,0.9)", 18 * pulse);
+      ctx.fillStyle = "rgba(255,247,230," + (0.85 * alpha) + ")";
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fill();
+      noGlow(ctx);
+      ctx.strokeStyle = "rgba(91,233,239," + (0.8 * alpha) + ")";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(x, y, r * 1.35, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    // ---------- Plate 11: Impact Trace (grid-locked shockwave) ----------
+    // Traces travel strictly along grid axes, with occasional right-angle bends,
+    // rather than spreading as a round shockwave -- head bright, tail fading.
+    function drawImpactTrace(ctx, w, h, t) {
+      ctx.clearRect(0, 0, w, h);
+      bgWash(ctx, w, h, w * 0.5, h * 0.5);
+
+      ctx.strokeStyle = "rgba(138,107,255,0.08)";
+      ctx.lineWidth = 1;
+      var cell = w * 0.09;
+      var gx, gy;
+      for (gx = 0; gx <= w; gx += cell) {
+        ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, h); ctx.stroke();
+      }
+      for (gy = 0; gy <= h; gy += cell) {
+        ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(w, gy); ctx.stroke();
+      }
+
+      var cx = w * 0.5, cy = h * 0.5;
+      var cyclePhase = reduceMotion ? 0.5 : ((t * 0.9) % 1);
+
+      var flashAlpha = Math.max(0, 1 - cyclePhase * 3);
+      if (flashAlpha > 0) {
+        glow(ctx, "rgba(138,107,255,0.9)", 30 * flashAlpha);
+        ctx.fillStyle = "rgba(211,214,234," + (0.7 * flashAlpha) + ")";
+        ctx.beginPath(); ctx.arc(cx, cy, 10, 0, Math.PI * 2); ctx.fill();
+        noGlow(ctx);
+      }
+
+      var reach = w * 0.34;
+      var traces = [
+        [[0, 0], [1, 0]],
+        [[0, 0], [-1, 0]],
+        [[0, 0], [0, -1]],
+        [[0, 0], [0.6, 0], [0.6, 1]],
+        [[0, 0], [-0.5, 0], [-0.5, -1]],
+        [[0, 0], [0, 0.7], [0.8, 0.7]]
+      ];
+
+      traces.forEach(function (pathDef, idx) {
+        var segPhase = Math.max(0, Math.min(1, (cyclePhase - idx * 0.02) * 1.6));
+        if (segPhase <= 0) return;
+
+        var pts = [[cx, cy]];
+        var k;
+        for (k = 1; k < pathDef.length; k++) {
+          pts.push([cx + pathDef[k][0] * reach, cy + pathDef[k][1] * reach]);
+        }
+
+        var segLens = [], totalLen = 0, s;
+        for (s = 1; s < pts.length; s++) {
+          var dx = pts[s][0] - pts[s - 1][0], dy = pts[s][1] - pts[s - 1][1];
+          var L = Math.sqrt(dx * dx + dy * dy);
+          segLens.push(L);
+          totalLen += L;
+        }
+        var travelLen = totalLen * segPhase;
+        var consumed = 0;
+
+        for (s = 1; s < pts.length; s++) {
+          var segLen = segLens[s - 1];
+          var segStart = consumed;
+          consumed += segLen;
+          if (travelLen <= segStart) break;
+
+          var segTravel = Math.min(segLen, travelLen - segStart);
+          var t0 = pts[s - 1], t1 = pts[s];
+          var ex = t0[0] + (t1[0] - t0[0]) * (segTravel / segLen);
+          var ey = t0[1] + (t1[1] - t0[1]) * (segTravel / segLen);
+
+          var grad = ctx.createLinearGradient(t0[0], t0[1], ex, ey);
+          grad.addColorStop(0, "rgba(138,107,255,0)");
+          grad.addColorStop(1, "rgba(138,107,255,0.85)");
+          ctx.strokeStyle = grad;
+          glow(ctx, "rgba(138,107,255,0.5)", 6);
+          ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          ctx.moveTo(t0[0], t0[1]);
+          ctx.lineTo(ex, ey);
+          ctx.stroke();
+          noGlow(ctx);
+        }
+      });
+    }
+
+    // ---------- Plate 12 (was 5): wisp struck (event) ----------
+    function drawWisp(ctx, w, h, t) {
+      ctx.clearRect(0, 0, w, h);
+      bgWash(ctx, w, h, w * 0.5, h * 0.55);
+
+      // player light cone from bottom (violet, implies first-person)
+      var cx = w * 0.5;
+      var cone = ctx.createLinearGradient(cx, h, cx, h * 0.35);
+      cone.addColorStop(0, "rgba(138,107,255,0.28)");
+      cone.addColorStop(1, "rgba(138,107,255,0)");
+      ctx.fillStyle = cone;
+      ctx.beginPath();
+      ctx.moveTo(cx - w * 0.22, h);
+      ctx.lineTo(cx + w * 0.22, h);
+      ctx.lineTo(cx + w * 0.03, h * 0.35);
+      ctx.lineTo(cx - w * 0.03, h * 0.35);
+      ctx.closePath();
+      ctx.fill();
+
+      var wx = w * 0.5, wy = h * 0.4;
+      var shatter = reduceMotion ? 1 : (0.5 + 0.5 * Math.sin(t * 3.4));
+
+      // amber shatter burst
+      var shards = 9;
+      for (var i = 0; i < shards; i++) {
+        var ang = (i / shards) * Math.PI * 2 + 0.3;
+        var len = w * 0.05 + shatter * w * 0.07;
+        glow(ctx, "rgba(255,129,66,0.7)", 10);
+        ctx.strokeStyle = "rgba(255,129,66," + (0.25 + shatter * 0.5) + ")";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(wx, wy);
+        ctx.lineTo(wx + Math.cos(ang) * len, wy + Math.sin(ang) * len);
+        ctx.stroke();
+        noGlow(ctx);
+      }
+
+      drawWispIcon(ctx, wx, wy, 16, t, 1, true);
+    }
+
+    function drawWispIcon(ctx, x, y, r, t, alpha, struck) {
+      var color = struck ? "255,129,66" : "138,107,255";
+      var pulse = reduceMotion ? 0.7 : (0.6 + 0.4 * Math.sin(t * 4));
+      glow(ctx, "rgba(" + color + ",0.8)", 14 * pulse);
+      ctx.fillStyle = "rgba(" + color + "," + (0.85 * alpha) + ")";
+      // small hex-ish core
+      ctx.beginPath();
+      for (var i = 0; i < 6; i++) {
+        var a = (i / 6) * Math.PI * 2;
+        var px = x + Math.cos(a) * r * 0.55;
+        var py = y + Math.sin(a) * r * 0.55;
+        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      ctx.fill();
+      noGlow(ctx);
+
+      // thin sensor arms
+      ctx.strokeStyle = "rgba(" + color + "," + (0.6 * alpha) + ")";
+      ctx.lineWidth = 1.2;
+      [0, 90, 180, 270].forEach(function (deg) {
+        var a = (deg * Math.PI) / 180;
+        ctx.beginPath();
+        ctx.moveTo(x + Math.cos(a) * r * 0.55, y + Math.sin(a) * r * 0.55);
+        ctx.lineTo(x + Math.cos(a) * r * 1.1, y + Math.sin(a) * r * 1.1);
+        ctx.stroke();
+      });
+    }
+
+    // ---------- Setup / render loop ----------
+    var PLATES = {
+      corridor: drawCorridor,
+      ramps: drawRamps,
+      frostglass: drawFrostglassChamber,
+      bloomsight: drawBloomsight,
+      clarity: drawClarityPulse,
+      underfoot: drawUnderfoot,
+      patrol: drawWispPatrol,
+      mazeflow: drawMazeFlow,
+      hud: drawHud,
+      impact: drawImpactTrace,
+      disc: drawDisc,
+      wisp: drawWisp
+    };
+
+    function setupCanvas(canvas) {
+      var ratio = window.devicePixelRatio || 1;
+      var displayW = canvas.clientWidth || canvas.parentElement.clientWidth;
+      var displayH = Math.round(displayW * (700 / 1200));
+      canvas.width = displayW * ratio;
+      canvas.height = displayH * ratio;
+      var ctx = canvas.getContext("2d");
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      return { ctx: ctx, w: displayW, h: displayH };
+    }
+
+    function init() {
+      buildPalette();
+
+      var canvases = Array.prototype.slice.call(document.querySelectorAll("canvas[data-plate]"));
+      var states = canvases.map(function (c) {
+        var setup = setupCanvas(c);
+        return { canvas: c, ctx: setup.ctx, w: setup.w, h: setup.h, draw: PLATES[c.dataset.plate] };
+      });
+
+      window.addEventListener("resize", function () {
+        states.forEach(function (s) {
+          var setup = setupCanvas(s.canvas);
+          s.ctx = setup.ctx; s.w = setup.w; s.h = setup.h;
+        });
+        renderAll(0);
+      });
+
+      function renderAll(t) {
+        states.forEach(function (s) { s.draw(s.ctx, s.w, s.h, t); });
+      }
+
+      if (reduceMotion) {
+        renderAll(0.6);
+        return;
+      }
+
+      var start = performance.now();
+      function loop() {
+        var t = (performance.now() - start) / 1000;
+        renderAll(t);
+        requestAnimationFrame(loop);
+      }
+      requestAnimationFrame(loop);
+    }
+
+    if (document.readyState === "complete" || document.readyState === "interactive") {
+      init();
+    } else {
+      document.addEventListener("DOMContentLoaded", init);
+    }
+  })();
+</script>

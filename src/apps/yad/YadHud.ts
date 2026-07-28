@@ -1,4 +1,4 @@
-import { AppEvents } from "../../enums/AppEvents.js";
+import { Events } from "./Events.js";
 import { EventDispatcherImpl } from "../../core/index.js";
 
 interface YadDamagePayload {
@@ -250,7 +250,7 @@ export class YadHud {
   }
 
   private _bindEvents(): void {
-    this.events.addEventListener(AppEvents.Yad.DAMAGE, (e: Record<string, unknown>) => {
+    this.events.addEventListener(Events.DAMAGE, (e: Record<string, unknown>) => {
       const payload = e as unknown as YadDamagePayload;
       const amount = payload.amount || 0;
       if (this._armor > 0) {
@@ -268,7 +268,7 @@ export class YadHud {
       this._triggerFlash("rgba(255, 0, 0, 0.4)"); // Red flash
     });
 
-    this.events.addEventListener(AppEvents.Yad.PICKUP, (e: Record<string, unknown>) => {
+    this.events.addEventListener(Events.PICKUP, (e: Record<string, unknown>) => {
       const payload = e as unknown as YadPickupPayload;
       const { type } = payload;
       const amount = payload.amount || 0;
@@ -292,14 +292,14 @@ export class YadHud {
       this._updateDisplay();
     });
 
-    this.events.addEventListener(AppEvents.Yad.SHOOT, (): void => {
+    this.events.addEventListener(Events.SHOOT, (): void => {
       if (this._ammo > 0) {
         this._ammo -= 1;
         this._updateDisplay();
       }
     });
 
-    this.events.addEventListener(AppEvents.Yad.WEAPON, (e: Record<string, unknown>) => {
+    this.events.addEventListener(Events.WEAPON, (e: Record<string, unknown>) => {
       const payload = e as unknown as YadWeaponPayload;
       const { index } = payload;
       if (index) {
@@ -307,7 +307,7 @@ export class YadHud {
       }
     });
 
-    this.events.addEventListener(AppEvents.Yad.SHOOT, (): void => {
+    this.events.addEventListener(Events.SHOOT, (): void => {
       this.triggerShoot();
     });
   }

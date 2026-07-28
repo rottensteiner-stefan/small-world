@@ -18,7 +18,7 @@ import { BoundingBox } from "../../physix/index.js";
  * YAD (Yet Another Dungeon)
  * Building a grid-based level from a text file.
  */
-export class YadApp extends AbstractShowcase {
+export class App extends AbstractShowcase {
   constructor() {
     super({ fullscreen: false });
   }
@@ -307,6 +307,6 @@ export class YadApp extends AbstractShowcase {
 }
 
 if (typeof window !== "undefined") {
-  const app: YadApp = new YadApp();
+  const app: App = new App();
   app.start();
 }

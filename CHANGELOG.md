@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.74.0] - 2026-07-29
+
+### "Talk is cheap. Show me the code."
+
+- **Features:**
+  - **New App Showcase:** Added a completely new showcase app, `Hollow Circuit`.
+  - **Raycaster & Selection:** Implemented `Ray.intersectsSphere` and updated `Raycaster` to support picking and selecting sphere-bounded objects. `GadgetInspector` now properly highlights selected spherical bounds.
+- **Architecture & Bugfixes:**
+  - **GadgetInspector:** Optimized scene overview tree to refresh on a throttled interval rather than every frame, massively improving performance in dense scenes.
+- **Housekeeping & Docs:**
+  - **Tests:** Added comprehensive test suites for `Ray` and `Raycaster` intersection logic.
+
 ## [0.73.0] - 2026-07-28
 
 ### "The most incomprehensible thing about the universe is that it is comprehensible."

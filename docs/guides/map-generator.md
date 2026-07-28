@@ -50,7 +50,7 @@ There are no keyboard shortcuts — painting is entirely mouse-driven — and no
 Click **▶ Play in YAD** to save the current map to `localStorage` (key `yad_custom_map`) and open the [YAD](/guides/custom-game) showcase in a new tab, which reads that key on startup and uses it instead of its bundled default level. This is the only code path that writes that key; Map Generator and YAD only ever read it back.
 
 ::: warning Map Generator's palette and YAD's legend don't fully agree
-YAD's actual level legend uses `1`/`2`/`3` for health/armor/weapon items — it never reads `I`. And while YAD configures `lavaFloorChars: ["T"]`, its legend has no `T` entry, so a `T` tile painted here currently falls through to plain floor in YAD rather than rendering as lava. If you're building levels for YAD specifically, treat the editor's palette as a starting point, not a guaranteed 1:1 mapping — check YAD's legend in `YadApp.setupScene()` for what actually renders.
+YAD's actual level legend uses `1`/`2`/`3` for health/armor/weapon items — it never reads `I`. And while YAD configures `lavaFloorChars: ["T"]`, its legend has no `T` entry, so a `T` tile painted here currently falls through to plain floor in YAD rather than rendering as lava. If you're building levels for YAD specifically, treat the editor's palette as a starting point, not a guaranteed 1:1 mapping — check YAD's legend in `src/apps/yad/App.ts`'s `setupScene()` for what actually renders.
 :::
 
 ## Using the exported string yourself

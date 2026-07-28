@@ -1,4 +1,5 @@
 import { BoundingBox } from "./BoundingBox.js";
+import { BoundingSphere } from "./BoundingSphere.js";
 import { Ray } from "./Ray.js";
 import { Vector2D, Vector3D, MathPool, Matrix4 } from "../math/index.js";
 import { CameraInterfaceData } from "../interfaces/index.js";
@@ -49,8 +50,11 @@ export class Raycaster {
   }
 
   /**
-   * Tests the ray against a list of objects.
-   * Currently uses fast AABB (BoundingBox) intersection.
+   * Tests the ray against a list of objects. Uses a fast broad-phase bounds test
+   * (AABB or sphere, whichever the object's `bounds` are) and, if the object has
+   * real triangle geometry, refines that into an exact Möller-Trumbore hit --
+   * otherwise the broad-phase distance is used directly (e.g. for sprite-like
+   * objects picked purely by their bounding volume).
    * @param objects The objects to test against.
    * @param sort If true, the results are sorted by distance (closest first).
    * @returns An array of intersections.
@@ -59,75 +63,74 @@ export class Raycaster {
     const intersects: Intersection[] = [];
 
     for (const obj of objects) {
-      if (!obj.isCollidable || !obj.bounds || obj.bounds.type !== BoundingType.BOX) {
+      if (!obj.isCollidable || !obj.bounds) {
         continue;
       }
 
-      const box: BoundingBox = obj.bounds as BoundingBox;
-      const tBox: number = this.ray.intersectsBox(box);
+      let broadT: number;
+      if (BoundingType.BOX === obj.bounds.type) {
+        broadT = this.ray.intersectsBox(obj.bounds as BoundingBox);
+      } else if (BoundingType.SPHERE === obj.bounds.type) {
+        broadT = this.ray.intersectsSphere(obj.bounds as BoundingSphere);
+      } else {
+        continue;
+      }
 
-      if (0 <= tBox) {
-        if (obj.geometry) {
-          const geoData = obj.geometry;
-          if (geoData.vertices && geoData.indices) {
-            let closestT = Infinity;
-            const v0 = MathPool.acquireVector();
-            const v1 = MathPool.acquireVector();
-            const v2 = MathPool.acquireVector();
+      if (0 > broadT) continue;
 
-            for (let i = 0; i < geoData.indices.length; i += 3) {
-              const i0 = (geoData.indices[i] ?? 0) * 3;
-              const i1 = (geoData.indices[i + 1] ?? 0) * 3;
-              const i2 = (geoData.indices[i + 2] ?? 0) * 3;
+      const geoData = obj.geometry;
+      if (geoData && geoData.vertices && geoData.indices) {
+        let closestT = Infinity;
+        const v0 = MathPool.acquireVector();
+        const v1 = MathPool.acquireVector();
+        const v2 = MathPool.acquireVector();
 
-              v0.set(
-                geoData.vertices[i0] ?? 0,
-                geoData.vertices[i0 + 1] ?? 0,
-                geoData.vertices[i0 + 2] ?? 0,
-              );
-              v1.set(
-                geoData.vertices[i1] ?? 0,
-                geoData.vertices[i1 + 1] ?? 0,
-                geoData.vertices[i1 + 2] ?? 0,
-              );
-              v2.set(
-                geoData.vertices[i2] ?? 0,
-                geoData.vertices[i2 + 1] ?? 0,
-                geoData.vertices[i2 + 2] ?? 0,
-              );
+        for (let i = 0; i < geoData.indices.length; i += 3) {
+          const i0 = (geoData.indices[i] ?? 0) * 3;
+          const i1 = (geoData.indices[i + 1] ?? 0) * 3;
+          const i2 = (geoData.indices[i + 2] ?? 0) * 3;
 
-              obj.worldMatrix.transformVector(v0);
-              obj.worldMatrix.transformVector(v1);
-              obj.worldMatrix.transformVector(v2);
+          v0.set(
+            geoData.vertices[i0] ?? 0,
+            geoData.vertices[i0 + 1] ?? 0,
+            geoData.vertices[i0 + 2] ?? 0,
+          );
+          v1.set(
+            geoData.vertices[i1] ?? 0,
+            geoData.vertices[i1 + 1] ?? 0,
+            geoData.vertices[i1 + 2] ?? 0,
+          );
+          v2.set(
+            geoData.vertices[i2] ?? 0,
+            geoData.vertices[i2 + 1] ?? 0,
+            geoData.vertices[i2 + 2] ?? 0,
+          );
 
-              const tTri = this._intersectTriangle(v0, v1, v2, this.ray);
-              if (tTri >= 0 && tTri < closestT) {
-                closestT = tTri;
-              }
-            }
+          obj.worldMatrix.transformVector(v0);
+          obj.worldMatrix.transformVector(v1);
+          obj.worldMatrix.transformVector(v2);
 
-            MathPool.releaseVector(v0);
-            MathPool.releaseVector(v1);
-            MathPool.releaseVector(v2);
-
-            if (closestT !== Infinity) {
-              intersects.push({
-                distance: closestT,
-                object: obj,
-              });
-            }
-          } else {
-            intersects.push({
-              distance: tBox,
-              object: obj,
-            });
+          const tTri = this._intersectTriangle(v0, v1, v2, this.ray);
+          if (tTri >= 0 && tTri < closestT) {
+            closestT = tTri;
           }
-        } else {
+        }
+
+        MathPool.releaseVector(v0);
+        MathPool.releaseVector(v1);
+        MathPool.releaseVector(v2);
+
+        if (closestT !== Infinity) {
           intersects.push({
-            distance: tBox,
+            distance: closestT,
             object: obj,
           });
         }
+      } else {
+        intersects.push({
+          distance: broadT,
+          object: obj,
+        });
       }
     }
 

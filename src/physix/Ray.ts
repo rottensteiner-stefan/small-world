@@ -1,4 +1,5 @@
 import { BoundingBox } from "./BoundingBox.js";
+import { BoundingSphere } from "./BoundingSphere.js";
 import { Vector3D } from "../math/index.js";
 
 /**
@@ -81,6 +82,36 @@ export class Ray {
       return 0 <= tmin ? tmin : tmax;
     }
 
+    return -1;
+  }
+
+  /**
+   * Tests whether this ray intersects the given bounding sphere.
+   * @param sphere The bounding sphere.
+   * @returns The distance `t` to the nearest intersection, or -1 if no intersection.
+   */
+  public intersectsSphere(sphere: BoundingSphere): number {
+    const ocX = this.origin.x - sphere.center.x;
+    const ocY = this.origin.y - sphere.center.y;
+    const ocZ = this.origin.z - sphere.center.z;
+
+    const dirX = this.direction.x;
+    const dirY = this.direction.y;
+    const dirZ = this.direction.z;
+
+    const a = dirX * dirX + dirY * dirY + dirZ * dirZ;
+    const b = 2 * (ocX * dirX + ocY * dirY + ocZ * dirZ);
+    const c = ocX * ocX + ocY * ocY + ocZ * ocZ - sphere.radius * sphere.radius;
+
+    const discriminant = b * b - 4 * a * c;
+    if (discriminant < 0 || 0 === a) return -1;
+
+    const sqrtDiscriminant = Math.sqrt(discriminant);
+    const t1 = (-b - sqrtDiscriminant) / (2 * a);
+    const t2 = (-b + sqrtDiscriminant) / (2 * a);
+
+    if (0 <= t1) return t1;
+    if (0 <= t2) return t2;
     return -1;
   }
 }

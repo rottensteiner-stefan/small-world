@@ -152,6 +152,7 @@ export default defineConfig({
         showcase24: resolve(__dirname, "showcases/24/index.html"),
         showcase25: resolve(__dirname, "showcases/25/index.html"),
         yad: resolve(__dirname, "showcases/yad/index.html"),
+        hollowCircuit: resolve(__dirname, "showcases/hollow-circuit/index.html"),
         pbrgen: resolve(__dirname, "public/tools/pbr-gen.html"),
         iblgen: resolve(__dirname, "public/tools/ibl-gen.html"),
         pixler: resolve(__dirname, "public/tools/pixler.html"),

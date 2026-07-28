@@ -5,7 +5,8 @@ import {
   EventDispatcherImpl,
 } from "../../core/index.js";
 import { CameraInterfaceData, Collidable } from "../../interfaces/index.js";
-import { Keys, AppEvents } from "../../enums/index.js";
+import { Keys } from "../../enums/index.js";
+import { Events } from "./Events.js";
 import { Raycaster } from "../../physix/index.js";
 import { Vector2D } from "../../math/index.js";
 import { AudioSystem } from "../../audio/index.js";
@@ -62,7 +63,7 @@ export class YadController extends FirstPersonController {
         this._options.input.isPressed(i.toString() as Keys) ||
         this._options.input.isPressed(`Digit${i}` as Keys)
       ) {
-        this.events.dispatchEvent(AppEvents.Yad.WEAPON, { index: i });
+        this.events.dispatchEvent(Events.WEAPON, { index: i });
       }
     }
 
@@ -71,7 +72,7 @@ export class YadController extends FirstPersonController {
     if (this._options.input.isPressed(Keys.SPACE) && now - this._lastShotTime > 500) {
       this._lastShotTime = now;
       if (this._audio) this._audio.play("shoot", false, 0.6);
-      this.events.dispatchEvent(AppEvents.Yad.SHOOT);
+      this.events.dispatchEvent(Events.SHOOT);
 
       // Raycast for Enemies
       if (this._options.scene && isCamera) {
@@ -143,7 +144,7 @@ export class YadController extends FirstPersonController {
             if (this._audio) this._audio.play("pickup", false, 0.8);
 
             // Dispatch custom event for HUD
-            this.events.dispatchEvent(AppEvents.Yad.PICKUP, {
+            this.events.dispatchEvent(Events.PICKUP, {
               type: itemType,
               amount: 20,
             });
@@ -163,7 +164,7 @@ export class YadController extends FirstPersonController {
             if (this._audio) this._audio.play("hurt", false, 0.8);
 
             // Dispatch custom event for HUD
-            this.events.dispatchEvent(AppEvents.Yad.DAMAGE, { amount: 10 });
+            this.events.dispatchEvent(Events.DAMAGE, { amount: 10 });
           }
         }
       }

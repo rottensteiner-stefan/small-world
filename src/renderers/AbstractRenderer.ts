@@ -122,7 +122,7 @@ export abstract class AbstractRenderer implements Renderer {
    * @private
    */
   private _traverseLights(node: Object3D): void {
-    if (node instanceof AbstractLight) {
+    if (node instanceof AbstractLight && node.isVisible) {
       node.applyTo(this._lightData);
     }
 

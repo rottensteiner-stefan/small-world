@@ -13,7 +13,7 @@ import { CameraInterfaceData, Renderer } from "../interfaces/index.js";
 import { Behavior } from "../core/behaviors/index.js";
 import { WireframeMaterial } from "../core/materials/index.js";
 import { Color } from "../core/colors/index.js";
-import { Raycaster, BoundingBox } from "../physix/index.js";
+import { Raycaster, BoundingBox, BoundingSphere } from "../physix/index.js";
 import { Cube } from "../geometry/index.js";
 import { Vector2D, Vector3D } from "../math/index.js";
 import { ForgeTool, ForgeToolOptions } from "./forge/ForgeTool.js";
@@ -21,6 +21,11 @@ import { ForgeTool, ForgeToolOptions } from "./forge/ForgeTool.js";
 /** Minimal shape shared by Tweakpane binding APIs — only what this file actually calls. */
 interface RefreshableBinding {
   refresh(): void;
+}
+
+/** Minimal shape shared by Tweakpane blade APIs (buttons, bindings, ...) that support disposal. */
+interface DisposableBlade {
+  dispose(): void;
 }
 
 /**
@@ -50,6 +55,17 @@ export class GadgetInspector extends ForgeTool {
   private _visibleBinding: RefreshableBinding | undefined;
   private _lastFpsUpdate: number = 0;
   private _frameCount: number = 0;
+
+  private _overviewFolder!: FolderApi;
+  private _overviewBlades: DisposableBlade[] = [];
+  private _lastOverviewRefresh: number = 0;
+  /** How often the scene overview re-scans the tree, in ms -- a full tree walk on every
+   * frame would be wasteful, especially in scenes with thousands of objects. */
+  private static readonly _OVERVIEW_REFRESH_INTERVAL_MS = 1500;
+  /** Hard cap on distinct "kinds" shown -- grouping already collapses e.g. 1000 identical
+   * particles into one row, but this is the backstop for scenes with many DIFFERENT
+   * one-off object names. */
+  private static readonly _OVERVIEW_MAX_GROUPS = 40;
 
   /**
    * Creates a new Gadget Inspector overlay.
@@ -91,6 +107,14 @@ export class GadgetInspector extends ForgeTool {
     const renderTab = tabs.pages[3]!;
     const audioTab = tabs.pages[4]!;
 
+    // Scene overview: a grouped, capped outliner -- NOT a flat per-instance list, since a
+    // scene can easily have thousands of near-identical objects (particles, drones, ...).
+    // Objects are grouped by name with a trailing separator+number stripped (e.g. "Drone42"
+    // and "Drone43" both become "Drone"), so a swarm collapses into a single "Drone (120)"
+    // row instead of 120 individual entries. Clicking a row selects one representative.
+    this._overviewFolder = this._sceneTab.addFolder({ title: "Objects", expanded: true });
+    this._refreshOverview();
+
     // Add Search Object feature
     const searchParams = { name: "" };
     const searchResultBlades: { dispose: () => void }[] = [];
@@ -115,7 +139,7 @@ export class GadgetInspector extends ForgeTool {
 
         const allObjects: Object3D[] = [];
         for (const child of this._scene.objects) {
-          this._getAllObjects(child, allObjects);
+          this._getAllObjects(child, allObjects, true);
         }
 
         const matches = allObjects.filter(
@@ -322,17 +346,93 @@ export class GadgetInspector extends ForgeTool {
     });
   }
 
-  private _getAllObjects(parent: Object3D, list: Object3D[] = []): Object3D[] {
-    if (parent.isVisible && parent !== this._highlightMesh) {
+  /**
+   * Walks the scene graph collecting objects.
+   * @param parent The node to start from.
+   * @param list Accumulator (also the return value).
+   * @param includeHidden When false (the default, used for 3D click-picking -- there's
+   * nothing to click on if it isn't drawn), objects with `isVisible === false` are
+   * skipped. When true (used by Search and the Objects overview), hidden objects are
+   * still listed -- otherwise there'd be no way to find and re-show something you just
+   * hid. Either way, traversal always continues into children: a hidden object's
+   * children aren't necessarily hidden themselves.
+   */
+  private _getAllObjects(
+    parent: Object3D,
+    list: Object3D[] = [],
+    includeHidden: boolean = false,
+  ): Object3D[] {
+    if (parent === this._highlightMesh) return list;
+
+    if (includeHidden || parent.isVisible) {
       if (parent.geometry) {
         parent.computeBounds();
       }
       list.push(parent);
-      for (const child of parent.children) {
-        this._getAllObjects(child, list);
-      }
+    }
+    for (const child of parent.children) {
+      this._getAllObjects(child, list, includeHidden);
     }
     return list;
+  }
+
+  /**
+   * Derives a group key for the scene overview by stripping a trailing separator+number
+   * off an object's name (e.g. "Drone42" / "Disc_3" -> "Drone" / "Disc"), so repeated
+   * instances of "the same kind of thing" collapse into one row. Falls back to the
+   * object's class name for unnamed objects.
+   */
+  private _groupKeyFor(obj: Object3D): string {
+    const base = obj.name && "" !== obj.name.trim() ? obj.name.trim() : obj.constructor.name;
+    const stripped = base.replace(/[\s_-]?\d+$/, "");
+    return "" !== stripped ? stripped : base;
+  }
+
+  /**
+   * Rebuilds the "Objects" overview: one row per group, sorted largest-first, capped at
+   * `_OVERVIEW_MAX_GROUPS` distinct kinds. Never lists individual members of a group --
+   * that's what Search (for a known name) or clicking through Hierarchy is for.
+   */
+  private _refreshOverview(): void {
+    for (const blade of this._overviewBlades) blade.dispose();
+    this._overviewBlades.length = 0;
+
+    const allObjects: Object3D[] = [];
+    for (const child of this._scene.objects) {
+      this._getAllObjects(child, allObjects, true);
+    }
+
+    const groups = new Map<string, Object3D[]>();
+    for (const obj of allObjects) {
+      const key = this._groupKeyFor(obj);
+      let members = groups.get(key);
+      if (!members) {
+        members = [];
+        groups.set(key, members);
+      }
+      members.push(obj);
+    }
+
+    const sortedGroups = Array.from(groups.entries()).sort((a, b) => b[1].length - a[1].length);
+    const shown = sortedGroups.slice(0, GadgetInspector._OVERVIEW_MAX_GROUPS);
+
+    for (const [key, members] of shown) {
+      const label = members.length > 1 ? `${key} (${members.length})` : key;
+      const representative = members[0]!;
+      const btn = this._overviewFolder.addButton({ title: label });
+      btn.on("click", () => {
+        this.selectObject(representative);
+        this._sceneTab.selected = true;
+      });
+      this._overviewBlades.push(btn);
+    }
+
+    if (sortedGroups.length > shown.length) {
+      const btn = this._overviewFolder.addButton({
+        title: `... and ${sortedGroups.length - shown.length} more kinds`,
+      });
+      this._overviewBlades.push(btn);
+    }
   }
 
   private _onPointerDown(event: PointerEvent): void {
@@ -394,21 +494,45 @@ export class GadgetInspector extends ForgeTool {
     if (obj.geometry) {
       obj.computeBounds();
     }
-    if (obj.bounds && BoundingType.BOX === obj.bounds.type) {
-      const box = obj.bounds as BoundingBox;
-      const size = new Vector3D().copyFrom(box.max).sub(box.min);
-      // Small epsilon to prevent z-fighting with the object's actual mesh
-      size.add(new Vector3D(0.02, 0.02, 0.02));
+    this._highlightMesh.isVisible = this._syncHighlightMesh(obj);
 
+    this._buildGUI(obj);
+  }
+
+  /**
+   * Positions/scales the cyan wireframe highlight cube to bound the given object,
+   * whether its bounds are a box (used as-is) or a sphere (wrapped in a cube sized to
+   * its diameter) -- there's deliberately only one highlight mesh shape, since "a box
+   * around whatever's selected" is a perfectly normal selection indicator regardless of
+   * the object's actual silhouette.
+   * @returns Whether a highlight could be computed (false if the object has no bounds).
+   */
+  private _syncHighlightMesh(obj: Object3D): boolean {
+    if (!obj.bounds) return false;
+
+    // Small epsilon to prevent z-fighting with the object's actual mesh.
+    const epsilon = new Vector3D(0.02, 0.02, 0.02);
+
+    if (BoundingType.BOX === obj.bounds.type) {
+      const box = obj.bounds as BoundingBox;
+      const size = new Vector3D().copyFrom(box.max).sub(box.min).add(epsilon);
       this._highlightMesh.position.copyFrom(box.center);
       this._highlightMesh.scale.copyFrom(size);
       this._highlightMesh.updateMatrixWorld();
-      this._highlightMesh.isVisible = true;
-    } else {
-      this._highlightMesh.isVisible = false;
+      return true;
     }
 
-    this._buildGUI(obj);
+    if (BoundingType.SPHERE === obj.bounds.type) {
+      const sphere = obj.bounds as BoundingSphere;
+      const diameter = sphere.radius * 2;
+      const size = new Vector3D(diameter, diameter, diameter).add(epsilon);
+      this._highlightMesh.position.copyFrom(sphere.center);
+      this._highlightMesh.scale.copyFrom(size);
+      this._highlightMesh.updateMatrixWorld();
+      return true;
+    }
+
+    return false;
   }
 
   /**
@@ -707,6 +831,17 @@ export class GadgetInspector extends ForgeTool {
       }
     }
 
+    // 2.5 Refresh the scene overview on a throttle, and only while its tab is visible --
+    // a full tree walk on every single frame would be wasteful, especially in scenes with
+    // thousands of objects.
+    if (
+      this._sceneTab.selected &&
+      now - this._lastOverviewRefresh >= GadgetInspector._OVERVIEW_REFRESH_INTERVAL_MS
+    ) {
+      this._lastOverviewRefresh = now;
+      this._refreshOverview();
+    }
+
     // 3. Count total objects
     let totalObjects = 0;
     for (let i = 0; i < this._scene.objects.length; i++) {
@@ -724,19 +859,13 @@ export class GadgetInspector extends ForgeTool {
     }
 
     if (this._selectedObject && this._highlightMesh.isVisible) {
-      // Keep highlight mesh synced with the object's bounds
+      // Keep highlight mesh synced with the object's bounds (it may be moving --
+      // a patrolling Wisp, a bobbing pickup, ...).
       const obj = this._selectedObject;
       if (obj.geometry) {
         obj.computeBounds();
       }
-      if (obj.bounds && BoundingType.BOX === obj.bounds.type) {
-        const box = obj.bounds as BoundingBox;
-        const size = new Vector3D().copyFrom(box.max).sub(box.min);
-        size.add(new Vector3D(0.02, 0.02, 0.02));
-        this._highlightMesh.position.copyFrom(box.center);
-        this._highlightMesh.scale.copyFrom(size);
-        this._highlightMesh.updateMatrixWorld();
-      }
+      this._syncHighlightMesh(obj);
     }
   }
 
