@@ -1,5 +1,6 @@
 import { Vector3D } from "../math/index.js";
 import { CameraInterfaceData } from "../interfaces/index.js";
+import { SynthSFX } from "./SynthSFX.js";
 
 /**
  * A basic Audio System that wraps the Web Audio API.
@@ -16,12 +17,22 @@ export class AudioSystem {
   private _reverbNode!: ConvolverNode;
   private _reverbGain!: GainNode;
 
+  /** Procedurally synthesized sound effects (no sample files needed) -- see `SynthSFX`. */
+  private _synthSFX!: SynthSFX;
+
   constructor() {
     const AudioContextClass =
       window.AudioContext ||
       (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     this.context = new AudioContextClass();
     this._buildMixer();
+    this._synthSFX = new SynthSFX(
+      this.context,
+      this.sfxGain,
+      this.musicGain,
+      this._reverbNode,
+      () => this.resume(),
+    );
   }
 
   private _buildMixer(): void {
@@ -213,227 +224,43 @@ export class AudioSystem {
   }
 
   /**
-   * Starts a creepy, pulsing low-frequency background drone using the Web Audio API.
+   * Starts a creepy, pulsing low-frequency background drone. See `SynthSFX.startDrone`.
    */
   public startDrone(): void {
-    this.resume();
-
-    // 1. GIGANTIC SUB-BASS (The Black Hole's mass)
-    const subOsc = this.context.createOscillator();
-    subOsc.type = "sine";
-    subOsc.frequency.value = 42; // Deep rumble
-
-    const subOsc2 = this.context.createOscillator();
-    subOsc2.type = "triangle";
-    subOsc2.frequency.value = 43.5; // Beating effect for slow pulsing
-
-    // 2. GHOSTLY CHOIR / DRONE (Atonal minor 9th cluster)
-    // We create a very slow, hollow pad sound using a few sine waves
-    const pad1 = this.context.createOscillator();
-    pad1.type = "sine";
-    pad1.frequency.value = 110; // A2
-
-    const pad2 = this.context.createOscillator();
-    pad2.type = "sine";
-    pad2.frequency.value = 164.81; // E3 (Perfect 5th)
-
-    const pad3 = this.context.createOscillator();
-    pad3.type = "sine";
-    pad3.frequency.value = 233.08; // Bb3 (Minor 9th, creates dark dissonance)
-
-    // 3. BROWN NOISE (Cosmic Wind)
-    const bufferSize = this.context.sampleRate * 2;
-    const noiseBuffer = this.context.createBuffer(1, bufferSize, this.context.sampleRate);
-    const output = noiseBuffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) {
-      let u1 = Math.random();
-      const u2 = Math.random();
-      if (u1 === 0) u1 = 1e-7;
-      const z0 = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
-      output[i] = Math.max(-1.0, Math.min(1.0, z0 * 0.25));
-    }
-    const noiseSrc = this.context.createBufferSource();
-    noiseSrc.buffer = noiseBuffer;
-    noiseSrc.loop = true;
-
-    // 4. BREATHING LOWPASS FILTER (LFO Modulation)
-    // Instead of a static bandpass, we use a lowpass that opens and closes
-    const windFilter = this.context.createBiquadFilter();
-    windFilter.type = "lowpass";
-    windFilter.frequency.value = 250; // Base cutoff
-    windFilter.Q.value = 2.0; // Adds a slight resonant whistle
-
-    const windLFO = this.context.createOscillator();
-    windLFO.type = "sine";
-    windLFO.frequency.value = 0.05; // 20-second cycle! "Breathing"
-
-    const windLFOGain = this.context.createGain();
-    windLFOGain.gain.value = 200; // Modulates cutoff by +/- 200Hz
-
-    windLFO.connect(windLFOGain);
-    windLFOGain.connect(windFilter.frequency);
-
-    // 5. MIXING GAINS
-    const subGain = this.context.createGain();
-    subGain.gain.value = 0.8;
-
-    const padGain = this.context.createGain();
-    padGain.gain.value = 0.05; // Extremely quiet, ghostly presence
-
-    const windGain = this.context.createGain();
-    windGain.gain.value = 0.6; // Prominent, but softened by lowpass
-
-    const mainGain = this.context.createGain();
-    mainGain.gain.value = 0.8;
-
-    // 6. ROUTING
-    subOsc.connect(subGain);
-    subOsc2.connect(subGain);
-    subGain.connect(mainGain);
-
-    pad1.connect(padGain);
-    pad2.connect(padGain);
-    pad3.connect(padGain);
-    padGain.connect(mainGain);
-
-    noiseSrc.connect(windFilter);
-    windFilter.connect(windGain);
-    windGain.connect(mainGain);
-
-    // 7. ENDLESS VOID (Reverb)
-    mainGain.connect(this._reverbNode);
-    // Add a tiny bit of dry signal to keep the rumble punchy
-    mainGain.connect(this.musicGain);
-
-    // 8. START THE ENGINES
-    subOsc.start();
-    subOsc2.start();
-    pad1.start();
-    pad2.start();
-    pad3.start();
-    noiseSrc.start();
-    windLFO.start();
+    this._synthSFX.startDrone();
   }
 
   /**
-   * Starts a procedural fire crackling noise at a specific 3D location.
+   * Starts a procedural fire crackling noise at a specific 3D location. See `SynthSFX.startFire`.
    */
   public startFire(position: Vector3D, volume: number = 1.0): void {
-    this.resume();
-
-    const bufferSize = this.context.sampleRate * 2; // 2 seconds of noise
-    const buffer = this.context.createBuffer(1, bufferSize, this.context.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) {
-      data[i] = Math.random() * 2 - 1;
-    }
-
-    const noiseSource = this.context.createBufferSource();
-    noiseSource.buffer = buffer;
-    noiseSource.loop = true;
-
-    // Filter to make it sound like fire (lowpass for rumble, bandpass for crackle)
-    const filter = this.context.createBiquadFilter();
-    filter.type = "lowpass";
-    filter.frequency.value = 400;
-
-    const panner = this.context.createPanner();
-    panner.panningModel = "HRTF";
-    panner.distanceModel = "inverse";
-    panner.refDistance = 1.0;
-    panner.maxDistance = 15.0;
-    panner.rolloffFactor = 1.5;
-
-    if (panner.positionX) {
-      panner.positionX.value = position.x;
-      panner.positionY.value = position.y;
-      panner.positionZ.value = position.z;
-    } else {
-      panner.setPosition(position.x, position.y, position.z);
-    }
-
-    const gainNode = this.context.createGain();
-    gainNode.gain.value = volume;
-
-    noiseSource.connect(filter);
-    filter.connect(panner);
-    panner.connect(gainNode);
-    gainNode.connect(this.sfxGain);
-
-    noiseSource.start(0);
+    this._synthSFX.startFire(position, volume);
   }
 
   /**
-   * Generates a retro synthesized footstep thud.
+   * Generates a retro synthesized footstep thud. See `SynthSFX.playFootstep`.
    */
   public playFootstep(): void {
-    this.resume();
-    const osc = this.context.createOscillator();
-    osc.type = "sine";
-
-    // Quick pitch drop for a thud
-    osc.frequency.setValueAtTime(150, this.context.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(0.01, this.context.currentTime + 0.1);
-
-    const gain = this.context.createGain();
-    gain.gain.setValueAtTime(0.3, this.context.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, this.context.currentTime + 0.1);
-
-    osc.connect(gain);
-    gain.connect(this.sfxGain);
-
-    osc.start();
-    osc.stop(this.context.currentTime + 0.1);
+    this._synthSFX.playFootstep();
   }
 
   /**
-   * Generates a retro "Pew Pew" laser/gunshot sound.
+   * Generates a retro "Pew Pew" laser/gunshot sound. See `SynthSFX.playShoot`.
    */
   public playShoot(): void {
-    this.resume();
-    const osc = this.context.createOscillator();
-    osc.type = "square";
-
-    // Classic laser pitch drop
-    osc.frequency.setValueAtTime(880, this.context.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(110, this.context.currentTime + 0.15);
-
-    const gain = this.context.createGain();
-    gain.gain.setValueAtTime(0.4, this.context.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, this.context.currentTime + 0.15);
-
-    osc.connect(gain);
-    gain.connect(this.sfxGain);
-
-    osc.start();
-    osc.stop(this.context.currentTime + 0.15);
+    this._synthSFX.playShoot();
   }
 
   /**
-   * Generates a retro "Ugh!" hurt sound.
+   * Generates a retro "Ugh!" hurt sound. See `SynthSFX.playHurt`.
    */
   public playHurt(): void {
-    this.resume();
-    const osc = this.context.createOscillator();
-    osc.type = "sawtooth";
-
-    // Quick grunting pitch drop
-    osc.frequency.setValueAtTime(250, this.context.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(50, this.context.currentTime + 0.3);
-
-    const gain = this.context.createGain();
-    gain.gain.setValueAtTime(0.6, this.context.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, this.context.currentTime + 0.3);
-
-    osc.connect(gain);
-    gain.connect(this.sfxGain);
-
-    osc.start();
-    osc.stop(this.context.currentTime + 0.3);
+    this._synthSFX.playHurt();
   }
 
   /**
    * Generates a procedural synth tone (e.g., for musical instruments or physical impacts).
+   * See `SynthSFX.playTone`.
    * @param frequency The base frequency in Hz.
    * @param duration The duration of the tone in seconds.
    * @param volume The starting volume.
@@ -445,21 +272,6 @@ export class AudioSystem {
     volume: number = 0.5,
     type: OscillatorType = "sine",
   ): void {
-    this.resume();
-    const osc = this.context.createOscillator();
-    osc.type = type;
-
-    osc.frequency.setValueAtTime(frequency, this.context.currentTime);
-
-    const gain = this.context.createGain();
-    // Quick attack, exponential decay for a percussive strike
-    gain.gain.setValueAtTime(volume, this.context.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, this.context.currentTime + duration);
-
-    osc.connect(gain);
-    gain.connect(this.sfxGain);
-
-    osc.start();
-    osc.stop(this.context.currentTime + duration);
+    this._synthSFX.playTone(frequency, duration, volume, type);
   }
 }

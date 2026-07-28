@@ -267,6 +267,19 @@ export class Vector3D implements Vector {
   }
 
   /**
+   * Linearly interpolates this vector toward another vector by a factor `t`.
+   * @param v The target vector.
+   * @param t The interpolation factor, typically in [0, 1] (0 = stays at this, 1 = becomes v).
+   * @returns this
+   */
+  public lerp(v: Vector3D, t: number): this {
+    this.x += (v.x - this.x) * t;
+    this.y += (v.y - this.y) * t;
+    this.z += (v.z - this.z) * t;
+    return this;
+  }
+
+  /**
    * Transforms the direction of this vector with a matrix.
    * This ignores the translation component of the matrix.
    * @param m The transformation matrix.

@@ -88,6 +88,17 @@ export class MathUtils {
   }
 
   /**
+   * Linearly interpolates between two numbers by a factor `t`.
+   * @param a The start value (returned when t = 0).
+   * @param b The end value (returned when t = 1).
+   * @param t The interpolation factor, typically in [0, 1].
+   * @returns The interpolated value.
+   */
+  public static lerp(a: number, b: number, t: number): number {
+    return a + (b - a) * t;
+  }
+
+  /**
    * Reads an element from a fixed-size array whose bounds are guaranteed
    * correct by construction (e.g. Float32Array components of a Matrix4/
    * Quaternion, or a small fixed axis list) — centralizes the

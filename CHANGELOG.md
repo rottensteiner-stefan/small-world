@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.72.1] - 2026-07-28
+
+### "Nature is written in mathematical language."
+
+- **Features:**
+  - **Math Library Enhancements:** Added robust interpolation functions including `MathUtils.lerp`, `Vector3D.lerp`, and a numerically stable shortest-arc `Quaternion.slerp`.
+- **Architecture & Bugfixes:**
+  - **Tests:** Added comprehensive test coverage for the new `lerp` and `slerp` math functions.
+- **Housekeeping & Docs:**
+  - **Exports:** Exported `SynthSFX` module for better external access.
+
 ## [0.72.0] - 2026-07-28
 
 ### "The ability to simplify means to eliminate the unnecessary so that the necessary may speak."

@@ -178,6 +178,66 @@ export class Quaternion {
   }
 
   /**
+   * Spherically interpolates this quaternion toward another by a factor `t`, taking the shortest
+   * arc (flips `q` if the two quaternions are more than 90 degrees apart). Falls back to linear
+   * interpolation + normalize when the two rotations are nearly identical, where slerp's formula
+   * becomes numerically unstable (division by a near-zero `sinHalfTheta`).
+   * @param q The target quaternion.
+   * @param t The interpolation factor, typically in [0, 1] (0 = stays at this, 1 = becomes q).
+   * @returns this
+   */
+  public slerp(q: Quaternion, t: number): this {
+    if (0 === t) return this;
+    if (1 === t) return this.copyFrom(q);
+
+    const x: number = this.x,
+      y: number = this.y,
+      z: number = this.z,
+      w: number = this.w;
+    let qx: number = q.x,
+      qy: number = q.y,
+      qz: number = q.z,
+      qw: number = q.w;
+
+    let cosHalfTheta: number = w * qw + x * qx + y * qy + z * qz;
+
+    if (0 > cosHalfTheta) {
+      qw = -qw;
+      qx = -qx;
+      qy = -qy;
+      qz = -qz;
+      cosHalfTheta = -cosHalfTheta;
+    }
+
+    if (1 <= cosHalfTheta) {
+      this.set(x, y, z, w);
+      return this;
+    }
+
+    const sqrSinHalfTheta: number = 1.0 - cosHalfTheta * cosHalfTheta;
+    if (sqrSinHalfTheta <= Number.EPSILON) {
+      const s: number = 1 - t;
+      this.w = s * w + t * qw;
+      this.x = s * x + t * qx;
+      this.y = s * y + t * qy;
+      this.z = s * z + t * qz;
+      return this.normalize();
+    }
+
+    const sinHalfTheta: number = Math.sqrt(sqrSinHalfTheta);
+    const halfTheta: number = Math.atan2(sinHalfTheta, cosHalfTheta);
+    const ratioA: number = Math.sin((1 - t) * halfTheta) / sinHalfTheta;
+    const ratioB: number = Math.sin(t * halfTheta) / sinHalfTheta;
+
+    this.w = w * ratioA + qw * ratioB;
+    this.x = x * ratioA + qx * ratioB;
+    this.y = y * ratioA + qy * ratioB;
+    this.z = z * ratioA + qz * ratioB;
+
+    return this;
+  }
+
+  /**
    * Calculates the Euclidean length of the quaternion.
    * @returns The length.
    */

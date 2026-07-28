@@ -1,3 +1,4 @@
+export * from "./Easing.js";
 export * from "./Frustum.js";
 export * from "./GearMath.js";
 export * from "./MathUtils.js";

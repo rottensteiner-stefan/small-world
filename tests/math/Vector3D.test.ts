@@ -66,4 +66,29 @@ describe("Vector3D", () => {
     expect(v2.y).toBe(2);
     expect(v2.z).toBe(3);
   });
+
+  it("should lerp toward the target vector by the given factor", () => {
+    const v1 = new Vector3D(0, 0, 0);
+    const v2 = new Vector3D(10, 20, 30);
+    v1.lerp(v2, 0.5);
+    expect(v1.x).toBe(5);
+    expect(v1.y).toBe(10);
+    expect(v1.z).toBe(15);
+  });
+
+  it("should leave the vector unchanged when lerp factor is 0", () => {
+    const v1 = new Vector3D(1, 2, 3);
+    v1.lerp(new Vector3D(10, 20, 30), 0);
+    expect(v1.x).toBe(1);
+    expect(v1.y).toBe(2);
+    expect(v1.z).toBe(3);
+  });
+
+  it("should fully reach the target vector when lerp factor is 1", () => {
+    const v1 = new Vector3D(1, 2, 3);
+    v1.lerp(new Vector3D(10, 20, 30), 1);
+    expect(v1.x).toBe(10);
+    expect(v1.y).toBe(20);
+    expect(v1.z).toBe(30);
+  });
 });

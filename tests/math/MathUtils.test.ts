@@ -38,4 +38,11 @@ describe("MathUtils", () => {
     expect(MathUtils.fastCos(Math.PI / 2)).toBeCloseTo(0, 2);
     expect(MathUtils.fastCos(Math.PI)).toBeCloseTo(-1, 2);
   });
+
+  it("should lerp between two numbers correctly", () => {
+    expect(MathUtils.lerp(0, 10, 0.5)).toBe(5);
+    expect(MathUtils.lerp(0, 10, 0)).toBe(0);
+    expect(MathUtils.lerp(0, 10, 1)).toBe(10);
+    expect(MathUtils.lerp(5, 15, 0.25)).toBe(7.5);
+  });
 });

@@ -58,9 +58,11 @@ Mittlere Konfidenz (zwei Dialekte stimmen überein, einer weicht ab, kein erklä
 **P0 komplett abgeschlossen.**
 
 **P1 — Risikoarme, grundlegende Engine-Features**
-7. `Vector3D.lerp()`, `Quaternion.slerp()`, ein kleines `Easing`-Utility — macht das Ad-hoc-Dämpfungs-Selbstbauen in jedem Behavior/jeder Kamera-Strategie überflüssig.
-8. `AudioSystem`s prozedurale SFX-Demo-Funktionen in ein separates Helper-Modul auslagern; die Kernklasse schlank halten.
-9. `docs/guides/audio.md` schreiben.
+7. ✅ **ERLEDIGT (2026-07-28)** `Vector3D.lerp(v, t)`, `Quaternion.slerp(q, t)` (mit Shortest-Arc-Flip + numerisch stabilem Linear-Fallback bei nahezu identischen Rotationen) und `MathUtils.lerp(a, b, t)` ergänzt, plus neues `src/math/Easing.ts` (linear/smoothstep/easeIn·Out·InOut für Quad/Cubic/Sine). Alle mutierend + allokationsfrei, passend zum bestehenden Stil. 23 neue Tests, `tsc`/Lint/Tests/`build:lib` grün.
+8. ✅ **ERLEDIGT (2026-07-28)** `AudioSystem`s prozedurale SFX-Generatoren (`startDrone`, `startFire`, `playFootstep`, `playShoot`, `playHurt`, `playTone` — ~250 der ~465 Zeilen) in eine neue Klasse `src/audio/SynthSFX.ts` ausgelagert. `AudioSystem` behält dieselben Methodennamen als dünne Delegations-Wrapper (`this._synthSFX.startDrone()` etc.) — kein Call-Site-Bruch, alle bestehenden Aufrufer (Showcases 21/22/23, `YadApp`, `YadLevelBuilder`) funktionieren unverändert. Verifiziert: `playFootstep`/`playShoot`/`playHurt` waren schon vorher nirgends aufgerufen (totes Demo-Code, jetzt zumindest isoliert statt die Kernklasse aufzublähen). `tsc`/Lint/Tests/Build grün, Showcases 21/22/23 headless ohne Konsolenfehler geladen.
+9. ✅ **ERLEDIGT (2026-07-28)** `docs/guides/audio.md` geschrieben (Mixer/Buses, Laden+Abspielen global/räumlich, Listener-Sync, die neu extrahierten `SynthSFX`-Effekte, plus ein ehrlicher "Limitations"-Abschnitt) und in die VitePress-Sidebar direkt nach "Physics & RigidBodies" eingehängt. Docs-Build grün.
+
+**P1 komplett abgeschlossen.**
 
 **P2 — Test-/CI-Gesundheit**
 10. Testabdeckung für `src/audio/` und `src/tools/` ergänzen.

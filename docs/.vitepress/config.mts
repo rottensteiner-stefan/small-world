@@ -27,6 +27,7 @@ export default defineConfig({
             { text: "Coordinate System & Camera Strategies", link: "/guides/coordinate-system" },
             { text: "Gamification & Interactions", link: "/guides/interactions" },
             { text: "Physics & RigidBodies", link: "/guides/physics" },
+            { text: "Audio", link: "/guides/audio" },
             { text: "Finite State Machines (FSM)", link: "/guides/state-machines" },
             { text: "EventBus & Gameloop", link: "/guides/eventbus" },
             { text: "Extensions & Ecosystem", link: "/guides/extensions" },
