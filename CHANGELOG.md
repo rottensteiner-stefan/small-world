@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.72.2] - 2026-07-28
+
+### "Quality is not an act, it is a habit."
+
+- **Architecture & Bugfixes:**
+  - **Showcase Tests:** Introduced concurrency and sequential retry logic to `check-showcases.js` to eliminate transient GPU context failures during CI runs.
+  - **Renderers:** Fixed a rare WebGPU crash where an uninitialized (0x0) canvas would attempt to generate a degenerate HDR Bloom texture on the very first frame.
+  - **AudioSystem:** Allowed dependency injection of `AudioContext` for better unit testing.
+- **Housekeeping & Docs:**
+  - **Tests:** Enabled `v8` coverage reporting in `vite.config.ts`.
+
 ## [0.72.1] - 2026-07-28
 
 ### "Nature is written in mathematical language."

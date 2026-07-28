@@ -1176,7 +1176,17 @@ export class WebGPURenderer extends AbstractRenderer {
     this._updateGlobalBuffers(vp, camPos, lights, scene, near, far);
     const ce = this._device.createCommandEncoder();
 
-    if (this.postProcessing.enabled && !this._hdrTexture) {
+    if (
+      this.postProcessing.enabled &&
+      !this._hdrTexture &&
+      this._context.canvas.width > 0 &&
+      this._context.canvas.height > 0
+    ) {
+      // Guarded the same way as setSize() -- if this fires before the canvas has its real size
+      // (e.g. the first frame, before the ResizeObserver's initial callback lands), creating a
+      // degenerate 0/1px _hdrTexture here would make BloomPassGPU build an invalid mip chain on
+      // it. Skipping keeps postProcessing off for that one frame; the next frame retries once
+      // the canvas has a real size.
       this._hdrTexture = this._device.createTexture({
         size: [this._context.canvas.width, this._context.canvas.height],
         format: "rgba16float",
@@ -1193,7 +1203,8 @@ export class WebGPURenderer extends AbstractRenderer {
     }
 
     const screenView = this._context.getCurrentTexture().createView();
-    let renderTargetView = this.postProcessing.enabled ? this._hdrTextureView! : screenView;
+    let renderTargetView =
+      this.postProcessing.enabled && this._hdrTextureView ? this._hdrTextureView : screenView;
     let isOffscreen = false;
 
     if (this._activeRenderTarget) {

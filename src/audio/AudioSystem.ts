@@ -20,11 +20,20 @@ export class AudioSystem {
   /** Procedurally synthesized sound effects (no sample files needed) -- see `SynthSFX`. */
   private _synthSFX!: SynthSFX;
 
-  constructor() {
-    const AudioContextClass =
-      window.AudioContext ||
-      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    this.context = new AudioContextClass();
+  /**
+   * @param context An `AudioContext` to use instead of creating one -- lets tests (and any code
+   * that already owns a shared context) inject their own instead of relying on the global
+   * `window.AudioContext`.
+   */
+  constructor(context?: AudioContext) {
+    if (context) {
+      this.context = context;
+    } else {
+      const AudioContextClass =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      this.context = new AudioContextClass();
+    }
     this._buildMixer();
     this._synthSFX = new SynthSFX(
       this.context,
