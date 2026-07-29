@@ -24,8 +24,6 @@ export interface GridLegendEntry {
   onBuild?: (x: number, y: number, worldX: number, worldZ: number, scene: Scene) => Object3D | void;
   /** If true, the floor and ceiling won't be generated for this tile */
   preventFloorCeiling?: boolean;
-  /** Index for texture array (if the material uses one) */
-  textureIndex?: number;
   /** Optional generic identification tag applied to the built floor object (e.g. for gameplay hazard checks) */
   tag?: string;
 }

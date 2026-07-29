@@ -13,6 +13,8 @@ export interface ProximitySensorOptions {
   radius: number;
   /** The inner distance at which the factor reaches 1.0. Defaults to 0.0. */
   minDistance?: number;
+  /** Ignore the Y axis when measuring distance (e.g. floor hazards, pickups at a fixed player height). Defaults to false. */
+  planar?: boolean;
   /** Callback executed every frame with the normalized proximity factor (0.0 to 1.0). */
   onUpdate: (factor: number, distance: number, deltaTime: number) => void;
 }
@@ -38,6 +40,7 @@ export class ProximitySensorBehavior extends Behavior {
       targetObj: options.targetObj,
       radius: options.radius,
       minDistance: Math.max(0, options.minDistance ?? 0.0),
+      planar: options.planar ?? false,
       onUpdate: options.onUpdate,
     };
   }
@@ -47,7 +50,7 @@ export class ProximitySensorBehavior extends Behavior {
    */
   private _getWorldPosition(obj: Object3D | CameraInterfaceData, out: Vector3D): void {
     if (obj instanceof Object3D) {
-      out.set(obj.worldMatrix.data[12]!, obj.worldMatrix.data[13]!, obj.worldMatrix.data[14]!);
+      obj.getWorldPosition(out);
     } else {
       out.copyFrom(obj.position);
     }
@@ -63,7 +66,12 @@ export class ProximitySensorBehavior extends Behavior {
     this._getWorldPosition(this.options.targetObj, this._targetPosition);
 
     // Calculate distance
-    const distance = this._myPosition.distanceTo(this._targetPosition);
+    const distance = this.options.planar
+      ? Math.hypot(
+          this._myPosition.x - this._targetPosition.x,
+          this._myPosition.z - this._targetPosition.z,
+        )
+      : this._myPosition.distanceTo(this._targetPosition);
 
     let factor: number;
 

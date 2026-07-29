@@ -2,23 +2,30 @@ import { SmallWorld, Object3D } from "../../core/index.js";
 import { AmbientLight, PointLight } from "../../core/lights/index.js";
 import { Color } from "../../core/colors/index.js";
 import { StandardMaterial } from "../../core/materials/index.js";
-import { RotatorBehavior, BobbingBehavior } from "../../core/behaviors/index.js";
+import {
+  RotatorBehavior,
+  BobbingBehavior,
+  ProximitySensorBehavior,
+} from "../../core/behaviors/index.js";
 import { Cube, Sphere } from "../../geometry/index.js";
 import { Vector3D } from "../../math/index.js";
 import { CameraStrategyType, PostProcessingEffectType } from "../../enums/index.js";
 import { BloomElement } from "../../renderers/post/elements/index.js";
 import { BoundingBox } from "../../physix/index.js";
-import { HollowCircuitController } from "./core/behaviors/HollowCircuitController.js";
-import { HollowCircuitHud } from "./core/HollowCircuitHud.js";
+import { Controller } from "./core/behaviors/Controller.js";
+import { Hud } from "./core/Hud.js";
 import { WispBehavior } from "./core/behaviors/WispBehavior.js";
 import { FrostglassPanelBehavior } from "./core/behaviors/FrostglassPanelBehavior.js";
-import { HollowCircuitObjectTags } from "./enums/HollowCircuitObjectTags.js";
+import { ObjectTags } from "./enums/ObjectTags.js";
+import { Events } from "./Events.js";
 
 /** Palette pulled straight from the concept dossier, kept as one source of truth. */
 const VOID = new Color(0.07, 0.07, 0.09);
 const CIRCUIT_VIOLET = new Color(0.54, 0.42, 1.0);
 const DANGER_AMBER = new Color(1.0, 0.51, 0.26);
 const FROSTGLASS = new Color(0.66, 0.77, 0.85);
+/** How close the player needs to be (in world units) to collect a Disc or contact a Wisp. */
+const CONTACT_RADIUS = 1.5;
 
 /**
  * Hollow Circuit -- first vertical slice.
@@ -38,8 +45,8 @@ const FROSTGLASS = new Color(0.66, 0.77, 0.85);
  * follow-up, not built here.
  */
 export class App extends SmallWorld {
-  private _controller!: HollowCircuitController;
-  private _hud!: HollowCircuitHud;
+  private _controller!: Controller;
+  private _hud!: Hud;
 
   constructor() {
     super({ fullscreen: true, enableInspector: true });
@@ -133,7 +140,7 @@ export class App extends SmallWorld {
 
     // --- Frostglass panel, right side of the room, with a glowing blob behind it ---
     const panel = addBox("Frostglass_Panel", 0.3, 3, 4, 5.9, 1.7, -20, frostglassMat);
-    panel.tag = HollowCircuitObjectTags.FROSTGLASS;
+    panel.tag = ObjectTags.FROSTGLASS;
     panel.addBehavior(new FrostglassPanelBehavior());
 
     const blob = new Object3D("Frostglass_Blob");
@@ -148,9 +155,25 @@ export class App extends SmallWorld {
     const wisp = new Object3D("Wisp_01");
     wisp.geometry = new Sphere({ radius: 0.3 }).getGeometryData();
     wisp.material = wispMat.clone();
-    wisp.tag = HollowCircuitObjectTags.WISP;
+    wisp.tag = ObjectTags.WISP;
+    const wispBehavior = new WispBehavior({
+      pointA: new Vector3D(-3, 1, -16),
+      pointB: new Vector3D(3, 1, -16),
+    });
+    wisp.addBehavior(wispBehavior);
+    // Contact is a repeatable proximity trigger, not a one-shot pickup -- gated by
+    // WispBehavior's own cooldown, so this sensor just keeps reporting distance.
     wisp.addBehavior(
-      new WispBehavior({ pointA: new Vector3D(-3, 1, -16), pointB: new Vector3D(3, 1, -16) }),
+      new ProximitySensorBehavior({
+        targetObj: this.camera,
+        radius: CONTACT_RADIUS,
+        planar: true,
+        onUpdate: (_factor, distance): void => {
+          if (distance > CONTACT_RADIUS || !wispBehavior.canBeStruck) return;
+          wispBehavior.strike();
+          this.events.dispatchEvent(Events.WISP_CONTACT, {});
+        },
+      }),
     );
     scene.add(wisp);
     const wispLight = new PointLight({ color: DANGER_AMBER, intensity: 2.0, distance: 4.0 });
@@ -170,9 +193,22 @@ export class App extends SmallWorld {
       disc.geometry = discGeo;
       disc.material = discMat;
       disc.position.set(x, y, z);
-      disc.tag = HollowCircuitObjectTags.DISC;
+      disc.tag = ObjectTags.DISC;
       disc.addBehavior(new RotatorBehavior(new Vector3D(0, 1.5, 0)));
       disc.addBehavior(new BobbingBehavior(0.15, 2.0));
+      disc.addBehavior(
+        new ProximitySensorBehavior({
+          targetObj: this.camera,
+          radius: CONTACT_RADIUS,
+          planar: true,
+          onUpdate: (_factor, distance): void => {
+            if (distance > CONTACT_RADIUS || !disc.isVisible) return;
+            disc.isVisible = false;
+            disc.isCollidable = false;
+            this.events.dispatchEvent(Events.DISC_COLLECTED, {});
+          },
+        }),
+      );
       scene.add(disc);
     }
 
@@ -186,16 +222,16 @@ export class App extends SmallWorld {
     // reads that same octree to decide what's "in frustum" for anything without a static
     // parent. Disabling the dynamic octree (an earlier version of this code did) silently
     // makes every non-static object un-cullable-into-visibility -- their lights still
-    // affect the scene, but their own mesh never draws. Left enabled on purpose: a Disc's
-    // pickup radius (1.5) and a Wisp's contact radius (1.5) are both larger than the
-    // FirstPersonController's collision radius plus their own (~1.0), so the pickup/contact
-    // event always fires before physical collision blocking ever could -- there's nothing
-    // here for the player to actually get stuck on.
+    // affect the scene, but their own mesh never draws. Left enabled on purpose: CONTACT_RADIUS
+    // (1.5) is larger than the FirstPersonController's collision radius plus a Disc's/Wisp's
+    // own (~1.0), so the pickup/contact event (fired by each object's own ProximitySensorBehavior)
+    // always fires before physical collision blocking ever could -- there's nothing here for
+    // the player to actually get stuck on.
 
     // --- Player controller ---
     const spawnPoint = new Vector3D(0, 1.6, 1);
     this.camera.position.copyFrom(spawnPoint);
-    this._controller = new HollowCircuitController(this.events, {
+    this._controller = new Controller(this.events, {
       scene,
       spawnPoint,
       input: this.input,
@@ -206,7 +242,7 @@ export class App extends SmallWorld {
     this.camera.addBehavior(this._controller);
 
     // --- HUD ---
-    this._hud = new HollowCircuitHud(this.events);
+    this._hud = new Hud(this.events);
 
     // --- Bloom: the whole "glow through the seams/Frostglass" look leans on this ---
     if (this.renderer) {

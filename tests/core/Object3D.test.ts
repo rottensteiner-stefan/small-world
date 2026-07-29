@@ -20,6 +20,50 @@ describe("Object3D", () => {
     expect(obj.receiveShadow).toBe(true);
   });
 
+  describe("getWorldPosition", () => {
+    it("matches position for a root object with no parent", () => {
+      const obj = new Object3D();
+      obj.position.set(3, 4, 5);
+      obj.updateMatrixWorld();
+
+      const world = obj.getWorldPosition();
+      expect(world.x).toBeCloseTo(3);
+      expect(world.y).toBeCloseTo(4);
+      expect(world.z).toBeCloseTo(5);
+    });
+
+    it("resolves the full parent chain, unlike the local position", () => {
+      const parent = new Object3D("parent");
+      parent.position.set(10, 0, 0);
+      const child = new Object3D("child");
+      child.position.set(1, 2, 3); // Local offset from the parent.
+      parent.add(child);
+      parent.updateMatrixWorld();
+
+      const world = child.getWorldPosition();
+      expect(world.x).toBeCloseTo(11);
+      expect(world.y).toBeCloseTo(2);
+      expect(world.z).toBeCloseTo(3);
+
+      // `position` itself stays local -- this is exactly the distinction the method exists for.
+      expect(child.position.x).toBeCloseTo(1);
+    });
+
+    it("writes into the provided vector instead of allocating, when given one", () => {
+      const obj = new Object3D();
+      obj.position.set(7, 8, 9);
+      obj.updateMatrixWorld();
+
+      const out = new Vector3D();
+      const result = obj.getWorldPosition(out);
+
+      expect(result).toBe(out);
+      expect(out.x).toBeCloseTo(7);
+      expect(out.y).toBeCloseTo(8);
+      expect(out.z).toBeCloseTo(9);
+    });
+  });
+
   describe("lookAt", () => {
     it("should correctly rotate to look at a target on the -Z axis (forward)", () => {
       const obj = new Object3D();

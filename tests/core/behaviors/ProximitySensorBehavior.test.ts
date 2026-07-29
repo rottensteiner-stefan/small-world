@@ -47,4 +47,57 @@ describe("ProximitySensorBehavior", () => {
     behavior.update(0.1);
     expect(lastFactor).toBe(1.0);
   });
+
+  it("measures full 3D distance by default, even when only Y differs", () => {
+    let lastDistance = -1;
+    const target = new Object3D("sensor");
+    const player = new Object3D("player");
+    target.position.set(0, 0, 0);
+    target.updateMatrixWorld();
+
+    const behavior = new ProximitySensorBehavior({
+      targetObj: player,
+      radius: 10.0,
+      onUpdate: (_factor, distance): void => {
+        lastDistance = distance;
+      },
+    });
+    behavior.onAttach(target);
+
+    // Same XZ position, 3 units apart on Y only.
+    player.position.set(0, 3, 0);
+    player.updateMatrixWorld();
+    behavior.update(0.1);
+    expect(lastDistance).toBeCloseTo(3.0);
+  });
+
+  it("ignores the Y axis when planar is true", () => {
+    let lastDistance = -1;
+    const target = new Object3D("sensor");
+    const player = new Object3D("player");
+    target.position.set(0, 0, 0);
+    target.updateMatrixWorld();
+
+    const behavior = new ProximitySensorBehavior({
+      targetObj: player,
+      radius: 10.0,
+      planar: true,
+      onUpdate: (_factor, distance): void => {
+        lastDistance = distance;
+      },
+    });
+    behavior.onAttach(target);
+
+    // Same XZ position as before (3 units apart on Y only) -- planar distance should read ~0.
+    player.position.set(0, 3, 0);
+    player.updateMatrixWorld();
+    behavior.update(0.1);
+    expect(lastDistance).toBeCloseTo(0.0);
+
+    // Now offset on X/Z too -- planar distance should only reflect the XZ offset.
+    player.position.set(4, 99, -3);
+    player.updateMatrixWorld();
+    behavior.update(0.1);
+    expect(lastDistance).toBeCloseTo(5.0); // 3-4-5 triangle on the XZ plane
+  });
 });

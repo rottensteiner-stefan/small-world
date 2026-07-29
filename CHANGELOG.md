@@ -1,8 +1,20 @@
 # Changelog
 
+## [0.74.2] - 2026-07-29
+
+### "Before software can be reusable it first has to be usable." - Ralph Johnson
+
+- **Features:**
+  - **Object3D:** Added `getWorldPosition(target?: Vector3D)` to easily extract global position from the world matrix.
+  - **ProximitySensorBehavior:** Added `planar` option to limit distance checks strictly to the XZ-plane, ignoring height differences.
+- **Architecture & Bugfixes:**
+  - **YAD App:** Fixed `EnemyBehavior` to properly query the scene's static octree for collision resolution, preventing enemies from walking through walls.
+- **Housekeeping & Docs:**
+  - **Tests:** Added comprehensive test suites for `getWorldPosition`, planar proximity sensing, and `EnemyBehavior` wall collision logic.
+
 ## [0.74.1] - 2026-07-29
 
-### "Leave the code cleaner than you found it."
+### "Leave the code cleaner than you found it." - Robert C. Martin
 
 - **Architecture & Bugfixes:**
   - **App Refactoring:** Restructured the internal architecture of the `YAD` app, organizing its components into dedicated `core/`, `enums/`, and `behaviors/` directories to match the engine's folder standards.
@@ -10,7 +22,7 @@
 
 ## [0.74.0] - 2026-07-29
 
-### "Talk is cheap. Show me the code."
+### "Talk is cheap. Show me the code." - Linus Torvalds
 
 - **Features:**
   - **New App Showcase:** Added a completely new showcase app, `Hollow Circuit`.
@@ -22,7 +34,7 @@
 
 ## [0.73.0] - 2026-07-28
 
-### "The most incomprehensible thing about the universe is that it is comprehensible."
+### "The most incomprehensible thing about the universe is that it is comprehensible." - Albert Einstein
 
 - **Features:**
   - **Physics (CCD):** Implemented Continuous Collision Detection (CCD) for fast-moving spherical bodies. Swept-sphere collision tests (against spheres, boxes, and OBBs) prevent high-velocity objects from tunneling through thin walls in a single substep.
@@ -32,7 +44,7 @@
 
 ## [0.72.3] - 2026-07-28
 
-### "Clean code always looks like it was written by someone who cares."
+### "Clean code always looks like it was written by someone who cares." - Robert C. Martin
 
 - **Housekeeping & Docs:**
   - **Showcases Cleanup:** Standardized showcase class names (`Showcase12`, `Showcase13`, `Showcase14`, `Showcase24`) for better consistency across all examples.
@@ -40,7 +52,7 @@
 
 ## [0.72.2] - 2026-07-28
 
-### "Quality is not an act, it is a habit."
+### "Quality is not an act, it is a habit." - Aristotle
 
 - **Architecture & Bugfixes:**
   - **Showcase Tests:** Introduced concurrency and sequential retry logic to `check-showcases.js` to eliminate transient GPU context failures during CI runs.
@@ -51,7 +63,7 @@
 
 ## [0.72.1] - 2026-07-28
 
-### "Nature is written in mathematical language."
+### "Nature is written in mathematical language." - Galileo Galilei
 
 - **Features:**
   - **Math Library Enhancements:** Added robust interpolation functions including `MathUtils.lerp`, `Vector3D.lerp`, and a numerically stable shortest-arc `Quaternion.slerp`.
@@ -62,7 +74,7 @@
 
 ## [0.72.0] - 2026-07-28
 
-### "The ability to simplify means to eliminate the unnecessary so that the necessary may speak."
+### "The ability to simplify means to eliminate the unnecessary so that the necessary may speak." - Hans Hofmann
 
 - **Architecture & Bugfixes:**
   - **Shader Cleanup:** Massive structural cleanup of the engine's shader source code. Deleted numerous deprecated and redundant material shaders (`.glsl` and `.wgsl`) across all renderers (WebGL1, WebGL2, WebGPU), centralizing the logic.
@@ -73,7 +85,7 @@
 
 ## [0.71.3] - 2026-07-27
 
-### "Make it work, make it right, make it fast."
+### "Make it work, make it right, make it fast." - Kent Beck
 
 - **Features:**
   - **WebGL1 Bloom Post-Processing:** Added full fallback support for the high-quality Dual-Kawase Bloom effect in WebGL1 using GLSL 1.0.0 shaders and custom mip-chain targets.
@@ -83,14 +95,14 @@
 
 ## [0.71.2] - 2026-07-27
 
-### "Truth is ever to be found in simplicity, and not in the multiplicity and confusion of things."
+### "Truth is ever to be found in simplicity, and not in the multiplicity and confusion of things." - Isaac Newton
 
 - **Architecture & Bugfixes:**
   - **WebGL Renderers:** Fixed a console spam issue by throttling `MAX_TEXTURE_IMAGE_UNITS` warnings to only warn once per uniform/unit. Fixed WebGL1 NPOT (non-power-of-two) texture binding by disabling mipmaps and setting `CLAMP_TO_EDGE` wrap modes automatically.
 
 ## [0.71.1] - 2026-07-27
 
-### "The most robust algorithm is the one you don't have to write."
+### "The most robust algorithm is the one you don't have to write." - Steve Maguire
 
 - **Architecture & Bugfixes:**
   - **Renderer Updates:** Minor fixes and refinements in `WebGL1Renderer`, `WebGL2Renderer`, and the `Standard` GLSL 1.0.0 shader.
@@ -215,7 +227,7 @@
   - Added comprehensive `configuration.md` guide and updated README to reflect the new configuration instantiation pattern.
 ## [0.69.2] - 2026-07-24
 
-### "The secret of change is to focus all of your energy, not on fighting the old, but on building the new."
+### "The secret of change is to focus all of your energy, not on fighting the old, but on building the new." - Socrates
 
 - **Architecture & Bugfixes:**
   - **UniversalEventBus Removal:** Eradicated the global `UniversalEventBus` singleton to strictly enforce the "No Global Singletons" architecture and support proper multi-instancing.

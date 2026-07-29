@@ -178,4 +178,18 @@ export class Object3D implements Collidable {
       child.updateMatrixWorld();
     }
   }
+
+  /**
+   * Reads this object's position in world space, i.e. after resolving the full parent
+   * chain -- unlike `position`, which is always local to its immediate parent. Requires
+   * `worldMatrix` to be current (see `updateMatrixWorld()`).
+   * @param out Optional vector to write into, to avoid allocating one per call.
+   */
+  public getWorldPosition(out: Vector3D = new Vector3D()): Vector3D {
+    return out.set(
+      this.worldMatrix.data[12]!,
+      this.worldMatrix.data[13]!,
+      this.worldMatrix.data[14]!,
+    );
+  }
 }

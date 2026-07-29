@@ -1,6 +1,6 @@
-import { YadLevelBuilder } from "./core/YadLevelBuilder.js";
-import { YadController } from "./core/behaviors/YadController.js";
-import { YadHud } from "./core/YadHud.js";
+import { LevelBuilder } from "./core/LevelBuilder.js";
+import { Controller } from "./core/behaviors/Controller.js";
+import { Hud } from "./core/Hud.js";
 import { SmallWorld } from "../../core/index.js";
 import { AmbientLight, DirectionalLight, PointLight } from "../../core/lights/index.js";
 import { CameraStrategyType } from "../../enums/index.js";
@@ -26,10 +26,10 @@ export class App extends SmallWorld {
   private _time: number = 0;
   private _lavaMaterials: FluidSurfaceMaterial[] = [];
   private _lavaLights: PointLight[] = [];
-  private _hud!: YadHud;
-  private _playerController!: YadController;
+  private _hud!: Hud;
+  private _playerController!: Controller;
 
-  public get hud(): YadHud {
+  public get hud(): Hud {
     return this._hud;
   }
 
@@ -175,7 +175,7 @@ export class App extends SmallWorld {
     }
 
     // 4. Build Level
-    const builder: YadLevelBuilder = new YadLevelBuilder();
+    const builder: LevelBuilder = new LevelBuilder();
     const { playerStart, lavaMaterials, lavaLights } = await builder.build(this.scene, mapData, {
       floorTexture: floorTex,
       ceilingTexture: ceilTex,
@@ -183,6 +183,7 @@ export class App extends SmallWorld {
       lavaNormalMap: lavaNorm,
       playerCamera: this.camera,
       audio: this.audio,
+      events: this.events,
       lavaFloorChars: ["T"], // Only T is lava now
       slimeFloorChars: ["~"],
       legend: {
@@ -251,7 +252,7 @@ export class App extends SmallWorld {
     );
 
     // 5. Controllers
-    this._playerController = new YadController(this.events, {
+    this._playerController = new Controller(this.events, {
       moveSpeed: 10.0,
       scene: this.scene,
       input: this.input,
@@ -269,7 +270,7 @@ export class App extends SmallWorld {
     this.debug = false; // Disable visual debugging for collisions by default
 
     // 7. Initialize HUD
-    this._hud = new YadHud(this.events);
+    this._hud = new Hud(this.events);
 
     // 8. Apply Retro Color Banding (Quantization)
     if (this.renderer) {
@@ -303,5 +304,5 @@ export class App extends SmallWorld {
 
 if (typeof window !== "undefined") {
   const app: App = new App();
-  app.start();
+  app.start().catch((err: unknown) => console.error("[YAD] Failed to start:", err));
 }

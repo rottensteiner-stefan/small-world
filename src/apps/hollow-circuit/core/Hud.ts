@@ -6,7 +6,7 @@ import { EventDispatcherImpl } from "../../../core/index.js";
  * (bottom-left) and a running Disc count (bottom-right). No health bar --
  * nothing in Hollow Circuit needs one yet.
  */
-export class HollowCircuitHud {
+export class Hud {
   private _container: HTMLDivElement;
   private _pipEls: HTMLDivElement[] = [];
   private _discCountEl: HTMLSpanElement;

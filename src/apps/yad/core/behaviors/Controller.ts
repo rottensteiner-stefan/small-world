@@ -10,13 +10,13 @@ import { Events } from "../../Events.js";
 import { Raycaster } from "../../../../physix/index.js";
 import { Vector2D } from "../../../../math/index.js";
 import { AudioSystem } from "../../../../audio/index.js";
-import { YadObjectTags } from "../../enums/YadObjectTags.js";
+import { ObjectTags } from "../../enums/ObjectTags.js";
 
 /**
  * A retro style controller for forward/backward movement and left/right rotation.
  * It extends FirstPersonController and adds shooting, weapon selection, and damage logic.
  */
-export class YadController extends FirstPersonController {
+export class Controller extends FirstPersonController {
   private _lastShotTime: number = 0;
   private _lastHurtTime: number = 0;
 
@@ -26,7 +26,7 @@ export class YadController extends FirstPersonController {
   private _queryHits: Collidable[] = [];
 
   /**
-   * Creates a new YadController.
+   * Creates a new Controller.
    * @param events The event bus
    * @param options The configuration options.
    */
@@ -37,7 +37,7 @@ export class YadController extends FirstPersonController {
     // Force retro tank controls for Dungeon feel
     super({ ...options, retroTankControls: true });
     this._audio = options.audio;
-    if (!options.input) throw new Error("YadController requires an 'input' option.");
+    if (!options.input) throw new Error("Controller requires an 'input' option.");
   }
 
   public override update(deltaTime: number): void {
@@ -103,9 +103,9 @@ export class YadController extends FirstPersonController {
         for (const intersect of intersects) {
           const obj = intersect.object;
 
-          if (obj.tag === YadObjectTags.ENEMY && obj.isVisible && obj.scale.y > 0.5) {
+          if (obj.tag === ObjectTags.ENEMY && obj.isVisible && obj.scale.y > 0.5) {
             // HIT AN ENEMY!
-            obj.tag = YadObjectTags.DEAD_ENEMY; // prevent shooting again
+            obj.tag = ObjectTags.DEAD_ENEMY; // prevent shooting again
             obj.scale.y = 0.2; // squash to "dead"
             obj.position.y = 0.2; // drop to floor
 
@@ -119,41 +119,20 @@ export class YadController extends FirstPersonController {
 
           // If we hit a door first, the bullet stops! (Walls are a single merged
           // InstancedMesh, not individual collidable objects, so they can't be tagged here.)
-          if (obj.tag === YadObjectTags.DOOR) {
+          if (obj.tag === ObjectTags.DOOR) {
             break;
           }
         }
       }
     }
 
-    // 5. Environment checks (Pickups & Lava/Slime Damage)
+    // 5. Environment checks (Lava/Slime Damage -- item pickup is a ProximitySensorBehavior
+    // attached directly to each item in LevelBuilder, the same idiom already used for doors)
     if (this._options.scene) {
       for (const obj of this._options.scene.objects) {
-        // Item Pickup
-        if (obj.tag === YadObjectTags.ITEM && obj.isVisible) {
-          const parts = obj.name.split("_");
-          const itemType = parts[1] ?? "unknown";
-
-          const dx = obj.position.x - this.target.position.x;
-          const dz = obj.position.z - this.target.position.z;
-          if (dx * dx + dz * dz < 2.25) {
-            // Within 1.5 units
-            obj.isVisible = false;
-            // Stop bobbing
-            [...obj.behaviors].forEach((b) => obj.removeBehavior(b));
-            if (this._audio) this._audio.play("pickup", false, 0.8);
-
-            // Dispatch custom event for HUD
-            this.events.dispatchEvent(Events.PICKUP, {
-              type: itemType,
-              amount: 20,
-            });
-          }
-        }
-
         // Damage (Lava / Slime)
         if (
-          (obj.tag === YadObjectTags.LAVA || obj.tag === YadObjectTags.SLIME) &&
+          (obj.tag === ObjectTags.LAVA || obj.tag === ObjectTags.SLIME) &&
           now - this._lastHurtTime > 1000
         ) {
           const dx = obj.position.x - this.target.position.x;

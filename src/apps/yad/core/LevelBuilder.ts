@@ -1,4 +1,10 @@
-import { Object3D, Scene, Sprite, InstancedMesh } from "../../../core/index.js";
+import {
+  Object3D,
+  Scene,
+  Sprite,
+  InstancedMesh,
+  EventDispatcherImpl,
+} from "../../../core/index.js";
 import { Vector3D, Matrix4 } from "../../../math/index.js";
 import { Cube, Sphere } from "../../../geometry/index.js";
 import {
@@ -16,7 +22,11 @@ import { GridLevelBuilder, GridLegend } from "../../../extensions/grid-builder/G
 import { AudioSystem } from "../../../audio/index.js";
 import { EnemyBehavior } from "./behaviors/EnemyBehavior.js";
 import { BoundingBox, SpatialHash, StaticCollider } from "../../../physix/index.js";
-import { YadObjectTags } from "../enums/YadObjectTags.js";
+import { ObjectTags } from "../enums/ObjectTags.js";
+import { Events } from "../Events.js";
+
+/** How close the player needs to be (in world units) to pick up an item. */
+const PICKUP_RADIUS = 1.5;
 export type YadTileType =
   | "wall"
   | "door"
@@ -59,12 +69,14 @@ export interface YadLevelConfig {
   slimeFloorChars?: string[];
   playerCamera?: CameraInterfaceData;
   audio?: AudioSystem | undefined;
+  /** Event bus item pickups are dispatched on. Without it, items can still be walked over but won't fire `Events.PICKUP`. */
+  events?: EventDispatcherImpl;
 }
 
 /**
- * YadLevelBuilder now wraps the generic GridLevelBuilder.
+ * LevelBuilder now wraps the generic GridLevelBuilder.
  */
-export class YadLevelBuilder {
+export class LevelBuilder {
   private _gridSize: number = 2.0;
   private _wallHeight: number = 3.0;
 
@@ -138,7 +150,7 @@ export class YadLevelBuilder {
           type: "custom",
           onBuild: (x, y, worldX, worldZ): Object3D | undefined => {
             const block = new Object3D(`Door_${x}_${y}`);
-            block.tag = YadObjectTags.DOOR;
+            block.tag = ObjectTags.DOOR;
             block.geometry = wallGeo;
             block.material = new StandardMaterial({ diffuseMap: entry.texture });
 
@@ -188,13 +200,14 @@ export class YadLevelBuilder {
             let spriteName = `Sprite_${x}_${y}`;
             if (entry.isEnemy) {
               spriteName = `Enemy_${x}_${y}`;
-              sprite.tag = YadObjectTags.ENEMY;
+              sprite.tag = ObjectTags.ENEMY;
             }
             if (entry.isItem) {
               spriteName = `Item_${entry.itemType ?? "unknown"}_${x}_${y}`;
-              sprite.tag = YadObjectTags.ITEM;
+              sprite.tag = ObjectTags.ITEM;
             }
             sprite.name = spriteName;
+            const itemType = entry.itemType ?? "unknown";
             sprite.position.set(worldX, entry.spriteY ?? 1.0, worldZ);
             const scale = entry.spriteScale ?? 1.0;
             sprite.scale.set(scale, scale, scale);
@@ -210,6 +223,24 @@ export class YadLevelBuilder {
                   audio: config.audio,
                   speed: 6.0,
                   detectionRange: 30.0,
+                }),
+              );
+            }
+
+            if (entry.isItem && config.playerCamera) {
+              sprite.addBehavior(
+                new ProximitySensorBehavior({
+                  targetObj: config.playerCamera,
+                  radius: PICKUP_RADIUS,
+                  planar: true,
+                  onUpdate: (_factor, distance): void => {
+                    if (distance > PICKUP_RADIUS || !sprite.isVisible) return;
+                    sprite.isVisible = false;
+                    if (config.audio) config.audio.play("pickup", false, 0.8);
+                    if (config.events) {
+                      config.events.dispatchEvent(Events.PICKUP, { type: itemType, amount: 20 });
+                    }
+                  },
                 }),
               );
             }
@@ -295,9 +326,9 @@ export class YadLevelBuilder {
     for (const char of Object.keys(config.legend)) {
       if (config.lavaFloorChars?.includes(char) && gridLegend[char]) {
         gridLegend[char]!.material = lavaMat;
-        gridLegend[char]!.tag = YadObjectTags.LAVA;
+        gridLegend[char]!.tag = ObjectTags.LAVA;
       } else if (config.slimeFloorChars?.includes(char) && gridLegend[char]) {
-        gridLegend[char]!.tag = YadObjectTags.SLIME;
+        gridLegend[char]!.tag = ObjectTags.SLIME;
       }
     }
 

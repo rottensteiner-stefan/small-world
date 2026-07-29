@@ -1,21 +1,22 @@
 import { Events } from "../Events.js";
 import { EventDispatcherImpl } from "../../../core/index.js";
+import { generateSpriteFontChars, sliceFaceSprites, SpriteFontVariant } from "./SpriteAtlas.js";
 
-interface YadDamagePayload {
+interface DamagePayload {
   amount: number;
 }
 
-interface YadPickupPayload {
+interface PickupPayload {
   type: string;
   amount: number;
   color?: string;
 }
 
-interface YadWeaponPayload {
+interface WeaponPayload {
   index: number;
 }
 
-export class YadHud {
+export class Hud {
   private _container: HTMLDivElement;
   private _healthEl!: HTMLCanvasElement;
   private _armorEl!: HTMLCanvasElement;
@@ -251,7 +252,7 @@ export class YadHud {
 
   private _bindEvents(): void {
     this.events.addEventListener(Events.DAMAGE, (e: Record<string, unknown>) => {
-      const payload = e as unknown as YadDamagePayload;
+      const payload = e as unknown as DamagePayload;
       const amount = payload.amount || 0;
       if (this._armor > 0) {
         this._armor -= amount;
@@ -269,7 +270,7 @@ export class YadHud {
     });
 
     this.events.addEventListener(Events.PICKUP, (e: Record<string, unknown>) => {
-      const payload = e as unknown as YadPickupPayload;
+      const payload = e as unknown as PickupPayload;
       const { type } = payload;
       const amount = payload.amount || 0;
       if (type === "armor") {
@@ -300,7 +301,7 @@ export class YadHud {
     });
 
     this.events.addEventListener(Events.WEAPON, (e: Record<string, unknown>) => {
-      const payload = e as unknown as YadWeaponPayload;
+      const payload = e as unknown as WeaponPayload;
       const { index } = payload;
       if (index) {
         this._updateWeaponDisplay(index);
@@ -313,102 +314,27 @@ export class YadHud {
   }
 
   private _generateSpriteFonts(): void {
-    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ/% ".split("");
-    const configs = [
+    const variants: SpriteFontVariant[] = [
       { map: this._fontSmallWhite, hex: "#ffffff" },
       { map: this._fontSmallYellow, hex: "#ffff00" },
       { map: this._fontSmallGrey, hex: "#555555" },
     ];
 
-    const imgLetters = new Image();
-    imgLetters.src = "./assets/fonts/font-letters.png";
-    imgLetters.onload = (): void => {
-      for (let i = 0; i < chars.length; i++) {
-        const char = chars[i];
-        if (!char || char === " ") continue;
+    generateSpriteFontChars(
+      "./assets/fonts/font-letters.png",
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZ/% ".split(""),
+      4,
+      5,
+      variants,
+    ).then((): void => this._updateDisplay());
 
-        for (const config of configs) {
-          const canvas = document.createElement("canvas");
-          canvas.width = 5; // 4px char + 1px drop shadow
-          canvas.height = 6; // 5px char + 1px drop shadow
-          const ctx = canvas.getContext("2d");
-          if (!ctx) continue;
-
-          // Colored foreground
-          const fgCanvas = document.createElement("canvas");
-          fgCanvas.width = 4;
-          fgCanvas.height = 5;
-          const fgCtx = fgCanvas.getContext("2d");
-          if (!fgCtx) continue;
-          fgCtx.drawImage(imgLetters, i * 4, 0, 4, 5, 0, 0, 4, 5);
-          fgCtx.globalCompositeOperation = "source-in";
-          fgCtx.fillStyle = config.hex;
-          fgCtx.fillRect(0, 0, 4, 5);
-
-          // Black drop shadow
-          const shCanvas = document.createElement("canvas");
-          shCanvas.width = 4;
-          shCanvas.height = 5;
-          const shCtx = shCanvas.getContext("2d");
-          if (!shCtx) continue;
-          shCtx.drawImage(imgLetters, i * 4, 0, 4, 5, 0, 0, 4, 5);
-          shCtx.globalCompositeOperation = "source-in";
-          shCtx.fillStyle = "#000000";
-          shCtx.fillRect(0, 0, 4, 5);
-
-          // Combine
-          ctx.drawImage(shCanvas, 1, 1);
-          ctx.drawImage(fgCanvas, 0, 0);
-
-          config.map.set(char, canvas);
-        }
-      }
-      this._updateDisplay();
-    };
-
-    const imgNumbers = new Image();
-    imgNumbers.src = "./assets/fonts/font-numbers.png";
-    imgNumbers.onload = (): void => {
-      for (let i = 0; i < 10; i++) {
-        const char = i.toString();
-        for (const config of configs) {
-          const canvas = document.createElement("canvas");
-          canvas.width = 4;
-          canvas.height = 6; // 3x5 + 1px drop shadow
-          const ctx = canvas.getContext("2d");
-          if (!ctx) continue;
-
-          // Colored foreground
-          const fgCanvas = document.createElement("canvas");
-          fgCanvas.width = 3;
-          fgCanvas.height = 5;
-          const fgCtx = fgCanvas.getContext("2d");
-          if (!fgCtx) continue;
-          fgCtx.drawImage(imgNumbers, i * 3, 0, 3, 5, 0, 0, 3, 5);
-          fgCtx.globalCompositeOperation = "source-in";
-          fgCtx.fillStyle = config.hex;
-          fgCtx.fillRect(0, 0, 3, 5);
-
-          // Black drop shadow
-          const shCanvas = document.createElement("canvas");
-          shCanvas.width = 3;
-          shCanvas.height = 5;
-          const shCtx = shCanvas.getContext("2d");
-          if (!shCtx) continue;
-          shCtx.drawImage(imgNumbers, i * 3, 0, 3, 5, 0, 0, 3, 5);
-          shCtx.globalCompositeOperation = "source-in";
-          shCtx.fillStyle = "#000000";
-          shCtx.fillRect(0, 0, 3, 5);
-
-          // Combine
-          ctx.drawImage(shCanvas, 1, 1);
-          ctx.drawImage(fgCanvas, 0, 0);
-
-          config.map.set(char, canvas);
-        }
-      }
-      this._updateDisplay(); // Redraw HUD with new numbers
-    };
+    generateSpriteFontChars(
+      "./assets/fonts/font-numbers.png",
+      Array.from({ length: 10 }, (_, i) => i.toString()),
+      3,
+      5,
+      variants,
+    ).then((): void => this._updateDisplay()); // Redraw HUD with new numbers
   }
 
   private _drawSpriteText(
@@ -730,106 +656,20 @@ export class YadHud {
   }
 
   private _loadAndSliceFace(): void {
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.src = "./assets/dungeon_pack/sprites/dungeonguy.png";
-    img.onload = (): void => {
-      // 1. Draw to offscreen canvas to manipulate pixels
-      const offCanvas = document.createElement("canvas");
-      offCanvas.width = img.width;
-      offCanvas.height = img.height;
-      const ctx = offCanvas.getContext("2d", { willReadFrequently: true });
-      if (!ctx) return;
-
-      ctx.drawImage(img, 0, 0);
-      const imgData = ctx.getImageData(0, 0, offCanvas.width, offCanvas.height);
-      const data = imgData.data;
-
-      // 2. Remove white background (r>240, g>240, b>240)
-      for (let i = 0; i < data.length; i += 4) {
-        if (data[i]! > 240 && data[i + 1]! > 240 && data[i + 2]! > 240) {
-          data[i + 3] = 0; // Make transparent
-        }
-      }
-      ctx.putImageData(imgData, 0, 0);
-
-      // 3. Slice into 6 faces sequentially to ignore irregular vertical padding
-      const scanWidth = Math.floor(offCanvas.width / 8); // Scan only first column (approx 160px)
-      let currentY = 0;
-
-      for (let r = 0; r < 6; r++) {
-        let minY = offCanvas.height;
-        let foundTop = false;
-
-        // 1. Scan downwards to find the very top of the face
-        for (let y = currentY; y < offCanvas.height; y++) {
-          for (let x = 0; x < scanWidth; x++) {
-            const alpha = data[(y * offCanvas.width + x) * 4 + 3];
-            if (alpha! > 0) {
-              minY = y;
-              foundTop = true;
-              break;
-            }
-          }
-          if (foundTop) break;
-        }
-
-        if (foundTop) {
-          // 2. Now that we know where the face starts (minY), scan the entire height of the face (180px)
-          // to find the absolute leftmost (minX) and rightmost (maxX) pixels.
-          let minX = scanWidth;
-          let maxX = 0;
-          const faceScanH = Math.min(180, offCanvas.height - minY);
-
-          for (let y = minY; y < minY + faceScanH; y++) {
-            for (let x = 0; x < scanWidth; x++) {
-              const alpha = data[(y * offCanvas.width + x) * 4 + 3];
-              if (alpha! > 0) {
-                if (x < minX) minX = x;
-                if (x > maxX) maxX = x;
-              }
-            }
-          }
-
-          let faceW = maxX - minX + 1;
-          const faceH = 180;
-
-          // Der Suchbereich (scanWidth) überschneidet sich bei diesem Spritesheet leicht mit
-          // dem nächsten Gesicht rechts. Da wir wissen, dass ein Gesicht ca. 138 Pixel breit ist,
-          // schneiden wir alles was darüber hinausgeht (die Pixel vom Nachbarn) gnadenlos ab!
-          if (faceW > 138) {
-            faceW = 138;
-          }
-
-          const faceCanvas = document.createElement("canvas");
-          faceCanvas.width = faceW;
-          faceCanvas.height = faceH;
-          const faceCtx = faceCanvas.getContext("2d");
-          if (faceCtx) {
-            faceCtx.drawImage(offCanvas, minX, minY, faceW, faceH, 0, 0, faceW, faceH);
-
-            // Downscale to 24x30
-            const scaledCanvas = document.createElement("canvas");
-            scaledCanvas.width = 24;
-            scaledCanvas.height = 30;
-            const scaledCtx = scaledCanvas.getContext("2d");
-            if (scaledCtx) {
-              scaledCtx.imageSmoothingEnabled = false;
-              scaledCtx.drawImage(faceCanvas, 0, 0, faceW, faceH, 0, 0, 24, 30);
-              this._faceImages.push(scaledCanvas);
-            }
-          }
-
-          currentY = minY + faceH;
-        } else {
-          console.warn("[YadHud] Could not find face pixels in row " + r);
-        }
-      }
-
-      this._updateDisplay();
-    };
-    img.onerror = (): void => {
-      console.warn("[YadHud] Could not load dungeonguy.png from assets/dungeon_pack/sprites/");
-    };
+    sliceFaceSprites({
+      atlasUrl: "./assets/dungeon_pack/sprites/dungeonguy.png",
+      faceCount: 6,
+      faceHeight: 180,
+      maxFaceWidth: 138,
+      outputWidth: 24,
+      outputHeight: 30,
+    })
+      .then((faces): void => {
+        this._faceImages = faces;
+        this._updateDisplay();
+      })
+      .catch((): void => {
+        console.warn("[YadHud] Could not load dungeonguy.png from assets/dungeon_pack/sprites/");
+      });
   }
 }

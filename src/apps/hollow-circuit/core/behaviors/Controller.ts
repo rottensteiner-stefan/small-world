@@ -7,8 +7,7 @@ import {
 import { Vector3D } from "../../../../math/index.js";
 import { Keys } from "../../../../enums/index.js";
 import { Events } from "../../Events.js";
-import { HollowCircuitObjectTags } from "../../enums/HollowCircuitObjectTags.js";
-import { WispBehavior } from "./WispBehavior.js";
+import { ObjectTags } from "../../enums/ObjectTags.js";
 import { FrostglassPanelBehavior } from "./FrostglassPanelBehavior.js";
 
 /** An XZ rectangle where the floor simply doesn't exist -- walk in, and you fall. */
@@ -19,14 +18,12 @@ export interface VoidZone {
   maxZ: number;
 }
 
-export interface HollowCircuitControllerOptions extends FirstPersonControllerOptions {
+export interface ControllerOptions extends FirstPersonControllerOptions {
   scene: Scene;
   /** Where the player respawns after falling through a VoidZone. */
   spawnPoint: Vector3D;
   /** Regions with no floor. Entering one at ground height starts a fall. */
   voidZones?: VoidZone[];
-  /** How close a Disc/Wisp needs to be (in world units) to register contact. Defaults to 1.5. */
-  contactRadius?: number;
   /** How close a Frostglass panel needs to be to catch a Clarity Pulse. Defaults to 6.0. */
   clarityPulseRadius?: number;
   /** How long a Clarity Pulse keeps a panel revealed, in seconds. Defaults to 1.4. */
@@ -43,14 +40,15 @@ const FALL_RESET_DEPTH = 15.0;
 /**
  * The Hollow Circuit player controller: retro tank-style movement (W/S forward-back,
  * A/D turn, same as YAD -- no strafing, FirstPersonController doesn't have any in tank
- * mode) plus Disc pickups, Wisp contact, Clarity Pulse, and falling through undefended
- * VoidZones.
+ * mode) plus Clarity Pulse and falling through undefended VoidZones. Disc pickup and
+ * Wisp contact are NOT handled here -- they're `ProximitySensorBehavior`s attached
+ * directly to each Disc/Wisp in App.ts, the same idiom YAD's own LevelBuilder already
+ * uses for doors, instead of a second full-scene scan living in the controller.
  */
-export class HollowCircuitController extends FirstPersonController {
+export class Controller extends FirstPersonController {
   private _hcOptions: Required<
     Pick<
-      HollowCircuitControllerOptions,
-      | "contactRadius"
+      ControllerOptions,
       | "clarityPulseRadius"
       | "clarityPulseDuration"
       | "clarityPulseMaxCharges"
@@ -71,14 +69,13 @@ export class HollowCircuitController extends FirstPersonController {
 
   constructor(
     private events: EventDispatcherImpl,
-    options: HollowCircuitControllerOptions,
+    options: ControllerOptions,
   ) {
     super({ ...options, retroTankControls: true });
     this._scene = options.scene;
     this._spawnPoint = options.spawnPoint;
     this._voidZones = options.voidZones ?? [];
     this._hcOptions = {
-      contactRadius: options.contactRadius ?? 1.5,
       clarityPulseRadius: options.clarityPulseRadius ?? 6.0,
       clarityPulseDuration: options.clarityPulseDuration ?? 1.4,
       clarityPulseMaxCharges: options.clarityPulseMaxCharges ?? 3,
@@ -93,12 +90,11 @@ export class HollowCircuitController extends FirstPersonController {
     super.update(deltaTime);
 
     this._updateFalling(deltaTime);
-    this._checkDiscsAndWisps();
     this._updateClarityRecharge(deltaTime);
 
     if (this._pulseCooldownTimer > 0) this._pulseCooldownTimer -= deltaTime;
     if (this._pulseCooldownTimer <= 0 && this._options.input.isPressed(Keys.E)) {
-      this._pulseCooldownTimer = HollowCircuitController._PULSE_INPUT_COOLDOWN;
+      this._pulseCooldownTimer = Controller._PULSE_INPUT_COOLDOWN;
       this._tryClarityPulse();
     }
   }
@@ -129,33 +125,6 @@ export class HollowCircuitController extends FirstPersonController {
     }
   }
 
-  private _checkDiscsAndWisps(): void {
-    const playerPos = this.target!.position;
-    const radiusSq = this._hcOptions.contactRadius * this._hcOptions.contactRadius;
-
-    for (const obj of this._scene.objects) {
-      if (!obj.isVisible) continue;
-
-      const dx = obj.position.x - playerPos.x;
-      const dz = obj.position.z - playerPos.z;
-      if (dx * dx + dz * dz > radiusSq) continue;
-
-      if (obj.tag === HollowCircuitObjectTags.DISC) {
-        obj.isVisible = false;
-        obj.isCollidable = false;
-        this.events.dispatchEvent(Events.DISC_COLLECTED, {});
-      } else if (obj.tag === HollowCircuitObjectTags.WISP) {
-        const wisp = obj.behaviors.find((b) => b instanceof WispBehavior) as
-          | WispBehavior
-          | undefined;
-        if (wisp && wisp.canBeStruck) {
-          wisp.strike();
-          this.events.dispatchEvent(Events.WISP_CONTACT, {});
-        }
-      }
-    }
-  }
-
   private _updateClarityRecharge(deltaTime: number): void {
     if (this.clarityCharges >= this._hcOptions.clarityPulseMaxCharges) return;
     this._rechargeTimer += deltaTime;
@@ -173,7 +142,7 @@ export class HollowCircuitController extends FirstPersonController {
     let hitAny = false;
 
     for (const obj of this._scene.objects) {
-      if (obj.tag !== HollowCircuitObjectTags.FROSTGLASS) continue;
+      if (obj.tag !== ObjectTags.FROSTGLASS) continue;
 
       const dx = obj.position.x - playerPos.x;
       const dy = obj.position.y - playerPos.y;
