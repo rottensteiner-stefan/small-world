@@ -153,22 +153,24 @@ export class Scene {
     if (obj.isStatic === checkStatic) {
       if (obj.geometry) {
         obj.computeBounds();
-        const targetOctree = checkStatic ? this.staticOctree : this.dynamicOctree;
-        if (!targetOctree?.insert(obj)) {
-          let bStr: string = "null";
-          if (obj.bounds) {
-            if (obj.bounds.type === BoundingType.BOX) {
-              const b = obj.bounds as BoundingBox;
-              bStr = `${b.min.x},${b.min.y},${b.min.z} to ${b.max.x},${b.max.y},${b.max.z}`;
-            } else {
-              bStr = `non-box bounds (${obj.bounds.type})`;
+        if (obj.bounds) {
+          const targetOctree = checkStatic ? this.staticOctree : this.dynamicOctree;
+          if (!targetOctree?.insert(obj)) {
+            let bStr: string = "null";
+            if (obj.bounds) {
+              if (obj.bounds.type === BoundingType.BOX) {
+                const b = obj.bounds as BoundingBox;
+                bStr = `${b.min.x},${b.min.y},${b.min.z} to ${b.max.x},${b.max.y},${b.max.z}`;
+              } else {
+                bStr = `non-box bounds (${obj.bounds.type})`;
+              }
             }
+            console.warn(
+              `[Scene] Failed to add ${obj.name} to ${checkStatic ? "static" : "dynamic"} octree. Bounds: ${bStr}`,
+            );
+          } else {
+            // console.log(`[Scene] Added ${obj.name} to ${checkStatic ? "static" : "dynamic"} octree.`);
           }
-          console.warn(
-            `[Scene] Failed to add ${obj.name} to ${checkStatic ? "static" : "dynamic"} octree. Bounds: ${bStr}`,
-          );
-        } else {
-          // console.log(`[Scene] Added ${obj.name} to ${checkStatic ? "static" : "dynamic"} octree.`);
         }
       }
     }

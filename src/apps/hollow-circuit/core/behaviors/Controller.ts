@@ -3,12 +3,14 @@ import {
   FirstPersonControllerOptions,
   Scene,
   EventDispatcherImpl,
+  Object3D,
 } from "../../../../core/index.js";
 import { Vector3D } from "../../../../math/index.js";
 import { Keys } from "../../../../enums/index.js";
 import { Events } from "../../Events.js";
 import { ObjectTags } from "../../enums/ObjectTags.js";
-import { FrostglassPanelBehavior } from "./FrostglassPanelBehavior.js";
+import { FrostglassMaterial } from "../../../../core/materials/FrostglassMaterial.js";
+import { Easing } from "../../../../math/Easing.js";
 
 /** An XZ rectangle where the floor simply doesn't exist -- walk in, and you fall. */
 export interface VoidZone {
@@ -67,6 +69,13 @@ export class Controller extends FirstPersonController {
   private _pulseCooldownTimer: number = 0;
   private static readonly _PULSE_INPUT_COOLDOWN = 0.4;
 
+  private _pulseActive: boolean = false;
+  private _pulseTimer: number = 0;
+  private _pulsePos: Vector3D = new Vector3D();
+  /** Frostglass-tagged panels, scanned from the scene once and cached -- lazily, since
+   *  the scene may still be under construction when this controller is built. */
+  private _frostglassPanels?: Object3D[];
+
   constructor(
     private events: EventDispatcherImpl,
     options: ControllerOptions,
@@ -93,10 +102,15 @@ export class Controller extends FirstPersonController {
     this._updateClarityRecharge(deltaTime);
 
     if (this._pulseCooldownTimer > 0) this._pulseCooldownTimer -= deltaTime;
-    if (this._pulseCooldownTimer <= 0 && this._options.input.isPressed(Keys.E)) {
+    if (
+      this._pulseCooldownTimer <= 0 &&
+      (this._options.input.isPressed(Keys.E) || this._options.input.mouse.left)
+    ) {
       this._pulseCooldownTimer = Controller._PULSE_INPUT_COOLDOWN;
       this._tryClarityPulse();
     }
+
+    this._updateClarityPulseEffect(deltaTime);
   }
 
   private _updateFalling(deltaTime: number): void {
@@ -134,33 +148,67 @@ export class Controller extends FirstPersonController {
     }
   }
 
-  private _tryClarityPulse(): void {
-    if (this.clarityCharges <= 0) return;
+  private _updateClarityPulseEffect(deltaTime: number): void {
+    if (!this._pulseActive) return;
 
-    const playerPos = this.target!.position;
-    const radiusSq = this._hcOptions.clarityPulseRadius * this._hcOptions.clarityPulseRadius;
-    let hitAny = false;
+    this._pulseTimer += deltaTime;
+    const duration = this._hcOptions.clarityPulseDuration;
 
-    for (const obj of this._scene.objects) {
-      if (obj.tag !== ObjectTags.FROSTGLASS) continue;
-
-      const dx = obj.position.x - playerPos.x;
-      const dy = obj.position.y - playerPos.y;
-      const dz = obj.position.z - playerPos.z;
-      if (dx * dx + dy * dy + dz * dz > radiusSq) continue;
-
-      const panel = obj.behaviors.find((b) => b instanceof FrostglassPanelBehavior) as
-        | FrostglassPanelBehavior
-        | undefined;
-      if (panel) {
-        panel.reveal(this._hcOptions.clarityPulseDuration);
-        hitAny = true;
+    let radius: number;
+    if (this._pulseTimer >= duration) {
+      this._pulseActive = false;
+      radius = 0.0;
+    } else {
+      const half = duration / 2.0;
+      if (this._pulseTimer < half) {
+        const t = this._pulseTimer / half;
+        radius = Easing.easeOutQuad(t) * this._hcOptions.clarityPulseRadius;
+      } else {
+        const t = (this._pulseTimer - half) / half;
+        radius = (1.0 - Easing.easeInQuad(t)) * this._hcOptions.clarityPulseRadius;
       }
     }
 
-    if (hitAny) {
-      this.clarityCharges--;
-      this.events.dispatchEvent(Events.CLARITY_PULSE, {});
+    for (const panel of this._getFrostglassPanels()) {
+      if (!(panel.material instanceof FrostglassMaterial)) continue;
+      panel.material.clarityPulseCenter.copyFrom(this._pulsePos);
+      panel.material.clarityPulseRadius = radius;
     }
+  }
+
+  private _tryClarityPulse(): void {
+    if (this.clarityCharges <= 0) return;
+    if (!this._hasFrostglassPanelInRange(this.target!.position)) return;
+
+    this.clarityCharges--;
+    this._pulseActive = true;
+    this._pulseTimer = 0;
+    this._pulsePos.copyFrom(this.target!.position);
+
+    this.events.dispatchEvent(Events.CLARITY_PULSE, {});
+  }
+
+  /** Whether any Frostglass panel sits within clarityPulseRadius of the given position. */
+  private _hasFrostglassPanelInRange(playerPos: Vector3D): boolean {
+    const radiusSq = this._hcOptions.clarityPulseRadius * this._hcOptions.clarityPulseRadius;
+
+    for (const panel of this._getFrostglassPanels()) {
+      const dx = panel.position.x - playerPos.x;
+      const dy = panel.position.y - playerPos.y;
+      const dz = panel.position.z - playerPos.z;
+      if (dx * dx + dy * dy + dz * dz <= radiusSq) return true;
+    }
+
+    return false;
+  }
+
+  /** Scans the scene for Frostglass-tagged panels once, then reuses the cached list. */
+  private _getFrostglassPanels(): Object3D[] {
+    if (!this._frostglassPanels) {
+      this._frostglassPanels = this._scene.objects.filter(
+        (obj) => obj.tag === ObjectTags.FROSTGLASS,
+      );
+    }
+    return this._frostglassPanels;
   }
 }

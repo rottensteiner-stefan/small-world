@@ -1,7 +1,11 @@
 import { SmallWorld, Object3D } from "../../core/index.js";
 import { AmbientLight, PointLight } from "../../core/lights/index.js";
 import { Color } from "../../core/colors/index.js";
-import { StandardMaterial } from "../../core/materials/index.js";
+import {
+  AbstractMaterial,
+  StandardMaterial,
+  FrostglassMaterial,
+} from "../../core/materials/index.js";
 import {
   RotatorBehavior,
   BobbingBehavior,
@@ -15,7 +19,7 @@ import { BoundingBox } from "../../physix/index.js";
 import { Controller } from "./core/behaviors/Controller.js";
 import { Hud } from "./core/Hud.js";
 import { WispBehavior } from "./core/behaviors/WispBehavior.js";
-import { FrostglassPanelBehavior } from "./core/behaviors/FrostglassPanelBehavior.js";
+
 import { ObjectTags } from "./enums/ObjectTags.js";
 import { Events } from "./Events.js";
 
@@ -30,19 +34,17 @@ const CONTACT_RADIUS = 1.5;
 /**
  * Hollow Circuit -- first vertical slice.
  *
- * Deliberately small: one Corridor, one Room, one Frostglass panel (opacity-driven
- * "Bloomsight" stand-in -- no dedicated blur shader yet, see the note below), one
- * patrolling Wisp, a handful of Flux Discs, and a single VoidZone so the "you can
- * just fall" edge from the concept sketches is real. Everything else in the concept
- * dossier (Impact Trace, Maze Flow branching routes, additional space types) is
- * intentionally deferred until this core loop feels right to move through.
+ * Deliberately small: one Corridor, one Room, one Frostglass panel (a dedicated
+ * FrostglassMaterial doing real screen-space blur over the opaque capture texture,
+ * the same technique GlassMaterial uses for refraction), one patrolling Wisp, a
+ * handful of Flux Discs, and a single VoidZone so the "you can just fall" edge from
+ * the concept sketches is real. Everything else in the concept dossier (Impact Trace,
+ * Maze Flow branching routes, additional space types) is intentionally deferred until
+ * this core loop feels right to move through.
  *
- * Frostglass roadmap note: the panel here is a plain semi-transparent StandardMaterial
- * whose opacity FrostglassPanelBehavior animates. The blurred "blob" look in the
- * concept sketches currently comes entirely from Bloom picking up the emissive light
- * behind it -- a real screen-space-blur Frostglass material (sampling the opaque
- * capture texture the way GlassMaterial already does for refraction) is a genuine
- * follow-up, not built here.
+ * The panel's Clarity Pulse reveal is driven by the Controller, which eases
+ * clarityPulseRadius on the material out and back in over clarityPulseDuration
+ * whenever a pulse lands within range (see Controller._updateClarityPulseEffect).
  */
 export class App extends SmallWorld {
   private _controller!: Controller;
@@ -83,11 +85,11 @@ export class App extends SmallWorld {
       emissiveIntensity: 0.6,
       roughness: 0.5,
     });
-    const frostglassMat = new StandardMaterial({
-      color: new Color(FROSTGLASS.r, FROSTGLASS.g, FROSTGLASS.b, 0.55),
-      transparent: true,
+    const frostglassMat = new FrostglassMaterial({
+      color: FROSTGLASS,
       roughness: 0.25,
-      metallic: 0.0,
+      blurRadius: 0.04,
+      transmission: 0.85,
     });
 
     const cubeGeo = new Cube({ size: 1 }).getGeometryData();
@@ -100,7 +102,7 @@ export class App extends SmallWorld {
       x: number,
       y: number,
       z: number,
-      material: StandardMaterial,
+      material: AbstractMaterial,
       isStatic: boolean = true,
     ): Object3D => {
       const box = new Object3D(name);
@@ -141,7 +143,6 @@ export class App extends SmallWorld {
     // --- Frostglass panel, right side of the room, with a glowing blob behind it ---
     const panel = addBox("Frostglass_Panel", 0.3, 3, 4, 5.9, 1.7, -20, frostglassMat);
     panel.tag = ObjectTags.FROSTGLASS;
-    panel.addBehavior(new FrostglassPanelBehavior());
 
     const blob = new Object3D("Frostglass_Blob");
     blob.geometry = new Sphere({ radius: 0.4 }).getGeometryData();

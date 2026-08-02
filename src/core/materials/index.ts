@@ -3,6 +3,7 @@ export * from "./BasicMaterial.js";
 export * from "./LambertMaterial.js";
 export * from "./StandardMaterial.js";
 export * from "./GlassMaterial.js";
+export * from "./FrostglassMaterial.js";
 export * from "./TerrainMaterial.js";
 export * from "./SkyboxMaterial.js";
 export * from "./WireframeMaterial.js";
