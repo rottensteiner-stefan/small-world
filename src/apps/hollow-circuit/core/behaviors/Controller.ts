@@ -72,6 +72,9 @@ export class Controller extends FirstPersonController {
   private _pulseActive: boolean = false;
   private _pulseTimer: number = 0;
   private _pulsePos: Vector3D = new Vector3D();
+
+  private _godMode: boolean = false;
+  private _wasGPressed: boolean = false;
   /** Frostglass-tagged panels, scanned from the scene once and cached -- lazily, since
    *  the scene may still be under construction when this controller is built. */
   private _frostglassPanels?: Object3D[];
@@ -98,7 +101,23 @@ export class Controller extends FirstPersonController {
 
     super.update(deltaTime);
 
-    this._updateFalling(deltaTime);
+    const isGPressed = this._options.input.isPressed(Keys.G);
+    if (isGPressed && !this._wasGPressed) {
+      this._godMode = !this._godMode;
+      this._options.enableCollision = !this._godMode;
+      if (this._godMode) {
+        this._isFalling = false;
+        this._fallVelocityY = 0;
+        console.log("[HollowCircuit] God Mode ENABLED: Collision off, use Q/E to fly up/down.");
+      } else {
+        console.log("[HollowCircuit] God Mode DISABLED.");
+      }
+    }
+    this._wasGPressed = isGPressed;
+
+    if (!this._godMode) {
+      this._updateFalling(deltaTime);
+    }
     this._updateClarityRecharge(deltaTime);
 
     if (this._pulseCooldownTimer > 0) this._pulseCooldownTimer -= deltaTime;

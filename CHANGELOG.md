@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.74.3] - 2026-08-03
+
+### "To improve is to change; to be perfect is to change often." - Winston Churchill
+
+- **Housekeeping & Docs:**
+  - **Dependencies:** Updated all NPM libraries to their latest major, minor and patch versions to ensure stability and incorporate latest fixes.
+  - **Build System:** Refactored `vite.config.ts` to replace deprecated `__dirname` calls with modern `import.meta.dirname`, resolving Vite 8 native config loader warnings.
+  - **Tooling:** Pinned TypeScript to `^6.0.3` to maintain compatibility with `typedoc` version `0.28.20`.
+
 ## [0.74.2] - 2026-07-29
 
 ### "Before software can be reusable it first has to be usable." - Ralph Johnson
