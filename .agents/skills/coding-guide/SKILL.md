@@ -52,11 +52,20 @@ Write self-documenting code. Comments are for what the code cannot say.
 - Keep the JSDoc that public APIs require (parameter/return types, `@inheritdoc`, non-obvious contracts). Those are documentation, not narration.
 - If a reader cannot follow the implementation without the comments, the code is not finished.
 
-### Naming Conventions
+### Naming Conventions & Typing
 
 - **PascalCase** for types, classes, interfaces, and enums (e.g. `ExampleMaterial`, `Vector3D`).
 - **camelCase** for variables, properties, methods, and parameters (e.g. `color`, `setShininess`).
 - **Underscore prefix (`_`)** for private and protected class members and properties (e.g. `_shininess`).
+- **Types:** Explicit types, access modifiers, and **NO `any`**. Every function and method MUST have an explicit return type (e.g., `(): void`). In test files, explicitly mute the line if bypassing a private method.
+
+### Strict Coding Constraints
+
+- **UI/DOM:** Never use `@ts-nocheck` or `any` when dealing with DOM elements. Always cast explicitly to specific types like `HTMLElement`, `HTMLCanvasElement`, `HTMLInputElement`.
+- **DOM Assignments:** Never use optional chaining on the left side of an assignment (e.g. `el?.style.cursor = 'pointer'`). It crashes bundlers like Esbuild/Rolldown. Always use explicit `if (el)` checks.
+- **No Magic Strings/Numbers:** Never write a raw string/number literal that represents a fixed, named concept. Check `src/enums/` first. If no enum exists for a genuinely new fixed concept, add one to `src/enums/`.
+- **Enum `DEFAULT` Member:** If an enum has one canonical fallback value, give the enum a `DEFAULT` member set to that value instead of repeating the concrete member everywhere.
+- **Resource Loading:** Instantiate and load resources using static factory methods (e.g., `Texture.fromUrl()`).
 
 ---
 
@@ -140,11 +149,20 @@ srgb = mix(c2, whiteHot, clamp((luma - 0.7) / 0.3, 0.0, 1.0));
 
 ---
 
-## 4. WebGL2 & WebGPU Shader Parity
+## 4. Rendering Pipeline & Shader Parity
+
+### A. General Rendering Rules
+- **Order:** Opaque first, transparent sorted back-to-front (descending `distB - distA`).
+- **Culling:** Frustum culling via `frustum.intersectsVolume(obj.bounds)`.
+- **Colors:** Linear space math, final output gamma-corrected (sRGB). Diffuse + Specular <= 1.0.
+- **Resources:** Explicit bitwise-OR usage flags. Bind `onuncapturederror`.
+- **Shaders:** One final post-process pass (tone map, color grade, vignette, gamma). Compute shaders with workgroup memory for spatial ops.
+
+### B. Shader Language Parity
 
 Since the engine supports both pipelines, use this mapping guide to keep GLSL (WebGL2) and WGSL (WebGPU) shaders aligned.
 
-### A. Common Syntax Translation Table
+#### Common Syntax Translation Table
 
 | Feature / Concept | WebGL2 GLSL (glsl300) | WebGPU WGSL (wgsl) | Notes / Details |
 | :--- | :--- | :--- | :--- |
@@ -155,7 +173,7 @@ Since the engine supports both pipelines, use this mapping guide to keep GLSL (W
 | **Matrix Type** | `mat4` | `mat4x4f` | Or `mat4x4<f32>` |
 | **Matrix Multiply** | `projection * view * pos` | `projection * view * pos` | Both are column-major, right-to-left evaluation |
 
-### B. WGSL Uniform Buffer Layout (The 16-byte Alignment Rule)
+### C. WGSL Uniform Buffer Layout (The 16-byte Alignment Rule)
 WebGPU uniform buffers require strict memory alignments. Members of structs must align to 16 bytes for vector types:
 *   `vec3f` (and `vec4f`) takes 16 bytes.
 *   If a `vec3f` is followed by an `f32`, they can sit in the same 16-byte boundary (12 bytes for vec3 + 4 bytes for float).
