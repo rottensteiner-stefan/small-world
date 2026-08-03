@@ -13,13 +13,11 @@ This guide provides templates, clean code standards, and shader optimization pat
 
 All TypeScript source files must adhere to strict type-safety, explicit visibility modifiers, and correct relative imports.
 
-### File Header and Import Template
+### Import Template
 
-Start every `.ts` file with its relative path as a comment, and ensure relative imports explicitly end in `.js` (required by runtime resolution).
+Do NOT start `.ts` files with a relative-path header comment (e.g. `/// src/core/materials/ExampleMaterial.ts`) — that convention was deliberately removed project-wide in changelog `[0.69.9]`; adding it back reintroduces exactly what that purge eliminated. Ensure relative imports explicitly end in `.js` (required by runtime resolution).
 
 ```typescript
-/// src/core/materials/ExampleMaterial.ts
-
 import { Material } from "./Material.js";
 import { Color } from "../../math/Color.js";
 import { Vector3D } from "../../math/Vector3D.js";
@@ -43,6 +41,16 @@ export class ShowcaseMaterial extends Material {
   }
 }
 ```
+
+### Code comments
+
+Write self-documenting code. Comments are for what the code cannot say.
+
+- **Never explain WHAT the code does.** If logic needs narration, rewrite it. A comment that restates the line below it, or a docblock that repeats the method name, is a defect.
+- **Only explain WHY:** non-obvious intent, a business or regulatory constraint, an ordering requirement, a workaround for an external system, or why an obvious alternative was not used.
+- **Refactor before you comment.** Extract a named variable for a complex condition, extract a method for a dense block, or rename until the comment is redundant. A comment standing in for a name should become the name.
+- Keep the JSDoc that public APIs require (parameter/return types, `@inheritdoc`, non-obvious contracts). Those are documentation, not narration.
+- If a reader cannot follow the implementation without the comments, the code is not finished.
 
 ### Naming Conventions
 

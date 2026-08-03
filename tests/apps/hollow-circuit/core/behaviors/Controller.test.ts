@@ -1,5 +1,4 @@
 import { Controller } from "../../../../../src/apps/hollow-circuit/core/behaviors/Controller.js";
-
 import { ObjectTags } from "../../../../../src/apps/hollow-circuit/enums/ObjectTags.js";
 import { Events } from "../../../../../src/apps/hollow-circuit/Events.js";
 import { Object3D } from "../../../../../src/core/Object3D.js";

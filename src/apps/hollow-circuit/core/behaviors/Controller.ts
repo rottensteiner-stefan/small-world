@@ -188,7 +188,6 @@ export class Controller extends FirstPersonController {
     this.events.dispatchEvent(Events.CLARITY_PULSE, {});
   }
 
-  /** Whether any Frostglass panel sits within clarityPulseRadius of the given position. */
   private _hasFrostglassPanelInRange(playerPos: Vector3D): boolean {
     const radiusSq = this._hcOptions.clarityPulseRadius * this._hcOptions.clarityPulseRadius;
 
@@ -202,7 +201,6 @@ export class Controller extends FirstPersonController {
     return false;
   }
 
-  /** Scans the scene for Frostglass-tagged panels once, then reuses the cached list. */
   private _getFrostglassPanels(): Object3D[] {
     if (!this._frostglassPanels) {
       this._frostglassPanels = this._scene.objects.filter(

@@ -19,7 +19,6 @@ import { BoundingBox } from "../../physix/index.js";
 import { Controller } from "./core/behaviors/Controller.js";
 import { Hud } from "./core/Hud.js";
 import { WispBehavior } from "./core/behaviors/WispBehavior.js";
-
 import { ObjectTags } from "./enums/ObjectTags.js";
 import { Events } from "./Events.js";
 
