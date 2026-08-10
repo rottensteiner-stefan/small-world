@@ -7,7 +7,7 @@ import {
   BobbingBehavior,
   ProximitySensorBehavior,
 } from "../../core/behaviors/index.js";
-import { Sphere } from "../../geometry/index.js";
+import { Sphere, Cube } from "../../geometry/index.js";
 import { Vector3D } from "../../math/index.js";
 import { CameraStrategyType, PostProcessingEffectType } from "../../enums/index.js";
 import { BloomElement } from "../../renderers/post/elements/index.js";
@@ -15,6 +15,7 @@ import { BoundingBox } from "../../physix/index.js";
 import { Controller } from "./core/behaviors/Controller.js";
 import { Hud } from "./core/Hud.js";
 import { WispBehavior } from "./core/behaviors/WispBehavior.js";
+import { ImpactFlashBehavior } from "./core/behaviors/ImpactFlashBehavior.js";
 import { ObjectTags } from "./enums/ObjectTags.js";
 import { Events } from "./Events.js";
 import { MazeGenerator } from "./core/MazeGenerator.js";
@@ -38,8 +39,8 @@ const CONTACT_RADIUS = 1.5;
  * real screen-space blur over the opaque capture texture, the same technique
  * GlassMaterial uses for refraction), patrolling Wisps, a spread of Flux Discs, and
  * VoidZones so the "you can just fall" edge from the concept sketches is real.
- * Everything else in the concept dossier (Impact Trace, Maze Flow branching routes,
- * additional space types) is intentionally deferred until this core loop feels right
+ * Everything else in the concept dossier (Maze Flow branching routes, additional space
+ * types, a real exfil point) is intentionally deferred until this core loop feels right
  * to move through.
  *
  * Each panel's Clarity Pulse reveal is driven by the Controller, which eases
@@ -154,6 +155,8 @@ export class App extends SmallWorld {
             const dz = this.camera.position.z - wisp.position.z;
             const dist = Math.sqrt(dx * dx + dz * dz) || 1;
             this._controller.applyKnockback(new Vector3D(dx / dist, 0, dz / dist));
+
+            this._spawnImpactTrace(wisp.position, DANGER_AMBER);
           },
         }),
       );
@@ -219,6 +222,9 @@ export class App extends SmallWorld {
       floorHeight: builder.height,
     });
     this.camera.addBehavior(this._controller);
+    this.events.addEventListener(Events.FELL, (): void => {
+      this._spawnImpactTrace(spawnPoint, DANGER_AMBER);
+    });
 
     // --- HUD ---
     this._hud = new Hud(this.events);
@@ -232,6 +238,35 @@ export class App extends SmallWorld {
         bloom.intensity = 0.6;
         bloom.threshold = 0.7;
       }
+    }
+  }
+
+  /**
+   * Impact Trace: scatters a handful of small emissive shards near `position` that
+   * flash and fade over ~0.4s (see ImpactFlashBehavior), reading as the seam network
+   * cracking with feedback at the moment of a Wisp strike or a hard fall reset.
+   */
+  private _spawnImpactTrace(position: Vector3D, color: Color): void {
+    const shardGeo = new Cube({ size: 1 }).getGeometryData();
+    for (let i = 0; i < 4; i++) {
+      const shard = new Object3D(`ImpactShard_${Math.random().toString(36).slice(2)}`);
+      shard.geometry = shardGeo;
+      shard.material = new StandardMaterial({
+        color,
+        emissiveColor: color,
+        emissiveIntensity: 8.0,
+        roughness: 0.3,
+      });
+      shard.setScale(0.5, 0.1, 0.1);
+      shard.position.set(
+        position.x + (Math.random() * 1.2 - 0.6),
+        position.y + (Math.random() * 1.2 - 0.6),
+        position.z + (Math.random() * 1.2 - 0.6),
+      );
+      shard.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+      shard.isCollidable = false;
+      shard.addBehavior(new ImpactFlashBehavior({ scene: this.scene }));
+      this.scene.add(shard);
     }
   }
 

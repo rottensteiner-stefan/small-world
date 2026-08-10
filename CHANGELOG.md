@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.74.6] - 2026-08-10
+
+### "The wound is the place where the Light enters you." - Rumi
+
+- **Features:**
+  - **Hollow Circuit:** Added Impact Trace — a handful of small emissive shards flash and fade near the point of a Wisp strike or a hard fall reset, giving both hazards real visual feedback for the first time.
+- **Architecture & Bugfixes:**
+  - **Hollow Circuit:** Added `ImpactFlashBehavior`, a short-lived per-object fade-and-self-remove behavior. Uses individual `Object3D` shards rather than the shared `InstancedSeams` mesh, since that mesh's one per-instance data channel is already used for texture-atlas indexing across all three renderer backends, not emissive/color control.
+- **Housekeeping & Docs:**
+  - **Tests:** Added a test covering `ImpactFlashBehavior`'s fade-and-removal lifecycle.
+
 ## [0.74.5] - 2026-08-10
 
 ### "For every action, there is an equal and opposite reaction." - Isaac Newton
