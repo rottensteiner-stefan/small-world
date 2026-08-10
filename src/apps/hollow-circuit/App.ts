@@ -9,7 +9,11 @@ import {
 } from "../../core/behaviors/index.js";
 import { Sphere, Cube } from "../../geometry/index.js";
 import { Vector3D } from "../../math/index.js";
-import { CameraStrategyType, PostProcessingEffectType } from "../../enums/index.js";
+import {
+  CameraStrategyType,
+  PostProcessingEffectType,
+  CameraEffectType,
+} from "../../enums/index.js";
 import { BloomElement } from "../../renderers/post/elements/index.js";
 import { BoundingBox } from "../../physix/index.js";
 import { Controller } from "./core/behaviors/Controller.js";
@@ -40,8 +44,8 @@ const CONTACT_RADIUS = 1.5;
  * real screen-space blur over the opaque capture texture, the same technique
  * GlassMaterial uses for refraction), patrolling Wisps, a spread of Flux Discs, and
  * VoidZones so the "you can just fall" edge from the concept sketches is real.
- * Everything else in the concept dossier (additional space types, sound/camera juice)
- * is intentionally deferred until this core loop feels right to move through.
+ * Additional space types from the concept dossier are intentionally deferred until
+ * this core loop feels right to move through.
  *
  * Each panel's Clarity Pulse reveal is driven by the Controller, which eases
  * clarityPulseRadius on the material out and back in over clarityPulseDuration
@@ -165,6 +169,8 @@ export class App extends SmallWorld {
             this._controller.applyKnockback(new Vector3D(dx / dist, 0, dz / dist));
 
             this._spawnImpactTrace(wisp.position, DANGER_AMBER);
+            this.camera.applyEffect(CameraEffectType.SHAKE, 0.35, 0.25);
+            this.audio.playTone(180, 0.15, 0.5, "sawtooth");
           },
         }),
       );
@@ -194,6 +200,7 @@ export class App extends SmallWorld {
             disc.isVisible = false;
             disc.isCollidable = false;
             this.events.dispatchEvent(Events.DISC_COLLECTED, {});
+            this.audio.playTone(1000, 0.08, 0.25, "sine");
           },
         }),
       );
@@ -224,6 +231,9 @@ export class App extends SmallWorld {
           if (exfilReached || distance > CONTACT_RADIUS) return;
           exfilReached = true;
           this.events.dispatchEvent(Events.EXFIL_REACHED, {});
+          this.camera.applyEffect(CameraEffectType.FLASH, 1.0, 0.4);
+          this.audio.playTone(660, 0.18, 0.45, "sine");
+          setTimeout(() => this.audio.playTone(880, 0.25, 0.45, "sine"), 150);
         },
       }),
     );
@@ -263,7 +273,23 @@ export class App extends SmallWorld {
     this.camera.addBehavior(this._controller);
     this.events.addEventListener(Events.FELL, (): void => {
       this._spawnImpactTrace(spawnPoint, DANGER_AMBER);
+      this.camera.applyEffect(CameraEffectType.SHAKE, 0.6, 0.4);
+      this.audio.playTone(90, 0.3, 0.6, "square");
     });
+    this.events.addEventListener(Events.VOID_CAUGHT, (): void => {
+      this.camera.applyEffect(CameraEffectType.FLASH, 0.6, 0.2);
+      this.audio.playTone(720, 0.15, 0.45, "sine");
+    });
+
+    // Ambient drone: browsers require a user gesture before audio can start.
+    document.addEventListener(
+      "click",
+      (): void => {
+        this.audio.resume();
+        this.audio.startDrone();
+      },
+      { once: true },
+    );
 
     // --- HUD ---
     this._hud = new Hud(this.events);

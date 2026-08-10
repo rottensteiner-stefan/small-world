@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.74.9] - 2026-08-10
+
+### "The details are not the details. They make the design." - Charles Eames
+
+- **Features:**
+  - **Hollow Circuit:** Wired sound/camera juice into every existing hazard event. A Wisp strike or a hard fall now shakes the camera and plays a harsh procedural tone; a successful Void Catch or reaching the Exfil point flashes the camera and plays a rising chime; Disc pickup gets a light blip; an ambient drone now starts on first click. `Camera.applyEffect` (shake/flash) and `AudioSystem.playTone`/`startDrone` already existed in the engine but had never been called by any app before this. This closes the full 7-item gap list from the original concept-dossier review.
+
 ## [0.74.8] - 2026-08-10
 
 ### "It is good to have an end to journey toward; but it is the journey that matters, in the end." - Ursula K. Le Guin
