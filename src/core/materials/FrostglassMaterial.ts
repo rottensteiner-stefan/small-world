@@ -48,6 +48,24 @@ export class FrostglassMaterial extends AbstractMaterial {
     }
   }
 
+  /**
+   * Creates an independent copy of this material. Each Frostglass panel needs its own
+   * instance so the Controller can animate clarityPulseCenter/clarityPulseRadius per
+   * panel without every other panel sharing the same template flashing in sync.
+   */
+  public clone(): FrostglassMaterial {
+    return new FrostglassMaterial({
+      color: new Color(this.color.r, this.color.g, this.color.b, this.color.a),
+      metallic: this.metallic,
+      roughness: this.roughness,
+      blurRadius: this.blurRadius,
+      transmission: this.transmission,
+      clarityPulseCenter: this.clarityPulseCenter.clone(),
+      clarityPulseRadius: this.clarityPulseRadius,
+      normalMap: this.normalMap,
+    });
+  }
+
   public getRenderManifest(): RenderManifest {
     if (!this._renderManifest) {
       this._renderManifest = this._createBaseManifest();

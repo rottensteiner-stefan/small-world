@@ -1,7 +1,7 @@
 import { SmallWorld, Object3D } from "../../core/index.js";
 import { AmbientLight, PointLight } from "../../core/lights/index.js";
 import { Color } from "../../core/colors/index.js";
-import { StandardMaterial } from "../../core/materials/index.js";
+import { StandardMaterial, FrostglassMaterial } from "../../core/materials/index.js";
 import {
   RotatorBehavior,
   BobbingBehavior,
@@ -25,6 +25,7 @@ import { CellType } from "./enums/CellType.js";
 const VOID = new Color(0.07, 0.07, 0.09);
 const CIRCUIT_VIOLET = new Color(0.54, 0.42, 1.0);
 const DANGER_AMBER = new Color(1.0, 0.51, 0.26);
+const FROSTGLASS = new Color(0.66, 0.77, 0.85);
 
 /** How close the player needs to be (in world units) to collect a Disc or contact a Wisp. */
 const CONTACT_RADIUS = 1.5;
@@ -32,15 +33,16 @@ const CONTACT_RADIUS = 1.5;
 /**
  * Hollow Circuit -- first vertical slice.
  *
- * Deliberately small: one Corridor, one Room, one Frostglass panel (a dedicated
- * FrostglassMaterial doing real screen-space blur over the opaque capture texture,
- * the same technique GlassMaterial uses for refraction), one patrolling Wisp, a
- * handful of Flux Discs, and a single VoidZone so the "you can just fall" edge from
- * the concept sketches is real. Everything else in the concept dossier (Impact Trace,
- * Maze Flow branching routes, additional space types) is intentionally deferred until
- * this core loop feels right to move through.
+ * Deliberately small: a procedurally generated multi-floor maze, a handful of
+ * Frostglass panels per floor (each a dedicated FrostglassMaterial instance doing
+ * real screen-space blur over the opaque capture texture, the same technique
+ * GlassMaterial uses for refraction), patrolling Wisps, a spread of Flux Discs, and
+ * VoidZones so the "you can just fall" edge from the concept sketches is real.
+ * Everything else in the concept dossier (Impact Trace, Maze Flow branching routes,
+ * additional space types) is intentionally deferred until this core loop feels right
+ * to move through.
  *
- * The panel's Clarity Pulse reveal is driven by the Controller, which eases
+ * Each panel's Clarity Pulse reveal is driven by the Controller, which eases
  * clarityPulseRadius on the material out and back in over clarityPulseDuration
  * whenever a pulse lands within range (see Controller._updateClarityPulseEffect).
  */
@@ -83,12 +85,26 @@ export class App extends SmallWorld {
       emissiveIntensity: 0.6,
       roughness: 0.5,
     });
+    const frostglassMat = new FrostglassMaterial({
+      color: FROSTGLASS,
+      roughness: 0.35,
+      blurRadius: 0.05,
+      transmission: 0.85,
+    });
+    // Brighter and glossier than the ordinary seamMat -- reads as a dedicated fixture
+    // uplighting a Frostglass panel from below, not just more of the ambient wiring.
+    const ledMat = new StandardMaterial({
+      color: CIRCUIT_VIOLET,
+      emissiveColor: CIRCUIT_VIOLET,
+      emissiveIntensity: 6.0,
+      roughness: 0.2,
+    });
 
     const maze = new MazeGenerator(21, 21, 3);
     maze.generate();
 
     const builder = new LevelBuilder();
-    builder.build(this.scene, maze, structureMat, seamMat);
+    builder.build(this.scene, maze, structureMat, seamMat, frostglassMat, ledMat);
 
     const getRandomFloorPosition = (floorIndex: number): Vector3D => {
       let tries = 0;

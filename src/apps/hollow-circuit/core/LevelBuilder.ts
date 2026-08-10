@@ -1,8 +1,9 @@
 import { Object3D, Scene, InstancedMesh } from "../../../core/index.js";
-import { AbstractMaterial } from "../../../core/materials/index.js";
+import { AbstractMaterial, FrostglassMaterial } from "../../../core/materials/index.js";
 import { Vector3D, Matrix4 } from "../../../math/index.js";
 import { Cube } from "../../../geometry/index.js";
 import { CellType } from "../enums/CellType.js";
+import { ObjectTags } from "../enums/ObjectTags.js";
 import { MazeGenerator } from "./MazeGenerator.js";
 
 export class LevelBuilder {
@@ -19,12 +20,24 @@ export class LevelBuilder {
     maze: MazeGenerator,
     structureMat: AbstractMaterial,
     seamMat: AbstractMaterial,
+    frostglassMat: FrostglassMaterial,
+    ledMat: AbstractMaterial,
   ): void {
     const cubeGeo = new Cube({ size: 1 }).getGeometryData();
 
     const wallMatrices: Matrix4[] = [];
     const floorMatrices: Matrix4[] = [];
     const seamMatrices: Matrix4[] = [];
+    const ledMatrices: Matrix4[] = [];
+
+    /** FLOOR/RAMP cells only ever get a seam drawn against these -- a WALL_FROSTGLASS
+     *  neighbor gets the brighter `ledMat` strip instead of the ordinary seam. */
+    const isFloorLike = (t: CellType): boolean =>
+      t === CellType.FLOOR ||
+      t === CellType.RAMP_UP_N ||
+      t === CellType.RAMP_UP_E ||
+      t === CellType.RAMP_UP_S ||
+      t === CellType.RAMP_UP_W;
 
     const addCollisionBox = (
       w: number,
@@ -89,6 +102,30 @@ export class LevelBuilder {
               yOffset + this._height / 2,
               wz,
             );
+          } else if (type === CellType.WALL_FROSTGLASS) {
+            // Rendered as its own tagged Object3D rather than folded into InstancedWalls --
+            // Controller._getFrostglassPanels() finds panels by scanning scene.objects for
+            // ObjectTags.FROSTGLASS, and each needs an independent material instance so its
+            // Clarity Pulse reveal can animate without lighting up every other panel too.
+            const panel = new Object3D(`FrostglassPanel_${f}_${x}_${z}`);
+            panel.geometry = cubeGeo;
+            panel.material = frostglassMat.clone();
+            panel.tag = ObjectTags.FROSTGLASS;
+            panel.setScale(this._scale, this._height, this._scale);
+            panel.position.set(wx, yOffset + this._height / 2, wz);
+            panel.isStatic = true;
+            panel.isCollidable = false;
+            panel.updateMatrixWorld();
+            panel.computeBounds();
+            scene.add(panel);
+            addCollisionBox(
+              this._scale,
+              this._height,
+              this._scale,
+              wx,
+              yOffset + this._height / 2,
+              wz,
+            );
           } else if (
             type === CellType.FLOOR ||
             type === CellType.RAMP_UP_N ||
@@ -122,20 +159,88 @@ export class LevelBuilder {
             );
 
             const seamW = 0.1;
+
+            // This cell always draws its own -z/-x edges (the +z/+x neighbor, if any,
+            // draws the shared edge on its own -z/-x pass instead -- see below). Whichever
+            // side a WALL_FROSTGLASS panel sits on, floor or ceiling, gets the brighter
+            // `ledMat` strip instead of the ordinary seam.
+            const southNeighbor = z < maze.depth - 1 ? maze.grid[f]![z + 1]![x]! : CellType.WALL;
+            const southArr =
+              southNeighbor === CellType.WALL_FROSTGLASS ? ledMatrices : seamMatrices;
             const sm = new Matrix4();
             sm.compose(
               new Vector3D(wx, yOffset + 0.05, wz - this._scale / 2 + 0.1),
               new Vector3D(),
               new Vector3D(this._scale, 0.1, seamW),
             );
-            seamMatrices.push(sm);
+            southArr.push(sm);
+            const csm = new Matrix4();
+            csm.compose(
+              new Vector3D(wx, yOffset + this._height - 0.05, wz - this._scale / 2 + 0.1),
+              new Vector3D(),
+              new Vector3D(this._scale, 0.1, seamW),
+            );
+            southArr.push(csm);
+
+            const westNeighbor = x > 0 ? maze.grid[f]![z]![x - 1]! : CellType.WALL;
+            const westArr = westNeighbor === CellType.WALL_FROSTGLASS ? ledMatrices : seamMatrices;
             const sm2 = new Matrix4();
             sm2.compose(
               new Vector3D(wx - this._scale / 2 + 0.1, yOffset + 0.05, wz),
               new Vector3D(),
               new Vector3D(seamW, 0.1, this._scale),
             );
-            seamMatrices.push(sm2);
+            westArr.push(sm2);
+            const csm2 = new Matrix4();
+            csm2.compose(
+              new Vector3D(wx - this._scale / 2 + 0.1, yOffset + this._height - 0.05, wz),
+              new Vector3D(),
+              new Vector3D(seamW, 0.1, this._scale),
+            );
+            westArr.push(csm2);
+
+            // The +z/+x edges are only ever drawn by a FLOOR/RAMP neighbor doing the same on
+            // ITS -z/-x side -- so a cell whose +z or +x neighbor is a wall gets no seam
+            // there at all unless it's added here too.
+            const northNeighbor = z > 0 ? maze.grid[f]![z - 1]![x]! : CellType.WALL;
+            if (!isFloorLike(northNeighbor)) {
+              const northArr =
+                northNeighbor === CellType.WALL_FROSTGLASS ? ledMatrices : seamMatrices;
+              const nm = new Matrix4();
+              nm.compose(
+                new Vector3D(wx, yOffset + 0.05, wz + this._scale / 2 - 0.1),
+                new Vector3D(),
+                new Vector3D(this._scale, 0.1, seamW),
+              );
+              northArr.push(nm);
+              const ncm = new Matrix4();
+              ncm.compose(
+                new Vector3D(wx, yOffset + this._height - 0.05, wz + this._scale / 2 - 0.1),
+                new Vector3D(),
+                new Vector3D(this._scale, 0.1, seamW),
+              );
+              northArr.push(ncm);
+            }
+
+            const eastNeighbor = x < maze.width - 1 ? maze.grid[f]![z]![x + 1]! : CellType.WALL;
+            if (!isFloorLike(eastNeighbor)) {
+              const eastArr =
+                eastNeighbor === CellType.WALL_FROSTGLASS ? ledMatrices : seamMatrices;
+              const em = new Matrix4();
+              em.compose(
+                new Vector3D(wx + this._scale / 2 - 0.1, yOffset + 0.05, wz),
+                new Vector3D(),
+                new Vector3D(seamW, 0.1, this._scale),
+              );
+              eastArr.push(em);
+              const ecm = new Matrix4();
+              ecm.compose(
+                new Vector3D(wx + this._scale / 2 - 0.1, yOffset + this._height - 0.05, wz),
+                new Vector3D(),
+                new Vector3D(seamW, 0.1, this._scale),
+              );
+              eastArr.push(ecm);
+            }
 
             if (type !== CellType.FLOOR) {
               let rx = 0;
@@ -207,5 +312,6 @@ export class LevelBuilder {
     addInstanced("InstancedWalls", structureMat, wallMatrices);
     addInstanced("InstancedFloors", structureMat, floorMatrices);
     addInstanced("InstancedSeams", seamMat, seamMatrices);
+    addInstanced("InstancedFrostglassLeds", ledMat, ledMatrices);
   }
 }

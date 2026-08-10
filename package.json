@@ -1,7 +1,7 @@
 {
   "name": "small-world",
   "private": true,
-  "version": "0.74.3",
+  "version": "0.74.4",
   "description": "A lightweight 3D engine for hybrid WebGL2/WebGPU rendering pipelines.",
   "type": "module",
   "license": "MIT",
@@ -87,5 +87,10 @@
     "*.wgsl": [
       "npm run lint:wgsl"
     ]
+  },
+  "allowScripts": {
+    "puppeteer@25.4.0": true,
+    "esbuild@0.28.1": true,
+    "fsevents@2.3.3": true
   }
 }

@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.74.4] - 2026-08-10
+
+### "There is a crack in everything, that's how the light gets in." - Leonard Cohen
+
+- **Features:**
+  - **Hollow Circuit:** Built actual Frostglass chambers into the procedurally generated maze — five wall cells bordering a floor per floor are converted to `CellType.WALL_FROSTGLASS` and rendered as individually-tagged panels, each with its own `FrostglassMaterial` instance, giving the Controller's existing Clarity Pulse mechanic real geometry to reveal. Added a matching LED strip treatment where seam edges touching a Frostglass panel light up brighter than ordinary wiring.
+- **Architecture & Bugfixes:**
+  - **FrostglassMaterial:** Added `clone()` so each panel can animate its own Clarity Pulse reveal independently instead of sharing state with every other panel.
+  - **Hollow Circuit LevelBuilder:** Fixed a seam-strip bug where only two of each floor cell's four boundary edges were ever drawn, leaving every corridor missing light on two of its four wall-adjacent edges.
+- **Housekeeping & Docs:**
+  - **Tooling:** Added `allowScripts` npm allowlist entries for `puppeteer`, `esbuild`, and `fsevents`.
+
 ## [0.74.3] - 2026-08-03
 
 ### "To improve is to change; to be perfect is to change often." - Winston Churchill

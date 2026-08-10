@@ -30,6 +30,10 @@ export class MazeGenerator {
     }
 
     this._addVoidZones(0, 15);
+
+    for (let f = 0; f < this.floors; f++) {
+      this._addFrostglassPanels(f, 5);
+    }
   }
 
   private _carveMaze(f: number, startX: number, startZ: number): void {
@@ -125,6 +129,27 @@ export class MazeGenerator {
         this.grid[f]![z]![x] = CellType.HOLE;
         count++;
       }
+    }
+  }
+
+  /** Turns a handful of solid WALL cells that border a FLOOR cell into Frostglass panels. */
+  private _addFrostglassPanels(f: number, maxCount: number): void {
+    let count = 0;
+    for (let i = 0; i < 200; i++) {
+      if (count >= maxCount) break;
+      const x = 1 + Math.floor(Math.random() * (this.width - 2));
+      const z = 1 + Math.floor(Math.random() * (this.depth - 2));
+      if (this.grid[f]![z]![x] !== CellType.WALL) continue;
+
+      const bordersFloor =
+        this.grid[f]![z - 1]![x] === CellType.FLOOR ||
+        this.grid[f]![z + 1]![x] === CellType.FLOOR ||
+        this.grid[f]![z]![x - 1] === CellType.FLOOR ||
+        this.grid[f]![z]![x + 1] === CellType.FLOOR;
+      if (!bordersFloor) continue;
+
+      this.grid[f]![z]![x] = CellType.WALL_FROSTGLASS;
+      count++;
     }
   }
 
