@@ -281,4 +281,21 @@ export class MazeGenerator {
     }
     return new Vector3D(0, 1.6, 0);
   }
+
+  /**
+   * A real goal: the top floor's first FLOOR cell scanning from the opposite corner to
+   * getSpawnPoint's scan, so it tends to land far from where the player started without
+   * needing full multi-floor pathfinding through ramps.
+   */
+  public getExfilPoint(scale: number, height: number): Vector3D {
+    const topFloor = this.floors - 1;
+    for (let z = this.depth - 2; z >= 1; z--) {
+      for (let x = this.width - 2; x >= 1; x--) {
+        if (this.grid[topFloor]![z]![x] === CellType.FLOOR) {
+          return new Vector3D(x * scale, topFloor * height + 1.6, -z * scale);
+        }
+      }
+    }
+    return new Vector3D(0, topFloor * height + 1.6, 0);
+  }
 }

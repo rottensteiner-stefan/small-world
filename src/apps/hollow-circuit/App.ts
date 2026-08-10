@@ -40,9 +40,8 @@ const CONTACT_RADIUS = 1.5;
  * real screen-space blur over the opaque capture texture, the same technique
  * GlassMaterial uses for refraction), patrolling Wisps, a spread of Flux Discs, and
  * VoidZones so the "you can just fall" edge from the concept sketches is real.
- * Everything else in the concept dossier (additional space types, a real exfil point,
- * sound/camera juice) is intentionally deferred until this core loop feels right to
- * move through.
+ * Everything else in the concept dossier (additional space types, sound/camera juice)
+ * is intentionally deferred until this core loop feels right to move through.
  *
  * Each panel's Clarity Pulse reveal is driven by the Controller, which eases
  * clarityPulseRadius on the material out and back in over clarityPulseDuration
@@ -200,6 +199,37 @@ export class App extends SmallWorld {
       );
       scene.add(disc);
     }
+
+    // --- Place the Exfil point: a real goal on the top floor ---
+    const exfilPos = maze.getExfilPoint(builder.scale, builder.height);
+    const exfil = new Object3D("Exfil");
+    exfil.geometry = new Sphere({ radius: 0.5 }).getGeometryData();
+    exfil.material = new StandardMaterial({
+      color: Color.WHITE,
+      emissiveColor: Color.WHITE,
+      emissiveIntensity: 3.0,
+      roughness: 0.2,
+    });
+    exfil.position.copyFrom(exfilPos);
+    exfil.tag = ObjectTags.EXFIL;
+    exfil.addBehavior(new RotatorBehavior(new Vector3D(0, 2.0, 0)));
+    exfil.addBehavior(new BobbingBehavior(0.25, 1.5));
+    let exfilReached = false;
+    exfil.addBehavior(
+      new ProximitySensorBehavior({
+        targetObj: this.camera,
+        radius: CONTACT_RADIUS,
+        planar: true,
+        onUpdate: (_factor, distance): void => {
+          if (exfilReached || distance > CONTACT_RADIUS) return;
+          exfilReached = true;
+          this.events.dispatchEvent(Events.EXFIL_REACHED, {});
+        },
+      }),
+    );
+    scene.add(exfil);
+    const exfilLight = new PointLight({ color: Color.WHITE, intensity: 3.0, distance: 6.0 });
+    exfil.add(exfilLight);
 
     // --- Finalize scene, build collision octrees ---
     this.scene.update();

@@ -44,4 +44,19 @@ describe("MazeGenerator", () => {
 
     expect(sawFrostglassFlank).toBe(true);
   });
+
+  it("places the Exfil point on a real FLOOR cell on the top floor", () => {
+    const maze = new MazeGenerator(15, 15, 3);
+    maze.generate();
+
+    const scale = 4.0;
+    const height = 4.0;
+    const exfil = maze.getExfilPoint(scale, height);
+
+    expect(exfil.y).toBeCloseTo((maze.floors - 1) * height + 1.6);
+
+    const x = Math.round(exfil.x / scale);
+    const z = Math.round(-exfil.z / scale);
+    expect(maze.grid[maze.floors - 1]![z]![x]).toBe(CellType.FLOOR);
+  });
 });

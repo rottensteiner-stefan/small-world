@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.74.8] - 2026-08-10
+
+### "It is good to have an end to journey toward; but it is the journey that matters, in the end." - Ursula K. Le Guin
+
+- **Features:**
+  - **Hollow Circuit:** Added a real Exfil point — a goal beacon placed on the maze's top floor (`MazeGenerator.getExfilPoint`), reached the same way as a Disc. Reaching it fires `EXFIL_REACHED` and shows an "Extraction Complete" HUD overlay. The app had no win condition before this — only collecting Discs and surviving.
+- **Housekeeping & Docs:**
+  - **Tests:** Added a `MazeGenerator` test for `getExfilPoint`.
+
 ## [0.74.7] - 2026-08-10
 
 ### "Two roads diverged in a yellow wood, and sorry I could not travel both." - Robert Frost

@@ -11,6 +11,7 @@ export class Hud {
   private _pipEls: HTMLDivElement[] = [];
   private _discCountEl: HTMLSpanElement;
   private _discCount: number = 0;
+  private _exfilEl: HTMLDivElement;
 
   constructor(private events: EventDispatcherImpl) {
     if (!document.getElementById("hollow-circuit-hud-style")) {
@@ -54,6 +55,26 @@ export class Hud {
           color: rgba(255, 247, 230, 0.9);
           font-size: 18px;
         }
+        .hc-hud-exfil {
+          position: absolute;
+          inset: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: rgba(5, 5, 8, 0.55);
+          opacity: 0;
+          transition: opacity 0.6s ease;
+        }
+        .hc-hud-exfil.visible {
+          opacity: 1;
+        }
+        .hc-hud-exfil-text {
+          font-size: 42px;
+          letter-spacing: 0.15em;
+          text-transform: uppercase;
+          color: rgba(255, 255, 255, 0.95);
+          text-shadow: 0 0 30px rgba(150, 220, 255, 0.8);
+        }
       `;
       document.head.appendChild(style);
     }
@@ -88,6 +109,14 @@ export class Hud {
     this._container.appendChild(left);
     this._container.appendChild(right);
 
+    this._exfilEl = document.createElement("div");
+    this._exfilEl.className = "hc-hud-exfil";
+    const exfilText = document.createElement("span");
+    exfilText.className = "hc-hud-exfil-text";
+    exfilText.textContent = "Extraction Complete";
+    this._exfilEl.appendChild(exfilText);
+    this._container.appendChild(this._exfilEl);
+
     const host = document.getElementById("retro-screen") ?? document.body;
     host.appendChild(this._container);
 
@@ -98,6 +127,9 @@ export class Hud {
     this.events.addEventListener(Events.DISC_COLLECTED, (): void => {
       this._discCount++;
       this._discCountEl.textContent = this._discCount.toString();
+    });
+    this.events.addEventListener(Events.EXFIL_REACHED, (): void => {
+      this._exfilEl.classList.add("visible");
     });
   }
 

@@ -9,4 +9,5 @@ export const Events = {
   CLARITY_PULSE: "app:hollowCircuit:clarityPulse",
   FELL: "app:hollowCircuit:fell",
   VOID_CAUGHT: "app:hollowCircuit:voidCaught",
+  EXFIL_REACHED: "app:hollowCircuit:exfilReached",
 } as const;
