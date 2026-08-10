@@ -26,6 +26,7 @@ export class LevelBuilder {
     seamMat: AbstractMaterial,
     frostglassMat: FrostglassMaterial,
     ledMat: AbstractMaterial,
+    shortcutSeamMat: AbstractMaterial,
   ): void {
     const cubeGeo = new Cube({ size: 1 }).getGeometryData();
 
@@ -33,15 +34,26 @@ export class LevelBuilder {
     const floorMatrices: Matrix4[] = [];
     const seamMatrices: Matrix4[] = [];
     const ledMatrices: Matrix4[] = [];
+    const shortcutSeamMatrices: Matrix4[] = [];
 
-    /** FLOOR/RAMP cells only ever get a seam drawn against these -- a WALL_FROSTGLASS
-     *  neighbor gets the brighter `ledMat` strip instead of the ordinary seam. */
+    /** FLOOR/RAMP/FLOOR_SHORTCUT cells only ever get a seam drawn against these -- a
+     *  WALL_FROSTGLASS neighbor gets the brighter `ledMat` strip instead of the ordinary seam. */
     const isFloorLike = (t: CellType): boolean =>
       t === CellType.FLOOR ||
+      t === CellType.FLOOR_SHORTCUT ||
       t === CellType.RAMP_UP_N ||
       t === CellType.RAMP_UP_E ||
       t === CellType.RAMP_UP_S ||
       t === CellType.RAMP_UP_W;
+
+    /** Picks which seam array a cell's own edge belongs in: a WALL_FROSTGLASS neighbor
+     *  always wins (bright LED strip), otherwise a FLOOR_SHORTCUT cell gets the cyan Maze
+     *  Flow seam instead of the ordinary violet one. */
+    const pickSeamArray = (ownType: CellType, neighbor: CellType): Matrix4[] => {
+      if (neighbor === CellType.WALL_FROSTGLASS) return ledMatrices;
+      if (ownType === CellType.FLOOR_SHORTCUT) return shortcutSeamMatrices;
+      return seamMatrices;
+    };
 
     const addCollisionBox = (
       w: number,
@@ -132,6 +144,7 @@ export class LevelBuilder {
             );
           } else if (
             type === CellType.FLOOR ||
+            type === CellType.FLOOR_SHORTCUT ||
             type === CellType.RAMP_UP_N ||
             type === CellType.RAMP_UP_S ||
             type === CellType.RAMP_UP_E ||
@@ -169,8 +182,7 @@ export class LevelBuilder {
             // side a WALL_FROSTGLASS panel sits on, floor or ceiling, gets the brighter
             // `ledMat` strip instead of the ordinary seam.
             const southNeighbor = z < maze.depth - 1 ? maze.grid[f]![z + 1]![x]! : CellType.WALL;
-            const southArr =
-              southNeighbor === CellType.WALL_FROSTGLASS ? ledMatrices : seamMatrices;
+            const southArr = pickSeamArray(type, southNeighbor);
             const sm = new Matrix4();
             sm.compose(
               new Vector3D(wx, yOffset + 0.05, wz - this._scale / 2 + 0.1),
@@ -187,7 +199,7 @@ export class LevelBuilder {
             southArr.push(csm);
 
             const westNeighbor = x > 0 ? maze.grid[f]![z]![x - 1]! : CellType.WALL;
-            const westArr = westNeighbor === CellType.WALL_FROSTGLASS ? ledMatrices : seamMatrices;
+            const westArr = pickSeamArray(type, westNeighbor);
             const sm2 = new Matrix4();
             sm2.compose(
               new Vector3D(wx - this._scale / 2 + 0.1, yOffset + 0.05, wz),
@@ -208,8 +220,7 @@ export class LevelBuilder {
             // there at all unless it's added here too.
             const northNeighbor = z > 0 ? maze.grid[f]![z - 1]![x]! : CellType.WALL;
             if (!isFloorLike(northNeighbor)) {
-              const northArr =
-                northNeighbor === CellType.WALL_FROSTGLASS ? ledMatrices : seamMatrices;
+              const northArr = pickSeamArray(type, northNeighbor);
               const nm = new Matrix4();
               nm.compose(
                 new Vector3D(wx, yOffset + 0.05, wz + this._scale / 2 - 0.1),
@@ -228,8 +239,7 @@ export class LevelBuilder {
 
             const eastNeighbor = x < maze.width - 1 ? maze.grid[f]![z]![x + 1]! : CellType.WALL;
             if (!isFloorLike(eastNeighbor)) {
-              const eastArr =
-                eastNeighbor === CellType.WALL_FROSTGLASS ? ledMatrices : seamMatrices;
+              const eastArr = pickSeamArray(type, eastNeighbor);
               const em = new Matrix4();
               em.compose(
                 new Vector3D(wx + this._scale / 2 - 0.1, yOffset + 0.05, wz),
@@ -246,7 +256,7 @@ export class LevelBuilder {
               eastArr.push(ecm);
             }
 
-            if (type !== CellType.FLOOR) {
+            if (type !== CellType.FLOOR && type !== CellType.FLOOR_SHORTCUT) {
               let rx = 0;
               let rz = 0;
               let rwx = wx,
@@ -317,5 +327,6 @@ export class LevelBuilder {
     addInstanced("InstancedFloors", structureMat, floorMatrices);
     addInstanced("InstancedSeams", seamMat, seamMatrices);
     addInstanced("InstancedFrostglassLeds", ledMat, ledMatrices);
+    addInstanced("InstancedShortcutSeams", shortcutSeamMat, shortcutSeamMatrices);
   }
 }

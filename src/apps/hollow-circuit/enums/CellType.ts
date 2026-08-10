@@ -8,4 +8,8 @@ export enum CellType {
   HOLE = 6,
   /** A wall cell rendered as a load-bearing Frostglass panel instead of solid structure. */
   WALL_FROSTGLASS = 7,
+  /** A walkable floor cell that shortens the route to somewhere already reachable the
+   *  long way around -- Maze Flow's real route choice, rendered with a distinct cyan
+   *  seam instead of the ordinary violet one. */
+  FLOOR_SHORTCUT = 8,
 }

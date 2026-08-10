@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.74.7] - 2026-08-10
+
+### "Two roads diverged in a yellow wood, and sorry I could not travel both." - Robert Frost
+
+- **Features:**
+  - **Hollow Circuit:** Added Maze Flow's real route choice — carving now knocks down the single wall that saves the most path length between two floor cells, turning the perfect maze into one with a genuine shortcut. The original long way stays intact and ordinarily violet-lit; the new opening (`CellType.FLOOR_SHORTCUT`) is flanked by Frostglass panels where possible and rendered with a distinct cyan seam, reading as riskier because it's dim and see-through rather than brightly lit.
+- **Architecture & Bugfixes:**
+  - **Hollow Circuit LevelBuilder:** `build()` now takes a `shortcutSeamMat` and renders a `FLOOR_SHORTCUT` cell's own seams in it instead of the ordinary violet seam, still deferring to the brighter LED strip wherever the neighbor is a Frostglass panel.
+- **Housekeeping & Docs:**
+  - **Tests:** Added `MazeGenerator` tests covering shortcut placement and Frostglass flanking.
+
 ## [0.74.6] - 2026-08-10
 
 ### "The wound is the place where the Light enters you." - Rumi

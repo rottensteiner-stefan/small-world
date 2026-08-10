@@ -23,6 +23,7 @@ export class MazeGenerator {
       this.grid.push(floorGrid);
 
       this._carveMaze(f, 1, 1);
+      this._addShortcut(f);
     }
 
     for (let f = 0; f < this.floors - 1; f++) {
@@ -79,6 +80,117 @@ export class MazeGenerator {
         stack.pop();
       }
     }
+  }
+
+  /**
+   * Maze Flow's real route choice: knocks down the single wall whose removal saves
+   * the most path length between two already-carved FLOOR cells, turning this perfect
+   * (loop-free) maze into one with a genuine shortcut -- the original long way around
+   * stays intact and ordinarily lit, while the new opening becomes a
+   * `CellType.FLOOR_SHORTCUT` flanked by Frostglass where possible. "Risky" here means
+   * dim and see-through rather than brightly lit, not mechanically more dangerous.
+   */
+  private _addShortcut(f: number): void {
+    interface Candidate {
+      wallX: number;
+      wallZ: number;
+      ax: number;
+      az: number;
+      bx: number;
+      bz: number;
+    }
+    const candidates: Candidate[] = [];
+
+    for (let z = 1; z < this.depth - 1; z++) {
+      for (let x = 1; x < this.width - 1; x++) {
+        if (this.grid[f]![z]![x] !== CellType.FLOOR) continue;
+
+        if (
+          x + 2 < this.width - 1 &&
+          this.grid[f]![z]![x + 1] === CellType.WALL &&
+          this.grid[f]![z]![x + 2] === CellType.FLOOR
+        ) {
+          candidates.push({ wallX: x + 1, wallZ: z, ax: x, az: z, bx: x + 2, bz: z });
+        }
+        if (
+          z + 2 < this.depth - 1 &&
+          this.grid[f]![z + 1]![x] === CellType.WALL &&
+          this.grid[f]![z + 2]![x] === CellType.FLOOR
+        ) {
+          candidates.push({ wallX: x, wallZ: z + 1, ax: x, az: z, bx: x, bz: z + 2 });
+        }
+      }
+    }
+
+    let best: Candidate | undefined;
+    let bestDistance = -1;
+    for (const c of candidates) {
+      const distance = this._floorPathLength(f, c.ax, c.az, c.bx, c.bz);
+      if (distance > bestDistance) {
+        bestDistance = distance;
+        best = c;
+      }
+    }
+    if (!best) return;
+
+    this.grid[f]![best.wallZ]![best.wallX] = CellType.FLOOR_SHORTCUT;
+
+    const isHorizontal = best.az === best.bz;
+    const flanks: [number, number][] = isHorizontal
+      ? [
+          [best.wallX, best.wallZ - 1],
+          [best.wallX, best.wallZ + 1],
+        ]
+      : [
+          [best.wallX - 1, best.wallZ],
+          [best.wallX + 1, best.wallZ],
+        ];
+    for (const [fx, fz] of flanks) {
+      if (
+        fx > 0 &&
+        fx < this.width - 1 &&
+        fz > 0 &&
+        fz < this.depth - 1 &&
+        this.grid[f]![fz]![fx] === CellType.WALL
+      ) {
+        this.grid[f]![fz]![fx] = CellType.WALL_FROSTGLASS;
+      }
+    }
+  }
+
+  /**
+   * BFS shortest path length (in cells), walking only through existing FLOOR cells on
+   * floor f -- used by _addShortcut to find the wall whose removal saves the most
+   * distance. Returns -1 if no such path exists yet (shouldn't happen once carved).
+   */
+  private _floorPathLength(f: number, ax: number, az: number, bx: number, bz: number): number {
+    const key = (x: number, z: number): number => z * this.width + x;
+    const visited = new Set<number>([key(ax, az)]);
+    const queue: [number, number, number][] = [[ax, az, 0]];
+    let head = 0;
+
+    while (head < queue.length) {
+      const [x, z, distance] = queue[head]!;
+      head++;
+      if (x === bx && z === bz) return distance;
+
+      for (const [dx, dz] of [
+        [1, 0],
+        [-1, 0],
+        [0, 1],
+        [0, -1],
+      ]) {
+        const nx = x + dx!;
+        const nz = z + dz!;
+        if (nx < 0 || nx >= this.width || nz < 0 || nz >= this.depth) continue;
+        if (this.grid[f]![nz]![nx] !== CellType.FLOOR) continue;
+        const k = key(nx, nz);
+        if (visited.has(k)) continue;
+        visited.add(k);
+        queue.push([nx, nz, distance + 1]);
+      }
+    }
+    return -1;
   }
 
   private _addRamps(f: number, maxCount: number): void {

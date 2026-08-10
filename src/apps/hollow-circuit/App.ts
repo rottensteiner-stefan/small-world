@@ -27,6 +27,7 @@ const VOID = new Color(0.07, 0.07, 0.09);
 const CIRCUIT_VIOLET = new Color(0.54, 0.42, 1.0);
 const DANGER_AMBER = new Color(1.0, 0.51, 0.26);
 const FROSTGLASS = new Color(0.66, 0.77, 0.85);
+const SHORTCUT_CYAN = new Color(0.25, 0.85, 0.9);
 
 /** How close the player needs to be (in world units) to collect a Disc or contact a Wisp. */
 const CONTACT_RADIUS = 1.5;
@@ -39,9 +40,9 @@ const CONTACT_RADIUS = 1.5;
  * real screen-space blur over the opaque capture texture, the same technique
  * GlassMaterial uses for refraction), patrolling Wisps, a spread of Flux Discs, and
  * VoidZones so the "you can just fall" edge from the concept sketches is real.
- * Everything else in the concept dossier (Maze Flow branching routes, additional space
- * types, a real exfil point) is intentionally deferred until this core loop feels right
- * to move through.
+ * Everything else in the concept dossier (additional space types, a real exfil point,
+ * sound/camera juice) is intentionally deferred until this core loop feels right to
+ * move through.
  *
  * Each panel's Clarity Pulse reveal is driven by the Controller, which eases
  * clarityPulseRadius on the material out and back in over clarityPulseDuration
@@ -100,12 +101,20 @@ export class App extends SmallWorld {
       emissiveIntensity: 6.0,
       roughness: 0.2,
     });
+    // Maze Flow: the shortcut route reads as the riskier option because it's dim and
+    // cyan instead of brightly violet-lit, not because it's mechanically more dangerous.
+    const shortcutSeamMat = new StandardMaterial({
+      color: SHORTCUT_CYAN,
+      emissiveColor: SHORTCUT_CYAN,
+      emissiveIntensity: 2.4,
+      roughness: 0.4,
+    });
 
     const maze = new MazeGenerator(21, 21, 3);
     maze.generate();
 
     const builder = new LevelBuilder();
-    builder.build(this.scene, maze, structureMat, seamMat, frostglassMat, ledMat);
+    builder.build(this.scene, maze, structureMat, seamMat, frostglassMat, ledMat, shortcutSeamMat);
 
     const getRandomFloorPosition = (floorIndex: number): Vector3D => {
       let tries = 0;
