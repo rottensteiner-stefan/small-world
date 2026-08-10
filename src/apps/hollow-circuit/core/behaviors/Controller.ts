@@ -34,10 +34,21 @@ export interface ControllerOptions extends FirstPersonControllerOptions {
   clarityPulseMaxCharges?: number;
   /** Seconds to regenerate one charge. Defaults to 4.0. */
   clarityPulseRechargeSeconds?: number;
+  /** World-space height of one floor, used by the Void Catch skill move to land the
+   *  player exactly one floor down. Must match LevelBuilder's own height. Defaults to 4.0. */
+  floorHeight?: number;
 }
 
 const GRAVITY = 18.0;
 const FALL_RESET_DEPTH = 15.0;
+/** How far a fraction of one floor's height counts as "just started falling" -- past this,
+ *  a Void Catch attempt is too late and the fall continues to full FALL_RESET_DEPTH. */
+const VOID_CATCH_FALL_FRACTION = 0.7;
+/** Horizontal speed a Wisp strike shoves the player at; see Controller.applyKnockback. */
+const WISP_KNOCKBACK_SPEED = 9.0;
+/** Exponential per-second falloff for knockback velocity -- gives the shove weight
+ *  (Mirror's Edge momentum) instead of an instant teleport. */
+const KNOCKBACK_DECAY = 6.0;
 
 /**
  * The Hollow Circuit player controller: retro tank-style movement (W/S forward-back,
@@ -68,6 +79,11 @@ export class Controller extends FirstPersonController {
   private _rechargeTimer: number = 0;
   private _pulseCooldownTimer: number = 0;
   private static readonly _PULSE_INPUT_COOLDOWN = 0.4;
+  private static readonly _GROUND_SNAP_EPSILON = 0.0005;
+
+  private _fallStartY: number = 0;
+  private _floorHeight: number;
+  private _knockbackVelocity: Vector3D = new Vector3D();
 
   private _pulseActive: boolean = false;
   private _pulseTimer: number = 0;
@@ -87,6 +103,7 @@ export class Controller extends FirstPersonController {
     this._scene = options.scene;
     this._spawnPoint = options.spawnPoint;
     this._voidZones = options.voidZones ?? [];
+    this._floorHeight = options.floorHeight ?? 4.0;
     this._hcOptions = {
       clarityPulseRadius: options.clarityPulseRadius ?? 6.0,
       clarityPulseDuration: options.clarityPulseDuration ?? 1.4,
@@ -99,7 +116,26 @@ export class Controller extends FirstPersonController {
   public override update(deltaTime: number): void {
     if (!this.enabled || !this.target) return;
 
+    const preCollisionY = this.target.position.y;
     super.update(deltaTime);
+
+    // FirstPersonController's own collision step (inside super.update()) only ever
+    // pushes the sphere collider OUT of solid geometry -- it never pushes it down. So
+    // an upward correction here means something solid is holding the player up this
+    // frame: they're grounded, and any fall in progress just ended. Without this check,
+    // _isFalling (see _updateFalling below) never resets while standing on solid floor
+    // -- the "big fallback void zone" covers the whole map, so it flips true on frame 1
+    // and _fallVelocityY then grows unbounded forever, every single frame, even while
+    // just standing still. After ~3s it's large enough that one frame's fall distance
+    // tunnels clean through a floor plate before collision ever detects the overlap,
+    // silently teleporting the player back to spawn for no reason.
+    if (
+      !this._godMode &&
+      this.target.position.y > preCollisionY + Controller._GROUND_SNAP_EPSILON
+    ) {
+      this._isFalling = false;
+      this._fallVelocityY = 0;
+    }
 
     const isGPressed = this._options.input.isPressed(Keys.G);
     if (isGPressed && !this._wasGPressed) {
@@ -115,18 +151,38 @@ export class Controller extends FirstPersonController {
     }
     this._wasGPressed = isGPressed;
 
-    if (!this._godMode) {
+    if (this._godMode) {
+      let moveY: number = 0;
+      if (this._options.input.isPressed(Keys.E)) {
+        moveY += 1;
+      }
+      if (this._options.input.isPressed(Keys.Q)) {
+        moveY -= 1;
+      }
+      if (moveY !== 0) {
+        this.target!.position.y += moveY * this._options.moveSpeed * deltaTime;
+      }
+    } else {
       this._updateFalling(deltaTime);
+      this._updateKnockback(deltaTime);
     }
     this._updateClarityRecharge(deltaTime);
 
     if (this._pulseCooldownTimer > 0) this._pulseCooldownTimer -= deltaTime;
     if (
+      !this._godMode &&
       this._pulseCooldownTimer <= 0 &&
       (this._options.input.isPressed(Keys.E) || this._options.input.mouse.left)
     ) {
       this._pulseCooldownTimer = Controller._PULSE_INPUT_COOLDOWN;
-      this._tryClarityPulse();
+      // Same input either fires a Clarity Pulse to reveal Frostglass, or -- if it lands
+      // during the brief window right after a fall begins -- a Void Catch: Bloomsight
+      // reveals a ledge one floor down and the player grabs it instead of falling further.
+      if (this._isFalling) {
+        this._tryVoidCatch();
+      } else {
+        this._tryClarityPulse();
+      }
     }
 
     this._updateClarityPulseEffect(deltaTime);
@@ -140,6 +196,7 @@ export class Controller extends FirstPersonController {
         if (pos.x >= zone.minX && pos.x <= zone.maxX && pos.z >= zone.minZ && pos.z <= zone.maxZ) {
           this._isFalling = true;
           this._fallVelocityY = 0;
+          this._fallStartY = pos.y;
           break;
         }
       }
@@ -156,6 +213,54 @@ export class Controller extends FirstPersonController {
         this.events.dispatchEvent(Events.FELL, {});
       }
     }
+  }
+
+  /**
+   * The Void Catch skill move: land exactly one floor below where the fall started,
+   * instead of continuing to FALL_RESET_DEPTH. Only works early in the fall (see
+   * VOID_CATCH_FALL_FRACTION) and only when there's actually a floor to catch --
+   * ground-floor voids have nothing beneath them and stay a pure, punishing fall.
+   */
+  private _tryVoidCatch(): void {
+    if (this.clarityCharges <= 0) return;
+
+    const pos = this.target!.position;
+    const fallenDistance = this._fallStartY - pos.y;
+    if (fallenDistance > this._floorHeight * VOID_CATCH_FALL_FRACTION) return;
+
+    const landingY = this._fallStartY - this._floorHeight;
+    if (landingY < this._spawnPoint.y - 1.0) return;
+
+    this.clarityCharges--;
+    this._isFalling = false;
+    this._fallVelocityY = 0;
+    pos.y = landingY;
+
+    this.events.dispatchEvent(Events.VOID_CAUGHT, {});
+  }
+
+  /** Shoves the player horizontally -- e.g. a Wisp strike. Decays over ~KNOCKBACK_DECAY
+   *  seconds rather than teleporting outright, so it reads as momentum, not a cut. If it
+   *  happens to carry the player onto a void tile, the existing fall/Void Catch loop takes
+   *  over from there -- this is the coupling between the two hazards. */
+  public applyKnockback(directionXZ: Vector3D, speed: number = WISP_KNOCKBACK_SPEED): void {
+    if (this._godMode) return;
+    this._knockbackVelocity.x = directionXZ.x * speed;
+    this._knockbackVelocity.z = directionXZ.z * speed;
+  }
+
+  private _updateKnockback(deltaTime: number): void {
+    if (this._knockbackVelocity.x === 0 && this._knockbackVelocity.z === 0) return;
+
+    const pos = this.target!.position;
+    pos.x += this._knockbackVelocity.x * deltaTime;
+    pos.z += this._knockbackVelocity.z * deltaTime;
+
+    const decay = Math.exp(-KNOCKBACK_DECAY * deltaTime);
+    this._knockbackVelocity.x *= decay;
+    this._knockbackVelocity.z *= decay;
+    if (Math.abs(this._knockbackVelocity.x) < 0.01) this._knockbackVelocity.x = 0;
+    if (Math.abs(this._knockbackVelocity.z) < 0.01) this._knockbackVelocity.z = 0;
   }
 
   private _updateClarityRecharge(deltaTime: number): void {

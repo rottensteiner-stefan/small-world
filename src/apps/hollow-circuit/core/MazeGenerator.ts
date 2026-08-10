@@ -29,7 +29,13 @@ export class MazeGenerator {
       this._addRamps(f, 3);
     }
 
+    // Floor 0 is the true bottom -- nothing exists below it, so its voids stay a pure,
+    // unrecoverable hazard. Floors above have a floor below them to catch onto, so their
+    // voids are where the Controller's Void Catch skill move actually matters.
     this._addVoidZones(0, 15);
+    for (let f = 1; f < this.floors; f++) {
+      this._addVoidZones(f, 10);
+    }
 
     for (let f = 0; f < this.floors; f++) {
       this._addFrostglassPanels(f, 5);

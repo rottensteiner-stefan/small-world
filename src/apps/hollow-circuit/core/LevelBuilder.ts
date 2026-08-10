@@ -15,6 +15,10 @@ export class LevelBuilder {
     return this._scale;
   }
 
+  public get height(): number {
+    return this._height;
+  }
+
   public build(
     scene: Scene,
     maze: MazeGenerator,

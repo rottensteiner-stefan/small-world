@@ -9,6 +9,8 @@ import { Color } from "../../../../../src/core/colors/Color.js";
 import { Vector3D } from "../../../../../src/math/index.js";
 import { InputInterface, MouseState } from "../../../../../src/core/Input.js";
 import { Keys } from "../../../../../src/enums/index.js";
+import { Cube } from "../../../../../src/geometry/index.js";
+import { BoundingBox } from "../../../../../src/physix/index.js";
 
 class MockInput implements InputInterface {
   public mouse: MouseState = {
@@ -209,5 +211,199 @@ describe("Hollow Circuit Controller", () => {
 
     expect(pulseCount).toBe(0);
     expect(controller.clarityCharges).toBe(3);
+  });
+
+  it("does not accumulate unbounded fall velocity while resting on solid ground (tunneling regression)", () => {
+    const scene = new Scene();
+
+    // A thick floor slab, full size 20x2x20 -- top surface at world y=1.
+    const floor = new Object3D("floor");
+    floor.geometry = new Cube({ size: 1 }).getGeometryData();
+    floor.setScale(20, 2, 20);
+    floor.position.set(0, 0, 0);
+    floor.isStatic = true;
+    floor.updateMatrixWorld();
+    floor.computeBounds();
+    scene.add(floor);
+    scene.initOctrees(new BoundingBox(new Vector3D(-50, -50, -50), new Vector3D(50, 50, 50)));
+    scene.updateStaticOctree();
+
+    const events = new EventDispatcherImpl();
+    const spawnPoint = new Vector3D(0, 3, 0);
+    const player = new Object3D("player");
+    player.position.copyFrom(spawnPoint);
+
+    const controller = new Controller(events, {
+      scene,
+      spawnPoint,
+      input: new MockInput(),
+      enableCollision: true,
+      // Mirrors the real app's "big fallback void zone" covering the whole map.
+      voidZones: [{ minX: -10, maxX: 10, minZ: -10, maxZ: 10 }],
+    });
+    controller.onAttach(player);
+
+    let fellCount = 0;
+    events.addEventListener(Events.FELL, () => fellCount++);
+
+    // Without the grounding fix, _fallVelocityY grows every frame even while resting on
+    // the floor and eventually tunnels through it within a few seconds of simulated time.
+    for (let i = 0; i < 600; i++) {
+      controller.update(1 / 60);
+    }
+
+    expect(fellCount).toBe(0);
+    expect(player.position.y).toBeGreaterThan(0.5);
+    expect(player.position.y).toBeLessThan(2.0);
+  });
+
+  it("catches a partial fall with a well-timed Void Catch, landing exactly one floor down", () => {
+    const scene = new Scene();
+    const events = new EventDispatcherImpl();
+    const input = new MockInput();
+    const spawnPoint = new Vector3D(0, 0, 0); // Plenty of headroom below the landing spot.
+    const player = new Object3D("player");
+    player.position.set(0, 10, 0);
+
+    const controller = new Controller(events, {
+      scene,
+      spawnPoint,
+      input,
+      enableCollision: false,
+      floorHeight: 4.0,
+      voidZones: [{ minX: -1, maxX: 1, minZ: -1, maxZ: 1 }],
+    });
+    controller.onAttach(player);
+
+    let caughtCount = 0;
+    events.addEventListener(Events.VOID_CAUGHT, () => caughtCount++);
+
+    // Fall begins (fallStartY = 10).
+    controller.update(0.05);
+    // Well within the reaction window -- trigger the catch.
+    input.setKey(Keys.E, true);
+    controller.update(0.05);
+
+    expect(caughtCount).toBe(1);
+    expect(controller.clarityCharges).toBe(2);
+    expect(player.position.y).toBeCloseTo(6.0);
+  });
+
+  it("does not catch a fall that's already gone past the reaction window", () => {
+    const scene = new Scene();
+    const events = new EventDispatcherImpl();
+    const input = new MockInput();
+    const spawnPoint = new Vector3D(0, 0, 0);
+    const player = new Object3D("player");
+    player.position.set(0, 10, 0);
+
+    const controller = new Controller(events, {
+      scene,
+      spawnPoint,
+      input,
+      enableCollision: false,
+      floorHeight: 4.0,
+      voidZones: [{ minX: -1, maxX: 1, minZ: -1, maxZ: 1 }],
+    });
+    controller.onAttach(player);
+
+    let caughtCount = 0;
+    events.addEventListener(Events.VOID_CAUGHT, () => caughtCount++);
+
+    controller.update(0.05); // Fall begins.
+    controller.update(1.0); // Falls well past the 0.7-floor-height reaction window.
+
+    input.setKey(Keys.E, true);
+    controller.update(0.05);
+
+    expect(caughtCount).toBe(0);
+    expect(controller.clarityCharges).toBe(3);
+  });
+
+  it("cannot Void Catch a fall with nothing below it (ground-floor voids stay a pure hazard)", () => {
+    const scene = new Scene();
+    const events = new EventDispatcherImpl();
+    const input = new MockInput();
+    const spawnPoint = new Vector3D(0, 1.6, 0); // Falling starts at spawn's own floor height.
+    const player = new Object3D("player");
+    player.position.copyFrom(spawnPoint);
+
+    const controller = new Controller(events, {
+      scene,
+      spawnPoint,
+      input,
+      enableCollision: false,
+      floorHeight: 4.0,
+      voidZones: [{ minX: -1, maxX: 1, minZ: -1, maxZ: 1 }],
+    });
+    controller.onAttach(player);
+
+    let caughtCount = 0;
+    events.addEventListener(Events.VOID_CAUGHT, () => caughtCount++);
+
+    controller.update(0.05); // Fall begins, well within the reaction window.
+    input.setKey(Keys.E, true);
+    controller.update(0.05);
+
+    expect(caughtCount).toBe(0);
+    expect(controller.clarityCharges).toBe(3);
+  });
+
+  it("shoves the player on knockback and decays it smoothly instead of teleporting", () => {
+    const scene = new Scene();
+    const events = new EventDispatcherImpl();
+    const spawnPoint = new Vector3D(0, 1.6, 0);
+    const player = new Object3D("player");
+    player.position.copyFrom(spawnPoint);
+
+    const controller = new Controller(events, {
+      scene,
+      spawnPoint,
+      input: new MockInput(),
+      enableCollision: false,
+    });
+    controller.onAttach(player);
+
+    controller.applyKnockback(new Vector3D(1, 0, 0), 10);
+    controller.update(0.05);
+    const afterStep1 = player.position.x;
+    controller.update(0.05);
+    const afterStep2 = player.position.x - afterStep1;
+
+    expect(afterStep1).toBeGreaterThan(0);
+    expect(afterStep2).toBeGreaterThan(0);
+    expect(afterStep2).toBeLessThan(afterStep1); // Decaying each frame -- momentum, not a constant push.
+
+    for (let i = 0; i < 200; i++) controller.update(0.05);
+    const settled = player.position.x;
+
+    controller.update(0.05);
+    expect(Math.abs(player.position.x - settled)).toBeLessThan(0.001);
+  });
+
+  it("ignores knockback while in God Mode", () => {
+    const scene = new Scene();
+    const events = new EventDispatcherImpl();
+    const input = new MockInput();
+    const spawnPoint = new Vector3D(0, 1.6, 0);
+    const player = new Object3D("player");
+    player.position.copyFrom(spawnPoint);
+
+    const controller = new Controller(events, {
+      scene,
+      spawnPoint,
+      input,
+      enableCollision: false,
+    });
+    controller.onAttach(player);
+
+    input.setKey(Keys.G, true);
+    controller.update(0.05); // Toggles God Mode on.
+    input.setKey(Keys.G, false);
+
+    controller.applyKnockback(new Vector3D(1, 0, 0), 10);
+    controller.update(0.05);
+
+    expect(player.position.x).toBeCloseTo(0);
   });
 });

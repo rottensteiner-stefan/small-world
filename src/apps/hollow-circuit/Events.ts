@@ -8,4 +8,5 @@ export const Events = {
   WISP_CONTACT: "app:hollowCircuit:wispContact",
   CLARITY_PULSE: "app:hollowCircuit:clarityPulse",
   FELL: "app:hollowCircuit:fell",
+  VOID_CAUGHT: "app:hollowCircuit:voidCaught",
 } as const;

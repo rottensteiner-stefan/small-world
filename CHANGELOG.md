@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.74.5] - 2026-08-10
+
+### "For every action, there is an equal and opposite reaction." - Isaac Newton
+
+- **Features:**
+  - **Hollow Circuit:** Added the Void Catch skill move — a fall through a void tile can be caught with a well-timed Clarity Pulse input (Bloomsight), landing the player exactly one floor down instead of continuing to a full respawn. Ground-floor voids have nothing beneath them and stay an unrecoverable hazard.
+  - **Hollow Circuit:** Wisp contact now shoves the player away with decaying momentum instead of doing nothing. Whether that's dangerous depends entirely on what's underfoot in the push direction — the shove couples directly into the existing fall/Void Catch system with no separate "near an edge" logic needed.
+- **Architecture & Bugfixes:**
+  - **Hollow Circuit Controller:** Fixed a severe bug where fall velocity accumulated unbounded every frame even while standing on solid ground (the "big fallback void zone" covers the whole map and never reset), eventually tunneling the player through floor plates and silently resetting them to spawn every few seconds. Grounding is now detected via the collision system's own upward correction.
+  - **Hollow Circuit Controller:** Fixed the `E` key being double-bound to both God Mode vertical flight and Clarity Pulse, which could fire a wasted pulse attempt while flying.
+- **Housekeeping & Docs:**
+  - **Tests:** Added 8 new Controller tests covering the fall/tunneling regression, Void Catch success/failure paths, knockback decay, and God Mode blocking knockback.
+
 ## [0.74.4] - 2026-08-10
 
 ### "There is a crack in everything, that's how the light gets in." - Leonard Cohen

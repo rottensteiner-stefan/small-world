@@ -145,6 +145,15 @@ export class App extends SmallWorld {
             if (distance > CONTACT_RADIUS || !wispBehavior.canBeStruck) return;
             wispBehavior.strike();
             this.events.dispatchEvent(Events.WISP_CONTACT, {});
+
+            // Shove the player away from the Wisp. Whether that's dangerous depends
+            // entirely on what's underfoot in that direction -- no separate "near a void
+            // edge" check needed: if the shove carries the player onto a void tile, the
+            // existing fall system just takes over from there (see Controller.applyKnockback).
+            const dx = this.camera.position.x - wisp.position.x;
+            const dz = this.camera.position.z - wisp.position.z;
+            const dist = Math.sqrt(dx * dx + dz * dz) || 1;
+            this._controller.applyKnockback(new Vector3D(dx / dist, 0, dz / dist));
           },
         }),
       );
@@ -207,6 +216,7 @@ export class App extends SmallWorld {
       audio: this.audio,
       moveSpeed: 6.0,
       voidZones: [{ minX: -100, maxX: 200, minZ: -200, maxZ: 100 }], // Big fallback void zone
+      floorHeight: builder.height,
     });
     this.camera.addBehavior(this._controller);
 
