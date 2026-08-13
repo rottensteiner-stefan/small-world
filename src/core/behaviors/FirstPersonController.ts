@@ -16,8 +16,10 @@ export interface FirstPersonControllerOptions {
   rotationSpeed?: number;
   /** Whether collisions are enabled. Requires a Scene reference. */
   enableCollision?: boolean;
-  /** The radius of the collision sphere. Defaults to 0.5. */
+  /** The radius of the collision sphere. Defaults to 0.7. */
   collisionRadius?: number;
+  /** The resting height of the camera above the floor. Defaults to 0.2 (legacy behavior). */
+  eyeHeight?: number;
   /** The scene to check for collisions. */
   scene?: Scene;
   /** Enable classic retro tank controls (turning with A/D) vs modern strafing. Defaults to true. */
@@ -55,6 +57,7 @@ export class FirstPersonController extends Behavior {
       rotationSpeed: options.rotationSpeed ?? 2.0,
       enableCollision: options.enableCollision ?? !!options.scene,
       collisionRadius: options.collisionRadius ?? 0.7,
+      eyeHeight: options.eyeHeight ?? 0.2,
       scene: options.scene,
       retroTankControls: options.retroTankControls ?? true,
       input: options.input as InputInterface,
@@ -159,7 +162,12 @@ export class FirstPersonController extends Behavior {
 
     // 4. Resolve Collisions
     if (true === this._options.enableCollision && undefined !== this._options.scene) {
-      resolveSphereCollisions(this._collider, this.target, this._options.scene);
+      resolveSphereCollisions(
+        this._collider,
+        this.target,
+        this._options.scene,
+        this._options.eyeHeight,
+      );
     }
   }
 }

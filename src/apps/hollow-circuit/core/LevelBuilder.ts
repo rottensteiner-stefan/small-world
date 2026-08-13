@@ -22,7 +22,8 @@ export class LevelBuilder {
   public build(
     scene: Scene,
     maze: MazeGenerator,
-    structureMat: AbstractMaterial,
+    wallMat: AbstractMaterial,
+    floorMat: AbstractMaterial,
     seamMat: AbstractMaterial,
     frostglassMat: FrostglassMaterial,
     ledMat: AbstractMaterial,
@@ -31,7 +32,11 @@ export class LevelBuilder {
     const cubeGeo = new Cube({ size: 1 }).getGeometryData();
 
     const wallMatrices: Matrix4[] = [];
+    // Floor-facing-up and ceiling-facing-down plates get their own arrays/material now (a
+    // tread-plate floor reads distinctly from the wall/ceiling panelling) -- they used to
+    // share one "structure" array+material with the walls.
     const floorMatrices: Matrix4[] = [];
+    const ceilingMatrices: Matrix4[] = [];
     const seamMatrices: Matrix4[] = [];
     const ledMatrices: Matrix4[] = [];
     const shortcutSeamMatrices: Matrix4[] = [];
@@ -165,7 +170,7 @@ export class LevelBuilder {
               new Vector3D(),
               new Vector3D(this._scale, this._floorThickness, this._scale),
             );
-            floorMatrices.push(cm);
+            ceilingMatrices.push(cm);
             addCollisionBox(
               this._scale,
               this._floorThickness,
@@ -309,7 +314,7 @@ export class LevelBuilder {
               new Vector3D(),
               new Vector3D(this._scale, this._floorThickness, this._scale),
             );
-            floorMatrices.push(cm);
+            ceilingMatrices.push(cm);
             addCollisionBox(
               this._scale,
               this._floorThickness,
@@ -323,8 +328,9 @@ export class LevelBuilder {
       }
     }
 
-    addInstanced("InstancedWalls", structureMat, wallMatrices);
-    addInstanced("InstancedFloors", structureMat, floorMatrices);
+    addInstanced("InstancedWalls", wallMat, wallMatrices);
+    addInstanced("InstancedFloors", floorMat, floorMatrices);
+    addInstanced("InstancedCeilings", wallMat, ceilingMatrices);
     addInstanced("InstancedSeams", seamMat, seamMatrices);
     addInstanced("InstancedFrostglassLeds", ledMat, ledMatrices);
     addInstanced("InstancedShortcutSeams", shortcutSeamMat, shortcutSeamMatrices);

@@ -2,6 +2,7 @@ import { SmallWorld, Object3D } from "../../core/index.js";
 import { AmbientLight, PointLight } from "../../core/lights/index.js";
 import { Color } from "../../core/colors/index.js";
 import { StandardMaterial, FrostglassMaterial } from "../../core/materials/index.js";
+import { Texture } from "../../core/textures/index.js";
 import {
   RotatorBehavior,
   BobbingBehavior,
@@ -27,7 +28,6 @@ import { LevelBuilder } from "./core/LevelBuilder.js";
 import { CellType } from "./enums/CellType.js";
 
 /** Palette pulled straight from the concept dossier, kept as one source of truth. */
-const VOID = new Color(0.07, 0.07, 0.09);
 const CIRCUIT_VIOLET = new Color(0.54, 0.42, 1.0);
 const DANGER_AMBER = new Color(1.0, 0.51, 0.26);
 const FROSTGLASS = new Color(0.66, 0.77, 0.85);
@@ -54,6 +54,10 @@ const CONTACT_RADIUS = 1.5;
 export class App extends SmallWorld {
   private _controller!: Controller;
   private _hud!: Hud;
+  /** Follows the camera every frame (see update()) -- the "torch" that actually lights
+   *  whatever corridor the player is standing in, since the seam network only glows
+   *  itself and never bounces light onto neighboring geometry. */
+  private _playerLight!: PointLight;
 
   constructor() {
     super({ fullscreen: true, enableInspector: true });
@@ -65,12 +69,72 @@ export class App extends SmallWorld {
     this.camera.setStrategy(CameraStrategyType.FPS);
     this.camera.phi = 0;
 
-    // "Black, lit only by its own wiring" is the intended look, but too little ambient
-    // reads as an unlit void rather than a dark corridor -- this is a first pass at the
-    // balance, not a final value.
-    this.scene.add(new AmbientLight({ color: new Color(0.4, 0.42, 0.5), intensity: 0.28 }));
+    // Ambient alone can't carry this: PointLight is hard-capped at 4 lights scene-wide
+    // (see PointLight.applyTo and the WebGL u_pointLights[4] uniform array), so area
+    // lighting can't scale with the maze -- pushing ambient higher is the only lever
+    // that reaches every corridor uniformly. The player-carried light below (one of the
+    // 4 slots) does the rest of the work of making nearby surfaces actually readable.
+    this.scene.add(new AmbientLight({ color: new Color(0.42, 0.4, 0.5), intensity: 0.5 }));
 
-    const structureMat = new StandardMaterial({ color: VOID, roughness: 0.85, metallic: 0.1 });
+    // Anisotropic filtering matters here specifically: both sets below are repeating
+    // high-frequency patterns seen at a near-grazing angle right in front of the player --
+    // without it, that combination aliases into a moire/checkerboard pattern instead of
+    // blurring smoothly.
+    const texOpts = { anisotropy: 8 };
+    const loadPanelSet = async (
+      prefix: string,
+    ): Promise<{
+      diffuse: Texture;
+      normal: Texture;
+      roughness: Texture;
+      metalness: Texture;
+    }> => {
+      const [diffuse, normal, roughness, metalness] = await Promise.all([
+        Texture.fromUrl(`./assets/${prefix}_diffuse.jpg`, texOpts),
+        Texture.fromUrl(`./assets/${prefix}_normal.jpg`, texOpts),
+        Texture.fromUrl(`./assets/${prefix}_roughness.jpg`, texOpts),
+        Texture.fromUrl(`./assets/${prefix}_metalness.jpg`, texOpts),
+      ]);
+      // One tile per cell (cells are this._scale-cubed) reads as individual panels rather
+      // than one texture stretched or a busy tiny repeat.
+      for (const tex of [diffuse, normal, roughness, metalness]) {
+        tex.repeat.x = 2;
+        tex.repeat.y = 2;
+      }
+      return { diffuse, normal, roughness, metalness };
+    };
+    const [wallTex, floorTex] = await Promise.all([loadPanelSet("wall"), loadPanelSet("floor")]);
+
+    // Base roughness/metallic multipliers, not the final value -- the shader does
+    // obj.roughness * map.g and obj.metallic * map.b. Applied at full strength (1.0/1.0) a
+    // raw metal scan reads as a near-mirror at grazing angles right under the player light
+    // (a hard, checkerboard-like specular hotspot); toned down so it reads as worn metal.
+    //
+    // A CC0 dark vented metal-panel set (ambientCG "Metal Plates 015 A") stands in for
+    // hand-authored circuit-panel geometry on walls/ceiling -- tinted violet-grey via
+    // `color` (the shader multiplies diffuseMap by this) so it reads as part of the
+    // violet/amber/cyan palette instead of neutral grey.
+    const wallMat = new StandardMaterial({
+      color: new Color(0.55, 0.5, 0.62),
+      diffuseMap: wallTex.diffuse,
+      normalMap: wallTex.normal,
+      roughnessMap: wallTex.roughness,
+      metallicMap: wallTex.metalness,
+      roughness: 1.3,
+      metallic: 0.4,
+    });
+    // A separate diamond tread-plate set (ambientCG "Diamond Plate 009") for the floor only
+    // -- underfoot reading as distinct from the wall/ceiling panelling, the way a real
+    // corridor's floor plating differs from its wall cladding.
+    const floorMat = new StandardMaterial({
+      color: new Color(0.5, 0.42, 0.56),
+      diffuseMap: floorTex.diffuse,
+      normalMap: floorTex.normal,
+      roughnessMap: floorTex.roughness,
+      metallicMap: floorTex.metalness,
+      roughness: 1.3,
+      metallic: 0.4,
+    });
     const seamMat = new StandardMaterial({
       color: CIRCUIT_VIOLET,
       emissiveColor: CIRCUIT_VIOLET,
@@ -117,7 +181,16 @@ export class App extends SmallWorld {
     maze.generate();
 
     const builder = new LevelBuilder();
-    builder.build(this.scene, maze, structureMat, seamMat, frostglassMat, ledMat, shortcutSeamMat);
+    builder.build(
+      this.scene,
+      maze,
+      wallMat,
+      floorMat,
+      seamMat,
+      frostglassMat,
+      ledMat,
+      shortcutSeamMat,
+    );
 
     const getRandomFloorPosition = (floorIndex: number): Vector3D => {
       let tries = 0;
@@ -175,8 +248,10 @@ export class App extends SmallWorld {
         }),
       );
       scene.add(wisp);
-      const wispLight = new PointLight({ color: DANGER_AMBER, intensity: 2.0, distance: 4.0 });
-      wisp.add(wispLight);
+      // No per-Wisp PointLight: PointLight is hard-capped at 4 lights scene-wide (see the
+      // comment on the AmbientLight above), and 6 Wisps would already blow that budget by
+      // itself. The emissive amber material plus bloom is enough to read as a glowing
+      // threat up close -- the budget is spent on the player light and the Exfil beacon.
     }
 
     // --- Randomly place Flux Discs ---
@@ -261,12 +336,22 @@ export class App extends SmallWorld {
 
     const spawnPoint = maze.getSpawnPoint(builder.scale);
     this.camera.position.copyFrom(spawnPoint);
+
+    // The "torch": Camera has no scene-graph parenting (unlike Object3D), so it can't just
+    // .add() a light the way the Wisp/Exfil objects do above -- instead this is a free-standing
+    // light whose position is copied from the camera every frame in update(). Short falloff on
+    // purpose: this reveals the corridor immediately around the player, it isn't a floodlight.
+    this._playerLight = new PointLight({ color: CIRCUIT_VIOLET, intensity: 2.2, distance: 7.0 });
+    this._playerLight.position.copyFrom(spawnPoint);
+    scene.add(this._playerLight);
+
     this._controller = new Controller(this.events, {
       scene,
       spawnPoint,
       input: this.input,
       audio: this.audio,
       moveSpeed: 6.0,
+      eyeHeight: 1.6,
       voidZones: [{ minX: -100, maxX: 200, minZ: -200, maxZ: 100 }], // Big fallback void zone
       floorHeight: builder.height,
     });
@@ -300,7 +385,7 @@ export class App extends SmallWorld {
       const bloom = this.renderer.postProcessing.get<BloomElement>(PostProcessingEffectType.BLOOM);
       if (bloom) {
         bloom.enabled = true;
-        bloom.intensity = 0.6;
+        bloom.intensity = 0.75;
         bloom.threshold = 0.7;
       }
     }
@@ -338,6 +423,9 @@ export class App extends SmallWorld {
   protected override update(_deltaTime: number): void {
     if (this._hud && this._controller) {
       this._hud.update(this._controller.clarityCharges, 3);
+    }
+    if (this._playerLight) {
+      this._playerLight.position.copyFrom(this.camera.position);
     }
     this.audio.updateListener(this.camera);
   }

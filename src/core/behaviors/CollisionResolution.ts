@@ -15,11 +15,15 @@ export function resolveSphereCollisions(
   collider: BoundingSphere | undefined,
   target: (Object3D | CameraInterfaceData) | undefined,
   scene: Scene | undefined,
+  eyeHeight: number = 0.2, // Default resting height from old hardcoded +0.5 / r=0.7 logic
 ): void {
   if (!scene || !target || !collider) return;
 
   collider.center.copyFrom(target.position);
-  collider.center.y += 0.5; // Offset slightly up
+  // If the target is at eyeHeight, the sphere should rest exactly on the floor.
+  // sphere bottom = center.y - radius = 0
+  // center.y = target.position.y - eyeHeight + radius
+  collider.center.y = target.position.y - eyeHeight + collider.radius;
 
   _scratchHits.length = 0;
   if (scene.staticOctree) scene.staticOctree.queryVolume(collider, _scratchHits);
