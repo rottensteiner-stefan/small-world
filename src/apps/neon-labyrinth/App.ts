@@ -28,7 +28,7 @@ import { LevelBuilder } from "./core/LevelBuilder.js";
 import { CellType } from "./enums/CellType.js";
 
 /** Palette pulled straight from the concept dossier, kept as one source of truth. */
-const CIRCUIT_VIOLET = new Color(0.54, 0.42, 1.0);
+const NEON_VIOLET = new Color(0.54, 0.42, 1.0);
 const DANGER_AMBER = new Color(1.0, 0.51, 0.26);
 const FROSTGLASS = new Color(0.66, 0.77, 0.85);
 const SHORTCUT_CYAN = new Color(0.25, 0.85, 0.9);
@@ -37,7 +37,7 @@ const SHORTCUT_CYAN = new Color(0.25, 0.85, 0.9);
 const CONTACT_RADIUS = 1.5;
 
 /**
- * Hollow Circuit -- first vertical slice.
+ * Neon Labyrinth -- first vertical slice.
  *
  * Deliberately small: a procedurally generated multi-floor maze, a handful of
  * Frostglass panels per floor (each a dedicated FrostglassMaterial instance doing
@@ -140,8 +140,8 @@ export class App extends SmallWorld {
       metallic: 0.4,
     });
     const seamMat = new StandardMaterial({
-      color: CIRCUIT_VIOLET,
-      emissiveColor: CIRCUIT_VIOLET,
+      color: NEON_VIOLET,
+      emissiveColor: NEON_VIOLET,
       emissiveIntensity: 3.2,
       roughness: 0.4,
     });
@@ -167,8 +167,8 @@ export class App extends SmallWorld {
     // Brighter and glossier than the ordinary seamMat -- reads as a dedicated fixture
     // uplighting a Frostglass panel from below, not just more of the ambient wiring.
     const ledMat = new StandardMaterial({
-      color: CIRCUIT_VIOLET,
-      emissiveColor: CIRCUIT_VIOLET,
+      color: NEON_VIOLET,
+      emissiveColor: NEON_VIOLET,
       emissiveIntensity: 6.0,
       roughness: 0.2,
     });
@@ -348,7 +348,7 @@ export class App extends SmallWorld {
     // isn't a floodlight. SpotLight (not PointLight) so the cone actually points where the
     // player is looking, instead of lighting both walls of a corner uniformly.
     this._playerLight = new SpotLight({
-      color: CIRCUIT_VIOLET,
+      color: NEON_VIOLET,
       intensity: 2.2,
       distance: 7.0,
       angle: Math.PI / 6,
@@ -450,5 +450,5 @@ export class App extends SmallWorld {
 
 if (typeof window !== "undefined") {
   const app = new App();
-  app.start().catch((err: unknown) => console.error("[HollowCircuit] Failed to start:", err));
+  app.start().catch((err: unknown) => console.error("[NeonLabyrinth] Failed to start:", err));
 }

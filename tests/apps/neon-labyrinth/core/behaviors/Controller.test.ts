@@ -1,6 +1,6 @@
-import { Controller } from "../../../../../src/apps/hollow-circuit/core/behaviors/Controller.js";
-import { ObjectTags } from "../../../../../src/apps/hollow-circuit/enums/ObjectTags.js";
-import { Events } from "../../../../../src/apps/hollow-circuit/Events.js";
+import { Controller } from "../../../../../src/apps/neon-labyrinth/core/behaviors/Controller.js";
+import { ObjectTags } from "../../../../../src/apps/neon-labyrinth/enums/ObjectTags.js";
+import { Events } from "../../../../../src/apps/neon-labyrinth/Events.js";
 import { Object3D } from "../../../../../src/core/Object3D.js";
 import { Scene } from "../../../../../src/core/Scene.js";
 import { EventDispatcherImpl } from "../../../../../src/core/events/EventDispatcherImpl.js";
@@ -43,7 +43,7 @@ class MockInput implements InputInterface {
   }
 }
 
-describe("Hollow Circuit Controller", () => {
+describe("Neon Labyrinth Controller", () => {
   it("falls inside a VoidZone and respawns once it drops past FALL_RESET_DEPTH", () => {
     const scene = new Scene();
     const events = new EventDispatcherImpl();

@@ -1,5 +1,5 @@
 /**
- * Typed tags for identifying Hollow Circuit gameplay objects via `Object3D.tag`,
+ * Typed tags for identifying Neon Labyrinth gameplay objects via `Object3D.tag`,
  * used instead of matching on `Object3D.name` prefixes.
  */
 export const ObjectTags = {

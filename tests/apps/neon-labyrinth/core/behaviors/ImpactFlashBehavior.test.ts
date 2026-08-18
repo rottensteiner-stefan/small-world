@@ -1,4 +1,4 @@
-import { ImpactFlashBehavior } from "../../../../../src/apps/hollow-circuit/core/behaviors/ImpactFlashBehavior.js";
+import { ImpactFlashBehavior } from "../../../../../src/apps/neon-labyrinth/core/behaviors/ImpactFlashBehavior.js";
 import { Object3D } from "../../../../../src/core/Object3D.js";
 import { Scene } from "../../../../../src/core/Scene.js";
 import { StandardMaterial } from "../../../../../src/core/materials/StandardMaterial.js";

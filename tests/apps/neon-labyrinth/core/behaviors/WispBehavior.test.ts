@@ -1,4 +1,4 @@
-import { WispBehavior } from "../../../../../src/apps/hollow-circuit/core/behaviors/WispBehavior.js";
+import { WispBehavior } from "../../../../../src/apps/neon-labyrinth/core/behaviors/WispBehavior.js";
 import { Object3D } from "../../../../../src/core/Object3D.js";
 import { StandardMaterial } from "../../../../../src/core/materials/StandardMaterial.js";
 import { Color } from "../../../../../src/core/colors/Color.js";

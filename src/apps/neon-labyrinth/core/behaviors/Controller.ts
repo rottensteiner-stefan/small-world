@@ -51,7 +51,7 @@ const WISP_KNOCKBACK_SPEED = 9.0;
 const KNOCKBACK_DECAY = 6.0;
 
 /**
- * The Hollow Circuit player controller: retro tank-style movement (W/S forward-back,
+ * The Neon Labyrinth player controller: retro tank-style movement (W/S forward-back,
  * A/D turn, same as YAD -- no strafing, FirstPersonController doesn't have any in tank
  * mode) plus Clarity Pulse and falling through undefended VoidZones. Disc pickup and
  * Wisp contact are NOT handled here -- they're `ProximitySensorBehavior`s attached
@@ -144,9 +144,9 @@ export class Controller extends FirstPersonController {
       if (this._godMode) {
         this._isFalling = false;
         this._fallVelocityY = 0;
-        console.log("[HollowCircuit] God Mode ENABLED: Collision off, use Q/E to fly up/down.");
+        console.log("[NeonLabyrinth] God Mode ENABLED: Collision off, use Q/E to fly up/down.");
       } else {
-        console.log("[HollowCircuit] God Mode DISABLED.");
+        console.log("[NeonLabyrinth] God Mode DISABLED.");
       }
     }
     this._wasGPressed = isGPressed;

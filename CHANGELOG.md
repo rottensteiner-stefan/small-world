@@ -5,14 +5,14 @@
 ### "The details are not the details. They make the design." - Charles Eames
 
 - **Features:**
-  - **Hollow Circuit:** Wired sound/camera juice into every existing hazard event. A Wisp strike or a hard fall now shakes the camera and plays a harsh procedural tone; a successful Void Catch or reaching the Exfil point flashes the camera and plays a rising chime; Disc pickup gets a light blip; an ambient drone now starts on first click. `Camera.applyEffect` (shake/flash) and `AudioSystem.playTone`/`startDrone` already existed in the engine but had never been called by any app before this. This closes the full 7-item gap list from the original concept-dossier review.
+  - **Neon Labyrinth:** Wired sound/camera juice into every existing hazard event. A Wisp strike or a hard fall now shakes the camera and plays a harsh procedural tone; a successful Void Catch or reaching the Exfil point flashes the camera and plays a rising chime; Disc pickup gets a light blip; an ambient drone now starts on first click. `Camera.applyEffect` (shake/flash) and `AudioSystem.playTone`/`startDrone` already existed in the engine but had never been called by any app before this. This closes the full 7-item gap list from the original concept-dossier review.
 
 ## [0.74.8] - 2026-08-10
 
 ### "It is good to have an end to journey toward; but it is the journey that matters, in the end." - Ursula K. Le Guin
 
 - **Features:**
-  - **Hollow Circuit:** Added a real Exfil point — a goal beacon placed on the maze's top floor (`MazeGenerator.getExfilPoint`), reached the same way as a Disc. Reaching it fires `EXFIL_REACHED` and shows an "Extraction Complete" HUD overlay. The app had no win condition before this — only collecting Discs and surviving.
+  - **Neon Labyrinth:** Added a real Exfil point — a goal beacon placed on the maze's top floor (`MazeGenerator.getExfilPoint`), reached the same way as a Disc. Reaching it fires `EXFIL_REACHED` and shows an "Extraction Complete" HUD overlay. The app had no win condition before this — only collecting Discs and surviving.
 - **Housekeeping & Docs:**
   - **Tests:** Added a `MazeGenerator` test for `getExfilPoint`.
 
@@ -21,9 +21,9 @@
 ### "Two roads diverged in a yellow wood, and sorry I could not travel both." - Robert Frost
 
 - **Features:**
-  - **Hollow Circuit:** Added Maze Flow's real route choice — carving now knocks down the single wall that saves the most path length between two floor cells, turning the perfect maze into one with a genuine shortcut. The original long way stays intact and ordinarily violet-lit; the new opening (`CellType.FLOOR_SHORTCUT`) is flanked by Frostglass panels where possible and rendered with a distinct cyan seam, reading as riskier because it's dim and see-through rather than brightly lit.
+  - **Neon Labyrinth:** Added Maze Flow's real route choice — carving now knocks down the single wall that saves the most path length between two floor cells, turning the perfect maze into one with a genuine shortcut. The original long way stays intact and ordinarily violet-lit; the new opening (`CellType.FLOOR_SHORTCUT`) is flanked by Frostglass panels where possible and rendered with a distinct cyan seam, reading as riskier because it's dim and see-through rather than brightly lit.
 - **Architecture & Bugfixes:**
-  - **Hollow Circuit LevelBuilder:** `build()` now takes a `shortcutSeamMat` and renders a `FLOOR_SHORTCUT` cell's own seams in it instead of the ordinary violet seam, still deferring to the brighter LED strip wherever the neighbor is a Frostglass panel.
+  - **Neon Labyrinth LevelBuilder:** `build()` now takes a `shortcutSeamMat` and renders a `FLOOR_SHORTCUT` cell's own seams in it instead of the ordinary violet seam, still deferring to the brighter LED strip wherever the neighbor is a Frostglass panel.
 - **Housekeeping & Docs:**
   - **Tests:** Added `MazeGenerator` tests covering shortcut placement and Frostglass flanking.
 
@@ -32,9 +32,9 @@
 ### "The wound is the place where the Light enters you." - Rumi
 
 - **Features:**
-  - **Hollow Circuit:** Added Impact Trace — a handful of small emissive shards flash and fade near the point of a Wisp strike or a hard fall reset, giving both hazards real visual feedback for the first time.
+  - **Neon Labyrinth:** Added Impact Trace — a handful of small emissive shards flash and fade near the point of a Wisp strike or a hard fall reset, giving both hazards real visual feedback for the first time.
 - **Architecture & Bugfixes:**
-  - **Hollow Circuit:** Added `ImpactFlashBehavior`, a short-lived per-object fade-and-self-remove behavior. Uses individual `Object3D` shards rather than the shared `InstancedSeams` mesh, since that mesh's one per-instance data channel is already used for texture-atlas indexing across all three renderer backends, not emissive/color control.
+  - **Neon Labyrinth:** Added `ImpactFlashBehavior`, a short-lived per-object fade-and-self-remove behavior. Uses individual `Object3D` shards rather than the shared `InstancedSeams` mesh, since that mesh's one per-instance data channel is already used for texture-atlas indexing across all three renderer backends, not emissive/color control.
 - **Housekeeping & Docs:**
   - **Tests:** Added a test covering `ImpactFlashBehavior`'s fade-and-removal lifecycle.
 
@@ -43,11 +43,11 @@
 ### "For every action, there is an equal and opposite reaction." - Isaac Newton
 
 - **Features:**
-  - **Hollow Circuit:** Added the Void Catch skill move — a fall through a void tile can be caught with a well-timed Clarity Pulse input (Bloomsight), landing the player exactly one floor down instead of continuing to a full respawn. Ground-floor voids have nothing beneath them and stay an unrecoverable hazard.
-  - **Hollow Circuit:** Wisp contact now shoves the player away with decaying momentum instead of doing nothing. Whether that's dangerous depends entirely on what's underfoot in the push direction — the shove couples directly into the existing fall/Void Catch system with no separate "near an edge" logic needed.
+  - **Neon Labyrinth:** Added the Void Catch skill move — a fall through a void tile can be caught with a well-timed Clarity Pulse input (Bloomsight), landing the player exactly one floor down instead of continuing to a full respawn. Ground-floor voids have nothing beneath them and stay an unrecoverable hazard.
+  - **Neon Labyrinth:** Wisp contact now shoves the player away with decaying momentum instead of doing nothing. Whether that's dangerous depends entirely on what's underfoot in the push direction — the shove couples directly into the existing fall/Void Catch system with no separate "near an edge" logic needed.
 - **Architecture & Bugfixes:**
-  - **Hollow Circuit Controller:** Fixed a severe bug where fall velocity accumulated unbounded every frame even while standing on solid ground (the "big fallback void zone" covers the whole map and never reset), eventually tunneling the player through floor plates and silently resetting them to spawn every few seconds. Grounding is now detected via the collision system's own upward correction.
-  - **Hollow Circuit Controller:** Fixed the `E` key being double-bound to both God Mode vertical flight and Clarity Pulse, which could fire a wasted pulse attempt while flying.
+  - **Neon Labyrinth Controller:** Fixed a severe bug where fall velocity accumulated unbounded every frame even while standing on solid ground (the "big fallback void zone" covers the whole map and never reset), eventually tunneling the player through floor plates and silently resetting them to spawn every few seconds. Grounding is now detected via the collision system's own upward correction.
+  - **Neon Labyrinth Controller:** Fixed the `E` key being double-bound to both God Mode vertical flight and Clarity Pulse, which could fire a wasted pulse attempt while flying.
 - **Housekeeping & Docs:**
   - **Tests:** Added 8 new Controller tests covering the fall/tunneling regression, Void Catch success/failure paths, knockback decay, and God Mode blocking knockback.
 
@@ -56,10 +56,10 @@
 ### "There is a crack in everything, that's how the light gets in." - Leonard Cohen
 
 - **Features:**
-  - **Hollow Circuit:** Built actual Frostglass chambers into the procedurally generated maze — five wall cells bordering a floor per floor are converted to `CellType.WALL_FROSTGLASS` and rendered as individually-tagged panels, each with its own `FrostglassMaterial` instance, giving the Controller's existing Clarity Pulse mechanic real geometry to reveal. Added a matching LED strip treatment where seam edges touching a Frostglass panel light up brighter than ordinary wiring.
+  - **Neon Labyrinth:** Built actual Frostglass chambers into the procedurally generated maze — five wall cells bordering a floor per floor are converted to `CellType.WALL_FROSTGLASS` and rendered as individually-tagged panels, each with its own `FrostglassMaterial` instance, giving the Controller's existing Clarity Pulse mechanic real geometry to reveal. Added a matching LED strip treatment where seam edges touching a Frostglass panel light up brighter than ordinary wiring.
 - **Architecture & Bugfixes:**
   - **FrostglassMaterial:** Added `clone()` so each panel can animate its own Clarity Pulse reveal independently instead of sharing state with every other panel.
-  - **Hollow Circuit LevelBuilder:** Fixed a seam-strip bug where only two of each floor cell's four boundary edges were ever drawn, leaving every corridor missing light on two of its four wall-adjacent edges.
+  - **Neon Labyrinth LevelBuilder:** Fixed a seam-strip bug where only two of each floor cell's four boundary edges were ever drawn, leaving every corridor missing light on two of its four wall-adjacent edges.
 - **Housekeeping & Docs:**
   - **Tooling:** Added `allowScripts` npm allowlist entries for `puppeteer`, `esbuild`, and `fsevents`.
 
@@ -97,7 +97,7 @@
 ### "Talk is cheap. Show me the code." - Linus Torvalds
 
 - **Features:**
-  - **New App Showcase:** Added a completely new showcase app, `Hollow Circuit`.
+  - **New App Showcase:** Added a completely new showcase app, `Neon Labyrinth`.
   - **Raycaster & Selection:** Implemented `Ray.intersectsSphere` and updated `Raycaster` to support picking and selecting sphere-bounded objects. `GadgetInspector` now properly highlights selected spherical bounds.
 - **Architecture & Bugfixes:**
   - **GadgetInspector:** Optimized scene overview tree to refresh on a throttled interval rather than every frame, massively improving performance in dense scenes.

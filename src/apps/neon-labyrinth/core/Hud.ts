@@ -4,7 +4,7 @@ import { EventDispatcherImpl } from "../../../core/index.js";
 /**
  * The whole HUD, per the "HUD Concept" sketch: Clarity Pulse charge pips
  * (bottom-left) and a running Disc count (bottom-right). No health bar --
- * nothing in Hollow Circuit needs one yet.
+ * nothing in Neon Labyrinth needs one yet.
  */
 export class Hud {
   private _container: HTMLDivElement;
@@ -14,9 +14,9 @@ export class Hud {
   private _exfilEl: HTMLDivElement;
 
   constructor(private events: EventDispatcherImpl) {
-    if (!document.getElementById("hollow-circuit-hud-style")) {
+    if (!document.getElementById("neon-labyrinth-hud-style")) {
       const style = document.createElement("style");
-      style.id = "hollow-circuit-hud-style";
+      style.id = "neon-labyrinth-hud-style";
       style.textContent = `
         .hc-hud {
           position: absolute;

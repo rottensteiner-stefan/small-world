@@ -1,5 +1,5 @@
-import { MazeGenerator } from "../../../../src/apps/hollow-circuit/core/MazeGenerator.js";
-import { CellType } from "../../../../src/apps/hollow-circuit/enums/CellType.js";
+import { MazeGenerator } from "../../../../src/apps/neon-labyrinth/core/MazeGenerator.js";
+import { CellType } from "../../../../src/apps/neon-labyrinth/enums/CellType.js";
 
 describe("MazeGenerator", () => {
   it("adds at least one FLOOR_SHORTCUT cell per floor to create a real route choice", () => {
