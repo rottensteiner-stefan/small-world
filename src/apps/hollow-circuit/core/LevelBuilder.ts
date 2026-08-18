@@ -31,6 +31,12 @@ export class LevelBuilder {
   ): void {
     const cubeGeo = new Cube({ size: 1 }).getGeometryData();
 
+    // Seam strips are embedded in the top half of the floor slab and the bottom half of the
+    // ceiling slab (see below), so their outer face lands exactly coplanar with the slab's own
+    // face -- a textbook z-fighting setup that flickers per-pixel depending on camera angle.
+    // Lifting the seam a hair clear of that shared plane removes the ambiguity.
+    const seamLift = 0.004;
+
     const wallMatrices: Matrix4[] = [];
     // Floor-facing-up and ceiling-facing-down plates get their own arrays/material now (a
     // tread-plate floor reads distinctly from the wall/ceiling panelling) -- they used to
@@ -164,23 +170,33 @@ export class LevelBuilder {
             floorMatrices.push(fm);
             addCollisionBox(this._scale, this._floorThickness, this._scale, wx, yOffset, wz);
 
-            const cm = new Matrix4();
-            cm.compose(
-              new Vector3D(wx, yOffset + this._height, wz),
-              new Vector3D(),
-              new Vector3D(this._scale, this._floorThickness, this._scale),
-            );
-            ceilingMatrices.push(cm);
-            addCollisionBox(
-              this._scale,
-              this._floorThickness,
-              this._scale,
-              wx,
-              yOffset + this._height,
-              wz,
-            );
+            // RAMP_UP_* cells must NOT get a ceiling here: the maze generator already punched a
+            // matching HOLE in this same (x,z) column one floor up (see MazeGenerator._addRamps),
+            // and a solid ceiling slab drawn over the ramp's own base would seal that opening back
+            // up -- the ramp would climb straight into it instead of reaching the floor above.
+            if (type === CellType.FLOOR || type === CellType.FLOOR_SHORTCUT) {
+              const cm = new Matrix4();
+              cm.compose(
+                new Vector3D(wx, yOffset + this._height, wz),
+                new Vector3D(),
+                new Vector3D(this._scale, this._floorThickness, this._scale),
+              );
+              ceilingMatrices.push(cm);
+              addCollisionBox(
+                this._scale,
+                this._floorThickness,
+                this._scale,
+                wx,
+                yOffset + this._height,
+                wz,
+              );
+            }
 
             const seamW = 0.1;
+            // Ceiling-height seams would float in mid-air over a RAMP_UP_* cell's now-open
+            // shaft (see the skipped ceiling slab above) -- only draw them where there's an
+            // actual ceiling for them to sit against.
+            const hasCeiling = type === CellType.FLOOR || type === CellType.FLOOR_SHORTCUT;
 
             // This cell always draws its own -z/-x edges (the +z/+x neighbor, if any,
             // draws the shared edge on its own -z/-x pass instead -- see below). Whichever
@@ -190,35 +206,47 @@ export class LevelBuilder {
             const southArr = pickSeamArray(type, southNeighbor);
             const sm = new Matrix4();
             sm.compose(
-              new Vector3D(wx, yOffset + 0.05, wz - this._scale / 2 + 0.1),
+              new Vector3D(wx, yOffset + 0.05 + seamLift, wz - this._scale / 2 + 0.1),
               new Vector3D(),
               new Vector3D(this._scale, 0.1, seamW),
             );
             southArr.push(sm);
-            const csm = new Matrix4();
-            csm.compose(
-              new Vector3D(wx, yOffset + this._height - 0.05, wz - this._scale / 2 + 0.1),
-              new Vector3D(),
-              new Vector3D(this._scale, 0.1, seamW),
-            );
-            southArr.push(csm);
+            if (hasCeiling) {
+              const csm = new Matrix4();
+              csm.compose(
+                new Vector3D(
+                  wx,
+                  yOffset + this._height - 0.05 - seamLift,
+                  wz - this._scale / 2 + 0.1,
+                ),
+                new Vector3D(),
+                new Vector3D(this._scale, 0.1, seamW),
+              );
+              southArr.push(csm);
+            }
 
             const westNeighbor = x > 0 ? maze.grid[f]![z]![x - 1]! : CellType.WALL;
             const westArr = pickSeamArray(type, westNeighbor);
             const sm2 = new Matrix4();
             sm2.compose(
-              new Vector3D(wx - this._scale / 2 + 0.1, yOffset + 0.05, wz),
+              new Vector3D(wx - this._scale / 2 + 0.1, yOffset + 0.05 + seamLift, wz),
               new Vector3D(),
               new Vector3D(seamW, 0.1, this._scale),
             );
             westArr.push(sm2);
-            const csm2 = new Matrix4();
-            csm2.compose(
-              new Vector3D(wx - this._scale / 2 + 0.1, yOffset + this._height - 0.05, wz),
-              new Vector3D(),
-              new Vector3D(seamW, 0.1, this._scale),
-            );
-            westArr.push(csm2);
+            if (hasCeiling) {
+              const csm2 = new Matrix4();
+              csm2.compose(
+                new Vector3D(
+                  wx - this._scale / 2 + 0.1,
+                  yOffset + this._height - 0.05 - seamLift,
+                  wz,
+                ),
+                new Vector3D(),
+                new Vector3D(seamW, 0.1, this._scale),
+              );
+              westArr.push(csm2);
+            }
 
             // The +z/+x edges are only ever drawn by a FLOOR/RAMP neighbor doing the same on
             // ITS -z/-x side -- so a cell whose +z or +x neighbor is a wall gets no seam
@@ -228,18 +256,24 @@ export class LevelBuilder {
               const northArr = pickSeamArray(type, northNeighbor);
               const nm = new Matrix4();
               nm.compose(
-                new Vector3D(wx, yOffset + 0.05, wz + this._scale / 2 - 0.1),
+                new Vector3D(wx, yOffset + 0.05 + seamLift, wz + this._scale / 2 - 0.1),
                 new Vector3D(),
                 new Vector3D(this._scale, 0.1, seamW),
               );
               northArr.push(nm);
-              const ncm = new Matrix4();
-              ncm.compose(
-                new Vector3D(wx, yOffset + this._height - 0.05, wz + this._scale / 2 - 0.1),
-                new Vector3D(),
-                new Vector3D(this._scale, 0.1, seamW),
-              );
-              northArr.push(ncm);
+              if (hasCeiling) {
+                const ncm = new Matrix4();
+                ncm.compose(
+                  new Vector3D(
+                    wx,
+                    yOffset + this._height - 0.05 - seamLift,
+                    wz + this._scale / 2 - 0.1,
+                  ),
+                  new Vector3D(),
+                  new Vector3D(this._scale, 0.1, seamW),
+                );
+                northArr.push(ncm);
+              }
             }
 
             const eastNeighbor = x < maze.width - 1 ? maze.grid[f]![z]![x + 1]! : CellType.WALL;
@@ -247,18 +281,24 @@ export class LevelBuilder {
               const eastArr = pickSeamArray(type, eastNeighbor);
               const em = new Matrix4();
               em.compose(
-                new Vector3D(wx + this._scale / 2 - 0.1, yOffset + 0.05, wz),
+                new Vector3D(wx + this._scale / 2 - 0.1, yOffset + 0.05 + seamLift, wz),
                 new Vector3D(),
                 new Vector3D(seamW, 0.1, this._scale),
               );
               eastArr.push(em);
-              const ecm = new Matrix4();
-              ecm.compose(
-                new Vector3D(wx + this._scale / 2 - 0.1, yOffset + this._height - 0.05, wz),
-                new Vector3D(),
-                new Vector3D(seamW, 0.1, this._scale),
-              );
-              eastArr.push(ecm);
+              if (hasCeiling) {
+                const ecm = new Matrix4();
+                ecm.compose(
+                  new Vector3D(
+                    wx + this._scale / 2 - 0.1,
+                    yOffset + this._height - 0.05 - seamLift,
+                    wz,
+                  ),
+                  new Vector3D(),
+                  new Vector3D(seamW, 0.1, this._scale),
+                );
+                eastArr.push(ecm);
+              }
             }
 
             if (type !== CellType.FLOOR && type !== CellType.FLOOR_SHORTCUT) {
@@ -266,12 +306,17 @@ export class LevelBuilder {
               let rz = 0;
               let rwx = wx,
                 rwz = wz;
+              // N/S use opposite rx signs from what E/W's rz pattern would suggest: rotating
+              // around X (N/S) lands the high end on the opposite side from rotating around Z
+              // (E/W) at the same offset/rotation sign pairing -- verified numerically against
+              // Matrix4.compose, since MazeGenerator._addRamps validates clearance on the SAME
+              // neighbor (N: z-1, S: z+1) that the ramp must actually climb toward.
               if (type === CellType.RAMP_UP_N) {
-                rx = Math.PI / 4;
-                rwz = wz - this._scale / 2;
-              } else if (type === CellType.RAMP_UP_S) {
                 rx = -Math.PI / 4;
                 rwz = wz + this._scale / 2;
+              } else if (type === CellType.RAMP_UP_S) {
+                rx = Math.PI / 4;
+                rwz = wz - this._scale / 2;
               } else if (type === CellType.RAMP_UP_E) {
                 rz = Math.PI / 4;
                 rwx = wx + this._scale / 2;

@@ -1,5 +1,5 @@
 import { SmallWorld, Object3D } from "../../core/index.js";
-import { AmbientLight, PointLight } from "../../core/lights/index.js";
+import { AmbientLight, PointLight, SpotLight } from "../../core/lights/index.js";
 import { Color } from "../../core/colors/index.js";
 import { StandardMaterial, FrostglassMaterial } from "../../core/materials/index.js";
 import { Texture } from "../../core/textures/index.js";
@@ -56,8 +56,10 @@ export class App extends SmallWorld {
   private _hud!: Hud;
   /** Follows the camera every frame (see update()) -- the "torch" that actually lights
    *  whatever corridor the player is standing in, since the seam network only glows
-   *  itself and never bounces light onto neighboring geometry. */
-  private _playerLight!: PointLight;
+   *  itself and never bounces light onto neighboring geometry. A SpotLight rather than
+   *  a PointLight specifically so the cone points where the player looks, instead of
+   *  spilling evenly onto both walls of a corner regardless of view direction. */
+  private _playerLight!: SpotLight;
 
   constructor() {
     super({ fullscreen: true, enableInspector: true });
@@ -72,8 +74,10 @@ export class App extends SmallWorld {
     // Ambient alone can't carry this: PointLight is hard-capped at 4 lights scene-wide
     // (see PointLight.applyTo and the WebGL u_pointLights[4] uniform array), so area
     // lighting can't scale with the maze -- pushing ambient higher is the only lever
-    // that reaches every corridor uniformly. The player-carried light below (one of the
-    // 4 slots) does the rest of the work of making nearby surfaces actually readable.
+    // that reaches every corridor uniformly. The player-carried torch below is a SpotLight,
+    // which has its own separate 4-slot cap (u_spotLights[4]), so it no longer competes
+    // with Wisp/Exfil PointLights for a slot; it does the rest of the work of making
+    // nearby surfaces actually readable.
     this.scene.add(new AmbientLight({ color: new Color(0.42, 0.4, 0.5), intensity: 0.5 }));
 
     // Anisotropic filtering matters here specifically: both sets below are repeating
@@ -339,10 +343,19 @@ export class App extends SmallWorld {
 
     // The "torch": Camera has no scene-graph parenting (unlike Object3D), so it can't just
     // .add() a light the way the Wisp/Exfil objects do above -- instead this is a free-standing
-    // light whose position is copied from the camera every frame in update(). Short falloff on
-    // purpose: this reveals the corridor immediately around the player, it isn't a floodlight.
-    this._playerLight = new PointLight({ color: CIRCUIT_VIOLET, intensity: 2.2, distance: 7.0 });
+    // light whose position AND direction are copied from the camera every frame in update().
+    // Short falloff on purpose: this reveals the corridor immediately around the player, it
+    // isn't a floodlight. SpotLight (not PointLight) so the cone actually points where the
+    // player is looking, instead of lighting both walls of a corner uniformly.
+    this._playerLight = new SpotLight({
+      color: CIRCUIT_VIOLET,
+      intensity: 2.2,
+      distance: 7.0,
+      angle: Math.PI / 6,
+      penumbra: 0.4,
+    });
     this._playerLight.position.copyFrom(spawnPoint);
+    this._playerLight.direction.copyFrom(this.camera.target).sub(spawnPoint).normalize();
     scene.add(this._playerLight);
 
     this._controller = new Controller(this.events, {
@@ -426,6 +439,10 @@ export class App extends SmallWorld {
     }
     if (this._playerLight) {
       this._playerLight.position.copyFrom(this.camera.position);
+      this._playerLight.direction
+        .copyFrom(this.camera.target)
+        .sub(this.camera.position)
+        .normalize();
     }
     this.audio.updateListener(this.camera);
   }
