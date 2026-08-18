@@ -18,44 +18,44 @@ export class Hud {
       const style = document.createElement("style");
       style.id = "neon-labyrinth-hud-style";
       style.textContent = `
-        .hc-hud {
+        .nl-hud {
           position: absolute;
           inset: 0;
           pointer-events: none;
           font-family: ui-monospace, "SF Mono", "JetBrains Mono", Consolas, monospace;
           z-index: 100;
         }
-        .hc-hud-corner {
+        .nl-hud-corner {
           position: absolute;
           bottom: 18px;
           display: flex;
           align-items: center;
           gap: 8px;
         }
-        .hc-hud-corner.left { left: 18px; }
-        .hc-hud-corner.right { right: 18px; }
-        .hc-pip {
+        .nl-hud-corner.left { left: 18px; }
+        .nl-hud-corner.right { right: 18px; }
+        .nl-pip {
           width: 14px;
           height: 14px;
           clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
           background: rgba(91, 233, 239, 0.15);
           transition: background 0.2s ease;
         }
-        .hc-pip.charged {
+        .nl-pip.charged {
           background: rgba(91, 233, 239, 0.85);
           box-shadow: 0 0 10px rgba(91, 233, 239, 0.7);
         }
-        .hc-hud-label {
+        .nl-hud-label {
           color: rgba(211, 214, 234, 0.6);
           font-size: 11px;
           letter-spacing: 0.05em;
           text-transform: uppercase;
         }
-        .hc-disc-count {
+        .nl-disc-count {
           color: rgba(255, 247, 230, 0.9);
           font-size: 18px;
         }
-        .hc-hud-exfil {
+        .nl-hud-exfil {
           position: absolute;
           inset: 0;
           display: flex;
@@ -65,10 +65,10 @@ export class Hud {
           opacity: 0;
           transition: opacity 0.6s ease;
         }
-        .hc-hud-exfil.visible {
+        .nl-hud-exfil.visible {
           opacity: 1;
         }
-        .hc-hud-exfil-text {
+        .nl-hud-exfil-text {
           font-size: 42px;
           letter-spacing: 0.15em;
           text-transform: uppercase;
@@ -80,28 +80,28 @@ export class Hud {
     }
 
     this._container = document.createElement("div");
-    this._container.className = "hc-hud";
+    this._container.className = "nl-hud";
 
     const left = document.createElement("div");
-    left.className = "hc-hud-corner left";
+    left.className = "nl-hud-corner left";
     for (let i = 0; i < 3; i++) {
       const pip = document.createElement("div");
-      pip.className = "hc-pip charged";
+      pip.className = "nl-pip charged";
       this._pipEls.push(pip);
       left.appendChild(pip);
     }
     const clarityLabel = document.createElement("span");
-    clarityLabel.className = "hc-hud-label";
+    clarityLabel.className = "nl-hud-label";
     clarityLabel.textContent = "CLARITY";
     left.appendChild(clarityLabel);
 
     const right = document.createElement("div");
-    right.className = "hc-hud-corner right";
+    right.className = "nl-hud-corner right";
     this._discCountEl = document.createElement("span");
-    this._discCountEl.className = "hc-disc-count";
+    this._discCountEl.className = "nl-disc-count";
     this._discCountEl.textContent = "0";
     const discLabel = document.createElement("span");
-    discLabel.className = "hc-hud-label";
+    discLabel.className = "nl-hud-label";
     discLabel.textContent = "DISCS";
     right.appendChild(this._discCountEl);
     right.appendChild(discLabel);
@@ -110,9 +110,9 @@ export class Hud {
     this._container.appendChild(right);
 
     this._exfilEl = document.createElement("div");
-    this._exfilEl.className = "hc-hud-exfil";
+    this._exfilEl.className = "nl-hud-exfil";
     const exfilText = document.createElement("span");
-    exfilText.className = "hc-hud-exfil-text";
+    exfilText.className = "nl-hud-exfil-text";
     exfilText.textContent = "Extraction Complete";
     this._exfilEl.appendChild(exfilText);
     this._container.appendChild(this._exfilEl);
