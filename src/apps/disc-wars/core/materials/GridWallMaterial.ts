@@ -80,6 +80,7 @@ void main() {
           "u_impactTime",
           "u_impactUV",
         ],
+        textures: {},
       },
       properties: {
         u_gridColor: gridColor,

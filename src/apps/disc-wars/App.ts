@@ -136,7 +136,7 @@ export class App extends SmallWorld {
     disc.position.set(near.x + 0.6, near.y - 0.2, near.z - 0.8);
     disc.isCollidable = false;
     disc.addBehavior(
-      new EmissivePulseBehavior({ minIntensity: 2.5, maxIntensity: 5.5, speed: 2.0 }),
+      new EmissivePulseBehavior({ baseIntensity: 2.5, pulseAmplitude: 3.0, pulseSpeed: 2.0 }),
     );
     this.scene.add(disc);
   }

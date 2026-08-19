@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.76.4] - 2026-08-19
+
+### "The absence of evidence is not evidence of absence." - Carl Sagan
+
+- **Architecture & Bugfixes:**
+  - **Disc Wars:** Fixed two `tsc` errors introduced with the app: `App.ts` constructed `EmissivePulseBehavior` with a `minIntensity`/`maxIntensity`/`speed` shape that never matched its actual `EmissivePulseOptions` (`baseIntensity`/`pulseAmplitude`/`pulseSpeed`); and `GridWallMaterial`'s `ShaderLayout` was missing the required (if empty) `textures` map, matching every other texture-less `CustomShaderMaterial` layout in the engine.
+
 ## [0.76.3] - 2026-08-19
 
 ### "Small opportunities are often the beginning of great enterprises." - Demosthenes
