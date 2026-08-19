@@ -1,8 +1,11 @@
 import { CustomShaderMaterial } from "../../../../core/materials/CustomShaderMaterial.js";
-import { ShaderPropertyType } from "../../../../enums/index.js";
+import { StandardWebGPULayout } from "../../../../core/renderers/shaders/index.js";
 
 /** Neon-Virus grid line shader — flat emissive panels with pulsing grid seams.
  *  No PBR: depth + emissive only, keeping the flat-stylized aesthetic.
+ *  Reuses the engine's standard vertex pipeline (model/view/projection) and
+ *  ObjectUniforms slots (u_color, u_specColor, u_extraParams) instead of
+ *  hand-rolled uniforms, so it renders correctly on WebGL1/WebGL2/WebGPU alike.
  *  u_impactTime: set to engine time on a Disc wall-hit, drives the shockwave ring. */
 export class GridWallMaterial extends CustomShaderMaterial {
   constructor(
@@ -13,82 +16,102 @@ export class GridWallMaterial extends CustomShaderMaterial {
     super({
       sources: {
         glsl300: {
-          vs: /* glsl */ `#version 300 es
-precision highp float;
+          vs: "[BASE_VERTEX_HEADER][BASE_VERTEX_MAIN]",
+          fs: /* glsl */ `[BASE_FRAGMENT_HEADER]
 
-in vec3 position;
-in vec2 uv;
-
-uniform mat4 u_modelMatrix;
-uniform mat4 u_viewMatrix;
-uniform mat4 u_projectionMatrix;
-
-out vec2 v_uv;
-
-void main() {
-  v_uv = uv;
-  gl_Position = u_projectionMatrix * u_viewMatrix * u_modelMatrix * vec4(position, 1.0);
-}`,
-          fs: /* glsl */ `#version 300 es
-precision highp float;
-
-in vec2 v_uv;
-
-uniform vec3 u_gridColor;
-uniform vec3 u_baseColor;
-uniform float u_lineThickness;
 uniform float u_time;
-uniform float u_impactTime;
-uniform vec2 u_impactUV;
-
-out vec4 fragColor;
 
 void main() {
+  vec3 gridCol = u_color.rgb;
+  vec3 baseCol = u_specColor.rgb;
+  float thickness = u_extraParams.x;
+  float impactTime = u_extraParams.y;
+  vec2 impactUV = u_extraParams.zw;
+
   vec2 grid = abs(fract(v_uv * 4.0) - 0.5);
-  float line = step(0.5 - u_lineThickness, max(grid.x, grid.y));
+  float line = step(0.5 - thickness, max(grid.x, grid.y));
 
   // Shockwave ring expanding from last impact point.
-  float impactAge = u_time - u_impactTime;
+  float impactAge = u_time - impactTime;
   float ring = 0.0;
   if (impactAge < 1.2) {
-    float dist = length(v_uv - u_impactUV);
+    float dist = length(v_uv - impactUV);
     float radius = impactAge * 0.6;
     float ringWidth = 0.04;
     ring = smoothstep(ringWidth, 0.0, abs(dist - radius)) * (1.0 - impactAge / 1.2);
   }
 
   float emissiveBoost = 1.0 + ring * 3.0;
-  vec3 color = mix(u_baseColor, u_gridColor * emissiveBoost, line + ring);
+  vec3 color = mix(baseCol, gridCol * emissiveBoost, line + ring);
   fragColor = vec4(color, 1.0);
 }`,
         },
+        glsl100: {
+          vs: "[BASE_VS]",
+          fs: /* glsl */ `[BASE_FS_HEADER]
+
+uniform float u_time;
+
+void main() {
+  vec3 gridCol = u_color.rgb;
+  vec3 baseCol = u_specColor.rgb;
+  float thickness = u_extraParams.x;
+  float impactTime = u_extraParams.y;
+  vec2 impactUV = u_extraParams.zw;
+
+  vec2 grid = abs(fract(v_uv * 4.0) - 0.5);
+  float line = step(0.5 - thickness, max(grid.x, grid.y));
+
+  float impactAge = u_time - impactTime;
+  float ring = 0.0;
+  if (impactAge < 1.2) {
+    float dist = length(v_uv - impactUV);
+    float radius = impactAge * 0.6;
+    float ringWidth = 0.04;
+    ring = smoothstep(ringWidth, 0.0, abs(dist - radius)) * (1.0 - impactAge / 1.2);
+  }
+
+  float emissiveBoost = 1.0 + ring * 3.0;
+  vec3 color = mix(baseCol, gridCol * emissiveBoost, line + ring);
+  gl_FragColor = vec4(color, 1.0);
+}`,
+        },
+        wgsl: /* wgsl */ `[WGSL_STRUCTS]
+[WGSL_VS]
+
+@fragment fn fs(i: Out) -> @location(0) vec4f {
+  let gridCol = obj.color.rgb;
+  let baseCol = obj.specColor.rgb;
+  let thickness = obj.extraParams.x;
+  let impactTime = obj.extraParams.y;
+  let impactUV = obj.extraParams.zw;
+
+  let grid = abs(fract(i.uv * 4.0) - 0.5);
+  let line = step(0.5 - thickness, max(grid.x, grid.y));
+
+  let impactAge = obj.time - impactTime;
+  var ring = 0.0;
+  if (impactAge < 1.2) {
+    let dist = length(i.uv - impactUV);
+    let radius = impactAge * 0.6;
+    let ringWidth = 0.04;
+    ring = smoothstep(ringWidth, 0.0, abs(dist - radius)) * (1.0 - impactAge / 1.2);
+  }
+
+  let emissiveBoost = 1.0 + ring * 3.0;
+  let color = mix(baseCol, gridCol * emissiveBoost, line + ring);
+  return vec4f(color, 1.0);
+}`,
       },
       layout: {
-        uniforms: {
-          u_gridColor: { type: ShaderPropertyType.VEC3 },
-          u_baseColor: { type: ShaderPropertyType.VEC3 },
-          u_lineThickness: { type: ShaderPropertyType.FLOAT },
-          u_time: { type: ShaderPropertyType.FLOAT },
-          u_impactTime: { type: ShaderPropertyType.FLOAT },
-          u_impactUV: { type: ShaderPropertyType.VEC2 },
-        },
-        uniformLayout: [
-          "u_gridColor",
-          "u_baseColor",
-          "u_lineThickness",
-          "u_time",
-          "u_impactTime",
-          "u_impactUV",
-        ],
+        ...StandardWebGPULayout,
         textures: {},
       },
       properties: {
-        u_gridColor: gridColor,
-        u_baseColor: baseColor,
-        u_lineThickness: lineThickness,
+        u_color: [gridColor[0], gridColor[1], gridColor[2], 1.0],
+        u_specColor: [baseColor[0], baseColor[1], baseColor[2], 1.0],
+        u_extraParams: [lineThickness, -9999.0, 0.0, 0.0],
         u_time: 0.0,
-        u_impactTime: -9999.0,
-        u_impactUV: [0.0, 0.0],
       },
     });
   }
@@ -98,7 +121,9 @@ void main() {
   }
 
   public triggerImpact(t: number, uv: [number, number]): void {
-    this.properties["u_impactTime"] = t;
-    this.properties["u_impactUV"] = uv;
+    const extra = this.properties["u_extraParams"] as number[];
+    extra[1] = t;
+    extra[2] = uv[0];
+    extra[3] = uv[1];
   }
 }

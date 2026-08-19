@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.76.6] - 2026-08-19
+
+### "The most dangerous phrase in the language is, 'We've always done it this way.'" - Grace Hopper
+
+- **Architecture & Bugfixes:**
+  - **Disc Wars:** Fixed a WebGPU crash (`Cannot read properties of undefined (reading 'replace')`) caused by `GridWallMaterial` hand-rolling its own MVP uniforms and GLSL300-only source with no WGSL counterpart. Rebuilt it on the engine's standard vertex pipeline and `StandardWebGPULayout` (same pattern as `RetroScreenMaterial`), so it now renders correctly on WebGL1, WebGL2, and WebGPU alike.
+  - `WebGPURenderer._getShaderModule` now throws a descriptive error instead of a blind non-null assertion when a material definition has no WGSL source, matching the existing guard already present in `WebGL1Renderer`/`WebGL2Renderer`.
+
 ## [0.76.5] - 2026-08-19
 
 ### "Not all those who wander are lost." - J.R.R. Tolkien

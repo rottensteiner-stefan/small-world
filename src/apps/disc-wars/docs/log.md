@@ -371,3 +371,25 @@ Sound: Digitales Rauschen bricht einfach ab — keine Sterbemusik.
 
 ### Nächste Phase
 **Phase 2: Disc-Mechanik** — DiscController + DiscPhysics RigidBody
+
+---
+
+## UPDATE 2026-08-19T14:30 — WebGPU-Absturz behoben
+
+`GridWallMaterial` hatte nur eine `glsl300`-Quelle mit komplett handgestrickten Uniforms
+(`u_modelMatrix`/`u_viewMatrix`/`u_projectionMatrix`, eigenes `u_gridColor` etc.). Unter dem
+WebGPU-Renderer (Default, wenn das Gerät ihn unterstützt) fehlte die `wgsl`-Quelle völlig →
+Absturz (`Cannot read properties of undefined (reading 'replace')` in `ShaderRegistry.assemble`).
+
+**Fix:**
+- `GridWallMaterial` auf die Standard-Vertex-Pipeline umgestellt (`[BASE_VERTEX_HEADER][BASE_VERTEX_MAIN]`
+  / `[BASE_VS]` / `[WGSL_STRUCTS]+[WGSL_VS]`) und nutzt jetzt `StandardWebGPULayout`
+  (`u_color`, `u_specColor`, `u_extraParams`, `u_time`) statt eigener Uniform-Namen — gleiches
+  Muster wie `RetroScreenMaterial`. Damit rendert es korrekt auf WebGL1/WebGL2/WebGPU.
+- `WebGPURenderer._getShaderModule` wirft jetzt einen beschreibenden Fehler statt einer blinden
+  `!`-Assertion, wenn eine Material-Definition keine WGSL-Quelle hat (analog zum bestehenden
+  Guard in `WebGL1Renderer`/`WebGL2Renderer`).
+
+**Verifiziert:** `tsc --noEmit` sauber, alle 348 Vitest-Tests grün, `build:lib` erfolgreich,
+visuell in allen drei Renderern (`?rendererType=webgl1/webgl2/webgpu`) im Browser geprüft —
+keine Konsolenfehler, Gitterwände + Disc rendern überall identisch.

@@ -920,7 +920,13 @@ export class WebGPURenderer extends AbstractRenderer {
     let sm = this._shaderModules.get(key);
     if (!sm) {
       const def = ShaderRegistry.instance.get(shaderId);
-      let code = ShaderRegistry.instance.assemble(def!.sources.wgsl!, "wgsl");
+      if (!def || !def.sources.wgsl) {
+        throw new Error(
+          `[WebGPURenderer] Shader definition for ${shaderId} not found or missing WGSL source.`,
+        );
+      }
+
+      let code = ShaderRegistry.instance.assemble(def.sources.wgsl, "wgsl");
 
       let wgslConstants = "";
       if (flags.includes("USE_TEXTURE_ARRAY")) {
