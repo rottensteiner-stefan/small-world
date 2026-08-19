@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.76.0] - 2026-08-19
+
+### "The bicycle is a curious vehicle. Its passenger is its engine." - John Howard
+
+- **Features:**
+  - **New App: Light Cycle Arena:** Added a Tron-style grid duel (player vs. an AI rival) built almost entirely out of engine primitives that had zero usages anywhere before this — `GridMovementBehavior`'s orthogonal grid movement, the `Ground`/`Grid` geometries for the glowing floor, and `InstancedMesh` for each cycle's permanent trail wall. Its signature mechanic: the whole arena's time slows to a crawl whenever the player isn't holding a direction, turning a reflex chase into a deliberate routing puzzle. Isometric orthographic camera, perimeter walls, bloom, and a diegetic HUD round it out.
+
 ## [0.75.0] - 2026-08-19
 
 ### "Speed is the essence of war." - Sun Tzu

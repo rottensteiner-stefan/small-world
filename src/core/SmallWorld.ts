@@ -21,7 +21,7 @@ import { GadgetInspector } from "../tools/GadgetInspector.js";
 import { PhysicsSystem } from "../physix/PhysicsSystem.js";
 
 /** The current engine version. */
-export const ENGINE_VERSION = "0.75.0";
+export const ENGINE_VERSION = "0.76.0";
 
 /**
  * Base class for applications built with the SmallWorld engine.
