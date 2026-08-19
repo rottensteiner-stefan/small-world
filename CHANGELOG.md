@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.75.0] - 2026-08-19
+
+### "Speed is the essence of war." - Sun Tzu
+
+- **Features:**
+  - **New App: DISC WARS:** Added the first sector of "THE GRID", a Tron-inspired Neon-Virus universe — a procedurally generated single-floor maze (`MazeGenerator`) with FPS movement, a custom `GridWallMaterial` shader, a bloom-lit glowing Disc placeholder, and a diegetic HUD. This is the Phase 1 vertical slice; Disc physics, trajectory preview, enemies, and Derezz mechanics are follow-up phases per the app's own dev log.
+
 ## [0.74.10] - 2026-08-18
 
 ### "Words are a lens to focus one's mind." - Ayn Rand
