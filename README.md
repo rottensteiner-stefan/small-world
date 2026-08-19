@@ -1,6 +1,6 @@
 # Small World Engine
 
-<img align="right" width="320" alt="Damaged Helmet" src="docs/public/teaser.jpg" />
+<img align="right" width="280" alt="Small World Engine" src="public/assets/logo_vector.svg" />
 
 **Small World Engine** is the "Preact of 3D Engines". It is an ultra-lightweight, high-performance, and strict TypeScript 3D game engine for the web. Built for the era of WebGPU and Playable Ads, it provides a modern Physically Based Rendering (PBR) pipeline and a robust Behavior System—delivering the architectural elegance of a real game engine at a fraction of the bundle size of traditional frameworks.
 

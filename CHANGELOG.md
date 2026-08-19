@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.76.3] - 2026-08-19
+
+### "Small opportunities are often the beginning of great enterprises." - Demosthenes
+
+- **Architecture & Bugfixes:**
+  - **Neon Labyrinth:** Fixed the app's `index.html` loading its script from the wrong path (`/apps/neon-labyrinth/App.ts`, a 404) instead of `/src/apps/neon-labyrinth/App.ts`, matching every other app's convention.
+- **Housekeeping & Docs:**
+  - Corrected a leftover reference to the app's old working title ("Hollow Circuit") in a `MaterialType` doc comment; the app has been "Neon Labyrinth" for several releases.
+  - **README:** Swapped the header image for the project's own logo.
+
 ## [0.76.2] - 2026-08-19
 
 ### "What gets measured gets managed." - Peter Drucker

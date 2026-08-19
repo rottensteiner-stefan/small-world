@@ -28,7 +28,7 @@ export const MaterialType = {
   DEPTH: "DepthMaterial",
   /** Physically based rendering material with transmission/refraction. */
   GLASS: "GlassMaterial",
-  /** Heavy blurred transmission material for Hollow Circuit. */
+  /** Heavy blurred transmission material for Neon Labyrinth. */
   FROSTGLASS: "FrostglassMaterial",
   /** Specialized screen shader with retro TV and early film effects. */
   RETRO_SCREEN: "RetroScreenMaterial",
