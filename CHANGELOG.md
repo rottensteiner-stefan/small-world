@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.76.2] - 2026-08-19
+
+### "What gets measured gets managed." - Peter Drucker
+
+- **Housekeeping & Docs:**
+  - **Material Usage Test:** Added `tests/core/MaterialUsage.test.ts`, which fails per-material if a `MaterialType` entry is never actually instantiated (`new <Material>(`) anywhere outside its own definition file — a cheap static check against the class of bug where a material passes its unit tests but has never had its shaders compiled by a real renderer (see the RetroScreenMaterial fix in `[0.74.10]`).
+- **Architecture & Bugfixes:**
+  - Running the new test immediately caught `LambertMaterial` in the same unused state; fixed by using it for the floor in Showcase 1 instead of `PhongMaterial` (a pure diffuse floor needs no specular term).
+
 ## [0.76.1] - 2026-08-19
 
 ### "The palest ink is better than the best memory." - Chinese Proverb

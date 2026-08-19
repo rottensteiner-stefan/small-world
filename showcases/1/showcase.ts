@@ -3,6 +3,7 @@ import {
   Color,
   Cube,
   DirectionalLight,
+  LambertMaterial,
   Object3D,
   PerspectiveProjection,
   PhongMaterial,
@@ -53,7 +54,7 @@ class Showcase1 extends AbstractShowcase {
     // Floor to receive shadows
     const floor = new Object3D("Floor").setPosition(0, -2, -1);
     floor.geometry = new Ground({ width: 10, depth: 6 }).getGeometryData();
-    floor.material = new PhongMaterial({ color: Color.WHITE });
+    floor.material = new LambertMaterial({ color: Color.WHITE });
     floor.receiveShadow = true;
     this.scene.add(floor);
 
