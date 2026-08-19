@@ -1,0 +1,31 @@
+Einen Moment bitte. Ich habe mein letztes Prompt noch einmal etwas überarbeitet. Bitte arbeite das neun ein. Es sind nur einige, kleine Punkte. Aber sie sind mir wichtig.
+Wenn dann neu Entscheidungen zu treffen sind, dann treffen wir sie.
+
+Lies dich zuerst über @[.agents] ins Projekt ein. Lerne die Idee dahinter kennen.
+
+Dann wieder in den Kreativ-Modus schalten.
+
+Du bist ein AAA-Spiele-Entwickler. Zuert die Idee, dann die Technik. Trotzdem durchforstest du zuerst die Engine,
+suchst nach Features, Möglichkeite.
+
+Du liebst so Retro-Future-Zeugs a la Tron. Da muss es knallen, es braucht mehr Action. Nervenkitzel.
+
+Aktuell gibt es einige Teile, die von Interesse sein könnten. YAD, Light Cycle Arena, Neon Labyrinth und Showcase 23.
+Keine Scheu vor einer vernünftige, tiefen Recherche. Niemand verlangt in den nächsten Stunden ein Ergebnis. Denke lieber dreimal nach.
+Nutze auch, was es gibt. Schau dir etwas von den Großen ab, lies Redit etc um Einblicke zu bekommen. Kombiniere und vereine!
+Was hat "bei den Großen" gefehlt?
+
+Lass dich nicht von unglaublichen technischen Ansprüchen abschrecken. Wir brauchen keine Grafikkarte, die drei Monatsgehälter kostet.
+
+Assets: Es wird Assets brauchen. Selbst erstellt oder frei aus dem Netz. Habe keine Sorgen, dir Texturen und Shader zu besorgen. Das Netz ist groß. Lieber gut kopiert/downgeloaded
+als schlecht selbst nachgebaut.
+
+Scheue nicht, neue Wege zu gehen. Das schnelle Ergebnis ist definitiv kein Ziel. Besser wir brauchen länger, aber es wird besser. Es kann Tage oder Wochen dauern - das ist im Moment nicht wichtig.
+
+FÜhre unter @docs/research/disc-wars.md ein Log-File. All deine laufende Suche und Entscheidungen (inklusive der Frage dazu) sollen hier vermerkt sein. Es soll wir eine Art
+Gedächtnis sein, auf dass du jederzeit zugreifen und weiter machen kannst. Ist es bereits vorhanden, arbeite von diesem Stand aus weiter.
+
+Was musst du noch wissen von mir?
+Wo brauchst du Hilfe?
+Wo sind (technische) Grenzen, die du überwinden musst?
+Was fällt dir ein, woran ich nicht gedacht habe?

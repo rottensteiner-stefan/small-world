@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.76.1] - 2026-08-19
+
+### "The palest ink is better than the best memory." - Chinese Proverb
+
+- **Housekeeping & Docs:**
+  - **App Docs Convention:** Established a fixed documentation structure for every app under `src/apps/<app>/`: a `docs/` subfolder holding `concept-dossier.html` (visual concept) and `log.md` (living dev log, read at session start, appended at session end). Migrated Neon Labyrinth's existing `concept-dossier.html` into that structure and backfilled a `docs/` folder for YAD. Documented in `.agents/notes/app-docs-convention.md` and referenced from `.agents/AGENTS.md`. `docs/research/` remains for project-wide (non-app-specific) research notes.
+
 ## [0.76.0] - 2026-08-19
 
 ### "The bicycle is a curious vehicle. Its passenger is its engine." - John Howard
