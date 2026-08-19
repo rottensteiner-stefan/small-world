@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.76.9] - 2026-08-20
+
+### "Nature uses only the longest threads to weave her patterns, so each small piece of her fabric reveals the organization of the entire tapestry." - Richard Feynman
+
+- **Features:**
+  - Implemented fixed-timestep render interpolation (item #3 of `docs/research/aaa-engine-techniques.md`): `RigidBody` now snapshots `prevPosition`/`prevRotation` before each physics substep, and `PhysicsSystem.applyRenderInterpolation()` blends each tracked body's rendered transform between its previous and current physics state (`interpolationAlpha = accumulator / fixedTimeStep`), instead of snapping straight to the latest completed substep. Eliminates visual stutter whenever the render framerate doesn't line up evenly with `fixedTimeStep`. Rotation interpolates via shortest-path angle blending across the ±π wraparound. Wired into `SmallWorld._loop()` after `FrustumCuller.cull()` and before rendering, gated by `config.enablePhysics`.
+- **Housekeeping & Docs:**
+  - Added a `REFERENCES.md` entry crediting Glenn Fiedler's "Fix Your Timestep!" as the source technique.
+
 ## [0.76.8] - 2026-08-19
 
 ### "Research is formalized curiosity. It is poking and prying with a purpose." - Zora Neale Hurston

@@ -39,6 +39,16 @@ export class RigidBody {
   public friction: number = 0.98;
 
   /**
+   * Position at the start of the most recently completed fixed-timestep substep. Together with
+   * the object's current (post-substep) position, this lets `PhysicsSystem.applyRenderInterpolation`
+   * blend the rendered transform between the two, decoupling the render framerate from the fixed
+   * physics tick instead of snapping to the latest substep every frame.
+   */
+  public prevPosition: Vector3D = new Vector3D();
+  /** Rotation (Euler, radians) counterpart to `prevPosition` -- see its doc for details. */
+  public prevRotation: Vector3D = new Vector3D();
+
+  /**
    * @param mass The initial mass. Use 0 for static objects.
    * @param inertia The scalar moment of inertia. Defaults to mass.
    */

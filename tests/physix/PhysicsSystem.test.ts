@@ -623,4 +623,76 @@ describe("PhysicsSystem", () => {
     expect(s1.position.x).toBeLessThan(0);
     expect(s2.position.x).toBeGreaterThan(0.5);
   });
+
+  describe("Render Interpolation", () => {
+    it("exposes interpolationAlpha as the accumulator's progress into the next fixed step", () => {
+      const obj = new Object3D();
+      const rb = new RigidBody(1.0);
+      rb.friction = 1.0;
+      obj.rigidBody = rb;
+      scene.add(obj);
+      rb.velocity.set(10, 0, 0);
+
+      system.fixedTimeStep = 1.0;
+      system.step(scene, 1.0); // exactly one substep; accumulator back to 0
+      expect(system.interpolationAlpha).toBeCloseTo(0, 10);
+
+      system.step(scene, 0.25); // no new substep fires; accumulator -> 0.25
+      expect(system.interpolationAlpha).toBeCloseTo(0.25, 10);
+    });
+
+    it("renders a position blended between the previous and current physics state, then restores the true state", () => {
+      const obj = new Object3D();
+      const rb = new RigidBody(1.0);
+      rb.friction = 1.0;
+      obj.rigidBody = rb;
+      scene.add(obj);
+      rb.velocity.set(10, 0, 0);
+
+      system.fixedTimeStep = 1.0;
+      system.step(scene, 1.0); // substep: position 0 -> 10, prevPosition stays at 0
+      system.step(scene, 0.5); // no new substep; alpha = 0.5
+
+      system.applyRenderInterpolation();
+
+      const pos = new Vector3D();
+      const rot = new Vector3D();
+      const scale = new Vector3D();
+      obj.worldMatrix.decompose(pos, rot, scale);
+      expect(pos.x).toBeCloseTo(5, 5);
+
+      // The true, simulation-facing position must be unaffected afterward.
+      expect(obj.position.x).toBe(10);
+    });
+
+    it("interpolates rotation via the shortest path across the +-PI wraparound", () => {
+      const obj = new Object3D();
+      const rb = new RigidBody(1.0);
+      obj.rigidBody = rb;
+      scene.add(obj);
+
+      system.fixedTimeStep = 1.0;
+      system.step(scene, 1.0); // populate the tracked-bodies list
+
+      // Simulate a body that just crossed the +-PI seam between two physics states.
+      rb.prevRotation.set(0, Math.PI - 0.3, 0);
+      obj.rotation.set(0, -Math.PI + 0.1, 0);
+
+      system.step(scene, 0.5); // no new substep this call; alpha = 0.5
+      system.applyRenderInterpolation();
+
+      const pos = new Vector3D();
+      const rot = new Vector3D();
+      const scale = new Vector3D();
+      obj.worldMatrix.decompose(pos, rot, scale);
+
+      // Shortest path from (PI - 0.3) to (-PI + 0.1) continues forward through PI (delta = +0.4),
+      // so halfway should land near (PI - 0.1) -- not near the naive average (~-0.1), which is
+      // what a plain (non-shortest-path) lerp would incorrectly produce.
+      expect(rot.y).toBeCloseTo(Math.PI - 0.1, 2);
+
+      // True rotation must be restored afterward.
+      expect(obj.rotation.y).toBeCloseTo(-Math.PI + 0.1, 10);
+    });
+  });
 });

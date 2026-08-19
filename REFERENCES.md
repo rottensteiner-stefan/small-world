@@ -51,6 +51,13 @@ This document serves to record external sources, algorithms, mathematical deriva
 - **Authors/Gurus:** Erin Catto (Creator of Box2D)
 - **Usage:** Essential concepts for resolving constraints, joints, and stable resting contacts using sequential impulses, which heavily influence how we stabilize physics loops and design our collision impulse resolution.
 
+### Fixed-Timestep Render Interpolation
+
+- **File:** `src/physix/PhysicsSystem.ts`
+- **Authors/Gurus:** Glenn Fiedler (Gaffer On Games)
+- **Source:** ["Fix Your Timestep!"](https://gafferongames.com/post/fix_your_timestep/)
+- **Usage:** The canonical explanation of why a fixed-timestep physics accumulator needs to hand rendering an interpolated blend (`alpha = accumulator / fixedTimeStep`) between the two most recent physics states, rather than snapping to the latest completed step. Used as the basis for decoupling `small-world`'s variable render framerate from its fixed physics tick, eliminating visual stutter/judder.
+
 ### Real-Time Collision Detection
 
 - **Authors/Gurus:** Christer Ericson

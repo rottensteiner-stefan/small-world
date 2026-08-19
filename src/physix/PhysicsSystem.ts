@@ -1,7 +1,7 @@
 import { Object3D } from "../core/Object3D.js";
 import { Scene } from "../core/Scene.js";
 import { Octree } from "../core/Octree.js";
-import { Vector3D, MathPool } from "../math/index.js";
+import { Vector3D, MathPool, MathUtils } from "../math/index.js";
 import { Collision } from "./Collision.js";
 import { BoundingSphere } from "./BoundingSphere.js";
 import { BoundingBox } from "./BoundingBox.js";
@@ -33,6 +33,18 @@ interface CCDCandidate {
   prevPos: Vector3D;
   delta: Vector3D;
   radius: number;
+}
+
+/**
+ * Shortest-path angular delta from `from` to `to` (radians, wrapped into (-PI, PI]). Used to
+ * render-interpolate Euler rotations without spinning the long way around whenever an angle
+ * wraps past +-PI between two physics states.
+ */
+function shortestAngleDelta(from: number, to: number): number {
+  let delta = (to - from) % MathUtils.TWO_PI;
+  if (delta > MathUtils.PI) delta -= MathUtils.TWO_PI;
+  else if (delta < -MathUtils.PI) delta += MathUtils.TWO_PI;
+  return delta;
 }
 
 /**
@@ -165,10 +177,74 @@ export class PhysicsSystem {
     }
   }
 
+  /**
+   * How far the accumulator has progressed into the next, not-yet-simulated fixed timestep, as
+   * a fraction in [0, 1). Used by `applyRenderInterpolation` to blend each body's rendered
+   * transform between its previous and current physics state.
+   */
+  public get interpolationAlpha(): number {
+    return this._accumulator / this.fixedTimeStep;
+  }
+
+  /**
+   * Renders every tracked rigid body's transform interpolated between its previous and current
+   * fixed-timestep physics state, instead of snapping to the latest completed substep -- this is
+   * what actually eliminates visual stutter when the render framerate doesn't line up evenly
+   * with `fixedTimeStep` (see "Fix Your Timestep!" in `REFERENCES.md`).
+   *
+   * Must be called once per frame, after anything that depends on the *true* physics transform
+   * (collision bounds, frustum culling, gameplay logic) and immediately before rendering: each
+   * object's true position/rotation is restored right after its interpolated world matrix is
+   * computed, so nothing else ever observes the interpolated (render-only) state.
+   */
+  public applyRenderInterpolation(): void {
+    const alpha = this.interpolationAlpha;
+    const bodies = this._bodies;
+
+    const truePos = MathPool.acquireVector();
+    const trueRot = MathPool.acquireVector();
+    const blendPos = MathPool.acquireVector();
+    const blendRot = MathPool.acquireVector();
+
+    for (let i = 0; i < bodies.length; i++) {
+      const obj = bodies[i]!;
+      const rb = obj.rigidBody!;
+
+      truePos.copyFrom(obj.position);
+      trueRot.copyFrom(obj.rotation);
+
+      blendPos.copyFrom(rb.prevPosition).lerp(truePos, alpha);
+      blendRot.set(
+        rb.prevRotation.x + shortestAngleDelta(rb.prevRotation.x, trueRot.x) * alpha,
+        rb.prevRotation.y + shortestAngleDelta(rb.prevRotation.y, trueRot.y) * alpha,
+        rb.prevRotation.z + shortestAngleDelta(rb.prevRotation.z, trueRot.z) * alpha,
+      );
+
+      obj.position.copyFrom(blendPos);
+      obj.rotation.copyFrom(blendRot);
+      obj.updateMatrixWorld();
+
+      // Restore the true state -- next frame's physics step and `Scene.update()` must both
+      // keep integrating/rebuilding from the real simulation state, not this render-only blend.
+      obj.position.copyFrom(truePos);
+      obj.rotation.copyFrom(trueRot);
+    }
+
+    MathPool.releaseVector(truePos);
+    MathPool.releaseVector(trueRot);
+    MathPool.releaseVector(blendPos);
+    MathPool.releaseVector(blendRot);
+  }
+
   private _internalStep(bodies: Object3D[], allColliders: Collidable[], dt: number): void {
     // 2. Integration Step (Semi-Implicit Euler)
     for (const obj of bodies) {
       const rb = obj.rigidBody!;
+
+      // Snapshot the pre-substep state for render interpolation (see `applyRenderInterpolation`)
+      // before anything below mutates `obj.position`/`obj.rotation`.
+      rb.prevPosition.copyFrom(obj.position);
+      rb.prevRotation.copyFrom(obj.rotation);
 
       let fluidLinearDrag = 1.0;
       let fluidAngularDrag = 1.0;
