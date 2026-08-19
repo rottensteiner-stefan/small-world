@@ -61,8 +61,8 @@ layout(std140) uniform GlobalUniforms {
     float u_exposure;
     float _pad4;
     vec2 u_cameraNearFar;
-    PointLight u_pointLights[4];
-    SpotLight u_spotLights[4];
+    PointLight u_pointLights[16];
+    SpotLight u_spotLights[16];
     AreaLight u_areaLights[4];
 };
 
@@ -72,6 +72,7 @@ uniform vec2 u_texRepeat;
 
 // Shadow Mapping
 uniform mat4 u_spotShadowMatrix[4];
+uniform vec4 u_spotShadowInfo[4]; // x=bias, y=normalBias, z=castShadow, w=pad
 
 out vec3 v_worldPos;
 out vec3 v_normal;

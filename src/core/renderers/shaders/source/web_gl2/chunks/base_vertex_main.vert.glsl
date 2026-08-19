@@ -33,6 +33,11 @@ void main() {
   // Shadow Maps Light Space Transforms
   for (int i = 0; i < 4; i++) {
     if (i >= u_numSpotLights) break;
-    v_spotLightSpacePos[i] = u_spotShadowMatrix[i] * wp;
+    // Normal-offset bias, scaled by NdotL so grazing angles get the biggest offset (see
+    // light_calc.frag.glsl's directional-light shadow for the same technique).
+    vec3 spotL = normalize(u_spotLights[i].pos - wp.xyz);
+    float spotNdotL = max(dot(v_normal, spotL), 0.0);
+    vec3 spotShadowSamplePos = wp.xyz + v_normal * u_spotShadowInfo[i].y * (1.0 - spotNdotL);
+    v_spotLightSpacePos[i] = u_spotShadowMatrix[i] * vec4(spotShadowSamplePos, 1.0);
   }
 }

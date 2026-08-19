@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.76.10] - 2026-08-20
+
+### "Shadow is the obstruction of light." - Leonardo da Vinci
+
+- **Features:**
+  - Implemented normal-offset shadow bias (item #2 of `docs/research/aaa-engine-techniques.md`): shadow-map sample positions are now offset along the surface normal, scaled by NdotL, before the light-space transform — instead of only biasing the compared depth value. Reduces shadow acne and peter-panning simultaneously. Applied to directional and spot light shadows, standard and PBR material paths, in GLSL300 and WGSL. WebGL1 is intentionally untouched — it has no shadow-mapping implementation at all today, so there's nothing to bias.
+  - Raised the global point/spot light cap from 4 to 16 (item #4, partial): `PointLight`/`SpotLight` now allow up to 16 simultaneous lights instead of 4. WebGL2's global uniform buffer layout grew accordingly (`u_pointLights[16]`/`u_spotLights[16]`, buffer resized with recomputed byte offsets), WebGL1's uniform arrays grew to match, and WebGPU needed no shader/buffer changes since its storage buffers and light loop were already dynamically sized. This is still a single global light list shared by every object, not true per-object nearest-light selection — see `docs/research/aaa-engine-techniques.md` for what a fuller implementation would require.
+- **Housekeeping & Docs:**
+  - Updated `docs/research/aaa-engine-techniques.md` to reflect implementation status for items #1 (ACES tonemapping was already implemented, no action needed), #2, #3, and #4.
+  - Added a `REFERENCES.md` entry crediting Catlike Coding's normal-offset bias tutorial.
+
 ## [0.76.9] - 2026-08-20
 
 ### "Nature uses only the longest threads to weave her patterns, so each small piece of her fabric reveals the organization of the entire tapestry." - Richard Feynman

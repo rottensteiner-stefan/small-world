@@ -224,7 +224,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
       const pointLightLocs = [];
       const spotLightLocs = [];
       const areaLightLocs = [];
-      for (let i = 0; i < 4; i++) {
+      for (let i = 0; i < 16; i++) {
         pointLightLocs.push({
           pos: this.gl.getUniformLocation(prog, `u_pointLightPos[${i}]`) ?? undefined,
           col: this.gl.getUniformLocation(prog, `u_pointLightColor[${i}]`) ?? undefined,
@@ -237,6 +237,8 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
           col: this.gl.getUniformLocation(prog, `u_spotLightColor[${i}]`) ?? undefined,
           params: this.gl.getUniformLocation(prog, `u_spotLightParams[${i}]`) ?? undefined,
         });
+      }
+      for (let i = 0; i < 4; i++) {
         areaLightLocs.push({
           pos: this.gl.getUniformLocation(prog, `u_areaLightPos[${i}]`) ?? undefined,
           col: this.gl.getUniformLocation(prog, `u_areaLightColor[${i}]`) ?? undefined,

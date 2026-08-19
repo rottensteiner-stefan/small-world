@@ -17,10 +17,10 @@ den referenzierten Engines wurde kopiert.
 
 | # | Technik | Aufwand | Nutzen | Status bei uns |
 |---|---|---|---|---|
-| 1 | ACES-Tonemapping statt Reinhard/Linear | niedrig | hoch | zu prüfen — `TONE_MAPPING`-Effekt existiert, welche Kurve? |
-| 2 | Normal-Offset Bias bei Schatten | niedrig | mittel-hoch | Lücke — aktuell nur klassisches Depth-Bias |
-| 3 | Fixed-Timestep Render-Interpolation | niedrig-mittel | hoch (Ruckeln weg) | **bestätigte Lücke** — Render snapt auf letzten Physik-Step |
-| 4 | CPU-Licht-Auswahl (N nächste Lichter/Objekt) | mittel | hoch | **bestätigte Lücke** — pragmatischer Zwischenschritt vor #5 |
+| 1 | ACES-Tonemapping statt Reinhard/Linear | niedrig | hoch | ✅ **Bereits vorhanden** — `ToneMappingMode.DEFAULT` ist schon ACES_FILMIC auf allen 3 Backends |
+| 2 | Normal-Offset Bias bei Schatten | niedrig | mittel-hoch | ✅ **Implementiert** (2026-08-19) — GLSL300 + WGSL, Dir- und Spotlicht, NdotL-skaliert |
+| 3 | Fixed-Timestep Render-Interpolation | niedrig-mittel | hoch (Ruckeln weg) | ✅ **Implementiert** (2026-08-19) — `PhysicsSystem.applyRenderInterpolation()` |
+| 4 | CPU-Licht-Auswahl (N nächste Lichter/Objekt) | mittel | hoch | 🟡 **Teilweise** (2026-08-19) — globales Limit 4→16 angehoben (alle 3 Backends); echte Pro-Objekt-Auswahl nach Distanz bleibt offen (siehe unten) |
 | 5 | Clustered/Tiled Forward+ Lighting | groß | sehr hoch | **bestätigte Lücke** — hartes 4+4-Limit, global |
 | 6 | PCSS (Contact-Hardening Soft Shadows) | mittel | mittel-hoch | Aufwertung von vorhandenem PCF |
 | 7 | CSM-Politur (Cascade-Blending, Texel-Snapping) | niedrig-mittel | mittel | Aufwertung von vorhandenem CSM |
@@ -103,6 +103,18 @@ Shader-Architektur-Änderung nötig außer einer dynamischen Schleifengrenze, un
 für Szenen mit bis zu ~200 Lichtern insgesamt. Volles Clustering lohnt sich erst, wenn dieser
 Ansatz selbst zum Flaschenhals wird.
 
+🟡 **Teilumsetzung (2026-08-19):** Das globale Limit wurde von 4 auf 16 Punkt- und Spotlichter
+angehoben (JS-seitiger Push-Cap in `PointLight.ts`/`SpotLight.ts`, WebGL2-UBO-Layout auf
+`u_pointLights[16]`/`u_spotLights[16]` vergrößert inkl. neu berechneter Byte-Offsets, WebGL1 auf
+16-große Uniform-Arrays erweitert, WebGPU brauchte keine Änderung außer dem JS-Cap, da Storage-
+Buffer und Schleife dort schon dynamisch/überdimensioniert waren). **Es ist weiterhin eine
+globale Liste** — jedes Objekt sieht dieselben (bis zu) 16 Lichter, es gibt noch keine
+Pro-Objekt-Distanzauswahl. Diese Verfeinerung (Distanz berechnen, sortieren, pro Draw-Call
+unterschiedliche Teilmenge hochladen) bleibt offen — sie berührt drei unterschiedliche
+Upload-Mechanismen (WebGL2-UBO-Subrange pro Objekt, WebGL1-Uniform-Re-Upload pro Objekt,
+WebGPU-Storage-Indexierung pro Objekt) und ist substanziell größer als die reine
+Limit-Erhöhung; praktisch der Übergang zu #5 (Clustered Lighting), nicht mehr "klein".
+
 **Engine-Vorbilder:** Godot Forward+ (Compute-Binning in 3D-Grid, Desktop-only — Mobile nutzt
 bewusst den einfacheren Forward-Mobile-Pfad wegen Compute-Kosten), three.js
 `ClusteredLighting`/`ClusteredLightsNode` (konfigurierbar: `tileSize`, `zSlices`, `maxLights`,
@@ -130,14 +142,24 @@ lassen. Das ist exakt das fehlende Stück unseres aktuellen festen PCF-Kernels �
 Drop-in-Upgrade, kein neues Shadow-Map-Format. Kosten: etwa das Doppelte eines vergleichbaren
 Fest-Kernel-PCF-Passes. Voll WebGL2-fähig, kein Compute nötig.
 
-**Normal-Offset Bias:** Statt Tiefenwerte entlang der Lichtrichtung zurückzuschieben
-(klassisches Slope-Scaled-Bias, verursacht "Peter-Panning" bei wachsendem Bias), wird die
-*Sample-Position* entlang der Oberflächen-Normale verschoben (proportional zu `NdotL` und
-Texelgröße), bevor sie in den Licht-Raum transformiert wird. Trennt die Behebung von
-Shadow-Acne von der Tiefenwert-Manipulation — heute der De-facto-Standard (Unity, Unreal,
-die meisten Engine-Tutorials). Praktisch kostenlos, eine zusätzliche Rechnung
-(`worldPos + normal * texelWorldSize * offsetScale`) vor der Licht-Raum-Transformation, keine
-Shader-Architektur-Änderung.
+**Normal-Offset Bias:** ✅ **Implementiert** (2026-08-19). Statt Tiefenwerte entlang der
+Lichtrichtung zurückzuschieben (klassisches Slope-Scaled-Bias, verursacht "Peter-Panning" bei
+wachsendem Bias), wird die *Sample-Position* entlang der Oberflächen-Normale verschoben
+(proportional zu `NdotL`), bevor sie in den Licht-Raum transformiert wird. Trennt die Behebung
+von Shadow-Acne von der Tiefenwert-Manipulation — heute der De-facto-Standard (Unity, Unreal,
+die meisten Engine-Tutorials). Umgesetzt für Directional- (Fragment-Shader) und Spotlicht
+(GLSL: Vertex-Shader, da die Licht-Raum-Transformation dort passiert; WGSL: Fragment-Shader),
+jeweils Standard- und PBR-Pfad, in GLSL300 und WGSL. **Bewusst ausgelassen: WebGL1** — dort
+existiert aktuell überhaupt keine Shadow-Map-Implementierung (kein CSM, kein PCF), es gäbe
+nichts zu biasen; Schatten für WebGL1 wären ein eigenes, größeres Feature.
+
+*Diskutiert, nicht umgesetzt:* Eine Minimalvariante für WebGL1 wäre technisch machbar (eine
+einzelne Directional-Shadow-Map ohne Kaskaden, `WEBGL_depth_texture`-Extension, manueller
+1-/4-Tap-Vergleich statt Hardware-PCF, fester Bias statt Normal-Offset, kein Spotlicht-Schatten).
+Der reale Nutzen ist aber fraglich: WebGL1 ist in dieser Engine der Fallback für
+schwache/alte Geräte (`DeviceCaps`-Auto-Downgrade schaltet bei "LOW"-Tier ohnehin
+`maxShadowResolution` runter bzw. Post-Processing ganz ab) — genau die Geräte, denen man
+Schatten eher wegnehmen als hinzufügen würde. Auf Wunsch des Maintainers zurückgestellt.
 
 **CSM-Politur:** (a) *Cascade-Blending* — nahe einer Kaskadengrenze beide Kaskaden abtasten
 und über eine Blend-Band linear überblenden, statt eines harten Auflösungssprungs (three.js'
@@ -228,14 +250,16 @@ verschmieren/geistern — akzeptabler Trade-off ohne Velocity-Buffer. Volles TAA
 Motion-Vektoren (Extra-Render-Target, Extra-Shader-Output pro Material) — deutlich größerer
 Aufwand.
 
-**Tonemapping:** ACES wurde Industriestandard, weil es HDR-Werte über eine
-wahrnehmungsoptimierte Kurve abbildet, die Highlights sanft abrollt statt hart auf Weiß zu
-clippen (Reinhard/Linear brennen aus oder waschen Farben aus) — und weil es eine bekannte,
-standardisierte Größe ist. AgX (Blenders neuerer Default) adressiert ACES' bekannte Schwäche
-(Farbton-Verschiebung unter gesättigtem/hellem Licht — das "Six-Colors-Problem"). **Für uns:**
-Wechsel von Reinhard/Linear auf ACES ist eine einzelne Shader-Funktions-Änderung mit großem
-Qualitätssprung — vermutlich das beste Aufwand-Nutzen-Verhältnis der ganzen Liste
-(muss noch geprüft werden, welche Kurve unser `TONE_MAPPING`-Effekt aktuell tatsächlich nutzt).
+**Tonemapping:** ✅ **Bereits vorhanden, keine Aktion nötig** (geprüft 2026-08-19). ACES wurde
+Industriestandard, weil es HDR-Werte über eine wahrnehmungsoptimierte Kurve abbildet, die
+Highlights sanft abrollt statt hart auf Weiß zu clippen (Reinhard/Linear brennen aus oder
+waschen Farben aus). Überraschung beim Nachprüfen: `small-world` implementiert bereits den
+echten Narkowicz-ACES-Fit identisch auf allen drei Backends (`PostProcess.frag.glsl`,
+`PostProcess100.frag.glsl`, `PostProcess.frag.wgsl`), und `ToneMappingMode.DEFAULT` ist bereits
+`ACES_FILMIC` (nicht Reinhard, wie ursprünglich vermutet). Der einzige tatsächliche Hebel: die
+gesamte Post-Processing-Pipeline ist standardmäßig deaktiviert
+(`PostProcessingGroup.enabled = false`) — das ist aber eine separate, größere Entscheidung
+("Post-Processing per Default an?"), keine Tonemapping-Frage mehr.
 
 **Froxel-Volumetric-Fog:** Baut ein kamera-ausgerichtetes 3D-Raster (Froxel), akkumuliert
 Dichte/Streuung pro Zelle, raymarcht das dann als Post-Process. Überlappt stark mit Clustered
@@ -253,13 +277,16 @@ Clustered Lighting zu bauen ist deutlich günstiger als isoliert zuerst.
 
 ## 5. Physik/Animation "Game Feel"
 
-**Fixed-Timestep Render-Interpolation:** Standardtechnik (Gaffer On Games, "Fix Your
-Timestep!", genutzt von Godot/Unity/Bevy) — die letzten zwei Physik-Zustände behalten,
-`alpha = accumulator / fixedTimeStep` berechnen und Transforms fürs Rendern dazwischen lerpen.
-Entkoppelt variable Render-FPS von der Physik-Taktrate, eliminiert Ruckeln. Kostet einen
-zusätzlichen Zustandspuffer + ein Lerp pro gerendertem Transform, plus einen Frame zusätzliche
-Latenz. **Bei uns bestätigt fehlend** (siehe Bestandsaufnahme oben) — konkreter, günstiger,
-hoher Gewinn.
+**Fixed-Timestep Render-Interpolation:** ✅ **Implementiert** (2026-08-19). Standardtechnik
+(Gaffer On Games, "Fix Your Timestep!", genutzt von Godot/Unity/Bevy) — die letzten zwei
+Physik-Zustände behalten, `alpha = accumulator / fixedTimeStep` berechnen und Transforms fürs
+Rendern dazwischen lerpen. Entkoppelt variable Render-FPS von der Physik-Taktrate, eliminiert
+Ruckeln. Umgesetzt als `RigidBody.prevPosition`/`prevRotation` (Snapshot vor jedem Substep) +
+`PhysicsSystem.interpolationAlpha`/`applyRenderInterpolation()` (blendet Transform + Weltmatrix
+nur fürs Rendern, stellt den wahren Zustand danach sofort wieder her), aufgerufen in
+`SmallWorld._loop()` nach `FrustumCuller.cull()` und vor `renderer.render()`. Rotation nutzt
+kürzeste-Weg-Interpolation über die ±π-Wraparound-Grenze (`shortestAngleDelta`). Getestet in
+`tests/physix/PhysicsSystem.test.ts` (Describe-Block "Render Interpolation").
 
 **Blend-Trees / Crossfade / "Juice":** Blend-Trees (parametergesteuertes Blenden mehrerer
 Clips, z. B. Speed → Walk/Run) und Crossfade (kurzes Überblenden bei Zustandswechsel) sind

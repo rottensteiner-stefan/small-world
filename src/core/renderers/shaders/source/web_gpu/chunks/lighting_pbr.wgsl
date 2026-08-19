@@ -33,7 +33,8 @@ var Lo = vec3f(0.0);
             }
         }
         let cascadeMat = global.cascadeMatrices[cascadeIndex];
-        let shadowPos = cascadeMat * vec4f(i.wp + N * global.dirShadowInfo.y, 1.0);
+        // Normal-offset bias, scaled by NdotL (see lighting.wgsl for rationale).
+        let shadowPos = cascadeMat * vec4f(i.wp + N * global.dirShadowInfo.y * (1.0 - dotNL), 1.0);
         shadow = getShadowPCF(u_dirShadowMap, shadowSampler, shadowPos, cascadeIndex, global.dirShadowInfo.x);
     }
     
@@ -111,7 +112,7 @@ for(var j=0u; j<u32(global.numSpotLights); j++) {
         
         var shadow: f32 = 1.0;
         if (global.spotShadowInfo[j].z > 0.5) {
-            let shadowPos = global.spotShadowMatrices[j] * vec4f(i.wp + N * global.spotShadowInfo[j].y, 1.0);
+            let shadowPos = global.spotShadowMatrices[j] * vec4f(i.wp + N * global.spotShadowInfo[j].y * (1.0 - max(dot(N, L), 0.0)), 1.0);
             shadow = getShadowPCF(u_spotShadowMap, shadowSampler, shadowPos, j, global.spotShadowInfo[j].x);
         }
         

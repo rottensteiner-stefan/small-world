@@ -94,6 +94,13 @@ This document serves to record external sources, algorithms, mathematical deriva
 - **Source:** [Rendering antialiased shadows with depth maps (SIGGRAPH 1987)](https://dl.acm.org/doi/10.1145/37402.37425)
 - **Usage:** The foundational technique for generating soft edges on shadow maps. By sampling the depth map multiple times around the target fragment and averaging the binary visibility results, jagged aliased shadows become smoothly blurred (especially when combined with hardware `sampler2DShadow`).
 
+### Normal-Offset Shadow Bias
+
+- **File:** `light_calc.frag.glsl`, `light_calc_pbr.frag.glsl` (GLSL300), `base_vertex_main.vert.glsl`, `lighting.wgsl`, `lighting_pbr.wgsl`
+- **Authors/Gurus:** Jasper Flick (Catlike Coding)
+- **Source:** [Directional Shadows (Custom SRP) — Catlike Coding](https://catlikecoding.com/unity/tutorials/custom-srp/directional-shadows/)
+- **Usage:** The reference for offsetting the shadow-map sample position along the surface normal (scaled by NdotL) before the light-space transform, instead of only biasing the compared depth value. Separates the fix for shadow acne from depth manipulation, reducing both acne and peter-panning simultaneously across our directional and spot light shadows.
+
 ### Dual Kawase Bloom (Post-Processing)
 
 - **File:** `BloomDownsample.frag.wgsl`, `BloomUpsample.frag.wgsl`, `PostProcessPass.ts`

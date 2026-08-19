@@ -18,7 +18,11 @@
               }
           }
           
-          vec4 lightSpacePos = u_cascadeMatrices[cascadeIndex] * vec4(v_worldPos, 1.0);
+          // Normal-offset bias: push the sample point along the surface normal (scaled by
+          // NdotL, so grazing angles -- where acne is worst -- get the biggest offset and
+          // surfaces facing the light head-on get almost none) instead of only biasing depth.
+          vec3 dirShadowSamplePos = v_worldPos + N * u_dirShadowInfo.y * (1.0 - diff_dir);
+          vec4 lightSpacePos = u_cascadeMatrices[cascadeIndex] * vec4(dirShadowSamplePos, 1.0);
           vec3 projCoords = lightSpacePos.xyz / lightSpacePos.w;
           projCoords = projCoords * 0.5 + 0.5;
           
@@ -48,7 +52,7 @@
       }
 
       // Point Lights
-      for(int i = 0; i < 4; i++) {
+      for(int i = 0; i < 16; i++) {
         if (i >= u_numPointLights) break;
         vec3 lightVec = u_pointLights[i].pos - v_worldPos;
         float dist = length(lightVec);
@@ -81,7 +85,7 @@
       }
 
       // Spot Lights
-      for(int i = 0; i < 4; i++) {
+      for(int i = 0; i < 16; i++) {
         if (i >= u_numSpotLights) break;
         vec3 lightVec = u_spotLights[i].pos - v_worldPos;
         float dist = length(lightVec);

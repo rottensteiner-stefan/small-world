@@ -20,7 +20,8 @@ let diff_dir = max(dot(N, L_dir), 0.0);    var shadow: f32 = 1.0;
             }
         }
         let cascadeMat = global.cascadeMatrices[cascadeIndex];
-        let shadowPos = cascadeMat * vec4f(i.wp + N * global.dirShadowInfo.y, 1.0);
+        // Normal-offset bias, scaled by NdotL so grazing angles get the biggest offset.
+        let shadowPos = cascadeMat * vec4f(i.wp + N * global.dirShadowInfo.y * (1.0 - diff_dir), 1.0);
         shadow = getShadowPCF(u_dirShadowMap, shadowSampler, shadowPos, cascadeIndex, global.dirShadowInfo.x);
     }
     
@@ -71,7 +72,7 @@ for(var j=0u; j<u32(global.numSpotLights); j++) {
     let diff = max(dot(N, L), 0.0); 
     var shadow: f32 = 1.0;
     if (global.spotShadowInfo[j].z > 0.5) {
-        let shadowPos = global.spotShadowMatrices[j] * vec4f(i.wp + N * global.spotShadowInfo[j].y, 1.0);
+        let shadowPos = global.spotShadowMatrices[j] * vec4f(i.wp + N * global.spotShadowInfo[j].y * (1.0 - diff), 1.0);
         shadow = getShadowPCF(u_spotShadowMap, shadowSampler, shadowPos, j, global.spotShadowInfo[j].x);
     }
     

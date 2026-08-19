@@ -111,7 +111,7 @@ export class SpotLight extends AbstractLight {
 
   /** @inheritdoc */
   public override applyTo(data: LightDataInterface): void {
-    if (4 > data.sLights.length) {
+    if (16 > data.sLights.length) {
       data.sLights.push(this);
     }
   }

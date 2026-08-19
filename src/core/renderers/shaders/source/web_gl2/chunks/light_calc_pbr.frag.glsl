@@ -30,7 +30,9 @@ vec3 Lo = vec3(0.0);
             }
         }
         
-        vec4 lightSpacePos = u_cascadeMatrices[cascadeIndex] * vec4(v_worldPos, 1.0);
+        // Normal-offset bias (see non-PBR light_calc.frag.glsl for rationale).
+        vec3 dirShadowSamplePos = v_worldPos + N * u_dirShadowInfo.y * (1.0 - dotNL);
+        vec4 lightSpacePos = u_cascadeMatrices[cascadeIndex] * vec4(dirShadowSamplePos, 1.0);
         vec3 projCoords = lightSpacePos.xyz / lightSpacePos.w;
         projCoords = projCoords * 0.5 + 0.5;
         
@@ -73,7 +75,7 @@ vec3 Lo = vec3(0.0);
 }
 
 // -- Point Lights --
-for(int i = 0; i < 4; i++) {
+for(int i = 0; i < 16; i++) {
     if (i >= u_numPointLights) break;
     vec3 lightVec = u_pointLights[i].pos - v_worldPos;
     float dist = length(lightVec);
@@ -113,7 +115,7 @@ for(int i = 0; i < 4; i++) {
 }
 
 // -- Spot Lights --
-for(int i = 0; i < 4; i++) {
+for(int i = 0; i < 16; i++) {
     if (i >= u_numSpotLights) break;
     vec3 lightVec = u_spotLights[i].pos - v_worldPos;
     float dist = length(lightVec);

@@ -3,16 +3,16 @@ uniform vec3 u_dirLightColor;
 uniform vec3 u_dirLightDir;
 
 uniform int u_numPointLights;
-uniform vec3 u_pointLightPos[4];
-uniform vec3 u_pointLightColor[4];
-uniform float u_pointLightDistance[4];
-uniform float u_pointLightDecay[4];
+uniform vec3 u_pointLightPos[16];
+uniform vec3 u_pointLightColor[16];
+uniform float u_pointLightDistance[16];
+uniform float u_pointLightDecay[16];
 
 uniform int u_numSpotLights;
-uniform vec3 u_spotLightPos[4];
-uniform vec3 u_spotLightDir[4];
-uniform vec3 u_spotLightColor[4];
-uniform vec4 u_spotLightParams[4];
+uniform vec3 u_spotLightPos[16];
+uniform vec3 u_spotLightDir[16];
+uniform vec3 u_spotLightColor[16];
+uniform vec4 u_spotLightParams[16];
 
 uniform int u_numAreaLights;
 uniform vec3 u_areaLightPos[4];

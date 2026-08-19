@@ -38,7 +38,7 @@ export class PointLight extends AbstractLight {
 
   /** @inheritdoc */
   public override applyTo(data: LightDataInterface): void {
-    if (4 > data.pLights.length) {
+    if (16 > data.pLights.length) {
       data.pLights.push(this);
     }
   }

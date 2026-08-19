@@ -171,7 +171,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     // Pre-register internal materials
     new DepthMaterial();
 
-    this._globalUBO = new WebGL2UniformBuffer(this.gl, 1280, 0);
+    this._globalUBO = new WebGL2UniformBuffer(this.gl, 2144, 0);
 
     this.addPass(new WebGLShadowPass());
     this.addPass(new WebGLMainPass());
@@ -1555,7 +1555,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     ubo.setFloat(140, this._quality.gamma ?? 2.2);
     ubo.setFloat(144, this._quality.exposure ?? 1.0);
 
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 16; i++) {
       const offset = 160 + i * 32;
       if (i < lights.pLights.length) {
         const pl = lights.pLights[i]!;
@@ -1580,8 +1580,8 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       }
     }
 
-    for (let i = 0; i < 4; i++) {
-      const offset = 288 + i * 64;
+    for (let i = 0; i < 16; i++) {
+      const offset = 672 + i * 64;
       if (i < lights.sLights.length) {
         const sl = lights.sLights[i]!;
         const dir = MathPool.acquireVector().copyFrom(sl.direction).normalize();
@@ -1611,7 +1611,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     }
 
     for (let i = 0; i < 4; i++) {
-      const offset = 544 + i * 112;
+      const offset = 1696 + i * 112;
       if (i < lights.aLights.length) {
         const al = lights.aLights[i]!;
         const mat = al.worldMatrix.data;

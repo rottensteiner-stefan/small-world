@@ -54,8 +54,8 @@ layout(std140) uniform GlobalUniforms {
     float u_exposure;
     float _pad4;
     vec2 u_cameraNearFar;
-    PointLight u_pointLights[4];
-    SpotLight u_spotLights[4];
+    PointLight u_pointLights[16];
+    SpotLight u_spotLights[16];
     AreaLight u_areaLights[4];
 };
 

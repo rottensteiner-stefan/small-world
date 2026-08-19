@@ -31,7 +31,7 @@ vec3 Lo = vec3(0.0);
 }
 
 // -- Point Lights --
-for(int i = 0; i < 4; i++) {
+for(int i = 0; i < 16; i++) {
     if (i >= u_numPointLights) break;
     vec3 lightVec = u_pointLightPos[i] - v_worldPos;
     float dist = length(lightVec);
