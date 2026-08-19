@@ -39,7 +39,7 @@ export abstract class AbstractShowcase extends SmallWorld {
     const currentId = parseInt(match[1]!, 10);
     if (isNaN(currentId)) return;
 
-    const totalShowcases = 25;
+    const totalShowcases = 26;
 
     const createButton = (
       text: string,

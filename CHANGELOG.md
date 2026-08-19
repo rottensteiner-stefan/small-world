@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.74.10] - 2026-08-18
+
+### "Words are a lens to focus one's mind." - Ayn Rand
+
+- **Features:**
+  - **TextTexture:** Added a new `TextTexture` utility (`src/core/text/`) to render variable fonts with Canvas2D effects (outline, shadow, gradient, wrapping) into a texture.
+  - **Texture Re-upload:** Added `needsUpdate` to `Texture` and extended `Texture.fromCanvas()` to accept `HTMLCanvasElement`. All three renderers (WebGL1/2, WebGPU) now detect this flag and re-upload the canvas buffer to the GPU, unlocking dynamic in-scene text.
+  - **New Showcase:** Added Showcase 26 ("Monitor Screen Text") demonstrating a dynamic `TextTexture` mapped onto a `RetroScreenMaterial` plane updating every second.
+- **Architecture & Bugfixes:**
+  - **RetroScreenMaterial:** Fixed `u_liquidParams` never being declared in the GLSL300/GLSL100 fragment shaders (undeclared-identifier compile error) and the WGSL shader reading it as `obj.u_liquidParams`/`obj.u_extraParams` instead of the actual struct fields `obj.liquidParams`/`obj.extraParams` (WGSL parse error). The material had never been exercised in a real renderer before Showcase 26 and failed to compile/link on all three backends.
+
 ## [0.74.9] - 2026-08-10
 
 ### "The details are not the details. They make the design." - Charles Eames

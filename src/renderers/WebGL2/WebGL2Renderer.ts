@@ -502,6 +502,23 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       }
 
       this._texCache.set(tex, glTex);
+    } else if (
+      tex.needsUpdate &&
+      !("isTextureArray" in tex && (tex as TextureArray).isTextureArray)
+    ) {
+      this.gl.bindTexture(this.gl.TEXTURE_2D, glTex);
+      this.gl.texImage2D(
+        this.gl.TEXTURE_2D,
+        0,
+        this.gl.RGBA,
+        this.gl.RGBA,
+        this.gl.UNSIGNED_BYTE,
+        tex.image,
+      );
+      if (this._quality.mipmapping && tex.generateMipmaps) {
+        this.gl.generateMipmap(this.gl.TEXTURE_2D);
+      }
+      tex.needsUpdate = false;
     }
     return glTex;
   }

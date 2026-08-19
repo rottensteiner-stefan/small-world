@@ -98,6 +98,7 @@ export class RetroScreenMaterial extends AbstractMaterial {
     const texs = this._renderManifest.textures as Record<string, unknown>;
 
     texs["u_diffuseMap"] = this.diffuseMap;
+    this._syncTexOffsetRepeat(this.diffuseMap);
 
     const extra = props["u_extraParams"] as number[];
     extra[0] = this.intensity;

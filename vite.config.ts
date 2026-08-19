@@ -145,6 +145,7 @@ export default defineConfig({
         showcase23: resolve(import.meta.dirname, "showcases/23/index.html"),
         showcase24: resolve(import.meta.dirname, "showcases/24/index.html"),
         showcase25: resolve(import.meta.dirname, "showcases/25/index.html"),
+        showcase26: resolve(import.meta.dirname, "showcases/26/index.html"),
         yad: resolve(import.meta.dirname, "showcases/yad/index.html"),
         neonLabyrinth: resolve(import.meta.dirname, "showcases/neon-labyrinth/index.html"),
         pbrgen: resolve(import.meta.dirname, "public/tools/pbr-gen.html"),

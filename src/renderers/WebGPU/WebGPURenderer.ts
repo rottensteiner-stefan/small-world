@@ -76,8 +76,7 @@ export interface WebGPUPipelineCache {
  * they transitively import this module via `RendererFactory`.
  */
 let _optionalMaterialTextureBindings:
-  | Record<string, { binding: number; layoutEntry: GPUBindGroupLayoutEntry }>
-  | undefined;
+  Record<string, { binding: number; layoutEntry: GPUBindGroupLayoutEntry }> | undefined;
 
 function getOptionalMaterialTextureBindings(): Record<
   string,
@@ -1755,10 +1754,7 @@ export class WebGPURenderer extends AbstractRenderer {
           this._device!.queue.copyExternalImageToTexture(
             {
               source: texArray.images[i] as
-                | ImageBitmap
-                | HTMLImageElement
-                | HTMLCanvasElement
-                | OffscreenCanvas,
+                ImageBitmap | HTMLImageElement | HTMLCanvasElement | OffscreenCanvas,
             },
             { texture: t, origin: [0, 0, i] },
             [width, height],
@@ -1782,6 +1778,16 @@ export class WebGPURenderer extends AbstractRenderer {
       }
       entry = { texture: t, view: v };
       this._textureViewCache.set(tex, entry);
+    } else if (
+      tex.needsUpdate &&
+      !("isTextureArray" in tex && (tex as TextureArray).isTextureArray)
+    ) {
+      this._device!.queue.copyExternalImageToTexture(
+        { source: tex.image },
+        { texture: entry.texture },
+        [tex.image.width, tex.image.height],
+      );
+      tex.needsUpdate = false;
     }
     return entry.view;
   }

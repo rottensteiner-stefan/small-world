@@ -332,6 +332,22 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
         this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
       }
       this._texCache.set(tex, glTex);
+    } else if (tex.needsUpdate) {
+      const img = tex.image;
+      this.gl.bindTexture(this.gl.TEXTURE_2D, glTex);
+      this.gl.texImage2D(
+        this.gl.TEXTURE_2D,
+        0,
+        this.gl.RGBA,
+        this.gl.RGBA,
+        this.gl.UNSIGNED_BYTE,
+        img,
+      );
+      const isPOT = 0 === (img.width & (img.width - 1)) && 0 === (img.height & (img.height - 1));
+      if (this._quality.mipmapping && tex.generateMipmaps && isPOT) {
+        this.gl.generateMipmap(this.gl.TEXTURE_2D);
+      }
+      tex.needsUpdate = false;
     }
     return glTex;
   }

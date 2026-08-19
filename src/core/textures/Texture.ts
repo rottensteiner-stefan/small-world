@@ -24,10 +24,12 @@ export interface TextureOptions {
  * Represents a 2D texture.
  */
 export class Texture {
-  /** The underlying image or bitmap data. */
-  public image: HTMLImageElement | ImageBitmap | undefined = undefined;
+  /** The underlying image, bitmap, or canvas data. */
+  public image: HTMLImageElement | ImageBitmap | HTMLCanvasElement | undefined = undefined;
   /** Whether the texture is fully loaded and ready for use. */
   public isLoaded: boolean = false;
+  /** Set to true after mutating `image` in place (e.g. redrawing a canvas) to force a GPU re-upload. */
+  public needsUpdate: boolean = false;
 
   /** The magnification filter. */
   public magFilter: TextureFilter = TextureFilter.DEFAULT;
@@ -52,7 +54,10 @@ export class Texture {
    * @param image Optional initial image data.
    * @param options Optional configuration options.
    */
-  protected constructor(image?: HTMLImageElement | ImageBitmap, options: TextureOptions = {}) {
+  protected constructor(
+    image?: HTMLImageElement | ImageBitmap | HTMLCanvasElement,
+    options: TextureOptions = {},
+  ) {
     if (image) {
       this.image = image;
       this.isLoaded = true;
@@ -105,6 +110,17 @@ export class Texture {
     options?: TextureOptions,
   ): Texture {
     return new Texture(image, options);
+  }
+
+  /**
+   * Creates a texture backed directly by a canvas. Redraw the canvas and set `needsUpdate = true`
+   * to push the new pixels to the GPU on the next frame.
+   * @param canvas The canvas to use as the texture's pixel source.
+   * @param options Optional configuration options.
+   * @returns A new Texture instance.
+   */
+  public static fromCanvas(canvas: HTMLCanvasElement, options?: TextureOptions): Texture {
+    return new Texture(canvas, options);
   }
 
   /**

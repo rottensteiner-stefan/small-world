@@ -3,15 +3,15 @@ fn hash2(p: vec2f) -> f32 {
 }
 
 @fragment fn fs(i: Out) -> @location(0) vec4f {
-    let intensity = obj.u_extraParams.x;
-    let time = obj.u_extraParams.y;
-    let mode = obj.u_extraParams.w; // 0.0 = tv50s, 1.0 = film19th
+    let intensity = obj.extraParams.x;
+    let time = obj.extraParams.y;
+    let mode = obj.extraParams.w; // 0.0 = tv50s, 1.0 = film19th
     
     var uv = i.uv;
     
     // Mode 0.0: TV rolling & tear
     if (mode < 0.5) {
-        let rollSpeed = obj.u_liquidParams.w;
+        let rollSpeed = obj.liquidParams.w;
         uv.y = fract(uv.y + time * rollSpeed);
         
         let tear = hash2(vec2f(floor(uv.y * 15.0), floor(time * 6.0)));
@@ -29,12 +29,12 @@ fn hash2(p: vec2f) -> f32 {
         color = vec3f(gray);
         
         // Scanlines
-        let scanlineCount = obj.u_liquidParams.y;
+        let scanlineCount = obj.liquidParams.y;
         let scanline = sin(uv.y * scanlineCount) * 0.5 + 0.5;
         color = mix(color, color * (0.4 + 0.6 * scanline), intensity);
         
         // Snow
-        let snowAmount = obj.u_liquidParams.x;
+        let snowAmount = obj.liquidParams.x;
         let noise = hash2(uv * (1.0 + time));
         color = mix(color, vec3f(noise), snowAmount * intensity);
     } else {
@@ -44,7 +44,7 @@ fn hash2(p: vec2f) -> f32 {
         color = mix(color, sepia, intensity);
         
         // Exposure Flicker
-        let flickerSpeed = obj.u_liquidParams.y;
+        let flickerSpeed = obj.liquidParams.y;
         let flicker = 1.0 + (hash2(vec2f(floor(time * flickerSpeed), 0.0)) - 0.5) * 0.15;
         color *= mix(1.0, flicker, intensity);
         
@@ -54,14 +54,14 @@ fn hash2(p: vec2f) -> f32 {
         color *= mix(1.0, clamp(vignette, 0.0, 1.0), intensity * 0.8);
         
         // Dust
-        let dirtDensity = obj.u_liquidParams.z;
+        let dirtDensity = obj.liquidParams.z;
         let dust = hash2(vec2f(floor(uv.x * 120.0), floor(uv.y * 120.0)) + floor(time * 15.0));
         if (dust > (1.0 - 0.003 * dirtDensity)) {
             color *= mix(1.0, 0.2, intensity);
         }
         
         // Scratches (emulating 2 scratches in loop)
-        let scratchCount = obj.u_liquidParams.x;
+        let scratchCount = obj.liquidParams.x;
         for (var idx: i32 = 0; idx < 2; idx = idx + 1) {
             let scratchIdx = f32(idx);
             let scratchX = hash2(vec2f(floor(time * (5.0 + scratchIdx)), 7.0 + scratchIdx));
