@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.76.8] - 2026-08-19
+
+### "Research is formalized curiosity. It is poking and prying with a purpose." - Zora Neale Hurston
+
+- **Housekeeping & Docs:**
+  - Added `docs/research/aaa-engine-techniques.md`: a prioritized survey of rendering/physics techniques from Unreal, Babylon.js, three.js, and Godot that are realistically adoptable here (clustered/tiled lighting against our 4-point/4-spot-light cap, PCSS and CSM polish on top of our existing shadows, ACES tonemapping, fixed-timestep render interpolation, GPU-instancing usage audit, and more), cross-checked against a fresh grounding pass over our own current renderer/physics code.
+  - Added `docs/research/xdp-game-networking.md`: notes on XDP/eBPF Linux kernel packet processing for game servers, parked for reference since `small-world` is a client-only engine with no networking layer today.
+
 ## [0.76.7] - 2026-08-19
 
 ### "Music is the silence between the notes." - Claude Debussy

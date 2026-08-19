@@ -21,7 +21,7 @@ import { GadgetInspector } from "../tools/GadgetInspector.js";
 import { PhysicsSystem } from "../physix/PhysicsSystem.js";
 
 /** The current engine version. */
-export const ENGINE_VERSION = "0.76.7";
+export const ENGINE_VERSION = "0.76.8";
 
 /**
  * Base class for applications built with the SmallWorld engine.
@@ -450,6 +450,10 @@ export abstract class SmallWorld {
     }
 
     FrustumCuller.cull(this.scene, this.camera.viewProjectionMatrix4);
+
+    if (this.config.enablePhysics) {
+      this.physics.applyRenderInterpolation();
+    }
 
     if (this.debug) {
       this._collisionVisualizer.update(this.scene);
