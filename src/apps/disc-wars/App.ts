@@ -114,11 +114,13 @@ export class App extends SmallWorld {
     this._hud.setDiscReady();
     this._phase = GamePhase.PLAYING;
 
+    await this.audio.load("./assets/sounds/spaceship_ambience.mp3", "ambience");
+
     document.addEventListener(
       "click",
       (): void => {
         this.audio.resume();
-        this.audio.startDrone();
+        this.audio.playMusic("ambience", true, 0.5);
       },
       { once: true },
     );

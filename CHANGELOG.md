@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.76.7] - 2026-08-19
+
+### "Music is the silence between the notes." - Claude Debussy
+
+- **Features:**
+  - **Disc Wars:** Added a looping spaceship-ambience background track, credited in `REFERENCES.md`. `AudioSystem` gained a `playMusic()` method that routes through the dedicated `musicGain` bus (instead of `sfxGain`, like the existing `play()`), replacing the placeholder synthesized `startDrone()` in the click-to-resume handler.
+- **Architecture & Bugfixes:**
+  - The downloaded ambience source turned out to be the same ~35s sample looped ~17 times to fill a 9:53 runtime. Found the exact loop period via autocorrelation and re-cut the asset down to a single, seamlessly cross-faded loop — 18.99 MB → 820 KB — since the engine already loops it in code.
+
 ## [0.76.6] - 2026-08-19
 
 ### "The most dangerous phrase in the language is, 'We've always done it this way.'" - Grace Hopper

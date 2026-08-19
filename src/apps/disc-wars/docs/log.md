@@ -393,3 +393,17 @@ Absturz (`Cannot read properties of undefined (reading 'replace')` in `ShaderReg
 **Verifiziert:** `tsc --noEmit` sauber, alle 348 Vitest-Tests grün, `build:lib` erfolgreich,
 visuell in allen drei Renderern (`?rendererType=webgl1/webgl2/webgpu`) im Browser geprüft —
 keine Konsolenfehler, Gitterwände + Disc rendern überall identisch.
+
+---
+
+## UPDATE 2026-08-19T15:12 — Ambience-Track auf echten Loop-Sample gekürzt
+
+Verdacht bestätigt: `spaceship_ambience.mp3` (18,99 MB, 9:53) war derselbe kurze Sample
+~17× hintereinander gerendert. Per Autokorrelation der Energiehülle (10 ms-Blöcke) exakte
+Periode ermittelt: **34,9097 s** (Score 0,79 vs. <0,25 Nachbar-Lags; Nachbar-Loop-Korrelation
+im Rohsignal 0,976). Einzelnen Loop extrahiert und per Equal-Power-Crossfade (400 ms, unter
+Verwendung der echten Folgedaten aus der Originalaufnahme) nahtlos gemacht — Sample-Delta an
+der Nahtstelle (36/83) liegt im normalen Bereich benachbarter Samples (Median 24, Max 123),
+kein Klick. Datei ersetzt: **18,99 MB → 820 KB** (~23×). `AudioSystem.playMusic(..., loop=true)`
+übernimmt jetzt das eigentliche Looping. Original als Backup im Scratchpad gesichert (nicht im
+Repo). Im Browser erneut auf HTTP 200 + fehlerfreies Abspielen geprüft.

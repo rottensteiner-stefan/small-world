@@ -145,6 +145,34 @@ export class AudioSystem {
   }
 
   /**
+   * Plays a global (non-spatial) music track through the music bus, so it responds to
+   * `setMusicVolume()` independently of sound effects.
+   */
+  public playMusic(
+    name: string,
+    loop: boolean = true,
+    volume: number = 1.0,
+  ): AudioBufferSourceNode | null {
+    const buffer = this._buffers.get(name);
+    if (!buffer) return null;
+
+    this.resume();
+
+    const source = this.context.createBufferSource();
+    source.buffer = buffer;
+    source.loop = loop;
+
+    const gainNode = this.context.createGain();
+    gainNode.gain.value = volume;
+
+    source.connect(gainNode);
+    gainNode.connect(this.musicGain);
+
+    source.start(0);
+    return source;
+  }
+
+  /**
    * Plays a 3D spatial sound at a given position.
    */
   public playSpatial(
