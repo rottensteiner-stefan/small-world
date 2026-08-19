@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.76.5] - 2026-08-19
+
+### "Not all those who wander are lost." - J.R.R. Tolkien
+
+- **Housekeeping & Docs:**
+  - Linked **Disc Wars** and **Light Cycle Arena** on the main showcase index (`public/index.html`) — both apps were already registered as Vite build entries but had no way to reach them from the gallery page.
+
 ## [0.76.4] - 2026-08-19
 
 ### "The absence of evidence is not evidence of absence." - Carl Sagan
