@@ -29,7 +29,6 @@ export class PostProcessingGroup {
   private _elements: Map<PostProcessingEffectType, PostProcessingElement> = new Map();
 
   constructor() {
-    // Add defaults so when enabled, it behaves like before
     this.add(new ToneMappingElement());
     this.add(new VignetteElement());
     this.add(new GrainElement());
@@ -72,45 +71,48 @@ export class PostProcessingGroup {
     if (config.enabled !== undefined) this.enabled = config.enabled;
     if (config.filterMode !== undefined) this.filterMode = config.filterMode;
 
-    if (config.toneMapping) {
+    const effects = config.effects;
+    if (!effects) return;
+
+    if (effects.toneMapping) {
       const tm = this.get<ToneMappingElement>(PostProcessingEffectType.TONE_MAPPING);
       if (tm) {
-        if (config.toneMapping.enabled !== undefined) tm.enabled = config.toneMapping.enabled;
-        if (config.toneMapping.mode !== undefined) tm.mode = config.toneMapping.mode;
-        if (config.toneMapping.exposure !== undefined) tm.exposure = config.toneMapping.exposure;
-        if (config.toneMapping.gamma !== undefined) tm.gamma = config.toneMapping.gamma;
+        if (effects.toneMapping.enabled !== undefined) tm.enabled = effects.toneMapping.enabled;
+        if (effects.toneMapping.mode !== undefined) tm.mode = effects.toneMapping.mode;
+        if (effects.toneMapping.exposure !== undefined) tm.exposure = effects.toneMapping.exposure;
+        if (effects.toneMapping.gamma !== undefined) tm.gamma = effects.toneMapping.gamma;
       }
     }
 
-    if (config.vignette) {
+    if (effects.vignette) {
       const vig = this.get<VignetteElement>(PostProcessingEffectType.VIGNETTE);
       if (vig) {
-        if (config.vignette.enabled !== undefined) vig.enabled = config.vignette.enabled;
-        if (config.vignette.offset !== undefined) vig.offset = config.vignette.offset;
-        if (config.vignette.darkness !== undefined) vig.darkness = config.vignette.darkness;
-        if (config.vignette.roundness !== undefined) vig.roundness = config.vignette.roundness;
+        if (effects.vignette.enabled !== undefined) vig.enabled = effects.vignette.enabled;
+        if (effects.vignette.offset !== undefined) vig.offset = effects.vignette.offset;
+        if (effects.vignette.darkness !== undefined) vig.darkness = effects.vignette.darkness;
+        if (effects.vignette.roundness !== undefined) vig.roundness = effects.vignette.roundness;
       }
     }
 
-    if (config.grain) {
+    if (effects.grain) {
       const grain = this.get<GrainElement>(PostProcessingEffectType.GRAIN);
       if (grain) {
-        if (config.grain.enabled !== undefined) grain.enabled = config.grain.enabled;
-        if (config.grain.intensity !== undefined) grain.intensity = config.grain.intensity;
+        if (effects.grain.enabled !== undefined) grain.enabled = effects.grain.enabled;
+        if (effects.grain.intensity !== undefined) grain.intensity = effects.grain.intensity;
       }
     }
 
-    if (config.bloom) {
+    if (effects.bloom) {
       const bloom = this.get<BloomElement>(PostProcessingEffectType.BLOOM);
       if (bloom) {
-        if (config.bloom.enabled !== undefined) bloom.enabled = config.bloom.enabled;
-        if (config.bloom.threshold !== undefined) bloom.threshold = config.bloom.threshold;
-        if (config.bloom.softThreshold !== undefined)
-          bloom.softThreshold = config.bloom.softThreshold;
-        if (config.bloom.intensity !== undefined) bloom.intensity = config.bloom.intensity;
-        if (config.bloom.radius !== undefined) bloom.radius = config.bloom.radius;
-        if (config.bloom.color !== undefined) {
-          const col = config.bloom.color;
+        if (effects.bloom.enabled !== undefined) bloom.enabled = effects.bloom.enabled;
+        if (effects.bloom.threshold !== undefined) bloom.threshold = effects.bloom.threshold;
+        if (effects.bloom.softThreshold !== undefined)
+          bloom.softThreshold = effects.bloom.softThreshold;
+        if (effects.bloom.intensity !== undefined) bloom.intensity = effects.bloom.intensity;
+        if (effects.bloom.radius !== undefined) bloom.radius = effects.bloom.radius;
+        if (effects.bloom.color !== undefined) {
+          const col = effects.bloom.color;
           if (Array.isArray(col)) {
             bloom.color.set(col[0], col[1], col[2]);
           } else if (typeof col === "object" && col !== null) {
@@ -120,36 +122,37 @@ export class PostProcessingGroup {
       }
     }
 
-    if (config.quantize) {
+    if (effects.quantize) {
       const quant = this.get<QuantizeElement>(PostProcessingEffectType.QUANTIZE);
       if (quant) {
-        if (config.quantize.enabled !== undefined) quant.enabled = config.quantize.enabled;
-        if (config.quantize.steps !== undefined) quant.steps = config.quantize.steps;
+        if (effects.quantize.enabled !== undefined) quant.enabled = effects.quantize.enabled;
+        if (effects.quantize.steps !== undefined) quant.steps = effects.quantize.steps;
       }
     }
 
-    if (config.hbao) {
+    if (effects.hbao) {
       const hbao = this.get<HbaoElement>(PostProcessingEffectType.HBAO);
       if (hbao) {
-        if (config.hbao.enabled !== undefined) hbao.enabled = config.hbao.enabled;
-        if (config.hbao.radius !== undefined) hbao.radius = config.hbao.radius;
-        if (config.hbao.intensity !== undefined) hbao.intensity = config.hbao.intensity;
+        if (effects.hbao.enabled !== undefined) hbao.enabled = effects.hbao.enabled;
+        if (effects.hbao.radius !== undefined) hbao.radius = effects.hbao.radius;
+        if (effects.hbao.intensity !== undefined) hbao.intensity = effects.hbao.intensity;
       }
     }
 
-    if (config.taa) {
+    if (effects.taa) {
       const taa = this.get<TaaElement>(PostProcessingEffectType.TAA);
       if (taa) {
-        if (config.taa.enabled !== undefined) taa.enabled = config.taa.enabled;
-        if (config.taa.feedback !== undefined) taa.feedback = config.taa.feedback;
+        if (effects.taa.enabled !== undefined) taa.enabled = effects.taa.enabled;
+        if (effects.taa.feedback !== undefined) taa.feedback = effects.taa.feedback;
       }
     }
 
-    if (config.motionTrail) {
+    if (effects.motionTrail) {
       const trail = this.get<MotionTrailElement>(PostProcessingEffectType.MOTION_TRAIL);
       if (trail) {
-        if (config.motionTrail.enabled !== undefined) trail.enabled = config.motionTrail.enabled;
-        if (config.motionTrail.feedback !== undefined) trail.feedback = config.motionTrail.feedback;
+        if (effects.motionTrail.enabled !== undefined) trail.enabled = effects.motionTrail.enabled;
+        if (effects.motionTrail.feedback !== undefined)
+          trail.feedback = effects.motionTrail.feedback;
       }
     }
   }

@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.76.13] - 2026-08-20
+
+### "Order and simplification are the first steps toward mastery of a subject." - Thomas Mann
+
+- **Architecture & Bugfixes:**
+  - Restructured `PostProcessingConfig`: per-effect settings (`toneMapping`, `vignette`, `grain`, `bloom`, `quantize`, `hbao`, `taa`, `motionTrail`) now nest under a new `effects` object instead of sitting as flat top-level keys, so general pipeline settings (`enabled`, `filterMode`) stay structurally separate from individual effects' own tunables. Not an array of `{ type, ... }` entries — the pipeline's effect order is fixed internally (Bloom → HBAO → Tonemapping → Vignette → Grain → Quantize), so an array would have implied an ordering control that doesn't actually exist.
+  - Removed a stale comment (`// Add defaults so when enabled, it behaves like before`) left over from an earlier refactor.
+- **Housekeeping & Docs:**
+  - Added `docs/guides/shadows.md`: a full guide to the shadow system (CSM for directional lights, spot-light shadow maps, PCF, normal-offset bias, this session's CSM texel-snapping/cascade-blending polish, and PCSS), registered in the VitePress sidebar. This was previously undocumented outside of `docs/research/aaa-engine-techniques.md`.
+  - Fixed `docs/guides/configuration.md`'s Post-Processing section, which described a schema that didn't match the actual code at all (a `type`-tagged `effects` array with non-existent effect types like `filmGrain`/`retro`) — pre-existing and unrelated to this session's other work, caught while documenting HBAO/TAA/MotionTrail. Rewritten to match the real (now `effects`-nested) shape.
+
 ## [0.76.12] - 2026-08-20
 
 ### "In the fields of observation, chance favors only the prepared mind." - Louis Pasteur

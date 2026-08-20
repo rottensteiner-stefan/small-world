@@ -103,21 +103,23 @@ describe("Post-Processing Shader Chunks & Groups", () => {
   it("should correctly load settings from config and inject them into GLSL and WGSL source templates", () => {
     const group = new PostProcessingGroup();
     group.loadConfig({
-      vignette: {
-        enabled: true,
-        offset: 0.123456,
-        darkness: 0.789,
-        roundness: 3.5,
-      },
-      toneMapping: {
-        enabled: true,
-        mode: 2,
-        exposure: 1.5,
-        gamma: 1.8,
-      },
-      grain: {
-        enabled: true,
-        intensity: 0.08,
+      effects: {
+        vignette: {
+          enabled: true,
+          offset: 0.123456,
+          darkness: 0.789,
+          roundness: 3.5,
+        },
+        toneMapping: {
+          enabled: true,
+          mode: 2,
+          exposure: 1.5,
+          gamma: 1.8,
+        },
+        grain: {
+          enabled: true,
+          intensity: 0.08,
+        },
       },
     });
 

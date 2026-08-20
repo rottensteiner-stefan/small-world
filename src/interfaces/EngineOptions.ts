@@ -109,11 +109,11 @@ export interface EngineOptions {
 }
 
 /**
- * Configuration for post-processing effects.
+ * Per-effect settings for the post-processing pipeline, nested under `PostProcessingConfig.effects`
+ * so general pipeline settings (`enabled`, `filterMode`) stay structurally separate from the
+ * individual effects' own tunables.
  */
-export interface PostProcessingConfig {
-  enabled?: boolean;
-  filterMode?: number;
+export interface PostProcessingEffectsConfig {
   toneMapping?: {
     enabled?: boolean;
     mode?: ToneMappingMode;
@@ -142,7 +142,7 @@ export interface PostProcessingConfig {
     enabled?: boolean;
     steps?: number;
   };
-  /** Ground-truth-ish ambient occlusion. WebGL2/WebGPU only, off by default. */
+  /** Simplified screen-space ambient occlusion (HBAO, not GTAO). WebGL2/WebGPU only, off by default. */
   hbao?: {
     enabled?: boolean;
     radius?: number;
@@ -158,4 +158,13 @@ export interface PostProcessingConfig {
     enabled?: boolean;
     feedback?: number;
   };
+}
+
+/**
+ * Configuration for post-processing effects.
+ */
+export interface PostProcessingConfig {
+  enabled?: boolean;
+  filterMode?: number;
+  effects?: PostProcessingEffectsConfig;
 }
