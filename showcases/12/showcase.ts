@@ -40,6 +40,7 @@ import { AbstractShowcase } from "../../src/core/index.js";
 import { WorkbenchTable } from "./assets/objects/WorkbenchTable.js";
 import { ErlenmeyerFlask } from "./assets/objects/ErlenmeyerFlask.js";
 import { ApothecaryBottle } from "./assets/objects/ApothecaryBottle.js";
+import { TeqlerMeasuringCylinder } from "./assets/objects/TeqlerMeasuringCylinder.js";
 import { OilPuddleMaterial } from "./assets/OilPuddleMaterial.js";
 
 class SinkingBehavior extends Behavior {
@@ -1207,46 +1208,168 @@ class Showcase12 extends AbstractShowcase {
     tableLight.castShadow = true;
     this.scene.add(tableLight);
 
-    // 6.b Laboratory Glassware on the Table
-    const borosilicateGlass = new GlassMaterial({
-      color: new Color(0.95, 0.98, 0.98, 1.0), // Very slight cyan/green tint of lab glass
-      roughness: 0.01, // Extremely smooth
-      metallic: 0.0, // Pure dielectric
-      ior: 1.474, // Borosilicate glass IOR
-      thickness: 0.05, // Thin walls
-      transmission: 0.98,
-    });
-    borosilicateGlass.cullMode = CullMode.NONE;
+    // 6.b Laboratory Glassware on the Table -- 4 Erlenmeyer flasks, 4 apothecary bottles and
+    // 4 Teqler measuring cylinders (12 total), each a unique color, 2 randomized-but-sensible
+    // sizes per vessel type, scattered randomly across the tabletop with no footprint overlaps
+    // and no overhang past the table edge.
 
-    const cobaltGlass = new GlassMaterial({
-      color: new Color(0.1, 0.25, 0.9, 1.0), // Rich Cobalt Blue
-      roughness: 0.03, // Slight surface imperfections
-      metallic: 0.0,
-      ior: 1.52, // Standard bottle glass
-      thickness: 0.3, // Thicker walls -> richer color absorption
-      transmission: 0.95,
-    });
-    cobaltGlass.cullMode = CullMode.NONE;
+    // 12 hues spaced 30 degrees apart at fixed saturation/lightness -- every color stays clearly
+    // distinguishable from its neighbors by eye, not just numerically different.
+    function hslToRgbTuple(
+      hueDeg: number,
+      saturation: number,
+      lightness: number,
+    ): [number, number, number] {
+      const c = (1 - Math.abs(2 * lightness - 1)) * saturation;
+      const x = c * (1 - Math.abs(((hueDeg / 60) % 2) - 1));
+      const m = lightness - c / 2;
+      let r = 0;
+      let g = 0;
+      let b = 0;
+      if (60 > hueDeg) {
+        r = c;
+        g = x;
+      } else if (120 > hueDeg) {
+        r = x;
+        g = c;
+      } else if (180 > hueDeg) {
+        g = c;
+        b = x;
+      } else if (240 > hueDeg) {
+        g = x;
+        b = c;
+      } else if (300 > hueDeg) {
+        r = x;
+        b = c;
+      } else {
+        r = c;
+        b = x;
+      }
+      return [r + m, g + m, b + m];
+    }
 
-    // Erlenmeyer Flask
-    const flask = new ErlenmeyerFlask("Erlenmeyer", {
-      radius: 0.2,
-      height: 0.5,
-      glassMaterial: borosilicateGlass,
+    const glassColorPalette = Array.from({ length: 12 }, (_, i) => {
+      const [r, g, b] = hslToRgbTuple(i * 30, 0.7, 0.45);
+      const glass = new GlassMaterial({
+        color: new Color(r, g, b, 1.0),
+        roughness: 0.03,
+        metallic: 0.0,
+        ior: 1.52,
+        thickness: 0.25,
+        transmission: 0.95,
+      });
+      glass.cullMode = CullMode.NONE;
+      return glass;
     });
-    // Place on table (Y=1)
-    flask.position.set(4.5, 1, -18.8);
-    this.scene.add(flask);
 
-    // Apothecary Bottle
-    const bottle = new ApothecaryBottle("Apothecary", {
-      radius: 0.15,
-      height: 0.6,
-      glassMaterial: cobaltGlass,
-    });
-    // Place next to flask
-    bottle.position.set(5.2, 1, -18.6);
-    this.scene.add(bottle);
+    function shuffled<T>(arr: T[]): T[] {
+      const out = [...arr];
+      for (let i = out.length - 1; 0 < i; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [out[i], out[j]] = [out[j]!, out[i]!];
+      }
+      return out;
+    }
+
+    // Every vessel below draws from this shuffled, non-repeating pool -- guarantees each of the
+    // 12 gets its own unique color.
+    const colorPool = shuffled(glassColorPalette);
+    let nextColorIndex = 0;
+    const nextGlassColor = (): GlassMaterial => colorPool[nextColorIndex++]!;
+
+    const randInRange = (min: number, max: number): number => min + Math.random() * (max - min);
+
+    // Table surface bounds (matches WorkbenchTable width:3 / depth:1.2 / position above).
+    const tableCenterX = 5;
+    const tableCenterZ = -18.8;
+    const tableHalfWidth = 1.5;
+    const tableHalfDepth = 0.6;
+    const tableEdgeMargin = 0.02;
+    const vesselMinGap = 0.03;
+
+    const placedVessels: { x: number; z: number; footprintRadius: number }[] = [];
+
+    function placeVessel(footprintRadius: number): { x: number; z: number } {
+      const maxOffsetX = tableHalfWidth - footprintRadius - tableEdgeMargin;
+      const maxOffsetZ = tableHalfDepth - footprintRadius - tableEdgeMargin;
+      for (let attempt = 0; 400 > attempt; attempt++) {
+        const x = tableCenterX + randInRange(-maxOffsetX, maxOffsetX);
+        const z = tableCenterZ + randInRange(-maxOffsetZ, maxOffsetZ);
+        const overlaps = placedVessels.some(
+          (v) => Math.hypot(x - v.x, z - v.z) < footprintRadius + v.footprintRadius + vesselMinGap,
+        );
+        if (!overlaps) {
+          placedVessels.push({ x, z, footprintRadius });
+          return { x, z };
+        }
+      }
+      throw new Error("Could not place workbench glassware without overlap after 400 attempts.");
+    }
+
+    // 4 instances per vessel type: 2 randomly generated (but lab-glassware-sensible) sizes,
+    // split 2/2 across the 4 instances in random order.
+    interface VesselSize {
+      radius: number;
+      height: number;
+    }
+    const sizeAssignmentFor = (small: VesselSize, large: VesselSize): VesselSize[] =>
+      shuffled([small, small, large, large]);
+
+    // -- Erlenmeyer flasks --
+    const flaskSizeAssignment = sizeAssignmentFor(
+      { radius: randInRange(0.13, 0.17), height: randInRange(0.36, 0.46) },
+      { radius: randInRange(0.19, 0.24), height: randInRange(0.5, 0.62) },
+    );
+    for (let i = 0; 4 > i; i++) {
+      const size = flaskSizeAssignment[i]!;
+      const { x, z } = placeVessel(size.radius);
+      const flask = new ErlenmeyerFlask(`ErlenmeyerFlask_${i}`, {
+        radius: size.radius,
+        height: size.height,
+        glassMaterial: nextGlassColor(),
+      });
+      flask.position.set(x, 1, z);
+      this.scene.add(flask);
+    }
+
+    // -- Apothecary bottles --
+    const bottleSizeAssignment = sizeAssignmentFor(
+      { radius: randInRange(0.09, 0.12), height: randInRange(0.36, 0.44) },
+      { radius: randInRange(0.14, 0.18), height: randInRange(0.52, 0.62) },
+    );
+    for (let i = 0; 4 > i; i++) {
+      const size = bottleSizeAssignment[i]!;
+      const { x, z } = placeVessel(size.radius);
+      const bottle = new ApothecaryBottle(`ApothecaryBottle_${i}`, {
+        radius: size.radius,
+        height: size.height,
+        glassMaterial: nextGlassColor(),
+      });
+      bottle.position.set(x, 1, z);
+      this.scene.add(bottle);
+    }
+
+    // -- Teqler measuring cylinders -- the hexagonal foot flares out to radius * 1.7, so that
+    // (not the tube radius) is the true footprint for placement/overlap purposes.
+    const cylinderSizeAssignment = sizeAssignmentFor(
+      { radius: randInRange(0.045, 0.06), height: randInRange(0.32, 0.42) },
+      { radius: randInRange(0.065, 0.085), height: randInRange(0.5, 0.65) },
+    );
+    for (let i = 0; 4 > i; i++) {
+      const size = cylinderSizeAssignment[i]!;
+      const footprintRadius = size.radius * 1.7;
+      const { x, z } = placeVessel(footprintRadius);
+      const color = nextGlassColor();
+      const cylinder = new TeqlerMeasuringCylinder(`TeqlerMeasuringCylinder_${i}`, {
+        radius: size.radius,
+        height: size.height,
+        glassMaterial: color,
+        footMaterial: color,
+        scaleMarkMaterial: color,
+      });
+      cylinder.position.set(x, 1, z);
+      this.scene.add(cylinder);
+    }
 
     // 7. Lighting: Ambient (Increased to balance contrast and prevent pitch-black shadows)
     this.scene.add(new AmbientLight({ color: new Color(0.1, 0.1, 0.15), intensity: 0.4 }));

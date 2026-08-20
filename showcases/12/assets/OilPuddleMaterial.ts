@@ -23,10 +23,14 @@ fn vs(
     var dHdx = 0.0;
     var dHdz = 0.0;
 
-    let freq = 15.0;
-    let speed = 5.0;
-    let decay = 1.0;
-    
+    // Viscous oil, not water: ripples crawl outward instead of racing (speed), read as fewer,
+    // broader undulations instead of tight rings (freq), have a wide, blurry wavefront instead
+    // of a sharp ring edge (decay), and settle back to stillness quickly (time-decay exponent
+    // below) rather than ringing for seconds like a thin liquid would.
+    let freq = 6.0;
+    let speed = 1.8;
+    let decay = 0.6;
+
     let time = obj.time;
     let ripples = array<vec4f, 3>(obj.extraParams, obj.liquidParams, obj.thresholds);
 
@@ -36,13 +40,13 @@ fn vs(
             let dX = worldPosInit.x - r.x;
             let dZ = worldPosInit.z - r.y;
             let dist = sqrt(dX * dX + dZ * dZ) + 0.0001;
-            
+
             let age = time - r.z;
             if (age > 0.0 && age < 5.0) {
                 let ringCenter = age * speed;
                 let distFromRing = abs(dist - ringCenter);
-                
-                let amplitude = r.w * exp(-age * 0.5) * exp(-distFromRing * decay);
+
+                let amplitude = r.w * exp(-age * 0.9) * exp(-distFromRing * decay);
                 let phase = (dist - ringCenter) * freq;
                 
                 let h = amplitude * sin(phase);

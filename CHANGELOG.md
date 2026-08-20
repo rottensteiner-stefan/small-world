@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.76.21] - 2026-08-20
+
+### "Chance favors the prepared mind." - Louis Pasteur
+
+- **Features:**
+  - New `TeqlerMeasuringCylinder` showcase asset (`showcases/12/assets/objects/TeqlerMeasuringCylinder.ts`): a graduated-cylinder-style lab vessel with a hexagonal Teqler-style foot, a flared pouring lip, and 8-10 short, irregular arc-segment tick marks (alternating "major"/"minor" lengths, never a full ring) that suggest a printed scale without ever rendering legible text.
+  - Showcase 12's workbench table now holds 12 vessels -- 4 Erlenmeyer flasks, 4 apothecary bottles, 4 Teqler measuring cylinders -- each a unique color drawn from a 12-hue palette spaced 30 degrees apart (so every color stays clearly distinguishable by eye, not just numerically different), 2 randomly generated but lab-glassware-sensible sizes per vessel type, and scattered across the tabletop by rejection sampling instead of a fixed grid (footprint-aware: the Teqler cylinder's flared hex foot, not its narrower glass tube, is what's checked against the table edge and neighboring vessels).
+- **Architecture & Bugfixes:**
+  - Slowed and thickened Showcase 12's oil-puddle ripple response (`OilPuddleMaterial.ts`) so crates landing in the puddle read as viscous oil rather than water: lower ripple frequency and spatial decay for broader, blurrier wavefronts, lower propagation speed, and a faster time-decay exponent so ripples settle down quickly instead of ringing.
+
 ## [0.76.20] - 2026-08-20
 
 ### "Good fences make good neighbours." - Robert Frost
