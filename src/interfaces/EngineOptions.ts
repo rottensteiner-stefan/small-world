@@ -142,4 +142,15 @@ export interface PostProcessingConfig {
     enabled?: boolean;
     steps?: number;
   };
+  /** Ground-truth-ish ambient occlusion. WebGL2/WebGPU only, off by default. */
+  hbao?: {
+    enabled?: boolean;
+    radius?: number;
+    intensity?: number;
+  };
+  /** Simplified TAA (jitter + history blend, no motion vectors). WebGL2/WebGPU only, off by default. */
+  taa?: {
+    enabled?: boolean;
+    feedback?: number;
+  };
 }

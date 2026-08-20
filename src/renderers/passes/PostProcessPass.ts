@@ -27,6 +27,7 @@ export class PostProcessPass implements RenderPass {
   private _uniformData: Float32Array = new Float32Array(4); // Only needs 16 bytes for time
   private _builtTextureView?: GPUTextureView;
   private _builtBloomTextureView?: GPUTextureView;
+  private _builtHbaoTextureView?: GPUTextureView;
   private _compiledSignature?: string;
 
   private _getSignature(group: import("../post/index.js").PostProcessingGroup): string {
@@ -45,6 +46,7 @@ export class PostProcessPass implements RenderPass {
     const quant = group.get<import("../post/index.js").QuantizeElement>(
       PostProcessingEffectType.QUANTIZE,
     );
+    const hbao = group.get<import("../post/index.js").HbaoElement>(PostProcessingEffectType.HBAO);
 
     return [
       group.filterMode,
@@ -63,6 +65,7 @@ export class PostProcessPass implements RenderPass {
       bloom && bloom.enabled ? `${bloom.color.r},${bloom.color.g},${bloom.color.b}` : "1,1,1",
       quant && quant.enabled ? 1 : 0,
       quant && quant.enabled ? quant.steps : 8.0,
+      hbao && hbao.enabled ? 1 : 0,
     ].join("|");
   }
 
@@ -71,7 +74,9 @@ export class PostProcessPass implements RenderPass {
    */
   private _build(
     renderer: WebGPURenderer,
+    colorView: GPUTextureView,
     bloomActiveView: GPUTextureView,
+    hbaoActiveView: GPUTextureView,
     group: import("../post/index.js").PostProcessingGroup,
   ): void {
     const device = renderer._device!;
@@ -96,6 +101,7 @@ export class PostProcessPass implements RenderPass {
         { binding: 1, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: "float" } },
         { binding: 2, visibility: GPUShaderStage.FRAGMENT, buffer: { type: "uniform" } },
         { binding: 3, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: "float" } },
+        { binding: 4, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: "float" } },
       ],
     });
 
@@ -119,12 +125,14 @@ export class PostProcessPass implements RenderPass {
     const quant = group.get<import("../post/index.js").QuantizeElement>(
       PostProcessingEffectType.QUANTIZE,
     );
+    const hbao = group.get<import("../post/index.js").HbaoElement>(PostProcessingEffectType.HBAO);
 
     const tmEnabled = tm && tm.enabled;
     const vigEnabled = vig && vig.enabled;
     const grainEnabled = grain && grain.enabled;
     const bloomEnabled = bloom && bloom.enabled;
     const quantEnabled = quant && quant.enabled;
+    const hbaoEnabled = hbao && hbao.enabled;
 
     // Inject static parameters as WGSL constants, replacing default fallback declarations
     assembledFrag = assembledFrag.replace(
@@ -184,6 +192,10 @@ export class PostProcessPass implements RenderPass {
       `const u_quantizeSteps: f32 = ${quant ? quant.steps.toFixed(6) : "8.0"};`,
     );
     assembledFrag = assembledFrag.replace(
+      "const u_hbaoEnabled: u32 = 0u;",
+      `const u_hbaoEnabled: u32 = ${hbaoEnabled ? 1 : 0}u;`,
+    );
+    assembledFrag = assembledFrag.replace(
       "const u_filterMode: u32 = 0u;",
       `const u_filterMode: u32 = ${group.filterMode}u;`,
     );
@@ -205,9 +217,10 @@ export class PostProcessPass implements RenderPass {
       layout: bgl,
       entries: [
         { binding: 0, resource: this._sampler },
-        { binding: 1, resource: renderer._hdrTextureView! },
+        { binding: 1, resource: colorView },
         { binding: 2, resource: { buffer: this._uniformBuffer } },
         { binding: 3, resource: bloomActiveView },
+        { binding: 4, resource: hbaoActiveView },
       ],
     });
   }
@@ -223,6 +236,11 @@ export class PostProcessPass implements RenderPass {
     const group = renderer.postProcessing;
     if (!group.enabled || !renderer._hdrTextureView) return;
 
+    // If TAA resolved a temporally-smoothed color this frame, everything downstream reacts to
+    // that instead of the raw jittered per-frame color -- `_hdrTextureView` itself must stay
+    // untouched so TAA keeps reading fresh input next frame (see WebGPURenderer.render()).
+    const colorView = renderer._taaResolvedView ?? renderer._hdrTextureView;
+
     const bloom = group.get<import("../post/index.js").BloomElement>(
       PostProcessingEffectType.BLOOM,
     );
@@ -231,19 +249,27 @@ export class PostProcessPass implements RenderPass {
         ? renderer._bloomTextureView
         : renderer._whiteTexView;
 
+    const hbao = group.get<import("../post/index.js").HbaoElement>(PostProcessingEffectType.HBAO);
+    const hbaoActiveView =
+      hbao && hbao.enabled && renderer._hbaoTextureView
+        ? renderer._hbaoTextureView
+        : renderer._whiteTexView;
+
     const sig = this._getSignature(group);
 
     // Rebuild if we haven't built yet, if the signature changed, or if the texture views changed
     if (
       !this._pipeline ||
       sig !== this._compiledSignature ||
-      this._builtTextureView !== renderer._hdrTextureView ||
-      this._builtBloomTextureView !== bloomActiveView
+      this._builtTextureView !== colorView ||
+      this._builtBloomTextureView !== bloomActiveView ||
+      this._builtHbaoTextureView !== hbaoActiveView
     ) {
-      this._build(renderer, bloomActiveView, group);
+      this._build(renderer, colorView, bloomActiveView, hbaoActiveView, group);
       this._compiledSignature = sig;
-      this._builtTextureView = renderer._hdrTextureView;
+      this._builtTextureView = colorView;
       this._builtBloomTextureView = bloomActiveView;
+      this._builtHbaoTextureView = hbaoActiveView;
     }
 
     // Write post-process dynamic uniforms (only time uniform is active)

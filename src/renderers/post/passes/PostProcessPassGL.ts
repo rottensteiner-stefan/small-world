@@ -17,6 +17,7 @@ export class PostProcessPassGL {
   private _vb: WebGLBuffer | undefined = undefined;
   private _uHdrTexture: WebGLUniformLocation | null = null;
   private _uBloomTexture: WebGLUniformLocation | null = null;
+  private _uHbaoTexture: WebGLUniformLocation | null = null;
   private _uTime: WebGLUniformLocation | null = null;
 
   private _aPos: number = -1;
@@ -37,6 +38,7 @@ export class PostProcessPassGL {
     const quant = group.get<import("../index.js").QuantizeElement>(
       PostProcessingEffectType.QUANTIZE,
     );
+    const hbao = group.get<import("../index.js").HbaoElement>(PostProcessingEffectType.HBAO);
 
     return [
       group.filterMode,
@@ -55,6 +57,7 @@ export class PostProcessPassGL {
       bloom && bloom.enabled ? `${bloom.color.r},${bloom.color.g},${bloom.color.b}` : "1,1,1",
       quant && quant.enabled ? 1 : 0,
       quant && quant.enabled ? quant.steps : 8.0,
+      hbao && hbao.enabled ? 1 : 0,
     ].join("|");
   }
 
@@ -88,12 +91,14 @@ export class PostProcessPassGL {
     const quant = group.get<import("../index.js").QuantizeElement>(
       PostProcessingEffectType.QUANTIZE,
     );
+    const hbao = group.get<import("../index.js").HbaoElement>(PostProcessingEffectType.HBAO);
 
     const tmEnabled = tm && tm.enabled;
     const vigEnabled = vig && vig.enabled;
     const grainEnabled = grain && grain.enabled;
     const bloomEnabled = bloom && bloom.enabled;
     const quantEnabled = quant && quant.enabled;
+    const hbaoEnabled = hbao && hbao.enabled;
 
     // Inject static parameters as macros, replacing uniform declarations
     frag = frag.replace(
@@ -156,6 +161,10 @@ export class PostProcessPassGL {
       "uniform float u_quantizeSteps;",
       `#define u_quantizeSteps ${quant ? quant.steps.toFixed(6) : "8.0"}`,
     );
+    frag = frag.replace(
+      "uniform int u_hbaoEnabled;",
+      `#define u_hbaoEnabled ${hbaoEnabled ? 1 : 0}`,
+    );
     frag = frag.replace("uniform int u_filterMode;", `#define u_filterMode ${group.filterMode}`);
 
     const v = gl.createShader(gl.VERTEX_SHADER)!;
@@ -182,6 +191,7 @@ export class PostProcessPassGL {
     this._prog = p;
     this._uHdrTexture = gl.getUniformLocation(p, "u_hdrTexture");
     this._uBloomTexture = gl.getUniformLocation(p, "u_bloomTexture");
+    this._uHbaoTexture = gl.getUniformLocation(p, "u_hbaoTexture");
     this._uTime = gl.getUniformLocation(p, "u_time");
 
     if (this._isWebGL2) {
@@ -204,6 +214,7 @@ export class PostProcessPassGL {
     hdrTexture: WebGLTexture,
     group: import("../index.js").PostProcessingGroup,
     bloomTexture: WebGLTexture | null = null,
+    hbaoTexture: WebGLTexture | null = null,
   ): void {
     const sig = this._getSignature(group);
     if (!this._prog || sig !== this._compiledSignature) {
@@ -232,6 +243,14 @@ export class PostProcessPassGL {
       gl.activeTexture(gl.TEXTURE1);
       gl.bindTexture(gl.TEXTURE_2D, bloomTexture);
       gl.uniform1i(this._uBloomTexture, 1);
+    }
+
+    // HBAO
+    const hbao = group.get<import("../index.js").HbaoElement>(PostProcessingEffectType.HBAO);
+    if (hbao && hbao.enabled && hbaoTexture) {
+      gl.activeTexture(gl.TEXTURE2);
+      gl.bindTexture(gl.TEXTURE_2D, hbaoTexture);
+      gl.uniform1i(this._uHbaoTexture, 2);
     }
 
     // Blit to the default (canvas) framebuffer

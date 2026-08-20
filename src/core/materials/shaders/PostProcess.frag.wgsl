@@ -1,6 +1,7 @@
 @group(0) @binding(0) var hdrSampler: sampler;
 @group(0) @binding(1) var hdrTexture: texture_2d<f32>;
 @group(0) @binding(3) var bloomTexture: texture_2d<f32>;
+@group(0) @binding(4) var hbaoTexture: texture_2d<f32>;
 
 // Default constants (overwritten at compilation time)
 const u_exposure: f32 = 1.0;
@@ -15,6 +16,7 @@ const u_grainIntensity: f32 = 0.05;
 const u_bloomEnabled: u32 = 0u;
 const u_bloomIntensity: f32 = 1.0;
 const u_bloomColor: vec3f = vec3f(1.0, 1.0, 1.0);
+const u_hbaoEnabled: u32 = 0u;
 const u_quantizeEnabled: u32 = 0u;
 const u_quantizeSteps: f32 = 8.0;
 const u_filterMode: u32 = 0u;
@@ -174,6 +176,12 @@ fn fs_main(@location(0) uv: vec2f, @builtin(position) coord: vec4f) -> @location
         }
 
         hdr += bloom * u_bloomIntensity * u_bloomColor;
+    }
+
+    // Ambient Occlusion (HBAO) -- darkens the linear scene color before tonemapping, since it
+    // approximates occluded incoming light rather than a display-referred image adjustment.
+    if (1u == u_hbaoEnabled) {
+        hdr *= textureSample(hbaoTexture, hdrSampler, distortUv).r;
     }
 
     var tonemapped = hdr * u_exposure;

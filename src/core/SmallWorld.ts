@@ -13,7 +13,7 @@ import {
   PerspectiveProjection,
 } from "../math/projections/index.js";
 import { EngineOptions, ProjectionOptions, Renderer } from "../interfaces/index.js";
-import { ProjectionType, RendererType } from "../enums/index.js";
+import { ProjectionType, RendererType, PostProcessingEffectType } from "../enums/index.js";
 import { RendererFactory } from "../renderers/index.js";
 import { ShaderBootstrap } from "./renderers/shaders/index.js";
 import { CollisionVisualizer, OctreeVisualizer } from "../utils/index.js";
@@ -21,7 +21,25 @@ import { GadgetInspector } from "../tools/GadgetInspector.js";
 import { PhysicsSystem } from "../physix/PhysicsSystem.js";
 
 /** The current engine version. */
-export const ENGINE_VERSION = "0.76.10";
+export const ENGINE_VERSION = "0.76.11";
+
+/**
+ * Halton low-discrepancy sequence, used for TAA's per-frame sub-pixel camera jitter -- covers
+ * sub-pixel offsets more evenly over a short cycle than a random or simple grid pattern would.
+ * @param index 1-based sample index.
+ * @param base Prime base (2 and 3 are the standard pairing for 2D jitter).
+ */
+function halton(index: number, base: number): number {
+  let result = 0;
+  let f = 1 / base;
+  let i = index;
+  while (0 < i) {
+    result += f * (i % base);
+    i = Math.floor(i / base);
+    f /= base;
+  }
+  return result;
+}
 
 /**
  * Base class for applications built with the SmallWorld engine.
@@ -57,6 +75,9 @@ export abstract class SmallWorld {
   private _lastTime: number = 0;
   private _isRunning: boolean = false;
   private _isInitialized: boolean = false;
+  private _hitStopRemaining: number = 0;
+  private _hitStopScale: number = 1;
+  private _taaFrameIndex: number = 0;
 
   /**
    * Creates a new SmallWorld application.
@@ -351,6 +372,18 @@ export abstract class SmallWorld {
   }
 
   /**
+   * Briefly slows down gameplay (app update, physics, scene behaviors) to sell the impact of a
+   * hit, while the camera and its effects (e.g. shake) keep running in real time. Rendering and
+   * input are unaffected.
+   * @param duration Real-time seconds the slowdown lasts.
+   * @param timeScale Multiplier applied to deltaTime for gameplay systems while active. Default 0.05 (near-freeze).
+   */
+  public triggerHitStop(duration: number, timeScale: number = 0.05): void {
+    this._hitStopRemaining = duration;
+    this._hitStopScale = timeScale;
+  }
+
+  /**
    * Destroys the engine instance, freeing memory and removing all global event listeners.
    */
   public destroy(): void {
@@ -430,19 +463,47 @@ export abstract class SmallWorld {
     const deltaTime: number = Math.min((currentTime - this._lastTime) / 1000.0, 0.1);
     this._lastTime = currentTime;
 
+    let gameplayDeltaTime: number = deltaTime;
+    if (0 < this._hitStopRemaining) {
+      gameplayDeltaTime = deltaTime * this._hitStopScale;
+      this._hitStopRemaining -= deltaTime;
+    }
+
     this.input.update();
-    this.update(deltaTime);
+    this.update(gameplayDeltaTime);
 
     if (this._inspector) {
       this._inspector.update();
     }
 
     if (this.config.enablePhysics) {
-      this.physics.step(this.scene, deltaTime);
+      this.physics.step(this.scene, gameplayDeltaTime);
     }
 
-    this.scene.update(deltaTime);
+    this.scene.update(gameplayDeltaTime);
     this.scene.updateLights(this.camera);
+
+    // TAA sub-pixel jitter: baked into the camera's view-projection matrix by updateViewMatrix()
+    // below (via camera.update() -> ... -> updateViewMatrix()). Only applied while TAA is
+    // enabled and the canvas has a real size, and reset to 0 otherwise so toggling TAA off
+    // doesn't leave a stale offset baked into the camera.
+    const taaNode = this.renderer.postProcessing.get<
+      import("../renderers/post/index.js").TaaElement
+    >(PostProcessingEffectType.TAA);
+    if (taaNode && taaNode.enabled && 0 < this.canvas.clientWidth && 0 < this.canvas.clientHeight) {
+      this._taaFrameIndex = (this._taaFrameIndex % 16) + 1;
+      const jitterScale = 1.0; // in texels
+      this.camera.jitterX =
+        ((halton(this._taaFrameIndex, 2) - 0.5) * 2.0 * jitterScale) / this.canvas.clientWidth;
+      this.camera.jitterY =
+        ((halton(this._taaFrameIndex, 3) - 0.5) * 2.0 * jitterScale) / this.canvas.clientHeight;
+    } else {
+      this.camera.jitterX = 0;
+      this.camera.jitterY = 0;
+    }
+
+    // Real deltaTime, not gameplayDeltaTime: the camera (and its shake/flash effects) keeps
+    // running at full speed during hit-stop, which is what sells the freeze-frame impact.
     this.camera.update(this.camera.target, 0, 0, deltaTime);
 
     if (this.interactionManager) {
@@ -461,6 +522,13 @@ export abstract class SmallWorld {
     }
 
     if (this.canvas.clientWidth > 0 && this.canvas.clientHeight > 0) {
+      // HBAO's view-space reconstruction assumes a symmetric perspective projection matrix;
+      // leave it undefined for other projection types so the effect just no-ops there.
+      const projMatrix: Float32Array | undefined =
+        this.camera.projection.type === ProjectionType.PERSPECTIVE
+          ? this.camera.projection.getMatrix().data
+          : undefined;
+
       this.renderer.render(
         this.scene,
         this.camera.viewProjectionMatrix,
@@ -468,6 +536,7 @@ export abstract class SmallWorld {
         this.camera.viewMatrix,
         this.camera.projection.near,
         this.camera.projection.far,
+        projMatrix,
       );
     }
 

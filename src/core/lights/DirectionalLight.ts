@@ -158,6 +158,30 @@ export class DirectionalLight extends AbstractLight {
         if (c.z > maxZ) maxZ = c.z;
       }
 
+      // Texel snapping: round the frustum's light-space center to whole shadow-map texels so
+      // it doesn't drift by sub-texel amounts as the camera moves smoothly -- that sub-texel
+      // drift is what causes CSM "shimmering" (the shadow edge crawling/swimming frame to
+      // frame). Snapping the center (not min/max independently) keeps the frustum size intact.
+      // Cascades are packed into a cols x cols atlas grid on WebGL2 (see WebGL2Renderer.ts),
+      // so each cascade's true texel density is shadowResolution / cols; on WebGPU each
+      // cascade is a full-resolution array layer, so this undercounts slightly there -- a
+      // harmless, deliberately conservative approximation (coarser snap grid than strictly
+      // needed, not a finer one that would fail to snap).
+      const atlasCols = Math.ceil(Math.sqrt(this.numCascades));
+      const perCascadeRes = this.shadowResolution / atlasCols;
+      const texelSizeX = (maxX - minX) / perCascadeRes;
+      const texelSizeY = (maxY - minY) / perCascadeRes;
+      if (0 < texelSizeX && 0 < texelSizeY) {
+        const halfWidth = (maxX - minX) * 0.5;
+        const halfHeight = (maxY - minY) * 0.5;
+        const snappedCenterX = Math.floor(((minX + maxX) * 0.5) / texelSizeX) * texelSizeX;
+        const snappedCenterY = Math.floor(((minY + maxY) * 0.5) / texelSizeY) * texelSizeY;
+        minX = snappedCenterX - halfWidth;
+        maxX = snappedCenterX + halfWidth;
+        minY = snappedCenterY - halfHeight;
+        maxY = snappedCenterY + halfHeight;
+      }
+
       // Update the orthographic projection bounds
       // Add padding to prevent tight clipping
       const padding = 2.0;

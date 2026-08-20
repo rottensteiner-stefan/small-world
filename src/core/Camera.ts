@@ -44,6 +44,13 @@ export class Camera implements CameraInterfaceData {
   private _viewMatrix: Matrix4 = new Matrix4();
   private _viewProjMatrix: Matrix4 = new Matrix4();
 
+  /** Sub-pixel jitter offset (NDC units) for TAA. Set by `SmallWorld` only while TAA is
+   * enabled; baked directly into `viewProjectionMatrix` so every consumer (rendering,
+   * culling) sees the same jittered frame -- the offset is small enough that jittered
+   * culling/shadow bounds are never a practical concern. */
+  public jitterX: number = 0;
+  public jitterY: number = 0;
+
   /**
    * Creates a new Camera.
    * @param projection The projection to use.
@@ -123,6 +130,14 @@ export class Camera implements CameraInterfaceData {
 
     Matrix4.lookAt(finalPos, finalTarget, this.up, this._viewMatrix);
     Matrix4.multiply(this.projection.getMatrix(), this._viewMatrix, this._viewProjMatrix);
+
+    if (0 !== this.jitterX || 0 !== this.jitterY) {
+      // Standard TAA jitter injection: add the offset into the projection's third column, so
+      // it scales with view-space z during the perspective divide (a constant NDC offset
+      // regardless of depth) rather than distorting near/far differently.
+      this._viewProjMatrix.data[8] = (this._viewProjMatrix.data[8] ?? 0) + this.jitterX;
+      this._viewProjMatrix.data[9] = (this._viewProjMatrix.data[9] ?? 0) + this.jitterY;
+    }
 
     MathPool.releaseVector(finalPos);
     MathPool.releaseVector(finalTarget);

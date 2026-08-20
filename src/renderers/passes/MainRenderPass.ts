@@ -1,5 +1,5 @@
 import { Scene } from "../../core/index.js";
-import { MaterialType, Topology } from "../../enums/index.js";
+import { MaterialType, Topology, PostProcessingEffectType } from "../../enums/index.js";
 import { WebGPURenderer } from "../WebGPU/index.js";
 import { RenderPass } from "../index.js";
 import { Vector3D } from "../../math/index.js";
@@ -102,6 +102,15 @@ export class MainRenderPass implements RenderPass {
       rpTransparent.end();
     } else {
       rp.end();
+
+      // HBAO needs the opaque depth buffer every frame it's enabled, not just when there
+      // happen to be transparent objects (the only other consumer of this capture).
+      const hbaoNode = renderer.postProcessing.get<import("../post/index.js").HbaoElement>(
+        PostProcessingEffectType.HBAO,
+      );
+      if (hbaoNode && hbaoNode.enabled) {
+        renderer.captureOpaqueDepth(ce);
+      }
     }
   }
 }

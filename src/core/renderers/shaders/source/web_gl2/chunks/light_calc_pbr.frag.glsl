@@ -21,39 +21,113 @@ vec3 Lo = vec3(0.0);
     float dirShadow = 1.0;
     if (u_dirShadowInfo.z > 0.5 && u_dirShadowInfo.w > 0.0) {
         float depth = length(u_viewPos - v_worldPos);
-        int cascadeIndex = int(u_dirShadowInfo.w) - 1;
+        int numCascades = int(u_dirShadowInfo.w);
+        int cascadeIndex = numCascades - 1;
         for (int i = 0; i < 4; i++) {
-            if (i >= int(u_dirShadowInfo.w)) break;
+            if (i >= numCascades) break;
             if (depth < u_cascadeSplits[i]) {
                 cascadeIndex = i;
                 break;
             }
         }
-        
+
+        // Cascade blending (see non-PBR light_calc.frag.glsl for rationale).
+        float blendToNext = 0.0;
+        if (cascadeIndex < numCascades - 1) {
+            float splitFar = u_cascadeSplits[cascadeIndex];
+            float blendBand = max(splitFar * 0.1, 0.0001);
+            blendToNext = 1.0 - clamp((splitFar - depth) / blendBand, 0.0, 1.0);
+        }
+
         // Normal-offset bias (see non-PBR light_calc.frag.glsl for rationale).
         vec3 dirShadowSamplePos = v_worldPos + N * u_dirShadowInfo.y * (1.0 - dotNL);
+        float cols = ceil(sqrt(u_dirShadowInfo.w));
+        float bias = u_dirShadowInfo.x;
+        vec2 texelSize = 1.0 / vec2(textureSize(u_dirShadowMap, 0));
+
         vec4 lightSpacePos = u_cascadeMatrices[cascadeIndex] * vec4(dirShadowSamplePos, 1.0);
         vec3 projCoords = lightSpacePos.xyz / lightSpacePos.w;
         projCoords = projCoords * 0.5 + 0.5;
-        
+
+        float shadowA = 1.0;
         if (projCoords.z <= 1.0 && projCoords.x >= 0.0 && projCoords.x <= 1.0 && projCoords.y >= 0.0 && projCoords.y <= 1.0) {
-            float cols = ceil(sqrt(u_dirShadowInfo.w));
             float col = mod(float(cascadeIndex), cols);
             float row = floor(float(cascadeIndex) / cols);
-            
+            vec2 cellMin = vec2(col, row) / cols;
+            vec2 cellMax = cellMin + vec2(1.0) / cols;
             vec2 atlasUV = (projCoords.xy + vec2(col, row)) / cols;
-            float bias = u_dirShadowInfo.x;
             float currentDepth = projCoords.z;
-            
-            dirShadow = 0.0;
-            vec2 texelSize = 1.0 / vec2(textureSize(u_dirShadowMap, 0));
-            for(int x = -1; x <= 1; ++x) {
-                for(int y = -1; y <= 1; ++y) {
-                    dirShadow += texture(u_dirShadowMap, vec3(atlasUV + vec2(x, y) * texelSize, currentDepth - bias));
+
+            // PCSS (see non-PBR light_calc.frag.glsl for full rationale).
+            const int PCSS_TAPS = 8;
+            vec2 searchOffsets[PCSS_TAPS];
+            searchOffsets[0] = vec2(-1.0, -1.0);
+            searchOffsets[1] = vec2(0.0, -1.0);
+            searchOffsets[2] = vec2(1.0, -1.0);
+            searchOffsets[3] = vec2(-1.0, 0.0);
+            searchOffsets[4] = vec2(1.0, 0.0);
+            searchOffsets[5] = vec2(-1.0, 1.0);
+            searchOffsets[6] = vec2(0.0, 1.0);
+            searchOffsets[7] = vec2(1.0, 1.0);
+
+            float searchRadiusTexels = 2.0;
+            float avgBlockerDepth = 0.0;
+            float blockerCount = 0.0;
+            for (int s = 0; s < PCSS_TAPS; s++) {
+                vec2 sampleUV = clamp(
+                    atlasUV + searchOffsets[s] * texelSize * searchRadiusTexels,
+                    cellMin, cellMax
+                );
+                float blockerDepth = texture(u_dirShadowMapRaw, sampleUV).r;
+                if (blockerDepth < currentDepth - bias) {
+                    avgBlockerDepth += blockerDepth;
+                    blockerCount += 1.0;
                 }
             }
-            dirShadow /= 9.0;
+
+            if (blockerCount < 1.0) {
+                shadowA = 1.0;
+            } else {
+                avgBlockerDepth /= blockerCount;
+                float occluderDepthDelta = currentDepth - avgBlockerDepth;
+                float pcfRadius = clamp(1.0 + occluderDepthDelta / max(bias, 0.0001), 1.0, 4.0);
+
+                shadowA = 0.0;
+                for(int x = -1; x <= 1; ++x) {
+                    for(int y = -1; y <= 1; ++y) {
+                        vec2 tapUV = clamp(atlasUV + vec2(x, y) * texelSize * pcfRadius, cellMin, cellMax);
+                        shadowA += texture(u_dirShadowMap, vec3(tapUV, currentDepth - bias));
+                    }
+                }
+                shadowA /= 9.0;
+            }
         }
+
+        float shadowB = shadowA;
+        if (blendToNext > 0.0) {
+            int nextCascade = cascadeIndex + 1;
+            vec4 lightSpacePosB = u_cascadeMatrices[nextCascade] * vec4(dirShadowSamplePos, 1.0);
+            vec3 projCoordsB = lightSpacePosB.xyz / lightSpacePosB.w;
+            projCoordsB = projCoordsB * 0.5 + 0.5;
+
+            shadowB = 1.0;
+            if (projCoordsB.z <= 1.0 && projCoordsB.x >= 0.0 && projCoordsB.x <= 1.0 && projCoordsB.y >= 0.0 && projCoordsB.y <= 1.0) {
+                float colB = mod(float(nextCascade), cols);
+                float rowB = floor(float(nextCascade) / cols);
+                vec2 atlasUVB = (projCoordsB.xy + vec2(colB, rowB)) / cols;
+                float currentDepthB = projCoordsB.z;
+
+                shadowB = 0.0;
+                for(int x = -1; x <= 1; ++x) {
+                    for(int y = -1; y <= 1; ++y) {
+                        shadowB += texture(u_dirShadowMap, vec3(atlasUVB + vec2(x, y) * texelSize, currentDepthB - bias));
+                    }
+                }
+                shadowB /= 9.0;
+            }
+        }
+
+        dirShadow = mix(shadowA, shadowB, blendToNext);
     }
 
     vec3 radiance = u_dirLightColor * dirShadow;

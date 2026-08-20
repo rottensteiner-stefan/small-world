@@ -7,4 +7,6 @@ export enum PostProcessingEffectType {
   GRAIN = "Grain",
   BLOOM = "Bloom",
   QUANTIZE = "Quantize",
+  HBAO = "Hbao",
+  TAA = "Taa",
 }

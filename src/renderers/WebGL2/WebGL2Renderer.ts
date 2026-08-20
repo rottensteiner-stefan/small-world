@@ -6,7 +6,7 @@ import { AbstractWebGLRenderer } from "../AbstractWebGLRenderer.js";
 import { WebGLShadowPass } from "../passes/WebGLShadowPass.js";
 import { WebGLMainPass } from "../passes/WebGLMainPass.js";
 import { WebGLPostProcessPass } from "../passes/WebGLPostProcessPass.js";
-import { PostProcessPassGL, BloomPassGL } from "../post/passes/index.js";
+import { PostProcessPassGL, BloomPassGL, AOPassGL, TAAPassGL } from "../post/passes/index.js";
 import { AbstractLight } from "../../core/lights/index.js";
 import { CubeTexture, Texture, RenderTarget, RenderTargetCube } from "../../core/textures/index.js";
 import { ShaderRegistry, RenderManifest } from "../../core/renderers/shaders/index.js";
@@ -85,7 +85,15 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
    * regardless of what's actually bound there.
    */
   private static readonly _RESERVED_SHADOW_UNIT_START = 8;
-  private static readonly _RESERVED_SHADOW_UNIT_END = 13;
+  private static readonly _RESERVED_SHADOW_UNIT_END = 14;
+
+  /** Fixed unit for reading the directional shadow map's raw (non-comparison) depth, used by
+   * PCSS's blocker-search step. Shares texture unit 14 -- reserved above like every other
+   * shadow unit -- with a dedicated WebGLSampler (`_rawDepthSampler`) that overrides
+   * TEXTURE_COMPARE_MODE back to NONE, since that mode is otherwise baked onto the depth
+   * texture object itself (see WebGL2DepthFrameBuffer). */
+  private static readonly _RAW_DEPTH_UNIT = 14;
+  private _rawDepthSampler!: WebGLSampler;
 
   public _opaqueTexture?: WebGLTexture;
   public _opaqueTextureWrapper?: Texture;
@@ -96,6 +104,8 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
   protected _hdrFbo: WebGL2FrameBuffer | undefined = undefined;
   protected _postPassGL: PostProcessPassGL | undefined = undefined;
   protected _bloomPassGL: BloomPassGL | undefined = undefined;
+  protected _hbaoPassGL: AOPassGL | undefined = undefined;
+  protected _taaPassGL: TAAPassGL | undefined = undefined;
 
   protected _activeRenderTarget: RenderTarget | RenderTargetCube | null = null;
   protected _activeCubeFace: number = 0;
@@ -162,6 +172,17 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     this._dummyShadowMap.bind();
     this.gl.clear(this.gl.DEPTH_BUFFER_BIT);
     this._dummyShadowMap.unbind();
+
+    // Sampler object overriding TEXTURE_COMPARE_MODE to NONE, bound once to a fixed unit so any
+    // depth texture bound there afterwards reads as a plain float instead of a 0/1 comparison --
+    // sampler objects take precedence over a texture's own parameters for the unit they're bound to.
+    this._rawDepthSampler = this.gl.createSampler()!;
+    this.gl.samplerParameteri(this._rawDepthSampler, this.gl.TEXTURE_COMPARE_MODE, this.gl.NONE);
+    this.gl.samplerParameteri(this._rawDepthSampler, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST);
+    this.gl.samplerParameteri(this._rawDepthSampler, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST);
+    this.gl.samplerParameteri(this._rawDepthSampler, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
+    this.gl.samplerParameteri(this._rawDepthSampler, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
+    this.gl.bindSampler(WebGL2Renderer._RAW_DEPTH_UNIT, this._rawDepthSampler);
 
     this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, false);
     this.initDefaultTextures();
@@ -321,7 +342,9 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
           : [info.name];
 
         const isShadowSampler =
-          "u_dirShadowMap" === info.name || info.name.startsWith("u_spotShadowMap[");
+          "u_dirShadowMap" === info.name ||
+          "u_dirShadowMapRaw" === info.name ||
+          info.name.startsWith("u_spotShadowMap[");
         const isSampler = samplerTypeSet.has(info.type) && !isShadowSampler;
 
         for (const name of names) {
@@ -740,6 +763,24 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
   public flushPostProcess(): void {
     const isOffscreen = this._activeRenderTarget !== null;
     if (!isOffscreen && this.postProcessing.enabled && this._hdrFbo && this._postPassGL) {
+      // TAA resolves first, if enabled: everything downstream (Bloom, HBAO, the final uber
+      // pass) should react to the temporally-smoothed color, not the raw per-frame jittered one.
+      let colorTex: WebGLTexture = this._hdrFbo.texture;
+      if (this._taaPassGL) {
+        const taaNode = this.postProcessing.get<import("../post/index.js").TaaElement>(
+          PostProcessingEffectType.TAA,
+        );
+        if (taaNode && taaNode.enabled) {
+          const resolved = this._taaPassGL.execute(
+            colorTex,
+            this.gl.canvas.width,
+            this.gl.canvas.height,
+            taaNode,
+          );
+          if (resolved) colorTex = resolved;
+        }
+      }
+
       let bloomTex: WebGLTexture | null = null;
       if (this._bloomPassGL) {
         const bloomNode = this.postProcessing.get<import("../post/index.js").BloomElement>(
@@ -747,14 +788,33 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         );
         if (bloomNode && bloomNode.enabled) {
           bloomTex = this._bloomPassGL.execute(
-            this._hdrFbo.texture,
+            colorTex,
             this.gl.canvas.width,
             this.gl.canvas.height,
             bloomNode,
           );
         }
       }
-      this._postPassGL.execute(this.gl, this._hdrFbo.texture, this.postProcessing, bloomTex);
+
+      let hbaoTex: WebGLTexture | null = null;
+      if (this._hbaoPassGL && this._opaqueDepthTexture && this._frameProjMatrix) {
+        const hbaoNode = this.postProcessing.get<import("../post/index.js").HbaoElement>(
+          PostProcessingEffectType.HBAO,
+        );
+        if (hbaoNode && hbaoNode.enabled) {
+          hbaoTex = this._hbaoPassGL.execute(
+            this._opaqueDepthTexture,
+            this.gl.canvas.width,
+            this.gl.canvas.height,
+            this._frameNear,
+            this._frameFar,
+            this._frameProjMatrix,
+            hbaoNode,
+          );
+        }
+      }
+
+      this._postPassGL.execute(this.gl, colorTex, this.postProcessing, bloomTex, hbaoTex);
     }
   }
 
@@ -945,6 +1005,15 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       dirMapLoc = this.gl.getUniformLocation(cache.prog, "u_dirShadowMap") ?? undefined;
     if (dirMapLoc) this.gl.uniform1i(dirMapLoc, dummyUnit);
 
+    let dirMapRawLoc = cache.uniforms.get("u_dirShadowMapRaw");
+    if (!dirMapRawLoc)
+      dirMapRawLoc = this.gl.getUniformLocation(cache.prog, "u_dirShadowMapRaw") ?? undefined;
+    if (dirMapRawLoc) {
+      this.gl.activeTexture(this.gl.TEXTURE0 + WebGL2Renderer._RAW_DEPTH_UNIT);
+      this.gl.bindTexture(this.gl.TEXTURE_2D, this._dummyShadowMap.texture);
+      this.gl.uniform1i(dirMapRawLoc, WebGL2Renderer._RAW_DEPTH_UNIT);
+    }
+
     for (let i = 0; i < 4; i++) {
       let loc = cache.uniforms.get(`u_spotShadowMap[${i}]`);
       if (!loc) loc = this.gl.getUniformLocation(cache.prog, `u_spotShadowMap[${i}]`) ?? undefined;
@@ -1094,6 +1163,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     if (lights && lights.dLight && lights.dLight.castShadow && lights.dLight.numCascades > 0) {
       const light = lights.dLight;
       const mapLoc = cache.uniforms.get("u_dirShadowMap");
+      const mapRawLoc = cache.uniforms.get("u_dirShadowMapRaw");
       const splitsLoc = cache.uniforms.get("u_cascadeSplits");
       const infoLoc = cache.uniforms.get("u_dirShadowInfo");
 
@@ -1109,6 +1179,11 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
           this.gl.activeTexture(this.gl.TEXTURE0 + texUnit);
           this.gl.bindTexture(this.gl.TEXTURE_2D, fbo.texture);
           if (mapLoc) this.gl.uniform1i(mapLoc, texUnit);
+
+          // Same depth texture, second unit, non-comparison sampler -- see PCSS blocker search.
+          this.gl.activeTexture(this.gl.TEXTURE0 + WebGL2Renderer._RAW_DEPTH_UNIT);
+          this.gl.bindTexture(this.gl.TEXTURE_2D, fbo.texture);
+          if (mapRawLoc) this.gl.uniform1i(mapRawLoc, WebGL2Renderer._RAW_DEPTH_UNIT);
 
           for (let i = 0; i < light.numCascades; i++) {
             const matLoc = cache.uniforms.get(`u_cascadeMatrices[${i}]`);
@@ -1141,6 +1216,8 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     } else {
       const mapLoc = cache.uniforms.get("u_dirShadowMap");
       if (mapLoc) this.gl.uniform1i(mapLoc, 13);
+      const mapRawLoc = cache.uniforms.get("u_dirShadowMapRaw");
+      if (mapRawLoc) this.gl.uniform1i(mapRawLoc, WebGL2Renderer._RAW_DEPTH_UNIT);
       const infoLoc = cache.uniforms.get("u_dirShadowInfo");
       if (infoLoc) {
         this._scratchFloat4[0] = 0.0;
@@ -1652,16 +1729,22 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         });
         this._postPassGL ??= new PostProcessPassGL(this.gl, true);
         this._bloomPassGL ??= new BloomPassGL(this.gl, true);
+        this._hbaoPassGL ??= new AOPassGL(this.gl);
+        this._taaPassGL ??= new TAAPassGL(this.gl);
       } else {
         this._hdrFbo.resize(this.gl.canvas.width, this.gl.canvas.height);
       }
     } else if (this._hdrFbo) {
       this._postPassGL?.destroy?.(this.gl);
       this._bloomPassGL?.destroy();
+      this._hbaoPassGL?.destroy();
+      this._taaPassGL?.destroy();
       this._hdrFbo.destroy();
       this._hdrFbo = undefined;
       this._postPassGL = undefined;
       this._bloomPassGL = undefined;
+      this._hbaoPassGL = undefined;
+      this._taaPassGL = undefined;
     }
   }
 
@@ -1800,9 +1883,12 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       for (const fbo of this._renderTargetCubeFbos.values()) fbo.destroy();
       for (const shadowFbo of this._shadowMaps.values()) shadowFbo.destroy();
       this._dummyShadowMap?.destroy();
+      if (this._rawDepthSampler) gl.deleteSampler(this._rawDepthSampler);
       this._hdrFbo?.destroy();
       this._postPassGL?.destroy(gl);
       this._bloomPassGL?.destroy();
+      this._hbaoPassGL?.destroy();
+      this._taaPassGL?.destroy();
       this._globalUBO?.destroy();
     }
 

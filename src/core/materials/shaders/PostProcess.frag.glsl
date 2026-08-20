@@ -7,6 +7,8 @@ out vec4 fragColor;
 uniform sampler2D u_hdrTexture;
 uniform sampler2D u_bloomTexture;
 uniform int u_bloomEnabled;
+uniform sampler2D u_hbaoTexture;
+uniform int u_hbaoEnabled;
 uniform float u_bloomIntensity;
 uniform vec3 u_bloomColor;
 uniform float u_exposure;
@@ -163,6 +165,12 @@ void main() {
             }
         }
         hdr += bloom * u_bloomIntensity * u_bloomColor;
+    }
+
+    // Ambient Occlusion (HBAO) -- darkens the linear scene color before tonemapping, since it
+    // approximates occluded incoming light rather than a display-referred image adjustment.
+    if (u_hbaoEnabled == 1) {
+        hdr *= texture(u_hbaoTexture, distortUv).r;
     }
 
     // Tone Mapping

@@ -17,3 +17,4 @@ export * from "./TrailRendererBehavior.js";
 export * from "./GridMovementBehavior.js";
 export * from "./EmissivePulseBehavior.js";
 export * from "./ExternalShaderUniformBehavior.js";
+export * from "./SquashStretchBehavior.js";

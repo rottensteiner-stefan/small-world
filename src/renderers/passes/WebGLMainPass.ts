@@ -4,7 +4,7 @@ import { Scene, Object3D } from "../../core/index.js";
 import { Vector3D } from "../../math/index.js";
 import { LightDataInterface } from "../../interfaces/index.js";
 import { RenderList } from "../../core/Scene.js";
-import { Topology, MaterialType } from "../../enums/index.js";
+import { Topology, MaterialType, PostProcessingEffectType } from "../../enums/index.js";
 import { Color } from "../../core/colors/index.js";
 
 export class WebGLMainPass implements WebGLRenderPass {
@@ -70,6 +70,15 @@ export class WebGLMainPass implements WebGLRenderPass {
           scene,
         );
       }
+    }
+
+    // HBAO needs the opaque depth buffer every frame it's enabled, not just when there happen
+    // to be transparent objects (the only other consumer of this capture, for refraction).
+    const hbaoNode = renderer.postProcessing.get<import("../post/index.js").HbaoElement>(
+      PostProcessingEffectType.HBAO,
+    );
+    if (renderList.transparent.length === 0 && hbaoNode && hbaoNode.enabled) {
+      renderer.copyToOpaqueDepthTexture();
     }
 
     // 5. Render Transparent

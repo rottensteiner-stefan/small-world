@@ -36,7 +36,7 @@ import {
   CascadedShadowPassGPU,
   SpotShadowPassGPU,
 } from "../passes/index.js";
-import { BloomPassGPU } from "../post/passes/index.js";
+import { BloomPassGPU, AOPassGPU, TAAPassGPU } from "../post/passes/index.js";
 import { UniformPacker } from "../../core/renderers/shaders/index.js";
 
 export interface WebGPUGeoCache {
@@ -295,6 +295,13 @@ export class WebGPURenderer extends AbstractRenderer {
   public _hdrTextureView: GPUTextureView | undefined = undefined;
   public _bloomPassGPU: BloomPassGPU | undefined = undefined;
   public _bloomTextureView: GPUTextureView | undefined = undefined;
+  public _hbaoPassGPU: AOPassGPU | undefined = undefined;
+  public _hbaoTextureView: GPUTextureView | undefined = undefined;
+  public _taaPassGPU: TAAPassGPU | undefined = undefined;
+  /** This frame's TAA-resolved color view, if TAA is enabled -- read by PostProcessPass instead
+   * of `_hdrTextureView` for its color input. Recomputed fresh every frame; `_hdrTextureView`
+   * itself is never overwritten so TAA keeps reading the raw per-frame render as "current". */
+  public _taaResolvedView: GPUTextureView | undefined = undefined;
 
   public _activeRenderTarget:
     | import("../../core/index.js").RenderTarget
@@ -1169,6 +1176,7 @@ export class WebGPURenderer extends AbstractRenderer {
     vMat?: Float32Array,
     near: number = 0.1,
     far: number = 1000,
+    projMatrix?: Float32Array,
   ): void {
     if (!this._device) return;
 
@@ -1311,28 +1319,83 @@ export class WebGPURenderer extends AbstractRenderer {
     const bloomNode = this.postProcessing.get<import("../post/index.js").BloomElement>(
       PostProcessingEffectType.BLOOM,
     );
+    const hbaoNode = this.postProcessing.get<import("../post/index.js").HbaoElement>(
+      PostProcessingEffectType.HBAO,
+    );
+    const taaNode = this.postProcessing.get<import("../post/index.js").TaaElement>(
+      PostProcessingEffectType.TAA,
+    );
 
     for (const pass of this._passes) {
+      const isPostProcessPass = pass instanceof PostProcessPass;
+
+      // TAA resolves first, if enabled: Bloom and the final uber pass should react to the
+      // temporally-smoothed color, not the raw per-frame jittered one. `_hdrTextureView` itself
+      // is never reassigned, so this pass keeps reading fresh input every subsequent frame.
+      if (isPostProcessPass && taaNode && taaNode.enabled && this._hdrTextureView) {
+        this._taaPassGPU ??= new TAAPassGPU(this._device);
+        this._taaResolvedView =
+          this._taaPassGPU.execute(
+            ce,
+            this._hdrTextureView,
+            this._context.canvas.width,
+            this._context.canvas.height,
+            taaNode,
+          ) ?? undefined;
+      } else if (isPostProcessPass) {
+        this._taaResolvedView = undefined;
+      }
+
+      const colorTextureView = this._taaResolvedView ?? this._hdrTextureView;
+
       if (
-        pass.name === "PostProcessPass" &&
+        isPostProcessPass &&
         bloomNode &&
         bloomNode.enabled &&
         this._hdrTexture &&
-        this._hdrTextureView
+        colorTextureView
       ) {
         this._bloomPassGPU ??= new BloomPassGPU(this._device);
         this._bloomTextureView =
-          this._bloomPassGPU.execute(ce, this._hdrTexture, this._hdrTextureView, bloomNode) ??
+          this._bloomPassGPU.execute(ce, this._hdrTexture, colorTextureView, bloomNode) ??
           undefined;
-      } else if (pass.name === "PostProcessPass") {
+      } else if (isPostProcessPass) {
         this._bloomTextureView = undefined;
       }
 
-      if (pass.name === "PostProcessPass" && isOffscreen) {
+      if (
+        isPostProcessPass &&
+        hbaoNode &&
+        hbaoNode.enabled &&
+        this._opaqueDepthTextureView &&
+        projMatrix
+      ) {
+        this._hbaoPassGPU ??= new AOPassGPU(this._device);
+        this._hbaoTextureView =
+          this._hbaoPassGPU.execute(
+            ce,
+            this._opaqueDepthTextureView,
+            this._context.canvas.width,
+            this._context.canvas.height,
+            near,
+            far,
+            projMatrix,
+            hbaoNode,
+          ) ?? undefined;
+      } else if (isPostProcessPass) {
+        this._hbaoTextureView = undefined;
+      }
+
+      if (isPostProcessPass && isOffscreen) {
         continue;
       }
 
-      pass.execute(this, scene, ce, renderTargetView, vp, camPos, vMat);
+      // Re-widen to the RenderPass interface: TS's control-flow analysis narrows `pass` towards
+      // `PostProcessPass` from the `isPostProcessPass` checks above, which would otherwise
+      // resolve this call against PostProcessPass's own (shorter, vMat-less) execute() overload
+      // instead of the interface's.
+      const nextPass: RenderPass = pass;
+      nextPass.execute(this, scene, ce, renderTargetView, vp, camPos, vMat);
     }
 
     this._device.queue.submit([ce.finish()]);
@@ -2078,6 +2141,8 @@ export class WebGPURenderer extends AbstractRenderer {
     this._depthTexture?.destroy();
     this._hdrTexture?.destroy();
     this._bloomPassGPU?.destroy();
+    this._hbaoPassGPU?.destroy();
+    this._taaPassGPU?.destroy();
 
     this._objectUniformBuffers.clear();
     this._materialBindGroups.clear();

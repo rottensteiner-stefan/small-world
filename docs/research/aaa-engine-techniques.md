@@ -22,12 +22,12 @@ den referenzierten Engines wurde kopiert.
 | 3 | Fixed-Timestep Render-Interpolation | niedrig-mittel | hoch (Ruckeln weg) | ✅ **Implementiert** (2026-08-19) — `PhysicsSystem.applyRenderInterpolation()` |
 | 4 | CPU-Licht-Auswahl (N nächste Lichter/Objekt) | mittel | hoch | 🟡 **Teilweise** (2026-08-19) — globales Limit 4→16 angehoben (alle 3 Backends); echte Pro-Objekt-Auswahl nach Distanz bleibt offen (siehe unten) |
 | 5 | Clustered/Tiled Forward+ Lighting | groß | sehr hoch | **bestätigte Lücke** — hartes 4+4-Limit, global |
-| 6 | PCSS (Contact-Hardening Soft Shadows) | mittel | mittel-hoch | Aufwertung von vorhandenem PCF |
-| 7 | CSM-Politur (Cascade-Blending, Texel-Snapping) | niedrig-mittel | mittel | Aufwertung von vorhandenem CSM |
-| 8 | GTAO (Ambient Occlusion) | mittel | mittel-hoch | **Lücke** — keinerlei AO vorhanden |
-| 9 | Vereinfachtes TAA (Jitter + History-Blend) | mittel | mittel | **Lücke** — keinerlei Anti-Aliasing vorhanden |
-| 10 | GPU-Instancing wirklich nutzen | niedrig (Audit) | hoch | **existiert bereits** (`InstancedMesh`) — nur prüfen, ob Disc Wars/Neon Labyrinth es nutzen |
-| 11 | Cheap "Game Feel": Camera Shake, Hit-Stop, Squash&Stretch | niedrig | hoch (spürbar) | Lücke, aber sehr günstig nachrüstbar |
+| 6 | PCSS (Contact-Hardening Soft Shadows) | mittel | mittel-hoch | 🟡 **Implementiert für Directional Light** (2026-08-20) — Spotlicht bewusst ausgelassen, siehe Abschnitt 2 |
+| 7 | CSM-Politur (Cascade-Blending, Texel-Snapping) | niedrig-mittel | mittel | ✅ **Implementiert** (2026-08-20) — beides umgesetzt, siehe Abschnitt 2 |
+| 8 | GTAO (Ambient Occlusion) | mittel | mittel-hoch | 🟡 **Vereinfachtes HBAO implementiert** (2026-08-20) — *kein* echtes GTAO, siehe Abschnitt 4 |
+| 9 | Vereinfachtes TAA (Jitter + History-Blend) | mittel | mittel | ✅ **Implementiert** (2026-08-20) — Halton(2,3)-Jitter + exponentielles History-Blend, siehe Abschnitt 5 |
+| 10 | GPU-Instancing wirklich nutzen | niedrig (Audit) | hoch | ✅ **Audit abgeschlossen** (2026-08-20) — Disc Wars und Neon Labyrinth nutzen es bereits korrekt, kein Änderungsbedarf |
+| 11 | Cheap "Game Feel": Camera Shake, Hit-Stop, Squash&Stretch | niedrig | hoch (spürbar) | ✅ **Implementiert** (2026-08-20) — alle drei umgesetzt, siehe Abschnitt 5 |
 | 12 | LOD + Dithered Cross-Fade | mittel | mittel | Lücke, aber nicht dringend (keine Multi-LOD-Assets) |
 | 13 | Froxel-Volumetric-Fog | mittel (nach #5) | mittel | teilt Infrastruktur mit Clustered Lighting — danach bauen |
 | 14 | Hierarchical-Z Occlusion Culling | groß | gering (bei uns) | niedrige Priorität — Korridor-Level profitieren kaum zusätzlich |
@@ -133,14 +133,42 @@ Olsson et al. 2012).
 
 ## 2. Schatten über das vorhandene CSM+PCF hinaus
 
-**PCSS (Contact-Hardening Soft Shadows):** Zweistufig auf vorhandener PCF-Infrastruktur —
-(1) *Blocker-Search*: kleine Region um den projizierten Texel abtasten, Tiefe der
-näher-am-Licht-liegenden Samples mitteln; (2) *Penumbra-Schätzung*: über Strahlensatz aus
-Lichtgröße, Receiver-Tiefe und mittlerer Blocker-Tiefe einen Filterradius berechnen, der mit
-der Occluder-Distanz wächst; (3) PCF erneut mit diesem *variablen* statt festen Radius laufen
-lassen. Das ist exakt das fehlende Stück unseres aktuellen festen PCF-Kernels — ein
-Drop-in-Upgrade, kein neues Shadow-Map-Format. Kosten: etwa das Doppelte eines vergleichbaren
-Fest-Kernel-PCF-Passes. Voll WebGL2-fähig, kein Compute nötig.
+**PCSS (Contact-Hardening Soft Shadows):** 🟡 **Implementiert für Directional Light** (2026-08-20),
+Spotlicht bewusst ausgelassen (siehe unten).
+
+Umgesetzt als Drop-in-Upgrade auf der vorhandenen PCF-Infrastruktur, dreistufig:
+
+1. *Blocker-Search:* 8 Taps in einem Ring (±2 Texel) um den projizierten Texel, über einen
+   **zweiten, nicht-vergleichenden Tiefen-Read** derselben Shadow-Map — bei WebGL2 ein neuer
+   `uniform sampler2D u_dirShadowMapRaw`, gebunden über einen dedizierten `WebGLSampler` mit
+   `TEXTURE_COMPARE_MODE = NONE` auf einer eigenen Texture-Unit (14), weil dieser Modus in
+   WebGL2 direkt auf dem Texturobjekt sitzt (nicht der Sampling-Aufruf) und die eigentliche
+   Vergleichs-Textur ihn dauerhaft gesetzt hat; bei WebGPU komplett kostenlos via `textureLoad`
+   direkt auf der bereits gebundenen `texture_depth_2d_array` (kein Sampler nötig, kein
+   zusätzliches Bind-Group-Entry) — der erwartete Aufwands-Unterschied zwischen den Backends.
+2. *Penumbra-Schätzung:* `occluderDepthDelta = currentDepth - avgBlockerDepth`, skaliert relativ
+   zu `bias` (`pcfRadius = clamp(1.0 + occluderDepthDelta / bias, 1.0, 4.0)`) statt einer
+   Weltraum-Umrechnung — `bias` ist bereits ein pro Kaskade kalibrierter Tiefen-Toleranzwert im
+   selben normalisierten Tiefenraum, was einen erratenen Skalierungsfaktor (dessen
+   Weltraum-Bedeutung je nach Kaskaden-Tiefenbereich variiert) unnötig macht.
+3. *Variable PCF:* dieselbe 3×3-Schleife wie zuvor, aber mit `texelSize * pcfRadius` statt
+   `texelSize` — Kontaktschatten bleiben scharf, weiter entfernte Bereiche weichen auf.
+
+Nur die **primäre Kaskade** (`shadowA`) bekommt PCSS; die Kaskaden-Blend-Sample (`shadowB`,
+siehe CSM-Politur oben) bleibt beim festen 3×3-PCF, um die Kosten in der Blend-Zone nicht zu
+verdoppeln — eine bewusste, dokumentierte Vereinfachung. Alle Blocker-Search- und
+PCF-Sample-UVs werden auf die eigene Atlas-Zelle geklemmt (WebGL2), damit ein breiterer
+Suchradius nahe einer Zellgrenze nicht in eine andere Kaskade hineinblutet.
+
+**Spotlicht-PCSS bewusst nicht umgesetzt:** hätte denselben Raw-Sampler-Aufwand nochmal für
+`u_spotShadowMap[4]` erfordert (4 zusätzliche Texture-Units/Sampler-Bindungen bei WebGL2) für
+einen Lichttyp, der in den aktuellen Showcases sichtbar seltener/kleinräumiger Schatten wirft
+als das Directional Light — Verhältnis Aufwand zu sichtbarem Gewinn war hier schlechter.
+
+**Verifiziert:** `tsc --noEmit`, `npm run lint:wgsl` (WGSL hat keinen GLSL-Äquivalent-Linter,
+GLSL-Fehler zeigen sich nur zur Laufzeit im Treiber), volle Testsuite, Live-Rendering in
+Showcase 1 (schattenwerfender Directional Light + Würfel) auf WebGL2 und WebGPU — sichtbar
+weicher werdender Schattenrand ohne Artefakte, keine Konsolenfehler auf beiden Backends.
 
 **Normal-Offset Bias:** ✅ **Implementiert** (2026-08-19). Statt Tiefenwerte entlang der
 Lichtrichtung zurückzuschieben (klassisches Slope-Scaled-Bias, verursacht "Peter-Panning" bei
@@ -161,12 +189,27 @@ schwache/alte Geräte (`DeviceCaps`-Auto-Downgrade schaltet bei "LOW"-Tier ohneh
 `maxShadowResolution` runter bzw. Post-Processing ganz ab) — genau die Geräte, denen man
 Schatten eher wegnehmen als hinzufügen würde. Auf Wunsch des Maintainers zurückgestellt.
 
-**CSM-Politur:** (a) *Cascade-Blending* — nahe einer Kaskadengrenze beide Kaskaden abtasten
-und über eine Blend-Band linear überblenden, statt eines harten Auflösungssprungs (three.js'
-`CSM` bietet das als `fade`-Flag). (b) *Frustum-/Texel-Snapping* — die Verschiebung des
-Shadow-Frustums in Licht-Raum auf ganze Texel runden, damit das Schatten-Textur-Raster bei
-Sub-Pixel-Kamerabewegung nicht "schwimmt" (das klassische CSM-Shimmering). Beides reine
-Matrix-/Shader-Mathematik, keine neuen Ressourcen.
+**CSM-Politur:** ✅ **Implementiert** (2026-08-20). Beides umgesetzt:
+
+- *(a) Cascade-Blending* — nahe der Fernkante einer Kaskade wird zusätzlich die nächste Kaskade
+  abgetastet und über ein Blend-Band linear überblendet, statt eines harten
+  Auflösungssprungs (three.js' `CSM` bietet das als `fade`-Flag). Blend-Band = 10 % der
+  Fernkanten-Distanz der aktuellen Kaskade (`blendBand = splitFar * 0.1`), keine Abhängigkeit
+  von der Nahkante nötig. Umgesetzt in allen vier Lighting-Chunks (`light_calc.frag.glsl`,
+  `light_calc_pbr.frag.glsl`, `lighting.wgsl`, `lighting_pbr.wgsl`) — jeweils zwei vollständige
+  PCF-Abtastungen (aktuelle + nächste Kaskade) und ein `mix()` über den Blend-Faktor. Bewusst
+  ohne Hilfsfunktion/Schleife über ein lokales Array umgesetzt (stattdessen zwei explizite,
+  leicht duplizierte Codeblöcke) — vermeidet jede Unsicherheit über dynamische
+  Array-Indizierung in GLSL-ES-3.00-Schleifen auf älteren mobilen GPU-Treibern.
+- *(b) Texel-Snapping* — `DirectionalLight.updateCascades()` rundet jetzt das Licht-Raum-Zentrum
+  jeder Kaskade auf ein ganzzahliges Vielfaches der Texelgröße (`Math.floor(center / texelSize) *
+  texelSize`), **vor** dem Setzen der Ortho-Grenzen, bei unveränderter Frustum-Größe (nur das
+  Zentrum wird verschoben, nicht Breite/Höhe) — das verhindert das Sub-Texel-Wandern des
+  Schatten-Rasters bei glatter Kamerabewegung (das klassische CSM-Shimmering). Die
+  Texelgröße wird aus `shadowResolution / ceil(sqrt(numCascades))` abgeleitet (WebGL2 packt
+  Kaskaden in ein `cols × cols`-Atlas-Raster, siehe `WebGL2Renderer.ts`); für WebGPU (volle
+  Auflösung pro Array-Layer, kein Atlas) ist das eine bewusst konservative Näherung — gröber
+  als nötig, nie feiner, also nie ein Snapping, das das Shimmering verfehlen würde.
 
 **Vereinfachte Lehre aus Virtual Shadow Maps:** Der Kerntrick ist eine zweistufige Indirektion
 (riesiger virtueller Adressraum, kleiner physischer Seiten-Pool, nur sichtbare+veraltete Seiten
@@ -198,10 +241,18 @@ würde bei hunderten verdeckten Objekten lohnen, was für unsere Showcases untyp
 
 **GPU-Instancing:** **Existiert bereits** als `InstancedMesh` (`src/core/InstancedMesh.ts`) —
 ein geteilter Vertex-/Index-Buffer plus Pro-Instanz-Buffer (4×4-Matrix, ggf. Farbe), ein
-Draw-Call für N Kopien. **Konkrete Handlungsempfehlung:** prüfen, ob Disc-Wars-Maze-Wände und
-Neon-Labyrinth-Wiederholgeometrie das tatsächlich nutzen — das ist der Fall mit dem größten
-Sofort-Gewinn (Draw-Call-Overhead runter), weil die Infrastruktur schon da ist und "nur"
-angeschlossen werden muss.
+Draw-Call für N Kopien.
+
+✅ **Audit abgeschlossen (2026-08-20):** Sowohl `src/apps/disc-wars/core/LevelBuilder.ts` als
+auch `src/apps/neon-labyrinth/core/LevelBuilder.ts` batchen Wände/Böden/Decken/Nähte bereits
+korrekt über `InstancedMesh` (ein `addInstanced(...)`-Helper sammelt Matrizen pro Zellschleife
+und erzeugt am Ende einen Draw-Call pro Geometrie-/Material-Kombination). Die einzige
+Ausnahme ist Neon Labyrinths Frostglas-Wand — bewusst als Einzel-`Object3D` pro Zelle gebaut,
+weil jedes Panel sein eigenes geklontes Material für die individuelle "Clarity Pulse"-Animation
+braucht (kein reiner Transform-Unterschied, daher InstancedMesh-untauglich). Light Cycle Arena
+hat 4 Umfassungswände als Einzel-`Object3D` — technisch InstancedMesh-fähig, aber bei nur 4
+Instanzen kein sinnvoller Umbau. **Ergebnis: kein Code musste geändert werden**, die
+Infrastruktur war schon korrekt angeschlossen.
 
 **LOD + Dithered Cross-Fade:** An der Fade-Grenze werden kurz beide LOD-Stufen gerendert,
 jedes Fragment vergleicht einen Bildschirmraum-Noise-/Bayer-Wert gegen eine über wenige Frames
@@ -241,14 +292,72 @@ aktueller Hardware — pro Qualitätseinheit sogar günstiger als HBAO+. Aufwand
 Tiefe+Normal-Vorpass, einen Horizont-Such-Shader und einen Blur/Denoise-Pass — mittel, aber
 hoher Gewinn, wenn ein Tiefen-/Normal-Puffer schon existiert.
 
-**TAA:** Kernidee: Sub-Pixel-Kamera-Jitter pro Frame + Reprojektion des Vorframes über
-Motion-Vektoren + Nachbarschafts-Clamping gegen Ghosting. Eine **vereinfachte Variante**
-(nur Jitter + exponentielles History-Blend, keine Motion-Vektoren) ist ein realistischer
-Mittelweg für eine kleinere Engine: billig (eine Extra-Textur + ein Lerp), glättet Kanten in
-statischen/langsamen Szenen spürbar, wird aber bei schneller Bewegung sichtbar
-verschmieren/geistern — akzeptabler Trade-off ohne Velocity-Buffer. Volles TAA braucht
-Motion-Vektoren (Extra-Render-Target, Extra-Shader-Output pro Material) — deutlich größerer
-Aufwand.
+🟡 **Teilumsetzung (2026-08-20) — ehrliche Einordnung: vereinfachtes HBAO, kein echtes GTAO.**
+Umgesetzt wurde ein einzelner Full-Resolution-Screen-Space-Pass (`AOPassGL`/`AOPassGPU`,
+`AO.frag.glsl`/`AO.frag.wgsl`), der:
+1. View-Space-Position aus der bereits vorhandenen Opaque-Depth-Textur rekonstruiert (Tiefe
+   linearisieren über `near`/`far`, dann über die Perspektiv-Matrix-Diagonalterme `A`/`B` zu
+   View-Space-XY zurückrechnen — keine volle Inverse-Projektionsmatrix nötig).
+2. Eine View-Space-Normale über Screen-Space-Ableitungen der rekonstruierten Position
+   approximiert (`dFdx`/`dFdy` in GLSL, manuelle Differenzen in WGSL) — kein echter
+   Normal-G-Buffer.
+3. Pro 6 fester Richtungen einen einzelnen Max-Dot-Produkt-Sample über 4 Schritte nimmt und
+   das Ergebnis über alle Richtungen mittelt.
+
+**Einordnung: näher an HBAO (vereinfacht) als an GTAO.** `dot(Richtung-zum-Sample, Normale)`
+ist mathematisch der Sinus des Horizont-Elevationswinkels relativ zur Tangentialebene — exakt
+die Größe, nach der HBAO pro Richtung sucht. Pro Richtung (6 Stück) über 4 Schritte marschieren
+und den größten gefundenen Wert nehmen ist strukturell echtes Horizont-Suchen, nur mit einem
+einzigen Max-Sample statt kontinuierlichem Tracking und ohne die volle
+Tangentenwinkel-Subtraktion, die HBAO für die genaue Teil-Verdeckung nutzt — ein
+vereinfachtes HBAO, kein bloßes Hemisphären-SSAO. Was komplett fehlt, ist alles, was GTAO
+*zu* GTAO macht: die kosinus-gewichtete Arc-Integrationsformel (arccos-basiert statt linearem
+`dot()`-Proxy), Multi-Bounce-Näherung, Dünne-Objekte-Heuristik gegen Über-Verdunkelung und —
+am wichtigsten — Temporal Filtering über Motion Vectors (bräuchte TAA/#9, das wir noch nicht
+haben). Kein separater Blur/Denoise-Pass — Suche und (fehlendes) Denoise sind in einem Shader
+kombiniert, ein bewusster Scope-Cut. Sichtbarer Nebeneffekt in der Live-Verifikation: an
+Silhouetten-Kanten (Tiefensprung Objekt/Hintergrund) kann die Ableitungs-Normale entarten und
+zu übertriebener Verdunkelung entlang der ganzen Kante führen — ein bekanntes, dokumentiertes
+Artefakt reiner Tiefenableitungs-Normalen ohne echten G-Buffer, nicht spezifisch für unsere
+Implementierung.
+
+**Ansonsten:** Läuft als eigener Pass nach dem existierenden Opaque-Depth-Capture
+(`copyToOpaqueDepthTexture`/`captureOpaqueDepth`), WebGL2 + WebGPU (WebGL1 hat keine
+sample-fähige Tiefentextur). Musste einen echten pre-existierenden Bug fixen: die
+Opaque-Depth-Capture lief bisher nur, wenn die Szene transparente Objekte hatte (für
+Unterwasser-Refraktion gedacht) — für AO ohne jede Transparenz in der Szene wäre die
+Tiefentextur nie befüllt worden. Jetzt läuft die Capture zusätzlich immer, wenn HBAO aktiv ist
+(`WebGLMainPass.ts`, `MainRenderPass.ts`). Neuer Uniform `u_hbaoTexture`/`u_hbaoEnabled` im
+Uber-Post-Process-Shader, multipliziert auf `hdr` vor dem Tonemapping. Standardmäßig
+deaktiviert (`HbaoElement.enabled = false`), da Post-Processing insgesamt schon
+standardmäßig aus ist. Live in Showcase 1 (WebGL2 + WebGPU) verifiziert: sichtbarer,
+funktionierender Effekt bei hoher Intensität, keine Konsolenfehler, keine Abstürze.
+
+**TAA:** ✅ **Implementiert** (2026-08-20), als die bewusst vereinfachte Variante, die hier
+selbst schon als realistischer Mittelweg vorgeschlagen wurde: Sub-Pixel-Kamera-Jitter pro Frame
++ exponentielles History-Blend, **keine** Motion-Vektoren/Reprojektion.
+
+- *Jitter:* `Camera.jitterX`/`jitterY`, gefüllt in `SmallWorld._loop()` über eine
+  Halton(2,3)-Sequenz (16 Samples, zyklisch), umgerechnet in NDC-Texel-Einheiten relativ zur
+  Canvas-Auflösung. Eingebacken direkt in `Camera.updateViewMatrix()`s
+  `_viewProjMatrix` (Spalte 2, Zeilen 0/1 — die Standard-Stelle für Jitter-Injektion, da sie
+  mit der View-Space-Tiefe skaliert statt Near/Far unterschiedlich zu verzerren). Bewusst
+  **keine separate ungejitterte Matrix** für Culling/Schatten/HBAO — der Sub-Pixel-Versatz ist
+  vernachlässigbar für deren Zwecke, spart aber die doppelte Matrix-Buchhaltung.
+- *History-Blend:* neuer Pass (`TAAPassGL`/`TAAPassGPU`, `TAA.frag.glsl`/`TAA.frag.wgsl`) —
+  Ping-Pong zwischen zwei Vollauflösungs-Texturen (kein Kopier-Schritt nötig), blendet
+  `mix(current, history, feedback)` mit `feedback = 0.9` als Default. Läuft als erster
+  Post-Processing-Schritt (vor Bloom/HBAO/Uber-Shader) — alles Nachgelagerte reagiert auf die
+  zeitlich geglättete statt die rohe, gejitterte Pro-Frame-Farbe.
+- *Verifiziert:* Live in Showcase 1 (rotierender Würfel, WebGL2 + WebGPU) — bei hohem
+  `feedback` sichtbares, **erwartetes** Ghosting/Nachziehen an den bewegten Kanten des
+  rotierenden Würfels, exakt der hier dokumentierte, akzeptierte Trade-off ohne
+  Motion-Vektoren. Keine Konsolenfehler, keine visuelle Verdopplung/Korruption durch die
+  Jitter-Matrix-Injektion.
+
+Volles TAA bräuchte zusätzlich Motion-Vektoren (Extra-Render-Target, Extra-Shader-Output pro
+Material) für echte Reprojektion statt eines statischen UV-Blends — deutlich größerer Aufwand,
+bewusst nicht umgesetzt.
 
 **Tonemapping:** ✅ **Bereits vorhanden, keine Aktion nötig** (geprüft 2026-08-19). ACES wurde
 Industriestandard, weil es HDR-Werte über eine wahrnehmungsoptimierte Kurve abbildet, die
@@ -288,14 +397,44 @@ nur fürs Rendern, stellt den wahren Zustand danach sofort wieder her), aufgeruf
 kürzeste-Weg-Interpolation über die ±π-Wraparound-Grenze (`shortestAngleDelta`). Getestet in
 `tests/physix/PhysicsSystem.test.ts` (Describe-Block "Render Interpolation").
 
-**Blend-Trees / Crossfade / "Juice":** Blend-Trees (parametergesteuertes Blenden mehrerer
-Clips, z. B. Speed → Walk/Run) und Crossfade (kurzes Überblenden bei Zustandswechsel) sind
-Standard (Unity Mecanim, Godot AnimationTree), mittlerer Aufwand falls ein
-Animations-Clip-System existiert. Günstige, hochwertige "Juice"-Tricks: Camera-Shake über
-abklingenden Noise/Trauma-Wert, Hit-Stop (Delta-Time kurz auf 0 für betroffene Entitäten, ohne
-den ganzen Loop zu pausieren), Squash-and-Stretch (kurzzeitige non-uniforme Skalierung bei
-Impact/Launch). Alle drei sind je wenige Dutzend Zeilen, keine neuen Subsysteme, aber
-überproportional spürbar für Spieler.
+**Blend-Trees / Crossfade:** Blend-Trees (parametergesteuertes Blenden mehrerer Clips, z. B.
+Speed → Walk/Run) und Crossfade (kurzes Überblenden bei Zustandswechsel) sind Standard (Unity
+Mecanim, Godot AnimationTree), mittlerer Aufwand falls ein Animations-Clip-System existiert.
+Bei uns nicht umgesetzt — es gibt kein Clip-basiertes Animationssystem, das ein Blend-Tree
+bräuchte.
+
+**Camera-Shake, Hit-Stop, Squash-and-Stretch:** ✅ **Implementiert** (2026-08-20).
+
+- *Camera-Shake:* `ShakeEffect.ts` existierte schon (linearer Decay + `Math.random()` pro Achse
+  und Frame — sichtbar als Zittern statt Wobbeln). Umgebaut auf ein Trauma²-Envelope
+  (`trauma = 1 - elapsed/duration`, `envelope = intensity * trauma²`) plus kontinuierlichem
+  Simplex-Noise-Sampling pro Achse (`Noise.simplex2`, bereits vorhandener Wrapper um
+  `simplex-noise`) statt weißem Rauschen — liest sich jetzt als weiches Wobbeln, das sauber
+  ausklingt, statt eines abrupt endenden Zitterns. Jede Instanz bekommt einen eigenen
+  Zufalls-Seed-Offset, damit gleichzeitige Shakes nicht identisch sampeln.
+- *Hit-Stop:* Neu in `SmallWorld.ts` — `triggerHitStop(duration, timeScale = 0.05)` setzt einen
+  internen Timer; `_loop()` skaliert damit die deltaTime für App-Update, Physik-Step und
+  Szenen-Update (`gameplayDeltaTime`), während die Kamera (und damit Shake/Flash) weiterhin die
+  reale deltaTime bekommt — das Bild "friert" kurz ein, aber die Kamera zittert währenddessen
+  weiter, was den Treffer verkauft. Da die Engine kein Pro-Objekt-Zeitskalierungsfeld hat
+  (`RigidBody` kennt kein `timeScale`), ist das architektonisch bewusst ein **globaler** Effekt,
+  keine Pro-Entity-Selektion — für einen kurzen Trefferimpuls (50–120 ms) ist das der
+  pragmatische, in der Praxis kaum wahrnehmbare Kompromiss.
+- *Squash-and-Stretch:* Neues `SquashStretchBehavior` (`src/core/behaviors/`), im Stil der
+  bestehenden `SpringLerpBehavior`/`OscillatorBehavior`. Speichert die Basis-Skalierung beim
+  Anhängen, `trigger(intensity)` staucht sofort entlang Y und streckt X/Z (volumen-erhaltend
+  angenähert), ein gedämpfter Feder-Oszillator (`stiffness`/`damping`) schwingt danach zurück
+  zur Basis-Skalierung — inklusive leichtem Überschwingen, nicht nur einem linearen Zurückgleiten.
+- *Verdrahtet in:* Neon Labyrinth (`src/apps/neon-labyrinth/App.ts`) an beiden bestehenden
+  Impact-Momenten (Wisp-Treffer, Sturz-Reset) zusätzlich zum vorhandenen Kamera-Shake/Flash;
+  die gespawnten Impact-Shards (`_spawnImpactTrace`) bekommen beim Erscheinen einen
+  Squash-and-Stretch-Pop. Light Cycle Arena wurde bewusst **nicht** angefasst — dort existiert
+  bereits ein eigenes, für einen anderen Zweck gebautes `_timeScale`-System (sanftes
+  Herunterfahren nach Rundenende als Puzzle-Mechanik), das die Wirkung eines zusätzlichen
+  Hit-Stops verwässert hätte.
+- *Getestet:* `tests/core/cameras/effects/ShakeEffect.test.ts` (Trauma²-Envelope-Grenzen,
+  Seed-Diversität, sauberes Finish), `tests/core/behaviors/SquashStretchBehavior.test.ts`
+  (Basis-Skalierung, sofortiger Impuls, Feder-Rückkehr zur Basis).
 
 **Quellen:** [Fix Your Timestep! — Gaffer On Games](https://gafferongames.com/post/fix_your_timestep/) ·
 [Beginning Game Development: Blend Trees](https://medium.com/@lemapp09/beginning-game-development-blend-trees-315cd3e78d8c) ·
@@ -305,7 +444,9 @@ Impact/Launch). Alle drei sind je wenige Dutzend Zeilen, keine neuen Subsysteme,
 
 ## Nächste Schritte
 
-Dies ist ein reines Rechercheergebnis — keine der beschriebenen Techniken wurde implementiert.
-Wenn eine davon umgesetzt werden soll: am besten mit #1–#4 anfangen (klein, isoliert, hoher
-Sofort-Nutzen), dann #5 (Clustered Lighting) als größeres, eigenständiges Projekt angehen,
-sobald Zeit dafür da ist.
+**Stand 2026-08-20:** #1–#4, #6, #7, #9, #10, #11 sind umgesetzt (bzw. #10 als Audit
+abgeschlossen), #8 als bewusst ehrlich eingeordnetes vereinfachtes HBAO (nicht GTAO). #5
+(Clustered/Tiled Forward+ Lighting) bleibt die einzige noch offene, große Baustelle aus der
+priorisierten Liste — direkt gegen unser bekanntes 4→16-Licht-Limit, und der natürliche nächste
+Schritt, sobald dafür Zeit ist. #12–#15 bleiben bewusst zurückgestellt (niedrige Priorität bzw.
+kein aktueller Anwendungsfall).

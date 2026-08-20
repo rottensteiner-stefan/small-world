@@ -73,6 +73,22 @@ This document serves to record external sources, algorithms, mathematical deriva
 - **Authors/Gurus:** Jessica Hodgins
 - **Usage:** Her foundational research in integrating physical simulations with character animation serves as an ongoing inspiration for adding complex kinematics and physics-driven behaviors to game engines.
 
+## Game Feel & Player Experience
+
+### Trauma-Based Camera Shake
+
+- **File:** `src/core/cameras/effects/ShakeEffect.ts`
+- **Authors/Gurus:** Squirrel Eiserloh
+- **Source:** ["Math for Game Programmers: Juicing Your Cameras With Math"](https://gdcvault.com/play/1023146/Math-for-Game-Programmers-Juicing) — GDC 2016
+- **Usage:** Drives our screen-shake as a decaying "trauma" value with a squared (trauma²) falloff envelope, sampled through continuous simplex noise per axis instead of per-frame white noise — reads as a smooth wobble that eases out, rather than a jittery flicker that cuts off abruptly.
+
+### Hit-Stop / Freeze-Frame
+
+- **File:** `src/core/SmallWorld.ts`
+- **Authors/Gurus:** common technique across fighting/action games (e.g. Street Fighter, Bayonetta)
+- **Source:** ["Juice It or Lose It"](https://www.gdcvault.com/play/1016487/Juice-It-or-Lose) — Martin Jonasson & Petri Purho, GDC Europe 2012
+- **Usage:** Briefly scales down gameplay-facing deltaTime (app update, physics step, scene behaviors) on impact while the camera keeps updating at full speed, so its shake/flash effects still play — sells the weight of a hit without pausing the whole engine loop.
+
 ## Rendering Architecture & Best Practices
 
 ### Physically Based Rendering (PBR)
@@ -94,12 +110,33 @@ This document serves to record external sources, algorithms, mathematical deriva
 - **Source:** [Rendering antialiased shadows with depth maps (SIGGRAPH 1987)](https://dl.acm.org/doi/10.1145/37402.37425)
 - **Usage:** The foundational technique for generating soft edges on shadow maps. By sampling the depth map multiple times around the target fragment and averaging the binary visibility results, jagged aliased shadows become smoothly blurred (especially when combined with hardware `sampler2DShadow`).
 
+### Percentage-Closer Soft Shadows (PCSS)
+
+- **File:** `light_calc.frag.glsl`, `light_calc_pbr.frag.glsl` (GLSL300), `pbr_math.wgsl`, `lighting.wgsl`, `lighting_pbr.wgsl`, `WebGL2Renderer.ts`
+- **Authors/Gurus:** Randima Fernando (NVIDIA)
+- **Source:** ["Percentage-Closer Soft Shadows"](https://download.nvidia.com/developer/presentations/2005/I3D/I3D_05_Percentage_Closer_Soft_Shadows.pdf) — SIGGRAPH 2005
+- **Usage:** Upgrades the directional-light PCF pass to a variable-radius filter: a blocker search over a small ring of raw (non-comparison) depth reads estimates how far the average occluder sits below the receiver, which then scales the PCF sample radius so contact shadows stay sharp while shadows further from their caster soften — contact-hardening soft shadows from a single shadow map, no extra light samples or pre-pass needed.
+
+### Image-Space Horizon-Based Ambient Occlusion (HBAO)
+
+- **File:** `AO.frag.glsl`, `AO.frag.wgsl`, `AOPassGL.ts`, `AOPassGPU.ts`
+- **Authors/Gurus:** Louis Bavoil, Miguel Sainz, Rouslan Dimitrov (NVIDIA)
+- **Source:** ["Image-Space Horizon-Based Ambient Occlusion"](https://developer.download.nvidia.com/presentations/2008/SIGGRAPH/HBAO_SIG08b.pdf) — SIGGRAPH 2008
+- **Usage:** The reference for our screen-space ambient occlusion pass (`HbaoElement` in code) — marching a handful of screen-space directions per pixel and taking `dot(directionToSample, normal)` as the sine of that direction's horizon elevation angle, then darkening by how much of the hemisphere those horizons block. Simplified relative to the paper: a single max-sample per direction instead of true horizon-angle accumulation via the sine-integration formula, and no per-pixel direction rotation or bilateral blur pass to turn banding into noise.
+
 ### Normal-Offset Shadow Bias
 
 - **File:** `light_calc.frag.glsl`, `light_calc_pbr.frag.glsl` (GLSL300), `base_vertex_main.vert.glsl`, `lighting.wgsl`, `lighting_pbr.wgsl`
 - **Authors/Gurus:** Jasper Flick (Catlike Coding)
 - **Source:** [Directional Shadows (Custom SRP) — Catlike Coding](https://catlikecoding.com/unity/tutorials/custom-srp/directional-shadows/)
 - **Usage:** The reference for offsetting the shadow-map sample position along the surface normal (scaled by NdotL) before the light-space transform, instead of only biasing the compared depth value. Separates the fix for shadow acne from depth manipulation, reducing both acne and peter-panning simultaneously across our directional and spot light shadows.
+
+### Temporal Supersampling / TAA (Jitter + History Blend)
+
+- **File:** `TAA.frag.glsl`, `TAA.frag.wgsl`, `TAAPassGL.ts`, `TAAPassGPU.ts`, `Camera.ts`, `SmallWorld.ts`
+- **Authors/Gurus:** Brian Karis (Epic Games)
+- **Source:** ["High-Quality Temporal Supersampling"](http://advances.realtimerendering.com/s2014/#_HIGH-QUALITY_TEMPORAL_SUPERSAMPLING) — SIGGRAPH 2014, Advances in Real-Time Rendering
+- **Usage:** The canonical reference for sub-pixel camera jitter (we use a Halton(2,3) sequence, cycling 16 samples) combined with a history buffer accumulated across frames to reconstruct anti-aliased detail beyond a single frame's sample rate. We implement only the simplified half of the technique — jitter plus an exponential history blend, no motion-vector reprojection or neighborhood clamping — which smooths edges in static/slow scenes but visibly ghosts on fast movement, an accepted trade-off documented in `docs/research/aaa-engine-techniques.md`.
 
 ### Dual Kawase Bloom (Post-Processing)
 

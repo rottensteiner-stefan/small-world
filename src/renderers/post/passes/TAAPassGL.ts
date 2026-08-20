@@ -1,0 +1,151 @@
+import FULLSCREEN_VERT_GLSL from "../../../core/materials/shaders/PostProcess.vert.glsl?raw";
+import TAA_FRAG_GLSL from "../../../core/materials/shaders/TAA.frag.glsl?raw";
+
+import { WebGL2FrameBuffer } from "../../WebGL2/index.js";
+import { TaaElement } from "../elements/index.js";
+
+/**
+ * Simplified TAA resolve for WebGL2: blends the current (jittered) frame with a ping-ponged
+ * history buffer holding the previous frame's resolved result -- no motion vectors, so this
+ * only helps static/slow-moving scenes (see TaaElement doc comment for the accepted trade-off).
+ */
+export class TAAPassGL {
+  private _gl: WebGL2RenderingContext;
+
+  private _prog?: WebGLProgram;
+  private _vao?: WebGLVertexArrayObject;
+
+  private _uCurrentTexture: WebGLUniformLocation | null = null;
+  private _uHistoryTexture: WebGLUniformLocation | null = null;
+  private _uFeedback: WebGLUniformLocation | null = null;
+  private _uHasHistory: WebGLUniformLocation | null = null;
+
+  private _pingPong: [WebGL2FrameBuffer, WebGL2FrameBuffer] | undefined;
+  private _parity: number = 0;
+  private _width: number = 0;
+  private _height: number = 0;
+  private _hasHistory: boolean = false;
+
+  constructor(gl: WebGL2RenderingContext) {
+    this._gl = gl;
+    this._build();
+  }
+
+  private _compileShader(type: number, src: string): WebGLShader | null {
+    const gl = this._gl;
+    const shader = gl.createShader(type);
+    if (!shader) return null;
+    gl.shaderSource(shader, src);
+    gl.compileShader(shader);
+    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+      console.error("[TAAPassGL] Shader Compile Error:", gl.getShaderInfoLog(shader));
+      gl.deleteShader(shader);
+      return null;
+    }
+    return shader;
+  }
+
+  private _build(): void {
+    const gl = this._gl;
+
+    const vert = this._compileShader(gl.VERTEX_SHADER, FULLSCREEN_VERT_GLSL);
+    const frag = this._compileShader(gl.FRAGMENT_SHADER, TAA_FRAG_GLSL);
+    if (!vert || !frag) return;
+
+    this._prog = gl.createProgram()!;
+    gl.attachShader(this._prog, vert);
+    gl.attachShader(this._prog, frag);
+    gl.linkProgram(this._prog);
+    gl.deleteShader(vert);
+    gl.deleteShader(frag);
+
+    this._uCurrentTexture = gl.getUniformLocation(this._prog, "u_currentTexture");
+    this._uHistoryTexture = gl.getUniformLocation(this._prog, "u_historyTexture");
+    this._uFeedback = gl.getUniformLocation(this._prog, "u_feedback");
+    this._uHasHistory = gl.getUniformLocation(this._prog, "u_hasHistory");
+
+    this._vao = gl.createVertexArray()!;
+  }
+
+  private _resize(width: number, height: number): void {
+    if (this._pingPong && this._width === width && this._height === height) return;
+
+    this._pingPong?.[0].destroy();
+    this._pingPong?.[1].destroy();
+    this._width = width;
+    this._height = height;
+    this._hasHistory = false;
+    this._parity = 0;
+
+    const makeTarget = (): WebGL2FrameBuffer =>
+      new WebGL2FrameBuffer(this._gl, {
+        width,
+        height,
+        internalFormat: this._gl.RGBA16F,
+        format: this._gl.RGBA,
+        type: this._gl.HALF_FLOAT,
+      });
+    this._pingPong = [makeTarget(), makeTarget()];
+  }
+
+  /**
+   * Resolves the current (jittered) HDR frame against history.
+   * @returns This frame's resolved HDR texture (becomes history for the next call), or null if unavailable.
+   */
+  public execute(
+    currentTexture: WebGLTexture,
+    width: number,
+    height: number,
+    taa: TaaElement,
+  ): WebGLTexture | null {
+    if (!this._prog) return null;
+
+    this._resize(width, height);
+    if (!this._pingPong) return null;
+
+    const gl = this._gl;
+    const writeTarget = this._pingPong[this._parity]!;
+    const historyTarget = this._pingPong[1 - this._parity]!;
+
+    gl.disable(gl.DEPTH_TEST);
+    gl.depthMask(false);
+    gl.disable(gl.CULL_FACE);
+    gl.disable(gl.BLEND);
+
+    writeTarget.bind();
+    gl.viewport(0, 0, width, height);
+
+    gl.useProgram(this._prog);
+    gl.bindVertexArray(this._vao!);
+
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, currentTexture);
+    gl.uniform1i(this._uCurrentTexture, 0);
+
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, historyTarget.texture);
+    gl.uniform1i(this._uHistoryTexture, 1);
+
+    gl.uniform1f(this._uFeedback, taa.feedback);
+    gl.uniform1i(this._uHasHistory, this._hasHistory ? 1 : 0);
+
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+    gl.bindVertexArray(null);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+    this._hasHistory = true;
+    this._parity = 1 - this._parity;
+
+    return writeTarget.texture;
+  }
+
+  /** Releases GPU resources. */
+  public destroy(): void {
+    const gl = this._gl;
+    if (this._prog) gl.deleteProgram(this._prog);
+    if (this._vao) gl.deleteVertexArray(this._vao);
+    this._pingPong?.[0].destroy();
+    this._pingPong?.[1].destroy();
+  }
+}

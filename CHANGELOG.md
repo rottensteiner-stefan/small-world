@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.76.11] - 2026-08-20
+
+### "All models are wrong, but some are useful." - George E. P. Box
+
+- **Features:**
+  - Implemented PCSS (Percentage-Closer Soft Shadows) for directional-light shadows (item #6 of `docs/research/aaa-engine-techniques.md`): a blocker-search step reads raw (non-comparison) depth to estimate occluder distance, then scales the PCF filter radius accordingly, so shadows harden near contact and soften with distance from their caster. WebGL2 needed a second non-comparison sampler bound to the same depth texture (`u_dirShadowMapRaw`, via a dedicated `WebGLSampler`); WebGPU reads the same depth texture directly via `textureLoad`, no extra binding needed. Spot-light shadows intentionally kept on fixed-radius PCF.
+  - Implemented CSM polish (item #7): texel-snapping rounds each cascade's light-space center to the shadow-map's own texel grid, eliminating sub-pixel shimmer as the camera moves, and cascade blending fades between adjacent cascades near their boundary instead of a hard cut.
+  - Implemented a simplified screen-space ambient occlusion pass (item #8) — honestly named `HbaoElement`/HBAO in code, not GTAO: per-direction horizon search reconstructs view-space position and normal from the existing opaque-depth buffer and estimates occlusion from `dot(sampleDirection, normal)`. Still missing relative to real HBAO: proper horizon-angle accumulation, per-pixel direction rotation, and a bilateral blur pass. Still missing relative to GTAO on top of that: cosine-weighted arc integration, multi-bounce approximation, thin-object handling, and temporal filtering. WebGL2 and WebGPU only. Fixed a real pre-existing bug along the way: opaque-depth capture only ever ran when a scene had transparent objects (for underwater refraction) — never for an opaque-only scene, which is exactly what this new pass needed every frame it's enabled.
+  - Implemented simplified TAA (item #9): a Halton(2,3) sub-pixel camera jitter baked directly into the view-projection matrix, resolved via an exponential history blend (ping-ponged, no copy) against the previous frame — no motion vectors or reprojection, so it smooths static/slow scenes but visibly ghosts under fast movement, an accepted trade-off for a smaller engine. Runs before Bloom/HBAO/the final post-process pass so everything downstream reacts to the temporally-smoothed color, not the raw per-frame jittered one.
+  - Implemented cheap "game feel" (item #11): `ShakeEffect` now decays through a trauma² envelope sampled via continuous simplex noise instead of per-frame white noise; `SmallWorld.triggerHitStop()` briefly scales gameplay deltaTime while the camera keeps running at full speed, so its shake/flash effects still sell the impact; a new `SquashStretchBehavior` applies a damped-spring squash/stretch impulse. Wired into Neon Labyrinth's existing impact moments (Wisp strikes, fall resets) and its spawned impact shards.
+- **Architecture & Bugfixes:**
+  - Audited GPU-instancing usage (item #10): Disc Wars and Neon Labyrinth already batch all repeated maze geometry (walls, floors, ceilings, seams) through `InstancedMesh` correctly — no code changes needed.
+  - `Renderer.render()` gained an optional trailing `projMatrix` parameter (the camera's raw perspective matrix), needed for HBAO's view-space reconstruction; `AbstractWebGLRenderer` now stashes it alongside near/far per frame so `flushPostProcess()` can read it later in the same frame.
+- **Housekeeping & Docs:**
+  - Updated `docs/research/aaa-engine-techniques.md` for items #6–#11, including an explicit, corrected note that our ambient occlusion implementation is a simplified HBAO, not GTAO.
+  - Added `REFERENCES.md` entries for HBAO (Bavoil, Sainz, Dimitrov — SIGGRAPH 2008), TAA jitter/history blend (Karis — SIGGRAPH 2014), PCSS (Fernando — SIGGRAPH 2005), and game-feel technique sources (Eiserloh; Jonasson & Purho).
+
 ## [0.76.10] - 2026-08-20
 
 ### "Shadow is the obstruction of light." - Leonardo da Vinci

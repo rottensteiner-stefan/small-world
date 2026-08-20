@@ -53,3 +53,58 @@ fn getShadowPCF(map: texture_depth_2d_array, samp: sampler_comparison, shadowPos
     return shadow / 9.0;
 }
 
+// PCSS: (1) blocker search via textureLoad -- an exact texel fetch straight off the same depth
+// texture already bound for comparison sampling, no separate raw-depth binding needed, unlike
+// WebGL2 where TEXTURE_COMPARE_MODE is baked onto the texture object itself; (2) derive a
+// penumbra size from how far the receiver sits below those occluders, scaled relative to
+// `bias` (already a scene/cascade-calibrated depth-slop unit in this same normalized depth
+// space, so it keeps the softness estimate self-calibrating instead of a magic constant with a
+// world-unit meaning that varies per cascade); (3) PCF again with that variable radius.
+fn getShadowPCSS(map: texture_depth_2d_array, samp: sampler_comparison, shadowPos: vec4f, layer: u32, bias: f32) -> f32 {
+    let ndc = shadowPos.xyz / shadowPos.w;
+    let uv = vec2f(ndc.x * 0.5 + 0.5, 0.5 - ndc.y * 0.5);
+
+    if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0 || ndc.z > 1.0 || ndc.z < 0.0) {
+        return 1.0;
+    }
+
+    let depthRef = ndc.z - bias;
+    let dims = textureDimensions(map);
+    let texelSize = vec2f(1.0 / f32(dims.x), 1.0 / f32(dims.y));
+    let layerI = i32(layer);
+    let maxCoord = vec2i(dims) - vec2i(1, 1);
+    let centerCoord = vec2i(uv * vec2f(dims));
+
+    let searchOffsets = array<vec2i, 8>(
+        vec2i(-2, -2), vec2i(0, -2), vec2i(2, -2),
+        vec2i(-2, 0), vec2i(2, 0),
+        vec2i(-2, 2), vec2i(0, 2), vec2i(2, 2),
+    );
+    var avgBlockerDepth: f32 = 0.0;
+    var blockerCount: f32 = 0.0;
+    for (var s = 0; s < 8; s++) {
+        let coord = clamp(centerCoord + searchOffsets[s], vec2i(0, 0), maxCoord);
+        let blockerDepth = textureLoad(map, coord, layerI, 0);
+        if (blockerDepth < depthRef) {
+            avgBlockerDepth += blockerDepth;
+            blockerCount += 1.0;
+        }
+    }
+
+    if (blockerCount < 1.0) {
+        return 1.0;
+    }
+    avgBlockerDepth /= blockerCount;
+    let occluderDepthDelta = depthRef - avgBlockerDepth;
+    let pcfRadius = clamp(1.0 + occluderDepthDelta / max(bias, 0.0001), 1.0, 4.0);
+
+    var shadow: f32 = 0.0;
+    for (var y: i32 = -1; y <= 1; y++) {
+        for (var x: i32 = -1; x <= 1; x++) {
+            let offset = vec2f(f32(x), f32(y)) * texelSize * pcfRadius;
+            shadow += textureSampleCompareLevel(map, samp, uv + offset, layer, depthRef);
+        }
+    }
+    return shadow / 9.0;
+}
+

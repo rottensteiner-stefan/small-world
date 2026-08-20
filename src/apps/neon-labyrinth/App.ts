@@ -7,6 +7,7 @@ import {
   RotatorBehavior,
   BobbingBehavior,
   ProximitySensorBehavior,
+  SquashStretchBehavior,
 } from "../../core/behaviors/index.js";
 import { Sphere, Cube } from "../../geometry/index.js";
 import { Vector3D } from "../../math/index.js";
@@ -247,6 +248,7 @@ export class App extends SmallWorld {
 
             this._spawnImpactTrace(wisp.position, DANGER_AMBER);
             this.camera.applyEffect(CameraEffectType.SHAKE, 0.35, 0.25);
+            this.triggerHitStop(0.06, 0.05);
             this.audio.playTone(180, 0.15, 0.5, "sawtooth");
           },
         }),
@@ -372,6 +374,7 @@ export class App extends SmallWorld {
     this.events.addEventListener(Events.FELL, (): void => {
       this._spawnImpactTrace(spawnPoint, DANGER_AMBER);
       this.camera.applyEffect(CameraEffectType.SHAKE, 0.6, 0.4);
+      this.triggerHitStop(0.1, 0.05);
       this.audio.playTone(90, 0.3, 0.6, "square");
     });
     this.events.addEventListener(Events.VOID_CAUGHT, (): void => {
@@ -429,6 +432,9 @@ export class App extends SmallWorld {
       shard.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
       shard.isCollidable = false;
       shard.addBehavior(new ImpactFlashBehavior({ scene: this.scene }));
+      const pop = new SquashStretchBehavior();
+      shard.addBehavior(pop);
+      pop.trigger(0.5);
       this.scene.add(shard);
     }
   }

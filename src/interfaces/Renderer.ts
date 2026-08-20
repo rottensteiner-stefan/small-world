@@ -33,6 +33,8 @@ export interface Renderer {
     viewMatrix?: Float32Array,
     near?: number,
     far?: number,
+    /** The camera's raw projection matrix, used by HBAO to reconstruct view-space position from depth. */
+    projMatrix?: Float32Array,
   ): void;
 
   /**

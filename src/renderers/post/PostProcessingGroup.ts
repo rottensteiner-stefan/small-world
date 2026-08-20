@@ -5,6 +5,8 @@ import {
   GrainElement,
   BloomElement,
   QuantizeElement,
+  HbaoElement,
+  TaaElement,
 } from "./elements/index.js";
 import { PostProcessingEffectType } from "../../enums/index.js";
 
@@ -32,6 +34,8 @@ export class PostProcessingGroup {
     this.add(new GrainElement());
     this.add(new BloomElement());
     this.add(new QuantizeElement());
+    this.add(new HbaoElement());
+    this.add(new TaaElement());
   }
 
   /**
@@ -119,6 +123,23 @@ export class PostProcessingGroup {
       if (quant) {
         if (config.quantize.enabled !== undefined) quant.enabled = config.quantize.enabled;
         if (config.quantize.steps !== undefined) quant.steps = config.quantize.steps;
+      }
+    }
+
+    if (config.hbao) {
+      const hbao = this.get<HbaoElement>(PostProcessingEffectType.HBAO);
+      if (hbao) {
+        if (config.hbao.enabled !== undefined) hbao.enabled = config.hbao.enabled;
+        if (config.hbao.radius !== undefined) hbao.radius = config.hbao.radius;
+        if (config.hbao.intensity !== undefined) hbao.intensity = config.hbao.intensity;
+      }
+    }
+
+    if (config.taa) {
+      const taa = this.get<TaaElement>(PostProcessingEffectType.TAA);
+      if (taa) {
+        if (config.taa.enabled !== undefined) taa.enabled = config.taa.enabled;
+        if (config.taa.feedback !== undefined) taa.feedback = config.taa.feedback;
       }
     }
   }

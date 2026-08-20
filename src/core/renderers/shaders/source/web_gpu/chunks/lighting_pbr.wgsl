@@ -32,12 +32,30 @@ var Lo = vec3f(0.0);
                 break;
             }
         }
-        let cascadeMat = global.cascadeMatrices[cascadeIndex];
+
+        // Cascade blending (see lighting.wgsl for rationale).
+        var blendToNext: f32 = 0.0;
+        if (cascadeIndex + 1u < numCascades) {
+            let splitFar = global.cascadeSplits[cascadeIndex];
+            let blendBand = max(splitFar * 0.1, 0.0001);
+            blendToNext = 1.0 - clamp((splitFar - viewDist) / blendBand, 0.0, 1.0);
+        }
+
         // Normal-offset bias, scaled by NdotL (see lighting.wgsl for rationale).
-        let shadowPos = cascadeMat * vec4f(i.wp + N * global.dirShadowInfo.y * (1.0 - dotNL), 1.0);
-        shadow = getShadowPCF(u_dirShadowMap, shadowSampler, shadowPos, cascadeIndex, global.dirShadowInfo.x);
+        let dirShadowSamplePos = i.wp + N * global.dirShadowInfo.y * (1.0 - dotNL);
+        let shadowPos = global.cascadeMatrices[cascadeIndex] * vec4f(dirShadowSamplePos, 1.0);
+        let shadowA = getShadowPCSS(u_dirShadowMap, shadowSampler, shadowPos, cascadeIndex, global.dirShadowInfo.x);
+
+        var shadowB = shadowA;
+        if (blendToNext > 0.0) {
+            let nextCascade = cascadeIndex + 1u;
+            let shadowPosB = global.cascadeMatrices[nextCascade] * vec4f(dirShadowSamplePos, 1.0);
+            shadowB = getShadowPCF(u_dirShadowMap, shadowSampler, shadowPosB, nextCascade, global.dirShadowInfo.x);
+        }
+
+        shadow = mix(shadowA, shadowB, blendToNext);
     }
-    
+
     let radiance = global.dirLightColor.xyz * shadow;
 
     let D = D_GGX(dotNH, roughness);
