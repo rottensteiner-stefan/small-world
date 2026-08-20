@@ -48,6 +48,10 @@ import {
   ClusterGridDims,
   computeClusterCounts,
   CLUSTER_TEX_WIDTH,
+  CLUSTER_POINT_GRID_UNIT,
+  CLUSTER_POINT_INDEX_UNIT,
+  CLUSTER_SPOT_GRID_UNIT,
+  CLUSTER_SPOT_INDEX_UNIT,
   DEFAULT_CLUSTER_TILE_SIZE,
   DEFAULT_CLUSTER_Z_SLICES,
   DEFAULT_MAX_LIGHTS_PER_CLUSTER,
@@ -113,18 +117,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
   private static readonly _RAW_DEPTH_UNIT = 14;
   private _rawDepthSampler!: WebGLSampler;
 
-  /**
-   * Fixed units for the clustered light culling textures, see the reserved-range comment above.
-   * Public (unlike the shadow units) because `WebGLClusterCullPass` -- a separate class, not a
-   * method of this renderer -- needs to bind them at the same fixed units every frame.
-   */
-  public static readonly _CLUSTER_POINT_GRID_UNIT = 15;
-  public static readonly _CLUSTER_POINT_INDEX_UNIT = 16;
-  public static readonly _CLUSTER_SPOT_GRID_UNIT = 17;
-  public static readonly _CLUSTER_SPOT_INDEX_UNIT = 18;
-
-  public _opaqueTexture?: WebGLTexture;
-  public _opaqueTextureWrapper?: Texture;
+  private _opaqueTexture?: WebGLTexture;
   private _opaqueDepthTexture?: WebGLTexture;
   private _opaqueDepthFbo?: WebGLFramebuffer;
   private _opaqueDepthWidth: number = 0;
@@ -145,13 +138,32 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
 
   private _globalUBO!: WebGL2UniformBuffer;
 
-  /** Clustered light culling grid state, see docs/adr/0007-clustered-lighting-webgl2-webgpu-only.md. */
-  public _clusterDims: ClusterGridDims = { x: 1, y: 1, z: 1 };
-  public _clusterMaxLightsPerCluster = 1;
-  public _pointClusterGridTex!: WebGLTexture;
-  public _pointClusterIndexTex!: WebGLTexture;
-  public _spotClusterGridTex!: WebGLTexture;
-  public _spotClusterIndexTex!: WebGLTexture;
+  /** Clustered light culling grid state, see docs/adr/0007-clustered-lighting-webgl2-webgpu-only.md.
+   * Read (never written) by `WebGLClusterCullPass` via the getters below. */
+  private _clusterDims: ClusterGridDims = { x: 1, y: 1, z: 1 };
+  public get clusterDims(): ClusterGridDims {
+    return this._clusterDims;
+  }
+  private _clusterMaxLightsPerCluster = 1;
+  public get clusterMaxLightsPerCluster(): number {
+    return this._clusterMaxLightsPerCluster;
+  }
+  private _pointClusterGridTex!: WebGLTexture;
+  public get pointClusterGridTex(): WebGLTexture {
+    return this._pointClusterGridTex;
+  }
+  private _pointClusterIndexTex!: WebGLTexture;
+  public get pointClusterIndexTex(): WebGLTexture {
+    return this._pointClusterIndexTex;
+  }
+  private _spotClusterGridTex!: WebGLTexture;
+  public get spotClusterGridTex(): WebGLTexture {
+    return this._spotClusterGridTex;
+  }
+  private _spotClusterIndexTex!: WebGLTexture;
+  public get spotClusterIndexTex(): WebGLTexture {
+    return this._spotClusterIndexTex;
+  }
 
   private _stateCullFaceEnabled: boolean | null = null;
   private _stateCullFaceMode: number = -1;
@@ -252,7 +264,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
    * @param dims Cluster grid dimensions.
    * @param maxLightsPerCluster Maximum number of lights a single cluster cell can reference.
    */
-  public _allocateClusterTextures(dims: ClusterGridDims, maxLightsPerCluster: number): void {
+  private _allocateClusterTextures(dims: ClusterGridDims, maxLightsPerCluster: number): void {
     const numClusters = Math.max(1, dims.x * dims.y * dims.z);
     const gridHeight = Math.max(1, Math.ceil(numClusters / CLUSTER_TEX_WIDTH));
     const indexCount = numClusters * Math.max(1, maxLightsPerCluster);
@@ -793,7 +805,6 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       this._opaqueTexture = tex!;
 
       const dummyTex = { isLoaded: true } as unknown as Texture;
-      this._opaqueTextureWrapper = dummyTex;
       this._texCache.set(dummyTex, tex!);
     } else {
       this.gl.bindTexture(this.gl.TEXTURE_2D, this._opaqueTexture);
@@ -1246,17 +1257,13 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     // know which unit its sampler uniform reads from, see
     // docs/adr/0007-clustered-lighting-webgl2-webgpu-only.md.
     const pointClusterGridLoc = cache.uniforms.get("u_pointClusterGrid");
-    if (pointClusterGridLoc)
-      this.gl.uniform1i(pointClusterGridLoc, WebGL2Renderer._CLUSTER_POINT_GRID_UNIT);
+    if (pointClusterGridLoc) this.gl.uniform1i(pointClusterGridLoc, CLUSTER_POINT_GRID_UNIT);
     const pointClusterIndexLoc = cache.uniforms.get("u_pointClusterIndices");
-    if (pointClusterIndexLoc)
-      this.gl.uniform1i(pointClusterIndexLoc, WebGL2Renderer._CLUSTER_POINT_INDEX_UNIT);
+    if (pointClusterIndexLoc) this.gl.uniform1i(pointClusterIndexLoc, CLUSTER_POINT_INDEX_UNIT);
     const spotClusterGridLoc = cache.uniforms.get("u_spotClusterGrid");
-    if (spotClusterGridLoc)
-      this.gl.uniform1i(spotClusterGridLoc, WebGL2Renderer._CLUSTER_SPOT_GRID_UNIT);
+    if (spotClusterGridLoc) this.gl.uniform1i(spotClusterGridLoc, CLUSTER_SPOT_GRID_UNIT);
     const spotClusterIndexLoc = cache.uniforms.get("u_spotClusterIndices");
-    if (spotClusterIndexLoc)
-      this.gl.uniform1i(spotClusterIndexLoc, WebGL2Renderer._CLUSTER_SPOT_INDEX_UNIT);
+    if (spotClusterIndexLoc) this.gl.uniform1i(spotClusterIndexLoc, CLUSTER_SPOT_INDEX_UNIT);
 
     // Bind Shadow Maps
     if (lights && lights.sLights.length > 0) {

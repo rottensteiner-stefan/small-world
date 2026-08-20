@@ -8,7 +8,7 @@ In a landscape where enterprise 3D web frameworks pull megabytes of JavaScript i
 
 ### 1. Bundle Size & The Micro-App Ecosystem
 **The Problem:** Big engines are monolithic. A simple 3D scene in an enterprise framework can easily exceed 1.5MB of code. Many popular libraries, despite their modularity, struggle with effective tree-shaking for tiny applications. For Playable Ads (which have strict 2MB constraints including assets), Telegram Mini-Apps, edge computing, and fast Web3 frontends, loading times are critical.
-**Our Solution:** Zero dependencies. By heavily relying on modern browser standards and aggressive dead-code elimination, Small World delivers a PBR-lit, WebGPU-accelerated scene in a fraction of the size.
+**Our Solution:** The rendering and math core has zero dependencies. By heavily relying on modern browser standards and aggressive dead-code elimination, Small World delivers a PBR-lit, WebGPU-accelerated scene in a fraction of the size. (A handful of dependencies do exist for optional dev tooling — e.g. `tweakpane` for the in-game Gadget Inspector GUI, `joy-con-webhid` for gamepad support — none of them ship with the engine's rendering path itself.)
 
 ### 2. Architecture vs. Library
 **The Problem:** Many popular solutions are just rendering libraries, not engines. They provide no standard architecture for game loops, state management, or input handling. Developers either reinvent the wheel or adopt heavy declarative wrappers, dragging the massive overhead of complex DOM reconciliation loops into the 60FPS 3D world.
@@ -16,7 +16,7 @@ In a landscape where enterprise 3D web frameworks pull megabytes of JavaScript i
 
 ### 3. Developer Experience (DX) & TypeScript
 **The Problem:** Legacy engines suffer from years of JavaScript cruft. Their third-party TypeScript definitions are often asynchronous to the actual codebase, patched together with `any` types that silently fail at runtime.
-**Our Solution:** Small World is 100% strict TypeScript. No `any`. Explicit return types. Private member encapsulation (`_propertyName`). We offer an API where the autocomplete never lies, allowing developers to refactor with absolute confidence.
+**Our Solution:** Small World is 100% strict TypeScript. No `any`. Explicit return types. Private member encapsulation (`_propertyName`) -- internal renderer state stays genuinely private/protected, with narrow named getters (and, where a pass genuinely needs to mutate frame state, get/set accessor pairs) as the only way in from outside, instead of exposing raw fields. We offer an API where the autocomplete never lies, allowing developers to refactor with absolute confidence.
 
 ### 4. Native WebGPU vs. WebGL Baggage
 **The Problem:** Legacy engines are struggling to adapt their 10-year-old architectures to the parallel compute paradigms of WebGPU, often resulting in fragmented NodeMaterial systems that break backward compatibility.
@@ -27,7 +27,7 @@ In a landscape where enterprise 3D web frameworks pull megabytes of JavaScript i
 1. **Lightweight over Exhaustive:** If a feature requires 500KB of polyfills to support 1% of edge cases, it doesn't belong in the core.
 2. **DX is King:** Built-in tools like the `GadgetInspector` and the `IBL Generator` ship with the engine because developers shouldn't have to spend a day configuring external UI libraries just to tweak a light's intensity.
 3. **Data-Oriented & Zero Allocation:** In hot paths (like the main render loop, `Object3D.computeBounds()`, or Raycasting), we strictly avoid object instantiation to completely eliminate unpredictable Garbage Collection (GC) pauses.
-4. **Absolute "Zero Dependency" Foundation:** No external math libraries (like `glMatrix`), no bloated polyfills. We build custom, highly-optimized systems from the ground up (like our right-handed coordinate math engine) to guarantee maximum performance and minimal footprint.
-5. **Modern By Default:** We leverage the latest web technologies directly. True utilization of WebGPU compute shaders and unified linear space post-processing pipelines are standard, not an afterthought. 
+4. **Zero-Dependency Core:** No external math libraries (like `glMatrix`), no bloated polyfills, in the rendering and math core itself. We build custom, highly-optimized systems from the ground up (like our right-handed coordinate math engine) to guarantee maximum performance and minimal footprint.
+5. **Modern By Default:** We leverage the latest web technologies directly. Unified linear space post-processing pipelines are standard, not an afterthought — and WebGPU compute shaders are real, not just a graphics-pipeline talking point (the Clustered Forward+ Lighting pass culls every light against the frustum grid on the GPU before the main render pass runs).
 
 Small World is the engine for the modern TypeScript developer who wants the raw power of WebGPU, the architectural elegance of a real game engine, and a bundle size that loads before the user even blinks.

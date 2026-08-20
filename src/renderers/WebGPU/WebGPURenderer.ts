@@ -211,15 +211,24 @@ const GLOBAL_BIND_GROUP_TEXTURE_COUNT = 5;
 export class WebGPURenderer extends AbstractRenderer {
   public override readonly type: RendererType = RendererType.WEB_GPU;
   protected _adapter: GPUAdapter | undefined = undefined;
-  public _device: GPUDevice | undefined = undefined;
+  private _device: GPUDevice | undefined = undefined;
 
   /** Satisfies Renderer interface */
   public get gpuDevice(): GPUDevice | undefined {
     return this._device;
   }
 
-  public _context!: GPUCanvasContext;
-  public _format!: GPUTextureFormat;
+  private _context!: GPUCanvasContext;
+  /** Satisfies `RenderPass`-consuming passes, which have no other way to reach this. */
+  public get gpuCanvasContext(): GPUCanvasContext {
+    return this._context;
+  }
+
+  private _format!: GPUTextureFormat;
+  /** Satisfies `RenderPass`-consuming passes, which have no other way to reach this. */
+  public get gpuFormat(): GPUTextureFormat {
+    return this._format;
+  }
 
   protected _pipelines: Map<string, WebGPUPipelineCache> = new Map();
   protected _shaderModules: Map<string, GPUShaderModule> = new Map();
@@ -241,9 +250,11 @@ export class WebGPURenderer extends AbstractRenderer {
   >();
   protected _textureViewCache = new Map<Texture, { texture: GPUTexture; view: GPUTextureView }>();
   private _texRefCounts: Map<Texture, number> = new Map();
-  public _whiteTexView!: GPUTextureView;
-  public _blackTexView!: GPUTextureView;
-  public _dummyDepthTexView!: GPUTextureView;
+  private _whiteTexView!: GPUTextureView;
+  public get whiteTextureView(): GPUTextureView {
+    return this._whiteTexView;
+  }
+  private _dummyDepthTexView!: GPUTextureView;
   protected _flatNormalTexView!: GPUTextureView;
   protected _defaultCubeTexView!: GPUTextureView;
   protected _blackCubeTexView!: GPUTextureView;
@@ -252,8 +263,25 @@ export class WebGPURenderer extends AbstractRenderer {
   protected _dummyUvBuffer!: GPUBuffer;
   protected _dummyTangentBuffer!: GPUBuffer;
 
-  public _defaultDirShadowTexView!: GPUTextureView;
-  public _defaultSpotShadowTexView!: GPUTextureView;
+  private _defaultDirShadowTexView!: GPUTextureView;
+  /** Read by the fragment shader's global bind group; reassigned once by
+   * `CascadedShadowPassGPU` when a real cascaded shadow map first exists. */
+  public get defaultDirShadowTextureView(): GPUTextureView {
+    return this._defaultDirShadowTexView;
+  }
+  public set defaultDirShadowTextureView(view: GPUTextureView) {
+    this._defaultDirShadowTexView = view;
+  }
+
+  private _defaultSpotShadowTexView!: GPUTextureView;
+  /** Read by the fragment shader's global bind group; reassigned once by
+   * `SpotShadowPassGPU` when a real spot shadow map first exists. */
+  public get defaultSpotShadowTextureView(): GPUTextureView {
+    return this._defaultSpotShadowTexView;
+  }
+  public set defaultSpotShadowTextureView(view: GPUTextureView) {
+    this._defaultSpotShadowTexView = view;
+  }
   protected _shadowSampler!: GPUSampler;
   protected _geoCache = new Map<GeometryDataInterface, WebGPUGeoCache>();
   private _lastKnownGeometry = new WeakMap<Object3D, GeometryDataInterface>();
@@ -280,22 +308,32 @@ export class WebGPURenderer extends AbstractRenderer {
 
   // 212 floats: GlobalUniforms grew by 8 floats (resolution/projScale/tileSizePx/clusterDims)
   // for clustered light culling -- see docs/adr/0007-clustered-lighting-webgl2-webgpu-only.md.
-  public _scratchGlobalBufferData = new Float32Array(212);
+  private _scratchGlobalBufferData = new Float32Array(212);
+  /** Reused every frame (never reallocated) -- see `_updateGlobalBuffers()`. */
+  public get scratchGlobalBufferData(): Float32Array {
+    return this._scratchGlobalBufferData;
+  }
   protected _scratchPointLightData = new Float32Array(32); // Max 4 lights
   protected _scratchSpotLightData = new Float32Array(64); // Max 4 lights
   protected _scratchAreaLightData = new Float32Array(96); // Max 4 lights
   protected _scratchObjBufferData = new Float32Array(256 / 4); // Max 256 bytes
 
   /** Clustered light grid dimensions for the current canvas size, see `setSize()`. */
-  public _clusterDims: ClusterGridDims = { x: 1, y: 1, z: 1 };
-  public _clusterMaxLightsPerCluster = 1;
-  public _pointClusterGridBuffer!: GPUBuffer;
-  public _pointClusterIndexBuffer!: GPUBuffer;
-  public _spotClusterGridBuffer!: GPUBuffer;
-  public _spotClusterIndexBuffer!: GPUBuffer;
-  public _clusterCullPipeline!: GPUComputePipeline;
+  private _clusterDims: ClusterGridDims = { x: 1, y: 1, z: 1 };
+  public get clusterDims(): ClusterGridDims {
+    return this._clusterDims;
+  }
+  private _clusterMaxLightsPerCluster = 1;
+  private _pointClusterGridBuffer!: GPUBuffer;
+  private _pointClusterIndexBuffer!: GPUBuffer;
+  private _spotClusterGridBuffer!: GPUBuffer;
+  private _spotClusterIndexBuffer!: GPUBuffer;
+  private _clusterCullPipeline!: GPUComputePipeline;
+  public get clusterCullPipeline(): GPUComputePipeline {
+    return this._clusterCullPipeline;
+  }
 
-  public _depthTexture!: GPUTexture;
+  private _depthTexture!: GPUTexture;
 
   protected _opaqueTextures = new WeakMap<
     object,
@@ -307,30 +345,55 @@ export class WebGPURenderer extends AbstractRenderer {
     width: number;
     height: number;
   };
-  public _opaqueTextureView?: GPUTextureView;
+  private _opaqueTextureView?: GPUTextureView;
 
-  public _shadowMaps = new Map<
+  private _shadowMaps = new Map<
     import("../../core/index.js").DirectionalLight | import("../../core/index.js").SpotLight,
     GPUTexture
   >();
+  /** Same Map instance every frame -- shadow passes `.get()`/`.set()` on it directly. */
+  public get shadowMaps(): Map<
+    import("../../core/index.js").DirectionalLight | import("../../core/index.js").SpotLight,
+    GPUTexture
+  > {
+    return this._shadowMaps;
+  }
 
-  public _hdrTexture: GPUTexture | undefined = undefined;
-  public _hdrTextureView: GPUTextureView | undefined = undefined;
-  public _bloomPassGPU: BloomPassGPU | undefined = undefined;
-  public _bloomTextureView: GPUTextureView | undefined = undefined;
-  public _hbaoPassGPU: AOPassGPU | undefined = undefined;
-  public _hbaoTextureView: GPUTextureView | undefined = undefined;
-  public _taaPassGPU: HistoryBlendPassGPU | undefined = undefined;
+  private _hdrTexture: GPUTexture | undefined = undefined;
+  public get hdrTexture(): GPUTexture | undefined {
+    return this._hdrTexture;
+  }
+  private _hdrTextureView: GPUTextureView | undefined = undefined;
+  public get hdrTextureView(): GPUTextureView | undefined {
+    return this._hdrTextureView;
+  }
+  private _bloomPassGPU: BloomPassGPU | undefined = undefined;
+  private _bloomTextureView: GPUTextureView | undefined = undefined;
+  public get bloomTextureView(): GPUTextureView | undefined {
+    return this._bloomTextureView;
+  }
+  private _hbaoPassGPU: AOPassGPU | undefined = undefined;
+  private _hbaoTextureView: GPUTextureView | undefined = undefined;
+  public get hbaoTextureView(): GPUTextureView | undefined {
+    return this._hbaoTextureView;
+  }
+  private _taaPassGPU: HistoryBlendPassGPU | undefined = undefined;
   /** This frame's TAA-resolved color view, if TAA is enabled -- read by PostProcessPass instead
    * of `_hdrTextureView` for its color input. Recomputed fresh every frame; `_hdrTextureView`
    * itself is never overwritten so TAA keeps reading the raw per-frame render as "current". */
-  public _taaResolvedView: GPUTextureView | undefined = undefined;
+  private _taaResolvedView: GPUTextureView | undefined = undefined;
+  public get taaResolvedView(): GPUTextureView | undefined {
+    return this._taaResolvedView;
+  }
   /** Motion Trail's own history-blend instance -- a deliberate ghost/afterimage effect, not
    * anti-aliasing, chained after TAA (see PostProcessPass's color-view fallback chain). */
-  public _motionTrailPassGPU: HistoryBlendPassGPU | undefined = undefined;
-  public _motionTrailResolvedView: GPUTextureView | undefined = undefined;
+  private _motionTrailPassGPU: HistoryBlendPassGPU | undefined = undefined;
+  private _motionTrailResolvedView: GPUTextureView | undefined = undefined;
+  public get motionTrailResolvedView(): GPUTextureView | undefined {
+    return this._motionTrailResolvedView;
+  }
 
-  public _activeRenderTarget:
+  private _activeRenderTarget:
     | import("../../core/index.js").RenderTarget
     | import("../../core/index.js").RenderTargetCube
     | null = null;
@@ -353,13 +416,24 @@ export class WebGPURenderer extends AbstractRenderer {
   // Render Pass System
   protected _passes: RenderPass[] = [];
 
-  public _globalUniformBuffer!: GPUBuffer;
-  public _pointLightBuffer!: GPUBuffer;
-  public _spotLightBuffer!: GPUBuffer;
-  public _areaLightBuffer!: GPUBuffer;
-  public _globalBindGroup!: GPUBindGroup;
-  public _globalBGL!: GPUBindGroupLayout;
-  public _objectBGL!: GPUBindGroupLayout;
+  private _globalUniformBuffer!: GPUBuffer;
+  public get globalUniformBuffer(): GPUBuffer {
+    return this._globalUniformBuffer;
+  }
+  private _pointLightBuffer!: GPUBuffer;
+  private _spotLightBuffer!: GPUBuffer;
+  private _areaLightBuffer!: GPUBuffer;
+  private _globalBindGroup!: GPUBindGroup;
+  /** Rebuilt once (not per-frame) by a shadow pass, the first time a real shadow map for that
+   * light type exists -- see `CascadedShadowPassGPU`/`SpotShadowPassGPU`. */
+  public get globalBindGroup(): GPUBindGroup {
+    return this._globalBindGroup;
+  }
+  public set globalBindGroup(bindGroup: GPUBindGroup) {
+    this._globalBindGroup = bindGroup;
+  }
+  private _globalBGL!: GPUBindGroupLayout;
+  private _objectBGL!: GPUBindGroupLayout;
 
   /** @inheritdoc */
   public override setRenderTarget(
@@ -502,7 +576,6 @@ export class WebGPURenderer extends AbstractRenderer {
       return t.createView();
     };
     this._whiteTexView = create1x1([255, 255, 255, 255]);
-    this._blackTexView = create1x1([0, 0, 0, 255]);
     this._defaultBrdfTexView = create1x1([255, 0, 0, 255]); // scale=1, bias=0
     this._flatNormalTexView = create1x1([128, 128, 255, 255]);
 
@@ -1574,8 +1647,8 @@ export class WebGPURenderer extends AbstractRenderer {
     ]);
   }
 
-  public _opaqueDepthTexture?: GPUTexture;
-  public _opaqueDepthTextureView?: GPUTextureView;
+  private _opaqueDepthTexture?: GPUTexture;
+  private _opaqueDepthTextureView?: GPUTextureView;
 
   public captureOpaqueDepth(ce: GPUCommandEncoder): void {
     const srcTex = this._activeRenderTarget

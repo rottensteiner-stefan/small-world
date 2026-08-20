@@ -9,7 +9,7 @@ import { RenderPass } from "../RenderPass.js";
  * docs/adr/0007-clustered-lighting-webgl2-webgpu-only.md. Relies on `_updateGlobalBuffers()`
  * (called earlier in `WebGPURenderer.render()`, before the command encoder loop) having already
  * written this frame's light data and cluster grid metadata into the global uniform/storage
- * buffers referenced by `renderer._globalBindGroup`.
+ * buffers referenced by `renderer.globalBindGroup`.
  */
 export class ClusterCullPassGPU implements RenderPass {
   public name = "ClusterCullPassGPU";
@@ -23,10 +23,10 @@ export class ClusterCullPassGPU implements RenderPass {
     _camPos: Vector3D,
     _vMat?: Float32Array,
   ): void {
-    const dims = renderer._clusterDims;
+    const dims = renderer.clusterDims;
     const pass = ce.beginComputePass({ label: "ClusterCullPassGPU" });
-    pass.setPipeline(renderer._clusterCullPipeline);
-    pass.setBindGroup(0, renderer._globalBindGroup);
+    pass.setPipeline(renderer.clusterCullPipeline);
+    pass.setBindGroup(0, renderer.globalBindGroup);
     pass.dispatchWorkgroups(Math.ceil(dims.x / 4), Math.ceil(dims.y / 4), Math.ceil(dims.z / 4));
     pass.end();
   }

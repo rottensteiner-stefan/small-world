@@ -1,7 +1,7 @@
 {
   "name": "small-world",
   "private": true,
-  "version": "0.76.19",
+  "version": "0.76.20",
   "description": "A lightweight 3D engine for hybrid WebGL/WebGPU rendering pipelines.",
   "type": "module",
   "license": "MIT",
@@ -73,9 +73,7 @@
   },
   "dependencies": {
     "@kitschpatrol/tweakpane-plugin-camerakit": "^0.3.1-beta.3",
-    "gl-matrix": "^3.4.4",
     "joy-con-webhid": "^0.11.0",
-    "jpeg-js": "^0.4.4",
     "pngjs": "^7.0.0",
     "tweakpane": "^4.0.5"
   },

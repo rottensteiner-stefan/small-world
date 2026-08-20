@@ -88,8 +88,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
     new WeakMap();
   private _scratchTransparentMap: Map<string, Object3D[]> = new Map();
 
-  public _opaqueTexture?: WebGLTexture;
-  public _opaqueTextureWrapper?: Texture;
+  private _opaqueTexture?: WebGLTexture;
 
   protected _hdrFbo: WebGLFramebuffer | undefined = undefined;
   protected _hdrTexture: WebGLTexture | undefined = undefined;
@@ -493,7 +492,6 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
       this._opaqueTexture = tex!;
 
       const dummyTex = { isLoaded: true } as unknown as Texture;
-      this._opaqueTextureWrapper = dummyTex;
       this._texCache.set(dummyTex, tex!);
     } else {
       this.gl.bindTexture(this.gl.TEXTURE_2D, this._opaqueTexture);

@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.76.20] - 2026-08-20
+
+### "Good fences make good neighbours." - Robert Frost
+
+- **Architecture & Bugfixes:**
+  - Restored real encapsulation on `WebGPURenderer`, `WebGL2Renderer`, `WebGL1Renderer`, and `AbstractWebGLRenderer`: dozens of `public _x` fields existed only so separate `RenderPass`/`WebGLRenderPass` classes could reach them (TypeScript has no "friend" concept). Fields are `private`/`protected` again; passes now go through named getters (no leading underscore), with `get`/`set` accessor pairs only for the three fields actually mutated externally (`globalBindGroup`, `defaultDirShadowTextureView`, `defaultSpotShadowTextureView` -- rebuilt once by a shadow pass the first time a real shadow map exists, not every frame). Deliberately-public methods (`_renderBatch`, `_updateGlobalBuffers`, `_createGlobalBindGroup`, `renderShadowMaps`, `writeClusterGridUniforms`, `captureOpaqueTexture`) were left alone -- a designed public method isn't the same kind of leak as an exposed raw field.
+  - Fixed `WebGLClusterCullPass`'s `execute(renderer: WebGL2Renderer, ...)` signature, which exploited a TypeScript method-parameter bivariance gap to silently satisfy the shared `WebGLRenderPass` interface (`WebGL1Renderer.addPass()` would have accepted it without a type error). Now typed against `AbstractWebGLRenderer` like every other pass, with a real `instanceof WebGL2Renderer` runtime guard.
+  - `AbstractWebGLRenderer._frameProjMatrix` is threaded through `WebGLRenderPass.execute()` as an explicit trailing parameter instead of being read directly off the renderer.
+  - Moved WebGL2's four clustered-lighting texture unit numbers from `public static readonly` class fields to plain exported constants in `src/math/ClusterGrid.ts` -- they're the same for every instance, not renderer state.
+  - Removed two real dead fields surfaced by the visibility tightening (TypeScript only flags unused *private* members): `WebGPURenderer._blackTexView` (created, never read) and `WebGL1Renderer`/`WebGL2Renderer._opaqueTextureWrapper` (write-only bookkeeping; the actual cache-key object was already used locally without it).
+  - Removed two genuinely unused dependencies, `gl-matrix` and `jpeg-js`, from `package.json` -- neither was imported anywhere in `src/` or `scripts/`, directly contradicting `VISION.md`/`README.md`'s own "no external math libraries like glMatrix" claim.
+- **Housekeeping & Docs:**
+  - Corrected several stale/false claims in `README.md` and `VISION.md`, caught by a verification pass against the actual repo state: a nonexistent `Application` base class (twice in `README.md`), shadow mapping described as WebGL2-only (WebGPU has equal support), an unqualified "zero dependencies" claim, an `npm install small-world` instruction that can't work against a `"private": true` package, `examples/`/`public/engine/` paths that don't exist (real: `showcases/`, `public/assets`/`resources`/`tools`), "IXtractor" (real name: `Xtractor`), a hardcoded `~` toggle key that's actually configurable, and an overstated "WebGPU compute shaders are standard" claim (the engine's first-ever compute shader shipped this same session, for Clustered Lighting only).
+  - Added `.husky/pre-commit`'s missing `npm run typecheck` step -- `npm run build:lib` (esbuild-based transpilation) does not reliably catch cross-file type errors like private-field access from another module; only `tsc --noEmit` (already run in CI via `ci.yml`, just not locally pre-commit) catches them before a wasted push-and-fail CI round-trip.
+
 ## [0.76.19] - 2026-08-20
 
 ### "The first principle is that you must not fool yourself -- and you are the easiest person to fool." - Richard Feynman

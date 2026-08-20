@@ -23,6 +23,8 @@ export interface WebGLRenderPass {
    * @param extractedLights Die extrahierten Lichter der Szene.
    * @param near Kamera-Near-Plane.
    * @param far Kamera-Far-Plane.
+   * @param projMatrix Die rohe (nicht mit der View kombinierte) Projektionsmatrix dieses Frames --
+   *   explizit statt über ein public Renderer-Feld, s. `WebGLClusterCullPass`.
    */
   execute(
     renderer: AbstractWebGLRenderer,
@@ -34,5 +36,6 @@ export interface WebGLRenderPass {
     extractedLights: LightDataInterface,
     near?: number,
     far?: number,
+    projMatrix?: Float32Array,
   ): void;
 }

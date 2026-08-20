@@ -43,28 +43,28 @@ export class CascadedShadowPassGPU implements RenderPass {
     this._depthMaterial ??= new DepthMaterial();
 
     if (!this._dummyTargetView) {
-      const tex = renderer._device!.createTexture({
+      const tex = renderer.gpuDevice!.createTexture({
         size: [dLight.shadowResolution, dLight.shadowResolution],
-        format: renderer.postProcessing.enabled ? "rgba16float" : renderer._format,
+        format: renderer.postProcessing.enabled ? "rgba16float" : renderer.gpuFormat,
         usage: GPUTextureUsage.RENDER_ATTACHMENT,
       });
       this._dummyTargetView = tex.createView();
     }
 
-    let fbo = renderer._shadowMaps.get(dLight) as GPUTexture | undefined;
+    let fbo = renderer.shadowMaps.get(dLight) as GPUTexture | undefined;
     if (!fbo) {
       // Snapshot the CURRENT global bind group before it ever gets rebuilt to
       // reference the real shadow map -- at this point it still references only
       // the dummy fallback shadow textures, safe to use as bind group 0 while we
       // render into the real shadow map texture below.
-      this._shadowCasterBindGroup = renderer._globalBindGroup;
+      this._shadowCasterBindGroup = renderer.globalBindGroup;
 
-      fbo = renderer._device!.createTexture({
+      fbo = renderer.gpuDevice!.createTexture({
         size: [dLight.shadowResolution, dLight.shadowResolution, dLight.numCascades],
         format: "depth32float",
         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
       });
-      renderer._shadowMaps.set(dLight, fbo);
+      renderer.shadowMaps.set(dLight, fbo);
       // The underlying texture is reused (and re-rendered into) every frame, so the
       // view only needs to be created once, and the global bind group only needs to
       // be rebuilt once to pick it up (see below) -- not every frame.
@@ -110,7 +110,7 @@ export class CascadedShadowPassGPU implements RenderPass {
         scene,
       );
 
-      const shadowCe = renderer._device!.createCommandEncoder();
+      const shadowCe = renderer.gpuDevice!.createCommandEncoder();
       const rp = shadowCe.beginRenderPass({
         colorAttachments: [
           {
@@ -134,7 +134,7 @@ export class CascadedShadowPassGPU implements RenderPass {
       // _renderSubgroup only sets bind groups 1 (material) and 2 (object); unlike
       // _renderGroup, it does not set the global bind group 0 -- do that ourselves
       // once per cascade pass. Use the dummy-referencing snapshot, NOT
-      // renderer._globalBindGroup: once rebuilt (below), that one references the
+      // renderer.globalBindGroup: once rebuilt (below), that one references the
       // real shadow map we're actively rendering into here.
       rp.setBindGroup(0, this._shadowCasterBindGroup!);
 
@@ -196,7 +196,7 @@ export class CascadedShadowPassGPU implements RenderPass {
       }
 
       rp.end();
-      renderer._device!.queue.submit([shadowCe.finish()]);
+      renderer.gpuDevice!.queue.submit([shadowCe.finish()]);
     }
 
     // Restore the real scene camera (the per-cascade loop above repeatedly
@@ -207,7 +207,7 @@ export class CascadedShadowPassGPU implements RenderPass {
     // for both.
     renderer._updateGlobalBuffers(vp, camPos, lights, scene);
 
-    const gData = renderer._scratchGlobalBufferData;
+    const gData = renderer.scratchGlobalBufferData;
     gData[196] = dLight.shadowBias;
     gData[197] = dLight.shadowNormalBias;
     gData[198] = 1.0; // castShadow on
@@ -229,14 +229,14 @@ export class CascadedShadowPassGPU implements RenderPass {
     MathPool.releaseMatrix(rawCascadeVp);
     MathPool.releaseMatrix(correctedCascadeVp);
 
-    renderer._device!.queue.writeBuffer(renderer._globalUniformBuffer, 0, gData);
+    renderer.gpuDevice!.queue.writeBuffer(renderer.globalUniformBuffer, 0, gData);
 
     // Bind the resulting texture array to the WebGPU Renderer's global bind group,
     // exactly once (the underlying GPUTexture is reused and just re-rendered into
     // on subsequent frames, so the bind group doesn't need to be rebuilt again).
     if (this._bindGroupNeedsShadowRebuild) {
-      renderer._defaultDirShadowTexView = this._dirShadowTexView!;
-      renderer._globalBindGroup = renderer._createGlobalBindGroup(scene);
+      renderer.defaultDirShadowTextureView = this._dirShadowTexView!;
+      renderer.globalBindGroup = renderer._createGlobalBindGroup(scene);
       this._bindGroupNeedsShadowRebuild = false;
     }
   }

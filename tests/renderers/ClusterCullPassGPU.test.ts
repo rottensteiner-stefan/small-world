@@ -32,9 +32,9 @@ describe("ClusterCullPassGPU", () => {
     const pass = new ClusterCullPassGPU();
     const { ce, computePass } = makeMockCommandEncoder();
     const renderer: RendererStub = {
-      _clusterDims: { x: 30, y: 17, z: 6 },
-      _clusterCullPipeline: { id: "pipeline" },
-      _globalBindGroup: { id: "bindGroup" },
+      clusterDims: { x: 30, y: 17, z: 6 },
+      clusterCullPipeline: { id: "pipeline" },
+      globalBindGroup: { id: "bindGroup" },
     };
 
     pass.execute(
@@ -48,8 +48,8 @@ describe("ClusterCullPassGPU", () => {
     );
 
     expect(ce.beginComputePass).toHaveBeenCalledTimes(1);
-    expect(computePass.setPipeline).toHaveBeenCalledWith(renderer._clusterCullPipeline);
-    expect(computePass.setBindGroup).toHaveBeenCalledWith(0, renderer._globalBindGroup);
+    expect(computePass.setPipeline).toHaveBeenCalledWith(renderer.clusterCullPipeline);
+    expect(computePass.setBindGroup).toHaveBeenCalledWith(0, renderer.globalBindGroup);
     expect(computePass.dispatchWorkgroups).toHaveBeenCalledWith(8, 5, 2);
     expect(computePass.end).toHaveBeenCalledTimes(1);
   });
@@ -58,9 +58,9 @@ describe("ClusterCullPassGPU", () => {
     const pass = new ClusterCullPassGPU();
     const { ce, computePass } = makeMockCommandEncoder();
     const renderer: RendererStub = {
-      _clusterDims: { x: 1, y: 1, z: 1 },
-      _clusterCullPipeline: { id: "pipeline" },
-      _globalBindGroup: { id: "bindGroup" },
+      clusterDims: { x: 1, y: 1, z: 1 },
+      clusterCullPipeline: { id: "pipeline" },
+      globalBindGroup: { id: "bindGroup" },
     };
 
     pass.execute(

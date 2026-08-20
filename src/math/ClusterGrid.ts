@@ -15,6 +15,17 @@ export const DEFAULT_MAX_LIGHTS_PER_CLUSTER = 32;
  */
 export const CLUSTER_TEX_WIDTH = 1024;
 
+/**
+ * Fixed WebGL2 texture units for the clustered light culling grid/index textures -- plain
+ * exported constants rather than renderer instance/class state, since the same four numbers are
+ * shared by every `WebGL2Renderer` instance (see docs/adr/0007-clustered-lighting-webgl2-webgpu-only.md).
+ * Texture units 8-14 are reserved by the shadow system, see `WebGL2Renderer`'s own comment.
+ */
+export const CLUSTER_POINT_GRID_UNIT = 15;
+export const CLUSTER_POINT_INDEX_UNIT = 16;
+export const CLUSTER_SPOT_GRID_UNIT = 17;
+export const CLUSTER_SPOT_INDEX_UNIT = 18;
+
 /** Dimensions of the clustered light grid, in cells per axis. */
 export interface ClusterGridDims {
   /** Number of cells along the screen-space X axis. */

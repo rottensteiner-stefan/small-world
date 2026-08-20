@@ -79,7 +79,7 @@ export class PostProcessPass implements RenderPass {
     hbaoActiveView: GPUTextureView,
     group: import("../post/index.js").PostProcessingGroup,
   ): void {
-    const device = renderer._device!;
+    const device = renderer.gpuDevice!;
 
     this._sampler ??= device.createSampler({
       minFilter: TextureFilter.LINEAR,
@@ -208,7 +208,7 @@ export class PostProcessPass implements RenderPass {
       fragment: {
         module: fragModule,
         entryPoint: "fs_main",
-        targets: [{ format: renderer._format }],
+        targets: [{ format: renderer.gpuFormat }],
       },
       primitive: { topology: Topology.TRIANGLE_LIST },
     });
@@ -234,27 +234,27 @@ export class PostProcessPass implements RenderPass {
     _camPos: Vector3D,
   ): void {
     const group = renderer.postProcessing;
-    if (!group.enabled || !renderer._hdrTextureView) return;
+    if (!group.enabled || !renderer.hdrTextureView) return;
 
     // If TAA and/or Motion Trail resolved this frame, the uber pass reacts to that instead of
     // the raw per-frame color -- `_hdrTextureView` itself must stay untouched so both keep
     // reading fresh input next frame (see WebGPURenderer.render()).
     const colorView =
-      renderer._motionTrailResolvedView ?? renderer._taaResolvedView ?? renderer._hdrTextureView;
+      renderer.motionTrailResolvedView ?? renderer.taaResolvedView ?? renderer.hdrTextureView;
 
     const bloom = group.get<import("../post/index.js").BloomElement>(
       PostProcessingEffectType.BLOOM,
     );
     const bloomActiveView =
-      bloom && bloom.enabled && renderer._bloomTextureView
-        ? renderer._bloomTextureView
-        : renderer._whiteTexView;
+      bloom && bloom.enabled && renderer.bloomTextureView
+        ? renderer.bloomTextureView
+        : renderer.whiteTextureView;
 
     const hbao = group.get<import("../post/index.js").HbaoElement>(PostProcessingEffectType.HBAO);
     const hbaoActiveView =
-      hbao && hbao.enabled && renderer._hbaoTextureView
-        ? renderer._hbaoTextureView
-        : renderer._whiteTexView;
+      hbao && hbao.enabled && renderer.hbaoTextureView
+        ? renderer.hbaoTextureView
+        : renderer.whiteTextureView;
 
     const sig = this._getSignature(group);
 
@@ -276,10 +276,10 @@ export class PostProcessPass implements RenderPass {
     // Write post-process dynamic uniforms (only time uniform is active)
     this._uniformData[0] = (performance.now() % 100000) / 1000.0; // Time in seconds
 
-    renderer._device!.queue.writeBuffer(this._uniformBuffer!, 0, this._uniformData);
+    renderer.gpuDevice!.queue.writeBuffer(this._uniformBuffer!, 0, this._uniformData);
 
     // Final blit directly to the swap-chain (canvas)
-    const screenView = renderer._context.getCurrentTexture().createView();
+    const screenView = renderer.gpuCanvasContext.getCurrentTexture().createView();
     const rp = ce.beginRenderPass({
       colorAttachments: [
         {

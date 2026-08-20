@@ -46,19 +46,19 @@ export class SpotShadowPassGPU implements RenderPass {
     const shadowRes = casters[0]?.shadowResolution || 1024;
 
     if (!this._dummyTargetView) {
-      const tex = renderer._device!.createTexture({
+      const tex = renderer.gpuDevice!.createTexture({
         size: [shadowRes, shadowRes],
-        format: renderer.postProcessing.enabled ? "rgba16float" : renderer._format,
+        format: renderer.postProcessing.enabled ? "rgba16float" : renderer.gpuFormat,
         usage: GPUTextureUsage.RENDER_ATTACHMENT,
       });
       this._dummyTargetView = tex.createView();
     }
 
     if (!this._fbo) {
-      this._shadowCasterBindGroup = renderer._globalBindGroup;
+      this._shadowCasterBindGroup = renderer.globalBindGroup;
 
       // Always create 4 layers because maximum spotlights is 4.
-      this._fbo = renderer._device!.createTexture({
+      this._fbo = renderer.gpuDevice!.createTexture({
         size: [shadowRes, shadowRes, 4],
         format: "depth32float",
         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
@@ -98,7 +98,7 @@ export class SpotShadowPassGPU implements RenderPass {
         scene,
       );
 
-      const shadowCe = renderer._device!.createCommandEncoder();
+      const shadowCe = renderer.gpuDevice!.createCommandEncoder();
       const rp = shadowCe.beginRenderPass({
         colorAttachments: [
           {
@@ -177,13 +177,13 @@ export class SpotShadowPassGPU implements RenderPass {
       }
 
       rp.end();
-      renderer._device!.queue.submit([shadowCe.finish()]);
+      renderer.gpuDevice!.queue.submit([shadowCe.finish()]);
     }
 
     // Restore real scene camera
     renderer._updateGlobalBuffers(vp, camPos, lights, scene);
 
-    const gData = renderer._scratchGlobalBufferData;
+    const gData = renderer.scratchGlobalBufferData;
     const rawVp = MathPool.acquireMatrix();
     const correctedVp = MathPool.acquireMatrix();
 
@@ -204,11 +204,11 @@ export class SpotShadowPassGPU implements RenderPass {
     MathPool.releaseMatrix(rawVp);
     MathPool.releaseMatrix(correctedVp);
 
-    renderer._device!.queue.writeBuffer(renderer._globalUniformBuffer, 0, gData);
+    renderer.gpuDevice!.queue.writeBuffer(renderer.globalUniformBuffer, 0, gData);
 
     if (this._bindGroupNeedsShadowRebuild) {
-      renderer._defaultSpotShadowTexView = this._spotShadowTexView!;
-      renderer._globalBindGroup = renderer._createGlobalBindGroup(scene);
+      renderer.defaultSpotShadowTextureView = this._spotShadowTexView!;
+      renderer.globalBindGroup = renderer._createGlobalBindGroup(scene);
       this._bindGroupNeedsShadowRebuild = false;
     }
   }

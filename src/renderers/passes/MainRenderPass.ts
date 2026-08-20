@@ -59,8 +59,8 @@ export class MainRenderPass implements RenderPass {
 
       // Capture opaque texture for transparent materials (like glass)
       const targetTex = renderer.postProcessing.enabled
-        ? renderer._hdrTexture!
-        : renderer._context.getCurrentTexture();
+        ? renderer.hdrTexture!
+        : renderer.gpuCanvasContext.getCurrentTexture();
       renderer.captureOpaqueTexture(ce, targetTex);
       renderer.captureOpaqueDepth(ce);
 

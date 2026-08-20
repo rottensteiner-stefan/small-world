@@ -1,10 +1,16 @@
 import { WebGLRenderPass } from "../WebGLRenderPass.js";
+import { AbstractWebGLRenderer } from "../AbstractWebGLRenderer.js";
 import { WebGL2Renderer } from "../WebGL2/WebGL2Renderer.js";
 import { Scene } from "../../core/index.js";
-import { Vector3D ,
+import {
+  Vector3D,
   clusterIndex,
   lightClusterCoverage,
   CLUSTER_TEX_WIDTH,
+  CLUSTER_POINT_GRID_UNIT,
+  CLUSTER_POINT_INDEX_UNIT,
+  CLUSTER_SPOT_GRID_UNIT,
+  CLUSTER_SPOT_INDEX_UNIT,
   DEFAULT_CLUSTER_TILE_SIZE,
 } from "../../math/index.js";
 import { LightDataInterface } from "../../interfaces/index.js";
@@ -16,6 +22,12 @@ import { RenderList } from "../../core/Scene.js";
  * lights, computes its screen-space + radial-distance coverage range via `lightClusterCoverage()`
  * -- the same formula `cluster_cull.wgsl` uses on WebGPU -- and only visits the cluster cells
  * within that range, instead of testing every cell against every light.
+ *
+ * Only WebGL2 has clustered lighting -- the `renderer instanceof WebGL2Renderer` guard below is
+ * real, not decorative: this pass is typed against the shared `AbstractWebGLRenderer` interface
+ * (so `WebGL1Renderer.addPass()` would reject it at the type level if ever attempted by mistake,
+ * unlike the previous `execute(renderer: WebGL2Renderer, ...)` signature, which TypeScript's
+ * method-parameter bivariance let slide silently).
  */
 export class WebGLClusterCullPass implements WebGLRenderPass {
   public name = "WebGLClusterCullPass";
@@ -28,7 +40,7 @@ export class WebGLClusterCullPass implements WebGLRenderPass {
   private _spotGrid = new Uint32Array(2);
 
   public execute(
-    renderer: WebGL2Renderer,
+    renderer: AbstractWebGLRenderer,
     _scene: Scene,
     vp: Float32Array,
     camPos: Vector3D,
@@ -37,12 +49,14 @@ export class WebGLClusterCullPass implements WebGLRenderPass {
     extractedLights: LightDataInterface,
     near: number = 0.1,
     far: number = 1000,
+    projMatrix?: Float32Array,
   ): void {
+    if (!(renderer instanceof WebGL2Renderer)) return;
+
     const gl = renderer.webglContext as WebGL2RenderingContext;
-    const dims = renderer._clusterDims;
-    const maxLightsPerCluster = renderer._clusterMaxLightsPerCluster;
+    const dims = renderer.clusterDims;
+    const maxLightsPerCluster = renderer.clusterMaxLightsPerCluster;
     const tileSizePx = renderer.quality.clusteredLighting?.tileSize ?? DEFAULT_CLUSTER_TILE_SIZE;
-    const projMatrix = renderer._frameProjMatrix;
     const numClusters = dims.x * dims.y * dims.z;
     const gridHeight = Math.max(1, Math.ceil(numClusters / CLUSTER_TEX_WIDTH));
     const indexCount = numClusters * maxLightsPerCluster;
@@ -192,8 +206,8 @@ export class WebGLClusterCullPass implements WebGLRenderPass {
     gridHeight: number,
     indexHeight: number,
   ): void {
-    gl.activeTexture(gl.TEXTURE0 + WebGL2Renderer._CLUSTER_POINT_GRID_UNIT);
-    gl.bindTexture(gl.TEXTURE_2D, renderer._pointClusterGridTex);
+    gl.activeTexture(gl.TEXTURE0 + CLUSTER_POINT_GRID_UNIT);
+    gl.bindTexture(gl.TEXTURE_2D, renderer.pointClusterGridTex);
     gl.texSubImage2D(
       gl.TEXTURE_2D,
       0,
@@ -206,8 +220,8 @@ export class WebGLClusterCullPass implements WebGLRenderPass {
       this._pointGrid,
     );
 
-    gl.activeTexture(gl.TEXTURE0 + WebGL2Renderer._CLUSTER_POINT_INDEX_UNIT);
-    gl.bindTexture(gl.TEXTURE_2D, renderer._pointClusterIndexTex);
+    gl.activeTexture(gl.TEXTURE0 + CLUSTER_POINT_INDEX_UNIT);
+    gl.bindTexture(gl.TEXTURE_2D, renderer.pointClusterIndexTex);
     gl.texSubImage2D(
       gl.TEXTURE_2D,
       0,
@@ -220,8 +234,8 @@ export class WebGLClusterCullPass implements WebGLRenderPass {
       this._pointIndices,
     );
 
-    gl.activeTexture(gl.TEXTURE0 + WebGL2Renderer._CLUSTER_SPOT_GRID_UNIT);
-    gl.bindTexture(gl.TEXTURE_2D, renderer._spotClusterGridTex);
+    gl.activeTexture(gl.TEXTURE0 + CLUSTER_SPOT_GRID_UNIT);
+    gl.bindTexture(gl.TEXTURE_2D, renderer.spotClusterGridTex);
     gl.texSubImage2D(
       gl.TEXTURE_2D,
       0,
@@ -234,8 +248,8 @@ export class WebGLClusterCullPass implements WebGLRenderPass {
       this._spotGrid,
     );
 
-    gl.activeTexture(gl.TEXTURE0 + WebGL2Renderer._CLUSTER_SPOT_INDEX_UNIT);
-    gl.bindTexture(gl.TEXTURE_2D, renderer._spotClusterIndexTex);
+    gl.activeTexture(gl.TEXTURE0 + CLUSTER_SPOT_INDEX_UNIT);
+    gl.bindTexture(gl.TEXTURE_2D, renderer.spotClusterIndexTex);
     gl.texSubImage2D(
       gl.TEXTURE_2D,
       0,
