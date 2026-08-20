@@ -40,6 +40,10 @@ _Avoid_: Global Event Bus, Universal EventBus — rejected under Context Object;
 Forge is the dockable window-manager overlay; a ForgeTool is a single mini-app hosted inside it (e.g. Gadget Inspector, Pixler, Material Studio).
 _Avoid_: Panel, Plugin — Tool names a specific contract (the `ForgeTool` class), not a generic panel.
 
+**HBAO**:
+The screen-space ambient occlusion pass actually shipped (`HbaoElement`): a single max-dot-per-direction horizon search, no cosine-weighted integration, no temporal filtering.
+_Avoid_: GTAO — an earlier draft was named `GtaoElement`, but that overstates what's implemented. Renamed once the gap was pointed out; the code should never claim the more accurate name it doesn't earn.
+
 **Light Coverage**:
 The range of Clusters — a screen-space X/Y range plus a depth-slice range — that a single light's bounding sphere can possibly reach.
 _Avoid_: Light Bounds, Footprint
@@ -52,9 +56,17 @@ _Avoid_: Shader Program (Material is the higher-level abstraction)
 The shared pool of scratch vectors/matrices that hot-path code borrows from and returns, instead of allocating its own.
 _Avoid_: Temp Vector, Scratch Buffer — informal; MathPool is the one canonical, engine-wide facility for this.
 
+**MotionTrail**:
+A deliberate ghost/afterimage post-processing effect, reusing TAA's exact history-blend mechanism with no camera jitter and a much higher feedback value.
+_Avoid_: confusing it with TAA — same underlying machinery (`HistoryBlendPass`), opposite intent: TAA hides its own feedback artifact, MotionTrail maximizes it on purpose.
+
 **Per-Cell Light List**:
 The stored data a Cluster reads at lookup time: an offset+count into a flat list of light indices. The read-side counterpart to Light Coverage, which is the write-side view (from a light's perspective, which cells it reaches).
 _Avoid_: Light Grid (ambiguous with "Cluster grid", the whole 3D structure, rather than one cell's list)
+
+**Post-Processing (Pipeline)**:
+The fixed, hardcoded effect order (Bloom -> HBAO -> Tonemapping -> Vignette -> Grain -> Quantize) that every enabled effect runs through.
+_Avoid_: treating `PostProcessingEffectsConfig`'s object shape as an ordered list — enabling effects doesn't reorder them; the sequence itself is not configurable.
 
 **Scene Graph**:
 The hierarchical tree of 3D objects that defines spatial relationships, transformations, and rendering order.
@@ -63,6 +75,10 @@ _Avoid_: World Map, Entity List
 **State Data**:
 The user-defined payload object passed into a Finite State Machine's `onEnter`/`onUpdate`/`onExit` callbacks.
 _Avoid_: Context, FSM Context — collides with Context Object, an unrelated DI concept; "State" is already the FSM's node/mode (`idle`, `patrolling`, ...), so State Data is deliberately a third, distinct word rather than overloading either.
+
+**TAA (Simplified)**:
+Sub-pixel camera jitter plus an exponential history blend — deliberately without motion-vector reprojection.
+_Avoid_: "TAA" unqualified when precision matters — the missing reprojection step is the actual, documented trade-off (visible ghosting under fast movement), not an implementation detail to gloss over.
 
 **Zero-Allocation (Hot Path)**:
 The design rule that per-frame code (physics step, event dispatch, FSM update) must not allocate new objects, so it never triggers a GC pause.

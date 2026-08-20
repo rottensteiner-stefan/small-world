@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.76.19] - 2026-08-20
+
+### "The first principle is that you must not fool yourself -- and you are the easiest person to fool." - Richard Feynman
+
+- **Housekeeping & Docs:**
+  - Corrected several stale/false claims in `README.md`, caught by a verification pass against the actual repo state: a nonexistent `Application` base class (the real one is `SmallWorld`, as the README's own code samples already showed) in two places; "Shadow Mapping (WebGL 2)" narrowed out WebGPU's equally real Cascaded/Spot shadow passes; "WebGPU Compute Shaders ... including workgroup memory" was never true (the engine's very first compute shader, this session's `cluster_cull.wgsl`, doesn't use `var<workgroup>` either); `npm install small-world` can't work against a `"private": true` package that was never prepared for publishing (replaced with git-clone setup instructions); `examples/` and `public/engine/` don't exist (real paths: `showcases/`, `public/assets`/`public/resources`/`public/tools`); the Xtractor tool was misspelled "IXtractor"; and the Forge overlay's toggle key was stated as a fixed `~` when it's actually a configurable option.
+  - Added README features that existed in code but were missing from the feature list entirely: Clustered/Tiled Forward+ Lighting, physics CCD/fixed-timestep sub-stepping/`FluidVolume`, and the HBAO/TAA/MotionTrail post-processing effects.
+  - `CONTEXT.md`: added HBAO, MotionTrail, Post-Processing (Pipeline), and TAA (Simplified) -- each chosen because it either collides with a similar in-project term or deliberately falls short of (or renames away from) the textbook version of the technique, not because the acronym itself is project-specific. Explicitly declined five further candidates (PBR Rendering, RigidBodies, Tone-Mapping, sRGB Gamma Correction, Automated GPU Memory Management) as generic industry/CS terms with no project-specific naming nuance to resolve.
+
 ## [0.76.18] - 2026-08-20
 
 ### "Divide each difficulty into as many parts as is feasible for its proper solution." - Rene Descartes
