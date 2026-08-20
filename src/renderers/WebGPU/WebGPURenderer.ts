@@ -36,7 +36,7 @@ import {
   CascadedShadowPassGPU,
   SpotShadowPassGPU,
 } from "../passes/index.js";
-import { BloomPassGPU, AOPassGPU, TAAPassGPU } from "../post/passes/index.js";
+import { BloomPassGPU, AOPassGPU, HistoryBlendPassGPU } from "../post/passes/index.js";
 import { UniformPacker } from "../../core/renderers/shaders/index.js";
 
 export interface WebGPUGeoCache {
@@ -297,11 +297,15 @@ export class WebGPURenderer extends AbstractRenderer {
   public _bloomTextureView: GPUTextureView | undefined = undefined;
   public _hbaoPassGPU: AOPassGPU | undefined = undefined;
   public _hbaoTextureView: GPUTextureView | undefined = undefined;
-  public _taaPassGPU: TAAPassGPU | undefined = undefined;
+  public _taaPassGPU: HistoryBlendPassGPU | undefined = undefined;
   /** This frame's TAA-resolved color view, if TAA is enabled -- read by PostProcessPass instead
    * of `_hdrTextureView` for its color input. Recomputed fresh every frame; `_hdrTextureView`
    * itself is never overwritten so TAA keeps reading the raw per-frame render as "current". */
   public _taaResolvedView: GPUTextureView | undefined = undefined;
+  /** Motion Trail's own history-blend instance -- a deliberate ghost/afterimage effect, not
+   * anti-aliasing, chained after TAA (see PostProcessPass's color-view fallback chain). */
+  public _motionTrailPassGPU: HistoryBlendPassGPU | undefined = undefined;
+  public _motionTrailResolvedView: GPUTextureView | undefined = undefined;
 
   public _activeRenderTarget:
     | import("../../core/index.js").RenderTarget
@@ -1325,6 +1329,9 @@ export class WebGPURenderer extends AbstractRenderer {
     const taaNode = this.postProcessing.get<import("../post/index.js").TaaElement>(
       PostProcessingEffectType.TAA,
     );
+    const motionTrailNode = this.postProcessing.get<import("../post/index.js").MotionTrailElement>(
+      PostProcessingEffectType.MOTION_TRAIL,
+    );
 
     for (const pass of this._passes) {
       const isPostProcessPass = pass instanceof PostProcessPass;
@@ -1333,7 +1340,7 @@ export class WebGPURenderer extends AbstractRenderer {
       // temporally-smoothed color, not the raw per-frame jittered one. `_hdrTextureView` itself
       // is never reassigned, so this pass keeps reading fresh input every subsequent frame.
       if (isPostProcessPass && taaNode && taaNode.enabled && this._hdrTextureView) {
-        this._taaPassGPU ??= new TAAPassGPU(this._device);
+        this._taaPassGPU ??= new HistoryBlendPassGPU(this._device);
         this._taaResolvedView =
           this._taaPassGPU.execute(
             ce,
@@ -1346,7 +1353,24 @@ export class WebGPURenderer extends AbstractRenderer {
         this._taaResolvedView = undefined;
       }
 
-      const colorTextureView = this._taaResolvedView ?? this._hdrTextureView;
+      // Motion Trail: a deliberate ghost/afterimage look, not anti-aliasing -- reuses the same
+      // history-blend pass as TAA (its own separate instance/history buffer), chained after TAA.
+      const taaOrRawView = this._taaResolvedView ?? this._hdrTextureView;
+      if (isPostProcessPass && motionTrailNode && motionTrailNode.enabled && taaOrRawView) {
+        this._motionTrailPassGPU ??= new HistoryBlendPassGPU(this._device);
+        this._motionTrailResolvedView =
+          this._motionTrailPassGPU.execute(
+            ce,
+            taaOrRawView,
+            this._context.canvas.width,
+            this._context.canvas.height,
+            motionTrailNode,
+          ) ?? undefined;
+      } else if (isPostProcessPass) {
+        this._motionTrailResolvedView = undefined;
+      }
+
+      const colorTextureView = this._motionTrailResolvedView ?? taaOrRawView;
 
       if (
         isPostProcessPass &&
@@ -2143,6 +2167,7 @@ export class WebGPURenderer extends AbstractRenderer {
     this._bloomPassGPU?.destroy();
     this._hbaoPassGPU?.destroy();
     this._taaPassGPU?.destroy();
+    this._motionTrailPassGPU?.destroy();
 
     this._objectUniformBuffers.clear();
     this._materialBindGroups.clear();

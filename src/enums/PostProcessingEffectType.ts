@@ -9,4 +9,5 @@ export enum PostProcessingEffectType {
   QUANTIZE = "Quantize",
   HBAO = "Hbao",
   TAA = "Taa",
+  MOTION_TRAIL = "MotionTrail",
 }

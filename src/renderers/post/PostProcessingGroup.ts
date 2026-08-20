@@ -7,6 +7,7 @@ import {
   QuantizeElement,
   HbaoElement,
   TaaElement,
+  MotionTrailElement,
 } from "./elements/index.js";
 import { PostProcessingEffectType } from "../../enums/index.js";
 
@@ -36,6 +37,7 @@ export class PostProcessingGroup {
     this.add(new QuantizeElement());
     this.add(new HbaoElement());
     this.add(new TaaElement());
+    this.add(new MotionTrailElement());
   }
 
   /**
@@ -140,6 +142,14 @@ export class PostProcessingGroup {
       if (taa) {
         if (config.taa.enabled !== undefined) taa.enabled = config.taa.enabled;
         if (config.taa.feedback !== undefined) taa.feedback = config.taa.feedback;
+      }
+    }
+
+    if (config.motionTrail) {
+      const trail = this.get<MotionTrailElement>(PostProcessingEffectType.MOTION_TRAIL);
+      if (trail) {
+        if (config.motionTrail.enabled !== undefined) trail.enabled = config.motionTrail.enabled;
+        if (config.motionTrail.feedback !== undefined) trail.feedback = config.motionTrail.feedback;
       }
     }
   }

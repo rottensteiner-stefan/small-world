@@ -344,11 +344,12 @@ selbst schon als realistischer Mittelweg vorgeschlagen wurde: Sub-Pixel-Kamera-J
   mit der View-Space-Tiefe skaliert statt Near/Far unterschiedlich zu verzerren). Bewusst
   **keine separate ungejitterte Matrix** für Culling/Schatten/HBAO — der Sub-Pixel-Versatz ist
   vernachlässigbar für deren Zwecke, spart aber die doppelte Matrix-Buchhaltung.
-- *History-Blend:* neuer Pass (`TAAPassGL`/`TAAPassGPU`, `TAA.frag.glsl`/`TAA.frag.wgsl`) —
-  Ping-Pong zwischen zwei Vollauflösungs-Texturen (kein Kopier-Schritt nötig), blendet
-  `mix(current, history, feedback)` mit `feedback = 0.9` als Default. Läuft als erster
-  Post-Processing-Schritt (vor Bloom/HBAO/Uber-Shader) — alles Nachgelagerte reagiert auf die
-  zeitlich geglättete statt die rohe, gejitterte Pro-Frame-Farbe.
+- *History-Blend:* generischer Pass (`HistoryBlendPassGL`/`HistoryBlendPassGPU`,
+  `HistoryBlend.frag.glsl`/`HistoryBlend.frag.wgsl`) — Ping-Pong zwischen zwei
+  Vollauflösungs-Texturen (kein Kopier-Schritt nötig), blendet `mix(current, history, feedback)`
+  mit `feedback = 0.9` als TAA-Default. Läuft als erster Post-Processing-Schritt (vor
+  Bloom/HBAO/Uber-Shader) — alles Nachgelagerte reagiert auf die zeitlich geglättete statt die
+  rohe, gejitterte Pro-Frame-Farbe.
 - *Verifiziert:* Live in Showcase 1 (rotierender Würfel, WebGL2 + WebGPU) — bei hohem
   `feedback` sichtbares, **erwartetes** Ghosting/Nachziehen an den bewegten Kanten des
   rotierenden Würfels, exakt der hier dokumentierte, akzeptierte Trade-off ohne
@@ -358,6 +359,21 @@ selbst schon als realistischer Mittelweg vorgeschlagen wurde: Sub-Pixel-Kamera-J
 Volles TAA bräuchte zusätzlich Motion-Vektoren (Extra-Render-Target, Extra-Shader-Output pro
 Material) für echte Reprojektion statt eines statischen UV-Blends — deutlich größerer Aufwand,
 bewusst nicht umgesetzt.
+
+**Bonus, aus der TAA-Verifikation entstanden (2026-08-20): `MotionTrailElement`.** Beim
+Live-Test fiel dem Maintainer auf, dass das Ghosting bei hohem `feedback` (0.92) richtig gut
+aussieht — die Frage war dann, ob das "Bug oder Feature" ist. Antwort: strukturell dasselbe
+Verfahren wie Haeberlis/Akeleys Accumulation-Buffer-Technik (SIGGRAPH 1990), nur für einen
+bewusst sichtbaren statt einen unsichtbaren Effekt eingesetzt — also kein Mogeln, sondern ein
+ehrlich benannter, eigenständiger Stil-Effekt. Umgesetzt als eigenes `MotionTrailElement`
+(eigener Enum-Wert `MOTION_TRAIL`, eigene Config, standardmäßig aus), das dieselbe
+`HistoryBlendPassGL`/`HistoryBlendPassGPU`-Infrastruktur wiederverwendet (eigene
+Instanz/eigener History-Puffer, **kein** Kamera-Jitter), verkettet direkt nach TAA im
+Post-Processing (beide könnten kombiniert werden, i. d. R. ist aber nur einer der beiden aktiv).
+Dazu die Pass-Klassen/Shader ehrlich umbenannt: `TAAPassGL/GPU` → `HistoryBlendPassGL/GPU`,
+`TAA.frag.glsl/wgsl` → `HistoryBlend.frag.glsl/wgsl` — sie sind kein TAA-spezifisches
+Werkzeug mehr, sondern die gemeinsame Grundlage für beide Effekte. Live in Showcase 1 verifiziert
+(WebGL2 + WebGPU, deutlich sichtbarer, sauberer Ghost-Trail-Effekt, keine Konsolenfehler).
 
 **Tonemapping:** ✅ **Bereits vorhanden, keine Aktion nötig** (geprüft 2026-08-19). ACES wurde
 Industriestandard, weil es HDR-Werte über eine wahrnehmungsoptimierte Kurve abbildet, die

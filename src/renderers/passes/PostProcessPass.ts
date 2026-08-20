@@ -236,10 +236,11 @@ export class PostProcessPass implements RenderPass {
     const group = renderer.postProcessing;
     if (!group.enabled || !renderer._hdrTextureView) return;
 
-    // If TAA resolved a temporally-smoothed color this frame, everything downstream reacts to
-    // that instead of the raw jittered per-frame color -- `_hdrTextureView` itself must stay
-    // untouched so TAA keeps reading fresh input next frame (see WebGPURenderer.render()).
-    const colorView = renderer._taaResolvedView ?? renderer._hdrTextureView;
+    // If TAA and/or Motion Trail resolved this frame, the uber pass reacts to that instead of
+    // the raw per-frame color -- `_hdrTextureView` itself must stay untouched so both keep
+    // reading fresh input next frame (see WebGPURenderer.render()).
+    const colorView =
+      renderer._motionTrailResolvedView ?? renderer._taaResolvedView ?? renderer._hdrTextureView;
 
     const bloom = group.get<import("../post/index.js").BloomElement>(
       PostProcessingEffectType.BLOOM,

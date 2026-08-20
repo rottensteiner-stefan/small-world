@@ -153,4 +153,9 @@ export interface PostProcessingConfig {
     enabled?: boolean;
     feedback?: number;
   };
+  /** Deliberate ghost/afterimage motion-trail effect (not anti-aliasing). WebGL2/WebGPU only, off by default. */
+  motionTrail?: {
+    enabled?: boolean;
+    feedback?: number;
+  };
 }

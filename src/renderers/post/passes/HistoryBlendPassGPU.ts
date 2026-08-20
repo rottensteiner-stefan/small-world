@@ -1,12 +1,12 @@
 import FULLSCREEN_VERT_WGSL from "../../../core/materials/shaders/PostProcess.vert.wgsl?raw";
-import TAA_FRAG_WGSL from "../../../core/materials/shaders/TAA.frag.wgsl?raw";
-import { TaaElement } from "../elements/index.js";
+import HISTORY_BLEND_FRAG_WGSL from "../../../core/materials/shaders/HistoryBlend.frag.wgsl?raw";
 import { TextureFilter, TextureWrap, Topology } from "../../../enums/index.js";
 
 /**
- * Simplified TAA resolve for WebGPU -- see TAAPassGL for the shared rationale/trade-offs.
+ * Generic exponential history blend for WebGPU -- see HistoryBlendPassGL for the shared
+ * rationale/trade-offs (used by both `TaaElement` and `MotionTrailElement`).
  */
-export class TAAPassGPU {
+export class HistoryBlendPassGPU {
   private _device: GPUDevice;
   private _pipeline!: GPURenderPipeline;
   private _sampler!: GPUSampler;
@@ -37,7 +37,7 @@ export class TAAPassGPU {
     });
 
     this._uniformBuffer = this._device.createBuffer({
-      size: 16, // TAAUniforms: 4 x f32
+      size: 16, // HistoryBlendUniforms: 4 x f32
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
@@ -52,7 +52,7 @@ export class TAAPassGPU {
 
     const layout = this._device.createPipelineLayout({ bindGroupLayouts: [bgl] });
     const vertModule = this._device.createShaderModule({ code: FULLSCREEN_VERT_WGSL });
-    const fragModule = this._device.createShaderModule({ code: TAA_FRAG_WGSL });
+    const fragModule = this._device.createShaderModule({ code: HISTORY_BLEND_FRAG_WGSL });
 
     this._pipeline = this._device.createRenderPipeline({
       layout,
@@ -88,7 +88,7 @@ export class TAAPassGPU {
   }
 
   /**
-   * Resolves the current (jittered) HDR frame against history.
+   * Resolves the current frame against history.
    * @returns This frame's resolved HDR texture view (becomes history for the next call), or null if unavailable.
    */
   public execute(
@@ -96,7 +96,7 @@ export class TAAPassGPU {
     currentView: GPUTextureView,
     width: number,
     height: number,
-    taa: TaaElement,
+    config: { feedback: number },
   ): GPUTextureView | null {
     this._resize(width, height);
     if (!this._pingPong || !this._pingPongViews) return null;
@@ -120,7 +120,7 @@ export class TAAPassGPU {
       this._builtCurrentView = currentView;
     }
 
-    this._uniformData[0] = taa.feedback;
+    this._uniformData[0] = config.feedback;
     this._uniformData[1] = this._hasHistory ? 1.0 : 0.0;
     this._device.queue.writeBuffer(this._uniformBuffer, 0, this._uniformData);
 

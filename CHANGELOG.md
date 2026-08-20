@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.76.12] - 2026-08-20
+
+### "In the fields of observation, chance favors only the prepared mind." - Louis Pasteur
+
+- **Features:**
+  - Added `MotionTrailElement`: a deliberate ghost/afterimage motion-trail post-processing effect, born from noticing during live TAA verification that the "ghosting on fast movement" trade-off (documented as a limitation in item #9) looks genuinely good as an intentional stylistic effect at a higher feedback value. Reuses the exact same exponential history-blend mechanism as TAA — its own separate instance/history buffer, no camera jitter — chained after TAA in the post-processing pipeline. Off by default, WebGL2 + WebGPU only, credited to Haeberli & Akeley's 1990 Accumulation Buffer paper (the shared ancestor technique behind both TAA and deliberate motion-trail effects).
+- **Architecture & Bugfixes:**
+  - Renamed the TAA-specific pass classes/shaders to reflect that they're now shared, generic infrastructure rather than a single-purpose TAA tool: `TAAPassGL`/`TAAPassGPU` → `HistoryBlendPassGL`/`HistoryBlendPassGPU`, `TAA.frag.glsl`/`TAA.frag.wgsl` → `HistoryBlend.frag.glsl`/`HistoryBlend.frag.wgsl`. Their `execute()` signature now takes a structural `{ feedback: number }` instead of the concrete `TaaElement` class, so `MotionTrailElement` can reuse them without a fake dependency on TAA's own type.
+- **Housekeeping & Docs:**
+  - Updated `docs/research/aaa-engine-techniques.md` and `REFERENCES.md` for the rename and the new effect, crediting Haeberli & Akeley (SIGGRAPH 1990).
+
 ## [0.76.11] - 2026-08-20
 
 ### "All models are wrong, but some are useful." - George E. P. Box

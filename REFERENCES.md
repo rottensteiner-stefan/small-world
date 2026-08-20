@@ -133,10 +133,17 @@ This document serves to record external sources, algorithms, mathematical deriva
 
 ### Temporal Supersampling / TAA (Jitter + History Blend)
 
-- **File:** `TAA.frag.glsl`, `TAA.frag.wgsl`, `TAAPassGL.ts`, `TAAPassGPU.ts`, `Camera.ts`, `SmallWorld.ts`
+- **File:** `HistoryBlend.frag.glsl`, `HistoryBlend.frag.wgsl`, `HistoryBlendPassGL.ts`, `HistoryBlendPassGPU.ts`, `TaaElement.ts`, `Camera.ts`, `SmallWorld.ts`
 - **Authors/Gurus:** Brian Karis (Epic Games)
 - **Source:** ["High-Quality Temporal Supersampling"](http://advances.realtimerendering.com/s2014/#_HIGH-QUALITY_TEMPORAL_SUPERSAMPLING) — SIGGRAPH 2014, Advances in Real-Time Rendering
 - **Usage:** The canonical reference for sub-pixel camera jitter (we use a Halton(2,3) sequence, cycling 16 samples) combined with a history buffer accumulated across frames to reconstruct anti-aliased detail beyond a single frame's sample rate. We implement only the simplified half of the technique — jitter plus an exponential history blend, no motion-vector reprojection or neighborhood clamping — which smooths edges in static/slow scenes but visibly ghosts on fast movement, an accepted trade-off documented in `docs/research/aaa-engine-techniques.md`.
+
+### Accumulation Buffer (Motion Trail / Afterimage Effect)
+
+- **File:** `HistoryBlendPassGL.ts`, `HistoryBlendPassGPU.ts`, `MotionTrailElement.ts`
+- **Authors/Gurus:** Paul Haeberli, Kurt Akeley (SGI)
+- **Source:** ["The Accumulation Buffer: Hardware Support for High-Quality Rendering"](https://graphics.stanford.edu/courses/cs248-02/haeberli-akeley-accumulation-buffer-sig90.pdf) — SIGGRAPH 1990
+- **Usage:** The original paper generalizing "blend this frame with an accumulated buffer of prior frames" beyond anti-aliasing to motion blur, depth-of-field, and soft shadows — the same family of technique as our TAA history blend above, just aimed at a deliberately visible result instead of an invisible one. `MotionTrailElement` reuses the identical `HistoryBlendPassGL`/`HistoryBlendPassGPU` infrastructure as TAA (its own separate instance/history buffer, no camera jitter), tuned with a much higher feedback value so fast-moving objects intentionally leave a ghost/afterimage trail — an honest stylistic effect, not a mislabeled anti-aliasing technique.
 
 ### Dual Kawase Bloom (Post-Processing)
 

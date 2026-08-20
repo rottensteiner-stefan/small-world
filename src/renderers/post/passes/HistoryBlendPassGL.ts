@@ -1,15 +1,17 @@
 import FULLSCREEN_VERT_GLSL from "../../../core/materials/shaders/PostProcess.vert.glsl?raw";
-import TAA_FRAG_GLSL from "../../../core/materials/shaders/TAA.frag.glsl?raw";
+import HISTORY_BLEND_FRAG_GLSL from "../../../core/materials/shaders/HistoryBlend.frag.glsl?raw";
 
 import { WebGL2FrameBuffer } from "../../WebGL2/index.js";
-import { TaaElement } from "../elements/index.js";
 
 /**
- * Simplified TAA resolve for WebGL2: blends the current (jittered) frame with a ping-ponged
- * history buffer holding the previous frame's resolved result -- no motion vectors, so this
- * only helps static/slow-moving scenes (see TaaElement doc comment for the accepted trade-off).
+ * Generic exponential history blend for WebGL2: blends the current frame with a ping-ponged
+ * history buffer holding the previous frame's resolved result. Shared by two different
+ * effects that both reduce to "blend with last frame's output" -- TAA (`TaaElement`, current
+ * frame is jittered, low feedback) and the deliberate `MotionTrailElement` ghost/afterimage
+ * look (current frame is not jittered, high feedback). No motion vectors either way, so this
+ * only reads as clean anti-aliasing in static/slow scenes for the TAA case.
  */
-export class TAAPassGL {
+export class HistoryBlendPassGL {
   private _gl: WebGL2RenderingContext;
 
   private _prog?: WebGLProgram;
@@ -38,7 +40,7 @@ export class TAAPassGL {
     gl.shaderSource(shader, src);
     gl.compileShader(shader);
     if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-      console.error("[TAAPassGL] Shader Compile Error:", gl.getShaderInfoLog(shader));
+      console.error("[HistoryBlendPassGL] Shader Compile Error:", gl.getShaderInfoLog(shader));
       gl.deleteShader(shader);
       return null;
     }
@@ -49,7 +51,7 @@ export class TAAPassGL {
     const gl = this._gl;
 
     const vert = this._compileShader(gl.VERTEX_SHADER, FULLSCREEN_VERT_GLSL);
-    const frag = this._compileShader(gl.FRAGMENT_SHADER, TAA_FRAG_GLSL);
+    const frag = this._compileShader(gl.FRAGMENT_SHADER, HISTORY_BLEND_FRAG_GLSL);
     if (!vert || !frag) return;
 
     this._prog = gl.createProgram()!;
@@ -89,14 +91,14 @@ export class TAAPassGL {
   }
 
   /**
-   * Resolves the current (jittered) HDR frame against history.
+   * Resolves the current frame against history.
    * @returns This frame's resolved HDR texture (becomes history for the next call), or null if unavailable.
    */
   public execute(
     currentTexture: WebGLTexture,
     width: number,
     height: number,
-    taa: TaaElement,
+    config: { feedback: number },
   ): WebGLTexture | null {
     if (!this._prog) return null;
 
@@ -126,7 +128,7 @@ export class TAAPassGL {
     gl.bindTexture(gl.TEXTURE_2D, historyTarget.texture);
     gl.uniform1i(this._uHistoryTexture, 1);
 
-    gl.uniform1f(this._uFeedback, taa.feedback);
+    gl.uniform1f(this._uFeedback, config.feedback);
     gl.uniform1i(this._uHasHistory, this._hasHistory ? 1 : 0);
 
     gl.drawArrays(gl.TRIANGLES, 0, 3);

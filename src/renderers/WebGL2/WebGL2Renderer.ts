@@ -6,7 +6,12 @@ import { AbstractWebGLRenderer } from "../AbstractWebGLRenderer.js";
 import { WebGLShadowPass } from "../passes/WebGLShadowPass.js";
 import { WebGLMainPass } from "../passes/WebGLMainPass.js";
 import { WebGLPostProcessPass } from "../passes/WebGLPostProcessPass.js";
-import { PostProcessPassGL, BloomPassGL, AOPassGL, TAAPassGL } from "../post/passes/index.js";
+import {
+  PostProcessPassGL,
+  BloomPassGL,
+  AOPassGL,
+  HistoryBlendPassGL,
+} from "../post/passes/index.js";
 import { AbstractLight } from "../../core/lights/index.js";
 import { CubeTexture, Texture, RenderTarget, RenderTargetCube } from "../../core/textures/index.js";
 import { ShaderRegistry, RenderManifest } from "../../core/renderers/shaders/index.js";
@@ -105,7 +110,8 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
   protected _postPassGL: PostProcessPassGL | undefined = undefined;
   protected _bloomPassGL: BloomPassGL | undefined = undefined;
   protected _hbaoPassGL: AOPassGL | undefined = undefined;
-  protected _taaPassGL: TAAPassGL | undefined = undefined;
+  protected _taaPassGL: HistoryBlendPassGL | undefined = undefined;
+  protected _motionTrailPassGL: HistoryBlendPassGL | undefined = undefined;
 
   protected _activeRenderTarget: RenderTarget | RenderTargetCube | null = null;
   protected _activeCubeFace: number = 0;
@@ -776,6 +782,24 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
             this.gl.canvas.width,
             this.gl.canvas.height,
             taaNode,
+          );
+          if (resolved) colorTex = resolved;
+        }
+      }
+
+      // Motion Trail: a deliberate ghost/afterimage look, not anti-aliasing -- reuses the same
+      // history-blend pass as TAA (its own separate instance/history buffer), chained after TAA
+      // so both can be combined if ever wanted, though typically only one is enabled at a time.
+      if (this._motionTrailPassGL) {
+        const trailNode = this.postProcessing.get<import("../post/index.js").MotionTrailElement>(
+          PostProcessingEffectType.MOTION_TRAIL,
+        );
+        if (trailNode && trailNode.enabled) {
+          const resolved = this._motionTrailPassGL.execute(
+            colorTex,
+            this.gl.canvas.width,
+            this.gl.canvas.height,
+            trailNode,
           );
           if (resolved) colorTex = resolved;
         }
@@ -1730,7 +1754,8 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         this._postPassGL ??= new PostProcessPassGL(this.gl, true);
         this._bloomPassGL ??= new BloomPassGL(this.gl, true);
         this._hbaoPassGL ??= new AOPassGL(this.gl);
-        this._taaPassGL ??= new TAAPassGL(this.gl);
+        this._taaPassGL ??= new HistoryBlendPassGL(this.gl);
+        this._motionTrailPassGL ??= new HistoryBlendPassGL(this.gl);
       } else {
         this._hdrFbo.resize(this.gl.canvas.width, this.gl.canvas.height);
       }
@@ -1739,12 +1764,14 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       this._bloomPassGL?.destroy();
       this._hbaoPassGL?.destroy();
       this._taaPassGL?.destroy();
+      this._motionTrailPassGL?.destroy();
       this._hdrFbo.destroy();
       this._hdrFbo = undefined;
       this._postPassGL = undefined;
       this._bloomPassGL = undefined;
       this._hbaoPassGL = undefined;
       this._taaPassGL = undefined;
+      this._motionTrailPassGL = undefined;
     }
   }
 
@@ -1889,6 +1916,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       this._bloomPassGL?.destroy();
       this._hbaoPassGL?.destroy();
       this._taaPassGL?.destroy();
+      this._motionTrailPassGL?.destroy();
       this._globalUBO?.destroy();
     }
 
