@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.76.17] - 2026-08-20
+
+### "Save the time of the reader." - S.R. Ranganathan
+
+- **Housekeeping & Docs:**
+  - `.agents/AGENTS.md`'s `domain-modeling` skill line now also mentions ADRs (`docs/adr/`), not just `CONTEXT.md` maintenance -- `ADR-FORMAT.md` already lived in that skill folder but wasn't referenced from the always-loaded entry point, so a future session had no way to discover the ADR practice introduced last version without already knowing to look for it.
+
 ## [0.76.16] - 2026-08-20
 
 ### "Those who cannot remember the past are condemned to repeat it." - George Santayana
