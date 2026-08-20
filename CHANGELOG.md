@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.76.14] - 2026-08-20
+
+### "The map is not the territory." - Alfred Korzybski
+
+- **Housekeeping & Docs:**
+  - Removed `docs/.vitepress/dist/` (301 files) from git tracking. It's already listed in `.gitignore`, but had been committed to history at some point before that rule existed, so every subsequent `docs:build` kept showing up as unrelated diff noise in `git status`. Files remain on disk (`git rm --cached`, not a delete) and regenerate normally via `npm run docs:build`.
+
 ## [0.76.13] - 2026-08-20
 
 ### "Order and simplification are the first steps toward mastery of a subject." - Thomas Mann
