@@ -54,6 +54,7 @@
               // the receiver is behind those occluders; (3) PCF again with that variable radius.
               // Samples are clamped to this cascade's own atlas cell so a wide search radius
               // near a cell edge can't bleed into a neighboring cascade's texels.
+              // Directional light only, not spot lights -- see docs/adr/0006-pcss-directional-light-only.md.
               const int PCSS_TAPS = 8;
               vec2 searchOffsets[PCSS_TAPS];
               searchOffsets[0] = vec2(-1.0, -1.0);

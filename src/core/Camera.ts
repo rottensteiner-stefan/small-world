@@ -44,10 +44,8 @@ export class Camera implements CameraInterfaceData {
   private _viewMatrix: Matrix4 = new Matrix4();
   private _viewProjMatrix: Matrix4 = new Matrix4();
 
-  /** Sub-pixel jitter offset (NDC units) for TAA. Set by `SmallWorld` only while TAA is
-   * enabled; baked directly into `viewProjectionMatrix` so every consumer (rendering,
-   * culling) sees the same jittered frame -- the offset is small enough that jittered
-   * culling/shadow bounds are never a practical concern. */
+  /** Sub-pixel jitter offset (NDC units) for TAA, baked into `viewProjectionMatrix` for every
+   * consumer rather than a separate matrix -- see `docs/adr/0002-taa-jitter-shared-viewproj-matrix.md`. */
   public jitterX: number = 0;
   public jitterY: number = 0;
 

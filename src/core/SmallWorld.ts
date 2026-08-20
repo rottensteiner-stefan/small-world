@@ -21,7 +21,7 @@ import { GadgetInspector } from "../tools/GadgetInspector.js";
 import { PhysicsSystem } from "../physix/PhysicsSystem.js";
 
 /** The current engine version. */
-export const ENGINE_VERSION = "0.76.15";
+export const ENGINE_VERSION = "0.76.16";
 
 /**
  * Halton low-discrepancy sequence, used for TAA's per-frame sub-pixel camera jitter -- covers
@@ -374,7 +374,7 @@ export abstract class SmallWorld {
   /**
    * Briefly slows down gameplay (app update, physics, scene behaviors) to sell the impact of a
    * hit, while the camera and its effects (e.g. shake) keep running in real time. Rendering and
-   * input are unaffected.
+   * input are unaffected. Global, not per-entity -- see `docs/adr/0003-hit-stop-is-global-not-per-entity.md`.
    * @param duration Real-time seconds the slowdown lasts.
    * @param timeScale Multiplier applied to deltaTime for gameplay systems while active. Default 0.05 (near-freeze).
    */

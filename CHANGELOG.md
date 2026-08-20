@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.76.16] - 2026-08-20
+
+### "Those who cannot remember the past are condemned to repeat it." - George Santayana
+
+- **Housekeeping & Docs:**
+  - Started recording architectural decisions as ADRs (`docs/adr/`, lightweight single-paragraph format per `.agents/skills/domain-modeling/ADR-FORMAT.md`). First six: config shape uses named keys instead of `{ type, ... }` arrays when order isn't semantically meaningful (0001); TAA jitter is baked into the shared view-projection matrix rather than a separate one (0002); hit-stop scales gameplay time globally, not per entity (0003); the point/spot light cap is global, not per-object nearest-N selection (0004); CCD covers sphere bodies only (0005); PCSS covers directional lights only, spot lights stay fixed-radius PCF (0006).
+  - Added short pointer comments at each decision's actual code site (`Camera.ts`, `SmallWorld.ts`, `PointLight.ts`/`SpotLight.ts`, `PhysicsSystem.ts`, `light_calc.frag.glsl`, `EngineOptions.ts`) referencing the relevant ADR, and trimmed the fuller inline explanations that used to live only in those comments — the ADR is now the canonical "why", the code just points to it.
+
 ## [0.76.15] - 2026-08-20
 
 ### "Form ever follows function." - Louis Sullivan

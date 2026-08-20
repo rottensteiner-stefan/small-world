@@ -64,8 +64,8 @@ export class PhysicsSystem {
    * If a sphere-shaped body moves farther than `radius * ccdMotionThreshold` in a single
    * substep, it's swept against nearby geometry instead of only being checked for overlap at its
    * new position -- this catches fast/small bodies that would otherwise tunnel straight through
-   * thin walls or other small colliders. Only sphere bodies are covered; box/OBB bodies are
-   * always resolved discretely. Set to `Infinity` to disable CCD entirely.
+   * thin walls or other small colliders. Sphere bodies only, see
+   * `docs/adr/0005-ccd-sphere-only-scope.md`. Set to `Infinity` to disable CCD entirely.
    */
   public ccdMotionThreshold: number = 1.0;
 

@@ -9,10 +9,8 @@ export interface RendererBackendConfig {
 }
 
 /**
- * Per-backend renderer settings, keyed by backend instead of a `{ type, ... }` array: the
- * actual fallback order (WebGPU -> WebGL2 -> WebGL1) is hardcoded in `RendererFactory`, not
- * driven by this config at all, so an array here would only have implied an ordering control
- * that doesn't exist -- same reasoning as `PostProcessingConfig.effects`.
+ * Per-backend renderer settings, keyed by backend rather than a `{ type, ... }` array --
+ * see `docs/adr/0001-config-shape-named-keys-not-tagged-arrays.md`.
  */
 export interface RendererConfig {
   WEB_GPU?: RendererBackendConfig;
@@ -120,8 +118,7 @@ export interface EngineOptions {
 
 /**
  * Per-effect settings for the post-processing pipeline, nested under `PostProcessingConfig.effects`
- * so general pipeline settings (`enabled`, `filterMode`) stay structurally separate from the
- * individual effects' own tunables.
+ * rather than a `{ type, ... }` array -- see `docs/adr/0001-config-shape-named-keys-not-tagged-arrays.md`.
  */
 export interface PostProcessingEffectsConfig {
   toneMapping?: {
