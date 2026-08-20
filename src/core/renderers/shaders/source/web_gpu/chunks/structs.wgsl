@@ -24,7 +24,11 @@ struct GlobalUniforms {
     cascadeMatrices: array<mat4x4f, 4>,
     cascadeSplits: vec4f,
     dirShadowInfo: vec4f, // [bias, normalBias, castShadow, numCascades]
-    cameraNearFar: vec2f
+    cameraNearFar: vec2f,
+    resolution: vec2f, // canvas size in pixels, for clustered light culling
+    projScale: vec2f, // projection matrix diagonal terms [0][0]/[1][1], for view-space reconstruction
+    tileSizePx: vec2f, // clustered light grid screen-space tile size in pixels
+    clusterDims: vec4f // [x, y, z cell counts, maxLightsPerCluster], all as f32
 }
 
 struct ObjectUniforms {
@@ -89,6 +93,14 @@ struct AreaLight {
 @group(0) @binding(8) var u_dirShadowMap: texture_depth_2d_array;
 @group(0) @binding(9) var u_spotShadowMap: texture_depth_2d_array;
 @group(0) @binding(10) var shadowSampler: sampler_comparison;
+// Clustered/tiled forward+ light culling (WebGL2/WebGPU only, see
+// docs/adr/0007-clustered-lighting-webgl2-webgpu-only.md). Fixed-capacity-per-cluster, no
+// atomics: ClusterCullPassGPU (compute) writes these, the lighting chunk below only reads them.
+// vec2u per cluster is (offset, count) into the matching index array.
+@group(0) @binding(11) var<storage, read_write> pointClusterGrid: array<vec2u>;
+@group(0) @binding(12) var<storage, read_write> pointClusterIndices: array<u32>;
+@group(0) @binding(13) var<storage, read_write> spotClusterGrid: array<vec2u>;
+@group(0) @binding(14) var<storage, read_write> spotClusterIndices: array<u32>;
 
 @group(1) @binding(1) var s: sampler;
 @group(1) @binding(2) var u_diffuseMap: texture_2d<f32>;

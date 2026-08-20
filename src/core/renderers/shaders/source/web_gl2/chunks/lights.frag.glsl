@@ -57,7 +57,51 @@ layout(std140) uniform GlobalUniforms {
     PointLight u_pointLights[16];
     SpotLight u_spotLights[16];
     AreaLight u_areaLights[4];
+    // Clustered light culling (see docs/adr/0007-clustered-lighting-webgl2-webgpu-only.md) --
+    // WebGLClusterCullPass (CPU) writes these every frame via WebGL2Renderer.writeClusterGridUniforms().
+    vec2 u_tileSizePx;
+    vec4 u_clusterDims; // x/y/z cell counts, w = maxLightsPerCluster, all as float
 };
+
+// Clustered light culling data textures: RG32UI (offset, count) per cluster cell, R32UI flat
+// index lists. Fixed texture units (see WebGL2Renderer's _CLUSTER_*_UNIT constants), bound
+// outside the generic per-material sampler system just like the shadow map samplers below.
+precision highp usampler2D;
+uniform usampler2D u_pointClusterGrid;
+uniform usampler2D u_pointClusterIndices;
+uniform usampler2D u_spotClusterGrid;
+uniform usampler2D u_spotClusterIndices;
+
+// Must match CLUSTER_TEX_WIDTH in src/math/ClusterGrid.ts exactly -- WebGL2 has no 1D texture
+// target, so the flat cluster/index arrays are laid out on a fixed-width 2D texture instead.
+const int CLUSTER_TEX_WIDTH = 1024;
+
+// WebGL2's raw light array is capped at 16 (see the ADR above), so a cluster can never need
+// more than 16 light slots regardless of `maxLightsPerCluster` config -- this constant only
+// needs to be large enough to cover that, not the configured value itself.
+const int CLUSTER_MAX_LIGHTS = 16;
+
+uvec2 fetchClusterGridEntry(highp usampler2D tex, int cellIndex) {
+    ivec2 coord = ivec2(cellIndex % CLUSTER_TEX_WIDTH, cellIndex / CLUSTER_TEX_WIDTH);
+    return texelFetch(tex, coord, 0).rg;
+}
+
+uint fetchClusterLightIndex(highp usampler2D tex, int flatIndex) {
+    ivec2 coord = ivec2(flatIndex % CLUSTER_TEX_WIDTH, flatIndex / CLUSTER_TEX_WIDTH);
+    return texelFetch(tex, coord, 0).r;
+}
+
+// Same cell/index formula as cluster_cull.wgsl's fragment-side lookup on WebGPU.
+int computeClusterCellIndex(vec3 viewPos, vec3 worldPos, vec4 clusterDims, vec2 cameraNearFar, vec2 tileSizePx) {
+    ivec3 dims = ivec3(clusterDims.xyz);
+    int cellX = min(int(gl_FragCoord.x / tileSizePx.x), dims.x - 1);
+    int cellY = min(int(gl_FragCoord.y / tileSizePx.y), dims.y - 1);
+    float viewDist = clamp(length(viewPos - worldPos), cameraNearFar.x, cameraNearFar.y);
+    float logRatio = log(cameraNearFar.y / cameraNearFar.x);
+    float sliceF = floor(log(viewDist / cameraNearFar.x) * clusterDims.z / logRatio);
+    int cellZ = min(int(max(sliceF, 0.0)), dims.z - 1);
+    return cellX + dims.x * (cellY + dims.y * cellZ);
+}
 
 // Linear to sRGB
 vec3 linearToSRGB(vec3 color) {

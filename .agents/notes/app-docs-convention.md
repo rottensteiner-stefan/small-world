@@ -1,31 +1,31 @@
-# Konvention: App-Dokumentation
+# Convention: App Documentation
 
-**Festgelegt:** 2026-08-19
+**Established:** 2026-08-19
 
-## Struktur
+## Structure
 
-Jede App unter `src/apps/<app-name>/` hat einen `docs/`-Unterordner:
+Every app under `src/apps/<app-name>/` has a `docs/` subfolder:
 
 ```
 src/apps/<app-name>/
 └── docs/
-    ├── concept-dossier.html   ← Visuelles Konzept-Dossier (HTML, reich formatiert)
-    └── log.md                 ← Laufendes Entwicklungslog (Markdown)
+    ├── concept-dossier.html   ← Visual concept dossier (HTML, richly formatted)
+    └── log.md                 ← Running development log (Markdown)
 ```
 
-## Regeln
+## Rules
 
-- `concept-dossier.html`: Statisches HTML, kein Build-Step. Für Konzepte, Moodboards, Farbpaletten, Feature-Beschreibungen.
-- `log.md`: Lebendes Dokument. Jede Session ergänzt einen neuen Eintrag mit Datum. Kein Eintrag wird gelöscht (Historienpflicht wie Changelog).
-- Das `log.md` ist das **primäre Gedächtnis** für Research und Entscheidungen einer App.
-  Vor jeder Session: `log.md` lesen. Nach jeder Session: Eintrag hinzufügen.
-- `docs/research/` ist damit **obsolet** für App-spezifische Logs. Der Ordner bleibt für projektweite Themen.
+- `concept-dossier.html`: Static HTML, no build step. For concepts, mood boards, color palettes, feature descriptions.
+- `log.md`: A living document. Every session appends a new dated entry. No entry is ever deleted (history is kept, like a changelog).
+- `log.md` is the **primary memory** for an app's research and decisions.
+  Before every session: read `log.md`. After every session: add an entry.
+- `docs/research/` is therefore **obsolete** for app-specific logs. The folder remains in use for project-wide topics.
 
-## Bestehende Logs
+## Existing Logs
 
 | App | Log |
 |---|---|
-| DISC WARS | `src/apps/disc-wars/docs/log.md` (vormals `docs/research/disc-wars.md`) |
+| DISC WARS | `src/apps/disc-wars/docs/log.md` (formerly `docs/research/disc-wars.md`) |
 | Neon Labyrinth | `src/apps/neon-labyrinth/docs/log.md` |
 | Light Cycle Arena | `src/apps/light-cycle-arena/docs/log.md` |
 | YAD | `src/apps/yad/docs/log.md` |

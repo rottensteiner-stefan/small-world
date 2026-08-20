@@ -50,9 +50,22 @@ var shadow: f32 = 1.0;
         spec += pow(max(dot(V, reflect(-L_dir, N)), 0.0), obj.shininess) * global.dirLightColor.xyz * shadow; 
     }
 
+// Clustered light lookup -- see docs/adr/0007-clustered-lighting-webgl2-webgpu-only.md.
+// Same cell coordinates ClusterCullPassGPU used to fill pointClusterGrid/spotClusterGrid.
+let clusterDimsU = vec3u(u32(global.clusterDims.x), u32(global.clusterDims.y), u32(global.clusterDims.z));
+let clusterCellX = min(u32(i.pos.x / global.tileSizePx.x), clusterDimsU.x - 1u);
+let clusterCellY = min(u32(i.pos.y / global.tileSizePx.y), clusterDimsU.y - 1u);
+let clusterViewDist = clamp(length(global.viewPos.xyz - i.wp), global.cameraNearFar.x, global.cameraNearFar.y);
+let clusterLogRatio = log(global.cameraNearFar.y / global.cameraNearFar.x);
+let clusterSliceF = floor(log(clusterViewDist / global.cameraNearFar.x) * f32(clusterDimsU.z) / clusterLogRatio);
+let clusterCellZ = min(u32(max(clusterSliceF, 0.0)), clusterDimsU.z - 1u);
+let clusterCellIndex = clusterCellX + clusterDimsU.x * (clusterCellY + clusterDimsU.y * clusterCellZ);
+
 // Point Lights
-for(var j=0u; j<u32(global.numPointLights); j++) {
-  let lVec = pLights[j].pos.xyz - i.wp; 
+let pointCluster = pointClusterGrid[clusterCellIndex];
+for(var k=0u; k<pointCluster.y; k++) {
+  let j = pointClusterIndices[pointCluster.x + k];
+  let lVec = pLights[j].pos.xyz - i.wp;
   let d = length(lVec); 
   
   let lDist = max(pLights[j].pos.w, 0.001);
@@ -80,8 +93,10 @@ for(var j=0u; j<u32(global.numPointLights); j++) {
 }
 
 // Spot Lights
-for(var j=0u; j<u32(global.numSpotLights); j++) {
-  let lVec = sLights[j].pos.xyz - i.wp; 
+let spotCluster = spotClusterGrid[clusterCellIndex];
+for(var k=0u; k<spotCluster.y; k++) {
+  let j = spotClusterIndices[spotCluster.x + k];
+  let lVec = sLights[j].pos.xyz - i.wp;
   let d = length(lVec); 
   let L = lVec/d; 
   let S = normalize(sLights[j].dir.xyz); 
@@ -89,8 +104,12 @@ for(var j=0u; j<u32(global.numSpotLights); j++) {
   if(theta > sLights[j].params.x) {
     let sEff = smoothstep(sLights[j].params.x, sLights[j].params.y, theta);
     let atten = 1.0 / (1.0 + 0.1*d + 0.01*d*d); 
-    let diff = max(dot(N, L), 0.0); 
+    let diff = max(dot(N, L), 0.0);
     var shadow: f32 = 1.0;
+    // Pre-existing constraint, unrelated to clustering: only the first 4 spot lights (by scene
+    // traversal order) ever get a real shadow map slot -- j beyond that clamps in these
+    // fixed-size-4 arrays. Clustering doesn't change which lights get shadows, only which ones
+    // reach this loop body at all for a given fragment.
     if (global.spotShadowInfo[j].z > 0.5) {
         let shadowPos = global.spotShadowMatrices[j] * vec4f(i.wp + N * global.spotShadowInfo[j].y * (1.0 - diff), 1.0);
         shadow = getShadowPCF(u_spotShadowMap, shadowSampler, shadowPos, j, global.spotShadowInfo[j].x);

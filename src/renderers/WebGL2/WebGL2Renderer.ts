@@ -6,6 +6,7 @@ import { AbstractWebGLRenderer } from "../AbstractWebGLRenderer.js";
 import { WebGLShadowPass } from "../passes/WebGLShadowPass.js";
 import { WebGLMainPass } from "../passes/WebGLMainPass.js";
 import { WebGLPostProcessPass } from "../passes/WebGLPostProcessPass.js";
+import { WebGLClusterCullPass } from "../passes/WebGLClusterCullPass.js";
 import {
   PostProcessPassGL,
   BloomPassGL,
@@ -41,7 +42,16 @@ import {
   PostProcessingEffectType,
 } from "../../enums/index.js";
 import { Mesh } from "../Mesh.js";
-import { MathPool, Vector3D } from "../../math/index.js";
+import {
+  MathPool,
+  Vector3D,
+  ClusterGridDims,
+  computeClusterCounts,
+  CLUSTER_TEX_WIDTH,
+  DEFAULT_CLUSTER_TILE_SIZE,
+  DEFAULT_CLUSTER_Z_SLICES,
+  DEFAULT_MAX_LIGHTS_PER_CLUSTER,
+} from "../../math/index.js";
 
 interface ProgramCache {
   prog: WebGLProgram;
@@ -81,16 +91,19 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
   private _scratchFloat4: Float32Array = new Float32Array(4);
 
   /**
-   * Texture units 8-13 are permanently reserved for the shadow system (4x spot shadow atlas +
-   * 1x directional/CSM atlas + 1x dummy fallback), which binds them via hardcoded `activeTexture`
-   * calls in `_bindDummyShadowMaps`/`_renderSubgroup` rather than through `ProgramCache.samplerUnits`.
-   * The dynamic sampler-unit assignment in `_getProgram` skips this range for every other sampler so
-   * an unrelated material texture can never land on the same unit as an active shadow sampler --
-   * two ACTIVE samplers of different types sharing a unit is a GL_INVALID_OPERATION at draw time
-   * regardless of what's actually bound there.
+   * Texture units 8-18 are permanently reserved for global (non-material) samplers: 8-13 the
+   * shadow system (4x spot shadow atlas + 1x directional/CSM atlas + 1x dummy fallback), 14 the
+   * raw-depth PCSS read, and 15-18 the clustered light culling grid/index textures (see
+   * docs/adr/0007-clustered-lighting-webgl2-webgpu-only.md) -- all bound via hardcoded
+   * `activeTexture` calls (`_bindDummyShadowMaps`/`_renderSubgroup`/`WebGLClusterCullPass`)
+   * rather than through `ProgramCache.samplerUnits`. The dynamic sampler-unit assignment in
+   * `_getProgram` skips this whole range for every other sampler so an unrelated material
+   * texture can never land on the same unit as one of these -- two ACTIVE samplers of different
+   * types sharing a unit is a GL_INVALID_OPERATION at draw time regardless of what's actually
+   * bound there.
    */
-  private static readonly _RESERVED_SHADOW_UNIT_START = 8;
-  private static readonly _RESERVED_SHADOW_UNIT_END = 14;
+  private static readonly _RESERVED_GLOBAL_UNIT_START = 8;
+  private static readonly _RESERVED_GLOBAL_UNIT_END = 18;
 
   /** Fixed unit for reading the directional shadow map's raw (non-comparison) depth, used by
    * PCSS's blocker-search step. Shares texture unit 14 -- reserved above like every other
@@ -99,6 +112,16 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
    * texture object itself (see WebGL2DepthFrameBuffer). */
   private static readonly _RAW_DEPTH_UNIT = 14;
   private _rawDepthSampler!: WebGLSampler;
+
+  /**
+   * Fixed units for the clustered light culling textures, see the reserved-range comment above.
+   * Public (unlike the shadow units) because `WebGLClusterCullPass` -- a separate class, not a
+   * method of this renderer -- needs to bind them at the same fixed units every frame.
+   */
+  public static readonly _CLUSTER_POINT_GRID_UNIT = 15;
+  public static readonly _CLUSTER_POINT_INDEX_UNIT = 16;
+  public static readonly _CLUSTER_SPOT_GRID_UNIT = 17;
+  public static readonly _CLUSTER_SPOT_INDEX_UNIT = 18;
 
   public _opaqueTexture?: WebGLTexture;
   public _opaqueTextureWrapper?: Texture;
@@ -121,6 +144,14 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
   private _scratchModelMatrix: Float32Array = new Float32Array(16);
 
   private _globalUBO!: WebGL2UniformBuffer;
+
+  /** Clustered light culling grid state, see docs/adr/0007-clustered-lighting-webgl2-webgpu-only.md. */
+  public _clusterDims: ClusterGridDims = { x: 1, y: 1, z: 1 };
+  public _clusterMaxLightsPerCluster = 1;
+  public _pointClusterGridTex!: WebGLTexture;
+  public _pointClusterIndexTex!: WebGLTexture;
+  public _spotClusterGridTex!: WebGLTexture;
+  public _spotClusterIndexTex!: WebGLTexture;
 
   private _stateCullFaceEnabled: boolean | null = null;
   private _stateCullFaceMode: number = -1;
@@ -198,11 +229,84 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     // Pre-register internal materials
     new DepthMaterial();
 
-    this._globalUBO = new WebGL2UniformBuffer(this.gl, 2144, 0);
+    // 2176 bytes: GlobalUniforms grew by 32 bytes (u_tileSizePx + u_clusterDims, plus std140
+    // vec4 alignment padding) for clustered light culling -- see
+    // docs/adr/0007-clustered-lighting-webgl2-webgpu-only.md.
+    this._globalUBO = new WebGL2UniformBuffer(this.gl, 2176, 0);
+    this._allocateClusterTextures({ x: 1, y: 1, z: 1 }, 1);
 
+    // Runs first: WebGLShadowPass's updateGlobalUBO() flushes the whole UBO (including the
+    // cluster grid uniforms WebGLClusterCullPass stages below) to the GPU in one call.
+    this.addPass(new WebGLClusterCullPass());
     this.addPass(new WebGLShadowPass());
     this.addPass(new WebGLMainPass());
     this.addPass(new WebGLPostProcessPass());
+  }
+
+  /**
+   * (Re)allocates the WebGL2 clustered-light-culling data textures (RG32UI grid + R32UI index
+   * list, per light type) for the given grid size -- see
+   * docs/adr/0007-clustered-lighting-webgl2-webgpu-only.md. Laid out on fixed-width 2D textures
+   * since WebGL2 has no 1D texture target (`CLUSTER_TEX_WIDTH`, shared with the fragment shader
+   * lookup and with `WebGLClusterCullPass`, which writes the actual per-frame data).
+   * @param dims Cluster grid dimensions.
+   * @param maxLightsPerCluster Maximum number of lights a single cluster cell can reference.
+   */
+  public _allocateClusterTextures(dims: ClusterGridDims, maxLightsPerCluster: number): void {
+    const numClusters = Math.max(1, dims.x * dims.y * dims.z);
+    const gridHeight = Math.max(1, Math.ceil(numClusters / CLUSTER_TEX_WIDTH));
+    const indexCount = numClusters * Math.max(1, maxLightsPerCluster);
+    const indexHeight = Math.max(1, Math.ceil(indexCount / CLUSTER_TEX_WIDTH));
+
+    this._pointClusterGridTex = this._createIntegerTexture(CLUSTER_TEX_WIDTH, gridHeight, true);
+    this._pointClusterIndexTex = this._createIntegerTexture(CLUSTER_TEX_WIDTH, indexHeight, false);
+    this._spotClusterGridTex = this._createIntegerTexture(CLUSTER_TEX_WIDTH, gridHeight, true);
+    this._spotClusterIndexTex = this._createIntegerTexture(CLUSTER_TEX_WIDTH, indexHeight, false);
+
+    this._clusterDims = dims;
+    this._clusterMaxLightsPerCluster = Math.max(1, maxLightsPerCluster);
+  }
+
+  /**
+   * Creates an integer 2D texture for clustered light culling data -- RG32UI (offset, count) for
+   * a grid texture, R32UI for a flat index list.
+   */
+  private _createIntegerTexture(width: number, height: number, isGrid: boolean): WebGLTexture {
+    const gl = this.gl;
+    const tex = gl.createTexture()!;
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      isGrid ? gl.RG32UI : gl.R32UI,
+      width,
+      height,
+      0,
+      isGrid ? gl.RG_INTEGER : gl.RED_INTEGER,
+      gl.UNSIGNED_INT,
+      null,
+    );
+    gl.bindTexture(gl.TEXTURE_2D, null);
+    return tex;
+  }
+
+  /**
+   * Stages the clustered light culling grid metadata into the (not-yet-uploaded) global UBO --
+   * see docs/adr/0007-clustered-lighting-webgl2-webgpu-only.md. Actual GPU upload happens via
+   * `updateGlobalUBO()`'s trailing `_globalUBO.update()`, called right after this in the same
+   * frame (`WebGLClusterCullPass` runs before `WebGLShadowPass` in `_passes`).
+   * @param tileSizePx Screen-space tile size in pixels, [width, height].
+   */
+  public writeClusterGridUniforms(tileSizePx: [number, number]): void {
+    this._globalUBO.setVec2(2144, tileSizePx[0], tileSizePx[1]);
+    this._globalUBO.setFloat(2160, this._clusterDims.x);
+    this._globalUBO.setFloat(2164, this._clusterDims.y);
+    this._globalUBO.setFloat(2168, this._clusterDims.z);
+    this._globalUBO.setFloat(2172, this._clusterMaxLightsPerCluster);
   }
 
   /** Builds the black cube / (scale=1, bias=0) fallbacks used when a scene has no real IBL data. */
@@ -357,10 +461,10 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
           uniforms.set(name, this.gl.getUniformLocation(prog, name) ?? undefined);
           if (isSampler) {
             if (
-              nextSamplerUnit >= WebGL2Renderer._RESERVED_SHADOW_UNIT_START &&
-              nextSamplerUnit <= WebGL2Renderer._RESERVED_SHADOW_UNIT_END
+              nextSamplerUnit >= WebGL2Renderer._RESERVED_GLOBAL_UNIT_START &&
+              nextSamplerUnit <= WebGL2Renderer._RESERVED_GLOBAL_UNIT_END
             ) {
-              nextSamplerUnit = WebGL2Renderer._RESERVED_SHADOW_UNIT_END + 1;
+              nextSamplerUnit = WebGL2Renderer._RESERVED_GLOBAL_UNIT_END + 1;
             }
             samplerUnits.set(name, nextSamplerUnit);
             samplerTypes.set(name, info.type);
@@ -1137,6 +1241,23 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
 
     this._bindDummyShadowMaps(cache);
 
+    // Clustered light culling textures -- always bound at these fixed units by
+    // WebGLClusterCullPass (once per frame, before this pass runs); each program just needs to
+    // know which unit its sampler uniform reads from, see
+    // docs/adr/0007-clustered-lighting-webgl2-webgpu-only.md.
+    const pointClusterGridLoc = cache.uniforms.get("u_pointClusterGrid");
+    if (pointClusterGridLoc)
+      this.gl.uniform1i(pointClusterGridLoc, WebGL2Renderer._CLUSTER_POINT_GRID_UNIT);
+    const pointClusterIndexLoc = cache.uniforms.get("u_pointClusterIndices");
+    if (pointClusterIndexLoc)
+      this.gl.uniform1i(pointClusterIndexLoc, WebGL2Renderer._CLUSTER_POINT_INDEX_UNIT);
+    const spotClusterGridLoc = cache.uniforms.get("u_spotClusterGrid");
+    if (spotClusterGridLoc)
+      this.gl.uniform1i(spotClusterGridLoc, WebGL2Renderer._CLUSTER_SPOT_GRID_UNIT);
+    const spotClusterIndexLoc = cache.uniforms.get("u_spotClusterIndices");
+    if (spotClusterIndexLoc)
+      this.gl.uniform1i(spotClusterIndexLoc, WebGL2Renderer._CLUSTER_SPOT_INDEX_UNIT);
+
     // Bind Shadow Maps
     if (lights && lights.sLights.length > 0) {
       for (let i = 0; i < 4; i++) {
@@ -1650,8 +1771,10 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     ubo.setVector3(80, aScaled);
     ubo.setVector3(96, dScaled);
     ubo.setVector3(112, lights.dDir);
-    ubo.setInt(128, lights.pLights.length);
-    ubo.setInt(132, lights.sLights.length);
+    // WebGL2's raw UBO light array still has 16 slots (see docs/adr/0007-clustered-lighting-webgl2-webgpu-only.md);
+    // clamp explicitly now that the scene-wide cap is 64.
+    ubo.setInt(128, Math.min(lights.pLights.length, 16));
+    ubo.setInt(132, Math.min(lights.sLights.length, 16));
     ubo.setInt(136, lights.aLights.length);
     ubo.setFloat(140, this._quality.gamma ?? 2.2);
     ubo.setFloat(144, this._quality.exposure ?? 1.0);
@@ -1772,6 +1895,37 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       this._hbaoPassGL = undefined;
       this._taaPassGL = undefined;
       this._motionTrailPassGL = undefined;
+    }
+
+    // Clustered light culling grid depends on canvas resolution -- see
+    // docs/adr/0007-clustered-lighting-webgl2-webgpu-only.md. `enabled: false` collapses the
+    // grid to a single cluster covering the whole frustum (equivalent to the pre-clustering
+    // "iterate every light" behavior) without needing a separate shader code path.
+    const clusterConfig = this._quality.clusteredLighting;
+    const dims: ClusterGridDims =
+      clusterConfig?.enabled === false
+        ? { x: 1, y: 1, z: 1 }
+        : computeClusterCounts(
+            this.gl.canvas.width,
+            this.gl.canvas.height,
+            clusterConfig?.tileSize ?? DEFAULT_CLUSTER_TILE_SIZE,
+            clusterConfig?.zSlices ?? DEFAULT_CLUSTER_Z_SLICES,
+          );
+    // WebGL2's raw light array is capped at 16 (see the ADR above), so no cluster can ever need
+    // more than 16 slots regardless of a higher configured value (meant for WebGPU's 64-light cap).
+    const maxLightsPerCluster = Math.min(
+      clusterConfig?.enabled === false
+        ? 16
+        : (clusterConfig?.maxLightsPerCluster ?? DEFAULT_MAX_LIGHTS_PER_CLUSTER),
+      16,
+    );
+    if (
+      dims.x !== this._clusterDims.x ||
+      dims.y !== this._clusterDims.y ||
+      dims.z !== this._clusterDims.z ||
+      maxLightsPerCluster !== this._clusterMaxLightsPerCluster
+    ) {
+      this._allocateClusterTextures(dims, maxLightsPerCluster);
     }
   }
 

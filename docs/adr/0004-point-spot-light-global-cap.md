@@ -16,3 +16,8 @@ layout, WebGL1's uniform arrays, and (cheaply, since it's already dynamic there)
 lights to be selected by actual proximity to each object rather than scene-traversal order —
 budget real time for either a coordinated cap increase across all three renderers, or the
 per-object selection project described above.
+
+**Update:** the per-object selection project happened — see
+[0007](0007-clustered-lighting-webgl2-webgpu-only.md). The scene-wide cap is now 64, but only
+WebGPU consumes lights beyond 16 (selected per-cluster by proximity); WebGL2/WebGL1 still only
+ever read the first 16.

@@ -34,6 +34,23 @@ export const ToneMapping = {
 export type ToneMapping = (typeof ToneMapping)[keyof typeof ToneMapping];
 
 /**
+ * Configuration for clustered/tiled forward+ light culling -- see
+ * `docs/adr/0007-clustered-lighting-webgl2-webgpu-only.md`. WebGPU consumes the full grid;
+ * WebGL2 uses it for performance only (still reads at most 16 raw lights); WebGL1 ignores it
+ * entirely (no compute, no integer/texelFetch textures).
+ */
+export interface ClusteredLightingConfig {
+  /** Whether clustered light culling is active. Defaults to true (WebGL2/WebGPU only). */
+  enabled?: boolean;
+  /** Screen-space tile size in pixels, [width, height]. Defaults to [16, 16]. */
+  tileSize?: [number, number];
+  /** Number of logarithmically-staggered depth slices. Defaults to 24. */
+  zSlices?: number;
+  /** Maximum number of lights a single cluster cell can reference. Defaults to 32. */
+  maxLightsPerCluster?: number;
+}
+
+/**
  * Quality settings for the engine.
  */
 export interface QualityConfig {
@@ -59,6 +76,8 @@ export interface QualityConfig {
   autoDowngrade?: boolean;
   /** Maximum device pixel ratio (DPR) to use. Useful to clamp rendering resolution on 3x mobile displays. Defaults to Math.min(window.devicePixelRatio, 2). */
   maxPixelRatio?: number;
+  /** Clustered/tiled forward+ light culling settings (WebGL2/WebGPU only). */
+  clusteredLighting?: ClusteredLightingConfig;
 }
 
 /**
@@ -149,18 +168,18 @@ export interface PostProcessingEffectsConfig {
     enabled?: boolean;
     steps?: number;
   };
-  /** Simplified screen-space ambient occlusion (HBAO, not GTAO). WebGL2/WebGPU only, off by default. */
+  /** Simplified screen-space ambient occlusion (HBAO, not GTAO). WebGL/WebGPU only, off by default. */
   hbao?: {
     enabled?: boolean;
     radius?: number;
     intensity?: number;
   };
-  /** Simplified TAA (jitter + history blend, no motion vectors). WebGL2/WebGPU only, off by default. */
+  /** Simplified TAA (jitter + history blend, no motion vectors). WebGL/WebGPU only, off by default. */
   taa?: {
     enabled?: boolean;
     feedback?: number;
   };
-  /** Deliberate ghost/afterimage motion-trail effect (not anti-aliasing). WebGL2/WebGPU only, off by default. */
+  /** Deliberate ghost/afterimage motion-trail effect (not anti-aliasing). WebGL/WebGPU only, off by default. */
   motionTrail?: {
     enabled?: boolean;
     feedback?: number;

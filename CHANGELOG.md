@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.76.18] - 2026-08-20
+
+### "Divide each difficulty into as many parts as is feasible for its proper solution." - Rene Descartes
+
+- **Features:**
+  - Implemented Clustered/Tiled Forward+ Lighting (item #5 in `docs/research/aaa-engine-techniques.md`) for WebGPU and WebGL2: the camera frustum is split into a 3D grid of Clusters (16x16px tiles x 24 logarithmic depth slices by default, configurable via `quality.clusteredLighting`), and each fragment now only evaluates the point/spot lights referenced by its own cell's Per-Cell Light List instead of looping over every light in the scene. Scene-wide point/spot light cap raised 16 to 64 (`MAX_CLUSTERED_LIGHTS_PER_TYPE`) -- WebGPU consumes the full 64, WebGL2/WebGL1 still only read the first 16 (see `docs/adr/0007-clustered-lighting-webgl2-webgpu-only.md`).
+- **Architecture & Bugfixes:**
+  - WebGPU: new `ClusterCullPassGPU` compute pass (`cluster_cull.wgsl`) computes each light's screen-space + radial-distance coverage directly against `global.vp`/`global.viewPos` (no separate view matrix needed, and no view/world-space mismatch to get wrong), writing fixed-capacity-per-cluster grid+index storage buffers that `lighting.wgsl`/`lighting_pbr.wgsl` read via a Cluster lookup instead of iterating every light.
+  - WebGL2: new `WebGLClusterCullPass` runs the identical coverage formula (`lightClusterCoverage()` in the new `src/math/ClusterGrid.ts`, shared with the WebGPU compute shader) on the CPU, only visiting the cells within a light's own range rather than testing every cell against every light, and uploads the result into four new RG32UI/R32UI integer textures (WebGL2 has no 1D texture target, so they're laid out on a fixed 1024px-wide 2D texture instead). `light_calc.frag.glsl`/`light_calc_pbr.frag.glsl` now `texelFetch` the grid instead of looping 0 to 16.
+  - `PointLight`/`SpotLight`'s `applyTo()` cap moved from a hardcoded `16` to the new `MAX_CLUSTERED_LIGHTS_PER_TYPE = 64` constant on `AbstractLight`; `WebGL1Renderer`/`WebGL2Renderer` explicitly clamp their own consumption back to 16 since their raw uniform/UBO light arrays didn't grow.
+  - `AbstractWebGLRenderer._frameProjMatrix` is now `public` (was `protected`) so `WebGLClusterCullPass` -- a `WebGLRenderPass`, unlike HBAO -- can read this frame's raw projection matrix directly, since the shared pass-execute signature has no projection-matrix parameter of its own.
+- **Housekeeping & Docs:**
+  - Added `docs/adr/0007-clustered-lighting-webgl2-webgpu-only.md` (fixed-capacity-per-cluster over atomics, WebGL1 excluded, WebGL2's raw light array deliberately stays at 16) and pointed `docs/adr/0004-point-spot-light-global-cap.md` at it.
+  - `docs/research/aaa-engine-techniques.md`: item #5 marked implemented; new section records a dedicated fog/weather research pass -- current fog confirmed to be a plain analytic distance/height blend with zero light interaction, real volumetric scattering needs the same Cluster grid and is the next planned step, and a blizzard/weather-VFX comparison found the reference engines solve that as a particle-overdraw problem, not a fog one.
+  - `CONTEXT.md`: added Cluster, Clustered/Tiled Forward+ Lighting, Light Coverage, Per-Cell Light List, Culling, Broadphase/Narrowphase, Camera Strategy, Event Bus, Forge/ForgeTool, MathPool, State Data, and Zero-Allocation (Hot Path). Resolved a naming collision between the existing Context Object entry and the FSM's per-machine payload object by introducing State Data as a deliberately distinct term, and synced `docs/guides/state-machines.md`'s example/prose to match.
+  - Translated `.agents/notes/app-docs-convention.md` to English.
+  - Dropped the redundant "2" from "WebGL2/WebGPU" wherever it appeared alongside WebGPU (`.agents/AGENTS.md`, `docs/index.md`, `docs/guides/configuration.md`, `package.json`, `scripts/check-showcases.js`, and historical `CHANGELOG.md` entries); added `CLAUDE.md` as a one-line pointer to `.agents/AGENTS.md`.
+
 ## [0.76.17] - 2026-08-20
 
 ### "Save the time of the reader." - S.R. Ranganathan
@@ -1190,7 +1208,7 @@
 - **Major Feature: Multi-Backend Opaque Texture Capture (Refraction Pipeline)**:
   - Implemented real-time Framebuffer/Color-buffer capturing in `WebGPURenderer`, `WebGL2Renderer`, and `WebGL1Renderer`.
   - Added dedicated pass isolation for transparent objects. Opaque objects are rendered first, the canvas/framebuffer is captured and copied into a read-only texture (`u_opaqueMap`), and then transparent objects are drawn.
-  - Developed a cross-platform dummy-texture wrapping system to bypass standard binding limitations in WebGL2/WebGPU while utilizing the existing `RenderManifest` and pipeline infrastructure.
+  - Developed a cross-platform dummy-texture wrapping system to bypass standard binding limitations in WebGL/WebGPU while utilizing the existing `RenderManifest` and pipeline infrastructure.
 - **Advanced Glass Material (PBR + Beer's Law)**:
   - Transformed `GlassMaterial` from a simple alpha-blended material into a fully physical refractive dielectric.
   - Implemented **Screen-Space Refraction** using exact IOR (Index of Refraction) math, perturbing UV coordinates based on View Vector and Surface Normals.

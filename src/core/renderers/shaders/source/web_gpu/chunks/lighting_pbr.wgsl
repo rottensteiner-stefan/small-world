@@ -68,8 +68,22 @@ var Lo = vec3f(0.0);
     Lo += (kD * albedo / 3.14159265359 + specular) * radiance * dotNL;
 }
 
+// Clustered light lookup -- see docs/adr/0007-clustered-lighting-webgl2-webgpu-only.md and
+// lighting.wgsl (identical formula, duplicated here since this chunk has no shared-code
+// mechanism with the non-PBR lighting chunk).
+let clusterDimsU = vec3u(u32(global.clusterDims.x), u32(global.clusterDims.y), u32(global.clusterDims.z));
+let clusterCellX = min(u32(i.pos.x / global.tileSizePx.x), clusterDimsU.x - 1u);
+let clusterCellY = min(u32(i.pos.y / global.tileSizePx.y), clusterDimsU.y - 1u);
+let clusterViewDist = clamp(length(global.viewPos.xyz - i.wp), global.cameraNearFar.x, global.cameraNearFar.y);
+let clusterLogRatio = log(global.cameraNearFar.y / global.cameraNearFar.x);
+let clusterSliceF = floor(log(clusterViewDist / global.cameraNearFar.x) * f32(clusterDimsU.z) / clusterLogRatio);
+let clusterCellZ = min(u32(max(clusterSliceF, 0.0)), clusterDimsU.z - 1u);
+let clusterCellIndex = clusterCellX + clusterDimsU.x * (clusterCellY + clusterDimsU.y * clusterCellZ);
+
 // Point Lights
-for(var j=0u; j<u32(global.numPointLights); j++) {
+let pointCluster = pointClusterGrid[clusterCellIndex];
+for(var k=0u; k<pointCluster.y; k++) {
+    let j = pointClusterIndices[pointCluster.x + k];
     let lightVec = pLights[j].pos.xyz - i.wp;
     let dist = length(lightVec);
     let L = lightVec / dist;
@@ -107,7 +121,9 @@ for(var j=0u; j<u32(global.numPointLights); j++) {
 }
 
 // Spot Lights
-for(var j=0u; j<u32(global.numSpotLights); j++) {
+let spotCluster = spotClusterGrid[clusterCellIndex];
+for(var k=0u; k<spotCluster.y; k++) {
+    let j = spotClusterIndices[spotCluster.x + k];
     let lightVec = sLights[j].pos.xyz - i.wp;
     let dist = length(lightVec);
     let L = lightVec / dist;

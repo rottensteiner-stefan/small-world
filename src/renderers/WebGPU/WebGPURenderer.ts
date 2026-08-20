@@ -10,6 +10,7 @@ import {
   Scene,
   TextureArray,
   Texture,
+  MAX_CLUSTERED_LIGHTS_PER_TYPE,
 } from "../../core/index.js";
 import { RenderTarget, RenderTargetCube } from "../../core/textures/index.js";
 import {
@@ -18,7 +19,17 @@ import {
   LightDataInterface,
 } from "../../interfaces/index.js";
 
-import { MathPool, Vector3D, Matrix4 } from "../../math/index.js";
+import {
+  MathPool,
+  Vector3D,
+  Matrix4,
+  computeClusterCounts,
+  ClusterGridDims,
+  DEFAULT_CLUSTER_TILE_SIZE,
+  DEFAULT_CLUSTER_Z_SLICES,
+  DEFAULT_MAX_LIGHTS_PER_CLUSTER,
+} from "../../math/index.js";
+import clusterCullWGSL from "../../core/renderers/shaders/source/web_gpu/compute/cluster_cull.wgsl?raw";
 import {
   BlendingMode,
   CullMode,
@@ -35,6 +46,7 @@ import {
   PostProcessPass,
   CascadedShadowPassGPU,
   SpotShadowPassGPU,
+  ClusterCullPassGPU,
 } from "../passes/index.js";
 import { BloomPassGPU, AOPassGPU, HistoryBlendPassGPU } from "../post/passes/index.js";
 import { UniformPacker } from "../../core/renderers/shaders/index.js";
@@ -266,11 +278,22 @@ export class WebGPURenderer extends AbstractRenderer {
   private _lastKnownTextures: WeakMap<Object3D, Record<string, Texture | CubeTexture | undefined>> =
     new WeakMap();
 
-  public _scratchGlobalBufferData = new Float32Array(204);
+  // 212 floats: GlobalUniforms grew by 8 floats (resolution/projScale/tileSizePx/clusterDims)
+  // for clustered light culling -- see docs/adr/0007-clustered-lighting-webgl2-webgpu-only.md.
+  public _scratchGlobalBufferData = new Float32Array(212);
   protected _scratchPointLightData = new Float32Array(32); // Max 4 lights
   protected _scratchSpotLightData = new Float32Array(64); // Max 4 lights
   protected _scratchAreaLightData = new Float32Array(96); // Max 4 lights
   protected _scratchObjBufferData = new Float32Array(256 / 4); // Max 256 bytes
+
+  /** Clustered light grid dimensions for the current canvas size, see `setSize()`. */
+  public _clusterDims: ClusterGridDims = { x: 1, y: 1, z: 1 };
+  public _clusterMaxLightsPerCluster = 1;
+  public _pointClusterGridBuffer!: GPUBuffer;
+  public _pointClusterIndexBuffer!: GPUBuffer;
+  public _spotClusterGridBuffer!: GPUBuffer;
+  public _spotClusterIndexBuffer!: GPUBuffer;
+  public _clusterCullPipeline!: GPUComputePipeline;
 
   public _depthTexture!: GPUTexture;
 
@@ -444,6 +467,7 @@ export class WebGPURenderer extends AbstractRenderer {
     this.setSize(canvas.clientWidth, canvas.clientHeight);
 
     this._passes = [
+      new ClusterCullPassGPU(),
       new CascadedShadowPassGPU(),
       new SpotShadowPassGPU(),
       new MainRenderPass(),
@@ -597,7 +621,9 @@ export class WebGPURenderer extends AbstractRenderer {
 
   private _initGlobalBuffers(): void {
     this._globalUniformBuffer = this._device!.createBuffer({
-      size: 816,
+      // 848 bytes: GlobalUniforms grew by 40 bytes (resolution/projScale/tileSizePx/clusterDims)
+      // for clustered light culling -- see docs/adr/0007-clustered-lighting-webgl2-webgpu-only.md.
+      size: 848,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
     this._pointLightBuffer = this._device!.createBuffer({
@@ -617,11 +643,19 @@ export class WebGPURenderer extends AbstractRenderer {
       entries: [
         {
           binding: 0,
-          visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+          visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
           buffer: { type: "uniform" },
         },
-        { binding: 1, visibility: GPUShaderStage.FRAGMENT, buffer: { type: "read-only-storage" } },
-        { binding: 2, visibility: GPUShaderStage.FRAGMENT, buffer: { type: "read-only-storage" } },
+        {
+          binding: 1,
+          visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
+          buffer: { type: "read-only-storage" },
+        },
+        {
+          binding: 2,
+          visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
+          buffer: { type: "read-only-storage" },
+        },
         { binding: 3, visibility: GPUShaderStage.FRAGMENT, buffer: { type: "read-only-storage" } },
         { binding: 4, visibility: GPUShaderStage.FRAGMENT, texture: { viewDimension: "cube" } },
         { binding: 5, visibility: GPUShaderStage.FRAGMENT, texture: { viewDimension: "cube" } },
@@ -638,10 +672,42 @@ export class WebGPURenderer extends AbstractRenderer {
           texture: { viewDimension: "2d-array", sampleType: "depth" },
         },
         { binding: 10, visibility: GPUShaderStage.FRAGMENT, sampler: { type: "comparison" } },
+        // Clustered light culling (see docs/adr/0007-clustered-lighting-webgl2-webgpu-only.md):
+        // ClusterCullPassGPU (compute) writes these, the main fragment shader only reads them.
+        {
+          binding: 11,
+          visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
+          buffer: { type: "storage" },
+        },
+        {
+          binding: 12,
+          visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
+          buffer: { type: "storage" },
+        },
+        {
+          binding: 13,
+          visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
+          buffer: { type: "storage" },
+        },
+        {
+          binding: 14,
+          visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
+          buffer: { type: "storage" },
+        },
       ],
     });
 
-    this._globalBindGroup = this._createGlobalBindGroup();
+    // _allocateClusterBuffers() below already creates the initial _globalBindGroup.
+    this._allocateClusterBuffers({ x: 1, y: 1, z: 1 }, 1);
+
+    const clusterCullModule = this._device!.createShaderModule({
+      code:
+        (ShaderRegistry.instance.getChunk("WGSL_STRUCTS", "wgsl") ?? "") + "\n" + clusterCullWGSL,
+    });
+    this._clusterCullPipeline = this._device!.createComputePipeline({
+      layout: this._device!.createPipelineLayout({ bindGroupLayouts: [this._globalBGL] }),
+      compute: { module: clusterCullModule, entryPoint: "cullLights" },
+    });
 
     this._objectBGL = this._device!.createBindGroupLayout({
       entries: [
@@ -684,8 +750,59 @@ export class WebGPURenderer extends AbstractRenderer {
         { binding: 8, resource: this._defaultDirShadowTexView },
         { binding: 9, resource: this._defaultSpotShadowTexView },
         { binding: 10, resource: this._shadowSampler },
+        { binding: 11, resource: { buffer: this._pointClusterGridBuffer } },
+        { binding: 12, resource: { buffer: this._pointClusterIndexBuffer } },
+        { binding: 13, resource: { buffer: this._spotClusterGridBuffer } },
+        { binding: 14, resource: { buffer: this._spotClusterIndexBuffer } },
       ],
     });
+  }
+
+  /**
+   * (Re)allocates the clustered-light-culling storage buffers for the given grid size and
+   * rebuilds the global bind group to reference them -- see
+   * docs/adr/0007-clustered-lighting-webgl2-webgpu-only.md. Resetting `_currentIrradianceMap`
+   * etc. forces `_updateGlobalBuffers()` to rebuild the bind group again on the next frame with
+   * the scene's real IBL textures (this method has no `Scene` to pull them from itself).
+   * @param dims Cluster grid dimensions.
+   * @param maxLightsPerCluster Maximum number of lights a single cluster cell can reference.
+   */
+  private _allocateClusterBuffers(dims: ClusterGridDims, maxLightsPerCluster: number): void {
+    const numClusters = Math.max(1, dims.x * dims.y * dims.z);
+    const gridByteLength = numClusters * 8; // vec2u
+    const indexByteLength = numClusters * Math.max(1, maxLightsPerCluster) * 4; // u32
+
+    this._pointClusterGridBuffer?.destroy();
+    this._pointClusterIndexBuffer?.destroy();
+    this._spotClusterGridBuffer?.destroy();
+    this._spotClusterIndexBuffer?.destroy();
+
+    this._pointClusterGridBuffer = this._device!.createBuffer({
+      size: gridByteLength,
+      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+    });
+    this._pointClusterIndexBuffer = this._device!.createBuffer({
+      size: indexByteLength,
+      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+    });
+    this._spotClusterGridBuffer = this._device!.createBuffer({
+      size: gridByteLength,
+      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+    });
+    this._spotClusterIndexBuffer = this._device!.createBuffer({
+      size: indexByteLength,
+      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+    });
+
+    this._clusterDims = dims;
+    this._clusterMaxLightsPerCluster = Math.max(1, maxLightsPerCluster);
+
+    if (this._globalBGL) {
+      this._globalBindGroup = this._createGlobalBindGroup();
+      this._currentIrradianceMap = undefined;
+      this._currentPrefilterMap = undefined;
+      this._currentBrdfLUT = undefined;
+    }
   }
 
   /**
@@ -1190,7 +1307,7 @@ export class WebGPURenderer extends AbstractRenderer {
 
     this._frameCount++;
     const lights = this.extractLights(scene);
-    this._updateGlobalBuffers(vp, camPos, lights, scene, near, far);
+    this._updateGlobalBuffers(vp, camPos, lights, scene, near, far, projMatrix);
     const ce = this._device.createCommandEncoder();
 
     if (
@@ -1945,6 +2062,7 @@ export class WebGPURenderer extends AbstractRenderer {
     scene: Scene,
     near: number = 0.1,
     far: number = 1000,
+    projMatrix?: Float32Array,
   ): void {
     if (
       this._currentIrradianceMap !== scene.irradianceMap ||
@@ -2029,6 +2147,21 @@ export class WebGPURenderer extends AbstractRenderer {
 
     gData[200] = near;
     gData[201] = far;
+
+    // Clustered light culling metadata (see docs/adr/0007-clustered-lighting-webgl2-webgpu-only.md).
+    // resolution/tileSizePx/clusterDims must exactly match what ClusterCullPassGPU used to build
+    // pointClusterGrid/spotClusterGrid this frame -- see setSize()/_allocateClusterBuffers().
+    gData[202] = this._context.canvas.width;
+    gData[203] = this._context.canvas.height;
+    gData[204] = projMatrix?.[0] ?? 1.0;
+    gData[205] = projMatrix?.[5] ?? 1.0;
+    const tileSizePx = this._quality.clusteredLighting?.tileSize ?? DEFAULT_CLUSTER_TILE_SIZE;
+    gData[206] = tileSizePx[0];
+    gData[207] = tileSizePx[1];
+    gData[208] = this._clusterDims.x;
+    gData[209] = this._clusterDims.y;
+    gData[210] = this._clusterDims.z;
+    gData[211] = this._clusterMaxLightsPerCluster;
 
     // Default spot shadow values
     for (let i = 0; i < 4; i++) {
@@ -2131,6 +2264,33 @@ export class WebGPURenderer extends AbstractRenderer {
       this._hdrTexture.destroy();
       this._hdrTexture = undefined;
       this._hdrTextureView = undefined;
+    }
+
+    // Clustered light culling grid depends on canvas resolution -- see
+    // docs/adr/0007-clustered-lighting-webgl2-webgpu-only.md. `enabled: false` collapses the
+    // grid to a single cluster covering the whole frustum, which is equivalent to the old
+    // unclustered "iterate every light" behavior without needing a separate shader code path.
+    const clusterConfig = this._quality.clusteredLighting;
+    const dims =
+      clusterConfig?.enabled === false
+        ? { x: 1, y: 1, z: 1 }
+        : computeClusterCounts(
+            this._context.canvas.width,
+            this._context.canvas.height,
+            clusterConfig?.tileSize ?? DEFAULT_CLUSTER_TILE_SIZE,
+            clusterConfig?.zSlices ?? DEFAULT_CLUSTER_Z_SLICES,
+          );
+    const maxLightsPerCluster =
+      clusterConfig?.enabled === false
+        ? MAX_CLUSTERED_LIGHTS_PER_TYPE
+        : (clusterConfig?.maxLightsPerCluster ?? DEFAULT_MAX_LIGHTS_PER_CLUSTER);
+    if (
+      dims.x !== this._clusterDims.x ||
+      dims.y !== this._clusterDims.y ||
+      dims.z !== this._clusterDims.z ||
+      maxLightsPerCluster !== this._clusterMaxLightsPerCluster
+    ) {
+      this._allocateClusterBuffers(dims, maxLightsPerCluster);
     }
   }
 

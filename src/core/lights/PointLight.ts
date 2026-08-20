@@ -1,4 +1,4 @@
-import { AbstractLight, LightOptions } from "./AbstractLight.js";
+import { AbstractLight, LightOptions, MAX_CLUSTERED_LIGHTS_PER_TYPE } from "./AbstractLight.js";
 import { LightType } from "../../enums/index.js";
 import { LightDataInterface } from "../../interfaces/index.js";
 
@@ -39,7 +39,7 @@ export class PointLight extends AbstractLight {
   /** @inheritdoc */
   public override applyTo(data: LightDataInterface): void {
     // Global cap, not per-object nearest-N selection -- see docs/adr/0004-point-spot-light-global-cap.md.
-    if (16 > data.pLights.length) {
+    if (MAX_CLUSTERED_LIGHTS_PER_TYPE > data.pLights.length) {
       data.pLights.push(this);
     }
   }

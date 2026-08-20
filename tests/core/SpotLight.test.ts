@@ -1,5 +1,21 @@
 import { SpotLight } from "../../src/core/lights/SpotLight.js";
-import { PerspectiveProjection } from "../../src/math/index.js";
+import { MAX_CLUSTERED_LIGHTS_PER_TYPE } from "../../src/core/lights/AbstractLight.js";
+import { PerspectiveProjection , Vector3D } from "../../src/math/index.js";
+import { LightDataInterface } from "../../src/interfaces/index.js";
+import { Color } from "../../src/core/colors/index.js";
+
+function makeEmptyLightData(): LightDataInterface {
+  return {
+    aCol: new Color(0, 0, 0),
+    aIntensity: 0,
+    dDir: new Vector3D(0, -1, 0),
+    dCol: new Color(0, 0, 0),
+    dIntensity: 0,
+    pLights: [],
+    sLights: [],
+    aLights: [],
+  };
+}
 
 describe("SpotLight", () => {
   it("should initialize with default properties", () => {
@@ -62,5 +78,20 @@ describe("SpotLight", () => {
     expect(cam.up.x).toBeCloseTo(0);
     expect(cam.up.y).toBeCloseTo(1);
     expect(cam.up.z).toBeCloseTo(0);
+  });
+
+  it("pushes itself into the scene-wide light list", () => {
+    const light = new SpotLight();
+    const data = makeEmptyLightData();
+    light.applyTo(data);
+    expect(data.sLights).toEqual([light]);
+  });
+
+  it(`caps the scene-wide list at ${MAX_CLUSTERED_LIGHTS_PER_TYPE}`, () => {
+    const data = makeEmptyLightData();
+    for (let i = 0; i < MAX_CLUSTERED_LIGHTS_PER_TYPE + 1; i++) {
+      new SpotLight().applyTo(data);
+    }
+    expect(data.sLights.length).toBe(MAX_CLUSTERED_LIGHTS_PER_TYPE);
   });
 });

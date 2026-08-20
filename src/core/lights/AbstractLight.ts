@@ -5,6 +5,13 @@ import { LightDataInterface } from "../../interfaces/index.js";
 import { Camera } from "../Camera.js";
 
 /**
+ * Global scene-wide cap on pushed point/spot lights per type -- see
+ * docs/adr/0004-point-spot-light-global-cap.md and docs/adr/0007-clustered-lighting-webgl2-webgpu-only.md.
+ * WebGPU consumes up to this many; WebGL2/WebGL1 currently only read the first 16.
+ */
+export const MAX_CLUSTERED_LIGHTS_PER_TYPE = 64;
+
+/**
  * Configuration options for lights.
  */
 export interface LightOptions {

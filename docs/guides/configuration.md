@@ -96,12 +96,12 @@ default — you don't need to specify fields you're not changing.
 - **`vignette`** / **`grain`** / **`quantize`** — classic screen darkening at the edges,
   film-grain noise, and color-banding/posterization respectively.
 - **`hbao`** — screen-space ambient occlusion (a simplified HBAO, not GTAO — see
-  `docs/research/aaa-engine-techniques.md` for the exact scope). WebGL2/WebGPU only.
+  `docs/research/aaa-engine-techniques.md` for the exact scope). WebGL/WebGPU only.
 - **`taa`** — simplified temporal anti-aliasing: sub-pixel camera jitter + an exponential
   history blend, no motion-vector reprojection. Smooths edges in static/slow scenes; visibly
-  ghosts under fast movement. WebGL2/WebGPU only.
+  ghosts under fast movement. WebGL/WebGPU only.
 - **`motionTrail`** — a *deliberate* ghost/afterimage effect (not anti-aliasing), reusing the
-  same history-blend mechanism as `taa` at a much higher feedback value. WebGL2/WebGPU only.
+  same history-blend mechanism as `taa` at a much higher feedback value. WebGL/WebGPU only.
 
 ### Projections & Audio
 

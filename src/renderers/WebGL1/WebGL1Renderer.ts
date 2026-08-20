@@ -586,9 +586,12 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
     if (uDirLightDir) this.gl.uniform3f(uDirLightDir, lights.dDir.x, lights.dDir.y, lights.dDir.z);
 
     // --- Bind Lights ---
+    // WebGL1 has no clustering (see docs/adr/0007-clustered-lighting-webgl2-webgpu-only.md) and only
+    // ever had 16 uniform slots -- clamp explicitly now that the scene-wide cap is 64.
+    const numPointLights = Math.min(lights.pLights.length, 16);
     const uNumPointLights = u.get("u_numPointLights");
-    if (uNumPointLights) this.gl.uniform1i(uNumPointLights, lights.pLights.length);
-    for (let i = 0; i < lights.pLights.length; i++) {
+    if (uNumPointLights) this.gl.uniform1i(uNumPointLights, numPointLights);
+    for (let i = 0; i < numPointLights; i++) {
       const pl = lights.pLights[i]!;
       const loc = cache.pointLightLocs[i];
       if (loc?.pos)

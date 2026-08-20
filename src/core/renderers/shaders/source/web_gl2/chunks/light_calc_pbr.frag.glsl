@@ -148,9 +148,14 @@ vec3 Lo = vec3(0.0);
     Lo += (kD * albedo / 3.14159265359 + specular) * radiance * dotNL;
 }
 
+// Clustered light lookup -- see docs/adr/0007-clustered-lighting-webgl2-webgpu-only.md.
+int clusterCellIndex = computeClusterCellIndex(u_viewPos, v_worldPos, u_clusterDims, u_cameraNearFar, u_tileSizePx);
+
 // -- Point Lights --
-for(int i = 0; i < 16; i++) {
-    if (i >= u_numPointLights) break;
+uvec2 pointCluster = fetchClusterGridEntry(u_pointClusterGrid, clusterCellIndex);
+for(int k = 0; k < CLUSTER_MAX_LIGHTS; k++) {
+    if (k >= int(pointCluster.y)) break;
+    int i = int(fetchClusterLightIndex(u_pointClusterIndices, int(pointCluster.x) + k));
     vec3 lightVec = u_pointLights[i].pos - v_worldPos;
     float dist = length(lightVec);
     vec3 L = normalize(lightVec);
@@ -189,8 +194,10 @@ for(int i = 0; i < 16; i++) {
 }
 
 // -- Spot Lights --
-for(int i = 0; i < 16; i++) {
-    if (i >= u_numSpotLights) break;
+uvec2 spotCluster = fetchClusterGridEntry(u_spotClusterGrid, clusterCellIndex);
+for(int k = 0; k < CLUSTER_MAX_LIGHTS; k++) {
+    if (k >= int(spotCluster.y)) break;
+    int i = int(fetchClusterLightIndex(u_spotClusterIndices, int(spotCluster.x) + k));
     vec3 lightVec = u_spotLights[i].pos - v_worldPos;
     float dist = length(lightVec);
     vec3 L = normalize(lightVec);
@@ -211,6 +218,8 @@ for(int i = 0; i < 16; i++) {
         float attenuation = distanceAttenuation * intensity;
         
         // Shadow Calculation
+        // Pre-existing constraint, unrelated to clustering: only the first 4 spot lights (by
+        // scene traversal order) ever get a real shadow slot -- see light_calc.frag.glsl.
         float shadow = 1.0;
         if (u_spotShadowInfo[i].z > 0.5) {
             vec3 projCoords = v_spotLightSpacePos[i].xyz / v_spotLightSpacePos[i].w;

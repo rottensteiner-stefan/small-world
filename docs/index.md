@@ -4,7 +4,7 @@ layout: home
 hero:
   name: "Small World"
   text: "3D Engine"
-  tagline: "High-performance hybrid WebGL2/WebGPU rendering pipeline built in strict TypeScript."
+  tagline: "High-performance hybrid WebGL/WebGPU rendering pipeline built in strict TypeScript."
   actions:
     - theme: brand
       text: Get Started

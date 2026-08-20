@@ -238,7 +238,7 @@ async function run() {
     acceptInsecureCerts: true,
     args: [
       '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--ignore-certificate-errors',
-      // Required for headless WebGL2/WebGPU to actually initialize via software rendering --
+      // Required for headless WebGL/WebGPU to actually initialize via software rendering --
       // without these, WebGPU silently reports no adapter and every showcase falls back to
       // WebGL2/1 regardless of which `?rendererType=` was requested.
       '--use-gl=angle', '--use-angle=swiftshader', '--enable-webgl', '--enable-unsafe-swiftshader',

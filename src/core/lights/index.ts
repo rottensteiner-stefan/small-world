@@ -1,4 +1,4 @@
-export { AbstractLight } from "./AbstractLight.js";
+export { AbstractLight, MAX_CLUSTERED_LIGHTS_PER_TYPE } from "./AbstractLight.js";
 export * from "./AmbientLight.js";
 export * from "./AreaLight.js";
 export * from "./DirectionalLight.js";

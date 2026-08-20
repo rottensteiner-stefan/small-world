@@ -21,10 +21,12 @@ export abstract class AbstractWebGLRenderer extends AbstractRenderer {
 
   /** This frame's camera near/far and raw projection matrix, stashed here so `flushPostProcess()`
    * (called later, from a pass with no camera parameters of its own) can hand them to HBAO for
-   * reconstructing view-space position from the opaque depth buffer. */
+   * reconstructing view-space position from the opaque depth buffer. `_frameProjMatrix` is also
+   * read directly by `WebGLClusterCullPass` (a `WebGLRenderPass`, unlike HBAO) since the shared
+   * `WebGLRenderPass.execute()` signature has no projection-matrix parameter of its own. */
   protected _frameNear: number = 0.1;
   protected _frameFar: number = 1000;
-  protected _frameProjMatrix: Float32Array | undefined = undefined;
+  public _frameProjMatrix: Float32Array | undefined = undefined;
 
   public addPass(pass: WebGLRenderPass): void {
     this._passes.push(pass);
