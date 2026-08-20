@@ -10,6 +10,22 @@ import { DeviceCaps, DeviceFeature } from "../core/DeviceCaps.js";
  */
 export class RendererFactory {
   /**
+   * Looks up this backend's configured context attributes, if any.
+   * `config.renderer` is keyed by a fixed set of backend names, but `type` here can be an
+   * arbitrary string (see `RendererType | string` below), so the lookup goes through an
+   * index-signature cast rather than the named-key type.
+   */
+  private static _getBackendAttributes(
+    config: EngineOptions | undefined,
+    type: RendererType | string,
+  ): Record<string, unknown> | undefined {
+    const renderer = config?.renderer as
+      Record<string, { attributes?: Record<string, unknown> } | undefined> | undefined;
+    const backend = renderer?.[type];
+    return backend?.attributes ? { ...backend.attributes } : undefined;
+  }
+
+  /**
    * Creates a new renderer instance based on the given type.
    */
   public static async create(
@@ -58,14 +74,8 @@ export class RendererFactory {
         break;
     }
 
-    let attributes: Record<string, unknown> | undefined = undefined;
-    if (config?.renderer) {
-      const searchType = fallbackToWebGL2 ? RendererType.WEB_GL2 : actualType;
-      const match = config.renderer.find((rc) => rc.type === searchType);
-      if (match) {
-        attributes = { ...match.attributes };
-      }
-    }
+    const searchType = fallbackToWebGL2 ? RendererType.WEB_GL2 : actualType;
+    let attributes = RendererFactory._getBackendAttributes(config, searchType);
 
     if (config?.quality?.msaa !== undefined) {
       attributes = attributes || {};
@@ -82,13 +92,10 @@ export class RendererFactory {
         renderer = new WebGL2Renderer();
 
         // Re-evaluate attributes for WebGL2
-        let fallbackAttributes: Record<string, unknown> | undefined = undefined;
-        if (config?.renderer) {
-          const match = config.renderer.find((rc) => rc.type === RendererType.WEB_GL2);
-          if (match) {
-            fallbackAttributes = { ...match.attributes };
-          }
-        }
+        let fallbackAttributes = RendererFactory._getBackendAttributes(
+          config,
+          RendererType.WEB_GL2,
+        );
         if (config?.quality?.msaa !== undefined) {
           fallbackAttributes = fallbackAttributes || {};
           if (fallbackAttributes["antialias"] === undefined) {

@@ -3,11 +3,21 @@ import { AbstractProjection } from "../math/projections/index.js";
 /**
  * Configuration for a single renderer backend.
  */
-export interface EngineRendererConfig {
-  /** The type of the renderer (e.g., WEB_GL2, WEB_GPU). */
-  type: RendererType | string;
+export interface RendererBackendConfig {
   /** Context attributes passed to getContext(). */
   attributes?: Record<string, unknown>;
+}
+
+/**
+ * Per-backend renderer settings, keyed by backend instead of a `{ type, ... }` array: the
+ * actual fallback order (WebGPU -> WebGL2 -> WebGL1) is hardcoded in `RendererFactory`, not
+ * driven by this config at all, so an array here would only have implied an ordering control
+ * that doesn't exist -- same reasoning as `PostProcessingConfig.effects`.
+ */
+export interface RendererConfig {
+  WEB_GPU?: RendererBackendConfig;
+  WEB_GL2?: RendererBackendConfig;
+  WEB_GL1?: RendererBackendConfig;
 }
 
 /**
@@ -86,8 +96,8 @@ export interface EngineOptions {
   rendererType?: RendererType;
   /** The behavior of horizontal input keys (A/D). Defaults to TANK. */
   inputMode?: InputMode;
-  /** Detailed renderer configurations. */
-  renderer?: EngineRendererConfig[];
+  /** Per-backend renderer configuration, keyed by backend (`WEB_GPU`/`WEB_GL2`/`WEB_GL1`). */
+  renderer?: RendererConfig;
   /** Optional quality settings. */
   quality?: QualityConfig;
   /** Optional post-processing settings. */

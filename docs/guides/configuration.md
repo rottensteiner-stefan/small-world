@@ -35,16 +35,19 @@ The `EngineOptions` object defines the entire state of the core engine. Below ar
 - `fullscreen` (boolean): Whether the canvas should automatically scale to fit the window.
 - `gravity` (number[]): A 3-element array defining the physics gravity vector (e.g. `[0, -9.81, 0]`).
 
-### Renderers Array
+### Renderer Backend Attributes (`renderer`)
 
-A list of fallback renderers if the preferred `rendererType` is not supported.
+Per-backend context attributes (passed to `getContext()`), keyed by backend name — **not** a
+fallback-order list. The actual fallback chain (WebGPU → WebGL2 → WebGL1 when a backend isn't
+supported) is fixed inside the engine and doesn't depend on this object at all, so there's no
+`type`-tagged array here the way there might otherwise seem to need to be.
 
 ```json
-"renderers": [
-  { "type": "WEB_GPU" },
-  { "type": "WEB_GL2", "attributes": { "antialias": false } },
-  { "type": "WEB_GL1" }
-]
+"renderer": {
+  "WEB_GPU": {},
+  "WEB_GL2": { "attributes": { "antialias": false } },
+  "WEB_GL1": {}
+}
 ```
 
 ### Quality Options (`quality`)

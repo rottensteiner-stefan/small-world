@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.76.15] - 2026-08-20
+
+### "Form ever follows function." - Louis Sullivan
+
+- **Architecture & Bugfixes:**
+  - Restructured `EngineOptions.renderer` from a `{ type, attributes }[]` array to a `RendererConfig` object keyed by backend name (`WEB_GPU`/`WEB_GL2`/`WEB_GL1`). Same reasoning as `PostProcessingConfig.effects` last version: the array's order was silently ignored — the actual WebGPU → WebGL2 → WebGL1 fallback chain is hardcoded in `RendererFactory`, and the array was only ever looked up by `.find(rc => rc.type === ...)`, i.e. a keyed lookup wearing an ordered-list costume. `RendererFactory` gained a small `_getBackendAttributes()` helper replacing the two duplicated `.find()` call sites.
+- **Housekeeping & Docs:**
+  - Fixed `docs/guides/configuration.md`'s renderer section, which also had a stale field name (`"renderers"`, plural) that never matched the actual `renderer` (singular) field.
+
 ## [0.76.14] - 2026-08-20
 
 ### "The map is not the territory." - Alfred Korzybski
