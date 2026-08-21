@@ -245,13 +245,6 @@ This document serves to record external sources, algorithms, mathematical deriva
 - **Source:** Original assets by **id Software** (DOOM, 1993). 
 - **Usage:** Used in the YAD showcase for authentic wall textures, flats, and weapon/enemy sprites. Thank you to the DOOM community and id Software for making these legendary assets available for educational and nostalgic projects!
 
-### Spaceship Ambience (Disc Wars Background Music)
-
-- **File:** `showcases/disc-wars/assets/sounds/spaceship_ambience.mp3`
-- **Authors/Gurus:** Placidplace
-- **Source:** ["spaceship ambience with effects" on Pixabay](https://pixabay.com/de/sound-effects/film-spezialeffekte-spaceship-ambience-with-effects-21420/)
-- **Usage:** Used as the looping background ambience in the DISC WARS showcase, released under the free Pixabay Content License. Thank you to Placidplace for sharing this atmospheric track!
-
 ## Shaders & Procedural Art
 
 ### Star Nest (Volumetric Cosmic Raymarching)

@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.76.22] - 2026-08-21
+
+### "It is not the daily increase but daily decrease. Hack away at the inessentials." - Bruce Lee
+
+- **Architecture & Bugfixes:**
+  - Removed the Disc Wars app entirely (`src/apps/disc-wars/` and `showcases/disc-wars/`, including its `GridWallMaterial`, maze generator, level builder, HUD, and the `spaceship_ambience.mp3` ambience track) to clear space for a new direction; its standalone Vite build entry (`discWars` in `vite.config.ts`) is removed along with it.
+- **Housekeeping & Docs:**
+  - Dropped the resulting dead references: the Disc Wars link in `public/index.html`, its now-orphaned Pixabay "Spaceship Ambience" credit in `REFERENCES.md`, and its row in `.agents/notes/app-docs-convention.md`'s app-log table.
+
 ## [0.76.21] - 2026-08-20
 
 ### "Chance favors the prepared mind." - Louis Pasteur

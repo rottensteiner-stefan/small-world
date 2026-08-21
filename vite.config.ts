@@ -148,7 +148,6 @@ export default defineConfig({
         showcase26: resolve(import.meta.dirname, "showcases/26/index.html"),
         yad: resolve(import.meta.dirname, "showcases/yad/index.html"),
         neonLabyrinth: resolve(import.meta.dirname, "showcases/neon-labyrinth/index.html"),
-        discWars: resolve(import.meta.dirname, "showcases/disc-wars/index.html"),
         lightCycleArena: resolve(import.meta.dirname, "showcases/light-cycle-arena/index.html"),
         pbrgen: resolve(import.meta.dirname, "public/tools/pbr-gen.html"),
         iblgen: resolve(import.meta.dirname, "public/tools/ibl-gen.html"),
