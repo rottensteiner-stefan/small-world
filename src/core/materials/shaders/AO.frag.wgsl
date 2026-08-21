@@ -24,7 +24,7 @@ fn reconstructViewPos(uv: vec2f, linearZ: f32) -> vec3f {
     return vec3f(ndc.x * linearZ / u.projScaleX, ndc.y * linearZ / u.projScaleY, -linearZ);
 }
 
-@group(0) @binding(2) var outAO: texture_storage_2d<r8unorm, write>;
+@group(0) @binding(2) var outAO: texture_storage_2d<rgba8unorm, write>;
 
 fn computeHBAO(pixelCoord: vec2i, dims: vec2i) -> f32 {
     let maxCoord = dims - vec2i(1, 1);

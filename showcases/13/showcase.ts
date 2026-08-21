@@ -12,13 +12,19 @@ import {
   CubeTexture,
   BloomElement,
   StandardMaterial,
+  SpotLight,
+  Vector3D,
 } from "../../src/index.js";
 import { AbstractShowcase } from "../../src/core/index.js";
 import { Cube } from "../../src/geometry/Cube.js";
+import { Cylinder } from "../../src/geometry/Cylinder.js";
 import { SkyboxMaterial } from "../../src/core/materials/SkyboxMaterial.js";
 import { GltfLoader } from "../../src/loaders/GltfLoader.js";
+
 class Showcase13 extends AbstractShowcase {
   private _helmet?: Object3D;
+  private _keySpotLight?: SpotLight;
+  private _time: number = 0;
 
   protected override async setupScene(): Promise<void> {
     // Post-Processing is nice for PBR
@@ -45,7 +51,7 @@ class Showcase13 extends AbstractShowcase {
     }
 
     this.camera.setStrategy(CameraStrategyType.FPS);
-    this.camera.position.set(0, 0, 3);
+    this.camera.position.set(0, 0.3, 3);
 
     const fpsController = new FPSController({
       input: this.input,
@@ -56,27 +62,45 @@ class Showcase13 extends AbstractShowcase {
     });
     this.camera.addBehavior(fpsController);
 
-    // Setup Lights to showcase PBR
+    // Setup Lights to showcase PBR and dramatic shadows
     const ambientLight = new AmbientLight({
-      color: new Color(1.0, 1.0, 1.0),
-      intensity: 0.2, // Low ambient to let directional lights create contrast
+      color: new Color(0.1, 0.12, 0.15),
+      intensity: 0.25, // Low ambient to let shadows pop with high contrast
     });
     this.scene.add(ambientLight);
 
     const mainLight = new DirectionalLight({
       color: new Color(1.0, 0.95, 0.9),
-      intensity: 2.0, // Bright light for metallic reflections
+      intensity: 1.5,
     });
-    mainLight.position.set(5, 5, 5);
-    mainLight.direction.set(-1, -1, -1);
+    mainLight.position.set(5, 8, 5);
+    mainLight.direction.set(-1, -1.5, -1);
+    mainLight.castShadow = true;
+    mainLight.shadowBias = 0.003;
     this.scene.add(mainLight);
 
-    const fillLight = new DirectionalLight({
-      color: new Color(0.5, 0.6, 1.0), // Blueish fill light
-      intensity: 0.8,
+    // Studio Key Spotlight for crisp contour shadows
+    const keySpotLight = new SpotLight({
+      color: new Color(1.0, 0.85, 0.7),
+      intensity: 4.0,
+      direction: new Vector3D(0, -1, -0.5),
+      angle: Math.PI / 4,
+      penumbra: 0.3,
+      distance: 20.0,
     });
-    fillLight.position.set(-5, 0, 0);
-    fillLight.direction.set(1, 0, 0);
+    keySpotLight.position.set(0, 4, 2);
+    keySpotLight.castShadow = true;
+    keySpotLight.shadowResolution = 2048;
+    keySpotLight.shadowBias = 0.004;
+    this._keySpotLight = keySpotLight;
+    this.scene.add(keySpotLight);
+
+    const fillLight = new DirectionalLight({
+      color: new Color(0.3, 0.5, 0.8), // Soft blue rim/fill light
+      intensity: 0.5,
+    });
+    fillLight.position.set(-5, 2, -2);
+    fillLight.direction.set(1, -0.4, 0.5);
     this.scene.add(fillLight);
 
     // Load an environment map for reflections
@@ -96,6 +120,41 @@ class Showcase13 extends AbstractShowcase {
       console.warn("Could not load envmap:", e);
     }
 
+    // Exhibition Pedestal (Receives self & cast shadows from the helmet)
+    const pedestal = new Object3D("ExhibitionPedestal");
+    pedestal.geometry = new Cylinder({
+      radiusTop: 0.8,
+      radiusBottom: 0.9,
+      height: 1.6,
+      radialSegments: 48,
+    }).getGeometryData();
+    pedestal.material = new StandardMaterial({
+      color: new Color(0.12, 0.12, 0.14),
+      roughness: 0.35,
+      metallic: 0.8,
+      envMap: envTexture,
+    });
+    pedestal.position.set(0, -1.5, 0);
+    pedestal.castShadow = true;
+    this.scene.add(pedestal);
+
+    // Studio Ground Floor
+    const ground = new Object3D("StudioFloor");
+    ground.geometry = new Cylinder({
+      radiusTop: 12.0,
+      radiusBottom: 12.0,
+      height: 0.1,
+      radialSegments: 64,
+    }).getGeometryData();
+    ground.material = new StandardMaterial({
+      color: new Color(0.06, 0.07, 0.08),
+      roughness: 0.6,
+      metallic: 0.2,
+      envMap: envTexture,
+    });
+    ground.position.set(0, -2.35, 0);
+    this.scene.add(ground);
+
     // Load the GLTF Model
     try {
       const gltfLoader = new GltfLoader({ basePath: "./assets/" });
@@ -103,21 +162,18 @@ class Showcase13 extends AbstractShowcase {
 
       helmet.position.set(0, 0, 0);
 
-      // Assign the environment map to all standard materials on the helmet
-      if (envTexture) {
-        const applyEnvMap = (node: Object3D): void => {
-          if (node.material && "envMap" in node.material) {
-            (node.material as StandardMaterial).envMap = envTexture;
-          }
-          node.children.forEach(applyEnvMap);
-        };
-        applyEnvMap(helmet);
-      }
+      // Recursively configure castShadow and environment map
+      const setupHelmetNode = (node: Object3D): void => {
+        node.castShadow = true;
+        if (node.material && "envMap" in node.material && envTexture) {
+          (node.material as StandardMaterial).envMap = envTexture;
+        }
+        node.children.forEach(setupHelmetNode);
+      };
+      setupHelmetNode(helmet);
 
       this._helmet = helmet;
       this.scene.add(helmet);
-
-      // Inspector will pick it up automatically
     } catch (e) {
       console.error("Failed to load DamagedHelmet:", e);
     }
@@ -126,10 +182,23 @@ class Showcase13 extends AbstractShowcase {
   protected override update(deltaTime: number): void {
     super.update(deltaTime);
 
-    // Slowly rotate the helmet to show off the PBR reflections and normal maps
+    // Slowly rotate the helmet to show off dynamic shadows, PBR reflections, and normal maps
     if (this._helmet) {
-      this._helmet.rotation.y += deltaTime * 0.5;
+      this._helmet.rotation.y += deltaTime * 0.4;
       this._helmet.updateMatrixWorld();
+    }
+
+    // Orbit the key spotlight slightly to create living, drifting shadow edges
+    if (this._keySpotLight) {
+      const angle = this._time * 0.5;
+      this._keySpotLight.position.x = Math.sin(angle) * 2.5;
+      this._keySpotLight.position.z = 2.0 + Math.cos(angle) * 1.0;
+      this._keySpotLight.direction.set(
+        -this._keySpotLight.position.x * 0.3,
+        -1.0,
+        -this._keySpotLight.position.z * 0.3,
+      );
+      this._keySpotLight.updateMatrixWorld();
     }
 
     const skybox = this.scene.objects.find((o) => o.name === "Skybox");

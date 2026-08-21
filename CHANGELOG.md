@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.76.24] - 2026-08-22
+
+### "Light and shadow are opposite sides of the same coin." - Leonardo da Vinci
+
+- **Features:**
+  - Added Showcase 27 ("Shadow Sanctuary / High-Precision Shadow Lab") featuring "The Celestial Armillary Sphere" (nested counter-rotating Torus rings), 12 Doric colonnade pillars, dual chromatic orbiting spotlights with PCF filtering, and raking sunlight with 3-tier Cascaded Shadow Maps.
+  - Enhanced Showcase 13 (`DamagedHelmet.glb`) with an exhibition pedestal, studio ground shadow receiver, and orbiting key spotlight casting real-time shadows.
+- **Architecture & Bugfixes:**
+  - Fixed WebGPU driver validation errors for compute Ambient Occlusion by migrating `AOPassGPU` storage texture and shader format from non-standard `r8unorm` / `r32float` to universally compliant `rgba8unorm` supporting both `STORAGE_BINDING` writes and filterable `float` post-processing sampling.
+- **Housekeeping & Docs:**
+  - Registered Showcase 27 in `vite.config.ts` build manifest and `public/index.html` showcases gallery.
+
 ## [0.76.23] - 2026-08-22
 
 ### "Simplicity is the prerequisite for reliability." - Edsger W. Dijkstra

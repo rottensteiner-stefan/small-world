@@ -36,7 +36,7 @@ export class AOPassGPU {
         {
           binding: 2,
           visibility: GPUShaderStage.COMPUTE,
-          storageTexture: { access: "write-only", format: "r8unorm" },
+          storageTexture: { access: "write-only", format: "rgba8unorm" },
         },
       ],
     });
@@ -70,7 +70,7 @@ export class AOPassGPU {
 
     this._aoTexture = this._device.createTexture({
       size: [width, height],
-      format: "r8unorm",
+      format: "rgba8unorm",
       usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING,
     });
     this._aoTextureView = this._aoTexture.createView();
