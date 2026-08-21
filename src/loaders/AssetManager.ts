@@ -232,4 +232,75 @@ export class AssetManager {
     this._binaryCache.set(url, loadPromise);
     return loadPromise;
   }
+
+  /**
+   * Streams a binary resource chunk-by-chunk directly with chunk notifications
+   * and builds a contiguous ArrayBuffer (DirectStorage Web streaming).
+   * @param url The resource URL.
+   * @param onChunk Optional callback invoked when each chunk is received.
+   * @param onProgress Optional progress callback.
+   */
+  public static async streamBinary(
+    url: string,
+    onChunk?: (chunk: Uint8Array, loaded: number, total: number) => void,
+    onProgress?: ProgressCallback,
+  ): Promise<ArrayBuffer> {
+    if (this._binaryCache.has(url)) return this._binaryCache.get(url)!;
+
+    const isAbsolute =
+      url.startsWith("http://") || url.startsWith("https://") || url.startsWith("//");
+    let finalUrl = url;
+
+    if (!isAbsolute && this._baseUrl) {
+      finalUrl = this._baseUrl + (url.startsWith("/") ? url.substring(1) : url);
+    }
+
+    const response = await fetch(finalUrl, { headers: this._headers });
+    if (!response.ok) {
+      throw new Error(`[AssetManager] Stream error: ${response.status} at ${finalUrl}`);
+    }
+
+    const contentLength = response.headers.get("content-length");
+    const total = contentLength ? parseInt(contentLength, 10) : 0;
+
+    this._activeLoaders.set(url, { loaded: 0, total });
+
+    if (!response.body) {
+      const buf = await response.arrayBuffer();
+      if (onChunk) onChunk(new Uint8Array(buf), buf.byteLength, total || buf.byteLength);
+      if (onProgress) onProgress(buf.byteLength, total || buf.byteLength);
+      this._checkCompletion(url);
+      return buf;
+    }
+
+    const reader = response.body.getReader();
+    let loaded = 0;
+    const chunks: Uint8Array[] = [];
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (value) {
+        loaded += value.length;
+        chunks.push(value);
+        this._activeLoaders.set(url, { loaded, total });
+        if (onChunk) onChunk(value, loaded, total);
+        if (onProgress) onProgress(loaded, total);
+      }
+    }
+
+    this._checkCompletion(url);
+
+    // Merge chunks into a single contiguous ArrayBuffer
+    const finalBuffer = new Uint8Array(loaded);
+    let offset = 0;
+    for (const chunk of chunks) {
+      finalBuffer.set(chunk, offset);
+      offset += chunk.length;
+    }
+
+    const arrayBuf = finalBuffer.buffer;
+    this._binaryCache.set(url, Promise.resolve(arrayBuf));
+    return arrayBuf;
+  }
 }

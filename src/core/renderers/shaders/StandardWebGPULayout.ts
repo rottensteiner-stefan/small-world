@@ -50,5 +50,6 @@ export const StandardWebGPULayout = {
     u_alphaMap: { type: ShaderPropertyType.TEXTURE },
     u_envMap: { type: ShaderPropertyType.TEXTURE },
     u_reflectionMap: { type: ShaderPropertyType.TEXTURE },
+    u_aoMap: { type: ShaderPropertyType.TEXTURE },
   },
 };

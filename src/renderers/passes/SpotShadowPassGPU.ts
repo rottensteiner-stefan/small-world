@@ -55,8 +55,6 @@ export class SpotShadowPassGPU implements RenderPass {
     }
 
     if (!this._fbo) {
-      this._shadowCasterBindGroup = renderer.globalBindGroup;
-
       // Always create 4 layers because maximum spotlights is 4.
       this._fbo = renderer.gpuDevice!.createTexture({
         size: [shadowRes, shadowRes, 4],
@@ -65,6 +63,10 @@ export class SpotShadowPassGPU implements RenderPass {
       });
       this._spotShadowTexView = this._fbo.createView({ dimension: "2d-array" });
       this._bindGroupNeedsShadowRebuild = true;
+    }
+
+    if (!this._shadowCasterBindGroup) {
+      this._shadowCasterBindGroup = renderer._createGlobalBindGroup(scene);
     }
 
     const renderList = scene.getVisibleObjectsSorted(vp, camPos);

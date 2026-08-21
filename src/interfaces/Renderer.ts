@@ -76,6 +76,10 @@ export interface Renderer {
    */
   destroy?(): void;
 
+  /** Whether the underlying GPU device or context has been lost. */
+  readonly isContextLost?: boolean;
+  /** Optional callback triggered when the GPU context is lost. */
+  onContextLost?: ((info: { reason?: string; message?: string }) => void) | undefined;
   /** WebGPU Device (only for WebGPU renderer) */
   readonly gpuDevice?: GPUDevice | undefined;
   /** WebGL Context (for WebGL1/2 renderers) */

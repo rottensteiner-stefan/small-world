@@ -97,6 +97,16 @@ This document serves to record external sources, algorithms, mathematical deriva
 - **Source:** [Physically Based Rendering: From Theory to Implementation (PBRT)](https://www.pbrt.org/)
 - **Usage:** The mathematical basis for PBR, raytracing, refraction, and energy conservation (`Diffuse + Specular <= 1.0`).
 
+### Cook-Torrance Microfacet BRDF (GGX / Smith / Schlick)
+
+- **File:** `src/core/renderers/shaders/source/web_gl2/chunks/light_calc_pbr.frag.glsl`, `src/core/renderers/shaders/source/web_gpu/chunks/pbr_math.wgsl`, `src/core/renderers/shaders/source/web_gpu/chunks/lighting_pbr.wgsl`
+- **Authors/Gurus:** Robert L. Cook & Kenneth E. Torrance (1982), Bruce Walter et al. (GGX/Trowbridge-Reitz, 2007), Christophe Schlick (1994)
+- **Source:**
+  - [Cook & Torrance: "A Reflectance Model for Computer Graphics" (1982)](https://dl.acm.org/doi/10.1145/357290.357293)
+  - [Walter et al.: "Microfacet Models for Refraction through Rough Surfaces" (2007)](https://www.cs.cornell.edu/~srm/publications/EGSR07-btdf.pdf)
+  - [Schlick: "An Inexpensive BRDF Model for Physically-based Rendering" (1994)](https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.50.2297&rep=rep1&type=pdf)
+- **Usage:** The core specular reflectance model used across both WebGL2 and WebGPU standard PBR pipelines. Composes the microfacet distribution $D$ (Trowbridge-Reitz/GGX for long-tailed specular highlights), geometric shadowing/masking $G$ (Smith model with Schlick-GGX approximation), and Fresnel reflectance $F$ (Schlick approximation) with energy-conserving diffuse split ($k_D = (1 - k_S) \cdot (1 - \text{metallic})$).
+
 ### Real-Time Rendering Pipeline & State Minimization
 
 - **Authors/Gurus:** Tomas Akenine-Möller, Eric Haines, Naty Hoffman
@@ -269,10 +279,10 @@ This document serves to record external sources, algorithms, mathematical deriva
 
 ### Raymarching & SDFs
 
-- **File:** `showcases/23/showcase.ts` (COMPUTETOYS_RAYMARCH)
+- **File:** `src/core/renderers/shaders/source/web_gl2/chunks/sdf_math.glsl`, `src/core/renderers/shaders/source/web_gpu/chunks/sdf_math.wgsl`, `showcases/24/showcase.ts`
 - **Authors/Gurus:** Inigo Quilez
 - **Source:** [Inigo Quilez - Computer Graphics, Mathematics, Shaders](https://iquilezles.org/)
-- **Usage:** The morphing cube-sphere raymarching shader is built upon the foundational techniques popularized by Inigo Quilez. His extensive documentation on Signed Distance Functions (SDFs) and normal approximation techniques forms the mathematical backbone of modern real-time procedural rendering.
+- **Usage:** Provides core Signed Distance Field (SDF) mathematical primitives (sphere, box, torus, cylinder, capsule, plane), polynomial smooth CSG operators (smooth union, subtraction, intersection), and domain modifiers (twist, repetition, rotation). Standardizes raymarching and procedural distance evaluations across WebGL2 and WebGPU shaders.
 
 ### Retro Synthwave Grid
 

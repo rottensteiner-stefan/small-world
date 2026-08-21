@@ -26,8 +26,8 @@ class Showcase13 extends AbstractShowcase {
     const bloom = this.renderer.postProcessing.get<BloomElement>(PostProcessingEffectType.BLOOM);
     if (bloom) {
       bloom.enabled = true;
-      bloom.intensity = 1.5;
-      bloom.threshold = 0.5; // Lower threshold to ensure visor glows visibly
+      bloom.intensity = 1.8;
+      bloom.threshold = 0.8; // Natural HDR bloom threshold for glowing visor
       bloom.radius = 1.0;
       bloom.color = new Color(1.2, 0.8, 1.6);
     }
@@ -90,6 +90,8 @@ class Showcase13 extends AbstractShowcase {
       skybox.material = new SkyboxMaterial({ cubeMap: envTexture });
       skybox.frustumCulled = false;
       this.scene.add(skybox);
+      this.scene.irradianceMap = envTexture;
+      this.scene.prefilterMap = envTexture;
     } catch (e) {
       console.warn("Could not load envmap:", e);
     }

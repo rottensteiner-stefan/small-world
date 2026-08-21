@@ -34,6 +34,8 @@ export interface StandardMaterialOptions {
   metallicMap?: Texture | undefined;
   /** The roughness texture map. */
   roughnessMap?: Texture | undefined;
+  /** Ambient occlusion texture map. */
+  aoMap?: Texture | undefined;
   /** The emissive color. Defaults to black. */
   emissiveColor?: Color;
   /** The emissive texture map. */
@@ -82,6 +84,9 @@ export class StandardMaterial extends AbstractMaterial {
   /** The roughness map texture. */
   public roughnessMap: Texture | undefined;
 
+  /** Ambient occlusion texture map. */
+  public aoMap: Texture | undefined;
+
   /** The emissive color. */
   public emissiveColor: Color;
 
@@ -125,6 +130,7 @@ export class StandardMaterial extends AbstractMaterial {
       normalScale = new Vector2D(1, 1),
       metallicMap = undefined,
       roughnessMap = undefined,
+      aoMap = undefined,
       emissiveColor = new Color(0, 0, 0),
       emissiveMap = undefined,
       alphaMap = undefined,
@@ -145,6 +151,7 @@ export class StandardMaterial extends AbstractMaterial {
     this.normalScale = normalScale;
     this.metallicMap = metallicMap;
     this.roughnessMap = roughnessMap;
+    this.aoMap = aoMap;
     this.emissiveColor = emissiveColor;
     this.emissiveMap = emissiveMap;
     this.alphaMap = alphaMap;
@@ -169,6 +176,7 @@ export class StandardMaterial extends AbstractMaterial {
         this.normalMap ||
         this.metallicMap ||
         this.roughnessMap ||
+        this.aoMap ||
         this.alphaMap,
     );
 
@@ -190,6 +198,7 @@ export class StandardMaterial extends AbstractMaterial {
     texs["u_normalMap"] = this.normalMap;
     texs["u_metallicMap"] = this.metallicMap;
     texs["u_roughnessMap"] = this.roughnessMap;
+    texs["u_aoMap"] = this.aoMap;
     texs["u_emissiveMap"] = this.emissiveMap;
     texs["u_alphaMap"] = this.alphaMap;
     texs["u_skybox"] = this.envMap;
@@ -236,6 +245,7 @@ export class StandardMaterial extends AbstractMaterial {
       normalScale: this.normalScale.clone(),
       metallicMap: this.metallicMap,
       roughnessMap: this.roughnessMap,
+      aoMap: this.aoMap,
       emissiveColor: new Color(
         this.emissiveColor.r,
         this.emissiveColor.g,
@@ -280,6 +290,7 @@ export class StandardMaterial extends AbstractMaterial {
           u_normalMap: { type: ShaderPropertyType.TEXTURE },
           u_metallicMap: { type: ShaderPropertyType.TEXTURE },
           u_roughnessMap: { type: ShaderPropertyType.TEXTURE },
+          u_aoMap: { type: ShaderPropertyType.TEXTURE },
           u_emissiveMap: { type: ShaderPropertyType.TEXTURE },
           u_alphaMap: { type: ShaderPropertyType.TEXTURE },
           u_envMap: { type: ShaderPropertyType.TEXTURE },

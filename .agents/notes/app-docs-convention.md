@@ -25,6 +25,7 @@ src/apps/<app-name>/
 
 | App | Log |
 |---|---|
+| And Now? | `src/apps/and-now/docs/log.md` |
 | Neon Labyrinth | `src/apps/neon-labyrinth/docs/log.md` |
 | Light Cycle Arena | `src/apps/light-cycle-arena/docs/log.md` |
 | YAD | `src/apps/yad/docs/log.md` |

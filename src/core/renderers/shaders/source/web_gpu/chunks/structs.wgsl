@@ -118,5 +118,7 @@ struct AreaLight {
 @group(1) @binding(14) var u_opaqueMap: texture_2d<f32>;
 @group(1) @binding(15) var u_reflectionMap: texture_2d<f32>;
 @group(1) @binding(16) var u_opaqueDepthMap: texture_depth_2d;
+@group(1) @binding(17) var u_aoMap: texture_2d<f32>;
 
 @group(2) @binding(0) var<uniform> obj: ObjectUniforms;
+

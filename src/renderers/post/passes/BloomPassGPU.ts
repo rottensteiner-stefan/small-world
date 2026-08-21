@@ -1,6 +1,5 @@
 import BLOOM_DOWNSAMPLE_WGSL from "../../../core/materials/shaders/BloomDownsample.frag.wgsl?raw";
 import BLOOM_UPSAMPLE_WGSL from "../../../core/materials/shaders/BloomUpsample.frag.wgsl?raw";
-// Fullscreen triangle vertex shader
 import FULLSCREEN_VERT_WGSL from "../../../core/materials/shaders/PostProcess.vert.wgsl?raw";
 import { BloomElement } from "../elements/index.js";
 import { TextureFilter, TextureWrap, Topology } from "../../../enums/index.js";

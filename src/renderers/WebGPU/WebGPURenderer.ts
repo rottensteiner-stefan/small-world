@@ -192,6 +192,14 @@ function getOptionalMaterialTextureBindings(): Record<
           texture: { viewDimension: "2d", sampleType: "depth" },
         },
       },
+      u_aoMap: {
+        binding: 17,
+        layoutEntry: {
+          binding: 17,
+          visibility: GPUShaderStage.FRAGMENT,
+          texture: { viewDimension: "2d", sampleType: "float" },
+        },
+      },
     };
   }
   return _optionalMaterialTextureBindings;
@@ -212,6 +220,13 @@ export class WebGPURenderer extends AbstractRenderer {
   public override readonly type: RendererType = RendererType.WEB_GPU;
   protected _adapter: GPUAdapter | undefined = undefined;
   private _device: GPUDevice | undefined = undefined;
+  private _isDeviceLost: boolean = false;
+  private _isDestroyed: boolean = false;
+
+  /** Satisfies Renderer interface */
+  public override get isContextLost(): boolean {
+    return this._isDeviceLost;
+  }
 
   /** Satisfies Renderer interface */
   public get gpuDevice(): GPUDevice | undefined {
@@ -480,6 +495,14 @@ export class WebGPURenderer extends AbstractRenderer {
       requiredLimits["maxStorageBuffersPerShaderStage"] =
         this._adapter.limits.maxStorageBuffersPerShaderStage;
     }
+    if (this._adapter.limits.maxStorageBufferBindingSize) {
+      requiredLimits["maxStorageBufferBindingSize"] =
+        this._adapter.limits.maxStorageBufferBindingSize;
+    }
+    if (this._adapter.limits.maxComputeWorkgroupStorageSize) {
+      requiredLimits["maxComputeWorkgroupStorageSize"] =
+        this._adapter.limits.maxComputeWorkgroupStorageSize;
+    }
     if (this._adapter.limits.maxBindGroups) {
       requiredLimits["maxBindGroups"] = this._adapter.limits.maxBindGroups;
     }
@@ -497,6 +520,17 @@ export class WebGPURenderer extends AbstractRenderer {
     this._device = await this._adapter.requestDevice({
       requiredLimits,
     });
+    this._isDeviceLost = false;
+    this._isDestroyed = false;
+
+    // Listen for device lost (GPU hangs, driver resets, device destruction).
+    this._device.lost.then((info: GPUDeviceLostInfo) => {
+      this._isDeviceLost = true;
+      if (!this._isDestroyed) {
+        console.error(`[WebGPU Device Lost] Reason: ${info.reason}, Message: ${info.message}`);
+        this.onContextLost?.({ reason: info.reason, message: info.message });
+      }
+    });
 
     // Update DeviceCaps with actual WebGPU limits. `maxSampledTexturesPerShaderStage` deliberately
     // goes into its own `webgpuMaxSampledTexturesPerStage` field, NOT the shared
@@ -512,6 +546,8 @@ export class WebGPURenderer extends AbstractRenderer {
       webgpuMaxBindGroups: this._device.limits.maxBindGroups,
       webgpuMaxBindingsPerBindGroup: this._device.limits.maxBindingsPerBindGroup,
       webgpuMaxUniformBufferBindingSize: this._device.limits.maxUniformBufferBindingSize,
+      webgpuMaxStorageBufferBindingSize: this._device.limits.maxStorageBufferBindingSize,
+      webgpuMaxComputeWorkgroupStorageSize: this._device.limits.maxComputeWorkgroupStorageSize,
       webgpuMaxTextureDimension2D: this._device.limits.maxTextureDimension2D,
     });
 
@@ -842,8 +878,27 @@ export class WebGPURenderer extends AbstractRenderer {
    */
   private _allocateClusterBuffers(dims: ClusterGridDims, maxLightsPerCluster: number): void {
     const numClusters = Math.max(1, dims.x * dims.y * dims.z);
-    const gridByteLength = numClusters * 8; // vec2u
-    const indexByteLength = numClusters * Math.max(1, maxLightsPerCluster) * 4; // u32
+    let safeMaxLights = Math.max(1, maxLightsPerCluster);
+
+    // Guard against driver storage buffer limits (e.g. on mobile/integrated GPUs).
+    const maxStorageSize = this._device?.limits.maxStorageBufferBindingSize ?? 134217728;
+    let gridByteLength = numClusters * 8; // vec2u
+    let indexByteLength = numClusters * safeMaxLights * 4; // u32
+
+    if (indexByteLength > maxStorageSize && numClusters > 0) {
+      safeMaxLights = Math.max(1, Math.floor(maxStorageSize / (numClusters * 4)));
+      indexByteLength = numClusters * safeMaxLights * 4;
+      console.warn(
+        `[WebGPURenderer] Clustered lights buffer exceeded maxStorageBufferBindingSize. Clamped maxLightsPerCluster to ${safeMaxLights}.`,
+      );
+    }
+
+    if (gridByteLength > maxStorageSize) {
+      gridByteLength = maxStorageSize;
+      console.warn(
+        `[WebGPURenderer] Clustered grid buffer exceeded maxStorageBufferBindingSize. Clamping buffer size.`,
+      );
+    }
 
     this._pointClusterGridBuffer?.destroy();
     this._pointClusterIndexBuffer?.destroy();
@@ -868,7 +923,7 @@ export class WebGPURenderer extends AbstractRenderer {
     });
 
     this._clusterDims = dims;
-    this._clusterMaxLightsPerCluster = Math.max(1, maxLightsPerCluster);
+    this._clusterMaxLightsPerCluster = safeMaxLights;
 
     if (this._globalBGL) {
       this._globalBindGroup = this._createGlobalBindGroup();
@@ -1372,7 +1427,7 @@ export class WebGPURenderer extends AbstractRenderer {
     far: number = 1000,
     projMatrix?: Float32Array,
   ): void {
-    if (!this._device) return;
+    if (!this._device || this._isDeviceLost) return;
 
     for (const obj of scene.consumeRemovedObjects()) {
       this._releaseObjectResources(obj);
@@ -2423,6 +2478,8 @@ export class WebGPURenderer extends AbstractRenderer {
 
     // Tears down the whole GPU context; all buffers/textures/pipelines created
     // from this device become invalid, freeing their underlying GPU memory.
+    this._isDestroyed = true;
+    this._isDeviceLost = true;
     this._device?.destroy();
     this._device = undefined;
   }

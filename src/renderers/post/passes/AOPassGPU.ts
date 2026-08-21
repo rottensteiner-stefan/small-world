@@ -1,15 +1,13 @@
-import FULLSCREEN_VERT_WGSL from "../../../core/materials/shaders/PostProcess.vert.wgsl?raw";
-import AO_FRAG_WGSL from "../../../core/materials/shaders/AO.frag.wgsl?raw";
+import AO_WGSL from "../../../core/materials/shaders/AO.frag.wgsl?raw";
 import { HbaoElement } from "../elements/index.js";
-import { Topology } from "../../../enums/index.js";
 
 /**
- * Generates the HBAO texture for WebGPU -- same algorithm as AOPassGL, reading the opaque
- * depth texture directly via `textureLoad` (no sampler needed for a `texture_depth_2d`).
+ * Generates the HBAO texture for WebGPU via a compute pass -- reading the opaque
+ * depth texture directly via `textureLoad` and writing to a storage texture (`r8unorm`).
  */
 export class AOPassGPU {
   private _device: GPUDevice;
-  private _pipeline!: GPURenderPipeline;
+  private _pipeline!: GPUComputePipeline;
   private _uniformBuffer!: GPUBuffer;
   private _uniformData: Float32Array = new Float32Array(8);
 
@@ -33,24 +31,25 @@ export class AOPassGPU {
 
     const bgl = this._device.createBindGroupLayout({
       entries: [
-        { binding: 0, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: "depth" } },
-        { binding: 1, visibility: GPUShaderStage.FRAGMENT, buffer: { type: "uniform" } },
+        { binding: 0, visibility: GPUShaderStage.COMPUTE, texture: { sampleType: "depth" } },
+        { binding: 1, visibility: GPUShaderStage.COMPUTE, buffer: { type: "uniform" } },
+        {
+          binding: 2,
+          visibility: GPUShaderStage.COMPUTE,
+          storageTexture: { access: "write-only", format: "r8unorm" },
+        },
       ],
     });
 
     const layout = this._device.createPipelineLayout({ bindGroupLayouts: [bgl] });
-    const vertModule = this._device.createShaderModule({ code: FULLSCREEN_VERT_WGSL });
-    const fragModule = this._device.createShaderModule({ code: AO_FRAG_WGSL });
+    const module = this._device.createShaderModule({ code: AO_WGSL });
 
-    this._pipeline = this._device.createRenderPipeline({
+    this._pipeline = this._device.createComputePipeline({
       layout,
-      vertex: { module: vertModule, entryPoint: "vs_main" },
-      fragment: {
-        module: fragModule,
-        entryPoint: "fs_main",
-        targets: [{ format: "r8unorm" }],
+      compute: {
+        module,
+        entryPoint: "cs_main",
       },
-      primitive: { topology: Topology.TRIANGLE_LIST },
     });
   }
 
@@ -72,7 +71,7 @@ export class AOPassGPU {
     this._aoTexture = this._device.createTexture({
       size: [width, height],
       format: "r8unorm",
-      usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+      usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING,
     });
     this._aoTextureView = this._aoTexture.createView();
 
@@ -82,12 +81,13 @@ export class AOPassGPU {
       entries: [
         { binding: 0, resource: depthView },
         { binding: 1, resource: { buffer: this._uniformBuffer } },
+        { binding: 2, resource: this._aoTextureView },
       ],
     });
   }
 
   /**
-   * Renders the HBAO texture from the opaque depth texture.
+   * Computes the HBAO texture from the opaque depth texture via a compute pass.
    * @param ce The command encoder to record into.
    * @param depthView View of the already-captured opaque (pre-transparent) depth texture.
    * @param width Canvas width in pixels.
@@ -120,20 +120,11 @@ export class AOPassGPU {
     this._uniformData[5] = hbao.intensity;
     this._device.queue.writeBuffer(this._uniformBuffer, 0, this._uniformData);
 
-    const rp = ce.beginRenderPass({
-      colorAttachments: [
-        {
-          view: this._aoTextureView,
-          clearValue: { r: 1, g: 0, b: 0, a: 1 },
-          loadOp: "clear",
-          storeOp: "store",
-        },
-      ],
-    });
-    rp.setPipeline(this._pipeline);
-    rp.setBindGroup(0, this._bindGroup);
-    rp.draw(3);
-    rp.end();
+    const pass = ce.beginComputePass({ label: "AOPassGPU" });
+    pass.setPipeline(this._pipeline);
+    pass.setBindGroup(0, this._bindGroup);
+    pass.dispatchWorkgroups(Math.ceil(width / 8), Math.ceil(height / 8), 1);
+    pass.end();
 
     return this._aoTextureView;
   }

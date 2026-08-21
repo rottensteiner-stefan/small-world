@@ -9,6 +9,7 @@ uniform float u_ao;
 
 uniform sampler2D u_metallicMap;
 uniform sampler2D u_roughnessMap;
+uniform sampler2D u_aoMap;
 uniform sampler2D u_emissiveMap;
 uniform sampler2D u_alphaMap;
 uniform samplerCube u_envMap;
@@ -42,7 +43,7 @@ void main() {
     
     float metallic = u_metallic * texture(u_metallicMap, v_uv).b;
     float roughness = clamp(u_roughness * texture(u_roughnessMap, v_uv).g, 0.05, 1.0); // Avoid divide by zero
-    float ao = u_ao;
+    float ao = u_ao * texture(u_aoMap, v_uv).r;
 
     [LIGHT_CALC_PBR]
     

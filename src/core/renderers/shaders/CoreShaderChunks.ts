@@ -29,6 +29,7 @@ import gl2LightDefs from "./source/web_gl2/chunks/lights.frag.glsl?raw";
 import gl2LightCalc from "./source/web_gl2/chunks/light_calc.frag.glsl?raw";
 import gl2PbrMath from "./source/web_gl2/chunks/pbr_math.frag.glsl?raw";
 import gl2LightCalcPbr from "./source/web_gl2/chunks/light_calc_pbr.frag.glsl?raw";
+import gl2SdfMath from "./source/web_gl2/chunks/sdf_math.glsl?raw";
 
 // --- WebGL 1 ---
 import gl1LightDefs from "./source/web_gl1/chunks/lights.frag.glsl?raw";
@@ -44,6 +45,7 @@ import wgslLighting from "./source/web_gpu/chunks/lighting.wgsl?raw";
 import wgslPbrMath from "./source/web_gpu/chunks/pbr_math.wgsl?raw";
 import wgslPbrLighting from "./source/web_gpu/chunks/lighting_pbr.wgsl?raw";
 import wgslFogCalc from "./source/web_gpu/chunks/fog_calc.wgsl?raw";
+import wgslSdfMath from "./source/web_gpu/chunks/sdf_math.wgsl?raw";
 import wgslBaseVs from "./source/web_gpu/base.vert.wgsl?raw";
 import { ShaderRegistry } from "./ShaderRegistry.js";
 
@@ -71,6 +73,7 @@ export class CoreShaderChunks {
     registry.registerChunk("LIGHT_CALC", gl2LightCalc, "glsl300");
     registry.registerChunk("PBR_MATH", gl2PbrMath, "glsl300");
     registry.registerChunk("LIGHT_CALC_PBR", gl2LightCalcPbr, "glsl300");
+    registry.registerChunk("SDF_MATH", gl2SdfMath, "glsl300");
     registry.registerChunk("FOG_DEFS", FOG_DEFS, "glsl300");
     registry.registerChunk("FOG_CALC", FOG_CALC, "glsl300");
 
@@ -81,6 +84,7 @@ export class CoreShaderChunks {
     registry.registerChunk("LIGHT_CALC", gl1LightCalc, "glsl100");
     registry.registerChunk("PBR_MATH", gl1PbrMath, "glsl100");
     registry.registerChunk("LIGHT_CALC_PBR", gl1LightCalcPbr, "glsl100");
+    registry.registerChunk("SDF_MATH", gl2SdfMath, "glsl100");
     registry.registerChunk("FOG_DEFS", FOG_DEFS, "glsl100");
     registry.registerChunk("FOG_CALC", FOG_CALC, "glsl100");
 
@@ -90,6 +94,7 @@ export class CoreShaderChunks {
     registry.registerChunk("WGSL_PBR_MATH", wgslPbrMath, "wgsl");
     registry.registerChunk("WGSL_PBR_LIGHTING", wgslPbrLighting, "wgsl");
     registry.registerChunk("WGSL_FOG_CALC", wgslFogCalc, "wgsl");
+    registry.registerChunk("WGSL_SDF_MATH", wgslSdfMath, "wgsl");
     registry.registerChunk("WGSL_VS", wgslBaseVs, "wgsl");
 
     // --- Post-Processing Filter Chunks ---

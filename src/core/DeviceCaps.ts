@@ -55,6 +55,8 @@ export enum DeviceLimit {
   WEBGPU_MAX_BIND_GROUPS = "WEBGPU_MAX_BIND_GROUPS",
   WEBGPU_MAX_BINDINGS_PER_BIND_GROUP = "WEBGPU_MAX_BINDINGS_PER_BIND_GROUP",
   WEBGPU_MAX_UNIFORM_BUFFER_BINDING_SIZE = "WEBGPU_MAX_UNIFORM_BUFFER_BINDING_SIZE",
+  WEBGPU_MAX_STORAGE_BUFFER_BINDING_SIZE = "WEBGPU_MAX_STORAGE_BUFFER_BINDING_SIZE",
+  WEBGPU_MAX_COMPUTE_WORKGROUP_STORAGE_SIZE = "WEBGPU_MAX_COMPUTE_WORKGROUP_STORAGE_SIZE",
   WEBGPU_MAX_TEXTURE_DIMENSION_2D = "WEBGPU_MAX_TEXTURE_DIMENSION_2D",
 }
 
@@ -92,6 +94,8 @@ export class DeviceCaps {
   private static _webgpuMaxBindGroups: number = 0;
   private static _webgpuMaxBindingsPerBindGroup: number = 0;
   private static _webgpuMaxUniformBufferBindingSize: number = 0;
+  private static _webgpuMaxStorageBufferBindingSize: number = 0;
+  private static _webgpuMaxComputeWorkgroupStorageSize: number = 0;
   private static _webgpuMaxTextureDimension2D: number = 0;
 
   // Specialized Features
@@ -107,8 +111,7 @@ export class DeviceCaps {
   private static _hasGenericSensors: boolean = false;
   private static _hasNetworkInfo: boolean = false;
   private static _networkInfo:
-    | { effectiveType: string; downlink: number; saveData: boolean }
-    | undefined = undefined;
+    { effectiveType: string; downlink: number; saveData: boolean } | undefined = undefined;
 
   /**
    * Initializes the feature detection.
@@ -118,10 +121,15 @@ export class DeviceCaps {
     if (this._isInitialized) return;
 
     // 1. Basic Browser & Platform Checks
-    this._hasCanvasRoundRect = typeof CanvasRenderingContext2D.prototype.roundRect === "function";
+    this._hasCanvasRoundRect =
+      typeof CanvasRenderingContext2D !== "undefined" &&
+      typeof CanvasRenderingContext2D.prototype.roundRect === "function";
     this._hasOffscreenCanvas = typeof OffscreenCanvas !== "undefined";
-    this._hasTouch = "ontouchstart" in window || navigator.maxTouchPoints > 0;
-    this._hasGamepad = !!navigator.getGamepads;
+    this._hasTouch =
+      typeof window !== "undefined" &&
+      ("ontouchstart" in window ||
+        (typeof navigator !== "undefined" && navigator.maxTouchPoints > 0));
+    this._hasGamepad = typeof navigator !== "undefined" && !!navigator.getGamepads;
 
     try {
       this._hasAsync = typeof new Function("return async () => {}")() === "function";
@@ -244,6 +252,8 @@ export class DeviceCaps {
     webgpuMaxBindGroups?: number;
     webgpuMaxBindingsPerBindGroup?: number;
     webgpuMaxUniformBufferBindingSize?: number;
+    webgpuMaxStorageBufferBindingSize?: number;
+    webgpuMaxComputeWorkgroupStorageSize?: number;
     webgpuMaxTextureDimension2D?: number;
   }): void {
     if (limits.maxTextureSize)
@@ -293,6 +303,16 @@ export class DeviceCaps {
       this._webgpuMaxUniformBufferBindingSize = Math.max(
         this._webgpuMaxUniformBufferBindingSize,
         limits.webgpuMaxUniformBufferBindingSize,
+      );
+    if (limits.webgpuMaxStorageBufferBindingSize)
+      this._webgpuMaxStorageBufferBindingSize = Math.max(
+        this._webgpuMaxStorageBufferBindingSize,
+        limits.webgpuMaxStorageBufferBindingSize,
+      );
+    if (limits.webgpuMaxComputeWorkgroupStorageSize)
+      this._webgpuMaxComputeWorkgroupStorageSize = Math.max(
+        this._webgpuMaxComputeWorkgroupStorageSize,
+        limits.webgpuMaxComputeWorkgroupStorageSize,
       );
     if (limits.webgpuMaxTextureDimension2D)
       this._webgpuMaxTextureDimension2D = Math.max(
@@ -382,6 +402,10 @@ export class DeviceCaps {
         return this._webgpuMaxBindingsPerBindGroup;
       case DeviceLimit.WEBGPU_MAX_UNIFORM_BUFFER_BINDING_SIZE:
         return this._webgpuMaxUniformBufferBindingSize;
+      case DeviceLimit.WEBGPU_MAX_STORAGE_BUFFER_BINDING_SIZE:
+        return this._webgpuMaxStorageBufferBindingSize;
+      case DeviceLimit.WEBGPU_MAX_COMPUTE_WORKGROUP_STORAGE_SIZE:
+        return this._webgpuMaxComputeWorkgroupStorageSize;
       case DeviceLimit.WEBGPU_MAX_TEXTURE_DIMENSION_2D:
         return this._webgpuMaxTextureDimension2D;
       default:
@@ -442,6 +466,10 @@ export class DeviceCaps {
         return 1000;
       case DeviceLimit.WEBGPU_MAX_UNIFORM_BUFFER_BINDING_SIZE:
         return 65536;
+      case DeviceLimit.WEBGPU_MAX_STORAGE_BUFFER_BINDING_SIZE:
+        return 134217728; // 128MB (WebGPU default minimum)
+      case DeviceLimit.WEBGPU_MAX_COMPUTE_WORKGROUP_STORAGE_SIZE:
+        return 16384; // 16KB (WebGPU default minimum)
       case DeviceLimit.WEBGPU_MAX_TEXTURE_DIMENSION_2D:
         return 8192;
       default:
@@ -468,8 +496,7 @@ export class DeviceCaps {
    * Firefox/Safari), or `undefined` otherwise.
    */
   public static get networkInfo():
-    | { effectiveType: string; downlink: number; saveData: boolean }
-    | undefined {
+    { effectiveType: string; downlink: number; saveData: boolean } | undefined {
     return this._networkInfo;
   }
 

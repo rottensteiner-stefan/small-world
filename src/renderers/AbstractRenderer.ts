@@ -43,6 +43,14 @@ export abstract class AbstractRenderer implements Renderer {
   /** The global post processing volume/group. */
   public postProcessing: PostProcessingGroup = new PostProcessingGroup();
 
+  /** Optional callback triggered when the GPU context is lost. */
+  public onContextLost?: ((info: { reason?: string; message?: string }) => void) | undefined;
+
+  /** Whether the underlying GPU context has been lost. */
+  public get isContextLost(): boolean {
+    return false;
+  }
+
   /** Cached light data to avoid GC pressure. */
   protected _lightData: LightDataInterface = {
     aCol: new Color(0, 0, 0),

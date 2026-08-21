@@ -24,15 +24,16 @@ fn reconstructViewPos(uv: vec2f, linearZ: f32) -> vec3f {
     return vec3f(ndc.x * linearZ / u.projScaleX, ndc.y * linearZ / u.projScaleY, -linearZ);
 }
 
-@fragment
-fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
-    let dims = vec2i(textureDimensions(depthMap));
+@group(0) @binding(2) var outAO: texture_storage_2d<r8unorm, write>;
+
+fn computeHBAO(pixelCoord: vec2i, dims: vec2i) -> f32 {
     let maxCoord = dims - vec2i(1, 1);
-    let centerCoord = clamp(vec2i(uv * vec2f(dims)), vec2i(0, 0), maxCoord);
+    let centerCoord = clamp(pixelCoord, vec2i(0, 0), maxCoord);
+    let uv = (vec2f(centerCoord) + vec2f(0.5)) / vec2f(dims);
 
     let depth = textureLoad(depthMap, centerCoord, 0);
     if (depth >= 1.0) {
-        return vec4f(1.0, 0.0, 0.0, 1.0);
+        return 1.0;
     }
 
     let linearZ = linearizeDepth(depth);
@@ -82,6 +83,25 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     }
     occlusion /= 6.0;
 
-    let ao = clamp(1.0 - occlusion * u.intensity, 0.0, 1.0);
+    return clamp(1.0 - occlusion * u.intensity, 0.0, 1.0);
+}
+
+@compute @workgroup_size(8, 8, 1)
+fn cs_main(@builtin(global_invocation_id) global_id: vec3u) {
+    let dims = vec2i(textureDimensions(depthMap));
+    let pixelCoord = vec2i(global_id.xy);
+    if (pixelCoord.x >= dims.x || pixelCoord.y >= dims.y) {
+        return;
+    }
+
+    let ao = computeHBAO(pixelCoord, dims);
+    textureStore(outAO, pixelCoord, vec4f(ao, 0.0, 0.0, 1.0));
+}
+
+@fragment
+fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
+    let dims = vec2i(textureDimensions(depthMap));
+    let centerCoord = vec2i(uv * vec2f(dims));
+    let ao = computeHBAO(centerCoord, dims);
     return vec4f(ao, 0.0, 0.0, 1.0);
 }

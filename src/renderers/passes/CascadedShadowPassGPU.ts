@@ -53,23 +53,18 @@ export class CascadedShadowPassGPU implements RenderPass {
 
     let fbo = renderer.shadowMaps.get(dLight) as GPUTexture | undefined;
     if (!fbo) {
-      // Snapshot the CURRENT global bind group before it ever gets rebuilt to
-      // reference the real shadow map -- at this point it still references only
-      // the dummy fallback shadow textures, safe to use as bind group 0 while we
-      // render into the real shadow map texture below.
-      this._shadowCasterBindGroup = renderer.globalBindGroup;
-
       fbo = renderer.gpuDevice!.createTexture({
         size: [dLight.shadowResolution, dLight.shadowResolution, dLight.numCascades],
         format: "depth32float",
         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
       });
       renderer.shadowMaps.set(dLight, fbo);
-      // The underlying texture is reused (and re-rendered into) every frame, so the
-      // view only needs to be created once, and the global bind group only needs to
-      // be rebuilt once to pick it up (see below) -- not every frame.
       this._dirShadowTexView = fbo.createView({ dimension: "2d-array" });
       this._bindGroupNeedsShadowRebuild = true;
+    }
+
+    if (!this._shadowCasterBindGroup) {
+      this._shadowCasterBindGroup = renderer._createGlobalBindGroup(scene);
     }
 
     const renderList = scene.getVisibleObjectsSorted(vp, camPos);

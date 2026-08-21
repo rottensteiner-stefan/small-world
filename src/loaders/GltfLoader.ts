@@ -53,6 +53,12 @@ interface GltfJson {
     alphaMode?: "OPAQUE" | "MASK" | "BLEND";
     alphaCutoff?: number;
     doubleSided?: boolean;
+    extensions?: {
+      KHR_materials_emissive_strength?: {
+        emissiveStrength?: number;
+      };
+      [key: string]: unknown;
+    };
   }[];
   textures?: { source?: number; sampler?: number }[];
   images?: { uri?: string; bufferView?: number; mimeType?: string }[];
@@ -394,6 +400,16 @@ export class GltfLoader extends AbstractLoader<Object3D> {
       if (tex) mat.normalMap = tex;
     }
 
+    if (m.occlusionTexture) {
+      const tex = await this._resolveTexture(m.occlusionTexture.index, json, folderPath, buffers);
+      if (tex) {
+        mat.aoMap = tex;
+        if (m.occlusionTexture.strength !== undefined) {
+          mat.ao = m.occlusionTexture.strength;
+        }
+      }
+    }
+
     if (m.emissiveTexture) {
       const tex = await this._resolveTexture(m.emissiveTexture.index, json, folderPath, buffers);
       if (tex) mat.emissiveMap = tex;
@@ -406,6 +422,10 @@ export class GltfLoader extends AbstractLoader<Object3D> {
         m.emissiveFactor[2]!,
         1.0,
       );
+    }
+
+    if (m.extensions?.KHR_materials_emissive_strength?.emissiveStrength !== undefined) {
+      mat.emissiveIntensity = m.extensions.KHR_materials_emissive_strength.emissiveStrength;
     }
 
     mat.metallic = pbr.metallicFactor !== undefined ? pbr.metallicFactor : 1.0;

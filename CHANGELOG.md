@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.76.23] - 2026-08-22
+
+### "Simplicity is the prerequisite for reliability." - Edsger W. Dijkstra
+
+- **Features:**
+  - Added full glTF Ambient Occlusion map (`aoMap`) support across WebGPU (`u_aoMap` texture binding 17) and WebGL2/WebGL1 pipelines with automatic `occlusionTexture` resolution in `GltfLoader`.
+  - Added support for the `KHR_materials_emissive_strength` glTF extension in `GltfLoader` and `StandardMaterial`, enabling true HDR emissive bloom on glowing surfaces.
+  - Implemented `BinaryStreamLoader` and `AssetManager.streamBinary` for progressive chunked binary streaming (DirectStorage Web adaptation) with non-blocking geometry normal and tangent computation via `GeometryWorkerProcessor`.
+- **Architecture & Bugfixes:**
+  - Modernized `AOPassGPU` into a full WebGPU compute pass with `@workgroup_size(8, 8, 1)` and `r8unorm` storage texture output to eliminate render pass overhead.
+  - Hardened WebGPU context loss recovery and driver limits clamping in `WebGPURenderer` and `DeviceCaps` (`device.lost` handling, storage buffer binding limit clamping).
+  - Fixed shadow caster bind group recreation during cascaded and spot shadow passes.
+  - Enhanced Showcase 13 (`DamagedHelmet.glb`) with IBL prefilter maps, occlusion textures, and natural HDR bloom thresholds.
+- **Housekeeping & Docs:**
+  - Added unit test coverage for `BinaryStreamLoader`, `GeometryWorkerProcessor`, and WebGPU device limits.
+
 ## [0.76.22] - 2026-08-21
 
 ### "It is not the daily increase but daily decrease. Hack away at the inessentials." - Bruce Lee
