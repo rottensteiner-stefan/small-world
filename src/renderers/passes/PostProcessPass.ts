@@ -47,6 +47,9 @@ export class PostProcessPass implements RenderPass {
       PostProcessingEffectType.QUANTIZE,
     );
     const hbao = group.get<import("../post/index.js").HbaoElement>(PostProcessingEffectType.HBAO);
+    const outline = group.get<import("../post/index.js").OutlineElement>(
+      PostProcessingEffectType.OUTLINE,
+    );
 
     return [
       group.filterMode,
@@ -66,6 +69,12 @@ export class PostProcessPass implements RenderPass {
       quant && quant.enabled ? 1 : 0,
       quant && quant.enabled ? quant.steps : 8.0,
       hbao && hbao.enabled ? 1 : 0,
+      outline && outline.enabled ? 1 : 0,
+      outline && outline.enabled ? outline.thickness : 1.0,
+      outline && outline.enabled ? outline.sensitivity : 1.0,
+      outline && outline.enabled
+        ? `${outline.color.r},${outline.color.g},${outline.color.b}`
+        : "0,0,0",
     ].join("|");
   }
 
@@ -126,6 +135,9 @@ export class PostProcessPass implements RenderPass {
       PostProcessingEffectType.QUANTIZE,
     );
     const hbao = group.get<import("../post/index.js").HbaoElement>(PostProcessingEffectType.HBAO);
+    const outline = group.get<import("../post/index.js").OutlineElement>(
+      PostProcessingEffectType.OUTLINE,
+    );
 
     const tmEnabled = tm && tm.enabled;
     const vigEnabled = vig && vig.enabled;
@@ -133,6 +145,7 @@ export class PostProcessPass implements RenderPass {
     const bloomEnabled = bloom && bloom.enabled;
     const quantEnabled = quant && quant.enabled;
     const hbaoEnabled = hbao && hbao.enabled;
+    const outlineEnabled = outline && outline.enabled;
 
     // Inject static parameters as WGSL constants, replacing default fallback declarations
     assembledFrag = assembledFrag.replace(
@@ -194,6 +207,22 @@ export class PostProcessPass implements RenderPass {
     assembledFrag = assembledFrag.replace(
       "const u_hbaoEnabled: u32 = 0u;",
       `const u_hbaoEnabled: u32 = ${hbaoEnabled ? 1 : 0}u;`,
+    );
+    assembledFrag = assembledFrag.replace(
+      "const u_outlineEnabled: u32 = 0u;",
+      `const u_outlineEnabled: u32 = ${outlineEnabled ? 1 : 0}u;`,
+    );
+    assembledFrag = assembledFrag.replace(
+      "const u_outlineThickness: f32 = 1.0;",
+      `const u_outlineThickness: f32 = ${outline ? outline.thickness.toFixed(6) : "1.0"};`,
+    );
+    assembledFrag = assembledFrag.replace(
+      "const u_outlineSensitivity: f32 = 1.0;",
+      `const u_outlineSensitivity: f32 = ${outline ? outline.sensitivity.toFixed(6) : "1.0"};`,
+    );
+    assembledFrag = assembledFrag.replace(
+      "const u_outlineColor: vec3f = vec3f(0.0, 0.0, 0.0);",
+      `const u_outlineColor: vec3f = vec3f(${outline ? `${outline.color.r.toFixed(6)}, ${outline.color.g.toFixed(6)}, ${outline.color.b.toFixed(6)}` : "0.0, 0.0, 0.0"});`,
     );
     assembledFrag = assembledFrag.replace(
       "const u_filterMode: u32 = 0u;",

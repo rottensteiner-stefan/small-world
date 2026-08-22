@@ -22,6 +22,10 @@ uniform int u_grainEnabled;
 uniform float u_grainIntensity;
 uniform int u_quantizeEnabled;
 uniform float u_quantizeSteps;
+uniform int u_outlineEnabled;
+uniform float u_outlineThickness;
+uniform float u_outlineSensitivity;
+uniform vec3 u_outlineColor;
 uniform float u_time;
 
 uniform int u_filterMode;
@@ -214,6 +218,34 @@ void main() {
     // Quantize Colors (Posterization / Color Banding)
     if (u_quantizeEnabled == 1) {
         srgb = floor(srgb * u_quantizeSteps) / u_quantizeSteps;
+    }
+
+    // Apply Toon / Graphic Novel Outline (Sobel Edge Detection on scene luminance)
+    if (u_outlineEnabled == 1) {
+        vec2 texel = vec2(u_outlineThickness) / vec2(textureSize(u_hdrTexture, 0));
+        vec3 cTL = texture(u_hdrTexture, distortUv + vec2(-texel.x,  texel.y)).rgb;
+        vec3 cTC = texture(u_hdrTexture, distortUv + vec2( 0.0,      texel.y)).rgb;
+        vec3 cTR = texture(u_hdrTexture, distortUv + vec2( texel.x,  texel.y)).rgb;
+        vec3 cML = texture(u_hdrTexture, distortUv + vec2(-texel.x,  0.0)).rgb;
+        vec3 cMR = texture(u_hdrTexture, distortUv + vec2( texel.x,  0.0)).rgb;
+        vec3 cBL = texture(u_hdrTexture, distortUv + vec2(-texel.x, -texel.y)).rgb;
+        vec3 cBC = texture(u_hdrTexture, distortUv + vec2( 0.0,     -texel.y)).rgb;
+        vec3 cBR = texture(u_hdrTexture, distortUv + vec2( texel.x, -texel.y)).rgb;
+
+        float lTL = dot(cTL, vec3(0.299, 0.587, 0.114));
+        float lTC = dot(cTC, vec3(0.299, 0.587, 0.114));
+        float lTR = dot(cTR, vec3(0.299, 0.587, 0.114));
+        float lML = dot(cML, vec3(0.299, 0.587, 0.114));
+        float lMR = dot(cMR, vec3(0.299, 0.587, 0.114));
+        float lBL = dot(cBL, vec3(0.299, 0.587, 0.114));
+        float lBC = dot(cBC, vec3(0.299, 0.587, 0.114));
+        float lBR = dot(cBR, vec3(0.299, 0.587, 0.114));
+
+        float gx = (lTR + 2.0 * lMR + lBR) - (lTL + 2.0 * lML + lBL);
+        float gy = (lBL + 2.0 * lBC + lBR) - (lTL + 2.0 * lTC + lTR);
+        float edge = clamp(sqrt(gx * gx + gy * gy) * u_outlineSensitivity * 3.0, 0.0, 1.0);
+
+        srgb = mix(srgb, u_outlineColor, edge);
     }
 
     fragColor = vec4(srgb, 1.0);

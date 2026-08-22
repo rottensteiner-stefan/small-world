@@ -279,6 +279,7 @@ export class WebGPURenderer extends AbstractRenderer {
   protected _dummyTangentBuffer!: GPUBuffer;
 
   private _defaultDirShadowTexView!: GPUTextureView;
+  private _dummyDirShadowTexView!: GPUTextureView;
   /** Read by the fragment shader's global bind group; reassigned once by
    * `CascadedShadowPassGPU` when a real cascaded shadow map first exists. */
   public get defaultDirShadowTextureView(): GPUTextureView {
@@ -287,8 +288,12 @@ export class WebGPURenderer extends AbstractRenderer {
   public set defaultDirShadowTextureView(view: GPUTextureView) {
     this._defaultDirShadowTexView = view;
   }
+  public get dummyDirShadowTextureView(): GPUTextureView {
+    return this._dummyDirShadowTexView;
+  }
 
   private _defaultSpotShadowTexView!: GPUTextureView;
+  private _dummySpotShadowTexView!: GPUTextureView;
   /** Read by the fragment shader's global bind group; reassigned once by
    * `SpotShadowPassGPU` when a real spot shadow map first exists. */
   public get defaultSpotShadowTextureView(): GPUTextureView {
@@ -296,6 +301,9 @@ export class WebGPURenderer extends AbstractRenderer {
   }
   public set defaultSpotShadowTextureView(view: GPUTextureView) {
     this._defaultSpotShadowTexView = view;
+  }
+  public get dummySpotShadowTextureView(): GPUTextureView {
+    return this._dummySpotShadowTexView;
   }
   protected _shadowSampler!: GPUSampler;
   protected _geoCache = new Map<GeometryDataInterface, WebGPUGeoCache>();
@@ -690,14 +698,16 @@ export class WebGPURenderer extends AbstractRenderer {
       format: "depth32float",
       usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT,
     });
-    this._defaultDirShadowTexView = dummyDirShadow.createView({ dimension: "2d-array" });
+    this._dummyDirShadowTexView = dummyDirShadow.createView({ dimension: "2d-array" });
+    this._defaultDirShadowTexView = this._dummyDirShadowTexView;
 
     const dummySpotShadow = this._device!.createTexture({
       size: [1, 1, 16],
       format: "depth32float",
       usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT,
     });
-    this._defaultSpotShadowTexView = dummySpotShadow.createView({ dimension: "2d-array" });
+    this._dummySpotShadowTexView = dummySpotShadow.createView({ dimension: "2d-array" });
+    this._defaultSpotShadowTexView = this._dummySpotShadowTexView;
 
     this._shadowSampler = this._device!.createSampler({
       magFilter: TextureFilter.LINEAR,

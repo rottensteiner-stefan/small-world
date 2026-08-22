@@ -161,6 +161,40 @@
         display: flex;
         flex-direction: column;
         overflow: hidden;
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      .monitor-container:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 16px 32px rgba(0, 0, 0, 0.9);
+      }
+
+      /* Fullscreen Zoom State */
+      .monitor-container.fullscreen {
+        position: fixed !important;
+        top: 2rem !important;
+        left: 2rem !important;
+        right: 2rem !important;
+        bottom: 2rem !important;
+        width: auto !important;
+        height: auto !important;
+        z-index: 9999 !important;
+        border: 10px solid #3b4252 !important;
+        box-shadow: 0 0 100px rgba(0, 0, 0, 0.95), 0 0 0 2000px rgba(0, 0, 0, 0.85) !important;
+        border-radius: 12px !important;
+        transform: none !important;
+      }
+
+      .monitor-container.fullscreen .monitor-canvas-wrapper {
+        flex: 1;
+        padding-top: 0 !important;
+        height: 100% !important;
+      }
+
+      .monitor-container.fullscreen .monitor-label {
+        padding: 1rem 1.5rem;
+        font-size: 0.95rem;
       }
 
       /* LED Power indicator */
@@ -393,6 +427,18 @@
           <div class="monitor-label">
             <span class="monitor-name">CAM-08 (THERMAL SENSOR)</span>
             <span class="monitor-effect">Infrared Heat Vision</span>
+          </div>
+        </div>
+
+        <!-- Monitor 9 -->
+        <div class="monitor-container" style="border-color: #383020">
+          <div class="monitor-canvas-wrapper">
+            <canvas id="SmallWorld-9"></canvas>
+          </div>
+          <div class="power-led" data-monitor="8" title="Toggle Power"></div>
+          <div class="monitor-label">
+            <span class="monitor-name">CAM-09 (GRAPHIC NOVEL)</span>
+            <span class="monitor-effect">Toon Ink Outline + Quantize</span>
           </div>
         </div>
       </div>

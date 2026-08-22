@@ -8,6 +8,7 @@ import {
   HbaoElement,
   TaaElement,
   MotionTrailElement,
+  OutlineElement,
 } from "./elements/index.js";
 import { PostProcessingEffectType } from "../../enums/index.js";
 
@@ -37,6 +38,7 @@ export class PostProcessingGroup {
     this.add(new HbaoElement());
     this.add(new TaaElement());
     this.add(new MotionTrailElement());
+    this.add(new OutlineElement());
   }
 
   /**

@@ -10,4 +10,5 @@ export enum PostProcessingEffectType {
   HBAO = "Hbao",
   TAA = "Taa",
   MOTION_TRAIL = "MotionTrail",
+  OUTLINE = "Outline",
 }

@@ -16,6 +16,10 @@ import {
   StandardMaterial,
   Torus,
   Vector3D,
+  Cube,
+  Texture,
+  CubeTexture,
+  SkyboxMaterial,
   BloomElement,
   HbaoElement,
 } from "../../src/index.js";
@@ -123,23 +127,82 @@ class Showcase27 extends AbstractShowcase {
     this._keySpotLightB.shadowBias = 0.003;
     this.scene.add(this._keySpotLightB);
 
+    // Load Environment Map & PBR Textures
+    const envTexture = new CubeTexture();
+    try {
+      await envTexture.loadFrom("./assets/skybox.png");
+      const skybox = new Object3D("Skybox");
+      skybox.geometry = new Cube({ size: 1000 }).getGeometryData();
+      skybox.material = new SkyboxMaterial({ cubeMap: envTexture });
+      skybox.frustumCulled = false;
+      this.scene.add(skybox);
+      this.scene.irradianceMap = envTexture;
+      this.scene.prefilterMap = envTexture;
+    } catch (e) {
+      console.warn("Could not load envmap:", e);
+    }
+
+    let marbleDiffuse: Texture | undefined;
+    let marbleNormal: Texture | undefined;
+    let marbleRoughness: Texture | undefined;
+
+    let bronzeDiffuse: Texture | undefined;
+    let bronzeNormal: Texture | undefined;
+    let bronzeRoughness: Texture | undefined;
+
+    try {
+      marbleDiffuse = await Texture.fromUrl("./assets/artdeco_diffuse.png");
+      if (marbleDiffuse) {
+        marbleDiffuse.repeat.x = 3;
+        marbleDiffuse.repeat.y = 3;
+      }
+      marbleNormal = await Texture.fromUrl("./assets/artdeco_normal.png");
+      if (marbleNormal) {
+        marbleNormal.repeat.x = 3;
+        marbleNormal.repeat.y = 3;
+      }
+      marbleRoughness = await Texture.fromUrl("./assets/artdeco_roughness.png");
+      if (marbleRoughness) {
+        marbleRoughness.repeat.x = 3;
+        marbleRoughness.repeat.y = 3;
+      }
+
+      bronzeDiffuse = await Texture.fromUrl("./assets/rusty_brass_diffuse.png");
+      bronzeNormal = await Texture.fromUrl("./assets/rusty_brass_normal.png");
+      bronzeRoughness = await Texture.fromUrl("./assets/rusty_brass_roughness.png");
+    } catch (e) {
+      console.warn("Could not load PBR textures:", e);
+    }
+
     // Materials
     const marbleWhite = new StandardMaterial({
       color: new Color(0.92, 0.92, 0.94),
-      roughness: 0.4,
-      metallic: 0.1,
+      diffuseMap: marbleDiffuse,
+      normalMap: marbleNormal,
+      roughnessMap: marbleRoughness,
+      roughness: 0.35,
+      metallic: 0.08,
+      envMap: envTexture,
     });
 
     const bronzeMetal = new StandardMaterial({
-      color: new Color(0.85, 0.55, 0.25),
-      roughness: 0.25,
-      metallic: 0.85,
+      color: new Color(0.85, 0.6, 0.3),
+      diffuseMap: bronzeDiffuse,
+      normalMap: bronzeNormal,
+      roughnessMap: bronzeRoughness,
+      roughness: 0.2,
+      metallic: 0.9,
+      envMap: envTexture,
     });
 
     const darkBasalt = new StandardMaterial({
-      color: new Color(0.12, 0.13, 0.15),
+      color: new Color(0.15, 0.16, 0.18),
+      diffuseMap: marbleDiffuse,
+      normalMap: marbleNormal,
+      roughnessMap: marbleRoughness,
       roughness: 0.5,
       metallic: 0.3,
+      envMap: envTexture,
     });
 
     // 4. Temple Floor (Grand Shadow Receiver)

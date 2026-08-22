@@ -19,6 +19,10 @@ const u_bloomColor: vec3f = vec3f(1.0, 1.0, 1.0);
 const u_hbaoEnabled: u32 = 0u;
 const u_quantizeEnabled: u32 = 0u;
 const u_quantizeSteps: f32 = 8.0;
+const u_outlineEnabled: u32 = 0u;
+const u_outlineThickness: f32 = 1.0;
+const u_outlineSensitivity: f32 = 1.0;
+const u_outlineColor: vec3f = vec3f(0.0, 0.0, 0.0);
 const u_filterMode: u32 = 0u;
 
 struct TimeUniform {
@@ -223,6 +227,34 @@ fn fs_main(@location(0) uv: vec2f, @builtin(position) coord: vec4f) -> @location
     // Quantize Colors (Posterization / Color Banding)
     if (1u == u_quantizeEnabled) {
         srgb = floor(srgb * u_quantizeSteps) / u_quantizeSteps;
+    }
+
+    // Apply Toon / Graphic Novel Outline (Sobel Edge Detection on scene luminance)
+    if (1u == u_outlineEnabled) {
+        let texel = vec2f(u_outlineThickness) / dims;
+        let cTL = textureSample(hdrTexture, hdrSampler, distortUv + vec2f(-texel.x,  texel.y)).rgb;
+        let cTC = textureSample(hdrTexture, hdrSampler, distortUv + vec2f( 0.0,      texel.y)).rgb;
+        let cTR = textureSample(hdrTexture, hdrSampler, distortUv + vec2f( texel.x,  texel.y)).rgb;
+        let cML = textureSample(hdrTexture, hdrSampler, distortUv + vec2f(-texel.x,  0.0)).rgb;
+        let cMR = textureSample(hdrTexture, hdrSampler, distortUv + vec2f( texel.x,  0.0)).rgb;
+        let cBL = textureSample(hdrTexture, hdrSampler, distortUv + vec2f(-texel.x, -texel.y)).rgb;
+        let cBC = textureSample(hdrTexture, hdrSampler, distortUv + vec2f( 0.0,     -texel.y)).rgb;
+        let cBR = textureSample(hdrTexture, hdrSampler, distortUv + vec2f( texel.x, -texel.y)).rgb;
+
+        let lTL = dot(cTL, vec3f(0.299, 0.587, 0.114));
+        let lTC = dot(cTC, vec3f(0.299, 0.587, 0.114));
+        let lTR = dot(cTR, vec3f(0.299, 0.587, 0.114));
+        let lML = dot(cML, vec3f(0.299, 0.587, 0.114));
+        let lMR = dot(cMR, vec3f(0.299, 0.587, 0.114));
+        let lBL = dot(cBL, vec3f(0.299, 0.587, 0.114));
+        let lBC = dot(cBC, vec3f(0.299, 0.587, 0.114));
+        let lBR = dot(cBR, vec3f(0.299, 0.587, 0.114));
+
+        let gx = (lTR + 2.0 * lMR + lBR) - (lTL + 2.0 * lML + lBL);
+        let gy = (lBL + 2.0 * lBC + lBR) - (lTL + 2.0 * lTC + lTR);
+        let edge = clamp(sqrt(gx * gx + gy * gy) * u_outlineSensitivity * 3.0, 0.0, 1.0);
+
+        srgb = mix(srgb, u_outlineColor, edge);
     }
 
     return vec4f(srgb, 1.0);

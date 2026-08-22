@@ -39,6 +39,9 @@ export class PostProcessPassGL {
       PostProcessingEffectType.QUANTIZE,
     );
     const hbao = group.get<import("../index.js").HbaoElement>(PostProcessingEffectType.HBAO);
+    const outline = group.get<import("../index.js").OutlineElement>(
+      PostProcessingEffectType.OUTLINE,
+    );
 
     return [
       group.filterMode,
@@ -58,6 +61,12 @@ export class PostProcessPassGL {
       quant && quant.enabled ? 1 : 0,
       quant && quant.enabled ? quant.steps : 8.0,
       hbao && hbao.enabled ? 1 : 0,
+      outline && outline.enabled ? 1 : 0,
+      outline && outline.enabled ? outline.thickness : 1.0,
+      outline && outline.enabled ? outline.sensitivity : 1.0,
+      outline && outline.enabled
+        ? `${outline.color.r},${outline.color.g},${outline.color.b}`
+        : "0,0,0",
     ].join("|");
   }
 
@@ -92,6 +101,9 @@ export class PostProcessPassGL {
       PostProcessingEffectType.QUANTIZE,
     );
     const hbao = group.get<import("../index.js").HbaoElement>(PostProcessingEffectType.HBAO);
+    const outline = group.get<import("../index.js").OutlineElement>(
+      PostProcessingEffectType.OUTLINE,
+    );
 
     const tmEnabled = tm && tm.enabled;
     const vigEnabled = vig && vig.enabled;
@@ -99,6 +111,7 @@ export class PostProcessPassGL {
     const bloomEnabled = bloom && bloom.enabled;
     const quantEnabled = quant && quant.enabled;
     const hbaoEnabled = hbao && hbao.enabled;
+    const outlineEnabled = outline && outline.enabled;
 
     // Inject static parameters as macros, replacing uniform declarations
     frag = frag.replace(
@@ -164,6 +177,22 @@ export class PostProcessPassGL {
     frag = frag.replace(
       "uniform int u_hbaoEnabled;",
       `#define u_hbaoEnabled ${hbaoEnabled ? 1 : 0}`,
+    );
+    frag = frag.replace(
+      "uniform int u_outlineEnabled;",
+      `#define u_outlineEnabled ${outlineEnabled ? 1 : 0}`,
+    );
+    frag = frag.replace(
+      "uniform float u_outlineThickness;",
+      `#define u_outlineThickness ${outline ? outline.thickness.toFixed(6) : "1.0"}`,
+    );
+    frag = frag.replace(
+      "uniform float u_outlineSensitivity;",
+      `#define u_outlineSensitivity ${outline ? outline.sensitivity.toFixed(6) : "1.0"}`,
+    );
+    frag = frag.replace(
+      "uniform vec3 u_outlineColor;",
+      `#define u_outlineColor vec3(${outline ? `${outline.color.r.toFixed(6)}, ${outline.color.g.toFixed(6)}, ${outline.color.b.toFixed(6)}` : "0.0, 0.0, 0.0"})`,
     );
     frag = frag.replace("uniform int u_filterMode;", `#define u_filterMode ${group.filterMode}`);
 

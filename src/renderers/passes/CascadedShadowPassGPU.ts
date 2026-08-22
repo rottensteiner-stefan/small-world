@@ -63,9 +63,15 @@ export class CascadedShadowPassGPU implements RenderPass {
       this._bindGroupNeedsShadowRebuild = true;
     }
 
-    if (!this._shadowCasterBindGroup) {
-      this._shadowCasterBindGroup = renderer._createGlobalBindGroup(scene);
-    }
+    // Temporarily swap back default fallback shadow views so the shadow caster bind group
+    // does not reference fbo (which would create a WebGPU write/read usage conflict).
+    const realDirShadow = renderer.defaultDirShadowTextureView;
+    const realSpotShadow = renderer.defaultSpotShadowTextureView;
+    renderer.defaultDirShadowTextureView = renderer.dummyDirShadowTextureView;
+    renderer.defaultSpotShadowTextureView = renderer.dummySpotShadowTextureView;
+    this._shadowCasterBindGroup = renderer._createGlobalBindGroup(scene);
+    renderer.defaultDirShadowTextureView = realDirShadow;
+    renderer.defaultSpotShadowTextureView = realSpotShadow;
 
     const renderList = scene.getVisibleObjectsSorted(vp, camPos);
     const depthManifest = this._depthMaterial.getRenderManifest();

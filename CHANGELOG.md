@@ -1,6 +1,21 @@
 # Changelog
 
-## [0.76.24] - 2026-08-22
+## [0.76.25] - 2026-08-22
+
+### "Drawing is the honesty of the art. There is no possibility of cheating. It is either good or bad." - Salvador Dalí
+
+- **Features:**
+  - Added `OutlineElement` (`PostProcessingEffectType.OUTLINE`) with Sobel edge detection across WebGPU (`PostProcess.frag.wgsl`) and WebGL2/WebGL1 (`PostProcess.frag.glsl`) post-processing pipelines for Comic / Graphic Novel ink rendering with configurable thickness, sensitivity, and color.
+  - Added Showcase 30 ("The Rain-Drenched Cyberpunk Albedo: SSR & Neon Wetness") featuring high-reflectance asphalt puddles, metallic roughness maps, concentric water ripples, oscillating neon spotlights, and IBL skybox reflections.
+  - Added Showcase 28 ("The Quantum Optical Resonator: Spot Shadows & Roughness Dial") and Showcase 29 ("The Sponza Atrium: Cascaded Sunlight & Classical Colonnade") with real-world CC0 PBR texture sets and IBL.
+  - Enhanced Showcase 14 ("Surveillance Video Wall") with `CAM-09 (GRAPHIC NOVEL)` post-processing preset, click-to-zoom fullscreen inspection modal with ESC key exit, and round ceramic cups with vertical Torus handles.
+- **Architecture & Bugfixes:**
+  - Resolved WebGPU read/write synchronization hazard (`Depth32Float` bound simultaneously as render attachment and texture binding) by introducing dedicated persistent dummy shadow texture views in `WebGPURenderer`, `CascadedShadowPassGPU`, and `SpotShadowPassGPU`.
+  - Registered `OutlineElement` in `PostProcessingGroup` and exported from post elements index.
+- **Housekeeping & Docs:**
+  - Added unit test coverage for `OutlineElement` (`tests/renderers/post/elements/OutlineElement.test.ts`).
+  - Documented the Master Dramaturgy (4 Acts), 20 key locations, faction ecosystem, radiation mechanics, and urban compression principles for the "And Now?" post-apocalyptic Vienna app.
+
 
 ### "Light and shadow are opposite sides of the same coin." - Leonardo da Vinci
 

@@ -11,11 +11,14 @@ import {
   PointLight,
   SpotLight,
   Cube,
+  Cylinder,
+  Torus,
   StandardMaterial,
   ToneMappingElement,
   VignetteElement,
   GrainElement,
   BloomElement,
+  OutlineElement,
   Scene,
   AbstractLight,
   Texture,
@@ -438,26 +441,53 @@ function buildInterrogationRoom(
   folder.rotation.y = 0.2;
   scene.add(folder);
 
-  // Cup 1: White ceramic (placed clearly on the Interrogator's side - Left)
+  // Cup Geometries: Round Cylinder body + Torus handle
+  const cupBodyGeo = new Cylinder({
+    radiusTop: 0.045,
+    radiusBottom: 0.038,
+    height: 0.11,
+    radialSegments: 24,
+  }).getGeometryData();
+
+  const cupHandleGeo = new Torus({
+    radius: 0.028,
+    tube: 0.007,
+    radialSegments: 12,
+    tubularSegments: 20,
+  }).getGeometryData();
+
+  // Cup 1: White ceramic (Interrogator's side - Left)
   const cup1 = new Object3D("cup1");
-  cup1.geometry = cubeGeo;
+  cup1.geometry = cupBodyGeo;
   cup1.material = new StandardMaterial({
-    color: new Color(0.9, 0.9, 0.9),
+    color: new Color(0.92, 0.92, 0.92),
     roughness: 0.2,
   });
-  cup1.scale.set(0.08, 0.12, 0.08);
-  cup1.position.set(-0.6, 0.87, -0.3); // Rest on table surface (0.81 + 0.06), far left
+  cup1.position.set(-0.6, 0.865, -0.3); // Rest on table surface (0.81 + 0.055)
+
+  const cup1Handle = new Object3D("cup1_handle");
+  cup1Handle.geometry = cupHandleGeo;
+  cup1Handle.material = cup1.material;
+  cup1Handle.position.set(-0.045, 0.0, 0.0);
+  cup1Handle.rotation.z = Math.PI / 2;
+  cup1.add(cup1Handle);
   scene.add(cup1);
 
-  // Cup 2: Dark green ceramic (placed clearly on the Suspect's side - Right)
+  // Cup 2: Dark green ceramic (Suspect's side - Right)
   const cup2 = new Object3D("cup2");
-  cup2.geometry = cubeGeo;
+  cup2.geometry = cupBodyGeo;
   cup2.material = new StandardMaterial({
-    color: new Color(0.1, 0.35, 0.2),
-    roughness: 0.35,
+    color: new Color(0.12, 0.38, 0.22),
+    roughness: 0.3,
   });
-  cup2.scale.set(0.08, 0.12, 0.08);
-  cup2.position.set(0.6, 0.87, 0.3); // Rest on table surface (0.81 + 0.06), far right
+  cup2.position.set(0.6, 0.865, 0.3); // Rest on table surface (0.81 + 0.055)
+
+  const cup2Handle = new Object3D("cup2_handle");
+  cup2Handle.geometry = cupHandleGeo;
+  cup2Handle.material = cup2.material;
+  cup2Handle.position.set(0.045, 0.0, 0.0);
+  cup2Handle.rotation.z = Math.PI / 2;
+  cup2.add(cup2Handle);
   scene.add(cup2);
 
   // Case files / DIN A4 pages on table (placed in the middle-left area where interrogator reads them)
@@ -848,6 +878,40 @@ class Showcase14 extends AbstractShowcase {
           vignette.offset = 0.65;
         }
         break;
+
+      case "comic":
+        this.renderer.postProcessing.filterMode = 0;
+        if (toneMapping) {
+          toneMapping.enabled = true;
+          toneMapping.mode = ToneMappingMode.ACES_FILMIC;
+          toneMapping.exposure = 1.2;
+        }
+        {
+          const quantize = this.renderer.postProcessing.get<
+            import("../../src/renderers/post/index.js").QuantizeElement
+          >(PostProcessingEffectType.QUANTIZE);
+          if (quantize) {
+            quantize.enabled = true;
+            quantize.steps = 6.0; // 6 color bands for graphic novel look
+          }
+        }
+        {
+          const outline = this.renderer.postProcessing.get<OutlineElement>(
+            PostProcessingEffectType.OUTLINE,
+          );
+          if (outline) {
+            outline.enabled = true;
+            outline.thickness = 1.5;
+            outline.sensitivity = 1.2;
+            outline.color = Color.BLACK;
+          }
+        }
+        if (vignette) {
+          vignette.enabled = true;
+          vignette.darkness = 0.5;
+          vignette.offset = 0.75;
+        }
+        break;
     }
   }
 
@@ -954,6 +1018,7 @@ const tapeApp = new Showcase14("SmallWorld-5", "tape");
 const amberApp = new Showcase14("SmallWorld-6", "underworld");
 const projectorApp = new Showcase14("SmallWorld-7", "projector");
 const thermalApp = new Showcase14("SmallWorld-8", "thermal");
+const comicApp = new Showcase14("SmallWorld-9", "comic");
 
 const apps: Showcase14[] = [
   cleanApp,
@@ -964,6 +1029,7 @@ const apps: Showcase14[] = [
   amberApp,
   projectorApp,
   thermalApp,
+  comicApp,
 ];
 
 Promise.all([
@@ -975,6 +1041,7 @@ Promise.all([
   amberApp.start(),
   projectorApp.start(),
   thermalApp.start(),
+  comicApp.start(),
 ])
   .then(() => setupUIControls())
   .catch((err: unknown) => console.error("[Showcase14] Failed to start:", err));
@@ -1067,7 +1134,8 @@ function setupUIControls(): void {
   // Toggle monitor power via LED
   const leds = document.querySelectorAll(".power-led");
   leds.forEach((led) => {
-    led.addEventListener("click", () => {
+    led.addEventListener("click", (e) => {
+      e.stopPropagation(); // Don't trigger monitor zoom when clicking power LED
       const idxStr = led.getAttribute("data-monitor");
       if (idxStr !== null) {
         const idx = parseInt(idxStr);
@@ -1084,5 +1152,25 @@ function setupUIControls(): void {
         }
       }
     });
+  });
+
+  // Toggle fullscreen zoom on monitor click
+  const containers = document.querySelectorAll(".monitor-container");
+  containers.forEach((container) => {
+    container.addEventListener("click", () => {
+      const isFullscreen = container.classList.contains("fullscreen");
+      // Remove fullscreen from all other monitors
+      containers.forEach((c) => c.classList.remove("fullscreen"));
+      if (!isFullscreen) {
+        container.classList.add("fullscreen");
+      }
+    });
+  });
+
+  // ESC key to exit fullscreen zoom
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      containers.forEach((c) => c.classList.remove("fullscreen"));
+    }
   });
 }
