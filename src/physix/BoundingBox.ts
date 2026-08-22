@@ -1,5 +1,6 @@
 import { Collision } from "./Collision.js";
 import { BoundingSphere } from "./BoundingSphere.js";
+import type { OBB } from "./OBB.js";
 import { BoundingVolume, FrustumInterface } from "../interfaces/index.js";
 import { Vector3D, MathPool, Matrix4 } from "../math/index.js";
 import { BoundingType } from "../enums/index.js";
@@ -170,6 +171,29 @@ export class BoundingBox implements BoundingVolume {
     }
     if (BoundingType.SPHERE === other.type) {
       return this.containsSphere(other as BoundingSphere);
+    }
+    if (BoundingType.OBB === other.type) {
+      // Conservative sphere-approximation, consistent with how OBBs are already treated for
+      // broad-phase elsewhere (getBroadRadius()). Without this branch, containment for OBB-typed
+      // bounds always returns false, so an OBB-bounded object can never be inserted into an
+      // Octree regardless of the tree's actual extent.
+      //
+      // Deliberately NOT delegating to containsSphere(): OBB has no `.radius` field, so reusing
+      // it would mean either an unsafe `as BoundingSphere` cast on a plain {center, radius}
+      // literal (doesn't structurally satisfy the class) or allocating `new BoundingSphere(...)`
+      // on a path called once per OBB-bounded object on every dynamic-octree rebuild (i.e. every
+      // frame -- see Scene.updateDynamicOctree()). Inlining the comparison keeps this alloc-free.
+      const obb = other as OBB;
+      const r = obb.getBroadRadius();
+      const c = obb.center;
+      return (
+        this.min.x <= c.x - r &&
+        this.max.x >= c.x + r &&
+        this.min.y <= c.y - r &&
+        this.max.y >= c.y + r &&
+        this.min.z <= c.z - r &&
+        this.max.z >= c.z + r
+      );
     }
     return false;
   }

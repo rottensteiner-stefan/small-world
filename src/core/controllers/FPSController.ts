@@ -5,6 +5,7 @@ import { InputMode, Keys } from "../../enums/index.js";
 import { AudioSystem } from "../../audio/AudioSystem.js";
 import { BoundingSphere } from "../../physix/index.js";
 import { resolveSphereCollisions } from "../behaviors/CollisionResolution.js";
+import { MathUtils } from "../../math/index.js";
 
 /**
  * Configuration for the FPSController.
@@ -159,7 +160,7 @@ export class FPSController extends Behavior {
         obj.rotation.y -= dx * this._options.lookSensitivity;
         obj.rotation.x += dy * this._options.lookSensitivity;
         const limit = 1.55;
-        obj.rotation.x = Math.max(-limit, Math.min(limit, obj.rotation.x));
+        obj.rotation.x = MathUtils.clamp(obj.rotation.x, -limit, limit);
       }
     }
   }

@@ -36,7 +36,23 @@ export enum DeviceLimit {
   MAX_UNIFORM_BUFFER_SIZE = "MAX_UNIFORM_BUFFER_SIZE",
   MAX_MSAA_SAMPLES = "MAX_MSAA_SAMPLES",
   MAX_VERTEX_ATTRIBUTES = "MAX_VERTEX_ATTRIBUTES",
+  /**
+   * Merged (`Math.max()`'d) across whichever of WebGL1/WebGL2 the probes in `init()` found --
+   * informational only. A renderer doing an actual bounds-check against the units it can really
+   * bind must use its own `WEBGL1_.../WEBGL2_...` variant below instead: WebGL2/GLES3 guarantees
+   * more units than WebGL1/GLES2, so on a device where WebGL2 reports more, this merged value can
+   * silently exceed what an actually-active WebGL1 context supports.
+   *
+   * There is deliberately no `WEBGPU_MAX_TEXTURE_IMAGE_UNITS` sibling: "texture image units" (a
+   * flat set of global slots bound via `gl.activeTexture()`) is a WebGL-only concept. WebGPU's
+   * equivalent per-stage texture budget is `WEBGPU_MAX_SAMPLED_TEXTURES_PER_STAGE` below --
+   * named after its own spec limit (`maxSampledTexturesPerShaderStage`) rather than this one,
+   * since WebGPU's binding model (separate texture/sampler/bind-group/binding budgets) doesn't
+   * map onto WebGL's texture-unit model.
+   */
   MAX_TEXTURE_IMAGE_UNITS = "MAX_TEXTURE_IMAGE_UNITS",
+  WEBGL1_MAX_TEXTURE_IMAGE_UNITS = "WEBGL1_MAX_TEXTURE_IMAGE_UNITS",
+  WEBGL2_MAX_TEXTURE_IMAGE_UNITS = "WEBGL2_MAX_TEXTURE_IMAGE_UNITS",
   MAX_VERTEX_UNIFORM_VECTORS = "MAX_VERTEX_UNIFORM_VECTORS",
   MAX_FRAGMENT_UNIFORM_VECTORS = "MAX_FRAGMENT_UNIFORM_VECTORS",
   /** WebGL2-only: max layers in a `TEXTURE_2D_ARRAY` (used by this engine's `TextureArray`/terrain atlasing). */
@@ -44,11 +60,13 @@ export enum DeviceLimit {
   /** WebGL2-only: max simultaneous framebuffer color attachments (multiple-render-target/deferred rendering). */
   MAX_COLOR_ATTACHMENTS = "MAX_COLOR_ATTACHMENTS",
   /**
-   * WebGPU's own per-fragment-stage sampled-texture budget. Kept as its OWN field rather than
-   * folded into `MAX_TEXTURE_IMAGE_UNITS` -- that field is `Math.max()`'d across WebGL1/WebGL2
-   * probes taken unconditionally at `init()`, regardless of which renderer ends up active, so a
-   * higher WebGL number can silently mask a lower real WebGPU one (exactly how a 20-texture WebGPU
-   * bind group went undetected on a device whose WebGL2 context happened to report 32 units).
+   * WebGPU's own per-fragment-stage sampled-texture budget (`maxSampledTexturesPerShaderStage`)
+   * -- the WebGPU counterpart to `WEBGL1_.../WEBGL2_MAX_TEXTURE_IMAGE_UNITS` above, deliberately
+   * named and tracked separately rather than folded into `MAX_TEXTURE_IMAGE_UNITS`: that field is
+   * `Math.max()`'d across WebGL1/WebGL2 probes taken unconditionally at `init()`, regardless of
+   * which renderer ends up active, so a higher WebGL number can silently mask a lower real WebGPU
+   * one (exactly how a 20-texture WebGPU bind group went undetected on a device whose WebGL2
+   * context happened to report 32 units).
    */
   WEBGPU_MAX_SAMPLED_TEXTURES_PER_STAGE = "WEBGPU_MAX_SAMPLED_TEXTURES_PER_STAGE",
   WEBGPU_MAX_SAMPLERS_PER_STAGE = "WEBGPU_MAX_SAMPLERS_PER_STAGE",
@@ -85,6 +103,8 @@ export class DeviceCaps {
   private static _maxMsaaSamples: number = 1;
   private static _maxVertexAttributes: number = 0;
   private static _maxTextureImageUnits: number = 0;
+  private static _webgl1MaxTextureImageUnits: number = 0;
+  private static _webgl2MaxTextureImageUnits: number = 0;
   private static _maxVertexUniformVectors: number = 0;
   private static _maxFragmentUniformVectors: number = 0;
   private static _maxTextureArrayLayers: number = 0;
@@ -169,6 +189,7 @@ export class DeviceCaps {
         this._maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE);
         this._maxVertexAttributes = gl.getParameter(gl.MAX_VERTEX_ATTRIBS);
         this._maxTextureImageUnits = gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS);
+        this._webgl1MaxTextureImageUnits = this._maxTextureImageUnits;
         this._maxVertexUniformVectors = gl.getParameter(gl.MAX_VERTEX_UNIFORM_VECTORS);
         this._maxFragmentUniformVectors = gl.getParameter(gl.MAX_FRAGMENT_UNIFORM_VECTORS);
 
@@ -210,9 +231,10 @@ export class DeviceCaps {
         );
         this._maxUniformBufferSize = gl2.getParameter(gl2.MAX_UNIFORM_BLOCK_SIZE);
         this._maxMsaaSamples = gl2.getParameter(gl2.MAX_SAMPLES);
+        this._webgl2MaxTextureImageUnits = gl2.getParameter(gl2.MAX_TEXTURE_IMAGE_UNITS);
         this._maxTextureImageUnits = Math.max(
           this._maxTextureImageUnits,
-          gl2.getParameter(gl2.MAX_TEXTURE_IMAGE_UNITS),
+          this._webgl2MaxTextureImageUnits,
         );
         this._maxVertexUniformVectors = Math.max(
           this._maxVertexUniformVectors,
@@ -384,6 +406,10 @@ export class DeviceCaps {
         return this._maxVertexAttributes;
       case DeviceLimit.MAX_TEXTURE_IMAGE_UNITS:
         return this._maxTextureImageUnits;
+      case DeviceLimit.WEBGL1_MAX_TEXTURE_IMAGE_UNITS:
+        return this._webgl1MaxTextureImageUnits;
+      case DeviceLimit.WEBGL2_MAX_TEXTURE_IMAGE_UNITS:
+        return this._webgl2MaxTextureImageUnits;
       case DeviceLimit.MAX_VERTEX_UNIFORM_VECTORS:
         return this._maxVertexUniformVectors;
       case DeviceLimit.MAX_FRAGMENT_UNIFORM_VECTORS:
@@ -429,6 +455,10 @@ export class DeviceCaps {
       // GLES3/WebGL2 minimum; GLES2/WebGL1 only guarantees 8 -- the exact number that caused a
       // real texture-unit collision bug on real hardware earlier in this project's history.
       case DeviceLimit.MAX_TEXTURE_IMAGE_UNITS:
+        return 16;
+      case DeviceLimit.WEBGL1_MAX_TEXTURE_IMAGE_UNITS:
+        return 8;
+      case DeviceLimit.WEBGL2_MAX_TEXTURE_IMAGE_UNITS:
         return 16;
       // GLES2 and GLES3 both guarantee at least 16.
       case DeviceLimit.MAX_VERTEX_ATTRIBUTES:

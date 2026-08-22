@@ -28,19 +28,13 @@ export class InteractionManager {
    * Called every frame to process input and fire events.
    */
   public update(): void {
-    if (this.input.isPointerLocked) {
-      this._clearHover();
-      this._wasLeftDown = this.input.mouse.left;
-      return;
-    }
-
     const mouse = this.input.mouse;
     const rect = this.canvas.getBoundingClientRect();
     const x = mouse.x - rect.left;
     const y = mouse.y - rect.top;
+    const outsideCanvas = x < 0 || x > rect.width || y < 0 || y > rect.height;
 
-    // Check if mouse is outside canvas
-    if (x < 0 || x > rect.width || y < 0 || y > rect.height) {
+    if (this.input.isPointerLocked || outsideCanvas) {
       this._clearHover();
       this._wasLeftDown = this.input.mouse.left;
       return;

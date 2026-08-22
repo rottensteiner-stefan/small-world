@@ -15,6 +15,8 @@ class MaterialGroup {
   public outIndices: number[] = [];
   public vertexCache: Map<string, number> = new Map<string, number>();
   public indexCounter: number = 0;
+  /** True once at least one face-vertex supplied a real (in-range) vn index. */
+  public hasExplicitNormals: boolean = false;
   constructor(public name: string) {}
 }
 
@@ -139,10 +141,13 @@ export class ObjLoader extends AbstractLoader<Object3D> {
       }
 
       const child: Object3D = new Object3D(name);
+      // ModelGeometry only auto-computes normals when handed an empty array; a group that never
+      // saw a real vn must pass [] rather than its (0,0,0)-padded placeholder array, or every
+      // vertex would ship with a zero normal instead of a computed one.
       child.geometry = new ModelGeometry(
         group.outVertices,
         group.outUVs,
-        group.outNormals,
+        group.hasExplicitNormals ? group.outNormals : [],
         group.outIndices,
       ).getGeometryData();
       child.material = materials.get(name) || new PhongMaterial();
@@ -168,8 +173,10 @@ export class ObjLoader extends AbstractLoader<Object3D> {
 
     // 1. Position (Mandatory)
     const vRaw: number = parseInt(parts[0]!);
-    const vIdx: number = (vRaw - 1) * 3;
-    if (!Number.isFinite(vRaw) || vIdx < 0 || vIdx + 2 >= tempV.length) {
+    // OBJ indices are 1-based; negative indices are relative to the last vertex parsed so far
+    // (e.g. -1 == most recently defined vertex), commonly emitted by Blender's exporter.
+    const vIdx: number = vRaw < 0 ? tempV.length + vRaw * 3 : (vRaw - 1) * 3;
+    if (!Number.isFinite(vRaw) || vRaw === 0 || vIdx < 0 || vIdx + 2 >= tempV.length) {
       console.warn(
         `[ObjLoader] Malformed face vertex index "${parts[0]}" in "${faceStr}", using (0,0,0).`,
       );
@@ -196,9 +203,18 @@ export class ObjLoader extends AbstractLoader<Object3D> {
       const vnIdx: number = (parseInt(parts[2]!) - 1) * 3;
       if (vnIdx >= 0 && vnIdx + 2 < tempVN.length) {
         group.outNormals.push(tempVN[vnIdx]!, tempVN[vnIdx + 1]!, tempVN[vnIdx + 2]!);
+        group.hasExplicitNormals = true;
       } else {
-        // We will compute normals later if they are missing
+        // Push a placeholder to keep outNormals aligned 1:1 with outVertices, matching the UV
+        // branch above -- otherwise a face-vertex with a missing/out-of-range vn shifts every
+        // subsequent vertex's normal by one slot. `parse()` discards this array entirely (falling
+        // back to auto-computed normals) unless `hasExplicitNormals` is true for the group.
+        group.outNormals.push(0, 0, 0);
       }
+    } else {
+      // No vn segment at all on this face-vertex (e.g. "f 1/1 2/2 3/3") -- same alignment
+      // requirement as above.
+      group.outNormals.push(0, 0, 0);
     }
 
     const newIndex: number = group.indexCounter++;

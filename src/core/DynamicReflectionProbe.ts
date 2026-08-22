@@ -4,7 +4,7 @@ import { Scene } from "./Scene.js";
 import { PerspectiveProjection } from "../math/projections/index.js";
 import { Renderer } from "../interfaces/index.js";
 import { RenderTargetCube } from "./textures/index.js";
-import { Vector3D } from "../math/index.js";
+import { Vector3D, MathPool, MathUtils } from "../math/index.js";
 
 /**
  * A probe that renders the environment into a CubeMap from its position.
@@ -69,24 +69,23 @@ export class DynamicReflectionProbe extends Object3D {
     }
 
     // Get world position of this probe
-    const pos = new Vector3D(0, 0, 0);
+    const pos = MathPool.acquireVector().set(0, 0, 0);
     this.worldMatrix.transformVector(pos);
     this.probeCamera.position.copyFrom(pos);
 
     // Update faces based on time-slicing
-    const facesToUpdate = Math.min(6, Math.max(1, this.facesPerFrame));
+    const facesToUpdate = MathUtils.clamp(this.facesPerFrame, 1, 6);
 
     for (let i = 0; i < facesToUpdate; i++) {
       const faceIndex = this._currentFace;
       const dirInfo = DynamicReflectionProbe._FACE_DIRECTIONS[faceIndex]!;
 
       // Set camera lookAt and up
-      const target = new Vector3D(
+      this.probeCamera.target.set(
         pos.x + dirInfo.dir.x,
         pos.y + dirInfo.dir.y,
         pos.z + dirInfo.dir.z,
       );
-      this.probeCamera.target.copyFrom(target);
       this.probeCamera.up.copyFrom(dirInfo.up);
 
       this.probeCamera.updateViewMatrix();
@@ -104,6 +103,7 @@ export class DynamicReflectionProbe extends Object3D {
       this._currentFace = (this._currentFace + 1) % 6;
     }
 
+    MathPool.releaseVector(pos);
     renderer.setRenderTarget(null);
 
     // Restore visibility

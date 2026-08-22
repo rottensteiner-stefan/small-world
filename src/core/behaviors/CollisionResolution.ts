@@ -3,6 +3,7 @@ import { Object3D } from "../Object3D.js";
 import { Scene } from "../Scene.js";
 import { BoundingBox, BoundingSphere, Collision } from "../../physix/index.js";
 import { MathPool } from "../../math/index.js";
+import { BoundingType } from "../../enums/index.js";
 
 const _scratchHits: Collidable[] = [];
 
@@ -36,7 +37,7 @@ export function resolveSphereCollisions(
   for (const obj of _scratchHits) {
     if (!obj.bounds || obj === target) continue;
     let resolved: boolean;
-    if (0 === obj.bounds.type /* BoundingType.SPHERE */) {
+    if (BoundingType.SPHERE === obj.bounds.type) {
       resolved = Collision.resolveSphereSphere(
         collider,
         obj.bounds as BoundingSphere,

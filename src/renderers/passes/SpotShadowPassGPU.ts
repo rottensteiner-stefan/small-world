@@ -78,7 +78,12 @@ export class SpotShadowPassGPU implements RenderPass {
     const renderList = scene.getVisibleObjectsSorted(vp, camPos);
     const depthManifest = this._depthMaterial.getRenderManifest();
 
-    for (let j = 0; j < lights.sLights.length; j++) {
+    // The shadow atlas texture is fixed at 4 array layers (see comment above), matching
+    // WebGL2Renderer's `u_spotShadowMap[4]` cap -- only the first 4 spot lights (by scene index,
+    // not just shadow-casting ones) get a shadow map, mirroring that renderer's loop bound.
+    const maxShadowedSpotLights = Math.min(lights.sLights.length, 4);
+
+    for (let j = 0; j < maxShadowedSpotLights; j++) {
       const sLight = lights.sLights[j]!;
       if (!sLight.castShadow || !sLight.shadowCamera) continue;
 
@@ -195,7 +200,7 @@ export class SpotShadowPassGPU implements RenderPass {
     const rawVp = MathPool.acquireMatrix();
     const correctedVp = MathPool.acquireMatrix();
 
-    for (let j = 0; j < lights.sLights.length; j++) {
+    for (let j = 0; j < maxShadowedSpotLights; j++) {
       const sLight = lights.sLights[j]!;
       if (sLight.castShadow && sLight.shadowCamera) {
         gData[112 + j * 4] = sLight.shadowBias;

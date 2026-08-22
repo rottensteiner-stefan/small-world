@@ -4,7 +4,7 @@ import { Scene } from "./Scene.js";
 import { PerspectiveProjection } from "../math/projections/index.js";
 import { Renderer } from "../interfaces/index.js";
 import { RenderTarget } from "./textures/index.js";
-import { Vector3D } from "../math/index.js";
+import { MathPool } from "../math/index.js";
 
 /**
  * A node that renders the scene from a mirrored perspective into a RenderTarget.
@@ -12,9 +12,6 @@ import { Vector3D } from "../math/index.js";
 export class PlanarReflectionNode extends Object3D {
   public renderTarget: RenderTarget;
   public mirrorCamera: Camera;
-
-  private _planeNormal: Vector3D = new Vector3D(0, 1, 0);
-  private _planeConstant: number = 0; // Distance from origin
 
   constructor(name: string = "PlanarReflectionNode", width: number = 1024, height: number = 1024) {
     super(name);
@@ -31,47 +28,49 @@ export class PlanarReflectionNode extends Object3D {
     this.mirrorCamera.aspect = mainCamera.aspect;
     this.mirrorCamera.projection = mainCamera.projection;
 
-    // 1. Calculate mirror plane based on this object's world matrix
-    const pos = new Vector3D(0, 0, 0);
+    // 1. Calculate mirror plane based on this object's world matrix. Only ever read within this
+    // method (recomputed fresh every call from the current world matrix), so these live as local
+    // MathPool-backed scratch values rather than instance fields.
+    const pos = MathPool.acquireVector().set(0, 0, 0);
     this.worldMatrix.transformVector(pos);
 
-    const normalPoint = new Vector3D(0, 1, 0);
-    this.worldMatrix.transformVector(normalPoint);
-    this._planeNormal = normalPoint.sub(pos).normalize();
-    this._planeConstant = -this._planeNormal.dot(pos);
+    const planeNormal = MathPool.acquireVector().set(0, 1, 0);
+    this.worldMatrix.transformVector(planeNormal);
+    planeNormal.sub(pos).normalize();
+    const planeConstant = -planeNormal.dot(pos);
 
     // 2. Mirror the camera position
     const camPos = mainCamera.position;
-    const dist = this._planeNormal.dot(camPos) + this._planeConstant;
+    const dist = planeNormal.dot(camPos) + planeConstant;
     this.mirrorCamera.position.set(
-      camPos.x - 2.0 * this._planeNormal.x * dist,
-      camPos.y - 2.0 * this._planeNormal.y * dist,
-      camPos.z - 2.0 * this._planeNormal.z * dist,
+      camPos.x - 2.0 * planeNormal.x * dist,
+      camPos.y - 2.0 * planeNormal.y * dist,
+      camPos.z - 2.0 * planeNormal.z * dist,
     );
 
     // 3. Mirror the camera target
-    const targetPos = mainCamera.target.clone();
-    const distTarget = this._planeNormal.dot(targetPos) + this._planeConstant;
-    const mirroredTarget = new Vector3D(targetPos.x, targetPos.y, targetPos.z).sub(
-      new Vector3D(
-        this._planeNormal.x * 2 * distTarget,
-        this._planeNormal.y * 2 * distTarget,
-        this._planeNormal.z * 2 * distTarget,
-      ),
+    const targetPos = mainCamera.target;
+    const distTarget = planeNormal.dot(targetPos) + planeConstant;
+    this.mirrorCamera.target.set(
+      targetPos.x - planeNormal.x * 2 * distTarget,
+      targetPos.y - planeNormal.y * 2 * distTarget,
+      targetPos.z - planeNormal.z * 2 * distTarget,
     );
-    this.mirrorCamera.target.copyFrom(mirroredTarget);
 
     // Update view and projection internally
     this.mirrorCamera.updateViewMatrix();
 
     // 4. Mirror the camera UP vector
     const up = mainCamera.up;
-    const upDist = this._planeNormal.dot(up);
+    const upDist = planeNormal.dot(up);
     this.mirrorCamera.up.set(
-      up.x - 2.0 * this._planeNormal.x * upDist,
-      up.y - 2.0 * this._planeNormal.y * upDist,
-      up.z - 2.0 * this._planeNormal.z * upDist,
+      up.x - 2.0 * planeNormal.x * upDist,
+      up.y - 2.0 * planeNormal.y * upDist,
+      up.z - 2.0 * planeNormal.z * upDist,
     );
+
+    MathPool.releaseVector(pos);
+    MathPool.releaseVector(planeNormal);
 
     // 5. Hide this reflection node (and its children) so it doesn't occlude the reflection
     const wasVisible = this.isVisible;

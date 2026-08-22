@@ -65,14 +65,20 @@ export class Scene {
   // as opposed to objects merely re-parented or temporarily hidden.
   private _pendingRemovals: Object3D[] = [];
 
+  constructor() {
+    // Lets Object3D.remove() queue GPU-resource release even when called on a nested object
+    // directly (`someParent.remove(child)`) instead of through this method -- see
+    // Object3D.pendingRemovalSink.
+    this.root.pendingRemovalSink = (obj: Object3D): void => {
+      this._collectSubtree(obj, this._pendingRemovals);
+    };
+  }
+
   public add(...objs: Object3D[]): void {
     this.root.add(...objs);
   }
 
   public remove(...objs: Object3D[]): void {
-    for (const obj of objs) {
-      this._collectSubtree(obj, this._pendingRemovals);
-    }
     this.root.remove(...objs);
   }
 
@@ -144,9 +150,18 @@ export class Scene {
     this._addObjectToOctree(this.root, false);
   }
 
+  /**
+   * True for auto-generated debug visuals (e.g. `OctreeVisualizer`/`CollisionVisualizer` wireframes),
+   * identified by the `debug_` name prefix convention. Centralized here so every consumer of this
+   * convention checks it the same way, rather than each re-testing the prefix independently.
+   */
+  public static isDebugObject(obj: Object3D): boolean {
+    return obj.name.startsWith("debug_");
+  }
+
   private _addObjectToOctree(obj: Object3D, checkStatic: boolean): void {
     // Skip debug objects to avoid recursion and unnecessary processing
-    if (obj.name.startsWith("debug_")) {
+    if (Scene.isDebugObject(obj)) {
       return;
     }
 
@@ -181,6 +196,12 @@ export class Scene {
     for (let i = 0; i < obj.behaviors.length; i++) {
       const b = obj.behaviors[i]!;
       if (b.isActive) b.update(deltaTime);
+      // detachBehavior() splices the list; if `b` (or an earlier-indexed sibling) removed itself
+      // from within update(), the next behavior has shifted down into slot `i`. Re-visit `i` so
+      // it isn't silently skipped -- this preserves attach order for the common case (many
+      // showcases combine order-dependent behaviors, e.g. a mover before a LookAt) instead of
+      // just reversing the loop.
+      if (obj.behaviors[i] !== b) i--;
     }
     for (let i = 0; i < obj.children.length; i++) {
       this._updateBehaviorsRecursive(obj.children[i]!, deltaTime);

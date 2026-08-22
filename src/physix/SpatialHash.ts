@@ -27,17 +27,7 @@ export class SpatialHash {
   public insert(obj: Collidable): void {
     if (!obj.bounds) return;
 
-    const bounds = obj.bounds;
-    const r = bounds.getBroadRadius();
-    const minX = bounds.center.x - r;
-    const maxX = bounds.center.x + r;
-    const minZ = bounds.center.z - r;
-    const maxZ = bounds.center.z + r;
-
-    const startCellX = Math.floor(minX / this.cellSize);
-    const endCellX = Math.floor(maxX / this.cellSize);
-    const startCellZ = Math.floor(minZ / this.cellSize);
-    const endCellZ = Math.floor(maxZ / this.cellSize);
+    const { startCellX, endCellX, startCellZ, endCellZ } = this._cellRange(obj.bounds);
 
     for (let x = startCellX; x <= endCellX; x++) {
       for (let z = startCellZ; z <= endCellZ; z++) {
@@ -63,16 +53,7 @@ export class SpatialHash {
    * Queries for potential collisions in the given volume's area.
    */
   public query(volume: BoundingVolume, outResult: Collidable[]): void {
-    const r = volume.getBroadRadius();
-    const minX = volume.center.x - r;
-    const maxX = volume.center.x + r;
-    const minZ = volume.center.z - r;
-    const maxZ = volume.center.z + r;
-
-    const startCellX = Math.floor(minX / this.cellSize);
-    const endCellX = Math.floor(maxX / this.cellSize);
-    const startCellZ = Math.floor(minZ / this.cellSize);
-    const endCellZ = Math.floor(maxZ / this.cellSize);
+    const { startCellX, endCellX, startCellZ, endCellZ } = this._cellRange(volume);
 
     for (let x = startCellX; x <= endCellX; x++) {
       for (let z = startCellZ; z <= endCellZ; z++) {
@@ -117,6 +98,22 @@ export class SpatialHash {
         }
       }
     }
+  }
+
+  /** Converts a bounding volume's XZ footprint (center ± broad radius) into cell-index bounds. */
+  private _cellRange(volume: BoundingVolume): {
+    startCellX: number;
+    endCellX: number;
+    startCellZ: number;
+    endCellZ: number;
+  } {
+    const r = volume.getBroadRadius();
+    return {
+      startCellX: Math.floor((volume.center.x - r) / this.cellSize),
+      endCellX: Math.floor((volume.center.x + r) / this.cellSize),
+      startCellZ: Math.floor((volume.center.z - r) / this.cellSize),
+      endCellZ: Math.floor((volume.center.z + r) / this.cellSize),
+    };
   }
 
   private _getHash(x: number, z: number): number {

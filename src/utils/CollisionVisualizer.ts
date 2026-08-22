@@ -33,7 +33,7 @@ export class CollisionVisualizer {
     for (let i: number = 0; i < scene.objects.length; i++) {
       const obj: Object3D = scene.objects[i]!;
       // Don't visualize debug objects themselves
-      if (0 === obj.name.indexOf("debug_")) {
+      if (Scene.isDebugObject(obj)) {
         continue;
       }
       this._traverse(obj, scene, activeUuids);

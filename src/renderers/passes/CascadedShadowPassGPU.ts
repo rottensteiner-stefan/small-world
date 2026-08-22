@@ -6,10 +6,33 @@ import { RenderPass } from "../index.js";
 import { InstancedMesh } from "../../core/InstancedMesh.js";
 import { Object3D } from "../../core/Object3D.js";
 import { Matrix4, MathPool, Vector3D } from "../../math/index.js";
+import { LightDataInterface } from "../../interfaces/index.js";
 
 const _scratchCasters: Object3D[] = [];
 const _scratchInstanced: InstancedMesh[] = [];
 const _scratchStandard: Object3D[] = [];
+
+// Reused every cascade instead of allocating a fresh { pLights: [], sLights: [], aLights: [],
+// aCol: new Color(...), dCol: new Color(...), dDir: new Vector3D() } literal per iteration --
+// matches AbstractRenderer's cached `_lightData` pattern. All fields stay empty/zero for the
+// lifetime of this pass (only the cascade camera's VP/position actually vary per cascade), so no
+// reset is needed between uses. Lazily constructed rather than a module-level const: this module
+// sits in an import cycle through core/index.js, and constructing a real Color at module-eval
+// time can run before that cycle finishes resolving depending on which entry point loads first
+// (the same hazard as Collision.ts's circular import with BoundingBox.ts).
+let _emptyLightData: LightDataInterface | undefined;
+function getEmptyLightData(): LightDataInterface {
+  return (_emptyLightData ??= {
+    pLights: [],
+    sLights: [],
+    aLights: [],
+    aCol: new Color(0, 0, 0),
+    aIntensity: 0,
+    dCol: new Color(0, 0, 0),
+    dDir: new Vector3D(),
+    dIntensity: 0,
+  });
+}
 
 export class CascadedShadowPassGPU implements RenderPass {
   public name = "CascadedShadowPassGPU";
@@ -98,16 +121,7 @@ export class CascadedShadowPassGPU implements RenderPass {
       renderer._updateGlobalBuffers(
         cascadeCam.viewProjectionMatrix,
         cascadeCam.position,
-        {
-          pLights: [],
-          sLights: [],
-          aLights: [],
-          aCol: new Color(0, 0, 0),
-          aIntensity: 0,
-          dCol: new Color(0, 0, 0),
-          dDir: new Vector3D(),
-          dIntensity: 0,
-        },
+        getEmptyLightData(),
         scene,
       );
 

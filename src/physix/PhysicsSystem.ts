@@ -91,6 +91,9 @@ export class PhysicsSystem {
   private _broadphaseTree?: Octree;
   private _broadphaseWorldMin: Vector3D = new Vector3D();
   private _broadphaseWorldMax: Vector3D = new Vector3D();
+  // Reused by `_resolveCCD` instead of allocating a fresh BoundingBox per CCD candidate per
+  // substep -- only `min`/`max` are read by `Octree.queryVolume`'s frustum/bounds tests.
+  private _ccdScratchBox: BoundingBox = new BoundingBox(new Vector3D(), new Vector3D());
   private _bodyIndex = new Map<Object3D, number>();
   private _broadphaseFallback: Collidable[] = [];
   private _broadphaseQueryHits: Collidable[] = [];
@@ -448,10 +451,14 @@ export class PhysicsSystem {
         Math.max(prevPos.y, prevPos.y + delta.y) + radius,
         Math.max(prevPos.z, prevPos.z + delta.z) + radius,
       );
-      const sweptBox = new BoundingBox(sweptMin, sweptMax);
+      // Collision.test()'s broad-phase check reads .center directly, so it must stay in sync
+      // with .min/.max -- not just informational like the sweep-only scratch box in Collision.ts.
+      this._ccdScratchBox.min.copyFrom(sweptMin);
+      this._ccdScratchBox.max.copyFrom(sweptMax);
+      this._ccdScratchBox.center.copyFrom(sweptMin).add(sweptMax).scale(0.5);
 
       this._ccdQueryHits.length = 0;
-      broadphaseTree.queryVolume(sweptBox, this._ccdQueryHits);
+      broadphaseTree.queryVolume(this._ccdScratchBox, this._ccdQueryHits);
       for (let f = 0; f < this._broadphaseFallback.length; f++) {
         this._ccdQueryHits.push(this._broadphaseFallback[f]!);
       }

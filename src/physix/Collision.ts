@@ -16,6 +16,25 @@ export class Collision {
     axes: [new Vector3D(1, 0, 0), new Vector3D(0, 1, 0), new Vector3D(0, 0, 1)],
   } as unknown as OBB;
 
+  // Reused by sweepSphereBox/sweepSphereObb (CCD) instead of allocating a fresh BoundingBox/Ray
+  // per call -- these run up to `maxSubSteps` times per frame per fast-moving sphere body. Only
+  // `min`/`max` are ever read by Ray.intersectsBox(), so mutating them via `.set()` and leaving
+  // `center` stale is safe. Lazily constructed (not a field initializer) because Collision.ts and
+  // BoundingBox.ts import each other; constructing a real BoundingBox at class-evaluation time
+  // can run before the circular import has finished resolving, depending on which module a given
+  // entry point happens to load first.
+  private static _sweepScratchBox: BoundingBox | undefined;
+  private static _sweepScratchRay: Ray | undefined;
+
+  // Scratch state for `_considerAxis`, shared by resolveObbObb's three axis-sweep loops (3 from
+  // A, 3 from B, 9 cross products). Plain static fields rather than a per-call state object to
+  // stay allocation-free; safe since resolveObbObb never re-enters itself.
+  private static _obbSatMinOverlap = Infinity;
+  private static _obbSatBestX = 0;
+  private static _obbSatBestY = 0;
+  private static _obbSatBestZ = 0;
+  private static _obbSatBestSign = 1;
+
   /**
    * Performs a collision test between two bounding volumes.
    */
@@ -265,42 +284,19 @@ export class Collision {
    */
   public static resolveObbObb(a: OBB, b: OBB, result: Vector3D): boolean {
     const t = MathPool.acquireVector().copyFrom(b.center).sub(a.center);
-
-    let minOverlap: number = Infinity;
-    let bestX: number = 0,
-      bestY: number = 0,
-      bestZ: number = 0,
-      bestSign: number = 1;
+    this._obbSatMinOverlap = Infinity;
 
     for (let i = 0; i < 3; i++) {
-      const axis = MathUtils.at(a.axes, i);
-      const overlap = this._axisOverlap(axis, a, b, t);
-      if (0 > overlap) {
+      if (!this._considerAxis(MathUtils.at(a.axes, i), a, b, t)) {
         MathPool.releaseVector(t);
         return false;
-      }
-      if (overlap < minOverlap) {
-        minOverlap = overlap;
-        bestX = axis.x;
-        bestY = axis.y;
-        bestZ = axis.z;
-        bestSign = 0 <= t.dot(axis) ? -1 : 1;
       }
     }
 
     for (let i = 0; i < 3; i++) {
-      const axis = MathUtils.at(b.axes, i);
-      const overlap = this._axisOverlap(axis, a, b, t);
-      if (0 > overlap) {
+      if (!this._considerAxis(MathUtils.at(b.axes, i), a, b, t)) {
         MathPool.releaseVector(t);
         return false;
-      }
-      if (overlap < minOverlap) {
-        minOverlap = overlap;
-        bestX = axis.x;
-        bestY = axis.y;
-        bestZ = axis.z;
-        bestSign = 0 <= t.dot(axis) ? -1 : 1;
       }
     }
 
@@ -311,18 +307,10 @@ export class Collision {
         // If axes are parallel, cross product is nearly zero, skip
         if (crossAxis.lengthSq() > 0.0001) {
           crossAxis.normalize();
-          const overlap = this._axisOverlap(crossAxis, a, b, t);
-          if (0 > overlap) {
+          if (!this._considerAxis(crossAxis, a, b, t)) {
             MathPool.releaseVector(crossAxis);
             MathPool.releaseVector(t);
             return false;
-          }
-          if (overlap < minOverlap) {
-            minOverlap = overlap;
-            bestX = crossAxis.x;
-            bestY = crossAxis.y;
-            bestZ = crossAxis.z;
-            bestSign = 0 <= t.dot(crossAxis) ? -1 : 1;
           }
         }
       }
@@ -331,7 +319,28 @@ export class Collision {
     MathPool.releaseVector(crossAxis);
     MathPool.releaseVector(t);
 
-    result.set(bestX, bestY, bestZ).scale(bestSign * minOverlap);
+    result
+      .set(this._obbSatBestX, this._obbSatBestY, this._obbSatBestZ)
+      .scale(this._obbSatBestSign * this._obbSatMinOverlap);
+    return true;
+  }
+
+  /**
+   * Considers one candidate SAT separating axis for `resolveObbObb`, updating the shared
+   * `_obbSat*` scratch state if this axis has the smallest overlap seen so far. Returns false to
+   * signal a separating axis was found (the shared early-exit condition of all three axis-sweep
+   * loops there: 3 from A, 3 from B, 9 cross products).
+   */
+  private static _considerAxis(axis: Vector3D, a: OBB, b: OBB, t: Vector3D): boolean {
+    const overlap = this._axisOverlap(axis, a, b, t);
+    if (0 > overlap) return false;
+    if (overlap < this._obbSatMinOverlap) {
+      this._obbSatMinOverlap = overlap;
+      this._obbSatBestX = axis.x;
+      this._obbSatBestY = axis.y;
+      this._obbSatBestZ = axis.z;
+      this._obbSatBestSign = 0 <= t.dot(axis) ? -1 : 1;
+    }
     return true;
   }
 
@@ -392,11 +401,13 @@ export class Collision {
     radius: number,
     b: BoundingBox,
   ): number {
-    const expanded = new BoundingBox(
-      new Vector3D(b.min.x - radius, b.min.y - radius, b.min.z - radius),
-      new Vector3D(b.max.x + radius, b.max.y + radius, b.max.z + radius),
-    );
-    const t = new Ray(origin, delta).intersectsBox(expanded);
+    const box = (this._sweepScratchBox ??= new BoundingBox(new Vector3D(), new Vector3D()));
+    const ray = (this._sweepScratchRay ??= new Ray());
+    box.min.set(b.min.x - radius, b.min.y - radius, b.min.z - radius);
+    box.max.set(b.max.x + radius, b.max.y + radius, b.max.z + radius);
+    ray.origin.copyFrom(origin);
+    ray.direction.copyFrom(delta);
+    const t = ray.intersectsBox(box);
     return t >= 0 && t <= 1 ? t : -1;
   }
 
@@ -411,25 +422,26 @@ export class Collision {
    * @returns The time-of-impact as a fraction of `delta` in `[0, 1]`, or -1 if no impact.
    */
   public static sweepSphereObb(origin: Vector3D, delta: Vector3D, radius: number, o: OBB): number {
+    const box = (this._sweepScratchBox ??= new BoundingBox(new Vector3D(), new Vector3D()));
+    const ray = (this._sweepScratchRay ??= new Ray());
+
     const rel = MathPool.acquireVector().copyFrom(origin).sub(o.center);
-    const localOrigin = new Vector3D(
+    ray.origin.set(
       rel.dot(MathUtils.at(o.axes, 0)),
       rel.dot(MathUtils.at(o.axes, 1)),
       rel.dot(MathUtils.at(o.axes, 2)),
     );
     MathPool.releaseVector(rel);
 
-    const localDelta = new Vector3D(
+    ray.direction.set(
       delta.dot(MathUtils.at(o.axes, 0)),
       delta.dot(MathUtils.at(o.axes, 1)),
       delta.dot(MathUtils.at(o.axes, 2)),
     );
 
-    const expanded = new BoundingBox(
-      new Vector3D(-o.halfExtents.x - radius, -o.halfExtents.y - radius, -o.halfExtents.z - radius),
-      new Vector3D(o.halfExtents.x + radius, o.halfExtents.y + radius, o.halfExtents.z + radius),
-    );
-    const t = new Ray(localOrigin, localDelta).intersectsBox(expanded);
+    box.min.set(-o.halfExtents.x - radius, -o.halfExtents.y - radius, -o.halfExtents.z - radius);
+    box.max.set(o.halfExtents.x + radius, o.halfExtents.y + radius, o.halfExtents.z + radius);
+    const t = ray.intersectsBox(box);
     return t >= 0 && t <= 1 ? t : -1;
   }
 

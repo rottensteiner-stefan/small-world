@@ -30,6 +30,13 @@ export class Object3D implements Collidable {
   public children: Object3D[] = [];
   public behaviors: Behavior[] = [];
 
+  /**
+   * Set by `Scene` on its hidden root object. Lets `remove()` notify the owning scene to queue
+   * GPU-resource release for a discarded subtree even when called on a nested object directly
+   * (`someParent.remove(child)`) instead of through `Scene.remove()` -- see `remove()`/`add()`.
+   */
+  public pendingRemovalSink?: (obj: Object3D) => void;
+
   public isVisible: boolean = true;
   /** Whether this object should generate bounds and participate in physics/raycasting. Defaults to true. */
   public isCollidable: boolean = true;
@@ -56,7 +63,9 @@ export class Object3D implements Collidable {
 
   public add(...children: Object3D[]): void {
     for (const child of children) {
-      if (child.parent) child.parent.remove(child);
+      // Re-parenting, not a discard: detach without notifying any scene, so the child's GPU
+      // resources aren't released while it's still alive elsewhere in the graph.
+      if (child.parent) child.parent._detach(child);
       child.parent = this;
       this.children.push(child);
     }
@@ -64,12 +73,26 @@ export class Object3D implements Collidable {
 
   public remove(...children: Object3D[]): void {
     for (const child of children) {
-      const index: number = this.children.indexOf(child);
-      if (-1 !== index) {
-        child.parent = undefined;
-        this.children.splice(index, 1);
-      }
+      if (this._detach(child)) this._notifyRemoved(child);
     }
+  }
+
+  /** Detaches `child` from this node without notifying any scene. @returns Whether it was found. */
+  private _detach(child: Object3D): boolean {
+    const index: number = this.children.indexOf(child);
+    if (-1 === index) return false;
+    child.parent = undefined;
+    this.children.splice(index, 1);
+    return true;
+  }
+
+  private _notifyRemoved(child: Object3D): void {
+    let current = this.parent;
+    while (current?.parent) {
+      current = current.parent;
+    }
+    const root = current ?? this;
+    root.pendingRemovalSink?.(child);
   }
 
   public getObjectByName(name: string): Object3D | undefined {
@@ -134,6 +157,9 @@ export class Object3D implements Collidable {
             radius: number,
           ) => BoundingVolume;
           this.bounds = new SphereType(ls.center.clone(), ls.radius);
+        } else if (localBounds.type === 2 /* BoundingType.OBB */) {
+          const OBBType = localBounds.constructor as new () => BoundingVolume;
+          this.bounds = new OBBType();
         }
       }
 
@@ -148,6 +174,11 @@ export class Object3D implements Collidable {
         const b = this.bounds as import("../physix/index.js").BoundingSphere;
         b.center.copyFrom(ls.center);
         b.radius = ls.radius;
+        b.transform(this.worldMatrix);
+      } else if (this.bounds && this.bounds.type === 2 /* BoundingType.OBB */) {
+        const lo = localBounds as import("../physix/index.js").OBB;
+        const b = this.bounds as import("../physix/index.js").OBB;
+        b.halfExtents.copyFrom(lo.halfExtents);
         b.transform(this.worldMatrix);
       }
     }

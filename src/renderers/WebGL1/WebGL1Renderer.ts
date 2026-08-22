@@ -98,6 +98,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
 
   protected _activeRenderTarget: RenderTarget | null = null;
   private _renderTargetFbos: Map<RenderTarget, WebGLFramebuffer> = new Map();
+  private _renderTargetDepthBuffers: Map<RenderTarget, WebGLRenderbuffer> = new Map();
 
   private _scratchModelMatrix: Float32Array = new Float32Array(16);
 
@@ -124,7 +125,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
       this.postProcessing.loadConfig(config.postProcessing);
     }
 
-    this._maxTextureUnits = DeviceCaps.getLimit(DeviceLimit.MAX_TEXTURE_IMAGE_UNITS);
+    this._maxTextureUnits = DeviceCaps.getLimit(DeviceLimit.WEBGL1_MAX_TEXTURE_IMAGE_UNITS);
 
     this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, false);
     this.initDefaultTextures();
@@ -412,7 +413,19 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
       isOffscreen = true;
       let fbo = this._renderTargetFbos.get(this._activeRenderTarget);
       if (!fbo || !this._activeRenderTarget.isLoaded) {
-        if (fbo) this.gl.deleteFramebuffer(fbo);
+        // Release the previous FBO's attachments before replacing them (e.g. on resize) --
+        // otherwise the old color texture and depth renderbuffer leak, since overwriting the
+        // cache entries below would drop the only references to them.
+        if (fbo) {
+          this.gl.deleteFramebuffer(fbo);
+          const oldTex = this._texCache.get(this._activeRenderTarget);
+          if (oldTex) this.gl.deleteTexture(oldTex);
+          const oldDepthRb = this._renderTargetDepthBuffers.get(this._activeRenderTarget);
+          if (oldDepthRb) {
+            this.gl.deleteRenderbuffer(oldDepthRb);
+            this._renderTargetDepthBuffers.delete(this._activeRenderTarget);
+          }
+        }
         fbo = this.gl.createFramebuffer()!;
         this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, fbo);
 
@@ -457,6 +470,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
             this.gl.RENDERBUFFER,
             depthRb,
           );
+          this._renderTargetDepthBuffers.set(this._activeRenderTarget, depthRb);
         }
 
         this._renderTargetFbos.set(this._activeRenderTarget, fbo);
@@ -885,6 +899,9 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
     if (!mesh) {
       mesh = new Mesh(this.gl, geo);
       this._cache.set(geo, mesh);
+    } else if (geo.needsUpdate) {
+      mesh.update(geo);
+      geo.needsUpdate = false;
     }
 
     const lastGeo = this._lastKnownGeometry.get(obj);
@@ -1002,6 +1019,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
       for (const tex of this._texCache.values()) gl.deleteTexture(tex);
       for (const tex of this._texCubeCache.values()) gl.deleteTexture(tex);
       for (const fbo of this._renderTargetFbos.values()) gl.deleteFramebuffer(fbo);
+      for (const rb of this._renderTargetDepthBuffers.values()) gl.deleteRenderbuffer(rb);
       for (const mesh of this._cache.values()) mesh.dispose();
       if (this._hdrFbo) gl.deleteFramebuffer(this._hdrFbo);
       if (this._hdrTexture) gl.deleteTexture(this._hdrTexture);
@@ -1015,6 +1033,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
     this._texCache.clear();
     this._texCubeCache.clear();
     this._renderTargetFbos.clear();
+    this._renderTargetDepthBuffers.clear();
     this._scratchTransparentMap.clear();
     this._hdrFbo = undefined;
     this._hdrTexture = undefined;

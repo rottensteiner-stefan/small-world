@@ -1,5 +1,6 @@
 import { UniversalGamepadController } from "./UniversalGamepadController.js";
 import { Keys } from "../enums/index.js";
+import { MathUtils } from "../math/index.js";
 
 /**
  * Interface for mouse state.
@@ -273,7 +274,7 @@ export class Input implements InputInterface {
       }
     }
 
-    return Math.max(-1.0, Math.min(1.0, v));
+    return MathUtils.clamp(v, -1.0, 1.0);
   }
 
   private _lastDebugLog: number = 0;

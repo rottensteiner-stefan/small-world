@@ -34,7 +34,7 @@ describe("Octree", () => {
     expect(result).toBe(true);
   });
 
-  it("should return false when inserting an object outside bounds", () => {
+  it("should grow the root bounds and succeed when inserting an object outside the initial bounds", () => {
     const octree = new Octree(
       new BoundingBox(new Vector3D(-10, -10, -10), new Vector3D(10, 10, 10)),
     );
@@ -44,8 +44,12 @@ describe("Octree", () => {
     obj.updateMatrixWorld();
     obj.computeBounds();
 
+    // A dynamically spawned/teleported object outside the octree's fixed extent must still be
+    // inserted -- otherwise it is never returned by query() and FrustumCuller leaves it
+    // permanently culled. The root bounds grow to accommodate it instead of rejecting it.
     const result = octree.insert(obj);
-    expect(result).toBe(false);
+    expect(result).toBe(true);
+    expect(octree.root.bounds.containsVolume(obj.bounds!)).toBe(true);
   });
 
   it("should return false when inserting an object without bounds", () => {

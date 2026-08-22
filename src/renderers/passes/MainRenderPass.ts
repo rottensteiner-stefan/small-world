@@ -1,13 +1,26 @@
 import { Scene } from "../../core/index.js";
+import { RenderBatch } from "../../core/Scene.js";
 import { MaterialType, Topology, PostProcessingEffectType } from "../../enums/index.js";
 import { WebGPURenderer } from "../WebGPU/index.js";
 import { RenderPass } from "../index.js";
 import { Vector3D } from "../../math/index.js";
+import { Object3D } from "../../core/Object3D.js";
 /**
  * Standard render pass for opaque and skybox objects.
  */
 export class MainRenderPass implements RenderPass {
   public name = "MainRenderPass";
+
+  // Reused across every transparent object in a frame instead of allocating a fresh batch (and
+  // its single-element `objects` array) per object -- `_renderBatch` only reads this
+  // synchronously within the call below, so overwriting it in place between calls is safe.
+  private readonly _scratchTransparentObjects: Object3D[] = [];
+  private readonly _scratchTransparentBatch: RenderBatch = {
+    shaderId: "",
+    topology: Topology.DEFAULT,
+    matUuid: "",
+    objects: this._scratchTransparentObjects,
+  };
 
   public execute(
     renderer: WebGPURenderer,
@@ -84,20 +97,17 @@ export class MainRenderPass implements RenderPass {
       for (const obj of renderList.transparent) {
         const manifest = obj.material!.getRenderManifest();
 
-        const shaderId = manifest.shaderId;
         // AbstractGeometry always sets .topology explicitly, so this only matters for
         // hand-built GeometryData that skips it -- default to triangles rather than
         // guessing from index count (a 2-index geometry isn't reliably a line).
         const topology = manifest.state?.topology || obj.geometry?.topology || Topology.DEFAULT;
 
-        const tempBatch = {
-          shaderId,
-          topology: topology as Topology,
-          matUuid: obj.material!.uuid,
-          objects: [obj],
-        };
+        this._scratchTransparentBatch.shaderId = manifest.shaderId;
+        this._scratchTransparentBatch.topology = topology as Topology;
+        this._scratchTransparentBatch.matUuid = obj.material!.uuid;
+        this._scratchTransparentObjects[0] = obj;
 
-        renderer._renderBatch(rpTransparent, tempBatch, vMat);
+        renderer._renderBatch(rpTransparent, this._scratchTransparentBatch, vMat);
       }
       rpTransparent.end();
     } else {

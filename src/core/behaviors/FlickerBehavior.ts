@@ -1,6 +1,7 @@
 import { Behavior, InspectorField } from "./Behavior.js";
 import { Object3D } from "../index.js";
 import { Noise } from "../../utils/index.js";
+import { MathUtils } from "../../math/index.js";
 
 /**
  * Configuration options for the FlickerBehavior.
@@ -102,7 +103,7 @@ export class FlickerBehavior extends Behavior {
       minFlickerTime: options.minFlickerTime ?? 0.2,
       maxFlickerTime: options.maxFlickerTime ?? 1.5,
       minMultiplier: options.minMultiplier ?? 0.0,
-      smoothness: Math.max(0, Math.min(1, options.smoothness ?? 0.0)),
+      smoothness: MathUtils.clamp(options.smoothness ?? 0.0, 0, 1),
       onUpdate: options.onUpdate,
     };
   }

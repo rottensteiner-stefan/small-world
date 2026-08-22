@@ -3,12 +3,23 @@ import { AbstractWebGLRenderer } from "../AbstractWebGLRenderer.js";
 import { Scene, Object3D } from "../../core/index.js";
 import { Vector3D } from "../../math/index.js";
 import { LightDataInterface } from "../../interfaces/index.js";
-import { RenderList } from "../../core/Scene.js";
+import { RenderList, RenderBatch } from "../../core/Scene.js";
 import { Topology, MaterialType, PostProcessingEffectType } from "../../enums/index.js";
 import { Color } from "../../core/colors/index.js";
 
 export class WebGLMainPass implements WebGLRenderPass {
   public name = "WebGLMainPass";
+
+  // Reused across all transparent objects in a frame instead of allocating a fresh batch (and
+  // its single-element `objects` array) per object -- `renderBatch` only ever reads this
+  // synchronously within the call below, so overwriting it in place between calls is safe.
+  private readonly _scratchTransparentObjects: Object3D[] = [];
+  private readonly _scratchTransparentBatch: RenderBatch = {
+    shaderId: "",
+    topology: Topology.DEFAULT,
+    matUuid: "",
+    objects: this._scratchTransparentObjects,
+  };
 
   public execute(
     renderer: AbstractWebGLRenderer,
@@ -86,29 +97,20 @@ export class WebGLMainPass implements WebGLRenderPass {
       renderer.copyToOpaqueTexture();
       renderer.copyToOpaqueDepthTexture();
 
-      // We group transparent objects dynamically
-      const transparentMap = new Map<string, Object3D[]>();
-
       for (const obj of renderList.transparent) {
         if (!obj.material) continue;
         const manifest = obj.material.getRenderManifest();
-        const shaderId = manifest.shaderId;
         // AbstractGeometry always sets .topology explicitly, so this only matters for
         // hand-built GeometryData that skips it -- default to triangles rather than
         // guessing from index count (a 2-index geometry isn't reliably a line).
         const topology = manifest.state?.topology || obj.geometry?.topology || Topology.DEFAULT;
 
-        transparentMap.clear();
-        transparentMap.set(obj.material.uuid, [obj]);
-
-        const batch = {
-          shaderId,
-          topology: topology as Topology,
-          matUuid: obj.material.uuid,
-          objects: [obj],
-        };
+        this._scratchTransparentBatch.shaderId = manifest.shaderId;
+        this._scratchTransparentBatch.topology = topology as Topology;
+        this._scratchTransparentBatch.matUuid = obj.material.uuid;
+        this._scratchTransparentObjects[0] = obj;
         (renderer as AbstractWebGLRenderer).renderBatch(
-          batch,
+          this._scratchTransparentBatch,
           vMat,
           vp,
           camPos,

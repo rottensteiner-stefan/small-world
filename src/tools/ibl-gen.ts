@@ -1,4 +1,4 @@
-import { Matrix4, Vector3D, PerspectiveProjection } from "../math/index.js";
+import { Matrix4, Vector3D, PerspectiveProjection, MathUtils } from "../math/index.js";
 import { IBLShaders } from "./IBLShaders.js";
 
 // Utility for WebGL2
@@ -228,9 +228,9 @@ class IBLBaker {
     const destCtx = destCanvas.getContext("2d")!;
     const imgData = destCtx.createImageData(resolution, resolution);
     for (let i = 0; i < resolution * resolution; i++) {
-      imgData.data[i * 4] = Math.min(255, Math.max(0, pixels[i * 4]! * 255));
-      imgData.data[i * 4 + 1] = Math.min(255, Math.max(0, pixels[i * 4 + 1]! * 255));
-      imgData.data[i * 4 + 2] = Math.min(255, Math.max(0, pixels[i * 4 + 2]! * 255));
+      imgData.data[i * 4] = MathUtils.clamp(pixels[i * 4]! * 255, 0, 255);
+      imgData.data[i * 4 + 1] = MathUtils.clamp(pixels[i * 4 + 1]! * 255, 0, 255);
+      imgData.data[i * 4 + 2] = MathUtils.clamp(pixels[i * 4 + 2]! * 255, 0, 255);
       imgData.data[i * 4 + 3] = 255;
     }
     const tempCanvas = document.createElement("canvas");
@@ -321,9 +321,9 @@ class IBLBaker {
     const destCtx = destCanvas.getContext("2d")!;
     const imgData = destCtx.createImageData(resolution, resolution);
     for (let i = 0; i < resolution * resolution; i++) {
-      imgData.data[i * 4] = Math.min(255, Math.max(0, pixels[i * 4]! * 255));
-      imgData.data[i * 4 + 1] = Math.min(255, Math.max(0, pixels[i * 4 + 1]! * 255));
-      imgData.data[i * 4 + 2] = Math.min(255, Math.max(0, pixels[i * 4 + 2]! * 255));
+      imgData.data[i * 4] = MathUtils.clamp(pixels[i * 4]! * 255, 0, 255);
+      imgData.data[i * 4 + 1] = MathUtils.clamp(pixels[i * 4 + 1]! * 255, 0, 255);
+      imgData.data[i * 4 + 2] = MathUtils.clamp(pixels[i * 4 + 2]! * 255, 0, 255);
       imgData.data[i * 4 + 3] = 255;
     }
     const tempCanvas = document.createElement("canvas");
@@ -431,9 +431,9 @@ class IBLBaker {
         const destCtx = destCanvas.getContext("2d")!;
         const imgData = destCtx.createImageData(mipWidth, mipHeight);
         for (let i = 0; i < mipWidth * mipHeight; i++) {
-          imgData.data[i * 4] = Math.min(255, Math.max(0, pixels[i * 4]! * 255));
-          imgData.data[i * 4 + 1] = Math.min(255, Math.max(0, pixels[i * 4 + 1]! * 255));
-          imgData.data[i * 4 + 2] = Math.min(255, Math.max(0, pixels[i * 4 + 2]! * 255));
+          imgData.data[i * 4] = MathUtils.clamp(pixels[i * 4]! * 255, 0, 255);
+          imgData.data[i * 4 + 1] = MathUtils.clamp(pixels[i * 4 + 1]! * 255, 0, 255);
+          imgData.data[i * 4 + 2] = MathUtils.clamp(pixels[i * 4 + 2]! * 255, 0, 255);
           imgData.data[i * 4 + 3] = 255;
         }
         const tempCanvas = document.createElement("canvas");
@@ -492,8 +492,8 @@ class IBLBaker {
     // Convert Float32 RG to Uint8ClampedArray for Canvas ImageData
     const imgData = destCtx.createImageData(512, 512);
     for (let i = 0; i < 512 * 512; i++) {
-      imgData.data[i * 4] = Math.min(255, Math.max(0, pixels[i * 4]! * 255)); // R
-      imgData.data[i * 4 + 1] = Math.min(255, Math.max(0, pixels[i * 4 + 1]! * 255)); // G
+      imgData.data[i * 4] = MathUtils.clamp(pixels[i * 4]! * 255, 0, 255); // R
+      imgData.data[i * 4 + 1] = MathUtils.clamp(pixels[i * 4 + 1]! * 255, 0, 255); // G
       imgData.data[i * 4 + 2] = 0; // B
       imgData.data[i * 4 + 3] = 255; // A
     }
@@ -550,9 +550,9 @@ class IBLBaker {
           r = Math.pow(r, 1.0 / 2.2);
           g = Math.pow(g, 1.0 / 2.2);
           b = Math.pow(b, 1.0 / 2.2);
-          imgData.data[i * 4] = Math.min(255, Math.max(0, r * 255));
-          imgData.data[i * 4 + 1] = Math.min(255, Math.max(0, g * 255));
-          imgData.data[i * 4 + 2] = Math.min(255, Math.max(0, b * 255));
+          imgData.data[i * 4] = MathUtils.clamp(r * 255, 0, 255);
+          imgData.data[i * 4 + 1] = MathUtils.clamp(g * 255, 0, 255);
+          imgData.data[i * 4 + 2] = MathUtils.clamp(b * 255, 0, 255);
           imgData.data[i * 4 + 3] = 255;
         }
         tempCtx.putImageData(imgData, 0, 0);

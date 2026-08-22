@@ -215,7 +215,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       this.postProcessing.loadConfig(config.postProcessing);
     }
 
-    this._maxTextureUnits = DeviceCaps.getLimit(DeviceLimit.MAX_TEXTURE_IMAGE_UNITS);
+    this._maxTextureUnits = DeviceCaps.getLimit(DeviceLimit.WEBGL2_MAX_TEXTURE_IMAGE_UNITS);
 
     this._dummyShadowMap = new WebGL2DepthFrameBuffer(this.gl, 1, 1);
     this._dummyShadowMap.bind();
@@ -1130,7 +1130,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
    */
   private _bindDummyShadowMaps(cache: ProgramCache): void {
     const dummyUnit = 13;
-    const maxUnits = DeviceCaps.getLimit(DeviceLimit.MAX_TEXTURE_IMAGE_UNITS);
+    const maxUnits = DeviceCaps.getLimit(DeviceLimit.WEBGL2_MAX_TEXTURE_IMAGE_UNITS);
     if (dummyUnit >= maxUnits) {
       console.warn(`[WebGL2Renderer] dummyUnit ${dummyUnit} >= maxUnits ${maxUnits}`);
       return;
@@ -1278,7 +1278,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
           const fbo = this._shadowMaps.get(light);
           if (fbo && fbo.texture) {
             const texUnit = 8 + i; // TEXTURE8 to TEXTURE11
-            const maxUnits = DeviceCaps.getLimit(DeviceLimit.MAX_TEXTURE_IMAGE_UNITS);
+            const maxUnits = DeviceCaps.getLimit(DeviceLimit.WEBGL2_MAX_TEXTURE_IMAGE_UNITS);
             if (texUnit >= maxUnits) {
               console.warn(
                 `[WebGL2Renderer] Exceeded MAX_TEXTURE_IMAGE_UNITS (${maxUnits}). Cannot bind spot shadow map to texture unit ${texUnit}.`,
@@ -1322,7 +1322,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       const fbo = this._shadowMaps.get(light);
       if (fbo && fbo.texture) {
         const texUnit = 12; // TEXTURE12
-        const maxUnits = DeviceCaps.getLimit(DeviceLimit.MAX_TEXTURE_IMAGE_UNITS);
+        const maxUnits = DeviceCaps.getLimit(DeviceLimit.WEBGL2_MAX_TEXTURE_IMAGE_UNITS);
         if (texUnit >= maxUnits) {
           console.warn(
             `[WebGL2Renderer] Exceeded MAX_TEXTURE_IMAGE_UNITS (${maxUnits}). Cannot bind directional shadow map to texture unit ${texUnit}.`,
@@ -1872,14 +1872,17 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     super.setSize(width, height);
 
     if (this.postProcessing.enabled) {
-      this.gl.getExtension("EXT_color_buffer_float");
       if (!this._hdrFbo) {
+        // RGBA16F rendering requires EXT_color_buffer_float; without it, WebGL2FrameBuffer's
+        // checkFramebufferStatus() throws. Fall back to an UNSIGNED_BYTE target, matching the
+        // WebGL1Renderer's OES_texture_half_float / EXT_color_buffer_half_float fallback.
+        const supportsFloatColorBuffer = this.gl.getExtension("EXT_color_buffer_float") !== null;
         this._hdrFbo = new WebGL2FrameBuffer(this.gl, {
           width: this.gl.canvas.width,
           height: this.gl.canvas.height,
-          internalFormat: this.gl.RGBA16F,
+          internalFormat: supportsFloatColorBuffer ? this.gl.RGBA16F : this.gl.RGBA8,
           format: this.gl.RGBA,
-          type: this.gl.HALF_FLOAT,
+          type: supportsFloatColorBuffer ? this.gl.HALF_FLOAT : this.gl.UNSIGNED_BYTE,
         });
         this._postPassGL ??= new PostProcessPassGL(this.gl, true);
         this._bloomPassGL ??= new BloomPassGL(this.gl, true);

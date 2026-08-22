@@ -35,17 +35,21 @@ export class Raycaster {
       return;
     }
 
-    // Determine the ray direction by unprojecting the point on the far plane
-    const target: Vector3D = MathPool.acquireVector().set(coords.x, coords.y, 1.0);
-    invVP.transformVector(target);
+    // Unproject both the near- and far-plane points for this screen coordinate, rather than
+    // using camera.position as the origin. For a perspective camera this gives an identical
+    // ray (the near-plane point is colinear with the camera position along it), but for an
+    // orthographic camera rays are parallel and do NOT converge at the camera position -- using
+    // camera.position there would put the origin outside the frustum and yield wrong hits.
+    const near: Vector3D = MathPool.acquireVector().set(coords.x, coords.y, -1.0);
+    const far: Vector3D = MathPool.acquireVector().set(coords.x, coords.y, 1.0);
+    invVP.transformVector(near);
+    invVP.transformVector(far);
 
-    // Origin is the camera position for perspective (simplification)
-    this.ray.origin.copyFrom(camera.position);
+    this.ray.origin.copyFrom(near);
+    this.ray.direction.copyFrom(far).sub(near).normalize();
 
-    // Direction is target - origin
-    this.ray.direction.copyFrom(target).sub(this.ray.origin).normalize();
-
-    MathPool.releaseVector(target);
+    MathPool.releaseVector(near);
+    MathPool.releaseVector(far);
     MathPool.releaseMatrix(invVP);
   }
 

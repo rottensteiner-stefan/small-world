@@ -4,10 +4,23 @@ import { Vector3D, MathPool } from "../math/index.js";
  * A component that adds Newtonian physics capabilities to an Object3D.
  */
 export class RigidBody {
+  private _mass: number;
+  private _inverseMass: number;
+
   /** The mass of the object. 0 means static/kinematic (infinite mass). */
-  public mass: number;
+  public get mass(): number {
+    return this._mass;
+  }
+
+  public set mass(value: number) {
+    this._mass = value;
+    this._inverseMass = value > 0 ? 1.0 / value : 0;
+  }
+
   /** Precalculated inverse mass for performance. */
-  public readonly inverseMass: number;
+  public get inverseMass(): number {
+    return this._inverseMass;
+  }
 
   /** If true, the body detects collisions but does not physically resolve them. */
   public isSensor: boolean = false;
@@ -26,10 +39,23 @@ export class RigidBody {
   /** Accumulated torque for the current integration step. */
   public torque: Vector3D = new Vector3D();
 
+  private _inertia: number;
+  private _inverseInertia: number;
+
   /** Scalar approximation of moment of inertia. */
-  public inertia: number;
+  public get inertia(): number {
+    return this._inertia;
+  }
+
+  public set inertia(value: number) {
+    this._inertia = value;
+    this._inverseInertia = value > 0 ? 1.0 / value : 0;
+  }
+
   /** Precalculated inverse inertia. */
-  public readonly inverseInertia: number;
+  public get inverseInertia(): number {
+    return this._inverseInertia;
+  }
   /** Angular damping, simulates rotational friction. */
   public angularDamping: number = 0.98;
 
@@ -53,10 +79,10 @@ export class RigidBody {
    * @param inertia The scalar moment of inertia. Defaults to mass.
    */
   constructor(mass: number = 1.0, inertia: number = mass) {
-    this.mass = mass;
-    this.inverseMass = mass > 0 ? 1.0 / mass : 0;
-    this.inertia = inertia;
-    this.inverseInertia = inertia > 0 ? 1.0 / inertia : 0;
+    this._mass = mass;
+    this._inverseMass = mass > 0 ? 1.0 / mass : 0;
+    this._inertia = inertia;
+    this._inverseInertia = inertia > 0 ? 1.0 / inertia : 0;
   }
 
   /**

@@ -1,4 +1,4 @@
-import { Vector3D } from "../math/index.js";
+import { Vector3D, MathUtils } from "../math/index.js";
 import { CameraInterfaceData } from "../interfaces/index.js";
 import { SynthSFX } from "./SynthSFX.js";
 
@@ -78,19 +78,19 @@ export class AudioSystem {
 
   /** Set the global master volume (0.0 to 1.0) */
   public setMasterVolume(value: number): void {
-    this.masterGain.gain.value = Math.max(0, Math.min(1, value));
+    this.masterGain.gain.value = MathUtils.clamp(value, 0, 1);
   }
   /** Set the SFX volume (0.0 to 1.0) */
   public setSFXVolume(value: number): void {
-    this.sfxGain.gain.value = Math.max(0, Math.min(1, value));
+    this.sfxGain.gain.value = MathUtils.clamp(value, 0, 1);
   }
   /** Set the Music volume (0.0 to 1.0) */
   public setMusicVolume(value: number): void {
-    this.musicGain.gain.value = Math.max(0, Math.min(1, value));
+    this.musicGain.gain.value = MathUtils.clamp(value, 0, 1);
   }
   /** Set the Reverb level (0.0 to 1.0) */
   public setReverbLevel(value: number): void {
-    this._reverbGain.gain.value = Math.max(0, Math.min(1, value));
+    this._reverbGain.gain.value = MathUtils.clamp(value, 0, 1);
   }
 
   /** Must be called after a user interaction to resume the audio context on some browsers. */

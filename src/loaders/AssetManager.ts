@@ -84,8 +84,18 @@ export class AssetManager {
     return 0 < total ? loaded / total : 0;
   }
 
+  /**
+   * @param trackingKey Key under which this request's progress is tracked in `_activeLoaders`.
+   *   Callers that cache by something other than the raw `url` (e.g. `loadImage`'s
+   *   `${url}_${flipY}`) must pass that same key here -- otherwise two concurrent, distinctly
+   *   cached requests for the same `url` (different flipY, or an image vs. a binary load of the
+   *   same asset) would collide on one `_activeLoaders` entry: they'd overwrite each other's
+   *   progress, and whichever finishes first would delete the entry via `_checkCompletion` while
+   *   the other is still in flight, making `onLoaded()`/`isLoaded` report done too early.
+   */
   private static async _fetchWithProgress(
     url: string,
+    trackingKey: string,
     onProgress?: ProgressCallback,
   ): Promise<Blob> {
     const isAbsolute =
@@ -107,17 +117,17 @@ export class AssetManager {
     const contentLength: string | undefined = response.headers.get("content-length") ?? undefined;
     const total: number = contentLength ? parseInt(contentLength, 10) : 0;
 
-    this._activeLoaders.set(url, { loaded: 0, total });
+    this._activeLoaders.set(trackingKey, { loaded: 0, total });
 
     const updateProgress = (loaded: number, total: number): void => {
-      this._activeLoaders.set(url, { loaded, total });
+      this._activeLoaders.set(trackingKey, { loaded, total });
       if (onProgress) onProgress(loaded, total);
     };
 
     if (!response.body) {
       const blob = await response.blob();
       updateProgress(blob.size, blob.size);
-      this._checkCompletion(url);
+      this._checkCompletion(trackingKey);
       return blob;
     }
 
@@ -135,7 +145,7 @@ export class AssetManager {
       }
     }
 
-    this._checkCompletion(url);
+    this._checkCompletion(trackingKey);
     return new Blob(chunks as BlobPart[]);
   }
 
@@ -158,6 +168,7 @@ export class AssetManager {
 
     const loadPromise: Promise<ImageBitmap | HTMLImageElement> = this._fetchWithProgress(
       url,
+      cacheKey,
       onProgress,
     )
       .then(async (blob: Blob): Promise<ImageBitmap> => {
@@ -181,7 +192,7 @@ export class AssetManager {
         }
       })
       .catch((e: unknown): Promise<HTMLImageElement> => {
-        this._checkCompletion(url);
+        this._checkCompletion(cacheKey);
         console.error(e);
         return new Promise<HTMLImageElement>((resolve, reject) => {
           const img: HTMLImageElement = new Image();
@@ -198,10 +209,11 @@ export class AssetManager {
 
   public static async loadText(url: string, onProgress?: ProgressCallback): Promise<string> {
     if (this._textCache.has(url)) return this._textCache.get(url)!;
-    const loadPromise = this._fetchWithProgress(url, onProgress)
+    const trackingKey = `text:${url}`;
+    const loadPromise = this._fetchWithProgress(url, trackingKey, onProgress)
       .then((blob: Blob) => blob.text())
       .catch((e: unknown) => {
-        this._checkCompletion(url);
+        this._checkCompletion(trackingKey);
         throw e;
       });
     this._textCache.set(url, loadPromise);
@@ -210,11 +222,12 @@ export class AssetManager {
 
   public static async loadJson(url: string, onProgress?: ProgressCallback): Promise<unknown> {
     if (this._jsonCache.has(url)) return this._jsonCache.get(url)!;
-    const loadPromise = this._fetchWithProgress(url, onProgress)
+    const trackingKey = `json:${url}`;
+    const loadPromise = this._fetchWithProgress(url, trackingKey, onProgress)
       .then((blob: Blob) => blob.text())
       .then((text: string) => JSON.parse(text))
       .catch((e: unknown) => {
-        this._checkCompletion(url);
+        this._checkCompletion(trackingKey);
         throw e;
       });
     this._jsonCache.set(url, loadPromise);
@@ -223,10 +236,11 @@ export class AssetManager {
 
   public static async loadBinary(url: string, onProgress?: ProgressCallback): Promise<ArrayBuffer> {
     if (this._binaryCache.has(url)) return this._binaryCache.get(url)!;
-    const loadPromise = this._fetchWithProgress(url, onProgress)
+    const trackingKey = `binary:${url}`;
+    const loadPromise = this._fetchWithProgress(url, trackingKey, onProgress)
       .then((blob: Blob) => blob.arrayBuffer())
       .catch((e: unknown) => {
-        this._checkCompletion(url);
+        this._checkCompletion(trackingKey);
         throw e;
       });
     this._binaryCache.set(url, loadPromise);
@@ -263,13 +277,17 @@ export class AssetManager {
     const contentLength = response.headers.get("content-length");
     const total = contentLength ? parseInt(contentLength, 10) : 0;
 
-    this._activeLoaders.set(url, { loaded: 0, total });
+    // Namespaced separately from loadBinary's "binary:" key -- both cache into _binaryCache and
+    // could plausibly be called concurrently for the same url, and sharing a tracking key would
+    // reintroduce the premature-completion race _fetchWithProgress's trackingKey param avoids.
+    const trackingKey = `stream:${url}`;
+    this._activeLoaders.set(trackingKey, { loaded: 0, total });
 
     if (!response.body) {
       const buf = await response.arrayBuffer();
       if (onChunk) onChunk(new Uint8Array(buf), buf.byteLength, total || buf.byteLength);
       if (onProgress) onProgress(buf.byteLength, total || buf.byteLength);
-      this._checkCompletion(url);
+      this._checkCompletion(trackingKey);
       return buf;
     }
 
@@ -283,13 +301,13 @@ export class AssetManager {
       if (value) {
         loaded += value.length;
         chunks.push(value);
-        this._activeLoaders.set(url, { loaded, total });
+        this._activeLoaders.set(trackingKey, { loaded, total });
         if (onChunk) onChunk(value, loaded, total);
         if (onProgress) onProgress(loaded, total);
       }
     }
 
-    this._checkCompletion(url);
+    this._checkCompletion(trackingKey);
 
     // Merge chunks into a single contiguous ArrayBuffer
     const finalBuffer = new Uint8Array(loaded);

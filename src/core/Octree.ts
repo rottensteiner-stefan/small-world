@@ -110,6 +110,14 @@ export class OctreeNode {
   }
 
   private _subdivide(): void {
+    // Guard against re-subdividing an already-subdivided node. Without this, a node whose own
+    // fallback `objects` list (objects that don't fit any existing child -- e.g. ones spanning
+    // multiple octants, or, since Octree.insert() grows `root.bounds` for out-of-range objects,
+    // repeated growth on an already-subdivided root) crosses `_maxObjects` again would push a
+    // SECOND set of 8 children computed from the current (possibly since-grown) bounds on top of
+    // the existing 8, leaving two overlapping generations of children under one parent.
+    if (0 < this.children.length) return;
+
     const min: Vector3D = this.bounds.min;
     const max: Vector3D = this.bounds.max;
     const center: Vector3D = MathPool.acquireVector().copyFrom(min).add(max).scale(0.5);
@@ -248,6 +256,25 @@ export class Octree {
   }
 
   public insert(obj: Collidable): boolean {
+    if (this.root.insert(obj)) return true;
+    if (!obj.bounds) return false;
+
+    // The object's world bounds fall outside the octree's fixed root extent (e.g. a spawned or
+    // teleported object beyond the initial world size). Dropping it here would leave it
+    // permanently invisible: FrustumCuller._resetCulling marks every frustumCulled object as
+    // culled up front, and only re-marks objects that a query() call actually returns as
+    // in-frustum -- an object insert() never accepts is never returned. Grow the root AABB to
+    // include it and retry instead.
+    const radius = obj.bounds.getBroadRadius();
+    const c = obj.bounds.center;
+    const min = MathPool.acquireVector().set(c.x - radius, c.y - radius, c.z - radius);
+    const max = MathPool.acquireVector().set(c.x + radius, c.y + radius, c.z + radius);
+    this.root.bounds.min.min(min);
+    this.root.bounds.max.max(max);
+    this.root.bounds.center.copyFrom(this.root.bounds.min).add(this.root.bounds.max).scale(0.5);
+    MathPool.releaseVector(min);
+    MathPool.releaseVector(max);
+
     return this.root.insert(obj);
   }
 

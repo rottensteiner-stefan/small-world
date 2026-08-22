@@ -21,7 +21,7 @@ export class BloomPassGPU {
 
   private _width = 0;
   private _height = 0;
-  private _mipCount = 5;
+  private _mipCount = 1;
   private _builtSourceView?: GPUTextureView;
 
   constructor(device: GPUDevice) {
@@ -104,6 +104,12 @@ export class BloomPassGPU {
     this._width = bloomW;
     this._height = bloomH;
     this._builtSourceView = sourceView;
+
+    // WebGPU rejects a mipLevelCount above 1 + floor(log2(max(width, height))) -- a fixed
+    // count of 5 is invalid once the bloom target (already half the source resolution) shrinks
+    // below 16px on its longest side. Mirrors BloomPassGL's dynamic mip-chain length.
+    const maxValidMipCount = 1 + Math.floor(Math.log2(Math.max(bloomW, bloomH)));
+    this._mipCount = Math.min(5, maxValidMipCount);
 
     this._bloomTexture = this._device.createTexture({
       size: [bloomW, bloomH, 1],

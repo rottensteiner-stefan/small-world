@@ -329,6 +329,11 @@ export class WebGPURenderer extends AbstractRenderer {
   private _lastKnownTextures: WeakMap<Object3D, Record<string, Texture | CubeTexture | undefined>> =
     new WeakMap();
 
+  // Reused across every _renderBatch() call (cleared via .length = 0) instead of allocating two
+  // fresh arrays per batch -- same pattern as CascadedShadowPassGPU's _scratchInstanced/_scratchStandard.
+  private _scratchInstancedObjects: Object3D[] = [];
+  private _scratchStandardObjects: Object3D[] = [];
+
   // 212 floats: GlobalUniforms grew by 8 floats (resolution/projScale/tileSizePx/clusterDims)
   // for clustered light culling -- see docs/adr/0007-clustered-lighting-webgl2-webgpu-only.md.
   private _scratchGlobalBufferData = new Float32Array(212);
@@ -1763,8 +1768,10 @@ export class WebGPURenderer extends AbstractRenderer {
 
     rp.setBindGroup(0, this._globalBindGroup);
 
-    const instancedObjects: Object3D[] = [];
-    const standardObjects: Object3D[] = [];
+    const instancedObjects = this._scratchInstancedObjects;
+    const standardObjects = this._scratchStandardObjects;
+    instancedObjects.length = 0;
+    standardObjects.length = 0;
 
     for (let i = 0; i < objects.length; i++) {
       const o = objects[i];
