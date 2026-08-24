@@ -99,7 +99,7 @@ class Showcase28 extends AbstractShowcase {
     // Load Environment Map & PBR Textures
     const envTexture = new CubeTexture();
     try {
-      await envTexture.loadFrom("./assets/skybox.png");
+      await envTexture.loadFrom("./assets/skybox.webp");
       const skybox = new Object3D("Skybox");
       skybox.geometry = new Cube({ size: 1000 }).getGeometryData();
       skybox.material = new SkyboxMaterial({ cubeMap: envTexture });
@@ -120,25 +120,25 @@ class Showcase28 extends AbstractShowcase {
     let brassRoughness: Texture | undefined;
 
     try {
-      steelDiffuse = await Texture.fromUrl("./assets/scratched_steel_diffuse.png");
+      steelDiffuse = await Texture.fromUrl("./assets/scratched_steel_diffuse.webp");
       if (steelDiffuse) {
         steelDiffuse.repeat.x = 4;
         steelDiffuse.repeat.y = 3;
       }
-      steelNormal = await Texture.fromUrl("./assets/scratched_steel_normal.png");
+      steelNormal = await Texture.fromUrl("./assets/scratched_steel_normal.webp");
       if (steelNormal) {
         steelNormal.repeat.x = 4;
         steelNormal.repeat.y = 3;
       }
-      steelRoughness = await Texture.fromUrl("./assets/scratched_steel_roughness.png");
+      steelRoughness = await Texture.fromUrl("./assets/scratched_steel_roughness.webp");
       if (steelRoughness) {
         steelRoughness.repeat.x = 4;
         steelRoughness.repeat.y = 3;
       }
 
-      brassDiffuse = await Texture.fromUrl("./assets/rusty_brass_diffuse.png");
-      brassNormal = await Texture.fromUrl("./assets/rusty_brass_normal.png");
-      brassRoughness = await Texture.fromUrl("./assets/rusty_brass_roughness.png");
+      brassDiffuse = await Texture.fromUrl("./assets/rusty_brass_diffuse.webp");
+      brassNormal = await Texture.fromUrl("./assets/rusty_brass_normal.webp");
+      brassRoughness = await Texture.fromUrl("./assets/rusty_brass_roughness.webp");
     } catch (e) {
       console.warn("Could not load PBR textures:", e);
     }

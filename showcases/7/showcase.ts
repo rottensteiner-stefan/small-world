@@ -64,7 +64,7 @@ export class Showcase7 extends AbstractShowcase {
 
     // 3. Skybox (Contains the floor texture in the bottom part of the cube map)
     const skyTexture = new CubeTexture();
-    await skyTexture.loadFrom("./assets/skybox.png");
+    await skyTexture.loadFrom("./assets/skybox.webp");
 
     const skybox = new Object3D("Skybox");
     skybox.geometry = new Cube({ size: 1000 }).getGeometryData();

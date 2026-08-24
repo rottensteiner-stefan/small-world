@@ -426,87 +426,87 @@ class Showcase12 extends AbstractShowcase {
     let oakRoughness: Texture | undefined;
 
     try {
-      decoDiffuse = await Texture.fromUrl("./assets/artdeco_diffuse.png");
-      decoNormal = await Texture.fromUrl("./assets/artdeco_normal.png");
-      decoRoughness = await Texture.fromUrl("./assets/artdeco_roughness.png");
+      decoDiffuse = await Texture.fromUrl("./assets/artdeco_diffuse.webp");
+      decoNormal = await Texture.fromUrl("./assets/artdeco_normal.webp");
+      decoRoughness = await Texture.fromUrl("./assets/artdeco_roughness.webp");
 
-      brassDiffuse = await Texture.fromUrl("./assets/rusty_brass_diffuse.png");
+      brassDiffuse = await Texture.fromUrl("./assets/rusty_brass_diffuse.webp");
       if (brassDiffuse) {
         brassDiffuse.repeat.x = 2;
         brassDiffuse.repeat.y = 2;
       }
-      brassNormal = await Texture.fromUrl("./assets/rusty_brass_normal.png");
+      brassNormal = await Texture.fromUrl("./assets/rusty_brass_normal.webp");
       if (brassNormal) {
         brassNormal.repeat.x = 2;
         brassNormal.repeat.y = 2;
       }
-      brassRoughness = await Texture.fromUrl("./assets/rusty_brass_roughness.png");
+      brassRoughness = await Texture.fromUrl("./assets/rusty_brass_roughness.webp");
       if (brassRoughness) {
         brassRoughness.repeat.x = 2;
         brassRoughness.repeat.y = 2;
       }
 
-      glassAlbedo = await Texture.fromUrl("./assets/glass_albedo.png");
-      glassRoughness = await Texture.fromUrl("./assets/glass_roughness.png");
-      glassEmissive = await Texture.fromUrl("./assets/glass_emissive.png");
+      glassAlbedo = await Texture.fromUrl("./assets/glass_albedo.webp");
+      glassRoughness = await Texture.fromUrl("./assets/glass_roughness.webp");
+      glassEmissive = await Texture.fromUrl("./assets/glass_emissive.webp");
 
-      steelDiffuse = await Texture.fromUrl("./assets/scratched_steel_diffuse.png");
+      steelDiffuse = await Texture.fromUrl("./assets/scratched_steel_diffuse.webp");
       if (steelDiffuse) {
         steelDiffuse.repeat.x = 2;
         steelDiffuse.repeat.y = 2;
       }
-      steelNormal = await Texture.fromUrl("./assets/scratched_steel_normal.png");
+      steelNormal = await Texture.fromUrl("./assets/scratched_steel_normal.webp");
       if (steelNormal) {
         steelNormal.repeat.x = 2;
         steelNormal.repeat.y = 2;
       }
-      steelRoughness = await Texture.fromUrl("./assets/scratched_steel_roughness.png");
+      steelRoughness = await Texture.fromUrl("./assets/scratched_steel_roughness.webp");
       if (steelRoughness) {
         steelRoughness.repeat.x = 2;
         steelRoughness.repeat.y = 2;
       }
 
       // Ceiling Textures
-      steamDiffuse = await Texture.fromUrl("./assets/steampunk_diffuse.png");
-      steamNormal = await Texture.fromUrl("./assets/steampunk_normal.png");
-      steamRoughness = await Texture.fromUrl("./assets/steampunk_roughness.png");
+      steamDiffuse = await Texture.fromUrl("./assets/steampunk_diffuse.webp");
+      steamNormal = await Texture.fromUrl("./assets/steampunk_normal.webp");
+      steamRoughness = await Texture.fromUrl("./assets/steampunk_roughness.webp");
 
       // Side Wall Textures (need different repeat scale due to different geometry size)
-      steamWallDiffuse = await Texture.fromUrl("./assets/steampunk_diffuse.png");
-      steamWallNormal = await Texture.fromUrl("./assets/steampunk_normal.png");
-      steamWallRoughness = await Texture.fromUrl("./assets/steampunk_roughness.png");
+      steamWallDiffuse = await Texture.fromUrl("./assets/steampunk_diffuse.webp");
+      steamWallNormal = await Texture.fromUrl("./assets/steampunk_normal.webp");
+      steamWallRoughness = await Texture.fromUrl("./assets/steampunk_roughness.webp");
 
       // Wooden Crate
-      crateDiffuse = await Texture.fromUrl("./assets/crate_diffuse.png");
-      crateNormal = await Texture.fromUrl("./assets/crate_normal.png");
-      crateSpecular = await Texture.fromUrl("./assets/crate_specular.png");
+      crateDiffuse = await Texture.fromUrl("./assets/crate_diffuse.webp");
+      crateNormal = await Texture.fromUrl("./assets/crate_normal.webp");
+      crateSpecular = await Texture.fromUrl("./assets/crate_specular.webp");
       if (crateDiffuse) crateDiffuse.repeat.y = -1;
       if (crateNormal) crateNormal.repeat.y = -1;
       if (crateSpecular) crateSpecular.repeat.y = -1;
 
       // Crate Branding
-      brandingDiffuse = await Texture.fromUrl("./assets/crate_branded_diffuse.png");
-      brandingNormal = await Texture.fromUrl("./assets/crate_branded_normal.png");
-      brandingSpecular = await Texture.fromUrl("./assets/crate_branded_specular.png");
+      brandingDiffuse = await Texture.fromUrl("./assets/crate_branded_diffuse.webp");
+      brandingNormal = await Texture.fromUrl("./assets/crate_branded_normal.webp");
+      brandingSpecular = await Texture.fromUrl("./assets/crate_branded_specular.webp");
       if (brandingDiffuse) brandingDiffuse.repeat.y = -1;
       if (brandingNormal) brandingNormal.repeat.y = -1;
       if (brandingSpecular) brandingSpecular.repeat.y = -1;
 
       // Rock Walls (Ends)
-      rockDiffuse = await Texture.fromUrl("./assets/large_rock_diffuse.png");
-      rockNormal = await Texture.fromUrl("./assets/large_rock_normal.png");
-      rockRoughness = await Texture.fromUrl("./assets/large_rock_roughness.png");
+      rockDiffuse = await Texture.fromUrl("./assets/large_rock_diffuse.webp");
+      rockNormal = await Texture.fromUrl("./assets/large_rock_normal.webp");
+      rockRoughness = await Texture.fromUrl("./assets/large_rock_roughness.webp");
 
       // Baulicht (Construction Light)
-      portDiffuse = await Texture.fromUrl("./assets/porthole_diffuse.png");
-      portNormal = await Texture.fromUrl("./assets/porthole_normal.png");
-      portRoughness = await Texture.fromUrl("./assets/porthole_roughness.png");
-      portEmissive = await Texture.fromUrl("./assets/porthole_emissive.png");
+      portDiffuse = await Texture.fromUrl("./assets/porthole_diffuse.webp");
+      portNormal = await Texture.fromUrl("./assets/porthole_normal.webp");
+      portRoughness = await Texture.fromUrl("./assets/porthole_roughness.webp");
+      portEmissive = await Texture.fromUrl("./assets/porthole_emissive.webp");
 
       // Table Wood (Oak)
-      oakDiffuse = await Texture.fromUrl("./assets/oak_diffuse.png");
-      oakNormal = await Texture.fromUrl("./assets/oak_normal.png");
-      oakRoughness = await Texture.fromUrl("./assets/oak_roughness.png");
+      oakDiffuse = await Texture.fromUrl("./assets/oak_diffuse.webp");
+      oakNormal = await Texture.fromUrl("./assets/oak_normal.webp");
+      oakRoughness = await Texture.fromUrl("./assets/oak_roughness.webp");
 
       // Texturen kacheln (1 Repeat pro 2 World-Units)
       if (decoDiffuse) {

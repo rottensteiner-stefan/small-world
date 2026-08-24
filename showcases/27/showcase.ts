@@ -130,7 +130,7 @@ class Showcase27 extends AbstractShowcase {
     // Load Environment Map & PBR Textures
     const envTexture = new CubeTexture();
     try {
-      await envTexture.loadFrom("./assets/skybox.png");
+      await envTexture.loadFrom("./assets/skybox.webp");
       const skybox = new Object3D("Skybox");
       skybox.geometry = new Cube({ size: 1000 }).getGeometryData();
       skybox.material = new SkyboxMaterial({ cubeMap: envTexture });
@@ -151,25 +151,25 @@ class Showcase27 extends AbstractShowcase {
     let bronzeRoughness: Texture | undefined;
 
     try {
-      marbleDiffuse = await Texture.fromUrl("./assets/artdeco_diffuse.png");
+      marbleDiffuse = await Texture.fromUrl("./assets/artdeco_diffuse.webp");
       if (marbleDiffuse) {
         marbleDiffuse.repeat.x = 3;
         marbleDiffuse.repeat.y = 3;
       }
-      marbleNormal = await Texture.fromUrl("./assets/artdeco_normal.png");
+      marbleNormal = await Texture.fromUrl("./assets/artdeco_normal.webp");
       if (marbleNormal) {
         marbleNormal.repeat.x = 3;
         marbleNormal.repeat.y = 3;
       }
-      marbleRoughness = await Texture.fromUrl("./assets/artdeco_roughness.png");
+      marbleRoughness = await Texture.fromUrl("./assets/artdeco_roughness.webp");
       if (marbleRoughness) {
         marbleRoughness.repeat.x = 3;
         marbleRoughness.repeat.y = 3;
       }
 
-      bronzeDiffuse = await Texture.fromUrl("./assets/rusty_brass_diffuse.png");
-      bronzeNormal = await Texture.fromUrl("./assets/rusty_brass_normal.png");
-      bronzeRoughness = await Texture.fromUrl("./assets/rusty_brass_roughness.png");
+      bronzeDiffuse = await Texture.fromUrl("./assets/rusty_brass_diffuse.webp");
+      bronzeNormal = await Texture.fromUrl("./assets/rusty_brass_normal.webp");
+      bronzeRoughness = await Texture.fromUrl("./assets/rusty_brass_roughness.webp");
     } catch (e) {
       console.warn("Could not load PBR textures:", e);
     }

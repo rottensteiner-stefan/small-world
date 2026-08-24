@@ -75,7 +75,7 @@ class Showcase22 extends AbstractShowcase {
     this.camera.addBehavior(new OrbitController({ input: this.input, audio: this.audio }));
 
     // 3. Environment: The Magnetic Singularity & Space Background
-    const skyTexture = await Texture.fromUrl("./assets/space-2.jpg");
+    const skyTexture = await Texture.fromUrl("./assets/space-2.webp");
     const skydome = new Skydome({
       texture: skyTexture,
       radius: 1000,

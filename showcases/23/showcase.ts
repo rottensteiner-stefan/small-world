@@ -127,8 +127,8 @@ class Showcase23 extends AbstractShowcase {
 
     // Textures
     const [floorTex, bumperTex] = await Promise.all([
-      Texture.fromUrl("./assets/scifi_metal_floor.jpg"),
-      Texture.fromUrl("./assets/scifi_crate_cyan.jpg"),
+      Texture.fromUrl("./assets/scifi_metal_floor.webp"),
+      Texture.fromUrl("./assets/scifi_crate_cyan.webp"),
     ]);
 
     // Goal Zone (Plattform 3: Z=-20 to -40. Placement at the end of the track)

@@ -34,7 +34,7 @@ for (const file of htmlFiles) {
   let lMatch;
   while ((lMatch = linkRegex.exec(content)) !== null) {
     const l = lMatch[0];
-    if (!l.includes('favicon.png') && !l.includes('shared.css')) {
+    if (!l.includes('favicon.webp') && !l.includes('shared.css')) {
       links.push(l);
     }
   }
@@ -66,7 +66,7 @@ for (const file of htmlFiles) {
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="icon" type="image/webp" href="/favicon.webp" />
     <link rel="stylesheet" href="/assets/shared.css" />
     ${links.length ? links.join('\n    ') + '\n    ' : ''}<title>${title}</title>
     ${styles.join('\n    ')}

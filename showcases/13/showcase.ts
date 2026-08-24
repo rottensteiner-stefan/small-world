@@ -106,7 +106,7 @@ class Showcase13 extends AbstractShowcase {
     // Load an environment map for reflections
     const envTexture = new CubeTexture();
     try {
-      await envTexture.loadFrom("./assets/skybox.png");
+      await envTexture.loadFrom("./assets/skybox.webp");
 
       // Add skybox to the background
       const skybox = new Object3D("Skybox");

@@ -125,19 +125,19 @@ export class Showcase16 extends AbstractShowcase {
 
     try {
       [brdfTexture] = await Promise.all([
-        Texture.fromUrl("./assets/ibl/brdf_lut.png"),
-        irradianceTexture.loadFrom("./assets/ibl/irradiance.png", CubeLayout.CROSS_HORIZONTAL),
+        Texture.fromUrl("./assets/ibl/brdf_lut.webp"),
+        irradianceTexture.loadFrom("./assets/ibl/irradiance.webp", CubeLayout.CROSS_HORIZONTAL),
         prefilterTexture.loadMipmapsFrom(
           [
-            "./assets/ibl/prefilter/mip0.png",
-            "./assets/ibl/prefilter/mip1.png",
-            "./assets/ibl/prefilter/mip2.png",
-            "./assets/ibl/prefilter/mip3.png",
-            "./assets/ibl/prefilter/mip4.png",
+            "./assets/ibl/prefilter/mip0.webp",
+            "./assets/ibl/prefilter/mip1.webp",
+            "./assets/ibl/prefilter/mip2.webp",
+            "./assets/ibl/prefilter/mip3.webp",
+            "./assets/ibl/prefilter/mip4.webp",
           ],
           CubeLayout.CROSS_HORIZONTAL,
         ),
-        envTexture.loadFrom("./assets/ibl/env.png", CubeLayout.CROSS_HORIZONTAL),
+        envTexture.loadFrom("./assets/ibl/env.webp", CubeLayout.CROSS_HORIZONTAL),
       ]);
 
       this.scene.brdfLUT = brdfTexture;

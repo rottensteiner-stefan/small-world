@@ -137,7 +137,7 @@ class Showcase30 extends AbstractShowcase {
     // Load Environment Map & PBR Texture Maps
     const envTexture = new CubeTexture();
     try {
-      await envTexture.loadFrom("./assets/skybox.png");
+      await envTexture.loadFrom("./assets/skybox.webp");
       const skybox = new Object3D("Skybox");
       skybox.geometry = new Cube({ size: 1000 }).getGeometryData();
       skybox.material = new SkyboxMaterial({ cubeMap: envTexture });
@@ -162,41 +162,41 @@ class Showcase30 extends AbstractShowcase {
     let brassRoughness: Texture | undefined;
 
     try {
-      asphaltDiffuse = await Texture.fromUrl("./assets/steampunk_diffuse.png");
+      asphaltDiffuse = await Texture.fromUrl("./assets/steampunk_diffuse.webp");
       if (asphaltDiffuse) {
         asphaltDiffuse.repeat.x = 4;
         asphaltDiffuse.repeat.y = 7;
       }
-      asphaltNormal = await Texture.fromUrl("./assets/steampunk_normal.png");
+      asphaltNormal = await Texture.fromUrl("./assets/steampunk_normal.webp");
       if (asphaltNormal) {
         asphaltNormal.repeat.x = 4;
         asphaltNormal.repeat.y = 7;
       }
-      asphaltRoughness = await Texture.fromUrl("./assets/steampunk_roughness.png");
+      asphaltRoughness = await Texture.fromUrl("./assets/steampunk_roughness.webp");
       if (asphaltRoughness) {
         asphaltRoughness.repeat.x = 4;
         asphaltRoughness.repeat.y = 7;
       }
 
-      steelDiffuse = await Texture.fromUrl("./assets/scratched_steel_diffuse.png");
+      steelDiffuse = await Texture.fromUrl("./assets/scratched_steel_diffuse.webp");
       if (steelDiffuse) {
         steelDiffuse.repeat.x = 2;
         steelDiffuse.repeat.y = 4;
       }
-      steelNormal = await Texture.fromUrl("./assets/scratched_steel_normal.png");
+      steelNormal = await Texture.fromUrl("./assets/scratched_steel_normal.webp");
       if (steelNormal) {
         steelNormal.repeat.x = 2;
         steelNormal.repeat.y = 4;
       }
-      steelRoughness = await Texture.fromUrl("./assets/scratched_steel_roughness.png");
+      steelRoughness = await Texture.fromUrl("./assets/scratched_steel_roughness.webp");
       if (steelRoughness) {
         steelRoughness.repeat.x = 2;
         steelRoughness.repeat.y = 4;
       }
 
-      brassDiffuse = await Texture.fromUrl("./assets/rusty_brass_diffuse.png");
-      brassNormal = await Texture.fromUrl("./assets/rusty_brass_normal.png");
-      brassRoughness = await Texture.fromUrl("./assets/rusty_brass_roughness.png");
+      brassDiffuse = await Texture.fromUrl("./assets/rusty_brass_diffuse.webp");
+      brassNormal = await Texture.fromUrl("./assets/rusty_brass_normal.webp");
+      brassRoughness = await Texture.fromUrl("./assets/rusty_brass_roughness.webp");
     } catch (e) {
       console.warn("Could not load PBR textures:", e);
     }

@@ -78,9 +78,9 @@ export class Showcase9 extends AbstractShowcase {
     };
 
     const brickTextures = [
-      await loadPixelTexture("./assets/brick-1.png"),
-      await loadPixelTexture("./assets/brick-2.png"),
-      await loadPixelTexture("./assets/brick-3.png"),
+      await loadPixelTexture("./assets/brick-1.webp"),
+      await loadPixelTexture("./assets/brick-2.webp"),
+      await loadPixelTexture("./assets/brick-3.webp"),
     ];
     // 4. Level aufbauen
     const blockGeo = new Cube({ size: 1 }).getGeometryData();

@@ -1675,7 +1675,7 @@ export class MaterialStudio extends ForgeTool {
         createProceduralFallback();
       };
       // Load rock texture
-      originalImage.src = "/showcases/10/assets/rock.png";
+      originalImage.src = "/showcases/10/assets/rock.webp";
 
       function createProceduralFallback(): void {
         // Simple canvas fallback texture (256x256 simple rock noise)

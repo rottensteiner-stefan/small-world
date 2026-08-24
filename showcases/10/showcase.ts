@@ -60,7 +60,7 @@ export class Showcase10 extends AbstractShowcase {
     this.scene.add(sun);
 
     // Textures
-    const sandTexture = await Texture.fromUrl("./assets/sand.png", {
+    const sandTexture = await Texture.fromUrl("./assets/sand.webp", {
       anisotropy: 16,
       generateMipmaps: true,
       flipY: true,
@@ -68,7 +68,7 @@ export class Showcase10 extends AbstractShowcase {
     sandTexture.repeat.x = 20;
     sandTexture.repeat.y = 20;
 
-    const rockTexture = await Texture.fromUrl("./assets/rock.png", {
+    const rockTexture = await Texture.fromUrl("./assets/rock.webp", {
       anisotropy: 16,
       generateMipmaps: true,
       flipY: true,
@@ -78,11 +78,11 @@ export class Showcase10 extends AbstractShowcase {
       rockTexture.repeat.y = 0.5;
     }
 
-    this._lavaTexture = await Texture.fromUrl("./assets/lava.png", {
+    this._lavaTexture = await Texture.fromUrl("./assets/lava.webp", {
       generateMipmaps: true,
       flipY: true,
     });
-    this._lavaNormalMap = await Texture.fromUrl("./assets/lava_normal.png", {
+    this._lavaNormalMap = await Texture.fromUrl("./assets/lava_normal.webp", {
       generateMipmaps: true,
       flipY: true,
     });

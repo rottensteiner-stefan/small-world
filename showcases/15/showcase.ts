@@ -126,7 +126,7 @@ export class Showcase15 extends AbstractShowcase {
     // 2. Load environment texture for skybox & PBR reflections
     const envTexture = new CubeTexture();
     try {
-      await envTexture.loadFrom("./assets/skybox.png");
+      await envTexture.loadFrom("./assets/skybox.webp");
 
       const skybox = new Object3D("Skybox");
       skybox.geometry = new Cube({ size: 1000 }).getGeometryData();

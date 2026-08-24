@@ -95,7 +95,7 @@ class PresentationDemoApp extends AbstractShowcase {
     // Load Environment Map
     const envTexture = new CubeTexture();
     try {
-      await envTexture.loadFrom("/showcases/13/assets/skybox.png");
+      await envTexture.loadFrom("/showcases/13/assets/skybox.webp");
 
       const skybox = new Object3D("Skybox");
       skybox.geometry = new Cube({ size: 1000 }).getGeometryData();

@@ -103,7 +103,7 @@ class Showcase29 extends AbstractShowcase {
     // Load Environment Map & PBR Textures
     const envTexture = new CubeTexture();
     try {
-      await envTexture.loadFrom("./assets/skybox.png");
+      await envTexture.loadFrom("./assets/skybox.webp");
       const skybox = new Object3D("Skybox");
       skybox.geometry = new Cube({ size: 1000 }).getGeometryData();
       skybox.material = new SkyboxMaterial({ cubeMap: envTexture });
@@ -124,33 +124,33 @@ class Showcase29 extends AbstractShowcase {
     let woodRoughness: Texture | undefined;
 
     try {
-      stoneDiffuse = await Texture.fromUrl("./assets/artdeco_diffuse.png");
+      stoneDiffuse = await Texture.fromUrl("./assets/artdeco_diffuse.webp");
       if (stoneDiffuse) {
         stoneDiffuse.repeat.x = 2;
         stoneDiffuse.repeat.y = 4;
       }
-      stoneNormal = await Texture.fromUrl("./assets/artdeco_normal.png");
+      stoneNormal = await Texture.fromUrl("./assets/artdeco_normal.webp");
       if (stoneNormal) {
         stoneNormal.repeat.x = 2;
         stoneNormal.repeat.y = 4;
       }
-      stoneRoughness = await Texture.fromUrl("./assets/artdeco_roughness.png");
+      stoneRoughness = await Texture.fromUrl("./assets/artdeco_roughness.webp");
       if (stoneRoughness) {
         stoneRoughness.repeat.x = 2;
         stoneRoughness.repeat.y = 4;
       }
 
-      woodDiffuse = await Texture.fromUrl("./assets/oak_diffuse.png");
+      woodDiffuse = await Texture.fromUrl("./assets/oak_diffuse.webp");
       if (woodDiffuse) {
         woodDiffuse.repeat.x = 1;
         woodDiffuse.repeat.y = 3;
       }
-      woodNormal = await Texture.fromUrl("./assets/oak_normal.png");
+      woodNormal = await Texture.fromUrl("./assets/oak_normal.webp");
       if (woodNormal) {
         woodNormal.repeat.x = 1;
         woodNormal.repeat.y = 3;
       }
-      woodRoughness = await Texture.fromUrl("./assets/oak_roughness.png");
+      woodRoughness = await Texture.fromUrl("./assets/oak_roughness.webp");
       if (woodRoughness) {
         woodRoughness.repeat.x = 1;
         woodRoughness.repeat.y = 3;

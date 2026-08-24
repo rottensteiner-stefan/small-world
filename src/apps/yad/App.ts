@@ -83,72 +83,72 @@ export class App extends SmallWorld {
     this.scene.add(sun);
 
     // 2. Load Textures
-    const wallTex: Texture = await Texture.fromUrl("./assets/dungeon_pack/textures/brbrick.png", {
+    const wallTex: Texture = await Texture.fromUrl("./assets/dungeon_pack/textures/brbrick.webp", {
       flipY: true,
     });
-    const floorTex: Texture = await Texture.fromUrl("./assets/dungeon_pack/textures/flat1_1.png", {
+    const floorTex: Texture = await Texture.fromUrl("./assets/dungeon_pack/textures/flat1_1.webp", {
       flipY: true,
     });
-    const ceilTex: Texture = await Texture.fromUrl("./assets/dungeon_pack/textures/ceil3_5.png", {
+    const ceilTex: Texture = await Texture.fromUrl("./assets/dungeon_pack/textures/ceil3_5.webp", {
       flipY: true,
     });
-    const slimeTex: Texture = await Texture.fromUrl("./assets/dungeon_pack/textures/slime01.png", {
+    const slimeTex: Texture = await Texture.fromUrl("./assets/dungeon_pack/textures/slime01.webp", {
       flipY: true,
     });
     const secretFloorTex: Texture = await Texture.fromUrl(
-      "./assets/dungeon_pack/textures/flat5_4.png",
+      "./assets/dungeon_pack/textures/flat5_4.webp",
       {
         flipY: true,
       },
     );
     const secretCeilTex: Texture = await Texture.fromUrl(
-      "./assets/dungeon_pack/textures/ceil1_1.png",
+      "./assets/dungeon_pack/textures/ceil1_1.webp",
       {
         flipY: true,
       },
     );
 
-    const lavaNoise: Texture = await Texture.fromUrl("./assets/textures/lava.png", {
+    const lavaNoise: Texture = await Texture.fromUrl("./assets/textures/lava.webp", {
       flipY: true,
     });
-    const lavaNorm: Texture = await Texture.fromUrl("./assets/textures/lava_normal.png", {
+    const lavaNorm: Texture = await Texture.fromUrl("./assets/textures/lava_normal.webp", {
       generateMipmaps: true,
     });
 
     // Use proper Dungeon sprites
-    const barrelTex: Texture = await Texture.fromUrl("./assets/dungeon_pack/sprites/bar1a0.png", {
+    const barrelTex: Texture = await Texture.fromUrl("./assets/dungeon_pack/sprites/bar1a0.webp", {
       flipY: true,
     });
-    const torchTex: Texture = await Texture.fromUrl("./assets/dungeon_pack/sprites/firea0.png", {
+    const torchTex: Texture = await Texture.fromUrl("./assets/dungeon_pack/sprites/firea0.webp", {
       flipY: true,
     });
-    const doorTex: Texture = await Texture.fromUrl("./assets/dungeon_pack/textures/door9_1.png", {
+    const doorTex: Texture = await Texture.fromUrl("./assets/dungeon_pack/textures/door9_1.webp", {
       flipY: true,
     });
     const secretDoorTex: Texture = await Texture.fromUrl(
-      "./assets/dungeon_pack/textures/brbrick.png",
+      "./assets/dungeon_pack/textures/brbrick.webp",
       {
         // Looks like wall
         flipY: true,
       },
     );
-    const enemyTex: Texture = await Texture.fromUrl("./assets/dungeon_pack/sprites/possa1.png", {
+    const enemyTex: Texture = await Texture.fromUrl("./assets/dungeon_pack/sprites/possa1.webp", {
       flipY: true,
     });
     const itemTexArmor: Texture = await Texture.fromUrl(
-      "./assets/dungeon_pack/sprites/bon2a0.png",
+      "./assets/dungeon_pack/sprites/bon2a0.webp",
       {
         flipY: true,
       },
     );
     const itemTexHealth: Texture = await Texture.fromUrl(
-      "./assets/dungeon_pack/sprites/bon1a0.png",
+      "./assets/dungeon_pack/sprites/bon1a0.webp",
       {
         flipY: true,
       },
     );
     const itemTexWeapon: Texture = await Texture.fromUrl(
-      "./assets/dungeon_pack/sprites/pista0.png",
+      "./assets/dungeon_pack/sprites/pista0.webp",
       {
         flipY: true,
       },

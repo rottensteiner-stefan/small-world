@@ -72,7 +72,7 @@ export class Hud {
       height: "32px", // 32px is exactly 16% of the 200px screen, authentic Dungeon scale
       display: "flex",
       flexDirection: "row",
-      backgroundImage: "url('./assets/dungeon_pack/textures/graywide.png')",
+      backgroundImage: "url('./assets/dungeon_pack/textures/graywide.webp')",
       backgroundRepeat: "repeat",
       backgroundSize: "64px 64px", // Scale down the background texture appropriately
       fontFamily: "'VT323', monospace", // Webfont for all standard text
@@ -118,7 +118,7 @@ export class Hud {
       this._pistolSprites.push(img);
     }
     this._pistolFlash = new Image();
-    this._pistolFlash.src = `./assets/dungeon_pack/sprites/pisfa0.png`;
+    this._pistolFlash.src = `./assets/dungeon_pack/sprites/pisfa0.webp`;
   }
 
   private _createWeaponOverlay(parent: HTMLElement): void {
@@ -321,7 +321,7 @@ export class Hud {
     ];
 
     generateSpriteFontChars(
-      "./assets/fonts/font-letters.png",
+      "./assets/fonts/font-letters.webp",
       "ABCDEFGHIJKLMNOPQRSTUVWXYZ/% ".split(""),
       4,
       5,
@@ -329,7 +329,7 @@ export class Hud {
     ).then((): void => this._updateDisplay());
 
     generateSpriteFontChars(
-      "./assets/fonts/font-numbers.png",
+      "./assets/fonts/font-numbers.webp",
       Array.from({ length: 10 }, (_, i) => i.toString()),
       3,
       5,
@@ -657,7 +657,7 @@ export class Hud {
 
   private _loadAndSliceFace(): void {
     sliceFaceSprites({
-      atlasUrl: "./assets/dungeon_pack/sprites/dungeonguy.png",
+      atlasUrl: "./assets/dungeon_pack/sprites/dungeonguy.webp",
       faceCount: 6,
       faceHeight: 180,
       maxFaceWidth: 138,
@@ -669,7 +669,7 @@ export class Hud {
         this._updateDisplay();
       })
       .catch((): void => {
-        console.warn("[YadHud] Could not load dungeonguy.png from assets/dungeon_pack/sprites/");
+        console.warn("[YadHud] Could not load dungeonguy.webp from assets/dungeon_pack/sprites/");
       });
   }
 }

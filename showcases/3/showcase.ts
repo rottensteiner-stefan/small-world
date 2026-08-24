@@ -76,7 +76,7 @@ class Showcase3 extends AbstractShowcase {
     // The ObjLoader creates children named after the material groups
     this._carModel.children.forEach((child) => {
       if (child.material instanceof PhongMaterial && child.material.diffuseMap) {
-        // Shifting the X offset picks a different color column in colormap.png
+        // Shifting the X offset picks a different color column in colormap.webp
         // Usually, these textures have 8 or 16 columns. 0.125 is a good step for Kenney assets.
         child.material.diffuseMap.offset.x = index * 0.125;
       }

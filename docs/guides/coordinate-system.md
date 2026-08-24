@@ -66,3 +66,15 @@ if (frustum.intersectsVolume(object.bounds)) {
 ```
 
 All geometries compute an axis-aligned bounding box (AABB) dynamically. You can disable frustum culling on static background overlays by setting `frustumCulled = false` on an object (e.g., Skybox).
+
+## 2.5D Backgrounds & Texture Orientation
+
+When creating 2.5D matte paintings, UI backdrops, or billboards:
+
+1. **Use `Plane` Geometry:** Always use `Plane({ width, height })` for flat backdrops. `Plane` generates standard UV coordinates ($U \in [0, 1]$ left-to-right, $V \in [1, 0]$ top-to-bottom) facing $+Z$.
+2. **WebGL Texture Vertical Flip (`flipY`) & WebP Format:** DOM/HTML images have their pixel origin $(0,0)$ at the top-left, whereas WebGL texture coordinates $(0,0)$ start at the bottom-left. Always pass `{ flipY: true }` when loading textures. Prefer **WebP (`.webp`)** over JPEG for 2D art to avoid dark block artifacts and enable alpha-channel transparency for foreground layers:
+   ```typescript
+   const bgTex = await Texture.fromUrl("/assets/path/image.webp", { flipY: true });
+   ```
+3. **No Negative Scale Hacks:** Never apply negative scale factors (e.g. `scale.set(-1, -1, 1)`) to 3D objects to flip textures. Negative scaling inverts spatial parity, flips winding order, and mirrors horizontal coordinates (swapping left and right).
+4. **16:9 Aspect Ratio Standard:** Standardize 2.5D background planes and AI-generated matte paintings on a 16:9 ratio (e.g. `Plane({ width: 16, height: 9 })`). Centering at $Y = 4.5$ aligns the bottom edge flush with the stage floor at $Y = 0.0$.

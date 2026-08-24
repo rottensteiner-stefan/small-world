@@ -686,9 +686,9 @@ if (typeof document !== "undefined") {
         // @ts-expect-error - JSZip is loaded globally
         const zip = new JSZip();
 
-        zip.file("env.png", await baker.exportCubemapToCross(generatedEnvCube, 512, 0));
+        zip.file("env.webp", await baker.exportCubemapToCross(generatedEnvCube, 512, 0));
         zip.file(
-          "irradiance.png",
+          "irradiance.webp",
           await baker.exportCubemapToCross(generatedIrradianceCube, 32, 0),
         );
 
@@ -703,7 +703,7 @@ if (typeof document !== "undefined") {
           prefilterSize = Math.floor(prefilterSize / 2);
         }
 
-        zip.file("brdf_lut.png", await baker.exportBRDFToBlob("brdfCanvas"));
+        zip.file("brdf_lut.webp", await baker.exportBRDFToBlob("brdfCanvas"));
 
         const content = await zip.generateAsync({ type: "blob" });
         const url = URL.createObjectURL(content);
