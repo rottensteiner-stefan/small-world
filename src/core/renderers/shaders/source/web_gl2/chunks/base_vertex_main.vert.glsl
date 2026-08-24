@@ -1,4 +1,20 @@
 void main() {
+#ifdef USE_SKINNING
+  mat4 skinMat =
+      a_weights.x * u_boneMatrices[int(a_joints.x)] +
+      a_weights.y * u_boneMatrices[int(a_joints.y)] +
+      a_weights.z * u_boneMatrices[int(a_joints.z)] +
+      a_weights.w * u_boneMatrices[int(a_joints.w)];
+
+  vec4 localPos = skinMat * vec4(a_position, 1.0);
+  vec3 localNormal = mat3(skinMat) * a_normal;
+  vec3 localTangent = mat3(skinMat) * a_tangent;
+#else
+  vec4 localPos = vec4(a_position, 1.0);
+  vec3 localNormal = a_normal;
+  vec3 localTangent = a_tangent;
+#endif
+
 #ifdef USE_INSTANCING
   mat4 modelMat = u_model * a_instanceMatrix;
 #ifdef USE_TEXTURE_ARRAY
@@ -8,12 +24,12 @@ void main() {
   mat4 modelMat = u_model;
 #endif
 
-  vec4 wp = modelMat * vec4(a_position, 1.0);
+  vec4 wp = modelMat * localPos;
   v_worldPos = wp.xyz;
-  v_normal = normalize(mat3(modelMat) * a_normal);
+  v_normal = normalize(mat3(modelMat) * localNormal);
   v_uv = (a_uv * u_texRepeat) + u_texOffset;
 
-  vec3 tangent = a_tangent;
+  vec3 tangent = localTangent;
   if (dot(tangent, tangent) < 0.0001) {
     if (abs(v_normal.y) < 0.999) {
       tangent = cross(v_normal, vec3(0, 1, 0));

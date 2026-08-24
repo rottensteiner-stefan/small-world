@@ -217,6 +217,14 @@ export class StandardMaterial extends AbstractMaterial {
     ) {
       flags.push("USE_TEXTURE_ARRAY");
     }
+    if (this.metallicMap) flags.push("USE_METALLIC_MAP");
+    if (this.roughnessMap) flags.push("USE_ROUGHNESS_MAP");
+    if (this.aoMap) flags.push("USE_AO_MAP");
+    if (this.emissiveMap) flags.push("USE_EMISSIVE_MAP");
+    if (this.alphaMap) flags.push("USE_ALPHA_MAP");
+    if (this.envMap) flags.push("USE_ENV_MAP");
+    if (this.normalMap) flags.push("USE_NORMAL_MAP");
+    if (this.reflectionMap) flags.push("USE_REFLECTION_MAP");
     this._renderManifest.flags = flags;
 
     if (this._renderManifest.state) {

@@ -4,6 +4,12 @@ in vec3 a_normal;
 in vec2 a_uv;
 in vec3 a_tangent;
 
+#ifdef USE_SKINNING
+in vec4 a_joints;
+in vec4 a_weights;
+uniform mat4 u_boneMatrices[64];
+#endif
+
 #ifdef USE_INSTANCING
 in mat4 a_instanceMatrix;
 #ifdef USE_TEXTURE_ARRAY
@@ -64,6 +70,8 @@ layout(std140) uniform GlobalUniforms {
     PointLight u_pointLights[16];
     SpotLight u_spotLights[16];
     AreaLight u_areaLights[4];
+    vec2 u_tileSizePx;
+    vec4 u_clusterDims;
 };
 
 uniform mat4 u_model;

@@ -1,7 +1,11 @@
 vec3 V = normalize(u_viewPos - v_worldPos);
+#ifdef USE_NORMAL_MAP
 vec3 rawNormal = texture(u_normalMap, v_uv).rgb * 2.0 - 1.0;
 rawNormal.xy *= u_extraParams.zw;
 vec3 N = normalize(v_tbn * rawNormal);
+#else
+vec3 N = normalize(v_normal);
+#endif
 float dotNV = max(dot(N, V), 0.0001);
 
 // Base Reflectivity for non-metals
@@ -59,8 +63,8 @@ vec3 Lo = vec3(0.0);
             float currentDepth = projCoords.z;
 
             // PCSS (see non-PBR light_calc.frag.glsl for full rationale).
-            const int PCSS_TAPS = 8;
-            vec2 searchOffsets[PCSS_TAPS];
+            const int pcssTaps = 8;
+            vec2 searchOffsets[pcssTaps];
             searchOffsets[0] = vec2(-1.0, -1.0);
             searchOffsets[1] = vec2(0.0, -1.0);
             searchOffsets[2] = vec2(1.0, -1.0);
@@ -73,7 +77,7 @@ vec3 Lo = vec3(0.0);
             float searchRadiusTexels = 2.0;
             float avgBlockerDepth = 0.0;
             float blockerCount = 0.0;
-            for (int s = 0; s < PCSS_TAPS; s++) {
+            for (int s = 0; s < pcssTaps; s++) {
                 vec2 sampleUV = clamp(
                     atlasUV + searchOffsets[s] * texelSize * searchRadiusTexels,
                     cellMin, cellMax
@@ -265,7 +269,8 @@ for(int k = 0; k < CLUSTER_MAX_LIGHTS; k++) {
     }
 }
 
-// -- Ambient IBL --
+// -- Ambient Lighting --
+#ifdef USE_IBL
 vec3 kS_ambient = F_SchlickRoughness(dotNV, F0, roughness);
 vec3 kD_ambient = 1.0 - kS_ambient;
 kD_ambient *= 1.0 - metallic;
@@ -282,25 +287,30 @@ vec2 envBRDF  = texture(u_brdfLUT, vec2(max(dotNV, 0.0), roughness)).rg;
 vec3 specularAmbient = prefilteredColor * (kS_ambient * envBRDF.x + envBRDF.y);
 
 vec3 ambient = (kD_ambient * diffuseAmbient + specularAmbient) * ao;
+#else
+vec3 R = reflect(-V, N);
+vec3 f_fallback = F_Schlick(dotNV, F0);
+vec3 kD_fallback = (1.0 - f_fallback) * (1.0 - metallic);
+vec3 ambient = (kD_fallback * u_ambientColor * albedo) * ao;
 
-// Fallback if IBL is not bound (irradiance is black)
-if (length(irradiance) < 0.001) {
-    vec3 f_fallback = F_Schlick(dotNV, F0);
-    vec3 kD_fallback = (1.0 - f_fallback) * (1.0 - metallic);
-    ambient = (kD_fallback * u_ambientColor * albedo) * ao;
-    
-    // Per-material envMap fallback
-    if (u_useEnvMap > 0.5) {
-        float lod = roughness * 5.0;
-        vec3 envColor = sRGBToLinear(textureLod(u_envMap, R, lod).rgb);
-        ambient += (envColor * f_fallback) * ao;
-    }
+#ifdef USE_ENV_MAP
+// Per-material envMap fallback
+if (u_useEnvMap > 0.5) {
+    float lod = roughness * 5.0;
+    vec3 envColor = sRGBToLinear(textureLod(u_envMap, R, lod).rgb);
+    ambient += (envColor * f_fallback) * ao;
 }
+#endif
+#endif
 
 vec3 color = ambient + Lo;
 
 // Emissive
+#ifdef USE_EMISSIVE_MAP
 vec3 emissive = sRGBToLinear(texture(u_emissiveMap, v_uv).rgb) * sRGBToLinear(u_specColor.rgb) * u_specColor.a;
+#else
+vec3 emissive = sRGBToLinear(u_specColor.rgb) * u_specColor.a;
+#endif
 
 color += emissive;
 

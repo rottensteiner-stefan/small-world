@@ -255,6 +255,13 @@ This document serves to record external sources, algorithms, mathematical deriva
 - **Source:** Original assets by **id Software** (DOOM, 1993). 
 - **Usage:** Used in the YAD showcase for authentic wall textures, flats, and weapon/enemy sprites. Thank you to the DOOM community and id Software for making these legendary assets available for educational and nostalgic projects!
 
+### Mixamo Mannequin (Rigged Proxy Character)
+
+- **File:** `public/assets/and-now/mannequin.glb`
+- **Authors/Gurus:** Mixamo / Adobe
+- **Source:** [Mixamo Characters](https://www.mixamo.com/#/?page=1&query=Mannequin&type=Character)
+- **Usage:** Serves as the primary 3D dummy/proxy character for early movement prototyping and animation testing in the "And Now?" app, allowing robust iteration on the 2.5D and isometric controllers without the performance penalty of complex PBR textures.
+
 ## Shaders & Procedural Art
 
 ### Star Nest (Volumetric Cosmic Raymarching)

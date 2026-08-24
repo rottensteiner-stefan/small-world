@@ -2,12 +2,20 @@
 [LIGHT_DEFS]
 void main() {
   vec4 texColor = texture(u_diffuseMap, v_uv);
+#ifdef USE_SPECULAR_MAP
   float specMapValue = texture(u_specularMap, v_uv).r;
+#else
+  float specMapValue = 1.0;
+#endif
+
+#ifdef USE_NORMAL_MAP
   vec3 normalMapValue = texture(u_normalMap, v_uv).rgb;
-  
   vec3 normalMap = normalize(normalMapValue * 2.0 - 1.0);
   normalMap.xy *= u_extraParams.zw;
   vec3 N = normalize(v_tbn * normalMap);
+#else
+  vec3 N = normalize(v_normal);
+#endif
 
   [LIGHT_CALC]
 

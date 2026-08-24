@@ -20,6 +20,10 @@ export abstract class AbstractGeometry implements Geometry {
   protected _tangents: Float32Array = new Float32Array();
   /** The UV coordinates of the geometry (u, v). */
   protected _uvs: Float32Array = new Float32Array();
+  /** Optional skinning joints (4 IDs per vertex). */
+  protected _joints?: Float32Array | Uint16Array | undefined = undefined;
+  /** Optional skinning weights (4 weights per vertex). */
+  protected _weights?: Float32Array | undefined = undefined;
   /** Whether the geometry is purely line-based. */
   protected _isLineGeometry: boolean = false;
   /** Cached bounding volume to prevent re-allocation */
@@ -59,6 +63,8 @@ export abstract class AbstractGeometry implements Geometry {
       normals: this._normals,
       tangents: this._tangents,
       uvs: this._uvs,
+      joints: this._joints,
+      weights: this._weights,
       topology: this._isLineGeometry ? Topology.LINE_LIST : Topology.TRIANGLE_LIST,
       getBoundingVolume: () => this.getBoundingVolume(),
     };

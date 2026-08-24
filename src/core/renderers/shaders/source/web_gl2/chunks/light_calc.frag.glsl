@@ -55,8 +55,8 @@
               // Samples are clamped to this cascade's own atlas cell so a wide search radius
               // near a cell edge can't bleed into a neighboring cascade's texels.
               // Directional light only, not spot lights -- see docs/adr/0006-pcss-directional-light-only.md.
-              const int PCSS_TAPS = 8;
-              vec2 searchOffsets[PCSS_TAPS];
+              const int pcssTaps = 8;
+              vec2 searchOffsets[pcssTaps];
               searchOffsets[0] = vec2(-1.0, -1.0);
               searchOffsets[1] = vec2(0.0, -1.0);
               searchOffsets[2] = vec2(1.0, -1.0);
@@ -69,7 +69,7 @@
               float searchRadiusTexels = 2.0;
               float avgBlockerDepth = 0.0;
               float blockerCount = 0.0;
-              for (int s = 0; s < PCSS_TAPS; s++) {
+              for (int s = 0; s < pcssTaps; s++) {
                   vec2 sampleUV = clamp(
                       atlasUV + searchOffsets[s] * texelSize * searchRadiusTexels,
                       cellMin, cellMax

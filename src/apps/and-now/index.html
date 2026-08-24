@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <link rel="icon" type="image/webp" href="/favicon.webp" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>And Now? — Scene Hub</title>
+    <link rel="stylesheet" href="/assets/shared.css" />
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        background-color: #0a0c10;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        color: #e2e8f0;
+      }
+      
+      .hub-container {
+        max-width: 800px;
+        margin: 4rem auto;
+        padding: 2rem;
+      }
+
+      h1 {
+        font-size: 2.5rem;
+        color: #ffb84d;
+        margin-bottom: 0.5rem;
+        letter-spacing: 1px;
+      }
+      
+      .subtitle {
+        font-size: 1.1rem;
+        color: #8a99ad;
+        margin-bottom: 3rem;
+      }
+
+      .scene-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: grid;
+        gap: 1.5rem;
+      }
+
+      .scene-card {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 184, 77, 0.2);
+        border-radius: 8px;
+        padding: 1.5rem;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        display: block;
+        color: inherit;
+      }
+
+      .scene-card:hover {
+        background: rgba(255, 184, 77, 0.08);
+        border-color: #ffb84d;
+        transform: translateY(-2px);
+      }
+
+      .scene-card h2 {
+        margin: 0 0 0.5rem 0;
+        font-size: 1.4rem;
+        color: #fff;
+      }
+
+      .scene-card p {
+        margin: 0;
+        color: #8a99ad;
+        line-height: 1.5;
+      }
+      
+      .badge {
+        display: inline-block;
+        background: rgba(212, 154, 61, 0.15);
+        color: #ffb84d;
+        border: 1px solid rgba(212, 154, 61, 0.4);
+        padding: 0.2rem 0.6rem;
+        border-radius: 4px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        margin-bottom: 0.8rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="hub-container">
+      <h1>And Now?</h1>
+      <div class="subtitle">Wien 2100 — Graphic Noir RPG / Development Hub</div>
+      
+      <ul class="scene-list">
+        <li>
+          <a href="./scenes/prologue/index.html" class="scene-card">
+            <span class="badge">Akt I</span>
+            <h2>Prologue: Bunker Arenberg</h2>
+            <p>Die eröffnende 2.5D Szene in Koje 42. Ein hastiges Gespräch mit Blockwart Hawelka kurz bevor die AZS-Patrouille eintrifft.</p>
+          </a>
+        </li>
+        
+        <!-- Zukünftige Szenen können hier einfach angehängt werden -->
+        <li>
+          <a href="../../../showcases/andNowIso/index.html" class="scene-card">
+            <span class="badge">Akt II</span>
+            <h2 style="color: #888;">Flakturm Gänge (Iso-Explore)</h2>
+            <p>Die erste spielbare Isometric-Erkundung durch die dunklen Versorgungsschächte des Flakturms.</p>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </body>
+</html>

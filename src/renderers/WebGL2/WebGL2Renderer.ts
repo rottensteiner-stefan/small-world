@@ -418,8 +418,16 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       }
 
       if (defines) {
-        vs = vs.replace("#version 300 es", `#version 300 es\n${defines}`);
-        fs = fs.replace("#version 300 es", `#version 300 es\n${defines}`);
+        if (vs.includes("#version 300 es")) {
+          vs = vs.replace("#version 300 es", `#version 300 es\n${defines}`);
+        } else {
+          vs = `#version 300 es\n${defines}${vs}`;
+        }
+        if (fs.includes("#version 300 es")) {
+          fs = fs.replace("#version 300 es", `#version 300 es\n${defines}`);
+        } else {
+          fs = `#version 300 es\n${defines}${fs}`;
+        }
       }
 
       vs = vs.trimStart();
@@ -433,7 +441,14 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
 
       this._globalUBO.bindToProgram(prog, "GlobalUniforms");
 
-      const attribsToQuery = ["a_position", "a_normal", "a_uv", "a_tangent"];
+      const attribsToQuery = [
+        "a_position",
+        "a_normal",
+        "a_uv",
+        "a_tangent",
+        "a_joints",
+        "a_weights",
+      ];
       if (isInstanced) {
         attribsToQuery.push("a_instanceMatrix", "a_instanceData");
       }
@@ -1232,7 +1247,23 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     // --- 3. Build & Bind Shader ---
     const isInst =
       "instanceCount" in objects[0]! && (objects[0] as InstancedMesh).instanceCount > 0;
-    const shaderFlags = manifest.flags || [];
+    const shaderFlags = manifest.flags ? [...manifest.flags] : [];
+
+    if (
+      objects[0] &&
+      (("skeleton" in objects[0] && (objects[0] as unknown as { skeleton?: unknown }).skeleton) ||
+        objects[0].geometry?.joints)
+    ) {
+      if (!shaderFlags.includes("USE_SKINNING")) {
+        shaderFlags.push("USE_SKINNING");
+      }
+    }
+
+    if (scene?.irradianceMap || scene?.prefilterMap) {
+      if (!shaderFlags.includes("USE_IBL")) {
+        shaderFlags.push("USE_IBL");
+      }
+    }
 
     // Check if texture array is used
     if (manifest.textures) {
@@ -1643,6 +1674,8 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
           cache.attributes.get("a_normal")!,
           cache.attributes.get("a_uv")!,
           cache.attributes.get("a_tangent")!,
+          cache.attributes.get("a_joints") ?? -1,
+          cache.attributes.get("a_weights") ?? -1,
         );
 
         const loc = cache.attributes.get("a_instanceMatrix");
@@ -1736,6 +1769,19 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         const uModel = u.get("u_model");
         if (uModel) this.gl.uniformMatrix4fv(uModel, false, this._scratchModelMatrix);
 
+        if (
+          "skeleton" in o &&
+          (o as unknown as { skeleton?: { boneMatrices: Float32Array } }).skeleton
+        ) {
+          const skel = (o as unknown as { skeleton: { boneMatrices: Float32Array } }).skeleton;
+          const boneLoc =
+            cache.uniforms.get("u_boneMatrices[0]") ??
+            this.gl.getUniformLocation(cache.prog, "u_boneMatrices");
+          if (boneLoc) {
+            this.gl.uniformMatrix4fv(boneLoc, false, skel.boneMatrices);
+          }
+        }
+
         // Bind and Draw Geometry
         const mesh = this._getOrCreateMesh(o, o.geometry);
 
@@ -1744,6 +1790,8 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
           cache.attributes.get("a_normal")!,
           cache.attributes.get("a_uv")!,
           cache.attributes.get("a_tangent")!,
+          cache.attributes.get("a_joints") ?? -1,
+          cache.attributes.get("a_weights") ?? -1,
         );
 
         const drawMode = topology === Topology.LINE_LIST ? this.gl.LINES : this.gl.TRIANGLES;

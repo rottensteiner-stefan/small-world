@@ -3,11 +3,20 @@ import { AbstractLoader } from "./AbstractLoader.js";
 import { EventType, CullMode } from "../enums/index.js";
 import { ModelGeometry } from "../geometry/index.js";
 import { Object3D } from "../core/index.js";
+import {
+  Bone,
+  Skeleton,
+  SkinnedMesh,
+  AnimationClip,
+  KeyframeTrack,
+  TrackType,
+  InterpolationType,
+} from "../core/animation/index.js";
 import { StandardMaterial } from "../core/materials/index.js";
 import { Color } from "../core/colors/index.js";
 import { Texture } from "../core/textures/index.js";
 import { LoaderOptions, GeometryDataInterface } from "../interfaces/index.js";
-import { Matrix4, Vector3D } from "../math/index.js";
+import { Matrix4, Vector3D, Quaternion } from "../math/index.js";
 
 interface GltfJson {
   buffers?: { uri?: string }[];
@@ -27,6 +36,27 @@ interface GltfJson {
       material?: number;
     }[];
   }[];
+  skins?: {
+    inverseBindMatrices?: number;
+    skeleton?: number;
+    joints: number[];
+    name?: string;
+  }[];
+  animations?: {
+    name?: string;
+    channels: {
+      sampler: number;
+      target: {
+        node?: number;
+        path: "translation" | "rotation" | "scale" | "weights";
+      };
+    }[];
+    samplers: {
+      input: number;
+      output: number;
+      interpolation?: "LINEAR" | "STEP" | "CUBICSPLINE";
+    }[];
+  }[];
   nodes?: {
     name?: string;
     children?: number[];
@@ -35,6 +65,7 @@ interface GltfJson {
     rotation?: number[];
     scale?: number[];
     mesh?: number;
+    skin?: number;
   }[];
   scenes?: { nodes?: number[] }[];
   scene?: number;
@@ -164,6 +195,17 @@ export class GltfLoader extends AbstractLoader<Object3D> {
     return buffer;
   }
 
+  /**
+   * Loads standalone animation clips from a .glb or .gltf file.
+   */
+  public async loadAnimations(url: string): Promise<AnimationClip[]> {
+    const fullUrl: string = this.basePath + url;
+    const isBinary = url.toLowerCase().endsWith(".glb");
+    const gltf = isBinary ? await this._loadBinary(fullUrl) : await this._loadJson(fullUrl);
+    const root = await this._parse(gltf, fullUrl);
+    return root.animations;
+  }
+
   private async _parse(gltf: GltfData, baseUrl: string): Promise<Object3D> {
     const { json, buffers } = gltf;
     const folderPath = GltfLoader.getFolderPath(baseUrl);
@@ -173,34 +215,139 @@ export class GltfLoader extends AbstractLoader<Object3D> {
       (json.materials || []).map((m) => this._parseMaterial(m, json, folderPath, buffers)),
     );
 
-    // 2. Create Scene Root
+    // 2. Identify all joint nodes in skins
+    const jointNodeIndices = new Set<number>();
+    if (json.skins) {
+      for (const skin of json.skins) {
+        for (const jointIdx of skin.joints) {
+          jointNodeIndices.add(jointIdx);
+        }
+      }
+    }
+
+    // 3. Create node objects (Bone if joint, otherwise Object3D)
+    const nodeObjects: Object3D[] = [];
+    if (json.nodes) {
+      for (let i = 0; i < json.nodes.length; i++) {
+        const nodeDef = json.nodes[i];
+        if (!nodeDef) continue;
+        const name = nodeDef.name || `Node_${i}`;
+        const obj = jointNodeIndices.has(i) ? new Bone(name) : new Object3D(name);
+        this._applyNodeTransforms(obj, nodeDef);
+        nodeObjects[i] = obj;
+      }
+    }
+
+    // 4. Parse Skeletons
+    const skeletons: Skeleton[] = [];
+    if (json.skins && json.accessors) {
+      for (let i = 0; i < json.skins.length; i++) {
+        const skinDef = json.skins[i];
+        if (!skinDef) continue;
+        const bones: Bone[] = skinDef.joints.map((jIdx) => nodeObjects[jIdx] as Bone);
+        let boneInverses: Matrix4[] | undefined = undefined;
+
+        if (skinDef.inverseBindMatrices !== undefined) {
+          const invData = this._getBufferData(
+            json.accessors[skinDef.inverseBindMatrices],
+            json,
+            buffers,
+          ) as Float32Array | null;
+          if (invData) {
+            boneInverses = [];
+            for (let b = 0; b < bones.length; b++) {
+              const m = new Matrix4();
+              m.data.set(invData.subarray(b * 16, (b + 1) * 16));
+              boneInverses.push(m);
+              if (bones[b]) {
+                bones[b]!.inverseBindMatrix.data.set(m.data);
+              }
+            }
+          }
+        }
+        skeletons[i] = new Skeleton(bones, boneInverses);
+      }
+    }
+
+    // 5. Build Hierarchy and attach Meshes
+    if (json.nodes) {
+      for (let i = 0; i < json.nodes.length; i++) {
+        const nodeDef = json.nodes[i];
+        const obj = nodeObjects[i];
+        if (!nodeDef || !obj) continue;
+
+        // Attach child nodes
+        if (nodeDef.children) {
+          for (const childIdx of nodeDef.children) {
+            const childObj = nodeObjects[childIdx];
+            if (childObj) {
+              obj.add(childObj);
+            }
+          }
+        }
+
+        // Attach meshes
+        if (nodeDef.mesh !== undefined && json.meshes && json.meshes[nodeDef.mesh]) {
+          const meshDef = json.meshes[nodeDef.mesh];
+          if (meshDef) {
+            for (const primitive of meshDef.primitives) {
+              const geo = this._parseGeometry(primitive, json, buffers);
+              if (geo) {
+                const isSkinned =
+                  nodeDef.skin !== undefined && skeletons[nodeDef.skin] !== undefined;
+                const meshObj = isSkinned
+                  ? new SkinnedMesh(nodeDef.name ? `${nodeDef.name}_mesh` : "SkinnedMesh")
+                  : new Object3D(nodeDef.name ? `${nodeDef.name}_mesh` : "MeshInstance");
+
+                meshObj.geometry = geo;
+                meshObj.material =
+                  primitive.material !== undefined && materials[primitive.material]
+                    ? materials[primitive.material]!
+                    : new StandardMaterial();
+
+                if (isSkinned) {
+                  (meshObj as SkinnedMesh).bind(skeletons[nodeDef.skin!]!);
+                }
+                obj.add(meshObj);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // 6. Create Scene Root
     const root = new Object3D("glTF_Root");
     const sceneIdx = json.scene ?? 0;
     const scene = json.scenes ? json.scenes[sceneIdx] : null;
 
-    if (scene && scene.nodes && json.nodes) {
+    if (scene && scene.nodes) {
       for (const nodeIdx of scene.nodes) {
-        root.add(this._parseNode(json.nodes[nodeIdx], json, buffers, materials));
+        const nodeObj = nodeObjects[nodeIdx];
+        if (nodeObj) {
+          root.add(nodeObj);
+        }
       }
+    } else if (json.nodes) {
+      for (const obj of nodeObjects) {
+        if (obj && !obj.parent) {
+          root.add(obj);
+        }
+      }
+    }
+
+    // 7. Parse Animations
+    if (json.animations && json.accessors) {
+      root.animations = this._parseAnimations(json, buffers, nodeObjects);
     }
 
     return root;
   }
 
-  private _parseNode(
-    node: NonNullable<GltfJson["nodes"]>[number] | undefined,
-    json: GltfJson,
-    buffers: ArrayBuffer[],
-    materials: StandardMaterial[],
-  ): Object3D {
-    if (!node) return new Object3D("EmptyNode");
-    const obj = new Object3D(node.name || "Node");
-
-    // Transforms
+  private _applyNodeTransforms(obj: Object3D, node: NonNullable<GltfJson["nodes"]>[number]): void {
     if (node.matrix) {
       const mat = new Matrix4();
       mat.data.set(node.matrix);
-      // Decompose into position, rotation, scale to keep Object3D state consistent
       const pos = new Vector3D();
       const rot = new Vector3D();
       const sca = new Vector3D(1, 1, 1);
@@ -209,73 +356,71 @@ export class GltfLoader extends AbstractLoader<Object3D> {
       obj.rotation.copyFrom(rot);
       obj.scale.copyFrom(sca);
     } else {
-      if (node.translation)
+      if (node.translation) {
         obj.position.set(node.translation[0]!, node.translation[1]!, node.translation[2]!);
-      if (node.scale) obj.scale.set(node.scale[0]!, node.scale[1]!, node.scale[2]!);
+      }
+      if (node.scale) {
+        obj.scale.set(node.scale[0]!, node.scale[1]!, node.scale[2]!);
+      }
       if (node.rotation) {
-        // glTF uses quaternions [x, y, z, w]
         const q = node.rotation;
-        const mat = new Matrix4();
-        const x = q[0]!,
-          y = q[1]!,
-          z = q[2]!,
-          w = q[3]!;
-        const x2 = x + x,
-          y2 = y + y,
-          z2 = z + z;
-        const xx = x * x2,
-          xy = x * y2,
-          xz = x * z2;
-        const yy = y * y2,
-          yz = y * z2,
-          zz = z * z2;
-        const wx = w * x2,
-          wy = w * y2,
-          wz = w * z2;
-
-        mat.data[0] = 1 - (yy + zz);
-        mat.data[4] = xy - wz;
-        mat.data[8] = xz + wy;
-        mat.data[1] = xy + wz;
-        mat.data[5] = 1 - (xx + zz);
-        mat.data[9] = yz - wx;
-        mat.data[2] = xz - wy;
-        mat.data[6] = yz + wx;
-        mat.data[10] = 1 - (xx + yy);
-
-        const dummyP = new Vector3D();
-        const dummyS = new Vector3D(1, 1, 1);
-        mat.decompose(dummyP, obj.rotation, dummyS);
+        obj.quaternion = (obj.quaternion || new Quaternion()).set(q[0]!, q[1]!, q[2]!, q[3]!);
       }
     }
+  }
 
-    // Mesh
-    if (node.mesh !== undefined && json.meshes && json.meshes[node.mesh]) {
-      const meshDef = json.meshes[node.mesh];
-      if (meshDef) {
-        for (const primitive of meshDef.primitives) {
-          const child = new Object3D(node.name ? `${node.name}_mesh` : "MeshInstance");
-          const geo = this._parseGeometry(primitive, json, buffers);
-          if (geo) {
-            child.geometry = geo;
-            child.material =
-              primitive.material !== undefined && materials[primitive.material]
-                ? materials[primitive.material]!
-                : new StandardMaterial();
-            obj.add(child);
+  private _parseAnimations(
+    json: GltfJson,
+    buffers: ArrayBuffer[],
+    nodeObjects: Object3D[],
+  ): AnimationClip[] {
+    if (!json.animations || !json.accessors) return [];
+    const clips: AnimationClip[] = [];
+
+    for (let a = 0; a < json.animations.length; a++) {
+      const animDef = json.animations[a];
+      if (!animDef) continue;
+      const tracks: KeyframeTrack[] = [];
+
+      for (const channel of animDef.channels) {
+        if (channel.target.node === undefined) continue;
+        const targetObj = nodeObjects[channel.target.node];
+        if (!targetObj) continue;
+
+        const sampler = animDef.samplers[channel.sampler];
+        if (!sampler) continue;
+
+        const timeData = this._getBufferData(
+          json.accessors[sampler.input],
+          json,
+          buffers,
+        ) as Float32Array | null;
+        const valueData = this._getBufferData(
+          json.accessors[sampler.output],
+          json,
+          buffers,
+        ) as Float32Array | null;
+
+        if (timeData && valueData) {
+          const propPath = channel.target.path;
+          if (propPath === "translation" || propPath === "rotation" || propPath === "scale") {
+            const track = new KeyframeTrack(
+              targetObj.name,
+              propPath as TrackType,
+              timeData,
+              valueData,
+              (sampler.interpolation as InterpolationType) || "LINEAR",
+            );
+            tracks.push(track);
           }
         }
       }
+
+      const clip = new AnimationClip(animDef.name || `Animation_${a}`, -1, tracks);
+      clips.push(clip);
     }
 
-    // Children
-    if (node.children && json.nodes) {
-      for (const childIdx of node.children) {
-        obj.add(this._parseNode(json.nodes[childIdx], json, buffers, materials));
-      }
-    }
-
-    return obj;
+    return clips;
   }
 
   private _parseGeometry(
@@ -301,12 +446,26 @@ export class GltfLoader extends AbstractLoader<Object3D> {
       primitive.indices !== undefined
         ? this._getBufferData(json.accessors[primitive.indices], json, buffers)
         : undefined;
+    const joints =
+      attributes["JOINTS_0"] !== undefined
+        ? this._getBufferData(json.accessors[attributes["JOINTS_0"]], json, buffers)
+        : undefined;
+    const weights =
+      attributes["WEIGHTS_0"] !== undefined
+        ? this._getBufferData(json.accessors[attributes["WEIGHTS_0"]], json, buffers)
+        : undefined;
 
     return new ModelGeometry(
       positions as Float32Array,
       uvs ? (uvs as Float32Array) : new Float32Array(0),
       normals ? (normals as Float32Array) : new Float32Array(0),
       indices ? (indices as Uint16Array | Uint32Array) : new Uint16Array(0),
+      joints || weights
+        ? {
+            joints: joints ? (joints as Float32Array | Uint16Array) : undefined,
+            weights: weights ? (weights as Float32Array) : undefined,
+          }
+        : undefined,
     ).getGeometryData();
   }
 

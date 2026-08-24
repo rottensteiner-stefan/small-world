@@ -1,6 +1,6 @@
 import { AbstractMaterial } from "./materials/index.js";
 import { BoundingVolume, GeometryDataInterface, Collidable } from "../interfaces/index.js";
-import { MathUtils, Matrix4, Vector3D, MathPool } from "../math/index.js";
+import { MathUtils, Matrix4, Vector3D, Quaternion, MathPool } from "../math/index.js";
 import { Behavior, attachBehavior, detachBehavior } from "./behaviors/Behavior.js";
 import { RigidBody } from "../physix/RigidBody.js";
 
@@ -21,6 +21,7 @@ export class Object3D implements Collidable {
 
   public position: Vector3D = new Vector3D();
   public rotation: Vector3D = new Vector3D();
+  public quaternion?: Quaternion;
   public scale: Vector3D = new Vector3D(1, 1, 1);
 
   public localMatrix: Matrix4 = new Matrix4();
@@ -29,6 +30,7 @@ export class Object3D implements Collidable {
   public parent: Object3D | undefined = undefined;
   public children: Object3D[] = [];
   public behaviors: Behavior[] = [];
+  public animations: import("./animation/AnimationClip.js").AnimationClip[] = [];
 
   /**
    * Set by `Scene` on its hidden root object. Lets `remove()` notify the owning scene to queue
@@ -199,7 +201,11 @@ export class Object3D implements Collidable {
   }
 
   public updateMatrixWorld(): void {
-    this.localMatrix.compose(this.position, this.rotation, this.scale);
+    if (this.quaternion) {
+      this.localMatrix.composeFromQuaternion(this.position, this.quaternion, this.scale);
+    } else {
+      this.localMatrix.compose(this.position, this.rotation, this.scale);
+    }
     if (undefined === this.parent) {
       this.worldMatrix.data.set(this.localMatrix.data);
     } else {

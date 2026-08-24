@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>And Now? - Iso Explore</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        background-color: #000;
+      }
+      canvas#SmallWorld {
+        width: 100vw;
+        height: 100vh;
+        display: block;
+      }
+      #backBtn {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        color: #fff;
+        text-decoration: none;
+        font-family: sans-serif;
+        background: rgba(0,0,0,0.5);
+        padding: 10px;
+        border-radius: 5px;
+        z-index: 10;
+      }
+    </style>
+  </head>
+  <body>
+    <a href="../../src/apps/and-now/index.html" id="backBtn">← Zurück zum Hub</a>
+    <canvas id="SmallWorld"></canvas>
+    <script type="module" src="./showcase.ts"></script>
+  </body>
+</html>

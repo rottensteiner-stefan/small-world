@@ -1,4 +1,465 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"><title>And Now? — Concept Dossier</title></head>
-<body><h1>And Now? — Concept Dossier</h1><p>Noch kein Dossier vorhanden.</p></body>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>And Now? — Visuelles Concept Dossier (Wien 2100)</title>
+    <style>
+      :root {
+        --bg-dark: #0a0b0e;
+        --bg-card: #12141a;
+        --bg-card-hover: #191c24;
+        --accent-amber: #d49a3d;
+        --accent-glow: #ffb84d;
+        --accent-cyan: #4ecdc4;
+        --accent-red: #ff4757;
+        --text-main: #e2e8f0;
+        --text-muted: #8a99ad;
+        --border-subtle: #242936;
+        --border-highlight: #3d4559;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        background-color: var(--bg-dark);
+        color: var(--text-main);
+        line-height: 1.6;
+        padding: 2.5rem 1.5rem;
+      }
+
+      .container {
+        max-width: 1400px;
+        margin: 0 auto;
+      }
+
+      header.hero {
+        text-align: center;
+        padding: 3rem 1rem 4rem;
+        background: radial-gradient(circle at center, #1b1e29 0%, var(--bg-dark) 75%);
+        border-bottom: 1px solid var(--border-subtle);
+        margin-bottom: 3.5rem;
+        border-radius: 16px;
+      }
+
+      .badge {
+        display: inline-block;
+        background: rgba(212, 154, 61, 0.15);
+        color: var(--accent-amber);
+        border: 1px solid rgba(212, 154, 61, 0.4);
+        padding: 0.35rem 1rem;
+        border-radius: 999px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        margin-bottom: 1.2rem;
+      }
+
+      h1.title {
+        font-size: 3.2rem;
+        font-weight: 800;
+        letter-spacing: -1px;
+        margin-bottom: 1rem;
+        background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 50%, var(--accent-amber) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      p.tagline {
+        font-size: 1.25rem;
+        color: var(--text-muted);
+        max-width: 800px;
+        margin: 0 auto;
+      }
+
+      h2.section-header {
+        font-size: 1.8rem;
+        color: #ffffff;
+        border-left: 4px solid var(--accent-amber);
+        padding-left: 1rem;
+        margin: 3.5rem 0 2rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+
+      /* Gallery Grid */
+      .gallery-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(600px, 1fr));
+        gap: 2.5rem;
+        margin-bottom: 3rem;
+      }
+
+      @media (max-width: 768px) {
+        .gallery-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .concept-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-subtle);
+        border-radius: 14px;
+        overflow: hidden;
+        transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .concept-card:hover {
+        transform: translateY(-4px);
+        border-color: var(--border-highlight);
+        box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6);
+      }
+
+      .card-img-wrapper {
+        position: relative;
+        width: 100%;
+        padding-top: 56.25%; /* 16:9 Aspect Ratio */
+        background: #000;
+        overflow: hidden;
+      }
+
+      .card-img-wrapper img {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.4s ease;
+      }
+
+      .concept-card:hover .card-img-wrapper img {
+        transform: scale(1.03);
+      }
+
+      .card-content {
+        padding: 1.8rem;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .card-category {
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: var(--accent-amber);
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        margin-bottom: 0.5rem;
+      }
+
+      .card-title {
+        font-size: 1.4rem;
+        color: #ffffff;
+        margin-bottom: 0.75rem;
+      }
+
+      .card-desc {
+        color: var(--text-muted);
+        font-size: 0.95rem;
+        line-height: 1.6;
+        margin-bottom: 1.2rem;
+      }
+
+      .card-tags {
+        margin-top: auto;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+
+      .tag {
+        background: rgba(255, 255, 255, 0.05);
+        color: #94a3b8;
+        font-size: 0.75rem;
+        padding: 0.25rem 0.6rem;
+        border-radius: 4px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      /* Architecture Highlights Grid */
+      .feature-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 3rem;
+      }
+
+      .feature-box {
+        background: var(--bg-card);
+        border: 1px solid var(--border-subtle);
+        border-radius: 12px;
+        padding: 1.8rem;
+      }
+
+      .feature-icon {
+        font-size: 2rem;
+        margin-bottom: 1rem;
+      }
+
+      .feature-title {
+        font-size: 1.2rem;
+        color: #fff;
+        margin-bottom: 0.5rem;
+      }
+
+      .feature-text {
+        font-size: 0.9rem;
+        color: var(--text-muted);
+        line-height: 1.6;
+      }
+
+      /* Factions Table / Cards */
+      .faction-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 1.5rem;
+      }
+
+      .faction-card {
+        background: #0f1117;
+        border: 1px solid var(--border-subtle);
+        border-radius: 10px;
+        padding: 1.5rem;
+        border-top: 3px solid var(--accent-amber);
+      }
+
+      .faction-name {
+        font-size: 1.1rem;
+        color: #ffffff;
+        margin-bottom: 0.4rem;
+      }
+
+      .faction-seat {
+        font-size: 0.8rem;
+        color: var(--accent-cyan);
+        margin-bottom: 0.8rem;
+      }
+
+      .faction-summary {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        line-height: 1.5;
+      }
+
+      footer {
+        text-align: center;
+        padding-top: 4rem;
+        color: #556277;
+        font-size: 0.85rem;
+        border-top: 1px solid var(--border-subtle);
+        margin-top: 4rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header class="hero">
+        <span class="badge">Visual Concept Dossier</span>
+        <h1 class="title">And Now? — Wien 2100</h1>
+        <p class="tagline">
+          Ein postapokalyptisches Kammerspiel zwischen morbider Wiener Eleganz, bürokratischem Galgenhumor und der staubigen Realität des Jahres 2100.
+        </p>
+      </header>
+
+      <!-- Visual Core Concepts Gallery -->
+      <h2 class="section-header">🎨 Visuelle Identität („Graphic-Noir-Trilogie“)</h2>
+      <div class="gallery-grid">
+        
+        <!-- Card 1: Prater -->
+        <article class="concept-card">
+          <div class="card-img-wrapper">
+            <img src="./assets/prater_riesenrad_approach_1787414364560.webp" alt="Wurstelprater und Wiener Riesenrad" />
+          </div>
+          <div class="card-content">
+            <span class="card-category">Oberwelt-Erkundung (Isometrie / Weitwinkel)</span>
+            <h3 class="card-title">Der Wurstelprater & Das Riesenrad</h3>
+            <p class="card-desc">
+              Verzogene Straßenbahngleise, verwitterte Schaubuden und die monumentale Silhouette des Wiener Riesenrads im schmutzig-gelben Abendlicht. Ein Schrottsammler blickt empor in die rostigen Gondeln des Ringelspiel-Syndikats.
+            </p>
+            <div class="card-tags">
+              <span class="tag">Graphic Noir</span>
+              <span class="tag">Dishonored Pinselstrich</span>
+              <span class="tag">Prater-Syndikat</span>
+              <span class="tag">Chiaroscuro</span>
+            </div>
+          </div>
+        </article>
+
+        <!-- Card 2: Kaffeehaus -->
+        <article class="concept-card">
+          <div class="card-img-wrapper">
+            <img src="./assets/npc_dialogue_kaffeehaus_1787414378675.webp" alt="NPC Dialog im Wiener Kaffeehaus" />
+          </div>
+          <div class="card-content">
+            <span class="card-category">Kammerspiel & Dialog-Szene</span>
+            <h3 class="card-title">Das verfallene Kaffeehaus (Bermudadreieck)</h3>
+            <p class="card-desc">
+              Verhandlung an einem abgeplatzten Marmortisch unter barockem Deckenstuck. Ein Alchimist der Giftmischer beugt sich vor, während das bernsteinfarbene AZS-Amts-Terminal 2100 Akten und Dosimetrie-Daten flackern lässt.
+            </p>
+            <div class="card-tags">
+              <span class="tag">Disco Elysium Vibe</span>
+              <span class="tag">Thonet-Stühle</span>
+              <span class="tag">AZS-Terminal</span>
+              <span class="tag">Giftmischer</span>
+            </div>
+          </div>
+        </article>
+
+        <!-- Card 3: 2.5D Cutaway Tunnel -->
+        <article class="concept-card">
+          <div class="card-img-wrapper">
+            <img src="./assets/tunnel_entrance_flakturm_1787414392248.webp" alt="2.5D Theaterbühnen-Schnittmodell Abstieg" />
+          </div>
+          <div class="card-content">
+            <span class="card-category">Das Wiener Guckkasten-Prinzip (2.5D Schnittmodell)</span>
+            <h3 class="card-title">Der Otto-Wagner-Pavillon & Katakomben-Abstieg</h3>
+            <p class="card-desc">
+              Oben der morbide Jugendstil-Pavillon mit eisernen Gittern und Kletterpflanzen – darunter der tiefe Querschnitt durch die Schächte: Tropfende Rohre, verstrahlt glimmende Pilze und der Abstieg in die Finsternis.
+            </p>
+            <div class="card-tags">
+              <span class="tag">Little Nightmares Schnitt</span>
+              <span class="tag">Otto Wagner Jugendstil</span>
+              <span class="tag">Strahlung / Pilze</span>
+              <span class="tag">Physik-Rätsel</span>
+            </div>
+          </div>
+        </article>
+
+        <!-- Card 4: Zentralfriedhof -->
+        <article class="concept-card">
+          <div class="card-img-wrapper">
+            <img src="./assets/zentralfriedhof_pompfinebrer_1787414546877.webp" alt="Die Pompfinebrer am Wiener Zentralfriedhof" />
+          </div>
+          <div class="card-content">
+            <span class="card-category">Sakrale Zeremonie & Ehrengräber</span>
+            <h3 class="card-title">Die Pompfinebrer („A schene Leich“)</h3>
+            <p class="card-desc">
+              Feierliche Bestatter-Prozession im fahlen Mondlicht vor der gewaltigen Kuppel der Karl-Lueger-Gedächtniskirche. Tattered Top-Hats, Gehfräcke, flackernde Kerosinlaternen und ein Messingsarg auf dem Weg zur Ruhestätte.
+            </p>
+            <div class="card-tags">
+              <span class="tag">Zentralfriedhof</span>
+              <span class="tag">Pompfinebrer</span>
+              <span class="tag">Morbider Wiener Humor</span>
+              <span class="tag">Hauptquest-Ziel</span>
+            </div>
+          </div>
+        </article>
+
+        <!-- Card 5: Würstelstand Gürtelbögen -->
+        <article class="concept-card">
+          <div class="card-img-wrapper">
+            <img src="./assets/wuerstelstand_guertel_night_1787414560983.webp" alt="Befestigter Würstelstand in den Gürtelbögen" />
+          </div>
+          <div class="card-content">
+            <span class="card-category">Meso-Location & Hehler-Oase</span>
+            <h3 class="card-title">Der befestigte Würstelstand (Gürtelbögen)</h3>
+            <p class="card-desc">
+              Ein warmer Schutzraum aus gelbem Neonlicht und kochendem Dampf unter den massiven Ziegel-Viadukten der Stadtbahn. Ein Wirt mit kybernetischem Arm serviert hinter Panzerglas, während Gäste im Trenchcoat konspirieren.
+            </p>
+            <div class="card-tags">
+              <span class="tag">Gürtelbögen</span>
+              <span class="tag">Kybernetik / 2050 Relikte</span>
+              <span class="tag">Hehlermarkt</span>
+              <span class="tag">Neon & Dampf</span>
+            </div>
+          </div>
+        </article>
+
+      </div>
+
+      <!-- Core Design Pillars -->
+      <h2 class="section-header">🏛️ Die 3 Säulen der Spielarchitektur</h2>
+      <div class="feature-grid">
+        <div class="feature-box">
+          <div class="feature-icon">🎭</div>
+          <h3 class="feature-title">Das Wiener Guckkasten-Prinzip</h3>
+          <p class="feature-text">
+            Fließende Kombination aus erhabener <strong>Isometrie</strong> für weite Straßen und Plätze (*Disco Elysium*) und atmosphärischen <strong>2.5D-Bühnenschnitten</strong> für Bunker, Kanäle und Kammerspiele (*Little Nightmares*).
+          </p>
+        </div>
+
+        <div class="feature-box">
+          <div class="feature-icon">🧩</div>
+          <h3 class="feature-title">Diverse „Myst“-Rätsel statt Terminal-Grind</h3>
+          <p class="feature-text">
+            Absage an Copy-Paste-Minigames. 6 haptische Klassen: Mechanik (Flaschenzüge, Dampfventile), Amts-Chiffren (Passierscheine stempeln), Akustik (Zahlensender), Chemie (pH-Titration), Sakral-Schattenwurf und Jahrmarkt-Getriebe.
+          </p>
+        </div>
+
+        <div class="feature-box">
+          <div class="feature-icon">🛠️</div>
+          <h3 class="feature-title">Taktiles Arsenal & Modding</h3>
+          <p class="feature-text">
+            Klasse statt Masse: 4 charakterstarke Grundstücke (Dienstpistole des Großvaters, Schaufler-Querflinte, Kirmes-Luftgewehr, Wiener Hebel). Tiefes mechanisches Werkbank-Modding, Gadgets und Schlafgase statt reiner Waffengewalt.
+          </p>
+        </div>
+      </div>
+
+      <!-- The 6 Factions -->
+      <h2 class="section-header">👥 Das Wiener Fraktions-Gefüge</h2>
+      <div class="faction-grid">
+        <div class="faction-card">
+          <h3 class="faction-name">Die Pompfinebrer</h3>
+          <p class="faction-seat">Zentralfriedhof (Simmering)</p>
+          <p class="faction-summary">
+            Wehrhafte Bestatter-Gilde in Fräcken und Zylindern. Bewachen die Ehrengräber und gewähren dem Großvater „a schene Leich“ nur gegen absolute Gefälligkeiten.
+          </p>
+        </div>
+
+        <div class="faction-card">
+          <h3 class="faction-name">Die Giftmischer</h3>
+          <p class="faction-seat">Bermudadreieck (1. Bezirk)</p>
+          <p class="faction-summary">
+            Skrupellose Apotheker, Chemiker und Destillateure in alten Weinkellern. Produzieren Leichenbalsam, Rad-Blocker, Schutzkaffees und Narkotika.
+          </p>
+        </div>
+
+        <div class="faction-card">
+          <h3 class="faction-name">Das Konsulat</h3>
+          <p class="faction-seat">Botschaftsviertel (3. Bezirk)</p>
+          <p class="faction-summary">
+            Kühle Spionage- und Diplomatenkaste. Verwalten alte Passierscheine, Chiffrier-Codes und handeln mit Vorkriegs-Technologie und Waffen.
+          </p>
+        </div>
+
+        <div class="faction-card">
+          <h3 class="faction-name">Das AZS</h3>
+          <p class="faction-seat">Rossauer Kaserne (9. Bezirk)</p>
+          <p class="faction-summary">
+            Kafkaeske Bunker-Bürokratie mit Quoten, Kompostierungslisten und Schleusenwachen. Vertuscht Morde als „natürlichen Tod" – der eigentliche Gegenspieler der Geschichte.
+          </p>
+        </div>
+
+        <div class="faction-card">
+          <h3 class="faction-name">Das Ringelspiel-Syndikat</h3>
+          <p class="faction-seat">Wurstelprater (Leopoldstadt)</p>
+          <p class="faction-summary">
+            Krimineller Schausteller-Clan um das Riesenrad. Schmuggeln Lobau-Treibstoff, betreiben Spielhöllen und schicken Kasperl-Schläger mit Pritschen vor.
+          </p>
+        </div>
+
+        <div class="faction-card">
+          <h3 class="faction-name">Die Aschenbrenner</h3>
+          <p class="faction-seat">Fernwärmewerk Spittelau</p>
+          <p class="faction-summary">
+            Wegen der bunten Fassade spöttisch „Hundertwasser-Gilde" genannt. Kontrollieren den Schmelzstrom und die Fernwärme für die Stadtviertel.
+          </p>
+        </div>
+      </div>
+
+      <footer>
+        Small World Engine — Concept Dossier für „And Now?“ — Stand: August 2100 (Entwicklungsstand 2026)
+      </footer>
+    </div>
+  </body>
 </html>

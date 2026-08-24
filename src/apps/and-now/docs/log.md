@@ -131,9 +131,147 @@ befüllen.
     - Implementiert in der Post-Processing-Pipeline für WebGPU (`PostProcessPass.ts`, `PostProcess.frag.wgsl`) und WebGL (`PostProcessPassGL.ts`, `PostProcess.frag.glsl`).
     - Ermöglicht stufenlose Strichstärke (`thickness`), Kantensensitivität (`sensitivity`) und Kantenfarbe (`color`) für den perfekten Graphic-Novel-Look.
     - 395 Vitest-Tests grün.
+13. **Perspektiven-Architektur: Das „Wiener Guckkasten-Prinzip“ (Dualer Kamera-Hybrid):**
+    - *Oberwelt / Ruinen*: Isometrischer / Top-Down-Blick (*Disco Elysium*-Stil) für Orientierung, weite Plätze, NPC-Dialoge und Straßen-Erkundung.
+    - *Innenräume / Bunker / Katakomben*: 2.5D Theaterbühnen-Schnittmodell (*Little Nightmares*-Stil) für beklemmende Chiaroscuro-Schleichpassagen, Klettereien und intime Raum-Rätsel.
+    - *Nahtloser Kameraschwenk (Seamless Transition)*: Butterweiche Kamera-Interpolation von Schrägdraufsicht auf Augenhöhe beim Betreten von Bunkern/Gebäuden, während Fassaden wie Theaterprospekte transparent werden. Maximale visuelle Dichte bei minimalem Modellierungsaufwand.
+14. **Diverses, kontextsensitives Rätsel-System (*The 7th Guest* / *Gabriel Knight 2* / *Myst*-Philosophie):**
+    - Konsequente Absage an Copy-Paste-Minigames (wie die immer gleichen Terminals in *Fallout*).
+    - 6 handgefertigte, im Wiener Setting verwurzelte Rätselklassen:
+      1. *Mechanik/Physik*: Flaschenzüge, Dampfventile, Wasserpegel-Schotts.
+      2. *Bürokratie/Chiffren*: Amtsstempel-Kombinatorik für Passierschein 7b, Lochkarten, Klapptafeln.
+      3. *Akustik/Frequenzen*: Oszilloskop-Wellenabgleich, Zahlensender Kahlenberg, Safe-Knacken nach Gehör.
+      4. *Alchimie/Chemie*: pH-Titration, Reagenzgläser, Säureschlösser im Bermudadreieck.
+      5. *Sakral/Uhrwerk*: Sonnen-Schattenwurf auf kaiserliche Adelswappen, Orgelpfeifen-Resonanzen, Zifferblätter.
+      6. *Prater-Kuriositäten*: Riesenrad-Zahnradkaskaden, Sequenz-Schießbuden-Trigger.
+15. **Design-Mandat: Befreiung von Shooter- & Fetch-Quest-Monotonie:**
+    - Weg von stumpfen Botengängen („Bringe 5 Dosen Bohnen von A nach B“) und sinnlosen Baller-Orgien.
+    - Stattdessen echter Detektiv- & Abenteuer-Geist: Entschlüsseln von Welt-Hinweisen, moralische Verhandlungen, Deeskalation, Schleichen und das Finden alternativer Lösungswege (z.B. Bestechung vs. Hacken vs. physikalisches Umgehen).
+16. **Das taktile Werkzeug- & Waffen-Arsenal (Klasse statt Masse & Modding):**
+    - Konsequente Absage an Loot-Spam (keine 20 belanglosen Schwerter/Pistolen mit +2% Werten).
+    - 4 seltene, charakterstarke Grundstücke: *Dienstpistole des Großvaters*, *Schaufler-Querflinte*, *modifiziertes Kirmes-Luftgewehr* und das multifunktionale Brechwerkzeug (*„Wiener Hebel“*).
+    - Tiefes, mechanisches Modding an Werkbänken (Laserpointer aus TU-Optiken, Granitsplitt-Chokes, Gift-Injektoren, Schalldämpfer).
+    - Gadgets & Köpfchen im Fokus: Alchimisten-Schlafgase in Lüftungsschächten, aufziehbare Spieluhren als akustische Lockvögel, Säure-Ampullen für Schlösser.
+17. **Visuelle Konzept-Skizzen & Interaktives Concept Dossier:**
+    - Alle 5 Graphic-Noir-Skizzen lokal im Projekt verankert (`src/apps/and-now/docs/assets/`).
+    - Vollständige Ausgestaltung von [`concept-dossier.html`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/docs/concept-dossier.html) mit Galerie, den 3 Spielarchitektur-Säulen (*Guckkasten-Prinzip*, *Myst-Rätsel*, *Taktiles Arsenal*) und den 5 Wiener Fraktionen (inkl. der *Hundertwasser-Gilde* von Spittelau).
+18. **Das Großvater-Mysterium & Die Kaffeedosen-Urne (*The Last of Us*-Dramaturgie):**
+    - *Bürokratische Vertuschung*: KI „Amtsrat 4.1“ vermeldet Alterstod; die Akte ist mit Sperrvermerk Stufe 3 belegt.
+    - *Infiltration Sektor 0*: Auffinden der Leiche in Kältekammer-Fach K-42; Einstichwunde am Hals (Bittermandel-/Blausäuregeruch der Giftmischer); geraubtes Medaillon; umklammerte D-Wagen-Fahrkarte mit Kapuzinergruft-Koordinaten.
+    - *Wiener Relikt-Urne*: Heimliche Einäscherung im Bunker-Ofen (gegen das Massengrab/Komposter) und Abfüllung in eine antike, geprägte Messing-Kaffeedose als ständiger Reisebegleiter im Rucksack.
+19. **Die Familie Novotny (Böhmisch-Wienerische Identität):**
+    - Kanonischer Familienname: **František Novotny** (Großvater, Vorkriegsgeneration mit böhmischen Wurzeln), **Fritz Novotny** (Vater, Wiener Bunker-Zwischengeneration) und die Spielfigur (*[Vorname & Geschlecht frei wählbar] Novotny*).
+    - In-Game-Ansprache: NPCs, Akten und die KI „Amtsrat 4.1“ sprechen die Figur stilecht mit *„Novotny“*, *„Bürger/in Novotny“* oder dem gewählten Vornamen an.
+    - Verwurzelt in der reichen böhmisch-mährischen Einwanderungsgeschichte Wiens (die klassischen „Ziegelböhm“ und k.u.k.-Handwerker) – verleiht der Familie sofort bodenständigen Wiener Charme.
+20. **Das Schicksal der Eltern (Ungeschminkte Endzeit-Hintergründe):**
+    - *Elena Novotny (Mutter)*: Früher Tod an der Bunkergrippe/Lungenfäule durch feuchte, unzureichende Umluftfilter – bittere Bunkeralltag-Realität ohne Melodram.
+    - *Fritz Novotny (Vater)*: Verschollen in den 2080ern als AZS-Kanalspäher bei einer Tunnel-Erkundung Richtung Stadtpark/Wienfluss.
+    - *Environmental Lore*: Keine aktiven Suchquests; Details und Erinnerungen existieren nur als optionale vergilbte Tagebucheinträge, Audiologs und alte Späherberichte in der Spielwelt.
+21. **Profil der Spielfigur (Anfang 20 / Generation 2100):**
+    - Alter: **~22 bis 24 Jahre** (geb. ca. 2076–2078 tief im Flakturm Arenberg).
+    - Physisch agil, lernfähig, aber ohne jede Oberflächenerfahrung – ein unbeschriebenes Blatt mit jugendlicher Neugier und emotionaler Bindung an die Erzählungen des Großvaters.
+22. **Dialog-System & Intelligentes Amts-Logbuch (Zero-Pen-and-Paper):**
+    - *Wiener Dialoge*: Multiple-Choice mit Wiener Schmäh, k.u.k.-Bürokratie, Verhandlungsgeschick und Deeskalation.
+    - *Auto-Journaling*: Alle gehörten/gelesenen Passwörter, Tresor-Kombinationen, Frequenzen und Gesprächsfetzen werden **automatisch im AZS-Handgerät protokolliert**.
+    - *Kontext-Transfer*: Steht der Spieler vor einem Schloss oder Terminal, wird der passende Code aus dem Logbuch automatisch eingeblendet/eingefügt.
+    - *Františeks Tagebuch*: Archivierte Skizzen, alte U-Bahn-Pläne und Notizen des Großvaters im Gerät.
+23. **Der interaktive 60-Sekunden-Prolog (Unsichtbares Tutorial & Mystery-Zündung):**
+    *   *Phase 1 (Dialog-Tutorial)*: Blockwart Hawelka schiebt Františeks Handgerät herein. Spieler wählt intuitiv 2 aus 3 Fragen (über den Fundort, die Halsflecken, die Kanzlei).
+    *   *Spannungs-Abbruch*: Stiefeldröhnen der AZS-Wachen im Gang – Hawelka flieht panisch (*„Ich war nie hier!“*).
+    *   *Phase 2 (UI & Auto-Journal-Tutorial)*: First-Person-Nahansicht des Röhren-Screens. Anschalten per Drehschalter, Rattern der Sterbemeldung (KI „Amtsrat 4.1“), sichtbares Auto-Archivieren von *„Fach K-42“* und *„Kühlstrang“* im Logbuch.
+    *   *Nahtloser Übergang*: Rückkehr in den 2.5D-Bühnenschnitt – volle Bewegungsfreiheit zur Infiltration von Sektor 0.
+24. **Interaktiver 60-Sekunden-Cinematic-Prototyp:**
+    *   Vollständig lauffähiger interaktiver Storyboard-Player erstellt (`prologue-preview.html`).
+    *   Enthält Echtzeit-Timeline, CRT-Scanline-Filter, Szenenwechsel zwischen 2.5D-Wohnkoje und First-Person-Terminal sowie interaktive Multiple-Choice-Verzweigung mit Hawelka.
+25. **Gerendertes 60-Sekunden-Cinematic-Video (MP4 mit Kamera-Fahrten):**
+    *   Mit FFmpeg als Full-HD-Video (`1920x1080 @ 25fps`) gerendert (`prologue_cinematic_preview.mp4`).
+    *   Enthält fließende Zoom-Pan-Kameradynamik von der 2.5D-Bühnenszene zur Terminal-Nahaufnahme.
+    *   Liegt dauerhaft unter `src/apps/and-now/docs/assets/prologue_cinematic_preview.mp4`.
+26. **Echtzeit-3D-Prolog-Szene in Small World Engine (`src/apps/and-now/scenes/prologue/`):**
+    *   Vollständige 3D-Implementierung des 2.5D-Bühnenschnitts in TypeScript ([`PrologueScene.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/scenes/prologue/PrologueScene.ts)) und HTML ([`index.html`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/scenes/prologue/index.html)).
+    *   *Features*: Animierte aufschwingende Panzertür, dynamischer Flurlicht-Spotkegel, schwebende Staubpartikel, Stockbett, Messing-Kaffeemühle, flackerndes CRT-Terminal mit First-Person-Kamerafahrt und interaktive Multiple-Choice-Abfrage mit Hawelka.
+    *   Nutzt die PostProcessing-Pipeline (*Outline*, *Bloom*, *Vignette*, *Grain*, *ToneMapping*).
 
 **Nächste Schritte:**
-- Detaillierung der Einstiegs-Szenen im Bunker Arenberg (Leveldesign, Props, PBR-Materialien, Beleuchtung).
-- Ausgestaltung des visuellen `concept-dossier.html`.
+- Detaillierung der Einstiegs-Szenen im Bunker Arenberg (Leveldesign, Props, PBR-Materialien, Beleuchtung im 2.5D-Bühnenschnitt).
+- Spezifikation des AZS-Handgeräts („Amts-Terminal 2100“) und der KI „Amtsrat 4.1“.
 
 
+
+## 27. Bugfix: CORS und Rendering des Prologs (2026-08-22)
+- **Problem:** Dev-Server / Caddy spielten die Prolog-Szene aufgrund verwaister Vite-Build-Pfade und fehlerhafter Kamera-Projektion nicht ab. Zudem fehlte der UI Play-Button im HTML der Szene.
+- **Lösung:** 
+  - Prolog-Szene architektonisch sauber nach `showcases/31/` verschoben, um Vite's internes Routing für Showcases out-of-the-box zu nutzen.
+  - Kamera-Projektions-Überschreibung entfernt (nutzt jetzt die standardmäßige, Resize-robuste AbstractShowcase Kamera).
+  - Fehlende HTML-UI für die Timeline mit dem Play-Button eingefügt.
+  - Lichtstimmung kurzfristig hochgeschraubt zur Fehleranalyse, danach wieder auf Original "Graphic Noir"-Level zurückgesetzt.
+- **Status:** Szene 100% funktionsfähig im Build (Caddy).
+
+## 28. "And Now?" Infrastruktur (2026-08-22)
+- **Struktur:** Prolog-Szene von `showcases/31` zurück nach `src/apps/and-now/scenes/prologue/` verschoben.
+- **Hub:** Neue Startseite (`src/apps/and-now/index.html`) als zentrales Hub für alle "Wien" Szenen gebaut.
+- **Vite:** Routing in `vite.config.ts` (`andNowHub`, `andNowPrologue`) stabilisiert, so dass die App-Struktur als native Multi-Page-App im Build und Dev-Server out-of-the-box funktioniert.
+
+## 29. Lore-Update: Die Vertuschung und der erste Heist (2026-08-22)
+- **Problem behoben:** Es war unlogisch, dass die pedantische AZS-Bürokratie dem Großvater bei der Katalogisierung das D-Wagen-Ticket in der Hand gelassen und den Mord übersehen hätte.
+- **Neue Wendung:** Das AZS steckt voll in der Vertuschung! Offiziell ein "natürlicher Tod", doch die Leiche weist in der Kältekammer K-42 einen Einstich (Blausäure) auf. 
+- **Neuer Gameplay-Loop:** Die Leiche hat nichts mehr bei sich. Die gesamte Habe wurde in die AZS-Asservatenkammer gebracht. Novotny muss dort einbrechen ("Der erste Heist"), um das Medaillon und den D-Wagen-Passierschein zurückzuholen. (In `story.md` übernommen).
+
+## 30. Meilenstein: Akt II - IsoExplore Setup (2026-08-22)
+- **Umsetzung:** Die Infrastruktur für die erste spielbare isometrische Szene (Flakturm Gänge) wurde hochgezogen.
+- **Dateien:** `src/apps/and-now/scenes/iso-explore/isoExplore.ts` und `index.html` erstellt. Vite-Config und App-Hub wurden aktualisiert, um die Szene zu verlinken.
+- **Aktueller Stand:** Eine rohe Szene mit düsterer "Diablo"-Kameraperspektive und einem roten Platzhalter-Block (Novotny) steht.
+- **Nächster Schritt:** Implementierung eines isometrischen Movement-Controllers für Novotny.
+
+## 31. Lore-Konsistenzpass: Františeks Alter & Der persönliche Antagonist (2026-08-23)
+- **Anlass:** Konsistenz-Review der aktuellen Story-Dokumente (`story.md`, `concept-dossier.html`, `log.md`) auf Widersprüche im Zusammenspiel von Fraktionen, Figuren, Orten und Handlung.
+- **Fix 1 (Alter):** Františeks Geburtsjahr war mit „~2042" rechnerisch unmöglich für seine eigene Biografie (8 Jahre alt beim Schlag ~2050, aber als etablierter Erwachsener mit Vorkriegs-Erinnerungen und -Karriere beschrieben). Auf **~2005** korrigiert – Mitte 40 beim Schlag, knapp 95 bei seinem Tod 2100. Macht ihn zum letzten lebenden Zeitzeugen der echten alten Welt, was den Verlust noch schwerer wiegen lässt.
+- **Fix 2 (Mordfaden zusammengeführt):** Der Mordfaden aus dem Prolog (Gift, geraubtes Medaillon, D-Wagen-Fahrkarte zur Kapuzinergruft) drohte ins Leere zu laufen, seit `Story-Dramaturgie.md` (mit der ursprünglich geplanten IAEA-Keycard-Enthüllung am Grab) aus dem Kanon entfernt wurde. Statt den Faden fallen zu lassen, neu verankert:
+  - **Hofrat Brandstätter** (neuer Eintrag bei Fraktion D/AZS, „Der persönliche Antagonist") hat den Mord in Auftrag gegeben und die Vertuschung als „natürlicher Tod" persönlich abgesegnet – ein hochrangiger Beamter aus der Rossauer-Kaserne-Zentrale, nicht die lokale Bunkerleitung Arenberg. Wird als wiederkehrender persönlicher Widersacher über mehrere Kapitel angelegt, sobald er von Novotnys Diebstahl aus der Asservatenkammer erfährt.
+  - **Das Medaillon** ist kein reines Erbstück mehr, sondern birgt ein verborgenes technisches Innenleben unbekannter Funktion – bewusst offen gelassen als laufendes Mysterium statt sofort aufgelöst, um die Geschichte nicht zu überladen.
+  - *Bewusst nicht entschieden*: Ob über Brandstätter hinaus noch eine weitere Ebene (wer/was steht hinter ihm) existiert, bleibt vorerst offen für spätere Sessions.
+- **Status:** Beide Fixes in `story.md` eingearbeitet (Familie-Novotny-Abschnitt, AZS-Fraktion, Prolog-Bullets „Infiltration Sektor 0" bis „Aufbruch").
+
+## 32. Lore-Konsistenzpass Teil 2: Fraktionsname & Kapuzinergruft (2026-08-23)
+- **Fix 3 (Namensinkonsistenz Spittelau):** Für dieselbe Gruppe kursierten drei Namen parallel: „Die Wächter von Spittelau" (`story.md` Fraktions-Geflecht, `concept-dossier.html`-Galerie), „Die Aschenbrenner" (`story.md`-Ortsbeschreibung Spittelau) und „Hundertwasser-Gilde" (Dossier-Untertitel, `log.md` Eintrag 17). **„Die Aschenbrenner"** als kanonischer Name festgelegt (passt zum knappen Substantiv-Namensmuster der anderen Fraktionen), „Hundertwasser-Gilde" bleibt als Spottname wegen der Fassade erhalten. In `story.md` (Fraktions-Geflecht + Ortsbeschreibung) und `concept-dossier.html` (Fraktions-Galerie) vereinheitlicht.
+- **Fix 4 (AZS fehlte im Dossier):** Die Fraktions-Galerie in `concept-dossier.html` zeigte nur 5 Karten (Pompfinebrer, Giftmischer, Konsulat, Ringelspiel-Syndikat, Aschenbrenner) – die AZS als zentrale Antagonisten-Fraktion fehlte komplett. Karte ergänzt (inkl. Verweis auf die Vertuschung), Sektions-Überschrift auf „6 Fraktionen" korrigiert.
+- **Fix 5 (Kapuzinergruft-Orphan):** Die Kapuzinergruft (Schauplatz 4) war seit jeher nur mit einer vagen, nie genutzten Rivalität zwischen Pompfinebrern und „Kaisertreuen/Grabkultisten" beschrieben, obwohl die D-Wagen-Fahrkarte aus dem Heist explizit ihre Koordinaten trägt. Rollenbeschreibung um diesen Bezug ergänzt (Ziel der Fahrkarte, offene Frage was František dort vorhatte); die Kaisertreuen/Grabkultisten explizit als Kulisse/kleines Hindernis markiert, nicht als eigene, noch auszuarbeitende Fraktion – um keine unerfüllte Erwartung einer 7. Fraktion zu wecken.
+
+## 33. Meilenstein: Architektur-Proof 2.5D & WebGL Bug-Safari (2026-08-23)
+- **Architektur-Shift:** Erfolgreicher Konzept-Test für den "2.5D Matte Painting" Workflow (`pipeline_2_5d.md`). 3D Charaktere bewegen sich vor statischen AI-Hintergründen. Die `isoExplore` Szene wurde aus Kompatibilitätsgründen aus der verschachtelten App-Struktur in den robusteren Pfad `showcases/andNowIso` verschoben und in der Haupt-`index.html` verlinkt.
+- **Die große Bug-Safari:** Ein massiver Fehler-Marathon brachte die Engine zum Absturz (`program not linked` und `INVALID_ENUM`). Die Ursache war ein vermeintlich einfaches "Low Poly" Sketchfab-Modell des Detektivs.
+  - Auf WebGL2 sprengte das viel zu komplexe PBR-Material des Modells in Kombination mit PointLights das harte Hardware-Limit von 16 Textur-Einheiten (`MAX_TEXTURE_IMAGE_UNITS(16)`).
+  - Auf dem Fallback (WebGL1) stürzte die Engine ab, weil das Modell mit 32-Bit Indices (>65k Vertices) exportiert wurde, was WebGL1 standardmäßig ohne Extension (`OES_element_index_uint`) nicht lesen kann.
+- **Lösungen & Heutiger Abschluss:**
+  - CSS für das Canvas (`100vw/vh`) gepatcht, um Resize-Fehler zu beheben.
+  - Den Hintergrund auf extrem ressourcenschonendes `BasicMaterial` mit `diffuseMap` umgestellt.
+  - Das toxische GLB-Modell wurde im Code auskommentiert (und testweise mit leerem `LambertMaterial` überschrieben), um den Absturz zu beenden.
+  - Die Szene lädt nun problemlos auf dem `BEST` Renderer (WebGL2).
+- **Nächster Schritt (Restart):** Ein neues, absolut sauberes GLB-Modell (8.2k Triangles, ohne fette PBR Texturen) wurde vom User gefunden. Beim nächsten Start der Session binden wir dieses Modell ein und platzieren es korrekt vor dem Flakturm-Hintergrund!
+
+## 35. Skeletales GPU-Skinning & GLTF-Animationssystem (2026-08-24)
+- **Meilenstein:** Vollständiges, hardwarebeschleunigtes Skeletal Skinning & Keyframe-Animationssystem im Engine-Core (`main` Branch) implementiert.
+- **Core-Klassen & Datenstrukturen (`src/core/animation/`):**
+  - [`Bone`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/core/animation/Bone.ts): Hierarchischer Skelettknoten (erweitert `Object3D`) mit `inverseBindMatrix`.
+  - [`Skeleton`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/core/animation/Skeleton.ts): Verwaltung der Knochenhierarchie, globale Transformation und Berechnung der `Float32Array` Bone-Matrizenpalette.
+  - [`SkinnedMesh`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/core/animation/SkinnedMesh.ts): Mesh mit Bindung an ein `Skeleton` und automatischer Aktualisierung der Bone-Matrizen im Render-Cycle.
+  - [`KeyframeTrack`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/core/animation/KeyframeTrack.ts), [`AnimationClip`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/core/animation/AnimationClip.ts), [`AnimationAction`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/core/animation/AnimationAction.ts), [`AnimationMixer`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/core/animation/AnimationMixer.ts): Vollständiges Animations-Playback-System mit linearer Translation/Scale-Interpolation und Quaternion-Slerp für Rotationen.
+- **GLTF/GLB-Pipeline (`src/loaders/GltfLoader.ts`):**
+  - Automatisches Parsen von GLTF-Skins (`JOINTS_0`, `WEIGHTS_0`, `inverseBindMatrices`), Instanziieren von `Bone`-Knoten und `SkinnedMesh`.
+  - Parsen eingebetteter GLTF-Animationen sowie neue Methode `loadAnimations(url)` zum Laden separater Animationsdateien (z. B. `idle.glb`).
+- **Shader & WebGL2-Renderer (`WebGL2Renderer.ts`, GLSL Shaders):**
+  - Vertex-Shader (`base_vertex_header.vert.glsl`, `base_vertex_main.vert.glsl`) transformieren Vertices und Normalen im Vertex-Shader per GPU Skinning (`USE_SKINNING` Preprocessor-Flag).
+  - VBOs für `jbo` (Joints) und `wbo` (Weights) in [`Mesh.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/renderers/Mesh.ts) integriert.
+- **Showcase-Integration & Verifikation:**
+  - In [`showcases/andNowIso/showcase.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/showcases/andNowIso/showcase.ts) wird `mannequin.glb` mit der separaten Mixamo-Animation `idle.glb` über den `AnimationMixer` in Echtzeit wiedergegeben.
+  - Alle 73 Testsuiten und 399 Unit Tests laufen 100% grün.
+## 36. Shader-Contract Validation & UBO/Sampler-Budget Parity (2026-08-24)
+- **Shader-Paritäts- & Link-Fixes:**
+  - **UBO `GlobalUniforms` Synchronisation:** Das `layout(std140) uniform GlobalUniforms`-Layout in `base_vertex_header.vert.glsl` wurde exakt an `lights.frag.glsl` angeglichen (`u_tileSizePx`, `u_clusterDims`), um Field-Number-Mismatch-Linkfehler zu verhindern.
+  - **16-Sampler-Budget Hardware-Wächter:** Optionale Material-Texturen in `StandardMaterial`, `PhongMaterial`, `LambertMaterial` und `base_fragment_header.frag.glsl` werden nun strikt mit Preprocessor-Flags (`USE_NORMAL_MAP`, `USE_SPECULAR_MAP`, `USE_METALLIC_MAP`, `USE_IBL` etc.) bedarfsgesteuert kompiliert, wodurch alle Materialien das Apple Silicon Limit (`MAX_TEXTURE_IMAGE_UNITS(16)`) sicher einhalten.
+  - **Chunk-Regex-Fix:** GLSL-Array-Größen (`pcssTaps`) kollidieren nicht mehr mit der `[CHUNK_NAME]`-Syntax des `ShaderRegistry`-Parsers.
+- **Automatisierte Testsuite (`tests/core/renderers/shaders/ShaderValidation.test.ts`):**
+  - Prüft alle 13 Core-Materialien auf vollständige Chunk-Auflösung ohne verwaiste Platzhalter.
+  - Verifiziert die exakte Feld-Gleichheit des `GlobalUniforms` UBOs im AST-Vergleich zwischen VS und FS.
+  - Simuliert den GLSL-Präprozessor und sichert das Sampler-Budget $(\le 16)$ für jedes Material ab.
+- **Status:** 74 Testsuiten mit 426 Unit Tests 100% grün (`npm run test`, `npm run lint:fix`, `npm run build:lib`).

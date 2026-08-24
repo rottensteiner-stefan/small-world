@@ -17,6 +17,10 @@ export class Mesh {
   public tanbo: WebGLBuffer | undefined = undefined;
   /** The texture coordinate buffer object. */
   public tbo: WebGLBuffer | undefined = undefined;
+  /** The skinning joints buffer object. */
+  public jbo: WebGLBuffer | undefined = undefined;
+  /** The skinning weights buffer object. */
+  public wbo: WebGLBuffer | undefined = undefined;
 
   /** The number of elements (indices or vertices) to draw. */
   public count: number;
@@ -68,7 +72,21 @@ export class Mesh {
       gl.bufferData(gl.ARRAY_BUFFER, data.uvs, gl.STATIC_DRAW);
     }
 
-    // 5. Indices Buffer (Optional)
+    // 5. Joints Buffer (Skinning)
+    if (data.joints && 0 < data.joints.length) {
+      this.jbo = gl.createBuffer() ?? undefined;
+      gl.bindBuffer(gl.ARRAY_BUFFER, this.jbo ?? null);
+      gl.bufferData(gl.ARRAY_BUFFER, data.joints, gl.STATIC_DRAW);
+    }
+
+    // 6. Weights Buffer (Skinning)
+    if (data.weights && 0 < data.weights.length) {
+      this.wbo = gl.createBuffer() ?? undefined;
+      gl.bindBuffer(gl.ARRAY_BUFFER, this.wbo ?? null);
+      gl.bufferData(gl.ARRAY_BUFFER, data.weights, gl.STATIC_DRAW);
+    }
+
+    // 7. Indices Buffer (Optional)
     if (data.indices && 0 < data.indices.length) {
       this.isIndexed = true;
       this.ebo = gl.createBuffer() ?? undefined;
@@ -81,7 +99,7 @@ export class Mesh {
       this.count = data.vertices.length / 3;
     }
 
-    // 6. Wireframe Indices Buffer (Optional)
+    // 8. Wireframe Indices Buffer (Optional)
     if (data.wireframeIndices && 0 < data.wireframeIndices.length) {
       this.webo = gl.createBuffer() ?? undefined;
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.webo ?? null);
@@ -98,8 +116,17 @@ export class Mesh {
    * @param normLoc The location of the normal attribute.
    * @param uvLoc The location of the UV attribute.
    * @param tanLoc The location of the tangent attribute.
+   * @param jointLoc The location of the joints attribute.
+   * @param weightLoc The location of the weights attribute.
    */
-  public bind(posLoc: number, normLoc: number = -1, uvLoc: number = -1, tanLoc: number = -1): void {
+  public bind(
+    posLoc: number,
+    normLoc: number = -1,
+    uvLoc: number = -1,
+    tanLoc: number = -1,
+    jointLoc: number = -1,
+    weightLoc: number = -1,
+  ): void {
     this._gl.bindBuffer(this._gl.ARRAY_BUFFER, this.vbo ?? null);
     this._gl.vertexAttribPointer(posLoc, 3, this._gl.FLOAT, false, 0, 0);
     this._gl.enableVertexAttribArray(posLoc);
@@ -131,6 +158,26 @@ export class Mesh {
         this._gl.enableVertexAttribArray(tanLoc);
       } else {
         this._gl.disableVertexAttribArray(tanLoc);
+      }
+    }
+
+    if (0 <= jointLoc) {
+      if (this.jbo) {
+        this._gl.bindBuffer(this._gl.ARRAY_BUFFER, this.jbo);
+        this._gl.vertexAttribPointer(jointLoc, 4, this._gl.FLOAT, false, 0, 0);
+        this._gl.enableVertexAttribArray(jointLoc);
+      } else {
+        this._gl.disableVertexAttribArray(jointLoc);
+      }
+    }
+
+    if (0 <= weightLoc) {
+      if (this.wbo) {
+        this._gl.bindBuffer(this._gl.ARRAY_BUFFER, this.wbo);
+        this._gl.vertexAttribPointer(weightLoc, 4, this._gl.FLOAT, false, 0, 0);
+        this._gl.enableVertexAttribArray(weightLoc);
+      } else {
+        this._gl.disableVertexAttribArray(weightLoc);
       }
     }
   }
@@ -179,5 +226,7 @@ export class Mesh {
     if (this.nbo) this._gl.deleteBuffer(this.nbo);
     if (this.tanbo) this._gl.deleteBuffer(this.tanbo);
     if (this.tbo) this._gl.deleteBuffer(this.tbo);
+    if (this.jbo) this._gl.deleteBuffer(this.jbo);
+    if (this.wbo) this._gl.deleteBuffer(this.wbo);
   }
 }

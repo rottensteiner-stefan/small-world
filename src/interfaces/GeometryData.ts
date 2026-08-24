@@ -14,6 +14,10 @@ export interface GeometryDataInterface {
   tangents?: Float32Array | undefined;
   /** Optional texture coordinate data (u, v). */
   uvs?: Float32Array | undefined;
+  /** Optional skinning bone index data (4 joint IDs per vertex). */
+  joints?: Float32Array | Uint16Array | undefined;
+  /** Optional skinning bone weight data (4 weights per vertex). */
+  weights?: Float32Array | undefined;
   /** The topology of the geometry (e.g., TRIANGLE_LIST or LINE_LIST). */
   topology?: Topology;
   /**

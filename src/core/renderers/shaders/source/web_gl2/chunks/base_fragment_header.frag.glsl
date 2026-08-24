@@ -23,14 +23,20 @@ uniform sampler2DArray u_diffuseMap;
 #else
 uniform sampler2D u_diffuseMap;
 #endif
+#ifdef USE_NORMAL_MAP
 uniform sampler2D u_normalMap;
+#endif
+#ifdef USE_SPECULAR_MAP
 uniform sampler2D u_specularMap;
+#endif
 
 // Global IBL Maps
+#ifdef USE_IBL
 uniform samplerCube u_irradianceMap;
 uniform samplerCube u_prefilterMap;
 uniform sampler2D u_brdfLUT;
 uniform float u_envIntensity;
+#endif
 
 // Shadow Mapping
 in vec4 v_spotLightSpacePos[4];

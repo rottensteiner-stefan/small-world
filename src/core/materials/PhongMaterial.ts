@@ -112,6 +112,11 @@ export class PhongMaterial extends AbstractMaterial {
     texs["u_normalMap"] = this.normalMap;
     texs["u_specularMap"] = this.specularMap;
 
+    const flags: string[] = [];
+    if (this.normalMap) flags.push("USE_NORMAL_MAP");
+    if (this.specularMap) flags.push("USE_SPECULAR_MAP");
+    this._renderManifest.flags = flags;
+
     if (this._renderManifest.state) {
       this._renderManifest.state.blending = this.transparent
         ? BlendingMode.ALPHA

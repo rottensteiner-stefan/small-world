@@ -32,6 +32,7 @@ export * from "./textures/index.js";
 export * from "./text/index.js";
 export * from "./fsm/index.js";
 export * from "./threading/index.js";
+export * from "./animation/index.js";
 
 export * from "./renderers/index.js";
 export * from "./showcase/index.js";
