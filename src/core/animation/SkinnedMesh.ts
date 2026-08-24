@@ -24,15 +24,4 @@ export class SkinnedMesh extends Object3D {
       this.bindMatrix.data.set(bindMatrix.data);
     }
   }
-
-  /**
-   * Updates the world matrix and the skeleton's bone matrices.
-   */
-  public override updateMatrixWorld(): void {
-    super.updateMatrixWorld();
-
-    if (this.skeleton) {
-      this.skeleton.update(this.worldMatrix);
-    }
-  }
 }

@@ -5,6 +5,7 @@ import { Matrix4, Frustum, Vector3D } from "../math/index.js";
 import { BoundingBox, SpatialHash } from "../physix/index.js";
 import { BoundingType, Topology } from "../enums/index.js";
 import { DirectionalLight } from "./lights/index.js";
+import { SkinnedMesh } from "./animation/SkinnedMesh.js";
 import { Collidable } from "../interfaces/index.js";
 
 export interface RenderBatch {
@@ -117,8 +118,22 @@ export class Scene {
     this._updateBehaviorsRecursive(this.root, deltaTime);
     // 2. Update matrices
     this.root.updateMatrixWorld();
+    // 3. Compute skinning matrices. Must run after the full matrix pass above: a
+    // SkinnedMesh's joints live elsewhere in the tree (siblings/cousins, not
+    // descendants), so their worldMatrix isn't guaranteed to be current yet
+    // during step 2's single top-down traversal.
+    this._updateSkinnedMeshesRecursive(this.root);
     if (undefined !== this.dynamicOctree) {
       this.updateDynamicOctree();
+    }
+  }
+
+  private _updateSkinnedMeshesRecursive(obj: Object3D): void {
+    if (obj instanceof SkinnedMesh && obj.skeleton) {
+      obj.skeleton.update(obj.worldMatrix);
+    }
+    for (const child of obj.children) {
+      this._updateSkinnedMeshesRecursive(child);
     }
   }
 

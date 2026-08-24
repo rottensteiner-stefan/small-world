@@ -8,6 +8,7 @@ import {
   AnimationMixer,
 } from "../../../src/core/animation/index.js";
 import { Object3D } from "../../../src/core/Object3D.js";
+import { Scene } from "../../../src/core/Scene.js";
 
 describe("Skeletal Animation System", () => {
   it("should create bones and compute skeleton matrices", () => {
@@ -66,5 +67,28 @@ describe("Skeletal Animation System", () => {
     skinnedMesh.updateMatrixWorld();
 
     expect(skinnedMesh.skeleton).toBe(skeleton);
+  });
+
+  it("should reflect the current frame's bone pose even when the SkinnedMesh is added before its bones", () => {
+    // Mirrors typical glTF export order: the mesh node is a sibling of (and precedes)
+    // the armature root in the parent's children array. A single top-down
+    // updateMatrixWorld() pass would visit the mesh before its bones are current.
+    const armatureRoot = new Bone("Hips");
+    const skeleton = new Skeleton([armatureRoot]);
+    const skinnedMesh = new SkinnedMesh("Character");
+    skinnedMesh.bind(skeleton);
+
+    const root = new Object3D("glTF_Root");
+    root.add(skinnedMesh, armatureRoot);
+
+    armatureRoot.position.set(0, 5, 0);
+
+    const scene = new Scene();
+    scene.add(root);
+    scene.update(0);
+
+    // If skinning were computed inside updateMatrixWorld() during the single
+    // top-down pass, this would still read Hips' pre-update (identity) matrix.
+    expect(skeleton.boneMatrices[13]).toBeCloseTo(5);
   });
 });
