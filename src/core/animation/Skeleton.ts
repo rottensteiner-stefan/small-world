@@ -3,6 +3,13 @@ import { Matrix4 } from "../../math/Matrix4.js";
 import { MathPool } from "../../math/MathPool.js";
 
 /**
+ * Upper bound on bones per skeleton, matching `u_boneMatrices[64]` in
+ * `base_vertex_header.vert.glsl`. Bones beyond this index are dropped from the GPU upload
+ * (see `WebGL2Renderer`) rather than corrupting whatever uniform happens to follow the array.
+ */
+export const MAX_SKINNED_BONES = 64;
+
+/**
  * Manages an array of bones, computing skinning matrices for the GPU.
  */
 export class Skeleton {
@@ -16,6 +23,13 @@ export class Skeleton {
   private _identityMatrix: Matrix4 = new Matrix4();
 
   constructor(bones: Bone[] = [], boneInverses?: Matrix4[]) {
+    if (bones.length > MAX_SKINNED_BONES) {
+      console.warn(
+        `[Skeleton] ${bones.length} bones exceeds the ${MAX_SKINNED_BONES}-bone GPU skinning limit; ` +
+          `bones from index ${MAX_SKINNED_BONES} onward will not deform this mesh.`,
+      );
+    }
+
     this.bones = [...bones];
     this.boneInverses = boneInverses ? [...boneInverses] : [];
 

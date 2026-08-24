@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   Bone,
   Skeleton,
@@ -6,6 +6,7 @@ import {
   AnimationClip,
   KeyframeTrack,
   AnimationMixer,
+  MAX_SKINNED_BONES,
 } from "../../../src/core/animation/index.js";
 import { Object3D } from "../../../src/core/Object3D.js";
 import { Scene } from "../../../src/core/Scene.js";
@@ -26,17 +27,16 @@ describe("Skeletal Animation System", () => {
     expect(skeleton.getBoneByName("Child")).toBe(childBone);
   });
 
-  it("should interpolate translation and rotation keyframes in KeyframeTrack", () => {
+  it("should interpolate translation keyframes in KeyframeTrack", () => {
     const times = new Float32Array([0, 1.0]);
     const values = new Float32Array([0, 0, 0, 10, 20, 30]);
     const track = new KeyframeTrack("BoneA", "translation", times, values, "LINEAR");
 
-    const target = new Bone("BoneA");
-    track.evaluate(0.5, target);
+    const sampled = track.sampleVector(0.5);
 
-    expect(target.position.x).toBeCloseTo(5);
-    expect(target.position.y).toBeCloseTo(10);
-    expect(target.position.z).toBeCloseTo(15);
+    expect(sampled.x).toBeCloseTo(5);
+    expect(sampled.y).toBeCloseTo(10);
+    expect(sampled.z).toBeCloseTo(15);
   });
 
   it("should update tracks in AnimationMixer over time", () => {
@@ -69,6 +69,42 @@ describe("Skeletal Animation System", () => {
     expect(skinnedMesh.skeleton).toBe(skeleton);
   });
 
+  it("should blend two simultaneously-playing actions by their relative weight", () => {
+    const root = new Object3D("Hero");
+    const arm = new Bone("Arm");
+    root.add(arm);
+
+    const times = new Float32Array([0, 1.0]);
+    const trackA = new KeyframeTrack(
+      "Arm",
+      "translation",
+      times,
+      new Float32Array([0, 0, 0, 0, 0, 0]),
+    );
+    const trackB = new KeyframeTrack(
+      "Arm",
+      "translation",
+      times,
+      new Float32Array([10, 0, 0, 10, 0, 0]),
+    );
+    const clipA = new AnimationClip("Idle", 1.0, [trackA]);
+    const clipB = new AnimationClip("Reach", 1.0, [trackB]);
+
+    const mixer = new AnimationMixer(root);
+    const actionA = mixer.clipAction(clipA);
+    const actionB = mixer.clipAction(clipB);
+    actionA.weight = 0.5;
+    actionB.weight = 0.5;
+    actionA.play();
+    actionB.play();
+
+    mixer.update(0);
+
+    // A last-writer-wins implementation would snap to whichever action's track happened to
+    // be evaluated last (0 or 10), not the weighted midpoint.
+    expect(arm.position.x).toBeCloseTo(5);
+  });
+
   it("should reflect the current frame's bone pose even when the SkinnedMesh is added before its bones", () => {
     // Mirrors typical glTF export order: the mesh node is a sibling of (and precedes)
     // the armature root in the parent's children array. A single top-down
@@ -90,5 +126,19 @@ describe("Skeletal Animation System", () => {
     // If skinning were computed inside updateMatrixWorld() during the single
     // top-down pass, this would still read Hips' pre-update (identity) matrix.
     expect(skeleton.boneMatrices[13]).toBeCloseTo(5);
+  });
+
+  it("should warn when a skeleton exceeds the GPU skinning bone limit", () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const tooManyBones = Array.from(
+      { length: MAX_SKINNED_BONES + 1 },
+      (_, i) => new Bone(`Bone${i}`),
+    );
+
+    new Skeleton(tooManyBones);
+
+    expect(warnSpy).toHaveBeenCalledOnce();
+    expect(warnSpy.mock.calls[0]![0]).toContain(`${MAX_SKINNED_BONES}`);
+    warnSpy.mockRestore();
   });
 });

@@ -14,6 +14,7 @@ import {
   HistoryBlendPassGL,
 } from "../post/passes/index.js";
 import { AbstractLight } from "../../core/lights/index.js";
+import { MAX_SKINNED_BONES } from "../../core/animation/Skeleton.js";
 import { CubeTexture, Texture, RenderTarget, RenderTargetCube } from "../../core/textures/index.js";
 import { ShaderRegistry, RenderManifest } from "../../core/renderers/shaders/index.js";
 import { Color } from "../../core/colors/index.js";
@@ -1778,7 +1779,14 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
             cache.uniforms.get("u_boneMatrices[0]") ??
             this.gl.getUniformLocation(cache.prog, "u_boneMatrices");
           if (boneLoc) {
-            this.gl.uniformMatrix4fv(boneLoc, false, skel.boneMatrices);
+            // Clamp to the shader's fixed-size array: uploading more matrices than it declares
+            // would either error or overwrite whatever uniform happens to follow it in the program.
+            const maxFloats = MAX_SKINNED_BONES * 16;
+            const boneData =
+              skel.boneMatrices.length > maxFloats
+                ? skel.boneMatrices.subarray(0, maxFloats)
+                : skel.boneMatrices;
+            this.gl.uniformMatrix4fv(boneLoc, false, boneData);
           }
         }
 

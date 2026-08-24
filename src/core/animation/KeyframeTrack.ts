@@ -1,7 +1,5 @@
 import { Vector3D } from "../../math/Vector3D.js";
 import { Quaternion } from "../../math/Quaternion.js";
-import { Object3D } from "../Object3D.js";
-import { Bone } from "./Bone.js";
 
 export type TrackType = "translation" | "rotation" | "scale";
 export type InterpolationType = "LINEAR" | "STEP" | "CUBICSPLINE";
@@ -36,23 +34,55 @@ export class KeyframeTrack {
   }
 
   /**
-   * Evaluates the track at the specified time and applies the value to the target object.
+   * Samples this track at the given time. Valid only for tracks with `property === "rotation"`.
+   * The returned Quaternion is owned scratch state, reused across calls -- copy it before the
+   * next call to `sampleQuaternion`/`sampleVector` on this same track if it must be retained.
    */
-  public evaluate(time: number, target: Object3D | Bone): void {
-    if (this.times.length === 0) return;
+  public sampleQuaternion(time: number): Quaternion {
+    const index = this._findSegment(time);
+    if (index.alpha === null) {
+      this._readQuaternion(index.i0, this._tempQuatA);
+      return this._tempQuatA;
+    }
+    this._readQuaternion(index.i0, this._tempQuatA);
+    this._readQuaternion(index.i1, this._tempQuatB);
+    return this._tempQuatA.slerp(this._tempQuatB, index.alpha);
+  }
 
-    // Handle out of bounds
-    if (time <= this.times[0]!) {
-      this._applyDirect(0, target);
-      return;
+  /**
+   * Samples this track at the given time. Valid only for tracks with `property === "translation"`
+   * or `property === "scale"`. The returned Vector3D is owned scratch state, reused across calls --
+   * copy it before the next call to `sampleQuaternion`/`sampleVector` on this same track if it must
+   * be retained.
+   */
+  public sampleVector(time: number): Vector3D {
+    const index = this._findSegment(time);
+    if (index.alpha === null) {
+      this._readVector(index.i0, this._tempVecA);
+      return this._tempVecA;
+    }
+    this._readVector(index.i0, this._tempVecA);
+    this._readVector(index.i1, this._tempVecB);
+    return this._tempVecA.lerp(this._tempVecB, index.alpha);
+  }
+
+  /**
+   * Locates the keyframe segment containing `time`. Returns `alpha: null` when `time` falls
+   * exactly on (or outside) a keyframe, or the interpolation is stepped, so the caller should
+   * read `i0` directly without blending.
+   */
+  private _findSegment(time: number): { i0: number; i1: number; alpha: number | null } {
+    if (0 === this.times.length) {
+      return { i0: 0, i1: 0, alpha: null };
     }
     const lastIdx = this.times.length - 1;
+    if (lastIdx <= 0 || time <= this.times[0]!) {
+      return { i0: 0, i1: 0, alpha: null };
+    }
     if (time >= this.times[lastIdx]!) {
-      this._applyDirect(lastIdx, target);
-      return;
+      return { i0: lastIdx, i1: lastIdx, alpha: null };
     }
 
-    // Binary search or linear search for keyframe segment
     let i0 = 0;
     let i1 = 1;
     while (i1 < this.times.length && this.times[i1]! < time) {
@@ -60,84 +90,31 @@ export class KeyframeTrack {
       i1++;
     }
 
+    if (this.interpolation === "STEP") {
+      return { i0, i1, alpha: null };
+    }
+
     const t0 = this.times[i0]!;
     const t1 = this.times[i1]!;
-    const alpha = (time - t0) / (t1 - t0);
-
-    if (this.interpolation === "STEP") {
-      this._applyDirect(i0, target);
-      return;
-    }
-
-    // Linear / Slerp Interpolation
-    if (this.property === "rotation") {
-      const stride = 4;
-      this._tempQuatA.set(
-        this.values[i0 * stride + 0]!,
-        this.values[i0 * stride + 1]!,
-        this.values[i0 * stride + 2]!,
-        this.values[i0 * stride + 3]!,
-      );
-      this._tempQuatB.set(
-        this.values[i1 * stride + 0]!,
-        this.values[i1 * stride + 1]!,
-        this.values[i1 * stride + 2]!,
-        this.values[i1 * stride + 3]!,
-      );
-
-      // Slerp
-      this._tempQuatA.slerp(this._tempQuatB, alpha);
-
-      target.quaternion = (target.quaternion || new Quaternion()).copyFrom(this._tempQuatA);
-    } else {
-      const stride = 3;
-      this._tempVecA.set(
-        this.values[i0 * stride + 0]!,
-        this.values[i0 * stride + 1]!,
-        this.values[i0 * stride + 2]!,
-      );
-      this._tempVecB.set(
-        this.values[i1 * stride + 0]!,
-        this.values[i1 * stride + 1]!,
-        this.values[i1 * stride + 2]!,
-      );
-
-      this._tempVecA.lerp(this._tempVecB, alpha);
-
-      if (this.property === "translation") {
-        target.position.copyFrom(this._tempVecA);
-      } else if (this.property === "scale") {
-        target.scale.copyFrom(this._tempVecA);
-      }
-    }
+    return { i0, i1, alpha: (time - t0) / (t1 - t0) };
   }
 
-  private _applyDirect(index: number, target: Object3D | Bone): void {
-    if (this.property === "rotation") {
-      const stride = 4;
-      this._tempQuatA.set(
-        this.values[index * stride + 0]!,
-        this.values[index * stride + 1]!,
-        this.values[index * stride + 2]!,
-        this.values[index * stride + 3]!,
-      );
-      if ("quaternion" in target && (target as Bone).quaternion) {
-        (target as Bone).quaternion!.copyFrom(this._tempQuatA);
-      } else {
-        target.quaternion = (target.quaternion || new Quaternion()).copyFrom(this._tempQuatA);
-      }
-    } else {
-      const stride = 3;
-      this._tempVecA.set(
-        this.values[index * stride + 0]!,
-        this.values[index * stride + 1]!,
-        this.values[index * stride + 2]!,
-      );
-      if (this.property === "translation") {
-        target.position.copyFrom(this._tempVecA);
-      } else if (this.property === "scale") {
-        target.scale.copyFrom(this._tempVecA);
-      }
-    }
+  private _readQuaternion(index: number, out: Quaternion): void {
+    const stride = 4;
+    const offset = index * stride;
+    if (offset + stride > this.values.length) return;
+    out.set(
+      this.values[offset + 0]!,
+      this.values[offset + 1]!,
+      this.values[offset + 2]!,
+      this.values[offset + 3]!,
+    );
+  }
+
+  private _readVector(index: number, out: Vector3D): void {
+    const stride = 3;
+    const offset = index * stride;
+    if (offset + stride > this.values.length) return;
+    out.set(this.values[offset + 0]!, this.values[offset + 1]!, this.values[offset + 2]!);
   }
 }
