@@ -14,6 +14,9 @@ import {
   Vector3D,
   StageMovementBehavior,
   StageZone,
+  Cylinder,
+  Torus,
+  StandardMaterial,
 } from "../../src/index.js";
 import { AbstractShowcase } from "../../src/core/index.js";
 import { GltfLoader } from "../../src/loaders/GltfLoader.js";
@@ -34,6 +37,11 @@ const ANIMATION_CLIP_URLS: Record<string, string> = {
 };
 
 const ANIMATION_FADE_SECONDS = 0.25;
+
+/** Mixamo hand bone the lantern (mesh + light) attaches to -- see GltfLoader's rig-prefix
+ * normalization, which is what makes this exact name reliable regardless of which numbered
+ * "mixamorigN:" prefix the source FBX happened to export. */
+const LANTERN_HAND_BONE = "mixamorig:RightHand";
 
 interface AnimationFade {
   from: AnimationAction | undefined;
@@ -100,6 +108,8 @@ class AndNowScene2 extends AbstractShowcase {
     });
     this._pointLight.position.set(0, BACKGROUND_CENTER_Y, 4);
     this.scene.add(this._pointLight);
+    // Reparented onto Novotny's hand bone once the mannequin has loaded below -- this fallback
+    // position only lights the scene if that load fails.
 
     let bgTex: Texture | undefined;
     try {
@@ -189,6 +199,19 @@ class AndNowScene2 extends AbstractShowcase {
       applyMaterialToHierarchy(this._novotny);
 
       this.scene.add(this._novotny);
+
+      // Laterne (Platzhalter-Mesh + Punktlicht) an die Hand-Bone hängen, statt sie manuell pro
+      // Frame der Novotny-Wurzelposition nachzuführen -- folgt dadurch automatisch jeder Pose
+      // (Idle/Walk/Stairs), inklusive Handschwung, ohne eigene Update-Logik.
+      const handBone = this._novotny.getObjectByName(LANTERN_HAND_BONE);
+      if (handBone) {
+        handBone.add(this._buildLanternMesh());
+        handBone.add(this._pointLight);
+      } else {
+        console.warn(
+          `[AndNowScene2] Hand-Bone "${LANTERN_HAND_BONE}" nicht gefunden -- Laterne bleibt an fixer Position.`,
+        );
+      }
 
       // 2.5D Bühnen-Bewegung an Novotny ankoppeln -- läuft komplett in (u, v)-Bildkoordinaten,
       // `_uvToWorld` ist die einzige Stelle, an der daraus eine echte 3D-Position wird.
@@ -533,6 +556,42 @@ class AndNowScene2 extends AbstractShowcase {
     this._zoneBadgeEl.textContent = zone.name;
   }
 
+  /** Greybox stand-in for the Sturmlaterne (storm lantern) from the concept art -- a glowing
+   * cylinder body with a torus handle, sized relative to a roughly human-scale rig. Replace with
+   * the real modeled prop once one exists; parenting onto the hand bone stays the same either way. */
+  private _buildLanternMesh(): Object3D {
+    const lantern = new Object3D("LanternPlaceholder");
+
+    const glowMat = new StandardMaterial({
+      color: new Color(0.15, 0.1, 0.05),
+      emissiveColor: new Color(1, 0.65, 0.25),
+      emissiveIntensity: 3.0,
+      metallic: 0.6,
+      roughness: 0.4,
+    });
+
+    const body = new Object3D("LanternBody");
+    body.geometry = new Cylinder({
+      radiusTop: 0.04,
+      radiusBottom: 0.05,
+      height: 0.12,
+    }).getGeometryData();
+    body.material = glowMat;
+    lantern.add(body);
+
+    const handle = new Object3D("LanternHandle");
+    handle.geometry = new Torus({ radius: 0.05, tube: 0.006, radialSegments: 8 }).getGeometryData();
+    handle.material = glowMat;
+    handle.position.set(0, 0.08, 0);
+    lantern.add(handle);
+
+    // Local offset within the hand bone's space -- approximate, wants a visual pass once the
+    // real character mesh (and thus real hand proportions/orientation) exists.
+    lantern.position.set(0, -0.04, 0.02);
+
+    return lantern;
+  }
+
   /** Crossfades to the named clip from ANIMATION_CLIP_URLS. No-op if the clip hasn't been loaded
    * (e.g. not yet converted/dropped in) or is already the active animation. */
   private _playAnimation(name: string, opts?: { loop?: boolean; fadeSeconds?: number }): void {
@@ -611,14 +670,6 @@ class AndNowScene2 extends AbstractShowcase {
     if (this._mixer) {
       this._updateAnimationFade(deltaTime);
       this._mixer.update(deltaTime);
-    }
-
-    if (this._novotny) {
-      this._pointLight.position.set(
-        this._novotny.position.x + 0.4,
-        this._novotny.position.y + 2.2,
-        this._novotny.position.z + 0.6,
-      );
     }
 
     this.scene.update(deltaTime);
