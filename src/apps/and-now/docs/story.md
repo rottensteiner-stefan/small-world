@@ -142,13 +142,17 @@
     *   *Statur, Physis & Ausstrahlung*:
         *   *Körperbau*: Tendenziell schlank, drahtig, fast etwas hager – geprägt von 20 Jahren Mangelernährung, künstlicher UV-Beleuchtung und dem kargen Leben in den engen Wartungsschächten des Flakturms. Keine heroischen Muskelberge.
         *   *Ausstrahlung*: Macht einen eher melancholischen, traurigen und suchenden Eindruck als furchteinflößend („a armer Hund im Bunker“). 
-        *   *Visuelle Wirkung*: Der schwere Arbeits-Trenchcoat und die herabhängenden Ohrenklappen der Uschanka wirken an der schlanken Gestalt fast eine Nuance zu wuchtig – was die Verletzlichkeit und Isolation in der monumentalen Betonwelt visuell perfekt verstärkt.
-    *   *Visuelles Design & Kleidung („Der Schacht-Trench / Rohr-Inspektor“)*:
-        *   *Kopfbedeckung*: Eine abgetragene **Uschanka / Trappermütze („Ohrenhaube“)** mit langen, herunterhängenden Stoff-/Fell-Ohrenklappen – verleiht Novotny eine markante, leicht schrullige Wiener Silhouette.
-        *   *Atemschutz*: Eine klassische **Filtermaske mit rundem Schraubfilter** (im Bunker lässig um den Hals gehängt; in toxischen Außenzonen / Sektor 0 vors Gesicht gespannt mit runden Glasglotzaugen).
+        *   *Visuelle Wirkung*: Der schwere Arbeits-Trenchcoat und die Kapuze wirken an der schlanken Gestalt fast eine Nuance zu wuchtig – was die Verletzlichkeit und Isolation in der monumentalen Betonwelt visuell perfekt verstärkt.
+    *   *Visuelles Design & Kleidung („Der Schacht-Trench & Loop-Hoodie“)*:
+        *   *Kopfbedeckung & Basisschicht*: Ein dunkler **Hoodie mit Kapuze** (kann tief ins Gesicht gezogen oder lässig im Nacken getragen werden).
+        *   *Mundschutz & Schal*: Ein dicker, grober **Loop-Schal (Schlauchschal / Snood)** aus dunkler Wolle. Dient im Alltag als flexibler Staub- und Kälteschutz über Mund und Nase, sodass nur die suchenden Augen sichtbar sind.
+        *   *Toxischer Atemschutz*: Eine klassische **Filtermaske mit rundem Schraubfilter** (wird in toxischen Außenzonen / Sektor 0 über den Schal gespannt).
         *   *Hauptkleidung*: Ein knielanger, schwerer Arbeits-Trenchcoat aus dunkelgrauem, gewachstem Vorkriegs-Loden mit hochgeschlagenem Kragen gegen die feuchte Bunkerkälte. Die Silhouette ist markant und bietet durch die wehenden Mantelschöße eine dynamische Bewegung in der 2.5D- und Iso-Perspektive.
-        *   *Darunter*: Ein grob gestrickter, abgewetzter Rollkragenpullover (Erbstück von Großvater František) in verwaschenem Dunkelblau oder Senfgelb über einer festen, dunkelgrauen Schacht-Arbeiterhose.
-        *   *Ausrüstung & Details*: Breite Lederkoppel mit Messingschnalle, robuste Schachtstiefel mit Profilsohle, fingerlose Arbeitshandschuhe.
+        *   *Darunter / Beine*: Robuste, dunkelgraue **Cargohose mit ordentlichen Blasebalgtaschen** an den Oberschenkeln, darüber geschnallte **Motorrad-Knieschützer / Hartschalen-Protektoren** (unverzichtbar beim Hinknien und Kriechen in scharfkantigen Lüftungsschächten und Gleisschotter), breite Lederkoppel mit Messingschnalle, schwere Schachtstiefel mit Profilsohle, fingerlose Arbeitshandschuhe.
+        *   *Die 3 Trage-Modi*:
+            1. *Staubschutz-Modus:* Kapuze aufgesetzt + Loop-Schal über Mund & Nase hochgezogen.
+            2. *Bunker-Modus:* Kapuze im Nacken, Loop-Schal locker um den Hals (Gesicht frei mit wuscheligen Haaren).
+            3. *Sektor-0-Modus:* Gasmaske mit runden Glotzaugen über dem Schal.
         *   *Geschlechts-Adaption*: Bei Wahl einer weiblichen Hauptfigur bleibt die praktische, abgewetzte Bunker-Ästhetik $100\%$ identisch, mit dezent tailliertem Schnitt und leicht angepassten anatomischen Proportionen ohne unpraktische Klischees.
     *   *Das Schicksal der Eltern (Ungeschminkte Endzeit-Realität)*:
         *   *Mutter (Elena Novotny)*: Starb früh an der chronischen „Bunkergrippe/Lungenfäule“ durch verunreinigte Umluft-Filter im feuchten Flakturm-Winter – eine alltägliche Tragödie des Mangels an echten Medikamenten.

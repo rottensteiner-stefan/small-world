@@ -288,10 +288,11 @@ befüllen.
 - **Status:** Build und Testsuite laufen 100% grün (75 Testdateien, 439 Unit Tests).
 
 ## 38. Charakter-Design & Kleidungskonzept Novotny (2026-08-25)
-- **Kanonischer Look & Physis:** Konzept 1 (*„Der Schacht-Trench / Rohr-Inspektor“*).
-  - **Statur & Physis:** Anfang zwanzig, schlank/hager und drahtig (keine Muskelmassen – geprägt von 20 Jahren kargem Bunkerleben). Macht eher einen traurigen, melancholischen Eindruck als furchteinflößend („a armer Hund im Bunker“).
-  - **Kopfbedeckung & Maske:** Abgetragene **Uschanka / Trappermütze („Ohrenhaube“)** mit herabhängenden Ohrenklappen + klassische **Filtermaske mit Schraubfilter** (im Bunker lässig um den Hals getragen).
-  - **Kleidung:** Dunkelgrauer, gewachster Arbeits-Trenchcoat mit hochgeschlagenem Kragen über grobem Rollkragenpullover (Erbstück von František). Der wuchtige Mantel unterstreicht die schlanke, verletzliche Statur.
-  - **Ausrüstung:** Breite Lederkoppel, fingerlose Arbeitshandschuhe, feste Schachtstiefel.
+- **Kanonischer Look & Physis:** *„Der Schacht-Trench & Loop-Hoodie“*.
+  - **Statur & Physis:** Anfang zwanzig, schlank/hager und drahtig (keine Muskelmassen – geprägt von 20 Jahren kargem Bunkerleben). Melancholisch-suchende Ausstrahlung („a armer Hund im Bunker“).
+  - **Basisschicht & Mundschutz:** Dunkler **Hoodie mit Kapuze** + dicker Woll-**Loop-Schal (Schlauchschal / Snood)**, der flexibel als textiler Staub- und Kälteschutz über Mund und Nase hochgezogen wird.
+  - **Mantel & Kleidung:** Dunkelgrauer, gewachster Arbeits-Trenchcoat aus Loden mit hochgeschlagenem Kragen über robuster dunkelgrauer **Cargohose mit Blasebalgtaschen** und angeschnallten **Motorrad-Knieschützern** (Schutz beim Kriechen in Schächten).
+  - **Ausrüstung:** Breite Lederkoppel, fingerlose Arbeitshandschuhe, feste Schachtstiefel, Messing-Sturmlaterne.
+  - **3 Trage-Modi:** 1) Staubschutz-Modus (Kapuze auf + Loop-Schal hoch), 2) Bunker-Modus (Kapuze ab + Schal als Kragenwärmer), 3) Sektor-0-Modus (mit aufgesetzter Gasmaske).
   - **Weibliche Variante:** Anatomisch leicht angepasst und dezent tailliert, bei 100%iger Beibehaltung der wetterfesten, abgewetzten Bunker-Funktionalität.
-- **Dokumentation:** In [`story.md`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/docs/story.md) eingepflegt als visuelle Vorgabe für 3D-Modellierung und Texturierung.
+- **Dokumentation & Skizzen:** In [`story.md`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/docs/story.md), [`concept-dossier.html`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/docs/concept-dossier.html) und `novotny_character_concepts.md` eingepflegt.
