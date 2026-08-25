@@ -41,7 +41,7 @@ const ANIMATION_FADE_SECONDS = 0.25;
 /** Mixamo hand bone the lantern (mesh + light) attaches to -- see GltfLoader's rig-prefix
  * normalization, which is what makes this exact name reliable regardless of which numbered
  * "mixamorigN:" prefix the source FBX happened to export. */
-const LANTERN_HAND_BONE = "mixamorig:RightHand";
+const LANTERN_HAND_BONE = "mixamorig:LeftHand";
 
 interface AnimationFade {
   from: AnimationAction | undefined;
@@ -54,12 +54,15 @@ class AndNowScene2 extends AbstractShowcase {
   private _novotny!: Object3D;
   private _movementBehavior!: StageMovementBehavior;
   private _pointLight!: PointLight;
+  private _lanternGroup: Object3D | undefined = undefined;
+  private _lanternOn: boolean = true;
   private _mixer?: AnimationMixer;
   private _clips: Map<string, AnimationClip> = new Map();
   private _activeAnimation: string | undefined;
   private _fade: AnimationFade | undefined = undefined;
   private _zoneBadgeEl: HTMLElement | null = null;
   private _lastEState: boolean = false;
+  private _lastLState: boolean = false;
 
   // Editor State
   private _editorActive: boolean = false;
@@ -205,7 +208,8 @@ class AndNowScene2 extends AbstractShowcase {
       // (Idle/Walk/Stairs), inklusive Handschwung, ohne eigene Update-Logik.
       const handBone = this._novotny.getObjectByName(LANTERN_HAND_BONE);
       if (handBone) {
-        handBone.add(this._buildLanternMesh());
+        this._lanternGroup = this._buildLanternMesh();
+        handBone.add(this._lanternGroup);
         handBone.add(this._pointLight);
       } else {
         console.warn(
@@ -662,6 +666,16 @@ class AndNowScene2 extends AbstractShowcase {
       if (this._editorActive) this._updateEditorUI();
     }
     this._lastEState = isEPressed;
+
+    // Toggle Laterne mit Taste 'L' -- Mesh und Punktlicht hängen beide an der Hand-Bone, also
+    // reicht ein gemeinsames isVisible statt separater An/Aus-Logik pro Teil.
+    const isLPressed = this.input.isPressed("KeyL");
+    if (isLPressed && !this._lastLState) {
+      this._lanternOn = !this._lanternOn;
+      if (this._lanternGroup) this._lanternGroup.isVisible = this._lanternOn;
+      this._pointLight.isVisible = this._lanternOn;
+    }
+    this._lastLState = isLPressed;
 
     if (this._editorActive) {
       this._updateEditorUI();
