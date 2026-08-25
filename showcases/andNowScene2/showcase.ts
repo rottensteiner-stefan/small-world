@@ -9,6 +9,8 @@ import {
   Texture,
   RendererType,
   AnimationMixer,
+  AnimationClip,
+  AnimationAction,
   Vector3D,
   StageMovementBehavior,
   StageZone,
@@ -23,11 +25,31 @@ const BACKGROUND_HEIGHT = 9;
 const BACKGROUND_CENTER_Y = 4.5;
 const BACKGROUND_Z = 0;
 
+/** Named animation clips for Novotny. Add an entry here (and load the matching FBX2glTF-converted
+ * `.glb` under `public/assets/and-now/`) to make a new animation available via `_playAnimation`. */
+const ANIMATION_CLIP_URLS: Record<string, string> = {
+  idle: "/assets/and-now/mannequin/idle_torch.glb",
+  walk: "/assets/and-now/mannequin/standing_torch_walk_forward.glb",
+  stairs: "/assets/and-now/mannequin/ascending_stairs.glb",
+};
+
+const ANIMATION_FADE_SECONDS = 0.25;
+
+interface AnimationFade {
+  from: AnimationAction | undefined;
+  to: AnimationAction;
+  elapsed: number;
+  duration: number;
+}
+
 class AndNowScene2 extends AbstractShowcase {
   private _novotny!: Object3D;
   private _movementBehavior!: StageMovementBehavior;
   private _pointLight!: PointLight;
   private _mixer?: AnimationMixer;
+  private _clips: Map<string, AnimationClip> = new Map();
+  private _activeAnimation: string | undefined;
+  private _fade: AnimationFade | undefined = undefined;
   private _zoneBadgeEl: HTMLElement | null = null;
   private _lastEState: boolean = false;
 
@@ -141,11 +163,13 @@ class AndNowScene2 extends AbstractShowcase {
 
     try {
       const gltfLoader = new GltfLoader();
-      this._novotny = await gltfLoader.load("/assets/and-now/mannequin.glb");
+      this._novotny = await gltfLoader.load("/assets/and-now/mannequin/mannequin.glb");
 
       let charDiffuse: Texture | undefined;
       try {
-        charDiffuse = await Texture.fromUrl("/assets/and-now/mannequin.fbm/Ch36_1001_Diffuse.png");
+        charDiffuse = await Texture.fromUrl(
+          "/assets/and-now/mannequin/mannequin.fbm/Ch36_1001_Diffuse.png",
+        );
       } catch (err) {
         console.warn("[AndNowScene2] Konnte Mannequin-Texturen nicht laden:", err);
       }
@@ -177,19 +201,27 @@ class AndNowScene2 extends AbstractShowcase {
           this._uvToWorld(u, v),
         startUV: { u: 0.65, v: 0.85 },
         onZoneChange: (zone: StageZone): void => this._updateHUD(zone),
+        onStateChange: (state: "IDLE" | "WALK"): void =>
+          this._playAnimation("WALK" === state ? "walk" : "idle"),
       });
       this._novotny.addBehavior(this._movementBehavior);
 
-      // Lade separate Idle-Animation
-      try {
-        const animClips = await gltfLoader.loadAnimations("/assets/and-now/idle.glb");
-        const activeClip = animClips[0] || this._novotny.animations[0];
-        if (activeClip) {
-          this._mixer = new AnimationMixer(this._novotny);
-          this._mixer.clipAction(activeClip).play();
+      // Lade alle konfigurierten Animationen (siehe ANIMATION_CLIP_URLS) -- ein fehlender/noch
+      // nicht konvertierter Clip loggt nur eine Warnung, blockiert die Szene aber nicht.
+      for (const [name, url] of Object.entries(ANIMATION_CLIP_URLS)) {
+        try {
+          const animClips = await gltfLoader.loadAnimations(url);
+          const clip = animClips[0];
+          if (clip) {
+            this._clips.set(name, clip);
+          }
+        } catch (animErr) {
+          console.warn(`[AndNowScene2] Konnte Animation "${name}" nicht laden:`, animErr);
         }
-      } catch (animErr) {
-        console.warn("[AndNowScene2] Konnte Idle Animation nicht laden:", animErr);
+      }
+      if (0 < this._clips.size) {
+        this._mixer = new AnimationMixer(this._novotny);
+        this._playAnimation("idle", { fadeSeconds: 0 });
       }
     } catch (e) {
       console.error(e);
@@ -501,6 +533,61 @@ class AndNowScene2 extends AbstractShowcase {
     this._zoneBadgeEl.textContent = zone.name;
   }
 
+  /** Crossfades to the named clip from ANIMATION_CLIP_URLS. No-op if the clip hasn't been loaded
+   * (e.g. not yet converted/dropped in) or is already the active animation. */
+  private _playAnimation(name: string, opts?: { loop?: boolean; fadeSeconds?: number }): void {
+    if (!this._mixer || name === this._activeAnimation) return;
+    const clip = this._clips.get(name);
+    if (!clip) return;
+
+    // A fade already in flight gets cut short here -- its `from` is dropped from tracking below,
+    // so it must be stopped now or it would keep blending forever at its last, stale weight.
+    if (this._fade?.from) this._fade.from.stop();
+
+    const fromAction =
+      undefined !== this._activeAnimation
+        ? this._mixer.clipAction(this._clips.get(this._activeAnimation)!)
+        : undefined;
+    const toAction = this._mixer.clipAction(clip);
+    toAction.setLoop(opts?.loop ?? true);
+    toAction.weight = 0;
+    toAction.reset();
+    toAction.play();
+
+    this._fade = {
+      from: fromAction,
+      to: toAction,
+      elapsed: 0,
+      duration: Math.max(0, opts?.fadeSeconds ?? ANIMATION_FADE_SECONDS),
+    };
+    this._activeAnimation = name;
+  }
+
+  /** Advances the current crossfade (if any) by shifting weight from the outgoing to the
+   * incoming AnimationAction; AnimationMixer.update already blends simultaneously-playing
+   * actions by weight, so this only has to move the two weights toward their target. */
+  private _updateAnimationFade(deltaTime: number): void {
+    const fade = this._fade;
+    if (!fade) return;
+
+    if (0 >= fade.duration) {
+      fade.to.weight = 1;
+      if (fade.from) fade.from.stop();
+      this._fade = undefined;
+      return;
+    }
+
+    fade.elapsed += deltaTime;
+    const t = Math.min(1, fade.elapsed / fade.duration);
+    fade.to.weight = t;
+    if (fade.from) fade.from.weight = 1 - t;
+
+    if (1 <= t) {
+      if (fade.from) fade.from.stop();
+      this._fade = undefined;
+    }
+  }
+
   protected override update(deltaTime: number): void {
     super.update(deltaTime);
     this.camera.updateViewMatrix();
@@ -522,6 +609,7 @@ class AndNowScene2 extends AbstractShowcase {
     }
 
     if (this._mixer) {
+      this._updateAnimationFade(deltaTime);
       this._mixer.update(deltaTime);
     }
 

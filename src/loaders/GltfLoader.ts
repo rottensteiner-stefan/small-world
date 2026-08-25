@@ -104,8 +104,20 @@ interface GltfData {
  * Loader for glTF 2.0 assets (.gltf and .glb).
  */
 export class GltfLoader extends AbstractLoader<Object3D> {
+  // Mixamo appends a session-dependent numeric suffix to its rig prefix ("mixamorig:" vs.
+  // "mixamorig1:", "mixamorig2:", ...) unrelated to which character was exported -- a mesh and an
+  // animation-only download can end up with different suffixes even though both target the same
+  // rig. Binding is exact-name (see AnimationMixer.update -> getObjectByName), so left alone this
+  // silently drops every track. Normalizing away the suffix at parse time makes any such file bind
+  // against any other, regardless of which numbering each happened to be exported with.
+  private static readonly _MIXAMO_RIG_PREFIX_RE = /^mixamorig\d*:/;
+
   constructor(options: LoaderOptions = {}) {
     super(options);
+  }
+
+  private static _normalizeNodeName(name: string): string {
+    return name.replace(GltfLoader._MIXAMO_RIG_PREFIX_RE, "mixamorig:");
   }
 
   public override async load(url: string): Promise<Object3D> {
@@ -231,7 +243,7 @@ export class GltfLoader extends AbstractLoader<Object3D> {
       for (let i = 0; i < json.nodes.length; i++) {
         const nodeDef = json.nodes[i];
         if (!nodeDef) continue;
-        const name = nodeDef.name || `Node_${i}`;
+        const name = GltfLoader._normalizeNodeName(nodeDef.name || `Node_${i}`);
         const obj = jointNodeIndices.has(i) ? new Bone(name) : new Object3D(name);
         this._applyNodeTransforms(obj, nodeDef);
         nodeObjects[i] = obj;

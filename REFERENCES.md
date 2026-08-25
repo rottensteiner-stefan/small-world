@@ -257,7 +257,7 @@ This document serves to record external sources, algorithms, mathematical deriva
 
 ### Mixamo Mannequin (Rigged Proxy Character)
 
-- **File:** `public/assets/and-now/mannequin.glb`
+- **File:** `public/assets/and-now/mannequin/mannequin.glb`
 - **Authors/Gurus:** Mixamo / Adobe
 - **Source:** [Mixamo Characters](https://www.mixamo.com/#/?page=1&query=Mannequin&type=Character)
 - **Usage:** Serves as the primary 3D dummy/proxy character for early movement prototyping and animation testing in the "And Now?" app, allowing robust iteration on the 2.5D and isometric controllers without the performance penalty of complex PBR textures.
