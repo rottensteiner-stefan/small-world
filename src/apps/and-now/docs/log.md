@@ -286,3 +286,12 @@ befüllen.
   - `showcases/andNowIso` wurde sauber nach `showcases/andNowScene2` umbenannt (Klasse `AndNowScene2`).
   - Die Eröffnungsszene (Großvaters Tod in Koje 42) ist als `andNowScene1` (Prolog) im Hub verankert.
 - **Status:** Build und Testsuite laufen 100% grün (75 Testdateien, 439 Unit Tests).
+
+## 38. Charakter-Design & Kleidungskonzept Novotny (2026-08-25)
+- **Kanonischer Look & Physis:** Konzept 1 (*„Der Schacht-Trench / Rohr-Inspektor“*).
+  - **Statur & Physis:** Anfang zwanzig, schlank/hager und drahtig (keine Muskelmassen – geprägt von 20 Jahren kargem Bunkerleben). Macht eher einen traurigen, melancholischen Eindruck als furchteinflößend („a armer Hund im Bunker“).
+  - **Kopfbedeckung & Maske:** Abgetragene **Uschanka / Trappermütze („Ohrenhaube“)** mit herabhängenden Ohrenklappen + klassische **Filtermaske mit Schraubfilter** (im Bunker lässig um den Hals getragen).
+  - **Kleidung:** Dunkelgrauer, gewachster Arbeits-Trenchcoat mit hochgeschlagenem Kragen über grobem Rollkragenpullover (Erbstück von František). Der wuchtige Mantel unterstreicht die schlanke, verletzliche Statur.
+  - **Ausrüstung:** Breite Lederkoppel, fingerlose Arbeitshandschuhe, feste Schachtstiefel.
+  - **Weibliche Variante:** Anatomisch leicht angepasst und dezent tailliert, bei 100%iger Beibehaltung der wetterfesten, abgewetzten Bunker-Funktionalität.
+- **Dokumentation:** In [`story.md`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/docs/story.md) eingepflegt als visuelle Vorgabe für 3D-Modellierung und Texturierung.

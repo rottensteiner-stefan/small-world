@@ -139,6 +139,17 @@
     *   *Kultureller & Historischer Bogen*:
         *   Der Großvater (**František**, geb. ~2005, also Mitte 40 beim Atomschlag) trug noch den traditionellen tschechischen Vornamen der böhmischen Vorfahren. Als bereits etablierter Erwachsener mit eigener Vorkriegs-Karriere ist er 2100, mit knapp 95 Jahren, der letzte lebende Zeuge der echten alten Welt – ihr Verlust wiegt entsprechend schwer.
         *   Der Sohn/Vater (**Fritz**, die Zwischengeneration im Bunker) wuchs bereits als vollintegrierter Wiener Junge mit typischem Wiener Spitznamen auf.
+    *   *Statur, Physis & Ausstrahlung*:
+        *   *Körperbau*: Tendenziell schlank, drahtig, fast etwas hager – geprägt von 20 Jahren Mangelernährung, künstlicher UV-Beleuchtung und dem kargen Leben in den engen Wartungsschächten des Flakturms. Keine heroischen Muskelberge.
+        *   *Ausstrahlung*: Macht einen eher melancholischen, traurigen und suchenden Eindruck als furchteinflößend („a armer Hund im Bunker“). 
+        *   *Visuelle Wirkung*: Der schwere Arbeits-Trenchcoat und die herabhängenden Ohrenklappen der Uschanka wirken an der schlanken Gestalt fast eine Nuance zu wuchtig – was die Verletzlichkeit und Isolation in der monumentalen Betonwelt visuell perfekt verstärkt.
+    *   *Visuelles Design & Kleidung („Der Schacht-Trench / Rohr-Inspektor“)*:
+        *   *Kopfbedeckung*: Eine abgetragene **Uschanka / Trappermütze („Ohrenhaube“)** mit langen, herunterhängenden Stoff-/Fell-Ohrenklappen – verleiht Novotny eine markante, leicht schrullige Wiener Silhouette.
+        *   *Atemschutz*: Eine klassische **Filtermaske mit rundem Schraubfilter** (im Bunker lässig um den Hals gehängt; in toxischen Außenzonen / Sektor 0 vors Gesicht gespannt mit runden Glasglotzaugen).
+        *   *Hauptkleidung*: Ein knielanger, schwerer Arbeits-Trenchcoat aus dunkelgrauem, gewachstem Vorkriegs-Loden mit hochgeschlagenem Kragen gegen die feuchte Bunkerkälte. Die Silhouette ist markant und bietet durch die wehenden Mantelschöße eine dynamische Bewegung in der 2.5D- und Iso-Perspektive.
+        *   *Darunter*: Ein grob gestrickter, abgewetzter Rollkragenpullover (Erbstück von Großvater František) in verwaschenem Dunkelblau oder Senfgelb über einer festen, dunkelgrauen Schacht-Arbeiterhose.
+        *   *Ausrüstung & Details*: Breite Lederkoppel mit Messingschnalle, robuste Schachtstiefel mit Profilsohle, fingerlose Arbeitshandschuhe.
+        *   *Geschlechts-Adaption*: Bei Wahl einer weiblichen Hauptfigur bleibt die praktische, abgewetzte Bunker-Ästhetik $100\%$ identisch, mit dezent tailliertem Schnitt und leicht angepassten anatomischen Proportionen ohne unpraktische Klischees.
     *   *Das Schicksal der Eltern (Ungeschminkte Endzeit-Realität)*:
         *   *Mutter (Elena Novotny)*: Starb früh an der chronischen „Bunkergrippe/Lungenfäule“ durch verunreinigte Umluft-Filter im feuchten Flakturm-Winter – eine alltägliche Tragödie des Mangels an echten Medikamenten.
         *   *Vater (Fritz Novotny)*: Gehörte in den 2080ern zu den frühen AZS-Kanalspähern. Sein 4-köpfiger Bergungstrupp kehrte von einer Erkundung der U-Bahn-Schächte Richtung Stadtpark/Wienfluss nie zurück. Die Akte vermerkt trocken: *„Status: Vermisst im Dienst (§ 8 Verschollenheitsgesetz)“*.
