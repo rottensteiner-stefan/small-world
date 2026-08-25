@@ -17,13 +17,13 @@ import { AbstractShowcase } from "../../src/core/index.js";
 import { GltfLoader } from "../../src/loaders/GltfLoader.js";
 
 /** The background plane's world extent -- the only place a (u, v) stage coordinate is ever
- * turned into a 3D position. See `IsoExploreScene._uvToWorld`. */
+ * turned into a 3D position. See `AndNowScene2._uvToWorld`. */
 const BACKGROUND_WIDTH = 16;
 const BACKGROUND_HEIGHT = 9;
 const BACKGROUND_CENTER_Y = 4.5;
 const BACKGROUND_Z = 0;
 
-class IsoExploreScene extends AbstractShowcase {
+class AndNowScene2 extends AbstractShowcase {
   private _novotny!: Object3D;
   private _movementBehavior!: StageMovementBehavior;
   private _pointLight!: PointLight;
@@ -83,7 +83,7 @@ class IsoExploreScene extends AbstractShowcase {
     try {
       bgTex = await Texture.fromUrl("/assets/and-now/flakturm_bg.webp", { flipY: true });
     } catch (e) {
-      console.warn("IsoExplore: Konnte Hintergrund nicht laden", e);
+      console.warn("[AndNowScene2] Konnte Hintergrund nicht laden:", e);
     }
 
     const bgGeo = new Plane({
@@ -147,7 +147,7 @@ class IsoExploreScene extends AbstractShowcase {
       try {
         charDiffuse = await Texture.fromUrl("/assets/and-now/mannequin.fbm/Ch36_1001_Diffuse.png");
       } catch (err) {
-        console.warn("[IsoExplore] Konnte Mannequin-Texturen nicht laden:", err);
+        console.warn("[AndNowScene2] Konnte Mannequin-Texturen nicht laden:", err);
       }
 
       const applyMaterialToHierarchy = (obj: Object3D): void => {
@@ -189,7 +189,7 @@ class IsoExploreScene extends AbstractShowcase {
           this._mixer.clipAction(activeClip).play();
         }
       } catch (animErr) {
-        console.warn("[IsoExplore] Konnte Idle Animation nicht laden:", animErr);
+        console.warn("[AndNowScene2] Konnte Idle Animation nicht laden:", animErr);
       }
     } catch (e) {
       console.error(e);
@@ -537,5 +537,5 @@ class IsoExploreScene extends AbstractShowcase {
   }
 }
 
-const app = new IsoExploreScene({ rendererType: RendererType.WEB_GL2 });
-app.start().catch((err: unknown) => console.error("[IsoExplore] Failed to start:", err));
+const app = new AndNowScene2({ rendererType: RendererType.WEB_GL2 });
+app.start().catch((err: unknown) => console.error("[AndNowScene2] Failed to start:", err));

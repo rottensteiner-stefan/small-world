@@ -12,9 +12,20 @@ void main() {
   vec3 normalMapValue = texture(u_normalMap, v_uv).rgb;
   vec3 normalMap = normalize(normalMapValue * 2.0 - 1.0);
   normalMap.xy *= u_extraParams.zw;
-  vec3 N = normalize(v_tbn * normalMap);
+  vec3 N = v_tbn * normalMap;
+  if (dot(N, N) < 0.0001) {
+    N = v_normal;
+  }
+  if (dot(N, N) < 0.0001) {
+    N = vec3(0.0, 0.0, 1.0);
+  }
+  N = normalize(N);
 #else
-  vec3 N = normalize(v_normal);
+  vec3 N = v_normal;
+  if (dot(N, N) < 0.0001) {
+    N = vec3(0.0, 0.0, 1.0);
+  }
+  N = normalize(N);
 #endif
 
   [LIGHT_CALC]

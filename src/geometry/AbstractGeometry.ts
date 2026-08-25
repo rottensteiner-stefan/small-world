@@ -301,10 +301,14 @@ export abstract class AbstractGeometry implements Geometry {
       const ny: number = this._normals[i + 1] ?? 0;
       const nz: number = this._normals[i + 2] ?? 0;
       const len: number = Math.sqrt(nx * nx + ny * ny + nz * nz);
-      if (0 < len) {
+      if (0.00001 < len) {
         this._normals[i] = nx / len;
         this._normals[i + 1] = ny / len;
         this._normals[i + 2] = nz / len;
+      } else {
+        this._normals[i] = 0;
+        this._normals[i + 1] = 1;
+        this._normals[i + 2] = 0;
       }
     }
   }

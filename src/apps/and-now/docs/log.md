@@ -275,3 +275,14 @@ befüllen.
   - Verifiziert die exakte Feld-Gleichheit des `GlobalUniforms` UBOs im AST-Vergleich zwischen VS und FS.
   - Simuliert den GLSL-Präprozessor und sichert das Sampler-Budget $(\le 16)$ für jedes Material ab.
 - **Status:** 74 Testsuiten mit 426 Unit Tests 100% grün (`npm run test`, `npm run lint:fix`, `npm run build:lib`).
+
+## 37. Die große Entwirrung: 2.5D-Bühnen-Architektur & Szenen-Struktur (2026-08-25)
+- **Klärung der Dual-Perspektive:**
+  - Trennung zwischen dem echten isometrischen Modus (Erkundung der Oberwelt/Straßen) und dem 2.5D-Bühnenmodus (Bunker-Schnittmodelle & Kammerszenen).
+- **Bereinigung des 2.5D-Bühnensystems:**
+  - `StageZone` und `StageMovementBehavior` arbeiten nun auf reinen 2D-Bildkoordinaten `(u, v)` (0..1) ohne künstliche 3D-Unprojektionen oder Kamera-Horizon-Abhängigkeiten.
+  - Zonen-Sliding und lokale Bewegungsachsen laufen direkt im 2D-Polygon-Raum.
+- **Szenen-Umbenennung:**
+  - `showcases/andNowIso` wurde sauber nach `showcases/andNowScene2` umbenannt (Klasse `AndNowScene2`).
+  - Die Eröffnungsszene (Großvaters Tod in Koje 42) ist als `andNowScene1` (Prolog) im Hub verankert.
+- **Status:** Build und Testsuite laufen 100% grün (75 Testdateien, 439 Unit Tests).

@@ -26,7 +26,11 @@ void main() {
 
   vec4 wp = modelMat * localPos;
   v_worldPos = wp.xyz;
-  v_normal = normalize(mat3(modelMat) * localNormal);
+  vec3 computedNormal = mat3(modelMat) * localNormal;
+  if (dot(computedNormal, computedNormal) < 0.0001) {
+    computedNormal = vec3(0.0, 1.0, 0.0);
+  }
+  v_normal = normalize(computedNormal);
   v_uv = (a_uv * u_texRepeat) + u_texOffset;
 
   vec3 tangent = localTangent;

@@ -152,7 +152,7 @@ export default defineConfig({
         showcase30: resolve(import.meta.dirname, "showcases/30/index.html"),
         andNowHub: resolve(import.meta.dirname, "src/apps/and-now/index.html"),
         andNowPrologue: resolve(import.meta.dirname, "src/apps/and-now/scenes/prologue/index.html"),
-        andNowIso: resolve(import.meta.dirname, "showcases/andNowIso/index.html"),
+        andNowScene2: resolve(import.meta.dirname, "showcases/andNowScene2/index.html"),
         yad: resolve(import.meta.dirname, "showcases/yad/index.html"),
         neonLabyrinth: resolve(import.meta.dirname, "showcases/neon-labyrinth/index.html"),
         lightCycleArena: resolve(import.meta.dirname, "showcases/light-cycle-arena/index.html"),

@@ -7,9 +7,20 @@ void main() {
 #ifdef USE_NORMAL_MAP
   vec3 rawNormal = texture(u_normalMap, v_uv).rgb * 2.0 - 1.0;
   rawNormal.xy *= u_extraParams.zw;
-  vec3 N = normalize(v_tbn * rawNormal);
+  vec3 N = v_tbn * rawNormal;
+  if (dot(N, N) < 0.0001) {
+    N = v_normal;
+  }
+  if (dot(N, N) < 0.0001) {
+    N = vec3(0.0, 0.0, 1.0);
+  }
+  N = normalize(N);
 #else
-  vec3 N = normalize(v_normal);
+  vec3 N = v_normal;
+  if (dot(N, N) < 0.0001) {
+    N = vec3(0.0, 0.0, 1.0);
+  }
+  N = normalize(N);
 #endif
 
   [LIGHT_CALC]
