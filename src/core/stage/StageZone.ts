@@ -85,6 +85,21 @@ export class StageZone {
     return false;
   }
 
+  private _closestPointOnSegment(
+    pu: number,
+    pv: number,
+    u1: number,
+    v1: number,
+    u2: number,
+    v2: number,
+  ): { u: number; v: number } {
+    const l2 = (u2 - u1) * (u2 - u1) + (v2 - v1) * (v2 - v1);
+    if (l2 === 0) return { u: u1, v: v1 };
+    let t = ((pu - u1) * (u2 - u1) + (pv - v1) * (v2 - v1)) / l2;
+    t = Math.max(0, Math.min(1, t));
+    return { u: u1 + t * (u2 - u1), v: v1 + t * (v2 - v1) };
+  }
+
   private _distToSegmentSquared(
     pu: number,
     pv: number,
@@ -93,13 +108,33 @@ export class StageZone {
     u2: number,
     v2: number,
   ): number {
-    const l2 = (u2 - u1) * (u2 - u1) + (v2 - v1) * (v2 - v1);
-    if (l2 === 0) return (pu - u1) * (pu - u1) + (pv - v1) * (pv - v1);
-    let t = ((pu - u1) * (u2 - u1) + (pv - v1) * (v2 - v1)) / l2;
-    t = Math.max(0, Math.min(1, t));
-    const projU = u1 + t * (u2 - u1);
-    const projV = v1 + t * (v2 - v1);
-    return (pu - projU) * (pu - projU) + (pv - projV) * (pv - projV);
+    const proj = this._closestPointOnSegment(pu, pv, u1, v1, u2, v2);
+    return (pu - proj.u) * (pu - proj.u) + (pv - proj.v) * (pv - proj.v);
+  }
+
+  /**
+   * Returns the closest point to (u, v) that actually lies on this zone's polygon -- itself if
+   * already inside, otherwise the nearest point on its perimeter. Used to pin a character to a
+   * zone's drawn boundary instead of letting it linger at a coordinate just outside every zone
+   * (which `containsPoint`'s edge tolerance alone would otherwise allow).
+   */
+  public clampToPolygon(u: number, v: number): { u: number; v: number } {
+    if (this.containsPoint(u, v)) return { u, v };
+
+    const pts = this.points;
+    let bestDistSq = Infinity;
+    let best = { u, v };
+    for (let i = 0; i < pts.length; i++) {
+      const p1 = pts[i]!;
+      const p2 = pts[(i + 1) % pts.length]!;
+      const proj = this._closestPointOnSegment(u, v, p1.u, p1.v, p2.u, p2.v);
+      const dSq = (u - proj.u) * (u - proj.u) + (v - proj.v) * (v - proj.v);
+      if (dSq < bestDistSq) {
+        bestDistSq = dSq;
+        best = proj;
+      }
+    }
+    return best;
   }
 
   /**

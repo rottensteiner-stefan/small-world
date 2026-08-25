@@ -137,39 +137,37 @@ export class StageMovementBehavior extends Behavior {
       const desiredU = this._u + dirU * this.speed * deltaTime;
       const desiredV = this._v + dirV * this.speed * deltaTime;
 
-      // 4. Zone containment and slide collision check
-      let targetZone = this._findZone(desiredU, desiredV);
-      let nextU = this._u;
-      let nextV = this._v;
+      // 4. Zone containment and slide collision check. A move that lands just outside every
+      // zone (but within the edge tolerance) is clamped onto the nearest zone's own boundary
+      // instead of being accepted as-is -- otherwise holding a direction key lets the position
+      // creep past a zone's drawn edge (e.g. the tunnel's far end, which has no neighboring zone
+      // to catch it) into unwalkable art, and the scale falls back to a flat 4-corner average
+      // the instant it leaves the interpolation triangles, producing a visible jump.
+      let move = this._resolveMove(desiredU, desiredV);
+      if (!move) move = this._resolveMove(desiredU, this._v); // slide along U
+      if (!move) move = this._resolveMove(this._u, desiredV); // slide along V
 
-      if (targetZone) {
-        nextU = desiredU;
-        nextV = desiredV;
-      } else {
-        // Slide along U
-        const slideUZone = this._findZone(desiredU, this._v);
-        if (slideUZone) {
-          nextU = desiredU;
-          targetZone = slideUZone;
-        } else {
-          // Slide along V
-          const slideVZone = this._findZone(this._u, desiredV);
-          if (slideVZone) {
-            nextV = desiredV;
-            targetZone = slideVZone;
-          }
-        }
-      }
+      const nextU = move?.u ?? this._u;
+      const nextV = move?.v ?? this._v;
+      const targetZone = move?.zone;
 
-      // 5. Smooth rotation towards the resulting world-space movement direction (computed via
-      // uvToWorld, so it reflects whatever depth cue that mapping gives -- not a stage-space
-      // angle, since (u, v) alone has no notion of "facing").
+      // 5. Smooth rotation towards the resulting movement direction. Left/right turning comes
+      // from the real world-space X delta (via uvToWorld); "facing into" vs. "facing out of" the
+      // scene comes from the change in forced-perspective scale instead of world-space Z --
+      // uvToWorld intentionally keeps a constant Z (see its own docs), so a pure "walk deeper"
+      // move has no world Z delta to turn on, but it always shrinks the scale, which is already
+      // the same depth cue faked for size. Growing scale (walking back out) turns the character
+      // back towards the camera.
       const beforeWorld = this._uvToWorld(this._u, this._v);
       const afterWorld = this._uvToWorld(nextU, nextV);
       const worldDx = afterWorld.x - beforeWorld.x;
-      const worldDz = afterWorld.z - beforeWorld.z;
-      if (worldDx * worldDx + worldDz * worldDz > 0.000001) {
-        this._targetAngle = Math.atan2(worldDx, worldDz);
+
+      const beforeScale = this.activeZone?.getScaleAt(this._u, this._v) ?? 1.0;
+      const afterScale = (targetZone ?? this.activeZone)?.getScaleAt(nextU, nextV) ?? beforeScale;
+      const depthDelta = afterScale - beforeScale;
+
+      if (worldDx * worldDx + depthDelta * depthDelta > 0.000001) {
+        this._targetAngle = Math.atan2(worldDx, depthDelta);
       }
       let angleDiff = this._targetAngle - obj.rotation.y;
       while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
@@ -199,22 +197,44 @@ export class StageMovementBehavior extends Behavior {
   }
 
   /**
-   * Finds the StageZone containing the given (u, v) coordinates.
+   * Finds the StageZone containing the given (u, v) coordinates, used only to seed the initial
+   * active zone. Movement itself goes through `_resolveMove`, which also clamps onto the zone.
    */
   private _findZone(u: number, v: number): StageZone | undefined {
-    if (this.zones.length === 0) return undefined;
-    // 1. Exact containment test
-    for (const zObj of this.zones) {
-      if (zObj.containsPoint(u, v)) {
-        return zObj;
-      }
+    for (const zone of this.zones) {
+      if (zone.containsPoint(u, v)) return zone;
     }
-    // 2. Edge tolerance fallback for smooth transition across adjoining zone boundaries
-    for (const zObj of this.zones) {
-      if (zObj.containsPoint(u, v, 0.015)) {
-        return zObj;
-      }
+    for (const zone of this.zones) {
+      if (zone.containsPoint(u, v, 0.015)) return zone;
     }
     return undefined;
+  }
+
+  /**
+   * Resolves a candidate move to a zone and a position actually on that zone. A point already
+   * inside a zone is returned unchanged; a point just outside every zone (within the edge
+   * tolerance -- bridging a small gap between adjoining zones, or the far end of a zone with
+   * nothing beyond it) is clamped onto the closest such zone's own boundary via
+   * `StageZone.clampToPolygon`, so the character position is always a real point on a drawn
+   * zone, never floating in an undefined area just past one.
+   */
+  private _resolveMove(
+    u: number,
+    v: number,
+  ): { zone: StageZone; u: number; v: number } | undefined {
+    for (const zone of this.zones) {
+      if (zone.containsPoint(u, v)) return { zone, u, v };
+    }
+
+    let best: { zone: StageZone; u: number; v: number; distSq: number } | undefined;
+    for (const zone of this.zones) {
+      if (!zone.containsPoint(u, v, 0.015)) continue;
+      const clamped = zone.clampToPolygon(u, v);
+      const distSq = (u - clamped.u) * (u - clamped.u) + (v - clamped.v) * (v - clamped.v);
+      if (!best || distSq < best.distSq) {
+        best = { zone, u: clamped.u, v: clamped.v, distSq };
+      }
+    }
+    return best;
   }
 }

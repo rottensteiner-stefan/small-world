@@ -79,6 +79,16 @@ describe("StageZone", () => {
     expect(Math.abs(dot)).toBeLessThan(0.1);
   });
 
+  it("should clamp an inside point to itself", () => {
+    expect(zone.clampToPolygon(0.5, 0.5)).toEqual({ u: 0.5, v: 0.5 });
+  });
+
+  it("should clamp an outside point onto the nearest edge of the polygon", () => {
+    const clamped = zone.clampToPolygon(1.2, 0.5);
+    expect(clamped.u).toBeCloseTo(1.0, 5);
+    expect(clamped.v).toBeCloseTo(0.5, 5);
+  });
+
   it("should fall back to image axes when a zone collapses to a single point", () => {
     const degenerateZone = new StageZone({
       id: "test_degenerate",
