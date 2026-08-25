@@ -22,17 +22,238 @@
         left: 20px;
         color: #fff;
         text-decoration: none;
-        font-family: sans-serif;
-        background: rgba(0,0,0,0.5);
-        padding: 10px;
-        border-radius: 5px;
+        font-family: 'Courier New', monospace;
+        font-size: 13px;
+        background: rgba(10, 15, 20, 0.75);
+        padding: 8px 14px;
+        border-radius: 4px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
         z-index: 10;
+        backdrop-filter: blur(4px);
+        transition: background 0.2s;
+      }
+      #backBtn:hover {
+        background: rgba(255, 180, 50, 0.3);
+        border-color: rgba(255, 180, 50, 0.8);
+      }
+      #hud {
+        position: absolute;
+        bottom: 20px;
+        left: 20px;
+        right: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        pointer-events: none;
+        font-family: 'Courier New', monospace;
+        color: #eaeaea;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9);
+        z-index: 10;
+      }
+      .hud-panel {
+        background: rgba(10, 15, 20, 0.75);
+        padding: 12px 18px;
+        border-radius: 6px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(6px);
+      }
+      .hud-title {
+        font-size: 14px;
+        font-weight: bold;
+        color: #ffb84d;
+        letter-spacing: 1px;
+        margin-bottom: 4px;
+      }
+      .hud-desc {
+        font-size: 12px;
+        color: #a0b0b8;
+      }
+      .hud-zone {
+        display: inline-block;
+        background: rgba(70, 190, 120, 0.25);
+        color: #5cf095;
+        border: 1px solid rgba(92, 240, 149, 0.5);
+        padding: 2px 8px;
+        border-radius: 3px;
+        font-size: 11px;
+        font-weight: bold;
+        margin-top: 6px;
+      }
+
+      /* --- Visual Zone Editor Styles --- */
+      #editorSvgOverlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        pointer-events: none;
+        z-index: 5;
+        display: none;
+      }
+      .handle-circle {
+        pointer-events: all;
+        cursor: grab;
+        fill: #ffb84d;
+        stroke: #fff;
+        stroke-width: 2px;
+        transition: r 0.15s, fill 0.15s;
+      }
+      .handle-circle:hover, .handle-circle.active {
+        r: 10;
+        fill: #ff4d4d;
+        cursor: grabbing;
+      }
+      .handle-label {
+        font-family: 'Courier New', monospace;
+        font-size: 12px;
+        font-weight: bold;
+        fill: #fff;
+        text-shadow: 0 1px 3px #000;
+        pointer-events: none;
+      }
+      .zone-polygon {
+        fill: rgba(255, 184, 77, 0.18);
+        stroke: #ffb84d;
+        stroke-width: 2px;
+        stroke-dasharray: 4;
+        pointer-events: none;
+      }
+
+      #editorPanel {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        width: 320px;
+        background: rgba(12, 18, 26, 0.9);
+        border: 1px solid rgba(255, 184, 77, 0.4);
+        border-radius: 8px;
+        padding: 16px;
+        color: #eaeaea;
+        font-family: 'Courier New', monospace;
+        z-index: 20;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(8px);
+        display: none;
+      }
+      #editorPanel h3 {
+        margin: 0 0 10px 0;
+        font-size: 14px;
+        color: #ffb84d;
+        letter-spacing: 1px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .zone-btn-group {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 12px;
+      }
+      .zone-btn {
+        flex: 1;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: #bbb;
+        padding: 6px 4px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .zone-btn#btnZoneA.active {
+        background: rgba(56, 189, 248, 0.25);
+        border-color: #38bdf8;
+        color: #38bdf8;
+      }
+      .zone-btn#btnZoneB.active {
+        background: rgba(74, 222, 128, 0.25);
+        border-color: #4ade80;
+        color: #4ade80;
+      }
+      .zone-btn#btnZoneC.active {
+        background: rgba(251, 191, 36, 0.25);
+        border-color: #fbbf24;
+        color: #fbbf24;
+      }
+      .point-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 6px;
+        font-size: 11px;
+        background: rgba(0, 0, 0, 0.3);
+        padding: 4px 8px;
+        border-radius: 4px;
+      }
+      .point-coords {
+        color: #88c0d0;
+      }
+      .copy-btn {
+        width: 100%;
+        margin-top: 12px;
+        background: #ffb84d;
+        border: none;
+        color: #111;
+        padding: 8px;
+        font-weight: bold;
+        font-family: inherit;
+        font-size: 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+      .copy-btn:hover {
+        background: #ffa726;
       }
     </style>
   </head>
   <body>
     <a href="../../src/apps/and-now/index.html" id="backBtn">← Zurück zum Hub</a>
     <canvas id="SmallWorld"></canvas>
+
+    <!-- Visual SVG Editor Overlay: renders all zones directly in image-space, no camera math -->
+    <svg id="editorSvgOverlay">
+      <g id="editorPolygonsGroup"></g>
+      <g id="editorHandles"></g>
+    </svg>
+
+    <!-- Editor Control Panel -->
+    <div id="editorPanel">
+      <h3>
+        <span>🛠️ 2.5D BÜHNEN-EDITOR</span>
+        <span style="font-size: 11px; color: #888;">[Taste E]</span>
+      </h3>
+      <div style="font-size: 11px; color: #aaa; margin-bottom: 10px;">
+        Verschiebe Zonen-Ecken direkt auf dem Bild -- die Fläche ist genau das, was du siehst.
+      </div>
+      <div class="zone-btn-group">
+        <button class="zone-btn" id="btnZoneA" style="border-left: 3px solid #38bdf8;">A: Vorplatz</button>
+        <button class="zone-btn active" id="btnZoneB" style="border-left: 3px solid #4ade80;">B: Tunnel</button>
+        <button class="zone-btn" id="btnZoneC" style="border-left: 3px solid #fbbf24;">C: Treppe</button>
+      </div>
+
+      <div id="pointsList"></div>
+
+      <div style="display: flex; gap: 6px; margin-top: 12px;">
+        <button class="copy-btn" id="copyConfigBtn" style="margin-top: 0; flex: 2;">📋 Kopieren</button>
+        <button class="copy-btn" id="resetConfigBtn" style="margin-top: 0; flex: 1; background: rgba(255,255,255,0.15); color: #fff;">🔄 Reset</button>
+      </div>
+    </div>
+
+    <div id="hud">
+      <div class="hud-panel">
+        <div class="hud-title">FLAKTURM ARENBERGPARK // TUNNELEINGANG</div>
+        <div class="hud-desc">Novotny ermittelt auf der 2.5D-Bühne</div>
+        <div class="hud-zone" id="zoneBadge">ZONE A: HAUPTBÜHNE</div>
+      </div>
+      <div class="hud-panel" style="text-align: right;">
+        <div class="hud-title">STEUERUNG</div>
+        <div class="hud-desc">[W][A][S][D] / [PFEILTASTEN] Bewegen & Drehen</div>
+        <div class="hud-desc" style="margin-top: 4px; color: #ffb84d;">[E] Bühnen-Editor an/aus</div>
+      </div>
+    </div>
     <script type="module" src="./showcase.ts"></script>
   </body>
 </html>
