@@ -36,6 +36,12 @@ This document serves to record external sources, algorithms, mathematical deriva
 - **Source:** [Octree Encoding: A New Solid Representation for Computer Graphics](https://rpi.edu/)
 - **Usage:** Used as the fundamental spatial acceleration structure for the engine. It recursively divides 3D space into eight octants, allowing collision detection, frustum culling, and raycasting (picking) to operate in $O(\log n)$ time instead of $O(n)$, drastically improving performance in scenes with many objects.
 
+### `AxesHelper` (3D Cartesian Coordinate System Visualization)
+
+- **File:** `src/core/helpers/AxesHelper.ts`
+- **Source:** Standard Computer Graphics RGB Coordinate Convention ($+X$ = Red, $+Y$ = Green, $+Z$ = Blue) and OpenGL Right-Handed System.
+- **Usage:** Visualizes local and world coordinate systems using neon unlit cylinder shafts, cone arrowheads, and camera-facing billboarded text labels (`Sprite` + `TextTexture`). Integrated into `GadgetInspector` to visually track scene origin and animated bone transforms in real time.
+
 ## Physics & Collision Detection
 
 ### Gravitational Lensing (Black Hole Shadow & Einstein Ring)
@@ -257,10 +263,17 @@ This document serves to record external sources, algorithms, mathematical deriva
 
 ### Mixamo Mannequin (Rigged Proxy Character)
 
-- **File:** `public/assets/and-now/mannequin.glb`
+- **File:** `src/apps/and-now/raw/mannequin/mannequin.glb`
 - **Authors/Gurus:** Mixamo / Adobe
 - **Source:** [Mixamo Characters](https://www.mixamo.com/#/?page=1&query=Mannequin&type=Character)
-- **Usage:** Serves as the primary 3D dummy/proxy character for early movement prototyping and animation testing in the "And Now?" app, allowing robust iteration on the 2.5D and isometric controllers without the performance penalty of complex PBR textures.
+- **Usage:** Served as the initial 3D dummy/proxy character for early movement prototyping and animation testing in the "And Now?" app, allowing robust iteration on the 2.5D and isometric controllers.
+
+### Novotny (Protagonist Character Rig & Motion Clips)
+
+- **File:** `public/assets/and-now/mannequin/novotny-female.glb`, `public/assets/and-now/mannequin/*.glb`, `src/apps/and-now/raw/mannequin/`
+- **Authors/Gurus:** Adobe Mixamo (Auto-Rigging & Animation Library)
+- **Source:** [Adobe Mixamo](https://www.mixamo.com/)
+- **Usage:** Provides the rigged skeletal hierarchy (`mixamorig:LeftHand`, spine, limbs) and converted binary glTF motion clips (`idle_torch.glb`, `standing_torch_walk_forward.glb`, `ascending_stairs.glb`) driving the protagonist Novotny in the "And Now?" bunker prologue scene.
 
 ## Shaders & Procedural Art
 

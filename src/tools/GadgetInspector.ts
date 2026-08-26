@@ -7,6 +7,7 @@ import {
   DeviceFeature,
   DeviceLimit,
   FrustumCuller,
+  AxesHelper,
 } from "../core/index.js";
 import { BoundingType } from "../enums/index.js";
 import { CameraInterfaceData, Renderer } from "../interfaces/index.js";
@@ -15,7 +16,7 @@ import { WireframeMaterial } from "../core/materials/index.js";
 import { Color } from "../core/colors/index.js";
 import { Raycaster, BoundingBox, BoundingSphere } from "../physix/index.js";
 import { Cube } from "../geometry/index.js";
-import { Vector2D, Vector3D } from "../math/index.js";
+import { Vector2D, Vector3D, MathPool } from "../math/index.js";
 import { ForgeTool, ForgeToolOptions } from "./forge/ForgeTool.js";
 
 /** Minimal shape shared by Tweakpane binding APIs — only what this file actually calls. */
@@ -38,8 +39,16 @@ export class GadgetInspector extends ForgeTool {
   private _mouse = new Vector2D();
   private _selectedObject: Object3D | null = null;
   private _highlightMesh: Object3D;
+  private _worldAxes: AxesHelper;
+  private _objectAxes: AxesHelper;
+  private _axesSettings = {
+    showWorldAxes: false,
+    showObjectAxes: false,
+    axesScale: 1.0,
+  };
   private _sceneTab!: TabPageApi;
-  private _folder: FolderApi | null = null;
+  private _selectedFolder!: FolderApi;
+  private _selectedBlades: DisposableBlade[] = [];
 
   private _stats = {
     renderer: "None",
@@ -107,12 +116,44 @@ export class GadgetInspector extends ForgeTool {
     const renderTab = tabs.pages[3]!;
     const audioTab = tabs.pages[4]!;
 
-    // Scene overview: a grouped, capped outliner -- NOT a flat per-instance list, since a
-    // scene can easily have thousands of near-identical objects (particles, drones, ...).
-    // Objects are grouped by name with a trailing separator+number stripped (e.g. "Drone42"
-    // and "Drone43" both become "Drone"), so a swarm collapses into a single "Drone (120)"
-    // row instead of 120 individual entries. Clicking a row selects one representative.
-    this._overviewFolder = this._sceneTab.addFolder({ title: "Objects", expanded: true });
+    // 1. Permanent Selected Object Folder at the TOP of Scene Tab
+    this._selectedFolder = this._sceneTab.addFolder({
+      title: "🎯 No Object Selected",
+      expanded: true,
+    });
+
+    // 2. Helpers & Gizmos folder
+    const helpersFolder = this._sceneTab.addFolder({
+      title: "📐 Helpers & Gizmos",
+      expanded: false,
+    });
+    helpersFolder
+      .addBinding(this._axesSettings, "showWorldAxes", { label: "World Axes" })
+      .on("change", (ev: { value: boolean }) => {
+        this._worldAxes.isVisible = ev.value;
+      });
+    helpersFolder
+      .addBinding(this._axesSettings, "showObjectAxes", { label: "Object Axes" })
+      .on("change", (ev: { value: boolean }) => {
+        this._objectAxes.isVisible = ev.value && null !== this._selectedObject;
+      });
+    helpersFolder
+      .addBinding(this._axesSettings, "axesScale", {
+        label: "Axes Scale",
+        min: 0.1,
+        max: 5.0,
+        step: 0.1,
+      })
+      .on("change", (ev: { value: number }) => {
+        this._worldAxes.scale.set(ev.value, ev.value, ev.value);
+        this._objectAxes.scale.set(ev.value, ev.value, ev.value);
+      });
+
+    // 3. Scene overview: collapsible outliner
+    this._overviewFolder = this._sceneTab.addFolder({
+      title: "📚 Scene Outliner",
+      expanded: false,
+    });
     this._refreshOverview();
 
     // Add Search Object feature
@@ -335,14 +376,33 @@ export class GadgetInspector extends ForgeTool {
     this._highlightMesh.isVisible = false;
     this._scene.add(this._highlightMesh);
 
+    // 2.1 Create Coordinate Axes Helpers (Neon X-Red, Y-Green, Z-Blue)
+    this._worldAxes = new AxesHelper({ size: 2.0 });
+    this._worldAxes.name = "InspectorWorldAxes";
+    this._worldAxes.isVisible = false;
+    this._scene.add(this._worldAxes);
+
+    this._objectAxes = new AxesHelper({ size: 1.0 });
+    this._objectAxes.name = "InspectorObjectAxes";
+    this._objectAxes.isVisible = false;
+    this._scene.add(this._objectAxes);
+
     // 3. Setup Interaction
     this._canvas.addEventListener("pointerdown", (event: PointerEvent) => {
       // Pick directly if the inspector is visible
-      if ("none" === this._pane.element.style.display) {
+      if (!this.isInspectorOpen()) {
         return;
       }
 
       this._onPointerDown(event);
+    });
+
+    this._canvas.addEventListener("dblclick", (event: MouseEvent) => {
+      if (!this.isInspectorOpen()) {
+        return;
+      }
+
+      this._onDoubleClick(event);
     });
   }
 
@@ -362,7 +422,13 @@ export class GadgetInspector extends ForgeTool {
     list: Object3D[] = [],
     includeHidden: boolean = false,
   ): Object3D[] {
-    if (parent === this._highlightMesh) return list;
+    if (
+      parent === this._highlightMesh ||
+      parent === this._worldAxes ||
+      parent === this._objectAxes
+    ) {
+      return list;
+    }
 
     if (includeHidden || parent.isVisible) {
       if (parent.geometry) {
@@ -480,12 +546,64 @@ export class GadgetInspector extends ForgeTool {
     }
   }
 
+  private _onDoubleClick(event: MouseEvent): void {
+    // Only pick on left click
+    if (0 !== event.button) {
+      return;
+    }
+
+    const rect = this._canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+
+    // Convert to NDC (-1 to +1)
+    this._mouse.x = (x / rect.width) * 2 - 1;
+    this._mouse.y = -(y / rect.height) * 2 + 1;
+
+    // Raycast
+    this._raycaster.setFromCamera(this._mouse, this._camera);
+
+    const pickableObjects: Object3D[] = [];
+    for (const child of this._scene.objects) {
+      this._getAllObjects(child, pickableObjects);
+    }
+
+    const intersects = this._raycaster.intersectObjects(pickableObjects, true);
+
+    if (0 < intersects.length) {
+      const hit = intersects[0]!;
+      this.selectObject(hit.object);
+      this._sceneTab.selected = true;
+      this._selectedFolder.expanded = true;
+      this._selectedFolder.element.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }
+
+  /**
+   * Checks whether the GadgetInspector window/overlay is currently visible.
+   */
+  public isInspectorOpen(): boolean {
+    if (typeof document === "undefined") return false;
+    const overlay = this._container.closest(".swf-forge-overlay") as HTMLElement | null;
+    if (overlay && "none" === overlay.style.display) {
+      return false;
+    }
+    const win = this._container.closest(".swf-window") as HTMLElement | null;
+    if (win && "none" === win.style.display) {
+      return false;
+    }
+    return "none" !== this._pane.element.style.display;
+  }
+
   /**
    * Selects an object and updates the GUI.
    * @param obj The object to select.
    */
   public selectObject(obj: Object3D): void {
     if (this._selectedObject === obj) {
+      this._sceneTab.selected = true;
+      this._selectedFolder.expanded = true;
+      this._selectedFolder.element.scrollIntoView({ behavior: "smooth", block: "nearest" });
       return;
     }
 
@@ -495,8 +613,12 @@ export class GadgetInspector extends ForgeTool {
       obj.computeBounds();
     }
     this._highlightMesh.isVisible = this._syncHighlightMesh(obj);
+    this._objectAxes.isVisible = this._axesSettings.showObjectAxes;
 
     this._buildGUI(obj);
+    this._sceneTab.selected = true;
+    this._selectedFolder.expanded = true;
+    this._selectedFolder.element.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
 
   /**
@@ -541,35 +663,46 @@ export class GadgetInspector extends ForgeTool {
   public deselect(): void {
     this._selectedObject = null;
     this._highlightMesh.isVisible = false;
-    if (this._folder) {
-      this._folder.dispose();
-      this._folder = null;
+    this._objectAxes.isVisible = false;
+    for (const blade of this._selectedBlades) {
+      blade.dispose();
     }
+    this._selectedBlades.length = 0;
+    this._selectedFolder.title = "🎯 No Object Selected";
   }
 
   /**
-   * Rebuilds the Tweakpane UI for the selected object.
+   * Rebuilds the Tweakpane UI for the selected object within the top-level selection folder.
    * @param obj The newly selected object.
    */
   private _buildGUI(obj: Object3D): void {
-    if (this._folder) {
-      this._folder.dispose();
+    for (const blade of this._selectedBlades) {
+      blade.dispose();
     }
+    this._selectedBlades.length = 0;
 
-    // Workaround for Tweakpane Pane type definitions missing addFolder in older versions
-    this._folder = this._sceneTab.addFolder({ title: `Object: ${obj.constructor.name}` });
+    const displayName = obj.name && "" !== obj.name ? obj.name : obj.constructor.name;
+    this._selectedFolder.title = `🎯 ${displayName}`;
+    this._selectedFolder.expanded = true;
 
     if (obj.name && "" !== obj.name) {
-      this._folder.addBinding(obj, "name", { readonly: true, label: "Name" });
+      this._selectedBlades.push(
+        this._selectedFolder.addBinding(obj, "name", { readonly: true, label: "Name" }),
+      );
     }
 
-    const settingsFolder = this._folder.addFolder({ title: "General Settings" });
+    const settingsFolder = this._selectedFolder.addFolder({ title: "General Settings" });
+    this._selectedBlades.push(settingsFolder);
     settingsFolder.addBinding(obj, "isVisible", { label: "Visible" });
     settingsFolder.addBinding(obj, "castShadow", { label: "Cast Shadow" });
     settingsFolder.addBinding(obj, "receiveShadow", { label: "Recv Shadow" });
 
     if (obj.parent || obj.children.length > 0) {
-      const hierarchyFolder = this._folder.addFolder({ title: "Hierarchy", expanded: false });
+      const hierarchyFolder = this._selectedFolder.addFolder({
+        title: "Hierarchy",
+        expanded: false,
+      });
+      this._selectedBlades.push(hierarchyFolder);
 
       if (obj.parent) {
         hierarchyFolder
@@ -592,7 +725,8 @@ export class GadgetInspector extends ForgeTool {
     }
 
     // Transform
-    const transformFolder = this._folder.addFolder({ title: "Transform" });
+    const transformFolder = this._selectedFolder.addFolder({ title: "Transform" });
+    this._selectedBlades.push(transformFolder);
     transformFolder.addBinding(obj.position, "x", { label: "Pos X" });
     transformFolder.addBinding(obj.position, "y", { label: "Pos Y" });
     transformFolder.addBinding(obj.position, "z", { label: "Pos Z" });
@@ -607,7 +741,8 @@ export class GadgetInspector extends ForgeTool {
 
     // Expose material type if available
     if (obj.material) {
-      const matFolder = this._folder.addFolder({ title: "Material" });
+      const matFolder = this._selectedFolder.addFolder({ title: "Material" });
+      this._selectedBlades.push(matFolder);
       matFolder.addBinding(obj.material, "type", { readonly: true });
 
       const mat = obj.material as unknown as Record<string, unknown>;
@@ -657,7 +792,8 @@ export class GadgetInspector extends ForgeTool {
     if ("intensity" in maybeLight && "color" in maybeLight) {
       const lightCol = maybeLight["color"] as Color;
       if (typeof lightCol.r === "number") {
-        const lightFolder = this._folder.addFolder({ title: "Light Properties" });
+        const lightFolder = this._selectedFolder.addFolder({ title: "Light Properties" });
+        this._selectedBlades.push(lightFolder);
 
         const proxy = {
           color: { r: lightCol.r * 255, g: lightCol.g * 255, b: lightCol.b * 255 },
@@ -694,8 +830,7 @@ export class GadgetInspector extends ForgeTool {
               maybeLight["distance"] = ev.value;
               // If it's a SpotLight or PointLight, it might need to update its shadow camera!
               const updateShadowCamera = maybeLight["updateShadowCamera"] as
-                | (() => void)
-                | undefined;
+                (() => void) | undefined;
               if (typeof updateShadowCamera === "function") {
                 updateShadowCamera.call(maybeLight);
               }
@@ -713,7 +848,11 @@ export class GadgetInspector extends ForgeTool {
 
     // Behaviors
     if (obj.behaviors && obj.behaviors.length > 0) {
-      const behaviorsFolder = this._folder.addFolder({ title: "Behaviors", expanded: true });
+      const behaviorsFolder = this._selectedFolder.addFolder({
+        title: "Behaviors",
+        expanded: true,
+      });
+      this._selectedBlades.push(behaviorsFolder);
       for (const behavior of obj.behaviors) {
         const behaviorClass = behavior.constructor as typeof Behavior & {
           inspector?: Record<
@@ -866,6 +1005,19 @@ export class GadgetInspector extends ForgeTool {
         obj.computeBounds();
       }
       this._syncHighlightMesh(obj);
+    }
+
+    if (this._selectedObject && this._objectAxes.isVisible) {
+      const pos = MathPool.acquireVector();
+      const rot = MathPool.acquireVector();
+      const sc = MathPool.acquireVector();
+      this._selectedObject.worldMatrix.decompose(pos, rot, sc);
+      this._objectAxes.position.copyFrom(pos);
+      this._objectAxes.rotation.copyFrom(rot);
+      this._objectAxes.updateMatrixWorld();
+      MathPool.releaseVector(pos);
+      MathPool.releaseVector(rot);
+      MathPool.releaseVector(sc);
     }
   }
 
