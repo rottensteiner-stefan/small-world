@@ -30,4 +30,5 @@ Detailed coding standards, formatting, shader logic, and domain knowledge are ou
 - `changelog`: For release standard and commit rules.
 - `domain-modeling`: For maintaining `CONTEXT.md` and recording architecture decisions as ADRs (`docs/adr/`).
 - `maintain-references`: For adding to `REFERENCES.md`.
+- `character-pipeline`: For the end-to-end 2D sketch to rigged 3D game-ready character workflow.
 - `deslop`: For anti-AI-slop and human tone filter.

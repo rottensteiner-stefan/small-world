@@ -37,8 +37,15 @@ const ANIMATION_CLIP_URLS: Record<string, string> = {
 
 const ANIMATION_FADE_SECONDS = 0.25;
 
-/** Mixamo hand bone the lantern (mesh + light) attaches to */
-const LANTERN_HAND_BONE = "mixamorig:LeftHand";
+/** Right hand bone candidates the lantern (mesh + light) attaches to across different rigs */
+const LANTERN_HAND_BONE_NAMES = [
+  "mixamorig:RightHand",
+  "mixamorig1:RightHand",
+  "R_Hand",
+  "tripo::0_Right_Limb_2",
+  "tripo::0_Right_Limb_3",
+  "mixamorig:LeftHand",
+];
 
 interface AnimationFade {
   from: AnimationAction | undefined;
@@ -173,21 +180,31 @@ class AndNowScene2 extends AbstractShowcase {
 
     try {
       const gltfLoader = new GltfLoader();
-      this._novotny = await gltfLoader.load("/assets/and-now/mannequin/novotny-female.glb");
+      const isFemale =
+        typeof window !== "undefined" &&
+        new URLSearchParams(window.location.search).get("char") === "female";
+      const charModelUrl = isFemale
+        ? "/assets/and-now/mannequin/novotny-female.glb"
+        : "/assets/and-now/mannequin/novotny-male.glb";
+      const charDiffuseUrl = isFemale
+        ? "/assets/and-now/mannequin/novotny-female_diffuse.png"
+        : undefined;
+
+      this._novotny = await gltfLoader.load(charModelUrl);
 
       let charDiffuse: Texture | undefined;
-      try {
-        charDiffuse = await Texture.fromUrl("/assets/and-now/mannequin/novotny-female_diffuse.png");
-      } catch (err) {
-        console.warn("[AndNowScene2] Konnte Novotny-Textur nicht laden:", err);
+      if (charDiffuseUrl) {
+        try {
+          charDiffuse = await Texture.fromUrl(charDiffuseUrl);
+        } catch (err) {
+          console.warn("[AndNowScene2] Konnte Novotny-Textur nicht laden:", err);
+        }
       }
 
       const applyMaterialToHierarchy = (obj: Object3D): void => {
-        if (obj.material) {
+        if (obj.material && charDiffuse) {
           const bMat = new BasicMaterial({ color: new Color(1, 1, 1) });
-          if (charDiffuse) {
-            bMat.diffuseMap = charDiffuse;
-          }
+          bMat.diffuseMap = charDiffuse;
           obj.material = bMat;
         }
         for (const child of obj.children) {
@@ -196,12 +213,24 @@ class AndNowScene2 extends AbstractShowcase {
       };
       applyMaterialToHierarchy(this._novotny);
 
+      if (!isFemale) {
+        this._novotny.scale.set(1.8, 1.8, 1.8);
+      }
+
       this.scene.add(this._novotny);
 
       // Laterne (Platzhalter-Mesh + Punktlicht) an die Hand-Bone hängen, statt sie manuell pro
       // Frame der Novotny-Wurzelposition nachzuführen -- folgt dadurch automatisch jeder Pose
       // (Idle/Walk/Stairs), inklusive Handschwung, ohne eigene Update-Logik.
-      const handBone = this._novotny.getObjectByName(LANTERN_HAND_BONE);
+      let handBone: Object3D | undefined;
+      for (const boneName of LANTERN_HAND_BONE_NAMES) {
+        const found = this._novotny.getObjectByName(boneName);
+        if (found) {
+          handBone = found;
+          break;
+        }
+      }
+
       if (handBone) {
         this._lanternGroup = this._buildLanternMesh();
         this._pointLight.position.set(0, -0.16, 0);
@@ -209,7 +238,7 @@ class AndNowScene2 extends AbstractShowcase {
         handBone.add(this._lanternGroup);
       } else {
         console.warn(
-          `[AndNowScene2] Hand-Bone "${LANTERN_HAND_BONE}" nicht gefunden -- Laterne bleibt an fixer Position.`,
+          `[AndNowScene2] Hand-Bone nicht gefunden -- Laterne bleibt an fixer Position.`,
         );
       }
 

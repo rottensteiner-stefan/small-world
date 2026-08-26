@@ -38,3 +38,24 @@
 strikter T-Pose — ein 90°-Seitenprofil in T-Pose zeigt den ausgestreckten Arm nur als schmale
 Linie zur Kamera und wäre als Modellierungsreferenz kaum auswertbar. Vom Nutzer abgesegnet
 (2026-08-25).
+
+---
+
+## Kanonische Ausrüstungs-Konfiguration (Female & Male)
+
+1. **Sturmlaterne:** In der **rechten Hand** (`RightHand` / `tripo::0_Right_Limb_2`).
+2. **Atemschutzmaske (Gasmaske):** Am Gürtel **rechts vorne** befestigt.
+3. **Schlauchschal (Snood):** Locker als wärmender Kragen **um den Hals** getragen (Gesicht und Mund stets unbedeckt).
+4. **Kapuze:** Bei Turnarounds **abgesetzt** (hinten auf den Schultern), Haare und Kopfform voll sichtbar.
+
+---
+
+## Männliches Ur-Konzept (`novotny_hoodie_male.jpg`) — Re-Generation Prompt
+
+> Reference image: `novotny_hoodie_female.jpg` and `novotny_male_tpose_front.jpg`. Full body male character concept art in a dark, atmospheric flooded concrete bunker tunnel in post-apocalyptic Vienna 2100.
+> **Art Style & Lighting:** Exact same Graphic Noir comic watercolor style and tunnel composition as `novotny_hoodie_female.jpg` with heavy inked outlines and warm amber chiaroscuro lantern light.
+> **Character:** Young man in early twenties, lean and weathered, melancholic determined expression.
+> **Face & Head:** Entire face is fully visible and UNMASKED (mouth, nose, eyes, cheekbones visible, NO scarf over mouth/nose). A thick knitted dark loop scarf / snood is worn loosely around his neck as a collar warmer. Hood is up over his head with dark messy hair framing his forehead and face.
+> **Equipment:** Waxed dark-grey/olive loden trenchcoat open over dark zip-up hoodie, leather utility belt with vintage gas mask attached at the RIGHT FRONT hip, dark cargo trousers with bellows pockets, strapped knee armor guards, rugged lace-up work boots, fingerless gloves.
+> **Pose:** Standing in the flooded tunnel archway holding an illuminated vintage brass hurricane lantern in his **RIGHT HAND** casting warm directional glow onto his body and wet stone floor with water reflections.
+

@@ -327,5 +327,52 @@ befüllen.
   - Sämtliche Konzeptgrafiken, T-Pose-Referenzen und Markdown-/HTML-Dossiers zentral unter `docs/` und `docs/assets/`.
 - **Status:** 100% verifiziert, alle 444 Tests und Builds grün.
 
+## 42. Character-Pipeline Skill & Tripo3D Vorbereitung (2026-08-26)
+- **Skill-Erstellung:** Neuer offizieller Leitfaden [`.agents/skills/character-pipeline/SKILL.md`](file:///Users/srottensteiner/PhpstormProjects/small-world/.agents/skills/character-pipeline/SKILL.md) etabliert (2D-Skizzen, Image-to-3D, Auto-Rigging, `.glb`-Konvertierung, Bone-Attachment, AnimationMixer).
+- **Referenzen:** [`REFERENCES.md`](file:///Users/srottensteiner/PhpstormProjects/small-world/REFERENCES.md) aktualisiert (`AxesHelper`, Novotny Rig & Motion Clips, Mixamo Mannequin).
+- **Tripo3D Integration:** `tripo-cli` installiert und vorbereitet für zukünftige automatisierte 3D-Generierung, Auto-Rigging (`animate_rig`) und direkten GLB-Export.
+- **Status:** 100% verifiziert, alle 444 Tests und Builds grün.
+
+## 43. Tripo3D API & CLI Pipeline Automation (2026-08-26)
+- **Skill-Update:** [`.agents/skills/character-pipeline/SKILL.md`](file:///Users/srottensteiner/PhpstormProjects/small-world/.agents/skills/character-pipeline/SKILL.md) von manuellen Web-UI-Schritten vollständig auf die skriptbare `tripo-cli` & API umgestellt:
+  - Rekonstruktion: `tripo make` für Multi-View Orthographics & Text-Prompts (`--for game-mobile`).
+  - Skeletal Auto-Rigging: `tripo anim rig` mit `--spec mixamo` für 100% Small-World-kompatible Bone-Hierarchien.
+## 44. Novotny (Männlich) Asset-Ingestion & Showcase-Integration (2026-08-27)
+- **Asset-Pipeline:**
+  - 3 T-Pose-Turnarounds (Front, Profil, Back mit exakter Symmetrie, sichtbarem Gesicht, herabhängender Kapuze und Schal um den Hals) erzeugt (`src/apps/and-now/docs/assets/`).
+  - Tripo-generiertes 3D-Modell mit 41-Joint Biped Rig als [`public/assets/and-now/mannequin/novotny-male.glb`](file:///Users/srottensteiner/PhpstormProjects/small-world/public/assets/and-now/mannequin/novotny-male.glb) und Rohdaten in [`src/apps/and-now/raw/mannequin/`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/raw/mannequin/) integriert.
+- **Showcase & Scene 2:**
+  - [`showcases/andNowScene2/showcase.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/showcases/andNowScene2/showcase.ts) lädt `novotny-male.glb` standardmäßig (bzw. `novotny-female.glb` via URL-Query `?char=female`).
+  - Hand-Bone-Auflösung für die Laterne auf Multi-Skeleton-Support (`LANTERN_HAND_BONE_NAMES`) erweitert.
+  - Textur-Mapping unterstützt sowohl eingebettete GLB-PBR-Maps als auch externe Textur-Overlays.
+## 45. Vollautomatisierte Tripo3D API Pipeline & Web-Optimierung (2026-08-27)
+- **End-to-End API Ausführung:**
+  - 3D-Rekonstruktion via `tripo make` aus den 3 Orthographics mit PBR-Texturatlas und Game-Mobile Preset (`src/apps/and-now/raw/mannequin/tripo-male/`).
+  - Skelett-Generierung via `tripo anim rig --spec mixamo` erzeugt 67-Joint Rig (`novotny-male.glb`).
+  - Modell liegt fertig geriggt und texturiert in [`public/assets/and-now/mannequin/novotny-male.glb`](file:///Users/srottensteiner/PhpstormProjects/small-world/public/assets/and-now/mannequin/novotny-male.glb).
+- **Skill-Vorgaben (`character-pipeline`):**
+  - Strikte Web-Performance-Regeln verankert: `--for game-mobile`, `--param face_limit=15000`, 2K Textur-Standard (`--param texture_quality=standard`), **strikt kein 4K/8K** für VRAM-Schonung im Browser.
+  - Metrische 1.8x-Skalierung für normalisierte Tripo-Modelle in Small World dokumentiert.
+## 46. Upgrade des Character-Pipeline Skills auf Studio-Standard (2026-08-27)
+- **5 Profi-Optimierungen verankert ([`character-pipeline`](file:///Users/srottensteiner/PhpstormProjects/small-world/.agents/skills/character-pipeline/SKILL.md)):**
+  1. *Albedo-First Mandat:* Verpflichtend reine Albedo-Farbfelder in 2D-Prompts ohne gebackene Richtungs-Schatten.
+  2. *A-Pose (45°) Standard:* Empfehlung der A-Pose für reduzierte Deltoid-Verzerrung und saubere Achsel-Edge-Loops.
+  3. *3-in-1 Model-Sheet:* 16:9 Multi-View-Sheet zur Garantie absoluter Detail- und Proportionskonsistenz.
+  4. *Shared Motion Library:* Strukturierung geteilter In-Place-Clips unter `public/assets/shared/animations/`.
+  5. *Semantic Sockets:* Standardisiertes Knochen-Mapping und Socket-System für Requisiten/Ausrüstung.
+## 47. Kanonische Ausrüstung: Laterne rechts, Maske rechts vorne (2026-08-27)
+- **Vereinheitlichung für beide Figuren (Female & Male):**
+  - Laterne wird in der **rechten Hand** getragen (`mixamorig:RightHand` / `R_Hand` / `tripo::0_Right_Limb_2`).
+  - [`showcases/andNowScene2/showcase.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/showcases/andNowScene2/showcase.ts): `LANTERN_HAND_BONE_NAMES` bindet die Laterne an den rechten Hand-Bone.
+  - Atemschutzmaske ist am Gürtel **rechts vorne** befestigt.
+  - Dokumentation in [`novotny_tpose_reference_prompts.md`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/docs/novotny_tpose_reference_prompts.md) und [`character-pipeline`](file:///Users/srottensteiner/PhpstormProjects/small-world/.agents/skills/character-pipeline/SKILL.md) verankert.
+- **Status:** 76 Testsuiten mit 444 Tests und Library-Build 100% grün.
+
+
+
+
+
+
+
 
 
