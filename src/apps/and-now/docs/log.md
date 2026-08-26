@@ -317,4 +317,15 @@ befüllen.
   - Doppelklick- und Klick-Auswahl auf jedes 3D-Mesh im Viewport.
 - **Status:** 100% verifiziert, alle 444 Tests und Builds grün.
 
+## 41. Asset-Bereinigung & Trennung von Laufzeit- vs. Rohdaten (2026-08-26)
+- **Laufzeit-Bereinigung (`public/assets/and-now/`):**
+  - Radikal bereinigt: Enthält nur noch die 5 tatsächlich zur Laufzeit im Browser benötigten Dateien (`flakturm_bg.webp`, `novotny-female.glb`, `idle_torch.glb`, `standing_torch_walk_forward.glb`, `ascending_stairs.glb`).
+  - Redundante `concepts/`-Kopie aus `public/` entfernt.
+- **Roh- und Autorendaten (`src/apps/and-now/raw/mannequin/`):**
+  - Alle DCC-Quelldaten (`.fbx`, `.obj`, `.mtl`, `.zip`, `.fbm/`, alte Dummy-Mannequins) in den nicht-öffentlichen App-Quellordner verschoben.
+- **Konzept- & Dokumentationskonsolidierung (`src/apps/and-now/docs/`):**
+  - Sämtliche Konzeptgrafiken, T-Pose-Referenzen und Markdown-/HTML-Dossiers zentral unter `docs/` und `docs/assets/`.
+- **Status:** 100% verifiziert, alle 444 Tests und Builds grün.
+
+
 
