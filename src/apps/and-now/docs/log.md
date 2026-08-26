@@ -366,7 +366,31 @@ befüllen.
   - [`showcases/andNowScene2/showcase.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/showcases/andNowScene2/showcase.ts): `LANTERN_HAND_BONE_NAMES` bindet die Laterne an den rechten Hand-Bone.
   - Atemschutzmaske ist am Gürtel **rechts vorne** befestigt.
   - Dokumentation in [`novotny_tpose_reference_prompts.md`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/docs/novotny_tpose_reference_prompts.md) und [`character-pipeline`](file:///Users/srottensteiner/PhpstormProjects/small-world/.agents/skills/character-pipeline/SKILL.md) verankert.
+## 48. 3-Stufen Schutzkleidung (Gear States) & Skizzen-Katalog (2026-08-27)
+- **Die 3 kanonischen Schutzzustände für Female & Male:**
+  1. *State 1: BASE (Gute Luft / Erkundung):*
+     - Gesicht voll sichtbar (unbedeckt).
+     - Kapuze abgesetzt auf den Schultern, Haare/Kopfform frei.
+     - Schlauchschal locker als Kragen um den Hals.
+     - Gasmaske am Gürtel rechts vorne eingehängt, Laterne in rechter Hand.
+  2. *State 2: DUST PROTECTION (Staub- & Rußzone):*
+     - Schlauchschal über Mund & Nase als Staubfilter hochgezogen.
+     - Kapuze über den Kopf aufgesetzt.
+     - Gasmaske bleibt am Gürtel rechts vorne eingehängt, Laterne in rechter Hand.
+     - Referenz: [`novotny_hoodie_male.jpg`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/docs/assets/novotny_hoodie_male.jpg).
+  3. *State 3: TOXIC HAZARD (Giftgas / Schächte):*
+     - Vollständige Atemschutzmaske aufgesetzt und festgezurrt.
+     - Kapuze über den Kopf aufgesetzt.
+     - Masken-Halterung am Gürtel rechts vorne ist leer, Laterne in rechter Hand.
+- **6-Skizzen Matrix für Artwork & Produktion:**
+  - `novotny_female_state1_base.jpg` / `novotny_male_state1_base.jpg`
+  - `novotny_female_state2_dust.jpg` / `novotny_male_state2_dust.jpg`
+  - `novotny_female_state3_toxic.jpg` / `novotny_male_state3_toxic.jpg`
+- **AAA Skin & Movement Paradigma:**
+  - Verhalten (`StageMovementBehavior`), Sockets, Animationsclips (`idle`, `walk`, `jump_trench`, `climb_ladder`) sind zu 100% identisch zwischen männlich und weiblich.
+  - Der Charakter ist lediglich der austauschbare Skin (`novotny-female.glb` vs. `novotny-male.glb`), Gear-Zustände werden über modulare Sub-Mesh-Toggles zur Laufzeit geschaltet.
 - **Status:** 76 Testsuiten mit 444 Tests und Library-Build 100% grün.
+
 
 
 
