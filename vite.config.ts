@@ -108,7 +108,7 @@ export default defineConfig({
         copyRecursiveSync("showcases", "dist/showcases");
       },
     },
-    mkcert(),
+    ...(process.env.VITEST ? [] : [mkcert()]),
   ],
   build: {
     outDir: "dist",

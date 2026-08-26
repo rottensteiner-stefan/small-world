@@ -296,3 +296,25 @@ befüllen.
   - **3 Trage-Modi:** 1) Staubschutz-Modus (Kapuze auf + Loop-Schal hoch), 2) Bunker-Modus (Kapuze ab + Schal als Kragenwärmer), 3) Sektor-0-Modus (mit aufgesetzter Gasmaske).
   - **Weibliche Variante:** Anatomisch leicht angepasst und dezent tailliert, bei 100%iger Beibehaltung der wetterfesten, abgewetzten Bunker-Funktionalität.
 - **Dokumentation & Skizzen:** In [`story.md`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/docs/story.md), [`concept-dossier.html`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/docs/concept-dossier.html) und `novotny_character_concepts.md` eingepflegt.
+
+## 39. Core-Feature: `AxesHelper` & Inspector Gizmo Integration (2026-08-26)
+- **Feature:** [`AxesHelper`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/core/helpers/AxesHelper.ts) als universelles 3D-Koordinatenkreuz im Engine-Core implementiert.
+  - **Farbcodierung:** Neon-Rot (+X / Rechts mit "X"-Label), Neon-Grün (+Y / Oben mit "Y"-Label), Neon-Blau (+Z / Z-Achse mit "Z"-Label).
+  - **Aufbau:** Zylinder-Schaft, Konus-Pfeilspitze und automatische kameraausgerichtete Billboard-Labels (`Sprite` + `TextTexture`).
+- **GadgetInspector Integration:**
+  - `showWorldAxes` (Welt-Koordinatenkreuz am Ursprung) und `showObjectAxes` (automatisches Mitwandern am ausgewählten Objekt/Bone) im Inspector unter „Helpers & Gizmos“ integriert.
+  - In [`showcases/andNowScene2/showcase.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/showcases/andNowScene2/showcase.ts) via `enableInspector: true` aktiviert.
+- **Status:** 76 Testsuiten mit 444 Unit Tests 100% grün.
+
+## 40. Laternen-Ausrichtung & Inspector UX-Refinement (2026-08-26)
+- **Laternen-Ausrichtung auf Hand-Bone:**
+  - `mixamorig:LeftHand` Bone-Ausrichtung analysiert: Rotation um $Z$ (`Math.PI / 2`) angewendet, sodass der Laternenkörper senkrecht nach unten (+X des Hand-Bones) hängt.
+  - Griffpunkt (`LanternHandle`) um ~9cm vom Handgelenk-Pivot nach vorne direkt in die Handfläche/Finger positioniert (`position.set(0.01, 0.09, 0.02)`).
+  - Punktlicht (`PointLight`) direkt im Laternenkörper zentriert.
+- **Inspector UX-Verbesserungen:**
+  - `🎯 Selected Object` fest als oberster Bereich im Scene-Tab verankert mit automatischer Aufklapp- und Scroll-Funktion bei Selektion.
+  - Scene Outliner standardmäßig eingeklappt, um UI-Überladung zu vermeiden.
+  - Doppelklick- und Klick-Auswahl auf jedes 3D-Mesh im Viewport.
+- **Status:** 100% verifiziert, alle 444 Tests und Builds grün.
+
+

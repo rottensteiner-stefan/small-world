@@ -34,6 +34,7 @@ export * from "./fsm/index.js";
 export * from "./threading/index.js";
 export * from "./animation/index.js";
 export * from "./stage/index.js";
+export * from "./helpers/index.js";
 
 export * from "./renderers/index.js";
 export * from "./showcase/index.js";

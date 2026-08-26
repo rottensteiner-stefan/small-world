@@ -16,7 +16,6 @@ import {
   StageZone,
   Cylinder,
   Torus,
-  StandardMaterial,
 } from "../../src/index.js";
 import { AbstractShowcase } from "../../src/core/index.js";
 import { GltfLoader } from "../../src/loaders/GltfLoader.js";
@@ -38,9 +37,7 @@ const ANIMATION_CLIP_URLS: Record<string, string> = {
 
 const ANIMATION_FADE_SECONDS = 0.25;
 
-/** Mixamo hand bone the lantern (mesh + light) attaches to -- see GltfLoader's rig-prefix
- * normalization, which is what makes this exact name reliable regardless of which numbered
- * "mixamorigN:" prefix the source FBX happened to export. */
+/** Mixamo hand bone the lantern (mesh + light) attaches to */
 const LANTERN_HAND_BONE = "mixamorig:LeftHand";
 
 interface AnimationFade {
@@ -176,15 +173,13 @@ class AndNowScene2 extends AbstractShowcase {
 
     try {
       const gltfLoader = new GltfLoader();
-      this._novotny = await gltfLoader.load("/assets/and-now/mannequin/mannequin.glb");
+      this._novotny = await gltfLoader.load("/assets/and-now/mannequin/novotny-female.glb");
 
       let charDiffuse: Texture | undefined;
       try {
-        charDiffuse = await Texture.fromUrl(
-          "/assets/and-now/mannequin/mannequin.fbm/Ch36_1001_Diffuse.png",
-        );
+        charDiffuse = await Texture.fromUrl("/assets/and-now/mannequin/novotny-female_diffuse.png");
       } catch (err) {
-        console.warn("[AndNowScene2] Konnte Mannequin-Texturen nicht laden:", err);
+        console.warn("[AndNowScene2] Konnte Novotny-Textur nicht laden:", err);
       }
 
       const applyMaterialToHierarchy = (obj: Object3D): void => {
@@ -209,8 +204,9 @@ class AndNowScene2 extends AbstractShowcase {
       const handBone = this._novotny.getObjectByName(LANTERN_HAND_BONE);
       if (handBone) {
         this._lanternGroup = this._buildLanternMesh();
+        this._pointLight.position.set(0, -0.16, 0);
+        this._lanternGroup.add(this._pointLight);
         handBone.add(this._lanternGroup);
-        handBone.add(this._pointLight);
       } else {
         console.warn(
           `[AndNowScene2] Hand-Bone "${LANTERN_HAND_BONE}" nicht gefunden -- Laterne bleibt an fixer Position.`,
@@ -566,32 +562,47 @@ class AndNowScene2 extends AbstractShowcase {
   private _buildLanternMesh(): Object3D {
     const lantern = new Object3D("LanternPlaceholder");
 
-    const glowMat = new StandardMaterial({
-      color: new Color(0.15, 0.1, 0.05),
-      emissiveColor: new Color(1, 0.65, 0.25),
-      emissiveIntensity: 3.0,
-      metallic: 0.6,
-      roughness: 0.4,
+    const brassMat = new BasicMaterial({
+      color: new Color(0.9, 0.65, 0.25),
     });
 
-    const body = new Object3D("LanternBody");
-    body.geometry = new Cylinder({
-      radiusTop: 0.04,
-      radiusBottom: 0.05,
-      height: 0.12,
-    }).getGeometryData();
-    body.material = glowMat;
-    lantern.add(body);
+    const glowGlassMat = new BasicMaterial({
+      color: new Color(1.0, 0.9, 0.6),
+    });
 
+    // Brass handle (at the grip origin y = 0)
     const handle = new Object3D("LanternHandle");
-    handle.geometry = new Torus({ radius: 0.05, tube: 0.006, radialSegments: 8 }).getGeometryData();
-    handle.material = glowMat;
-    handle.position.set(0, 0.08, 0);
+    handle.geometry = new Torus({ radius: 0.06, tube: 0.008, radialSegments: 8 }).getGeometryData();
+    handle.material = brassMat;
+    handle.position.set(0, 0, 0);
     lantern.add(handle);
 
-    // Local offset within the hand bone's space -- approximate, wants a visual pass once the
-    // real character mesh (and thus real hand proportions/orientation) exists.
-    lantern.position.set(0, -0.04, 0.02);
+    // Brass top cap (hanging just below handle)
+    const topCap = new Object3D("LanternTopCap");
+    topCap.geometry = new Cylinder({
+      radiusTop: 0.02,
+      radiusBottom: 0.06,
+      height: 0.04,
+    }).getGeometryData();
+    topCap.material = brassMat;
+    topCap.position.set(0, -0.05, 0);
+    lantern.add(topCap);
+
+    // Outer brass lantern frame / cage (hanging below top cap)
+    const body = new Object3D("LanternBody");
+    body.geometry = new Cylinder({
+      radiusTop: 0.05,
+      radiusBottom: 0.07,
+      height: 0.18,
+    }).getGeometryData();
+    body.material = glowGlassMat;
+    body.position.set(0, -0.16, 0);
+    lantern.add(body);
+
+    // Local offset and rotation within the hand bone space:
+    // Shift forward from the wrist pivot into the palm/fingers (~9cm along hand axis)
+    lantern.position.set(0.01, 0.09, 0.02);
+    lantern.rotation.set(0, 0, Math.PI / 2);
 
     return lantern;
   }
@@ -690,5 +701,8 @@ class AndNowScene2 extends AbstractShowcase {
   }
 }
 
-const app = new AndNowScene2({ rendererType: RendererType.WEB_GL2 });
+const app = new AndNowScene2({
+  rendererType: RendererType.WEB_GL2,
+  enableInspector: true,
+});
 app.start().catch((err: unknown) => console.error("[AndNowScene2] Failed to start:", err));
