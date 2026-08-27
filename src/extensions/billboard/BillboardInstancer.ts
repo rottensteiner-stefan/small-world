@@ -1,0 +1,135 @@
+import { Camera, InstancedMesh, Object3D } from "../../core/index.js";
+import { AbstractMaterial, StandardMaterial } from "../../core/materials/index.js";
+import { Color } from "../../core/colors/index.js";
+import { Plane } from "../../geometry/index.js";
+import { Matrix4, Vector3D } from "../../math/index.js";
+import { GeometryDataInterface } from "../../interfaces/index.js";
+
+export interface BillboardScatterArea {
+  width: number;
+  depth: number;
+  center?: Vector3D;
+}
+
+export interface BillboardInstancerOptions {
+  /** Fixed instance pool size. Ignored (set to `positions.length`) when `positions` is given. Defaults to 300. */
+  count?: number;
+  /** Explicit world-space placement, one entry per instance. Takes precedence over `scatterArea`. */
+  positions?: Vector3D[];
+  /** Random placement within a flat rectangle, used when `positions` is omitted. */
+  scatterArea?: BillboardScatterArea;
+  /** [min, max] uniform quad scale. Defaults to [0.6, 1.2]. */
+  size?: [number, number];
+  /** Only yaw (Y-axis) rotates to face the camera -- vegetation doesn't tilt with camera pitch.
+   * Defaults to true. `false` gives a fully spherical (always dead-on) billboard. */
+  axisLocked?: boolean;
+  /** Instanced quad geometry, shared by every instance. Defaults to a unit `Plane`. */
+  geometry?: GeometryDataInterface;
+  /** Instanced material, shared by every instance. Defaults to a transparent, faintly green StandardMaterial. */
+  material?: AbstractMaterial;
+}
+
+const DEFAULT_COUNT = 300;
+const DEFAULT_SIZE: [number, number] = [0.6, 1.2];
+
+function randRange(min: number, max: number): number {
+  return min + Math.random() * (max - min);
+}
+
+/**
+ * A reusable, `InstancedMesh`-backed field of camera-facing billboard quads (grass, foliage,
+ * crowds -- the "Unreal/Fortnite tree" pattern). Billboard-facing happens entirely CPU-side, per
+ * instance, by writing a look-at rotation directly into that instance's slot of the shared
+ * `InstancedMesh` matrix buffer -- the engine's existing `isSprite` billboard path never runs on
+ * the instanced draw path (it's a separate, non-instanced-only code path), so this reimplements
+ * the same "face the camera" math at the instance-matrix level instead, needing zero renderer
+ * changes. Like `WeatherEmitter`/`GridLevelBuilder`, a plain opt-in extension: construct it, add
+ * `.mesh` to the scene yourself, and call `.update(camera)` from your own loop.
+ */
+export class BillboardInstancer {
+  public readonly mesh: InstancedMesh;
+
+  private readonly _axisLocked: boolean;
+  private readonly _positions: Float32Array;
+  private readonly _scales: Float32Array;
+
+  private readonly _scratchPos = new Vector3D();
+  private readonly _scratchRot = new Vector3D();
+  private readonly _scratchScale = new Vector3D();
+  private readonly _scratchMatrix = new Matrix4();
+  /** Reused as a pure look-at math helper (never added to a scene) for the spherical (non
+   * axis-locked) case -- mirrors `Object3D.lookAt()`'s own `Matrix4.lookAt`+`invert`+`decompose`
+   * recipe without re-deriving it. */
+  private readonly _lookAtHelper = new Object3D("BillboardLookAtHelper");
+
+  constructor(name: string, options: BillboardInstancerOptions) {
+    this._axisLocked = options.axisLocked ?? true;
+
+    const positions = options.positions;
+    const count = positions ? positions.length : (options.count ?? DEFAULT_COUNT);
+    const sizeRange = options.size ?? DEFAULT_SIZE;
+
+    const geometry = options.geometry ?? new Plane({ width: 1, height: 1 }).getGeometryData();
+    const material =
+      options.material ??
+      new StandardMaterial({
+        color: new Color(0.3, 0.45, 0.22),
+        roughness: 0.85,
+        metallic: 0.0,
+        transparent: true,
+        alphaTest: 0.3,
+      });
+
+    this.mesh = new InstancedMesh(name, geometry, material, count);
+
+    this._positions = new Float32Array(count * 3);
+    this._scales = new Float32Array(count);
+
+    if (positions) {
+      for (let i = 0; i < count; i++) {
+        const p = positions[i]!;
+        this._positions[i * 3 + 0] = p.x;
+        this._positions[i * 3 + 1] = p.y;
+        this._positions[i * 3 + 2] = p.z;
+        this._scales[i] = randRange(sizeRange[0], sizeRange[1]);
+      }
+    } else {
+      const area = options.scatterArea ?? { width: 10, depth: 10 };
+      const center = area.center ?? new Vector3D(0, 0, 0);
+      for (let i = 0; i < count; i++) {
+        this._positions[i * 3 + 0] = center.x + (Math.random() - 0.5) * area.width;
+        this._positions[i * 3 + 1] = center.y;
+        this._positions[i * 3 + 2] = center.z + (Math.random() - 0.5) * area.depth;
+        this._scales[i] = randRange(sizeRange[0], sizeRange[1]);
+      }
+    }
+  }
+
+  public update(camera: Camera): void {
+    for (let i = 0; i < this.mesh.instanceCount; i++) {
+      const x = this._positions[i * 3 + 0]!;
+      const y = this._positions[i * 3 + 1]!;
+      const z = this._positions[i * 3 + 2]!;
+      const scale = this._scales[i]!;
+
+      this._scratchPos.set(x, y, z);
+      this._scratchScale.set(scale, scale, scale);
+
+      if (this._axisLocked) {
+        // Plane geometry lies in the local XY plane, facing +Z (src/geometry/Plane.ts:59) -- the
+        // standard yaw-only billboard formula for a +Z-forward quad.
+        const dx = camera.position.x - x;
+        const dz = camera.position.z - z;
+        this._scratchRot.set(0, Math.atan2(dx, dz), 0);
+      } else {
+        this._lookAtHelper.position.set(x, y, z);
+        this._lookAtHelper.lookAt(camera.position);
+        this._scratchRot.copyFrom(this._lookAtHelper.rotation);
+      }
+
+      this._scratchMatrix.compose(this._scratchPos, this._scratchRot, this._scratchScale);
+      this.mesh.setMatrixAt(i, this._scratchMatrix);
+    }
+    this.mesh.instanceMatrixNeedsUpdate = true;
+  }
+}

@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.76.31] - 2026-08-27
+
+### "We are what we pretend to be." - Kurt Vonnegut
+
+- **Features:**
+  - Added the `BillboardInstancer` extension (`src/extensions/billboard/`): a reusable, `InstancedMesh`-backed field of camera-facing billboard quads (grass/foliage/crowds), with Y-axis-locked or fully spherical facing computed per instance directly into the shared instance-matrix buffer — no renderer changes, since the engine's existing sprite billboard path never runs on the instanced draw path.
+  - Added the `ImposterBaker` extension (`src/extensions/imposter/`): `bakeImposter()` renders a standalone object into N camera-angle `RenderTarget` snapshots (reusing `PlanarReflectionNode`'s render-to-texture recipe), and `ImposterSprite` swaps between them by view angle at runtime — implements AAA research item #15 (Billboards/Imposter).
+  - Added Showcase 34 ("Billboard Grove"): a forest glade with an instanced grass field and baked imposter trees standing next to real 3D comparison trees.
+- **Architecture & Bugfixes:**
+  - Fixed `_getTextureView`/`_getWebGLTexture` (WebGPU/WebGL2/WebGL1) to recognize an already-rendered `RenderTarget` and reuse its cached GPU texture instead of requiring `.image` (which a `RenderTarget` never has) — previously any `RenderTarget` sampled as a regular material texture (e.g. `PlanarReflectionNode`'s `reflectionMap`, or a baked imposter) silently fell back to a blank white texture. Mirrors `_getGPUCubeTextureView`'s existing `RenderTargetCube` handling.
+- **Housekeeping & Docs:**
+  - Added unit test coverage for `BillboardInstancer` and `ImposterBaker`/`ImposterSprite` (mocked `Renderer`, no GPU needed).
+  - Registered Showcase 34 in `vite.config.ts`, the `public/index.html` gallery, and `scripts/check-showcases.js`'s smoke-test list; re-threaded the showcase navigation chain (32 → 34 → yad); Showcase 33 is reserved for the upcoming Hierarchical-Z Occlusion Culling showcase.
+
 ## [0.76.30] - 2026-08-27
 
 ### "As above, so below." - Hermes Trismegistus

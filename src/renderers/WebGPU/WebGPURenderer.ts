@@ -2319,7 +2319,16 @@ export class WebGPURenderer extends AbstractRenderer {
 
   protected _getTextureView(tex: Texture | undefined): GPUTextureView {
     if (this._quality?.disableTextures) return this._whiteTexView;
-    if (!tex || !tex.isLoaded || !tex.image) return this._whiteTexView;
+    if (!tex || !tex.isLoaded) return this._whiteTexView;
+    // A `RenderTarget` (e.g. `PlanarReflectionNode.renderTarget`, or a `bakeImposter()` output)
+    // has no `.image` -- its GPU texture already exists from being rendered into (populated in
+    // `setRenderTarget()`'s offscreen branch), so it's looked up instead of uploaded. Mirrors
+    // `_getGPUCubeTextureView()`'s identical `RenderTargetCube` branch just below.
+    if (tex instanceof RenderTarget) {
+      const rtEntry = this._textureViewCache.get(tex);
+      return rtEntry?.view || this._whiteTexView;
+    }
+    if (!tex.image) return this._whiteTexView;
     let entry = this._textureViewCache.get(tex);
     if (!entry) {
       let t: GPUTexture;

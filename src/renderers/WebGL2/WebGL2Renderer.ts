@@ -541,7 +541,15 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
 
   private _getWebGLTexture(tex: Texture): WebGLTexture {
     if (this._quality?.disableTextures) return this.defaultTexture;
-    if (!tex.isLoaded || !tex.image) return this.defaultTexture;
+    if (!tex.isLoaded) return this.defaultTexture;
+    // A `RenderTarget` has no `.image` -- its GL texture already exists from being rendered into
+    // (populated in `setRenderTarget()`'s offscreen branch), so it's looked up instead of
+    // uploaded. Mirrors `_getWebGLCubeTexture()`'s identical `RenderTargetCube` branch above.
+    if (tex instanceof RenderTarget) {
+      const rtTex = this._texCache.get(tex);
+      return rtTex || this.defaultTexture;
+    }
+    if (!tex.image) return this.defaultTexture;
     let glTex: WebGLTexture | undefined = this._texCache.get(tex);
     if (!glTex) {
       glTex = this.gl.createTexture()!;

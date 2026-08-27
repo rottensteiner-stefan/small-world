@@ -297,7 +297,15 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
 
   private _getWebGLTexture(tex: Texture): WebGLTexture {
     if (this._quality?.disableTextures) return this.defaultTexture;
-    if (!tex.isLoaded || !tex.image) return this.defaultTexture;
+    if (!tex.isLoaded) return this.defaultTexture;
+    // A `RenderTarget` has no `.image` -- its GL texture already exists from being rendered into
+    // (populated in `bindMainRenderTarget()`'s offscreen branch), so it's looked up instead of
+    // uploaded. Mirrors the WebGPU/WebGL2 renderers' identical `RenderTarget` handling.
+    if (tex instanceof RenderTarget) {
+      const rtTex = this._texCache.get(tex);
+      return rtTex || this.defaultTexture;
+    }
+    if (!tex.image) return this.defaultTexture;
     let glTex: WebGLTexture | undefined = this._texCache.get(tex);
     if (!glTex) {
       const img = tex.image;
