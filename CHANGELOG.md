@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.76.27] - 2026-08-27
+
+### "Nature does not hurry, yet everything is accomplished." - Lao Tzu
+
+- **Features:**
+  - Added Showcase 31 ("Overgrown Subway: Karlsplatz Junction Ruin"), set at the "And Now?" world's U-Bahn-Knoten Karlsplatz: a Jugendstil island-platform hall with a jagged ceiling breach pouring cascaded sunlight, procedurally chained hanging vines/roots, and drifting dust motes onto a flooded, wrecked platform.
+  - The flooded track trenches use `OpenWaterMaterial` for reflective, rippling water; foliage, dust, and debris are drawn via `InstancedMesh`; three flickering point lights (kept within the engine's 4-light global cap) light the ruin.
+- **Housekeeping & Docs:**
+  - Registered Showcase 31 in `vite.config.ts`, the `public/index.html` gallery, and `scripts/check-showcases.js`'s smoke-test list (which also picked up the previously-missing 27-30 entries), and re-threaded the showcase prev/next navigation chain (29 → 30 → 31 → yad).
+
 ## [0.76.26] - 2026-08-27
 
 ### "Everything flows, nothing stands still." - Heraclitus

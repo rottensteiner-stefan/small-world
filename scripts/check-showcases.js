@@ -1,14 +1,14 @@
-import puppeteer from 'puppeteer';
-import { spawn } from 'child_process';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import fs from 'fs';
-import { PNG } from 'pngjs';
+import puppeteer from "puppeteer";
+import { spawn } from "child_process";
+import path from "path";
+import { fileURLToPath } from "url";
+import fs from "fs";
+import { PNG } from "pngjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const SCREENSHOT_DIR = path.join(__dirname, '..', '.agents', 'scratches', 'screenshots');
+const SCREENSHOT_DIR = path.join(__dirname, "..", ".agents", "scratches", "screenshots");
 // Below this per-pixel luminance standard deviation, we treat the canvas as
 // "effectively a single flat color" -- i.e. nothing was actually rendered,
 // even though no console/page error was thrown (this is exactly the kind of
@@ -61,9 +61,37 @@ function detectBlankCanvas(pngBuffer) {
 }
 
 const numberedShowcases = [
-  '1', '2', '3', '4', '5', '6', '7', '8', '9', '10',
-  '11', '12', '13', '14', '15', '16', '17', '18', '19', '20',
-  '21', '22', '23', '24', '25', '26'
+  "1",
+  "2",
+  "3",
+  "4",
+  "5",
+  "6",
+  "7",
+  "8",
+  "9",
+  "10",
+  "11",
+  "12",
+  "13",
+  "14",
+  "15",
+  "16",
+  "17",
+  "18",
+  "19",
+  "20",
+  "21",
+  "22",
+  "23",
+  "24",
+  "25",
+  "26",
+  "27",
+  "28",
+  "29",
+  "30",
+  "31",
 ];
 
 // Every numbered showcase supports a `?rendererType=` override via AbstractShowcase, so each one
@@ -73,17 +101,17 @@ const numberedShowcases = [
 // WebGPU-only sampled-texture-budget bug went undetected: CI never ran the WebGPU code path at
 // all). `yad` has no `showcase.ts`/AbstractShowcase, so it has no override to test and is only
 // checked once, at its default renderer.
-const RENDERER_TYPES = ['WEB_GL1', 'WEB_GL2', 'WEB_GPU'];
+const RENDERER_TYPES = ["WEB_GL1", "WEB_GL2", "WEB_GPU"];
 const testCases = [
   ...numberedShowcases.flatMap((n) =>
     RENDERER_TYPES.map((rendererType) => ({ showcase: n, rendererType })),
   ),
-  { showcase: 'yad', rendererType: null },
-  { showcase: 'neon-labyrinth', rendererType: null },
+  { showcase: "yad", rendererType: null },
+  { showcase: "neon-labyrinth", rendererType: null },
 ];
 
 async function sleep(ms) {
-  return new Promise(r => setTimeout(r, ms));
+  return new Promise((r) => setTimeout(r, ms));
 }
 
 // How many showcase checks run concurrently (each in its own Puppeteer page/tab within the same
@@ -128,25 +156,25 @@ async function checkShowcase(browser, { showcase, rendererType }) {
   const page = await browser.newPage();
   const errors = [];
 
-  page.on('console', msg => {
-    if (msg.type() === 'error') {
+  page.on("console", (msg) => {
+    if (msg.type() === "error") {
       const text = msg.text();
-      const url = msg.location()?.url || '';
-      if (text.includes('favicon.ico') || url.includes('favicon.ico')) return;
+      const url = msg.location()?.url || "";
+      if (text.includes("favicon.ico") || url.includes("favicon.ico")) return;
       errors.push(`${text} (URL: ${url})`);
     }
   });
 
-  page.on('pageerror', error => {
+  page.on("pageerror", (error) => {
     errors.push(error.message);
   });
 
   let passed = true;
   try {
-    const query = rendererType ? `?rendererType=${rendererType}` : '';
+    const query = rendererType ? `?rendererType=${rendererType}` : "";
     const url = `https://localhost:4173/showcases/${showcase}/index.html${query}`;
 
-    await page.goto(url, { waitUntil: 'networkidle0', timeout: 15000 });
+    await page.goto(url, { waitUntil: "networkidle0", timeout: 15000 });
 
     // Give it 1 second of actual running time to catch runtime loops/render errors
     await sleep(1000);
@@ -155,9 +183,12 @@ async function checkShowcase(browser, { showcase, rendererType }) {
     // #SmallWorld canvas, but e.g. showcase 23 renders multiple monitor canvases).
     const canvasRect = await page.evaluate(() => {
       // eslint-disable-next-line no-undef -- runs inside the page (browser context via Puppeteer), not Node
-      const canvases = Array.from(document.querySelectorAll('canvas'));
+      const canvases = Array.from(document.querySelectorAll("canvas"));
       if (0 === canvases.length) return null;
-      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      let minX = Infinity,
+        minY = Infinity,
+        maxX = -Infinity,
+        maxY = -Infinity;
       for (const c of canvases) {
         const r = c.getBoundingClientRect();
         if (0 === r.width || 0 === r.height) continue;
@@ -174,7 +205,7 @@ async function checkShowcase(browser, { showcase, rendererType }) {
     if (canvasRect) {
       const screenshotPath = path.join(
         SCREENSHOT_DIR,
-        `showcase_${showcase}${rendererType ? `_${rendererType}` : ''}.png`,
+        `showcase_${showcase}${rendererType ? `_${rendererType}` : ""}.png`,
       );
       const buffer = await page.screenshot({
         clip: {
@@ -191,13 +222,15 @@ async function checkShowcase(browser, { showcase, rendererType }) {
         blankCanvasWarning = `Canvas appears blank/uniform (luminance stddev=${stddev.toFixed(2)}, threshold=${BLANK_CANVAS_STDDEV_THRESHOLD}) — likely nothing rendered`;
       }
     } else {
-      blankCanvasWarning = 'No <canvas> element found on the page at all';
+      blankCanvasWarning = "No <canvas> element found on the page at all";
     }
 
     if (errors.length > 0 || blankCanvasWarning) {
       passed = false;
-      lines.push(`Checking Showcase ${label.padEnd(16)} ... ❌ FAILED (${errors.length} console error(s)${blankCanvasWarning ? ', visual check failed' : ''})`);
-      errors.forEach(e => lines.push(`   -> ${e}`));
+      lines.push(
+        `Checking Showcase ${label.padEnd(16)} ... ❌ FAILED (${errors.length} console error(s)${blankCanvasWarning ? ", visual check failed" : ""})`,
+      );
+      errors.forEach((e) => lines.push(`   -> ${e}`));
       if (blankCanvasWarning) lines.push(`   -> ⚠️  ${blankCanvasWarning}`);
     } else {
       lines.push(`Checking Showcase ${label.padEnd(16)} ... ✅ OK`);
@@ -213,21 +246,21 @@ async function checkShowcase(browser, { showcase, rendererType }) {
 }
 
 async function run() {
-  console.log('Starting Vite preview server...');
-  const server = spawn('npm', ['run', 'preview'], {
-    stdio: 'pipe', // we want to see output
-    detached: false
+  console.log("Starting Vite preview server...");
+  const server = spawn("npm", ["run", "preview"], {
+    stdio: "pipe", // we want to see output
+    detached: false,
   });
-  
-  server.stdout.on('data', data => console.log(data.toString()));
-  server.stderr.on('data', data => console.error(data.toString()));
+
+  server.stdout.on("data", (data) => console.log(data.toString()));
+  server.stderr.on("data", (data) => console.error(data.toString()));
 
   // Give the server a moment to start
   await sleep(3000);
 
-  console.log('Launching Puppeteer...');
+  console.log("Launching Puppeteer...");
   // Use a strictly temporary user data dir that we clean up later
-  const tmpDir = path.join(__dirname, '..', '.agents', 'scratches', 'tmp_puppeteer_' + Date.now());
+  const tmpDir = path.join(__dirname, "..", ".agents", "scratches", "tmp_puppeteer_" + Date.now());
   fs.mkdirSync(tmpDir, { recursive: true });
 
   fs.mkdirSync(SCREENSHOT_DIR, { recursive: true });
@@ -237,20 +270,31 @@ async function run() {
     userDataDir: tmpDir,
     acceptInsecureCerts: true,
     args: [
-      '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--ignore-certificate-errors',
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-dev-shm-usage",
+      "--ignore-certificate-errors",
       // Required for headless WebGL/WebGPU to actually initialize via software rendering --
       // without these, WebGPU silently reports no adapter and every showcase falls back to
       // WebGL2/1 regardless of which `?rendererType=` was requested.
-      '--use-gl=angle', '--use-angle=swiftshader', '--enable-webgl', '--enable-unsafe-swiftshader',
-      '--ignore-gpu-blocklist', '--disable-gpu-sandbox', '--enable-features=Vulkan', '--enable-unsafe-webgpu',
-    ]
+      "--use-gl=angle",
+      "--use-angle=swiftshader",
+      "--enable-webgl",
+      "--enable-unsafe-swiftshader",
+      "--ignore-gpu-blocklist",
+      "--disable-gpu-sandbox",
+      "--enable-features=Vulkan",
+      "--enable-unsafe-webgpu",
+    ],
   });
 
-  console.log(`Running ${testCases.length} showcase checks with concurrency ${Math.min(CONCURRENCY, testCases.length)}...`);
+  console.log(
+    `Running ${testCases.length} showcase checks with concurrency ${Math.min(CONCURRENCY, testCases.length)}...`,
+  );
 
-  const firstPass = await runWithConcurrency(testCases, CONCURRENCY, async testCase => {
+  const firstPass = await runWithConcurrency(testCases, CONCURRENCY, async (testCase) => {
     const result = await checkShowcase(browser, testCase);
-    console.log(result.lines.join('\n'));
+    console.log(result.lines.join("\n"));
     return { testCase, ...result };
   });
 
@@ -268,14 +312,14 @@ async function run() {
       : first.testCase.showcase;
     console.log(`Retrying Showcase ${label} (transient failure on first attempt)...`);
     const retry = await checkShowcase(browser, first.testCase);
-    console.log(retry.lines.join('\n'));
+    console.log(retry.lines.join("\n"));
     if (!retry.passed) hasErrors = true;
   }
 
-  console.log('Closing browser...');
+  console.log("Closing browser...");
   await browser.close();
-  
-  console.log('Killing server...');
+
+  console.log("Killing server...");
   server.kill();
 
   fs.rmSync(tmpDir, { recursive: true, force: true });
@@ -283,15 +327,15 @@ async function run() {
   console.log(`\nScreenshots saved to: ${SCREENSHOT_DIR}`);
 
   if (hasErrors) {
-    console.error('\n🚨 Showcase testing failed! See errors above.');
+    console.error("\n🚨 Showcase testing failed! See errors above.");
     process.exit(1);
   } else {
-    console.log('\n🎉 All showcases passed successfully!');
+    console.log("\n🎉 All showcases passed successfully!");
     process.exit(0);
   }
 }
 
-run().catch(err => {
-  console.error('Fatal error:', err);
+run().catch((err) => {
+  console.error("Fatal error:", err);
   process.exit(1);
 });
