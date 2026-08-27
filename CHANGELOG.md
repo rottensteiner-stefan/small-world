@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.76.28] - 2026-08-27
+
+### "The wise man does at once what the fool does finally." - Baltasar Gracián
+
+- **Architecture & Bugfixes:**
+  - Fixed a WebGPU validation error ("used in submit while destroyed") on the dummy vertex buffers: `_ensureDummyBufferSize` used to destroy the old normal/UV/tangent buffers synchronously when growing, even though an earlier object in the same not-yet-submitted frame could already reference them via `setVertexBuffer`. Now deferred into `_dummyBuffersPendingDestroy` and drained right after `queue.submit()`, the same pattern already used for `_objectRingPendingDestroy`.
+  - Added per-cascade frustum culling to `CascadedShadowPassGPU` (`SpotShadowPassGPU` already had it): each cascade now only draws casters that actually intersect its own, much tighter light-space frustum instead of the full main-camera-culled render list.
+  - Added `DepthPrePassGPU`: a Z-only pre-pass for opaque objects using the shared `DepthMaterial` pipeline (same one-pipeline-for-everyone approach the shadow passes use), populating the main depth buffer before `MainRenderPass`'s color pass. `MainRenderPass`'s opaque pass now loads instead of clearing that depth buffer, so its unchanged `depthCompare: "less-equal"` rejects occluded fragments via hardware early-Z before their PBR + clustered-lighting fragment shader ever runs.
+
 ## [0.76.27] - 2026-08-27
 
 ### "Nature does not hurry, yet everything is accomplished." - Lao Tzu

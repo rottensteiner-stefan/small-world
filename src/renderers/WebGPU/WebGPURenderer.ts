@@ -49,6 +49,7 @@ import {
   CascadedShadowPassGPU,
   SpotShadowPassGPU,
   ClusterCullPassGPU,
+  DepthPrePassGPU,
 } from "../passes/index.js";
 import { BloomPassGPU, AOPassGPU, HistoryBlendPassGPU } from "../post/passes/index.js";
 import { UniformPacker } from "../../core/renderers/shaders/index.js";
@@ -360,6 +361,12 @@ export class WebGPURenderer extends AbstractRenderer {
   protected _samplerCache: Map<string, GPUSampler> = new Map();
 
   protected _dummyBufferSize: number = 0;
+  /** Buffers replaced by `_ensureDummyBufferSize`'s growth, held here instead of destroyed
+   * immediately -- it's called mid-frame from `_renderSubgroup`, so an earlier object in the
+   * same not-yet-submitted command encoder may already have recorded a `setVertexBuffer` call
+   * referencing the old buffer. Drained (destroyed) in `render()` right after `queue.submit()`,
+   * same pattern as `_objectRingPendingDestroy`. */
+  private _dummyBuffersPendingDestroy: GPUBuffer[] = [];
 
   protected _cubeTextureViewCache: Map<CubeTexture, { texture: GPUTexture; view: GPUTextureView }> =
     new Map();
@@ -637,6 +644,7 @@ export class WebGPURenderer extends AbstractRenderer {
       new ClusterCullPassGPU(),
       new CascadedShadowPassGPU(),
       new SpotShadowPassGPU(),
+      new DepthPrePassGPU(),
       new MainRenderPass(),
       new PostProcessPass(),
     ];
@@ -735,9 +743,9 @@ export class WebGPURenderer extends AbstractRenderer {
   protected _ensureDummyBufferSize(vertexCount: number): void {
     if (this._dummyBufferSize >= vertexCount * 3 && this._dummyNormalBuffer) return;
     const newSize = Math.max(this._dummyBufferSize * 2, vertexCount * 3, 3000);
-    if (this._dummyNormalBuffer) this._dummyNormalBuffer.destroy();
-    if (this._dummyUvBuffer) this._dummyUvBuffer.destroy();
-    if (this._dummyTangentBuffer) this._dummyTangentBuffer.destroy();
+    if (this._dummyNormalBuffer) this._dummyBuffersPendingDestroy.push(this._dummyNormalBuffer);
+    if (this._dummyUvBuffer) this._dummyBuffersPendingDestroy.push(this._dummyUvBuffer);
+    if (this._dummyTangentBuffer) this._dummyBuffersPendingDestroy.push(this._dummyTangentBuffer);
     const normalData = new Float32Array(newSize).fill(0);
     for (let i = 0; i < newSize; i += 3) normalData[i + 1] = 1.0;
 
@@ -1870,6 +1878,10 @@ export class WebGPURenderer extends AbstractRenderer {
       this._objectRingPendingDestroy.destroy();
       this._objectRingPendingDestroy = undefined;
     }
+    if (this._dummyBuffersPendingDestroy.length > 0) {
+      for (const b of this._dummyBuffersPendingDestroy) b.destroy();
+      this._dummyBuffersPendingDestroy.length = 0;
+    }
   }
 
   public captureOpaqueTexture(ce: GPUCommandEncoder, targetTex: GPUTexture): void {
@@ -2698,6 +2710,8 @@ export class WebGPURenderer extends AbstractRenderer {
     this._dummyNormalBuffer?.destroy();
     this._dummyUvBuffer?.destroy();
     this._dummyTangentBuffer?.destroy();
+    for (const b of this._dummyBuffersPendingDestroy) b.destroy();
+    this._dummyBuffersPendingDestroy.length = 0;
     this._globalUniformBuffer?.destroy();
     this._pointLightBuffer?.destroy();
     this._spotLightBuffer?.destroy();

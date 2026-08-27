@@ -5,7 +5,7 @@ import { WebGPURenderer, VIEW_SLOT_CASCADE_BASE } from "../WebGPU/WebGPURenderer
 import { RenderPass } from "../index.js";
 import { InstancedMesh } from "../../core/InstancedMesh.js";
 import { Object3D } from "../../core/Object3D.js";
-import { Matrix4, MathPool, Vector3D } from "../../math/index.js";
+import { Matrix4, MathPool, Vector3D, Frustum } from "../../math/index.js";
 
 const _scratchCasters: Object3D[] = [];
 const _scratchInstanced: InstancedMesh[] = [];
@@ -26,6 +26,7 @@ export class CascadedShadowPassGPU implements RenderPass {
    * actively rendering into within the same render pass.
    */
   private _shadowCasterBindGroup?: GPUBindGroup;
+  private _frustum: Frustum = new Frustum();
 
   public execute(
     renderer: WebGPURenderer,
@@ -78,6 +79,14 @@ export class CascadedShadowPassGPU implements RenderPass {
 
     for (let i = 0; i < dLight.numCascades; i++) {
       const cascadeCam = dLight.cascadeCameras[i]!;
+
+      // Per-cascade frustum, mirroring SpotShadowPassGPU's approach: without this, every
+      // cascade would draw every shadow-casting object from the (much larger) main-camera
+      // renderList, including ones nowhere near this cascade's much tighter light-space volume.
+      const tempMat = MathPool.acquireMatrix();
+      tempMat.data.set(cascadeCam.viewProjectionMatrix);
+      this._frustum.setFromMatrix(tempMat);
+      MathPool.releaseMatrix(tempMat);
 
       // This cascade's view-projection lives in its own dynamic-offset slot (group 3) --
       // see VIEW_SLOT_CASCADE_BASE -- instead of temporarily clobbering the shared
@@ -133,7 +142,10 @@ export class CascadedShadowPassGPU implements RenderPass {
 
         _scratchCasters.length = 0;
         for (let i = 0; i < objects.length; i++) {
-          if (objects[i]!.castShadow) _scratchCasters.push(objects[i]!);
+          const o = objects[i]!;
+          if (o.castShadow && (!o.bounds || this._frustum.intersectsVolume(o.bounds))) {
+            _scratchCasters.push(o);
+          }
         }
         if (_scratchCasters.length === 0) continue;
 

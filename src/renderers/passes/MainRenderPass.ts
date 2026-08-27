@@ -43,9 +43,12 @@ export class MainRenderPass implements RenderPass {
         },
       ],
       depthStencilAttachment: {
+        // DepthPrePassGPU already cleared and populated this depth buffer with the frontmost
+        // depth for every opaque object this frame -- "load" instead of "clear" builds on top
+        // of that instead of erasing it, which is what lets unchanged depthCompare:"less-equal"
+        // below reject occluded fragments via early-Z before their fragment shader runs.
         view: renderer.activeDepthView,
-        depthClearValue: 1.0,
-        depthLoadOp: "clear",
+        depthLoadOp: "load",
         depthStoreOp: "store",
       },
     });
