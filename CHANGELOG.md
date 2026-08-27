@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.76.33] - 2026-08-27
+
+### "The map is not the territory." - Alfred Korzybski
+
+- **Architecture & Bugfixes:**
+  - Fixed two bugs found while re-verifying Showcase 33's Hierarchical-Z occlusion culling (0.76.32) live in the browser. `FrustumCuller.lastVisibleObjects`/`lastVisibleCount` are `static` and shared page-wide, so GadgetInspector's `MaterialStudioApp` preview panel (itself a `SmallWorld` instance running its own `cull()` on its own scene every frame) was silently overwriting them before `HzbOcclusionPassGPU` ever read them -- it now derives its candidate list by walking the actual rendered `Scene` directly instead of trusting that shared static state.
+  - `applyPendingOcclusionResults()` relied on `mapAsync()`'s promise resolving to learn when a staging buffer was readable; when that promise didn't fire reliably, the two-slot ping-pong buffer deadlocked permanently after its first cycle (confirmed via real `used in submit while mapped` WebGPU validation errors flooding the console). It now polls `GPUBuffer.mapState` directly every frame instead -- the GPU's own ground truth, which can't get stuck the same way a dropped promise callback can.
+- **Housekeeping & Docs:**
+  - Updated `docs/adr/0008-hzb-occlusion-culling-webgpu-only.md` with both findings and the `mapState`-polling design rationale.
+
 ## [0.76.32] - 2026-08-27
 
 ### "What is essential is invisible to the eye." - Antoine de Saint-Exupéry

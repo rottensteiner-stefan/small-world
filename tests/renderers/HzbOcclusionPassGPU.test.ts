@@ -4,7 +4,6 @@ import { HzbOcclusionPassGPU } from "../../src/renderers/passes/HzbOcclusionPass
 import { WebGPURenderer } from "../../src/renderers/WebGPU/WebGPURenderer.js";
 import { Object3D } from "../../src/core/Object3D.js";
 import { Scene } from "../../src/core/Scene.js";
-import { FrustumCuller } from "../../src/core/FrustumCuller.js";
 import { BoundingSphere } from "../../src/physix/index.js";
 import { Vector3D } from "../../src/math/index.js";
 
@@ -60,7 +59,14 @@ function makeMockDevice(): { device: unknown; createTexture: ReturnType<typeof v
 function makeObjectWithBounds(x: number, y: number, z: number, radius: number): Object3D {
   const obj = new Object3D(`obj_${x}_${y}_${z}`);
   obj.bounds = new BoundingSphere(new Vector3D(x, y, z), radius);
+  obj.inFrustum = true;
   return obj;
+}
+
+function makeSceneWith(objects: Object3D[]): Scene {
+  const scene = new Scene();
+  scene.add(...objects);
+  return scene;
 }
 
 describe("HzbOcclusionPassGPU", () => {
@@ -151,14 +157,16 @@ describe("WebGPURenderer._dispatchHzbTest", () => {
 
   it("packs bounding-sphere AABBs for objects with bounds and skips those without", () => {
     const { renderer, device } = makeReadyRenderer();
-    FrustumCuller.lastVisibleObjects = [
+    const noBounds = new Object3D("NoBounds"); // bounds left undefined -- must be skipped, not crash
+    noBounds.inFrustum = true;
+    const scene = makeSceneWith([
       makeObjectWithBounds(1, 2, 3, 0.5),
-      new Object3D("NoBounds"), // bounds left undefined -- must be skipped, not crash
+      noBounds,
       makeObjectWithBounds(-4, 0, 7, 2.5),
-    ];
+    ]);
 
     const { ce } = makeMockCommandEncoder();
-    renderer._dispatchHzbTest(ce as unknown as GPUCommandEncoder);
+    renderer._dispatchHzbTest(ce as unknown as GPUCommandEncoder, scene);
 
     const writeCalls = (device as { queue: { writeBuffer: ReturnType<typeof vi.fn> } }).queue
       .writeBuffer.mock.calls;
@@ -187,10 +195,10 @@ describe("WebGPURenderer._dispatchHzbTest", () => {
   it("skips entirely when the current staging slot is still pending a previous mapAsync", () => {
     const { renderer } = makeReadyRenderer();
     renderer._hzbStagingPending = [true, false];
-    FrustumCuller.lastVisibleObjects = [makeObjectWithBounds(0, 0, 0, 1)];
+    const scene = makeSceneWith([makeObjectWithBounds(0, 0, 0, 1)]);
 
     const { ce, computePasses } = makeMockCommandEncoder();
-    renderer._dispatchHzbTest(ce as unknown as GPUCommandEncoder);
+    renderer._dispatchHzbTest(ce as unknown as GPUCommandEncoder, scene);
 
     expect(computePasses).toHaveLength(0);
     expect(ce.copyBufferToBuffer).not.toHaveBeenCalled();
@@ -198,27 +206,27 @@ describe("WebGPURenderer._dispatchHzbTest", () => {
 
   it("does nothing when there are no bounded candidates", () => {
     const { renderer } = makeReadyRenderer();
-    FrustumCuller.lastVisibleObjects = [new Object3D("NoBounds")];
+    const noBounds = new Object3D("NoBounds");
+    noBounds.inFrustum = true;
+    const scene = makeSceneWith([noBounds]);
 
     const { ce, computePasses } = makeMockCommandEncoder();
-    renderer._dispatchHzbTest(ce as unknown as GPUCommandEncoder);
+    renderer._dispatchHzbTest(ce as unknown as GPUCommandEncoder, scene);
 
     expect(computePasses).toHaveLength(0);
   });
 });
 
 describe("WebGPURenderer.applyPendingOcclusionResults", () => {
-  it("zips a resolved staging buffer's u32 flags onto the dispatched objects and unmaps", () => {
+  it("zips a mapped staging buffer's u32 flags onto the dispatched objects and unmaps", () => {
     const renderer = new WebGPURenderer() as RendererInternals;
     renderer._occlusionCullingEnabled = true;
-    renderer._hzbResultsReady = true;
-    renderer._hzbReadySlot = 0;
 
     const raw = new Uint32Array([1, 0, 1]).buffer;
     const unmap = vi.fn();
     renderer._hzbStagingBuffers = [
-      { getMappedRange: vi.fn(() => raw), unmap },
-      { getMappedRange: vi.fn(), unmap: vi.fn() },
+      { mapState: "mapped", getMappedRange: vi.fn(() => raw), unmap },
+      { mapState: "unmapped", getMappedRange: vi.fn(), unmap: vi.fn() },
     ];
     const [objA, objB, objC] = [
       makeObjectWithBounds(0, 0, 0, 1),
@@ -235,27 +243,31 @@ describe("WebGPURenderer.applyPendingOcclusionResults", () => {
     expect(objC.occlusionCulled).toBe(false);
     expect(unmap).toHaveBeenCalledTimes(1);
     expect(renderer._hzbStagingPending[0]).toBe(false);
-    expect(renderer._hzbResultsReady).toBe(false);
-    expect(renderer._hzbReadySlot).toBeUndefined();
   });
 
-  it("does nothing when no results are ready", () => {
+  it("does nothing for a slot that's pending but not yet mapped", () => {
     const renderer = new WebGPURenderer() as RendererInternals;
     renderer._occlusionCullingEnabled = true;
-    renderer._hzbResultsReady = false;
+    const unmap = vi.fn();
+    renderer._hzbStagingBuffers = [
+      { mapState: "pending", getMappedRange: vi.fn(), unmap },
+      { mapState: "unmapped", getMappedRange: vi.fn(), unmap: vi.fn() },
+    ];
+    renderer._hzbSlotObjects = [[], []];
+    renderer._hzbStagingPending = [true, false];
 
-    // Should not throw even with no staging buffers configured.
     expect(() => renderer.applyPendingOcclusionResults(new Scene())).not.toThrow();
+    expect(unmap).not.toHaveBeenCalled();
+    expect(renderer._hzbStagingPending[0]).toBe(true);
   });
 
   it("does nothing when occlusion culling isn't enabled", () => {
     const renderer = new WebGPURenderer() as RendererInternals;
     renderer._occlusionCullingEnabled = false;
-    renderer._hzbResultsReady = true;
-    renderer._hzbReadySlot = 0;
     const unmap = vi.fn();
-    renderer._hzbStagingBuffers = [{ getMappedRange: vi.fn(), unmap }, {}];
+    renderer._hzbStagingBuffers = [{ mapState: "mapped", getMappedRange: vi.fn(), unmap }, {}];
     renderer._hzbSlotObjects = [[], []];
+    renderer._hzbStagingPending = [true, false];
 
     renderer.applyPendingOcclusionResults(new Scene());
 

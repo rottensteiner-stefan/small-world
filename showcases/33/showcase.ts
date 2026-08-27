@@ -6,7 +6,6 @@ import {
   Cube,
   DirectionalLight,
   EngineOptions,
-  FrustumCuller,
   Object3D,
   OrbitController,
   PerspectiveProjection,
@@ -129,7 +128,17 @@ class Showcase33 extends AbstractShowcase {
     if (this._logTimer < 1) return;
     this._logTimer = 0;
 
-    const frustumVisible = FrustumCuller.lastVisibleCount;
+    // Counted locally rather than via `FrustumCuller.lastVisibleCount` -- that field is
+    // `static` and shared page-wide, so GadgetInspector's `MaterialStudioApp` preview panel
+    // (itself a `SmallWorld` instance, running its own `cull()` on its own scene every frame)
+    // can overwrite it before this log ever reads it.
+    let frustumVisible = 0;
+    const countVisible = (obj: Object3D): void => {
+      if (obj.isVisible && obj.inFrustum) frustumVisible++;
+      for (const child of obj.children) countVisible(child);
+    };
+    for (const obj of this.scene.objects) countVisible(obj);
+
     const occlusionCulled = this.scene.lastOcclusionCulledCount;
     console.log(
       `[HZB] frustum-visible=${frustumVisible} occlusion-culled=${occlusionCulled} ` +

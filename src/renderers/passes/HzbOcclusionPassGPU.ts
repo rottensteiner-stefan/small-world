@@ -18,7 +18,7 @@ export class HzbOcclusionPassGPU implements RenderPass {
 
   public execute(
     renderer: WebGPURenderer,
-    _scene: Scene,
+    scene: Scene,
     ce: GPUCommandEncoder,
     _targetView: GPUTextureView,
     _vp: Float32Array,
@@ -26,6 +26,6 @@ export class HzbOcclusionPassGPU implements RenderPass {
     _vMat?: Float32Array,
   ): void {
     renderer._buildHzbPyramid(ce);
-    renderer._dispatchHzbTest(ce);
+    renderer._dispatchHzbTest(ce, scene);
   }
 }

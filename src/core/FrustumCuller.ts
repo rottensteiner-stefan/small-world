@@ -17,10 +17,14 @@ export class FrustumCuller {
   /** The number of visible objects during the last cull operation. */
   public static lastVisibleCount: number = 0;
 
-  /** The objects that passed frustum culling during the last cull operation -- a byproduct of
-   * the walk this method already performs, kept as a candidate list for
-   * `HzbOcclusionPassGPU` to test against the Hierarchical-Z pyramid without a second scene
-   * traversal. Cleared and repopulated every call, both octree and fallback paths. */
+  /** The objects that passed frustum culling during the last `cull()` call, for the same scene
+   * `lastVisibleCount` reflects. Cleared and repopulated every call, both octree and fallback
+   * paths. Debug/introspection utility only -- like `lastVisibleCount`/`lastIntersectedNodes`,
+   * this is `static` and shared page-wide, so if more than one `SmallWorld` instance is running
+   * (e.g. GadgetInspector's `MaterialStudioApp` preview panel alongside a showcase's own scene),
+   * whichever one's `cull()` ran most recently wins. `HzbOcclusionPassGPU` deliberately does NOT
+   * read this for that reason -- it derives its own scene-scoped candidate list instead (see
+   * `WebGPURenderer._collectHzbCandidates()`). */
   public static lastVisibleObjects: Object3D[] = [];
 
   /**

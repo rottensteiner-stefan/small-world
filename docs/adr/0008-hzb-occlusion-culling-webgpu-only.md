@@ -21,6 +21,18 @@ temporally-reprojected HZB systems -- not a corner this implementation cut. In s
 (camera moving smoothly, not teleporting) the assumption holds: an object occluded last frame is
 overwhelmingly likely to still be occluded this frame.
 
+`applyPendingOcclusionResults()` reads readiness by polling `GPUBuffer.mapState === "mapped"` on
+each pending staging slot directly, every frame -- not by reacting to `mapAsync()`'s own promise
+resolving. An earlier version did the latter (set a `resultsReady` flag from the promise's
+`.then()`), and it deadlocked: `_hzbStagingSlot` only ever advances on a *new* successful
+dispatch, and dispatch refuses to touch a slot still marked pending, so if that promise callback
+is ever slow or never fires, the slot -- and with it the whole two-slot ping-pong -- wedges
+permanently, without a WebGPU validation error or anything else surfacing the deadlock. Reading
+`mapState` (the GPU's own ground truth for the buffer's mappedness, spec-guaranteed to update
+whether or not anything is listening for it) has no such failure mode: whichever slot's mapping
+has genuinely completed gets consumed on the very next call, regardless of what happened to its
+promise.
+
 The test uses each object's bounding **sphere**, not a tight AABB. `BoundingVolume` (the
 interface `Object3D.bounds` is typed as) only generically exposes `center`/`getBroadRadius()`
 across its three concrete shapes (Box/Sphere/OBB) -- getting a tight axis-aligned box would need
@@ -34,6 +46,17 @@ no dynamic regrowth, no atomics, the same fixed-capacity-no-atomics reasoning 00
 for the cluster light buffers. Objects beyond the cap (among those that already passed frustum
 culling) are simply never occlusion-tested; they always draw, the same safe default
 `occlusionCulled`'s own initial value already is.
+
+`_dispatchHzbTest()` derives its candidate list by walking the `Scene` it's given directly
+(`isVisible && inFrustum && bounds`), rather than reading `FrustumCuller.lastVisibleObjects` --
+even though that field exists as exactly this kind of byproduct list. `FrustumCuller`'s fields
+are `static`, shared across every `SmallWorld` instance on the page; GadgetInspector's
+`MaterialStudioApp` material-preview panel is itself a `SmallWorld` running its own `_loop()`
+(and therefore its own `FrustumCuller.cull()`) on its own tiny preview scene, and since
+`enableInspector: true` is the default for showcases, it's running alongside almost every scene
+this renderer ever tests. Reading the static field meant testing whichever scene's `cull()` ran
+last -- almost never the one actually being rendered. The scene-scoped walk costs one extra
+recursive traversal per frame; the static field stays as a debug/introspection utility only.
 
 Occlusion culling only runs for the main canvas pass. `WebGPURenderer._buildHzbPyramid()`/
 `_dispatchHzbTest()` both no-op whenever `_activeRenderTarget` is set (reflection probes,

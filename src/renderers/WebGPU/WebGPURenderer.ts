@@ -12,7 +12,6 @@ import {
   Texture,
   MAX_CLUSTERED_LIGHTS_PER_TYPE,
 } from "../../core/index.js";
-import { FrustumCuller } from "../../core/FrustumCuller.js";
 import { RenderTarget, RenderTargetCube } from "../../core/textures/index.js";
 import {
   EngineOptions,
@@ -450,8 +449,6 @@ export class WebGPURenderer extends AbstractRenderer {
    * objects without needing stable per-object IDs. */
   private _hzbSlotObjects: [Object3D[], Object3D[]] = [[], []];
   private _hzbCopyRecordedThisFrame = false;
-  private _hzbResultsReady = false;
-  private _hzbReadySlot: 0 | 1 | undefined = undefined;
 
   protected _opaqueTextures = new WeakMap<
     object,
@@ -1224,12 +1221,36 @@ export class WebGPURenderer extends AbstractRenderer {
     }
   }
 
+  /** Recursively collects `isVisible && inFrustum` descendants with a `bounds` sphere, scoped to
+   * one scene's own tree -- see `_dispatchHzbTest()`'s doc comment for why this doesn't read
+   * `FrustumCuller.lastVisibleObjects` instead. Mirrors `FrustumCuller._checkNode()`'s visibility
+   * condition exactly, minus the frustum test itself (already applied to `inFrustum` earlier this
+   * frame). Stops once `count` hits `MAX_HZB_TESTED_OBJECTS`. */
+  private _collectHzbCandidates(obj: Object3D, out: Object3D[], count: number): number {
+    if (count >= MAX_HZB_TESTED_OBJECTS) return count;
+    if (obj.isVisible && obj.inFrustum && obj.bounds) {
+      out.push(obj);
+      count++;
+    }
+    for (let i = 0; i < obj.children.length && count < MAX_HZB_TESTED_OBJECTS; i++) {
+      count = this._collectHzbCandidates(obj.children[i]!, out, count);
+    }
+    return count;
+  }
+
   /**
-   * Packs this frame's frustum-visible objects (`FrustumCuller.lastVisibleObjects` -- already
-   * computed before `render()` was even called, no extra scene walk) into `_hzbAabbBuffer` as
-   * world-space bounding spheres, dispatches the visibility test compute shader against the
-   * pyramid `_buildHzbPyramid()` just built, and copies the results into whichever staging
-   * buffer slot isn't still waiting on a previous `mapAsync()`.
+   * Packs this frame's frustum-visible objects into `_hzbAabbBuffer` as world-space bounding
+   * spheres, dispatches the visibility test compute shader against the pyramid
+   * `_buildHzbPyramid()` just built, and copies the results into whichever staging buffer slot
+   * isn't still waiting on a previous `mapAsync()`.
+   *
+   * The candidate list is derived by walking `scene` directly (`isVisible && inFrustum`, same
+   * condition `FrustumCuller`'s own fallback path uses) rather than reading
+   * `FrustumCuller.lastVisibleObjects` -- that field is `static`, so any other concurrently
+   * running `SmallWorld` instance on the page (e.g. GadgetInspector's `MaterialStudioApp`
+   * preview panel, which runs its own `_loop()`/`FrustumCuller.cull()` on its own tiny scene)
+   * clobbers it before this renderer gets to read it. Walking `scene` here keeps the candidate
+   * list scoped to the scene actually being rendered, independent of that shared static state.
    *
    * Only one slot is ever in flight at a time (the two alternate every frame -- see
    * `_hzbStagingBuffers`'s doc comment); if THAT slot is still pending, this frame's test is
@@ -1237,7 +1258,7 @@ export class WebGPURenderer extends AbstractRenderer {
    * `occlusionCulled` value one frame longer -- never blocking, matches the same "skip and
    * self-correct next frame" pattern `_getObjectSlotOffset()`'s ring-buffer overflow clamp uses.
    */
-  public _dispatchHzbTest(ce: GPUCommandEncoder): void {
+  public _dispatchHzbTest(ce: GPUCommandEncoder, scene: Scene): void {
     if (this._activeRenderTarget) return;
     if (
       !this._hzbTestPipeline ||
@@ -1254,19 +1275,19 @@ export class WebGPURenderer extends AbstractRenderer {
     const slot = this._hzbStagingSlot;
     if (this._hzbStagingPending[slot]) return;
 
-    const candidates = FrustumCuller.lastVisibleObjects;
     const objects: Object3D[] = [];
     let count = 0;
-    for (let i = 0; i < candidates.length && count < MAX_HZB_TESTED_OBJECTS; i++) {
-      const obj = candidates[i]!;
-      if (!obj.bounds) continue; // nothing to build a test sphere from -- always draws, safe default
-      const c = obj.bounds.center;
-      this._hzbAabbScratch[count * 4 + 0] = c.x;
-      this._hzbAabbScratch[count * 4 + 1] = c.y;
-      this._hzbAabbScratch[count * 4 + 2] = c.z;
-      this._hzbAabbScratch[count * 4 + 3] = obj.bounds.getBroadRadius();
-      objects.push(obj);
-      count++;
+    const sceneObjects = scene.objects;
+    for (let i = 0; i < sceneObjects.length && count < MAX_HZB_TESTED_OBJECTS; i++) {
+      count = this._collectHzbCandidates(sceneObjects[i]!, objects, count);
+    }
+    for (let i = 0; i < count; i++) {
+      const obj = objects[i]!;
+      const c = obj.bounds!.center;
+      this._hzbAabbScratch[i * 4 + 0] = c.x;
+      this._hzbAabbScratch[i * 4 + 1] = c.y;
+      this._hzbAabbScratch[i * 4 + 2] = c.z;
+      this._hzbAabbScratch[i * 4 + 3] = obj.bounds!.getBroadRadius();
     }
     if (count === 0) return;
 
@@ -1300,10 +1321,11 @@ export class WebGPURenderer extends AbstractRenderer {
   }
 
   /** Fires off `mapAsync()` on whichever staging slot this frame's `_dispatchHzbTest()` just
-   * copied into, then flips to the other slot for next frame. Fire-and-forget -- the promise is
-   * never awaited here; `applyPendingOcclusionResults()` picks up the result once it resolves,
-   * at the start of some later frame. Called once, right after `queue.submit()`, so the copy is
-   * guaranteed to have actually happened before mapping is requested. */
+   * copied into, then flips to the other slot for next frame. Fire-and-forget -- the promise
+   * itself is never awaited or chained here. `applyPendingOcclusionResults()` doesn't rely on it
+   * either: it polls `buffer.mapState` directly every frame instead of waiting on the promise to
+   * resolve (see that method's doc comment for why). Called once, right after `queue.submit()`,
+   * so the copy is guaranteed to have actually happened before mapping is requested. */
   private _kickoffHzbMapAsync(): void {
     if (!this._hzbCopyRecordedThisFrame || !this._hzbStagingBuffers) return;
     this._hzbCopyRecordedThisFrame = false;
@@ -1311,42 +1333,44 @@ export class WebGPURenderer extends AbstractRenderer {
     const slot = this._hzbStagingSlot;
     this._hzbStagingPending[slot] = true;
     const buffer = this._hzbStagingBuffers[slot];
-    buffer
-      .mapAsync(GPUMapMode.READ)
-      .then(() => {
-        this._hzbResultsReady = true;
-        this._hzbReadySlot = slot;
-      })
-      .catch(() => {
-        // Device lost / buffer destroyed mid-map -- drop this slot's pending state instead of
-        // leaving the ping-pong stuck forever; occlusionCulled flags just keep their last value.
-        this._hzbStagingPending[slot] = false;
-      });
+    buffer.mapAsync(GPUMapMode.READ).catch(() => {
+      // Device lost / buffer destroyed mid-map -- drop this slot's pending state instead of
+      // leaving the ping-pong stuck forever; occlusionCulled flags just keep their last value.
+      this._hzbStagingPending[slot] = false;
+    });
 
     this._hzbStagingSlot = slot === 0 ? 1 : 0;
   }
 
-  /** @inheritdoc */
+  /** @inheritdoc
+   *
+   * Polls `buffer.mapState === "mapped"` on each pending slot directly, rather than reacting to
+   * `mapAsync()`'s own promise resolving -- deliberately, not as a simplification. That promise
+   * is only guaranteed to resolve *eventually*; nothing requires it to fire within any bounded
+   * number of frames, and if it's ever delayed or dropped (slow GPU, a throttled/backgrounded
+   * tab, or any other reason) a promise-driven design gets stuck: `_hzbStagingSlot` only ever
+   * advances on a *new* successful dispatch, and dispatch itself refuses to touch a slot that's
+   * still marked pending -- so a lost callback wedges that slot, and therefore the whole
+   * ping-pong, forever. Reading `mapState` (the GPU's own ground truth for whether the buffer is
+   * actually readable right now) sidesteps that dependency entirely: whichever slot's mapping
+   * has genuinely completed gets consumed on the very next call, no matter what happened to its
+   * promise. */
   public override applyPendingOcclusionResults(_scene: Scene): void {
-    if (
-      !this._occlusionCullingEnabled ||
-      !this._hzbResultsReady ||
-      undefined === this._hzbReadySlot
-    ) {
-      return;
-    }
-    const slot = this._hzbReadySlot;
-    const buffer = this._hzbStagingBuffers![slot];
-    const mapped = new Uint32Array(buffer.getMappedRange());
-    const objects = this._hzbSlotObjects[slot];
-    for (let i = 0; i < objects.length; i++) {
-      objects[i]!.occlusionCulled = 0 === mapped[i];
-    }
-    buffer.unmap();
+    if (!this._occlusionCullingEnabled || !this._hzbStagingBuffers) return;
 
-    this._hzbStagingPending[slot] = false;
-    this._hzbResultsReady = false;
-    this._hzbReadySlot = undefined;
+    for (let slot = 0; slot < 2; slot++) {
+      if (!this._hzbStagingPending[slot]) continue;
+      const buffer = this._hzbStagingBuffers[slot]!;
+      if ("mapped" !== buffer.mapState) continue;
+
+      const mapped = new Uint32Array(buffer.getMappedRange());
+      const objects = this._hzbSlotObjects[slot]!;
+      for (let i = 0; i < objects.length; i++) {
+        objects[i]!.occlusionCulled = 0 === mapped[i];
+      }
+      buffer.unmap();
+      this._hzbStagingPending[slot] = false;
+    }
   }
 
   private _currentIrradianceMap?: import("../../core/textures/index.js").CubeTexture | undefined;
