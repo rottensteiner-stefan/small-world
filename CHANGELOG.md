@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.76.29] - 2026-08-27
+
+### "Nothing is lost, nothing is created, everything is transformed." - Antoine Lavoisier
+
+- **Features:**
+  - Added the `WeatherEmitter` extension (`src/extensions/weather/`): a reusable, `InstancedMesh`-backed atmospheric particle emitter (falling ash/dust/rain/snow) with a fixed-capacity particle pool, wind drift with per-particle gustiness phase, toroidal horizontal wrap, and floor-plane recycling — no per-frame allocation, no renderer changes. Implements AAA research item #16 (weather particle VFX) as a pure application-level utility, mirroring `GridLevelBuilder`'s opt-in extension pattern rather than the renderer-integrated post-processing composite pass AAA engines use (unnecessary at this particle scale, and deliberately avoided to stay clear of renderer-core work in flight elsewhere).
+  - Added Showcase 32 ("Radioactive Ashfall: Fallout Zone Vienna"), the "And Now?" world's Donauauen fallout belt: a ruined street flanked by collapsed apartment blocks, a glowing radioactive hot zone with toppled drums, an irregularly flickering "geiger click" point light, and two `WeatherEmitter` instances (high-altitude ashfall + a dense ground-hugging toxic dust layer) — re-themed from the research doc's generic "blizzard" concept to fit the setting's established radiation/toxicity lore instead.
+  - Exercises the engine's existing `Fog` (EXP2 mode) for the toxic haze, plus `AbstractRenderer.setClearColor()` to tint the empty sky instead of rendering pure black behind a skybox-less ruin.
+- **Housekeeping & Docs:**
+  - Added unit test coverage for `WeatherEmitter` (pool sizing, floor-plane recycling incl. the exact-boundary edge case, wind drift, dirty-flag behavior).
+  - Registered Showcase 32 in `vite.config.ts`, the `public/index.html` gallery, and `scripts/check-showcases.js`'s smoke-test list; re-threaded the showcase navigation chain (31 → 32 → yad).
+  - Updated `docs/research/aaa-engine-techniques.md` item #16's status to implemented.
+
 ## [0.76.28] - 2026-08-27
 
 ### "The wise man does at once what the fool does finally." - Baltasar Gracián

@@ -32,7 +32,7 @@ den referenzierten Engines wurde kopiert.
 | 13 | Froxel-Volumetric-Fog (echte Streuung) | mittel (direkt nach #5) | **hoch** | 🔍 **Recherchiert (2026-08-20)** — bestätigte Lücke, Stufe 0 → Stufe B, s. Abschnitt 6; nächstes großes Vorhaben nach #5 |
 | 14 | Hierarchical-Z Occlusion Culling | groß | gering (bei uns) | niedrige Priorität — Korridor-Level profitieren kaum zusätzlich |
 | 15 | Billboards/Imposter | mittel | gering (bei uns) | niedrige Priorität — kein Anwendungsfall aktuell |
-| 16 | Schneesturm/Wetter-Partikel (Blizzard) | mittel | mittel | 🔍 **Recherchiert (2026-08-20)** — eigenständiges Partikel-VFX-Vorhaben, **keine** Fog-Infrastruktur-Abhängigkeit, s. Abschnitt 6 |
+| 16 | Schneesturm/Wetter-Partikel (Blizzard) | mittel | mittel | ✅ **Implementiert (2026-08-27)** — als `WeatherEmitter`-Extension (`src/extensions/weather/`), `InstancedMesh`-basiert, keine Renderer-Core-Änderung; umgesetzt als **radioaktiver Ascheregen/Fallout-Staub** statt generischem Schnee (passt zum And-Now-Lore), siehe Showcase 32 "Radioactive Ashfall" — bestätigt keine Fog-Infrastruktur-Abhängigkeit wie unten prognostiziert |
 
 **Lesart:** #1–#4 sind die "low hanging fruit" — jeweils ein bis wenige Tage, hoher spürbarer
 Gewinn. #5 ist die große, lohnende Baustelle, direkt gegen unser bekanntes 4-Licht-Limit.
