@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.76.32] - 2026-08-27
+
+### "What is essential is invisible to the eye." - Antoine de Saint-Exupéry
+
+- **Features:**
+  - Added Hierarchical-Z (HZB) occlusion culling, opt-in via `EngineOptions.enableOcclusionCulling` (WebGPU-only, no-op on WebGL1/WebGL2 -- see `docs/adr/0008-hzb-occlusion-culling-webgpu-only.md`). Implements AAA research item #14: a new `HzbOcclusionPassGPU` builds a max-reduction depth pyramid from each frame's opaque depth, tests every frustum-visible object's bounding sphere against it via compute, and reads the results back asynchronously (`mapAsync`, necessarily one frame stale) to skip drawing objects that were fully hidden behind other geometry.
+  - Added Showcase 33 ("Hidden City"): an occluding wall hides a dense field of individually-drawn objects behind it, with a console readout (`frustum-visible`/`occlusion-culled`/`rendered`) proving the pipeline is doing real work.
+- **Architecture & Bugfixes:**
+  - New `Object3D.occlusionCulled` flag and a second gate in `Scene._collectVisible()` (after the existing frustum check), `FrustumCuller.lastVisibleObjects` (a byproduct of the culling walk it already does, feeding the occlusion test's candidate list with no extra scene traversal), and `Renderer.applyPendingOcclusionResults()` (optional interface method, WebGPU-only override) wired into `SmallWorld`'s per-frame loop.
+- **Housekeeping & Docs:**
+  - Added unit test coverage for the new WGSL dispatch/AABB-packing logic (mocked `GPUCommandEncoder`, matching `ClusterCullPassGPU.test.ts`'s style) and the `Scene`/`FrustumCuller` occlusion bookkeeping.
+  - Registered Showcase 33 in `vite.config.ts`, the `public/index.html` gallery, and `scripts/check-showcases.js`'s smoke-test list; re-threaded the showcase navigation chain (32 → 33 → 34 → yad); fixed `AbstractShowcase`'s hardcoded `totalShowcases` prev/next-wraparound constant, stale since showcase 27 (was still 26).
+
 ## [0.76.31] - 2026-08-27
 
 ### "We are what we pretend to be." - Kurt Vonnegut

@@ -12,6 +12,7 @@ import {
   Texture,
   MAX_CLUSTERED_LIGHTS_PER_TYPE,
 } from "../../core/index.js";
+import { FrustumCuller } from "../../core/FrustumCuller.js";
 import { RenderTarget, RenderTargetCube } from "../../core/textures/index.js";
 import {
   EngineOptions,
@@ -30,6 +31,9 @@ import {
   DEFAULT_MAX_LIGHTS_PER_CLUSTER,
 } from "../../math/index.js";
 import clusterCullWGSL from "../../core/renderers/shaders/source/web_gpu/compute/cluster_cull.wgsl?raw";
+import hzbCopyDepthWGSL from "../../core/renderers/shaders/source/web_gpu/compute/hzb_copy_depth.wgsl?raw";
+import hzbDownsampleMaxWGSL from "../../core/renderers/shaders/source/web_gpu/compute/hzb_downsample_max.wgsl?raw";
+import hzbVisibilityTestWGSL from "../../core/renderers/shaders/source/web_gpu/compute/hzb_visibility_test.wgsl?raw";
 import mipDownsampleWGSL from "../../core/materials/shaders/MipDownsample.frag.wgsl?raw";
 import fullscreenVertWGSL from "../../core/materials/shaders/PostProcess.vert.wgsl?raw";
 import {
@@ -50,6 +54,7 @@ import {
   SpotShadowPassGPU,
   ClusterCullPassGPU,
   DepthPrePassGPU,
+  HzbOcclusionPassGPU,
 } from "../passes/index.js";
 import { BloomPassGPU, AOPassGPU, HistoryBlendPassGPU } from "../post/passes/index.js";
 import { UniformPacker } from "../../core/renderers/shaders/index.js";
@@ -230,6 +235,16 @@ export const VIEW_SLOT_SPOT_SHADOW_BASE = 5;
 const VIEW_SLOT_COUNT = 9;
 
 /**
+ * Fixed capacity for the Hierarchical-Z occlusion visibility test's AABB/results buffers -- see
+ * docs/adr/0008-hzb-occlusion-culling-webgpu-only.md. No dynamic regrowth or atomics, same
+ * fixed-capacity-no-atomics reasoning ADR 0007 already uses for the cluster light buffers.
+ * Objects beyond this cap (per frame, among those that passed frustum culling) are simply never
+ * occlusion-tested -- they always draw, the same safe default as `occlusionCulled`'s initial
+ * `false`.
+ */
+const MAX_HZB_TESTED_OBJECTS = 8192;
+
+/**
  * Modern WebGPU implementation with dynamic vertex updates and memory management.
  */
 export class WebGPURenderer extends AbstractRenderer {
@@ -407,6 +422,36 @@ export class WebGPURenderer extends AbstractRenderer {
   }
 
   private _depthTexture!: GPUTexture;
+
+  // Hierarchical-Z occlusion culling -- see docs/adr/0008-hzb-occlusion-culling-webgpu-only.md.
+  // All of this stays unallocated (fields left undefined) unless `enableOcclusionCulling` was
+  // set at init, so an app that never opts in pays nothing.
+  private _occlusionCullingEnabled = false;
+  private _hzbTexture?: GPUTexture;
+  private _hzbSampledView?: GPUTextureView; // whole mip chain, for the visibility test's textureLoad
+  private _hzbMipLevelCount = 1;
+  private _hzbCopyPipeline?: GPUComputePipeline;
+  private _hzbCopyBGL?: GPUBindGroupLayout;
+  private _hzbDownsamplePipeline?: GPUComputePipeline;
+  private _hzbDownsampleBGL?: GPUBindGroupLayout;
+  private _hzbTestPipeline?: GPUComputePipeline;
+  private _hzbTestBGL?: GPUBindGroupLayout;
+  private _hzbAabbBuffer?: GPUBuffer;
+  private _hzbResultsBuffer?: GPUBuffer;
+  private _hzbTestParamsBuffer?: GPUBuffer;
+  /** Ping-pong `MAP_READ` staging pair: while one slot's `mapAsync()` from a prior frame is
+   * still pending, the other is always free to write into -- see `_dispatchHzbTest()`'s doc
+   * comment for why a single buffer can't do this without stalling. */
+  private _hzbStagingBuffers?: [GPUBuffer, GPUBuffer];
+  private _hzbStagingSlot: 0 | 1 = 0;
+  private _hzbStagingPending: [boolean, boolean] = [false, false];
+  /** Snapshot of the exact `Object3D[]` dispatched into each staging slot, so
+   * `applyPendingOcclusionResults()` can zip a resolved buffer's `u32`s back onto the right
+   * objects without needing stable per-object IDs. */
+  private _hzbSlotObjects: [Object3D[], Object3D[]] = [[], []];
+  private _hzbCopyRecordedThisFrame = false;
+  private _hzbResultsReady = false;
+  private _hzbReadySlot: 0 | 1 | undefined = undefined;
 
   protected _opaqueTextures = new WeakMap<
     object,
@@ -626,6 +671,7 @@ export class WebGPURenderer extends AbstractRenderer {
     if (config?.postProcessing) {
       this.postProcessing.loadConfig(config.postProcessing);
     }
+    this._occlusionCullingEnabled = config?.enableOcclusionCulling === true;
 
     this._context = canvas.getContext("webgpu") as GPUCanvasContext;
     this._format = navigator.gpu.getPreferredCanvasFormat();
@@ -645,6 +691,7 @@ export class WebGPURenderer extends AbstractRenderer {
       new CascadedShadowPassGPU(),
       new SpotShadowPassGPU(),
       new DepthPrePassGPU(),
+      ...(this._occlusionCullingEnabled ? [new HzbOcclusionPassGPU()] : []),
       new MainRenderPass(),
       new PostProcessPass(),
     ];
@@ -951,6 +998,107 @@ export class WebGPURenderer extends AbstractRenderer {
         },
       ],
     });
+
+    // Hierarchical-Z occlusion culling -- see docs/adr/0008-hzb-occlusion-culling-webgpu-only.md.
+    // Everything here is opt-in: skipped entirely (zero pipelines/buffers created) unless
+    // `enableOcclusionCulling` was set at init. `_hzbTexture` itself is allocated in `setSize()`,
+    // once the canvas's real dimensions are known.
+    if (this._occlusionCullingEnabled) {
+      // Mip 0 seed: this frame's `_depthTexture` (depth32float, not storage-bindable) copied
+      // into the HZB pyramid's own r32float storage texture.
+      this._hzbCopyBGL = this._device!.createBindGroupLayout({
+        entries: [
+          { binding: 0, visibility: GPUShaderStage.COMPUTE, texture: { sampleType: "depth" } },
+          {
+            binding: 1,
+            visibility: GPUShaderStage.COMPUTE,
+            storageTexture: { access: "write-only", format: "r32float" },
+          },
+        ],
+      });
+      this._hzbCopyPipeline = this._device!.createComputePipeline({
+        layout: this._device!.createPipelineLayout({ bindGroupLayouts: [this._hzbCopyBGL] }),
+        compute: {
+          module: this._device!.createShaderModule({ code: hzbCopyDepthWGSL }),
+          entryPoint: "copyDepthToHzb",
+        },
+      });
+
+      // Rest of the pyramid: max-reduce mip L-1 into mip L, one dispatch per level (see
+      // `_buildHzbPyramid()`).
+      this._hzbDownsampleBGL = this._device!.createBindGroupLayout({
+        entries: [
+          {
+            binding: 0,
+            visibility: GPUShaderStage.COMPUTE,
+            texture: { sampleType: "unfilterable-float" },
+          },
+          {
+            binding: 1,
+            visibility: GPUShaderStage.COMPUTE,
+            storageTexture: { access: "write-only", format: "r32float" },
+          },
+        ],
+      });
+      this._hzbDownsamplePipeline = this._device!.createComputePipeline({
+        layout: this._device!.createPipelineLayout({ bindGroupLayouts: [this._hzbDownsampleBGL] }),
+        compute: {
+          module: this._device!.createShaderModule({ code: hzbDownsampleMaxWGSL }),
+          entryPoint: "downsampleMax",
+        },
+      });
+
+      // Visibility test: group 0 is the same shared `GlobalUniforms` bind group every material
+      // shader uses (for `global.vp`/`global.viewPos`/`global.projScale`/`global.resolution`),
+      // group 1 is this test's own AABB/HZB-texture/results/params bindings.
+      this._hzbTestBGL = this._device!.createBindGroupLayout({
+        entries: [
+          { binding: 0, visibility: GPUShaderStage.COMPUTE, buffer: { type: "read-only-storage" } },
+          {
+            binding: 1,
+            visibility: GPUShaderStage.COMPUTE,
+            texture: { sampleType: "unfilterable-float" },
+          },
+          { binding: 2, visibility: GPUShaderStage.COMPUTE, buffer: { type: "storage" } },
+          { binding: 3, visibility: GPUShaderStage.COMPUTE, buffer: { type: "uniform" } },
+        ],
+      });
+      const hzbTestModule = this._device!.createShaderModule({
+        code:
+          (ShaderRegistry.instance.getChunk("WGSL_STRUCTS", "wgsl") ?? "") +
+          "\n" +
+          hzbVisibilityTestWGSL,
+      });
+      this._hzbTestPipeline = this._device!.createComputePipeline({
+        layout: this._device!.createPipelineLayout({
+          bindGroupLayouts: [this._globalBGL, this._hzbTestBGL],
+        }),
+        compute: { module: hzbTestModule, entryPoint: "testVisibility" },
+      });
+
+      this._hzbAabbBuffer = this._device!.createBuffer({
+        size: MAX_HZB_TESTED_OBJECTS * 16, // vec4f (center.xyz, radius) per object
+        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+      });
+      this._hzbResultsBuffer = this._device!.createBuffer({
+        size: MAX_HZB_TESTED_OBJECTS * 4, // one u32 per object
+        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
+      });
+      this._hzbTestParamsBuffer = this._device!.createBuffer({
+        size: 16, // HzbTestParams: objectCount/mipCount/pad0/pad1, 4x u32
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+      });
+      this._hzbStagingBuffers = [
+        this._device!.createBuffer({
+          size: MAX_HZB_TESTED_OBJECTS * 4,
+          usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
+        }),
+        this._device!.createBuffer({
+          size: MAX_HZB_TESTED_OBJECTS * 4,
+          usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
+        }),
+      ];
+    }
   }
 
   /** Writes an already ZO-corrected view-projection matrix into `slot`'s bytes. */
@@ -1019,6 +1167,186 @@ export class WebGPURenderer extends AbstractRenderer {
       rp.end();
     }
     this._device!.queue.submit([ce.finish()]);
+  }
+
+  /** Reused every frame -- see `_dispatchHzbTest()`. */
+  private _hzbAabbScratch = new Float32Array(MAX_HZB_TESTED_OBJECTS * 4);
+  private _hzbParamsScratch = new Uint32Array(4);
+
+  /**
+   * Builds this frame's HZB pyramid: mip 0 seeded from `_depthTexture` (this frame's
+   * just-finished opaque depth, already written by `DepthPrePassGPU` earlier in `_passes`), then
+   * mips 1..N max-reduced from the level below, one dispatch per level -- see
+   * hzb_copy_depth.wgsl/hzb_downsample_max.wgsl. Recorded into the frame's shared command
+   * encoder: unlike `_generateMipmaps()` (which needs its own throwaway encoder+submit since
+   * callers run it mid-frame while a render pass may already be open), this runs between two
+   * whole passes, never inside one. No-ops for offscreen render targets -- see
+   * docs/adr/0008-hzb-occlusion-culling-webgpu-only.md's main-canvas-only scope.
+   */
+  public _buildHzbPyramid(ce: GPUCommandEncoder): void {
+    if (this._activeRenderTarget) return;
+    if (!this._hzbTexture || !this._hzbCopyPipeline || !this._hzbCopyBGL) return;
+
+    const mip0View = this._hzbTexture.createView({ baseMipLevel: 0, mipLevelCount: 1 });
+    const copyBG = this._device!.createBindGroup({
+      layout: this._hzbCopyBGL,
+      entries: [
+        { binding: 0, resource: this.activeDepthView },
+        { binding: 1, resource: mip0View },
+      ],
+    });
+    const w0 = this._context.canvas.width;
+    const h0 = this._context.canvas.height;
+    const copyPass = ce.beginComputePass({ label: "HzbCopyDepth" });
+    copyPass.setPipeline(this._hzbCopyPipeline);
+    copyPass.setBindGroup(0, copyBG);
+    copyPass.dispatchWorkgroups(Math.ceil(w0 / 8), Math.ceil(h0 / 8));
+    copyPass.end();
+
+    if (!this._hzbDownsamplePipeline || !this._hzbDownsampleBGL) return;
+    for (let level = 1; level < this._hzbMipLevelCount; level++) {
+      const srcView = this._hzbTexture.createView({ baseMipLevel: level - 1, mipLevelCount: 1 });
+      const dstView = this._hzbTexture.createView({ baseMipLevel: level, mipLevelCount: 1 });
+      const bg = this._device!.createBindGroup({
+        layout: this._hzbDownsampleBGL,
+        entries: [
+          { binding: 0, resource: srcView },
+          { binding: 1, resource: dstView },
+        ],
+      });
+      const w = Math.max(1, w0 >> level);
+      const h = Math.max(1, h0 >> level);
+      const pass = ce.beginComputePass({ label: `HzbDownsample_${level}` });
+      pass.setPipeline(this._hzbDownsamplePipeline);
+      pass.setBindGroup(0, bg);
+      pass.dispatchWorkgroups(Math.ceil(w / 8), Math.ceil(h / 8));
+      pass.end();
+    }
+  }
+
+  /**
+   * Packs this frame's frustum-visible objects (`FrustumCuller.lastVisibleObjects` -- already
+   * computed before `render()` was even called, no extra scene walk) into `_hzbAabbBuffer` as
+   * world-space bounding spheres, dispatches the visibility test compute shader against the
+   * pyramid `_buildHzbPyramid()` just built, and copies the results into whichever staging
+   * buffer slot isn't still waiting on a previous `mapAsync()`.
+   *
+   * Only one slot is ever in flight at a time (the two alternate every frame -- see
+   * `_hzbStagingBuffers`'s doc comment); if THAT slot is still pending, this frame's test is
+   * skipped entirely rather than stalling on it. Objects simply keep last frame's
+   * `occlusionCulled` value one frame longer -- never blocking, matches the same "skip and
+   * self-correct next frame" pattern `_getObjectSlotOffset()`'s ring-buffer overflow clamp uses.
+   */
+  public _dispatchHzbTest(ce: GPUCommandEncoder): void {
+    if (this._activeRenderTarget) return;
+    if (
+      !this._hzbTestPipeline ||
+      !this._hzbTestBGL ||
+      !this._hzbAabbBuffer ||
+      !this._hzbResultsBuffer ||
+      !this._hzbTestParamsBuffer ||
+      !this._hzbStagingBuffers ||
+      !this._hzbSampledView
+    ) {
+      return;
+    }
+
+    const slot = this._hzbStagingSlot;
+    if (this._hzbStagingPending[slot]) return;
+
+    const candidates = FrustumCuller.lastVisibleObjects;
+    const objects: Object3D[] = [];
+    let count = 0;
+    for (let i = 0; i < candidates.length && count < MAX_HZB_TESTED_OBJECTS; i++) {
+      const obj = candidates[i]!;
+      if (!obj.bounds) continue; // nothing to build a test sphere from -- always draws, safe default
+      const c = obj.bounds.center;
+      this._hzbAabbScratch[count * 4 + 0] = c.x;
+      this._hzbAabbScratch[count * 4 + 1] = c.y;
+      this._hzbAabbScratch[count * 4 + 2] = c.z;
+      this._hzbAabbScratch[count * 4 + 3] = obj.bounds.getBroadRadius();
+      objects.push(obj);
+      count++;
+    }
+    if (count === 0) return;
+
+    this._device!.queue.writeBuffer(this._hzbAabbBuffer, 0, this._hzbAabbScratch, 0, count * 4);
+    this._hzbParamsScratch[0] = count;
+    this._hzbParamsScratch[1] = this._hzbMipLevelCount;
+    this._hzbParamsScratch[2] = 0;
+    this._hzbParamsScratch[3] = 0;
+    this._device!.queue.writeBuffer(this._hzbTestParamsBuffer, 0, this._hzbParamsScratch);
+
+    const testBG = this._device!.createBindGroup({
+      layout: this._hzbTestBGL,
+      entries: [
+        { binding: 0, resource: { buffer: this._hzbAabbBuffer } },
+        { binding: 1, resource: this._hzbSampledView },
+        { binding: 2, resource: { buffer: this._hzbResultsBuffer } },
+        { binding: 3, resource: { buffer: this._hzbTestParamsBuffer } },
+      ],
+    });
+
+    const pass = ce.beginComputePass({ label: "HzbVisibilityTest" });
+    pass.setPipeline(this._hzbTestPipeline);
+    pass.setBindGroup(0, this._globalBindGroup);
+    pass.setBindGroup(1, testBG);
+    pass.dispatchWorkgroups(Math.ceil(count / 64));
+    pass.end();
+
+    ce.copyBufferToBuffer(this._hzbResultsBuffer, 0, this._hzbStagingBuffers[slot], 0, count * 4);
+    this._hzbSlotObjects[slot] = objects;
+    this._hzbCopyRecordedThisFrame = true;
+  }
+
+  /** Fires off `mapAsync()` on whichever staging slot this frame's `_dispatchHzbTest()` just
+   * copied into, then flips to the other slot for next frame. Fire-and-forget -- the promise is
+   * never awaited here; `applyPendingOcclusionResults()` picks up the result once it resolves,
+   * at the start of some later frame. Called once, right after `queue.submit()`, so the copy is
+   * guaranteed to have actually happened before mapping is requested. */
+  private _kickoffHzbMapAsync(): void {
+    if (!this._hzbCopyRecordedThisFrame || !this._hzbStagingBuffers) return;
+    this._hzbCopyRecordedThisFrame = false;
+
+    const slot = this._hzbStagingSlot;
+    this._hzbStagingPending[slot] = true;
+    const buffer = this._hzbStagingBuffers[slot];
+    buffer
+      .mapAsync(GPUMapMode.READ)
+      .then(() => {
+        this._hzbResultsReady = true;
+        this._hzbReadySlot = slot;
+      })
+      .catch(() => {
+        // Device lost / buffer destroyed mid-map -- drop this slot's pending state instead of
+        // leaving the ping-pong stuck forever; occlusionCulled flags just keep their last value.
+        this._hzbStagingPending[slot] = false;
+      });
+
+    this._hzbStagingSlot = slot === 0 ? 1 : 0;
+  }
+
+  /** @inheritdoc */
+  public override applyPendingOcclusionResults(_scene: Scene): void {
+    if (
+      !this._occlusionCullingEnabled ||
+      !this._hzbResultsReady ||
+      undefined === this._hzbReadySlot
+    ) {
+      return;
+    }
+    const slot = this._hzbReadySlot;
+    const buffer = this._hzbStagingBuffers![slot];
+    const mapped = new Uint32Array(buffer.getMappedRange());
+    const objects = this._hzbSlotObjects[slot];
+    for (let i = 0; i < objects.length; i++) {
+      objects[i]!.occlusionCulled = 0 === mapped[i];
+    }
+    buffer.unmap();
+
+    this._hzbStagingPending[slot] = false;
+    this._hzbResultsReady = false;
+    this._hzbReadySlot = undefined;
   }
 
   private _currentIrradianceMap?: import("../../core/textures/index.js").CubeTexture | undefined;
@@ -1882,6 +2210,7 @@ export class WebGPURenderer extends AbstractRenderer {
       for (const b of this._dummyBuffersPendingDestroy) b.destroy();
       this._dummyBuffersPendingDestroy.length = 0;
     }
+    if (this._occlusionCullingEnabled) this._kickoffHzbMapAsync();
   }
 
   public captureOpaqueTexture(ce: GPUCommandEncoder, targetTex: GPUTexture): void {
@@ -2649,6 +2978,23 @@ export class WebGPURenderer extends AbstractRenderer {
         GPUTextureUsage.COPY_SRC,
     });
 
+    if (this._occlusionCullingEnabled) {
+      if (this._hzbTexture) this._hzbTexture.destroy();
+      this._hzbMipLevelCount = this._computeMipLevelCount(
+        this._context.canvas.width,
+        this._context.canvas.height,
+      );
+      this._hzbTexture = this._device.createTexture({
+        size: [this._context.canvas.width, this._context.canvas.height],
+        format: "r32float",
+        mipLevelCount: this._hzbMipLevelCount,
+        // STORAGE_BINDING: each mip is written once, individually, by _buildHzbPyramid().
+        // TEXTURE_BINDING: the whole chain is then read back (any mip) by the visibility test.
+        usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING,
+      });
+      this._hzbSampledView = this._hzbTexture.createView();
+    }
+
     if (this.postProcessing.enabled) {
       if (this._hdrTexture) this._hdrTexture.destroy();
       this._hdrTexture = this._device.createTexture({
@@ -2727,6 +3073,16 @@ export class WebGPURenderer extends AbstractRenderer {
     this._areaLightBuffer?.destroy();
     this._depthTexture?.destroy();
     this._hdrTexture?.destroy();
+    this._hzbTexture?.destroy();
+    this._hzbAabbBuffer?.destroy();
+    this._hzbResultsBuffer?.destroy();
+    this._hzbTestParamsBuffer?.destroy();
+    if (this._hzbStagingBuffers) {
+      // destroy() implicitly unmaps a still-mapped buffer per spec -- safe even if a
+      // mapAsync() from a not-yet-applied readback is still pending on one of these.
+      this._hzbStagingBuffers[0].destroy();
+      this._hzbStagingBuffers[1].destroy();
+    }
     this._bloomPassGPU?.destroy();
     this._hbaoPassGPU?.destroy();
     this._taaPassGPU?.destroy();

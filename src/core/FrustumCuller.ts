@@ -17,12 +17,19 @@ export class FrustumCuller {
   /** The number of visible objects during the last cull operation. */
   public static lastVisibleCount: number = 0;
 
+  /** The objects that passed frustum culling during the last cull operation -- a byproduct of
+   * the walk this method already performs, kept as a candidate list for
+   * `HzbOcclusionPassGPU` to test against the Hierarchical-Z pyramid without a second scene
+   * traversal. Cleared and repopulated every call, both octree and fallback paths. */
+  public static lastVisibleObjects: Object3D[] = [];
+
   /**
    * Culls objects in the scene that are outside the camera frustum.
    */
   public static cull(scene: Scene, vpMatrix: Matrix4): number {
     this._frustum.setFromMatrix(vpMatrix);
     this.lastIntersectedNodes.clear();
+    this.lastVisibleObjects.length = 0;
 
     // Reset culling state for all objects
     this._resetCulling(scene.root);
@@ -34,7 +41,10 @@ export class FrustumCuller {
         octree.query(this._frustum, this._queryHits, this.lastIntersectedNodes);
         for (let i: number = 0; i < this._queryHits.length; i++) {
           const obj = this._queryHits[i] as Object3D;
-          if (obj.isVisible) obj.inFrustum = true;
+          if (obj.isVisible) {
+            obj.inFrustum = true;
+            this.lastVisibleObjects.push(obj);
+          }
         }
       }
 
@@ -76,7 +86,9 @@ export class FrustumCuller {
       obj.inFrustum = true;
     }
 
-    let count = obj.isVisible && obj.inFrustum ? 1 : 0;
+    const visible = obj.isVisible && obj.inFrustum;
+    if (visible) this.lastVisibleObjects.push(obj);
+    let count = visible ? 1 : 0;
     for (let i: number = 0; i < obj.children.length; i++) {
       count += this._checkNode(obj.children[i]!);
     }

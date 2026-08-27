@@ -84,4 +84,12 @@ export interface Renderer {
   readonly gpuDevice?: GPUDevice | undefined;
   /** WebGL Context (for WebGL1/2 renderers) */
   readonly webglContext?: WebGLRenderingContext | WebGL2RenderingContext | undefined;
+
+  /**
+   * Applies the previous frame's Hierarchical-Z occlusion culling results (if ready) by setting
+   * `occlusionCulled` on the tested objects. Called once per frame, before `FrustumCuller.cull()`.
+   * WebGPU-only (see docs/adr/0008-hzb-occlusion-culling-webgpu-only.md); a no-op on WebGL1/WebGL2
+   * and whenever occlusion culling isn't enabled.
+   */
+  applyPendingOcclusionResults?(scene: Scene): void;
 }

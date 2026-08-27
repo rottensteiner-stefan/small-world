@@ -152,6 +152,7 @@ export default defineConfig({
         showcase30: resolve(import.meta.dirname, "showcases/30/index.html"),
         showcase31: resolve(import.meta.dirname, "showcases/31/index.html"),
         showcase32: resolve(import.meta.dirname, "showcases/32/index.html"),
+        showcase33: resolve(import.meta.dirname, "showcases/33/index.html"),
         showcase34: resolve(import.meta.dirname, "showcases/34/index.html"),
         andNowHub: resolve(import.meta.dirname, "src/apps/and-now/index.html"),
         andNowPrologue: resolve(import.meta.dirname, "src/apps/and-now/scenes/prologue/index.html"),

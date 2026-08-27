@@ -45,6 +45,13 @@ export class Object3D implements Collidable {
   public frustumCulled: boolean = true;
   public isStatic: boolean = false;
   public inFrustum: boolean = true;
+  /** Set only by WebGPU Hierarchical-Z occlusion culling (see docs/adr/0008-...), one frame
+   * stale by design (`mapAsync` GPU->CPU readback is never synchronous). Unlike `inFrustum`,
+   * NOT reset every frame -- only `WebGPURenderer.applyPendingOcclusionResults()` writes it, for
+   * whichever objects it has a fresh readback for; everything else keeps its last known value.
+   * Always false on WebGL1/WebGL2 (never written there), making `Scene._collectVisible()`'s
+   * check a permanent no-op on those backends. */
+  public occlusionCulled: boolean = false;
   public castShadow: boolean = false;
   public receiveShadow: boolean = false;
 

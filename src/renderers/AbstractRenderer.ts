@@ -90,6 +90,11 @@ export abstract class AbstractRenderer implements Renderer {
   }
 
   /** @inheritdoc */
+  public applyPendingOcclusionResults(_scene: Scene): void {
+    // Base implementation does nothing -- only WebGPURenderer overrides this.
+  }
+
+  /** @inheritdoc */
   public setClearColor(color: Color): void {
     this._clearColor = color;
   }

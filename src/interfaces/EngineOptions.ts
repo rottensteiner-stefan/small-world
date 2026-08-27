@@ -133,6 +133,9 @@ export interface EngineOptions {
   enablePhysics?: boolean;
   /** Initial gravity vector for the built-in physics system, e.g. `[0, -9.81, 0]`. Defaults to the `PhysicsSystem` default. */
   gravity?: [number, number, number];
+  /** Whether to enable Hierarchical-Z occlusion culling (WebGPU-only, no-op on WebGL1/WebGL2).
+   * Defaults to false. See docs/adr/0008-hzb-occlusion-culling-webgpu-only.md. */
+  enableOcclusionCulling?: boolean;
 }
 
 /**

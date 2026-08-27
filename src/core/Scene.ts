@@ -44,6 +44,13 @@ export class Scene {
   public staticColliders: Collidable[] = [];
   public fog?: Fog;
 
+  /** How many objects `_collectVisible()` skipped this call because `occlusionCulled` was set
+   * (WebGPU Hierarchical-Z culling, see docs/adr/0008-...). Reset at the top of
+   * `getVisibleObjectsSorted()`; always 0 on WebGL1/WebGL2, where `occlusionCulled` is never
+   * set. Reflects whichever of `getVisibleObjectsSorted()`'s per-frame callers (DepthPrePassGPU,
+   * then MainRenderPass) ran last. */
+  public lastOcclusionCulledCount = 0;
+
   // Global Environment (IBL)
   public irradianceMap?: import("./textures/index.js").CubeTexture;
   public prefilterMap?: import("./textures/index.js").CubeTexture;
@@ -236,6 +243,7 @@ export class Scene {
     for (let i = 0; i < batches.length; i++) {
       batches[i]!.objects.length = 0;
     }
+    this.lastOcclusionCulledCount = 0;
 
     const frustum = this._scratchFrustum;
     const vpMat = this._scratchMatrix;
@@ -273,6 +281,14 @@ export class Scene {
       if (!obj.inFrustum) {
         return;
       }
+    }
+
+    // Hierarchical-Z occlusion culling (WebGPU-only, see docs/adr/0008-...) -- a second,
+    // independent gate: frustum-culled objects never reach here, and this never overrides
+    // `inFrustum`. Always false on WebGL1/WebGL2, so this is a permanent no-op there.
+    if (obj.occlusionCulled) {
+      this.lastOcclusionCulledCount++;
+      return;
     }
 
     if (

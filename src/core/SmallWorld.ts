@@ -21,7 +21,7 @@ import { GadgetInspector } from "../tools/GadgetInspector.js";
 import { PhysicsSystem } from "../physix/PhysicsSystem.js";
 
 /** The current engine version. */
-export const ENGINE_VERSION = "0.76.31";
+export const ENGINE_VERSION = "0.76.32";
 
 /**
  * Halton low-discrepancy sequence, used for TAA's per-frame sub-pixel camera jitter -- covers
@@ -510,6 +510,9 @@ export abstract class SmallWorld {
       this.interactionManager.update();
     }
 
+    if (this.config.enableOcclusionCulling) {
+      this.renderer.applyPendingOcclusionResults?.(this.scene);
+    }
     FrustumCuller.cull(this.scene, this.camera.viewProjectionMatrix4);
 
     if (this.config.enablePhysics) {
