@@ -8,7 +8,7 @@
     
     let worldPos = obj.model * vec4f(pos, 1.0);
     o.wp = worldPos.xyz;
-    o.pos = global.vp * worldPos;
+    o.pos = view.vp * worldPos;
     o.uv = uv * obj.texRepeat + obj.texOffset;
     o.original_uv = uv;
     

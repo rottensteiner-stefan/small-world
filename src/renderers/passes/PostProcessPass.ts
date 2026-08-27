@@ -24,7 +24,9 @@ export class PostProcessPass implements RenderPass {
   private _bindGroup?: GPUBindGroup;
   private _uniformBuffer?: GPUBuffer;
   private _sampler?: GPUSampler;
-  private _uniformData: Float32Array = new Float32Array(4); // Only needs 16 bytes for time
+  /** 20 floats (80 bytes): DynUniforms in PostProcess.frag.wgsl -- time + the 12 continuous
+   * tuning parameters, packed as 5x vec4f (with padding for the two vec3 colors). */
+  private _uniformData: Float32Array = new Float32Array(20);
   private _builtTextureView?: GPUTextureView;
   private _builtBloomTextureView?: GPUTextureView;
   private _builtHbaoTextureView?: GPUTextureView;
@@ -51,30 +53,21 @@ export class PostProcessPass implements RenderPass {
       PostProcessingEffectType.OUTLINE,
     );
 
+    // Only structural flags/modes -- these gate real WGSL code paths (branch taken, sample
+    // count) and require a shader rebuild. Continuous tuning values (exposure, vignette
+    // offset/darkness/roundness, grain intensity, bloom intensity/color, quantize steps,
+    // outline thickness/sensitivity/color) live in the per-frame DynUniforms buffer instead
+    // (see execute()) and deliberately do NOT appear here -- tuning them must never rebuild.
     return [
       group.filterMode,
       tm && tm.enabled ? 1 : 0,
       tm && tm.enabled ? tm.mode : 0,
-      tm && tm.enabled ? tm.exposure : 1.0,
-      tm && tm.enabled ? tm.gamma : 2.2,
       vig && vig.enabled ? 1 : 0,
-      vig && vig.enabled ? vig.offset : 0.8,
-      vig && vig.enabled ? vig.darkness : 0.5,
-      vig && vig.enabled ? vig.roundness : 2.0,
       grain && grain.enabled ? 1 : 0,
-      grain && grain.enabled ? grain.intensity : 0.05,
       bloom && bloom.enabled ? 1 : 0,
-      bloom && bloom.enabled ? bloom.intensity : 1.0,
-      bloom && bloom.enabled ? `${bloom.color.r},${bloom.color.g},${bloom.color.b}` : "1,1,1",
       quant && quant.enabled ? 1 : 0,
-      quant && quant.enabled ? quant.steps : 8.0,
       hbao && hbao.enabled ? 1 : 0,
       outline && outline.enabled ? 1 : 0,
-      outline && outline.enabled ? outline.thickness : 1.0,
-      outline && outline.enabled ? outline.sensitivity : 1.0,
-      outline && outline.enabled
-        ? `${outline.color.r},${outline.color.g},${outline.color.b}`
-        : "0,0,0",
     ].join("|");
   }
 
@@ -99,7 +92,7 @@ export class PostProcessPass implements RenderPass {
 
     if (!this._uniformBuffer) {
       this._uniformBuffer = device.createBuffer({
-        size: 16, // Only u_time uniform
+        size: 80, // DynUniforms: 5 x vec4f
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
       });
     }
@@ -147,15 +140,10 @@ export class PostProcessPass implements RenderPass {
     const hbaoEnabled = hbao && hbao.enabled;
     const outlineEnabled = outline && outline.enabled;
 
-    // Inject static parameters as WGSL constants, replacing default fallback declarations
-    assembledFrag = assembledFrag.replace(
-      "const u_exposure: f32 = 1.0;",
-      `const u_exposure: f32 = ${tmEnabled ? tm.exposure.toFixed(6) : "1.0"};`,
-    );
-    assembledFrag = assembledFrag.replace(
-      "const u_inverseGamma: f32 = 1.0;",
-      `const u_inverseGamma: f32 = ${tmEnabled ? (1.0 / tm.gamma).toFixed(6) : "1.0"};`,
-    );
+    // Inject only STRUCTURAL parameters as WGSL constants -- these gate real code paths (branch
+    // taken, sample count), so changing them legitimately needs a rebuild. Continuous tuning
+    // values (exposure, vignette/grain/bloom/quantize/outline numeric params) no longer appear
+    // here at all -- they're written every frame into DynUniforms instead (see execute()).
     assembledFrag = assembledFrag.replace(
       "const u_toneMappingMode: u32 = 0u;",
       `const u_toneMappingMode: u32 = ${tmEnabled ? tm.mode : 0}u;`,
@@ -165,44 +153,16 @@ export class PostProcessPass implements RenderPass {
       `const u_vignetteEnabled: u32 = ${vigEnabled ? 1 : 0}u;`,
     );
     assembledFrag = assembledFrag.replace(
-      "const u_vignetteOffset: f32 = 0.8;",
-      `const u_vignetteOffset: f32 = ${vig ? vig.offset.toFixed(6) : "0.8"};`,
-    );
-    assembledFrag = assembledFrag.replace(
-      "const u_vignetteDarkness: f32 = 0.5;",
-      `const u_vignetteDarkness: f32 = ${vig ? vig.darkness.toFixed(6) : "0.5"};`,
-    );
-    assembledFrag = assembledFrag.replace(
-      "const u_vignetteRoundness: f32 = 2.0;",
-      `const u_vignetteRoundness: f32 = ${vig ? vig.roundness.toFixed(6) : "2.0"};`,
-    );
-    assembledFrag = assembledFrag.replace(
       "const u_grainEnabled: u32 = 0u;",
       `const u_grainEnabled: u32 = ${grainEnabled ? 1 : 0}u;`,
-    );
-    assembledFrag = assembledFrag.replace(
-      "const u_grainIntensity: f32 = 0.05;",
-      `const u_grainIntensity: f32 = ${grain ? grain.intensity.toFixed(6) : "0.05"};`,
     );
     assembledFrag = assembledFrag.replace(
       "const u_bloomEnabled: u32 = 0u;",
       `const u_bloomEnabled: u32 = ${bloomEnabled ? 1 : 0}u;`,
     );
     assembledFrag = assembledFrag.replace(
-      "const u_bloomIntensity: f32 = 1.0;",
-      `const u_bloomIntensity: f32 = ${bloom ? bloom.intensity.toFixed(6) : "1.0"};`,
-    );
-    assembledFrag = assembledFrag.replace(
-      "const u_bloomColor: vec3f = vec3f(1.0, 1.0, 1.0);",
-      `const u_bloomColor: vec3f = vec3f(${bloom ? `${bloom.color.r.toFixed(6)}, ${bloom.color.g.toFixed(6)}, ${bloom.color.b.toFixed(6)}` : "1.0, 1.0, 1.0"});`,
-    );
-    assembledFrag = assembledFrag.replace(
       "const u_quantizeEnabled: u32 = 0u;",
       `const u_quantizeEnabled: u32 = ${quantEnabled ? 1 : 0}u;`,
-    );
-    assembledFrag = assembledFrag.replace(
-      "const u_quantizeSteps: f32 = 8.0;",
-      `const u_quantizeSteps: f32 = ${quant ? quant.steps.toFixed(6) : "8.0"};`,
     );
     assembledFrag = assembledFrag.replace(
       "const u_hbaoEnabled: u32 = 0u;",
@@ -211,18 +171,6 @@ export class PostProcessPass implements RenderPass {
     assembledFrag = assembledFrag.replace(
       "const u_outlineEnabled: u32 = 0u;",
       `const u_outlineEnabled: u32 = ${outlineEnabled ? 1 : 0}u;`,
-    );
-    assembledFrag = assembledFrag.replace(
-      "const u_outlineThickness: f32 = 1.0;",
-      `const u_outlineThickness: f32 = ${outline ? outline.thickness.toFixed(6) : "1.0"};`,
-    );
-    assembledFrag = assembledFrag.replace(
-      "const u_outlineSensitivity: f32 = 1.0;",
-      `const u_outlineSensitivity: f32 = ${outline ? outline.sensitivity.toFixed(6) : "1.0"};`,
-    );
-    assembledFrag = assembledFrag.replace(
-      "const u_outlineColor: vec3f = vec3f(0.0, 0.0, 0.0);",
-      `const u_outlineColor: vec3f = vec3f(${outline ? `${outline.color.r.toFixed(6)}, ${outline.color.g.toFixed(6)}, ${outline.color.b.toFixed(6)}` : "0.0, 0.0, 0.0"});`,
     );
     assembledFrag = assembledFrag.replace(
       "const u_filterMode: u32 = 0u;",
@@ -302,10 +250,48 @@ export class PostProcessPass implements RenderPass {
       this._builtHbaoTextureView = hbaoActiveView;
     }
 
-    // Write post-process dynamic uniforms (only time uniform is active)
-    this._uniformData[0] = (performance.now() % 100000) / 1000.0; // Time in seconds
+    // Write the continuous tuning values every frame, independent of the rebuild guard above --
+    // this is the whole point: moving a slider never touches the pipeline. Matches DynUniforms'
+    // layout in PostProcess.frag.wgsl exactly (5x vec4f, index comments below give the offset).
+    const tm = group.get<import("../post/index.js").ToneMappingElement>(
+      PostProcessingEffectType.TONE_MAPPING,
+    );
+    const vig = group.get<import("../post/index.js").VignetteElement>(
+      PostProcessingEffectType.VIGNETTE,
+    );
+    const grain = group.get<import("../post/index.js").GrainElement>(
+      PostProcessingEffectType.GRAIN,
+    );
+    const quant = group.get<import("../post/index.js").QuantizeElement>(
+      PostProcessingEffectType.QUANTIZE,
+    );
+    const outline = group.get<import("../post/index.js").OutlineElement>(
+      PostProcessingEffectType.OUTLINE,
+    );
 
-    renderer.gpuDevice!.queue.writeBuffer(this._uniformBuffer!, 0, this._uniformData);
+    const d = this._uniformData;
+    d[0] = (performance.now() % 100000) / 1000.0; // a.x: time
+    d[1] = tm ? tm.exposure : 1.0; // a.y: exposure
+    d[2] = tm ? 1.0 / tm.gamma : 1.0; // a.z: inverseGamma
+    d[3] = vig ? vig.offset : 0.8; // a.w: vignetteOffset
+    d[4] = vig ? vig.darkness : 0.5; // b.x: vignetteDarkness
+    d[5] = vig ? vig.roundness : 2.0; // b.y: vignetteRoundness
+    d[6] = grain ? grain.intensity : 0.05; // b.z: grainIntensity
+    d[7] = bloom ? bloom.intensity : 1.0; // b.w: bloomIntensity
+    d[8] = quant ? quant.steps : 8.0; // c.x: quantizeSteps
+    d[9] = outline ? outline.thickness : 1.0; // c.y: outlineThickness
+    d[10] = outline ? outline.sensitivity : 1.0; // c.z: outlineSensitivity
+    d[11] = 0; // c.w: pad
+    d[12] = bloom ? bloom.color.r : 1.0; // bloomColor.rgb
+    d[13] = bloom ? bloom.color.g : 1.0;
+    d[14] = bloom ? bloom.color.b : 1.0;
+    d[15] = 0; // pad
+    d[16] = outline ? outline.color.r : 0.0; // outlineColor.rgb
+    d[17] = outline ? outline.color.g : 0.0;
+    d[18] = outline ? outline.color.b : 0.0;
+    d[19] = 0; // pad
+
+    renderer.gpuDevice!.queue.writeBuffer(this._uniformBuffer!, 0, d);
 
     // Final blit directly to the swap-chain (canvas)
     const screenView = renderer.gpuCanvasContext.getCurrentTexture().createView();

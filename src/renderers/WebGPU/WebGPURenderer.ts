@@ -30,6 +30,8 @@ import {
   DEFAULT_MAX_LIGHTS_PER_CLUSTER,
 } from "../../math/index.js";
 import clusterCullWGSL from "../../core/renderers/shaders/source/web_gpu/compute/cluster_cull.wgsl?raw";
+import mipDownsampleWGSL from "../../core/materials/shaders/MipDownsample.frag.wgsl?raw";
+import fullscreenVertWGSL from "../../core/materials/shaders/PostProcess.vert.wgsl?raw";
 import {
   BlendingMode,
   CullMode,
@@ -214,6 +216,19 @@ function getOptionalMaterialTextureBindings(): Record<
 const GLOBAL_BIND_GROUP_TEXTURE_COUNT = 5;
 
 /**
+ * Dynamic-offset slot layout for the per-draw view-projection uniform (group 3, `view.vp` in
+ * structs.wgsl) -- one slot per camera that can be active mid-frame: the main camera, each
+ * cascade of the (single, at most 4-cascade) directional shadow, and each of up to 4 shadow-
+ * casting spot lights. Fixed capacity, no growth: hard-bounded by `cascadeMatrices`/
+ * `spotShadowMatrices`'s `array<mat4x4f, 4>` sizes in structs.wgsl, same cap the existing code
+ * already assumes. See `_setViewMatrix()`/`CascadedShadowPassGPU`/`SpotShadowPassGPU`.
+ */
+export const VIEW_SLOT_MAIN_CAMERA = 0;
+export const VIEW_SLOT_CASCADE_BASE = 1;
+export const VIEW_SLOT_SPOT_SHADOW_BASE = 5;
+const VIEW_SLOT_COUNT = 9;
+
+/**
  * Modern WebGPU implementation with dynamic vertex updates and memory management.
  */
 export class WebGPURenderer extends AbstractRenderer {
@@ -248,14 +263,29 @@ export class WebGPURenderer extends AbstractRenderer {
   protected _pipelines: Map<string, WebGPUPipelineCache> = new Map();
   protected _shaderModules: Map<string, GPUShaderModule> = new Map();
 
-  protected _objectUniformBuffers = new Map<
-    string,
-    {
-      buffer: GPUBuffer;
-      lastFrame: number;
-      objBg?: GPUBindGroup;
-    }
-  >();
+  /** Shared ring buffer holding every object's `ObjectUniforms` slot for the current frame,
+   * bound once via `hasDynamicOffset` instead of one `GPUBuffer`+`GPUBindGroup` per object. */
+  protected _objectRingBuffer!: GPUBuffer;
+  protected _objectRingBindGroup!: GPUBindGroup;
+  protected _objectRingCapacity = 0;
+  /** Byte stride between slots, aligned to `device.limits.minUniformBufferOffsetAlignment`. */
+  protected _objectUniformStride = 256;
+  /** Frame-local: `` `${obj.uuid}:${matUuid}` `` -> byte offset already written this frame. */
+  protected _objectSlotMap = new Map<string, number>();
+  /** Frame-local slot counter; becomes `_lastFrameObjectSlotCount` for next frame's capacity guess. */
+  protected _objectSlotCount = 0;
+  protected _lastFrameObjectSlotCount = 0;
+  private _objectRingOverflowWarned = false;
+  /** Set by `_ensureObjectRingCapacity` when it grows; destroyed post-submit in `render()` once
+   * every draw that referenced the old buffer's slots has actually been recorded and submitted. */
+  private _objectRingPendingDestroy?: GPUBuffer | undefined;
+
+  /** Per-draw view-projection dynamic-offset buffer -- see `VIEW_SLOT_*`/`_setViewMatrix()`. */
+  private _viewBGL!: GPUBindGroupLayout;
+  private _viewUniformBuffer!: GPUBuffer;
+  private _viewBindGroup!: GPUBindGroup;
+  private _viewUniformStride = 256;
+
   protected _materialBindGroups = new Map<
     string,
     {
@@ -263,7 +293,15 @@ export class WebGPURenderer extends AbstractRenderer {
       resources: unknown[];
     }
   >();
-  protected _textureViewCache = new Map<Texture, { texture: GPUTexture; view: GPUTextureView }>();
+  protected _textureViewCache = new Map<
+    Texture,
+    { texture: GPUTexture; view: GPUTextureView; mipLevelCount: number }
+  >();
+  /** GPU-side mip-chain generator for runtime 2D textures (WebGPU has no `generateMipmap()`
+   * equivalent to WebGL2's) -- one bilinear blit per level, see `_generateMipmaps()`. */
+  private _mipGenPipeline!: GPURenderPipeline;
+  private _mipGenBGL!: GPUBindGroupLayout;
+  private _mipGenSampler!: GPUSampler;
   private _texRefCounts: Map<Texture, number> = new Map();
   private _whiteTexView!: GPUTextureView;
   public get whiteTextureView(): GPUTextureView {
@@ -564,6 +602,12 @@ export class WebGPURenderer extends AbstractRenderer {
       webgpuMaxTextureDimension2D: this._device.limits.maxTextureDimension2D,
     });
 
+    // Object-uniform ring buffer slot stride must respect the device's dynamic-offset
+    // alignment (commonly 256, but not guaranteed) -- 256 is the payload size (`ObjectUniforms`
+    // packs into <= 256 bytes, see `_scratchObjBufferData`), rounded up to the alignment.
+    const objAlignment = this._device.limits.minUniformBufferOffsetAlignment;
+    this._objectUniformStride = Math.ceil(256 / objAlignment) * objAlignment;
+
     // Add uncapturederror listener
     this._device.onuncapturederror = (event: GPUUncapturedErrorEvent): void => {
       console.error("[WebGPU Error]:", event.error.message);
@@ -838,10 +882,135 @@ export class WebGPURenderer extends AbstractRenderer {
         {
           binding: 0,
           visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-          buffer: { type: "uniform" },
+          buffer: { type: "uniform", hasDynamicOffset: true },
         },
       ],
     });
+    this._ensureObjectRingCapacity(1024);
+
+    // Mip-chain generator for runtime 2D textures -- see `_generateMipmaps()`.
+    this._mipGenBGL = this._device!.createBindGroupLayout({
+      entries: [
+        { binding: 0, visibility: GPUShaderStage.FRAGMENT, sampler: {} },
+        { binding: 1, visibility: GPUShaderStage.FRAGMENT, texture: {} },
+      ],
+    });
+    this._mipGenPipeline = this._device!.createRenderPipeline({
+      layout: this._device!.createPipelineLayout({ bindGroupLayouts: [this._mipGenBGL] }),
+      vertex: {
+        module: this._device!.createShaderModule({ code: fullscreenVertWGSL }),
+        entryPoint: "vs_main",
+      },
+      fragment: {
+        module: this._device!.createShaderModule({ code: mipDownsampleWGSL }),
+        entryPoint: "fs_main",
+        targets: [{ format: "rgba8unorm" }],
+      },
+      primitive: { topology: Topology.TRIANGLE_LIST },
+    });
+    // Always clamp-to-edge, independent of the texture's own wrap mode -- prevents edge
+    // bleeding while downsampling. Separate from `_getSampler`'s draw-time sampler cache.
+    this._mipGenSampler = this._device!.createSampler({
+      magFilter: TextureFilter.LINEAR,
+      minFilter: TextureFilter.LINEAR,
+      addressModeU: TextureWrap.CLAMP_TO_EDGE,
+      addressModeV: TextureWrap.CLAMP_TO_EDGE,
+    });
+
+    // Per-draw view-projection dynamic-offset buffer -- vertex-stage only (position transform),
+    // unlike `_objectBGL` which the fragment shader also reads.
+    this._viewBGL = this._device!.createBindGroupLayout({
+      entries: [
+        {
+          binding: 0,
+          visibility: GPUShaderStage.VERTEX,
+          buffer: { type: "uniform", hasDynamicOffset: true },
+        },
+      ],
+    });
+    const viewAlignment = this._device!.limits.minUniformBufferOffsetAlignment;
+    this._viewUniformStride = Math.ceil(64 / viewAlignment) * viewAlignment; // 64B = one mat4x4f
+    this._viewUniformBuffer = this._device!.createBuffer({
+      size: VIEW_SLOT_COUNT * this._viewUniformStride,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    });
+    this._viewBindGroup = this._device!.createBindGroup({
+      layout: this._viewBGL,
+      entries: [
+        {
+          binding: 0,
+          resource: { buffer: this._viewUniformBuffer, offset: 0, size: this._viewUniformStride },
+        },
+      ],
+    });
+  }
+
+  /** Writes an already ZO-corrected view-projection matrix into `slot`'s bytes. */
+  private _writeViewSlot(slot: number, correctedVpData: Float32Array): number {
+    const offset = slot * this._viewUniformStride;
+    this._device!.queue.writeBuffer(this._viewUniformBuffer, offset, correctedVpData);
+    return offset;
+  }
+
+  /** Writes `rawVp` (a raw, not-yet-ZO-corrected view-projection matrix) into the per-draw view
+   * buffer at `slot` and returns the byte offset to pass as `setBindGroup(3, viewBindGroup,
+   * [offset])`. Used by `CascadedShadowPassGPU`/`SpotShadowPassGPU` for their shadow cameras --
+   * the main camera's slot 0 is kept up to date by `_updateGlobalBuffers()` instead, once per
+   * frame, since every draw needs it regardless of pass. */
+  public _setViewMatrix(slot: number, rawVp: Float32Array): number {
+    const raw = MathPool.acquireMatrix();
+    const corrected = MathPool.acquireMatrix();
+    raw.data.set(rawVp);
+    Matrix4.multiply(Matrix4.ZO_CORRECTION, raw, corrected);
+    const offset = this._writeViewSlot(slot, corrected.data);
+    MathPool.releaseMatrix(raw);
+    MathPool.releaseMatrix(corrected);
+    return offset;
+  }
+
+  /** `1 + floor(log2(max(w, h)))` -- the standard (and WebGPU-max-valid) full mip chain length
+   * down to a 1x1 level. Unlike `BloomPassGPU`'s capped chain (a performance choice for a
+   * per-frame blur), texture minification wants the complete chain. */
+  private _computeMipLevelCount(width: number, height: number): number {
+    return 1 + Math.floor(Math.log2(Math.max(width, height)));
+  }
+
+  /** Renders `texture`'s mip chain (levels `1..mipLevelCount-1`) from the already-uploaded
+   * level 0, one bilinear fullscreen blit per level -- WebGPU has no `generateMipmap()`
+   * equivalent to WebGL2's `gl.generateMipmap()` (same technique as Toji's `webgpu-utils`
+   * `generateMips`). Runs on its own throwaway `GPUCommandEncoder` with an immediate
+   * `queue.submit()`, decoupled from the frame's main encoder: callers (`_getTextureView`) run
+   * mid-frame, while the main render pass may already be open, and WebGPU only allows one open
+   * render pass per encoder at a time. `queue` operations are ordered, so this submit is
+   * guaranteed visible to the main pass's later sampling of this texture. */
+  private _generateMipmaps(texture: GPUTexture, mipLevelCount: number): void {
+    const ce = this._device!.createCommandEncoder();
+    for (let level = 1; level < mipLevelCount; level++) {
+      const srcView = texture.createView({ baseMipLevel: level - 1, mipLevelCount: 1 });
+      const dstView = texture.createView({ baseMipLevel: level, mipLevelCount: 1 });
+      const bg = this._device!.createBindGroup({
+        layout: this._mipGenBGL,
+        entries: [
+          { binding: 0, resource: this._mipGenSampler },
+          { binding: 1, resource: srcView },
+        ],
+      });
+      const rp = ce.beginRenderPass({
+        colorAttachments: [
+          {
+            view: dstView,
+            loadOp: "clear",
+            storeOp: "store",
+            clearValue: { r: 0, g: 0, b: 0, a: 0 },
+          },
+        ],
+      });
+      rp.setPipeline(this._mipGenPipeline);
+      rp.setBindGroup(0, bg);
+      rp.draw(3);
+      rp.end();
+    }
+    this._device!.queue.submit([ce.finish()]);
   }
 
   private _currentIrradianceMap?: import("../../core/textures/index.js").CubeTexture | undefined;
@@ -1080,7 +1249,7 @@ export class WebGPURenderer extends AbstractRenderer {
       const sm = this._getShaderModule(shaderId, isInstanced, flags);
       const materialBGL = this._getMaterialBGL(shaderId, flags);
       const pipelineLayout = this._device!.createPipelineLayout({
-        bindGroupLayouts: [this._globalBGL, materialBGL, this._objectBGL],
+        bindGroupLayouts: [this._globalBGL, materialBGL, this._objectBGL, this._viewBGL],
       });
 
       const vertexBuffers: GPUVertexBufferLayout[] = [
@@ -1140,7 +1309,7 @@ export class WebGPURenderer extends AbstractRenderer {
       cache = {
         pipeline,
         layout: pipelineLayout,
-        bgLayouts: [this._globalBGL, materialBGL, this._objectBGL],
+        bgLayouts: [this._globalBGL, materialBGL, this._objectBGL, this._viewBGL],
         refCount: 0,
       };
       this._pipelines.set(key, cache);
@@ -1449,6 +1618,14 @@ export class WebGPURenderer extends AbstractRenderer {
     }
 
     this._frameCount++;
+
+    // Object-uniform ring buffer: reset per-frame dedup/slot state, then size for this frame
+    // from last frame's actual usage (with 50% headroom) so growth is the rare case, not the norm.
+    this._objectSlotMap.clear();
+    this._objectSlotCount = 0;
+    this._objectRingOverflowWarned = false;
+    this._ensureObjectRingCapacity(Math.max(1024, Math.ceil(this._lastFrameObjectSlotCount * 1.5)));
+
     const lights = this.extractLights(scene);
     this._updateGlobalBuffers(vp, camPos, lights, scene, near, far, projMatrix);
     const ce = this._device.createCommandEncoder();
@@ -1573,7 +1750,11 @@ export class WebGPURenderer extends AbstractRenderer {
           if (depth !== undefined) data.depth = depth;
           if (depthView !== undefined) data.depthView = depthView;
           this._renderTargetTextures.set(this._activeRenderTarget, data);
-          this._textureViewCache.set(this._activeRenderTarget, { texture: tex, view });
+          this._textureViewCache.set(this._activeRenderTarget, {
+            texture: tex,
+            view,
+            mipLevelCount: 1,
+          });
           this._activeRenderTarget.isLoaded = true;
         }
         renderTargetView = data.view;
@@ -1683,7 +1864,12 @@ export class WebGPURenderer extends AbstractRenderer {
     }
 
     this._device.queue.submit([ce.finish()]);
-    if (this._frameCount % 100 === 0) this._pruneObjectBuffers();
+
+    this._lastFrameObjectSlotCount = this._objectSlotCount;
+    if (this._objectRingPendingDestroy) {
+      this._objectRingPendingDestroy.destroy();
+      this._objectRingPendingDestroy = undefined;
+    }
   }
 
   public captureOpaqueTexture(ce: GPUCommandEncoder, targetTex: GPUTexture): void {
@@ -1749,15 +1935,6 @@ export class WebGPURenderer extends AbstractRenderer {
     ]);
   }
 
-  protected _pruneObjectBuffers(): void {
-    for (const [uuid, data] of this._objectUniformBuffers.entries()) {
-      if (this._frameCount - data.lastFrame > 100) {
-        data.buffer.destroy();
-        this._objectUniformBuffers.delete(uuid);
-      }
-    }
-  }
-
   public _renderBatch(
     rp: GPURenderPassEncoder,
     batch: import("../../core/Scene.js").RenderBatch,
@@ -1791,6 +1968,9 @@ export class WebGPURenderer extends AbstractRenderer {
     else if (batch.topology === Topology.LINE_LIST) topologyStr = Topology.LINE_LIST;
     else if (batch.topology === Topology.LINE_STRIP) topologyStr = Topology.LINE_STRIP;
 
+    // Slot 0 = main camera, always offset 0 -- see VIEW_SLOT_MAIN_CAMERA.
+    const viewOffset = VIEW_SLOT_MAIN_CAMERA * this._viewUniformStride;
+
     if (standardObjects.length > 0) {
       this._renderSubgroup(
         rp,
@@ -1798,6 +1978,7 @@ export class WebGPURenderer extends AbstractRenderer {
         false,
         batch.matUuid,
         manifest,
+        viewOffset,
         vMat,
         topologyStr,
         batch.wireframeMode,
@@ -1811,6 +1992,7 @@ export class WebGPURenderer extends AbstractRenderer {
         true,
         batch.matUuid,
         manifest,
+        viewOffset,
         vMat,
         topologyStr,
         batch.wireframeMode,
@@ -1824,6 +2006,7 @@ export class WebGPURenderer extends AbstractRenderer {
     isInstanced: boolean,
     matUuid: string,
     manifest: RenderManifest,
+    viewOffset: number,
     vMat?: Float32Array,
     topology: GPUPrimitiveTopology = Topology.DEFAULT,
     wireframeMode?: "structural" | "triangles",
@@ -1834,6 +2017,7 @@ export class WebGPURenderer extends AbstractRenderer {
 
     const matBindGroup = this._getMaterialBindGroup(matUuid, manifest, cache.bgLayouts[1]!);
     rp.setBindGroup(1, matBindGroup);
+    rp.setBindGroup(3, this._viewBindGroup, [viewOffset]);
 
     for (const obj of objects) {
       if (!obj.geometry) continue;
@@ -1841,10 +2025,8 @@ export class WebGPURenderer extends AbstractRenderer {
       this._acquirePipeline(obj, pipelineKey);
       this._acquireTextures(obj, manifest.textures);
 
-      const uBufferData = this._getObjUniformBufferData(obj);
-      this._updateObjUniformBuffer(uBufferData.buffer, obj, manifest, vMat);
-      const objBindGroup = this._getObjBindGroup(uBufferData, cache.bgLayouts[2]!);
-      rp.setBindGroup(2, objBindGroup);
+      const objOffset = this._getObjectSlotOffset(obj, manifest, matUuid, vMat);
+      rp.setBindGroup(2, this._objectRingBindGroup, [objOffset]);
 
       const gCache = this._getGeoCache(obj, obj.geometry!);
       this._ensureDummyBufferSize(gCache.vertexCount);
@@ -1939,32 +2121,85 @@ export class WebGPURenderer extends AbstractRenderer {
     }
   }
 
-  protected _getObjUniformBufferData(obj: Object3D): {
-    buffer: GPUBuffer;
-    lastFrame: number;
-    objBg?: GPUBindGroup;
-  } {
-    let data = this._objectUniformBuffers.get(obj.uuid);
-    if (!data) {
-      const buffer = this._device!.createBuffer({
-        size: 256,
-        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-      });
-      data = { buffer, lastFrame: this._frameCount };
-      this._objectUniformBuffers.set(obj.uuid, data);
-    }
-    data.lastFrame = this._frameCount;
-    return data;
+  /** Grows the shared object-uniform ring buffer (+ its single dynamic-offset bind group) to
+   * hold at least `neededSlots`. Never shrinks. Called once at init and once per frame in
+   * `render()` based on the previous frame's usage -- never mid-frame (see `_getObjectSlotOffset`'s
+   * overflow clamp for why: swapping the bound `GPUBuffer` while a render pass is being recorded
+   * would need a second bind group + risks stale offsets in already-encoded draws). */
+  protected _ensureObjectRingCapacity(neededSlots: number): void {
+    if (this._objectRingBuffer && this._objectRingCapacity >= neededSlots) return;
+
+    const newCapacity = Math.max(neededSlots, this._objectRingCapacity * 2, 1);
+    const newBuffer = this._device!.createBuffer({
+      size: newCapacity * this._objectUniformStride,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    });
+    const newBindGroup = this._device!.createBindGroup({
+      layout: this._objectBGL,
+      entries: [
+        { binding: 0, resource: { buffer: newBuffer, offset: 0, size: this._objectUniformStride } },
+      ],
+    });
+
+    // Destroying immediately after this frame's queue.submit() is spec-safe (the driver keeps the
+    // underlying resource alive, ref-counted, until in-flight GPU work finishes) -- but growth
+    // happens *before* this frame's draws are recorded, so the old buffer is still what those
+    // draws' already-taken slot offsets refer to until we submit. Deferred to `render()`'s
+    // post-submit cleanup instead of destroying it here.
+    this._objectRingPendingDestroy = this._objectRingBuffer;
+    this._objectRingBuffer = newBuffer;
+    this._objectRingBindGroup = newBindGroup;
+    this._objectRingCapacity = newCapacity;
   }
 
-  protected _updateObjUniformBuffer(
-    b: GPUBuffer,
-    o: Object3D,
+  /** Returns the byte offset into `_objectRingBuffer` holding `obj`'s `ObjectUniforms` for this
+   * draw. Packs + uploads at most once per (object, material) per frame -- e.g. the same shadow
+   * caster drawn across 4 CSM cascades (all sharing one `DepthMaterial` `matUuid`) reuses the same
+   * slot instead of repacking. Sprites are excluded: their model matrix is billboarded towards
+   * `vMat` (camera vs. light view differ per pass), so they always get a fresh slot. */
+  protected _getObjectSlotOffset(
+    obj: Object3D,
     m: RenderManifest,
+    matUuid: string,
     vMat?: Float32Array,
-  ): void {
+  ): number {
+    const isSprite = m.state?.isSprite === true;
+    const key = isSprite ? undefined : `${obj.uuid}:${matUuid}`;
+    if (key !== undefined) {
+      const cached = this._objectSlotMap.get(key);
+      if (cached !== undefined) return cached;
+    }
+
+    let slot = this._objectSlotCount;
+    if (slot >= this._objectRingCapacity) {
+      // Rare mid-frame spike beyond what last frame's usage predicted -- clamp instead of
+      // resizing mid-encode (see `_ensureObjectRingCapacity`'s doc comment). Self-corrects next
+      // frame once `_lastFrameObjectSlotCount` reflects the higher demand.
+      if (!this._objectRingOverflowWarned) {
+        console.warn(
+          `[WebGPURenderer] Object uniform ring buffer exceeded its ${this._objectRingCapacity}-slot capacity mid-frame; reusing the last slot for the overflow this frame. Capacity grows for the next frame.`,
+        );
+        this._objectRingOverflowWarned = true;
+      }
+      slot = this._objectRingCapacity - 1;
+    } else {
+      this._objectSlotCount++;
+    }
+
+    const offset = slot * this._objectUniformStride;
+    if (this._packObjectUniforms(obj, m, vMat)) {
+      this._device!.queue.writeBuffer(this._objectRingBuffer, offset, this._scratchObjBufferData);
+    }
+    if (key !== undefined) this._objectSlotMap.set(key, offset);
+    return offset;
+  }
+
+  /** Packs `obj`'s `ObjectUniforms` into `_scratchObjBufferData`. Returns false (leaving the
+   * scratch buffer untouched) if `m.shaderId` isn't registered -- caller then skips the upload,
+   * matching the previous per-object-buffer behavior of leaving the slot's prior contents alone. */
+  protected _packObjectUniforms(o: Object3D, m: RenderManifest, vMat?: Float32Array): boolean {
     const shaderDef = ShaderRegistry.instance.get(m.shaderId);
-    if (!shaderDef) return;
+    if (!shaderDef) return false;
 
     this._scratchModelMatrix.set(o.worldMatrix.data);
     const state = m.state;
@@ -2015,7 +2250,7 @@ export class WebGPURenderer extends AbstractRenderer {
     }
 
     UniformPacker.packInto(shaderDef.layout, values, this._scratchObjBufferData);
-    this._device!.queue.writeBuffer(b, 0, this._scratchObjBufferData);
+    return true;
   }
 
   /** Resolves the GPU resource for one of `getOptionalMaterialTextureBindings()`'s texture names. */
@@ -2070,19 +2305,6 @@ export class WebGPURenderer extends AbstractRenderer {
     return bg;
   }
 
-  protected _getObjBindGroup(
-    objBufferData: { buffer: GPUBuffer; objBg?: GPUBindGroup },
-    layout: GPUBindGroupLayout,
-  ): GPUBindGroup {
-    if (objBufferData.objBg) return objBufferData.objBg;
-
-    objBufferData.objBg = this._device!.createBindGroup({
-      layout,
-      entries: [{ binding: 0, resource: { buffer: objBufferData.buffer } }],
-    });
-    return objBufferData.objBg;
-  }
-
   protected _getTextureView(tex: Texture | undefined): GPUTextureView {
     if (this._quality?.disableTextures) return this._whiteTexView;
     if (!tex || !tex.isLoaded || !tex.image) return this._whiteTexView;
@@ -2116,10 +2338,16 @@ export class WebGPURenderer extends AbstractRenderer {
           );
         }
         v = t.createView({ dimension: "2d-array" });
+        entry = { texture: t, view: v, mipLevelCount: 1 };
       } else {
+        const mipLevelCount =
+          this._quality?.mipmapping && tex.generateMipmaps
+            ? this._computeMipLevelCount(tex.image.width, tex.image.height)
+            : 1;
         t = this._device!.createTexture({
           size: [tex.image.width, tex.image.height],
           format: "rgba8unorm",
+          mipLevelCount,
           usage:
             GPUTextureUsage.TEXTURE_BINDING |
             GPUTextureUsage.COPY_DST |
@@ -2129,9 +2357,10 @@ export class WebGPURenderer extends AbstractRenderer {
           tex.image.width,
           tex.image.height,
         ]);
+        if (mipLevelCount > 1) this._generateMipmaps(t, mipLevelCount);
         v = t.createView();
+        entry = { texture: t, view: v, mipLevelCount };
       }
-      entry = { texture: t, view: v };
       this._textureViewCache.set(tex, entry);
     } else if (
       tex.needsUpdate &&
@@ -2142,6 +2371,7 @@ export class WebGPURenderer extends AbstractRenderer {
         { texture: entry.texture },
         [tex.image.width, tex.image.height],
       );
+      if (entry.mipLevelCount > 1) this._generateMipmaps(entry.texture, entry.mipLevelCount);
       tex.needsUpdate = false;
     }
     return entry.view;
@@ -2231,6 +2461,10 @@ export class WebGPURenderer extends AbstractRenderer {
     const gData = this._scratchGlobalBufferData;
     gData.set(correctedVp.data, 0);
     gData.set([camPos.x, camPos.y, camPos.z, 1], 16);
+    // Slot 0 = main camera in the per-draw view buffer (group 3) -- kept correct here, once per
+    // frame, independent of whatever CascadedShadowPassGPU/SpotShadowPassGPU write into their own
+    // slots afterward. See VIEW_SLOT_MAIN_CAMERA.
+    this._writeViewSlot(VIEW_SLOT_MAIN_CAMERA, correctedVp.data);
 
     MathPool.releaseMatrix(originalVp);
     MathPool.releaseMatrix(correctedVp);
@@ -2441,7 +2675,8 @@ export class WebGPURenderer extends AbstractRenderer {
 
   /** @inheritdoc */
   public override destroy(): void {
-    for (const data of this._objectUniformBuffers.values()) data.buffer.destroy();
+    this._objectRingBuffer?.destroy();
+    this._objectRingPendingDestroy?.destroy();
     for (const geo of this._geoCache.values()) {
       geo.vb.destroy();
       geo.nb?.destroy();
@@ -2474,7 +2709,7 @@ export class WebGPURenderer extends AbstractRenderer {
     this._taaPassGPU?.destroy();
     this._motionTrailPassGPU?.destroy();
 
-    this._objectUniformBuffers.clear();
+    this._objectSlotMap.clear();
     this._materialBindGroups.clear();
     for (const entry of this._textureViewCache.values()) entry.texture.destroy();
     this._textureViewCache.clear();

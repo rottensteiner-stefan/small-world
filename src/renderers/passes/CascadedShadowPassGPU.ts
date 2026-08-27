@@ -1,38 +1,15 @@
-import { Scene, Color } from "../../core/index.js";
+import { Scene } from "../../core/index.js";
 import { DepthMaterial } from "../../core/materials/index.js";
 import { MaterialType, Topology } from "../../enums/index.js";
-import { WebGPURenderer } from "../WebGPU/WebGPURenderer.js";
+import { WebGPURenderer, VIEW_SLOT_CASCADE_BASE } from "../WebGPU/WebGPURenderer.js";
 import { RenderPass } from "../index.js";
 import { InstancedMesh } from "../../core/InstancedMesh.js";
 import { Object3D } from "../../core/Object3D.js";
 import { Matrix4, MathPool, Vector3D } from "../../math/index.js";
-import { LightDataInterface } from "../../interfaces/index.js";
 
 const _scratchCasters: Object3D[] = [];
 const _scratchInstanced: InstancedMesh[] = [];
 const _scratchStandard: Object3D[] = [];
-
-// Reused every cascade instead of allocating a fresh { pLights: [], sLights: [], aLights: [],
-// aCol: new Color(...), dCol: new Color(...), dDir: new Vector3D() } literal per iteration --
-// matches AbstractRenderer's cached `_lightData` pattern. All fields stay empty/zero for the
-// lifetime of this pass (only the cascade camera's VP/position actually vary per cascade), so no
-// reset is needed between uses. Lazily constructed rather than a module-level const: this module
-// sits in an import cycle through core/index.js, and constructing a real Color at module-eval
-// time can run before that cycle finishes resolving depending on which entry point loads first
-// (the same hazard as Collision.ts's circular import with BoundingBox.ts).
-let _emptyLightData: LightDataInterface | undefined;
-function getEmptyLightData(): LightDataInterface {
-  return (_emptyLightData ??= {
-    pLights: [],
-    sLights: [],
-    aLights: [],
-    aCol: new Color(0, 0, 0),
-    aIntensity: 0,
-    dCol: new Color(0, 0, 0),
-    dDir: new Vector3D(),
-    dIntensity: 0,
-  });
-}
 
 export class CascadedShadowPassGPU implements RenderPass {
   public name = "CascadedShadowPassGPU";
@@ -53,7 +30,7 @@ export class CascadedShadowPassGPU implements RenderPass {
   public execute(
     renderer: WebGPURenderer,
     scene: Scene,
-    _ce: GPUCommandEncoder,
+    ce: GPUCommandEncoder,
     _targetView: GPUTextureView,
     vp: Float32Array,
     camPos: Vector3D,
@@ -102,31 +79,17 @@ export class CascadedShadowPassGPU implements RenderPass {
     for (let i = 0; i < dLight.numCascades; i++) {
       const cascadeCam = dLight.cascadeCameras[i]!;
 
-      // We must trick WebGPURenderer to update global UBO with cascadeCam's VP
-      // (the real camera's VP/lights are restored further below, once all cascades
-      // have been rendered).
-      //
-      // This MUST be submitted on its own, separate command encoder right after
-      // this cascade's draws are recorded -- not batched into the shared `ce` that
-      // MainRenderPass/PostProcessPass also record into. queue.writeBuffer() calls
-      // apply in queue-call order, but a command encoder's recorded draws only
-      // execute once *that encoder* is submitted; since `ce` is only submitted once,
-      // at the very end of the frame, ALL writeBuffer calls made before that single
-      // submit (including every subsequent cascade's and the final "restore real
-      // camera" write) would already have applied by the time any of these draws
-      // actually run on the GPU -- so every cascade (and even the main pass) would
-      // end up reading whichever write happened last, not the one it was recorded
-      // with. Submitting per cascade forces this cascade's global/per-object
-      // uniform writes to actually be in effect when this cascade's draws execute.
-      renderer._updateGlobalBuffers(
+      // This cascade's view-projection lives in its own dynamic-offset slot (group 3) --
+      // see VIEW_SLOT_CASCADE_BASE -- instead of temporarily clobbering the shared
+      // GlobalUniforms.vp and needing a separate command encoder/submit per cascade to make
+      // that clobber visible before the next one overwrites it. Depth.frag.wgsl reads nothing
+      // from `global` at all, so there's nothing else this cascade needs to swap in.
+      const viewOffset = renderer._setViewMatrix(
+        VIEW_SLOT_CASCADE_BASE + i,
         cascadeCam.viewProjectionMatrix,
-        cascadeCam.position,
-        getEmptyLightData(),
-        scene,
       );
 
-      const shadowCe = renderer.gpuDevice!.createCommandEncoder();
-      const rp = shadowCe.beginRenderPass({
+      const rp = ce.beginRenderPass({
         colorAttachments: [
           {
             view: this._dummyTargetView,
@@ -192,6 +155,7 @@ export class CascadedShadowPassGPU implements RenderPass {
             false,
             this._depthMaterial.uuid,
             depthManifest,
+            viewOffset,
             cascadeCam.viewMatrix,
             topology,
           );
@@ -204,6 +168,7 @@ export class CascadedShadowPassGPU implements RenderPass {
             true,
             this._depthMaterial.uuid,
             depthManifest,
+            viewOffset,
             cascadeCam.viewMatrix,
             topology,
           );
@@ -211,17 +176,12 @@ export class CascadedShadowPassGPU implements RenderPass {
       }
 
       rp.end();
-      renderer.gpuDevice!.queue.submit([shadowCe.finish()]);
     }
 
-    // Restore the real scene camera (the per-cascade loop above repeatedly
-    // overwrote the global uniform buffer with each cascade's light-space matrix,
-    // and reset the shadow-info fields to their "no shadow" defaults as a side
-    // effect of _updateGlobalBuffers), then re-apply the actual shadow parameters
-    // so MainRenderPass -- which runs right after this pass -- sees correct data
-    // for both.
-    renderer._updateGlobalBuffers(vp, camPos, lights, scene);
-
+    // GlobalUniforms was never touched by the loop above (only the dedicated view-slot buffer
+    // was), so it still holds this frame's real camera data from the one _updateGlobalBuffers()
+    // call at the top of render() -- no restore needed. Only overlay the shadow-sampling data
+    // MainRenderPass actually needs (cascade matrices/splits/dirShadowInfo).
     const gData = renderer.scratchGlobalBufferData;
     gData[196] = dLight.shadowBias;
     gData[197] = dLight.shadowNormalBias;

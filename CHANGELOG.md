@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.76.26] - 2026-08-27
+
+### "Everything flows, nothing stands still." - Heraclitus
+
+- **Architecture & Bugfixes:**
+  - Replaced WebGPU's per-object `GPUBuffer`/`GPUBindGroup` allocation with a single shared dynamic-offset ring buffer (`_objectRingBuffer`) in `WebGPURenderer`, sized from the previous frame's actual slot usage instead of growing unbounded.
+  - Added GPU-side mip-chain generation (`_generateMipmaps`, `MipDownsample.frag.wgsl`) for runtime 2D textures, since WebGPU has no `gl.generateMipmap()` equivalent.
+  - Introduced a per-draw dynamic-offset view-projection uniform (group 3, `ViewUniforms` in `structs.wgsl`) so `CascadedShadowPassGPU` and `SpotShadowPassGPU` write each cascade/light's matrix into its own slot instead of clobbering the shared `GlobalUniforms.vp` and submitting a separate command encoder per cascade/light.
+  - Moved `PostProcessPass`'s continuous tuning parameters (exposure, vignette, grain, bloom, quantize, outline) out of compile-time WGSL constants into a per-frame `DynUniforms` buffer, so adjusting a slider no longer triggers a shader/pipeline rebuild.
+- **Housekeeping & Docs:**
+  - Added unit test coverage for the object ring buffer, mipmap generation, per-draw view uniforms, and post-process dynamic uniforms.
+
 ## [0.76.25] - 2026-08-22
 
 ### "Drawing is the honesty of the art. There is no possibility of cheating. It is either good or bad." - Salvador Dalí

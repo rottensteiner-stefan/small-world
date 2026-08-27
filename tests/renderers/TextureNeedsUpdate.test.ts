@@ -110,7 +110,11 @@ describe("Texture GPU re-upload on needsUpdate", () => {
     const device = makeMockDevice();
     (renderer as RendererInternals)._device = device;
 
-    const tex = Texture.fromCanvas({ width: 16, height: 16 } as HTMLCanvasElement);
+    // Mip generation is covered separately in WebGPUMipmapGeneration.test.ts -- this test is
+    // only about the re-upload-without-recreation path, so mips are opted out here.
+    const tex = Texture.fromCanvas({ width: 16, height: 16 } as HTMLCanvasElement, {
+      generateMipmaps: false,
+    });
 
     const firstView = (renderer as RendererInternals)._getTextureView(tex);
     expect(device.createTexture).toHaveBeenCalledTimes(1);

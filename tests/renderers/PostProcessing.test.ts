@@ -138,7 +138,10 @@ describe("Post-Processing Shader Chunks & Groups", () => {
     expect(grain.enabled).toBe(true);
     expect(grain.intensity).toBe(0.08);
 
-    // Simulate WGSL string replacement in PostProcessPass
+    // Simulate WGSL string replacement in PostProcessPass -- only STRUCTURAL flags/modes are
+    // baked as consts (see PostProcessPass.ts's _build()). Continuous tuning values (exposure,
+    // vignette offset/darkness/roundness, grain intensity, ...) live in the DynUniforms buffer
+    // instead and must never appear in the compiled shader text.
     const wgslPath = path.resolve(
       process.cwd(),
       "src/core/materials/shaders/PostProcess.frag.wgsl",
@@ -151,14 +154,6 @@ describe("Post-Processing Shader Chunks & Groups", () => {
     const grainEnabled = grain && grain.enabled;
 
     assembledWgsl = assembledWgsl.replace(
-      "const u_exposure: f32 = 1.0;",
-      `const u_exposure: f32 = ${tmEnabled ? tm.exposure.toFixed(6) : "1.0"};`,
-    );
-    assembledWgsl = assembledWgsl.replace(
-      "const u_inverseGamma: f32 = 1.0;",
-      `const u_inverseGamma: f32 = ${tmEnabled ? (1.0 / tm.gamma).toFixed(6) : "1.0"};`,
-    );
-    assembledWgsl = assembledWgsl.replace(
       "const u_toneMappingMode: u32 = 0u;",
       `const u_toneMappingMode: u32 = ${tmEnabled ? tm.mode : 0}u;`,
     );
@@ -167,33 +162,46 @@ describe("Post-Processing Shader Chunks & Groups", () => {
       `const u_vignetteEnabled: u32 = ${vigEnabled ? 1 : 0}u;`,
     );
     assembledWgsl = assembledWgsl.replace(
-      "const u_vignetteOffset: f32 = 0.8;",
-      `const u_vignetteOffset: f32 = ${vig ? vig.offset.toFixed(6) : "0.8"};`,
-    );
-    assembledWgsl = assembledWgsl.replace(
-      "const u_vignetteDarkness: f32 = 0.5;",
-      `const u_vignetteDarkness: f32 = ${vig ? vig.darkness.toFixed(6) : "0.5"};`,
-    );
-    assembledWgsl = assembledWgsl.replace(
-      "const u_vignetteRoundness: f32 = 2.0;",
-      `const u_vignetteRoundness: f32 = ${vig ? vig.roundness.toFixed(6) : "2.0"};`,
-    );
-    assembledWgsl = assembledWgsl.replace(
       "const u_grainEnabled: u32 = 0u;",
       `const u_grainEnabled: u32 = ${grainEnabled ? 1 : 0}u;`,
     );
-    assembledWgsl = assembledWgsl.replace(
-      "const u_grainIntensity: f32 = 0.05;",
-      `const u_grainIntensity: f32 = ${grain ? grain.intensity.toFixed(6) : "0.05"};`,
-    );
 
-    expect(assembledWgsl).toContain("const u_vignetteOffset: f32 = 0.123456;");
-    expect(assembledWgsl).toContain("const u_vignetteDarkness: f32 = 0.789000;");
-    expect(assembledWgsl).toContain("const u_vignetteRoundness: f32 = 3.500000;");
-    expect(assembledWgsl).toContain("const u_exposure: f32 = 1.500000;");
     expect(assembledWgsl).toContain("const u_toneMappingMode: u32 = 2u;");
-    expect(assembledWgsl).toContain(`const u_inverseGamma: f32 = ${(1.0 / 1.8).toFixed(6)};`);
-    expect(assembledWgsl).toContain("const u_grainIntensity: f32 = 0.080000;");
+    expect(assembledWgsl).toContain("const u_vignetteEnabled: u32 = 1u;");
+    expect(assembledWgsl).toContain("const u_grainEnabled: u32 = 1u;");
+    // The continuous values themselves must never be baked as WGSL consts anymore.
+    expect(assembledWgsl).not.toContain("u_vignetteOffset: f32 =");
+    expect(assembledWgsl).not.toContain("u_exposure: f32 =");
+    expect(assembledWgsl).not.toContain("u_grainIntensity: f32 =");
+
+    // The whole point of this UBO refactor: two DIFFERENT continuous tuning configs must
+    // assemble to the IDENTICAL WGSL text (only structural flags/modes affect it), so tuning
+    // exposure/vignette/grain sliders never triggers a shader rebuild.
+    const groupB = new PostProcessingGroup();
+    groupB.loadConfig({
+      effects: {
+        vignette: { enabled: true, offset: 0.9, darkness: 0.1, roundness: 1.0 },
+        toneMapping: { enabled: true, mode: 2, exposure: 3.3, gamma: 2.4 },
+        grain: { enabled: true, intensity: 0.5 },
+      },
+    });
+    let assembledWgslB = ShaderRegistry.instance.assemble(wgslSource, "wgsl");
+    const tmB = groupB.get<ToneMappingElement>(PostProcessingEffectType.TONE_MAPPING)!;
+    const vigB = groupB.get<VignetteElement>(PostProcessingEffectType.VIGNETTE)!;
+    const grainB = groupB.get<GrainElement>(PostProcessingEffectType.GRAIN)!;
+    assembledWgslB = assembledWgslB.replace(
+      "const u_toneMappingMode: u32 = 0u;",
+      `const u_toneMappingMode: u32 = ${tmB.enabled ? tmB.mode : 0}u;`,
+    );
+    assembledWgslB = assembledWgslB.replace(
+      "const u_vignetteEnabled: u32 = 0u;",
+      `const u_vignetteEnabled: u32 = ${vigB.enabled ? 1 : 0}u;`,
+    );
+    assembledWgslB = assembledWgslB.replace(
+      "const u_grainEnabled: u32 = 0u;",
+      `const u_grainEnabled: u32 = ${grainB.enabled ? 1 : 0}u;`,
+    );
+    expect(assembledWgslB).toBe(assembledWgsl);
 
     // Simulate GLSL string replacement in PostProcessPassGL
     const glslPath = path.resolve(

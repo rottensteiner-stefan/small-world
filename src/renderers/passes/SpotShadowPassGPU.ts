@@ -1,8 +1,8 @@
-import { Scene, Color } from "../../core/index.js";
+import { Scene } from "../../core/index.js";
 import { DepthMaterial } from "../../core/materials/index.js";
 import { MaterialType } from "../../enums/MaterialType.js";
 import { Topology } from "../../enums/Topology.js";
-import { WebGPURenderer } from "../WebGPU/WebGPURenderer.js";
+import { WebGPURenderer, VIEW_SLOT_SPOT_SHADOW_BASE } from "../WebGPU/WebGPURenderer.js";
 import { RenderPass } from "../index.js";
 import { InstancedMesh } from "../../core/InstancedMesh.js";
 import { Object3D } from "../../core/Object3D.js";
@@ -28,7 +28,7 @@ export class SpotShadowPassGPU implements RenderPass {
   public execute(
     renderer: WebGPURenderer,
     scene: Scene,
-    _ce: GPUCommandEncoder,
+    ce: GPUCommandEncoder,
     _targetView: GPUTextureView,
     vp: Float32Array,
     camPos: Vector3D,
@@ -95,24 +95,16 @@ export class SpotShadowPassGPU implements RenderPass {
       this._frustum.setFromMatrix(tempMat);
       MathPool.releaseMatrix(tempMat);
 
-      renderer._updateGlobalBuffers(
+      // This light's view-projection lives in its own dynamic-offset slot (group 3) -- see
+      // VIEW_SLOT_SPOT_SHADOW_BASE -- instead of temporarily clobbering the shared
+      // GlobalUniforms.vp and needing a separate command encoder/submit per light. Depth.frag.wgsl
+      // reads nothing from `global` at all, so there's nothing else this pass needs to swap in.
+      const viewOffset = renderer._setViewMatrix(
+        VIEW_SLOT_SPOT_SHADOW_BASE + j,
         shadowCam.viewProjectionMatrix,
-        shadowCam.position,
-        {
-          pLights: [],
-          sLights: [],
-          aLights: [],
-          aCol: new Color(0, 0, 0),
-          aIntensity: 0,
-          dCol: new Color(0, 0, 0),
-          dDir: new Vector3D(),
-          dIntensity: 0,
-        },
-        scene,
       );
 
-      const shadowCe = renderer.gpuDevice!.createCommandEncoder();
-      const rp = shadowCe.beginRenderPass({
+      const rp = ce.beginRenderPass({
         colorAttachments: [
           {
             view: this._dummyTargetView,
@@ -171,6 +163,7 @@ export class SpotShadowPassGPU implements RenderPass {
             false,
             this._depthMaterial.uuid,
             depthManifest,
+            viewOffset,
             shadowCam.viewMatrix,
             topology,
           );
@@ -183,6 +176,7 @@ export class SpotShadowPassGPU implements RenderPass {
             true,
             this._depthMaterial.uuid,
             depthManifest,
+            viewOffset,
             shadowCam.viewMatrix,
             topology,
           );
@@ -190,12 +184,12 @@ export class SpotShadowPassGPU implements RenderPass {
       }
 
       rp.end();
-      renderer.gpuDevice!.queue.submit([shadowCe.finish()]);
     }
 
-    // Restore real scene camera
-    renderer._updateGlobalBuffers(vp, camPos, lights, scene);
-
+    // GlobalUniforms was never touched by the loop above (only the dedicated view-slot buffer
+    // was), so it still holds this frame's real camera data from the one _updateGlobalBuffers()
+    // call at the top of render() -- no restore needed. Only overlay the shadow-sampling data
+    // MainRenderPass actually needs (spot shadow matrices/bias/info).
     const gData = renderer.scratchGlobalBufferData;
     const rawVp = MathPool.acquireMatrix();
     const correctedVp = MathPool.acquireMatrix();

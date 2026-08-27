@@ -3,32 +3,28 @@
 @group(0) @binding(3) var bloomTexture: texture_2d<f32>;
 @group(0) @binding(4) var hbaoTexture: texture_2d<f32>;
 
-// Default constants (overwritten at compilation time)
-const u_exposure: f32 = 1.0;
-const u_inverseGamma: f32 = 1.0;
+// Structural constants (overwritten at compilation time) -- these gate real code paths (branch
+// taken / sample count), unlike the continuous tuning values below, which live in `dyn` instead
+// so tuning them doesn't recompile the shader.
 const u_toneMappingMode: u32 = 0u;
 const u_vignetteEnabled: u32 = 0u;
-const u_vignetteOffset: f32 = 0.8;
-const u_vignetteDarkness: f32 = 0.5;
-const u_vignetteRoundness: f32 = 2.0;
 const u_grainEnabled: u32 = 0u;
-const u_grainIntensity: f32 = 0.05;
 const u_bloomEnabled: u32 = 0u;
-const u_bloomIntensity: f32 = 1.0;
-const u_bloomColor: vec3f = vec3f(1.0, 1.0, 1.0);
 const u_hbaoEnabled: u32 = 0u;
 const u_quantizeEnabled: u32 = 0u;
-const u_quantizeSteps: f32 = 8.0;
 const u_outlineEnabled: u32 = 0u;
-const u_outlineThickness: f32 = 1.0;
-const u_outlineSensitivity: f32 = 1.0;
-const u_outlineColor: vec3f = vec3f(0.0, 0.0, 0.0);
 const u_filterMode: u32 = 0u;
 
-struct TimeUniform {
-    time: f32,
+// Continuous post-process tuning values, written every frame via queue.writeBuffer -- unlike the
+// structural consts above, changing these never triggers a shader recompile.
+struct DynUniforms {
+    a: vec4f, // [time, exposure, inverseGamma, vignetteOffset]
+    b: vec4f, // [vignetteDarkness, vignetteRoundness, grainIntensity, bloomIntensity]
+    c: vec4f, // [quantizeSteps, outlineThickness, outlineSensitivity, pad]
+    bloomColor: vec4f,
+    outlineColor: vec4f,
 }
-@group(0) @binding(2) var<uniform> dyn: TimeUniform;
+@group(0) @binding(2) var<uniform> dyn: DynUniforms;
 
 fn random(st: vec2f) -> f32 {
     var p3  = fract(vec3f(st.xyx) * 0.1031);
@@ -66,7 +62,19 @@ fn linearToSRGB(linear: vec3f, invGamma: f32) -> vec3f {
 
 @fragment
 fn fs_main(@location(0) uv: vec2f, @builtin(position) coord: vec4f) -> @location(0) vec4f {
-    let u_time = dyn.time;
+    let u_time = dyn.a.x;
+    let u_exposure = dyn.a.y;
+    let u_inverseGamma = dyn.a.z;
+    let u_vignetteOffset = dyn.a.w;
+    let u_vignetteDarkness = dyn.b.x;
+    let u_vignetteRoundness = dyn.b.y;
+    let u_grainIntensity = dyn.b.z;
+    let u_bloomIntensity = dyn.b.w;
+    let u_quantizeSteps = dyn.c.x;
+    let u_outlineThickness = dyn.c.y;
+    let u_outlineSensitivity = dyn.c.z;
+    let u_bloomColor = dyn.bloomColor.rgb;
+    let u_outlineColor = dyn.outlineColor.rgb;
 
     let dims = vec2f(textureDimensions(hdrTexture, 0));
 

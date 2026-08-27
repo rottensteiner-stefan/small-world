@@ -50,6 +50,14 @@ struct ObjectUniforms {
     time: f32
 }
 
+// Per-draw view-projection matrix, dynamic-offset-indexed -- one slot for the main camera,
+// one per shadow cascade/spot light, so a single frame-shared command encoder can record every
+// pass without a per-cascade/light queue.writeBuffer()+submit() dance. See WebGPURenderer's
+// VIEW_SLOT_* constants and _setViewMatrix().
+struct ViewUniforms {
+    vp: mat4x4f,
+}
+
 struct Out {
     @builtin(position) pos: vec4f,
     @location(0) wp: vec3f,
@@ -121,4 +129,6 @@ struct AreaLight {
 @group(1) @binding(17) var u_aoMap: texture_2d<f32>;
 
 @group(2) @binding(0) var<uniform> obj: ObjectUniforms;
+
+@group(3) @binding(0) var<uniform> view: ViewUniforms;
 
