@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.76.30] - 2026-08-27
+
+### "As above, so below." - Hermes Trismegistus
+
+- **Architecture & Bugfixes:**
+  - Extended WebGPU's PCSS soft shadows (blocker-search + variable-radius PCF, previously the directional light's primary cascade only) to spot lights: `getShadowPCSS` was already fully generic (identical signature to `getShadowPCF`, no directional-specific uniform access), so this was a pure function swap in `lighting.wgsl`/`lighting_pbr.wgsl`, no new bindings.
+  - Updated `docs/adr/0006-pcss-directional-light-only.md` to reflect this and add a WebGL2/WebGL1 feasibility assessment: WebGL2 spot-light PCSS is technically possible (the directional light's dual-sampler trick would replicate) but constrained by texture-unit budget already tight at the 16-unit spec minimum; WebGL1 has no shadow mapping at all.
+
 ## [0.76.29] - 2026-08-27
 
 ### "Nothing is lost, nothing is created, everything is transformed." - Antoine Lavoisier

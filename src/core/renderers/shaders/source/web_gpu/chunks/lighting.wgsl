@@ -112,7 +112,7 @@ for(var k=0u; k<spotCluster.y; k++) {
     // reach this loop body at all for a given fragment.
     if (global.spotShadowInfo[j].z > 0.5) {
         let shadowPos = global.spotShadowMatrices[j] * vec4f(i.wp + N * global.spotShadowInfo[j].y * (1.0 - diff), 1.0);
-        shadow = getShadowPCF(u_spotShadowMap, shadowSampler, shadowPos, j, global.spotShadowInfo[j].x);
+        shadow = getShadowPCSS(u_spotShadowMap, shadowSampler, shadowPos, j, global.spotShadowInfo[j].x);
     }
     
     fL += diff * sLights[j].col.xyz * atten * sEff * shadow;
