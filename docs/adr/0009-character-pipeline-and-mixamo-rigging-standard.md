@@ -25,7 +25,13 @@ We establish a strict division of responsibilities, tool boundaries, and file ro
    - **Shared Mocap Pool:** `public/assets/<app>/mannequin/shared/anim/*.glb` (all clips in-place).
 4. **Engine Ingestion Patterns:**
    - **Rig Wrapper:** The character root is scaled to standard human height (1.80m via `.scale.set(1.8, 1.8, 1.8)`) and wrapped in a parent `_characterRig` (`Object3D`). Movement behaviors (`StageMovementBehavior`) attach to `_characterRig` so perspective scaling does not overwrite local model height.
-   - **Semantic Hand Sockets:** Standardized attachment to `mixamorig:LeftHand` / `mixamorig:RightHand` with local offset `(0.01, 0.09, 0.02)` and rotation $Z = \pi / 2$.
+   - **Semantic Hand Sockets:** Standardized attachment to `mixamorig:LeftHand` (Lantern: local offset `(0.01, 0.09, 0.02)` and rotation $Z = \pi / 2$).
+5. **Canonical Character Gear & Two-Belt Architecture:**
+   - **Left-Hand Lantern:** The lantern is exclusively carried in the left hand (`mixamorig:LeftHand`), leaving the right hand unencumbered.
+   - **Two-Belt System:**
+     - *Belt 1 (Pants & Utility Belt):* Holds trousers, utility pouches, and the gas mask.
+     - *Belt 2 (Holster Belt):* Carries a small-caliber pistol holster positioned **front-left** (cross-draw access).
+   - **Dual-Filter Gas Mask:** Full-face protective respirator with twin cheek filters. Carried **front-right** on Belt 1 in exploration mode (State 1: BASE) or equipped covering the face (State 2: HAZARD).
 
 ## Consequences
 

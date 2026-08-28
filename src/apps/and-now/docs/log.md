@@ -603,6 +603,21 @@ befüllen.
   - Build-Routing in [`vite.config.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/vite.config.ts) und Szene-2-Link im App-Hub [`src/apps/and-now/index.html`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/index.html) auf den neuen einheitlichen Pfad umgestellt.
 - **Ergebnis:** Alle Szenen von „And Now?“ liegen nun konsistent und modular unter `src/apps/and-now/scenes/` (`prologue/` und `flakturm-tunnel/`).
 
+## 63. Kanonische Charakter-Ausrüstung & Gürtel-System (2026-08-28)
+- **Anatomie & Ausrüstungs-Standard:**
+  1. **Laterne (Linke Hand):**
+     - Die Laterne wird immer in der **linken Hand** getragen (`mixamorig:LeftHand`), Handflächen-Socket mit $Z = \pi/2$ Rotation. Die rechte Hand bleibt frei.
+  2. **Zwei-Gürtel-System:**
+     - *Gürtel 1 (Hosen- & Utility-Gürtel):* Hält die Hose, Taschen und die Schutzmaske.
+     - *Gürtel 2 (Waffengürtel):* Trägt den Holster für eine kleinkalibrige Pistole.
+     - *Holster-Position:* Immer **vorne links** am Gürtel befestigt (Cross-Draw Zugriff).
+  3. **Vollgesichtsschutzmaske (Dual-Filter Respirator):**
+     - Vollmaske mit zwei seitlichen Filterdosen (links und rechts an den Wangen).
+     - *Trageposition am Gürtel:* Hängt immer **vorne rechts** am Ausrüstungsgürtel.
+     - *Zustände:* Kann am Gürtel getragen (State 1: BASE) oder aktiv auf das Gesicht aufgesetzt werden (State 2: HAZARD).
+- **Integration:** Festgehalten in [`.agents/skills/character-pipeline/SKILL.md`](file:///Users/srottensteiner/PhpstormProjects/small-world/.agents/skills/character-pipeline/SKILL.md) und [`docs/adr/0009-character-pipeline-and-mixamo-rigging-standard.md`](file:///Users/srottensteiner/PhpstormProjects/small-world/docs/adr/0009-character-pipeline-and-mixamo-rigging-standard.md).
+
+
 
 
 

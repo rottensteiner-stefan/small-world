@@ -84,12 +84,26 @@ Das 3D-Modellierungs-Tool benötigt eine konsistente Vorlage ohne perspektivisch
 * **Pflicht-Keywords für alle Turnaround-Prompts:**
   > *„Pure unshaded flat Albedo diffuse reference, neutral diffuse color map, perfectly even flat ambient studio lighting, ZERO cast shadows, ZERO highlights, solid pure white background (#FFFFFF).“*
 
-### 2. Posen-Geometrie
+### 2. Posen- & Ausrüstungs-Geometrie
+
+#### Posen-Geometrie:
 * **Front & Back:** Symmetrische **A-Pose (45°)** (empfohlen) oder **T-Pose (90°)**. Beide Hände leer. Füße zeigen exakt parallel nach vorne (0° Auswärtsdrehung).
 * **Right Profile (90° nach rechts gewandt):** **Arme hängen entspannt am Körper herab** (Arme in T-Pose würden das Profil verdecken).
-* **Ausrüstungs-Zustand für Turnarounds (State 1: BASE):**
-  * Gesicht und Haare vollständig sichtbar (Kapuze liegt im Nacken auf den Schultern).
-  * Loop-Schal locker als Kragen um den Hals.
+
+#### 🧰 Das verbindliche Ausrüstungs- & Gürtel-System:
+1. **Linke Hand (Laterne):**
+   * Die Laterne wird **immer in der linken Hand** getragen (`mixamorig:LeftHand`). Die rechte Hand bleibt frei.
+2. **Zwei-Gürtel-System:**
+   * **Gürtel 1 (Hosen- & Utility-Gürtel):** Hält die Hose, Taschen und Ausrüstung.
+   * **Gürtel 2 (Waffengürtel):** Trägt den Holster für eine kleinkalibrige Pistole.
+   * **Holster-Position:** Immer **vorne links** am Gürtel befestigt (Cross-Draw-Zugriff).
+3. **Vollgesichtsschutzmaske (Dual-Filter Respirator):**
+   * Vollmaske mit zwei markanten Filterdosen (links und rechts an den Wangen).
+   * **Trageposition am Gürtel:** Hängt immer **vorne rechts** am Ausrüstungsgürtel.
+   * **Zustände:**
+     - *State 1 (BASE / Standard):* Maske hängt vorne rechts am Gürtel, Gesicht & Haare frei sichtbar, Kapuze liegt flach auf den Schultern.
+     - *State 2 (TOXIC HAZARD / Aufgesetzt):* Maske umschließt das Gesicht, Filter links/rechts, Kapuze über den Kopf gezogen.
+
 
 ### 3. Zwei Generierungs-Methoden
 
