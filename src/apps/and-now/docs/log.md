@@ -568,6 +568,14 @@ befüllen.
 - **Nebenfund & Fix:** `showcase.ts` zeigte durch einen vorherigen, im Code nie nachgezogenen Rename bereits auf einen toten Fallback-Animationspfad (`mannequin/idle_torch.glb` statt `mannequin/anim/idle_torch.glb`). Im selben Zug korrekt auf die neuen `shared/anim/`-Pfade gesetzt.
 - **Mitgezogen:** `showcase.ts`, `concept-dossier.html`, `novotny_tpose_reference_prompts.md`, `.agents/skills/character-pipeline/SKILL.md` (Konvention + Beispielpfade aktualisiert) und `REFERENCES.md`.
 
+## 59. Fehlendes weibliches Model-Sheet via Gemini-Bildgenerierung nachgezogen (2026-08-28)
+- **Anlass:** Für Novotny Male existierte ein gemaltes Turnaround-Model-Sheet (`hoodie_model_sheet.jpg`, Front/Profil/Rücken + 3 Ausrüstungs-Kopf-Insets), für Female fehlte das Pendant.
+- **Kein eigenes Bildgenerierungs-Tool vorhanden** — stattdessen ad-hoc über die Gemini API angebunden: `GEMINI_API_KEY` war bereits als Umgebungsvariable gesetzt, genutztes Modell `gemini-3.1-flash-image` (multimodal, akzeptiert Referenzbilder — im Gegensatz zu reinem Imagen, das über den einfachen API-Key nur Text→Bild ohne Bildreferenz kann). Kleines Hilfsskript `.agents/scratches/gemini_image_gen.py` (Prompt-Datei + n Referenzbilder → generiertes Bild) für spätere Wiederverwendung liegen gelassen.
+- **2 gescheiterte Composite-Versuche:** Ein einzelner Prompt für das komplette 6-Panel-Sheet (3 Ganzkörperansichten + 3 Kopf-Insets in einem Bild) produzierte beide Male eine kaputte/abgeschnittene Rückenansicht (nur Beine, kein Oberkörper) bzw. eine doppelte Seitenansicht — das Modell tut sich mit dieser Mehrfeld-Komposition strukturell schwer.
+- **Fix:** Aufgeteilt in unabhängige Einzel-Generierungen (Front, Profil, Rücken je einzeln mit `novotny-female/hoodie.jpg` als Referenz, Rücken/Profil zusätzlich mit der bereits generierten Front-Ansicht als Zweitreferenz für Konsistenz) plus Wiederverwendung der bereits sauberen Kopf-Insets-Spalte aus dem zweiten Composite-Versuch. Lokal mit ImageMagick (`convert`/`+append`) zu einem finalen Sheet zusammengesetzt.
+- **Bekannte Einschränkung:** Sichtbare, leicht unterschiedliche Papierton-Nähte zwischen den einzeln generierten Panels (jede Generierung hat eigene Hintergrund-Variation) — für ein Dossier-Referenzbild als ausreichend akzeptiert, nicht weiter geglättet.
+- **Ergebnis:** `src/apps/and-now/docs/assets/novotny-female/hoodie_model_sheet.jpg`, verlinkt in `concept-dossier.html` als eigene Karte neben dem männlichen Pendant.
+
 
 
 
