@@ -13,33 +13,68 @@ Dieses Dokument definiert den verbindlichen, praxiserprobten End-to-End-Workflow
 
 ```text
 [ 1. 2D-Konzept & 3-in-1 Albedo Model-Sheet ]
-  - Gemini API / generate_image / ImageMagick Stitching
+  - 🤖 AUTOMATISCH: Gemini API / generate_image / ImageMagick Stitching
+  - 👤 MANUELL: Optionaler Konzept-Import / Photoshop-Touchup
   - Pure Albedo, ZERO directional shadows, pure white (#FFFFFF) background
                         │
                         ▼
 [ 2. 3D-Geometrie & Texturatlas (Tripo3D) ]
-  - `tripo make <sheet> --for game-mobile --param face_limit=15000`
+  - 🤖 AUTOMATISCH: `tripo make <sheet> --for game-mobile --param face_limit=15000`
   - 10k–25k Triangles, 2K Textur-Budget (NO 4K/8K)
                         │
                         ▼
 [ 3. Skeletal Rigging (Mixamo Standard vs. Tripo Native) ]
-  - Pfad A: Adobe Mixamo Standard (52/65-Joint Biped Rig, 100% Clip-Kompatibilität)
-  - Pfad B: Tripo Native Rig + Presets (mit Pruning auf ≤ 64 GPU-Bones)
+  - 👤 MANUELL (Pfad A): Adobe Mixamo Standard (52/65-Joint Biped Rig, 100% Mocap-Kompatibilität)
+  - 🤖 AUTOMATISCH (Pfad B): Tripo Native Rig + Presets (mit Pruning auf ≤ 64 GPU-Bones)
                         │
                         ▼
 [ 4. In-Place Motion Library & Prop-Stabilisierung ]
-  - In-Place Clips (`idle_torch`, `walk_torch`, `ascending_stairs`)
+  - 🤖 AUTOMATISCH / 👤 MANUELL: In-Place Clips (`idle_torch`, `walk_torch`, `ascending_stairs`)
   - Fixierte Handhaltung für getragene Ausrüstung (Laterne, Waffe)
                         │
                         ▼
 [ 5. Small World Runtime-Integration ]
-  - Multiplikativer `_characterRig` Wrapper (1.80m Skalierungsschutz)
+  - 🤖 AUTOMATISCH: Multiplikativer `_characterRig` Wrapper (1.80m Skalierungsschutz)
   - PBR-Sanitizing (`clampMetallic`) / Graphic-Noir `BasicMaterial`
   - Semantischer Hand-Socket (Laterne: (0.01, 0.09, 0.02), Z = π/2)
   - AnimationMixer mit Cross-Fading
 ```
 
 ---
+
+## 📋 File Handover & Workflow Contract (Wer liefert was wohin?)
+
+Dieser Vertrag definiert für jeden Schritt exakt:
+1. **Modus:** `🤖 AUTOMATISCH` (Agent/CLI) vs. `👤 MANUELL` (User/Web-UI)
+2. **Input:** Woher die Eingabedatei stammt
+3. **Output:** Wo die erzeugte Datei abgelegt werden **MUSS**
+
+```text
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                   ÜBERSICHT ALLER PFADE & ORDNER                                 │
+├──────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ 1. 2D-Konzepte & Dossier:    src/apps/<app>/docs/assets/<character>/                            │
+│ 2. DCC- & Authoring-Daten:   src/apps/<app>/raw/mannequin/<character>/                          │
+│ 3. Shared Raw Mocap (.fbx):  src/apps/<app>/raw/mannequin/shared/                              │
+│ 4. Runtime-Charakter (.glb): public/assets/<app>/mannequin/<character>/character.glb           │
+│ 5. Runtime-Mocap (.glb):     public/assets/<app>/mannequin/shared/anim/*.glb                    │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Stufen-Matrix:
+
+| Stufe | Modus | Input-Pfad (Erwartet) | Output-Pfad (Erzeugt) | Ausführendes Tool / Aktion |
+| :--- | :---: | :--- | :--- | :--- |
+| **1. 2D Model-Sheet** | `🤖` / `👤` | `src/apps/<app>/docs/assets/<char>/hoodie.jpg` *(optional)* | `src/apps/<app>/raw/mannequin/<char>/model_sheet.jpg`<br>*(Kopie: `docs/assets/<char>/hoodie_model_sheet.jpg`)* | Gemini API / `generate_image`<br>+ `magick convert +append` |
+| **2. 3D-Mesh & Atlas** | `🤖` | `src/apps/<app>/raw/mannequin/<char>/model_sheet.jpg` | `src/apps/<app>/raw/mannequin/<char>/base_model.glb`<br>`src/apps/<app>/raw/mannequin/<char>/task.json` | `tripo make model_sheet.jpg --for game-mobile` |
+| **3A. Mixamo Rigging** | `👤` *(User)* | `src/apps/<app>/raw/mannequin/<char>/base_model.glb` | `src/apps/<app>/raw/mannequin/<char>/character_rigged.fbx` | User lädt in [Mixamo Web](https://mixamo.com) hoch, riggt & lädt `.fbx` herunter |
+| **3A. GLB-Export** | `🤖` *(Agent)*| `src/apps/<app>/raw/mannequin/<char>/character_rigged.fbx` | `public/assets/<app>/mannequin/<char>/character.glb` | Konvertierung FBX ➔ GLB (FBX2glTF / gltf-transform) |
+| **3B. Tripo Auto-Rig** | `🤖` *(Agent)*| `src/apps/<app>/raw/mannequin/<char>/base_model.glb` | `public/assets/<app>/mannequin/<char>/character.glb` | `tripo anim rig` + `retarget` + Bone-Pruning ($\le 64$ Bones) |
+| **4. Shared Mocap** | `🤖` / `👤` | `src/apps/<app>/raw/mannequin/shared/*.fbx` | `public/assets/<app>/mannequin/shared/anim/*.glb` | In-Place Studio-Clips (`idle_torch`, `walk_torch`, `ascending_stairs`) |
+| **5. Engine-Ingest** | `🤖` *(Agent)*| `public/assets/<app>/mannequin/<char>/character.glb`<br>`public/assets/<app>/mannequin/shared/anim/*.glb` | `src/apps/<app>/scenes/<scene>/` | `GltfLoader` + `_characterRig` Wrapper + Sockets + `AnimationMixer` |
+
+---
+
 
 ## 🍳 Rezept 1: 2D-Konzept ➔ 3-in-1 Albedo Model-Sheet
 
