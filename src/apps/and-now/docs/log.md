@@ -576,6 +576,26 @@ befüllen.
 - **Bekannte Einschränkung:** Sichtbare, leicht unterschiedliche Papierton-Nähte zwischen den einzeln generierten Panels (jede Generierung hat eigene Hintergrund-Variation) — für ein Dossier-Referenzbild als ausreichend akzeptiert, nicht weiter geglättet.
 - **Ergebnis:** `src/apps/and-now/docs/assets/novotny-female/hoodie_model_sheet.jpg`, verlinkt in `concept-dossier.html` als eigene Karte neben dem männlichen Pendant.
 
+## 60. Weibliche Action-Grafik (hoodie_action.jpg) generiert & Dossier aktualisiert (2026-08-28)
+- **Anlass:** Nach dem weiblichen Model-Sheet fehlte noch das Pendant zu [`novotny-male/hoodie_action.jpg`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/docs/assets/novotny-male/hoodie_action.jpg) (Dynamischer U-Bahn-Sprint).
+- **Generierung:**
+  - Multimodale Bildgenerierung (`generate_image`) unter Verwendung von [`novotny-female/hoodie.jpg`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/docs/assets/novotny-female/hoodie.jpg) (Charakter-Likeness & Outfit) und [`novotny-male/hoodie_action.jpg`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/docs/assets/novotny-male/hoodie_action.jpg) (Tunnel-Setting, Perspektive, Sprint-Dynamik, Laterne, wehender Trenchcoat).
+  - Volle Einhaltung des Graphic-Noir-Stils: Getuschte Konturen, Schraffuren, Chiaroscuro-Laternenlicht und kühler Wiener U-Bahn-Schacht 2100.
+- **Ergebnis:**
+  - Asset abgelegt unter [`src/apps/and-now/docs/assets/novotny-female/hoodie_action.jpg`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/docs/assets/novotny-female/hoodie_action.jpg).
+  - Eingebunden als dedizierte Konzept-Karte in [`concept-dossier.html`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/docs/concept-dossier.html).
+
+## 61. Lore-Präzisierung: Creator Echoes (Österreichische Hausberge & Wahlheimat Saarland) (2026-08-28)
+- **Anlass:** Biografische Präzisierung der realen Anker von Creator Stefan in [`creator-echoes.md`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/docs/creator-echoes.md).
+- **Korrekturen & Erweiterungen:**
+  - *Herkunft:* Ursprünglich aus Österreich, aufgewachsen in der Region der Wiener Hausberge (Rax, Schneeberg, Semmering) — der alpinen Quelle der 1. Wiener Hochquellenwasserleitung.
+  - *Wahlheimat:* Lebt seit 6 Jahren gemeinsam mit seiner Frau im Saarland.
+  - *Neues Echo #8 („Die Wiege des Wassers“):* Verankert Stefans Berg-Herkunft als narrativen Brückenschlag zum potenziellen DLC 2 (*„Der Weiße Quell“* / Hochquellenwasserleitung-Highway) mit einem verlassenen Quellwärter-Häuschen und Tourenbuch von „S.R.“.
+  - *Echo #3 geschärft:* Der Saarländer Einsiedler im U-Bahn-Netz als Bote aus Stefans ferner Wahlheimat.
+- **Status:** Vollständig in [`creator-echoes.md`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/docs/creator-echoes.md) eingepflegt.
+
+
+
 
 
 
