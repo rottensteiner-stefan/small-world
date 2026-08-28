@@ -16,6 +16,10 @@ _Avoid_: Coarse/Fine pass — this project's docs consistently say Broadphase/Na
 The pattern (e.g. STIFF, SMOOTH, FPS, ISOMETRIC) that governs how a camera's transform updates each frame.
 _Avoid_: Controller — a Controller is a Behavior that drives input; Strategy is the update math itself, a different layer on the same camera.
 
+**Character Rig (Wrapper)**:
+The parent `Object3D` node that encapsulates a humanoid model (scaled to 1.80m) to isolate its intrinsic geometry scale from runtime perspective scaling behaviors (such as `StageMovementBehavior`).
+_Avoid_: Direct Mesh Scaling on movement behaviors — always wrap in a dedicated Rig object.
+
 **Cluster**:
 A single cell of the 3D frustum-aligned grid used to narrow which lights a fragment needs to evaluate, instead of testing every light in the scene.
 _Avoid_: Tile (tiled forward+ is a 2D-only variant of this idea that we don't use — our grid is depth-sliced), Cell (used informally in code, but "Cluster" is the term that carries architectural weight across docs/ADRs). Deliberately does NOT claim "Froxel" either, even though the underlying grid math is the same kind of structure — Froxel is reserved for the not-yet-built volumetric fog subsystem, which will reuse this grid but is a distinct future consumer, not another name for the same concept.
@@ -48,6 +52,10 @@ _Avoid_: GTAO — an earlier draft was named `GtaoElement`, but that overstates 
 The range of Clusters — a screen-space X/Y range plus a depth-slice range — that a single light's bounding sphere can possibly reach.
 _Avoid_: Light Bounds, Footprint
 
+**Mannequin (Asset Root)**:
+The canonical folder structure (`public/assets/<app>/mannequin/<character>/` and `raw/mannequin/`) organizing game-ready rigged characters and shared mocap pools per character namespace rather than by asset type.
+_Avoid_: Asset Type Root (e.g. splitting into `/models/` and `/textures/` across different folders).
+
 **Material**:
 A rendering definition that encapsulates both the visual properties (e.g., color, shininess) and the underlying shader logic for WebGL/WebGPU.
 _Avoid_: Shader Program (Material is the higher-level abstraction)
@@ -71,6 +79,11 @@ _Avoid_: treating `PostProcessingEffectsConfig`'s object shape as an ordered lis
 **Scene Graph**:
 The hierarchical tree of 3D objects that defines spatial relationships, transformations, and rendering order.
 _Avoid_: World Map, Entity List
+
+**Semantic Socket**:
+A named transform node attached as a child to a specific skeletal bone (`mixamorig:LeftHand`, `mixamorig:RightHand`) with standardized local offsets and rotations to host props (Lanterns, Torches, Weapons) with zero jitter during animation playback.
+_Avoid_: Prop Constraint (informal)
+
 
 **State Data**:
 The user-defined payload object passed into a Finite State Machine's `onEnter`/`onUpdate`/`onExit` callbacks.
