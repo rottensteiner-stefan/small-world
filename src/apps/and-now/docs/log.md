@@ -617,6 +617,20 @@ befüllen.
      - *Zustände:* Kann am Gürtel getragen (State 1: BASE) oder aktiv auf das Gesicht aufgesetzt werden (State 2: HAZARD).
 - **Integration:** Festgehalten in [`.agents/skills/character-pipeline/SKILL.md`](file:///Users/srottensteiner/PhpstormProjects/small-world/.agents/skills/character-pipeline/SKILL.md) und [`docs/adr/0009-character-pipeline-and-mixamo-rigging-standard.md`](file:///Users/srottensteiner/PhpstormProjects/small-world/docs/adr/0009-character-pipeline-and-mixamo-rigging-standard.md).
 
+## 64. Harmonisierung der „Adam & Eva“ Ur-Bilder (hoodie.jpg M & W) (2026-08-28)
+- **Kanonische Ur-Bilder re-generiert & synchronisiert:**
+  - [`novotny-male/hoodie.jpg`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/docs/assets/novotny-male/hoodie.jpg) („Adam“) und [`novotny-female/hoodie.jpg`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/docs/assets/novotny-female/hoodie.jpg) („Eva“) als absolute Vorlagen und Referenzanker harmonisiert.
+- **Exakt aufeinander abgestimmte Merkmale:**
+  1. **Laterne (Linke Hand):** Beide halten die Kerosin-Sturmlaterne in der linken Hand (Viewer-Perspektive: rechts im Bild); die rechte Hand bleibt frei.
+  2. **Zwei-Gürtel-System & Sockets:** Holster vorne links (Cross-Draw), Dual-Filter Gasmaske vorne rechts am Ausrüstungsgürtel.
+  3. **Kleidung & Details:**
+     - Weiblich: Hoodie mit 2 sichtbaren Känguru-Bauchtaschen, Reißverschluss und Kordeln unter dem Loden-Trenchcoat.
+     - Männlich: Authentischer Schacht-Trenchcoat über dem Hoodie mit dickem Woll-Schal.
+     - Beide: Kapuze aufgesetzt, Gesicht und Blick frei (keine Maske, kein Staubschutz-Tuch über Mund/Nase).
+  4. **Atmosphäre:** Wiener U-Bahn / Flakturm Schächte mit feuchtem Beton, Pfützen-Reflexionen und Ratten auf dem Boden.
+- **Status:** In [`concept-dossier.html`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/docs/concept-dossier.html) integriert.
+
+
 
 
 
