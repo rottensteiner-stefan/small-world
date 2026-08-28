@@ -641,6 +641,16 @@ befüllen.
   - Alte `hoodie_model_sheet.jpg` restlos gelöscht.
 - **Dossier:** [`concept-dossier.html`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/docs/concept-dossier.html) aktualisiert.
 
+## 66. Tripo3D Geometrie- & Texturatlas-Generierung für Adam & Eva (2026-08-28)
+- **3D-Rekonstruktion via Tripo3D CLI (`tripo make --for game-mobile --param face_limit=15000`):**
+  - **Männlicher Novotny („Adam“):**
+    - Mesh & PBR-Texturatlas erzeugt: [`raw/mannequin/novotny-male/base_model.glb`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/raw/mannequin/novotny-male/base_model.glb) (1.7 MB) & `base_model.fbx` (2.4 MB).
+  - **Weibliche Novotny („Eva“):**
+    - Mesh & PBR-Texturatlas erzeugt: [`raw/mannequin/novotny-female/base_model.glb`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/raw/mannequin/novotny-female/base_model.glb) (1.6 MB) & `base_model.fbx` (2.0 MB).
+- **Bereitstellung für Schritt 3 (Mixamo Rigging):**
+  - Beide ungeriggten Basismodelle liegen in `src/apps/and-now/raw/mannequin/` bereit für den Upload in Adobe Mixamo Web.
+
+
 
 
 
