@@ -630,6 +630,18 @@ befüllen.
   4. **Atmosphäre:** Wiener U-Bahn / Flakturm Schächte mit feuchtem Beton, Pfützen-Reflexionen und Ratten auf dem Boden.
 - **Status:** In [`concept-dossier.html`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/docs/concept-dossier.html) integriert.
 
+## 65. Albedo 3-View Model-Sheets für Adam & Eva (model_sheet.jpg M & W) (2026-08-28)
+- **Turnaround-Generierung:**
+  - Reine, schattenfreie Albedo 3-View Model-Sheets auf `#FFFFFF` weißem Hintergrund für beide Charaktere generiert.
+  - Einhaltung der CAD-Orthografie: Front (45° A-Pose, parallele Füße), Profil Rechts (90°, Arme entspannt herabhängend), Rücken (45° A-Pose).
+  - Ausrüstung & Kleidung: Zwei-Gürtel-System (Gasmaske vorne rechts, Holster vorne links), Kapuze aufgesetzt, Gesicht frei, Känguru-Hoodie (weiblich) bzw. Zip-Hoodie (männlich).
+- **Ablage unter einheitlichem Namen `model_sheet.jpg`:**
+  - Männlich: [`docs/assets/novotny-male/model_sheet.jpg`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/docs/assets/novotny-male/model_sheet.jpg) und [`raw/mannequin/novotny-male/model_sheet.jpg`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/raw/mannequin/novotny-male/model_sheet.jpg).
+  - Weiblich: [`docs/assets/novotny-female/model_sheet.jpg`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/docs/assets/novotny-female/model_sheet.jpg) und [`raw/mannequin/novotny-female/model_sheet.jpg`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/raw/mannequin/novotny-female/model_sheet.jpg).
+  - Alte `hoodie_model_sheet.jpg` restlos gelöscht.
+- **Dossier:** [`concept-dossier.html`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/docs/concept-dossier.html) aktualisiert.
+
+
 
 
 
