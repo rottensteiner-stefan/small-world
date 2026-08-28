@@ -4,8 +4,8 @@
 
 ## 1. Core Workflow & Token Saving
 
-- **Planning:** Detailed plan required before any code/file change. Proceed only after user approval.
-- **Git Commits:** NEVER make a commit or push without explicit user request. Do NOT even ask for permission to commit. Either the user explicitly requests a commit, or no commit happens. Every single commit message MUST be a pure quote without author/prefixes. Never reuse a quote already used in a previous commit — check `git log` first.
+- **Planning:** Require detailed plan approval only for major features, complex refactorings, or architectural changes. Small edits, bugfixes, asset generation, and documentation updates should be implemented directly without blocking for prior approval.
+- **Git Commits & Pushes:** NEVER make a commit or push without explicit user request. Do NOT even ask for permission to commit or push. Either the user explicitly requests a commit/push, or no commit/push happens. Every single commit message MUST be a pure quote without author/prefixes. Never reuse a quote already used in a previous commit — check `git log` first.
 - **Surgical Changes:** Use `replace` tool for edits. NEVER use `write_file` on existing files.
 - **Data Integrity:** Preserve historical entries in logs/changelogs.
 - **File Storage:** Store scratchpads, sketches, and temporary files locally in the project under `.agents/scratches/`, not in the hard-to-reach agent-specific AppData directory. Exceptions are regular assets or artifacts where the target location is known and logical.

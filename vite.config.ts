@@ -156,7 +156,10 @@ export default defineConfig({
         showcase34: resolve(import.meta.dirname, "showcases/34/index.html"),
         andNowHub: resolve(import.meta.dirname, "src/apps/and-now/index.html"),
         andNowPrologue: resolve(import.meta.dirname, "src/apps/and-now/scenes/prologue/index.html"),
-        andNowScene2: resolve(import.meta.dirname, "showcases/andNowScene2/index.html"),
+        andNowScene2: resolve(
+          import.meta.dirname,
+          "src/apps/and-now/scenes/flakturm-tunnel/index.html",
+        ),
         yad: resolve(import.meta.dirname, "showcases/yad/index.html"),
         neonLabyrinth: resolve(import.meta.dirname, "showcases/neon-labyrinth/index.html"),
         lightCycleArena: resolve(import.meta.dirname, "showcases/light-cycle-arena/index.html"),
@@ -189,6 +192,9 @@ export default defineConfig({
           }
           if (chunk.name === "andNowPrologue") {
             return "src/apps/and-now/scenes/prologue/prologue.js";
+          }
+          if (chunk.name === "andNowScene2") {
+            return "src/apps/and-now/scenes/flakturm-tunnel/showcase.js";
           }
           return `showcases/[name]/showcase.js`;
         },

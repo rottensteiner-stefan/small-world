@@ -16,9 +16,9 @@ import {
   StageZone,
   Cylinder,
   Torus,
-} from "../../src/index.js";
-import { AbstractShowcase } from "../../src/core/index.js";
-import { GltfLoader } from "../../src/loaders/GltfLoader.js";
+} from "../../../../index.js";
+import { AbstractShowcase } from "../../../../core/index.js";
+import { GltfLoader } from "../../../../loaders/GltfLoader.js";
 
 /** The background plane's world extent -- the only place a (u, v) stage coordinate is ever
  * turned into a 3D position. See `AndNowScene2._uvToWorld`. */

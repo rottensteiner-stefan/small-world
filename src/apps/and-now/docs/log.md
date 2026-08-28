@@ -594,6 +594,16 @@ befüllen.
   - *Echo #3 geschärft:* Der Saarländer Einsiedler im U-Bahn-Netz als Bote aus Stefans ferner Wahlheimat.
 - **Status:** Vollständig in [`creator-echoes.md`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/docs/creator-echoes.md) eingepflegt.
 
+## 62. Konsolidierung & Vereinheitlichung der Szenen-Architektur (2026-08-28)
+- **Anlass:** Szene 1 lag unter `src/apps/and-now/scenes/prologue/`, während Szene 2 noch isoliert im allgemeinen Showcase-Ordner unter `showcases/andNowScene2/` verblieben war.
+- **Konsolidierung:**
+  - `showcases/andNowScene2/` vollständig nach [`src/apps/and-now/scenes/flakturm-tunnel/`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/scenes/flakturm-tunnel/) migriert.
+  - Altes Verzeichnis `showcases/andNowScene2/` restlos bereinigt.
+  - Import-Pfade in [`showcase.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/scenes/flakturm-tunnel/showcase.ts) und Zurück-Link in [`index.html`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/scenes/flakturm-tunnel/index.html) aktualisiert.
+  - Build-Routing in [`vite.config.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/vite.config.ts) und Szene-2-Link im App-Hub [`src/apps/and-now/index.html`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/index.html) auf den neuen einheitlichen Pfad umgestellt.
+- **Ergebnis:** Alle Szenen von „And Now?“ liegen nun konsistent und modular unter `src/apps/and-now/scenes/` (`prologue/` und `flakturm-tunnel/`).
+
+
 
 
 
