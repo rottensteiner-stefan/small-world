@@ -391,6 +391,180 @@ befüllen.
   - Der Charakter ist lediglich der austauschbare Skin (`novotny-female.glb` vs. `novotny-male.glb`), Gear-Zustände werden über modulare Sub-Mesh-Toggles zur Laufzeit geschaltet.
 - **Status:** 76 Testsuiten mit 444 Tests und Library-Build 100% grün.
 
+## 49. Kompletter Re-Run der Character-Pipeline für Novotny M & W (2026-08-27)
+- **Pipeline-Ausführung:**
+  - **Female Novotny:** Vollständige Rekonstruktion aus [`novotny_female_tpose_front.jpg`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/docs/assets/novotny_female_tpose_front.jpg), [`novotny_female_tpose_right.jpg`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/docs/assets/novotny_female_tpose_right.jpg), [`novotny_female_tpose_back.jpg`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/docs/assets/novotny_female_tpose_back.jpg) via `tripo make --for game-mobile` und geriggt via `tripo anim rig --spec mixamo`.
+  - **Male Novotny:** Vollständige Rekonstruktion aus [`novotny_male_tpose_front.jpg`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/docs/assets/novotny_male_tpose_front.jpg), [`novotny_male_tpose_right.jpg`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/docs/assets/novotny_male_tpose_right.jpg), [`novotny_male_tpose_back.jpg`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/docs/assets/novotny_male_tpose_back.jpg) via `tripo make --for game-mobile` und geriggt via `tripo anim rig --spec mixamo`.
+- **Harmonisierung:**
+  - Beide Figuren verfügen über identische Knochenstrukturen (`mixamorig:RightHand`, `mixamorig:Hips`, etc.), 1.80m Normalisierungsskalierung und integrierte PBR-Texturen.
+  - Runtime-Assets: [`public/assets/and-now/mannequin/novotny-female.glb`](file:///Users/srottensteiner/PhpstormProjects/small-world/public/assets/and-now/mannequin/novotny-female.glb) und [`public/assets/and-now/mannequin/novotny-male.glb`](file:///Users/srottensteiner/PhpstormProjects/small-world/public/assets/and-now/mannequin/novotny-male.glb).
+  - Rohdaten: [`src/apps/and-now/raw/mannequin/tripo-female/`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/raw/mannequin/tripo-female/) und [`src/apps/and-now/raw/mannequin/tripo-male/`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/raw/mannequin/tripo-male/).
+- **Live-Charakterwechsel:**
+  - [`showcases/andNowScene2/showcase.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/showcases/andNowScene2/showcase.ts): Ermöglicht nahtloses Wechseln im laufenden Spiel mit Taste `[C]` sowie URL-Query `?char=female|male` unter Beibehaltung der Bühnenposition, des Animationsstatus und des Laternen-Sockets.
+- **Status:** 90 Testsuiten mit 513 Tests und Library-Build 100% grün.
+
+## 50. Tripo3D Animation Presets Integration (Idle, Walk, Climb) (2026-08-27)
+- **Animation Retargeting via Tripo API:**
+  - Für beide geriggten Charaktere (`novotny-female.glb` und `novotny-male.glb`) wurden die bipedalen Animations-Presets via `tripo anim retarget --animation preset:idle preset:walk preset:climb --animate-in-place` berechnet und direkt in die Runtime-GLBs integriert.
+  - `preset:idle`: Lebendiges Stehen / Atmen (ohne starres Einfrieren).
+  - `preset:walk`: Bipedales Gehen in-place.
+  - `preset:climb`: Treppensteigen / Stufensteigen in-place.
+- **Showcase Integration ([`showcases/andNowScene2/showcase.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/showcases/andNowScene2/showcase.ts)):**
+  - Automatisches Auslesen der eingebetteten Animations-Tracks aus der geladenen GLB.
+  - Dynamischer Zonen-Trigger: In Zone A & B wird `preset:walk` abgespielt, beim Betreten von Zone C (Treppenaufgang/Schleuse) blendet der Mixer automatisch auf `preset:climb` über. Im Stillstand läuft `preset:idle`.
+  - [`BasicMaterial`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/core/materials/BasicMaterial.ts) mit übertragener DiffuseMap garantiert optimale Sichtbarkeit im Graphic-Noir-Stil.
+- **Status:** 90 Testsuiten mit 513 Tests und Library-Build 100% grün.
+
+## 51. Reaktivierung der Studio-Torch-Animationen & Knochen-Aliasing (2026-08-27)
+- **Problem & Analyse:**
+  - Die generischen AI-Presets (`preset:walk`/`preset:idle`) führten zu unkontrolliertem Torkeln mit wild schwingenden Armen, wodurch die Hand-gebundene Laterne unruhig taumelte und falsch ausgerichtet war.
+- **Lösung & Reaktivierung der Studio-Clips:**
+  - Zurück auf die kuratierten Studio-Motion-Clips: [`idle_torch.glb`](file:///Users/srottensteiner/PhpstormProjects/small-world/public/assets/and-now/mannequin/idle_torch.glb), [`standing_torch_walk_forward.glb`](file:///Users/srottensteiner/PhpstormProjects/small-world/public/assets/and-now/mannequin/standing_torch_walk_forward.glb) und [`ascending_stairs.glb`](file:///Users/srottensteiner/PhpstormProjects/small-world/public/assets/and-now/mannequin/ascending_stairs.glb).
+  - In diesen Clips ist die rechte Hand stabil in Fackel-/Laternen-Tragehaltung fixiert.
+- **Engine-Verbesserung ([`src/core/animation/AnimationMixer.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/core/animation/AnimationMixer.ts)):**
+  - Robustes Knochen-Aliasing (`mixamorig:`, `mixamorig1:`, etc.) aufgelöst, sodass alle Mixamo-Clips unabhängig von Präfix-Nummerierungen nahtlos auf die Biped-Skelette binden.
+- **Status:** 90 Testsuiten mit 513 Tests und Library-Build 100% grün.
+
+## 52. Novotny Original-Skins, Linke Hand Laterne & Asset-Bereinigung (2026-08-27)
+- **Texture / Skin:**
+  - Reine Graphic-Noir-Texturen aus den Original-Skizzen [`novotny_hoodie_male.jpg`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/docs/assets/novotny_hoodie_male.jpg) und [`novotny_hoodie_female.jpg`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/docs/assets/novotny_hoodie_female.jpg) für beide Figuren via [`BasicMaterial`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/core/materials/BasicMaterial.ts) aktiv.
+- **Laternen-Haltung (Linke Hand):**
+  - Socket bindet prioritär an die **linke Hand** (`mixamorig:LeftHand` / `mixamorig1:LeftHand`).
+  - Der Griff liegt in der linken Handfläche, der Laternenkörper hängt exakt senkrecht nach unten in Richtung Boden.
+- **Bewegung & Animationen:**
+  - Verwendung der 3 Studio-Clips: `idle_torch.glb` (Ruhiger Stand), `standing_torch_walk_forward.glb` (Gehen mit Laterne) und `ascending_stairs.glb` (Treppe).
+  - Tasten-Toggle `[C]` schaltet zur Laufzeit nahtlos zwischen weiblichem und männlichem Novotny um.
+- **Asset-Bereinigung:**
+  - Alle nicht mehr benötigten T-Pose-Zwischenskizzen aus `docs/assets/` sowie temporäre Retarget-Ordner restlos entfernt.
+- **Status:** 90 Testsuiten mit 513 Tests und Library-Build 100% grün.
+
+## 53. Retrospektive: Grenzen des Tripo3D Auto-Riggings & Studio-Pipeline Erkenntnisse (2026-08-27)
+
+### 1. Die Probleme des rein automatisierten Auto-Riggings (Tripo3D)
+- **Fehlerhafte Knochen-Hierarchien:**
+  - Trotz des Parameters `--spec mixamo` liefert das AI-Auto-Rigging von Tripo keine verlässliche Mixamo-Standard-Struktur. Insbesondere bei komplexeren Silhouetten (Hoodie, Schal, weite Kleidung) werden Gliedmaßen falsch geschachtelt (z. B. Armknochen als direkte Kinder von `tripo::Root` oder Kopfknochen unter Arm-Segmenten) und mit internen Platzhalternamen (`bone_XX`) belegt.
+  - Dadurch greifen standardisierte Motion-Clips (`idle_torch.glb`, `standing_torch_walk_forward.glb`) ins Leere, was zu unbewegten, eingefrorenen oder verzerrten Gliedmaßen führt.
+- **AI-Retargeting Presets sind ungeeignet für Game-Props:**
+  - Die von Tripo generierten Retarget-Clips (`preset:idle`, `preset:walk`, `preset:climb`) sind generische, unkontrollierte Ragdoll-Bewegungen mit starkem Schlingern und wild schwingenden Armen.
+  - Für Spielfiguren mit getragener Ausrüstung (Laterne, Waffe, Fackel) sind diese Presets unbrauchbar, da die Hand unkontrolliert durch den Körper wandert und die Laterne wild taumelt.
+- **PBR-Shader vs. 2.5D Comic/Noir Lighting:**
+  - Tripo exportiert PBR-Materialien mit hohen Metallic-/Roughness-Faktoren, die ohne vollständiges Image-Based-Lighting (IBL/HDRI) in einer 2.5D-Bühnenszene als komplett schwarze Silhouette rendern. Erst ein explizites Überschreiben mit [`BasicMaterial`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/core/materials/BasicMaterial.ts) stellt die Texturen sichtbar dar.
+- **Altlasten bei Texturen:**
+  - Bei schnellen Asset-Iterationen bestanden noch Reste der alten Mannequin-Textur (z. B. weiße Haarsträhne des Ch36-Dummies). Texturen müssen immer dediziert aus den kanonischen Skizzen isoliert und validiert werden.
+
+## 54. Root-Cause-Fix: Rig/Animation-Mismatch, Retargeting-Presets doch nutzbar, 64-Bone-GPU-Limit (2026-08-28)
+
+**Anlass:** Anschluss an Eintrag 53 — die Figuren waren weiterhin sichtbar kaputt (Gliedmaßen reißen während Idle/Walk/Stairs). Root-Cause-Analyse per GLB-Bone-Dump statt Spekulation.
+
+**Konkreter Befund:**
+- Das deployte `novotny-male.glb` hatte `mixamorig:`-Namen, aber zusätzliche Twist-Hilfsknochen (`L_CalfTwist01/02` etc., `Waist`, `Root`) sowie einen doppelten `mixamorig:Hips`-Skin-Joint. Die externen Studio-Clips (`idle_torch.glb` etc., echte Mixamo-Web-Exports ohne Twist-Bones) animierten diese Zusatzknochen nie — sie blieben in Bind-Pose eingefroren, während Nachbarknochen sich drehten. Das war das Zerreißen.
+- Alle bisherigen `animate_rig --spec mixamo`-Läufe (`rig-2`, `rig-3`, `rig-4`, `rig-b306a858`, jeweils mit `task.json`-Beleg `spec: mixamo, topology: biped`) lieferten in Wahrheit **nie** echte `mixamorig:`-Namen zurück, sondern Tripos interne `tripo::X_Limb_Y`/`bone_N`-Namen. `--spec mixamo` ist bei diesem Charakter-Typ nachweislich unzuverlässig.
+
+**Fix (für Männlich und Weiblich wiederholt, neuer Pfad `.../chain-v3/` bzw. `.../chain-v2/`):**
+1. Neu geriggt mit `--spec tripo` (Tripos zuverlässiges natives Format) statt `--spec mixamo`.
+2. Direkt danach `tripo anim retarget` mit Tripos eigenen Presets (`preset:idle`, `preset:walk`, `preset:climb`, `--animate-in-place`) **gegen exakt dieses Rig** — GLB-Dump bestätigt: jetzt bekommen 100 % der Skin-Joints in allen 3 Clips Keyframes.
+3. **Korrektur zu Eintrag 53, Punkt 2:** Die AI-Retargeting-Presets sind entgegen der damaligen Einschätzung *nicht* grundsätzlich unbrauchbar — visuell im Model-Viewer über mehrere Frames/Winkel geprüft (Idle/Walk/Climb), Gang und Haltung sehen für Männlich und Weiblich sauber aus. Das frühere "wilde Schlingern" war höchstwahrscheinlich derselbe Rig/Clip-Mismatch, nicht eine Eigenschaft der Presets selbst.
+
+**Neu entdeckt: 64-Bone-GPU-Skinning-Limit:**
+- Das native Tripo-Rig (`spec: tripo`) bringt weit mehr Knochen mit als der alte `mixamorig`-Export — beim Mann 66, bei der Frau **113** Skin-Joints. Die Engine hat ein hartes Shader-Limit `u_boneMatrices[64]` ([`Skeleton.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/core/animation/Skeleton.ts)) — alles ab Index 64 deformiert nicht.
+- Recherche (offizielle Tripo-Doku + ein Community-Vergleichsartikel) bestätigt: **keine API-Option**, um Haare/Mantel vom Auto-Rigging auszunehmen oder die Bone-Zahl zu begrenzen. Die vielen anonymen `bone_N`-Knochen sind vermutlich genau die von Tripo intern erwähnten "dynamic spring bones" für Haar-/Mantel-Jiggle.
+- **Lösung:** Lokales Post-Processing-Script (Node, GLB-Binärformat direkt geparst/umgeschrieben) entfernt alle nicht-`tripo::`-benannten Bones aus dem Skin und hängt ihre Vertex-Gewichte auf den nächsten benannten Vorfahren um (`inverseBindMatrices`, `JOINTS_0`/`WEIGHTS_0`, `skin.joints` entsprechend neu geschrieben; Node-Hierarchie und Animation-Channels bleiben unangetastet). Ergebnis: Mann 66→26, Frau 113→28 Skin-Joints — Mantel/Haare jetzt starr statt physikalisch simuliert, aber korrekt drapiert statt eingefroren-verzerrt. Visuell im Model-Viewer über Idle/Walk verifiziert (keine Nähte/Risse).
+
+**Deployed:** `public/assets/and-now/mannequin/novotny-male.glb` und `novotny-female.glb` ersetzt. [`showcase.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/showcases/andNowScene2/showcase.ts) liest Animationen jetzt bevorzugt direkt aus dem geladenen Charakter-GLB (`preset:idle/walk/climb` → interne Keys `idle/walk/stairs`), externe Studio-Clip-Dateien sind nur noch Fallback.
+
+**Offen / bewusst nicht verfolgt:** Die alten `extracted_male/female_0/1/2.jpg/png`-Dateien in `public/assets/and-now/mannequin/` (Normal-Maps fälschlich als Diffuse extrahiert, teils sichtbar korrumpiert) sind Reste eines abgebrochenen Extraktionsversuchs aus einer früheren Session und werden vom aktuellen Code nicht referenziert — nicht angefasst.
+
+**Status:** 91 Testsuiten, 516 Tests, Build/Lint 100% grün.
+
+## 55. Root-Cause-Fix #2: Skalierungs-Bug (StageMovementBehavior überschreibt 1.8er-Charaktergröße) (2026-08-28)
+
+**Anlass:** User-Feedback nach Eintrag 54 anhand eines echten Live-Screenshots: Laterne "schwebt waagerecht", Arme wirken wie "Puppenhaltung", keine sichtbare Bewegung beim Laufen (nur Translation), Figur generell zu klein, am oberen Treppenende fast unsichtbar.
+
+**Diagnose (via temporärem `window`-Debug-Hook auf die Showcase-Instanz, live im laufenden Dev-Server geprüft, nicht nur an Rohdaten):**
+- `AnimationMixer`/Crossfade-Logik selbst funktioniert nachweislich korrekt (manuell `_updateAnimationFade` + `_mixer.update` Schritt für Schritt durchlaufen lassen: Bein-Quaternion oszilliert sichtbar über einen realistischen Gangzyklus; auch über echte Wallclock-Zeit im laufenden Loop bestätigt).
+- **Der eigentliche Bug:** [`StageMovementBehavior.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/core/behaviors/StageMovementBehavior.ts) setzt in `_applyPlacement()` `obj.scale.set(s, s, s)` — den reinen Forced-Perspective-Zonenfaktor (0.5–1.0) — **direkt und ersetzend** auf das Zielobjekt. Da `_loadCharacter()` `this._novotny.scale.set(1.8, 1.8, 1.8)` genau auf dieses selbe Objekt gesetzt hatte, wurde die 1.8er-Basisskalierung schon beim allerersten Behavior-Update überschrieben (verifiziert: Live-Skalierung war `1.0` statt `1.8`, an der Treppen-Kuppe sogar nur `0.5`). Das erklärt alle vier gemeldeten Symptome auf einmal: Bei ~55%–28% der beabsichtigten Größe ist die Gang-Animation am winzigen Sprite kaum wahrnehmbar (wirkt wie eingefroren/"Puppe"), die Laterne sitzt zwar korrekt, ist aber bei der Mini-Darstellung kaum von "waagerecht schwebend" zu unterscheiden.
+- **Fix:** Neuer Wrapper `_novotnyRig` (leeres `Object3D`) zwischen Szene und Charakter eingezogen. `StageMovementBehavior` wird jetzt auf `_novotnyRig` statt auf `_novotny` selbst angehängt (Positionierung + Zonen-Skalierung dort), während `_novotny` als Kind mit fixer lokaler Skalierung 1.8 unverändert bleibt — Weltskalierung ist jetzt `rig.scale * novotny.scale = s * 1.8`, korrekt multiplikativ statt ersetzend. `StageMovementBehavior` selbst (generische, wiederverwendbare Klasse) blieb unangetastet.
+- Live verifiziert: Skalierung jetzt `1.8` in Zone A (vorher `1.0`), `0.9` an der Treppenkuppe (vorher `0.5`) — Figur sichtbar größer in beiden Screenshots, Laterne und Körperhaltung bei der neuen Größe eindeutig als korrekt hängend/natürlich erkennbar.
+
+**Lektion:** Nur an Rohdaten (GLB-Dump, Model-Viewer) verifizieren reicht nicht — der eigentliche Bug lag in der Engine-Integration (Showcase-Code), nicht im Asset. Live-Debugging direkt an der laufenden Instanz (`window`-Hook) war hier der entscheidende Schritt, den ein isoliertes Tool wie `tripo view` nicht hätte aufdecken können.
+
+**Status:** 91 Testsuiten, 516 Tests, Build/Lint 100% grün.
+
+---
+
+### 2. Etablierter Standard-Workflow für die nächste Session
+1. **Mesh- & Textur-Generierung:**
+   - Tripo3D ausschließlich für die **3D-Rekonstruktion von Geometrie und Texturatlas** verwenden (`tripo make --for game-mobile`).
+2. **Skelett-Rigging & Skin-Weights:**
+   - Rigging nicht über Tripo-Auto-Rigging, sondern über **Adobe Mixamo** oder ein sauberes **Blender Humanoid-Template**, um eine 100% konsistente 52-Joint `mixamorig:*`-Hierarchie zu garantieren.
+3. **Animations-Bibliothek:**
+   - Verbleib bei den kuratierten Studio-Mocap-Clips (`idle_torch.glb`, `standing_torch_walk_forward.glb`, `ascending_stairs.glb`), die die Hand stabil führen.
+4. **Prop-Socket (Laterne):**
+   - Bindung an die **linke Hand** (`mixamorig:LeftHand`).
+   - Handflächen-Pivot mit $Z$-Rotation (`Math.PI / 2`), damit die Laterne senkrecht zum Boden hängt.
+5. **Charakter-Austauschbarkeit:**
+   - Identische Knochenbäume für Female & Male, sodass der Mesh-Body ein reiner Skin-Austausch via Taste `[C]` bleibt.
+
+---
+**Session-Abschluss:** Vollständig protokolliert, 90 Testsuiten mit 513 Tests grün.
+
+## 56. GltfLoader PBR-Sanitizing Optionen (`clampMetallic`, `clampRoughness`, `defaultMetallic`, `defaultRoughness`) (2026-08-28)
+- **Engine Feature ([`src/loaders/GltfLoader.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/loaders/GltfLoader.ts), [`src/interfaces/LoaderOptions.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/interfaces/LoaderOptions.ts)):**
+  - Neues Interface `GltfLoaderOptions` eingeführt:
+    - `clampMetallic`: Drosselt überhöhte Metallic-Werte (z. B. 1.0 von Tripo3D) auf einen Maximalwert oder Bereich `[min, max]`.
+    - `clampRoughness`: Begrenzt Roughness auf einen Maximalwert oder Bereich `[min, max]`.
+    - `defaultMetallic`: Konfigurierbarer Standardwert, wenn im glTF kein `metallicFactor` hinterlegt ist (Default: `1.0`).
+    - `defaultRoughness`: Konfigurierbarer Standardwert, wenn im glTF kein `roughnessFactor` hinterlegt ist (Default: `1.0`).
+- **Unit Tests ([`tests/loaders/GltfLoader.test.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/tests/loaders/GltfLoader.test.ts)):**
+  - Umfassende Testsuite für Defaults, Upper-Bound Clamps und Range-Clamps hinzugefügt.
+- **Status:** 91 Testsuiten mit 516 Tests und Library-Build 100% grün.
+
+## 57. Session-Handover & Gesamt-Status (2026-08-28)
+
+**Fokus:** Konsolidierung des Entwicklungsstands, Bereinigung verwaister Assets und vollständiges Briefing für Folge-Agenten.
+
+### 1. Bereinigungsarbeiten dieser Session
+- **`src/apps/and-now/raw/mannequin/`:**
+  - Bereinigt: Verwaister Ordner `novotny-female-final.fbm/` restlos gelöscht.
+  - Erhalten: Alle 4 `.fbx`-Animationsclips (`ascending_stairs.fbx`, `idle.fbx`, `idle_torch.fbx`, `standing_torch_walk_forward.fbx`).
+  - Erhalten: Alle 7 *Space Girl* Konzept- und Model-Sheet-Bilder (`space-girl.png`, `space_girl_gamepad_action.jpg`, `space_girl_model_sheet.jpg`, `space_girl_standing_concept.jpg`, `space_girl_v2_gamepad.jpg`, `space_girl_v2_model_sheet.jpg`, `space_girl_v2_standing.jpg`).
+- **`src/apps/and-now/docs/assets/`:**
+  - Bereinigt: 9 ungenutzte Dateien gelöscht (`tunnel_entrance_flakturm_empty.webp` Duplikat + 8 unreferenzierte T-Pose Turnaround-Dateien `novotny_[female|male]_tpose_[front|back|right|left].jpg`).
+  - Erhalten: Alle 9 im [`concept-dossier.html`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/docs/concept-dossier.html) aktiv referenzierten Grafiken.
+- **Showcase-Übersicht (`public/index.html`):**
+  - Direkter Link auf Szene 2 entfernt; nur der zentrale **And Now? (Hub)** (`src/apps/and-now/index.html`) ist gelistet.
+
+### 2. Aktuelle Architektur- & Pipeline-Erkenntnisse (Wichtig für Weiterarbeit)
+1. **Charakter-Skalierung:**
+   - Niemals die Basis-Skalierung des Charakters (`1.8`) direkt auf dem Mesh überschreiben.
+   - Immer den separaten `_novotnyRig` (`Object3D`) Wrapper verwenden, auf dem das `StageMovementBehavior` positioniert und zonen-skaliert.
+2. **GPU Skinning 64-Bone Limit:**
+   - WebGL2 Shader hat ein hartes Limit von 64 Bone-Matrizen (`Skeleton.ts`).
+   - Tripo-Modelle müssen über das Post-Processing-Skript auf $\le 64$ Bones reduziert werden (Mantel/Haare an benachbarte Bones gehängt).
+3. **Animations-Playback & Retargeting:**
+   - In [`showcases/andNowScene2/showcase.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/showcases/andNowScene2/showcase.ts) werden eingebettete Animationen der GLB (`preset:idle`, `preset:walk`, `preset:climb`) bevorzugt.
+   - Studio-Mixamo-Clips (`idle_torch.glb`, `standing_torch_walk_forward.glb`, `ascending_stairs.glb`) liegen unter `public/assets/and-now/mannequin/anim/` als Fallback.
+   - [`AnimationMixer.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/core/animation/AnimationMixer.ts) normalisiert automatisch Präfixe (`mixamorig:`, `mixamorig1:`).
+4. **PBR- & Textur-Pipeline:**
+   - Tripo-PBR exportiert oft `metallic: 1.0`. [`GltfLoader`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/loaders/GltfLoader.ts) drosselt diese via `clampMetallic` / `clampRoughness`.
+   - In der 2.5D-Bühne sichert [`BasicMaterial`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/core/materials/BasicMaterial.ts) mit übertragener DiffuseMap optimale Lesbarkeit ohne externe IBL/HDRI.
+5. **Charakter-Socket (Laterne):**
+   - Bindet an die linke Hand (`mixamorig:LeftHand` / `tripo::0_Left_Limb_2`), Rotation $Z = \pi / 2$, Position `(0.01, 0.09, 0.02)`.
+   - Tastenkürzel `[C]` wechselt live zwischen Männlich und Weiblich.
+
+### 3. Offene Punkte für die nächste Session / Kollegen
+- **Space Girl Integration:** Die 7 Roh-Bilder in `src/apps/and-now/raw/mannequin/` stehen bereit für eine mögliche 3D-Generierung / alternatives Charaktermodell via `tripo make` oder die Character-Pipeline.
+- **Scene 2 Ausbau:** Gameplay-Interaktionen (Türen, Schalter, Gegenstände untersuchen, Zonen-Übergang zu Szene 3 / Außenwelt).
+
+**Status:** 91 Testsuiten mit 516 Tests 100% grün, Build und Linter sauber.
+
+
+
+
+
+
+
+
 
 
 

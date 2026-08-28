@@ -78,6 +78,13 @@ export class AnimationMixer {
         let target = this._bindings.get(track.targetName);
         if (target === undefined) {
           target = this.root.getObjectByName(track.targetName);
+          if (!target) {
+            const normalized = track.targetName.replace(/^mixamorig\d*:/, "");
+            target =
+              this.root.getObjectByName(`mixamorig:${normalized}`) ??
+              this.root.getObjectByName(`mixamorig1:${normalized}`) ??
+              this.root.getObjectByName(normalized);
+          }
           this._bindings.set(track.targetName, target);
         }
         if (!target) continue;

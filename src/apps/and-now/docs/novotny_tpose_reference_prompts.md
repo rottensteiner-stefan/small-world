@@ -1,61 +1,104 @@
-# Novotny — T-Pose Referenzbilder (Prompts)
+# Novotny — T-Pose Reference Prompts
 
-> Vorbereitete `generate_image`-Prompts, um aus `assets/novotny_hoodie_female.jpg` drei isolierte
-> Referenzbilder für die 3D-Modellierung zu erzeugen (Front, Rücken, rechtes Profil). In dieser
-> Session war kein `generate_image`-Tool angebunden — die Prompts sind bereit zur Ausführung,
-> sobald ein Agent mit dieser Fähigkeit sie bekommt.
+`generate_image` prompts for producing four isolated reference views, used as 3D modeling
+references: **FRONT**, **BACK**, **LEFT**, **RIGHT**. There are two source concept images — a
+**MALE** hoodie concept and a **FEMALE** hoodie concept — and the prompts below apply identically
+to both; substitute the source image matching the character's gender.
 
-**Quellbild:** `assets/novotny_hoodie_female.jpg`
+**Source images:**
 
-## Gemeinsame Basis (für alle 3 Versionen)
+- **Female:** `assets/novotny_hoodie_female.jpg`
+- **Male:** `assets/novotny_hoodie_male.jpg`
 
-> Reference image: `novotny_hoodie_female.jpg`. Full character reference, isolated on a pure
-> white/transparent background (no environment, no tunnel, no props in the scene). Remove the
-> lantern from her right hand — both arms empty. Keep identical: the waxed dark-grey loden
-> trenchcoat, the dark hoodie underlayer, the loop scarf/snood worn loose around the neck, the
-> utility belt with buckle, the cargo pants with bellows pockets, the strapped knee protectors, the
-> rugged lace-up boots, the gas mask attached at the hip, and her facial features/likeness exactly
-> as in the reference. She is **not** wearing the hood up — hood down, hair visible. Flat, even
-> studio lighting (no dramatic noir shadows), clean production-reference style, not moody
-> illustration.
+## Shared base (applies to all 4 views, both genders)
 
-## Version 1 — Front
+> Reference image: the matching `novotny_hoodie_female.jpg` / `novotny_hoodie_male.jpg`. Full
+> character reference, isolated on a pure white/transparent background — no environment, no
+> tunnel, no props. Remove the lantern from the right hand; both arms empty. Keep identical: the
+> waxed dark-grey loden trenchcoat, the dark hoodie underlayer, the loop scarf/snood worn loose
+> around the neck, the utility belt with buckle, the cargo pants with bellows pockets, the
+> strapped knee protectors, the rugged lace-up boots, the gas mask attached at the hip, and the
+> character's facial features/likeness exactly as in the reference. Hood down, hair visible — the
+> hood is **not** worn up. Flat, even studio lighting (no dramatic noir shadows); clean
+> production-reference style, not moody illustration.
+
+## FRONT
 
 > Straight-on front view, character facing directly toward camera, perfectly upright, arms in
 > T-pose.
 
-## Version 2 — Rücken
+## BACK
 
 > Straight-on back view, character facing directly away from camera, perfectly upright, arms in
 > T-pose — show backpack straps and coat back panel.
 
-## Version 3 — Rechtes Profil
+## RIGHT
 
 > Exact right-side profile view (90°), character facing screen-right, standing straight and
 > upright, arms relaxed naturally at the sides — full profile silhouette of coat, boots, and gear.
 
-**Abweichung von der ursprünglichen Vorgabe:** Version 3 nutzt bewusst entspannte Arme statt
-strikter T-Pose — ein 90°-Seitenprofil in T-Pose zeigt den ausgestreckten Arm nur als schmale
-Linie zur Kamera und wäre als Modellierungsreferenz kaum auswertbar. Vom Nutzer abgesegnet
-(2026-08-25).
+## LEFT
+
+> Exact left-side profile view (-90°), character facing screen-left, standing straight and
+> upright, arms relaxed naturally at the sides — full profile silhouette of coat, boots, and gear.
+
+**Deviation from the original spec:** RIGHT and LEFT deliberately use relaxed arms instead of a
+strict T-pose — a 90° side profile in T-pose reduces the extended arm to a thin line toward the
+camera, making it useless as a modeling reference. Approved by the user (2026-08-25).
 
 ---
 
-## Kanonische Ausrüstungs-Konfiguration (Female & Male)
+## Canonical equipment configuration (female & male)
 
-1. **Sturmlaterne:** In der **rechten Hand** (`RightHand` / `tripo::0_Right_Limb_2`).
-2. **Atemschutzmaske (Gasmaske):** Am Gürtel **rechts vorne** befestigt.
-3. **Schlauchschal (Snood):** Locker als wärmender Kragen **um den Hals** getragen (Gesicht und Mund stets unbedeckt).
-4. **Kapuze:** Bei Turnarounds **abgesetzt** (hinten auf den Schultern), Haare und Kopfform voll sichtbar.
+1. **Hurricane lantern:** in the **right hand** (`RightHand` / `tripo::0_Right_Limb_2`).
+2. **Respirator (gas mask):** attached to the belt, **front right**.
+3. **Loop scarf (snood):** worn loosely around the neck as a warming collar; face and mouth always
+   uncovered.
+4. **Hood:** down for turnarounds (resting on the shoulders); hair and head shape fully visible.
 
 ---
 
-## Männliches Ur-Konzept (`novotny_hoodie_male.jpg`) — Re-Generation Prompt
+## Gender-specific base concept prompts
 
-> Reference image: `novotny_hoodie_female.jpg` and `novotny_male_tpose_front.jpg`. Full body male character concept art in a dark, atmospheric flooded concrete bunker tunnel in post-apocalyptic Vienna 2100.
-> **Art Style & Lighting:** Exact same Graphic Noir comic watercolor style and tunnel composition as `novotny_hoodie_female.jpg` with heavy inked outlines and warm amber chiaroscuro lantern light.
-> **Character:** Young man in early twenties, lean and weathered, melancholic determined expression.
-> **Face & Head:** Entire face is fully visible and UNMASKED (mouth, nose, eyes, cheekbones visible, NO scarf over mouth/nose). A thick knitted dark loop scarf / snood is worn loosely around his neck as a collar warmer. Hood is up over his head with dark messy hair framing his forehead and face.
-> **Equipment:** Waxed dark-grey/olive loden trenchcoat open over dark zip-up hoodie, leather utility belt with vintage gas mask attached at the RIGHT FRONT hip, dark cargo trousers with bellows pockets, strapped knee armor guards, rugged lace-up work boots, fingerless gloves.
-> **Pose:** Standing in the flooded tunnel archway holding an illuminated vintage brass hurricane lantern in his **RIGHT HAND** casting warm directional glow onto his body and wet stone floor with water reflections.
+> These two prompts regenerate each gender's tunnel concept art independently. They currently
+> differ only in the gender-specific particulars (source image, character description) — art
+> style, equipment, and pose are intentionally identical, so keep them in sync unless a real
+> design difference is introduced for one gender.
 
+### Female (`novotny_hoodie_female.jpg`) — regeneration prompt
+
+> Reference image: `novotny_hoodie_female.jpg`. Full-body female character concept art in a dark,
+> atmospheric flooded concrete bunker tunnel in post-apocalyptic Vienna, 2100.
+> **Art style & lighting:** exact same Graphic Noir comic watercolor style and tunnel composition
+> as `novotny_hoodie_female.jpg`, with heavy inked outlines and warm amber chiaroscuro lantern
+> light.
+> **Character:** young woman in her early twenties, lean and weathered, melancholic determined
+> expression.
+> **Face & head:** entire face fully visible and unmasked (mouth, nose, eyes, cheekbones visible —
+> no scarf over mouth/nose). A thick knitted dark loop scarf/snood worn loosely around the neck as
+> a collar warmer. Hood up over the head, dark messy hair framing forehead and face.
+> **Equipment:** waxed dark-grey/olive loden trenchcoat open over a dark zip-up hoodie, leather
+> utility belt with a vintage gas mask attached at the right-front hip, dark cargo trousers with
+> bellows pockets, strapped knee armor guards, rugged lace-up work boots, fingerless gloves.
+> **Pose:** standing in the flooded tunnel archway, holding an illuminated vintage brass hurricane
+> lantern in the **right hand**, casting a warm directional glow onto the body and the wet stone
+> floor with water reflections.
+
+### Male (`novotny_hoodie_male.jpg`) — regeneration prompt
+
+> Reference image: `novotny_hoodie_male.jpg`. Full-body male character concept art in a dark,
+> atmospheric flooded concrete bunker tunnel in post-apocalyptic Vienna, 2100.
+> **Art style & lighting:** exact same Graphic Noir comic watercolor style and tunnel composition
+> as `novotny_hoodie_male.jpg`, with heavy inked outlines and warm amber chiaroscuro lantern
+> light.
+> **Character:** young man in his early twenties, lean and weathered, melancholic determined
+> expression.
+> **Face & head:** entire face fully visible and unmasked (mouth, nose, eyes, cheekbones visible —
+> no scarf over mouth/nose). A thick knitted dark loop scarf/snood worn loosely around the neck as
+> a collar warmer. Hood up over the head, dark messy hair framing forehead and face.
+> **Equipment:** waxed dark-grey/olive loden trenchcoat open over a dark zip-up hoodie, leather
+> utility belt with a vintage gas mask attached at the right-front hip, dark cargo trousers with
+> bellows pockets, strapped knee armor guards, rugged lace-up work boots, fingerless gloves.
+> **Pose:** standing in the flooded tunnel archway, holding an illuminated vintage brass hurricane
+> lantern in the **right hand**, casting a warm directional glow onto the body and the wet stone
+> floor with water reflections.

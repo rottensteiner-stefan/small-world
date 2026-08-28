@@ -13,3 +13,17 @@ export interface ImageLoaderOptions extends LoaderOptions {
   /** Whether the image should be flipped vertically during loading/decoding. */
   flipY?: boolean;
 }
+
+/**
+ * Specialized configuration options for glTF/GLB loaders.
+ */
+export interface GltfLoaderOptions extends LoaderOptions {
+  /** Maximum metallic factor (or [min, max] range) applied to parsed PBR materials. */
+  clampMetallic?: number | [number, number];
+  /** Maximum roughness factor (or [min, max] range) applied to parsed PBR materials. */
+  clampRoughness?: number | [number, number];
+  /** Default metallic factor used when a material does not explicitly define one. */
+  defaultMetallic?: number;
+  /** Default roughness factor used when a material does not explicitly define one. */
+  defaultRoughness?: number;
+}

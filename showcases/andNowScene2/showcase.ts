@@ -37,14 +37,21 @@ const ANIMATION_CLIP_URLS: Record<string, string> = {
 
 const ANIMATION_FADE_SECONDS = 0.25;
 
-/** Right hand bone candidates the lantern (mesh + light) attaches to across different rigs */
+/** Maps Tripo retarget preset clip names (embedded in a character GLB rigged via the
+ * `chain-v3` pipeline) to the internal animation keys used by `_playAnimation`. */
+const PRESET_CLIP_NAME_TO_KEY: Record<string, string> = {
+  "preset:idle": "idle",
+  "preset:walk": "walk",
+  "preset:climb": "stairs",
+};
+
+/** Left hand bone candidates the lantern (mesh + light) attaches to across different rigs */
 const LANTERN_HAND_BONE_NAMES = [
-  "mixamorig:RightHand",
-  "mixamorig1:RightHand",
-  "R_Hand",
-  "tripo::0_Right_Limb_2",
-  "tripo::0_Right_Limb_3",
   "mixamorig:LeftHand",
+  "mixamorig1:LeftHand",
+  "L_Hand",
+  "tripo::0_Left_Limb_2",
+  "tripo::0_Left_Limb_3",
 ];
 
 interface AnimationFade {
@@ -56,6 +63,10 @@ interface AnimationFade {
 
 class AndNowScene2 extends AbstractShowcase {
   private _novotny!: Object3D;
+  /** Stage anchor that `StageMovementBehavior` positions/scales (forced-perspective per zone).
+   * `_novotny` sits inside it at a fixed 1.8m-real-world-height local scale, so the per-zone
+   * scale factor multiplies on top of that instead of replacing it outright. */
+  private _novotnyRig!: Object3D;
   private _movementBehavior!: StageMovementBehavior;
   private _pointLight!: PointLight;
   private _lanternGroup: Object3D | undefined = undefined;
@@ -65,6 +76,10 @@ class AndNowScene2 extends AbstractShowcase {
   private _activeAnimation: string | undefined;
   private _fade: AnimationFade | undefined = undefined;
   private _zoneBadgeEl: HTMLElement | null = null;
+  private _charDescEl: HTMLElement | null = null;
+  private _isFemale: boolean = false;
+  private _isSwitchingChar: boolean = false;
+  private _lastCState: boolean = false;
   private _lastEState: boolean = false;
   private _lastLState: boolean = false;
 
@@ -84,6 +99,7 @@ class AndNowScene2 extends AbstractShowcase {
 
   protected override async setupScene(): Promise<void> {
     this._zoneBadgeEl = document.getElementById("zoneBadge");
+    this._charDescEl = document.getElementById("charDesc");
     this._editorSvg = document.getElementById("editorSvgOverlay") as unknown as SVGElement;
     this._editorPanel = document.getElementById("editorPanel");
     this._editorPolygonsGroup = document.getElementById(
@@ -178,33 +194,81 @@ class AndNowScene2 extends AbstractShowcase {
 
     this._stageZones = [zoneA, zoneB, zoneC];
 
+    const initialFemale =
+      typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).get("char") === "female";
+
+    await this._loadCharacter(initialFemale);
+
+    this._setupEditorEvents();
+  }
+
+  /**
+   * Lädt die Novotny-Figur (männlich/weiblich), skaliert sie einheitlich auf 1.80m,
+   * bindet die Laterne an mixamorig:RightHand und hängt Behavior & AnimationMixer ein.
+   */
+  private async _loadCharacter(isFemale: boolean): Promise<void> {
+    this._isFemale = isFemale;
+    let currentUv = { u: 0.65, v: 0.85 };
+    let currentAnim = "idle";
+
+    if (this._movementBehavior) {
+      currentUv = this._movementBehavior.uv;
+      currentAnim = "WALK" === this._movementBehavior.state ? "walk" : "idle";
+    }
+
+    if (this._novotny) {
+      if (this._lanternGroup && this._lanternGroup.parent) {
+        this._lanternGroup.parent.remove(this._lanternGroup);
+      }
+      this._novotnyRig.remove(this._novotny);
+    }
+    if (!this._novotnyRig) {
+      this._novotnyRig = new Object3D("NovotnyRig");
+      this.scene.add(this._novotnyRig);
+    }
+
     try {
       const gltfLoader = new GltfLoader();
-      const isFemale =
-        typeof window !== "undefined" &&
-        new URLSearchParams(window.location.search).get("char") === "female";
       const charModelUrl = isFemale
         ? "/assets/and-now/mannequin/novotny-female.glb"
         : "/assets/and-now/mannequin/novotny-male.glb";
-      const charDiffuseUrl = isFemale
-        ? "/assets/and-now/mannequin/novotny-female_diffuse.png"
-        : undefined;
 
       this._novotny = await gltfLoader.load(charModelUrl);
+      this._novotny.scale.set(1.8, 1.8, 1.8);
 
-      let charDiffuse: Texture | undefined;
-      if (charDiffuseUrl) {
-        try {
-          charDiffuse = await Texture.fromUrl(charDiffuseUrl);
-        } catch (err) {
-          console.warn("[AndNowScene2] Konnte Novotny-Textur nicht laden:", err);
+      // Bevorzugt Animationen nutzen, die direkt im GLB stecken (Tripo-Retarget lief gegen
+      // exakt dieses Rig, jeder Skin-Joint bekommt also garantiert Keyframes). Nur wenn ein
+      // Charakter keine eingebetteten Clips hat, auf die externen Studio-Clips zurückfallen
+      // (Achtung: diese sind auf ein reines Mixamo-Rig gebaut und passen nicht zu jedem Rig).
+      this._clips.clear();
+      if (0 < this._novotny.animations.length) {
+        for (const clip of this._novotny.animations) {
+          const key = PRESET_CLIP_NAME_TO_KEY[clip.name];
+          if (key) {
+            this._clips.set(key, clip);
+          }
+        }
+      } else {
+        for (const [name, url] of Object.entries(ANIMATION_CLIP_URLS)) {
+          try {
+            const animClips = await gltfLoader.loadAnimations(url);
+            const clip = animClips[0];
+            if (clip) {
+              this._clips.set(name, clip);
+            }
+          } catch (animErr) {
+            console.warn(`[AndNowScene2] Konnte Animation "${name}" nicht laden:`, animErr);
+          }
         }
       }
 
       const applyMaterialToHierarchy = (obj: Object3D): void => {
-        if (obj.material && charDiffuse) {
+        if (obj.material) {
           const bMat = new BasicMaterial({ color: new Color(1, 1, 1) });
-          bMat.diffuseMap = charDiffuse;
+          if ("diffuseMap" in obj.material && obj.material.diffuseMap instanceof Texture) {
+            bMat.diffuseMap = obj.material.diffuseMap;
+          }
           obj.material = bMat;
         }
         for (const child of obj.children) {
@@ -213,15 +277,9 @@ class AndNowScene2 extends AbstractShowcase {
       };
       applyMaterialToHierarchy(this._novotny);
 
-      if (!isFemale) {
-        this._novotny.scale.set(1.8, 1.8, 1.8);
-      }
+      this._novotnyRig.add(this._novotny);
 
-      this.scene.add(this._novotny);
-
-      // Laterne (Platzhalter-Mesh + Punktlicht) an die Hand-Bone hängen, statt sie manuell pro
-      // Frame der Novotny-Wurzelposition nachzuführen -- folgt dadurch automatisch jeder Pose
-      // (Idle/Walk/Stairs), inklusive Handschwung, ohne eigene Update-Logik.
+      // Laterne (Platzhalter-Mesh + Punktlicht) an die Hand-Bone hängen
       let handBone: Object3D | undefined;
       for (const boneName of LANTERN_HAND_BONE_NAMES) {
         const found = this._novotny.getObjectByName(boneName);
@@ -232,18 +290,21 @@ class AndNowScene2 extends AbstractShowcase {
       }
 
       if (handBone) {
-        this._lanternGroup = this._buildLanternMesh();
-        this._pointLight.position.set(0, -0.16, 0);
-        this._lanternGroup.add(this._pointLight);
+        if (!this._lanternGroup) {
+          this._lanternGroup = this._buildLanternMesh();
+          this._pointLight.position.set(0, -0.16, 0);
+          this._lanternGroup.add(this._pointLight);
+        }
         handBone.add(this._lanternGroup);
+        this._lanternGroup.isVisible = this._lanternOn;
+        this._pointLight.isVisible = this._lanternOn;
       } else {
         console.warn(
           `[AndNowScene2] Hand-Bone nicht gefunden -- Laterne bleibt an fixer Position.`,
         );
       }
 
-      // 2.5D Bühnen-Bewegung an Novotny ankoppeln -- läuft komplett in (u, v)-Bildkoordinaten,
-      // `_uvToWorld` ist die einzige Stelle, an der daraus eine echte 3D-Position wird.
+      // 2.5D Bühnen-Bewegung an Novotny ankoppeln
       this._movementBehavior = new StageMovementBehavior({
         input: this.input,
         speed: 0.15,
@@ -251,35 +312,41 @@ class AndNowScene2 extends AbstractShowcase {
         zones: this._stageZones,
         uvToWorld: (u: number, v: number): { x: number; y: number; z: number } =>
           this._uvToWorld(u, v),
-        startUV: { u: 0.65, v: 0.85 },
-        onZoneChange: (zone: StageZone): void => this._updateHUD(zone),
-        onStateChange: (state: "IDLE" | "WALK"): void =>
-          this._playAnimation("WALK" === state ? "walk" : "idle"),
-      });
-      this._novotny.addBehavior(this._movementBehavior);
-
-      // Lade alle konfigurierten Animationen (siehe ANIMATION_CLIP_URLS) -- ein fehlender/noch
-      // nicht konvertierter Clip loggt nur eine Warnung, blockiert die Szene aber nicht.
-      for (const [name, url] of Object.entries(ANIMATION_CLIP_URLS)) {
-        try {
-          const animClips = await gltfLoader.loadAnimations(url);
-          const clip = animClips[0];
-          if (clip) {
-            this._clips.set(name, clip);
+        startUV: currentUv,
+        onZoneChange: (zone: StageZone): void => {
+          this._updateHUD(zone);
+          if (this._movementBehavior?.state === "WALK") {
+            this._playAnimation(zone.id === "zone_c" ? "stairs" : "walk");
           }
-        } catch (animErr) {
-          console.warn(`[AndNowScene2] Konnte Animation "${name}" nicht laden:`, animErr);
-        }
-      }
+        },
+        onStateChange: (state: "IDLE" | "WALK"): void => {
+          if (state === "WALK") {
+            const isStairs = this._movementBehavior?.activeZone?.id === "zone_c";
+            this._playAnimation(isStairs ? "stairs" : "walk");
+          } else {
+            this._playAnimation("idle");
+          }
+        },
+      });
+      this._novotnyRig.addBehavior(this._movementBehavior);
+
       if (0 < this._clips.size) {
         this._mixer = new AnimationMixer(this._novotny);
-        this._playAnimation("idle", { fadeSeconds: 0 });
+        this._activeAnimation = undefined;
+        this._fade = undefined;
+        const startAnim =
+          currentAnim === "walk" && this._movementBehavior.activeZone?.id === "zone_c"
+            ? "stairs"
+            : currentAnim;
+        this._playAnimation(startAnim, { fadeSeconds: 0 });
+      }
+
+      if (this._charDescEl) {
+        this._charDescEl.textContent = `Novotny (${isFemale ? "Weiblich" : "Männlich"}) auf der 2.5D-Bühne`;
       }
     } catch (e) {
-      console.error(e);
+      console.error("[AndNowScene2] Fehler beim Laden des Charakters:", e);
     }
-
-    this._setupEditorEvents();
   }
 
   /**
@@ -628,8 +695,8 @@ class AndNowScene2 extends AbstractShowcase {
     body.position.set(0, -0.16, 0);
     lantern.add(body);
 
-    // Local offset and rotation within the hand bone space:
-    // Shift forward from the wrist pivot into the palm/fingers (~9cm along hand axis)
+    // Local offset and rotation within the left hand bone space:
+    // Shift from the wrist pivot into the palm/fingers (~9cm along hand axis)
     lantern.position.set(0.01, 0.09, 0.02);
     lantern.rotation.set(0, 0, Math.PI / 2);
 
@@ -716,6 +783,18 @@ class AndNowScene2 extends AbstractShowcase {
       this._pointLight.isVisible = this._lanternOn;
     }
     this._lastLState = isLPressed;
+
+    // Toggle Charakter mit Taste 'C' (Männlich <-> Weiblich)
+    const isCPressed = this.input.isPressed("KeyC");
+    if (isCPressed && !this._lastCState && !this._isSwitchingChar) {
+      this._isSwitchingChar = true;
+      this._loadCharacter(!this._isFemale)
+        .catch((err: unknown) => console.error("[AndNowScene2] Fehler beim Charakterwechsel:", err))
+        .finally(() => {
+          this._isSwitchingChar = false;
+        });
+    }
+    this._lastCState = isCPressed;
 
     if (this._editorActive) {
       this._updateEditorUI();

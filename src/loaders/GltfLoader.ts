@@ -15,7 +15,7 @@ import {
 import { StandardMaterial } from "../core/materials/index.js";
 import { Color } from "../core/colors/index.js";
 import { Texture } from "../core/textures/index.js";
-import { LoaderOptions, GeometryDataInterface } from "../interfaces/index.js";
+import { GltfLoaderOptions, GeometryDataInterface } from "../interfaces/index.js";
 import { Matrix4, Vector3D, Quaternion } from "../math/index.js";
 
 interface GltfJson {
@@ -111,9 +111,11 @@ export class GltfLoader extends AbstractLoader<Object3D> {
   // silently drops every track. Normalizing away the suffix at parse time makes any such file bind
   // against any other, regardless of which numbering each happened to be exported with.
   private static readonly _MIXAMO_RIG_PREFIX_RE = /^mixamorig\d*:/;
+  protected _gltfOptions: GltfLoaderOptions;
 
-  constructor(options: LoaderOptions = {}) {
+  constructor(options: GltfLoaderOptions = {}) {
     super(options);
+    this._gltfOptions = options;
   }
 
   private static _normalizeNodeName(name: string): string {
@@ -599,8 +601,38 @@ export class GltfLoader extends AbstractLoader<Object3D> {
       mat.emissiveIntensity = m.extensions.KHR_materials_emissive_strength.emissiveStrength;
     }
 
-    mat.metallic = pbr.metallicFactor !== undefined ? pbr.metallicFactor : 1.0;
-    mat.roughness = pbr.roughnessFactor !== undefined ? pbr.roughnessFactor : 1.0;
+    const defaultMetallic =
+      this._gltfOptions.defaultMetallic !== undefined ? this._gltfOptions.defaultMetallic : 1.0;
+    const defaultRoughness =
+      this._gltfOptions.defaultRoughness !== undefined ? this._gltfOptions.defaultRoughness : 1.0;
+
+    let metallic = pbr.metallicFactor !== undefined ? pbr.metallicFactor : defaultMetallic;
+    let roughness = pbr.roughnessFactor !== undefined ? pbr.roughnessFactor : defaultRoughness;
+
+    if (this._gltfOptions.clampMetallic !== undefined) {
+      if (Array.isArray(this._gltfOptions.clampMetallic)) {
+        metallic = Math.min(
+          Math.max(metallic, this._gltfOptions.clampMetallic[0]),
+          this._gltfOptions.clampMetallic[1],
+        );
+      } else {
+        metallic = Math.min(metallic, this._gltfOptions.clampMetallic);
+      }
+    }
+
+    if (this._gltfOptions.clampRoughness !== undefined) {
+      if (Array.isArray(this._gltfOptions.clampRoughness)) {
+        roughness = Math.min(
+          Math.max(roughness, this._gltfOptions.clampRoughness[0]),
+          this._gltfOptions.clampRoughness[1],
+        );
+      } else {
+        roughness = Math.min(roughness, this._gltfOptions.clampRoughness);
+      }
+    }
+
+    mat.metallic = metallic;
+    mat.roughness = roughness;
 
     if (m.alphaMode === "BLEND") {
       mat.transparent = true;
