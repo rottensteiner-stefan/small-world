@@ -12,19 +12,24 @@ Dieses Dokument definiert den verbindlichen, praxiserprobten End-to-End-Workflow
 ## 🗺️ Pipeline-Architektur im Überblick
 
 ```text
-[ 1. 2D-Konzept & 3-in-1 Albedo Model-Sheet ]
-  - 🤖 AUTOMATISCH: Gemini API / generate_image / ImageMagick Stitching
-  - 👤 MANUELL: Optionaler Konzept-Import / Photoshop-Touchup
-  - Pure Albedo, ZERO directional shadows, pure white (#FFFFFF) background
+[ 1. 2D-Konzept & Albedo-Vorlagen ]
+  - 🤖 AUTOMATISCH: Gemini API / generate_image
+  - `model_sheet.jpg`: 3-in-1 Turnaround (16:9) für Dossier & Art-Direction
+  - `front.jpg`: Isolierte, textfreie Frontalansicht (45° A-Pose) auf #FFFFFF für Tripo3D
                         │
                         ▼
 [ 2. 3D-Geometrie & Texturatlas (Tripo3D) ]
-  - 🤖 AUTOMATISCH: `tripo make <sheet> --for game-mobile --param face_limit=15000`
-  - 10k–25k Triangles, 2K Textur-Budget (NO 4K/8K)
+  - 🤖 AUTOMATISCH: `tripo make front.jpg --for game-mobile --param face_limit=15000`
+  - 10k–25k Triangles, 2K Textur-Budget (NO 4K/8K) ➔ `base_model.glb`
+                        │
+                        ▼
+[ 2.5. Automatisches Mixamo-Packaging (Agent) ]
+  - 🤖 AUTOMATISCH: Konvertierung `base_model.glb` ➔ Clean Static Wavefront OBJ (`model.obj` + `model.mtl` + `texture.jpg`)
+  - Erzeugt `<character>_mixamo.zip` (verhindert Mixamo-Fehler „unable to map your existing skeleton“)
                         │
                         ▼
 [ 3. Skeletal Rigging & Skinning (Adobe Mixamo Standard) ]
-  - 👤 MANUELL: Adobe Mixamo Web (52/65-Joint Biped Rig, 100% Mocap- & Socket-Garantie)
+  - 👤 MANUELL: User lädt `<character>_mixamo.zip` in [Mixamo Web](https://mixamo.com) (52/65-Joint Biped Rig)
   - 🤖 AUTOMATISCH: Konvertierung nach GLB (`character.glb`) & Bone-Validierung
                         │
                         ▼
@@ -65,19 +70,21 @@ Dieser Vertrag definiert für jeden Schritt exakt:
 
 | Stufe | Modus | Input-Pfad (Erwartet) | Output-Pfad (Erzeugt) | Ausführendes Tool / Aktion |
 | :--- | :---: | :--- | :--- | :--- |
-| **1. 2D Model-Sheet** | `🤖` / `👤` | `src/apps/<app>/docs/assets/<char>/hoodie.jpg` *(optional)* | `src/apps/<app>/raw/mannequin/<char>/model_sheet.jpg`<br>*(Kopie: `docs/assets/<char>/hoodie_model_sheet.jpg`)* | Gemini API / `generate_image`<br>+ `magick convert +append` |
-| **2. 3D-Mesh & Atlas** | `🤖` | `src/apps/<app>/raw/mannequin/<char>/model_sheet.jpg` | `src/apps/<app>/raw/mannequin/<char>/base_model.glb`<br>`src/apps/<app>/raw/mannequin/<char>/task.json` | `tripo make model_sheet.jpg --for game-mobile` |
-| **3. Mixamo Rigging** | `👤` *(User)* | `src/apps/<app>/raw/mannequin/<char>/base_model.glb` | `src/apps/<app>/raw/mannequin/<char>/character_rigged.fbx` | User lädt in [Mixamo Web](https://mixamo.com) hoch, riggt & lädt `.fbx` herunter |
-| **3. GLB-Export** | `🤖` *(Agent)*| `src/apps/<app>/raw/mannequin/<char>/character_rigged.fbx` | `public/assets/<app>/mannequin/<char>/character.glb` | Konvertierung FBX ➔ GLB (FBX2glTF / gltf-transform) |
+| **1. 2D-Vorlagen** | `🤖` / `👤` | `src/apps/<app>/docs/assets/<char>/hoodie.jpg` | `src/apps/<app>/raw/mannequin/<char>/model_sheet.jpg`<br>`src/apps/<app>/raw/mannequin/<char>/front.jpg` | Gemini API / `generate_image` + `sips` Crop |
+| **2. 3D-Mesh & Atlas** | `🤖` | `src/apps/<app>/raw/mannequin/<char>/front.jpg` | `src/apps/<app>/raw/mannequin/<char>/base_model.glb` | `tripo make front.jpg --for game-mobile` |
+| **2.5. Mixamo-Paket** | `🤖` | `src/apps/<app>/raw/mannequin/<char>/base_model.glb` | `src/apps/<app>/raw/mannequin/<char>/<char>_mixamo.zip` | Automatischer Node-Export (`model.obj` + `texture.jpg` ➔ `.zip`) |
+| **3. Mixamo Rigging** | `👤` *(User)* | `src/apps/<app>/raw/mannequin/<char>/<char>_mixamo.zip` | `src/apps/<app>/raw/mannequin/<char>/character_rigged.fbx` | User zieht `.zip` in [Mixamo Web](https://mixamo.com), setzt 5 Marker & lädt T-Pose `.fbx` |
+| **3.5. GLB-Export** | `🤖` *(Agent)*| `src/apps/<app>/raw/mannequin/<char>/character_rigged.fbx` | `public/assets/<app>/mannequin/<char>/character.glb` | Konvertierung FBX ➔ GLB (gltf-transform / FBX2glTF) |
 | **4. Shared Mocap** | `🤖` / `👤` | `src/apps/<app>/raw/mannequin/shared/*.fbx` | `public/assets/<app>/mannequin/shared/anim/*.glb` | In-Place Studio-Clips (`idle_torch`, `walk_torch`, `ascending_stairs`) |
 | **5. Engine-Ingest** | `🤖` *(Agent)*| `public/assets/<app>/mannequin/<char>/character.glb`<br>`public/assets/<app>/mannequin/shared/anim/*.glb` | `src/apps/<app>/scenes/<scene>/` | `GltfLoader` + `_characterRig` Wrapper + Sockets + `AnimationMixer` |
 
 ---
 
+## 🍳 Rezept 1: 2D-Konzept ➔ Model-Sheet & Front-View
 
-## 🍳 Rezept 1: 2D-Konzept ➔ 3-in-1 Albedo Model-Sheet
-
-Das 3D-Modellierungs-Tool benötigt eine konsistente Vorlage ohne perspektivische Verzerrung und **ohne gebackene Schatten**.
+> **Wichtigste Erkenntnis:** Tripo3D's Einzelbild-KI (`tripo make`) benötigt für die 3D-Rekonstruktion zwingend ein **isoliertes Frontal-Bild (`front.jpg`)**. Ein 3-Ansichten-Sheet im selben Bild führt dazu, dass Tripo mehrere Figuren generiert oder das Mesh verzerrt.
+> - `model_sheet.jpg` (16:9, 3 Ansichten): Dient als visuelles Dokumentations- und Turnaround-Asset im Dossier.
+> - `front.jpg` (Isolierte Frontalfigur): Dient als präziser Eingabevektor für Tripo3D.
 
 ### 1. Das Albedo-First-Mandat (Unabdingbare 3D-Regel)
 * **Keine Richtungsschatten oder Lichtkegel:** Schatten und Glanzlichter werden zur Laufzeit von Small World in Echtzeit berechnet (`PointLight`, `DirectionalLight`, `OutlineElement`).
@@ -101,53 +108,30 @@ Das 3D-Modellierungs-Tool benötigt eine konsistente Vorlage ohne perspektivisch
    * Vollmaske mit zwei markanten Filterdosen (links und rechts an den Wangen).
    * **Trageposition am Gürtel:** Hängt immer **vorne rechts** am Ausrüstungsgürtel.
    * **Zustände:**
-     - *State 1 (BASE / Standard):* Maske hängt vorne rechts am Gürtel, Gesicht & Haare frei sichtbar, Kapuze liegt flach auf den Schultern.
+     - *State 1 (BASE / Standard):* Maske hängt vorne rechts am Gürtel, Gesicht & Haare frei sichtbar, Kapuze liegt flach auf den Schultern oder über dem Kopf.
      - *State 2 (TOXIC HAZARD / Aufgesetzt):* Maske umschließt das Gesicht, Filter links/rechts, Kapuze über den Kopf gezogen.
 
-
-### 3. Zwei Generierungs-Methoden
-
-#### Methode A: Single 16:9 Composite Sheet (Standard)
-Erzeugt Front, Profil und Rücken in einem einzigen 16:9-Bild:
-```text
-Full-body 3-view turnaround character model sheet (Front view, Right side profile view, Back view) of [CHARACTER DESCRIPTION].
-Pure unshaded flat Albedo diffuse reference, neutral diffuse color map, perfectly even flat ambient studio lighting, ZERO cast shadows, ZERO highlights, solid pure white background.
-Left: Front view in symmetrical 45-degree A-pose, feet pointing dead straight forward.
-Center: Exact 90-degree right profile view with arms hanging naturally at sides.
-Right: Back view in matching symmetrical A-pose.
-All three views at exact same scale and eye-level horizon.
+### 3. Extraktion der isolierten Frontansicht (`front.jpg`)
+Aus dem erzeugten Model-Sheet wird die Frontansicht ohne Textüberschriften sauber via `sips` freigestellt:
+```bash
+sips -c 670 460 --cropOffset 45 10 src/apps/<app>/raw/mannequin/<char>/model_sheet.jpg --out src/apps/<app>/raw/mannequin/<char>/front.jpg
 ```
-
-#### Methode B: Sequenzielle Generierung + ImageMagick Stitching (Fallback bei Composite-Glotzen)
-*Wenn das Modell bei Multi-Panel-Bildern Rücken oder Profil verdoppelt/abschneidet:*
-1. **Front-View generieren** (Referenz: Konzeptgrafik).
-2. **Profil-View generieren** (Referenzen: Konzeptgrafik + generierte Front-View für Proportionen).
-3. **Rücken-View generieren** (Referenzen: Konzeptgrafik + Front-View für Ausrüstung).
-4. **Zusammensetzen via ImageMagick:**
-   ```bash
-   magick convert front.png right.png back.png +append model_sheet.jpg
-   ```
 
 ---
 
-## 🍳 Rezept 2: 3D-Mesh & Textur-Generierung (Tripo3D)
+## 🍳 Rezept 2: 3D-Mesh-Generierung & Mixamo-Packaging
 
 Tripo3D wird **ausschließlich für die 3D-Geometrie und den Texturatlas** eingesetzt — niemals für Auto-Rigging.
 
-### 1. Ausführung via `tripo-cli`
+### 1. Ausführung via `tripo-cli` (aus `front.jpg`)
 ```bash
-tripo make model_sheet.jpg --for game-mobile --param face_limit=15000 --json --yes
+tripo make src/apps/<app>/raw/mannequin/<char>/front.jpg --for game-mobile --param face_limit=15000 -o src/apps/<app>/raw/mannequin/<char>/tripo-out --json --yes
 ```
 
-### 2. Parameter & Performance-Budgets
-| Parameter | Vorgabe | Grund / Regel |
-| :--- | :--- | :--- |
-| **Preset** | `--for game-mobile` | Garantiert saubere Quad/Tri-Topologie für Echtzeit-Deformation. |
-| **Polycount** | `10.000 – 25.000` Triangles | Optimale WebGL/WebGPU Performance bei stabilen 60 FPS. |
-| **Textur-Größe** | **2K (2048x2048)** | **Strikt kein 4K/8K!** Schützt VRAM & Texture-Unit-Limits (`MAX_TEXTURE_IMAGE_UNITS(16)`). |
-| **UV-Packing** | Konsolidierter Atlas | 1 einzelner Texturatlas pro Charakter. |
-| **Koordinatensystem** | `+Y = Up`, `-Z = Forward` | Right-Handed System von Small World. |
-| **Normierung** | 1.0m Bounding Box | Wird in der Engine mit Faktor `1.8` auf 1.80m skaliert. |
+### 2. Automatisches Mixamo-Packaging (`base_model.glb` ➔ `.zip`)
+> **🚨 WARUM DIESER SCHRITT NÖTIG IST:** Tripo's FBX-Konverter exportiert Root-Knoten, die Mixamo als fehlerhaftes, unvollständiges Skelett fehlinterpretiert (*„unable to map your existing skeleton“*). Zudem unterstützt Mixamo Web kein GLB.
+>
+> Der Agent konvertiert `base_model.glb` automatisch in ein sauberes **Wavefront OBJ** (`model.obj` + `model.mtl` + `texture.jpg`) und packt es als `<char>_mixamo.zip`. Dadurch erkennt Mixamo das Modell garantiert als ungeriggtes statisches Mesh und öffnet zuverlässig den 5-Punkte-Auto-Rigger.
 
 ---
 
@@ -156,7 +140,7 @@ tripo make model_sheet.jpg --for game-mobile --param face_limit=15000 --json --y
 > **Architektur-Entscheidung:** Für alle spielbaren Charaktere in Small World ist **Adobe Mixamo der einzige verbindliche Rigging-Standard**. Tripo Auto-Rigging wird nicht verwendet, da es zu Knochen-Explosionen (>64 Bones), nicht-standardisierten Benennungen und zerreißenden Gliedmaßen führt.
 
 ### 1. Manueller User-Schritt (Mixamo Web-UI)
-1. Base-Mesh [`src/apps/<app>/raw/mannequin/<char>/base_model.glb`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/raw/mannequin/) in [Adobe Mixamo](https://www.mixamo.com/) hochladen (Drag & Drop).
+1. Die generierte Zip-Datei [`src/apps/<app>/raw/mannequin/<char>/<char>_mixamo.zip`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/raw/mannequin/) in [Adobe Mixamo](https://www.mixamo.com/) hochladen (Drag & Drop).
 2. **Auto-Rigger Marker platzieren:**
    - `Chin` (Kinn)
    - `Wrists` (Handgelenke)

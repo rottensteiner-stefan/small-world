@@ -650,6 +650,16 @@ befüllen.
 - **Bereitstellung für Schritt 3 (Mixamo Rigging):**
   - Beide ungeriggten Basismodelle liegen in `src/apps/and-now/raw/mannequin/` bereit für den Upload in Adobe Mixamo Web.
 
+## 67. Pipeline-Optimierung: Isolierte Front-View & Automatisches Mixamo-Zip-Packaging (2026-08-29)
+- **Erkenntnisse & Fehlerbehebungen:**
+  1. *Tripo Einzelbild-Mandat (`front.jpg`):* Tripo3D's Einzelbild-KI benötigt zwingend eine isolierte Frontalansicht in 45° A-Pose auf reinweißem Grund (`#FFFFFF`). Zusammengesetzte 3-View Sheets führten zu Multi-Body-Halluzinationen und zerrissenen UV-Maps.
+  2. *Mixamo Ingestion-Fix (`<char>_mixamo.zip`):* Tripo FBX-Exporte enthalten Root-Knoten-Hierarchien, die Mixamo fälschlicherweise als unvollständiges Skelett interpretiert (*„unable to map your existing skeleton“*). GLB wird von Mixamo Web nicht unterstützt.
+- **Etablierter Standard:**
+  - Der Agent exportiert `base_model.glb` automatisch in ein sauberes statisches Wavefront OBJ (`model.obj` + `model.mtl` + `texture.jpg`) und packt es als `<char>_mixamo.zip`.
+  - Mixamo lädt das Zip-Paket mit voller Textur und startet zuverlässig den 5-Punkte-Auto-Rigger.
+- **Skill- & ADR-Update:** [`.agents/skills/character-pipeline/SKILL.md`](file:///Users/srottensteiner/PhpstormProjects/small-world/.agents/skills/character-pipeline/SKILL.md) und [`docs/adr/0009-character-pipeline-and-mixamo-rigging-standard.md`](file:///Users/srottensteiner/PhpstormProjects/small-world/docs/adr/0009-character-pipeline-and-mixamo-rigging-standard.md) aktualisiert.
+
+
 
 
 

@@ -13,14 +13,14 @@ In early iterations, automated end-to-end rigging via Tripo3D (`tripo anim rig`)
 
 We establish a strict division of responsibilities, tool boundaries, and file routing contracts for all humanoid characters:
 
-1. **Tripo3D Scope (Geometry Only):** Tripo3D is strictly limited to 3D mesh and texture atlas generation (`tripo make --for game-mobile --param face_limit=15000`). It is **never** used for skeletal rigging or animation retargeting.
-2. **Adobe Mixamo Standard (Exclusive Rigging):** Adobe Mixamo is the **exclusive canonical rigging standard** for all playable humanoid figures. It guarantees:
-   - A clean 52-joint (No Fingers) or 65-joint (Standard) biped hierarchy (`mixamorig:*`).
-   - Strict adherence to the GPU shader limit ($\le 64$ joints for 52-joint rigs; 65-joint rigs easily fit standard limits).
-   - 100% interoperability across all shared motion clips (`public/assets/<app>/mannequin/shared/anim/*.glb`) and semantic prop sockets.
+1. **Tripo3D Scope (Geometry Only):** Tripo3D is strictly limited to 3D mesh and texture atlas generation (`tripo make front.jpg --for game-mobile --param face_limit=15000`). It is fed exclusively with an isolated, text-free frontal view (`front.jpg`) on pure white `#FFFFFF` background to avoid multi-character hallucinations. It is **never** used for skeletal rigging.
+2. **Adobe Mixamo Standard (Exclusive Rigging & Auto-Packaging):** Adobe Mixamo is the **exclusive canonical rigging standard** for all playable humanoid figures.
+   - *Automated Packaging:* To prevent Mixamo's *"unable to map your existing skeleton"* error (caused by FBX exporter root node metadata), the pipeline automatically converts `base_model.glb` into a clean static Wavefront OBJ (`model.obj` + `model.mtl` + `texture.jpg`) bundled in `<character>_mixamo.zip`.
+   - *Rig Ingestion:* Uploading `<character>_mixamo.zip` guarantees clean mesh import and reliably triggers Mixamo's 5-point Auto-Rigger.
+   - *Joint Limits:* Clean 52-joint (No Fingers) or 65-joint (Standard) biped hierarchy (`mixamorig:*`) fitting within GPU shader limits ($\le 64$ joints for 52-joint rigs).
 3. **Strict File Routing & Handover Contract:**
-   - **2D Concepts:** `src/apps/<app>/docs/assets/<character>/` & `raw/.../model_sheet.jpg` (Albedo-First, pure white `#FFFFFF` background).
-   - **DCC/Raw Staging:** `src/apps/<app>/raw/mannequin/<character>/base_model.glb` and `character_rigged.fbx`.
+   - **2D Concepts:** `src/apps/<app>/docs/assets/<character>/` & `raw/.../model_sheet.jpg` (Turnaround) + `raw/.../front.jpg` (Albedo Frontal Input).
+   - **DCC/Raw Staging:** `src/apps/<app>/raw/mannequin/<character>/base_model.glb`, `<char>_mixamo.zip`, and `character_rigged.fbx`.
    - **Runtime Models:** `public/assets/<app>/mannequin/<character>/character.glb` (self-contained binary glTF with 2K texture atlas).
    - **Shared Mocap Pool:** `public/assets/<app>/mannequin/shared/anim/*.glb` (all clips in-place).
 4. **Engine Ingestion Patterns:**
