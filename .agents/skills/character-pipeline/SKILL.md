@@ -23,9 +23,9 @@ Dieses Dokument definiert den verbindlichen, praxiserprobten End-to-End-Workflow
   - 10k–25k Triangles, 2K Textur-Budget (NO 4K/8K)
                         │
                         ▼
-[ 3. Skeletal Rigging (Mixamo Standard vs. Tripo Native) ]
-  - 👤 MANUELL (Pfad A): Adobe Mixamo Standard (52/65-Joint Biped Rig, 100% Mocap-Kompatibilität)
-  - 🤖 AUTOMATISCH (Pfad B): Tripo Native Rig + Presets (mit Pruning auf ≤ 64 GPU-Bones)
+[ 3. Skeletal Rigging & Skinning (Adobe Mixamo Standard) ]
+  - 👤 MANUELL: Adobe Mixamo Web (52/65-Joint Biped Rig, 100% Mocap- & Socket-Garantie)
+  - 🤖 AUTOMATISCH: Konvertierung nach GLB (`character.glb`) & Bone-Validierung
                         │
                         ▼
 [ 4. In-Place Motion Library & Prop-Stabilisierung ]
@@ -67,9 +67,8 @@ Dieser Vertrag definiert für jeden Schritt exakt:
 | :--- | :---: | :--- | :--- | :--- |
 | **1. 2D Model-Sheet** | `🤖` / `👤` | `src/apps/<app>/docs/assets/<char>/hoodie.jpg` *(optional)* | `src/apps/<app>/raw/mannequin/<char>/model_sheet.jpg`<br>*(Kopie: `docs/assets/<char>/hoodie_model_sheet.jpg`)* | Gemini API / `generate_image`<br>+ `magick convert +append` |
 | **2. 3D-Mesh & Atlas** | `🤖` | `src/apps/<app>/raw/mannequin/<char>/model_sheet.jpg` | `src/apps/<app>/raw/mannequin/<char>/base_model.glb`<br>`src/apps/<app>/raw/mannequin/<char>/task.json` | `tripo make model_sheet.jpg --for game-mobile` |
-| **3A. Mixamo Rigging** | `👤` *(User)* | `src/apps/<app>/raw/mannequin/<char>/base_model.glb` | `src/apps/<app>/raw/mannequin/<char>/character_rigged.fbx` | User lädt in [Mixamo Web](https://mixamo.com) hoch, riggt & lädt `.fbx` herunter |
-| **3A. GLB-Export** | `🤖` *(Agent)*| `src/apps/<app>/raw/mannequin/<char>/character_rigged.fbx` | `public/assets/<app>/mannequin/<char>/character.glb` | Konvertierung FBX ➔ GLB (FBX2glTF / gltf-transform) |
-| **3B. Tripo Auto-Rig** | `🤖` *(Agent)*| `src/apps/<app>/raw/mannequin/<char>/base_model.glb` | `public/assets/<app>/mannequin/<char>/character.glb` | `tripo anim rig` + `retarget` + Bone-Pruning ($\le 64$ Bones) |
+| **3. Mixamo Rigging** | `👤` *(User)* | `src/apps/<app>/raw/mannequin/<char>/base_model.glb` | `src/apps/<app>/raw/mannequin/<char>/character_rigged.fbx` | User lädt in [Mixamo Web](https://mixamo.com) hoch, riggt & lädt `.fbx` herunter |
+| **3. GLB-Export** | `🤖` *(Agent)*| `src/apps/<app>/raw/mannequin/<char>/character_rigged.fbx` | `public/assets/<app>/mannequin/<char>/character.glb` | Konvertierung FBX ➔ GLB (FBX2glTF / gltf-transform) |
 | **4. Shared Mocap** | `🤖` / `👤` | `src/apps/<app>/raw/mannequin/shared/*.fbx` | `public/assets/<app>/mannequin/shared/anim/*.glb` | In-Place Studio-Clips (`idle_torch`, `walk_torch`, `ascending_stairs`) |
 | **5. Engine-Ingest** | `🤖` *(Agent)*| `public/assets/<app>/mannequin/<char>/character.glb`<br>`public/assets/<app>/mannequin/shared/anim/*.glb` | `src/apps/<app>/scenes/<scene>/` | `GltfLoader` + `_characterRig` Wrapper + Sockets + `AnimationMixer` |
 
@@ -119,6 +118,8 @@ All three views at exact same scale and eye-level horizon.
 
 ## 🍳 Rezept 2: 3D-Mesh & Textur-Generierung (Tripo3D)
 
+Tripo3D wird **ausschließlich für die 3D-Geometrie und den Texturatlas** eingesetzt — niemals für Auto-Rigging.
+
 ### 1. Ausführung via `tripo-cli`
 ```bash
 tripo make model_sheet.jpg --for game-mobile --param face_limit=15000 --json --yes
@@ -136,37 +137,32 @@ tripo make model_sheet.jpg --for game-mobile --param face_limit=15000 --json --y
 
 ---
 
-## 🍳 Rezept 3: Skeletal Rigging & Skinning
+## 🍳 Rezept 3: Skeletal Rigging & Skinning (Adobe Mixamo Standard)
 
-Hier stehen zwei verlässliche Wege zur Verfügung:
+> **Architektur-Entscheidung:** Für alle spielbaren Charaktere in Small World ist **Adobe Mixamo der einzige verbindliche Rigging-Standard**. Tripo Auto-Rigging wird nicht verwendet, da es zu Knochen-Explosionen (>64 Bones), nicht-standardisierten Benennungen und zerreißenden Gliedmaßen führt.
 
-### Pfad A: Adobe Mixamo Standard (Empfohlener Studio-Standard)
-*Bietet die höchste Zuverlässigkeit für austauschbare Motion-Clips und Prop-Sockets.*
+### 1. Manueller User-Schritt (Mixamo Web-UI)
+1. Base-Mesh [`src/apps/<app>/raw/mannequin/<char>/base_model.glb`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/raw/mannequin/) in [Adobe Mixamo](https://www.mixamo.com/) hochladen (Drag & Drop).
+2. **Auto-Rigger Marker platzieren:**
+   - `Chin` (Kinn)
+   - `Wrists` (Handgelenke)
+   - `Elbows` (Ellbogen)
+   - `Knees` (Knie)
+   - `Groin` (Schritt)
+3. **Skeleton LOD:** Standard `Standard Skeleton (65 Bones)` oder `No Fingers (52 Bones)` wählen. Beide liegen sicher unter dem 64- bzw. Shader-Limit und besitzen saubere Edge-Loop-Gewichtungen.
+4. Nach erfolgreichem Rigging als **FBX (.fbx) mit T-Pose** herunterladen.
+5. Datei ablegen unter:
+   `src/apps/<app>/raw/mannequin/<char>/character_rigged.fbx`
 
-1. Base-Mesh (`.glb` / `.obj`) aus Tripo exportieren.
-2. In [Adobe Mixamo](https://www.mixamo.com/) hochladen.
-3. Marker setzen: Kinn, Handgelenke, Ellbogen, Knie, Schritt.
-4. Auto-Rig generieren lassen (erzeugt die saubere 52- oder 65-Joint `mixamorig:*`-Hierarchie).
-5. Als `.fbx` herunterladen und mit FBX2glTF / gltf-transform nach `.glb` konvertieren.
-6. **Ergebnis:** 100%ige Kompatibilität mit allen Small World Mixamo-Clips (`mixamorig:Hips`, `mixamorig:LeftHand` etc.).
-
----
-
-### Pfad B: Tripo Native Rig + Retargeting Presets (Vollautomatisch)
-*Verwendet Tripos eigene Knochenstruktur und Retargeting-Presets.*
-
-1. **Rigging via Tripo CLI:**
-   ```bash
-   tripo anim rig character.glb --spec tripo --out-format glb -o ./tripo-out/rigged --json --yes
-   ```
-2. **Animation Presets einbetten:**
-   ```bash
-   tripo anim retarget ./tripo-out/rigged/character.glb --animation preset:idle preset:walk preset:climb --animate-in-place --out-format glb -o ./public/assets/<app>/mannequin/<char>/character.glb --json --yes
-   ```
-3. **⚠️ ACHTUNG: Das 64-Bone WebGL2 Shader-Limit:**
-   * Der WebGL2 Shader in Small World reserviert ein Uniform-Array `u_boneMatrices[64]`.
-   * Tripo native Rigs besitzen oft 66 bis 113 Joints (inkl. dynamischer Spring-Bones für Mantel und Haare). Knochen mit Index $\ge 64$ deformieren im Shader nicht!
-   * **Pflicht-Schritt bei Tripo Rigs:** Nicht-essenzielle Spring-Bones entfernen und deren Vertex-Gewichte auf die übergeordneten Standard-Bones (`tripo::*`) umleiten, sodass maximal 64 Skin-Joints übrig bleiben.
+### 2. Automatischer Agent-Schritt (GLB-Konvertierung & Validierung)
+Sobald die geriggte `.fbx` in `raw/` liegt, konvertiert der Agent das Modell nach `.glb` und deployt es ins Runtime-Verzeichnis:
+```bash
+# Konvertierung via fbx2gltf oder gltf-transform
+npx @gltf-transform/cli copy src/apps/<app>/raw/mannequin/<char>/character_rigged.fbx public/assets/<app>/mannequin/<char>/character.glb
+```
+**Validierungs-Check:**
+- Knochenstruktur enthält saubere `mixamorig:Hips`, `mixamorig:LeftHand`, `mixamorig:RightHand`.
+- Bone-Anzahl liegt sicher bei $\le 65$ Joints.
 
 ---
 
