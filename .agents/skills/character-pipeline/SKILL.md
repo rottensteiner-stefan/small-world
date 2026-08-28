@@ -47,7 +47,7 @@ This skill documents the complete, reproducible pipeline for turning a 2D concep
   - Arms strictly horizontal at 90°.
 
 ### 3. 3-in-1 Model-Sheet Workflow (Consistency Standard):
-- **Single 16:9 Reference Generation:** Generate a single composite image showing Front, Right Profile, and Back side-by-side in identical scale (e.g. [`novotny_hoodie_model_sheet.jpg`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/docs/assets/novotny_hoodie_model_sheet.jpg)). This guarantees 100% feature and proportion parity across views.
+- **Single 16:9 Reference Generation:** Generate a single composite image showing Front, Right Profile, and Back side-by-side in identical scale (e.g. [`hoodie_model_sheet.jpg`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/docs/assets/novotny-male/hoodie_model_sheet.jpg)). This guarantees 100% feature and proportion parity across views.
 
 ### 4. Orthographic Turnaround Constraints:
 - **FRONT View (Strict Bilateral CAD-Symmetry):**
@@ -130,19 +130,21 @@ Tripo3D provides API endpoints for automated biped rigging (compatible with the 
 
 Because Tripo3D exports binary glTF (`.glb`) natively, intermediate `FBX2glTF` conversions are no longer required for generated assets.
 
-1. **Strict Small World Asset Separation:**
-   - **🌐 App Runtime Assets (`public/assets/<app>/mannequin/`):**
+1. **Strict Small World Asset Separation (organized per character/figure, not per asset type):**
+   - **🌐 App Runtime Assets (`public/assets/<app>/mannequin/<character>/`):**
      - ONLY files loaded via HTTP by the engine at runtime:
-       - `character.glb` (base model or rigged character)
+       - `character.glb` (base model or rigged character — never repeat the figure's name in the
+         filename, the folder already carries it)
        - `character_diffuse.png` (if texture is separated)
-   - **🌐 Shared Motion Library (`public/assets/shared/animations/`):**
-     - Shared Mixamo/Tripo in-place animation clips usable by all humanoid characters:
-       - `humanoid_idle.glb`
-       - `humanoid_walk.glb`
-       - `humanoid_stairs.glb`
-       - `humanoid_run.glb`
-   - **🛠️ Raw / DCC Authoring Assets (`src/apps/<app>/raw/mannequin/`):**
-     - `task.json`, `preview.png`, prompt notes, source orthographics, `.fbx`, `.obj`, `.blend` files.
+   - **🌐 Shared Motion Library (`public/assets/<app>/mannequin/shared/anim/`):**
+     - Mixamo/Tripo in-place animation clips reused across multiple characters of the same app
+       (e.g. `idle_torch.glb`, `walk_torch.glb`, `ascending_stairs.glb`). Only clips that don't
+       belong to one specific figure live here.
+   - **🛠️ Raw / DCC Authoring Assets (`src/apps/<app>/raw/mannequin/<character>/`):**
+     - `task.json`, `preview.png`, prompt notes, source orthographics, `.fbx`, `.obj`, `.blend`
+       files for that one figure. Shared raw mocap sources go in the sibling `shared/` folder.
+       Keep an empty character folder around (with a `.gitkeep`) once it's been established, even
+       if there's currently no raw data in it.
 
 ---
 
@@ -155,7 +157,7 @@ import { GltfLoader } from "../../src/loaders/GltfLoader.js";
 import { BasicMaterial, Color, Texture, Object3D } from "../../src/index.js";
 
 const gltfLoader = new GltfLoader();
-const character = await gltfLoader.load("/assets/and-now/mannequin/novotny-male.glb");
+const character = await gltfLoader.load("/assets/and-now/mannequin/novotny-male/character.glb");
 
 // Scale normalized 1.0m Tripo model to standard human height (1.80m)
 character.scale.set(1.8, 1.8, 1.8);
@@ -216,10 +218,10 @@ import { AnimationMixer, AnimationClip, AnimationAction } from "../../src/index.
 const mixer = new AnimationMixer(character);
 const clips = new Map<string, AnimationClip>();
 
-const idleClips = await gltfLoader.loadAnimations("/assets/and-now/mannequin/idle_torch.glb");
+const idleClips = await gltfLoader.loadAnimations("/assets/and-now/mannequin/shared/anim/idle_torch.glb");
 if (idleClips[0]) clips.set("idle", idleClips[0]);
 
-const walkClips = await gltfLoader.loadAnimations("/assets/and-now/mannequin/standing_torch_walk_forward.glb");
+const walkClips = await gltfLoader.loadAnimations("/assets/and-now/mannequin/shared/anim/walk_torch.glb");
 if (walkClips[0]) clips.set("walk", walkClips[0]);
 
 let activeAction: AnimationAction | undefined;

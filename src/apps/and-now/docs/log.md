@@ -553,10 +553,20 @@ befüllen.
    - Tastenkürzel `[C]` wechselt live zwischen Männlich und Weiblich.
 
 ### 3. Offene Punkte für die nächste Session / Kollegen
-- **Space Girl Integration:** Die 7 Roh-Bilder in `src/apps/and-now/raw/mannequin/` stehen bereit für eine mögliche 3D-Generierung / alternatives Charaktermodell via `tripo make` oder die Character-Pipeline.
+- **Space Girl Integration:** Die 7 Roh-Bilder in `src/apps/and-now/raw/mannequin/spacegirl/` stehen bereit für eine mögliche 3D-Generierung / alternatives Charaktermodell via `tripo make` oder die Character-Pipeline.
 - **Scene 2 Ausbau:** Gameplay-Interaktionen (Türen, Schalter, Gegenstände untersuchen, Zonen-Übergang zu Szene 3 / Außenwelt).
 
 **Status:** 91 Testsuiten mit 516 Tests 100% grün, Build und Linter sauber.
+
+## 58. Asset-Reorganisation: Ordnerstruktur nach Figur statt nach Asset-Typ (2026-08-28)
+- **Anlass:** Mit Spacegirl als drittem Charakter-Kandidaten (neben Novotny Male/Female) wurde die bisherige, rein typ-basierte Ablage (`raw/mannequin/`, `public/assets/and-now/mannequin/`, `docs/assets/`) unübersichtlich — Dateien verschiedener Figuren lagen flach nebeneinander.
+- **Neue Struktur (`raw`, `runtime`, `docs` jeweils mit `novotny-male/`, `novotny-female/`, `spacegirl/`-Unterordnern; figurenübergreifend genutzte Mocap-Clips in einem `shared/`-Geschwisterordner):**
+  - `public/assets/and-now/mannequin/{novotny-male,novotny-female}/character.glb`, `public/assets/and-now/mannequin/shared/anim/{idle_torch,walk_torch,ascending_stairs}.glb`.
+  - `src/apps/and-now/raw/mannequin/spacegirl/` (7 Konzeptbilder, umbenannt ohne redundanten `space_girl_`-Präfix), `src/apps/and-now/raw/mannequin/shared/` (4 Mocap-`.fbx`), `novotny-male/` und `novotny-female/` aktuell leer (nur `.gitkeep`, keine Rohdaten mehr vorhanden).
+  - `src/apps/and-now/docs/assets/{novotny-male,novotny-female}/hoodie*.jpg` (umbenannt ohne redundanten `novotny_hoodie_`-Präfix; alle nicht-figurenbezogenen Dossier-Bilder blieben unverändert direkt unter `docs/assets/`).
+- **Namenskonvention:** Dateinamen wiederholen den Figurennamen nicht mehr, wenn der Ordner ihn schon trägt (z. B. `novotny-male/character.glb` statt `novotny-male/novotny-male.glb`) — konsistent mit der bestehenden [[Namespace Naming]]-Regel.
+- **Nebenfund & Fix:** `showcase.ts` zeigte durch einen vorherigen, im Code nie nachgezogenen Rename bereits auf einen toten Fallback-Animationspfad (`mannequin/idle_torch.glb` statt `mannequin/anim/idle_torch.glb`). Im selben Zug korrekt auf die neuen `shared/anim/`-Pfade gesetzt.
+- **Mitgezogen:** `showcase.ts`, `concept-dossier.html`, `novotny_tpose_reference_prompts.md`, `.agents/skills/character-pipeline/SKILL.md` (Konvention + Beispielpfade aktualisiert) und `REFERENCES.md`.
 
 
 

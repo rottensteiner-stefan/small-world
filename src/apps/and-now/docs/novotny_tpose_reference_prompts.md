@@ -7,12 +7,12 @@ to both; substitute the source image matching the character's gender.
 
 **Source images:**
 
-- **Female:** `assets/novotny_hoodie_female.jpg`
-- **Male:** `assets/novotny_hoodie_male.jpg`
+- **Female:** `assets/novotny-female/hoodie.jpg`
+- **Male:** `assets/novotny-male/hoodie.jpg`
 
 ## Shared base (applies to all 4 views, both genders)
 
-> Reference image: the matching `novotny_hoodie_female.jpg` / `novotny_hoodie_male.jpg`. Full
+> Reference image: the matching `novotny-female/hoodie.jpg` / `novotny-male/hoodie.jpg`. Full
 > character reference, isolated on a pure white/transparent background — no environment, no
 > tunnel, no props. Remove the lantern from the right hand; both arms empty. Keep identical: the
 > waxed dark-grey loden trenchcoat, the dark hoodie underlayer, the loop scarf/snood worn loose
@@ -65,12 +65,12 @@ camera, making it useless as a modeling reference. Approved by the user (2026-08
 > style, equipment, and pose are intentionally identical, so keep them in sync unless a real
 > design difference is introduced for one gender.
 
-### Female (`novotny_hoodie_female.jpg`) — regeneration prompt
+### Female (`novotny-female/hoodie.jpg`) — regeneration prompt
 
-> Reference image: `novotny_hoodie_female.jpg`. Full-body female character concept art in a dark,
+> Reference image: `novotny-female/hoodie.jpg`. Full-body female character concept art in a dark,
 > atmospheric flooded concrete bunker tunnel in post-apocalyptic Vienna, 2100.
 > **Art style & lighting:** exact same Graphic Noir comic watercolor style and tunnel composition
-> as `novotny_hoodie_female.jpg`, with heavy inked outlines and warm amber chiaroscuro lantern
+> as `novotny-female/hoodie.jpg`, with heavy inked outlines and warm amber chiaroscuro lantern
 > light.
 > **Character:** young woman in her early twenties, lean and weathered, melancholic determined
 > expression.
@@ -84,12 +84,12 @@ camera, making it useless as a modeling reference. Approved by the user (2026-08
 > lantern in the **right hand**, casting a warm directional glow onto the body and the wet stone
 > floor with water reflections.
 
-### Male (`novotny_hoodie_male.jpg`) — regeneration prompt
+### Male (`novotny-male/hoodie.jpg`) — regeneration prompt
 
-> Reference image: `novotny_hoodie_male.jpg`. Full-body male character concept art in a dark,
+> Reference image: `novotny-male/hoodie.jpg`. Full-body male character concept art in a dark,
 > atmospheric flooded concrete bunker tunnel in post-apocalyptic Vienna, 2100.
 > **Art style & lighting:** exact same Graphic Noir comic watercolor style and tunnel composition
-> as `novotny_hoodie_male.jpg`, with heavy inked outlines and warm amber chiaroscuro lantern
+> as `novotny-male/hoodie.jpg`, with heavy inked outlines and warm amber chiaroscuro lantern
 > light.
 > **Character:** young man in his early twenties, lean and weathered, melancholic determined
 > expression.

@@ -27,12 +27,13 @@ const BACKGROUND_HEIGHT = 9;
 const BACKGROUND_CENTER_Y = 4.5;
 const BACKGROUND_Z = 0;
 
-/** Named animation clips for Novotny. Add an entry here (and load the matching FBX2glTF-converted
- * `.glb` under `public/assets/and-now/`) to make a new animation available via `_playAnimation`. */
+/** Named animation clips shared by every Novotny skin. Add an entry here (and load the matching
+ * FBX2glTF-converted `.glb` under `public/assets/and-now/mannequin/shared/anim/`) to make a new
+ * animation available via `_playAnimation`. */
 const ANIMATION_CLIP_URLS: Record<string, string> = {
-  idle: "/assets/and-now/mannequin/idle_torch.glb",
-  walk: "/assets/and-now/mannequin/standing_torch_walk_forward.glb",
-  stairs: "/assets/and-now/mannequin/ascending_stairs.glb",
+  idle: "/assets/and-now/mannequin/shared/anim/idle_torch.glb",
+  walk: "/assets/and-now/mannequin/shared/anim/walk_torch.glb",
+  stairs: "/assets/and-now/mannequin/shared/anim/ascending_stairs.glb",
 };
 
 const ANIMATION_FADE_SECONDS = 0.25;
@@ -231,8 +232,8 @@ class AndNowScene2 extends AbstractShowcase {
     try {
       const gltfLoader = new GltfLoader();
       const charModelUrl = isFemale
-        ? "/assets/and-now/mannequin/novotny-female.glb"
-        : "/assets/and-now/mannequin/novotny-male.glb";
+        ? "/assets/and-now/mannequin/novotny-female/character.glb"
+        : "/assets/and-now/mannequin/novotny-male/character.glb";
 
       this._novotny = await gltfLoader.load(charModelUrl);
       this._novotny.scale.set(1.8, 1.8, 1.8);

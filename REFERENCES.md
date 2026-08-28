@@ -270,10 +270,10 @@ This document serves to record external sources, algorithms, mathematical deriva
 
 ### Novotny (Protagonist Character Rig & Motion Clips)
 
-- **File:** `public/assets/and-now/mannequin/novotny-female.glb`, `public/assets/and-now/mannequin/*.glb`, `src/apps/and-now/raw/mannequin/`
+- **File:** `public/assets/and-now/mannequin/novotny-female/character.glb`, `public/assets/and-now/mannequin/novotny-male/character.glb`, `public/assets/and-now/mannequin/shared/anim/`, `src/apps/and-now/raw/mannequin/`
 - **Authors/Gurus:** Adobe Mixamo (Auto-Rigging & Animation Library)
 - **Source:** [Adobe Mixamo](https://www.mixamo.com/)
-- **Usage:** Provides the rigged skeletal hierarchy (`mixamorig:LeftHand`, spine, limbs) and converted binary glTF motion clips (`idle_torch.glb`, `standing_torch_walk_forward.glb`, `ascending_stairs.glb`) driving the protagonist Novotny in the "And Now?" bunker prologue scene.
+- **Usage:** Provides the rigged skeletal hierarchy (`mixamorig:LeftHand`, spine, limbs) and converted binary glTF motion clips (`idle_torch.glb`, `walk_torch.glb`, `ascending_stairs.glb`) driving the protagonist Novotny in the "And Now?" bunker prologue scene.
 
 ## Shaders & Procedural Art
 
