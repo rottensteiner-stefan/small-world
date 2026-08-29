@@ -345,7 +345,7 @@ class AndNowScene2 extends AbstractShowcase {
         // convention -- confirmed live: rotation.y = 270° faces screen-left, 90° faces screen-right,
         // 180° faces into the tunnel (depth), and 0° faces the camera.
         facingOffset: Math.PI,
-        startFacing: "left",
+        startFacing: "right",
         zones: this._stageZones,
         uvToWorld: (u: number, v: number): { x: number; y: number; z: number } =>
           this._uvToWorld(u, v),
