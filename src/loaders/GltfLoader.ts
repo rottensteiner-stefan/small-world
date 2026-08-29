@@ -244,6 +244,7 @@ export class GltfLoader extends AbstractLoader<Object3D> {
         }
         const obj = jointNodeIndices.has(i) ? new Bone(name) : new Object3D(name);
         this._applyNodeTransforms(obj, nodeDef);
+        this._gltfOptions.onNodeParsed?.(obj, nodeDef as unknown as Record<string, unknown>);
         nodeObjects[i] = obj;
       }
     }
@@ -350,6 +351,8 @@ export class GltfLoader extends AbstractLoader<Object3D> {
     if (json.animations && json.accessors) {
       root.animations = this._parseAnimations(json, buffers, nodeObjects);
     }
+
+    this._gltfOptions.onParsed?.(root);
 
     return root;
   }
@@ -640,6 +643,8 @@ export class GltfLoader extends AbstractLoader<Object3D> {
     if (m.doubleSided) {
       mat.cullMode = CullMode.NONE;
     }
+
+    this._gltfOptions.onMaterialParsed?.(mat, m as unknown as Record<string, unknown>);
 
     return mat;
   }

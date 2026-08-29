@@ -1,3 +1,6 @@
+import type { Object3D } from "../core/Object3D.js";
+import type { StandardMaterial } from "../core/materials/StandardMaterial.js";
+
 /**
  * Common configuration options for all resource loaders.
  */
@@ -22,6 +25,12 @@ export interface GltfLoaderOptions extends LoaderOptions {
   nodeNameTransform?: (name: string) => string;
   /** Whether to normalize numeric Mixamo rig prefixes (e.g. "mixamorig1:" -> "mixamorig:"). Defaults to false. */
   normalizeMixamoRig?: boolean;
+  /** Lifecycle hook invoked after each Object3D/Bone node is parsed and transformed. */
+  onNodeParsed?: (object: Object3D, rawDef: Record<string, unknown>) => void;
+  /** Lifecycle hook invoked after each material is constructed from glTF PBR definitions. */
+  onMaterialParsed?: (material: StandardMaterial, rawDef: Record<string, unknown>) => void;
+  /** Lifecycle hook invoked after the complete scene hierarchy and animations have been parsed. */
+  onParsed?: (root: Object3D) => void;
   /** Maximum metallic factor (or [min, max] range) applied to parsed PBR materials. */
   clampMetallic?: number | [number, number];
   /** Maximum roughness factor (or [min, max] range) applied to parsed PBR materials. */

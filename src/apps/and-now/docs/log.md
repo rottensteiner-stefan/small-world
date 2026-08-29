@@ -707,6 +707,14 @@ befüllen.
 - **Komfort-Option:** [`GltfLoaderOptions`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/interfaces/LoaderOptions.ts) bietet nun den optionalen Schalter `normalizeMixamoRig?: boolean` (Default `false`).
 - **Verhalten:** Wenn aktiviert, werden numerische Mixamo-Präfixe (`mixamorig1:`, `mixamorig2:`) automatisch auf das Standard-Präfix `mixamorig:` gemappt, ohne dass die glTF-Spezifikation für andere Modelle kompromittiert wird.
 
+## 75. Erweiterung: Generische glTF-Lifecycle-Hooks (`onNodeParsed`, `onMaterialParsed`, `onParsed`) (2026-08-29)
+- **Hook-Architektur:** [`GltfLoaderOptions`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/interfaces/LoaderOptions.ts) um Lifecycle-Hooks erweitert:
+  - `onNodeParsed?: (object: Object3D, rawDef: Record<string, unknown>) => void`
+  - `onMaterialParsed?: (material: StandardMaterial, rawDef: Record<string, unknown>) => void`
+  - `onParsed?: (root: Object3D) => void`
+- **Vorteil:** Ermöglicht beliebige Post-Processing-Pipelines (Shading-Härtung, Shader-Tausch, Bone-Mapping, Custom Properties) in Anwendungs-Code, ohne den Core-Loader zu verändern.
+
+
 
 
 
