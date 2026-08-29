@@ -435,6 +435,15 @@ export class WebGPURenderer extends AbstractRenderer {
   private _hzbDownsampleBGL?: GPUBindGroupLayout;
   private _hzbTestPipeline?: GPUComputePipeline;
   private _hzbTestBGL?: GPUBindGroupLayout;
+  /** Rebuilt once per `setSize()` call (see `_rebuildHzbBindGroups()`), not per frame -- every
+   * resource these bind: `_hzbTexture`'s mip views and `_hzbSampledView` only change on resize;
+   * `activeDepthView` resolves to `_depthTexture.createView()` here specifically, since
+   * `_buildHzbPyramid()` (the only caller) already bails out whenever an offscreen render target
+   * is active; and the HZB buffers (`_hzbAabbBuffer` etc.) are allocated once in
+   * `_initGlobalBuffers()` and never recreated. */
+  private _hzbCopyBindGroup?: GPUBindGroup;
+  private _hzbDownsampleBindGroups: GPUBindGroup[] = [];
+  private _hzbTestBindGroup?: GPUBindGroup;
   private _hzbAabbBuffer?: GPUBuffer;
   private _hzbResultsBuffer?: GPUBuffer;
   private _hzbTestParamsBuffer?: GPUBuffer;
@@ -1170,6 +1179,69 @@ export class WebGPURenderer extends AbstractRenderer {
   private _hzbAabbScratch = new Float32Array(MAX_HZB_TESTED_OBJECTS * 4);
   private _hzbParamsScratch = new Uint32Array(4);
 
+  /** (Re)builds the bind groups `_buildHzbPyramid()`/`_dispatchHzbTest()` use, once per
+   * `setSize()` call instead of once per frame -- every resource they bind only ever changes on
+   * resize (see `_hzbCopyBindGroup`'s doc comment). Called from `setSize()` right after
+   * `_hzbTexture`/`_hzbSampledView` are (re)allocated there. */
+  private _rebuildHzbBindGroups(): void {
+    if (!this._device) return;
+
+    if (this._hzbCopyBGL && this._hzbTexture) {
+      this._hzbCopyBindGroup = this._device.createBindGroup({
+        layout: this._hzbCopyBGL,
+        entries: [
+          { binding: 0, resource: this.activeDepthView },
+          {
+            binding: 1,
+            resource: this._hzbTexture.createView({ baseMipLevel: 0, mipLevelCount: 1 }),
+          },
+        ],
+      });
+    }
+
+    this._hzbDownsampleBindGroups = [];
+    if (this._hzbDownsampleBGL && this._hzbTexture) {
+      for (let level = 1; level < this._hzbMipLevelCount; level++) {
+        this._hzbDownsampleBindGroups.push(
+          this._device.createBindGroup({
+            layout: this._hzbDownsampleBGL,
+            entries: [
+              {
+                binding: 0,
+                resource: this._hzbTexture.createView({
+                  baseMipLevel: level - 1,
+                  mipLevelCount: 1,
+                }),
+              },
+              {
+                binding: 1,
+                resource: this._hzbTexture.createView({ baseMipLevel: level, mipLevelCount: 1 }),
+              },
+            ],
+          }),
+        );
+      }
+    }
+
+    if (
+      this._hzbTestBGL &&
+      this._hzbAabbBuffer &&
+      this._hzbSampledView &&
+      this._hzbResultsBuffer &&
+      this._hzbTestParamsBuffer
+    ) {
+      this._hzbTestBindGroup = this._device.createBindGroup({
+        layout: this._hzbTestBGL,
+        entries: [
+          { binding: 0, resource: { buffer: this._hzbAabbBuffer } },
+          { binding: 1, resource: this._hzbSampledView },
+          { binding: 2, resource: { buffer: this._hzbResultsBuffer } },
+          { binding: 3, resource: { buffer: this._hzbTestParamsBuffer } },
+        ],
+      });
+    }
+  }
+
   /**
    * Builds this frame's HZB pyramid: mip 0 seeded from `_depthTexture` (this frame's
    * just-finished opaque depth, already written by `DepthPrePassGPU` earlier in `_passes`), then
@@ -1182,35 +1254,20 @@ export class WebGPURenderer extends AbstractRenderer {
    */
   public _buildHzbPyramid(ce: GPUCommandEncoder): void {
     if (this._activeRenderTarget) return;
-    if (!this._hzbTexture || !this._hzbCopyPipeline || !this._hzbCopyBGL) return;
+    if (!this._hzbTexture || !this._hzbCopyPipeline || !this._hzbCopyBindGroup) return;
 
-    const mip0View = this._hzbTexture.createView({ baseMipLevel: 0, mipLevelCount: 1 });
-    const copyBG = this._device!.createBindGroup({
-      layout: this._hzbCopyBGL,
-      entries: [
-        { binding: 0, resource: this.activeDepthView },
-        { binding: 1, resource: mip0View },
-      ],
-    });
     const w0 = this._context.canvas.width;
     const h0 = this._context.canvas.height;
     const copyPass = ce.beginComputePass({ label: "HzbCopyDepth" });
     copyPass.setPipeline(this._hzbCopyPipeline);
-    copyPass.setBindGroup(0, copyBG);
+    copyPass.setBindGroup(0, this._hzbCopyBindGroup);
     copyPass.dispatchWorkgroups(Math.ceil(w0 / 8), Math.ceil(h0 / 8));
     copyPass.end();
 
-    if (!this._hzbDownsamplePipeline || !this._hzbDownsampleBGL) return;
+    if (!this._hzbDownsamplePipeline) return;
     for (let level = 1; level < this._hzbMipLevelCount; level++) {
-      const srcView = this._hzbTexture.createView({ baseMipLevel: level - 1, mipLevelCount: 1 });
-      const dstView = this._hzbTexture.createView({ baseMipLevel: level, mipLevelCount: 1 });
-      const bg = this._device!.createBindGroup({
-        layout: this._hzbDownsampleBGL,
-        entries: [
-          { binding: 0, resource: srcView },
-          { binding: 1, resource: dstView },
-        ],
-      });
+      const bg = this._hzbDownsampleBindGroups[level - 1];
+      if (!bg) continue;
       const w = Math.max(1, w0 >> level);
       const h = Math.max(1, h0 >> level);
       const pass = ce.beginComputePass({ label: `HzbDownsample_${level}` });
@@ -1275,12 +1332,11 @@ export class WebGPURenderer extends AbstractRenderer {
     if (this._activeRenderTarget) return;
     if (
       !this._hzbTestPipeline ||
-      !this._hzbTestBGL ||
+      !this._hzbTestBindGroup ||
       !this._hzbAabbBuffer ||
       !this._hzbResultsBuffer ||
       !this._hzbTestParamsBuffer ||
-      !this._hzbStagingBuffers ||
-      !this._hzbSampledView
+      !this._hzbStagingBuffers
     ) {
       return;
     }
@@ -1311,20 +1367,10 @@ export class WebGPURenderer extends AbstractRenderer {
     this._hzbParamsScratch[3] = 0;
     this._device!.queue.writeBuffer(this._hzbTestParamsBuffer, 0, this._hzbParamsScratch);
 
-    const testBG = this._device!.createBindGroup({
-      layout: this._hzbTestBGL,
-      entries: [
-        { binding: 0, resource: { buffer: this._hzbAabbBuffer } },
-        { binding: 1, resource: this._hzbSampledView },
-        { binding: 2, resource: { buffer: this._hzbResultsBuffer } },
-        { binding: 3, resource: { buffer: this._hzbTestParamsBuffer } },
-      ],
-    });
-
     const pass = ce.beginComputePass({ label: "HzbVisibilityTest" });
     pass.setPipeline(this._hzbTestPipeline);
     pass.setBindGroup(0, this._globalBindGroup);
-    pass.setBindGroup(1, testBG);
+    pass.setBindGroup(1, this._hzbTestBindGroup);
     pass.dispatchWorkgroups(Math.ceil(count / 64));
     pass.end();
 
@@ -3030,6 +3076,7 @@ export class WebGPURenderer extends AbstractRenderer {
         usage: GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING,
       });
       this._hzbSampledView = this._hzbTexture.createView();
+      this._rebuildHzbBindGroups();
     }
 
     if (this.postProcessing.enabled) {

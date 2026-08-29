@@ -27,6 +27,35 @@ const BACKGROUND_HEIGHT = 9;
 const BACKGROUND_CENTER_Y = 4.5;
 const BACKGROUND_Z = 0;
 
+/** Single source of truth for each zone's default 4 corner points, in image-space (u, v) --
+ * traced directly on the background art via the editor (key `E`). Used both to build the zones
+ * in `setupScene()` and to restore them in `_resetToDefaultZones()`, so a coordinate only ever
+ * needs to be edited in one place. */
+type ZonePoint = { u: number; v: number; scale: number };
+const DEFAULT_ZONE_POINTS: Record<
+  "zone_a" | "zone_b" | "zone_c",
+  [ZonePoint, ZonePoint, ZonePoint, ZonePoint]
+> = {
+  zone_a: [
+    { u: 0.459, v: 0.895, scale: 1.0 },
+    { u: 0.825, v: 0.893, scale: 1.0 },
+    { u: 0.774, v: 0.82, scale: 1.0 },
+    { u: 0.509, v: 0.823, scale: 1.0 },
+  ],
+  zone_b: [
+    { u: 0.556, v: 0.822, scale: 1.0 },
+    { u: 0.747, v: 0.819, scale: 1.0 },
+    { u: 0.706, v: 0.725, scale: 0.3 },
+    { u: 0.641, v: 0.725, scale: 0.3 },
+  ],
+  zone_c: [
+    { u: 0.463, v: 0.894, scale: 1.0 },
+    { u: 0.51, v: 0.823, scale: 1.0 },
+    { u: 0.357, v: 0.594, scale: 0.5 },
+    { u: 0.278, v: 0.613, scale: 0.5 },
+  ],
+};
+
 /** Named animation clips shared by every Player skin. Add an entry here (and load the matching
  * FBX2glTF-converted `.glb` under `public/assets/and-now/mannequin/shared/anim/`) to make a new
  * animation available via `_playAnimation`. */
@@ -58,6 +87,13 @@ const LANTERN_HAND_BONE_NAMES = [
   "tripo::0_Left_Limb_3",
 ];
 
+/** World-space offset from the hand bone's origin into the palm/fingers -- see
+ * `AndNowScene2._syncLanternTransform()`'s doc comment for why this is applied in world space
+ * every frame instead of as a local child-of-bone position set once. */
+const LANTERN_GRIP_OFFSET = { x: 0.01, y: 0.06, z: 0.02 };
+
+type CharacterType = "male" | "female" | "yoshi";
+
 interface AnimationFade {
   from: AnimationAction | undefined;
   to: AnimationAction;
@@ -74,6 +110,9 @@ class AndNowScene2 extends AbstractShowcase {
   private _movementBehavior!: StageMovementBehavior;
   private _pointLight!: PointLight;
   private _lanternGroup: Object3D | undefined = undefined;
+  /** The current character's left-hand bone, tracked (position only, see `_syncLanternTransform()`)
+   * rather than used as `_lanternGroup`'s scene-graph parent. */
+  private _lanternHandBone: Object3D | undefined = undefined;
   private _lanternOn: boolean = true;
   private _mixer?: AnimationMixer;
   private _clips: Map<string, AnimationClip> = new Map();
@@ -84,7 +123,7 @@ class AndNowScene2 extends AbstractShowcase {
   private _idleSwitchDuration: number = 8.0;
   private _zoneBadgeEl: HTMLElement | null = null;
   private _charDescEl: HTMLElement | null = null;
-  private _isFemale: boolean = false;
+  private _characterType: CharacterType = "male";
   private _isSwitchingChar: boolean = false;
   private _lastCState: boolean = false;
   private _lastEState: boolean = false;
@@ -169,53 +208,41 @@ class AndNowScene2 extends AbstractShowcase {
     const zoneA = new StageZone({
       id: "zone_a",
       name: "ZONE A: HAUPTBÜHNE (VORPLATZ)",
-      points: [
-        { u: 0.459, v: 0.895, scale: 1.0 },
-        { u: 0.825, v: 0.893, scale: 1.0 },
-        { u: 0.774, v: 0.82, scale: 1.0 },
-        { u: 0.509, v: 0.823, scale: 1.0 },
-      ],
+      points: DEFAULT_ZONE_POINTS.zone_a,
     });
 
     const zoneB = new StageZone({
       id: "zone_b",
       name: "ZONE B: TUNNELGANG (TIEFE)",
-      points: [
-        { u: 0.556, v: 0.822, scale: 1.0 },
-        { u: 0.747, v: 0.819, scale: 1.0 },
-        { u: 0.706, v: 0.725, scale: 0.3 },
-        { u: 0.641, v: 0.725, scale: 0.3 },
-      ],
+      points: DEFAULT_ZONE_POINTS.zone_b,
     });
 
     const zoneC = new StageZone({
       id: "zone_c",
       name: "ZONE C: TREPPENAUFGANG (SCHLEUSE)",
-      points: [
-        { u: 0.463, v: 0.894, scale: 1.0 },
-        { u: 0.51, v: 0.823, scale: 1.0 },
-        { u: 0.357, v: 0.594, scale: 0.5 },
-        { u: 0.278, v: 0.613, scale: 0.5 },
-      ],
+      points: DEFAULT_ZONE_POINTS.zone_c,
     });
 
     this._stageZones = [zoneA, zoneB, zoneC];
 
-    const initialFemale =
-      typeof window !== "undefined" &&
-      new URLSearchParams(window.location.search).get("char") === "female";
+    const charParam =
+      typeof window !== "undefined"
+        ? new URLSearchParams(window.location.search).get("char")
+        : null;
+    const initialChar: CharacterType =
+      charParam === "female" ? "female" : charParam === "yoshi" ? "yoshi" : "male";
 
-    await this._loadCharacter(initialFemale);
+    await this._loadCharacter(initialChar);
 
     this._setupEditorEvents();
   }
 
   /**
-   * Lädt die Spieler-Figur (männlich/weiblich), skaliert sie einheitlich auf 1.80m,
+   * Lädt die ausgewählte Figur (männlich / weiblich / Yoshi), skaliert sie passend,
    * bindet die Laterne an mixamorig:LeftHand und hängt Behavior & AnimationMixer ein.
    */
-  private async _loadCharacter(isFemale: boolean): Promise<void> {
-    this._isFemale = isFemale;
+  private async _loadCharacter(charType: CharacterType): Promise<void> {
+    this._characterType = charType;
     let currentUv = { u: 0.65, v: 0.85 };
 
     if (this._movementBehavior) {
@@ -223,9 +250,6 @@ class AndNowScene2 extends AbstractShowcase {
     }
 
     if (this._player) {
-      if (this._lanternGroup && this._lanternGroup.parent) {
-        this._lanternGroup.parent.remove(this._lanternGroup);
-      }
       this._playerRig.remove(this._player);
     }
     if (!this._playerRig) {
@@ -235,12 +259,22 @@ class AndNowScene2 extends AbstractShowcase {
 
     try {
       const gltfLoader = new GltfLoader();
-      const charModelUrl = isFemale
-        ? "/assets/and-now/mannequin/player-female/character.glb"
-        : "/assets/and-now/mannequin/player-male/character.glb";
+      let charModelUrl = "/assets/and-now/mannequin/player-male/character.glb";
+      let charScale = 1.8;
+      let descText = "Spieler (Männlich) auf der 2.5D-Bühne";
+
+      if (charType === "female") {
+        charModelUrl = "/assets/and-now/mannequin/player-female/character.glb";
+        charScale = 1.8;
+        descText = "Spielerin (Weiblich) auf der 2.5D-Bühne";
+      } else if (charType === "yoshi") {
+        charModelUrl = "/assets/and-now/mannequin/yoshi/character.glb";
+        charScale = 1.35;
+        descText = "🦖 Yoshi (Secret Easter Egg) auf der 2.5D-Bühne";
+      }
 
       this._player = await gltfLoader.load(charModelUrl);
-      this._player.scale.set(1.8, 1.8, 1.8);
+      this._player.scale.set(charScale, charScale, charScale);
 
       // 1. Alle Animationen aus dem Mocap-Pool laden
       this._clips.clear();
@@ -255,7 +289,6 @@ class AndNowScene2 extends AbstractShowcase {
           console.warn(`[AndNowScene2] Konnte Animation "${name}" nicht laden:`, animErr);
         }
       }
-
       const applyMaterialToHierarchy = (obj: Object3D): void => {
         if (obj.material) {
           const bMat = new BasicMaterial({ color: new Color(1, 1, 1) });
@@ -282,13 +315,16 @@ class AndNowScene2 extends AbstractShowcase {
         }
       }
 
+      this._lanternHandBone = handBone;
       if (handBone) {
         if (!this._lanternGroup) {
           this._lanternGroup = this._buildLanternMesh();
           this._pointLight.position.set(0, -0.16, 0);
           this._lanternGroup.add(this._pointLight);
+          // Scene-level sibling, deliberately NOT a child of `handBone` -- see
+          // `_syncLanternTransform()`'s doc comment for why.
+          this.scene.add(this._lanternGroup);
         }
-        handBone.add(this._lanternGroup);
         this._lanternGroup.isVisible = this._lanternOn;
         this._pointLight.isVisible = this._lanternOn;
       } else {
@@ -303,6 +339,11 @@ class AndNowScene2 extends AbstractShowcase {
         speed: 0.15,
         runMultiplier: 2.2,
         rotationSpeed: 12.0,
+        // This rig's neutral pose (rotation.y=0) faces along local X, not the engine's -Z-forward
+        // convention -- confirmed live by forcing rotation.y through 0/pi/2/pi/-pi/2 and observing
+        // which one actually shows the character's front. See StageMovementBehaviorOptions
+        // .facingOffset's doc comment.
+        facingOffset: Math.PI / 2,
         zones: this._stageZones,
         uvToWorld: (u: number, v: number): { x: number; y: number; z: number } =>
           this._uvToWorld(u, v),
@@ -325,7 +366,7 @@ class AndNowScene2 extends AbstractShowcase {
       }
 
       if (this._charDescEl) {
-        this._charDescEl.textContent = `Spieler (${isFemale ? "Weiblich" : "Männlich"}) auf der 2.5D-Bühne`;
+        this._charDescEl.textContent = descText;
       }
     } catch (e) {
       console.error("[AndNowScene2] Fehler beim Laden des Charakters:", e);
@@ -398,21 +439,18 @@ class AndNowScene2 extends AbstractShowcase {
   }
 
   private _resetToDefaultZones(): void {
-    if (this._stageZones.length >= 3) {
-      this._stageZones[0]!.points[0] = { u: 0.459, v: 0.895, scale: 1.0 };
-      this._stageZones[0]!.points[1] = { u: 0.825, v: 0.893, scale: 1.0 };
-      this._stageZones[0]!.points[2] = { u: 0.774, v: 0.82, scale: 1.0 };
-      this._stageZones[0]!.points[3] = { u: 0.509, v: 0.823, scale: 1.0 };
+    if (this._stageZones.length < 3) return;
 
-      this._stageZones[1]!.points[0] = { u: 0.556, v: 0.822, scale: 1.0 };
-      this._stageZones[1]!.points[1] = { u: 0.747, v: 0.819, scale: 1.0 };
-      this._stageZones[1]!.points[2] = { u: 0.706, v: 0.725, scale: 0.3 };
-      this._stageZones[1]!.points[3] = { u: 0.641, v: 0.725, scale: 0.3 };
-
-      this._stageZones[2]!.points[0] = { u: 0.463, v: 0.894, scale: 1.0 };
-      this._stageZones[2]!.points[1] = { u: 0.51, v: 0.823, scale: 1.0 };
-      this._stageZones[2]!.points[2] = { u: 0.357, v: 0.594, scale: 0.5 };
-      this._stageZones[2]!.points[3] = { u: 0.278, v: 0.613, scale: 0.5 };
+    const ids = ["zone_a", "zone_b", "zone_c"] as const;
+    for (let i = 0; i < ids.length; i++) {
+      const defaults = DEFAULT_ZONE_POINTS[ids[i]!];
+      const zone = this._stageZones[i]!;
+      for (let p = 0; p < 4; p++) {
+        // Clone rather than share the reference -- the editor mutates a point's `u`/`v`/`scale`
+        // in place (drag handles, the scale input), which would otherwise corrupt
+        // `DEFAULT_ZONE_POINTS` itself for every future reset.
+        zone.points[p] = { ...defaults[p]! };
+      }
     }
   }
 
@@ -635,6 +673,40 @@ class AndNowScene2 extends AbstractShowcase {
     this._zoneBadgeEl.textContent = zone.name;
   }
 
+  /** Keeps the lantern's world POSITION locked to the hand bone's grip point every frame, while
+   * deliberately NOT parenting it under that bone. Two independent reasons:
+   * 1. A hand bone swings through a large rotation arc during walk/idle animation -- a lantern
+   *    rigidly rotating with it would tumble around instead of hanging straight down from its
+   *    handle, the way a real lantern pivots freely in a gripped hand. Never applying the bone's
+   *    rotation to `_lanternGroup.rotation` (left at the identity `_buildLanternMesh()` sets it
+   *    to) means it always hangs down, by construction.
+   * 2. Mixamo rigs commonly bake a large (e.g. ~100x, a leftover cm-to-m unit conversion) uniform
+   *    scale into the skeleton's bones -- the GPU-skinned character mesh never shows it because
+   *    its skinning matrices are relative to each bone's *bind pose*
+   *    (`bone.worldMatrix * inverseBindMatrix`, see `Skeleton.update()`), which cancels a static
+   *    scale factor out. A plain `Object3D` parented directly onto a bone has no such
+   *    cancellation and would inherit the raw ~100x bone scale. Not parenting under the bone at
+   *    all sidesteps this entirely, rather than compensating for it every frame.
+   * This mirrors `GadgetInspector`'s `_objectAxes` gizmo: added to `this._scene` (not the selected
+   * object), then synced from the tracked object's world transform every frame instead of being a
+   * scene-graph child of it -- here we copy only position, never rotation or scale. */
+  private _syncLanternTransform(): void {
+    const bone = this._lanternHandBone;
+    const lantern = this._lanternGroup;
+    if (!bone || !lantern) return;
+
+    // Columns 12/13/14 of the world matrix are its translation -- the bone's grip point in world
+    // space. `LANTERN_GRIP_OFFSET` nudges from the bone's own origin (typically the wrist joint)
+    // into the palm/fingers; applied in world space since the lantern no longer inherits the
+    // hand's rotation to apply it relative to.
+    const m = bone.worldMatrix.data;
+    lantern.position.set(
+      m[12]! + LANTERN_GRIP_OFFSET.x,
+      m[13]! + LANTERN_GRIP_OFFSET.y,
+      m[14]! + LANTERN_GRIP_OFFSET.z,
+    );
+  }
+
   /** Greybox stand-in for the Sturmlaterne (storm lantern) from the concept art -- a glowing
    * cylinder body with a torus handle, sized relative to a roughly human-scale rig. Replace with
    * the real modeled prop once one exists; parenting onto the hand bone stays the same either way. */
@@ -678,9 +750,12 @@ class AndNowScene2 extends AbstractShowcase {
     body.position.set(0, -0.16, 0);
     lantern.add(body);
 
-    // Local offset and rotation within the left hand bone space:
-    // Shift from the wrist pivot into the palm/fingers and hang vertically down
-    lantern.position.set(0.01, 0.06, 0.02);
+    // Initial offset and rotation: shift from the wrist pivot into the palm/fingers and hang
+    // vertically down. Position is overwritten every frame by `_syncLanternTransform()` once the
+    // hand bone's real world position is known -- set here only so the lantern isn't sitting at
+    // the scene origin for the first frame after attaching. Rotation is intentionally never
+    // touched again: staying at identity is exactly what keeps it hanging straight down.
+    lantern.position.set(LANTERN_GRIP_OFFSET.x, LANTERN_GRIP_OFFSET.y, LANTERN_GRIP_OFFSET.z);
     lantern.rotation.set(0, 0, 0);
 
     return lantern;
@@ -777,6 +852,8 @@ class AndNowScene2 extends AbstractShowcase {
     super.update(deltaTime);
     this.camera.updateViewMatrix();
 
+    this._syncLanternTransform();
+
     // Toggle Editor mit Taste 'E'
     const isEPressed = this.input.isPressed("KeyE");
     if (isEPressed && !this._lastEState) {
@@ -815,11 +892,17 @@ class AndNowScene2 extends AbstractShowcase {
       this._idleVariation = "idle_1";
     }
 
-    // Toggle Charakter mit Taste 'C' (Männlich <-> Weiblich)
+    // Toggle Charakter mit Taste 'C' (Männlich -> Weiblich -> Yoshi -> Männlich)
     const isCPressed = this.input.isPressed("KeyC");
     if (isCPressed && !this._lastCState && !this._isSwitchingChar) {
       this._isSwitchingChar = true;
-      this._loadCharacter(!this._isFemale)
+      const nextChar: CharacterType =
+        this._characterType === "male"
+          ? "female"
+          : this._characterType === "female"
+            ? "yoshi"
+            : "male";
+      this._loadCharacter(nextChar)
         .catch((err: unknown) => console.error("[AndNowScene2] Fehler beim Charakterwechsel:", err))
         .finally(() => {
           this._isSwitchingChar = false;

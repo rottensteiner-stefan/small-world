@@ -724,6 +724,15 @@ befüllen.
   - *Locomotion:* Dynamische Umschaltung zwischen `walk`/`run_1` (neutral) und `walk_torch`/`run_torch` (Laterne an).
   - *Treppen:* Richtungsabhängige Erkennung in Zone C (`stairs_up` beim Hinaufsteigen, `stairs_down` beim Hinuntersteigen).
 
+## 77. Yoshi Easter-Egg Charakter integriert & geriggt (2026-08-29)
+- **Asset & Pipeline:**
+  - 3D-Modell aus `yoshi.zip` (Sketchfab/Nintendo CC-BY) aufbereitet, zentriert und als [`yoshi_mixamo.zip`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/raw/mannequin/yoshi/yoshi_mixamo.zip) für Mixamo Auto-Rigging exportiert.
+  - Geriggtes `character_rigged.fbx` via `fbx2gltf` nach [`public/assets/and-now/mannequin/yoshi/character.glb`](file:///Users/srottensteiner/PhpstormProjects/small-world/public/assets/and-now/mannequin/yoshi/character.glb) (34 Bones, 246 KB) konvertiert und skalierungsnormalisiert.
+- **Gameplay-Integration ([`showcase.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/scenes/flakturm-tunnel/showcase.ts)):**
+  - Taste **`[C]`** auf 3-Wege-Zyklus erweitert: `Spieler (Männlich) ➔ Spielerin (Weiblich) ➔ 🦖 Yoshi (Secret Easter Egg)`.
+  - Yoshi nutzt vollständig und nahtlos denselben Animations-Pool (Idle, Walk, Run, Treppen, Laternen-Socket).
+
+
 
 
 

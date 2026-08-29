@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { GltfLoader } from "../../src/loaders/GltfLoader.js";
 import { StandardMaterial } from "../../src/core/materials/StandardMaterial.js";
+import { Object3D } from "../../src/core/Object3D.js";
 
 describe("GltfLoader PBR Options", () => {
   it("should apply defaultMetallic and defaultRoughness when factors are omitted", async () => {
@@ -92,5 +93,103 @@ describe("GltfLoader PBR Options", () => {
 
     expect(matUnder.metallic).toBe(0.1);
     expect(matUnder.roughness).toBe(0.3);
+  });
+
+  it("should invoke onMaterialParsed with the constructed material and raw definition", async () => {
+    const seen: unknown[] = [];
+    const loader = new GltfLoader({
+      onMaterialParsed: (material, rawDef): void => {
+        seen.push([material, rawDef]);
+      },
+    });
+
+    const rawDef = { pbrMetallicRoughness: { metallicFactor: 0.4 } };
+    const mat = await (
+      loader as unknown as {
+        _parseMaterial: (
+          m: unknown,
+          json: unknown,
+          folder: string,
+          buffers: ArrayBuffer[],
+        ) => Promise<StandardMaterial>;
+      }
+    )._parseMaterial(rawDef, {}, "", []);
+
+    expect(seen).toHaveLength(1);
+    expect(seen[0]).toEqual([mat, rawDef]);
+  });
+});
+
+describe("GltfLoader node-parsing options", () => {
+  function withParseAccess(loader: GltfLoader): {
+    _parse: (gltf: { json: unknown; buffers: ArrayBuffer[] }, baseUrl: string) => Promise<Object3D>;
+  } {
+    return loader as unknown as {
+      _parse: (
+        gltf: { json: unknown; buffers: ArrayBuffer[] },
+        baseUrl: string,
+      ) => Promise<Object3D>;
+    };
+  }
+
+  it("should apply nodeNameTransform to every parsed node's name", async () => {
+    const loader = new GltfLoader({
+      nodeNameTransform: (name): string => name.toUpperCase(),
+    });
+
+    const root = await withParseAccess(loader)._parse(
+      { json: { nodes: [{ name: "hero" }] }, buffers: [] },
+      "",
+    );
+
+    expect(root.getObjectByName("HERO")).toBeDefined();
+    expect(root.getObjectByName("hero")).toBeUndefined();
+  });
+
+  it("should normalize numeric Mixamo rig prefixes when normalizeMixamoRig is set", async () => {
+    const loader = new GltfLoader({ normalizeMixamoRig: true });
+
+    const root = await withParseAccess(loader)._parse(
+      { json: { nodes: [{ name: "mixamorig3:Hips" }] }, buffers: [] },
+      "",
+    );
+
+    expect(root.getObjectByName("mixamorig:Hips")).toBeDefined();
+  });
+
+  it("should invoke onNodeParsed once per node with the object and its raw definition", async () => {
+    const seen: { name: string; rawName: unknown }[] = [];
+    const loader = new GltfLoader({
+      onNodeParsed: (object, rawDef): void => {
+        seen.push({ name: object.name, rawName: rawDef["name"] });
+      },
+    });
+
+    await withParseAccess(loader)._parse(
+      { json: { nodes: [{ name: "A" }, { name: "B" }] }, buffers: [] },
+      "",
+    );
+
+    expect(seen).toEqual([
+      { name: "A", rawName: "A" },
+      { name: "B", rawName: "B" },
+    ]);
+  });
+
+  it("should invoke onParsed once with the final scene root after the full hierarchy is built", async () => {
+    let receivedRoot: Object3D | undefined;
+    const loader = new GltfLoader({
+      onParsed: (root): void => {
+        receivedRoot = root;
+      },
+    });
+
+    const root = await withParseAccess(loader)._parse(
+      { json: { nodes: [{ name: "A" }] }, buffers: [] },
+      "",
+    );
+
+    expect(receivedRoot).toBe(root);
+    expect(receivedRoot?.getObjectByName("A")).toBeDefined();
   });
 });

@@ -1,0 +1,7 @@
+newmtl mat_body
+Kd 1.0 1.0 1.0
+map_Kd textures/01___Default_baseColor.png
+
+newmtl mat_eye
+Kd 1.0 1.0 1.0
+map_Kd textures/02___Default_baseColor.png

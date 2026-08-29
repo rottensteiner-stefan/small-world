@@ -152,6 +152,16 @@ describe("Skeletal Animation System", () => {
     expect(hips.position.x).toBeCloseTo(5);
   });
 
+  it("should report a bone's accumulated world scale, unaffected by ancestors shared with other branches", () => {
+    const armature = new Object3D("Armature");
+    armature.scale.set(100, 100, 100);
+    const hips = new Bone("mixamorig:Hips");
+    armature.add(hips);
+    armature.updateMatrixWorld();
+
+    expect(hips.getAccumulatedWorldScale()).toBeCloseTo(100);
+  });
+
   it("should warn when a skeleton exceeds the GPU skinning bone limit", () => {
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     const tooManyBones = Array.from(

@@ -275,6 +275,13 @@ This document serves to record external sources, algorithms, mathematical deriva
 - **Source:** [Adobe Mixamo](https://www.mixamo.com/)
 - **Usage:** Provides the rigged skeletal hierarchy (`mixamorig:LeftHand`, spine, limbs) and converted binary glTF motion clips (`idle_torch.glb`, `walk_torch.glb`, `ascending_stairs.glb`) driving the player character in the "And Now?" bunker scenes.
 
+### Yoshi (Easter Egg Character)
+
+- **File:** `public/assets/and-now/mannequin/yoshi/character.glb`, `src/apps/and-now/raw/mannequin/yoshi/`
+- **Authors/Gurus:** akennedy007 ([Sketchfab](https://sketchfab.com/akennedy007)) / Nintendo
+- **Source:** [Yoshi on Sketchfab](https://sketchfab.com/3d-models/yoshi-9d6d7b5685a442039a555b2c1cd887c4) (CC-BY-4.0)
+- **Usage:** Provides the 3D geometry of Yoshi rigged against the standard Mixamo biped armature for a fun, hidden Easter Egg character playable via `[C]`.
+
 ## Shaders & Procedural Art
 
 ### Star Nest (Volumetric Cosmic Raymarching)

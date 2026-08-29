@@ -106,6 +106,7 @@ describe("WebGPURenderer._buildHzbPyramid", () => {
     renderer._hzbDownsamplePipeline = { id: "downsamplePipeline" };
     renderer._hzbDownsampleBGL = { id: "downsampleBGL" };
     Object.defineProperty(renderer, "activeDepthView", { get: () => ({ id: "depthView" }) });
+    renderer._rebuildHzbBindGroups();
 
     const { ce, computePasses } = makeMockCommandEncoder();
     renderer._buildHzbPyramid(ce as unknown as GPUCommandEncoder);
@@ -116,6 +117,35 @@ describe("WebGPURenderer._buildHzbPyramid", () => {
     expect(computePasses[1]!.setPipeline).toHaveBeenCalledWith(renderer._hzbDownsamplePipeline);
     expect(computePasses[3]!.setPipeline).toHaveBeenCalledWith(renderer._hzbDownsamplePipeline);
     for (const p of computePasses) expect(p.end).toHaveBeenCalledTimes(1);
+  });
+
+  it("reuses the same bind groups across multiple frames instead of recreating them each call", () => {
+    const { device } = makeMockDevice();
+    const renderer = new WebGPURenderer() as RendererInternals;
+    renderer._device = device;
+    renderer._context = { canvas: { width: 64, height: 64 } };
+    renderer._activeRenderTarget = null;
+    renderer._hzbTexture = { createView: vi.fn(() => ({ id: "mipView" })) };
+    renderer._hzbMipLevelCount = 4;
+    renderer._hzbCopyPipeline = { id: "copyPipeline" };
+    renderer._hzbCopyBGL = { id: "copyBGL" };
+    renderer._hzbDownsamplePipeline = { id: "downsamplePipeline" };
+    renderer._hzbDownsampleBGL = { id: "downsampleBGL" };
+    Object.defineProperty(renderer, "activeDepthView", { get: () => ({ id: "depthView" }) });
+    renderer._rebuildHzbBindGroups(); // simulates the one-time call from setSize()
+
+    const createBindGroup = (device as { createBindGroup: ReturnType<typeof vi.fn> })
+      .createBindGroup;
+    createBindGroup.mockClear();
+
+    // Three simulated frames -- no per-frame setSize(), so no further createBindGroup() calls
+    // should happen; _buildHzbPyramid() must reuse the bind groups _rebuildHzbBindGroups() built.
+    for (let frame = 0; frame < 3; frame++) {
+      const { ce } = makeMockCommandEncoder();
+      renderer._buildHzbPyramid(ce as unknown as GPUCommandEncoder);
+    }
+
+    expect(createBindGroup).not.toHaveBeenCalled();
   });
 
   it("does nothing for an offscreen render target", () => {
@@ -152,6 +182,7 @@ describe("WebGPURenderer._dispatchHzbTest", () => {
     renderer._hzbStagingSlot = 0;
     renderer._hzbStagingPending = [false, false];
     renderer._hzbSlotObjects = [[], []];
+    renderer._rebuildHzbBindGroups();
     return { renderer, device };
   }
 
@@ -190,6 +221,23 @@ describe("WebGPURenderer._dispatchHzbTest", () => {
     );
     expect(renderer._hzbSlotObjects[0]).toHaveLength(2);
     expect(renderer._hzbCopyRecordedThisFrame).toBe(true);
+  });
+
+  it("reuses the same bind group across multiple frames instead of recreating it each call", () => {
+    const { renderer, device } = makeReadyRenderer();
+    const createBindGroup = (device as { createBindGroup: ReturnType<typeof vi.fn> })
+      .createBindGroup;
+    createBindGroup.mockClear();
+
+    for (let frame = 0; frame < 3; frame++) {
+      renderer._hzbStagingSlot = 0;
+      renderer._hzbStagingPending = [false, false];
+      const scene = makeSceneWith([makeObjectWithBounds(0, 0, 0, 1)]);
+      const { ce } = makeMockCommandEncoder();
+      renderer._dispatchHzbTest(ce as unknown as GPUCommandEncoder, scene);
+    }
+
+    expect(createBindGroup).not.toHaveBeenCalled();
   });
 
   it("skips entirely when the current staging slot is still pending a previous mapAsync", () => {

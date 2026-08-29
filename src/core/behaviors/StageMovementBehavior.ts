@@ -38,6 +38,16 @@ export interface StageMovementBehaviorOptions {
   onStateChange?: (state: "IDLE" | "WALK" | "RUN") => void;
   /** Callback fired when character moves into a different stage zone. */
   onZoneChange?: (zone: StageZone) => void;
+  /**
+   * Constant radians added to every computed facing angle, to re-center this behavior's
+   * "0 = facing -Z (the engine's forward convention, and directly toward the camera when the
+   * scene's camera looks down -Z)" assumption onto whichever direction a specific character
+   * asset's neutral pose (`rotation.y = 0`) actually faces. Mixamo/FBX-derived rigs frequently
+   * don't face -Z at rest -- e.g. the flakturm-tunnel scene's rig faces along local X instead,
+   * needing `Math.PI / 2` here, confirmed by directly forcing `rotation.y` through 0/±90/180 and
+   * observing which one actually shows the character's front. Defaults to 0 (no correction
+   * needed) for a rig that IS authored facing -Z. */
+  facingOffset?: number;
 }
 
 /**
@@ -57,6 +67,7 @@ export class StageMovementBehavior extends Behavior {
   public onStateChange: ((state: "IDLE" | "WALK" | "RUN") => void) | undefined;
   public onZoneChange: ((zone: StageZone) => void) | undefined;
   public moveForward: number = 0;
+  public facingOffset: number;
 
   private _input: InputInterface;
   private _uvToWorld: (u: number, v: number) => StageWorldPlacement;
@@ -73,6 +84,7 @@ export class StageMovementBehavior extends Behavior {
     this.runMultiplier = options.runMultiplier ?? 2.0;
     this.rotationSpeed = options.rotationSpeed ?? 10.0;
     this.zones = options.zones ?? [];
+    this.facingOffset = options.facingOffset ?? 0;
     this._uvToWorld = options.uvToWorld;
     this._u = options.startUV?.u ?? 0.5;
     this._v = options.startUV?.v ?? 0.5;
@@ -100,6 +112,12 @@ export class StageMovementBehavior extends Behavior {
       this._initialized = true;
       this.activeZone = this._findZone(this._u, this._v) ?? this.zones[0];
       this._applyPlacement(obj);
+      // Face the camera by default (the same "facing +Z" case `_targetAngle`'s formula would
+      // produce for a worldDx=0, depthDelta=+1 "coming toward camera" move: `atan2(-0,-1) = π`)
+      // rather than leaving `rotation.y` at its unset default of 0, which -- before accounting
+      // for `facingOffset` -- faces directly away from the camera.
+      this._targetAngle = Math.PI + this.facingOffset;
+      obj.rotation.y = this._targetAngle;
       if (this.activeZone) this.onZoneChange?.(this.activeZone);
     }
 
@@ -176,8 +194,17 @@ export class StageMovementBehavior extends Behavior {
       const afterScale = (targetZone ?? this.activeZone)?.getScaleAt(nextU, nextV) ?? beforeScale;
       const depthDelta = afterScale - beforeScale;
 
+      // With this engine's -Z-forward convention (confirmed live: `rotation.y=0` faces exactly
+      // -Z), an object's forward direction as a function of `rotation.y=θ` is
+      // `(-sin θ, -cos θ)` -- so facing a desired (worldDx, depthDelta) requires
+      // `θ = atan2(-worldDx, -depthDelta)`, not `atan2(worldDx, depthDelta)` (the un-negated form
+      // faces exactly the OPPOSITE of the intended direction -- e.g. walking deeper/away from the
+      // camera would turn the character to face the camera instead of away from it). Verified by
+      // directly computing `Matrix4.compose()`'s output for known angles, not just derived on
+      // paper. `facingOffset` then re-centers this onto whichever direction the target's own mesh
+      // was authored to face at `rotation.y=0` -- see that option's doc comment.
       if (worldDx * worldDx + depthDelta * depthDelta > 0.000001) {
-        this._targetAngle = Math.atan2(worldDx, depthDelta);
+        this._targetAngle = this.facingOffset + Math.atan2(-worldDx, -depthDelta);
       }
       let angleDiff = this._targetAngle - obj.rotation.y;
       while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
