@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <link rel="icon" type="image/webp" href="/favicon.webp" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>And Now? — Character Diorama Studio</title>
+    <link rel="stylesheet" href="/assets/shared.css" />
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        background-color: #050608;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        color: #e2e8f0;
+        user-select: none;
+      }
+      #canvas {
+        width: 100vw;
+        height: 100vh;
+        display: block;
+      }
+      .hud-header {
+        position: absolute;
+        top: 1.5rem;
+        left: 1.5rem;
+        z-index: 10;
+        pointer-events: auto;
+      }
+      .back-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #ffb84d;
+        text-decoration: none;
+        font-size: 0.85rem;
+        font-weight: 600;
+        background: rgba(10, 12, 16, 0.85);
+        border: 1px solid rgba(255, 184, 77, 0.3);
+        padding: 0.4rem 0.8rem;
+        border-radius: 6px;
+        backdrop-filter: blur(8px);
+        transition: all 0.2s;
+      }
+      .back-btn:hover {
+        background: rgba(255, 184, 77, 0.15);
+        border-color: #ffb84d;
+      }
+      .title-container {
+        margin-top: 0.8rem;
+      }
+      .title {
+        font-size: 1.6rem;
+        font-weight: 800;
+        color: #fff;
+        margin: 0;
+        letter-spacing: 0.5px;
+        text-shadow: 0 0 20px rgba(0, 240, 255, 0.3);
+      }
+      .title span {
+        color: #00f0ff;
+      }
+      .subtitle {
+        font-size: 0.8rem;
+        color: #8a99ad;
+        margin: 0.2rem 0 0 0;
+      }
+      
+      .deck-panel {
+        position: absolute;
+        bottom: 1.5rem;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(10, 12, 16, 0.88);
+        border: 1px solid rgba(0, 240, 255, 0.25);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 15px rgba(0, 240, 255, 0.1);
+        border-radius: 12px;
+        padding: 1rem 1.4rem;
+        backdrop-filter: blur(12px);
+        z-index: 10;
+        display: flex;
+        flex-direction: column;
+        gap: 0.8rem;
+        max-width: 90vw;
+      }
+
+      .deck-row {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+
+      .btn {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        color: #e2e8f0;
+        padding: 0.45rem 0.8rem;
+        border-radius: 6px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+      }
+      .btn:hover {
+        background: rgba(0, 240, 255, 0.15);
+        border-color: #00f0ff;
+        color: #fff;
+      }
+      .btn.active {
+        background: rgba(0, 240, 255, 0.25);
+        border-color: #00f0ff;
+        color: #00f0ff;
+        box-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
+      }
+      .btn.char-btn {
+        border-color: rgba(255, 184, 77, 0.4);
+        color: #ffb84d;
+      }
+      .btn.char-btn:hover, .btn.char-btn.active {
+        background: rgba(255, 184, 77, 0.2);
+        border-color: #ffb84d;
+        color: #ffb84d;
+        box-shadow: 0 0 10px rgba(255, 184, 77, 0.3);
+      }
+      .btn kbd {
+        background: rgba(0, 0, 0, 0.5);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 3px;
+        padding: 0.1rem 0.3rem;
+        font-size: 0.65rem;
+        font-family: monospace;
+        color: #a0aec0;
+      }
+
+      .info-badge {
+        position: absolute;
+        top: 1.5rem;
+        right: 1.5rem;
+        background: rgba(10, 12, 16, 0.85);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        padding: 0.8rem 1.2rem;
+        font-size: 0.75rem;
+        backdrop-filter: blur(8px);
+        line-height: 1.5;
+        color: #8a99ad;
+      }
+      .info-badge b {
+        color: #fff;
+      }
+      .matrix-glitch-badge {
+        display: inline-block;
+        color: #39ff14;
+        font-family: monospace;
+        font-weight: bold;
+        letter-spacing: 1px;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+
+    <div class="hud-header">
+      <a href="../../index.html" class="back-btn">← Zurück zum Hub</a>
+      <div class="title-container">
+        <h1 class="title">Character <span>Diorama</span></h1>
+        <p class="subtitle">Urban Alley &bull; In-Place Animations &bull; <span class="matrix-glitch-badge">[MATRIX_GLITCH_EDGE]</span></p>
+      </div>
+    </div>
+
+    <div class="info-badge">
+      <b>Kamera-Steuerung:</b><br>
+      &bull; <b>Linke Maustaste:</b> 3D-Orbit drehen<br>
+      &bull; <b>Rechte Maustaste:</b> Verschieben (Pan)<br>
+      &bull; <b>Mausrad:</b> Zoom<br>
+      &bull; <b>[Space]:</b> Turntable-Drehung ein/aus<br>
+      &bull; <b>[G]:</b> Glitch-Intensität wechseln
+    </div>
+
+    <div class="deck-panel">
+      <!-- Row 1: Character Switcher & Tools -->
+      <div class="deck-row">
+        <button id="btn-char" class="btn char-btn"><kbd>C</kbd> 👤 Charakter: <span id="lbl-char">Spieler (Männlich)</span></button>
+        <button id="btn-torch" class="btn"><kbd>L</kbd> 💡 Laterne: <span id="lbl-torch">AN</span></button>
+        <button id="btn-turntable" class="btn"><kbd>Space</kbd> 🔄 Turntable: <span id="lbl-turntable">AUS</span></button>
+        <button id="btn-glitch" class="btn"><kbd>G</kbd> ⚡ Glitch: <span id="lbl-glitch">Matrix Normal</span></button>
+      </div>
+
+      <!-- Row 2: Animation Clips In-Place -->
+      <div class="deck-row" id="anim-buttons">
+        <button class="btn" data-anim="idle_1"><kbd>1</kbd> Idle 1</button>
+        <button class="btn" data-anim="idle_2"><kbd>2</kbd> Idle 2</button>
+        <button class="btn active" data-anim="idle_torch"><kbd>3</kbd> Idle Fackel</button>
+        <button class="btn" data-anim="walk"><kbd>4</kbd> Gehen</button>
+        <button class="btn" data-anim="walk_torch"><kbd>5</kbd> Gehen + Fackel</button>
+        <button class="btn" data-anim="run_1"><kbd>6</kbd> Joggen</button>
+        <button class="btn" data-anim="run_2"><kbd>7</kbd> Sprint</button>
+        <button class="btn" data-anim="run_torch"><kbd>8</kbd> Sprint + Fackel</button>
+        <button class="btn" data-anim="stairs_up"><kbd>9</kbd> Treppe Rauf</button>
+        <button class="btn" data-anim="stairs_down"><kbd>0</kbd> Treppe Runter</button>
+      </div>
+    </div>
+
+    <script type="module" src="./showcase.ts"></script>
+  </body>
+</html>

@@ -747,12 +747,23 @@ befüllen.
 ## 79. Standard-Startausrichtung auf $-Z$ (Tunnel-Tiefe) festgelegt (2026-08-29)
 - **Konfiguration & Koordination:**
   - `startFacing: "back"` als Standard für den Szenenstart und Charakterwechsel definiert.
-  - Spielfiguren spawnen standardmäßig ausgerichtet entlang der **$-Z$-Achse** ($180^\circ$, in den Tunnel hinein blickend).
-  - Koordinatensystem-Mapping in [`StageMovementBehavior.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/core/behaviors/StageMovementBehavior.ts) und [`showcase.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/scenes/flakturm-tunnel/showcase.ts) harmonisiert mit den Engine-Standards ([`docs/guides/coordinate-system.md`](file:///Users/srottensteiner/PhpstormProjects/small-world/docs/guides/coordinate-system.md)):
-    - $-Z$ ($180^\circ$): ⬆️ Tunnel-Tiefe (Forward / Hinten)
-    - $+Z$ ($0^\circ$): ⬇️ Kamera (Backward / Vorne)
-    - $-X$ ($270^\circ$): ⬅️ Links
-    - $+X$ ($90^\circ$): ➡️ Rechts
+## 80. Neues Szenario: Character Diorama Studio mit Matrix-Glitch-Kanten (2026-08-29)
+- **Szene & Konzeption ([`src/apps/and-now/scenes/character-diorama/`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/scenes/character-diorama/)):**
+  - Neues interaktives 3D-Diorama zur Figuren- und Animationspräsentation erstellt.
+  - Schräge 3/4-Kamera mit Orbit-Inspektion (`OrbitController`), Key-Spotlight, Ambient-Licht und Neon-Rim-Light.
+- **Matrix-Glitch-Auflösung (Custom WGSL-Shader):**
+  - Eigener Vertex- und Fragment-Shader für Backsteinmauern und Pflastersteinboden:
+  - Bei Annäherung an die Außenränder: Digitaler Vertex-Jitter, neon-cyan/magenta Chromatic Splitting, pulsierende Matrix-Scanlines und Noise-basierte Auflösung/Disintegration ins Nichts.
+  - Umschaltbare Glitch-Intensität (`[G]`-Taste: Aus, Normal, Cyberpunk Overdrive).
+- **Atmosphäre & Props:**
+  - Dampf- & Entwässerungsrohre aus Kupfer und Stahl mit Flanschen und rotem Handrad-Ventil.
+  - Bodendetails: Holzkisten, Metallfass, Coladosen, Gulli-Gitter.
+  - Animierte Ecke-Ratte mit schnuppernder Nase (`_ratHead`) und schlängelndem 4-Segment-Schwanz.
+- **In-Place Animations-Deck & Steuerung:**
+  - `[C]`: Charakter wechseln (`Spieler`, `Spielerin`, `🦖 Yoshi`).
+  - `[1]` – `[0]`: Direktanwahl aller 10 Animationsclips in-place (Root-Motion-Translationen des Hips-Bones gefiltert).
+  - `[L]`: Laterne & dynamisches Punktlicht umschalten.
+  - `[Space]`: 360°-Turntable-Drehung des gesamten Dioramas.
 - **Status:** 93 Testsuiten, 536 Tests, Build/Lint 100% grün.
 
 

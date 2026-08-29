@@ -160,6 +160,10 @@ export default defineConfig({
           import.meta.dirname,
           "src/apps/and-now/scenes/flakturm-tunnel/index.html",
         ),
+        andNowCharacterDiorama: resolve(
+          import.meta.dirname,
+          "src/apps/and-now/scenes/character-diorama/index.html",
+        ),
         yad: resolve(import.meta.dirname, "showcases/yad/index.html"),
         neonLabyrinth: resolve(import.meta.dirname, "showcases/neon-labyrinth/index.html"),
         lightCycleArena: resolve(import.meta.dirname, "showcases/light-cycle-arena/index.html"),
@@ -195,6 +199,9 @@ export default defineConfig({
           }
           if (chunk.name === "andNowScene2") {
             return "src/apps/and-now/scenes/flakturm-tunnel/showcase.js";
+          }
+          if (chunk.name === "andNowCharacterDiorama") {
+            return "src/apps/and-now/scenes/character-diorama/showcase.js";
           }
           return `showcases/[name]/showcase.js`;
         },
