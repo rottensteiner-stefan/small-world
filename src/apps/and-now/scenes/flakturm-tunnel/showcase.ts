@@ -945,8 +945,22 @@ class AndNowScene2 extends AbstractShowcase {
       const timeStr = action ? action.time.toFixed(2) : "0.00";
       const isWebGL2 = this.renderer.type === RendererType.WEB_GL2;
 
+      // Orientierung / Blickrichtung berechnen (0..360 Grad)
+      const rawDeg = ((this._playerRig.rotation.y * 180) / Math.PI) % 360;
+      const deg = (rawDeg + 360) % 360;
+      let dirName: string;
+      if (deg >= 337.5 || deg < 22.5) dirName = "⬆️ HINTEN (Tiefe/Tunnel)";
+      else if (deg >= 22.5 && deg < 67.5) dirName = "↗️ HINTEN-RECHTS";
+      else if (deg >= 67.5 && deg < 112.5) dirName = "➡️ RECHTS";
+      else if (deg >= 112.5 && deg < 157.5) dirName = "↘️ VORNE-RECHTS";
+      else if (deg >= 157.5 && deg < 202.5) dirName = "⬇️ VORNE (Kamera)";
+      else if (deg >= 202.5 && deg < 247.5) dirName = "↙️ VORNE-LINKS";
+      else if (deg >= 247.5 && deg < 292.5) dirName = "⬅️ LINKS";
+      else dirName = "↖️ HINTEN-LINKS";
+
       this._tagTitleEl.textContent = `[${this._characterType.toUpperCase()}] ▶ ${this._activeAnimation ?? "none"} (t=${timeStr}s)`;
       this._tagDetailsEl.innerHTML = `
+        Blickrichtung: <b style="color:#38bdf8;">${dirName} (${deg.toFixed(0)}°)</b><br>
         State: <b style="color:#fff;">${this._movementBehavior?.state ?? "IDLE"}</b> | Zone: <b style="color:#fff;">${this._movementBehavior?.activeZone?.id ?? "none"}</b><br>
         Laterne: <b style="color:#ffb84d;">${this._lanternOn ? "AN" : "AUS"}</b> (Anatomisch: Links)<br>
         Renderer: <b style="color: ${isWebGL2 ? "#4ade80" : "#f87171"};">${this.renderer.type} ${isWebGL2 ? "(Skinning aktiv ✅)" : "(WebGPU Skinning unfertig ⚠️)"}</b>
