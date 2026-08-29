@@ -22,6 +22,10 @@ export const StandardWebGPULayout = {
     u_useReflectionMap: { type: ShaderPropertyType.FLOAT, defaultValue: 0 },
     u_reflectivity: { type: ShaderPropertyType.FLOAT, defaultValue: 1.0 },
     u_time: { type: ShaderPropertyType.FLOAT, defaultValue: 0.0 },
+    u_isSkinned: { type: ShaderPropertyType.FLOAT, defaultValue: 0.0 },
+    u_boneOffset: { type: ShaderPropertyType.FLOAT, defaultValue: 0.0 },
+    u_pad1: { type: ShaderPropertyType.FLOAT, defaultValue: 0.0 },
+    u_pad2: { type: ShaderPropertyType.FLOAT, defaultValue: 0.0 },
   },
   uniformLayout: [
     "u_model",
@@ -40,6 +44,10 @@ export const StandardWebGPULayout = {
     "u_useReflectionMap",
     "u_reflectivity",
     "u_time",
+    "u_isSkinned",
+    "u_boneOffset",
+    "u_pad1",
+    "u_pad2",
   ],
   textures: {
     u_diffuseMap: { type: ShaderPropertyType.TEXTURE },

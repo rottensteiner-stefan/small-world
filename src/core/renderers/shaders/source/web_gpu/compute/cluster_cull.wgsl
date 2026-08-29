@@ -3,8 +3,10 @@
 // (fixed-capacity-per-cluster, no atomics; point/spot lights culled as bounding spheres).
 //
 // Expects `structs.wgsl` (GlobalUniforms, PointLight, SpotLight, and the pLights/sLights/
-// pointClusterGrid/pointClusterIndices/spotClusterGrid/spotClusterIndices bindings) to already
-// be present in the assembled shader module -- this file only adds the compute entry point.
+// pointClusterGrid/pointClusterIndices/spotClusterGrid/spotClusterIndices bindings) and
+// `screen_footprint.wgsl` (`worldRadiusToNdcRadius()`, shared with hzb_visibility_test.wgsl's
+// near-identical problem) to already be present in the assembled shader module -- this file
+// only adds the compute entry point.
 //
 // Per-light approach (not a view-space AABB): light positions in pLights/sLights are WORLD
 // space, so each light's own screen-space (X/Y) and radial-distance (Z) coverage range is
@@ -47,7 +49,7 @@ fn lightCoverage(worldPos: vec3f, radius: f32, dims: vec3u) -> array<vec2f, 3> {
     var rangeY = vec2f(0.0, f32(dims.y) - 1.0);
     if (clip.w > 0.0001 && viewDist > radius) {
         let ndc = clip.xy / clip.w;
-        let ndcRadius = vec2f(radius / viewDist) * global.projScale;
+        let ndcRadius = worldRadiusToNdcRadius(radius, viewDist);
         rangeX = clamp(floor(lightCellRangeX(ndc.x, ndcRadius.x)), vec2f(0.0), vec2f(f32(dims.x) - 1.0));
         rangeY = clamp(floor(lightCellRangeY(ndc.y, ndcRadius.y)), vec2f(0.0), vec2f(f32(dims.y) - 1.0));
     }

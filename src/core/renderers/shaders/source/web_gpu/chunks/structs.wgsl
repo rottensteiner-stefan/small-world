@@ -47,7 +47,11 @@ struct ObjectUniforms {
     useEnvMap: f32,
     useReflectionMap: f32,
     reflectivity: f32,
-    time: f32
+    time: f32,
+    isSkinned: f32,
+    boneOffset: f32,
+    pad1: f32,
+    pad2: f32
 }
 
 // Per-draw view-projection matrix, dynamic-offset-indexed -- one slot for the main camera,
@@ -109,6 +113,7 @@ struct AreaLight {
 @group(0) @binding(12) var<storage, read_write> pointClusterIndices: array<u32>;
 @group(0) @binding(13) var<storage, read_write> spotClusterGrid: array<vec2u>;
 @group(0) @binding(14) var<storage, read_write> spotClusterIndices: array<u32>;
+@group(0) @binding(15) var<storage, read> boneMatrices: array<mat4x4f>;
 
 @group(1) @binding(1) var s: sampler;
 @group(1) @binding(2) var u_diffuseMap: texture_2d<f32>;

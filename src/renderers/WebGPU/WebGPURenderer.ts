@@ -57,12 +57,15 @@ import {
 } from "../passes/index.js";
 import { BloomPassGPU, AOPassGPU, HistoryBlendPassGPU } from "../post/passes/index.js";
 import { UniformPacker } from "../../core/renderers/shaders/index.js";
+import { SkinnedMesh, Skeleton, MAX_SKINNED_BONES } from "../../core/animation/index.js";
 
 export interface WebGPUGeoCache {
   vb: GPUBuffer;
   nb: GPUBuffer | undefined;
   uvb: GPUBuffer | undefined;
   tb: GPUBuffer | undefined;
+  jb: GPUBuffer | undefined;
+  wb: GPUBuffer | undefined;
   ib: GPUBuffer | undefined;
   wib: GPUBuffer | undefined;
   indexCount: number;
@@ -558,6 +561,11 @@ export class WebGPURenderer extends AbstractRenderer {
   }
   private _globalBGL!: GPUBindGroupLayout;
   private _objectBGL!: GPUBindGroupLayout;
+  private _boneMatricesBuffer!: GPUBuffer;
+  private _gpuBoneMatricesOffset: number = 0;
+  private _boneSlotMap: Map<Skeleton, number> = new Map();
+  private _dummyJointsBuffer!: GPUBuffer;
+  private _dummyWeightsBuffer!: GPUBuffer;
 
   /** @inheritdoc */
   public override setRenderTarget(
@@ -763,6 +771,11 @@ export class WebGPURenderer extends AbstractRenderer {
     this._defaultCubeTexView = createCube([50, 50, 100, 255]);
     this._blackCubeTexView = createCube([0, 0, 0, 255]);
 
+    this._boneMatricesBuffer = this._device!.createBuffer({
+      size: 2048 * 64, // 2048 mat4x4f = 131072 bytes
+      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+    });
+
     this._ensureDummyBufferSize(1000);
   }
 
@@ -794,11 +807,13 @@ export class WebGPURenderer extends AbstractRenderer {
   }
 
   protected _ensureDummyBufferSize(vertexCount: number): void {
-    if (this._dummyBufferSize >= vertexCount * 3 && this._dummyNormalBuffer) return;
-    const newSize = Math.max(this._dummyBufferSize * 2, vertexCount * 3, 3000);
+    if (this._dummyBufferSize >= vertexCount * 4 && this._dummyNormalBuffer) return;
+    const newSize = Math.max(this._dummyBufferSize * 2, vertexCount * 4, 3000);
     if (this._dummyNormalBuffer) this._dummyBuffersPendingDestroy.push(this._dummyNormalBuffer);
     if (this._dummyUvBuffer) this._dummyBuffersPendingDestroy.push(this._dummyUvBuffer);
     if (this._dummyTangentBuffer) this._dummyBuffersPendingDestroy.push(this._dummyTangentBuffer);
+    if (this._dummyJointsBuffer) this._dummyBuffersPendingDestroy.push(this._dummyJointsBuffer);
+    if (this._dummyWeightsBuffer) this._dummyBuffersPendingDestroy.push(this._dummyWeightsBuffer);
     const normalData = new Float32Array(newSize).fill(0);
     for (let i = 0; i < newSize; i += 3) normalData[i + 1] = 1.0;
 
@@ -845,6 +860,22 @@ export class WebGPURenderer extends AbstractRenderer {
       usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
     });
     this._device!.queue.writeBuffer(this._dummyTangentBuffer, 0, tangentData);
+
+    const jointsData = new Float32Array(newSize).fill(0);
+    this._dummyJointsBuffer = this._device!.createBuffer({
+      size: jointsData.byteLength,
+      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+    });
+    this._device!.queue.writeBuffer(this._dummyJointsBuffer, 0, jointsData);
+
+    const weightsData = new Float32Array(newSize).fill(0);
+    for (let i = 0; i < newSize; i += 4) weightsData[i] = 1.0;
+    this._dummyWeightsBuffer = this._device!.createBuffer({
+      size: weightsData.byteLength,
+      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+    });
+    this._device!.queue.writeBuffer(this._dummyWeightsBuffer, 0, weightsData);
+
     this._dummyBufferSize = newSize;
   }
 
@@ -923,6 +954,11 @@ export class WebGPURenderer extends AbstractRenderer {
           visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
           buffer: { type: "storage" },
         },
+        {
+          binding: 15,
+          visibility: GPUShaderStage.VERTEX | GPUShaderStage.COMPUTE,
+          buffer: { type: "read-only-storage" },
+        },
       ],
     });
 
@@ -931,7 +967,11 @@ export class WebGPURenderer extends AbstractRenderer {
 
     const clusterCullModule = this._device!.createShaderModule({
       code:
-        (ShaderRegistry.instance.getChunk("WGSL_STRUCTS", "wgsl") ?? "") + "\n" + clusterCullWGSL,
+        (ShaderRegistry.instance.getChunk("WGSL_STRUCTS", "wgsl") ?? "") +
+        "\n" +
+        (ShaderRegistry.instance.getChunk("WGSL_SCREEN_FOOTPRINT", "wgsl") ?? "") +
+        "\n" +
+        clusterCullWGSL,
     });
     this._clusterCullPipeline = this._device!.createComputePipeline({
       layout: this._device!.createPipelineLayout({ bindGroupLayouts: [this._globalBGL] }),
@@ -1072,6 +1112,8 @@ export class WebGPURenderer extends AbstractRenderer {
       const hzbTestModule = this._device!.createShaderModule({
         code:
           (ShaderRegistry.instance.getChunk("WGSL_STRUCTS", "wgsl") ?? "") +
+          "\n" +
+          (ShaderRegistry.instance.getChunk("WGSL_SCREEN_FOOTPRINT", "wgsl") ?? "") +
           "\n" +
           hzbVisibilityTestWGSL,
       });
@@ -1464,6 +1506,7 @@ export class WebGPURenderer extends AbstractRenderer {
         { binding: 12, resource: { buffer: this._pointClusterIndexBuffer } },
         { binding: 13, resource: { buffer: this._spotClusterGridBuffer } },
         { binding: 14, resource: { buffer: this._spotClusterIndexBuffer } },
+        { binding: 15, resource: { buffer: this._boneMatricesBuffer } },
       ],
     });
   }
@@ -1674,6 +1717,8 @@ export class WebGPURenderer extends AbstractRenderer {
         { arrayStride: 12, attributes: [{ shaderLocation: 1, offset: 0, format: "float32x3" }] },
         { arrayStride: 8, attributes: [{ shaderLocation: 2, offset: 0, format: "float32x2" }] },
         { arrayStride: 12, attributes: [{ shaderLocation: 3, offset: 0, format: "float32x3" }] },
+        { arrayStride: 16, attributes: [{ shaderLocation: 4, offset: 0, format: "float32x4" }] },
+        { arrayStride: 16, attributes: [{ shaderLocation: 5, offset: 0, format: "float32x4" }] },
       ];
 
       if (isInstanced) {
@@ -1681,17 +1726,17 @@ export class WebGPURenderer extends AbstractRenderer {
           arrayStride: 64, // 16 floats * 4 bytes
           stepMode: "instance",
           attributes: [
-            { shaderLocation: 4, offset: 0, format: "float32x4" },
-            { shaderLocation: 5, offset: 16, format: "float32x4" },
-            { shaderLocation: 6, offset: 32, format: "float32x4" },
-            { shaderLocation: 7, offset: 48, format: "float32x4" },
+            { shaderLocation: 6, offset: 0, format: "float32x4" },
+            { shaderLocation: 7, offset: 16, format: "float32x4" },
+            { shaderLocation: 8, offset: 32, format: "float32x4" },
+            { shaderLocation: 9, offset: 48, format: "float32x4" },
           ],
         });
 
         vertexBuffers.push({
           arrayStride: 16, // 4 floats * 4 bytes for instanceData
           stepMode: "instance",
-          attributes: [{ shaderLocation: 8, offset: 0, format: "float32x4" }],
+          attributes: [{ shaderLocation: 10, offset: 0, format: "float32x4" }],
         });
       }
 
@@ -1815,11 +1860,11 @@ export class WebGPURenderer extends AbstractRenderer {
             const comma = trimmedParams.length > 0 ? "," : "";
             return `fn vs(
   ${trimmedParams}${comma}
-  @location(4) inst_col0: vec4f,
-  @location(5) inst_col1: vec4f,
-  @location(6) inst_col2: vec4f,
-  @location(7) inst_col3: vec4f,
-  @location(8) inst_data: vec4f
+  @location(6) inst_col0: vec4f,
+  @location(7) inst_col1: vec4f,
+  @location(8) inst_col2: vec4f,
+  @location(9) inst_col3: vec4f,
+  @location(10) inst_data: vec4f
 ) -> Out {
   let instMatrix = mat4x4f(inst_col0, inst_col1, inst_col2, inst_col3);`;
           },
@@ -1882,6 +1927,18 @@ export class WebGPURenderer extends AbstractRenderer {
         tb: geo.tangents?.length
           ? createBuf(geo.tangents, GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST)
           : undefined,
+        jb: geo.joints?.length
+          ? createBuf(
+              geo.joints instanceof Float32Array ? geo.joints : new Float32Array(geo.joints),
+              GPUBufferUsage.VERTEX,
+            )
+          : undefined,
+        wb: geo.weights?.length
+          ? createBuf(
+              geo.weights instanceof Float32Array ? geo.weights : new Float32Array(geo.weights),
+              GPUBufferUsage.VERTEX,
+            )
+          : undefined,
         ib: geo.indices?.length ? createBuf(geo.indices, GPUBufferUsage.INDEX) : undefined,
         wib: geo.wireframeIndices?.length
           ? createBuf(geo.wireframeIndices, GPUBufferUsage.INDEX)
@@ -1933,6 +1990,8 @@ export class WebGPURenderer extends AbstractRenderer {
       c.nb?.destroy();
       c.uvb?.destroy();
       c.tb?.destroy();
+      c.jb?.destroy();
+      c.wb?.destroy();
       c.ib?.destroy();
       c.wib?.destroy();
       this._geoCache.delete(geo);
@@ -2041,6 +2100,8 @@ export class WebGPURenderer extends AbstractRenderer {
     this._objectSlotMap.clear();
     this._objectSlotCount = 0;
     this._objectRingOverflowWarned = false;
+    this._gpuBoneMatricesOffset = 0;
+    this._boneSlotMap.clear();
     this._ensureObjectRingCapacity(Math.max(1024, Math.ceil(this._lastFrameObjectSlotCount * 1.5)));
 
     const lights = this.extractLights(scene);
@@ -2456,6 +2517,8 @@ export class WebGPURenderer extends AbstractRenderer {
       rp.setVertexBuffer(1, gCache.nb || this._dummyNormalBuffer);
       rp.setVertexBuffer(2, gCache.uvb || this._dummyUvBuffer);
       rp.setVertexBuffer(3, gCache.tb || this._dummyTangentBuffer);
+      rp.setVertexBuffer(4, gCache.jb || this._dummyJointsBuffer);
+      rp.setVertexBuffer(5, gCache.wb || this._dummyWeightsBuffer);
 
       if (isInstanced) {
         const instMesh = obj as InstancedMesh;
@@ -2477,7 +2540,7 @@ export class WebGPURenderer extends AbstractRenderer {
           instMesh.instanceMatrixNeedsUpdate = false;
         }
 
-        rp.setVertexBuffer(4, instanceBuf);
+        rp.setVertexBuffer(6, instanceBuf);
 
         // Instance Data
         if (instMesh.instanceData) {
@@ -2498,10 +2561,10 @@ export class WebGPURenderer extends AbstractRenderer {
             this._device!.queue.writeBuffer(instanceDataBuf, 0, instMesh.instanceData);
             instMesh.instanceDataNeedsUpdate = false;
           }
-          rp.setVertexBuffer(5, instanceDataBuf);
+          rp.setVertexBuffer(7, instanceDataBuf);
         } else {
           this._ensureDummyBufferSize(16);
-          rp.setVertexBuffer(5, this._dummyUvBuffer);
+          rp.setVertexBuffer(7, this._dummyUvBuffer);
         }
 
         if (topology === Topology.LINE_LIST) {
@@ -2671,8 +2734,40 @@ export class WebGPURenderer extends AbstractRenderer {
       values["u_color"] = this._scratchColorArray;
     }
 
+    if ("skeleton" in o && (o as unknown as { skeleton?: Skeleton }).skeleton) {
+      values["u_isSkinned"] = 1.0;
+      values["u_boneOffset"] = this._getBoneMatrixOffset(o as unknown as SkinnedMesh);
+    } else {
+      values["u_isSkinned"] = 0.0;
+      values["u_boneOffset"] = 0.0;
+    }
+
     UniformPacker.packInto(shaderDef.layout, values, this._scratchObjBufferData);
     return true;
+  }
+
+  protected _getBoneMatrixOffset(skinnedMesh: SkinnedMesh): number {
+    const skel = skinnedMesh.skeleton;
+    if (!skel || !skel.boneMatrices || skel.boneMatrices.length === 0) return 0;
+
+    const cached = this._boneSlotMap.get(skel);
+    if (cached !== undefined) return cached;
+
+    const numMatrices = Math.min(skel.bones.length, MAX_SKINNED_BONES);
+    const offset = this._gpuBoneMatricesOffset;
+
+    const floatsToCopy = Math.min(skel.boneMatrices.length, numMatrices * 16);
+    this._device!.queue.writeBuffer(
+      this._boneMatricesBuffer,
+      offset * 64,
+      skel.boneMatrices.buffer,
+      skel.boneMatrices.byteOffset,
+      floatsToCopy * 4,
+    );
+
+    this._gpuBoneMatricesOffset += numMatrices;
+    this._boneSlotMap.set(skel, offset);
+    return offset;
   }
 
   /** Resolves the GPU resource for one of `getOptionalMaterialTextureBindings()`'s texture names. */

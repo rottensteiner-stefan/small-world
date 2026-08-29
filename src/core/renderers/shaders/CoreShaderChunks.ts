@@ -46,6 +46,7 @@ import wgslPbrMath from "./source/web_gpu/chunks/pbr_math.wgsl?raw";
 import wgslPbrLighting from "./source/web_gpu/chunks/lighting_pbr.wgsl?raw";
 import wgslFogCalc from "./source/web_gpu/chunks/fog_calc.wgsl?raw";
 import wgslSdfMath from "./source/web_gpu/chunks/sdf_math.wgsl?raw";
+import wgslScreenFootprint from "./source/web_gpu/chunks/screen_footprint.wgsl?raw";
 import wgslBaseVs from "./source/web_gpu/base.vert.wgsl?raw";
 import { ShaderRegistry } from "./ShaderRegistry.js";
 
@@ -95,6 +96,7 @@ export class CoreShaderChunks {
     registry.registerChunk("WGSL_PBR_LIGHTING", wgslPbrLighting, "wgsl");
     registry.registerChunk("WGSL_FOG_CALC", wgslFogCalc, "wgsl");
     registry.registerChunk("WGSL_SDF_MATH", wgslSdfMath, "wgsl");
+    registry.registerChunk("WGSL_SCREEN_FOOTPRINT", wgslScreenFootprint, "wgsl");
     registry.registerChunk("WGSL_VS", wgslBaseVs, "wgsl");
 
     // --- Post-Processing Filter Chunks ---

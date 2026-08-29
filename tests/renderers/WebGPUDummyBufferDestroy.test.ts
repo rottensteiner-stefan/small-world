@@ -56,16 +56,22 @@ describe("WebGPU dummy vertex buffer growth defers destruction past the current 
     const firstNormalBuffer = renderer._dummyNormalBuffer;
     const firstUvBuffer = renderer._dummyUvBuffer;
     const firstTangentBuffer = renderer._dummyTangentBuffer;
+    const firstJointsBuffer = renderer._dummyJointsBuffer;
+    const firstWeightsBuffer = renderer._dummyWeightsBuffer;
 
     renderer._ensureDummyBufferSize(10000); // forces growth
 
     expect(firstNormalBuffer.destroy).not.toHaveBeenCalled();
     expect(firstUvBuffer.destroy).not.toHaveBeenCalled();
     expect(firstTangentBuffer.destroy).not.toHaveBeenCalled();
+    expect(firstJointsBuffer.destroy).not.toHaveBeenCalled();
+    expect(firstWeightsBuffer.destroy).not.toHaveBeenCalled();
     expect(renderer._dummyBuffersPendingDestroy).toEqual([
       firstNormalBuffer,
       firstUvBuffer,
       firstTangentBuffer,
+      firstJointsBuffer,
+      firstWeightsBuffer,
     ]);
     // The renderer must keep using the NEW buffers going forward.
     expect(renderer._dummyNormalBuffer).not.toBe(firstNormalBuffer);

@@ -729,8 +729,24 @@ befüllen.
   - 3D-Modell aus `yoshi.zip` (Sketchfab/Nintendo CC-BY) aufbereitet, zentriert und als [`yoshi_mixamo.zip`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/raw/mannequin/yoshi/yoshi_mixamo.zip) für Mixamo Auto-Rigging exportiert.
   - Geriggtes `character_rigged.fbx` via `fbx2gltf` nach [`public/assets/and-now/mannequin/yoshi/character.glb`](file:///Users/srottensteiner/PhpstormProjects/small-world/public/assets/and-now/mannequin/yoshi/character.glb) (34 Bones, 246 KB) konvertiert und skalierungsnormalisiert.
 - **Gameplay-Integration ([`showcase.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/scenes/flakturm-tunnel/showcase.ts)):**
-  - Taste **`[C]`** auf 3-Wege-Zyklus erweitert: `Spieler (Männlich) ➔ Spielerin (Weiblich) ➔ 🦖 Yoshi (Secret Easter Egg)`.
-  - Yoshi nutzt vollständig und nahtlos denselben Animations-Pool (Idle, Walk, Run, Treppen, Laternen-Socket).
+## 78. WebGPU GPU-Vertex-Skinning implementiert & Live-Debug-Tag (2026-08-29)
+- **Problem-Analyse:**
+  - `WebGPURenderer` unterstützte bislang kein GPU-Vertex-Skinning — `SkinnedMesh`-Modelle blieben in WebGPU starr in ihrer Bind-Pose (T-Pose), während der `AnimationMixer` auf der CPU lief.
+- **Engine Feature (WebGPU GPU Skinning):**
+  - **WGSL Structs & Binding ([`structs.wgsl`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/core/renderers/shaders/source/web_gpu/chunks/structs.wgsl), [`StandardWebGPULayout.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/core/renderers/shaders/StandardWebGPULayout.ts)):**
+    - `@group(0) @binding(15) var<storage, read> boneMatrices: array<mat4x4f>` für globale Knochenmatrizen eingeführt.
+    - `isSkinned` und `boneOffset` zu `ObjectUniforms` hinzugefügt.
+  - **WGSL Vertex Shader ([`base.vert.wgsl`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/core/renderers/shaders/source/web_gpu/base.vert.wgsl)):**
+    - `@location(4) joints: vec4f` und `@location(5) weights: vec4f` deklariert.
+    - Bei `isSkinned > 0.5`: Gewichtete Knochentransformation auf `pos`, `normal` und `tangent` im Vertex-Shader.
+  - **WebGPURenderer Integration ([`WebGPURenderer.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/renderers/WebGPU/WebGPURenderer.ts)):**
+    - `_boneMatricesBuffer` (Storage Buffer für bis zu 2048 Knochenmatrizen) initialisiert.
+    - `_getBoneMatrixOffset()` lädt `skeleton.boneMatrices` dynamisch hoch und cached Offsets pro Frame.
+    - `_getGeoCache()` erstellt `jb` (Joints) und `wb` (Weights) GPU-Vertex-Buffers.
+    - Dummy-Buffer `_dummyJointsBuffer` und `_dummyWeightsBuffer` für statische Meshes verdrahtet.
+- **Showcase HUD & Orientierungs-Tag ([`showcase.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/scenes/flakturm-tunnel/showcase.ts), [`index.html`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/scenes/flakturm-tunnel/index.html)):**
+  - Live-Overhead-Tag über dem Kopf der Spielfigur zeigt Charaktertyp, aktiven Clip, Playback-Timer `t=X.XXs`, 8-Wege-Blickrichtung (`⬆️ HINTEN`, `⬇️ VORNE`, etc.), State, Laternen-Status und aktiven Renderer (`WEB_GPU`).
+- **Status:** 93 Testsuiten, 536 Tests, Build/Lint 100% grün.
 
 
 

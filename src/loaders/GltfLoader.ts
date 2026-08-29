@@ -531,6 +531,15 @@ export class GltfLoader extends AbstractLoader<Object3D> {
     }
   }
 
+  /** Applies a `clampMetallic`/`clampRoughness`-style option to a factor: a bare number clamps
+   * only the upper bound (matching the options' own doc comments, "maximum ... factor"), while a
+   * `[min, max]` tuple clamps both. Returns `value` unchanged if `clamp` is `undefined`. */
+  private static _applyClamp(value: number, clamp: number | [number, number] | undefined): number {
+    if (undefined === clamp) return value;
+    if (Array.isArray(clamp)) return Math.min(Math.max(value, clamp[0]), clamp[1]);
+    return Math.min(value, clamp);
+  }
+
   private async _parseMaterial(
     m: NonNullable<GltfJson["materials"]>[number],
     json: GltfJson,
@@ -608,27 +617,8 @@ export class GltfLoader extends AbstractLoader<Object3D> {
     let metallic = pbr.metallicFactor !== undefined ? pbr.metallicFactor : defaultMetallic;
     let roughness = pbr.roughnessFactor !== undefined ? pbr.roughnessFactor : defaultRoughness;
 
-    if (this._gltfOptions.clampMetallic !== undefined) {
-      if (Array.isArray(this._gltfOptions.clampMetallic)) {
-        metallic = Math.min(
-          Math.max(metallic, this._gltfOptions.clampMetallic[0]),
-          this._gltfOptions.clampMetallic[1],
-        );
-      } else {
-        metallic = Math.min(metallic, this._gltfOptions.clampMetallic);
-      }
-    }
-
-    if (this._gltfOptions.clampRoughness !== undefined) {
-      if (Array.isArray(this._gltfOptions.clampRoughness)) {
-        roughness = Math.min(
-          Math.max(roughness, this._gltfOptions.clampRoughness[0]),
-          this._gltfOptions.clampRoughness[1],
-        );
-      } else {
-        roughness = Math.min(roughness, this._gltfOptions.clampRoughness);
-      }
-    }
+    metallic = GltfLoader._applyClamp(metallic, this._gltfOptions.clampMetallic);
+    roughness = GltfLoader._applyClamp(roughness, this._gltfOptions.clampRoughness);
 
     mat.metallic = metallic;
     mat.roughness = roughness;

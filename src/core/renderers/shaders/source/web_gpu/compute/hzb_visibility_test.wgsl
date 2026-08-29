@@ -12,10 +12,10 @@
 // that's slightly too generous costs a few wasted draw calls next frame; one that's too
 // aggressive would make a real, visible object disappear.
 //
-// Screen-space footprint math mirrors cluster_cull.wgsl's `lightCoverage()` exactly (world-space
-// radius -> NDC radius via `projScale` and true Euclidean distance to the camera -> pixels via
-// `resolution`), the same proven approach already used for a near-identical problem in this
-// codebase.
+// Screen-space footprint math shares `worldRadiusToNdcRadius()` (screen_footprint.wgsl) with
+// cluster_cull.wgsl's `lightCoverage()` -- world-space radius -> NDC radius via `projScale`, then
+// -> pixels via `resolution` -- the same proven approach already used for a near-identical
+// problem in this codebase.
 
 struct HzbTestParams {
     objectCount: u32,
@@ -66,7 +66,7 @@ fn testVisibility(@builtin(global_invocation_id) id: vec3u) {
     }
 
     let viewDist = max(length(center - global.viewPos.xyz), 0.0001);
-    let ndcRadius = vec2f(radius / viewDist) * global.projScale;
+    let ndcRadius = worldRadiusToNdcRadius(radius, viewDist);
     let footprintPx = max(ndcRadius.x * global.resolution.x, ndcRadius.y * global.resolution.y);
 
     // Mip where the footprint covers roughly one texel -- coarser (higher) mips hold the
