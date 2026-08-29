@@ -814,7 +814,7 @@ class AndNowScene2 extends AbstractShowcase {
 }
 
 const app = new AndNowScene2({
-  rendererType: RendererType.WEB_GL2,
+  rendererType: RendererType.BEST,
   enableInspector: true,
 });
 app.start().catch((err: unknown) => console.error("[AndNowScene2] Failed to start:", err));

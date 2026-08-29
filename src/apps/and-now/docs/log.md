@@ -692,6 +692,10 @@ befüllen.
   2. *Laterne waagerecht:* In der Szene war noch eine starre 90°-Drehung aktiv, die für das alte T-Pose-Rig gedacht war.
      - *Fix:* Ausrichtung im Hand-Socket auf `(0, 0, 0)` und Offset auf `(0.01, 0.06, 0.02)` korrigiert; Laterne hängt nun kerzengerade nach unten.
 
+## 72. Renderer-Konfiguration auf BEST umgestellt (2026-08-29)
+- **Umstellung:** [`src/apps/and-now/scenes/flakturm-tunnel/showcase.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/scenes/flakturm-tunnel/showcase.ts) nutzt nun standardmäßig `rendererType: RendererType.BEST` (wählt automatisch WebGPU, sofern vom Browser unterstützt, mit automatischem WebGL2-Fallback).
+
+
 
 
 
