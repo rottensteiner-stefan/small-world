@@ -63,11 +63,11 @@ interface AnimationFade {
 }
 
 class AndNowScene2 extends AbstractShowcase {
-  private _novotny!: Object3D;
+  private _player!: Object3D;
   /** Stage anchor that `StageMovementBehavior` positions/scales (forced-perspective per zone).
-   * `_novotny` sits inside it at a fixed 1.8m-real-world-height local scale, so the per-zone
+   * `_player` sits inside it at a fixed 1.8m-real-world-height local scale, so the per-zone
    * scale factor multiplies on top of that instead of replacing it outright. */
-  private _novotnyRig!: Object3D;
+  private _playerRig!: Object3D;
   private _movementBehavior!: StageMovementBehavior;
   private _pointLight!: PointLight;
   private _lanternGroup: Object3D | undefined = undefined;
@@ -205,8 +205,8 @@ class AndNowScene2 extends AbstractShowcase {
   }
 
   /**
-   * Lädt die Novotny-Figur (männlich/weiblich), skaliert sie einheitlich auf 1.80m,
-   * bindet die Laterne an mixamorig:RightHand und hängt Behavior & AnimationMixer ein.
+   * Lädt die Spieler-Figur (männlich/weiblich), skaliert sie einheitlich auf 1.80m,
+   * bindet die Laterne an mixamorig:LeftHand und hängt Behavior & AnimationMixer ein.
    */
   private async _loadCharacter(isFemale: boolean): Promise<void> {
     this._isFemale = isFemale;
@@ -218,25 +218,25 @@ class AndNowScene2 extends AbstractShowcase {
       currentAnim = "WALK" === this._movementBehavior.state ? "walk" : "idle";
     }
 
-    if (this._novotny) {
+    if (this._player) {
       if (this._lanternGroup && this._lanternGroup.parent) {
         this._lanternGroup.parent.remove(this._lanternGroup);
       }
-      this._novotnyRig.remove(this._novotny);
+      this._playerRig.remove(this._player);
     }
-    if (!this._novotnyRig) {
-      this._novotnyRig = new Object3D("NovotnyRig");
-      this.scene.add(this._novotnyRig);
+    if (!this._playerRig) {
+      this._playerRig = new Object3D("PlayerRig");
+      this.scene.add(this._playerRig);
     }
 
     try {
       const gltfLoader = new GltfLoader();
       const charModelUrl = isFemale
-        ? "/assets/and-now/mannequin/novotny-female/character.glb"
-        : "/assets/and-now/mannequin/novotny-male/character.glb";
+        ? "/assets/and-now/mannequin/player-female/character.glb"
+        : "/assets/and-now/mannequin/player-male/character.glb";
 
-      this._novotny = await gltfLoader.load(charModelUrl);
-      this._novotny.scale.set(1.8, 1.8, 1.8);
+      this._player = await gltfLoader.load(charModelUrl);
+      this._player.scale.set(1.8, 1.8, 1.8);
 
       // Bevorzugt Animationen nutzen, die direkt im GLB stecken (Tripo-Retarget lief gegen
       // exakt dieses Rig, jeder Skin-Joint bekommt also garantiert Keyframes). Nur wenn ein
@@ -244,8 +244,8 @@ class AndNowScene2 extends AbstractShowcase {
       // (Achtung: diese sind auf ein reines Mixamo-Rig gebaut und passen nicht zu jedem Rig).
       // 1. Eingebettete Clips laden, falls vorhanden
       this._clips.clear();
-      if (0 < this._novotny.animations.length) {
-        for (const clip of this._novotny.animations) {
+      if (0 < this._player.animations.length) {
+        for (const clip of this._player.animations) {
           const key = PRESET_CLIP_NAME_TO_KEY[clip.name];
           if (key) {
             this._clips.set(key, clip);
@@ -279,14 +279,14 @@ class AndNowScene2 extends AbstractShowcase {
           applyMaterialToHierarchy(child);
         }
       };
-      applyMaterialToHierarchy(this._novotny);
+      applyMaterialToHierarchy(this._player);
 
-      this._novotnyRig.add(this._novotny);
+      this._playerRig.add(this._player);
 
       // Laterne (Platzhalter-Mesh + Punktlicht) an die Hand-Bone hängen
       let handBone: Object3D | undefined;
       for (const boneName of LANTERN_HAND_BONE_NAMES) {
-        const found = this._novotny.getObjectByName(boneName);
+        const found = this._player.getObjectByName(boneName);
         if (found) {
           handBone = found;
           break;
@@ -308,7 +308,7 @@ class AndNowScene2 extends AbstractShowcase {
         );
       }
 
-      // 2.5D Bühnen-Bewegung an Novotny ankoppeln
+      // 2.5D Bühnen-Bewegung an Spieler ankoppeln
       this._movementBehavior = new StageMovementBehavior({
         input: this.input,
         speed: 0.15,
@@ -332,10 +332,10 @@ class AndNowScene2 extends AbstractShowcase {
           }
         },
       });
-      this._novotnyRig.addBehavior(this._movementBehavior);
+      this._playerRig.addBehavior(this._movementBehavior);
 
       if (0 < this._clips.size) {
-        this._mixer = new AnimationMixer(this._novotny);
+        this._mixer = new AnimationMixer(this._player);
         this._activeAnimation = undefined;
         this._fade = undefined;
         const startAnim =
@@ -346,7 +346,7 @@ class AndNowScene2 extends AbstractShowcase {
       }
 
       if (this._charDescEl) {
-        this._charDescEl.textContent = `Novotny (${isFemale ? "Weiblich" : "Männlich"}) auf der 2.5D-Bühne`;
+        this._charDescEl.textContent = `Spieler (${isFemale ? "Weiblich" : "Männlich"}) auf der 2.5D-Bühne`;
       }
     } catch (e) {
       console.error("[AndNowScene2] Fehler beim Laden des Charakters:", e);

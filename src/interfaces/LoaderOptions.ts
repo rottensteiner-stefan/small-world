@@ -18,6 +18,8 @@ export interface ImageLoaderOptions extends LoaderOptions {
  * Specialized configuration options for glTF/GLB loaders.
  */
 export interface GltfLoaderOptions extends LoaderOptions {
+  /** Optional transformation function applied to node names during glTF hierarchy parsing. */
+  nodeNameTransform?: (name: string) => string;
   /** Maximum metallic factor (or [min, max] range) applied to parsed PBR materials. */
   clampMetallic?: number | [number, number];
   /** Maximum roughness factor (or [min, max] range) applied to parsed PBR materials. */

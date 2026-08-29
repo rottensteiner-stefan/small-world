@@ -1,4 +1,4 @@
-# Novotny — T-Pose Reference Prompts
+# Player / Spieler — T-Pose Reference Prompts
 
 `generate_image` prompts for producing four isolated reference views, used as 3D modeling
 references: **FRONT**, **BACK**, **LEFT**, **RIGHT**. There are two source concept images — a
@@ -7,12 +7,12 @@ to both; substitute the source image matching the character's gender.
 
 **Source images:**
 
-- **Female:** `assets/novotny-female/hoodie.jpg`
-- **Male:** `assets/novotny-male/hoodie.jpg`
+- **Female:** `assets/player-female/hoodie.jpg`
+- **Male:** `assets/player-male/hoodie.jpg`
 
 ## Shared base (applies to all 4 views, both genders)
 
-> Reference image: the matching `novotny-female/hoodie.jpg` / `novotny-male/hoodie.jpg`. Full
+> Reference image: the matching `player-female/hoodie.jpg` / `player-male/hoodie.jpg`. Full
 > character reference, isolated on a pure white/transparent background — no environment, no
 > tunnel, no props. Remove the lantern from the right hand; both arms empty. Keep identical: the
 > waxed dark-grey loden trenchcoat, the dark hoodie underlayer, the loop scarf/snood worn loose
@@ -65,12 +65,12 @@ camera, making it useless as a modeling reference. Approved by the user (2026-08
 > style, equipment, and pose are intentionally identical, so keep them in sync unless a real
 > design difference is introduced for one gender.
 
-### Female (`novotny-female/hoodie.jpg`) — regeneration prompt
+### Female (`player-female/hoodie.jpg`) — regeneration prompt
 
-> Reference image: `novotny-female/hoodie.jpg`. Full-body female character concept art in a dark,
+> Reference image: `player-female/hoodie.jpg`. Full-body female character concept art in a dark,
 > atmospheric flooded concrete bunker tunnel in post-apocalyptic Vienna, 2100.
 > **Art style & lighting:** exact same Graphic Noir comic watercolor style and tunnel composition
-> as `novotny-female/hoodie.jpg`, with heavy inked outlines and warm amber chiaroscuro lantern
+> as `player-female/hoodie.jpg`, with heavy inked outlines and warm amber chiaroscuro lantern
 > light.
 > **Character:** young woman in her early twenties, lean and weathered, melancholic determined
 > expression.
@@ -81,15 +81,15 @@ camera, making it useless as a modeling reference. Approved by the user (2026-08
 > utility belt with a vintage gas mask attached at the right-front hip, dark cargo trousers with
 > bellows pockets, strapped knee armor guards, rugged lace-up work boots, fingerless gloves.
 > **Pose:** standing in the flooded tunnel archway, holding an illuminated vintage brass hurricane
-> lantern in the **right hand**, casting a warm directional glow onto the body and the wet stone
+> lantern in the **left hand**, casting a warm directional glow onto the body and the wet stone
 > floor with water reflections.
 
-### Male (`novotny-male/hoodie.jpg`) — regeneration prompt
+### Male (`player-male/hoodie.jpg`) — regeneration prompt
 
-> Reference image: `novotny-male/hoodie.jpg`. Full-body male character concept art in a dark,
+> Reference image: `player-male/hoodie.jpg`. Full-body male character concept art in a dark,
 > atmospheric flooded concrete bunker tunnel in post-apocalyptic Vienna, 2100.
 > **Art style & lighting:** exact same Graphic Noir comic watercolor style and tunnel composition
-> as `novotny-male/hoodie.jpg`, with heavy inked outlines and warm amber chiaroscuro lantern
+> as `player-male/hoodie.jpg`, with heavy inked outlines and warm amber chiaroscuro lantern
 > light.
 > **Character:** young man in his early twenties, lean and weathered, melancholic determined
 > expression.
@@ -100,5 +100,5 @@ camera, making it useless as a modeling reference. Approved by the user (2026-08
 > utility belt with a vintage gas mask attached at the right-front hip, dark cargo trousers with
 > bellows pockets, strapped knee armor guards, rugged lace-up work boots, fingerless gloves.
 > **Pose:** standing in the flooded tunnel archway, holding an illuminated vintage brass hurricane
-> lantern in the **right hand**, casting a warm directional glow onto the body and the wet stone
+> lantern in the **left hand**, casting a warm directional glow onto the body and the wet stone
 > floor with water reflections.

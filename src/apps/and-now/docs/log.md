@@ -695,6 +695,15 @@ befüllen.
 ## 72. Renderer-Konfiguration auf BEST umgestellt (2026-08-29)
 - **Umstellung:** [`src/apps/and-now/scenes/flakturm-tunnel/showcase.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/scenes/flakturm-tunnel/showcase.ts) nutzt nun standardmäßig `rendererType: RendererType.BEST` (wählt automatisch WebGPU, sofern vom Browser unterstützt, mit automatischem WebGL2-Fallback).
 
+## 73. Nomenklatur-Refactoring „Player / Spieler“ & GltfLoader-Entkopplung (2026-08-29)
+- **Nomenklatur-Refactoring:**
+  - Alle Asset-Pfade von `novotny-male`/`novotny-female` nach [`player-male`](file:///Users/srottensteiner/PhpstormProjects/small-world/public/assets/and-now/mannequin/player-male/) und [`player-female`](file:///Users/srottensteiner/PhpstormProjects/small-world/public/assets/and-now/mannequin/player-female/) migriert.
+  - In Code und UI einheitlich als `Player` bzw. auf Deutsch als `Spieler` / `Spielerin` benannt.
+- **Engine-Entkopplung (GltfLoader):**
+  - Hardcodierte Mixamo-Präfix-Ersetzungen (`_MIXAMO_RIG_PREFIX_RE`) restlos aus dem Core-`GltfLoader` entfernt.
+  - Generischer `nodeNameTransform?: (name: string) => string` Hook in [`GltfLoaderOptions`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/interfaces/LoaderOptions.ts) eingeführt; der glTF-Loader bleibt 100% standardkonform und agnostisch gegenüber App-spezifischen Rig-Nomenklaturen.
+
+
 
 
 
