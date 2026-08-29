@@ -142,6 +142,9 @@ class AndNowScene2 extends AbstractShowcase {
   private _editorPolygonsGroup!: SVGGElement | null;
   private _editorHandlesGroup!: SVGGElement | null;
   private _pointsListEl!: HTMLElement | null;
+  private _charTagEl!: HTMLElement | null;
+  private _tagTitleEl!: HTMLElement | null;
+  private _tagDetailsEl!: HTMLElement | null;
 
   protected override async setupScene(): Promise<void> {
     this._zoneBadgeEl = document.getElementById("zoneBadge");
@@ -455,6 +458,10 @@ class AndNowScene2 extends AbstractShowcase {
   }
 
   private _setupEditorEvents(): void {
+    this._charTagEl = document.getElementById("characterTag");
+    this._tagTitleEl = document.getElementById("tagTitle");
+    this._tagDetailsEl = document.getElementById("tagDetails");
+
     const btnA = document.getElementById("btnZoneA");
     const btnB = document.getElementById("btnZoneB");
     const btnC = document.getElementById("btnZoneC");
@@ -852,8 +859,6 @@ class AndNowScene2 extends AbstractShowcase {
     super.update(deltaTime);
     this.camera.updateViewMatrix();
 
-    this._syncLanternTransform();
-
     // Toggle Editor mit Taste 'E'
     const isEPressed = this.input.isPressed("KeyE");
     if (isEPressed && !this._lastEState) {
@@ -920,11 +925,38 @@ class AndNowScene2 extends AbstractShowcase {
     }
 
     this.scene.update(deltaTime);
+    this._syncLanternTransform();
+
+    // Overhead Debug Tag über dem Kopf der Spielfigur
+    if (this._playerRig && this._charTagEl && this._tagTitleEl && this._tagDetailsEl) {
+      const charHeadHeight = this._characterType === "yoshi" ? 1.3 : 1.9;
+      const headPos = {
+        x: this._playerRig.position.x,
+        y: this._playerRig.position.y + charHeadHeight * this._playerRig.scale.y,
+        z: this._playerRig.position.z,
+      };
+      const screenPos = this._worldToScreen(headPos.x, headPos.y, headPos.z);
+      this._charTagEl.style.display = "block";
+      this._charTagEl.style.left = `${screenPos.x}px`;
+      this._charTagEl.style.top = `${screenPos.y - 12}px`;
+
+      const clip = this._activeAnimation ? this._clips.get(this._activeAnimation) : undefined;
+      const action = clip && this._mixer ? this._mixer.clipAction(clip) : undefined;
+      const timeStr = action ? action.time.toFixed(2) : "0.00";
+      const isWebGL2 = this.renderer.type === RendererType.WEB_GL2;
+
+      this._tagTitleEl.textContent = `[${this._characterType.toUpperCase()}] ▶ ${this._activeAnimation ?? "none"} (t=${timeStr}s)`;
+      this._tagDetailsEl.innerHTML = `
+        State: <b style="color:#fff;">${this._movementBehavior?.state ?? "IDLE"}</b> | Zone: <b style="color:#fff;">${this._movementBehavior?.activeZone?.id ?? "none"}</b><br>
+        Laterne: <b style="color:#ffb84d;">${this._lanternOn ? "AN" : "AUS"}</b> (Anatomisch: Links)<br>
+        Renderer: <b style="color: ${isWebGL2 ? "#4ade80" : "#f87171"};">${this.renderer.type} ${isWebGL2 ? "(Skinning aktiv ✅)" : "(WebGPU Skinning unfertig ⚠️)"}</b>
+      `;
+    }
   }
 }
 
 const app = new AndNowScene2({
-  rendererType: RendererType.BEST,
+  rendererType: RendererType.WEB_GL2,
   enableInspector: true,
 });
 app.start().catch((err: unknown) => console.error("[AndNowScene2] Failed to start:", err));

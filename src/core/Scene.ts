@@ -51,6 +51,16 @@ export class Scene {
    * then MainRenderPass) ran last. */
   public lastOcclusionCulledCount = 0;
 
+  /** Every `isVisible && inFrustum` object from the last `getVisibleObjectsSorted()` call --
+   * i.e. `_collectVisible()`'s own visibility/frustum gate, captured as a byproduct of that
+   * walk, before its `occlusionCulled` gate (`lastOcclusionCulledCount`'s check) filters
+   * anything further. Populated for every object regardless of whether it has geometry/material
+   * (unlike `RenderList`, which only batches drawable objects), so a consumer that needs "what's
+   * in frustum" without "and also drawable" -- e.g. `WebGPURenderer._dispatchHzbTest()`'s HZB
+   * candidate list, which must include currently-occlusion-culled objects too so they can be
+   * re-tested and un-culled -- can read this instead of walking the scene tree a second time. */
+  public lastFrustumVisibleObjects: Object3D[] = [];
+
   // Global Environment (IBL)
   public irradianceMap?: import("./textures/index.js").CubeTexture;
   public prefilterMap?: import("./textures/index.js").CubeTexture;
@@ -244,6 +254,7 @@ export class Scene {
       batches[i]!.objects.length = 0;
     }
     this.lastOcclusionCulledCount = 0;
+    this.lastFrustumVisibleObjects.length = 0;
 
     const frustum = this._scratchFrustum;
     const vpMat = this._scratchMatrix;
@@ -282,6 +293,8 @@ export class Scene {
         return;
       }
     }
+
+    this.lastFrustumVisibleObjects.push(obj);
 
     // Hierarchical-Z occlusion culling (WebGPU-only, see docs/adr/0008-...) -- a second,
     // independent gate: frustum-culled objects never reach here, and this never overrides

@@ -59,6 +59,49 @@ describe("Scene._collectVisible: Hierarchical-Z occlusion gate", () => {
   });
 });
 
+describe("Scene.lastFrustumVisibleObjects", () => {
+  it("includes an occlusionCulled object -- unlike the RenderList, which excludes it", () => {
+    const scene = new Scene();
+    const occluded = makeDrawable("Occluded");
+    occluded.occlusionCulled = true;
+    scene.add(occluded);
+
+    scene.getVisibleObjectsSorted(new Matrix4().data, new Vector3D());
+
+    expect(scene.lastFrustumVisibleObjects).toContain(occluded);
+  });
+
+  it("excludes an invisible object and a frustum-culled one", () => {
+    // Note: `scene.root` itself is always walked (and, having no `bounds`, always passes the
+    // frustum check trivially) so it's always present too -- this only asserts on the two
+    // objects actually under test, not on the list's total length.
+    const scene = new Scene();
+    const invisible = makeDrawable("Invisible");
+    invisible.isVisible = false;
+    const frustumCulled = makeDrawable("FrustumCulled");
+    frustumCulled.bounds = { getBroadRadius: () => 1 } as never;
+    frustumCulled.inFrustum = false;
+    scene.add(invisible, frustumCulled);
+
+    scene.getVisibleObjectsSorted(new Matrix4().data, new Vector3D());
+
+    expect(scene.lastFrustumVisibleObjects).not.toContain(invisible);
+    expect(scene.lastFrustumVisibleObjects).not.toContain(frustumCulled);
+  });
+
+  it("is cleared and repopulated on every call", () => {
+    const scene = new Scene();
+    const a = makeDrawable("A");
+    scene.add(a);
+    scene.getVisibleObjectsSorted(new Matrix4().data, new Vector3D());
+    expect(scene.lastFrustumVisibleObjects).toContain(a);
+
+    const emptyScene = new Scene();
+    emptyScene.getVisibleObjectsSorted(new Matrix4().data, new Vector3D());
+    expect(emptyScene.lastFrustumVisibleObjects).not.toContain(a);
+  });
+});
+
 describe("FrustumCuller.cull (fallback path, no octree)", () => {
   it("marks exactly the objects that end up visible+inFrustum", () => {
     const scene = new Scene();

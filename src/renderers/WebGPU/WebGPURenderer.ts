@@ -1278,12 +1278,14 @@ export class WebGPURenderer extends AbstractRenderer {
     }
   }
 
-  /** Recursively collects `isVisible && inFrustum` descendants with a `bounds` sphere, scoped to
-   * one scene's own tree -- see `_dispatchHzbTest()`'s doc comment for why this walks `scene`
-   * directly instead of reading one of `FrustumCuller`'s static output fields. Mirrors
-   * `FrustumCuller._checkNode()`'s visibility condition exactly, minus the frustum test itself
-   * (already applied to `inFrustum` earlier this frame). Stops once `count` hits
-   * `MAX_HZB_TESTED_OBJECTS`.
+  /** Filters `scene.lastFrustumVisibleObjects` (a byproduct of the `isVisible && inFrustum` walk
+   * `Scene._collectVisible()` already performed for `DepthPrePassGPU`'s `getVisibleObjectsSorted()`
+   * call earlier this same frame -- see that field's doc comment) down to the ones with a usable
+   * `bounds` sphere, appending onto `out` up to `MAX_HZB_TESTED_OBJECTS` total. A linear scan over
+   * that already-collected list, NOT a second scene-tree walk -- see `_dispatchHzbTest()`'s doc
+   * comment for why this doesn't read one of `FrustumCuller`'s static output fields instead, and
+   * why relying on `DepthPrePassGPU` having already run this frame is safe (it's fixed earlier
+   * than `HzbOcclusionPassGPU` in `WebGPURenderer`'s `_passes` array).
    *
    * `obj.bounds` is only kept current by `Scene.updateDynamicOctree()`/`updateStaticOctree()`,
    * which don't run unless the scene actually has octrees enabled -- otherwise the only thing
@@ -1293,17 +1295,16 @@ export class WebGPURenderer extends AbstractRenderer {
    * at that moment. Recomputing here against the object's already-current-for-this-frame
    * `worldMatrix` (updated earlier in `Scene.update()`) keeps the HZB test correct regardless of
    * whether octrees are in use. */
-  private _collectHzbCandidates(obj: Object3D, out: Object3D[], count: number): number {
-    if (count >= MAX_HZB_TESTED_OBJECTS) return count;
-    if (obj.isVisible && obj.inFrustum) {
+  private _collectHzbCandidates(scene: Scene, out: Object3D[]): number {
+    const candidates = scene.lastFrustumVisibleObjects;
+    let count = 0;
+    for (let i = 0; i < candidates.length && count < MAX_HZB_TESTED_OBJECTS; i++) {
+      const obj = candidates[i]!;
       if (obj.geometry) obj.computeBounds();
       if (obj.bounds) {
         out.push(obj);
         count++;
       }
-    }
-    for (let i = 0; i < obj.children.length && count < MAX_HZB_TESTED_OBJECTS; i++) {
-      count = this._collectHzbCandidates(obj.children[i]!, out, count);
     }
     return count;
   }
@@ -1314,13 +1315,14 @@ export class WebGPURenderer extends AbstractRenderer {
    * `_buildHzbPyramid()` just built, and copies the results into whichever staging buffer slot
    * isn't still waiting on a previous `mapAsync()`.
    *
-   * The candidate list is derived by walking `scene` directly (`isVisible && inFrustum`, same
-   * condition `FrustumCuller`'s own fallback path uses) rather than reading any of
-   * `FrustumCuller`'s output fields -- those are `static`, so any other concurrently running
-   * `SmallWorld` instance on the page (e.g. GadgetInspector's `MaterialStudioApp` preview panel,
-   * which runs its own `_loop()`/`FrustumCuller.cull()` on its own tiny scene) clobbers them
-   * before this renderer gets to read them. Walking `scene` here keeps the candidate list scoped
-   * to the scene actually being rendered, independent of that shared static state.
+   * The candidate list is derived from `scene.lastFrustumVisibleObjects` (`isVisible && inFrustum`,
+   * same condition `FrustumCuller`'s own fallback path uses -- see `_collectHzbCandidates()`)
+   * rather than reading any of `FrustumCuller`'s output fields -- those are `static`, so any other
+   * concurrently running `SmallWorld` instance on the page (e.g. GadgetInspector's
+   * `MaterialStudioApp` preview panel, which runs its own `_loop()`/`FrustumCuller.cull()` on its
+   * own tiny scene) clobbers them before this renderer gets to read them. Reading `scene`'s own
+   * per-instance list keeps the candidate list scoped to the scene actually being rendered,
+   * independent of that shared static state.
    *
    * Only one slot is ever in flight at a time (the two alternate every frame -- see
    * `_hzbStagingBuffers`'s doc comment); if THAT slot is still pending, this frame's test is
@@ -1345,11 +1347,7 @@ export class WebGPURenderer extends AbstractRenderer {
     if (this._hzbStagingPending[slot]) return;
 
     const objects: Object3D[] = [];
-    let count = 0;
-    const sceneObjects = scene.objects;
-    for (let i = 0; i < sceneObjects.length && count < MAX_HZB_TESTED_OBJECTS; i++) {
-      count = this._collectHzbCandidates(sceneObjects[i]!, objects, count);
-    }
+    const count = this._collectHzbCandidates(scene, objects);
     for (let i = 0; i < count; i++) {
       const obj = objects[i]!;
       const c = obj.bounds!.center;

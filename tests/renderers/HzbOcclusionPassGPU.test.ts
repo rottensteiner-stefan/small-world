@@ -195,6 +195,11 @@ describe("WebGPURenderer._dispatchHzbTest", () => {
       noBounds,
       makeObjectWithBounds(-4, 0, 7, 2.5),
     ]);
+    // Populates `scene.lastFrustumVisibleObjects` -- in the real pipeline this is a byproduct of
+    // DepthPrePassGPU's own `getVisibleObjectsSorted()` call earlier the same frame; the VP
+    // matrix's actual contents don't matter here since `inFrustum` is already set directly by
+    // `makeObjectWithBounds`/`noBounds` above.
+    scene.getVisibleObjectsSorted(new Float32Array(16), new Vector3D());
 
     const { ce } = makeMockCommandEncoder();
     renderer._dispatchHzbTest(ce as unknown as GPUCommandEncoder, scene);
