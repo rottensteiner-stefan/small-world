@@ -744,8 +744,15 @@ befüllen.
     - `_getBoneMatrixOffset()` lädt `skeleton.boneMatrices` dynamisch hoch und cached Offsets pro Frame.
     - `_getGeoCache()` erstellt `jb` (Joints) und `wb` (Weights) GPU-Vertex-Buffers.
     - Dummy-Buffer `_dummyJointsBuffer` und `_dummyWeightsBuffer` für statische Meshes verdrahtet.
-- **Showcase HUD & Orientierungs-Tag ([`showcase.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/scenes/flakturm-tunnel/showcase.ts), [`index.html`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/scenes/flakturm-tunnel/index.html)):**
-  - Live-Overhead-Tag über dem Kopf der Spielfigur zeigt Charaktertyp, aktiven Clip, Playback-Timer `t=X.XXs`, 8-Wege-Blickrichtung (`⬆️ HINTEN`, `⬇️ VORNE`, etc.), State, Laternen-Status und aktiven Renderer (`WEB_GPU`).
+## 79. Standard-Startausrichtung auf $-Z$ (Tunnel-Tiefe) festgelegt (2026-08-29)
+- **Konfiguration & Koordination:**
+  - `startFacing: "back"` als Standard für den Szenenstart und Charakterwechsel definiert.
+  - Spielfiguren spawnen standardmäßig ausgerichtet entlang der **$-Z$-Achse** ($180^\circ$, in den Tunnel hinein blickend).
+  - Koordinatensystem-Mapping in [`StageMovementBehavior.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/core/behaviors/StageMovementBehavior.ts) und [`showcase.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/scenes/flakturm-tunnel/showcase.ts) harmonisiert mit den Engine-Standards ([`docs/guides/coordinate-system.md`](file:///Users/srottensteiner/PhpstormProjects/small-world/docs/guides/coordinate-system.md)):
+    - $-Z$ ($180^\circ$): ⬆️ Tunnel-Tiefe (Forward / Hinten)
+    - $+Z$ ($0^\circ$): ⬇️ Kamera (Backward / Vorne)
+    - $-X$ ($270^\circ$): ⬅️ Links
+    - $+X$ ($90^\circ$): ➡️ Rechts
 - **Status:** 93 Testsuiten, 536 Tests, Build/Lint 100% grün.
 
 
