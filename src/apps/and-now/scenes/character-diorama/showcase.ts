@@ -23,7 +23,7 @@ import {
 } from "../../../../core/animation/index.js";
 
 type CharacterType = "male" | "female" | "yoshi";
-type GlitchLevel = "off" | "normal" | "overdrive";
+type GlitchLevel = "off" | "subtle" | "normal";
 
 const ANIMATION_CLIPS: Record<string, string> = {
   idle_1: "/assets/and-now/mannequin/shared/anim/idle_1.glb",
@@ -55,20 +55,7 @@ fn hash12(p: vec2f) -> f32 {
     @location(5) weights: vec4f
 ) -> Out {
     var o: Out;
-    var localPos = vec4f(pos, 1.0);
-    let time = obj.time;
-    let glitchIntensity = obj.extraParams.x;
-
-    let edgeDist = max(abs(uv.x - 0.5), abs(uv.y - 0.5)) * 2.0;
-    if (edgeDist > 0.70 && glitchIntensity > 0.05) {
-        let factor = (edgeDist - 0.70) / 0.30;
-        let noise = sin(pos.y * 35.0 + time * 18.0) * cos(pos.x * 25.0 - time * 12.0);
-        let jitter = step(0.65, hash12(vec2f(floor(pos.y * 20.0), floor(time * 24.0)))) * 0.12 * factor * glitchIntensity;
-        localPos += vec4f(normal * (noise * 0.04 * factor * glitchIntensity + jitter), 0.0);
-        localPos.x += (hash12(vec2f(pos.y, time)) - 0.5) * 0.08 * factor * glitchIntensity;
-    }
-
-    let worldPos = obj.model * localPos;
+    let worldPos = obj.model * vec4f(pos, 1.0);
     o.wp = worldPos.xyz;
     o.pos = view.vp * worldPos;
     o.uv = uv * obj.texRepeat + obj.texOffset;
@@ -86,49 +73,54 @@ fn hash12(p: vec2f) -> f32 {
     let time = obj.time;
     let glitchIntensity = obj.extraParams.x;
     let uv = i.original_uv;
+    let wp = i.wp;
 
-    let brickScale = vec2f(14.0, 28.0);
+    // 1. Procedural Brick / Stone Pavement Pattern
+    let brickScale = vec2f(12.0, 24.0);
     var bUv = uv * brickScale;
     if (fract(bUv.y * 0.5) > 0.5) {
         bUv.x += 0.5;
     }
     let bGrid = fract(bUv);
-    let mortar = step(0.06, bGrid.x) * step(0.08, bGrid.y);
+    let mortar = step(0.04, bGrid.x) * step(0.06, bGrid.y);
     let bId = floor(bUv);
     let bNoise = hash12(bId);
 
-    var baseColor = mix(vec3f(0.18, 0.20, 0.24), mix(vec3f(0.45, 0.22, 0.16), vec3f(0.35, 0.18, 0.12), bNoise), mortar);
-    baseColor *= (0.75 + 0.25 * hash12(uv * 120.0));
+    var baseColor = mix(vec3f(0.12, 0.14, 0.16), mix(vec3f(0.42, 0.22, 0.16), vec3f(0.32, 0.17, 0.12), bNoise), mortar);
+    baseColor *= (0.80 + 0.20 * hash12(uv * 80.0)); // Grunge noise
 
+    // Simple Directional & Ambient Shading
     let N = normalize(i.n);
     let L = normalize(vec3f(0.6, 1.0, 0.8));
     let diff = max(dot(N, L), 0.0);
-    var finalCol = baseColor * (diff * 0.75 + 0.25);
+    var finalCol = baseColor * (diff * 0.70 + 0.30);
 
-    let edgeDist = max(abs(uv.x - 0.5), abs(uv.y - 0.5)) * 2.0;
-    if (edgeDist > 0.65) {
-        let factor = clamp((edgeDist - 0.65) / 0.35, 0.0, 1.0);
-        let scanline = sin(uv.y * 220.0 - time * 25.0) * 0.5 + 0.5;
-        let matrixCell = vec2f(floor(uv.x * 40.0), floor((uv.y + time * 0.8) * 40.0));
-        let matrixChar = step(0.4, hash12(matrixCell));
-        let matrixGreen = vec3f(0.05, 1.0, 0.4) * matrixChar * scanline * 2.0;
-        let cyanGlitch = vec3f(0.0, 0.9, 1.0);
-        let magentaGlitch = vec3f(1.0, 0.0, 0.6);
+    // 2. Controlled Outer-Edge Glitch Falloff
+    // Corner is at X = -2.1, Z = -2.1, Y = 0. Outer open edges are at X > 0.8, Z > 0.8, Y > 2.6
+    let distFloor = max(max(wp.x - 0.8, wp.z - 0.8) / 1.3, 0.0);
+    let distHeight = max((wp.y - 2.5) / 1.1, 0.0);
+    let outerEdge = clamp(max(distFloor, distHeight), 0.0, 1.0);
 
-        let shift = hash12(vec2f(floor(uv.y * 30.0), floor(time * 15.0)));
-        var glitchColor = matrixGreen;
-        if (shift > 0.7) {
-            glitchColor = mix(cyanGlitch, magentaGlitch, step(0.85, shift)) * 2.5;
-        }
-
-        let gridLines = step(0.92, fract(uv.x * 20.0)) + step(0.92, fract(uv.y * 20.0));
-        glitchColor += cyanGlitch * gridLines * 1.5;
-
-        finalCol = mix(finalCol, glitchColor, factor * 0.85 * glitchIntensity);
+    if (outerEdge > 0.05 && glitchIntensity > 0.01) {
+        let f = outerEdge * glitchIntensity;
         
-        let dissolveNoise = hash12(vec2f(floor(uv.x * 60.0), floor(uv.y * 60.0)) + floor(time * 12.0));
-        if (edgeDist > 0.92 && dissolveNoise < (factor - 0.7) * 3.0) {
-            discard;
+        // Subtle Matrix green / cyan scanlines
+        let scanline = sin((wp.y + wp.x + wp.z) * 45.0 - time * 6.0) * 0.5 + 0.5;
+        let cell = vec2f(floor((wp.x + wp.z) * 16.0), floor((wp.y + time * 0.4) * 16.0));
+        let digitalSparkle = step(0.65, hash12(cell)) * scanline;
+        
+        let matrixGlow = vec3f(0.0, 0.9, 0.5) * digitalSparkle * 1.2;
+        let cyanEdge = vec3f(0.0, 0.75, 1.0) * (sin(time * 3.0 + wp.y * 10.0) * 0.2 + 0.8);
+
+        // Holographic Edge Shimmer
+        finalCol = mix(finalCol, mix(finalCol + matrixGlow, cyanEdge, 0.35), f * 0.75);
+
+        // Clean digital dither fade at the very extreme outer rim
+        if (outerEdge > 0.85) {
+            let dither = hash12(vec2f(floor(wp.x * 30.0 + wp.z * 30.0), floor(wp.y * 30.0)));
+            if (dither < (outerEdge - 0.85) / 0.15) {
+                discard;
+            }
         }
     }
 
@@ -154,7 +146,7 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
   private _lanternPointLight: PointLight | undefined;
   private _lanternOn: boolean = true;
   private _turntableActive: boolean = false;
-  private _glitchLevel: GlitchLevel = "normal";
+  private _glitchLevel: GlitchLevel = "subtle";
   private _glitchMaterials: CustomShaderMaterial[] = [];
 
   private _mixer: AnimationMixer | undefined;
@@ -187,19 +179,19 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
     );
 
     // 1. Lighting Setup
-    const ambientLight = new DirectionalLight({ color: new Color(0.12, 0.15, 0.22) });
-    ambientLight.intensity = 0.4;
+    const ambientLight = new DirectionalLight({ color: new Color(0.14, 0.16, 0.22) });
+    ambientLight.intensity = 0.45;
     ambientLight.position.set(-2, 5, -2);
     this.scene.add(ambientLight);
 
-    const keySpot = new PointLight({ color: new Color(1.0, 0.88, 0.65) });
-    keySpot.intensity = 2.2;
+    const keySpot = new PointLight({ color: new Color(1.0, 0.9, 0.72) });
+    keySpot.intensity = 2.4;
     keySpot.distance = 10.0;
     keySpot.position.set(1.8, 3.5, 2.2);
     this.scene.add(keySpot);
 
-    const cyberRimLight = new PointLight({ color: new Color(0.0, 0.95, 1.0) });
-    cyberRimLight.intensity = 2.5;
+    const cyberRimLight = new PointLight({ color: new Color(0.0, 0.85, 1.0) });
+    cyberRimLight.intensity = 1.6;
     cyberRimLight.distance = 8.0;
     cyberRimLight.position.set(-2.5, 2.0, -2.5);
     this.scene.add(cyberRimLight);
@@ -231,7 +223,7 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
         },
       },
       properties: {
-        u_extraParams: new Float32Array([1.0, 0, 0, 0]),
+        u_extraParams: new Float32Array([0.5, 0, 0, 0]),
       },
     });
     this._glitchMaterials.push(mat);
@@ -753,12 +745,12 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
   }
 
   private _cycleGlitch(): void {
-    if (this._glitchLevel === "normal") this._glitchLevel = "overdrive";
-    else if (this._glitchLevel === "overdrive") this._glitchLevel = "off";
-    else this._glitchLevel = "normal";
+    if (this._glitchLevel === "subtle") this._glitchLevel = "normal";
+    else if (this._glitchLevel === "normal") this._glitchLevel = "off";
+    else this._glitchLevel = "subtle";
 
     const intensity =
-      this._glitchLevel === "off" ? 0.0 : this._glitchLevel === "overdrive" ? 2.5 : 1.0;
+      this._glitchLevel === "off" ? 0.0 : this._glitchLevel === "subtle" ? 0.4 : 0.9;
     for (const mat of this._glitchMaterials) {
       mat.properties["u_extraParams"] = new Float32Array([intensity, 0, 0, 0]);
     }
@@ -786,9 +778,9 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
       this._lblGlitch.textContent =
         this._glitchLevel === "off"
           ? "AUS"
-          : this._glitchLevel === "normal"
-            ? "Matrix Normal"
-            : "⚡ Cyberpunk Overdrive";
+          : this._glitchLevel === "subtle"
+            ? "Subtil (Dezent)"
+            : "Matrix Normal";
       this._lblGlitch.style.color = this._glitchLevel === "off" ? "#8a99ad" : "#39ff14";
     }
   }
