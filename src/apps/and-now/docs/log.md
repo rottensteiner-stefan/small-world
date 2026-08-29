@@ -703,6 +703,11 @@ befüllen.
   - Hardcodierte Mixamo-Präfix-Ersetzungen (`_MIXAMO_RIG_PREFIX_RE`) restlos aus dem Core-`GltfLoader` entfernt.
   - Generischer `nodeNameTransform?: (name: string) => string` Hook in [`GltfLoaderOptions`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/interfaces/LoaderOptions.ts) eingeführt; der glTF-Loader bleibt 100% standardkonform und agnostisch gegenüber App-spezifischen Rig-Nomenklaturen.
 
+## 74. Optionale Mixamo-Rig-Normalisierung per Schalter (`normalizeMixamoRig`) (2026-08-29)
+- **Komfort-Option:** [`GltfLoaderOptions`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/interfaces/LoaderOptions.ts) bietet nun den optionalen Schalter `normalizeMixamoRig?: boolean` (Default `false`).
+- **Verhalten:** Wenn aktiviert, werden numerische Mixamo-Präfixe (`mixamorig1:`, `mixamorig2:`) automatisch auf das Standard-Präfix `mixamorig:` gemappt, ohne dass die glTF-Spezifikation für andere Modelle kompromittiert wird.
+
+
 
 
 

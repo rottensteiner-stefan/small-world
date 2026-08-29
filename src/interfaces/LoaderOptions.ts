@@ -20,6 +20,8 @@ export interface ImageLoaderOptions extends LoaderOptions {
 export interface GltfLoaderOptions extends LoaderOptions {
   /** Optional transformation function applied to node names during glTF hierarchy parsing. */
   nodeNameTransform?: (name: string) => string;
+  /** Whether to normalize numeric Mixamo rig prefixes (e.g. "mixamorig1:" -> "mixamorig:"). Defaults to false. */
+  normalizeMixamoRig?: boolean;
   /** Maximum metallic factor (or [min, max] range) applied to parsed PBR materials. */
   clampMetallic?: number | [number, number];
   /** Maximum roughness factor (or [min, max] range) applied to parsed PBR materials. */

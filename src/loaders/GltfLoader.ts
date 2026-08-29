@@ -235,9 +235,13 @@ export class GltfLoader extends AbstractLoader<Object3D> {
         const nodeDef = json.nodes[i];
         if (!nodeDef) continue;
         const rawName = nodeDef.name || `Node_${i}`;
-        const name = this._gltfOptions.nodeNameTransform
-          ? this._gltfOptions.nodeNameTransform(rawName)
-          : rawName;
+        let name = rawName;
+        if (this._gltfOptions.normalizeMixamoRig) {
+          name = name.replace(/^mixamorig\d*:/, "mixamorig:");
+        }
+        if (this._gltfOptions.nodeNameTransform) {
+          name = this._gltfOptions.nodeNameTransform(name);
+        }
         const obj = jointNodeIndices.has(i) ? new Bone(name) : new Object3D(name);
         this._applyNodeTransforms(obj, nodeDef);
         nodeObjects[i] = obj;
