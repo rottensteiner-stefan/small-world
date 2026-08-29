@@ -242,6 +242,7 @@ class AndNowScene2 extends AbstractShowcase {
       // exakt dieses Rig, jeder Skin-Joint bekommt also garantiert Keyframes). Nur wenn ein
       // Charakter keine eingebetteten Clips hat, auf die externen Studio-Clips zurückfallen
       // (Achtung: diese sind auf ein reines Mixamo-Rig gebaut und passen nicht zu jedem Rig).
+      // 1. Eingebettete Clips laden, falls vorhanden
       this._clips.clear();
       if (0 < this._novotny.animations.length) {
         for (const clip of this._novotny.animations) {
@@ -250,7 +251,9 @@ class AndNowScene2 extends AbstractShowcase {
             this._clips.set(key, clip);
           }
         }
-      } else {
+      }
+      // 2. Fehlende Kern-Animationen (idle, walk) aus dem Shared Mocap Pool nachladen
+      if (!this._clips.has("idle") || !this._clips.has("walk")) {
         for (const [name, url] of Object.entries(ANIMATION_CLIP_URLS)) {
           try {
             const animClips = await gltfLoader.loadAnimations(url);
@@ -697,9 +700,9 @@ class AndNowScene2 extends AbstractShowcase {
     lantern.add(body);
 
     // Local offset and rotation within the left hand bone space:
-    // Shift from the wrist pivot into the palm/fingers (~9cm along hand axis)
-    lantern.position.set(0.01, 0.09, 0.02);
-    lantern.rotation.set(0, 0, Math.PI / 2);
+    // Shift from the wrist pivot into the palm/fingers and hang vertically down
+    lantern.position.set(0.01, 0.06, 0.02);
+    lantern.rotation.set(0, 0, 0);
 
     return lantern;
   }

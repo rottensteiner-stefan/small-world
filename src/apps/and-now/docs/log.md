@@ -685,6 +685,14 @@ befüllen.
   3. *Anisotropie & Mipmapping:* 16x Anisotropie eliminiert Weichzeichnungs-Artefakte bei schrägen Kamerawinkeln.
   4. *Transparenz- & Farbraum-Schutz:* `alphaMode = "OPAQUE"` verhindert den Mixamo-Glas-Bug; Normal-Maps als Non-Color Data geladen.
 
+## 71. Behebung: Skalierungs-Fix ($1.8\text{cm} \rightarrow 1.80\text{m}$) & Senkrechte Laternen-Ausrichtung (2026-08-29)
+- **Fehlerursachen & Lösungen:**
+  1. *Figur unsichtbar:* `fbx2gltf` skalierte den FBX-Export standardmäßig mit $0.01$ (cm nach m), wodurch die Figur nach dem Import nur $0.018\text{m}$ (1.8 cm) groß war und unter dem Laternen-Mesh verschwand. Zudem blockierte ein statischer 1-Frame-Dummy-Clip (`mixamo.com`) das Laden der Shared Studio-Clips.
+     - *Fix:* GLB-Rootnode auf $1.0\text{m}$ Netto-Höhe normalisiert (`Node 0` skaliert), Dummy-Animation entfernt und Fallback-Animation-Loader gehärtet.
+  2. *Laterne waagerecht:* In der Szene war noch eine starre 90°-Drehung aktiv, die für das alte T-Pose-Rig gedacht war.
+     - *Fix:* Ausrichtung im Hand-Socket auf `(0, 0, 0)` und Offset auf `(0.01, 0.06, 0.02)` korrigiert; Laterne hängt nun kerzengerade nach unten.
+
+
 
 
 

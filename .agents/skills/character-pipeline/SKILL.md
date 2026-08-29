@@ -157,15 +157,16 @@ tripo make src/apps/<app>/raw/mannequin/<char>/front.jpg --for game-mobile --par
 5. Datei ablegen unter:
    `src/apps/<app>/raw/mannequin/<char>/character_rigged.fbx`
 
-### 2. Automatischer Agent-Schritt (GLB-Konvertierung & Validierung)
+### 2. Automatischer Agent-Schritt (GLB-Konvertierung, Skalierung & Validierung)
 Sobald die geriggte `.fbx` in `raw/` liegt, konvertiert der Agent das Modell nach `.glb` und deployt es ins Runtime-Verzeichnis:
 ```bash
-# Konvertierung via fbx2gltf oder gltf-transform
-npx @gltf-transform/cli copy src/apps/<app>/raw/mannequin/<char>/character_rigged.fbx public/assets/<app>/mannequin/<char>/character.glb
+# 1. Konvertierung via fbx2gltf
+fbx2gltf -b -i src/apps/<app>/raw/mannequin/<char>/character_rigged.fbx -o public/assets/<app>/mannequin/<char>/character
 ```
-**Validierungs-Check:**
-- Knochenstruktur enthält saubere `mixamorig:Hips`, `mixamorig:LeftHand`, `mixamorig:RightHand`.
-- Bone-Anzahl liegt sicher bei $\le 65$ Joints.
+**Post-Processing & Validierung:**
+1. **Höhen-Normalisierung auf $1.0\text{m}$:** Mixamo-FBX exportiert in cm ($0.01$ Skalierungsfaktor), wodurch das Modell nach `fbx2gltf` nur $0.018\text{m}$ (1.8 cm) groß wäre. Der Root-Knoten (`Node 0`) wird skaliert, sodass die Netto-Höhe exakt $1.0\text{m}$ beträgt (damit `character.scale.set(1.8, 1.8, 1.8)` in der Engine exakt $1.80\text{m}$ Mensch-Höhe ergibt).
+2. **Entfernen des statischen 1-Frame-Mixamo-Clips:** `fbx2gltf` bittet einen Dummy-Clip namens `"mixamo.com"` ein. Dieser wird entfernt, damit Small World automatisch die Shared Studio Mocap Clips lädt.
+3. **Knochen-Check:** $\le 65$ Joints, saubere `mixamorig:*` Nomenklatur.
 
 ---
 
