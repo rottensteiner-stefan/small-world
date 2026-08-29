@@ -526,7 +526,7 @@ befüllen.
 ### 1. Bereinigungsarbeiten dieser Session
 - **`src/apps/and-now/raw/mannequin/`:**
   - Bereinigt: Verwaister Ordner `novotny-female-final.fbm/` restlos gelöscht.
-  - Erhalten: Alle 4 `.fbx`-Animationsclips (`ascending_stairs.fbx`, `idle.fbx`, `idle_torch.fbx`, `standing_torch_walk_forward.fbx`).
+  - Erhalten: Alle 4 `.fbx`-Animationsclips (`ascending_stairs.fbx`, `idle_1.fbx`, `idle_torch.fbx`, `standing_torch_walk_forward.fbx`).
   - Erhalten: Alle 7 *Space Girl* Konzept- und Model-Sheet-Bilder (`space-girl.png`, `space_girl_gamepad_action.jpg`, `space_girl_model_sheet.jpg`, `space_girl_standing_concept.jpg`, `space_girl_v2_gamepad.jpg`, `space_girl_v2_model_sheet.jpg`, `space_girl_v2_standing.jpg`).
 - **`src/apps/and-now/docs/assets/`:**
   - Bereinigt: 9 ungenutzte Dateien gelöscht (`tunnel_entrance_flakturm_empty.webp` Duplikat + 8 unreferenzierte T-Pose Turnaround-Dateien `novotny_[female|male]_tpose_[front|back|right|left].jpg`).
@@ -713,6 +713,17 @@ befüllen.
   - `onMaterialParsed?: (material: StandardMaterial, rawDef: Record<string, unknown>) => void`
   - `onParsed?: (root: Object3D) => void`
 - **Vorteil:** Ermöglicht beliebige Post-Processing-Pipelines (Shading-Härtung, Shader-Tausch, Bone-Mapping, Custom Properties) in Anwendungs-Code, ohne den Core-Loader zu verändern.
+
+## 76. Mocap-Animations-Pool (10 Clips) & Dynamische State-Machine aktiviert (2026-08-29)
+- **Asset-Pipeline:**
+  - Alle 10 Mixamo-Animationsdateien (`idle_1`, `idle_2`, `idle_torch`, `walking`, `walking_torch`, `running_1`, `running_2`, `running_torch`, `ascending_stairs`, `descending_stairs`) via `fbx2gltf` in optimierte Binary-GLBs (`20–87 KB`) konvertiert und unter [`public/assets/and-now/mannequin/shared/anim/`](file:///Users/srottensteiner/PhpstormProjects/small-world/public/assets/and-now/mannequin/shared/anim/) bereitgestellt.
+- **Engine-Locomotion ([`StageMovementBehavior.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/core/behaviors/StageMovementBehavior.ts)):**
+  - Neuer Zustand `"RUN"` und `runMultiplier: 2.2` integriert (aktiviert via `ShiftLeft` / `ShiftRight`).
+- **Showcase State-Machine ([`showcase.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/scenes/flakturm-tunnel/showcase.ts)):**
+  - *Idle:* Automatisches Überblenden zwischen `idle_1` und `idle_2` nach zufälligen Pausen bei ausgeschalteter Laterne; bei aktiver Laterne sofortiger Wechsel zu `idle_torch`.
+  - *Locomotion:* Dynamische Umschaltung zwischen `walk`/`run_1` (neutral) und `walk_torch`/`run_torch` (Laterne an).
+  - *Treppen:* Richtungsabhängige Erkennung in Zone C (`stairs_up` beim Hinaufsteigen, `stairs_down` beim Hinuntersteigen).
+
 
 
 

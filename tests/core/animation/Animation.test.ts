@@ -128,6 +128,30 @@ describe("Skeletal Animation System", () => {
     expect(skeleton.boneMatrices[13]).toBeCloseTo(5);
   });
 
+  it("should bind a track's mixamorigN: target name to a node with a differently-numbered mixamorig suffix", () => {
+    // Mixamo assigns its rig prefix's numeric suffix per export session, independent of which
+    // character was exported -- a rig and a shared animation clip pulled from separate sessions
+    // can carry different suffixes for what is otherwise the same joint.
+    const root = new Object3D("Character");
+    const hips = new Bone("mixamorig5:Hips");
+    root.add(hips);
+
+    const times = new Float32Array([0, 2.0]);
+    const track = new KeyframeTrack(
+      "mixamorig:Hips",
+      "translation",
+      times,
+      new Float32Array([0, 0, 0, 10, 0, 0]),
+    );
+    const clip = new AnimationClip("Walk", 2.0, [track]);
+
+    const mixer = new AnimationMixer(root);
+    mixer.clipAction(clip).play();
+    mixer.update(1.0); // Halfway to 2.0
+
+    expect(hips.position.x).toBeCloseTo(5);
+  });
+
   it("should warn when a skeleton exceeds the GPU skinning bone limit", () => {
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     const tooManyBones = Array.from(

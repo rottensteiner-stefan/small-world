@@ -27,24 +27,27 @@ const BACKGROUND_HEIGHT = 9;
 const BACKGROUND_CENTER_Y = 4.5;
 const BACKGROUND_Z = 0;
 
-/** Named animation clips shared by every Novotny skin. Add an entry here (and load the matching
+/** Named animation clips shared by every Player skin. Add an entry here (and load the matching
  * FBX2glTF-converted `.glb` under `public/assets/and-now/mannequin/shared/anim/`) to make a new
  * animation available via `_playAnimation`. */
 const ANIMATION_CLIP_URLS: Record<string, string> = {
-  idle: "/assets/and-now/mannequin/shared/anim/idle_torch.glb",
-  walk: "/assets/and-now/mannequin/shared/anim/walk_torch.glb",
-  stairs: "/assets/and-now/mannequin/shared/anim/ascending_stairs.glb",
+  // Idle variations
+  idle_1: "/assets/and-now/mannequin/shared/anim/idle_1.glb",
+  idle_2: "/assets/and-now/mannequin/shared/anim/idle_2.glb",
+  idle_torch: "/assets/and-now/mannequin/shared/anim/idle_torch.glb",
+  // Walk & Run (neutral)
+  walk: "/assets/and-now/mannequin/shared/anim/walking.glb",
+  run_1: "/assets/and-now/mannequin/shared/anim/running_1.glb",
+  run_2: "/assets/and-now/mannequin/shared/anim/running_2.glb",
+  // Walk & Run (with lantern / torch)
+  walk_torch: "/assets/and-now/mannequin/shared/anim/walking_torch.glb",
+  run_torch: "/assets/and-now/mannequin/shared/anim/running_torch.glb",
+  // Stairs
+  stairs_up: "/assets/and-now/mannequin/shared/anim/ascending_stairs.glb",
+  stairs_down: "/assets/and-now/mannequin/shared/anim/descending_stairs.glb",
 };
 
 const ANIMATION_FADE_SECONDS = 0.25;
-
-/** Maps Tripo retarget preset clip names (embedded in a character GLB rigged via the
- * `chain-v3` pipeline) to the internal animation keys used by `_playAnimation`. */
-const PRESET_CLIP_NAME_TO_KEY: Record<string, string> = {
-  "preset:idle": "idle",
-  "preset:walk": "walk",
-  "preset:climb": "stairs",
-};
 
 /** Left hand bone candidates the lantern (mesh + light) attaches to across different rigs */
 const LANTERN_HAND_BONE_NAMES = [
@@ -76,6 +79,9 @@ class AndNowScene2 extends AbstractShowcase {
   private _clips: Map<string, AnimationClip> = new Map();
   private _activeAnimation: string | undefined;
   private _fade: AnimationFade | undefined = undefined;
+  private _idleTimer: number = 0;
+  private _idleVariation: "idle_1" | "idle_2" = "idle_1";
+  private _idleSwitchDuration: number = 8.0;
   private _zoneBadgeEl: HTMLElement | null = null;
   private _charDescEl: HTMLElement | null = null;
   private _isFemale: boolean = false;
@@ -211,11 +217,9 @@ class AndNowScene2 extends AbstractShowcase {
   private async _loadCharacter(isFemale: boolean): Promise<void> {
     this._isFemale = isFemale;
     let currentUv = { u: 0.65, v: 0.85 };
-    let currentAnim = "idle";
 
     if (this._movementBehavior) {
       currentUv = this._movementBehavior.uv;
-      currentAnim = "WALK" === this._movementBehavior.state ? "walk" : "idle";
     }
 
     if (this._player) {
@@ -238,32 +242,17 @@ class AndNowScene2 extends AbstractShowcase {
       this._player = await gltfLoader.load(charModelUrl);
       this._player.scale.set(1.8, 1.8, 1.8);
 
-      // Bevorzugt Animationen nutzen, die direkt im GLB stecken (Tripo-Retarget lief gegen
-      // exakt dieses Rig, jeder Skin-Joint bekommt also garantiert Keyframes). Nur wenn ein
-      // Charakter keine eingebetteten Clips hat, auf die externen Studio-Clips zurückfallen
-      // (Achtung: diese sind auf ein reines Mixamo-Rig gebaut und passen nicht zu jedem Rig).
-      // 1. Eingebettete Clips laden, falls vorhanden
+      // 1. Alle Animationen aus dem Mocap-Pool laden
       this._clips.clear();
-      if (0 < this._player.animations.length) {
-        for (const clip of this._player.animations) {
-          const key = PRESET_CLIP_NAME_TO_KEY[clip.name];
-          if (key) {
-            this._clips.set(key, clip);
+      for (const [name, url] of Object.entries(ANIMATION_CLIP_URLS)) {
+        try {
+          const animClips = await gltfLoader.loadAnimations(url);
+          const clip = animClips[0];
+          if (clip) {
+            this._clips.set(name, clip);
           }
-        }
-      }
-      // 2. Fehlende Kern-Animationen (idle, walk) aus dem Shared Mocap Pool nachladen
-      if (!this._clips.has("idle") || !this._clips.has("walk")) {
-        for (const [name, url] of Object.entries(ANIMATION_CLIP_URLS)) {
-          try {
-            const animClips = await gltfLoader.loadAnimations(url);
-            const clip = animClips[0];
-            if (clip) {
-              this._clips.set(name, clip);
-            }
-          } catch (animErr) {
-            console.warn(`[AndNowScene2] Konnte Animation "${name}" nicht laden:`, animErr);
-          }
+        } catch (animErr) {
+          console.warn(`[AndNowScene2] Konnte Animation "${name}" nicht laden:`, animErr);
         }
       }
 
@@ -312,6 +301,7 @@ class AndNowScene2 extends AbstractShowcase {
       this._movementBehavior = new StageMovementBehavior({
         input: this.input,
         speed: 0.15,
+        runMultiplier: 2.2,
         rotationSpeed: 12.0,
         zones: this._stageZones,
         uvToWorld: (u: number, v: number): { x: number; y: number; z: number } =>
@@ -319,17 +309,10 @@ class AndNowScene2 extends AbstractShowcase {
         startUV: currentUv,
         onZoneChange: (zone: StageZone): void => {
           this._updateHUD(zone);
-          if (this._movementBehavior?.state === "WALK") {
-            this._playAnimation(zone.id === "zone_c" ? "stairs" : "walk");
-          }
+          this._syncActiveAnimation();
         },
-        onStateChange: (state: "IDLE" | "WALK"): void => {
-          if (state === "WALK") {
-            const isStairs = this._movementBehavior?.activeZone?.id === "zone_c";
-            this._playAnimation(isStairs ? "stairs" : "walk");
-          } else {
-            this._playAnimation("idle");
-          }
+        onStateChange: (_state: "IDLE" | "WALK" | "RUN"): void => {
+          this._syncActiveAnimation();
         },
       });
       this._playerRig.addBehavior(this._movementBehavior);
@@ -338,11 +321,7 @@ class AndNowScene2 extends AbstractShowcase {
         this._mixer = new AnimationMixer(this._player);
         this._activeAnimation = undefined;
         this._fade = undefined;
-        const startAnim =
-          currentAnim === "walk" && this._movementBehavior.activeZone?.id === "zone_c"
-            ? "stairs"
-            : currentAnim;
-        this._playAnimation(startAnim, { fadeSeconds: 0 });
+        this._syncActiveAnimation(0);
       }
 
       if (this._charDescEl) {
@@ -707,6 +686,38 @@ class AndNowScene2 extends AbstractShowcase {
     return lantern;
   }
 
+  /**
+   * Ermittelt anhand von Bewegungsstatus (IDLE, WALK, RUN), Laternenzustand
+   * und aktiver Zone (z. B. Treppe Auf/Ab) die exakt passende Animation.
+   */
+  private _resolveDesiredAnimation(): string {
+    const state = this._movementBehavior?.state ?? "IDLE";
+    const zone = this._movementBehavior?.activeZone;
+    const isStairs = zone?.id === "zone_c";
+    const isLantern = this._lanternOn;
+
+    if (state === "IDLE") {
+      return isLantern ? "idle_torch" : this._idleVariation;
+    }
+
+    if (isStairs) {
+      const isMovingDown = (this._movementBehavior?.moveForward ?? 0) < 0;
+      return isMovingDown ? "stairs_down" : "stairs_up";
+    }
+
+    if (state === "RUN") {
+      return isLantern ? "run_torch" : "run_1";
+    }
+
+    // state === "WALK"
+    return isLantern ? "walk_torch" : "walk";
+  }
+
+  private _syncActiveAnimation(fadeSeconds?: number): void {
+    const anim = this._resolveDesiredAnimation();
+    this._playAnimation(anim, fadeSeconds !== undefined ? { fadeSeconds } : undefined);
+  }
+
   /** Crossfades to the named clip from ANIMATION_CLIP_URLS. No-op if the clip hasn't been loaded
    * (e.g. not yet converted/dropped in) or is already the active animation. */
   private _playAnimation(name: string, opts?: { loop?: boolean; fadeSeconds?: number }): void {
@@ -785,8 +796,24 @@ class AndNowScene2 extends AbstractShowcase {
       this._lanternOn = !this._lanternOn;
       if (this._lanternGroup) this._lanternGroup.isVisible = this._lanternOn;
       this._pointLight.isVisible = this._lanternOn;
+      this._syncActiveAnimation();
     }
     this._lastLState = isLPressed;
+
+    // Idle-Variations-Timer (Wechsel zwischen idle_1 und idle_2 bei inaktiver Laterne)
+    if (this._movementBehavior?.state === "IDLE" && !this._lanternOn) {
+      this._idleTimer += deltaTime;
+      if (this._idleTimer >= this._idleSwitchDuration) {
+        this._idleTimer = 0;
+        this._idleVariation = this._idleVariation === "idle_1" ? "idle_2" : "idle_1";
+        this._idleSwitchDuration =
+          this._idleVariation === "idle_2" ? 3.5 : 7.0 + Math.random() * 5.0;
+        this._syncActiveAnimation(0.4);
+      }
+    } else {
+      this._idleTimer = 0;
+      this._idleVariation = "idle_1";
+    }
 
     // Toggle Charakter mit Taste 'C' (Männlich <-> Weiblich)
     const isCPressed = this.input.isPressed("KeyC");

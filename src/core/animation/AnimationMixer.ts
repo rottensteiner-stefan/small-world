@@ -5,6 +5,13 @@ import { AnimationClip } from "./AnimationClip.js";
 import { AnimationAction } from "./AnimationAction.js";
 import { TrackType } from "./KeyframeTrack.js";
 
+// Mixamo appends a session-dependent numeric suffix to its rig prefix ("mixamorig:" vs.
+// "mixamorig1:", "mixamorig2:", ...) unrelated to which character was exported -- a mesh and an
+// animation clip pulled from separate Mixamo export sessions can end up with different suffixes
+// on what is otherwise the same joint name. Stripping it from both sides before comparing (rather
+// than guessing a fixed list of candidate prefixes) matches regardless of either side's suffix.
+const MIXAMO_RIG_PREFIX_RE = /^mixamorig\d*:/;
+
 interface VectorContribution {
   value: Vector3D;
   weight: number;
@@ -79,11 +86,8 @@ export class AnimationMixer {
         if (target === undefined) {
           target = this.root.getObjectByName(track.targetName);
           if (!target) {
-            const normalized = track.targetName.replace(/^mixamorig\d*:/, "");
-            target =
-              this.root.getObjectByName(`mixamorig:${normalized}`) ??
-              this.root.getObjectByName(`mixamorig1:${normalized}`) ??
-              this.root.getObjectByName(normalized);
+            const normalized = track.targetName.replace(MIXAMO_RIG_PREFIX_RE, "");
+            target = this._findByNormalizedMixamoName(this.root, normalized);
           }
           this._bindings.set(track.targetName, target);
         }
@@ -122,6 +126,20 @@ export class AnimationMixer {
     for (const [target, contributions] of this._quatContributions) {
       this._applyBlendedQuaternion(target, contributions);
     }
+  }
+
+  /** Last-resort target lookup for a track name that didn't match any node exactly, and whose
+   * Mixamo rig prefix (if any) was already stripped into `normalized`. Walks the tree comparing
+   * each node's own name with its rig prefix stripped the same way, so it matches regardless of
+   * which numeric suffix (if any) the node's own name happens to carry -- see `MIXAMO_RIG_PREFIX_RE`'s
+   * comment for why a fixed list of candidate prefixes isn't enough. */
+  private _findByNormalizedMixamoName(node: Object3D, normalized: string): Object3D | undefined {
+    if (node.name.replace(MIXAMO_RIG_PREFIX_RE, "") === normalized) return node;
+    for (const child of node.children) {
+      const found = this._findByNormalizedMixamoName(child, normalized);
+      if (found) return found;
+    }
+    return undefined;
   }
 
   private _applyBlendedVector(

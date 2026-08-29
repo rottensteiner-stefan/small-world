@@ -17,23 +17,12 @@ export class FrustumCuller {
   /** The number of visible objects during the last cull operation. */
   public static lastVisibleCount: number = 0;
 
-  /** The objects that passed frustum culling during the last `cull()` call, for the same scene
-   * `lastVisibleCount` reflects. Cleared and repopulated every call, both octree and fallback
-   * paths. Debug/introspection utility only -- like `lastVisibleCount`/`lastIntersectedNodes`,
-   * this is `static` and shared page-wide, so if more than one `SmallWorld` instance is running
-   * (e.g. GadgetInspector's `MaterialStudioApp` preview panel alongside a showcase's own scene),
-   * whichever one's `cull()` ran most recently wins. `HzbOcclusionPassGPU` deliberately does NOT
-   * read this for that reason -- it derives its own scene-scoped candidate list instead (see
-   * `WebGPURenderer._collectHzbCandidates()`). */
-  public static lastVisibleObjects: Object3D[] = [];
-
   /**
    * Culls objects in the scene that are outside the camera frustum.
    */
   public static cull(scene: Scene, vpMatrix: Matrix4): number {
     this._frustum.setFromMatrix(vpMatrix);
     this.lastIntersectedNodes.clear();
-    this.lastVisibleObjects.length = 0;
 
     // Reset culling state for all objects
     this._resetCulling(scene.root);
@@ -47,7 +36,6 @@ export class FrustumCuller {
           const obj = this._queryHits[i] as Object3D;
           if (obj.isVisible) {
             obj.inFrustum = true;
-            this.lastVisibleObjects.push(obj);
           }
         }
       }
@@ -91,7 +79,6 @@ export class FrustumCuller {
     }
 
     const visible = obj.isVisible && obj.inFrustum;
-    if (visible) this.lastVisibleObjects.push(obj);
     let count = visible ? 1 : 0;
     for (let i: number = 0; i < obj.children.length; i++) {
       count += this._checkNode(obj.children[i]!);

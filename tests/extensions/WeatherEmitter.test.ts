@@ -93,7 +93,7 @@ describe("WeatherEmitter", () => {
     const emitter = new WeatherEmitter("Test", {
       count: 1,
       center: new Vector3D(0, 100, 0),
-      spawnArea: { width: 1000, depth: 1000, height: 1000 },
+      spawnArea: { width: 100000, depth: 100000, height: 100000 },
       fallSpeed: [0, 0],
       wind: new Vector3D(5, 0, 0),
       windGustiness: 0,

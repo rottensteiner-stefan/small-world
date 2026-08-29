@@ -1222,15 +1222,28 @@ export class WebGPURenderer extends AbstractRenderer {
   }
 
   /** Recursively collects `isVisible && inFrustum` descendants with a `bounds` sphere, scoped to
-   * one scene's own tree -- see `_dispatchHzbTest()`'s doc comment for why this doesn't read
-   * `FrustumCuller.lastVisibleObjects` instead. Mirrors `FrustumCuller._checkNode()`'s visibility
-   * condition exactly, minus the frustum test itself (already applied to `inFrustum` earlier this
-   * frame). Stops once `count` hits `MAX_HZB_TESTED_OBJECTS`. */
+   * one scene's own tree -- see `_dispatchHzbTest()`'s doc comment for why this walks `scene`
+   * directly instead of reading one of `FrustumCuller`'s static output fields. Mirrors
+   * `FrustumCuller._checkNode()`'s visibility condition exactly, minus the frustum test itself
+   * (already applied to `inFrustum` earlier this frame). Stops once `count` hits
+   * `MAX_HZB_TESTED_OBJECTS`.
+   *
+   * `obj.bounds` is only kept current by `Scene.updateDynamicOctree()`/`updateStaticOctree()`,
+   * which don't run unless the scene actually has octrees enabled -- otherwise the only thing
+   * that ever populates it is a one-off `computeBounds()` call (e.g. `GadgetInspector`'s
+   * constructor-time overview refresh, which runs before the object's first
+   * `updateMatrixWorld()`), leaving every candidate's world-space bounds frozen wherever it was
+   * at that moment. Recomputing here against the object's already-current-for-this-frame
+   * `worldMatrix` (updated earlier in `Scene.update()`) keeps the HZB test correct regardless of
+   * whether octrees are in use. */
   private _collectHzbCandidates(obj: Object3D, out: Object3D[], count: number): number {
     if (count >= MAX_HZB_TESTED_OBJECTS) return count;
-    if (obj.isVisible && obj.inFrustum && obj.bounds) {
-      out.push(obj);
-      count++;
+    if (obj.isVisible && obj.inFrustum) {
+      if (obj.geometry) obj.computeBounds();
+      if (obj.bounds) {
+        out.push(obj);
+        count++;
+      }
     }
     for (let i = 0; i < obj.children.length && count < MAX_HZB_TESTED_OBJECTS; i++) {
       count = this._collectHzbCandidates(obj.children[i]!, out, count);
@@ -1245,12 +1258,12 @@ export class WebGPURenderer extends AbstractRenderer {
    * isn't still waiting on a previous `mapAsync()`.
    *
    * The candidate list is derived by walking `scene` directly (`isVisible && inFrustum`, same
-   * condition `FrustumCuller`'s own fallback path uses) rather than reading
-   * `FrustumCuller.lastVisibleObjects` -- that field is `static`, so any other concurrently
-   * running `SmallWorld` instance on the page (e.g. GadgetInspector's `MaterialStudioApp`
-   * preview panel, which runs its own `_loop()`/`FrustumCuller.cull()` on its own tiny scene)
-   * clobbers it before this renderer gets to read it. Walking `scene` here keeps the candidate
-   * list scoped to the scene actually being rendered, independent of that shared static state.
+   * condition `FrustumCuller`'s own fallback path uses) rather than reading any of
+   * `FrustumCuller`'s output fields -- those are `static`, so any other concurrently running
+   * `SmallWorld` instance on the page (e.g. GadgetInspector's `MaterialStudioApp` preview panel,
+   * which runs its own `_loop()`/`FrustumCuller.cull()` on its own tiny scene) clobbers them
+   * before this renderer gets to read them. Walking `scene` here keeps the candidate list scoped
+   * to the scene actually being rendered, independent of that shared static state.
    *
    * Only one slot is ever in flight at a time (the two alternate every frame -- see
    * `_hzbStagingBuffers`'s doc comment); if THAT slot is still pending, this frame's test is

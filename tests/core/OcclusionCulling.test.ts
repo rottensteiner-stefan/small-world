@@ -59,29 +59,29 @@ describe("Scene._collectVisible: Hierarchical-Z occlusion gate", () => {
   });
 });
 
-describe("FrustumCuller.lastVisibleObjects (fallback path, no octree)", () => {
-  it("collects exactly the objects that end up visible+inFrustum", () => {
+describe("FrustumCuller.cull (fallback path, no octree)", () => {
+  it("marks exactly the objects that end up visible+inFrustum", () => {
     const scene = new Scene();
     const a = makeDrawable("A");
     const b = makeDrawable("B");
     b.isVisible = false;
     scene.add(a, b);
 
-    FrustumCuller.cull(scene, new Matrix4());
+    const count = FrustumCuller.cull(scene, new Matrix4());
 
-    expect(FrustumCuller.lastVisibleObjects).toContain(a);
-    expect(FrustumCuller.lastVisibleObjects).not.toContain(b);
+    expect(count).toBe(1);
+    expect(a.inFrustum).toBe(true);
   });
 
-  it("clears the list at the start of every call", () => {
+  it("resets lastVisibleCount to 0 for an empty scene", () => {
     const scene = new Scene();
     const a = makeDrawable("A");
     scene.add(a);
     FrustumCuller.cull(scene, new Matrix4());
-    expect(FrustumCuller.lastVisibleObjects.length).toBeGreaterThan(0);
+    expect(FrustumCuller.lastVisibleCount).toBeGreaterThan(0);
 
     const emptyScene = new Scene();
     FrustumCuller.cull(emptyScene, new Matrix4());
-    expect(FrustumCuller.lastVisibleObjects).toHaveLength(0);
+    expect(FrustumCuller.lastVisibleCount).toBe(0);
   });
 });

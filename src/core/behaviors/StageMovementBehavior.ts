@@ -19,6 +19,8 @@ export interface StageMovementBehaviorOptions {
   input: InputInterface;
   /** Movement speed in normalized stage-space (u, v) units per second (default: 0.15). */
   speed?: number;
+  /** Speed multiplier when holding Shift to run (default: 2.0). */
+  runMultiplier?: number;
   /** Rotation smoothing speed in radians per second (default: 10.0). */
   rotationSpeed?: number;
   /** Walkable stage zones defining the navigation mesh, in normalized (u, v) space. */
@@ -32,8 +34,8 @@ export interface StageMovementBehaviorOptions {
   uvToWorld: (u: number, v: number) => StageWorldPlacement;
   /** Starting stage-space position (default: `{ u: 0.5, v: 0.5 }`). */
   startUV?: { u: number; v: number };
-  /** Callback fired when character transitions between IDLE and WALK. */
-  onStateChange?: (state: "IDLE" | "WALK") => void;
+  /** Callback fired when character transitions between locomotion states. */
+  onStateChange?: (state: "IDLE" | "WALK" | "RUN") => void;
   /** Callback fired when character moves into a different stage zone. */
   onZoneChange?: (zone: StageZone) => void;
 }
@@ -48,17 +50,19 @@ export interface StageMovementBehaviorOptions {
 export class StageMovementBehavior extends Behavior {
   public enabled: boolean = true;
   public speed: number;
+  public runMultiplier: number;
   public rotationSpeed: number;
   public zones: StageZone[];
   public activeZone: StageZone | undefined;
-  public onStateChange: ((state: "IDLE" | "WALK") => void) | undefined;
+  public onStateChange: ((state: "IDLE" | "WALK" | "RUN") => void) | undefined;
   public onZoneChange: ((zone: StageZone) => void) | undefined;
+  public moveForward: number = 0;
 
   private _input: InputInterface;
   private _uvToWorld: (u: number, v: number) => StageWorldPlacement;
   private _u: number;
   private _v: number;
-  private _state: "IDLE" | "WALK" = "IDLE";
+  private _state: "IDLE" | "WALK" | "RUN" = "IDLE";
   private _targetAngle: number = 0;
   private _initialized: boolean = false;
 
@@ -66,6 +70,7 @@ export class StageMovementBehavior extends Behavior {
     super();
     this._input = options.input;
     this.speed = options.speed ?? 0.15;
+    this.runMultiplier = options.runMultiplier ?? 2.0;
     this.rotationSpeed = options.rotationSpeed ?? 10.0;
     this.zones = options.zones ?? [];
     this._uvToWorld = options.uvToWorld;
@@ -75,7 +80,7 @@ export class StageMovementBehavior extends Behavior {
     this.onZoneChange = options.onZoneChange;
   }
 
-  public get state(): "IDLE" | "WALK" {
+  public get state(): "IDLE" | "WALK" | "RUN" {
     return this._state;
   }
 
@@ -110,12 +115,15 @@ export class StageMovementBehavior extends Behavior {
     let moveForward = 0;
     if (this._input.isPressed(Keys.W) || this._input.isPressed(Keys.UP)) moveForward += 1;
     if (this._input.isPressed(Keys.S) || this._input.isPressed(Keys.DOWN)) moveForward -= 1;
+    this.moveForward = moveForward;
 
     const lenSq = moveRight * moveRight + moveForward * moveForward;
     const isMoving = lenSq > 0.01;
+    const isRunning =
+      isMoving && (this._input.isPressed(Keys.SHIFT_L) || this._input.isPressed(Keys.SHIFT_R));
 
     // 2. Handle Locomotion State
-    const nextState = isMoving ? "WALK" : "IDLE";
+    const nextState = isRunning ? "RUN" : isMoving ? "WALK" : "IDLE";
     if (nextState !== this._state) {
       this._state = nextState;
       this.onStateChange?.(this._state);
@@ -133,9 +141,11 @@ export class StageMovementBehavior extends Behavior {
       const dirU = axes.right.u * localRight + axes.forward.u * localForward;
       const dirV = axes.right.v * localRight + axes.forward.v * localForward;
 
+      const currentSpeed = this.speed * (isRunning ? this.runMultiplier : 1.0);
+
       // 3. Calculate desired next stage-space position
-      const desiredU = this._u + dirU * this.speed * deltaTime;
-      const desiredV = this._v + dirV * this.speed * deltaTime;
+      const desiredU = this._u + dirU * currentSpeed * deltaTime;
+      const desiredV = this._v + dirV * currentSpeed * deltaTime;
 
       // 4. Zone containment and slide collision check. A move that lands just outside every
       // zone (but within the edge tolerance) is clamped onto the nearest zone's own boundary
