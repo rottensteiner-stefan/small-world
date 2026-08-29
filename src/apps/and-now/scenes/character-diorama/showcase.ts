@@ -178,20 +178,20 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
       }),
     );
 
-    // 1. Lighting Setup
-    const ambientLight = new DirectionalLight({ color: new Color(0.14, 0.16, 0.22) });
-    ambientLight.intensity = 0.45;
-    ambientLight.position.set(-2, 5, -2);
+    // 1. Studio & Stage Lighting
+    const ambientLight = new DirectionalLight({ color: new Color(0.24, 0.26, 0.32) });
+    ambientLight.intensity = 0.65;
+    ambientLight.position.set(0, 6, 2);
     this.scene.add(ambientLight);
 
-    const keySpot = new PointLight({ color: new Color(1.0, 0.9, 0.72) });
-    keySpot.intensity = 2.4;
-    keySpot.distance = 10.0;
-    keySpot.position.set(1.8, 3.5, 2.2);
+    const keySpot = new PointLight({ color: new Color(1.0, 0.92, 0.78) });
+    keySpot.intensity = 2.8;
+    keySpot.distance = 12.0;
+    keySpot.position.set(2.2, 3.8, 2.6);
     this.scene.add(keySpot);
 
     const cyberRimLight = new PointLight({ color: new Color(0.0, 0.85, 1.0) });
-    cyberRimLight.intensity = 1.6;
+    cyberRimLight.intensity = 1.8;
     cyberRimLight.distance = 8.0;
     cyberRimLight.position.set(-2.5, 2.0, -2.5);
     this.scene.add(cyberRimLight);
@@ -202,6 +202,7 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
 
     this._buildDioramaCorner();
     this._buildIndustrialPipes();
+    this._buildConstructionLamps();
     this._buildStreetProps();
     this._buildCornerRat();
 
@@ -352,9 +353,129 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
     root.add(elbow);
   }
 
+  private _buildConstructionLamps(): void {
+    const root = this._dioramaRoot!;
+
+    // 1. Baulampe an der linken Wand (strahlt schräg nach vorne/rechts auf den Charakter)
+    const lamp1 = this._createConstructionLamp(
+      "Baulampe_LeftWall",
+      new Color(1.0, 0.86, 0.62),
+      3.4,
+    );
+    lamp1.position.set(-1.96, 2.4, -0.3);
+    lamp1.rotation.y = Math.PI / 4;
+    lamp1.rotation.x = 0.22;
+    root.add(lamp1);
+
+    // 2. Baulampe an der Rückwand (strahlt schräg nach vorne/links auf den Charakter)
+    const lamp2 = this._createConstructionLamp("Baulampe_BackWall", new Color(1.0, 0.9, 0.68), 3.4);
+    lamp2.position.set(0.85, 2.45, -1.96);
+    lamp2.rotation.y = -Math.PI / 4;
+    lamp2.rotation.x = 0.22;
+    root.add(lamp2);
+  }
+
+  private _createConstructionLamp(
+    name: string,
+    lightColor: Color,
+    lightIntensity: number,
+  ): Object3D {
+    const lamp = new Object3D(name);
+    const yellowHousingMat = new StandardMaterial({
+      color: new Color(0.95, 0.62, 0.04),
+      roughness: 0.45,
+      metallic: 0.1,
+    });
+    const darkMetalMat = new StandardMaterial({
+      color: new Color(0.18, 0.2, 0.22),
+      roughness: 0.35,
+      metallic: 0.85,
+    });
+    const bulbGlowMat = new StandardMaterial({
+      color: new Color(1.0, 0.96, 0.82),
+      roughness: 0.1,
+    });
+
+    // Wandhalterung
+    const bracket = new Object3D("WallBracket");
+    bracket.geometry = new Cube({ size: 1.0 }).getGeometryData();
+    bracket.scale.set(0.08, 0.16, 0.08);
+    bracket.material = darkMetalMat;
+    bracket.position.set(0, 0, -0.1);
+    lamp.add(bracket);
+
+    const arm = new Object3D("SupportArm");
+    arm.geometry = new Cylinder({
+      radiusTop: 0.016,
+      radiusBottom: 0.016,
+      height: 0.18,
+      radialSegments: 8,
+    }).getGeometryData();
+    arm.material = darkMetalMat;
+    arm.rotation.x = Math.PI / 2;
+    arm.position.set(0, 0, -0.04);
+    lamp.add(arm);
+
+    // Gelbes Baulampen-Gehäuse
+    const housing = new Object3D("LampHousing");
+    housing.geometry = new Cube({ size: 1.0 }).getGeometryData();
+    housing.scale.set(0.26, 0.22, 0.15);
+    housing.material = yellowHousingMat;
+    housing.position.set(0, 0, 0.05);
+    lamp.add(housing);
+
+    // Schutzbügel / Henkel
+    const handle = new Object3D("CageHandle");
+    handle.geometry = new Torus({
+      radius: 0.09,
+      tube: 0.01,
+      radialSegments: 8,
+      tubularSegments: 16,
+    }).getGeometryData();
+    handle.material = darkMetalMat;
+    handle.position.set(0, 0.12, 0.05);
+    lamp.add(handle);
+
+    // Leuchtendes Halogen-Glas / Reflektor
+    const bulb = new Object3D("HalogenBulb");
+    bulb.geometry = new Sphere({
+      radius: 0.065,
+      widthSegments: 12,
+      heightSegments: 10,
+    }).getGeometryData();
+    bulb.scale.set(1.4, 1.1, 0.4);
+    bulb.material = bulbGlowMat;
+    bulb.position.set(0, 0, 0.13);
+    lamp.add(bulb);
+
+    // Kräftiges Punktlicht für intensive Beleuchtung
+    const light = new PointLight({ color: lightColor });
+    light.intensity = lightIntensity;
+    light.distance = 9.5;
+    light.position.set(0, 0, 0.22);
+    lamp.add(light);
+
+    // Schwarzes Stromkabel nach unten
+    const cable = new Object3D("PowerCable");
+    cable.geometry = new Cylinder({
+      radiusTop: 0.009,
+      radiusBottom: 0.009,
+      height: 2.0,
+      radialSegments: 6,
+    }).getGeometryData();
+    cable.material = darkMetalMat;
+    cable.position.set(0, -1.0, -0.08);
+    lamp.add(cable);
+
+    return lamp;
+  }
+
   private _buildStreetProps(): void {
     const root = this._dioramaRoot!;
-    const woodMat = new StandardMaterial({ color: new Color(0.42, 0.28, 0.16), roughness: 0.8 });
+    const woodMat = new StandardMaterial({
+      color: new Color(0.42, 0.28, 0.16),
+      roughness: 0.8,
+    });
     const metalMat = new StandardMaterial({
       color: new Color(0.22, 0.25, 0.28),
       metallic: 0.7,
@@ -427,8 +548,14 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
 
   private _buildCornerRat(): void {
     const root = this._dioramaRoot!;
-    const ratMat = new StandardMaterial({ color: new Color(0.25, 0.22, 0.2), roughness: 0.9 });
-    const pinkMat = new StandardMaterial({ color: new Color(0.85, 0.55, 0.55), roughness: 0.5 });
+    const ratMat = new StandardMaterial({
+      color: new Color(0.25, 0.22, 0.2),
+      roughness: 0.9,
+    });
+    const pinkMat = new StandardMaterial({
+      color: new Color(0.85, 0.55, 0.55),
+      roughness: 0.5,
+    });
     const eyeMat = new StandardMaterial({ color: new Color(1.0, 0.1, 0.1) });
 
     const ratRoot = new Object3D("RatRoot");
@@ -551,7 +678,9 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
       if (handBone) {
         if (!this._lanternGroup) {
           this._lanternGroup = this._buildLanternMesh();
-          this._lanternPointLight = new PointLight({ color: new Color(1.0, 0.8, 0.4) });
+          this._lanternPointLight = new PointLight({
+            color: new Color(1.0, 0.8, 0.4),
+          });
           this._lanternPointLight.intensity = 1.8;
           this._lanternPointLight.distance = 4.5;
           this._lanternPointLight.position.set(0, -0.16, 0);
@@ -583,10 +712,16 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
       metallic: 0.8,
       roughness: 0.3,
     });
-    const glowGlassMat = new StandardMaterial({ color: new Color(1.0, 0.9, 0.6) });
+    const glowGlassMat = new StandardMaterial({
+      color: new Color(1.0, 0.9, 0.6),
+    });
 
     const handle = new Object3D("LanternHandle");
-    handle.geometry = new Torus({ radius: 0.06, tube: 0.008, radialSegments: 8 }).getGeometryData();
+    handle.geometry = new Torus({
+      radius: 0.06,
+      tube: 0.008,
+      radialSegments: 8,
+    }).getGeometryData();
     handle.material = brassMat;
     lantern.add(handle);
 
