@@ -129,9 +129,14 @@ tripo make src/apps/<app>/raw/mannequin/<char>/front.jpg --for game-mobile --par
 ```
 
 ### 2. Automatisches Mixamo-Packaging (`base_model.glb` ➔ `.zip`)
-> **🚨 WARUM DIESER SCHRITT NÖTIG IST:** Tripo's FBX-Konverter exportiert Root-Knoten, die Mixamo als fehlerhaftes, unvollständiges Skelett fehlinterpretiert (*„unable to map your existing skeleton“*). Zudem unterstützt Mixamo Web kein GLB.
+> **🚨 WARUM DIESER SCHRITT NÖTIG IST:**
+> 1. **Skelett-Fehlinterpretation:** Tripo's FBX-Konverter exportiert Root-Knoten, die Mixamo als fehlerhaftes Skelett fehlinterpretiert (*„unable to map your existing skeleton“*). GLB wird von Mixamo Web nicht unterstützt.
+> 2. **Boden-Ausrichtung (Ground-Plane $Y=0$):** Tripo zentriert Modelle um den Ursprung $(0,0,0)$ ($Y \in [-0.5, +0.5]$), wodurch die Hüfte bei $Y=0$ liegt und die Beine unter dem Mixamo-Boden versinken.
 >
-> Der Agent konvertiert `base_model.glb` automatisch in ein sauberes **Wavefront OBJ** (`model.obj` + `model.mtl` + `texture.jpg`) und packt es als `<char>_mixamo.zip`. Dadurch erkennt Mixamo das Modell garantiert als ungeriggtes statisches Mesh und öffnet zuverlässig den 5-Punkte-Auto-Rigger.
+> **Der automatische Konvertierungs-Standard:**
+> - Konvertiert `base_model.glb` in ein sauberes **Wavefront OBJ** (`model.obj` + `model.mtl` + `texture.jpg`).
+> - **Ground-Plane Normalisierung:** Verschiebt alle Vertices so, dass die Fußsohlen exakt auf $Y = 0.00$ aufsitzen ($y' = y - minY$) und skaliert die Figur auf $1.80\text{m}$.
+> - Bündelt alles in `<char>_mixamo.zip`. Dadurch steht der Charakter aufrecht auf dem Mixamo-Boden und der 5-Punkte-Auto-Rigger funktioniert perfekt.
 
 ---
 

@@ -659,6 +659,14 @@ befüllen.
   - Mixamo lädt das Zip-Paket mit voller Textur und startet zuverlässig den 5-Punkte-Auto-Rigger.
 - **Skill- & ADR-Update:** [`.agents/skills/character-pipeline/SKILL.md`](file:///Users/srottensteiner/PhpstormProjects/small-world/.agents/skills/character-pipeline/SKILL.md) und [`docs/adr/0009-character-pipeline-and-mixamo-rigging-standard.md`](file:///Users/srottensteiner/PhpstormProjects/small-world/docs/adr/0009-character-pipeline-and-mixamo-rigging-standard.md) aktualisiert.
 
+## 68. Mixamo Ground-Plane Normalisierung ($Y=0.00$) (2026-08-29)
+- **Fehlerursache (`img_1.png`):** Tripo zentrierte das generierte Mesh symmetrisch um den Ursprung ($Y \in [-0.5, +0.5]$). Da Mixamos Bodenebene bei $Y=0.00$ liegt, steckte die Hüfte bei $Y=0$ und alle Beine/Stiefel lagen unter dem Mixamo-Boden.
+- **Lösung:** Automatische Vertex-Translation im OBJ-Exporter:
+  - $y' = (y - minY) \times \text{scale}$ (Fußsohlen exakt auf $Y = 0.00$).
+  - Skalierung auf $1.80\text{m}$ Normalhöhe und $X/Z$-Zentrierung.
+- **Ergebnis:** [`novotny_male_mixamo.zip`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/raw/mannequin/novotny-male/novotny_male_mixamo.zip) und [`novotny_female_mixamo.zip`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/raw/mannequin/novotny-female/novotny_female_mixamo.zip) neu gepackt; Figuren stehen vollständig und aufrecht auf der Mixamo-Gitterebene.
+
+
 
 
 
