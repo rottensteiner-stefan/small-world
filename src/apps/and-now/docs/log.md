@@ -678,6 +678,14 @@ befüllen.
   - [`public/assets/and-now/mannequin/novotny-female/character.glb`](file:///Users/srottensteiner/PhpstormProjects/small-world/public/assets/and-now/mannequin/novotny-female/character.glb) (1.6 MB)
 - **Status:** Beide Charaktere sind sofort spielbar in allen Szenen (`flakturm-tunnel` & `prologue`), mit funktionierendem Laternen-Socket (`mixamorig:LeftHand`) und fließendem Animation-Crossfading.
 
+## 70. High-Fidelity Textur- & Material-Strategie integriert (2026-08-29)
+- **4 Profi-Säulen im Skill ([`SKILL.md`](file:///Users/srottensteiner/PhpstormProjects/small-world/.agents/skills/character-pipeline/SKILL.md)) verankert:**
+  1. *Entkopplung von Rig und Textur:* Mixamo dient ausschließlich als Armature/Weight-Calculator; unkomprimierte 2K-Originaltexturen werden direkt in die finale `character.glb` re-injiziert.
+  2. *PBR- & Graphic-Noir Härtung:* `clampMetallic: 0.2`, `clampRoughness: [0.3, 1.0]` schützt vor überhöhten Glanzwerten.
+  3. *Anisotropie & Mipmapping:* 16x Anisotropie eliminiert Weichzeichnungs-Artefakte bei schrägen Kamerawinkeln.
+  4. *Transparenz- & Farbraum-Schutz:* `alphaMode = "OPAQUE"` verhindert den Mixamo-Glas-Bug; Normal-Maps als Non-Color Data geladen.
+
+
 
 
 

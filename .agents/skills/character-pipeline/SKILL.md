@@ -262,6 +262,29 @@ if (handBone) {
 }
 ```
 
+---
+
+## 🍳 Rezept 6: High-Fidelity Textur- & Material-Architektur (Profi-Standard)
+
+Um maximale Bildschärfe und Texturqualität bei Mixamo-gestützten Charakteren sicherzustellen, befolgt die Engine 4 fundamentale Prinzipien:
+
+### 1. Entkopplung von Rig und Textur (Keine Mixamo-Re-Kompression)
+* **Prinzip:** Mixamo wird **ausschließlich als Knochen- und Gewichtungs-Rechner** genutzt.
+* **Pipeline-Garantie:** Die in Mixamo Web sichtbare WebGL-Vorschau ist stark komprimiert und unvollständig. Unser Konvertierungs-Skript re-injiziert beim Erzeugen der finalen `character.glb` immer die unkomprimierte 2K-Originaltextur (`texture.jpg`) aus dem Quell-Modell, sodass null Qualitätsverlust durch den Mixamo-Server entsteht.
+
+### 2. PBR- & Graphic-Noir Material-Härtung
+* **Metallic & Roughness Clamping:** Tripo neigt dazu, Kunststoff- und Stoff-Flächen mit zu hohen Metallic-Werten zu versehen. Der `GltfLoader` drosselt diese via `clampMetallic: 0.2` und `clampRoughness: [0.3, 1.0]`.
+* **Graphic-Noir Pipeline:** Für stilisierte Comic-/Noir-Welten wird die Albedo-Map via `BasicMaterial` mit dynamischem Kerosinlampen-Licht (`PointLight`) und Kanten-Shadern kombiniert, wodurch feine Inking-Linien selbst in Bewegung gestochen scharf bleiben.
+
+### 3. Textur-Filterung & Anisotropie (Anti-Blur)
+* Im WebGL2/WebGPU Renderer müssen Texturen zwingend mit Mipmaps (`generateMipmaps = true`) und maximaler anisotroper Filterung (`TEXTURE_MAX_ANISOTROPY_EXT` bis 16x) gerendert werden, um Unschärfe bei flachen Kamerawinkeln (Isometrie, Guckkasten-Schräge) zu eliminieren.
+
+### 4. Transparenz- & Normal-Map-Schutz
+* **Transparenz-Schutz:** Der Material-Loader forciert für Charakter-Körper standardmäßig `alphaMode = "OPAQUE"`, um den berüchtigten Mixamo-Fehler zu verhindern, bei dem Kleidung oder Hautteile fälschlicherweise als gläsern oder halbtransparent gerendert werden.
+* **Non-Color Normal Data:** Normal-Maps werden strikt im linearen Farbraum (Non-Color Data) interpretiert, um blockige Schattierungs-Artefakte zu verhindern.
+
+---
+
 ### 4. AnimationMixer & Cross-Fading
 ```typescript
 import { AnimationMixer, AnimationClip, AnimationAction } from "small-world";
