@@ -666,6 +666,19 @@ befüllen.
   - Skalierung auf $1.80\text{m}$ Normalhöhe und $X/Z$-Zentrierung.
 - **Ergebnis:** [`novotny_male_mixamo.zip`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/raw/mannequin/novotny-male/novotny_male_mixamo.zip) und [`novotny_female_mixamo.zip`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/raw/mannequin/novotny-female/novotny_female_mixamo.zip) neu gepackt; Figuren stehen vollständig und aufrecht auf der Mixamo-Gitterebene.
 
+## 69. FBX ➔ GLB Konvertierung & Runtime-Deployment von Adam & Eva (2026-08-29)
+- **Mixamo Skelett-Integration:**
+  - `character_rigged.fbx` für Mann und Frau via `fbx2gltf` nach Binary glTF (`character.glb`) konvertiert.
+  - **Skelett-Validierung:**
+    - Mann: 40 Gelenke (`mixamorig:*`), inklusive voller Hand- und Fingerknochen.
+    - Frau: 28 Gelenke (`mixamorig:*`), saubere Biped-Hierarchie.
+    - Beide liegen sicher unter dem 64-Bone WebGL2 Shader-Limit.
+- **Runtime-Deployment:**
+  - [`public/assets/and-now/mannequin/novotny-male/character.glb`](file:///Users/srottensteiner/PhpstormProjects/small-world/public/assets/and-now/mannequin/novotny-male/character.glb) (1.6 MB)
+  - [`public/assets/and-now/mannequin/novotny-female/character.glb`](file:///Users/srottensteiner/PhpstormProjects/small-world/public/assets/and-now/mannequin/novotny-female/character.glb) (1.6 MB)
+- **Status:** Beide Charaktere sind sofort spielbar in allen Szenen (`flakturm-tunnel` & `prologue`), mit funktionierendem Laternen-Socket (`mixamorig:LeftHand`) und fließendem Animation-Crossfading.
+
+
 
 
 
