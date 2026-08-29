@@ -347,6 +347,7 @@ class AndNowScene2 extends AbstractShowcase {
         // which one actually shows the character's front. See StageMovementBehaviorOptions
         // .facingOffset's doc comment.
         facingOffset: Math.PI / 2,
+        startFacing: "left",
         zones: this._stageZones,
         uvToWorld: (u: number, v: number): { x: number; y: number; z: number } =>
           this._uvToWorld(u, v),
@@ -945,16 +946,17 @@ class AndNowScene2 extends AbstractShowcase {
       const timeStr = action ? action.time.toFixed(2) : "0.00";
 
       // Orientierung / Blickrichtung berechnen (0..360 Grad)
+      // Visual convention: 0° = Rechts, 90° = Hinten (Tunnel), 180° = Links, 270° = Vorne (Kamera)
       const rawDeg = ((this._playerRig.rotation.y * 180) / Math.PI) % 360;
       const deg = (rawDeg + 360) % 360;
       let dirName: string;
-      if (deg >= 337.5 || deg < 22.5) dirName = "⬆️ HINTEN (Tiefe/Tunnel)";
+      if (deg >= 67.5 && deg < 112.5) dirName = "⬆️ HINTEN (in den Tunnel)";
       else if (deg >= 22.5 && deg < 67.5) dirName = "↗️ HINTEN-RECHTS";
-      else if (deg >= 67.5 && deg < 112.5) dirName = "➡️ RECHTS";
-      else if (deg >= 112.5 && deg < 157.5) dirName = "↘️ VORNE-RECHTS";
-      else if (deg >= 157.5 && deg < 202.5) dirName = "⬇️ VORNE (Kamera)";
+      else if (deg >= 337.5 || deg < 22.5) dirName = "➡️ RECHTS";
+      else if (deg >= 292.5 && deg < 337.5) dirName = "↘️ VORNE-RECHTS";
+      else if (deg >= 247.5 && deg < 292.5) dirName = "⬇️ VORNE (zur Kamera)";
       else if (deg >= 202.5 && deg < 247.5) dirName = "↙️ VORNE-LINKS";
-      else if (deg >= 247.5 && deg < 292.5) dirName = "⬅️ LINKS";
+      else if (deg >= 157.5 && deg < 202.5) dirName = "⬅️ LINKS";
       else dirName = "↖️ HINTEN-LINKS";
 
       this._tagTitleEl.textContent = `[${this._characterType.toUpperCase()}] ▶ ${this._activeAnimation ?? "none"} (t=${timeStr}s)`;

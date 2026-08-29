@@ -48,6 +48,7 @@ export interface StageMovementBehaviorOptions {
    * observing which one actually shows the character's front. Defaults to 0 (no correction
    * needed) for a rig that IS authored facing -Z. */
   facingOffset?: number;
+  startFacing?: "left" | "right" | "front" | "back";
 }
 
 /**
@@ -73,6 +74,7 @@ export class StageMovementBehavior extends Behavior {
   private _uvToWorld: (u: number, v: number) => StageWorldPlacement;
   private _u: number;
   private _v: number;
+  private _startFacing: "left" | "right" | "front" | "back";
   private _state: "IDLE" | "WALK" | "RUN" = "IDLE";
   private _targetAngle: number = 0;
   private _initialized: boolean = false;
@@ -88,6 +90,7 @@ export class StageMovementBehavior extends Behavior {
     this._uvToWorld = options.uvToWorld;
     this._u = options.startUV?.u ?? 0.5;
     this._v = options.startUV?.v ?? 0.5;
+    this._startFacing = options.startFacing ?? "front";
     this.onStateChange = options.onStateChange;
     this.onZoneChange = options.onZoneChange;
   }
@@ -112,11 +115,15 @@ export class StageMovementBehavior extends Behavior {
       this._initialized = true;
       this.activeZone = this._findZone(this._u, this._v) ?? this.zones[0];
       this._applyPlacement(obj);
-      // Face the camera by default (the same "facing +Z" case `_targetAngle`'s formula would
-      // produce for a worldDx=0, depthDelta=+1 "coming toward camera" move: `atan2(-0,-1) = π`)
-      // rather than leaving `rotation.y` at its unset default of 0, which -- before accounting
-      // for `facingOffset` -- faces directly away from the camera.
-      this._targetAngle = Math.PI + this.facingOffset;
+      if (this._startFacing === "left") {
+        this._targetAngle = this.facingOffset + Math.PI / 2;
+      } else if (this._startFacing === "right") {
+        this._targetAngle = this.facingOffset - Math.PI / 2;
+      } else if (this._startFacing === "back") {
+        this._targetAngle = this.facingOffset;
+      } else {
+        this._targetAngle = Math.PI + this.facingOffset;
+      }
       obj.rotation.y = this._targetAngle;
       if (this.activeZone) this.onZoneChange?.(this.activeZone);
     }
