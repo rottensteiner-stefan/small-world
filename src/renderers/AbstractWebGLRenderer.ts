@@ -4,6 +4,7 @@ import { Scene, Object3D } from "../core/index.js";
 import { Vector3D } from "../math/index.js";
 import { LightDataInterface } from "../interfaces/index.js";
 import { WebGLRenderPass } from "./WebGLRenderPass.js";
+import { Texture, RenderTarget } from "../core/textures/index.js";
 export abstract class AbstractWebGLRenderer extends AbstractRenderer {
   // WebGL2 context inherits from WebGL1 context
   protected gl!: WebGLRenderingContext | WebGL2RenderingContext;
@@ -16,6 +17,27 @@ export abstract class AbstractWebGLRenderer extends AbstractRenderer {
   protected defaultNormalMap!: WebGLTexture;
   protected defaultSpecularMap!: WebGLTexture;
   protected defaultCubeTexture!: WebGLTexture;
+
+  /** Shared by WebGL1Renderer/WebGL2Renderer's `_getWebGLTexture()` -- also written to from
+   * their render-target and disposal code paths. */
+  protected _texCache: Map<Texture, WebGLTexture> = new Map();
+
+  /** Common early-exit checks `_getWebGLTexture()` needs regardless of WebGL1 vs. WebGL2 (whose
+   * upload paths otherwise differ -- WebGL2 additionally handles `TextureArray` via
+   * `texImage3D`). Returns the texture to use if any of these apply, or `undefined` if the
+   * caller should fall through to its own upload logic.
+   * A `RenderTarget` has no `.image` -- its GL texture already exists from being rendered into
+   * (populated in each renderer's own render-target bind path), so it's looked up in the cache
+   * instead of uploaded, mirroring the WebGPU renderer's identical `RenderTarget` handling. */
+  protected _getWebGLTextureFastPath(tex: Texture): WebGLTexture | undefined {
+    if (this._quality?.disableTextures) return this.defaultTexture;
+    if (!tex.isLoaded) return this.defaultTexture;
+    if (tex instanceof RenderTarget) {
+      return this._texCache.get(tex) || this.defaultTexture;
+    }
+    if (!tex.image) return this.defaultTexture;
+    return undefined;
+  }
 
   protected _passes: WebGLRenderPass[] = [];
 

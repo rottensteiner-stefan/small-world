@@ -943,7 +943,6 @@ class AndNowScene2 extends AbstractShowcase {
       const clip = this._activeAnimation ? this._clips.get(this._activeAnimation) : undefined;
       const action = clip && this._mixer ? this._mixer.clipAction(clip) : undefined;
       const timeStr = action ? action.time.toFixed(2) : "0.00";
-      const isWebGL2 = this.renderer.type === RendererType.WEB_GL2;
 
       // Orientierung / Blickrichtung berechnen (0..360 Grad)
       const rawDeg = ((this._playerRig.rotation.y * 180) / Math.PI) % 360;
@@ -963,14 +962,14 @@ class AndNowScene2 extends AbstractShowcase {
         Blickrichtung: <b style="color:#38bdf8;">${dirName} (${deg.toFixed(0)}°)</b><br>
         State: <b style="color:#fff;">${this._movementBehavior?.state ?? "IDLE"}</b> | Zone: <b style="color:#fff;">${this._movementBehavior?.activeZone?.id ?? "none"}</b><br>
         Laterne: <b style="color:#ffb84d;">${this._lanternOn ? "AN" : "AUS"}</b> (Anatomisch: Links)<br>
-        Renderer: <b style="color: ${isWebGL2 ? "#4ade80" : "#f87171"};">${this.renderer.type} ${isWebGL2 ? "(Skinning aktiv ✅)" : "(WebGPU Skinning unfertig ⚠️)"}</b>
+        Renderer: <b style="color: #38bdf8;">${this.renderer.type}</b>
       `;
     }
   }
 }
 
 const app = new AndNowScene2({
-  rendererType: RendererType.WEB_GL2,
+  rendererType: RendererType.BEST,
   enableInspector: true,
 });
 app.start().catch((err: unknown) => console.error("[AndNowScene2] Failed to start:", err));

@@ -83,7 +83,6 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
   private _cache: Map<GeometryDataInterface, Mesh> = new Map();
   private _lastKnownGeometry: WeakMap<Object3D, GeometryDataInterface> = new WeakMap();
   private _lastKnownProgramKey: WeakMap<Object3D, string> = new WeakMap();
-  private _texCache: Map<Texture, WebGLTexture> = new Map();
   private _texCubeCache: Map<CubeTexture, WebGLTexture> = new Map();
   private _texRefCounts: Map<Texture, number> = new Map();
   private _texCubeRefCounts: Map<CubeTexture, number> = new Map();
@@ -540,16 +539,8 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
   }
 
   private _getWebGLTexture(tex: Texture): WebGLTexture {
-    if (this._quality?.disableTextures) return this.defaultTexture;
-    if (!tex.isLoaded) return this.defaultTexture;
-    // A `RenderTarget` has no `.image` -- its GL texture already exists from being rendered into
-    // (populated in `setRenderTarget()`'s offscreen branch), so it's looked up instead of
-    // uploaded. Mirrors `_getWebGLCubeTexture()`'s identical `RenderTargetCube` branch above.
-    if (tex instanceof RenderTarget) {
-      const rtTex = this._texCache.get(tex);
-      return rtTex || this.defaultTexture;
-    }
-    if (!tex.image) return this.defaultTexture;
+    const fastPath = this._getWebGLTextureFastPath(tex);
+    if (fastPath) return fastPath;
     let glTex: WebGLTexture | undefined = this._texCache.get(tex);
     if (!glTex) {
       glTex = this.gl.createTexture()!;
@@ -631,7 +622,9 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
           this.gl.RGBA,
           this.gl.RGBA,
           this.gl.UNSIGNED_BYTE,
-          tex.image,
+          // Guaranteed defined here: `_getWebGLTextureFastPath()` already returned early for a
+          // texture with no `.image` (TS can't carry that narrowing across the method call).
+          tex.image!,
         );
 
         const useMipmaps = this._quality.mipmapping && tex.generateMipmaps;
@@ -682,7 +675,9 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         this.gl.RGBA,
         this.gl.RGBA,
         this.gl.UNSIGNED_BYTE,
-        tex.image,
+        // Guaranteed defined here: `_getWebGLTextureFastPath()` already returned early for a
+        // texture with no `.image` (TS can't carry that narrowing across the method call).
+        tex.image!,
       );
       if (this._quality.mipmapping && tex.generateMipmaps) {
         this.gl.generateMipmap(this.gl.TEXTURE_2D);
