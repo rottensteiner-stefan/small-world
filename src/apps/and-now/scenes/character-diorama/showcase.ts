@@ -55,8 +55,8 @@ fn hash12(p: vec2f) -> f32 {
     @location(5) weights: vec4f
 ) -> Out {
     var o: Out;
-    var localPos = pos;
-    let time = glob.time;
+    var localPos = vec4f(pos, 1.0);
+    let time = obj.time;
     let glitchIntensity = obj.extraParams.x;
 
     let edgeDist = max(abs(uv.x - 0.5), abs(uv.y - 0.5)) * 2.0;
@@ -64,25 +64,28 @@ fn hash12(p: vec2f) -> f32 {
         let factor = (edgeDist - 0.70) / 0.30;
         let noise = sin(pos.y * 35.0 + time * 18.0) * cos(pos.x * 25.0 - time * 12.0);
         let jitter = step(0.65, hash12(vec2f(floor(pos.y * 20.0), floor(time * 24.0)))) * 0.12 * factor * glitchIntensity;
-        localPos += normal * (noise * 0.04 * factor * glitchIntensity + jitter);
+        localPos += vec4f(normal * (noise * 0.04 * factor * glitchIntensity + jitter), 0.0);
         localPos.x += (hash12(vec2f(pos.y, time)) - 0.5) * 0.08 * factor * glitchIntensity;
     }
 
-    let worldPos = (obj.model * vec4f(localPos, 1.0)).xyz;
-    o.worldPos = worldPos;
-    o.clipPos = glob.viewProj * vec4f(worldPos, 1.0);
-    o.normal = (obj.model * vec4f(normal, 0.0)).xyz;
-    o.tangent = (obj.model * vec4f(tangent, 0.0)).xyz;
-    o.uv = uv;
-    o.color = obj.color.rgb;
+    let worldPos = obj.model * localPos;
+    o.wp = worldPos.xyz;
+    o.pos = view.vp * worldPos;
+    o.uv = uv * obj.texRepeat + obj.texOffset;
+    o.original_uv = uv;
+    
+    let m33 = mat3x3f(obj.model[0].xyz, obj.model[1].xyz, obj.model[2].xyz);
+    o.n = normalize(m33 * normal);
+    o.t = normalize(m33 * tangent);
+    o.b = normalize(cross(o.n, o.t));
     o.texIndex = 0.0;
     return o;
 }
 
 @fragment fn fs(i: Out) -> @location(0) vec4f {
-    let time = glob.time;
+    let time = obj.time;
     let glitchIntensity = obj.extraParams.x;
-    let uv = i.uv;
+    let uv = i.original_uv;
 
     let brickScale = vec2f(14.0, 28.0);
     var bUv = uv * brickScale;
@@ -97,7 +100,7 @@ fn hash12(p: vec2f) -> f32 {
     var baseColor = mix(vec3f(0.18, 0.20, 0.24), mix(vec3f(0.45, 0.22, 0.16), vec3f(0.35, 0.18, 0.12), bNoise), mortar);
     baseColor *= (0.75 + 0.25 * hash12(uv * 120.0));
 
-    let N = normalize(i.normal);
+    let N = normalize(i.n);
     let L = normalize(vec3f(0.6, 1.0, 0.8));
     let diff = max(dot(N, L), 0.0);
     var finalCol = baseColor * (diff * 0.75 + 0.25);
@@ -815,6 +818,10 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
     this._syncLanternTransform();
 
     const time = performance.now() * 0.001;
+    for (const mat of this._glitchMaterials) {
+      mat.properties["u_time"] = time;
+    }
+
     if (this._ratHead) {
       this._ratHead.position.y = 0.02 + Math.sin(time * 9.0) * 0.006;
       this._ratHead.rotation.x = Math.sin(time * 6.0) * 0.1;
