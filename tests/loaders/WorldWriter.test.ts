@@ -150,4 +150,36 @@ describe("WorldWriter <-> GltfLoader round trip", () => {
     expect(doc.buffers).toBeUndefined();
     expect(doc.extensions?.KHR_lights_punctual?.lights).toHaveLength(1);
   });
+
+  it("writeSingle() serializes the object itself, not its children, without reparenting it", async () => {
+    const liveParent = new Object3D("LiveParent");
+    const obj = new Object3D("Selected");
+    obj.position.set(4, 5, 6);
+    liveParent.add(obj);
+    const nested = new Object3D("NestedChild");
+    obj.add(nested);
+
+    const doc = new WorldWriter().writeSingle(obj);
+    const parsedRoot = await parseDocument(doc);
+
+    expect(parsedRoot.children).toHaveLength(1);
+    expect(parsedRoot.children[0]!.name).toBe("Selected");
+    expect(parsedRoot.children[0]!.position.x).toBeCloseTo(4);
+    expect(parsedRoot.children[0]!.children).toHaveLength(1);
+    expect(parsedRoot.children[0]!.children[0]!.name).toBe("NestedChild");
+
+    // The live scene graph must be completely untouched by the export.
+    expect(obj.parent).toBe(liveParent);
+    expect(liveParent.children).toContain(obj);
+  });
+
+  it("round-trips prefabSource via the SW_prefab_instance extension", async () => {
+    const obj = new Object3D("Instance");
+    obj.prefabSource = "OilBarrel";
+
+    const doc = new WorldWriter().writeSingle(obj);
+    const parsedRoot = await parseDocument(doc);
+
+    expect(parsedRoot.children[0]!.prefabSource).toBe("OilBarrel");
+  });
 });

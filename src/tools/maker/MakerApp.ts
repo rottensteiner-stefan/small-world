@@ -14,6 +14,7 @@ import {
   DirectionalLight,
   AmbientLight,
   WireframeMaterial,
+  StandardMaterial,
   Color,
 } from "../../core/index.js";
 import { Grid, Cube } from "../../geometry/index.js";
@@ -27,8 +28,12 @@ import { UndoStack } from "./UndoStack.js";
 import { HierarchyPanel } from "./HierarchyPanel.js";
 import { PropertyPanel } from "./PropertyPanel.js";
 import { ObjectPalette } from "./ObjectPalette.js";
+import { PrefabPalette } from "./PrefabPalette.js";
 import { ProjectBinding } from "./ProjectBinding.js";
 import { TransformGizmo, GizmoMode, GizmoAxis } from "./TransformGizmo.js";
+import { MapImportPanel } from "./MapImportPanel.js";
+import { defaultAsciiMapLegend } from "./AsciiMapLegend.js";
+import { GridLevelBuilder } from "../../extensions/grid-builder/index.js";
 
 export interface MakerAppOptions extends EngineOptions {
   hierarchyContainer: HTMLElement;
@@ -68,6 +73,7 @@ export class MakerApp extends SmallWorld {
   private _highlightMesh!: Object3D;
   private _hierarchyPanel!: HierarchyPanel;
   private _propertyPanel!: PropertyPanel;
+  private _prefabPalette!: PrefabPalette;
   private _hierarchyDirty = true;
   private _gizmoDrag: GizmoDragState | undefined;
   private _gizmoButtons: Record<GizmoMode, HTMLButtonElement> | undefined;
@@ -112,6 +118,13 @@ export class MakerApp extends SmallWorld {
       createObject: (factory): void => this.addObject(factory()),
       attachBehavior: (factory): void => this.attachBehaviorToSelection(factory()),
     });
+    this._prefabPalette = new PrefabPalette(this._makerOptions.paletteContainer, {
+      saveSelectionAsPrefab: (name): void => this._saveSelectionAsPrefab(name),
+      instantiate: (name): void => this._instantiatePrefab(name),
+    });
+    new MapImportPanel(this._makerOptions.paletteContainer, (mapData): void => {
+      void this._importAsciiMap(mapData);
+    });
 
     this._project.onDirtyChange((dirty) => {
       this._makerOptions.statusContainer.textContent = dirty ? "Unsaved changes…" : "Saved";
@@ -146,10 +159,64 @@ export class MakerApp extends SmallWorld {
             this.addObject(child);
           }
         }
+        await this._refreshPrefabList();
         this._makerOptions.statusContainer.textContent = "Saved";
       })();
     });
     this._makerOptions.paletteContainer.prepend(button);
+  }
+
+  private async _refreshPrefabList(): Promise<void> {
+    this._prefabPalette.setNames(await this._project.listPrefabs());
+  }
+
+  private _saveSelectionAsPrefab(name: string): void {
+    const obj = this._selected;
+    if (!obj) return;
+    void (async (): Promise<void> => {
+      const saved = await this._project.savePrefab(name, obj);
+      this._makerOptions.statusContainer.textContent = saved
+        ? `Saved prefab "${name}"`
+        : "Bind a project folder first to save prefabs";
+      if (saved) await this._refreshPrefabList();
+    })();
+  }
+
+  private _instantiatePrefab(name: string): void {
+    void (async (): Promise<void> => {
+      const instance = await this._project.loadPrefab(name);
+      if (instance) this.addObject(instance);
+    })();
+  }
+
+  /** Bridges MapGenerator's ASCII/`GridLevelBuilder` pipeline into Maker (ADR 0010 Phase 2C):
+   * builds the map directly into the live scene, then wraps whatever `GridLevelBuilder` added as
+   * a single undo step -- it adds objects via `scene.add()` itself, so there is nothing to defer
+   * the way `addObject()` normally does; capturing the before/after child sets is what makes it
+   * undoable after the fact. Rough starting scaffold, not a finished level -- see
+   * `AsciiMapLegend`'s doc comment. */
+  private async _importAsciiMap(mapData: string): Promise<void> {
+    const before = new Set(this.scene.root.children);
+    await new GridLevelBuilder().build(this.scene, mapData, {
+      legend: defaultAsciiMapLegend(),
+      defaultFloorMaterial: new StandardMaterial({ color: new Color(0.4, 0.4, 0.42) }),
+    });
+    const added = this.scene.root.children.filter((child) => !before.has(child));
+    if (0 === added.length) return;
+
+    this._undo.execute({
+      label: `Import ASCII Map (${added.length} objects)`,
+      redo: () => {
+        for (const obj of added) this.scene.add(obj);
+        this._hierarchyDirty = true;
+        this._project.scheduleAutosave(() => this.scene.root);
+      },
+      undo: () => {
+        for (const obj of added) this._trashBin.add(obj);
+        this._hierarchyDirty = true;
+        this._project.scheduleAutosave(() => this.scene.root);
+      },
+    });
   }
 
   /** Move/Rotate/Scale mode buttons -- mirrors the `W`/`E`/`R` shortcuts handled in

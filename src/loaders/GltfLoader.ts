@@ -69,6 +69,7 @@ interface GltfJson {
     skin?: number;
     extensions?: {
       KHR_lights_punctual?: { light: number };
+      SW_prefab_instance?: { source: string };
       [key: string]: unknown;
     };
   }[];
@@ -159,7 +160,7 @@ export class GltfLoader extends AbstractLoader<Object3D> {
 
     const bufferPromises = (json.buffers || []).map((buf) => {
       if (buf.uri?.startsWith("data:")) {
-        return this._decodeBase64(buf.uri);
+        return GltfLoader.decodeDataUri(buf.uri);
       }
       return AssetManager.loadBinary(folderPath + (buf.uri || ""));
     });
@@ -207,7 +208,10 @@ export class GltfLoader extends AbstractLoader<Object3D> {
     return { json, buffers };
   }
 
-  private _decodeBase64(uri: string): ArrayBuffer {
+  /** Decodes a `data:...;base64,...` URI into raw bytes -- public/static so callers that parse a
+   * glTF JSON document themselves (`ProjectBinding`, rather than `load()`/`_loadJson()`) can
+   * decode its embedded buffers before handing the document to `_parse()`. */
+  public static decodeDataUri(uri: string): ArrayBuffer {
     const base64 = uri.split(",")[1]!;
     const binaryStr = atob(base64);
     const buffer = new ArrayBuffer(binaryStr.length);
@@ -305,6 +309,8 @@ export class GltfLoader extends AbstractLoader<Object3D> {
           obj = new Object3D(name);
         }
         this._applyNodeTransforms(obj, nodeDef);
+        const prefabSource = nodeDef.extensions?.SW_prefab_instance?.source;
+        if (prefabSource) obj.prefabSource = prefabSource;
         this._gltfOptions.onNodeParsed?.(obj, nodeDef as unknown as Record<string, unknown>);
         nodeObjects[i] = obj;
       }
