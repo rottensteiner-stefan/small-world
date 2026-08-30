@@ -74,7 +74,11 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
   private _floorRoughnessTexture: Texture | undefined;
   private _brickTexture: Texture | undefined;
   private _barrelTexture: Texture | undefined;
+  private _barrelNormalTexture: Texture | undefined;
+  private _barrelRoughnessTexture: Texture | undefined;
   private _crateTexture: Texture | undefined;
+  private _crateNormalTexture: Texture | undefined;
+  private _crateRoughnessTexture: Texture | undefined;
 
   // HUD Elements
   private _lblChar!: HTMLElement;
@@ -153,10 +157,38 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
         addressModeU: TextureWrap.REPEAT,
         addressModeV: TextureWrap.REPEAT,
       });
+      this._barrelNormalTexture = await Texture.fromUrl(
+        "/assets/and-now/diorama/barrel_rust_normal.jpg",
+        {
+          addressModeU: TextureWrap.REPEAT,
+          addressModeV: TextureWrap.REPEAT,
+        },
+      );
+      this._barrelRoughnessTexture = await Texture.fromUrl(
+        "/assets/and-now/diorama/barrel_rust_roughness.jpg",
+        {
+          addressModeU: TextureWrap.REPEAT,
+          addressModeV: TextureWrap.REPEAT,
+        },
+      );
       this._crateTexture = await Texture.fromUrl("/assets/and-now/diorama/crate_wood.jpg", {
         addressModeU: TextureWrap.REPEAT,
         addressModeV: TextureWrap.REPEAT,
       });
+      this._crateNormalTexture = await Texture.fromUrl(
+        "/assets/and-now/diorama/crate_wood_normal.jpg",
+        {
+          addressModeU: TextureWrap.REPEAT,
+          addressModeV: TextureWrap.REPEAT,
+        },
+      );
+      this._crateRoughnessTexture = await Texture.fromUrl(
+        "/assets/and-now/diorama/crate_wood_roughness.jpg",
+        {
+          addressModeU: TextureWrap.REPEAT,
+          addressModeV: TextureWrap.REPEAT,
+        },
+      );
     } catch (err) {
       console.warn("[CharacterDiorama] Texture loading fallback:", err);
     }
@@ -859,15 +891,21 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
     const crateMat = new StandardMaterial({
       color: new Color(1.0, 1.0, 1.0),
       diffuseMap: this._crateTexture,
-      roughness: 0.85,
-      metallic: 0.08,
+      normalMap: this._crateNormalTexture,
+      normalScale: new Vector2D(1.8, 1.8),
+      roughnessMap: this._crateRoughnessTexture,
+      roughness: 0.92,
+      metallic: 0.04,
     });
 
     const barrelMat = new StandardMaterial({
       color: new Color(1.0, 1.0, 1.0),
       diffuseMap: this._barrelTexture,
-      metallic: 0.65,
-      roughness: 0.55,
+      normalMap: this._barrelNormalTexture,
+      normalScale: new Vector2D(2.5, 2.5),
+      roughnessMap: this._barrelRoughnessTexture,
+      metallic: 0.5,
+      roughness: 0.65,
     });
 
     // 6 Holzkisten im Eck- und Wandbereich arrangiert (gestapelt & gruppiert)
@@ -900,11 +938,11 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
     metalBarrel.geometry = new Cylinder({
       radiusTop: 0.25,
       radiusBottom: 0.25,
-      height: 0.75,
-      radialSegments: 16,
+      height: 0.78,
+      radialSegments: 32,
     }).getGeometryData();
     metalBarrel.material = barrelMat;
-    metalBarrel.position.set(-1.45, 0.375, 0.6);
+    metalBarrel.position.set(-1.45, 0.39, 0.6);
     root.add(metalBarrel);
 
     const can1 = new Object3D("SodaCan1");

@@ -801,6 +801,17 @@ befüllen.
   - Spiegelglanz entfernt: `metallic: 0.02`, `roughness: 0.92`, `normalScale: Vector2D(2.0, 2.0)` mit dynamischem Halogen- und Taschenlampen-Relief.
 - **Status:** 93 Testsuiten, 536 Tests, Build/Lint 100% grün.
 
+## 86. Graphic-Noir-Stilisierung & Rillen-Relief für Ölfass & Holzkisten (2026-08-30)
+- **Art-Style-Angleichung (Graphic Noir Comic Inking):**
+  - [`barrel_rust.jpg`](file:///Users/srottensteiner/PhpstormProjects/small-world/public/assets/and-now/diorama/barrel_rust.jpg): Stilisiertes Ölfass mit 2 charakteristischen horizontalen Wulst-Bändern (oben und unten) mit jeweils 3 stark erhobenen Wellblech-Rillen, dunklen Tusche-Schraffuren, Farbabplatzern und tiefen Ölschlieren.
+  - [`crate_wood.jpg`](file:///Users/srottensteiner/PhpstormProjects/small-world/public/assets/and-now/diorama/crate_wood.jpg): Holzkisten mit markanten Comic-Tuschekonturen, Vintage-Stempeln (*„G. NOIR SHIPP. CO. CRATE 104“*), Kreuzverstrebungen und genieteten Eckwinkeln.
+- **PBR-Tiefenkarten generiert ([`public/assets/and-now/diorama/`](file:///Users/srottensteiner/PhpstormProjects/small-world/public/assets/and-now/diorama/)):**
+  - `barrel_rust_normal.jpg` & `barrel_rust_roughness.jpg`: Tangent-Space Normal Map für die 2x3 Rippenwülste mit intensiver Lichtbrechung (`normalScale: Vector2D(2.5, 2.5)`) und differenzierter Rauheit.
+  - `crate_wood_normal.jpg` & `crate_wood_roughness.jpg`: Plastische Bohlen- und Beschlagskanten für alle 6 Holzkisten.
+- **Showcase-Geometrie ([`showcase.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/scenes/character-diorama/showcase.ts)):**
+  - Zylinder-Unterteilung des Fasses auf 32 Segmente verfeinert für perfekten Rundungsverlauf der Rillen.
+- **Status:** 93 Testsuiten, 536 Tests, Build/Lint 100% grün.
+
 
 
 
