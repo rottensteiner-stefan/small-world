@@ -3,11 +3,31 @@ import { BoundingVolume, GeometryDataInterface, Collidable } from "../interfaces
 import { MathUtils, Matrix4, Vector3D, Quaternion, MathPool } from "../math/index.js";
 import { Behavior, attachBehavior, detachBehavior } from "./behaviors/Behavior.js";
 import { RigidBody } from "../physix/RigidBody.js";
+import { InspectorField } from "./Inspectable.js";
 
 /**
  * Base class for all 3D objects in the scene.
  */
 export class Object3D implements Collidable {
+  /** Base schema every object exposes regardless of subclass -- see
+   * `collectInspectorSchema()` in `./Inspectable.js`, which merges this with whatever a
+   * subclass (e.g. `AbstractLight`, `AbstractMaterial`) declares on top. Transform fields use
+   * `path` since position/rotation/scale are nested `Vector3D` instances, not own properties. */
+  public static readonly inspector: Record<string, InspectorField> = {
+    isVisible: { type: "boolean", label: "Visible" },
+    castShadow: { type: "boolean", label: "Cast Shadow" },
+    receiveShadow: { type: "boolean", label: "Recv Shadow" },
+    posX: { type: "number", label: "Pos X", path: "position.x" },
+    posY: { type: "number", label: "Pos Y", path: "position.y" },
+    posZ: { type: "number", label: "Pos Z", path: "position.z" },
+    rotX: { type: "number", label: "Rot X", path: "rotation.x" },
+    rotY: { type: "number", label: "Rot Y", path: "rotation.y" },
+    rotZ: { type: "number", label: "Rot Z", path: "rotation.z" },
+    scaleX: { type: "number", label: "Scale X", path: "scale.x" },
+    scaleY: { type: "number", label: "Scale Y", path: "scale.y" },
+    scaleZ: { type: "number", label: "Scale Z", path: "scale.z" },
+  };
+
   public readonly uuid: string = MathUtils.generateUUID();
   public name: string = "";
   /** Optional app-defined category tag, for typed identification instead of matching on `name`. */

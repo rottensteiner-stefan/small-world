@@ -11,6 +11,7 @@ import {
   StandardWebGPULayout,
 } from "../renderers/shaders/index.js";
 import { Vector2D } from "../../math/index.js";
+import { InspectorField } from "../Inspectable.js";
 
 /**
  * Configuration options for StandardMaterial.
@@ -62,6 +63,15 @@ export interface StandardMaterialOptions {
  * A physically based rendering (PBR) material using the Metallic-Roughness workflow.
  */
 export class StandardMaterial extends AbstractMaterial {
+  /** Own fields on top of `AbstractMaterial.inspector` -- see `collectInspectorSchema()`. */
+  public static override readonly inspector: Record<string, InspectorField> = {
+    metallic: { type: "number", label: "Metallic", min: 0, max: 1, step: 0.01 },
+    roughness: { type: "number", label: "Roughness", min: 0, max: 1, step: 0.01 },
+    ao: { type: "number", label: "AO", min: 0, max: 1, step: 0.01 },
+    emissiveColor: { type: "color", label: "Emissive" },
+    emissiveIntensity: { type: "number", label: "Emissive Intensity", min: 0, max: 10, step: 0.1 },
+  };
+
   /** Metallic factor (0 to 1). */
   public metallic: number;
   /** Roughness factor (0 to 1). */

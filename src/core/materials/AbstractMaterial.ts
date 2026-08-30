@@ -3,11 +3,21 @@ import { MaterialType, CullMode } from "../../enums/index.js";
 import { RenderManifest, ShaderDefinition, ShaderRegistry } from "../renderers/shaders/index.js";
 import { ShaderProvider } from "../../interfaces/index.js";
 import { MathUtils } from "../../math/index.js";
+import { InspectorField } from "../Inspectable.js";
 
 /**
  * Base class for all material types.
  */
 export abstract class AbstractMaterial implements ShaderProvider {
+  /** Fields common to every material, merged with a concrete subclass's own `inspector` map
+   * (e.g. `StandardMaterial`'s metallic/roughness) via `collectInspectorSchema()`. */
+  public static readonly inspector: Record<string, InspectorField> = {
+    color: { type: "color", label: "Color" },
+    transparent: { type: "boolean", label: "Transparent" },
+    depthTest: { type: "boolean", label: "Depth Test" },
+    depthWrite: { type: "boolean", label: "Depth Write" },
+  };
+
   /** The unique identifier of the material. */
   public uuid: string = MathUtils.generateUUID();
   /** The base color of the material. */

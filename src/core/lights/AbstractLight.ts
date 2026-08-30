@@ -3,6 +3,7 @@ import { LightType } from "../../enums/index.js";
 import { Object3D } from "../Object3D.js";
 import { LightDataInterface } from "../../interfaces/index.js";
 import { Camera } from "../Camera.js";
+import { InspectorField } from "../Inspectable.js";
 
 /**
  * Global scene-wide cap on pushed point/spot lights per type -- see
@@ -35,6 +36,22 @@ export interface LightOptions {
  * Base class for all light types.
  */
 export abstract class AbstractLight extends Object3D {
+  /** Fields common to every light, merged with `Object3D.inspector` (transform/visibility)
+   * and a concrete subclass's own map (e.g. `PointLight`'s distance/decay) via
+   * `collectInspectorSchema()`. */
+  public static override readonly inspector: Record<string, InspectorField> = {
+    color: { type: "color", label: "Color" },
+    intensity: { type: "number", label: "Intensity", min: 0, max: 200, step: 0.01 },
+    shadowBias: { type: "number", label: "Shadow Bias", min: 0, max: 0.05, step: 0.0001 },
+    shadowNormalBias: {
+      type: "number",
+      label: "Shadow Normal Bias",
+      min: 0,
+      max: 0.5,
+      step: 0.001,
+    },
+  };
+
   /** The type of the light. */
   public abstract readonly type: LightType;
 

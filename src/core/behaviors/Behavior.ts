@@ -1,19 +1,12 @@
 import { Object3D } from "../index.js";
 import { CameraInterfaceData } from "../../interfaces/index.js";
 import { MathUtils } from "../../math/index.js";
+import { InspectorField } from "../Inspectable.js";
 
-/**
- * Definition of a single configurable field inside the Gadget Inspector.
- */
-export interface InspectorField {
-  type: "number" | "boolean" | "string" | "choice";
-  label?: string;
-  min?: number;
-  max?: number;
-  step?: number;
-  options?: string[] | Record<string, string | number>;
-  path?: string; // Optional path for nested values like 'options.smoothness'
-}
+/** Re-exported for existing callers that import it from here (e.g. individual Behavior
+ * subclasses) -- the canonical definition now lives in `../Inspectable.js`, shared with
+ * materials/lights/Object3D. */
+export type { InspectorField };
 
 /**
  * Base class for all behaviors attached to an Object3D.

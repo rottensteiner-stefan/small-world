@@ -1,0 +1,153 @@
+import { describe, it, expect } from "vitest";
+import { WorldWriter, GltfDocument } from "../../src/loaders/WorldWriter.js";
+import { GltfLoader } from "../../src/loaders/GltfLoader.js";
+import { Object3D } from "../../src/core/Object3D.js";
+import { PointLight } from "../../src/core/lights/PointLight.js";
+import { StandardMaterial } from "../../src/core/materials/StandardMaterial.js";
+import { Color } from "../../src/core/colors/Color.js";
+import { Matrix4, Vector3D, Quaternion } from "../../src/math/index.js";
+import { GeometryDataInterface } from "../../src/interfaces/index.js";
+
+/** Mirrors `GltfLoader`'s own private `_decodeBase64` -- decoding here is test setup, not
+ * something the writer/loader pair needs to expose publicly. */
+function decodeDataUri(uri: string): ArrayBuffer {
+  const base64 = uri.split(",")[1]!;
+  const binaryStr = atob(base64);
+  const buffer = new ArrayBuffer(binaryStr.length);
+  const view = new Uint8Array(buffer);
+  for (let i = 0; i < binaryStr.length; i++) view[i] = binaryStr.charCodeAt(i);
+  return buffer;
+}
+
+function triangleGeometry(): GeometryDataInterface {
+  return {
+    vertices: new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0]),
+    getBoundingVolume: () => {
+      throw new Error("not needed for this test");
+    },
+  } as unknown as GeometryDataInterface;
+}
+
+type ParseFn = (
+  gltf: { json: unknown; buffers: ArrayBuffer[] },
+  baseUrl: string,
+) => Promise<Object3D>;
+
+async function parseDocument(doc: GltfDocument): Promise<Object3D> {
+  // Round-trip through real JSON text, not just the in-memory object -- proves the document is
+  // actually plain-JSON-safe, the same as it would be after being written to and read back
+  // from a `.gltf` file on disk.
+  const roundTripped = JSON.parse(JSON.stringify(doc)) as unknown;
+  const buffers = doc.buffers ? [decodeDataUri(doc.buffers[0]!.uri)] : [];
+  const loader = new GltfLoader();
+  return (loader as unknown as { _parse: ParseFn })._parse({ json: roundTripped, buffers }, "");
+}
+
+describe("WorldWriter <-> GltfLoader round trip", () => {
+  it("preserves node hierarchy, transforms, one material, and one point light", async () => {
+    const root = new Object3D("Root");
+
+    const meshNode = new Object3D("Crate");
+    meshNode.position.set(1, 2, 3);
+    meshNode.rotation.set(0.3, 0.6, 0.1);
+    meshNode.scale.set(2, 1, 1);
+    meshNode.geometry = triangleGeometry();
+    meshNode.material = new StandardMaterial({
+      color: new Color(0.2, 0.4, 0.6, 1),
+      metallic: 0.3,
+      roughness: 0.7,
+      emissiveColor: new Color(0.1, 0, 0),
+    });
+
+    const lightNode = new PointLight({
+      name: "Lamp",
+      color: new Color(1, 0.9, 0.8),
+      intensity: 5,
+      distance: 12,
+      decay: 1.5,
+    });
+    lightNode.position.set(0, 5, 0);
+
+    const groupNode = new Object3D("Group");
+    groupNode.position.set(-1, 0, 0);
+    groupNode.quaternion = new Quaternion().setFromAxisAngle(new Vector3D(0, 1, 0), Math.PI / 4);
+    const nestedChild = new Object3D("Nested");
+    nestedChild.position.set(0, 0, 2);
+    groupNode.add(nestedChild);
+
+    root.add(meshNode, lightNode, groupNode);
+
+    const doc = new WorldWriter().write(root);
+    const parsedRoot = await parseDocument(doc);
+
+    expect(parsedRoot.children).toHaveLength(3);
+    const [parsedMesh, parsedLight, parsedGroup] = parsedRoot.children;
+
+    // -- Mesh node: name, transform, material --
+    expect(parsedMesh!.name).toBe("Crate");
+    expect(parsedMesh!.position.x).toBeCloseTo(1);
+    expect(parsedMesh!.position.y).toBeCloseTo(2);
+    expect(parsedMesh!.position.z).toBeCloseTo(3);
+    expect(parsedMesh!.scale.x).toBeCloseTo(2);
+    expect(parsedMesh!.scale.y).toBeCloseTo(1);
+    expect(parsedMesh!.scale.z).toBeCloseTo(1);
+
+    // Euler rotation round-trips as a quaternion (glTF's node.rotation is always a
+    // quaternion) -- compare against the same Euler->matrix->quaternion conversion the
+    // writer itself performs, using the engine's own math primitives as the oracle.
+    const expectedQuat = new Quaternion().setFromRotationMatrix(
+      new Matrix4().compose(new Vector3D(0, 0, 0), meshNode.rotation, new Vector3D(1, 1, 1)),
+    );
+    expect(parsedMesh!.quaternion?.x).toBeCloseTo(expectedQuat.x, 5);
+    expect(parsedMesh!.quaternion?.y).toBeCloseTo(expectedQuat.y, 5);
+    expect(parsedMesh!.quaternion?.z).toBeCloseTo(expectedQuat.z, 5);
+    expect(parsedMesh!.quaternion?.w).toBeCloseTo(expectedQuat.w, 5);
+
+    // GltfLoader attaches geometry/material to a synthetic "<name>_mesh" child object, not the
+    // node itself -- matching glTF's own node-vs-mesh-instance separation.
+    expect(parsedMesh!.children).toHaveLength(1);
+    const parsedMat = parsedMesh!.children[0]!.material as StandardMaterial;
+    expect(parsedMat.color.r).toBeCloseTo(0.2);
+    expect(parsedMat.color.g).toBeCloseTo(0.4);
+    expect(parsedMat.color.b).toBeCloseTo(0.6);
+    expect(parsedMat.metallic).toBeCloseTo(0.3);
+    expect(parsedMat.roughness).toBeCloseTo(0.7);
+    expect(parsedMat.emissiveColor.r).toBeCloseTo(0.1);
+
+    // -- Light node: type, transform, properties --
+    expect(parsedLight!.name).toBe("Lamp");
+    expect(parsedLight!).toBeInstanceOf(PointLight);
+    const parsedPointLight = parsedLight as PointLight;
+    expect(parsedPointLight.position.y).toBeCloseTo(5);
+    expect(parsedPointLight.color.r).toBeCloseTo(1);
+    expect(parsedPointLight.color.g).toBeCloseTo(0.9);
+    expect(parsedPointLight.color.b).toBeCloseTo(0.8);
+    expect(parsedPointLight.intensity).toBeCloseTo(5);
+    expect(parsedPointLight.distance).toBeCloseTo(12);
+
+    // -- Group node: explicit quaternion (not Euler) passes through unchanged, plus its
+    // nested child survives the hierarchy walk --
+    expect(parsedGroup!.name).toBe("Group");
+    expect(parsedGroup!.position.x).toBeCloseTo(-1);
+    expect(parsedGroup!.quaternion?.x).toBeCloseTo(groupNode.quaternion.x, 10);
+    expect(parsedGroup!.quaternion?.y).toBeCloseTo(groupNode.quaternion.y, 10);
+    expect(parsedGroup!.quaternion?.z).toBeCloseTo(groupNode.quaternion.z, 10);
+    expect(parsedGroup!.quaternion?.w).toBeCloseTo(groupNode.quaternion.w, 10);
+    expect(parsedGroup!.children).toHaveLength(1);
+    expect(parsedGroup!.children[0]!.name).toBe("Nested");
+    expect(parsedGroup!.children[0]!.position.z).toBeCloseTo(2);
+  });
+
+  it("omits meshes/materials/accessors/buffers entirely for a scene with no geometry", () => {
+    const root = new Object3D("Root");
+    root.add(new PointLight({ name: "OnlyLight" }));
+
+    const doc = new WorldWriter().write(root);
+
+    expect(doc.meshes).toBeUndefined();
+    expect(doc.materials).toBeUndefined();
+    expect(doc.accessors).toBeUndefined();
+    expect(doc.buffers).toBeUndefined();
+    expect(doc.extensions?.KHR_lights_punctual?.lights).toHaveLength(1);
+  });
+});

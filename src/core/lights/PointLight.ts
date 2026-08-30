@@ -1,6 +1,7 @@
 import { AbstractLight, LightOptions, MAX_CLUSTERED_LIGHTS_PER_TYPE } from "./AbstractLight.js";
 import { LightType } from "../../enums/index.js";
 import { LightDataInterface } from "../../interfaces/index.js";
+import { InspectorField } from "../Inspectable.js";
 
 /**
  * Configuration options for point light.
@@ -16,6 +17,12 @@ export interface PointLightOptions extends LightOptions {
  * Point light that emits light in all directions from a single point.
  */
 export class PointLight extends AbstractLight {
+  /** Own fields on top of `AbstractLight.inspector` -- see `collectInspectorSchema()`. */
+  public static override readonly inspector: Record<string, InspectorField> = {
+    distance: { type: "number", label: "Distance", min: 0, max: 100, step: 0.1 },
+    decay: { type: "number", label: "Decay", min: 0, max: 5, step: 0.01 },
+  };
+
   /** @inheritdoc */
   public override readonly type: LightType = LightType.POINT;
 

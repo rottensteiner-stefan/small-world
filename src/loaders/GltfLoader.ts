@@ -13,6 +13,7 @@ import {
   InterpolationType,
 } from "../core/animation/index.js";
 import { StandardMaterial } from "../core/materials/index.js";
+import { PointLight, PointLightOptions } from "../core/lights/index.js";
 import { Color } from "../core/colors/index.js";
 import { Texture } from "../core/textures/index.js";
 import { GltfLoaderOptions, GeometryDataInterface } from "../interfaces/index.js";
@@ -66,9 +67,26 @@ interface GltfJson {
     scale?: number[];
     mesh?: number;
     skin?: number;
+    extensions?: {
+      KHR_lights_punctual?: { light: number };
+      [key: string]: unknown;
+    };
   }[];
   scenes?: { nodes?: number[] }[];
   scene?: number;
+  /** Root-level `extensions` -- currently only `KHR_lights_punctual`'s light definitions
+   * array, referenced by index from individual nodes' own `extensions`. */
+  extensions?: {
+    KHR_lights_punctual?: {
+      lights: {
+        type: "point" | "directional" | "spot";
+        color?: number[];
+        intensity?: number;
+        range?: number;
+        name?: string;
+      }[];
+    };
+  };
   materials?: {
     pbrMetallicRoughness?: {
       baseColorFactor?: number[];
@@ -228,7 +246,29 @@ export class GltfLoader extends AbstractLoader<Object3D> {
       }
     }
 
-    // 3. Create node objects (Bone if joint, otherwise Object3D)
+    // 2.5 Identify KHR_lights_punctual point-light nodes. Directional/spot are deliberately
+    // not imported yet: their glTF direction is implicit in the node's local -Z axis, while
+    // our `DirectionalLight`/`SpotLight` carry an explicit, independent `direction` field --
+    // reconciling those two is a real design question left for a later pass, not something to
+    // silently paper over here. Point lights have no directional concept at all, so they round-
+    // trip unambiguously.
+    const pointLightDefs = new Map<
+      number,
+      { color?: number[]; intensity?: number; range?: number }
+    >();
+    const punctualLights = json.extensions?.KHR_lights_punctual?.lights;
+    if (punctualLights && json.nodes) {
+      for (let i = 0; i < json.nodes.length; i++) {
+        const lightIdx = json.nodes[i]?.extensions?.KHR_lights_punctual?.light;
+        if (lightIdx === undefined) continue;
+        const def = punctualLights[lightIdx];
+        if (def && "point" === def.type) {
+          pointLightDefs.set(i, def);
+        }
+      }
+    }
+
+    // 3. Create node objects (Bone if joint, PointLight if a punctual point light, otherwise Object3D)
     const nodeObjects: Object3D[] = [];
     if (json.nodes) {
       for (let i = 0; i < json.nodes.length; i++) {
@@ -242,7 +282,28 @@ export class GltfLoader extends AbstractLoader<Object3D> {
         if (this._gltfOptions.nodeNameTransform) {
           name = this._gltfOptions.nodeNameTransform(name);
         }
-        const obj = jointNodeIndices.has(i) ? new Bone(name) : new Object3D(name);
+        const lightDef = pointLightDefs.get(i);
+        let obj: Object3D;
+        if (jointNodeIndices.has(i)) {
+          obj = new Bone(name);
+        } else if (lightDef) {
+          // Built up conditionally rather than passed with explicit `undefined` values --
+          // `exactOptionalPropertyTypes` treats "present but undefined" differently from
+          // "absent" for optional fields like `PointLightOptions.color`.
+          const lightOptions: PointLightOptions = { name };
+          if (lightDef.color) {
+            lightOptions.color = new Color(
+              lightDef.color[0]!,
+              lightDef.color[1]!,
+              lightDef.color[2]!,
+            );
+          }
+          if (undefined !== lightDef.intensity) lightOptions.intensity = lightDef.intensity;
+          if (undefined !== lightDef.range) lightOptions.distance = lightDef.range;
+          obj = new PointLight(lightOptions);
+        } else {
+          obj = new Object3D(name);
+        }
         this._applyNodeTransforms(obj, nodeDef);
         this._gltfOptions.onNodeParsed?.(obj, nodeDef as unknown as Record<string, unknown>);
         nodeObjects[i] = obj;

@@ -11,6 +11,7 @@ import {
   StandardWebGPULayout,
 } from "../renderers/shaders/index.js";
 import { Vector2D } from "../../math/index.js";
+import { InspectorField } from "../Inspectable.js";
 
 /**
  * Configuration options for Phong material.
@@ -40,6 +41,12 @@ export interface PhongMaterialOptions {
  * Material that implements the Phong reflection model.
  */
 export class PhongMaterial extends AbstractMaterial {
+  /** Own fields on top of `AbstractMaterial.inspector` -- see `collectInspectorSchema()`. */
+  public static override readonly inspector: Record<string, InspectorField> = {
+    specularColor: { type: "color", label: "Specular" },
+    shininess: { type: "number", label: "Shininess", min: 0, max: 256, step: 1 },
+  };
+
   /** The specular reflection color. */
   public specularColor: Color;
 
