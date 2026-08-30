@@ -872,6 +872,20 @@ befüllen.
   - *Philosophie 6:* Verpflichtung zu offenen glTF 2.0-Standards, universeller Interoperabilität mit DCC-Tools (Blender, Kenney, Poly Haven, Sketchfab) und nahtloser KI-Generierung (Tripo, Meshy).
 - **Status:** 96 Testsuiten, 546 Tests, Build/Lint 100% grün.
 
+## 94. Artikulierte Diorama-Ratten & Prozedurale Putz-Animation (2026-08-30)
+- **Haupt-Putzratte ([`showcase.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/scenes/character-diorama/showcase.ts)):**
+  - Sitzt gut sichtbar auf Holzkiste 3 (`y = 0.45m`) im Halbschatten vorne links.
+  - Vollständige artikulierte Anatomie: Haunches/Becken, aufgerichteter Torso, beweglicher Kopf mit Schnauze & rosa Öhrchen, leuchtende Rubinaugen, separate linke/rechte Vorderpfoten und ein 6-gliedriger geschwungener Schwanz.
+- **3-Phasen-Verhaltenszyklus (Finite State Machine):**
+  1. *Phase 1 (Putz-Phase):* Schnelles zirkuläres Schrubben der Vorderpfoten an Schnurrhaaren und Gesicht mit synchronem Kopfnicken (18 Hz Oszillation).
+  2. *Phase 2 (Sicherungs-Phase):* Pfoten an die Brust angelegt, schnelles Schnüffeln & neugieriges Umsehen im Raum.
+  3. *Phase 3 (Ohr-Putz-Phase):* Linke Pfote schrubbt hinter dem linken Ohr, Kopf neigt sich seitlich.
+  4. *Kontinuierlich:* Geschmeidige Spline-Wellenschwingung des Schwanzes über die Kistenkante.
+- **Umgebungs-Ratten:**
+  - Ratte 2: Schnüffelnde Ratte am Schutthaufen.
+  - Ratte 3: Vorsichtig lauernde Ratte zwischen den Mauereck-Kisten.
+- **Status:** 96 Testsuiten, 546 Tests, Build/Lint 100% grün.
+
 
 
 

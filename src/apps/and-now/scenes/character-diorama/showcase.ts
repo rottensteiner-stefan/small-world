@@ -90,9 +90,14 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
   private _lblTurntable!: HTMLElement;
   private _animButtons: HTMLButtonElement[] = [];
 
-  // Corner Rat Animation
-  private _ratHead: Object3D | undefined;
-  private _ratTailSegments: Object3D[] = [];
+  // Articulated Grooming & Diorama Rats
+  private _rat1Head: Object3D | undefined;
+  private _rat1LeftPaw: Object3D | undefined;
+  private _rat1RightPaw: Object3D | undefined;
+  private _rat1TailSegments: Object3D[] = [];
+  private _rat2Head: Object3D | undefined;
+  private _rat2TailSegments: Object3D[] = [];
+  private _rat3Head: Object3D | undefined;
 
   // Lamp Flicker & Bulbs
   private _lampLight1: PointLight | undefined;
@@ -1131,107 +1136,256 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
   private _buildCornerRats(): void {
     const root = this._dioramaRoot!;
     const ratMat = new StandardMaterial({
-      color: new Color(0.25, 0.22, 0.2),
-      roughness: 0.9,
+      color: new Color(0.24, 0.22, 0.2),
+      roughness: 0.92,
+      metallic: 0.02,
     });
     const pinkMat = new StandardMaterial({
-      color: new Color(0.85, 0.55, 0.55),
-      roughness: 0.5,
+      color: new Color(0.88, 0.58, 0.58),
+      roughness: 0.45,
+      metallic: 0.05,
     });
-    const eyeMat = new StandardMaterial({ color: new Color(1.0, 0.1, 0.1) });
+    const eyeMat = new StandardMaterial({
+      color: new Color(1.0, 0.05, 0.05),
+      roughness: 0.1,
+      metallic: 0.8,
+    });
 
-    // Ratte 1: Am Fuß des Schutthaufens
-    const ratRoot1 = new Object3D("RatRoot1");
-    ratRoot1.position.set(-1.62, 0.12, -0.72);
-    ratRoot1.rotation.y = 1.1;
-    root.add(ratRoot1);
+    // ==========================================
+    // 1. Ratte 1: Die Haupt-Putzratte (sitzt auf Kiste 3 im Halbschatten vorne links)
+    // ==========================================
+    const rat1 = new Object3D("GroomingRat_1");
+    // Auf Kiste 3 platziert (Crate3 bei [-1.58, 0.22, 0.05], 0.44m Höhe -> Deckfläche bei y = 0.44)
+    rat1.position.set(-1.54, 0.45, 0.06);
+    rat1.rotation.y = 0.85; // Blickt schräg in den beleuchteten Raum & zum Spieler
+    root.add(rat1);
 
-    const body1 = new Object3D("RatBody1");
-    body1.geometry = new Sphere({
-      radius: 0.07,
+    // Haunches / Hinterteil (sitzende Basis)
+    const haunches1 = new Object3D("Rat1Haunches");
+    haunches1.geometry = new Sphere({
+      radius: 0.065,
       widthSegments: 12,
-      heightSegments: 8,
+      heightSegments: 10,
     }).getGeometryData();
-    body1.material = ratMat;
-    body1.scale.set(1.0, 0.8, 1.6);
-    ratRoot1.add(body1);
+    haunches1.material = ratMat;
+    haunches1.scale.set(1.1, 0.9, 1.2);
+    haunches1.position.set(0, 0.045, -0.02);
+    rat1.add(haunches1);
 
-    const head1 = new Object3D("RatHead1");
-    head1.geometry = new Sphere({
-      radius: 0.045,
-      widthSegments: 10,
-      heightSegments: 8,
+    // Aufgerichteter Oberkörper / Torso (~50° geneigt)
+    const torso1 = new Object3D("Rat1Torso");
+    torso1.geometry = new Sphere({
+      radius: 0.055,
+      widthSegments: 12,
+      heightSegments: 10,
     }).getGeometryData();
-    head1.material = ratMat;
-    head1.scale.set(0.9, 0.9, 1.3);
-    head1.position.set(0, 0.02, 0.1);
-    ratRoot1.add(head1);
-    this._ratHead = head1;
+    torso1.material = ratMat;
+    torso1.scale.set(0.9, 1.2, 0.95);
+    torso1.position.set(0, 0.09, 0.02);
+    torso1.rotation.x = -0.25;
+    rat1.add(torso1);
 
-    const leftEye1 = new Object3D("RatEyeL1");
-    leftEye1.geometry = new Sphere({
-      radius: 0.008,
+    // Hinterpfoten auf der Holzkiste
+    for (const side of [-0.05, 0.05]) {
+      const foot = new Object3D("Rat1HindFoot_" + (side < 0 ? "L" : "R"));
+      foot.geometry = new Cube({ size: 1.0 }).getGeometryData();
+      foot.scale.set(0.025, 0.012, 0.06);
+      foot.material = pinkMat;
+      foot.position.set(side, 0.008, 0.03);
+      rat1.add(foot);
+    }
+
+    // Kopf & Schnauze (beweglich)
+    const head1 = new Object3D("Rat1Head");
+    head1.position.set(0, 0.145, 0.04);
+    rat1.add(head1);
+    this._rat1Head = head1;
+
+    const skull1 = new Object3D("Rat1Skull");
+    skull1.geometry = new Sphere({
+      radius: 0.04,
+      widthSegments: 12,
+      heightSegments: 10,
+    }).getGeometryData();
+    skull1.material = ratMat;
+    skull1.scale.set(0.88, 0.88, 1.2);
+    head1.add(skull1);
+
+    const snout1 = new Object3D("Rat1Snout");
+    snout1.geometry = new Sphere({
+      radius: 0.022,
+      widthSegments: 8,
+      heightSegments: 6,
+    }).getGeometryData();
+    snout1.material = pinkMat;
+    snout1.scale.set(0.7, 0.65, 1.3);
+    snout1.position.set(0, -0.01, 0.045);
+    head1.add(snout1);
+
+    // Rosa Öhrchen
+    for (const side of [-0.032, 0.032]) {
+      const ear = new Object3D("Rat1Ear_" + (side < 0 ? "L" : "R"));
+      ear.geometry = new Sphere({
+        radius: 0.016,
+        widthSegments: 8,
+        heightSegments: 6,
+      }).getGeometryData();
+      ear.scale.set(0.8, 1.2, 0.3);
+      ear.material = pinkMat;
+      ear.position.set(side, 0.025, -0.01);
+      head1.add(ear);
+    }
+
+    // Leuchtende rote Augen
+    for (const side of [-0.024, 0.024]) {
+      const eye = new Object3D("Rat1Eye_" + (side < 0 ? "L" : "R"));
+      eye.geometry = new Sphere({
+        radius: 0.007,
+        widthSegments: 6,
+        heightSegments: 6,
+      }).getGeometryData();
+      eye.material = eyeMat;
+      eye.position.set(side, 0.012, 0.028);
+      head1.add(eye);
+    }
+
+    // Artikulierte Vorderpfoten (für die Putz-Bewegung)
+    const leftPaw1 = new Object3D("Rat1LeftPaw");
+    leftPaw1.geometry = new Sphere({
+      radius: 0.012,
       widthSegments: 6,
       heightSegments: 6,
     }).getGeometryData();
-    leftEye1.material = eyeMat;
-    leftEye1.position.set(-0.025, 0.025, 0.12);
-    ratRoot1.add(leftEye1);
+    leftPaw1.material = pinkMat;
+    leftPaw1.scale.set(0.9, 0.7, 1.4);
+    leftPaw1.position.set(-0.02, 0.08, 0.05);
+    rat1.add(leftPaw1);
+    this._rat1LeftPaw = leftPaw1;
 
-    const rightEye1 = new Object3D("RatEyeR1");
-    rightEye1.geometry = new Sphere({
-      radius: 0.008,
+    const rightPaw1 = new Object3D("Rat1RightPaw");
+    rightPaw1.geometry = new Sphere({
+      radius: 0.012,
       widthSegments: 6,
       heightSegments: 6,
     }).getGeometryData();
-    rightEye1.material = eyeMat;
-    rightEye1.position.set(0.025, 0.025, 0.12);
-    ratRoot1.add(rightEye1);
+    rightPaw1.material = pinkMat;
+    rightPaw1.scale.set(0.9, 0.7, 1.4);
+    rightPaw1.position.set(0.02, 0.08, 0.05);
+    rat1.add(rightPaw1);
+    this._rat1RightPaw = rightPaw1;
 
-    this._ratTailSegments = [];
-    let segZ = -0.1;
-    for (let s = 0; s < 4; s++) {
-      const seg = new Object3D("RatTail_" + s);
+    // 6-gliedriger geschwungener Rattenschwanz (hängt über Kistenkante)
+    this._rat1TailSegments = [];
+    let tZ = -0.07;
+    for (let s = 0; s < 6; s++) {
+      const seg = new Object3D("Rat1Tail_" + s);
       seg.geometry = new Cylinder({
-        radiusTop: 0.012 - s * 0.002,
-        radiusBottom: 0.01 - s * 0.002,
-        height: 0.06,
+        radiusTop: 0.011 - s * 0.0014,
+        radiusBottom: 0.009 - s * 0.0014,
+        height: 0.055,
         radialSegments: 8,
       }).getGeometryData();
       seg.material = pinkMat;
       seg.rotation.x = Math.PI / 2;
-      seg.position.set(0, -0.01, segZ);
-      ratRoot1.add(seg);
-      this._ratTailSegments.push(seg);
-      segZ -= 0.055;
+      seg.position.set(0.01 * s, 0.02 - s * 0.006, tZ);
+      rat1.add(seg);
+      this._rat1TailSegments.push(seg);
+      tZ -= 0.048;
     }
 
-    // Ratte 2: Huscht an der rechten Wandkante
-    const ratRoot2 = new Object3D("RatRoot2");
-    ratRoot2.position.set(1.4, 0.06, -1.95);
-    ratRoot2.rotation.y = Math.PI / 2;
-    root.add(ratRoot2);
+    // ==========================================
+    // 2. Ratte 2: Schnüffelnde Ratte am Fuß des Schutthaufens
+    // ==========================================
+    const rat2 = new Object3D("Rat_DebrisSniffer");
+    rat2.position.set(-1.18, 0.26, -1.08);
+    rat2.rotation.y = 2.2;
+    root.add(rat2);
 
-    const body2 = new Object3D("RatBody2");
+    const body2 = new Object3D("Rat2Body");
     body2.geometry = new Sphere({
-      radius: 0.065,
-      widthSegments: 12,
-      heightSegments: 8,
-    }).getGeometryData();
-    body2.material = ratMat;
-    body2.scale.set(1.0, 0.8, 1.5);
-    ratRoot2.add(body2);
-
-    const head2 = new Object3D("RatHead2");
-    head2.geometry = new Sphere({
-      radius: 0.04,
+      radius: 0.06,
       widthSegments: 10,
       heightSegments: 8,
     }).getGeometryData();
-    head2.material = ratMat;
-    head2.scale.set(0.9, 0.9, 1.3);
-    head2.position.set(0, 0.02, 0.09);
-    ratRoot2.add(head2);
+    body2.material = ratMat;
+    body2.scale.set(0.95, 0.8, 1.5);
+    rat2.add(body2);
+
+    const head2 = new Object3D("Rat2Head");
+    head2.position.set(0, 0.03, 0.08);
+    rat2.add(head2);
+    this._rat2Head = head2;
+
+    const skull2 = new Object3D("Rat2Skull");
+    skull2.geometry = new Sphere({
+      radius: 0.038,
+      widthSegments: 8,
+      heightSegments: 6,
+    }).getGeometryData();
+    skull2.material = ratMat;
+    skull2.scale.set(0.85, 0.85, 1.25);
+    head2.add(skull2);
+
+    for (const side of [-0.022, 0.022]) {
+      const eye = new Object3D("Rat2Eye_" + (side < 0 ? "L" : "R"));
+      eye.geometry = new Sphere({
+        radius: 0.0065,
+        widthSegments: 6,
+        heightSegments: 6,
+      }).getGeometryData();
+      eye.material = eyeMat;
+      eye.position.set(side, 0.012, 0.025);
+      head2.add(eye);
+    }
+
+    this._rat2TailSegments = [];
+    let tZ2 = -0.08;
+    for (let s = 0; s < 5; s++) {
+      const seg = new Object3D("Rat2Tail_" + s);
+      seg.geometry = new Cylinder({
+        radiusTop: 0.01 - s * 0.0015,
+        radiusBottom: 0.008 - s * 0.0015,
+        height: 0.05,
+        radialSegments: 6,
+      }).getGeometryData();
+      seg.material = pinkMat;
+      seg.rotation.x = Math.PI / 2;
+      seg.position.set(-0.01 * s, -0.01, tZ2);
+      rat2.add(seg);
+      this._rat2TailSegments.push(seg);
+      tZ2 -= 0.042;
+    }
+
+    // ==========================================
+    // 3. Ratte 3: Neugierig lauernde Ratte zwischen Kiste 1 & 2
+    // ==========================================
+    const rat3 = new Object3D("Rat_Peeker");
+    rat3.position.set(-1.25, 0.06, -1.82);
+    rat3.rotation.y = 0.35;
+    root.add(rat3);
+
+    const head3 = new Object3D("Rat3Head");
+    head3.geometry = new Sphere({
+      radius: 0.042,
+      widthSegments: 8,
+      heightSegments: 6,
+    }).getGeometryData();
+    head3.material = ratMat;
+    head3.scale.set(0.85, 0.85, 1.25);
+    rat3.add(head3);
+    this._rat3Head = head3;
+
+    for (const side of [-0.024, 0.024]) {
+      const eye = new Object3D("Rat3Eye_" + (side < 0 ? "L" : "R"));
+      eye.geometry = new Sphere({
+        radius: 0.007,
+        widthSegments: 6,
+        heightSegments: 6,
+      }).getGeometryData();
+      eye.material = eyeMat;
+      eye.position.set(side, 0.015, 0.028);
+      head3.add(eye);
+    }
   }
 
   private async _loadCharacter(charType: CharacterType): Promise<void> {
@@ -1589,14 +1743,67 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
       }
     }
 
-    // Ratten-Animation
-    if (this._ratHead) {
-      this._ratHead.position.y = 0.02 + Math.sin(time * 9.0) * 0.006;
-      this._ratHead.rotation.x = Math.sin(time * 6.0) * 0.1;
+    // Ratten-Verhalten & Prozedurale Putz-Animation (State Machine & Spline-Schwanz)
+    if (this._rat1Head && this._rat1LeftPaw && this._rat1RightPaw) {
+      const cycle = (time * 1.1) % 8.5; // 8.5-Sekunden Zyklus
+
+      if (cycle < 4.2) {
+        // Phase 1: Schnelles Putzen von Gesicht & Schnurrhaaren (Zirkuläres Schrubben mit Vorderpfoten)
+        const scrubSin = Math.sin(time * 18.0);
+        const scrubCos = Math.cos(time * 18.0);
+        this._rat1LeftPaw.position.set(
+          -0.015 + scrubSin * 0.008,
+          0.125 + scrubCos * 0.014,
+          0.068 + scrubSin * 0.008,
+        );
+        this._rat1RightPaw.position.set(
+          0.015 - scrubSin * 0.008,
+          0.125 + scrubCos * 0.014,
+          0.068 - scrubSin * 0.008,
+        );
+        this._rat1Head.rotation.x = 0.12 + Math.sin(time * 18.0) * 0.06;
+        this._rat1Head.rotation.y = Math.sin(time * 3.0) * 0.08;
+        this._rat1Head.rotation.z = Math.sin(time * 9.0) * 0.04;
+      } else if (cycle < 6.4) {
+        // Phase 2: Innehalten, Sichern & Neugieriges Schnüffeln (Pfoten an Brust, Nase zuckt)
+        this._rat1LeftPaw.position.set(-0.018, 0.09, 0.055);
+        this._rat1RightPaw.position.set(0.018, 0.09, 0.055);
+        const sniff = Math.sin(time * 26.0) * 0.025;
+        this._rat1Head.rotation.x = -0.15 + sniff;
+        this._rat1Head.rotation.y = Math.sin(time * 2.2) * 0.32;
+        this._rat1Head.rotation.z = 0;
+      } else {
+        // Phase 3: Ohr-Putzen (Linke Pfote schrubbt hinter dem Ohr, Kopf neigt sich)
+        const earScrub = Math.sin(time * 16.0);
+        this._rat1LeftPaw.position.set(-0.038, 0.16 + earScrub * 0.012, 0.035);
+        this._rat1RightPaw.position.set(0.016, 0.085, 0.055);
+        this._rat1Head.rotation.z = -0.22 + earScrub * 0.06;
+        this._rat1Head.rotation.x = 0.08;
+        this._rat1Head.rotation.y = -0.12;
+      }
     }
-    for (let s = 0; s < this._ratTailSegments.length; s++) {
-      const seg = this._ratTailSegments[s]!;
-      seg.rotation.y = Math.sin(time * 3.5 + s * 0.7) * 0.25;
+
+    // Geschmeidiges Schwingen & Zucken des Schwanzes von Ratte 1
+    for (let s = 0; s < this._rat1TailSegments.length; s++) {
+      const seg = this._rat1TailSegments[s]!;
+      seg.rotation.y = Math.sin(time * 2.8 + s * 0.75) * (0.16 + s * 0.09);
+      seg.rotation.x = Math.PI / 2 + Math.cos(time * 1.6 + s * 0.5) * 0.04;
+    }
+
+    // Ratte 2: Schnüffeln & Schwanzbewegung am Schutthaufen
+    if (this._rat2Head) {
+      this._rat2Head.rotation.x = Math.sin(time * 8.0) * 0.12 + Math.sin(time * 22.0) * 0.03;
+      this._rat2Head.rotation.y = Math.sin(time * 1.8) * 0.25;
+    }
+    for (let s = 0; s < this._rat2TailSegments.length; s++) {
+      const seg = this._rat2TailSegments[s]!;
+      seg.rotation.y = Math.sin(time * 3.2 + s * 0.8) * (0.12 + s * 0.07);
+    }
+
+    // Ratte 3: Vorsichtiges Hervorlugen
+    if (this._rat3Head) {
+      this._rat3Head.position.z = Math.sin(time * 1.2) * 0.02;
+      this._rat3Head.rotation.y = Math.sin(time * 2.5) * 0.2;
     }
   }
 }
