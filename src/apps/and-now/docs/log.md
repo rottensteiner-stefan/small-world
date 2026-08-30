@@ -866,6 +866,12 @@ befüllen.
 - **Kit-Manifest & Metadaten:** `kit.json`, `meta.json` und Vorschaubilder (`preview.jpg`) für alle Varianten erstellt.
 - **Status:** 96 Testsuiten, 546 Tests, Build/Lint 100% grün.
 
+## 93. Engine-Vision erweitert: Open Standards & Frictionless Asset Ingestion (2026-08-30)
+- **Vision-Pfeiler verankert ([`VISION.md`](file:///Users/srottensteiner/PhpstormProjects/small-world/VISION.md)):**
+  - *Säule 5 (Pain Points):* Beseitigung von Repo-Bloat und geschlossenen Asset-Store-Silos durch das modulare Kit-Format (`model.glb` + `preview.jpg` + `meta.json`).
+  - *Philosophie 6:* Verpflichtung zu offenen glTF 2.0-Standards, universeller Interoperabilität mit DCC-Tools (Blender, Kenney, Poly Haven, Sketchfab) und nahtloser KI-Generierung (Tripo, Meshy).
+- **Status:** 96 Testsuiten, 546 Tests, Build/Lint 100% grün.
+
 
 
 

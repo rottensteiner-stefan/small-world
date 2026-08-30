@@ -22,6 +22,10 @@ In a landscape where enterprise 3D web frameworks pull megabytes of JavaScript i
 **The Problem:** Legacy engines are struggling to adapt their 10-year-old architectures to the parallel compute paradigms of WebGPU, often resulting in fragmented NodeMaterial systems that break backward compatibility.
 **Our Solution:** Small World was built hybrid from day one. Our shaders use static parameter specialization, guaranteeing zero-cost abstraction. We design for WebGPU first and seamlessly fallback to WebGL 2, without forcing the user to learn a proprietary visual scripting language.
 
+### 5. Asset Bloat & Closed Ecosystems (Frictionless Ingestion & Open Standards)
+**The Problem:** Traditional 3D engines either bundle gigabytes of heavy binary assets into their core repositories (causing agonizingly slow clone times and monolithic bloat) or lock developers into walled-garden asset stores with proprietary file formats. Indie developers and micro-app creators cannot—and should not—have to model thousands of custom 3D assets from scratch just to make their applications compelling.
+**Our Solution:** The **Modular Asset Kit Standard** and **Zero-Friction Ingestion Pipeline**. Small World adopts open, universal standards (`.glb`, standard glTF 2.0 PBR, clean semantic JSON manifests). The engine repository stays feather-light, providing curated Gold-Standard reference kits (like the *Underground & Industrial Kit*), while empowering creators to seamlessly import, snap, and socket any model from the global CC0/CC-BY ecosystem (Kenney, Poly Haven, Sketchfab, Blender) or generative AI pipelines (Tripo3D, Meshy) in seconds.
+
 ## Our Core Philosophy
 
 1. **Lightweight over Exhaustive:** If a feature requires 500KB of polyfills to support 1% of edge cases, it doesn't belong in the core.
@@ -29,5 +33,6 @@ In a landscape where enterprise 3D web frameworks pull megabytes of JavaScript i
 3. **Data-Oriented & Zero Allocation:** In hot paths (like the main render loop, `Object3D.computeBounds()`, or Raycasting), we strictly avoid object instantiation to completely eliminate unpredictable Garbage Collection (GC) pauses.
 4. **Zero-Dependency Core:** No external math libraries (like `glMatrix`), no bloated polyfills, in the rendering and math core itself. We build custom, highly-optimized systems from the ground up (like our right-handed coordinate math engine) to guarantee maximum performance and minimal footprint.
 5. **Modern By Default:** We leverage the latest web technologies directly. Unified linear space post-processing pipelines are standard, not an afterthought — and WebGPU compute shaders are real, not just a graphics-pipeline talking point (the Clustered Forward+ Lighting pass culls every light against the frustum grid on the GPU before the main render pass runs).
+6. **Open Standards & Frictionless Ingestion:** We do not build proprietary asset silos. Small World thrives on standard glTF/GLB binaries and self-contained kit manifests (`model.glb` + `preview.jpg` + `meta.json`). We provide the high-performance engine and gold-standard starter templates — letting developers tap into millions of existing 3D assets without friction, conversion bloat, or lock-in.
 
 Small World is the engine for the modern TypeScript developer who wants the raw power of WebGPU, the architectural elegance of a real game engine, and a bundle size that loads before the user even blinks.
