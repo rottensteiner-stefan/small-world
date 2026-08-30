@@ -17,7 +17,7 @@ import { ProjectionType, RendererType, PostProcessingEffectType } from "../enums
 import { RendererFactory } from "../renderers/index.js";
 import { ShaderBootstrap } from "./renderers/shaders/index.js";
 import { CollisionVisualizer, OctreeVisualizer } from "../utils/index.js";
-import { GadgetInspector } from "../tools/GadgetInspector.js";
+import type { GadgetInspector } from "../tools/GadgetInspector.js";
 import { PhysicsSystem } from "../physix/PhysicsSystem.js";
 
 /** The current engine version. */

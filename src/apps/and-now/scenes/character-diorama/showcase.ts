@@ -227,7 +227,7 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
     this._buildIndustrialPipes();
     await this._buildConstructionLamps();
     this._buildCornerDebrisPile();
-    this._buildStreetProps();
+    await this._buildStreetProps();
     this._buildCornerRats();
 
     // 4. Load Initial Character
@@ -965,7 +965,7 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
     root.add(lampGroupBack);
   }
 
-  private _buildStreetProps(): void {
+  private async _buildStreetProps(): Promise<void> {
     const root = this._dioramaRoot!;
     const metalMat = new StandardMaterial({
       color: new Color(0.22, 0.25, 0.28),
@@ -1068,16 +1068,33 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
       root.add(crate);
     });
 
-    const metalBarrel = new Object3D("MetalBarrel");
-    metalBarrel.geometry = new Cylinder({
-      radiusTop: 0.25,
-      radiusBottom: 0.25,
-      height: 0.78,
-      radialSegments: 32,
-    }).getGeometryData();
-    metalBarrel.material = barrelMat;
-    metalBarrel.position.set(-1.45, 0.39, 0.6);
-    root.add(metalBarrel);
+    // 3D Tripo-PBR Industriefass (Industrial Kit) mit 2x3 Rillenbändern und Verschlusskappe
+    let barrelModel: Object3D | undefined;
+    try {
+      const gltfLoader = new GltfLoader();
+      barrelModel = await gltfLoader.load("/assets/and-now/diorama/barrel_oil_black.glb");
+    } catch {
+      // Fallback zu prozeduralem Zylinder
+    }
+
+    if (barrelModel) {
+      barrelModel.name = "MetalBarrel";
+      barrelModel.scale.set(0.82, 0.82, 0.82);
+      barrelModel.position.set(-1.45, 0.41, 0.6);
+      barrelModel.rotation.y = 0.65;
+      root.add(barrelModel);
+    } else {
+      const metalBarrel = new Object3D("MetalBarrel");
+      metalBarrel.geometry = new Cylinder({
+        radiusTop: 0.25,
+        radiusBottom: 0.25,
+        height: 0.78,
+        radialSegments: 32,
+      }).getGeometryData();
+      metalBarrel.material = barrelMat;
+      metalBarrel.position.set(-1.45, 0.39, 0.6);
+      root.add(metalBarrel);
+    }
 
     const can1 = new Object3D("SodaCan1");
     can1.geometry = new Cylinder({

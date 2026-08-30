@@ -857,6 +857,15 @@ befüllen.
   - Nukleus des Starter-Kits: `wall_lamp.glb`, Holzkisten, Ölfass, Schutt-Polygonberg, Noir-Materialien und Mocap-Locomotion-Pool.
 - **Status:** 95 Testsuiten, 542 Tests, Build/Lint 100% grün.
 
+## 92. Industriefässer: 3 PBR-Varianten & ADR/GHS-Gefahrgut-Kennzeichnung (2026-08-30)
+- **Nomenklatur bereinigt:** Begriff „Öl“ durch modulare Fass-Klassifizierung ersetzt (`barrel_oil_black`, `barrel_hazard_yellow`, `barrel_chemical_blue`).
+- **3 Fass-Varianten im Industrial Kit ([`public/assets/kits/industrial/`](file:///Users/srottensteiner/PhpstormProjects/small-world/public/assets/kits/industrial/)):**
+  1. `barrel_oil_black`: Verrosteter 200L-Stahldruckbehälter mit 2×3 Rillenbändern und schwarzen Ölrückständen.
+  2. `barrel_hazard_yellow`: Gelber Korrosionsanstrich, schwarze Diagonal-Warnstreifen und offizielles ADR Klasse 6.1 / GHS06 Totenkopf-Gefahrgut-Decal.
+  3. `barrel_chemical_blue`: Dunkeltürkisblaues Chemiefass, rotes ADR Klasse 3 (Entzündbar) Flammensymbol und deutsche Schablonen-Typografie („ENTZÜNDBAR ACHTUNG! INHALT: 200L GEFAHRGUT“).
+- **Kit-Manifest & Metadaten:** `kit.json`, `meta.json` und Vorschaubilder (`preview.jpg`) für alle Varianten erstellt.
+- **Status:** 96 Testsuiten, 546 Tests, Build/Lint 100% grün.
+
 
 
 
