@@ -897,6 +897,14 @@ befüllen.
   - Dokumentiert in [`REFERENCES.md`](file:///Users/srottensteiner/PhpstormProjects/small-world/REFERENCES.md).
 - **Status:** 97 Testsuiten, 551 Tests, Build/Lint 100% grün.
 
+## 96. Umfassende Test-Coverage für Architektur-Entscheidungen (2026-08-30)
+- **4 neue Testsuiten implementiert (101 Testsuiten / 567 Tests):**
+  1. [`tests/loaders/AssetKitValidation.test.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/tests/loaders/AssetKitValidation.test.ts): Validiert ADR 0011 Modular Asset Kits, `kit.json`/`meta.json`-Schemata, physische Existenz von GLB/Preview-Dateien, Low-Poly-Budgets, Sockets (`LightBulb`) und ADR/GHS-Gefahrgut-Kennzeichnungen.
+  2. [`tests/tools/maker/TransformGizmo.test.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/tests/tools/maker/TransformGizmo.test.ts): Validiert ADR 0010 Maker 3D-Gizmos, Achsentransformationen (Translate, Rotate, Scale), Screen-Space-Deltas und Entkopplung bei Detach.
+  3. [`tests/tools/maker/UndoStack.test.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/tests/tools/maker/UndoStack.test.ts): Validiert Command-Pattern, sequentielle Undo/Redo-Ketten, Redo-Zweig-Verwerfung bei neuen Aktionen und Historien-Bereinigung.
+  4. [`tests/core/CharacterSockets.test.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/tests/core/CharacterSockets.test.ts): Validiert Knöchel-/Handflächen-Socket-Ausrichtung (`mixamorig:LeftHandMiddle1`) und dynamische Transform-Synchronisation bei Charakterbewegung.
+- **Status:** 101 Testsuiten, 567 Tests, Build/Lint 100% grün.
+
 
 
 

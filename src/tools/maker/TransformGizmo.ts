@@ -131,6 +131,15 @@ export class TransformGizmo {
     dy: number,
     camera: CameraInterfaceData,
   ): number {
+    // Rotation is driven by horizontal drag alone, regardless of axis: dragging "along" an
+    // axis's own screen-projected direction (the translate/scale approach below) breaks down for
+    // a ring, since the natural gesture is tangential to the ring's circumference, not along the
+    // axis itself -- for a ring whose axis projects mostly *vertically* on screen (Y, from most
+    // viewing angles) that would perversely require a vertical drag to spin it. A flat "left/right
+    // spins it" convention sidesteps computing per-axis tangent direction and reads consistently
+    // across all three axes.
+    if ("rotate" === this._mode) return dx * 0.01;
+
     const forward = camera.target.clone().sub(camera.position).normalize();
     const right = forward.clone().cross(camera.up).normalize();
     const screenUp = right.clone().cross(forward).normalize();
@@ -142,7 +151,6 @@ export class TransformGizmo {
     const len = Math.hypot(screenX, screenY) || 1;
     const projected = (dx * screenX + dy * screenY) / len;
 
-    if ("rotate" === this._mode) return projected * 0.01;
     if ("scale" === this._mode) return projected * 0.01;
 
     const worldPos = new Vector3D();
