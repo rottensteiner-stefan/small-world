@@ -2,17 +2,14 @@ import {
   AbstractShowcase,
   Color,
   Cube,
-  CustomShaderMaterial,
   Cylinder,
   DirectionalLight,
   GltfLoader,
   Object3D,
   Plane,
   PointLight,
-  ShaderPropertyType,
   Sphere,
   StandardMaterial,
-  StandardWebGPULayout,
   Torus,
 } from "../../../../index.js";
 import { OrbitController } from "../../../../core/controllers/OrbitController.js";
@@ -23,7 +20,6 @@ import {
 } from "../../../../core/animation/index.js";
 
 type CharacterType = "male" | "female" | "yoshi";
-type GlitchLevel = "off" | "subtle" | "normal";
 
 const ANIMATION_CLIPS: Record<string, string> = {
   idle_1: "/assets/and-now/mannequin/shared/anim/idle_1.glb",
@@ -37,92 +33,6 @@ const ANIMATION_CLIPS: Record<string, string> = {
   stairs_up: "/assets/and-now/mannequin/shared/anim/ascending_stairs.glb",
   stairs_down: "/assets/and-now/mannequin/shared/anim/descending_stairs.glb",
 };
-
-const MATRIX_GLITCH_WGSL = `[WGSL_STRUCTS]
-
-fn hash12(p: vec2f) -> f32 {
-    var p3 = fract(vec3f(p.xyx) * 0.1031);
-    p3 += dot(p3, p3.yzx + 33.33);
-    return fract((p3.x + p3.y) * p3.z);
-}
-
-@vertex fn vs(
-    @location(0) pos: vec3f,
-    @location(1) normal: vec3f,
-    @location(2) uv: vec2f,
-    @location(3) tangent: vec3f,
-    @location(4) joints: vec4f,
-    @location(5) weights: vec4f
-) -> Out {
-    var o: Out;
-    let worldPos = obj.model * vec4f(pos, 1.0);
-    o.wp = worldPos.xyz;
-    o.pos = view.vp * worldPos;
-    o.uv = uv * obj.texRepeat + obj.texOffset;
-    o.original_uv = uv;
-    
-    let m33 = mat3x3f(obj.model[0].xyz, obj.model[1].xyz, obj.model[2].xyz);
-    o.n = normalize(m33 * normal);
-    o.t = normalize(m33 * tangent);
-    o.b = normalize(cross(o.n, o.t));
-    o.texIndex = 0.0;
-    return o;
-}
-
-@fragment fn fs(i: Out) -> @location(0) vec4f {
-    let time = obj.time;
-    let glitchIntensity = obj.extraParams.x;
-    let uv = i.original_uv;
-    let wp = i.wp;
-
-    // 1. Procedural Brick & Tile Pattern
-    let brickScale = vec2f(12.0, 24.0);
-    var bUv = uv * brickScale;
-    if (fract(bUv.y * 0.5) > 0.5) {
-        bUv.x += 0.5;
-    }
-    let bGrid = fract(bUv);
-    let mortar = step(0.04, bGrid.x) * step(0.06, bGrid.y);
-    let bId = floor(bUv);
-    let bNoise = hash12(bId);
-
-    // Weathered Red Brick Base
-    var baseColor = mix(vec3f(0.12, 0.14, 0.16), mix(vec3f(0.44, 0.22, 0.16), vec3f(0.32, 0.16, 0.11), bNoise), mortar);
-    baseColor *= (0.80 + 0.20 * hash12(uv * 80.0));
-
-    // Simple Directional & Ambient Shading
-    let N = normalize(i.n);
-    let L = normalize(vec3f(0.6, 1.0, 0.8));
-    let diff = max(dot(N, L), 0.0);
-    var finalCol = baseColor * (diff * 0.70 + 0.30);
-
-    // 2. Controlled Outer-Edge Glitch Falloff
-    let distFloor = max(max(wp.x - 1.2, wp.z - 1.2) / 1.1, 0.0);
-    let distHeight = max((wp.y - 2.8) / 1.0, 0.0);
-    let outerEdge = clamp(max(distFloor, distHeight), 0.0, 1.0);
-
-    if (outerEdge > 0.05 && glitchIntensity > 0.01) {
-        let f = outerEdge * glitchIntensity;
-        
-        let scanline = sin((wp.y + wp.x + wp.z) * 45.0 - time * 6.0) * 0.5 + 0.5;
-        let cell = vec2f(floor((wp.x + wp.z) * 16.0), floor((wp.y + time * 0.4) * 16.0));
-        let digitalSparkle = step(0.65, hash12(cell)) * scanline;
-        
-        let matrixGlow = vec3f(0.0, 0.9, 0.5) * digitalSparkle * 1.2;
-        let cyanEdge = vec3f(0.0, 0.75, 1.0) * (sin(time * 3.0 + wp.y * 10.0) * 0.2 + 0.8);
-
-        finalCol = mix(finalCol, mix(finalCol + matrixGlow, cyanEdge, 0.35), f * 0.75);
-
-        if (outerEdge > 0.85) {
-            let dither = hash12(vec2f(floor(wp.x * 30.0 + wp.z * 30.0), floor(wp.y * 30.0)));
-            if (dither < (outerEdge - 0.85) / 0.15) {
-                discard;
-            }
-        }
-    }
-
-    return vec4f(finalCol, 1.0);
-}`;
 
 function findNodeByName(root: Object3D, name: string): Object3D | undefined {
   if (root.name === name || root.name.includes(name)) return root;
@@ -143,8 +53,6 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
   private _lanternPointLight: PointLight | undefined;
   private _lanternOn: boolean = true;
   private _turntableActive: boolean = false;
-  private _glitchLevel: GlitchLevel = "subtle";
-  private _glitchMaterials: CustomShaderMaterial[] = [];
 
   private _mixer: AnimationMixer | undefined;
   private _clips: Map<string, AnimationClip> = new Map();
@@ -157,12 +65,15 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
   private _lblChar!: HTMLElement;
   private _lblTorch!: HTMLElement;
   private _lblTurntable!: HTMLElement;
-  private _lblGlitch!: HTMLElement;
   private _animButtons: HTMLButtonElement[] = [];
 
   // Corner Rat Animation
   private _ratHead: Object3D | undefined;
   private _ratTailSegments: Object3D[] = [];
+
+  // Lamp Flicker
+  private _lampLight1: PointLight | undefined;
+  private _lampLight2: PointLight | undefined;
 
   public override async setupScene(): Promise<void> {
     this.camera.position.set(3.8, 2.7, 4.2);
@@ -175,10 +86,10 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
       }),
     );
 
-    // 1. Studio & Stage Lighting
-    const ambientLight = new DirectionalLight({ color: new Color(0.24, 0.26, 0.32) });
-    ambientLight.intensity = 0.65;
-    ambientLight.position.set(0, 6, 2);
+    // 1. Studio & Environmental Lighting
+    const ambientLight = new DirectionalLight({ color: new Color(0.26, 0.28, 0.35) });
+    ambientLight.intensity = 0.7;
+    ambientLight.position.set(1.0, 6.0, 2.0);
     this.scene.add(ambientLight);
 
     const keySpot = new PointLight({ color: new Color(1.0, 0.92, 0.78) });
@@ -187,8 +98,8 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
     keySpot.position.set(2.2, 3.8, 2.6);
     this.scene.add(keySpot);
 
-    const cyberRimLight = new PointLight({ color: new Color(0.0, 0.85, 1.0) });
-    cyberRimLight.intensity = 1.8;
+    const cyberRimLight = new PointLight({ color: new Color(0.15, 0.65, 0.85) });
+    cyberRimLight.intensity = 1.6;
     cyberRimLight.distance = 8.0;
     cyberRimLight.position.set(-2.5, 2.0, -2.5);
     this.scene.add(cyberRimLight);
@@ -203,179 +114,186 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
     this._buildIndustrialPipes();
     this._buildConstructionLamps();
     this._buildStreetProps();
-    this._buildCornerRat();
+    this._buildCornerRats();
 
     // 3. Load Initial Character
     this._initHUD();
     await this._loadCharacter("male");
   }
 
-  private _createGlitchMaterial(): CustomShaderMaterial {
-    const mat = new CustomShaderMaterial({
-      sources: {
-        wgsl: MATRIX_GLITCH_WGSL,
-      },
-      layout: {
-        ...StandardWebGPULayout,
-        uniforms: {
-          ...StandardWebGPULayout.uniforms,
-          u_extraParams: { type: ShaderPropertyType.VEC4 },
-        },
-      },
-      properties: {
-        u_extraParams: new Float32Array([0.4, 0, 0, 0]),
-      },
-    });
-    this._glitchMaterials.push(mat);
-    return mat;
-  }
-
   /**
-   * 1. 3D Foundation Podest (Bodenplatte mit echter Dicke & Schichten)
+   * 1. 3D Foundation Podest (Bodenplatte mit echter Dicke, Schichten & gebrochenen Stufen)
    */
   private _buildFoundationPlatform(): void {
     const root = this._dioramaRoot!;
-    const floorGlitchMat = this._createGlitchMaterial();
-    const concreteMat = new StandardMaterial({
-      color: new Color(0.24, 0.25, 0.28),
+    const floorPavementMat = new StandardMaterial({
+      color: new Color(0.28, 0.26, 0.24),
       roughness: 0.85,
+      metallic: 0.1,
     });
-    const brickSubMat = new StandardMaterial({
-      color: new Color(0.38, 0.18, 0.14),
+    const wetPuddleMat = new StandardMaterial({
+      color: new Color(0.15, 0.16, 0.18),
+      roughness: 0.15,
+      metallic: 0.3,
+    });
+    const concreteMat = new StandardMaterial({
+      color: new Color(0.25, 0.26, 0.28),
       roughness: 0.9,
     });
+    const brickSubMat = new StandardMaterial({
+      color: new Color(0.42, 0.18, 0.12),
+      roughness: 0.85,
+    });
 
-    // Oberste begehbare Pflaster-Ebene
+    // Oberste Pflaster-Fläche
     const topFloor = new Object3D("TopFloorPavement");
-    topFloor.geometry = new Plane({
-      width: 4.2,
-      height: 4.2,
-      widthSegments: 24,
-      heightSegments: 24,
-    }).getGeometryData();
-    topFloor.material = floorGlitchMat;
-    topFloor.rotation.x = -Math.PI / 2;
-    topFloor.position.set(0, 0, 0);
+    topFloor.geometry = new Cube({ size: 1.0 }).getGeometryData();
+    topFloor.scale.set(4.2, 0.04, 4.2);
+    topFloor.material = floorPavementMat;
+    topFloor.position.set(0, -0.02, 0);
     root.add(topFloor);
 
-    // Massiver Beton-/Schotter-Kern
+    // Feuchte Glanz-Stellen / Pfützen-Reflexionen
+    const puddle = new Object3D("WetPuddle");
+    puddle.geometry = new Plane({ width: 2.2, height: 1.8 }).getGeometryData();
+    puddle.material = wetPuddleMat;
+    puddle.rotation.x = -Math.PI / 2;
+    puddle.position.set(-0.2, 0.002, 0.2);
+    root.add(puddle);
+
+    // Massiver Unterbau-Kern (0.35m dicke Fundamentschicht)
     const slabCore = new Object3D("FoundationSlabCore");
     slabCore.geometry = new Cube({ size: 1.0 }).getGeometryData();
     slabCore.scale.set(4.2, 0.35, 4.2);
     slabCore.material = concreteMat;
-    slabCore.position.set(0, -0.175, 0);
+    slabCore.position.set(0, -0.215, 0);
     root.add(slabCore);
 
-    // Freiliegende Ziegelschichten an den vorderen Bruchkanten (+X und +Z Stirnseite)
-    const stepsX = 6;
-    for (let i = 0; i < stepsX; i++) {
-      const stepBlock = new Object3D("FoundationBrickStepX_" + i);
-      stepBlock.geometry = new Cube({ size: 1.0 }).getGeometryData();
-      const w = 0.5 + (i % 2) * 0.15;
-      const h = 0.12;
-      const d = 0.25;
-      stepBlock.scale.set(w, h, d);
-      stepBlock.material = i % 2 === 0 ? brickSubMat : concreteMat;
-      stepBlock.position.set(-1.8 + i * 0.65, -0.18 - (i % 3) * 0.04, 2.15);
-      stepBlock.rotation.y = i % 2 === 0 ? 0.05 : -0.05;
-      root.add(stepBlock);
-    }
+    // Gebrochene gestufte Ziegel- und Steinblöcke an den Schnittkanten (+X und +Z)
+    for (let i = 0; i < 7; i++) {
+      const stepBlockX = new Object3D("FoundationBrickStepX_" + i);
+      stepBlockX.geometry = new Cube({ size: 1.0 }).getGeometryData();
+      const w = 0.45 + (i % 3) * 0.15;
+      const h = 0.14;
+      const d = 0.28;
+      stepBlockX.scale.set(w, h, d);
+      stepBlockX.material = i % 2 === 0 ? brickSubMat : concreteMat;
+      stepBlockX.position.set(-1.8 + i * 0.6, -0.18 - (i % 3) * 0.05, 2.16);
+      stepBlockX.rotation.y = i % 2 === 0 ? 0.06 : -0.06;
+      root.add(stepBlockX);
 
-    const stepsZ = 6;
-    for (let i = 0; i < stepsZ; i++) {
-      const stepBlock = new Object3D("FoundationBrickStepZ_" + i);
-      stepBlock.geometry = new Cube({ size: 1.0 }).getGeometryData();
-      const w = 0.25;
-      const h = 0.12;
-      const d = 0.5 + (i % 2) * 0.15;
-      stepBlock.scale.set(w, h, d);
-      stepBlock.material = i % 2 === 0 ? brickSubMat : concreteMat;
-      stepBlock.position.set(2.15, -0.18 - (i % 3) * 0.04, -1.8 + i * 0.65);
-      stepBlock.rotation.y = i % 2 === 0 ? -0.05 : 0.05;
-      root.add(stepBlock);
+      const stepBlockZ = new Object3D("FoundationBrickStepZ_" + i);
+      stepBlockZ.geometry = new Cube({ size: 1.0 }).getGeometryData();
+      stepBlockZ.scale.set(d, h, w);
+      stepBlockZ.material = i % 2 === 0 ? brickSubMat : concreteMat;
+      stepBlockZ.position.set(2.16, -0.18 - (i % 3) * 0.05, -1.8 + i * 0.6);
+      stepBlockZ.rotation.y = i % 2 === 0 ? -0.06 : 0.06;
+      root.add(stepBlockZ);
     }
   }
 
   /**
-   * 2. Gewölbte Backstein-Mauern mit Ziegeldicke und stufigen Bogenkanten
+   * 2. Gewölbte Backstein-Mauern (mit echter Ziegeldicke, Bogenverlauf & Fliesenverkleidung)
    */
   private _buildVaultedWalls(): void {
     const root = this._dioramaRoot!;
-    const wallGlitchMat1 = this._createGlitchMaterial();
-    const wallGlitchMat2 = this._createGlitchMaterial();
-    const brickMat = new StandardMaterial({ color: new Color(0.44, 0.2, 0.14), roughness: 0.85 });
-    const plasterMat = new StandardMaterial({ color: new Color(0.3, 0.32, 0.35), roughness: 0.9 });
+    const tileOffWhiteMat = new StandardMaterial({
+      color: new Color(0.82, 0.8, 0.74),
+      roughness: 0.35,
+      metallic: 0.05,
+    });
+    const tileArtDecoBorderMat = new StandardMaterial({
+      color: new Color(0.72, 0.65, 0.52),
+      roughness: 0.45,
+      metallic: 0.1,
+    });
+    const exposedBrickMat = new StandardMaterial({
+      color: new Color(0.45, 0.18, 0.12),
+      roughness: 0.85,
+      metallic: 0.05,
+    });
+    const darkMortarMat = new StandardMaterial({
+      color: new Color(0.28, 0.26, 0.25),
+      roughness: 0.9,
+    });
 
-    // Linke Wand (Hauptfläche)
-    const leftWall = new Object3D("LeftWall");
-    leftWall.geometry = new Plane({
-      width: 4.2,
-      height: 3.6,
-      widthSegments: 24,
-      heightSegments: 20,
-    }).getGeometryData();
-    leftWall.material = wallGlitchMat1;
-    leftWall.position.set(-2.1, 1.8, 0);
-    leftWall.rotation.y = Math.PI / 2;
-    root.add(leftWall);
+    // Beide Wände (LeftWall entlang X = -2.1, BackWall entlang Z = -2.1)
+    // aus vertikalen Mauerwerkssäulen aufbauen, deren Höhe exakt dem Bogenverlauf folgt!
+    const numColumns = 10;
+    const colWidth = 4.2 / numColumns;
+    const wallThickness = 0.24;
 
-    // Rückwand (Hauptfläche)
-    const backWall = new Object3D("BackWall");
-    backWall.geometry = new Plane({
-      width: 4.2,
-      height: 3.6,
-      widthSegments: 24,
-      heightSegments: 20,
-    }).getGeometryData();
-    backWall.material = wallGlitchMat2;
-    backWall.position.set(0, 1.8, -2.1);
-    root.add(backWall);
+    for (let i = 0; i < numColumns; i++) {
+      const t = i / (numColumns - 1); // 0 am Eck (-2.1), 1 am Außenrand (+2.1)
+      // Bogenhöhe: von 3.6m am Eck harmonisch auf 1.85m am Außenrand
+      const colHeight = 3.6 - Math.pow(t, 1.7) * 1.75;
+      const posY = colHeight / 2;
 
-    // Wandstärke / Backing Casing (0.22m Ziegel-Tiefe hinter den Wänden)
-    const leftCasing = new Object3D("LeftWallCasing");
-    leftCasing.geometry = new Cube({ size: 1.0 }).getGeometryData();
-    leftCasing.scale.set(0.22, 3.6, 4.2);
-    leftCasing.material = brickMat;
-    leftCasing.position.set(-2.21, 1.8, 0);
-    root.add(leftCasing);
+      // --- Linke Wand Säule ---
+      const posZ = -2.1 + (i + 0.5) * colWidth;
+      const leftCol = new Object3D("LeftWallCol_" + i);
+      leftCol.geometry = new Cube({ size: 1.0 }).getGeometryData();
+      leftCol.scale.set(wallThickness, colHeight, colWidth);
+      // Abwechselnd Fliesen vs. abgeplatzter Ziegel
+      leftCol.material =
+        i === 2 || i === 5 || i === 8
+          ? exposedBrickMat
+          : i === 1 || i === 6
+            ? tileArtDecoBorderMat
+            : tileOffWhiteMat;
+      leftCol.position.set(-2.1 - wallThickness / 2, posY, posZ);
+      root.add(leftCol);
 
-    const backCasing = new Object3D("BackWallCasing");
-    backCasing.geometry = new Cube({ size: 1.0 }).getGeometryData();
-    backCasing.scale.set(4.2, 3.6, 0.22);
-    backCasing.material = brickMat;
-    backCasing.position.set(0, 1.8, -2.21);
-    root.add(backCasing);
+      // Kopfbogen-Ziegel auf der Säule (Stirnseite / Ziegeldicke oben)
+      const topCapLeft = new Object3D("TopCapLeft_" + i);
+      topCapLeft.geometry = new Cube({ size: 1.0 }).getGeometryData();
+      topCapLeft.scale.set(wallThickness + 0.04, 0.12, colWidth);
+      topCapLeft.material = exposedBrickMat;
+      topCapLeft.position.set(-2.1 - wallThickness / 2, colHeight + 0.06, posZ);
+      topCapLeft.rotation.x = t * 0.35;
+      root.add(topCapLeft);
 
-    // Stufenförmig gewölbter oberer Mauerbogen (Left Wall Top Arch)
-    const archSegments = 8;
-    for (let s = 0; s < archSegments; s++) {
-      const t = s / (archSegments - 1);
-      const z = -2.1 + t * 4.2;
-      // Bogen fällt von Y = 3.6m am Eck auf Y = 1.9m am Rand ab
-      const archHeight = 3.6 - Math.pow(t, 1.8) * 1.7;
+      // --- Rückwand Säule ---
+      const posX = -2.1 + (i + 0.5) * colWidth;
+      const backCol = new Object3D("BackWallCol_" + i);
+      backCol.geometry = new Cube({ size: 1.0 }).getGeometryData();
+      backCol.scale.set(colWidth, colHeight, wallThickness);
+      backCol.material =
+        i === 3 || i === 6
+          ? exposedBrickMat
+          : i === 2 || i === 7
+            ? tileArtDecoBorderMat
+            : tileOffWhiteMat;
+      backCol.position.set(posX, posY, -2.1 - wallThickness / 2);
+      root.add(backCol);
 
-      const brickRow = new Object3D("ArchBrickLeft_" + s);
-      brickRow.geometry = new Cube({ size: 1.0 }).getGeometryData();
-      brickRow.scale.set(0.28, 0.16, 0.52);
-      brickRow.material = s % 2 === 0 ? brickMat : plasterMat;
-      brickRow.position.set(-2.14, archHeight, z);
-      brickRow.rotation.x = t * 0.35; // Sanfte Bogenneigung
-      root.add(brickRow);
+      // Kopfbogen-Ziegel auf der Rückwand
+      const topCapBack = new Object3D("TopCapBack_" + i);
+      topCapBack.geometry = new Cube({ size: 1.0 }).getGeometryData();
+      topCapBack.scale.set(colWidth, 0.12, wallThickness + 0.04);
+      topCapBack.material = exposedBrickMat;
+      topCapBack.position.set(posX, colHeight + 0.06, -2.1 - wallThickness / 2);
+      topCapBack.rotation.z = -t * 0.35;
+      root.add(topCapBack);
     }
 
-    // Stufenförmig gewölbter oberer Mauerbogen (Back Wall Top Arch)
-    for (let s = 0; s < archSegments; s++) {
-      const t = s / (archSegments - 1);
-      const x = -2.1 + t * 4.2;
-      const archHeight = 3.6 - Math.pow(t, 1.8) * 1.7;
+    // Gestufte Ziegel-Zähne an den beiden äußeren Stirnseiten-Schnitten
+    for (let b = 0; b < 8; b++) {
+      const toothY = 0.2 + b * 0.22;
 
-      const brickRow = new Object3D("ArchBrickBack_" + s);
-      brickRow.geometry = new Cube({ size: 1.0 }).getGeometryData();
-      brickRow.scale.set(0.52, 0.16, 0.28);
-      brickRow.material = s % 2 === 0 ? brickMat : plasterMat;
-      brickRow.position.set(x, archHeight, -2.14);
-      brickRow.rotation.z = -t * 0.35;
-      root.add(brickRow);
+      const toothLeft = new Object3D("ToothLeft_" + b);
+      toothLeft.geometry = new Cube({ size: 1.0 }).getGeometryData();
+      toothLeft.scale.set(wallThickness + 0.02, 0.1, 0.22);
+      toothLeft.material = b % 2 === 0 ? exposedBrickMat : darkMortarMat;
+      toothLeft.position.set(-2.1 - wallThickness / 2, toothY, 2.12 + (b % 2) * 0.08);
+      root.add(toothLeft);
+
+      const toothRight = new Object3D("ToothRight_" + b);
+      toothRight.geometry = new Cube({ size: 1.0 }).getGeometryData();
+      toothRight.scale.set(0.22, 0.1, wallThickness + 0.02);
+      toothRight.material = b % 2 === 0 ? exposedBrickMat : darkMortarMat;
+      toothRight.position.set(2.12 + (b % 2) * 0.08, toothY, -2.1 - wallThickness / 2);
+      root.add(toothRight);
     }
   }
 
@@ -386,38 +304,38 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
     const root = this._dioramaRoot!;
     const rustyPipeMat = new StandardMaterial({
       color: new Color(0.42, 0.28, 0.22),
-      metallic: 0.7,
-      roughness: 0.5,
+      metallic: 0.75,
+      roughness: 0.45,
     });
     const darkCableMat = new StandardMaterial({
       color: new Color(0.12, 0.14, 0.16),
       roughness: 0.7,
     });
 
-    // 1. Rohrstümpfe am Boden-Querschnitt (vorne links)
+    // 1. Rohrstümpfe am Fundament (vorne links unter dem Boden)
     const floorPipe1 = new Object3D("FloorPipeStub1");
     floorPipe1.geometry = new Cylinder({
-      radiusTop: 0.07,
-      radiusBottom: 0.07,
-      height: 0.55,
+      radiusTop: 0.075,
+      radiusBottom: 0.075,
+      height: 0.6,
       radialSegments: 12,
     }).getGeometryData();
     floorPipe1.material = rustyPipeMat;
-    floorPipe1.rotation.x = Math.PI / 2 + 0.1;
-    floorPipe1.rotation.y = 0.15;
-    floorPipe1.position.set(-0.6, -0.16, 2.25);
+    floorPipe1.rotation.x = Math.PI / 2 + 0.12;
+    floorPipe1.rotation.y = 0.18;
+    floorPipe1.position.set(-0.65, -0.18, 2.28);
     root.add(floorPipe1);
 
     const floorPipe2 = new Object3D("FloorPipeStub2");
     floorPipe2.geometry = new Cylinder({
       radiusTop: 0.055,
       radiusBottom: 0.055,
-      height: 0.45,
+      height: 0.5,
       radialSegments: 10,
     }).getGeometryData();
     floorPipe2.material = rustyPipeMat;
-    floorPipe2.rotation.x = Math.PI / 2 + 0.15;
-    floorPipe2.position.set(-0.35, -0.22, 2.22);
+    floorPipe2.rotation.x = Math.PI / 2 + 0.16;
+    floorPipe2.position.set(-0.35, -0.24, 2.24);
     root.add(floorPipe2);
 
     // 2. Rohrstumpf an der rechten Wand-Schnittfläche
@@ -425,25 +343,25 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
     wallPipeRight.geometry = new Cylinder({
       radiusTop: 0.065,
       radiusBottom: 0.065,
-      height: 0.5,
+      height: 0.55,
       radialSegments: 12,
     }).getGeometryData();
     wallPipeRight.material = rustyPipeMat;
-    wallPipeRight.rotation.z = Math.PI / 2 - 0.2;
-    wallPipeRight.position.set(2.28, 2.2, -1.95);
+    wallPipeRight.rotation.z = Math.PI / 2 - 0.22;
+    wallPipeRight.position.set(2.32, 2.2, -2.05);
     root.add(wallPipeRight);
 
     // 3. Rohrstumpf an der linken Wand-Schnittfläche
     const wallPipeLeft = new Object3D("WallPipeStubLeft");
     wallPipeLeft.geometry = new Cylinder({
-      radiusTop: 0.06,
-      radiusBottom: 0.06,
-      height: 0.5,
+      radiusTop: 0.065,
+      radiusBottom: 0.065,
+      height: 0.55,
       radialSegments: 12,
     }).getGeometryData();
     wallPipeLeft.material = rustyPipeMat;
-    wallPipeLeft.rotation.x = Math.PI / 2 + 0.2;
-    wallPipeLeft.position.set(-1.95, 2.2, 2.28);
+    wallPipeLeft.rotation.x = Math.PI / 2 + 0.22;
+    wallPipeLeft.position.set(-2.05, 2.2, 2.32);
     root.add(wallPipeLeft);
 
     // 4. Lose Kabelbündel / Drahtstränge an der rechten Schnittseite
@@ -452,13 +370,13 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
       cable.geometry = new Cylinder({
         radiusTop: 0.007,
         radiusBottom: 0.005,
-        height: 0.7 + c * 0.15,
+        height: 0.75 + c * 0.18,
         radialSegments: 6,
       }).getGeometryData();
       cable.material = darkCableMat;
-      cable.rotation.z = -0.15 + c * 0.12;
-      cable.rotation.x = 0.1 * c;
-      cable.position.set(2.26 + c * 0.03, 1.6 - c * 0.1, -1.98);
+      cable.rotation.z = -0.18 + c * 0.14;
+      cable.rotation.x = 0.12 * c;
+      cable.position.set(2.28 + c * 0.04, 1.55 - c * 0.12, -2.1);
       root.add(cable);
     }
 
@@ -468,13 +386,13 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
       cable.geometry = new Cylinder({
         radiusTop: 0.007,
         radiusBottom: 0.005,
-        height: 0.7 + c * 0.15,
+        height: 0.75 + c * 0.18,
         radialSegments: 6,
       }).getGeometryData();
       cable.material = darkCableMat;
-      cable.rotation.x = 0.15 - c * 0.12;
-      cable.rotation.z = -0.1 * c;
-      cable.position.set(-1.98, 1.6 - c * 0.1, 2.26 + c * 0.03);
+      cable.rotation.x = 0.18 - c * 0.14;
+      cable.rotation.z = -0.12 * c;
+      cable.position.set(-2.1, 1.55 - c * 0.12, 2.28 + c * 0.04);
       root.add(cable);
     }
   }
@@ -483,21 +401,21 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
     const root = this._dioramaRoot!;
     const copperMat = new StandardMaterial({
       color: new Color(0.72, 0.45, 0.28),
-      metallic: 0.85,
-      roughness: 0.25,
+      metallic: 0.88,
+      roughness: 0.22,
     });
     const steelMat = new StandardMaterial({
       color: new Color(0.35, 0.38, 0.42),
-      metallic: 0.9,
-      roughness: 0.3,
+      metallic: 0.92,
+      roughness: 0.28,
     });
     const valveRedMat = new StandardMaterial({
       color: new Color(0.85, 0.15, 0.12),
-      metallic: 0.3,
+      metallic: 0.35,
       roughness: 0.4,
     });
 
-    // 1. Horizontales Rohr um die Ecke entlang beider Wände
+    // Horizontales Rohr um die 90°-Ecke
     const hPipeBack = new Object3D("HorizontalPipeBack");
     hPipeBack.geometry = new Cylinder({
       radiusTop: 0.075,
@@ -522,7 +440,7 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
     hPipeLeft.position.set(-1.95, 2.2, 0.0);
     root.add(hPipeLeft);
 
-    // Eck-Winkel-Verbindung (Corner Pipe Elbow)
+    // Eck-Winkel (Elbow)
     const cornerElbow = new Object3D("CornerPipeElbow");
     cornerElbow.geometry = new Torus({
       radius: 0.12,
@@ -534,7 +452,7 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
     cornerElbow.position.set(-1.95, 2.2, -1.95);
     root.add(cornerElbow);
 
-    // Wandflansche
+    // Wandhalterungen & Flansche
     for (const pos of [
       [-1.1, 2.2, -1.95],
       [0.6, 2.2, -1.95],
@@ -570,7 +488,7 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
     valve.position.set(-0.2, 2.2, -1.82);
     root.add(valve);
 
-    // 2. Vertikales Fallrohr an der Rückwand
+    // Vertikales Fallrohr
     const vPipe = new Object3D("VerticalDrainPipe");
     vPipe.geometry = new Cylinder({
       radiusTop: 0.07,
@@ -586,20 +504,20 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
   private _buildConstructionLamps(): void {
     const root = this._dioramaRoot!;
 
-    // 1. Baulampe an der linken Wand (strahlt schräg nach vorne/rechts auf den Charakter)
+    // 1. Baulampe an der linken Wand
     const lamp1 = this._createConstructionLamp(
       "Baulampe_LeftWall",
       new Color(1.0, 0.86, 0.62),
-      3.4,
+      3.6,
     );
-    lamp1.position.set(-1.96, 2.4, -0.3);
+    lamp1.position.set(-1.94, 2.4, -0.3);
     lamp1.rotation.y = Math.PI / 4;
     lamp1.rotation.x = 0.22;
     root.add(lamp1);
 
-    // 2. Baulampe an der Rückwand (strahlt schräg nach vorne/links auf den Charakter)
-    const lamp2 = this._createConstructionLamp("Baulampe_BackWall", new Color(1.0, 0.9, 0.68), 3.4);
-    lamp2.position.set(0.85, 2.45, -1.96);
+    // 2. Baulampe an der Rückwand
+    const lamp2 = this._createConstructionLamp("Baulampe_BackWall", new Color(1.0, 0.9, 0.68), 3.6);
+    lamp2.position.set(0.85, 2.45, -1.94);
     lamp2.rotation.y = -Math.PI / 4;
     lamp2.rotation.x = 0.22;
     root.add(lamp2);
@@ -676,9 +594,15 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
 
     const light = new PointLight({ color: lightColor });
     light.intensity = lightIntensity;
-    light.distance = 9.5;
+    light.distance = 10.0;
     light.position.set(0, 0, 0.22);
     lamp.add(light);
+
+    if (name.includes("Left")) {
+      this._lampLight1 = light;
+    } else {
+      this._lampLight2 = light;
+    }
 
     const cable = new Object3D("PowerCable");
     cable.geometry = new Cylinder({
@@ -770,7 +694,7 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
     root.add(grate);
   }
 
-  private _buildCornerRat(): void {
+  private _buildCornerRats(): void {
     const root = this._dioramaRoot!;
     const ratMat = new StandardMaterial({
       color: new Color(0.25, 0.22, 0.2),
@@ -782,7 +706,7 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
     });
     const eyeMat = new StandardMaterial({ color: new Color(1.0, 0.1, 0.1) });
 
-    // Ratte 1: In der Ecke bei den Kisten
+    // Ratte 1: In der Ecke
     const ratRoot1 = new Object3D("RatRoot1");
     ratRoot1.position.set(-1.6, 0.06, -0.85);
     ratRoot1.rotation.y = 1.1;
@@ -848,7 +772,7 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
       segZ -= 0.055;
     }
 
-    // Ratte 2: Huscht entlang der rechten Wandkante
+    // Ratte 2: Huscht an der rechten Wandkante
     const ratRoot2 = new Object3D("RatRoot2");
     ratRoot2.position.set(1.4, 0.06, -1.95);
     ratRoot2.rotation.y = Math.PI / 2;
@@ -1052,14 +976,12 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
     this._lblChar = document.getElementById("lbl-char")!;
     this._lblTorch = document.getElementById("lbl-torch")!;
     this._lblTurntable = document.getElementById("lbl-turntable")!;
-    this._lblGlitch = document.getElementById("lbl-glitch")!;
 
     document.getElementById("btn-char")?.addEventListener("click", () => this._cycleCharacter());
     document.getElementById("btn-torch")?.addEventListener("click", () => this._toggleTorch());
     document
       .getElementById("btn-turntable")
       ?.addEventListener("click", () => this._toggleTurntable());
-    document.getElementById("btn-glitch")?.addEventListener("click", () => this._cycleGlitch());
 
     const animContainer = document.getElementById("anim-buttons");
     if (animContainer) {
@@ -1081,8 +1003,7 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
       else if (k === " ") {
         e.preventDefault();
         this._toggleTurntable();
-      } else if (k === "G") this._cycleGlitch();
-      else if (k === "1") this._playAnimation("idle_1");
+      } else if (k === "1") this._playAnimation("idle_1");
       else if (k === "2") this._playAnimation("idle_2");
       else if (k === "3") this._playAnimation("idle_torch");
       else if (k === "4") this._playAnimation("walk");
@@ -1131,19 +1052,6 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
     this._updateHUDLabels();
   }
 
-  private _cycleGlitch(): void {
-    if (this._glitchLevel === "subtle") this._glitchLevel = "normal";
-    else if (this._glitchLevel === "normal") this._glitchLevel = "off";
-    else this._glitchLevel = "subtle";
-
-    const intensity =
-      this._glitchLevel === "off" ? 0.0 : this._glitchLevel === "subtle" ? 0.4 : 0.9;
-    for (const mat of this._glitchMaterials) {
-      mat.properties["u_extraParams"] = new Float32Array([intensity, 0, 0, 0]);
-    }
-    this._updateHUDLabels();
-  }
-
   private _updateHUDLabels(): void {
     if (this._lblChar) {
       this._lblChar.textContent =
@@ -1160,15 +1068,6 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
     if (this._lblTurntable) {
       this._lblTurntable.textContent = this._turntableActive ? "AN" : "AUS";
       this._lblTurntable.style.color = this._turntableActive ? "#00f0ff" : "#8a99ad";
-    }
-    if (this._lblGlitch) {
-      this._lblGlitch.textContent =
-        this._glitchLevel === "off"
-          ? "AUS"
-          : this._glitchLevel === "subtle"
-            ? "Subtil (Dezent)"
-            : "Matrix Normal";
-      this._lblGlitch.style.color = this._glitchLevel === "off" ? "#8a99ad" : "#39ff14";
     }
   }
 
@@ -1197,10 +1096,18 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
     this._syncLanternTransform();
 
     const time = performance.now() * 0.001;
-    for (const mat of this._glitchMaterials) {
-      mat.properties["u_time"] = time;
+
+    // Sanftes Halogen-Flackern der Baulampen
+    if (this._lampLight1) {
+      const flicker1 = Math.sin(time * 12.0) * 0.12 + Math.cos(time * 23.0) * 0.08;
+      this._lampLight1.intensity = 3.6 + flicker1;
+    }
+    if (this._lampLight2) {
+      const flicker2 = Math.sin(time * 15.0 + 1.2) * 0.12 + Math.cos(time * 19.0) * 0.08;
+      this._lampLight2.intensity = 3.6 + flicker2;
     }
 
+    // Ratten-Animation
     if (this._ratHead) {
       this._ratHead.position.y = 0.02 + Math.sin(time * 9.0) * 0.006;
       this._ratHead.rotation.x = Math.sin(time * 6.0) * 0.1;
