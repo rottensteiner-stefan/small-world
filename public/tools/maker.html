@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/webp" href="/favicon.webp" />
+    <link rel="stylesheet" href="/assets/shared.css" />
+    <title>Maker - Small World</title>
+    <style>
+      :root {
+        --bg-color: #0b0f19;
+        --panel-bg: rgba(20, 25, 40, 0.9);
+        --text-color: #e0e0e0;
+        --accent: #00e5ff;
+        --border-color: #263048;
+      }
+      body {
+        margin: 0;
+        font-family: "Rajdhani", sans-serif;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        overflow: hidden;
+      }
+      h1 {
+        margin: 0;
+        font-size: 1.5rem;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+      }
+      .maker-layout {
+        flex: 1;
+        display: grid;
+        grid-template-columns: 220px 1fr 280px;
+        overflow: hidden;
+      }
+      .maker-sidebar {
+        display: flex;
+        flex-direction: column;
+        background: var(--panel-bg);
+        border-right: 1px solid var(--border-color);
+        overflow-y: auto;
+      }
+      .maker-sidebar.right {
+        border-right: none;
+        border-left: 1px solid var(--border-color);
+      }
+      .maker-panel-title {
+        padding: 8px 10px;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        opacity: 0.7;
+        border-bottom: 1px solid var(--border-color);
+      }
+      #maker-hierarchy {
+        flex: 1;
+        overflow-y: auto;
+        min-height: 120px;
+      }
+      .maker-hierarchy-row {
+        padding: 4px 6px;
+        font-size: 0.9rem;
+        cursor: pointer;
+        white-space: nowrap;
+        border-radius: 3px;
+      }
+      .maker-hierarchy-row:hover {
+        background: rgba(255, 255, 255, 0.08);
+      }
+      .maker-hierarchy-row.selected {
+        background: rgba(0, 229, 255, 0.2);
+        color: var(--accent);
+      }
+      #maker-palette {
+        padding: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .maker-palette-section {
+        margin: 8px 0 2px;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        opacity: 0.6;
+      }
+      .maker-palette-btn {
+        background: #1a2233;
+        color: var(--text-color);
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        padding: 6px 8px;
+        cursor: pointer;
+        font-size: 0.85rem;
+        text-align: left;
+      }
+      .maker-palette-btn:hover {
+        border-color: var(--accent);
+      }
+      .maker-viewport {
+        position: relative;
+        background: #05070d;
+      }
+      #MakerCanvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+      #maker-properties {
+        flex: 1;
+        overflow-y: auto;
+      }
+      .maker-status {
+        padding: 4px 12px;
+        font-size: 0.8rem;
+        opacity: 0.7;
+        border-top: 1px solid var(--border-color);
+        background: var(--panel-bg);
+      }
+    </style>
+  </head>
+  <body>
+    <header class="tool-header">
+      <h1>Maker - Small World</h1>
+      <a href="/" class="nav-btn">Back to Engine</a>
+    </header>
+
+    <div class="maker-layout">
+      <aside class="maker-sidebar left">
+        <div class="maker-panel-title">Hierarchy</div>
+        <div id="maker-hierarchy"></div>
+        <div class="maker-panel-title">Add</div>
+        <div id="maker-palette"></div>
+      </aside>
+
+      <div class="maker-viewport">
+        <canvas id="MakerCanvas"></canvas>
+      </div>
+
+      <aside class="maker-sidebar right">
+        <div class="maker-panel-title">Properties</div>
+        <div id="maker-properties"></div>
+      </aside>
+    </div>
+
+    <footer class="maker-status" id="maker-status">Not bound to a project folder</footer>
+
+    <script type="module">
+      import { MakerApp } from "/src/tools/maker/MakerApp.ts";
+      import { RendererType } from "/src/enums/index.ts";
+
+      const app = new MakerApp({
+        canvasId: "MakerCanvas",
+        rendererType: RendererType.BEST,
+        fullscreen: true,
+        hierarchyContainer: document.getElementById("maker-hierarchy"),
+        propertyContainer: document.getElementById("maker-properties"),
+        paletteContainer: document.getElementById("maker-palette"),
+        statusContainer: document.getElementById("maker-status"),
+      });
+
+      window.makerApp = app;
+      app.start();
+    </script>
+  </body>
+</html>

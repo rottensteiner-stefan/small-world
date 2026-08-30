@@ -1,5 +1,5 @@
 import { AbstractRenderer } from "./AbstractRenderer.js";
-import { Scene } from "../core/index.js";
+import { Scene } from "../core/Scene.js";
 import { Vector3D } from "../math/index.js";
 
 /**

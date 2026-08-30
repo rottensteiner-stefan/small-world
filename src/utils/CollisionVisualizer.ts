@@ -1,5 +1,6 @@
 import { Color } from "../core/colors/index.js";
-import { Object3D, Scene } from "../core/index.js";
+import { Object3D } from "../core/Object3D.js";
+import { Scene } from "../core/Scene.js";
 import { WireframeMaterial } from "../core/materials/index.js";
 import { Cube, Sphere } from "../geometry/index.js";
 import { BoundingType } from "../enums/index.js";

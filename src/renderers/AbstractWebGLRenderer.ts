@@ -1,6 +1,7 @@
 import { AbstractRenderer } from "./AbstractRenderer.js";
 import { Color } from "../core/colors/index.js";
-import { Scene, Object3D } from "../core/index.js";
+import { Scene } from "../core/Scene.js";
+import { Object3D } from "../core/Object3D.js";
 import { Vector3D } from "../math/index.js";
 import { LightDataInterface } from "../interfaces/index.js";
 import { WebGLRenderPass } from "./WebGLRenderPass.js";

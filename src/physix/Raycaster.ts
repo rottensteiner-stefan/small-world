@@ -3,7 +3,7 @@ import { BoundingSphere } from "./BoundingSphere.js";
 import { Ray } from "./Ray.js";
 import { Vector2D, Vector3D, MathPool, Matrix4 } from "../math/index.js";
 import { CameraInterfaceData } from "../interfaces/index.js";
-import { Object3D } from "../core/index.js";
+import { Object3D } from "../core/Object3D.js";
 import { BoundingType } from "../enums/index.js";
 
 /**
