@@ -79,6 +79,9 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
   private _crateTexture: Texture | undefined;
   private _crateNormalTexture: Texture | undefined;
   private _crateRoughnessTexture: Texture | undefined;
+  private _debrisTexture: Texture | undefined;
+  private _debrisNormalTexture: Texture | undefined;
+  private _debrisRoughnessTexture: Texture | undefined;
 
   // HUD Elements
   private _lblChar!: HTMLElement;
@@ -184,6 +187,24 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
       );
       this._crateRoughnessTexture = await Texture.fromUrl(
         "/assets/and-now/diorama/crate_wood_roughness.jpg",
+        {
+          addressModeU: TextureWrap.REPEAT,
+          addressModeV: TextureWrap.REPEAT,
+        },
+      );
+      this._debrisTexture = await Texture.fromUrl("/assets/and-now/diorama/debris_pile.jpg", {
+        addressModeU: TextureWrap.REPEAT,
+        addressModeV: TextureWrap.REPEAT,
+      });
+      this._debrisNormalTexture = await Texture.fromUrl(
+        "/assets/and-now/diorama/debris_pile_normal.jpg",
+        {
+          addressModeU: TextureWrap.REPEAT,
+          addressModeV: TextureWrap.REPEAT,
+        },
+      );
+      this._debrisRoughnessTexture = await Texture.fromUrl(
+        "/assets/and-now/diorama/debris_pile_roughness.jpg",
         {
           addressModeU: TextureWrap.REPEAT,
           addressModeV: TextureWrap.REPEAT,
@@ -541,10 +562,27 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
   }
 
   /**
-   * 4. 3D Schutt- & Trümmerhaufen in der Ecke
+   * 4. 3D Schutt- & Trümmerhaufen in der Ecke (Texturiertes Polygon-Relief + 3D-Trümmer)
    */
   private _buildCornerDebrisPile(): void {
     const root = this._dioramaRoot!;
+    const debrisMoundMat = new StandardMaterial({
+      color: new Color(1.0, 1.0, 1.0),
+      diffuseMap: this._debrisTexture,
+      normalMap: this._debrisNormalTexture,
+      normalScale: new Vector2D(2.2, 2.2),
+      roughnessMap: this._debrisRoughnessTexture,
+      roughness: 0.92,
+      metallic: 0.05,
+    });
+    debrisMoundMat.cullMode = CullMode.NONE;
+
+    // 1. Großes unebenes "Polygon-Etwas" (Müllberg-Mesh)
+    const debrisMound = new Object3D("DebrisMound");
+    debrisMound.geometry = this._buildDebrisMoundGeometry();
+    debrisMound.material = debrisMoundMat;
+    root.add(debrisMound);
+
     const brickMat = new StandardMaterial({
       color: new Color(0.9, 0.9, 0.9),
       diffuseMap: this._brickTexture,
@@ -561,15 +599,16 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
       roughness: 0.25,
     });
 
-    // Ziegelsteine im Haufen
+    // 2. Herausragende 3D-Ziegelsteine im und am Haufen
     const brickPositions = [
-      [-1.4, 0.06, -1.3, 0.3, 0.2],
-      [-1.2, 0.05, -1.4, -0.4, 0.1],
-      [-1.5, 0.07, -1.5, 0.8, -0.2],
-      [-1.35, 0.14, -1.35, -0.2, 0.5],
-      [-1.1, 0.05, -1.2, 0.5, 0.0],
-      [-1.3, 0.06, -1.1, 0.1, -0.4],
-      [-1.45, 0.18, -1.4, 0.4, 0.3],
+      [-1.35, 0.22, -1.15, 0.35, 0.22],
+      [-1.15, 0.18, -1.35, -0.45, 0.15],
+      [-1.65, 0.28, -1.55, 0.8, -0.2],
+      [-1.25, 0.24, -1.25, -0.25, 0.45],
+      [-0.95, 0.12, -1.25, 0.5, 0.0],
+      [-1.25, 0.14, -0.95, 0.15, -0.35],
+      [-1.55, 0.32, -1.45, 0.45, 0.3],
+      [-0.75, 0.06, -1.1, 0.6, -0.1],
     ];
 
     brickPositions.forEach((pos, idx) => {
@@ -583,12 +622,13 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
       root.add(brick);
     });
 
-    // Abgeplatzte Fliesenscherben
+    // 3. Abgeplatzte Fliesenscherben auf dem Haufen
     const shardPositions = [
-      [-1.25, 0.03, -1.15, 0.5],
-      [-1.45, 0.1, -1.25, -0.8],
-      [-1.15, 0.04, -1.35, 0.2],
-      [-1.35, 0.08, -1.5, -0.3],
+      [-1.15, 0.16, -1.05, 0.55],
+      [-1.4, 0.25, -1.15, -0.75],
+      [-1.05, 0.15, -1.3, 0.25],
+      [-1.3, 0.22, -1.45, -0.35],
+      [-0.85, 0.08, -1.2, 0.4],
     ];
 
     shardPositions.forEach((pos, idx) => {
@@ -596,12 +636,12 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
       shard.geometry = new Plane({ width: 0.18, height: 0.18 }).getGeometryData();
       shard.material = tileShardMat;
       shard.position.set(pos[0]!, pos[1]!, pos[2]!);
-      shard.rotation.x = -Math.PI / 2 + 0.1;
+      shard.rotation.x = -Math.PI / 2 + 0.15;
       shard.rotation.y = pos[3]!;
       root.add(shard);
     });
 
-    // Zerdrückte Blechdosen
+    // 4. Zerdrückte Blechdosen
     for (let c = 0; c < 3; c++) {
       const tinCan = new Object3D("DebrisCan_" + c);
       tinCan.geometry = new Cylinder({
@@ -614,9 +654,124 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
       tinCan.material = tinCanMat;
       tinCan.rotation.z = Math.PI / 2;
       tinCan.rotation.y = c * 1.1;
-      tinCan.position.set(-1.15 - c * 0.18, 0.04, -1.3 - c * 0.1);
+      tinCan.position.set(-1.1 - c * 0.2, 0.12 - c * 0.03, -1.2 - c * 0.1);
       root.add(tinCan);
     }
+  }
+
+  /**
+   * Baut ein unebenes, zerklüftetes Polygon-Mesh für den Schutt- und Müllhaufen im Mauereck.
+   */
+  private _buildDebrisMoundGeometry(): GeometryDataInterface {
+    const segs = 8;
+    const minX = -2.05;
+    const maxX = -0.45;
+    const minZ = -2.05;
+    const maxZ = -0.45;
+
+    const vertices: number[] = [];
+    const uvs: number[] = [];
+    const indices: number[] = [];
+
+    const getCragNoise = (ix: number, iz: number): number => {
+      const s = Math.sin(ix * 12.9898 + iz * 78.233) * 43758.5453;
+      return (s - Math.floor(s)) * 2.0 - 1.0;
+    };
+
+    for (let iz = 0; iz <= segs; iz++) {
+      const tz = iz / segs;
+      const z = minZ + tz * (maxZ - minZ);
+
+      for (let ix = 0; ix <= segs; ix++) {
+        const tx = ix / segs;
+        const x = minX + tx * (maxX - minX);
+
+        const distFromCorner = Math.sqrt(tx * tx + tz * tz) / Math.SQRT2;
+        let h = Math.max(0, 0.44 * (1.0 - Math.pow(distFromCorner, 1.3)));
+
+        if (tx < 0.95 && tz < 0.95 && distFromCorner < 0.9) {
+          const noise = getCragNoise(ix, iz);
+          h += noise * 0.05 + Math.sin(tx * 8.0) * Math.cos(tz * 8.0) * 0.04;
+          h = Math.max(0.015, h);
+        } else {
+          h = 0.005;
+        }
+
+        vertices.push(x, h, z);
+        uvs.push(tx, tz);
+      }
+    }
+
+    for (let iz = 0; iz < segs; iz++) {
+      for (let ix = 0; ix < segs; ix++) {
+        const i0 = iz * (segs + 1) + ix;
+        const i1 = i0 + 1;
+        const i2 = (iz + 1) * (segs + 1) + ix;
+        const i3 = i2 + 1;
+
+        indices.push(i0, i1, i2);
+        indices.push(i1, i3, i2);
+      }
+    }
+
+    const vArr = new Float32Array(vertices);
+    const nArr = new Float32Array(vertices.length);
+
+    for (let i = 0; i < indices.length; i += 3) {
+      const a = indices[i]! * 3;
+      const b = indices[i + 1]! * 3;
+      const c = indices[i + 2]! * 3;
+
+      const ax = vArr[a]!,
+        ay = vArr[a + 1]!,
+        az = vArr[a + 2]!;
+      const bx = vArr[b]!,
+        by = vArr[b + 1]!,
+        bz = vArr[b + 2]!;
+      const cx = vArr[c]!,
+        cy = vArr[c + 1]!,
+        cz = vArr[c + 2]!;
+
+      const abx = bx - ax,
+        aby = by - ay,
+        abz = bz - az;
+      const acx = cx - ax,
+        acy = cy - ay,
+        acz = cz - az;
+
+      const fnx = aby * acz - abz * acy;
+      const fny = abz * acx - abx * acz;
+      const fnz = abx * acy - aby * acx;
+      nArr[a] = (nArr[a] ?? 0) + fnx;
+      nArr[a + 1] = (nArr[a + 1] ?? 0) + fny;
+      nArr[a + 2] = (nArr[a + 2] ?? 0) + fnz;
+
+      nArr[b] = (nArr[b] ?? 0) + fnx;
+      nArr[b + 1] = (nArr[b + 1] ?? 0) + fny;
+      nArr[b + 2] = (nArr[b + 2] ?? 0) + fnz;
+
+      nArr[c] = (nArr[c] ?? 0) + fnx;
+      nArr[c + 1] = (nArr[c + 1] ?? 0) + fny;
+      nArr[c + 2] = (nArr[c + 2] ?? 0) + fnz;
+    }
+
+    for (let i = 0; i < nArr.length; i += 3) {
+      const nx = nArr[i]!,
+        ny = nArr[i + 1]!,
+        nz = nArr[i + 2]!;
+      const len = Math.sqrt(nx * nx + ny * ny + nz * nz) || 1.0;
+      nArr[i] = nx / len;
+      nArr[i + 1] = ny / len;
+      nArr[i + 2] = nz / len;
+    }
+
+    return {
+      vertices: vArr,
+      indices: new Uint16Array(indices),
+      uvs: new Float32Array(uvs),
+      normals: nArr,
+      getBoundingVolume: () => BoundingBox.fromVertices(vArr),
+    };
   }
 
   private _buildIndustrialPipes(): void {
@@ -908,20 +1063,62 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
       roughness: 0.65,
     });
 
-    // 6 Holzkisten im Eck- und Wandbereich arrangiert (gestapelt & gruppiert)
+    // 6 Holzkisten im Eck- und Wandbereich (teilweise im Schutthaufen versunken, teilweise daneben)
     const cratesConfig = [
-      // 1. Große Basiskiste Ecke links unten
-      { name: "Crate1", size: [0.56, 0.54, 0.56], pos: [-1.48, 0.27, -1.22], rotY: 0.12 },
-      // 2. Basiskiste Ecke hinten unten
-      { name: "Crate2", size: [0.5, 0.5, 0.5], pos: [-1.1, 0.25, -1.55], rotY: -0.16 },
-      // 3. Basiskiste weiter vorne links neben dem Ölfass
-      { name: "Crate3", size: [0.46, 0.44, 0.46], pos: [-1.55, 0.22, 0.05], rotY: 0.28 },
-      // 4. Mittlere Kiste gestapelt auf Crate1
-      { name: "Crate4", size: [0.48, 0.46, 0.48], pos: [-1.45, 0.77, -1.24], rotY: -0.09 },
-      // 5. Mittlere Kiste gestapelt auf Crate2
-      { name: "Crate5", size: [0.42, 0.42, 0.42], pos: [-1.1, 0.71, -1.55], rotY: 0.2 },
-      // 6. Oberste Kiste als Turmspitze auf Crate4
-      { name: "Crate6", size: [0.38, 0.36, 0.38], pos: [-1.42, 1.18, -1.25], rotY: 0.15 },
+      // 1. Kiste 1: Tief im Mauereck halb im Müllhaufen versunken & verkeilt
+      {
+        name: "Crate1",
+        size: [0.56, 0.54, 0.56],
+        pos: [-1.48, 0.18, -1.35],
+        rotX: 0.12,
+        rotY: 0.28,
+        rotZ: -0.09,
+      },
+      // 2. Kiste 2: An der Rückwand halb in die Schuttflanke eingegraben
+      {
+        name: "Crate2",
+        size: [0.5, 0.5, 0.5],
+        pos: [-1.05, 0.16, -1.62],
+        rotX: -0.14,
+        rotY: -0.22,
+        rotZ: 0.1,
+      },
+      // 3. Kiste 3: Freistehend auf dem Pflasterboden neben dem Haufen & Fass
+      {
+        name: "Crate3",
+        size: [0.46, 0.44, 0.46],
+        pos: [-1.58, 0.22, 0.05],
+        rotX: 0.0,
+        rotY: 0.3,
+        rotZ: 0.0,
+      },
+      // 4. Kiste 4: Auf Crate1 gestapelt und ragt aus dem Schutt heraus
+      {
+        name: "Crate4",
+        size: [0.48, 0.46, 0.48],
+        pos: [-1.44, 0.66, -1.3],
+        rotX: 0.08,
+        rotY: -0.1,
+        rotZ: -0.04,
+      },
+      // 5. Kiste 5: Freistehend auf dem Pflasterboden zur Raummitte hin
+      {
+        name: "Crate5",
+        size: [0.42, 0.42, 0.42],
+        pos: [-0.6, 0.21, -1.55],
+        rotX: 0.0,
+        rotY: 0.18,
+        rotZ: 0.0,
+      },
+      // 6. Kiste 6: Oberste Kiste auf Crate4 balanciert
+      {
+        name: "Crate6",
+        size: [0.38, 0.36, 0.38],
+        pos: [-1.4, 1.07, -1.26],
+        rotX: 0.04,
+        rotY: 0.16,
+        rotZ: 0.02,
+      },
     ];
 
     cratesConfig.forEach((cfg) => {
@@ -930,7 +1127,9 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
       crate.scale.set(cfg.size[0]!, cfg.size[1]!, cfg.size[2]!);
       crate.material = crateMat;
       crate.position.set(cfg.pos[0]!, cfg.pos[1]!, cfg.pos[2]!);
+      crate.rotation.x = cfg.rotX;
       crate.rotation.y = cfg.rotY;
+      crate.rotation.z = cfg.rotZ;
       root.add(crate);
     });
 
@@ -989,9 +1188,9 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
     });
     const eyeMat = new StandardMaterial({ color: new Color(1.0, 0.1, 0.1) });
 
-    // Ratte 1: In der Ecke
+    // Ratte 1: Am Fuß des Schutthaufens
     const ratRoot1 = new Object3D("RatRoot1");
-    ratRoot1.position.set(-1.6, 0.06, -0.85);
+    ratRoot1.position.set(-1.62, 0.12, -0.72);
     ratRoot1.rotation.y = 1.1;
     root.add(ratRoot1);
 

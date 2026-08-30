@@ -812,6 +812,16 @@ befüllen.
   - Zylinder-Unterteilung des Fasses auf 32 Segmente verfeinert für perfekten Rundungsverlauf der Rillen.
 - **Status:** 93 Testsuiten, 536 Tests, Build/Lint 100% grün.
 
+## 87. 3D-Schutthaufen-Relief & versunkene Kisten-Komposition (2026-08-30)
+- **3D-Müllberg-Geometrie ([`showcase.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/scenes/character-diorama/showcase.ts)):**
+  - Neues zerklüftetes Polygon-Mesh `_buildDebrisMoundGeometry()` im Mauereck mit naturnahem Schuttkegel (Höhe bis 0.44m) und Facetten-Normalen.
+  - Texturiert mit neu generierter Graphic-Noir-PBR-Textur [`debris_pile.jpg`](file:///Users/srottensteiner/PhpstormProjects/small-world/public/assets/and-now/diorama/debris_pile.jpg) (Ziegelschutt, Art-Déco-Fliesenscherben, Öldosen, Geröll) sowie Normal- und Roughness-Maps.
+- **Kisten-Arrangement & Interaktion:**
+  - Kisten 1 und 2 sind realistisch geneigt und teilweise im Schuttkörper versunken/eingegraben.
+  - Kisten 4 und 6 ragen als gestapelter Turm aus dem Schutt hervor; Kisten 3 und 5 stehen frei auf dem Pflasterboden.
+  - Ratte 1 sitzt naturnah auf der unteren Schuttflanke.
+- **Status:** 93 Testsuiten, 536 Tests, Build/Lint 100% grün.
+
 
 
 
