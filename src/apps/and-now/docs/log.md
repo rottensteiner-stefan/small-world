@@ -755,16 +755,17 @@ befüllen.
   - Eigener Vertex- und Fragment-Shader für Backsteinmauern und Pflastersteinboden:
   - Bei Annäherung an die Außenränder: Digitaler Vertex-Jitter, neon-cyan/magenta Chromatic Splitting, pulsierende Matrix-Scanlines und Noise-basierte Auflösung/Disintegration ins Nichts.
   - Umschaltbare Glitch-Intensität (`[G]`-Taste: Aus, Normal, Cyberpunk Overdrive).
-- **Atmosphäre & Props:**
-  - Dampf- & Entwässerungsrohre aus Kupfer und Stahl mit Flanschen und rotem Handrad-Ventil.
-  - Bodendetails: Holzkisten, Metallfass, Coladosen, Gulli-Gitter.
-  - Animierte Ecke-Ratte mit schnuppernder Nase (`_ratHead`) und schlängelndem 4-Segment-Schwanz.
-- **In-Place Animations-Deck & Steuerung:**
-  - `[C]`: Charakter wechseln (`Spieler`, `Spielerin`, `🦖 Yoshi`).
-  - `[1]` – `[0]`: Direktanwahl aller 10 Animationsclips in-place (Root-Motion-Translationen des Hips-Bones gefiltert).
-  - `[L]`: Laterne & dynamisches Punktlicht umschalten.
-  - `[Space]`: 360°-Turntable-Drehung des gesamten Dioramas.
-- **Status:** 93 Testsuiten, 536 Tests, Build/Lint 100% grün.
+## 81. Kanonisches Diorama-Konzeptbild ins Gesamtkonzept integriert (2026-08-30)
+- **Visuelles Konzept & Asset-Stand ([`public/assets/and-now/diorama-concept.jpg`](file:///Users/srottensteiner/PhpstormProjects/small-world/public/assets/and-now/diorama-concept.jpg)):**
+  - Finales Graphic-Noir-Artwork der Wiener Kanalisation als verbindliche Produktions-Referenz für das 3D Character Diorama Studio verankert (ohne Versionsnummern im Asset-Namen).
+  - Charakteristische Merkmale:
+    - Bogenförmig gewölbte, gestufte Mauerstirnseiten mit sichtbarer Ziegel-Stärke und Mörtelfugen.
+    - Mehrschichtiges, tiefes Fundament (Pflaster, Schotter, Ziegelbett) mit herausragenden Rohrenden an der Bruchkante.
+    - Abplatzende weiße 20×20 cm Fliesen mit Art-Déco-Bordüre über altem rotem Backsteinmauerwerk.
+    - Wandmontierte Baustellen-Käfiglampen, leckende Rohre, Trümmerhaufen und huschende Ratten.
+- **Dossier-Erweiterung ([`concept-dossier.html`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/docs/concept-dossier.html)):**
+  - Eigene Concept Card für das *Kanalisations-Diorama (Graphic Noir Studio)* in die visuelle Galerie des Dossiers aufgenommen.
+- **Status:** Asset & Dossier synchron, Build/Lint 100% grün.
 
 
 
