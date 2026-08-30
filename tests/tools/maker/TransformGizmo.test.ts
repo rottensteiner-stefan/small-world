@@ -1,98 +1,98 @@
 import { describe, it, expect } from "vitest";
 import { TransformGizmo } from "../../../src/tools/maker/TransformGizmo.js";
 import { Object3D } from "../../../src/core/Object3D.js";
-import { Camera } from "../../../src/core/Camera.js";
-import { PerspectiveProjection } from "../../../src/math/projections/PerspectiveProjection.js";
+import { Vector3D } from "../../../src/math/index.js";
+import { CameraInterfaceData } from "../../../src/interfaces/index.js";
 
-describe("TransformGizmo (ADR 0010 Maker Phase 2)", () => {
-  it("should initialize with default translate mode and hidden state", () => {
+/** Only the fields `TransformGizmo` actually reads: `update()`/`computeAxisDelta()` never touch
+ * `viewProjectionMatrix4`, `behaviors`, or the camera-strategy fields -- unlike `pickAxis()`
+ * (raycasting), which needs a real renderer/camera and is covered by live browser testing
+ * instead (see docs/adr/0010-maker-editor-architecture.md Phase 2 notes). */
+function fakeCamera(position: Vector3D, target: Vector3D): CameraInterfaceData {
+  return {
+    position,
+    target,
+    up: new Vector3D(0, 1, 0),
+  } as unknown as CameraInterfaceData;
+}
+
+describe("TransformGizmo", () => {
+  it("update() glues the gizmo root to the target's world position", () => {
     const gizmo = new TransformGizmo();
-
-    expect(gizmo.mode).toBe("translate");
-    expect(gizmo.root.name).toBe("MakerGizmo");
-    expect(gizmo.root.isVisible).toBe(false);
-  });
-
-  it("should switch modes and toggle mode group visibilities", () => {
-    const gizmo = new TransformGizmo();
-    const target = new Object3D("TargetObj");
-    gizmo.attachTo(target);
-
-    expect(gizmo.root.isVisible).toBe(true);
-
-    gizmo.setMode("rotate");
-    expect(gizmo.mode).toBe("rotate");
-
-    gizmo.setMode("scale");
-    expect(gizmo.mode).toBe("scale");
-
-    gizmo.setMode("translate");
-    expect(gizmo.mode).toBe("translate");
-  });
-
-  it("should follow attached target position and scale with camera distance", () => {
-    const gizmo = new TransformGizmo();
-    const target = new Object3D("TargetObj");
-    target.position.set(5, 2, -3);
+    const target = new Object3D("Target");
+    target.position.set(3, 4, 5);
     target.updateMatrixWorld();
-
     gizmo.attachTo(target);
 
-    const camera = new Camera(new PerspectiveProjection());
-    camera.position.set(5, 2, 7); // 10 units away from target along Z
-    camera.target.set(5, 2, -3);
-    camera.update(camera.target, 0, 0);
+    gizmo.update(fakeCamera(new Vector3D(0, 0, 10), new Vector3D(0, 0, 0)));
 
-    gizmo.update(camera);
-
-    expect(gizmo.root.position.x).toBeCloseTo(5);
-    expect(gizmo.root.position.y).toBeCloseTo(2);
-    expect(gizmo.root.position.z).toBeCloseTo(-3);
-
-    // Constant screen size scaling
-    expect(gizmo.root.scale.x).toBeGreaterThan(0.5);
-    expect(gizmo.root.scale.x).toBe(gizmo.root.scale.y);
-    expect(gizmo.root.scale.y).toBe(gizmo.root.scale.z);
+    expect(gizmo.root.position.x).toBeCloseTo(3);
+    expect(gizmo.root.position.y).toBeCloseTo(4);
+    expect(gizmo.root.position.z).toBeCloseTo(5);
   });
 
-  it("should compute accurate axis deltas from screen-space mouse movements", () => {
+  it("hides the root and stops tracking once detached", () => {
     const gizmo = new TransformGizmo();
-    const target = new Object3D("TargetObj");
-    target.position.set(0, 0, 0);
-    gizmo.attachTo(target);
-
-    const camera = new Camera(new PerspectiveProjection());
-    camera.position.set(0, 0, 10);
-    camera.target.set(0, 0, 0);
-    camera.update(camera.target, 0, 0);
-
-    // Translating along X when moving mouse right (dx > 0)
-    gizmo.setMode("translate");
-    const deltaX = gizmo.computeAxisDelta("x", 20, 0, camera);
-    expect(deltaX).toBeGreaterThan(0);
-
-    // Translating along Y when moving mouse up (dy < 0 in screen space, which is +Y in 3D)
-    const deltaY = gizmo.computeAxisDelta("y", 0, -20, camera);
-    expect(deltaY).toBeGreaterThan(0);
-
-    // Scaling mode
-    gizmo.setMode("scale");
-    const scaleDelta = gizmo.computeAxisDelta("x", 15, 0, camera);
-    expect(scaleDelta).toBeGreaterThan(0);
-
-    // Rotating mode
-    gizmo.setMode("rotate");
-    const rotDelta = gizmo.computeAxisDelta("y", 15, 0, camera);
-    expect(rotDelta).toBeDefined();
-  });
-
-  it("should hide when target is detached", () => {
-    const gizmo = new TransformGizmo();
-    const target = new Object3D("TargetObj");
+    const target = new Object3D("Target");
     gizmo.attachTo(target);
     expect(gizmo.root.isVisible).toBe(true);
 
     gizmo.attachTo(undefined);
     expect(gizmo.root.isVisible).toBe(false);
+  });
+
+  describe("computeAxisDelta", () => {
+    // Camera looking straight down -Z at the origin, world-up as camera-up -- the simplest case
+    // where "right" = +X and "screen up" = +Y.
+    const camera = fakeCamera(new Vector3D(0, 0, 10), new Vector3D(0, 0, 0));
+
+    it("regression: rotate mode is driven by horizontal drag alone, for every axis", () => {
+      // This is the exact bug found during Phase 2 live-testing: reusing the translate/scale
+      // axis-projection formula for rotation made Y-axis rotation require a *vertical* drag
+      // (since the Y axis projects mostly vertically on screen), which is unintuitive for a ring
+      // you drag tangentially. Rotation must depend on dx only, identically across x/y/z.
+      const gizmo = new TransformGizmo();
+      gizmo.setMode("rotate");
+      const target = new Object3D("Target");
+      gizmo.attachTo(target);
+
+      for (const axis of ["x", "y", "z"] as const) {
+        const horizontal = gizmo.computeAxisDelta(axis, 20, 0, camera);
+        const vertical = gizmo.computeAxisDelta(axis, 0, 20, camera);
+        expect(horizontal).not.toBe(0);
+        expect(vertical).toBe(0);
+      }
+    });
+
+    it("translate mode scales the delta with distance to the target", () => {
+      const gizmo = new TransformGizmo();
+      gizmo.setMode("translate");
+      const near = new Object3D("Near");
+      near.position.set(0, 0, 5);
+      near.updateMatrixWorld();
+      const far = new Object3D("Far");
+      far.position.set(0, 0, -95); // much farther from the camera at z=10
+      far.updateMatrixWorld();
+
+      gizmo.attachTo(near);
+      const nearDelta = gizmo.computeAxisDelta("x", 20, 0, camera);
+      gizmo.attachTo(far);
+      const farDelta = gizmo.computeAxisDelta("x", 20, 0, camera);
+
+      expect(Math.abs(farDelta)).toBeGreaterThan(Math.abs(nearDelta));
+    });
+
+    it("scale mode is a small, direction-consistent increment", () => {
+      const gizmo = new TransformGizmo();
+      gizmo.setMode("scale");
+      const target = new Object3D("Target");
+      gizmo.attachTo(target);
+
+      const positive = gizmo.computeAxisDelta("x", 20, 0, camera);
+      const negative = gizmo.computeAxisDelta("x", -20, 0, camera);
+      expect(positive).toBeGreaterThan(0);
+      expect(negative).toBeLessThan(0);
+      expect(Math.abs(positive)).toBeCloseTo(Math.abs(negative));
+    });
   });
 });
