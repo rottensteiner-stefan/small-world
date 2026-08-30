@@ -847,6 +847,16 @@ befüllen.
   - Beide Schiffsarmaturen strahlen nun mit Glasdom und Schutzkäfig frontal in den Raum hinein (+X von der linken Wand, +Z von der Rückwand) und beleuchten den Charakter und die Bühne optimal.
 - **Status:** 95 Testsuiten, 542 Tests, Build/Lint 100% grün.
 
+## 91. Architektur-Entscheidung: Modulare Asset-Kits & Out-of-Tree Asset Library (2026-08-30)
+- **ADR 0011 dokumentiert ([`docs/adr/0011-modular-asset-kits-and-remote-catalog.md`](file:///Users/srottensteiner/PhpstormProjects/small-world/docs/adr/0011-modular-asset-kits-and-remote-catalog.md)):**
+  - Entkopplung von Engine-Core und Binär-Assets (3D-Meshes, 2K/4K-Texturen, Audio, Mocap-Clips) zur Vermeidung von Git-Repo-Bloat.
+  - 3-Phasen-Strategie:
+    1. *Stufe 1:* Einheitliche Kit-Struktur (`public/assets/kits/<kit>/` mit `model.glb`, `preview.webp`, `meta.json`).
+    2. *Stufe 2:* Auslagerung in dediziertes Asset-Repo (`small-world-assets`) mit CDN-Verteilung.
+    3. *Stufe 3:* On-Demand Engine Ingest (`GltfLoader.loadFromCatalog()`) & CLI (`npx small-world add kit <name>`).
+  - Nukleus des Starter-Kits: `wall_lamp.glb`, Holzkisten, Ölfass, Schutt-Polygonberg, Noir-Materialien und Mocap-Locomotion-Pool.
+- **Status:** 95 Testsuiten, 542 Tests, Build/Lint 100% grün.
+
 
 
 
