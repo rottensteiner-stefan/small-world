@@ -908,6 +908,7 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
 
     if (lampMesh1) {
       lampMesh1.scale.set(0.38, 0.38, 0.38);
+      lampMesh1.rotation.y = -Math.PI / 2;
       lampGroupLeft.add(lampMesh1);
     }
 
@@ -939,6 +940,7 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
 
     if (lampMesh2) {
       lampMesh2.scale.set(0.38, 0.38, 0.38);
+      lampMesh2.rotation.y = -Math.PI / 2;
       lampGroupBack.add(lampMesh2);
     }
 

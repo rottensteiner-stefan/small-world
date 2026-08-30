@@ -841,6 +841,12 @@ befüllen.
   - Angeschlossene vertikale Kabelschutzrohre und warm flackerndes Halogen-Punktlicht (`PointLight`) integriert.
 - **Status:** 94 Testsuiten, 540 Tests, Build/Lint 100% grün.
 
+## 90. Ausrichtung der Wandleuchten in den Raum (2026-08-30)
+- **Lampen-Rotation ([`showcase.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/scenes/character-diorama/showcase.ts)):**
+  - Lokale Drehung der beiden `wall_lamp.glb`-Meshes um 90° nach rechts (`rotation.y = -Math.PI / 2`) korrigiert.
+  - Beide Schiffsarmaturen strahlen nun mit Glasdom und Schutzkäfig frontal in den Raum hinein (+X von der linken Wand, +Z von der Rückwand) und beleuchten den Charakter und die Bühne optimal.
+- **Status:** 95 Testsuiten, 542 Tests, Build/Lint 100% grün.
+
 
 
 
