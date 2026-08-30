@@ -10,6 +10,8 @@ import {
   PointLight,
   Sphere,
   StandardMaterial,
+  Texture,
+  TextureWrap,
   Torus,
 } from "../../../../index.js";
 import { OrbitController } from "../../../../core/controllers/OrbitController.js";
@@ -61,6 +63,11 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
     | { from?: AnimationAction | undefined; to: AnimationAction; elapsed: number; duration: number }
     | undefined;
 
+  // Textures
+  private _wallTexture: Texture | undefined;
+  private _floorTexture: Texture | undefined;
+  private _brickTexture: Texture | undefined;
+
   // HUD Elements
   private _lblChar!: HTMLElement;
   private _lblTorch!: HTMLElement;
@@ -71,9 +78,11 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
   private _ratHead: Object3D | undefined;
   private _ratTailSegments: Object3D[] = [];
 
-  // Lamp Flicker
+  // Lamp Flicker & Bulbs
   private _lampLight1: PointLight | undefined;
   private _lampLight2: PointLight | undefined;
+  private _bulbMat1: StandardMaterial | undefined;
+  private _bulbMat2: StandardMaterial | undefined;
 
   public override async setupScene(): Promise<void> {
     this.camera.position.set(3.8, 2.7, 4.2);
@@ -87,24 +96,42 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
     );
 
     // 1. Studio & Environmental Lighting
-    const ambientLight = new DirectionalLight({ color: new Color(0.26, 0.28, 0.35) });
-    ambientLight.intensity = 0.7;
+    const ambientLight = new DirectionalLight({ color: new Color(0.25, 0.27, 0.35) });
+    ambientLight.intensity = 0.65;
     ambientLight.position.set(1.0, 6.0, 2.0);
     this.scene.add(ambientLight);
 
     const keySpot = new PointLight({ color: new Color(1.0, 0.92, 0.78) });
-    keySpot.intensity = 2.8;
+    keySpot.intensity = 2.2;
     keySpot.distance = 12.0;
     keySpot.position.set(2.2, 3.8, 2.6);
     this.scene.add(keySpot);
 
-    const cyberRimLight = new PointLight({ color: new Color(0.15, 0.65, 0.85) });
-    cyberRimLight.intensity = 1.6;
+    const cyberRimLight = new PointLight({ color: new Color(0.18, 0.6, 0.85) });
+    cyberRimLight.intensity = 1.4;
     cyberRimLight.distance = 8.0;
     cyberRimLight.position.set(-2.5, 2.0, -2.5);
     this.scene.add(cyberRimLight);
 
-    // 2. Build 3D Diorama Stage Geometry
+    // 2. Load Textures
+    try {
+      this._wallTexture = await Texture.fromUrl("/assets/and-now/diorama/wall_tiles.jpg", {
+        addressModeU: TextureWrap.REPEAT,
+        addressModeV: TextureWrap.REPEAT,
+      });
+      this._floorTexture = await Texture.fromUrl("/assets/and-now/diorama/floor_pavement.jpg", {
+        addressModeU: TextureWrap.REPEAT,
+        addressModeV: TextureWrap.REPEAT,
+      });
+      this._brickTexture = await Texture.fromUrl("/assets/and-now/diorama/brick_masonry.jpg", {
+        addressModeU: TextureWrap.REPEAT,
+        addressModeV: TextureWrap.REPEAT,
+      });
+    } catch (err) {
+      console.warn("[CharacterDiorama] Texture loading fallback:", err);
+    }
+
+    // 3. Build 3D Diorama Stage Geometry
     this._dioramaRoot = new Object3D("DioramaRoot");
     this.scene.add(this._dioramaRoot);
 
@@ -113,35 +140,39 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
     this._buildCutawayStubs();
     this._buildIndustrialPipes();
     this._buildConstructionLamps();
+    this._buildCornerDebrisPile();
     this._buildStreetProps();
     this._buildCornerRats();
 
-    // 3. Load Initial Character
+    // 4. Load Initial Character
     this._initHUD();
     await this._loadCharacter("male");
   }
 
   /**
-   * 1. 3D Foundation Podest (Bodenplatte mit echter Dicke, Schichten & gebrochenen Stufen)
+   * 1. 3D Foundation Podest (Bodenplatte mit echter PBR-Pflastertextur & Schichten)
    */
   private _buildFoundationPlatform(): void {
     const root = this._dioramaRoot!;
     const floorPavementMat = new StandardMaterial({
-      color: new Color(0.28, 0.26, 0.24),
-      roughness: 0.85,
+      color: new Color(1.0, 1.0, 1.0),
+      diffuseMap: this._floorTexture,
+      roughness: 0.75,
       metallic: 0.1,
     });
     const wetPuddleMat = new StandardMaterial({
-      color: new Color(0.15, 0.16, 0.18),
-      roughness: 0.15,
-      metallic: 0.3,
+      color: new Color(0.08, 0.09, 0.1),
+      roughness: 0.08,
+      metallic: 0.35,
     });
     const concreteMat = new StandardMaterial({
-      color: new Color(0.25, 0.26, 0.28),
+      color: new Color(0.35, 0.36, 0.38),
+      diffuseMap: this._brickTexture,
       roughness: 0.9,
     });
     const brickSubMat = new StandardMaterial({
-      color: new Color(0.42, 0.18, 0.12),
+      color: new Color(0.85, 0.85, 0.85),
+      diffuseMap: this._brickTexture,
       roughness: 0.85,
     });
 
@@ -193,39 +224,29 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
   }
 
   /**
-   * 2. Gewölbte Backstein-Mauern (mit echter Ziegeldicke, Bogenverlauf & Fliesenverkleidung)
+   * 2. Gewölbte Backstein-Mauern (mit PBR Fliesen- & Ziegeltexturen)
    */
   private _buildVaultedWalls(): void {
     const root = this._dioramaRoot!;
-    const tileOffWhiteMat = new StandardMaterial({
-      color: new Color(0.82, 0.8, 0.74),
-      roughness: 0.35,
-      metallic: 0.05,
+    const wallTileMat = new StandardMaterial({
+      color: new Color(1.0, 1.0, 1.0),
+      diffuseMap: this._wallTexture,
+      roughness: 0.4,
+      metallic: 0.08,
     });
-    const tileArtDecoBorderMat = new StandardMaterial({
-      color: new Color(0.72, 0.65, 0.52),
-      roughness: 0.45,
-      metallic: 0.1,
-    });
-    const exposedBrickMat = new StandardMaterial({
-      color: new Color(0.45, 0.18, 0.12),
+    const brickMasonryMat = new StandardMaterial({
+      color: new Color(1.0, 1.0, 1.0),
+      diffuseMap: this._brickTexture,
       roughness: 0.85,
       metallic: 0.05,
     });
-    const darkMortarMat = new StandardMaterial({
-      color: new Color(0.28, 0.26, 0.25),
-      roughness: 0.9,
-    });
 
-    // Beide Wände (LeftWall entlang X = -2.1, BackWall entlang Z = -2.1)
-    // aus vertikalen Mauerwerkssäulen aufbauen, deren Höhe exakt dem Bogenverlauf folgt!
     const numColumns = 10;
     const colWidth = 4.2 / numColumns;
     const wallThickness = 0.24;
 
     for (let i = 0; i < numColumns; i++) {
-      const t = i / (numColumns - 1); // 0 am Eck (-2.1), 1 am Außenrand (+2.1)
-      // Bogenhöhe: von 3.6m am Eck harmonisch auf 1.85m am Außenrand
+      const t = i / (numColumns - 1);
       const colHeight = 3.6 - Math.pow(t, 1.7) * 1.75;
       const posY = colHeight / 2;
 
@@ -234,13 +255,7 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
       const leftCol = new Object3D("LeftWallCol_" + i);
       leftCol.geometry = new Cube({ size: 1.0 }).getGeometryData();
       leftCol.scale.set(wallThickness, colHeight, colWidth);
-      // Abwechselnd Fliesen vs. abgeplatzter Ziegel
-      leftCol.material =
-        i === 2 || i === 5 || i === 8
-          ? exposedBrickMat
-          : i === 1 || i === 6
-            ? tileArtDecoBorderMat
-            : tileOffWhiteMat;
+      leftCol.material = wallTileMat;
       leftCol.position.set(-2.1 - wallThickness / 2, posY, posZ);
       root.add(leftCol);
 
@@ -248,7 +263,7 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
       const topCapLeft = new Object3D("TopCapLeft_" + i);
       topCapLeft.geometry = new Cube({ size: 1.0 }).getGeometryData();
       topCapLeft.scale.set(wallThickness + 0.04, 0.12, colWidth);
-      topCapLeft.material = exposedBrickMat;
+      topCapLeft.material = brickMasonryMat;
       topCapLeft.position.set(-2.1 - wallThickness / 2, colHeight + 0.06, posZ);
       topCapLeft.rotation.x = t * 0.35;
       root.add(topCapLeft);
@@ -258,12 +273,7 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
       const backCol = new Object3D("BackWallCol_" + i);
       backCol.geometry = new Cube({ size: 1.0 }).getGeometryData();
       backCol.scale.set(colWidth, colHeight, wallThickness);
-      backCol.material =
-        i === 3 || i === 6
-          ? exposedBrickMat
-          : i === 2 || i === 7
-            ? tileArtDecoBorderMat
-            : tileOffWhiteMat;
+      backCol.material = wallTileMat;
       backCol.position.set(posX, posY, -2.1 - wallThickness / 2);
       root.add(backCol);
 
@@ -271,7 +281,7 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
       const topCapBack = new Object3D("TopCapBack_" + i);
       topCapBack.geometry = new Cube({ size: 1.0 }).getGeometryData();
       topCapBack.scale.set(colWidth, 0.12, wallThickness + 0.04);
-      topCapBack.material = exposedBrickMat;
+      topCapBack.material = brickMasonryMat;
       topCapBack.position.set(posX, colHeight + 0.06, -2.1 - wallThickness / 2);
       topCapBack.rotation.z = -t * 0.35;
       root.add(topCapBack);
@@ -284,14 +294,14 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
       const toothLeft = new Object3D("ToothLeft_" + b);
       toothLeft.geometry = new Cube({ size: 1.0 }).getGeometryData();
       toothLeft.scale.set(wallThickness + 0.02, 0.1, 0.22);
-      toothLeft.material = b % 2 === 0 ? exposedBrickMat : darkMortarMat;
+      toothLeft.material = brickMasonryMat;
       toothLeft.position.set(-2.1 - wallThickness / 2, toothY, 2.12 + (b % 2) * 0.08);
       root.add(toothLeft);
 
       const toothRight = new Object3D("ToothRight_" + b);
       toothRight.geometry = new Cube({ size: 1.0 }).getGeometryData();
       toothRight.scale.set(0.22, 0.1, wallThickness + 0.02);
-      toothRight.material = b % 2 === 0 ? exposedBrickMat : darkMortarMat;
+      toothRight.material = brickMasonryMat;
       toothRight.position.set(2.12 + (b % 2) * 0.08, toothY, -2.1 - wallThickness / 2);
       root.add(toothRight);
     }
@@ -397,17 +407,96 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
     }
   }
 
+  /**
+   * 4. 3D Schutt- & Trümmerhaufen in der Ecke
+   */
+  private _buildCornerDebrisPile(): void {
+    const root = this._dioramaRoot!;
+    const brickMat = new StandardMaterial({
+      color: new Color(0.9, 0.9, 0.9),
+      diffuseMap: this._brickTexture,
+      roughness: 0.85,
+    });
+    const tileShardMat = new StandardMaterial({
+      color: new Color(0.9, 0.9, 0.9),
+      diffuseMap: this._wallTexture,
+      roughness: 0.4,
+    });
+    const tinCanMat = new StandardMaterial({
+      color: new Color(0.65, 0.68, 0.72),
+      metallic: 0.9,
+      roughness: 0.25,
+    });
+
+    // Ziegelsteine im Haufen
+    const brickPositions = [
+      [-1.4, 0.06, -1.3, 0.3, 0.2],
+      [-1.2, 0.05, -1.4, -0.4, 0.1],
+      [-1.5, 0.07, -1.5, 0.8, -0.2],
+      [-1.35, 0.14, -1.35, -0.2, 0.5],
+      [-1.1, 0.05, -1.2, 0.5, 0.0],
+      [-1.3, 0.06, -1.1, 0.1, -0.4],
+      [-1.45, 0.18, -1.4, 0.4, 0.3],
+    ];
+
+    brickPositions.forEach((pos, idx) => {
+      const brick = new Object3D("DebrisBrick_" + idx);
+      brick.geometry = new Cube({ size: 1.0 }).getGeometryData();
+      brick.scale.set(0.24, 0.11, 0.12);
+      brick.material = brickMat;
+      brick.position.set(pos[0]!, pos[1]!, pos[2]!);
+      brick.rotation.y = pos[3]!;
+      brick.rotation.z = pos[4]!;
+      root.add(brick);
+    });
+
+    // Abgeplatzte Fliesenscherben
+    const shardPositions = [
+      [-1.25, 0.03, -1.15, 0.5],
+      [-1.45, 0.1, -1.25, -0.8],
+      [-1.15, 0.04, -1.35, 0.2],
+      [-1.35, 0.08, -1.5, -0.3],
+    ];
+
+    shardPositions.forEach((pos, idx) => {
+      const shard = new Object3D("TileShard_" + idx);
+      shard.geometry = new Plane({ width: 0.18, height: 0.18 }).getGeometryData();
+      shard.material = tileShardMat;
+      shard.position.set(pos[0]!, pos[1]!, pos[2]!);
+      shard.rotation.x = -Math.PI / 2 + 0.1;
+      shard.rotation.y = pos[3]!;
+      root.add(shard);
+    });
+
+    // Zerdrückte Blechdosen
+    for (let c = 0; c < 3; c++) {
+      const tinCan = new Object3D("DebrisCan_" + c);
+      tinCan.geometry = new Cylinder({
+        radiusTop: 0.04,
+        radiusBottom: 0.04,
+        height: 0.12,
+        radialSegments: 10,
+      }).getGeometryData();
+      tinCan.scale.set(1.0, 0.65, 0.85); // Leicht zerbeult
+      tinCan.material = tinCanMat;
+      tinCan.rotation.z = Math.PI / 2;
+      tinCan.rotation.y = c * 1.1;
+      tinCan.position.set(-1.15 - c * 0.18, 0.04, -1.3 - c * 0.1);
+      root.add(tinCan);
+    }
+  }
+
   private _buildIndustrialPipes(): void {
     const root = this._dioramaRoot!;
     const copperMat = new StandardMaterial({
       color: new Color(0.72, 0.45, 0.28),
-      metallic: 0.88,
-      roughness: 0.22,
+      metallic: 0.9,
+      roughness: 0.2,
     });
     const steelMat = new StandardMaterial({
       color: new Color(0.35, 0.38, 0.42),
-      metallic: 0.92,
-      roughness: 0.28,
+      metallic: 0.94,
+      roughness: 0.25,
     });
     const valveRedMat = new StandardMaterial({
       color: new Color(0.85, 0.15, 0.12),
@@ -508,7 +597,7 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
     const lamp1 = this._createConstructionLamp(
       "Baulampe_LeftWall",
       new Color(1.0, 0.86, 0.62),
-      3.6,
+      3.8,
     );
     lamp1.position.set(-1.94, 2.4, -0.3);
     lamp1.rotation.y = Math.PI / 4;
@@ -516,7 +605,7 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
     root.add(lamp1);
 
     // 2. Baulampe an der Rückwand
-    const lamp2 = this._createConstructionLamp("Baulampe_BackWall", new Color(1.0, 0.9, 0.68), 3.6);
+    const lamp2 = this._createConstructionLamp("Baulampe_BackWall", new Color(1.0, 0.9, 0.68), 3.8);
     lamp2.position.set(0.85, 2.45, -1.94);
     lamp2.rotation.y = -Math.PI / 4;
     lamp2.rotation.x = 0.22;
@@ -543,6 +632,12 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
       color: new Color(1.0, 0.96, 0.82),
       roughness: 0.1,
     });
+
+    if (name.includes("Left")) {
+      this._bulbMat1 = bulbGlowMat;
+    } else {
+      this._bulbMat2 = bulbGlowMat;
+    }
 
     const bracket = new Object3D("WallBracket");
     bracket.geometry = new Cube({ size: 1.0 }).getGeometryData();
@@ -594,7 +689,7 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
 
     const light = new PointLight({ color: lightColor });
     light.intensity = lightIntensity;
-    light.distance = 10.0;
+    light.distance = 11.0;
     light.position.set(0, 0, 0.22);
     lamp.add(light);
 
@@ -1097,14 +1192,34 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
 
     const time = performance.now() * 0.001;
 
-    // Sanftes Halogen-Flackern der Baulampen
+    // Kräftiges, unregelmäßiges Halogen-Flackern mit Spannungs-Dips (Graphic Noir Stimmung)
     if (this._lampLight1) {
-      const flicker1 = Math.sin(time * 12.0) * 0.12 + Math.cos(time * 23.0) * 0.08;
-      this._lampLight1.intensity = 3.6 + flicker1;
+      const n1 =
+        Math.sin(time * 8.5) * 0.7 + Math.sin(time * 19.3) * 0.45 + Math.sin(time * 41.7) * 0.3;
+      const brownout1 = Math.sin(time * 2.3) > 0.82 && Math.sin(time * 37.0) > 0.1 ? 1.6 : 0.0;
+      const intensity1 = Math.max(0.8, 3.8 + n1 - brownout1);
+      this._lampLight1.intensity = intensity1;
+
+      if (this._bulbMat1) {
+        const glowFactor = Math.min(1.0, intensity1 / 3.8);
+        this._bulbMat1.color.set(1.0 * glowFactor, 0.94 * glowFactor, 0.78 * glowFactor);
+      }
     }
+
     if (this._lampLight2) {
-      const flicker2 = Math.sin(time * 15.0 + 1.2) * 0.12 + Math.cos(time * 19.0) * 0.08;
-      this._lampLight2.intensity = 3.6 + flicker2;
+      const n2 =
+        Math.sin(time * 9.7 + 1.4) * 0.7 +
+        Math.sin(time * 21.1) * 0.45 +
+        Math.sin(time * 39.2) * 0.3;
+      const brownout2 =
+        Math.sin(time * 2.9 + 1.1) > 0.85 && Math.sin(time * 43.0) > 0.1 ? 1.8 : 0.0;
+      const intensity2 = Math.max(0.8, 3.8 + n2 - brownout2);
+      this._lampLight2.intensity = intensity2;
+
+      if (this._bulbMat2) {
+        const glowFactor = Math.min(1.0, intensity2 / 3.8);
+        this._bulbMat2.color.set(1.0 * glowFactor, 0.94 * glowFactor, 0.78 * glowFactor);
+      }
     }
 
     // Ratten-Animation
