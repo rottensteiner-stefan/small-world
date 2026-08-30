@@ -103,9 +103,10 @@ export class Input implements InputInterface {
     window.addEventListener("mousemove", (e: MouseEvent): void => {
       this.mouse.x = e.clientX;
       this.mouse.y = e.clientY;
-      // Track movement deltas regardless of pointer lock state
-      this.mouse.dx += e.movementX;
-      this.mouse.dy += e.movementY;
+      const dx = typeof e.movementX === "number" ? e.movementX : 0;
+      const dy = typeof e.movementY === "number" ? e.movementY : 0;
+      if (!Number.isNaN(dx)) this.mouse.dx += dx;
+      if (!Number.isNaN(dy)) this.mouse.dy += dy;
     });
     window.addEventListener(
       "wheel",

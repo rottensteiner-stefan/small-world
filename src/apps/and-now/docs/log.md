@@ -822,6 +822,16 @@ befüllen.
   - Ratte 1 sitzt naturnah auf der unteren Schuttflanke.
 - **Status:** 93 Testsuiten, 536 Tests, Build/Lint 100% grün.
 
+## 88. Korrekturen: Laternen-Griff, matter Charakter-Look & 3D Orbit-Kamera (2026-08-30)
+- **Laternen-Befestigung ([`showcase.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/scenes/character-diorama/showcase.ts)):**
+  - Bone-Auflösung auf Finger-/Handknöchel (`LeftHandMiddle1` / `LeftHandIndex1`) priorisiert, sodass die Laterne exakt in den gekrümmten Fingern der Handinnenfläche sitzt und nicht mehr seitlich am Handgelenk in der Luft schwebt.
+- **Matter Charakter-Look ("Speckschwarte"-Fix):**
+  - Material-Traversal für den geladenen GLTF-Charakter implementiert: `roughness: 0.92`, `metallic: 0.02` und Entfernung unkalibrierter Glanz-Maps für natürlich wirkende, staubige Bunker-Kleidung und Haut ohne scharfen Plastik-/Latex-Spiegelglanz.
+- **3D Orbit-Steuerung mit linker Maustaste / Mac Touchpad:**
+  - Kamera-Strategie explizit auf `CameraStrategyType.HYBRID_SYNC` geschaltet (zuvor blockierte die Standard-Strategie die sphärische Maus-Deltarotation).
+  - NaN-Guard für `e.movementX`/`e.movementY` in [`Input.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/core/Input.ts) für Mac-Trackpads und Safari hinzugefügt.
+- **Status:** 93 Testsuiten, 536 Tests, Build/Lint 100% grün.
+
 
 
 

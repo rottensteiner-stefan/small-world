@@ -1,6 +1,7 @@
 import {
   AbstractShowcase,
   BoundingBox,
+  CameraStrategyType,
   Color,
   Cube,
   CullMode,
@@ -18,7 +19,7 @@ import {
   Torus,
 } from "../../../../index.js";
 import { OrbitController } from "../../../../core/controllers/OrbitController.js";
-import { Vector2D } from "../../../../math/index.js";
+import { Vector2D, Vector3D } from "../../../../math/index.js";
 import {
   AnimationAction,
   AnimationClip,
@@ -101,11 +102,13 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
 
   public override async setupScene(): Promise<void> {
     this.camera.position.set(3.8, 2.7, 4.2);
+    this.camera.target.set(0, 1.1, 0);
+    this.camera.setStrategy(CameraStrategyType.HYBRID_SYNC);
 
     this.camera.addBehavior(
       new OrbitController({
         input: this.input,
-        lookSensitivity: 0.004,
+        lookSensitivity: 0.005,
         rotationSpeed: 1.5,
       }),
     );
@@ -1308,6 +1311,20 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
 
       this._player = await gltfLoader.load(charUrl);
       this._player.scale.set(charScale, charScale, charScale);
+
+      // Matte Oberflächen für Kleidung und Haut (verhindert unnatürlichen Latex-/Speck-Glanz)
+      const adjustCharacterMaterials = (obj: Object3D): void => {
+        if (obj.material && obj.material instanceof StandardMaterial) {
+          obj.material.roughness = 0.92;
+          obj.material.metallic = 0.02;
+          obj.material.metallicMap = undefined;
+        }
+        for (const child of obj.children) {
+          adjustCharacterMaterials(child);
+        }
+      };
+      adjustCharacterMaterials(this._player);
+
       this._playerRig.add(this._player);
 
       this._playerRig.position.set(0.1, 0, 0.1);
@@ -1331,7 +1348,15 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
         }
       }
 
-      const handBone = findNodeByName(this._player, "LeftHand");
+      // Hand-/Fingerknöchel-Bone auflösen (für exaktes Hängen in der Handinnenfläche)
+      const handBone =
+        findNodeByName(this._player, "mixamorig:LeftHandMiddle1") ??
+        findNodeByName(this._player, "LeftHandMiddle1") ??
+        findNodeByName(this._player, "mixamorig:LeftHandIndex1") ??
+        findNodeByName(this._player, "LeftHandIndex1") ??
+        findNodeByName(this._player, "mixamorig:LeftHand") ??
+        findNodeByName(this._player, "LeftHand") ??
+        findNodeByName(this._player, "L_Hand");
       this._lanternHandBone = handBone;
       if (handBone) {
         if (!this._lanternGroup) {
@@ -1403,7 +1428,13 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
     if (!bone || !lantern) return;
 
     const m = bone.worldMatrix.data;
-    lantern.position.set(m[12]!, m[13]! + 0.05, m[14]!);
+    if (bone.name.includes("Middle") || bone.name.includes("Index")) {
+      lantern.position.set(m[12]!, m[13]!, m[14]!);
+    } else {
+      const palmOffset = new Vector3D(0, 0.08, 0.01);
+      const worldPos = bone.worldMatrix.transformVector(palmOffset);
+      lantern.position.copyFrom(worldPos);
+    }
   }
 
   private _playAnimation(name: string, fadeSeconds: number = 0.35): void {
