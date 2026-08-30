@@ -75,7 +75,7 @@ fn hash12(p: vec2f) -> f32 {
     let uv = i.original_uv;
     let wp = i.wp;
 
-    // 1. Procedural Brick / Stone Pavement Pattern
+    // 1. Procedural Brick & Tile Pattern
     let brickScale = vec2f(12.0, 24.0);
     var bUv = uv * brickScale;
     if (fract(bUv.y * 0.5) > 0.5) {
@@ -86,8 +86,9 @@ fn hash12(p: vec2f) -> f32 {
     let bId = floor(bUv);
     let bNoise = hash12(bId);
 
-    var baseColor = mix(vec3f(0.12, 0.14, 0.16), mix(vec3f(0.42, 0.22, 0.16), vec3f(0.32, 0.17, 0.12), bNoise), mortar);
-    baseColor *= (0.80 + 0.20 * hash12(uv * 80.0)); // Grunge noise
+    // Weathered Red Brick Base
+    var baseColor = mix(vec3f(0.12, 0.14, 0.16), mix(vec3f(0.44, 0.22, 0.16), vec3f(0.32, 0.16, 0.11), bNoise), mortar);
+    baseColor *= (0.80 + 0.20 * hash12(uv * 80.0));
 
     // Simple Directional & Ambient Shading
     let N = normalize(i.n);
@@ -96,15 +97,13 @@ fn hash12(p: vec2f) -> f32 {
     var finalCol = baseColor * (diff * 0.70 + 0.30);
 
     // 2. Controlled Outer-Edge Glitch Falloff
-    // Corner is at X = -2.1, Z = -2.1, Y = 0. Outer open edges are at X > 0.8, Z > 0.8, Y > 2.6
-    let distFloor = max(max(wp.x - 0.8, wp.z - 0.8) / 1.3, 0.0);
-    let distHeight = max((wp.y - 2.5) / 1.1, 0.0);
+    let distFloor = max(max(wp.x - 1.2, wp.z - 1.2) / 1.1, 0.0);
+    let distHeight = max((wp.y - 2.8) / 1.0, 0.0);
     let outerEdge = clamp(max(distFloor, distHeight), 0.0, 1.0);
 
     if (outerEdge > 0.05 && glitchIntensity > 0.01) {
         let f = outerEdge * glitchIntensity;
         
-        // Subtle Matrix green / cyan scanlines
         let scanline = sin((wp.y + wp.x + wp.z) * 45.0 - time * 6.0) * 0.5 + 0.5;
         let cell = vec2f(floor((wp.x + wp.z) * 16.0), floor((wp.y + time * 0.4) * 16.0));
         let digitalSparkle = step(0.65, hash12(cell)) * scanline;
@@ -112,10 +111,8 @@ fn hash12(p: vec2f) -> f32 {
         let matrixGlow = vec3f(0.0, 0.9, 0.5) * digitalSparkle * 1.2;
         let cyanEdge = vec3f(0.0, 0.75, 1.0) * (sin(time * 3.0 + wp.y * 10.0) * 0.2 + 0.8);
 
-        // Holographic Edge Shimmer
         finalCol = mix(finalCol, mix(finalCol + matrixGlow, cyanEdge, 0.35), f * 0.75);
 
-        // Clean digital dither fade at the very extreme outer rim
         if (outerEdge > 0.85) {
             let dither = hash12(vec2f(floor(wp.x * 30.0 + wp.z * 30.0), floor(wp.y * 30.0)));
             if (dither < (outerEdge - 0.85) / 0.15) {
@@ -168,7 +165,7 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
   private _ratTailSegments: Object3D[] = [];
 
   public override async setupScene(): Promise<void> {
-    this.camera.position.set(3.6, 2.6, 4.0);
+    this.camera.position.set(3.8, 2.7, 4.2);
 
     this.camera.addBehavior(
       new OrbitController({
@@ -196,11 +193,13 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
     cyberRimLight.position.set(-2.5, 2.0, -2.5);
     this.scene.add(cyberRimLight);
 
-    // 2. Build Diorama Platform & Walls
+    // 2. Build 3D Diorama Stage Geometry
     this._dioramaRoot = new Object3D("DioramaRoot");
     this.scene.add(this._dioramaRoot);
 
-    this._buildDioramaCorner();
+    this._buildFoundationPlatform();
+    this._buildVaultedWalls();
+    this._buildCutawayStubs();
     this._buildIndustrialPipes();
     this._buildConstructionLamps();
     this._buildStreetProps();
@@ -224,32 +223,90 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
         },
       },
       properties: {
-        u_extraParams: new Float32Array([0.5, 0, 0, 0]),
+        u_extraParams: new Float32Array([0.4, 0, 0, 0]),
       },
     });
     this._glitchMaterials.push(mat);
     return mat;
   }
 
-  private _buildDioramaCorner(): void {
+  /**
+   * 1. 3D Foundation Podest (Bodenplatte mit echter Dicke & Schichten)
+   */
+  private _buildFoundationPlatform(): void {
     const root = this._dioramaRoot!;
+    const floorGlitchMat = this._createGlitchMaterial();
+    const concreteMat = new StandardMaterial({
+      color: new Color(0.24, 0.25, 0.28),
+      roughness: 0.85,
+    });
+    const brickSubMat = new StandardMaterial({
+      color: new Color(0.38, 0.18, 0.14),
+      roughness: 0.9,
+    });
 
-    const floorMat = this._createGlitchMaterial();
-    const wallMat1 = this._createGlitchMaterial();
-    const wallMat2 = this._createGlitchMaterial();
-
-    const floor = new Object3D("DioramaFloor");
-    floor.geometry = new Plane({
+    // Oberste begehbare Pflaster-Ebene
+    const topFloor = new Object3D("TopFloorPavement");
+    topFloor.geometry = new Plane({
       width: 4.2,
       height: 4.2,
       widthSegments: 24,
       heightSegments: 24,
     }).getGeometryData();
-    floor.material = floorMat;
-    floor.rotation.x = -Math.PI / 2;
-    floor.position.set(0, 0, 0);
-    root.add(floor);
+    topFloor.material = floorGlitchMat;
+    topFloor.rotation.x = -Math.PI / 2;
+    topFloor.position.set(0, 0, 0);
+    root.add(topFloor);
 
+    // Massiver Beton-/Schotter-Kern
+    const slabCore = new Object3D("FoundationSlabCore");
+    slabCore.geometry = new Cube({ size: 1.0 }).getGeometryData();
+    slabCore.scale.set(4.2, 0.35, 4.2);
+    slabCore.material = concreteMat;
+    slabCore.position.set(0, -0.175, 0);
+    root.add(slabCore);
+
+    // Freiliegende Ziegelschichten an den vorderen Bruchkanten (+X und +Z Stirnseite)
+    const stepsX = 6;
+    for (let i = 0; i < stepsX; i++) {
+      const stepBlock = new Object3D("FoundationBrickStepX_" + i);
+      stepBlock.geometry = new Cube({ size: 1.0 }).getGeometryData();
+      const w = 0.5 + (i % 2) * 0.15;
+      const h = 0.12;
+      const d = 0.25;
+      stepBlock.scale.set(w, h, d);
+      stepBlock.material = i % 2 === 0 ? brickSubMat : concreteMat;
+      stepBlock.position.set(-1.8 + i * 0.65, -0.18 - (i % 3) * 0.04, 2.15);
+      stepBlock.rotation.y = i % 2 === 0 ? 0.05 : -0.05;
+      root.add(stepBlock);
+    }
+
+    const stepsZ = 6;
+    for (let i = 0; i < stepsZ; i++) {
+      const stepBlock = new Object3D("FoundationBrickStepZ_" + i);
+      stepBlock.geometry = new Cube({ size: 1.0 }).getGeometryData();
+      const w = 0.25;
+      const h = 0.12;
+      const d = 0.5 + (i % 2) * 0.15;
+      stepBlock.scale.set(w, h, d);
+      stepBlock.material = i % 2 === 0 ? brickSubMat : concreteMat;
+      stepBlock.position.set(2.15, -0.18 - (i % 3) * 0.04, -1.8 + i * 0.65);
+      stepBlock.rotation.y = i % 2 === 0 ? -0.05 : 0.05;
+      root.add(stepBlock);
+    }
+  }
+
+  /**
+   * 2. Gewölbte Backstein-Mauern mit Ziegeldicke und stufigen Bogenkanten
+   */
+  private _buildVaultedWalls(): void {
+    const root = this._dioramaRoot!;
+    const wallGlitchMat1 = this._createGlitchMaterial();
+    const wallGlitchMat2 = this._createGlitchMaterial();
+    const brickMat = new StandardMaterial({ color: new Color(0.44, 0.2, 0.14), roughness: 0.85 });
+    const plasterMat = new StandardMaterial({ color: new Color(0.3, 0.32, 0.35), roughness: 0.9 });
+
+    // Linke Wand (Hauptfläche)
     const leftWall = new Object3D("LeftWall");
     leftWall.geometry = new Plane({
       width: 4.2,
@@ -257,11 +314,12 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
       widthSegments: 24,
       heightSegments: 20,
     }).getGeometryData();
-    leftWall.material = wallMat1;
+    leftWall.material = wallGlitchMat1;
     leftWall.position.set(-2.1, 1.8, 0);
     leftWall.rotation.y = Math.PI / 2;
     root.add(leftWall);
 
+    // Rückwand (Hauptfläche)
     const backWall = new Object3D("BackWall");
     backWall.geometry = new Plane({
       width: 4.2,
@@ -269,9 +327,156 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
       widthSegments: 24,
       heightSegments: 20,
     }).getGeometryData();
-    backWall.material = wallMat2;
+    backWall.material = wallGlitchMat2;
     backWall.position.set(0, 1.8, -2.1);
     root.add(backWall);
+
+    // Wandstärke / Backing Casing (0.22m Ziegel-Tiefe hinter den Wänden)
+    const leftCasing = new Object3D("LeftWallCasing");
+    leftCasing.geometry = new Cube({ size: 1.0 }).getGeometryData();
+    leftCasing.scale.set(0.22, 3.6, 4.2);
+    leftCasing.material = brickMat;
+    leftCasing.position.set(-2.21, 1.8, 0);
+    root.add(leftCasing);
+
+    const backCasing = new Object3D("BackWallCasing");
+    backCasing.geometry = new Cube({ size: 1.0 }).getGeometryData();
+    backCasing.scale.set(4.2, 3.6, 0.22);
+    backCasing.material = brickMat;
+    backCasing.position.set(0, 1.8, -2.21);
+    root.add(backCasing);
+
+    // Stufenförmig gewölbter oberer Mauerbogen (Left Wall Top Arch)
+    const archSegments = 8;
+    for (let s = 0; s < archSegments; s++) {
+      const t = s / (archSegments - 1);
+      const z = -2.1 + t * 4.2;
+      // Bogen fällt von Y = 3.6m am Eck auf Y = 1.9m am Rand ab
+      const archHeight = 3.6 - Math.pow(t, 1.8) * 1.7;
+
+      const brickRow = new Object3D("ArchBrickLeft_" + s);
+      brickRow.geometry = new Cube({ size: 1.0 }).getGeometryData();
+      brickRow.scale.set(0.28, 0.16, 0.52);
+      brickRow.material = s % 2 === 0 ? brickMat : plasterMat;
+      brickRow.position.set(-2.14, archHeight, z);
+      brickRow.rotation.x = t * 0.35; // Sanfte Bogenneigung
+      root.add(brickRow);
+    }
+
+    // Stufenförmig gewölbter oberer Mauerbogen (Back Wall Top Arch)
+    for (let s = 0; s < archSegments; s++) {
+      const t = s / (archSegments - 1);
+      const x = -2.1 + t * 4.2;
+      const archHeight = 3.6 - Math.pow(t, 1.8) * 1.7;
+
+      const brickRow = new Object3D("ArchBrickBack_" + s);
+      brickRow.geometry = new Cube({ size: 1.0 }).getGeometryData();
+      brickRow.scale.set(0.52, 0.16, 0.28);
+      brickRow.material = s % 2 === 0 ? brickMat : plasterMat;
+      brickRow.position.set(x, archHeight, -2.14);
+      brickRow.rotation.z = -t * 0.35;
+      root.add(brickRow);
+    }
+  }
+
+  /**
+   * 3. Herausgerissene Rohrstümpfe & lose herabhängende Kabelstränge
+   */
+  private _buildCutawayStubs(): void {
+    const root = this._dioramaRoot!;
+    const rustyPipeMat = new StandardMaterial({
+      color: new Color(0.42, 0.28, 0.22),
+      metallic: 0.7,
+      roughness: 0.5,
+    });
+    const darkCableMat = new StandardMaterial({
+      color: new Color(0.12, 0.14, 0.16),
+      roughness: 0.7,
+    });
+
+    // 1. Rohrstümpfe am Boden-Querschnitt (vorne links)
+    const floorPipe1 = new Object3D("FloorPipeStub1");
+    floorPipe1.geometry = new Cylinder({
+      radiusTop: 0.07,
+      radiusBottom: 0.07,
+      height: 0.55,
+      radialSegments: 12,
+    }).getGeometryData();
+    floorPipe1.material = rustyPipeMat;
+    floorPipe1.rotation.x = Math.PI / 2 + 0.1;
+    floorPipe1.rotation.y = 0.15;
+    floorPipe1.position.set(-0.6, -0.16, 2.25);
+    root.add(floorPipe1);
+
+    const floorPipe2 = new Object3D("FloorPipeStub2");
+    floorPipe2.geometry = new Cylinder({
+      radiusTop: 0.055,
+      radiusBottom: 0.055,
+      height: 0.45,
+      radialSegments: 10,
+    }).getGeometryData();
+    floorPipe2.material = rustyPipeMat;
+    floorPipe2.rotation.x = Math.PI / 2 + 0.15;
+    floorPipe2.position.set(-0.35, -0.22, 2.22);
+    root.add(floorPipe2);
+
+    // 2. Rohrstumpf an der rechten Wand-Schnittfläche
+    const wallPipeRight = new Object3D("WallPipeStubRight");
+    wallPipeRight.geometry = new Cylinder({
+      radiusTop: 0.065,
+      radiusBottom: 0.065,
+      height: 0.5,
+      radialSegments: 12,
+    }).getGeometryData();
+    wallPipeRight.material = rustyPipeMat;
+    wallPipeRight.rotation.z = Math.PI / 2 - 0.2;
+    wallPipeRight.position.set(2.28, 2.2, -1.95);
+    root.add(wallPipeRight);
+
+    // 3. Rohrstumpf an der linken Wand-Schnittfläche
+    const wallPipeLeft = new Object3D("WallPipeStubLeft");
+    wallPipeLeft.geometry = new Cylinder({
+      radiusTop: 0.06,
+      radiusBottom: 0.06,
+      height: 0.5,
+      radialSegments: 12,
+    }).getGeometryData();
+    wallPipeLeft.material = rustyPipeMat;
+    wallPipeLeft.rotation.x = Math.PI / 2 + 0.2;
+    wallPipeLeft.position.set(-1.95, 2.2, 2.28);
+    root.add(wallPipeLeft);
+
+    // 4. Lose Kabelbündel / Drahtstränge an der rechten Schnittseite
+    for (let c = 0; c < 3; c++) {
+      const cable = new Object3D("DanglingCableRight_" + c);
+      cable.geometry = new Cylinder({
+        radiusTop: 0.007,
+        radiusBottom: 0.005,
+        height: 0.7 + c * 0.15,
+        radialSegments: 6,
+      }).getGeometryData();
+      cable.material = darkCableMat;
+      cable.rotation.z = -0.15 + c * 0.12;
+      cable.rotation.x = 0.1 * c;
+      cable.position.set(2.26 + c * 0.03, 1.6 - c * 0.1, -1.98);
+      root.add(cable);
+    }
+
+    // 5. Lose Kabelbündel an der linken Schnittseite
+    for (let c = 0; c < 3; c++) {
+      const cable = new Object3D("DanglingCableLeft_" + c);
+      cable.geometry = new Cylinder({
+        radiusTop: 0.007,
+        radiusBottom: 0.005,
+        height: 0.7 + c * 0.15,
+        radialSegments: 6,
+      }).getGeometryData();
+      cable.material = darkCableMat;
+      cable.rotation.x = 0.15 - c * 0.12;
+      cable.rotation.z = -0.1 * c;
+      cable.position.set(-1.98, 1.6 - c * 0.1, 2.26 + c * 0.03);
+      root.add(cable);
+    }
   }
 
   private _buildIndustrialPipes(): void {
@@ -292,43 +497,80 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
       roughness: 0.4,
     });
 
-    const hPipe = new Object3D("HorizontalSteamPipe");
-    hPipe.geometry = new Cylinder({
-      radiusTop: 0.08,
-      radiusBottom: 0.08,
-      height: 3.8,
+    // 1. Horizontales Rohr um die Ecke entlang beider Wände
+    const hPipeBack = new Object3D("HorizontalPipeBack");
+    hPipeBack.geometry = new Cylinder({
+      radiusTop: 0.075,
+      radiusBottom: 0.075,
+      height: 4.1,
       radialSegments: 16,
     }).getGeometryData();
-    hPipe.material = copperMat;
-    hPipe.rotation.z = Math.PI / 2;
-    hPipe.position.set(0.1, 2.2, -1.95);
-    root.add(hPipe);
+    hPipeBack.material = copperMat;
+    hPipeBack.rotation.z = Math.PI / 2;
+    hPipeBack.position.set(0.0, 2.2, -1.95);
+    root.add(hPipeBack);
 
-    for (const x of [-1.2, 0.0, 1.2]) {
+    const hPipeLeft = new Object3D("HorizontalPipeLeft");
+    hPipeLeft.geometry = new Cylinder({
+      radiusTop: 0.075,
+      radiusBottom: 0.075,
+      height: 4.1,
+      radialSegments: 16,
+    }).getGeometryData();
+    hPipeLeft.material = copperMat;
+    hPipeLeft.rotation.x = Math.PI / 2;
+    hPipeLeft.position.set(-1.95, 2.2, 0.0);
+    root.add(hPipeLeft);
+
+    // Eck-Winkel-Verbindung (Corner Pipe Elbow)
+    const cornerElbow = new Object3D("CornerPipeElbow");
+    cornerElbow.geometry = new Torus({
+      radius: 0.12,
+      tube: 0.075,
+      radialSegments: 12,
+      tubularSegments: 16,
+    }).getGeometryData();
+    cornerElbow.material = copperMat;
+    cornerElbow.position.set(-1.95, 2.2, -1.95);
+    root.add(cornerElbow);
+
+    // Wandflansche
+    for (const pos of [
+      [-1.1, 2.2, -1.95],
+      [0.6, 2.2, -1.95],
+      [-1.95, 2.2, -1.1],
+      [-1.95, 2.2, 0.6],
+    ]) {
       const flange = new Object3D("Flange");
       flange.geometry = new Cylinder({
-        radiusTop: 0.11,
-        radiusBottom: 0.11,
-        height: 0.05,
-        radialSegments: 16,
+        radiusTop: 0.1,
+        radiusBottom: 0.1,
+        height: 0.04,
+        radialSegments: 14,
       }).getGeometryData();
       flange.material = steelMat;
-      flange.rotation.z = Math.PI / 2;
-      flange.position.set(x, 2.2, -1.95);
+      if (pos[0] === -1.95) {
+        flange.rotation.x = Math.PI / 2;
+      } else {
+        flange.rotation.z = Math.PI / 2;
+      }
+      flange.position.set(pos[0]!, pos[1]!, pos[2]!);
       root.add(flange);
     }
 
+    // Rotes Handrad-Ventil
     const valve = new Object3D("ValveWheel");
     valve.geometry = new Torus({
-      radius: 0.12,
-      tube: 0.02,
+      radius: 0.11,
+      tube: 0.018,
       radialSegments: 12,
       tubularSegments: 16,
     }).getGeometryData();
     valve.material = valveRedMat;
-    valve.position.set(0.0, 2.2, -1.82);
+    valve.position.set(-0.2, 2.2, -1.82);
     root.add(valve);
 
+    // 2. Vertikales Fallrohr an der Rückwand
     const vPipe = new Object3D("VerticalDrainPipe");
     vPipe.geometry = new Cylinder({
       radiusTop: 0.07,
@@ -337,20 +579,8 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
       radialSegments: 16,
     }).getGeometryData();
     vPipe.material = steelMat;
-    vPipe.position.set(-1.95, 1.6, -1.2);
+    vPipe.position.set(0.35, 1.6, -1.95);
     root.add(vPipe);
-
-    const elbow = new Object3D("PipeElbow");
-    elbow.geometry = new Torus({
-      radius: 0.09,
-      tube: 0.07,
-      radialSegments: 12,
-      tubularSegments: 16,
-    }).getGeometryData();
-    elbow.material = steelMat;
-    elbow.position.set(-1.95, 0.09, -1.2);
-    elbow.rotation.z = Math.PI / 2;
-    root.add(elbow);
   }
 
   private _buildConstructionLamps(): void {
@@ -396,7 +626,6 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
       roughness: 0.1,
     });
 
-    // Wandhalterung
     const bracket = new Object3D("WallBracket");
     bracket.geometry = new Cube({ size: 1.0 }).getGeometryData();
     bracket.scale.set(0.08, 0.16, 0.08);
@@ -416,7 +645,6 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
     arm.position.set(0, 0, -0.04);
     lamp.add(arm);
 
-    // Gelbes Baulampen-Gehäuse
     const housing = new Object3D("LampHousing");
     housing.geometry = new Cube({ size: 1.0 }).getGeometryData();
     housing.scale.set(0.26, 0.22, 0.15);
@@ -424,7 +652,6 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
     housing.position.set(0, 0, 0.05);
     lamp.add(housing);
 
-    // Schutzbügel / Henkel
     const handle = new Object3D("CageHandle");
     handle.geometry = new Torus({
       radius: 0.09,
@@ -436,7 +663,6 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
     handle.position.set(0, 0.12, 0.05);
     lamp.add(handle);
 
-    // Leuchtendes Halogen-Glas / Reflektor
     const bulb = new Object3D("HalogenBulb");
     bulb.geometry = new Sphere({
       radius: 0.065,
@@ -448,14 +674,12 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
     bulb.position.set(0, 0, 0.13);
     lamp.add(bulb);
 
-    // Kräftiges Punktlicht für intensive Beleuchtung
     const light = new PointLight({ color: lightColor });
     light.intensity = lightIntensity;
     light.distance = 9.5;
     light.position.set(0, 0, 0.22);
     lamp.add(light);
 
-    // Schwarzes Stromkabel nach unten
     const cable = new Object3D("PowerCable");
     cable.geometry = new Cylinder({
       radiusTop: 0.009,
@@ -558,52 +782,53 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
     });
     const eyeMat = new StandardMaterial({ color: new Color(1.0, 0.1, 0.1) });
 
-    const ratRoot = new Object3D("RatRoot");
-    ratRoot.position.set(-1.6, 0.06, -0.85);
-    ratRoot.rotation.y = 1.1;
-    root.add(ratRoot);
+    // Ratte 1: In der Ecke bei den Kisten
+    const ratRoot1 = new Object3D("RatRoot1");
+    ratRoot1.position.set(-1.6, 0.06, -0.85);
+    ratRoot1.rotation.y = 1.1;
+    root.add(ratRoot1);
 
-    const body = new Object3D("RatBody");
-    body.geometry = new Sphere({
+    const body1 = new Object3D("RatBody1");
+    body1.geometry = new Sphere({
       radius: 0.07,
       widthSegments: 12,
       heightSegments: 8,
     }).getGeometryData();
-    body.material = ratMat;
-    body.scale.set(1.0, 0.8, 1.6);
-    ratRoot.add(body);
+    body1.material = ratMat;
+    body1.scale.set(1.0, 0.8, 1.6);
+    ratRoot1.add(body1);
 
-    const head = new Object3D("RatHead");
-    head.geometry = new Sphere({
+    const head1 = new Object3D("RatHead1");
+    head1.geometry = new Sphere({
       radius: 0.045,
       widthSegments: 10,
       heightSegments: 8,
     }).getGeometryData();
-    head.material = ratMat;
-    head.scale.set(0.9, 0.9, 1.3);
-    head.position.set(0, 0.02, 0.1);
-    ratRoot.add(head);
-    this._ratHead = head;
+    head1.material = ratMat;
+    head1.scale.set(0.9, 0.9, 1.3);
+    head1.position.set(0, 0.02, 0.1);
+    ratRoot1.add(head1);
+    this._ratHead = head1;
 
-    const leftEye = new Object3D("RatEyeL");
-    leftEye.geometry = new Sphere({
+    const leftEye1 = new Object3D("RatEyeL1");
+    leftEye1.geometry = new Sphere({
       radius: 0.008,
       widthSegments: 6,
       heightSegments: 6,
     }).getGeometryData();
-    leftEye.material = eyeMat;
-    leftEye.position.set(-0.025, 0.025, 0.12);
-    ratRoot.add(leftEye);
+    leftEye1.material = eyeMat;
+    leftEye1.position.set(-0.025, 0.025, 0.12);
+    ratRoot1.add(leftEye1);
 
-    const rightEye = new Object3D("RatEyeR");
-    rightEye.geometry = new Sphere({
+    const rightEye1 = new Object3D("RatEyeR1");
+    rightEye1.geometry = new Sphere({
       radius: 0.008,
       widthSegments: 6,
       heightSegments: 6,
     }).getGeometryData();
-    rightEye.material = eyeMat;
-    rightEye.position.set(0.025, 0.025, 0.12);
-    ratRoot.add(rightEye);
+    rightEye1.material = eyeMat;
+    rightEye1.position.set(0.025, 0.025, 0.12);
+    ratRoot1.add(rightEye1);
 
     this._ratTailSegments = [];
     let segZ = -0.1;
@@ -618,10 +843,37 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
       seg.material = pinkMat;
       seg.rotation.x = Math.PI / 2;
       seg.position.set(0, -0.01, segZ);
-      ratRoot.add(seg);
+      ratRoot1.add(seg);
       this._ratTailSegments.push(seg);
       segZ -= 0.055;
     }
+
+    // Ratte 2: Huscht entlang der rechten Wandkante
+    const ratRoot2 = new Object3D("RatRoot2");
+    ratRoot2.position.set(1.4, 0.06, -1.95);
+    ratRoot2.rotation.y = Math.PI / 2;
+    root.add(ratRoot2);
+
+    const body2 = new Object3D("RatBody2");
+    body2.geometry = new Sphere({
+      radius: 0.065,
+      widthSegments: 12,
+      heightSegments: 8,
+    }).getGeometryData();
+    body2.material = ratMat;
+    body2.scale.set(1.0, 0.8, 1.5);
+    ratRoot2.add(body2);
+
+    const head2 = new Object3D("RatHead2");
+    head2.geometry = new Sphere({
+      radius: 0.04,
+      widthSegments: 10,
+      heightSegments: 8,
+    }).getGeometryData();
+    head2.material = ratMat;
+    head2.scale.set(0.9, 0.9, 1.3);
+    head2.position.set(0, 0.02, 0.09);
+    ratRoot2.add(head2);
   }
 
   private async _loadCharacter(charType: CharacterType): Promise<void> {

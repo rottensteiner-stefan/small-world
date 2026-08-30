@@ -762,10 +762,21 @@ befüllen.
     - Bogenförmig gewölbte, gestufte Mauerstirnseiten mit sichtbarer Ziegel-Stärke und Mörtelfugen.
     - Mehrschichtiges, tiefes Fundament (Pflaster, Schotter, Ziegelbett) mit herausragenden Rohrenden an der Bruchkante.
     - Abplatzende weiße 20×20 cm Fliesen mit Art-Déco-Bordüre über altem rotem Backsteinmauerwerk.
-    - Wandmontierte Baustellen-Käfiglampen, leckende Rohre, Trümmerhaufen und huschende Ratten.
-- **Dossier-Erweiterung ([`concept-dossier.html`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/docs/concept-dossier.html)):**
-  - Eigene Concept Card für das *Kanalisations-Diorama (Graphic Noir Studio)* in die visuelle Galerie des Dossiers aufgenommen.
-- **Status:** Asset & Dossier synchron, Build/Lint 100% grün.
+## 82. Phase 1 Diorama-Geometrie: 3D-Bruchkanten, Gewölbebögen & Fundament (2026-08-30)
+- **3D-Bühnengeometrie implementiert ([`showcase.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/scenes/character-diorama/showcase.ts)):**
+  - **3D-Fundamentplatte (`_buildFoundationPlatform`):**
+    - Oberflächen-Pflaster mit massivem 0.35m tiefem Beton- und Schotterkern.
+    - Freiliegende Ziegelschichten und gestufte Mauerblöcke entlang der vorderen Schnittkanten (+X und +Z).
+  - **Gewölbte Backsteinmauern (`_buildVaultedWalls`):**
+    - 0.22m dicke Ziegel-Wandstärken (Casing) hinter beiden Mauerflügeln.
+    - Stufenförmig gewölbter Bogenverlauf entlang der Maueroberkante (von 3.6m im Eck organisch abfallend auf 1.9m am Rand).
+  - **Herausgerissene Bruchkanten-Elemente (`_buildCutawayStubs`):**
+    - Deformierte Entwässerungs- und Gussrohrstümpfe am Boden und an den Wandschnittflächen.
+    - Lose herabhängende schwarze Kabelstränge / Drahtbündel an beiden Seiten.
+  - **Rohrsystem & Ratten-Duo:**
+    - Verbundenes horizontales Kupferrohr um die 90°-Ecke mit Eck-Bogen (`Torus`), Wandflanschen und rotem Handrad-Ventil.
+    - Zwei animierte Ratten (Ecke bei Kisten + an der rechten Wandkante).
+- **Status:** 93 Testsuiten, 536 Tests, Build/Lint 100% grün.
 
 
 
