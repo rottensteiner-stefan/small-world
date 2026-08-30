@@ -1,9 +1,12 @@
 import {
   AbstractShowcase,
+  BoundingBox,
   Color,
   Cube,
+  CullMode,
   Cylinder,
   DirectionalLight,
+  GeometryDataInterface,
   GltfLoader,
   Object3D,
   Plane,
@@ -67,6 +70,7 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
   private _wallTexture: Texture | undefined;
   private _floorTexture: Texture | undefined;
   private _brickTexture: Texture | undefined;
+  private _barrelTexture: Texture | undefined;
 
   // HUD Elements
   private _lblChar!: HTMLElement;
@@ -127,6 +131,10 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
         addressModeU: TextureWrap.REPEAT,
         addressModeV: TextureWrap.REPEAT,
       });
+      this._barrelTexture = await Texture.fromUrl("/assets/and-now/diorama/barrel_rust.jpg", {
+        addressModeU: TextureWrap.REPEAT,
+        addressModeV: TextureWrap.REPEAT,
+      });
     } catch (err) {
       console.warn("[CharacterDiorama] Texture loading fallback:", err);
     }
@@ -157,13 +165,8 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
     const floorPavementMat = new StandardMaterial({
       color: new Color(1.0, 1.0, 1.0),
       diffuseMap: this._floorTexture,
-      roughness: 0.75,
-      metallic: 0.1,
-    });
-    const wetPuddleMat = new StandardMaterial({
-      color: new Color(0.08, 0.09, 0.1),
-      roughness: 0.08,
-      metallic: 0.35,
+      roughness: 0.35,
+      metallic: 0.15,
     });
     const concreteMat = new StandardMaterial({
       color: new Color(0.35, 0.36, 0.38),
@@ -183,14 +186,6 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
     topFloor.material = floorPavementMat;
     topFloor.position.set(0, -0.02, 0);
     root.add(topFloor);
-
-    // Feuchte Glanz-Stellen / Pfützen-Reflexionen
-    const puddle = new Object3D("WetPuddle");
-    puddle.geometry = new Plane({ width: 2.2, height: 1.8 }).getGeometryData();
-    puddle.material = wetPuddleMat;
-    puddle.rotation.x = -Math.PI / 2;
-    puddle.position.set(-0.2, 0.002, 0.2);
-    root.add(puddle);
 
     // Massiver Unterbau-Kern (0.35m dicke Fundamentschicht)
     const slabCore = new Object3D("FoundationSlabCore");
@@ -234,6 +229,10 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
       roughness: 0.4,
       metallic: 0.08,
     });
+    // Custom single-panel geometry (see _buildArchWallGeometry) -- cull mode NONE is a safety
+    // net for whichever winding direction its normals end up matching after the arch-height
+    // displacement, verified against the previous per-column cubes' correct outward orientation.
+    wallTileMat.cullMode = CullMode.NONE;
     const brickMasonryMat = new StandardMaterial({
       color: new Color(1.0, 1.0, 1.0),
       diffuseMap: this._brickTexture,
@@ -244,22 +243,48 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
     const numColumns = 10;
     const colWidth = 4.2 / numColumns;
     const wallThickness = 0.24;
+    const wallWidth = 4.2;
+    const peakHeight = 3.6;
+    const archHeight = (t: number): number => peakHeight - Math.pow(t, 1.7) * 1.75;
 
+    // --- Linke Wand: 1 zusammenhängendes Mesh mit stetigen UVs statt 10 einzeln gestreckter
+    // Würfel (siehe .agents/notes/diorama.md Abschnitt 1.1 "Zebra-Effekt" + Abschnitt 5.1). ---
+    const leftWallPanel = new Object3D("LeftWallPanel");
+    leftWallPanel.geometry = this._buildArchWallGeometry(
+      "x",
+      -2.1 - wallThickness / 2,
+      1,
+      -2.1,
+      wallWidth,
+      peakHeight,
+      16,
+      archHeight,
+    );
+    leftWallPanel.material = wallTileMat;
+    root.add(leftWallPanel);
+
+    // --- Rückwand: dasselbe. ---
+    const backWallPanel = new Object3D("BackWallPanel");
+    backWallPanel.geometry = this._buildArchWallGeometry(
+      "z",
+      -2.1 - wallThickness / 2,
+      1,
+      -2.1,
+      wallWidth,
+      peakHeight,
+      16,
+      archHeight,
+    );
+    backWallPanel.material = wallTileMat;
+    root.add(backWallPanel);
+
+    // Kopfbogen-Ziegel (Stirnseite/Ziegeldicke oben) bleiben pro Säule -- eigenes Material,
+    // eigene kleine Fläche, von der UV-Streckung nicht betroffen.
     for (let i = 0; i < numColumns; i++) {
       const t = i / (numColumns - 1);
-      const colHeight = 3.6 - Math.pow(t, 1.7) * 1.75;
-      const posY = colHeight / 2;
+      const colHeight = archHeight(t);
 
-      // --- Linke Wand Säule ---
       const posZ = -2.1 + (i + 0.5) * colWidth;
-      const leftCol = new Object3D("LeftWallCol_" + i);
-      leftCol.geometry = new Cube({ size: 1.0 }).getGeometryData();
-      leftCol.scale.set(wallThickness, colHeight, colWidth);
-      leftCol.material = wallTileMat;
-      leftCol.position.set(-2.1 - wallThickness / 2, posY, posZ);
-      root.add(leftCol);
-
-      // Kopfbogen-Ziegel auf der Säule (Stirnseite / Ziegeldicke oben)
       const topCapLeft = new Object3D("TopCapLeft_" + i);
       topCapLeft.geometry = new Cube({ size: 1.0 }).getGeometryData();
       topCapLeft.scale.set(wallThickness + 0.04, 0.12, colWidth);
@@ -268,16 +293,7 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
       topCapLeft.rotation.x = t * 0.35;
       root.add(topCapLeft);
 
-      // --- Rückwand Säule ---
       const posX = -2.1 + (i + 0.5) * colWidth;
-      const backCol = new Object3D("BackWallCol_" + i);
-      backCol.geometry = new Cube({ size: 1.0 }).getGeometryData();
-      backCol.scale.set(colWidth, colHeight, wallThickness);
-      backCol.material = wallTileMat;
-      backCol.position.set(posX, posY, -2.1 - wallThickness / 2);
-      root.add(backCol);
-
-      // Kopfbogen-Ziegel auf der Rückwand
       const topCapBack = new Object3D("TopCapBack_" + i);
       topCapBack.geometry = new Cube({ size: 1.0 }).getGeometryData();
       topCapBack.scale.set(colWidth, 0.12, wallThickness + 0.04);
@@ -305,6 +321,66 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
       toothRight.position.set(2.12 + (b % 2) * 0.08, toothY, -2.1 - wallThickness / 2);
       root.add(toothRight);
     }
+  }
+
+  /**
+   * Baut ein zusammenhängendes, gebogenes Wandpanel (ein Mesh statt N einzelner Säulen-Cubes),
+   * damit die Textur eine stetige UV-Zuordnung über die gesamte Wandbreite bekommt statt an
+   * jeder Säulengrenze neu zu wiederholen (siehe .agents/notes/diorama.md Abschnitt 1.1 + 5.1).
+   *
+   * Geometrie: 2 Zeilen (Boden Y=0, Bogenkante Y=archHeight(t)) x (widthSegments+1) Spalten.
+   * Normalen werden explizit als fixe Achsrichtung gesetzt (nicht aus der Windung abgeleitet),
+   * die Windung selbst ist daher für die Beleuchtung irrelevant -- CullMode.NONE am Material
+   * ist das Sicherheitsnetz, falls eine Seite trotzdem "falsch herum" gewinded ist.
+   */
+  private _buildArchWallGeometry(
+    axis: "x" | "z",
+    fixedCoord: number,
+    normalDir: number,
+    alongStart: number,
+    width: number,
+    peakHeight: number,
+    widthSegments: number,
+    archHeightFn: (t: number) => number,
+  ): GeometryDataInterface {
+    const vertices: number[] = [];
+    const uvs: number[] = [];
+    const normals: number[] = [];
+    const indices: number[] = [];
+
+    for (let i = 0; i <= widthSegments; i++) {
+      const t = i / widthSegments;
+      const along = alongStart + t * width;
+      const topY = archHeightFn(t);
+
+      if (axis === "x") {
+        vertices.push(fixedCoord, 0, along, fixedCoord, topY, along);
+        normals.push(normalDir, 0, 0, normalDir, 0, 0);
+      } else {
+        vertices.push(along, 0, fixedCoord, along, topY, fixedCoord);
+        normals.push(0, 0, normalDir, 0, 0, normalDir);
+      }
+      // V wird gespiegelt (1 - ...), analog zu Ground.ts -- die Engine lädt Texturen mit Zeile 0
+      // oben, sonst steht das Wandmotiv auf dem Kopf.
+      uvs.push(t, 1, t, 1 - topY / peakHeight);
+    }
+
+    for (let i = 0; i < widthSegments; i++) {
+      const bl = i * 2;
+      const tl = i * 2 + 1;
+      const br = (i + 1) * 2;
+      const tr = (i + 1) * 2 + 1;
+      indices.push(bl, tl, br, tl, tr, br);
+    }
+
+    const verticesArray = new Float32Array(vertices);
+    return {
+      vertices: verticesArray,
+      indices: new Uint16Array(indices),
+      uvs: new Float32Array(uvs),
+      normals: new Float32Array(normals),
+      getBoundingVolume: () => BoundingBox.fromVertices(verticesArray),
+    };
   }
 
   /**
@@ -629,7 +705,7 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
       metallic: 0.85,
     });
     const bulbGlowMat = new StandardMaterial({
-      color: new Color(1.0, 0.96, 0.82),
+      color: new Color(1.0, 0.88, 0.65),
       roughness: 0.1,
     });
 
@@ -687,6 +763,35 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
     bulb.position.set(0, 0, 0.13);
     lamp.add(bulb);
 
+    // Drahtkäfig vor der Birne: 4 dünne Streben im Kreuzraster statt eines flachen Rings,
+    // damit die Birne wie durch ein echtes Schutzgitter zu sehen ist (siehe diorama.md 5.3).
+    for (let s = 0; s < 4; s++) {
+      const strut = new Object3D("CageStrut_" + s);
+      strut.geometry = new Cylinder({
+        radiusTop: 0.0035,
+        radiusBottom: 0.0035,
+        height: 0.22,
+        radialSegments: 6,
+      }).getGeometryData();
+      strut.material = darkMetalMat;
+      strut.rotation.z = (s * Math.PI) / 4;
+      strut.position.set(0, 0, 0.16);
+      lamp.add(strut);
+    }
+
+    // Rahmenring vor den Streben-Spitzen: fasst die 4 Kreuzstreben zu einem geschlossenen
+    // Drahtkorb zusammen, statt als frei schwebende Stäbe zu wirken (diorama.md Runde 2.2).
+    const cageRing = new Object3D("CageRing");
+    cageRing.geometry = new Torus({
+      radius: 0.08,
+      tube: 0.004,
+      radialSegments: 8,
+      tubularSegments: 20,
+    }).getGeometryData();
+    cageRing.material = darkMetalMat;
+    cageRing.position.set(0, 0, 0.16);
+    lamp.add(cageRing);
+
     const light = new PointLight({ color: lightColor });
     light.intensity = lightIntensity;
     light.distance = 11.0;
@@ -730,6 +835,13 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
       roughness: 0.2,
     });
 
+    const barrelMat = new StandardMaterial({
+      color: new Color(1.0, 1.0, 1.0),
+      diffuseMap: this._barrelTexture,
+      metallic: 0.65,
+      roughness: 0.55,
+    });
+
     const crate1 = new Object3D("Crate1");
     crate1.geometry = new Cube({ size: 1.0 }).getGeometryData();
     crate1.scale.set(0.55, 0.55, 0.55);
@@ -753,7 +865,7 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
       height: 0.75,
       radialSegments: 16,
     }).getGeometryData();
-    metalBarrel.material = metalMat;
+    metalBarrel.material = barrelMat;
     metalBarrel.position.set(-1.45, 0.375, 0.6);
     root.add(metalBarrel);
 

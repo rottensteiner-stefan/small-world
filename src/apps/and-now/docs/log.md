@@ -660,7 +660,7 @@ befüllen.
 - **Skill- & ADR-Update:** [`.agents/skills/character-pipeline/SKILL.md`](file:///Users/srottensteiner/PhpstormProjects/small-world/.agents/skills/character-pipeline/SKILL.md) und [`docs/adr/0009-character-pipeline-and-mixamo-rigging-standard.md`](file:///Users/srottensteiner/PhpstormProjects/small-world/docs/adr/0009-character-pipeline-and-mixamo-rigging-standard.md) aktualisiert.
 
 ## 68. Mixamo Ground-Plane Normalisierung ($Y=0.00$) (2026-08-29)
-- **Fehlerursache (`img_1.png`):** Tripo zentrierte das generierte Mesh symmetrisch um den Ursprung ($Y \in [-0.5, +0.5]$). Da Mixamos Bodenebene bei $Y=0.00$ liegt, steckte die Hüfte bei $Y=0$ und alle Beine/Stiefel lagen unter dem Mixamo-Boden.
+- **Fehlerursache (`../../../../img.png`):** Tripo zentrierte das generierte Mesh symmetrisch um den Ursprung ($Y \in [-0.5, +0.5]$). Da Mixamos Bodenebene bei $Y=0.00$ liegt, steckte die Hüfte bei $Y=0$ und alle Beine/Stiefel lagen unter dem Mixamo-Boden.
 - **Lösung:** Automatische Vertex-Translation im OBJ-Exporter:
   - $y' = (y - minY) \times \text{scale}$ (Fußsohlen exakt auf $Y = 0.00$).
   - Skalierung auf $1.80\text{m}$ Normalhöhe und $X/Z$-Zentrierung.
@@ -776,6 +776,13 @@ befüllen.
   - **Rohrsystem & Ratten-Duo:**
     - Verbundenes horizontales Kupferrohr um die 90°-Ecke mit Eck-Bogen (`Torus`), Wandflanschen und rotem Handrad-Ventil.
     - Zwei animierte Ratten (Ecke bei Kisten + an der rechten Wandkante).
+- **Status:** 93 Testsuiten, 536 Tests, Build/Lint 100% grün.
+
+## 83. Ölfass-PBR-Texturierung im Character Diorama Studio (2026-08-30)
+- **Asset-Generierung & Integration ([`public/assets/and-now/diorama/barrel_rust.jpg`](file:///Users/srottensteiner/PhpstormProjects/small-world/public/assets/and-now/diorama/barrel_rust.jpg)):**
+  - Textur für das Industrie-Ölfass im Graphic-Noir-Stil generiert (1024×1024, verwittertes Stahlblech mit Rippen, abblätternder Lackierung, Rostfraß und dunklen Ölschlieren).
+- **Showcase-Anbindung ([`showcase.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/scenes/character-diorama/showcase.ts)):**
+  - `_barrelTexture` asynchron in `setupScene` geladen und dem `MetalBarrel` via `StandardMaterial` (`metallic: 0.65`, `roughness: 0.55`) zugewiesen.
 - **Status:** 93 Testsuiten, 536 Tests, Build/Lint 100% grün.
 
 
