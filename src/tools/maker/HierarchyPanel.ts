@@ -18,6 +18,9 @@ export class HierarchyPanel {
     private _container: HTMLElement,
     private _getRoot: () => Object3D,
     private _callbacks: HierarchyCallbacks,
+    /** Editor-only helper meshes (selection highlight, transform gizmo) are real scene children
+     * but shouldn't clutter the outliner -- excluded (subtree and all) by identity here. */
+    private _isExcluded: (obj: Object3D) => boolean = () => false,
   ) {
     this._container.classList.add("maker-hierarchy");
     this._container.addEventListener("dragover", (e) => e.preventDefault());
@@ -45,6 +48,7 @@ export class HierarchyPanel {
 
   private _renderChildren(parent: Object3D, depth: number): void {
     for (const child of parent.children) {
+      if (this._isExcluded(child)) continue;
       const row = document.createElement("div");
       row.className = "maker-hierarchy-row" + (child === this._selected ? " selected" : "");
       row.style.paddingLeft = `${depth * 16 + 6}px`;

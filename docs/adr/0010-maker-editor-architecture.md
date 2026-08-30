@@ -48,6 +48,8 @@ Every property edit: (a) applies live to the in-memory scene immediately, (b) pu
 0. **Foundation** — generalized reflection metadata across materials/lights/geometry/`Object3D`; minimal glTF+`SW_*` round-trip (transform tree + one material + one light) with tests.
 1. **Maker MVP** — standalone page, edit-mode camera, hierarchy panel with real reparenting, generic property panel, object-creation palette (existing geometry/material/light/behavior catalog, nothing new to build), File System Access autosave, undo/redo.
 2. **Environment scale** — viewport transform gizmos (translate/rotate/scale handles, not just numeric fields), nested/instanced sub-scenes (prefab-equivalent, e.g. a reusable Flakturm zone or the diorama prop set), a bridge to `MapGenerator`'s existing ASCII/`GridLevelBuilder` pipeline.
+
+   **Phase 2 prefab-depth decision (2026-08-30):** Prefab instancing ships as **stamped copies** — instantiating a prefab creates an independent copy of its subtree; only its provenance (which prefab it came from, via `Object3D.prefabSource`) is recorded, with no live sync back to the source definition or between sibling instances. **Deferred, not rejected:** true live-linked prefabs (Unity/Godot-style — a single shared definition, per-instance overrides, edits to the definition propagating to all instances, diffing/override-tracking machinery) is real, substantially larger scope, explicitly planned as a *future* phase once stamped-copy prefabs are in real use and the need for live-linking is concretely felt, not spec'd in detail yet.
 3. **Consolidation** — parity check against §5's gate, then remove `GadgetInspector.ts`, repoint the Forge hub, update docs.
 
 ## Consequences

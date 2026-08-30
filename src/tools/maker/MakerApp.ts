@@ -28,12 +28,21 @@ import { HierarchyPanel } from "./HierarchyPanel.js";
 import { PropertyPanel } from "./PropertyPanel.js";
 import { ObjectPalette } from "./ObjectPalette.js";
 import { ProjectBinding } from "./ProjectBinding.js";
+import { TransformGizmo, GizmoMode, GizmoAxis } from "./TransformGizmo.js";
 
 export interface MakerAppOptions extends EngineOptions {
   hierarchyContainer: HTMLElement;
   propertyContainer: HTMLElement;
   paletteContainer: HTMLElement;
   statusContainer: HTMLElement;
+}
+
+interface GizmoDragState {
+  axis: GizmoAxis;
+  mode: GizmoMode;
+  /** Snapshot of the dragged vector (position/rotation/scale, whichever `mode` implies) at drag
+   * start, for a single before/after undo command pushed once the drag ends. */
+  before: Vector3D;
 }
 
 /**
@@ -53,12 +62,15 @@ export class MakerApp extends SmallWorld {
    * delete stays cleanly undoable (the object can be reparented right back) instead of risking
    * disposed buffers coming back broken after an undo. Never added to `this.scene` itself. */
   private readonly _trashBin = new Object3D("MakerTrash");
+  private readonly _gizmo = new TransformGizmo();
 
   private _selected: Object3D | undefined;
   private _highlightMesh!: Object3D;
   private _hierarchyPanel!: HierarchyPanel;
   private _propertyPanel!: PropertyPanel;
   private _hierarchyDirty = true;
+  private _gizmoDrag: GizmoDragState | undefined;
+  private _gizmoButtons: Record<GizmoMode, HTMLButtonElement> | undefined;
 
   constructor(private readonly _makerOptions: MakerAppOptions) {
     super(_makerOptions);
@@ -80,6 +92,8 @@ export class MakerApp extends SmallWorld {
     this._highlightMesh.isVisible = false;
     this.scene.add(this._highlightMesh);
 
+    this.scene.add(this._gizmo.root);
+
     this.camera.setStrategy(CameraStrategyType.MANUAL);
     this.camera.position.set(8, 6, 8);
     this._orbit.target.set(0, 0, 0);
@@ -92,6 +106,7 @@ export class MakerApp extends SmallWorld {
         onSelect: (obj): void => this.selectObject(obj),
         onReparent: (obj, newParent): void => this.reparent(obj, newParent),
       },
+      (obj) => obj === this._highlightMesh || obj === this._gizmo.root,
     );
     new ObjectPalette(this._makerOptions.paletteContainer, {
       createObject: (factory): void => this.addObject(factory()),
@@ -102,6 +117,7 @@ export class MakerApp extends SmallWorld {
       this._makerOptions.statusContainer.textContent = dirty ? "Unsaved changes…" : "Saved";
     });
     this._setupProjectToolbar();
+    this._setupGizmoToolbar();
 
     this.canvas.addEventListener("contextmenu", (e) => e.preventDefault());
     this.canvas.addEventListener("pointerdown", (e) => this._onPointerDown(e));
@@ -136,6 +152,38 @@ export class MakerApp extends SmallWorld {
     this._makerOptions.paletteContainer.prepend(button);
   }
 
+  /** Move/Rotate/Scale mode buttons -- mirrors the `W`/`E`/`R` shortcuts handled in
+   * `_onMakerKeyDown`, Blender/Godot/Unity convention. */
+  private _setupGizmoToolbar(): void {
+    const row = document.createElement("div");
+    row.className = "maker-gizmo-toolbar";
+    const buttons: Partial<Record<GizmoMode, HTMLButtonElement>> = {};
+    const specs: { mode: GizmoMode; label: string }[] = [
+      { mode: "translate", label: "Move (W)" },
+      { mode: "rotate", label: "Rotate (E)" },
+      { mode: "scale", label: "Scale (R)" },
+    ];
+    for (const { mode, label } of specs) {
+      const button = document.createElement("button");
+      button.className = "maker-palette-btn";
+      button.textContent = label;
+      button.addEventListener("click", (): void => this._setGizmoMode(mode));
+      row.appendChild(button);
+      buttons[mode] = button;
+    }
+    this._gizmoButtons = buttons as Record<GizmoMode, HTMLButtonElement>;
+    this._makerOptions.paletteContainer.prepend(row);
+    this._setGizmoMode("translate");
+  }
+
+  private _setGizmoMode(mode: GizmoMode): void {
+    this._gizmo.setMode(mode);
+    if (!this._gizmoButtons) return;
+    for (const m of Object.keys(this._gizmoButtons) as GizmoMode[]) {
+      this._gizmoButtons[m].classList.toggle("active", m === mode);
+    }
+  }
+
   protected override update(deltaTime: number): void {
     this._orbit.update(this.camera, this.input);
     if (this._hierarchyDirty) {
@@ -144,12 +192,76 @@ export class MakerApp extends SmallWorld {
     }
     if (this._selected) this._syncHighlight();
     this.scene.update(deltaTime);
+    this._updateGizmo();
+  }
+
+  private _updateGizmo(): void {
+    this._gizmo.update(this.camera);
+    if (!this._gizmoDrag || !this._selected) return;
+
+    const { axis, mode } = this._gizmoDrag;
+    const delta = this._gizmo.computeAxisDelta(
+      axis,
+      this.input.mouse.dx,
+      this.input.mouse.dy,
+      this.camera,
+    );
+    const vec =
+      "translate" === mode
+        ? this._selected.position
+        : "rotate" === mode
+          ? this._selected.rotation
+          : this._selected.scale;
+    if ("scale" === mode) {
+      vec[axis] = Math.max(0.01, vec[axis] + delta);
+    } else {
+      vec[axis] += delta;
+    }
+    this._selected.updateMatrixWorld();
+    this._propertyPanel.setSelection(this._selected);
+
+    if (!this.input.mouse.left) this._finishGizmoDrag();
+  }
+
+  private _finishGizmoDrag(): void {
+    const drag = this._gizmoDrag;
+    if (!drag || !this._selected) {
+      this._gizmoDrag = undefined;
+      return;
+    }
+    const obj = this._selected;
+    const { axis, mode, before } = drag;
+    const after = (
+      "translate" === mode ? obj.position : "rotate" === mode ? obj.rotation : obj.scale
+    ).clone();
+    this._gizmoDrag = undefined;
+    if (after[axis] === before[axis]) return; // click without drag -- nothing to undo
+
+    this._undo.execute({
+      label: `Gizmo ${mode} ${axis.toUpperCase()}`,
+      redo: () => {
+        (mode === "translate" ? obj.position : mode === "rotate" ? obj.rotation : obj.scale)[axis] =
+          after[axis];
+        obj.updateMatrixWorld();
+        this._propertyPanel.setSelection(this._selected === obj ? obj : this._selected);
+        this._project.scheduleAutosave(() => this.scene.root);
+      },
+      undo: () => {
+        (mode === "translate" ? obj.position : mode === "rotate" ? obj.rotation : obj.scale)[axis] =
+          before[axis];
+        obj.updateMatrixWorld();
+        this._propertyPanel.setSelection(this._selected === obj ? obj : this._selected);
+        this._project.scheduleAutosave(() => this.scene.root);
+      },
+    });
+    this._project.scheduleAutosave(() => this.scene.root);
   }
 
   public selectObject(obj: Object3D | undefined): void {
     this._selected = obj;
     this._propertyPanel.setSelection(obj);
     this._hierarchyPanel.setSelected(obj);
+    this._gizmo.attachTo(obj);
     this._syncHighlight();
   }
 
@@ -233,8 +345,21 @@ export class MakerApp extends SmallWorld {
       ((event.clientX - rect.left) / rect.width) * 2 - 1,
       -((event.clientY - rect.top) / rect.height) * 2 + 1,
     );
-    this._raycaster.setFromCamera(ndc, this.camera);
 
+    const gizmoAxis = this._gizmo.pickAxis(ndc, this.camera);
+    if (gizmoAxis && this._selected) {
+      const mode = this._gizmo.mode;
+      const vec =
+        "translate" === mode
+          ? this._selected.position
+          : "rotate" === mode
+            ? this._selected.rotation
+            : this._selected.scale;
+      this._gizmoDrag = { axis: gizmoAxis, mode, before: vec.clone() };
+      return; // Gizmo handle grabbed -- don't also run normal object picking below.
+    }
+
+    this._raycaster.setFromCamera(ndc, this.camera);
     const pickable: Object3D[] = [];
     this._collectPickable(this.scene.root, pickable);
     const hits = this._raycaster.intersectObjects(pickable, true);
@@ -244,7 +369,11 @@ export class MakerApp extends SmallWorld {
   /** Mirrors `GadgetInspector`'s own picking scope (visible objects only, own helper meshes
    * excluded) so Maker and the still-live GadgetInspector behave consistently while both exist. */
   private _collectPickable(parent: Object3D, out: Object3D[]): void {
-    if (parent === this._highlightMesh) return;
+    // `isVisible` below is per-node, not cumulative through the parent chain -- the gizmo's own
+    // leaf handles stay `isVisible = true` even while their containing mode-group (or the whole
+    // gizmo root) is hidden, so it must be excluded by identity here, the same way as the
+    // highlight mesh, rather than relying on visibility alone.
+    if (parent === this._highlightMesh || parent === this._gizmo.root) return;
     if (parent.isVisible) {
       if (parent.geometry) parent.computeBounds();
       out.push(parent);
@@ -302,6 +431,15 @@ export class MakerApp extends SmallWorld {
         event.preventDefault();
         this.deleteObject(this._selected);
       }
+      return;
+    }
+
+    const key = event.key.toLowerCase();
+    if ("w" === key || "e" === key || "r" === key) {
+      const active = document.activeElement;
+      if (active && ("INPUT" === active.tagName || "TEXTAREA" === active.tagName)) return;
+      if (event.ctrlKey || event.metaKey || event.altKey) return;
+      this._setGizmoMode("w" === key ? "translate" : "e" === key ? "rotate" : "scale");
     }
   }
 }

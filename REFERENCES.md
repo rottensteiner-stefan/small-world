@@ -282,6 +282,15 @@ This document serves to record external sources, algorithms, mathematical deriva
 - **Source:** [Yoshi on Sketchfab](https://sketchfab.com/3d-models/yoshi-9d6d7b5685a442039a555b2c1cd887c4) (CC-BY-4.0)
 - **Usage:** Provides the 3D geometry of Yoshi rigged against the standard Mixamo biped armature for a fun, hidden Easter Egg character playable via `[C]`.
 
+### Procedural Rodent Grooming FSM & Spline Wave Kinematics (`RatGroomingBehavior`)
+
+- **File:** `src/extensions/creatures/RatGroomingBehavior.ts`, `src/extensions/creatures/GroomingRat.ts`
+- **Concept:** Procedural rodent grooming state machine (Finite State Machine) combining Lissajous paw scrubbing trajectories with phase-delayed spline wave propagation for multi-segment tails.
+- **Formulas:**
+  - *Face/Whisker Scrubbing Trajectory:* $x(t) = \pm 0.015 + \sin(18t) \cdot 0.008$, $y(t) = 0.125 + \cos(18t) \cdot 0.014$ synchronized with resonant head nodding ($\Delta \theta_X = 0.12 + 0.06 \sin(18t)$).
+  - *Phase-Shifted Tail Wave Kinematics:* $\theta_Y(s, t) = \sin(2.8t + s \cdot 0.75) \cdot (0.16 + s \cdot 0.09)$ across $s \in [0, 5]$ cylinder vertebra nodes to achieve organic whip/serpentine momentum without skeletal skinning.
+- **Usage:** Provides lightweight, zero-rigging procedural living creature ambient animations running at 60 FPS with zero bundle overhead.
+
 ## Shaders & Procedural Art
 
 ### Star Nest (Volumetric Cosmic Raymarching)

@@ -886,6 +886,17 @@ befüllen.
   - Ratte 3: Vorsichtig lauernde Ratte zwischen den Mauereck-Kisten.
 - **Status:** 96 Testsuiten, 546 Tests, Build/Lint 100% grün.
 
+## 95. Wiederverwendbare `GroomingRat` & `RatGroomingBehavior` Extension (2026-08-30)
+- **Modulare Creature-Extension ([`src/extensions/creatures/`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/extensions/creatures/)):**
+  - `RatGroomingBehavior.ts`: Kapselt die 3-Phasen-Putz-FSM (Face-Washing, Sniffing, Ear-Cleaning) und Spline-Wellen-Kinematik als standardmäßiges Small-World `Behavior` mit Inspector-Reflexion.
+  - `GroomingRat.ts`: Vorgefertigtes artikuliertes 3D-Prefab mit Farb-/Skalierungs-Optionen und automatischer Behavior-Anbindung.
+  - Re-exportiert über `src/extensions/index.ts` und Engine-Root `src/index.ts`.
+- **Showcase & Tests:**
+  - `showcase.ts` auf die modulare `GroomingRat`-Klasse umgestellt (1 Zeile Code für vollständige Lebenssimulation).
+  - 5 neue Unit-Tests in [`tests/extensions/GroomingRat.test.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/tests/extensions/GroomingRat.test.ts).
+  - Dokumentiert in [`REFERENCES.md`](file:///Users/srottensteiner/PhpstormProjects/small-world/REFERENCES.md).
+- **Status:** 97 Testsuiten, 551 Tests, Build/Lint 100% grün.
+
 
 
 

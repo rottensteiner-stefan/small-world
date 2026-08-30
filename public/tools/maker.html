@@ -99,6 +99,22 @@
       .maker-palette-btn:hover {
         border-color: var(--accent);
       }
+      .maker-palette-btn.active {
+        border-color: var(--accent);
+        color: var(--accent);
+        background: rgba(0, 229, 255, 0.15);
+      }
+      .maker-gizmo-toolbar {
+        display: flex;
+        gap: 4px;
+        margin-bottom: 6px;
+      }
+      .maker-gizmo-toolbar .maker-palette-btn {
+        flex: 1;
+        text-align: center;
+        padding: 6px 2px;
+        font-size: 0.75rem;
+      }
       .maker-viewport {
         position: relative;
         background: #05070d;
