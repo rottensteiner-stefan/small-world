@@ -225,7 +225,7 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
     this._buildVaultedWalls();
     this._buildCutawayStubs();
     this._buildIndustrialPipes();
-    this._buildConstructionLamps();
+    await this._buildConstructionLamps();
     this._buildCornerDebrisPile();
     this._buildStreetProps();
     this._buildCornerRats();
@@ -881,156 +881,86 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
     root.add(vPipe);
   }
 
-  private _buildConstructionLamps(): void {
+  private async _buildConstructionLamps(): Promise<void> {
     const root = this._dioramaRoot!;
+    const gltfLoader = new GltfLoader();
 
-    // 1. Baulampe an der linken Wand
-    const lamp1 = this._createConstructionLamp(
-      "Baulampe_LeftWall",
-      new Color(1.0, 0.86, 0.62),
-      3.8,
-    );
-    lamp1.position.set(-1.94, 2.4, -0.3);
-    lamp1.rotation.y = Math.PI / 4;
-    lamp1.rotation.x = 0.22;
-    root.add(lamp1);
+    let lampMesh1: Object3D | undefined;
+    let lampMesh2: Object3D | undefined;
 
-    // 2. Baulampe an der Rückwand
-    const lamp2 = this._createConstructionLamp("Baulampe_BackWall", new Color(1.0, 0.9, 0.68), 3.8);
-    lamp2.position.set(0.85, 2.45, -1.94);
-    lamp2.rotation.y = -Math.PI / 4;
-    lamp2.rotation.x = 0.22;
-    root.add(lamp2);
-  }
+    try {
+      lampMesh1 = await gltfLoader.load("/assets/and-now/diorama/wall_lamp.glb");
+      lampMesh2 = await gltfLoader.load("/assets/and-now/diorama/wall_lamp.glb");
+    } catch (e) {
+      console.warn("[CharacterDiorama] Could not load wall_lamp.glb:", e);
+    }
 
-  private _createConstructionLamp(
-    name: string,
-    lightColor: Color,
-    lightIntensity: number,
-  ): Object3D {
-    const lamp = new Object3D(name);
-    const yellowHousingMat = new StandardMaterial({
-      color: new Color(0.95, 0.62, 0.04),
-      roughness: 0.45,
-      metallic: 0.1,
-    });
-    const darkMetalMat = new StandardMaterial({
+    const darkCableMat = new StandardMaterial({
       color: new Color(0.18, 0.2, 0.22),
-      roughness: 0.35,
-      metallic: 0.85,
-    });
-    const bulbGlowMat = new StandardMaterial({
-      color: new Color(1.0, 0.88, 0.65),
-      roughness: 0.1,
+      metallic: 0.8,
+      roughness: 0.4,
     });
 
-    if (name.includes("Left")) {
-      this._bulbMat1 = bulbGlowMat;
-    } else {
-      this._bulbMat2 = bulbGlowMat;
+    // 1. Industrielle Bunker-Wandleuchte an der linken Wand (Tripo3D Schiffsarmatur mit Schutzgitter)
+    const lampGroupLeft = new Object3D("IndustrialWallLamp_Left");
+    lampGroupLeft.position.set(-2.0, 2.35, -0.35);
+    lampGroupLeft.rotation.y = Math.PI / 2;
+
+    if (lampMesh1) {
+      lampMesh1.scale.set(0.38, 0.38, 0.38);
+      lampGroupLeft.add(lampMesh1);
     }
 
-    const bracket = new Object3D("WallBracket");
-    bracket.geometry = new Cube({ size: 1.0 }).getGeometryData();
-    bracket.scale.set(0.08, 0.16, 0.08);
-    bracket.material = darkMetalMat;
-    bracket.position.set(0, 0, -0.1);
-    lamp.add(bracket);
+    const light1 = new PointLight({ color: new Color(1.0, 0.86, 0.62) });
+    light1.intensity = 3.8;
+    light1.distance = 11.0;
+    light1.position.set(0, 0, 0.18);
+    lampGroupLeft.add(light1);
+    this._lampLight1 = light1;
 
-    const arm = new Object3D("SupportArm");
-    arm.geometry = new Cylinder({
-      radiusTop: 0.016,
-      radiusBottom: 0.016,
-      height: 0.18,
+    // Vertikales Schutzrohr nach unten zum Hauptleitungsrohr
+    const conduitLeft = new Object3D("ConduitPipeLeft");
+    conduitLeft.geometry = new Cylinder({
+      radiusTop: 0.012,
+      radiusBottom: 0.012,
+      height: 1.4,
       radialSegments: 8,
     }).getGeometryData();
-    arm.material = darkMetalMat;
-    arm.rotation.x = Math.PI / 2;
-    arm.position.set(0, 0, -0.04);
-    lamp.add(arm);
+    conduitLeft.material = darkCableMat;
+    conduitLeft.position.set(0, -0.85, -0.05);
+    lampGroupLeft.add(conduitLeft);
 
-    const housing = new Object3D("LampHousing");
-    housing.geometry = new Cube({ size: 1.0 }).getGeometryData();
-    housing.scale.set(0.26, 0.22, 0.15);
-    housing.material = yellowHousingMat;
-    housing.position.set(0, 0, 0.05);
-    lamp.add(housing);
+    root.add(lampGroupLeft);
 
-    const handle = new Object3D("CageHandle");
-    handle.geometry = new Torus({
-      radius: 0.09,
-      tube: 0.01,
-      radialSegments: 8,
-      tubularSegments: 16,
-    }).getGeometryData();
-    handle.material = darkMetalMat;
-    handle.position.set(0, 0.12, 0.05);
-    lamp.add(handle);
+    // 2. Industrielle Bunker-Wandleuchte an der Rückwand
+    const lampGroupBack = new Object3D("IndustrialWallLamp_Back");
+    lampGroupBack.position.set(0.85, 2.35, -2.0);
+    lampGroupBack.rotation.y = 0;
 
-    const bulb = new Object3D("HalogenBulb");
-    bulb.geometry = new Sphere({
-      radius: 0.065,
-      widthSegments: 12,
-      heightSegments: 10,
-    }).getGeometryData();
-    bulb.scale.set(1.4, 1.1, 0.4);
-    bulb.material = bulbGlowMat;
-    bulb.position.set(0, 0, 0.13);
-    lamp.add(bulb);
-
-    // Drahtkäfig vor der Birne: 4 dünne Streben im Kreuzraster statt eines flachen Rings,
-    // damit die Birne wie durch ein echtes Schutzgitter zu sehen ist (siehe diorama.md 5.3).
-    for (let s = 0; s < 4; s++) {
-      const strut = new Object3D("CageStrut_" + s);
-      strut.geometry = new Cylinder({
-        radiusTop: 0.0035,
-        radiusBottom: 0.0035,
-        height: 0.22,
-        radialSegments: 6,
-      }).getGeometryData();
-      strut.material = darkMetalMat;
-      strut.rotation.z = (s * Math.PI) / 4;
-      strut.position.set(0, 0, 0.16);
-      lamp.add(strut);
+    if (lampMesh2) {
+      lampMesh2.scale.set(0.38, 0.38, 0.38);
+      lampGroupBack.add(lampMesh2);
     }
 
-    // Rahmenring vor den Streben-Spitzen: fasst die 4 Kreuzstreben zu einem geschlossenen
-    // Drahtkorb zusammen, statt als frei schwebende Stäbe zu wirken (diorama.md Runde 2.2).
-    const cageRing = new Object3D("CageRing");
-    cageRing.geometry = new Torus({
-      radius: 0.08,
-      tube: 0.004,
+    const light2 = new PointLight({ color: new Color(1.0, 0.9, 0.68) });
+    light2.intensity = 3.8;
+    light2.distance = 11.0;
+    light2.position.set(0, 0, 0.18);
+    lampGroupBack.add(light2);
+    this._lampLight2 = light2;
+
+    const conduitBack = new Object3D("ConduitPipeBack");
+    conduitBack.geometry = new Cylinder({
+      radiusTop: 0.012,
+      radiusBottom: 0.012,
+      height: 1.4,
       radialSegments: 8,
-      tubularSegments: 20,
     }).getGeometryData();
-    cageRing.material = darkMetalMat;
-    cageRing.position.set(0, 0, 0.16);
-    lamp.add(cageRing);
+    conduitBack.material = darkCableMat;
+    conduitBack.position.set(0, -0.85, -0.05);
+    lampGroupBack.add(conduitBack);
 
-    const light = new PointLight({ color: lightColor });
-    light.intensity = lightIntensity;
-    light.distance = 11.0;
-    light.position.set(0, 0, 0.22);
-    lamp.add(light);
-
-    if (name.includes("Left")) {
-      this._lampLight1 = light;
-    } else {
-      this._lampLight2 = light;
-    }
-
-    const cable = new Object3D("PowerCable");
-    cable.geometry = new Cylinder({
-      radiusTop: 0.009,
-      radiusBottom: 0.009,
-      height: 2.0,
-      radialSegments: 6,
-    }).getGeometryData();
-    cable.material = darkMetalMat;
-    cable.position.set(0, -1.0, -0.08);
-    lamp.add(cable);
-
-    return lamp;
+    root.add(lampGroupBack);
   }
 
   private _buildStreetProps(): void {

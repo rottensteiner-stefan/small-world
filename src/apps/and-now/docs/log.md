@@ -832,6 +832,15 @@ befüllen.
   - NaN-Guard für `e.movementX`/`e.movementY` in [`Input.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/core/Input.ts) für Mac-Trackpads und Safari hinzugefügt.
 - **Status:** 93 Testsuiten, 536 Tests, Build/Lint 100% grün.
 
+## 89. Industrielle Bunker-Wandleuchte (Tripo3D 3D-Mesh & PBR-Integration) (2026-08-30)
+- **Tripo3D Asset-Pipeline ([`public/assets/and-now/diorama/wall_lamp.glb`](file:///Users/srottensteiner/PhpstormProjects/small-world/public/assets/and-now/diorama/wall_lamp.glb)):**
+  - Isolierte 2D-Konzeptvorlage für eine authentische Schiffsarmatur / Bunker-Ovalleuchte mit Gusseisengehäuse, Sechskantschrauben-Flansch, geripptem Glasdom, Halogenglühfaden und geschwungenem Draht-Schutzkäfig generiert.
+  - Via `tripo make` in ein optimiertes Low-Poly Game-Asset (`wall_lamp.glb`, 1.2MB, PBR-Material mit Normal- und Roughness-Maps) umgewandelt.
+- **Showcase-Integration ([`showcase.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/scenes/character-diorama/showcase.ts)):**
+  - Prozedurale Baustellen-Gelblampen durch die neuen Tripo3D-Industrieleuchten an linker Wand (`IndustrialWallLamp_Left`) und Rückwand (`IndustrialWallLamp_Back`) ersetzt.
+  - Angeschlossene vertikale Kabelschutzrohre und warm flackerndes Halogen-Punktlicht (`PointLight`) integriert.
+- **Status:** 94 Testsuiten, 540 Tests, Build/Lint 100% grün.
+
 
 
 
