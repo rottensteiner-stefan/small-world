@@ -18,6 +18,7 @@ import {
   Torus,
 } from "../../../../index.js";
 import { OrbitController } from "../../../../core/controllers/OrbitController.js";
+import { Vector2D } from "../../../../math/index.js";
 import {
   AnimationAction,
   AnimationClip,
@@ -69,6 +70,8 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
   // Textures
   private _wallTexture: Texture | undefined;
   private _floorTexture: Texture | undefined;
+  private _floorNormalTexture: Texture | undefined;
+  private _floorRoughnessTexture: Texture | undefined;
   private _brickTexture: Texture | undefined;
   private _barrelTexture: Texture | undefined;
   private _crateTexture: Texture | undefined;
@@ -128,6 +131,20 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
         addressModeU: TextureWrap.REPEAT,
         addressModeV: TextureWrap.REPEAT,
       });
+      this._floorNormalTexture = await Texture.fromUrl(
+        "/assets/and-now/diorama/floor_pavement_normal.jpg",
+        {
+          addressModeU: TextureWrap.REPEAT,
+          addressModeV: TextureWrap.REPEAT,
+        },
+      );
+      this._floorRoughnessTexture = await Texture.fromUrl(
+        "/assets/and-now/diorama/floor_pavement_roughness.jpg",
+        {
+          addressModeU: TextureWrap.REPEAT,
+          addressModeV: TextureWrap.REPEAT,
+        },
+      );
       this._brickTexture = await Texture.fromUrl("/assets/and-now/diorama/brick_masonry.jpg", {
         addressModeU: TextureWrap.REPEAT,
         addressModeV: TextureWrap.REPEAT,
@@ -170,8 +187,11 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
     const floorPavementMat = new StandardMaterial({
       color: new Color(1.0, 1.0, 1.0),
       diffuseMap: this._floorTexture,
-      roughness: 0.35,
-      metallic: 0.15,
+      normalMap: this._floorNormalTexture,
+      normalScale: new Vector2D(2.0, 2.0),
+      roughnessMap: this._floorRoughnessTexture,
+      roughness: 0.92,
+      metallic: 0.02,
     });
     const concreteMat = new StandardMaterial({
       color: new Color(0.35, 0.36, 0.38),

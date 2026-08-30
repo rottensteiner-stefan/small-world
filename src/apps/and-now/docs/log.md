@@ -793,6 +793,14 @@ befüllen.
   - Materialanbindung mit `_crateTexture` (`roughness: 0.85`, `metallic: 0.08`).
 - **Status:** 93 Testsuiten, 536 Tests, Build/Lint 100% grün.
 
+## 85. Pflasterstein-Bodenrelief mit Normal- & Roughness-Maps (2026-08-30)
+- **PBR-Karten generiert ([`public/assets/and-now/diorama/`](file:///Users/srottensteiner/PhpstormProjects/small-world/public/assets/and-now/diorama/)):**
+  - [`floor_pavement_normal.jpg`](file:///Users/srottensteiner/PhpstormProjects/small-world/public/assets/and-now/diorama/floor_pavement_normal.jpg): Tangent-Space Normal Map für tiefe Fugen zwischen Pflastersteinen, abgerundete Steinbuckel und markante Rissflanken in den Betonplatten.
+  - [`floor_pavement_roughness.jpg`](file:///Users/srottensteiner/PhpstormProjects/small-world/public/assets/and-now/diorama/floor_pavement_roughness.jpg): Differenzierte Rauheitskarte (matter, abgetretener Stein `0.85–0.95`, nicht-reflektierende tiefe Fugen und sanfter Glanz nur in Pfützen-/Ölflecken).
+- **Showcase-Material ([`showcase.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/scenes/character-diorama/showcase.ts)):**
+  - Spiegelglanz entfernt: `metallic: 0.02`, `roughness: 0.92`, `normalScale: Vector2D(2.0, 2.0)` mit dynamischem Halogen- und Taschenlampen-Relief.
+- **Status:** 93 Testsuiten, 536 Tests, Build/Lint 100% grün.
+
 
 
 
