@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.77.0] - 2026-08-30
+
+### "The strength of the structure lies in the harmony of its parts." - Vitruvius
+
+- **Features:**
+  - Added the **Modular Asset Kit Architecture** (`public/assets/kits/industrial/`): standard self-contained kit structure (`model.glb` + `preview.jpg` + `meta.json` + `kit.json`) for friction-free engine ingestion and out-of-tree distribution.
+  - Implemented 4 game-ready PBR industrial props with official ADR/GHS hazard labeling:
+    - `wall_lamp`: Weathered cast-iron bulkhead cage lamp with ribbed glass dome diffuser and halogen point light.
+    - `barrel_oil_black`: Rusted 200L steel drum with 2×3 corrugated reinforcement bands and black oil residue (ADR Class 3).
+    - `barrel_hazard_yellow`: Caution yellow steel drum with diagonal hazard stripes and toxic skull decal (ADR Class 6.1 / GHS06).
+    - `barrel_chemical_blue`: Dark teal-blue chemical barrel with flammable red diamond and German stencil typography (ADR Class 3).
+  - Added **Small World Maker** (`src/tools/maker/`, `public/tools/maker.html`): Interactive visual 3D Level & Scene Editor with hierarchy tree, transform gizmos, object palette, undo/redo stack, and live project scene binding.
+  - Added `WorldWriter` serializer (`src/loaders/WorldWriter.ts`): Standalone binary glTF and JSON scene serializer capturing hierarchy, PBR materials, lights, and custom behavior parameters.
+- **Architecture & Bugfixes:**
+  - Added `docs/adr/0010-maker-editor-architecture.md` defining the embedded visual level-building architecture.
+  - Added `docs/adr/0011-modular-asset-kits-and-remote-catalog.md` establishing the 3-phase modular asset kit and remote catalog standard.
+  - Added `Inspectable` interface (`src/core/Inspectable.ts`) across `Object3D`, materials, and lights for zero-boilerplate reflection in inspector UIs.
+  - Added knuckle/palm-based hand socket alignment for carried props (`mixamorig:LeftHandMiddle1`) and matte PBR material traversal.
+- **Housekeeping & Docs:**
+  - Updated `VISION.md` with Säule 5 (Asset Bloat & Open Standards Ingestion) and Core Philosophy 6 (Open Standards & Frictionless Ingestion).
+  - Appended dev log entries 89–93 in `src/apps/and-now/docs/log.md`.
+  - Added test coverage for `Inspectable`, `WorldWriter`, and `ProjectBinding` (96 test suites, 546 unit tests passing).
+
 ## [0.76.33] - 2026-08-27
 
 ### "The map is not the territory." - Alfred Korzybski
