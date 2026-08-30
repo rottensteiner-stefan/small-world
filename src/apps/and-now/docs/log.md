@@ -785,6 +785,14 @@ befüllen.
   - `_barrelTexture` asynchron in `setupScene` geladen und dem `MetalBarrel` via `StandardMaterial` (`metallic: 0.65`, `roughness: 0.55`) zugewiesen.
 - **Status:** 93 Testsuiten, 536 Tests, Build/Lint 100% grün.
 
+## 84. Holzkisten-Cluster & PBR-Texturierung im Diorama (2026-08-30)
+- **Asset-Generierung ([`public/assets/and-now/diorama/crate_wood.jpg`](file:///Users/srottensteiner/PhpstormProjects/small-world/public/assets/and-now/diorama/crate_wood.jpg)):**
+  - Textur für alte Transport-Holzkisten generiert (1024×1024, verwitterte Holzbohlen mit diagonaler Kreuzverstrebung, rostigen Eisen-Eckbeschlägen, Nägeln und Moos-/Schmutzspuren im Graphic-Noir-Stil).
+- **Szenen-Integration & Props ([`showcase.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/scenes/character-diorama/showcase.ts)):**
+  - Kisten von 2 auf 6 Stück erweitert und als organischer Stapel/Cluster im Eck- und Wandbereich arrangiert (3 Basiskisten, 2 mittlere Kisten, 1 Turmspitze mit individuellen Rotationen).
+  - Materialanbindung mit `_crateTexture` (`roughness: 0.85`, `metallic: 0.08`).
+- **Status:** 93 Testsuiten, 536 Tests, Build/Lint 100% grün.
+
 
 
 

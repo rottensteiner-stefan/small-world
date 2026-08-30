@@ -71,6 +71,7 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
   private _floorTexture: Texture | undefined;
   private _brickTexture: Texture | undefined;
   private _barrelTexture: Texture | undefined;
+  private _crateTexture: Texture | undefined;
 
   // HUD Elements
   private _lblChar!: HTMLElement;
@@ -132,6 +133,10 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
         addressModeV: TextureWrap.REPEAT,
       });
       this._barrelTexture = await Texture.fromUrl("/assets/and-now/diorama/barrel_rust.jpg", {
+        addressModeU: TextureWrap.REPEAT,
+        addressModeV: TextureWrap.REPEAT,
+      });
+      this._crateTexture = await Texture.fromUrl("/assets/and-now/diorama/crate_wood.jpg", {
         addressModeU: TextureWrap.REPEAT,
         addressModeV: TextureWrap.REPEAT,
       });
@@ -820,10 +825,6 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
 
   private _buildStreetProps(): void {
     const root = this._dioramaRoot!;
-    const woodMat = new StandardMaterial({
-      color: new Color(0.42, 0.28, 0.16),
-      roughness: 0.8,
-    });
     const metalMat = new StandardMaterial({
       color: new Color(0.22, 0.25, 0.28),
       metallic: 0.7,
@@ -835,6 +836,13 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
       roughness: 0.2,
     });
 
+    const crateMat = new StandardMaterial({
+      color: new Color(1.0, 1.0, 1.0),
+      diffuseMap: this._crateTexture,
+      roughness: 0.85,
+      metallic: 0.08,
+    });
+
     const barrelMat = new StandardMaterial({
       color: new Color(1.0, 1.0, 1.0),
       diffuseMap: this._barrelTexture,
@@ -842,21 +850,31 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
       roughness: 0.55,
     });
 
-    const crate1 = new Object3D("Crate1");
-    crate1.geometry = new Cube({ size: 1.0 }).getGeometryData();
-    crate1.scale.set(0.55, 0.55, 0.55);
-    crate1.material = woodMat;
-    crate1.position.set(-1.45, 0.275, -1.45);
-    crate1.rotation.y = 0.25;
-    root.add(crate1);
+    // 6 Holzkisten im Eck- und Wandbereich arrangiert (gestapelt & gruppiert)
+    const cratesConfig = [
+      // 1. Große Basiskiste Ecke links unten
+      { name: "Crate1", size: [0.56, 0.54, 0.56], pos: [-1.48, 0.27, -1.22], rotY: 0.12 },
+      // 2. Basiskiste Ecke hinten unten
+      { name: "Crate2", size: [0.5, 0.5, 0.5], pos: [-1.1, 0.25, -1.55], rotY: -0.16 },
+      // 3. Basiskiste weiter vorne links neben dem Ölfass
+      { name: "Crate3", size: [0.46, 0.44, 0.46], pos: [-1.55, 0.22, 0.05], rotY: 0.28 },
+      // 4. Mittlere Kiste gestapelt auf Crate1
+      { name: "Crate4", size: [0.48, 0.46, 0.48], pos: [-1.45, 0.77, -1.24], rotY: -0.09 },
+      // 5. Mittlere Kiste gestapelt auf Crate2
+      { name: "Crate5", size: [0.42, 0.42, 0.42], pos: [-1.1, 0.71, -1.55], rotY: 0.2 },
+      // 6. Oberste Kiste als Turmspitze auf Crate4
+      { name: "Crate6", size: [0.38, 0.36, 0.38], pos: [-1.42, 1.18, -1.25], rotY: 0.15 },
+    ];
 
-    const crate2 = new Object3D("Crate2");
-    crate2.geometry = new Cube({ size: 1.0 }).getGeometryData();
-    crate2.scale.set(0.48, 0.48, 0.48);
-    crate2.material = woodMat;
-    crate2.position.set(-1.42, 0.79, -1.42);
-    crate2.rotation.y = -0.15;
-    root.add(crate2);
+    cratesConfig.forEach((cfg) => {
+      const crate = new Object3D(cfg.name);
+      crate.geometry = new Cube({ size: 1.0 }).getGeometryData();
+      crate.scale.set(cfg.size[0]!, cfg.size[1]!, cfg.size[2]!);
+      crate.material = crateMat;
+      crate.position.set(cfg.pos[0]!, cfg.pos[1]!, cfg.pos[2]!);
+      crate.rotation.y = cfg.rotY;
+      root.add(crate);
+    });
 
     const metalBarrel = new Object3D("MetalBarrel");
     metalBarrel.geometry = new Cylinder({
