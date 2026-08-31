@@ -1,6 +1,8 @@
 import "../../src/index.js";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { WebGPURenderer } from "../../src/renderers/WebGPU/WebGPURenderer.js";
+import { GPUObjectRingBuffer } from "../../src/renderers/WebGPU/managers/GPUObjectRingBuffer.js";
+import { GPUGeometryCache } from "../../src/renderers/WebGPU/managers/GPUGeometryCache.js";
 import { Object3D } from "../../src/core/Object3D.js";
 import { SkinnedMesh, Skeleton, Bone } from "../../src/core/animation/index.js";
 import { ShaderRegistry } from "../../src/core/renderers/shaders/ShaderRegistry.js";
@@ -32,6 +34,7 @@ function makeMockDevice(): GPUDevice {
     })),
     createBindGroup: vi.fn((desc: unknown) => ({ desc })),
     queue: { writeBuffer: vi.fn() },
+    limits: { minUniformBufferOffsetAlignment: 256 },
   } as unknown as GPUDevice;
 }
 
@@ -63,7 +66,8 @@ function makeRenderer(): { renderer: RendererInternals; device: GPUDevice } {
   renderer._device = device;
   renderer._boneMatricesBuffer = device.createBuffer({ size: 1024 * 64, usage: 0x0080 | 0x0008 });
   renderer._objectBGL = { mock: "objectBGL" };
-  renderer._ensureObjectRingCapacity(1024);
+  renderer._objectRing = new GPUObjectRingBuffer(device, renderer._objectBGL);
+  renderer._geometryCache = new GPUGeometryCache(device);
   return { renderer, device };
 }
 
@@ -117,7 +121,7 @@ describe("WebGPU GPU Skinning", () => {
     expect(offset2).toBe(2);
   });
 
-  it("creates jb and wb GPU buffers in _getGeoCache when geometry has skinning joints and weights", () => {
+  it("creates jb and wb GPU buffers in GPUGeometryCache.getGeoCache when geometry has skinning joints and weights", () => {
     const { renderer, device } = makeRenderer();
     const geo = new ModelGeometry(
       new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0]),
@@ -130,7 +134,7 @@ describe("WebGPU GPU Skinning", () => {
       },
     );
 
-    const cache = renderer._getGeoCache(new Object3D(), geo.getGeometryData());
+    const cache = renderer._geometryCache.getGeoCache(new Object3D(), geo.getGeometryData());
 
     expect(cache.jb).toBeDefined();
     expect(cache.wb).toBeDefined();

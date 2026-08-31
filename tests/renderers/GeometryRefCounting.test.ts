@@ -1,6 +1,6 @@
 import "../../src/index.js";
 import { describe, expect, it, vi } from "vitest";
-import { WebGL2Renderer } from "../../src/renderers/WebGL2/WebGL2Renderer.js";
+import { WebGLBufferManager } from "../../src/renderers/WebGL2/managers/WebGLBufferManager.js";
 import { Object3D } from "../../src/core/Object3D.js";
 import { Scene } from "../../src/core/Scene.js";
 import { GeometryDataInterface } from "../../src/interfaces/index.js";
@@ -29,30 +29,20 @@ function makeGeometry(): GeometryDataInterface {
   };
 }
 
-// Accesses private WebGL2Renderer internals directly (geometry cache + refcounting).
-// This is genuinely private implementation, not public API -- but the refcounting
-// correctness here (shared geometry across many objects, reassignment on a live
-// object, disposal only at zero references) can't be verified visually in this repo's
-// sandbox (headless WebGPU/WebGL can't reliably render), so a direct unit test is the
-// only real safety net for this logic.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type RendererInternals = any;
-
-describe("WebGL geometry reference counting", () => {
+describe("WebGLBufferManager reference counting", () => {
   it("creates a GPU mesh on first use and reuses it for a second object sharing the geometry", () => {
     const gl = makeMockGl();
-    const renderer = new WebGL2Renderer();
-    (renderer as RendererInternals).gl = gl;
+    const buffers = new WebGLBufferManager(gl);
 
     const geo = makeGeometry();
     const objA = new Object3D("A");
     const objB = new Object3D("B");
 
-    const meshA = (renderer as RendererInternals)._getOrCreateMesh(objA, geo);
+    const meshA = buffers.getOrCreateMesh(objA, geo);
     expect(gl.createBuffer).toHaveBeenCalledTimes(1);
     expect(meshA.refCount).toBe(1);
 
-    const meshB = (renderer as RendererInternals)._getOrCreateMesh(objB, geo);
+    const meshB = buffers.getOrCreateMesh(objB, geo);
     expect(meshB).toBe(meshA);
     // No second GPU buffer was created for the shared geometry.
     expect(gl.createBuffer).toHaveBeenCalledTimes(1);
@@ -61,38 +51,36 @@ describe("WebGL geometry reference counting", () => {
 
   it("does not delete the shared buffer while another object still references it", () => {
     const gl = makeMockGl();
-    const renderer = new WebGL2Renderer();
-    (renderer as RendererInternals).gl = gl;
+    const buffers = new WebGLBufferManager(gl);
 
     const geo = makeGeometry();
     const objA = new Object3D("A");
     const objB = new Object3D("B");
 
-    (renderer as RendererInternals)._getOrCreateMesh(objA, geo);
-    (renderer as RendererInternals)._getOrCreateMesh(objB, geo);
+    buffers.getOrCreateMesh(objA, geo);
+    buffers.getOrCreateMesh(objB, geo);
 
-    (renderer as RendererInternals).releaseObjectResources(objA);
+    buffers.releaseGeometryFor(objA);
     expect(gl.deleteBuffer).not.toHaveBeenCalled();
 
-    (renderer as RendererInternals).releaseObjectResources(objB);
+    buffers.releaseGeometryFor(objB);
     expect(gl.deleteBuffer).toHaveBeenCalled();
   });
 
   it("releases the old geometry and acquires the new one when an object's geometry is reassigned at runtime", () => {
     const gl = makeMockGl();
-    const renderer = new WebGL2Renderer();
-    (renderer as RendererInternals).gl = gl;
+    const buffers = new WebGLBufferManager(gl);
 
     const geoA = makeGeometry();
     const geoB = makeGeometry();
     const obj = new Object3D("Swappable");
 
-    const meshA = (renderer as RendererInternals)._getOrCreateMesh(obj, geoA);
+    const meshA = buffers.getOrCreateMesh(obj, geoA);
     expect(meshA.refCount).toBe(1);
 
     // Simulate `obj.material = newMaterial`-style live reassignment: same object,
     // new geometry, still attached to the scene -- no explicit release call.
-    const meshB = (renderer as RendererInternals)._getOrCreateMesh(obj, geoB);
+    const meshB = buffers.getOrCreateMesh(obj, geoB);
     expect(meshB.refCount).toBe(1);
     expect(meshA.refCount).toBe(0);
     expect(gl.deleteBuffer).toHaveBeenCalled(); // geoA's buffers were freed
@@ -100,8 +88,7 @@ describe("WebGL geometry reference counting", () => {
 
   it("releases geometry via the Scene removal queue when an object is fully removed", () => {
     const gl = makeMockGl();
-    const renderer = new WebGL2Renderer();
-    (renderer as RendererInternals).gl = gl;
+    const buffers = new WebGLBufferManager(gl);
 
     const scene = new Scene();
     const geo = makeGeometry();
@@ -109,11 +96,13 @@ describe("WebGL geometry reference counting", () => {
     obj.geometry = geo;
     scene.add(obj);
 
-    const mesh = (renderer as RendererInternals)._getOrCreateMesh(obj, geo);
+    const mesh = buffers.getOrCreateMesh(obj, geo);
     expect(mesh.refCount).toBe(1);
 
     scene.remove(obj);
-    (renderer as RendererInternals)._releaseRemovedObjects(scene.consumeRemovedObjects());
+    for (const removed of scene.consumeRemovedObjects()) {
+      buffers.releaseGeometryFor(removed);
+    }
 
     expect(mesh.refCount).toBe(0);
     expect(gl.deleteBuffer).toHaveBeenCalled();
@@ -121,8 +110,7 @@ describe("WebGL geometry reference counting", () => {
 
   it("also releases descendants when a parent with children is removed from the scene", () => {
     const gl = makeMockGl();
-    const renderer = new WebGL2Renderer();
-    (renderer as RendererInternals).gl = gl;
+    const buffers = new WebGLBufferManager(gl);
 
     const scene = new Scene();
     const parentGeo = makeGeometry();
@@ -135,11 +123,13 @@ describe("WebGL geometry reference counting", () => {
     parent.add(child);
     scene.add(parent);
 
-    const parentMesh = (renderer as RendererInternals)._getOrCreateMesh(parent, parentGeo);
-    const childMesh = (renderer as RendererInternals)._getOrCreateMesh(child, childGeo);
+    const parentMesh = buffers.getOrCreateMesh(parent, parentGeo);
+    const childMesh = buffers.getOrCreateMesh(child, childGeo);
 
     scene.remove(parent);
-    (renderer as RendererInternals)._releaseRemovedObjects(scene.consumeRemovedObjects());
+    for (const removed of scene.consumeRemovedObjects()) {
+      buffers.releaseGeometryFor(removed);
+    }
 
     expect(parentMesh.refCount).toBe(0);
     expect(childMesh.refCount).toBe(0);

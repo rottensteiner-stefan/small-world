@@ -1,7 +1,8 @@
 import "../../src/index.js";
 import { describe, expect, it, vi, beforeAll } from "vitest";
-import { WebGL2Renderer } from "../../src/renderers/WebGL2/WebGL2Renderer.js";
+import { WebGLProgramCache } from "../../src/renderers/WebGL2/managers/WebGLProgramCache.js";
 import { CoreShaderChunks } from "../../src/core/renderers/shaders/CoreShaderChunks.js";
+import { ShaderRegistry } from "../../src/core/renderers/shaders/ShaderRegistry.js";
 import { BasicMaterial } from "../../src/core/materials/BasicMaterial.js";
 import { Object3D } from "../../src/core/Object3D.js";
 import { MaterialType } from "../../src/enums/index.js";
@@ -41,79 +42,73 @@ function makeMockGl(): WebGL2RenderingContext {
   } as unknown as WebGL2RenderingContext;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type RendererInternals = any;
+function makeCache(): { cache: WebGLProgramCache; gl: WebGL2RenderingContext } {
+  const gl = makeMockGl();
+  const cache = new WebGLProgramCache(
+    gl,
+    { bindToProgram: vi.fn() } as never,
+    ShaderRegistry.instance,
+  );
+  return { cache, gl };
+}
 
-describe("WebGL2 program reference counting", () => {
+describe("WebGLProgramCache reference counting", () => {
   beforeAll(async () => {
     await CoreShaderChunks.init();
   });
 
   it("compiles a program on first use and reuses it for a second object sharing the material's shader", () => {
-    const gl = makeMockGl();
-    const renderer = new WebGL2Renderer();
-    (renderer as RendererInternals).gl = gl;
-    (renderer as RendererInternals)._globalUBO = { bindToProgram: vi.fn() };
+    const { cache, gl } = makeCache();
     // A real material so ShaderRegistry has a genuine, valid GLSL300 definition to compile.
     new BasicMaterial();
 
     const objA = new Object3D("A");
     const objB = new Object3D("B");
-    const key = (renderer as RendererInternals)._programCacheKey(MaterialType.BASIC, false, []);
+    const key = cache.programCacheKey(MaterialType.BASIC, false, []);
 
-    const cacheA = (renderer as RendererInternals)._getProgram(MaterialType.BASIC);
-    (renderer as RendererInternals)._acquireProgram(objA, key);
+    const cacheA = cache.getProgram(MaterialType.BASIC);
+    cache.acquireProgram(objA, key);
     expect(gl.createProgram).toHaveBeenCalledTimes(1);
     expect(cacheA.refCount).toBe(1);
 
-    (renderer as RendererInternals)._acquireProgram(objB, key);
+    cache.acquireProgram(objB, key);
     expect(gl.createProgram).toHaveBeenCalledTimes(1); // reused, not recompiled
     expect(cacheA.refCount).toBe(2);
   });
 
   it("does not delete the shared program while another object still references it", () => {
-    const gl = makeMockGl();
-    const renderer = new WebGL2Renderer();
-    (renderer as RendererInternals).gl = gl;
-    (renderer as RendererInternals)._globalUBO = { bindToProgram: vi.fn() };
+    const { cache, gl } = makeCache();
     new BasicMaterial();
 
     const objA = new Object3D("A");
     const objB = new Object3D("B");
-    const key = (renderer as RendererInternals)._programCacheKey(MaterialType.BASIC, false, []);
+    const key = cache.programCacheKey(MaterialType.BASIC, false, []);
 
-    (renderer as RendererInternals)._getProgram(MaterialType.BASIC);
-    (renderer as RendererInternals)._acquireProgram(objA, key);
-    (renderer as RendererInternals)._acquireProgram(objB, key);
+    cache.getProgram(MaterialType.BASIC);
+    cache.acquireProgram(objA, key);
+    cache.acquireProgram(objB, key);
 
-    (renderer as RendererInternals)._releaseObjectProgram(objA);
+    cache.releaseObjectProgram(objA);
     expect(gl.deleteProgram).not.toHaveBeenCalled();
 
-    (renderer as RendererInternals)._releaseObjectProgram(objB);
+    cache.releaseObjectProgram(objB);
     expect(gl.deleteProgram).toHaveBeenCalled();
   });
 
   it("releases the old program and acquires the new one when an object's material changes shader at runtime", () => {
-    const gl = makeMockGl();
-    const renderer = new WebGL2Renderer();
-    (renderer as RendererInternals).gl = gl;
-    (renderer as RendererInternals)._globalUBO = { bindToProgram: vi.fn() };
+    const { cache, gl } = makeCache();
     new BasicMaterial();
 
     const obj = new Object3D("Swappable");
-    const keyA = (renderer as RendererInternals)._programCacheKey(MaterialType.BASIC, false, []);
-    const keyB = (renderer as RendererInternals)._programCacheKey(MaterialType.BASIC, false, [
-      "SOME_FLAG",
-    ]);
+    const keyA = cache.programCacheKey(MaterialType.BASIC, false, []);
+    const keyB = cache.programCacheKey(MaterialType.BASIC, false, ["SOME_FLAG"]);
 
-    (renderer as RendererInternals)._getProgram(MaterialType.BASIC);
-    (renderer as RendererInternals)._acquireProgram(obj, keyA);
-    const resolvedA = (renderer as RendererInternals)._programs.get(keyA);
+    const resolvedA = cache.getProgram(MaterialType.BASIC);
+    cache.acquireProgram(obj, keyA);
     expect(resolvedA.refCount).toBe(1);
 
-    (renderer as RendererInternals)._getProgram(MaterialType.BASIC, false, ["SOME_FLAG"]);
-    (renderer as RendererInternals)._acquireProgram(obj, keyB);
-    const resolvedB = (renderer as RendererInternals)._programs.get(keyB);
+    const resolvedB = cache.getProgram(MaterialType.BASIC, false, ["SOME_FLAG"]);
+    cache.acquireProgram(obj, keyB);
     expect(resolvedB.refCount).toBe(1);
     expect(resolvedA.refCount).toBe(0);
     expect(gl.deleteProgram).toHaveBeenCalled();

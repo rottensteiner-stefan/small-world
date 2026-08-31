@@ -79,65 +79,68 @@ export enum DeviceLimit {
 }
 
 /**
- * Centralized class for hardware and browser feature detection.
- * Provides information about supported renderers, API features, and hardware limits.
+ * Per-instance hardware and browser feature detection. Construct one per engine instance (see
+ * `RendererContext.deviceCaps`) so multiple `SmallWorld`s on one page each get their own, correctly
+ * probed capabilities instead of sharing a single process-wide result.
  */
 export class DeviceCaps {
-  private static _isInitialized: boolean = false;
+  private static _default: DeviceCaps | undefined;
+
+  private _isInitialized: boolean = false;
 
   // Renderers
-  private static _hasWebGL1: boolean = false;
-  private static _hasWebGL2: boolean = false;
-  private static _hasWebGPU: boolean = false;
+  private _hasWebGL1: boolean = false;
+  private _hasWebGL2: boolean = false;
+  private _hasWebGPU: boolean = false;
 
   // Canvas & Browser Features
-  private static _hasCanvasRoundRect: boolean = false;
-  private static _hasOffscreenCanvas: boolean = false;
-  private static _hasTouch: boolean = false;
-  private static _hasGamepad: boolean = false;
+  private _hasCanvasRoundRect: boolean = false;
+  private _hasOffscreenCanvas: boolean = false;
+  private _hasTouch: boolean = false;
+  private _hasGamepad: boolean = false;
 
   // Hardware Limits
-  private static _maxTextureSize: number = 0;
-  private static _maxAnisotropy: number = 1;
-  private static _maxUniformBufferSize: number = 0;
-  private static _maxMsaaSamples: number = 1;
-  private static _maxVertexAttributes: number = 0;
-  private static _maxTextureImageUnits: number = 0;
-  private static _webgl1MaxTextureImageUnits: number = 0;
-  private static _webgl2MaxTextureImageUnits: number = 0;
-  private static _maxVertexUniformVectors: number = 0;
-  private static _maxFragmentUniformVectors: number = 0;
-  private static _maxTextureArrayLayers: number = 0;
-  private static _maxColorAttachments: number = 0;
-  private static _webgpuMaxSampledTexturesPerStage: number = 0;
-  private static _webgpuMaxSamplersPerStage: number = 0;
-  private static _webgpuMaxBindGroups: number = 0;
-  private static _webgpuMaxBindingsPerBindGroup: number = 0;
-  private static _webgpuMaxUniformBufferBindingSize: number = 0;
-  private static _webgpuMaxStorageBufferBindingSize: number = 0;
-  private static _webgpuMaxComputeWorkgroupStorageSize: number = 0;
-  private static _webgpuMaxTextureDimension2D: number = 0;
+  private _maxTextureSize: number = 0;
+  private _maxAnisotropy: number = 1;
+  private _maxUniformBufferSize: number = 0;
+  private _maxMsaaSamples: number = 1;
+  private _maxVertexAttributes: number = 0;
+  private _maxTextureImageUnits: number = 0;
+  private _webgl1MaxTextureImageUnits: number = 0;
+  private _webgl2MaxTextureImageUnits: number = 0;
+  private _maxVertexUniformVectors: number = 0;
+  private _maxFragmentUniformVectors: number = 0;
+  private _maxTextureArrayLayers: number = 0;
+  private _maxColorAttachments: number = 0;
+  private _webgpuMaxSampledTexturesPerStage: number = 0;
+  private _webgpuMaxSamplersPerStage: number = 0;
+  private _webgpuMaxBindGroups: number = 0;
+  private _webgpuMaxBindingsPerBindGroup: number = 0;
+  private _webgpuMaxUniformBufferBindingSize: number = 0;
+  private _webgpuMaxStorageBufferBindingSize: number = 0;
+  private _webgpuMaxComputeWorkgroupStorageSize: number = 0;
+  private _webgpuMaxTextureDimension2D: number = 0;
 
   // Specialized Features
-  private static _hasFloatTextures: boolean = false;
-  private static _hasCompressedTextures: boolean = false;
-  private static _gpuModel: string = "Unknown";
-  private static _gpuVendor: string = "Unknown";
-  private static _hasAsync: boolean = false;
-  private static _hasWasm: boolean = false;
-  private static _hasWorkers: boolean = false;
-  private static _hasDeviceOrientation: boolean = false;
-  private static _hasDeviceMotion: boolean = false;
-  private static _hasGenericSensors: boolean = false;
-  private static _hasNetworkInfo: boolean = false;
-  private static _networkInfo:
-    { effectiveType: string; downlink: number; saveData: boolean } | undefined = undefined;
+  private _hasFloatTextures: boolean = false;
+  private _hasCompressedTextures: boolean = false;
+  private _gpuModel: string = "Unknown";
+  private _gpuVendor: string = "Unknown";
+  private _hasAsync: boolean = false;
+  private _hasWasm: boolean = false;
+  private _hasWorkers: boolean = false;
+  private _hasDeviceOrientation: boolean = false;
+  private _hasDeviceMotion: boolean = false;
+  private _hasGenericSensors: boolean = false;
+  private _hasNetworkInfo: boolean = false;
+  private _networkInfo: { effectiveType: string; downlink: number; saveData: boolean } | undefined =
+    undefined;
 
   /**
    * Initializes the feature detection.
    * This is called automatically by the Engine, but can be called manually.
    */
-  public static init(): void {
+  public init(): void {
     if (this._isInitialized) return;
 
     // 1. Basic Browser & Platform Checks
@@ -261,7 +264,7 @@ export class DeviceCaps {
   /**
    * Updates hardware limits. Used by renderers to provide more precise values.
    */
-  public static updateLimits(limits: {
+  public updateLimits(limits: {
     maxTextureSize?: number;
     maxUniformBufferSize?: number;
     maxAnisotropy?: number;
@@ -347,7 +350,7 @@ export class DeviceCaps {
    * Returns whether a specific boolean feature is supported by the current device.
    * @param feature The feature to check.
    */
-  public static hasFeature(feature: DeviceFeature): boolean {
+  public hasFeature(feature: DeviceFeature): boolean {
     if (!this._isInitialized) this.init();
     switch (feature) {
       case DeviceFeature.WEBGL1:
@@ -391,7 +394,7 @@ export class DeviceCaps {
    * Returns a specific hardware limit for the current device.
    * @param limit The limit to query.
    */
-  public static getLimit(limit: DeviceLimit): number {
+  public getLimit(limit: DeviceLimit): number {
     if (!this._isInitialized) this.init();
     switch (limit) {
       case DeviceLimit.MAX_TEXTURE_SIZE:
@@ -447,7 +450,7 @@ export class DeviceCaps {
    * headless test sandbox has repeatedly masked real budget-overrun bugs that only surfaced on
    * stricter, spec-minimum hardware).
    */
-  public static getGuaranteedMinimum(limit: DeviceLimit): number {
+  public getGuaranteedMinimum(limit: DeviceLimit): number {
     switch (limit) {
       // GLES3/WebGL2 minimum; GLES2/WebGL1 only guarantees 64.
       case DeviceLimit.MAX_TEXTURE_SIZE:
@@ -510,14 +513,14 @@ export class DeviceCaps {
   /**
    * Returns the unmasked GPU model if available.
    */
-  public static get gpuModel(): string {
+  public get gpuModel(): string {
     return this._gpuModel;
   }
 
   /**
    * Returns the unmasked GPU vendor if available.
    */
-  public static get gpuVendor(): string {
+  public get gpuVendor(): string {
     return this._gpuVendor;
   }
 
@@ -525,7 +528,7 @@ export class DeviceCaps {
    * Returns Network Information API data if the browser supports it (Chrome/Edge; absent on
    * Firefox/Safari), or `undefined` otherwise.
    */
-  public static get networkInfo():
+  public get networkInfo():
     { effectiveType: string; downlink: number; saveData: boolean } | undefined {
     return this._networkInfo;
   }
@@ -533,7 +536,7 @@ export class DeviceCaps {
   /**
    * Returns true if the application is running on a mobile device (phone or tablet).
    */
-  public static isMobile(): boolean {
+  public isMobile(): boolean {
     if (typeof window === "undefined") {
       return false;
     }
@@ -550,27 +553,27 @@ export class DeviceCaps {
     return false;
   }
 
-  public static get cores(): number {
+  public get cores(): number {
     if (typeof navigator === "undefined") return 4;
     return navigator.hardwareConcurrency || 4;
   }
 
-  public static get memoryGB(): number {
+  public get memoryGB(): number {
     if (typeof navigator === "undefined") return 4;
     return (navigator as unknown as { deviceMemory?: number }).deviceMemory || 4;
   }
 
-  public static get pixelRatio(): number {
+  public get pixelRatio(): number {
     if (typeof window === "undefined") return 1;
     return window.devicePixelRatio || 1;
   }
 
-  public static get screenWidth(): number {
+  public get screenWidth(): number {
     if (typeof window === "undefined") return 1920;
     return window.screen.width;
   }
 
-  public static get screenHeight(): number {
+  public get screenHeight(): number {
     if (typeof window === "undefined") return 1080;
     return window.screen.height;
   }
@@ -578,7 +581,7 @@ export class DeviceCaps {
   /**
    * Uses experimental flags and hardware information to guess the device's performance capability.
    */
-  public static getPerformanceTier(): PerformanceTier {
+  public getPerformanceTier(): PerformanceTier {
     if (typeof navigator === "undefined") return PerformanceTier.MEDIUM;
 
     let score = 0;
@@ -604,5 +607,85 @@ export class DeviceCaps {
     if (score >= 4) return PerformanceTier.HIGH;
     if (score >= 2) return PerformanceTier.MEDIUM;
     return PerformanceTier.LOW;
+  }
+
+  private static get _sharedDefault(): DeviceCaps {
+    return (this._default ??= new DeviceCaps());
+  }
+
+  /** @deprecated Use an instance via `RendererContext.deviceCaps` instead. Removal target: v1.0.0. */
+  public static init(): void {
+    this._sharedDefault.init();
+  }
+
+  /** @deprecated Use an instance via `RendererContext.deviceCaps` instead. Removal target: v1.0.0. */
+  public static updateLimits(limits: Parameters<DeviceCaps["updateLimits"]>[0]): void {
+    this._sharedDefault.updateLimits(limits);
+  }
+
+  /** @deprecated Use an instance via `RendererContext.deviceCaps` instead. Removal target: v1.0.0. */
+  public static hasFeature(feature: DeviceFeature): boolean {
+    return this._sharedDefault.hasFeature(feature);
+  }
+
+  /** @deprecated Use an instance via `RendererContext.deviceCaps` instead. Removal target: v1.0.0. */
+  public static getLimit(limit: DeviceLimit): number {
+    return this._sharedDefault.getLimit(limit);
+  }
+
+  /** @deprecated Use an instance via `RendererContext.deviceCaps` instead. Removal target: v1.0.0. */
+  public static getGuaranteedMinimum(limit: DeviceLimit): number {
+    return this._sharedDefault.getGuaranteedMinimum(limit);
+  }
+
+  /** @deprecated Use an instance via `RendererContext.deviceCaps` instead. Removal target: v1.0.0. */
+  public static get gpuModel(): string {
+    return this._sharedDefault.gpuModel;
+  }
+
+  /** @deprecated Use an instance via `RendererContext.deviceCaps` instead. Removal target: v1.0.0. */
+  public static get gpuVendor(): string {
+    return this._sharedDefault.gpuVendor;
+  }
+
+  /** @deprecated Use an instance via `RendererContext.deviceCaps` instead. Removal target: v1.0.0. */
+  public static get networkInfo():
+    { effectiveType: string; downlink: number; saveData: boolean } | undefined {
+    return this._sharedDefault.networkInfo;
+  }
+
+  /** @deprecated Use an instance via `RendererContext.deviceCaps` instead. Removal target: v1.0.0. */
+  public static isMobile(): boolean {
+    return this._sharedDefault.isMobile();
+  }
+
+  /** @deprecated Use an instance via `RendererContext.deviceCaps` instead. Removal target: v1.0.0. */
+  public static get cores(): number {
+    return this._sharedDefault.cores;
+  }
+
+  /** @deprecated Use an instance via `RendererContext.deviceCaps` instead. Removal target: v1.0.0. */
+  public static get memoryGB(): number {
+    return this._sharedDefault.memoryGB;
+  }
+
+  /** @deprecated Use an instance via `RendererContext.deviceCaps` instead. Removal target: v1.0.0. */
+  public static get pixelRatio(): number {
+    return this._sharedDefault.pixelRatio;
+  }
+
+  /** @deprecated Use an instance via `RendererContext.deviceCaps` instead. Removal target: v1.0.0. */
+  public static get screenWidth(): number {
+    return this._sharedDefault.screenWidth;
+  }
+
+  /** @deprecated Use an instance via `RendererContext.deviceCaps` instead. Removal target: v1.0.0. */
+  public static get screenHeight(): number {
+    return this._sharedDefault.screenHeight;
+  }
+
+  /** @deprecated Use an instance via `RendererContext.deviceCaps` instead. Removal target: v1.0.0. */
+  public static getPerformanceTier(): PerformanceTier {
+    return this._sharedDefault.getPerformanceTier();
   }
 }

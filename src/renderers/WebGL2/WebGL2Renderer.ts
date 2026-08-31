@@ -1,4 +1,7 @@
 import { WebGL2UniformBuffer } from "./WebGL2UniformBuffer.js";
+import { WebGLProgramCache, WebGL2ProgramCacheEntry } from "./managers/WebGLProgramCache.js";
+import { WebGLTextureManager } from "./managers/WebGLTextureManager.js";
+import { WebGLBufferManager } from "./managers/WebGLBufferManager.js";
 import { WebGL2DepthFrameBuffer } from "./WebGL2DepthFrameBuffer.js";
 import { WebGL2FrameBuffer } from "./WebGL2FrameBuffer.js";
 import { WebGL2CubeFrameBuffer } from "./WebGL2CubeFrameBuffer.js";
@@ -16,7 +19,7 @@ import {
 import { AbstractLight } from "../../core/lights/index.js";
 import { MAX_SKINNED_BONES } from "../../core/animation/Skeleton.js";
 import { CubeTexture, Texture, RenderTarget, RenderTargetCube } from "../../core/textures/index.js";
-import { ShaderRegistry, RenderManifest } from "../../core/renderers/shaders/index.js";
+import { RenderManifest } from "../../core/renderers/shaders/index.js";
 import { Color } from "../../core/colors/index.js";
 import {
   DeviceCaps,
@@ -27,22 +30,15 @@ import {
   TextureArray,
 } from "../../core/index.js";
 import { DepthMaterial } from "../../core/materials/index.js";
-import {
-  EngineOptions,
-  GeometryDataInterface,
-  LightDataInterface,
-} from "../../interfaces/index.js";
+import { EngineOptions, LightDataInterface } from "../../interfaces/index.js";
 import {
   BlendingMode,
   CullMode,
   MaterialType,
   RendererType,
-  TextureFilter,
-  TextureWrap,
   Topology,
   PostProcessingEffectType,
 } from "../../enums/index.js";
-import { Mesh } from "../Mesh.js";
 import {
   MathPool,
   Vector3D,
@@ -58,18 +54,6 @@ import {
   DEFAULT_MAX_LIGHTS_PER_CLUSTER,
 } from "../../math/index.js";
 
-interface ProgramCache {
-  prog: WebGLProgram;
-  uniforms: Map<string, WebGLUniformLocation | undefined>;
-  attributes: Map<string, number>;
-  /** Texture unit assigned to each active sampler uniform in THIS program, discovered via introspection. */
-  samplerUnits: Map<string, number>;
-  /** GL sampler type (SAMPLER_2D/SAMPLER_CUBE/...) of each active sampler uniform in THIS program. */
-  samplerTypes: Map<string, number>;
-  /** Number of live Object3D instances currently referencing this compiled program. */
-  refCount: number;
-}
-
 /**
  * WebGL 2.0 implementation of the renderer.
  */
@@ -78,36 +62,18 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
   public override readonly type: RendererType = RendererType.WEB_GL2;
   declare protected gl: WebGL2RenderingContext;
 
-  private _programs: Map<string, ProgramCache> = new Map();
+  /** Compiled-program cache -- see `WebGLProgramCache`'s own doc comment. */
+  private _programCache!: WebGLProgramCache;
+  /** Uploaded-texture GPU state -- see `WebGLTextureManager`'s own doc comment. */
+  private _textures!: WebGLTextureManager;
+  /** Per-geometry GPU mesh cache -- see `WebGLBufferManager`'s own doc comment. */
+  private _geometry!: WebGLBufferManager;
 
-  private _cache: Map<GeometryDataInterface, Mesh> = new Map();
-  private _lastKnownGeometry: WeakMap<Object3D, GeometryDataInterface> = new WeakMap();
-  private _lastKnownProgramKey: WeakMap<Object3D, string> = new WeakMap();
-  private _texCubeCache: Map<CubeTexture, WebGLTexture> = new Map();
-  private _texRefCounts: Map<Texture, number> = new Map();
-  private _texCubeRefCounts: Map<CubeTexture, number> = new Map();
-  private _lastKnownTextures: WeakMap<Object3D, Record<string, Texture | CubeTexture | undefined>> =
-    new WeakMap();
   private _instanceBuffers: WeakMap<InstancedMesh, WebGLBuffer> = new WeakMap();
   private _instanceDataBuffers: WeakMap<InstancedMesh, WebGLBuffer> = new WeakMap();
   private _scratchTransparentMap: Map<string, Object3D[]> = new Map();
 
   private _scratchFloat4: Float32Array = new Float32Array(4);
-
-  /**
-   * Texture units 8-18 are permanently reserved for global (non-material) samplers: 8-13 the
-   * shadow system (4x spot shadow atlas + 1x directional/CSM atlas + 1x dummy fallback), 14 the
-   * raw-depth PCSS read, and 15-18 the clustered light culling grid/index textures (see
-   * docs/adr/0007-clustered-lighting-webgl2-webgpu-only.md) -- all bound via hardcoded
-   * `activeTexture` calls (`_bindDummyShadowMaps`/`_renderSubgroup`/`WebGLClusterCullPass`)
-   * rather than through `ProgramCache.samplerUnits`. The dynamic sampler-unit assignment in
-   * `_getProgram` skips this whole range for every other sampler so an unrelated material
-   * texture can never land on the same unit as one of these -- two ACTIVE samplers of different
-   * types sharing a unit is a GL_INVALID_OPERATION at draw time regardless of what's actually
-   * bound there.
-   */
-  private static readonly _RESERVED_GLOBAL_UNIT_START = 8;
-  private static readonly _RESERVED_GLOBAL_UNIT_END = 18;
 
   /** Fixed unit for reading the directional shadow map's raw (non-comparison) depth, used by
    * PCSS's blocker-search step. Shares texture unit 14 -- reserved above like every other
@@ -207,6 +173,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     const gl = canvas.getContext("webgl2", attributes);
     if (!gl) throw new Error("[WebGL2Renderer] WebGL2 context could not be initialized.");
     this.gl = gl as WebGL2RenderingContext;
+    this._geometry = new WebGLBufferManager(this.gl);
 
     if (config?.quality) {
       this._quality = { ...this._quality, ...config.quality };
@@ -235,6 +202,12 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
 
     this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, false);
     this.initDefaultTextures();
+    this._textures = new WebGLTextureManager(
+      this.gl,
+      this._texCache,
+      this.defaultTexture,
+      this.defaultCubeTexture,
+    );
     this._initIblFallbackTextures();
     this.gl.enable(this.gl.DEPTH_TEST);
 
@@ -245,6 +218,11 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     // vec4 alignment padding) for clustered light culling -- see
     // docs/adr/0007-clustered-lighting-webgl2-webgpu-only.md.
     this._globalUBO = new WebGL2UniformBuffer(this.gl, 2176, 0);
+    this._programCache = new WebGLProgramCache(
+      this.gl,
+      this._globalUBO,
+      this.context.shaderRegistry,
+    );
     this._allocateClusterTextures({ x: 1, y: 1, z: 1 }, 1);
 
     // Runs first: WebGLShadowPass's updateGlobalUBO() flushes the whole UBO (including the
@@ -388,368 +366,6 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     return false;
   }
 
-  private _programCacheKey(shaderId: string, isInstanced: boolean, flags: string[]): string {
-    const flagKey = flags.length > 0 ? "_" + flags.join("_") : "";
-    return isInstanced ? `${shaderId}_instanced${flagKey}` : `${shaderId}${flagKey}`;
-  }
-
-  private _getProgram(
-    shaderId: string,
-    isInstanced: boolean = false,
-    flags: string[] = [],
-  ): ProgramCache {
-    const key = this._programCacheKey(shaderId, isInstanced, flags);
-    let cache = this._programs.get(key);
-    if (!cache) {
-      const def = ShaderRegistry.instance.get(shaderId);
-      if (!def || !def.sources.glsl300) {
-        throw new Error(
-          `[WebGL2Renderer] Shader definition for ${shaderId} not found or missing GLSL 300 source.`,
-        );
-      }
-
-      let vs = ShaderRegistry.instance.assemble(def.sources.glsl300.vs, "glsl300");
-      let fs = ShaderRegistry.instance.assemble(def.sources.glsl300.fs, "glsl300");
-
-      let defines = "";
-      if (isInstanced) defines += "#define USE_INSTANCING 1\n";
-      for (const flag of flags) {
-        defines += `#define ${flag} 1\n`;
-      }
-
-      if (defines) {
-        if (vs.includes("#version 300 es")) {
-          vs = vs.replace("#version 300 es", `#version 300 es\n${defines}`);
-        } else {
-          vs = `#version 300 es\n${defines}${vs}`;
-        }
-        if (fs.includes("#version 300 es")) {
-          fs = fs.replace("#version 300 es", `#version 300 es\n${defines}`);
-        } else {
-          fs = `#version 300 es\n${defines}${fs}`;
-        }
-      }
-
-      vs = vs.trimStart();
-      fs = fs.trimStart();
-      const prog = this.createShaderProgram(vs, fs);
-
-      const uniforms = new Map<string, WebGLUniformLocation | undefined>();
-      const attributes = new Map<string, number>();
-      const samplerUnits = new Map<string, number>();
-      const samplerTypes = new Map<string, number>();
-
-      this._globalUBO.bindToProgram(prog, "GlobalUniforms");
-
-      const attribsToQuery = [
-        "a_position",
-        "a_normal",
-        "a_uv",
-        "a_tangent",
-        "a_joints",
-        "a_weights",
-      ];
-      if (isInstanced) {
-        attribsToQuery.push("a_instanceMatrix", "a_instanceData");
-      }
-      attribsToQuery.forEach((name) => {
-        attributes.set(name, this.gl.getAttribLocation(prog, name));
-      });
-
-      // Ask the linked program for its actually-active uniforms instead of guessing names up
-      // front: a hand-maintained list can silently omit one (that's how a whole class of this
-      // project's rendering bugs happened), while introspection can't drift out of sync with the
-      // shader source. Every sampler uniform also gets a texture unit assigned here, dynamically
-      // per-program, except the shadow-map samplers (bound to fixed units 8-13 by the dedicated,
-      // unrelated shadow code below) and skybox's own single-texture path.
-      const samplerTypeSet = new Set<number>([
-        this.gl.SAMPLER_2D,
-        this.gl.SAMPLER_CUBE,
-        this.gl.SAMPLER_2D_SHADOW,
-        this.gl.SAMPLER_2D_ARRAY,
-      ]);
-      const activeCount = this.gl.getProgramParameter(prog, this.gl.ACTIVE_UNIFORMS) as number;
-      let nextSamplerUnit = 0;
-      for (let i = 0; i < activeCount; i++) {
-        const info = this.gl.getActiveUniform(prog, i);
-        if (!info) continue;
-        const isArray = info.size > 1 && info.name.endsWith("[0]");
-        const names = isArray
-          ? Array.from({ length: info.size }, (_, j) => `${info.name.slice(0, -3)}[${j}]`)
-          : [info.name];
-
-        const isShadowSampler =
-          "u_dirShadowMap" === info.name ||
-          "u_dirShadowMapRaw" === info.name ||
-          info.name.startsWith("u_spotShadowMap[");
-        const isSampler = samplerTypeSet.has(info.type) && !isShadowSampler;
-
-        for (const name of names) {
-          uniforms.set(name, this.gl.getUniformLocation(prog, name) ?? undefined);
-          if (isSampler) {
-            if (
-              nextSamplerUnit >= WebGL2Renderer._RESERVED_GLOBAL_UNIT_START &&
-              nextSamplerUnit <= WebGL2Renderer._RESERVED_GLOBAL_UNIT_END
-            ) {
-              nextSamplerUnit = WebGL2Renderer._RESERVED_GLOBAL_UNIT_END + 1;
-            }
-            samplerUnits.set(name, nextSamplerUnit);
-            samplerTypes.set(name, info.type);
-            nextSamplerUnit++;
-          }
-        }
-      }
-
-      cache = { prog, uniforms, attributes, samplerUnits, samplerTypes, refCount: 0 };
-      this._programs.set(key, cache);
-    }
-    return cache;
-  }
-
-  /**
-   * Tracks that `obj` currently depends on the compiled program identified by `key`
-   * (same key format `_getProgram` computes internally). Called once per object per
-   * frame from the render loop, independent from `_getProgram`'s own batch-level
-   * lookup-or-create, since one program is typically shared by many objects at once
-   * (e.g. every shadow-caster shares the single DEPTH program).
-   */
-  private _acquireProgram(obj: Object3D, key: string): void {
-    const lastKey = this._lastKnownProgramKey.get(obj);
-    if (lastKey === key) return;
-    if (lastKey) this._releaseObjectProgram(obj);
-
-    const cache = this._programs.get(key);
-    if (cache) cache.refCount++;
-    this._lastKnownProgramKey.set(obj, key);
-  }
-
-  /** Releases the compiled program this object was referencing, if its refCount drops to zero. */
-  private _releaseObjectProgram(obj: Object3D): void {
-    const key = this._lastKnownProgramKey.get(obj);
-    if (!key) return;
-    this._lastKnownProgramKey.delete(obj);
-
-    const cache = this._programs.get(key);
-    if (!cache) return;
-    cache.refCount--;
-    if (cache.refCount <= 0) {
-      this.gl.deleteProgram(cache.prog);
-      this._programs.delete(key);
-    }
-  }
-
-  private _getWebGLTexture(tex: Texture): WebGLTexture {
-    const fastPath = this._getWebGLTextureFastPath(tex);
-    if (fastPath) return fastPath;
-    let glTex: WebGLTexture | undefined = this._texCache.get(tex);
-    if (!glTex) {
-      glTex = this.gl.createTexture()!;
-
-      if ("isTextureArray" in tex && (tex as TextureArray).isTextureArray) {
-        const texArray = tex as TextureArray;
-        this.gl.bindTexture(this.gl.TEXTURE_2D_ARRAY, glTex);
-        const width = texArray.image!.width;
-        const height = texArray.image!.height;
-        const depth = texArray.images.length;
-
-        this.gl.texImage3D(
-          this.gl.TEXTURE_2D_ARRAY,
-          0,
-          this.gl.RGBA,
-          width,
-          height,
-          depth,
-          0,
-          this.gl.RGBA,
-          this.gl.UNSIGNED_BYTE,
-          null,
-        );
-        for (let i = 0; i < depth; i++) {
-          this.gl.texSubImage3D(
-            this.gl.TEXTURE_2D_ARRAY,
-            0,
-            0,
-            0,
-            i,
-            width,
-            height,
-            1,
-            this.gl.RGBA,
-            this.gl.UNSIGNED_BYTE,
-            texArray.images[i] as TexImageSource,
-          );
-        }
-
-        const useMipmaps = this._quality.mipmapping && tex.generateMipmaps;
-        if (useMipmaps) this.gl.generateMipmap(this.gl.TEXTURE_2D_ARRAY);
-
-        this.gl.texParameteri(
-          this.gl.TEXTURE_2D_ARRAY,
-          this.gl.TEXTURE_MAG_FILTER,
-          TextureFilter.NEAREST === tex.magFilter ? this.gl.NEAREST : this.gl.LINEAR,
-        );
-
-        let minFilter: number = this.gl.LINEAR;
-        if (useMipmaps) {
-          minFilter =
-            TextureFilter.NEAREST === tex.minFilter
-              ? this.gl.NEAREST_MIPMAP_LINEAR
-              : this.gl.LINEAR_MIPMAP_LINEAR;
-        } else {
-          if (TextureFilter.NEAREST === tex.minFilter) minFilter = this.gl.NEAREST;
-        }
-        this.gl.texParameteri(this.gl.TEXTURE_2D_ARRAY, this.gl.TEXTURE_MIN_FILTER, minFilter);
-
-        const wrapS =
-          TextureWrap.REPEAT === tex.addressModeU
-            ? this.gl.REPEAT
-            : TextureWrap.MIRRORED_REPEAT === tex.addressModeU
-              ? this.gl.MIRRORED_REPEAT
-              : this.gl.CLAMP_TO_EDGE;
-        const wrapT =
-          TextureWrap.REPEAT === tex.addressModeV
-            ? this.gl.REPEAT
-            : TextureWrap.MIRRORED_REPEAT === tex.addressModeV
-              ? this.gl.MIRRORED_REPEAT
-              : this.gl.CLAMP_TO_EDGE;
-        this.gl.texParameteri(this.gl.TEXTURE_2D_ARRAY, this.gl.TEXTURE_WRAP_S, wrapS);
-        this.gl.texParameteri(this.gl.TEXTURE_2D_ARRAY, this.gl.TEXTURE_WRAP_T, wrapT);
-      } else {
-        this.gl.bindTexture(this.gl.TEXTURE_2D, glTex);
-        this.gl.texImage2D(
-          this.gl.TEXTURE_2D,
-          0,
-          this.gl.RGBA,
-          this.gl.RGBA,
-          this.gl.UNSIGNED_BYTE,
-          // Guaranteed defined here: `_getWebGLTextureFastPath()` already returned early for a
-          // texture with no `.image` (TS can't carry that narrowing across the method call).
-          tex.image!,
-        );
-
-        const useMipmaps = this._quality.mipmapping && tex.generateMipmaps;
-        if (useMipmaps) this.gl.generateMipmap(this.gl.TEXTURE_2D);
-
-        this.gl.texParameteri(
-          this.gl.TEXTURE_2D,
-          this.gl.TEXTURE_MAG_FILTER,
-          TextureFilter.NEAREST === tex.magFilter ? this.gl.NEAREST : this.gl.LINEAR,
-        );
-
-        let minFilter: number = this.gl.LINEAR;
-        if (useMipmaps) {
-          minFilter =
-            TextureFilter.NEAREST === tex.minFilter
-              ? this.gl.NEAREST_MIPMAP_LINEAR
-              : this.gl.LINEAR_MIPMAP_LINEAR;
-        } else {
-          if (TextureFilter.NEAREST === tex.minFilter) minFilter = this.gl.NEAREST;
-        }
-        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, minFilter);
-
-        const wrapS =
-          TextureWrap.REPEAT === tex.addressModeU
-            ? this.gl.REPEAT
-            : TextureWrap.MIRRORED_REPEAT === tex.addressModeU
-              ? this.gl.MIRRORED_REPEAT
-              : this.gl.CLAMP_TO_EDGE;
-        const wrapT =
-          TextureWrap.REPEAT === tex.addressModeV
-            ? this.gl.REPEAT
-            : TextureWrap.MIRRORED_REPEAT === tex.addressModeV
-              ? this.gl.MIRRORED_REPEAT
-              : this.gl.CLAMP_TO_EDGE;
-        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, wrapS);
-        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, wrapT);
-      }
-
-      this._texCache.set(tex, glTex);
-    } else if (
-      tex.needsUpdate &&
-      !("isTextureArray" in tex && (tex as TextureArray).isTextureArray)
-    ) {
-      this.gl.bindTexture(this.gl.TEXTURE_2D, glTex);
-      this.gl.texImage2D(
-        this.gl.TEXTURE_2D,
-        0,
-        this.gl.RGBA,
-        this.gl.RGBA,
-        this.gl.UNSIGNED_BYTE,
-        // Guaranteed defined here: `_getWebGLTextureFastPath()` already returned early for a
-        // texture with no `.image` (TS can't carry that narrowing across the method call).
-        tex.image!,
-      );
-      if (this._quality.mipmapping && tex.generateMipmaps) {
-        this.gl.generateMipmap(this.gl.TEXTURE_2D);
-      }
-      tex.needsUpdate = false;
-    }
-    return glTex;
-  }
-
-  private _getWebGLCubeTexture(tex: CubeTexture): WebGLTexture {
-    if (this._quality?.disableTextures) return this.defaultCubeTexture;
-    if (!tex.isLoaded) return this.defaultCubeTexture;
-    if (tex instanceof RenderTargetCube) {
-      const glTex = this._texCubeCache.get(tex);
-      return glTex || this.defaultCubeTexture;
-    }
-    if (tex.images.length !== 6 && tex.mipmaps.length === 0) return this.defaultCubeTexture;
-    let glTex: WebGLTexture | undefined = this._texCubeCache.get(tex);
-    if (!glTex) {
-      glTex = this.gl.createTexture()!;
-      this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, glTex);
-
-      const baseImages = tex.mipmaps.length > 0 ? tex.mipmaps[0]! : tex.images;
-      for (let i: number = 0; i < 6; i++) {
-        this.gl.texImage2D(
-          this.gl.TEXTURE_CUBE_MAP_POSITIVE_X + i,
-          0,
-          this.gl.RGBA,
-          this.gl.RGBA,
-          this.gl.UNSIGNED_BYTE,
-          baseImages[i] as ImageBitmap,
-        );
-      }
-
-      if (tex.mipmaps.length > 1) {
-        for (let m = 1; m < tex.mipmaps.length; m++) {
-          const mipImages = tex.mipmaps[m]!;
-          for (let i = 0; i < 6; i++) {
-            this.gl.texImage2D(
-              this.gl.TEXTURE_CUBE_MAP_POSITIVE_X + i,
-              m,
-              this.gl.RGBA,
-              this.gl.RGBA,
-              this.gl.UNSIGNED_BYTE,
-              mipImages[i] as ImageBitmap,
-            );
-          }
-        }
-        this.gl.texParameteri(
-          this.gl.TEXTURE_CUBE_MAP,
-          this.gl.TEXTURE_MIN_FILTER,
-          this.gl.LINEAR_MIPMAP_LINEAR,
-        );
-      } else {
-        this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
-      }
-      this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR);
-      this.gl.texParameteri(
-        this.gl.TEXTURE_CUBE_MAP,
-        this.gl.TEXTURE_WRAP_S,
-        this.gl.CLAMP_TO_EDGE,
-      );
-      this.gl.texParameteri(
-        this.gl.TEXTURE_CUBE_MAP,
-        this.gl.TEXTURE_WRAP_T,
-        this.gl.CLAMP_TO_EDGE,
-      );
-      this._texCubeCache.set(tex, glTex);
-    }
-    return glTex;
-  }
-
   /** @inheritdoc */
   public override setRenderTarget(
     target: RenderTarget | RenderTargetCube | null,
@@ -776,7 +392,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
             type: this.gl.UNSIGNED_BYTE,
           });
           this._renderTargetCubeFbos.set(this._activeRenderTarget, fbo);
-          this._texCubeCache.set(this._activeRenderTarget, fbo.texture);
+          this._textures.registerCubeTexture(this._activeRenderTarget, fbo.texture);
           this._activeRenderTarget.isLoaded = true;
         }
         fbo.bindFace(this._activeCubeFace);
@@ -793,7 +409,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
           });
 
           this._renderTargetFbos.set(this._activeRenderTarget, fbo);
-          this._texCache.set(this._activeRenderTarget, fbo.texture);
+          this._textures.registerTexture(this._activeRenderTarget, fbo.texture);
           this._activeRenderTarget.isLoaded = true;
         }
         fbo.bind();
@@ -824,7 +440,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       this._opaqueTexture = tex!;
 
       const dummyTex = { isLoaded: true } as unknown as Texture;
-      this._texCache.set(dummyTex, tex!);
+      this._textures.registerTexture(dummyTex, tex!);
     } else {
       this.gl.bindTexture(this.gl.TEXTURE_2D, this._opaqueTexture);
     }
@@ -1023,7 +639,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       this.gl.depthMask(true);
       this.gl.disable(this.gl.BLEND);
 
-      const cache = this._getProgram(MaterialType.DEPTH);
+      const cache = this._programCache.getProgram(MaterialType.DEPTH);
       this.gl.useProgram(cache.prog);
 
       this._renderShadowScene(cache, sortedGroups);
@@ -1060,7 +676,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       this.gl.depthMask(true);
       this.gl.disable(this.gl.BLEND);
 
-      const cache = this._getProgram(MaterialType.DEPTH);
+      const cache = this._programCache.getProgram(MaterialType.DEPTH);
       this.gl.useProgram(cache.prog);
       this._bindDummyShadowMaps(cache);
 
@@ -1087,7 +703,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
    * Helper to render the actual geometry for a shadow pass.
    */
   private _renderShadowScene(
-    cache: ProgramCache,
+    cache: WebGL2ProgramCacheEntry,
     sortedGroups: import("../../core/Scene.js").RenderBatch[],
   ): void {
     for (let i = 0; i < sortedGroups.length; i++) {
@@ -1108,7 +724,10 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         hasAlpha = true;
         this.gl.activeTexture(this.gl.TEXTURE0);
         const tex = manifest.textures["u_diffuseMap"] as Texture;
-        this.gl.bindTexture(this.gl.TEXTURE_2D, this._getWebGLTexture(tex));
+        this.gl.bindTexture(
+          this.gl.TEXTURE_2D,
+          this._textures.getWebGLTexture(tex, this._quality),
+        );
         const uDiffuseLoc = cache.uniforms.get("u_diffuseMap");
         if (uDiffuseLoc) this.gl.uniform1i(uDiffuseLoc, 0);
 
@@ -1124,14 +743,14 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       for (const o of objects) {
         if (!o.castShadow || !o.geometry) continue;
 
-        this._acquireProgram(o, this._programCacheKey(MaterialType.DEPTH, false, []));
-        this._acquireTextures(o, manifest.textures);
+        this._programCache.acquireProgram(o, this._programCache.programCacheKey(MaterialType.DEPTH, false, []));
+        this._textures.acquireTextures(o, manifest.textures);
 
         this._scratchModelMatrix.set(o.worldMatrix.data);
         const uModel = cache.uniforms.get("u_model");
         if (uModel) this.gl.uniformMatrix4fv(uModel, false, this._scratchModelMatrix);
 
-        const mesh = this._getOrCreateMesh(o, o.geometry);
+        const mesh = this._geometry.getOrCreateMesh(o, o.geometry);
 
         mesh.bind(
           cache.attributes.get("a_position")!,
@@ -1147,7 +766,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
   /**
    * Binds dummy depth textures to shadow samplers to satisfy WebGL2 sampler2DShadow validation rules.
    */
-  private _bindDummyShadowMaps(cache: ProgramCache): void {
+  private _bindDummyShadowMaps(cache: WebGL2ProgramCacheEntry): void {
     const dummyUnit = 13;
     const maxUnits = DeviceCaps.getLimit(DeviceLimit.WEBGL2_MAX_TEXTURE_IMAGE_UNITS);
     if (dummyUnit >= maxUnits) {
@@ -1281,8 +900,8 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       }
     }
 
-    const cache = this._getProgram(manifest.shaderId, isInst, shaderFlags);
-    const programKey = this._programCacheKey(manifest.shaderId, isInst, shaderFlags);
+    const cache = this._programCache.getProgram(manifest.shaderId, isInst, shaderFlags);
+    const programKey = this._programCache.programCacheKey(manifest.shaderId, isInst, shaderFlags);
     this.gl.useProgram(cache.prog);
 
     this._bindDummyShadowMaps(cache);
@@ -1461,7 +1080,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         this.gl.bindTexture(
           this.gl.TEXTURE_CUBE_MAP,
           scene.irradianceMap
-            ? this._getWebGLCubeTexture(scene.irradianceMap)
+            ? this._textures.getWebGLCubeTexture(scene.irradianceMap, this._quality)
             : this._blackCubeTexture,
         );
         this.gl.uniform1i(irrLoc, irrUnit);
@@ -1480,7 +1099,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         this.gl.bindTexture(
           this.gl.TEXTURE_CUBE_MAP,
           scene.prefilterMap
-            ? this._getWebGLCubeTexture(scene.prefilterMap)
+            ? this._textures.getWebGLCubeTexture(scene.prefilterMap, this._quality)
             : this._blackCubeTexture,
         );
         this.gl.uniform1i(prefLoc, prefUnit);
@@ -1498,7 +1117,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, null);
         this.gl.bindTexture(
           this.gl.TEXTURE_2D,
-          scene.brdfLUT ? this._getWebGLTexture(scene.brdfLUT) : this._defaultBrdfTexture,
+          scene.brdfLUT ? this._textures.getWebGLTexture(scene.brdfLUT, this._quality) : this._defaultBrdfTexture,
         );
         this.gl.uniform1i(brdfLoc, brdfUnit);
       }
@@ -1588,7 +1207,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       const skyTex = texs["u_skybox"] as CubeTexture;
       this.gl.bindTexture(
         this.gl.TEXTURE_CUBE_MAP,
-        skyTex ? this._getWebGLCubeTexture(skyTex) : this.defaultCubeTexture,
+        skyTex ? this._textures.getWebGLCubeTexture(skyTex, this._quality) : this.defaultCubeTexture,
       );
       const uSkybox = u.get("u_skybox");
       if (uSkybox) this.gl.uniform1i(uSkybox, 0);
@@ -1617,7 +1236,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
           const ct = texs[uniformName] as CubeTexture;
           this.gl.bindTexture(
             this.gl.TEXTURE_CUBE_MAP,
-            ct ? this._getWebGLCubeTexture(ct) : this.defaultCubeTexture,
+            ct ? this._textures.getWebGLCubeTexture(ct, this._quality) : this.defaultCubeTexture,
           );
         } else {
           this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, null);
@@ -1634,7 +1253,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
               this._opaqueDepthTexture ?? this.defaultTexture,
             );
           } else {
-            const glTex = t ? this._getWebGLTexture(t) : this.defaultTexture;
+            const glTex = t ? this._textures.getWebGLTexture(t, this._quality) : this.defaultTexture;
             if (t && "isTextureArray" in t && (t as TextureArray).isTextureArray) {
               this.gl.bindTexture(this.gl.TEXTURE_2D_ARRAY, glTex);
             } else {
@@ -1650,8 +1269,8 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     for (const o of objects) {
       if (!o.geometry) continue;
 
-      this._acquireProgram(o, programKey);
-      this._acquireTextures(o, manifest.textures);
+      this._programCache.acquireProgram(o, programKey);
+      this._textures.acquireTextures(o, manifest.textures);
 
       if (isInstanced) {
         const instMesh = o as InstancedMesh;
@@ -1671,7 +1290,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
           instMesh.instanceMatrixNeedsUpdate = false;
         }
 
-        const mesh = this._getOrCreateMesh(instMesh, instMesh.geometry!);
+        const mesh = this._geometry.getOrCreateMesh(instMesh, instMesh.geometry!);
 
         mesh.bind(
           cache.attributes.get("a_position")!,
@@ -1794,7 +1413,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         }
 
         // Bind and Draw Geometry
-        const mesh = this._getOrCreateMesh(o, o.geometry);
+        const mesh = this._geometry.getOrCreateMesh(o, o.geometry);
 
         mesh.bind(
           cache.attributes.get("a_position")!,
@@ -1998,137 +1617,21 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     }
   }
 
-  /**
-   * Looks up (or lazily creates) the GPU mesh for an object's geometry, and tracks
-   * per-object geometry references so `releaseObjectResources` can correctly free
-   * buffers once nothing references them anymore -- even when geometry is shared
-   * across many objects (see showcases/19) or swapped on a live object at runtime.
-   */
-  private _getOrCreateMesh(obj: Object3D, geo: GeometryDataInterface): Mesh {
-    let mesh = this._cache.get(geo);
-    if (!mesh) {
-      mesh = new Mesh(this.gl, geo);
-      this._cache.set(geo, mesh);
-    } else if (geo.needsUpdate) {
-      mesh.update(geo);
-      geo.needsUpdate = false;
-    }
-
-    const lastGeo = this._lastKnownGeometry.get(obj);
-    if (lastGeo !== geo) {
-      if (lastGeo) this._releaseGeometryFor(obj);
-      mesh.refCount++;
-      this._lastKnownGeometry.set(obj, geo);
-    }
-
-    return mesh;
-  }
-
-  private _releaseGeometryFor(obj: Object3D): void {
-    const geo = this._lastKnownGeometry.get(obj);
-    if (!geo) return;
-    this._lastKnownGeometry.delete(obj);
-
-    const mesh = this._cache.get(geo);
-    if (!mesh) return;
-    mesh.refCount--;
-    if (mesh.refCount <= 0) {
-      mesh.dispose();
-      this._cache.delete(geo);
-    }
-  }
-
-  /**
-   * Tracks that `obj` currently depends on the textures in `textures` (typically
-   * `material.getRenderManifest().textures`). Called once per object per frame from
-   * the render loop. `textures` is diffed key-by-key against `obj`'s last-known
-   * snapshot rather than by container reference, since a material's manifest object
-   * is created once and mutated in place on every `getRenderManifest()` call.
-   */
-  private _acquireTextures(
-    obj: Object3D,
-    textures: Record<string, Texture | CubeTexture | undefined>,
-  ): void {
-    const lastTextures = this._lastKnownTextures.get(obj);
-    const snapshot: Record<string, Texture | CubeTexture | undefined> = {};
-
-    for (const key of Object.keys(textures)) {
-      const current = textures[key];
-      const last = lastTextures?.[key];
-      if (current !== last) {
-        if (last) this._releaseTexture(last);
-        if (current) this._acquireTexture(current);
-      }
-      snapshot[key] = current;
-    }
-
-    this._lastKnownTextures.set(obj, snapshot);
-  }
-
-  private _acquireTexture(tex: Texture | CubeTexture): void {
-    if (tex instanceof CubeTexture) {
-      this._texCubeRefCounts.set(tex, (this._texCubeRefCounts.get(tex) ?? 0) + 1);
-    } else {
-      this._texRefCounts.set(tex, (this._texRefCounts.get(tex) ?? 0) + 1);
-    }
-  }
-
-  private _releaseTexture(tex: Texture | CubeTexture): void {
-    // Render targets are backed by the same Texture/CubeTexture base classes (so they
-    // can be assigned directly to a material, e.g. for portals/mirrors/reflection
-    // probes) but are re-rendered into and reused across frames independently of any
-    // one object's material reference -- their lifecycle belongs to whoever owns the
-    // render target, not to this per-object refcount. Only untrack our reference to
-    // it, never delete the underlying WebGLTexture here.
-    if (tex instanceof RenderTarget || tex instanceof RenderTargetCube) return;
-
-    if (tex instanceof CubeTexture) {
-      const count = (this._texCubeRefCounts.get(tex) ?? 1) - 1;
-      if (count <= 0) {
-        const glTex = this._texCubeCache.get(tex);
-        if (glTex) this.gl.deleteTexture(glTex);
-        this._texCubeCache.delete(tex);
-        this._texCubeRefCounts.delete(tex);
-      } else {
-        this._texCubeRefCounts.set(tex, count);
-      }
-    } else {
-      const count = (this._texRefCounts.get(tex) ?? 1) - 1;
-      if (count <= 0) {
-        const glTex = this._texCache.get(tex);
-        if (glTex) this.gl.deleteTexture(glTex);
-        this._texCache.delete(tex);
-        this._texRefCounts.delete(tex);
-      } else {
-        this._texRefCounts.set(tex, count);
-      }
-    }
-  }
-
-  private _releaseObjectTextures(obj: Object3D): void {
-    const textures = this._lastKnownTextures.get(obj);
-    if (!textures) return;
-    this._lastKnownTextures.delete(obj);
-    for (const tex of Object.values(textures)) {
-      if (tex) this._releaseTexture(tex);
-    }
-  }
-
   /** @inheritdoc */
   protected override releaseObjectResources(obj: Object3D): void {
-    this._releaseGeometryFor(obj);
-    this._releaseObjectProgram(obj);
-    this._releaseObjectTextures(obj);
+    this._geometry.releaseGeometryFor(obj);
+    this._programCache.releaseObjectProgram(obj);
+    this._textures.releaseObjectTextures(obj);
   }
 
   /** @inheritdoc */
   public override destroy(): void {
     const gl = this.gl;
     if (gl) {
-      for (const cache of this._programs.values()) gl.deleteProgram(cache.prog);
+      this._programCache?.dispose();
+      this._textures?.dispose();
+      this._geometry?.dispose();
       for (const tex of this._texCache.values()) gl.deleteTexture(tex);
-      for (const tex of this._texCubeCache.values()) gl.deleteTexture(tex);
-      for (const mesh of this._cache.values()) mesh.dispose();
       for (const fbo of this._renderTargetFbos.values()) fbo.destroy();
       for (const fbo of this._renderTargetCubeFbos.values()) fbo.destroy();
       for (const shadowFbo of this._shadowMaps.values()) shadowFbo.destroy();
@@ -2143,10 +1646,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       this._globalUBO?.destroy();
     }
 
-    this._programs.clear();
-    this._cache.clear();
     this._texCache.clear();
-    this._texCubeCache.clear();
     this._renderTargetFbos.clear();
     this._renderTargetCubeFbos.clear();
     this._shadowMaps.clear();

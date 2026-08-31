@@ -2,8 +2,13 @@ import { AbstractMaterial } from "./materials/index.js";
 import { BoundingVolume, GeometryDataInterface, Collidable } from "../interfaces/index.js";
 import { MathUtils, Matrix4, Vector3D, Quaternion, MathPool } from "../math/index.js";
 import { Behavior, attachBehavior, detachBehavior } from "./behaviors/Behavior.js";
+import { PickingBehavior } from "./behaviors/PickingBehavior.js";
 import { RigidBody } from "../physix/RigidBody.js";
 import { InspectorField } from "./Inspectable.js";
+
+/** Backs `occlusionCulled` -- kept off the instance itself so objects that are never touched by
+ * WebGPU HZB occlusion culling (i.e. every object on WebGL1/WebGL2) don't carry the field. */
+const occlusionCulledMap = new WeakMap<Object3D, boolean>();
 
 /**
  * Base class for all 3D objects in the scene.
@@ -76,7 +81,13 @@ export class Object3D implements Collidable {
    * whichever objects it has a fresh readback for; everything else keeps its last known value.
    * Always false on WebGL1/WebGL2 (never written there), making `Scene._collectVisible()`'s
    * check a permanent no-op on those backends. */
-  public occlusionCulled: boolean = false;
+  public get occlusionCulled(): boolean {
+    return occlusionCulledMap.get(this) ?? false;
+  }
+  public set occlusionCulled(value: boolean) {
+    occlusionCulledMap.set(this, value);
+  }
+
   public castShadow: boolean = false;
   public receiveShadow: boolean = false;
 
@@ -84,12 +95,41 @@ export class Object3D implements Collidable {
   public onPointerEnter?: () => void;
   public onPointerLeave?: () => void;
   public onPointerClick?: () => void;
-  public onPointerDown?: (
-    ray: import("../physix/index.js").Ray,
-    intersectionPoint: Vector3D,
-  ) => void;
-  public onPointerUp?: () => void;
-  public onPointerMove?: (ray: import("../physix/index.js").Ray) => void;
+
+  private _pickingBehavior?: PickingBehavior;
+
+  private _ensurePickingBehavior(): PickingBehavior {
+    if (!this._pickingBehavior) {
+      this._pickingBehavior = new PickingBehavior();
+      this.addBehavior(this._pickingBehavior);
+    }
+    return this._pickingBehavior;
+  }
+
+  public get onPointerDown():
+    ((ray: import("../physix/index.js").Ray, intersectionPoint: Vector3D) => void) | undefined {
+    return this._pickingBehavior?.onPointerDown;
+  }
+  public set onPointerDown(
+    handler:
+      ((ray: import("../physix/index.js").Ray, intersectionPoint: Vector3D) => void) | undefined,
+  ) {
+    this._ensurePickingBehavior().onPointerDown = handler;
+  }
+
+  public get onPointerUp(): (() => void) | undefined {
+    return this._pickingBehavior?.onPointerUp;
+  }
+  public set onPointerUp(handler: (() => void) | undefined) {
+    this._ensurePickingBehavior().onPointerUp = handler;
+  }
+
+  public get onPointerMove(): ((ray: import("../physix/index.js").Ray) => void) | undefined {
+    return this._pickingBehavior?.onPointerMove;
+  }
+  public set onPointerMove(handler: ((ray: import("../physix/index.js").Ray) => void) | undefined) {
+    this._ensurePickingBehavior().onPointerMove = handler;
+  }
 
   constructor(name?: string) {
     this.name = name || MathUtils.generateUUID();

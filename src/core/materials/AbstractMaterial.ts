@@ -1,6 +1,10 @@
 import { Color } from "../colors/index.js";
 import { MaterialType, CullMode } from "../../enums/index.js";
-import { RenderManifest, ShaderDefinition, ShaderRegistry } from "../renderers/shaders/index.js";
+import {
+  RenderManifest,
+  ShaderDefinition,
+  registerMaterialShaderProvider,
+} from "../renderers/shaders/index.js";
 import { ShaderProvider } from "../../interfaces/index.js";
 import { MathUtils } from "../../math/index.js";
 import { InspectorField } from "../Inspectable.js";
@@ -21,7 +25,7 @@ export abstract class AbstractMaterial implements ShaderProvider {
   /** The unique identifier of the material. */
   public uuid: string = MathUtils.generateUUID();
   /** The base color of the material. */
-  public color: Color = Color.WHITE;
+  public color: Color = new Color(1, 1, 1);
 
   /** The culling mode for this material. Defaults to BACK. */
   public cullMode: CullMode = CullMode.DEFAULT;
@@ -43,7 +47,7 @@ export abstract class AbstractMaterial implements ShaderProvider {
   protected constructor(public readonly type: MaterialType | string) {
     // Self-registration: The moment a material is instantiated,
     // the engine knows how to handle its shader.
-    ShaderRegistry.instance.registerProvider(this.type, this);
+    registerMaterialShaderProvider(this.type, this);
   }
 
   /**

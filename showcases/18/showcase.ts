@@ -35,7 +35,7 @@ class Showcase18 extends AbstractShowcase {
 
     // 2. Add some animated background cubes to visualize stuttering
     const cubeGeo = new Cube({ size: 1.0 }).getGeometryData();
-    const cubeMat = new StandardMaterial({ color: Color.DODGERBLUE });
+    const cubeMat = new StandardMaterial({ color: Color.fromName("dodgerblue")! });
 
     for (let i = 0; i < 20; i++) {
       const c = new Object3D(`VisualizerCube_${i}`);

@@ -63,9 +63,9 @@ export class DraggableBehavior extends Behavior {
 
   public override onDetach(): void {
     if (this.target && this.target instanceof Object3D) {
-      delete this.target.onPointerDown;
-      delete this.target.onPointerUp;
-      delete this.target.onPointerMove;
+      this.target.onPointerDown = undefined;
+      this.target.onPointerUp = undefined;
+      this.target.onPointerMove = undefined;
     }
     super.onDetach();
   }

@@ -3,7 +3,7 @@ import { WebGLMainPass } from "../passes/WebGLMainPass.js";
 import { WebGLPostProcessPass } from "../passes/WebGLPostProcessPass.js";
 import { PostProcessPassGL, BloomPassGL } from "../post/passes/index.js";
 import { CubeTexture, Texture, RenderTarget } from "../../core/textures/index.js";
-import { ShaderRegistry, StandardWebGPULayout } from "../../core/renderers/shaders/index.js";
+import { StandardWebGPULayout } from "../../core/renderers/shaders/index.js";
 import { DeviceCaps, DeviceLimit, Object3D, Scene } from "../../core/index.js";
 import {
   EngineOptions,
@@ -156,15 +156,15 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
   private _getProgram(shaderId: string): ProgramCache {
     let cache = this._programs.get(shaderId);
     if (!cache) {
-      const def = ShaderRegistry.instance.get(shaderId);
+      const def = this.context.shaderRegistry.get(shaderId);
       if (!def || !def.sources.glsl100) {
         throw new Error(
           `[WebGL1Renderer] Shader definition for ${shaderId} not found or missing GLSL 100 source.`,
         );
       }
 
-      const vs = ShaderRegistry.instance.assemble(def.sources.glsl100.vs, "glsl100");
-      const fs = ShaderRegistry.instance.assemble(def.sources.glsl100.fs, "glsl100");
+      const vs = this.context.shaderRegistry.assemble(def.sources.glsl100.vs, "glsl100");
+      const fs = this.context.shaderRegistry.assemble(def.sources.glsl100.fs, "glsl100");
       const prog = this.createShaderProgram(vs, fs);
 
       const uniforms = new Map<string, WebGLUniformLocation | undefined>();

@@ -66,12 +66,12 @@ export class Showcase5 extends AbstractShowcase {
     const gridObj: Object3D = new Object3D("FloorGrid");
     gridObj.geometry = new Grid({ size: gridSize, divisions: gridSize }).getGeometryData();
     const gridMat: WireframeMaterial = new WireframeMaterial();
-    gridMat.color = Color.DARKSLATEGRAY;
+    gridMat.color = Color.fromName("darkslategray")!;
     gridObj.material = gridMat;
     this.scene.add(gridObj);
 
     // 5. Setup Materials
-    const playerMat = new PhongMaterial({ color: Color.DODGERBLUE });
+    const playerMat = new PhongMaterial({ color: Color.fromName("dodgerblue")! });
     const enemyMat = new PhongMaterial({ color: Color.RED });
 
     // 6. Create Player

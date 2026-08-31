@@ -6,6 +6,8 @@ import {
   EngineOptions,
   QualityConfig,
   ToneMapping,
+  RendererContext,
+  createDefaultRendererContext,
 } from "../interfaces/index.js";
 import { RendererType } from "../enums/index.js";
 import { Object3D } from "../core/Object3D.js";
@@ -62,6 +64,13 @@ export abstract class AbstractRenderer implements Renderer {
     sLights: [],
     aLights: [],
   };
+
+  /** Per-instance bundle of DeviceCaps/ShaderRegistry/AssetManager -- see RendererContext. */
+  protected readonly context: RendererContext;
+
+  constructor(context: RendererContext = createDefaultRendererContext()) {
+    this.context = context;
+  }
 
   /** @inheritdoc */
   public abstract initialize(

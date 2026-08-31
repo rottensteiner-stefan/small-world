@@ -1,9 +1,9 @@
 import "../../src/index.js";
 import { describe, expect, it, vi } from "vitest";
-import { WebGPURenderer } from "../../src/renderers/WebGPU/WebGPURenderer.js";
+import { GPUFallbackResources } from "../../src/renderers/WebGPU/managers/GPUFallbackResources.js";
 
 // Node/vitest has no WebGPU global; @webgpu/types only provides ambient TS types,
-// not a runtime value. Stub the bit-flag constants this renderer actually reads.
+// not a runtime value. Stub the bit-flag constants this class actually reads.
 (globalThis as unknown as { GPUBufferUsage: Record<string, number> }).GPUBufferUsage ??= {
   MAP_READ: 0x0001,
   MAP_WRITE: 0x0002,
@@ -24,70 +24,54 @@ import { WebGPURenderer } from "../../src/renderers/WebGPU/WebGPURenderer.js";
   RENDER_ATTACHMENT: 0x10,
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type RendererInternals = any;
-
 function makeMockDevice(): GPUDevice {
   return {
     createBuffer: vi.fn(() => ({ destroy: vi.fn() })),
     createTexture: vi.fn(() => ({ createView: vi.fn(() => ({})) })),
     createSampler: vi.fn(() => ({})),
-    queue: { writeBuffer: vi.fn() },
+    queue: { writeBuffer: vi.fn(), writeTexture: vi.fn() },
   } as unknown as GPUDevice;
 }
 
-function makeRenderer(): RendererInternals {
-  const device = makeMockDevice();
-  const renderer = new WebGPURenderer() as RendererInternals;
-  renderer._device = device;
-  return renderer;
-}
+describe("GPUFallbackResources dummy vertex buffer growth defers destruction past the current frame", () => {
+  // The constructor already calls `ensureDummyBufferSize(1000)` once (see its own doc comment),
+  // so every test below starts from that already-allocated baseline, not a blank slate.
 
-describe("WebGPU dummy vertex buffer growth defers destruction past the current frame", () => {
-  it("the very first call (no existing buffers) destroys nothing and doesn't throw", () => {
-    const renderer = makeRenderer();
-    expect(() => renderer._ensureDummyBufferSize(10)).not.toThrow();
-    expect(renderer._dummyBuffersPendingDestroy).toEqual([]);
+  it("a call that doesn't need to grow queues nothing and doesn't throw", () => {
+    const fallback = new GPUFallbackResources(makeMockDevice());
+    expect(() => fallback.ensureDummyBufferSize(10)).not.toThrow();
   });
 
   it("growth queues the old buffers for deferred destroy instead of destroying immediately", () => {
-    const renderer = makeRenderer();
-    renderer._ensureDummyBufferSize(10);
-    const firstNormalBuffer = renderer._dummyNormalBuffer;
-    const firstUvBuffer = renderer._dummyUvBuffer;
-    const firstTangentBuffer = renderer._dummyTangentBuffer;
-    const firstJointsBuffer = renderer._dummyJointsBuffer;
-    const firstWeightsBuffer = renderer._dummyWeightsBuffer;
+    const fallback = new GPUFallbackResources(makeMockDevice());
+    const firstNormalBuffer = fallback.dummyNormalBuffer;
+    const firstUvBuffer = fallback.dummyUvBuffer;
+    const firstTangentBuffer = fallback.dummyTangentBuffer;
+    const firstJointsBuffer = fallback.dummyJointsBuffer;
+    const firstWeightsBuffer = fallback.dummyWeightsBuffer;
 
-    renderer._ensureDummyBufferSize(10000); // forces growth
+    fallback.ensureDummyBufferSize(10000); // forces growth
 
     expect(firstNormalBuffer.destroy).not.toHaveBeenCalled();
     expect(firstUvBuffer.destroy).not.toHaveBeenCalled();
     expect(firstTangentBuffer.destroy).not.toHaveBeenCalled();
     expect(firstJointsBuffer.destroy).not.toHaveBeenCalled();
     expect(firstWeightsBuffer.destroy).not.toHaveBeenCalled();
-    expect(renderer._dummyBuffersPendingDestroy).toEqual([
-      firstNormalBuffer,
-      firstUvBuffer,
-      firstTangentBuffer,
-      firstJointsBuffer,
-      firstWeightsBuffer,
-    ]);
-    // The renderer must keep using the NEW buffers going forward.
-    expect(renderer._dummyNormalBuffer).not.toBe(firstNormalBuffer);
+    // The instance must keep using the NEW buffers going forward.
+    expect(fallback.dummyNormalBuffer).not.toBe(firstNormalBuffer);
   });
 
   it("the pending buffers are only destroyed once drained (simulating render()'s post-submit cleanup)", () => {
-    const renderer = makeRenderer();
-    renderer._ensureDummyBufferSize(10);
-    const firstNormalBuffer = renderer._dummyNormalBuffer;
-    renderer._ensureDummyBufferSize(10000);
+    const fallback = new GPUFallbackResources(makeMockDevice());
+    const firstNormalBuffer = fallback.dummyNormalBuffer;
+    fallback.ensureDummyBufferSize(10000);
 
-    // Mirrors the drain step added to render() right after queue.submit().
-    for (const b of renderer._dummyBuffersPendingDestroy) b.destroy();
-    renderer._dummyBuffersPendingDestroy.length = 0;
-
+    expect(firstNormalBuffer.destroy).not.toHaveBeenCalled();
+    fallback.drainPendingDestroy();
     expect(firstNormalBuffer.destroy).toHaveBeenCalledTimes(1);
-    expect(renderer._dummyBuffersPendingDestroy).toEqual([]);
+
+    // Draining twice in a row must not re-destroy an already-empty queue.
+    expect(() => fallback.drainPendingDestroy()).not.toThrow();
+    expect(firstNormalBuffer.destroy).toHaveBeenCalledTimes(1);
   });
 });

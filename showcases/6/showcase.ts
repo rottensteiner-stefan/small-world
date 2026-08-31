@@ -80,7 +80,7 @@ export class Showcase6 extends AbstractShowcase {
     const gridObj: Object3D = new Object3D("FloorGrid");
     gridObj.geometry = new Grid({ size: 100, divisions: 50 }).getGeometryData();
     const gridMat: WireframeMaterial = new WireframeMaterial();
-    gridMat.color = Color.DARKSLATEGRAY;
+    gridMat.color = Color.fromName("darkslategray")!;
     gridObj.material = gridMat;
     gridObj.isStatic = true;
     this.scene.add(gridObj);

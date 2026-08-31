@@ -4,7 +4,7 @@ import { Input } from "./Input.js";
 import { InteractionManager } from "./InteractionManager.js";
 import { AudioSystem } from "../audio/AudioSystem.js";
 import { EventDispatcherImpl } from "./events/EventDispatcherImpl.js";
-import { DeviceCaps, DeviceFeature, DeviceLimit } from "./DeviceCaps.js";
+import { DeviceFeature, DeviceLimit } from "./DeviceCaps.js";
 import { FrustumCuller } from "./FrustumCuller.js";
 import {
   AbstractProjection,
@@ -12,7 +12,13 @@ import {
   OrthographicProjection,
   PerspectiveProjection,
 } from "../math/projections/index.js";
-import { EngineOptions, ProjectionOptions, Renderer } from "../interfaces/index.js";
+import {
+  EngineOptions,
+  ProjectionOptions,
+  Renderer,
+  RendererContext,
+  createDefaultRendererContext,
+} from "../interfaces/index.js";
 import { ProjectionType, RendererType, PostProcessingEffectType } from "../enums/index.js";
 import { RendererFactory } from "../renderers/index.js";
 import { ShaderBootstrap } from "./renderers/shaders/index.js";
@@ -53,6 +59,11 @@ export abstract class SmallWorld {
   public camera: Camera;
   /** The active renderer. */
   public renderer: Renderer;
+  private _context!: RendererContext;
+  /** Per-instance bundle of DeviceCaps/ShaderRegistry/AssetManager -- see RendererContext. */
+  public get context(): RendererContext {
+    return this._context;
+  }
   /** The built-in physics system. Stepped automatically each frame when `config.enablePhysics` is true. */
   public physics: PhysicsSystem;
   /** The interaction manager for gamification / picking. */
@@ -171,12 +182,14 @@ export abstract class SmallWorld {
     }
 
     if (!this._isInitialized) {
+      this._context = createDefaultRendererContext();
+
       const autoDowngrade = this.config.quality?.autoDowngrade ?? true;
       if (autoDowngrade) {
-        const tier = DeviceCaps.getPerformanceTier();
+        const tier = this._context.deviceCaps.getPerformanceTier();
         if (tier === "LOW") {
           console.warn(
-            `📉 Low Performance Tier detected (${DeviceCaps.isMobile() ? "Mobile" : "Desktop"}). Applying aggressive performance downgrades.`,
+            `📉 Low Performance Tier detected (${this._context.deviceCaps.isMobile() ? "Mobile" : "Desktop"}). Applying aggressive performance downgrades.`,
           );
           this.config.quality = {
             ...this.config.quality,
@@ -240,14 +253,15 @@ export abstract class SmallWorld {
         this.canvas.height = this.config.height;
       }
 
-      await ShaderBootstrap.init();
+      await ShaderBootstrap.init(this._context.shaderRegistry);
 
-      DeviceCaps.init();
+      this._context.deviceCaps.init();
 
       this.renderer = await RendererFactory.create(
         this.config.rendererType!,
         this.canvas,
         this.config,
+        this._context,
       );
 
       this.renderer.setSize(this.canvas.width, this.canvas.height);
@@ -271,36 +285,52 @@ export abstract class SmallWorld {
         };
         console.table({
           "Active Renderer": rendererLabels[this.renderer.type] ?? this.renderer.type,
-          "Device Type": DeviceCaps.isMobile() ? "Mobile" : "Desktop",
-          "Performance Tier": DeviceCaps.getPerformanceTier(),
-          "GPU Model": DeviceCaps.gpuModel,
-          "GPU Vendor": DeviceCaps.gpuVendor,
-          "CPU Cores": DeviceCaps.cores,
-          "Memory (GB)": DeviceCaps.memoryGB,
-          "Screen Resolution": `${DeviceCaps.screenWidth}x${DeviceCaps.screenHeight}`,
-          "Pixel Ratio": DeviceCaps.pixelRatio,
-          "API - WebGL1": DeviceCaps.hasFeature(DeviceFeature.WEBGL1) ? "Yes" : "No",
-          "API - WebGL2": DeviceCaps.hasFeature(DeviceFeature.WEBGL2) ? "Yes" : "No",
-          "API - WebGPU": DeviceCaps.hasFeature(DeviceFeature.WEBGPU) ? "Yes" : "No",
-          "Max Texture Size": DeviceCaps.getLimit(DeviceLimit.MAX_TEXTURE_SIZE),
-          "Max Texture Units": DeviceCaps.getLimit(DeviceLimit.MAX_TEXTURE_IMAGE_UNITS),
-          "Max Anisotropy": DeviceCaps.getLimit(DeviceLimit.MAX_ANISOTROPY),
-          "Max Uniform Buffer Size": DeviceCaps.getLimit(DeviceLimit.MAX_UNIFORM_BUFFER_SIZE),
-          "Max MSAA Samples": DeviceCaps.getLimit(DeviceLimit.MAX_MSAA_SAMPLES),
-          "Max Vertex Attributes": DeviceCaps.getLimit(DeviceLimit.MAX_VERTEX_ATTRIBUTES),
-          "Max Vertex Uniforms": DeviceCaps.getLimit(DeviceLimit.MAX_VERTEX_UNIFORM_VECTORS),
-          "Max Fragment Uniforms": DeviceCaps.getLimit(DeviceLimit.MAX_FRAGMENT_UNIFORM_VECTORS),
-          "Feature - Float Textures": DeviceCaps.hasFeature(DeviceFeature.FLOAT_TEXTURES)
+          "Device Type": this._context.deviceCaps.isMobile() ? "Mobile" : "Desktop",
+          "Performance Tier": this._context.deviceCaps.getPerformanceTier(),
+          "GPU Model": this._context.deviceCaps.gpuModel,
+          "GPU Vendor": this._context.deviceCaps.gpuVendor,
+          "CPU Cores": this._context.deviceCaps.cores,
+          "Memory (GB)": this._context.deviceCaps.memoryGB,
+          "Screen Resolution": `${this._context.deviceCaps.screenWidth}x${this._context.deviceCaps.screenHeight}`,
+          "Pixel Ratio": this._context.deviceCaps.pixelRatio,
+          "API - WebGL1": this._context.deviceCaps.hasFeature(DeviceFeature.WEBGL1) ? "Yes" : "No",
+          "API - WebGL2": this._context.deviceCaps.hasFeature(DeviceFeature.WEBGL2) ? "Yes" : "No",
+          "API - WebGPU": this._context.deviceCaps.hasFeature(DeviceFeature.WEBGPU) ? "Yes" : "No",
+          "Max Texture Size": this._context.deviceCaps.getLimit(DeviceLimit.MAX_TEXTURE_SIZE),
+          "Max Texture Units": this._context.deviceCaps.getLimit(
+            DeviceLimit.MAX_TEXTURE_IMAGE_UNITS,
+          ),
+          "Max Anisotropy": this._context.deviceCaps.getLimit(DeviceLimit.MAX_ANISOTROPY),
+          "Max Uniform Buffer Size": this._context.deviceCaps.getLimit(
+            DeviceLimit.MAX_UNIFORM_BUFFER_SIZE,
+          ),
+          "Max MSAA Samples": this._context.deviceCaps.getLimit(DeviceLimit.MAX_MSAA_SAMPLES),
+          "Max Vertex Attributes": this._context.deviceCaps.getLimit(
+            DeviceLimit.MAX_VERTEX_ATTRIBUTES,
+          ),
+          "Max Vertex Uniforms": this._context.deviceCaps.getLimit(
+            DeviceLimit.MAX_VERTEX_UNIFORM_VECTORS,
+          ),
+          "Max Fragment Uniforms": this._context.deviceCaps.getLimit(
+            DeviceLimit.MAX_FRAGMENT_UNIFORM_VECTORS,
+          ),
+          "Feature - Float Textures": this._context.deviceCaps.hasFeature(
+            DeviceFeature.FLOAT_TEXTURES,
+          )
             ? "Yes"
             : "No",
-          "Feature - Compressed Textures": DeviceCaps.hasFeature(DeviceFeature.COMPRESSED_TEXTURES)
+          "Feature - Compressed Textures": this._context.deviceCaps.hasFeature(
+            DeviceFeature.COMPRESSED_TEXTURES,
+          )
             ? "Yes"
             : "No",
-          "Feature - Offscreen Canvas": DeviceCaps.hasFeature(DeviceFeature.OFFSCREEN_CANVAS)
+          "Feature - Offscreen Canvas": this._context.deviceCaps.hasFeature(
+            DeviceFeature.OFFSCREEN_CANVAS,
+          )
             ? "Yes"
             : "No",
-          Network: DeviceCaps.networkInfo
-            ? `${DeviceCaps.networkInfo.effectiveType}, ${DeviceCaps.networkInfo.downlink}Mbps${DeviceCaps.networkInfo.saveData ? ", data saver" : ""}`
+          Network: this._context.deviceCaps.networkInfo
+            ? `${this._context.deviceCaps.networkInfo.effectiveType}, ${this._context.deviceCaps.networkInfo.downlink}Mbps${this._context.deviceCaps.networkInfo.saveData ? ", data saver" : ""}`
             : "N/A",
         });
       }

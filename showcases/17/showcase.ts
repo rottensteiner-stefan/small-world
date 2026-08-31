@@ -34,7 +34,7 @@ class Showcase17 extends AbstractShowcase {
     // 2. Create a ring of cubes to visualize framerate stutter
     const geometry = new Cube({ size: 1.0 }).getGeometryData();
     const material = new StandardMaterial({
-      color: Color.DODGERBLUE,
+      color: Color.fromName("dodgerblue")!,
       roughness: 0.2,
       metallic: 0.8,
     });
