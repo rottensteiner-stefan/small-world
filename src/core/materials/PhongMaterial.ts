@@ -45,6 +45,7 @@ export class PhongMaterial extends AbstractMaterial {
   public static override readonly inspector: Record<string, InspectorField> = {
     specularColor: { type: "color", label: "Specular" },
     shininess: { type: "number", label: "Shininess", min: 0, max: 256, step: 1 },
+    alphaTest: { type: "number", label: "Alpha Test", min: 0, max: 1, step: 0.01 },
   };
 
   /** The specular reflection color. */

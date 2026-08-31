@@ -70,6 +70,7 @@ export class StandardMaterial extends AbstractMaterial {
     ao: { type: "number", label: "AO", min: 0, max: 1, step: 0.01 },
     emissiveColor: { type: "color", label: "Emissive" },
     emissiveIntensity: { type: "number", label: "Emissive Intensity", min: 0, max: 10, step: 0.1 },
+    alphaTest: { type: "number", label: "Alpha Test", min: 0, max: 1, step: 0.01 },
   };
 
   /** Metallic factor (0 to 1). */
