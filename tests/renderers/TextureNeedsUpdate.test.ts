@@ -2,7 +2,8 @@ import "../../src/index.js";
 import { describe, expect, it, vi } from "vitest";
 import { WebGL1Renderer } from "../../src/renderers/WebGL1/WebGL1Renderer.js";
 import { WebGL2Renderer } from "../../src/renderers/WebGL2/WebGL2Renderer.js";
-import { WebGPURenderer } from "../../src/renderers/WebGPU/WebGPURenderer.js";
+import { GPUTextureResourceCache } from "../../src/renderers/WebGPU/managers/GPUTextureResourceCache.js";
+import { GPUFallbackResources } from "../../src/renderers/WebGPU/managers/GPUFallbackResources.js";
 import { Texture } from "../../src/core/textures/Texture.js";
 
 // Node/vitest has no WebGPU global; @webgpu/types only provides ambient TS types,
@@ -13,6 +14,23 @@ import { Texture } from "../../src/core/textures/Texture.js";
   TEXTURE_BINDING: 0x04,
   STORAGE_BINDING: 0x08,
   RENDER_ATTACHMENT: 0x10,
+};
+(globalThis as unknown as { GPUBufferUsage: Record<string, number> }).GPUBufferUsage ??= {
+  MAP_READ: 0x0001,
+  MAP_WRITE: 0x0002,
+  COPY_SRC: 0x0004,
+  COPY_DST: 0x0008,
+  INDEX: 0x0010,
+  VERTEX: 0x0020,
+  UNIFORM: 0x0040,
+  STORAGE: 0x0080,
+  INDIRECT: 0x0100,
+  QUERY_RESOLVE: 0x0200,
+};
+(globalThis as unknown as { GPUShaderStage: Record<string, number> }).GPUShaderStage ??= {
+  VERTEX: 0x1,
+  FRAGMENT: 0x2,
+  COMPUTE: 0x4,
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -47,7 +65,14 @@ function makeMockDevice(): GPUDevice {
   const gpuTexture = { createView: vi.fn().mockReturnValue(view) };
   return {
     createTexture: vi.fn().mockReturnValue(gpuTexture),
-    queue: { copyExternalImageToTexture: vi.fn() },
+    createBuffer: vi.fn(() => ({ destroy: vi.fn() })),
+    createSampler: vi.fn(() => ({})),
+    createBindGroupLayout: vi.fn(() => ({})),
+    createBindGroup: vi.fn(() => ({})),
+    createShaderModule: vi.fn(() => ({})),
+    createPipelineLayout: vi.fn(() => ({})),
+    createRenderPipeline: vi.fn(() => ({})),
+    queue: { copyExternalImageToTexture: vi.fn(), writeBuffer: vi.fn(), writeTexture: vi.fn() },
   } as unknown as GPUDevice;
 }
 
@@ -106,9 +131,9 @@ describe("Texture GPU re-upload on needsUpdate", () => {
   });
 
   it("WebGPURenderer re-uploads via copyExternalImageToTexture without recreating the GPU texture", () => {
-    const renderer = new WebGPURenderer();
     const device = makeMockDevice();
-    (renderer as RendererInternals)._device = device;
+    const fallback = new GPUFallbackResources(device);
+    const textures = new GPUTextureResourceCache(device, fallback);
 
     // Mip generation is covered separately in WebGPUMipmapGeneration.test.ts -- this test is
     // only about the re-upload-without-recreation path, so mips are opted out here.
@@ -116,12 +141,15 @@ describe("Texture GPU re-upload on needsUpdate", () => {
       generateMipmaps: false,
     });
 
-    const firstView = (renderer as RendererInternals)._getTextureView(tex);
+    vi.mocked(device.createTexture).mockClear();
+    vi.mocked(device.queue.copyExternalImageToTexture).mockClear();
+
+    const firstView = textures.getTextureView(tex, undefined);
     expect(device.createTexture).toHaveBeenCalledTimes(1);
     expect(device.queue.copyExternalImageToTexture).toHaveBeenCalledTimes(1);
 
     tex.needsUpdate = true;
-    const secondView = (renderer as RendererInternals)._getTextureView(tex);
+    const secondView = textures.getTextureView(tex, undefined);
 
     expect(secondView).toBe(firstView);
     expect(device.createTexture).toHaveBeenCalledTimes(1);

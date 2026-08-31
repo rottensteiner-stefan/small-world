@@ -4,11 +4,9 @@ import {
   RenderManifest,
   ShaderRegistry,
   DeviceCaps,
-  DeviceLimit,
   InstancedMesh,
   Object3D,
   Scene,
-  TextureArray,
   Texture,
   MAX_CLUSTERED_LIGHTS_PER_TYPE,
 } from "../../core/index.js";
@@ -33,19 +31,16 @@ import clusterCullWGSL from "../../core/renderers/shaders/source/web_gpu/compute
 import hzbCopyDepthWGSL from "../../core/renderers/shaders/source/web_gpu/compute/hzb_copy_depth.wgsl?raw";
 import hzbDownsampleMaxWGSL from "../../core/renderers/shaders/source/web_gpu/compute/hzb_downsample_max.wgsl?raw";
 import hzbVisibilityTestWGSL from "../../core/renderers/shaders/source/web_gpu/compute/hzb_visibility_test.wgsl?raw";
-import mipDownsampleWGSL from "../../core/materials/shaders/MipDownsample.frag.wgsl?raw";
-import fullscreenVertWGSL from "../../core/materials/shaders/PostProcess.vert.wgsl?raw";
-import {
-  BlendingMode,
-  CullMode,
-  RendererType,
-  TextureFilter,
-  TextureWrap,
-  Topology,
-  PostProcessingEffectType,
-} from "../../enums/index.js";
+import { RendererType, Topology, PostProcessingEffectType } from "../../enums/index.js";
 import { AbstractRenderer } from "../AbstractRenderer.js";
 import { RenderPass } from "../RenderPass.js";
+import { GPUFallbackResources } from "./managers/GPUFallbackResources.js";
+import { GPUTextureResourceCache } from "./managers/GPUTextureResourceCache.js";
+import {
+  GPUPipelineCache,
+  getOptionalMaterialTextureBindings,
+  getOptionalMaterialTextureNames,
+} from "./managers/GPUPipelineCache.js";
 import {
   MainRenderPass,
   PostProcessPass,
@@ -75,153 +70,6 @@ export interface WebGPUGeoCache {
   /** Number of live Object3D instances currently referencing this geometry. */
   refCount: number;
 }
-
-export interface WebGPUPipelineCache {
-  pipeline: GPURenderPipeline;
-  layout: GPUPipelineLayout;
-  bgLayouts: GPUBindGroupLayout[];
-  /** Number of live Object3D instances currently referencing this pipeline. */
-  refCount: number;
-}
-
-/**
- * GPU binding-slot metadata for every material texture that ISN'T always bound (see
- * `_getMaterialBGL`'s fixed set: sampler/normalMap/envMap/emissiveMap). Mirrors `structs.wgsl`'s
- * `@group(1)` binding numbers 1:1 -- this is stable GPU-type metadata (what shape is this
- * texture?), not a "which material uses this?" list. That answer comes from each material's own
- * `getShaderDefinition().layout.textures`, which is what `_getMaterialBGL`/`_getMaterialBindGroup`
- * actually consult to decide which of these entries a given material's bind group needs.
- *
- * Built lazily (not a module-scope literal): it references the `GPUShaderStage` global, which
- * only exists where the WebGPU API is present -- eagerly evaluating it at import time would break
- * every environment without that global (e.g. Vitest), even for tests unrelated to WebGPU, since
- * they transitively import this module via `RendererFactory`.
- */
-let _optionalMaterialTextureBindings:
-  Record<string, { binding: number; layoutEntry: GPUBindGroupLayoutEntry }> | undefined;
-
-function getOptionalMaterialTextureBindings(): Record<
-  string,
-  { binding: number; layoutEntry: GPUBindGroupLayoutEntry }
-> {
-  if (!_optionalMaterialTextureBindings) {
-    _optionalMaterialTextureBindings = {
-      u_diffuseMap: {
-        binding: 2,
-        layoutEntry: {
-          binding: 2,
-          visibility: GPUShaderStage.FRAGMENT,
-          texture: { sampleType: "float" },
-        },
-      },
-      u_specularMap: {
-        binding: 4,
-        layoutEntry: {
-          binding: 4,
-          visibility: GPUShaderStage.FRAGMENT,
-          texture: { sampleType: "float" },
-        },
-      },
-      u_sandMap: {
-        binding: 5,
-        layoutEntry: {
-          binding: 5,
-          visibility: GPUShaderStage.FRAGMENT,
-          texture: { sampleType: "float" },
-        },
-      },
-      u_grassMap: {
-        binding: 6,
-        layoutEntry: {
-          binding: 6,
-          visibility: GPUShaderStage.FRAGMENT,
-          texture: { sampleType: "float" },
-        },
-      },
-      u_rockMap: {
-        binding: 7,
-        layoutEntry: {
-          binding: 7,
-          visibility: GPUShaderStage.FRAGMENT,
-          texture: { sampleType: "float" },
-        },
-      },
-      u_snowMap: {
-        binding: 8,
-        layoutEntry: {
-          binding: 8,
-          visibility: GPUShaderStage.FRAGMENT,
-          texture: { sampleType: "float" },
-        },
-      },
-      u_metallicMap: {
-        binding: 9,
-        layoutEntry: {
-          binding: 9,
-          visibility: GPUShaderStage.FRAGMENT,
-          texture: { sampleType: "float" },
-        },
-      },
-      u_roughnessMap: {
-        binding: 10,
-        layoutEntry: {
-          binding: 10,
-          visibility: GPUShaderStage.FRAGMENT,
-          texture: { sampleType: "float" },
-        },
-      },
-      u_alphaMap: {
-        binding: 13,
-        layoutEntry: {
-          binding: 13,
-          visibility: GPUShaderStage.FRAGMENT,
-          texture: { viewDimension: "2d", sampleType: "float" },
-        },
-      },
-      u_opaqueMap: {
-        binding: 14,
-        layoutEntry: {
-          binding: 14,
-          visibility: GPUShaderStage.FRAGMENT,
-          texture: { viewDimension: "2d", sampleType: "float" },
-        },
-      },
-      u_reflectionMap: {
-        binding: 15,
-        layoutEntry: {
-          binding: 15,
-          visibility: GPUShaderStage.FRAGMENT,
-          texture: { viewDimension: "2d", sampleType: "float" },
-        },
-      },
-      u_opaqueDepthMap: {
-        binding: 16,
-        layoutEntry: {
-          binding: 16,
-          visibility: GPUShaderStage.FRAGMENT,
-          texture: { viewDimension: "2d", sampleType: "depth" },
-        },
-      },
-      u_aoMap: {
-        binding: 17,
-        layoutEntry: {
-          binding: 17,
-          visibility: GPUShaderStage.FRAGMENT,
-          texture: { viewDimension: "2d", sampleType: "float" },
-        },
-      },
-    };
-  }
-  return _optionalMaterialTextureBindings;
-}
-
-/**
- * Number of sampled-texture bindings in `_globalBGL` (irradianceMap, prefilterMap, brdfLUT,
- * dirShadowMap, spotShadowMap -- bindings 4/5/6/8/9; binding 7 and 10 are samplers, not counted
- * against the per-stage sampled-texture budget). Every material bind group's own texture count
- * is added on top of this fixed cost when checking against the device's real per-stage limit.
- */
-const GLOBAL_BIND_GROUP_TEXTURE_COUNT = 5;
 
 /**
  * Dynamic-offset slot layout for the per-draw view-projection uniform (group 3, `view.vp` in
@@ -278,9 +126,6 @@ export class WebGPURenderer extends AbstractRenderer {
     return this._format;
   }
 
-  protected _pipelines: Map<string, WebGPUPipelineCache> = new Map();
-  protected _shaderModules: Map<string, GPUShaderModule> = new Map();
-
   /** Shared ring buffer holding every object's `ObjectUniforms` slot for the current frame,
    * bound once via `hasDynamicOffset` instead of one `GPUBuffer`+`GPUBindGroup` per object. */
   protected _objectRingBuffer!: GPUBuffer;
@@ -311,85 +156,48 @@ export class WebGPURenderer extends AbstractRenderer {
       resources: unknown[];
     }
   >();
-  protected _textureViewCache = new Map<
-    Texture,
-    { texture: GPUTexture; view: GPUTextureView; mipLevelCount: number }
-  >();
-  /** GPU-side mip-chain generator for runtime 2D textures (WebGPU has no `generateMipmap()`
-   * equivalent to WebGL2's) -- one bilinear blit per level, see `_generateMipmaps()`. */
-  private _mipGenPipeline!: GPURenderPipeline;
-  private _mipGenBGL!: GPUBindGroupLayout;
-  private _mipGenSampler!: GPUSampler;
-  private _texRefCounts: Map<Texture, number> = new Map();
-  private _whiteTexView!: GPUTextureView;
+  /** Fallback/placeholder GPU resources (default & dummy textures/buffers) -- see
+   * `GPUFallbackResources`'s own doc comment. */
+  private _fallback!: GPUFallbackResources;
+  /** Uploaded-texture GPU state (view caches, sampler cache, mip generation) -- see
+   * `GPUTextureResourceCache`'s own doc comment. */
+  private _textures!: GPUTextureResourceCache;
+  /** Render pipeline / shader module / material bind-group-layout caches -- see
+   * `GPUPipelineCache`'s own doc comment. */
+  private _pipelineCache!: GPUPipelineCache;
   public get whiteTextureView(): GPUTextureView {
-    return this._whiteTexView;
+    return this._fallback.whiteTextureView;
   }
-  private _dummyDepthTexView!: GPUTextureView;
-  protected _flatNormalTexView!: GPUTextureView;
-  protected _defaultCubeTexView!: GPUTextureView;
-  protected _blackCubeTexView!: GPUTextureView;
-  protected _defaultBrdfTexView!: GPUTextureView;
-  protected _dummyNormalBuffer!: GPUBuffer;
-  protected _dummyUvBuffer!: GPUBuffer;
-  protected _dummyTangentBuffer!: GPUBuffer;
-
-  private _defaultDirShadowTexView!: GPUTextureView;
-  private _dummyDirShadowTexView!: GPUTextureView;
   /** Read by the fragment shader's global bind group; reassigned once by
    * `CascadedShadowPassGPU` when a real cascaded shadow map first exists. */
   public get defaultDirShadowTextureView(): GPUTextureView {
-    return this._defaultDirShadowTexView;
+    return this._fallback.defaultDirShadowTextureView;
   }
   public set defaultDirShadowTextureView(view: GPUTextureView) {
-    this._defaultDirShadowTexView = view;
+    this._fallback.defaultDirShadowTextureView = view;
   }
   public get dummyDirShadowTextureView(): GPUTextureView {
-    return this._dummyDirShadowTexView;
+    return this._fallback.dummyDirShadowTextureView;
   }
-
-  private _defaultSpotShadowTexView!: GPUTextureView;
-  private _dummySpotShadowTexView!: GPUTextureView;
   /** Read by the fragment shader's global bind group; reassigned once by
    * `SpotShadowPassGPU` when a real spot shadow map first exists. */
   public get defaultSpotShadowTextureView(): GPUTextureView {
-    return this._defaultSpotShadowTexView;
+    return this._fallback.defaultSpotShadowTextureView;
   }
   public set defaultSpotShadowTextureView(view: GPUTextureView) {
-    this._defaultSpotShadowTexView = view;
+    this._fallback.defaultSpotShadowTextureView = view;
   }
   public get dummySpotShadowTextureView(): GPUTextureView {
-    return this._dummySpotShadowTexView;
+    return this._fallback.dummySpotShadowTextureView;
   }
-  protected _shadowSampler!: GPUSampler;
   protected _geoCache = new Map<GeometryDataInterface, WebGPUGeoCache>();
   private _lastKnownGeometry = new WeakMap<Object3D, GeometryDataInterface>();
-  private _lastKnownPipelineKey = new WeakMap<Object3D, string>();
   protected _gpuInstanceBuffers: WeakMap<InstancedMesh, GPUBuffer> = new WeakMap();
   protected _gpuInstanceDataBuffers: WeakMap<InstancedMesh, GPUBuffer> = new WeakMap();
-  protected _materialBGLCache = new Map<string, GPUBindGroupLayout>();
-  /** `shaderId`s already warned about in `_getMaterialBGL`'s sampled-texture budget guard. */
-  private _warnedMaterialTextureBudget = new Set<string>();
   protected _frameCount = 0;
   protected _scratchModelMatrix = new Float32Array(16);
   protected _scratchColorArray = new Float32Array(3);
   protected _scratchUniformValues: Record<string, unknown> = {};
-
-  protected _samplerCache: Map<string, GPUSampler> = new Map();
-
-  protected _dummyBufferSize: number = 0;
-  /** Buffers replaced by `_ensureDummyBufferSize`'s growth, held here instead of destroyed
-   * immediately -- it's called mid-frame from `_renderSubgroup`, so an earlier object in the
-   * same not-yet-submitted command encoder may already have recorded a `setVertexBuffer` call
-   * referencing the old buffer. Drained (destroyed) in `render()` right after `queue.submit()`,
-   * same pattern as `_objectRingPendingDestroy`. */
-  private _dummyBuffersPendingDestroy: GPUBuffer[] = [];
-
-  protected _cubeTextureViewCache: Map<CubeTexture, { texture: GPUTexture; view: GPUTextureView }> =
-    new Map();
-  private _texCubeRefCounts: Map<CubeTexture, number> = new Map();
-  private _lastKnownTextures: WeakMap<Object3D, Record<string, Texture | CubeTexture | undefined>> =
-    new WeakMap();
 
   // Reused across every _renderBatch() call (cleared via .length = 0) instead of allocating two
   // fresh arrays per batch -- same pattern as CascadedShadowPassGPU's _scratchInstanced/_scratchStandard.
@@ -564,8 +372,6 @@ export class WebGPURenderer extends AbstractRenderer {
   private _boneMatricesBuffer!: GPUBuffer;
   private _gpuBoneMatricesOffset: number = 0;
   private _boneSlotMap: Map<Skeleton, number> = new Map();
-  private _dummyJointsBuffer!: GPUBuffer;
-  private _dummyWeightsBuffer!: GPUBuffer;
 
   /** @inheritdoc */
   public override setRenderTarget(
@@ -632,6 +438,13 @@ export class WebGPURenderer extends AbstractRenderer {
     if (this._adapter.limits.maxUniformBufferBindingSize) {
       requiredLimits["maxUniformBufferBindingSize"] =
         this._adapter.limits.maxUniformBufferBindingSize;
+    }
+    // Without this, `maxBufferSize` silently defaults to the spec minimum of 256MB even when
+    // `maxStorageBufferBindingSize` was requested (and granted) much higher above -- so a large
+    // enough clustered-lighting index buffer (see `_allocateClusterBuffers()`, sized from canvas
+    // width/height) can pass that guard yet still exceed this separate, unrequested ceiling.
+    if (this._adapter.limits.maxBufferSize) {
+      requiredLimits["maxBufferSize"] = this._adapter.limits.maxBufferSize;
     }
 
     this._device = await this._adapter.requestDevice({
@@ -720,163 +533,13 @@ export class WebGPURenderer extends AbstractRenderer {
   }
 
   private _initDefaultResources(): void {
-    const create1x1 = (col: number[]): GPUTextureView => {
-      const t = this._device!.createTexture({
-        size: [1, 1],
-        format: "rgba8unorm",
-        usage:
-          GPUTextureUsage.TEXTURE_BINDING |
-          GPUTextureUsage.COPY_DST |
-          GPUTextureUsage.RENDER_ATTACHMENT,
-      });
-      this._device!.queue.writeTexture(
-        { texture: t },
-        new Uint8Array(col),
-        { bytesPerRow: 4 },
-        [1, 1],
-      );
-      return t.createView();
-    };
-    this._whiteTexView = create1x1([255, 255, 255, 255]);
-    this._defaultBrdfTexView = create1x1([255, 0, 0, 255]); // scale=1, bias=0
-    this._flatNormalTexView = create1x1([128, 128, 255, 255]);
-
-    const dummyDepth = this._device!.createTexture({
-      size: [1, 1],
-      format: "depth32float",
-      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT,
-    });
-    this._dummyDepthTexView = dummyDepth.createView();
-
-    const createCube = (col: number[]): GPUTextureView => {
-      const cube = this._device!.createTexture({
-        size: [1, 1, 6],
-        format: "rgba8unorm",
-        usage:
-          GPUTextureUsage.TEXTURE_BINDING |
-          GPUTextureUsage.COPY_DST |
-          GPUTextureUsage.RENDER_ATTACHMENT,
-      });
-      for (let i = 0; i < 6; i++) {
-        this._device!.queue.writeTexture(
-          { texture: cube, origin: [0, 0, i] },
-          new Uint8Array(col),
-          { bytesPerRow: 4 },
-          [1, 1],
-        );
-      }
-      return cube.createView({ dimension: "cube" });
-    };
-
-    this._defaultCubeTexView = createCube([50, 50, 100, 255]);
-    this._blackCubeTexView = createCube([0, 0, 0, 255]);
+    this._fallback = new GPUFallbackResources(this._device!);
+    this._textures = new GPUTextureResourceCache(this._device!, this._fallback);
 
     this._boneMatricesBuffer = this._device!.createBuffer({
       size: 2048 * 64, // 2048 mat4x4f = 131072 bytes
       usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
     });
-
-    this._ensureDummyBufferSize(1000);
-  }
-
-  protected _getSampler(tex: Texture | undefined): GPUSampler {
-    const mag =
-      tex?.magFilter === TextureFilter.NEAREST ? TextureFilter.NEAREST : TextureFilter.LINEAR;
-    const min =
-      tex?.minFilter === TextureFilter.NEAREST ? TextureFilter.NEAREST : TextureFilter.LINEAR;
-    const mapWrap = (w: TextureWrap | undefined): GPUAddressMode => {
-      if (w === TextureWrap.REPEAT) return TextureWrap.REPEAT;
-      if (w === TextureWrap.MIRRORED_REPEAT) return TextureWrap.MIRRORED_REPEAT;
-      return TextureWrap.CLAMP_TO_EDGE;
-    };
-    const u = mapWrap(tex?.addressModeU);
-    const v = mapWrap(tex?.addressModeV);
-    const key = mag + "_" + min + "_" + u + "_" + v;
-    let s = this._samplerCache.get(key);
-    if (!s) {
-      s = this._device!.createSampler({
-        magFilter: mag,
-        minFilter: min,
-        addressModeU: u,
-        addressModeV: v,
-        mipmapFilter: TextureFilter.LINEAR,
-      });
-      this._samplerCache.set(key, s);
-    }
-    return s;
-  }
-
-  protected _ensureDummyBufferSize(vertexCount: number): void {
-    if (this._dummyBufferSize >= vertexCount * 4 && this._dummyNormalBuffer) return;
-    const newSize = Math.max(this._dummyBufferSize * 2, vertexCount * 4, 3000);
-    if (this._dummyNormalBuffer) this._dummyBuffersPendingDestroy.push(this._dummyNormalBuffer);
-    if (this._dummyUvBuffer) this._dummyBuffersPendingDestroy.push(this._dummyUvBuffer);
-    if (this._dummyTangentBuffer) this._dummyBuffersPendingDestroy.push(this._dummyTangentBuffer);
-    if (this._dummyJointsBuffer) this._dummyBuffersPendingDestroy.push(this._dummyJointsBuffer);
-    if (this._dummyWeightsBuffer) this._dummyBuffersPendingDestroy.push(this._dummyWeightsBuffer);
-    const normalData = new Float32Array(newSize).fill(0);
-    for (let i = 0; i < newSize; i += 3) normalData[i + 1] = 1.0;
-
-    // Default dummy shadow textures (2D Arrays, Depth24Plus)
-    const dummyDirShadow = this._device!.createTexture({
-      size: [1, 1, 4],
-      format: "depth32float",
-      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT,
-    });
-    this._dummyDirShadowTexView = dummyDirShadow.createView({ dimension: "2d-array" });
-    this._defaultDirShadowTexView = this._dummyDirShadowTexView;
-
-    const dummySpotShadow = this._device!.createTexture({
-      size: [1, 1, 16],
-      format: "depth32float",
-      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT,
-    });
-    this._dummySpotShadowTexView = dummySpotShadow.createView({ dimension: "2d-array" });
-    this._defaultSpotShadowTexView = this._dummySpotShadowTexView;
-
-    this._shadowSampler = this._device!.createSampler({
-      magFilter: TextureFilter.LINEAR,
-      minFilter: TextureFilter.LINEAR,
-      compare: "less",
-      addressModeU: TextureWrap.CLAMP_TO_EDGE,
-      addressModeV: TextureWrap.CLAMP_TO_EDGE,
-    });
-
-    this._dummyNormalBuffer = this._device!.createBuffer({
-      size: normalData.byteLength,
-      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
-    });
-    this._device!.queue.writeBuffer(this._dummyNormalBuffer, 0, normalData);
-    const uvData = new Float32Array(newSize).fill(0);
-    this._dummyUvBuffer = this._device!.createBuffer({
-      size: uvData.byteLength,
-      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
-    });
-    this._device!.queue.writeBuffer(this._dummyUvBuffer, 0, uvData);
-    const tangentData = new Float32Array(newSize).fill(0);
-    for (let i = 0; i < newSize; i += 3) tangentData[i] = 1.0;
-    this._dummyTangentBuffer = this._device!.createBuffer({
-      size: tangentData.byteLength,
-      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
-    });
-    this._device!.queue.writeBuffer(this._dummyTangentBuffer, 0, tangentData);
-
-    const jointsData = new Float32Array(newSize).fill(0);
-    this._dummyJointsBuffer = this._device!.createBuffer({
-      size: jointsData.byteLength,
-      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
-    });
-    this._device!.queue.writeBuffer(this._dummyJointsBuffer, 0, jointsData);
-
-    const weightsData = new Float32Array(newSize).fill(0);
-    for (let i = 0; i < newSize; i += 4) weightsData[i] = 1.0;
-    this._dummyWeightsBuffer = this._device!.createBuffer({
-      size: weightsData.byteLength,
-      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
-    });
-    this._device!.queue.writeBuffer(this._dummyWeightsBuffer, 0, weightsData);
-
-    this._dummyBufferSize = newSize;
   }
 
   private _initGlobalBuffers(): void {
@@ -989,35 +652,6 @@ export class WebGPURenderer extends AbstractRenderer {
     });
     this._ensureObjectRingCapacity(1024);
 
-    // Mip-chain generator for runtime 2D textures -- see `_generateMipmaps()`.
-    this._mipGenBGL = this._device!.createBindGroupLayout({
-      entries: [
-        { binding: 0, visibility: GPUShaderStage.FRAGMENT, sampler: {} },
-        { binding: 1, visibility: GPUShaderStage.FRAGMENT, texture: {} },
-      ],
-    });
-    this._mipGenPipeline = this._device!.createRenderPipeline({
-      layout: this._device!.createPipelineLayout({ bindGroupLayouts: [this._mipGenBGL] }),
-      vertex: {
-        module: this._device!.createShaderModule({ code: fullscreenVertWGSL }),
-        entryPoint: "vs_main",
-      },
-      fragment: {
-        module: this._device!.createShaderModule({ code: mipDownsampleWGSL }),
-        entryPoint: "fs_main",
-        targets: [{ format: "rgba8unorm" }],
-      },
-      primitive: { topology: Topology.TRIANGLE_LIST },
-    });
-    // Always clamp-to-edge, independent of the texture's own wrap mode -- prevents edge
-    // bleeding while downsampling. Separate from `_getSampler`'s draw-time sampler cache.
-    this._mipGenSampler = this._device!.createSampler({
-      magFilter: TextureFilter.LINEAR,
-      minFilter: TextureFilter.LINEAR,
-      addressModeU: TextureWrap.CLAMP_TO_EDGE,
-      addressModeV: TextureWrap.CLAMP_TO_EDGE,
-    });
-
     // Per-draw view-projection dynamic-offset buffer -- vertex-stage only (position transform),
     // unlike `_objectBGL` which the fragment shader also reads.
     this._viewBGL = this._device!.createBindGroupLayout({
@@ -1044,6 +678,13 @@ export class WebGPURenderer extends AbstractRenderer {
         },
       ],
     });
+
+    this._pipelineCache = new GPUPipelineCache(
+      this._device!,
+      this._globalBGL,
+      this._objectBGL,
+      this._viewBGL,
+    );
 
     // Hierarchical-Z occlusion culling -- see docs/adr/0008-hzb-occlusion-culling-webgpu-only.md.
     // Everything here is opt-in: skipped entirely (zero pipelines/buffers created) unless
@@ -1172,50 +813,6 @@ export class WebGPURenderer extends AbstractRenderer {
     return offset;
   }
 
-  /** `1 + floor(log2(max(w, h)))` -- the standard (and WebGPU-max-valid) full mip chain length
-   * down to a 1x1 level. Unlike `BloomPassGPU`'s capped chain (a performance choice for a
-   * per-frame blur), texture minification wants the complete chain. */
-  private _computeMipLevelCount(width: number, height: number): number {
-    return 1 + Math.floor(Math.log2(Math.max(width, height)));
-  }
-
-  /** Renders `texture`'s mip chain (levels `1..mipLevelCount-1`) from the already-uploaded
-   * level 0, one bilinear fullscreen blit per level -- WebGPU has no `generateMipmap()`
-   * equivalent to WebGL2's `gl.generateMipmap()` (same technique as Toji's `webgpu-utils`
-   * `generateMips`). Runs on its own throwaway `GPUCommandEncoder` with an immediate
-   * `queue.submit()`, decoupled from the frame's main encoder: callers (`_getTextureView`) run
-   * mid-frame, while the main render pass may already be open, and WebGPU only allows one open
-   * render pass per encoder at a time. `queue` operations are ordered, so this submit is
-   * guaranteed visible to the main pass's later sampling of this texture. */
-  private _generateMipmaps(texture: GPUTexture, mipLevelCount: number): void {
-    const ce = this._device!.createCommandEncoder();
-    for (let level = 1; level < mipLevelCount; level++) {
-      const srcView = texture.createView({ baseMipLevel: level - 1, mipLevelCount: 1 });
-      const dstView = texture.createView({ baseMipLevel: level, mipLevelCount: 1 });
-      const bg = this._device!.createBindGroup({
-        layout: this._mipGenBGL,
-        entries: [
-          { binding: 0, resource: this._mipGenSampler },
-          { binding: 1, resource: srcView },
-        ],
-      });
-      const rp = ce.beginRenderPass({
-        colorAttachments: [
-          {
-            view: dstView,
-            loadOp: "clear",
-            storeOp: "store",
-            clearValue: { r: 0, g: 0, b: 0, a: 0 },
-          },
-        ],
-      });
-      rp.setPipeline(this._mipGenPipeline);
-      rp.setBindGroup(0, bg);
-      rp.draw(3);
-      rp.end();
-    }
-    this._device!.queue.submit([ce.finish()]);
-  }
 
   /** Reused every frame -- see `_dispatchHzbTest()`. */
   private _hzbAabbScratch = new Float32Array(MAX_HZB_TESTED_OBJECTS * 4);
@@ -1289,7 +886,8 @@ export class WebGPURenderer extends AbstractRenderer {
    * just-finished opaque depth, already written by `DepthPrePassGPU` earlier in `_passes`), then
    * mips 1..N max-reduced from the level below, one dispatch per level -- see
    * hzb_copy_depth.wgsl/hzb_downsample_max.wgsl. Recorded into the frame's shared command
-   * encoder: unlike `_generateMipmaps()` (which needs its own throwaway encoder+submit since
+   * encoder: unlike `GPUTextureResourceCache`'s texture mip generation (which needs its own
+   * throwaway encoder+submit since
    * callers run it mid-frame while a render pass may already be open), this runs between two
    * whole passes, never inside one. No-ops for offscreen render targets -- see
    * docs/adr/0008-hzb-occlusion-culling-webgpu-only.md's main-canvas-only scope.
@@ -1478,15 +1076,15 @@ export class WebGPURenderer extends AbstractRenderer {
 
   public _createGlobalBindGroup(scene?: Scene): GPUBindGroup {
     const irrView = scene?.irradianceMap
-      ? this._getGPUCubeTextureView(scene.irradianceMap)
-      : this._blackCubeTexView!;
+      ? this._textures.getCubeTextureView(scene.irradianceMap, this._quality)
+      : this._fallback.blackCubeTextureView!;
     const prefView = scene?.prefilterMap
-      ? this._getGPUCubeTextureView(scene.prefilterMap)
-      : this._blackCubeTexView!;
+      ? this._textures.getCubeTextureView(scene.prefilterMap, this._quality)
+      : this._fallback.blackCubeTextureView!;
     const brdfView = scene?.brdfLUT
-      ? this._getTextureView(scene.brdfLUT)
-      : this._defaultBrdfTexView!;
-    const sampler = this._getSampler(scene?.brdfLUT); // Use default sampler for global maps
+      ? this._textures.getTextureView(scene.brdfLUT, this._quality)
+      : this._fallback.defaultBrdfTextureView!;
+    const sampler = this._textures.getSampler(scene?.brdfLUT); // Use default sampler for global maps
 
     return this._device!.createBindGroup({
       layout: this._globalBGL,
@@ -1499,9 +1097,9 @@ export class WebGPURenderer extends AbstractRenderer {
         { binding: 5, resource: prefView },
         { binding: 6, resource: brdfView },
         { binding: 7, resource: sampler },
-        { binding: 8, resource: this._defaultDirShadowTexView },
-        { binding: 9, resource: this._defaultSpotShadowTexView },
-        { binding: 10, resource: this._shadowSampler },
+        { binding: 8, resource: this._fallback.defaultDirShadowTextureView },
+        { binding: 9, resource: this._fallback.defaultSpotShadowTextureView },
+        { binding: 10, resource: this._fallback.shadowSampler },
         { binding: 11, resource: { buffer: this._pointClusterGridBuffer } },
         { binding: 12, resource: { buffer: this._pointClusterIndexBuffer } },
         { binding: 13, resource: { buffer: this._spotClusterGridBuffer } },
@@ -1524,23 +1122,28 @@ export class WebGPURenderer extends AbstractRenderer {
     const numClusters = Math.max(1, dims.x * dims.y * dims.z);
     let safeMaxLights = Math.max(1, maxLightsPerCluster);
 
-    // Guard against driver storage buffer limits (e.g. on mobile/integrated GPUs).
+    // Guard against driver limits (e.g. on mobile/integrated GPUs): a buffer this size must fit
+    // under BOTH `maxStorageBufferBindingSize` (the storage-binding-specific cap) AND the
+    // separate, general-purpose `maxBufferSize` -- `initialize()` requests both as high as the
+    // adapter allows, but a large enough canvas can still exceed even a generous `maxBufferSize`.
     const maxStorageSize = this._device?.limits.maxStorageBufferBindingSize ?? 134217728;
+    const maxBufferSize = this._device?.limits.maxBufferSize ?? 268435456;
+    const maxAllowedSize = Math.min(maxStorageSize, maxBufferSize);
     let gridByteLength = numClusters * 8; // vec2u
     let indexByteLength = numClusters * safeMaxLights * 4; // u32
 
-    if (indexByteLength > maxStorageSize && numClusters > 0) {
-      safeMaxLights = Math.max(1, Math.floor(maxStorageSize / (numClusters * 4)));
+    if (indexByteLength > maxAllowedSize && numClusters > 0) {
+      safeMaxLights = Math.max(1, Math.floor(maxAllowedSize / (numClusters * 4)));
       indexByteLength = numClusters * safeMaxLights * 4;
       console.warn(
-        `[WebGPURenderer] Clustered lights buffer exceeded maxStorageBufferBindingSize. Clamped maxLightsPerCluster to ${safeMaxLights}.`,
+        `[WebGPURenderer] Clustered lights buffer exceeded this device's buffer size limits. Clamped maxLightsPerCluster to ${safeMaxLights}.`,
       );
     }
 
-    if (gridByteLength > maxStorageSize) {
-      gridByteLength = maxStorageSize;
+    if (gridByteLength > maxAllowedSize) {
+      gridByteLength = maxAllowedSize;
       console.warn(
-        `[WebGPURenderer] Clustered grid buffer exceeded maxStorageBufferBindingSize. Clamping buffer size.`,
+        `[WebGPURenderer] Clustered grid buffer exceeded this device's buffer size limits. Clamping buffer size.`,
       );
     }
 
@@ -1575,325 +1178,6 @@ export class WebGPURenderer extends AbstractRenderer {
       this._currentPrefilterMap = undefined;
       this._currentBrdfLUT = undefined;
     }
-  }
-
-  /**
-   * Names from `shaderId`'s own `layout.textures` that also appear in
-   * `getOptionalMaterialTextureBindings()` -- i.e. the material-specific textures (beyond the
-   * always-bound sampler/normalMap/envMap/emissiveMap) this material's bind group actually needs.
-   */
-  private _getOptionalMaterialTextureNames(shaderId: string): string[] {
-    const declared = ShaderRegistry.instance.get(shaderId)?.layout.textures;
-    if (!declared) return [];
-    const bindings = getOptionalMaterialTextureBindings();
-    return Object.keys(declared).filter((name) => name in bindings);
-  }
-
-  /**
-   * Builds the material bind group layout for `shaderId`, containing only the texture bindings
-   * that material actually declares (plus normalMap/envMap/emissiveMap, which the shared PBR
-   * lighting chunk references regardless of what an individual material's own layout declares).
-   * A layout with every possible material texture bound at once (diffuse, normal, specular,
-   * terrain x4, metallic, roughness, env, emissive, alpha, opaque, reflection, opaqueDepth = 15,
-   * plus the 5 IBL/shadow textures in the global bind group = 20) exceeds WebGPU's guaranteed
-   * per-stage sampled-texture minimum of 16 on any device that doesn't happen to allow more.
-   */
-  protected _getMaterialBGL(shaderId: string, flags: string[]): GPUBindGroupLayout {
-    const key = shaderId + "_" + flags.join("_");
-    let bgl = this._materialBGLCache.get(key);
-    if (!bgl) {
-      const matEntries: GPUBindGroupLayoutEntry[] = [
-        { binding: 1, visibility: GPUShaderStage.FRAGMENT, sampler: { type: "filtering" } },
-        { binding: 3, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: "float" } },
-        { binding: 11, visibility: GPUShaderStage.FRAGMENT, texture: { viewDimension: "cube" } },
-        {
-          binding: 12,
-          visibility: GPUShaderStage.FRAGMENT,
-          texture: { viewDimension: "2d", sampleType: "float" },
-        },
-      ];
-      const bindingInfo = getOptionalMaterialTextureBindings();
-      for (const name of this._getOptionalMaterialTextureNames(shaderId)) {
-        const info = bindingInfo[name]!;
-        if ("u_diffuseMap" === name && flags.includes("USE_TEXTURE_ARRAY")) {
-          matEntries.push({
-            binding: info.binding,
-            visibility: GPUShaderStage.FRAGMENT,
-            texture: { viewDimension: "2d-array", sampleType: "float" },
-          });
-        } else {
-          matEntries.push(info.layoutEntry);
-        }
-      }
-      this._checkSampledTextureBudget(shaderId, matEntries);
-      bgl = this._device!.createBindGroupLayout({ entries: matEntries });
-      this._materialBGLCache.set(key, bgl);
-    }
-    return bgl;
-  }
-
-  /**
-   * Warns (once per `shaderId`) if `shaderId`'s material bind group, combined with the global
-   * bind group's fixed textures, would exceed this device's real per-stage sampled-texture
-   * budget -- or the WebGPU spec's guaranteed minimum if the real device limit isn't known yet.
-   * `createBindGroupLayout` itself doesn't validate this (the failure only surfaces later, as a
-   * cryptic "Invalid PipelineLayout"/"Invalid RenderPipeline" cascade at actual pipeline creation
-   * time); this gives an early, actionable diagnostic naming the actual offending material.
-   */
-  private _checkSampledTextureBudget(
-    shaderId: string,
-    matEntries: GPUBindGroupLayoutEntry[],
-  ): void {
-    if (this._warnedMaterialTextureBudget.has(shaderId)) return;
-
-    const materialTextureCount = matEntries.filter((e) => "texture" in e).length;
-    const total = GLOBAL_BIND_GROUP_TEXTURE_COUNT + materialTextureCount;
-    const deviceLimit = DeviceCaps.getLimit(DeviceLimit.WEBGPU_MAX_SAMPLED_TEXTURES_PER_STAGE);
-    const limit =
-      deviceLimit > 0
-        ? deviceLimit
-        : DeviceCaps.getGuaranteedMinimum(DeviceLimit.WEBGPU_MAX_SAMPLED_TEXTURES_PER_STAGE);
-
-    if (total > limit) {
-      this._warnedMaterialTextureBudget.add(shaderId);
-      console.warn(
-        `[WebGPURenderer] Material '${shaderId}' needs ${total} sampled textures in the ` +
-          `fragment stage (${GLOBAL_BIND_GROUP_TEXTURE_COUNT} global + ${materialTextureCount} ` +
-          `material-specific), exceeding this device's per-stage limit of ${limit}. Pipeline ` +
-          `creation for this material will likely fail.`,
-      );
-    }
-  }
-
-  protected _pipelineCacheKey(
-    manifest: RenderManifest,
-    topology: GPUPrimitiveTopology,
-    isInstanced: boolean,
-  ): string {
-    const shaderId = manifest.shaderId;
-    const flags = manifest.flags || [];
-    const flagKey = flags.length > 0 ? "_" + flags.join("_") : "";
-    const state = manifest.state || {};
-    const targetFormat = this.postProcessing.enabled ? "rgba16float" : this._format;
-    return (
-      shaderId +
-      "_" +
-      topology +
-      "_" +
-      (state.culling || CullMode.DEFAULT) +
-      "_" +
-      (state.blending || BlendingMode.DEFAULT) +
-      "_" +
-      (state.depthWrite !== false) +
-      "_" +
-      (state.depthTest !== false) +
-      "_" +
-      targetFormat +
-      (isInstanced ? "_instanced" : "") +
-      flagKey
-    );
-  }
-
-  protected _getPipeline(
-    manifest: RenderManifest,
-    topology: GPUPrimitiveTopology,
-    isInstanced: boolean = false,
-  ): WebGPUPipelineCache {
-    const shaderId = manifest.shaderId;
-    const flags = manifest.flags || [];
-    const state = manifest.state || {};
-    const targetFormat = this.postProcessing.enabled ? "rgba16float" : this._format;
-    const key = this._pipelineCacheKey(manifest, topology, isInstanced);
-    let cache = this._pipelines.get(key);
-    if (!cache) {
-      const sm = this._getShaderModule(shaderId, isInstanced, flags);
-      const materialBGL = this._getMaterialBGL(shaderId, flags);
-      const pipelineLayout = this._device!.createPipelineLayout({
-        bindGroupLayouts: [this._globalBGL, materialBGL, this._objectBGL, this._viewBGL],
-      });
-
-      const vertexBuffers: GPUVertexBufferLayout[] = [
-        { arrayStride: 12, attributes: [{ shaderLocation: 0, offset: 0, format: "float32x3" }] },
-        { arrayStride: 12, attributes: [{ shaderLocation: 1, offset: 0, format: "float32x3" }] },
-        { arrayStride: 8, attributes: [{ shaderLocation: 2, offset: 0, format: "float32x2" }] },
-        { arrayStride: 12, attributes: [{ shaderLocation: 3, offset: 0, format: "float32x3" }] },
-        { arrayStride: 16, attributes: [{ shaderLocation: 4, offset: 0, format: "float32x4" }] },
-        { arrayStride: 16, attributes: [{ shaderLocation: 5, offset: 0, format: "float32x4" }] },
-      ];
-
-      if (isInstanced) {
-        vertexBuffers.push({
-          arrayStride: 64, // 16 floats * 4 bytes
-          stepMode: "instance",
-          attributes: [
-            { shaderLocation: 6, offset: 0, format: "float32x4" },
-            { shaderLocation: 7, offset: 16, format: "float32x4" },
-            { shaderLocation: 8, offset: 32, format: "float32x4" },
-            { shaderLocation: 9, offset: 48, format: "float32x4" },
-          ],
-        });
-
-        vertexBuffers.push({
-          arrayStride: 16, // 4 floats * 4 bytes for instanceData
-          stepMode: "instance",
-          attributes: [{ shaderLocation: 10, offset: 0, format: "float32x4" }],
-        });
-      }
-
-      const targets: GPUColorTargetState[] = [{ format: targetFormat as GPUTextureFormat }];
-      if (state.blending === BlendingMode.ALPHA) {
-        targets[0]!.blend = {
-          color: { srcFactor: "src-alpha", dstFactor: "one-minus-src-alpha", operation: "add" },
-          alpha: { srcFactor: "one", dstFactor: "one-minus-src-alpha", operation: "add" },
-        };
-      } else if (state.blending === BlendingMode.ADDITIVE) {
-        targets[0]!.blend = {
-          color: { srcFactor: "one", dstFactor: "one", operation: "add" },
-          alpha: { srcFactor: "one", dstFactor: "one", operation: "add" },
-        };
-      } else if (state.blending === BlendingMode.PREMULTIPLIED_ALPHA) {
-        targets[0]!.blend = {
-          color: { srcFactor: "one", dstFactor: "one-minus-src-alpha", operation: "add" },
-          alpha: { srcFactor: "one", dstFactor: "one-minus-src-alpha", operation: "add" },
-        };
-      }
-      const pipeline = this._device!.createRenderPipeline({
-        layout: pipelineLayout,
-        vertex: { module: sm, entryPoint: "vs", buffers: vertexBuffers },
-        fragment: { module: sm, entryPoint: "fs", targets },
-        primitive: { topology, cullMode: state.culling || CullMode.DEFAULT },
-        depthStencil: {
-          depthWriteEnabled: state.depthWrite !== false,
-          depthCompare: state.depthTest === false ? "always" : "less-equal",
-          format: "depth32float",
-        },
-      });
-      cache = {
-        pipeline,
-        layout: pipelineLayout,
-        bgLayouts: [this._globalBGL, materialBGL, this._objectBGL, this._viewBGL],
-        refCount: 0,
-      };
-      this._pipelines.set(key, cache);
-    }
-    return cache;
-  }
-
-  /**
-   * Tracks that `obj` currently depends on the pipeline identified by `key` (same key
-   * format `_pipelineCacheKey` computes). Called once per object per frame from the
-   * render loop, independent from `_getPipeline`'s own batch-level lookup-or-create,
-   * since one pipeline is typically shared by many objects at once.
-   */
-  private _acquirePipeline(obj: Object3D, key: string): void {
-    const lastKey = this._lastKnownPipelineKey.get(obj);
-    if (lastKey === key) return;
-    if (lastKey) this._releasePipelineFor(obj);
-
-    const cache = this._pipelines.get(key);
-    if (cache) cache.refCount++;
-    this._lastKnownPipelineKey.set(obj, key);
-  }
-
-  /** Releases the pipeline this object was referencing, if its refCount drops to zero. */
-  private _releasePipelineFor(obj: Object3D): void {
-    const key = this._lastKnownPipelineKey.get(obj);
-    if (!key) return;
-    this._lastKnownPipelineKey.delete(obj);
-
-    const cache = this._pipelines.get(key);
-    if (!cache) return;
-    cache.refCount--;
-    if (cache.refCount <= 0) {
-      // GPURenderPipeline has no explicit destroy(); dropping the cache entry (and all
-      // other references) lets it be garbage-collected. The dependent GPUPipelineLayout
-      // has no destroy() either.
-      this._pipelines.delete(key);
-    }
-  }
-
-  protected _getShaderModule(
-    shaderId: string,
-    isInstanced: boolean = false,
-    flags: string[] = [],
-  ): GPUShaderModule {
-    const flagKey = flags.length > 0 ? "_" + flags.join("_") : "";
-    const key = isInstanced ? `${shaderId}_instanced${flagKey}` : `${shaderId}${flagKey}`;
-    let sm = this._shaderModules.get(key);
-    if (!sm) {
-      const def = ShaderRegistry.instance.get(shaderId);
-      if (!def || !def.sources.wgsl) {
-        throw new Error(
-          `[WebGPURenderer] Shader definition for ${shaderId} not found or missing WGSL source.`,
-        );
-      }
-
-      let code = ShaderRegistry.instance.assemble(def.sources.wgsl, "wgsl");
-
-      let wgslConstants = "";
-      if (flags.includes("USE_TEXTURE_ARRAY")) {
-        wgslConstants += "const USE_TEXTURE_ARRAY: bool = true;\n";
-        code = code.replace(
-          /var u_diffuseMap:\s*texture_2d<f32>;/g,
-          "var u_diffuseMap: texture_2d_array<f32>;",
-        );
-        code = code.replace(
-          /textureSample\(u_diffuseMap,\s*s,\s*([^)]+)\)/g,
-          "textureSample(u_diffuseMap, s, $1, u32(i.texIndex))",
-        );
-      } else {
-        wgslConstants += "const USE_TEXTURE_ARRAY: bool = false;\n";
-      }
-      if (isInstanced) {
-        wgslConstants += "const USE_INSTANCING: bool = true;\n";
-      } else {
-        wgslConstants += "const USE_INSTANCING: bool = false;\n";
-      }
-      code = wgslConstants + "\n" + code;
-
-      if (isInstanced) {
-        // Match the entire function signature fn vs(...) -> Out {
-        code = code.replace(
-          /fn\s+vs\s*\(([\s\S]*?)\)\s*->\s*Out\s*\{/,
-          (_match: string, params: string) => {
-            const trimmedParams = params.trim();
-            const comma = trimmedParams.length > 0 ? "," : "";
-            return `fn vs(
-  ${trimmedParams}${comma}
-  @location(6) inst_col0: vec4f,
-  @location(7) inst_col1: vec4f,
-  @location(8) inst_col2: vec4f,
-  @location(9) inst_col3: vec4f,
-  @location(10) inst_data: vec4f
-) -> Out {
-  let instMatrix = mat4x4f(inst_col0, inst_col1, inst_col2, inst_col3);`;
-          },
-        );
-
-        // Replace obj.model with (obj.model * instMatrix)
-        code = code.replace(/obj\.model/g, "(obj.model * instMatrix)");
-
-        code = code.replace(/return\s+o;/g, "o.texIndex = inst_data.x;\n    return o;");
-      } else {
-        code = code.replace(/return\s+o;/g, "o.texIndex = 0.0;\n    return o;");
-      }
-
-      sm = this._device!.createShaderModule({ code });
-
-      // Async compile check to surface WGSL errors
-      sm.getCompilationInfo().then((info) => {
-        const errors = info.messages.filter((m) => m.type === "error");
-        if (errors.length > 0) {
-          console.error("[WebGPU] WGSL Compilation Failed. Source:\n", code);
-          for (const err of errors) {
-            console.error(`[WebGPU] Line ${err.lineNum}, Pos ${err.linePos}: ${err.message}`);
-          }
-        }
-      });
-
-      this._shaderModules.set(key, sm);
-    }
-    return sm;
   }
 
   protected _getGeoCache(obj: Object3D, geo: GeometryDataInterface): WebGPUGeoCache {
@@ -2000,8 +1284,8 @@ export class WebGPURenderer extends AbstractRenderer {
 
   private _releaseObjectResources(obj: Object3D): void {
     this._releaseGeometryFor(obj);
-    this._releasePipelineFor(obj);
-    this._releaseObjectTextures(obj);
+    this._pipelineCache.releasePipelineFor(obj);
+    this._textures.releaseObjectTextures(obj);
   }
 
   /**
@@ -2011,73 +1295,6 @@ export class WebGPURenderer extends AbstractRenderer {
    * snapshot rather than by container reference, since a material's manifest object
    * is created once and mutated in place on every `getRenderManifest()` call.
    */
-  private _acquireTextures(
-    obj: Object3D,
-    textures: Record<string, Texture | CubeTexture | undefined>,
-  ): void {
-    const lastTextures = this._lastKnownTextures.get(obj);
-    const snapshot: Record<string, Texture | CubeTexture | undefined> = {};
-
-    for (const key of Object.keys(textures)) {
-      const current = textures[key];
-      const last = lastTextures?.[key];
-      if (current !== last) {
-        if (last) this._releaseTexture(last);
-        if (current) this._acquireTexture(current);
-      }
-      snapshot[key] = current;
-    }
-
-    this._lastKnownTextures.set(obj, snapshot);
-  }
-
-  private _acquireTexture(tex: Texture | CubeTexture): void {
-    if (tex instanceof CubeTexture) {
-      this._texCubeRefCounts.set(tex, (this._texCubeRefCounts.get(tex) ?? 0) + 1);
-    } else {
-      this._texRefCounts.set(tex, (this._texRefCounts.get(tex) ?? 0) + 1);
-    }
-  }
-
-  private _releaseTexture(tex: Texture | CubeTexture): void {
-    // Render targets are backed by the same Texture/CubeTexture base classes (so they
-    // can be assigned directly to a material, e.g. for portals/mirrors/reflection
-    // probes) but are re-rendered into and reused across frames independently of any
-    // one object's material reference -- their lifecycle belongs to whoever owns the
-    // render target, not to this per-object refcount. Only untrack our reference to
-    // it, never destroy the underlying GPUTexture here.
-    if (tex instanceof RenderTarget || tex instanceof RenderTargetCube) return;
-
-    if (tex instanceof CubeTexture) {
-      const count = (this._texCubeRefCounts.get(tex) ?? 1) - 1;
-      if (count <= 0) {
-        this._cubeTextureViewCache.get(tex)?.texture.destroy();
-        this._cubeTextureViewCache.delete(tex);
-        this._texCubeRefCounts.delete(tex);
-      } else {
-        this._texCubeRefCounts.set(tex, count);
-      }
-    } else {
-      const count = (this._texRefCounts.get(tex) ?? 1) - 1;
-      if (count <= 0) {
-        this._textureViewCache.get(tex)?.texture.destroy();
-        this._textureViewCache.delete(tex);
-        this._texRefCounts.delete(tex);
-      } else {
-        this._texRefCounts.set(tex, count);
-      }
-    }
-  }
-
-  private _releaseObjectTextures(obj: Object3D): void {
-    const textures = this._lastKnownTextures.get(obj);
-    if (!textures) return;
-    this._lastKnownTextures.delete(obj);
-    for (const tex of Object.values(textures)) {
-      if (tex) this._releaseTexture(tex);
-    }
-  }
-
   public render(
     scene: Scene,
     vp: Float32Array,
@@ -2187,10 +1404,7 @@ export class WebGPURenderer extends AbstractRenderer {
           if (depth !== undefined) data.depth = depth;
           if (depthView !== undefined) data.depthView = depthView;
           this._renderTargetCubeTextures.set(this._activeRenderTarget, data);
-          this._cubeTextureViewCache.set(this._activeRenderTarget, {
-            texture: tex,
-            view: cubeView,
-          });
+          this._textures.registerRenderTargetCubeTexture(this._activeRenderTarget, tex, cubeView);
           this._activeRenderTarget.isLoaded = true;
         }
         renderTargetView = data.faceViews[this._activeCubeFace]!;
@@ -2228,11 +1442,7 @@ export class WebGPURenderer extends AbstractRenderer {
           if (depth !== undefined) data.depth = depth;
           if (depthView !== undefined) data.depthView = depthView;
           this._renderTargetTextures.set(this._activeRenderTarget, data);
-          this._textureViewCache.set(this._activeRenderTarget, {
-            texture: tex,
-            view,
-            mipLevelCount: 1,
-          });
+          this._textures.registerRenderTargetTexture(this._activeRenderTarget, tex, view);
           this._activeRenderTarget.isLoaded = true;
         }
         renderTargetView = data.view;
@@ -2348,10 +1558,7 @@ export class WebGPURenderer extends AbstractRenderer {
       this._objectRingPendingDestroy.destroy();
       this._objectRingPendingDestroy = undefined;
     }
-    if (this._dummyBuffersPendingDestroy.length > 0) {
-      for (const b of this._dummyBuffersPendingDestroy) b.destroy();
-      this._dummyBuffersPendingDestroy.length = 0;
-    }
+    this._fallback.drainPendingDestroy();
     if (this._occlusionCullingEnabled) this._kickoffHzbMapAsync();
   }
 
@@ -2494,8 +1701,14 @@ export class WebGPURenderer extends AbstractRenderer {
     topology: GPUPrimitiveTopology = Topology.DEFAULT,
     wireframeMode?: "structural" | "triangles",
   ): void {
-    const cache = this._getPipeline(manifest, topology, isInstanced);
-    const pipelineKey = this._pipelineCacheKey(manifest, topology, isInstanced);
+    const targetFormat = this.postProcessing.enabled ? "rgba16float" : this._format;
+    const cache = this._pipelineCache.getPipeline(manifest, topology, isInstanced, targetFormat);
+    const pipelineKey = this._pipelineCache.pipelineCacheKey(
+      manifest,
+      topology,
+      isInstanced,
+      targetFormat,
+    );
     rp.setPipeline(cache.pipeline);
 
     const matBindGroup = this._getMaterialBindGroup(matUuid, manifest, cache.bgLayouts[1]!);
@@ -2505,20 +1718,20 @@ export class WebGPURenderer extends AbstractRenderer {
     for (const obj of objects) {
       if (!obj.geometry) continue;
 
-      this._acquirePipeline(obj, pipelineKey);
-      this._acquireTextures(obj, manifest.textures);
+      this._pipelineCache.acquirePipeline(obj, pipelineKey);
+      this._textures.acquireTextures(obj, manifest.textures);
 
       const objOffset = this._getObjectSlotOffset(obj, manifest, matUuid, vMat);
       rp.setBindGroup(2, this._objectRingBindGroup, [objOffset]);
 
       const gCache = this._getGeoCache(obj, obj.geometry!);
-      this._ensureDummyBufferSize(gCache.vertexCount);
+      this._fallback.ensureDummyBufferSize(gCache.vertexCount);
       rp.setVertexBuffer(0, gCache.vb);
-      rp.setVertexBuffer(1, gCache.nb || this._dummyNormalBuffer);
-      rp.setVertexBuffer(2, gCache.uvb || this._dummyUvBuffer);
-      rp.setVertexBuffer(3, gCache.tb || this._dummyTangentBuffer);
-      rp.setVertexBuffer(4, gCache.jb || this._dummyJointsBuffer);
-      rp.setVertexBuffer(5, gCache.wb || this._dummyWeightsBuffer);
+      rp.setVertexBuffer(1, gCache.nb || this._fallback.dummyNormalBuffer);
+      rp.setVertexBuffer(2, gCache.uvb || this._fallback.dummyUvBuffer);
+      rp.setVertexBuffer(3, gCache.tb || this._fallback.dummyTangentBuffer);
+      rp.setVertexBuffer(4, gCache.jb || this._fallback.dummyJointsBuffer);
+      rp.setVertexBuffer(5, gCache.wb || this._fallback.dummyWeightsBuffer);
 
       if (isInstanced) {
         const instMesh = obj as InstancedMesh;
@@ -2563,8 +1776,8 @@ export class WebGPURenderer extends AbstractRenderer {
           }
           rp.setVertexBuffer(7, instanceDataBuf);
         } else {
-          this._ensureDummyBufferSize(16);
-          rp.setVertexBuffer(7, this._dummyUvBuffer);
+          this._fallback.ensureDummyBufferSize(16);
+          rp.setVertexBuffer(7, this._fallback.dummyUvBuffer);
         }
 
         if (topology === Topology.LINE_LIST) {
@@ -2774,15 +1987,15 @@ export class WebGPURenderer extends AbstractRenderer {
   private _resolveOptionalMaterialTexture(name: string, m: RenderManifest): GPUBindingResource {
     if ("u_opaqueMap" === name) {
       return m.textures["u_opaqueMap"]
-        ? this._getTextureView(m.textures["u_opaqueMap"] as Texture)
-        : this._opaqueTextureView || this._whiteTexView;
+        ? this._textures.getTextureView(m.textures["u_opaqueMap"] as Texture, this._quality)
+        : this._opaqueTextureView || this._fallback.whiteTextureView;
     }
     if ("u_opaqueDepthMap" === name) {
       return m.textures["u_opaqueDepthMap"]
-        ? this._getTextureView(m.textures["u_opaqueDepthMap"] as Texture)
-        : this._opaqueDepthTextureView || this._dummyDepthTexView;
+        ? this._textures.getTextureView(m.textures["u_opaqueDepthMap"] as Texture, this._quality)
+        : this._opaqueDepthTextureView || this._fallback.dummyDepthTextureView;
     }
-    return this._getTextureView(m.textures[name] as Texture);
+    return this._textures.getTextureView(m.textures[name] as Texture, this._quality);
   }
 
   protected _getMaterialBindGroup(
@@ -2793,13 +2006,13 @@ export class WebGPURenderer extends AbstractRenderer {
     const envOrSkybox = m.textures["u_skybox"] || m.textures["u_envMap"];
     const bindings: number[] = [1, 3, 11, 12];
     const resources: GPUBindingResource[] = [
-      this._getSampler(m.textures["u_diffuseMap"] as Texture),
-      this._getNormalTextureView(m.textures["u_normalMap"] as Texture),
-      this._getGPUCubeTextureView(envOrSkybox as CubeTexture),
-      this._getTextureView(m.textures["u_emissiveMap"] as Texture),
+      this._textures.getSampler(m.textures["u_diffuseMap"] as Texture),
+      this._textures.getNormalTextureView(m.textures["u_normalMap"] as Texture),
+      this._textures.getCubeTextureView(envOrSkybox as CubeTexture, this._quality),
+      this._textures.getTextureView(m.textures["u_emissiveMap"] as Texture, this._quality),
     ];
     const bindingInfo = getOptionalMaterialTextureBindings();
-    for (const name of this._getOptionalMaterialTextureNames(m.shaderId)) {
+    for (const name of getOptionalMaterialTextureNames(m.shaderId)) {
       bindings.push(bindingInfo[name]!.binding);
       resources.push(this._resolveOptionalMaterialTexture(name, m));
     }
@@ -2820,140 +2033,6 @@ export class WebGPURenderer extends AbstractRenderer {
 
     this._materialBindGroups.set(matUuid, { bg, resources });
     return bg;
-  }
-
-  protected _getTextureView(tex: Texture | undefined): GPUTextureView {
-    if (this._quality?.disableTextures) return this._whiteTexView;
-    if (!tex || !tex.isLoaded) return this._whiteTexView;
-    // A `RenderTarget` (e.g. `PlanarReflectionNode.renderTarget`, or a `bakeImposter()` output)
-    // has no `.image` -- its GPU texture already exists from being rendered into (populated in
-    // `setRenderTarget()`'s offscreen branch), so it's looked up instead of uploaded. Mirrors
-    // `_getGPUCubeTextureView()`'s identical `RenderTargetCube` branch just below.
-    if (tex instanceof RenderTarget) {
-      const rtEntry = this._textureViewCache.get(tex);
-      return rtEntry?.view || this._whiteTexView;
-    }
-    if (!tex.image) return this._whiteTexView;
-    let entry = this._textureViewCache.get(tex);
-    if (!entry) {
-      let t: GPUTexture;
-      let v: GPUTextureView;
-      if ("isTextureArray" in tex && (tex as TextureArray).isTextureArray) {
-        const texArray = tex as TextureArray;
-        const width = texArray.image!.width;
-        const height = texArray.image!.height;
-        const depth = texArray.images.length;
-
-        t = this._device!.createTexture({
-          size: [width, height, depth],
-          format: "rgba8unorm",
-          usage:
-            GPUTextureUsage.TEXTURE_BINDING |
-            GPUTextureUsage.COPY_DST |
-            GPUTextureUsage.RENDER_ATTACHMENT,
-        });
-
-        for (let i = 0; i < depth; i++) {
-          this._device!.queue.copyExternalImageToTexture(
-            {
-              source: texArray.images[i] as
-                ImageBitmap | HTMLImageElement | HTMLCanvasElement | OffscreenCanvas,
-            },
-            { texture: t, origin: [0, 0, i] },
-            [width, height],
-          );
-        }
-        v = t.createView({ dimension: "2d-array" });
-        entry = { texture: t, view: v, mipLevelCount: 1 };
-      } else {
-        const mipLevelCount =
-          this._quality?.mipmapping && tex.generateMipmaps
-            ? this._computeMipLevelCount(tex.image.width, tex.image.height)
-            : 1;
-        t = this._device!.createTexture({
-          size: [tex.image.width, tex.image.height],
-          format: "rgba8unorm",
-          mipLevelCount,
-          usage:
-            GPUTextureUsage.TEXTURE_BINDING |
-            GPUTextureUsage.COPY_DST |
-            GPUTextureUsage.RENDER_ATTACHMENT,
-        });
-        this._device!.queue.copyExternalImageToTexture({ source: tex.image }, { texture: t }, [
-          tex.image.width,
-          tex.image.height,
-        ]);
-        if (mipLevelCount > 1) this._generateMipmaps(t, mipLevelCount);
-        v = t.createView();
-        entry = { texture: t, view: v, mipLevelCount };
-      }
-      this._textureViewCache.set(tex, entry);
-    } else if (
-      tex.needsUpdate &&
-      !("isTextureArray" in tex && (tex as TextureArray).isTextureArray)
-    ) {
-      this._device!.queue.copyExternalImageToTexture(
-        { source: tex.image },
-        { texture: entry.texture },
-        [tex.image.width, tex.image.height],
-      );
-      if (entry.mipLevelCount > 1) this._generateMipmaps(entry.texture, entry.mipLevelCount);
-      tex.needsUpdate = false;
-    }
-    return entry.view;
-  }
-
-  protected _getNormalTextureView(tex: Texture | undefined): GPUTextureView {
-    if (!tex || !tex.isLoaded || !tex.image) return this._flatNormalTexView;
-    return this._getTextureView(tex);
-  }
-
-  protected _getGPUCubeTextureView(tex: CubeTexture | undefined): GPUTextureView {
-    if (this._quality?.disableTextures) return this._defaultCubeTexView;
-    if (!tex || !tex.isLoaded) return this._defaultCubeTexView;
-    if (tex instanceof RenderTargetCube) {
-      const entry = this._cubeTextureViewCache.get(tex);
-      return entry?.view || this._defaultCubeTexView;
-    }
-    if (tex.images.length !== 6 && tex.mipmaps.length === 0) return this._defaultCubeTexView;
-    let entry = this._cubeTextureViewCache.get(tex);
-    if (!entry) {
-      const img = tex.mipmaps.length > 0 ? tex.mipmaps[0]![0]! : tex.images[0]!;
-      const mipLevelCount = tex.mipmaps.length > 0 ? tex.mipmaps.length : 1;
-      const t = this._device!.createTexture({
-        size: [img.width, img.height, 6],
-        format: "rgba8unorm",
-        mipLevelCount,
-        usage:
-          GPUTextureUsage.TEXTURE_BINDING |
-          GPUTextureUsage.COPY_DST |
-          GPUTextureUsage.RENDER_ATTACHMENT,
-      });
-
-      const baseImages = tex.mipmaps.length > 0 ? tex.mipmaps[0]! : tex.images;
-      for (let i = 0; i < 6; i++) {
-        this._device!.queue.copyExternalImageToTexture(
-          { source: baseImages[i]! },
-          { texture: t, mipLevel: 0, origin: [0, 0, i] },
-          [img.width, img.height],
-        );
-      }
-
-      for (let m = 1; m < mipLevelCount; m++) {
-        const mipImages = tex.mipmaps[m]!;
-        const mipSize = Math.max(1, Math.floor(img.width / Math.pow(2, m)));
-        for (let i = 0; i < 6; i++) {
-          this._device!.queue.copyExternalImageToTexture(
-            { source: mipImages[i]! },
-            { texture: t, mipLevel: m, origin: [0, 0, i] },
-            [mipSize, mipSize],
-          );
-        }
-      }
-      entry = { texture: t, view: t.createView({ dimension: "cube" }) };
-      this._cubeTextureViewCache.set(tex, entry);
-    }
-    return entry.view;
   }
 
   public _updateGlobalBuffers(
@@ -3156,7 +2235,7 @@ export class WebGPURenderer extends AbstractRenderer {
 
     if (this._occlusionCullingEnabled) {
       if (this._hzbTexture) this._hzbTexture.destroy();
-      this._hzbMipLevelCount = this._computeMipLevelCount(
+      this._hzbMipLevelCount = this._textures.computeMipLevelCount(
         this._context.canvas.width,
         this._context.canvas.height,
       );
@@ -3239,11 +2318,9 @@ export class WebGPURenderer extends AbstractRenderer {
       data.depth?.destroy();
     }
 
-    this._dummyNormalBuffer?.destroy();
-    this._dummyUvBuffer?.destroy();
-    this._dummyTangentBuffer?.destroy();
-    for (const b of this._dummyBuffersPendingDestroy) b.destroy();
-    this._dummyBuffersPendingDestroy.length = 0;
+    this._fallback?.dispose();
+    this._textures?.dispose();
+    this._pipelineCache?.dispose();
     this._globalUniformBuffer?.destroy();
     this._pointLightBuffer?.destroy();
     this._spotLightBuffer?.destroy();
@@ -3267,18 +2344,10 @@ export class WebGPURenderer extends AbstractRenderer {
 
     this._objectSlotMap.clear();
     this._materialBindGroups.clear();
-    for (const entry of this._textureViewCache.values()) entry.texture.destroy();
-    this._textureViewCache.clear();
     this._geoCache.clear();
-    this._materialBGLCache.clear();
-    this._samplerCache.clear();
-    for (const entry of this._cubeTextureViewCache.values()) entry.texture.destroy();
-    this._cubeTextureViewCache.clear();
     this._shadowMaps.clear();
     this._renderTargetTextures.clear();
     this._renderTargetCubeTextures.clear();
-    this._pipelines.clear();
-    this._shaderModules.clear();
 
     this._hdrTexture = undefined;
     this._hdrTextureView = undefined;

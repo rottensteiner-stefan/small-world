@@ -1,10 +1,12 @@
 import "../../src/index.js";
 import { describe, expect, it, vi } from "vitest";
-import { WebGPURenderer } from "../../src/renderers/WebGPU/WebGPURenderer.js";
+import { GPUTextureResourceCache } from "../../src/renderers/WebGPU/managers/GPUTextureResourceCache.js";
+import { GPUFallbackResources } from "../../src/renderers/WebGPU/managers/GPUFallbackResources.js";
 import { Texture } from "../../src/core/textures/Texture.js";
+import { QualityConfig } from "../../src/interfaces/index.js";
 
 // Node/vitest has no WebGPU global; @webgpu/types only provides ambient TS types,
-// not a runtime value. Stub the bit-flag constants this renderer actually reads.
+// not a runtime value. Stub the bit-flag constants this class actually reads.
 (globalThis as unknown as { GPUTextureUsage: Record<string, number> }).GPUTextureUsage ??= {
   COPY_SRC: 0x01,
   COPY_DST: 0x02,
@@ -12,13 +14,27 @@ import { Texture } from "../../src/core/textures/Texture.js";
   STORAGE_BINDING: 0x08,
   RENDER_ATTACHMENT: 0x10,
 };
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type RendererInternals = any;
+(globalThis as unknown as { GPUBufferUsage: Record<string, number> }).GPUBufferUsage ??= {
+  MAP_READ: 0x0001,
+  MAP_WRITE: 0x0002,
+  COPY_SRC: 0x0004,
+  COPY_DST: 0x0008,
+  INDEX: 0x0010,
+  VERTEX: 0x0020,
+  UNIFORM: 0x0040,
+  STORAGE: 0x0080,
+  INDIRECT: 0x0100,
+  QUERY_RESOLVE: 0x0200,
+};
+(globalThis as unknown as { GPUShaderStage: Record<string, number> }).GPUShaderStage ??= {
+  VERTEX: 0x1,
+  FRAGMENT: 0x2,
+  COMPUTE: 0x4,
+};
 
 function makeMockDevice(): { device: GPUDevice; renderPass: { draw: ReturnType<typeof vi.fn> } } {
   const view = {};
-  const gpuTexture = { createView: vi.fn().mockReturnValue(view) };
+  const gpuTexture = { createView: vi.fn().mockReturnValue(view), destroy: vi.fn() };
   const renderPass = {
     setPipeline: vi.fn(),
     setBindGroup: vi.fn(),
@@ -33,34 +49,49 @@ function makeMockDevice(): { device: GPUDevice; renderPass: { draw: ReturnType<t
     createTexture: vi.fn().mockReturnValue(gpuTexture),
     createCommandEncoder: vi.fn().mockReturnValue(commandEncoder),
     createBindGroup: vi.fn().mockReturnValue({}),
-    queue: { copyExternalImageToTexture: vi.fn(), submit: vi.fn() },
+    createBindGroupLayout: vi.fn().mockReturnValue({}),
+    createShaderModule: vi.fn().mockReturnValue({}),
+    createPipelineLayout: vi.fn().mockReturnValue({}),
+    createRenderPipeline: vi.fn().mockReturnValue({}),
+    createSampler: vi.fn().mockReturnValue({}),
+    createBuffer: vi.fn().mockReturnValue({ destroy: vi.fn() }),
+    queue: {
+      copyExternalImageToTexture: vi.fn(),
+      submit: vi.fn(),
+      writeBuffer: vi.fn(),
+      writeTexture: vi.fn(),
+    },
   } as unknown as GPUDevice;
   return { device, renderPass };
 }
 
-function makeRenderer(): { renderer: RendererInternals; device: GPUDevice } {
+function makeTextures(): { textures: GPUTextureResourceCache; device: GPUDevice } {
   const { device } = makeMockDevice();
-  const renderer = new WebGPURenderer() as RendererInternals;
-  renderer._device = device;
-  renderer._mipGenBGL = { mock: "mipGenBGL" };
-  renderer._mipGenPipeline = { mock: "mipGenPipeline" };
-  renderer._mipGenSampler = { mock: "mipGenSampler" };
-  return { renderer, device };
+  const fallback = new GPUFallbackResources(device);
+  const textures = new GPUTextureResourceCache(device, fallback);
+  // Fallback/textures-cache construction above makes its own createTexture/createCommandEncoder
+  // calls -- clear the mock history so the assertions below only see calls made by the actual
+  // code under test.
+  vi.mocked(device.createTexture).mockClear();
+  vi.mocked(device.createCommandEncoder).mockClear();
+  vi.mocked(device.queue.copyExternalImageToTexture).mockClear();
+  vi.mocked(device.queue.submit).mockClear();
+  return { textures, device };
 }
 
 describe("WebGPU runtime mipmap generation", () => {
   it("computes the standard full mip chain length", () => {
-    const { renderer } = makeRenderer();
-    expect(renderer._computeMipLevelCount(16, 16)).toBe(5);
-    expect(renderer._computeMipLevelCount(1, 1)).toBe(1);
-    expect(renderer._computeMipLevelCount(300, 150)).toBe(9);
+    const { textures } = makeTextures();
+    expect(textures.computeMipLevelCount(16, 16)).toBe(5);
+    expect(textures.computeMipLevelCount(1, 1)).toBe(1);
+    expect(textures.computeMipLevelCount(300, 150)).toBe(9);
   });
 
   it("creates a full mip chain and generates it for a fresh texture by default", () => {
-    const { renderer, device } = makeRenderer();
+    const { textures, device } = makeTextures();
     const tex = Texture.fromCanvas({ width: 16, height: 16 } as HTMLCanvasElement);
 
-    renderer._getTextureView(tex);
+    textures.getTextureView(tex, { mipmapping: true } as QualityConfig);
 
     expect(device.createTexture).toHaveBeenCalledWith(
       expect.objectContaining({ mipLevelCount: 5 }),
@@ -69,10 +100,10 @@ describe("WebGPU runtime mipmap generation", () => {
   });
 
   it("issues mipLevelCount - 1 blit draws per generation", () => {
-    const { renderer, device } = makeRenderer();
+    const { textures, device } = makeTextures();
     const tex = Texture.fromCanvas({ width: 16, height: 16 } as HTMLCanvasElement);
 
-    renderer._getTextureView(tex);
+    textures.getTextureView(tex, { mipmapping: true } as QualityConfig);
 
     const commandEncoder = (device.createCommandEncoder as ReturnType<typeof vi.fn>).mock
       .results[0]!.value;
@@ -80,12 +111,12 @@ describe("WebGPU runtime mipmap generation", () => {
   });
 
   it("skips generation when the texture opts out via generateMipmaps: false", () => {
-    const { renderer, device } = makeRenderer();
+    const { textures, device } = makeTextures();
     const tex = Texture.fromCanvas({ width: 16, height: 16 } as HTMLCanvasElement, {
       generateMipmaps: false,
     });
 
-    renderer._getTextureView(tex);
+    textures.getTextureView(tex, { mipmapping: true } as QualityConfig);
 
     expect(device.createTexture).toHaveBeenCalledWith(
       expect.objectContaining({ mipLevelCount: 1 }),
@@ -94,11 +125,10 @@ describe("WebGPU runtime mipmap generation", () => {
   });
 
   it("skips generation when quality.mipmapping is disabled, even if the texture allows it", () => {
-    const { renderer, device } = makeRenderer();
-    renderer._quality.mipmapping = false;
+    const { textures, device } = makeTextures();
     const tex = Texture.fromCanvas({ width: 16, height: 16 } as HTMLCanvasElement);
 
-    renderer._getTextureView(tex);
+    textures.getTextureView(tex, { mipmapping: false } as QualityConfig);
 
     expect(device.createTexture).toHaveBeenCalledWith(
       expect.objectContaining({ mipLevelCount: 1 }),
@@ -107,14 +137,14 @@ describe("WebGPU runtime mipmap generation", () => {
   });
 
   it("regenerates the mip chain on a needsUpdate re-upload", () => {
-    const { renderer, device } = makeRenderer();
+    const { textures, device } = makeTextures();
     const tex = Texture.fromCanvas({ width: 16, height: 16 } as HTMLCanvasElement);
 
-    renderer._getTextureView(tex);
+    textures.getTextureView(tex, { mipmapping: true } as QualityConfig);
     expect(device.queue.submit).toHaveBeenCalledTimes(1);
 
     tex.needsUpdate = true;
-    renderer._getTextureView(tex);
+    textures.getTextureView(tex, { mipmapping: true } as QualityConfig);
 
     expect(device.queue.copyExternalImageToTexture).toHaveBeenCalledTimes(2);
     expect(device.queue.submit).toHaveBeenCalledTimes(2);

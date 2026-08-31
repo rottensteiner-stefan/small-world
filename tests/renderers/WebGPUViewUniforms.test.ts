@@ -6,6 +6,9 @@ import {
   VIEW_SLOT_CASCADE_BASE,
   VIEW_SLOT_SPOT_SHADOW_BASE,
 } from "../../src/renderers/WebGPU/WebGPURenderer.js";
+import { GPUFallbackResources } from "../../src/renderers/WebGPU/managers/GPUFallbackResources.js";
+import { GPUTextureResourceCache } from "../../src/renderers/WebGPU/managers/GPUTextureResourceCache.js";
+import { GPUPipelineCache } from "../../src/renderers/WebGPU/managers/GPUPipelineCache.js";
 import { Object3D } from "../../src/core/Object3D.js";
 import { ShaderRegistry } from "../../src/core/renderers/shaders/ShaderRegistry.js";
 import { RenderManifest } from "../../src/core/renderers/shaders/RenderManifest.js";
@@ -66,7 +69,7 @@ function makeMockDevice(): GPUDevice {
       createView: vi.fn(() => ({})),
       destroy: vi.fn(),
     })),
-    queue: { writeBuffer: vi.fn(), copyExternalImageToTexture: vi.fn() },
+    queue: { writeBuffer: vi.fn(), writeTexture: vi.fn(), copyExternalImageToTexture: vi.fn() },
   } as unknown as GPUDevice;
 }
 
@@ -74,14 +77,27 @@ function makeRenderer(): { renderer: RendererInternals; device: GPUDevice } {
   const device = makeMockDevice();
   const renderer = new WebGPURenderer() as RendererInternals;
   renderer._device = device;
+  renderer._fallback = new GPUFallbackResources(device);
+  renderer._textures = new GPUTextureResourceCache(device, renderer._fallback);
   renderer._globalBGL = { mock: "globalBGL" };
   renderer._objectBGL = { mock: "objectBGL" };
   renderer._viewBGL = { mock: "viewBGL" };
+  renderer._pipelineCache = new GPUPipelineCache(
+    device,
+    renderer._globalBGL,
+    renderer._objectBGL,
+    renderer._viewBGL,
+  );
   renderer._objectRingBindGroup = { mock: "objectRingBindGroup" };
   renderer._ensureObjectRingCapacity(1024);
   renderer._viewUniformBuffer = { mock: "viewUniformBuffer" };
   renderer._viewBindGroup = { mock: "viewBindGroup" };
   renderer._viewUniformStride = 256;
+  // Setup above (GPUFallbackResources construction, _ensureObjectRingCapacity) makes its own
+  // queue.writeBuffer/writeTexture calls -- clear the mock history so call-count assertions
+  // below only see calls made by the actual code under test.
+  vi.mocked(device.queue.writeBuffer).mockClear();
+  vi.mocked(device.queue.writeTexture).mockClear();
   return { renderer, device };
 }
 
@@ -199,10 +215,15 @@ describe("WebGPU per-draw view uniform buffer (group 3)", () => {
     expect(viewSlotWrite![1]).toBe(VIEW_SLOT_MAIN_CAMERA * 256);
   });
 
-  it("_getPipeline's pipeline layout includes all 4 bind group layouts", () => {
+  it("GPUPipelineCache.getPipeline's pipeline layout includes all 4 bind group layouts", () => {
     const { renderer, device } = makeRenderer();
 
-    const cache = renderer._getPipeline(makeManifest(), "triangle-list", false);
+    const cache = renderer._pipelineCache.getPipeline(
+      makeManifest(),
+      "triangle-list",
+      false,
+      "rgba8unorm",
+    );
 
     expect(cache.bgLayouts).toEqual([
       renderer._globalBGL,
