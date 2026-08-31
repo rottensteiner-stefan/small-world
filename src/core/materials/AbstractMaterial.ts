@@ -21,7 +21,7 @@ export abstract class AbstractMaterial implements ShaderProvider {
   /** The unique identifier of the material. */
   public uuid: string = MathUtils.generateUUID();
   /** The base color of the material. */
-  public color: Color = Color.WHITE;
+  public color: Color = new Color(1, 1, 1);
 
   /** The culling mode for this material. Defaults to BACK. */
   public cullMode: CullMode = CullMode.DEFAULT;

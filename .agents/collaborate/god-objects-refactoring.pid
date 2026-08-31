@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "protocol_version": "1.0",
+  "topic_file": ".agents/collaborate/god-objects-refactoring.md",
+  "pid_file": ".agents/collaborate/god-objects-refactoring.pid",
+  "revision": 14,
+  "max_rounds": 8,
+  "current_round": 3,
+  "turn_index": 0,
+  "active_agent": "Alice",
+  "status": "consensus_reached",
+  "paused_agent": null,
+  "roster": [
+    { "name": "Alice", "role": "Engine Architect & Core Lead", "channel": "manual" },
+    { "name": "Bob", "role": "Rendering & Shading Specialist", "channel": "manual" },
+    { "name": "Charly", "role": "Tools, Performance & Physics Lead", "channel": "manual" }
+  ],
+  "consensus": {
+    "reached": true,
+    "proposal_id": "v1.2",
+    "signatures": ["Alice", "Bob", "Charly"]
+  },
+  "history": [
+    {
+      "round": 1,
+      "agent": "System",
+      "action": "session_initialized",
+      "timestamp": "2026-08-30T22:15:00Z"
+    },
+    {
+      "round": 1,
+      "agent": "Alice",
+      "action": "turn_completed",
+      "timestamp": "2026-08-30T22:21:00Z"
+    },
+    {
+      "round": 1,
+      "agent": "Bob",
+      "action": "turn_completed",
+      "timestamp": "2026-08-31T00:20:00Z"
+    },
+    {
+      "round": 1,
+      "agent": "Charly",
+      "action": "turn_completed",
+      "timestamp": "2026-08-31T00:27:00Z"
+    },
+    {
+      "round": 2,
+      "agent": "Bob",
+      "action": "pid_reconstructed_after_skill_rename",
+      "timestamp": "2026-08-31T00:55:00Z"
+    },
+    {
+      "round": 2,
+      "agent": "Alice",
+      "action": "turn_completed",
+      "timestamp": "2026-08-31T01:20:00Z"
+    },
+    {
+      "round": 2,
+      "agent": "Bob",
+      "action": "turn_completed",
+      "timestamp": "2026-08-31T01:45:00Z"
+    },
+    {
+      "round": 2,
+      "agent": "Charly",
+      "action": "turn_completed",
+      "timestamp": "2026-08-31T02:15:00Z"
+    },
+    {
+      "round": 3,
+      "agent": "Alice",
+      "action": "consensus_reached",
+      "timestamp": "2026-08-31T02:40:00Z"
+    }
+  ],
+  "custom_data": {
+    "reconstruction_note": "Original .agents/team-work/god-objects-refactoring.pid was lost when a concurrent, uncommitted rename of the team-work skill to 'collaborate' removed the .agents/team-work/ directory. State reconstructed from the last known PID read (revision 5) and the verbatim topic document content, which survived the move intact. No round content was lost or altered.",
+    "final_proposal": "v1.2 -- unanimously signed by Alice, Bob, Charly. See '[CONSENSUS_REACHED: v1.2]' block at the end of the topic document for the full binding plan (Phase 0-4)."
+  }
+}
