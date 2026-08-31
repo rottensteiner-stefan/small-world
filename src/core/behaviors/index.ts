@@ -1,4 +1,5 @@
 export * from "./Behavior.js";
+export * from "./PickingBehavior.js";
 export * from "./HoverBehavior.js";
 export * from "./DraggableBehavior.js";
 export * from "./FlickerBehavior.js";

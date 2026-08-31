@@ -54,17 +54,15 @@ import { ShaderRegistry } from "./ShaderRegistry.js";
  * Utility to load and register all standard shader chunks used by the engine.
  */
 export class CoreShaderChunks {
-  private static _isInitialized: boolean = false;
+  private static _bootstrapped: WeakSet<ShaderRegistry> = new WeakSet();
 
   /**
    * Initializes the registry with all standard chunks for all supported languages.
    */
-  public static async init(): Promise<void> {
-    if (this._isInitialized) {
+  public static init(registry: ShaderRegistry = ShaderRegistry.instance): void {
+    if (this._bootstrapped.has(registry)) {
       return;
     }
-
-    const registry = ShaderRegistry.instance;
 
     // --- WebGL 2 Chunks ---
     registry.registerChunk("BASE_VERTEX_HEADER", gl2BaseVsHeader, "glsl300");
@@ -147,6 +145,6 @@ export class CoreShaderChunks {
     registry.registerChunk("FILTER_COLOR_GRADING", filterColorGradingGLSL, "glsl300");
     registry.registerChunk("FILTER_COLOR_GRADING", filterColorGradingWGSL, "wgsl");
 
-    this._isInitialized = true;
+    this._bootstrapped.add(registry);
   }
 }

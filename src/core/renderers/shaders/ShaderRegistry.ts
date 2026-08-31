@@ -1,10 +1,26 @@
 import { ShaderDefinition } from "./ShaderDefinition.js";
 import { ShaderProvider } from "../../../interfaces/index.js";
+import { CoreShaderChunks } from "./CoreShaderChunks.js";
 
 /**
  * Supported shader languages.
  */
 export type ShaderLanguage = "glsl300" | "glsl100" | "wgsl";
+
+/**
+ * Process-wide registry of material shader providers, keyed by material type. Materials aren't
+ * constructed with a reference to a specific engine/registry, so this stays a flat type->provider
+ * lookup rather than per-instance state -- every ShaderRegistry instance consults it as a fallback
+ * in get(). Populated by AbstractMaterial's constructor.
+ */
+const materialShaderProviders = new Map<string, ShaderProvider>();
+
+/** Registers a material type's shader provider for lookup by any ShaderRegistry instance. */
+export function registerMaterialShaderProvider(type: string, provider: ShaderProvider): void {
+  if (!materialShaderProviders.has(type)) {
+    materialShaderProviders.set(type, provider);
+  }
+}
 
 /**
  * Central registry for shader definitions.
@@ -15,10 +31,11 @@ export class ShaderRegistry {
   private _providers: Map<string, ShaderProvider> = new Map();
   private _chunks: Map<string, Map<ShaderLanguage, string>> = new Map();
 
-  private constructor() {}
+  constructor() {}
 
   /**
-   * Gets the singleton instance of the ShaderRegistry.
+   * Gets the process-wide default ShaderRegistry instance.
+   * @deprecated Use an instance via `RendererContext.shaderRegistry` instead. Removal target: v1.0.0.
    * @returns The instance.
    */
   public static get instance(): ShaderRegistry {
@@ -52,13 +69,20 @@ export class ShaderRegistry {
    * @returns The shader definition or undefined if not found.
    */
   public get(id: string): ShaderDefinition | undefined {
+    CoreShaderChunks.init(this);
     let def = this._shaders.get(id);
 
-    if (!def && this._providers.has(id)) {
-      const provider = this._providers.get(id)!;
-      def = provider.getShaderDefinition();
-      this.register(def);
-      this._providers.delete(id); // Move from provider to registered shader
+    if (!def) {
+      const provider = this._providers.get(id) ?? materialShaderProviders.get(id);
+      if (provider) {
+        def = provider.getShaderDefinition();
+        this.register(def);
+        this._providers.delete(id); // Move from provider to registered shader
+      }
+    }
+
+    if (!def && this !== ShaderRegistry._instance && ShaderRegistry._instance) {
+      def = ShaderRegistry._instance.get(id);
     }
 
     return def;
@@ -84,7 +108,12 @@ export class ShaderRegistry {
    * @returns The source code of the chunk or undefined if not found.
    */
   public getChunk(id: string, lang: ShaderLanguage): string | undefined {
-    return this._chunks.get(id)?.get(lang);
+    CoreShaderChunks.init(this);
+    const chunk = this._chunks.get(id)?.get(lang);
+    if (undefined === chunk && this !== ShaderRegistry._instance && ShaderRegistry._instance) {
+      return ShaderRegistry._instance.getChunk(id, lang);
+    }
+    return chunk;
   }
 
   /**
@@ -95,6 +124,7 @@ export class ShaderRegistry {
    * @returns The source code with all placeholders replaced.
    */
   public assemble(source: string, lang: ShaderLanguage): string {
+    CoreShaderChunks.init(this);
     // Regex matches [CHUNK_NAME] but avoids [0-9] or single letters to not collide with GLSL array indexing
     return source.replace(/\[([A-Z][A-Z0-9_]+)\]/g, (match: string, chunkId: string) => {
       const chunk: string | undefined = this.getChunk(chunkId, lang);

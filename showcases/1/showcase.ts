@@ -43,7 +43,7 @@ class Showcase1 extends AbstractShowcase {
 
     this._myCube.geometry = new Cube({ size: 2 }).getGeometryData();
     this._myCube.material = new PhongMaterial({
-      color: Color.DODGERBLUE,
+      color: Color.fromName("dodgerblue")!,
       shininess: 60,
     });
     this._myCube.castShadow = true;

@@ -1162,11 +1162,11 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
     root.add(rat1);
 
     // ==========================================
-    // 2. Ratte 2: Schnüffelnde Ratte am Fuß des Schutthaufens
+    // 2. Ratte 2: Schnüffelnde Ratte auf dem Schutthaufen (blickt in den Raum)
     // ==========================================
     const rat2 = new Object3D("Rat_DebrisSniffer");
     rat2.position.set(-1.18, 0.26, -1.08);
-    rat2.rotation.y = 2.2;
+    rat2.rotation.y = 0.78; // Blickt in den offenen Raum / zur Raummitte
     root.add(rat2);
 
     const body2 = new Object3D("Rat2Body");

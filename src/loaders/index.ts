@@ -6,6 +6,7 @@ export * from "./MtlLoader.js";
 export * from "./ObjLoader.js";
 export * from "./SkyboxLoader.js";
 export * from "./GltfLoader.js";
+export * from "./gltf/index.js";
 export * from "./WorldWriter.js";
 export * from "./BinaryStreamLoader.js";
 export * from "./GeometryWorkerProcessor.js";

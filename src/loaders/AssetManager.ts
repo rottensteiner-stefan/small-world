@@ -9,27 +9,30 @@ interface AssetProgress {
 }
 
 /**
- * Centralized manager for loading and caching assets (images, text, etc.).
- * Provides global progress tracking and loading state.
+ * Per-instance manager for loading and caching assets (images, text, etc.). Construct one per
+ * engine instance (see `RendererContext.assetManager`) so its cache can be released with the
+ * engine instead of living for the process's lifetime.
  */
 export class AssetManager {
-  private static _imageCache = new Map<string, Promise<ImageBitmap | HTMLImageElement>>();
-  private static _textCache = new Map<string, Promise<string>>();
-  private static _jsonCache = new Map<string, Promise<unknown>>();
-  private static _binaryCache = new Map<string, Promise<ArrayBuffer>>();
+  private static _default: AssetManager | undefined;
 
-  private static _activeLoaders = new Map<string, AssetProgress>();
-  private static _onLoadedPromise: Promise<void> | undefined = undefined;
-  private static _resolveLoaded: (() => void) | undefined = undefined;
+  private _imageCache = new Map<string, Promise<ImageBitmap | HTMLImageElement>>();
+  private _textCache = new Map<string, Promise<string>>();
+  private _jsonCache = new Map<string, Promise<unknown>>();
+  private _binaryCache = new Map<string, Promise<ArrayBuffer>>();
 
-  private static _baseUrl: string = "";
-  private static _headers: Record<string, string> = {};
+  private _activeLoaders = new Map<string, AssetProgress>();
+  private _onLoadedPromise: Promise<void> | undefined = undefined;
+  private _resolveLoaded: (() => void) | undefined = undefined;
+
+  private _baseUrl: string = "";
+  private _headers: Record<string, string> = {};
 
   /**
    * Sets a base URL that will be prepended to all relative asset paths.
    * @param url The base URL (e.g. "https://cdn.example.com/assets/").
    */
-  public static setBaseUrl(url: string): void {
+  public setBaseUrl(url: string): void {
     this._baseUrl = url;
     if (this._baseUrl && !this._baseUrl.endsWith("/")) {
       this._baseUrl += "/";
@@ -41,14 +44,14 @@ export class AssetManager {
    * @param key The header name (e.g. "Authorization").
    * @param value The header value.
    */
-  public static setHeader(key: string, value: string): void {
+  public setHeader(key: string, value: string): void {
     this._headers[key] = value;
   }
 
   /**
    * Returns a promise that resolves when all currently active loading processes are finished.
    */
-  public static async onLoaded(): Promise<void> {
+  public async onLoaded(): Promise<void> {
     if (0 === this._activeLoaders.size) {
       return Promise.resolve();
     }
@@ -63,14 +66,14 @@ export class AssetManager {
   /**
    * Checks if all assets are currently loaded.
    */
-  public static get isLoaded(): boolean {
+  public get isLoaded(): boolean {
     return 0 === this._activeLoaders.size;
   }
 
   /**
    * Returns the global loading progress (0.0 to 1.0).
    */
-  public static getGlobalProgress(): number {
+  public getGlobalProgress(): number {
     if (0 === this._activeLoaders.size) return 1.0;
 
     let loaded = 0;
@@ -93,7 +96,7 @@ export class AssetManager {
    *   progress, and whichever finishes first would delete the entry via `_checkCompletion` while
    *   the other is still in flight, making `onLoaded()`/`isLoaded` report done too early.
    */
-  private static async _fetchWithProgress(
+  private async _fetchWithProgress(
     url: string,
     trackingKey: string,
     onProgress?: ProgressCallback,
@@ -149,7 +152,7 @@ export class AssetManager {
     return new Blob(chunks as BlobPart[]);
   }
 
-  private static _checkCompletion(url: string): void {
+  private _checkCompletion(url: string): void {
     this._activeLoaders.delete(url);
     if (0 === this._activeLoaders.size && this._resolveLoaded) {
       this._resolveLoaded();
@@ -158,7 +161,7 @@ export class AssetManager {
     }
   }
 
-  public static async loadImage(
+  public async loadImage(
     url: string,
     onProgress?: ProgressCallback,
     flipY: boolean = false,
@@ -207,7 +210,7 @@ export class AssetManager {
     return loadPromise;
   }
 
-  public static async loadText(url: string, onProgress?: ProgressCallback): Promise<string> {
+  public async loadText(url: string, onProgress?: ProgressCallback): Promise<string> {
     if (this._textCache.has(url)) return this._textCache.get(url)!;
     const trackingKey = `text:${url}`;
     const loadPromise = this._fetchWithProgress(url, trackingKey, onProgress)
@@ -220,7 +223,7 @@ export class AssetManager {
     return loadPromise;
   }
 
-  public static async loadJson(url: string, onProgress?: ProgressCallback): Promise<unknown> {
+  public async loadJson(url: string, onProgress?: ProgressCallback): Promise<unknown> {
     if (this._jsonCache.has(url)) return this._jsonCache.get(url)!;
     const trackingKey = `json:${url}`;
     const loadPromise = this._fetchWithProgress(url, trackingKey, onProgress)
@@ -234,7 +237,7 @@ export class AssetManager {
     return loadPromise;
   }
 
-  public static async loadBinary(url: string, onProgress?: ProgressCallback): Promise<ArrayBuffer> {
+  public async loadBinary(url: string, onProgress?: ProgressCallback): Promise<ArrayBuffer> {
     if (this._binaryCache.has(url)) return this._binaryCache.get(url)!;
     const trackingKey = `binary:${url}`;
     const loadPromise = this._fetchWithProgress(url, trackingKey, onProgress)
@@ -254,7 +257,7 @@ export class AssetManager {
    * @param onChunk Optional callback invoked when each chunk is received.
    * @param onProgress Optional progress callback.
    */
-  public static async streamBinary(
+  public async streamBinary(
     url: string,
     onChunk?: (chunk: Uint8Array, loaded: number, total: number) => void,
     onProgress?: ProgressCallback,
@@ -320,5 +323,67 @@ export class AssetManager {
     const arrayBuf = finalBuffer.buffer;
     this._binaryCache.set(url, Promise.resolve(arrayBuf));
     return arrayBuf;
+  }
+
+  private static get _sharedDefault(): AssetManager {
+    return (this._default ??= new AssetManager());
+  }
+
+  /** @deprecated Use an instance via `RendererContext.assetManager` instead. Removal target: v1.0.0. */
+  public static setBaseUrl(url: string): void {
+    this._sharedDefault.setBaseUrl(url);
+  }
+
+  /** @deprecated Use an instance via `RendererContext.assetManager` instead. Removal target: v1.0.0. */
+  public static setHeader(key: string, value: string): void {
+    this._sharedDefault.setHeader(key, value);
+  }
+
+  /** @deprecated Use an instance via `RendererContext.assetManager` instead. Removal target: v1.0.0. */
+  public static async onLoaded(): Promise<void> {
+    return this._sharedDefault.onLoaded();
+  }
+
+  /** @deprecated Use an instance via `RendererContext.assetManager` instead. Removal target: v1.0.0. */
+  public static get isLoaded(): boolean {
+    return this._sharedDefault.isLoaded;
+  }
+
+  /** @deprecated Use an instance via `RendererContext.assetManager` instead. Removal target: v1.0.0. */
+  public static getGlobalProgress(): number {
+    return this._sharedDefault.getGlobalProgress();
+  }
+
+  /** @deprecated Use an instance via `RendererContext.assetManager` instead. Removal target: v1.0.0. */
+  public static async loadImage(
+    url: string,
+    onProgress?: ProgressCallback,
+    flipY: boolean = false,
+  ): Promise<ImageBitmap | HTMLImageElement> {
+    return this._sharedDefault.loadImage(url, onProgress, flipY);
+  }
+
+  /** @deprecated Use an instance via `RendererContext.assetManager` instead. Removal target: v1.0.0. */
+  public static async loadText(url: string, onProgress?: ProgressCallback): Promise<string> {
+    return this._sharedDefault.loadText(url, onProgress);
+  }
+
+  /** @deprecated Use an instance via `RendererContext.assetManager` instead. Removal target: v1.0.0. */
+  public static async loadJson(url: string, onProgress?: ProgressCallback): Promise<unknown> {
+    return this._sharedDefault.loadJson(url, onProgress);
+  }
+
+  /** @deprecated Use an instance via `RendererContext.assetManager` instead. Removal target: v1.0.0. */
+  public static async loadBinary(url: string, onProgress?: ProgressCallback): Promise<ArrayBuffer> {
+    return this._sharedDefault.loadBinary(url, onProgress);
+  }
+
+  /** @deprecated Use an instance via `RendererContext.assetManager` instead. Removal target: v1.0.0. */
+  public static async streamBinary(
+    url: string,
+    onChunk?: (chunk: Uint8Array, loaded: number, total: number) => void,
+    onProgress?: ProgressCallback,
+  ): Promise<ArrayBuffer> {
+    return this._sharedDefault.streamBinary(url, onChunk, onProgress);
   }
 }

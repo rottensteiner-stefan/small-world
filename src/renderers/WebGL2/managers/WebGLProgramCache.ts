@@ -43,10 +43,16 @@ export class WebGLProgramCache {
 
   private _programs = new Map<string, WebGL2ProgramCacheEntry>();
   private _lastKnownProgramKey = new WeakMap<Object3D, string>();
+  private readonly _shaderRegistry: ShaderRegistry;
 
-  constructor(gl: WebGL2RenderingContext, globalUBO: WebGL2UniformBuffer) {
+  constructor(
+    gl: WebGL2RenderingContext,
+    globalUBO: WebGL2UniformBuffer,
+    shaderRegistry: ShaderRegistry,
+  ) {
     this._gl = gl;
     this._globalUBO = globalUBO;
+    this._shaderRegistry = shaderRegistry;
   }
 
   public programCacheKey(shaderId: string, isInstanced: boolean, flags: string[]): string {
@@ -62,15 +68,15 @@ export class WebGLProgramCache {
     const key = this.programCacheKey(shaderId, isInstanced, flags);
     let cache = this._programs.get(key);
     if (!cache) {
-      const def = ShaderRegistry.instance.get(shaderId);
+      const def = this._shaderRegistry.get(shaderId);
       if (!def || !def.sources.glsl300) {
         throw new Error(
           `[WebGL2Renderer] Shader definition for ${shaderId} not found or missing GLSL 300 source.`,
         );
       }
 
-      let vs = ShaderRegistry.instance.assemble(def.sources.glsl300.vs, "glsl300");
-      let fs = ShaderRegistry.instance.assemble(def.sources.glsl300.fs, "glsl300");
+      let vs = this._shaderRegistry.assemble(def.sources.glsl300.vs, "glsl300");
+      let fs = this._shaderRegistry.assemble(def.sources.glsl300.fs, "glsl300");
 
       let defines = "";
       if (isInstanced) defines += "#define USE_INSTANCING 1\n";

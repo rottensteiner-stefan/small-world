@@ -78,7 +78,7 @@ export class Showcase2 extends AbstractShowcase {
 
     // We use a wireframe material so that the movement is better perceived
     const floorMat: WireframeMaterial = new WireframeMaterial();
-    floorMat.color = Color.DARKSLATEGRAY;
+    floorMat.color = Color.fromName("darkslategray")!;
     floor.material = floorMat;
 
     this.scene.add(floor);

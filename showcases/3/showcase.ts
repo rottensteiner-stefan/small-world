@@ -51,7 +51,7 @@ class Showcase3 extends AbstractShowcase {
     const gridObj: Object3D = new Object3D("Floor");
     gridObj.geometry = new Grid({ size: 20, divisions: 20 }).getGeometryData();
     const gridMat: WireframeMaterial = new WireframeMaterial();
-    gridMat.color = Color.DARKSLATEGRAY;
+    gridMat.color = Color.fromName("darkslategray")!;
     gridObj.material = gridMat;
     this.scene.add(gridObj);
 

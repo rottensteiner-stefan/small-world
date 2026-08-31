@@ -2,6 +2,7 @@ import "../../src/index.js";
 import { describe, expect, it, vi, beforeAll } from "vitest";
 import { WebGLProgramCache } from "../../src/renderers/WebGL2/managers/WebGLProgramCache.js";
 import { CoreShaderChunks } from "../../src/core/renderers/shaders/CoreShaderChunks.js";
+import { ShaderRegistry } from "../../src/core/renderers/shaders/ShaderRegistry.js";
 import { BasicMaterial } from "../../src/core/materials/BasicMaterial.js";
 import { Object3D } from "../../src/core/Object3D.js";
 import { MaterialType } from "../../src/enums/index.js";
@@ -43,7 +44,11 @@ function makeMockGl(): WebGL2RenderingContext {
 
 function makeCache(): { cache: WebGLProgramCache; gl: WebGL2RenderingContext } {
   const gl = makeMockGl();
-  const cache = new WebGLProgramCache(gl, { bindToProgram: vi.fn() } as never);
+  const cache = new WebGLProgramCache(
+    gl,
+    { bindToProgram: vi.fn() } as never,
+    ShaderRegistry.instance,
+  );
   return { cache, gl };
 }
 

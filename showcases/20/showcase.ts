@@ -107,7 +107,7 @@ class Showcase20 extends AbstractShowcase {
     const companion = new Object3D("Companion");
     companion.geometry = new Sphere({ radius: 0.5 }).getGeometryData();
     companion.material = new StandardMaterial({
-      color: Color.CORNFLOWERBLUE,
+      color: Color.fromName("cornflowerblue")!,
       metallic: 0.2,
       roughness: 0.8,
     });
@@ -152,7 +152,11 @@ class Showcase20 extends AbstractShowcase {
     // Spaceship body (Cone)
     const body = new Object3D("ShipBody");
     body.geometry = new Cone({ radius: 0.8, height: 3.0 }).getGeometryData();
-    body.material = new StandardMaterial({ color: Color.HOTPINK, metallic: 1.0, roughness: 0.1 });
+    body.material = new StandardMaterial({
+      color: Color.fromName("hotpink")!,
+      metallic: 1.0,
+      roughness: 0.1,
+    });
     // Point the cone forward (-Z) instead of up (+Y)
     body.rotation.x = Math.PI / 2;
     body.castShadow = true;

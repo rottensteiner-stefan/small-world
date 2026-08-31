@@ -1,9 +1,14 @@
-import { Renderer, EngineOptions, createDefaultRendererContext } from "../interfaces/index.js";
+import {
+  Renderer,
+  EngineOptions,
+  RendererContext,
+  createDefaultRendererContext,
+} from "../interfaces/index.js";
 import { RendererType } from "../enums/index.js";
 import { WebGL1Renderer } from "./WebGL1/index.js";
 import { WebGL2Renderer } from "./WebGL2/index.js";
 import { WebGPURenderer } from "./WebGPU/index.js";
-import { DeviceCaps, DeviceFeature } from "../core/DeviceCaps.js";
+import { DeviceFeature } from "../core/DeviceCaps.js";
 
 /**
  * Factory for creating renderer instances.
@@ -32,13 +37,13 @@ export class RendererFactory {
     type: RendererType | string,
     canvas: HTMLCanvasElement,
     config?: EngineOptions,
+    context: RendererContext = createDefaultRendererContext(),
   ): Promise<Renderer> {
-    DeviceCaps.init();
-    const context = createDefaultRendererContext();
+    context.deviceCaps.init();
 
     let actualType: RendererType | string = type;
     if (RendererType.BEST === actualType) {
-      actualType = DeviceCaps.hasFeature(DeviceFeature.WEBGPU)
+      actualType = context.deviceCaps.hasFeature(DeviceFeature.WEBGPU)
         ? RendererType.WEB_GPU
         : RendererType.WEB_GL2;
     }
@@ -48,7 +53,7 @@ export class RendererFactory {
 
     switch (actualType) {
       case RendererType.WEB_GPU:
-        if (!DeviceCaps.hasFeature(DeviceFeature.WEBGPU)) {
+        if (!context.deviceCaps.hasFeature(DeviceFeature.WEBGPU)) {
           console.warn("[RendererFactory] WebGPU is not supported. Falling back to WebGL2.");
           renderer = new WebGL2Renderer(context);
           fallbackToWebGL2 = true;
@@ -57,7 +62,7 @@ export class RendererFactory {
         }
         break;
       case RendererType.WEB_GL2:
-        if (!DeviceCaps.hasFeature(DeviceFeature.WEBGL2)) {
+        if (!context.deviceCaps.hasFeature(DeviceFeature.WEBGL2)) {
           console.warn("[RendererFactory] WebGL2 is not supported. Falling back to WebGL1.");
           renderer = new WebGL1Renderer(context);
         } else {
@@ -65,7 +70,7 @@ export class RendererFactory {
         }
         break;
       case RendererType.WEB_GL1:
-        if (!DeviceCaps.hasFeature(DeviceFeature.WEBGL1)) {
+        if (!context.deviceCaps.hasFeature(DeviceFeature.WEBGL1)) {
           throw new Error("[RendererFactory] No WebGL1 support detected. Cannot run engine.");
         }
         renderer = new WebGL1Renderer(context);

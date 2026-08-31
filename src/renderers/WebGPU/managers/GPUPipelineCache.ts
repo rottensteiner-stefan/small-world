@@ -146,8 +146,11 @@ export function getOptionalMaterialTextureBindings(): Record<
  * `getOptionalMaterialTextureBindings()` -- i.e. the material-specific textures (beyond the
  * always-bound sampler/normalMap/envMap/emissiveMap) this material's bind group actually needs.
  */
-export function getOptionalMaterialTextureNames(shaderId: string): string[] {
-  const declared = ShaderRegistry.instance.get(shaderId)?.layout.textures;
+export function getOptionalMaterialTextureNames(
+  shaderId: string,
+  shaderRegistry: ShaderRegistry,
+): string[] {
+  const declared = shaderRegistry.get(shaderId)?.layout.textures;
   if (!declared) return [];
   const bindings = getOptionalMaterialTextureBindings();
   return Object.keys(declared).filter((name) => name in bindings);
@@ -177,6 +180,7 @@ export class GPUPipelineCache {
   private readonly _globalBGL: GPUBindGroupLayout;
   private readonly _objectBGL: GPUBindGroupLayout;
   private readonly _viewBGL: GPUBindGroupLayout;
+  private readonly _shaderRegistry: ShaderRegistry;
 
   private _pipelines = new Map<string, WebGPUPipelineCacheEntry>();
   private _shaderModules = new Map<string, GPUShaderModule>();
@@ -190,11 +194,13 @@ export class GPUPipelineCache {
     globalBGL: GPUBindGroupLayout,
     objectBGL: GPUBindGroupLayout,
     viewBGL: GPUBindGroupLayout,
+    shaderRegistry: ShaderRegistry,
   ) {
     this._device = device;
     this._globalBGL = globalBGL;
     this._objectBGL = objectBGL;
     this._viewBGL = viewBGL;
+    this._shaderRegistry = shaderRegistry;
   }
 
   /**
@@ -221,7 +227,7 @@ export class GPUPipelineCache {
         },
       ];
       const bindingInfo = getOptionalMaterialTextureBindings();
-      for (const name of getOptionalMaterialTextureNames(shaderId)) {
+      for (const name of getOptionalMaterialTextureNames(shaderId, this._shaderRegistry)) {
         const info = bindingInfo[name]!;
         if ("u_diffuseMap" === name && flags.includes("USE_TEXTURE_ARRAY")) {
           matEntries.push({
@@ -429,14 +435,14 @@ export class GPUPipelineCache {
     const key = isInstanced ? `${shaderId}_instanced${flagKey}` : `${shaderId}${flagKey}`;
     let sm = this._shaderModules.get(key);
     if (!sm) {
-      const def = ShaderRegistry.instance.get(shaderId);
+      const def = this._shaderRegistry.get(shaderId);
       if (!def || !def.sources.wgsl) {
         throw new Error(
           `[WebGPURenderer] Shader definition for ${shaderId} not found or missing WGSL source.`,
         );
       }
 
-      let code = ShaderRegistry.instance.assemble(def.sources.wgsl, "wgsl");
+      let code = this._shaderRegistry.assemble(def.sources.wgsl, "wgsl");
 
       let wgslConstants = "";
       if (flags.includes("USE_TEXTURE_ARRAY")) {

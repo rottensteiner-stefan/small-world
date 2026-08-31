@@ -3,22 +3,21 @@ import { ShaderRegistry } from "../core/renderers/shaders/ShaderRegistry.js";
 import { AssetManager } from "../loaders/AssetManager.js";
 
 /**
- * Per-engine-instance bundle for the three subsystems that are still process-wide
- * static singletons (DeviceCaps, ShaderRegistry, AssetManager). No behavior change yet --
- * see .agents/collaborate/god-objects-refactoring.md Phase 1 for the instance migration
- * this seam exists for.
+ * Per-engine-instance bundle of DeviceCaps/ShaderRegistry/AssetManager, replacing the process-wide
+ * static/singleton access those three used to be the only way to reach -- see
+ * .agents/collaborate/god-objects-refactoring.md Phases 0-1.
  */
 export interface RendererContext {
-  readonly deviceCaps: typeof DeviceCaps;
+  readonly deviceCaps: DeviceCaps;
   readonly shaderRegistry: ShaderRegistry;
-  readonly assetManager: typeof AssetManager;
+  readonly assetManager: AssetManager;
 }
 
-/** Builds a context wrapping today's static singletons -- identical behavior, new seam. */
+/** Builds a context of fresh, independent instances -- one per engine, not process-wide. */
 export function createDefaultRendererContext(): RendererContext {
   return {
-    deviceCaps: DeviceCaps,
-    shaderRegistry: ShaderRegistry.instance,
-    assetManager: AssetManager,
+    deviceCaps: new DeviceCaps(),
+    shaderRegistry: new ShaderRegistry(),
+    assetManager: new AssetManager(),
   };
 }

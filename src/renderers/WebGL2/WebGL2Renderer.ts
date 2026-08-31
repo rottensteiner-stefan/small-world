@@ -218,7 +218,11 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     // vec4 alignment padding) for clustered light culling -- see
     // docs/adr/0007-clustered-lighting-webgl2-webgpu-only.md.
     this._globalUBO = new WebGL2UniformBuffer(this.gl, 2176, 0);
-    this._programCache = new WebGLProgramCache(this.gl, this._globalUBO);
+    this._programCache = new WebGLProgramCache(
+      this.gl,
+      this._globalUBO,
+      this.context.shaderRegistry,
+    );
     this._allocateClusterTextures({ x: 1, y: 1, z: 1 }, 1);
 
     // Runs first: WebGLShadowPass's updateGlobalUBO() flushes the whole UBO (including the

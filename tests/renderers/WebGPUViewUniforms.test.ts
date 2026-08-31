@@ -90,6 +90,7 @@ function makeRenderer(): { renderer: RendererInternals; device: GPUDevice } {
     renderer._globalBGL,
     renderer._objectBGL,
     renderer._viewBGL,
+    renderer.context.shaderRegistry,
   );
   renderer._objectRing = new GPUObjectRingBuffer(device, renderer._objectBGL);
   renderer._geometryCache = new GPUGeometryCache(device);

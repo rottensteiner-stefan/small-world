@@ -905,6 +905,11 @@ befüllen.
   4. [`tests/core/CharacterSockets.test.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/tests/core/CharacterSockets.test.ts): Validiert Knöchel-/Handflächen-Socket-Ausrichtung (`mixamorig:LeftHandMiddle1`) und dynamische Transform-Synchronisation bei Charakterbewegung.
 - **Status:** 101 Testsuiten, 567 Tests, Build/Lint 100% grün.
 
+## 97. Diorama-Ratten-Ausrichtung (2026-08-31)
+- **Schutthaufen-Ratte (`Rat_DebrisSniffer`):**
+  - Rotation `rotation.y` von `2.2` auf `0.78` angepasst, sodass die Ratte auf dem Schutthaufen nicht mehr rückwärts in Kiste 2 / die Eckwand blickt, sondern nach vorne-rechts in den offenen, beleuchteten Raum und zur Raummitte/zum Charakter blickt.
+- **Status:** 113 Testsuiten, 599 Tests, Build/Lint 100% grün.
+
 
 
 
