@@ -41,7 +41,7 @@ Der menschliche Moderator steuert die Verhandlung über den einheitlichen Befehl
 ### Informations- & Diagnose-Kommandos
 | Befehl | Phase / Aktion | Beschreibung & Wirkung |
 | :--- | :--- | :--- |
-| `/collaborate --check` | **Registrierungs- & Status-Check** | Prüft, an welchen Verhandlungsthemen der aufgerufene Agent (bzw. die aktuelle Session) aktuell beteiligt oder registriert ist. Durchsucht `.agents/collaborate/*.pid` und gibt eine übersichtliche Tabelle mit Thema, Name/Rolle, Status, Runde und Ballbesitz aus. |
+| `/collaborate --status` | **Registrierungs- & Status-Abfrage** | Prüft, an welchen Verhandlungsthemen der aufgerufene Agent (bzw. die aktuelle Session) aktuell beteiligt oder registriert ist. Durchsucht `.agents/collaborate/*.pid` und gibt eine übersichtliche Tabelle mit Thema, Name/Rolle, Status, Runde und Ballbesitz aus. |
 
 ---
 
@@ -351,7 +351,7 @@ A negotiation round ends successfully with **Consensus** if and only if ALL of t
   8. Agent meldet dem Moderator den neuen Stand (wer aktiv ist, oder dass die Session terminiert/pausiert wurde) — Statuszeile zuerst (siehe 5.1): `Working` falls der meldende Agent selbst jetzt `active_agent` ist, sonst `Idle`/`Paused` je nach neuem `status`.
 - Dies ist das einzige im Protokoll vorgesehene Mittel, einen nicht mehr antwortenden Teilnehmer aus der Rotation zu nehmen — es gibt keinen automatischen Timeout (siehe Abschnitt 8). Ohne `--kick` bleibt die Session bei einem toten Agenten für immer in `"idle"` hängen.
 
-### 🔍 `/collaborate --check`
+### 📊 `/collaborate --status`
 
 Prüft, an welchen Kollaborations-Themen der aufgerufene Agent (bzw. die aktuelle Session) aktuell registriert oder beteiligt ist.
 
