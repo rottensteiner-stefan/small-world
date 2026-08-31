@@ -455,4 +455,37 @@ Der verbindliche, von allen drei Rollen (Alice, Bob, Charly) unterschriebene Ref
 
 **Verbindlich für alle Core Architectural Laws (Abschnitt 1) geprüft**, insbesondere No-Global-Singletons (Phase 0/1) und Backward-Compatibility (`Object3D`-API in Phase 3, `@deprecated`-Shims in Phase 1).
 
+---
+
+## 8. Umsetzungsfortschritt (Implementation Progress) — 2026-08-31
+
+* [x] **Phase 1 — `Color.ts` Zero-Allocation:** (Commit `c4b470c1`)
+  - `src/core/colors/Color.ts` von 848 auf 323 Zeilen geschrumpft (-62%).
+  - Statische Grundfarben (`Color.WHITE`, `Color.BLACK` etc.) als gefrorene Singletons (`Object.freeze`) ohne Heap-Allokationen bei Aufruf.
+  - 140+ CSS-Farben in `src/core/colors/ColorNames.ts` ausgelagert.
+  - 9 Unit-Tests in `tests/core/colors/Color.test.ts`.
+
+* [x] **Phase 2 — Tool- & DSP-Modularisierung:** (Commit `05c0e1fa`)
+  - Reine Bildverarbeitungsalgorithmen in `src/tools/common/dsp/TextureFilters.ts` (385 Zeilen) und `src/tools/common/dsp/CanvasOperations.ts` (119 Zeilen) ausgelagert.
+  - `MaterialStudio.ts` und `Pixler.ts` entflochten und auf DSP-Module migriert.
+
+* [x] **Phase 3 — Physik-Dekomposition:** (Commit `05c0e1fa`)
+  - `src/physix/PhysicsSystem.ts` von 734 auf 373 Zeilen geschrumpft (-49%).
+  - Dekomponiert in 4 spezialisierte Subsysteme:
+    - `src/physix/solvers/EulerIntegrator.ts` (Semi-Implicit Euler & Render-Interpolation)
+    - `src/physix/broadphase/PhysicsBroadphase.ts` (Octree & Dynamic World Bounds)
+    - `src/physix/ccd/SweptSphereCCD.ts` (Continuous Collision Detection & Anti-Tunneling)
+    - `src/physix/fluids/BuoyancySolver.ts` (Hydrostatischer Auftrieb & Strömung)
+  - 4 neue Test-Suiten unter `tests/physix/`.
+
+* [x] **Bonus / God-Object-Reduktion — glTF-Loader:** (Commit `e217758a`)
+  - `src/loaders/GltfLoader.ts` von 751 auf 283 Zeilen geschrumpft (-62%).
+  - Dekomponiert in `src/loaders/gltf/` (`GltfBinaryParser.ts`, `GltfMaterialParser.ts`, `GltfAnimationParser.ts`, `GltfGeometryParser.ts`, `GltfSkinParser.ts`).
+  - 5 neue Test-Suiten unter `tests/loaders/gltf/`.
+
+* [x] **Bonus / God-Object-Reduktion — GadgetInspector:** (Commit `6b7d8d2d`)
+  - `src/tools/GadgetInspector.ts` von 1.040 auf 396 Zeilen geschrumpft (-62%).
+  - Dekomponiert in `src/tools/inspector/` (`InspectorGizmos.ts`, `InspectorSelection.ts`, `InspectorDiagnostics.ts`, `InspectorAudio.ts`, `InspectorDeviceCaps.ts`).
+  - Neue Test-Suiten unter `tests/tools/inspector/`.
+
 
