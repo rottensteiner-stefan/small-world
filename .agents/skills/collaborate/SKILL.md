@@ -9,7 +9,28 @@ Collaborative negotiation and joint problem-solving protocol for 2 to X autonomo
 
 ---
 
+
 ## 1. Overview & Core Roles
+
+### Zweck & zweiphasiges Modell
+
+Eine Kollaboration hat immer zwei aufeinander aufbauende Phasen:
+
+1. **Phase A — Gemeinsame Ziele finden:**
+   Bevor konkrete Aufgaben verteilt werden, einigen sich alle Teilnehmer auf ein gemeinsames Zielbild: Was soll am Ende existieren? Welche Qualitätskriterien gelten? Welche Constraints sind nicht verhandelbar? Erst wenn dieses gemeinsame Fundament steht, darf Phase B beginnen.
+
+2. **Phase B — Überschneidungsfreier Umsetzungsplan:**
+   Auf Basis der gemeinsamen Ziele erarbeiten die Teilnehmer einen konkreten Plan, in dem jeder Akteur seine Teilaufgaben hat und Überschneidungen mit anderen Teilnehmern **so gering wie möglich** gehalten werden. Wer was macht, muss eindeutig sein.
+   - **Überschneidungen sind nie vollständig ausschließbar.** Wenn zwei Teilnehmer denselben Bereich berühren müssen, wird die Überschneidung explizit markiert (`[OVERLAP: <Bereich>]`) und von den betroffenen Teilnehmern gemeinsam aufgelöst — nicht unilateral entschieden.
+
+### Konfliktauflösung bei Überschneidungen
+
+Stellt ein Agent während seines Zugs fest, dass sein geplanter Arbeitsbereich mit dem eines anderen Agenten überlappt (z. B. beide planen, dieselbe Datei/API/Schnittstelle zu verändern), gelten folgende Regeln:
+
+1. **Explizit markieren:** Der feststellende Agent fügt einen `[OVERLAP: <Bereich>: <AgentA> ↔ <AgentB>]`-Block in das Topic-Dokument ein.
+2. **Keine unilaterale Auflösung:** Kein Agent darf eine Überschneidung einseitig auflösen, indem er die Zuständigkeit des anderen stillschweigend beansprucht oder ignoriert.
+3. **Direkter Austausch im Topic-Dokument:** Die betroffenen Agenten klären die Überschneidung in ihren Folge-Zügen explizit — wer welchen Teil übernimmt, oder wie eine saubere API-Grenze aussieht, die beide Bereiche entkoppelt.
+4. **Offene Überschneidungen blockieren Konsens:** Ein Konsens (`[CONSENSUS_PROPOSAL]`) ist nur gültig, wenn alle `[OVERLAP]`-Marker entweder aufgelöst oder als bewusstes, dokumentiertes Shared-Ownership akzeptiert sind.
 
 - **Moderator (Human):** Initiates and steers the session using `/collaborate --<flag>`, validates turn order/participants, resolves deadlocks, grants round extensions, and gives final sign-offs.
 - **Agents (AI Participants):** Read the shared topic document, negotiate solutions, challenge assumptions, build consensus, and hand over turns via Round-Robin.
@@ -286,16 +307,21 @@ Look up `roster[next_index].channel` (default: `"manual"`):
 
 ## 6. Definition of "Einigung" (Consensus)
 
-A negotiation round ends successfully with **Consensus** if and only if ALL of the following 3 criteria are satisfied:
+A negotiation round ends successfully with **Consensus** if and only if ALL of the following criteria are satisfied:
 
-1. **Unanimous Signature:**
+1. **Phase A abgeschlossen — Gemeinsame Ziele vereinbart:**
+   - Alle Teilnehmer haben explizit bestätigt, dass das gemeinsame Zielbild klar und akzeptiert ist. Kein Konsens ist möglich, solange grundlegende Ziele noch strittig sind.
+2. **Unanimous Signature:**
    - An agent formulates a concrete, numbered `[CONSENSUS_PROPOSAL]` in the topic document.
    - Every other participating agent explicitly signs it in their subsequent turn with `[AGREED: <AgentName>]` without introducing new blocking objections.
-2. **Zero Lingering Vetoes:**
+3. **Zero Lingering Vetoes:**
    - All open questions (individual questions and `[TEAM_QUESTION]` broadcast items) are answered by all relevant participants.
    - No open items are flagged with `[OBJECTION]` or `[VETO]`.
-3. **Actionable Implementation Plan:**
+4. **Alle Überschneidungen aufgelöst:**
+   - Kein offener `[OVERLAP]`-Marker darf mehr im Topic-Dokument stehen. Jeder Overlap muss entweder: (a) einer Partei klar zugewiesen sein, oder (b) als bewusstes, explizit dokumentiertes Shared-Ownership akzeptiert und beschrieben worden sein.
+5. **Actionable Implementation Plan:**
    - The agreed solution contains clear, unambiguous next steps (who builds what, which APIs/files are modified, performance budgets).
+   - Der Plan enthält für jeden Teilnehmer eine **eindeutige, überschneidungsfreie Zuständigkeitsliste** — auch wenn Phase B Kompromisse erfordert.
 
 ---
 
