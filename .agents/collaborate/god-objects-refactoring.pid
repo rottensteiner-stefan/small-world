@@ -3,15 +3,14 @@
   "protocol_version": "1.0",
   "topic_file": ".agents/collaborate/god-objects-refactoring.md",
   "pid_file": ".agents/collaborate/god-objects-refactoring.pid",
-  "revision": 14,
+  "revision": 15,
   "max_rounds": 8,
   "current_round": 3,
   "turn_index": 0,
-  "active_agent": "Alice",
-  "status": "consensus_reached",
+  "active_agent": "Bob",
+  "status": "idle",
   "paused_agent": null,
   "roster": [
-    { "name": "Alice", "role": "Engine Architect & Core Lead", "channel": "manual" },
     { "name": "Bob", "role": "Rendering & Shading Specialist", "channel": "manual" },
     { "name": "Charly", "role": "Tools, Performance & Physics Lead", "channel": "manual" }
   ],
@@ -74,6 +73,13 @@
       "agent": "Alice",
       "action": "consensus_reached",
       "timestamp": "2026-08-31T02:40:00Z"
+    },
+    {
+      "round": 3,
+      "agent": "Moderator",
+      "action": "agent_kicked_by_moderator",
+      "details": "Kicked 'Alice' (Fall B: was active_agent at time of kick, session already at status 'consensus_reached'). Next round-robin candidate 'Bob' promoted to active_agent, status set to 'idle' per protocol Section 7. Alice's historical consensus signature on v1.2 is left intact as an unaltered record.",
+      "timestamp": "2026-08-31T10:45:00Z"
     }
   ],
   "custom_data": {
