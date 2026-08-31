@@ -5,6 +5,27 @@
 
 ---
 
+## 2026-08-31 — Nachtrag: Kamera-Bookmarks
+
+9 Slots (1-9), **links = springen, rechts = aktuelle Ansicht speichern** (Toolbar-Buttons `📷1`-`📷9`
+und Tastenkürzel `1`-`9` / `Ctrl+1`-`9`), analog zu Unity/Unreal-Numpad-Bookmarks, nur auf
+Maus-only übertragen. Belegte Slots werden per `.active`-Klasse visuell hervorgehoben.
+
+- `OrbitCameraController.getView()`/`.setView()` (neu): Snapshot als eigenes `target`-Clone, damit
+  spätere Kamerabewegung einen bereits gespeicherten Bookmark nicht rückwirkend verändert.
+- **Bewusst nicht persistiert** — reines In-Memory-Feature für die laufende Maker-Session, kein
+  Teil des glTF-Weltformats (keine `SW_*`-Extension dafür). Reine Navigations-Hilfe, kein
+  Szeneninhalt, überlebt daher kein Neuladen.
+- Live geprüft: Speichern/Springen über direkte Methodenaufrufe, echten Button-Klick
+  (`.click()`) und echte Tastatur-Events verifiziert — Kamera-State nach Sprung war exakt der
+  gespeicherte, eine zwischenzeitliche Kamerabewegung hat den Bookmark nicht verändert (beweist,
+  dass der Snapshot unabhängig vom Live-`target` ist). `computer`-Tool-Rechtsklick/Zifferntasten
+  simulierten in der Browser-Automation keine echten `contextmenu`/`keydown`-Events (bekannte
+  Automations-Einschränkung, siehe Erinnerung zu rAF-Throttling) — über echte dispatchte
+  DOM-Events lief alles korrekt.
+
+---
+
 ## 2026-08-31 — Nachtrag: Duplicate / Group
 
 **Ctrl+D** (Duplicate) und **Ctrl+G** (Group) implementiert, plus Buttons in der Toolbar.
@@ -90,7 +111,6 @@ Heute: Branch-Hygiene, Core-Änderungen isoliert nach `main` gemergt, Docs angel
 | GadgetInspector (massiver Ausbau) | ✅ |
 
 ### Offene Punkte / Nächste Schritte
-- **Kamera-Bookmarks** — Viewport-Positionen speichern/springen
 - Prefab-Vorschau im Panel (längerfristig)
 - Multi-Selektion (längerfristig)
 
@@ -98,7 +118,9 @@ Heute: Branch-Hygiene, Core-Änderungen isoliert nach `main` gemergt, Docs angel
 Directional- und AmbientLight sind bereits seit dem Phase-1-MVP-Commit (`cd9a608c`) Teil der
 `ObjectPalette`. Dokumentationsfehler, kein nachträglich gebautes Feature.
 
-**Update (2026-08-31):** "Duplicate / Group" ist erledigt — siehe Nachtrag oben.
+**Update (2026-08-31):** "Duplicate / Group" und "Kamera-Bookmarks" sind erledigt — siehe
+Nachträge oben. Damit sind alle kurzfristigen Punkte aus der ursprünglichen Liste abgearbeitet;
+offen bleiben nur noch die zwei längerfristigen (Prefab-Vorschau, Multi-Selektion).
 
 ### Architektur-Notizen
 - `MakerApp extends SmallWorld` — Orchestrator, kein Monolith

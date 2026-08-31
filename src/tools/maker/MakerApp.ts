@@ -23,7 +23,7 @@ import { BoundingType, CameraStrategyType } from "../../enums/index.js";
 import { EngineOptions } from "../../interfaces/index.js";
 import { Vector2D, Vector3D } from "../../math/index.js";
 
-import { OrbitCameraController } from "./OrbitCameraController.js";
+import { OrbitCameraController, OrbitCameraView } from "./OrbitCameraController.js";
 import { UndoStack } from "./UndoStack.js";
 import { HierarchyPanel } from "./HierarchyPanel.js";
 import { PropertyPanel } from "./PropertyPanel.js";
@@ -77,6 +77,10 @@ export class MakerApp extends SmallWorld {
   private _hierarchyDirty = true;
   private _gizmoDrag: GizmoDragState | undefined;
   private _gizmoButtons: Record<GizmoMode, HTMLButtonElement> | undefined;
+  /** In-memory only, per Maker session -- not part of the glTF world format, so it doesn't
+   * survive a reload. A quality-of-life navigation aid, not scene content. */
+  private readonly _cameraBookmarks = new Map<number, OrbitCameraView>();
+  private _bookmarkButtons: Record<number, HTMLButtonElement> | undefined;
 
   constructor(private readonly _makerOptions: MakerAppOptions) {
     super(_makerOptions);
@@ -131,6 +135,7 @@ export class MakerApp extends SmallWorld {
     });
     this._setupProjectToolbar();
     this._setupSelectionToolbar();
+    this._setupCameraBookmarkToolbar();
     this._setupGizmoToolbar();
 
     this.canvas.addEventListener("contextmenu", (e) => e.preventDefault());
@@ -242,6 +247,44 @@ export class MakerApp extends SmallWorld {
     row.appendChild(group);
 
     this._makerOptions.paletteContainer.prepend(row);
+  }
+
+  /** Nine numbered viewport-view slots -- mirrors the `1`-`9`/`Ctrl+1`-`9` shortcuts handled in
+   * `_onMakerKeyDown`. Left-click jumps to a saved view (no-op if the slot is empty);
+   * right-click saves the current view into it, same "left acts, right configures" split as
+   * Unity/Unreal's numpad camera bookmarks, adapted to mouse-only use. */
+  private _setupCameraBookmarkToolbar(): void {
+    const row = document.createElement("div");
+    row.className = "maker-gizmo-toolbar";
+    const buttons: Partial<Record<number, HTMLButtonElement>> = {};
+    for (let slot = 1; slot <= 9; slot++) {
+      const button = document.createElement("button");
+      button.className = "maker-palette-btn";
+      button.textContent = `📷${slot}`;
+      button.title = "Left-click: jump to view. Right-click: save current view here.";
+      button.addEventListener("click", (): void => this.jumpToCameraBookmark(slot));
+      button.addEventListener("contextmenu", (e: MouseEvent): void => {
+        e.preventDefault();
+        this.saveCameraBookmark(slot);
+      });
+      row.appendChild(button);
+      buttons[slot] = button;
+    }
+    this._bookmarkButtons = buttons as Record<number, HTMLButtonElement>;
+    this._makerOptions.paletteContainer.prepend(row);
+  }
+
+  /** Saves the current viewport view into bookmark `slot` (1-9), overwriting whatever was
+   * there. */
+  public saveCameraBookmark(slot: number): void {
+    this._cameraBookmarks.set(slot, this._orbit.getView());
+    this._bookmarkButtons?.[slot]?.classList.add("active");
+  }
+
+  /** Jumps to bookmark `slot`, if one has been saved -- silent no-op otherwise. */
+  public jumpToCameraBookmark(slot: number): void {
+    const view = this._cameraBookmarks.get(slot);
+    if (view) this._orbit.setView(view);
   }
 
   /** Move/Rotate/Scale mode buttons -- mirrors the `W`/`E`/`R` shortcuts handled in
@@ -603,6 +646,17 @@ export class MakerApp extends SmallWorld {
       event.preventDefault();
       if ("d" === key) this.duplicateObject(this._selected);
       else this.groupSelection();
+      return;
+    }
+
+    const slot = Number(event.key);
+    if (Number.isInteger(slot) && slot >= 1 && slot <= 9) {
+      const active = document.activeElement;
+      if (active && ("INPUT" === active.tagName || "TEXTAREA" === active.tagName)) return;
+      if (event.altKey) return;
+      event.preventDefault();
+      if (event.ctrlKey || event.metaKey) this.saveCameraBookmark(slot);
+      else this.jumpToCameraBookmark(slot);
       return;
     }
 

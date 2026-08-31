@@ -13,6 +13,15 @@ export interface OrbitCameraOptions {
   maxPitch?: number;
 }
 
+/** A snapshot of the orbit camera's view, independent of any live `Vector3D` reference --
+ * see `getView()`/`setView()`, used by Maker's camera bookmarks. */
+export interface OrbitCameraView {
+  target: Vector3D;
+  distance: number;
+  yaw: number;
+  pitch: number;
+}
+
 /**
  * Right-drag-to-orbit, wheel-to-zoom edit-mode camera controller for Maker's viewport. Pair
  * with `camera.setStrategy(CameraStrategyType.MANUAL)` so the engine's own strategy system
@@ -64,5 +73,24 @@ export class OrbitCameraController {
     camera.position.y = this.target.y + this._distance * Math.sin(this._pitch);
     camera.position.z = this.target.z + this._distance * cosPitch * Math.cos(this._yaw);
     camera.target.copyFrom(this.target);
+  }
+
+  /** Snapshots the current view -- an independent `target` clone, so later mutating `this.target`
+   * (e.g. via `setView()`) can't retroactively change a previously saved snapshot. */
+  public getView(): OrbitCameraView {
+    return {
+      target: this.target.clone(),
+      distance: this._distance,
+      yaw: this._yaw,
+      pitch: this._pitch,
+    };
+  }
+
+  /** Restores a previously saved view. Takes effect on the next `update()` call. */
+  public setView(view: OrbitCameraView): void {
+    this.target.copyFrom(view.target);
+    this._distance = view.distance;
+    this._yaw = view.yaw;
+    this._pitch = view.pitch;
   }
 }
