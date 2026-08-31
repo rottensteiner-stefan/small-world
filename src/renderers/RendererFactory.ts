@@ -1,4 +1,4 @@
-import { Renderer, EngineOptions } from "../interfaces/index.js";
+import { Renderer, EngineOptions, createDefaultRendererContext } from "../interfaces/index.js";
 import { RendererType } from "../enums/index.js";
 import { WebGL1Renderer } from "./WebGL1/index.js";
 import { WebGL2Renderer } from "./WebGL2/index.js";
@@ -34,6 +34,7 @@ export class RendererFactory {
     config?: EngineOptions,
   ): Promise<Renderer> {
     DeviceCaps.init();
+    const context = createDefaultRendererContext();
 
     let actualType: RendererType | string = type;
     if (RendererType.BEST === actualType) {
@@ -49,28 +50,28 @@ export class RendererFactory {
       case RendererType.WEB_GPU:
         if (!DeviceCaps.hasFeature(DeviceFeature.WEBGPU)) {
           console.warn("[RendererFactory] WebGPU is not supported. Falling back to WebGL2.");
-          renderer = new WebGL2Renderer();
+          renderer = new WebGL2Renderer(context);
           fallbackToWebGL2 = true;
         } else {
-          renderer = new WebGPURenderer();
+          renderer = new WebGPURenderer(context);
         }
         break;
       case RendererType.WEB_GL2:
         if (!DeviceCaps.hasFeature(DeviceFeature.WEBGL2)) {
           console.warn("[RendererFactory] WebGL2 is not supported. Falling back to WebGL1.");
-          renderer = new WebGL1Renderer();
+          renderer = new WebGL1Renderer(context);
         } else {
-          renderer = new WebGL2Renderer();
+          renderer = new WebGL2Renderer(context);
         }
         break;
       case RendererType.WEB_GL1:
         if (!DeviceCaps.hasFeature(DeviceFeature.WEBGL1)) {
           throw new Error("[RendererFactory] No WebGL1 support detected. Cannot run engine.");
         }
-        renderer = new WebGL1Renderer();
+        renderer = new WebGL1Renderer(context);
         break;
       default:
-        renderer = new WebGL2Renderer();
+        renderer = new WebGL2Renderer(context);
         break;
     }
 
@@ -89,7 +90,7 @@ export class RendererFactory {
     } catch (e) {
       if (actualType === RendererType.WEB_GPU && !fallbackToWebGL2) {
         console.warn(`[RendererFactory] WebGPU initialization failed. Falling back to WebGL2.`);
-        renderer = new WebGL2Renderer();
+        renderer = new WebGL2Renderer(context);
 
         // Re-evaluate attributes for WebGL2
         let fallbackAttributes = RendererFactory._getBackendAttributes(

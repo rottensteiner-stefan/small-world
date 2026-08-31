@@ -12,7 +12,13 @@ import {
   OrthographicProjection,
   PerspectiveProjection,
 } from "../math/projections/index.js";
-import { EngineOptions, ProjectionOptions, Renderer } from "../interfaces/index.js";
+import {
+  EngineOptions,
+  ProjectionOptions,
+  Renderer,
+  RendererContext,
+  createDefaultRendererContext,
+} from "../interfaces/index.js";
 import { ProjectionType, RendererType, PostProcessingEffectType } from "../enums/index.js";
 import { RendererFactory } from "../renderers/index.js";
 import { ShaderBootstrap } from "./renderers/shaders/index.js";
@@ -53,6 +59,11 @@ export abstract class SmallWorld {
   public camera: Camera;
   /** The active renderer. */
   public renderer: Renderer;
+  private _context!: RendererContext;
+  /** Per-instance bundle of DeviceCaps/ShaderRegistry/AssetManager -- see RendererContext. */
+  public get context(): RendererContext {
+    return this._context;
+  }
   /** The built-in physics system. Stepped automatically each frame when `config.enablePhysics` is true. */
   public physics: PhysicsSystem;
   /** The interaction manager for gamification / picking. */
@@ -243,6 +254,7 @@ export abstract class SmallWorld {
       await ShaderBootstrap.init();
 
       DeviceCaps.init();
+      this._context = createDefaultRendererContext();
 
       this.renderer = await RendererFactory.create(
         this.config.rendererType!,

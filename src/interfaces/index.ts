@@ -13,3 +13,4 @@ export * from "./Renderer.js";
 export * from "./Vector.js";
 export * from "./Collidable.js";
 export * from "./ShaderProvider.js";
+export * from "./RendererContext.js";
