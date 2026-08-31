@@ -9,105 +9,6 @@ import { Color } from "../core/colors/index.js";
 import { GltfLoaderOptions } from "../interfaces/index.js";
 import { Matrix4, Vector3D, Quaternion } from "../math/index.js";
 
-interface GltfJson {
-  buffers?: { uri?: string }[];
-  bufferViews?: { buffer: number; byteOffset?: number; byteLength: number }[];
-  accessors?: {
-    bufferView?: number;
-    byteOffset?: number;
-    componentType: number;
-    count: number;
-    type: string;
-  }[];
-  meshes?: {
-    name?: string;
-    primitives: {
-      attributes: { [key: string]: number };
-      indices?: number;
-      material?: number;
-    }[];
-  }[];
-  skins?: {
-    inverseBindMatrices?: number;
-    skeleton?: number;
-    joints: number[];
-    name?: string;
-  }[];
-  animations?: {
-    name?: string;
-    channels: {
-      sampler: number;
-      target: {
-        node?: number;
-        path: "translation" | "rotation" | "scale" | "weights";
-      };
-    }[];
-    samplers: {
-      input: number;
-      output: number;
-      interpolation?: "LINEAR" | "STEP" | "CUBICSPLINE";
-    }[];
-  }[];
-  nodes?: {
-    name?: string;
-    children?: number[];
-    matrix?: number[];
-    translation?: number[];
-    rotation?: number[];
-    scale?: number[];
-    mesh?: number;
-    skin?: number;
-    extensions?: {
-      KHR_lights_punctual?: { light: number };
-      SW_prefab_instance?: { source: string };
-      [key: string]: unknown;
-    };
-  }[];
-  scenes?: { nodes?: number[] }[];
-  scene?: number;
-  /** Root-level `extensions` -- currently only `KHR_lights_punctual`'s light definitions
-   * array, referenced by index from individual nodes' own `extensions`. */
-  extensions?: {
-    KHR_lights_punctual?: {
-      lights: {
-        type: "point" | "directional" | "spot";
-        color?: number[];
-        intensity?: number;
-        range?: number;
-        name?: string;
-      }[];
-    };
-  };
-  materials?: {
-    pbrMetallicRoughness?: {
-      baseColorFactor?: number[];
-      baseColorTexture?: { index: number };
-      metallicFactor?: number;
-      roughnessFactor?: number;
-      metallicRoughnessTexture?: { index: number };
-    };
-    normalTexture?: { index: number; scale?: number };
-    occlusionTexture?: { index: number; strength?: number };
-    emissiveTexture?: { index: number };
-    emissiveFactor?: number[];
-    alphaMode?: "OPAQUE" | "MASK" | "BLEND";
-    alphaCutoff?: number;
-    doubleSided?: boolean;
-    extensions?: {
-      KHR_materials_emissive_strength?: {
-        emissiveStrength?: number;
-      };
-      [key: string]: unknown;
-    };
-  }[];
-  textures?: { source?: number; sampler?: number }[];
-  images?: { uri?: string; bufferView?: number; mimeType?: string }[];
-}
-
-interface GltfData {
-  json: GltfJson;
-  buffers: ArrayBuffer[];
-}
 import {
   GltfJson,
   GltfData,
@@ -159,7 +60,7 @@ export class GltfLoader extends AbstractLoader<Object3D> {
 
     const bufferPromises = (json.buffers || []).map((buf) => {
       if (buf.uri?.startsWith("data:")) {
-        return this._decodeBase64(buf.uri);
+        return GltfBinaryParser.decodeBase64(buf.uri);
       }
       return AssetManager.loadBinary(folderPath + (buf.uri || ""));
     });

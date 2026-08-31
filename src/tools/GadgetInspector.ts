@@ -18,14 +18,7 @@ import { Raycaster, BoundingBox, BoundingSphere } from "../physix/index.js";
 import { Cube } from "../geometry/index.js";
 import { Vector2D, Vector3D, MathPool } from "../math/index.js";
 import { ForgeTool, ForgeToolOptions } from "./forge/ForgeTool.js";
-import {
-  DisposableBlade,
-  InspectorAudio,
-  InspectorDeviceCaps,
-  InspectorDiagnostics,
-  InspectorGizmos,
-  InspectorSelection,
-} from "./inspector/index.js";
+import { DisposableBlade, RefreshableBinding } from "./inspector/index.js";
 
 /**
  * A lightweight editor/inspector overlay for small-world.
