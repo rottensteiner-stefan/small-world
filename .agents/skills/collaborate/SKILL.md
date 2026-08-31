@@ -38,6 +38,11 @@ Der menschliche Moderator steuert die Verhandlung über den einheitlichen Befehl
 | `/collaborate --kick <AgentName> [<FileName>]` | **Toten/hängenden Agenten entfernen** | Entfernt `<AgentName>` aus dem `roster`. War er `active_agent`, rückt der nächste Agent im Round-Robin nach (`current_round` wird dabei nicht erhöht). Siehe Abschnitt 7 & 8. |
 | `/collaborate --extend <Rounds> [<FileName>]` | **Rundenlimit erweitern** | Erhöht `max_rounds` um `<Rounds>`, setzt Status von `deadlock` zurück auf `idle`/`working` und ermöglicht weitere Verhandlungsrunden. |
 
+### Informations- & Diagnose-Kommandos
+| Befehl | Phase / Aktion | Beschreibung & Wirkung |
+| :--- | :--- | :--- |
+| `/collaborate --check` | **Registrierungs- & Status-Check** | Prüft, an welchen Verhandlungsthemen der aufgerufene Agent (bzw. die aktuelle Session) aktuell beteiligt oder registriert ist. Durchsucht `.agents/collaborate/*.pid` und gibt eine übersichtliche Tabelle mit Thema, Name/Rolle, Status, Runde und Ballbesitz aus. |
+
 ---
 
 ## 3. Der Ablauf: Einladung $\rightarrow$ Startschuss $\rightarrow$ Rundenlauf
@@ -345,6 +350,32 @@ A negotiation round ends successfully with **Consensus** if and only if ALL of t
   7. Eintrag in `history`: `action: "agent_kicked_by_moderator"`, mit dem entfernten Namen und welcher Fall (A/B) griff.
   8. Agent meldet dem Moderator den neuen Stand (wer aktiv ist, oder dass die Session terminiert/pausiert wurde) — Statuszeile zuerst (siehe 5.1): `Working` falls der meldende Agent selbst jetzt `active_agent` ist, sonst `Idle`/`Paused` je nach neuem `status`.
 - Dies ist das einzige im Protokoll vorgesehene Mittel, einen nicht mehr antwortenden Teilnehmer aus der Rotation zu nehmen — es gibt keinen automatischen Timeout (siehe Abschnitt 8). Ohne `--kick` bleibt die Session bei einem toten Agenten für immer in `"idle"` hängen.
+
+### 🔍 `/collaborate --check`
+
+Prüft, an welchen Kollaborations-Themen der aufgerufene Agent (bzw. die aktuelle Session) aktuell registriert oder beteiligt ist.
+
+- **Ablauf beim aufgerufenen Agenten:**
+  1. Der Agent scannt das Kollaborations-Verzeichnis (`.agents/collaborate/` bzw. den gesamten Workspace) nach allen vorhandenen `.pid`-Dateien (`*.pid`).
+  2. Für jede gefundene `.pid`-Datei liest der Agent das JSON ein und analysiert:
+     - **Thema:** `topic_file` (z. B. `.agents/collaborate/god-objects-refactoring.md`)
+     - **Registrierte Teilnehmer & Rollen:** Extrahiert alle Einträge aus `roster` (Name, Rolle, Channel).
+     - **Eigene Registrierung:** Prüft, ob der angesprochene Agent / die Session unter einem oder mehreren Namen im `roster` registriert ist.
+     - **Session-Status:** `status` (z. B. `working`, `idle`, `waiting_for_moderator`, `paused`, `consensus_reached`, `deadlock`, `terminated`).
+     - **Rundenfortschritt:** `current_round` von `max_rounds`.
+     - **Ballbesitz / Aktiver Zug:** Wer ist `active_agent`? Ist der aufgerufene Agent selbst am Zug (`Du bist am Zug / Working`) oder wartet die Verhandlung auf einen anderen Teilnehmer?
+  3. **Ausgabe-Format an den Moderator:**
+     - Strukturierte Übersichtstabelle:
+       ```markdown
+       ### 🔍 Kollaborations-Status & Registrierungen
+
+       | Thema / Datei | Registrierter Name & Rolle | Session-Status | Runde | Ballbesitz / Nächster Schritt |
+       | :--- | :--- | :--- | :--- | :--- |
+       | `god-objects-refactoring.md` | **Alice** (*Architect & Engine Lead*) | `idle` | 3 / 5 | ⏳ Wartet auf **Bob** (`/collaborate --invite Bob ...`) |
+       | `diorama.md` | **Alice** (*Environment Lead*) | `consensus_reached` | 2 / 5 | ✅ Konsens erzielt |
+       ```
+     - Falls der Agent an keinen Kollaborationen beteiligt ist oder keine `.pid`-Dateien existieren:
+       *„🔍 **Keine aktiven Kollaborations-Registrierungen gefunden.** (In `.agents/collaborate/` existieren keine aktiven Sessions für diesen Agenten).“*
 
 ---
 
