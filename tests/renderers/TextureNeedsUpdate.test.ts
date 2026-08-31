@@ -1,7 +1,7 @@
 import "../../src/index.js";
 import { describe, expect, it, vi } from "vitest";
 import { WebGL1Renderer } from "../../src/renderers/WebGL1/WebGL1Renderer.js";
-import { WebGL2Renderer } from "../../src/renderers/WebGL2/WebGL2Renderer.js";
+import { WebGLTextureManager } from "../../src/renderers/WebGL2/managers/WebGLTextureManager.js";
 import { GPUTextureResourceCache } from "../../src/renderers/WebGPU/managers/GPUTextureResourceCache.js";
 import { GPUFallbackResources } from "../../src/renderers/WebGPU/managers/GPUFallbackResources.js";
 import { Texture } from "../../src/core/textures/Texture.js";
@@ -97,19 +97,18 @@ describe("Texture GPU re-upload on needsUpdate", () => {
     expect(tex.needsUpdate).toBe(false);
   });
 
-  it("WebGL2Renderer re-uploads pixels without recreating the GL texture", () => {
+  it("WebGLTextureManager re-uploads pixels without recreating the GL texture", () => {
     const gl = makeMockGl();
-    const renderer = new WebGL2Renderer();
-    (renderer as RendererInternals).gl = gl;
+    const textures = new WebGLTextureManager(gl, new Map(), {} as never, {} as never);
 
     const tex = Texture.fromCanvas({ width: 32, height: 32 } as HTMLCanvasElement);
 
-    const first = (renderer as RendererInternals)._getWebGLTexture(tex);
+    const first = textures.getWebGLTexture(tex, undefined);
     expect(gl.createTexture).toHaveBeenCalledTimes(1);
     expect(gl.texImage2D).toHaveBeenCalledTimes(1);
 
     tex.needsUpdate = true;
-    const second = (renderer as RendererInternals)._getWebGLTexture(tex);
+    const second = textures.getWebGLTexture(tex, undefined);
 
     expect(second).toBe(first);
     expect(gl.createTexture).toHaveBeenCalledTimes(1);
@@ -119,13 +118,12 @@ describe("Texture GPU re-upload on needsUpdate", () => {
 
   it("does not re-upload when needsUpdate stays false", () => {
     const gl = makeMockGl();
-    const renderer = new WebGL2Renderer();
-    (renderer as RendererInternals).gl = gl;
+    const textures = new WebGLTextureManager(gl, new Map(), {} as never, {} as never);
 
     const tex = Texture.fromCanvas({ width: 32, height: 32 } as HTMLCanvasElement);
 
-    (renderer as RendererInternals)._getWebGLTexture(tex);
-    (renderer as RendererInternals)._getWebGLTexture(tex);
+    textures.getWebGLTexture(tex, undefined);
+    textures.getWebGLTexture(tex, undefined);
 
     expect(gl.texImage2D).toHaveBeenCalledTimes(1);
   });
