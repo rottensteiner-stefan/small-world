@@ -59,7 +59,7 @@ export class CoreShaderChunks {
   /**
    * Initializes the registry with all standard chunks for all supported languages.
    */
-  public static async init(registry: ShaderRegistry = ShaderRegistry.instance): Promise<void> {
+  public static init(registry: ShaderRegistry = ShaderRegistry.instance): void {
     if (this._bootstrapped.has(registry)) {
       return;
     }

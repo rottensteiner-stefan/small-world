@@ -16,7 +16,7 @@ import {
 import { AbstractLight } from "../../core/lights/index.js";
 import { MAX_SKINNED_BONES } from "../../core/animation/Skeleton.js";
 import { CubeTexture, Texture, RenderTarget, RenderTargetCube } from "../../core/textures/index.js";
-import { ShaderRegistry, RenderManifest } from "../../core/renderers/shaders/index.js";
+import { RenderManifest } from "../../core/renderers/shaders/index.js";
 import { Color } from "../../core/colors/index.js";
 import {
   DeviceCaps,
@@ -401,15 +401,15 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     const key = this._programCacheKey(shaderId, isInstanced, flags);
     let cache = this._programs.get(key);
     if (!cache) {
-      const def = ShaderRegistry.instance.get(shaderId);
+      const def = this.context.shaderRegistry.get(shaderId);
       if (!def || !def.sources.glsl300) {
         throw new Error(
           `[WebGL2Renderer] Shader definition for ${shaderId} not found or missing GLSL 300 source.`,
         );
       }
 
-      let vs = ShaderRegistry.instance.assemble(def.sources.glsl300.vs, "glsl300");
-      let fs = ShaderRegistry.instance.assemble(def.sources.glsl300.fs, "glsl300");
+      let vs = this.context.shaderRegistry.assemble(def.sources.glsl300.vs, "glsl300");
+      let fs = this.context.shaderRegistry.assemble(def.sources.glsl300.fs, "glsl300");
 
       let defines = "";
       if (isInstanced) defines += "#define USE_INSTANCING 1\n";

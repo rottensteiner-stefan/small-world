@@ -2,7 +2,6 @@
 import {
   CubeTexture,
   RenderManifest,
-  ShaderRegistry,
   DeviceCaps,
   DeviceLimit,
   InstancedMesh,
@@ -967,9 +966,9 @@ export class WebGPURenderer extends AbstractRenderer {
 
     const clusterCullModule = this._device!.createShaderModule({
       code:
-        (ShaderRegistry.instance.getChunk("WGSL_STRUCTS", "wgsl") ?? "") +
+        (this.context.shaderRegistry.getChunk("WGSL_STRUCTS", "wgsl") ?? "") +
         "\n" +
-        (ShaderRegistry.instance.getChunk("WGSL_SCREEN_FOOTPRINT", "wgsl") ?? "") +
+        (this.context.shaderRegistry.getChunk("WGSL_SCREEN_FOOTPRINT", "wgsl") ?? "") +
         "\n" +
         clusterCullWGSL,
     });
@@ -1111,9 +1110,9 @@ export class WebGPURenderer extends AbstractRenderer {
       });
       const hzbTestModule = this._device!.createShaderModule({
         code:
-          (ShaderRegistry.instance.getChunk("WGSL_STRUCTS", "wgsl") ?? "") +
+          (this.context.shaderRegistry.getChunk("WGSL_STRUCTS", "wgsl") ?? "") +
           "\n" +
-          (ShaderRegistry.instance.getChunk("WGSL_SCREEN_FOOTPRINT", "wgsl") ?? "") +
+          (this.context.shaderRegistry.getChunk("WGSL_SCREEN_FOOTPRINT", "wgsl") ?? "") +
           "\n" +
           hzbVisibilityTestWGSL,
       });
@@ -1583,7 +1582,7 @@ export class WebGPURenderer extends AbstractRenderer {
    * always-bound sampler/normalMap/envMap/emissiveMap) this material's bind group actually needs.
    */
   private _getOptionalMaterialTextureNames(shaderId: string): string[] {
-    const declared = ShaderRegistry.instance.get(shaderId)?.layout.textures;
+    const declared = this.context.shaderRegistry.get(shaderId)?.layout.textures;
     if (!declared) return [];
     const bindings = getOptionalMaterialTextureBindings();
     return Object.keys(declared).filter((name) => name in bindings);
@@ -1821,14 +1820,14 @@ export class WebGPURenderer extends AbstractRenderer {
     const key = isInstanced ? `${shaderId}_instanced${flagKey}` : `${shaderId}${flagKey}`;
     let sm = this._shaderModules.get(key);
     if (!sm) {
-      const def = ShaderRegistry.instance.get(shaderId);
+      const def = this.context.shaderRegistry.get(shaderId);
       if (!def || !def.sources.wgsl) {
         throw new Error(
           `[WebGPURenderer] Shader definition for ${shaderId} not found or missing WGSL source.`,
         );
       }
 
-      let code = ShaderRegistry.instance.assemble(def.sources.wgsl, "wgsl");
+      let code = this.context.shaderRegistry.assemble(def.sources.wgsl, "wgsl");
 
       let wgslConstants = "";
       if (flags.includes("USE_TEXTURE_ARRAY")) {
@@ -2683,7 +2682,7 @@ export class WebGPURenderer extends AbstractRenderer {
    * scratch buffer untouched) if `m.shaderId` isn't registered -- caller then skips the upload,
    * matching the previous per-object-buffer behavior of leaving the slot's prior contents alone. */
   protected _packObjectUniforms(o: Object3D, m: RenderManifest, vMat?: Float32Array): boolean {
-    const shaderDef = ShaderRegistry.instance.get(m.shaderId);
+    const shaderDef = this.context.shaderRegistry.get(m.shaderId);
     if (!shaderDef) return false;
 
     this._scratchModelMatrix.set(o.worldMatrix.data);

@@ -19,7 +19,7 @@ export class ShaderBootstrap {
 
     // 1. Load global shader chunks (lights, math, structures)
     // This MUST be done first so that self-registering materials find their chunks.
-    await CoreShaderChunks.init(registry);
+    CoreShaderChunks.init(registry);
 
     this._bootstrapped.add(registry);
   }

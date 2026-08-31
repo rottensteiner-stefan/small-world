@@ -1,5 +1,6 @@
 import { ShaderDefinition } from "./ShaderDefinition.js";
 import { ShaderProvider } from "../../../interfaces/index.js";
+import { CoreShaderChunks } from "./CoreShaderChunks.js";
 
 /**
  * Supported shader languages.
@@ -68,6 +69,7 @@ export class ShaderRegistry {
    * @returns The shader definition or undefined if not found.
    */
   public get(id: string): ShaderDefinition | undefined {
+    CoreShaderChunks.init(this);
     let def = this._shaders.get(id);
 
     if (!def) {
@@ -77,6 +79,10 @@ export class ShaderRegistry {
         this.register(def);
         this._providers.delete(id); // Move from provider to registered shader
       }
+    }
+
+    if (!def && this !== ShaderRegistry._instance && ShaderRegistry._instance) {
+      def = ShaderRegistry._instance.get(id);
     }
 
     return def;
@@ -102,7 +108,12 @@ export class ShaderRegistry {
    * @returns The source code of the chunk or undefined if not found.
    */
   public getChunk(id: string, lang: ShaderLanguage): string | undefined {
-    return this._chunks.get(id)?.get(lang);
+    CoreShaderChunks.init(this);
+    const chunk = this._chunks.get(id)?.get(lang);
+    if (undefined === chunk && this !== ShaderRegistry._instance && ShaderRegistry._instance) {
+      return ShaderRegistry._instance.getChunk(id, lang);
+    }
+    return chunk;
   }
 
   /**
@@ -113,6 +124,7 @@ export class ShaderRegistry {
    * @returns The source code with all placeholders replaced.
    */
   public assemble(source: string, lang: ShaderLanguage): string {
+    CoreShaderChunks.init(this);
     // Regex matches [CHUNK_NAME] but avoids [0-9] or single letters to not collide with GLSL array indexing
     return source.replace(/\[([A-Z][A-Z0-9_]+)\]/g, (match: string, chunkId: string) => {
       const chunk: string | undefined = this.getChunk(chunkId, lang);
