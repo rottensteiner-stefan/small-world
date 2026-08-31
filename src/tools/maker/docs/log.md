@@ -5,6 +5,31 @@
 
 ---
 
+## 2026-08-31 — Nachtrag: GadgetInspector entschlackt (ADR 0010 §5)
+
+Im Zuge der Branch-Hygiene fielen fünf tote Imports in `GadgetInspector.ts` auf
+(`InspectorAudio`, `InspectorDeviceCaps`, `InspectorDiagnostics`, `InspectorGizmos`,
+`InspectorSelection`) — Reste eines abgeschlossenen, aber nie zurück verdrahteten
+"Extract Service"-Refactors aus dem gelöschten `god-objects-refactoring`-Branch.
+
+**Erkenntnis:** Reines Service-Extrahieren reicht nicht — die extrahierte
+`InspectorSelection.buildGUI()` war weiterhin 250 Zeilen `if ("roughness" in mat) ...`
+Duck-Typing, nur in einer neuen Datei. Stattdessen: die vier unproblematischen Klassen
+(Audio/DeviceCaps/Diagnostics/Gizmos) angeschlossen, `InspectorSelection` aber komplett auf
+`collectInspectorSchema()` (den `Inspectable`-Reflection-Layer aus Phase 0, denselben den
+Makers `PropertyPanel` schon nutzt) umgestellt. `GadgetInspector.ts`: 1037 → 479 Zeilen,
+kein Duck-Typing mehr. Dabei echte Lücken in Material-/Light-Schemas geschlossen
+(`alphaTest` auf Standard-/PhongMaterial, `wireframeMode` auf WireframeMaterial,
+`distance`/`angle`/`penumbra`/`decay` auf SpotLight). Live im Browser verifiziert
+(`and-now`/Flakturm-Tunnel-Szene): General Settings, Transform, Hierarchy-Navigation,
+Behaviors, Light-Properties — alles fehlerfrei, keine Konsolen-Fehler.
+
+**Warum das hier steht:** GadgetInspector ist laut ADR 0010 §5 nur ein "wird erst nach
+Feature-Parität mit Maker abgelöst" — dieser Umbau bringt ihn architektonisch näher an
+Maker heran (gleicher Reflection-Layer), ohne ihn zu ersetzen.
+
+---
+
 ## 2026-08-31 — Session: Aufräumen & Fundament legen
 
 **Branch:** `maker`
