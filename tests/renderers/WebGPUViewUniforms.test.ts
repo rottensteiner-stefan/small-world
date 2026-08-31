@@ -9,6 +9,8 @@ import {
 import { GPUFallbackResources } from "../../src/renderers/WebGPU/managers/GPUFallbackResources.js";
 import { GPUTextureResourceCache } from "../../src/renderers/WebGPU/managers/GPUTextureResourceCache.js";
 import { GPUPipelineCache } from "../../src/renderers/WebGPU/managers/GPUPipelineCache.js";
+import { GPUObjectRingBuffer } from "../../src/renderers/WebGPU/managers/GPUObjectRingBuffer.js";
+import { GPUGeometryCache } from "../../src/renderers/WebGPU/managers/GPUGeometryCache.js";
 import { Object3D } from "../../src/core/Object3D.js";
 import { ShaderRegistry } from "../../src/core/renderers/shaders/ShaderRegistry.js";
 import { RenderManifest } from "../../src/core/renderers/shaders/RenderManifest.js";
@@ -70,6 +72,7 @@ function makeMockDevice(): GPUDevice {
       destroy: vi.fn(),
     })),
     queue: { writeBuffer: vi.fn(), writeTexture: vi.fn(), copyExternalImageToTexture: vi.fn() },
+    limits: { minUniformBufferOffsetAlignment: 256 },
   } as unknown as GPUDevice;
 }
 
@@ -88,14 +91,14 @@ function makeRenderer(): { renderer: RendererInternals; device: GPUDevice } {
     renderer._objectBGL,
     renderer._viewBGL,
   );
-  renderer._objectRingBindGroup = { mock: "objectRingBindGroup" };
-  renderer._ensureObjectRingCapacity(1024);
+  renderer._objectRing = new GPUObjectRingBuffer(device, renderer._objectBGL);
+  renderer._geometryCache = new GPUGeometryCache(device);
   renderer._viewUniformBuffer = { mock: "viewUniformBuffer" };
   renderer._viewBindGroup = { mock: "viewBindGroup" };
   renderer._viewUniformStride = 256;
-  // Setup above (GPUFallbackResources construction, _ensureObjectRingCapacity) makes its own
-  // queue.writeBuffer/writeTexture calls -- clear the mock history so call-count assertions
-  // below only see calls made by the actual code under test.
+  // Setup above (GPUFallbackResources construction) makes its own queue.writeBuffer/writeTexture
+  // calls -- clear the mock history so call-count assertions below only see calls made by the
+  // actual code under test.
   vi.mocked(device.queue.writeBuffer).mockClear();
   vi.mocked(device.queue.writeTexture).mockClear();
   return { renderer, device };

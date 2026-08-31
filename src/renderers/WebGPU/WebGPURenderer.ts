@@ -11,11 +11,7 @@ import {
   MAX_CLUSTERED_LIGHTS_PER_TYPE,
 } from "../../core/index.js";
 import { RenderTarget, RenderTargetCube } from "../../core/textures/index.js";
-import {
-  EngineOptions,
-  GeometryDataInterface,
-  LightDataInterface,
-} from "../../interfaces/index.js";
+import { EngineOptions, LightDataInterface } from "../../interfaces/index.js";
 
 import {
   MathPool,
@@ -41,6 +37,8 @@ import {
   getOptionalMaterialTextureBindings,
   getOptionalMaterialTextureNames,
 } from "./managers/GPUPipelineCache.js";
+import { GPUObjectRingBuffer } from "./managers/GPUObjectRingBuffer.js";
+import { GPUGeometryCache } from "./managers/GPUGeometryCache.js";
 import {
   MainRenderPass,
   PostProcessPass,
@@ -53,23 +51,6 @@ import {
 import { BloomPassGPU, AOPassGPU, HistoryBlendPassGPU } from "../post/passes/index.js";
 import { UniformPacker } from "../../core/renderers/shaders/index.js";
 import { SkinnedMesh, Skeleton, MAX_SKINNED_BONES } from "../../core/animation/index.js";
-
-export interface WebGPUGeoCache {
-  vb: GPUBuffer;
-  nb: GPUBuffer | undefined;
-  uvb: GPUBuffer | undefined;
-  tb: GPUBuffer | undefined;
-  jb: GPUBuffer | undefined;
-  wb: GPUBuffer | undefined;
-  ib: GPUBuffer | undefined;
-  wib: GPUBuffer | undefined;
-  indexCount: number;
-  wireframeIndexCount: number;
-  vertexCount: number;
-  format: GPUIndexFormat | undefined;
-  /** Number of live Object3D instances currently referencing this geometry. */
-  refCount: number;
-}
 
 /**
  * Dynamic-offset slot layout for the per-draw view-projection uniform (group 3, `view.vp` in
@@ -126,22 +107,9 @@ export class WebGPURenderer extends AbstractRenderer {
     return this._format;
   }
 
-  /** Shared ring buffer holding every object's `ObjectUniforms` slot for the current frame,
-   * bound once via `hasDynamicOffset` instead of one `GPUBuffer`+`GPUBindGroup` per object. */
-  protected _objectRingBuffer!: GPUBuffer;
-  protected _objectRingBindGroup!: GPUBindGroup;
-  protected _objectRingCapacity = 0;
-  /** Byte stride between slots, aligned to `device.limits.minUniformBufferOffsetAlignment`. */
-  protected _objectUniformStride = 256;
-  /** Frame-local: `` `${obj.uuid}:${matUuid}` `` -> byte offset already written this frame. */
-  protected _objectSlotMap = new Map<string, number>();
-  /** Frame-local slot counter; becomes `_lastFrameObjectSlotCount` for next frame's capacity guess. */
-  protected _objectSlotCount = 0;
-  protected _lastFrameObjectSlotCount = 0;
-  private _objectRingOverflowWarned = false;
-  /** Set by `_ensureObjectRingCapacity` when it grows; destroyed post-submit in `render()` once
-   * every draw that referenced the old buffer's slots has actually been recorded and submitted. */
-  private _objectRingPendingDestroy?: GPUBuffer | undefined;
+  /** Per-object dynamic-offset uniform ring buffer -- see `GPUObjectRingBuffer`'s own doc
+   * comment. */
+  private _objectRing!: GPUObjectRingBuffer;
 
   /** Per-draw view-projection dynamic-offset buffer -- see `VIEW_SLOT_*`/`_setViewMatrix()`. */
   private _viewBGL!: GPUBindGroupLayout;
@@ -190,8 +158,8 @@ export class WebGPURenderer extends AbstractRenderer {
   public get dummySpotShadowTextureView(): GPUTextureView {
     return this._fallback.dummySpotShadowTextureView;
   }
-  protected _geoCache = new Map<GeometryDataInterface, WebGPUGeoCache>();
-  private _lastKnownGeometry = new WeakMap<Object3D, GeometryDataInterface>();
+  /** Per-geometry GPU vertex/index buffer cache -- see `GPUGeometryCache`'s own doc comment. */
+  private _geometryCache!: GPUGeometryCache;
   protected _gpuInstanceBuffers: WeakMap<InstancedMesh, GPUBuffer> = new WeakMap();
   protected _gpuInstanceDataBuffers: WeakMap<InstancedMesh, GPUBuffer> = new WeakMap();
   protected _frameCount = 0;
@@ -481,12 +449,6 @@ export class WebGPURenderer extends AbstractRenderer {
       webgpuMaxTextureDimension2D: this._device.limits.maxTextureDimension2D,
     });
 
-    // Object-uniform ring buffer slot stride must respect the device's dynamic-offset
-    // alignment (commonly 256, but not guaranteed) -- 256 is the payload size (`ObjectUniforms`
-    // packs into <= 256 bytes, see `_scratchObjBufferData`), rounded up to the alignment.
-    const objAlignment = this._device.limits.minUniformBufferOffsetAlignment;
-    this._objectUniformStride = Math.ceil(256 / objAlignment) * objAlignment;
-
     // Add uncapturederror listener
     this._device.onuncapturederror = (event: GPUUncapturedErrorEvent): void => {
       console.error("[WebGPU Error]:", event.error.message);
@@ -535,6 +497,7 @@ export class WebGPURenderer extends AbstractRenderer {
   private _initDefaultResources(): void {
     this._fallback = new GPUFallbackResources(this._device!);
     this._textures = new GPUTextureResourceCache(this._device!, this._fallback);
+    this._geometryCache = new GPUGeometryCache(this._device!);
 
     this._boneMatricesBuffer = this._device!.createBuffer({
       size: 2048 * 64, // 2048 mat4x4f = 131072 bytes
@@ -650,7 +613,7 @@ export class WebGPURenderer extends AbstractRenderer {
         },
       ],
     });
-    this._ensureObjectRingCapacity(1024);
+    this._objectRing = new GPUObjectRingBuffer(this._device!, this._objectBGL);
 
     // Per-draw view-projection dynamic-offset buffer -- vertex-stage only (position transform),
     // unlike `_objectBGL` which the fragment shader also reads.
@@ -1180,110 +1143,8 @@ export class WebGPURenderer extends AbstractRenderer {
     }
   }
 
-  protected _getGeoCache(obj: Object3D, geo: GeometryDataInterface): WebGPUGeoCache {
-    let c = this._geoCache.get(geo);
-    if (!c || geo.needsUpdate) {
-      const createBuf = (data: ArrayBufferView, usage: number): GPUBuffer => {
-        const b = this._device!.createBuffer({
-          size: (data.byteLength + 3) & ~3,
-          usage,
-          mappedAtCreation: true,
-        });
-        new Uint8Array(b.getMappedRange()).set(
-          new Uint8Array(data.buffer, data.byteOffset, data.byteLength),
-        );
-        b.unmap();
-        return b;
-      };
-      if (c && geo.needsUpdate) {
-        this._device!.queue.writeBuffer(c.vb, 0, geo.vertices);
-        if (c.nb && geo.normals) this._device!.queue.writeBuffer(c.nb, 0, geo.normals);
-        geo.needsUpdate = false;
-        this._acquireGeoCache(obj, geo, c);
-        return c;
-      }
-      c = {
-        vb: createBuf(geo.vertices, GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST),
-        nb: geo.normals?.length
-          ? createBuf(geo.normals, GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST)
-          : undefined,
-        uvb: geo.uvs?.length ? createBuf(geo.uvs, GPUBufferUsage.VERTEX) : undefined,
-        tb: geo.tangents?.length
-          ? createBuf(geo.tangents, GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST)
-          : undefined,
-        jb: geo.joints?.length
-          ? createBuf(
-              geo.joints instanceof Float32Array ? geo.joints : new Float32Array(geo.joints),
-              GPUBufferUsage.VERTEX,
-            )
-          : undefined,
-        wb: geo.weights?.length
-          ? createBuf(
-              geo.weights instanceof Float32Array ? geo.weights : new Float32Array(geo.weights),
-              GPUBufferUsage.VERTEX,
-            )
-          : undefined,
-        ib: geo.indices?.length ? createBuf(geo.indices, GPUBufferUsage.INDEX) : undefined,
-        wib: geo.wireframeIndices?.length
-          ? createBuf(geo.wireframeIndices, GPUBufferUsage.INDEX)
-          : undefined,
-        indexCount: geo.indices?.length || 0,
-        wireframeIndexCount: geo.wireframeIndices?.length || 0,
-        vertexCount: geo.vertices.length / 3,
-        format:
-          geo.indices?.BYTES_PER_ELEMENT === 4 || geo.wireframeIndices?.BYTES_PER_ELEMENT === 4
-            ? "uint32"
-            : "uint16",
-        refCount: 0,
-      };
-      this._geoCache.set(geo, c);
-      geo.needsUpdate = false;
-    }
-    this._acquireGeoCache(obj, geo, c);
-    return c;
-  }
-
-  /**
-   * Tracks per-object geometry references so `_releaseGeometryFor` can correctly
-   * free buffers once nothing references them anymore -- even when geometry is shared
-   * across many objects (see showcases/19) or swapped on a live object at runtime.
-   */
-  private _acquireGeoCache(obj: Object3D, geo: GeometryDataInterface, c: WebGPUGeoCache): void {
-    const lastGeo = this._lastKnownGeometry.get(obj);
-    if (lastGeo !== geo) {
-      if (lastGeo) this._releaseGeometryFor(obj);
-      c.refCount++;
-      this._lastKnownGeometry.set(obj, geo);
-    }
-  }
-
-  /**
-   * Releases the GPU geometry buffers this object was referencing, if its refCount
-   * drops to zero. Called once per removed object per frame.
-   */
-  private _releaseGeometryFor(obj: Object3D): void {
-    const geo = this._lastKnownGeometry.get(obj);
-    if (!geo) return;
-    this._lastKnownGeometry.delete(obj);
-
-    const c = this._geoCache.get(geo);
-    if (!c) return;
-    c.refCount--;
-    if (c.refCount <= 0) {
-      c.vb.destroy();
-      c.nb?.destroy();
-      c.uvb?.destroy();
-      c.tb?.destroy();
-      c.jb?.destroy();
-      c.wb?.destroy();
-      c.ib?.destroy();
-      c.wib?.destroy();
-      this._geoCache.delete(geo);
-    }
-  }
-
   private _releaseObjectResources(obj: Object3D): void {
-    this._releaseGeometryFor(obj);
+    this._geometryCache.releaseGeometryFor(obj);
     this._pipelineCache.releasePipelineFor(obj);
     this._textures.releaseObjectTextures(obj);
   }
@@ -1312,14 +1173,9 @@ export class WebGPURenderer extends AbstractRenderer {
 
     this._frameCount++;
 
-    // Object-uniform ring buffer: reset per-frame dedup/slot state, then size for this frame
-    // from last frame's actual usage (with 50% headroom) so growth is the rare case, not the norm.
-    this._objectSlotMap.clear();
-    this._objectSlotCount = 0;
-    this._objectRingOverflowWarned = false;
+    this._objectRing.beginFrame();
     this._gpuBoneMatricesOffset = 0;
     this._boneSlotMap.clear();
-    this._ensureObjectRingCapacity(Math.max(1024, Math.ceil(this._lastFrameObjectSlotCount * 1.5)));
 
     const lights = this.extractLights(scene);
     this._updateGlobalBuffers(vp, camPos, lights, scene, near, far, projMatrix);
@@ -1553,11 +1409,7 @@ export class WebGPURenderer extends AbstractRenderer {
 
     this._device.queue.submit([ce.finish()]);
 
-    this._lastFrameObjectSlotCount = this._objectSlotCount;
-    if (this._objectRingPendingDestroy) {
-      this._objectRingPendingDestroy.destroy();
-      this._objectRingPendingDestroy = undefined;
-    }
+    this._objectRing.endFrame();
     this._fallback.drainPendingDestroy();
     if (this._occlusionCullingEnabled) this._kickoffHzbMapAsync();
   }
@@ -1722,9 +1574,9 @@ export class WebGPURenderer extends AbstractRenderer {
       this._textures.acquireTextures(obj, manifest.textures);
 
       const objOffset = this._getObjectSlotOffset(obj, manifest, matUuid, vMat);
-      rp.setBindGroup(2, this._objectRingBindGroup, [objOffset]);
+      rp.setBindGroup(2, this._objectRing.bindGroup, [objOffset]);
 
-      const gCache = this._getGeoCache(obj, obj.geometry!);
+      const gCache = this._geometryCache.getGeoCache(obj, obj.geometry!);
       this._fallback.ensureDummyBufferSize(gCache.vertexCount);
       rp.setVertexBuffer(0, gCache.vb);
       rp.setVertexBuffer(1, gCache.nb || this._fallback.dummyNormalBuffer);
@@ -1819,42 +1671,11 @@ export class WebGPURenderer extends AbstractRenderer {
     }
   }
 
-  /** Grows the shared object-uniform ring buffer (+ its single dynamic-offset bind group) to
-   * hold at least `neededSlots`. Never shrinks. Called once at init and once per frame in
-   * `render()` based on the previous frame's usage -- never mid-frame (see `_getObjectSlotOffset`'s
-   * overflow clamp for why: swapping the bound `GPUBuffer` while a render pass is being recorded
-   * would need a second bind group + risks stale offsets in already-encoded draws). */
-  protected _ensureObjectRingCapacity(neededSlots: number): void {
-    if (this._objectRingBuffer && this._objectRingCapacity >= neededSlots) return;
-
-    const newCapacity = Math.max(neededSlots, this._objectRingCapacity * 2, 1);
-    const newBuffer = this._device!.createBuffer({
-      size: newCapacity * this._objectUniformStride,
-      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-    });
-    const newBindGroup = this._device!.createBindGroup({
-      layout: this._objectBGL,
-      entries: [
-        { binding: 0, resource: { buffer: newBuffer, offset: 0, size: this._objectUniformStride } },
-      ],
-    });
-
-    // Destroying immediately after this frame's queue.submit() is spec-safe (the driver keeps the
-    // underlying resource alive, ref-counted, until in-flight GPU work finishes) -- but growth
-    // happens *before* this frame's draws are recorded, so the old buffer is still what those
-    // draws' already-taken slot offsets refer to until we submit. Deferred to `render()`'s
-    // post-submit cleanup instead of destroying it here.
-    this._objectRingPendingDestroy = this._objectRingBuffer;
-    this._objectRingBuffer = newBuffer;
-    this._objectRingBindGroup = newBindGroup;
-    this._objectRingCapacity = newCapacity;
-  }
-
-  /** Returns the byte offset into `_objectRingBuffer` holding `obj`'s `ObjectUniforms` for this
-   * draw. Packs + uploads at most once per (object, material) per frame -- e.g. the same shadow
-   * caster drawn across 4 CSM cascades (all sharing one `DepthMaterial` `matUuid`) reuses the same
-   * slot instead of repacking. Sprites are excluded: their model matrix is billboarded towards
-   * `vMat` (camera vs. light view differ per pass), so they always get a fresh slot. */
+  /** Returns the byte offset into the object ring buffer holding `obj`'s `ObjectUniforms` for
+   * this draw. Packs + uploads at most once per (object, material) per frame -- e.g. the same
+   * shadow caster drawn across 4 CSM cascades (all sharing one `DepthMaterial` `matUuid`) reuses
+   * the same slot instead of repacking. Sprites are excluded: their model matrix is billboarded
+   * towards `vMat` (camera vs. light view differ per pass), so they always get a fresh slot. */
   protected _getObjectSlotOffset(
     obj: Object3D,
     m: RenderManifest,
@@ -1863,32 +1684,10 @@ export class WebGPURenderer extends AbstractRenderer {
   ): number {
     const isSprite = m.state?.isSprite === true;
     const key = isSprite ? undefined : `${obj.uuid}:${matUuid}`;
-    if (key !== undefined) {
-      const cached = this._objectSlotMap.get(key);
-      if (cached !== undefined) return cached;
+    const { offset, cached } = this._objectRing.acquireSlot(key);
+    if (!cached && this._packObjectUniforms(obj, m, vMat)) {
+      this._objectRing.write(offset, this._scratchObjBufferData);
     }
-
-    let slot = this._objectSlotCount;
-    if (slot >= this._objectRingCapacity) {
-      // Rare mid-frame spike beyond what last frame's usage predicted -- clamp instead of
-      // resizing mid-encode (see `_ensureObjectRingCapacity`'s doc comment). Self-corrects next
-      // frame once `_lastFrameObjectSlotCount` reflects the higher demand.
-      if (!this._objectRingOverflowWarned) {
-        console.warn(
-          `[WebGPURenderer] Object uniform ring buffer exceeded its ${this._objectRingCapacity}-slot capacity mid-frame; reusing the last slot for the overflow this frame. Capacity grows for the next frame.`,
-        );
-        this._objectRingOverflowWarned = true;
-      }
-      slot = this._objectRingCapacity - 1;
-    } else {
-      this._objectSlotCount++;
-    }
-
-    const offset = slot * this._objectUniformStride;
-    if (this._packObjectUniforms(obj, m, vMat)) {
-      this._device!.queue.writeBuffer(this._objectRingBuffer, offset, this._scratchObjBufferData);
-    }
-    if (key !== undefined) this._objectSlotMap.set(key, offset);
     return offset;
   }
 
@@ -2298,16 +2097,8 @@ export class WebGPURenderer extends AbstractRenderer {
 
   /** @inheritdoc */
   public override destroy(): void {
-    this._objectRingBuffer?.destroy();
-    this._objectRingPendingDestroy?.destroy();
-    for (const geo of this._geoCache.values()) {
-      geo.vb.destroy();
-      geo.nb?.destroy();
-      geo.uvb?.destroy();
-      geo.tb?.destroy();
-      geo.ib?.destroy();
-      geo.wib?.destroy();
-    }
+    this._objectRing?.dispose();
+    this._geometryCache?.dispose();
     for (const tex of this._shadowMaps.values()) tex.destroy();
     for (const data of this._renderTargetTextures.values()) {
       data.tex.destroy();
@@ -2342,9 +2133,7 @@ export class WebGPURenderer extends AbstractRenderer {
     this._taaPassGPU?.destroy();
     this._motionTrailPassGPU?.destroy();
 
-    this._objectSlotMap.clear();
     this._materialBindGroups.clear();
-    this._geoCache.clear();
     this._shadowMaps.clear();
     this._renderTargetTextures.clear();
     this._renderTargetCubeTextures.clear();
