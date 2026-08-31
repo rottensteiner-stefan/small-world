@@ -253,7 +253,7 @@ export class StandardMaterial extends AbstractMaterial {
    * properties (e.g. an emissive hover glow) on a material that might be shared across
    * multiple objects, where a direct mutation would visibly affect all of them at once.
    */
-  public clone(): StandardMaterial {
+  public override clone(): StandardMaterial {
     const copy = new StandardMaterial({
       color: new Color(this.color.r, this.color.g, this.color.b, this.color.a),
       metallic: this.metallic,

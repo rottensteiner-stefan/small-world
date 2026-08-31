@@ -5,6 +5,31 @@
 
 ---
 
+## 2026-08-31 — Nachtrag: Duplicate / Group
+
+**Ctrl+D** (Duplicate) und **Ctrl+G** (Group) implementiert, plus Buttons in der Toolbar.
+
+- `Object3D.clone()` (neu, `src/core/Object3D.ts`): generischer Deep-Clone über
+  `shallowCloneWithValueTypes()` (neu, `src/core/CloneUtils.ts`) — Prototyp-basiertes Shallow-Copy
+  + automatisches Deep-Clone jedes `Vector3D`/`Quaternion`/`Color`-Feldes + frische `uuid`.
+  Rekursiv für Children, `AbstractMaterial.clone()` fürs Material (eigene, gründlichere
+  `clone()`-Overrides von `StandardMaterial`/`FrostglassMaterial` bleiben unangetastet und
+  gewinnen), `Behavior.clone()` + `attachBehavior()` fürs Re-Attachment. `geometry`/Texturen
+  bleiben bewusst geteilt (unveränderliche Daten, Standard-Praxis). `rigidBody` wird bewusst
+  NICHT geklont (sonst würden zwei Objekte an einem physischen Body hängen).
+  **Bekannte Lücke:** SkinnedMesh/Skeleton nicht speziell behandelt — Duplicate ist für
+  Props/Lights/Prefab-Instanzen gedacht, Charakter-Rigs laufen über die Prefab/glTF-Pipeline.
+- `MakerApp.duplicateObject()` / `.groupSelection()`: beide über `UndoStack`, gleiches Muster wie
+  `addObject`/`deleteObject`/`reparent`. Group nimmt den alten Local-Transform des Objekts für die
+  neue leere Parent-Gruppe, Objekt selbst wird auf Identity zurückgesetzt (Weltposition bleibt
+  gleich) — Standard-Verhalten aus Blender/Unity. Vorerst nur Einzelobjekt (kein Multi-Select).
+- Live im Browser verifiziert (`public/tools/maker.html`): Duplicate erzeugt unabhängige Kopie
+  (Farbänderung an der Kopie beeinflusst das Original nachweislich NICHT), Group verschachtelt
+  korrekt und setzt Kind-Transform auf 0/0/0 zurück, beide Undo-Pfade räumen sauber auf, Buttons
+  UND Shortcuts geprüft, keine Konsolen-Fehler.
+
+---
+
 ## 2026-08-31 — Nachtrag: GadgetInspector entschlackt (ADR 0010 §5)
 
 Im Zuge der Branch-Hygiene fielen fünf tote Imports in `GadgetInspector.ts` auf
@@ -65,11 +90,15 @@ Heute: Branch-Hygiene, Core-Änderungen isoliert nach `main` gemergt, Docs angel
 | GadgetInspector (massiver Ausbau) | ✅ |
 
 ### Offene Punkte / Nächste Schritte
-- **Duplicate / Group** — fehlt noch, wäre das nächste sinnvolle Feature
-- **Licht-Platzierung** — DirectionalLight / AmbientLight aus der Palette
 - **Kamera-Bookmarks** — Viewport-Positionen speichern/springen
 - Prefab-Vorschau im Panel (längerfristig)
 - Multi-Selektion (längerfristig)
+
+**Korrektur (2026-08-31):** "Licht-Platzierung" fälschlich als offen gelistet — Point-,
+Directional- und AmbientLight sind bereits seit dem Phase-1-MVP-Commit (`cd9a608c`) Teil der
+`ObjectPalette`. Dokumentationsfehler, kein nachträglich gebautes Feature.
+
+**Update (2026-08-31):** "Duplicate / Group" ist erledigt — siehe Nachtrag oben.
 
 ### Architektur-Notizen
 - `MakerApp extends SmallWorld` — Orchestrator, kein Monolith

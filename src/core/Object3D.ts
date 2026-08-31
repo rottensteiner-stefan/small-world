@@ -5,6 +5,7 @@ import { Behavior, attachBehavior, detachBehavior } from "./behaviors/Behavior.j
 import { PickingBehavior } from "./behaviors/PickingBehavior.js";
 import { RigidBody } from "../physix/RigidBody.js";
 import { InspectorField } from "./Inspectable.js";
+import { shallowCloneWithValueTypes } from "./CloneUtils.js";
 
 /** Backs `occlusionCulled` -- kept off the instance itself so objects that are never touched by
  * WebGPU HZB occlusion culling (i.e. every object on WebGL1/WebGL2) don't carry the field. */
@@ -300,5 +301,50 @@ export class Object3D implements Collidable {
       this.worldMatrix.data[13]!,
       this.worldMatrix.data[14]!,
     );
+  }
+
+  /**
+   * Returns an independent copy of this object's subtree -- own `uuid`, own transform, own
+   * material (via `AbstractMaterial.clone()`), own behaviors (via `Behavior.clone()`, re-attached
+   * so `onAttach()` runs against the new instance), and a recursive clone of every child. Used by
+   * Maker's Duplicate command.
+   *
+   * `geometry` and any texture references stay shared by reference -- immutable data, same as
+   * every other "place another instance" workflow in the engine. `parent`/`bounds` reset (the
+   * caller reparents and bounds recompute lazily); `rigidBody` is deliberately dropped rather
+   * than shared, since two objects driven by the same live physics body would move together.
+   *
+   * Known gap: skinned meshes aren't specially handled -- a cloned `SkinnedMesh`'s `skeleton`
+   * would still reference the *original* subtree's bones, not the freshly cloned ones alongside
+   * it. Not a concern for Maker's realistic Duplicate targets (props, lights, prefab instances);
+   * character rigs go through the Prefab/glTF pipeline instead.
+   */
+  public clone(): Object3D {
+    const copy = shallowCloneWithValueTypes(this);
+    copy.parent = undefined;
+    copy.bounds = undefined;
+    delete copy.rigidBody;
+    copy.localMatrix = new Matrix4();
+    copy.worldMatrix = new Matrix4();
+    copy.material = this.material?.clone();
+
+    copy.children = this.children.map((child) => {
+      const childCopy = child.clone();
+      childCopy.parent = copy;
+      return childCopy;
+    });
+
+    copy.behaviors = [];
+    for (const behavior of this.behaviors) {
+      attachBehavior(copy.behaviors, behavior.clone(), copy);
+    }
+    const pickingCopy = copy.behaviors.find(
+      (b): b is PickingBehavior => b instanceof PickingBehavior,
+    );
+    if (pickingCopy) copy._pickingBehavior = pickingCopy;
+    else delete copy._pickingBehavior;
+
+    copy.updateMatrixWorld();
+    return copy;
   }
 }

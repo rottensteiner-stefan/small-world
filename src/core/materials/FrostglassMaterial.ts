@@ -53,7 +53,7 @@ export class FrostglassMaterial extends AbstractMaterial {
    * instance so the Controller can animate clarityPulseCenter/clarityPulseRadius per
    * panel without every other panel sharing the same template flashing in sync.
    */
-  public clone(): FrostglassMaterial {
+  public override clone(): FrostglassMaterial {
     return new FrostglassMaterial({
       color: new Color(this.color.r, this.color.g, this.color.b, this.color.a),
       metallic: this.metallic,

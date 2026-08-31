@@ -130,6 +130,7 @@ export class MakerApp extends SmallWorld {
       this._makerOptions.statusContainer.textContent = dirty ? "Unsaved changes…" : "Saved";
     });
     this._setupProjectToolbar();
+    this._setupSelectionToolbar();
     this._setupGizmoToolbar();
 
     this.canvas.addEventListener("contextmenu", (e) => e.preventDefault());
@@ -217,6 +218,30 @@ export class MakerApp extends SmallWorld {
         this._project.scheduleAutosave(() => this.scene.root);
       },
     });
+  }
+
+  /** Duplicate/Group buttons -- mirrors the `Ctrl/Cmd+D`/`Ctrl/Cmd+G` shortcuts handled in
+   * `_onMakerKeyDown`. Both silently no-op with nothing selected, same as the palette's other
+   * selection-dependent actions (e.g. "Save as Prefab"). */
+  private _setupSelectionToolbar(): void {
+    const row = document.createElement("div");
+    row.className = "maker-gizmo-toolbar";
+
+    const duplicate = document.createElement("button");
+    duplicate.className = "maker-palette-btn";
+    duplicate.textContent = "⧉ Duplicate (Ctrl+D)";
+    duplicate.addEventListener("click", (): void => {
+      if (this._selected) this.duplicateObject(this._selected);
+    });
+    row.appendChild(duplicate);
+
+    const group = document.createElement("button");
+    group.className = "maker-palette-btn";
+    group.textContent = "▤ Group (Ctrl+G)";
+    group.addEventListener("click", (): void => this.groupSelection());
+    row.appendChild(group);
+
+    this._makerOptions.paletteContainer.prepend(row);
   }
 
   /** Move/Rotate/Scale mode buttons -- mirrors the `W`/`E`/`R` shortcuts handled in
@@ -387,6 +412,75 @@ export class MakerApp extends SmallWorld {
     });
   }
 
+  /** Clones `obj` (via `Object3D.clone()`) and inserts the copy as a sibling right next to the
+   * original, then selects it. Undoing removes the copy, not the original. */
+  public duplicateObject(obj: Object3D): void {
+    const parent = obj.parent;
+    if (!parent) return;
+    const clone = obj.clone();
+    clone.name = obj.name ? `${obj.name} Copy` : clone.name;
+
+    this._undo.execute({
+      label: `Duplicate ${obj.name}`,
+      redo: () => {
+        parent.add(clone);
+        this._hierarchyDirty = true;
+        this.selectObject(clone);
+        this._project.scheduleAutosave(() => this.scene.root);
+      },
+      undo: () => {
+        this._trashBin.add(clone);
+        this._hierarchyDirty = true;
+        if (this._selected === clone) this.selectObject(obj);
+        this._project.scheduleAutosave(() => this.scene.root);
+      },
+    });
+  }
+
+  /** Wraps the selected object in a new empty parent at its current world transform (the group
+   * takes the object's old local transform, the object resets to identity within it) -- the
+   * standard "Group Selected" operation in Blender/Unity, scoped to a single object for now since
+   * Maker has no multi-selection yet. Undoing unwraps it back to the original parent. */
+  public groupSelection(): void {
+    const obj = this._selected;
+    const parent = obj?.parent;
+    if (!obj || !parent) return;
+
+    const beforePos = obj.position.clone();
+    const beforeRot = obj.rotation.clone();
+    const beforeScale = obj.scale.clone();
+    const group = new Object3D("Group");
+    group.position.copyFrom(beforePos);
+    group.rotation.copyFrom(beforeRot);
+    group.scale.copyFrom(beforeScale);
+
+    this._undo.execute({
+      label: `Group ${obj.name}`,
+      redo: () => {
+        parent.add(group);
+        group.add(obj);
+        obj.position.set(0, 0, 0);
+        obj.rotation.set(0, 0, 0);
+        obj.scale.set(1, 1, 1);
+        obj.updateMatrixWorld();
+        this._hierarchyDirty = true;
+        this.selectObject(group);
+        this._project.scheduleAutosave(() => this.scene.root);
+      },
+      undo: () => {
+        parent.add(obj);
+        obj.position.copyFrom(beforePos);
+        obj.rotation.copyFrom(beforeRot);
+        obj.scale.copyFrom(beforeScale);
+        obj.updateMatrixWorld();
+        this._trashBin.add(group);
+        this._hierarchyDirty = true;
+        this.selectObject(obj);
+        this._project.scheduleAutosave(() => this.scene.root);
+      },
+    });
+  }
+
   public attachBehaviorToSelection(behavior: Behavior): void {
     const obj = this._selected;
     if (!obj) return;
@@ -502,6 +596,16 @@ export class MakerApp extends SmallWorld {
     }
 
     const key = event.key.toLowerCase();
+    if ((event.ctrlKey || event.metaKey) && ("d" === key || "g" === key)) {
+      const active = document.activeElement;
+      if (active && ("INPUT" === active.tagName || "TEXTAREA" === active.tagName)) return;
+      if (!this._selected) return;
+      event.preventDefault();
+      if ("d" === key) this.duplicateObject(this._selected);
+      else this.groupSelection();
+      return;
+    }
+
     if ("w" === key || "e" === key || "r" === key) {
       const active = document.activeElement;
       if (active && ("INPUT" === active.tagName || "TEXTAREA" === active.tagName)) return;
