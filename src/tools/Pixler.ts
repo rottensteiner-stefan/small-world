@@ -1,6 +1,12 @@
 import { ForgeTool, ForgeToolOptions } from "./forge/ForgeTool.js";
 import { ToolEvents } from "../enums/ToolEvents.js";
 import { EventDispatcherImpl } from "../core/index.js";
+import {
+  bresenhamLine,
+  floodFill,
+  computeTrimBounds,
+  flipCanvas,
+} from "./common/dsp/CanvasOperations.js";
 
 export const PIXLER_PALETTES = {
   DEFAULT: [
@@ -593,26 +599,8 @@ export class Pixler extends ForgeTool {
   }
 
   private _drawLine(x0: number, y0: number, x1: number, y1: number, erase: boolean): void {
-    const dx = Math.abs(x1 - x0);
-    const dy = Math.abs(y1 - y0);
-    const sx = x0 < x1 ? 1 : -1;
-    const sy = y0 < y1 ? 1 : -1;
-    let err = dx - dy;
-
-    let cx = x0;
-    let cy = y0;
-    while (true) {
+    for (const [cx, cy] of bresenhamLine(x0, y0, x1, y1)) {
       this._drawPixelSymmetric(cx, cy, erase);
-      if (cx === x1 && cy === y1) break;
-      const e2 = 2 * err;
-      if (e2 > -dy) {
-        err -= dy;
-        cx += sx;
-      }
-      if (e2 < dx) {
-        err += dx;
-        cy += sy;
-      }
     }
   }
 
@@ -620,52 +608,19 @@ export class Pixler extends ForgeTool {
     if (startX < 0 || startX >= this._width || startY < 0 || startY >= this._height) return;
 
     const imgData = this._ctx.getImageData(0, 0, this._width, this._height);
-    const data = imgData.data;
-    const targetIdx = (startY * this._width + startX) * 4;
-    const r = data[targetIdx]!;
-    const g = data[targetIdx + 1]!;
-    const b = data[targetIdx + 2]!;
-    const a = data[targetIdx + 3]!;
 
-    let fr = 0,
-      fg = 0,
-      fb = 0,
-      fa = 0;
+    let fillColor: [number, number, number, number] = [0, 0, 0, 0];
     if (targetColor !== "transparent") {
       const hex = targetColor.replace("#", "");
-      fr = parseInt(hex.substring(0, 2), 16);
-      fg = parseInt(hex.substring(2, 4), 16);
-      fb = parseInt(hex.substring(4, 6), 16);
-      fa = 255;
+      fillColor = [
+        parseInt(hex.substring(0, 2), 16),
+        parseInt(hex.substring(2, 4), 16),
+        parseInt(hex.substring(4, 6), 16),
+        255,
+      ];
     }
 
-    if (r === fr && g === fg && b === fb && a === fa) return;
-
-    const match = (idx: number): boolean => {
-      return data[idx] === r && data[idx + 1] === g && data[idx + 2] === b && data[idx + 3] === a;
-    };
-
-    const setPx = (idx: number): void => {
-      data[idx] = fr;
-      data[idx + 1] = fg;
-      data[idx + 2] = fb;
-      data[idx + 3] = fa;
-    };
-
-    const stack: [number, number][] = [[startX, startY]];
-    while (stack.length > 0) {
-      const [x, y] = stack.pop() as [number, number];
-      const idx = (y * this._width + x) * 4;
-
-      if (match(idx)) {
-        setPx(idx);
-        if (x > 0) stack.push([x - 1, y]);
-        if (x < this._width - 1) stack.push([x + 1, y]);
-        if (y > 0) stack.push([x, y - 1]);
-        if (y < this._height - 1) stack.push([x, y + 1]);
-      }
-    }
-
+    floodFill(imgData.data, this._width, this._height, startX, startY, fillColor);
     this._ctx.putImageData(imgData, 0, 0);
   }
 
@@ -950,11 +905,6 @@ export class Pixler extends ForgeTool {
     const imgData = this._ctx.getImageData(0, 0, this._width, this._height);
     const data = imgData.data;
 
-    let minX = this._width;
-    let minY = this._height;
-    let maxX = -1;
-    let maxY = -1;
-
     const isBackground = (x: number, y: number): boolean => {
       const i = (y * this._width + x) * 4;
       const a = data[i + 3]!;
@@ -966,34 +916,21 @@ export class Pixler extends ForgeTool {
       return hex === this._currentColor.toLowerCase();
     };
 
-    for (let y = 0; y < this._height; y++) {
-      for (let x = 0; x < this._width; x++) {
-        if (!isBackground(x, y)) {
-          if (x < minX) minX = x;
-          if (x > maxX) maxX = x;
-          if (y < minY) minY = y;
-          if (y > maxY) maxY = y;
-        }
-      }
-    }
-
-    if (maxX < minX || maxY < minY) {
+    const bounds = computeTrimBounds(this._width, this._height, isBackground);
+    if (!bounds) {
       this._ctx.clearRect(0, 0, this._width, this._height);
       return;
     }
 
-    const newW = maxX - minX + 1;
-    const newH = maxY - minY + 1;
+    const croppedData = this._ctx.getImageData(bounds.x, bounds.y, bounds.width, bounds.height);
 
-    const croppedData = this._ctx.getImageData(minX, minY, newW, newH);
+    this._width = bounds.width;
+    this._height = bounds.height;
+    if (this._inputs["W"]) this._inputs["W"].value = bounds.width.toString();
+    if (this._inputs["H"]) this._inputs["H"].value = bounds.height.toString();
 
-    this._width = newW;
-    this._height = newH;
-    if (this._inputs["W"]) this._inputs["W"].value = newW.toString();
-    if (this._inputs["H"]) this._inputs["H"].value = newH.toString();
-
-    this._canvas.width = newW;
-    this._canvas.height = newH;
+    this._canvas.width = bounds.width;
+    this._canvas.height = bounds.height;
     this._ctx.putImageData(croppedData, 0, 0);
     this._updateGrid();
     this._saveHistory();
@@ -1025,12 +962,9 @@ export class Pixler extends ForgeTool {
     tempCanvas.height = this._height;
     tempCanvas.getContext("2d", { willReadFrequently: true })!.putImageData(oldData, 0, 0);
 
+    const flipped = flipCanvas(tempCanvas, horizontal, vertical);
     this._ctx.clearRect(0, 0, this._width, this._height);
-    this._ctx.save();
-    this._ctx.translate(horizontal ? this._width : 0, vertical ? this._height : 0);
-    this._ctx.scale(horizontal ? -1 : 1, vertical ? -1 : 1);
-    this._ctx.drawImage(tempCanvas, 0, 0);
-    this._ctx.restore();
+    this._ctx.drawImage(flipped, 0, 0);
     this._saveHistory();
   }
 

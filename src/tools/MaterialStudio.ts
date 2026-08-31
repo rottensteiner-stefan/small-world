@@ -9,20 +9,14 @@ import { PerspectiveProjection } from "../math/projections/index.js";
 import { CameraStrategyType } from "../enums/index.js";
 import { Vector2D } from "../math/index.js";
 import { GeometryDataInterface } from "../interfaces/index.js";
-
-declare global {
-  interface Window {
-    update3DTextures?: (
-      diffuseCanvas: HTMLCanvasElement,
-      normalCanvas: HTMLCanvasElement,
-      roughnessCanvas: HTMLCanvasElement,
-      normalStrength: number,
-      metallicValue: number,
-      roughnessValue: number,
-    ) => Promise<void>;
-    update3DGeometry?: (geomType: string) => void;
-  }
-}
+import {
+  generateHeightMap,
+  generateNormalMap,
+  generateSpecularMap,
+  generateRoughnessMap,
+  generateAOMap,
+  generateEdgeMap,
+} from "./common/dsp/TextureFilters.js";
 
 export class MaterialStudioApp extends SmallWorld {
   private _previewObject!: Object3D;
@@ -92,58 +86,58 @@ export class MaterialStudioApp extends SmallWorld {
     this._previewObject.material = this._pbrMaterial;
 
     this.scene.add(this._previewObject);
+  }
 
-    window.update3DTextures = async (
-      diffuseCanvas: HTMLCanvasElement,
-      normalCanvas: HTMLCanvasElement,
-      roughnessCanvas: HTMLCanvasElement,
-      normalStrength: number,
-      metallicValue: number,
-      roughnessValue: number,
-    ): Promise<void> => {
-      if (!this._pbrMaterial) return;
-      try {
-        const diffuseBitmap = await createImageBitmap(diffuseCanvas);
-        const normalBitmap = await createImageBitmap(normalCanvas);
-        const roughnessBitmap = await createImageBitmap(roughnessCanvas);
+  public async updateTextures(
+    diffuseCanvas: HTMLCanvasElement,
+    normalCanvas: HTMLCanvasElement,
+    roughnessCanvas: HTMLCanvasElement,
+    normalStrength: number,
+    metallicValue: number,
+    roughnessValue: number,
+  ): Promise<void> {
+    if (!this._pbrMaterial) return;
+    try {
+      const diffuseBitmap = await createImageBitmap(diffuseCanvas);
+      const normalBitmap = await createImageBitmap(normalCanvas);
+      const roughnessBitmap = await createImageBitmap(roughnessCanvas);
 
-        this._pbrMaterial.diffuseMap = Texture.fromImage(diffuseBitmap, { generateMipmaps: true });
-        this._pbrMaterial.normalMap = Texture.fromImage(normalBitmap, { generateMipmaps: true });
-        this._pbrMaterial.roughnessMap = Texture.fromImage(roughnessBitmap, {
-          generateMipmaps: true,
-        });
+      this._pbrMaterial.diffuseMap = Texture.fromImage(diffuseBitmap, { generateMipmaps: true });
+      this._pbrMaterial.normalMap = Texture.fromImage(normalBitmap, { generateMipmaps: true });
+      this._pbrMaterial.roughnessMap = Texture.fromImage(roughnessBitmap, {
+        generateMipmaps: true,
+      });
 
-        this._pbrMaterial.normalScale.x = normalStrength;
-        this._pbrMaterial.normalScale.y = normalStrength;
-        this._pbrMaterial.metallic = metallicValue;
-        this._pbrMaterial.roughness = roughnessValue;
-      } catch (err) {
-        console.error("Error updating 3D textures in SmallWorld:", err);
-      }
-    };
+      this._pbrMaterial.normalScale.x = normalStrength;
+      this._pbrMaterial.normalScale.y = normalStrength;
+      this._pbrMaterial.metallic = metallicValue;
+      this._pbrMaterial.roughness = roughnessValue;
+    } catch (err) {
+      console.error("Error updating 3D textures in SmallWorld:", err);
+    }
+  }
 
-    window.update3DGeometry = (geomType: string): void => {
-      if (!this._previewObject) return;
-      switch (geomType) {
-        case "cube":
-          this._previewObject.geometry = this._cubeGeometry;
-          this._previewObject.rotation.set(0.4, 0.4, 0);
-          break;
-        case "torus":
-          this._previewObject.geometry = this._torusGeometry;
-          this._previewObject.rotation.set(0.5, 0, 0);
-          break;
-        case "plane":
-          this._previewObject.geometry = this._planeGeometry;
-          this._previewObject.rotation.set(Math.PI / 6, 0, 0);
-          break;
-        case "sphere":
-        default:
-          this._previewObject.geometry = this._sphereGeometry;
-          this._previewObject.rotation.set(0, 0, 0);
-          break;
-      }
-    };
+  public updateGeometry(geomType: string): void {
+    if (!this._previewObject) return;
+    switch (geomType) {
+      case "cube":
+        this._previewObject.geometry = this._cubeGeometry;
+        this._previewObject.rotation.set(0.4, 0.4, 0);
+        break;
+      case "torus":
+        this._previewObject.geometry = this._torusGeometry;
+        this._previewObject.rotation.set(0.5, 0, 0);
+        break;
+      case "plane":
+        this._previewObject.geometry = this._planeGeometry;
+        this._previewObject.rotation.set(Math.PI / 6, 0, 0);
+        break;
+      case "sphere":
+      default:
+        this._previewObject.geometry = this._sphereGeometry;
+        this._previewObject.rotation.set(0, 0, 0);
+        break;
+    }
   }
 
   protected override update(deltaTime: number): void {
@@ -1897,8 +1891,8 @@ export class MaterialStudio extends ForgeTool {
           document.querySelectorAll(".geom-btn").forEach((b) => b.classList.remove("active"));
           btn.classList.add("active");
           const geom = btn.getAttribute("data-geom") || "";
-          if (typeof window.update3DGeometry === "function") {
-            window.update3DGeometry(geom);
+          if (this._app) {
+            this._app.updateGeometry(geom);
           }
         });
       });
@@ -1975,8 +1969,8 @@ export class MaterialStudio extends ForgeTool {
         }
       }
 
-      function pushTexturesTo3D(): void {
-        if (typeof window.update3DTextures === "function") {
+      const pushTexturesTo3D = (): void => {
+        if (this._app) {
           const normalStrength =
             parseFloat(
               (document.getElementById("normal-strength-slider") as HTMLInputElement).value,
@@ -1989,7 +1983,7 @@ export class MaterialStudio extends ForgeTool {
               (document.getElementById("roughness-override-slider") as HTMLInputElement).value,
             ) / 100.0;
 
-          window.update3DTextures(
+          this._app.updateTextures(
             canvases.original,
             canvases.normal,
             canvases.roughness,
@@ -1998,109 +1992,7 @@ export class MaterialStudio extends ForgeTool {
             roughnessValue,
           );
         }
-      }
-
-      // ----------------------------------------------------
-      // Fast Image Processing Helpers
-      // ----------------------------------------------------
-
-      // In-place Box Blur algorithm for performance
-      function fastBoxBlur(src: Uint8ClampedArray, w: number, h: number, r: number): void {
-        if (r <= 0) return;
-
-        const tmp = new Uint8ClampedArray(src.length);
-
-        // Horizontal pass
-        const valCount = r * 2 + 1;
-        const invCount = 1 / valCount;
-
-        for (let y = 0; y < h; y++) {
-          let rSum = 0,
-            gSum = 0,
-            bSum = 0;
-          const rowStart = y * w * 4;
-
-          // Initial window sum
-          for (let x = -r; x <= r; x++) {
-            const cx = Math.max(0, Math.min(w - 1, x));
-            const idx = rowStart + cx * 4;
-            rSum += src[idx]!;
-            gSum += src[idx + 1]!;
-            bSum += src[idx + 2]!;
-          }
-
-          // Slid window
-          for (let x = 0; x < w; x++) {
-            const outIdx = rowStart + x * 4;
-            tmp[outIdx] = Math.round(rSum * invCount);
-            tmp[outIdx + 1] = Math.round(gSum * invCount);
-            tmp[outIdx + 2] = Math.round(bSum * invCount);
-            tmp[outIdx + 3] = src[outIdx + 3]!;
-
-            // Outgoing pixel
-            const outX = Math.max(0, x - r);
-            const outPixelIdx = rowStart + outX * 4;
-            rSum -= src[outPixelIdx]!;
-            gSum -= src[outPixelIdx + 1]!;
-            bSum -= src[outPixelIdx + 2]!;
-
-            // Incoming pixel
-            const inX = Math.min(w - 1, x + r + 1);
-            const inPixelIdx = rowStart + inX * 4;
-            rSum += src[inPixelIdx]!;
-            gSum += src[inPixelIdx + 1]!;
-            bSum += src[inPixelIdx + 2]!;
-          }
-        }
-
-        // Vertical pass (applied on temp, saved to src)
-        for (let x = 0; x < w; x++) {
-          let rSum = 0,
-            gSum = 0,
-            bSum = 0;
-
-          // Initial window sum
-          for (let y = -r; y <= r; y++) {
-            const cy = Math.max(0, Math.min(h - 1, y));
-            const idx = (cy * w + x) * 4;
-            rSum += tmp[idx]! || 0;
-            gSum += tmp[idx + 1]! || 0;
-            bSum += tmp[idx + 2]! || 0;
-          }
-
-          // Slid window
-          for (let y = 0; y < h; y++) {
-            const outIdx = (y * w + x) * 4;
-            src[outIdx]! = Math.round(rSum * invCount);
-            src[outIdx + 1]! = Math.round(gSum * invCount);
-            src[outIdx + 2]! = Math.round(bSum * invCount);
-            src[outIdx + 3] = tmp[outIdx + 3]!;
-
-            // Outgoing pixel
-            const outY = Math.max(0, y - r);
-            const outPixelIdx = (outY * w + x) * 4;
-            rSum -= tmp[outPixelIdx]! || 0;
-            gSum -= tmp[outPixelIdx + 1]! || 0;
-            bSum -= tmp[outPixelIdx + 2]! || 0;
-
-            // Incoming pixel
-            const inY = Math.min(h - 1, y + r + 1);
-            const inPixelIdx = (inY * w + x) * 4;
-            rSum += tmp[inPixelIdx]! || 0;
-            gSum += tmp[inPixelIdx + 1]! || 0;
-            bSum += tmp[inPixelIdx + 2]! || 0;
-          }
-        }
-      }
-
-      // Sigmoidal contrast function
-      function sigmoidalContrast(x: number, contrast: number, threshold: number): number {
-        if (contrast === 0) return x;
-        const a = 1.0 / (1.0 + Math.exp(contrast * threshold));
-        const b = 1.0 / (1.0 + Math.exp(-contrast * (1.0 - threshold)));
-        const y = 1.0 / (1.0 + Math.exp(-contrast * (x - threshold)));
-        return (y - a) / (b - a);
-      }
+      };
 
       // ----------------------------------------------------
       // Main Processing Pipeline
@@ -2162,223 +2054,70 @@ export class MaterialStudio extends ForgeTool {
         );
         const edgeInvert = (document.getElementById("edge-invert") as HTMLInputElement).checked;
 
-        // Prepare target ImageDatas
+        // 1. HEIGHT MAP
         const heightCtx = canvases.height.getContext("2d");
         const heightData = heightCtx!.createImageData(w, h);
+        heightData.data.set(
+          generateHeightMap(pixels, w, h, {
+            blur: heightBlur,
+            contrast: heightContrast,
+            invert: heightInvert,
+          }),
+        );
+        heightCtx!.putImageData(heightData, 0, 0);
         const hPixels = heightData.data;
 
-        // 1. HEIGHT MAP (Grayscale + optional contrast + blur)
-        for (let i = 0; i < pixels.length; i += 4) {
-          const r = pixels[i] || 0;
-          const g = pixels[i + 1] || 0;
-          const b = pixels[i + 2] || 0;
-
-          // Grayscale conversion (luminance weight)
-          let gray = (0.299 * r + 0.587 * g + 0.114 * b) / 255.0;
-
-          // Height Contrast
-          gray = Math.max(0, Math.min(1, (gray - 0.5) * heightContrast + 0.5));
-
-          // Height Invert
-          if (heightInvert) {
-            gray = 1.0 - gray;
-          }
-
-          const gVal = Math.round(gray * 255);
-          hPixels[i] = gVal;
-          hPixels[i + 1] = gVal;
-          hPixels[i + 2] = gVal;
-          hPixels[i + 3] = 255;
-        }
-
-        // Apply blur on height map
-        if (heightBlur > 0) {
-          fastBoxBlur(hPixels, w, h, heightBlur);
-        }
-        heightCtx!.putImageData(heightData, 0, 0);
-
-        // 2. NORMAL MAP (Sobel gradient filter from height map)
+        // 2. NORMAL MAP
         const normalCtx = canvases.normal.getContext("2d");
         const normalData = normalCtx!.createImageData(w, h);
-        const nPixels = normalData.data;
-
-        const getHeight = (x: number, y: number): number => {
-          const cx = Math.max(0, Math.min(w - 1, x));
-          const cy = Math.max(0, Math.min(h - 1, y));
-          return (hPixels[(cy * w + cx) * 4]! || 0) / 255.0;
-        };
-
-        for (let y = 0; y < h; y++) {
-          for (let x = 0; x < w; x++) {
-            const idx = (y * w + x) * 4;
-
-            // Sobel operator for derivatives
-            const tl = getHeight(x - 1, y - 1);
-            const t = getHeight(x, y - 1);
-            const tr = getHeight(x + 1, y - 1);
-            const l = getHeight(x - 1, y);
-            const r = getHeight(x + 1, y);
-            const bl = getHeight(x - 1, y + 1);
-            const b = getHeight(x, y + 1);
-            const br = getHeight(x + 1, y + 1);
-
-            // Horizontal gradient
-            let dx = tr + 2 * r + br - (tl + 2 * l + bl);
-            // Vertical gradient
-            let dy = bl + 2 * b + br - (tl + 2 * t + tr);
-
-            // Inverts
-            if (normalInvertR) dx = -dx;
-            if (normalFormat === "directx") dy = -dy; // DirectX expects -Y (inverted green)
-
-            // Scaling normal vectors
-            const nx = -dx * normalStrength;
-            const ny = -dy * normalStrength;
-            const nz = 1.0;
-
-            // Normalize normal vector
-            const len = Math.sqrt(nx * nx + ny * ny + nz * nz);
-
-            nPixels[idx] = Math.round(((nx / len) * 0.5 + 0.5) * 255);
-            nPixels[idx + 1] = Math.round(((ny / len) * 0.5 + 0.5) * 255);
-            nPixels[idx + 2] = Math.round(((nz / len) * 0.5 + 0.5) * 255);
-            nPixels[idx + 3] = 255;
-          }
-        }
+        normalData.data.set(
+          generateNormalMap(hPixels, w, h, {
+            strength: normalStrength,
+            format: normalFormat,
+            invertR: normalInvertR,
+          }),
+        );
         normalCtx!.putImageData(normalData, 0, 0);
 
-        // 3. SPECULAR MAP (Sigmoidal contrast applied to height values)
+        // 3. SPECULAR MAP
         const specCtx = canvases.specular.getContext("2d");
         const specData = specCtx!.createImageData(w, h);
+        specData.data.set(
+          generateSpecularMap(hPixels, {
+            contrast: specContrast,
+            threshold: specThresh,
+            invert: specInvert,
+          }),
+        );
+        specCtx!.putImageData(specData, 0, 0);
         const sPixels = specData.data;
 
-        for (let i = 0; i < hPixels.length; i += 4) {
-          const heightNorm = (hPixels[i]! || 0) / 255.0;
-          let spec = sigmoidalContrast(heightNorm, specContrast, specThresh);
-
-          if (specInvert) {
-            spec = 1.0 - spec;
-          }
-
-          const sVal = Math.round(spec * 255);
-          sPixels[i] = sVal;
-          sPixels[i + 1] = sVal;
-          sPixels[i + 2] = sVal;
-          sPixels[i + 3] = 255;
-        }
-        specCtx!.putImageData(specData, 0, 0);
-
-        // 4. ROUGHNESS MAP (Inverted specular + gamma correction)
+        // 4. ROUGHNESS MAP
         const roughCtx = canvases.roughness.getContext("2d");
         const roughData = roughCtx!.createImageData(w, h);
-        const rPixels = roughData.data;
-
-        for (let i = 0; i < sPixels.length; i += 4) {
-          const specVal = (sPixels[i]! || 0) / 255.0;
-
-          // Base roughness is inverted specular
-          let rough = 1.0 - specVal;
-
-          // Apply gamma curve
-          rough = Math.pow(rough, 1.0 / roughGamma);
-
-          if (roughInvert) {
-            rough = 1.0 - rough;
-          }
-
-          const rVal = Math.round(rough * 255);
-          rPixels[i] = rVal;
-          rPixels[i + 1] = rVal;
-          rPixels[i + 2] = rVal;
-          rPixels[i + 3] = 255;
-        }
+        roughData.data.set(
+          generateRoughnessMap(sPixels, { gamma: roughGamma, invert: roughInvert }),
+        );
         roughCtx!.putImageData(roughData, 0, 0);
 
-        // 5. AO MAP (Soft blur + crevice detection)
+        // 5. AO MAP
         const aoCtx = canvases.ao.getContext("2d");
         const aoData = aoCtx!.createImageData(w, h);
-        const aoPixels = aoData.data;
-
-        // Duplicate height pixels to create soft shadows via blur
-        const softHeightPixels = new Uint8ClampedArray(hPixels);
-        fastBoxBlur(softHeightPixels, w, h, aoSoft);
-
-        for (let y = 0; y < h; y++) {
-          for (let x = 0; x < w; x++) {
-            const idx = (y * w + x) * 4;
-
-            // Local detail crevice detection via a Laplacian-style edge kernel on height map
-            // 4*center - sum of 4 neighbors
-            const center = getHeight(x, y);
-            const top = getHeight(x, y - 1);
-            const bottom = getHeight(x, y + 1);
-            const left = getHeight(x - 1, y);
-            const right = getHeight(x + 1, y);
-
-            // Positive value means center is a valley (dark crevice)
-            const laplacian = (top + bottom + left + right) / 4.0 - center;
-            const fineCrevice = Math.max(0, laplacian * 2.0); // Amplify slightly
-
-            // Soft macro shadow (darker inside deeper valleys of soft height map)
-            const softDepth = (softHeightPixels[idx]! || 0) / 255.0;
-            const softShadow = Math.min(1.0, softDepth + aoLevel); // Shift level
-
-            // Combine fine and soft AO
-            let ao = softShadow * (1.0 - fineCrevice * aoFine);
-            ao = Math.max(0, Math.min(1, ao));
-
-            const aoVal = Math.round(ao * 255);
-            aoPixels[idx] = aoVal;
-            aoPixels[idx + 1] = aoVal;
-            aoPixels[idx + 2] = aoVal;
-            aoPixels[idx + 3] = 255;
-          }
-        }
+        aoData.data.set(
+          generateAOMap(hPixels, w, h, { soft: aoSoft, fine: aoFine, level: aoLevel }),
+        );
         aoCtx!.putImageData(aoData, 0, 0);
 
-        // 6. EDGE MAP (Sobel magnitude thresholded)
+        // 6. EDGE MAP
         const edgeCtx = canvases.edge.getContext("2d");
         const edgeData = edgeCtx!.createImageData(w, h);
-        const ePixels = edgeData.data;
-
-        for (let y = 0; y < h; y++) {
-          for (let x = 0; x < w; x++) {
-            const idx = (y * w + x) * 4;
-
-            // Sample surrounding values
-            const tl = getHeight(x - 1, y - 1);
-            const t = getHeight(x, y - 1);
-            const tr = getHeight(x + 1, y - 1);
-            const l = getHeight(x - 1, y);
-            const r = getHeight(x + 1, y);
-            const bl = getHeight(x - 1, y + 1);
-            const b = getHeight(x, y + 1);
-            const br = getHeight(x + 1, y + 1);
-
-            const dx = tr + 2 * r + br - (tl + 2 * l + bl);
-            const dy = bl + 2 * b + br - (tl + 2 * t + tr);
-
-            const mag = Math.sqrt(dx * dx + dy * dy);
-
-            // Threshold edge lines
-            let edge = mag > (1.0 - edgeThresh) * 1.5 ? 1.0 : 0.0;
-
-            if (edgeInvert) {
-              edge = 1.0 - edge;
-            }
-
-            const eVal = Math.round(edge * 255);
-            ePixels[idx] = eVal;
-            ePixels[idx + 1] = eVal;
-            ePixels[idx + 2] = eVal;
-            ePixels[idx + 3] = 255;
-          }
-        }
-
-        // Apply thickness blur if requested
-        if (edgeThick > 1) {
-          fastBoxBlur(ePixels, w, h, edgeThick - 1);
-        }
+        edgeData.data.set(
+          generateEdgeMap(hPixels, w, h, {
+            threshold: edgeThresh,
+            thickness: edgeThick,
+            invert: edgeInvert,
+          }),
+        );
         edgeCtx!.putImageData(edgeData, 0, 0);
 
         // 7. DRAW TO VIEWPORTS

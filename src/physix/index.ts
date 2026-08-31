@@ -9,3 +9,7 @@ export * from "./RigidBody.js";
 export * from "./Collision.js";
 export * from "./Ray.js";
 export * from "./Raycaster.js";
+export * from "./fluids/BuoyancySolver.js";
+export * from "./broadphase/PhysicsBroadphase.js";
+export * from "./ccd/SweptSphereCCD.js";
+export * from "./solvers/EulerIntegrator.js";
