@@ -37,6 +37,11 @@ export class Object3D implements Collidable {
   public name: string = "";
   /** Optional app-defined category tag, for typed identification instead of matching on `name`. */
   public tag?: string;
+  /** Name of the Maker prefab this node was instantiated from, if any -- provenance only, per
+   * ADR 0010's Phase 2 "stamped copies" decision: no live link back to the source, just a record
+   * of where this subtree came from. Round-tripped via the `SW_prefab_instance` glTF extension
+   * (`WorldWriter`/`GltfLoader`). */
+  public prefabSource?: string;
 
   public rigidBody?: RigidBody;
 
