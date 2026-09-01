@@ -55,8 +55,10 @@ export class TransformGizmo {
   private readonly _raycaster = new Raycaster();
   private _target: Object3D | undefined;
 
+  public static readonly GRID_STEPS: readonly number[] = [0.1, 0.25, 0.5, 1.0, 2.0];
+
   public snap: GizmoSnapConfig = {
-    enabled: false,
+    enabled: true,
     translate: 0.5,
     rotate: Math.PI / 12, // 15 degrees
     scale: 0.25,
@@ -64,6 +66,16 @@ export class TransformGizmo {
 
   public get mode(): GizmoMode {
     return this._mode;
+  }
+
+  /** Cycles translation grid snap size up or down among [0.1, 0.25, 0.5, 1.0, 2.0]. */
+  public stepGrid(direction: 1 | -1): number {
+    const steps = TransformGizmo.GRID_STEPS;
+    let idx = steps.indexOf(this.snap.translate);
+    if (-1 === idx) idx = 2; // default 0.5
+    const nextIdx = Math.max(0, Math.min(steps.length - 1, idx + direction));
+    this.snap.translate = steps[nextIdx]!;
+    return this.snap.translate;
   }
 
   /** Snaps a scalar value according to the current mode's snap setting, if snapping is enabled. */

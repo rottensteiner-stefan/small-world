@@ -26,8 +26,9 @@
 
 2. **Transform Gizmos & Snapping:**
    - Translate (**W**), Rotate (**E**), and Scale (**R**) handles with **Always-on-Top rendering** (`depthTest: false`).
+   - **Default Snapping & Grid Sizing:** Snapping is **active by default** (0.5m / 15° / 0.25). Cycle grid resolution (0.1m, 0.25m, 0.5m, 1.0m, 2.0m) via **`[`** (finer) and **`]`** (coarser) or toolbar buttons. Toggle with **X**.
    - **Keyboard Nudging:** Arrow keys ($\leftarrow$, $\rightarrow$, $\uparrow$, $\downarrow$) nudge selected objects along X/Z axes; `Shift` + $\uparrow$/$\downarrow$ or `PageUp`/`PageDown` moves along the Y axis (height).
-   - Configurable grid and angle snapping (**X** / `🧲 Snap` button) for translation (0.5m), rotation (15°), and scale (0.25).
+   - **Snap to Ground:** **End** key (or `⬇ Ground` button) instantly drops selected objects so their bottom bounding box aligns cleanly with the floor (`Y = 0`).
    - **Pivot-relative cluster transforms:** Multi-selection rotates and scales around the active primary object's pivot in 3D space.
 
 3. **Multi-Selection & Selection Tools:**

@@ -318,5 +318,22 @@ describe("Maker Phase 2 Features", () => {
         expect(leaf.material?.depthWrite).toBe(false);
       }
     });
+
+    it("cycles grid snap steps with stepGrid()", () => {
+      const gizmo = new TransformGizmo();
+      expect(gizmo.snap.translate).toBe(0.5);
+
+      // Step up: 0.5 -> 1.0 -> 2.0 -> 2.0 (clamp)
+      expect(gizmo.stepGrid(1)).toBe(1.0);
+      expect(gizmo.stepGrid(1)).toBe(2.0);
+      expect(gizmo.stepGrid(1)).toBe(2.0);
+
+      // Step down: 2.0 -> 1.0 -> 0.5 -> 0.25 -> 0.1 -> 0.1 (clamp)
+      expect(gizmo.stepGrid(-1)).toBe(1.0);
+      expect(gizmo.stepGrid(-1)).toBe(0.5);
+      expect(gizmo.stepGrid(-1)).toBe(0.25);
+      expect(gizmo.stepGrid(-1)).toBe(0.1);
+      expect(gizmo.stepGrid(-1)).toBe(0.1);
+    });
   });
 });

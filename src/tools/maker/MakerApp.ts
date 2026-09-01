@@ -495,6 +495,13 @@ export class MakerApp extends SmallWorld {
     group.addEventListener("click", (): void => this.groupSelection());
     row.appendChild(group);
 
+    const ground = document.createElement("button");
+    ground.className = "maker-palette-btn";
+    ground.textContent = "⬇ Ground (End)";
+    ground.title = "Snap selected object(s) to floor level (End)";
+    ground.addEventListener("click", (): void => this.snapSelectionToGround());
+    row.appendChild(ground);
+
     this._makerOptions.paletteContainer.prepend(row);
   }
 
@@ -558,14 +565,32 @@ export class MakerApp extends SmallWorld {
     this._gizmoButtons = buttons as Record<GizmoMode, HTMLButtonElement>;
 
     const snapBtn = document.createElement("button");
-    snapBtn.className = "maker-palette-btn";
-    snapBtn.textContent = "🧲 Snap (X)";
-    snapBtn.title = "Toggle grid/angle snapping (X)";
+    snapBtn.className = "maker-palette-btn active";
+    snapBtn.title = "Toggle grid/angle snapping (X). Use [ and ] to change grid size.";
     snapBtn.addEventListener("click", (): void => {
       this.toggleSnap();
     });
     row.appendChild(snapBtn);
     this._snapButton = snapBtn;
+    this._updateSnapButton();
+
+    const decGrid = document.createElement("button");
+    decGrid.className = "maker-palette-btn";
+    decGrid.textContent = "[-]";
+    decGrid.title = "Decrease grid snap size ([)";
+    decGrid.addEventListener("click", (): void => {
+      this.stepGrid(-1);
+    });
+    row.appendChild(decGrid);
+
+    const incGrid = document.createElement("button");
+    incGrid.className = "maker-palette-btn";
+    incGrid.textContent = "[+]";
+    incGrid.title = "Increase grid snap size (])";
+    incGrid.addEventListener("click", (): void => {
+      this.stepGrid(1);
+    });
+    row.appendChild(incGrid);
 
     this._makerOptions.paletteContainer.prepend(row);
     this._setGizmoMode("translate");
@@ -573,10 +598,20 @@ export class MakerApp extends SmallWorld {
 
   public toggleSnap(): boolean {
     const enabled = this._gizmo.toggleSnap();
-    if (this._snapButton) {
-      this._snapButton.classList.toggle("active", enabled);
-    }
+    this._updateSnapButton();
     return enabled;
+  }
+
+  public stepGrid(dir: 1 | -1): number {
+    const step = this._gizmo.stepGrid(dir);
+    this._updateSnapButton();
+    return step;
+  }
+
+  private _updateSnapButton(): void {
+    if (!this._snapButton) return;
+    this._snapButton.textContent = `🧲 ${this._gizmo.snap.translate}m (X)`;
+    this._snapButton.classList.toggle("active", this._gizmo.snap.enabled);
   }
 
   private _setGizmoMode(mode: GizmoMode): void {
@@ -1359,6 +1394,24 @@ export class MakerApp extends SmallWorld {
       return;
     }
 
+    if ("[" === event.key || "]" === event.key) {
+      const active = document.activeElement;
+      if (active && ("INPUT" === active.tagName || "TEXTAREA" === active.tagName)) return;
+      if (event.ctrlKey || event.metaKey || event.altKey) return;
+      event.preventDefault();
+      this.stepGrid("[" === event.key ? -1 : 1);
+      return;
+    }
+
+    if ("End" === event.key) {
+      const active = document.activeElement;
+      if (active && ("INPUT" === active.tagName || "TEXTAREA" === active.tagName)) return;
+      if (0 === this._selection.size) return;
+      event.preventDefault();
+      this.snapSelectionToGround();
+      return;
+    }
+
     if (
       "ArrowLeft" === event.key ||
       "ArrowRight" === event.key ||
@@ -1378,6 +1431,59 @@ export class MakerApp extends SmallWorld {
       event.preventDefault();
       this.nudgeSelection(event.key, event.shiftKey);
     }
+  }
+
+  /** Snaps selected object(s) so their lowest bounding-box point aligns exactly with the ground (Y = 0). */
+  public snapSelectionToGround(): void {
+    const objs = Array.from(this._selection);
+    if (0 === objs.length) return;
+
+    let minY = Infinity;
+    for (const obj of objs) {
+      obj.updateMatrixWorld();
+      const aabb = this._computeSubtreeWorldBounds(obj);
+      if (aabb) {
+        minY = Math.min(minY, aabb.min.y);
+      } else {
+        minY = Math.min(minY, obj.getWorldPosition().y);
+      }
+    }
+
+    if (!Number.isFinite(minY)) return;
+    const dy = -minY;
+    if (Math.abs(dy) < 0.0001) return;
+
+    const before = objs.map((obj) => ({ obj, pos: obj.position.clone() }));
+    const after = objs.map((obj) => {
+      const nextPos = obj.position.clone();
+      nextPos.y += dy;
+      if (this._gizmo.snap.enabled) {
+        nextPos.y = this._gizmo.snapValue("translate", nextPos.y);
+      }
+      return { obj, pos: nextPos };
+    });
+
+    this._undo.execute({
+      label: `Snap ${objs.length} object${objs.length > 1 ? "s" : ""} to Ground`,
+      redo: () => {
+        for (const { obj, pos } of after) {
+          obj.position.copyFrom(pos);
+          obj.updateMatrixWorld();
+        }
+        this._updateGizmo();
+        this._propertyPanel.setSelection(this._primary, Math.max(0, this._selection.size - 1));
+        this._project.scheduleAutosave(() => this.scene.root);
+      },
+      undo: () => {
+        for (const { obj, pos } of before) {
+          obj.position.copyFrom(pos);
+          obj.updateMatrixWorld();
+        }
+        this._updateGizmo();
+        this._propertyPanel.setSelection(this._primary, Math.max(0, this._selection.size - 1));
+        this._project.scheduleAutosave(() => this.scene.root);
+      },
+    });
   }
 
   /** Nudges selected object(s) along X/Y/Z axes via arrow keys with full snapping and undo support. */
