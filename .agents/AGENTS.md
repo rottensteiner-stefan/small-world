@@ -13,6 +13,7 @@
 - **Communication:** Telegram-style (concise), use Markdown artifacts for plans/details, precise links (file/lines) instead of copying code, surgical diffs, delegate research to subagents.
 - **Terminal Commands:** You are explicitly allowed to run read-only shell commands (like `grep`, `tail`, `cat`, `ls`, `find`, `git log`, `git diff`), image manipulation tools (`sips`), asset download commands (`curl -sL "https://tripo-data...`), Git operations (`git checkout`, `git add`, `git commit`, `git push`, `git log`, `git branch`), as well as safe project scripts (`npm run lint`, `npm run build`, `npm run test`) in the terminal WITHOUT asking for permission.
 - **Simplicity:** Keep things as simple as possible. Strictly avoid overengineering or preemptive abstraction. Complexity arises naturally on its own.
+- **User Workflow / Persona:** The user is an experienced digital artist/power-user (Photoshop veteran on Mac). Always prioritize robust, high-efficiency keyboard shortcuts, arrow-key nudging/transformations, and low-friction modal key bindings across all tools and editors.
 - **App Docs Convention:** Every app under `src/apps/<app>/` has a `docs/` subfolder with `concept-dossier.html` (visual concept) and `log.md` (living dev log). The `log.md` is the primary memory for that app — read it at session start, append an entry at session end. Full rules: `.agents/notes/app-docs-convention.md`.
 
 ## 2. Core Architectural Laws

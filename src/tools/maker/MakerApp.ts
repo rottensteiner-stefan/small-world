@@ -1429,7 +1429,7 @@ export class MakerApp extends SmallWorld {
       }
       if (0 === this._selection.size) return;
       event.preventDefault();
-      this.nudgeSelection(event.key, event.shiftKey);
+      this.nudgeSelection(event.key, event.shiftKey, event.altKey);
     }
   }
 
@@ -1486,11 +1486,121 @@ export class MakerApp extends SmallWorld {
     });
   }
 
-  /** Nudges selected object(s) along X/Y/Z axes via arrow keys with full snapping and undo support. */
-  public nudgeSelection(key: string, isShift: boolean): void {
+  /** Nudges selected object(s) along X/Y/Z axes via arrow keys according to active Gizmo mode (Move/Rotate/Scale) or Alt modifiers. */
+  public nudgeSelection(key: string, isShift: boolean, isAlt: boolean = false): void {
     const objs = Array.from(this._selection);
     if (0 === objs.length) return;
 
+    // Alt forces Rotate (or Alt+Shift forces Scale), otherwise follows current gizmo mode
+    const mode: GizmoMode = isAlt && isShift ? "scale" : isAlt ? "rotate" : this._gizmo.mode;
+
+    if ("rotate" === mode) {
+      const snapAngle = this._gizmo.snap.enabled ? this._gizmo.snap.rotate : Math.PI / 12; // 15 deg
+      let rx = 0;
+      let ry = 0;
+      let rz = 0;
+
+      if ("PageUp" === key || ("ArrowLeft" === key && isShift)) rz = snapAngle;
+      else if ("PageDown" === key || ("ArrowRight" === key && isShift)) rz = -snapAngle;
+      else if ("ArrowLeft" === key) ry = snapAngle;
+      else if ("ArrowRight" === key) ry = -snapAngle;
+      else if ("ArrowUp" === key) rx = -snapAngle;
+      else if ("ArrowDown" === key) rx = snapAngle;
+
+      if (0 === rx && 0 === ry && 0 === rz) return;
+
+      const before = objs.map((obj) => ({ obj, rot: obj.rotation.clone() }));
+      const after = objs.map((obj) => {
+        const nextRot = obj.rotation.clone();
+        nextRot.x += rx;
+        nextRot.y += ry;
+        nextRot.z += rz;
+        if (this._gizmo.snap.enabled) {
+          nextRot.x = this._gizmo.snapValue("rotate", nextRot.x);
+          nextRot.y = this._gizmo.snapValue("rotate", nextRot.y);
+          nextRot.z = this._gizmo.snapValue("rotate", nextRot.z);
+        }
+        return { obj, rot: nextRot };
+      });
+
+      this._undo.execute({
+        label: `Rotate ${objs.length} object${objs.length > 1 ? "s" : ""}`,
+        redo: () => {
+          for (const { obj, rot } of after) {
+            obj.rotation.copyFrom(rot);
+            obj.updateMatrixWorld();
+          }
+          this._updateGizmo();
+          this._propertyPanel.setSelection(this._primary, Math.max(0, this._selection.size - 1));
+          this._project.scheduleAutosave(() => this.scene.root);
+        },
+        undo: () => {
+          for (const { obj, rot } of before) {
+            obj.rotation.copyFrom(rot);
+            obj.updateMatrixWorld();
+          }
+          this._updateGizmo();
+          this._propertyPanel.setSelection(this._primary, Math.max(0, this._selection.size - 1));
+          this._project.scheduleAutosave(() => this.scene.root);
+        },
+      });
+      return;
+    }
+
+    if ("scale" === mode) {
+      const step = this._gizmo.snap.enabled ? this._gizmo.snap.scale : 0.25;
+      let sx = 0;
+      let sy = 0;
+      let sz = 0;
+
+      if ("PageUp" === key || ("ArrowUp" === key && isShift)) sy = step;
+      else if ("PageDown" === key || ("ArrowDown" === key && isShift)) sy = -step;
+      else if ("ArrowLeft" === key) sx = -step;
+      else if ("ArrowRight" === key) sx = step;
+      else if ("ArrowUp" === key) sz = -step;
+      else if ("ArrowDown" === key) sz = step;
+
+      if (0 === sx && 0 === sy && 0 === sz) return;
+
+      const before = objs.map((obj) => ({ obj, scale: obj.scale.clone() }));
+      const after = objs.map((obj) => {
+        const nextScale = obj.scale.clone();
+        nextScale.x = Math.max(0.01, nextScale.x + sx);
+        nextScale.y = Math.max(0.01, nextScale.y + sy);
+        nextScale.z = Math.max(0.01, nextScale.z + sz);
+        if (this._gizmo.snap.enabled) {
+          nextScale.x = this._gizmo.snapValue("scale", nextScale.x);
+          nextScale.y = this._gizmo.snapValue("scale", nextScale.y);
+          nextScale.z = this._gizmo.snapValue("scale", nextScale.z);
+        }
+        return { obj, scale: nextScale };
+      });
+
+      this._undo.execute({
+        label: `Scale ${objs.length} object${objs.length > 1 ? "s" : ""}`,
+        redo: () => {
+          for (const { obj, scale } of after) {
+            obj.scale.copyFrom(scale);
+            obj.updateMatrixWorld();
+          }
+          this._updateGizmo();
+          this._propertyPanel.setSelection(this._primary, Math.max(0, this._selection.size - 1));
+          this._project.scheduleAutosave(() => this.scene.root);
+        },
+        undo: () => {
+          for (const { obj, scale } of before) {
+            obj.scale.copyFrom(scale);
+            obj.updateMatrixWorld();
+          }
+          this._updateGizmo();
+          this._propertyPanel.setSelection(this._primary, Math.max(0, this._selection.size - 1));
+          this._project.scheduleAutosave(() => this.scene.root);
+        },
+      });
+      return;
+    }
+
+    // Default: Translate mode
     const baseStep = this._gizmo.snap.enabled ? this._gizmo.snap.translate : 0.5;
     const step = baseStep;
 
@@ -1522,7 +1632,7 @@ export class MakerApp extends SmallWorld {
     });
 
     this._undo.execute({
-      label: `Nudge ${objs.length} object${objs.length > 1 ? "s" : ""}`,
+      label: `Move ${objs.length} object${objs.length > 1 ? "s" : ""}`,
       redo: () => {
         for (const { obj, pos } of after) {
           obj.position.copyFrom(pos);
