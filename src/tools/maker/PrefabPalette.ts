@@ -5,6 +5,13 @@ export interface PrefabPaletteCallbacks {
   instantiate(name: string): void;
 }
 
+/** One entry in the prefab list -- `thumbnailDataUrl` is optional since older prefabs (or ones
+ * saved before a project was bound) may not have a saved thumbnail. */
+export interface PrefabEntry {
+  name: string;
+  thumbnailDataUrl?: string;
+}
+
 /**
  * The dynamic half of Maker's palette -- unlike `ObjectPalette`'s fixed built-in catalog, this
  * section's contents depend on what's actually in the bound project's `prefabs/` folder, so it
@@ -50,13 +57,23 @@ export class PrefabPalette {
   }
 
   /** Rebuilds the instantiate-buttons list from scratch -- call after binding a project and
-   * after every successful `savePrefab()`. */
-  public setNames(names: string[]): void {
+   * after every successful `savePrefab()`. Entries without a `thumbnailDataUrl` fall back to the
+   * plain text-only look. */
+  public setEntries(entries: PrefabEntry[]): void {
     this._listContainer.innerHTML = "";
-    for (const name of names) {
+    for (const { name, thumbnailDataUrl } of entries) {
       const button = document.createElement("button");
-      button.className = "maker-palette-btn";
-      button.textContent = `▣ ${name}`;
+      button.className = "maker-palette-btn maker-prefab-btn";
+      if (thumbnailDataUrl) {
+        const img = document.createElement("img");
+        img.className = "maker-prefab-thumb";
+        img.src = thumbnailDataUrl;
+        img.alt = "";
+        button.appendChild(img);
+      }
+      const label = document.createElement("span");
+      label.textContent = `▣ ${name}`;
+      button.appendChild(label);
       button.addEventListener("click", (): void => this._callbacks.instantiate(name));
       this._listContainer.appendChild(button);
     }

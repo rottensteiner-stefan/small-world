@@ -232,5 +232,35 @@ describe("ProjectBinding", () => {
 
       await expect(binding.loadPrefab("Nonexistent")).resolves.toBeUndefined();
     });
+
+    it("saves and loads a prefab thumbnail as a sidecar, independent of the .gltf itself", async () => {
+      const { directory } = fakeFileSystem();
+      const binding = new ProjectBinding();
+      binding.bindTo(directory);
+
+      await binding.savePrefab("OilBarrel", new Object3D("Barrel"));
+      await binding.savePrefabThumbnail("OilBarrel", "data:image/png;base64,AAA");
+
+      await expect(binding.loadPrefabThumbnail("OilBarrel")).resolves.toBe(
+        "data:image/png;base64,AAA",
+      );
+      // The sidecar isn't itself a prefab -- listPrefabs() must still only report the real one.
+      await expect(binding.listPrefabs()).resolves.toEqual(["OilBarrel"]);
+    });
+
+    it("loadPrefabThumbnail() returns undefined when no thumbnail was ever saved", async () => {
+      const { directory } = fakeFileSystem();
+      const binding = new ProjectBinding();
+      binding.bindTo(directory);
+
+      await binding.savePrefab("OilBarrel", new Object3D("Barrel"));
+      await expect(binding.loadPrefabThumbnail("OilBarrel")).resolves.toBeUndefined();
+    });
+
+    it("savePrefabThumbnail() is a no-op when the directory handle doesn't support subfolders", async () => {
+      const binding = new ProjectBinding();
+      binding.bindTo(fakeDirectory().directory); // no getDirectoryHandle
+      await expect(binding.savePrefabThumbnail("Foo", "data:x")).resolves.toBeUndefined();
+    });
   });
 });

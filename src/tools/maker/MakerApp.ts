@@ -173,7 +173,14 @@ export class MakerApp extends SmallWorld {
   }
 
   private async _refreshPrefabList(): Promise<void> {
-    this._prefabPalette.setNames(await this._project.listPrefabs());
+    const names = await this._project.listPrefabs();
+    const entries = await Promise.all(
+      names.map(async (name) => {
+        const thumbnailDataUrl = await this._project.loadPrefabThumbnail(name);
+        return thumbnailDataUrl ? { name, thumbnailDataUrl } : { name };
+      }),
+    );
+    this._prefabPalette.setEntries(entries);
   }
 
   private _saveSelectionAsPrefab(name: string): void {
@@ -181,11 +188,60 @@ export class MakerApp extends SmallWorld {
     if (!obj) return;
     void (async (): Promise<void> => {
       const saved = await this._project.savePrefab(name, obj);
+      if (saved) {
+        const thumbnail = await this._captureViewportThumbnail();
+        if (thumbnail) await this._project.savePrefabThumbnail(name, thumbnail);
+      }
       this._makerOptions.statusContainer.textContent = saved
         ? `Saved prefab "${name}"`
         : "Bind a project folder first to save prefabs";
       if (saved) await this._refreshPrefabList();
     })();
+  }
+
+  /** Captures a PNG snapshot of the current viewport for a prefab thumbnail -- hides the
+   * translate/rotate/scale gizmo and the selection highlight box for one frame first (the two
+   * things that would otherwise clutter every thumbnail, since a prefab is normally saved right
+   * after selecting it), waits two `requestAnimationFrame`s (the first only guarantees our
+   * visibility change is *scheduled*; the second is what actually runs after the browser has
+   * painted a frame with it applied -- the standard "wait for the next real paint" pattern),
+   * then restores both. Doesn't touch anything else in the scene, so unrelated objects still
+   * visible in frame show up in the thumbnail too -- a from-scratch isolated render (reframing a
+   * camera on just this object's bounds) is a further-out enhancement, not this pass's scope.
+   *
+   * Races that against a 1s timeout: a tab that loses visibility right after the click can pause
+   * `requestAnimationFrame` indefinitely (real browser behavior, not just a test artifact), which
+   * would otherwise hang every step after this one (the status text, the prefab list refresh)
+   * forever, not just silently skip the thumbnail.
+   * @returns undefined if the canvas can't be read, or the timeout wins, rather than throwing --
+   * a missing thumbnail is cosmetic, not worth failing the whole "Save as Prefab" action over.
+   */
+  private _captureViewportThumbnail(): Promise<string | undefined> {
+    const wasGizmoVisible = this._gizmo.root.isVisible;
+    const wasHighlightVisible = this._highlightMesh.isVisible;
+    this._gizmo.root.isVisible = false;
+    this._highlightMesh.isVisible = false;
+
+    const capture = new Promise<string | undefined>((resolve) => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          try {
+            resolve(this.canvas.toDataURL("image/png"));
+          } catch {
+            resolve(undefined);
+          }
+        });
+      });
+    });
+    const timeout = new Promise<undefined>((resolve) => {
+      setTimeout(() => resolve(undefined), 1000);
+    });
+
+    return Promise.race([capture, timeout]).then((result) => {
+      this._gizmo.root.isVisible = wasGizmoVisible;
+      this._highlightMesh.isVisible = wasHighlightVisible;
+      return result;
+    });
   }
 
   private _instantiatePrefab(name: string): void {

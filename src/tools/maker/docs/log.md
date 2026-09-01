@@ -5,6 +5,37 @@
 
 ---
 
+## 2026-09-01 — Nachtrag: Prefab-Vorschau im Panel
+
+Prefab-Liste zeigt jetzt ein echtes 28×28px-Thumbnail-Bild neben jedem Namen statt nur Text.
+
+- `ProjectBinding.savePrefabThumbnail()`/`.loadPrefabThumbnail()` (neu): Sidecar-Datei
+  `prefabs/<name>.thumb.json` (`{ dataUrl }`) neben dem `.gltf` — bewusst JSON statt roher `.png`,
+  weil die eigene `FileSystemWritableFileStreamLike`-Abstraktion nur String-Writes kann und eine
+  `data:`-URL bereits ein String ist. Kollidiert nicht mit `listPrefabs()` (filtert nach `.gltf`).
+- `MakerApp._captureViewportThumbnail()` (neu): blendet Gizmo + Highlight-Box für einen Frame aus
+  (Doppel-`requestAnimationFrame`, Standard-Pattern für "nach dem nächsten echten Paint"),
+  `canvas.toDataURL()`, stellt Sichtbarkeit wieder her. Rührt sonst nichts an der Szene an —
+  andere sichtbare Objekte landen mit im Bild. Ein isolierter Render (Kamera auf die Bounds des
+  Objekts) wäre der nächste Ausbauschritt, bewusst nicht in diesem Durchgang.
+- **Echter Robustheits-Bug beim Live-Test gefunden und gefixt:** Wenn der Browser-Tab beim Klick
+  auf "Save Selection" nicht sichtbar ist, pausiert `requestAnimationFrame` unbegrenzt — der
+  komplette Speicher-Flow (inkl. Status-Text und Prefab-Listen-Refresh, die NACH dem
+  Thumbnail-Schritt liegen) hing dadurch fest, nicht nur das Thumbnail selbst. Fix: die
+  Doppel-rAF-Kette läuft jetzt gegen ein 1-Sekunden-Timeout via `Promise.race` — Thumbnail fehlt
+  dann einfach (kosmetische Lücke, wie ohnehin schon vorgesehen), aber der Rest des Flows blockiert
+  nie mehr unbegrenzt.
+- Live geprüft: `canvas.toDataURL()` liefert nachweislich echte Pixel (Center-Pixel = Würfelfarbe,
+  Eckpixel = schwarzer Hintergrund, ~380KB PNG) direkt nach dem Laden. Der komplette
+  Save→Thumbnail→Liste-Flow läuft robust durch, auch als der Test-Tab `document.hidden` wurde
+  (bekannte claude-in-chrome-Automatisierungs-Einschränkung, siehe
+  `feedback_browser_automation_raf_throttling`-Erinnerung) — genau dieser Fall hat den
+  Robustheits-Bug erst sichtbar gemacht. `<img class="maker-prefab-thumb">` rendert korrekt mit
+  dem gespeicherten `dataUrl`, separat verifiziert.
+- 3 neue Tests in `tests/tools/maker/ProjectBinding.test.ts` für die neuen Methoden.
+
+---
+
 ## 2026-08-31 — Nachtrag: Kamera-Bookmarks
 
 9 Slots (1-9), **links = springen, rechts = aktuelle Ansicht speichern** (Toolbar-Buttons `📷1`-`📷9`
@@ -111,16 +142,16 @@ Heute: Branch-Hygiene, Core-Änderungen isoliert nach `main` gemergt, Docs angel
 | GadgetInspector (massiver Ausbau) | ✅ |
 
 ### Offene Punkte / Nächste Schritte
-- Prefab-Vorschau im Panel (längerfristig)
 - Multi-Selektion (längerfristig)
+- Isolierter Prefab-Thumbnail-Render (Kamera auf Objekt-Bounds statt aktuelle Viewport-Ansicht)
 
 **Korrektur (2026-08-31):** "Licht-Platzierung" fälschlich als offen gelistet — Point-,
 Directional- und AmbientLight sind bereits seit dem Phase-1-MVP-Commit (`cd9a608c`) Teil der
 `ObjectPalette`. Dokumentationsfehler, kein nachträglich gebautes Feature.
 
-**Update (2026-08-31):** "Duplicate / Group" und "Kamera-Bookmarks" sind erledigt — siehe
-Nachträge oben. Damit sind alle kurzfristigen Punkte aus der ursprünglichen Liste abgearbeitet;
-offen bleiben nur noch die zwei längerfristigen (Prefab-Vorschau, Multi-Selektion).
+**Update (2026-09-01):** "Duplicate / Group", "Kamera-Bookmarks" und "Prefab-Vorschau im Panel"
+sind erledigt — siehe Nachträge oben. Von der ursprünglichen Liste bleibt nur noch die
+Multi-Selektion offen.
 
 ### Architektur-Notizen
 - `MakerApp extends SmallWorld` — Orchestrator, kein Monolith

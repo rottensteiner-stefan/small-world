@@ -6,6 +6,11 @@ const AUTOSAVE_DEBOUNCE_MS = 500;
 const SCENE_FILE_NAME = "scene.gltf";
 const PREFABS_DIR_NAME = "prefabs";
 const PREFAB_EXT = ".gltf";
+/** Sidecar file holding `{ dataUrl }` next to a prefab's `.gltf` -- a small JSON wrapper rather
+ * than a raw `.png`, since `FileSystemWritableFileStreamLike.write()` (this class's own
+ * abstraction, kept narrow for testability) only supports string content, and a `data:` URL
+ * already IS a string. */
+const PREFAB_THUMB_EXT = ".thumb.json";
 
 /** The narrow slice of the real (browser-only) `FileSystemDirectoryHandle`/`FileSystemFileHandle`/
  * `FileSystemWritableFileStream` this class actually calls -- kept as our own interfaces so
@@ -103,9 +108,7 @@ export class ProjectBinding {
    * surfaced once Phase 2's prefab instantiate actually rendered a round-tripped mesh. */
   private static _decodeBuffers(json: unknown): ArrayBuffer[] {
     const buffers = (json as { buffers?: { uri?: string }[] }).buffers ?? [];
-    return buffers.map((buf) =>
-      buf.uri ? GltfLoader.decodeDataUri(buf.uri) : new ArrayBuffer(0),
-    );
+    return buffers.map((buf) => (buf.uri ? GltfLoader.decodeDataUri(buf.uri) : new ArrayBuffer(0)));
   }
 
   /** Marks the document dirty and (re-)schedules a debounced write; call after any edit.
@@ -178,6 +181,45 @@ export class ProjectBinding {
     const instance = wrapper.children[0];
     if (instance) instance.prefabSource = name;
     return instance;
+  }
+
+  /** Saves a PNG thumbnail (as a `data:image/png;base64,...` URL, e.g. from
+   * `HTMLCanvasElement.toDataURL()`) alongside a prefab -- overwrites any previous thumbnail for
+   * the same name. Silently does nothing if unbound or subfolders are unsupported, same as
+   * `savePrefab()`; a missing thumbnail is a cosmetic gap, not an error worth surfacing. */
+  public async savePrefabThumbnail(name: string, dataUrl: string): Promise<void> {
+    if (!this._directory?.getDirectoryHandle) return;
+    const prefabsDir = await this._directory.getDirectoryHandle(PREFABS_DIR_NAME, {
+      create: true,
+    });
+    const fileHandle = await prefabsDir.getFileHandle(`${name}${PREFAB_THUMB_EXT}`, {
+      create: true,
+    });
+    const writable = await fileHandle.createWritable();
+    await writable.write(JSON.stringify({ dataUrl }));
+    await writable.close();
+  }
+
+  /** Loads a prefab's thumbnail data URL, if one was ever saved. @returns undefined if unbound,
+   * unsupported, or no thumbnail exists for this name -- callers should render a plain
+   * text-only entry in that case, not treat it as an error. */
+  public async loadPrefabThumbnail(name: string): Promise<string | undefined> {
+    if (!this._directory?.getDirectoryHandle) return undefined;
+    let prefabsDir: FileSystemDirectoryHandleLike;
+    try {
+      prefabsDir = await this._directory.getDirectoryHandle(PREFABS_DIR_NAME);
+    } catch {
+      return undefined;
+    }
+    let fileHandle: FileSystemFileHandleLike;
+    try {
+      fileHandle = await prefabsDir.getFileHandle(`${name}${PREFAB_THUMB_EXT}`);
+    } catch {
+      return undefined;
+    }
+    const file = await fileHandle.getFile();
+    const json = JSON.parse(await file.text()) as { dataUrl?: string };
+    return json.dataUrl;
   }
 
   /** Lists the names (without extension) of every prefab in `prefabs/`, or `[]` if unbound,
