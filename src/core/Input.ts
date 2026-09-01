@@ -103,6 +103,10 @@ export class Input implements InputInterface {
     window.addEventListener("mousemove", (e: MouseEvent): void => {
       this.mouse.x = e.clientX;
       this.mouse.y = e.clientY;
+      if (typeof e.buttons === "number") {
+        this.mouse.left = (e.buttons & 1) !== 0;
+        this.mouse.right = (e.buttons & 2) !== 0;
+      }
       const dx = typeof e.movementX === "number" ? e.movementX : 0;
       const dy = typeof e.movementY === "number" ? e.movementY : 0;
       if (!Number.isNaN(dx)) this.mouse.dx += dx;

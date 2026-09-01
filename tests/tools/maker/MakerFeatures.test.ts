@@ -9,6 +9,7 @@ import {
   detachBehavior,
 } from "../../../src/core/behaviors/index.js";
 import { UndoStack } from "../../../src/tools/maker/UndoStack.js";
+import { OrbitCameraController } from "../../../src/tools/maker/OrbitCameraController.js";
 
 describe("Maker Phase 2 Features", () => {
   describe("Grid & Angle Snapping", () => {
@@ -280,6 +281,24 @@ describe("Maker Phase 2 Features", () => {
 
       window.removeEventListener("wheel", onWindowWheel);
       document.body.removeChild(sidebar);
+    });
+  });
+
+  describe("OrbitCameraController Drag & Zoom", () => {
+    it("updates yaw and pitch correctly via rotate()", () => {
+      const orbit = new OrbitCameraController({ distance: 10, yaw: 0, pitch: 0 });
+      orbit.rotate(100, 50);
+
+      const view = orbit.getView();
+      expect(view.yaw).toBeCloseTo(-100 * 0.005);
+      expect(view.pitch).toBeCloseTo(-50 * 0.005);
+    });
+
+    it("updates distance via zoom()", () => {
+      const orbit = new OrbitCameraController({ distance: 10 });
+      orbit.zoom(20);
+      const view = orbit.getView();
+      expect(view.distance).toBeGreaterThan(10);
     });
   });
 });

@@ -49,23 +49,30 @@ export class OrbitCameraController {
     this._maxPitch = options.maxPitch ?? 1.5;
   }
 
+  /** Rotates the camera around its target by delta pixels/units. */
+  public rotate(dx: number, dy: number): void {
+    this._yaw -= dx * 0.005;
+    this._pitch = Math.min(this._maxPitch, Math.max(this._minPitch, this._pitch - dy * 0.005));
+  }
+
+  /** Zooms the camera closer or further from its target. */
+  public zoom(delta: number): void {
+    this._distance = Math.min(
+      this._maxDistance,
+      Math.max(this._minDistance, this._distance + delta * 0.01 * this._distance),
+    );
+  }
+
   /** Reads this frame's accumulated mouse delta/wheel from `input` and writes the resulting
    * orbit position into `camera`. Call once per frame, before the engine renders. Safe to call
    * every frame regardless of whether the right button is held -- it's a no-op drag-wise then,
    * only the (harmless) position/target write still happens. */
   public update(camera: CameraInterfaceData, input: Input): void {
     if (input.mouse.right) {
-      this._yaw -= input.mouse.dx * 0.005;
-      this._pitch = Math.min(
-        this._maxPitch,
-        Math.max(this._minPitch, this._pitch - input.mouse.dy * 0.005),
-      );
+      this.rotate(input.mouse.dx, input.mouse.dy);
     }
     if (0 !== input.mouse.wheelY) {
-      this._distance = Math.min(
-        this._maxDistance,
-        Math.max(this._minDistance, this._distance + input.mouse.wheelY * 0.01 * this._distance),
-      );
+      this.zoom(input.mouse.wheelY);
     }
 
     const cosPitch = Math.cos(this._pitch);

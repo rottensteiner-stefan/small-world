@@ -114,6 +114,7 @@ export class MakerApp extends SmallWorld {
   private _snapButton: HTMLButtonElement | undefined;
   private _marqueeEl!: HTMLElement;
   private _marqueeState: MarqueeState | undefined;
+  private _cameraDrag: { lastX: number; lastY: number } | undefined;
   /** In-memory only, per Maker session -- not part of the glTF world format, so it doesn't
    * survive a reload. A quality-of-life navigation aid, not scene content. */
   private readonly _cameraBookmarks = new Map<number, OrbitCameraView>();
@@ -994,7 +995,21 @@ export class MakerApp extends SmallWorld {
   }
 
   private _onPointerDown(event: PointerEvent): void {
-    if (0 !== event.button) return; // Left click only -- right-drag is the orbit camera.
+    // Camera Orbit: Right-click (2), Middle-click (1), or Alt+Left-click (0 with altKey)
+    const isOrbit =
+      2 === event.button || 1 === event.button || (0 === event.button && event.altKey);
+    if (isOrbit) {
+      this._cameraDrag = { lastX: event.clientX, lastY: event.clientY };
+      try {
+        this.canvas.setPointerCapture(event.pointerId);
+      } catch {
+        // Pointer capture unavailable or unattached
+      }
+      event.preventDefault();
+      return;
+    }
+
+    if (0 !== event.button) return; // Left click only for picking / gizmo / marquee
     const rect = this.canvas.getBoundingClientRect();
     const ndc = new Vector2D(
       ((event.clientX - rect.left) / rect.width) * 2 - 1,
@@ -1049,6 +1064,15 @@ export class MakerApp extends SmallWorld {
   }
 
   private _onWindowPointerMove(event: PointerEvent): void {
+    if (this._cameraDrag) {
+      const dx = event.clientX - this._cameraDrag.lastX;
+      const dy = event.clientY - this._cameraDrag.lastY;
+      this._cameraDrag.lastX = event.clientX;
+      this._cameraDrag.lastY = event.clientY;
+      this._orbit.rotate(dx, dy);
+      return;
+    }
+
     if (!this._marqueeState) return;
     const rect = this.canvas.getBoundingClientRect();
     const minX = Math.max(rect.left, Math.min(this._marqueeState.startX, event.clientX));
@@ -1068,6 +1092,15 @@ export class MakerApp extends SmallWorld {
   }
 
   private _onWindowPointerUp(event: PointerEvent): void {
+    if (this._cameraDrag) {
+      this._cameraDrag = undefined;
+      try {
+        this.canvas.releasePointerCapture(event.pointerId);
+      } catch {
+        // Pointer capture already released or unattached
+      }
+    }
+
     if (!this._marqueeState) return;
     const { startX, startY, isShift } = this._marqueeState;
     this._marqueeState = undefined;
