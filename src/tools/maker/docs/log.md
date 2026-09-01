@@ -5,6 +5,64 @@
 
 ---
 
+## 2026-09-01 — Phase 2 Feinschliff: Snapping, Pivot-Transform, Batch-Behaviors & Marquee-Selection
+
+Vier wesentliche UX- und Workflow-Verbesserungen zur Vollendung von Phase 2 implementiert:
+
+- **Grid- & Angle-Snapping:**
+  - `GizmoSnapConfig` in `TransformGizmo.ts` mit getrennten Intervallen für Translation (`0.5m`), Rotation (`15°` / `Math.PI / 12`) und Skalierung (`0.25`).
+  - Neuer Toolbar-Button `🧲 Snap (X)` + Tastenkürzel `X` zum Umschalten.
+  - `TransformGizmo.snapValue()` rundet die akkumulierten Deltas bzw. Zielwerte auf das eingestellte Raster.
+- **Pivot-relativer Gruppen-Transform:**
+  - Bei Mehrfachauswahl rotiert und skaliert das Gizmo nun alle selektierten Objekte relativ zum Pivot (Weltposition des primären Objekts) im 3D-Raum, anstatt nur lokale Deltas auf die Einzelobjekte zu addieren.
+  - Transform-Snapshot für Undo/Redo speichert Position, Rotation und Scale pro Objekt für verlustfreie Wiederherstellung.
+- **Batch-Behaviors:**
+  - `attachBehaviorToSelection(factory: () => Behavior)` akzeptiert nun eine Factory-Funktion und erzeugt für jedes Objekt in der aktuellen Selektion eine frische Behavior-Instanz.
+  - Zusammenfassung als ein einziger Batch-Undo-Schritt.
+- **Box- / Marquee-Selection (Rechteck-Auswahl):**
+  - Klick und Ziehen auf freier Viewport-Fläche spannt ein 2D-Auswahlrechteck (`.maker-marquee-box`) auf.
+  - Alle renderbaren/pickbaren Objekte im Sichtfeld werden über `camera.viewProjectionMatrix4.transformVector()` in Screen-Koordinaten projiziert (inkl. Bounding-Box/Sphere-Corners) und gegen das Marquee-Rechteck getestet.
+  - Unterstützt Shift/Ctrl-Modifier zur additiven Mehrfachauswahl.
+
+---
+
+## 2026-09-01 — Nachtrag: Isolierter Prefab-Thumbnail-Render
+
+Der bisherige Viewport-Snapshot (zeigte einfach die aktuelle Kameraansicht) wird jetzt zu einem
+echten isolierten Render: nur das zu speichernde Objekt, freigestellt vor Schwarz, aus einem
+festen 3/4-Winkel.
+
+- `_captureIsolatedThumbnail(obj)` (ersetzt `_captureViewportThumbnail`): blendet Gizmo,
+  Highlight-Boxen und JEDES ANDERE Top-Level-Szenenobjekt aus (nicht das Ziel-Objekt selbst oder
+  dessen Top-Level-Vorfahre), reframed die Kamera auf die kombinierten Weltbounds des gesamten
+  Subtrees (`_computeSubtreeWorldBounds`, läuft rekursiv über alle Kinder — ein Prefab ist oft
+  mehr als ein Mesh), pausiert den Orbit-Controller währenddessen (`_thumbnailCaptureActive`,
+  in `update()` geprüft), macht den Snapshot, stellt alles exakt wieder her (Sichtbarkeit,
+  Kameraposition/-ziel, Orbit-Controller-State über `OrbitCameraController.getView()`/`setView()`
+  — dieselbe Snapshot-Mechanik wie bei den Kamera-Bookmarks).
+- **Echten Bug beim Live-Test gefunden und gefixt:** Die erste Version hat ALLE anderen
+  Top-Level-Objekte ausgeblendet — inklusive `SunLight`/`Fill`, die in `setupScene()` auf
+  derselben Ebene wie über die Palette platzierte Objekte liegen. Ergebnis: komplett
+  unbeleuchtetes, schwarzes Thumbnail. Nicht sofort aufgefallen, weil `canvas.toDataURL()`
+  weiterhin eine valide (nur eben rein schwarze) PNG zurückgab — kein Fehler, keine Exception,
+  einfach ein falsches Bild. Erst der Pixel-Vergleich (Center-Pixel schwarz statt Würfelfarbe)
+  hat es aufgedeckt. Fix: Lichter (`instanceof AbstractLight`) explizit von der
+  Ausblend-Filterung ausgenommen.
+- **Verifikations-Notiz:** `requestAnimationFrame` feuert in diesem Tab durchgehend nicht
+  (`document.hidden`, siehe `feedback_browser_automation_raf_throttling`-Erinnerung) — echte
+  End-zu-Ende-Captures über die Promise-Kette liefen deshalb konsequent in den bereits gebauten
+  1-Sekunden-Timeout-Fallback (sauber, kein Hänger, korrektes Restore — selbst geprüft). Um die
+  eigentliche Bild-Korrektheit trotzdem zu verifizieren, wurde der reale Renderloop manuell
+  über `app._loop(t)` mit Hand-Timestamps durchgekurbelt (dokumentierter Workaround), das
+  Ergebnis-PNG dekodiert und Center- gegen Eck-Pixel verglichen — genau darüber wurde der
+  Licht-Bug gefunden und der Fix bestätigt (Center-Pixel danach echtes beleuchtetes Grau statt
+  Schwarz, Nachbarobjekt nachweislich nicht im Bild).
+- Kamera-Framing: fester Blickwinkel `(1, 0.75, 1)` normalisiert, Distanz skaliert mit dem
+  Bounds-Radius (`max(1, radius * 2.2)`). Objekte ganz ohne Geometrie (leere Gruppen) bekommen
+  eine Default-Distanz um ihre eigene Position statt eines Abbruchs.
+
+---
+
 ## 2026-09-01 — Nachtrag: Multi-Selektion (letzter offener Roadmap-Punkt)
 
 Größter Umbau bisher — betrifft Selection-State, Gizmo, Hierarchy-Panel, Property-Panel und
@@ -197,11 +255,12 @@ Heute: Branch-Hygiene, Core-Änderungen isoliert nach `main` gemergt, Docs angel
 | GadgetInspector (massiver Ausbau) | ✅ |
 
 ### Offene Punkte / Nächste Schritte
-- Isolierter Prefab-Thumbnail-Render (Kamera auf Objekt-Bounds statt aktuelle Viewport-Ansicht)
 - Behaviors auf Mehrfachauswahl anwendbar machen (bewusst nicht in der Multi-Select-Runde
   mitgemacht, siehe Nachtrag oben)
 - Pivot-relativer Gruppen-Transform für Gizmo-Rotate/Scale bei Mehrfachauswahl (aktuell: gleicher
   Delta pro Objekt, kein "um gemeinsamen Punkt drehen")
+
+**Update (2026-09-01):** Isolierter Prefab-Thumbnail-Render ist erledigt — siehe Nachtrag oben.
 
 **Korrektur (2026-08-31):** "Licht-Platzierung" fälschlich als offen gelistet — Point-,
 Directional- und AmbientLight sind bereits seit dem Phase-1-MVP-Commit (`cd9a608c`) Teil der

@@ -13,6 +13,7 @@ import {
   detachBehavior,
   DirectionalLight,
   AmbientLight,
+  AbstractLight,
   WireframeMaterial,
   StandardMaterial,
   Color,
@@ -20,8 +21,8 @@ import {
 import { Grid, Cube } from "../../geometry/index.js";
 import { Raycaster, BoundingBox, BoundingSphere } from "../../physix/index.js";
 import { BoundingType, CameraStrategyType } from "../../enums/index.js";
-import { EngineOptions } from "../../interfaces/index.js";
-import { Vector2D, Vector3D } from "../../math/index.js";
+import { EngineOptions, BoundingVolume } from "../../interfaces/index.js";
+import { Vector2D, Vector3D, MathPool } from "../../math/index.js";
 
 import { OrbitCameraController, OrbitCameraView } from "./OrbitCameraController.js";
 import { UndoStack } from "./UndoStack.js";
@@ -42,14 +43,28 @@ export interface MakerAppOptions extends EngineOptions {
   statusContainer: HTMLElement;
 }
 
+interface ObjectTransformSnapshot {
+  position: Vector3D;
+  rotation: Vector3D;
+  scale: Vector3D;
+  worldPosition: Vector3D;
+}
+
 interface GizmoDragState {
   axis: GizmoAxis;
   mode: GizmoMode;
-  /** Snapshot of the dragged vector (position/rotation/scale, whichever `mode` implies) for
-   * every selected object at drag start -- the whole selection moves together, not just the
-   * primary/pivot object the gizmo itself is anchored to. One before/after undo command is
-   * pushed once the drag ends. */
-  before: Map<Object3D, Vector3D>;
+  pivot: Vector3D;
+  accumulatedDelta: number;
+  /** Snapshot of the transforms for every selected object at drag start -- multi-selection moves
+   * together with pivot-relative rotation/scaling. One before/after undo command is pushed once the
+   * drag ends. */
+  before: Map<Object3D, ObjectTransformSnapshot>;
+}
+
+interface MarqueeState {
+  startX: number;
+  startY: number;
+  isShift: boolean;
 }
 
 /**
@@ -96,10 +111,17 @@ export class MakerApp extends SmallWorld {
   private _hierarchyDirty = true;
   private _gizmoDrag: GizmoDragState | undefined;
   private _gizmoButtons: Record<GizmoMode, HTMLButtonElement> | undefined;
+  private _snapButton: HTMLButtonElement | undefined;
+  private _marqueeEl!: HTMLElement;
+  private _marqueeState: MarqueeState | undefined;
   /** In-memory only, per Maker session -- not part of the glTF world format, so it doesn't
    * survive a reload. A quality-of-life navigation aid, not scene content. */
   private readonly _cameraBookmarks = new Map<number, OrbitCameraView>();
   private _bookmarkButtons: Record<number, HTMLButtonElement> | undefined;
+  /** Set for the duration of `_captureIsolatedThumbnail()`'s temporary camera reframing --
+   * `update()` skips `_orbit.update()` while true so the orbit controller doesn't immediately
+   * overwrite the thumbnail shot on the next frame. */
+  private _thumbnailCaptureActive = false;
 
   constructor(private readonly _makerOptions: MakerAppOptions) {
     super(_makerOptions);
@@ -121,6 +143,10 @@ export class MakerApp extends SmallWorld {
     this.camera.position.set(8, 6, 8);
     this._orbit.target.set(0, 0, 0);
 
+    this._marqueeEl = document.createElement("div");
+    this._marqueeEl.className = "maker-marquee-box";
+    this.canvas.parentElement?.appendChild(this._marqueeEl);
+
     this._propertyPanel = new PropertyPanel(this._makerOptions.propertyContainer, this._undo);
     this._hierarchyPanel = new HierarchyPanel(
       this._makerOptions.hierarchyContainer,
@@ -136,7 +162,7 @@ export class MakerApp extends SmallWorld {
     );
     new ObjectPalette(this._makerOptions.paletteContainer, {
       createObject: (factory): void => this.addObject(factory()),
-      attachBehavior: (factory): void => this.attachBehaviorToSelection(factory()),
+      attachBehavior: (factory): void => this.attachBehaviorToSelection(factory),
     });
     this._prefabPalette = new PrefabPalette(this._makerOptions.paletteContainer, {
       saveSelectionAsPrefab: (name): void => this._saveSelectionAsPrefab(name),
@@ -156,6 +182,8 @@ export class MakerApp extends SmallWorld {
 
     this.canvas.addEventListener("contextmenu", (e) => e.preventDefault());
     this.canvas.addEventListener("pointerdown", (e) => this._onPointerDown(e));
+    window.addEventListener("pointermove", (e) => this._onWindowPointerMove(e));
+    window.addEventListener("pointerup", (e) => this._onWindowPointerUp(e));
     window.addEventListener("keydown", (e) => this._onMakerKeyDown(e));
 
     this._hierarchyPanel.refresh();
@@ -205,7 +233,7 @@ export class MakerApp extends SmallWorld {
     void (async (): Promise<void> => {
       const saved = await this._project.savePrefab(name, obj);
       if (saved) {
-        const thumbnail = await this._captureViewportThumbnail();
+        const thumbnail = await this._captureIsolatedThumbnail(obj);
         if (thumbnail) await this._project.savePrefabThumbnail(name, thumbnail);
       }
       this._makerOptions.statusContainer.textContent = saved
@@ -215,15 +243,96 @@ export class MakerApp extends SmallWorld {
     })();
   }
 
-  /** Captures a PNG snapshot of the current viewport for a prefab thumbnail -- hides the
-   * translate/rotate/scale gizmo and the selection highlight box for one frame first (the two
-   * things that would otherwise clutter every thumbnail, since a prefab is normally saved right
-   * after selecting it), waits two `requestAnimationFrame`s (the first only guarantees our
-   * visibility change is *scheduled*; the second is what actually runs after the browser has
-   * painted a frame with it applied -- the standard "wait for the next real paint" pattern),
-   * then restores both. Doesn't touch anything else in the scene, so unrelated objects still
-   * visible in frame show up in the thumbnail too -- a from-scratch isolated render (reframing a
-   * camera on just this object's bounds) is a further-out enhancement, not this pass's scope.
+  /** Walks up from `obj` to whichever ancestor is a direct child of the scene root -- the unit
+   * `_captureIsolatedThumbnail()` keeps visible while hiding every other top-level object. */
+  private _topLevelAncestor(obj: Object3D): Object3D {
+    let node = obj;
+    while (node.parent && node.parent !== this.scene.root) node = node.parent;
+    return node;
+  }
+
+  private _boundsToAabb(bounds: BoundingVolume): { min: Vector3D; max: Vector3D } | undefined {
+    if (BoundingType.BOX === bounds.type) {
+      const box = bounds as BoundingBox;
+      return { min: box.min.clone(), max: box.max.clone() };
+    }
+    if (BoundingType.SPHERE === bounds.type) {
+      const sphere = bounds as BoundingSphere;
+      const r = new Vector3D(sphere.radius, sphere.radius, sphere.radius);
+      return { min: sphere.center.clone().sub(r), max: sphere.center.clone().add(r) };
+    }
+    return undefined;
+  }
+
+  /** Combined world-space AABB of `obj`'s own bounds plus every descendant's -- a prefab is
+   * often more than one mesh (a barrel + its lid, a lamp + its glass), so framing on just `obj`
+   * itself would clip the rest. @returns undefined if nothing in the subtree carries geometry. */
+  private _computeSubtreeWorldBounds(obj: Object3D): { min: Vector3D; max: Vector3D } | undefined {
+    obj.updateMatrixWorld();
+    let min: Vector3D | undefined;
+    let max: Vector3D | undefined;
+    const visit = (node: Object3D): void => {
+      if (node.geometry) {
+        node.computeBounds();
+        const aabb = node.bounds && this._boundsToAabb(node.bounds);
+        if (aabb) {
+          min = min
+            ? new Vector3D(
+                Math.min(min.x, aabb.min.x),
+                Math.min(min.y, aabb.min.y),
+                Math.min(min.z, aabb.min.z),
+              )
+            : aabb.min;
+          max = max
+            ? new Vector3D(
+                Math.max(max.x, aabb.max.x),
+                Math.max(max.y, aabb.max.y),
+                Math.max(max.z, aabb.max.z),
+              )
+            : aabb.max;
+        }
+      }
+      for (const child of node.children) visit(child);
+    };
+    visit(obj);
+    return min && max ? { min, max } : undefined;
+  }
+
+  /** Points the camera at `obj`'s combined subtree bounds from a fixed 3/4 angle, distance scaled
+   * to the bounds' size. Falls back to a default distance around the object's own position if it
+   * (and its subtree) carries no geometry at all -- an empty group is still worth a thumbnail
+   * showing roughly where its pivot sits, not a hard failure. */
+  private _frameCameraOn(obj: Object3D): void {
+    const aabb = this._computeSubtreeWorldBounds(obj);
+    let center: Vector3D;
+    let radius: number;
+    if (aabb) {
+      center = aabb.min.clone().add(aabb.max).scale(0.5);
+      radius = aabb.max.clone().sub(aabb.min).length() / 2;
+    } else {
+      obj.updateMatrixWorld();
+      center = obj.getWorldPosition();
+      radius = 1;
+    }
+    const distance = Math.max(1, radius * 2.2);
+    const direction = new Vector3D(1, 0.75, 1).normalize();
+    this.camera.position.copyFrom(center.clone().add(direction.scale(distance)));
+    this.camera.target.copyFrom(center);
+  }
+
+  /** Captures a PNG snapshot of just `obj` (and its subtree) in isolation for a prefab
+   * thumbnail: hides the gizmo, the selection highlight boxes, and every OTHER top-level scene
+   * object except lights (so unrelated level content doesn't show up in frame, but the shot
+   * isn't left completely unlit), then reframes the camera on `obj`'s own bounds -- a dedicated
+   * shot, not whatever the user happened to be looking at.
+   * Pauses the orbit camera controller for the duration (`_thumbnailCaptureActive`, checked in
+   * `update()`) so it doesn't immediately overwrite this temporary framing on the next tick.
+   *
+   * Waits two `requestAnimationFrame`s (the first only guarantees the visibility/camera changes
+   * are *scheduled*; the second is what actually runs after the browser has painted a frame with
+   * them applied) before reading the canvas, then restores everything -- visibility, camera
+   * position/target, and the orbit controller's own view state (`OrbitCameraController.getView()`/
+   * `setView()`, the same snapshot mechanism camera bookmarks use).
    *
    * Races that against a 1s timeout: a tab that loses visibility right after the click can pause
    * `requestAnimationFrame` indefinitely (real browser behavior, not just a test artifact), which
@@ -232,11 +341,45 @@ export class MakerApp extends SmallWorld {
    * @returns undefined if the canvas can't be read, or the timeout wins, rather than throwing --
    * a missing thumbnail is cosmetic, not worth failing the whole "Save as Prefab" action over.
    */
-  private _captureViewportThumbnail(): Promise<string | undefined> {
+  private _captureIsolatedThumbnail(obj: Object3D): Promise<string | undefined> {
     const wasGizmoVisible = this._gizmo.root.isVisible;
     const wasHighlightVisible = this._highlightMeshes.map((mesh) => mesh.isVisible);
     this._gizmo.root.isVisible = false;
     for (const mesh of this._highlightMeshes) mesh.isVisible = false;
+
+    const topAncestor = this._topLevelAncestor(obj);
+    // Scene lights (SunLight/Fill, added at the same top level as anything the palette places)
+    // must stay visible -- hiding them along with everything else would leave the isolated shot
+    // completely unlit.
+    const hiddenSiblings = this.scene.root.children.filter(
+      (child) =>
+        child !== topAncestor &&
+        !this._highlightMeshes.includes(child) &&
+        child !== this._gizmo.root &&
+        !(child instanceof AbstractLight),
+    );
+    const wasSiblingVisible = hiddenSiblings.map((child) => child.isVisible);
+    for (const child of hiddenSiblings) child.isVisible = false;
+
+    const savedView = this._orbit.getView();
+    const savedCameraPosition = this.camera.position.clone();
+    const savedCameraTarget = this.camera.target.clone();
+    this._thumbnailCaptureActive = true;
+    this._frameCameraOn(obj);
+
+    const restore = (): void => {
+      this._thumbnailCaptureActive = false;
+      this._orbit.setView(savedView);
+      this.camera.position.copyFrom(savedCameraPosition);
+      this.camera.target.copyFrom(savedCameraTarget);
+      this._gizmo.root.isVisible = wasGizmoVisible;
+      this._highlightMeshes.forEach((mesh, i) => {
+        mesh.isVisible = wasHighlightVisible[i]!;
+      });
+      hiddenSiblings.forEach((child, i) => {
+        child.isVisible = wasSiblingVisible[i]!;
+      });
+    };
 
     const capture = new Promise<string | undefined>((resolve) => {
       requestAnimationFrame(() => {
@@ -254,10 +397,7 @@ export class MakerApp extends SmallWorld {
     });
 
     return Promise.race([capture, timeout]).then((result) => {
-      this._gizmo.root.isVisible = wasGizmoVisible;
-      this._highlightMeshes.forEach((mesh, i) => {
-        mesh.isVisible = wasHighlightVisible[i]!;
-      });
+      restore();
       return result;
     });
   }
@@ -379,8 +519,27 @@ export class MakerApp extends SmallWorld {
       buttons[mode] = button;
     }
     this._gizmoButtons = buttons as Record<GizmoMode, HTMLButtonElement>;
+
+    const snapBtn = document.createElement("button");
+    snapBtn.className = "maker-palette-btn";
+    snapBtn.textContent = "🧲 Snap (X)";
+    snapBtn.title = "Toggle grid/angle snapping (X)";
+    snapBtn.addEventListener("click", (): void => {
+      this.toggleSnap();
+    });
+    row.appendChild(snapBtn);
+    this._snapButton = snapBtn;
+
     this._makerOptions.paletteContainer.prepend(row);
     this._setGizmoMode("translate");
+  }
+
+  public toggleSnap(): boolean {
+    const enabled = this._gizmo.toggleSnap();
+    if (this._snapButton) {
+      this._snapButton.classList.toggle("active", enabled);
+    }
+    return enabled;
   }
 
   private _setGizmoMode(mode: GizmoMode): void {
@@ -392,12 +551,16 @@ export class MakerApp extends SmallWorld {
   }
 
   protected override update(deltaTime: number): void {
-    this._orbit.update(this.camera, this.input);
+    // Both would immediately undo `_captureIsolatedThumbnail()`'s temporary camera framing and
+    // hidden highlight boxes for that one shot.
+    if (!this._thumbnailCaptureActive) {
+      this._orbit.update(this.camera, this.input);
+      this._syncHighlight();
+    }
     if (this._hierarchyDirty) {
       this._hierarchyPanel.refresh();
       this._hierarchyDirty = false;
     }
-    this._syncHighlight();
     this.scene.update(deltaTime);
     this._updateGizmo();
   }
@@ -406,20 +569,81 @@ export class MakerApp extends SmallWorld {
     this._gizmo.update(this.camera);
     if (!this._gizmoDrag) return;
 
-    const { axis, mode } = this._gizmoDrag;
+    const { axis, mode, pivot, before } = this._gizmoDrag;
     const delta = this._gizmo.computeAxisDelta(
       axis,
       this.input.mouse.dx,
       this.input.mouse.dy,
       this.camera,
     );
-    for (const obj of this._selection) {
-      const vec =
-        "translate" === mode ? obj.position : "rotate" === mode ? obj.rotation : obj.scale;
-      if ("scale" === mode) {
-        vec[axis] = Math.max(0.01, vec[axis] + delta);
-      } else {
-        vec[axis] += delta;
+    this._gizmoDrag.accumulatedDelta += delta;
+    const rawDelta = this._gizmoDrag.accumulatedDelta;
+    const isMulti = this._selection.size > 1;
+
+    for (const [obj, snap] of before) {
+      if ("translate" === mode) {
+        const rawVal = snap.position[axis] + rawDelta;
+        obj.position[axis] = this._gizmo.snapValue("translate", rawVal);
+      } else if ("rotate" === mode) {
+        const rawAngle = snap.rotation[axis] + rawDelta;
+        const finalAngle = this._gizmo.snapValue("rotate", rawAngle);
+        const angleDelta = finalAngle - snap.rotation[axis];
+
+        obj.rotation[axis] = finalAngle;
+
+        if (isMulti && obj !== this._primary) {
+          const offset = snap.worldPosition.clone().sub(pivot);
+          const rotated = offset.clone();
+          if ("x" === axis) {
+            const c = Math.cos(angleDelta);
+            const s = Math.sin(angleDelta);
+            rotated.y = offset.y * c - offset.z * s;
+            rotated.z = offset.y * s + offset.z * c;
+          } else if ("y" === axis) {
+            const c = Math.cos(angleDelta);
+            const s = Math.sin(angleDelta);
+            rotated.x = offset.x * c + offset.z * s;
+            rotated.z = -offset.x * s + offset.z * c;
+          } else if ("z" === axis) {
+            const c = Math.cos(angleDelta);
+            const s = Math.sin(angleDelta);
+            rotated.x = offset.x * c - offset.y * s;
+            rotated.y = offset.x * s + offset.y * c;
+          }
+          const newWorld = pivot.clone().add(rotated);
+          if (!obj.parent || obj.parent === this.scene.root) {
+            obj.position.copyFrom(newWorld);
+          } else {
+            const invParent = MathPool.acquireMatrix();
+            if (obj.parent.worldMatrix.invert(invParent)) {
+              invParent.transformVector(newWorld);
+              obj.position.copyFrom(newWorld);
+            }
+            MathPool.releaseMatrix(invParent);
+          }
+        }
+      } else if ("scale" === mode) {
+        const rawScale = snap.scale[axis] + rawDelta;
+        const finalScale = this._gizmo.snapValue("scale", rawScale);
+        const scaleRatio = snap.scale[axis] > 0.0001 ? finalScale / snap.scale[axis] : 1;
+
+        obj.scale[axis] = finalScale;
+
+        if (isMulti && obj !== this._primary) {
+          const offset = snap.worldPosition.clone().sub(pivot);
+          offset[axis] *= scaleRatio;
+          const newWorld = pivot.clone().add(offset);
+          if (!obj.parent || obj.parent === this.scene.root) {
+            obj.position.copyFrom(newWorld);
+          } else {
+            const invParent = MathPool.acquireMatrix();
+            if (obj.parent.worldMatrix.invert(invParent)) {
+              invParent.transformVector(newWorld);
+              obj.position.copyFrom(newWorld);
+            }
+            MathPool.releaseMatrix(invParent);
+          }
+        }
       }
       obj.updateMatrixWorld();
     }
@@ -434,31 +658,57 @@ export class MakerApp extends SmallWorld {
     if (!drag) return;
 
     const { axis, mode, before } = drag;
-    const after = new Map<Object3D, Vector3D>();
+    const after = new Map<Object3D, { position: Vector3D; rotation: Vector3D; scale: Vector3D }>();
     let changed = false;
-    for (const [obj, beforeVec] of before) {
-      const vec = (
-        "translate" === mode ? obj.position : "rotate" === mode ? obj.rotation : obj.scale
-      ).clone();
-      after.set(obj, vec);
-      if (vec[axis] !== beforeVec[axis]) changed = true;
+    for (const [obj, snap] of before) {
+      const curPos = obj.position.clone();
+      const curRot = obj.rotation.clone();
+      const curScale = obj.scale.clone();
+      after.set(obj, { position: curPos, rotation: curRot, scale: curScale });
+      if (
+        curPos.x !== snap.position.x ||
+        curPos.y !== snap.position.y ||
+        curPos.z !== snap.position.z ||
+        curRot.x !== snap.rotation.x ||
+        curRot.y !== snap.rotation.y ||
+        curRot.z !== snap.rotation.z ||
+        curScale.x !== snap.scale.x ||
+        curScale.y !== snap.scale.y ||
+        curScale.z !== snap.scale.z
+      ) {
+        changed = true;
+      }
     }
     if (!changed) return; // click without drag -- nothing to undo
 
-    const apply = (values: Map<Object3D, Vector3D>): void => {
-      for (const [obj, vec] of values) {
-        (mode === "translate" ? obj.position : mode === "rotate" ? obj.rotation : obj.scale)[axis] =
-          vec[axis];
+    const apply = (
+      values: Map<Object3D, { position: Vector3D; rotation: Vector3D; scale: Vector3D }>,
+    ): void => {
+      for (const [obj, transform] of values) {
+        obj.position.copyFrom(transform.position);
+        obj.rotation.copyFrom(transform.rotation);
+        obj.scale.copyFrom(transform.scale);
         obj.updateMatrixWorld();
       }
       this._propertyPanel.setSelection(this._primary, Math.max(0, this._selection.size - 1));
       this._project.scheduleAutosave(() => this.scene.root);
     };
 
+    const beforeValues = new Map(
+      [...before.entries()].map(([k, v]) => [
+        k,
+        {
+          position: v.position.clone(),
+          rotation: v.rotation.clone(),
+          scale: v.scale.clone(),
+        },
+      ]),
+    );
+
     this._undo.execute({
       label: `Gizmo ${mode} ${axis.toUpperCase()}${before.size > 1 ? ` (${before.size})` : ""}`,
       redo: () => apply(after),
-      undo: () => apply(before),
+      undo: () => apply(beforeValues),
     });
     this._project.scheduleAutosave(() => this.scene.root);
   }
@@ -698,19 +948,30 @@ export class MakerApp extends SmallWorld {
     });
   }
 
-  public attachBehaviorToSelection(behavior: Behavior): void {
-    const obj = this._selected;
-    if (!obj) return;
+  public attachBehaviorToSelection(factory: () => Behavior): void {
+    const objs = Array.from(this._selection);
+    if (0 === objs.length) return;
+    const sample = factory();
+    const behaviorName = sample.constructor.name;
+    const attached = new Map<Object3D, Behavior>();
+    for (const obj of objs) {
+      attached.set(obj, factory());
+    }
+
     this._undo.execute({
-      label: `Attach ${behavior.constructor.name}`,
+      label: `Attach ${behaviorName}${objs.length > 1 ? ` (${objs.length})` : ""}`,
       redo: () => {
-        attachBehavior(obj.behaviors, behavior, obj);
-        this._propertyPanel.setSelection(obj);
+        for (const [obj, behavior] of attached) {
+          attachBehavior(obj.behaviors, behavior, obj);
+        }
+        this._propertyPanel.setSelection(this._primary, Math.max(0, this._selection.size - 1));
         this._project.scheduleAutosave(() => this.scene.root);
       },
       undo: () => {
-        detachBehavior(obj.behaviors, behavior);
-        this._propertyPanel.setSelection(obj);
+        for (const [obj, behavior] of attached) {
+          detachBehavior(obj.behaviors, behavior);
+        }
+        this._propertyPanel.setSelection(this._primary, Math.max(0, this._selection.size - 1));
         this._project.scheduleAutosave(() => this.scene.root);
       },
     });
@@ -727,13 +988,25 @@ export class MakerApp extends SmallWorld {
     const gizmoAxis = this._gizmo.pickAxis(ndc, this.camera);
     if (gizmoAxis && this._primary) {
       const mode = this._gizmo.mode;
-      const before = new Map<Object3D, Vector3D>();
+      this._primary.updateMatrixWorld();
+      const pivot = this._primary.getWorldPosition();
+      const before = new Map<Object3D, ObjectTransformSnapshot>();
       for (const obj of this._selection) {
-        const vec =
-          "translate" === mode ? obj.position : "rotate" === mode ? obj.rotation : obj.scale;
-        before.set(obj, vec.clone());
+        obj.updateMatrixWorld();
+        before.set(obj, {
+          position: obj.position.clone(),
+          rotation: obj.rotation.clone(),
+          scale: obj.scale.clone(),
+          worldPosition: obj.getWorldPosition(),
+        });
       }
-      this._gizmoDrag = { axis: gizmoAxis, mode, before };
+      this._gizmoDrag = {
+        axis: gizmoAxis,
+        mode,
+        pivot,
+        accumulatedDelta: 0,
+        before,
+      };
       return; // Gizmo handle grabbed -- don't also run normal object picking below.
     }
 
@@ -743,13 +1016,140 @@ export class MakerApp extends SmallWorld {
     const hits = this._raycaster.intersectObjects(pickable, true);
     const hitObj = 0 < hits.length ? hits[0]!.object : undefined;
 
-    if (event.shiftKey || event.ctrlKey || event.metaKey) {
-      // Modifier + empty space is intentionally a no-op -- it shouldn't clear an existing
-      // multi-selection, unlike a plain click on empty space.
-      if (hitObj) this.toggleSelect(hitObj);
+    if (hitObj) {
+      if (event.shiftKey || event.ctrlKey || event.metaKey) {
+        this.toggleSelect(hitObj);
+      } else {
+        this.selectObject(hitObj);
+      }
     } else {
-      this.selectObject(hitObj);
+      // Empty space clicked -- begin marquee selection
+      this._marqueeState = {
+        startX: event.clientX,
+        startY: event.clientY,
+        isShift: event.shiftKey || event.ctrlKey || event.metaKey,
+      };
     }
+  }
+
+  private _onWindowPointerMove(event: PointerEvent): void {
+    if (!this._marqueeState) return;
+    const rect = this.canvas.getBoundingClientRect();
+    const minX = Math.max(rect.left, Math.min(this._marqueeState.startX, event.clientX));
+    const maxX = Math.min(rect.right, Math.max(this._marqueeState.startX, event.clientX));
+    const minY = Math.max(rect.top, Math.min(this._marqueeState.startY, event.clientY));
+    const maxY = Math.min(rect.bottom, Math.max(this._marqueeState.startY, event.clientY));
+    const w = maxX - minX;
+    const h = maxY - minY;
+
+    if (w > 4 || h > 4) {
+      this._marqueeEl.style.display = "block";
+      this._marqueeEl.style.left = `${minX - rect.left}px`;
+      this._marqueeEl.style.top = `${minY - rect.top}px`;
+      this._marqueeEl.style.width = `${w}px`;
+      this._marqueeEl.style.height = `${h}px`;
+    }
+  }
+
+  private _onWindowPointerUp(event: PointerEvent): void {
+    if (!this._marqueeState) return;
+    const { startX, startY, isShift } = this._marqueeState;
+    this._marqueeState = undefined;
+    this._marqueeEl.style.display = "none";
+
+    const rect = this.canvas.getBoundingClientRect();
+    const minX = Math.max(rect.left, Math.min(startX, event.clientX));
+    const maxX = Math.min(rect.right, Math.max(startX, event.clientX));
+    const minY = Math.max(rect.top, Math.min(startY, event.clientY));
+    const maxY = Math.min(rect.bottom, Math.max(startY, event.clientY));
+    const w = maxX - minX;
+    const h = maxY - minY;
+
+    if (w > 4 || h > 4) {
+      const candidates: Object3D[] = [];
+      this._collectPickable(this.scene.root, candidates);
+      const matched: Object3D[] = [];
+
+      for (const obj of candidates) {
+        obj.updateMatrixWorld();
+        if (this._isObjectInScreenRect(obj, minX, maxX, minY, maxY, rect)) {
+          matched.push(obj);
+        }
+      }
+
+      if (isShift) {
+        for (const obj of matched) this._selection.add(obj);
+        if (matched.length > 0) this._primary = matched.at(-1);
+        this._applySelectionChange();
+      } else {
+        this._selectMultiple(matched);
+      }
+    } else {
+      if (!isShift) {
+        this.selectObject(undefined);
+      }
+    }
+  }
+
+  private _isObjectInScreenRect(
+    obj: Object3D,
+    minX: number,
+    maxX: number,
+    minY: number,
+    maxY: number,
+    rect: DOMRect,
+  ): boolean {
+    const pointsToTest: Vector3D[] = [];
+    if (obj.bounds) {
+      if (BoundingType.BOX === obj.bounds.type) {
+        const box = obj.bounds as BoundingBox;
+        pointsToTest.push(
+          new Vector3D(box.min.x, box.min.y, box.min.z),
+          new Vector3D(box.max.x, box.min.y, box.min.z),
+          new Vector3D(box.min.x, box.max.y, box.min.z),
+          new Vector3D(box.max.x, box.max.y, box.min.z),
+          new Vector3D(box.min.x, box.min.y, box.max.z),
+          new Vector3D(box.max.x, box.min.y, box.max.z),
+          new Vector3D(box.min.x, box.max.y, box.max.z),
+          new Vector3D(box.max.x, box.max.y, box.max.z),
+        );
+      } else if (BoundingType.SPHERE === obj.bounds.type) {
+        const s = obj.bounds as BoundingSphere;
+        pointsToTest.push(
+          s.center.clone(),
+          s.center.clone().add(new Vector3D(s.radius, 0, 0)),
+          s.center.clone().add(new Vector3D(-s.radius, 0, 0)),
+          s.center.clone().add(new Vector3D(0, s.radius, 0)),
+          s.center.clone().add(new Vector3D(0, -s.radius, 0)),
+          s.center.clone().add(new Vector3D(0, 0, s.radius)),
+          s.center.clone().add(new Vector3D(0, 0, -s.radius)),
+        );
+      }
+    } else {
+      pointsToTest.push(obj.getWorldPosition());
+    }
+
+    let objMinX = Infinity;
+    let objMaxX = -Infinity;
+    let objMinY = Infinity;
+    let objMaxY = -Infinity;
+    let anyInFront = false;
+
+    for (const p of pointsToTest) {
+      const ndc = this.camera.viewProjectionMatrix4.transformVector(p.clone());
+      if (ndc.z >= -1 && ndc.z <= 1) {
+        anyInFront = true;
+        const sx = (ndc.x * 0.5 + 0.5) * rect.width + rect.left;
+        const sy = (-ndc.y * 0.5 + 0.5) * rect.height + rect.top;
+        objMinX = Math.min(objMinX, sx);
+        objMaxX = Math.max(objMaxX, sx);
+        objMinY = Math.min(objMinY, sy);
+        objMaxY = Math.max(objMaxY, sy);
+      }
+    }
+
+    if (!anyInFront) return false;
+    return !(objMaxX < minX || objMinX > maxX || objMaxY < minY || objMinY > maxY);
   }
 
   /** Mirrors `GadgetInspector`'s own picking scope (visible objects only, own helper meshes
@@ -854,6 +1254,14 @@ export class MakerApp extends SmallWorld {
       event.preventDefault();
       if ("d" === key) this.duplicateSelection();
       else this.groupSelection();
+      return;
+    }
+
+    if ("x" === key) {
+      const active = document.activeElement;
+      if (active && ("INPUT" === active.tagName || "TEXTAREA" === active.tagName)) return;
+      if (event.ctrlKey || event.metaKey || event.altKey) return;
+      this.toggleSnap();
       return;
     }
 

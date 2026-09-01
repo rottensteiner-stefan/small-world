@@ -95,4 +95,38 @@ describe("TransformGizmo", () => {
       expect(Math.abs(positive)).toBeCloseTo(Math.abs(negative));
     });
   });
+
+  describe("snapping", () => {
+    it("snapValue returns untouched value when snap is disabled", () => {
+      const gizmo = new TransformGizmo();
+      expect(gizmo.snap.enabled).toBe(false);
+      expect(gizmo.snapValue("translate", 1.234)).toBeCloseTo(1.234);
+      expect(gizmo.snapValue("rotate", 0.567)).toBeCloseTo(0.567);
+      expect(gizmo.snapValue("scale", 1.123)).toBeCloseTo(1.123);
+    });
+
+    it("snapValue rounds to configured intervals when enabled", () => {
+      const gizmo = new TransformGizmo();
+      gizmo.snap.enabled = true;
+      gizmo.snap.translate = 0.5;
+      gizmo.snap.rotate = Math.PI / 4; // 45 deg
+      gizmo.snap.scale = 0.25;
+
+      expect(gizmo.snapValue("translate", 0.4)).toBeCloseTo(0.5);
+      expect(gizmo.snapValue("translate", 0.74)).toBeCloseTo(0.5);
+      expect(gizmo.snapValue("translate", 0.76)).toBeCloseTo(1.0);
+
+      expect(gizmo.snapValue("rotate", 0.7)).toBeCloseTo(Math.PI / 4);
+      expect(gizmo.snapValue("scale", 0.9)).toBeCloseTo(1.0);
+      expect(gizmo.snapValue("scale", 0.1)).toBeCloseTo(0.01); // clamped min scale
+    });
+
+    it("toggleSnap toggles state and returns new value", () => {
+      const gizmo = new TransformGizmo();
+      expect(gizmo.toggleSnap()).toBe(true);
+      expect(gizmo.snap.enabled).toBe(true);
+      expect(gizmo.toggleSnap()).toBe(false);
+      expect(gizmo.snap.enabled).toBe(false);
+    });
+  });
 });

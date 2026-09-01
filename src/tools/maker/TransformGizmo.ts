@@ -9,6 +9,13 @@ import { CameraInterfaceData } from "../../interfaces/index.js";
 export type GizmoMode = "translate" | "rotate" | "scale";
 export type GizmoAxis = "x" | "y" | "z";
 
+export interface GizmoSnapConfig {
+  enabled: boolean;
+  translate: number;
+  rotate: number;
+  scale: number;
+}
+
 const AXES: GizmoAxis[] = ["x", "y", "z"];
 const AXIS_COLOR: Record<GizmoAxis, Color> = {
   x: new Color(1, 0.2, 0.2),
@@ -48,8 +55,34 @@ export class TransformGizmo {
   private readonly _raycaster = new Raycaster();
   private _target: Object3D | undefined;
 
+  public snap: GizmoSnapConfig = {
+    enabled: false,
+    translate: 0.5,
+    rotate: Math.PI / 12, // 15 degrees
+    scale: 0.25,
+  };
+
   public get mode(): GizmoMode {
     return this._mode;
+  }
+
+  /** Snaps a scalar value according to the current mode's snap setting, if snapping is enabled. */
+  public snapValue(mode: GizmoMode, value: number): number {
+    if (!this.snap.enabled) return value;
+    const step =
+      "translate" === mode
+        ? this.snap.translate
+        : "rotate" === mode
+          ? this.snap.rotate
+          : this.snap.scale;
+    if (step <= 0) return value;
+    const snapped = Math.round(value / step) * step;
+    return "scale" === mode ? Math.max(0.01, snapped) : snapped;
+  }
+
+  public toggleSnap(): boolean {
+    this.snap.enabled = !this.snap.enabled;
+    return this.snap.enabled;
   }
 
   constructor() {
