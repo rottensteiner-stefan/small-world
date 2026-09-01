@@ -193,24 +193,24 @@ The engine's flagship standalone 3D scene composer and level editor ([User Guide
 ### In-Game Overlay
 - **The Forge:** A built-in floating window manager providing runtime inspection, diagnostics, and integrated tooling directly inside your running game (toggleable via configurable shortcut, e.g. `~` or `F12`).
 
-## 📚 Documentation
+## 📚 Documentation & Guides
 
-This project uses [TypeDoc](https://typedoc.org/) for automated API reference generation and [VitePress](https://vitepress.dev/) for developer guides and tutorials.
+This project provides comprehensive developer documentation, engine guides, and production roadmaps:
 
-1.  **Generate API Reference:**
-
+- **[Vision & Core Philosophy](VISION.md):** The atmospheric indie game philosophy ("The Stray Principle").
+- **[Maker User Guide & Pro Reference](docs/guides/maker.md):** Complete guide to the standalone in-browser 3D world editor.
+- **[Commercial Indie Game Roadmap & Publisher Strategy](docs/guides/commercial-indie-roadmap.md):** Strategic roadmap from prototype to commercial release on Steam, PlayStation & Xbox (playtime optimization, Tauri packaging, publisher pitching, platform certification, wishlist velocity).
+- **Interactive Guides & API Reference:**
+  - Build API documentation with TypeDoc:
     ```bash
     npm run docs:api
     ```
-
-    This automatically extracts all classes, interfaces, and methods from the TypeScript source and generates a static HTML site under `docs/public/api`.
-
-2.  **Start the VitePress Dev Server:**
+  - Start the local VitePress documentation server:
     ```bash
     npm run docs:dev
     ```
-    This serves the developer documentation locally. You can browse the guides and the newly generated API documentation.
 
 ## 📄 License
 
 This project is licensed under the MIT License.
+
