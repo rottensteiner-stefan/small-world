@@ -1604,16 +1604,46 @@ export class MakerApp extends SmallWorld {
     const baseStep = this._gizmo.snap.enabled ? this._gizmo.snap.translate : 0.5;
     const step = baseStep;
 
+    // Camera-cardinal alignment: arrow directions match on-screen visual perspective
+    const camFwd = this.camera.target.clone().sub(this.camera.position);
+    camFwd.y = 0;
+    if (camFwd.lengthSq() < 0.0001) camFwd.set(0, 0, -1);
+    else camFwd.normalize();
+
+    let fwdX = 0;
+    let fwdZ = 0;
+    let rgtX = 0;
+    let rgtZ = 0;
+
+    if (Math.abs(camFwd.z) >= Math.abs(camFwd.x)) {
+      fwdZ = camFwd.z > 0 ? 1 : -1;
+      rgtX = -fwdZ;
+    } else {
+      fwdX = camFwd.x > 0 ? 1 : -1;
+      rgtZ = fwdX;
+    }
+
     let dx = 0;
     let dy = 0;
     let dz = 0;
 
-    if ("ArrowLeft" === key) dx = -step;
-    else if ("ArrowRight" === key) dx = step;
-    else if ("PageUp" === key || ("ArrowUp" === key && isShift)) dy = step;
-    else if ("PageDown" === key || ("ArrowDown" === key && isShift)) dy = -step;
-    else if ("ArrowUp" === key) dz = -step;
-    else if ("ArrowDown" === key) dz = step;
+    if ("PageUp" === key || ("ArrowUp" === key && isShift)) {
+      dy = step;
+    } else if ("PageDown" === key || ("ArrowDown" === key && isShift)) {
+      dy = -step;
+    } else if ("ArrowLeft" === key) {
+      dx = -rgtX * step;
+      dz = -rgtZ * step;
+    } else if ("ArrowRight" === key) {
+      dx = rgtX * step;
+      dz = rgtZ * step;
+    } else if ("ArrowUp" === key) {
+      dx = fwdX * step;
+      dz = fwdZ * step;
+    } else if ("ArrowDown" === key) {
+      dx = -fwdX * step;
+      dz = -fwdZ * step;
+    }
 
     if (0 === dx && 0 === dy && 0 === dz) return;
 
