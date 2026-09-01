@@ -35,11 +35,16 @@ export class PropertyPanel {
     this._titleFolder = this._pane.addFolder({ title: "No Selection", expanded: true });
   }
 
-  /** Rebuilds the entire panel for the newly selected object (or clears it for `undefined`). */
-  public setSelection(obj: Object3D | undefined): void {
+  /** Rebuilds the entire panel for the newly selected (primary) object, or clears it for
+   * `undefined`. `extraCount` -- how many other objects are also selected alongside it -- is
+   * shown as a "(+N more)" suffix; this panel only ever edits the primary object's properties,
+   * never a multi-object batch edit. */
+  public setSelection(obj: Object3D | undefined, extraCount: number = 0): void {
     for (const blade of this._blades) blade.dispose();
     this._blades = [];
-    this._titleFolder.title = obj ? obj.name || obj.constructor.name : "No Selection";
+    const baseName = obj ? obj.name || obj.constructor.name : "No Selection";
+    this._titleFolder.title =
+      obj && extraCount > 0 ? `${baseName} (+${extraCount} more)` : baseName;
     if (!obj) return;
 
     this._renderSchema(

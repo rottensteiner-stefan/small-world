@@ -1,7 +1,9 @@
 import { Object3D } from "../../core/index.js";
 
 export interface HierarchyCallbacks {
-  onSelect(obj: Object3D): void;
+  /** `toggle` mirrors the click's Shift/Ctrl/Cmd modifier state -- add/remove `obj` from the
+   * existing selection instead of replacing it wholesale. */
+  onSelect(obj: Object3D, toggle: boolean): void;
   onReparent(obj: Object3D, newParent: Object3D): void;
 }
 
@@ -34,10 +36,10 @@ export class HierarchyPanel {
     });
   }
 
-  private _selected: Object3D | undefined;
+  private _selection: ReadonlySet<Object3D> = new Set();
 
-  public setSelected(obj: Object3D | undefined): void {
-    this._selected = obj;
+  public setSelected(selection: ReadonlySet<Object3D>): void {
+    this._selection = selection;
     this.refresh();
   }
 
@@ -50,12 +52,14 @@ export class HierarchyPanel {
     for (const child of parent.children) {
       if (this._isExcluded(child)) continue;
       const row = document.createElement("div");
-      row.className = "maker-hierarchy-row" + (child === this._selected ? " selected" : "");
+      row.className = "maker-hierarchy-row" + (this._selection.has(child) ? " selected" : "");
       row.style.paddingLeft = `${depth * 16 + 6}px`;
       row.textContent = child.name || child.constructor.name;
       row.draggable = true;
 
-      row.addEventListener("click", () => this._callbacks.onSelect(child));
+      row.addEventListener("click", (e) => {
+        this._callbacks.onSelect(child, e.shiftKey || e.ctrlKey || e.metaKey);
+      });
       row.addEventListener("dragstart", (e) => {
         e.dataTransfer?.setData(DRAG_MIME, child.uuid);
       });

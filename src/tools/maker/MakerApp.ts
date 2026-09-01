@@ -45,9 +45,11 @@ export interface MakerAppOptions extends EngineOptions {
 interface GizmoDragState {
   axis: GizmoAxis;
   mode: GizmoMode;
-  /** Snapshot of the dragged vector (position/rotation/scale, whichever `mode` implies) at drag
-   * start, for a single before/after undo command pushed once the drag ends. */
-  before: Vector3D;
+  /** Snapshot of the dragged vector (position/rotation/scale, whichever `mode` implies) for
+   * every selected object at drag start -- the whole selection moves together, not just the
+   * primary/pivot object the gizmo itself is anchored to. One before/after undo command is
+   * pushed once the drag ends. */
+  before: Map<Object3D, Vector3D>;
 }
 
 /**
@@ -69,8 +71,25 @@ export class MakerApp extends SmallWorld {
   private readonly _trashBin = new Object3D("MakerTrash");
   private readonly _gizmo = new TransformGizmo();
 
-  private _selected: Object3D | undefined;
-  private _highlightMesh!: Object3D;
+  /** Insertion-ordered so "the last thing clicked/toggled" (via `Array.from(...).at(-1)`) is
+   * well-defined -- `_primary` always mirrors that. */
+  private readonly _selection = new Set<Object3D>();
+  /** The object the Property panel shows and the gizmo pivots on -- Blender/Unity's "active
+   * object" convention. `undefined` iff `_selection` is empty. */
+  private _primary: Object3D | undefined;
+  /** Read-only alias kept for every pre-multi-select call site that only ever needs "the one
+   * relevant object" (gizmo drag math, `attachBehaviorToSelection`, etc.) -- there is
+   * deliberately no setter; `selectObject()`/`toggleSelect()`/`_selectMultiple()` are the only
+   * ways to change the selection. */
+  private get _selected(): Object3D | undefined {
+    return this._primary;
+  }
+  /** Pooled per-selected-object wireframe highlight boxes, indexed by current selection order
+   * (not tied to a fixed object) -- reused across `_syncHighlight()` calls so selecting N
+   * objects doesn't allocate N new meshes every frame. */
+  private readonly _highlightMeshes: Object3D[] = [];
+  private static readonly _PRIMARY_HIGHLIGHT_COLOR = new Color(0, 1, 1);
+  private static readonly _SECONDARY_HIGHLIGHT_COLOR = new Color(1, 0.7, 0);
   private _hierarchyPanel!: HierarchyPanel;
   private _propertyPanel!: PropertyPanel;
   private _prefabPalette!: PrefabPalette;
@@ -96,12 +115,6 @@ export class MakerApp extends SmallWorld {
     this.scene.add(new DirectionalLight({ name: "SunLight", intensity: 1.0 }));
     this.scene.add(new AmbientLight({ name: "Fill", intensity: 0.4 }));
 
-    this._highlightMesh = new Object3D("MakerHighlight");
-    this._highlightMesh.geometry = new Cube({ size: 1 }).getGeometryData();
-    this._highlightMesh.material = new WireframeMaterial(new Color(0, 1, 1));
-    this._highlightMesh.isVisible = false;
-    this.scene.add(this._highlightMesh);
-
     this.scene.add(this._gizmo.root);
 
     this.camera.setStrategy(CameraStrategyType.MANUAL);
@@ -113,10 +126,13 @@ export class MakerApp extends SmallWorld {
       this._makerOptions.hierarchyContainer,
       () => this.scene.root,
       {
-        onSelect: (obj): void => this.selectObject(obj),
+        onSelect: (obj, toggle): void => {
+          if (toggle) this.toggleSelect(obj);
+          else this.selectObject(obj);
+        },
         onReparent: (obj, newParent): void => this.reparent(obj, newParent),
       },
-      (obj) => obj === this._highlightMesh || obj === this._gizmo.root,
+      (obj) => this._highlightMeshes.includes(obj) || obj === this._gizmo.root,
     );
     new ObjectPalette(this._makerOptions.paletteContainer, {
       createObject: (factory): void => this.addObject(factory()),
@@ -218,9 +234,9 @@ export class MakerApp extends SmallWorld {
    */
   private _captureViewportThumbnail(): Promise<string | undefined> {
     const wasGizmoVisible = this._gizmo.root.isVisible;
-    const wasHighlightVisible = this._highlightMesh.isVisible;
+    const wasHighlightVisible = this._highlightMeshes.map((mesh) => mesh.isVisible);
     this._gizmo.root.isVisible = false;
-    this._highlightMesh.isVisible = false;
+    for (const mesh of this._highlightMeshes) mesh.isVisible = false;
 
     const capture = new Promise<string | undefined>((resolve) => {
       requestAnimationFrame(() => {
@@ -239,7 +255,9 @@ export class MakerApp extends SmallWorld {
 
     return Promise.race([capture, timeout]).then((result) => {
       this._gizmo.root.isVisible = wasGizmoVisible;
-      this._highlightMesh.isVisible = wasHighlightVisible;
+      this._highlightMeshes.forEach((mesh, i) => {
+        mesh.isVisible = wasHighlightVisible[i]!;
+      });
       return result;
     });
   }
@@ -291,9 +309,7 @@ export class MakerApp extends SmallWorld {
     const duplicate = document.createElement("button");
     duplicate.className = "maker-palette-btn";
     duplicate.textContent = "⧉ Duplicate (Ctrl+D)";
-    duplicate.addEventListener("click", (): void => {
-      if (this._selected) this.duplicateObject(this._selected);
-    });
+    duplicate.addEventListener("click", (): void => this.duplicateSelection());
     row.appendChild(duplicate);
 
     const group = document.createElement("button");
@@ -381,14 +397,14 @@ export class MakerApp extends SmallWorld {
       this._hierarchyPanel.refresh();
       this._hierarchyDirty = false;
     }
-    if (this._selected) this._syncHighlight();
+    this._syncHighlight();
     this.scene.update(deltaTime);
     this._updateGizmo();
   }
 
   private _updateGizmo(): void {
     this._gizmo.update(this.camera);
-    if (!this._gizmoDrag || !this._selected) return;
+    if (!this._gizmoDrag) return;
 
     const { axis, mode } = this._gizmoDrag;
     const delta = this._gizmo.computeAxisDelta(
@@ -397,62 +413,94 @@ export class MakerApp extends SmallWorld {
       this.input.mouse.dy,
       this.camera,
     );
-    const vec =
-      "translate" === mode
-        ? this._selected.position
-        : "rotate" === mode
-          ? this._selected.rotation
-          : this._selected.scale;
-    if ("scale" === mode) {
-      vec[axis] = Math.max(0.01, vec[axis] + delta);
-    } else {
-      vec[axis] += delta;
+    for (const obj of this._selection) {
+      const vec =
+        "translate" === mode ? obj.position : "rotate" === mode ? obj.rotation : obj.scale;
+      if ("scale" === mode) {
+        vec[axis] = Math.max(0.01, vec[axis] + delta);
+      } else {
+        vec[axis] += delta;
+      }
+      obj.updateMatrixWorld();
     }
-    this._selected.updateMatrixWorld();
-    this._propertyPanel.setSelection(this._selected);
+    this._propertyPanel.setSelection(this._primary, Math.max(0, this._selection.size - 1));
 
     if (!this.input.mouse.left) this._finishGizmoDrag();
   }
 
   private _finishGizmoDrag(): void {
     const drag = this._gizmoDrag;
-    if (!drag || !this._selected) {
-      this._gizmoDrag = undefined;
-      return;
-    }
-    const obj = this._selected;
-    const { axis, mode, before } = drag;
-    const after = (
-      "translate" === mode ? obj.position : "rotate" === mode ? obj.rotation : obj.scale
-    ).clone();
     this._gizmoDrag = undefined;
-    if (after[axis] === before[axis]) return; // click without drag -- nothing to undo
+    if (!drag) return;
+
+    const { axis, mode, before } = drag;
+    const after = new Map<Object3D, Vector3D>();
+    let changed = false;
+    for (const [obj, beforeVec] of before) {
+      const vec = (
+        "translate" === mode ? obj.position : "rotate" === mode ? obj.rotation : obj.scale
+      ).clone();
+      after.set(obj, vec);
+      if (vec[axis] !== beforeVec[axis]) changed = true;
+    }
+    if (!changed) return; // click without drag -- nothing to undo
+
+    const apply = (values: Map<Object3D, Vector3D>): void => {
+      for (const [obj, vec] of values) {
+        (mode === "translate" ? obj.position : mode === "rotate" ? obj.rotation : obj.scale)[axis] =
+          vec[axis];
+        obj.updateMatrixWorld();
+      }
+      this._propertyPanel.setSelection(this._primary, Math.max(0, this._selection.size - 1));
+      this._project.scheduleAutosave(() => this.scene.root);
+    };
 
     this._undo.execute({
-      label: `Gizmo ${mode} ${axis.toUpperCase()}`,
-      redo: () => {
-        (mode === "translate" ? obj.position : mode === "rotate" ? obj.rotation : obj.scale)[axis] =
-          after[axis];
-        obj.updateMatrixWorld();
-        this._propertyPanel.setSelection(this._selected === obj ? obj : this._selected);
-        this._project.scheduleAutosave(() => this.scene.root);
-      },
-      undo: () => {
-        (mode === "translate" ? obj.position : mode === "rotate" ? obj.rotation : obj.scale)[axis] =
-          before[axis];
-        obj.updateMatrixWorld();
-        this._propertyPanel.setSelection(this._selected === obj ? obj : this._selected);
-        this._project.scheduleAutosave(() => this.scene.root);
-      },
+      label: `Gizmo ${mode} ${axis.toUpperCase()}${before.size > 1 ? ` (${before.size})` : ""}`,
+      redo: () => apply(after),
+      undo: () => apply(before),
     });
     this._project.scheduleAutosave(() => this.scene.root);
   }
 
+  /** Replaces the entire selection with just `obj` (or clears it for `undefined`) -- a plain
+   * click's behavior. See `toggleSelect()` for Shift/Ctrl-click's add/remove-one behavior. */
   public selectObject(obj: Object3D | undefined): void {
-    this._selected = obj;
-    this._propertyPanel.setSelection(obj);
-    this._hierarchyPanel.setSelected(obj);
-    this._gizmo.attachTo(obj);
+    this._selection.clear();
+    if (obj) this._selection.add(obj);
+    this._primary = obj;
+    this._applySelectionChange();
+  }
+
+  /** Adds/removes `obj` from the selection without disturbing the rest of it -- Shift/Ctrl-click's
+   * behavior, in both the viewport and the Hierarchy panel. The toggled object becomes primary
+   * when added; when removed, primary falls back to whichever object was selected most recently
+   * (or undefined if the selection is now empty). */
+  public toggleSelect(obj: Object3D): void {
+    if (this._selection.has(obj)) {
+      this._selection.delete(obj);
+      this._primary = Array.from(this._selection).at(-1);
+    } else {
+      this._selection.add(obj);
+      this._primary = obj;
+    }
+    this._applySelectionChange();
+  }
+
+  /** Replaces the entire selection with `objs`, the last of which becomes primary -- used after
+   * an operation (duplicate, group, undo) that should leave a specific set selected, distinct
+   * from `selectObject()`'s single-object contract. */
+  private _selectMultiple(objs: Object3D[]): void {
+    this._selection.clear();
+    for (const obj of objs) this._selection.add(obj);
+    this._primary = objs.at(-1);
+    this._applySelectionChange();
+  }
+
+  private _applySelectionChange(): void {
+    this._propertyPanel.setSelection(this._primary, Math.max(0, this._selection.size - 1));
+    this._hierarchyPanel.setSelected(this._selection);
+    this._gizmo.attachTo(this._primary);
     this._syncHighlight();
   }
 
@@ -474,20 +522,25 @@ export class MakerApp extends SmallWorld {
     });
   }
 
-  public deleteObject(obj: Object3D): void {
-    const parent = obj.parent;
-    if (!parent) return;
+  /** Deletes every currently selected object as one batch undo step. Works the same for a single
+   * selected object as it did before multi-selection existed. */
+  public deleteSelection(): void {
+    const objs = Array.from(this._selection).filter((obj) => obj.parent);
+    if (0 === objs.length) return;
+    const parents = objs.map((obj) => obj.parent!);
+
     this._undo.execute({
-      label: `Delete ${obj.name}`,
+      label: `Delete ${objs.length} object${objs.length > 1 ? "s" : ""}`,
       redo: () => {
-        this._trashBin.add(obj);
+        for (const obj of objs) this._trashBin.add(obj);
         this._hierarchyDirty = true;
-        if (this._selected === obj) this.selectObject(undefined);
+        this.selectObject(undefined);
         this._project.scheduleAutosave(() => this.scene.root);
       },
       undo: () => {
-        parent.add(obj);
+        objs.forEach((obj, i) => parents[i]!.add(obj));
         this._hierarchyDirty = true;
+        this._selectMultiple(objs);
         this._project.scheduleAutosave(() => this.scene.root);
       },
     });
@@ -511,39 +564,52 @@ export class MakerApp extends SmallWorld {
     });
   }
 
-  /** Clones `obj` (via `Object3D.clone()`) and inserts the copy as a sibling right next to the
-   * original, then selects it. Undoing removes the copy, not the original. */
-  public duplicateObject(obj: Object3D): void {
-    const parent = obj.parent;
-    if (!parent) return;
-    const clone = obj.clone();
-    clone.name = obj.name ? `${obj.name} Copy` : clone.name;
+  /** Clones every selected object (via `Object3D.clone()`) and inserts each copy as a sibling
+   * right next to its original, then selects the whole new set of copies as one batch undo step.
+   * Works the same for a single selected object as it did before multi-selection existed. */
+  public duplicateSelection(): void {
+    const objs = Array.from(this._selection).filter((obj) => obj.parent);
+    if (0 === objs.length) return;
+    const clones = objs.map((obj) => {
+      const clone = obj.clone();
+      clone.name = obj.name ? `${obj.name} Copy` : clone.name;
+      return { parent: obj.parent!, clone };
+    });
 
     this._undo.execute({
-      label: `Duplicate ${obj.name}`,
+      label: `Duplicate ${objs.length} object${objs.length > 1 ? "s" : ""}`,
       redo: () => {
-        parent.add(clone);
+        for (const { parent, clone } of clones) parent.add(clone);
         this._hierarchyDirty = true;
-        this.selectObject(clone);
+        this._selectMultiple(clones.map((c) => c.clone));
         this._project.scheduleAutosave(() => this.scene.root);
       },
       undo: () => {
-        this._trashBin.add(clone);
+        for (const { clone } of clones) this._trashBin.add(clone);
         this._hierarchyDirty = true;
-        if (this._selected === clone) this.selectObject(obj);
+        this._selectMultiple(objs);
         this._project.scheduleAutosave(() => this.scene.root);
       },
     });
   }
 
-  /** Wraps the selected object in a new empty parent at its current world transform (the group
-   * takes the object's old local transform, the object resets to identity within it) -- the
-   * standard "Group Selected" operation in Blender/Unity, scoped to a single object for now since
-   * Maker has no multi-selection yet. Undoing unwraps it back to the original parent. */
+  /** Groups the current selection into a new empty parent. A single selected object is wrapped
+   * at its own current world transform -- the group takes the object's old local transform, the
+   * object resets to identity within it, Blender/Unity's "Group Selected". Multiple selected
+   * objects go through `_groupMultiple()` instead. */
   public groupSelection(): void {
-    const obj = this._selected;
-    const parent = obj?.parent;
-    if (!obj || !parent) return;
+    const objs = Array.from(this._selection);
+    if (0 === objs.length) return;
+    if (1 === objs.length) {
+      this._groupSingle(objs[0]!);
+      return;
+    }
+    this._groupMultiple(objs);
+  }
+
+  private _groupSingle(obj: Object3D): void {
+    const parent = obj.parent;
+    if (!parent) return;
 
     const beforePos = obj.position.clone();
     const beforeRot = obj.rotation.clone();
@@ -557,6 +623,8 @@ export class MakerApp extends SmallWorld {
       label: `Group ${obj.name}`,
       redo: () => {
         parent.add(group);
+        group.updateMatrixWorld(); // group.worldMatrix must be current before children re-derive
+        // their own worldMatrix from it below -- a freshly-added Object3D starts at identity.
         group.add(obj);
         obj.position.set(0, 0, 0);
         obj.rotation.set(0, 0, 0);
@@ -575,6 +643,56 @@ export class MakerApp extends SmallWorld {
         this._trashBin.add(group);
         this._hierarchyDirty = true;
         this.selectObject(obj);
+        this._project.scheduleAutosave(() => this.scene.root);
+      },
+    });
+  }
+
+  /** Wraps several selected objects (possibly with different original parents) together under
+   * one new group, added directly to the scene root and positioned at their centroid. Each
+   * object's own position is adjusted to preserve its exact world position; rotation/scale are
+   * left untouched, since the group itself gets identity rotation/scale -- that keeps the math to
+   * a position-only offset instead of a full transform decomposition. Undoing restores each
+   * object to its own original parent and position. */
+  private _groupMultiple(objs: Object3D[]): void {
+    const snapshots = objs.map((obj) => ({
+      obj,
+      parent: obj.parent!,
+      position: obj.position.clone(),
+    }));
+
+    for (const obj of objs) obj.updateMatrixWorld();
+    const worldPositions = objs.map((obj) => obj.getWorldPosition());
+    const centroid = new Vector3D();
+    for (const p of worldPositions) centroid.add(p);
+    centroid.scale(1 / objs.length);
+
+    const group = new Object3D("Group");
+    group.position.copyFrom(centroid);
+
+    this._undo.execute({
+      label: `Group ${objs.length} objects`,
+      redo: () => {
+        this.scene.add(group);
+        group.updateMatrixWorld(); // see the comment in _groupSingle()'s redo -- same reason.
+        objs.forEach((obj, i) => {
+          group.add(obj);
+          obj.position.copyFrom(worldPositions[i]!.clone().sub(centroid));
+          obj.updateMatrixWorld();
+        });
+        this._hierarchyDirty = true;
+        this.selectObject(group);
+        this._project.scheduleAutosave(() => this.scene.root);
+      },
+      undo: () => {
+        for (const s of snapshots) {
+          s.parent.add(s.obj);
+          s.obj.position.copyFrom(s.position);
+          s.obj.updateMatrixWorld();
+        }
+        this._trashBin.add(group);
+        this._hierarchyDirty = true;
+        this._selectMultiple(objs);
         this._project.scheduleAutosave(() => this.scene.root);
       },
     });
@@ -607,15 +725,15 @@ export class MakerApp extends SmallWorld {
     );
 
     const gizmoAxis = this._gizmo.pickAxis(ndc, this.camera);
-    if (gizmoAxis && this._selected) {
+    if (gizmoAxis && this._primary) {
       const mode = this._gizmo.mode;
-      const vec =
-        "translate" === mode
-          ? this._selected.position
-          : "rotate" === mode
-            ? this._selected.rotation
-            : this._selected.scale;
-      this._gizmoDrag = { axis: gizmoAxis, mode, before: vec.clone() };
+      const before = new Map<Object3D, Vector3D>();
+      for (const obj of this._selection) {
+        const vec =
+          "translate" === mode ? obj.position : "rotate" === mode ? obj.rotation : obj.scale;
+        before.set(obj, vec.clone());
+      }
+      this._gizmoDrag = { axis: gizmoAxis, mode, before };
       return; // Gizmo handle grabbed -- don't also run normal object picking below.
     }
 
@@ -623,7 +741,15 @@ export class MakerApp extends SmallWorld {
     const pickable: Object3D[] = [];
     this._collectPickable(this.scene.root, pickable);
     const hits = this._raycaster.intersectObjects(pickable, true);
-    this.selectObject(0 < hits.length ? hits[0]!.object : undefined);
+    const hitObj = 0 < hits.length ? hits[0]!.object : undefined;
+
+    if (event.shiftKey || event.ctrlKey || event.metaKey) {
+      // Modifier + empty space is intentionally a no-op -- it shouldn't clear an existing
+      // multi-selection, unlike a plain click on empty space.
+      if (hitObj) this.toggleSelect(hitObj);
+    } else {
+      this.selectObject(hitObj);
+    }
   }
 
   /** Mirrors `GadgetInspector`'s own picking scope (visible objects only, own helper meshes
@@ -633,7 +759,7 @@ export class MakerApp extends SmallWorld {
     // leaf handles stay `isVisible = true` even while their containing mode-group (or the whole
     // gizmo root) is hidden, so it must be excluded by identity here, the same way as the
     // highlight mesh, rather than relying on visibility alone.
-    if (parent === this._highlightMesh || parent === this._gizmo.root) return;
+    if (this._highlightMeshes.includes(parent) || parent === this._gizmo.root) return;
     if (parent.isVisible) {
       if (parent.geometry) parent.computeBounds();
       out.push(parent);
@@ -641,36 +767,62 @@ export class MakerApp extends SmallWorld {
     for (const child of parent.children) this._collectPickable(child, out);
   }
 
-  private _syncHighlight(): void {
-    const obj = this._selected;
-    if (!obj) {
-      this._highlightMesh.isVisible = false;
-      return;
+  private _getOrCreateHighlightMesh(index: number): Object3D {
+    let mesh = this._highlightMeshes[index];
+    if (!mesh) {
+      mesh = new Object3D(`MakerHighlight${index}`);
+      mesh.geometry = new Cube({ size: 1 }).getGeometryData();
+      mesh.material = new WireframeMaterial(new Color(0, 1, 1));
+      mesh.isVisible = false;
+      this.scene.add(mesh);
+      this._highlightMeshes[index] = mesh;
     }
-    if (obj.geometry) obj.computeBounds();
-    if (!obj.bounds) {
-      this._highlightMesh.isVisible = false;
-      return;
-    }
+    return mesh;
+  }
 
+  /** Fits `mesh` (a wireframe cube) to `obj`'s current world bounds. @returns Whether a fit was
+   * possible -- false (with `mesh` left hidden by the caller) if `obj` has no bounds. */
+  private _fitHighlightMesh(obj: Object3D, mesh: Object3D): boolean {
+    if (!obj.bounds) return false;
     const epsilon = new Vector3D(0.02, 0.02, 0.02);
     if (BoundingType.BOX === obj.bounds.type) {
       const box = obj.bounds as BoundingBox;
       const size = new Vector3D().copyFrom(box.max).sub(box.min).add(epsilon);
-      this._highlightMesh.position.copyFrom(box.center);
-      this._highlightMesh.scale.copyFrom(size);
-      this._highlightMesh.updateMatrixWorld();
-      this._highlightMesh.isVisible = true;
-    } else if (BoundingType.SPHERE === obj.bounds.type) {
+      mesh.position.copyFrom(box.center);
+      mesh.scale.copyFrom(size);
+      mesh.updateMatrixWorld();
+      return true;
+    }
+    if (BoundingType.SPHERE === obj.bounds.type) {
       const sphere = obj.bounds as BoundingSphere;
       const diameter = sphere.radius * 2;
       const size = new Vector3D(diameter, diameter, diameter).add(epsilon);
-      this._highlightMesh.position.copyFrom(sphere.center);
-      this._highlightMesh.scale.copyFrom(size);
-      this._highlightMesh.updateMatrixWorld();
-      this._highlightMesh.isVisible = true;
-    } else {
-      this._highlightMesh.isVisible = false;
+      mesh.position.copyFrom(sphere.center);
+      mesh.scale.copyFrom(size);
+      mesh.updateMatrixWorld();
+      return true;
+    }
+    return false;
+  }
+
+  /** One highlight box per selected object, pooled by index -- the primary object's box is cyan,
+   * every other selected object's is amber, so it's obvious at a glance which one the gizmo/
+   * Property panel are actually driving. */
+  private _syncHighlight(): void {
+    const objs = Array.from(this._selection);
+    for (let i = 0; i < objs.length; i++) {
+      const obj = objs[i]!;
+      const mesh = this._getOrCreateHighlightMesh(i);
+      (mesh.material as WireframeMaterial).color.copyFrom(
+        obj === this._primary
+          ? MakerApp._PRIMARY_HIGHLIGHT_COLOR
+          : MakerApp._SECONDARY_HIGHLIGHT_COLOR,
+      );
+      if (obj.geometry) obj.computeBounds();
+      mesh.isVisible = this._fitHighlightMesh(obj, mesh);
+    }
+    for (let i = objs.length; i < this._highlightMeshes.length; i++) {
+      this._highlightMeshes[i]!.isVisible = false;
     }
   }
 
@@ -679,7 +831,7 @@ export class MakerApp extends SmallWorld {
       event.preventDefault();
       if (event.shiftKey) this._undo.redo();
       else this._undo.undo();
-      this._propertyPanel.setSelection(this._selected);
+      this._propertyPanel.setSelection(this._primary, Math.max(0, this._selection.size - 1));
       this._hierarchyDirty = true;
       return;
     }
@@ -687,9 +839,9 @@ export class MakerApp extends SmallWorld {
       const active = document.activeElement;
       // Don't hijack Backspace while the user is typing into a text field.
       if (active && ("INPUT" === active.tagName || "TEXTAREA" === active.tagName)) return;
-      if (this._selected) {
+      if (0 < this._selection.size) {
         event.preventDefault();
-        this.deleteObject(this._selected);
+        this.deleteSelection();
       }
       return;
     }
@@ -698,9 +850,9 @@ export class MakerApp extends SmallWorld {
     if ((event.ctrlKey || event.metaKey) && ("d" === key || "g" === key)) {
       const active = document.activeElement;
       if (active && ("INPUT" === active.tagName || "TEXTAREA" === active.tagName)) return;
-      if (!this._selected) return;
+      if (0 === this._selection.size) return;
       event.preventDefault();
-      if ("d" === key) this.duplicateObject(this._selected);
+      if ("d" === key) this.duplicateSelection();
       else this.groupSelection();
       return;
     }

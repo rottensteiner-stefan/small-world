@@ -5,6 +5,61 @@
 
 ---
 
+## 2026-09-01 — Nachtrag: Multi-Selektion (letzter offener Roadmap-Punkt)
+
+Größter Umbau bisher — betrifft Selection-State, Gizmo, Hierarchy-Panel, Property-Panel und
+Undo für Duplicate/Delete/Group gleichzeitig.
+
+- **Selection-Modell:** `_selection: Set<Object3D>` + `_primary: Object3D | undefined`
+  (Blender/Unity-"aktives Objekt"-Konvention — treibt Property-Panel-Anzeige + Gizmo-Pivot).
+  `_selected` bleibt als reiner Getter-Alias auf `_primary` erhalten, damit die ~25 bestehenden
+  Single-Object-Lesestellen im Code unverändert weiterlaufen.
+- **Klick-Semantik:** Klick = Auswahl ersetzen. Shift/Ctrl/Cmd+Klick = togglen, ohne den Rest
+  anzutasten — sowohl im Viewport (`_onPointerDown`) als auch im Hierarchy-Panel (Zeilen-Klick
+  reicht jetzt den Modifier-Status durch). Modifier+Klick auf Leerraum ist bewusst ein No-op
+  (löscht keine bestehende Mehrfachauswahl).
+- **Highlight:** Pool aus wiederverwendeten Wireframe-Boxen (`_highlightMeshes[]`, indexbasiert
+  statt an ein festes Objekt gebunden) statt einer einzigen — primäres Objekt cyan, alle anderen
+  amber, damit auf einen Blick klar ist, welches Objekt Gizmo/Property-Panel gerade treiben.
+- **Gizmo:** bleibt am Primary verankert (Pivot/Orientierung unverändert), aber der Drag-Delta
+  wird auf ALLE selektierten Objekte angewendet (gleicher Delta pro Objekt, kein
+  Pivot-relativer Gruppen-Transform — bewusste Vereinfachung, passt zum ohnehin schon
+  "simplified gizmo"-Ansatz aus TransformGizmo's eigenem Kommentar). Ein Drag = ein Undo-Schritt
+  für die ganze Selektion (`Map<Object3D, Vector3D>`-Snapshot statt Einzelwert).
+- **Duplicate/Delete:** `duplicateSelection()`/`deleteSelection()` ersetzen die alten
+  Single-Object-Methoden komplett (keine Sonderfälle mehr nötig, N=1 läuft über denselben Pfad).
+  Je EIN Undo-Schritt für die ganze Batch-Operation.
+- **Group:** `groupSelection()` verzweigt jetzt: 1 Objekt → alte Logik unverändert
+  (`_groupSingle`, Gruppe übernimmt exakt die alte Transform). Mehrere Objekte → neue
+  `_groupMultiple`: Gruppe landet am Centroid der Weltpositionen, jedes Objekt behält seine
+  exakte Weltposition (nur Position wird angepasst, Rotation/Scale bleiben unberührt, da die
+  Gruppe selbst Identity-Rotation/Scale bekommt). Funktioniert auch, wenn die selektierten
+  Objekte unterschiedliche ursprüngliche Parents hatten — jedes bekommt beim Undo seinen
+  eigenen Parent zurück.
+- **Echter Bug beim Live-Test gefunden und gefixt (betraf auch den alten Single-Object-Pfad!):**
+  Eine frisch erzeugte Gruppe hat eine Identity-`worldMatrix`, bis irgendwer
+  `updateMatrixWorld()` drauf aufruft — fehlte in beiden `redo()`-Pfaden. Kinder haben ihre
+  Weltposition dadurch beim Reparenting kurzzeitig NICHT korrekt erhalten (nur durch den
+  nächsten Render-Frame kaschiert, der `scene.update()` ohnehin für den ganzen Baum aufruft —
+  im Live-Betrieb also unsichtbar, aber synchron nachweisbar falsch). Nie aufgefallen, weil der
+  allererste Group-Test (frühere Session) zufällig ein Objekt im Ursprung traf (0=0 sieht aus
+  wie "korrekt", ist es aber nicht). Erst der heutige Test mit echten Nicht-Null-Positionen hat
+  es aufgedeckt. Fix: `group.updateMatrixWorld()` direkt nach dem Hinzufügen zur Szene, vor dem
+  Repositionieren der Kinder — in beiden Pfaden.
+- **PropertyPanel:** zeigt weiterhin nur das Primary-Objekt (kein Batch-Edit), aber jetzt mit
+  "(+N more)"-Suffix im Titel, damit klar ist, dass mehr als ein Objekt selektiert ist.
+- **Bewusst nicht erweitert:** `attachBehaviorToSelection` bleibt Single-Object (Primary) —
+  Behaviors sind nicht teilbar (ein Behavior hat genau ein `target`), hätte eine
+  Factory-Signatur-Änderung in `ObjectPalette` gebraucht; als klare Grenze dokumentiert, kein
+  Bug.
+- Live geprüft: Shift-Klick im Hierarchy-Panel UND direkte Selection-API, Duplicate/Delete/Group
+  mit 2 Objekten inkl. Undo (je ein Batch-Schritt, nicht N Einzelschritte), Gizmo-Multi-Drag
+  (gleicher Delta auf beide Objekte, ein Undo-Schritt), Weltpositions-Erhalt bei Group jetzt
+  synchron korrekt, Single-Object-Regression (Group/Duplicate/Delete verhalten sich exakt wie
+  vor der Umstellung) — durchgehend keine Konsolen-Fehler.
+
+---
+
 ## 2026-09-01 — Nachtrag: Prefab-Vorschau im Panel
 
 Prefab-Liste zeigt jetzt ein echtes 28×28px-Thumbnail-Bild neben jedem Namen statt nur Text.
@@ -142,16 +197,20 @@ Heute: Branch-Hygiene, Core-Änderungen isoliert nach `main` gemergt, Docs angel
 | GadgetInspector (massiver Ausbau) | ✅ |
 
 ### Offene Punkte / Nächste Schritte
-- Multi-Selektion (längerfristig)
 - Isolierter Prefab-Thumbnail-Render (Kamera auf Objekt-Bounds statt aktuelle Viewport-Ansicht)
+- Behaviors auf Mehrfachauswahl anwendbar machen (bewusst nicht in der Multi-Select-Runde
+  mitgemacht, siehe Nachtrag oben)
+- Pivot-relativer Gruppen-Transform für Gizmo-Rotate/Scale bei Mehrfachauswahl (aktuell: gleicher
+  Delta pro Objekt, kein "um gemeinsamen Punkt drehen")
 
 **Korrektur (2026-08-31):** "Licht-Platzierung" fälschlich als offen gelistet — Point-,
 Directional- und AmbientLight sind bereits seit dem Phase-1-MVP-Commit (`cd9a608c`) Teil der
 `ObjectPalette`. Dokumentationsfehler, kein nachträglich gebautes Feature.
 
-**Update (2026-09-01):** "Duplicate / Group", "Kamera-Bookmarks" und "Prefab-Vorschau im Panel"
-sind erledigt — siehe Nachträge oben. Von der ursprünglichen Liste bleibt nur noch die
-Multi-Selektion offen.
+**Update (2026-09-01):** Alle Punkte der ursprünglichen Roadmap-Liste sind jetzt erledigt
+(Duplicate/Group, Kamera-Bookmarks, Prefab-Vorschau im Panel, Multi-Selektion). Die drei oben
+genannten Punkte sind neu entdeckte, kleinere Ausbauschritte aus der heutigen Session, keine aus
+der ursprünglichen Liste.
 
 ### Architektur-Notizen
 - `MakerApp extends SmallWorld` — Orchestrator, kein Monolith
