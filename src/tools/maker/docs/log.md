@@ -312,3 +312,19 @@ für Orbit-Rotation via simulierte DOM-`MouseEvent`s mit `button:2`/`movementX/Y
 Frame gehalten). Explizit benennen, was sich tatsächlich nicht verifizieren ließ.
 
 ---
+
+## 2026-09-01 — Phase 3 & Power-User Keyboard Workflow
+
+**Phase 3 Konsolidierung & GadgetInspector-Ablösung:**
+- Maker offiziell als Tool **T-08** in `public/index.html` und Rollup-Build (`vite.config.ts` $\rightarrow$ `js/tools/maker.js`) integriert.
+- `GadgetInspector.ts`, `src/tools/inspector/*` (7 Module) und alle zugehörigen Tests/Guides vollständig physisch aus dem Tree gelöscht (-1.355 Zeilen Alt-Code). SmallWorld-Engine-Loop und Showcases 15 & 16 bereinigt.
+
+**Interaktions-Feinschliff & Power-User-Ergonomie:**
+- **Scroll-Zoom-Entkopplung:** `wheel`-Event-Propagation auf Sidebars/Toolbars gestoppt, damit Scrollen in den Menüs nicht mehr den 3D-Viewport zoomt.
+- **Plattformübergreifender Orbit:** Direkte `setPointerCapture`-Verarbeitung für kontinuierliches Dragging, gleichberechtigte Unterstützung für Rechtsklick (`button: 2`), Mittelklick (`button: 1`), `Alt + Drag` und Mac `Ctrl + Klick`.
+- **Always-on-Top Gizmo-Rendering:** `depthTest: false` und `depthWrite: false` für alle Gizmo-Handles in `TransformGizmo.ts` – Achsen können nicht mehr im Inneren von Meshes verschwinden.
+- **Snapping per Default & Grid-Stepping:** Snapping standardmäßig aktiv (`0.5m`). Schnelle Raster-Anpassung via **`[`** (feiner) und **`]`** (gröber) zwischen `0.1m` bis `2.0m`.
+- **Snap to Ground:** **End**-Taste beamt markierte Objekte exakt mit ihrer Bounding-Box-Unterkante auf den Boden (`Y = 0`).
+- **Camera-Cardinal Keyboard Nudge:** Pfeiltasten steuern Move, Rotate (im <kbd>E</kbd>-Modus oder mit <kbd>Alt</kbd>) und Scale (im <kbd>R</kbd>-Modus oder mit <kbd>Alt+Shift</kbd>). Verschiebung auf dem XZ-Bodenraster berechnet in Echtzeit den dominanten Kardinalvektor der Kamera, sodass $\rightarrow$ und $\uparrow$ immer 1:1 der sichtbaren Bildschirm-Richtung entsprechen.
+- **Live-Verifikation:** Alle 15 Kern-Aktionen vollautomatisch in headless Chrome mit WebGL2 verifiziert (15/15 bestanden). 626/626 Unit-Tests grün.
+
