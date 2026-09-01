@@ -16,6 +16,8 @@ Paritäts-Gate gegen ADR 0010 §5 erfolgreich abgeschlossen und Maker fest im Ge
   - `docs/adr/0010-maker-editor-architecture.md`: Status auf *Delivered* aktualisiert.
 - **Acceptance-Gate Status:**
   - Maker übertrifft GadgetInspector in allen Kernbereichen (Persistenz via glTF 2.0/Autosave, Undo/Redo, Objekt- & Prefab-Erstellung, Transform-Gizmos, Snapping, Marquee-Selection, Bookmarks).
+- **Bugfix (Scroll-Zoom-Entkopplung):**
+  - Wheel-Events auf `.maker-sidebar` (Hierarchy, Palette, Properties), Toolbars und Statusleiste isoliert (`stopPropagation()`), sodass Panel-Scrolling nicht mehr fälschlicherweise in den 3D-Viewport zoomt.
 
 ---
 

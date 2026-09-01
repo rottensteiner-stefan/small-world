@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect } from "vitest";
 import { TransformGizmo } from "../../../src/tools/maker/TransformGizmo.js";
 import { Object3D } from "../../../src/core/Object3D.js";
@@ -251,6 +252,34 @@ describe("Maker Phase 2 Features", () => {
 
       const outside = screenX >= 10 && screenX <= 50 && screenY >= 10 && screenY <= 50;
       expect(outside).toBe(false);
+    });
+  });
+
+  describe("Sidebar Wheel Event Isolation", () => {
+    it("stops propagation on wheel events to prevent editor viewport zoom leakage", () => {
+      const sidebar = document.createElement("aside");
+      sidebar.className = "maker-sidebar right";
+      const props = document.createElement("div");
+      props.id = "maker-properties";
+      sidebar.appendChild(props);
+      document.body.appendChild(sidebar);
+
+      let globalWheelReceived = false;
+      const onWindowWheel = (): void => {
+        globalWheelReceived = true;
+      };
+      window.addEventListener("wheel", onWindowWheel);
+
+      // Isolate sidebar
+      sidebar.addEventListener("wheel", (e) => e.stopPropagation());
+
+      const wheelEv = new WheelEvent("wheel", { bubbles: true, cancelable: true, deltaY: 100 });
+      props.dispatchEvent(wheelEv);
+
+      expect(globalWheelReceived).toBe(false);
+
+      window.removeEventListener("wheel", onWindowWheel);
+      document.body.removeChild(sidebar);
     });
   });
 });

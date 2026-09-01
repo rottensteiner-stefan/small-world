@@ -186,6 +186,22 @@ export class MakerApp extends SmallWorld {
     window.addEventListener("pointerup", (e) => this._onWindowPointerUp(e));
     window.addEventListener("keydown", (e) => this._onMakerKeyDown(e));
 
+    // Prevent wheel scrolling on sidebars/panels from zooming the 3D editor viewport
+    const isolateWheel = (el: HTMLElement | null | undefined): void => {
+      el?.addEventListener("wheel", (e) => e.stopPropagation(), { passive: true });
+    };
+    isolateWheel(this._makerOptions.hierarchyContainer);
+    isolateWheel(this._makerOptions.propertyContainer);
+    isolateWheel(this._makerOptions.paletteContainer);
+    isolateWheel(this._makerOptions.statusContainer);
+    isolateWheel(this._makerOptions.hierarchyContainer?.closest(".maker-sidebar"));
+    isolateWheel(this._makerOptions.propertyContainer?.closest(".maker-sidebar"));
+    if (typeof document !== "undefined") {
+      document.querySelectorAll(".maker-sidebar, .tool-header, .maker-status").forEach((el) => {
+        isolateWheel(el as HTMLElement);
+      });
+    }
+
     this._hierarchyPanel.refresh();
   }
 
