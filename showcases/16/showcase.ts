@@ -370,11 +370,6 @@ export class Showcase16 extends AbstractShowcase {
     this._moonPivots.push(pivot3);
   }
 
-  /** @inheritdoc */
-  protected override onInspectorReady(): void {
-    // Moons have no controls for now
-  }
-
   protected override update(deltaTime: number): void {
     super.update(deltaTime);
     this._time += deltaTime;

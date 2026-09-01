@@ -29,7 +29,7 @@ In a landscape where enterprise 3D web frameworks pull megabytes of JavaScript i
 ## Our Core Philosophy
 
 1. **Lightweight over Exhaustive:** If a feature requires 500KB of polyfills to support 1% of edge cases, it doesn't belong in the core.
-2. **DX is King:** Built-in tools like the `GadgetInspector` and the `IBL Generator` ship with the engine because developers shouldn't have to spend a day configuring external UI libraries just to tweak a light's intensity.
+2. **DX is King:** Built-in tools like `Maker` and the `IBL Generator` ship with the engine because developers shouldn't have to spend a day configuring external UI libraries just to compose a scene or tweak a light's intensity.
 3. **Data-Oriented & Zero Allocation:** In hot paths (like the main render loop, `Object3D.computeBounds()`, or Raycasting), we strictly avoid object instantiation to completely eliminate unpredictable Garbage Collection (GC) pauses.
 4. **Zero-Dependency Core:** No external math libraries (like `glMatrix`), no bloated polyfills, in the rendering and math core itself. We build custom, highly-optimized systems from the ground up (like our right-handed coordinate math engine) to guarantee maximum performance and minimal footprint.
 5. **Modern By Default:** We leverage the latest web technologies directly. Unified linear space post-processing pipelines are standard, not an afterthought — and WebGPU compute shaders are real, not just a graphics-pipeline talking point (the Clustered Forward+ Lighting pass culls every light against the frustum grid on the GPU before the main render pass runs).

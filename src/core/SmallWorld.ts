@@ -23,7 +23,6 @@ import { ProjectionType, RendererType, PostProcessingEffectType } from "../enums
 import { RendererFactory } from "../renderers/index.js";
 import { ShaderBootstrap } from "./renderers/shaders/index.js";
 import { CollisionVisualizer, OctreeVisualizer } from "../utils/index.js";
-import type { GadgetInspector } from "../tools/GadgetInspector.js";
 import { PhysicsSystem } from "../physix/PhysicsSystem.js";
 
 /** The current engine version. */
@@ -80,8 +79,6 @@ export abstract class SmallWorld {
 
   /** The global event bus for this engine instance. */
   public events: EventDispatcherImpl = new EventDispatcherImpl();
-
-  private _inspector?: GadgetInspector;
 
   private _lastTime: number = 0;
   private _isRunning: boolean = false;
@@ -156,16 +153,6 @@ export abstract class SmallWorld {
    * Called to setup the scene after the engine is initialized.
    */
   protected abstract setupScene(): Promise<void>;
-
-  /**
-   * Called once after the GadgetInspector is created.
-   * Override in subclasses to register scene-specific inspector controls.
-   * @param _inspector The newly created inspector instance.
-   */
-
-  protected onInspectorReady(_inspector: GadgetInspector): void {
-    // Default: no-op
-  }
 
   /**
    * Called every frame to update application logic.
@@ -349,7 +336,6 @@ export abstract class SmallWorld {
 
       if (true === this.config.enableInspector) {
         const { Forge } = await import("../tools/forge/Forge.js");
-        const { GadgetInspector } = await import("../tools/GadgetInspector.js");
         const { MapGenerator } = await import("../tools/MapGenerator.js");
         const { Pixler } = await import("../tools/Pixler.js");
         const { Xtractor } = await import("../tools/Xtractor.js");
@@ -360,9 +346,6 @@ export abstract class SmallWorld {
 
         // Anchor hotkey logic in SmallWorld
         window.addEventListener("keydown", this._onKeyDown);
-
-        this._inspector = new GadgetInspector(this.scene, this.camera, this.canvas, this.renderer);
-        this.forge.openWindow("Gadget Inspector", this._inspector, 20, 20, "gadgetInspector");
 
         const mapGen = new MapGenerator();
         // Read custom map if it exists, to preserve states across reloads!
@@ -381,8 +364,6 @@ export abstract class SmallWorld {
           "assetExtractor",
         );
         this.forge.openWindow("Material Studio", new MaterialStudio(), 750, 60, "materialStudio");
-
-        this.onInspectorReady(this._inspector);
       }
 
       this._isInitialized = true;
@@ -501,10 +482,6 @@ export abstract class SmallWorld {
 
     this.input.update();
     this.update(gameplayDeltaTime);
-
-    if (this._inspector) {
-      this._inspector.update();
-    }
 
     if (this.config.enablePhysics) {
       this.physics.step(this.scene, gameplayDeltaTime);

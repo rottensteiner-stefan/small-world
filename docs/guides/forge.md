@@ -16,15 +16,14 @@ Small World Engine provides several built-in Forge tools to accelerate your work
 2. **[Xtractor](/guides/xtractor):** An image cropping/slicing tool that can hand crops straight to Pixler. Includes a mock AI assistant UI as a starting point for integrating a real vision model backend.
 3. **[Map Generator](/guides/map-generator):** A visual grid editor to paint generic maps/levels and export them as `GridLevelBuilder` compatible ASCII strings.
 4. **[Maker](/guides/maker):** A standalone 3D world & scene editor featuring glTF 2.0 + `SW_*` persistence, transform gizmos, snapping, prefabs, and full undo/redo.
-5. **[Gadget Inspector](/guides/gadget-inspector):** A Tweakpane-based scene inspector that lets you pick any object and adjust its transform, material, light, and behavior properties live.
-6. **[Material Studio](/guides/material-studio):** A PBR texture-map generator that derives normal/roughness/AO/etc. maps from a single diffuse image and previews them on a sample mesh.
+5. **[Material Studio](/guides/material-studio):** A PBR texture-map generator that derives normal/roughness/AO/etc. maps from a single diffuse image and previews them on a sample mesh.
 
 ::: tip Standalone Tool Pages
-Maker, Pixler, Xtractor, and Map Generator are also available as **standalone web pages** (`/tools/maker.html`, `/tools/pixler.html`, `/tools/map-gen.html`, `/tools/xtractor.html`) that run independently without requiring a game canvas or Forge overlay — the recommended approach for a dedicated asset-editing workflow. Gadget Inspector and Material Studio have no standalone page; they're only available docked inside a running engine's Forge overlay.
+Maker, Pixler, Xtractor, and Map Generator are also available as **standalone web pages** (`/tools/maker.html`, `/tools/pixler.html`, `/tools/map-gen.html`, `/tools/xtractor.html`) that run independently without requiring a game canvas or Forge overlay — the recommended approach for a dedicated asset-editing workflow. Material Studio is available docked inside a running engine's Forge overlay or as a generator tool.
 :::
 
 ::: warning Tools are not part of the published package yet
-`Forge`, `ForgeTool`, and every built-in tool live in `src/tools/` but are not re-exported from the engine's root entry point, and `small-world/tools` is not (yet) a resolvable package subpath (no `exports` map is configured). The code below reflects the intended API and works if you're building against the engine's own source tree; until a dedicated `tools` build/export exists, `enableInspector: true` (for Gadget Inspector/Material Studio/etc.) or the [standalone tool pages](#built-in-tools) (for Pixler/Xtractor/Map Generator) are the supported paths for a real project.
+`Forge`, `ForgeTool`, and every built-in tool live in `src/tools/` but are not re-exported from the engine's root entry point, and `small-world/tools` is not (yet) a resolvable package subpath (no `exports` map is configured). The code below reflects the intended API and works if you're building against the engine's own source tree; until a dedicated `tools` build/export exists, `enableInspector: true` or the [standalone tool pages](#built-in-tools) (for Maker/Pixler/Xtractor/Map Generator) are the supported paths for a real project.
 :::
 
 ## Integrating the Forge into your App

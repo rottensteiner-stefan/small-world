@@ -49,7 +49,7 @@ Every property edit: (a) applies live to the in-memory scene immediately, (b) pu
 1. **Maker MVP** — standalone page, edit-mode camera, hierarchy panel with real reparenting, generic property panel, object-creation palette (existing geometry/material/light/behavior catalog, nothing new to build), File System Access autosave, undo/redo.
 2. **Environment scale** — viewport transform gizmos (translate/rotate/scale handles, not just numeric fields), nested/instanced sub-scenes (prefab-equivalent, e.g. a reusable Flakturm zone or the diorama prop set), a bridge to `MapGenerator`'s existing ASCII/`GridLevelBuilder` pipeline.
 
-3. **Consolidation (Delivered)** — Parity check against §5's gate passed (full persistence, export, undo/redo, creation, picking, bookmarks, transform gizmos, snapping, marquee selection). Maker integrated into `public/index.html` (T-08), `vite.config.ts`, Forge tool listings, and documentation. `GadgetInspector` remains available as an optional lightweight in-game Tweakpane overlay for showcases while Maker serves as the full scene & world editor.
+3. **Consolidation (Delivered)** — Parity check against §5's gate passed (full persistence, export, undo/redo, creation, picking, bookmarks, transform gizmos, snapping, marquee selection). Maker integrated into `public/index.html` (T-08), `vite.config.ts`, Forge tool listings, and documentation. `GadgetInspector.ts` and its helper modules are retired and deleted from the source tree.
 
 ## Consequences
 
@@ -57,4 +57,4 @@ Every property edit: (a) applies live to the in-memory scene immediately, (b) pu
 - **glTF verbosity.** glTF's schema is optimized for asset interchange, not for "editor writes a minimal diff every 500ms" — it's more rigid/verbose than a bespoke schema would be. Accepted in exchange for reusing `GltfLoader` and gaining free interop with Blender and other DCC tools.
 - **Extension-namespace discipline required.** `SW_*` extension keys must be kept additive and namespaced carefully, or a future glTF spec revision could collide with vendor data — standard glTF extension hygiene, not a new risk class.
 - **Migration cost for existing hand-authored scenes.** Showcases/apps built directly in TypeScript are unaffected (Maker is additive tooling); only content authored *through* Maker uses the new format.
-- **`GadgetInspector` stays in the tree longer than "obviously replaced."** Two tools temporarily overlap in purpose during phases 0–2. Deliberate: removing a working tool before its replacement reaches parity would regress existing showcase-authoring workflows.
+- **`GadgetInspector` retired.** Replaced entirely by Maker. Scene inspection and authoring now share a single unified reflection layer (`Inspectable`) and workflow.
