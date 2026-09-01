@@ -119,40 +119,41 @@
       <section class="section">
         <h2 class="section-title">Implementierte Features</h2>
         <div class="card-grid">
-          <div class="card"><div class="card-icon">🎯</div><h3>Transform-Gizmo</h3><p>Translate / Rotate / Scale im Viewport. Drag auf Achsen, Undo nach Abschluss.</p></div>
+          <div class="card"><div class="card-icon">🎯</div><h3>Always-on-Top Gizmo</h3><p>Translate / Rotate / Scale mit depthTest: false — verschwindet nie mehr im Inneren von Meshes.</p></div>
+          <div class="card"><div class="card-icon">⌨️</div><h3>Camera-Cardinal Nudge</h3><p>Pfeiltasten-Transformation in Blickrichtung der Kamera, Höhenanpassung via Shift+Pfeil/PgUp/PgDn.</p></div>
+          <div class="card"><div class="card-icon">⬇️</div><h3>Snap to Ground</h3><p>End-Taste setzt die Bounding-Box-Unterkante der Selektion bündig auf Y = 0.</p></div>
           <div class="card"><div class="card-icon">🌲</div><h3>Hierarchy-Panel</h3><p>Vollständiger Szenenbaum mit Klick-Selektion und Live-Sync.</p></div>
           <div class="card"><div class="card-icon">🔧</div><h3>Property-Panel</h3><p>Position, Rotation, Scale numerisch editierbar. Undo bei jedem Commit.</p></div>
-          <div class="card"><div class="card-icon">🧱</div><h3>Objekt-Palette</h3><p>Eingebaute Geometrien (Cube, Sphere, Grid …) per Klick platzieren.</p></div>
-          <div class="card"><div class="card-icon">📦</div><h3>Prefab-Palette</h3><p>Selektion als Prefab speichern, instanziieren. Stamped-copies (ADR 0010).</p></div>
-          <div class="card"><div class="card-icon">💾</div><h3>Autosave</h3><p>Debounced write via File System Access API. Kein Save-Button.</p></div>
-          <div class="card"><div class="card-icon">↩️</div><h3>Undo-Stack</h3><p>Command-Pattern. Hinzufügen, Löschen, Transforms — alles umkehrbar.</p></div>
-          <div class="card"><div class="card-icon">🗺️</div><h3>ASCII-Map-Import</h3><p>Level aus Text-Map generieren. Legend-Mapping konfigurierbar.</p></div>
-          <div class="card"><div class="card-icon">🔍</div><h3>Gadget-Inspector</h3><p>Vollständiger Debug-Inspector für Szenenobjekte, Material- und Geometry-Inspektion.</p></div>
-          <div class="card"><div class="card-icon">⧉</div><h3>Duplicate / Group</h3><p>Ctrl+D klont ein Objekt inkl. Children/Behaviors, unabhängiges Material. Ctrl+G verschachtelt es in eine neue leere Gruppe.</p></div>
-          <div class="card"><div class="card-icon">📷</div><h3>Kamera-Bookmarks</h3><p>9 Slots, Links = springen, Rechts = speichern. Tastenkürzel 1-9 / Ctrl+1-9. Nur pro Session, kein Szeneninhalt.</p></div>
-          <div class="card"><div class="card-icon">🖼️</div><h3>Prefab-Vorschau</h3><p>Isolierter Render: nur das Objekt, freigestellt vor Schwarz, fester 3/4-Winkel auf die Objekt-Bounds statt der aktuellen Viewport-Ansicht.</p></div>
-          <div class="card"><div class="card-icon">⛶</div><h3>Multi-Selektion</h3><p>Shift/Ctrl-Klick oder Marquee-Rechteck. Pivot-relativer Gizmo-Transform, Duplicate, Delete, Group und Batch-Behaviors.</p></div>
-          <div class="card"><div class="card-icon">🧲</div><h3>Snap to Grid</h3><p>Raster- & Winkel-Snapping für Translation (0.5m), Rotation (15°) und Skalierung (0.25). Toggle via Button oder Taste X.</p></div>
+          <div class="card"><div class="card-icon">🧱</div><h3>Objekt-Palette</h3><p>Eingebaute Geometrien (Cube, Sphere, Grid …) und Lichter per Klick platzieren.</p></div>
+          <div class="card"><div class="card-icon">📦</div><h3>Prefab-Pipeline</h3><p>Selektion als Prefab speichern, isolierte 3D-Thumbnails rendern, instanziieren.</p></div>
+          <div class="card"><div class="card-icon">💾</div><h3>Autosave & glTF 2.0</h3><p>500ms Debounced write via File System Access API mit SW_*-Erweiterungen.</p></div>
+          <div class="card"><div class="card-icon">↩️</div><h3>Undo-Stack & Soft-Delete</h3><p>Command-Pattern mit Off-Scene TrashBin zur GPU-Puffer-Schonung.</p></div>
+          <div class="card"><div class="card-icon">🗺️</div><h3>ASCII-Map-Import</h3><p>Level aus Text-Map modular generieren mit konfigurierbarer Legende.</p></div>
+          <div class="card"><div class="card-icon">⧉</div><h3>Duplicate / Group</h3><p>Ctrl+D klont Selektionen inkl. Behaviors. Ctrl+G gruppiert um den Centroid.</p></div>
+          <div class="card"><div class="card-icon">📷</div><h3>Kamera-Bookmarks</h3><p>9 Slots, Links/1-9 = springen, Rechts/Ctrl+1-9 = speichern.</p></div>
+          <div class="card"><div class="card-icon">⛶</div><h3>Multi-Selektion & Marquee</h3><p>Lasso-Rechteck, Shift/Ctrl-Klick, Cyan/Amber-Wireframes, Pivot-relativer Gruppen-Transform.</p></div>
+          <div class="card"><div class="card-icon">🧲</div><h3>Dynamic Snapping</h3><p>0.5m Default, Stufenweises Schalten via [ und ] (0.1m–2.0m), 15° Winkel, 0.25 Scale. Toggle: X.</p></div>
         </div>
       </section>
 
       <section class="section">
         <h2 class="section-title">Roadmap</h2>
         <div style="display:flex;flex-wrap:wrap;gap:0.5rem;">
-          <span class="pill pill-done">✅ Transform-Gizmo</span>
-          <span class="pill pill-done">✅ Hierarchy</span>
+          <span class="pill pill-done">✅ Transform-Gizmo (Always-on-Top)</span>
+          <span class="pill pill-done">✅ Hierarchy-Panel</span>
           <span class="pill pill-done">✅ Property-Panel</span>
-          <span class="pill pill-done">✅ Prefabs (Phase 2)</span>
-          <span class="pill pill-done">✅ Autosave</span>
-          <span class="pill pill-done">✅ Undo-Stack</span>
+          <span class="pill pill-done">✅ Prefabs & isolierte 3D-Thumbnails</span>
+          <span class="pill pill-done">✅ Autosave (glTF 2.0 + SW_*)</span>
+          <span class="pill pill-done">✅ Undo-Stack & Soft-Delete</span>
           <span class="pill pill-done">✅ ASCII-Map-Import</span>
-          <span class="pill pill-done">✅ Gadget-Inspector</span>
-          <span class="pill pill-done">✅ Licht-Platzierung</span>
-          <span class="pill pill-done">✅ Duplicate / Group</span>
-          <span class="pill pill-done">✅ Kamera-Bookmarks</span>
-          <span class="pill pill-done">✅ Prefab-Vorschau im Panel</span>
+          <span class="pill pill-done">✅ Gadget-Inspector Ablösung</span>
+          <span class="pill pill-done">✅ Licht- & Behavior-Platzierung</span>
+          <span class="pill pill-done">✅ Duplicate / Group (Batch)</span>
+          <span class="pill pill-done">✅ Kamera-Bookmarks (1-9)</span>
           <span class="pill pill-done">✅ Multi-Selektion & Marquee</span>
-          <span class="pill pill-done">✅ Snap-to-Grid (Winkel/Raster)</span>
+          <span class="pill pill-done">✅ Dynamic Grid-Stepping ([ & ])</span>
+          <span class="pill pill-done">✅ Camera-Cardinal Keyboard Nudge</span>
+          <span class="pill pill-done">✅ Snap to Ground (End)</span>
           <span class="pill pill-future">◻ Play-in-Browser</span>
         </div>
       </section>
@@ -161,9 +162,9 @@
         <h2 class="section-title">Architektur-Entscheidungen</h2>
         <div class="adrs">
           <div class="adr-item">
-            <strong>ADR 0010 — Maker Editor Architecture</strong><br />
-            <span>MakerApp als schlanker Orchestrator. GadgetInspector parallel ("retire after parity").
-            Stamped-copies für Prefabs: keine Live-Referenz, nur <code>prefabSource</code>-Property auf Object3D.</span>
+            <strong>ADR 0010 — Maker Editor Architecture (Delivered)</strong><br />
+            <span>MakerApp als schlanker Orchestrator. GadgetInspector vollständig abgelöst.
+            Stamped-copies für Prefabs mit isoliertem 3D-Thumbnail-Rendering.</span>
           </div>
           <div class="adr-item">
             <strong>File System Access API — kein Server</strong><br />
@@ -176,15 +177,14 @@
             Verhindert GPU-Buffer-Disposal und hält Undo sauber und sicher.</span>
           </div>
           <div class="adr-item">
-            <strong><code>Inspectable</code>-Reflection-Layer (Phase 0)</strong><br />
+            <strong><code>Inspectable</code>-Reflection-Layer</strong><br />
             <span>Das <code>Behavior.inspector</code>-Schema-Pattern generalisiert auf <code>Object3D</code>,
-            Materialien und Lichter via <code>collectInspectorSchema()</code>. Ein generischer Panel-Renderer
-            statt drei paralleler hardcoded/duck-typed/deklarativer Mechanismen.</span>
+            Materialien und Lichter via <code>collectInspectorSchema()</code>. Ein einheitlicher Panel-Renderer.</span>
           </div>
         </div>
       </section>
 
-      <footer>Small World · Maker Tool · Concept Dossier · Stand: August 2026</footer>
+      <footer>Small World · Maker Tool · Concept Dossier · Stand: September 2026</footer>
     </div>
   </body>
 </html>

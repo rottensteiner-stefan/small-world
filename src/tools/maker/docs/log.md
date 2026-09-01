@@ -328,3 +328,19 @@ Frame gehalten). Explizit benennen, was sich tatsächlich nicht verifizieren lie
 - **Camera-Cardinal Keyboard Nudge:** Pfeiltasten steuern Move, Rotate (im <kbd>E</kbd>-Modus oder mit <kbd>Alt</kbd>) und Scale (im <kbd>R</kbd>-Modus oder mit <kbd>Alt+Shift</kbd>). Verschiebung auf dem XZ-Bodenraster berechnet in Echtzeit den dominanten Kardinalvektor der Kamera, sodass $\rightarrow$ und $\uparrow$ immer 1:1 der sichtbaren Bildschirm-Richtung entsprechen.
 - **Live-Verifikation:** Alle 15 Kern-Aktionen vollautomatisch in headless Chrome mit WebGL2 verifiziert (15/15 bestanden). 626/626 Unit-Tests grün.
 
+---
+
+## 2026-09-01 — Maker Pro-Feature Referenz- & Benutzerdokumentation
+
+Vollständiges Handbuch und Referenzdokumentation für Power-User & Digital Artists ausgearbeitet:
+- **`docs/guides/maker.md`:** Umfassender Pro-User-Guide mit detaillierter Erläuterung aller Profi-Features:
+  - *Camera-Cardinal Nudging* (Kamera-abhängige Richtungsnavigation via Pfeiltasten & Modifier)
+  - *Dynamic Grid Stepping* (`[` / `]` und `0.1m`–`2.0m` Snapping-Presets)
+  - *Snap to Ground* (<kbd>End</kbd> / `⬇ Ground` Bounding-Box-Bottom-Alignment auf $Y = 0$)
+  - *Marquee Selection & Pivot-Cluster-Transforms* (2D-Lasso, Cyan/Amber Highlighting, Gruppen-Transforms um das Primary-Objekt)
+  - *Always-on-Top Gizmos* (`depthTest: false`)
+  - *Prefab-Pipeline mit isolierten 3D-Thumbnails*
+  - *glTF 2.0 Autosave & SW_* Extension Engine*
+  - *Master Keyboard Shortcuts Reference Table*
+- **`src/tools/maker/docs/concept-dossier.html`:** Visual Dossier auf Phase 3 und den aktuellen Pro-Feature-Stand synchronisiert.
+
