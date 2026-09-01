@@ -5,6 +5,20 @@
 
 ---
 
+## 2026-09-01 — Phase 3: Konsolidierung & Integration (ADR 0010 §5)
+
+Paritäts-Gate gegen ADR 0010 §5 erfolgreich abgeschlossen und Maker fest im Gesamtsystem verankert:
+
+- **Ökosystem & Build-Integration:**
+  - `public/index.html`: Maker als **`T-08: Maker (World & Scene Editor)`** in der Development-Tools-Übersicht verankert.
+  - `vite.config.ts`: Rollup-Input für `maker` (`public/tools/maker.html`) und Ausgabe unter `js/tools/maker.js` hinzugefügt.
+  - `docs/guides/forge.md` & `docs/guides/maker.md`: Vollständige Benutzer- und Tool-Dokumentation für den Standalone-Workflow angelegt und verlinkt.
+  - `docs/adr/0010-maker-editor-architecture.md`: Status auf *Delivered* aktualisiert.
+- **Acceptance-Gate Status:**
+  - Maker übertrifft GadgetInspector in allen Kernbereichen (Persistenz via glTF 2.0/Autosave, Undo/Redo, Objekt- & Prefab-Erstellung, Transform-Gizmos, Snapping, Marquee-Selection, Bookmarks).
+
+---
+
 ## 2026-09-01 — Phase 2 Feinschliff: Snapping, Pivot-Transform, Batch-Behaviors & Marquee-Selection
 
 Vier wesentliche UX- und Workflow-Verbesserungen zur Vollendung von Phase 2 implementiert:

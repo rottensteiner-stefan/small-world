@@ -15,11 +15,12 @@ Small World Engine provides several built-in Forge tools to accelerate your work
 1. **[Pixler](/guides/pixler):** A retro 2D pixel-art editor to draw sprites directly in-game. Features a full UI toolbar with Pencil, Bucket Fill, Color Picker, and Line drawing tools. Supports Symmetry Mode (X/Y axis), auto-trimming borders, canvas panning, flipping, and full Undo/Redo history.
 2. **[Xtractor](/guides/xtractor):** An image cropping/slicing tool that can hand crops straight to Pixler. Includes a mock AI assistant UI as a starting point for integrating a real vision model backend.
 3. **[Map Generator](/guides/map-generator):** A visual grid editor to paint generic maps/levels and export them as `GridLevelBuilder` compatible ASCII strings.
-4. **[Gadget Inspector](/guides/gadget-inspector):** A Tweakpane-based scene inspector that lets you pick any object and adjust its transform, material, light, and behavior properties live.
-5. **[Material Studio](/guides/material-studio):** A PBR texture-map generator that derives normal/roughness/AO/etc. maps from a single diffuse image and previews them on a sample mesh.
+4. **[Maker](/guides/maker):** A standalone 3D world & scene editor featuring glTF 2.0 + `SW_*` persistence, transform gizmos, snapping, prefabs, and full undo/redo.
+5. **[Gadget Inspector](/guides/gadget-inspector):** A Tweakpane-based scene inspector that lets you pick any object and adjust its transform, material, light, and behavior properties live.
+6. **[Material Studio](/guides/material-studio):** A PBR texture-map generator that derives normal/roughness/AO/etc. maps from a single diffuse image and previews them on a sample mesh.
 
 ::: tip Standalone Tool Pages
-Pixler, Xtractor, and Map Generator are also available as **standalone web pages** (`/tools/pixler.html`, `/tools/map-gen.html`, `/tools/xtractor.html`) that run independently without requiring a game canvas or Forge overlay — the recommended approach for a dedicated asset-editing workflow. Gadget Inspector and Material Studio have no standalone page; they're only available docked inside a running engine's Forge overlay.
+Maker, Pixler, Xtractor, and Map Generator are also available as **standalone web pages** (`/tools/maker.html`, `/tools/pixler.html`, `/tools/map-gen.html`, `/tools/xtractor.html`) that run independently without requiring a game canvas or Forge overlay — the recommended approach for a dedicated asset-editing workflow. Gadget Inspector and Material Studio have no standalone page; they're only available docked inside a running engine's Forge overlay.
 :::
 
 ::: warning Tools are not part of the published package yet
