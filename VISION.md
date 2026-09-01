@@ -1,43 +1,59 @@
 # The Small World Vision
 
-**Small World** is not trying to be just another heavyweight 3D web framework. It is trying to be the **"Preact of 3D Engines."**
+**Small World** is built on a clear conviction: **Atmosphere, art direction, and game feel beat brute-force hardware specs every single time.**
 
-In a landscape where enterprise 3D web frameworks pull megabytes of JavaScript into the browser just to render a spinning cube, Small World is designed for edge cases that demand absolute minimalism without sacrificing modern rendering techniques.
+We are the "Preact of 3D Engines" — lean, agile, and architecturally pure. But Small World is neither a toy nor a compromise for tiny tech demos. It is built to power **real, ambitious, deeply atmospheric games and immersive interactive worlds** — in the spirit of indie masterpieces like *Stray*, *Inside*, or *Journey* — without requiring a $2,000 graphics card or a 50GB download.
+
+---
+
+## 🎨 The Philosophy: Art Direction Over "Spec Chasing"
+
+In modern 3D development, the industry has fallen into an unsustainable trap: chasing 8K photorealism, unoptimized gigabyte textures, and raytracing pipelines that melt expensive GPUs while burning through player batteries and hardware budgets.
+
+We reject that bloat. **Great 3D experiences are made of:**
+- **Coherent Art Direction & Lighting Mood:** Warm bounce lights, evocative volumetric fog, cinematic post-processing, and striking silhouettes.
+- **Immediate Tactile Game Feel:** Zero-latency input, smooth physics, punchy spatial audio, and robust component-driven behavior state machines.
+- **Universal Accessibility:** Running at a locked 60 FPS on everyday laptops, MacBooks, smartphones, and standard web browsers without sounding like a jet engine taking off.
+- **Frictionless Creation:** Composing living worlds visually in minutes via **Maker** without installing gigabytes of proprietary desktop software or wrestling with build pipelines.
+
+---
 
 ## The Pain Points We Solve
 
-### 1. Bundle Size & The Micro-App Ecosystem
-**The Problem:** Big engines are monolithic. A simple 3D scene in an enterprise framework can easily exceed 1.5MB of code. Many popular libraries, despite their modularity, struggle with effective tree-shaking for tiny applications. For Playable Ads (which have strict 2MB constraints including assets), Telegram Mini-Apps, edge computing, and fast Web3 frontends, loading times are critical.
-**Our Solution:** The rendering and math core has zero dependencies. By heavily relying on modern browser standards and aggressive dead-code elimination, Small World delivers a PBR-lit, WebGPU-accelerated scene in a fraction of the size. (A handful of optional dependencies exist for specialized hardware diagnostics — e.g. `joy-con-webhid` for Joy-Con gamepad support — none of which ship with the engine's rendering path itself.)
+### 1. The Monolithic Engine Tax vs. High-Performance Indie Gaming
+**The Problem:** Enterprise 3D engines are massive behemoths. Even a blank scene pulls megabytes of un-treeshakable runtime overhead, while desktop engines demand multi-gigabyte installs and steep licensing models.
+**Our Solution:** Small World delivers a complete game engine architecture (Hybrid WebGPU/WebGL 2 PBR renderer, physics, spatial audio, behavior systems, FSMs) in a razor-thin footprint with zero external dependencies in the rendering core. It scales effortlessly from instant playable experiences up to full-featured, narrative 3D titles.
 
-### 2. Architecture vs. Library
-**The Problem:** Many popular solutions are just rendering libraries, not engines. They provide no standard architecture for game loops, state management, or input handling. Developers either reinvent the wheel or adopt heavy declarative wrappers, dragging the massive overhead of complex DOM reconciliation loops into the 60FPS 3D world.
-**Our Solution:** The integrated **Behavior System** (`addBehavior(new HoverBehavior())`) and **Interaction Manager** (`onPointerClick`). Small World provides out-of-the-box, drag-and-drop game logic and strict Finite State Machines (`StateMachine`) that mimic the developer experience of professional standalone game engines, without the monolithic framework tax.
+### 2. Real Game Engine Architecture (Not Just a "Renderer")
+**The Problem:** Most lightweight web 3D tools are mere rendering libraries. They leave game loops, actor state, physics, spatial sound, and input handling as an exercise for the developer, forcing teams to duct-tape mismatched libraries together or drag heavy DOM reconciliation frameworks into a 60FPS loop.
+**Our Solution:** An integrated **Behavior System** (`addBehavior(new HoverBehavior())`), type-safe **Finite State Machines** (`StateMachine`), built-in **Impulse Physics** (SAT collisions, buoyancy, sub-stepping), 3D **Spatial Audio** (HRTF, synthesizers), and an $O(\log n)$ **Octree Interaction Manager**. Everything you need to build rich gameplay exists out of the box with zero runtime friction.
 
-### 3. Developer Experience (DX) & TypeScript
-**The Problem:** Legacy engines suffer from years of JavaScript cruft. Their third-party TypeScript definitions are often asynchronous to the actual codebase, patched together with `any` types that silently fail at runtime.
-**Our Solution:** Small World is 100% strict TypeScript. No `any`. Explicit return types. Private member encapsulation (`_propertyName`) — internal renderer state stays genuinely private/protected, with narrow named getters (and, where a pass genuinely needs to mutate frame state, get/set accessor pairs) as the only way in from outside, instead of exposing raw fields. We offer an API where the autocomplete never lies, allowing developers to refactor with absolute confidence.
+### 3. Developer Experience (DX) & Strict TypeScript
+**The Problem:** Legacy 3D codebases carry a decade of dynamic JavaScript debt, loosely patched types, and silent runtime `any` failures.
+**Our Solution:** 100% strict TypeScript. No `any`. Explicit access encapsulation (`_privateField`) and clean getters/setters. Autocomplete that never lies, fail-fast lifecycle assertions, and an API designed for developers who take craftsmanship seriously.
 
-### 4. Native WebGPU vs. WebGL Baggage
-**The Problem:** Legacy engines are struggling to adapt their 10-year-old architectures to the parallel compute paradigms of WebGPU, often resulting in fragmented NodeMaterial systems that break backward compatibility.
-**Our Solution:** Small World was built hybrid from day one. Our shaders use static parameter specialization, guaranteeing zero-cost abstraction. We design for WebGPU first and seamlessly fallback to WebGL 2, without forcing the user to learn a proprietary visual scripting language.
+### 4. Hybrid WebGPU & WebGL 2 Without Lock-In
+**The Problem:** The transition to WebGPU has fractured many ecosystems into incompatible node graphs and experimental shader dialects.
+**Our Solution:** Designed hybrid from day one. Modern WebGPU compute shaders (e.g. Clustered Forward+ Light Culling) deliver maximum efficiency when available, with a rock-solid, zero-cost fallback to WebGL 2. Shaders use static parameter specialization without proprietary visual scripting lock-in.
 
-### 5. Asset Bloat & Closed Ecosystems (Frictionless Ingestion & Open Standards)
-**The Problem:** Traditional 3D engines either bundle gigabytes of heavy binary assets into their core repositories (causing agonizingly slow clone times and monolithic bloat) or lock developers into walled-garden asset stores with proprietary file formats. Indie developers and micro-app creators cannot—and should not—have to model thousands of custom 3D assets from scratch just to make their applications compelling.
-**Our Solution:** The **Modular Asset Kit Standard** and **Zero-Friction Ingestion Pipeline**. Small World adopts open, universal standards (`.glb`, standard glTF 2.0 PBR, clean semantic JSON manifests). The engine repository stays feather-light, providing curated Gold-Standard reference kits (like the *Underground & Industrial Kit*), while empowering creators to seamlessly import, snap, and socket any model from the global CC0/CC-BY ecosystem (Kenney, Poly Haven, Sketchfab, Blender) or generative AI pipelines (Tripo3D, Meshy) in seconds.
+### 5. Open Standards & The Modular Asset Kit Pipeline
+**The Problem:** Proprietary asset silos and closed marketplace formats lock creators in, while monolithic asset repos cause agonizing clone times.
+**Our Solution:** Universal open standards (`.glb`, glTF 2.0 PBR, semantic JSON manifests). Creators can import, snap, and assemble models from the global CC0/CC-BY ecosystem (Kenney, Poly Haven, Sketchfab, Blender) or AI generation tools (Tripo3D, Meshy) in seconds.
 
-### 6. Visual Scene Authoring Without Engine Bloat
-**The Problem:** Most lightweight web 3D engines force developers to layout scenes entirely in code (hardcoded coordinates, trial-and-error rotations), while heavyweight editors require gigabyte-sized desktop installs (Unity, Unreal) or proprietary cloud subscription lock-ins.
-**Our Solution:** **Maker** — our dedicated, zero-install, in-browser 3D scene and level editor (`public/tools/maker.html`). Built with the native File System Access API, Maker gives digital artists and developers an ultra-responsive, keyboard-first environment (camera-cardinal nudging, dynamic snapping, isolated 3D prefab previews, glTF 2.0 autosave with non-destructive `SW_*` extensions). You compose visually in the browser, save directly to your local project, and run in engine without any intermediate compilation step.
+### 6. Visual Scene Authoring via Maker
+**The Problem:** Authoring 3D scenes purely in code is tedious, while traditional desktop editors isolate developers behind heavy installers and separate build steps.
+**Our Solution:** **Maker** (`public/tools/maker.html`) — a dedicated, zero-install, in-browser 3D world editor. Powered by the native File System Access API, Maker offers camera-cardinal keyboard transformation, dynamic grid stepping, marquee selection, isolated 3D prefab rendering, and continuous glTF 2.0 autosave with non-destructive `SW_*` extensions. You design visually, save directly to your repository, and run immediately in engine.
 
-## Our Core Philosophy
+---
 
-1. **Lightweight over Exhaustive:** If a feature requires 500KB of polyfills to support 1% of edge cases, it doesn't belong in the core.
-2. **DX is King:** Built-in tools like `Maker`, `The Forge`, and the standalone generator suite (`PBR`, `IBL`, `MapGen`, `Pixler`, `Xtractor`) ship with the engine because developers shouldn't have to spend days configuring external tools just to compose a scene, generate maps, or tweak materials.
-3. **Data-Oriented & Zero Allocation:** In hot paths (like the main render loop, `Object3D.computeBounds()`, or Raycasting), we strictly avoid object instantiation to completely eliminate unpredictable Garbage Collection (GC) pauses.
-4. **Zero-Dependency Core:** No external math libraries (like `glMatrix`), no bloated polyfills, in the rendering and math core itself. We build custom, highly-optimized systems from the ground up (like our right-handed coordinate math engine) to guarantee maximum performance and minimal footprint.
-5. **Modern By Default:** We leverage the latest web technologies directly. Unified linear space post-processing pipelines are standard, not an afterthought — and WebGPU compute shaders are real, not just a graphics-pipeline talking point (the Clustered Forward+ Lighting pass culls every light against the frustum grid on the GPU before the main render pass runs).
-6. **Open Standards & Frictionless Ingestion:** We do not build proprietary asset silos. Small World thrives on standard glTF/GLB binaries, universal `SW_*` extensions, and self-contained kit manifests (`model.glb` + `preview.jpg` + `meta.json`). We provide the high-performance engine and gold-standard starter templates — letting developers tap into millions of existing 3D assets without friction, conversion bloat, or lock-in.
+## ⚡ Our Core Tenets
 
-Small World is the engine for the modern TypeScript developer who wants the raw power of WebGPU, the architectural elegance of a real game engine, visual authoring via Maker, and a bundle size that loads before the user even blinks.
+1. **Atmosphere > Pixel Counting:** Rich lighting, thoughtful color palettes, stylized post-processing, and strong silhouettes create timeless games. We don't need 8K brute force to evoke genuine emotion.
+2. **Lean Power:** Zero-allocation hot paths, object pooling, and custom right-handed math engines ensure buttery smooth performance on normal consumer hardware.
+3. **DX is King:** Standalone authoring tools (**Maker**, **The Forge**, **PBR/IBL/Map/Sprite Generators**) ship directly with the engine to let developers focus on creating games rather than configuring tooling.
+4. **Open & Portable:** Standard glTF 2.0, standard web APIs, zero cloud lock-in.
+5. **No Compromises on Architecture:** Strict typing, decoupled event systems, robust lifecycles, and predictable memory management.
+
+Small World is the engine for developers and digital artists who want to craft captivating, atmospheric, and truly memorable 3D games for the open web.
+
 
