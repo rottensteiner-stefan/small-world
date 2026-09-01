@@ -126,7 +126,7 @@ export class TransformGizmo {
 
     this.root.position.copyFrom(worldPos);
     const distance = worldPos.clone().sub(camera.position).length();
-    const s = Math.max(0.001, distance * 0.15);
+    const s = Math.max(0.001, distance * 0.18);
     this.root.scale.set(s, s, s);
     this.root.updateMatrixWorld();
   }
@@ -140,7 +140,10 @@ export class TransformGizmo {
     for (const handle of group.children) {
       this._collectLeaves(handle, candidates);
     }
-    for (const leaf of candidates) leaf.computeBounds();
+    for (const leaf of candidates) {
+      leaf.updateMatrixWorld();
+      leaf.computeBounds();
+    }
     this._raycaster.setFromCamera(ndc, camera);
     const hits = this._raycaster.intersectObjects(candidates, true);
     if (0 === hits.length) return undefined;
@@ -216,13 +219,17 @@ export class TransformGizmo {
    * visual distinction between translate and scale handles. */
   private _buildArrow(color: Color, cubeTip: boolean = false): Object3D {
     const handle = new Object3D("GizmoArrow");
+    const mat = new BasicMaterial({ color });
+    mat.depthTest = false;
+    mat.depthWrite = false;
+
     const shaft = new Object3D("Shaft");
     shaft.geometry = new Cylinder({
       radiusTop: 0.03,
       radiusBottom: 0.03,
       height: 0.7,
     }).getGeometryData();
-    shaft.material = new BasicMaterial({ color });
+    shaft.material = mat;
     shaft.position.set(0, 0.35, 0);
     handle.add(shaft);
 
@@ -230,7 +237,7 @@ export class TransformGizmo {
     tip.geometry = cubeTip
       ? new Cube({ size: 0.14 }).getGeometryData()
       : new Cone({ radius: 0.1, height: 0.28 }).getGeometryData();
-    tip.material = new BasicMaterial({ color });
+    tip.material = mat;
     tip.position.set(0, 0.84, 0);
     handle.add(tip);
 
@@ -242,8 +249,12 @@ export class TransformGizmo {
    * re-orients it. */
   private _buildRing(color: Color): Object3D {
     const handle = new Object3D("GizmoRing");
+    const mat = new BasicMaterial({ color });
+    mat.depthTest = false;
+    mat.depthWrite = false;
+
     handle.geometry = new Torus({ radius: 0.9, tube: 0.05, tubularSegments: 48 }).getGeometryData();
-    handle.material = new BasicMaterial({ color });
+    handle.material = mat;
     handle.updateMatrixWorld();
     return handle;
   }

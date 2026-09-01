@@ -25,7 +25,8 @@
    - Debounced autosave (~500ms write-through) — no modal save dialog required.
 
 2. **Transform Gizmos & Snapping:**
-   - Translate (**W**), Rotate (**E**), and Scale (**R**) handles.
+   - Translate (**W**), Rotate (**E**), and Scale (**R**) handles with **Always-on-Top rendering** (`depthTest: false`).
+   - **Keyboard Nudging:** Arrow keys ($\leftarrow$, $\rightarrow$, $\uparrow$, $\downarrow$) nudge selected objects along X/Z axes; `Shift` + $\uparrow$/$\downarrow$ or `PageUp`/`PageDown` moves along the Y axis (height).
    - Configurable grid and angle snapping (**X** / `🧲 Snap` button) for translation (0.5m), rotation (15°), and scale (0.25).
    - **Pivot-relative cluster transforms:** Multi-selection rotates and scales around the active primary object's pivot in 3D space.
 

@@ -1356,6 +1356,85 @@ export class MakerApp extends SmallWorld {
       if (active && ("INPUT" === active.tagName || "TEXTAREA" === active.tagName)) return;
       if (event.ctrlKey || event.metaKey || event.altKey) return;
       this._setGizmoMode("w" === key ? "translate" : "e" === key ? "rotate" : "scale");
+      return;
     }
+
+    if (
+      "ArrowLeft" === event.key ||
+      "ArrowRight" === event.key ||
+      "ArrowUp" === event.key ||
+      "ArrowDown" === event.key ||
+      "PageUp" === event.key ||
+      "PageDown" === event.key
+    ) {
+      const active = document.activeElement;
+      if (
+        active &&
+        ("INPUT" === active.tagName || "TEXTAREA" === active.tagName || "SELECT" === active.tagName)
+      ) {
+        return;
+      }
+      if (0 === this._selection.size) return;
+      event.preventDefault();
+      this.nudgeSelection(event.key, event.shiftKey);
+    }
+  }
+
+  /** Nudges selected object(s) along X/Y/Z axes via arrow keys with full snapping and undo support. */
+  public nudgeSelection(key: string, isShift: boolean): void {
+    const objs = Array.from(this._selection);
+    if (0 === objs.length) return;
+
+    const baseStep = this._gizmo.snap.enabled ? this._gizmo.snap.translate : 0.5;
+    const step = baseStep;
+
+    let dx = 0;
+    let dy = 0;
+    let dz = 0;
+
+    if ("ArrowLeft" === key) dx = -step;
+    else if ("ArrowRight" === key) dx = step;
+    else if ("PageUp" === key || ("ArrowUp" === key && isShift)) dy = step;
+    else if ("PageDown" === key || ("ArrowDown" === key && isShift)) dy = -step;
+    else if ("ArrowUp" === key) dz = -step;
+    else if ("ArrowDown" === key) dz = step;
+
+    if (0 === dx && 0 === dy && 0 === dz) return;
+
+    const before = objs.map((obj) => ({ obj, pos: obj.position.clone() }));
+    const after = objs.map((obj) => {
+      const nextPos = obj.position.clone();
+      nextPos.x += dx;
+      nextPos.y += dy;
+      nextPos.z += dz;
+      if (this._gizmo.snap.enabled) {
+        nextPos.x = this._gizmo.snapValue("translate", nextPos.x);
+        nextPos.y = this._gizmo.snapValue("translate", nextPos.y);
+        nextPos.z = this._gizmo.snapValue("translate", nextPos.z);
+      }
+      return { obj, pos: nextPos };
+    });
+
+    this._undo.execute({
+      label: `Nudge ${objs.length} object${objs.length > 1 ? "s" : ""}`,
+      redo: () => {
+        for (const { obj, pos } of after) {
+          obj.position.copyFrom(pos);
+          obj.updateMatrixWorld();
+        }
+        this._updateGizmo();
+        this._propertyPanel.setSelection(this._primary, Math.max(0, this._selection.size - 1));
+        this._project.scheduleAutosave(() => this.scene.root);
+      },
+      undo: () => {
+        for (const { obj, pos } of before) {
+          obj.position.copyFrom(pos);
+          obj.updateMatrixWorld();
+        }
+        this._updateGizmo();
+        this._propertyPanel.setSelection(this._primary, Math.max(0, this._selection.size - 1));
+        this._project.scheduleAutosave(() => this.scene.root);
+      },
+    });
   }
 }

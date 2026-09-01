@@ -301,4 +301,22 @@ describe("Maker Phase 2 Features", () => {
       expect(view.distance).toBeGreaterThan(10);
     });
   });
+
+  describe("Gizmo Always-on-Top & Nudge", () => {
+    it("configures gizmo handle materials with depthTest and depthWrite false", () => {
+      const gizmo = new TransformGizmo();
+      const leaves: Object3D[] = [];
+      const collect = (node: Object3D): void => {
+        if (node.material) leaves.push(node);
+        for (const c of node.children) collect(c);
+      };
+      collect(gizmo.root);
+
+      expect(leaves.length).toBeGreaterThan(0);
+      for (const leaf of leaves) {
+        expect(leaf.material?.depthTest).toBe(false);
+        expect(leaf.material?.depthWrite).toBe(false);
+      }
+    });
+  });
 });
