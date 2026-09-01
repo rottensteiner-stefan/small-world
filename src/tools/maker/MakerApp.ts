@@ -1015,9 +1015,14 @@ export class MakerApp extends SmallWorld {
   }
 
   private _onPointerDown(event: PointerEvent): void {
-    // Camera Orbit: Right-click (2), Middle-click (1), or Alt+Left-click (0 with altKey)
+    // Camera Orbit: Right-click (2), Middle-click (1), Alt+Left-click, or Mac Ctrl+Click
     const isOrbit =
-      2 === event.button || 1 === event.button || (0 === event.button && event.altKey);
+      2 === event.button ||
+      1 === event.button ||
+      event.buttons === 2 ||
+      event.buttons === 4 ||
+      (0 === event.button && event.altKey) ||
+      (0 === event.button && event.ctrlKey && !event.metaKey && !event.shiftKey);
     if (isOrbit) {
       this._cameraDrag = { lastX: event.clientX, lastY: event.clientY };
       try {
@@ -1068,17 +1073,17 @@ export class MakerApp extends SmallWorld {
     const hitObj = 0 < hits.length ? hits[0]!.object : undefined;
 
     if (hitObj) {
-      if (event.shiftKey || event.ctrlKey || event.metaKey) {
+      if (event.shiftKey || event.metaKey) {
         this.toggleSelect(hitObj);
       } else {
         this.selectObject(hitObj);
       }
     } else {
-      // Empty space clicked -- begin marquee selection
+      // Empty space clicked with primary left-click -- begin marquee selection
       this._marqueeState = {
         startX: event.clientX,
         startY: event.clientY,
-        isShift: event.shiftKey || event.ctrlKey || event.metaKey,
+        isShift: event.shiftKey || event.metaKey,
       };
     }
   }
@@ -1119,6 +1124,7 @@ export class MakerApp extends SmallWorld {
       } catch {
         // Pointer capture already released or unattached
       }
+      return;
     }
 
     if (!this._marqueeState) return;
