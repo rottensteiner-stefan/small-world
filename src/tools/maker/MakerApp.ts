@@ -96,6 +96,26 @@ export class MakerApp extends SmallWorld {
    * relevant object" (gizmo drag math, `attachBehaviorToSelection`, etc.) -- there is
    * deliberately no setter; `selectObject()`/`toggleSelect()`/`_selectMultiple()` are the only
    * ways to change the selection. */
+  /** Public read-only access for inspector/testing */
+  public get selection(): ReadonlySet<Object3D> {
+    return this._selection;
+  }
+  public get primary(): Object3D | undefined {
+    return this._primary;
+  }
+  public get gizmo(): TransformGizmo {
+    return this._gizmo;
+  }
+  public get orbit(): OrbitCameraController {
+    return this._orbit;
+  }
+  public get undoStack(): UndoStack {
+    return this._undo;
+  }
+  public get cameraBookmarks(): ReadonlyMap<number, OrbitCameraView> {
+    return this._cameraBookmarks;
+  }
+
   private get _selected(): Object3D | undefined {
     return this._primary;
   }
