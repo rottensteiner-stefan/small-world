@@ -910,6 +910,16 @@ befüllen.
   - Rotation `rotation.y` von `2.2` auf `0.78` angepasst, sodass die Ratte auf dem Schutthaufen nicht mehr rückwärts in Kiste 2 / die Eckwand blickt, sondern nach vorne-rechts in den offenen, beleuchteten Raum und zur Raummitte/zum Charakter blickt.
 - **Status:** 113 Testsuiten, 599 Tests, Build/Lint 100% grün.
 
+---
+
+## 98. Die absolute Grundfeste: Das Stray-Prinzip & Story-First (2026-09-02)
+- **Paradigmen-Verankerung in `src/apps/and-now/docs/story.md` & `CONTEXT.md`:**
+  - *„Die Story ist alles. Das Technische kommt danach.“*
+  - Ausrichtung an Meisterwerken wie *Stray*, *Inside* und *Journey*: Keine 8K-Texturen-Schlachten, kein GPU-Wettrüsten, sondern emotionale Wucht, intime Melancholie, malerische Beleuchtung (Chiaroscuro) und Novotnys persönliche Odyssee (die Kaffeedosen-Urne des Großvaters durch das zerstörte Wien tragen).
+  - Verbindlicher Entwicklungsgrundsatz: Alle emotionalen Schicksale, narrative Knotenpunkte und Begegnungen auf Novotnys Reise werden vor neuen technischen Features unerschütterlich geklärt und geschärft.
+- **Status:** 112 Testsuiten, 626 Tests, Build/Lint 100% grün.
+
+
 
 
 

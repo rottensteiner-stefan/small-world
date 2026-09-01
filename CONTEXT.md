@@ -89,6 +89,10 @@ _Avoid_: Prop Constraint (informal)
 The user-defined payload object passed into a Finite State Machine's `onEnter`/`onUpdate`/`onExit` callbacks.
 _Avoid_: Context, FSM Context — collides with Context Object, an unrelated DI concept; "State" is already the FSM's node/mode (`idle`, `patrolling`, ...), so State Data is deliberately a third, distinct word rather than overloading either.
 
+**Story-First (The Stray Principle)**:
+The foundational design commitment that emotional resonance, lighting atmosphere, worldbuilding, and narrative depth precede and drive all technical features. Technical architecture serves the story, never the reverse.
+_Avoid_: Spec-Chasing, Tech-Demo First, 8K-Photorealism
+
 **TAA (Simplified)**:
 Sub-pixel camera jitter plus an exponential history blend — deliberately without motion-vector reprojection.
 _Avoid_: "TAA" unqualified when precision matters — the missing reprojection step is the actual, documented trade-off (visible ghosting under fast movement), not an implementation detail to gloss over.
@@ -96,3 +100,4 @@ _Avoid_: "TAA" unqualified when precision matters — the missing reprojection s
 **Zero-Allocation (Hot Path)**:
 The design rule that per-frame code (physics step, event dispatch, FSM update) must not allocate new objects, so it never triggers a GC pause.
 _Avoid_: Performance Optimization (generic) — this is a specific, named commitment repeated verbatim across the physics, event bus, and FSM docs, not a vague performance goal.
+

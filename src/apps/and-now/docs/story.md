@@ -1,8 +1,25 @@
-# Story-Grundgerüst: Postapokalyptisches Wien-Projekt
+# Story-Grundgerüst: Postapokalyptisches Wien-Projekt („And Now?“)
+
+---
+
+## 🌟 0. Die absolute Grundfeste: Das Stray-Prinzip & Die Story-First-Doktrin
+
+> **„Die Story ist alles. Das Technische kommt danach.“**
+>
+> *Stray* hat bewiesen, wie ein zutiefst atmosphärisches, emotionales und visuell stimmiges Spiel die Herzen von Millionen Menschen erobern kann — ohne 500-Mann-Armeen, ohne 8K-Texturen-Schlachten und ohne Grafikkarten-Wettrüsten.
+> 
+> Genau diese emotionale Kraft soll **Novotnys Reise** entfalten.
+> 
+> Weder wir noch die Spieler brauchen hunderte unbezahlbare 8K-Texturen oder seelenlosen Fotorealismus. Was dieses Spiel unvergesslich macht, sind:
+> 1. **Die emotionale Wucht der Reise:** Die Asche des Großvaters in einer alten Kaffeedose durch das zerfallene Wien zu tragen, um ihm bei den Pompfinebrern am Zentralfriedhof „a schene Leich“ zu schenken.
+> 2. **Lichtstimmung, Schatten und Melancholie:** Malerisches Chiaroscuro, warmer Funkenflug, dichter Nebel und intime Guckkasten-Momente.
+> 3. **Der unverwechselbare Wiener Schmäh & Ton:** Morbider Galgenhumor, Kaffeehaus-Sehnsucht und kafkaeske Bunker-Bürokratie als Kontrast zur rauen Endzeit.
+> 4. **Eiserne Prioritätensetzung:** Bevor neue technische Systeme gebaut werden, werden alle narrativen Knotenpunkte, Begegnungen, moralischen Dilemmata und emotionalen Höhepunkte von Novotnys Odyssee unerschütterlich geklärt.
 
 ---
 
 ## 🌟 1. Die Kernsäulen des Konzepts
+
 
 *   **Der Ton ("Der Tod muaß a Wiener sein")**
     *   Morbider Wiener Galgenhumor als Bindeglied zwischen ernster Postapokalypse (Metro) und politisch-gesellschaftlicher Satire (Fallout).
