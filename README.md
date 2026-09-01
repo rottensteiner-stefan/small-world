@@ -156,23 +156,42 @@ For an isolated development environment, this project includes a **Dev Container
 - `src/core/lights`: Light source implementations (Standard & PBR).
 - `src/geometry`: Geometric primitives and terrain logic.
 - `src/math`: Linear algebra, vectors, matrices, and object pooling.
-- `src/loaders`: Asset loading pipeline (OBJ, MTL, Textures).
+- `src/loaders`: Asset loading pipeline (glTF 2.0, OBJ, MTL, Textures).
+- `src/tools`: Standalone and in-engine tools (Maker, Forge, Xtractor, Pixler, MapGen).
+  - `src/tools/maker`: The Maker standalone 3D world editor application.
 - `src/renderers`: Implementation of WebGL1, WebGL2, and WebGPU backends.
   - `src/core/renderers/shaders/source`: Core shader assets directly bundled with the engine.
-- `showcases`: Interactive functional showcases demonstrating engine capabilities.
+- `showcases`: Interactive functional showcases demonstrating engine capabilities (34+ showcases and mini-apps).
 - `public/assets`, `public/resources`, `public/tools`: Static assets, shared resources, and the standalone browser-based generator tools (see below) used across showcases.
 
-## 🧰 Tools
+## 🧰 Tools & Authoring Suite
 
-The engine includes several browser-based tools to help generate assets directly on the client side without relying on external software:
+Small World includes a comprehensive suite of standalone, browser-based creative and diagnostic tools (`public/tools/`), running entirely client-side via the File System Access API without external server dependencies or build-step friction:
 
-- **The Forge (In-Game Overlay):** A built-in window manager providing a suite of developer tools directly inside your game (toggle key is configurable, e.g. `~` or `F12`).
-  - **Pixler:** A retro 2D pixel-art editor to draw and export sprites on the fly.
-  - **Xtractor:** An image manipulation tool to crop, slice, and generate tile-maps or sprite atlases.
-  - **MapGenerator:** A visual grid editor to paint ASCII levels for the `GridLevelBuilder`.
-- **PBR Map Generator** (`public/tools/pbr-gen.html`): Generate Normal, Specular, AO, and Height maps from a single diffuse image.
-- **Splatter Generator** (`public/tools/splatter-gen.html`): Generate procedural splatters and decals.
-- **IBL Generator** (`public/tools/ibl-gen.html`): Generate Image-Based Lighting (Irradiance and Radiance) environment maps.
+### 🌟 Maker — World & Scene Editor (`public/tools/maker.html`)
+The engine's flagship standalone 3D scene composer and level editor ([User Guide](docs/guides/maker.md)):
+- **Direct glTF 2.0 Persistence & Autosave:** Debounced (500ms) write-through directly into standard `scene.gltf` projects with vendor-namespaced `SW_*` extensions for Small World behaviors, physics, and custom material parameters.
+- **High-Speed Keyboard Nudging & Transformation:** Camera-perspective-aware directional nudging ($\leftarrow, \rightarrow, \uparrow, \downarrow$ on XZ ground), elevation adjustments (`Shift` + $\uparrow / \downarrow$, `PageUp`/`PageDown`), and **Snap to Ground** (<kbd>End</kbd> / `⬇ Ground`) to align bounding boxes flush with $Y = 0$.
+- **Dynamic Snapping & Grid Stepping:** Enabled by default with instant grid resolution stepping via <kbd>[</kbd> (finer) and <kbd>]</kbd> (coarser) across `0.1m` to `2.0m`, $15^\circ$ angle quantization, and $0.25$ scale steps (Toggle: <kbd>X</kbd>).
+- **Multi-Selection & Pivot-Relative Clusters:** 2D screen-space Marquee box selection, Cyan/Amber primary/secondary hierarchy highlights, and pivot-relative multi-object group transformations.
+- **Always-on-Top Transform Gizmos:** Translate (<kbd>W</kbd>), Rotate (<kbd>E</kbd>), and Scale (<kbd>R</kbd>) rendered with `depthTest: false` so handles never submerge inside dense meshes.
+- **Prefab Pipeline & Isolated 3D Previews:** Author reusable modular prefabs with automated $3/4$-view isolated thumbnail generation (`.thumb.json`).
+- **9-Slot Camera Bookmarks:** Fast vantage point recall (<kbd>1</kbd>–<kbd>9</kbd>) and memorization (<kbd>Ctrl+1</kbd>–<kbd>9</kbd> / Right-click).
+- **ASCII Map Importer:** Instant conversion of ASCII text tilemaps (`#`, `.`, `D`, `@`, `T`, `P`) into modular 3D dungeons.
+- **Atomic Undo/Redo & Soft Delete:** Full history stack (<kbd>Ctrl+Z</kbd> / <kbd>Ctrl+Shift+Z</kbd>) with off-scene trash bin protecting GPU buffer allocations.
+
+### Standalone Development Tools
+- **T-01: Procedural Splatter Generator** (`public/tools/splatter-gen.html`): Generate procedural blood, splatters, dirt decals, and impact masks.
+- **T-02: PBR Map Generator** (`public/tools/pbr-gen.html`): Generate Normal, Specular, AO, and Height maps from a single diffuse image.
+- **T-03: Gamepad Diagnostic Tool** (`public/tools/gamepad-test.html`): Live gamepad input, axis calibration, and haptic feedback testing.
+- **T-04: IBL Generator** (`public/tools/ibl-gen.html`): Generate Image-Based Lighting (Irradiance and Radiance) environment maps.
+- **T-05: Xtractor** (`public/tools/xtractor.html`): AI Image Workbench to crop, slice, and assemble tile-maps and sprite atlases.
+- **T-06: Pixler** (`public/tools/pixler.html`): Retro 2D pixel-art editor to draw, animate, and export sprites.
+- **T-07: Map Generator** (`public/tools/map-gen.html`): Visual grid editor to author ASCII layouts for the `GridLevelBuilder`.
+- **T-08: Maker** (`public/tools/maker.html`): Standalone 3D scene and world composition environment.
+
+### In-Game Overlay
+- **The Forge:** A built-in floating window manager providing runtime inspection, diagnostics, and integrated tooling directly inside your running game (toggleable via configurable shortcut, e.g. `~` or `F12`).
 
 ## 📚 Documentation
 
