@@ -8,17 +8,21 @@
 >
 > *Stray* hat bewiesen, wie ein zutiefst atmosphärisches, emotionales und visuell stimmiges Spiel die Herzen von Millionen Menschen erobern kann — ohne 500-Mann-Armeen, ohne 8K-Texturen-Schlachten und ohne Grafikkarten-Wettrüsten.
 > 
-> Genau diese emotionale Kraft soll **Novotnys Reise** entfalten.
+> Genau diese emotionale Kraft soll **Novotnys Odyssee** entfalten.
 > 
 > Weder wir noch die Spieler brauchen hunderte unbezahlbare 8K-Texturen oder seelenlosen Fotorealismus. Was dieses Spiel unvergesslich macht, sind:
 > 1. **Die emotionale Wucht der Reise:** Die Asche des Großvaters in einer alten Kaffeedose durch das zerfallene Wien zu tragen, um ihm bei den Pompfinebrern am Zentralfriedhof „a schene Leich“ zu schenken.
-> 2. **Lichtstimmung, Schatten und Melancholie:** Malerisches Chiaroscuro, warmer Funkenflug, dichter Nebel und intime Guckkasten-Momente.
-> 3. **Der unverwechselbare Wiener Schmäh & Ton:** Morbider Galgenhumor, Kaffeehaus-Sehnsucht und kafkaeske Bunker-Bürokratie als Kontrast zur rauen Endzeit.
-> 4. **Eiserne Prioritätensetzung:** Bevor neue technische Systeme gebaut werden, werden alle narrativen Knotenpunkte, Begegnungen, moralischen Dilemmata und emotionalen Höhepunkte von Novotnys Odyssee unerschütterlich geklärt.
+> 2. **Der 2-Phasen-Höhepunkt (*Stray* trifft *The Last of Us*):**
+>    - **Das vorletzte Ziel (Emotionale Katharsis):** Das würdevolle Begräbnis am Zentralfriedhof. Novotny erfüllt sein Versprechen und lässt die Trauer im Weihrauchnebel los.
+>    - **Das letzte Ziel (Die Abrechnung):** Ohne die hemmende Angst um die Urne im Rucksack hat Novotny plötzlich *nichts mehr zu verlieren*. Die Reise gipfelt in der harten, persönlichen Abrechnung mit Hofrat Brandstätter und dem mörderischen AZS-System in der Rossauer Kaserne.
+> 3. **Lichtstimmung, Schatten und Melancholie:** Malerisches Chiaroscuro, warmer Funkenflug, dichter Nebel und intime Guckkasten-Momente.
+> 4. **Der unverwechselbare Wiener Schmäh & Ton:** Morbider Galgenhumor, Kaffeehaus-Sehnsucht und kafkaeske Bunker-Bürokratie als Kontrast zur rauen Endzeit.
+> 5. **Eiserne Prioritätensetzung:** Bevor neue technische Systeme gebaut werden, werden alle narrativen Knotenpunkte, Begegnungen, moralischen Dilemmata und emotionalen Höhepunkte von Novotnys Odyssee unerschütterlich geklärt.
 
 ---
 
 ## 🌟 1. Die Kernsäulen des Konzepts
+
 
 
 *   **Der Ton ("Der Tod muaß a Wiener sein")**
@@ -203,11 +207,14 @@
 *   **Die heimliche Einäscherung & Die Kaffeedosen-Urne (Das Wiener Relikt)**:
     *   *Gegen das Massengrab*: Um zu verhindern, dass die sterblichen Überreste in den Säure-Bottichen des AZS-Komposters aufgelöst werden, manipuliert der Spieler den thermischen Bunker-Verbrennungsofen.
     *   *Die Urne*: Die Asche wird in eine schwere, geprägte alte **Messing-Kaffeedose** gefüllt – eine zutiefst wienerische, intime Urne, die fortan im Rucksack der Spielfigur mitreist.
-*   **Der Aufbruch (Die Tat & Das Vermächtnis)**:
-    *   Der Bruch mit dem AZS-System ist besiegelt. Das unumstößliche Ziel lautet: Den Großvater durch die Trümmerstadt zum Zentralfriedhof bringen, um ihm bei den Pompfinebrern „a schene Leich“ zu ermöglichen – und auf dem Weg herauszufinden, was es mit dem Medaillon auf sich hat und warum Hofrat Brandstätter dafür einen Mord in Kauf genommen hat, der sich nun nicht mehr vertuschen lässt.
+*   **Der Aufbruch (Die Tat & Das 2-Phasen-Ziel)**:
+    *   Der Bruch mit dem AZS-System ist besiegelt. Novotnys Reise folgt einer zweistufigen dramaturgischen Klimax:
+        1. **Das vorletzte Ziel (Der emotionale Schutz-Bogen):** Den Großvater unversehrt durch die verstrahlte Trümmerstadt zum Zentralfriedhof bringen, um ihm bei den Pompfinebrern „a schene Leich“ zu ermöglichen. Solange die Urne im Rucksack liegt, steht Schutz und Vorsicht im Vordergrund.
+        2. **Das letzte Ziel (Die Abrechnung & Katharsis):** Sobald die Asche in geweihter Friedhofserde ruht, fällt die hemmende Angst ab. Mit dem entschlüsselten Medaillon dreht sich Novotny um, marschiert direkt in die trutzige Rossauer Kaserne und rechnet persönlich mit Hofrat Brandstätter und der mörderischen Bunker-Bürokratie ab.
 *   **Die Brücke zu den Giftmischern**: Um das Toxin am Einstichpunkt zu analysieren und ein schützendes Konservierungssiegel für die Asche zu erhalten, führt der erste Weg ins Bermudadreieck.
 
 ---
+
 
 ## 🛠️ 4. Gameplay-Systeme, Quests & Erkundung
 

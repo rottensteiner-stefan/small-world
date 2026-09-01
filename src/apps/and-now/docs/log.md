@@ -919,6 +919,15 @@ befüllen.
   - Verbindlicher Entwicklungsgrundsatz: Alle emotionalen Schicksale, narrative Knotenpunkte und Begegnungen auf Novotnys Reise werden vor neuen technischen Features unerschütterlich geklärt und geschärft.
 - **Status:** 112 Testsuiten, 626 Tests, Build/Lint 100% grün.
 
+---
+
+## 99. Der 2-Phasen-Höhepunkt: Begräbnis & Abrechnung (2026-09-02)
+- **Dramaturgische Weichenstellung (*Stray* trifft *The Last of Us*):**
+  - **Vorletztes Ziel (Emotionaler Schutz-Bogen & Katharsis):** Das würdevolle Begräbnis am Wiener Zentralfriedhof („A schene Leich“ mit den Pompfinebrern). Solange Novotny die Kaffeedose im Rucksack trägt, regieren Vorsicht, Schutz und Trauer.
+  - **Letztes Ziel (Die Abrechnung):** Sobald die Asche in geweihter Friedhofserde ruht, fällt die hemmende Angst ab. Novotny hat ab diesem Moment *nichts mehr zu verlieren*. Mit dem entschlüsselten Medaillon marschiert die Figur direkt in die Rossauer Kaserne und stellt Hofrat Brandstätter und die mörderische Bunker-Bürokratie persönlich zur Rede.
+- **Status:** 112 Testsuiten, 626 Tests, Build/Lint 100% grün.
+
+
 
 
 
