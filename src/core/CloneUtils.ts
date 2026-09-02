@@ -1,14 +1,14 @@
-import { Vector3D, Quaternion, MathUtils } from "../math/index.js";
+import { Vector2D, Vector3D, Quaternion, MathUtils } from "../math/index.js";
 import { Color } from "./colors/index.js";
 
 /**
  * Shallow-clones `source` (same runtime prototype via `Object.create`, every own enumerable
- * property copied via `Object.assign`), then fixes up the two things a blind shallow copy gets
- * wrong for every `Object3D`/`AbstractMaterial`/`Behavior` in this engine:
- * - Any own property that is a `Vector3D`/`Quaternion`/`Color` instance is deep-cloned, so the
- *   copy doesn't alias the source's transform/color state.
- * - An own `uuid: string` property (every one of those three base classes declares one) is
- *   regenerated, so the copy gets its own identity.
+ * property copied via `Object.assign`), then fixes up the things a blind shallow copy gets
+ * wrong for `Object3D`/`AbstractMaterial`/`Behavior` in this engine:
+ * - Any own property that is a value type (`Vector2D`, `Vector3D`, `Quaternion`, `Color`) is deep-cloned.
+ * - Any own Array / TypedArray property is cloned (with value-type elements inside Arrays cloned).
+ * - Any plain object literal is shallow-cloned.
+ * - An own `uuid: string` property is regenerated, so the copy gets its own identity.
  *
  * Everything else -- geometry data, textures, enum/primitive fields -- stays shared by
  * reference, which is the correct default: geometry/texture data is immutable, and sharing it
@@ -25,8 +25,37 @@ export function shallowCloneWithValueTypes<T extends object>(source: T): T {
 
   for (const key of Object.keys(copy) as (keyof T)[]) {
     const value = copy[key];
-    if (value instanceof Vector3D || value instanceof Quaternion || value instanceof Color) {
+    if (null === value || undefined === value) {
+      continue;
+    }
+
+    if (
+      value instanceof Vector2D ||
+      value instanceof Vector3D ||
+      value instanceof Quaternion ||
+      value instanceof Color
+    ) {
       copy[key] = (value as unknown as { clone(): unknown }).clone() as T[keyof T];
+    } else if (Array.isArray(value)) {
+      copy[key] = value.map((item) => {
+        if (
+          item instanceof Vector2D ||
+          item instanceof Vector3D ||
+          item instanceof Quaternion ||
+          item instanceof Color
+        ) {
+          return item.clone();
+        }
+        return item;
+      }) as unknown as T[keyof T];
+    } else if (
+      ArrayBuffer.isView(value) &&
+      "slice" in value &&
+      typeof (value as { slice?: unknown }).slice === "function"
+    ) {
+      copy[key] = (value as unknown as { slice(): unknown }).slice() as T[keyof T];
+    } else if (typeof value === "object" && Object.getPrototypeOf(value) === Object.prototype) {
+      copy[key] = { ...value } as T[keyof T];
     }
   }
 

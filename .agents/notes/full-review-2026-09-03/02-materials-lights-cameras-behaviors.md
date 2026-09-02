@@ -129,7 +129,8 @@ sichtbar machen statt lautlos nichts zu tun.
 
 ---
 
-## 🔴 `clone()` verspricht Unabhängigkeit, hält sie aber nur für `Vector3D`/`Quaternion`/`Color` — Vector2D/Array-Felder leaken
+## ✅ [ERLEDIGT] `clone()` verspricht Unabhängigkeit, hält sie aber nur für `Vector3D`/`Quaternion`/`Color` — Vector2D/Array-Felder leaken
+*(Behoben 2026-09-03: `shallowCloneWithValueTypes` tief-klont nun `Vector2D`, Arrays inkl. Elementen, TypedArrays und Plain Objects; Unit-Tests in `tests/core/CloneUtils.test.ts`.)*
 
 `AbstractMaterial.clone()` (`AbstractMaterial.ts:54-62`) dokumentiert explizit: "own `color`/other
 value-type fields ... Used by `Object3D.clone()` (Maker's Duplicate command) so a duplicated

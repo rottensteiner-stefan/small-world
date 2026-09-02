@@ -36,7 +36,7 @@ Alle 5 Agenten fertig. **Gesamt: 23× 🔴 kritisch, ~29× 🟠 fragil, ~20× �
 ### B — Materials/Lights/Cameras/Behaviors (5×)
 - [x] ~~`Color.WHITE` (gefrorenes Singleton) wird an 7 Stellen als Default per Referenz zugewiesen — jede In-Place-Farbmutation (RainbowBehavior, Maker-Farbinspector) wirft `TypeError`.~~ *(✅ Behoben)*
 - [x] ~~`CameraStrategyFactory` gibt gecachte Singleton-Strategie-Instanzen mit per-Kamera-mutablem State aus — mehrere Kameras mit gleicher Strategie korrumpieren sich gegenseitig.~~ *(✅ Behoben)*
-- `CloneUtils.shallowCloneWithValueTypes()` klont nur Vector3D/Quaternion/Color tief, nicht Vector2D/Arrays/Plain Objects — mehrere Material-/Behavior-Felder leaken Referenzen zwischen Original und Klon.
+- [x] ~~`CloneUtils.shallowCloneWithValueTypes()` klont nur Vector3D/Quaternion/Color tief, nicht Vector2D/Arrays/Plain Objects — mehrere Material-/Behavior-Felder leaken Referenzen zwischen Original und Klon.~~ *(✅ Behoben)*
 - `AreaLight` ist unter `StandardMaterial` (PBR) auf allen 3 Backends komplett unsichtbar — keine PBR-Lighting-Chunk wertet sie aus.
 - `AbstractShowcase` registriert einen anonymen, nie entfernbaren `keydown`-Listener auf `window` — bricht `SmallWorld.destroy()`s dokumentierten "entfernt alle globalen Listener"-Vertrag für jede Showcase.
 
