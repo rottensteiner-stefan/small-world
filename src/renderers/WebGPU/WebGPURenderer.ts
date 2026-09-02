@@ -2023,6 +2023,9 @@ export class WebGPURenderer extends AbstractRenderer {
     const d = Math.min(devicePixelRatio, maxRatio);
     this._context.canvas.width = width * d;
     this._context.canvas.height = height * d;
+    if (this._depthTexture) {
+      this._depthTexture.destroy();
+    }
     this._depthTexture = this._device.createTexture({
       size: [this._context.canvas.width, this._context.canvas.height],
       format: "depth32float",
@@ -2117,6 +2120,7 @@ export class WebGPURenderer extends AbstractRenderer {
     this._spotLightBuffer?.destroy();
     this._areaLightBuffer?.destroy();
     this._depthTexture?.destroy();
+    this._opaqueDepthTexture?.destroy();
     this._hdrTexture?.destroy();
     this._hzbTexture?.destroy();
     this._hzbAabbBuffer?.destroy();

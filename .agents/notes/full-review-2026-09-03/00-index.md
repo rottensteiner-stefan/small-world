@@ -44,7 +44,7 @@ Alle 5 Agenten fertig. **Gesamt: 23× 🔴 kritisch, ~29× 🟠 fragil, ~20× �
 - [x] ~~Clustered Forward+ Lighting kaputt auf WebGL2 (falscher `AreaLight`-UBO-Stride, 112 statt 96 Byte → Cluster-Dims lesen immer Null) UND auf WebGPU (`cluster_cull.wgsl` nutzt falsche NDC→Pixel-Y-Konvention → vertikal gespiegelte Cluster-Zuordnung).~~ *(✅ Behoben)*
 - [x] ~~WebGPU `_packObjectUniforms()`-Alpha-Fallback-Bug kann `CustomShaderMaterial`-Objekte komplett unsichtbar rendern.~~ *(✅ Behoben)*
 - [x] ~~Fehlende `_activeRenderTarget`-Guards auf WebGPU TAA/Bloom/HBAO (im Gegensatz zu HZB) — Reflection-Probe-Renders kontaminieren die persistente TAA-History.~~ *(✅ Behoben)*
-- `_depthTexture`-Leak bei jedem WebGPU-Resize.
+- [x] ~~`_depthTexture`-Leak bei jedem WebGPU-Resize.~~ *(✅ Behoben)*
 - (weitere 2× 🔴, Details in Datei — WebGL-Post-Processing-Uber-Shader-Rekompilierung bei jedem Slider-Tweak, Vignette-Formel-Divergenz WebGL1 vs. WebGL2/WebGPU — teils als 🟠 statt 🔴 klassifiziert, siehe Datei für exakte Einstufung)
 
 ### D — Geometry/Loaders/Physics/Audio (5×)

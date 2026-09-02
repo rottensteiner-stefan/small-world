@@ -246,7 +246,8 @@ Die TAA-/MotionTrail-/Bloom-/HBAO-Blöcke in der Pass-Schleife haben — anders 
 
 ---
 
-### 🔴 `setSize()` leakt die Haupt-Tiefentextur bei jedem Resize
+### ✅ [ERLEDIGT] `setSize()` leakt die Haupt-Tiefentextur bei jedem Resize
+*(Behoben 2026-09-03: `if (this._depthTexture) this._depthTexture.destroy();` in `setSize()` hinzugefügt und `_opaqueDepthTexture?.destroy()` in `destroy()` ergänzt.)*
 
 **Datei:** `src/renderers/WebGPU/WebGPURenderer.ts:2020-2033`
 
