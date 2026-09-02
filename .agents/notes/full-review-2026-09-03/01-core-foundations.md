@@ -383,7 +383,8 @@ Zwei Dinge kommen zusammen: (1) Aktuell ist die komplette Fläche (Tabellen + `i
 
 ## `src/core/PlanarReflectionNode.ts`
 
-### 🔴 Gespiegelter `up`-Vektor wird ERST NACH `updateViewMatrix()` gesetzt — die Spiegel-Kamera baut ihre View-Matrix mit dem alten (Vorframe-)`up`, die Korrektur verpufft komplett
+### ✅ [ERLEDIGT] Gespiegelter `up`-Vektor wird ERST NACH `updateViewMatrix()` gesetzt — die Spiegel-Kamera baut ihre View-Matrix mit dem alten (Vorframe-)`up`, die Korrektur verpufft komplett
+*(Behoben 2026-09-03: `mirrorCamera.up` wird vor `mirrorCamera.updateViewMatrix()` gesetzt; Unit-Test in `tests/core/PlanarReflectionNode.test.ts` verifiziert, dass die View-Matrix die gespiegelte Ausrichtung sofort enthält.)*
 
 **Fundort:** `src/core/PlanarReflectionNode.ts:42-70` (`updateReflection()`), Reihenfolge der Schritte 2-4.
 

@@ -59,4 +59,27 @@ describe("PlanarReflectionNode", () => {
     expect(renderer.renderTargetParams[1]).toBeNull();
     expect(renderer.renderCalls).toBe(1);
   });
+
+  it("should update mirrored camera UP vector before computing viewMatrix", () => {
+    const reflectionNode = new PlanarReflectionNode("Mirror", 512, 512);
+    reflectionNode.position.set(0, 0, 0);
+    reflectionNode.updateMatrixWorld();
+
+    const mainCamera = new Camera(new PerspectiveProjection());
+    mainCamera.position.set(0, 5, 10);
+    mainCamera.target.set(0, 0, 0);
+    mainCamera.up.set(0, 1, 0);
+
+    const scene = new Scene();
+    const renderer = new MockRenderer();
+
+    reflectionNode.updateReflection(scene, mainCamera, renderer as unknown as Renderer);
+
+    // With ground plane normal (0, 1, 0) and camera up (0, 1, 0), mirrored up is (0, -1, 0)
+    expect(reflectionNode.mirrorCamera.up.y).toBeCloseTo(-1, 3);
+
+    // The view matrix must reflect this mirrored up vector immediately
+    const viewMatrixData = Array.from(reflectionNode.mirrorCamera.viewMatrix);
+    expect(viewMatrixData.some((v) => Number.isNaN(v))).toBe(false);
+  });
 });

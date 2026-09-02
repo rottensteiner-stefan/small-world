@@ -57,10 +57,7 @@ export class PlanarReflectionNode extends Object3D {
       targetPos.z - planeNormal.z * 2 * distTarget,
     );
 
-    // Update view and projection internally
-    this.mirrorCamera.updateViewMatrix();
-
-    // 4. Mirror the camera UP vector
+    // 4. Mirror the camera UP vector (must be set BEFORE updateViewMatrix)
     const up = mainCamera.up;
     const upDist = planeNormal.dot(up);
     this.mirrorCamera.up.set(
@@ -68,6 +65,9 @@ export class PlanarReflectionNode extends Object3D {
       up.y - 2.0 * planeNormal.y * upDist,
       up.z - 2.0 * planeNormal.z * upDist,
     );
+
+    // Update view and projection internally
+    this.mirrorCamera.updateViewMatrix();
 
     MathPool.releaseVector(pos);
     MathPool.releaseVector(planeNormal);

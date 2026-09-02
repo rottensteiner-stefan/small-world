@@ -30,7 +30,7 @@ Alle 5 Agenten fertig. **Gesamt: 23× 🔴 kritisch, ~29× 🟠 fragil, ~20× �
 ### A — Core Foundations (4×)
 - [x] ~~`Object3D.lookAt()` schreibt nur Euler-`rotation`, `updateMatrixWorld()` bevorzugt aber `quaternion` falls gesetzt → Rotation wird für praktisch jedes glTF-geladene/animierte Objekt stillschweigend verschluckt.~~ *(✅ Behoben)*
 - [x] ~~`Input.ts` registriert ~15 `window`/`document`-Listener ohne jeden `destroy()`-Pfad; `SmallWorld.destroy()` räumt das nie auf — Leak bei jeder Engine-Instanz, widerspricht der "mehrere Engine-Instanzen pro Seite"-Architekturgarantie.~~ *(✅ Behoben)*
-- `PlanarReflectionNode.updateReflection()` setzt den gespiegelten `up`-Vektor NACH `updateViewMatrix()` — Korrektur greift nie (im Gegensatz zu `DynamicReflectionProbe`, das die Reihenfolge richtig hat).
+- [x] ~~`PlanarReflectionNode.updateReflection()` setzt den gespiegelten `up`-Vektor NACH `updateViewMatrix()` — Korrektur greift nie (im Gegensatz zu `DynamicReflectionProbe`, das die Reihenfolge richtig hat).~~ *(✅ Behoben)*
 - `EventDispatcherImpl.dispatchEvent()` alloziert bei jedem Aufruf ein neues Array (`.slice(0)`) — direkter Verstoß gegen CONTEXT.md's eigenes Zero-Allocation-Beispiel "event dispatch", erreichbar über jedes Physik-Kollisionsevent.
 
 ### B — Materials/Lights/Cameras/Behaviors (5×)
