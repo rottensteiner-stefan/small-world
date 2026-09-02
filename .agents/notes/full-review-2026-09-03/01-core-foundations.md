@@ -290,7 +290,8 @@ Der komplette Methodenkörper ist inhaltlich identisch zur Basisklasse (gleiche 
 
 ## `src/core/Input.ts`
 
-### 🔴 `Input.init()` registriert ~15 `window`/`document`-Listener ohne jede Aufräum-Möglichkeit — kein `destroy()`/`dispose()` existiert, `SmallWorld.destroy()` räumt es nicht mit auf
+### ✅ [ERLEDIGT] `Input.init()` registriert ~15 `window`/`document`-Listener ohne jede Aufräum-Möglichkeit — kein `destroy()`/`dispose()` existiert, `SmallWorld.destroy()` räumt es nicht mit auf
+*(Behoben 2026-09-03: `Input.destroy()` entfernt alle 15 `window`/`document`-Listener via benannte Referenzen und stoppt `UniversalGamepadController` [inkl. `clearInterval` des WebHID-Pollings]; `FPSCounter.destroy()` entfernt das DOM-Element; `SmallWorld.destroy()` ruft `this.input.destroy()` auf; Unit-Test in `tests/core/Input.test.ts`.)*
 
 **Fundort:** `src/core/Input.ts:68-199` (`init()`) — komplette Datei durchsucht, es gibt keine `destroy`/`dispose`/`removeEventListener`-Methode.
 

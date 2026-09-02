@@ -207,9 +207,17 @@ export class UniversalGamepadController {
   private _joyConModule: typeof import("joy-con-webhid") | null = null;
   private _initializedJoyCons: Set<JoyConLeft | JoyConRight | GeneralController> = new Set();
   private _lastUpdateFrameTime: number = -1;
+  private _pollIntervalId: ReturnType<typeof setInterval> | null = null;
 
   constructor() {
     this._loadModule();
+  }
+
+  public destroy(): void {
+    if (null !== this._pollIntervalId) {
+      clearInterval(this._pollIntervalId);
+      this._pollIntervalId = null;
+    }
   }
 
   private async _loadModule(): Promise<void> {
@@ -267,7 +275,10 @@ export class UniversalGamepadController {
     };
 
     await checkConnections();
-    setInterval(checkConnections, 1500);
+    if (null !== this._pollIntervalId) {
+      clearInterval(this._pollIntervalId);
+    }
+    this._pollIntervalId = setInterval(checkConnections, 1500);
   }
 
   /**

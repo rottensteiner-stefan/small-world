@@ -35,4 +35,11 @@ export class FPSCounter {
       this._last = now;
     }
   }
+
+  /**
+   * Destroys the FPSCounter and removes its DOM element.
+   */
+  public destroy(): void {
+    this._el.remove();
+  }
 }

@@ -405,6 +405,9 @@ export abstract class SmallWorld {
     window.removeEventListener("keydown", this._onKeyDown);
     window.removeEventListener("pagehide", this._onPageHide);
 
+    if (this.input && this.input.destroy) {
+      this.input.destroy();
+    }
     if (this.renderer && this.renderer.destroy) {
       this.renderer.destroy();
     }
