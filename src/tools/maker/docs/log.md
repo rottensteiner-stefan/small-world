@@ -405,6 +405,21 @@ Vollständige 3D-Lichtrepräsentation und Direkt-Interaktion nach Industriestand
 - **Editor-Only Isolation:** Alle Light-Helper sind vom glTF-Export und Play-Modus vollständig isoliert.
 - **Status:** 112 Test-Dateien, 633 Tests, Build & Lint 100% grün.
 
+---
+
+## 2026-09-02 — Player SpawnPoint (1.8m Silhouette & Direction Indicator)
+
+Einführung des `SpawnPoint`-Elements als First-Class-Knoten im Szenengraph und in der Maker-Palette:
+- **`SpawnPoint` (Core-Entität):** Erweitert `Object3D` mit `tag` (z.B. `"bunker_entrance"`) und `spawnRadius`.
+- **Visuelle Repräsentation (1.8m Drahtgitter-Kapsel):**
+  - Smaragdgrüne Kapsel ($1.8\text{m}$ Höhe, $0.35\text{m}$ Radius) dient sofort als perfekter Maßstabs- und Größenvergleich beim Levelbau.
+  - Kegel-Richtungspfeil an der Vorderseite zeigt die exakte Blickrichtung (Forward-Vektor $-Z$) des Spielers beim Levelstart an.
+- **Palette & Interaktion:**
+  - Klick auf **📍 Spawn** in der Structure-Palette platziert den Spawn-Punkt direkt in der Szene.
+  - Volle Unterstützung für Verschieben (<kbd>W</kbd>), Drehen (<kbd>E</kbd>) und Snap to Ground (<kbd>End</kbd>).
+- **Status:** 112 Test-Dateien, 633 Tests, Build & Lint 100% grün.
+
+
 
 
 

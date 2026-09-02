@@ -1,4 +1,4 @@
-import { Object3D } from "../../core/index.js";
+import { Object3D, SpawnPoint } from "../../core/index.js";
 import { StandardMaterial } from "../../core/materials/index.js";
 import { Color } from "../../core/colors/index.js";
 import { Vector3D } from "../../math/index.js";
@@ -192,6 +192,12 @@ export class ObjectPalette {
         label: "Group",
         tooltip: "Add Empty Group / Node",
         action: (): void => callbacks.createObject(() => new Object3D("Group")),
+      },
+      {
+        icon: "📍",
+        label: "Spawn",
+        tooltip: "Add Player Spawn Point (1.8m Silhouette & Forward Direction)",
+        action: (): void => callbacks.createObject(() => new SpawnPoint()),
       },
     ]);
 

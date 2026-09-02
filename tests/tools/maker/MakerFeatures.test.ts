@@ -498,16 +498,16 @@ describe("Maker Phase 2 Features", () => {
       expect(grids.length).toBe(4);
 
       const tiles = container.querySelectorAll(".maker-palette-tile");
-      // 8 primitives + 4 lights + 1 group + 6 behaviors = 19 tiles
-      expect(tiles.length).toBe(19);
+      // 8 primitives + 4 lights + 2 structure + 6 behaviors = 20 tiles
+      expect(tiles.length).toBe(20);
 
       // Trigger all buttons to verify geometry/material/light creation without errors
       tiles.forEach((tile) => {
         (tile as HTMLElement).click();
       });
 
-      // 13 createObject calls (8 primitives + 4 lights + 1 group)
-      expect(created.length).toBe(13);
+      // 14 createObject calls (8 primitives + 4 lights + 2 structure)
+      expect(created.length).toBe(14);
       // 6 attachBehavior calls
       expect(attached.length).toBe(6);
 
@@ -525,6 +525,7 @@ describe("Maker Phase 2 Features", () => {
       expect(createdNames).toContain("SpotLight");
       expect(createdNames).toContain("AmbientLight");
       expect(createdNames).toContain("Group");
+      expect(createdNames).toContain("SpawnPoint");
     });
   });
 
