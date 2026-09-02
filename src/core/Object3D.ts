@@ -262,6 +262,9 @@ export class Object3D implements Collidable {
     const pos = MathPool.acquireVector();
     const scale = MathPool.acquireVector();
     m.decompose(pos, this.rotation, scale);
+    if (this.quaternion) {
+      this.quaternion.setFromRotationMatrix(m);
+    }
     MathPool.releaseVector(pos);
     MathPool.releaseVector(scale);
     MathPool.releaseMatrix(m);

@@ -8,7 +8,8 @@ Legende: 🔴 kritisch (Bug/Korrektheit) · 🟠 fragil/Architektur-Risiko · �
 
 ## `src/core/Object3D.ts`
 
-### 🔴 `lookAt()` schreibt nur Euler-`rotation`, ignoriert gesetztes `quaternion` — Objekt dreht sich sichtbar nicht
+### ✅ [ERLEDIGT] `lookAt()` schreibt nur Euler-`rotation`, ignoriert gesetztes `quaternion` — Objekt dreht sich sichtbar nicht
+*(Behoben 2026-09-03: `this.quaternion.setFromRotationMatrix(m)` wird in `lookAt()` synchronisiert, falls `quaternion` gesetzt ist; Unit-Test in `tests/core/Object3D.test.ts` ergänzt.)*
 
 **Fundort:** `src/core/Object3D.ts:258-269` (`lookAt()`) im Zusammenspiel mit `updateMatrixWorld()` (`src/core/Object3D.ts:271-285`).
 
