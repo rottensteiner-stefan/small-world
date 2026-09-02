@@ -633,8 +633,8 @@ describe("Maker Phase 2 Features", () => {
     });
   });
 
-  describe("Behavior Removal & Inspector Detach Button", () => {
-    it("renders remove button for each attached behavior and triggers onDetachBehavior", () => {
+  describe("Behavior Removal & Inspector 3-Dots Menu", () => {
+    it("renders 3-dots menu for each attached behavior and triggers onDetachBehavior", () => {
       const container = document.createElement("div");
       const undo = new UndoStack();
       let detachedBehavior: Behavior | null = null;
@@ -653,10 +653,21 @@ describe("Maker Phase 2 Features", () => {
 
       panel.setSelection(obj);
 
-      // Find the Remove Behavior button in Tweakpane DOM
-      const buttons = container.querySelectorAll("button");
-      const removeBtn = Array.from(buttons).find((b) => b.textContent?.includes("Remove Behavior"));
+      // 1. Find the 3-dots button in folder header
+      const dotsBtn = container.querySelector(
+        ".maker-behavior-menu-btn",
+      ) as HTMLButtonElement | null;
+      expect(dotsBtn).toBeDefined();
+
+      // 2. Click 3-dots to open context dropdown
+      dotsBtn?.click();
+
+      // 3. Find and click "Remove Behavior" in dropdown
+      const removeBtn = document.querySelector(
+        ".maker-behavior-dropdown-item",
+      ) as HTMLButtonElement | null;
       expect(removeBtn).toBeDefined();
+      expect(removeBtn?.textContent).toContain("Remove Behavior");
 
       removeBtn?.click();
 

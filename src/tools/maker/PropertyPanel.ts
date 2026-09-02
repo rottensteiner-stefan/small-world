@@ -106,18 +106,70 @@ export class PropertyPanel {
           title: behavior.constructor.name,
           expanded: true,
         });
+        this._attachBehaviorHeaderMenu(oneFolder, obj, behavior);
         oneFolder.addBinding(behavior, "isActive", { label: "Active" });
         this._renderSchema(
           oneFolder,
           behavior as unknown as Record<string, unknown>,
           collectInspectorSchema(behavior),
         );
-        const removeBtn = oneFolder.addButton({ title: "🗑️ Remove Behavior" });
-        removeBtn.on("click", (): void => {
-          this._callbacks?.onDetachBehavior?.(obj, behavior);
-        });
       }
     }
+  }
+
+  private _attachBehaviorHeaderMenu(folder: FolderApi, obj: Object3D, behavior: Behavior): void {
+    const titleBtn = folder.element.querySelector(".tp-fldv_b");
+    if (!titleBtn) return;
+
+    const dotsBtn = document.createElement("button");
+    dotsBtn.type = "button";
+    dotsBtn.className = "maker-behavior-menu-btn";
+    dotsBtn.innerHTML = "&#8942;"; // ⋮
+    dotsBtn.title = "Behavior Options";
+
+    dotsBtn.addEventListener("click", (e: MouseEvent): void => {
+      e.stopPropagation();
+      e.preventDefault();
+      this._showBehaviorContextMenu(dotsBtn, obj, behavior);
+    });
+
+    titleBtn.appendChild(dotsBtn);
+  }
+
+  private _showBehaviorContextMenu(anchor: HTMLElement, obj: Object3D, behavior: Behavior): void {
+    document.querySelectorAll(".maker-behavior-dropdown").forEach((el) => el.remove());
+
+    const menu = document.createElement("div");
+    menu.className = "maker-behavior-dropdown";
+
+    const removeOption = document.createElement("button");
+    removeOption.type = "button";
+    removeOption.className = "maker-behavior-dropdown-item maker-behavior-dropdown-danger";
+    removeOption.innerHTML = "🗑️ Remove Behavior";
+    removeOption.addEventListener("click", (e: MouseEvent): void => {
+      e.stopPropagation();
+      menu.remove();
+      this._callbacks?.onDetachBehavior?.(obj, behavior);
+    });
+    menu.appendChild(removeOption);
+
+    const rect = anchor.getBoundingClientRect();
+    menu.style.position = "fixed";
+    menu.style.top = `${rect.bottom + 4}px`;
+    menu.style.right = `${Math.max(8, window.innerWidth - rect.right)}px`;
+    menu.style.zIndex = "9999";
+
+    const closeHandler = (e: MouseEvent): void => {
+      if (!menu.contains(e.target as Node)) {
+        menu.remove();
+        window.removeEventListener("pointerdown", closeHandler);
+      }
+    };
+    setTimeout(() => {
+      window.addEventListener("pointerdown", closeHandler);
+    }, 0);
+
+    document.body.appendChild(menu);
   }
 
   private _renderSchema(

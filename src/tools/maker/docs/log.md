@@ -429,10 +429,11 @@ Intelligente Platzierung neu erzeugter Objekte nach Industriestandard (Blender 3
 
 ---
 
-## 2026-09-02 — Behavior Removal & Inspector Detach Button
+## 2026-09-02 — Behavior Removal & Inspector 3-Dots Context Menu (Unity/Blender Style)
 
-Erweiterung des Property Inspectors um ein direktes Abkoppeln von Behaviors nach Industriestandard (Unity/Unreal/Blender Component Removal):
-- **`[ 🗑️ Remove Behavior ]`-Button:** Jeder zugewiesene Behavior-Ordner im Property-Panel besitzt am Ende einen Remove-Button.
+Erweiterung des Property Inspectors um ein direktes Abkoppeln von Behaviors nach Industriestandard (Unity/Blender Component Actions):
+- **Kompakter `⋮`-Button im Ordner-Header:** Jedes zugewiesene Behavior besitzt in der Titelleiste rechts einen dezenten 3-Punkte-Button (kostet $0$ vertikale Extra-Zeilen).
+- **Kontextmenü mit `🗑️ Remove Behavior`:** Klick auf `⋮` öffnet ein schwebendes Dropdown-Menü zur gezielten Verwaltung der Komponente.
 - **Sauberes Abkoppeln:** Ruft `detachBehavior(obj.behaviors, behavior)` auf, bereinigt den Host-Status und triggert `behavior.onDetach()`.
 - **Volle Undo/Redo- & Autosave-Unterstützung:**
   - Klick auf Entfernen erzeugt einen atomaren Schritt auf dem `UndoStack`.
