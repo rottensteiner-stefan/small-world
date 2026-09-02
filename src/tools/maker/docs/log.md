@@ -360,4 +360,18 @@ Vollständige, bidirektionale Unterstützung für das Umbenennen von Objekten in
 - **Undo/Redo Integration:** Jede Namensänderung (egal ob via Hierarchy, <kbd>F2</kbd> oder PropertyPanel) erzeugt atomare Undo-Schritte auf dem `UndoStack`.
 - **Status:** 112 Test-Dateien, 630 Tests, Build & Lint 100% grün.
 
+---
+
+## 2026-09-02 — Hierarchy Search & Live Filter (Ctrl+F)
+
+Blitzschnelle Live-Objektsuche im Szenenbaum nach Industriestandard (Unity/Unreal/Blender Outliner):
+- **Search Header Bar:** Schlankes Suchfeld `[ 🔍 Filter objects... (Ctrl+F) ]` sticky über der Hierarchy-Baumstruktur.
+- **Echtzeit-Filterung:** Filtert während des Tippens den gesamten Szenenbaum (Match auf Objekt- oder Kind-Namen).
+- **Keyboard-Workflow (<kbd>Ctrl+F</kbd> / <kbd>Cmd+F</kbd>):**
+  - <kbd>Ctrl+F</kbd> springt direkt in das Suchfeld und markiert den Text.
+  - <kbd>Enter</kbd> selektiert direkt das erste passende Objekt im 3D-Viewport und in der Hierarchy.
+  - <kbd>Escape</kbd> leert den Suchfilter, stellt den vollen Szenenbaum wieder her und setzt den Fokus zurück in den Viewport.
+- **Status:** 112 Test-Dateien, 631 Tests, Build & Lint 100% grün.
+
+
 

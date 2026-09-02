@@ -18,6 +18,9 @@ const DRAG_MIME = "text/maker-uuid";
  */
 export class HierarchyPanel {
   private _renamingUuid: string | null = null;
+  private _filterQuery: string = "";
+  private _searchInput: HTMLInputElement;
+  private _treeContainer: HTMLElement;
 
   constructor(
     private _container: HTMLElement,
@@ -28,15 +31,86 @@ export class HierarchyPanel {
     private _isExcluded: (obj: Object3D) => boolean = () => false,
   ) {
     this._container.classList.add("maker-hierarchy");
+    this._container.innerHTML = "";
+
+    // Search header container
+    const searchWrapper = document.createElement("div");
+    searchWrapper.className = "maker-hierarchy-search-wrapper";
+
+    this._searchInput = document.createElement("input");
+    this._searchInput.type = "text";
+    this._searchInput.className = "maker-hierarchy-search-input";
+    this._searchInput.placeholder = "🔍 Filter objects... (Ctrl+F)";
+    this._searchInput.spellcheck = false;
+
+    this._searchInput.addEventListener("input", (): void => {
+      this._filterQuery = this._searchInput.value.trim().toLowerCase();
+      this.refresh();
+    });
+
+    this._searchInput.addEventListener("keydown", (e): void => {
+      e.stopPropagation();
+      if ("Enter" === e.key) {
+        e.preventDefault();
+        const first = this.getFirstMatchingObject();
+        if (first) this._callbacks.onSelect(first, false);
+      } else if ("Escape" === e.key) {
+        e.preventDefault();
+        this._filterQuery = "";
+        this._searchInput.value = "";
+        this.refresh();
+        this._searchInput.blur();
+      }
+    });
+
+    searchWrapper.appendChild(this._searchInput);
+    this._container.appendChild(searchWrapper);
+
+    // Tree container
+    this._treeContainer = document.createElement("div");
+    this._treeContainer.className = "maker-hierarchy-tree";
+    this._container.appendChild(this._treeContainer);
+
     this._container.addEventListener("dragover", (e) => e.preventDefault());
     this._container.addEventListener("drop", (e) => {
       // Dropped on empty space below the last row -- reparent to the scene root.
-      if (e.target !== this._container) return;
+      if (e.target !== this._container && e.target !== this._treeContainer) return;
       e.preventDefault();
       const draggedUuid = e.dataTransfer?.getData(DRAG_MIME);
       const dragged = draggedUuid && this._findByUuid(this._getRoot(), draggedUuid);
       if (dragged) this._callbacks.onReparent(dragged, this._getRoot());
     });
+  }
+
+  public focusSearch(): void {
+    this._searchInput.focus();
+    this._searchInput.select();
+  }
+
+  public getFirstMatchingObject(): Object3D | undefined {
+    const findFirst = (parent: Object3D): Object3D | undefined => {
+      for (const child of parent.children) {
+        if (this._isExcluded(child)) continue;
+        const name = (child.name || child.constructor.name).toLowerCase();
+        if (this._filterQuery && name.includes(this._filterQuery)) {
+          return child;
+        }
+        const deep = findFirst(child);
+        if (deep) return deep;
+      }
+      return undefined;
+    };
+    return findFirst(this._getRoot());
+  }
+
+  private _matchesFilter(obj: Object3D): boolean {
+    if (!this._filterQuery) return true;
+    const name = (obj.name || obj.constructor.name).toLowerCase();
+    if (name.includes(this._filterQuery)) return true;
+    for (const child of obj.children) {
+      if (!this._isExcluded(child) && this._matchesFilter(child)) return true;
+    }
+    return false;
   }
 
   private _selection: ReadonlySet<Object3D> = new Set();
@@ -52,13 +126,14 @@ export class HierarchyPanel {
   }
 
   public refresh(): void {
-    this._container.innerHTML = "";
+    this._treeContainer.innerHTML = "";
     this._renderChildren(this._getRoot(), 0);
   }
 
   private _renderChildren(parent: Object3D, depth: number): void {
     for (const child of parent.children) {
       if (this._isExcluded(child)) continue;
+      if (!this._matchesFilter(child)) continue;
       const row = document.createElement("div");
       row.className = "maker-hierarchy-row" + (this._selection.has(child) ? " selected" : "");
       row.style.paddingLeft = `${depth * 16 + 6}px`;
@@ -136,7 +211,7 @@ export class HierarchyPanel {
         }
       });
 
-      this._container.appendChild(row);
+      this._treeContainer.appendChild(row);
       this._renderChildren(child, depth + 1);
     }
   }

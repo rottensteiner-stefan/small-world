@@ -1402,6 +1402,14 @@ export class MakerApp extends SmallWorld {
     }
 
     const key = event.key.toLowerCase();
+    if ((event.ctrlKey || event.metaKey) && "f" === key) {
+      const active = document.activeElement;
+      if (active && ("INPUT" === active.tagName || "TEXTAREA" === active.tagName)) return;
+      event.preventDefault();
+      this._hierarchyPanel.focusSearch();
+      return;
+    }
+
     if ((event.ctrlKey || event.metaKey) && ("d" === key || "g" === key)) {
       const active = document.activeElement;
       if (active && ("INPUT" === active.tagName || "TEXTAREA" === active.tagName)) return;

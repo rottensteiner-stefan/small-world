@@ -197,6 +197,7 @@ All scene mutations are tracked on an atomic `UndoStack`:
 | **Selection & Graph** | <kbd>Left Click</kbd> | Select Single Object |
 | | <kbd>Shift</kbd> / <kbd>Ctrl</kbd> / <kbd>Cmd</kbd> + Click | Toggle / Additive Multi-Select |
 | | <kbd>Empty Drag</kbd> | 2D Marquee Box Selection |
+| | <kbd>Ctrl+F</kbd> / <kbd>Cmd+F</kbd> | **Focus Hierarchy Filter:** Live search & filter scene objects by name (<kbd>Enter</kbd> selects, <kbd>Esc</kbd> clears) |
 | | <kbd>F2</kbd> / Hierarchy <kbd>Double-Click</kbd> | **Inline Rename Object:** Edit name in Hierarchy row (<kbd>Enter</kbd> commits, <kbd>Esc</kbd> cancels) |
 | | Property Panel <kbd>Name Field</kbd> / Title <kbd>Double-Click</kbd> | **Direct Rename:** Edit object name at top of Property Inspector |
 | | <kbd>Ctrl+D</kbd> | Duplicate Selection (Atomic Batch) |

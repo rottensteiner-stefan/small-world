@@ -427,5 +427,51 @@ describe("Maker Phase 2 Features", () => {
       expect(panel).toBeDefined();
       expect(changedProp).toBeNull();
     });
+
+    it("filters hierarchy tree in real time and selects first match on Enter", () => {
+      const container = document.createElement("div");
+      const root = new Object3D("Root");
+      const barrelA = new Object3D("Oil_Barrel_01");
+      const barrelB = new Object3D("Oil_Barrel_02");
+      const crate = new Object3D("Wood_Crate");
+      root.add(barrelA);
+      root.add(barrelB);
+      root.add(crate);
+
+      let selectedObj: Object3D | null = null;
+      const hierarchy = new HierarchyPanel(container, () => root, {
+        onSelect: (obj): void => {
+          selectedObj = obj;
+        },
+        onReparent: (): void => {},
+      });
+
+      hierarchy.refresh();
+      const allRows = container.querySelectorAll(".maker-hierarchy-row");
+      expect(allRows.length).toBe(3);
+
+      const searchInput = container.querySelector(
+        ".maker-hierarchy-search-input",
+      ) as HTMLInputElement;
+      expect(searchInput).not.toBeNull();
+
+      // Type "barrel" into search
+      searchInput.value = "barrel";
+      searchInput.dispatchEvent(new Event("input", { bubbles: true }));
+
+      const filteredRows = container.querySelectorAll(".maker-hierarchy-row");
+      expect(filteredRows.length).toBe(2);
+      expect(filteredRows[0]?.textContent).toBe("Oil_Barrel_01");
+      expect(filteredRows[1]?.textContent).toBe("Oil_Barrel_02");
+
+      // Press Enter to select first match
+      searchInput.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+      expect(selectedObj).toBe(barrelA);
+
+      // Press Escape to clear filter and reset
+      searchInput.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+      expect(searchInput.value).toBe("");
+      expect(container.querySelectorAll(".maker-hierarchy-row").length).toBe(3);
+    });
   });
 });
