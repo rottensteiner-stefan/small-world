@@ -344,3 +344,20 @@ Vollständiges Handbuch und Referenzdokumentation für Power-User & Digital Arti
   - *Master Keyboard Shortcuts Reference Table*
 - **`src/tools/maker/docs/concept-dossier.html`:** Visual Dossier auf Phase 3 und den aktuellen Pro-Feature-Stand synchronisiert.
 
+---
+
+## 2026-09-02 — Unified Object Renaming (Hierarchy Inline Edit & Property Panel)
+
+Vollständige, bidirektionale Unterstützung für das Umbenennen von Objekten in der Szene nach Industriestandard (Unity/Blender/Figma):
+- **Schema-Erweiterung:** `Object3D.inspector` deklariert `name: { type: "string", label: "Name" }` als oberstes Feld im Inspector.
+- **Hierarchy Inline-Renaming:** Doppel-Klick auf eine Zeile in der Hierarchy oder Drücken der Taste <kbd>F2</kbd> (bei selektiertem Objekt) verwandelt die Zeile in ein nahtloses `<input>`-Feld.
+  - <kbd>Enter</kbd> / `blur` bestätigt die Umbenennung.
+  - <kbd>Escape</kbd> bricht ab.
+  - Tastatur-Shortcuts (W, E, R, X, Delete, Arrows) werden während der Texteingabe isoliert und nicht mehr versehentlich getriggert.
+- **PropertyPanel Sync & Header-Interaktion:**
+  - Direktes Editieren des `Name`-Feldes im Property Panel aktualisiert synchron den Header (`_titleFolder.title`) und die Hierarchy.
+  - Doppel-Klick auf den Titel-Header im Property Panel fokussiert und selektiert automatisch das Name-Input-Feld.
+- **Undo/Redo Integration:** Jede Namensänderung (egal ob via Hierarchy, <kbd>F2</kbd> oder PropertyPanel) erzeugt atomare Undo-Schritte auf dem `UndoStack`.
+- **Status:** 112 Test-Dateien, 630 Tests, Build & Lint 100% grün.
+
+

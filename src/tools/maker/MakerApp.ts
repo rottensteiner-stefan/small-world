@@ -168,7 +168,15 @@ export class MakerApp extends SmallWorld {
     this._marqueeEl.className = "maker-marquee-box";
     this.canvas.parentElement?.appendChild(this._marqueeEl);
 
-    this._propertyPanel = new PropertyPanel(this._makerOptions.propertyContainer, this._undo);
+    this._propertyPanel = new PropertyPanel(this._makerOptions.propertyContainer, this._undo, {
+      onPropertyChanged: (_obj, propKey): void => {
+        if ("name" === propKey) {
+          this._hierarchyDirty = true;
+          this._hierarchyPanel.refresh();
+        }
+        this._project.scheduleAutosave(() => this.scene.root);
+      },
+    });
     this._hierarchyPanel = new HierarchyPanel(
       this._makerOptions.hierarchyContainer,
       () => this.scene.root,
@@ -178,6 +186,7 @@ export class MakerApp extends SmallWorld {
           else this.selectObject(obj);
         },
         onReparent: (obj, newParent): void => this.reparent(obj, newParent),
+        onRename: (obj, newName): void => this.renameObject(obj, newName),
       },
       (obj) => this._highlightMeshes.includes(obj) || obj === this._gizmo.root,
     );
@@ -886,6 +895,32 @@ export class MakerApp extends SmallWorld {
     });
   }
 
+  public renameObject(obj: Object3D, newName: string): void {
+    const oldName = obj.name;
+    if (oldName === newName) return;
+    this._undo.execute({
+      label: `Rename to "${newName}"`,
+      redo: () => {
+        obj.name = newName;
+        this._hierarchyDirty = true;
+        this._hierarchyPanel.refresh();
+        if (this._primary === obj) {
+          this._propertyPanel.setSelection(this._primary, Math.max(0, this._selection.size - 1));
+        }
+        this._project.scheduleAutosave(() => this.scene.root);
+      },
+      undo: () => {
+        obj.name = oldName;
+        this._hierarchyDirty = true;
+        this._hierarchyPanel.refresh();
+        if (this._primary === obj) {
+          this._propertyPanel.setSelection(this._primary, Math.max(0, this._selection.size - 1));
+        }
+        this._project.scheduleAutosave(() => this.scene.root);
+      },
+    });
+  }
+
   /** Clones every selected object (via `Object3D.clone()`) and inserts each copy as a sibling
    * right next to its original, then selects the whole new set of copies as one batch undo step.
    * Works the same for a single selected object as it did before multi-selection existed. */
@@ -1354,6 +1389,16 @@ export class MakerApp extends SmallWorld {
         this.deleteSelection();
       }
       return;
+    }
+
+    if ("F2" === event.key) {
+      const active = document.activeElement;
+      if (active && ("INPUT" === active.tagName || "TEXTAREA" === active.tagName)) return;
+      if (this._primary) {
+        event.preventDefault();
+        this._hierarchyPanel.startRenaming(this._primary);
+        return;
+      }
     }
 
     const key = event.key.toLowerCase();

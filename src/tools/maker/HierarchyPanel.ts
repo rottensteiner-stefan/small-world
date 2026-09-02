@@ -5,6 +5,7 @@ export interface HierarchyCallbacks {
    * existing selection instead of replacing it wholesale. */
   onSelect(obj: Object3D, toggle: boolean): void;
   onReparent(obj: Object3D, newParent: Object3D): void;
+  onRename?(obj: Object3D, newName: string): void;
 }
 
 const DRAG_MIME = "text/maker-uuid";
@@ -16,6 +17,8 @@ const DRAG_MIME = "text/maker-uuid";
  * at Maker's expected scene sizes; a diffed update is a later-phase concern if it ever isn't.
  */
 export class HierarchyPanel {
+  private _renamingUuid: string | null = null;
+
   constructor(
     private _container: HTMLElement,
     private _getRoot: () => Object3D,
@@ -43,6 +46,11 @@ export class HierarchyPanel {
     this.refresh();
   }
 
+  public startRenaming(obj: Object3D): void {
+    this._renamingUuid = obj.uuid;
+    this.refresh();
+  }
+
   public refresh(): void {
     this._container.innerHTML = "";
     this._renderChildren(this._getRoot(), 0);
@@ -54,12 +62,63 @@ export class HierarchyPanel {
       const row = document.createElement("div");
       row.className = "maker-hierarchy-row" + (this._selection.has(child) ? " selected" : "");
       row.style.paddingLeft = `${depth * 16 + 6}px`;
-      row.textContent = child.name || child.constructor.name;
       row.draggable = true;
 
-      row.addEventListener("click", (e) => {
-        this._callbacks.onSelect(child, e.shiftKey || e.ctrlKey || e.metaKey);
-      });
+      if (this._renamingUuid === child.uuid) {
+        const input = document.createElement("input");
+        input.type = "text";
+        input.className = "maker-hierarchy-rename-input";
+        input.value = child.name || child.constructor.name;
+        row.appendChild(input);
+
+        let committed = false;
+        const commit = (): void => {
+          if (committed) return;
+          committed = true;
+          this._renamingUuid = null;
+          const trimmed = input.value.trim();
+          if (trimmed && trimmed !== child.name) {
+            this._callbacks.onRename?.(child, trimmed);
+          } else {
+            this.refresh();
+          }
+        };
+
+        const cancel = (): void => {
+          if (committed) return;
+          committed = true;
+          this._renamingUuid = null;
+          this.refresh();
+        };
+
+        input.addEventListener("keydown", (e): void => {
+          e.stopPropagation();
+          if ("Enter" === e.key) {
+            e.preventDefault();
+            commit();
+          } else if ("Escape" === e.key) {
+            e.preventDefault();
+            cancel();
+          }
+        });
+
+        input.addEventListener("blur", (): void => commit());
+
+        setTimeout(() => {
+          input.focus();
+          input.select();
+        }, 0);
+      } else {
+        row.textContent = child.name || child.constructor.name;
+
+        row.addEventListener("click", (e) => {
+          this._callbacks.onSelect(child, e.shiftKey || e.ctrlKey || e.metaKey);
+        });
+        row.addEventListener("dblclick", (e) => {
+          e.stopPropagation();
+          this.startRenaming(child);
+        });
+      }
       row.addEventListener("dragstart", (e) => {
         e.dataTransfer?.setData(DRAG_MIME, child.uuid);
       });

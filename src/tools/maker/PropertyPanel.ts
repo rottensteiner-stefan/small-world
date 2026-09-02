@@ -15,6 +15,10 @@ interface RefreshableBinding {
 
 type ChangeEvent<T> = { value: T; last?: boolean };
 
+export interface PropertyPanelCallbacks {
+  onPropertyChanged?: (obj: Object3D, propKey: string, value: unknown) => void;
+}
+
 /**
  * The generic, schema-driven property panel that is Maker's actual replacement for
  * GadgetInspector's hand-duck-typed one (see docs/adr/0010-maker-editor-architecture.md).
@@ -26,13 +30,42 @@ export class PropertyPanel {
   private _pane: Pane;
   private _titleFolder: FolderApi;
   private _blades: DisposableBlade[] = [];
+  private _currentObj: Object3D | undefined;
+  private _extraCount: number = 0;
 
   constructor(
     container: HTMLElement,
     private _undo: UndoStack,
+    private _callbacks?: PropertyPanelCallbacks,
   ) {
     this._pane = new Pane({ container });
     this._titleFolder = this._pane.addFolder({ title: "No Selection", expanded: true });
+
+    // Double-click on folder title area focuses the name input field
+    this._titleFolder.element.addEventListener("dblclick", (e) => {
+      e.stopPropagation();
+      this.focusNameInput();
+    });
+  }
+
+  public focusNameInput(): void {
+    const nameInput = this._pane.element.querySelector(
+      'input[type="text"]',
+    ) as HTMLInputElement | null;
+    if (nameInput) {
+      nameInput.focus();
+      nameInput.select();
+    }
+  }
+
+  private _updateTitle(): void {
+    const baseName = this._currentObj
+      ? this._currentObj.name || this._currentObj.constructor.name
+      : "No Selection";
+    this._titleFolder.title =
+      this._currentObj && this._extraCount > 0
+        ? `${baseName} (+${this._extraCount} more)`
+        : baseName;
   }
 
   /** Rebuilds the entire panel for the newly selected (primary) object, or clears it for
@@ -40,11 +73,11 @@ export class PropertyPanel {
    * shown as a "(+N more)" suffix; this panel only ever edits the primary object's properties,
    * never a multi-object batch edit. */
   public setSelection(obj: Object3D | undefined, extraCount: number = 0): void {
+    this._currentObj = obj;
+    this._extraCount = extraCount;
     for (const blade of this._blades) blade.dispose();
     this._blades = [];
-    const baseName = obj ? obj.name || obj.constructor.name : "No Selection";
-    this._titleFolder.title =
-      obj && extraCount > 0 ? `${baseName} (+${extraCount} more)` : baseName;
+    this._updateTitle();
     if (!obj) return;
 
     this._renderSchema(
@@ -145,12 +178,30 @@ export class PropertyPanel {
         redo: () => {
           host[propKey] = to;
           binding.refresh();
+          if (
+            this._currentObj &&
+            host === (this._currentObj as unknown as Record<string, unknown>)
+          ) {
+            if ("name" === propKey) this._updateTitle();
+            this._callbacks?.onPropertyChanged?.(this._currentObj, propKey, to);
+          }
         },
         undo: () => {
           host[propKey] = from;
           binding.refresh();
+          if (
+            this._currentObj &&
+            host === (this._currentObj as unknown as Record<string, unknown>)
+          ) {
+            if ("name" === propKey) this._updateTitle();
+            this._callbacks?.onPropertyChanged?.(this._currentObj, propKey, from);
+          }
         },
       });
+      if (this._currentObj && host === (this._currentObj as unknown as Record<string, unknown>)) {
+        if ("name" === propKey) this._updateTitle();
+        this._callbacks?.onPropertyChanged?.(this._currentObj, propKey, to);
+      }
       before = to;
     });
     this._blades.push(binding);

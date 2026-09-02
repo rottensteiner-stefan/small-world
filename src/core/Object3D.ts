@@ -20,6 +20,7 @@ export class Object3D implements Collidable {
    * subclass (e.g. `AbstractLight`, `AbstractMaterial`) declares on top. Transform fields use
    * `path` since position/rotation/scale are nested `Vector3D` instances, not own properties. */
   public static readonly inspector: Record<string, InspectorField> = {
+    name: { type: "string", label: "Name" },
     isVisible: { type: "boolean", label: "Visible" },
     castShadow: { type: "boolean", label: "Cast Shadow" },
     receiveShadow: { type: "boolean", label: "Recv Shadow" },
