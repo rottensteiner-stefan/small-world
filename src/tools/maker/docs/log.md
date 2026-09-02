@@ -425,8 +425,20 @@ Intelligente Platzierung neu erzeugter Objekte nach Industriestandard (Blender 3
 - **Automatisches Aufsetzen auf den Boden (Zero In-Ground Clipping):**
   - Meshes (Würfel, Kugel, Zylinder, Kapsel, SpawnPoint etc.) berechnen ihren Bounding-Box-Bottom und sitzen mit ihrer Unterkante exakt bündig auf $Y = 0$ auf (z.B. Würfel-Mittelpunkt bei $Y = 0.5$).
   - Lichter werden automatisch in ergonomischer Arbeitshöhe platziert (PointLight: $Y = 2.0\text{m}$, SpotLight: $Y = 3.0\text{m}$, Sun: $Y = 5.0\text{m}$).
-- **Automatisches Raster-Snapping:** Wenn Snapping aktiv ist, rastet die Spawn-Position direkt auf das eingestellte Translation-Grid ein.
 - **Status:** 112 Test-Dateien, 634 Tests, Build & Lint 100% grün.
+
+---
+
+## 2026-09-02 — Behavior Removal & Inspector Detach Button
+
+Erweiterung des Property Inspectors um ein direktes Abkoppeln von Behaviors nach Industriestandard (Unity/Unreal/Blender Component Removal):
+- **`[ 🗑️ Remove Behavior ]`-Button:** Jeder zugewiesene Behavior-Ordner im Property-Panel besitzt am Ende einen Remove-Button.
+- **Sauberes Abkoppeln:** Ruft `detachBehavior(obj.behaviors, behavior)` auf, bereinigt den Host-Status und triggert `behavior.onDetach()`.
+- **Volle Undo/Redo- & Autosave-Unterstützung:**
+  - Klick auf Entfernen erzeugt einen atomaren Schritt auf dem `UndoStack`.
+  - <kbd>Ctrl+Z</kbd> stellt das Behavior samt all seinen zuvor konfigurierten Werten (Speed, Axis, Duration etc.) synchron wieder her.
+- **Status:** 112 Test-Dateien, 635 Tests, Build & Lint 100% grün.
+
 
 
 

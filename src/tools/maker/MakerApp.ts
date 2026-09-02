@@ -184,6 +184,9 @@ export class MakerApp extends SmallWorld {
         }
         this._project.scheduleAutosave(() => this.scene.root);
       },
+      onDetachBehavior: (obj, behavior): void => {
+        this.detachBehaviorFromObject(obj, behavior);
+      },
     });
     this._hierarchyPanel = new HierarchyPanel(
       this._makerOptions.hierarchyContainer,
@@ -1140,6 +1143,23 @@ export class MakerApp extends SmallWorld {
         for (const [obj, behavior] of attached) {
           detachBehavior(obj.behaviors, behavior);
         }
+        this._propertyPanel.setSelection(this._primary, Math.max(0, this._selection.size - 1));
+        this._project.scheduleAutosave(() => this.scene.root);
+      },
+    });
+  }
+
+  public detachBehaviorFromObject(obj: Object3D, behavior: Behavior): void {
+    const behaviorName = behavior.constructor.name;
+    this._undo.execute({
+      label: `Detach ${behaviorName}`,
+      redo: () => {
+        detachBehavior(obj.behaviors, behavior);
+        this._propertyPanel.setSelection(this._primary, Math.max(0, this._selection.size - 1));
+        this._project.scheduleAutosave(() => this.scene.root);
+      },
+      undo: () => {
+        attachBehavior(obj.behaviors, behavior, obj);
         this._propertyPanel.setSelection(this._primary, Math.max(0, this._selection.size - 1));
         this._project.scheduleAutosave(() => this.scene.root);
       },

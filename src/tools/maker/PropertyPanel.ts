@@ -1,5 +1,6 @@
 import { Pane, FolderApi } from "tweakpane";
 import { Object3D } from "../../core/index.js";
+import { Behavior } from "../../core/behaviors/index.js";
 import { Color } from "../../core/colors/index.js";
 import { InspectorField, collectInspectorSchema } from "../../core/Inspectable.js";
 import { UndoStack } from "./UndoStack.js";
@@ -17,6 +18,7 @@ type ChangeEvent<T> = { value: T; last?: boolean };
 
 export interface PropertyPanelCallbacks {
   onPropertyChanged?: (obj: Object3D, propKey: string, value: unknown) => void;
+  onDetachBehavior?: (obj: Object3D, behavior: Behavior) => void;
 }
 
 /**
@@ -110,6 +112,10 @@ export class PropertyPanel {
           behavior as unknown as Record<string, unknown>,
           collectInspectorSchema(behavior),
         );
+        const removeBtn = oneFolder.addButton({ title: "🗑️ Remove Behavior" });
+        removeBtn.on("click", (): void => {
+          this._callbacks?.onDetachBehavior?.(obj, behavior);
+        });
       }
     }
   }

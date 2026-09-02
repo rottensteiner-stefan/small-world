@@ -632,4 +632,36 @@ describe("Maker Phase 2 Features", () => {
       expect(lampPos.y).toBeCloseTo(2.0);
     });
   });
+
+  describe("Behavior Removal & Inspector Detach Button", () => {
+    it("renders remove button for each attached behavior and triggers onDetachBehavior", () => {
+      const container = document.createElement("div");
+      const undo = new UndoStack();
+      let detachedBehavior: Behavior | null = null;
+      let detachedObj: Object3D | null = null;
+
+      const panel = new PropertyPanel(container, undo, {
+        onDetachBehavior: (obj, behavior): void => {
+          detachedObj = obj;
+          detachedBehavior = behavior;
+        },
+      });
+
+      const obj = new Object3D("HostObject");
+      const rotator = new RotatorBehavior();
+      attachBehavior(obj.behaviors, rotator, obj);
+
+      panel.setSelection(obj);
+
+      // Find the Remove Behavior button in Tweakpane DOM
+      const buttons = container.querySelectorAll("button");
+      const removeBtn = Array.from(buttons).find((b) => b.textContent?.includes("Remove Behavior"));
+      expect(removeBtn).toBeDefined();
+
+      removeBtn?.click();
+
+      expect(detachedObj).toBe(obj);
+      expect(detachedBehavior).toBe(rotator);
+    });
+  });
 });
