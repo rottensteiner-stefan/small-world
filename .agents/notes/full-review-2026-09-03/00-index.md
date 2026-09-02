@@ -41,7 +41,7 @@ Alle 5 Agenten fertig. **Gesamt: 23× 🔴 kritisch, ~29× 🟠 fragil, ~20× �
 - [x] ~~`AbstractShowcase` registriert einen anonymen, nie entfernbaren `keydown`-Listener auf `window` — bricht `SmallWorld.destroy()`s dokumentierten "entfernt alle globalen Listener"-Vertrag für jede Showcase.~~ *(✅ Behoben)*
 
 ### C — Rendering Backends (7×)
-- Clustered Forward+ Lighting kaputt auf WebGL2 (falscher `AreaLight`-UBO-Stride, 112 statt 96 Byte → Cluster-Dims lesen immer Null) UND auf WebGPU (`cluster_cull.wgsl` nutzt falsche NDC→Pixel-Y-Konvention → vertikal gespiegelte Cluster-Zuordnung).
+- [x] ~~Clustered Forward+ Lighting kaputt auf WebGL2 (falscher `AreaLight`-UBO-Stride, 112 statt 96 Byte → Cluster-Dims lesen immer Null) UND auf WebGPU (`cluster_cull.wgsl` nutzt falsche NDC→Pixel-Y-Konvention → vertikal gespiegelte Cluster-Zuordnung).~~ *(✅ Behoben)*
 - WebGPU `_packObjectUniforms()`-Alpha-Fallback-Bug kann `CustomShaderMaterial`-Objekte komplett unsichtbar rendern.
 - Fehlende `_activeRenderTarget`-Guards auf WebGPU TAA/Bloom/HBAO (im Gegensatz zu HZB) — Reflection-Probe-Renders kontaminieren die persistente TAA-History.
 - `_depthTexture`-Leak bei jedem WebGPU-Resize.

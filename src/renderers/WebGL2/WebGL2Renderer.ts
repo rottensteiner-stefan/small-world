@@ -214,10 +214,9 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     // Pre-register internal materials
     new DepthMaterial();
 
-    // 2176 bytes: GlobalUniforms grew by 32 bytes (u_tileSizePx + u_clusterDims, plus std140
-    // vec4 alignment padding) for clustered light culling -- see
-    // docs/adr/0007-clustered-lighting-webgl2-webgpu-only.md.
-    this._globalUBO = new WebGL2UniformBuffer(this.gl, 2176, 0);
+    // 2112 bytes: GlobalUniforms with std140 layout (u_areaLights[4] 96-byte stride ends at 2080,
+    // followed by u_tileSizePx at 2080 and u_clusterDims at 2096) for clustered light culling.
+    this._globalUBO = new WebGL2UniformBuffer(this.gl, 2112, 0);
     this._programCache = new WebGLProgramCache(
       this.gl,
       this._globalUBO,
@@ -292,11 +291,11 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
    * @param tileSizePx Screen-space tile size in pixels, [width, height].
    */
   public writeClusterGridUniforms(tileSizePx: [number, number]): void {
-    this._globalUBO.setVec2(2144, tileSizePx[0], tileSizePx[1]);
-    this._globalUBO.setFloat(2160, this._clusterDims.x);
-    this._globalUBO.setFloat(2164, this._clusterDims.y);
-    this._globalUBO.setFloat(2168, this._clusterDims.z);
-    this._globalUBO.setFloat(2172, this._clusterMaxLightsPerCluster);
+    this._globalUBO.setVec2(2080, tileSizePx[0], tileSizePx[1]);
+    this._globalUBO.setFloat(2096, this._clusterDims.x);
+    this._globalUBO.setFloat(2100, this._clusterDims.y);
+    this._globalUBO.setFloat(2104, this._clusterDims.z);
+    this._globalUBO.setFloat(2108, this._clusterMaxLightsPerCluster);
   }
 
   /** Builds the black cube / (scale=1, bias=0) fallbacks used when a scene has no real IBL data. */
@@ -724,10 +723,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         hasAlpha = true;
         this.gl.activeTexture(this.gl.TEXTURE0);
         const tex = manifest.textures["u_diffuseMap"] as Texture;
-        this.gl.bindTexture(
-          this.gl.TEXTURE_2D,
-          this._textures.getWebGLTexture(tex, this._quality),
-        );
+        this.gl.bindTexture(this.gl.TEXTURE_2D, this._textures.getWebGLTexture(tex, this._quality));
         const uDiffuseLoc = cache.uniforms.get("u_diffuseMap");
         if (uDiffuseLoc) this.gl.uniform1i(uDiffuseLoc, 0);
 
@@ -743,7 +739,10 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       for (const o of objects) {
         if (!o.castShadow || !o.geometry) continue;
 
-        this._programCache.acquireProgram(o, this._programCache.programCacheKey(MaterialType.DEPTH, false, []));
+        this._programCache.acquireProgram(
+          o,
+          this._programCache.programCacheKey(MaterialType.DEPTH, false, []),
+        );
         this._textures.acquireTextures(o, manifest.textures);
 
         this._scratchModelMatrix.set(o.worldMatrix.data);
@@ -1117,7 +1116,9 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
         this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, null);
         this.gl.bindTexture(
           this.gl.TEXTURE_2D,
-          scene.brdfLUT ? this._textures.getWebGLTexture(scene.brdfLUT, this._quality) : this._defaultBrdfTexture,
+          scene.brdfLUT
+            ? this._textures.getWebGLTexture(scene.brdfLUT, this._quality)
+            : this._defaultBrdfTexture,
         );
         this.gl.uniform1i(brdfLoc, brdfUnit);
       }
@@ -1207,7 +1208,9 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       const skyTex = texs["u_skybox"] as CubeTexture;
       this.gl.bindTexture(
         this.gl.TEXTURE_CUBE_MAP,
-        skyTex ? this._textures.getWebGLCubeTexture(skyTex, this._quality) : this.defaultCubeTexture,
+        skyTex
+          ? this._textures.getWebGLCubeTexture(skyTex, this._quality)
+          : this.defaultCubeTexture,
       );
       const uSkybox = u.get("u_skybox");
       if (uSkybox) this.gl.uniform1i(uSkybox, 0);
@@ -1253,7 +1256,9 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
               this._opaqueDepthTexture ?? this.defaultTexture,
             );
           } else {
-            const glTex = t ? this._textures.getWebGLTexture(t, this._quality) : this.defaultTexture;
+            const glTex = t
+              ? this._textures.getWebGLTexture(t, this._quality)
+              : this.defaultTexture;
             if (t && "isTextureArray" in t && (t as TextureArray).isTextureArray) {
               this.gl.bindTexture(this.gl.TEXTURE_2D_ARRAY, glTex);
             } else {
@@ -1520,7 +1525,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     }
 
     for (let i = 0; i < 4; i++) {
-      const offset = 1696 + i * 112;
+      const offset = 1696 + i * 96;
       if (i < lights.aLights.length) {
         const al = lights.aLights[i]!;
         const mat = al.worldMatrix.data;

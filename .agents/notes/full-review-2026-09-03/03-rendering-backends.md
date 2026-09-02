@@ -55,7 +55,8 @@ Manuell Feld für Feld nachgerechnet (`StandardWebGPULayout.ts:8-51` gegen `stru
 
 ## `src/renderers/WebGL2/WebGL2Renderer.ts` — `GlobalUniforms`-UBO
 
-### 🔴 `updateGlobalUBO()`/`writeClusterGridUniforms()`: falscher `AreaLight`-Array-Stride verschiebt Cluster-Grid-Uniforms komplett aus dem tatsächlichen std140-Layout — WebGL2 Clustered Lighting liest immer Null
+### ✅ [ERLEDIGT] `updateGlobalUBO()`/`writeClusterGridUniforms()`: falscher `AreaLight`-Array-Stride verschiebt Cluster-Grid-Uniforms komplett aus dem tatsächlichen std140-Layout — WebGL2 Clustered Lighting liest immer Null
+*(Behoben 2026-09-03: `GlobalUniforms` UBO-Größe auf 2112 Bytes korrigiert; `AreaLight` Loop-Stride auf std140-konforme 96 Bytes angepasst; `writeClusterGridUniforms` schreibt `u_tileSizePx` an Offset 2080 und `u_clusterDims` an Offset 2096; Unit-Tests in `tests/renderers/ClusteredLightingAlignment.test.ts`.)*
 
 **Dateien:**
 - `src/renderers/WebGL2/WebGL2Renderer.ts:1522-1541` (`updateGlobalUBO()`, AreaLight-Packing-Loop)
@@ -124,7 +125,8 @@ Point- und Spot-Light-Layout sind korrekt (Stride 32 bzw. 64 stimmt); nur der `A
 
 ## `src/core/renderers/shaders/source/web_gpu/compute/cluster_cull.wgsl` — Clustered Lighting (WebGPU)
 
-### 🔴 `lightCellRangeY()` benutzt die falsche NDC→Pixel-Y-Konvention — Punkt-/Spot-Lichter landen in vertikal gespiegelten Cluster-Zeilen
+### ✅ [ERLEDIGT] `lightCellRangeY()` benutzt die falsche NDC→Pixel-Y-Konvention — Punkt-/Spot-Lichter landen in vertikal gespiegelten Cluster-Zeilen
+*(Behoben 2026-09-03: `lightCellRangeY` in `cluster_cull.wgsl` mappt NDC Y-up auf WebGPU Top-Left Origin `(1.0 - (ndcY * 0.5 + 0.5)) * resolution.y`; Unit-Tests in `tests/renderers/ClusteredLightingAlignment.test.ts`.)*
 
 **Datei:** `src/core/renderers/shaders/source/web_gpu/compute/cluster_cull.wgsl:23-27`
 
