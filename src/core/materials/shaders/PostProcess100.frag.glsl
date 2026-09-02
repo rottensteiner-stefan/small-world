@@ -75,8 +75,8 @@ void main() {
     // Apply Vignette
     if (u_vignetteEnabled == 1) {
         float d = distance(uv, vec2(0.5));
-        float v_edge0 = u_vignetteOffset - u_vignetteDarkness;
-        float vignette = 1.0 - smoothstep(v_edge0, u_vignetteOffset, d);
+        float innerRadius = u_vignetteOffset * 0.5;
+        float vignette = 1.0 - smoothstep(innerRadius, u_vignetteOffset, d);
         srgb *= mix(1.0, vignette, clamp(u_vignetteDarkness, 0.0, 1.0));
     }
 

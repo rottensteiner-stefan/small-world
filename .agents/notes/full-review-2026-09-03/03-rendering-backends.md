@@ -313,7 +313,8 @@ Das steht im direkten Widerspruch zur WebGPU-Implementierung (`src/renderers/pas
 
 ---
 
-### 🔴 Vignette-Formel divergiert zwischen WebGL1 und WebGL2/WebGPU — sichtbar unterschiedliches Ergebnis bei identischen Parametern
+### ✅ [ERLEDIGT] Vignette-Formel divergiert zwischen WebGL1 und WebGL2/WebGPU — sichtbar unterschiedliches Ergebnis bei identischen Parametern
+*(Behoben 2026-09-03: `innerRadius = u_vignetteOffset * 0.5` in `PostProcess100.frag.glsl` angeglichen; Unit-Tests in `tests/renderers/VignetteFormula.test.ts`.)*
 
 **Dateien:** `PostProcess.frag.glsl:210-223` (WebGL2) / `PostProcess.frag.wgsl:211-223` (WebGPU) vs. `PostProcess100.frag.glsl:75-81` (WebGL1)
 

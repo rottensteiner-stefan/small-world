@@ -45,7 +45,8 @@ Alle 5 Agenten fertig. **Gesamt: 23× 🔴 kritisch, ~29× 🟠 fragil, ~20× �
 - [x] ~~WebGPU `_packObjectUniforms()`-Alpha-Fallback-Bug kann `CustomShaderMaterial`-Objekte komplett unsichtbar rendern.~~ *(✅ Behoben)*
 - [x] ~~Fehlende `_activeRenderTarget`-Guards auf WebGPU TAA/Bloom/HBAO (im Gegensatz zu HZB) — Reflection-Probe-Renders kontaminieren die persistente TAA-History.~~ *(✅ Behoben)*
 - [x] ~~`_depthTexture`-Leak bei jedem WebGPU-Resize.~~ *(✅ Behoben)*
-- (weitere 2× 🔴, Details in Datei — WebGL-Post-Processing-Uber-Shader-Rekompilierung bei jedem Slider-Tweak, Vignette-Formel-Divergenz WebGL1 vs. WebGL2/WebGPU — teils als 🟠 statt 🔴 klassifiziert, siehe Datei für exakte Einstufung)
+- [x] ~~Vignette-Formel-Divergenz WebGL1 vs. WebGL2/WebGPU.~~ *(✅ Behoben)*
+- WebGL-Post-Processing-Uber-Shader-Rekompilierung bei jedem Slider-Tweak (`PostProcessPassGL.ts`).
 
 ### D — Geometry/Loaders/Physics/Audio (5×)
 - `PhysicsSystem.ts` Positionskorrektur (`depth/totalInvMass + 0.005`) konvergiert nie — ruhende Kugel oszilliert für immer zwischen zwei Y-Positionen (per Test verifiziert).
