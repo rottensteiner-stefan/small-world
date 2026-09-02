@@ -4,6 +4,7 @@ import { TransformGizmo } from "../../../src/tools/maker/TransformGizmo.js";
 import { Object3D } from "../../../src/core/Object3D.js";
 import { Vector3D, Matrix4 } from "../../../src/math/index.js";
 import {
+  Behavior,
   RotatorBehavior,
   attachBehavior,
   detachBehavior,
@@ -12,6 +13,7 @@ import { UndoStack } from "../../../src/tools/maker/UndoStack.js";
 import { OrbitCameraController } from "../../../src/tools/maker/OrbitCameraController.js";
 import { HierarchyPanel } from "../../../src/tools/maker/HierarchyPanel.js";
 import { PropertyPanel } from "../../../src/tools/maker/PropertyPanel.js";
+import { ObjectPalette } from "../../../src/tools/maker/ObjectPalette.js";
 import { collectInspectorSchema } from "../../../src/core/Inspectable.js";
 
 describe("Maker Phase 2 Features", () => {
@@ -472,6 +474,55 @@ describe("Maker Phase 2 Features", () => {
       searchInput.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
       expect(searchInput.value).toBe("");
       expect(container.querySelectorAll(".maker-hierarchy-row").length).toBe(3);
+    });
+  });
+
+  describe("ObjectPalette Categorized Icon Grid", () => {
+    it("renders primitives, lights, structure, and behavior grids with correct tile counts", () => {
+      const container = document.createElement("div");
+      const created: Object3D[] = [];
+      const attached: Behavior[] = [];
+
+      new ObjectPalette(container, {
+        createObject: (factory): void => {
+          created.push(factory());
+        },
+        attachBehavior: (factory): void => {
+          attached.push(factory());
+        },
+      });
+
+      const grids = container.querySelectorAll(".maker-palette-grid");
+      expect(grids.length).toBe(4);
+
+      const tiles = container.querySelectorAll(".maker-palette-tile");
+      // 8 primitives + 4 lights + 1 group + 6 behaviors = 19 tiles
+      expect(tiles.length).toBe(19);
+
+      // Trigger all buttons to verify geometry/material/light creation without errors
+      tiles.forEach((tile) => {
+        (tile as HTMLElement).click();
+      });
+
+      // 13 createObject calls (8 primitives + 4 lights + 1 group)
+      expect(created.length).toBe(13);
+      // 6 attachBehavior calls
+      expect(attached.length).toBe(6);
+
+      const createdNames = created.map((o) => o.name);
+      expect(createdNames).toContain("Cube");
+      expect(createdNames).toContain("Sphere");
+      expect(createdNames).toContain("Cylinder");
+      expect(createdNames).toContain("Plane");
+      expect(createdNames).toContain("Capsule");
+      expect(createdNames).toContain("Cone");
+      expect(createdNames).toContain("Torus");
+      expect(createdNames).toContain("Pyramid");
+      expect(createdNames).toContain("PointLight");
+      expect(createdNames).toContain("DirectionalLight");
+      expect(createdNames).toContain("SpotLight");
+      expect(createdNames).toContain("AmbientLight");
+      expect(createdNames).toContain("Group");
     });
   });
 });

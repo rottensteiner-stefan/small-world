@@ -373,5 +373,21 @@ Blitzschnelle Live-Objektsuche im Szenenbaum nach Industriestandard (Unity/Unrea
   - <kbd>Escape</kbd> leert den Suchfilter, stellt den vollen Szenenbaum wieder her und setzt den Fokus zurück in den Viewport.
 - **Status:** 112 Test-Dateien, 631 Tests, Build & Lint 100% grün.
 
+---
+
+## 2026-09-02 — Categorized Icon Matrix Palette (Primitives, Lights, Structure & Behaviors)
+
+Vollständige Überarbeitung der Objekt-Palette vom Textlisten-Design zur kompakten, ergonomischen 4-Spalten-Icon-Matrix nach Unreal/Figma-Vorbild:
+- **3D Primitives (8 Formen):** Cube 🧊, Sphere ⚪, Cylinder 🥫, Plane ⏹️, Capsule 💊, Cone 📐, Torus 🍩, Pyramid 🔺.
+- **Lights (4 Lichtarten):** Point Light 💡, Directional Sun Light ☀️, Spot Light 🔦, Ambient Light 🌐.
+- **Structure (1 Helfer):** Empty Group Node 📁.
+- **Behaviors (6 Verhalten):** Rotator 🔄, Hover 🛸, Bobbing 🌊, Pulse 💓, LookAt 👁️, Flicker ⚡.
+- **UI & Ergonomie:**
+  - Kompakte 44px-Tiles mit Icon + Sub-Label und Hover-Tooltips.
+  - Spart über 65% vertikale Panelhöhe und eliminiert vertikales Scrollen in der linken Leiste.
+  - Sofortige taktile Rückmeldung mit Hover-Glow und Active-Press-Feedback.
+- **Status:** 112 Test-Dateien, 632 Tests, Build & Lint 100% grün.
+
+
 
 
