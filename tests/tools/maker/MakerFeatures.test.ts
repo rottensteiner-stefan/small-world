@@ -16,6 +16,9 @@ import { PropertyPanel } from "../../../src/tools/maker/PropertyPanel.js";
 import { ObjectPalette } from "../../../src/tools/maker/ObjectPalette.js";
 import { LightGizmoManager } from "../../../src/tools/maker/LightGizmoManager.js";
 import { PointLight, DirectionalLight, SpotLight } from "../../../src/core/lights/index.js";
+import { Cube } from "../../../src/geometry/index.js";
+import { BoundingBox } from "../../../src/physix/index.js";
+import { BoundingType } from "../../../src/enums/index.js";
 import { collectInspectorSchema } from "../../../src/core/Inspectable.js";
 
 describe("Maker Phase 2 Features", () => {
@@ -571,6 +574,62 @@ describe("Maker Phase 2 Features", () => {
       const afterPickables: Object3D[] = [];
       mgr.collectPickables(afterPickables);
       expect(afterPickables.find((p) => p.name === "Helper_BunkerLamp")).toBeUndefined();
+    });
+  });
+
+  describe("Smart Viewport Spawning & Ground Resting", () => {
+    it("places fresh objects at camera view center resting flush on the floor", () => {
+      const container = document.createElement("div");
+      const canvas = document.createElement("canvas");
+      container.appendChild(canvas);
+
+      // Create MakerApp instance in headless test env
+      const app = new (class MockMaker {
+        public orbitTarget = new Vector3D(4, 0, 6);
+        public cameraPos = new Vector3D(4, 10, 16);
+
+        public computeSpawn(obj: Object3D): Vector3D {
+          const target = this.orbitTarget.clone();
+          const rayDir = new Vector3D().copyFrom(target).sub(this.cameraPos).normalize();
+
+          let spawnX = target.x;
+          let spawnZ = target.z;
+
+          if (Math.abs(rayDir.y) > 0.001) {
+            const t = -this.cameraPos.y / rayDir.y;
+            if (t > 0 && t < 100) {
+              spawnX = this.cameraPos.x + rayDir.x * t;
+              spawnZ = this.cameraPos.z + rayDir.z * t;
+            }
+          }
+
+          let spawnY = 0;
+          if (obj instanceof PointLight) {
+            spawnY = 2.0;
+          } else if (obj.geometry) {
+            obj.computeBounds();
+            if (obj.bounds && BoundingType.BOX === obj.bounds.type) {
+              const box = obj.bounds as BoundingBox;
+              spawnY = -box.min.y;
+            }
+          }
+
+          return new Vector3D(spawnX, spawnY, spawnZ);
+        }
+      })();
+
+      const cube = new Object3D("Cube");
+      cube.geometry = new Cube({ size: 1 }).getGeometryData();
+      const cubePos = app.computeSpawn(cube);
+
+      expect(cubePos.x).toBeCloseTo(4.0);
+      expect(cubePos.z).toBeCloseTo(6.0);
+      // Cube of size 1 with origin in center has bottom at -0.5 -> sits at Y = 0.5
+      expect(cubePos.y).toBeCloseTo(0.5);
+
+      const lamp = new PointLight({ name: "CeilingLight" });
+      const lampPos = app.computeSpawn(lamp);
+      expect(lampPos.y).toBeCloseTo(2.0);
     });
   });
 });

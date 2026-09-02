@@ -12,6 +12,8 @@ import {
   attachBehavior,
   detachBehavior,
   DirectionalLight,
+  PointLight,
+  SpotLight,
   AmbientLight,
   AbstractLight,
   WireframeMaterial,
@@ -850,7 +852,52 @@ export class MakerApp extends SmallWorld {
     this._syncHighlight();
   }
 
+  private _computeSmartSpawnPosition(obj: Object3D): Vector3D {
+    const target = this._orbit.target.clone();
+    const rayDir = new Vector3D().copyFrom(target).sub(this.camera.position).normalize();
+
+    let spawnX = target.x;
+    let spawnZ = target.z;
+
+    if (Math.abs(rayDir.y) > 0.001) {
+      const t = -this.camera.position.y / rayDir.y;
+      if (t > 0 && t < 100) {
+        spawnX = this.camera.position.x + rayDir.x * t;
+        spawnZ = this.camera.position.z + rayDir.z * t;
+      }
+    }
+
+    if (this._gizmo.snap.enabled) {
+      spawnX = this._gizmo.snapValue("translate", spawnX);
+      spawnZ = this._gizmo.snapValue("translate", spawnZ);
+    }
+
+    let spawnY = 0;
+    if (obj instanceof PointLight) {
+      spawnY = 2.0;
+    } else if (obj instanceof DirectionalLight) {
+      spawnY = 5.0;
+    } else if (obj instanceof SpotLight) {
+      spawnY = 3.0;
+    } else if (obj instanceof AmbientLight) {
+      spawnY = 1.0;
+    } else if (obj.geometry) {
+      obj.computeBounds();
+      if (obj.bounds && BoundingType.BOX === obj.bounds.type) {
+        const box = obj.bounds as BoundingBox;
+        spawnY = -box.min.y;
+      }
+    }
+
+    return new Vector3D(spawnX, spawnY, spawnZ);
+  }
+
   public addObject(obj: Object3D): void {
+    if (0 === obj.position.x && 0 === obj.position.y && 0 === obj.position.z) {
+      const smartPos = this._computeSmartSpawnPosition(obj);
+      obj.position.copyFrom(smartPos);
+    }
+
     this._undo.execute({
       label: `Add ${obj.name}`,
       redo: () => {

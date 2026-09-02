@@ -414,10 +414,20 @@ Einführung des `SpawnPoint`-Elements als First-Class-Knoten im Szenengraph und 
 - **Visuelle Repräsentation (1.8m Drahtgitter-Kapsel):**
   - Smaragdgrüne Kapsel ($1.8\text{m}$ Höhe, $0.35\text{m}$ Radius) dient sofort als perfekter Maßstabs- und Größenvergleich beim Levelbau.
   - Kegel-Richtungspfeil an der Vorderseite zeigt die exakte Blickrichtung (Forward-Vektor $-Z$) des Spielers beim Levelstart an.
-- **Palette & Interaktion:**
-  - Klick auf **📍 Spawn** in der Structure-Palette platziert den Spawn-Punkt direkt in der Szene.
-  - Volle Unterstützung für Verschieben (<kbd>W</kbd>), Drehen (<kbd>E</kbd>) und Snap to Ground (<kbd>End</kbd>).
 - **Status:** 112 Test-Dateien, 633 Tests, Build & Lint 100% grün.
+
+---
+
+## 2026-09-02 — Smart Viewport-Center Spawning & Automatic Floor-Resting
+
+Intelligente Platzierung neu erzeugter Objekte nach Industriestandard (Blender 3D Cursor / Unity Scene Focus View):
+- **Kein Spawnen mehr bei $(0, 0, 0)$:** Neu hinzugefügte Objekte landen nicht mehr unbemerkt im Weltursprung oder hinter der Kamera, sondern **direkt im aktuellen Fokus-Zentrum des Viewports** (`this._orbit.target` / Blick-Schnittpunkt mit der Bodenebene $Y = 0$).
+- **Automatisches Aufsetzen auf den Boden (Zero In-Ground Clipping):**
+  - Meshes (Würfel, Kugel, Zylinder, Kapsel, SpawnPoint etc.) berechnen ihren Bounding-Box-Bottom und sitzen mit ihrer Unterkante exakt bündig auf $Y = 0$ auf (z.B. Würfel-Mittelpunkt bei $Y = 0.5$).
+  - Lichter werden automatisch in ergonomischer Arbeitshöhe platziert (PointLight: $Y = 2.0\text{m}$, SpotLight: $Y = 3.0\text{m}$, Sun: $Y = 5.0\text{m}$).
+- **Automatisches Raster-Snapping:** Wenn Snapping aktiv ist, rastet die Spawn-Position direkt auf das eingestellte Translation-Grid ein.
+- **Status:** 112 Test-Dateien, 634 Tests, Build & Lint 100% grün.
+
 
 
 
