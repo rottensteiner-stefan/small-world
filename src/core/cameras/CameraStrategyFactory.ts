@@ -11,21 +11,29 @@ import {
 import { CameraStrategy } from "../../interfaces/index.js";
 
 export class CameraStrategyFactory {
-  private static _strategies = new Map<CameraStrategyType, CameraStrategy>([
-    [CameraStrategyType.MANUAL, new ManualStrategy()],
-    [CameraStrategyType.HYBRID_SYNC, new HybridSyncStrategy()],
-    [CameraStrategyType.FPS, new FPSStrategy()],
-    [CameraStrategyType.SMOOTH, new SmoothStrategy()],
-    [CameraStrategyType.STIFF, new StiffStrategy()],
-    [CameraStrategyType.FIXED, new FixedStrategy()],
-    [CameraStrategyType.ISOMETRIC, new IsometricStrategy()],
-  ]);
-
+  /**
+   * Creates a fresh camera strategy instance of the specified type.
+   * @param type The type of camera strategy to create.
+   * @returns A new independent camera strategy instance.
+   */
   public static get(type: CameraStrategyType): CameraStrategy {
-    const strategy = this._strategies.get(type);
-    if (!strategy) {
-      throw new Error(`Unknown camera strategy type: ${type}`);
+    switch (type) {
+      case CameraStrategyType.MANUAL:
+        return new ManualStrategy();
+      case CameraStrategyType.HYBRID_SYNC:
+        return new HybridSyncStrategy();
+      case CameraStrategyType.FPS:
+        return new FPSStrategy();
+      case CameraStrategyType.SMOOTH:
+        return new SmoothStrategy();
+      case CameraStrategyType.STIFF:
+        return new StiffStrategy();
+      case CameraStrategyType.FIXED:
+        return new FixedStrategy();
+      case CameraStrategyType.ISOMETRIC:
+        return new IsometricStrategy();
+      default:
+        throw new Error(`Unknown camera strategy type: ${type as string}`);
     }
-    return strategy;
   }
 }

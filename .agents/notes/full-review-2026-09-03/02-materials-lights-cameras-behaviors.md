@@ -345,7 +345,8 @@ Vergleiche/Konstanten, aber niemals ein tatsächliches Default-Objektfeld.
 
 ---
 
-## 🔴 `CameraStrategyFactory` liefert geteilte Singleton-Instanzen für zustandsbehaftete Strategien — Cross-Camera State-Leak
+## ✅ [ERLEDIGT] `CameraStrategyFactory` liefert geteilte Singleton-Instanzen für zustandsbehaftete Strategien — Cross-Camera State-Leak
+*(Behoben 2026-09-03: `CameraStrategyFactory.get(type)` erzeugt pro Aufruf eine neue Instanz via Switch-Statement; keine geteilten statischen Instanzen mehr; Unit-Tests in `tests/core/CameraStrategyFactory.test.ts`.)*
 
 `CameraStrategyFactory.ts:14-22` legt **genau eine** Instanz pro `CameraStrategyType` als
 Modul-/Klassen-weites statisches Konstrukt an:
