@@ -38,7 +38,7 @@ Alle 5 Agenten fertig. **Gesamt: 23× 🔴 kritisch, ~29× 🟠 fragil, ~20× �
 - [x] ~~`CameraStrategyFactory` gibt gecachte Singleton-Strategie-Instanzen mit per-Kamera-mutablem State aus — mehrere Kameras mit gleicher Strategie korrumpieren sich gegenseitig.~~ *(✅ Behoben)*
 - [x] ~~`CloneUtils.shallowCloneWithValueTypes()` klont nur Vector3D/Quaternion/Color tief, nicht Vector2D/Arrays/Plain Objects — mehrere Material-/Behavior-Felder leaken Referenzen zwischen Original und Klon.~~ *(✅ Behoben)*
 - [x] ~~`AreaLight` ist unter `StandardMaterial` (PBR) auf allen 3 Backends komplett unsichtbar — keine PBR-Lighting-Chunk wertet sie aus.~~ *(✅ Behoben)*
-- `AbstractShowcase` registriert einen anonymen, nie entfernbaren `keydown`-Listener auf `window` — bricht `SmallWorld.destroy()`s dokumentierten "entfernt alle globalen Listener"-Vertrag für jede Showcase.
+- [x] ~~`AbstractShowcase` registriert einen anonymen, nie entfernbaren `keydown`-Listener auf `window` — bricht `SmallWorld.destroy()`s dokumentierten "entfernt alle globalen Listener"-Vertrag für jede Showcase.~~ *(✅ Behoben)*
 
 ### C — Rendering Backends (7×)
 - Clustered Forward+ Lighting kaputt auf WebGL2 (falscher `AreaLight`-UBO-Stride, 112 statt 96 Byte → Cluster-Dims lesen immer Null) UND auf WebGPU (`cluster_cull.wgsl` nutzt falsche NDC→Pixel-Y-Konvention → vertikal gespiegelte Cluster-Zuordnung).

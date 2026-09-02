@@ -18,6 +18,9 @@ function getRendererTypeFromQuery(): RendererType | undefined {
 }
 
 export abstract class AbstractShowcase extends SmallWorld {
+  private _showcaseKeyDownHandler = (event: KeyboardEvent): void => this.onKeyDown(event);
+  private _navButtons: HTMLButtonElement[] = [];
+
   /**
    * The constructor is passed to Application.
    * Also registers the global keyboard listener for showcases.
@@ -25,8 +28,20 @@ export abstract class AbstractShowcase extends SmallWorld {
   constructor(config: EngineOptions = {}) {
     const rendererTypeOverride = getRendererTypeFromQuery();
     super(rendererTypeOverride ? { ...config, rendererType: rendererTypeOverride } : config);
-    window.addEventListener("keydown", (event: KeyboardEvent): void => this.onKeyDown(event));
+    window.addEventListener("keydown", this._showcaseKeyDownHandler);
     this._initShowcaseNavigation();
+  }
+
+  /**
+   * Destroys the showcase instance, freeing resources and removing showcase-specific DOM/listeners.
+   */
+  public override destroy(): void {
+    window.removeEventListener("keydown", this._showcaseKeyDownHandler);
+    for (const btn of this._navButtons) {
+      btn.remove();
+    }
+    this._navButtons = [];
+    super.destroy();
   }
 
   /**
@@ -94,6 +109,7 @@ export abstract class AbstractShowcase extends SmallWorld {
       btn.onclick = action;
 
       document.body.appendChild(btn);
+      this._navButtons.push(btn);
     };
 
     createButton("◀", "left", () => {

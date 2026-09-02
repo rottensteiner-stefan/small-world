@@ -601,7 +601,8 @@ die Duplikation eliminieren, ohne die beiden Strategien architektonisch zu verä
 
 ---
 
-## 🔴 `AbstractShowcase` registriert einen nicht entfernbaren globalen `keydown`-Listener — bricht `SmallWorld.destroy()`s eigenes Lifecycle-Versprechen
+## ✅ [ERLEDIGT] `AbstractShowcase` registriert einen nicht entfernbaren globalen `keydown`-Listener — bricht `SmallWorld.destroy()`s eigenes Lifecycle-Versprechen
+*(Behoben 2026-09-03: `AbstractShowcase` speichert `_showcaseKeyDownHandler` als benannte Property und implementiert `destroy()`, welches `window.removeEventListener("keydown", ...)` aufruft und Navigations-Buttons aus dem DOM entfernt; Unit-Tests in `tests/core/AbstractShowcase.test.ts`.)*
 
 `src/core/showcase/AbstractShowcase.ts:28` (Konstruktor):
 
