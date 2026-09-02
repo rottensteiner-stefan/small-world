@@ -132,7 +132,7 @@ export class StandardMaterial extends AbstractMaterial {
   constructor(options: StandardMaterialOptions = {}) {
     super(MaterialType.STANDARD);
     const {
-      color = Color.WHITE,
+      color = new Color(1, 1, 1, 1),
       metallic = 0.0,
       roughness = 0.5,
       ao = 1.0,
@@ -153,7 +153,7 @@ export class StandardMaterial extends AbstractMaterial {
       alphaTest = 0.0,
       time = 0.0,
     } = options;
-    this.color = color;
+    this.color = Object.isFrozen(color) ? color.clone() : color;
     this.metallic = metallic;
     this.roughness = roughness;
     this.ao = ao;

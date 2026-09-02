@@ -36,8 +36,8 @@ export class SkyboxMaterial extends AbstractMaterial {
    */
   constructor(options: SkyboxMaterialOptions = {}) {
     super(MaterialType.SKYBOX);
-    const { color = Color.WHITE, cubeMap = undefined } = options;
-    this.color = color;
+    const { color = new Color(1, 1, 1, 1), cubeMap = undefined } = options;
+    this.color = Object.isFrozen(color) ? color.clone() : color;
     this.cubeMap = cubeMap;
   }
 

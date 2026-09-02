@@ -18,5 +18,5 @@ export class OutlineElement extends PostProcessingElement {
   public sensitivity: number = 1.0;
 
   /** Color of the ink outline. */
-  public color: Color = Color.BLACK;
+  public color: Color = new Color(0, 0, 0, 1);
 }

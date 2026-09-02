@@ -88,7 +88,7 @@ export abstract class AbstractLight extends Object3D {
    */
   protected constructor(options: LightOptions = {}) {
     const {
-      color = Color.WHITE,
+      color = new Color(1, 1, 1, 1),
       intensity = 1.0,
       name = "Light",
       castShadow = false,
@@ -97,7 +97,7 @@ export abstract class AbstractLight extends Object3D {
       shadowNormalBias = 0.0,
     } = options;
     super(name);
-    this.color = color;
+    this.color = Object.isFrozen(color) ? color.clone() : color;
     this.intensity = intensity;
     this.castShadow = castShadow;
     this.shadowResolution = shadowResolution;

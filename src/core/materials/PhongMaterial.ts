@@ -76,8 +76,8 @@ export class PhongMaterial extends AbstractMaterial {
   constructor(options: PhongMaterialOptions = {}) {
     super(MaterialType.PHONG);
     const {
-      color = Color.WHITE,
-      specularColor = Color.WHITE,
+      color = new Color(1, 1, 1, 1),
+      specularColor = new Color(1, 1, 1, 1),
       shininess = 32.0,
       diffuseMap = undefined,
       normalMap = undefined,
@@ -86,8 +86,8 @@ export class PhongMaterial extends AbstractMaterial {
       transparent = false,
       alphaTest = 0.0,
     } = options;
-    this.color = color;
-    this.specularColor = specularColor;
+    this.color = Object.isFrozen(color) ? color.clone() : color;
+    this.specularColor = Object.isFrozen(specularColor) ? specularColor.clone() : specularColor;
     this.shininess = shininess;
     this.diffuseMap = diffuseMap;
     this.normalMap = normalMap;

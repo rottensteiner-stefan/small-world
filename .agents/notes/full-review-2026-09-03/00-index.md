@@ -34,7 +34,7 @@ Alle 5 Agenten fertig. **Gesamt: 23× 🔴 kritisch, ~29× 🟠 fragil, ~20× �
 - [x] ~~`EventDispatcherImpl.dispatchEvent()` alloziert bei jedem Aufruf ein neues Array (`.slice(0)`) — direkter Verstoß gegen CONTEXT.md's eigenes Zero-Allocation-Beispiel "event dispatch", erreichbar über jedes Physik-Kollisionsevent.~~ *(✅ Behoben)*
 
 ### B — Materials/Lights/Cameras/Behaviors (5×)
-- `Color.WHITE` (gefrorenes Singleton) wird an 7 Stellen als Default per Referenz zugewiesen — jede In-Place-Farbmutation (RainbowBehavior, Maker-Farbinspector) wirft `TypeError`.
+- [x] ~~`Color.WHITE` (gefrorenes Singleton) wird an 7 Stellen als Default per Referenz zugewiesen — jede In-Place-Farbmutation (RainbowBehavior, Maker-Farbinspector) wirft `TypeError`.~~ *(✅ Behoben)*
 - `CameraStrategyFactory` gibt gecachte Singleton-Strategie-Instanzen mit per-Kamera-mutablem State aus — mehrere Kameras mit gleicher Strategie korrumpieren sich gegenseitig.
 - `CloneUtils.shallowCloneWithValueTypes()` klont nur Vector3D/Quaternion/Color tief, nicht Vector2D/Arrays/Plain Objects — mehrere Material-/Behavior-Felder leaken Referenzen zwischen Original und Klon.
 - `AreaLight` ist unter `StandardMaterial` (PBR) auf allen 3 Backends komplett unsichtbar — keine PBR-Lighting-Chunk wertet sie aus.

@@ -41,12 +41,12 @@ export class LambertMaterial extends AbstractMaterial {
   constructor(options: LambertMaterialOptions = {}) {
     super(MaterialType.LAMBERT);
     const {
-      color = Color.WHITE,
+      color = new Color(1, 1, 1, 1),
       diffuseMap = undefined,
       normalMap = undefined,
       normalScale = new Vector2D(1, 1),
     } = options;
-    this.color = color;
+    this.color = Object.isFrozen(color) ? color.clone() : color;
     this.diffuseMap = diffuseMap;
     this.normalMap = normalMap;
     this.normalScale = normalScale;

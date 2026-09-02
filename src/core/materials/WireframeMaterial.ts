@@ -27,11 +27,11 @@ export class WireframeMaterial extends AbstractMaterial {
   public wireframeMode: "structural" | "triangles" = "structural";
 
   constructor(
-    color: Color = Color.WHITE,
+    color: Color = new Color(1, 1, 1, 1),
     wireframeMode: "structural" | "triangles" = "structural",
   ) {
     super(MaterialType.WIREFRAME);
-    this.color = color;
+    this.color = Object.isFrozen(color) ? color.clone() : color;
     this.wireframeMode = wireframeMode;
   }
 

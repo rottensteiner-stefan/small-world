@@ -268,7 +268,8 @@ this.depthTest, ... })` statt Objekt-Spread mit Neuzuweisung.
 
 ---
 
-## 🔴 Default-Farbe ist die eingefrorene `Color.WHITE`-Singleton-Referenz — jede In-Place-Farbänderung crasht
+## ✅ [ERLEDIGT] Default-Farbe ist die eingefrorene `Color.WHITE`-Singleton-Referenz — jede In-Place-Farbänderung crasht
+*(Behoben 2026-09-03: `AbstractLight`, `StandardMaterial`, `PhongMaterial`, `LambertMaterial`, `TerrainMaterial`, `SkyboxMaterial`, `WireframeMaterial` und `OutlineElement` instanziieren frische `Color`-Objekte und klonen übergebene eingefrorene Konstanten; Unit-Tests in `tests/core/ColorMutability.test.ts`.)*
 
 `Color.WHITE` ist bewusst als unveränderliche Konstante deklariert:
 
