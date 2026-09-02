@@ -16,6 +16,7 @@ import {
   SpotLight,
   AmbientLight,
   AbstractLight,
+  AbstractMaterial,
   WireframeMaterial,
   StandardMaterial,
   Color,
@@ -186,6 +187,9 @@ export class MakerApp extends SmallWorld {
       },
       onDetachBehavior: (obj, behavior): void => {
         this.detachBehaviorFromObject(obj, behavior);
+      },
+      onSetMaterial: (obj, material): void => {
+        this.setMaterialOnObject(obj, material);
       },
     });
     this._hierarchyPanel = new HierarchyPanel(
@@ -1160,6 +1164,24 @@ export class MakerApp extends SmallWorld {
       },
       undo: () => {
         attachBehavior(obj.behaviors, behavior, obj);
+        this._propertyPanel.setSelection(this._primary, Math.max(0, this._selection.size - 1));
+        this._project.scheduleAutosave(() => this.scene.root);
+      },
+    });
+  }
+
+  public setMaterialOnObject(obj: Object3D, newMaterial: AbstractMaterial | undefined): void {
+    const oldMaterial = obj.material;
+    const label = newMaterial ? `Set ${newMaterial.constructor.name}` : "Remove Material";
+    this._undo.execute({
+      label,
+      redo: () => {
+        obj.material = newMaterial;
+        this._propertyPanel.setSelection(this._primary, Math.max(0, this._selection.size - 1));
+        this._project.scheduleAutosave(() => this.scene.root);
+      },
+      undo: () => {
+        obj.material = oldMaterial;
         this._propertyPanel.setSelection(this._primary, Math.max(0, this._selection.size - 1));
         this._project.scheduleAutosave(() => this.scene.root);
       },

@@ -1,6 +1,14 @@
 import { Pane, FolderApi } from "tweakpane";
 import { Object3D } from "../../core/index.js";
 import { Behavior } from "../../core/behaviors/index.js";
+import {
+  AbstractMaterial,
+  StandardMaterial,
+  BasicMaterial,
+  WireframeMaterial,
+  GlassMaterial,
+  PhongMaterial,
+} from "../../core/materials/index.js";
 import { Color } from "../../core/colors/index.js";
 import { InspectorField, collectInspectorSchema } from "../../core/Inspectable.js";
 import { UndoStack } from "./UndoStack.js";
@@ -19,6 +27,7 @@ type ChangeEvent<T> = { value: T; last?: boolean };
 export interface PropertyPanelCallbacks {
   onPropertyChanged?: (obj: Object3D, propKey: string, value: unknown) => void;
   onDetachBehavior?: (obj: Object3D, behavior: Behavior) => void;
+  onSetMaterial?: (obj: Object3D, material: AbstractMaterial | undefined) => void;
 }
 
 /**
@@ -89,13 +98,27 @@ export class PropertyPanel {
     );
 
     if (obj.material) {
-      const matFolder = this._titleFolder.addFolder({ title: "Material", expanded: true });
+      const matFolder = this._titleFolder.addFolder({
+        title: `Material (${obj.material.constructor.name})`,
+        expanded: true,
+      });
       this._blades.push(matFolder);
+      this._attachMaterialHeaderMenu(matFolder, obj, obj.material);
       this._renderSchema(
         matFolder,
         obj.material as unknown as Record<string, unknown>,
         collectInspectorSchema(obj.material),
       );
+    } else if (obj.geometry) {
+      const noMatFolder = this._titleFolder.addFolder({
+        title: "Material (None)",
+        expanded: true,
+      });
+      this._blades.push(noMatFolder);
+      const addBtn = noMatFolder.addButton({ title: "➕ Add Standard Material" });
+      addBtn.on("click", (): void => {
+        this._callbacks?.onSetMaterial?.(obj, new StandardMaterial());
+      });
     }
 
     if (obj.behaviors.length > 0) {
@@ -115,6 +138,104 @@ export class PropertyPanel {
         );
       }
     }
+  }
+
+  private _attachMaterialHeaderMenu(
+    folder: FolderApi,
+    obj: Object3D,
+    material: AbstractMaterial,
+  ): void {
+    const folderEl = folder.element;
+    if (!folderEl) return;
+
+    folderEl.style.position = "relative";
+
+    const dotsBtn = document.createElement("button");
+    dotsBtn.type = "button";
+    dotsBtn.className = "maker-behavior-menu-btn";
+    dotsBtn.innerHTML = "&#8942;"; // ⋮
+    dotsBtn.title = "Material Options";
+
+    dotsBtn.addEventListener("click", (e: MouseEvent): void => {
+      e.stopPropagation();
+      e.preventDefault();
+      this._showMaterialContextMenu(dotsBtn, obj, material);
+    });
+
+    folderEl.appendChild(dotsBtn);
+  }
+
+  private _showMaterialContextMenu(
+    anchor: HTMLElement,
+    obj: Object3D,
+    material: AbstractMaterial,
+  ): void {
+    document.querySelectorAll(".maker-behavior-dropdown").forEach((el) => el.remove());
+
+    const menu = document.createElement("div");
+    menu.className = "maker-behavior-dropdown";
+
+    const addOption = (label: string, isDanger: boolean, onClick: () => void): void => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = `maker-behavior-dropdown-item${isDanger ? " maker-behavior-dropdown-danger" : ""}`;
+      btn.innerHTML = label;
+      btn.addEventListener("click", (e: MouseEvent): void => {
+        e.stopPropagation();
+        menu.remove();
+        onClick();
+      });
+      menu.appendChild(btn);
+    };
+
+    // Material Switch Options
+    addOption("🎨 Switch: Standard (PBR)", false, () =>
+      this._callbacks?.onSetMaterial?.(obj, new StandardMaterial()),
+    );
+    addOption("💡 Switch: Basic (Unlit)", false, () =>
+      this._callbacks?.onSetMaterial?.(obj, new BasicMaterial()),
+    );
+    addOption("🕸️ Switch: Wireframe", false, () =>
+      this._callbacks?.onSetMaterial?.(obj, new WireframeMaterial()),
+    );
+    addOption("🍷 Switch: Glass", false, () =>
+      this._callbacks?.onSetMaterial?.(obj, new GlassMaterial()),
+    );
+    addOption("✨ Switch: Phong", false, () =>
+      this._callbacks?.onSetMaterial?.(obj, new PhongMaterial()),
+    );
+
+    // Separator
+    const sep = document.createElement("div");
+    sep.style.cssText = "height: 1px; background: #334155; margin: 4px 0;";
+    menu.appendChild(sep);
+
+    // Reset Defaults
+    addOption("🔄 Reset to Defaults", false, () => {
+      const matClass = material.constructor as new () => AbstractMaterial;
+      this._callbacks?.onSetMaterial?.(obj, new matClass());
+    });
+
+    // Remove Material
+    addOption("🗑️ Remove Material", true, () => this._callbacks?.onSetMaterial?.(obj, undefined));
+
+    const rect = anchor.getBoundingClientRect();
+    menu.style.position = "fixed";
+    menu.style.top = `${rect.bottom + 4}px`;
+    menu.style.right = `${Math.max(8, window.innerWidth - rect.right)}px`;
+    menu.style.zIndex = "9999";
+
+    const closeHandler = (e: MouseEvent): void => {
+      if (!menu.contains(e.target as Node)) {
+        menu.remove();
+        window.removeEventListener("pointerdown", closeHandler);
+      }
+    };
+    setTimeout(() => {
+      window.addEventListener("pointerdown", closeHandler);
+    }, 0);
+
+    document.body.appendChild(menu);
   }
 
   private _attachBehaviorHeaderMenu(folder: FolderApi, obj: Object3D, behavior: Behavior): void {

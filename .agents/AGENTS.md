@@ -5,7 +5,7 @@
 ## 1. Core Workflow & Token Saving
 
 - **Planning:** Require detailed plan approval only for major features, complex refactorings, or architectural changes. Small edits, bugfixes, asset generation, and documentation updates should be implemented directly without blocking for prior approval.
-- **Git Permissions & Quotes:** You are explicitly authorized to execute commands starting with `git checkout`, `git add`, `git commit`, `git push`, `git log`, `git branch` without prior permission. Every single commit message MUST be a pure quote without author/prefixes. Never reuse a quote already used in a previous commit — check `git log` first.
+- **Git Permissions & Commit Cadence:** You are explicitly authorized to execute git operations without asking, BUT **do NOT commit immediately after every single micro-edit/change**. Wait until a feature/milestone is cohesively rounded off or the user signals/requests a commit. Every commit message MUST be a pure quote without author/prefixes, and never reused (check `git log` first).
 - **Surgical Changes:** Use `replace` tool for edits. NEVER use `write_file` on existing files.
 - **Data Integrity:** Preserve historical entries in logs/changelogs.
 - **File Storage:** Store scratchpads, sketches, and temporary files locally in the project under `.agents/scratches/`, not in the hard-to-reach agent-specific AppData directory. Exceptions are regular assets or artifacts where the target location is known and logical.

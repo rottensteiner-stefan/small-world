@@ -440,6 +440,20 @@ Erweiterung des Property Inspectors um ein direktes Abkoppeln von Behaviors nach
   - <kbd>Ctrl+Z</kbd> stellt das Behavior samt all seinen zuvor konfigurierten Werten (Speed, Axis, Duration etc.) synchron wieder her.
 - **Status:** 112 Test-Dateien, 635 Tests, Build & Lint 100% grün.
 
+---
+
+## 2026-09-02 — Full Material Management (Switch, Reset, Remove & Add)
+
+Vollwertige Materialverwaltung im Property Inspector nach Industriestandard (Blender/Unity):
+- **3-Punkte-Menü (`⋮`) im Material-Header:**
+  - `🎨 Switch Material`: Schneller Wechsel zwischen PBR (`StandardMaterial`), Unlit (`BasicMaterial`), `WireframeMaterial`, `GlassMaterial` und `PhongMaterial`.
+  - `🔄 Reset to Defaults`: Setzt alle Material-Uniforms (Farbe, Roughness, Metalness) auf Standardwerte zurück.
+  - `🗑️ Remove Material`: Entfernt das Material sauber vom Objekt (z.B. für unsichtbare Collider/Trigger).
+- **`[ ➕ Add Standard Material ]`-Button:** Wenn ein Mesh kein Material besitzt, wird ein eleganter Hinzufügen-Button gerendert.
+- **Volle Undo/Redo-Unterstützung (<kbd>Ctrl+Z</kbd>):** Jeder Materialwechsel oder jedes Entfernen/Hinzufügen ist atomar rückgängig machbar.
+- **Status:** 112 Test-Dateien, 636 Tests, Build & Lint 100% grün.
+
+
 
 
 

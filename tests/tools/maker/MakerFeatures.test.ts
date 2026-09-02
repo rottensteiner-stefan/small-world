@@ -16,6 +16,7 @@ import { PropertyPanel } from "../../../src/tools/maker/PropertyPanel.js";
 import { ObjectPalette } from "../../../src/tools/maker/ObjectPalette.js";
 import { LightGizmoManager } from "../../../src/tools/maker/LightGizmoManager.js";
 import { PointLight, DirectionalLight, SpotLight } from "../../../src/core/lights/index.js";
+import { StandardMaterial, WireframeMaterial } from "../../../src/core/materials/index.js";
 import { Cube } from "../../../src/geometry/index.js";
 import { BoundingBox } from "../../../src/physix/index.js";
 import { BoundingType } from "../../../src/enums/index.js";
@@ -673,6 +674,67 @@ describe("Maker Phase 2 Features", () => {
 
       expect(detachedObj).toBe(obj);
       expect(detachedBehavior).toBe(rotator);
+    });
+  });
+
+  describe("Material Management (Remove, Add, Switch & Reset)", () => {
+    it("renders 3-dots menu on material folder and triggers onSetMaterial for switch and remove", () => {
+      const container = document.createElement("div");
+      const undo = new UndoStack();
+      let assignedMaterial: unknown = null;
+      let targetObj: Object3D | null = null;
+
+      const panel = new PropertyPanel(container, undo, {
+        onSetMaterial: (obj, material): void => {
+          targetObj = obj;
+          assignedMaterial = material;
+        },
+      });
+
+      const obj = new Object3D("MeshWithMaterial");
+      obj.material = new StandardMaterial();
+
+      panel.setSelection(obj);
+
+      // 1. Find 3-dots button on Material folder
+      const dotsBtn = container.querySelector(
+        ".maker-behavior-menu-btn",
+      ) as HTMLButtonElement | null;
+      expect(dotsBtn).toBeDefined();
+
+      dotsBtn?.click();
+
+      // 2. Click "Switch: Wireframe"
+      const items = Array.from(document.querySelectorAll(".maker-behavior-dropdown-item"));
+      const wireframeOption = items.find((el) => el.textContent?.includes("Wireframe"));
+      expect(wireframeOption).toBeDefined();
+
+      wireframeOption?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      expect(targetObj).toBe(obj);
+      expect(assignedMaterial instanceof WireframeMaterial).toBe(true);
+
+      // 3. Test Remove Material
+      dotsBtn?.click();
+      const removeOption = Array.from(
+        document.querySelectorAll(".maker-behavior-dropdown-item"),
+      ).find((el) => el.textContent?.includes("Remove Material"));
+      expect(removeOption).toBeDefined();
+
+      removeOption?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      expect(assignedMaterial).toBeUndefined();
+
+      // 4. Test Add Material when object has geometry but no material
+      obj.material = undefined;
+      obj.geometry = new Cube({ size: 1 }).getGeometryData();
+      panel.setSelection(obj);
+
+      const addBtn = Array.from(container.querySelectorAll("button")).find((b) =>
+        b.textContent?.includes("Add Standard Material"),
+      );
+      expect(addBtn).toBeDefined();
+
+      addBtn?.click();
+      expect(assignedMaterial instanceof StandardMaterial).toBe(true);
     });
   });
 });
