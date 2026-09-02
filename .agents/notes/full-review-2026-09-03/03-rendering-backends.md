@@ -207,7 +207,8 @@ ADR 0007 behauptet explizit, dass `lightClusterCoverage()` (`src/math/ClusterGri
 
 ## `src/renderers/WebGPU/WebGPURenderer.ts` + `WebGPU/managers/` — Kernrenderer
 
-### 🔴 `_packObjectUniforms()`-Fallback verliert Alpha, wenn `u_color` in der Manifest fehlt
+### ✅ [ERLEDIGT] `_packObjectUniforms()`-Fallback verliert Alpha, wenn `u_color` in der Manifest fehlt
+*(Behoben 2026-09-03: `_scratchColorArray` in `WebGPURenderer.ts` auf 4 Floats allokiert; Fallback setzt `[3] = o.material.color?.a ?? 1.0`; Unit-Tests in `tests/renderers/WebGPUObjectUniformPacker.test.ts`.)*
 
 **Datei:** `src/renderers/WebGPU/WebGPURenderer.ts:166` (`_scratchColorArray = new Float32Array(3)`) und `:1742-1747`
 

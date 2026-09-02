@@ -163,7 +163,7 @@ export class WebGPURenderer extends AbstractRenderer {
   protected _gpuInstanceDataBuffers: WeakMap<InstancedMesh, GPUBuffer> = new WeakMap();
   protected _frameCount = 0;
   protected _scratchModelMatrix = new Float32Array(16);
-  protected _scratchColorArray = new Float32Array(3);
+  protected _scratchColorArray = new Float32Array(4);
   protected _scratchUniformValues: Record<string, unknown> = {};
 
   // Reused across every _renderBatch() call (cleared via .length = 0) instead of allocating two
@@ -775,7 +775,6 @@ export class WebGPURenderer extends AbstractRenderer {
     MathPool.releaseMatrix(corrected);
     return offset;
   }
-
 
   /** Reused every frame -- see `_dispatchHzbTest()`. */
   private _hzbAabbScratch = new Float32Array(MAX_HZB_TESTED_OBJECTS * 4);
@@ -1740,9 +1739,10 @@ export class WebGPURenderer extends AbstractRenderer {
 
     values["u_model"] = this._scratchModelMatrix;
     if (values["u_color"] === undefined && o.material) {
-      this._scratchColorArray[0] = o.material.color.r;
-      this._scratchColorArray[1] = o.material.color.g;
-      this._scratchColorArray[2] = o.material.color.b;
+      this._scratchColorArray[0] = o.material.color?.r ?? 1.0;
+      this._scratchColorArray[1] = o.material.color?.g ?? 1.0;
+      this._scratchColorArray[2] = o.material.color?.b ?? 1.0;
+      this._scratchColorArray[3] = o.material.color?.a ?? 1.0;
       values["u_color"] = this._scratchColorArray;
     }
 
