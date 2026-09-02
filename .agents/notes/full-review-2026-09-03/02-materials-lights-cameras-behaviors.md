@@ -6,7 +6,8 @@ Legende: 🔴 kritisch (Bug/Korrektheit) · 🟠 fragil/Architektur-Risiko · �
 
 ---
 
-## 🔴 AreaLight wird von StandardMaterial (PBR) komplett ignoriert
+## ✅ [ERLEDIGT] AreaLight wird von StandardMaterial (PBR) komplett ignoriert
+*(Behoben 2026-09-03: AreaLight PBR Diffuse + GGX Specular Berechnung in WebGL1, WebGL2 und WebGPU PBR-Shader-Chunks integriert; `MAX_AREA_LIGHTS = 4` als benannte Konstante in `AreaLight.ts` exportiert.)*
 
 `src/core/lights/AreaLight.ts:40-44` pusht sich korrekt in `data.aLights` (Cap `4`, siehe eigener
 Fund weiter unten). Das Problem liegt auf der Konsum-Seite: **keiner der drei PBR-Lighting-Chunks**

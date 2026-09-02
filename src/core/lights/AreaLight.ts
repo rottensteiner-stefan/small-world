@@ -12,6 +12,9 @@ export interface AreaLightOptions extends LightOptions {
   height?: number;
 }
 
+/** Maximum number of simultaneous AreaLights supported by shader forward pipelines. */
+export const MAX_AREA_LIGHTS = 4;
+
 /**
  * Area light that emits light from a rectangular plane.
  */
@@ -38,7 +41,7 @@ export class AreaLight extends AbstractLight {
 
   /** @inheritdoc */
   public override applyTo(data: LightDataInterface): void {
-    if (4 > data.aLights.length) {
+    if (MAX_AREA_LIGHTS > data.aLights.length) {
       data.aLights.push(this);
     }
   }
