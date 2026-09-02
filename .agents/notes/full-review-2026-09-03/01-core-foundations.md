@@ -191,7 +191,8 @@ Zwei unabhängige Probleme:
 
 ## `src/core/events/EventDispatcherImpl.ts`
 
-### 🔴 `dispatchEvent()` alloziert bei JEDEM Aufruf ein neues Array (`listeners.slice(0)`) — direkte Verletzung der im `CONTEXT.md` namentlich genannten Zero-Allocation-Hot-Path-Regel
+### ✅ [ERLEDIGT] `dispatchEvent()` alloziert bei JEDEM Aufruf ein neues Array (`listeners.slice(0)`) — direkte Verletzung der im `CONTEXT.md` namentlich genannten Zero-Allocation-Hot-Path-Regel
+*(Behoben 2026-09-03: Zero-Allocation Copy-on-Write-Dispatching implementiert; Allokation nur bei gleichzeitiger Mutation während des aktiven Dispatches; Reentrancy-Safe; Unit-Tests in `tests/core/EventDispatcherImpl.test.ts`.)*
 
 **Fundort:** `src/core/events/EventDispatcherImpl.ts:38-48`.
 
