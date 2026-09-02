@@ -21,18 +21,12 @@ export class Object3D implements Collidable {
    * `path` since position/rotation/scale are nested `Vector3D` instances, not own properties. */
   public static readonly inspector: Record<string, InspectorField> = {
     name: { type: "string", label: "Name" },
+    position: { type: "vec3", label: "Position", step: 0.1 },
+    rotation: { type: "vec3", label: "Rotation", step: 0.05 },
+    scale: { type: "vec3", label: "Scale", step: 0.05 },
     isVisible: { type: "boolean", label: "Visible" },
-    castShadow: { type: "boolean", label: "Cast Shadow" },
-    receiveShadow: { type: "boolean", label: "Recv Shadow" },
-    posX: { type: "number", label: "Pos X", path: "position.x" },
-    posY: { type: "number", label: "Pos Y", path: "position.y" },
-    posZ: { type: "number", label: "Pos Z", path: "position.z" },
-    rotX: { type: "number", label: "Rot X", path: "rotation.x" },
-    rotY: { type: "number", label: "Rot Y", path: "rotation.y" },
-    rotZ: { type: "number", label: "Rot Z", path: "rotation.z" },
-    scaleX: { type: "number", label: "Scale X", path: "scale.x" },
-    scaleY: { type: "number", label: "Scale Y", path: "scale.y" },
-    scaleZ: { type: "number", label: "Scale Z", path: "scale.z" },
+    castShadow: { type: "boolean", label: "Cast Shadow", row: "shadows" },
+    receiveShadow: { type: "boolean", label: "Recv Shadow", row: "shadows" },
   };
 
   public readonly uuid: string = MathUtils.generateUUID();

@@ -65,11 +65,11 @@ export interface StandardMaterialOptions {
 export class StandardMaterial extends AbstractMaterial {
   /** Own fields on top of `AbstractMaterial.inspector` -- see `collectInspectorSchema()`. */
   public static override readonly inspector: Record<string, InspectorField> = {
-    metallic: { type: "number", label: "Metallic", min: 0, max: 1, step: 0.01 },
-    roughness: { type: "number", label: "Roughness", min: 0, max: 1, step: 0.01 },
+    metallic: { type: "number", label: "Metallic", min: 0, max: 1, step: 0.01, row: "surface" },
+    roughness: { type: "number", label: "Roughness", min: 0, max: 1, step: 0.01, row: "surface" },
     ao: { type: "number", label: "AO", min: 0, max: 1, step: 0.01 },
     emissiveColor: { type: "color", label: "Emissive" },
-    emissiveIntensity: { type: "number", label: "Emissive Intensity", min: 0, max: 10, step: 0.1 },
+    emissiveIntensity: { type: "number", label: "Emissive Int.", min: 0, max: 10, step: 0.1 },
     alphaTest: { type: "number", label: "Alpha Test", min: 0, max: 1, step: 0.01 },
   };
 

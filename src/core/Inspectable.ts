@@ -4,7 +4,7 @@
  * per-class as a `static readonly inspector` map, keyed by an arbitrary field id.
  */
 export interface InspectorField {
-  type: "number" | "boolean" | "string" | "choice" | "color";
+  type: "number" | "boolean" | "string" | "choice" | "color" | "vec3" | "vec2";
   label?: string;
   min?: number;
   max?: number;
@@ -12,6 +12,8 @@ export interface InspectorField {
   options?: string[] | Record<string, string | number>;
   /** Dotted path to the actual value when it isn't a direct own property, e.g. "position.x". */
   path?: string;
+  /** Optional row identifier to group multiple consecutive fields onto a single horizontal line. */
+  row?: string;
 }
 
 /** Shape a constructor must have to participate: the static schema lives on the class itself. */

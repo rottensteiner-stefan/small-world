@@ -300,9 +300,46 @@ export class PropertyPanel {
     target: Record<string, unknown>,
     schema: Record<string, InspectorField>,
   ): void {
-    for (const [key, field] of Object.entries(schema)) {
-      this._bindField(folder, target, key, field);
+    const entries = Object.entries(schema);
+    let i = 0;
+    while (i < entries.length) {
+      const [key, field] = entries[i]!;
+      if (field.row) {
+        const rowId = field.row;
+        const rowEntries: [string, InspectorField][] = [];
+        while (i < entries.length && entries[i]![1].row === rowId) {
+          rowEntries.push(entries[i]!);
+          i++;
+        }
+        this._bindRowFields(folder, target, rowEntries);
+      } else {
+        this._bindField(folder, target, key, field);
+        i++;
+      }
     }
+  }
+
+  private _bindRowFields(
+    folder: FolderApi,
+    target: Record<string, unknown>,
+    entries: [string, InspectorField][],
+  ): void {
+    const rowEl = document.createElement("div");
+    rowEl.className = "maker-prop-row";
+
+    for (const [key, field] of entries) {
+      const blade = this._createFieldBinding(folder, target, key, field);
+      const el = (blade as unknown as { element?: HTMLElement }).element;
+      if (el) rowEl.appendChild(el);
+    }
+
+    const container = folder.element.querySelector(".tp-fldv_c") ?? folder.element;
+    container.appendChild(rowEl);
+    this._blades.push({
+      dispose: (): void => {
+        rowEl.remove();
+      },
+    });
   }
 
   /** Resolves `field.path` (e.g. "position.x") to the actual host object + property key --
@@ -328,12 +365,20 @@ export class PropertyPanel {
     key: string,
     field: InspectorField,
   ): void {
+    this._createFieldBinding(folder, target, key, field);
+  }
+
+  private _createFieldBinding(
+    folder: FolderApi,
+    target: Record<string, unknown>,
+    key: string,
+    field: InspectorField,
+  ): RefreshableBinding & DisposableBlade {
     const { host, propKey } = this._resolvePath(target, key, field.path);
     const label = field.label ?? key;
 
     if ("color" === field.type) {
-      this._bindColorField(folder, host, propKey, label);
-      return;
+      return this._bindColorField(folder, host, propKey, label);
     }
 
     const options: Record<string, unknown> = { label };
@@ -341,23 +386,54 @@ export class PropertyPanel {
       if (undefined !== field.min) options["min"] = field.min;
       if (undefined !== field.max) options["max"] = field.max;
       if (undefined !== field.step) options["step"] = field.step;
+    } else if ("vec3" === field.type || "vec2" === field.type) {
+      if (undefined !== field.step) options["step"] = field.step;
+      if (undefined !== field.min) options["min"] = field.min;
+      if (undefined !== field.max) options["max"] = field.max;
     } else if ("choice" === field.type && field.options) {
       options["options"] = Array.isArray(field.options)
         ? Object.fromEntries(field.options.map((o) => [o, o]))
         : field.options;
     }
 
-    let before = host[propKey];
+    const cloneVal = (v: unknown): unknown => {
+      if (v && typeof v === "object") {
+        if ("clone" in v && typeof (v as { clone: () => unknown }).clone === "function") {
+          return (v as { clone: () => unknown }).clone();
+        }
+        return { ...(v as object) };
+      }
+      return v;
+    };
+
+    const copyVal = (dest: unknown, src: unknown): void => {
+      if (dest && typeof dest === "object" && src && typeof src === "object") {
+        if (
+          "copyFrom" in dest &&
+          typeof (dest as { copyFrom: (s: unknown) => unknown }).copyFrom === "function"
+        ) {
+          (dest as { copyFrom: (s: unknown) => unknown }).copyFrom(src);
+          return;
+        }
+        Object.assign(dest, src);
+      }
+    };
+
+    let before = cloneVal(host[propKey]);
     const binding = folder.addBinding(host, propKey, options) as unknown as RefreshableBinding &
       DisposableBlade & { on: (event: "change", cb: (ev: ChangeEvent<unknown>) => void) => void };
     binding.on("change", (ev: ChangeEvent<unknown>) => {
       if (false === ev.last) return;
       const from = before;
-      const to = ev.value;
+      const to = cloneVal(ev.value);
       this._undo.execute({
         label: `Edit ${label}`,
         redo: () => {
-          host[propKey] = to;
+          if (typeof host[propKey] === "object" && null !== host[propKey]) {
+            copyVal(host[propKey], to);
+          } else {
+            host[propKey] = to;
+          }
           binding.refresh();
           if (
             this._currentObj &&
@@ -368,7 +444,11 @@ export class PropertyPanel {
           }
         },
         undo: () => {
-          host[propKey] = from;
+          if (typeof host[propKey] === "object" && null !== host[propKey]) {
+            copyVal(host[propKey], from);
+          } else {
+            host[propKey] = from;
+          }
           binding.refresh();
           if (
             this._currentObj &&
@@ -386,6 +466,7 @@ export class PropertyPanel {
       before = to;
     });
     this._blades.push(binding);
+    return binding;
   }
 
   private _bindColorField(
@@ -393,7 +474,7 @@ export class PropertyPanel {
     host: Record<string, unknown>,
     propKey: string,
     label: string,
-  ): void {
+  ): RefreshableBinding & DisposableBlade {
     const colorObj = host[propKey] as Color;
     const proxy = { value: { r: colorObj.r * 255, g: colorObj.g * 255, b: colorObj.b * 255 } };
     let before = { ...proxy.value };
@@ -432,5 +513,6 @@ export class PropertyPanel {
       before = to;
     });
     this._blades.push(binding);
+    return binding;
   }
 }

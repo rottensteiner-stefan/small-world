@@ -450,8 +450,28 @@ Vollwertige Materialverwaltung im Property Inspector nach Industriestandard (Ble
   - `🔄 Reset to Defaults`: Setzt alle Material-Uniforms (Farbe, Roughness, Metalness) auf Standardwerte zurück.
   - `🗑️ Remove Material`: Entfernt das Material sauber vom Objekt (z.B. für unsichtbare Collider/Trigger).
 - **`[ ➕ Add Standard Material ]`-Button:** Wenn ein Mesh kein Material besitzt, wird ein eleganter Hinzufügen-Button gerendert.
-- **Volle Undo/Redo-Unterstützung (<kbd>Ctrl+Z</kbd>):** Jeder Materialwechsel oder jedes Entfernen/Hinzufügen ist atomar rückgängig machbar.
 - **Status:** 112 Test-Dateien, 636 Tests, Build & Lint 100% grün.
+
+---
+
+## 2026-09-02 — Multi-Column Property Layout, Vector3 Trios & Compact Control Pairs
+
+Massive Verdichtung und Ergonomie-Optimierung des Property Inspectors nach Vorbild von Unity und Blender:
+- **Transform-Trios ($X, Y, Z$ in 1 Zeile statt 3):**
+  - `Position`: $X [ ] \; Y [ ] \; Z [ ]$
+  - `Rotation`: $X [ ] \; Y [ ] \; Z [ ]$
+  - `Scale`: $X [ ] \; Y [ ] \; Z [ ]$
+  - Spart alleine im Transform-Bereich **6 volle Zeilen Höhe** ein!
+- **Kompakte Boolean-Pärchen (`.maker-prop-row`):**
+  - `Shadows`: `[x] Cast Shadow` | `[x] Recv Shadow`
+  - `Depth Buffer`: `[x] Depth Test` | `[x] Depth Write`
+- **Gepaarte Zahlenfelder & Sliders:**
+  - `PBR Surface`: `Metallic [ 0.00 ]` | `Roughness [ 0.50 ]`
+  - `Light Attenuation`: `Distance [ 10.0 ]` | `Decay [ 2.0 ]`
+  - `SpotLight Cone`: `Angle [ 45° ]` | `Penumbra [ 0.1 ]`
+- **Schema-gesteuert via `row`-Attribut:** Beliebige Properties im `static inspector` können mit `row: "..."` automatisch horizontal nebeneinander gerendert werden.
+- **Status:** 112 Test-Dateien, 637 Tests, Build & Lint 100% grün.
+
 
 
 

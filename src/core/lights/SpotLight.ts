@@ -28,10 +28,17 @@ export interface SpotLightOptions extends LightOptions {
 export class SpotLight extends AbstractLight {
   /** Own fields on top of `AbstractLight.inspector` -- see `collectInspectorSchema()`. */
   public static override readonly inspector: Record<string, InspectorField> = {
-    distance: { type: "number", label: "Distance", min: 0, max: 100, step: 0.1 },
-    angle: { type: "number", label: "Angle", min: 0, max: 1.57, step: 0.01 },
-    penumbra: { type: "number", label: "Penumbra", min: 0, max: 1, step: 0.01 },
-    decay: { type: "number", label: "Decay", min: 0, max: 5, step: 0.01 },
+    distance: {
+      type: "number",
+      label: "Distance",
+      min: 0,
+      max: 100,
+      step: 0.1,
+      row: "attenuation",
+    },
+    decay: { type: "number", label: "Decay", min: 0, max: 5, step: 0.01, row: "attenuation" },
+    angle: { type: "number", label: "Angle", min: 0, max: 1.57, step: 0.01, row: "cone" },
+    penumbra: { type: "number", label: "Penumbra", min: 0, max: 1, step: 0.01, row: "cone" },
   };
 
   /** @inheritdoc */

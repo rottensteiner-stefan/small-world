@@ -271,6 +271,16 @@
       #maker-properties {
         flex: 1;
         overflow-y: auto;
+        padding-bottom: 24px;
+      }
+      #maker-properties .tp-fldv {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        padding-bottom: 8px;
+        margin-bottom: 8px;
+      }
+      #maker-properties .tp-fldv_c {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        padding-bottom: 6px;
       }
       .maker-status {
         padding: 4px 12px;
@@ -278,6 +288,46 @@
         opacity: 0.7;
         border-top: 1px solid var(--border-color);
         background: var(--panel-bg);
+      }
+      .maker-prop-row {
+        display: flex;
+        gap: 6px;
+        width: 100%;
+        margin-top: 4px;
+        align-items: center;
+      }
+      .maker-prop-row > * {
+        flex: 1 1 0;
+        min-width: 0;
+        margin-top: 0 !important;
+      }
+      .maker-prop-row .tp-lblv {
+        padding: 0 2px !important;
+        display: flex !important;
+        align-items: center !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+      }
+      .maker-prop-row .tp-lblv_l {
+        flex: 1 1 auto !important;
+        padding-right: 4px !important;
+        font-size: 11px !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+      }
+      .maker-prop-row .tp-lblv_v {
+        width: auto !important;
+        flex: 0 0 auto !important;
+        min-width: 22px !important;
+      }
+      .maker-prop-row .tp-ckbv_w {
+        width: 18px !important;
+        height: 18px !important;
+      }
+      .maker-prop-row .tp-txtv_i,
+      .maker-prop-row .tp-sldtxtv {
+        width: 100% !important;
       }
       .maker-behavior-menu-btn {
         position: absolute;

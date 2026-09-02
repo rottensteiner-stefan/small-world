@@ -737,4 +737,41 @@ describe("Maker Phase 2 Features", () => {
       expect(assignedMaterial instanceof StandardMaterial).toBe(true);
     });
   });
+
+  describe("Multi-Column Property Layout & Vector3 Grouping", () => {
+    it("groups position/rotation/scale as vec3 and groups boolean/numeric pairs into rows", () => {
+      const container = document.createElement("div");
+      const undo = new UndoStack();
+      const panel = new PropertyPanel(container, undo);
+
+      const obj = new Object3D("GroupedObj");
+      obj.material = new StandardMaterial();
+
+      const objSchema = collectInspectorSchema(obj);
+      expect(objSchema["position"]?.type).toBe("vec3");
+      expect(objSchema["rotation"]?.type).toBe("vec3");
+      expect(objSchema["scale"]?.type).toBe("vec3");
+      expect(objSchema["castShadow"]?.row).toBe("shadows");
+      expect(objSchema["receiveShadow"]?.row).toBe("shadows");
+
+      const matSchema = collectInspectorSchema(obj.material);
+      expect(matSchema["depthTest"]?.row).toBe("depth");
+      expect(matSchema["depthWrite"]?.row).toBe("depth");
+      expect(matSchema["metallic"]?.row).toBe("surface");
+      expect(matSchema["roughness"]?.row).toBe("surface");
+
+      panel.setSelection(obj);
+
+      // Verify that .maker-prop-row elements are rendered for grouped pairs
+      const propRows = container.querySelectorAll(".maker-prop-row");
+      expect(propRows.length).toBeGreaterThanOrEqual(3);
+
+      // Verify lifecycle: re-selection cleans up row elements and does not leak
+      panel.setSelection(undefined);
+      expect(container.querySelectorAll(".maker-prop-row").length).toBe(0);
+
+      panel.setSelection(obj);
+      expect(container.querySelectorAll(".maker-prop-row").length).toBe(propRows.length);
+    });
+  });
 });

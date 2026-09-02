@@ -19,8 +19,8 @@ export abstract class AbstractMaterial implements ShaderProvider {
   public static readonly inspector: Record<string, InspectorField> = {
     color: { type: "color", label: "Color" },
     transparent: { type: "boolean", label: "Transparent" },
-    depthTest: { type: "boolean", label: "Depth Test" },
-    depthWrite: { type: "boolean", label: "Depth Write" },
+    depthTest: { type: "boolean", label: "Depth Test", row: "depth" },
+    depthWrite: { type: "boolean", label: "Depth Write", row: "depth" },
   };
 
   /** The unique identifier of the material. */
