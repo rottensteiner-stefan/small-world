@@ -388,6 +388,24 @@ Vollständige Überarbeitung der Objekt-Palette vom Textlisten-Design zur kompak
   - Sofortige taktile Rückmeldung mit Hover-Glow und Active-Press-Feedback.
 - **Status:** 112 Test-Dateien, 632 Tests, Build & Lint 100% grün.
 
+---
+
+## 2026-09-02 — 3D Light Gizmos, Viewport Glyphs & Dynamic Range Bounds
+
+Vollständige 3D-Lichtrepräsentation und Direkt-Interaktion nach Industriestandard (Unity/Unreal/Blender):
+- **Visual Glyphs (Editor-Marker):**
+  - PointLight 💡: Leuchtender Oktaeder-Kern, Kamera-ausgerichtet (Billboard) in Lichtfarbe.
+  - DirectionalLight ☀️: Sonnen-Kugel mit 3D-Richtungspfeil entlang des Lichtvektors.
+  - SpotLight 🔦: Emitter-Kegel in Strahlrichtung.
+  - AmbientLight 🌐: Zarte Drahtgitter-Sphäre.
+- **3D-Raycasting & Selektion:** Lichter können im 3D-Viewport direkt per Klick ausgewählt, verschoben (<kbd>W</kbd>) und rotiert (<kbd>E</kbd>) werden.
+- **Wirkungsbereich (Selection Bounds):**
+  - Bei Selektion eines `PointLight` wird die Attenuations-Reichweite (`distance`) als Wireframe-Kugel gezeichnet.
+  - Bei Selektion eines `SpotLight` wird der exakte Öffnungswinkel (`angle`) und Reichweite als Drahtgitter-Kegel dargestellt (skaliert live mit Inspector-Werten).
+- **Editor-Only Isolation:** Alle Light-Helper sind vom glTF-Export und Play-Modus vollständig isoliert.
+- **Status:** 112 Test-Dateien, 633 Tests, Build & Lint 100% grün.
+
+
 
 
 

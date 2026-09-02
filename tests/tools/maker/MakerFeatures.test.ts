@@ -14,6 +14,8 @@ import { OrbitCameraController } from "../../../src/tools/maker/OrbitCameraContr
 import { HierarchyPanel } from "../../../src/tools/maker/HierarchyPanel.js";
 import { PropertyPanel } from "../../../src/tools/maker/PropertyPanel.js";
 import { ObjectPalette } from "../../../src/tools/maker/ObjectPalette.js";
+import { LightGizmoManager } from "../../../src/tools/maker/LightGizmoManager.js";
+import { PointLight, DirectionalLight, SpotLight } from "../../../src/core/lights/index.js";
 import { collectInspectorSchema } from "../../../src/core/Inspectable.js";
 
 describe("Maker Phase 2 Features", () => {
@@ -523,6 +525,51 @@ describe("Maker Phase 2 Features", () => {
       expect(createdNames).toContain("SpotLight");
       expect(createdNames).toContain("AmbientLight");
       expect(createdNames).toContain("Group");
+    });
+  });
+
+  describe("LightGizmoManager (3D Light Markers & Selection Bounds)", () => {
+    it("creates, updates, and picks visual markers and selection ranges for lights", () => {
+      const mgr = new LightGizmoManager();
+      const sceneRoot = new Object3D("SceneRoot");
+
+      const pointLight = new PointLight({ name: "BunkerLamp", distance: 12 });
+      pointLight.position.set(2, 3, 4);
+      sceneRoot.add(pointLight);
+
+      const spotLight = new SpotLight({ name: "Flashlight", distance: 15, angle: 0.5 });
+      spotLight.position.set(0, 5, 0);
+      sceneRoot.add(spotLight);
+
+      const sunLight = new DirectionalLight({ name: "Sun" });
+      sceneRoot.add(sunLight);
+
+      // 1. Initial update (unselected)
+      mgr.update(sceneRoot, new Set());
+      expect(mgr.root.children.length).toBeGreaterThanOrEqual(3);
+
+      // Collect pickables
+      const pickables: Object3D[] = [];
+      mgr.collectPickables(pickables);
+      expect(pickables.length).toBe(3);
+
+      // Verify picking resolution
+      const pointMarker = pickables.find((p) => p.name === "Helper_BunkerLamp");
+      expect(pointMarker).toBeDefined();
+      expect(mgr.getLightForObject(pointMarker!)).toBe(pointLight);
+
+      // 2. Selection update (point light selected)
+      mgr.update(sceneRoot, new Set([pointLight]));
+      const rangeGizmo = mgr.root.children.find((c) => c.name === "Range_BunkerLamp");
+      expect(rangeGizmo).toBeDefined();
+      expect(rangeGizmo?.isVisible).toBe(true);
+
+      // 3. Deletion sync
+      sceneRoot.remove(pointLight);
+      mgr.update(sceneRoot, new Set());
+      const afterPickables: Object3D[] = [];
+      mgr.collectPickables(afterPickables);
+      expect(afterPickables.find((p) => p.name === "Helper_BunkerLamp")).toBeUndefined();
     });
   });
 });

@@ -104,7 +104,24 @@ The Maker transform gizmo provides standard **Translation** (<kbd>W</kbd>), **Ro
 
 ---
 
-## 5. Prefab Pipeline & Isolated 3D Thumbnail Renders
+## 5. 3D Light Gizmos & Selection Range Volumes
+
+Abstract scene emitters (`PointLight`, `DirectionalLight`, `SpotLight`, `AmbientLight`) have dedicated visual markers in the 3D viewport following industry standards:
+
+- **Pickable Visual Glyphs (Billboards):**
+  - 💡 **PointLight:** Glowing Octahedron core with color matching `light.color` (or yellow). Always billboard-oriented towards the camera.
+  - ☀️ **DirectionalLight:** Sun disc with directional arrow showing the light angle.
+  - 🔦 **SpotLight:** Mini emitter cone pointing along the spotlight's target vector.
+  - 🌐 **AmbientLight:** Wireframe sphere representing ambient sky illumination.
+- **Direct 3D Raycasting:** Clicking a light glyph in the 3D viewport selects the light, attaches the Transform Gizmo, and opens its properties (`Color`, `Intensity`, `Distance`, `Decay`, `Angle`) in the Property Inspector.
+- **Dynamic Selection Range Volumes:**
+  - When a `PointLight` is selected, Maker draws a wireframe sphere showing its attenuation reach (`distance`).
+  - When a `SpotLight` is selected, Maker renders a wireframe cone showing its exact opening angle (`angle`) and range (`distance`). Adjusting parameters in the inspector resizes the visual cone in real time!
+- **Zero Export Bloat:** All light helpers live in an isolated editor-only container and are automatically excluded from scene saves and runtime builds.
+
+---
+
+## 6. Prefab Pipeline & Isolated 3D Thumbnail Renders
 
 Maker provides a complete, self-contained Prefab authoring and stamping pipeline.
 

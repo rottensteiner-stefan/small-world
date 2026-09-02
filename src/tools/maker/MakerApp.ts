@@ -32,6 +32,7 @@ import { ObjectPalette } from "./ObjectPalette.js";
 import { PrefabPalette } from "./PrefabPalette.js";
 import { ProjectBinding } from "./ProjectBinding.js";
 import { TransformGizmo, GizmoMode, GizmoAxis } from "./TransformGizmo.js";
+import { LightGizmoManager } from "./LightGizmoManager.js";
 import { MapImportPanel } from "./MapImportPanel.js";
 import { defaultAsciiMapLegend } from "./AsciiMapLegend.js";
 import { GridLevelBuilder } from "../../extensions/grid-builder/index.js";
@@ -85,6 +86,7 @@ export class MakerApp extends SmallWorld {
    * disposed buffers coming back broken after an undo. Never added to `this.scene` itself. */
   private readonly _trashBin = new Object3D("MakerTrash");
   private readonly _gizmo = new TransformGizmo();
+  private readonly _lightGizmos = new LightGizmoManager();
 
   /** Insertion-ordered so "the last thing clicked/toggled" (via `Array.from(...).at(-1)`) is
    * well-defined -- `_primary` always mirrors that. */
@@ -105,6 +107,9 @@ export class MakerApp extends SmallWorld {
   }
   public get gizmo(): TransformGizmo {
     return this._gizmo;
+  }
+  public get lightGizmos(): LightGizmoManager {
+    return this._lightGizmos;
   }
   public get orbit(): OrbitCameraController {
     return this._orbit;
@@ -159,6 +164,7 @@ export class MakerApp extends SmallWorld {
     this.scene.add(new AmbientLight({ name: "Fill", intensity: 0.4 }));
 
     this.scene.add(this._gizmo.root);
+    this.scene.add(this._lightGizmos.root);
 
     this.camera.setStrategy(CameraStrategyType.MANUAL);
     this.camera.position.set(8, 6, 8);
@@ -188,7 +194,10 @@ export class MakerApp extends SmallWorld {
         onReparent: (obj, newParent): void => this.reparent(obj, newParent),
         onRename: (obj, newName): void => this.renameObject(obj, newName),
       },
-      (obj) => this._highlightMeshes.includes(obj) || obj === this._gizmo.root,
+      (obj) =>
+        this._highlightMeshes.includes(obj) ||
+        obj === this._gizmo.root ||
+        this._lightGizmos.isHelperMesh(obj),
     );
     new ObjectPalette(this._makerOptions.paletteContainer, {
       createObject: (factory): void => this.addObject(factory()),
@@ -389,8 +398,10 @@ export class MakerApp extends SmallWorld {
    */
   private _captureIsolatedThumbnail(obj: Object3D): Promise<string | undefined> {
     const wasGizmoVisible = this._gizmo.root.isVisible;
+    const wasLightGizmosVisible = this._lightGizmos.root.isVisible;
     const wasHighlightVisible = this._highlightMeshes.map((mesh) => mesh.isVisible);
     this._gizmo.root.isVisible = false;
+    this._lightGizmos.root.isVisible = false;
     for (const mesh of this._highlightMeshes) mesh.isVisible = false;
 
     const topAncestor = this._topLevelAncestor(obj);
@@ -402,6 +413,8 @@ export class MakerApp extends SmallWorld {
         child !== topAncestor &&
         !this._highlightMeshes.includes(child) &&
         child !== this._gizmo.root &&
+        child !== this._lightGizmos.root &&
+        !this._lightGizmos.isHelperMesh(child) &&
         !(child instanceof AbstractLight),
     );
     const wasSiblingVisible = hiddenSiblings.map((child) => child.isVisible);
@@ -419,6 +432,7 @@ export class MakerApp extends SmallWorld {
       this.camera.position.copyFrom(savedCameraPosition);
       this.camera.target.copyFrom(savedCameraTarget);
       this._gizmo.root.isVisible = wasGizmoVisible;
+      this._lightGizmos.root.isVisible = wasLightGizmosVisible;
       this._highlightMeshes.forEach((mesh, i) => {
         mesh.isVisible = wasHighlightVisible[i]!;
       });
@@ -643,6 +657,7 @@ export class MakerApp extends SmallWorld {
       this._hierarchyDirty = false;
     }
     this.scene.update(deltaTime);
+    this._lightGizmos.update(this.scene.root, this._selection, this.camera);
     this._updateGizmo();
   }
 
@@ -1139,14 +1154,16 @@ export class MakerApp extends SmallWorld {
     this._raycaster.setFromCamera(ndc, this.camera);
     const pickable: Object3D[] = [];
     this._collectPickable(this.scene.root, pickable);
+    this._lightGizmos.collectPickables(pickable);
     const hits = this._raycaster.intersectObjects(pickable, true);
     const hitObj = 0 < hits.length ? hits[0]!.object : undefined;
 
     if (hitObj) {
+      const targetObj = this._lightGizmos.getLightForObject(hitObj) ?? hitObj;
       if (event.shiftKey || event.metaKey) {
-        this.toggleSelect(hitObj);
+        this.toggleSelect(targetObj);
       } else {
-        this.selectObject(hitObj);
+        this.selectObject(targetObj);
       }
     } else {
       // Empty space clicked with primary left-click -- begin marquee selection
@@ -1300,11 +1317,13 @@ export class MakerApp extends SmallWorld {
   /** Mirrors `GadgetInspector`'s own picking scope (visible objects only, own helper meshes
    * excluded) so Maker and the still-live GadgetInspector behave consistently while both exist. */
   private _collectPickable(parent: Object3D, out: Object3D[]): void {
-    // `isVisible` below is per-node, not cumulative through the parent chain -- the gizmo's own
-    // leaf handles stay `isVisible = true` even while their containing mode-group (or the whole
-    // gizmo root) is hidden, so it must be excluded by identity here, the same way as the
-    // highlight mesh, rather than relying on visibility alone.
-    if (this._highlightMeshes.includes(parent) || parent === this._gizmo.root) return;
+    if (
+      this._highlightMeshes.includes(parent) ||
+      parent === this._gizmo.root ||
+      this._lightGizmos.isHelperMesh(parent)
+    ) {
+      return;
+    }
     if (parent.isVisible) {
       if (parent.geometry) parent.computeBounds();
       out.push(parent);
