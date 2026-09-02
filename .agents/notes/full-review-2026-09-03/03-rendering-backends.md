@@ -231,7 +231,8 @@ if (values["u_color"] === undefined && o.material) {
 
 ---
 
-### 🔴 TAA/MotionTrail/Bloom/HBAO laufen ungeguardet auch für Offscreen-Render-Targets — kontaminieren die persistente TAA-History
+### ✅ [ERLEDIGT] TAA/MotionTrail/Bloom/HBAO laufen ungeguardet auch für Offscreen-Render-Targets — kontaminieren die persistente TAA-History
+*(Behoben 2026-09-03: `if (isPostProcessPass && isOffscreen) continue;` an den Anfang der Pass-Schleife in `WebGPURenderer.ts` gezogen, wodurch TAA, MotionTrail, Bloom, HBAO und Uber-Pass bei Offscreen-Targets übersprungen werden und die persistente History sauber bleibt.)*
 
 **Datei:** `src/renderers/WebGPU/WebGPURenderer.ts:1321-1400` (Pass-Schleife in `render()`)
 

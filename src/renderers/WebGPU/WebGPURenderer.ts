@@ -1320,6 +1320,10 @@ export class WebGPURenderer extends AbstractRenderer {
     for (const pass of this._passes) {
       const isPostProcessPass = pass instanceof PostProcessPass;
 
+      if (isPostProcessPass && isOffscreen) {
+        continue;
+      }
+
       // TAA resolves first, if enabled: Bloom and the final uber pass should react to the
       // temporally-smoothed color, not the raw per-frame jittered one. `_hdrTextureView` itself
       // is never reassigned, so this pass keeps reading fresh input every subsequent frame.
@@ -1392,10 +1396,6 @@ export class WebGPURenderer extends AbstractRenderer {
           ) ?? undefined;
       } else if (isPostProcessPass) {
         this._hbaoTextureView = undefined;
-      }
-
-      if (isPostProcessPass && isOffscreen) {
-        continue;
       }
 
       // Re-widen to the RenderPass interface: TS's control-flow analysis narrows `pass` towards
