@@ -118,8 +118,10 @@ export class PropertyPanel {
   }
 
   private _attachBehaviorHeaderMenu(folder: FolderApi, obj: Object3D, behavior: Behavior): void {
-    const titleBtn = folder.element.querySelector(".tp-fldv_b");
-    if (!titleBtn) return;
+    const folderEl = folder.element;
+    if (!folderEl) return;
+
+    folderEl.style.position = "relative";
 
     const dotsBtn = document.createElement("button");
     dotsBtn.type = "button";
@@ -133,7 +135,7 @@ export class PropertyPanel {
       this._showBehaviorContextMenu(dotsBtn, obj, behavior);
     });
 
-    titleBtn.appendChild(dotsBtn);
+    folderEl.appendChild(dotsBtn);
   }
 
   private _showBehaviorContextMenu(anchor: HTMLElement, obj: Object3D, behavior: Behavior): void {
