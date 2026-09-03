@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.77.1] - 2026-09-03
+
+### "Small disciplines repeated with consistency every day lead to great achievements." - John C. Maxwell
+
+- **Architecture & Bugfixes:**
+  - **Core & Lifecycle:** Fixed `Object3D.lookAt()` quaternion sync when quaternion rotation is enabled; added clean window/DOM listener removal to `Input.destroy()`; corrected `PlanarReflectionNode` mirrorCamera up-vector alignment order before `lookAt()`; implemented zero-allocation Copy-on-Write event dispatching in `EventDispatcherImpl`.
+  - **Materials, Lights & Behaviors:** Encapsulated `Color.WHITE` against accidental mutation; isolated `CameraStrategyFactory` instances to prevent cross-engine state leaks; extended `CloneUtils.shallowCloneWithValueTypes` with deep cloning for `Vector2D`, arrays, and typed arrays; integrated PBR lighting evaluation for `AreaLight` across WebGL1, WebGL2, and WebGPU; added window keydown and DOM button cleanup in `AbstractShowcase.destroy()`.
+  - **Rendering Backends:** Resolved Clustered Forward+ lighting layout divergence (aligned WebGL2 std140 UBO stride and fixed WebGPU NDC-Y compute coordinate mapping); resolved WebGPU `_packObjectUniforms()` alpha fallback for custom materials; added render-target guards preventing offscreen passes from contaminating persistent TAA history; fixed WebGPU `_depthTexture` and `_opaqueDepthTexture` resize and teardown leaks; unified WebGL1 vignette formula with WebGL2/WebGPU; isolated WebGL post-processing uber-shader recompilation by passing continuous tuning sliders via per-frame uniforms.
+  - **Geometry & Physics:** Fixed `PhysicsSystem` resting contact continuous oscillation by removing artificial `+0.005` displacement bias; preserved manually assigned `OBB` bounds on `Object3D` with geometry and activated world scale extraction in `OBB.transform()`; implemented systemic parameter clamping and division-by-zero guards across all parametric geometries (`Sphere`, `Torus`, `Cylinder`, `Cone`, `Capsule`, `Tube`, `Plane`, `Ground`, `Pyramid`, `Circle`, `Disk`, `Cube`, `Gear`, `Octahedron`, `ExtrudeGeometry`).
+- **Housekeeping & Docs:**
+  - Added unit test suites for all 18 resolved core, backend, math, and geometry review findings (124 test suites, 669 tests passing).
+  - Updated full review dossiers (`.agents/notes/full-review-2026-09-03/`).
+
 ## [0.77.0] - 2026-08-30
 
 ### "The strength of the structure lies in the harmony of its parts." - Vitruvius
