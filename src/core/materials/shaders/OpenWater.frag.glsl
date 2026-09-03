@@ -129,6 +129,19 @@ void main() {
     float foamMask = foamPattern * edgeBlend;
     finalColor = mix(finalColor, foamColor, foamMask);
 
+    // Procedural caustics: a lighter second Worley-noise layer, projected using the water
+    // surface's own world position rather than the true refracted seabed position (which would
+    // need reconstructing world position from depth via INV_VIEW_MATRIX/INV_PROJECTION_MATRIX --
+    // new renderer-wide uniforms this material alone doesn't warrant). Close enough at the
+    // shallow depths caustics are visible at anyway; fades out entirely in deep water.
+    vec2 causticsUv1 = v_worldPos.xz * foamNoiseScale * 0.5 + u_time * foamNoiseSpeed * 0.3;
+    vec2 causticsUv2 = v_worldPos.xz * foamNoiseScale * 0.35 - u_time * foamNoiseSpeed * 0.25;
+    float caustics1 = 1.0 - waterCellNoise(causticsUv1);
+    float caustics2 = 1.0 - waterCellNoise(causticsUv2);
+    float causticsValue = caustics1 * caustics2;
+    float causticsFade = 1.0 - smoothstep(0.0, 10.0, depthDiff);
+    finalColor += causticsValue * causticsFade * 0.3;
+
     finalColor *= u_exposure;
     finalColor = linearToSRGB(finalColor);
 

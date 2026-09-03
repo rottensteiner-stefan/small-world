@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.77.11] - 2026-09-03
+
+### "Nature is pleased with simplicity." - Isaac Newton
+
+- **Features:**
+  - **OpenWaterMaterial:** Added procedural caustics -- a second, lighter Worley-noise layer that fades out with depth, giving the water surface the animated underwater light-net look without a texture asset. Reuses the foam noise's own scale/speed controls rather than adding new ones (the uniform budget is fully spent after refraction/absorption/foam). Approximates the caustics' projection using the water surface's own world position rather than the true refracted seabed position -- a perspective-correct version would need to reconstruct world position from the depth buffer via new `INV_VIEW_MATRIX`/`INV_PROJECTION_MATRIX` uniforms, which don't exist yet anywhere in the renderer and would be a shared, cross-material addition, not something scoped to one material. Implemented across WebGL2 (GLSL300), WebGPU (WGSL), and WebGL1 (GLSL100, using the existing Fresnel depth proxy).
+- **Housekeeping & Docs:**
+  - Last of the planned `OpenWaterMaterial` upgrade series (refraction, Beer-Lambert absorption, foam, caustics) inspired by a stylized water shader breakdown at gameidea.org.
+
 ## [0.77.10] - 2026-09-03
 
 ### "Thousands have lived without love, not one without water." - W. H. Auden

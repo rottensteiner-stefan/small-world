@@ -104,6 +104,19 @@ fn waterCellNoise(p: vec2<f32>) -> f32 {
     let foamMask = foamPattern * edgeBlend;
     finalColor = mix(finalColor, foamColor, foamMask);
 
+    // Procedural caustics: a lighter second Worley-noise layer, projected using the water
+    // surface's own world position rather than the true refracted seabed position (which would
+    // need reconstructing world position from depth via new invView/invProjection uniforms --
+    // renderer-wide infrastructure this material alone doesn't warrant). Close enough at the
+    // shallow depths caustics are visible at anyway; fades out entirely in deep water.
+    let causticsUv1 = i.wp.xz * foamNoiseScale * 0.5 + obj.time * foamNoiseSpeed * 0.3;
+    let causticsUv2 = i.wp.xz * foamNoiseScale * 0.35 - obj.time * foamNoiseSpeed * 0.25;
+    let caustics1 = 1.0 - waterCellNoise(causticsUv1);
+    let caustics2 = 1.0 - waterCellNoise(causticsUv2);
+    let causticsValue = caustics1 * caustics2;
+    let causticsFade = 1.0 - smoothstep(0.0, 10.0, depthDiff);
+    finalColor += causticsValue * causticsFade * 0.3;
+
     finalColor *= global.exposure;
     finalColor = linearToSRGB(finalColor);
 
