@@ -54,7 +54,8 @@ ruhende Kontakte auf Nettobeschleunigung 0 konvergieren.
 
 ---
 
-### 🔴 `Object3D.computeBounds()` überschreibt manuell zugewiesene OBB-Bounds stillschweigend mit einer AABB, sobald das Objekt Geometrie hat
+### ✅ [ERLEDIGT] `Object3D.computeBounds()` überschreibt manuell zugewiesene OBB-Bounds stillschweigend mit einer AABB, sobald das Objekt Geometrie hat
+*(Behoben 2026-09-03: `computeBounds()` in `src/core/Object3D.ts` bewahrt OBB-Instanzen und führt Skalierung/Transformation korrekt anhand der Geometrie nach; `OBB.transform()` extrahiert und skaliert `halfExtents`; Unit-Tests in `tests/physix/OBBScaleAndGeometryBounds.test.ts`.)*
 
 **Dateien:** `src/core/Object3D.ts:213-254` (Zuständigkeit von Agent A, aber der Bug manifestiert
 sich direkt im `src/physix/OBB.ts`-Vertrag und wird hier dokumentiert, da er OBB-Kollisionen in
