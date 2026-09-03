@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.77.6] - 2026-09-03
+
+### "Mirrors would do well to reflect a little more before sending back images." - Jean Cocteau
+
+- **Architecture & Bugfixes:**
+  - **Core:** Fixed `DeviceCaps.init()` leaking two never-released throwaway WebGL1/WebGL2 probe contexts on every call -- each `SmallWorld` instance gets its own private `DeviceCaps`, so pages creating several engine instances at once (e.g. Showcase 14's 9-way comparison wall) could hit the browser's per-page WebGL context cap and start losing live rendering contexts. Now explicitly released via `WEBGL_lose_context` right after reading limits.
+  - **Rendering:** Fixed `PlanarReflectionNode` rendering its own reflective surface (e.g. a mirror floor sampling `renderTarget` as `reflectionMap`) into that same texture during its own reflection sub-render -- invalid on WebGPU (a texture can't be a `RenderAttachment` and a `TextureBinding` in the same pass) and semantically wrong on every backend. Added `excludedObjects` to hide any object sampling the reflection texture during its own render; wired up in Showcases 15 and 16.
+  - **Assets:** Fixed a stale `.png` texture reference in Showcases 3/4's `vehicle-racer.mtl` left over from an earlier `.webp` conversion pass (404 on load).
+  - **Showcase 6:** Fixed a mislabeled geometry entry silently rendering `Ground` under the "Plane" label instead of the actual `Plane` class; added the previously-missing `Octahedron` and `Line` primitives to the gallery.
+  - **Showcase 11:** Replaced a bespoke, drifted axis-cross implementation with the engine's own `AxesHelper`, matching its neon color standard and eliminating duplicated label-rendering logic.
+- **Housekeeping & Docs:**
+  - Added unit tests for the `DeviceCaps` probe-context cleanup and `PlanarReflectionNode`'s `excludedObjects`.
+
 ## [0.77.5] - 2026-09-03
 
 ### "Do not multiply entities beyond necessity." - William of Ockham

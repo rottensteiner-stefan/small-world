@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { Camera } from "../../src/core/Camera.js";
+import { Object3D } from "../../src/core/Object3D.js";
 import { PerspectiveProjection } from "../../src/math/index.js";
 import { PlanarReflectionNode } from "../../src/core/PlanarReflectionNode.js";
 import { Scene } from "../../src/core/Scene.js";
@@ -8,6 +9,9 @@ import { Renderer } from "../../src/interfaces/Renderer.js";
 class MockRenderer {
   public renderTargetParams: unknown[] = [];
   public renderCalls = 0;
+  /** Set by the test right before calling `updateReflection()`, so `render()` can capture
+   * visibility state exactly as it stood during the reflection sub-render. */
+  public onRender?: () => void;
 
   public setRenderTarget(target: unknown): void {
     this.renderTargetParams.push(target);
@@ -15,6 +19,7 @@ class MockRenderer {
 
   public render(): void {
     this.renderCalls++;
+    this.onRender?.();
   }
 }
 
@@ -81,5 +86,64 @@ describe("PlanarReflectionNode", () => {
     // The view matrix must reflect this mirrored up vector immediately
     const viewMatrixData = Array.from(reflectionNode.mirrorCamera.viewMatrix);
     expect(viewMatrixData.some((v) => Number.isNaN(v))).toBe(false);
+  });
+
+  describe("excludedObjects (WebGPU RenderAttachment/TextureBinding hazard fix)", () => {
+    it("hides every excluded object during the reflection render and restores visibility after", () => {
+      const reflectionNode = new PlanarReflectionNode("Mirror", 512, 512);
+      reflectionNode.updateMatrixWorld();
+
+      const floor = new Object3D("Floor"); // e.g. a mirror surface sampling `renderTarget`
+      floor.isVisible = true;
+      reflectionNode.excludedObjects.push(floor);
+
+      const mainCamera = new Camera(new PerspectiveProjection());
+      mainCamera.position.set(0, 5, 10);
+      const scene = new Scene();
+      const renderer = new MockRenderer();
+
+      let floorVisibleDuringRender: boolean | undefined;
+      renderer.onRender = (): void => {
+        floorVisibleDuringRender = floor.isVisible;
+      };
+
+      reflectionNode.updateReflection(scene, mainCamera, renderer as unknown as Renderer);
+
+      expect(floorVisibleDuringRender).toBe(false);
+      expect(floor.isVisible).toBe(true); // restored afterward
+    });
+
+    it("restores each excluded object's own prior visibility, not just `true`", () => {
+      const reflectionNode = new PlanarReflectionNode("Mirror", 512, 512);
+      reflectionNode.updateMatrixWorld();
+
+      const alreadyHidden = new Object3D("AlreadyHidden");
+      alreadyHidden.isVisible = false;
+      reflectionNode.excludedObjects.push(alreadyHidden);
+
+      const mainCamera = new Camera(new PerspectiveProjection());
+      mainCamera.position.set(0, 5, 10);
+      const scene = new Scene();
+      const renderer = new MockRenderer();
+
+      reflectionNode.updateReflection(scene, mainCamera, renderer as unknown as Renderer);
+
+      expect(alreadyHidden.isVisible).toBe(false);
+    });
+
+    it("is a no-op when excludedObjects is empty (default), matching prior behavior", () => {
+      const reflectionNode = new PlanarReflectionNode("Mirror", 512, 512);
+      reflectionNode.updateMatrixWorld();
+
+      const mainCamera = new Camera(new PerspectiveProjection());
+      mainCamera.position.set(0, 5, 10);
+      const scene = new Scene();
+      const renderer = new MockRenderer();
+
+      expect(() =>
+        reflectionNode.updateReflection(scene, mainCamera, renderer as unknown as Renderer),
+      ).not.toThrow();
+      expect(renderer.renderCalls).toBe(1);
+    });
   });
 });

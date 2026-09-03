@@ -182,11 +182,18 @@ export class DeviceCaps {
     }
 
     // 2. Check WebGL support & limits
-    // WebGL 1
+    // WebGL 1 -- this probe context is purely throwaway (created only to read GPU limits/
+    // extensions), so it MUST be explicitly released via WEBGL_lose_context in a `finally` right
+    // after reading it, rather than left for the GC to reclaim eventually: every `SmallWorld`
+    // instance gets its own private `DeviceCaps` (see `RendererContext`), so a page creating
+    // several engine instances at once (e.g. a comparison showcase running N side-by-side
+    // instances) previously leaked 2 never-released contexts per instance until the browser's
+    // per-page WebGL context cap was hit and started evicting live rendering contexts.
+    let gl: WebGLRenderingContext | null = null;
     try {
       const gl1Canvas = document.createElement("canvas");
-      const gl = (gl1Canvas.getContext("webgl") ||
-        gl1Canvas.getContext("experimental-webgl")) as WebGLRenderingContext;
+      gl = (gl1Canvas.getContext("webgl") ||
+        gl1Canvas.getContext("experimental-webgl")) as WebGLRenderingContext | null;
       this._hasWebGL1 = !!gl;
       if (gl) {
         this._maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE);
@@ -220,12 +227,15 @@ export class DeviceCaps {
       }
     } catch {
       this._hasWebGL1 = false;
+    } finally {
+      gl?.getExtension("WEBGL_lose_context")?.loseContext();
     }
 
-    // WebGL 2
+    // WebGL 2 -- same throwaway-probe-context concern as WebGL 1 above.
+    let gl2: WebGL2RenderingContext | null = null;
     try {
       const gl2Canvas = document.createElement("canvas");
-      const gl2 = gl2Canvas.getContext("webgl2") as WebGL2RenderingContext;
+      gl2 = gl2Canvas.getContext("webgl2") as WebGL2RenderingContext | null;
       this._hasWebGL2 = !!gl2;
       if (gl2) {
         this._maxTextureSize = Math.max(
@@ -253,6 +263,8 @@ export class DeviceCaps {
       }
     } catch {
       this._hasWebGL2 = false;
+    } finally {
+      gl2?.getExtension("WEBGL_lose_context")?.loseContext();
     }
 
     // 3. Initial WebGPU check (Limits will be updated by Renderer asynchronously)

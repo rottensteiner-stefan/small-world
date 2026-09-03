@@ -16,8 +16,11 @@ import {
   Gear,
   Geometry,
   Grid,
+  Line,
   Object3D,
+  Octahedron,
   PerspectiveProjection,
+  Plane,
   Ground,
   Pyramid,
   Sphere,
@@ -125,6 +128,7 @@ export class Showcase6 extends AbstractShowcase {
       { name: "Cube", geom: new Cube({ size: 3 }) },
       { name: "Sphere", geom: new Sphere({ radius: 1.5, widthSegments: 32, heightSegments: 24 }) },
       { name: "Pyramid", geom: new Pyramid({ base: 3, height: 3, radialSegments: 4 }) },
+      { name: "Octahedron", geom: new Octahedron({ radius: 1.8 }) },
       {
         name: "Torus",
         geom: new Torus({ radius: 1.5, tube: 0.5, radialSegments: 16, tubularSegments: 32 }),
@@ -159,7 +163,10 @@ export class Showcase6 extends AbstractShowcase {
           thetaLength: Math.PI,
         }),
       },
-      { name: "Plane", geom: new Ground({ width: 3, depth: 3 }) },
+      // "Plane" is vertical (X-Y, facing +Z); "Ground" is horizontal (X-Z) -- two distinct
+      // geometry classes, not the same shape under two names.
+      { name: "Plane", geom: new Plane({ width: 3, height: 3 }) },
+      { name: "Ground", geom: new Ground({ width: 3, depth: 3 }) },
       {
         name: "Triangle",
         geom: new Triangle(
@@ -168,6 +175,7 @@ export class Showcase6 extends AbstractShowcase {
           new Vector3D(0, 0, -2.6),
         ),
       },
+      { name: "Line", geom: new Line(new Vector3D(-1.5, 0, 0), new Vector3D(1.5, 0, 0)) },
       {
         name: "Gear",
         geom: new Gear({ innerRadius: 1.0, toothHeight: 0.5, teeth: 12, thickness: 0.5 }),
