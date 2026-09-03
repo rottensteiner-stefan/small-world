@@ -29,6 +29,15 @@ export interface OpenWaterMaterialOptions {
    * with water depth (thicker water = more of `deepWaterColor`, less of the tinted seabed).
    * Higher values fade faster. Red typically fades fastest in real water. */
   waterAbsorption?: [number, number, number];
+  /** Color of the procedural shoreline/intersection foam. */
+  foamColor?: Color;
+  /** Worley-noise threshold below which a foam cell is considered "inside" the foam pattern.
+   * Lower values produce more foam coverage. */
+  foamCutoff?: number;
+  /** World-space UV scale of the foam's Worley-noise cells. */
+  foamNoiseScale?: number;
+  /** How fast the foam pattern drifts over time. */
+  foamNoiseSpeed?: number;
 }
 
 export class OpenWaterMaterial extends AbstractMaterial {
@@ -43,6 +52,10 @@ export class OpenWaterMaterial extends AbstractMaterial {
   public time: number = 0.0;
   public refractionStrength: number;
   public waterAbsorption: [number, number, number];
+  public foamColor: Color;
+  public foamCutoff: number;
+  public foamNoiseScale: number;
+  public foamNoiseSpeed: number;
 
   constructor(options: OpenWaterMaterialOptions = {}) {
     super(MaterialType.OPEN_WATER);
@@ -57,6 +70,10 @@ export class OpenWaterMaterial extends AbstractMaterial {
       wave3 = [-0.3, 0.7, 0.05, 3.0],
       refractionStrength = 0.03,
       waterAbsorption = [0.3, 0.06, 0.02],
+      foamColor = new Color(1.0, 1.0, 1.0),
+      foamCutoff = 0.6,
+      foamNoiseScale = 3.0,
+      foamNoiseSpeed = 0.5,
     } = options;
 
     this.color = waterColor;
@@ -69,6 +86,10 @@ export class OpenWaterMaterial extends AbstractMaterial {
     this.wave3 = wave3;
     this.refractionStrength = refractionStrength;
     this.waterAbsorption = waterAbsorption;
+    this.foamColor = foamColor;
+    this.foamCutoff = foamCutoff;
+    this.foamNoiseScale = foamNoiseScale;
+    this.foamNoiseSpeed = foamNoiseSpeed;
 
     this.transparent = true;
     this.depthWrite = false;
@@ -105,6 +126,15 @@ export class OpenWaterMaterial extends AbstractMaterial {
       this._renderManifest.properties["u_isSkinned"] = this.waterAbsorption[0];
       this._renderManifest.properties["u_boneOffset"] = this.waterAbsorption[1];
       this._renderManifest.properties["u_pad1"] = this.waterAbsorption[2];
+      // u_isTerrain/u_metallic/u_roughness/u_useEnvMap/u_useReflectionMap/u_pad2 are the last
+      // remaining free named slots -- repurposed for foamColor.rgb + foamCutoff/foamNoiseScale/
+      // foamNoiseSpeed (no PBR/terrain/env-map features apply to this material).
+      this._renderManifest.properties["u_isTerrain"] = this.foamColor.r;
+      this._renderManifest.properties["u_metallic"] = this.foamColor.g;
+      this._renderManifest.properties["u_roughness"] = this.foamColor.b;
+      this._renderManifest.properties["u_useEnvMap"] = this.foamCutoff;
+      this._renderManifest.properties["u_useReflectionMap"] = this.foamNoiseScale;
+      this._renderManifest.properties["u_pad2"] = this.foamNoiseSpeed;
     }
 
     this._syncBaseManifestState();
@@ -144,6 +174,12 @@ export class OpenWaterMaterial extends AbstractMaterial {
     props["u_isSkinned"] = this.waterAbsorption[0];
     props["u_boneOffset"] = this.waterAbsorption[1];
     props["u_pad1"] = this.waterAbsorption[2];
+    props["u_isTerrain"] = this.foamColor.r;
+    props["u_metallic"] = this.foamColor.g;
+    props["u_roughness"] = this.foamColor.b;
+    props["u_useEnvMap"] = this.foamCutoff;
+    props["u_useReflectionMap"] = this.foamNoiseScale;
+    props["u_pad2"] = this.foamNoiseSpeed;
 
     return this._renderManifest;
   }

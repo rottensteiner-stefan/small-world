@@ -15,10 +15,45 @@ uniform float u_shininess; // repurposed: refractionStrength (see OpenWaterMater
 uniform float u_isSkinned; // repurposed: waterAbsorption.r
 uniform float u_boneOffset; // repurposed: waterAbsorption.g
 uniform float u_pad1; // repurposed: waterAbsorption.b
+uniform float u_isTerrain; // repurposed: foamColor.r
+uniform float u_metallic; // repurposed: foamColor.g
+uniform float u_roughness; // repurposed: foamColor.b
+uniform float u_useEnvMap; // repurposed: foamCutoff
+uniform float u_useReflectionMap; // repurposed: foamNoiseScale
+uniform float u_pad2; // repurposed: foamNoiseSpeed
+uniform float u_time;
 uniform sampler2D u_opaqueDepthMap;
 uniform sampler2D u_opaqueMap;
 
 out vec4 fragColor;
+
+// Cheap 2D hash for the foam cell noise below -- not a general-purpose PRNG, just enough
+// decorrelation between neighboring cells to avoid an obviously repeating pattern.
+float waterHash(vec2 p) {
+    return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453123);
+}
+
+// Worley/cellular noise: distance from `p` to the nearest jittered point among the 3x3
+// neighboring grid cells. Produces the blotchy, cell-like coverage foam needs -- unlike smooth
+// Perlin-style noise, its edges are naturally sharp, which reads as foam clumps rather than a
+// soft gradient.
+float waterCellNoise(vec2 p) {
+    vec2 cell = floor(p);
+    vec2 localPos = fract(p);
+    float minDistSq = 1.0;
+    for (int y = -1; y <= 1; y++) {
+        for (int x = -1; x <= 1; x++) {
+            vec2 neighbor = vec2(float(x), float(y));
+            vec2 jitter = vec2(
+                waterHash(cell + neighbor),
+                waterHash(cell + neighbor + vec2(17.0, 31.0))
+            );
+            vec2 diff = neighbor + jitter - localPos;
+            minDistSq = min(minDistSq, dot(diff, diff));
+        }
+    }
+    return sqrt(minDistSq);
+}
 
 void main() {
     vec3 waterColor = sRGBToLinear(u_color.rgb);
@@ -80,6 +115,19 @@ void main() {
 
     vec3 edgeColLinear = sRGBToLinear(edgeColor);
     vec3 finalColor = mix(baseColor, edgeColLinear, edgeBlend);
+
+    // Procedural foam: a Worley-noise pattern drifting in world-space XZ, masked to the same
+    // shoreline/intersection band as the edge blend above (real foam only collects where the
+    // water actually meets something, not across the open surface).
+    vec3 foamColor = sRGBToLinear(vec3(u_isTerrain, u_metallic, u_roughness));
+    float foamCutoff = u_useEnvMap;
+    float foamNoiseScale = u_useReflectionMap;
+    float foamNoiseSpeed = u_pad2;
+    vec2 foamUv = v_worldPos.xz * foamNoiseScale + u_time * foamNoiseSpeed;
+    float foamCell = waterCellNoise(foamUv);
+    float foamPattern = 1.0 - smoothstep(foamCutoff, foamCutoff + 0.15, foamCell);
+    float foamMask = foamPattern * edgeBlend;
+    finalColor = mix(finalColor, foamColor, foamMask);
 
     finalColor *= u_exposure;
     finalColor = linearToSRGB(finalColor);

@@ -1,3 +1,31 @@
+// Cheap 2D hash for the foam cell noise below -- not a general-purpose PRNG, just enough
+// decorrelation between neighboring cells to avoid an obviously repeating pattern.
+fn waterHash(p: vec2<f32>) -> f32 {
+    return fract(sin(dot(p, vec2<f32>(12.9898, 78.233))) * 43758.5453123);
+}
+
+// Worley/cellular noise: distance from `p` to the nearest jittered point among the 3x3
+// neighboring grid cells. Produces the blotchy, cell-like coverage foam needs -- unlike smooth
+// Perlin-style noise, its edges are naturally sharp, which reads as foam clumps rather than a
+// soft gradient.
+fn waterCellNoise(p: vec2<f32>) -> f32 {
+    let cell = floor(p);
+    let localPos = fract(p);
+    var minDistSq = 1.0;
+    for (var y = -1; y <= 1; y++) {
+        for (var x = -1; x <= 1; x++) {
+            let neighbor = vec2<f32>(f32(x), f32(y));
+            let jitter = vec2<f32>(
+                waterHash(cell + neighbor),
+                waterHash(cell + neighbor + vec2<f32>(17.0, 31.0))
+            );
+            let diff = neighbor + jitter - localPos;
+            minDistSq = min(minDistSq, dot(diff, diff));
+        }
+    }
+    return sqrt(minDistSq);
+}
+
 @fragment fn fs(i: Out) -> @location(0) vec4<f32> {
     let waterColor = sRGBToLinear(obj.color.rgb);
     let deepWaterColor = sRGBToLinear(obj.specColor.rgb);
@@ -60,6 +88,21 @@
 
     let edgeColLinear = sRGBToLinear(edgeColor);
     var finalColor = mix(baseColor, edgeColLinear, edgeBlend);
+
+    // Procedural foam: a Worley-noise pattern drifting in world-space XZ, masked to the same
+    // shoreline/intersection band as the edge blend above (real foam only collects where the
+    // water actually meets something, not across the open surface). obj.isTerrain/metallic/
+    // roughness/useEnvMap/useReflectionMap/pad2 are repurposed for foamColor.rgb + foamCutoff/
+    // foamNoiseScale/foamNoiseSpeed (see OpenWaterMaterial.ts).
+    let foamColor = sRGBToLinear(vec3<f32>(obj.isTerrain, obj.metallic, obj.roughness));
+    let foamCutoff = obj.useEnvMap;
+    let foamNoiseScale = obj.useReflectionMap;
+    let foamNoiseSpeed = obj.pad2;
+    let foamUv = i.wp.xz * foamNoiseScale + obj.time * foamNoiseSpeed;
+    let foamCell = waterCellNoise(foamUv);
+    let foamPattern = 1.0 - smoothstep(foamCutoff, foamCutoff + 0.15, foamCell);
+    let foamMask = foamPattern * edgeBlend;
+    finalColor = mix(finalColor, foamColor, foamMask);
 
     finalColor *= global.exposure;
     finalColor = linearToSRGB(finalColor);

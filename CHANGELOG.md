@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.77.10] - 2026-09-03
+
+### "Thousands have lived without love, not one without water." - W. H. Auden
+
+- **Features:**
+  - **OpenWaterMaterial:** Added procedural shoreline/intersection foam -- a Worley (cellular) noise pattern drifting in world-space XZ, masked to the same depth-based band the existing edge blend already uses, so foam only collects where the water actually meets other geometry instead of covering the whole open surface. New `foamColor`, `foamCutoff`, `foamNoiseScale`, `foamNoiseSpeed` options. Implemented across WebGL2 (GLSL300), WebGPU (WGSL), and WebGL1 (GLSL100).
+- **Housekeeping & Docs:**
+  - Third of the planned `OpenWaterMaterial` upgrade series (caustics still to follow). Scoped down from a fuller foam design (no separate shadow/bubble sub-layers, no dedicated depth-start/end uniforms) to fit the remaining free uniform slots -- wave1/2/3 already occupy every dedicated vec4 slot, so refraction, absorption, and foam all had to be packed into unrelated named float/vec2 slots (PBR fields, skinning fields, padding) that this material doesn't otherwise use.
+
 ## [0.77.9] - 2026-09-03
 
 ### "Water is the driving force of all nature." - Leonardo da Vinci

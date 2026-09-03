@@ -37,6 +37,36 @@ describe("OpenWaterMaterial", () => {
     expect(manifest.properties["u_pad1"]).toBe(1.0);
   });
 
+  it("should default foam options", () => {
+    const material = new OpenWaterMaterial();
+
+    expect(material.foamColor).toEqual(new Color(1.0, 1.0, 1.0));
+    expect(material.foamCutoff).toBe(0.6);
+    expect(material.foamNoiseScale).toBe(3.0);
+    expect(material.foamNoiseSpeed).toBe(0.5);
+  });
+
+  it("should pack foam options into the remaining free uniform slots and keep them in sync", () => {
+    const material = new OpenWaterMaterial({
+      foamColor: new Color(0.2, 0.4, 0.6),
+      foamCutoff: 0.5,
+      foamNoiseScale: 4.0,
+      foamNoiseSpeed: 1.5,
+    });
+
+    let manifest = material.getRenderManifest();
+    expect(manifest.properties["u_isTerrain"]).toBeCloseTo(0.2, 5);
+    expect(manifest.properties["u_metallic"]).toBeCloseTo(0.4, 5);
+    expect(manifest.properties["u_roughness"]).toBeCloseTo(0.6, 5);
+    expect(manifest.properties["u_useEnvMap"]).toBe(0.5);
+    expect(manifest.properties["u_useReflectionMap"]).toBe(4.0);
+    expect(manifest.properties["u_pad2"]).toBe(1.5);
+
+    material.foamCutoff = 0.9;
+    manifest = material.getRenderManifest();
+    expect(manifest.properties["u_useEnvMap"]).toBe(0.9);
+  });
+
   it("should expose u_opaqueMap for screen-space refraction, alongside the existing u_opaqueDepthMap", () => {
     const material = new OpenWaterMaterial();
     const manifest = material.getRenderManifest();
