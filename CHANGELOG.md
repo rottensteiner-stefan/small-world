@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.77.7] - 2026-09-03
+
+### "The snake which cannot cast its skin has to die." - Friedrich Nietzsche
+
+- **Architecture & Bugfixes:**
+  - **Behaviors:** Fixed `HoverBehavior` never overriding `onDetach()` -- the pointer-enter/leave closures it wires directly onto the target `Object3D` survived `detachBehavior()` and kept mutating the object's material emissive color/intensity indefinitely, even though the scale animation correctly stopped. `onDetach()` now clears its own handlers via an identity check, so a handler set by a different behavior in the meantime is left untouched. Also fixed `Object3D.onPointerEnter`/`onPointerLeave` tripping `exactOptionalPropertyTypes` once explicitly cleared to `undefined`.
+- **Housekeeping & Docs:**
+  - Added unit tests for `HoverBehavior`'s attach/detach lifecycle. Closes the last open 🔴 finding from the 2026-09-03 full codebase review.
+
 ## [0.77.6] - 2026-09-03
 
 ### "Mirrors would do well to reflect a little more before sending back images." - Jean Cocteau

@@ -444,7 +444,7 @@ umstellen, analog zu `StiffStrategy`/`SmoothStrategy`.
 
 ---
 
-## 🔴 `HoverBehavior.onDetach()` fehlt — Pointer-Handler überleben das Detach und mutieren weiter direkt das Material
+## ✅ [ERLEDIGT] `HoverBehavior.onDetach()` fehlt — Pointer-Handler überleben das Detach und mutieren weiter direkt das Material
 
 `HoverBehavior.onAttach()` (`src/core/behaviors/HoverBehavior.ts:19-49`) klont das Material
 korrekt (guter Move, siehe unten) und verdrahtet danach zwei Closures direkt auf das Objekt:
@@ -499,6 +499,20 @@ eigentlich symmetrisch erfüllen sollen.
 `onPointerDown`/`onPointerUp`/`onPointerMove` explizit auf `undefined` zurück, bevor
 `super.onDetach()` aufgerufen wird. Das zeigt, dass das korrekte Pattern im Projekt bereits bekannt
 ist; `HoverBehavior` hat es nur schlicht vergessen.
+
+**Fix (2026-09-03):** `HoverBehavior` speichert die beiden in `onAttach()` erzeugten Closures jetzt
+zusätzlich in `_onPointerEnter`/`_onPointerLeave` und überschreibt `onDetach()`: setzt
+`target.onPointerEnter`/`onPointerLeave` nur dann auf `undefined` zurück, wenn der Slot noch exakt
+die eigene Closure enthält (Identity-Check) — etwas defensiver als `DraggableBehavior`s
+unbedingtes Zurücksetzen, damit ein zwischenzeitlich von einem anderen Behavior gesetzter Handler
+nicht überschrieben wird (durch Test abgedeckt). `isPickable` bewusst NICHT zurückgesetzt, analog
+zu `DraggableBehavior`, das es ebenfalls nicht tut. Als Nebenbefund musste
+`Object3D.onPointerEnter?`/`onPointerLeave?` von `?:`-Shorthand auf `(() => void) | undefined`
+umgestellt werden (gleiches `exactOptionalPropertyTypes`-Muster wie bereits bei `Forge.ts`, siehe
+Review 01). Testabdeckung: neue `tests/core/behaviors/HoverBehavior.test.ts` (3 Tests: Hover-Zyklus
+funktioniert, Handler werden nach Detach entfernt und mutieren das Material nicht mehr, ein nach
+dem Detach von einem anderen Behavior gesetzter Handler wird nicht überschrieben). `tsc`/ESLint
+clean, alle 710 Tests grün.
 
 ---
 

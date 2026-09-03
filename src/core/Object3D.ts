@@ -88,8 +88,8 @@ export class Object3D implements Collidable {
   public receiveShadow: boolean = false;
 
   public isPickable: boolean = false;
-  public onPointerEnter?: () => void;
-  public onPointerLeave?: () => void;
+  public onPointerEnter: (() => void) | undefined;
+  public onPointerLeave: (() => void) | undefined;
   public onPointerClick?: () => void;
 
   private _pickingBehavior?: PickingBehavior;
