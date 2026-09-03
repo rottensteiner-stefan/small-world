@@ -1,4 +1,3 @@
-import { AssetManager } from "./AssetManager.js";
 import { AbstractLoader } from "./AbstractLoader.js";
 import { EventType } from "../enums/index.js";
 import { Object3D } from "../core/index.js";
@@ -8,6 +7,7 @@ import { PointLight, PointLightOptions } from "../core/lights/index.js";
 import { Color } from "../core/colors/index.js";
 import { GltfLoaderOptions } from "../interfaces/index.js";
 import { Matrix4, Vector3D, Quaternion } from "../math/index.js";
+
 import {
   GltfJson,
   GltfData,
@@ -54,14 +54,14 @@ export class GltfLoader extends AbstractLoader<Object3D> {
   }
 
   private async _loadJson(url: string): Promise<GltfData> {
-    const json = (await AssetManager.loadJson(url)) as GltfJson;
+    const json = (await this._assetManager.loadJson(url)) as GltfJson;
     const folderPath = GltfLoader.getFolderPath(url);
 
     const bufferPromises = (json.buffers || []).map((buf) => {
       if (buf.uri?.startsWith("data:")) {
         return GltfBinaryParser.decodeBase64(buf.uri);
       }
-      return AssetManager.loadBinary(folderPath + (buf.uri || ""));
+      return this._assetManager.loadBinary(folderPath + (buf.uri || ""));
     });
 
     const buffers = await Promise.all(bufferPromises);
@@ -69,8 +69,54 @@ export class GltfLoader extends AbstractLoader<Object3D> {
   }
 
   private async _loadBinary(url: string): Promise<GltfData> {
-    const arrayBuffer = await AssetManager.loadBinary(url);
-    return GltfBinaryParser.parseGlb(arrayBuffer);
+    const arrayBuffer = await this._assetManager.loadBinary(url);
+    const dataView = new DataView(arrayBuffer);
+
+    // Check Magic: "glTF"
+    const magic = dataView.getUint32(0, true);
+    if (magic !== 0x46546c67) throw new Error("Not a valid .glb file.");
+
+    const version = dataView.getUint32(4, true);
+    if (version !== 2) throw new Error("Only glTF 2.0 is supported.");
+
+    // Parse Chunks
+    let json: GltfJson | null = null;
+    const buffers: ArrayBuffer[] = [];
+    let offset = 12;
+
+    while (offset < arrayBuffer.byteLength) {
+      const chunkLength = dataView.getUint32(offset, true);
+      const chunkType = dataView.getUint32(offset + 4, true);
+      offset += 8;
+
+      if (chunkType === 0x4e4f534a) {
+        // JSON
+        const jsonContent = new TextDecoder().decode(
+          new Uint8Array(arrayBuffer, offset, chunkLength),
+        );
+        json = JSON.parse(jsonContent) as GltfJson;
+      } else if (chunkType === 0x004e4942) {
+        // BIN
+        buffers.push(arrayBuffer.slice(offset, offset + chunkLength));
+      }
+      offset += chunkLength;
+    }
+
+    if (!json) throw new Error("No JSON chunk found in .glb file.");
+
+    return { json, buffers };
+  }
+
+  /** Decodes a `data:...;base64,...` URI into raw bytes -- public/static so callers that parse a
+   * glTF JSON document themselves (`ProjectBinding`, rather than `load()`/`_loadJson()`) can
+   * decode its embedded buffers before handing the document to `_parse()`. */
+  public static decodeDataUri(uri: string): ArrayBuffer {
+    const base64 = uri.split(",")[1]!;
+    const binaryStr = atob(base64);
+    const buffer = new ArrayBuffer(binaryStr.length);
+    const view = new Uint8Array(buffer);
+    for (let i = 0; i < binaryStr.length; i++) view[i] = binaryStr.charCodeAt(i);
+    return buffer;
   }
 
   /**
@@ -91,7 +137,14 @@ export class GltfLoader extends AbstractLoader<Object3D> {
     // 1. Parse Materials
     const materials = await Promise.all(
       (json.materials || []).map((m) =>
-        GltfMaterialParser.parseMaterial(m, json, folderPath, buffers, this._gltfOptions),
+        GltfMaterialParser.parseMaterial(
+          m,
+          json,
+          folderPath,
+          buffers,
+          this._assetManager,
+          this._gltfOptions,
+        ),
       ),
     );
 
@@ -156,6 +209,8 @@ export class GltfLoader extends AbstractLoader<Object3D> {
           obj = new Object3D(name);
         }
         this._applyNodeTransforms(obj, nodeDef);
+        const prefabSource = nodeDef.extensions?.SW_prefab_instance?.source;
+        if (prefabSource) obj.prefabSource = prefabSource;
         this._gltfOptions.onNodeParsed?.(obj, nodeDef as unknown as Record<string, unknown>);
         nodeObjects[i] = obj;
       }
@@ -272,6 +327,13 @@ export class GltfLoader extends AbstractLoader<Object3D> {
     folderPath: string,
     buffers: ArrayBuffer[],
   ): Promise<StandardMaterial> {
-    return GltfMaterialParser.parseMaterial(m, json, folderPath, buffers, this._gltfOptions);
+    return GltfMaterialParser.parseMaterial(
+      m,
+      json,
+      folderPath,
+      buffers,
+      this._assetManager,
+      this._gltfOptions,
+    );
   }
 }

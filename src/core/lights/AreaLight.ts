@@ -12,6 +12,13 @@ export interface AreaLightOptions extends LightOptions {
   height?: number;
 }
 
+/** Maximum number of simultaneous AreaLights supported by shader forward pipelines. Raising this
+ * requires also raising every hardcoded `AreaLight u_areaLights[4]` GLSL array declaration in
+ * lockstep -- GLSL can't import a TS constant, so these are kept in sync by hand:
+ * `web_gl2/chunks/lights.frag.glsl`, `web_gl2/chunks/base_vertex_header.vert.glsl`,
+ * `core/materials/shaders/Liquid.vert.glsl`, `core/materials/shaders/FluidSurface.vert.glsl`. */
+export const MAX_AREA_LIGHTS = 4;
+
 /**
  * Area light that emits light from a rectangular plane.
  */
@@ -38,7 +45,7 @@ export class AreaLight extends AbstractLight {
 
   /** @inheritdoc */
   public override applyTo(data: LightDataInterface): void {
-    if (4 > data.aLights.length) {
+    if (MAX_AREA_LIGHTS > data.aLights.length) {
       data.aLights.push(this);
     }
   }

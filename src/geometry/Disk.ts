@@ -31,9 +31,9 @@ export class Disk extends AbstractGeometry {
   constructor(options: DiskOptions = {}) {
     super();
     const { radius = 1, segments = 32, rings = 8 } = options;
-    this.radius = radius;
-    this.segments = segments;
-    this.rings = rings;
+    this.radius = Math.max(0, radius);
+    this.segments = Math.max(3, Math.floor(segments));
+    this.rings = Math.max(1, Math.floor(rings));
     this.generateGeometryData();
   }
 

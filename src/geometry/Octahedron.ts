@@ -21,7 +21,7 @@ export class Octahedron extends AbstractGeometry {
    */
   constructor(options: OctahedronOptions = {}) {
     super();
-    this.radius = options.radius ?? 1.0;
+    this.radius = Math.max(0, options.radius ?? 1.0);
     this.generateGeometryData();
   }
 

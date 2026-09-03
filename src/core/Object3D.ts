@@ -5,6 +5,7 @@ import { Behavior, attachBehavior, detachBehavior } from "./behaviors/Behavior.j
 import { PickingBehavior } from "./behaviors/PickingBehavior.js";
 import { RigidBody } from "../physix/RigidBody.js";
 import { InspectorField } from "./Inspectable.js";
+import { shallowCloneWithValueTypes } from "./CloneUtils.js";
 
 /** Backs `occlusionCulled` -- kept off the instance itself so objects that are never touched by
  * WebGPU HZB occlusion culling (i.e. every object on WebGL1/WebGL2) don't carry the field. */
@@ -19,18 +20,13 @@ export class Object3D implements Collidable {
    * subclass (e.g. `AbstractLight`, `AbstractMaterial`) declares on top. Transform fields use
    * `path` since position/rotation/scale are nested `Vector3D` instances, not own properties. */
   public static readonly inspector: Record<string, InspectorField> = {
+    name: { type: "string", label: "Name" },
+    position: { type: "vec3", label: "Position", step: 0.1 },
+    rotation: { type: "vec3", label: "Rotation", step: 0.05 },
+    scale: { type: "vec3", label: "Scale", step: 0.05 },
     isVisible: { type: "boolean", label: "Visible" },
-    castShadow: { type: "boolean", label: "Cast Shadow" },
-    receiveShadow: { type: "boolean", label: "Recv Shadow" },
-    posX: { type: "number", label: "Pos X", path: "position.x" },
-    posY: { type: "number", label: "Pos Y", path: "position.y" },
-    posZ: { type: "number", label: "Pos Z", path: "position.z" },
-    rotX: { type: "number", label: "Rot X", path: "rotation.x" },
-    rotY: { type: "number", label: "Rot Y", path: "rotation.y" },
-    rotZ: { type: "number", label: "Rot Z", path: "rotation.z" },
-    scaleX: { type: "number", label: "Scale X", path: "scale.x" },
-    scaleY: { type: "number", label: "Scale Y", path: "scale.y" },
-    scaleZ: { type: "number", label: "Scale Z", path: "scale.z" },
+    castShadow: { type: "boolean", label: "Cast Shadow", row: "shadows" },
+    receiveShadow: { type: "boolean", label: "Recv Shadow", row: "shadows" },
   };
 
   public readonly uuid: string = MathUtils.generateUUID();
@@ -217,8 +213,11 @@ export class Object3D implements Collidable {
     if (this.geometry) {
       // 1. Get local bounds from geometry
       const localBounds = this.geometry.getBoundingVolume();
-      // 2. Transform bounds to world space without re-allocating (if types match)
-      if (!this.bounds || this.bounds.type !== localBounds.type) {
+      // 2. Transform bounds to world space without re-allocating (if types match, or if custom OBB was assigned)
+      if (
+        !this.bounds ||
+        (this.bounds.type !== 2 /* BoundingType.OBB */ && this.bounds.type !== localBounds.type)
+      ) {
         // Create a fresh copy
         if (localBounds.type === 1 /* BoundingType.BOX */) {
           const lb = localBounds as import("../physix/index.js").BoundingBox;
@@ -250,9 +249,18 @@ export class Object3D implements Collidable {
         b.radius = ls.radius;
         b.transform(this.worldMatrix);
       } else if (this.bounds && this.bounds.type === 2 /* BoundingType.OBB */) {
-        const lo = localBounds as import("../physix/index.js").OBB;
         const b = this.bounds as import("../physix/index.js").OBB;
-        b.halfExtents.copyFrom(lo.halfExtents);
+        if (localBounds.type === 1 /* BoundingType.BOX */) {
+          const lb = localBounds as import("../physix/index.js").BoundingBox;
+          b.halfExtents.set(
+            (lb.max.x - lb.min.x) * 0.5,
+            (lb.max.y - lb.min.y) * 0.5,
+            (lb.max.z - lb.min.z) * 0.5,
+          );
+        } else if (localBounds.type === 2 /* BoundingType.OBB */) {
+          const lo = localBounds as import("../physix/index.js").OBB;
+          b.halfExtents.copyFrom(lo.halfExtents);
+        }
         b.transform(this.worldMatrix);
       }
     }
@@ -266,6 +274,9 @@ export class Object3D implements Collidable {
     const pos = MathPool.acquireVector();
     const scale = MathPool.acquireVector();
     m.decompose(pos, this.rotation, scale);
+    if (this.quaternion) {
+      this.quaternion.setFromRotationMatrix(m);
+    }
     MathPool.releaseVector(pos);
     MathPool.releaseVector(scale);
     MathPool.releaseMatrix(m);
@@ -300,5 +311,50 @@ export class Object3D implements Collidable {
       this.worldMatrix.data[13]!,
       this.worldMatrix.data[14]!,
     );
+  }
+
+  /**
+   * Returns an independent copy of this object's subtree -- own `uuid`, own transform, own
+   * material (via `AbstractMaterial.clone()`), own behaviors (via `Behavior.clone()`, re-attached
+   * so `onAttach()` runs against the new instance), and a recursive clone of every child. Used by
+   * Maker's Duplicate command.
+   *
+   * `geometry` and any texture references stay shared by reference -- immutable data, same as
+   * every other "place another instance" workflow in the engine. `parent`/`bounds` reset (the
+   * caller reparents and bounds recompute lazily); `rigidBody` is deliberately dropped rather
+   * than shared, since two objects driven by the same live physics body would move together.
+   *
+   * Known gap: skinned meshes aren't specially handled -- a cloned `SkinnedMesh`'s `skeleton`
+   * would still reference the *original* subtree's bones, not the freshly cloned ones alongside
+   * it. Not a concern for Maker's realistic Duplicate targets (props, lights, prefab instances);
+   * character rigs go through the Prefab/glTF pipeline instead.
+   */
+  public clone(): Object3D {
+    const copy = shallowCloneWithValueTypes(this);
+    copy.parent = undefined;
+    copy.bounds = undefined;
+    delete copy.rigidBody;
+    copy.localMatrix = new Matrix4();
+    copy.worldMatrix = new Matrix4();
+    copy.material = this.material?.clone();
+
+    copy.children = this.children.map((child) => {
+      const childCopy = child.clone();
+      childCopy.parent = copy;
+      return childCopy;
+    });
+
+    copy.behaviors = [];
+    for (const behavior of this.behaviors) {
+      attachBehavior(copy.behaviors, behavior.clone(), copy);
+    }
+    const pickingCopy = copy.behaviors.find(
+      (b): b is PickingBehavior => b instanceof PickingBehavior,
+    );
+    if (pickingCopy) copy._pickingBehavior = pickingCopy;
+    else delete copy._pickingBehavior;
+
+    copy.updateMatrixWorld();
+    return copy;
   }
 }

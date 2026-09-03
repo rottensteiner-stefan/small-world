@@ -9,6 +9,13 @@ import { CameraInterfaceData } from "../../interfaces/index.js";
 export type GizmoMode = "translate" | "rotate" | "scale";
 export type GizmoAxis = "x" | "y" | "z";
 
+export interface GizmoSnapConfig {
+  enabled: boolean;
+  translate: number;
+  rotate: number;
+  scale: number;
+}
+
 const AXES: GizmoAxis[] = ["x", "y", "z"];
 const AXIS_COLOR: Record<GizmoAxis, Color> = {
   x: new Color(1, 0.2, 0.2),
@@ -48,8 +55,46 @@ export class TransformGizmo {
   private readonly _raycaster = new Raycaster();
   private _target: Object3D | undefined;
 
+  public static readonly GRID_STEPS: readonly number[] = [0.1, 0.25, 0.5, 1.0, 2.0];
+
+  public snap: GizmoSnapConfig = {
+    enabled: true,
+    translate: 0.5,
+    rotate: Math.PI / 12, // 15 degrees
+    scale: 0.25,
+  };
+
   public get mode(): GizmoMode {
     return this._mode;
+  }
+
+  /** Cycles translation grid snap size up or down among [0.1, 0.25, 0.5, 1.0, 2.0]. */
+  public stepGrid(direction: 1 | -1): number {
+    const steps = TransformGizmo.GRID_STEPS;
+    let idx = steps.indexOf(this.snap.translate);
+    if (-1 === idx) idx = 2; // default 0.5
+    const nextIdx = Math.max(0, Math.min(steps.length - 1, idx + direction));
+    this.snap.translate = steps[nextIdx]!;
+    return this.snap.translate;
+  }
+
+  /** Snaps a scalar value according to the current mode's snap setting, if snapping is enabled. */
+  public snapValue(mode: GizmoMode, value: number): number {
+    if (!this.snap.enabled) return value;
+    const step =
+      "translate" === mode
+        ? this.snap.translate
+        : "rotate" === mode
+          ? this.snap.rotate
+          : this.snap.scale;
+    if (step <= 0) return value;
+    const snapped = Math.round(value / step) * step;
+    return "scale" === mode ? Math.max(0.01, snapped) : snapped;
+  }
+
+  public toggleSnap(): boolean {
+    this.snap.enabled = !this.snap.enabled;
+    return this.snap.enabled;
   }
 
   constructor() {
@@ -93,7 +138,7 @@ export class TransformGizmo {
 
     this.root.position.copyFrom(worldPos);
     const distance = worldPos.clone().sub(camera.position).length();
-    const s = Math.max(0.001, distance * 0.15);
+    const s = Math.max(0.001, distance * 0.18);
     this.root.scale.set(s, s, s);
     this.root.updateMatrixWorld();
   }
@@ -107,7 +152,10 @@ export class TransformGizmo {
     for (const handle of group.children) {
       this._collectLeaves(handle, candidates);
     }
-    for (const leaf of candidates) leaf.computeBounds();
+    for (const leaf of candidates) {
+      leaf.updateMatrixWorld();
+      leaf.computeBounds();
+    }
     this._raycaster.setFromCamera(ndc, camera);
     const hits = this._raycaster.intersectObjects(candidates, true);
     if (0 === hits.length) return undefined;
@@ -183,13 +231,17 @@ export class TransformGizmo {
    * visual distinction between translate and scale handles. */
   private _buildArrow(color: Color, cubeTip: boolean = false): Object3D {
     const handle = new Object3D("GizmoArrow");
+    const mat = new BasicMaterial({ color });
+    mat.depthTest = false;
+    mat.depthWrite = false;
+
     const shaft = new Object3D("Shaft");
     shaft.geometry = new Cylinder({
       radiusTop: 0.03,
       radiusBottom: 0.03,
       height: 0.7,
     }).getGeometryData();
-    shaft.material = new BasicMaterial({ color });
+    shaft.material = mat;
     shaft.position.set(0, 0.35, 0);
     handle.add(shaft);
 
@@ -197,7 +249,7 @@ export class TransformGizmo {
     tip.geometry = cubeTip
       ? new Cube({ size: 0.14 }).getGeometryData()
       : new Cone({ radius: 0.1, height: 0.28 }).getGeometryData();
-    tip.material = new BasicMaterial({ color });
+    tip.material = mat;
     tip.position.set(0, 0.84, 0);
     handle.add(tip);
 
@@ -209,8 +261,12 @@ export class TransformGizmo {
    * re-orients it. */
   private _buildRing(color: Color): Object3D {
     const handle = new Object3D("GizmoRing");
+    const mat = new BasicMaterial({ color });
+    mat.depthTest = false;
+    mat.depthWrite = false;
+
     handle.geometry = new Torus({ radius: 0.9, tube: 0.05, tubularSegments: 48 }).getGeometryData();
-    handle.material = new BasicMaterial({ color });
+    handle.material = mat;
     handle.updateMatrixWorld();
     return handle;
   }

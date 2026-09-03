@@ -50,11 +50,14 @@ export interface GltfJson {
     skin?: number;
     extensions?: {
       KHR_lights_punctual?: { light: number };
+      SW_prefab_instance?: { source: string };
       [key: string]: unknown;
     };
   }[];
   scenes?: { nodes?: number[] }[];
   scene?: number;
+  /** Root-level `extensions` -- currently only `KHR_lights_punctual`'s light definitions
+   * array, referenced by index from individual nodes' own `extensions`. */
   extensions?: {
     KHR_lights_punctual?: {
       lights: {

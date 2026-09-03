@@ -13,6 +13,19 @@ export class PlanarReflectionNode extends Object3D {
   public renderTarget: RenderTarget;
   public mirrorCamera: Camera;
 
+  /**
+   * Objects to hide (alongside this node itself) while rendering the reflection -- typically the
+   * visible mesh whose material samples `renderTarget` (e.g. a mirror floor's `reflectionMap`).
+   * Unlike `DynamicReflectionProbe`, which can just hide its own parent (a probe is always a
+   * child of the reflective object it orbits), a `PlanarReflectionNode` and the mesh that samples
+   * its texture are typically unrelated siblings in the scene graph, so there's no structural
+   * relationship to hide automatically. Leaving the reflective mesh visible during its own
+   * reflection sub-render both looks wrong (it would show its own stale reflection recursively)
+   * and is invalid on WebGPU: `renderTarget`'s texture would be bound as a `RenderAttachment`
+   * (this render) and a `TextureBinding` (this mesh's material) in the same pass.
+   */
+  public excludedObjects: Object3D[] = [];
+
   constructor(name: string = "PlanarReflectionNode", width: number = 1024, height: number = 1024) {
     super(name);
     this.renderTarget = RenderTarget.create({ width, height });
@@ -57,10 +70,7 @@ export class PlanarReflectionNode extends Object3D {
       targetPos.z - planeNormal.z * 2 * distTarget,
     );
 
-    // Update view and projection internally
-    this.mirrorCamera.updateViewMatrix();
-
-    // 4. Mirror the camera UP vector
+    // 4. Mirror the camera UP vector (must be set BEFORE updateViewMatrix)
     const up = mainCamera.up;
     const upDist = planeNormal.dot(up);
     this.mirrorCamera.up.set(
@@ -69,12 +79,20 @@ export class PlanarReflectionNode extends Object3D {
       up.z - 2.0 * planeNormal.z * upDist,
     );
 
+    // Update view and projection internally
+    this.mirrorCamera.updateViewMatrix();
+
     MathPool.releaseVector(pos);
     MathPool.releaseVector(planeNormal);
 
     // 5. Hide this reflection node (and its children) so it doesn't occlude the reflection
     const wasVisible = this.isVisible;
     this.isVisible = false;
+
+    // 5b. Also hide every object that samples `renderTarget` in its own material -- see
+    // `excludedObjects`'s doc comment for why this can't be inferred from the scene graph.
+    const excludedWasVisible: boolean[] = this.excludedObjects.map((obj) => obj.isVisible);
+    for (const obj of this.excludedObjects) obj.isVisible = false;
 
     // 6. Render to target
     renderer.setRenderTarget(this.renderTarget);
@@ -88,5 +106,6 @@ export class PlanarReflectionNode extends Object3D {
 
     // Restore visibility
     this.isVisible = wasVisible;
+    this.excludedObjects.forEach((obj, i) => (obj.isVisible = excludedWasVisible[i]!));
   }
 }

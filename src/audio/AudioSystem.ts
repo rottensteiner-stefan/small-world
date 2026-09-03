@@ -1,6 +1,6 @@
 import { Vector3D, MathUtils } from "../math/index.js";
 import { CameraInterfaceData } from "../interfaces/index.js";
-import { SynthSFX } from "./SynthSFX.js";
+import { SynthSFX, SoundHandle } from "./SynthSFX.js";
 
 /**
  * A basic Audio System that wraps the Web Audio API.
@@ -19,6 +19,11 @@ export class AudioSystem {
 
   /** Procedurally synthesized sound effects (no sample files needed) -- see `SynthSFX`. */
   private _synthSFX!: SynthSFX;
+
+  /** Endless drone/fire graphs (`SynthSFX.startDrone`/`startFire`) still awaiting `stop()` --
+   * tracked so `dispose()` can guarantee every one of them is torn down, even if the caller lost
+   * or never held its handle. */
+  private _activeEndlessSounds: Set<SoundHandle> = new Set();
 
   /**
    * @param context An `AudioContext` to use instead of creating one -- lets tests (and any code
@@ -261,17 +266,34 @@ export class AudioSystem {
   }
 
   /**
-   * Starts a creepy, pulsing low-frequency background drone. See `SynthSFX.startDrone`.
+   * Starts a creepy, pulsing low-frequency background drone. See `SynthSFX.startDrone`. The drone
+   * loops forever -- call `.stop()` on the returned handle to end it (also done automatically by
+   * `dispose()`).
    */
-  public startDrone(): void {
-    this._synthSFX.startDrone();
+  public startDrone(): SoundHandle {
+    return this._trackEndlessSound(this._synthSFX.startDrone());
   }
 
   /**
    * Starts a procedural fire crackling noise at a specific 3D location. See `SynthSFX.startFire`.
+   * The noise loops forever -- call `.stop()` on the returned handle to end it (also done
+   * automatically by `dispose()`).
    */
-  public startFire(position: Vector3D, volume: number = 1.0): void {
-    this._synthSFX.startFire(position, volume);
+  public startFire(position: Vector3D, volume: number = 1.0): SoundHandle {
+    return this._trackEndlessSound(this._synthSFX.startFire(position, volume));
+  }
+
+  /** Wraps a raw `SynthSFX` handle so stopping it (directly or via `dispose()`) also drops it
+   * from `_activeEndlessSounds`. */
+  private _trackEndlessSound(handle: SoundHandle): SoundHandle {
+    const tracked: SoundHandle = {
+      stop: (): void => {
+        handle.stop();
+        this._activeEndlessSounds.delete(tracked);
+      },
+    };
+    this._activeEndlessSounds.add(tracked);
+    return tracked;
   }
 
   /**
@@ -310,5 +332,22 @@ export class AudioSystem {
     type: OscillatorType = "sine",
   ): void {
     this._synthSFX.playTone(frequency, duration, volume, type);
+  }
+
+  /**
+   * Stops every still-running endless sound (`startDrone`/`startFire` graphs) and closes the
+   * `AudioContext`. Call this when tearing down the engine instance that owns this `AudioSystem`
+   * -- without it, both the endless sound graphs and the context itself outlive the instance for
+   * the lifetime of the page (browsers cap the number of concurrently open `AudioContext`s).
+   */
+  public dispose(): void {
+    for (const handle of [...this._activeEndlessSounds]) {
+      handle.stop();
+    }
+    this._activeEndlessSounds.clear();
+
+    if (this.context.state !== "closed") {
+      this.context.close().catch(console.error);
+    }
   }
 }

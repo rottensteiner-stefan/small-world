@@ -231,6 +231,7 @@ export default defineConfig({
         xtractor: resolve(import.meta.dirname, "public/tools/xtractor.html"),
         splattergen: resolve(import.meta.dirname, "public/tools/splatter-gen.html"),
         gamepadtest: resolve(import.meta.dirname, "public/tools/gamepad-test.html"),
+        maker: resolve(import.meta.dirname, "public/tools/maker.html"),
         presentation: resolve(import.meta.dirname, "public/presentation.html"),
         main: resolve(import.meta.dirname, "public/index.html"),
       },
@@ -244,6 +245,7 @@ export default defineConfig({
             "xtractor",
             "splattergen",
             "gamepadtest",
+            "maker",
           ];
           if (toolNames.includes(chunk.name)) {
             return `js/tools/[name].js`;

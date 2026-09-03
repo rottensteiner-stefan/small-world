@@ -1,5 +1,4 @@
 import { AbstractLoader } from "./AbstractLoader.js";
-import { AssetManager } from "./AssetManager.js";
 import { EventType } from "../enums/index.js";
 import { ImageLoaderOptions } from "../interfaces/index.js";
 
@@ -25,7 +24,7 @@ export class ImageLoader extends AbstractLoader<ImageBitmap | HTMLImageElement> 
     this.dispatchEvent(EventType.LOADER_START, { url: fullUrl });
 
     try {
-      const image: ImageBitmap | HTMLImageElement = await AssetManager.loadImage(
+      const image: ImageBitmap | HTMLImageElement = await this._assetManager.loadImage(
         fullUrl,
         (loaded: number, total: number) => {
           this.dispatchEvent(EventType.LOADER_PROGRESS, { url: fullUrl, loaded, total });

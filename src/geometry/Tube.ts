@@ -45,11 +45,11 @@ export class Tube extends AbstractGeometry {
       radialSegments = 16,
       heightSegments = 1,
     } = options;
-    this.radius = radius;
-    this.innerRadius = innerRadius;
-    this.height = height;
-    this.radialSegments = radialSegments;
-    this.heightSegments = heightSegments;
+    this.radius = Math.max(0, radius);
+    this.innerRadius = Math.max(0, innerRadius);
+    this.height = Math.max(0, height);
+    this.radialSegments = Math.max(3, Math.floor(radialSegments));
+    this.heightSegments = Math.max(1, Math.floor(heightSegments));
     this.generateGeometryData();
   }
 

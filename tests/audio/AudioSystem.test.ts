@@ -121,4 +121,82 @@ describe("AudioSystem", () => {
     expect(() => audio.startFire(new Vector3D())).not.toThrow();
     expect(() => audio.startDrone()).not.toThrow();
   });
+
+  describe("endless sound lifecycle (startDrone/startFire leak fix)", () => {
+    function oscillatorMocks(): { stop: ReturnType<typeof vi.fn> }[] {
+      return (context.createOscillator as ReturnType<typeof vi.fn>).mock.results.map(
+        (r) => r.value,
+      );
+    }
+    function bufferSourceMocks(): { stop: ReturnType<typeof vi.fn> }[] {
+      return (context.createBufferSource as ReturnType<typeof vi.fn>).mock.results.map(
+        (r) => r.value,
+      );
+    }
+
+    it("startDrone() returns a handle whose stop() stops every oscillator/noise source it created", () => {
+      const handle = audio.startDrone();
+      const oscillators = oscillatorMocks();
+      const buffers = bufferSourceMocks();
+      expect(oscillators.length).toBeGreaterThan(0);
+      expect(buffers.length).toBeGreaterThan(0);
+
+      handle.stop();
+
+      for (const osc of oscillators) expect(osc.stop).toHaveBeenCalledTimes(1);
+      for (const buf of buffers) expect(buf.stop).toHaveBeenCalledTimes(1);
+    });
+
+    it("startDrone()'s handle.stop() is idempotent -- calling it twice does not stop nodes twice", () => {
+      const handle = audio.startDrone();
+      const [firstOscillator] = oscillatorMocks();
+
+      handle.stop();
+      handle.stop();
+
+      expect(firstOscillator!.stop).toHaveBeenCalledTimes(1);
+    });
+
+    it("startFire() returns a handle whose stop() stops the noise source it created", () => {
+      const handle = audio.startFire(new Vector3D());
+      const [noiseSource] = bufferSourceMocks();
+
+      handle.stop();
+
+      expect(noiseSource!.stop).toHaveBeenCalledTimes(1);
+    });
+
+    it("dispose() stops every still-active drone/fire sound even if the caller never called stop()", () => {
+      audio.startDrone();
+      audio.startFire(new Vector3D());
+      const oscillators = oscillatorMocks();
+      const buffers = bufferSourceMocks();
+
+      audio.dispose();
+
+      for (const osc of oscillators) expect(osc.stop).toHaveBeenCalledTimes(1);
+      for (const buf of buffers) expect(buf.stop).toHaveBeenCalledTimes(1);
+    });
+
+    it("dispose() does not double-stop a sound the caller already stopped itself", () => {
+      const handle = audio.startFire(new Vector3D());
+      const [noiseSource] = bufferSourceMocks();
+      handle.stop();
+
+      audio.dispose();
+
+      expect(noiseSource!.stop).toHaveBeenCalledTimes(1);
+    });
+
+    it("dispose() closes the AudioContext", () => {
+      audio.dispose();
+      expect(context.close).toHaveBeenCalledTimes(1);
+    });
+
+    it("dispose() does not try to close an already-closed context", () => {
+      (context as unknown as { state: string }).state = "closed";
+      audio.dispose();
+      expect(context.close).not.toHaveBeenCalled();
+    });
+  });
 });

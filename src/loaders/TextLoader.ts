@@ -1,4 +1,3 @@
-import { AssetManager } from "./AssetManager.js";
 import { AbstractLoader } from "./AbstractLoader.js";
 import { EventType } from "../enums/index.js";
 import { LoaderOptions } from "../interfaces/index.js";
@@ -21,9 +20,12 @@ export class TextLoader extends AbstractLoader<string> {
     this.dispatchEvent(EventType.LOADER_START, { url: fullUrl });
 
     try {
-      const text: string = await AssetManager.loadText(fullUrl, (loaded: number, total: number) => {
-        this.dispatchEvent(EventType.LOADER_PROGRESS, { url: fullUrl, loaded, total });
-      });
+      const text: string = await this._assetManager.loadText(
+        fullUrl,
+        (loaded: number, total: number) => {
+          this.dispatchEvent(EventType.LOADER_PROGRESS, { url: fullUrl, loaded, total });
+        },
+      );
 
       this.dispatchEvent(EventType.LOADER_END, { url: fullUrl, data: text });
       return text;

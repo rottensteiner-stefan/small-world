@@ -1,5 +1,14 @@
 import { Pane, FolderApi } from "tweakpane";
 import { Object3D } from "../../core/index.js";
+import { Behavior } from "../../core/behaviors/index.js";
+import {
+  AbstractMaterial,
+  StandardMaterial,
+  BasicMaterial,
+  WireframeMaterial,
+  GlassMaterial,
+  PhongMaterial,
+} from "../../core/materials/index.js";
 import { Color } from "../../core/colors/index.js";
 import { InspectorField, collectInspectorSchema } from "../../core/Inspectable.js";
 import { UndoStack } from "./UndoStack.js";
@@ -15,6 +24,12 @@ interface RefreshableBinding {
 
 type ChangeEvent<T> = { value: T; last?: boolean };
 
+export interface PropertyPanelCallbacks {
+  onPropertyChanged?: (obj: Object3D, propKey: string, value: unknown) => void;
+  onDetachBehavior?: (obj: Object3D, behavior: Behavior) => void;
+  onSetMaterial?: (obj: Object3D, material: AbstractMaterial | undefined) => void;
+}
+
 /**
  * The generic, schema-driven property panel that is Maker's actual replacement for
  * GadgetInspector's hand-duck-typed one (see docs/adr/0010-maker-editor-architecture.md).
@@ -26,20 +41,54 @@ export class PropertyPanel {
   private _pane: Pane;
   private _titleFolder: FolderApi;
   private _blades: DisposableBlade[] = [];
+  private _currentObj: Object3D | undefined;
+  private _extraCount: number = 0;
 
   constructor(
     container: HTMLElement,
     private _undo: UndoStack,
+    private _callbacks?: PropertyPanelCallbacks,
   ) {
     this._pane = new Pane({ container });
     this._titleFolder = this._pane.addFolder({ title: "No Selection", expanded: true });
+
+    // Double-click on folder title area focuses the name input field
+    this._titleFolder.element.addEventListener("dblclick", (e) => {
+      e.stopPropagation();
+      this.focusNameInput();
+    });
   }
 
-  /** Rebuilds the entire panel for the newly selected object (or clears it for `undefined`). */
-  public setSelection(obj: Object3D | undefined): void {
+  public focusNameInput(): void {
+    const nameInput = this._pane.element.querySelector(
+      'input[type="text"]',
+    ) as HTMLInputElement | null;
+    if (nameInput) {
+      nameInput.focus();
+      nameInput.select();
+    }
+  }
+
+  private _updateTitle(): void {
+    const baseName = this._currentObj
+      ? this._currentObj.name || this._currentObj.constructor.name
+      : "No Selection";
+    this._titleFolder.title =
+      this._currentObj && this._extraCount > 0
+        ? `${baseName} (+${this._extraCount} more)`
+        : baseName;
+  }
+
+  /** Rebuilds the entire panel for the newly selected (primary) object, or clears it for
+   * `undefined`. `extraCount` -- how many other objects are also selected alongside it -- is
+   * shown as a "(+N more)" suffix; this panel only ever edits the primary object's properties,
+   * never a multi-object batch edit. */
+  public setSelection(obj: Object3D | undefined, extraCount: number = 0): void {
+    this._currentObj = obj;
+    this._extraCount = extraCount;
     for (const blade of this._blades) blade.dispose();
     this._blades = [];
-    this._titleFolder.title = obj ? obj.name || obj.constructor.name : "No Selection";
+    this._updateTitle();
     if (!obj) return;
 
     this._renderSchema(
@@ -49,13 +98,27 @@ export class PropertyPanel {
     );
 
     if (obj.material) {
-      const matFolder = this._titleFolder.addFolder({ title: "Material", expanded: true });
+      const matFolder = this._titleFolder.addFolder({
+        title: `Material (${obj.material.constructor.name})`,
+        expanded: true,
+      });
       this._blades.push(matFolder);
+      this._attachMaterialHeaderMenu(matFolder, obj, obj.material);
       this._renderSchema(
         matFolder,
         obj.material as unknown as Record<string, unknown>,
         collectInspectorSchema(obj.material),
       );
+    } else if (obj.geometry) {
+      const noMatFolder = this._titleFolder.addFolder({
+        title: "Material (None)",
+        expanded: true,
+      });
+      this._blades.push(noMatFolder);
+      const addBtn = noMatFolder.addButton({ title: "➕ Add Standard Material" });
+      addBtn.on("click", (): void => {
+        this._callbacks?.onSetMaterial?.(obj, new StandardMaterial());
+      });
     }
 
     if (obj.behaviors.length > 0) {
@@ -66,6 +129,7 @@ export class PropertyPanel {
           title: behavior.constructor.name,
           expanded: true,
         });
+        this._attachBehaviorHeaderMenu(oneFolder, obj, behavior);
         oneFolder.addBinding(behavior, "isActive", { label: "Active" });
         this._renderSchema(
           oneFolder,
@@ -76,14 +140,206 @@ export class PropertyPanel {
     }
   }
 
+  private _attachMaterialHeaderMenu(
+    folder: FolderApi,
+    obj: Object3D,
+    material: AbstractMaterial,
+  ): void {
+    const folderEl = folder.element;
+    if (!folderEl) return;
+
+    folderEl.style.position = "relative";
+
+    const dotsBtn = document.createElement("button");
+    dotsBtn.type = "button";
+    dotsBtn.className = "maker-behavior-menu-btn";
+    dotsBtn.innerHTML = "&#8942;"; // ⋮
+    dotsBtn.title = "Material Options";
+
+    dotsBtn.addEventListener("click", (e: MouseEvent): void => {
+      e.stopPropagation();
+      e.preventDefault();
+      this._showMaterialContextMenu(dotsBtn, obj, material);
+    });
+
+    folderEl.appendChild(dotsBtn);
+  }
+
+  private _showMaterialContextMenu(
+    anchor: HTMLElement,
+    obj: Object3D,
+    material: AbstractMaterial,
+  ): void {
+    document.querySelectorAll(".maker-behavior-dropdown").forEach((el) => el.remove());
+
+    const menu = document.createElement("div");
+    menu.className = "maker-behavior-dropdown";
+
+    const addOption = (label: string, isDanger: boolean, onClick: () => void): void => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = `maker-behavior-dropdown-item${isDanger ? " maker-behavior-dropdown-danger" : ""}`;
+      btn.innerHTML = label;
+      btn.addEventListener("click", (e: MouseEvent): void => {
+        e.stopPropagation();
+        menu.remove();
+        onClick();
+      });
+      menu.appendChild(btn);
+    };
+
+    // Material Switch Options
+    addOption("🎨 Switch: Standard (PBR)", false, () =>
+      this._callbacks?.onSetMaterial?.(obj, new StandardMaterial()),
+    );
+    addOption("💡 Switch: Basic (Unlit)", false, () =>
+      this._callbacks?.onSetMaterial?.(obj, new BasicMaterial()),
+    );
+    addOption("🕸️ Switch: Wireframe", false, () =>
+      this._callbacks?.onSetMaterial?.(obj, new WireframeMaterial()),
+    );
+    addOption("🍷 Switch: Glass", false, () =>
+      this._callbacks?.onSetMaterial?.(obj, new GlassMaterial()),
+    );
+    addOption("✨ Switch: Phong", false, () =>
+      this._callbacks?.onSetMaterial?.(obj, new PhongMaterial()),
+    );
+
+    // Separator
+    const sep = document.createElement("div");
+    sep.style.cssText = "height: 1px; background: #334155; margin: 4px 0;";
+    menu.appendChild(sep);
+
+    // Reset Defaults
+    addOption("🔄 Reset to Defaults", false, () => {
+      const matClass = material.constructor as new () => AbstractMaterial;
+      this._callbacks?.onSetMaterial?.(obj, new matClass());
+    });
+
+    // Remove Material
+    addOption("🗑️ Remove Material", true, () => this._callbacks?.onSetMaterial?.(obj, undefined));
+
+    const rect = anchor.getBoundingClientRect();
+    menu.style.position = "fixed";
+    menu.style.top = `${rect.bottom + 4}px`;
+    menu.style.right = `${Math.max(8, window.innerWidth - rect.right)}px`;
+    menu.style.zIndex = "9999";
+
+    const closeHandler = (e: MouseEvent): void => {
+      if (!menu.contains(e.target as Node)) {
+        menu.remove();
+        window.removeEventListener("pointerdown", closeHandler);
+      }
+    };
+    setTimeout(() => {
+      window.addEventListener("pointerdown", closeHandler);
+    }, 0);
+
+    document.body.appendChild(menu);
+  }
+
+  private _attachBehaviorHeaderMenu(folder: FolderApi, obj: Object3D, behavior: Behavior): void {
+    const folderEl = folder.element;
+    if (!folderEl) return;
+
+    folderEl.style.position = "relative";
+
+    const dotsBtn = document.createElement("button");
+    dotsBtn.type = "button";
+    dotsBtn.className = "maker-behavior-menu-btn";
+    dotsBtn.innerHTML = "&#8942;"; // ⋮
+    dotsBtn.title = "Behavior Options";
+
+    dotsBtn.addEventListener("click", (e: MouseEvent): void => {
+      e.stopPropagation();
+      e.preventDefault();
+      this._showBehaviorContextMenu(dotsBtn, obj, behavior);
+    });
+
+    folderEl.appendChild(dotsBtn);
+  }
+
+  private _showBehaviorContextMenu(anchor: HTMLElement, obj: Object3D, behavior: Behavior): void {
+    document.querySelectorAll(".maker-behavior-dropdown").forEach((el) => el.remove());
+
+    const menu = document.createElement("div");
+    menu.className = "maker-behavior-dropdown";
+
+    const removeOption = document.createElement("button");
+    removeOption.type = "button";
+    removeOption.className = "maker-behavior-dropdown-item maker-behavior-dropdown-danger";
+    removeOption.innerHTML = "🗑️ Remove Behavior";
+    removeOption.addEventListener("click", (e: MouseEvent): void => {
+      e.stopPropagation();
+      menu.remove();
+      this._callbacks?.onDetachBehavior?.(obj, behavior);
+    });
+    menu.appendChild(removeOption);
+
+    const rect = anchor.getBoundingClientRect();
+    menu.style.position = "fixed";
+    menu.style.top = `${rect.bottom + 4}px`;
+    menu.style.right = `${Math.max(8, window.innerWidth - rect.right)}px`;
+    menu.style.zIndex = "9999";
+
+    const closeHandler = (e: MouseEvent): void => {
+      if (!menu.contains(e.target as Node)) {
+        menu.remove();
+        window.removeEventListener("pointerdown", closeHandler);
+      }
+    };
+    setTimeout(() => {
+      window.addEventListener("pointerdown", closeHandler);
+    }, 0);
+
+    document.body.appendChild(menu);
+  }
+
   private _renderSchema(
     folder: FolderApi,
     target: Record<string, unknown>,
     schema: Record<string, InspectorField>,
   ): void {
-    for (const [key, field] of Object.entries(schema)) {
-      this._bindField(folder, target, key, field);
+    const entries = Object.entries(schema);
+    let i = 0;
+    while (i < entries.length) {
+      const [key, field] = entries[i]!;
+      if (field.row) {
+        const rowId = field.row;
+        const rowEntries: [string, InspectorField][] = [];
+        while (i < entries.length && entries[i]![1].row === rowId) {
+          rowEntries.push(entries[i]!);
+          i++;
+        }
+        this._bindRowFields(folder, target, rowEntries);
+      } else {
+        this._bindField(folder, target, key, field);
+        i++;
+      }
     }
+  }
+
+  private _bindRowFields(
+    folder: FolderApi,
+    target: Record<string, unknown>,
+    entries: [string, InspectorField][],
+  ): void {
+    const rowEl = document.createElement("div");
+    rowEl.className = "maker-prop-row";
+
+    for (const [key, field] of entries) {
+      const blade = this._createFieldBinding(folder, target, key, field);
+      const el = (blade as unknown as { element?: HTMLElement }).element;
+      if (el) rowEl.appendChild(el);
+    }
+
+    const container = folder.element.querySelector(".tp-fldv_c") ?? folder.element;
+    container.appendChild(rowEl);
+    this._blades.push({
+      dispose: (): void => {
+        rowEl.remove();
+      },
+    });
   }
 
   /** Resolves `field.path` (e.g. "position.x") to the actual host object + property key --
@@ -109,12 +365,20 @@ export class PropertyPanel {
     key: string,
     field: InspectorField,
   ): void {
+    this._createFieldBinding(folder, target, key, field);
+  }
+
+  private _createFieldBinding(
+    folder: FolderApi,
+    target: Record<string, unknown>,
+    key: string,
+    field: InspectorField,
+  ): RefreshableBinding & DisposableBlade {
     const { host, propKey } = this._resolvePath(target, key, field.path);
     const label = field.label ?? key;
 
     if ("color" === field.type) {
-      this._bindColorField(folder, host, propKey, label);
-      return;
+      return this._bindColorField(folder, host, propKey, label);
     }
 
     const options: Record<string, unknown> = { label };
@@ -122,33 +386,87 @@ export class PropertyPanel {
       if (undefined !== field.min) options["min"] = field.min;
       if (undefined !== field.max) options["max"] = field.max;
       if (undefined !== field.step) options["step"] = field.step;
+    } else if ("vec3" === field.type || "vec2" === field.type) {
+      if (undefined !== field.step) options["step"] = field.step;
+      if (undefined !== field.min) options["min"] = field.min;
+      if (undefined !== field.max) options["max"] = field.max;
     } else if ("choice" === field.type && field.options) {
       options["options"] = Array.isArray(field.options)
         ? Object.fromEntries(field.options.map((o) => [o, o]))
         : field.options;
     }
 
-    let before = host[propKey];
+    const cloneVal = (v: unknown): unknown => {
+      if (v && typeof v === "object") {
+        if ("clone" in v && typeof (v as { clone: () => unknown }).clone === "function") {
+          return (v as { clone: () => unknown }).clone();
+        }
+        return { ...(v as object) };
+      }
+      return v;
+    };
+
+    const copyVal = (dest: unknown, src: unknown): void => {
+      if (dest && typeof dest === "object" && src && typeof src === "object") {
+        if (
+          "copyFrom" in dest &&
+          typeof (dest as { copyFrom: (s: unknown) => unknown }).copyFrom === "function"
+        ) {
+          (dest as { copyFrom: (s: unknown) => unknown }).copyFrom(src);
+          return;
+        }
+        Object.assign(dest, src);
+      }
+    };
+
+    let before = cloneVal(host[propKey]);
     const binding = folder.addBinding(host, propKey, options) as unknown as RefreshableBinding &
       DisposableBlade & { on: (event: "change", cb: (ev: ChangeEvent<unknown>) => void) => void };
     binding.on("change", (ev: ChangeEvent<unknown>) => {
       if (false === ev.last) return;
       const from = before;
-      const to = ev.value;
+      const to = cloneVal(ev.value);
       this._undo.execute({
         label: `Edit ${label}`,
         redo: () => {
-          host[propKey] = to;
+          if (typeof host[propKey] === "object" && null !== host[propKey]) {
+            copyVal(host[propKey], to);
+          } else {
+            host[propKey] = to;
+          }
           binding.refresh();
+          if (
+            this._currentObj &&
+            host === (this._currentObj as unknown as Record<string, unknown>)
+          ) {
+            if ("name" === propKey) this._updateTitle();
+            this._callbacks?.onPropertyChanged?.(this._currentObj, propKey, to);
+          }
         },
         undo: () => {
-          host[propKey] = from;
+          if (typeof host[propKey] === "object" && null !== host[propKey]) {
+            copyVal(host[propKey], from);
+          } else {
+            host[propKey] = from;
+          }
           binding.refresh();
+          if (
+            this._currentObj &&
+            host === (this._currentObj as unknown as Record<string, unknown>)
+          ) {
+            if ("name" === propKey) this._updateTitle();
+            this._callbacks?.onPropertyChanged?.(this._currentObj, propKey, from);
+          }
         },
       });
+      if (this._currentObj && host === (this._currentObj as unknown as Record<string, unknown>)) {
+        if ("name" === propKey) this._updateTitle();
+        this._callbacks?.onPropertyChanged?.(this._currentObj, propKey, to);
+      }
       before = to;
     });
     this._blades.push(binding);
+    return binding;
   }
 
   private _bindColorField(
@@ -156,7 +474,7 @@ export class PropertyPanel {
     host: Record<string, unknown>,
     propKey: string,
     label: string,
-  ): void {
+  ): RefreshableBinding & DisposableBlade {
     const colorObj = host[propKey] as Color;
     const proxy = { value: { r: colorObj.r * 255, g: colorObj.g * 255, b: colorObj.b * 255 } };
     let before = { ...proxy.value };
@@ -195,5 +513,6 @@ export class PropertyPanel {
       before = to;
     });
     this._blades.push(binding);
+    return binding;
   }
 }

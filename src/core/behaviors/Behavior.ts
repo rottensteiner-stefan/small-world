@@ -2,6 +2,7 @@ import { Object3D } from "../index.js";
 import { CameraInterfaceData } from "../../interfaces/index.js";
 import { MathUtils } from "../../math/index.js";
 import { InspectorField } from "../Inspectable.js";
+import { shallowCloneWithValueTypes } from "../CloneUtils.js";
 
 /** Re-exported for existing callers that import it from here (e.g. individual Behavior
  * subclasses) -- the canonical definition now lives in `../Inspectable.js`, shared with
@@ -32,6 +33,17 @@ export abstract class Behavior {
    */
   public onDetach(): void {
     this.target = undefined;
+  }
+
+  /**
+   * Returns an independent copy of this behavior (own `uuid`, `target` cleared -- the caller is
+   * expected to `attachBehavior()` it onto the new host, which sets `target` correctly via
+   * `onAttach()`). Used by `Object3D.clone()` (Maker's Duplicate command).
+   */
+  public clone(): Behavior {
+    const copy = shallowCloneWithValueTypes(this);
+    copy.target = undefined;
+    return copy;
   }
 
   /**

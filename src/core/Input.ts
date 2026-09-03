@@ -62,136 +62,172 @@ export class Input implements InputInterface {
     return this._gamepadController.requestJoyConConnection();
   }
 
+  private _lastTouchX: number = 0;
+  private _lastTouchY: number = 0;
+  private _isInitialized: boolean = false;
+
+  private _onKeyDown = (e: KeyboardEvent): void => {
+    const active = document.activeElement;
+    if (active && ["INPUT", "TEXTAREA", "SELECT"].includes(active.tagName)) {
+      return;
+    }
+    this._keys.set(e.code, true);
+  };
+
+  private _onKeyUp = (e: KeyboardEvent): void => {
+    const active = document.activeElement;
+    if (active && ["INPUT", "TEXTAREA", "SELECT"].includes(active.tagName)) {
+      return;
+    }
+    this._keys.set(e.code, false);
+  };
+
+  private _onMouseDown = (e: MouseEvent): void => {
+    this.mouse.x = e.clientX;
+    this.mouse.y = e.clientY;
+    if (0 === e.button) {
+      this.mouse.left = true;
+    }
+    if (2 === e.button) {
+      this.mouse.right = true;
+    }
+  };
+
+  private _onMouseUp = (e: MouseEvent): void => {
+    this.mouse.x = e.clientX;
+    this.mouse.y = e.clientY;
+    if (0 === e.button) {
+      this.mouse.left = false;
+    }
+    if (2 === e.button) {
+      this.mouse.right = false;
+    }
+  };
+
+  private _onMouseMove = (e: MouseEvent): void => {
+    this.mouse.x = e.clientX;
+    this.mouse.y = e.clientY;
+    if (typeof e.buttons === "number") {
+      this.mouse.left = (e.buttons & 1) !== 0;
+      this.mouse.right = (e.buttons & 2) !== 0;
+    }
+    const dx = typeof e.movementX === "number" ? e.movementX : 0;
+    const dy = typeof e.movementY === "number" ? e.movementY : 0;
+    if (!Number.isNaN(dx)) this.mouse.dx += dx;
+    if (!Number.isNaN(dy)) this.mouse.dy += dy;
+  };
+
+  private _onWheel = (e: WheelEvent): void => {
+    // Pinch-to-zoom on trackpads is often sent as a wheel event with ctrlKey
+    if (e.ctrlKey) {
+      e.preventDefault();
+      this.mouse.zoom += e.deltaY * 0.01;
+    } else {
+      this.mouse.wheelX += e.deltaX;
+      this.mouse.wheelY += e.deltaY;
+      this.mouse.zoom += e.deltaY * 0.001;
+    }
+  };
+
+  private _onGestureChange = (e: Event): void => {
+    e.preventDefault();
+    const gestureEvent = e as unknown as { scale: number };
+    this.mouse.zoom += (1.0 - gestureEvent.scale) * 2.0;
+  };
+
+  private _onContextMenu = (e: MouseEvent): void => {
+    e.preventDefault();
+  };
+
+  private _onBlur = (): void => {
+    this._keys.clear();
+    this.mouse.left = false;
+    this.mouse.right = false;
+    this.mouse.dx = 0;
+    this.mouse.dy = 0;
+  };
+
+  private _onPointerLockChange = (): void => {
+    this.isPointerLocked = null !== document.pointerLockElement;
+    // Reset deltas when lock state changes to prevent jumping
+    this.mouse.dx = 0;
+    this.mouse.dy = 0;
+  };
+
+  private _onTouchStart = (e: TouchEvent): void => {
+    if (e.touches.length > 0) {
+      this._lastTouchX = e.touches[0]!.clientX;
+      this._lastTouchY = e.touches[0]!.clientY;
+      this.mouse.x = this._lastTouchX;
+      this.mouse.y = this._lastTouchY;
+      this.mouse.left = true;
+    }
+  };
+
+  private _onTouchMove = (e: TouchEvent): void => {
+    if (e.touches.length > 0) {
+      const currentX = e.touches[0]!.clientX;
+      const currentY = e.touches[0]!.clientY;
+      this.mouse.dx += currentX - this._lastTouchX;
+      this.mouse.dy += currentY - this._lastTouchY;
+      this.mouse.x = currentX;
+      this.mouse.y = currentY;
+      this._lastTouchX = currentX;
+      this._lastTouchY = currentY;
+    }
+  };
+
+  private _onTouchEnd = (e: TouchEvent): void => {
+    if (e.touches.length === 0) {
+      this.mouse.left = false;
+    }
+  };
+
   /**
    * Initializes the input listeners.
    */
   public init(): void {
-    window.addEventListener("keydown", (e: KeyboardEvent): void => {
-      const active = document.activeElement;
-      if (active && ["INPUT", "TEXTAREA", "SELECT"].includes(active.tagName)) {
-        return;
-      }
-      this._keys.set(e.code, true);
-    });
-    window.addEventListener("keyup", (e: KeyboardEvent): void => {
-      const active = document.activeElement;
-      if (active && ["INPUT", "TEXTAREA", "SELECT"].includes(active.tagName)) {
-        return;
-      }
-      this._keys.set(e.code, false);
-    });
-    window.addEventListener("mousedown", (e: MouseEvent): void => {
-      this.mouse.x = e.clientX;
-      this.mouse.y = e.clientY;
-      if (0 === e.button) {
-        this.mouse.left = true;
-      }
-      if (2 === e.button) {
-        this.mouse.right = true;
-      }
-    });
-    window.addEventListener("mouseup", (e: MouseEvent): void => {
-      this.mouse.x = e.clientX;
-      this.mouse.y = e.clientY;
-      if (0 === e.button) {
-        this.mouse.left = false;
-      }
-      if (2 === e.button) {
-        this.mouse.right = false;
-      }
-    });
-    window.addEventListener("mousemove", (e: MouseEvent): void => {
-      this.mouse.x = e.clientX;
-      this.mouse.y = e.clientY;
-      const dx = typeof e.movementX === "number" ? e.movementX : 0;
-      const dy = typeof e.movementY === "number" ? e.movementY : 0;
-      if (!Number.isNaN(dx)) this.mouse.dx += dx;
-      if (!Number.isNaN(dy)) this.mouse.dy += dy;
-    });
-    window.addEventListener(
-      "wheel",
-      (e: WheelEvent): void => {
-        // Pinch-to-zoom on trackpads is often sent as a wheel event with ctrlKey
-        if (e.ctrlKey) {
-          e.preventDefault();
-          this.mouse.zoom += e.deltaY * 0.01;
-        } else {
-          this.mouse.wheelX += e.deltaX;
-          this.mouse.wheelY += e.deltaY;
-          this.mouse.zoom += e.deltaY * 0.001;
-        }
-      },
-      { passive: false },
-    );
-    window.addEventListener("gesturechange", (e: Event): void => {
-      e.preventDefault();
-      const gestureEvent = e as unknown as { scale: number };
-      this.mouse.zoom += (1.0 - gestureEvent.scale) * 2.0;
-    });
+    if (this._isInitialized) return;
+    this._isInitialized = true;
 
-    window.addEventListener("contextmenu", (e: MouseEvent): void => e.preventDefault());
+    window.addEventListener("keydown", this._onKeyDown);
+    window.addEventListener("keyup", this._onKeyUp);
+    window.addEventListener("mousedown", this._onMouseDown);
+    window.addEventListener("mouseup", this._onMouseUp);
+    window.addEventListener("mousemove", this._onMouseMove);
+    window.addEventListener("wheel", this._onWheel, { passive: false });
+    window.addEventListener("gesturechange", this._onGestureChange);
+    window.addEventListener("contextmenu", this._onContextMenu);
+    window.addEventListener("blur", this._onBlur);
+    document.addEventListener("pointerlockchange", this._onPointerLockChange);
+    window.addEventListener("touchstart", this._onTouchStart, { passive: true });
+    window.addEventListener("touchmove", this._onTouchMove, { passive: true });
+    window.addEventListener("touchend", this._onTouchEnd);
+  }
 
-    window.addEventListener("blur", (): void => {
-      this._keys.clear();
-      this.mouse.left = false;
-      this.mouse.right = false;
-      this.mouse.dx = 0;
-      this.mouse.dy = 0;
-    });
+  /**
+   * Removes all global input listeners and cleans up resources.
+   */
+  public destroy(): void {
+    if (!this._isInitialized) return;
+    this._isInitialized = false;
 
-    document.addEventListener("pointerlockchange", (): void => {
-      this.isPointerLocked = null !== document.pointerLockElement;
-      // Reset deltas when lock state changes to prevent jumping
-      this.mouse.dx = 0;
-      this.mouse.dy = 0;
-    });
+    window.removeEventListener("keydown", this._onKeyDown);
+    window.removeEventListener("keyup", this._onKeyUp);
+    window.removeEventListener("mousedown", this._onMouseDown);
+    window.removeEventListener("mouseup", this._onMouseUp);
+    window.removeEventListener("mousemove", this._onMouseMove);
+    window.removeEventListener("wheel", this._onWheel);
+    window.removeEventListener("gesturechange", this._onGestureChange);
+    window.removeEventListener("contextmenu", this._onContextMenu);
+    window.removeEventListener("blur", this._onBlur);
+    document.removeEventListener("pointerlockchange", this._onPointerLockChange);
+    window.removeEventListener("touchstart", this._onTouchStart);
+    window.removeEventListener("touchmove", this._onTouchMove);
+    window.removeEventListener("touchend", this._onTouchEnd);
 
-    window.addEventListener("gamepadconnected", (): void => {
-      // Gamepad connected
-    });
-    window.addEventListener("gamepaddisconnected", (): void => {
-      // Gamepad disconnected
-    });
-
-    let lastTouchX = 0;
-    let lastTouchY = 0;
-
-    window.addEventListener(
-      "touchstart",
-      (e: TouchEvent): void => {
-        if (e.touches.length > 0) {
-          lastTouchX = e.touches[0]!.clientX;
-          lastTouchY = e.touches[0]!.clientY;
-          this.mouse.x = lastTouchX;
-          this.mouse.y = lastTouchY;
-          this.mouse.left = true;
-        }
-      },
-      { passive: true },
-    );
-
-    window.addEventListener(
-      "touchmove",
-      (e: TouchEvent): void => {
-        if (e.touches.length > 0) {
-          const currentX = e.touches[0]!.clientX;
-          const currentY = e.touches[0]!.clientY;
-          this.mouse.dx += currentX - lastTouchX;
-          this.mouse.dy += currentY - lastTouchY;
-          this.mouse.x = currentX;
-          this.mouse.y = currentY;
-          lastTouchX = currentX;
-          lastTouchY = currentY;
-        }
-      },
-      { passive: true },
-    );
-
-    window.addEventListener("touchend", (e: TouchEvent): void => {
-      if (e.touches.length === 0) {
-        this.mouse.left = false;
-      }
-    });
+    this._keys.clear();
+    this._gamepadController.destroy();
   }
 
   public requestPointerLock(element: HTMLElement): void {

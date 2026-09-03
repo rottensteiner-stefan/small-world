@@ -127,4 +127,23 @@ describe("CascadedShadowPassGPU: per-cascade frustum culling", () => {
     const [, objects] = (renderer._renderSubgroup as ReturnType<typeof vi.fn>).mock.calls[0]!;
     expect(objects).toEqual([noBounds]);
   });
+
+  it("uploads only the cascadeMatrices/cascadeSplits/dirShadowInfo slice, not the whole 848-byte GlobalUniforms buffer", () => {
+    const inside = makeCaster("inside", new BoundingSphere(new Vector3D(0, 0, 0), 0.1));
+    const renderer = makeMockRenderer([inside]);
+    const scene = makeMockScene([inside]);
+    const ce = { beginRenderPass: vi.fn(() => ({ setBindGroup: vi.fn(), end: vi.fn() })) };
+
+    const pass = new CascadedShadowPassGPU() as Internals;
+    pass.execute(renderer, scene, ce, {}, new Float32Array(16), new Vector3D(0, 0, 0));
+
+    const writeBuffer = renderer.gpuDevice.queue.writeBuffer as ReturnType<typeof vi.fn>;
+    expect(writeBuffer).toHaveBeenCalledTimes(1);
+    const [buffer, byteOffset, data, dataOffset, size] = writeBuffer.mock.calls[0]!;
+    expect(buffer).toBe(renderer.globalUniformBuffer);
+    expect(byteOffset).toBe(128 * 4); // cascadeMatrices starts at float 128
+    expect(data).toBe(renderer.scratchGlobalBufferData);
+    expect(dataOffset).toBe(128);
+    expect(size).toBe(72); // cascadeMatrices(64) + cascadeSplits(4) + dirShadowInfo(4)
+  });
 });

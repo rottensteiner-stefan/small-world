@@ -167,6 +167,43 @@ for(var k=0u; k<spotCluster.y; k++) {
     }
 }
 
+// -- Area Lights --
+for(var j=0u; j<u32(global.numAreaLights); j++) {
+    let L_center = aLights[j].pos.xyz;
+    let L_normal = normalize(aLights[j].normal.xyz);
+    let dirFromLight = i.wp - L_center;
+    if(dot(dirFromLight, L_normal) < 0.0) { continue; }
+
+    let L_right = normalize(aLights[j].right.xyz);
+    let L_up = normalize(aLights[j].up.xyz);
+    let size = aLights[j].size.xy;
+
+    let projX = clamp(dot(dirFromLight, L_right), -size.x, size.x);
+    let projY = clamp(dot(dirFromLight, L_up), -size.y, size.y);
+
+    let closestPoint = L_center + L_right * projX + L_up * projY;
+    let lightVec = closestPoint - i.wp;
+    let dist = length(lightVec);
+    let L = lightVec / (dist + 0.0001);
+    let H = normalize(V + L);
+
+    let atten = 1.0 / (1.0 + 0.1*dist + 0.01*dist*dist);
+    let radiance = aLights[j].col.xyz * atten;
+
+    let dotNL = max(dot(N, L), 0.0);
+    let dotNH = max(dot(N, H), 0.0);
+    let dotVH = max(dot(V, H), 0.0);
+
+    let D = D_GGX(dotNH, roughness);
+    let G = G_SchlickGGX(dotNL, dotNV, roughness);
+    let F = F_Schlick(dotVH, F0);
+
+    let kS = F;
+    let kD = (vec3f(1.0) - kS) * (1.0 - metallic);
+    let specular = (D * G * F) / (4.0 * dotNV * dotNL + 0.0001);
+    Lo += (kD * albedo / 3.14159265359 + specular) * radiance * dotNL;
+}
+
 // -- Ambient IBL --
 let kS_ambient = F_SchlickRoughness(dotNV, F0, roughness);
 var kD_ambient = vec3f(1.0) - kS_ambient;

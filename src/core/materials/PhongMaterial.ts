@@ -45,6 +45,7 @@ export class PhongMaterial extends AbstractMaterial {
   public static override readonly inspector: Record<string, InspectorField> = {
     specularColor: { type: "color", label: "Specular" },
     shininess: { type: "number", label: "Shininess", min: 0, max: 256, step: 1 },
+    alphaTest: { type: "number", label: "Alpha Test", min: 0, max: 1, step: 0.01 },
   };
 
   /** The specular reflection color. */
@@ -75,8 +76,8 @@ export class PhongMaterial extends AbstractMaterial {
   constructor(options: PhongMaterialOptions = {}) {
     super(MaterialType.PHONG);
     const {
-      color = Color.WHITE,
-      specularColor = Color.WHITE,
+      color = new Color(1, 1, 1, 1),
+      specularColor = new Color(1, 1, 1, 1),
       shininess = 32.0,
       diffuseMap = undefined,
       normalMap = undefined,
@@ -85,8 +86,8 @@ export class PhongMaterial extends AbstractMaterial {
       transparent = false,
       alphaTest = 0.0,
     } = options;
-    this.color = color;
-    this.specularColor = specularColor;
+    this.color = Object.isFrozen(color) ? color.clone() : color;
+    this.specularColor = Object.isFrozen(specularColor) ? specularColor.clone() : specularColor;
     this.shininess = shininess;
     this.diffuseMap = diffuseMap;
     this.normalMap = normalMap;

@@ -222,7 +222,7 @@ export class App extends SmallWorld {
     if (this._roundOver || !cycle.alive) return null;
 
     const cell = this._grid.worldToCell(position.x, position.z);
-    if (!this._grid.isFree(cell.cx, cell.cz, cycle.id)) {
+    if (!this._grid.isFree(cell.cx, cell.cz)) {
       this._destroyCycle(cycle);
       return null;
     }
@@ -234,7 +234,7 @@ export class App extends SmallWorld {
         direction.x === -this._playerDesiredDir.x && direction.z === -this._playerDesiredDir.z;
       return reversing ? null : this._playerDesiredDir.clone();
     }
-    return CycleAI.decide(cycle, position, direction, this._player.object.position, this._grid);
+    return CycleAI.decide(position, direction, this._player.object.position, this._grid);
   }
 
   private _destroyCycle(cycle: Cycle): void {

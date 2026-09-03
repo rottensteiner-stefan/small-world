@@ -9,19 +9,29 @@ import {
   ShaderDefinition,
   StandardWebGPULayout,
 } from "../renderers/shaders/index.js";
+import { InspectorField } from "../Inspectable.js";
 
 /**
  * A material for wireframe rendering.
  */
 export class WireframeMaterial extends AbstractMaterial {
+  /** Own field on top of `AbstractMaterial.inspector` -- see `collectInspectorSchema()`. */
+  public static override readonly inspector: Record<string, InspectorField> = {
+    wireframeMode: {
+      type: "choice",
+      label: "Wireframe Mode",
+      options: { structural: "structural", triangles: "triangles" },
+    },
+  };
+
   public wireframeMode: "structural" | "triangles" = "structural";
 
   constructor(
-    color: Color = Color.WHITE,
+    color: Color = new Color(1, 1, 1, 1),
     wireframeMode: "structural" | "triangles" = "structural",
   ) {
     super(MaterialType.WIREFRAME);
-    this.color = color;
+    this.color = Object.isFrozen(color) ? color.clone() : color;
     this.wireframeMode = wireframeMode;
   }
 

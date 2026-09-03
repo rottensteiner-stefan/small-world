@@ -8,6 +8,12 @@ export class ForgeWindow {
   private _onClose?: () => void;
   private _title: string;
   private _persistenceKey: string;
+  private _resizeObserver: ResizeObserver | null = null;
+  /** `mousemove`/`mouseup` listeners `_bindDrag`/`_bindResize` register on `window` -- kept here
+   * (as named references, not the inline arrows they'd otherwise be) purely so `destroy()` can
+   * remove them again; nothing else ever reads this list. */
+  private readonly _globalListeners: { type: "mousemove" | "mouseup"; handler: EventListener }[] =
+    [];
 
   constructor(
     title: string,
@@ -88,7 +94,7 @@ export class ForgeWindow {
     this._tool = tool;
     tool.mount(this._contentEl);
 
-    const ro = new ResizeObserver((entries) => {
+    this._resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
         if (this._tool) {
           const { width, height } = entry.contentRect;
@@ -96,7 +102,7 @@ export class ForgeWindow {
         }
       }
     });
-    ro.observe(this._contentEl);
+    this._resizeObserver.observe(this._contentEl);
   }
 
   public get title(): string {
@@ -154,6 +160,12 @@ export class ForgeWindow {
     if (this._tool) {
       this._tool.unmount();
     }
+    this._resizeObserver?.disconnect();
+    this._resizeObserver = null;
+    for (const { type, handler } of this._globalListeners) {
+      window.removeEventListener(type, handler);
+    }
+    this._globalListeners.length = 0;
     if (this._windowEl.parentNode) {
       this._windowEl.parentNode.removeChild(this._windowEl);
     }
@@ -176,7 +188,7 @@ export class ForgeWindow {
       // Bring to front logic could go here
     });
 
-    window.addEventListener("mousemove", (e) => {
+    const onMouseMove = (e: MouseEvent): void => {
       if (!isDragging) return;
       const dx = e.clientX - startX;
       const dy = e.clientY - startY;
@@ -185,11 +197,17 @@ export class ForgeWindow {
       let newTop = initialTop + dy;
       if (newTop < 0) newTop = 0; // Prevent dragging out of the top bounds
       this._windowEl.style.top = `${newTop}px`;
-    });
-
-    window.addEventListener("mouseup", () => {
+    };
+    const onMouseUp = (): void => {
       isDragging = false;
-    });
+    };
+
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+    this._globalListeners.push(
+      { type: "mousemove", handler: onMouseMove as EventListener },
+      { type: "mouseup", handler: onMouseUp as EventListener },
+    );
   }
 
   private _bindResize(handle: HTMLElement, direction: "nw" | "ne" | "sw" | "se"): void {
@@ -212,7 +230,7 @@ export class ForgeWindow {
       e.stopPropagation(); // prevent window dragging or other events
     });
 
-    window.addEventListener("mousemove", (e) => {
+    const onMouseMove = (e: MouseEvent): void => {
       if (!isResizing) return;
       const dx = e.clientX - startX;
       const dy = e.clientY - startY;
@@ -246,10 +264,16 @@ export class ForgeWindow {
         this._windowEl.style.height = `${newHeight}px`;
         this._windowEl.style.top = `${newTop}px`;
       }
-    });
-
-    window.addEventListener("mouseup", () => {
+    };
+    const onMouseUp = (): void => {
       isResizing = false;
-    });
+    };
+
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+    this._globalListeners.push(
+      { type: "mousemove", handler: onMouseMove as EventListener },
+      { type: "mouseup", handler: onMouseUp as EventListener },
+    );
   }
 }

@@ -27,6 +27,7 @@ export class GltfMaterialParser {
     json: GltfJson,
     folderPath: string,
     buffers: ArrayBuffer[],
+    assetManager: AssetManager,
     options: GltfLoaderOptions = {},
   ): Promise<StandardMaterial> {
     const mat = new StandardMaterial();
@@ -42,7 +43,13 @@ export class GltfMaterialParser {
     }
 
     if (pbr.baseColorTexture) {
-      const tex = await this.resolveTexture(pbr.baseColorTexture.index, json, folderPath, buffers);
+      const tex = await this.resolveTexture(
+        pbr.baseColorTexture.index,
+        json,
+        folderPath,
+        buffers,
+        assetManager,
+      );
       if (tex) mat.diffuseMap = tex;
     }
 
@@ -52,6 +59,7 @@ export class GltfMaterialParser {
         json,
         folderPath,
         buffers,
+        assetManager,
       );
       if (tex) {
         mat.metallicMap = tex;
@@ -60,12 +68,24 @@ export class GltfMaterialParser {
     }
 
     if (m.normalTexture) {
-      const tex = await this.resolveTexture(m.normalTexture.index, json, folderPath, buffers);
+      const tex = await this.resolveTexture(
+        m.normalTexture.index,
+        json,
+        folderPath,
+        buffers,
+        assetManager,
+      );
       if (tex) mat.normalMap = tex;
     }
 
     if (m.occlusionTexture) {
-      const tex = await this.resolveTexture(m.occlusionTexture.index, json, folderPath, buffers);
+      const tex = await this.resolveTexture(
+        m.occlusionTexture.index,
+        json,
+        folderPath,
+        buffers,
+        assetManager,
+      );
       if (tex) {
         mat.aoMap = tex;
         if (m.occlusionTexture.strength !== undefined) {
@@ -75,7 +95,13 @@ export class GltfMaterialParser {
     }
 
     if (m.emissiveTexture) {
-      const tex = await this.resolveTexture(m.emissiveTexture.index, json, folderPath, buffers);
+      const tex = await this.resolveTexture(
+        m.emissiveTexture.index,
+        json,
+        folderPath,
+        buffers,
+        assetManager,
+      );
       if (tex) mat.emissiveMap = tex;
     }
 
@@ -129,6 +155,7 @@ export class GltfMaterialParser {
     json: GltfJson,
     folderPath: string,
     buffers: ArrayBuffer[],
+    assetManager: AssetManager,
   ): Promise<Texture | null> {
     if (!json.textures || !json.images) return null;
     const textureDef = json.textures[texIdx];
@@ -163,7 +190,7 @@ export class GltfMaterialParser {
     if (!url) return null;
 
     try {
-      const img = await AssetManager.loadImage(url);
+      const img = await assetManager.loadImage(url);
       return Texture.fromImage(img);
     } finally {
       if (objectUrl) URL.revokeObjectURL(url);

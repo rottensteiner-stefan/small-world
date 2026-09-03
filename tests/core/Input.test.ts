@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { Input } from "../../src/core/Input.js";
 import { Keys } from "../../src/enums/Keys.js";
 
@@ -92,5 +93,24 @@ describe("Input Gamepad Support", () => {
 
     expect(input.mouse.dx).toBeCloseTo(0.8 * 15.0, 2);
     expect(input.mouse.dy).toBeCloseTo(0.5 * 15.0, 2);
+  });
+
+  describe("Lifecycle & Listener Cleanup", () => {
+    it("attaches event listeners in init() and removes them cleanly in destroy()", () => {
+      const liveInput = new Input();
+      liveInput.init();
+
+      // Dispatch keydown
+      window.dispatchEvent(new KeyboardEvent("keydown", { code: "KeyW" }));
+      expect(liveInput.isPressed("KeyW")).toBe(true);
+
+      // Clean up
+      liveInput.destroy();
+      expect(liveInput.isPressed("KeyW")).toBe(false);
+
+      // Dispatch keydown after destroy
+      window.dispatchEvent(new KeyboardEvent("keydown", { code: "KeyW" }));
+      expect(liveInput.isPressed("KeyW")).toBe(false);
+    });
   });
 });

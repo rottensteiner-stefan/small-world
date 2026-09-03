@@ -33,9 +33,9 @@ export class Sphere extends AbstractGeometry {
   constructor(options: SphereOptions = {}) {
     super();
     const { radius = 1, widthSegments = 16, heightSegments = 12 } = options;
-    this.radius = radius;
-    this.widthSegments = widthSegments;
-    this.heightSegments = heightSegments;
+    this.radius = Math.max(0, radius);
+    this.widthSegments = Math.max(3, Math.floor(widthSegments));
+    this.heightSegments = Math.max(2, Math.floor(heightSegments));
     this.generateGeometryData();
   }
 
@@ -45,6 +45,8 @@ export class Sphere extends AbstractGeometry {
     const n: number[] = [];
     const uv: number[] = [];
     const idx: number[] = [];
+
+    const invRadius = this.radius > 0.000001 ? 1.0 / this.radius : 0;
 
     for (let y: number = 0; y <= this.heightSegments; y++) {
       const vRatio: number = y / this.heightSegments;
@@ -72,7 +74,11 @@ export class Sphere extends AbstractGeometry {
 
         v.push(px, py, pz);
 
-        n.push(px / this.radius, py / this.radius, pz / this.radius);
+        if (invRadius > 0) {
+          n.push(px * invRadius, py * invRadius, pz * invRadius);
+        } else {
+          n.push(0, 1, 0);
+        }
 
         uv.push(uRatio, vRatio);
       }

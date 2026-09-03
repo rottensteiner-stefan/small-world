@@ -62,7 +62,7 @@ export class TerrainMaterial extends AbstractMaterial {
   constructor(options: TerrainMaterialOptions = {}) {
     super(MaterialType.TERRAIN);
     const {
-      color = Color.WHITE,
+      color = new Color(1, 1, 1, 1),
       shininess = 10,
       sandMap = undefined,
       grassMap = undefined,
@@ -72,7 +72,7 @@ export class TerrainMaterial extends AbstractMaterial {
       thresholds = [2.0, 15.0, 25.0, 2.0],
     } = options;
 
-    this.color = color;
+    this.color = Object.isFrozen(color) ? color.clone() : color;
     this.shininess = shininess;
     this.sandMap = sandMap;
     this.grassMap = grassMap;

@@ -118,8 +118,8 @@ export class Terrain extends AbstractGeometry {
     this.width = width;
     this.depth = depth;
     this.maxHeight = maxHeight;
-    this.meshWidthSegments = meshWidthSegments;
-    this.meshDepthSegments = meshDepthSegments;
+    this.meshWidthSegments = Math.max(1, Math.floor(meshWidthSegments));
+    this.meshDepthSegments = Math.max(1, Math.floor(meshDepthSegments));
 
     if (heightmapResolution * heightmapResolution !== heightData.length) {
       console.warn(

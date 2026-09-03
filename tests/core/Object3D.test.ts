@@ -1,4 +1,4 @@
-import { Object3D, Vector3D } from "../../src/index.js";
+import { Object3D, Vector3D, Quaternion } from "../../src/index.js";
 import { describe, it, expect } from "vitest";
 
 describe("Object3D", () => {
@@ -102,6 +102,21 @@ describe("Object3D", () => {
       expect(forward.x).toBeCloseTo(1);
       expect(forward.y).toBeCloseTo(0);
       expect(forward.z).toBeCloseTo(0);
+    });
+
+    it("should update quaternion and worldMatrix when quaternion is set", () => {
+      const obj = new Object3D();
+      obj.position.set(0, 0, 0);
+      obj.quaternion = new Quaternion(0, 0, 0, 1);
+
+      obj.lookAt(new Vector3D(5, 0, 0));
+      obj.updateMatrixWorld();
+
+      const forward = new Vector3D(0, 0, -1).transformDirection(obj.worldMatrix);
+      expect(forward.x).toBeCloseTo(1);
+      expect(forward.y).toBeCloseTo(0);
+      expect(forward.z).toBeCloseTo(0);
+      expect(obj.quaternion.w).not.toBe(1); // Quaternion was actively updated from identity
     });
   });
 });

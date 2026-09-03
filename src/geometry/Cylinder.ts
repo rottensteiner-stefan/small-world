@@ -58,11 +58,11 @@ export class Cylinder extends AbstractGeometry {
       thetaLength = MathUtils.TWO_PI,
     } = options;
 
-    this.radiusTop = radiusTop;
-    this.radiusBottom = radiusBottom;
-    this.height = height;
-    this.radialSegments = radialSegments;
-    this.heightSegments = heightSegments;
+    this.radiusTop = Math.max(0, radiusTop);
+    this.radiusBottom = Math.max(0, radiusBottom);
+    this.height = Math.max(0, height);
+    this.radialSegments = Math.max(3, Math.floor(radialSegments));
+    this.heightSegments = Math.max(1, Math.floor(heightSegments));
     this.thetaStart = thetaStart;
     this.thetaLength = thetaLength;
 

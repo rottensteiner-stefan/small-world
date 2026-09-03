@@ -227,6 +227,9 @@ export class Showcase16 extends AbstractShowcase {
     });
     floor.receiveShadow = true;
     this.scene.add(floor);
+    // The floor samples `renderTarget` as its `reflectionMap` -- it must not be rendered while
+    // that same texture is bound as the render target of its own reflection sub-render.
+    this._reflectionNode.excludedObjects.push(floor);
 
     // 5. Create 3 Large Mirrored Spheres
     const sphereGeom = new Sphere({
@@ -368,11 +371,6 @@ export class Showcase16 extends AbstractShowcase {
     pivot3.add(moon3);
     this.scene.add(pivot3);
     this._moonPivots.push(pivot3);
-  }
-
-  /** @inheritdoc */
-  protected override onInspectorReady(): void {
-    // Moons have no controls for now
   }
 
   protected override update(deltaTime: number): void {

@@ -21,7 +21,9 @@ fn lightCellRangeX(ndcX: f32, ndcRadius: f32) -> vec2f {
 }
 
 fn lightCellRangeY(ndcY: f32, ndcRadius: f32) -> vec2f {
-    let centerPx = (ndcY * 0.5 + 0.5) * global.resolution.y;
+    // In WebGPU framebuffer coordinates, origin (0,0) is top-left, Y increases downward.
+    // NDC Y-up (+1.0 = top) maps to framebuffer Y 0.0:
+    let centerPx = (1.0 - (ndcY * 0.5 + 0.5)) * global.resolution.y;
     let radiusPx = ndcRadius * 0.5 * global.resolution.y;
     return vec2f(centerPx - radiusPx, centerPx + radiusPx) / global.tileSizePx.y;
 }

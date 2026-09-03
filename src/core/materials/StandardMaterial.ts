@@ -65,11 +65,12 @@ export interface StandardMaterialOptions {
 export class StandardMaterial extends AbstractMaterial {
   /** Own fields on top of `AbstractMaterial.inspector` -- see `collectInspectorSchema()`. */
   public static override readonly inspector: Record<string, InspectorField> = {
-    metallic: { type: "number", label: "Metallic", min: 0, max: 1, step: 0.01 },
-    roughness: { type: "number", label: "Roughness", min: 0, max: 1, step: 0.01 },
+    metallic: { type: "number", label: "Metallic", min: 0, max: 1, step: 0.01, row: "surface" },
+    roughness: { type: "number", label: "Roughness", min: 0, max: 1, step: 0.01, row: "surface" },
     ao: { type: "number", label: "AO", min: 0, max: 1, step: 0.01 },
     emissiveColor: { type: "color", label: "Emissive" },
-    emissiveIntensity: { type: "number", label: "Emissive Intensity", min: 0, max: 10, step: 0.1 },
+    emissiveIntensity: { type: "number", label: "Emissive Int.", min: 0, max: 10, step: 0.1 },
+    alphaTest: { type: "number", label: "Alpha Test", min: 0, max: 1, step: 0.01 },
   };
 
   /** Metallic factor (0 to 1). */
@@ -131,7 +132,7 @@ export class StandardMaterial extends AbstractMaterial {
   constructor(options: StandardMaterialOptions = {}) {
     super(MaterialType.STANDARD);
     const {
-      color = Color.WHITE,
+      color = new Color(1, 1, 1, 1),
       metallic = 0.0,
       roughness = 0.5,
       ao = 1.0,
@@ -152,7 +153,7 @@ export class StandardMaterial extends AbstractMaterial {
       alphaTest = 0.0,
       time = 0.0,
     } = options;
-    this.color = color;
+    this.color = Object.isFrozen(color) ? color.clone() : color;
     this.metallic = metallic;
     this.roughness = roughness;
     this.ao = ao;
@@ -252,7 +253,7 @@ export class StandardMaterial extends AbstractMaterial {
    * properties (e.g. an emissive hover glow) on a material that might be shared across
    * multiple objects, where a direct mutation would visibly affect all of them at once.
    */
-  public clone(): StandardMaterial {
+  public override clone(): StandardMaterial {
     const copy = new StandardMaterial({
       color: new Color(this.color.r, this.color.g, this.color.b, this.color.a),
       metallic: this.metallic,

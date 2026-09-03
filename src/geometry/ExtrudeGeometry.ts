@@ -178,8 +178,8 @@ export class ExtrudeGeometry extends AbstractGeometry {
       v.push(pt1.x, pt1.y, -hh); // 2: back-left
       v.push(pt2.x, pt2.y, -hh); // 3: back-right
 
-      const u1 = distances[i]! / totalDist;
-      const u2 = distances[i + 1]! / totalDist;
+      const u1 = totalDist > 0 ? distances[i]! / totalDist : 0;
+      const u2 = totalDist > 0 ? distances[i + 1]! / totalDist : 0;
 
       uv.push(u1, 1);
       uv.push(u2, 1);
@@ -216,8 +216,8 @@ export class ExtrudeGeometry extends AbstractGeometry {
         v.push(pt1.x, pt1.y, -hh); // 2: back-left
         v.push(pt2.x, pt2.y, -hh); // 3: back-right
 
-        const u1 = innerDistances[i]! / innerTotalDist;
-        const u2 = innerDistances[i + 1]! / innerTotalDist;
+        const u1 = innerTotalDist > 0 ? innerDistances[i]! / innerTotalDist : 0;
+        const u2 = innerTotalDist > 0 ? innerDistances[i + 1]! / innerTotalDist : 0;
 
         uv.push(u1, 1);
         uv.push(u2, 1);

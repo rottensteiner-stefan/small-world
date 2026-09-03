@@ -10,8 +10,11 @@ describe("collectInspectorSchema", () => {
     const schema = collectInspectorSchema(new Object3D("Plain"));
 
     expect(schema["isVisible"]).toEqual({ type: "boolean", label: "Visible" });
-    expect(schema["posX"]?.path).toBe("position.x");
-    expect(schema["scaleZ"]?.path).toBe("scale.z");
+    expect(schema["position"]?.type).toBe("vec3");
+    expect(schema["rotation"]?.type).toBe("vec3");
+    expect(schema["scale"]?.type).toBe("vec3");
+    expect(schema["castShadow"]?.row).toBe("shadows");
+    expect(schema["receiveShadow"]?.row).toBe("shadows");
   });
 
   it("merges Object3D + AbstractLight + PointLight fields for a PointLight instance", () => {
@@ -19,7 +22,7 @@ describe("collectInspectorSchema", () => {
 
     // Base Object3D fields still present.
     expect(schema["isVisible"]).toBeDefined();
-    expect(schema["posX"]).toBeDefined();
+    expect(schema["position"]).toBeDefined();
     // AbstractLight's own fields.
     expect(schema["color"]).toEqual({ type: "color", label: "Color" });
     expect(schema["intensity"]?.type).toBe("number");

@@ -2,5 +2,5 @@
 
 newmtl colormap
 Kd 1 1 1
-map_Kd textures/colormap.png
+map_Kd textures/colormap.webp
 

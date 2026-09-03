@@ -1,5 +1,78 @@
 # Changelog
 
+## [0.77.6] - 2026-09-03
+
+### "Mirrors would do well to reflect a little more before sending back images." - Jean Cocteau
+
+- **Architecture & Bugfixes:**
+  - **Core:** Fixed `DeviceCaps.init()` leaking two never-released throwaway WebGL1/WebGL2 probe contexts on every call -- each `SmallWorld` instance gets its own private `DeviceCaps`, so pages creating several engine instances at once (e.g. Showcase 14's 9-way comparison wall) could hit the browser's per-page WebGL context cap and start losing live rendering contexts. Now explicitly released via `WEBGL_lose_context` right after reading limits.
+  - **Rendering:** Fixed `PlanarReflectionNode` rendering its own reflective surface (e.g. a mirror floor sampling `renderTarget` as `reflectionMap`) into that same texture during its own reflection sub-render -- invalid on WebGPU (a texture can't be a `RenderAttachment` and a `TextureBinding` in the same pass) and semantically wrong on every backend. Added `excludedObjects` to hide any object sampling the reflection texture during its own render; wired up in Showcases 15 and 16.
+  - **Assets:** Fixed a stale `.png` texture reference in Showcases 3/4's `vehicle-racer.mtl` left over from an earlier `.webp` conversion pass (404 on load).
+  - **Showcase 6:** Fixed a mislabeled geometry entry silently rendering `Ground` under the "Plane" label instead of the actual `Plane` class; added the previously-missing `Octahedron` and `Line` primitives to the gallery.
+  - **Showcase 11:** Replaced a bespoke, drifted axis-cross implementation with the engine's own `AxesHelper`, matching its neon color standard and eliminating duplicated label-rendering logic.
+- **Housekeeping & Docs:**
+  - Added unit tests for the `DeviceCaps` probe-context cleanup and `PlanarReflectionNode`'s `excludedObjects`.
+
+## [0.77.5] - 2026-09-03
+
+### "Do not multiply entities beyond necessity." - William of Ockham
+
+- **Architecture & Bugfixes:**
+  - **WebGL2:** Fixed `WebGLShadowPass` regressing the method-parameter-bivariance hazard `WebGLClusterCullPass` already closed -- replaced its `renderer as unknown as { renderShadowMaps?; updateGlobalUBO? }` duck-typed cast with the same `instanceof WebGL2Renderer` guard + typed direct access.
+  - **WebGPU:** `CascadedShadowPassGPU`/`SpotShadowPassGPU` now upload only the byte range of `GlobalUniforms` they actually touch (288/320 bytes) instead of re-uploading the whole 848-byte buffer on top of `_updateGlobalBuffers()`'s own once-per-frame upload -- up to 3 full-buffer writes per frame down to 1.
+  - **Animation:** Removed `Bone.updateMatrixWorld()`, a byte-for-byte duplicate of `Object3D.updateMatrixWorld()` -- `Bone` now inherits it unchanged.
+- **Housekeeping & Docs:**
+  - Added a unit test covering the narrowed `GlobalUniforms` upload range.
+  - Updated full review dossiers (`.agents/notes/full-review-2026-09-03/`).
+
+## [0.77.4] - 2026-09-03
+
+### "The details are not the details. They make the design." - Charles Eames
+
+- **Architecture & Bugfixes:**
+  - **WebGPU:** Fixed `UniformPacker`'s MAT4 base alignment (was 64 bytes, WGSL/std140 spec requires 16 bytes -- a matrix's base alignment matches its column type, not its total size). Currently latent in every existing layout (MAT4 always first, offset 0 either way), but would silently corrupt every uniform packed after a MAT4 in any future custom layout that places one elsewhere.
+  - **Lights:** Made the `AreaLight` light-count cap's TS/GLSL coupling explicit -- `MAX_AREA_LIGHTS` (`AreaLight.ts`) and the four independently hardcoded `u_areaLights[4]` GLSL array declarations now cross-reference each other in comments, since GLSL can't import the TS constant.
+- **Housekeeping & Docs:**
+  - Added unit tests for the MAT4 alignment fix.
+  - Updated full review dossiers (`.agents/notes/full-review-2026-09-03/`).
+
+## [0.77.3] - 2026-09-03
+
+### "To attain knowledge, add things every day. To attain wisdom, remove things every day." - Lao Tzu
+
+- **Architecture & Bugfixes:**
+  - **Maker:** Bounded `UndoStack`'s history to 50 entries (matching Pixler's own cap) instead of growing it forever; the discarded redo branch is now dropped on every new action, not just at capacity.
+  - Added an optional `UndoCommand.discard()` hook, called whenever a command permanently leaves history (capacity trim, redo-branch drop, or `clear()`), so a soft-deleted object parked in `MakerApp`'s trash bin is no longer left unreachable-but-referenced forever -- `_disposeTrashedObject()` now routes it through the scene's real GPU-resource release queue.
+- **Housekeeping & Docs:**
+  - Added unit test suites for the `UndoStack` capacity/discard fix.
+  - Updated full review dossiers (`.agents/notes/full-review-2026-09-03/`).
+
+## [0.77.2] - 2026-09-03
+
+### "The end is where we start from." - T.S. Eliot
+
+- **Architecture & Bugfixes:**
+  - **Loaders:** Migrated `GltfLoader`, `ObjLoader`, `ImageLoader`, `MtlLoader`, `TextLoader`, `SkyboxLoader`, `BinaryStreamLoader`, and `GltfMaterialParser` off the deprecated process-wide `AssetManager` singleton onto an injectable, per-loader instance (`LoaderOptions.assetManager`), closing the last leg of the instance-based `RendererContext` migration.
+  - **Audio:** `SynthSFX.startDrone()`/`startFire()` now return a `SoundHandle` that stops and disconnects their endless oscillator/noise graphs; `AudioSystem` tracks active handles and gained a `dispose()` that stops them all and closes the `AudioContext`, now wired into `SmallWorld.destroy()`.
+  - **Light Cycle Arena:** Fixed `ArenaGrid.isFree()` treating a cycle's own trail cells as permanently free, which let it survive looping back into itself -- removed the `ownerId` exception entirely.
+  - **Forge:** `ForgeWindow`'s drag/resize handlers and `ResizeObserver` are now torn down in `destroy()` instead of leaking 10 permanent `window` listeners per window; `Forge` gained its own `destroy()` (closing every window plus its own `keydown`/`paste` listeners), wired into `SmallWorld.destroy()`.
+- **Housekeeping & Docs:**
+  - Added unit test suites for all 4 resolved review findings above.
+  - Updated full review dossiers (`.agents/notes/full-review-2026-09-03/`).
+
+## [0.77.1] - 2026-09-03
+
+### "Small disciplines repeated with consistency every day lead to great achievements." - John C. Maxwell
+
+- **Architecture & Bugfixes:**
+  - **Core & Lifecycle:** Fixed `Object3D.lookAt()` quaternion sync when quaternion rotation is enabled; added clean window/DOM listener removal to `Input.destroy()`; corrected `PlanarReflectionNode` mirrorCamera up-vector alignment order before `lookAt()`; implemented zero-allocation Copy-on-Write event dispatching in `EventDispatcherImpl`.
+  - **Materials, Lights & Behaviors:** Encapsulated `Color.WHITE` against accidental mutation; isolated `CameraStrategyFactory` instances to prevent cross-engine state leaks; extended `CloneUtils.shallowCloneWithValueTypes` with deep cloning for `Vector2D`, arrays, and typed arrays; integrated PBR lighting evaluation for `AreaLight` across WebGL1, WebGL2, and WebGPU; added window keydown and DOM button cleanup in `AbstractShowcase.destroy()`.
+  - **Rendering Backends:** Resolved Clustered Forward+ lighting layout divergence (aligned WebGL2 std140 UBO stride and fixed WebGPU NDC-Y compute coordinate mapping); resolved WebGPU `_packObjectUniforms()` alpha fallback for custom materials; added render-target guards preventing offscreen passes from contaminating persistent TAA history; fixed WebGPU `_depthTexture` and `_opaqueDepthTexture` resize and teardown leaks; unified WebGL1 vignette formula with WebGL2/WebGPU; isolated WebGL post-processing uber-shader recompilation by passing continuous tuning sliders via per-frame uniforms.
+  - **Geometry & Physics:** Fixed `PhysicsSystem` resting contact continuous oscillation by removing artificial `+0.005` displacement bias; preserved manually assigned `OBB` bounds on `Object3D` with geometry and activated world scale extraction in `OBB.transform()`; implemented systemic parameter clamping and division-by-zero guards across all parametric geometries (`Sphere`, `Torus`, `Cylinder`, `Cone`, `Capsule`, `Tube`, `Plane`, `Ground`, `Pyramid`, `Circle`, `Disk`, `Cube`, `Gear`, `Octahedron`, `ExtrudeGeometry`).
+- **Housekeeping & Docs:**
+  - Added unit test suites for all 18 resolved core, backend, math, and geometry review findings (124 test suites, 669 tests passing).
+  - Updated full review dossiers (`.agents/notes/full-review-2026-09-03/`).
+
 ## [0.77.0] - 2026-08-30
 
 ### "The strength of the structure lies in the harmony of its parts." - Vitruvius

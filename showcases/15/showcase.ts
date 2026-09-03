@@ -25,7 +25,6 @@ import {
   PlanarReflectionNode,
   DynamicReflectionProbe,
 } from "../../src/index.js";
-import type { GadgetInspector } from "../../src/tools/GadgetInspector.js";
 
 interface Ball {
   position: { x: number; y: number; z: number };
@@ -209,6 +208,9 @@ export class Showcase15 extends AbstractShowcase {
     });
     floor.receiveShadow = true;
     this.scene.add(floor);
+    // The floor samples `renderTarget` as its `reflectionMap` -- it must not be rendered while
+    // that same texture is bound as the render target of its own reflection sub-render.
+    this._reflectionNode.excludedObjects.push(floor);
 
     // 5. Create 3 Large Mirrored Spheres
     const sphereGeom = new Sphere({
@@ -336,37 +338,6 @@ export class Showcase15 extends AbstractShowcase {
 
       this._balls.push(ball as Ball);
     }
-  }
-
-  /** @inheritdoc */
-  protected override onInspectorReady(inspector: GadgetInspector): void {
-    const sceneFolder = inspector.addSceneFolder("Scene Controls");
-
-    // Shared proxy object — slider writes ballCount, display reads activeInstances
-    const params = {
-      ballCount: this._activeBallCount,
-      activeInstances: this._activeBallCount,
-    };
-
-    // Readonly display — updated whenever the slider changes
-    const activeBinding = sceneFolder.addBinding(params, "activeInstances", {
-      readonly: true,
-      label: "Active Instances",
-    });
-
-    sceneFolder
-      .addBinding(params, "ballCount", {
-        label: "Gummibälchen",
-        min: 0,
-        max: Showcase15.MAX_BALLS,
-        step: 1,
-      })
-      .on("change", (ev: { value: number }) => {
-        const count = Math.round(ev.value);
-        this._activeBallCount = count;
-        params.activeInstances = count;
-        activeBinding.refresh();
-      });
   }
 
   protected _createBallStateMachine(

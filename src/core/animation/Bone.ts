@@ -13,28 +13,6 @@ export class Bone extends Object3D {
   }
 
   /**
-   * Updates local and world transformation matrices.
-   * If a quaternion is provided, it is used for orientation instead of Euler angles.
-   */
-  public override updateMatrixWorld(): void {
-    if (this.quaternion) {
-      this.localMatrix.composeFromQuaternion(this.position, this.quaternion, this.scale);
-    } else {
-      this.localMatrix.compose(this.position, this.rotation, this.scale);
-    }
-
-    if (undefined === this.parent) {
-      this.worldMatrix.data.set(this.localMatrix.data);
-    } else {
-      Matrix4.multiply(this.parent.worldMatrix, this.localMatrix, this.worldMatrix);
-    }
-
-    for (let i = 0; i < this.children.length; i++) {
-      this.children[i]!.updateMatrixWorld();
-    }
-  }
-
-  /**
    * The bone's current accumulated *uniform* world-space scale -- 1.0 for a "clean" rig, but
    * often far from it: FBX-to-glTF pipelines (Mixamo included) commonly leave a leftover
    * cm-to-m unit-conversion scale (e.g. ~100x) baked into an ancestor node somewhere above the

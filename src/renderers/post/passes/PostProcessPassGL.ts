@@ -20,6 +20,20 @@ export class PostProcessPassGL {
   private _uHbaoTexture: WebGLUniformLocation | null = null;
   private _uTime: WebGLUniformLocation | null = null;
 
+  private _uBloomIntensity: WebGLUniformLocation | null = null;
+  private _uBloomColor: WebGLUniformLocation | null = null;
+  private _uExposure: WebGLUniformLocation | null = null;
+  private _uGamma: WebGLUniformLocation | null = null;
+  private _uInverseGamma: WebGLUniformLocation | null = null;
+  private _uVignetteOffset: WebGLUniformLocation | null = null;
+  private _uVignetteDarkness: WebGLUniformLocation | null = null;
+  private _uVignetteRoundness: WebGLUniformLocation | null = null;
+  private _uGrainIntensity: WebGLUniformLocation | null = null;
+  private _uQuantizeSteps: WebGLUniformLocation | null = null;
+  private _uOutlineThickness: WebGLUniformLocation | null = null;
+  private _uOutlineSensitivity: WebGLUniformLocation | null = null;
+  private _uOutlineColor: WebGLUniformLocation | null = null;
+
   private _aPos: number = -1;
   private readonly _isWebGL2: boolean;
   private _compiledSignature?: string;
@@ -43,30 +57,19 @@ export class PostProcessPassGL {
       PostProcessingEffectType.OUTLINE,
     );
 
+    // Only structural flags/modes trigger a shader rebuild (matching WebGPU).
+    // Continuous tuning values (exposure, gamma, vignette darkness/offset, grain intensity,
+    // bloom intensity/color, quantize steps, outline thickness/color) are set via uniforms per frame.
     return [
       group.filterMode,
       tm && tm.enabled ? 1 : 0,
       tm && tm.enabled ? tm.mode : 0,
-      tm && tm.enabled ? tm.exposure : 1.0,
-      tm && tm.enabled ? tm.gamma : 2.2,
       vig && vig.enabled ? 1 : 0,
-      vig && vig.enabled ? vig.offset : 0.8,
-      vig && vig.enabled ? vig.darkness : 0.5,
-      vig && vig.enabled ? vig.roundness : 2.0,
       grain && grain.enabled ? 1 : 0,
-      grain && grain.enabled ? grain.intensity : 0.05,
       bloom && bloom.enabled ? 1 : 0,
-      bloom && bloom.enabled ? bloom.intensity : 1.0,
-      bloom && bloom.enabled ? `${bloom.color.r},${bloom.color.g},${bloom.color.b}` : "1,1,1",
       quant && quant.enabled ? 1 : 0,
-      quant && quant.enabled ? quant.steps : 8.0,
       hbao && hbao.enabled ? 1 : 0,
       outline && outline.enabled ? 1 : 0,
-      outline && outline.enabled ? outline.thickness : 1.0,
-      outline && outline.enabled ? outline.sensitivity : 1.0,
-      outline && outline.enabled
-        ? `${outline.color.r},${outline.color.g},${outline.color.b}`
-        : "0,0,0",
     ].join("|");
   }
 
@@ -113,30 +116,10 @@ export class PostProcessPassGL {
     const hbaoEnabled = hbao && hbao.enabled;
     const outlineEnabled = outline && outline.enabled;
 
-    // Inject static parameters as macros, replacing uniform declarations
+    // Inject ONLY structural feature flags as compile-time macros
     frag = frag.replace(
       "uniform int u_bloomEnabled;",
       `#define u_bloomEnabled ${bloomEnabled ? 1 : 0}`,
-    );
-    frag = frag.replace(
-      "uniform float u_bloomIntensity;",
-      `#define u_bloomIntensity ${bloom ? bloom.intensity.toFixed(6) : "0.0"}`,
-    );
-    frag = frag.replace(
-      "uniform vec3 u_bloomColor;",
-      `#define u_bloomColor vec3(${bloom ? `${bloom.color.r.toFixed(6)}, ${bloom.color.g.toFixed(6)}, ${bloom.color.b.toFixed(6)}` : "1.0, 1.0, 1.0"})`,
-    );
-    frag = frag.replace(
-      "uniform float u_exposure;",
-      `#define u_exposure ${tmEnabled ? tm.exposure.toFixed(6) : "1.0"}`,
-    );
-    frag = frag.replace(
-      "uniform float u_gamma;",
-      `#define u_gamma ${tmEnabled ? tm.gamma.toFixed(6) : "2.2"}`,
-    );
-    frag = frag.replace(
-      "uniform float u_inverseGamma;",
-      `#define u_inverseGamma ${tmEnabled ? (1.0 / tm.gamma).toFixed(6) : "1.0"}`,
     );
     frag = frag.replace(
       "uniform int u_toneMappingMode;",
@@ -147,32 +130,12 @@ export class PostProcessPassGL {
       `#define u_vignetteEnabled ${vigEnabled ? 1 : 0}`,
     );
     frag = frag.replace(
-      "uniform float u_vignetteOffset;",
-      `#define u_vignetteOffset ${vig ? vig.offset.toFixed(6) : "0.8"}`,
-    );
-    frag = frag.replace(
-      "uniform float u_vignetteDarkness;",
-      `#define u_vignetteDarkness ${vig ? vig.darkness.toFixed(6) : "0.5"}`,
-    );
-    frag = frag.replace(
-      "uniform float u_vignetteRoundness;",
-      `#define u_vignetteRoundness ${vig ? vig.roundness.toFixed(6) : "2.0"}`,
-    );
-    frag = frag.replace(
       "uniform int u_grainEnabled;",
       `#define u_grainEnabled ${grainEnabled ? 1 : 0}`,
     );
     frag = frag.replace(
-      "uniform float u_grainIntensity;",
-      `#define u_grainIntensity ${grain ? grain.intensity.toFixed(6) : "0.05"}`,
-    );
-    frag = frag.replace(
       "uniform int u_quantizeEnabled;",
       `#define u_quantizeEnabled ${quantEnabled ? 1 : 0}`,
-    );
-    frag = frag.replace(
-      "uniform float u_quantizeSteps;",
-      `#define u_quantizeSteps ${quant ? quant.steps.toFixed(6) : "8.0"}`,
     );
     frag = frag.replace(
       "uniform int u_hbaoEnabled;",
@@ -181,18 +144,6 @@ export class PostProcessPassGL {
     frag = frag.replace(
       "uniform int u_outlineEnabled;",
       `#define u_outlineEnabled ${outlineEnabled ? 1 : 0}`,
-    );
-    frag = frag.replace(
-      "uniform float u_outlineThickness;",
-      `#define u_outlineThickness ${outline ? outline.thickness.toFixed(6) : "1.0"}`,
-    );
-    frag = frag.replace(
-      "uniform float u_outlineSensitivity;",
-      `#define u_outlineSensitivity ${outline ? outline.sensitivity.toFixed(6) : "1.0"}`,
-    );
-    frag = frag.replace(
-      "uniform vec3 u_outlineColor;",
-      `#define u_outlineColor vec3(${outline ? `${outline.color.r.toFixed(6)}, ${outline.color.g.toFixed(6)}, ${outline.color.b.toFixed(6)}` : "0.0, 0.0, 0.0"})`,
     );
     frag = frag.replace("uniform int u_filterMode;", `#define u_filterMode ${group.filterMode}`);
 
@@ -222,6 +173,20 @@ export class PostProcessPassGL {
     this._uBloomTexture = gl.getUniformLocation(p, "u_bloomTexture");
     this._uHbaoTexture = gl.getUniformLocation(p, "u_hbaoTexture");
     this._uTime = gl.getUniformLocation(p, "u_time");
+
+    this._uBloomIntensity = gl.getUniformLocation(p, "u_bloomIntensity");
+    this._uBloomColor = gl.getUniformLocation(p, "u_bloomColor");
+    this._uExposure = gl.getUniformLocation(p, "u_exposure");
+    this._uGamma = gl.getUniformLocation(p, "u_gamma");
+    this._uInverseGamma = gl.getUniformLocation(p, "u_inverseGamma");
+    this._uVignetteOffset = gl.getUniformLocation(p, "u_vignetteOffset");
+    this._uVignetteDarkness = gl.getUniformLocation(p, "u_vignetteDarkness");
+    this._uVignetteRoundness = gl.getUniformLocation(p, "u_vignetteRoundness");
+    this._uGrainIntensity = gl.getUniformLocation(p, "u_grainIntensity");
+    this._uQuantizeSteps = gl.getUniformLocation(p, "u_quantizeSteps");
+    this._uOutlineThickness = gl.getUniformLocation(p, "u_outlineThickness");
+    this._uOutlineSensitivity = gl.getUniformLocation(p, "u_outlineSensitivity");
+    this._uOutlineColor = gl.getUniformLocation(p, "u_outlineColor");
 
     if (this._isWebGL2) {
       const gl2 = gl as WebGL2RenderingContext;
@@ -280,6 +245,46 @@ export class PostProcessPassGL {
       gl.activeTexture(gl.TEXTURE2);
       gl.bindTexture(gl.TEXTURE_2D, hbaoTexture);
       gl.uniform1i(this._uHbaoTexture, 2);
+    }
+
+    // Continuous Uniform Updates
+    const tm = group.get<import("../index.js").ToneMappingElement>(
+      PostProcessingEffectType.TONE_MAPPING,
+    );
+    const vig = group.get<import("../index.js").VignetteElement>(PostProcessingEffectType.VIGNETTE);
+    const grain = group.get<import("../index.js").GrainElement>(PostProcessingEffectType.GRAIN);
+    const quant = group.get<import("../index.js").QuantizeElement>(
+      PostProcessingEffectType.QUANTIZE,
+    );
+    const outline = group.get<import("../index.js").OutlineElement>(
+      PostProcessingEffectType.OUTLINE,
+    );
+
+    if (this._uBloomIntensity) gl.uniform1f(this._uBloomIntensity, bloom ? bloom.intensity : 0.0);
+    if (this._uBloomColor) {
+      if (bloom) gl.uniform3f(this._uBloomColor, bloom.color.r, bloom.color.g, bloom.color.b);
+      else gl.uniform3f(this._uBloomColor, 1.0, 1.0, 1.0);
+    }
+    if (this._uExposure) gl.uniform1f(this._uExposure, tm && tm.enabled ? tm.exposure : 1.0);
+    if (this._uGamma) gl.uniform1f(this._uGamma, tm && tm.enabled ? tm.gamma : 2.2);
+    if (this._uInverseGamma) {
+      gl.uniform1f(this._uInverseGamma, tm && tm.enabled ? 1.0 / tm.gamma : 1.0);
+    }
+    if (this._uVignetteOffset) gl.uniform1f(this._uVignetteOffset, vig ? vig.offset : 0.8);
+    if (this._uVignetteDarkness) gl.uniform1f(this._uVignetteDarkness, vig ? vig.darkness : 0.5);
+    if (this._uVignetteRoundness) gl.uniform1f(this._uVignetteRoundness, vig ? vig.roundness : 2.0);
+    if (this._uGrainIntensity) gl.uniform1f(this._uGrainIntensity, grain ? grain.intensity : 0.05);
+    if (this._uQuantizeSteps) gl.uniform1f(this._uQuantizeSteps, quant ? quant.steps : 8.0);
+    if (this._uOutlineThickness) {
+      gl.uniform1f(this._uOutlineThickness, outline ? outline.thickness : 1.0);
+    }
+    if (this._uOutlineSensitivity) {
+      gl.uniform1f(this._uOutlineSensitivity, outline ? outline.sensitivity : 1.0);
+    }
+    if (this._uOutlineColor) {
+      if (outline)
+        gl.uniform3f(this._uOutlineColor, outline.color.r, outline.color.g, outline.color.b);
+      else gl.uniform3f(this._uOutlineColor, 0.0, 0.0, 0.0);
     }
 
     // Blit to the default (canvas) framebuffer

@@ -1,8 +1,11 @@
 import { Object3D } from "../../core/index.js";
 
 export interface HierarchyCallbacks {
-  onSelect(obj: Object3D): void;
+  /** `toggle` mirrors the click's Shift/Ctrl/Cmd modifier state -- add/remove `obj` from the
+   * existing selection instead of replacing it wholesale. */
+  onSelect(obj: Object3D, toggle: boolean): void;
   onReparent(obj: Object3D, newParent: Object3D): void;
+  onRename?(obj: Object3D, newName: string): void;
 }
 
 const DRAG_MIME = "text/maker-uuid";
@@ -14,6 +17,11 @@ const DRAG_MIME = "text/maker-uuid";
  * at Maker's expected scene sizes; a diffed update is a later-phase concern if it ever isn't.
  */
 export class HierarchyPanel {
+  private _renamingUuid: string | null = null;
+  private _filterQuery: string = "";
+  private _searchInput: HTMLInputElement;
+  private _treeContainer: HTMLElement;
+
   constructor(
     private _container: HTMLElement,
     private _getRoot: () => Object3D,
@@ -23,10 +31,50 @@ export class HierarchyPanel {
     private _isExcluded: (obj: Object3D) => boolean = () => false,
   ) {
     this._container.classList.add("maker-hierarchy");
+    this._container.innerHTML = "";
+
+    // Search header container
+    const searchWrapper = document.createElement("div");
+    searchWrapper.className = "maker-hierarchy-search-wrapper";
+
+    this._searchInput = document.createElement("input");
+    this._searchInput.type = "text";
+    this._searchInput.className = "maker-hierarchy-search-input";
+    this._searchInput.placeholder = "🔍 Filter objects... (Ctrl+F)";
+    this._searchInput.spellcheck = false;
+
+    this._searchInput.addEventListener("input", (): void => {
+      this._filterQuery = this._searchInput.value.trim().toLowerCase();
+      this.refresh();
+    });
+
+    this._searchInput.addEventListener("keydown", (e): void => {
+      e.stopPropagation();
+      if ("Enter" === e.key) {
+        e.preventDefault();
+        const first = this.getFirstMatchingObject();
+        if (first) this._callbacks.onSelect(first, false);
+      } else if ("Escape" === e.key) {
+        e.preventDefault();
+        this._filterQuery = "";
+        this._searchInput.value = "";
+        this.refresh();
+        this._searchInput.blur();
+      }
+    });
+
+    searchWrapper.appendChild(this._searchInput);
+    this._container.appendChild(searchWrapper);
+
+    // Tree container
+    this._treeContainer = document.createElement("div");
+    this._treeContainer.className = "maker-hierarchy-tree";
+    this._container.appendChild(this._treeContainer);
+
     this._container.addEventListener("dragover", (e) => e.preventDefault());
     this._container.addEventListener("drop", (e) => {
       // Dropped on empty space below the last row -- reparent to the scene root.
-      if (e.target !== this._container) return;
+      if (e.target !== this._container && e.target !== this._treeContainer) return;
       e.preventDefault();
       const draggedUuid = e.dataTransfer?.getData(DRAG_MIME);
       const dragged = draggedUuid && this._findByUuid(this._getRoot(), draggedUuid);
@@ -34,28 +82,118 @@ export class HierarchyPanel {
     });
   }
 
-  private _selected: Object3D | undefined;
+  public focusSearch(): void {
+    this._searchInput.focus();
+    this._searchInput.select();
+  }
 
-  public setSelected(obj: Object3D | undefined): void {
-    this._selected = obj;
+  public getFirstMatchingObject(): Object3D | undefined {
+    const findFirst = (parent: Object3D): Object3D | undefined => {
+      for (const child of parent.children) {
+        if (this._isExcluded(child)) continue;
+        const name = (child.name || child.constructor.name).toLowerCase();
+        if (this._filterQuery && name.includes(this._filterQuery)) {
+          return child;
+        }
+        const deep = findFirst(child);
+        if (deep) return deep;
+      }
+      return undefined;
+    };
+    return findFirst(this._getRoot());
+  }
+
+  private _matchesFilter(obj: Object3D): boolean {
+    if (!this._filterQuery) return true;
+    const name = (obj.name || obj.constructor.name).toLowerCase();
+    if (name.includes(this._filterQuery)) return true;
+    for (const child of obj.children) {
+      if (!this._isExcluded(child) && this._matchesFilter(child)) return true;
+    }
+    return false;
+  }
+
+  private _selection: ReadonlySet<Object3D> = new Set();
+
+  public setSelected(selection: ReadonlySet<Object3D>): void {
+    this._selection = selection;
+    this.refresh();
+  }
+
+  public startRenaming(obj: Object3D): void {
+    this._renamingUuid = obj.uuid;
     this.refresh();
   }
 
   public refresh(): void {
-    this._container.innerHTML = "";
+    this._treeContainer.innerHTML = "";
     this._renderChildren(this._getRoot(), 0);
   }
 
   private _renderChildren(parent: Object3D, depth: number): void {
     for (const child of parent.children) {
       if (this._isExcluded(child)) continue;
+      if (!this._matchesFilter(child)) continue;
       const row = document.createElement("div");
-      row.className = "maker-hierarchy-row" + (child === this._selected ? " selected" : "");
+      row.className = "maker-hierarchy-row" + (this._selection.has(child) ? " selected" : "");
       row.style.paddingLeft = `${depth * 16 + 6}px`;
-      row.textContent = child.name || child.constructor.name;
       row.draggable = true;
 
-      row.addEventListener("click", () => this._callbacks.onSelect(child));
+      if (this._renamingUuid === child.uuid) {
+        const input = document.createElement("input");
+        input.type = "text";
+        input.className = "maker-hierarchy-rename-input";
+        input.value = child.name || child.constructor.name;
+        row.appendChild(input);
+
+        let committed = false;
+        const commit = (): void => {
+          if (committed) return;
+          committed = true;
+          this._renamingUuid = null;
+          const trimmed = input.value.trim();
+          if (trimmed && trimmed !== child.name) {
+            this._callbacks.onRename?.(child, trimmed);
+          } else {
+            this.refresh();
+          }
+        };
+
+        const cancel = (): void => {
+          if (committed) return;
+          committed = true;
+          this._renamingUuid = null;
+          this.refresh();
+        };
+
+        input.addEventListener("keydown", (e): void => {
+          e.stopPropagation();
+          if ("Enter" === e.key) {
+            e.preventDefault();
+            commit();
+          } else if ("Escape" === e.key) {
+            e.preventDefault();
+            cancel();
+          }
+        });
+
+        input.addEventListener("blur", (): void => commit());
+
+        setTimeout(() => {
+          input.focus();
+          input.select();
+        }, 0);
+      } else {
+        row.textContent = child.name || child.constructor.name;
+
+        row.addEventListener("click", (e) => {
+          this._callbacks.onSelect(child, e.shiftKey || e.ctrlKey || e.metaKey);
+        });
+        row.addEventListener("dblclick", (e) => {
+          e.stopPropagation();
+          this.startRenaming(child);
+        });
+      }
       row.addEventListener("dragstart", (e) => {
         e.dataTransfer?.setData(DRAG_MIME, child.uuid);
       });
@@ -73,7 +211,7 @@ export class HierarchyPanel {
         }
       });
 
-      this._container.appendChild(row);
+      this._treeContainer.appendChild(row);
       this._renderChildren(child, depth + 1);
     }
   }

@@ -31,7 +31,10 @@ export interface GltfNodeJson {
   scale: number[];
   children?: number[];
   mesh?: number;
-  extensions?: { KHR_lights_punctual?: { light: number } };
+  extensions?: {
+    KHR_lights_punctual?: { light: number };
+    SW_prefab_instance?: { source: string };
+  };
 }
 
 interface GltfMeshJson {
@@ -101,6 +104,21 @@ export class WorldWriter {
    * `GltfLoader`'s synthetic `"glTF_Root"`, a local container rather than scene content).
    */
   public write(root: Object3D): GltfDocument {
+    this._resetState();
+    const rootIndices = root.children.map((child) => this._writeNode(child));
+    return this._finalize(rootIndices);
+  }
+
+  /** Serializes `obj` itself (and its subtree) as the document's sole top-level node -- unlike
+   * `write()`, which serializes `root`'s *children*. Used for prefab export: `obj` stays exactly
+   * where it is in the live scene graph (never reparented, unlike `Object3D.add()`'s silent
+   * detach), so exporting a prefab from a selected object can't disturb the scene being edited. */
+  public writeSingle(obj: Object3D): GltfDocument {
+    this._resetState();
+    return this._finalize([this._writeNode(obj)]);
+  }
+
+  private _resetState(): void {
     this._nodes = [];
     this._meshes = [];
     this._materials = [];
@@ -108,9 +126,9 @@ export class WorldWriter {
     this._bufferViews = [];
     this._bufferChunks = [];
     this._lights = [];
+  }
 
-    const rootIndices = root.children.map((child) => this._writeNode(child));
-
+  private _finalize(rootIndices: number[]): GltfDocument {
     const doc: GltfDocument = {
       asset: { version: "2.0", generator: "small-world-maker" },
       scene: 0,
@@ -147,6 +165,10 @@ export class WorldWriter {
       node.extensions = { KHR_lights_punctual: { light: this._writeLight(obj) } };
     } else if (obj instanceof AbstractLight) {
       // Other light types intentionally not exported yet -- see the class doc comment.
+    }
+
+    if (obj.prefabSource) {
+      node.extensions = { ...node.extensions, SW_prefab_instance: { source: obj.prefabSource } };
     }
 
     if (obj.geometry && obj.material) {

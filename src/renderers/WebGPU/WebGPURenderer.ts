@@ -163,7 +163,7 @@ export class WebGPURenderer extends AbstractRenderer {
   protected _gpuInstanceDataBuffers: WeakMap<InstancedMesh, GPUBuffer> = new WeakMap();
   protected _frameCount = 0;
   protected _scratchModelMatrix = new Float32Array(16);
-  protected _scratchColorArray = new Float32Array(3);
+  protected _scratchColorArray = new Float32Array(4);
   protected _scratchUniformValues: Record<string, unknown> = {};
 
   // Reused across every _renderBatch() call (cleared via .length = 0) instead of allocating two
@@ -776,7 +776,6 @@ export class WebGPURenderer extends AbstractRenderer {
     return offset;
   }
 
-
   /** Reused every frame -- see `_dispatchHzbTest()`. */
   private _hzbAabbScratch = new Float32Array(MAX_HZB_TESTED_OBJECTS * 4);
   private _hzbParamsScratch = new Uint32Array(4);
@@ -1321,6 +1320,10 @@ export class WebGPURenderer extends AbstractRenderer {
     for (const pass of this._passes) {
       const isPostProcessPass = pass instanceof PostProcessPass;
 
+      if (isPostProcessPass && isOffscreen) {
+        continue;
+      }
+
       // TAA resolves first, if enabled: Bloom and the final uber pass should react to the
       // temporally-smoothed color, not the raw per-frame jittered one. `_hdrTextureView` itself
       // is never reassigned, so this pass keeps reading fresh input every subsequent frame.
@@ -1393,10 +1396,6 @@ export class WebGPURenderer extends AbstractRenderer {
           ) ?? undefined;
       } else if (isPostProcessPass) {
         this._hbaoTextureView = undefined;
-      }
-
-      if (isPostProcessPass && isOffscreen) {
-        continue;
       }
 
       // Re-widen to the RenderPass interface: TS's control-flow analysis narrows `pass` towards
@@ -1740,9 +1739,10 @@ export class WebGPURenderer extends AbstractRenderer {
 
     values["u_model"] = this._scratchModelMatrix;
     if (values["u_color"] === undefined && o.material) {
-      this._scratchColorArray[0] = o.material.color.r;
-      this._scratchColorArray[1] = o.material.color.g;
-      this._scratchColorArray[2] = o.material.color.b;
+      this._scratchColorArray[0] = o.material.color?.r ?? 1.0;
+      this._scratchColorArray[1] = o.material.color?.g ?? 1.0;
+      this._scratchColorArray[2] = o.material.color?.b ?? 1.0;
+      this._scratchColorArray[3] = o.material.color?.a ?? 1.0;
       values["u_color"] = this._scratchColorArray;
     }
 
@@ -2023,6 +2023,9 @@ export class WebGPURenderer extends AbstractRenderer {
     const d = Math.min(devicePixelRatio, maxRatio);
     this._context.canvas.width = width * d;
     this._context.canvas.height = height * d;
+    if (this._depthTexture) {
+      this._depthTexture.destroy();
+    }
     this._depthTexture = this._device.createTexture({
       size: [this._context.canvas.width, this._context.canvas.height],
       format: "depth32float",
@@ -2117,6 +2120,7 @@ export class WebGPURenderer extends AbstractRenderer {
     this._spotLightBuffer?.destroy();
     this._areaLightBuffer?.destroy();
     this._depthTexture?.destroy();
+    this._opaqueDepthTexture?.destroy();
     this._hdrTexture?.destroy();
     this._hzbTexture?.destroy();
     this._hzbAabbBuffer?.destroy();

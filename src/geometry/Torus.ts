@@ -35,10 +35,10 @@ export class Torus extends AbstractGeometry {
   constructor(options: TorusOptions = {}) {
     super();
     const { radius = 1, tube = 0.4, radialSegments = 16, tubularSegments = 32 } = options;
-    this.radius = radius;
-    this.tube = tube;
-    this.radialSegments = radialSegments;
-    this.tubularSegments = tubularSegments;
+    this.radius = Math.max(0, radius);
+    this.tube = Math.max(0, tube);
+    this.radialSegments = Math.max(3, Math.floor(radialSegments));
+    this.tubularSegments = Math.max(3, Math.floor(tubularSegments));
     this.generateGeometryData();
   }
 

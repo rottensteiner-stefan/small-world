@@ -305,7 +305,7 @@ export class PhysicsSystem {
             }
 
             if (totalInvMass > 0) {
-              const correction = depth / totalInvMass + 0.005;
+              const correction = depth / totalInvMass;
 
               const posCorrA = MathPool.acquireVector()
                 .copyFrom(normal)

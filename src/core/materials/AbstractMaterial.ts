@@ -8,6 +8,7 @@ import {
 import { ShaderProvider } from "../../interfaces/index.js";
 import { MathUtils } from "../../math/index.js";
 import { InspectorField } from "../Inspectable.js";
+import { shallowCloneWithValueTypes } from "../CloneUtils.js";
 
 /**
  * Base class for all material types.
@@ -18,8 +19,8 @@ export abstract class AbstractMaterial implements ShaderProvider {
   public static readonly inspector: Record<string, InspectorField> = {
     color: { type: "color", label: "Color" },
     transparent: { type: "boolean", label: "Transparent" },
-    depthTest: { type: "boolean", label: "Depth Test" },
-    depthWrite: { type: "boolean", label: "Depth Write" },
+    depthTest: { type: "boolean", label: "Depth Test", row: "depth" },
+    depthWrite: { type: "boolean", label: "Depth Write", row: "depth" },
   };
 
   /** The unique identifier of the material. */
@@ -48,6 +49,16 @@ export abstract class AbstractMaterial implements ShaderProvider {
     // Self-registration: The moment a material is instantiated,
     // the engine knows how to handle its shader.
     registerMaterialShaderProvider(this.type, this);
+  }
+
+  /**
+   * Returns an independent copy of this material (own `uuid`, own `color`/other value-type
+   * fields) -- geometry-adjacent references like texture maps stay shared, since texture data is
+   * immutable. Used by `Object3D.clone()` (Maker's Duplicate command) so a duplicated object's
+   * material edits don't leak back onto the original.
+   */
+  public clone(): AbstractMaterial {
+    return shallowCloneWithValueTypes(this);
   }
 
   /**
