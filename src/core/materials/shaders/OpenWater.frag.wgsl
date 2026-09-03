@@ -34,8 +34,16 @@
 
     let refractedColor = sRGBToLinear(textureSample(u_opaqueMap, s, refractionUv).rgb);
 
-    let depthBlend = saturate(depthDiff / 10.0);
-    var baseColor = mix(refractedColor, deepWaterColor, depthBlend);
+    // Beer-Lambert absorption: light traveling through `depthDiff` units of water loses each
+    // color channel at its own exponential rate (waterAbsorption), rather than fading linearly
+    // to a single flat color -- this is what gives real water its per-channel, non-linear color
+    // falloff (e.g. red disappearing long before blue in deep water). obj.isSkinned/boneOffset/
+    // pad1 are skeletal-animation-only fields, meaningless here -- repurposed to carry the 3
+    // absorption channels (see OpenWaterMaterial.ts).
+    let waterAbsorption = vec3<f32>(obj.isSkinned, obj.boneOffset, obj.pad1);
+    let transmittance = exp(-depthDiff * waterAbsorption);
+    let tintedSeabed = refractedColor * waterColor;
+    var baseColor = mix(deepWaterColor, tintedSeabed, transmittance);
 
     let edgeBlend = 1.0 - saturate(depthDiff / edgeSoftness);
 

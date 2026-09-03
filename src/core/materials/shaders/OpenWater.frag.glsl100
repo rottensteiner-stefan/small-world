@@ -12,6 +12,9 @@ uniform vec4 u_specColor;
 uniform vec2 u_texOffset;
 uniform vec2 u_texRepeat;
 uniform float u_shininess; // repurposed: refractionStrength (see OpenWaterMaterial.ts)
+uniform float u_isSkinned; // repurposed: waterAbsorption.r
+uniform float u_boneOffset; // repurposed: waterAbsorption.g
+uniform float u_pad1; // repurposed: waterAbsorption.b
 uniform sampler2D u_opaqueMap;
 
 // WebGL1 has no depth-texture capture path (see WebGL1Renderer.copyToOpaqueDepthTexture),
@@ -35,7 +38,13 @@ void main() {
     vec3 viewDir = normalize(u_viewPos - v_worldPos);
     float fresnel = pow(1.0 - clamp(dot(v_normal, viewDir), 0.0, 1.0), 5.0);
 
-    vec3 baseColor = mix(refractedColor, deepWaterColor, fresnel);
+    // No real depth buffer on WebGL1 (see comment above), so `fresnel` doubles as the "how deep
+    // does this pixel look" proxy that OpenWater.frag.glsl/.wgsl get from the real depth capture.
+    // Scaled by 10 to land in roughly the same absorption range as those depth-based versions.
+    vec3 waterAbsorption = vec3(u_isSkinned, u_boneOffset, u_pad1);
+    vec3 transmittance = exp(-fresnel * 10.0 * waterAbsorption);
+    vec3 tintedSeabed = refractedColor * waterColor;
+    vec3 baseColor = mix(deepWaterColor, tintedSeabed, transmittance);
 
     vec3 skyColor = vec3(0.6, 0.8, 1.0);
     baseColor = mix(baseColor, skyColor, fresnel * 0.5);

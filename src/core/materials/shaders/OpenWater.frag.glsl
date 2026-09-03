@@ -12,6 +12,9 @@ uniform vec4 u_specColor;
 uniform vec2 u_texOffset;
 uniform vec2 u_texRepeat;
 uniform float u_shininess; // repurposed: refractionStrength (see OpenWaterMaterial.ts)
+uniform float u_isSkinned; // repurposed: waterAbsorption.r
+uniform float u_boneOffset; // repurposed: waterAbsorption.g
+uniform float u_pad1; // repurposed: waterAbsorption.b
 uniform sampler2D u_opaqueDepthMap;
 uniform sampler2D u_opaqueMap;
 
@@ -53,8 +56,14 @@ void main() {
 
     vec3 refractedColor = sRGBToLinear(texture(u_opaqueMap, refractionUv).rgb);
 
-    float depthBlend = clamp(depthDiff / 10.0, 0.0, 1.0);
-    vec3 baseColor = mix(refractedColor, deepWaterColor, depthBlend);
+    // Beer-Lambert absorption: light traveling through `depthDiff` units of water loses each
+    // color channel at its own exponential rate (waterAbsorption), rather than fading linearly
+    // to a single flat color -- this is what gives real water its per-channel, non-linear color
+    // falloff (e.g. red disappearing long before blue in deep water).
+    vec3 waterAbsorption = vec3(u_isSkinned, u_boneOffset, u_pad1);
+    vec3 transmittance = exp(-depthDiff * waterAbsorption);
+    vec3 tintedSeabed = refractedColor * waterColor;
+    vec3 baseColor = mix(deepWaterColor, tintedSeabed, transmittance);
 
     float edgeBlend = 1.0 - clamp(depthDiff / edgeSoftness, 0.0, 1.0);
 

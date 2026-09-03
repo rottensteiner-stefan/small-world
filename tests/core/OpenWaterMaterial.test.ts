@@ -16,6 +16,27 @@ describe("OpenWaterMaterial", () => {
     expect(material.refractionStrength).toBe(0.1);
   });
 
+  it("should default waterAbsorption to a red-fades-fastest coefficient", () => {
+    const material = new OpenWaterMaterial();
+
+    expect(material.waterAbsorption).toEqual([0.3, 0.06, 0.02]);
+  });
+
+  it("should pack waterAbsorption into u_isSkinned/u_boneOffset/u_pad1 and keep it in sync", () => {
+    const material = new OpenWaterMaterial({ waterAbsorption: [0.5, 0.1, 0.01] });
+
+    let manifest = material.getRenderManifest();
+    expect(manifest.properties["u_isSkinned"]).toBe(0.5);
+    expect(manifest.properties["u_boneOffset"]).toBe(0.1);
+    expect(manifest.properties["u_pad1"]).toBe(0.01);
+
+    material.waterAbsorption = [1.0, 1.0, 1.0];
+    manifest = material.getRenderManifest();
+    expect(manifest.properties["u_isSkinned"]).toBe(1.0);
+    expect(manifest.properties["u_boneOffset"]).toBe(1.0);
+    expect(manifest.properties["u_pad1"]).toBe(1.0);
+  });
+
   it("should expose u_opaqueMap for screen-space refraction, alongside the existing u_opaqueDepthMap", () => {
     const material = new OpenWaterMaterial();
     const manifest = material.getRenderManifest();

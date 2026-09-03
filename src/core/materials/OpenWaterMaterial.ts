@@ -25,6 +25,10 @@ export interface OpenWaterMaterialOptions {
   /** How strongly the wave normal distorts the sampled opaque (below-water) scene color, i.e.
    * screen-space refraction strength. 0 disables distortion (straight screen-space sample). */
   refractionStrength?: number;
+  /** Per-channel Beer-Lambert absorption coefficient -- how quickly each color channel fades out
+   * with water depth (thicker water = more of `deepWaterColor`, less of the tinted seabed).
+   * Higher values fade faster. Red typically fades fastest in real water. */
+  waterAbsorption?: [number, number, number];
 }
 
 export class OpenWaterMaterial extends AbstractMaterial {
@@ -38,6 +42,7 @@ export class OpenWaterMaterial extends AbstractMaterial {
   public wave3: [number, number, number, number];
   public time: number = 0.0;
   public refractionStrength: number;
+  public waterAbsorption: [number, number, number];
 
   constructor(options: OpenWaterMaterialOptions = {}) {
     super(MaterialType.OPEN_WATER);
@@ -51,6 +56,7 @@ export class OpenWaterMaterial extends AbstractMaterial {
       wave2 = [0.2, 0.8, 0.15, 6.0],
       wave3 = [-0.3, 0.7, 0.05, 3.0],
       refractionStrength = 0.03,
+      waterAbsorption = [0.3, 0.06, 0.02],
     } = options;
 
     this.color = waterColor;
@@ -62,6 +68,7 @@ export class OpenWaterMaterial extends AbstractMaterial {
     this.wave2 = wave2;
     this.wave3 = wave3;
     this.refractionStrength = refractionStrength;
+    this.waterAbsorption = waterAbsorption;
 
     this.transparent = true;
     this.depthWrite = false;
@@ -92,6 +99,12 @@ export class OpenWaterMaterial extends AbstractMaterial {
       // refractionStrength, same "borrow a free named slot" convention as u_texOffset/u_texRepeat
       // above.
       this._renderManifest.properties["u_shininess"] = this.refractionStrength;
+      // u_isSkinned/u_boneOffset/u_pad1 are skeletal-animation-only fields, meaningless for a
+      // water plane -- repurposed to carry the 3 waterAbsorption channels (no free vec3/vec4
+      // uniform slot remains; wave1/2/3 already occupy all three).
+      this._renderManifest.properties["u_isSkinned"] = this.waterAbsorption[0];
+      this._renderManifest.properties["u_boneOffset"] = this.waterAbsorption[1];
+      this._renderManifest.properties["u_pad1"] = this.waterAbsorption[2];
     }
 
     this._syncBaseManifestState();
@@ -128,6 +141,9 @@ export class OpenWaterMaterial extends AbstractMaterial {
     props["u_reflectivity"] = this.speed;
     props["u_time"] = this.time;
     props["u_shininess"] = this.refractionStrength;
+    props["u_isSkinned"] = this.waterAbsorption[0];
+    props["u_boneOffset"] = this.waterAbsorption[1];
+    props["u_pad1"] = this.waterAbsorption[2];
 
     return this._renderManifest;
   }

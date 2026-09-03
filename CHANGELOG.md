@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.77.9] - 2026-09-03
+
+### "Water is the driving force of all nature." - Leonardo da Vinci
+
+- **Features:**
+  - **OpenWaterMaterial:** Replaced the linear depth-to-`deepWaterColor` fade with proper Beer-Lambert absorption -- each color channel now fades out at its own exponential rate via a new `waterAbsorption` option (default tuned so red fades fastest, matching real water), instead of all channels blending at the same rate toward one flat color. Gives the refracted seabed color its own tint before it attenuates with depth. Implemented across WebGL2 (GLSL300), WebGPU (WGSL), and WebGL1 (GLSL100, using the existing Fresnel term as WebGL1's stand-in for depth, since it has no real depth capture).
+- **Housekeeping & Docs:**
+  - Second of the planned `OpenWaterMaterial` upgrade series (procedural foam, caustics still to follow).
+
 ## [0.77.8] - 2026-09-03
 
 ### "Appearances are often deceiving." - Aesop
