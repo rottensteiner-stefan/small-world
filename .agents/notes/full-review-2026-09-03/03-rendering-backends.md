@@ -299,7 +299,8 @@ Nur `vb`/`nb` werden re-uploaded, `c.tb` (Tangenten) fehlt. Das Interface-Docblo
 
 ## `src/renderers/post/` + `src/renderers/passes/PostProcessPass.ts`/`WebGLPostProcessPass.ts` — Post-Processing
 
-### 🔴 WebGL-Uber-Shader kompiliert bei jeder Slider-Änderung neu — WebGPU löst das exakt gegenteilig
+### ✅ [ERLEDIGT] WebGL-Uber-Shader kompiliert bei jeder Slider-Änderung neu — WebGPU löst das exakt gegenteilig
+*(Behoben 2026-09-03: `_getSignature()` in `PostProcessPassGL.ts` auf rein strukturelle Flags/Modes reduziert; kontinuierliche Parameter werden per `gl.uniform1f`/`gl.uniform3f` pro Frame übergeben; Unit-Tests in `tests/renderers/PostProcessPassGLSignature.test.ts`.)*
 
 **Datei:** `src/renderers/post/passes/PostProcessPassGL.ts:31-71` (`_getSignature`) + `:248-252` (`execute`)
 
