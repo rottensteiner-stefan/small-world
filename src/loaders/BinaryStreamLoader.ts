@@ -10,6 +10,12 @@ export interface StreamOptions {
   onChunk?: ChunkCallback;
   /** Optional total progress callback. */
   onProgress?: ProgressCallback;
+  /**
+   * The `AssetManager` instance to stream/cache through. Defaults to a fresh, private instance
+   * (not the deprecated process-wide singleton) -- pass `RendererContext.assetManager` to share a
+   * cache/baseUrl/headers with the rest of an engine instance.
+   */
+  assetManager?: AssetManager;
 }
 
 /**
@@ -24,6 +30,7 @@ export class BinaryStreamLoader {
    * @returns A promise resolving to the final contiguous ArrayBuffer.
    */
   public static async stream(url: string, options: StreamOptions = {}): Promise<ArrayBuffer> {
-    return AssetManager.streamBinary(url, options.onChunk, options.onProgress);
+    const assetManager = options.assetManager ?? new AssetManager();
+    return assetManager.streamBinary(url, options.onChunk, options.onProgress);
   }
 }

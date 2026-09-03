@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.77.2] - 2026-09-03
+
+### "The end is where we start from." - T.S. Eliot
+
+- **Architecture & Bugfixes:**
+  - **Loaders:** Migrated `GltfLoader`, `ObjLoader`, `ImageLoader`, `MtlLoader`, `TextLoader`, `SkyboxLoader`, `BinaryStreamLoader`, and `GltfMaterialParser` off the deprecated process-wide `AssetManager` singleton onto an injectable, per-loader instance (`LoaderOptions.assetManager`), closing the last leg of the instance-based `RendererContext` migration.
+  - **Audio:** `SynthSFX.startDrone()`/`startFire()` now return a `SoundHandle` that stops and disconnects their endless oscillator/noise graphs; `AudioSystem` tracks active handles and gained a `dispose()` that stops them all and closes the `AudioContext`, now wired into `SmallWorld.destroy()`.
+  - **Light Cycle Arena:** Fixed `ArenaGrid.isFree()` treating a cycle's own trail cells as permanently free, which let it survive looping back into itself -- removed the `ownerId` exception entirely.
+  - **Forge:** `ForgeWindow`'s drag/resize handlers and `ResizeObserver` are now torn down in `destroy()` instead of leaking 10 permanent `window` listeners per window; `Forge` gained its own `destroy()` (closing every window plus its own `keydown`/`paste` listeners), wired into `SmallWorld.destroy()`.
+- **Housekeeping & Docs:**
+  - Added unit test suites for all 4 resolved review findings above.
+  - Updated full review dossiers (`.agents/notes/full-review-2026-09-03/`).
+
 ## [0.77.1] - 2026-09-03
 
 ### "Small disciplines repeated with consistency every day lead to great achievements." - John C. Maxwell

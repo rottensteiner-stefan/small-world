@@ -1,5 +1,6 @@
 import type { Object3D } from "../core/Object3D.js";
 import type { StandardMaterial } from "../core/materials/StandardMaterial.js";
+import type { AssetManager } from "../loaders/AssetManager.js";
 
 /**
  * Common configuration options for all resource loaders.
@@ -7,6 +8,12 @@ import type { StandardMaterial } from "../core/materials/StandardMaterial.js";
 export interface LoaderOptions {
   /** The base path to prepend to all resource URLs. Defaults to "". */
   basePath?: string;
+  /**
+   * The `AssetManager` instance to fetch/cache resources through. Defaults to a fresh, private
+   * instance (not the deprecated process-wide singleton) -- pass `RendererContext.assetManager`
+   * to share a cache/baseUrl/headers with the rest of an engine instance.
+   */
+  assetManager?: AssetManager;
 }
 
 /**

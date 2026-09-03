@@ -1,5 +1,4 @@
 import { AbstractLoader } from "./AbstractLoader.js";
-import { AssetManager } from "./AssetManager.js";
 import { EventType, TextureFilter } from "../enums/index.js";
 import { PhongMaterial } from "../core/materials/index.js";
 import { Texture } from "../core/textures/index.js";
@@ -19,7 +18,7 @@ export class MtlLoader extends AbstractLoader<Map<string, PhongMaterial>> {
     this.dispatchEvent(EventType.LOADER_START, { url: fullUrl });
 
     try {
-      const text: string = await AssetManager.loadText(
+      const text: string = await this._assetManager.loadText(
         fullUrl,
         (loaded: number, total: number): void => {
           this.dispatchEvent(EventType.LOADER_PROGRESS, { url: fullUrl, loaded, total });
@@ -79,7 +78,7 @@ export class MtlLoader extends AbstractLoader<Map<string, PhongMaterial>> {
         // --- THE FIX: We use the AssetManager with flipY = true ---
         // The renderer NO LONGER handles flipping; it's done during image creation!
         try {
-          const image: ImageBitmap | HTMLImageElement = await AssetManager.loadImage(
+          const image: ImageBitmap | HTMLImageElement = await this._assetManager.loadImage(
             texUrl,
             undefined,
             true,
@@ -96,7 +95,7 @@ export class MtlLoader extends AbstractLoader<Map<string, PhongMaterial>> {
         const texUrl: string = folderPath + texPath;
 
         try {
-          const image: ImageBitmap | HTMLImageElement = await AssetManager.loadImage(
+          const image: ImageBitmap | HTMLImageElement = await this._assetManager.loadImage(
             texUrl,
             undefined,
             true,

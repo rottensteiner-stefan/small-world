@@ -1,6 +1,7 @@
 import { EventDispatcherImpl } from "../core/events/index.js";
 import { Events, EventHandler, LoaderOptions } from "../interfaces/index.js";
 import { EventType } from "../enums/index.js";
+import { AssetManager } from "./AssetManager.js";
 
 /**
  * Abstract base class for all resource loaders.
@@ -10,6 +11,11 @@ export abstract class AbstractLoader<T> implements Events {
   /** The base path for resource URLs. */
   public basePath: string = "";
   private _dispatcher: EventDispatcherImpl = new EventDispatcherImpl();
+  /**
+   * The `AssetManager` this loader fetches/caches resources through. Private per instance unless
+   * `options.assetManager` was passed -- never the deprecated process-wide singleton.
+   */
+  protected _assetManager: AssetManager;
 
   /**
    * Creates a new AbstractLoader.
@@ -17,6 +23,7 @@ export abstract class AbstractLoader<T> implements Events {
    */
   constructor(options: LoaderOptions = {}) {
     this.basePath = options.basePath ?? "";
+    this._assetManager = options.assetManager ?? new AssetManager();
   }
 
   /**

@@ -224,7 +224,8 @@ und Außerhalb-Klick) aufgerufen wird.
 
 ## `src/tools/forge/ForgeWindow.ts` + `Forge.ts`
 
-### 🔴 Jedes ForgeWindow hinterlässt 10 permanente `window`-Listener — `destroy()` existiert, wird aber nirgends aufgerufen und könnte sie strukturell auch nicht entfernen
+### ✅ [ERLEDIGT] Jedes ForgeWindow hinterließ 10 permanente `window`-Listener — `destroy()` existierte, wurde aber nirgends aufgerufen und konnte sie strukturell auch nicht entfernen
+*(Behoben 2026-09-03: `_bindDrag`/`_bindResize` halten ihre `mousemove`/`mouseup`-Handler jetzt als benannte Funktionsreferenzen in `_globalListeners`, die `ForgeWindow.destroy()` per `removeEventListener` wieder entfernt; der `ResizeObserver` aus `mountTool()` wird ebenfalls gespeichert und in `destroy()` disconnected. `Forge` bekommt ein eigenes `destroy()`, das über alle `_windows` iteriert (`win.destroy()`), seine eigenen `keydown`/`paste`-Listener abmeldet und `_overlay` aus dem DOM entfernt. `SmallWorld.destroy()` ruft jetzt `this.forge?.destroy()` auf, womit dessen eigener Dokumentationskommentar ("removing all global event listeners") für den Forge-Subtree tatsächlich stimmt. Unit-Tests in `tests/tools/ForgeWindow.test.ts` ("window listener/ResizeObserver cleanup on destroy") und `tests/tools/Forge.test.ts` ("destroy()").)*
 
 `_bindDrag()` (`ForgeWindow.ts:163-193`) und `_bindResize()` (`ForgeWindow.ts:195-254`, einmal pro
 Resize-Handle aufgerufen — 4 Handles: `nw`/`ne`/`sw`/`se`, `ForgeWindow.ts:55-61`) registrieren jeweils
@@ -306,7 +307,8 @@ ganz ohne automatisierte Verifikation ist ein reales Regressions-Risiko für den
 
 ## `src/apps/light-cycle-arena/` — `ArenaGrid.ts` / `App.ts`
 
-### 🔴 Ein Cycle kollidiert nie mit seiner eigenen Trail-Schleife (Kernregel des Genres fehlt)
+### ✅ [ERLEDIGT] Ein Cycle kollidierte nie mit seiner eigenen Trail-Schleife (Kernregel des Genres fehlte)
+*(Behoben 2026-09-03: `ArenaGrid.isFree()` prüft jetzt ausschließlich `owner === undefined` — die `ownerId`-Ausnahme wurde ersatzlos entfernt, da beide Callsites (`App.ts`, `CycleAI.ts`) `isFree()` nur für die neu zu betretende Zelle abfragen, nie für die aktuell belegte, wodurch die Ausnahme nie nötig war. `ownerId`/`self`-Parameter dadurch aus `isFree()`/`CycleAI.decide()` entfernt. Unit-Tests in `tests/apps/light-cycle-arena/ArenaGrid.test.ts`.)*
 
 `ArenaGrid.isFree()` (`ArenaGrid.ts:34-39`):
 

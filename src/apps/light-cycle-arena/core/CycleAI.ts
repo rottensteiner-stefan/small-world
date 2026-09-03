@@ -1,6 +1,5 @@
 import { Vector3D } from "../../../math/index.js";
 import { ArenaGrid } from "./ArenaGrid.js";
-import { Cycle } from "./Cycle.js";
 
 const rotateLeft = (d: Vector3D): Vector3D => new Vector3D(-d.z, 0, d.x);
 const rotateRight = (d: Vector3D): Vector3D => new Vector3D(d.z, 0, -d.x);
@@ -18,7 +17,6 @@ const rotateRight = (d: Vector3D): Vector3D => new Vector3D(d.z, 0, -d.x);
  */
 export class CycleAI {
   public static decide(
-    self: Cycle,
     currentPosition: Vector3D,
     currentDirection: Vector3D,
     target: Vector3D,
@@ -37,7 +35,7 @@ export class CycleAI {
       const nextX = currentPosition.x + dir.x * grid.gridSize;
       const nextZ = currentPosition.z + dir.z * grid.gridSize;
       const cell = grid.worldToCell(nextX, nextZ);
-      if (!grid.isFree(cell.cx, cell.cz, self.id)) continue;
+      if (!grid.isFree(cell.cx, cell.cz)) continue;
 
       const distBefore =
         Math.abs(currentPosition.x - target.x) + Math.abs(currentPosition.z - target.z);

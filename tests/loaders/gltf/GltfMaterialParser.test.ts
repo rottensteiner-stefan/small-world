@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { GltfMaterialParser } from "../../../src/loaders/gltf/GltfMaterialParser.js";
+import { AssetManager } from "../../../src/loaders/AssetManager.js";
 import { CullMode } from "../../../src/enums/index.js";
 
 describe("GltfMaterialParser", () => {
@@ -14,7 +15,7 @@ describe("GltfMaterialParser", () => {
       alphaMode: "BLEND" as const,
     };
 
-    const mat = await GltfMaterialParser.parseMaterial(gltfMat, {}, "", []);
+    const mat = await GltfMaterialParser.parseMaterial(gltfMat, {}, "", [], new AssetManager());
 
     expect(mat.color.r).toBe(1);
     expect(mat.color.g).toBe(0);

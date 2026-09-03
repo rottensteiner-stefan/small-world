@@ -31,11 +31,16 @@ export class ArenaGrid {
     return Math.abs(cx) <= this.halfExtentCells && Math.abs(cz) <= this.halfExtentCells;
   }
 
-  /** A cell is free if it's in bounds and either unclaimed or already owned by `ownerId`. */
-  public isFree(cx: number, cz: number, ownerId: number): boolean {
+  /**
+   * A cell is free if it's in bounds and unclaimed -- by anyone, including the querying cycle
+   * itself. Callers always ask about the cell they're about to *move into* (never the one
+   * they're currently standing on, see `GridMovementBehavior`), so a cycle re-entering any cell
+   * of its own trail -- e.g. by looping back on itself -- must crash exactly like running into
+   * an opponent's trail, matching the genre's core "don't cross your own trail" rule.
+   */
+  public isFree(cx: number, cz: number): boolean {
     if (!this.isInBounds(cx, cz)) return false;
-    const owner = this._occupied.get(`${cx},${cz}`);
-    return owner === undefined || owner === ownerId;
+    return !this._occupied.has(`${cx},${cz}`);
   }
 
   public occupy(cx: number, cz: number, ownerId: number): void {

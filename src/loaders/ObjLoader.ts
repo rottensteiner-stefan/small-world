@@ -1,4 +1,3 @@
-import { AssetManager } from "./AssetManager.js";
 import { AbstractLoader } from "./AbstractLoader.js";
 import { MtlLoader } from "./MtlLoader.js";
 import { EventType } from "../enums/index.js";
@@ -34,7 +33,7 @@ export class ObjLoader extends AbstractLoader<Object3D> {
     this.dispatchEvent(EventType.LOADER_START, { url: fullUrl });
 
     try {
-      const text: string = await AssetManager.loadText(
+      const text: string = await this._assetManager.loadText(
         fullUrl,
         (loaded: number, total: number): void => {
           this.dispatchEvent(EventType.LOADER_PROGRESS, { url: fullUrl, loaded, total });
@@ -88,7 +87,10 @@ export class ObjLoader extends AbstractLoader<Object3D> {
       const type: string = parts[0]!;
 
       if ("mtllib" === type) {
-        const mtlLoader: MtlLoader = new MtlLoader({ basePath: folderPath });
+        const mtlLoader: MtlLoader = new MtlLoader({
+          basePath: folderPath,
+          assetManager: this._assetManager,
+        });
         materials = await mtlLoader.load(parts[1]!);
       } else if ("usemtl" === type) {
         const matName: string = parts[1]!;

@@ -1,4 +1,3 @@
-import { AssetManager } from "./AssetManager.js";
 import { AbstractLoader } from "./AbstractLoader.js";
 import { EventType } from "../enums/index.js";
 import { Object3D } from "../core/index.js";
@@ -55,14 +54,14 @@ export class GltfLoader extends AbstractLoader<Object3D> {
   }
 
   private async _loadJson(url: string): Promise<GltfData> {
-    const json = (await AssetManager.loadJson(url)) as GltfJson;
+    const json = (await this._assetManager.loadJson(url)) as GltfJson;
     const folderPath = GltfLoader.getFolderPath(url);
 
     const bufferPromises = (json.buffers || []).map((buf) => {
       if (buf.uri?.startsWith("data:")) {
         return GltfBinaryParser.decodeBase64(buf.uri);
       }
-      return AssetManager.loadBinary(folderPath + (buf.uri || ""));
+      return this._assetManager.loadBinary(folderPath + (buf.uri || ""));
     });
 
     const buffers = await Promise.all(bufferPromises);
@@ -70,7 +69,7 @@ export class GltfLoader extends AbstractLoader<Object3D> {
   }
 
   private async _loadBinary(url: string): Promise<GltfData> {
-    const arrayBuffer = await AssetManager.loadBinary(url);
+    const arrayBuffer = await this._assetManager.loadBinary(url);
     const dataView = new DataView(arrayBuffer);
 
     // Check Magic: "glTF"
@@ -138,7 +137,14 @@ export class GltfLoader extends AbstractLoader<Object3D> {
     // 1. Parse Materials
     const materials = await Promise.all(
       (json.materials || []).map((m) =>
-        GltfMaterialParser.parseMaterial(m, json, folderPath, buffers, this._gltfOptions),
+        GltfMaterialParser.parseMaterial(
+          m,
+          json,
+          folderPath,
+          buffers,
+          this._assetManager,
+          this._gltfOptions,
+        ),
       ),
     );
 
@@ -321,6 +327,13 @@ export class GltfLoader extends AbstractLoader<Object3D> {
     folderPath: string,
     buffers: ArrayBuffer[],
   ): Promise<StandardMaterial> {
-    return GltfMaterialParser.parseMaterial(m, json, folderPath, buffers, this._gltfOptions);
+    return GltfMaterialParser.parseMaterial(
+      m,
+      json,
+      folderPath,
+      buffers,
+      this._assetManager,
+      this._gltfOptions,
+    );
   }
 }

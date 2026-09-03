@@ -51,12 +51,12 @@ Alle 5 Agenten fertig. **Gesamt: 23× 🔴 kritisch, ~29× 🟠 fragil, ~20× �
 - [x] ~~`PhysicsSystem.ts` Positionskorrektur (`depth/totalInvMass + 0.005`) konvergiert nie — ruhende Kugel oszilliert für immer zwischen zwei Y-Positionen (per Test verifiziert).~~ *(✅ Behoben)*
 - [x] ~~`Object3D.computeBounds()` verwirft eine manuell zugewiesene `OBB` und ersetzt sie durch eine simple `BoundingBox`, sobald das Objekt Geometrie hat; zusätzlich totes/auskommentiertes `OBB.transform()`-Scale-Extraction.~~ *(✅ Behoben)*
 - [x] ~~Systemisches NaN bei `radius=0`/`segments=0` über fast jede parametrische Geometrie (Sphere, Torus, Cylinder, ...).~~ *(✅ Behoben)*
-- Jeder Loader nutzt weiterhin das deprecated, prozessweite `AssetManager`-Singleton statt der bereits existierenden Instance-basierten Alternative.
-- `SynthSFX.startDrone()`/`startFire()` erzeugen dauerhaft laufende Web-Audio-Graphen ohne Stop-Mechanismus — live bestätigt in `yad/LevelBuilder.ts` (einmal pro Lichtquelle pro Level).
+- [x] ~~Jeder Loader nutzt weiterhin das deprecated, prozessweite `AssetManager`-Singleton statt der bereits existierenden Instance-basierten Alternative.~~ *(✅ Behoben)*
+- [x] ~~`SynthSFX.startDrone()`/`startFire()` erzeugen dauerhaft laufende Web-Audio-Graphen ohne Stop-Mechanismus — live bestätigt in `yad/LevelBuilder.ts` (einmal pro Lichtquelle pro Level).~~ *(✅ Behoben)*
 
 ### E — Tools/Apps (2×)
-- `light-cycle-arena/ArenaGrid.isFree()` behandelt Zellen der eigenen Trail-Spur als frei — Cycle kollidiert nie mit sich selbst (Tron-Kernregel gebrochen, per Test verifiziert).
-- `ForgeWindow.ts`: jedes Fenster registriert 10 permanente `window`-Listener (Drag + 4 Resize-Handles) ohne gespeicherte Funktionsreferenzen; `destroy()` existiert, wird aber nirgends aufgerufen.
+- [x] ~~`light-cycle-arena/ArenaGrid.isFree()` behandelt Zellen der eigenen Trail-Spur als frei — Cycle kollidiert nie mit sich selbst (Tron-Kernregel gebrochen, per Test verifiziert).~~ *(✅ Behoben)*
+- [x] ~~`ForgeWindow.ts`: jedes Fenster registriert 10 permanente `window`-Listener (Drag + 4 Resize-Handles) ohne gespeicherte Funktionsreferenzen; `destroy()` existiert, wird aber nirgends aufgerufen.~~ *(✅ Behoben)*
 
 ### Übergreifendes Muster
 Auffällig oft wiederkehrend über alle 5 Scopes hinweg: **nie aufgerufene globale `window`/`document`-Event-Listener ohne Cleanup-Pfad** (Input.ts, AbstractShowcase, ForgeWindow, PropertyPanel-Kontextmenüs) und **Reste von Alt-Singleton-Mustern**, die die dokumentierte "No Global Singletons"-Regel unterlaufen (ShaderRegistry-Fallback, CameraStrategyFactory, AssetManager, AsciiMapLegend-Modulzustand, FrustumCuller). Beides lohnt sich als eigenständige, projektweite Aufräum-Iteration statt Einzelfixes.

@@ -1,5 +1,14 @@
 import { Vector3D } from "../math/index.js";
 
+/** A handle to an endlessly-looping/never-auto-stopping sound graph, returned so its caller can
+ * later tear it down. Unlike the one-shot `playX()` methods (which schedule their own `stop()`
+ * and rely on the Web Audio spec's automatic cleanup of ended, unreferenced source nodes), the
+ * graphs behind this handle never end on their own -- `stop()` is the only way to release them. */
+export interface SoundHandle {
+  /** Stops every source node and disconnects the whole graph. Safe to call more than once. */
+  stop(): void;
+}
+
 /**
  * Procedurally synthesized sound effects built directly from Web Audio oscillator/noise graphs
  * (no sample files needed). Kept separate from `AudioSystem` itself, which owns the actual mixer
@@ -24,9 +33,10 @@ export class SynthSFX {
   ) {}
 
   /**
-   * Starts a creepy, pulsing low-frequency background drone using the Web Audio API.
+   * Starts a creepy, pulsing low-frequency background drone using the Web Audio API. The drone
+   * loops forever until `stop()` is called on the returned handle -- there is no natural end.
    */
-  public startDrone(): void {
+  public startDrone(): SoundHandle {
     this._resume();
 
     // 1. GIGANTIC SUB-BASS (The Black Hole's mass)
@@ -124,12 +134,50 @@ export class SynthSFX {
     pad3.start();
     noiseSrc.start();
     windLFO.start();
+
+    const sources: (OscillatorNode | AudioBufferSourceNode)[] = [
+      subOsc,
+      subOsc2,
+      pad1,
+      pad2,
+      pad3,
+      noiseSrc,
+      windLFO,
+    ];
+    const nodes: AudioNode[] = [
+      ...sources,
+      windLFOGain,
+      windFilter,
+      subGain,
+      padGain,
+      windGain,
+      mainGain,
+    ];
+
+    let stopped = false;
+    return {
+      stop: (): void => {
+        if (stopped) return;
+        stopped = true;
+        for (const source of sources) {
+          try {
+            source.stop();
+          } catch {
+            // Already stopped/ended -- nothing left to do for this node.
+          }
+        }
+        for (const node of nodes) {
+          node.disconnect();
+        }
+      },
+    };
   }
 
   /**
-   * Starts a procedural fire crackling noise at a specific 3D location.
+   * Starts a procedural fire crackling noise at a specific 3D location. The noise loops forever
+   * until `stop()` is called on the returned handle -- there is no natural end.
    */
-  public startFire(position: Vector3D, volume: number = 1.0): void {
+  public startFire(position: Vector3D, volume: number = 1.0): SoundHandle {
     this._resume();
 
     const bufferSize = this._context.sampleRate * 2; // 2 seconds of noise
@@ -172,6 +220,23 @@ export class SynthSFX {
     gainNode.connect(this._sfxGain);
 
     noiseSource.start(0);
+
+    const nodes: AudioNode[] = [noiseSource, filter, panner, gainNode];
+    let stopped = false;
+    return {
+      stop: (): void => {
+        if (stopped) return;
+        stopped = true;
+        try {
+          noiseSource.stop();
+        } catch {
+          // Already stopped/ended -- nothing left to do.
+        }
+        for (const node of nodes) {
+          node.disconnect();
+        }
+      },
+    };
   }
 
   /**

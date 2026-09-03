@@ -10,6 +10,8 @@ export class Forge {
   private _overlay: HTMLDivElement;
   private _isVisible: boolean = false;
   private _windows: ForgeWindow[] = [];
+  private _onKeyDown: ((e: KeyboardEvent) => void) | undefined;
+  private readonly _onPaste: (e: ClipboardEvent) => void;
 
   public get isVisible(): boolean {
     return this._isVisible;
@@ -24,16 +26,17 @@ export class Forge {
     document.body.appendChild(this._overlay);
 
     if (options.toggleKey) {
-      window.addEventListener("keydown", (e) => {
+      this._onKeyDown = (e): void => {
         if (e.key === options.toggleKey) {
           this.toggle();
           e.preventDefault();
         }
-      });
+      };
+      window.addEventListener("keydown", this._onKeyDown);
     }
 
     // Global Paste Listener for Tools
-    window.addEventListener("paste", (e) => {
+    this._onPaste = (e): void => {
       if (!this._isVisible) return;
 
       const items = e.clipboardData?.items;
@@ -72,7 +75,8 @@ export class Forge {
           reader.readAsDataURL(blob);
         }
       }
-    });
+    };
+    window.addEventListener("paste", this._onPaste);
   }
 
   public toggle(): void {
@@ -137,5 +141,25 @@ export class Forge {
     style.id = "sw-forge-style";
     style.innerHTML = FORGE_THEME_CSS;
     document.head.appendChild(style);
+  }
+
+  /** Tears down every open window (and the `window`-level listeners/`ResizeObserver`s each of
+   * them holds -- see `ForgeWindow.destroy()`), this hub's own `keydown`/`paste` listeners, and
+   * removes the overlay from the DOM. Call this when the owning engine instance is destroyed. */
+  public destroy(): void {
+    for (const win of [...this._windows]) {
+      win.destroy();
+    }
+    this._windows.length = 0;
+
+    if (this._onKeyDown) {
+      window.removeEventListener("keydown", this._onKeyDown);
+      this._onKeyDown = undefined;
+    }
+    window.removeEventListener("paste", this._onPaste);
+
+    if (this._overlay.parentNode) {
+      this._overlay.parentNode.removeChild(this._overlay);
+    }
   }
 }

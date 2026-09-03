@@ -1,4 +1,3 @@
-import { AssetManager } from "./AssetManager.js";
 import { AbstractLoader } from "./AbstractLoader.js";
 import { CubeTexture } from "../core/textures/index.js";
 import { EventType } from "../enums/index.js";
@@ -22,7 +21,7 @@ export class SkyboxLoader extends AbstractLoader<CubeTexture> {
     this.dispatchEvent(EventType.LOADER_START, { url: fullUrl });
 
     try {
-      const sourceImage: ImageBitmap | HTMLImageElement = await AssetManager.loadImage(
+      const sourceImage: ImageBitmap | HTMLImageElement = await this._assetManager.loadImage(
         fullUrl,
         (loaded: number, total: number) =>
           this.dispatchEvent(EventType.LOADER_PROGRESS, { url: fullUrl, loaded, total }),

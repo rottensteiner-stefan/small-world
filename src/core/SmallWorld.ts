@@ -26,7 +26,7 @@ import { CollisionVisualizer, OctreeVisualizer } from "../utils/index.js";
 import { PhysicsSystem } from "../physix/PhysicsSystem.js";
 
 /** The current engine version. */
-export const ENGINE_VERSION = "0.77.1";
+export const ENGINE_VERSION = "0.77.2";
 
 /**
  * Halton low-discrepancy sequence, used for TAA's per-frame sub-pixel camera jitter -- covers
@@ -411,6 +411,8 @@ export abstract class SmallWorld {
     if (this.renderer && this.renderer.destroy) {
       this.renderer.destroy();
     }
+    this.audio.dispose();
+    this.forge?.destroy();
   }
 
   private _onPageHide = (): void => {

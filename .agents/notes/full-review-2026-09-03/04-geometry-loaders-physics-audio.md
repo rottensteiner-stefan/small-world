@@ -211,7 +211,8 @@ bereits tut (dort existiert der Epsilon-Guard schon).
 
 ## `src/loaders/` — AssetManager-Singleton, GltfLoader-Fehlerpfade
 
-### 🔴 Jeder Loader in `src/loaders/` benutzt weiterhin den globalen `AssetManager`-Singleton — die bereits vollzogene Instanz-Migration (`RendererContext.assetManager`) wurde nie in die Loader-Schicht durchgezogen
+### ✅ [ERLEDIGT] Jeder Loader in `src/loaders/` benutzte weiterhin den globalen `AssetManager`-Singleton — die bereits vollzogene Instanz-Migration (`RendererContext.assetManager`) wurde nie in die Loader-Schicht durchgezogen
+*(Behoben 2026-09-03: `LoaderOptions.assetManager?: AssetManager` ergänzt; `AbstractLoader` hält `protected _assetManager`, default ist eine frische private Instanz statt des Singletons; `GltfLoader`/`ObjLoader`/`ImageLoader`/`MtlLoader`/`TextLoader`/`SkyboxLoader`/`BinaryStreamLoader` sowie `GltfMaterialParser.parseMaterial`/`resolveTexture` rufen jetzt ausschließlich die injizierte Instanz auf; `ObjLoader` reicht seine Instanz an die intern erzeugte `MtlLoader` weiter. Unit-Tests in `tests/loaders/LoaderAssetManagerInjection.test.ts`.)*
 
 **Dateien:** `src/loaders/GltfLoader.ts:58,65,73`, `src/loaders/gltf/GltfMaterialParser.ts:166` (Textur-Resolving ruft ebenfalls `AssetManager.loadImage` statisch auf), `src/loaders/ObjLoader.ts:37`, `src/loaders/ImageLoader.ts:28`, `src/loaders/MtlLoader.ts:22,82,99`, `src/loaders/TextLoader.ts:24`, `src/loaders/SkyboxLoader.ts:25`, `src/loaders/BinaryStreamLoader.ts:27`; Gegenprobe: `src/loaders/AssetManager.ts:16-30,328-389`, `src/interfaces/RendererContext.ts:1-23`, `src/interfaces/LoaderOptions.ts:7-10`
 
@@ -382,7 +383,8 @@ Zeit tatsächlich benötigt.
 
 ## `src/audio/` — AudioContext-Lifecycle, Node-Cleanup
 
-### 🔴 `SynthSFX.startDrone()`/`startFire()` erzeugen dauerhaft laufende Audio-Node-Graphen ohne jede Stop-/Cleanup-Möglichkeit — verifizierter Leak, in echten Apps bereits mehrfach pro Level ausgelöst
+### ✅ [ERLEDIGT] `SynthSFX.startDrone()`/`startFire()` erzeugten dauerhaft laufende Audio-Node-Graphen ohne jede Stop-/Cleanup-Möglichkeit — verifizierter Leak, in echten Apps bereits mehrfach pro Level ausgelöst
+*(Behoben 2026-09-03: `SynthSFX.startDrone()`/`startFire()` geben jetzt ein `SoundHandle` mit `stop()` zurück, das alle Oszillatoren/Noise-Sources stoppt und den Graphen disconnected; `AudioSystem` trackt aktive Handles in `_activeEndlessSounds` und bekommt eine neue `dispose()`-Methode, die alle noch laufenden Drone-/Fire-Instanzen stoppt und `this.context.close()` aufruft; `SmallWorld.destroy()` ruft jetzt `this.audio.dispose()` auf. Unit-Tests in `tests/audio/AudioSystem.test.ts` ("endless sound lifecycle").)*
 
 **Dateien:** `src/audio/SynthSFX.ts:29-127` (`startDrone`), `src/audio/SynthSFX.ts:132-175` (`startFire`), `src/audio/AudioSystem.ts:266-274` (dünne `void`-Wrapper `startDrone()`/`startFire()`)
 
@@ -424,7 +426,7 @@ oder die Source-Node selbst), das der Aufrufer hält und bei Bedarf beendet (`so
 stoppt — passend zum in AGENTS.md geforderten "Fail Fast & Lifecycle"-Prinzip und der expliziten
 Multi-Instanz-Fähigkeit der Engine.
 
-**Verwandter Befund — `AudioSystem` hat überhaupt keine `dispose()`/`close()`-Methode, und
+**Verwandter Befund (✅ mitbehoben) — `AudioSystem` hat überhaupt keine `dispose()`/`close()`-Methode, und
 `SmallWorld.destroy()` rührt `this.audio` nicht an:** `grep -n "dispose\|destroy\|close("
 src/audio/*.ts` liefert keinen einzigen Treffer — es gibt keinen Weg, den `AudioContext` selbst
 jemals zu schließen. `SmallWorld.destroy()` (`src/core/SmallWorld.ts:400-411`) entfernt Event-Listener

@@ -111,4 +111,57 @@ describe("ForgeWindow", () => {
     win.destroy();
     expect(onClose).toHaveBeenCalledTimes(1);
   });
+
+  describe("window listener/ResizeObserver cleanup on destroy (leak fix)", () => {
+    it("removes every window-level mousemove/mouseup listener registered for drag + all 4 resize handles", () => {
+      const addSpy = vi.spyOn(window, "addEventListener");
+      const removeSpy = vi.spyOn(window, "removeEventListener");
+
+      const win = new ForgeWindow("My Tool", parent);
+
+      const registered = addSpy.mock.calls.filter(
+        ([type]) => type === "mousemove" || type === "mouseup",
+      );
+      // 1 drag handler pair + 4 resize-handle handler pairs = 10 window listeners total.
+      expect(registered.length).toBe(10);
+
+      win.destroy();
+
+      for (const [type, handler] of registered) {
+        expect(removeSpy).toHaveBeenCalledWith(type, handler);
+      }
+    });
+
+    it("disconnects the ResizeObserver created for a mounted tool", () => {
+      const disconnect = vi.fn();
+      class SpyResizeObserver {
+        public observe(): void {}
+        public unobserve(): void {}
+        public disconnect(): void {
+          disconnect();
+        }
+      }
+      (globalThis as unknown as { ResizeObserver: unknown }).ResizeObserver = SpyResizeObserver;
+
+      const win = new ForgeWindow("My Tool", parent);
+      win.mountTool(new TestForgeTool());
+
+      win.destroy();
+
+      expect(disconnect).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not leave dangling drag behavior active after destroy (dragging no longer moves a destroyed window)", () => {
+      const win = new ForgeWindow("My Tool", parent, 10, 10);
+      const el = win.getElement();
+      const header = el.querySelector(".swf-window-header") as HTMLElement;
+
+      header.dispatchEvent(new MouseEvent("mousedown", { clientX: 0, clientY: 0 }));
+      win.destroy();
+
+      window.dispatchEvent(new MouseEvent("mousemove", { clientX: 100, clientY: 100 }));
+
+      expect(el.style.left).toBe("10px");
+    });
+  });
 });

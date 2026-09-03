@@ -26,16 +26,19 @@ export function makeMockAudioContext(): AudioContext {
     state: "running" as AudioContextState,
     destination: {},
     resume: vi.fn(() => Promise.resolve()),
+    close: vi.fn(() => Promise.resolve()),
 
     createGain: vi.fn(() => ({
       gain: makeAudioParam(1),
       connect: vi.fn(),
+      disconnect: vi.fn(),
     })),
 
     createBufferSource: vi.fn(() => ({
       buffer: null,
       loop: false,
       connect: vi.fn(),
+      disconnect: vi.fn(),
       start: vi.fn(),
       stop: vi.fn(),
     })),
@@ -51,11 +54,13 @@ export function makeMockAudioContext(): AudioContext {
       positionZ: makeAudioParam(0),
       setPosition: vi.fn(),
       connect: vi.fn(),
+      disconnect: vi.fn(),
     })),
 
     createConvolver: vi.fn(() => ({
       buffer: null,
       connect: vi.fn(),
+      disconnect: vi.fn(),
     })),
 
     createBiquadFilter: vi.fn(() => ({
@@ -63,12 +68,14 @@ export function makeMockAudioContext(): AudioContext {
       frequency: makeAudioParam(0),
       Q: makeAudioParam(0),
       connect: vi.fn(),
+      disconnect: vi.fn(),
     })),
 
     createOscillator: vi.fn(() => ({
       type: "sine" as OscillatorType,
       frequency: makeAudioParam(0),
       connect: vi.fn(),
+      disconnect: vi.fn(),
       start: vi.fn(),
       stop: vi.fn(),
     })),
