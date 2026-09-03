@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.77.3] - 2026-09-03
+
+### "To attain knowledge, add things every day. To attain wisdom, remove things every day." - Lao Tzu
+
+- **Architecture & Bugfixes:**
+  - **Maker:** Bounded `UndoStack`'s history to 50 entries (matching Pixler's own cap) instead of growing it forever; the discarded redo branch is now dropped on every new action, not just at capacity.
+  - Added an optional `UndoCommand.discard()` hook, called whenever a command permanently leaves history (capacity trim, redo-branch drop, or `clear()`), so a soft-deleted object parked in `MakerApp`'s trash bin is no longer left unreachable-but-referenced forever -- `_disposeTrashedObject()` now routes it through the scene's real GPU-resource release queue.
+- **Housekeeping & Docs:**
+  - Added unit test suites for the `UndoStack` capacity/discard fix.
+  - Updated full review dossiers (`.agents/notes/full-review-2026-09-03/`).
+
 ## [0.77.2] - 2026-09-03
 
 ### "The end is where we start from." - T.S. Eliot

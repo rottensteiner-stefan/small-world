@@ -505,6 +505,9 @@ export class MakerApp extends SmallWorld {
         this._hierarchyDirty = true;
         this._project.scheduleAutosave(() => this.scene.root);
       },
+      discard: () => {
+        for (const obj of added) this._disposeTrashedObject(obj);
+      },
     });
   }
 
@@ -899,6 +902,23 @@ export class MakerApp extends SmallWorld {
     return new Vector3D(spawnX, spawnY, spawnZ);
   }
 
+  /** Releases an object's GPU resources for real, once we know for certain it can never be
+   * brought back by `undo()`/`redo()` again (its owning `UndoCommand` was just permanently
+   * discarded by `UndoStack` -- see `UndoCommand.discard()`). No-op if `obj` isn't currently
+   * parked in `_trashBin` (its command may have been discarded while `redo()`, not `undo()`, was
+   * the side last applied, i.e. it's live in the scene, not trashed).
+   *
+   * `_trashBin` is deliberately never added to `this.scene`, so `Scene`'s GPU-disposal
+   * notification (`Object3D.pendingRemovalSink`) never fires for objects parked there -- that's
+   * what keeps a soft-deleted object cheap to undo. Briefly routing it through the real scene
+   * (`add` then immediately `remove`, both synchronous, no frame renders in between) is the only
+   * way to trigger that same real disposal without inventing a second, parallel mechanism. */
+  private _disposeTrashedObject(obj: Object3D): void {
+    if (obj.parent !== this._trashBin) return;
+    this.scene.add(obj);
+    this.scene.remove(obj);
+  }
+
   public addObject(obj: Object3D): void {
     if (0 === obj.position.x && 0 === obj.position.y && 0 === obj.position.z) {
       const smartPos = this._computeSmartSpawnPosition(obj);
@@ -919,6 +939,7 @@ export class MakerApp extends SmallWorld {
         if (this._selected === obj) this.selectObject(undefined);
         this._project.scheduleAutosave(() => this.scene.root);
       },
+      discard: () => this._disposeTrashedObject(obj),
     });
   }
 
@@ -942,6 +963,9 @@ export class MakerApp extends SmallWorld {
         this._hierarchyDirty = true;
         this._selectMultiple(objs);
         this._project.scheduleAutosave(() => this.scene.root);
+      },
+      discard: () => {
+        for (const obj of objs) this._disposeTrashedObject(obj);
       },
     });
   }
@@ -1016,6 +1040,9 @@ export class MakerApp extends SmallWorld {
         this._selectMultiple(objs);
         this._project.scheduleAutosave(() => this.scene.root);
       },
+      discard: () => {
+        for (const { clone } of clones) this._disposeTrashedObject(clone);
+      },
     });
   }
 
@@ -1071,6 +1098,7 @@ export class MakerApp extends SmallWorld {
         this.selectObject(obj);
         this._project.scheduleAutosave(() => this.scene.root);
       },
+      discard: () => this._disposeTrashedObject(group),
     });
   }
 
@@ -1121,6 +1149,7 @@ export class MakerApp extends SmallWorld {
         this._selectMultiple(objs);
         this._project.scheduleAutosave(() => this.scene.root);
       },
+      discard: () => this._disposeTrashedObject(group),
     });
   }
 

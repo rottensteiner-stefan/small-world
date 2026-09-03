@@ -108,6 +108,36 @@ describe("WebGLBufferManager reference counting", () => {
     expect(gl.deleteBuffer).toHaveBeenCalled();
   });
 
+  it("releases geometry for an object routed in from an unrelated, scene-detached parent (Maker's trash-bin discard pattern)", () => {
+    // Mirrors MakerApp._disposeTrashedObject(): an object soft-deleted into an off-scene holding
+    // pen (never added to `scene`, so `remove()` on it alone would never fire the GPU-disposal
+    // notification) that must now be permanently freed -- briefly reparenting it into the real
+    // scene via `add()` (which detaches it from its unrelated old parent) then immediately
+    // `remove()`-ing it is the only way to route it through the real disposal queue.
+    const gl = makeMockGl();
+    const buffers = new WebGLBufferManager(gl);
+
+    const scene = new Scene();
+    const trashBin = new Object3D("Trash"); // deliberately never added to `scene`
+    const geo = makeGeometry();
+    const obj = new Object3D("SoftDeleted");
+    obj.geometry = geo;
+    trashBin.add(obj);
+
+    const mesh = buffers.getOrCreateMesh(obj, geo);
+    expect(mesh.refCount).toBe(1);
+
+    scene.add(obj);
+    scene.remove(obj);
+    for (const removed of scene.consumeRemovedObjects()) {
+      buffers.releaseGeometryFor(removed);
+    }
+
+    expect(mesh.refCount).toBe(0);
+    expect(gl.deleteBuffer).toHaveBeenCalled();
+    expect(obj.parent).toBeUndefined();
+  });
+
   it("also releases descendants when a parent with children is removed from the scene", () => {
     const gl = makeMockGl();
     const buffers = new WebGLBufferManager(gl);

@@ -8,7 +8,8 @@ Legende: 🔴 kritisch (Bug/Korrektheit) · 🟠 fragil/Architektur-Risiko · �
 
 ## `src/tools/maker/UndoStack.ts`
 
-### 🟠 Unbegrenztes History-Wachstum, kombiniert mit Soft-Delete-Retention
+### ✅ [ERLEDIGT] Unbegrenztes History-Wachstum, kombiniert mit Soft-Delete-Retention
+*(Behoben 2026-09-03: `UndoStack` auf `MAX_HISTORY = 50` begrenzt (gleicher Wert wie Pixlers eigene `_history`) — beim Überschreiten wird das älteste `_done`-Kommando per `shift()` verworfen; zusätzlich verwirft `execute()` jetzt auch konsequent den kompletten Redo-Branch (`_undone`) bei jedem neuen Kommando, nicht nur dessen Array-Referenz. Neues optionales `UndoCommand.discard()`-Hook wird für jedes Kommando aufgerufen, das die Historie permanent verlässt (Kapazitäts-Trim, Redo-Branch-Verwurf, oder `clear()`), damit ein `_trashBin`-Objekt eines verworfenen Kommandos nicht für immer unerreichbar-aber-referenziert hängen bleibt, sondern über `MakerApp._disposeTrashedObject()` (kurzzeitiges Reparenting via `scene.add()`+`scene.remove()`, um Scenes reguläre GPU-Freigabe-Queue auszulösen) wirklich freigegeben wird. Alle 6 `_trashBin.add()`-Stellen in `MakerApp.ts` implementieren jetzt `discard()`. Unit-Tests in `tests/tools/maker/UndoStack.test.ts` ("history capacity + discard()") und `tests/renderers/GeometryRefCounting.test.ts` (Trash-Bin-Discard-Pattern).)*
 
 `UndoStack` (`UndoStack.ts:16-54`) hat keinerlei Kapazitätsgrenze — `_done`/`_undone` sind reine
 `UndoCommand[]`, die bei jedem `execute()` nur wachsen (`_done.push(command)`, `UndoStack.ts:23`) und
