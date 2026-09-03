@@ -22,6 +22,9 @@ export interface OpenWaterMaterialOptions {
   wave1?: [number, number, number, number];
   wave2?: [number, number, number, number];
   wave3?: [number, number, number, number];
+  /** How strongly the wave normal distorts the sampled opaque (below-water) scene color, i.e.
+   * screen-space refraction strength. 0 disables distortion (straight screen-space sample). */
+  refractionStrength?: number;
 }
 
 export class OpenWaterMaterial extends AbstractMaterial {
@@ -34,6 +37,7 @@ export class OpenWaterMaterial extends AbstractMaterial {
   public wave2: [number, number, number, number];
   public wave3: [number, number, number, number];
   public time: number = 0.0;
+  public refractionStrength: number;
 
   constructor(options: OpenWaterMaterialOptions = {}) {
     super(MaterialType.OPEN_WATER);
@@ -46,6 +50,7 @@ export class OpenWaterMaterial extends AbstractMaterial {
       wave1 = [1.0, 0.5, 0.1, 10.0],
       wave2 = [0.2, 0.8, 0.15, 6.0],
       wave3 = [-0.3, 0.7, 0.05, 3.0],
+      refractionStrength = 0.03,
     } = options;
 
     this.color = waterColor;
@@ -56,6 +61,7 @@ export class OpenWaterMaterial extends AbstractMaterial {
     this.wave1 = wave1;
     this.wave2 = wave2;
     this.wave3 = wave3;
+    this.refractionStrength = refractionStrength;
 
     this.transparent = true;
     this.depthWrite = false;
@@ -67,6 +73,10 @@ export class OpenWaterMaterial extends AbstractMaterial {
       // Left undefined so WebGL2 falls back to the live-captured opaque depth texture
       // (see WebGL2Renderer's sampler-bind loop); WebGPU does the equivalent fallback itself.
       this._renderManifest.textures["u_opaqueDepthMap"] = undefined;
+      // Same fallback pattern for the opaque *color* capture (see GlassMaterial/FrostglassMaterial,
+      // which pioneered this texture for screen-space refraction) -- gives the water surface a real
+      // view of what's below it instead of only fading to a flat deepWaterColor.
+      this._renderManifest.textures["u_opaqueMap"] = undefined;
       this._renderManifest.properties["u_specColor"] = this.deepWaterColor.toFloat32Array();
       // u_texOffset/u_texRepeat carry edgeColor.rgb + edgeSoftness here, not actual texture
       // UV offset/repeat — StandardWebGPULayout only has 3 free vec4 slots (already used by
@@ -78,6 +88,10 @@ export class OpenWaterMaterial extends AbstractMaterial {
       this._renderManifest.properties["u_thresholds"] = [...this.wave3];
       this._renderManifest.properties["u_reflectivity"] = this.speed;
       this._renderManifest.properties["u_time"] = this.time;
+      // u_shininess is otherwise unused by this material (no specular map) -- repurposed to carry
+      // refractionStrength, same "borrow a free named slot" convention as u_texOffset/u_texRepeat
+      // above.
+      this._renderManifest.properties["u_shininess"] = this.refractionStrength;
     }
 
     this._syncBaseManifestState();
@@ -113,6 +127,7 @@ export class OpenWaterMaterial extends AbstractMaterial {
 
     props["u_reflectivity"] = this.speed;
     props["u_time"] = this.time;
+    props["u_shininess"] = this.refractionStrength;
 
     return this._renderManifest;
   }
@@ -135,6 +150,7 @@ export class OpenWaterMaterial extends AbstractMaterial {
         ...StandardWebGPULayout,
         textures: {
           u_opaqueDepthMap: { type: ShaderPropertyType.TEXTURE },
+          u_opaqueMap: { type: ShaderPropertyType.TEXTURE },
         },
       },
     };

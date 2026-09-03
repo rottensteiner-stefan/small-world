@@ -1,0 +1,56 @@
+import { OpenWaterMaterial } from "../../src/core/materials/OpenWaterMaterial.js";
+import { MaterialType } from "../../src/enums/index.js";
+import { Color } from "../../src/core/colors/index.js";
+
+describe("OpenWaterMaterial", () => {
+  it("should initialize with default values", () => {
+    const material = new OpenWaterMaterial();
+
+    expect(material.type).toBe(MaterialType.OPEN_WATER);
+    expect(material.refractionStrength).toBe(0.03);
+  });
+
+  it("should accept a custom refractionStrength", () => {
+    const material = new OpenWaterMaterial({ refractionStrength: 0.1 });
+
+    expect(material.refractionStrength).toBe(0.1);
+  });
+
+  it("should expose u_opaqueMap for screen-space refraction, alongside the existing u_opaqueDepthMap", () => {
+    const material = new OpenWaterMaterial();
+    const manifest = material.getRenderManifest();
+
+    expect(Object.keys(manifest.textures)).toContain("u_opaqueMap");
+    expect(Object.keys(manifest.textures)).toContain("u_opaqueDepthMap");
+    expect(manifest.textures["u_opaqueMap"]).toBeUndefined();
+  });
+
+  it("should pack refractionStrength into u_shininess and keep it in sync across calls", () => {
+    const material = new OpenWaterMaterial({ refractionStrength: 0.05 });
+
+    let manifest = material.getRenderManifest();
+    expect(manifest.properties["u_shininess"]).toBe(0.05);
+
+    material.refractionStrength = 0.2;
+    manifest = material.getRenderManifest();
+    expect(manifest.properties["u_shininess"]).toBe(0.2);
+  });
+
+  it("should declare u_opaqueMap in the WebGPU layout textures", () => {
+    const material = new OpenWaterMaterial();
+    const shaderDef = material.getShaderDefinition();
+
+    expect(shaderDef.layout.textures["u_opaqueMap"]).toEqual({ type: "texture" });
+    expect(shaderDef.layout.textures["u_opaqueDepthMap"]).toEqual({ type: "texture" });
+  });
+
+  it("should still expose the pre-existing color/wave options unaffected by refraction wiring", () => {
+    const material = new OpenWaterMaterial({
+      waterColor: new Color(0.1, 0.2, 0.3),
+      deepWaterColor: new Color(0.0, 0.0, 0.1),
+    });
+
+    expect(material.color).toEqual(new Color(0.1, 0.2, 0.3));
+    expect(material.deepWaterColor).toEqual(new Color(0.0, 0.0, 0.1));
+  });
+});

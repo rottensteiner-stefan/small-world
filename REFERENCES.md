@@ -324,3 +324,10 @@ This document serves to record external sources, algorithms, mathematical deriva
 
 - **File:** `showcases/23/showcase.ts` (COMPUTETOYS_SYNTHWAVE)
 - **Usage:** A classic 80s outrun-style shader featuring an endless glowing grid and a sunset. It demonstrates the use of simple coordinate manipulations and smoothstep functions to recreate nostalgic procedural aesthetics.
+
+### Stylized 3D Water Shader (Vertex Waves, Depth Fade, Foam)
+
+- **File:** `src/core/materials/OpenWaterMaterial.ts`, `src/core/materials/shaders/OpenWater.vert.glsl`, `src/core/materials/shaders/OpenWater.frag.glsl`, `src/core/materials/shaders/OpenWater.frag.wgsl`
+- **Authors/Gurus:** gameidea (gameidea.org, also active as `gameidea-studio` on itch.io and Patreon)
+- **Source:** ["Creating a Stylized 3D Water Shader"](https://gameidea.org/2026/02/01/creating-a-stylized-3d-water-shader/) — gameidea, published 2026-02-01
+- **Usage:** Reference for the stylized (Sea of Thieves-inspired) open-water look: simple sine/noise-based Gerstner-like vertex wave displacement combined with fragment-side depth fade (mixing toward an underwater fog color with scene depth) and screen-space foam near intersections with other geometry, instead of a physically simulated ocean (no FFT).

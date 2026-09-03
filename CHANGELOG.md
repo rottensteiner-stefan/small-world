@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.77.8] - 2026-09-03
+
+### "Appearances are often deceiving." - Aesop
+
+- **Features:**
+  - **OpenWaterMaterial:** Added real screen-space refraction -- the water surface now samples the already-existing opaque-color capture (`u_opaqueMap`, previously only used by `GlassMaterial`/`FrostglassMaterial`) instead of only fading to a flat `deepWaterColor`, so what's actually below the surface becomes visible, distorted by the wave normal. New `refractionStrength` option. Includes a depth-based fallback to the undistorted sample so a steep wave slope near the shore can't accidentally reveal a foreground object. Implemented across WebGL2 (GLSL300), WebGPU (WGSL), and WebGL1 (GLSL100, using mesh UV as a screen-space stand-in, same approximation `Glass.frag.glsl100` already uses).
+- **Housekeeping & Docs:**
+  - First of a planned series of `OpenWaterMaterial` upgrades (Beer-Lambert absorption, procedural foam, caustics to follow), inspired by a stylized water shader breakdown at gameidea.org.
+
 ## [0.77.7] - 2026-09-03
 
 ### "The snake which cannot cast its skin has to die." - Friedrich Nietzsche

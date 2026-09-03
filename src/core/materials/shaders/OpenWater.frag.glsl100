@@ -11,11 +11,16 @@ uniform vec4 u_color;
 uniform vec4 u_specColor;
 uniform vec2 u_texOffset;
 uniform vec2 u_texRepeat;
+uniform float u_shininess; // repurposed: refractionStrength (see OpenWaterMaterial.ts)
+uniform sampler2D u_opaqueMap;
 
 // WebGL1 has no depth-texture capture path (see WebGL1Renderer.copyToOpaqueDepthTexture),
 // so the depth-based underwater fade from OpenWater.frag.wgsl/.frag.glsl is approximated
 // with a Fresnel mix instead -- same simplification tradeoff as Glass.frag.glsl100 dropping
-// TBN normal mapping.
+// TBN normal mapping. The opaque *color* capture IS available on WebGL1 though (see
+// WebGL1Renderer.copyToOpaqueTexture), so refraction still works -- distorted with the mesh UV
+// as a screen-space stand-in, same approximation Glass.frag.glsl100 already uses (GLSL ES 100 has
+// no textureSize()/gl_FragCoord-normalization to get a real screen UV).
 void main() {
     vec3 waterColor = pow(u_color.rgb, vec3(2.2));
     vec3 deepWaterColor = pow(u_specColor.rgb, vec3(2.2));
@@ -23,10 +28,14 @@ void main() {
     vec3 edgeColor = vec3(u_texOffset.x, u_texOffset.y, u_texRepeat.x);
     float edgeSoftness = max(u_texRepeat.y, 0.001);
 
+    vec2 refractionUv = clamp(v_uv + v_normal.xz * u_shininess, vec2(0.001), vec2(0.999));
+    vec3 refractedColor = texture2D(u_opaqueMap, refractionUv).rgb;
+    refractedColor = pow(refractedColor, vec3(2.2));
+
     vec3 viewDir = normalize(u_viewPos - v_worldPos);
     float fresnel = pow(1.0 - clamp(dot(v_normal, viewDir), 0.0, 1.0), 5.0);
 
-    vec3 baseColor = mix(waterColor, deepWaterColor, fresnel);
+    vec3 baseColor = mix(refractedColor, deepWaterColor, fresnel);
 
     vec3 skyColor = vec3(0.6, 0.8, 1.0);
     baseColor = mix(baseColor, skyColor, fresnel * 0.5);
