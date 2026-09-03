@@ -31,9 +31,9 @@ export class Pyramid extends AbstractGeometry {
   constructor(options: PyramidOptions = {}) {
     super();
     const { base = 1, height = 1, radialSegments = 4 } = options;
-    this.base = base;
-    this.height = height;
-    this.radialSegments = radialSegments;
+    this.base = Math.max(0, base);
+    this.height = Math.max(0, height);
+    this.radialSegments = Math.max(3, Math.floor(radialSegments));
     this.generateGeometryData();
   }
 

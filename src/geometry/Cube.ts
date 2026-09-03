@@ -34,10 +34,10 @@ export class Cube extends AbstractGeometry {
   constructor(options: CubeOptions = {}) {
     super();
     const { size = 1, widthSegments = 1, heightSegments = 1, depthSegments = 1 } = options;
-    this.size = size;
-    this.widthSegments = widthSegments;
-    this.heightSegments = heightSegments;
-    this.depthSegments = depthSegments;
+    this.size = Math.max(0, size);
+    this.widthSegments = Math.max(1, Math.floor(widthSegments));
+    this.heightSegments = Math.max(1, Math.floor(heightSegments));
+    this.depthSegments = Math.max(1, Math.floor(depthSegments));
     this.generateGeometryData();
   }
 

@@ -37,8 +37,8 @@ export class Plane extends AbstractGeometry {
     const { width = 1, height = 1, widthSegments = 1, heightSegments = 1 } = options;
     this.width = width;
     this.height = height;
-    this.widthSegments = widthSegments;
-    this.heightSegments = heightSegments;
+    this.widthSegments = Math.max(1, Math.floor(widthSegments));
+    this.heightSegments = Math.max(1, Math.floor(heightSegments));
     this.generateGeometryData();
   }
 

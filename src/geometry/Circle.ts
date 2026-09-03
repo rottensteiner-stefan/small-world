@@ -35,8 +35,8 @@ export class Circle extends AbstractGeometry {
   constructor(options: CircleOptions = {}) {
     super();
     const { radius = 1, segments = 32, thetaStart = 0, thetaLength = MathUtils.TWO_PI } = options;
-    this.radius = radius;
-    this.segments = segments;
+    this.radius = Math.max(0, radius);
+    this.segments = Math.max(3, Math.floor(segments));
     this.thetaStart = thetaStart;
     this.thetaLength = thetaLength;
     this.generateGeometryData();

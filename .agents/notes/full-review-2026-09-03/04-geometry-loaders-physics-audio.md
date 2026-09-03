@@ -168,7 +168,8 @@ das analog zu ADR 0005 festgehalten werden; falls nicht, ist ein Tangentialimpul
 
 ## `src/geometry/` — Degenerierte Parameter, Normalen/Tangenten
 
-### 🔴 Systemische Division durch 0 bei `radius=0` / `segments=0` — NaN-Geometrie ohne Guard, quer über fast alle parametrischen Geometrien
+### ✅ [ERLEDIGT] Systemische Division durch 0 bei `radius=0` / `segments=0` — NaN-Geometrie ohne Guard, quer über fast alle parametrischen Geometrien
+*(Behoben 2026-09-03: Parameter-Clamping und Zero-Guards für `radius`, `segments`, `dimensions` und UVs in allen parametrischen Geometrien und `ExtrudeGeometry` eingefügt; Unit-Tests in `tests/geometry/ParametricGeometryNaNGuards.test.ts`.)*
 
 **Dateien:** `src/geometry/Sphere.ts:75`, `src/geometry/Torus.ts:52,58`, `src/geometry/Cylinder.ts:82,87,122,141,164`, `src/geometry/Capsule.ts:64,71,78`, `src/geometry/Tube.ts:70,74`, `src/geometry/Ground.ts:54,56`, `src/geometry/Plane.ts:54,56`, `src/geometry/Pyramid.ts:56,58,74`, `src/geometry/Terrain.ts:190,193` u.a.
 

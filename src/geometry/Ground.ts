@@ -37,8 +37,8 @@ export class Ground extends AbstractGeometry {
     const { width = 1, depth = 1, widthSegments = 1, depthSegments = 1 } = options;
     this.width = width;
     this.depth = depth;
-    this.widthSegments = widthSegments;
-    this.depthSegments = depthSegments;
+    this.widthSegments = Math.max(1, Math.floor(widthSegments));
+    this.depthSegments = Math.max(1, Math.floor(depthSegments));
     this.generateGeometryData();
   }
 

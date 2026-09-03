@@ -35,10 +35,10 @@ export class Capsule extends AbstractGeometry {
   constructor(options: CapsuleOptions = {}) {
     super();
     const { radius = 0.5, length = 1, radialSegments = 16, capSegments = 8 } = options;
-    this.radius = radius;
-    this.length = length;
-    this.radialSegments = radialSegments;
-    this.capSegments = capSegments;
+    this.radius = Math.max(0, radius);
+    this.length = Math.max(0, length);
+    this.radialSegments = Math.max(3, Math.floor(radialSegments));
+    this.capSegments = Math.max(1, Math.floor(capSegments));
     this.generateGeometryData();
   }
 

@@ -40,21 +40,27 @@ export class Gear extends ExtrudeGeometry {
       thickness = 0.5,
     } = options;
 
+    const clampedTeeth = Math.max(3, Math.floor(teeth));
+    const clampedInnerRadius = Math.max(0.001, innerRadius);
+    const clampedToothHeight = Math.max(0, toothHeight);
+    const clampedHoleRadius = Math.max(0, Math.min(clampedInnerRadius * 0.9, holeRadius));
+    const clampedVRatio = Math.max(0.001, vRatio);
+
     const { shape, innerShape } = Gear._generateShapes(
-      teeth,
-      innerRadius,
-      toothHeight,
-      holeRadius,
-      vRatio,
+      clampedTeeth,
+      clampedInnerRadius,
+      clampedToothHeight,
+      clampedHoleRadius,
+      clampedVRatio,
     );
 
-    super({ shape, innerShape, depth: thickness });
+    super({ shape, innerShape, depth: Math.max(0.001, thickness) });
 
-    this.teeth = teeth;
-    this.innerRadius = innerRadius;
-    this.toothHeight = toothHeight;
-    this.holeRadius = holeRadius;
-    this.vRatio = vRatio;
+    this.teeth = clampedTeeth;
+    this.innerRadius = clampedInnerRadius;
+    this.toothHeight = clampedToothHeight;
+    this.holeRadius = clampedHoleRadius;
+    this.vRatio = clampedVRatio;
   }
 
   /**
