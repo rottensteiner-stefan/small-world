@@ -48,7 +48,7 @@ Alle 5 Agenten fertig. **Gesamt: 23× 🔴 kritisch, ~29× 🟠 fragil, ~20× �
 - [x] ~~WebGL-Post-Processing-Uber-Shader-Rekompilierung bei jedem Slider-Tweak (`PostProcessPassGL.ts`).~~ *(✅ Behoben)*
 
 ### D — Geometry/Loaders/Physics/Audio (5×)
-- `PhysicsSystem.ts` Positionskorrektur (`depth/totalInvMass + 0.005`) konvergiert nie — ruhende Kugel oszilliert für immer zwischen zwei Y-Positionen (per Test verifiziert).
+- [x] ~~`PhysicsSystem.ts` Positionskorrektur (`depth/totalInvMass + 0.005`) konvergiert nie — ruhende Kugel oszilliert für immer zwischen zwei Y-Positionen (per Test verifiziert).~~ *(✅ Behoben)*
 - `Object3D.computeBounds()` verwirft eine manuell zugewiesene `OBB` und ersetzt sie durch eine simple `BoundingBox`, sobald das Objekt Geometrie hat; zusätzlich totes/auskommentiertes `OBB.transform()`-Scale-Extraction.
 - Systemisches NaN bei `radius=0`/`segments=0` über fast jede parametrische Geometrie (Sphere, Torus, Cylinder, ...).
 - Jeder Loader nutzt weiterhin das deprecated, prozessweite `AssetManager`-Singleton statt der bereits existierenden Instance-basierten Alternative.

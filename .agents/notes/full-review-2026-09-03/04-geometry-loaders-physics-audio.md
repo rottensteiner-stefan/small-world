@@ -8,7 +8,8 @@ Legende: 🔴 kritisch (Bug/Korrektheit) · 🟠 fragil/Architektur-Risiko · �
 
 ## `src/physix/` — Sub-Stepping, Kollisionsauflösung, CCD
 
-### 🔴 Resting Contact oszilliert für immer (positionale Korrektur nie im Gleichgewicht)
+### ✅ [ERLEDIGT] Resting Contact oszilliert für immer (positionale Korrektur nie im Gleichgewicht)
+*(Behoben 2026-09-03: `+ 0.005`-Überkorrektur in `PhysicsSystem.ts:308` entfernt; Positionskorrektur löst Durchdringung nun ohne künstlichen Bias auf; Unit-Tests in `tests/physix/PhysicsRestingContact.test.ts`.)*
 
 **Datei:** `src/physix/PhysicsSystem.ts:308`
 
