@@ -57,7 +57,8 @@ zumindest ein Kommentar an `AreaLight.applyTo()`), damit es nicht wie eine über
 
 ---
 
-## 🟡 AreaLight-Cap ist ein unbenannter Magic-Number, PointLight/SpotLight haben eine benannte Konstante
+## ✅ [ERLEDIGT] AreaLight-Cap war ein unbenannter Magic-Number an vier Shader-Stellen, PointLight/SpotLight referenzieren eine benannte Konstante
+*(Behoben 2026-09-03: `MAX_AREA_LIGHTS` in `AreaLight.ts` inzwischen bereits als benannte Konstante vorhanden (Nebeneffekt des AreaLight-PBR-Fixes oben) und dort in `applyTo()` referenziert. Die vier unabhängig hartkodierten GLSL-`u_areaLights[4]`-Deklarationen (`lights.frag.glsl`, `base_vertex_header.vert.glsl`, `Liquid.vert.glsl`, `FluidSurface.vert.glsl`) können den TS-Wert nicht importieren, bekommen aber jetzt jeweils einen Kommentar, der explizit auf `MAX_AREA_LIGHTS` in `AreaLight.ts` verweist; umgekehrt verweist `MAX_AREA_LIGHTS`s Dokumentationskommentar auf alle vier GLSL-Stellen. Macht die Kopplung in beide Richtungen sichtbar, statt sie nur bei genauem Hinsehen zu erahnen.)*
 
 `src/core/lights/AreaLight.ts:41`:
 

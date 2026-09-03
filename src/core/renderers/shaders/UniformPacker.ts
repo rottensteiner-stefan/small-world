@@ -131,7 +131,15 @@ export class UniformPacker {
       case ShaderPropertyType.COLOR:
         return 4; // 16 bytes
       case ShaderPropertyType.MAT4:
-        return 16; // 64 bytes
+        // A mat4x4's base alignment is that of its column type (vec4 -> 16 bytes / 4 floats),
+        // NOT its total size (64 bytes) -- WGSL/std140 §alignment: "If S is a matrix type, then
+        // A = AlignOf(the vector type of the same element type and R rows)". Occupying the full
+        // 64 bytes is `_getTypeSize`'s job; aligning to a 64-byte boundary here would only ever
+        // coincidentally match the spec when a MAT4 happens to already sit at offset 0 (true of
+        // every layout in this codebase today) -- any layout with a MAT4 preceded by an offset
+        // that's a multiple of 4 floats but not 16 would otherwise insert bytes of padding the
+        // real WGSL struct doesn't have, corrupting every uniform packed after it.
+        return 4; // 16 bytes
       default:
         return 1;
     }

@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.77.4] - 2026-09-03
+
+### "The details are not the details. They make the design." - Charles Eames
+
+- **Architecture & Bugfixes:**
+  - **WebGPU:** Fixed `UniformPacker`'s MAT4 base alignment (was 64 bytes, WGSL/std140 spec requires 16 bytes -- a matrix's base alignment matches its column type, not its total size). Currently latent in every existing layout (MAT4 always first, offset 0 either way), but would silently corrupt every uniform packed after a MAT4 in any future custom layout that places one elsewhere.
+  - **Lights:** Made the `AreaLight` light-count cap's TS/GLSL coupling explicit -- `MAX_AREA_LIGHTS` (`AreaLight.ts`) and the four independently hardcoded `u_areaLights[4]` GLSL array declarations now cross-reference each other in comments, since GLSL can't import the TS constant.
+- **Housekeeping & Docs:**
+  - Added unit tests for the MAT4 alignment fix.
+  - Updated full review dossiers (`.agents/notes/full-review-2026-09-03/`).
+
 ## [0.77.3] - 2026-09-03
 
 ### "To attain knowledge, add things every day. To attain wisdom, remove things every day." - Lao Tzu

@@ -53,6 +53,8 @@ layout(std140) uniform GlobalUniforms {
     float _pad4, _pad5, _pad6; 
     PointLight u_pointLights[4];
     SpotLight u_spotLights[4];
+    // Must match MAX_AREA_LIGHTS in src/core/lights/AreaLight.ts -- GLSL can't import it, so this
+    // has to be kept in sync by hand.
     AreaLight u_areaLights[4];
 };
 
