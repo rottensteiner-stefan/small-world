@@ -211,7 +211,12 @@ export class SpotShadowPassGPU implements RenderPass {
     MathPool.releaseMatrix(rawVp);
     MathPool.releaseMatrix(correctedVp);
 
-    renderer.gpuDevice!.queue.writeBuffer(renderer.globalUniformBuffer, 0, gData);
+    // Only spotShadowMatrices/spotShadowInfo (floats 48-127, see GlobalUniforms in structs.wgsl)
+    // were touched above -- upload just that 320-byte slice instead of the whole 848-byte buffer.
+    // Re-uploading the untouched vp/lights/fog fields here too would be pure waste, and is one of
+    // up to 3 full-buffer writes of the same buffer per frame otherwise (this pass,
+    // CascadedShadowPassGPU, and _updateGlobalBuffers()'s own once-per-frame write).
+    renderer.gpuDevice!.queue.writeBuffer(renderer.globalUniformBuffer, 48 * 4, gData, 48, 80);
 
     if (this._bindGroupNeedsShadowRebuild) {
       renderer.defaultSpotShadowTextureView = this._spotShadowTexView!;

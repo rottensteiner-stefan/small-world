@@ -8,7 +8,8 @@ Legende: 🔴 kritisch (Bug/Korrektheit) · 🟠 fragil/Architektur-Risiko · �
 
 ## `src/core/renderers/shaders/` — gemeinsame Shader-Infrastruktur
 
-### 🟠 `UniformPacker`: MAT4-Alignment ist spec-widrig (64 statt 16 Byte), aktuell nur zufällig folgenlos
+### ✅ [ERLEDIGT] `UniformPacker`: MAT4-Alignment war spec-widrig (64 statt 16 Byte), aktuell nur zufällig folgenlos
+*(Behoben 2026-09-03: `_getTypeAlignment(MAT4)` korrigiert von `16` auf `4` (Floats) -- Basis-Ausrichtung entspricht jetzt der Spalten-Vec4-Ausrichtung, nicht der Gesamtgröße. `_getTypeSize` unverändert bei 16. Unit-Tests in `tests/renderers/WebGPUObjectUniformPacker.test.ts` decken sowohl "MAT4 zuerst" (Regressionsschutz) als auch "MAT4 nach einem Skalar" (der vorher kaputte Fall) ab.)*
 
 **Datei:** `src/core/renderers/shaders/UniformPacker.ts:121-138` (`_getTypeAlignment`)
 
@@ -160,7 +161,8 @@ Aber WebGPUs `@builtin(position)` im Fragment-Shader (verwendet z.B. in `lightin
 
 *(Review von ClusterCullPassGPU/WebGLClusterCullPass, HzbOcclusionPassGPU, DepthPrePassGPU, CascadedShadowPassGPU/SpotShadowPassGPU/WebGLShadowPass, MainRenderPass/WebGLMainPass sowie der zugehörigen Compute-WGSL-Chunks.)*
 
-### 🟠 `WebGLShadowPass` regressiert den in `WebGLClusterCullPass` bereits gefixten Bivarianz-Hazard
+### ✅ [ERLEDIGT] `WebGLShadowPass` regressierte den in `WebGLClusterCullPass` bereits gefixten Bivarianz-Hazard
+*(Behoben 2026-09-03: `WebGLShadowPass.execute()` auf exakt dasselbe Muster wie `WebGLClusterCullPass` umgestellt -- `if (!(renderer instanceof WebGL2Renderer)) return;` statt des `as unknown as {...}`-Casts, danach typisierter Direktzugriff auf `renderer.renderShadowMaps()`/`renderer.updateGlobalUBO()`. `npx tsc --noEmit` sauber.)*
 
 **Datei:** `src/renderers/passes/WebGLShadowPass.ts:22-34`
 
@@ -183,7 +185,8 @@ if (r.updateGlobalUBO) { r.updateGlobalUBO(vp, camPos, extractedLights, near, fa
 
 ---
 
-### 🟡 `GlobalUniforms`-Buffer wird bis zu 3× pro Frame per `writeBuffer` hochgeladen (WebGPU)
+### ✅ [ERLEDIGT] `GlobalUniforms`-Buffer wurde bis zu 3× pro Frame per `writeBuffer` komplett hochgeladen (WebGPU)
+*(Behoben 2026-09-03: `CascadedShadowPassGPU`/`SpotShadowPassGPU` laden jetzt nur noch die tatsächlich von ihnen beschriebene Byte-Range hoch -- 288 Byte (`cascadeMatrices`/`cascadeSplits`/`dirShadowInfo`, Floats 128-199) bzw. 320 Byte (`spotShadowMatrices`/`spotShadowInfo`, Floats 48-127) statt des kompletten 848-Byte-Puffers, über `queue.writeBuffer(buffer, byteOffset, data, dataOffset, size)`. `_updateGlobalBuffers()`s eigener Voll-Upload bleibt unverändert (dort ändert sich tatsächlich der gesamte Puffer). Unit-Test in `tests/renderers/CascadedShadowPassGPUCulling.test.ts` verifiziert die verkleinerte Range.)*
 
 **Dateien:** `WebGPURenderer.ts:1957` (Default-Upload in `_updateGlobalBuffers()`) plus je ein weiterer `writeBuffer` auf denselben Puffer in `CascadedShadowPassGPU.ts:219` und `SpotShadowPassGPU.ts:214` (Schatten-Overlay-Daten nachgetragen).
 

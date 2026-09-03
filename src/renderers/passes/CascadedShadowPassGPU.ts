@@ -216,7 +216,12 @@ export class CascadedShadowPassGPU implements RenderPass {
     MathPool.releaseMatrix(rawCascadeVp);
     MathPool.releaseMatrix(correctedCascadeVp);
 
-    renderer.gpuDevice!.queue.writeBuffer(renderer.globalUniformBuffer, 0, gData);
+    // Only cascadeMatrices/cascadeSplits/dirShadowInfo (floats 128-199, see GlobalUniforms in
+    // structs.wgsl) were touched above -- upload just that 288-byte slice instead of the whole
+    // 848-byte buffer. Re-uploading the untouched vp/lights/fog fields here too would be pure
+    // waste, and is one of up to 3 full-buffer writes of the same buffer per frame otherwise
+    // (this pass, SpotShadowPassGPU, and _updateGlobalBuffers()'s own once-per-frame write).
+    renderer.gpuDevice!.queue.writeBuffer(renderer.globalUniformBuffer, 128 * 4, gData, 128, 72);
 
     // Bind the resulting texture array to the WebGPU Renderer's global bind group,
     // exactly once (the underlying GPUTexture is reused and just re-rendered into

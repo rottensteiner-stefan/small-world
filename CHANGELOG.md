@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.77.5] - 2026-09-03
+
+### "Do not multiply entities beyond necessity." - William of Ockham
+
+- **Architecture & Bugfixes:**
+  - **WebGL2:** Fixed `WebGLShadowPass` regressing the method-parameter-bivariance hazard `WebGLClusterCullPass` already closed -- replaced its `renderer as unknown as { renderShadowMaps?; updateGlobalUBO? }` duck-typed cast with the same `instanceof WebGL2Renderer` guard + typed direct access.
+  - **WebGPU:** `CascadedShadowPassGPU`/`SpotShadowPassGPU` now upload only the byte range of `GlobalUniforms` they actually touch (288/320 bytes) instead of re-uploading the whole 848-byte buffer on top of `_updateGlobalBuffers()`'s own once-per-frame upload -- up to 3 full-buffer writes per frame down to 1.
+  - **Animation:** Removed `Bone.updateMatrixWorld()`, a byte-for-byte duplicate of `Object3D.updateMatrixWorld()` -- `Bone` now inherits it unchanged.
+- **Housekeeping & Docs:**
+  - Added a unit test covering the narrowed `GlobalUniforms` upload range.
+  - Updated full review dossiers (`.agents/notes/full-review-2026-09-03/`).
+
 ## [0.77.4] - 2026-09-03
 
 ### "The details are not the details. They make the design." - Charles Eames

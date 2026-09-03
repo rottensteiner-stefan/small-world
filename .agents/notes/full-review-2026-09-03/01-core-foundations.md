@@ -279,7 +279,8 @@ Dasselbe Muster (Rückgabewert von `invert()` ignoriert) liegt auch dem oben dok
 
 **Fix-Richtung:** Rückgabewert prüfen und im Fehlerfall auf Identity zurückfallen (wie `_identityMatrix` bereits im `else`-Zweig vorhanden) statt die unveränderte Matrix stillschweigend weiterzuverwenden. Gleiche Behandlung für `Object3D.lookAt()` oben.
 
-### 🟡 `Bone.updateMatrixWorld()` ist eine reine Byte-für-Byte-Dopplung von `Object3D.updateMatrixWorld()`
+### ✅ [ERLEDIGT] `Bone.updateMatrixWorld()` war eine reine Byte-für-Byte-Dopplung von `Object3D.updateMatrixWorld()`
+*(Behoben 2026-09-03: Override komplett entfernt -- `Bone` erbt `updateMatrixWorld()` jetzt unverändert von `Object3D`. Komplette Testsuite grün, keine Bone-spezifische Abweichung im Verhalten gefunden.)*
 
 **Fundort:** `src/core/animation/Bone.ts:19-35` vs. `src/core/Object3D.ts:271-285`.
 
