@@ -4,6 +4,8 @@
 export const MaterialType = {
   /** Material for open water rendering with Gerstner waves. */
   OPEN_WATER: "OpenWaterMaterial",
+  /** Specialized stylized water material with toon foam and caustics projection. */
+  STYLIZED_WATER: "StylizedWaterMaterial",
   /** Unlit basic material. */
   BASIC: "BasicMaterial",
   /** Lambertian diffuse material. */
@@ -24,6 +26,10 @@ export const MaterialType = {
   WORLD: "WorldMaterial",
   /** Specialized material for fluid surfaces with depth fade. */
   FLUID_SURFACE: "FluidSurfaceMaterial",
+  /** Opaque, emissive flowing lava preset on FluidSurfaceMaterial. */
+  LAVA: "LavaMaterial",
+  /** Translucent, low-emissive flowing slime preset on FluidSurfaceMaterial. */
+  SLIME: "SlimeMaterial",
   /** Depth material for shadow mapping. */
   DEPTH: "DepthMaterial",
   /** Physically based rendering material with transmission/refraction. */

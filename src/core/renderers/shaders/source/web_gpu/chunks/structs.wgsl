@@ -51,7 +51,8 @@ struct ObjectUniforms {
     isSkinned: f32,
     boneOffset: f32,
     pad1: f32,
-    pad2: f32
+    pad2: f32,
+    pad3: f32
 }
 
 // Per-draw view-projection matrix, dynamic-offset-indexed -- one slot for the main camera,

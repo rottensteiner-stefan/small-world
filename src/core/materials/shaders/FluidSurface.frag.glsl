@@ -10,6 +10,7 @@ in vec3 v_normal;
 uniform vec4 u_color;
 uniform vec4 u_specColor;
 uniform vec4 u_extraParams;
+uniform vec4 u_liquidParams;
 uniform sampler2D u_diffuseMap;
 uniform sampler2D u_opaqueDepthMap;
 
@@ -55,6 +56,12 @@ void main() {
     float finalBlend = clamp(noiseBlend + edgeBlend, 0.0, 1.0);
 
     vec3 finalColor = mix(baseColor, edgeColor, finalBlend);
+
+    // Emissive glow (lava/molten presets) -- u_extraParams.x and u_liquidParams.zw are otherwise
+    // unused by this shader, repurposed to carry emissiveColor.rgb pre-multiplied by
+    // emissiveStrength (see FluidSurfaceMaterial.ts). Zero by default, a no-op for plain fluids.
+    vec3 emissive = vec3(u_extraParams.x, u_liquidParams.z, u_liquidParams.w);
+    finalColor += sRGBToLinear(emissive);
 
     finalColor *= u_exposure;
     finalColor = linearToSRGB(finalColor);

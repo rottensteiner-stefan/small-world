@@ -32,10 +32,17 @@ export interface FluidSurfaceMaterialOptions {
   noiseMap?: Texture | undefined;
   /** Normal map for surface detail. */
   normalMap?: Texture | undefined;
+  /** Glow color for opaque/emissive presets (lava). Defaults to black -- no glow. */
+  emissiveColor?: Color | undefined;
+  /** Multiplier on `emissiveColor`. 0 disables the glow entirely (the default, plain-fluid look). */
+  emissiveStrength?: number | undefined;
 }
 
 /**
- * A robust material for rendering fluid surfaces like water, lava, or slime with depth fade.
+ * Shared mechanism for opaque/emissive-capable flowing liquid surfaces: noise-driven flow
+ * distortion, depth-fade edge blending, and an optional emissive glow. {@link LavaMaterial} and
+ * {@link SlimeMaterial} are thin presets on top of this -- see
+ * docs/adr/0013-unified-liquid-surface-material.md. Usable directly for a plain flowing liquid.
  */
 export class FluidSurfaceMaterial extends AbstractMaterial {
   /** The base color of the fluid. */
@@ -54,13 +61,23 @@ export class FluidSurfaceMaterial extends AbstractMaterial {
   public noiseMap: Texture | undefined;
   /** Optional normal map. */
   public normalMap: Texture | undefined;
+  /** Glow color for opaque/emissive presets (lava). */
+  public emissiveColor: Color;
+  /** Multiplier on `emissiveColor`. */
+  public emissiveStrength: number;
 
   /**
    * Creates a new FluidSurfaceMaterial.
    * @param options The configuration options.
+   * @param type Shader-registry ID to register under -- overridden by presets
+   * ({@link LavaMaterial}, {@link SlimeMaterial}) so each gets its own compiled shader instead of
+   * colliding on the shared "FluidSurfaceMaterial" ID.
    */
-  constructor(options: FluidSurfaceMaterialOptions = {}) {
-    super(MaterialType.FLUID_SURFACE);
+  constructor(
+    options: FluidSurfaceMaterialOptions = {},
+    type: MaterialType = MaterialType.FLUID_SURFACE,
+  ) {
+    super(type);
     const {
       color = new Color(0.0, 0.4, 0.8),
       edgeColor = new Color(0.8, 0.9, 1.0),
@@ -69,6 +86,8 @@ export class FluidSurfaceMaterial extends AbstractMaterial {
       viscosity = 5.0,
       noiseMap = undefined,
       normalMap = undefined,
+      emissiveColor = new Color(0.0, 0.0, 0.0),
+      emissiveStrength = 0.0,
     } = options;
 
     this.color = color;
@@ -78,6 +97,8 @@ export class FluidSurfaceMaterial extends AbstractMaterial {
     this.viscosity = viscosity;
     this.noiseMap = noiseMap;
     this.normalMap = normalMap;
+    this.emissiveColor = emissiveColor;
+    this.emissiveStrength = emissiveStrength;
 
     // Set transparency and blending
     this.transparent = true;
@@ -89,8 +110,11 @@ export class FluidSurfaceMaterial extends AbstractMaterial {
     if (undefined === this._renderManifest) {
       this._renderManifest = this._createBaseManifest();
       this._renderManifest.properties["u_specColor"] = this.edgeColor.toFloat32Array();
+      // u_extraParams.x and u_liquidParams.z/.w are unread by the base flow shader (x was a
+      // fixed 1.0 placeholder, z/w always 0) -- repurposed to carry emissiveColor.rgb
+      // (pre-multiplied by emissiveStrength) for opaque/emissive presets like LavaMaterial.
       this._renderManifest.properties["u_extraParams"] = [
-        1.0,
+        this.emissiveColor.r * this.emissiveStrength,
         this.time,
         this.flowSpeed,
         this.distortion,
@@ -98,8 +122,8 @@ export class FluidSurfaceMaterial extends AbstractMaterial {
       this._renderManifest.properties["u_liquidParams"] = [
         this.viscosity,
         0.05, // wave amplitude derived from viscosity or fixed
-        0,
-        0,
+        this.emissiveColor.g * this.emissiveStrength,
+        this.emissiveColor.b * this.emissiveStrength,
       ];
       this._renderManifest.textures["u_diffuseMap"] = this.noiseMap;
     }
@@ -112,12 +136,15 @@ export class FluidSurfaceMaterial extends AbstractMaterial {
     props["u_specColor"] = this.edgeColor.toFloat32Array();
 
     const extra = props["u_extraParams"] as number[];
+    extra[0] = this.emissiveColor.r * this.emissiveStrength;
     extra[1] = this.time;
     extra[2] = this.flowSpeed;
     extra[3] = this.distortion;
 
     const liquid = props["u_liquidParams"] as number[];
     liquid[0] = this.viscosity;
+    liquid[2] = this.emissiveColor.g * this.emissiveStrength;
+    liquid[3] = this.emissiveColor.b * this.emissiveStrength;
 
     texs["u_diffuseMap"] = this.noiseMap;
     if (this.normalMap) texs["u_normalMap"] = this.normalMap;

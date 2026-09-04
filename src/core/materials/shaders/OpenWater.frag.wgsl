@@ -1,30 +1,4 @@
-// Cheap 2D hash for the foam cell noise below -- not a general-purpose PRNG, just enough
-// decorrelation between neighboring cells to avoid an obviously repeating pattern.
-fn waterHash(p: vec2<f32>) -> f32 {
-    return fract(sin(dot(p, vec2<f32>(12.9898, 78.233))) * 43758.5453123);
-}
-
-// Worley/cellular noise: distance from `p` to the nearest jittered point among the 3x3
-// neighboring grid cells. Produces the blotchy, cell-like coverage foam needs -- unlike smooth
-// Perlin-style noise, its edges are naturally sharp, which reads as foam clumps rather than a
-// soft gradient.
-fn waterCellNoise(p: vec2<f32>) -> f32 {
-    let cell = floor(p);
-    let localPos = fract(p);
-    var minDistSq = 1.0;
-    for (var y = -1; y <= 1; y++) {
-        for (var x = -1; x <= 1; x++) {
-            let neighbor = vec2<f32>(f32(x), f32(y));
-            let jitter = vec2<f32>(
-                waterHash(cell + neighbor),
-                waterHash(cell + neighbor + vec2<f32>(17.0, 31.0))
-            );
-            let diff = neighbor + jitter - localPos;
-            minDistSq = min(minDistSq, dot(diff, diff));
-        }
-    }
-    return sqrt(minDistSq);
-}
+[WGSL_LIQUID_WORLEY_NOISE]
 
 @fragment fn fs(i: Out) -> @location(0) vec4<f32> {
     let waterColor = sRGBToLinear(obj.color.rgb);
@@ -32,6 +6,9 @@ fn waterCellNoise(p: vec2<f32>) -> f32 {
 
     let edgeColor = vec3<f32>(obj.texOffset.x, obj.texOffset.y, obj.texRepeat.x);
     let edgeSoftness = max(obj.texRepeat.y, 0.001);
+    // obj.pad3 is the last remaining free named slot -- repurposed to carry foamDistance,
+    // decoupled from edgeSoftness (see OpenWaterMaterial.ts).
+    let foamDistance = max(obj.pad3, 0.001);
 
     let fragPosCoords = vec2<i32>(i.pos.xy);
     let bgDepth = textureLoad(u_opaqueDepthMap, fragPosCoords, 0);
@@ -89,15 +66,17 @@ fn waterCellNoise(p: vec2<f32>) -> f32 {
     let edgeColLinear = sRGBToLinear(edgeColor);
     var finalColor = mix(baseColor, edgeColLinear, edgeBlend);
 
-    // Procedural foam: a Worley-noise pattern drifting in world-space XZ, masked to the same
-    // shoreline/intersection band as the edge blend above (real foam only collects where the
-    // water actually meets something, not across the open surface). obj.isTerrain/metallic/
-    // roughness/useEnvMap/useReflectionMap/pad2 are repurposed for foamColor.rgb + foamCutoff/
-    // foamNoiseScale/foamNoiseSpeed (see OpenWaterMaterial.ts).
+    // Procedural foam: a Worley-noise pattern drifting in world-space XZ, masked to its own
+    // shoreline/intersection band (foamDistance) -- independent of the edge-color blend's
+    // distance above, so the foam can be wider or narrower than the color transition (matches
+    // the Unity "Simple Water" reference's separate Depth/Foam Amount distances). obj.isTerrain/
+    // metallic/roughness/useEnvMap/useReflectionMap/pad2 are repurposed for foamColor.rgb +
+    // foamCutoff/foamNoiseScale/foamNoiseSpeed (see OpenWaterMaterial.ts).
     let foamColor = sRGBToLinear(vec3<f32>(obj.isTerrain, obj.metallic, obj.roughness));
     let foamCutoff = obj.useEnvMap;
     let foamNoiseScale = obj.useReflectionMap;
     let foamNoiseSpeed = obj.pad2;
+    let foamBlend = 1.0 - saturate(depthDiff / foamDistance);
     let foamUv = i.wp.xz * foamNoiseScale + obj.time * foamNoiseSpeed;
     let foamCell = waterCellNoise(foamUv);
     let foamPattern = 1.0 - smoothstep(foamCutoff, foamCutoff + 0.15, foamCell);
@@ -108,7 +87,7 @@ fn waterCellNoise(p: vec2<f32>) -> f32 {
     // exact vertex-shader phase would mean duplicating its wave uniforms into the fragment stage).
     let splashPhase = dot(normalize(vec2<f32>(1.0, 0.4)), i.wp.xz) * 0.8 - obj.time * 1.6;
     let splashPulse = 0.6 + 0.4 * sin(splashPhase);
-    let foamMask = foamPattern * edgeBlend * splashPulse;
+    let foamMask = foamPattern * foamBlend * splashPulse;
 
     // Wave-crest foam (foam on open water at steep crests, independent of any solid
     // intersection) was attempted here via a normal.y threshold, but the per-vertex analytic

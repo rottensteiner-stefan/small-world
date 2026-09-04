@@ -26,14 +26,11 @@ fn vs(
     var b = vec3f(0.0, 0.0, 1.0);
     var displacement = vec3f(0.0, 0.0, 0.0);
 
-    let w4 = vec4f(w1.y, -w1.x, w1.z * 0.4, w1.w * 0.45); // Detail wave 1 (perpendicular, shorter)
-    let w5 = vec4f(-w2.y, w2.x, w2.z * 0.3, w2.w * 0.35); // Detail wave 2
-
     displacement += gerstnerWave(w1, wp, speed, time, &t, &b);
     displacement += gerstnerWave(w2, wp, speed, time, &t, &b);
-    displacement += gerstnerWave(w3, wp, speed, time, &t, &b);
-    displacement += gerstnerWave(w4, wp, speed, time, &t, &b);
-    displacement += gerstnerWave(w5, wp, speed, time, &t, &b);
+    if (w3.w > 0.001) {
+        displacement += gerstnerWave(w3, wp, speed, time, &t, &b);
+    }
 
     wp += displacement;
     o.wp = wp;

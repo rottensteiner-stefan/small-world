@@ -6,11 +6,6 @@ in vec3 a_normal;
 in vec2 a_uv;
 in vec3 a_tangent;
 
-// GLSL ES 3.00 requires an interface block to have IDENTICAL member layout in every stage it's
-// used in (a WebGL2/ANGLE link error otherwise: "Field numbers of uniform block ... differ
-// between VERTEX and FRAGMENT shaders") -- only u_vp is actually read below, but this block must
-// still mirror the *entire* GlobalUniforms declaration the fragment shader gets from its
-// LIGHT_DEFS chunk placeholder (see lights.frag.glsl) byte-for-byte, unused light arrays included.
 struct PointLight {
     vec3 pos;
     float distance;
@@ -68,15 +63,16 @@ layout(std140) uniform GlobalUniforms {
 };
 
 uniform mat4 u_model;
-uniform vec4 u_extraParams;
-uniform vec4 u_liquidParams;
-uniform vec4 u_thresholds;
+uniform vec4 u_extraParams;   // wave1: [dirX, dirY, steepness (Q), wavelength]
+uniform vec4 u_liquidParams;  // wave2: [dirX, dirY, steepness (Q), wavelength]
+uniform vec4 u_thresholds;    // wave3: [dirX, dirY, steepness (Q), wavelength]
 uniform float u_time;
-uniform float u_reflectivity;
+uniform float u_reflectivity; // speed multiplier
 
 out vec3 v_worldPos;
 out vec3 v_normal;
 out vec2 v_uv;
+out float v_displacementY;
 
 [LIQUID_GERSTNER_WAVE]
 
@@ -90,8 +86,6 @@ void main() {
     vec4 w1 = u_extraParams;
     vec4 w2 = u_liquidParams;
     vec4 w3 = u_thresholds;
-    vec4 w4 = vec4(w1.y, -w1.x, w1.z * 0.4, w1.w * 0.45); // Detail wave 1 (perpendicular, shorter)
-    vec4 w5 = vec4(-w2.y, w2.x, w2.z * 0.3, w2.w * 0.35); // Detail wave 2
 
     vec3 t = vec3(1.0, 0.0, 0.0);
     vec3 b = vec3(0.0, 0.0, 1.0);
@@ -99,12 +93,13 @@ void main() {
 
     displacement += gerstnerWave(w1, wp, speed, time, t, b);
     displacement += gerstnerWave(w2, wp, speed, time, t, b);
-    displacement += gerstnerWave(w3, wp, speed, time, t, b);
-    displacement += gerstnerWave(w4, wp, speed, time, t, b);
-    displacement += gerstnerWave(w5, wp, speed, time, t, b);
+    if (w3.w > 0.001) {
+        displacement += gerstnerWave(w3, wp, speed, time, t, b);
+    }
 
     wp += displacement;
     v_worldPos = wp;
+    v_displacementY = displacement.y;
     gl_Position = u_vp * vec4(wp, 1.0);
 
     v_uv = a_uv;

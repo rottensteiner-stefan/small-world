@@ -39,6 +39,12 @@
 
     var finalColor = mix(baseColor, edgeCol, finalBlend);
 
+    // Emissive glow (lava/molten presets) -- obj.extraParams.x and obj.liquidParams.zw are
+    // otherwise unused by this shader, repurposed to carry emissiveColor.rgb pre-multiplied by
+    // emissiveStrength (see FluidSurfaceMaterial.ts). Zero by default, a no-op for plain fluids.
+    let emissive = vec3<f32>(obj.extraParams.x, obj.liquidParams.z, obj.liquidParams.w);
+    finalColor += sRGBToLinear(emissive);
+
     // Exposure
     finalColor *= global.exposure;
 

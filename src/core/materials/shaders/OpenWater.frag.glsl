@@ -21,39 +21,14 @@ uniform float u_roughness; // repurposed: foamColor.b
 uniform float u_useEnvMap; // repurposed: foamCutoff
 uniform float u_useReflectionMap; // repurposed: foamNoiseScale
 uniform float u_pad2; // repurposed: foamNoiseSpeed
+uniform float u_pad3; // repurposed: foamDistance
 uniform float u_time;
 uniform sampler2D u_opaqueDepthMap;
 uniform sampler2D u_opaqueMap;
 
 out vec4 fragColor;
 
-// Cheap 2D hash for the foam cell noise below -- not a general-purpose PRNG, just enough
-// decorrelation between neighboring cells to avoid an obviously repeating pattern.
-float waterHash(vec2 p) {
-    return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453123);
-}
-
-// Worley/cellular noise: distance from `p` to the nearest jittered point among the 3x3
-// neighboring grid cells. Produces the blotchy, cell-like coverage foam needs -- unlike smooth
-// Perlin-style noise, its edges are naturally sharp, which reads as foam clumps rather than a
-// soft gradient.
-float waterCellNoise(vec2 p) {
-    vec2 cell = floor(p);
-    vec2 localPos = fract(p);
-    float minDistSq = 1.0;
-    for (int y = -1; y <= 1; y++) {
-        for (int x = -1; x <= 1; x++) {
-            vec2 neighbor = vec2(float(x), float(y));
-            vec2 jitter = vec2(
-                waterHash(cell + neighbor),
-                waterHash(cell + neighbor + vec2(17.0, 31.0))
-            );
-            vec2 diff = neighbor + jitter - localPos;
-            minDistSq = min(minDistSq, dot(diff, diff));
-        }
-    }
-    return sqrt(minDistSq);
-}
+[LIQUID_WORLEY_NOISE]
 
 void main() {
     vec3 waterColor = sRGBToLinear(u_color.rgb);
@@ -61,6 +36,7 @@ void main() {
 
     vec3 edgeColor = vec3(u_texOffset.x, u_texOffset.y, u_texRepeat.x);
     float edgeSoftness = max(u_texRepeat.y, 0.001);
+    float foamDistance = max(u_pad3, 0.001);
 
     // texture() (not texelFetch) so the 1x1 fallback texture's CLAMP_TO_EDGE wrap mode kicks
     // in correctly when no real depth capture exists -- texelFetch has no such fallback and
@@ -116,13 +92,15 @@ void main() {
     vec3 edgeColLinear = sRGBToLinear(edgeColor);
     vec3 finalColor = mix(baseColor, edgeColLinear, edgeBlend);
 
-    // Procedural foam: a Worley-noise pattern drifting in world-space XZ, masked to the same
-    // shoreline/intersection band as the edge blend above (real foam only collects where the
-    // water actually meets something, not across the open surface).
+    // Procedural foam: a Worley-noise pattern drifting in world-space XZ, masked to its own
+    // shoreline/intersection band (foamDistance) -- independent of the edge-color blend's
+    // distance above, so the foam can be wider or narrower than the color transition (matches
+    // the Unity "Simple Water" reference's separate Depth/Foam Amount distances).
     vec3 foamColor = sRGBToLinear(vec3(u_isTerrain, u_metallic, u_roughness));
     float foamCutoff = u_useEnvMap;
     float foamNoiseScale = u_useReflectionMap;
     float foamNoiseSpeed = u_pad2;
+    float foamBlend = 1.0 - clamp(depthDiff / foamDistance, 0.0, 1.0);
     vec2 foamUv = v_worldPos.xz * foamNoiseScale + u_time * foamNoiseSpeed;
     float foamCell = waterCellNoise(foamUv);
     float foamPattern = 1.0 - smoothstep(foamCutoff, foamCutoff + 0.15, foamCell);
@@ -133,7 +111,7 @@ void main() {
     // exact vertex-shader phase would mean duplicating its wave uniforms into the fragment stage).
     float splashPhase = dot(normalize(vec2(1.0, 0.4)), v_worldPos.xz) * 0.8 - u_time * 1.6;
     float splashPulse = 0.6 + 0.4 * sin(splashPhase);
-    float foamMask = foamPattern * edgeBlend * splashPulse;
+    float foamMask = foamPattern * foamBlend * splashPulse;
 
     // Wave-crest foam (foam on open water at steep crests, independent of any solid
     // intersection) was attempted here via a normal.y threshold, but the per-vertex analytic

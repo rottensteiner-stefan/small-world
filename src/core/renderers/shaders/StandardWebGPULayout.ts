@@ -26,6 +26,7 @@ export const StandardWebGPULayout = {
     u_boneOffset: { type: ShaderPropertyType.FLOAT, defaultValue: 0.0 },
     u_pad1: { type: ShaderPropertyType.FLOAT, defaultValue: 0.0 },
     u_pad2: { type: ShaderPropertyType.FLOAT, defaultValue: 0.0 },
+    u_pad3: { type: ShaderPropertyType.FLOAT, defaultValue: 0.0 },
   },
   uniformLayout: [
     "u_model",
@@ -48,6 +49,7 @@ export const StandardWebGPULayout = {
     "u_boneOffset",
     "u_pad1",
     "u_pad2",
+    "u_pad3",
   ],
   textures: {
     u_diffuseMap: { type: ShaderPropertyType.TEXTURE },
