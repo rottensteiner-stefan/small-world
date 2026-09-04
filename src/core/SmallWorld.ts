@@ -71,6 +71,7 @@ export abstract class SmallWorld {
   public readonly audio: AudioSystem = new AudioSystem();
   private readonly _octreeVisualizer: OctreeVisualizer = new OctreeVisualizer();
   private readonly _collisionVisualizer: CollisionVisualizer = new CollisionVisualizer();
+  private readonly _frustumCuller: FrustumCuller = new FrustumCuller();
   public forge!: import("../tools/forge/Forge.js").Forge;
   /** The canvas element. */
   public canvas!: HTMLCanvasElement;
@@ -131,22 +132,6 @@ export abstract class SmallWorld {
     this.renderer = undefined!; // Initialized in start()
 
     this.input.init();
-
-    // Bind GadgetInspector audio events
-    if (typeof window !== "undefined") {
-      window.addEventListener("gadget:audio:master", (e: Event) =>
-        this.audio.setMasterVolume((e as CustomEvent).detail),
-      );
-      window.addEventListener("gadget:audio:music", (e: Event) =>
-        this.audio.setMusicVolume((e as CustomEvent).detail),
-      );
-      window.addEventListener("gadget:audio:sfx", (e: Event) =>
-        this.audio.setSFXVolume((e as CustomEvent).detail),
-      );
-      window.addEventListener("gadget:audio:reverb", (e: Event) =>
-        this.audio.setReverbLevel((e as CustomEvent).detail),
-      );
-    }
   }
 
   /**
@@ -525,7 +510,7 @@ export abstract class SmallWorld {
     if (this.config.enableOcclusionCulling) {
       this.renderer.applyPendingOcclusionResults?.(this.scene);
     }
-    FrustumCuller.cull(this.scene, this.camera.viewProjectionMatrix4);
+    this._frustumCuller.cull(this.scene, this.camera.viewProjectionMatrix4);
 
     if (this.config.enablePhysics) {
       this.physics.applyRenderInterpolation();
@@ -533,7 +518,7 @@ export abstract class SmallWorld {
 
     if (this.debug) {
       this._collisionVisualizer.update(this.scene);
-      this._octreeVisualizer.update(this.scene, FrustumCuller.lastIntersectedNodes);
+      this._octreeVisualizer.update(this.scene, this._frustumCuller.lastIntersectedNodes);
     }
 
     if (this.canvas.clientWidth > 0 && this.canvas.clientHeight > 0) {

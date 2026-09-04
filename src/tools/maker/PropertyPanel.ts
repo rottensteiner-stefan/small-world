@@ -182,7 +182,7 @@ export class PropertyPanel {
       btn.innerHTML = label;
       btn.addEventListener("click", (e: MouseEvent): void => {
         e.stopPropagation();
-        menu.remove();
+        closeMenu();
         onClick();
       });
       menu.appendChild(btn);
@@ -227,9 +227,12 @@ export class PropertyPanel {
 
     const closeHandler = (e: MouseEvent): void => {
       if (!menu.contains(e.target as Node)) {
-        menu.remove();
-        window.removeEventListener("pointerdown", closeHandler);
+        closeMenu();
       }
+    };
+    const closeMenu = (): void => {
+      menu.remove();
+      window.removeEventListener("pointerdown", closeHandler);
     };
     setTimeout(() => {
       window.addEventListener("pointerdown", closeHandler);
@@ -271,7 +274,7 @@ export class PropertyPanel {
     removeOption.innerHTML = "🗑️ Remove Behavior";
     removeOption.addEventListener("click", (e: MouseEvent): void => {
       e.stopPropagation();
-      menu.remove();
+      closeMenu();
       this._callbacks?.onDetachBehavior?.(obj, behavior);
     });
     menu.appendChild(removeOption);
@@ -284,9 +287,12 @@ export class PropertyPanel {
 
     const closeHandler = (e: MouseEvent): void => {
       if (!menu.contains(e.target as Node)) {
-        menu.remove();
-        window.removeEventListener("pointerdown", closeHandler);
+        closeMenu();
       }
+    };
+    const closeMenu = (): void => {
+      menu.remove();
+      window.removeEventListener("pointerdown", closeHandler);
     };
     setTimeout(() => {
       window.addEventListener("pointerdown", closeHandler);

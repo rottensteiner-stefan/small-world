@@ -885,7 +885,7 @@ export class WebGPURenderer extends AbstractRenderer {
    * call earlier this same frame -- see that field's doc comment) down to the ones with a usable
    * `bounds` sphere, appending onto `out` up to `MAX_HZB_TESTED_OBJECTS` total. A linear scan over
    * that already-collected list, NOT a second scene-tree walk -- see `_dispatchHzbTest()`'s doc
-   * comment for why this doesn't read one of `FrustumCuller`'s static output fields instead, and
+   * comment for why this doesn't read one of `FrustumCuller`'s output fields instead, and
    * why relying on `DepthPrePassGPU` having already run this frame is safe (it's fixed earlier
    * than `HzbOcclusionPassGPU` in `WebGPURenderer`'s `_passes` array).
    *
@@ -919,12 +919,10 @@ export class WebGPURenderer extends AbstractRenderer {
    *
    * The candidate list is derived from `scene.lastFrustumVisibleObjects` (`isVisible && inFrustum`,
    * same condition `FrustumCuller`'s own fallback path uses -- see `_collectHzbCandidates()`)
-   * rather than reading any of `FrustumCuller`'s output fields -- those are `static`, so any other
-   * concurrently running `SmallWorld` instance on the page (e.g. GadgetInspector's
-   * `MaterialStudioApp` preview panel, which runs its own `_loop()`/`FrustumCuller.cull()` on its
-   * own tiny scene) clobbers them before this renderer gets to read them. Reading `scene`'s own
-   * per-instance list keeps the candidate list scoped to the scene actually being rendered,
-   * independent of that shared static state.
+   * rather than reading any of `FrustumCuller`'s output fields: this renderer only holds a
+   * `scene`, not the owning `SmallWorld`'s private culler instance. Reading `scene`'s own
+   * per-instance list keeps the candidate list scoped to the scene actually being rendered, without
+   * coupling the renderer to whichever culler instance drove this frame.
    *
    * Only one slot is ever in flight at a time (the two alternate every frame -- see
    * `_hzbStagingBuffers`'s doc comment); if THAT slot is still pending, this frame's test is

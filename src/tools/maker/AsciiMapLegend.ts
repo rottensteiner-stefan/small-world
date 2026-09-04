@@ -23,7 +23,6 @@ const MARKER_PALETTE: Record<string, { label: string; color: Color }> = {
 
 const cubeGeometry = new Cube({ size: 1 }).getGeometryData();
 const markerGeometry = new Cube({ size: 0.4 }).getGeometryData();
-let markerCounter = 0;
 
 function wallEntry(color: Color): GridLegendEntry {
   return {
@@ -41,12 +40,12 @@ function wallEntry(color: Color): GridLegendEntry {
   };
 }
 
-function markerEntry(char: string): GridLegendEntry {
+function markerEntry(char: string, counter: { count: number }): GridLegendEntry {
   const { label, color } = MARKER_PALETTE[char]!;
   return {
     type: "custom",
     onBuild: (_x, _y, worldX, worldZ): Object3D => {
-      const marker = new Object3D(`${label}_${markerCounter++}`);
+      const marker = new Object3D(`${label}_${counter.count++}`);
       marker.geometry = markerGeometry;
       marker.material = new StandardMaterial({ color, metallic: 0, roughness: 0.6 });
       marker.position.set(worldX, 0.2, worldZ);
@@ -65,12 +64,13 @@ function markerEntry(char: string): GridLegendEntry {
  * refines by hand afterward in Maker, not a finished level.
  */
 export function defaultAsciiMapLegend(): GridLegend {
+  const counter = { count: 0 };
   const legend: GridLegend = {
     W: wallEntry(new Color(0.33, 0.33, 0.33)),
     G: wallEntry(new Color(0.27, 0.27, 0.27)),
   };
   for (const char of Object.keys(MARKER_PALETTE)) {
-    legend[char] = markerEntry(char);
+    legend[char] = markerEntry(char, counter);
   }
   return legend;
 }

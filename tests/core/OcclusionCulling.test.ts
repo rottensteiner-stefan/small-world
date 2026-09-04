@@ -104,27 +104,29 @@ describe("Scene.lastFrustumVisibleObjects", () => {
 
 describe("FrustumCuller.cull (fallback path, no octree)", () => {
   it("marks exactly the objects that end up visible+inFrustum", () => {
+    const culler = new FrustumCuller();
     const scene = new Scene();
     const a = makeDrawable("A");
     const b = makeDrawable("B");
     b.isVisible = false;
     scene.add(a, b);
 
-    const count = FrustumCuller.cull(scene, new Matrix4());
+    const count = culler.cull(scene, new Matrix4());
 
     expect(count).toBe(1);
     expect(a.inFrustum).toBe(true);
   });
 
   it("resets lastVisibleCount to 0 for an empty scene", () => {
+    const culler = new FrustumCuller();
     const scene = new Scene();
     const a = makeDrawable("A");
     scene.add(a);
-    FrustumCuller.cull(scene, new Matrix4());
-    expect(FrustumCuller.lastVisibleCount).toBeGreaterThan(0);
+    culler.cull(scene, new Matrix4());
+    expect(culler.lastVisibleCount).toBeGreaterThan(0);
 
     const emptyScene = new Scene();
-    FrustumCuller.cull(emptyScene, new Matrix4());
-    expect(FrustumCuller.lastVisibleCount).toBe(0);
+    culler.cull(emptyScene, new Matrix4());
+    expect(culler.lastVisibleCount).toBe(0);
   });
 });

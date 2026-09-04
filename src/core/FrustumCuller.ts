@@ -8,19 +8,19 @@ import { Collidable } from "../interfaces/index.js";
  * Handles frustum culling for objects in a scene.
  */
 export class FrustumCuller {
-  private static _frustum: Frustum = new Frustum();
-  private static _queryHits: Collidable[] = [];
+  private _frustum: Frustum = new Frustum();
+  private _queryHits: Collidable[] = [];
 
   /** The octree nodes that were intersected during the last cull operation. */
-  public static lastIntersectedNodes: Set<OctreeNode> = new Set();
+  public lastIntersectedNodes: Set<OctreeNode> = new Set();
 
   /** The number of visible objects during the last cull operation. */
-  public static lastVisibleCount: number = 0;
+  public lastVisibleCount: number = 0;
 
   /**
    * Culls objects in the scene that are outside the camera frustum.
    */
-  public static cull(scene: Scene, vpMatrix: Matrix4): number {
+  public cull(scene: Scene, vpMatrix: Matrix4): number {
     this._frustum.setFromMatrix(vpMatrix);
     this.lastIntersectedNodes.clear();
 
@@ -42,7 +42,7 @@ export class FrustumCuller {
 
       const count: number = this._countVisible(scene.root);
 
-      FrustumCuller.lastVisibleCount = count;
+      this.lastVisibleCount = count;
       return count;
     }
 
@@ -52,18 +52,18 @@ export class FrustumCuller {
       visibleCount += this._checkNode(scene.objects[i]!);
     }
 
-    FrustumCuller.lastVisibleCount = visibleCount;
+    this.lastVisibleCount = visibleCount;
     return visibleCount;
   }
 
-  private static _resetCulling(obj: Object3D): void {
+  private _resetCulling(obj: Object3D): void {
     obj.inFrustum = !(obj.frustumCulled && obj.bounds);
     for (let i: number = 0; i < obj.children.length; i++) {
       this._resetCulling(obj.children[i]!);
     }
   }
 
-  private static _countVisible(obj: Object3D): number {
+  private _countVisible(obj: Object3D): number {
     let count: number = obj.isVisible && obj.inFrustum ? 1 : 0;
     for (let i: number = 0; i < obj.children.length; i++) {
       count += this._countVisible(obj.children[i]!);
@@ -71,7 +71,7 @@ export class FrustumCuller {
     return count;
   }
 
-  private static _checkNode(obj: Object3D): number {
+  private _checkNode(obj: Object3D): number {
     if (obj.isVisible && obj.frustumCulled && obj.bounds) {
       obj.inFrustum = this._frustum.intersectsVolume(obj.bounds);
     } else {

@@ -82,6 +82,10 @@ export class ShaderRegistry {
     }
 
     if (!def && this !== ShaderRegistry._instance && ShaderRegistry._instance) {
+      console.warn(
+        `[ShaderRegistry] Cache miss on instance registry for "${id}" -- falling back to the global ` +
+          "singleton. Register this shader on a RendererContext-scoped registry instead.",
+      );
       def = ShaderRegistry._instance.get(id);
     }
 
@@ -111,6 +115,10 @@ export class ShaderRegistry {
     CoreShaderChunks.init(this);
     const chunk = this._chunks.get(id)?.get(lang);
     if (undefined === chunk && this !== ShaderRegistry._instance && ShaderRegistry._instance) {
+      console.warn(
+        `[ShaderRegistry] Chunk "${id}" not cached on instance registry -- falling back to the global ` +
+          "singleton. Register this chunk on a RendererContext-scoped registry instead.",
+      );
       return ShaderRegistry._instance.getChunk(id, lang);
     }
     return chunk;
