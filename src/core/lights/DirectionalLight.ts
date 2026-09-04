@@ -3,7 +3,11 @@ import { LightType, ProjectionType } from "../../enums/index.js";
 import { Vector3D, MathPool } from "../../math/index.js";
 import { LightDataInterface } from "../../interfaces/index.js";
 import { Camera } from "../index.js";
-import { OrthographicProjection, PerspectiveProjection } from "../../math/projections/index.js";
+import {
+  AbstractProjection,
+  OrthographicProjection,
+  PerspectiveProjection,
+} from "../../math/projections/index.js";
 
 /**
  * Configuration options for directional light.
@@ -89,24 +93,10 @@ export class DirectionalLight extends AbstractLight {
    */
   public updateCascades(cam: import("../../interfaces/index.js").CameraInterfaceData): void {
     if (!this.castShadow || this.numCascades <= 0) return;
-    if (!cam.projection || cam.projection.type !== ProjectionType.PERSPECTIVE) {
-      return;
-    }
+    const proj = cam.projection;
+    if (!proj) return;
 
-    const proj = cam.projection as PerspectiveProjection;
-    const near = proj.near;
-    // Limit shadow distance to something reasonable (e.g. 150) so we don't waste shadow resolution on far background
-    const shadowMaxDistance = Math.min(proj.far, 150.0);
-    const ratio = shadowMaxDistance / near;
-
-    // 1. Calculate cascade split distances (Practical Split Scheme)
-    for (let i = 0; i < this.numCascades; i++) {
-      const p = (i + 1) / this.numCascades;
-      const log = near * Math.pow(ratio, p);
-      const uniform = near + (shadowMaxDistance - near) * p;
-      this.cascadeSplits[i] =
-        log * this.cascadeSplitLambda + uniform * (1.0 - this.cascadeSplitLambda);
-    }
+    this._computeCascadeSplits(proj);
 
     // Determine light up vector to build light view matrix
     this._lightUp.set(0, 1, 0);
@@ -114,12 +104,25 @@ export class DirectionalLight extends AbstractLight {
       this._lightUp.set(0, 0, 1);
     }
 
-    let cascadeNear = near;
+    const isPerspective = proj.type === ProjectionType.PERSPECTIVE;
+
+    let cascadeNear = isPerspective
+      ? (proj as PerspectiveProjection).near
+      : (proj as OrthographicProjection).near;
     for (let i = 0; i < this.numCascades; i++) {
       const cascadeFar = this.cascadeSplits[i]!;
 
       // 2. Compute bounding boxes for each cascade
-      this._updateFrustumCorners(cam, proj, cascadeNear, cascadeFar);
+      if (isPerspective) {
+        this._updateFrustumCorners(cam, proj as PerspectiveProjection, cascadeNear, cascadeFar);
+      } else {
+        this._updateOrthoFrustumCorners(
+          cam,
+          proj as OrthographicProjection,
+          cascadeNear,
+          cascadeFar,
+        );
+      }
 
       // Center of this sub-frustum slice
       this._center.set(0, 0, 0);
@@ -203,6 +206,35 @@ export class DirectionalLight extends AbstractLight {
     }
   }
 
+  private _computeCascadeSplits(proj: AbstractProjection): void {
+    if (proj.type === ProjectionType.PERSPECTIVE) {
+      const perspective = proj as PerspectiveProjection;
+      const near = perspective.near;
+      // Limit shadow distance to something reasonable (e.g. 150) so we don't waste shadow resolution on far background
+      const shadowMaxDistance = Math.min(perspective.far, 150.0);
+      const ratio = shadowMaxDistance / near;
+
+      // 1. Calculate cascade split distances (Practical Split Scheme)
+      for (let i = 0; i < this.numCascades; i++) {
+        const p = (i + 1) / this.numCascades;
+        const log = near * Math.pow(ratio, p);
+        const uniform = near + (shadowMaxDistance - near) * p;
+        this.cascadeSplits[i] =
+          log * this.cascadeSplitLambda + uniform * (1.0 - this.cascadeSplitLambda);
+      }
+    } else {
+      // An orthographic camera has no perspective divergence, so the practical split scheme
+      // buys nothing -- split the box depth linearly so every cascade tracks the frustum instead
+      // of the first cascade covering everything.
+      const ortho = proj as OrthographicProjection;
+      const near = ortho.near;
+      const far = ortho.far;
+      for (let i = 0; i < this.numCascades; i++) {
+        this.cascadeSplits[i] = near + (far - near) * ((i + 1) / this.numCascades);
+      }
+    }
+  }
+
   private _updateFrustumCorners(
     cam: import("../../interfaces/index.js").CameraInterfaceData,
     proj: PerspectiveProjection,
@@ -242,6 +274,49 @@ export class DirectionalLight extends AbstractLight {
     this._setCorner(this._corners[5]!, this._farCenter, farHeight, farWidth, 1, 1);
     this._setCorner(this._corners[6]!, this._farCenter, farHeight, farWidth, -1, -1);
     this._setCorner(this._corners[7]!, this._farCenter, farHeight, farWidth, -1, 1);
+
+    MathPool.releaseVector(tempVec);
+  }
+
+  /**
+   * Fill `_corners` with the 8 world-space corners of a cascade slab of an orthographic camera.
+   * Unlike the perspective path, an orthographic frustum has a constant width/height along the view
+   * direction (parallel projection), so the slab is a plain box: corners are read straight off
+   * `left/right/top/bottom` instead of being derived from fov/aspect.
+   */
+  private _updateOrthoFrustumCorners(
+    cam: import("../../interfaces/index.js").CameraInterfaceData,
+    proj: OrthographicProjection,
+    nearDist: number,
+    farDist: number,
+  ): void {
+    const height = proj.top - proj.bottom;
+    const width = proj.right - proj.left;
+
+    // Camera axes
+    this._forward.copyFrom(cam.target).sub(cam.position).normalize();
+    this._right.copyFrom(this._forward).cross(cam.up).normalize();
+    this._up.copyFrom(this._right).cross(this._forward).normalize();
+
+    const tempVec = MathPool.acquireVector();
+
+    tempVec.set(this._forward.x * nearDist, this._forward.y * nearDist, this._forward.z * nearDist);
+    this._nearCenter.copyFrom(cam.position).add(tempVec);
+
+    tempVec.set(this._forward.x * farDist, this._forward.y * farDist, this._forward.z * farDist);
+    this._farCenter.copyFrom(cam.position).add(tempVec);
+
+    // Near Plane Corners
+    this._setCorner(this._corners[0]!, this._nearCenter, height, width, 1, -1);
+    this._setCorner(this._corners[1]!, this._nearCenter, height, width, 1, 1);
+    this._setCorner(this._corners[2]!, this._nearCenter, height, width, -1, -1);
+    this._setCorner(this._corners[3]!, this._nearCenter, height, width, -1, 1);
+
+    // Far Plane Corners
+    this._setCorner(this._corners[4]!, this._farCenter, height, width, 1, -1);
+    this._setCorner(this._corners[5]!, this._farCenter, height, width, 1, 1);
+    this._setCorner(this._corners[6]!, this._farCenter, height, width, -1, -1);
+    this._setCorner(this._corners[7]!, this._farCenter, height, width, -1, 1);
 
     MathPool.releaseVector(tempVec);
   }

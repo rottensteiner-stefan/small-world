@@ -51,7 +51,11 @@ export class Skeleton {
     const invMeshWorld = MathPool.acquireMatrix();
     if (meshWorldMatrix) {
       invMeshWorld.data.set(meshWorldMatrix.data);
-      invMeshWorld.invert();
+      // A singular mesh world matrix (e.g. a zero-scale "pop-in" spawn) can't be inverted --
+      // fall back to identity instead of re-applying the non-inverted world matrix a second time.
+      if (!invMeshWorld.invert()) {
+        invMeshWorld.data.set(this._identityMatrix.data);
+      }
     } else {
       invMeshWorld.data.set(this._identityMatrix.data);
     }
