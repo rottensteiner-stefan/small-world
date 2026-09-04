@@ -1,17 +1,13 @@
-import {
-  AmbientLight,
-  Camera,
-  DirectionalLight,
-  Object3D,
-  Scene,
-  Sprite,
-} from "../../core/index.js";
-import { SpriteMaterial } from "../../core/materials/index.js";
-import { Color } from "../../core/colors/index.js";
+import { AmbientLight } from "../../core/lights/AmbientLight.js";
+import { DirectionalLight } from "../../core/lights/DirectionalLight.js";
+import { Camera } from "../../core/Camera.js";
+import { Object3D } from "../../core/Object3D.js";
+import { Scene } from "../../core/Scene.js";
+import { Color } from "../../core/colors/Color.js";
 import { RenderTarget, Texture } from "../../core/textures/index.js";
-import { OrthographicProjection } from "../../math/projections/index.js";
-import { Vector3D } from "../../math/index.js";
-import { Renderer } from "../../interfaces/index.js";
+import { OrthographicProjection } from "../../math/projections/OrthographicProjection.js";
+import { Vector3D } from "../../math/Vector3D.js";
+import { Renderer } from "../../interfaces/Renderer.js";
 
 export interface ImposterBakeOptions {
   /** Number of horizontal angles baked around the object's Y axis. Defaults to 8. */
@@ -118,12 +114,6 @@ export function bakeImposter(
     new OrthographicProjection({
       left: -radius * 1.1,
       right: radius * 1.1,
-      // Swapped vs. the usual bottom<top convention: RenderTarget textures come out of the
-      // renderer in WebGPU's native top-left row order, but `Plane`/`Sprite`'s UV mapping
-      // (V=1 at the quad's top, V=0 at its bottom -- see src/geometry/Plane.ts) assumes the
-      // bottom-left-origin convention regular loaded images get Y-flip-corrected into during
-      // upload (`Texture`'s `flipY` option). A render target never goes through that image-load
-      // step, so without this pre-flip every baked angle displays upside down on the sprite.
       bottom: radius * 1.1,
       top: -radius * 1.1,
       near: 0.01,
@@ -152,32 +142,4 @@ export function bakeImposter(
   }
 
   return textures;
-}
-
-/**
- * A camera-facing sprite that swaps between the angle textures a prior `bakeImposter()` call
- * produced, picking whichever was baked closest to the current view angle. Inherits `Sprite`'s
- * existing (non-instanced) CPU billboard path for the quad's own facing -- only the texture
- * selection is new here.
- */
-export class ImposterSprite extends Sprite {
-  private readonly _textures: Texture[];
-
-  constructor(name: string, textures: Texture[]) {
-    if (0 === textures.length) throw new Error("ImposterSprite requires at least one texture.");
-    super(new SpriteMaterial({ texture: textures[0] }), name);
-    this._textures = textures;
-  }
-
-  public update(camera: Camera): void {
-    const dx = camera.position.x - this.position.x;
-    const dz = camera.position.z - this.position.z;
-    const viewAngle = Math.atan2(dx, dz);
-    const step = (Math.PI * 2) / this._textures.length;
-    // Bucket boundaries sit half a step before each bake angle, so the nearest angle wins.
-    const index =
-      ((Math.round(viewAngle / step) % this._textures.length) + this._textures.length) %
-      this._textures.length;
-    (this.material as SpriteMaterial).texture = this._textures[index];
-  }
 }

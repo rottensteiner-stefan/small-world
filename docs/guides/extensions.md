@@ -1,18 +1,21 @@
-# Extensions & Ecosystem
+# Modular Ecosystem & Domain Layering
 
-The **Small World Engine** core focuses on rendering, math, and the basic scene graph. However, we also provide a powerful **Extensions** system that houses generic, reusable utilities and builders for your games.
+Per **ADR 0014**, Small World follows a strict 4-tier domain layering architecture rather than generic catch-all folders.
 
-## What is an Extension?
+## Domain Structure
 
-An Extension is a piece of modular logic that builds upon the core engine but isn't required for basic 3D rendering. They are designed to be "drop-in" utilities.
+1. **Tier 1 — Core Engine (`src/core/`, `src/renderers/`, `src/geometry/`, `src/math/`):**
+   Math, scene graph, cameras, renderers, passes, shaders, and core primitives (including `BillboardInstancer` and `ImposterBaker`).
+2. **Tier 2 — Environment & Atmosphere (`src/environment/`):**
+   Weather, atmospheric particle systems (`WeatherEmitter`), sky systems, and fluid surfaces.
+3. **Tier 3 — Behaviors & Simulation (`src/core/behaviors/`):**
+   Controllers, sensors, animation loops, and ambient creature life (`RatGroomingBehavior`, `GroomingRat`).
+4. **Tier 4 — Tools & ProcGen (`src/tools/`, `src/tools/procgen/`):**
+   Authoring tools (`MakerApp`, `MapGenerator`, `Pixler`, `Xtractor`, `Forge`) and procedural level generators (`GridLevelBuilder`).
 
-Examples of built-in extensions include:
-- `GridLevelBuilder`: An ASCII-art based level generator for dungeon crawlers.
-- *More coming soon...*
+## Example: Procedural Grid Generation (`GridLevelBuilder`)
 
-## Example: GridLevelBuilder
-
-If you want to build a tile-based dungeon crawler, writing placement logic for every wall and enemy is tedious. The `GridLevelBuilder` extension allows you to define levels using simple ASCII arrays.
+`GridLevelBuilder` lives in `src/tools/procgen/` (exported via `small-world` tooling surface) and allows defining 3D levels from ASCII grids.
 
 ### Usage
 
@@ -50,5 +53,3 @@ const myMap = ["#######", "#P    #", "#######"].join("\n");
 // Build the map (async — resolves to the world position of the first "P" spawn, or the map center)
 await builder.build(this.scene, myMap, config);
 ```
-
-By leveraging `Extensions`, you can drastically reduce boilerplate code while keeping the core engine bundle size absolutely minimal.

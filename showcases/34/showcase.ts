@@ -72,8 +72,7 @@ function buildTree(): Object3D {
  * A forest glade demonstrating AAA research item #15 (Billboards/Imposter): a dense
  * `BillboardInstancer` grass field (Y-axis-locked, camera-facing quads, one instanced draw
  * call), plus a row of `ImposterSprite` trees -- baked once at startup via `bakeImposter()` --
- * standing right next to real 3D comparison trees so the swap is visible up close. Both are
- * pure `src/extensions/` utilities; no renderer code was touched to build this.
+ * standing right next to real 3D comparison trees so the swap is visible up close.
  */
 class Showcase34 extends AbstractShowcase {
   private _grass!: BillboardInstancer;

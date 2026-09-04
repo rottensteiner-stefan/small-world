@@ -39,8 +39,8 @@ const HOT_ZONE_Z = -16;
  *
  * A ruined street in the "And Now?" world's Donauauen fallout belt -- collapsed apartment
  * blocks, a leaking radioactive hot zone at the street's end, and a constant fall of irradiated
- * ash drifting through the haze. Demonstrates the new `WeatherEmitter` extension
- * (`src/extensions/weather/WeatherEmitter.ts`): a high-altitude ashfall field plus a dense,
+ * ash drifting through the haze. Demonstrates the new `WeatherEmitter`
+ * (`src/environment/weather/WeatherEmitter.ts`): a high-altitude ashfall field plus a dense,
  * ground-hugging toxic dust layer around the hot zone, both `InstancedMesh`-backed with zero
  * renderer changes. Also exercises the engine's built-in `Fog` (EXP2) for the toxic haze.
  */

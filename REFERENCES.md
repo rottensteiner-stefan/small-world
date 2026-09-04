@@ -284,7 +284,7 @@ This document serves to record external sources, algorithms, mathematical deriva
 
 ### Procedural Rodent Grooming FSM & Spline Wave Kinematics (`RatGroomingBehavior`)
 
-- **File:** `src/extensions/creatures/RatGroomingBehavior.ts`, `src/extensions/creatures/GroomingRat.ts`
+- **File:** `src/core/behaviors/creatures/RatGroomingBehavior.ts`, `src/core/behaviors/creatures/GroomingRat.ts`
 - **Concept:** Procedural rodent grooming state machine (Finite State Machine) combining Lissajous paw scrubbing trajectories with phase-delayed spline wave propagation for multi-segment tails.
 - **Formulas:**
   - *Face/Whisker Scrubbing Trajectory:* $x(t) = \pm 0.015 + \sin(18t) \cdot 0.008$, $y(t) = 0.125 + \cos(18t) \cdot 0.014$ synchronized with resonant head nodding ($\Delta \theta_X = 0.12 + 0.06 \sin(18t)$).

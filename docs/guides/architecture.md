@@ -45,54 +45,64 @@ this.scene.add(player);
 
 ---
 
-## 2. Cameras & Controllers
+## 2. Cameras & Behaviors
 
-The engine does not use a rigid camera model. Instead, there is a base `Camera` that is controlled by flexible **strategies** (like `SmoothStrategy`, `IsometricStrategy`) and **controllers** (`FPSController`, `ZoomController`).
+The engine uses a unified camera architecture. The base `Camera` is parameterized by a projection (`PerspectiveProjection` or `OrthographicProjection`) and controlled dynamically via the **Behavior system**.
 
-### Showcase: First-Person Shooter Camera (FPS)
+### Showcase: Camera with Controller and Shake Behavior
 
 ```typescript
-import { FPSController, CameraStrategyType } from "small-world";
+import { Camera, PerspectiveProjection, FirstPersonController, ShakeBehavior } from "small-world";
 
-// The strategy defines how the camera updates (STIFF = direct, SMOOTH = interpolated)
-this.camera.setStrategy(CameraStrategyType.STIFF);
+// Create camera with perspective projection
+const camera = new Camera(new PerspectiveProjection({ fov: 60, near: 0.1, far: 1000 }));
 
-// Controllers are Behaviors – attach them directly to the camera.
-// Do NOT use this.controllers.push() (deprecated pattern).
-this.camera.addBehavior(
-  new FPSController({
+// Attach controllers and procedural effects directly as Behaviors
+camera.addBehavior(
+  new FirstPersonController({
     moveSpeed: 10.0,
     lookSensitivity: 0.002,
   })
 );
+
+// Add procedural trauma/shake behavior for impacts
+const shake = new ShakeBehavior();
+camera.addBehavior(shake);
 ```
 
 ---
 
-## 3. Materials (PBR & Specific Shaders)
+## 3. Materials & Shaders (PBR & Shipped Presets)
 
-Small World uses a hybrid rendering approach (WebGL2 & WebGPU) based on the Cook-Torrance BRDF model. Materials define parameters that are read by the shader.
+Small World uses a hybrid rendering pipeline (WebGPU, WebGL2, WebGL1) based on the Cook-Torrance BRDF model with linear color space and sRGB gamma correction.
 
-### Overview of key materials
+### Key Material Families
 
-- `StandardMaterial`: For 90% of objects. Supports `color`, `metallic`, `roughness`, as well as diffuse, normal, and roughness maps.
-- `GlassMaterial`: A refractive material for glass or water with true refraction (`ior`), configurable `thickness`, and `transmission`.
-- `SpriteMaterial`: For 2D/2.5D billboards that always face the camera.
+- `StandardMaterial`: Core PBR material with `albedo`, `metallic`, `roughness`, and diffuse/normal/roughness map slots.
+- `GlassMaterial`: Real-time Screen-Space Refraction (SSR) with configurable `ior` and volumetric absorption.
+- `SpriteMaterial`: 2D/2.5D camera-facing billboard material.
+- **Wave Family (ADR 0013):**
+  - `OpenWaterMaterial`: Realistic ocean water with Gerstner waves and opaque depth-fade (soft shores).
+  - `StylizedWaterMaterial`: Stylized/toon water with customizable edge foam and cel tinting.
+- **Flow Family (ADR 0013):**
+  - `LavaMaterial`: Opaque, glowing molten rock with customizable emissive intensity and noise-driven viscosity.
+  - `SlimeMaterial`: Translucent, oozing liquid preset with subtle luminous edge glow.
 
-### Showcase: Glass/Water Material with Index of Refraction
+### Showcase: Lava Material with Emissive Glow
 
 ```typescript
-import { GlassMaterial, Color } from "small-world";
+import { LavaMaterial, Color, Object3D, Plane } from "small-world";
 
-const water = new GlassMaterial({
-  color: new Color(0.9, 0.95, 1.0),
-  roughness: 0.05,
-  ior: 1.33, // Index of Refraction for water
-  thickness: 2.0, // Affects refraction depth
-  transmission: 0.9, // How much light passes through vs. reflects
+const lava = new Object3D("LavaLake");
+lava.geometry = new Plane({ width: 50, height: 50, widthSegments: 32, heightSegments: 32 }).getGeometryData();
+lava.material = new LavaMaterial({
+  color: new Color(0.25, 0.03, 0.0),
+  emissiveColor: new Color(1.0, 0.35, 0.05),
+  emissiveStrength: 2.0,
+  flowSpeed: 0.4,
 });
 
-waterSurface.material = water;
+this.scene.add(lava);
 ```
 
 ---

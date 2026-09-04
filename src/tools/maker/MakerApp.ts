@@ -38,7 +38,7 @@ import { TransformGizmo, GizmoMode, GizmoAxis } from "./TransformGizmo.js";
 import { LightGizmoManager } from "./LightGizmoManager.js";
 import { MapImportPanel } from "./MapImportPanel.js";
 import { defaultAsciiMapLegend } from "./AsciiMapLegend.js";
-import { GridLevelBuilder } from "../../extensions/grid-builder/index.js";
+import { GridLevelBuilder } from "../procgen/index.js";
 
 export interface MakerAppOptions extends EngineOptions {
   hierarchyContainer: HTMLElement;

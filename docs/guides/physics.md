@@ -77,7 +77,16 @@ During this step, the engine:
    - **Positional Correction:** Pushes overlapping objects apart to prevent "sinking".
    - **Impulse Resolution:** Applies opposing forces to make the objects bounce based on their `restitution`.
 
+## Continuous Collision Detection (CCD) & Fluid Volumes
+
+### 1. Continuous Collision Detection (ADR 0005)
+For fast-moving projectiles or balls that might tunnel through thin walls between frames, Small World supports sphere Continuous Collision Detection (CCD). The swept sphere volume is checked along its frame trajectory to guarantee solid collisions without tunneling.
+
+### 2. Fluid Volumes (`FluidVolume`)
+`FluidVolume` creates physical trigger zones (water, acid, lava pools) that apply buoyancy, linear fluid drag, and directional flow currents to dynamic `RigidBody` actors entering the volume.
+
 ## Stability and Zero-Allocation
 
 Physics engines are notoriously hard on memory due to the massive amount of vector mathematics required per frame. Small World mitigates this by exclusively utilizing the `MathPool`.
 All temporary vectors and matrices used during collision checking and integration — including the rotation-integration branch (angular velocity → quaternion → Euler conversion) — are acquired from and released back into the pool. This guarantees a flat memory profile and no GC stuttering during intense physics simulations.
+

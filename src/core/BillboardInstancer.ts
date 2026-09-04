@@ -1,9 +1,11 @@
-import { Camera, InstancedMesh, Object3D } from "../../core/index.js";
-import { AbstractMaterial, StandardMaterial } from "../../core/materials/index.js";
-import { Color } from "../../core/colors/index.js";
-import { Plane } from "../../geometry/index.js";
-import { Matrix4, Vector3D } from "../../math/index.js";
-import { GeometryDataInterface } from "../../interfaces/index.js";
+import { Camera } from "./Camera.js";
+import { InstancedMesh } from "./InstancedMesh.js";
+import { Object3D } from "./Object3D.js";
+import { AbstractMaterial, StandardMaterial } from "./materials/index.js";
+import { Color } from "./colors/index.js";
+import { Plane } from "../geometry/index.js";
+import { Matrix4, Vector3D } from "../math/index.js";
+import { GeometryDataInterface } from "../interfaces/index.js";
 
 export interface BillboardScatterArea {
   width: number;
@@ -43,8 +45,7 @@ function randRange(min: number, max: number): number {
  * `InstancedMesh` matrix buffer -- the engine's existing `isSprite` billboard path never runs on
  * the instanced draw path (it's a separate, non-instanced-only code path), so this reimplements
  * the same "face the camera" math at the instance-matrix level instead, needing zero renderer
- * changes. Like `WeatherEmitter`/`GridLevelBuilder`, a plain opt-in extension: construct it, add
- * `.mesh` to the scene yourself, and call `.update(camera)` from your own loop.
+ * changes.
  */
 export class BillboardInstancer {
   public readonly mesh: InstancedMesh;

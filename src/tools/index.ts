@@ -6,3 +6,4 @@ export * from "./Pixler.js";
 export * from "./Xtractor.js";
 export * from "./forge/Forge.js";
 export * from "./forge/ForgeTool.js";
+export * from "./procgen/index.js";

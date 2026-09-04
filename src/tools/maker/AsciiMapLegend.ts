@@ -1,4 +1,4 @@
-import { GridLegend, GridLegendEntry } from "../../extensions/grid-builder/index.js";
+import { GridLegend, GridLegendEntry } from "../procgen/index.js";
 import { Object3D } from "../../core/Object3D.js";
 import { StandardMaterial } from "../../core/materials/index.js";
 import { Color } from "../../core/colors/index.js";

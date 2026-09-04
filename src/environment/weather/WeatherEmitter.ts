@@ -1,4 +1,5 @@
-import { InstancedMesh, Object3D } from "../../core/index.js";
+import { InstancedMesh } from "../../core/InstancedMesh.js";
+import { Object3D } from "../../core/Object3D.js";
 import { AbstractMaterial, StandardMaterial } from "../../core/materials/index.js";
 import { Color } from "../../core/colors/index.js";
 import { Sphere } from "../../geometry/index.js";
@@ -47,13 +48,10 @@ function randRange(min: number, max: number): number {
 
 /**
  * A reusable, `InstancedMesh`-backed atmospheric particle emitter (falling ash, dust, rain, snow --
- * see `WeatherEmitterOptions`) for a box-shaped volume. Not wired into `SmallWorld`/`EngineOptions`
- * (unlike `PhysicsSystem`/`AudioSystem`); like `GridLevelBuilder`, it's a plain opt-in extension --
- * construct it, add `.mesh` to the scene yourself, and call `.update(deltaTime)` from your own loop.
+ * see `WeatherEmitterOptions`) for a box-shaped volume.
  *
  * Every particle is a fixed slot in parallel `Float32Array` fields (no per-particle objects, no
- * per-frame allocation in `update()`), matching the instanced-pool pattern used by
- * showcases/15's bouncing balls.
+ * per-frame allocation in `update()`), matching the instanced-pool pattern.
  */
 export class WeatherEmitter {
   public readonly mesh: InstancedMesh;

@@ -14,11 +14,13 @@ export * from "./UniversalGamepadController.js";
 export * from "./PlanarReflectionNode.js";
 export * from "./DynamicReflectionProbe.js";
 export * from "./InstancedMesh.js";
+export * from "./BillboardInstancer.js";
 
 export { Scene } from "./Scene.js";
 export * from "./Skybox.js";
 export * from "./Skydome.js";
 export * from "./Sprite.js";
+export * from "./ImposterSprite.js";
 export * from "./showcase/AbstractShowcase.js";
 export * from "./controllers/index.js";
 export * from "./renderers/shaders/RenderManifest.js";

@@ -1,9 +1,9 @@
-import { Object3D } from "../../core/Object3D.js";
-import { Color } from "../../core/colors/Color.js";
-import { Sphere } from "../../geometry/Sphere.js";
-import { Cube } from "../../geometry/Cube.js";
-import { Cylinder } from "../../geometry/Cylinder.js";
-import { StandardMaterial } from "../../core/materials/StandardMaterial.js";
+import { Object3D } from "../../Object3D.js";
+import { Color } from "../../colors/Color.js";
+import { Sphere } from "../../../geometry/Sphere.js";
+import { Cube } from "../../../geometry/Cube.js";
+import { Cylinder } from "../../../geometry/Cylinder.js";
+import { StandardMaterial } from "../../materials/StandardMaterial.js";
 import { RatGroomingBehavior, RatGroomingBehaviorOptions } from "./RatGroomingBehavior.js";
 
 export interface GroomingRatOptions {

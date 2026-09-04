@@ -8,8 +8,8 @@ export * from "./physix/index.js";
 export * from "./renderers/index.js";
 export * from "./utils/index.js";
 export * from "./audio/index.js";
-
-export * from "./extensions/index.js";
+export * from "./environment/index.js";
+export * from "./tools/index.js";
 export * from "./core/materials/OpenWaterMaterial.js";
 export * from "./core/materials/StylizedWaterMaterial.js";
 export * from "./core/materials/LavaMaterial.js";

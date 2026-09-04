@@ -18,7 +18,7 @@ import { Texture, TextureArray } from "../../../core/textures/index.js";
 import { CullMode, TextureFilter, TextureWrap } from "../../../enums/index.js";
 import { CameraInterfaceData } from "../../../interfaces/index.js";
 import { ProximitySensorBehavior, BobbingBehavior } from "../../../core/behaviors/index.js";
-import { GridLevelBuilder, GridLegend } from "../../../extensions/grid-builder/GridLevelBuilder.js";
+import { GridLevelBuilder, GridLegend } from "../../../tools/procgen/GridLevelBuilder.js";
 import { AudioSystem } from "../../../audio/index.js";
 import { EnemyBehavior } from "./behaviors/EnemyBehavior.js";
 import { BoundingBox, SpatialHash, StaticCollider } from "../../../physix/index.js";
@@ -28,13 +28,7 @@ import { Events } from "../Events.js";
 /** How close the player needs to be (in world units) to pick up an item. */
 const PICKUP_RADIUS = 1.5;
 export type YadTileType =
-  | "wall"
-  | "door"
-  | "sprite"
-  | "column"
-  | "lavaBall"
-  | "playerSpawn"
-  | "floor";
+  "wall" | "door" | "sprite" | "column" | "lavaBall" | "playerSpawn" | "floor";
 
 export interface YadLegendEntry {
   type: YadTileType;

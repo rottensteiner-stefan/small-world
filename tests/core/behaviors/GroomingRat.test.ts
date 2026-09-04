@@ -1,10 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { GroomingRat } from "../../src/extensions/creatures/GroomingRat.js";
+import { GroomingRat } from "../../../src/core/behaviors/creatures/GroomingRat.js";
 import {
   RatGroomingBehavior,
   RatGroomingState,
-} from "../../src/extensions/creatures/RatGroomingBehavior.js";
-import { Color } from "../../src/core/colors/Color.js";
+} from "../../../src/core/behaviors/creatures/RatGroomingBehavior.js";
+import { Color } from "../../../src/core/colors/Color.js";
 
 describe("GroomingRat & RatGroomingBehavior", () => {
   it("should create a GroomingRat with full articulated node hierarchy", () => {

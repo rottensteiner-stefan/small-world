@@ -38,7 +38,7 @@ class MyFirstWorld extends AbstractShowcase {
       metallic: 0.5,
       roughness: 0.3,
     });
-    cubeObj.setPosition(0, 1.0, 0);
+    cubeObj.position.set(0, 1.0, 0);
 
     // 2. Add to scene
     this.scene.add(cubeObj);
@@ -56,9 +56,6 @@ class MyFirstWorld extends AbstractShowcase {
     if (cube) {
       cube.rotation.y += 1.0 * deltaTime;
     }
-
-    // Tick/render loop
-    this.scene.update(deltaTime);
   }
 }
 
