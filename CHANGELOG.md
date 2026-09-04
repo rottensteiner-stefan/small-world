@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.77.13] - 2026-09-04
+
+### "Simplicity is the ultimate sophistication." - Leonardo da Vinci
+
+- **Features:**
+  - **LavaMaterial & SlimeMaterial:** New shipped presets on `FluidSurfaceMaterial` -- opaque/emissive molten-rock and translucent/faintly-glowing ooze looks, both built on the same noise-driven flow mechanism instead of bespoke shaders. `FluidSurfaceMaterial` itself gained an optional `emissiveColor`/`emissiveStrength` glow, packed into previously-unused uniform slots.
+  - **Showcase 10 ("Waterworld"):** The lava/slime pools now use the new `LavaMaterial`/`SlimeMaterial` classes instead of a raw, un-preset `FluidSurfaceMaterial`.
+- **Architecture & Bugfixes:**
+  - **`LiquidWaveMaterial`:** New shared base class for `OpenWaterMaterial` and `StylizedWaterMaterial`, which had independently duplicated the same Gerstner-wave displacement and Worley-noise foam logic almost verbatim. The duplicated shader code itself is now factored into two new shared chunks, `liquid_gerstner_wave` and `liquid_worley_noise`, registered through the engine's existing `ShaderRegistry` chunk mechanism (the same one `FOG_CALC`/`PBR_MATH` already use). Public constructors (`new OpenWaterMaterial(...)`, `new StylizedWaterMaterial(...)`) are unchanged.
+  - Removed the orphaned `Liquid.*.wgsl`/`Liquid.*.glsl` shader files, which were imported by nothing anywhere in the codebase. See `docs/adr/0013-unified-liquid-surface-material.md` for the full rationale, including why the wave family (transparent/refractive) and the flow family (opaque/emissive-capable) share shader text but not a single uniform layout.
+- **Housekeeping & Docs:**
+  - Split the flat `extensions/` package into domain-specific homes: `BillboardInstancer`/`ImposterSprite` moved into `core/`, `WeatherEmitter` into `environment/`, the imposter baker into `renderers/imposter/`, and the procedural grid level builder into `tools/procgen/`. See `docs/adr/0014-modular-ecosystem-and-domain-layering.md`.
+
 ## [0.77.12] - 2026-09-03
 
 ### "I have not failed. I've just found 10,000 ways that won't work." - Thomas Edison
