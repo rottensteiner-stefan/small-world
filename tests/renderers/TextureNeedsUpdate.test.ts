@@ -5,6 +5,7 @@ import { WebGLTextureManager } from "../../src/renderers/WebGL2/managers/WebGLTe
 import { GPUTextureResourceCache } from "../../src/renderers/WebGPU/managers/GPUTextureResourceCache.js";
 import { GPUFallbackResources } from "../../src/renderers/WebGPU/managers/GPUFallbackResources.js";
 import { Texture } from "../../src/core/textures/Texture.js";
+import { TextureArray } from "../../src/core/textures/TextureArray.js";
 
 // Node/vitest has no WebGPU global; @webgpu/types only provides ambient TS types,
 // not a runtime value. Stub the bit-flag constants this renderer actually reads.
@@ -41,6 +42,8 @@ function makeMockGl(): WebGL2RenderingContext {
     createTexture: vi.fn().mockReturnValue({}),
     bindTexture: vi.fn(),
     texImage2D: vi.fn(),
+    texImage3D: vi.fn(),
+    texSubImage3D: vi.fn(),
     texParameteri: vi.fn(),
     generateMipmap: vi.fn(),
     TEXTURE_2D: 1,
@@ -57,6 +60,7 @@ function makeMockGl(): WebGL2RenderingContext {
     REPEAT: 12,
     MIRRORED_REPEAT: 13,
     CLAMP_TO_EDGE: 14,
+    TEXTURE_2D_ARRAY: 15,
   } as unknown as WebGL2RenderingContext;
 }
 
@@ -136,6 +140,30 @@ describe("Texture GPU re-upload on needsUpdate", () => {
       gl.TEXTURE_WRAP_S,
       expect.any(Number),
     );
+  });
+
+  it("WebGLTextureManager re-uploads a TextureArray's layers on needsUpdate, not just on first upload", () => {
+    const gl = makeMockGl();
+    const textures = new WebGLTextureManager(gl, new Map(), {} as never, {} as never);
+
+    const layer = { width: 8, height: 8 } as ImageBitmap;
+    const texArray = TextureArray.fromImages([layer, layer]);
+
+    const first = textures.getWebGLTexture(texArray, undefined);
+    expect(gl.createTexture).toHaveBeenCalledTimes(1);
+    expect(gl.texImage3D).toHaveBeenCalledTimes(1);
+    expect(gl.texSubImage3D).toHaveBeenCalledTimes(2); // one per layer
+
+    vi.mocked(gl.texImage3D).mockClear();
+    vi.mocked(gl.texSubImage3D).mockClear();
+    texArray.needsUpdate = true;
+    const second = textures.getWebGLTexture(texArray, undefined);
+
+    expect(second).toBe(first);
+    expect(gl.createTexture).toHaveBeenCalledTimes(1); // no new GL texture, same object re-bound
+    expect(gl.texImage3D).toHaveBeenCalledTimes(1);
+    expect(gl.texSubImage3D).toHaveBeenCalledTimes(2);
+    expect(texArray.needsUpdate).toBe(false);
   });
 
   it("does not re-upload when needsUpdate stays false", () => {

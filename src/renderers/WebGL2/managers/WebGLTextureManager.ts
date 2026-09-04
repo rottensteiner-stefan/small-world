@@ -90,6 +90,54 @@ export class WebGLTextureManager {
     this._gl.texParameteri(target, this._gl.TEXTURE_WRAP_T, wrapT);
   }
 
+  /** Uploads (or re-uploads, on `needsUpdate`) every layer of a `TextureArray` into `glTex`.
+   * Shared by the first-upload and `needsUpdate` branches of `getWebGLTexture()` so both stay in
+   * lockstep -- previously `needsUpdate` skipped `TextureArray` entirely (it never got new pixel
+   * or sampler data after the initial upload). */
+  private _uploadTextureArray(
+    texArray: TextureArray,
+    glTex: WebGLTexture,
+    quality: QualityConfig | undefined,
+  ): void {
+    this._gl.bindTexture(this._gl.TEXTURE_2D_ARRAY, glTex);
+    const width = texArray.image!.width;
+    const height = texArray.image!.height;
+    const depth = texArray.images.length;
+
+    this._gl.texImage3D(
+      this._gl.TEXTURE_2D_ARRAY,
+      0,
+      this._gl.RGBA,
+      width,
+      height,
+      depth,
+      0,
+      this._gl.RGBA,
+      this._gl.UNSIGNED_BYTE,
+      null,
+    );
+    for (let i = 0; i < depth; i++) {
+      this._gl.texSubImage3D(
+        this._gl.TEXTURE_2D_ARRAY,
+        0,
+        0,
+        0,
+        i,
+        width,
+        height,
+        1,
+        this._gl.RGBA,
+        this._gl.UNSIGNED_BYTE,
+        texArray.images[i] as TexImageSource,
+      );
+    }
+
+    const useMipmaps = quality?.mipmapping && texArray.generateMipmaps;
+    if (useMipmaps) this._gl.generateMipmap(this._gl.TEXTURE_2D_ARRAY);
+
+    this._setSamplerParams(this._gl.TEXTURE_2D_ARRAY, texArray, Boolean(useMipmaps));
+  }
+
   public getWebGLTexture(tex: Texture, quality: QualityConfig | undefined): WebGLTexture {
     const fastPath = this._fastPath(tex, quality);
     if (fastPath) return fastPath;
@@ -98,44 +146,7 @@ export class WebGLTextureManager {
       glTex = this._gl.createTexture()!;
 
       if ("isTextureArray" in tex && (tex as TextureArray).isTextureArray) {
-        const texArray = tex as TextureArray;
-        this._gl.bindTexture(this._gl.TEXTURE_2D_ARRAY, glTex);
-        const width = texArray.image!.width;
-        const height = texArray.image!.height;
-        const depth = texArray.images.length;
-
-        this._gl.texImage3D(
-          this._gl.TEXTURE_2D_ARRAY,
-          0,
-          this._gl.RGBA,
-          width,
-          height,
-          depth,
-          0,
-          this._gl.RGBA,
-          this._gl.UNSIGNED_BYTE,
-          null,
-        );
-        for (let i = 0; i < depth; i++) {
-          this._gl.texSubImage3D(
-            this._gl.TEXTURE_2D_ARRAY,
-            0,
-            0,
-            0,
-            i,
-            width,
-            height,
-            1,
-            this._gl.RGBA,
-            this._gl.UNSIGNED_BYTE,
-            texArray.images[i] as TexImageSource,
-          );
-        }
-
-        const useMipmaps = quality?.mipmapping && tex.generateMipmaps;
-        if (useMipmaps) this._gl.generateMipmap(this._gl.TEXTURE_2D_ARRAY);
-
-        this._setSamplerParams(this._gl.TEXTURE_2D_ARRAY, tex, Boolean(useMipmaps));
+        this._uploadTextureArray(tex as TextureArray, glTex, quality);
       } else {
         this._gl.bindTexture(this._gl.TEXTURE_2D, glTex);
         this._gl.texImage2D(
@@ -156,29 +167,30 @@ export class WebGLTextureManager {
       }
 
       this._texCache.set(tex, glTex);
-    } else if (
-      tex.needsUpdate &&
-      !("isTextureArray" in tex && (tex as TextureArray).isTextureArray)
-    ) {
-      this._gl.bindTexture(this._gl.TEXTURE_2D, glTex);
-      this._gl.texImage2D(
-        this._gl.TEXTURE_2D,
-        0,
-        this._gl.RGBA,
-        this._gl.RGBA,
-        this._gl.UNSIGNED_BYTE,
-        // Guaranteed defined here: `_fastPath()` already returned early for a texture with no
-        // `.image` (TS can't carry that narrowing across the method call).
-        tex.image!,
-      );
-      if (quality?.mipmapping && tex.generateMipmaps) {
-        this._gl.generateMipmap(this._gl.TEXTURE_2D);
+    } else if (tex.needsUpdate) {
+      if ("isTextureArray" in tex && (tex as TextureArray).isTextureArray) {
+        this._uploadTextureArray(tex as TextureArray, glTex, quality);
+      } else {
+        this._gl.bindTexture(this._gl.TEXTURE_2D, glTex);
+        this._gl.texImage2D(
+          this._gl.TEXTURE_2D,
+          0,
+          this._gl.RGBA,
+          this._gl.RGBA,
+          this._gl.UNSIGNED_BYTE,
+          // Guaranteed defined here: `_fastPath()` already returned early for a texture with no
+          // `.image` (TS can't carry that narrowing across the method call).
+          tex.image!,
+        );
+        if (quality?.mipmapping && tex.generateMipmaps) {
+          this._gl.generateMipmap(this._gl.TEXTURE_2D);
+        }
+        this._setSamplerParams(
+          this._gl.TEXTURE_2D,
+          tex,
+          Boolean(quality?.mipmapping && tex.generateMipmaps),
+        );
       }
-      this._setSamplerParams(
-        this._gl.TEXTURE_2D,
-        tex,
-        Boolean(quality?.mipmapping && tex.generateMipmaps),
-      );
       tex.needsUpdate = false;
     }
     return glTex;

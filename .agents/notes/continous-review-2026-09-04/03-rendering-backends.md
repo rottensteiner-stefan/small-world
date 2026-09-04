@@ -131,7 +131,7 @@ Aber: `tests/renderers/TextureNeedsUpdate.test.ts` (der einzige Test, der diesen
 
 ### 🟢 Bestehende Lücke unverändert: `TextureArray` bleibt vom `needsUpdate`-Zweig ausgeschlossen
 
-*(Bewusst NICHT behoben: laut Review selbst eine bereits vor dem 48h-Fenster bestehende, nicht neu regressierte Lücke ("War bereits im Vorgänger-Review... ist in diesem Fenster nicht behoben worden -- keine neue Regression"). Liegt damit explizit außerhalb des Scopes dieses 48h-Continuous-Reviews und wurde unangetastet gelassen.)*
+*(✅ Behoben: `WebGLTextureManager.getWebGLTexture()`s `needsUpdate`-Zweig behandelt `TextureArray` jetzt gleichberechtigt zu `TEXTURE_2D` statt sie auszuschließen. Upload-Logik in neue private `_uploadTextureArray()`-Methode extrahiert, von Erstupload UND `needsUpdate`-Pfad gemeinsam genutzt (kein zweiter, potenziell divergierender Codepfad mehr). Neuer Regressionstest in `tests/renderers/TextureNeedsUpdate.test.ts` prüft, dass `texImage3D`/`texSubImage3D` bei `needsUpdate=true` erneut aufgerufen werden, ohne eine neue GL-Textur anzulegen.)*
 
 **Datei:** `src/renderers/WebGL2/managers/WebGLTextureManager.ts:174-177`
 
@@ -232,7 +232,7 @@ Diese Review-Runde ergab **0× 🔴, 1× 🟠 (unverändert/nicht neu), 4× 🟡
 **Wo noch Lücken bleiben:** *(Stand vor der Fix-Runde -- Punkt 1 und 2 sind inzwischen behoben, siehe die ✅-Annotationen oben)*
 1. ~~Zwei der Fixes aus diesem Fenster sind selbst ungetestet~~ *(✅ Behoben: Regressionstests ergänzt, siehe oben.)*
 2. ~~`RendererFactory`s Fallback-Kette ist jetzt für jeden Einzel-Hop korrekt, aber nicht für die volle Kaskade bei einem seltenen Doppelfehlschlag~~ *(✅ Behoben: der WebGL2-Fallback-Hop hat jetzt sein eigenes try/catch und fällt bei erneutem Fehlschlag auf WebGL1 durch -- verifiziert direkt im Code, `src/renderers/RendererFactory.ts:113-137`.)*
-3. **`TextureArray` bleibt (unverändert seit dem letzten Review) vom `needsUpdate`-Neuupload ausgeschlossen** -- die aktuelle Fix-Runde hat gezielt nur den `TEXTURE_2D`-Fall behoben. Bewusst nicht angefasst: bereits vor dem 48h-Fenster bestehend, keine neue Regression, außerhalb des Scopes dieses Continuous-Reviews.
+3. ~~`TextureArray` bleibt vom `needsUpdate`-Neuupload ausgeschlossen~~ *(✅ Behoben: `_uploadTextureArray()`-Helper jetzt auch im `needsUpdate`-Pfad aufgerufen, siehe oben.)*
 
 Keiner dieser drei Punkte ist praxisrelevant genug, um den Gesamtbefund zu trüben: die namensgebenden Flaggschiff-Bugs (Clustered Forward+ Lighting auf beiden betroffenen Backends) sind nachweislich behoben, und die Codequalität der Fixes selbst (Kommentare, Konsistenz mit Schwester-Code, Testabdeckung wo vorhanden) ist durchgehend hoch.
 
