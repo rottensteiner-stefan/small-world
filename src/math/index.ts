@@ -10,5 +10,7 @@ export * from "./Matrix3.js";
 export * from "./Matrix4.js";
 export * from "./Quaternion.js";
 export * from "./Curve3D.js";
+export * from "./Optics.js";
+export * from "./Ray2D.js";
 export * from "./CatmullRomSpline.js";
 export * from "./projections/index.js";

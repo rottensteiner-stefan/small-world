@@ -113,7 +113,7 @@ export class Hud {
     const frames = ["pisga0", "pisgb0", "pisgc0", "pisgd0", "pisge0"];
     for (const frame of frames) {
       const img = new Image();
-      img.src = `./assets/dungeon_pack/sprites/${frame}.png`;
+      img.src = `./assets/dungeon_pack/sprites/${frame}.webp`;
       img.onload = (): void => this._drawWeapon();
       this._pistolSprites.push(img);
     }

@@ -7,12 +7,16 @@ import {
   Cylinder,
   DirectionalLight,
   EngineOptions,
+  CauchyMaterials,
+  MathUtils,
   Octahedron,
   Object3D,
+  Optics,
   OrbitController,
   PerspectiveProjection,
   PostProcessingEffectType,
   ProjectionType,
+  Ray2D,
   RendererType,
   SpotLight,
   StandardMaterial,
@@ -22,7 +26,136 @@ import {
   SkyboxMaterial,
   BloomElement,
   HbaoElement,
+  Vector2D,
 } from "../../src/index.js";
+
+// ----------------------------------------------------------------------------
+// Real prism optics: Snell's law at both surfaces of the equilateral-triangle prism, with a
+// Cauchy-dispersion refractive index per wavelength, instead of hand-placed decorative angles.
+// All 2D math below works in the world XZ plane (a `Vector2D`'s `.y` field stores world Z here,
+// since the prism's triangular cross-section and the incident beam both lie in a horizontal
+// plane -- see PRISM_RADIUS/PRISM_APEX_ANGLE usage in `computeSpectralRays()`).
+// ----------------------------------------------------------------------------
+
+const PRISM_RADIUS = 1.2; // matches the CentralPrism Cylinder's radiusTop/radiusBottom
+// The equilateral-triangle cross-section (Cylinder radialSegments: 3) has a 60-degree interior
+// angle at each vertex -- the classic prism "apex angle" A in the θ2 + θ3 = A refraction
+// relation, which drives the incidence-angle choice below (not used as a separate runtime value:
+// the actual vertex geometry in computeSpectralRays() already encodes it).
+// Chosen so every spectral color refracts back out through the far face without hitting total
+// internal reflection there (critical angle ~36-38 degrees for the dispersion range below), while
+// still landing safely inside the entry face's 120-degree angular span, clear of its edges, across
+// the turntable's +-0.25 rad wobble (see update()). A shallower incidence angle (closer to the old,
+// buggy edge-on 30 degrees) looks safer geometrically but is *not* -- it makes every color total-
+// internally-reflect at the far face instead of exiting as a visible spectrum.
+const NOMINAL_INCIDENCE_ANGLE = MathUtils.degToRad(44);
+const SPECTRAL_RAY_LENGTH = 4.8;
+
+interface SpectrumBand {
+  name: string;
+  color: Color;
+  wavelengthNm: number;
+}
+
+const SPECTRUM: SpectrumBand[] = [
+  { name: "Red", color: new Color(1.0, 0.05, 0.05), wavelengthNm: 700 },
+  { name: "Orange", color: new Color(1.0, 0.45, 0.0), wavelengthNm: 620 },
+  { name: "Yellow", color: new Color(1.0, 0.9, 0.05), wavelengthNm: 580 },
+  { name: "Green", color: new Color(0.1, 1.0, 0.2), wavelengthNm: 530 },
+  { name: "Cyan", color: new Color(0.05, 0.9, 1.0), wavelengthNm: 490 },
+  { name: "Blue", color: new Color(0.1, 0.3, 1.0), wavelengthNm: 460 },
+  { name: "Violet", color: new Color(0.7, 0.1, 1.0), wavelengthNm: 400 },
+];
+
+/** Outward normal of edge `a`-`b`, for a convex polygon centred on the origin (true here: the
+ * prism's triangular cross-section is centred at world (0, 0) in XZ). */
+function outwardFaceNormal(a: Vector2D, b: Vector2D): Vector2D {
+  return new Vector2D((a.x + b.x) / 2, (a.y + b.y) / 2).normalize();
+}
+
+interface SpectralRay {
+  name: string;
+  color: Color;
+  origin: Vector2D;
+  direction: Vector2D;
+}
+
+/**
+ * Traces each spectral band through the triangular prism using real Snell's-law refraction at
+ * both surfaces, instead of hand-placed decorative fan angles. `prismRotation` must be the
+ * prism's actual, *current* `rotation.y` (base rotation plus the turntable's live wobble --
+ * see `update()`, which calls this every frame). Assumes the prism is centred at world XZ
+ * (0, 0) and the incident beam travels along +X at z = 0 (matching the SpotLight/incident-beam
+ * objects in `setupScene()`).
+ *
+ * Returns one entry per `SPECTRUM` band, in the same order -- `undefined` where that color
+ * undergoes total internal reflection at the far face for the given `prismRotation` (a real,
+ * unavoidable outcome here: the turntable's +-0.25 rad wobble swings the entry incidence angle
+ * across a wider range than this prism's flint-glass dispersion can refract out cleanly the
+ * whole time -- see docs/adr note in update()). Callers must handle holes, not assume 7 rays.
+ */
+function computeSpectralRays(prismRotation: number): (SpectralRay | undefined)[] {
+  // Local vertex k sits at world angle (k * 120deg) before the prism's own rotation is applied
+  // (matches Cylinder's own (radius*sin(theta), radius*cos(theta)) vertex generation).
+  const vertices = [0, 1, 2].map((k) => {
+    const theta = (k * 2 * Math.PI) / 3 + prismRotation;
+    return new Vector2D(PRISM_RADIUS * Math.sin(theta), PRISM_RADIUS * Math.cos(theta));
+  });
+  const entryA = vertices[1]!;
+  const entryB = vertices[2]!;
+  const otherFaces: [Vector2D, Vector2D][] = [
+    [vertices[0]!, vertices[1]!],
+    [vertices[2]!, vertices[0]!],
+  ];
+
+  // The beam travels along z = 0; intersect that line with the entry edge to get the real entry
+  // point instead of assuming one.
+  const tEntry = (0 - entryA.y) / (entryB.y - entryA.y);
+  const entryPoint = new Vector2D(entryA.x + tEntry * (entryB.x - entryA.x), 0);
+  const entryNormal = outwardFaceNormal(entryA, entryB);
+  const incidentDir = new Vector2D(1, 0);
+
+  const rays: (SpectralRay | undefined)[] = [];
+  for (const band of SPECTRUM) {
+    // Real, dense-flint-glass Cauchy dispersion -- consistent with this showcase's own
+    // "n = 1.65 flint glass" comment on the prism material (real n ranges ~1.629 red to ~1.688
+    // violet with this preset).
+    const n = Optics.cauchyIndex(band.wavelengthNm, CauchyMaterials.FLINT_GLASS);
+    const internalDir = Optics.refract(incidentDir, entryNormal, 1.0, n);
+    if (!internalDir) {
+      rays.push(undefined);
+      continue;
+    }
+
+    let exitPoint: Vector2D | undefined;
+    let exitFace: [Vector2D, Vector2D] | undefined;
+    const internalRay = new Ray2D(entryPoint, internalDir);
+    for (const face of otherFaces) {
+      const hit = internalRay.intersectSegment(face[0], face[1]);
+      if (hit) {
+        exitPoint = hit;
+        exitFace = face;
+        break;
+      }
+    }
+    if (!exitPoint || !exitFace) {
+      rays.push(undefined);
+      continue;
+    }
+
+    const exitNormalOutward = outwardFaceNormal(exitFace[0], exitFace[1]);
+    const exitNormalAgainstIncident = new Vector2D(-exitNormalOutward.x, -exitNormalOutward.y);
+    const exitDir = Optics.refract(internalDir, exitNormalAgainstIncident, n, 1.0);
+    if (!exitDir) {
+      // Total internal reflection at the far face -- this color has no exit ray right now.
+      rays.push(undefined);
+      continue;
+    }
+
+    rays.push({ name: band.name, color: band.color, origin: exitPoint, direction: exitDir });
+  }
+  return rays;
+}
 
 /**
  * Showcase 28: "The Quantum Refraction Lab / Optical Prism"
@@ -229,7 +362,11 @@ class Showcase28 extends AbstractShowcase {
     }).getGeometryData();
     this._prismMesh.material = glassMat;
     this._prismMesh.position.set(0, 1.25, 0);
-    this._prismMesh.rotation.y = Math.PI / 6;
+    // Rotated so the incident beam (arriving along +X at world angle 270 degrees, see
+    // computeSpectralRays()' doc comment) hits the face between local vertices 1 and 2 at
+    // NOMINAL_INCIDENCE_ANGLE, not dead-on on an edge (the previous Math.PI/6 landed exactly on a
+    // vertex, verified by hand: 240deg local + 30deg rotation = 270deg exactly).
+    this._prismMesh.rotation.y = (3 * Math.PI) / 2 - NOMINAL_INCIDENCE_ANGLE - Math.PI;
     this._prismMesh.castShadow = true;
     this._turntable.add(this._prismMesh);
 
@@ -333,7 +470,43 @@ class Showcase28 extends AbstractShowcase {
     this._laserLight.shadowResolution = 1024;
     this.scene.add(this._laserLight);
 
-    // Phosphor Target / Measurement Screen (White curved detector arc behind prism)
+    // Spectral Ray Bundle: real Snell's-law refraction through the prism (see
+    // computeSpectralRays() above), not a hand-placed decorative fan. Computed once, up front
+    // (at the turntable's resting rotation), so the Phosphor Screen below can be placed in the
+    // fan's *actual* path; `update()` recomputes this every frame as the turntable wobbles and
+    // repositions/hides these same meshes -- see the comment there for why some colors vanish for
+    // part of the wobble (total internal reflection, not a bug).
+    const initialRays = computeSpectralRays(this._prismMesh.rotation.y);
+    const validInitialRays = initialRays.filter((r): r is SpectralRay => undefined !== r);
+
+    // Phosphor Target / Measurement Screen -- deliberately NOT at the old "straight ahead of the
+    // laser" position. A 60-degree-apex flint-glass prism has a *minimum* deviation of
+    // ~51 degrees (2*asin(n*sin(30deg)) - 60deg) between the incident and exit ray, regardless of
+    // the prism's orientation -- rotating the prism only changes which local incidence angle the
+    // fixed incident beam sees, not this physical floor, so no rotation can bend the real exit fan
+    // back toward the beam's own +X line to hit a screen placed there (verified by scanning every
+    // rotation: none land within +-3.5 world units of z=0 at x=5.2). The screen is placed instead
+    // along the average of the (resting-pose) exit rays, SCREEN_DISTANCE units out from their
+    // average exit point, facing back the way the light actually travels. It stays fixed even
+    // though the live spot wanders across it as the turntable wobbles -- a real optical bench's
+    // measurement screen is bolted down, not vibrating in sync with the sample stage.
+    let avgExitX = 0;
+    let avgExitZ = 0;
+    let avgDirX = 0;
+    let avgDirZ = 0;
+    for (const ray of validInitialRays) {
+      avgExitX += ray.origin.x;
+      avgExitZ += ray.origin.y;
+      avgDirX += ray.direction.x;
+      avgDirZ += ray.direction.y;
+    }
+    avgExitX /= validInitialRays.length;
+    avgExitZ /= validInitialRays.length;
+    const avgDirLength = Math.hypot(avgDirX, avgDirZ);
+    avgDirX /= avgDirLength;
+    avgDirZ /= avgDirLength;
+    const SCREEN_DISTANCE = 4; // the live spot wanders ~1.2 units across this plane over the full wobble -- comfortably inside the panel's 2.5-unit width below
+
     const screenMat = new StandardMaterial({
       color: new Color(0.9, 0.92, 0.95),
       metallic: 0.05,
@@ -343,45 +516,61 @@ class Showcase28 extends AbstractShowcase {
     screenPanel.geometry = new Cube({
       size: 1,
     }).getGeometryData();
-    screenPanel.scale.set(0.3, 3.2, 7.0);
+    screenPanel.scale.set(0.3, 3.2, 2.5);
     screenPanel.material = screenMat;
-    screenPanel.position.set(5.2, 1.6, 0);
+    screenPanel.position.set(
+      avgExitX + avgDirX * SCREEN_DISTANCE,
+      1.6,
+      avgExitZ + avgDirZ * SCREEN_DISTANCE,
+    );
+    // Same rotation.y convention as the ray meshes below: this points the panel's local +X (its
+    // face normal) along the fan's real average travel direction, matching how the old, unrotated
+    // panel's +X normal pointed along the old beam's straight-ahead +X direction.
+    screenPanel.rotation.y = Math.atan2(-avgDirZ, avgDirX);
     screenPanel.receiveShadow = true;
     this.scene.add(screenPanel);
 
-    // Spectral Ray Bundle (Chromatic dispersion fan emerging from the prism)
-    const spectrumColors = [
-      { name: "Red", color: new Color(1.0, 0.05, 0.05), angle: 0.18 },
-      { name: "Orange", color: new Color(1.0, 0.45, 0.0), angle: 0.12 },
-      { name: "Yellow", color: new Color(1.0, 0.9, 0.05), angle: 0.06 },
-      { name: "Green", color: new Color(0.1, 1.0, 0.2), angle: 0.0 },
-      { name: "Cyan", color: new Color(0.05, 0.9, 1.0), angle: -0.06 },
-      { name: "Blue", color: new Color(0.1, 0.3, 1.0), angle: -0.12 },
-      { name: "Violet", color: new Color(0.7, 0.1, 1.0), angle: -0.18 },
-    ];
+    // One mesh per SPECTRUM band, always -- update() toggles `isVisible` per-frame rather than
+    // creating/destroying meshes, since which colors are valid changes every frame as the
+    // turntable wobbles.
+    for (let i = 0; i < SPECTRUM.length; i++) {
+      const band = SPECTRUM[i]!;
+      const ray = initialRays[i];
 
-    for (const spec of spectrumColors) {
       const rayMat = new StandardMaterial({
-        color: spec.color,
-        emissiveColor: new Color(spec.color.r * 2.2, spec.color.g * 2.2, spec.color.b * 2.2),
+        color: band.color,
+        emissiveColor: new Color(band.color.r * 2.2, band.color.g * 2.2, band.color.b * 2.2),
         emissiveIntensity: 3.5,
         transparent: true,
       });
 
-      const rayMesh = new Object3D(`SpectralRay_${spec.name}`);
+      const rayMesh = new Object3D(`SpectralRay_${band.name}`);
       rayMesh.geometry = new Cylinder({
         radiusTop: 0.02,
         radiusBottom: 0.04,
-        height: 4.8,
+        height: SPECTRAL_RAY_LENGTH,
         radialSegments: 12,
       }).getGeometryData();
       rayMesh.material = rayMat;
       rayMesh.rotation.z = Math.PI / 2;
-      rayMesh.rotation.y = spec.angle;
-      rayMesh.position.set(2.4, 1.8, spec.angle * 4.2);
+      rayMesh.isVisible = undefined !== ray;
+      if (ray) this._positionSpectralRay(rayMesh, ray);
       this.scene.add(rayMesh);
       this._spectralRays.push(rayMesh);
     }
+  }
+
+  /** Positions/orients `rayMesh` to match `ray`'s computed exit point/direction. `rotation.z` above
+   * points the cylinder's local +Y (height) axis along local +X; a further rotation.y by theta
+   * turns that into world direction (cos theta, -sin theta) in (x, z) -- solve for theta given the
+   * exit direction (see the module doc comment: `.y` on a `Vector2D` here stores world Z). */
+  private _positionSpectralRay(rayMesh: Object3D, ray: SpectralRay): void {
+    rayMesh.rotation.y = Math.atan2(-ray.direction.y, ray.direction.x);
+    rayMesh.position.set(
+      ray.origin.x + ray.direction.x * (SPECTRAL_RAY_LENGTH / 2),
+      1.8,
+      ray.origin.y + ray.direction.y * (SPECTRAL_RAY_LENGTH / 2),
+    );
   }
 
   protected override update(deltaTime: number): void {
@@ -390,6 +579,23 @@ class Showcase28 extends AbstractShowcase {
     // Gentle slow turntable rotation showcasing prism facets and refraction shifts
     if (this._turntable) {
       this._turntable.rotation.y = Math.sin(this._time * 0.6) * 0.25;
+    }
+
+    // The spectral rays must track the turntable's live wobble: the prism's actual world
+    // rotation (base + wobble) determines the entry incidence angle, which determines every
+    // downstream Snell's-law refraction -- exit point, exit direction, and whether a given color
+    // clears the far face's critical angle at all. It doesn't: the wobble's +-0.25 rad swing is
+    // wider than this flint-glass prism's total-internal-reflection-free window, so roughly the
+    // upper half of each swing genuinely has no exit ray for one or more colors -- confirmed by
+    // scanning the full wobble range, not a bug to "fix" by clamping the angle.
+    if (this._turntable && this._prismMesh) {
+      const liveRays = computeSpectralRays(this._prismMesh.rotation.y + this._turntable.rotation.y);
+      for (let i = 0; i < this._spectralRays.length; i++) {
+        const rayMesh = this._spectralRays[i]!;
+        const ray = liveRays[i];
+        rayMesh.isVisible = undefined !== ray;
+        if (ray) this._positionSpectralRay(rayMesh, ray);
+      }
     }
 
     // Floating gem levitation & counter-spin
