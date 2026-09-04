@@ -22,6 +22,8 @@ export class LightGizmoManager {
   public readonly root = new Object3D("MakerLightGizmos");
   private readonly _entries = new Map<AbstractLight, LightGizmoEntry>();
   private readonly _markerToLight = new Map<Object3D, AbstractLight>();
+  /** Reused across frames; only repopulated via a full scene walk when `hierarchyChanged` is true. */
+  private readonly _liveLights = new Set<AbstractLight>();
 
   constructor() {
     this.root.isVisible = true;
@@ -66,21 +68,33 @@ export class LightGizmoManager {
 
   /**
    * Syncs and updates all light gizmos with the current scene state.
+   *
+   * The full scene walk that discovers lights (`_findLights`) is only re-run when
+   * `hierarchyChanged` is true (mirroring `MakerApp`'s `_hierarchyDirty` flag) -- otherwise the
+   * cached `_liveLights` set from the previous hierarchy-changing frame is reused, avoiding a
+   * per-frame allocation and a full `Object3D` tree traversal.
    */
-  public update(sceneRoot: Object3D, selection: ReadonlySet<Object3D>, camera?: Camera): void {
-    const liveLights = new Set<AbstractLight>();
-    this._findLights(sceneRoot, liveLights);
+  public update(
+    sceneRoot: Object3D,
+    selection: ReadonlySet<Object3D>,
+    hierarchyChanged: boolean,
+    camera?: Camera,
+  ): void {
+    if (hierarchyChanged) {
+      this._liveLights.clear();
+      this._findLights(sceneRoot, this._liveLights);
+    }
 
     // Remove deleted lights
     for (const [light, entry] of this._entries.entries()) {
-      if (!liveLights.has(light) || !light.parent) {
+      if (!this._liveLights.has(light) || !light.parent) {
         this._removeEntry(entry);
         this._entries.delete(light);
       }
     }
 
     // Create or update live lights
-    for (const light of liveLights) {
+    for (const light of this._liveLights) {
       let entry = this._entries.get(light);
       if (!entry) {
         entry = this._createEntry(light);
@@ -176,8 +190,13 @@ export class LightGizmoManager {
       markerMat,
       rangeGizmo,
       rangeMat,
-      lastDistance: (light as PointLight).distance,
-      lastAngle: (light as SpotLight).angle,
+      lastDistance:
+        light instanceof PointLight
+          ? light.distance
+          : light instanceof SpotLight
+            ? light.distance
+            : undefined,
+      lastAngle: light instanceof SpotLight ? light.angle : undefined,
     };
   }
 

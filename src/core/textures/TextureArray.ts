@@ -33,8 +33,9 @@ export class TextureArray extends Texture {
    * @param options Optional configuration options.
    */
   public static async fromUrls(urls: string[], options?: TextureOptions): Promise<TextureArray> {
+    const assetManager = options?.assetManager ?? new AssetManager();
     const images = await Promise.all(
-      urls.map((url: string) => AssetManager.loadImage(url, undefined, options?.flipY)),
+      urls.map((url: string) => assetManager.loadImage(url, undefined, options?.flipY)),
     );
     return new TextureArray(images, options);
   }

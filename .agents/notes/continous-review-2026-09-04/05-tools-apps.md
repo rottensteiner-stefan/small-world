@@ -129,6 +129,16 @@ nachweislich wieder bei `Enemy_0` (per Lesen des Codes bestätigt -- jeder Aufru
 
 ### 🟠 Weiterhin: `update()` alloziert ein neues `Set` und läuft jeden Frame den kompletten Szenengraphen ab
 
+*(✅ Behoben: `update()` nimmt jetzt einen `hierarchyChanged: boolean`-Parameter entgegen; `MakerApp.update()`
+reicht sein bestehendes `_hierarchyDirty`-Flag durch (vor dem Zurücksetzen auf `false` ausgelesen). Das
+`Set` wurde durch ein wiederverwendetes `_liveLights`-Instanzfeld ersetzt, das nur bei
+`hierarchyChanged === true` per `.clear()` + `_findLights()` neu befüllt wird -- der volle Szenen-Walk
+läuft also nur noch, wenn sich die Hierarchie tatsächlich geändert hat. Neuer Regressionstest in
+`tests/tools/maker/MakerFeatures.test.ts` ("skips the full scene walk when hierarchyChanged is false...")
+verifiziert explizit, dass ein neu hinzugefügtes Licht bei `hierarchyChanged=false` nicht erkannt wird,
+aber sofort bei der nächsten `hierarchyChanged=true`-Aktualisierung. `npx tsc --noEmit` und
+`npx vitest run` bleiben grün.)*
+
 `update()` (`LightGizmoManager.ts:70-91`) wird von `MakerApp.ts:672` bedingungslos in jedem Frame aus dem
 Haupt-Update-Loop aufgerufen (`this._lightGizmos.update(this.scene.root, this._selection, this.camera);`,
 direkt neben `this.scene.update(deltaTime)`), nicht nur wenn `_hierarchyDirty` gesetzt ist (dieses Flag
@@ -162,6 +172,10 @@ unnötig und leicht behebbar.
 bedingungslos jeden Frame auszuführen.
 
 ### 🟡 Unsaubere Casts für lichttyp-spezifische Felder in `_createEntry()`
+
+*(✅ Behoben: `(light as PointLight).distance`/`(light as SpotLight).angle` durch explizite
+`instanceof PointLight`/`instanceof SpotLight`-Verzweigungen ersetzt -- keine Force-Casts mehr, eine
+künftige Umbenennung von `distance`/`angle` würde jetzt an dieser Stelle einen Compiler-Fehler auslösen.)*
 
 ```ts
 return {
@@ -226,6 +240,12 @@ Divergenz-Pfad mehr, der den Listener stehen lässt.
 Muster zu befürchten gewesen wäre -- beide Kontextmenüs sind jetzt lecksicher).
 
 ### 🟢 `_computeSmartSpawnPosition()` / "Smart Viewport Spawning" -- funktional plausibel, aber ohne dedizierten Edge-Case-Test für den Raycast-Fallback
+
+*(✅ Behoben: zwei neue Regressionstests in `tests/tools/maker/MakerFeatures.test.ts` unter "Smart Viewport
+Spawning & Ground Resting" -- einer deckt den (nahezu) horizontalen Blick ab (`rayDir.y` ≈ 0, Kamera und
+Orbit-Ziel auf gleicher Höhe), der andere den Fall, in dem der Bodenebenen-Schnittpunkt weiter als 100
+Einheiten entfernt liegt (Kamera weit über dem Ziel). Beide verifizieren, dass `spawnX`/`spawnZ` auf die
+Orbit-Ziel-Koordinaten zurückfallen statt auf einen fehlerhaften Raycast-Wert.)*
 
 `MakerApp.ts:868-899`: platziert neu erzeugte Objekte (Ausnahme: Position ist exakt `(0,0,0)`, der
 Factory-Default) am Kamera-Blick-Schnittpunkt mit der Bodenebene `Y=0`, mit einem Fallback auf
@@ -369,14 +389,14 @@ zuverlässig aufgerufen wird.
 
 **Kein neuer 🔴-Fund in diesem Scope.**
 
-**Restliche offene Punkte, absteigend nach Priorität:**
-1. 🟠 `LightGizmoManager.update()`: neues `Set` + voller Szenen-Walk jeden Frame, unabhängig von
-   `_hierarchyDirty` -- an dasselbe Dirty-Flag koppeln, das `MakerApp` bereits für Hierarchie-Änderungen
-   führt.
-2. 🟡 `LightGizmoManager._createEntry()`s `(light as PointLight).distance`/`(light as SpotLight).angle`-
-   Casts -- durch `instanceof`-Guards statt Force-Casts ersetzen.
-3. 🟢 `_computeSmartSpawnPosition()`s horizontaler-Blick-Fallback-Zweig ist ungetestet (funktional
-   plausibel, aber ohne dedizierte Testabdeckung).
+**Restliche offene Punkte, absteigend nach Priorität:** *(alle drei am 2026-09-04 im Zuge dieses Reviews
+behoben, s. jeweilige ✅-Vermerke oben)*
+1. ~~🟠 `LightGizmoManager.update()`: neues `Set` + voller Szenen-Walk jeden Frame, unabhängig von
+   `_hierarchyDirty`~~ -- ✅ behoben, siehe Abschnitt `src/tools/maker/LightGizmoManager.ts`.
+2. ~~🟡 `LightGizmoManager._createEntry()`s `(light as PointLight).distance`/`(light as SpotLight).angle`-
+   Casts~~ -- ✅ behoben.
+3. ~~🟢 `_computeSmartSpawnPosition()`s horizontaler-Blick-Fallback-Zweig ist ungetestet~~ -- ✅ behoben,
+   zwei neue Regressionstests.
 
 Nachrangig, unverändert aus dem Vorgänger-Review übernommen (nicht Teil dieses Fensters, daher nicht erneut
 vertieft): `ProjectBinding`s `GltfLoader._parse`-Reflection-Zugriff, `yad/LevelBuilder.ts`s

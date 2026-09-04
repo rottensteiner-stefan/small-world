@@ -252,14 +252,14 @@ export class Object3D implements Collidable {
         const b = this.bounds as import("../physix/index.js").OBB;
         if (localBounds.type === 1 /* BoundingType.BOX */) {
           const lb = localBounds as import("../physix/index.js").BoundingBox;
-          b.halfExtents.set(
+          b.setLocalHalfExtents(
             (lb.max.x - lb.min.x) * 0.5,
             (lb.max.y - lb.min.y) * 0.5,
             (lb.max.z - lb.min.z) * 0.5,
           );
         } else if (localBounds.type === 2 /* BoundingType.OBB */) {
           const lo = localBounds as import("../physix/index.js").OBB;
-          b.halfExtents.copyFrom(lo.halfExtents);
+          b.copyLocalHalfExtentsFrom(lo.halfExtents);
         }
         b.transform(this.worldMatrix);
       }

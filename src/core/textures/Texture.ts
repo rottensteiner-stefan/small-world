@@ -18,6 +18,10 @@ export interface TextureOptions {
   anisotropy?: number;
   /** Whether the image should be flipped vertically during loading. Defaults to false. */
   flipY?: boolean;
+  /** The AssetManager instance to use for `fromUrl()`. Defaults to a fresh private instance
+   * (not the deprecated process-wide singleton) -- pass this to share caching/headers/base-URL
+   * across multiple texture loads within the same engine instance. */
+  assetManager?: AssetManager;
 }
 
 /**
@@ -139,7 +143,8 @@ export class Texture {
    * @returns A promise that resolves to a new Texture instance.
    */
   public static async fromUrl(url: string, options?: TextureOptions): Promise<Texture> {
-    const image = await AssetManager.loadImage(url, undefined, options?.flipY);
+    const assetManager = options?.assetManager ?? new AssetManager();
+    const image = await assetManager.loadImage(url, undefined, options?.flipY);
     return new Texture(image, options);
   }
 }

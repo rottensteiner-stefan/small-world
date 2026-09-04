@@ -13,6 +13,13 @@ export class DraggableBehavior extends Behavior {
   private _planeNormal: Vector3D = new Vector3D();
   private _planePoint: Vector3D = new Vector3D();
   private _dragOffset: Vector3D = new Vector3D();
+  /** The exact closures wired onto the target in `onAttach()` -- kept so `onDetach()` can
+   * identity-check before clearing `target.onPointerDown`/`onPointerUp`/`onPointerMove`, since
+   * those are single-slot callbacks another behavior may have overwritten in the meantime (see
+   * `HoverBehavior.onDetach()` for the same pattern). */
+  private _onPointerDown: ((ray: Ray, intersectionPoint: Vector3D) => void) | undefined;
+  private _onPointerUp: (() => void) | undefined;
+  private _onPointerMove: ((ray: Ray) => void) | undefined;
 
   constructor(camera: Camera) {
     super();
@@ -23,7 +30,7 @@ export class DraggableBehavior extends Behavior {
     super.onAttach(target);
     target.isPickable = true;
 
-    target.onPointerDown = (_ray: Ray, intersectionPoint: Vector3D): void => {
+    this._onPointerDown = (_ray: Ray, intersectionPoint: Vector3D): void => {
       this._isDragging = true;
 
       // Define the drag plane normal (facing the camera)
@@ -34,11 +41,11 @@ export class DraggableBehavior extends Behavior {
       this._dragOffset.copyFrom(target.position).sub(intersectionPoint);
     };
 
-    target.onPointerUp = (): void => {
+    this._onPointerUp = (): void => {
       this._isDragging = false;
     };
 
-    target.onPointerMove = (ray: Ray): void => {
+    this._onPointerMove = (ray: Ray): void => {
       if (!this._isDragging) return;
 
       // Intersect ray with the drag plane: (p - p0) . n = 0
@@ -60,14 +67,27 @@ export class DraggableBehavior extends Behavior {
         }
       }
     };
+
+    target.onPointerDown = this._onPointerDown;
+    target.onPointerUp = this._onPointerUp;
+    target.onPointerMove = this._onPointerMove;
   }
 
   public override onDetach(): void {
-    if (this.target && this.target instanceof Object3D) {
-      this.target.onPointerDown = undefined;
-      this.target.onPointerUp = undefined;
-      this.target.onPointerMove = undefined;
+    if (this.target instanceof Object3D) {
+      if (this.target.onPointerDown === this._onPointerDown) {
+        this.target.onPointerDown = undefined;
+      }
+      if (this.target.onPointerUp === this._onPointerUp) {
+        this.target.onPointerUp = undefined;
+      }
+      if (this.target.onPointerMove === this._onPointerMove) {
+        this.target.onPointerMove = undefined;
+      }
     }
+    this._onPointerDown = undefined;
+    this._onPointerUp = undefined;
+    this._onPointerMove = undefined;
     super.onDetach();
   }
 

@@ -17,6 +17,7 @@ import {
   HistoryBlendPassGL,
 } from "../post/passes/index.js";
 import { AbstractLight } from "../../core/lights/index.js";
+import { MAX_AREA_LIGHTS } from "../../core/lights/AreaLight.js";
 import { MAX_SKINNED_BONES } from "../../core/animation/Skeleton.js";
 import { CubeTexture, Texture, RenderTarget, RenderTargetCube } from "../../core/textures/index.js";
 import { RenderManifest } from "../../core/renderers/shaders/index.js";
@@ -1524,7 +1525,7 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
       }
     }
 
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < MAX_AREA_LIGHTS; i++) {
       const offset = 1696 + i * 96;
       if (i < lights.aLights.length) {
         const al = lights.aLights[i]!;

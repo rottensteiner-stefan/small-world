@@ -31,6 +31,24 @@ export class RendererFactory {
   }
 
   /**
+   * Combines the configured backend attributes with the shared `quality.msaa` override.
+   * Shared by every fallback hop so each one re-evaluates attributes the same way.
+   */
+  private static _computeFallbackAttributes(
+    config: EngineOptions | undefined,
+    type: RendererType,
+  ): Record<string, unknown> | undefined {
+    let attributes = RendererFactory._getBackendAttributes(config, type);
+    if (config?.quality?.msaa !== undefined) {
+      attributes = attributes || {};
+      if (attributes["antialias"] === undefined) {
+        attributes["antialias"] = config.quality.msaa > 0;
+      }
+    }
+    return attributes;
+  }
+
+  /**
    * Creates a new renderer instance based on the given type.
    */
   public static async create(
@@ -96,39 +114,42 @@ export class RendererFactory {
       if (actualType === RendererType.WEB_GPU && !fallbackToWebGL2) {
         console.warn(`[RendererFactory] WebGPU initialization failed. Falling back to WebGL2.`);
         renderer = new WebGL2Renderer(context);
-
-        // Re-evaluate attributes for WebGL2
-        let fallbackAttributes = RendererFactory._getBackendAttributes(
+        const fallbackAttributes = RendererFactory._computeFallbackAttributes(
           config,
           RendererType.WEB_GL2,
         );
-        if (config?.quality?.msaa !== undefined) {
-          fallbackAttributes = fallbackAttributes || {};
-          if (fallbackAttributes["antialias"] === undefined) {
-            fallbackAttributes["antialias"] = config.quality.msaa > 0;
-          }
-        }
 
-        // Initialize WebGL2 instead
-        await renderer.initialize(canvas, fallbackAttributes, config);
+        try {
+          // Initialize WebGL2 instead
+          await renderer.initialize(canvas, fallbackAttributes, config);
+        } catch (e2) {
+          // Full WEBGPU -> WEBGL2 -> WEBGL1 cascade: the WebGL2 fallback itself failed too
+          // (e.g. both APIs are driver-blocklisted), so chase the same WebGL1 hop the
+          // WEB_GL2 branch below takes on a direct request, instead of propagating e2.
+          if (!context.deviceCaps.hasFeature(DeviceFeature.WEBGL1)) {
+            console.error(`[RendererFactory] WebGL2 fallback initialization failed:`, e2);
+            throw e2;
+          }
+          console.warn(
+            `[RendererFactory] WebGL2 fallback initialization failed. Falling back to WebGL1.`,
+          );
+          renderer = new WebGL1Renderer(context);
+          const webgl1Attributes = RendererFactory._computeFallbackAttributes(
+            config,
+            RendererType.WEB_GL1,
+          );
+          await renderer.initialize(canvas, webgl1Attributes, config);
+        }
       } else if (
         actualType === RendererType.WEB_GL2 &&
         context.deviceCaps.hasFeature(DeviceFeature.WEBGL1)
       ) {
         console.warn(`[RendererFactory] WebGL2 initialization failed. Falling back to WebGL1.`);
         renderer = new WebGL1Renderer(context);
-
-        // Re-evaluate attributes for WebGL1
-        let fallbackAttributes = RendererFactory._getBackendAttributes(
+        const fallbackAttributes = RendererFactory._computeFallbackAttributes(
           config,
           RendererType.WEB_GL1,
         );
-        if (config?.quality?.msaa !== undefined) {
-          fallbackAttributes = fallbackAttributes || {};
-          if (fallbackAttributes["antialias"] === undefined) {
-            fallbackAttributes["antialias"] = config.quality.msaa > 0;
-          }
-        }
 
         // Initialize WebGL1 instead
         await renderer.initialize(canvas, fallbackAttributes, config);

@@ -141,6 +141,15 @@ das ein Leck derselben Klasse wie der behobene Fund 4, nur eine Ebene tiefer im 
 `src/core/textures/` außerhalb des zugewiesenen Scopes liegt, hier nur als Hinweis für den zuständigen
 Reviewer dokumentiert, nicht als eigener Fund bewertet.
 
+*(✅ Behoben, da trivial/lokal möglich, analog zum Loader-Pattern: `TextureOptions.assetManager?: AssetManager`
+ergänzt; `Texture.fromUrl()` und `TextureArray.fromUrls()` nutzen jetzt `options?.assetManager ?? new
+AssetManager()` (eigene Instanz) statt der statischen `AssetManager.loadImage()`. `CubeTexture` bekommt
+einen neuen optionalen zweiten Konstruktor-Parameter `assetManager?: AssetManager`, hält ihn in einem
+privaten `_assetManager`-Feld und nutzt ihn in `loadFrom()`/`loadMipmapsFrom()` (inkl. der intern erzeugten
+temporären `CubeTexture`, die die Instanz jetzt explizit weitergereicht bekommt). Alle Änderungen sind
+additiv/optional, kein bestehender Call-Site (`new CubeTexture(source)`, `Texture.fromUrl(url, opts)`,
+Showcases/Apps) musste angepasst werden. `tsc --noEmit` sauber, volle Suite grün.)*
+
 ---
 
 ### ✅ [VERIFIZIERT] Fund 5 — `SynthSFX.startDrone()`/`startFire()` ohne Stop-Mechanismus
@@ -191,7 +200,7 @@ unabhängig von dieser Klasse). Die Funktionalität war laut vorherigem Review n
 (kein Loader rief sie auf), daher ist hier keine Funktionalität verloren gegangen. Sauberer, vollständiger
 Cleanup.
 
-### 🟢 Test-Lücke: `ParametricGeometryNaNGuards.test.ts` deckt `Terrain` gar nicht und `ExtrudeGeometry` nur indirekt ab
+### 🟢 Test-Lücke: `ParametricGeometryNaNGuards.test.ts` deckt `Terrain` gar nicht und `ExtrudeGeometry` nur indirekt ab *(✅ Behoben: zwei neue `it()`-Blöcke in `tests/geometry/ParametricGeometryNaNGuards.test.ts` ergänzt — `Terrain.fromHeightData()` mit `meshWidthSegments`/`meshDepthSegments: 0`, `ExtrudeGeometry` mit einer entarteten Zero-Perimeter-Shape (3 identische Punkte), die den `totalDist`-Guard auslöst. Alle Tests grün.)*
 
 **Datei:** `tests/geometry/ParametricGeometryNaNGuards.test.ts`
 
@@ -208,7 +217,7 @@ Regression.
 `Terrain.fromHeightData({ heightData: new Float32Array([0]), heightmapResolution: 1, meshWidthSegments: 0, meshDepthSegments: 0 })`,
 einen für `new ExtrudeGeometry({ shape: [], innerShape: [], depth: 0 })` (oder eine 1-Punkt-Shape).
 
-### 🟡 `OBB.transform()` mutiert `halfExtents` multiplikativ in-place — fragile API, korrekt nur weil der einzige Aufrufer diszipliniert zurücksetzt
+### 🟡 `OBB.transform()` mutiert `halfExtents` multiplikativ in-place — fragile API, korrekt nur weil der einzige Aufrufer diszipliniert zurücksetzt *(✅ Behoben: neues privates `_localHalfExtents`-Feld als Quelle der Wahrheit für `transform()`; `halfExtents.x/y/z` wird jetzt immer frisch aus `_localHalfExtents * scale` zugewiesen statt multiplikativ verändert — analog zum `lb`/`b`-Muster bei `BoundingBox`/`BoundingSphere`. Neue öffentliche Setter `setLocalHalfExtents()`/`copyLocalHalfExtentsFrom()` ersetzen direktes `halfExtents.set()`/`copyFrom()` überall dort, wo anschließend `transform()` aufgerufen wird — angepasst in `Object3D.computeBounds()` sowie zwei Collision-Tests, die zuvor zufällig nur funktionierten, weil ihre Transform-Matrix Skala 1 hatte. `clone()` kopiert `_localHalfExtents` mit. Volle Suite grün, `tsc --noEmit` sauber.)*
 
 **Datei:** `src/physix/OBB.ts:76-101`
 
@@ -235,7 +244,7 @@ live nachführt.
 analog zum bereits etablierten `lb`/`b`-Muster bei `BoundingBox`/`BoundingSphere`. Kein Blocker, da
 kein aktiver Bug, aber ein API-Vertrag, der leicht falsch verwendet werden kann.
 
-### 🟡 `tests/loaders/BinaryStreamLoader.test.ts`: `beforeEach`-Reset auf statische `AssetManager`-Caches ist jetzt wirkungslose Altlast
+### 🟡 `tests/loaders/BinaryStreamLoader.test.ts`: `beforeEach`-Reset auf statische `AssetManager`-Caches ist jetzt wirkungslose Altlast *(✅ Behoben: `beforeEach`-Block ersatzlos entfernt, `beforeEach`/`AssetManager`-Import aus der Datei entfernt (nicht mehr benötigt). Test bleibt grün.)*
 
 **Datei:** `tests/loaders/BinaryStreamLoader.test.ts:6-10`
 

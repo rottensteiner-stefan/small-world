@@ -56,29 +56,36 @@ export class RatGroomingBehavior extends Behavior {
   private _bindNodes(target: Object3D): void {
     this._tailSegments = [];
 
-    // Search for standard node names
-    this._head =
-      target.getObjectByName("Head") ||
-      target.getObjectByName("Rat1Head") ||
-      target.getObjectByName("RatHead");
-    this._leftPaw =
-      target.getObjectByName("LeftPaw") ||
-      target.getObjectByName("Rat1LeftPaw") ||
-      target.getObjectByName("RatLeftPaw");
-    this._rightPaw =
-      target.getObjectByName("RightPaw") ||
-      target.getObjectByName("Rat1RightPaw") ||
-      target.getObjectByName("RatRightPaw");
+    this._head = this._findNodeByName(target, "Head");
+    this._leftPaw = this._findNodeByName(target, "LeftPaw");
+    this._rightPaw = this._findNodeByName(target, "RightPaw");
 
     for (let s = 0; s < 12; s++) {
-      const seg =
-        target.getObjectByName(`Tail_${s}`) ||
-        target.getObjectByName(`Rat1Tail_${s}`) ||
-        target.getObjectByName(`RatTail_${s}`);
+      const seg = this._findNodeByName(target, `Tail_${s}`);
       if (seg) {
         this._tailSegments.push(seg);
       }
     }
+  }
+
+  /** Resolves a canonical node name against a rig that may prefix every node with a
+   * character/instance identifier (e.g. "Rat1Head", "RatHead" for canonical "Head"). Tries an
+   * exact match first, then falls back to a generic tree-walk suffix match instead of guessing a
+   * fixed list of prefix candidates -- see `AnimationMixer`'s `_findByNormalizedMixamoName` for the
+   * same anti-pattern fixed the same way for Mixamo rig prefixes. */
+  private _findNodeByName(target: Object3D, canonicalName: string): Object3D | undefined {
+    const exact = target.getObjectByName(canonicalName);
+    if (exact) return exact;
+    return this._findBySuffix(target, canonicalName);
+  }
+
+  private _findBySuffix(node: Object3D, suffix: string): Object3D | undefined {
+    if (node.name !== suffix && node.name.endsWith(suffix)) return node;
+    for (const child of node.children) {
+      const found = this._findBySuffix(child, suffix);
+      if (found) return found;
+    }
+    return undefined;
   }
 
   public override update(deltaTime: number): void {

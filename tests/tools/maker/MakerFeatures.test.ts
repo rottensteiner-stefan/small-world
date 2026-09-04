@@ -550,7 +550,7 @@ describe("Maker Phase 2 Features", () => {
       sceneRoot.add(sunLight);
 
       // 1. Initial update (unselected)
-      mgr.update(sceneRoot, new Set());
+      mgr.update(sceneRoot, new Set(), true);
       expect(mgr.root.children.length).toBeGreaterThanOrEqual(3);
 
       // Collect pickables
@@ -563,18 +563,49 @@ describe("Maker Phase 2 Features", () => {
       expect(pointMarker).toBeDefined();
       expect(mgr.getLightForObject(pointMarker!)).toBe(pointLight);
 
-      // 2. Selection update (point light selected)
-      mgr.update(sceneRoot, new Set([pointLight]));
+      // 2. Selection update (point light selected; hierarchy unchanged, reuses cached lights)
+      mgr.update(sceneRoot, new Set([pointLight]), false);
       const rangeGizmo = mgr.root.children.find((c) => c.name === "Range_BunkerLamp");
       expect(rangeGizmo).toBeDefined();
       expect(rangeGizmo?.isVisible).toBe(true);
 
-      // 3. Deletion sync
+      // 3. Deletion sync (hierarchy changed -> forces a fresh scene walk)
       sceneRoot.remove(pointLight);
-      mgr.update(sceneRoot, new Set());
+      mgr.update(sceneRoot, new Set(), true);
       const afterPickables: Object3D[] = [];
       mgr.collectPickables(afterPickables);
       expect(afterPickables.find((p) => p.name === "Helper_BunkerLamp")).toBeUndefined();
+    });
+
+    it("skips the full scene walk when hierarchyChanged is false, reusing the cached light set", () => {
+      const mgr = new LightGizmoManager();
+      const sceneRoot = new Object3D("SceneRoot");
+
+      const sunLight = new DirectionalLight({ name: "Sun" });
+      sceneRoot.add(sunLight);
+      mgr.update(sceneRoot, new Set(), true);
+
+      const initialPickables: Object3D[] = [];
+      mgr.collectPickables(initialPickables);
+      expect(initialPickables.length).toBe(1);
+
+      // A newly added light must not be discovered while hierarchyChanged stays false --
+      // the manager should keep reusing its cached light set instead of re-walking the scene.
+      const newLamp = new PointLight({ name: "LateLamp" });
+      sceneRoot.add(newLamp);
+      mgr.update(sceneRoot, new Set(), false);
+
+      const stillCachedPickables: Object3D[] = [];
+      mgr.collectPickables(stillCachedPickables);
+      expect(stillCachedPickables.length).toBe(1);
+      expect(stillCachedPickables.find((p) => p.name === "Helper_LateLamp")).toBeUndefined();
+
+      // Once the caller reports a hierarchy change, the new light is picked up.
+      mgr.update(sceneRoot, new Set(), true);
+      const finalPickables: Object3D[] = [];
+      mgr.collectPickables(finalPickables);
+      expect(finalPickables.length).toBe(2);
+      expect(finalPickables.find((p) => p.name === "Helper_LateLamp")).toBeDefined();
     });
   });
 
@@ -631,6 +662,96 @@ describe("Maker Phase 2 Features", () => {
       const lamp = new PointLight({ name: "CeilingLight" });
       const lampPos = app.computeSpawn(lamp);
       expect(lampPos.y).toBeCloseTo(2.0);
+    });
+
+    it("falls back to the orbit target when the camera looks near-horizontally (no ground-plane hit)", () => {
+      const app = new (class MockMaker {
+        public orbitTarget = new Vector3D(10, 5, 0);
+        public cameraPos = new Vector3D(0, 5, 0);
+
+        public computeSpawn(obj: Object3D): Vector3D {
+          const target = this.orbitTarget.clone();
+          const rayDir = new Vector3D().copyFrom(target).sub(this.cameraPos).normalize();
+
+          let spawnX = target.x;
+          let spawnZ = target.z;
+
+          if (Math.abs(rayDir.y) > 0.001) {
+            const t = -this.cameraPos.y / rayDir.y;
+            if (t > 0 && t < 100) {
+              spawnX = this.cameraPos.x + rayDir.x * t;
+              spawnZ = this.cameraPos.z + rayDir.z * t;
+            }
+          }
+
+          let spawnY = 0;
+          if (obj instanceof PointLight) {
+            spawnY = 2.0;
+          } else if (obj.geometry) {
+            obj.computeBounds();
+            if (obj.bounds && BoundingType.BOX === obj.bounds.type) {
+              const box = obj.bounds as BoundingBox;
+              spawnY = -box.min.y;
+            }
+          }
+
+          return new Vector3D(spawnX, spawnY, spawnZ);
+        }
+      })();
+
+      // Camera and orbit target share the same height -> the look ray is (near-)horizontal
+      // (rayDir.y === 0), so the ground-plane (Y=0) intersection branch is skipped entirely.
+      const cube = new Object3D("Cube");
+      cube.geometry = new Cube({ size: 1 }).getGeometryData();
+      const cubePos = app.computeSpawn(cube);
+
+      expect(cubePos.x).toBeCloseTo(10);
+      expect(cubePos.z).toBeCloseTo(0);
+    });
+
+    it("falls back to the orbit target when the ground-plane hit lies beyond the 100-unit clamp", () => {
+      const app = new (class MockMaker {
+        public orbitTarget = new Vector3D(1, 0, 0);
+        public cameraPos = new Vector3D(0, 1000, 0);
+
+        public computeSpawn(obj: Object3D): Vector3D {
+          const target = this.orbitTarget.clone();
+          const rayDir = new Vector3D().copyFrom(target).sub(this.cameraPos).normalize();
+
+          let spawnX = target.x;
+          let spawnZ = target.z;
+
+          if (Math.abs(rayDir.y) > 0.001) {
+            const t = -this.cameraPos.y / rayDir.y;
+            if (t > 0 && t < 100) {
+              spawnX = this.cameraPos.x + rayDir.x * t;
+              spawnZ = this.cameraPos.z + rayDir.z * t;
+            }
+          }
+
+          let spawnY = 0;
+          if (obj instanceof PointLight) {
+            spawnY = 2.0;
+          } else if (obj.geometry) {
+            obj.computeBounds();
+            if (obj.bounds && BoundingType.BOX === obj.bounds.type) {
+              const box = obj.bounds as BoundingBox;
+              spawnY = -box.min.y;
+            }
+          }
+
+          return new Vector3D(spawnX, spawnY, spawnZ);
+        }
+      })();
+
+      // The camera is far enough above the target that the ground-plane intersection distance
+      // exceeds the 100-unit clamp, so the raycast result is discarded in favor of the fallback.
+      const cube = new Object3D("Cube");
+      cube.geometry = new Cube({ size: 1 }).getGeometryData();
+      const cubePos = app.computeSpawn(cube);
+
+      expect(cubePos.x).toBeCloseTo(1);
+      expect(cubePos.z).toBeCloseTo(0);
     });
   });
 

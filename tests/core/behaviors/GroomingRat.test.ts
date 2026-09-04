@@ -5,6 +5,7 @@ import {
   RatGroomingState,
 } from "../../../src/core/behaviors/creatures/RatGroomingBehavior.js";
 import { Color } from "../../../src/core/colors/Color.js";
+import { Object3D } from "../../../src/core/Object3D.js";
 
 describe("GroomingRat & RatGroomingBehavior", () => {
   it("should create a GroomingRat with full articulated node hierarchy", () => {
@@ -79,5 +80,28 @@ describe("GroomingRat & RatGroomingBehavior", () => {
 
     behavior.update(3.0);
     expect(behavior.elapsedTime).toBe(0);
+  });
+
+  it("should bind nodes on a rig that prefixes every name (e.g. an externally loaded glTF import) via a generic suffix match, not a fixed candidate list", () => {
+    // Regression guard for the anti-pattern already fixed once in AnimationMixer
+    // (`_findByNormalizedMixamoName`): rather than guessing a hardcoded list of prefix
+    // candidates ("Rat1Head", "RatHead", ...), _bindNodes() must resolve any prefix generically.
+    // A rig prefixed with something not on any hardcoded guess list exercises that.
+    const target = new Object3D("Rig");
+    const head = new Object3D("ImportedRig_Head");
+    const leftPaw = new Object3D("ImportedRig_LeftPaw");
+    const rightPaw = new Object3D("ImportedRig_RightPaw");
+    const tail0 = new Object3D("ImportedRig_Tail_0");
+    target.add(head, leftPaw, rightPaw, tail0);
+
+    const behavior = new RatGroomingBehavior();
+    behavior.onAttach(target);
+
+    // Bound correctly if the state machine actually moves the head/paws on update().
+    behavior.update(1.0);
+    expect(head.rotation.x).not.toBe(0);
+    expect(leftPaw.position.y).toBeGreaterThan(0);
+    expect(rightPaw.position.y).toBeGreaterThan(0);
+    expect(tail0.rotation.y).not.toBe(0);
   });
 });

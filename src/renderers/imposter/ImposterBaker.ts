@@ -114,6 +114,12 @@ export function bakeImposter(
     new OrthographicProjection({
       left: -radius * 1.1,
       right: radius * 1.1,
+      // Swapped vs. the usual bottom<top convention: RenderTarget textures come out of the
+      // renderer in WebGPU's native top-left row order, but `Plane`/`Sprite`'s UV mapping
+      // (V=1 at the quad's top, V=0 at its bottom -- see src/geometry/Plane.ts) assumes the
+      // bottom-left-origin convention regular loaded images get Y-flip-corrected into during
+      // upload (`Texture`'s `flipY` option). A render target never goes through that image-load
+      // step, so without this pre-flip every baked angle displays upside down on the sprite.
       bottom: radius * 1.1,
       top: -radius * 1.1,
       near: 0.01,

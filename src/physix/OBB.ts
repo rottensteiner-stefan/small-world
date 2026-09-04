@@ -15,6 +15,13 @@ export class OBB implements BoundingVolume {
   /** Half-extents of the OBB along its local axes (scaled to world space). */
   public halfExtents: Vector3D = new Vector3D(0.5, 0.5, 0.5);
 
+  /**
+   * Unscaled local half-extents, used as the source of truth for `transform()`.
+   * Keeping this separate from `halfExtents` prevents repeated `transform()` calls
+   * from cumulatively multiplying the scale into `halfExtents` (see `transform()`).
+   */
+  private _localHalfExtents: Vector3D = new Vector3D(0.5, 0.5, 0.5);
+
   /** The 3 orthogonal local axes of the OBB (X, Y, Z). */
   public axes: [Vector3D, Vector3D, Vector3D] = [
     new Vector3D(1, 0, 0),
@@ -24,7 +31,30 @@ export class OBB implements BoundingVolume {
 
   constructor(center?: Vector3D, halfExtents?: Vector3D) {
     if (center) this.center.copyFrom(center);
-    if (halfExtents) this.halfExtents.copyFrom(halfExtents);
+    if (halfExtents) {
+      this.halfExtents.copyFrom(halfExtents);
+      this._localHalfExtents.copyFrom(halfExtents);
+    }
+  }
+
+  /**
+   * Sets the unscaled local half-extents (and the current `halfExtents`) from individual
+   * components. Use this instead of mutating `halfExtents` directly when the OBB will later
+   * be transformed — it is the value `transform()` scales from, so it must be updated whenever
+   * the untransformed source bounds change (e.g. once per frame before re-transforming).
+   */
+  public setLocalHalfExtents(x: number, y: number, z: number): void {
+    this._localHalfExtents.set(x, y, z);
+    this.halfExtents.set(x, y, z);
+  }
+
+  /**
+   * Sets the unscaled local half-extents (and the current `halfExtents`) from a vector.
+   * See `setLocalHalfExtents()` for why this should be preferred over mutating `halfExtents`.
+   */
+  public copyLocalHalfExtentsFrom(v: Vector3D): void {
+    this._localHalfExtents.copyFrom(v);
+    this.halfExtents.copyFrom(v);
   }
 
   public getBroadRadius(): number {
@@ -101,10 +131,12 @@ export class OBB implements BoundingVolume {
     if (sz > 0.00001) this.axes[2].scale(1.0 / sz);
     else this.axes[2].set(0, 0, 1);
 
-    // 3. Extract scale and apply to half extents
-    this.halfExtents.x *= sx;
-    this.halfExtents.y *= sy;
-    this.halfExtents.z *= sz;
+    // 3. Extract scale and apply to the unscaled local half extents.
+    // Always deriving from `_localHalfExtents` (rather than multiplying `halfExtents`
+    // in place) keeps repeated `transform()` calls idempotent instead of cumulative.
+    this.halfExtents.x = this._localHalfExtents.x * sx;
+    this.halfExtents.y = this._localHalfExtents.y * sy;
+    this.halfExtents.z = this._localHalfExtents.z * sz;
   }
 
   /**
@@ -114,6 +146,7 @@ export class OBB implements BoundingVolume {
     const copy = new OBB();
     copy.center.copyFrom(this.center);
     copy.halfExtents.copyFrom(this.halfExtents);
+    copy._localHalfExtents.copyFrom(this._localHalfExtents);
     copy.axes[0].copyFrom(this.axes[0]);
     copy.axes[1].copyFrom(this.axes[1]);
     copy.axes[2].copyFrom(this.axes[2]);

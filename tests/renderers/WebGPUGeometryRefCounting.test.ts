@@ -117,6 +117,37 @@ describe("GPUGeometryCache reference counting", () => {
     expect(entry.vb.destroy).toHaveBeenCalled();
   });
 
+  it("re-uploads normals and tangents (not just vertices) when needsUpdate is set, without recreating buffers", () => {
+    const device = makeMockDevice();
+    const cache = new GPUGeometryCache(device);
+
+    const geo: GeometryDataInterface = {
+      vertices: new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0]),
+      normals: new Float32Array([0, 1, 0, 0, 1, 0, 0, 1, 0]),
+      tangents: new Float32Array([1, 0, 0, 1, 0, 0, 1, 0, 0]),
+      getBoundingVolume: (): never => {
+        throw new Error("not used in this test");
+      },
+    };
+    const obj = new Object3D("Tangented");
+
+    const entry = cache.getGeoCache(obj, geo);
+    expect(entry.nb).toBeDefined();
+    expect(entry.tb).toBeDefined();
+    vi.mocked(device.queue.writeBuffer).mockClear();
+    vi.mocked(device.createBuffer).mockClear();
+
+    geo.needsUpdate = true;
+    const second = cache.getGeoCache(obj, geo);
+
+    expect(second).toBe(entry);
+    expect(device.createBuffer).not.toHaveBeenCalled();
+    expect(device.queue.writeBuffer).toHaveBeenCalledWith(entry.vb, 0, geo.vertices);
+    expect(device.queue.writeBuffer).toHaveBeenCalledWith(entry.nb, 0, geo.normals);
+    expect(device.queue.writeBuffer).toHaveBeenCalledWith(entry.tb, 0, geo.tangents);
+    expect(geo.needsUpdate).toBe(false);
+  });
+
   it("dispose() destroys every buffer of every cached geometry entry, including joints/weights", () => {
     const device = makeMockDevice();
     const cache = new GPUGeometryCache(device);

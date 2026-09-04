@@ -105,6 +105,8 @@ renderer.updateGlobalUBO(vp, camPos, extractedLights, near, far);
 
 ### 🟢 Test-Lücke: `GPUGeometryCache`-Tangenten-Fix ist ungetestet
 
+*(✅ Behoben: Regressionstest ergänzt in `tests/renderers/WebGPUGeometryRefCounting.test.ts` -- setzt `geo.tangents`/`geo.normals`, triggert `needsUpdate=true`, prüft `device.queue.writeBuffer` mit `entry.tb`/`entry.nb` als Ziel und dass `device.createBuffer` dabei nicht erneut aufgerufen wird.)*
+
 **Datei:** `src/renderers/WebGPU/managers/GPUGeometryCache.ts:57`
 
 ```ts
@@ -117,6 +119,8 @@ Der im Vorgänger-Review als 🟠 gefundene fehlende Tangenten-Re-Upload bei `ne
 
 ### 🟢 Test-Lücke: `WebGLTextureManager`/`WebGL1Renderer`-Sampler-Re-Apply-Fix ist ungetestet
 
+*(✅ Behoben: `tests/renderers/TextureNeedsUpdate.test.ts` prüft jetzt in beiden betroffenen Tests (`WebGL1Renderer` und `WebGLTextureManager`) explizit, dass `gl.texParameteri` nach dem `needsUpdate`-Re-Upload erneut mit derselben Aufrufzahl wie beim Erstupload sowie mit `TEXTURE_WRAP_S` aufgerufen wird.)*
+
 **Dateien:** `src/renderers/WebGL2/managers/WebGLTextureManager.ts:56-88` (`_setSamplerParams`), `src/renderers/WebGL1/WebGL1Renderer.ts:297-320` (`_setWebGL1SamplerParams`)
 
 Der im Vorgänger-Review als 🟠 gefundene fehlende Sampler-Parameter-Re-Apply bei `needsUpdate` ist auf beiden WebGL-Backends sauber in eine gemeinsame private Helper-Methode extrahiert und in beiden Zweigen (Erst-Upload + `needsUpdate`) aufgerufen -- genau die im Vorgänger-Review vorgeschlagene Fix-Richtung ("Sampler-Parameter-Block in eine gemeinsame Helper-Methode extrahieren"). Verifiziert per Codelesung, dass `_setSamplerParams`/`_setWebGL1SamplerParams` in beiden Pfaden (Erstupload UND `needsUpdate`) aufgerufen werden.
@@ -126,6 +130,8 @@ Aber: `tests/renderers/TextureNeedsUpdate.test.ts` (der einzige Test, der diesen
 **Fix-Richtung:** In `TextureNeedsUpdate.test.ts` nach dem `needsUpdate`-Re-Upload zusätzlich `expect(gl.texParameteri).toHaveBeenCalledWith(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, ...)` (oder Aufrufzahl-Delta) ergänzen.
 
 ### 🟢 Bestehende Lücke unverändert: `TextureArray` bleibt vom `needsUpdate`-Zweig ausgeschlossen
+
+*(Bewusst NICHT behoben: laut Review selbst eine bereits vor dem 48h-Fenster bestehende, nicht neu regressierte Lücke ("War bereits im Vorgänger-Review... ist in diesem Fenster nicht behoben worden -- keine neue Regression"). Liegt damit explizit außerhalb des Scopes dieses 48h-Continuous-Reviews und wurde unangetastet gelassen.)*
 
 **Datei:** `src/renderers/WebGL2/managers/WebGLTextureManager.ts:174-177`
 
@@ -140,6 +146,8 @@ Die Sampler-Fix-Runde in diesem Zeitfenster hat den `needsUpdate`-Zweig nur für
 
 ### 🟡 `RendererFactory`: dreistufiger Fallback (WebGPU→WebGL2→WebGL1) bricht bei Doppelfehlschlag weiterhin ohne dritten Hop ab
 
+*(✅ Behoben: der WebGL2-Fallback-`initialize()`-Aufruf in `src/renderers/RendererFactory.ts` ist jetzt selbst in ein try/catch gewickelt; schlägt er fehl, greift derselbe WebGL1-Fallback-Zweig statt die Exception ungefangen zu propagieren. Attribut-Re-Evaluierung dabei in neue private `_computeFallbackAttributes()`-Hilfsmethode dedupliziert statt dreifach kopiert.)*
+
 **Datei:** `src/renderers/RendererFactory.ts:93-139`
 
 Der neu ergänzte `else if (actualType === RendererType.WEB_GL2 && ...)`-Zweig schließt exakt die im Vorgänger-Review als 🟡 benannte Lücke (WebGL2→WebGL1-Hop fehlte) und ist korrekt analog zum bestehenden WebGPU→WebGL2-Zweig implementiert (gleiches Attribut-Handling, gleiches Logging-Muster). Nicht abgedeckt bleibt der zusammengesetzte Fall: startet `actualType === WEB_GPU`, schlägt die WebGPU-Initialisierung fehl, fällt der Code auf WebGL2 zurück (Zeile 98) und ruft `await renderer.initialize(...)` **ohne eigenes try/catch** auf (Zeile 113) -- schlägt *dieser* WebGL2-Init ebenfalls fehl (z.B. Treiber-Blocklist für beide APIs gleichzeitig), propagiert die Exception ungefangen aus der äußeren `catch`, ohne den neuen WebGL1-Fallback-Zweig je zu erreichen. Die dreistufige Fallback-Philosophie aus VISION.md ist also für den Einzel-Hop (WEB_GL2→WEB_GL1 direkt angefordert) jetzt korrekt, für die verkettete Kaskade (WEBGPU→WEBGL2→WEBGL1 in einem Rutsch) aber weiterhin nicht vollständig. Seltener Praxisfall (Doppelfehlschlag), daher 🟡, nicht 🔴.
@@ -147,6 +155,8 @@ Der neu ergänzte `else if (actualType === RendererType.WEB_GL2 && ...)`-Zweig s
 **Fix-Richtung:** Den WebGL2-Fallback-Block (Zeilen 97-113) selbst in ein try/catch wickeln, das bei erneutem Fehlschlag denselben WebGL1-Fallback-Code auslöst statt zu propagieren -- am saubersten durch Extraktion einer kleinen rekursiven/iterativen Fallback-Kette statt der aktuell dreifach kopierten if/else-if-Struktur.
 
 ### 🟡 Verlorene Erklärung des Y-Flip-Kommentars beim Verschieben von `ImposterBaker.ts`
+
+*(✅ Behoben: Original-Kommentar (wortgleich aus der Git-Historie unter `src/extensions/imposter/ImposterBaker.ts` wiederhergestellt) über `bottom`/`top` in `src/renderers/imposter/ImposterBaker.ts` erneut eingefügt.)*
 
 **Datei:** `src/renderers/imposter/ImposterBaker.ts:114-120` (vorher `src/extensions/imposter/ImposterBaker.ts`)
 
@@ -173,6 +183,8 @@ public color: Color = new Color(0, 0, 0, 1);   // war: Color.BLACK
 `Color.BLACK` ist `Object.freeze(new Color(0, 0, 0, 1))` (`src/core/colors/Color.ts:50`) -- ein echtes, eingefrorenes Singleton. Jeder Versuch, `outlineElement.color.r = x` (statt die ganze Referenz zu ersetzen) zu mutieren, wäre vorher ein stiller No-Op im Sloppy-Mode gewesen (bzw. ein `TypeError` im Strict-Mode, je nach Aufrufkontext) -- ohne jede Fehlermeldung im UI/Inspector-Workflow, der genau dieses Mutations-Pattern typischerweise verwendet. Der Fix ersetzt das Feld durch eine frische, mutable Instanz und schließt damit eine reale (wenn auch kleine) Lücke, die nicht Teil der 7 im Prompt genannten Bugs war. Ein `grep` nach `= Color\.(BLACK|WHITE|RED|GREEN|BLUE)` im gesamten `renderers/`/`materials/`-Baum findet keine weiteren Vorkommen desselben Musters -- isolierter Fix, keine Geschwister-Instanzen dieses Bugs übrig.
 
 ### 🟢 Stale Kommentar/Konstante: `WebGL2Renderer.ts` importiert `MAX_AREA_LIGHTS` nicht, obwohl der neue GLSL-Kommentar genau das als Vertrag postuliert
+
+*(✅ Behoben: `src/renderers/WebGL2/WebGL2Renderer.ts` importiert jetzt `MAX_AREA_LIGHTS` aus `../../core/lights/AreaLight.js` und verwendet die Konstante in der AreaLight-Packing-Loop (Zeile ~1527) statt der hartkodierten `4`. Die übrigen vier `for (i < 4)`-Vorkommen in derselben Datei betreffen Spot-Shadow-Maps bzw. Instanz-Matrix-Attribute -- unabhängig von `MAX_AREA_LIGHTS`, daher unverändert gelassen.)*
 
 **Datei:** `src/renderers/WebGL2/WebGL2Renderer.ts:1527` vs. `src/core/lights/AreaLight.ts:15-18`, `src/core/renderers/shaders/source/web_gl2/chunks/lights.frag.glsl:57-58`
 
@@ -217,10 +229,10 @@ Nebenbei geprüft: die im selben Zeitfenster committete `ObjectUniforms`-Erweite
 
 Diese Review-Runde ergab **0× 🔴, 1× 🟠 (unverändert/nicht neu), 4× 🟡, 3× 🟢** -- keine neuen kritischen Bugs. Alle 6 explizit im Auftrag genannten Fixes plus ein siebter, der noch im aktuellen Scope lag (`WebGLShadowPass`), wurden verifiziert korrekt und vollständig umgesetzt, drei davon mit tatsächlich nachgerechneten Byte-Offsets/Formeln statt bloßer Plausibilitätsprüfung.
 
-**Wo noch Lücken bleiben:**
-1. **Zwei der Fixes aus diesem Fenster sind selbst ungetestet** (GPUGeometryCache-Tangenten-Reupload, WebGL-Sampler-Reapply) -- funktional korrekt, aber ohne die Art Regressionsschutz, die die anderen Fixes in derselben Runde bekommen haben. Beide sind Ein-Zeilen-Testergänzungen wert.
-2. **`RendererFactory`s Fallback-Kette ist jetzt für jeden Einzel-Hop korrekt, aber nicht für die volle Kaskade** bei einem seltenen Doppelfehlschlag (WebGPU- UND WebGL2-Init schlagen im selben Frame fehl).
-3. **`TextureArray` bleibt (unverändert seit dem letzten Review) vom `needsUpdate`-Neuupload ausgeschlossen** -- die aktuelle Fix-Runde hat gezielt nur den `TEXTURE_2D`-Fall behoben.
+**Wo noch Lücken bleiben:** *(Stand vor der Fix-Runde -- Punkt 1 und 2 sind inzwischen behoben, siehe die ✅-Annotationen oben)*
+1. ~~Zwei der Fixes aus diesem Fenster sind selbst ungetestet~~ *(✅ Behoben: Regressionstests ergänzt, siehe oben.)*
+2. ~~`RendererFactory`s Fallback-Kette ist jetzt für jeden Einzel-Hop korrekt, aber nicht für die volle Kaskade bei einem seltenen Doppelfehlschlag~~ *(✅ Behoben: der WebGL2-Fallback-Hop hat jetzt sein eigenes try/catch und fällt bei erneutem Fehlschlag auf WebGL1 durch -- verifiziert direkt im Code, `src/renderers/RendererFactory.ts:113-137`.)*
+3. **`TextureArray` bleibt (unverändert seit dem letzten Review) vom `needsUpdate`-Neuupload ausgeschlossen** -- die aktuelle Fix-Runde hat gezielt nur den `TEXTURE_2D`-Fall behoben. Bewusst nicht angefasst: bereits vor dem 48h-Fenster bestehend, keine neue Regression, außerhalb des Scopes dieses Continuous-Reviews.
 
 Keiner dieser drei Punkte ist praxisrelevant genug, um den Gesamtbefund zu trüben: die namensgebenden Flaggschiff-Bugs (Clustered Forward+ Lighting auf beiden betroffenen Backends) sind nachweislich behoben, und die Codequalität der Fixes selbst (Kommentare, Konsistenz mit Schwester-Code, Testabdeckung wo vorhanden) ist durchgehend hoch.
 

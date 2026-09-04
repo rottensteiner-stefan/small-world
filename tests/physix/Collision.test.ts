@@ -44,7 +44,10 @@ describe("Collision", () => {
 
     const obb2 = new OBB();
     obb2.center.set(1.5, 0, 0);
-    obb2.halfExtents.set(1, 1, 1);
+    // obb2.transform() is called below, so its half-extents must be set via
+    // setLocalHalfExtents() -- transform() always derives `halfExtents` from the local
+    // (unscaled) value, not from whatever was last poked into `halfExtents` directly.
+    obb2.setLocalHalfExtents(1, 1, 1);
 
     // Axis-aligned, should intersect
     expect(Collision.test(obb1, obb2)).toBe(true);
@@ -279,7 +282,8 @@ describe("Collision", () => {
     it("should find the earliest time-of-impact for a sphere sweeping through a rotated OBB", () => {
       const obb = new OBB();
       obb.center.set(10, 0, 0);
-      obb.halfExtents.set(1, 1, 1);
+      // obb.transform() is called below, so half-extents must be set via setLocalHalfExtents().
+      obb.setLocalHalfExtents(1, 1, 1);
       // A 45-degree Y rotation widens the cube's silhouette along the sweep axis (the diagonal is
       // longer than a face), so contact happens somewhere before the axis-aligned box case above --
       // just assert it's a genuine, in-range hit rather than pinning an exact value.

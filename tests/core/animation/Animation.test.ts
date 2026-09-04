@@ -10,6 +10,7 @@ import {
 } from "../../../src/core/animation/index.js";
 import { Object3D } from "../../../src/core/Object3D.js";
 import { Scene } from "../../../src/core/Scene.js";
+import { Matrix4 } from "../../../src/math/Matrix4.js";
 
 describe("Skeletal Animation System", () => {
   it("should create bones and compute skeleton matrices", () => {
@@ -160,6 +161,61 @@ describe("Skeletal Animation System", () => {
     armature.updateMatrixWorld();
 
     expect(hips.getAccumulatedWorldScale()).toBeCloseTo(100);
+  });
+
+  it("should freeze a bone's pose (not reset it) once no action touches it anymore", () => {
+    // AnimationMixer's zero-alloc blend states are only ever overwritten by a contribution
+    // sampled in the *current* frame (`si !== frameIndex`); a bone dropped by every action
+    // between one frame and the next must keep its last computed pose rather than snapping
+    // back to zero, since nothing writes into `arm.position` for that frame anymore.
+    const root = new Object3D("Hero");
+    const arm = new Bone("Arm");
+    root.add(arm);
+
+    const times = new Float32Array([0, 1.0]);
+    const track = new KeyframeTrack(
+      "Arm",
+      "translation",
+      times,
+      new Float32Array([0, 0, 0, 10, 0, 0]),
+    );
+    const clip = new AnimationClip("Reach", 1.0, [track]);
+
+    const mixer = new AnimationMixer(root);
+    const action = mixer.clipAction(clip);
+    action.setLoop(false); // otherwise time=1.0 wraps back to 0 on a duration=1.0 clip
+    action.play();
+
+    mixer.update(1.0); // Sample at t=1.0 -> x = 10
+    expect(arm.position.x).toBeCloseTo(10);
+
+    action.stop(); // isPlaying = false: no longer contributes to any blend state
+    mixer.update(0.5); // Nothing touches "Arm" this frame
+
+    expect(arm.position.x).toBeCloseTo(10);
+  });
+
+  it("should fall back to identity when a SkinnedMesh's world matrix is singular (e.g. zero-scale pop-in)", () => {
+    // A zero-scale world matrix can't be inverted; Skeleton.update() must detect the failed
+    // invert() and fall back to identity rather than silently reusing the un-inverted (still
+    // zero-scaled) matrix, which would zero out every bone matrix instead of just skipping the
+    // mesh-space transform for this frame.
+    const bone = new Bone("B0");
+    bone.position.set(1, 2, 3);
+    bone.updateMatrixWorld();
+
+    const skeleton = new Skeleton([bone]);
+
+    const singularWorldMatrix = new Matrix4();
+    singularWorldMatrix.data.set([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+
+    skeleton.update(singularWorldMatrix);
+
+    // With the identity fallback, boneMatrices[i] == bone.worldMatrix * invBind (invBind is
+    // identity here), i.e. the bone's own world position -- not all-zero.
+    expect(skeleton.boneMatrices[12]).toBeCloseTo(1);
+    expect(skeleton.boneMatrices[13]).toBeCloseTo(2);
+    expect(skeleton.boneMatrices[14]).toBeCloseTo(3);
   });
 
   it("should warn when a skeleton exceeds the GPU skinning bone limit", () => {

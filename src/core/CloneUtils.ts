@@ -7,7 +7,10 @@ import { Color } from "./colors/index.js";
  * wrong for `Object3D`/`AbstractMaterial`/`Behavior` in this engine:
  * - Any own property that is a value type (`Vector2D`, `Vector3D`, `Quaternion`, `Color`) is deep-cloned.
  * - Any own Array / TypedArray property is cloned (with value-type elements inside Arrays cloned).
- * - Any plain object literal is shallow-cloned.
+ * - Any plain object literal is shallow-cloned (`{ ...value }`, one level deep only -- a
+ *   `Vector3D`/`Quaternion`/`Color` nested *inside* a plain-object field would still be shared
+ *   across both copies; no such field exists in the engine today, but a future one would need
+ *   this function taught to recurse, or to clone that field itself before/after calling this).
  * - An own `uuid: string` property is regenerated, so the copy gets its own identity.
  *
  * Everything else -- geometry data, textures, enum/primitive fields -- stays shared by

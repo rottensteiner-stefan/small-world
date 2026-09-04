@@ -664,12 +664,13 @@ export class MakerApp extends SmallWorld {
       this._orbit.update(this.camera, this.input);
       this._syncHighlight();
     }
+    const hierarchyChanged = this._hierarchyDirty;
     if (this._hierarchyDirty) {
       this._hierarchyPanel.refresh();
       this._hierarchyDirty = false;
     }
     this.scene.update(deltaTime);
-    this._lightGizmos.update(this.scene.root, this._selection, this.camera);
+    this._lightGizmos.update(this.scene.root, this._selection, hierarchyChanged, this.camera);
     this._updateGizmo();
   }
 

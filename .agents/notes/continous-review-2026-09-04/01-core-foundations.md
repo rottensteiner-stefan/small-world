@@ -180,6 +180,12 @@ der einzigen nicht-trivialen Verzweigung in `update()` ist zu keinem Zeitpunkt g
 dokumentierte 🔴-Fund wäre mit einem einzigen zusätzlichen Testfall (Analogie zu den zwei
 vorhandenen `axisLocked: true`-Tests, aber mit `axisLocked: false`) sofort sichtbar gewesen.
 
+*(✅ Bereits behoben: `tests/core/BillboardInstancer.test.ts` enthält inzwischen zwei
+`axisLocked: false`-Tests, analog zu den bestehenden `axisLocked: true`-Fällen -- Kamera entlang `+Z`
+(yaw 0) und Kamera seitlich versetzt (yaw `π/2`, identisch zu `axisLocked: true` nach dem
+180°-Fix). Beide grün. Diese Tests waren bereits Teil des 180°-Fixes selbst und mussten in dieser
+Session nicht mehr ergänzt werden -- verifiziert, keine weitere Aktion nötig.)*
+
 ---
 
 ### ✅ `CameraStrategyFactory`: von page-weitem Singleton-Cache zu Instanz-pro-Aufruf -- behebt einen realen "No Global Singleton"-Verstoß mit tatsächlichem Mutationsrisiko
@@ -243,6 +249,14 @@ extern geladenes Rig (glTF-Import mit abweichender Namenskonvention) angewendet,
 exakt das Bindungsproblem, das beim `AnimationMixer` bereits einmal gefixt wurde. Reine
 Konsistenz-/Vorbeugungsempfehlung, keine akute Regression.
 
+*(✅ Behoben: `_bindNodes()` in `src/core/behaviors/creatures/RatGroomingBehavior.ts` nutzt jetzt
+einen generischen `_findNodeByName()`/`_findBySuffix()`-Tree-Walk (exakter Treffer zuerst, sonst
+Suffix-Match über den Kindbaum) statt der drei fest verdrahteten Namens-Rateversuche pro Knoten --
+analog zu `AnimationMixer._findByNormalizedMixamoName()`. Regressionstest ergänzt in
+`tests/core/behaviors/GroomingRat.test.ts` ("should bind nodes on a rig that prefixes every name ...
+via a generic suffix match"), der ein Rig mit einem Präfix bindet, das auf keiner der alten
+Rate-Listen stand. Grün, `tsc` sauber.)*
+
 ---
 
 ### 🟢 Testlücke: `AnimationMixer`/`KeyframeTrack`-Refactoring (Zero-Alloc-Blending) hat keine dedizierte Testdatei
@@ -258,6 +272,15 @@ Bone in Frame N von einer Action getroffen wird und in Frame N+1 von keiner mehr
 einfrieren, nicht zurückgesetzt werden -- passiert laut Code korrekt via `si`-Vergleich, aber
 unverifiziert). Auch `Skeleton.ts`'s neuer Singulär-Matrix-Fallback (`invert()`-Rückgabewert jetzt
 geprüft, siehe unten) hat keinen dedizierten Test.
+
+*(✅ Behoben: kein neues `AnimationMixer.test.ts`/`KeyframeTrack.test.ts` angelegt (die bestehende
+Konvention bündelt Skelett-/Animations-Tests bereits in `tests/core/animation/Animation.test.ts`,
+die u.a. das Multi-Action-Weight-Blending und den Mixamo-Präfix-Fallback bereits abdeckte), aber
+genau die zwei konkret genannten Lücken sind jetzt geschlossen: ein neuer Test "should freeze a
+bone's pose (not reset it) once no action touches it anymore" verifiziert das Einfrieren via
+`si`-Vergleich über zwei `mixer.update()`-Aufrufe, und ein neuer Test "should fall back to identity
+when a SkinnedMesh's world matrix is singular" verifiziert `Skeleton.update()`s
+`invert()`-Fallback direkt mit einer Nullskalierungs-Matrix. Beide grün.)*
 
 ### ✅ `Skeleton.update()`: `Matrix4.invert()`-Rückgabewert wird jetzt geprüft -- behebt den im letzten Review dokumentierten Fund (dort als 🟠, nicht Teil der "4 kritischen")
 
@@ -294,6 +317,14 @@ anderer Stelle bewusst behobene Klasse von Bug (Callback-Clobbering beim Detach)
 unverändert fort -- unter demselben Single-Slot-Callback-Mechanismus (`onPointerDown`/`Up`/`Move`
 laufen beide über `Object3D`s `_pickingBehavior`-Getter/Setter). Erwähnt als Konsistenz-Hinweis für
 eine künftige Session, kein akuter Fund dieses Reviews.
+
+*(✅ Behoben: `DraggableBehavior` speichert die in `onAttach()` verdrahteten
+`onPointerDown`/`onPointerUp`/`onPointerMove`-Closures jetzt als private Felder und `onDetach()`
+prüft vor dem Löschen per Identity-Check (`this.target.onPointerDown === this._onPointerDown`,
+etc.), exakt analog zu `HoverBehavior.onDetach()`. Regressionstest ergänzt in neuer Datei
+`tests/core/behaviors/DraggableBehavior.test.ts` (Basis-Cleanup, "does not clobber a different
+behavior's pointer handlers set after it" analog zu `HoverBehavior.test.ts`, sowie ein
+Verhaltenstest, dass ein verirrter Pointer-Move nach Detach nichts mehr bewegt). Alle grün.)*
 
 ---
 
@@ -334,6 +365,10 @@ geteilt. Aktuell in der Codebasis kein konkretes Beispiel gefunden, das das trif
 `AbstractMaterial`/`Behavior`-Feld ist ein Plain Object mit verschachtelten Value-Types); reine
 Doku-Randnotiz für künftige Erweiterungen dieser Utility.
 
+*(✅ Behoben: keine Verhaltensänderung (kein konkreter Bug, siehe oben), aber die Grenze ist jetzt
+explizit im JSDoc von `shallowCloneWithValueTypes()` in `src/core/CloneUtils.ts` dokumentiert --
+Plain-Object-Klon ist nur eine Ebene tief, mit Hinweis, was eine künftige Erweiterung tun müsste.)*
+
 ---
 
 ### 🟡 `MathUtils.fastSin()`/`fastCos()`: Lookup-Table entfernt, jetzt reine `Math.sin`/`Math.cos`-Wrapper -- sinnvolles Cleanup, kein Nutzer betroffen
@@ -345,6 +380,10 @@ selbst keine Treffer -- die entfernte 3600-Elemente-Lookup-Table (mit ihrer `0.1
 ohnehin einer echten, wenn auch kleinen, Präzisionsminderung gegenüber `Math.sin`/`Math.cos`) hatte
 keinen einzigen Aufrufer im gesamten Projekt. Entfernung ist reines, korrektes Totcode-Aufräumen,
 keine Verhaltensänderung für existierenden Code.
+
+*(Kein Fix nötig: dieser Fund beschreibt bereits abgeschlossenes, korrektes Cleanup ohne
+verbleibende Aktion -- `grep` erneut bestätigt keine Aufrufer von `fastSin`/`fastCos` außerhalb der
+Deklaration selbst. Unverändert gelassen.)*
 
 ---
 

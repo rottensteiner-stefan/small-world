@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { Vector2D } from "../../src/math/index.js";
 import { Sphere } from "../../src/geometry/Sphere.js";
 import { Torus } from "../../src/geometry/Torus.js";
 import { Cylinder } from "../../src/geometry/Cylinder.js";
@@ -13,6 +14,8 @@ import { Disk } from "../../src/geometry/Disk.js";
 import { Cube } from "../../src/geometry/Cube.js";
 import { Gear } from "../../src/geometry/Gear.js";
 import { Octahedron } from "../../src/geometry/Octahedron.js";
+import { Terrain } from "../../src/geometry/Terrain.js";
+import { ExtrudeGeometry } from "../../src/geometry/ExtrudeGeometry.js";
 import { AbstractGeometry } from "../../src/geometry/AbstractGeometry.js";
 
 function assertNoNaN(geom: AbstractGeometry, name: string): void {
@@ -106,5 +109,23 @@ describe("Parametric Geometries Boundary NaN Guards", () => {
 
     const oct = new Octahedron({ radius: 0 });
     assertNoNaN(oct, "Octahedron(0)");
+  });
+
+  it("guards Terrain against NaN on degenerate mesh segments", () => {
+    const terrain = Terrain.fromHeightData({
+      heightData: new Float32Array([0.5]),
+      heightmapResolution: 1,
+      meshWidthSegments: 0,
+      meshDepthSegments: 0,
+    });
+    assertNoNaN(terrain, "Terrain(1x1, 0 segments)");
+  });
+
+  it("guards ExtrudeGeometry against NaN on a zero-perimeter shape", () => {
+    // A degenerate shape whose points all coincide has zero perimeter distance,
+    // which would divide-by-zero in the side-wall UV computation without the guard.
+    const point = new Vector2D(0, 0);
+    const extrude = new ExtrudeGeometry({ shape: [point, point, point], depth: 0 });
+    assertNoNaN(extrude, "ExtrudeGeometry(zero-perimeter shape)");
   });
 });

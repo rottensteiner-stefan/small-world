@@ -1,15 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { AssetManager, BinaryStreamLoader } from "../../src/loaders/index.js";
+import { describe, it, expect, vi } from "vitest";
+import { BinaryStreamLoader } from "../../src/loaders/index.js";
 
 describe("BinaryStreamLoader & DirectStorage Web Streaming", () => {
-  beforeEach(() => {
-    // Reset caches if any
-    // @ts-expect-error accessing private static cache for testing
-    AssetManager._binaryCache = new Map();
-    // @ts-expect-error accessing private static cache for testing
-    AssetManager._activeLoaders = new Map();
-  });
-
   it("should stream binary chunks correctly", async () => {
     const chunk1 = new Uint8Array([1, 2, 3]);
     const chunk2 = new Uint8Array([4, 5, 6]);

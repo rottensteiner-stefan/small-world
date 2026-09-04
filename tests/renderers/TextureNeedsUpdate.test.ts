@@ -87,7 +87,10 @@ describe("Texture GPU re-upload on needsUpdate", () => {
     const first = (renderer as RendererInternals)._getWebGLTexture(tex);
     expect(gl.createTexture).toHaveBeenCalledTimes(1);
     expect(gl.texImage2D).toHaveBeenCalledTimes(1);
+    const firstSamplerCallCount = vi.mocked(gl.texParameteri).mock.calls.length;
+    expect(firstSamplerCallCount).toBeGreaterThan(0);
 
+    vi.mocked(gl.texParameteri).mockClear();
     tex.needsUpdate = true;
     const second = (renderer as RendererInternals)._getWebGLTexture(tex);
 
@@ -95,6 +98,14 @@ describe("Texture GPU re-upload on needsUpdate", () => {
     expect(gl.createTexture).toHaveBeenCalledTimes(1);
     expect(gl.texImage2D).toHaveBeenCalledTimes(2);
     expect(tex.needsUpdate).toBe(false);
+    // Sampler params (wrap/filter) must be re-applied on re-upload, not just on first creation --
+    // otherwise a texture that changes wrap/filter mode after needsUpdate silently keeps stale GL state.
+    expect(vi.mocked(gl.texParameteri).mock.calls.length).toBe(firstSamplerCallCount);
+    expect(gl.texParameteri).toHaveBeenCalledWith(
+      gl.TEXTURE_2D,
+      gl.TEXTURE_WRAP_S,
+      expect.any(Number),
+    );
   });
 
   it("WebGLTextureManager re-uploads pixels without recreating the GL texture", () => {
@@ -106,7 +117,10 @@ describe("Texture GPU re-upload on needsUpdate", () => {
     const first = textures.getWebGLTexture(tex, undefined);
     expect(gl.createTexture).toHaveBeenCalledTimes(1);
     expect(gl.texImage2D).toHaveBeenCalledTimes(1);
+    const firstSamplerCallCount = vi.mocked(gl.texParameteri).mock.calls.length;
+    expect(firstSamplerCallCount).toBeGreaterThan(0);
 
+    vi.mocked(gl.texParameteri).mockClear();
     tex.needsUpdate = true;
     const second = textures.getWebGLTexture(tex, undefined);
 
@@ -114,6 +128,14 @@ describe("Texture GPU re-upload on needsUpdate", () => {
     expect(gl.createTexture).toHaveBeenCalledTimes(1);
     expect(gl.texImage2D).toHaveBeenCalledTimes(2);
     expect(tex.needsUpdate).toBe(false);
+    // Same sampler-reapply guarantee as the WebGL1Renderer path above, but through
+    // WebGLTextureManager's own (WebGL2) code path.
+    expect(vi.mocked(gl.texParameteri).mock.calls.length).toBe(firstSamplerCallCount);
+    expect(gl.texParameteri).toHaveBeenCalledWith(
+      gl.TEXTURE_2D,
+      gl.TEXTURE_WRAP_S,
+      expect.any(Number),
+    );
   });
 
   it("does not re-upload when needsUpdate stays false", () => {

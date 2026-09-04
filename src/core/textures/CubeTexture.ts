@@ -14,11 +14,19 @@ export class CubeTexture {
   /** Whether the texture is fully loaded. */
   public isLoaded: boolean = false;
 
+  /** The AssetManager instance used to load face images. Defaults to a fresh private instance
+   * (not the deprecated process-wide singleton) -- pass one in to share caching/headers/base-URL
+   * across multiple texture loads within the same engine instance. */
+  private readonly _assetManager: AssetManager;
+
   /**
    * Creates a new CubeTexture.
    * @param urls Optional array of 6 URLs for the cube faces or a single URL for a tiled texture.
+   * @param assetManager Optional AssetManager instance to use for loading. Defaults to a fresh
+   * private instance.
    */
-  constructor(urls?: string[]) {
+  constructor(urls?: string[], assetManager?: AssetManager) {
+    this._assetManager = assetManager ?? new AssetManager();
     if (urls && 6 === urls.length) {
       this.loadFrom(urls);
     } else if (urls && 1 === urls.length) {
@@ -40,14 +48,14 @@ export class CubeTexture {
         (undefined === layout || CubeLayout.DEFAULT === layout)
       ) {
         this.images = await Promise.all(
-          urls.map((url: string) => AssetManager.loadImage(url, undefined, false)),
+          urls.map((url: string) => this._assetManager.loadImage(url, undefined, false)),
         );
         this.isLoaded = true;
         return;
       }
 
       const url: string = Array.isArray(urls) ? urls[0]! : urls;
-      const fullImage: ImageBitmap | HTMLImageElement = await AssetManager.loadImage(
+      const fullImage: ImageBitmap | HTMLImageElement = await this._assetManager.loadImage(
         url,
         undefined,
         false,
@@ -180,8 +188,8 @@ export class CubeTexture {
     try {
       this.mipmaps = [];
       for (const url of urls) {
-        // Create a temporary CubeTexture to parse the layout
-        const tempCube = new CubeTexture();
+        // Create a temporary CubeTexture to parse the layout, sharing this instance's AssetManager
+        const tempCube = new CubeTexture(undefined, this._assetManager);
         await tempCube.loadFrom(url, layout);
         if (tempCube.images.length === 6) {
           this.mipmaps.push(tempCube.images);
