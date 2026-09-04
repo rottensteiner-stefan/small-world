@@ -208,6 +208,7 @@ export class UniversalGamepadController {
   private _initializedJoyCons: Set<JoyConLeft | JoyConRight | GeneralController> = new Set();
   private _lastUpdateFrameTime: number = -1;
   private _pollIntervalId: ReturnType<typeof setInterval> | null = null;
+  private _devicesBuilt: boolean = false;
 
   constructor() {
     this._loadModule();
@@ -369,6 +370,7 @@ export class UniversalGamepadController {
     }
 
     this._devices = [...standardDevices, ...webHidDevices];
+    this._devicesBuilt = true;
 
     for (const dev of this._devices) {
       dev.update();
@@ -376,12 +378,16 @@ export class UniversalGamepadController {
   }
 
   public get devices(): GamepadDevice[] {
-    this.update();
+    if (!this._devicesBuilt) {
+      this.update();
+    }
     return this._devices;
   }
 
   public getActiveDevice(): GamepadDevice | null {
-    this.update();
+    if (!this._devicesBuilt) {
+      this.update();
+    }
     for (const dev of this._devices) {
       if (dev.connected) {
         return dev;

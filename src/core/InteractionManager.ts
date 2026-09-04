@@ -13,6 +13,8 @@ export class InteractionManager {
   private _raycaster: Raycaster = new Raycaster();
   private _ndcCoords: Vector2D = new Vector2D();
   private _queryHits: Object3D[] = [];
+  private _pickables: Object3D[] = [];
+  private _pickableSet: Set<Object3D> = new Set();
   private _hoveredObject: Object3D | null = null;
   private _activeObject: Object3D | null = null;
   private _wasLeftDown: boolean = false;
@@ -45,7 +47,8 @@ export class InteractionManager {
 
     this._raycaster.setFromCamera(this._ndcCoords, this.camera);
 
-    const pickables: Object3D[] = [];
+    this._pickables.length = 0;
+    this._pickableSet.clear();
     if (this.scene.staticOctree || this.scene.dynamicOctree || this.scene.spatialHash) {
       this._queryHits.length = 0;
       if (this.scene.staticOctree) {
@@ -58,17 +61,19 @@ export class InteractionManager {
         this.scene.dynamicOctree.queryRay(this._raycaster.ray, this._queryHits);
       }
       for (const obj of this._queryHits) {
-        if ((obj as Object3D).isPickable && !pickables.includes(obj as Object3D)) {
-          pickables.push(obj as Object3D);
+        const pickable = obj as Object3D;
+        if (pickable.isPickable && !this._pickableSet.has(pickable)) {
+          this._pickableSet.add(pickable);
+          this._pickables.push(pickable);
         }
       }
     } else {
       for (const obj of this.scene.objects) {
-        this._getPickableObjects(obj, pickables);
+        this._getPickableObjects(obj, this._pickables);
       }
     }
 
-    const intersects: Intersection[] = this._raycaster.intersectObjects(pickables, true);
+    const intersects: Intersection[] = this._raycaster.intersectObjects(this._pickables, true);
 
     let hitObject: Object3D | null = null;
     const firstIntersect = intersects[0];

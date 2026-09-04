@@ -1,6 +1,6 @@
 import { Behavior } from "./Behavior.js";
 import { Object3D, Camera } from "../index.js";
-import { Vector3D } from "../../math/index.js";
+import { MathPool, Vector3D } from "../../math/index.js";
 import { Ray } from "../../physix/index.js";
 
 /**
@@ -49,8 +49,9 @@ export class DraggableBehavior extends Behavior {
 
       const denom = ray.direction.dot(this._planeNormal);
       if (Math.abs(denom) > 1e-6) {
-        const p0_minus_o = new Vector3D().copyFrom(this._planePoint).sub(ray.origin);
+        const p0_minus_o = MathPool.acquireVector().copyFrom(this._planePoint).sub(ray.origin);
         const t = p0_minus_o.dot(this._planeNormal) / denom;
+        MathPool.releaseVector(p0_minus_o);
 
         if (t >= 0) {
           const hitPoint = ray.at(t);

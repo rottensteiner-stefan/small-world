@@ -1,9 +1,7 @@
 import { Object3D } from "../Object3D.js";
-import { Vector3D } from "../../math/Vector3D.js";
 import { Quaternion } from "../../math/Quaternion.js";
 import { AnimationClip } from "./AnimationClip.js";
 import { AnimationAction } from "./AnimationAction.js";
-import { TrackType } from "./KeyframeTrack.js";
 
 // Mixamo appends a session-dependent numeric suffix to its rig prefix ("mixamorig:" vs.
 // "mixamorig1:", "mixamorig2:", ...) unrelated to which character was exported -- a mesh and an
@@ -12,15 +10,7 @@ import { TrackType } from "./KeyframeTrack.js";
 // than guessing a fixed list of candidate prefixes) matches regardless of either side's suffix.
 const MIXAMO_RIG_PREFIX_RE = /^mixamorig\d*:/;
 
-interface VectorContribution {
-  value: Vector3D;
-  weight: number;
-}
-
-interface QuaternionContribution {
-  value: Quaternion;
-  weight: number;
-}
+type VecProperty = "translation" | "scale";
 
 /**
  * The AnimationMixer is the player for animations on a particular object in the scene.
@@ -30,11 +20,16 @@ export class AnimationMixer {
   private _actions: Map<AnimationClip, AnimationAction> = new Map();
   private _bindings: Map<string, Object3D | undefined> = new Map();
 
-  // Reused per-frame accumulation buffers so that N simultaneously-playing actions targeting
-  // the same bone/property blend by weight instead of the last-evaluated action winning outright.
-  private _vectorContributions: Map<Object3D, Map<TrackType, VectorContribution[]>> = new Map();
-  private _quatContributions: Map<Object3D, QuaternionContribution[]> = new Map();
-  private _blendedQuat: Quaternion = new Quaternion();
+  // Reused per-frame blend accumulators. Instead of building a fresh list of weighted samples per
+  // track/frame, each touched target's state is folded in incrementally and a generation stamp
+  // (`si !== _frameIndex`) tells whether this is the first contribution of the current `update()`
+  // call. This keeps the hot path fully zero-allocation: states are created once and never cleared.
+  private _frameIndex: number = 0;
+  private _vecState: Map<
+    Object3D,
+    Map<VecProperty, { x: number; y: number; z: number; w: number; si: number }>
+  > = new Map();
+  private _quatState: Map<Object3D, { q: Quaternion; total: number; si: number }> = new Map();
 
   constructor(root: Object3D) {
     this.root = root;
@@ -69,8 +64,8 @@ export class AnimationMixer {
    * @param deltaTime Elapsed time in seconds.
    */
   public update(deltaTime: number): void {
-    this._vectorContributions.clear();
-    this._quatContributions.clear();
+    this._frameIndex++;
+    const frameIndex = this._frameIndex;
 
     for (const action of this._actions.values()) {
       if (!action.isPlaying || action.weight <= 0) continue;
@@ -95,36 +90,60 @@ export class AnimationMixer {
 
         if ("rotation" === track.property) {
           const sampled = track.sampleQuaternion(action.time);
-          let contributions = this._quatContributions.get(target);
-          if (!contributions) {
-            contributions = [];
-            this._quatContributions.set(target, contributions);
+          let st = this._quatState.get(target);
+          if (!st) {
+            st = { q: new Quaternion(), total: 0, si: 0 };
+            this._quatState.set(target, st);
           }
-          contributions.push({ value: sampled.clone(), weight: action.weight });
+          if (st.si !== frameIndex) {
+            // First contribution of this frame seeds the blend.
+            st.q.copyFrom(sampled);
+            st.total = action.weight;
+            st.si = frameIndex;
+          } else {
+            // Incremental weighted slerp, folded in proportional to its share of the total.
+            st.total += action.weight;
+            st.q.slerp(sampled, action.weight / st.total);
+          }
         } else {
           const sampled = track.sampleVector(action.time);
-          let byProperty = this._vectorContributions.get(target);
+          const property = track.property as VecProperty;
+          let byProperty = this._vecState.get(target);
           if (!byProperty) {
             byProperty = new Map();
-            this._vectorContributions.set(target, byProperty);
+            this._vecState.set(target, byProperty);
           }
-          let contributions = byProperty.get(track.property);
-          if (!contributions) {
-            contributions = [];
-            byProperty.set(track.property, contributions);
+          let st = byProperty.get(property);
+          if (!st) {
+            st = { x: 0, y: 0, z: 0, w: 0, si: 0 };
+            byProperty.set(property, st);
           }
-          contributions.push({ value: sampled.clone(), weight: action.weight });
+          if (st.si !== frameIndex) {
+            st.x = sampled.x * action.weight;
+            st.y = sampled.y * action.weight;
+            st.z = sampled.z * action.weight;
+            st.w = action.weight;
+            st.si = frameIndex;
+          } else {
+            st.x += sampled.x * action.weight;
+            st.y += sampled.y * action.weight;
+            st.z += sampled.z * action.weight;
+            st.w += action.weight;
+          }
         }
       }
     }
 
-    for (const [target, byProperty] of this._vectorContributions) {
-      for (const [property, contributions] of byProperty) {
-        this._applyBlendedVector(target, property, contributions);
+    for (const [target, byProperty] of this._vecState) {
+      for (const [property, st] of byProperty) {
+        if (st.si !== frameIndex || st.w <= 0) continue;
+        const dest = "translation" === property ? target.position : target.scale;
+        dest.set(st.x / st.w, st.y / st.w, st.z / st.w);
       }
     }
-    for (const [target, contributions] of this._quatContributions) {
-      this._applyBlendedQuaternion(target, contributions);
+    for (const [target, st] of this._quatState) {
+      if (st.si !== frameIndex) continue;
+      target.quaternion = (target.quaternion || new Quaternion()).copyFrom(st.q);
     }
   }
 
@@ -140,54 +159,5 @@ export class AnimationMixer {
       if (found) return found;
     }
     return undefined;
-  }
-
-  private _applyBlendedVector(
-    target: Object3D,
-    property: TrackType,
-    contributions: VectorContribution[],
-  ): void {
-    const dest = "translation" === property ? target.position : target.scale;
-
-    if (1 === contributions.length) {
-      dest.copyFrom(contributions[0]!.value);
-      return;
-    }
-
-    let totalWeight = 0;
-    for (const c of contributions) totalWeight += c.weight;
-    if (0 >= totalWeight) return;
-
-    let x = 0,
-      y = 0,
-      z = 0;
-    for (const c of contributions) {
-      x += c.value.x * c.weight;
-      y += c.value.y * c.weight;
-      z += c.value.z * c.weight;
-    }
-    dest.set(x / totalWeight, y / totalWeight, z / totalWeight);
-  }
-
-  private _applyBlendedQuaternion(target: Object3D, contributions: QuaternionContribution[]): void {
-    if (1 === contributions.length) {
-      target.quaternion = (target.quaternion || new Quaternion()).copyFrom(contributions[0]!.value);
-      return;
-    }
-
-    // Incremental weighted slerp: fold each additional sample in proportional to its share of
-    // the accumulated weight so far. This is the standard approach for blending N quaternions
-    // without a closed-form weighted average (which quaternions don't have).
-    this._blendedQuat.copyFrom(contributions[0]!.value);
-    let accumulatedWeight = contributions[0]!.weight;
-    for (let i = 1; i < contributions.length; i++) {
-      const c = contributions[i]!;
-      const newWeight = accumulatedWeight + c.weight;
-      if (0 < newWeight) {
-        this._blendedQuat.slerp(c.value, c.weight / newWeight);
-      }
-      accumulatedWeight = newWeight;
-    }
-    target.quaternion = (target.quaternion || new Quaternion()).copyFrom(this._blendedQuat);
   }
 }
