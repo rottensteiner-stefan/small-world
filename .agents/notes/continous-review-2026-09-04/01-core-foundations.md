@@ -122,6 +122,8 @@ oberflächlich behoben, keine neuen Bugs durch die Fixes selbst eingeführt.**
 
 ### 🔴 `BillboardInstancer`: sphärischer (nicht Y-achsen-fixierter) Modus zeigt die Rückseite zur Kamera -- verifizierter 180°-Orientierungsfehler
 
+*(✅ Behoben: `this._scratchRot.y += Math.PI` nach dem `copyFrom()` in `src/core/BillboardInstancer.ts` ergänzt -- genau die im "Fix-Richtung"-Absatz unten zuerst genannte Variante. Zwei neue Regressionstests in `tests/core/BillboardInstancer.test.ts` bestätigen, dass `axisLocked: false` jetzt denselben Yaw liefert wie `axisLocked: true` für dieselbe Kameraposition.)*
+
 **Fundort:** `src/core/BillboardInstancer.ts:125-135` (neue Datei, `axisLocked: false`-Zweig).
 
 ```ts

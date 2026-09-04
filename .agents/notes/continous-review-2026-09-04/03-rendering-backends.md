@@ -133,7 +133,7 @@ Aber: `tests/renderers/TextureNeedsUpdate.test.ts` (der einzige Test, der diesen
 
 *(✅ Behoben: `WebGLTextureManager.getWebGLTexture()`s `needsUpdate`-Zweig behandelt `TextureArray` jetzt gleichberechtigt zu `TEXTURE_2D` statt sie auszuschließen. Upload-Logik in neue private `_uploadTextureArray()`-Methode extrahiert, von Erstupload UND `needsUpdate`-Pfad gemeinsam genutzt (kein zweiter, potenziell divergierender Codepfad mehr). Neuer Regressionstest in `tests/renderers/TextureNeedsUpdate.test.ts` prüft, dass `texImage3D`/`texSubImage3D` bei `needsUpdate=true` erneut aufgerufen werden, ohne eine neue GL-Textur anzulegen.)*
 
-**Datei:** `src/renderers/WebGL2/managers/WebGLTextureManager.ts:174-177`
+**Datei (Stand vor dem Fix):** `src/renderers/WebGL2/managers/WebGLTextureManager.ts:174-177`
 
 ```ts
 } else if (
@@ -142,7 +142,7 @@ Aber: `tests/renderers/TextureNeedsUpdate.test.ts` (der einzige Test, der diesen
 ) {
 ```
 
-Die Sampler-Fix-Runde in diesem Zeitfenster hat den `needsUpdate`-Zweig nur für den `TEXTURE_2D`-Fall nachgezogen; `TEXTURE_2D_ARRAY` ist weiterhin explizit ausgeschlossen -- eine `TextureArray`, deren `needsUpdate` gesetzt wird, bekommt nie neue Pixel- oder Sampler-Daten. War bereits im Vorgänger-Review als Teil desselben 🟠-Fundes erwähnt ("Texture-Arrays sind vom needsUpdate-Zweig sogar komplett ausgeschlossen"), ist in diesem Fenster nicht behoben worden -- keine neue Regression, aber auch kein vollständiger Fix des ursprünglichen Fundes. Niedrige Priorität, da `TextureArray` im Repo aktuell nur für statische, einmal geladene Terrain-Layer-Stacks verwendet wird (kein bekannter Live-Update-Call-Site), aber der Lücke fehlt weiterhin jede Dokumentation dieser Einschränkung.
+~~Die Sampler-Fix-Runde in diesem Zeitfenster hat den `needsUpdate`-Zweig nur für den `TEXTURE_2D`-Fall nachgezogen; `TEXTURE_2D_ARRAY` ist weiterhin explizit ausgeschlossen -- eine `TextureArray`, deren `needsUpdate` gesetzt wird, bekommt nie neue Pixel- oder Sampler-Daten. War bereits im Vorgänger-Review als Teil desselben 🟠-Fundes erwähnt ("Texture-Arrays sind vom needsUpdate-Zweig sogar komplett ausgeschlossen"), ist in diesem Fenster nicht behoben worden -- keine neue Regression, aber auch kein vollständiger Fix des ursprünglichen Fundes.~~ Nachträglich (auf expliziten Wunsch, nichts zurückzustellen) doch noch geschlossen -- siehe ✅-Vermerk oben. Niedrige Praxisrelevanz war der Grund für die ursprüngliche Zurückstellung, kein technisches Hindernis: `TextureArray` wird im Repo aktuell nur für statische, einmal geladene Terrain-Layer-Stacks verwendet (kein bekannter Live-Update-Call-Site vor diesem Fix).
 
 ### 🟡 `RendererFactory`: dreistufiger Fallback (WebGPU→WebGL2→WebGL1) bricht bei Doppelfehlschlag weiterhin ohne dritten Hop ab
 

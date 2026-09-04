@@ -14,6 +14,8 @@ Scope: `src/core/materials/**` (Liquid-Material-Konsolidierung: `LiquidWaveMater
 
 ## 🔴 WebGPU überschreibt `waterAbsorption.r`/`.g` von `OpenWaterMaterial`/`StylizedWaterMaterial` unconditional mit 0 — die Skinning-Uniform-Wiederverwendung kollidiert real, nicht nur theoretisch
 
+*(✅ Behoben: `WebGPURenderer._packObjectUniforms()`s Default-Zweig in `src/renderers/WebGPU/WebGPURenderer.ts` überschreibt `u_isSkinned`/`u_boneOffset` jetzt nur noch, wenn das Material sie nicht bereits gesetzt hat (`values["u_isSkinned"] === undefined`-Guard, analog zum bestehenden `u_color`-Fallback). Neuer Regressionstest in `tests/renderers/WebGPUSkinning.test.ts` bestätigt, dass ein nicht-geskinntes Objekt mit vom Material gesetzten `u_isSkinned`/`u_boneOffset`-Werten diese unangetastet behält.)*
+
 `LiquidWaveMaterial.getRenderManifest()` (`src/core/materials/LiquidWaveMaterial.ts:113-118`)
 begründet die Wiederverwendung von `u_isSkinned`/`u_boneOffset`/`u_pad1` explizit so:
 
