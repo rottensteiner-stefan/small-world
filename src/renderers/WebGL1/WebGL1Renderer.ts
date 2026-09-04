@@ -294,6 +294,32 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
     }
   }
 
+  /** Applies filter + (for NPOT) wrap state for a 2D texture. WebGL1 only supports mipmaps and
+   * REPEAT/MIRRORED_REPEAT wrapping for power-of-two textures -- see the `needsUpdate` branch.
+   * Kept in one place so the first-upload and `needsUpdate` paths stay in lockstep. */
+  private _setWebGL1SamplerParams(
+    img: HTMLImageElement | ImageBitmap | HTMLCanvasElement,
+    tex: Texture,
+  ): void {
+    const isPOT = 0 === (img.width & (img.width - 1)) && 0 === (img.height & (img.height - 1));
+    const useMipmaps = this._quality.mipmapping && tex.generateMipmaps && isPOT;
+    if (useMipmaps) this.gl.generateMipmap(this.gl.TEXTURE_2D);
+    this.gl.texParameteri(
+      this.gl.TEXTURE_2D,
+      this.gl.TEXTURE_MAG_FILTER,
+      TextureFilter.NEAREST === tex.magFilter ? this.gl.NEAREST : this.gl.LINEAR,
+    );
+    this.gl.texParameteri(
+      this.gl.TEXTURE_2D,
+      this.gl.TEXTURE_MIN_FILTER,
+      useMipmaps ? this.gl.LINEAR_MIPMAP_LINEAR : this.gl.LINEAR,
+    );
+    if (!isPOT) {
+      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
+      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
+    }
+  }
+
   private _getWebGLTexture(tex: Texture): WebGLTexture {
     const fastPath = this._getWebGLTextureFastPath(tex);
     if (fastPath) return fastPath;
@@ -317,23 +343,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
       // textures: generateMipmap() throws GL_INVALID_OPERATION on an NPOT texture, and leaving
       // wrap at the REPEAT default makes an NPOT texture "incomplete" (silently samples black) --
       // same underlying WebGL1 constraint as the cube-texture fix in `_getWebGLCubeTexture`.
-      const isPOT = 0 === (img.width & (img.width - 1)) && 0 === (img.height & (img.height - 1));
-      const useMipmaps = this._quality.mipmapping && tex.generateMipmaps && isPOT;
-      if (useMipmaps) this.gl.generateMipmap(this.gl.TEXTURE_2D);
-      this.gl.texParameteri(
-        this.gl.TEXTURE_2D,
-        this.gl.TEXTURE_MAG_FILTER,
-        TextureFilter.NEAREST === tex.magFilter ? this.gl.NEAREST : this.gl.LINEAR,
-      );
-      this.gl.texParameteri(
-        this.gl.TEXTURE_2D,
-        this.gl.TEXTURE_MIN_FILTER,
-        useMipmaps ? this.gl.LINEAR_MIPMAP_LINEAR : this.gl.LINEAR,
-      );
-      if (!isPOT) {
-        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
-        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
-      }
+      this._setWebGL1SamplerParams(img, tex);
       this._texCache.set(tex, glTex);
     } else if (tex.needsUpdate) {
       // Guaranteed defined here: `_getWebGLTextureFastPath()` already returned early for a
@@ -348,10 +358,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
         this.gl.UNSIGNED_BYTE,
         img,
       );
-      const isPOT = 0 === (img.width & (img.width - 1)) && 0 === (img.height & (img.height - 1));
-      if (this._quality.mipmapping && tex.generateMipmaps && isPOT) {
-        this.gl.generateMipmap(this.gl.TEXTURE_2D);
-      }
+      this._setWebGL1SamplerParams(img, tex);
       tex.needsUpdate = false;
     }
     return glTex;

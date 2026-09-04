@@ -54,6 +54,42 @@ export class WebGLTextureManager {
     return undefined;
   }
 
+  /** Applies the texture's mag/min filter and wrap state for `target`. Kept in one place so the
+   * first-upload and `needsUpdate` paths stay in lockstep -- see the `needsUpdate` branch below. */
+  private _setSamplerParams(target: number, tex: Texture, useMipmaps: boolean): void {
+    this._gl.texParameteri(
+      target,
+      this._gl.TEXTURE_MAG_FILTER,
+      TextureFilter.NEAREST === tex.magFilter ? this._gl.NEAREST : this._gl.LINEAR,
+    );
+
+    let minFilter: number = this._gl.LINEAR;
+    if (useMipmaps) {
+      minFilter =
+        TextureFilter.NEAREST === tex.minFilter
+          ? this._gl.NEAREST_MIPMAP_LINEAR
+          : this._gl.LINEAR_MIPMAP_LINEAR;
+    } else {
+      if (TextureFilter.NEAREST === tex.minFilter) minFilter = this._gl.NEAREST;
+    }
+    this._gl.texParameteri(target, this._gl.TEXTURE_MIN_FILTER, minFilter);
+
+    const wrapS =
+      TextureWrap.REPEAT === tex.addressModeU
+        ? this._gl.REPEAT
+        : TextureWrap.MIRRORED_REPEAT === tex.addressModeU
+          ? this._gl.MIRRORED_REPEAT
+          : this._gl.CLAMP_TO_EDGE;
+    const wrapT =
+      TextureWrap.REPEAT === tex.addressModeV
+        ? this._gl.REPEAT
+        : TextureWrap.MIRRORED_REPEAT === tex.addressModeV
+          ? this._gl.MIRRORED_REPEAT
+          : this._gl.CLAMP_TO_EDGE;
+    this._gl.texParameteri(target, this._gl.TEXTURE_WRAP_S, wrapS);
+    this._gl.texParameteri(target, this._gl.TEXTURE_WRAP_T, wrapT);
+  }
+
   public getWebGLTexture(tex: Texture, quality: QualityConfig | undefined): WebGLTexture {
     const fastPath = this._fastPath(tex, quality);
     if (fastPath) return fastPath;
@@ -99,37 +135,7 @@ export class WebGLTextureManager {
         const useMipmaps = quality?.mipmapping && tex.generateMipmaps;
         if (useMipmaps) this._gl.generateMipmap(this._gl.TEXTURE_2D_ARRAY);
 
-        this._gl.texParameteri(
-          this._gl.TEXTURE_2D_ARRAY,
-          this._gl.TEXTURE_MAG_FILTER,
-          TextureFilter.NEAREST === tex.magFilter ? this._gl.NEAREST : this._gl.LINEAR,
-        );
-
-        let minFilter: number = this._gl.LINEAR;
-        if (useMipmaps) {
-          minFilter =
-            TextureFilter.NEAREST === tex.minFilter
-              ? this._gl.NEAREST_MIPMAP_LINEAR
-              : this._gl.LINEAR_MIPMAP_LINEAR;
-        } else {
-          if (TextureFilter.NEAREST === tex.minFilter) minFilter = this._gl.NEAREST;
-        }
-        this._gl.texParameteri(this._gl.TEXTURE_2D_ARRAY, this._gl.TEXTURE_MIN_FILTER, minFilter);
-
-        const wrapS =
-          TextureWrap.REPEAT === tex.addressModeU
-            ? this._gl.REPEAT
-            : TextureWrap.MIRRORED_REPEAT === tex.addressModeU
-              ? this._gl.MIRRORED_REPEAT
-              : this._gl.CLAMP_TO_EDGE;
-        const wrapT =
-          TextureWrap.REPEAT === tex.addressModeV
-            ? this._gl.REPEAT
-            : TextureWrap.MIRRORED_REPEAT === tex.addressModeV
-              ? this._gl.MIRRORED_REPEAT
-              : this._gl.CLAMP_TO_EDGE;
-        this._gl.texParameteri(this._gl.TEXTURE_2D_ARRAY, this._gl.TEXTURE_WRAP_S, wrapS);
-        this._gl.texParameteri(this._gl.TEXTURE_2D_ARRAY, this._gl.TEXTURE_WRAP_T, wrapT);
+        this._setSamplerParams(this._gl.TEXTURE_2D_ARRAY, tex, Boolean(useMipmaps));
       } else {
         this._gl.bindTexture(this._gl.TEXTURE_2D, glTex);
         this._gl.texImage2D(
@@ -146,37 +152,7 @@ export class WebGLTextureManager {
         const useMipmaps = quality?.mipmapping && tex.generateMipmaps;
         if (useMipmaps) this._gl.generateMipmap(this._gl.TEXTURE_2D);
 
-        this._gl.texParameteri(
-          this._gl.TEXTURE_2D,
-          this._gl.TEXTURE_MAG_FILTER,
-          TextureFilter.NEAREST === tex.magFilter ? this._gl.NEAREST : this._gl.LINEAR,
-        );
-
-        let minFilter: number = this._gl.LINEAR;
-        if (useMipmaps) {
-          minFilter =
-            TextureFilter.NEAREST === tex.minFilter
-              ? this._gl.NEAREST_MIPMAP_LINEAR
-              : this._gl.LINEAR_MIPMAP_LINEAR;
-        } else {
-          if (TextureFilter.NEAREST === tex.minFilter) minFilter = this._gl.NEAREST;
-        }
-        this._gl.texParameteri(this._gl.TEXTURE_2D, this._gl.TEXTURE_MIN_FILTER, minFilter);
-
-        const wrapS =
-          TextureWrap.REPEAT === tex.addressModeU
-            ? this._gl.REPEAT
-            : TextureWrap.MIRRORED_REPEAT === tex.addressModeU
-              ? this._gl.MIRRORED_REPEAT
-              : this._gl.CLAMP_TO_EDGE;
-        const wrapT =
-          TextureWrap.REPEAT === tex.addressModeV
-            ? this._gl.REPEAT
-            : TextureWrap.MIRRORED_REPEAT === tex.addressModeV
-              ? this._gl.MIRRORED_REPEAT
-              : this._gl.CLAMP_TO_EDGE;
-        this._gl.texParameteri(this._gl.TEXTURE_2D, this._gl.TEXTURE_WRAP_S, wrapS);
-        this._gl.texParameteri(this._gl.TEXTURE_2D, this._gl.TEXTURE_WRAP_T, wrapT);
+        this._setSamplerParams(this._gl.TEXTURE_2D, tex, Boolean(useMipmaps));
       }
 
       this._texCache.set(tex, glTex);
@@ -198,15 +174,17 @@ export class WebGLTextureManager {
       if (quality?.mipmapping && tex.generateMipmaps) {
         this._gl.generateMipmap(this._gl.TEXTURE_2D);
       }
+      this._setSamplerParams(
+        this._gl.TEXTURE_2D,
+        tex,
+        Boolean(quality?.mipmapping && tex.generateMipmaps),
+      );
       tex.needsUpdate = false;
     }
     return glTex;
   }
 
-  public getWebGLCubeTexture(
-    tex: CubeTexture,
-    quality: QualityConfig | undefined,
-  ): WebGLTexture {
+  public getWebGLCubeTexture(tex: CubeTexture, quality: QualityConfig | undefined): WebGLTexture {
     if (quality?.disableTextures) return this._defaultCubeTexture;
     if (!tex.isLoaded) return this._defaultCubeTexture;
     if (tex instanceof RenderTargetCube) {
@@ -257,7 +235,11 @@ export class WebGLTextureManager {
           this._gl.LINEAR,
         );
       }
-      this._gl.texParameteri(this._gl.TEXTURE_CUBE_MAP, this._gl.TEXTURE_MAG_FILTER, this._gl.LINEAR);
+      this._gl.texParameteri(
+        this._gl.TEXTURE_CUBE_MAP,
+        this._gl.TEXTURE_MAG_FILTER,
+        this._gl.LINEAR,
+      );
       this._gl.texParameteri(
         this._gl.TEXTURE_CUBE_MAP,
         this._gl.TEXTURE_WRAP_S,

@@ -54,6 +54,7 @@ export class GPUGeometryCache {
       if (c && geo.needsUpdate) {
         this._device.queue.writeBuffer(c.vb, 0, geo.vertices);
         if (c.nb && geo.normals) this._device.queue.writeBuffer(c.nb, 0, geo.normals);
+        if (c.tb && geo.tangents?.length) this._device.queue.writeBuffer(c.tb, 0, geo.tangents);
         geo.needsUpdate = false;
         this._acquireGeoCache(obj, geo, c);
         return c;
@@ -104,7 +105,11 @@ export class GPUGeometryCache {
    * free buffers once nothing references them anymore -- even when geometry is shared
    * across many objects (see showcases/19) or swapped on a live object at runtime.
    */
-  private _acquireGeoCache(obj: Object3D, geo: GeometryDataInterface, c: WebGPUGeoCacheEntry): void {
+  private _acquireGeoCache(
+    obj: Object3D,
+    geo: GeometryDataInterface,
+    c: WebGPUGeoCacheEntry,
+  ): void {
     const lastGeo = this._lastKnownGeometry.get(obj);
     if (lastGeo !== geo) {
       if (lastGeo) this.releaseGeometryFor(obj);

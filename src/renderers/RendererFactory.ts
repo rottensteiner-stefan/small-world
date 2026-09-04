@@ -111,6 +111,27 @@ export class RendererFactory {
 
         // Initialize WebGL2 instead
         await renderer.initialize(canvas, fallbackAttributes, config);
+      } else if (
+        actualType === RendererType.WEB_GL2 &&
+        context.deviceCaps.hasFeature(DeviceFeature.WEBGL1)
+      ) {
+        console.warn(`[RendererFactory] WebGL2 initialization failed. Falling back to WebGL1.`);
+        renderer = new WebGL1Renderer(context);
+
+        // Re-evaluate attributes for WebGL1
+        let fallbackAttributes = RendererFactory._getBackendAttributes(
+          config,
+          RendererType.WEB_GL1,
+        );
+        if (config?.quality?.msaa !== undefined) {
+          fallbackAttributes = fallbackAttributes || {};
+          if (fallbackAttributes["antialias"] === undefined) {
+            fallbackAttributes["antialias"] = config.quality.msaa > 0;
+          }
+        }
+
+        // Initialize WebGL1 instead
+        await renderer.initialize(canvas, fallbackAttributes, config);
       } else {
         console.error(`Error initializing ${actualType}:`, e);
         throw e;

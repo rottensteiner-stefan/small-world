@@ -178,9 +178,9 @@ export class WebGPURenderer extends AbstractRenderer {
   public get scratchGlobalBufferData(): Float32Array {
     return this._scratchGlobalBufferData;
   }
-  protected _scratchPointLightData = new Float32Array(32); // Max 4 lights
-  protected _scratchSpotLightData = new Float32Array(64); // Max 4 lights
-  protected _scratchAreaLightData = new Float32Array(96); // Max 4 lights
+  protected _scratchPointLightData = new Float32Array(32); // Initial capacity, grows dynamically
+  protected _scratchSpotLightData = new Float32Array(64); // Initial capacity, grows dynamically
+  protected _scratchAreaLightData = new Float32Array(96); // Initial capacity, grows dynamically
   protected _scratchObjBufferData = new Float32Array(256 / 4); // Max 256 bytes
 
   /** Clustered light grid dimensions for the current canvas size, see `setSize()`. */
