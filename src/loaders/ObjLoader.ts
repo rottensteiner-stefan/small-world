@@ -87,11 +87,22 @@ export class ObjLoader extends AbstractLoader<Object3D> {
       const type: string = parts[0]!;
 
       if ("mtllib" === type) {
-        const mtlLoader: MtlLoader = new MtlLoader({
-          basePath: folderPath,
-          assetManager: this._assetManager,
-        });
-        materials = await mtlLoader.load(parts[1]!);
+        try {
+          const mtlLoader: MtlLoader = new MtlLoader({
+            basePath: folderPath,
+            assetManager: this._assetManager,
+          });
+          materials = await mtlLoader.load(parts[1]!);
+        } catch (e) {
+          // A missing/broken `.mtl` (common with OBJ/MTL pairs from third-party exporters)
+          // should not sink the whole `.obj` load -- fall back to neutral default materials so
+          // the geometry still loads and renders, mirroring the tolerance MtlLoader already shows
+          // for individual textures within a `.mtl`.
+          console.warn(
+            `[ObjLoader] Failed to load material library "${parts[1]}". Falling back to default materials.`,
+            e,
+          );
+        }
       } else if ("usemtl" === type) {
         const matName: string = parts[1]!;
         if (!groups.has(matName)) {

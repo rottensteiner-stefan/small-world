@@ -80,6 +80,34 @@ describe("AudioSystem", () => {
     expect(global.fetch).toHaveBeenCalledTimes(1);
   });
 
+  it("should dispatch AUDIO_LOADED on the injected bus after a successful load", async () => {
+    global.fetch = vi.fn(() =>
+      Promise.resolve({ arrayBuffer: () => Promise.resolve(new ArrayBuffer(8)) }),
+    ) as unknown as typeof fetch;
+    const events: import("../../src/index.js").Events = {
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    };
+    const subscribed = new AudioSystem(makeMockAudioContext(), events);
+
+    await subscribed.load("./explosion.wav", "boom");
+
+    expect(events.dispatchEvent).toHaveBeenCalledWith(
+      "AudioLoaded",
+      expect.objectContaining({ name: "boom", url: "./explosion.wav" }),
+    );
+  });
+
+  it("should propagate a failed decode to the caller instead of swallowing it", async () => {
+    global.fetch = vi.fn(() =>
+      Promise.resolve({ arrayBuffer: () => Promise.resolve(new ArrayBuffer(8)) }),
+    ) as unknown as typeof fetch;
+    vi.mocked(context.decodeAudioData).mockRejectedValueOnce(new Error("bad audio"));
+
+    await expect(audio.load("./broken.wav", "broken")).rejects.toThrow("bad audio");
+  });
+
   it("should play a spatial sound with the given position", async () => {
     global.fetch = vi.fn(() =>
       Promise.resolve({ arrayBuffer: () => Promise.resolve(new ArrayBuffer(8)) }),

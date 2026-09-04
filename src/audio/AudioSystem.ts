@@ -1,5 +1,6 @@
 import { Vector3D, MathUtils } from "../math/index.js";
-import { CameraInterfaceData } from "../interfaces/index.js";
+import { CameraInterfaceData, Events } from "../interfaces/index.js";
+import { EventType } from "../enums/index.js";
 import { SynthSFX, SoundHandle } from "./SynthSFX.js";
 
 /**
@@ -25,12 +26,20 @@ export class AudioSystem {
    * or never held its handle. */
   private _activeEndlessSounds: Set<SoundHandle> = new Set();
 
+  /** Optional per-instance event bus for non-fatal audio lifecycle events (e.g. `AUDIO_LOADED`).
+   * Injected (never a global) by the owning `SmallWorld` instance. */
+  private readonly _events: Events | undefined;
+
   /**
    * @param context An `AudioContext` to use instead of creating one -- lets tests (and any code
    * that already owns a shared context) inject their own instead of relying on the global
    * `window.AudioContext`.
+   * @param events An optional per-instance event bus on which non-fatal audio events (like
+   * `AUDIO_LOADED`) are dispatched. Errors are deliberately **not** routed here -- `load()` throws
+   * so callers keep an explicit failure path, consistent with the other loaders.
    */
-  constructor(context?: AudioContext) {
+  constructor(context?: AudioContext, events?: Events) {
+    this._events = events;
     if (context) {
       this.context = context;
     } else {
@@ -112,13 +121,12 @@ export class AudioSystem {
    */
   public async load(url: string, name: string): Promise<void> {
     if (this._buffers.has(name)) return;
-    try {
-      const response = await fetch(url);
-      const arrayBuffer = await response.arrayBuffer();
-      const audioBuffer = await this.context.decodeAudioData(arrayBuffer);
-      this._buffers.set(name, audioBuffer);
-    } catch (e) {
-      console.error(`Failed to load audio: ${url}`, e);
+    const response = await fetch(url);
+    const arrayBuffer = await response.arrayBuffer();
+    const audioBuffer = await this.context.decodeAudioData(arrayBuffer);
+    this._buffers.set(name, audioBuffer);
+    if (this._events) {
+      this._events.dispatchEvent(EventType.AUDIO_LOADED, { name, url });
     }
   }
 

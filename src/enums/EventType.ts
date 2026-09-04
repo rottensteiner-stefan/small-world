@@ -2,6 +2,8 @@
  * Types of events dispatched by the engine.
  */
 export const EventType = {
+  /** Dispatched when an audio sample has been fetched and decoded successfully. */
+  AUDIO_LOADED: "AudioLoaded",
   /** Dispatched when a loader finishes. */
   LOADER_END: "LoaderEnd",
   /** Dispatched when a loader encounters an error. */

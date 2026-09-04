@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.77.14] - 2026-09-04
+
+### "There is nothing so useless as doing efficiently that which should not be done at all." - Peter Drucker
+
+- **Architecture & Bugfixes:**
+  - Removed the last of the review's identified dead or speculative code paths: deleted the never-wired `GeometryWorkerProcessor` (which duplicated `AbstractGeometry`'s normal/tangent formulas) and the unused `PrologueScene`; dropped `Scene`'s `_scratchFrustum` working state that computed a frustum on every cull call but was never read.
+  - `MathUtils.fastSin`/`fastCos` replaced the lookup-table path (whose `init()` was never called, so the tables silently returned 0) with a direct `Math.sin`/`Math.cos`; the public API and its tests are unchanged.
+  - `FrustumCuller` is no longer a bag of page-wide `static` state: its `_frustum`, `_queryHits`, `lastIntersectedNodes`, and `lastVisibleCount` became per-instance members, and `SmallWorld` owns a private culler. A second concurrently running `SmallWorld` instance (e.g. GadgetInspector's `MaterialStudioApp` preview) could previously clobber the shared fields mid-frame.
+  - Loader robustness: `GltfSkinParser` now validates each `skin.joints` index and throws a clear `Skin ${i} references invalid joint node ${jIdx}` instead of passing `undefined` through a blind cast; `ObjLoader` wraps `mtlLoader.load()` in `try/catch` and falls back to neutral default materials when the referenced `.mtl` is missing or broken, so the geometry still loads and renders.
+  - `AudioSystem.load()` no longer swallows load/decode failures -- it now throws, giving callers an explicit error path consistent with the rest of the loaders. It also gained an optional injected, per-instance event bus and dispatches the new `EventType.AUDIO_LOADED` after a successful decode; `SmallWorld` wires its own `app.events` into it. (The error case intentionally stays a throw rather than an event.)
+  - Zero-allocation animation blending in `AnimationMixer`: per-frame weighted contributions no longer allocate fresh sample lists; state is folded incrementally into reused accumulator objects, with a generation stamp distinguishing first-from-later contributions within a frame.
+  - `Skeleton.invert()` no longer re-applies a singular mesh-world matrix twice on a zero-scale "pop-in" spawn -- it falls back to identity when the matrix can't be inverted.
+  - `DirectionalLight.updateCascades()` now drives cascaded shadows for orthographic (ISOMETRIC) cameras too, adding an orthographic frustum-corner path and linear cascade splits instead of early-returning for non-perspective cameras.
+  - Renderer robustness: WebGL2 init now falls back to WebGL1 when the context reports `WEBGL1` capability; the WebGL1 texture path keeps first-upload and `needsUpdate` in lockstep via a shared sampler-params helper (power-of-two mipmaps, NPOT `CLAMP_TO_EDGE`); `WebGLTextureManager` centralized its otherwise divergent filter/wrap state the same way and fixed a `needsUpdate`-path divergence.
+  - `ShaderRegistry` now warns with an actionable message on a cache miss that silently falls back from the instance registry to the global singleton.
+  - `PropertyPanel` context menus now remove their `pointerdown` listener on every close path (menu item click included) via a shared `closeMenu()`, fixing a listener leak; `AsciiMapLegend` fixed a module-level mutable marker counter shared across legend builders by scoping it per legend.
+  - Removed the `gadget:audio:*` window-event coupling from the `SmallWorld` constructor now that the audio system has a proper injected event bus.
+
 ## [0.77.13] - 2026-09-04
 
 ### "Simplicity is the ultimate sophistication." - Leonardo da Vinci

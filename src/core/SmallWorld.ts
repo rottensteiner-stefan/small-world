@@ -26,7 +26,7 @@ import { CollisionVisualizer, OctreeVisualizer } from "../utils/index.js";
 import { PhysicsSystem } from "../physix/PhysicsSystem.js";
 
 /** The current engine version. */
-export const ENGINE_VERSION = "0.77.13";
+export const ENGINE_VERSION = "0.77.14";
 
 /**
  * Halton low-discrepancy sequence, used for TAA's per-frame sub-pixel camera jitter -- covers
@@ -68,7 +68,7 @@ export abstract class SmallWorld {
   /** The interaction manager for gamification / picking. */
   public interactionManager!: InteractionManager;
   public readonly input: Input = new Input();
-  public readonly audio: AudioSystem = new AudioSystem();
+  public readonly audio: AudioSystem;
   private readonly _octreeVisualizer: OctreeVisualizer = new OctreeVisualizer();
   private readonly _collisionVisualizer: CollisionVisualizer = new CollisionVisualizer();
   private readonly _frustumCuller: FrustumCuller = new FrustumCuller();
@@ -104,6 +104,7 @@ export abstract class SmallWorld {
 
     this.scene = new Scene();
 
+    this.audio = new AudioSystem(undefined, this.events);
     this.physics = new PhysicsSystem(this.events);
     if (this.config.gravity) {
       this.physics.gravity.set(...this.config.gravity);
