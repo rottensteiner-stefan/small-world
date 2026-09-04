@@ -128,6 +128,7 @@ class Showcase31 extends AbstractShowcase {
 
     this._buildMaterialsAndStructure();
     this._buildTrenchesAndWater();
+    this._buildRocksAndRubble();
     this._buildBreachAndVines();
     this._buildTrainWreck();
     this._buildEmergencyLights();
@@ -325,6 +326,76 @@ class Showcase31 extends AbstractShowcase {
   }
 
   private _rustMat!: StandardMaterial;
+
+  private _buildRocksAndRubble(): void {
+    // Weathered rocks poking through the trench water -- gives OpenWaterMaterial's refraction/
+    // foam something to actually intersect, instead of an untouched open surface.
+    const rockMat = new StandardMaterial({
+      color: new Color(0.24, 0.24, 0.22),
+      roughness: 0.9,
+      metallic: 0.0,
+    });
+    const rockCount = 5;
+    const rockMesh = new InstancedMesh(
+      "TrenchRocks",
+      new Octahedron({ radius: 1 }).getGeometryData(),
+      rockMat,
+      rockCount * 2,
+    );
+    const pos = new Vector3D();
+    const rot = new Vector3D();
+    const scale = new Vector3D();
+    const m = new Matrix4();
+    let idx = 0;
+    for (const side of [-1, 1]) {
+      const centerX = side * TRENCH_OFFSET;
+      for (let i = 0; i < rockCount; i++) {
+        const x = centerX + (Math.random() - 0.5) * (TRENCH_HALF_WIDTH * 1.6);
+        const z = -PLATFORM_LENGTH / 2 + 4 + Math.random() * (PLATFORM_LENGTH - 10);
+        const s = 0.3 + Math.random() * 0.4;
+        // Water surface sits at y=-0.75 -- straddle it so part pokes above, part stays submerged.
+        const y = -0.75 + s * (0.1 + Math.random() * 0.35);
+        pos.set(x, y, z);
+        rot.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+        scale.set(s, s * (0.6 + Math.random() * 0.5), s * (0.8 + Math.random() * 0.4));
+        m.compose(pos, rot, scale);
+        rockMesh.setMatrixAt(idx, m);
+        idx++;
+      }
+    }
+    rockMesh.castShadow = true;
+    rockMesh.receiveShadow = true;
+    this.scene.add(rockMesh);
+
+    // A rubble "beach": debris spilling from the platform edge down into one trench, breaching
+    // the water in a mound instead of a clean cut -- like scree sliding into a flooded pit.
+    const rubbleMat = this._concreteMat;
+    const rubbleCount = 20;
+    const rubbleMesh = new InstancedMesh(
+      "RubbleBeach",
+      new Cube({ size: 1 }).getGeometryData(),
+      rubbleMat,
+      rubbleCount,
+    );
+    const beachCenterX = TRENCH_OFFSET;
+    const beachZ = -PLATFORM_LENGTH / 2 + 2.5;
+    for (let i = 0; i < rubbleCount; i++) {
+      const x = beachCenterX + (Math.random() - 0.5) * (TRENCH_HALF_WIDTH * 2 + 1.4);
+      const z = beachZ + (Math.random() - 0.5) * 3.5;
+      const s = 0.2 + Math.random() * 0.35;
+      // Random height band straddling the waterline (-0.75) up onto the platform (0) -- a loose
+      // talus pile, some chunks dry, some half-sunk, without modeling a precise per-piece slope.
+      const y = -0.95 + Math.random() * 1.1;
+      pos.set(x, y, z);
+      rot.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+      scale.set(s, s * (0.6 + Math.random() * 0.6), s);
+      m.compose(pos, rot, scale);
+      rubbleMesh.setMatrixAt(i, m);
+    }
+    rubbleMesh.castShadow = true;
+    rubbleMesh.receiveShadow = true;
+    this.scene.add(rubbleMesh);
+  }
 
   private _buildBreachAndVines(): void {
     const vineMat = new StandardMaterial({

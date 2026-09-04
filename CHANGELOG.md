@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.77.12] - 2026-09-03
+
+### "I have not failed. I've just found 10,000 ways that won't work." - Thomas Edison
+
+- **Features:**
+  - **Showcase 25:** Reworked wave amplitude to come from a large wavelength rather than high steepness (~1.3 units of real crest-to-trough height now, versus under 0.3 before), and lowered the camera to a grazing angle -- wave height only reads visually when crests can occlude each other and the horizon, not from a bird's-eye view. An earlier attempt using high per-wave steepness for the same amplitude instead folded the crests into sharp mountain-like cusps (overlapping Gerstner waves add their horizontal displacement, so combined steepness has to stay low even when each wave looks safe in isolation).
+  - **OpenWaterMaterial:** Added a splash pulse -- intersection foam intensity now oscillates over time (approximating wave1's travel direction/speed as a baked-in constant) instead of being a static band, so it reads as water repeatedly slapping an object rather than a painted-on ring.
+  - **Showcase 31:** Added rocks poking through the trench water and a rubble "beach" pile spilling from the platform edge into one trench, giving `OpenWaterMaterial`'s refraction/foam actual geometry to intersect.
+- **Housekeeping & Docs:**
+  - Attempted wave-crest foam (foam breaking on open water at steep slopes, independent of any solid intersection) via a `normal.y` threshold; reverted. The per-vertex analytic normal of overlapping Gerstner waves carries real high-frequency curvature noise that a threshold there picks up as a busy, cracked-looking network instead of clean crest patches -- confirmed not a mesh-resolution artifact (tested at 2x subdivision, identical result). Left as a documented dead end in `OpenWater.frag.glsl`/`.frag.glsl100`/`.frag.wgsl` for whoever revisits it with a coarser crest-steepness estimate.
+
 ## [0.77.11] - 2026-09-03
 
 ### "Nature is pleased with simplicity." - Isaac Newton

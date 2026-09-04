@@ -19,8 +19,11 @@ class Showcase25 extends AbstractShowcase {
     this.scene.add(dirLight);
 
     this.camera.setStrategy(CameraStrategyType.HYBRID_SYNC);
-    this.camera.position.set(0, 5, 20);
-    this.camera.target.set(0, 0, 0);
+    // Low, grazing angle instead of looking down on the surface -- wave crests only read as
+    // "height" when they can occlude each other and the horizon, the same reason real ocean
+    // photos are shot near the waterline rather than from a bird's-eye view.
+    this.camera.position.set(0, 2.5, 15);
+    this.camera.target.set(0, 1.0, 0);
     this.camera.addBehavior(new OrbitController({ input: this.input, audio: this.audio }));
 
     this._water = new OpenWaterMaterial({
@@ -29,9 +32,16 @@ class Showcase25 extends AbstractShowcase {
       edgeColor: new Color(0.8, 0.9, 1.0),
       edgeSoftness: 1.0,
       speed: 1.0,
-      wave1: [1.0, 0.5, 0.1, 10.0],
-      wave2: [0.2, 0.8, 0.15, 6.0],
-      wave3: [-0.3, 0.7, 0.05, 3.0],
+      // Amplitude = steepness * wavelength / 2*pi -- height comes from a LARGE wavelength here,
+      // not high steepness. Per-wave steepness stays well under 1 (and the 3 waves' steepness
+      // sums to well under 1 too) because overlapping Gerstner waves add their horizontal
+      // displacement: push the combined steepness too high and the crests fold over into sharp
+      // cusps/peaks instead of smooth rolling swells (an earlier, over-steepened attempt at this
+      // did exactly that -- looked like mountain terrain, not ocean). ~1.3 units combined
+      // amplitude this way.
+      wave1: [1.0, 0.4, 0.2, 25.0],
+      wave2: [0.3, 0.9, 0.15, 15.0],
+      wave3: [-0.5, 0.6, 0.1, 8.0],
     });
 
     const water = new Object3D("Water");

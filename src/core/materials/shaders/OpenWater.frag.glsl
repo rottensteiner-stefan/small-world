@@ -126,7 +126,22 @@ void main() {
     vec2 foamUv = v_worldPos.xz * foamNoiseScale + u_time * foamNoiseSpeed;
     float foamCell = waterCellNoise(foamUv);
     float foamPattern = 1.0 - smoothstep(foamCutoff, foamCutoff + 0.15, foamCell);
-    float foamMask = foamPattern * edgeBlend;
+
+    // Splash pulse: modulates intersection foam intensity over time instead of a static band, so
+    // it reads as water repeatedly slapping the object rather than a painted-on ring. Traveling
+    // in wave1's rough direction (baked in as a constant here, not a uniform -- re-deriving the
+    // exact vertex-shader phase would mean duplicating its wave uniforms into the fragment stage).
+    float splashPhase = dot(normalize(vec2(1.0, 0.4)), v_worldPos.xz) * 0.8 - u_time * 1.6;
+    float splashPulse = 0.6 + 0.4 * sin(splashPhase);
+    float foamMask = foamPattern * edgeBlend * splashPulse;
+
+    // Wave-crest foam (foam on open water at steep crests, independent of any solid
+    // intersection) was attempted here via a normal.y threshold, but the per-vertex analytic
+    // normal of overlapping Gerstner waves carries real high-frequency curvature noise that
+    // threshold picks up as a busy, cracked-looking network instead of clean crest patches --
+    // not a mesh-resolution artifact (tested at 2x subdivision, identical result). Parked until
+    // there's a coarser way to estimate crest steepness than the raw vertex normal.
+
     finalColor = mix(finalColor, foamColor, foamMask);
 
     // Procedural caustics: a lighter second Worley-noise layer, projected using the water

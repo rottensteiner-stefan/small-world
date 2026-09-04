@@ -26,7 +26,7 @@ import { CollisionVisualizer, OctreeVisualizer } from "../utils/index.js";
 import { PhysicsSystem } from "../physix/PhysicsSystem.js";
 
 /** The current engine version. */
-export const ENGINE_VERSION = "0.77.11";
+export const ENGINE_VERSION = "0.77.12";
 
 /**
  * Halton low-discrepancy sequence, used for TAA's per-frame sub-pixel camera jitter -- covers
