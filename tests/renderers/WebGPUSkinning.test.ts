@@ -84,6 +84,21 @@ describe("WebGPU GPU Skinning", () => {
     expect(renderer._scratchUniformValues["u_boneOffset"]).toBe(0.0);
   });
 
+  it("does not clobber a material's own u_isSkinned/u_boneOffset value for a non-skinned object", () => {
+    // LiquidWaveMaterial repurposes these two skeletal-only slots to carry waterAbsorption.r/.g
+    // (see OpenWaterMaterial.ts) -- the non-skinned default path must not force them to 0.
+    const { renderer } = makeRenderer();
+    const obj = new Object3D("WaterPlane");
+
+    renderer._packObjectUniforms(
+      obj,
+      makeManifest({ properties: { u_isSkinned: 0.3, u_boneOffset: 0.06 } }),
+    );
+
+    expect(renderer._scratchUniformValues["u_isSkinned"]).toBe(0.3);
+    expect(renderer._scratchUniformValues["u_boneOffset"]).toBe(0.06);
+  });
+
   it("sets isSkinned = 1 and uploads bone matrices for SkinnedMesh with Skeleton", () => {
     const { renderer, device } = makeRenderer();
     const skinnedMesh = new SkinnedMesh("Character");

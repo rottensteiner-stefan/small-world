@@ -126,6 +126,10 @@ export class BillboardInstancer {
         this._lookAtHelper.position.set(x, y, z);
         this._lookAtHelper.lookAt(camera.position);
         this._scratchRot.copyFrom(this._lookAtHelper.rotation);
+        // Object3D.lookAt() orients the local -Z axis at the target, but Plane's front face is
+        // +Z (see the axisLocked branch above) -- flip 180 degrees around Y so the billboard's
+        // textured face, not its backside, ends up toward the camera.
+        this._scratchRot.y += Math.PI;
       }
 
       this._scratchMatrix.compose(this._scratchPos, this._scratchRot, this._scratchScale);

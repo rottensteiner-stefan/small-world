@@ -1747,7 +1747,11 @@ export class WebGPURenderer extends AbstractRenderer {
     if ("skeleton" in o && (o as unknown as { skeleton?: Skeleton }).skeleton) {
       values["u_isSkinned"] = 1.0;
       values["u_boneOffset"] = this._getBoneMatrixOffset(o as unknown as SkinnedMesh);
-    } else {
+    } else if (values["u_isSkinned"] === undefined) {
+      // Only default these for materials that don't already carry a real value here --
+      // LiquidWaveMaterial repurposes u_isSkinned/u_boneOffset (skeletal-only fields, meaningless
+      // for a water plane) to smuggle waterAbsorption.r/.g through the standard uniform layout.
+      // Unconditionally zeroing them for every unskinned object clobbered that data.
       values["u_isSkinned"] = 0.0;
       values["u_boneOffset"] = 0.0;
     }

@@ -62,6 +62,24 @@ describe("BillboardInstancer", () => {
     expect(readRotationY(instancer, 0)).toBeCloseTo(Math.PI / 2, 5);
   });
 
+  it("spherical: faces the camera with the same yaw as axis-locked when the camera is along +Z", () => {
+    const instancer = new BillboardInstancer("Test", {
+      positions: [new Vector3D(0, 0, 0)],
+      axisLocked: false,
+    });
+    instancer.update(makeCamera(0, 0, 5));
+    expect(readRotationY(instancer, 0)).toBeCloseTo(0, 5);
+  });
+
+  it("spherical: yaws toward the camera when it's off to the side, matching axis-locked", () => {
+    const instancer = new BillboardInstancer("Test", {
+      positions: [new Vector3D(0, 0, 0)],
+      axisLocked: false,
+    });
+    instancer.update(makeCamera(5, 0, 0));
+    expect(readRotationY(instancer, 0)).toBeCloseTo(Math.PI / 2, 5);
+  });
+
   it("flags instanceMatrixNeedsUpdate after every update()", () => {
     const instancer = new BillboardInstancer("Test", {
       positions: [new Vector3D(0, 0, 0), new Vector3D(1, 0, 0)],
