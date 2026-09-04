@@ -1,11 +1,7 @@
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect } from "vitest";
 import { MathUtils } from "../../src/index.js";
 
 describe("MathUtils", () => {
-  beforeAll(() => {
-    MathUtils.init();
-  });
-
   it("should convert deg to rad correctly", () => {
     expect(MathUtils.degToRad(180)).toBeCloseTo(Math.PI);
     expect(MathUtils.degToRad(90)).toBeCloseTo(Math.PI / 2);

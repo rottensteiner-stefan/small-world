@@ -15,27 +15,6 @@ export class MathUtils {
   /** Constant to convert radians to degrees. */
   public static readonly RAD2DEG: number = 180.0 / Math.PI;
 
-  private static _SIN_TABLE: Float32Array = new Float32Array(3600);
-  private static _COS_TABLE: Float32Array = new Float32Array(3600);
-  private static _isInit: boolean = false;
-
-  /**
-   * Initializes the sine and cosine lookup tables for fast lookup.
-   */
-  public static init(): void {
-    if (true === this._isInit) {
-      return;
-    }
-
-    for (let i: number = 0; 3600 > i; i++) {
-      const rad: number = (i / 10) * MathUtils.DEG2RAD;
-      this._SIN_TABLE[i] = Math.sin(rad);
-      this._COS_TABLE[i] = Math.cos(rad);
-    }
-
-    this._isInit = true;
-  }
-
   /**
    * Converts degrees to radians.
    * @param degrees The angle in degrees.
@@ -55,25 +34,21 @@ export class MathUtils {
   }
 
   /**
-   * Returns the sine of the given angle in radians using a lookup table.
+   * Returns the sine of the given angle in radians.
    * @param rad The angle in radians.
    * @returns The sine of the angle.
    */
   public static fastSin(rad: number): number {
-    let deg: number = (rad * 572.957) | 0;
-    deg = ((deg % 3600) + 3600) % 3600;
-    return this._SIN_TABLE[deg]!;
+    return Math.sin(rad);
   }
 
   /**
-   * Returns the cosine of the given angle in radians using a lookup table.
+   * Returns the cosine of the given angle in radians.
    * @param rad The angle in radians.
    * @returns The cosine of the angle.
    */
   public static fastCos(rad: number): number {
-    let deg: number = (rad * 572.957) | 0;
-    deg = ((deg % 3600) + 3600) % 3600;
-    return this._COS_TABLE[deg]!;
+    return Math.cos(rad);
   }
 
   /**

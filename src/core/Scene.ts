@@ -1,7 +1,7 @@
 import { Object3D } from "./Object3D.js";
 import { Octree, OctreeOptions } from "./Octree.js";
 import { Fog } from "./Fog.js";
-import { Matrix4, Frustum, Vector3D } from "../math/index.js";
+import { Vector3D } from "../math/index.js";
 import { BoundingBox, SpatialHash } from "../physix/index.js";
 import { BoundingType, Topology } from "../enums/index.js";
 import { DirectionalLight } from "./lights/index.js";
@@ -73,9 +73,6 @@ export class Scene {
     opaqueBatches: [],
     transparent: [],
   };
-
-  private _scratchFrustum: Frustum = new Frustum();
-  private _scratchMatrix: Matrix4 = new Matrix4();
 
   // Objects (plus their full descendant subtree) removed since the last time a
   // renderer drained this queue. Consumed once per frame to release GPU resources
@@ -246,7 +243,7 @@ export class Scene {
    * Opaque Grouping: shaderId -> topology -> matUuid -> Object3D[]
    * Transparent: Object3D[] sorted back-to-front
    */
-  public getVisibleObjectsSorted(vp: Float32Array, camPos: Vector3D): RenderList {
+  public getVisibleObjectsSorted(_vp: Float32Array, camPos: Vector3D): RenderList {
     // Clear the persistent list without destroying the structures (Monomorphism/GC optimization)
     this._renderList.transparent.length = 0;
     const batches = this._renderList.opaqueBatches;
@@ -256,12 +253,7 @@ export class Scene {
     this.lastOcclusionCulledCount = 0;
     this.lastFrustumVisibleObjects.length = 0;
 
-    const frustum = this._scratchFrustum;
-    const vpMat = this._scratchMatrix;
-    vpMat.data.set(vp);
-    frustum.setFromMatrix(vpMat);
-
-    this._collectVisible(this.root, this._renderList, frustum);
+    this._collectVisible(this.root, this._renderList);
 
     // Sort transparent objects back-to-front
     this._renderList.transparent.sort((a, b) => {
@@ -283,7 +275,7 @@ export class Scene {
     return this._renderList;
   }
 
-  private _collectVisible(obj: Object3D, renderList: RenderList, frustum: Frustum): void {
+  private _collectVisible(obj: Object3D, renderList: RenderList): void {
     // Only proceed if object is visible
     if (!obj.isVisible) return;
 
@@ -342,7 +334,7 @@ export class Scene {
     }
 
     for (let i: number = 0; i < obj.children.length; i++) {
-      this._collectVisible(obj.children[i]!, renderList, frustum);
+      this._collectVisible(obj.children[i]!, renderList);
     }
   }
 
