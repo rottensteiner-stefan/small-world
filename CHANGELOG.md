@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.77.15] - 2026-09-06
+
+### "Perfection is achieved, not when there is nothing more to add, but when there is nothing left to take away." - Antoine de Saint-Exupéry
+
+- **Features:**
+  - **Showcase 28:** Added a secret manual turntable control -- Ctrl+T toggles between the existing automatic wobble and a manual mode where LEFT/RIGHT arrow keys spin the turntable directly, holding it steady until released.
+- **Housekeeping & Docs:**
+  - `REFERENCES.md` gained an "AI Coding & Architecture Assistants" section documenting the AI models consulted during development.
+  - `vite.config.ts` raised the build's chunk-size warning threshold to 800kb.
+
 ## [0.77.14] - 2026-09-04
 
 ### "There is nothing so useless as doing efficiently that which should not be done at all." - Peter Drucker
