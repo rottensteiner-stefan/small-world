@@ -331,3 +331,23 @@ This document serves to record external sources, algorithms, mathematical deriva
 - **Authors/Gurus:** gameidea (gameidea.org, also active as `gameidea-studio` on itch.io and Patreon)
 - **Source:** ["Creating a Stylized 3D Water Shader"](https://gameidea.org/2026/02/01/creating-a-stylized-3d-water-shader/) — gameidea, published 2026-02-01
 - **Usage:** Reference for the stylized (Sea of Thieves-inspired) open-water look: simple sine/noise-based Gerstner-like vertex wave displacement combined with fragment-side depth fade (mixing toward an underwater fog color with scene depth) and screen-space foam near intersections with other geometry, instead of a physically simulated ocean (no FFT).
+
+## AI Coding & Architecture Assistants
+
+### Google Gemini (2.5 Pro)
+
+- **Authors/Gurus:** Google DeepMind
+- **Source:** [Gemini 2.5 Pro | Gemini API (Google AI for Developers)](https://ai.google.dev/gemini-api/docs/models/gemini-2.5-pro)
+- **Usage:** The flagship reasoning/thinking model used as a reference for solving complex engineering problems in `small-world` — analyzing large codebases, long-context reasoning over the engine architecture, and drafting architectural decisions. Serves as a counterpart to human review for high-level design and code-quality judgement.
+
+### Claude Sonnet (Anthropic Claude Sonnet 5)
+
+- **Authors/Gurus:** Anthropic
+- **Source:** [Claude Models (Anthropic)](https://docs.anthropic.com/en/docs/about-claude/models/overview)
+- **Usage:** The reference agentic coding assistant used as a second pair of eyes on cross-cutting architectural decisions and large multi-file refactors in `small-world`. Consulted for architecture reviews (e.g., renderer abstraction seams between WebGL2 and WebGPU, behavior-driven component design) and for writing/refactoring TypeScript code along the project's coding standards.
+
+### DeepSeek V4 Flash
+
+- **Authors/Gurus:** DeepSeek AI
+- **Source:** [DeepSeek-V4-Flash (Hugging Face)](https://huggingface.co/deepseek-ai/DeepSeek-V4-Flash)
+- **Usage:** A fast Mixture-of-Experts (MoE) model (284B total / 13B activated parameters) used as a lightweight, high-throughput reference assistant for iterative coding and localized architecture checks during active development, trading deep reasoning for speed on routine code generation and short refactors within the engine.
