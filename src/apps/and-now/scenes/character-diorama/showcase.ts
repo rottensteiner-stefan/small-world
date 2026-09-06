@@ -164,12 +164,14 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
       this._barrelTexture = await Texture.fromUrl("/assets/and-now/diorama/barrel_rust.jpg", {
         addressModeU: TextureWrap.REPEAT,
         addressModeV: TextureWrap.REPEAT,
+        flipY: true,
       });
       this._barrelNormalTexture = await Texture.fromUrl(
         "/assets/and-now/diorama/barrel_rust_normal.jpg",
         {
           addressModeU: TextureWrap.REPEAT,
           addressModeV: TextureWrap.REPEAT,
+          flipY: true,
         },
       );
       this._barrelRoughnessTexture = await Texture.fromUrl(
@@ -177,17 +179,20 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
         {
           addressModeU: TextureWrap.REPEAT,
           addressModeV: TextureWrap.REPEAT,
+          flipY: true,
         },
       );
       this._crateTexture = await Texture.fromUrl("/assets/and-now/diorama/crate_wood.jpg", {
         addressModeU: TextureWrap.REPEAT,
         addressModeV: TextureWrap.REPEAT,
+        flipY: true,
       });
       this._crateNormalTexture = await Texture.fromUrl(
         "/assets/and-now/diorama/crate_wood_normal.jpg",
         {
           addressModeU: TextureWrap.REPEAT,
           addressModeV: TextureWrap.REPEAT,
+          flipY: true,
         },
       );
       this._crateRoughnessTexture = await Texture.fromUrl(
@@ -195,17 +200,20 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
         {
           addressModeU: TextureWrap.REPEAT,
           addressModeV: TextureWrap.REPEAT,
+          flipY: true,
         },
       );
       this._debrisTexture = await Texture.fromUrl("/assets/and-now/diorama/debris_pile.jpg", {
         addressModeU: TextureWrap.REPEAT,
         addressModeV: TextureWrap.REPEAT,
+        flipY: true,
       });
       this._debrisNormalTexture = await Texture.fromUrl(
         "/assets/and-now/diorama/debris_pile_normal.jpg",
         {
           addressModeU: TextureWrap.REPEAT,
           addressModeV: TextureWrap.REPEAT,
+          flipY: true,
         },
       );
       this._debrisRoughnessTexture = await Texture.fromUrl(
@@ -213,6 +221,7 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
         {
           addressModeU: TextureWrap.REPEAT,
           addressModeV: TextureWrap.REPEAT,
+          flipY: true,
         },
       );
     } catch (err) {
