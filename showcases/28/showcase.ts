@@ -27,6 +27,7 @@ import {
   BloomElement,
   HbaoElement,
   Vector2D,
+  Keys,
 } from "../../src/index.js";
 
 // ----------------------------------------------------------------------------
@@ -170,6 +171,10 @@ class Showcase28 extends AbstractShowcase {
   private _laserLight!: SpotLight;
   private _spectralRays: Object3D[] = [];
   private _time = 0;
+  // Secret manual-control mode: Ctrl+T pauses the automatic wobble and lets LEFT/RIGHT spin
+  // the turntable by hand instead.
+  private _manualTurntableControl = false;
+  private _manualTurntableAngle = 0;
 
   constructor(options: EngineOptions = {}) {
     super({
@@ -573,12 +578,36 @@ class Showcase28 extends AbstractShowcase {
     );
   }
 
+  /** Secret shortcut: Ctrl+T toggles manual turntable control (see `update()`'s LEFT/RIGHT handling). */
+  protected override onKeyDown(event: KeyboardEvent): void {
+    super.onKeyDown(event);
+    if (Keys.T === event.code && event.ctrlKey) {
+      event.preventDefault();
+      this._manualTurntableControl = !this._manualTurntableControl;
+      if (this._manualTurntableControl && this._turntable) {
+        this._manualTurntableAngle = this._turntable.rotation.y;
+      }
+    }
+  }
+
   protected override update(deltaTime: number): void {
     this._time += deltaTime * 0.5;
 
-    // Gentle slow turntable rotation showcasing prism facets and refraction shifts
     if (this._turntable) {
-      this._turntable.rotation.y = Math.sin(this._time * 0.6) * 0.25;
+      if (this._manualTurntableControl) {
+        // Manual mode: auto-wobble is paused, LEFT/RIGHT spin the turntable by hand.
+        const manualSpeed = 1.5; // rad/s
+        if (this.input.isPressed(Keys.LEFT)) {
+          this._manualTurntableAngle -= manualSpeed * deltaTime;
+        }
+        if (this.input.isPressed(Keys.RIGHT)) {
+          this._manualTurntableAngle += manualSpeed * deltaTime;
+        }
+        this._turntable.rotation.y = this._manualTurntableAngle;
+      } else {
+        // Gentle slow turntable rotation showcasing prism facets and refraction shifts
+        this._turntable.rotation.y = Math.sin(this._time * 0.6) * 0.25;
+      }
     }
 
     // The spectral rays must track the turntable's live wobble: the prism's actual world
