@@ -927,11 +927,21 @@ befüllen.
   - **Letztes Ziel (Die Abrechnung):** Sobald die Asche in geweihter Friedhofserde ruht, fällt die hemmende Angst ab. Novotny hat ab diesem Moment *nichts mehr zu verlieren*. Mit dem entschlüsselten Medaillon marschiert die Figur direkt in die Rossauer Kaserne und stellt Hofrat Brandstätter und die mörderische Bunker-Bürokratie persönlich zur Rede.
 - **Status:** 112 Testsuiten, 626 Tests, Build/Lint 100% grün.
 
+---
 
-
-
-
-
+## 100. Multi-Agent Kollaboration: Irisierender Ölfleck & Skill-Refinements (2026-09-07)
+- **Irisierender Ölfleck-Shader (`OilSlickMaterial` in `src/apps/and-now/scenes/character-diorama/`):**
+  - Kollaborative Ausarbeitung (Alice/Bob) basierend auf Referenzfoto für realistische Dünnschichtinterferenz (Airy-Formel & Cauchy-Dispersion).
+  - Volle WebGL2- und WebGPU/WGSL-Parität mit proceduralem Hash-Noise, FBM und Chiaroscuro-Lichtstimmung.
+  - Integration in das Charakter-Diorama ([`showcase.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/scenes/character-diorama/showcase.ts)).
+- **Runtime-Verifikation & Fixes:**
+  - Behebung von Pre-Processor Token-Injektionen in Shader-Kommentaren (`// [WGSL_LIGHTING]`).
+  - Behebung von WGSL-Parameter-Shadowing durch Block-Scope-Isolation (`{ let i = mod_i; [CHUNK] }`).
+  - Erfolgreiche Abnahme im Diorama via WebGPU und WebGL.
+- **Skill- & Regel-Erweiterungen:**
+  - [`collaborate/SKILL.md`](file:///Users/srottensteiner/PhpstormProjects/small-world/.agents/skills/collaborate/SKILL.md): Lifecycle nach Konsens geschärft (Umsetzungs- & QA-Schleife mit `[ABNAHME_ERTEILT]` vor `/collaborate --stop`).
+  - [`coding-guide/SKILL.md`](file:///Users/srottensteiner/PhpstormProjects/small-world/.agents/skills/coding-guide/SKILL.md): Neue Richtlinien für Template-Tokens (Makro-Schutz in Kommentaren) und WGSL Entry-Point Scope-Isolation.
+- **Status:** Kollaborations-Session sauber mit `/collaborate --stop` beendet (`oil.pid` archiviert), Skills aktualisiert.
 
 
 

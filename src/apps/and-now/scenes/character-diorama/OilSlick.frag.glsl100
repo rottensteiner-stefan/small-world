@@ -1,0 +1,113 @@
+[BASE_FS_HEADER]
+[LIGHT_DEFS]
+
+// Free vec4 slots on StandardWebGPULayout, not covered by BASE_FS_HEADER:
+// u_liquidParams: [highlightRadius, highlightIntensity, splatterBaseRadius, splatterNoiseAmp]
+// u_thresholds:   [outlineWidth, outlineAlpha, meniscusStrength, rimDarkening]
+uniform vec4 u_liquidParams;
+uniform vec4 u_thresholds;
+
+float hash(vec2 p) {
+    vec2 q = vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)));
+    return fract(sin(q.x) * 43758.5453);
+}
+
+float noise(vec2 p) {
+    vec2 i = floor(p);
+    vec2 f = fract(p);
+    vec2 u = f * f * (3.0 - 2.0 * f);
+    float a = hash(i + vec2(0.0, 0.0));
+    float b = hash(i + vec2(1.0, 0.0));
+    float c = hash(i + vec2(0.0, 1.0));
+    float d = hash(i + vec2(1.0, 1.0));
+    return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+}
+
+vec3 thinFilm(float cosTheta, float thickness, float strength) {
+    float opd = thickness * 4.0 * cosTheta;
+    float r = 0.5 + 0.5 * sin(opd * 8.0);
+    float g = 0.5 + 0.5 * sin(opd * 8.5 + 1.0);
+    float b = 0.5 + 0.5 * sin(opd * 9.0 + 2.0);
+    vec3 rawIridescence = vec3(r, g, b);
+    float luminance = dot(rawIridescence, vec3(0.299, 0.587, 0.114));
+    return mix(vec3(luminance), rawIridescence, strength);
+}
+
+// WebGL1 path (matches PhongMaterial's glsl100 convention): no sRGBToLinear/linearToSRGB or
+// exposure -- this backend's lighting is tuned directly in gamma space.
+void main() {
+    float time = u_extraParams.x;
+    float iridescenceStrength = u_extraParams.y;
+    vec2 highlightPoint = u_extraParams.zw;
+    float highlightRadius = max(u_liquidParams.x, 0.001);
+    float highlightIntensity = u_liquidParams.y;
+    float splatterBaseRadius = u_liquidParams.z;
+    float splatterNoiseAmp = u_liquidParams.w;
+
+    float outlineWidth = max(u_thresholds.x, 0.0);
+    float outlineAlpha = u_thresholds.y > 0.0 ? u_thresholds.y : 0.85;
+    float meniscusStrength = u_thresholds.z > 0.0 ? u_thresholds.z : 0.65;
+    float rimDarkening = u_thresholds.w > 0.0 ? u_thresholds.w : 0.95;
+
+    // 1. Organic splatter mask & 2-stage ink outline (inner oil pool + outer graphic novel contour)
+    vec2 localUV = v_uv - vec2(0.5);
+    float distFromCenter = length(localUV);
+    float angle = atan(localUV.y, localUV.x);
+    vec2 noiseCoord = vec2(cos(angle), sin(angle)) * 3.0;
+    float edgeNoise = noise(noiseCoord);
+    float radius = splatterBaseRadius + edgeNoise * splatterNoiseAmp;
+    float outerRadius = radius + outlineWidth;
+
+    // Discard outside the outermost ink contour
+    float outerAlphaMask = smoothstep(outerRadius + 0.01, outerRadius - 0.01, distFromCenter);
+    if (outerAlphaMask < 0.05) {
+        discard;
+    }
+
+    // Inner oil body mask: 1.0 inside oil pool, 0.0 in the outer outline ring
+    float innerOilMask = smoothstep(radius + 0.01, radius - 0.01, distFromCenter);
+
+    // 2. Synthetic meniscus normal perturbation (procedural edge curvature catching specular light)
+    vec3 N = normalize(v_normal);
+    float edgeDist = radius - distFromCenter;
+    float meniscusBand = max(splatterBaseRadius * 0.35, 0.02);
+    if (edgeDist > -0.02 && edgeDist < meniscusBand) {
+        float edgeFactor = 1.0 - clamp(edgeDist / meniscusBand, 0.0, 1.0);
+        vec2 outwardDir = distFromCenter > 0.0001 ? normalize(localUV) : vec2(0.0);
+        N.xz += outwardDir * edgeFactor * meniscusStrength;
+        N = normalize(N);
+    }
+
+    [LIGHT_CALC]
+
+    vec3 viewDir = normalize(u_viewPos - v_worldPos);
+    float NdotV = max(dot(N, viewDir), 0.0);
+
+    // 3. Base colour gradient: warm amber-brown core -> deep noir tar-black edge
+    vec3 coreColor = u_color.rgb;
+    vec3 edgeColor = vec3(0.012, 0.009, 0.007);
+    float radialFactor = clamp(distFromCenter / max(radius, 0.001), 0.0, 1.0);
+    vec3 baseColor = mix(coreColor, edgeColor, smoothstep(0.1, 0.95, radialFactor) * rimDarkening);
+
+    // Subtle thin-film shimmer
+    float swirl = noise(v_worldPos.xz * 4.0 + time * 0.02);
+    float thickness = 0.5 + swirl * 0.5;
+    vec3 iridescence = thinFilm(NdotV, thickness, iridescenceStrength);
+    float fresnel = pow(1.0 - NdotV, 4.0);
+    vec3 colorWithSheen = mix(baseColor, iridescence, fresnel * iridescenceStrength);
+
+    // 4. Localised warm glow pooling near the drip point under the barrel
+    float glowDist = distance(v_uv, highlightPoint);
+    float glow = highlightIntensity * exp(-(glowDist * glowDist) / (highlightRadius * highlightRadius));
+
+    vec3 litOilColor = colorWithSheen * finalLight + specular * u_specColor.rgb + u_specColor.rgb * glow;
+
+    // 5. Outer Ink Outline blending (stylized comic / Noir outline outside the liquid body)
+    vec3 inkOutlineColor = vec3(0.008, 0.006, 0.005);
+    vec3 finalRgb = mix(inkOutlineColor, litOilColor, innerOilMask);
+
+    // Composite alpha: full viscous opacity for oil body, outlineAlpha for the outer contour
+    float finalAlpha = mix(outerAlphaMask * outlineAlpha, innerOilMask * u_color.a, innerOilMask);
+
+    gl_FragColor = vec4(finalRgb, finalAlpha);
+}

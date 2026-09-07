@@ -20,6 +20,7 @@ import {
   Torus,
 } from "../../../../index.js";
 import { OrbitController } from "../../../../core/controllers/OrbitController.js";
+import { OilSlickMaterial } from "./OilSlickMaterial.js";
 import { Vector2D, Vector3D } from "../../../../math/index.js";
 import {
   AnimationAction,
@@ -61,6 +62,7 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
   private _lanternPointLight: PointLight | undefined;
   private _lanternOn: boolean = true;
   private _turntableActive: boolean = false;
+  private _oilSlickMaterial: OilSlickMaterial | undefined;
 
   private _mixer: AnimationMixer | undefined;
   private _clips: Map<string, AnimationClip> = new Map();
@@ -395,23 +397,82 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
       root.add(topCapBack);
     }
 
-    // Gestufte Ziegel-Zähne an den beiden äußeren Stirnseiten-Schnitten
-    for (let b = 0; b < 8; b++) {
-      const toothY = 0.2 + b * 0.22;
+    // Gestufte, unregelmäßig ausgebrochene Ziegel-Zähne an den beiden äußeren Stirnseiten-Schnitten.
+    // Jede Reihe variiert in Höhe, Vorsprungtiefe, Länge und leichter Verkippung -- ein perfekt
+    // gleichmäßiges Zick-Zack-Raster (feste 0.22-Schrittweite, feste 2-Phasen-Alternanz) sah zu
+    // gebaut/ordentlich aus, nicht wie eine tatsächlich eingestürzte Mauerkante. Deterministischer
+    // Sinus-Hash statt Math.random(), damit das Bruchmuster bei jedem Laden gleich aussieht.
+    const toothRnd = (seed: number): number => {
+      const x = Math.sin(seed * 12.9898) * 43758.5453;
+      return x - Math.floor(x);
+    };
 
-      const toothLeft = new Object3D("ToothLeft_" + b);
-      toothLeft.geometry = new Cube({ size: 1.0 }).getGeometryData();
-      toothLeft.scale.set(wallThickness + 0.02, 0.1, 0.22);
-      toothLeft.material = brickMasonryMat;
-      toothLeft.position.set(-2.1 - wallThickness / 2, toothY, 2.12 + (b % 2) * 0.08);
-      root.add(toothLeft);
+    let toothYLeft = 0.16;
+    let toothIndexLeft = 0;
+    while (toothYLeft < 1.95) {
+      const seed = toothIndexLeft * 7.31 + 11;
+      const brickHeight = 0.13 + toothRnd(seed) * 0.11;
+      const protrusion = toothRnd(seed + 1) * 0.12 - 0.02; // kann leicht zurückspringen
+      const brickLength = 0.15 + toothRnd(seed + 2) * 0.14;
+      const missing = toothRnd(seed + 3) < 0.2; // ausgebrochener/fehlender Ziegel
 
-      const toothRight = new Object3D("ToothRight_" + b);
-      toothRight.geometry = new Cube({ size: 1.0 }).getGeometryData();
-      toothRight.scale.set(0.22, 0.1, wallThickness + 0.02);
-      toothRight.material = brickMasonryMat;
-      toothRight.position.set(2.12 + (b % 2) * 0.08, toothY, -2.1 - wallThickness / 2);
-      root.add(toothRight);
+      if (!missing) {
+        const toothLeft = new Object3D("ToothLeft_" + toothIndexLeft);
+        toothLeft.geometry = new Cube({ size: 1.0 }).getGeometryData();
+        toothLeft.scale.set(
+          wallThickness + Math.max(protrusion, 0.0) + 0.02,
+          brickHeight,
+          brickLength,
+        );
+        toothLeft.material = brickMasonryMat;
+        toothLeft.position.set(
+          -2.1 - wallThickness / 2 - Math.max(protrusion, 0.0) * 0.4,
+          toothYLeft + brickHeight / 2,
+          2.14 + (toothRnd(seed + 4) - 0.5) * 0.22,
+        );
+        toothLeft.rotation.x = (toothRnd(seed + 5) - 0.5) * 0.3;
+        toothLeft.rotation.y = (toothRnd(seed + 6) - 0.5) * 0.2;
+        toothLeft.rotation.z = (toothRnd(seed + 7) - 0.5) * 0.22;
+        root.add(toothLeft);
+      }
+
+      toothYLeft += brickHeight + toothRnd(seed + 8) * 0.05;
+      toothIndexLeft++;
+    }
+
+    let toothYRight = 0.16;
+    let toothIndexRight = 0;
+    while (toothYRight < 1.95) {
+      // Anderer Offset in der Seed-Sequenz, damit die rechte Seite nicht wie ein Spiegelbild
+      // der linken aussieht.
+      const seed = toothIndexRight * 9.73 + 401;
+      const brickHeight = 0.13 + toothRnd(seed) * 0.11;
+      const protrusion = toothRnd(seed + 1) * 0.12 - 0.02;
+      const brickLength = 0.15 + toothRnd(seed + 2) * 0.14;
+      const missing = toothRnd(seed + 3) < 0.2;
+
+      if (!missing) {
+        const toothRight = new Object3D("ToothRight_" + toothIndexRight);
+        toothRight.geometry = new Cube({ size: 1.0 }).getGeometryData();
+        toothRight.scale.set(
+          brickLength,
+          brickHeight,
+          wallThickness + Math.max(protrusion, 0.0) + 0.02,
+        );
+        toothRight.material = brickMasonryMat;
+        toothRight.position.set(
+          2.14 + (toothRnd(seed + 4) - 0.5) * 0.22,
+          toothYRight + brickHeight / 2,
+          -2.1 - wallThickness / 2 - Math.max(protrusion, 0.0) * 0.4,
+        );
+        toothRight.rotation.x = (toothRnd(seed + 5) - 0.5) * 0.22;
+        toothRight.rotation.y = (toothRnd(seed + 6) - 0.5) * 0.2;
+        toothRight.rotation.z = (toothRnd(seed + 7) - 0.5) * 0.3;
+        root.add(toothRight);
+      }
+
+      toothYRight += brickHeight + toothRnd(seed + 8) * 0.05;
+      toothIndexRight++;
     }
   }
 
@@ -1107,6 +1168,23 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
       root.add(metalBarrel);
     }
 
+    // Dicke, schmierige Öllache am Fassboden -- gemutete Dünnschicht-Iridiszenz + ein echtes,
+    // dynamisches Glanzlicht (aus den vorhandenen Wandlaternen) plus ein fixer warmer Glimmfleck
+    // am Auslaufpunkt. Bewusst ohne Wellen-/Fließanimation: eine träge, fast stehende Lache statt
+    // eines bewegten Gewässers (siehe OilSlickMaterial-Doku).
+    this._oilSlickMaterial = new OilSlickMaterial({
+      highlightPoint: new Vector2D(0.5, 0.68),
+      splatterBaseRadius: 0.4,
+      meniscusStrength: 0.9,
+    });
+    const oilSlick = new Object3D("OilSlick");
+    oilSlick.geometry = new Plane({ width: 1.05, height: 0.85 }).getGeometryData();
+    oilSlick.material = this._oilSlickMaterial;
+    oilSlick.position.set(-1.32, 0.006, 0.68);
+    oilSlick.rotation.set(-Math.PI / 2, 0.4, 0);
+    oilSlick.receiveShadow = true;
+    root.add(oilSlick);
+
     const can1 = new Object3D("SodaCan1");
     can1.geometry = new Cylinder({
       radiusTop: 0.035,
@@ -1579,6 +1657,10 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
 
     if (this._turntableActive && this._dioramaRoot) {
       this._dioramaRoot.rotation.y += deltaTime * 0.35;
+    }
+
+    if (this._oilSlickMaterial) {
+      this._oilSlickMaterial.time += deltaTime;
     }
 
     this._updateAnimationFade(deltaTime);

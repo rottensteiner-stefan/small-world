@@ -199,9 +199,30 @@ struct PostUniforms {
     bloomColor: vec3f,      // offset 48 (12 bytes)
     filterMode: u32,        // offset 60 (4 bytes) -> Packs perfectly with vec3f into 16 bytes!
 }
-````
+```
 
 Ensure CPU-side memory mapping (`Float32Array` or `DataView`) matches this layout index-for-index.
+
+### D. Shader Template Chunks & Pre-Processor Token Discipline
+
+Small World replaces template tokens (z. B. `[WGSL_LIGHTING]`, `[CHUNK_NAME]`) string-basiert zur Compile-Zeit.
+- **Keine Makro-Tokens in Kommentaren:** Schreibe niemals Template-Tokens wörtlich in erklärende Kommentare (z. B. `// [WGSL_LIGHTING] computes...`). Der String-Replacer ersetzt alle Vorkommnisse blindlings, was mehrzeiligen Shader-Code in eine Kommentarzeile injiziert und Syntax-Fehler verursacht.
+- **Eindeutige Token-Präfixe:** Template-Slots müssen immer in eckigen Klammern und eindeutigem Schema definiert sein (z. B. `// [HOOK_LIGHTING]`).
+
+### E. WGSL Scope Isolation & Variable Shadowing
+
+WGSL verbietet strikt das Shadowing von Parametern der Entry-Point-Funktion (z. B. `fn fs_main(i: VertexOutput)`).
+- **Keine Parameter-Redeklaration:** Ein `let i = ...` oder `var i = ...` führt zu einem WGSL-Validierungsfehler (`redeclaration of parameter 'i'`).
+- **Scope Isolation für Template-Chunks:** Wenn ein injizierter Shader-Chunk feste Variablennamen wie `i.n` oder `i.wp` erwartet, muss die modifizierte Version in einem eigenen Block-Scope gekapselt werden:
+  ```wgsl
+  // Vorbereitende Berechnungen (z. B. Normalen-Perturbation)
+  var mod_i = i;
+  mod_i.n = perturbed_normal;
+  {
+      let i = mod_i; // Erlaubt innerhalb eines inneren Blocks
+      [WGSL_LIGHTING_CHUNK]
+  }
+  ```
 
 ---
 
