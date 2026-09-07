@@ -39,6 +39,9 @@ fn thinFilm(cosTheta: f32, thickness: f32, strength: f32) -> vec3f {
     let outlineAlpha = select(0.85, obj.thresholds.y, obj.thresholds.y > 0.0);
     let meniscusStrength = select(0.65, obj.thresholds.z, obj.thresholds.z > 0.0);
     let rimDarkening = select(0.95, obj.thresholds.w, obj.thresholds.w > 0.0);
+    // obj.isTerrain is otherwise unused by this material -- repurposed to carry floorVisibility
+    // (see OilSlickMaterial.ts).
+    let floorVisibility = clamp(obj.isTerrain, 0.0, 1.0);
 
     // 1. Organic splatter mask & 2-stage ink outline (inner oil pool + outer graphic novel contour)
     let localUV = i.uv - vec2f(0.5);
@@ -91,6 +94,19 @@ fn thinFilm(cosTheta: f32, thickness: f32, strength: f32) -> vec3f {
     // 3. Base colour gradient: warm amber-brown core -> deep noir tar-black edge
     let coreColor = sRGBToLinear(obj.color.rgb);
     let edgeColor = sRGBToLinear(vec3f(0.012, 0.009, 0.007)); // Noir deep tar black
+
+    // Grounded rim: sample the real floor colour beneath the puddle (captured just before this
+    // transparent pass, see WebGPURenderer's u_opaqueMap fallback) and tint it dark by the oil,
+    // so the thin rim reads as translucent film over actual pavement instead of a flat ring.
+    let groundScreenRes = vec2f(textureDimensions(u_opaqueMap));
+    let groundScreenUv = i.pos.xy / groundScreenRes;
+    let groundColor = sRGBToLinear(textureSample(u_opaqueMap, s, groundScreenUv).rgb);
+    // Tint by edgeColor's hue only (normalized to its brightest channel), not its raw magnitude --
+    // see OilSlick.frag.glsl's identical fix for why multiplying by edgeColor directly crushes
+    // the real floor brightness to near-zero.
+    let edgeHue = edgeColor / max(max(edgeColor.r, max(edgeColor.g, edgeColor.b)), 0.0001);
+    let groundTinted = groundColor * mix(vec3f(1.0), edgeHue, 0.7);
+
     let radialFactor = clamp(distFromCenter / max(radius, 0.001), 0.0, 1.0);
     let baseColor = mix(coreColor, edgeColor, smoothstep(0.1, 0.95, radialFactor) * rimDarkening);
 
@@ -106,7 +122,12 @@ fn thinFilm(cosTheta: f32, thickness: f32, strength: f32) -> vec3f {
     let glow = highlightIntensity * exp(-(glowDist * glowDist) / (highlightRadius * highlightRadius));
 
     let tint = sRGBToLinear(obj.specColor.rgb);
-    let litOilColor = colorWithSheen * fL + spec * tint + tint * glow;
+    var litOilColor = colorWithSheen * fL + spec * tint + tint * glow;
+
+    // Grounded rim overlay: blend in the real floor colour AFTER lighting -- see OilSlick.frag.glsl's
+    // identical fix for why folding it into baseColor and re-lighting it double-darkens the rim.
+    let rimBlend = smoothstep(0.1, 0.95, radialFactor) * floorVisibility;
+    litOilColor = mix(litOilColor, groundTinted, rimBlend);
 
     // 5. Outer Ink Outline blending (stylized comic / Noir outline outside the liquid body)
     let inkOutlineColor = sRGBToLinear(vec3f(0.008, 0.006, 0.005));

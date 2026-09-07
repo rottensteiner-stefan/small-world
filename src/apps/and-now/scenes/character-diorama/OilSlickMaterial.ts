@@ -8,6 +8,7 @@ import {
   ShaderDefinition,
   StandardWebGPULayout,
 } from "../../../../core/renderers/shaders/index.js";
+import { ShaderPropertyType } from "../../../../enums/index.js";
 import { Vector2D } from "../../../../math/index.js";
 
 /**
@@ -48,6 +49,11 @@ export interface OilSlickMaterialOptions {
   /** How strongly the warm core colour fades to deep ink black toward the edges of the oil body, 0-1.
    * Defaults to 0.95. */
   rimDarkening?: number;
+  /** How much of the real, captured floor color (tinted dark by the oil) shows through at the
+   * puddle's thin rim, instead of the flat procedural ink-black edge, 0-1. 0 keeps the original
+   * flat edge; 1 makes the rim read as fully translucent oil film over the actual pavement.
+   * Defaults to 0.6. See `.agents/notes/oil-shader-roadmap.md` Phase 1. */
+  floorVisibility?: number;
 }
 
 /**
@@ -86,6 +92,8 @@ export class OilSlickMaterial extends AbstractMaterial {
   public meniscusStrength: number;
   /** How strongly the core colour darkens to ink black toward the edges, 0-1. */
   public rimDarkening: number;
+  /** How much of the real, captured floor color shows through at the puddle's thin rim, 0-1. */
+  public floorVisibility: number;
   /** Current time/frame, advanced externally by the scene's update loop -- drives only the slow
    * thin-film shimmer, nothing spatial. */
   public time: number = 0;
@@ -106,6 +114,7 @@ export class OilSlickMaterial extends AbstractMaterial {
       outlineAlpha = 0.85,
       meniscusStrength = 0.65,
       rimDarkening = 0.95,
+      floorVisibility = 0.6,
     } = options;
 
     this.color = color;
@@ -121,6 +130,7 @@ export class OilSlickMaterial extends AbstractMaterial {
     this.outlineAlpha = outlineAlpha;
     this.meniscusStrength = meniscusStrength;
     this.rimDarkening = rimDarkening;
+    this.floorVisibility = floorVisibility;
 
     this.transparent = true;
   }
@@ -129,6 +139,11 @@ export class OilSlickMaterial extends AbstractMaterial {
   public override getRenderManifest(): RenderManifest {
     if (undefined === this._renderManifest) {
       this._renderManifest = this._createBaseManifest();
+      // Left undefined so the renderer falls back to its live-captured opaque colour texture
+      // (see WebGL2Renderer/WebGL1Renderer's u_opaqueMap sampler-bind fallback and
+      // WebGPURenderer's equivalent) -- gives the puddle's thin rim a real view of the actual
+      // floor beneath it instead of only a flat procedural edge colour.
+      this._renderManifest.textures["u_opaqueMap"] = undefined;
     }
     this._syncBaseManifestState();
 
@@ -136,6 +151,9 @@ export class OilSlickMaterial extends AbstractMaterial {
 
     props["u_specColor"] = this.highlightColor.toFloat32Array();
     props["u_shininess"] = this.shininess;
+    // u_isTerrain is otherwise unused by this material (no terrain blending) -- repurposed to
+    // carry floorVisibility, same "borrow a free named slot" convention LiquidWaveMaterial uses.
+    props["u_isTerrain"] = this.floorVisibility;
     props["u_extraParams"] = [
       this.time,
       this.iridescenceStrength,
@@ -173,7 +191,13 @@ export class OilSlickMaterial extends AbstractMaterial {
         },
         wgsl: `[WGSL_STRUCTS]\n[WGSL_PBR_MATH]\n[WGSL_VS]\n${fragWGSL}`,
       },
-      layout: StandardWebGPULayout,
+      layout: {
+        ...StandardWebGPULayout,
+        textures: {
+          ...StandardWebGPULayout.textures,
+          u_opaqueMap: { type: ShaderPropertyType.TEXTURE },
+        },
+      },
     };
   }
 }

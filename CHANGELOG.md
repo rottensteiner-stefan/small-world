@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.77.16] - 2026-09-08
+
+### "We don't see things as they are, we see them as we are." - Anaïs Nin
+
+- **Features:**
+  - **And Now? Character Diorama:** `OilSlickMaterial` gained a `floorVisibility` parameter -- the puddle's thin rim now blends in the real, captured floor colour (screen-space, all 3 renderers) instead of a flat procedural edge, so it reads as translucent oil film over actual pavement.
+- **Architecture & Bugfixes:**
+  - Fixed two independent bugs in the same feature, both only caught via a user-requested screenshot followed by quantitative pixel-diff verification (not visual inspection alone): a tint formula that multiplied the real floor colour by a near-black constant (crushing it to near-zero regardless of the parameter), and a lighting-order bug that re-darkened the already fully-lit captured floor colour a second time.
+
 ## [0.77.15] - 2026-09-06
 
 ### "Perfection is achieved, not when there is nothing more to add, but when there is nothing left to take away." - Antoine de Saint-Exupéry

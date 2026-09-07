@@ -6,6 +6,10 @@
 // u_thresholds:   [outlineWidth, outlineAlpha, meniscusStrength, rimDarkening]
 uniform vec4 u_liquidParams;
 uniform vec4 u_thresholds;
+uniform float u_isTerrain; // repurposed: floorVisibility (see OilSlickMaterial.ts)
+// Live-captured opaque colour buffer (see LiquidWaveMaterial/OpenWaterMaterial, which pioneered
+// this pattern) -- gives the puddle's thin rim a real view of the actual floor beneath it.
+uniform sampler2D u_opaqueMap;
 
 // Pseudo-random hash + value noise, used for both the puddle's fixed organic edge shape and the
 // slow thin-film thickness variation across its surface.
@@ -50,6 +54,7 @@ void main() {
     float outlineAlpha = u_thresholds.y > 0.0 ? u_thresholds.y : 0.85;
     float meniscusStrength = u_thresholds.z > 0.0 ? u_thresholds.z : 0.65;
     float rimDarkening = u_thresholds.w > 0.0 ? u_thresholds.w : 0.95;
+    float floorVisibility = clamp(u_isTerrain, 0.0, 1.0);
 
     // 1. Organic splatter mask & 2-stage ink outline (inner oil pool + outer graphic novel contour)
     vec2 localUV = v_uv - vec2(0.5);
@@ -89,6 +94,19 @@ void main() {
     // 3. Base colour gradient: warm amber-brown core -> deep noir tar-black edge
     vec3 coreColor = sRGBToLinear(u_color.rgb);
     vec3 edgeColor = sRGBToLinear(vec3(0.012, 0.009, 0.007)); // Noir deep tar black
+
+    // Grounded rim: sample the real floor colour beneath the puddle (captured just before this
+    // transparent pass, see WebGL2Renderer.copyToOpaqueTexture) and tint it dark by the oil, so
+    // the thin rim reads as translucent film over actual pavement instead of a flat painted ring.
+    vec2 screenUv = gl_FragCoord.xy / vec2(textureSize(u_opaqueMap, 0));
+    vec3 groundColor = sRGBToLinear(texture(u_opaqueMap, screenUv).rgb);
+    // Tint by edgeColor's hue only (normalized to its brightest channel), not its raw magnitude --
+    // edgeColor itself is a near-black tar constant, so multiplying by it directly would crush the
+    // real floor brightness to near-zero regardless of floorVisibility (caught via live pixel-diff
+    // verification, see .agents/notes/oil-shader-roadmap.md Phase 1).
+    vec3 edgeHue = edgeColor / max(max(edgeColor.r, max(edgeColor.g, edgeColor.b)), 0.0001);
+    vec3 groundTinted = groundColor * mix(vec3(1.0), edgeHue, 0.7);
+
     float radialFactor = clamp(distFromCenter / max(radius, 0.001), 0.0, 1.0);
     vec3 baseColor = mix(coreColor, edgeColor, smoothstep(0.1, 0.95, radialFactor) * rimDarkening);
 
@@ -105,6 +123,16 @@ void main() {
 
     vec3 tint = sRGBToLinear(u_specColor.rgb);
     vec3 litOilColor = colorWithSheen * finalLight + specular * tint + tint * glow;
+
+    // Grounded rim overlay: blend in the real floor colour AFTER lighting, not before -- the
+    // captured u_opaqueMap sample is already fully shaded by the main opaque pass (it's the floor's
+    // final on-screen colour), so folding it into baseColor above and then multiplying by this
+    // material's own finalLight double-darkened it to near-invisibility in dim scene lighting (a
+    // real bug caught via live pixel-diff verification, see .agents/notes/oil-shader-roadmap.md
+    // Phase 1). A thin oil film simply darkens/tints what's beneath it; it doesn't need its own
+    // re-lit floor.
+    float rimBlend = smoothstep(0.1, 0.95, radialFactor) * floorVisibility;
+    litOilColor = mix(litOilColor, groundTinted, rimBlend);
 
     // 5. Outer Ink Outline blending (stylized comic / Noir outline outside the liquid body)
     vec3 inkOutlineColor = sRGBToLinear(vec3(0.008, 0.006, 0.005));

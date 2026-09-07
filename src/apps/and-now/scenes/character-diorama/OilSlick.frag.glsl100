@@ -6,6 +6,11 @@
 // u_thresholds:   [outlineWidth, outlineAlpha, meniscusStrength, rimDarkening]
 uniform vec4 u_liquidParams;
 uniform vec4 u_thresholds;
+uniform float u_isTerrain; // repurposed: floorVisibility (see OilSlickMaterial.ts)
+// Live-captured opaque colour buffer (see OpenWater.frag.glsl100/Glass.frag.glsl100, which
+// pioneered this pattern on WebGL1 -- no gl_FragCoord normalization in GLSL ES 100, so the mesh
+// UV is reused as a screen-space stand-in, same established approximation).
+uniform sampler2D u_opaqueMap;
 
 float hash(vec2 p) {
     vec2 q = vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)));
@@ -48,6 +53,7 @@ void main() {
     float outlineAlpha = u_thresholds.y > 0.0 ? u_thresholds.y : 0.85;
     float meniscusStrength = u_thresholds.z > 0.0 ? u_thresholds.z : 0.65;
     float rimDarkening = u_thresholds.w > 0.0 ? u_thresholds.w : 0.95;
+    float floorVisibility = clamp(u_isTerrain, 0.0, 1.0);
 
     // 1. Organic splatter mask & 2-stage ink outline (inner oil pool + outer graphic novel contour)
     vec2 localUV = v_uv - vec2(0.5);
@@ -86,6 +92,16 @@ void main() {
     // 3. Base colour gradient: warm amber-brown core -> deep noir tar-black edge
     vec3 coreColor = u_color.rgb;
     vec3 edgeColor = vec3(0.012, 0.009, 0.007);
+
+    // Grounded rim: mesh UV as screen-space stand-in (see uniform declaration above), same
+    // approximation OpenWater.frag.glsl100/Glass.frag.glsl100 already use on this backend.
+    vec3 groundColor = texture2D(u_opaqueMap, v_uv).rgb;
+    // Tint by edgeColor's hue only (normalized to its brightest channel), not its raw magnitude --
+    // see OilSlick.frag.glsl's identical fix for why multiplying by edgeColor directly crushes
+    // the real floor brightness to near-zero.
+    vec3 edgeHue = edgeColor / max(max(edgeColor.r, max(edgeColor.g, edgeColor.b)), 0.0001);
+    vec3 groundTinted = groundColor * mix(vec3(1.0), edgeHue, 0.7);
+
     float radialFactor = clamp(distFromCenter / max(radius, 0.001), 0.0, 1.0);
     vec3 baseColor = mix(coreColor, edgeColor, smoothstep(0.1, 0.95, radialFactor) * rimDarkening);
 
@@ -101,6 +117,11 @@ void main() {
     float glow = highlightIntensity * exp(-(glowDist * glowDist) / (highlightRadius * highlightRadius));
 
     vec3 litOilColor = colorWithSheen * finalLight + specular * u_specColor.rgb + u_specColor.rgb * glow;
+
+    // Grounded rim overlay: blend in the real floor colour AFTER lighting -- see OilSlick.frag.glsl's
+    // identical fix for why folding it into baseColor and re-lighting it double-darkens the rim.
+    float rimBlend = smoothstep(0.1, 0.95, radialFactor) * floorVisibility;
+    litOilColor = mix(litOilColor, groundTinted, rimBlend);
 
     // 5. Outer Ink Outline blending (stylized comic / Noir outline outside the liquid body)
     vec3 inkOutlineColor = vec3(0.008, 0.006, 0.005);
