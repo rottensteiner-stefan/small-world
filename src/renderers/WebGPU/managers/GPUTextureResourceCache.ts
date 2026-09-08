@@ -19,6 +19,20 @@ import fullscreenVertWGSL from "../../../core/materials/shaders/PostProcess.vert
  * so a render target sampled as an ordinary material texture (portals, mirrors, reflection
  * probes) resolves through the same `getTextureView()`/`getCubeTextureView()` lookup as any
  * other texture.
+ *
+ * KNOWN OPEN ISSUE (Showcase 29, Sponza curtains): `acquireTextures()` used to spuriously
+ * release+recreate a texture still in active use because a narrower-keyed manifest (e.g. the
+ * depth pre-pass's) overwrote the full snapshot a fuller-keyed one (the main pass's) had just
+ * written -- see that method's doc. That per-frame churn is fixed and verified (a texture's GPU
+ * view is now created once and stays stable). A separate, still-unexplained visual artifact
+ * remains, though: on first upload, one curtain's `u_diffuseMap`/`u_metallicMap` sometimes
+ * renders as a wrong, unrelated texture's raw content despite every JS-side manifest/bind-group
+ * reference being verified correct at draw time. Ruled out live: mip-chain generation (disabling
+ * it doesn't help), cross-texture upload races (fully serialized uploads with a real
+ * `device.queue.onSubmittedWorkDone()` barrier between every texture don't help either), and
+ * texture-view-cache aliasing (each GPUTexture maps 1:1 to its own Texture object). Root cause is
+ * still open -- likely needs a real GPU capture (Chrome's WebGPU tracing, Dawn debug layers)
+ * rather than further JS-level instrumentation.
  */
 export class GPUTextureResourceCache {
   private readonly _device: GPUDevice;
@@ -104,7 +118,10 @@ export class GPUTextureResourceCache {
     return s;
   }
 
-  public getTextureView(tex: Texture | undefined, quality: QualityConfig | undefined): GPUTextureView {
+  public getTextureView(
+    tex: Texture | undefined,
+    quality: QualityConfig | undefined,
+  ): GPUTextureView {
     if (quality?.disableTextures) return this._fallback.whiteTextureView;
     if (!tex || !tex.isLoaded) return this._fallback.whiteTextureView;
     // A `RenderTarget` (e.g. `PlanarReflectionNode.renderTarget`, or a `bakeImposter()` output)
@@ -200,7 +217,8 @@ export class GPUTextureResourceCache {
       const entry = this._cubeTextureViewCache.get(tex);
       return entry?.view || this._fallback.defaultCubeTextureView;
     }
-    if (tex.images.length !== 6 && tex.mipmaps.length === 0) return this._fallback.defaultCubeTextureView;
+    if (tex.images.length !== 6 && tex.mipmaps.length === 0)
+      return this._fallback.defaultCubeTextureView;
     let entry = this._cubeTextureViewCache.get(tex);
     if (!entry) {
       const img = tex.mipmaps.length > 0 ? tex.mipmaps[0]![0]! : tex.images[0]!;
@@ -244,7 +262,11 @@ export class GPUTextureResourceCache {
   /** Called from `WebGPURenderer.render()`'s offscreen-render-target branch once a
    * `RenderTarget`'s GPU texture (re)exists, so `getTextureView()` can find it when the render
    * target is later sampled as an ordinary material texture. */
-  public registerRenderTargetTexture(rt: RenderTarget, texture: GPUTexture, view: GPUTextureView): void {
+  public registerRenderTargetTexture(
+    rt: RenderTarget,
+    texture: GPUTexture,
+    view: GPUTextureView,
+  ): void {
     this._textureViewCache.set(rt, { texture, view, mipLevelCount: 1 });
   }
 
@@ -260,16 +282,25 @@ export class GPUTextureResourceCache {
   /**
    * Tracks that `obj` currently depends on the textures in `textures` (typically
    * `material.getRenderManifest().textures`). Called once per object per frame from
-   * the render loop. `textures` is diffed key-by-key against `obj`'s last-known
-   * snapshot rather than by container reference, since a material's manifest object
-   * is created once and mutated in place on every `getRenderManifest()` call.
+   * the render loop -- but not always from the same pass: `MainRenderPass`,
+   * `DepthPrePassGPU`, `CascadedShadowPassGPU` and `SpotShadowPassGPU` all call this for the
+   * same `obj` with DIFFERENT manifests (the depth/shadow passes use a single shared
+   * depth-only material, so their manifest only carries the texture keys that material
+   * actually declares -- e.g. no `u_normalMap`/`u_metallicMap`/`u_roughnessMap`/`u_emissiveMap`).
+   * `textures` is diffed key-by-key against `obj`'s last-known snapshot rather than by
+   * container reference, since a material's manifest object is created once and mutated in
+   * place on every `getRenderManifest()` call. Keys absent from THIS call's `textures` are left
+   * untouched in the stored snapshot (merged, not replaced) -- otherwise a narrower-keyed call
+   * (e.g. the depth pass's) would wipe out keys a fuller-keyed call (e.g. the main pass's) had
+   * just acquired, making every subsequent pass see a spurious "newly changed" key and
+   * needlessly release+reacquire (and thus destroy+recreate) a texture that's still in active use.
    */
   public acquireTextures(
     obj: Object3D,
     textures: Record<string, Texture | CubeTexture | undefined>,
   ): void {
     const lastTextures = this._lastKnownTextures.get(obj);
-    const snapshot: Record<string, Texture | CubeTexture | undefined> = {};
+    const snapshot: Record<string, Texture | CubeTexture | undefined> = { ...lastTextures };
 
     for (const key of Object.keys(textures)) {
       const current = textures[key];

@@ -75,7 +75,15 @@ export class DepthMaterial extends AbstractMaterial {
       (props["u_texOffset"] as number[])[1] = 0;
       (props["u_texRepeat"] as number[])[0] = 1;
       (props["u_texRepeat"] as number[])[1] = 1;
-      texs["u_diffuseMap"] = undefined;
+      // Omit the key entirely rather than setting it to `undefined` -- this manifest is shared
+      // across every opaque object in DepthPrePassGPU's fast (no alpha-cutout) path, and
+      // GPUTextureResourceCache.acquireTextures() diffs `Object.keys(textures)` per object
+      // against that object's OWN main-pass manifest (which DOES carry a real `u_diffuseMap`).
+      // An explicit `undefined` value here would still count as "this pass touched the key",
+      // spuriously releasing (and destroying) the object's actual diffuse GPU texture every
+      // frame even though nothing about it changed -- omitting the key makes this pass a no-op
+      // for `u_diffuseMap` instead.
+      delete texs["u_diffuseMap"];
     }
 
     this._renderManifest.state = {

@@ -5,10 +5,21 @@ import { WebGPURenderer, VIEW_SLOT_MAIN_CAMERA } from "../WebGPU/WebGPURenderer.
 import { RenderPass } from "../index.js";
 import { InstancedMesh } from "../../core/InstancedMesh.js";
 import { Object3D } from "../../core/Object3D.js";
-import { Vector3D } from "../../math/index.js";
+import { Vector3D, MathUtils } from "../../math/index.js";
+import { Texture } from "../../core/textures/index.js";
 
 const _scratchInstanced: InstancedMesh[] = [];
 const _scratchStandard: Object3D[] = [];
+
+/** One (diffuseMap, alphaTest) group of objects sharing an alpha-cutout depth draw call. */
+interface AlphaTestGroup {
+  /** Stable synthetic matUuid for this texture's bind group / object-uniform ring slot,
+   * assigned once and reused across frames (see `DepthPrePassGPU._alphaGroupUuids`). */
+  groupUuid: string;
+  alphaTest: number;
+  standard: Object3D[];
+  instanced: InstancedMesh[];
+}
 
 /**
  * Z-only pre-pass for opaque objects, using the shared DepthMaterial pipeline (same
@@ -26,6 +37,15 @@ export class DepthPrePassGPU implements RenderPass {
 
   private _depthMaterial?: DepthMaterial;
 
+  /** Groups objects needing alpha-cutout within the batch currently being processed, keyed by
+   * their real material's diffuseMap texture -- rebuilt every batch, see `execute()`. */
+  private readonly _alphaGroups = new Map<Texture, AlphaTestGroup>();
+
+  /** Stable synthetic matUuid per alpha-cutout diffuseMap texture, assigned once and reused
+   * across frames so `_getMaterialBindGroup`'s cache (and the object-uniform ring's per-slot
+   * cache, both keyed by matUuid) actually get reused instead of rebuilding every frame. */
+  private readonly _alphaGroupUuids = new WeakMap<Texture, string>();
+
   public execute(
     renderer: WebGPURenderer,
     scene: Scene,
@@ -36,7 +56,6 @@ export class DepthPrePassGPU implements RenderPass {
     vMat?: Float32Array,
   ): void {
     this._depthMaterial ??= new DepthMaterial();
-    const depthManifest = this._depthMaterial.getRenderManifest();
     const renderList = scene.getVisibleObjectsSorted(vp, camPos);
 
     // No early return: the depth clear must happen every frame regardless of whether there's
@@ -79,9 +98,40 @@ export class DepthPrePassGPU implements RenderPass {
       const objects = batch!.objects;
       _scratchInstanced.length = 0;
       _scratchStandard.length = 0;
+      this._alphaGroups.clear();
+
+      // Split into the fast opaque path (no per-object texture -- everything that doesn't
+      // alpha-test) and one group per alpha-cutout diffuseMap: a shared depth-only pipeline
+      // can't early-Z alpha-tested geometry correctly without actually sampling THAT object's
+      // own cutout texture, so treating it as opaque here would let the depth pre-pass write
+      // solid depth for pixels the color pass will later discard (see class doc + the
+      // GPUTextureResourceCache.acquireTextures doc for why a stand-in, always-undefined
+      // diffuseMap on the shared DepthMaterial was also corrupting the main pass's own texture
+      // lifecycle).
       for (let i = 0; i < objects.length; i++) {
         const obj = objects[i]!;
-        if (obj instanceof InstancedMesh) {
+        const objManifest = obj.material?.getRenderManifest();
+        const extraParams = objManifest?.properties["u_extraParams"] as number[] | undefined;
+        const alphaTest = extraParams?.[1] ?? 0;
+        const diffuseMap =
+          alphaTest > 0
+            ? (objManifest!.textures["u_diffuseMap"] as Texture | undefined)
+            : undefined;
+
+        if (diffuseMap) {
+          let group = this._alphaGroups.get(diffuseMap);
+          if (!group) {
+            let groupUuid = this._alphaGroupUuids.get(diffuseMap);
+            if (!groupUuid) {
+              groupUuid = MathUtils.generateUUID();
+              this._alphaGroupUuids.set(diffuseMap, groupUuid);
+            }
+            group = { groupUuid, alphaTest, standard: [], instanced: [] };
+            this._alphaGroups.set(diffuseMap, group);
+          }
+          if (obj instanceof InstancedMesh) group.instanced.push(obj);
+          else group.standard.push(obj);
+        } else if (obj instanceof InstancedMesh) {
           _scratchInstanced.push(obj);
         } else {
           _scratchStandard.push(obj);
@@ -90,30 +140,67 @@ export class DepthPrePassGPU implements RenderPass {
 
       // Slot 0 (VIEW_SLOT_MAIN_CAMERA) is already correct this frame, written once by
       // _updateGlobalBuffers() -- its offset is always 0, no _setViewMatrix() call needed.
-      if (_scratchStandard.length > 0) {
-        renderer._renderSubgroup(
-          rp,
-          _scratchStandard,
-          false,
-          this._depthMaterial.uuid,
-          depthManifest,
-          VIEW_SLOT_MAIN_CAMERA,
-          vMat,
-          topology,
-        );
+      if (_scratchStandard.length > 0 || _scratchInstanced.length > 0) {
+        this._depthMaterial.diffuseMap = undefined;
+        const opaqueManifest = this._depthMaterial.getRenderManifest();
+
+        if (_scratchStandard.length > 0) {
+          renderer._renderSubgroup(
+            rp,
+            _scratchStandard,
+            false,
+            this._depthMaterial.uuid,
+            opaqueManifest,
+            VIEW_SLOT_MAIN_CAMERA,
+            vMat,
+            topology,
+          );
+        }
+
+        if (_scratchInstanced.length > 0) {
+          renderer._renderSubgroup(
+            rp,
+            _scratchInstanced,
+            true,
+            this._depthMaterial.uuid,
+            opaqueManifest,
+            VIEW_SLOT_MAIN_CAMERA,
+            vMat,
+            topology,
+          );
+        }
       }
 
-      if (_scratchInstanced.length > 0) {
-        renderer._renderSubgroup(
-          rp,
-          _scratchInstanced,
-          true,
-          this._depthMaterial.uuid,
-          depthManifest,
-          VIEW_SLOT_MAIN_CAMERA,
-          vMat,
-          topology,
-        );
+      for (const [diffuseMap, group] of this._alphaGroups) {
+        this._depthMaterial.diffuseMap = diffuseMap;
+        this._depthMaterial.alphaTest = group.alphaTest;
+        const alphaManifest = this._depthMaterial.getRenderManifest();
+
+        if (group.standard.length > 0) {
+          renderer._renderSubgroup(
+            rp,
+            group.standard,
+            false,
+            group.groupUuid,
+            alphaManifest,
+            VIEW_SLOT_MAIN_CAMERA,
+            vMat,
+            topology,
+          );
+        }
+
+        if (group.instanced.length > 0) {
+          renderer._renderSubgroup(
+            rp,
+            group.instanced,
+            true,
+            group.groupUuid,
+            alphaManifest,
+            VIEW_SLOT_MAIN_CAMERA,
+            vMat,
+            topology,
+          );
+        }
       }
     }
 
