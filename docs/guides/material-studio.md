@@ -1,7 +1,7 @@
 # Material Studio (PBR Map Generator)
 
 ::: tip What this tool actually is
-The name suggests a material *editor* — something that lets you tweak a `StandardMaterial`/`GlassMaterial` on a selected scene object, the way [Gadget Inspector](/guides/gadget-inspector) does. It isn't that. **Material Studio is a PBR texture-map generator**: you give it one diffuse image, and it derives a height, normal, specular, roughness, ambient-occlusion, and edge map from it using 2D image-processing heuristics — then lets you preview the result on a sample mesh in an isolated sandbox scene. It never touches your actual running game scene.
+The name suggests a material *editor* — something that lets you tweak a `StandardMaterial`/`GlassMaterial` on a selected scene object, the way [Maker](/guides/maker) does. It isn't that. **Material Studio is a PBR texture-map generator**: you give it one diffuse image, and it derives a height, normal, specular, roughness, ambient-occlusion, and edge map from it using 2D image-processing heuristics — then lets you preview the result on a sample mesh in an isolated sandbox scene. It never touches your actual running game scene.
 :::
 
 ## Enabling it

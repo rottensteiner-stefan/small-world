@@ -50,8 +50,8 @@ this.audio.setMusicVolume(0.5);
 this.audio.setReverbLevel(0.3); // 0 = dry, higher = more reverb send
 ```
 
-::: tip GadgetInspector wiring
-These four setters are already wired to `gadget:audio:master`/`music`/`sfx`/`reverb` window events, so a `GadgetInspector` volume panel controls them without any glue code on your part.
+::: tip Direct API & EventBus control
+These four setters directly configure the Web Audio GainNodes on the instance. For UI controls, wire them directly to your settings UI or listen to custom events on your engine instance's `this.events` bus.
 :::
 
 ## Listener Position (3D Audio)

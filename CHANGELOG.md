@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.77.21] - 2026-09-08
+
+### "Structure is not an impediment to the creative process, but the very foundation for it." - Twyla Tharp
+
+- **Housekeeping & Docs:**
+  - Audited and updated the entire documentation site under `docs/`: restructured VitePress navigation and sidebar to feature dedicated sections for Guides, Architecture Decision Records (ADRs 0001–0015), and Technical Research.
+  - Added dedicated index pages for `docs/adr/index.md` and `docs/research/index.md`.
+  - Migrated and consolidated research notes into `docs/research/diorama-environment-architecture.md` and `docs/research/oil-puddle-shader-technique.md`.
+  - Updated `REFERENCES.md` with fully qualified file paths and added official Khronos glTF PBR material extension references and formulas (`KHR_materials_ior`, `KHR_materials_volume`, `KHR_materials_iridescence`).
+  - Fixed dead links and updated outdated API notes across guides (Material Studio, AudioSystem).
+
 ## [0.77.20] - 2026-09-08
 
 ### "Simplicity is the final achievement." - Frédéric Chopin

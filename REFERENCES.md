@@ -97,11 +97,13 @@ This document serves to record external sources, algorithms, mathematical deriva
 
 ## Rendering Architecture & Best Practices
 
-### Physically Based Rendering (PBR)
+### Physically Based Rendering (PBR) & glTF 2.0 Specification
 
-- **Authors/Gurus:** Matt Pharr, Wenzel Jakob, Greg Humphreys
-- **Source:** [Physically Based Rendering: From Theory to Implementation (PBRT)](https://www.pbrt.org/)
-- **Usage:** The mathematical basis for PBR, raytracing, refraction, and energy conservation (`Diffuse + Specular <= 1.0`).
+- **Authors/Gurus:** Matt Pharr, Wenzel Jakob, Greg Humphreys, Khronos 3D Formats Working Group
+- **Source:**
+  - [Physically Based Rendering: From Theory to Implementation (PBRT)](https://www.pbrt.org/)
+  - [glTF 2.0 Specification: Appendix B (BRDF Implementation)](https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#appendix-b-brdf-implementation)
+- **Usage:** The mathematical basis for PBR, raytracing, refraction, and energy conservation (`Diffuse + Specular <= 1.0`) across all rendering backends.
 
 ### Cook-Torrance Microfacet BRDF (GGX / Smith / Schlick)
 
@@ -112,6 +114,36 @@ This document serves to record external sources, algorithms, mathematical deriva
   - [Walter et al.: "Microfacet Models for Refraction through Rough Surfaces" (2007)](https://www.cs.cornell.edu/~srm/publications/EGSR07-btdf.pdf)
   - [Schlick: "An Inexpensive BRDF Model for Physically-based Rendering" (1994)](https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.50.2297&rep=rep1&type=pdf)
 - **Usage:** The core specular reflectance model used across both WebGL2 and WebGPU standard PBR pipelines. Composes the microfacet distribution $D$ (Trowbridge-Reitz/GGX for long-tailed specular highlights), geometric shadowing/masking $G$ (Smith model with Schlick-GGX approximation), and Fresnel reflectance $F$ (Schlick approximation) with energy-conserving diffuse split ($k_D = (1 - k_S) \cdot (1 - \text{metallic})$).
+
+### Khronos PBR Material Extensions & Formulas
+
+#### 1. `KHR_materials_ior` — Index of Refraction & Fresnel Baseline ($F_0$)
+- **File:** `src/apps/and-now/scenes/character-diorama/OilSlickMaterial.ts`, `src/core/materials/StandardMaterial.ts`, `src/core/materials/GlassMaterial.ts`
+- **Authors/Gurus:** Khronos 3D Formats Working Group
+- **Source:** [Khronos glTF Extension: `KHR_materials_ior`](https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_ior)
+- **Formulas:**
+  - $F_0 = \left(\frac{\text{IOR} - 1}{\text{IOR} + 1}\right)^2$
+  - Dielectric baseline: Water/Oil ($\text{IOR} \approx 1.333 \implies F_0 \approx 0.0204$), Glass ($\text{IOR} \approx 1.5 \implies F_0 = 0.040$).
+- **Usage:** Calibrates analytic Schlick Fresnel reflections and specular base reflectance without requiring dynamic cubemap reflection probes.
+
+#### 2. `KHR_materials_volume` — Beer-Lambert Volumetric Absorption
+- **File:** `src/core/materials/GlassMaterial.ts`, `src/core/materials/OpenWaterMaterial.ts`, `src/apps/and-now/scenes/character-diorama/OilSlickMaterial.ts`
+- **Authors/Gurus:** Khronos 3D Formats Working Group
+- **Source:** [Khronos glTF Extension: `KHR_materials_volume`](https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_volume)
+- **Formulas:**
+  - $T(x) = c^{\frac{x}{d}} = \exp(-\sigma_t \cdot x)$ with extinction coefficient $\sigma_t = -\frac{\ln(c)}{d}$
+- **Usage:** Calculates realistic light attenuation and color absorption as light rays travel through translucent materials (colored glass, murky water, oil layers).
+
+#### 3. `KHR_materials_iridescence` — Two-Beam Thin-Film Interference
+- **File:** `src/apps/and-now/scenes/character-diorama/OilSlickMaterial.ts`, `src/apps/and-now/scenes/character-diorama/OilSlick.frag.glsl`, `src/apps/and-now/scenes/character-diorama/OilSlick.frag.glsl100`, `src/apps/and-now/scenes/character-diorama/OilSlick.frag.wgsl`
+- **Authors/Gurus:** Laurent Belcour & Pascal Barla (2017), Khronos 3D Formats Working Group
+- **Source:**
+  - [Khronos glTF Extension: `KHR_materials_iridescence`](https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_iridescence)
+  - [Belcour & Barla: "A Practical Extension to Microfacet Theory for the Modeling of Varying Iridescence" (2017)](https://belcour.github.io/blog/research/publication/2017/05/01/brdf-thin-film.html)
+- **Formulas:**
+  - $I(\lambda) = R_1 + R_2 + 2\sqrt{R_1 R_2}\cos(\Delta\phi(\lambda))$
+  - Phase difference: $\Delta\phi(\lambda) = \frac{4\pi \cdot \eta_{\text{film}} \cdot d \cdot \cos\theta_2}{\lambda}$ evaluated at reference wavelengths $\lambda \in \{650, 550, 450\}\,\text{nm}$ (RGB).
+- **Usage:** Renders physical rainbow-like color interference across the oil slick surface based on view angle and wandering film thickness, replacing ad-hoc hue rotations with wave-optics interference.
 
 ### Metallic-Roughness Sphere Grid (PBR Reference Test)
 
@@ -128,49 +160,49 @@ This document serves to record external sources, algorithms, mathematical deriva
 
 ### Percentage-Closer Filtering (PCF) for Soft Shadows
 
-- **File:** `WebGL2Renderer.ts`, `Phong.frag.glsl`, `Standard.frag.glsl`
+- **File:** `src/renderers/WebGL2/WebGL2Renderer.ts`, `src/core/materials/shaders/Phong.frag.glsl`, `src/core/materials/shaders/Standard.frag.glsl`
 - **Authors/Gurus:** William T. Reeves, David H. Salesin, and Robert L. Cook (1987)
 - **Source:** [Rendering antialiased shadows with depth maps (SIGGRAPH 1987)](https://dl.acm.org/doi/10.1145/37402.37425)
 - **Usage:** The foundational technique for generating soft edges on shadow maps. By sampling the depth map multiple times around the target fragment and averaging the binary visibility results, jagged aliased shadows become smoothly blurred (especially when combined with hardware `sampler2DShadow`).
 
 ### Percentage-Closer Soft Shadows (PCSS)
 
-- **File:** `light_calc.frag.glsl`, `light_calc_pbr.frag.glsl` (GLSL300), `pbr_math.wgsl`, `lighting.wgsl`, `lighting_pbr.wgsl`, `WebGL2Renderer.ts`
+- **File:** `src/core/renderers/shaders/source/web_gl2/chunks/light_calc.frag.glsl`, `src/core/renderers/shaders/source/web_gl2/chunks/light_calc_pbr.frag.glsl`, `src/core/renderers/shaders/source/web_gpu/chunks/pbr_math.wgsl`, `src/core/renderers/shaders/source/web_gpu/chunks/lighting.wgsl`, `src/core/renderers/shaders/source/web_gpu/chunks/lighting_pbr.wgsl`, `src/renderers/WebGL2/WebGL2Renderer.ts`
 - **Authors/Gurus:** Randima Fernando (NVIDIA)
 - **Source:** ["Percentage-Closer Soft Shadows"](https://download.nvidia.com/developer/presentations/2005/I3D/I3D_05_Percentage_Closer_Soft_Shadows.pdf) — SIGGRAPH 2005
 - **Usage:** Upgrades the directional-light PCF pass to a variable-radius filter: a blocker search over a small ring of raw (non-comparison) depth reads estimates how far the average occluder sits below the receiver, which then scales the PCF sample radius so contact shadows stay sharp while shadows further from their caster soften — contact-hardening soft shadows from a single shadow map, no extra light samples or pre-pass needed.
 
 ### Image-Space Horizon-Based Ambient Occlusion (HBAO)
 
-- **File:** `AO.frag.glsl`, `AO.frag.wgsl`, `AOPassGL.ts`, `AOPassGPU.ts`
+- **File:** `src/core/materials/shaders/AO.frag.glsl`, `src/core/materials/shaders/AO.frag.wgsl`, `src/renderers/post/passes/AOPassGL.ts`, `src/renderers/post/passes/AOPassGPU.ts`, `src/renderers/post/elements/HbaoElement.ts`
 - **Authors/Gurus:** Louis Bavoil, Miguel Sainz, Rouslan Dimitrov (NVIDIA)
 - **Source:** ["Image-Space Horizon-Based Ambient Occlusion"](https://developer.download.nvidia.com/presentations/2008/SIGGRAPH/HBAO_SIG08b.pdf) — SIGGRAPH 2008
 - **Usage:** The reference for our screen-space ambient occlusion pass (`HbaoElement` in code) — marching a handful of screen-space directions per pixel and taking `dot(directionToSample, normal)` as the sine of that direction's horizon elevation angle, then darkening by how much of the hemisphere those horizons block. Simplified relative to the paper: a single max-sample per direction instead of true horizon-angle accumulation via the sine-integration formula, and no per-pixel direction rotation or bilateral blur pass to turn banding into noise.
 
 ### Normal-Offset Shadow Bias
 
-- **File:** `light_calc.frag.glsl`, `light_calc_pbr.frag.glsl` (GLSL300), `base_vertex_main.vert.glsl`, `lighting.wgsl`, `lighting_pbr.wgsl`
+- **File:** `src/core/renderers/shaders/source/web_gl2/chunks/light_calc.frag.glsl`, `src/core/renderers/shaders/source/web_gl2/chunks/light_calc_pbr.frag.glsl`, `src/core/renderers/shaders/source/web_gl2/chunks/base_vertex_main.vert.glsl`, `src/core/renderers/shaders/source/web_gpu/chunks/lighting.wgsl`, `src/core/renderers/shaders/source/web_gpu/chunks/lighting_pbr.wgsl`
 - **Authors/Gurus:** Jasper Flick (Catlike Coding)
 - **Source:** [Directional Shadows (Custom SRP) — Catlike Coding](https://catlikecoding.com/unity/tutorials/custom-srp/directional-shadows/)
 - **Usage:** The reference for offsetting the shadow-map sample position along the surface normal (scaled by NdotL) before the light-space transform, instead of only biasing the compared depth value. Separates the fix for shadow acne from depth manipulation, reducing both acne and peter-panning simultaneously across our directional and spot light shadows.
 
 ### Temporal Supersampling / TAA (Jitter + History Blend)
 
-- **File:** `HistoryBlend.frag.glsl`, `HistoryBlend.frag.wgsl`, `HistoryBlendPassGL.ts`, `HistoryBlendPassGPU.ts`, `TaaElement.ts`, `Camera.ts`, `SmallWorld.ts`
+- **File:** `src/core/materials/shaders/HistoryBlend.frag.glsl`, `src/core/materials/shaders/HistoryBlend.frag.wgsl`, `src/renderers/post/passes/HistoryBlendPassGL.ts`, `src/renderers/post/passes/HistoryBlendPassGPU.ts`, `src/renderers/post/elements/TaaElement.ts`, `src/core/Camera.ts`, `src/core/SmallWorld.ts`
 - **Authors/Gurus:** Brian Karis (Epic Games)
 - **Source:** ["High-Quality Temporal Supersampling"](http://advances.realtimerendering.com/s2014/#_HIGH-QUALITY_TEMPORAL_SUPERSAMPLING) — SIGGRAPH 2014, Advances in Real-Time Rendering
 - **Usage:** The canonical reference for sub-pixel camera jitter (we use a Halton(2,3) sequence, cycling 16 samples) combined with a history buffer accumulated across frames to reconstruct anti-aliased detail beyond a single frame's sample rate. We implement only the simplified half of the technique — jitter plus an exponential history blend, no motion-vector reprojection or neighborhood clamping — which smooths edges in static/slow scenes but visibly ghosts on fast movement, an accepted trade-off documented in `docs/research/aaa-engine-techniques.md`.
 
 ### Accumulation Buffer (Motion Trail / Afterimage Effect)
 
-- **File:** `HistoryBlendPassGL.ts`, `HistoryBlendPassGPU.ts`, `MotionTrailElement.ts`
+- **File:** `src/renderers/post/passes/HistoryBlendPassGL.ts`, `src/renderers/post/passes/HistoryBlendPassGPU.ts`, `src/renderers/post/elements/MotionTrailElement.ts`
 - **Authors/Gurus:** Paul Haeberli, Kurt Akeley (SGI)
 - **Source:** ["The Accumulation Buffer: Hardware Support for High-Quality Rendering"](https://graphics.stanford.edu/courses/cs248-02/haeberli-akeley-accumulation-buffer-sig90.pdf) — SIGGRAPH 1990
 - **Usage:** The original paper generalizing "blend this frame with an accumulated buffer of prior frames" beyond anti-aliasing to motion blur, depth-of-field, and soft shadows — the same family of technique as our TAA history blend above, just aimed at a deliberately visible result instead of an invisible one. `MotionTrailElement` reuses the identical `HistoryBlendPassGL`/`HistoryBlendPassGPU` infrastructure as TAA (its own separate instance/history buffer, no camera jitter), tuned with a much higher feedback value so fast-moving objects intentionally leave a ghost/afterimage trail — an honest stylistic effect, not a mislabeled anti-aliasing technique.
 
 ### Dual Kawase Bloom (Post-Processing)
 
-- **File:** `BloomDownsample.frag.wgsl`, `BloomUpsample.frag.wgsl`, `PostProcessPass.ts`
+- **File:** `src/core/materials/shaders/BloomDownsample.frag.wgsl`, `src/core/materials/shaders/BloomUpsample.frag.wgsl`, `src/renderers/passes/PostProcessPass.ts`
 - **Authors/Gurus:** Masaki Kawase (2003) and Marius Bjørge (2014)
 - **Source:** [Bandwidth-Efficient Rendering (ARM)](https://community.arm.com/cfs-file/__key/communityserver-blogs-components-weblogfiles/00-00-00-20-66/siggraph2015_2D00_mmg_2D00_marius_2D00_notes.pdf)
 - **Usage:** Used as the high-performance WebGPU bloom filter. By downsampling using a 13-tap filter and upsampling using a 9-tap tent filter across a mip-chain, this technique produces extremely soft, high-quality glows spanning large screen areas at a fraction of the cost of a traditional Gaussian blur.
@@ -236,7 +268,7 @@ This document serves to record external sources, algorithms, mathematical deriva
 
 ### Normal Map Generation (Sobel Filter)
 
-- **File:** `public/tools/pbr-gen.html`, `src/tools/pbr-preview.ts`
+- **File:** `public/tools/pbr-gen.html`
 - **Authors/Gurus:** Irwin Sobel (1968)
 - **Source:** Sobel operators for image segmentation / edge detection.
 - **Usage:** The normal map is generated by calculating the derivatives of the height map in the X and Y directions using a discrete 3x3 Sobel convolution kernel. The normal vector is calculated from n = normalize(-dx _ s, -dy _ s, 1.0) and encoded into RGB color values in the range [0, 255].
@@ -268,9 +300,9 @@ This document serves to record external sources, algorithms, mathematical deriva
 - **Source:** Original assets by **id Software** (DOOM, 1993). 
 - **Usage:** Used in the YAD showcase for authentic wall textures, flats, and weapon/enemy sprites. Thank you to the DOOM community and id Software for making these legendary assets available for educational and nostalgic projects!
 
-### Mixamo Mannequin (Rigged Proxy Character)
+### Mixamo Mannequin (Rigged Character Pool)
 
-- **File:** `src/apps/and-now/raw/mannequin/mannequin.glb`
+- **File:** `public/assets/and-now/mannequin/`, `src/apps/and-now/raw/mannequin/`
 - **Authors/Gurus:** Mixamo / Adobe
 - **Source:** [Mixamo Characters](https://www.mixamo.com/#/?page=1&query=Mannequin&type=Character)
 - **Usage:** Served as the initial 3D dummy/proxy character for early movement prototyping and animation testing in the "And Now?" app, allowing robust iteration on the 2.5D and isometric controllers.
