@@ -185,6 +185,13 @@ export default defineConfig({
     },
     rollupOptions: {
       input: {
+        showcase1: resolve(import.meta.dirname, "showcases/1/index.html"),
+        showcase2: resolve(import.meta.dirname, "showcases/2/index.html"),
+        showcase3: resolve(import.meta.dirname, "showcases/3/index.html"),
+        showcase4: resolve(import.meta.dirname, "showcases/4/index.html"),
+        showcase5: resolve(import.meta.dirname, "showcases/5/index.html"),
+        showcase6: resolve(import.meta.dirname, "showcases/6/index.html"),
+        showcase7: resolve(import.meta.dirname, "showcases/7/index.html"),
         showcase8: resolve(import.meta.dirname, "showcases/8/index.html"),
         showcase9: resolve(import.meta.dirname, "showcases/9/index.html"),
         showcase10: resolve(import.meta.dirname, "showcases/10/index.html"),

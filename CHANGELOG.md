@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.77.19] - 2026-09-08
+
+### "The whole is greater than the sum of its parts." - Aristotle
+
+- **Housekeeping & Docs:**
+  - `vite.config.ts` gained the missing `showcase1`-`showcase7` entries in the build's rollup input map -- they existed as showcases but were never actually registered for production builds.
+
 ## [0.77.18] - 2026-09-08
 
 ### "Alone we can do so little; together we can do so much." - Helen Keller
