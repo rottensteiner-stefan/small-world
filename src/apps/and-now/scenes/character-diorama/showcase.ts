@@ -26,9 +26,29 @@ import {
   AnimationAction,
   AnimationClip,
   AnimationMixer,
+  Bone,
 } from "../../../../core/animation/index.js";
 
 type CharacterType = "male" | "female" | "yoshi";
+
+/** Prioritized candidate bones for left-hand lantern attachment across different rigs -- kept in
+ * sync with the identical list in `flakturm-tunnel/showcase.ts` (agreed in
+ * `.agents/collaborate/lantern.md`'s consensus proposal); not extracted into a shared module since
+ * the two scenes are otherwise fully independent showcases. */
+const LANTERN_HAND_BONE_CANDIDATES = [
+  // 1. Finger bones (grip center in palm / fingers)
+  "mixamorig:LeftHandMiddle1",
+  "mixamorig1:LeftHandMiddle1",
+  "mixamorig:LeftHandIndex1",
+  "mixamorig1:LeftHandIndex1",
+  // 2. Wrist bones (Mixamo fallback)
+  "mixamorig:LeftHand",
+  "mixamorig1:LeftHand",
+  "L_Hand",
+  // 3. Tripo / Yoshi bones
+  "tripo::0_Left_Limb_2",
+  "tripo::0_Left_Limb_3",
+];
 
 const ANIMATION_CLIPS: Record<string, string> = {
   idle_1: "/assets/and-now/mannequin/shared/anim/idle_1.glb",
@@ -58,7 +78,7 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
   private _player: Object3D | undefined;
   private _playerRig: Object3D | undefined;
   private _lanternGroup: Object3D | undefined;
-  private _lanternHandBone: Object3D | undefined;
+  private _lanternHandBone: Bone | undefined;
   private _lanternPointLight: PointLight | undefined;
   private _lanternOn: boolean = true;
   private _turntableActive: boolean = false;
@@ -1406,15 +1426,19 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
         }
       }
 
-      // Hand-/Fingerknöchel-Bone auflösen (für exaktes Hängen in der Handinnenfläche)
-      const handBone =
-        findNodeByName(this._player, "mixamorig:LeftHandMiddle1") ??
-        findNodeByName(this._player, "LeftHandMiddle1") ??
-        findNodeByName(this._player, "mixamorig:LeftHandIndex1") ??
-        findNodeByName(this._player, "LeftHandIndex1") ??
-        findNodeByName(this._player, "mixamorig:LeftHand") ??
-        findNodeByName(this._player, "LeftHand") ??
-        findNodeByName(this._player, "L_Hand");
+      // Hand-/Fingerknöchel-Bone auflösen (für exaktes Hängen in der Handinnenfläche), inkl. Yoshis
+      // tripo::-Rig -- kanonische, priorisierte Liste, siehe LANTERN_HAND_BONE_CANDIDATES.
+      // Skin joints are always loaded as `Bone` by `GltfLoader` (see its `jointNodeIndices` check),
+      // so a resolved hand bone is always a `Bone` in practice -- the `instanceof` guard is
+      // defensive, not expected to ever reject a real match.
+      let handBone: Bone | undefined;
+      for (const boneName of LANTERN_HAND_BONE_CANDIDATES) {
+        const found = findNodeByName(this._player, boneName);
+        if (found instanceof Bone) {
+          handBone = found;
+          break;
+        }
+      }
       this._lanternHandBone = handBone;
       if (handBone) {
         if (!this._lanternGroup) {
@@ -1464,6 +1488,10 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
       radialSegments: 8,
     }).getGeometryData();
     handle.material = brassMat;
+    // Upright ring at the grip origin (matches flakturm-tunnel's fix for the same placeholder
+    // mesh) -- Torus geometry defaults to the horizontal XZ plane, which left the ring lying flat.
+    handle.rotation.z = Math.PI / 2;
+    handle.position.set(0, -0.02, 0);
     lantern.add(handle);
 
     const body = new Object3D("LanternBody");
@@ -1480,19 +1508,42 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
     return lantern;
   }
 
+  /** Keeps the lantern's world position locked to the hand bone's grip point every frame, via a
+   * bone-local offset transformed through the bone's full world matrix (rotation included) --
+   * this stays correct through character rotation/scale, unlike a raw world-space additive offset.
+   * Never touches `lantern.rotation` (left at identity), so it always hangs straight down instead
+   * of tumbling with the hand. See `flakturm-tunnel/showcase.ts`'s `_syncLanternTransform()` for
+   * the identical pattern (agreed in `.agents/collaborate/lantern.md`).
+   *
+   * Mixamo-rigged hand bones (player-male/player-female) carry a large accumulated world-space
+   * scale (~94x here, a leftover cm-to-m FBX unit conversion baked into the skeleton -- see
+   * `Bone.getAccumulatedWorldScale()`'s doc comment and `[[project_flakturm_lantern_scale_bug]]`).
+   * `worldMatrix.transformVector()` applies that scale to the local offset too, so a naive
+   * physically-small offset (0.01) exploded into a ~0.9 unit position error, landing the lantern
+   * far from the hand -- confirmed live via `bone.getAccumulatedWorldScale()` returning ~94.44 on
+   * `mixamorig:LeftHandMiddle1` for `player-male`. Dividing the local offset by that scale before
+   * transforming cancels it back out (matrix = T * R * S, so feeding `offset / S` yields
+   * `T + R * offset`, the correctly-rotated but unscaled result); the tripo-rigged Yoshi skeleton
+   * has unit bone scale, so this is a no-op there. */
   private _syncLanternTransform(): void {
     const bone = this._lanternHandBone;
     const lantern = this._lanternGroup;
     if (!bone || !lantern) return;
 
-    const m = bone.worldMatrix.data;
-    if (bone.name.includes("Middle") || bone.name.includes("Index")) {
-      lantern.position.set(m[12]!, m[13]!, m[14]!);
-    } else {
-      const palmOffset = new Vector3D(0, 0.08, 0.01);
-      const worldPos = bone.worldMatrix.transformVector(palmOffset);
-      lantern.position.copyFrom(worldPos);
-    }
+    // Finger bones (Middle1/Index1) have their origin at the finger base inside the palm already;
+    // wrist bones (LeftHand) need a forward offset along +Y to reach the palm.
+    const isFingerBone =
+      bone.name.includes("Middle") || bone.name.includes("Index") || bone.name.includes("Limb_3");
+    const boneScale = bone.getAccumulatedWorldScale();
+    const localOffset = new Vector3D(
+      0,
+      (isFingerBone ? 0.01 : 0.08) / boneScale,
+      (isFingerBone ? 0.0 : 0.01) / boneScale,
+    );
+
+    const worldPos = bone.worldMatrix.transformVector(localOffset);
+    lantern.position.copyFrom(worldPos);
+    lantern.updateMatrixWorld();
   }
 
   private _playAnimation(name: string, fadeSeconds: number = 0.35): void {

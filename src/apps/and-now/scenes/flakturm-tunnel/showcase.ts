@@ -16,9 +16,11 @@ import {
   StageZone,
   Cylinder,
   Torus,
+  MathPool,
 } from "../../../../index.js";
 import { AbstractShowcase } from "../../../../core/index.js";
 import { GltfLoader } from "../../../../loaders/GltfLoader.js";
+import { Bone } from "../../../../core/animation/index.js";
 
 /** The background plane's world extent -- the only place a (u, v) stage coordinate is ever
  * turned into a 3D position. See `AndNowScene2._uvToWorld`. */
@@ -78,19 +80,21 @@ const ANIMATION_CLIP_URLS: Record<string, string> = {
 
 const ANIMATION_FADE_SECONDS = 0.25;
 
-/** Left hand bone candidates the lantern (mesh + light) attaches to across different rigs */
-const LANTERN_HAND_BONE_NAMES = [
+/** Prioritized candidate bones for left-hand lantern attachment across different rigs */
+const LANTERN_HAND_BONE_CANDIDATES = [
+  // 1. Finger bones (grip center in palm / fingers)
+  "mixamorig:LeftHandMiddle1",
+  "mixamorig1:LeftHandMiddle1",
+  "mixamorig:LeftHandIndex1",
+  "mixamorig1:LeftHandIndex1",
+  // 2. Wrist bones (Mixamo fallback)
   "mixamorig:LeftHand",
   "mixamorig1:LeftHand",
   "L_Hand",
+  // 3. Tripo / Yoshi bones
   "tripo::0_Left_Limb_2",
   "tripo::0_Left_Limb_3",
 ];
-
-/** World-space offset from the hand bone's origin into the palm/fingers -- see
- * `AndNowScene2._syncLanternTransform()`'s doc comment for why this is applied in world space
- * every frame instead of as a local child-of-bone position set once. */
-const LANTERN_GRIP_OFFSET = { x: 0.01, y: 0.06, z: 0.02 };
 
 type CharacterType = "male" | "female" | "yoshi";
 
@@ -112,7 +116,7 @@ class AndNowScene2 extends AbstractShowcase {
   private _lanternGroup: Object3D | undefined = undefined;
   /** The current character's left-hand bone, tracked (position only, see `_syncLanternTransform()`)
    * rather than used as `_lanternGroup`'s scene-graph parent. */
-  private _lanternHandBone: Object3D | undefined = undefined;
+  private _lanternHandBone: Bone | undefined = undefined;
   private _lanternOn: boolean = true;
   private _mixer?: AnimationMixer;
   private _clips: Map<string, AnimationClip> = new Map();
@@ -309,10 +313,10 @@ class AndNowScene2 extends AbstractShowcase {
       this._playerRig.add(this._player);
 
       // Laterne (Platzhalter-Mesh + Punktlicht) an die Hand-Bone hängen
-      let handBone: Object3D | undefined;
-      for (const boneName of LANTERN_HAND_BONE_NAMES) {
+      let handBone: Bone | undefined;
+      for (const boneName of LANTERN_HAND_BONE_CANDIDATES) {
         const found = this._player.getObjectByName(boneName);
-        if (found) {
+        if (found instanceof Bone) {
           handBone = found;
           break;
         }
@@ -701,21 +705,29 @@ class AndNowScene2 extends AbstractShowcase {
     const lantern = this._lanternGroup;
     if (!bone || !lantern) return;
 
-    // Columns 12/13/14 of the world matrix are its translation -- the bone's grip point in world
-    // space. `LANTERN_GRIP_OFFSET` nudges from the bone's own origin (typically the wrist joint)
-    // into the palm/fingers; applied in world space since the lantern no longer inherits the
-    // hand's rotation to apply it relative to.
-    const m = bone.worldMatrix.data;
-    lantern.position.set(
-      m[12]! + LANTERN_GRIP_OFFSET.x,
-      m[13]! + LANTERN_GRIP_OFFSET.y,
-      m[14]! + LANTERN_GRIP_OFFSET.z,
+    // Finger bones (Middle1/Index1) have their origin at the finger base inside the palm already;
+    // wrist bones (LeftHand) need a forward offset along +Y to reach the palm.
+    const isFingerBone =
+      bone.name.includes("Middle") || bone.name.includes("Index") || bone.name.includes("Limb_3");
+    const boneScale = bone.getAccumulatedWorldScale();
+    const localOffset = MathPool.acquireVector().set(
+      0,
+      (isFingerBone ? 0.01 : 0.08) / boneScale,
+      (isFingerBone ? 0.0 : 0.01) / boneScale,
     );
+
+    const worldPos = MathPool.acquireVector();
+    bone.worldMatrix.transformVector(localOffset, worldPos);
+
+    lantern.position.copyFrom(worldPos);
+    lantern.updateMatrixWorld();
+
+    MathPool.releaseVector(localOffset);
+    MathPool.releaseVector(worldPos);
   }
 
   /** Greybox stand-in for the Sturmlaterne (storm lantern) from the concept art -- a glowing
-   * cylinder body with a torus handle, sized relative to a roughly human-scale rig. Replace with
-   * the real modeled prop once one exists; parenting onto the hand bone stays the same either way. */
+   * cylinder body with a torus handle, sized relative to a roughly human-scale rig. */
   private _buildLanternMesh(): Object3D {
     const lantern = new Object3D("LanternPlaceholder");
 
@@ -727,11 +739,16 @@ class AndNowScene2 extends AbstractShowcase {
       color: new Color(1.0, 0.9, 0.6),
     });
 
-    // Brass handle (at the grip origin y = 0)
+    // Brass handle (upright ring at the grip origin y = 0)
     const handle = new Object3D("LanternHandle");
-    handle.geometry = new Torus({ radius: 0.06, tube: 0.008, radialSegments: 8 }).getGeometryData();
+    handle.geometry = new Torus({
+      radius: 0.045,
+      tube: 0.006,
+      radialSegments: 8,
+    }).getGeometryData();
     handle.material = brassMat;
-    handle.position.set(0, 0, 0);
+    handle.rotation.z = Math.PI / 2;
+    handle.position.set(0, -0.02, 0);
     lantern.add(handle);
 
     // Brass top cap (hanging just below handle)
@@ -756,12 +773,7 @@ class AndNowScene2 extends AbstractShowcase {
     body.position.set(0, -0.16, 0);
     lantern.add(body);
 
-    // Initial offset and rotation: shift from the wrist pivot into the palm/fingers and hang
-    // vertically down. Position is overwritten every frame by `_syncLanternTransform()` once the
-    // hand bone's real world position is known -- set here only so the lantern isn't sitting at
-    // the scene origin for the first frame after attaching. Rotation is intentionally never
-    // touched again: staying at identity is exactly what keeps it hanging straight down.
-    lantern.position.set(LANTERN_GRIP_OFFSET.x, LANTERN_GRIP_OFFSET.y, LANTERN_GRIP_OFFSET.z);
+    lantern.position.set(0, 0, 0);
     lantern.rotation.set(0, 0, 0);
 
     return lantern;

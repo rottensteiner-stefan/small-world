@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.77.18] - 2026-09-08
+
+### "Alone we can do so little; together we can do so much." - Helen Keller
+
+- **Architecture & Bugfixes:**
+  - **And Now? (Flakturm Tunnel & Character Diorama):** fixed the player's hand-held lantern detaching from the hand and drifting on character rotation -- the per-frame grip offset is now transformed through the hand bone's full world matrix (rotation included) instead of added as a raw world-space constant, and divided by the bone's accumulated world-space scale first (Mixamo-rigged hands carry a ~94x baked cm-to-m scale that was otherwise blowing a small local offset up to a near-meter position error).
+  - Fixed the brass handle ring rendering flat/horizontal instead of upright as a carry grip -- `Torus` geometry defaults to the horizontal XZ plane and was never rotated.
+  - Hand-bone resolution now walks a single prioritized candidate list (finger bones first, then wrist, then the Yoshi/tripo rig) and requires an actual `Bone` instance, shared verbatim between both scenes.
+  - Result of a 3-role `/collaborate` session (Architect, Tech Art, Performance & Runtime Verification) -- consensus reached, both scenes implemented, a scale bug found and fixed in each during verification, final acceptance granted.
+
 ## [0.77.17] - 2026-09-08
 
 ### "Colours are the deeds and sufferings of light." - Johann Wolfgang von Goethe
