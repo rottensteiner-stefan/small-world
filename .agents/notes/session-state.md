@@ -20,8 +20,7 @@ sind gemäß Konvention reine Zitate (niemals wiederverwenden!).
 
 ## Noch offen / nicht von mir angefasst
 
-- `src/apps/yad/core/LevelBuilder.ts` — 🟡 "Entwickler-Selbstgespräch als Kommentar" aus Gruppe E (Cleanup, niedrige Priorität).
-- Review-Gruppen aus `full-review-2026-09-03/`-Dateien, die **nicht** Teil der bisher gewählten A+B/D-Batches sind, könnten noch unerledigte 🟠/🟡/🟢-Punkte enthalten (nicht geprüft — bei Bedarf pro Datei gegenprüfen, Status-Spalte in `00-index.md`).
+- Keine bekannten offenen Punkte aus den Review-Notizen (LevelBuilder-Kommentar bereinigt).
 
 ## Parallele/andere Arbeit (nicht von dieser Session)
 

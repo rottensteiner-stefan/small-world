@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.77.20] - 2026-09-08
+
+### "Simplicity is the final achievement." - Frédéric Chopin
+
+- **Housekeeping & Docs:**
+  - Cleaned up developer comments in `LevelBuilder.ts` for lava and slime floor tile overrides.
+  - Finalized all pending action items and session state notes from the continuous codebase review.
+
 ## [0.77.19] - 2026-09-08
 
 ### "The whole is greater than the sum of its parts." - Aristotle

@@ -311,12 +311,7 @@ export class LevelBuilder {
       }
     }
 
-    // Pass lava and slime floor chars to GridLegend floor overrides
-    // But GridLevelBuilder doesn't have a direct char match for default floor overrides!
-    // So we need to add explicit floor entries for 'char' if they are lava/slime.
-    // Wait, the lava chars are usually just '~' or 'w' mapped to "floor" type.
-    // We already handle this in the outer loop for 'char'.
-    // Let's refine how lava floors are made:
+    // Apply material and tag overrides for lava and slime floor tiles
     for (const char of Object.keys(config.legend)) {
       if (config.lavaFloorChars?.includes(char) && gridLegend[char]) {
         gridLegend[char]!.material = lavaMat;
