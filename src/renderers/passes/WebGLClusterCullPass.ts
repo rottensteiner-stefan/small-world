@@ -1,16 +1,14 @@
 import { WebGLRenderPass } from "../WebGLRenderPass.js";
 import { AbstractWebGLRenderer } from "../AbstractWebGLRenderer.js";
 import { WebGL2Renderer } from "../WebGL2/WebGL2Renderer.js";
-import { Scene } from "../../core/index.js";
+import { DeviceCaps, DeviceLimit, Scene } from "../../core/index.js";
 import {
   Vector3D,
   clusterIndex,
   lightClusterCoverage,
   CLUSTER_TEX_WIDTH,
-  CLUSTER_POINT_GRID_UNIT,
-  CLUSTER_POINT_INDEX_UNIT,
-  CLUSTER_SPOT_GRID_UNIT,
-  CLUSTER_SPOT_INDEX_UNIT,
+  CLUSTER_GRID_UNIT,
+  CLUSTER_INDEX_UNIT,
   DEFAULT_CLUSTER_TILE_SIZE,
 } from "../../math/index.js";
 import { LightDataInterface } from "../../interfaces/index.js";
@@ -23,21 +21,16 @@ import { RenderList } from "../../core/Scene.js";
  * -- the same formula `cluster_cull.wgsl` uses on WebGPU -- and only visits the cluster cells
  * within that range, instead of testing every cell against every light.
  *
- * Only WebGL2 has clustered lighting -- the `renderer instanceof WebGL2Renderer` guard below is
- * real, not decorative: this pass is typed against the shared `AbstractWebGLRenderer` interface
- * (so `WebGL1Renderer.addPass()` would reject it at the type level if ever attempted by mistake,
- * unlike the previous `execute(renderer: WebGL2Renderer, ...)` signature, which TypeScript's
- * method-parameter bivariance let slide silently).
+ * Packs point and spot data into 2 textures: RGBA32UI grid (point.rg, spot.ba) and RG32UI index (point.r, spot.g)
+ * to strictly fit within the 16-texture-unit hardware limit (MAX_TEXTURE_IMAGE_UNITS = 16).
  */
 export class WebGLClusterCullPass implements WebGLRenderPass {
   public name = "WebGLClusterCullPass";
 
   private _pointCounts = new Uint8Array(1);
-  private _pointIndices = new Uint32Array(CLUSTER_TEX_WIDTH);
-  private _pointGrid = new Uint32Array(2);
   private _spotCounts = new Uint8Array(1);
-  private _spotIndices = new Uint32Array(CLUSTER_TEX_WIDTH);
-  private _spotGrid = new Uint32Array(2);
+  private _grid = new Uint32Array(4);
+  private _indices = new Uint32Array(CLUSTER_TEX_WIDTH * 2);
 
   public execute(
     renderer: AbstractWebGLRenderer,
@@ -64,26 +57,21 @@ export class WebGLClusterCullPass implements WebGLRenderPass {
 
     renderer.writeClusterGridUniforms(tileSizePx);
 
-    if (this._pointGrid.length < numClusters * 2) {
-      this._pointGrid = new Uint32Array(gridHeight * CLUSTER_TEX_WIDTH * 2);
-      this._spotGrid = new Uint32Array(gridHeight * CLUSTER_TEX_WIDTH * 2);
+    if (this._grid.length < gridHeight * CLUSTER_TEX_WIDTH * 4) {
+      this._grid = new Uint32Array(gridHeight * CLUSTER_TEX_WIDTH * 4);
       this._pointCounts = new Uint8Array(numClusters);
       this._spotCounts = new Uint8Array(numClusters);
     }
-    if (this._pointIndices.length < indexCount) {
-      this._pointIndices = new Uint32Array(indexHeight * CLUSTER_TEX_WIDTH);
-      this._spotIndices = new Uint32Array(indexHeight * CLUSTER_TEX_WIDTH);
+    if (this._indices.length < indexHeight * CLUSTER_TEX_WIDTH * 2) {
+      this._indices = new Uint32Array(indexHeight * CLUSTER_TEX_WIDTH * 2);
     }
     this._pointCounts.fill(0, 0, numClusters);
     this._spotCounts.fill(0, 0, numClusters);
-    // Zero the (offset, count) grid every frame, not just on resize -- otherwise a cell that had
-    // lights last frame but none this frame would keep serving last frame's stale count.
-    this._pointGrid.fill(0, 0, numClusters * 2);
-    this._spotGrid.fill(0, 0, numClusters * 2);
+    // Zero the grid every frame
+    this._grid.fill(0, 0, numClusters * 4);
 
     if (!projMatrix) {
       // No projection matrix stashed yet (e.g. very first frame) -- leave every cluster empty
-      // rather than guessing; the next frame will have one.
       this._uploadAndBind(gl, renderer, gridHeight, indexHeight);
       return;
     }
@@ -95,7 +83,7 @@ export class WebGLClusterCullPass implements WebGLRenderPass {
 
     for (let i = 0; i < numPointLights; i++) {
       const light = extractedLights.pLights[i]!;
-      this._cullLightIntoCells(
+      this._cullPointLightIntoCells(
         light.worldMatrix.data,
         light.distance,
         i,
@@ -108,14 +96,11 @@ export class WebGLClusterCullPass implements WebGLRenderPass {
         maxLightsPerCluster,
         near,
         far,
-        this._pointGrid,
-        this._pointIndices,
-        this._pointCounts,
       );
     }
     for (let i = 0; i < numSpotLights; i++) {
       const light = extractedLights.sLights[i]!;
-      this._cullLightIntoCells(
+      this._cullSpotLightIntoCells(
         light.worldMatrix.data,
         light.distance,
         i,
@@ -128,17 +113,14 @@ export class WebGLClusterCullPass implements WebGLRenderPass {
         maxLightsPerCluster,
         near,
         far,
-        this._spotGrid,
-        this._spotIndices,
-        this._spotCounts,
       );
     }
 
     this._uploadAndBind(gl, renderer, gridHeight, indexHeight);
   }
 
-  /** Projects one light and writes its index into every cluster cell it can reach. */
-  private _cullLightIntoCells(
+  /** Projects one point light and writes its index into every cluster cell it can reach (R/G channels). */
+  private _cullPointLightIntoCells(
     worldMatrixData: Float32Array,
     radius: number,
     lightIndex: number,
@@ -151,9 +133,6 @@ export class WebGLClusterCullPass implements WebGLRenderPass {
     maxLightsPerCluster: number,
     near: number,
     far: number,
-    grid: Uint32Array,
-    indices: Uint32Array,
-    counts: Uint8Array,
   ): void {
     const lx = worldMatrixData[12]!;
     const ly = worldMatrixData[13]!;
@@ -189,12 +168,72 @@ export class WebGLClusterCullPass implements WebGLRenderPass {
       for (let y = coverage.cellMinY; y <= coverage.cellMaxY; y++) {
         for (let x = coverage.cellMinX; x <= coverage.cellMaxX; x++) {
           const cell = clusterIndex(x, y, z, dims);
-          const count = counts[cell]!;
+          const count = this._pointCounts[cell]!;
           if (count >= maxLightsPerCluster) continue;
-          indices[cell * maxLightsPerCluster + count] = lightIndex;
-          counts[cell] = count + 1;
-          grid[cell * 2] = cell * maxLightsPerCluster;
-          grid[cell * 2 + 1] = count + 1;
+          this._indices[(cell * maxLightsPerCluster + count) * 2] = lightIndex;
+          this._pointCounts[cell] = count + 1;
+          this._grid[cell * 4 + 0] = cell * maxLightsPerCluster;
+          this._grid[cell * 4 + 1] = count + 1;
+        }
+      }
+    }
+  }
+
+  /** Projects one spot light and writes its index into every cluster cell it can reach (B/A and G channels). */
+  private _cullSpotLightIntoCells(
+    worldMatrixData: Float32Array,
+    radius: number,
+    lightIndex: number,
+    vp: Float32Array,
+    camPos: Vector3D,
+    projScaleX: number,
+    projScaleY: number,
+    renderer: WebGL2Renderer,
+    dims: { x: number; y: number; z: number },
+    maxLightsPerCluster: number,
+    near: number,
+    far: number,
+  ): void {
+    const lx = worldMatrixData[12]!;
+    const ly = worldMatrixData[13]!;
+    const lz = worldMatrixData[14]!;
+    const dx = lx - camPos.x;
+    const dy = ly - camPos.y;
+    const dz = lz - camPos.z;
+    const viewDist = Math.max(Math.sqrt(dx * dx + dy * dy + dz * dz), 0.0001);
+
+    const clipX = vp[0]! * lx + vp[4]! * ly + vp[8]! * lz + vp[12]!;
+    const clipY = vp[1]! * lx + vp[5]! * ly + vp[9]! * lz + vp[13]!;
+    const clipW = vp[3]! * lx + vp[7]! * ly + vp[11]! * lz + vp[15]!;
+    const ndcX = clipW !== 0 ? clipX / clipW : 0;
+    const ndcY = clipW !== 0 ? clipY / clipW : 0;
+
+    const coverage = lightClusterCoverage(
+      viewDist,
+      Math.max(radius, 0.001),
+      ndcX,
+      ndcY,
+      clipW,
+      projScaleX,
+      projScaleY,
+      renderer.webglContext.canvas.width,
+      renderer.webglContext.canvas.height,
+      renderer.quality.clusteredLighting?.tileSize ?? DEFAULT_CLUSTER_TILE_SIZE,
+      dims,
+      near,
+      far,
+    );
+
+    for (let z = coverage.sliceMin; z <= coverage.sliceMax; z++) {
+      for (let y = coverage.cellMinY; y <= coverage.cellMaxY; y++) {
+        for (let x = coverage.cellMinX; x <= coverage.cellMaxX; x++) {
+          const cell = clusterIndex(x, y, z, dims);
+          const count = this._spotCounts[cell]!;
+          if (count >= maxLightsPerCluster) continue;
+          this._indices[(cell * maxLightsPerCluster + count) * 2 + 1] = lightIndex;
+          this._spotCounts[cell] = count + 1;
+          this._grid[cell * 4 + 2] = cell * maxLightsPerCluster;
+          this._grid[cell * 4 + 3] = count + 1;
         }
       }
     }
@@ -206,60 +245,51 @@ export class WebGLClusterCullPass implements WebGLRenderPass {
     gridHeight: number,
     indexHeight: number,
   ): void {
-    gl.activeTexture(gl.TEXTURE0 + CLUSTER_POINT_GRID_UNIT);
-    gl.bindTexture(gl.TEXTURE_2D, renderer.pointClusterGridTex);
-    gl.texSubImage2D(
-      gl.TEXTURE_2D,
-      0,
-      0,
-      0,
-      CLUSTER_TEX_WIDTH,
-      gridHeight,
-      gl.RG_INTEGER,
-      gl.UNSIGNED_INT,
-      this._pointGrid,
-    );
+    // Both fixed units can exceed a device that only offers the WebGL2 spec's guaranteed
+    // minimum MAX_TEXTURE_IMAGE_UNITS (16, units 0-15) once the shadow system's own reserved
+    // units (8-14, see WebGLProgramCache's doc) are accounted for -- degrade gracefully (skip +
+    // warn) instead of corrupting whatever happens to already be bound at an invalid unit,
+    // mirroring how WebGL2Renderer already guards its own fixed shadow-unit binds.
+    const maxUnits = DeviceCaps.getLimit(DeviceLimit.WEBGL2_MAX_TEXTURE_IMAGE_UNITS);
 
-    gl.activeTexture(gl.TEXTURE0 + CLUSTER_POINT_INDEX_UNIT);
-    gl.bindTexture(gl.TEXTURE_2D, renderer.pointClusterIndexTex);
-    gl.texSubImage2D(
-      gl.TEXTURE_2D,
-      0,
-      0,
-      0,
-      CLUSTER_TEX_WIDTH,
-      indexHeight,
-      gl.RED_INTEGER,
-      gl.UNSIGNED_INT,
-      this._pointIndices,
-    );
+    if (CLUSTER_GRID_UNIT >= maxUnits) {
+      console.warn(
+        `[WebGLClusterCullPass] Exceeded MAX_TEXTURE_IMAGE_UNITS (${maxUnits}). Cannot bind cluster grid texture to texture unit ${CLUSTER_GRID_UNIT}.`,
+      );
+    } else {
+      gl.activeTexture(gl.TEXTURE0 + CLUSTER_GRID_UNIT);
+      gl.bindTexture(gl.TEXTURE_2D, renderer.clusterGridTex);
+      gl.texSubImage2D(
+        gl.TEXTURE_2D,
+        0,
+        0,
+        0,
+        CLUSTER_TEX_WIDTH,
+        gridHeight,
+        gl.RGBA_INTEGER,
+        gl.UNSIGNED_INT,
+        this._grid,
+      );
+    }
 
-    gl.activeTexture(gl.TEXTURE0 + CLUSTER_SPOT_GRID_UNIT);
-    gl.bindTexture(gl.TEXTURE_2D, renderer.spotClusterGridTex);
-    gl.texSubImage2D(
-      gl.TEXTURE_2D,
-      0,
-      0,
-      0,
-      CLUSTER_TEX_WIDTH,
-      gridHeight,
-      gl.RG_INTEGER,
-      gl.UNSIGNED_INT,
-      this._spotGrid,
-    );
-
-    gl.activeTexture(gl.TEXTURE0 + CLUSTER_SPOT_INDEX_UNIT);
-    gl.bindTexture(gl.TEXTURE_2D, renderer.spotClusterIndexTex);
-    gl.texSubImage2D(
-      gl.TEXTURE_2D,
-      0,
-      0,
-      0,
-      CLUSTER_TEX_WIDTH,
-      indexHeight,
-      gl.RED_INTEGER,
-      gl.UNSIGNED_INT,
-      this._spotIndices,
-    );
+    if (CLUSTER_INDEX_UNIT >= maxUnits) {
+      console.warn(
+        `[WebGLClusterCullPass] Exceeded MAX_TEXTURE_IMAGE_UNITS (${maxUnits}). Cannot bind cluster index texture to texture unit ${CLUSTER_INDEX_UNIT}.`,
+      );
+    } else {
+      gl.activeTexture(gl.TEXTURE0 + CLUSTER_INDEX_UNIT);
+      gl.bindTexture(gl.TEXTURE_2D, renderer.clusterIndexTex);
+      gl.texSubImage2D(
+        gl.TEXTURE_2D,
+        0,
+        0,
+        0,
+        CLUSTER_TEX_WIDTH,
+        indexHeight,
+        gl.RG_INTEGER,
+        gl.UNSIGNED_INT,
+        this._indices,
+      );
+    }
   }
 }

@@ -167,10 +167,10 @@ vec3 Lo = vec3(0.0);
 int clusterCellIndex = computeClusterCellIndex(u_viewPos, v_worldPos, u_clusterDims, u_cameraNearFar, u_tileSizePx);
 
 // -- Point Lights --
-uvec2 pointCluster = fetchClusterGridEntry(u_pointClusterGrid, clusterCellIndex);
+uvec2 pointCluster = fetchPointClusterGridEntry(clusterCellIndex);
 for(int k = 0; k < CLUSTER_MAX_LIGHTS; k++) {
     if (k >= int(pointCluster.y)) break;
-    int i = int(fetchClusterLightIndex(u_pointClusterIndices, int(pointCluster.x) + k));
+    int i = int(fetchPointClusterLightIndex(int(pointCluster.x) + k));
     vec3 lightVec = u_pointLights[i].pos - v_worldPos;
     float dist = length(lightVec);
     vec3 L = normalize(lightVec);
@@ -209,10 +209,10 @@ for(int k = 0; k < CLUSTER_MAX_LIGHTS; k++) {
 }
 
 // -- Spot Lights --
-uvec2 spotCluster = fetchClusterGridEntry(u_spotClusterGrid, clusterCellIndex);
+uvec2 spotCluster = fetchSpotClusterGridEntry(clusterCellIndex);
 for(int k = 0; k < CLUSTER_MAX_LIGHTS; k++) {
     if (k >= int(spotCluster.y)) break;
-    int i = int(fetchClusterLightIndex(u_spotClusterIndices, int(spotCluster.x) + k));
+    int i = int(fetchSpotClusterLightIndex(int(spotCluster.x) + k));
     vec3 lightVec = u_spotLights[i].pos - v_worldPos;
     float dist = length(lightVec);
     vec3 L = normalize(lightVec);

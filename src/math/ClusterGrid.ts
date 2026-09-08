@@ -17,14 +17,22 @@ export const CLUSTER_TEX_WIDTH = 1024;
 
 /**
  * Fixed WebGL2 texture units for the clustered light culling grid/index textures -- plain
- * exported constants rather than renderer instance/class state, since the same four numbers are
+ * exported constants rather than renderer instance/class state, since the numbers are
  * shared by every `WebGL2Renderer` instance (see docs/adr/0007-clustered-lighting-webgl2-webgpu-only.md).
- * Texture units 8-14 are reserved by the shadow system, see `WebGL2Renderer`'s own comment.
+ * Texture units 8-13 are reserved by the shadow system, and unit 14 is ALSO already taken --
+ * by `WebGL2Renderer._RAW_DEPTH_UNIT`, the PCSS blocker-search's raw-depth read of the
+ * directional shadow map. (An earlier version of this fix put the cluster textures at 14-15
+ * without checking that, silently aliasing the cluster grid onto the shadow map's raw-depth
+ * texture whenever a directional light cast PCSS shadows AND clustered point/spot lights were
+ * both active in the same frame -- see git history.) Units 15-16 are next, free of collisions,
+ * but push the full reserved range (8-16, 9 units) past the WebGL2 spec's guaranteed minimum
+ * `MAX_TEXTURE_IMAGE_UNITS` of 16 (units 0-15) -- `WebGLClusterCullPass` therefore guards its own
+ * bind calls against the device's real limit the same way the shadow system already does,
+ * degrading gracefully (skips the upload, logs a warning) rather than corrupting on hardware
+ * that only ever guarantees the spec minimum.
  */
-export const CLUSTER_POINT_GRID_UNIT = 15;
-export const CLUSTER_POINT_INDEX_UNIT = 16;
-export const CLUSTER_SPOT_GRID_UNIT = 17;
-export const CLUSTER_SPOT_INDEX_UNIT = 18;
+export const CLUSTER_GRID_UNIT = 15;
+export const CLUSTER_INDEX_UNIT = 16;
 
 /** Dimensions of the clustered light grid, in cells per axis. */
 export interface ClusterGridDims {

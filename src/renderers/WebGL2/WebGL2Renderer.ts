@@ -46,10 +46,8 @@ import {
   ClusterGridDims,
   computeClusterCounts,
   CLUSTER_TEX_WIDTH,
-  CLUSTER_POINT_GRID_UNIT,
-  CLUSTER_POINT_INDEX_UNIT,
-  CLUSTER_SPOT_GRID_UNIT,
-  CLUSTER_SPOT_INDEX_UNIT,
+  CLUSTER_GRID_UNIT,
+  CLUSTER_INDEX_UNIT,
   DEFAULT_CLUSTER_TILE_SIZE,
   DEFAULT_CLUSTER_Z_SLICES,
   DEFAULT_MAX_LIGHTS_PER_CLUSTER,
@@ -115,21 +113,13 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
   public get clusterMaxLightsPerCluster(): number {
     return this._clusterMaxLightsPerCluster;
   }
-  private _pointClusterGridTex!: WebGLTexture;
-  public get pointClusterGridTex(): WebGLTexture {
-    return this._pointClusterGridTex;
+  private _clusterGridTex!: WebGLTexture;
+  public get clusterGridTex(): WebGLTexture {
+    return this._clusterGridTex;
   }
-  private _pointClusterIndexTex!: WebGLTexture;
-  public get pointClusterIndexTex(): WebGLTexture {
-    return this._pointClusterIndexTex;
-  }
-  private _spotClusterGridTex!: WebGLTexture;
-  public get spotClusterGridTex(): WebGLTexture {
-    return this._spotClusterGridTex;
-  }
-  private _spotClusterIndexTex!: WebGLTexture;
-  public get spotClusterIndexTex(): WebGLTexture {
-    return this._spotClusterIndexTex;
+  private _clusterIndexTex!: WebGLTexture;
+  public get clusterIndexTex(): WebGLTexture {
+    return this._clusterIndexTex;
   }
 
   private _stateCullFaceEnabled: boolean | null = null;
@@ -248,18 +238,16 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     const indexCount = numClusters * Math.max(1, maxLightsPerCluster);
     const indexHeight = Math.max(1, Math.ceil(indexCount / CLUSTER_TEX_WIDTH));
 
-    this._pointClusterGridTex = this._createIntegerTexture(CLUSTER_TEX_WIDTH, gridHeight, true);
-    this._pointClusterIndexTex = this._createIntegerTexture(CLUSTER_TEX_WIDTH, indexHeight, false);
-    this._spotClusterGridTex = this._createIntegerTexture(CLUSTER_TEX_WIDTH, gridHeight, true);
-    this._spotClusterIndexTex = this._createIntegerTexture(CLUSTER_TEX_WIDTH, indexHeight, false);
+    this._clusterGridTex = this._createIntegerTexture(CLUSTER_TEX_WIDTH, gridHeight, true);
+    this._clusterIndexTex = this._createIntegerTexture(CLUSTER_TEX_WIDTH, indexHeight, false);
 
     this._clusterDims = dims;
     this._clusterMaxLightsPerCluster = Math.max(1, maxLightsPerCluster);
   }
 
   /**
-   * Creates an integer 2D texture for clustered light culling data -- RG32UI (offset, count) for
-   * a grid texture, R32UI for a flat index list.
+   * Creates an integer 2D texture for clustered light culling data -- RGBA32UI (point.rg, spot.ba) for
+   * the combined grid texture, RG32UI (point.r, spot.g) for the combined flat index list.
    */
   private _createIntegerTexture(width: number, height: number, isGrid: boolean): WebGLTexture {
     const gl = this.gl;
@@ -272,11 +260,11 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     gl.texImage2D(
       gl.TEXTURE_2D,
       0,
-      isGrid ? gl.RG32UI : gl.R32UI,
+      isGrid ? gl.RGBA32UI : gl.RG32UI,
       width,
       height,
       0,
-      isGrid ? gl.RG_INTEGER : gl.RED_INTEGER,
+      isGrid ? gl.RGBA_INTEGER : gl.RG_INTEGER,
       gl.UNSIGNED_INT,
       null,
     );
@@ -910,14 +898,10 @@ export class WebGL2Renderer extends AbstractWebGLRenderer {
     // WebGLClusterCullPass (once per frame, before this pass runs); each program just needs to
     // know which unit its sampler uniform reads from, see
     // docs/adr/0007-clustered-lighting-webgl2-webgpu-only.md.
-    const pointClusterGridLoc = cache.uniforms.get("u_pointClusterGrid");
-    if (pointClusterGridLoc) this.gl.uniform1i(pointClusterGridLoc, CLUSTER_POINT_GRID_UNIT);
-    const pointClusterIndexLoc = cache.uniforms.get("u_pointClusterIndices");
-    if (pointClusterIndexLoc) this.gl.uniform1i(pointClusterIndexLoc, CLUSTER_POINT_INDEX_UNIT);
-    const spotClusterGridLoc = cache.uniforms.get("u_spotClusterGrid");
-    if (spotClusterGridLoc) this.gl.uniform1i(spotClusterGridLoc, CLUSTER_SPOT_GRID_UNIT);
-    const spotClusterIndexLoc = cache.uniforms.get("u_spotClusterIndices");
-    if (spotClusterIndexLoc) this.gl.uniform1i(spotClusterIndexLoc, CLUSTER_SPOT_INDEX_UNIT);
+    const clusterGridLoc = cache.uniforms.get("u_clusterGrid");
+    if (clusterGridLoc) this.gl.uniform1i(clusterGridLoc, CLUSTER_GRID_UNIT);
+    const clusterIndexLoc = cache.uniforms.get("u_clusterIndices");
+    if (clusterIndexLoc) this.gl.uniform1i(clusterIndexLoc, CLUSTER_INDEX_UNIT);
 
     // Bind Shadow Maps
     if (lights && lights.sLights.length > 0) {

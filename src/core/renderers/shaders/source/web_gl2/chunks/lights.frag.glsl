@@ -65,14 +65,12 @@ layout(std140) uniform GlobalUniforms {
     vec4 u_clusterDims; // x/y/z cell counts, w = maxLightsPerCluster, all as float
 };
 
-// Clustered light culling data textures: RG32UI (offset, count) per cluster cell, R32UI flat
-// index lists. Fixed texture units (see WebGL2Renderer's _CLUSTER_*_UNIT constants), bound
-// outside the generic per-material sampler system just like the shadow map samplers below.
+// Clustered light culling data textures: RGBA32UI (point.rg, spot.ba) per cluster cell,
+// RG32UI (point.r, spot.g) flat index lists. Fixed texture units (see CLUSTER_GRID_UNIT and
+// CLUSTER_INDEX_UNIT in ClusterGrid.ts), bound outside the generic per-material sampler system.
 precision highp usampler2D;
-uniform usampler2D u_pointClusterGrid;
-uniform usampler2D u_pointClusterIndices;
-uniform usampler2D u_spotClusterGrid;
-uniform usampler2D u_spotClusterIndices;
+uniform usampler2D u_clusterGrid;
+uniform usampler2D u_clusterIndices;
 
 // Must match CLUSTER_TEX_WIDTH in src/math/ClusterGrid.ts exactly -- WebGL2 has no 1D texture
 // target, so the flat cluster/index arrays are laid out on a fixed-width 2D texture instead.
@@ -83,14 +81,24 @@ const int CLUSTER_TEX_WIDTH = 1024;
 // needs to be large enough to cover that, not the configured value itself.
 const int CLUSTER_MAX_LIGHTS = 16;
 
-uvec2 fetchClusterGridEntry(highp usampler2D tex, int cellIndex) {
+uvec2 fetchPointClusterGridEntry(int cellIndex) {
     ivec2 coord = ivec2(cellIndex % CLUSTER_TEX_WIDTH, cellIndex / CLUSTER_TEX_WIDTH);
-    return texelFetch(tex, coord, 0).rg;
+    return texelFetch(u_clusterGrid, coord, 0).rg;
 }
 
-uint fetchClusterLightIndex(highp usampler2D tex, int flatIndex) {
+uvec2 fetchSpotClusterGridEntry(int cellIndex) {
+    ivec2 coord = ivec2(cellIndex % CLUSTER_TEX_WIDTH, cellIndex / CLUSTER_TEX_WIDTH);
+    return texelFetch(u_clusterGrid, coord, 0).ba;
+}
+
+uint fetchPointClusterLightIndex(int flatIndex) {
     ivec2 coord = ivec2(flatIndex % CLUSTER_TEX_WIDTH, flatIndex / CLUSTER_TEX_WIDTH);
-    return texelFetch(tex, coord, 0).r;
+    return texelFetch(u_clusterIndices, coord, 0).r;
+}
+
+uint fetchSpotClusterLightIndex(int flatIndex) {
+    ivec2 coord = ivec2(flatIndex % CLUSTER_TEX_WIDTH, flatIndex / CLUSTER_TEX_WIDTH);
+    return texelFetch(u_clusterIndices, coord, 0).g;
 }
 
 // Same cell/index formula as cluster_cull.wgsl's fragment-side lookup on WebGPU.

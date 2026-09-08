@@ -9,11 +9,9 @@ describe("WebGL2 clustered lighting bindings", () => {
   );
   const lightsContent = fs.readFileSync(lightsPath, "utf-8");
 
-  it("declares the four clustered light culling samplers", () => {
-    expect(lightsContent).toContain("uniform usampler2D u_pointClusterGrid;");
-    expect(lightsContent).toContain("uniform usampler2D u_pointClusterIndices;");
-    expect(lightsContent).toContain("uniform usampler2D u_spotClusterGrid;");
-    expect(lightsContent).toContain("uniform usampler2D u_spotClusterIndices;");
+  it("declares the packed clustered light culling samplers", () => {
+    expect(lightsContent).toContain("uniform usampler2D u_clusterGrid;");
+    expect(lightsContent).toContain("uniform usampler2D u_clusterIndices;");
   });
 
   it("declares u_tileSizePx/u_clusterDims inside GlobalUniforms", () => {
@@ -35,8 +33,8 @@ describe("WebGL2 clustered lighting bindings", () => {
         path.resolve(__dirname, `../../src/core/renderers/shaders/source/web_gl2/chunks/${file}`),
         "utf-8",
       );
-      expect(content).toContain("fetchClusterGridEntry(u_pointClusterGrid, clusterCellIndex)");
-      expect(content).toContain("fetchClusterGridEntry(u_spotClusterGrid, clusterCellIndex)");
+      expect(content).toContain("fetchPointClusterGridEntry(clusterCellIndex)");
+      expect(content).toContain("fetchSpotClusterGridEntry(clusterCellIndex)");
       expect(content).not.toContain("i >= u_numPointLights");
       expect(content).not.toContain("i >= u_numSpotLights");
     });

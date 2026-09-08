@@ -27,19 +27,23 @@ export class WebGLProgramCache {
   private readonly _globalUBO: WebGL2UniformBuffer;
 
   /**
-   * Texture units 8-18 are permanently reserved for global (non-material) samplers: 8-13 the
+   * Texture units 8-16 are permanently reserved for global (non-material) samplers: 8-13 the
    * shadow system (4x spot shadow atlas + 1x directional/CSM atlas + 1x dummy fallback), 14 the
-   * raw-depth PCSS read, and 15-18 the clustered light culling grid/index textures (see
-   * docs/adr/0007-clustered-lighting-webgl2-webgpu-only.md) -- all bound via hardcoded
-   * `activeTexture` calls (`WebGL2Renderer._bindDummyShadowMaps`/`_renderSubgroup`/
+   * directional shadow map's raw-depth read for PCSS's blocker search
+   * (`WebGL2Renderer._RAW_DEPTH_UNIT`), and 15-16 the clustered light culling grid/index
+   * textures (see docs/adr/0007-clustered-lighting-webgl2-webgpu-only.md) -- all bound via
+   * hardcoded `activeTexture` calls (`WebGL2Renderer._bindDummyShadowMaps`/`_renderSubgroup`/
    * `WebGLClusterCullPass`) rather than through `samplerUnits`. The dynamic sampler-unit
    * assignment in `getProgram()` skips this whole range for every other sampler so an unrelated
-   * material texture can never land on the same unit as one of these -- two ACTIVE samplers of
-   * different types sharing a unit is a GL_INVALID_OPERATION at draw time regardless of what's
-   * actually bound there.
+   * material texture can never land on the same unit as one of these. Material textures occupy
+   * units 0-7 -- 9 reserved units (8-16) plus those 8 push the theoretical total past the WebGL2
+   * spec's guaranteed minimum `MAX_TEXTURE_IMAGE_UNITS` of 16 (units 0-15), so both the shadow
+   * system and `WebGLClusterCullPass` individually guard their own fixed-unit binds against the
+   * device's real limit and degrade gracefully (skip + warn) rather than corrupting on hardware
+   * that only offers the spec minimum.
    */
   private static readonly _RESERVED_GLOBAL_UNIT_START = 8;
-  private static readonly _RESERVED_GLOBAL_UNIT_END = 18;
+  private static readonly _RESERVED_GLOBAL_UNIT_END = 16;
 
   private _programs = new Map<string, WebGL2ProgramCacheEntry>();
   private _lastKnownProgramKey = new WeakMap<Object3D, string>();
