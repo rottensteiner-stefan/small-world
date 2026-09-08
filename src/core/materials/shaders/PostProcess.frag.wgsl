@@ -193,7 +193,15 @@ fn fs_main(@location(0) uv: vec2f, @builtin(position) coord: vec4f) -> @location
     // Ambient Occlusion (HBAO) -- darkens the linear scene color before tonemapping, since it
     // approximates occluded incoming light rather than a display-referred image adjustment.
     if (1u == u_hbaoEnabled) {
-        hdr *= textureSample(hbaoTexture, hdrSampler, distortUv).r;
+        let hbaoVal = textureSample(hbaoTexture, hdrSampler, distortUv).r;
+        // `hbaoVal == hbaoVal` is the portable WGSL NaN check (no isNan() builtin, see
+        // AO.frag.wgsl) -- clamp() has an unspecified result for a NaN input, so skip the
+        // multiply entirely on NaN instead of trusting clamp() to sanitize it, mirroring
+        // PostProcess.frag.glsl's isnan()/isinf() guard. Inf doesn't need the same treatment,
+        // IEEE754 ordering for Inf is well-defined so clamp() already handles it correctly.
+        if (hbaoVal == hbaoVal) {
+            hdr *= clamp(hbaoVal, 0.0, 1.0);
+        }
     }
 
     var tonemapped = hdr * u_exposure;

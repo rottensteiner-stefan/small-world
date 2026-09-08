@@ -174,7 +174,10 @@ void main() {
     // Ambient Occlusion (HBAO) -- darkens the linear scene color before tonemapping, since it
     // approximates occluded incoming light rather than a display-referred image adjustment.
     if (u_hbaoEnabled == 1) {
-        hdr *= texture(u_hbaoTexture, distortUv).r;
+        float hbaoVal = texture(u_hbaoTexture, distortUv).r;
+        if (!isnan(hbaoVal) && !isinf(hbaoVal)) {
+            hdr *= clamp(hbaoVal, 0.0, 1.0);
+        }
     }
 
     // Tone Mapping

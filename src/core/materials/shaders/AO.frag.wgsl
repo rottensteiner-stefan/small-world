@@ -42,7 +42,9 @@ fn computeHBAO(pixelCoord: vec2i, dims: vec2i) -> f32 {
     let texelSize = vec2f(1.0) / vec2f(dims);
     let dPosDx = reconstructViewPos(uv + vec2f(texelSize.x, 0.0), linearZ) - viewPos;
     let dPosDy = reconstructViewPos(uv + vec2f(0.0, texelSize.y), linearZ) - viewPos;
-    var normal = normalize(cross(dPosDx, dPosDy));
+    let crossN = cross(dPosDx, dPosDy);
+    let lenSq = dot(crossN, crossN);
+    var normal = select(vec3f(0.0, 0.0, -1.0), normalize(crossN), lenSq > 0.000001);
     if (normal.z > 0.0) {
         normal = -normal;
     }
@@ -77,13 +79,26 @@ fn computeHBAO(pixelCoord: vec2i, dims: vec2i) -> f32 {
             }
 
             let horizonSin = dot(toSample / dist, normal);
-            maxHorizonSin = max(maxHorizonSin, horizonSin);
+            // `x != x` is the portable NaN check in WGSL (no isNan()/isInf() builtins --
+            // removed from the spec, see AO.frag.glsl's isnan()/isinf() for why this guard
+            // exists at all). max()/clamp() have unspecified results for a NaN operand, so a
+            // NaN horizonSin (e.g. from an upstream-NaN depth sample slipping past the `dist`
+            // bounds check above, since NaN comparisons are always false) must be filtered out
+            // BEFORE it reaches max() -- Inf doesn't need the same treatment, IEEE754 ordering
+            // for Inf is well-defined so the clamp() below already handles it correctly.
+            if (horizonSin == horizonSin) {
+                maxHorizonSin = max(maxHorizonSin, horizonSin);
+            }
         }
         occlusion += clamp(maxHorizonSin, 0.0, 1.0);
     }
     occlusion /= 6.0;
 
-    return clamp(1.0 - occlusion * u.intensity, 0.0, 1.0);
+    var ao = clamp(1.0 - occlusion * u.intensity, 0.0, 1.0);
+    if (ao != ao) {
+        ao = 1.0;
+    }
+    return ao;
 }
 
 @compute @workgroup_size(8, 8, 1)

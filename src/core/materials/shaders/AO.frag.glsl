@@ -40,7 +40,11 @@ void main() {
     // Reconstruct a view-space normal from screen-space derivatives of the reconstructed
     // position -- avoids needing a real normal G-buffer, at the cost of faceting on curved
     // surfaces (a standard, documented trade-off for depth-only screen-space AO).
-    vec3 normal = normalize(cross(dFdx(viewPos), dFdy(viewPos)));
+    vec3 dX = dFdx(viewPos);
+    vec3 dY = dFdy(viewPos);
+    vec3 crossN = cross(dX, dY);
+    float lenSq = dot(crossN, crossN);
+    vec3 normal = (lenSq > 0.000001) ? normalize(crossN) : vec3(0.0, 0.0, -1.0);
     if (normal.z > 0.0) normal = -normal; // Ensure it points back towards the camera
 
     // Simplified HBAO: march a small ring of directions, find the steepest (highest-sine)
@@ -77,12 +81,17 @@ void main() {
             if (dist > u_radius || dist < 0.0001) continue;
 
             float horizonSin = dot(toSample / dist, normal);
-            maxHorizonSin = max(maxHorizonSin, horizonSin);
+            if (!isnan(horizonSin) && !isinf(horizonSin)) {
+                maxHorizonSin = max(maxHorizonSin, horizonSin);
+            }
         }
         occlusion += clamp(maxHorizonSin, 0.0, 1.0);
     }
     occlusion /= float(DIR_COUNT);
 
     float ao = clamp(1.0 - occlusion * u_intensity, 0.0, 1.0);
+    if (isnan(ao) || isinf(ao)) {
+        ao = 1.0;
+    }
     fragColor = vec4(ao, 0.0, 0.0, 1.0);
 }
