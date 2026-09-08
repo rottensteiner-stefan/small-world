@@ -110,7 +110,6 @@ const testCases = [
     RENDERER_TYPES.map((rendererType) => ({ showcase: n, rendererType })),
   ),
   { showcase: "yad", rendererType: null },
-  { showcase: "neon-labyrinth", rendererType: null },
 ];
 
 async function sleep(ms) {

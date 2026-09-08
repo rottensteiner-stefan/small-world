@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.77.22] - 2026-09-08
+
+### "Simplicity is prerequisite for reliability." - Edsger W. Dijkstra
+
+- **Housekeeping & Docs:**
+  - Fully removed the deprecated `neon-labyrinth` application and showcase from the repository (`src/apps/neon-labyrinth/`, `showcases/neon-labyrinth/`, `tests/apps/neon-labyrinth/`).
+  - Updated Showcase 14 ("Detective Interrogation Room") to employ `FrostglassMaterial` for the one-way observation mirror.
+  - Setup `.agents/collaborate/.gitignore` ensuring the folder is tracked in Git without polluting the repository with ephemeral collaboration transcripts or locks.
+
 ## [0.77.21] - 2026-09-08
 
 ### "Structure is not an impediment to the creative process, but the very foundation for it." - Twyla Tharp

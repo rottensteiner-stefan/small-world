@@ -23,6 +23,7 @@ import {
   AbstractLight,
   Texture,
   GlassMaterial,
+  FrostglassMaterial,
 } from "../../src/index.js";
 import { AbstractShowcase } from "../../src/core/index.js";
 
@@ -298,10 +299,12 @@ function buildInterrogationRoom(
     metallic: 0.0,
   });
 
-  const mirrorMat = new StandardMaterial({
+  const mirrorMat = new FrostglassMaterial({
     color: new Color(0.15, 0.2, 0.25),
-    roughness: 0.01, // Highly polished mirror
-    metallic: 1.0,
+    roughness: 0.1, // Semi-frosted one-way observation mirror
+    metallic: 0.8,
+    blurRadius: 0.02,
+    transmission: 0.3,
   });
 
   const deskTopMat = new GlassMaterial({

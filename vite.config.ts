@@ -230,7 +230,6 @@ export default defineConfig({
           "src/apps/and-now/scenes/character-diorama/index.html",
         ),
         yad: resolve(import.meta.dirname, "showcases/yad/index.html"),
-        neonLabyrinth: resolve(import.meta.dirname, "showcases/neon-labyrinth/index.html"),
         lightCycleArena: resolve(import.meta.dirname, "showcases/light-cycle-arena/index.html"),
         pbrgen: resolve(import.meta.dirname, "public/tools/pbr-gen.html"),
         iblgen: resolve(import.meta.dirname, "public/tools/ibl-gen.html"),
