@@ -113,6 +113,13 @@ This document serves to record external sources, algorithms, mathematical deriva
   - [Schlick: "An Inexpensive BRDF Model for Physically-based Rendering" (1994)](https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.50.2297&rep=rep1&type=pdf)
 - **Usage:** The core specular reflectance model used across both WebGL2 and WebGPU standard PBR pipelines. Composes the microfacet distribution $D$ (Trowbridge-Reitz/GGX for long-tailed specular highlights), geometric shadowing/masking $G$ (Smith model with Schlick-GGX approximation), and Fresnel reflectance $F$ (Schlick approximation) with energy-conserving diffuse split ($k_D = (1 - k_S) \cdot (1 - \text{metallic})$).
 
+### Metallic-Roughness Sphere Grid (PBR Reference Test)
+
+- **File:** `showcases/35/showcase.ts`
+- **Authors/Gurus:** Khronos Group (glTF Sample Viewer / glTF-Sample-Assets contributors)
+- **Source:** [Khronos glTF-Sample-Assets: "MetalRoughSpheres"](https://github.com/KhronosGroup/glTF-Sample-Assets)
+- **Usage:** The de-facto industry reference scene for validating a metallic-roughness PBR implementation: a grid of identical spheres with metallic varying along one axis and roughness along the other, under a fixed base color. Showcase 35 reproduces this layout with `StandardMaterial` to visually cross-check PBR shading consistency across the WebGL1/WebGL2/WebGPU renderers via `?rendererType=`.
+
 ### Real-Time Rendering Pipeline & State Minimization
 
 - **Authors/Gurus:** Tomas Akenine-Möller, Eric Haines, Naty Hoffman

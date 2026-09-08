@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.77.17] - 2026-09-08
+
+### "Colours are the deeds and sufferings of light." - Johann Wolfgang von Goethe
+
+- **Features:**
+  - **Showcase 35 "PBR Sphere Grid":** the classic Khronos glTF Sample Viewer "MetalRoughSpheres" reference test -- a 7x7 grid of `StandardMaterial` spheres with metallic increasing left-to-right and roughness increasing bottom-to-top, for visually comparing PBR shading across the WebGL1/WebGL2/WebGPU renderers via `?rendererType=`.
+- **Architecture & Bugfixes:**
+  - **And Now? Character Diorama:** `OilSlickMaterial` gained an analytic environment-reflection term -- since the scene has no cubemap/skybox, a constant damp-ambient tint is weighted by a Schlick Fresnel term using the Khronos `KHR_materials_ior` F0 value for oil/water (IOR 1.333, F0=0.0204), instead of a real cubemap probe.
+  - Replaced the puddle's single-layer, static-frequency thin-film shimmer with two independently-scrolling noise layers -- a "wandering wave" look for the colour shimmer only, deliberately without any normal/geometry perturbation, preserving the material's documented "thick, settled pool that never moves" design.
+  - Replaced the thin-film shimmer's arbitrary phase-shifted-sine colour shift with a real two-beam thin-film interference calculation (Schlick Fresnel at both the air-film and film-base interfaces, phase difference from the optical path length, evaluated per RGB wavelength) -- the same physical model `KHR_materials_iridescence` is built on, simplified from its full spectral/Airy-sum form.
+- **Housekeeping & Docs:**
+  - `REFERENCES.md` gained an entry for the Khronos glTF-Sample-Assets "MetalRoughSpheres" reference test.
+
 ## [0.77.16] - 2026-09-08
 
 ### "We don't see things as they are, we see them as we are." - Anaïs Nin

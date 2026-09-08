@@ -54,6 +54,14 @@ export interface OilSlickMaterialOptions {
    * flat edge; 1 makes the rim read as fully translucent oil film over the actual pavement.
    * Defaults to 0.6. See `.agents/notes/oil-shader-roadmap.md` Phase 1. */
   floorVisibility?: number;
+  /** Tint of the constant, analytic environment reflection (no real cubemap in this scene --
+   * see `.agents/notes/oil-shader-roadmap.md` Phase 2). Defaults to a cool, damp basement-air
+   * tone, deliberately distinct from the warm `highlightColor` so grazing-angle glints read as
+   * "reflected surroundings" rather than more lamp light. */
+  envColor?: Color;
+  /** Strength of the environment reflection term, 0-1. Defaults to 0.4 -- a restrained addition,
+   * not a mirror finish. Set to 0 to disable. */
+  envReflectivity?: number;
 }
 
 /**
@@ -94,6 +102,10 @@ export class OilSlickMaterial extends AbstractMaterial {
   public rimDarkening: number;
   /** How much of the real, captured floor color shows through at the puddle's thin rim, 0-1. */
   public floorVisibility: number;
+  /** Tint of the constant, analytic environment reflection. */
+  public envColor: Color;
+  /** Strength of the environment reflection term, 0-1. */
+  public envReflectivity: number;
   /** Current time/frame, advanced externally by the scene's update loop -- drives only the slow
    * thin-film shimmer, nothing spatial. */
   public time: number = 0;
@@ -115,6 +127,8 @@ export class OilSlickMaterial extends AbstractMaterial {
       meniscusStrength = 0.65,
       rimDarkening = 0.95,
       floorVisibility = 0.6,
+      envColor = new Color(0.05, 0.06, 0.08),
+      envReflectivity = 0.4,
     } = options;
 
     this.color = color;
@@ -131,6 +145,8 @@ export class OilSlickMaterial extends AbstractMaterial {
     this.meniscusStrength = meniscusStrength;
     this.rimDarkening = rimDarkening;
     this.floorVisibility = floorVisibility;
+    this.envColor = envColor;
+    this.envReflectivity = envReflectivity;
 
     this.transparent = true;
   }
@@ -172,6 +188,14 @@ export class OilSlickMaterial extends AbstractMaterial {
       this.meniscusStrength,
       this.rimDarkening,
     ];
+    // u_pad1-3 and u_reflectivity are reserved StandardWebGPULayout filler slots, otherwise
+    // unused by this material -- repurposed to carry the analytic environment reflection's tint
+    // and strength (see .agents/notes/oil-shader-roadmap.md Phase 2), same "borrow a free named
+    // slot" convention as u_isTerrain -> floorVisibility above.
+    props["u_pad1"] = this.envColor.r;
+    props["u_pad2"] = this.envColor.g;
+    props["u_pad3"] = this.envColor.b;
+    props["u_reflectivity"] = this.envReflectivity;
 
     return this._renderManifest;
   }

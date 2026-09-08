@@ -7,6 +7,12 @@
 uniform vec4 u_liquidParams;
 uniform vec4 u_thresholds;
 uniform float u_isTerrain; // repurposed: floorVisibility (see OilSlickMaterial.ts)
+// u_pad1-3/u_reflectivity repurposed: analytic environment reflection tint + strength (no real
+// cubemap in this scene -- see .agents/notes/oil-shader-roadmap.md Phase 2).
+uniform float u_pad1;
+uniform float u_pad2;
+uniform float u_pad3;
+uniform float u_reflectivity;
 // Live-captured opaque colour buffer (see LiquidWaveMaterial/OpenWaterMaterial, which pioneered
 // this pattern) -- gives the puddle's thin rim a real view of the actual floor beneath it.
 uniform sampler2D u_opaqueMap;
@@ -29,14 +35,38 @@ float noise(vec2 p) {
     return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
 }
 
-// Muted thin-film interference (soap-film/oil-on-water colour shift): a restrained, mostly
-// desaturated sheen rather than a full saturated rainbow.
-vec3 thinFilm(float cosTheta, float thickness, float strength) {
-    float opd = thickness * 4.0 * cosTheta;
-    float r = 0.5 + 0.5 * sin(opd * 8.0);
-    float g = 0.5 + 0.5 * sin(opd * 8.5 + 1.0);
-    float b = 0.5 + 0.5 * sin(opd * 9.0 + 2.0);
-    vec3 rawIridescence = vec3(r, g, b);
+// Physically-motivated thin-film interference (KHR_materials_iridescence style): a simplified
+// two-beam approximation -- real Fresnel reflectance at both interfaces (air->film, film->base)
+// and a per-wavelength phase difference from the optical path length, combined via the classic
+// thin-film interference formula I = R1 + R2 + 2*sqrt(R1*R2)*cos(phase). Not the full Belcour &
+// Barla (2017) spectral/Airy-sum model the glTF extension itself uses, but a genuine physical
+// calculation per RGB wavelength instead of arbitrary phase-shifted sines. iridescenceIor=1.3
+// matches the extension's default; baseF0 reuses the Phase 2 oil/water Fresnel value (envF0 in
+// this file) as the film->base reflectance. Muted via `strength` towards desaturated, same
+// restrained-sheen intent as before. See .agents/notes/oil-shader-roadmap.md Abschnitt 6.3 and
+// https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_iridescence
+vec3 thinFilm(float cosTheta1, float thicknessNorm, float strength) {
+    const float iridescenceIor = 1.3;
+    const float filmF0 = 0.0169; // ((1.3-1)/(1.3+1))^2 -- air->film Fresnel at normal incidence
+    const float baseF0 = 0.0204; // oil/water Fresnel (IOR 1.333) -- film->base reflectance
+    const float thicknessMinNm = 100.0;
+    const float thicknessMaxNm = 400.0;
+
+    float sinTheta1Sq = 1.0 - cosTheta1 * cosTheta1;
+    float sinTheta2Sq = sinTheta1Sq / (iridescenceIor * iridescenceIor); // Snell's law
+    float cosTheta2 = sqrt(max(1.0 - sinTheta2Sq, 0.0));
+
+    float r1 = filmF0 + (1.0 - filmF0) * pow(1.0 - cosTheta1, 5.0);
+    float r2 = baseF0 + (1.0 - baseF0) * pow(1.0 - cosTheta2, 5.0);
+    float crossTerm = 2.0 * sqrt(max(r1 * r2, 0.0));
+
+    float thicknessNm = mix(thicknessMinNm, thicknessMaxNm, clamp(thicknessNorm, 0.0, 1.0));
+    float opd = 2.0 * iridescenceIor * thicknessNm * cosTheta2;
+
+    vec3 wavelengthsNm = vec3(650.0, 550.0, 450.0); // approximate R, G, B visible-light peaks
+    vec3 phase = (6.28318530718 / wavelengthsNm) * opd;
+    vec3 rawIridescence = clamp(vec3(r1 + r2) + crossTerm * cos(phase), 0.0, 1.0);
+
     float luminance = dot(rawIridescence, vec3(0.299, 0.587, 0.114));
     return mix(vec3(luminance), rawIridescence, strength);
 }
@@ -110,8 +140,14 @@ void main() {
     float radialFactor = clamp(distFromCenter / max(radius, 0.001), 0.0, 1.0);
     vec3 baseColor = mix(coreColor, edgeColor, smoothstep(0.1, 0.95, radialFactor) * rimDarkening);
 
-    // Subtle thin-film shimmer
-    float swirl = noise(v_worldPos.xz * 4.0 + time * 0.02);
+    // Subtle thin-film shimmer: two independently-scrolling noise layers (opposite directions/
+    // speeds, per oil.md's Godot reference) combined into the thickness variation, giving the
+    // shimmer a wandering "wave" structure instead of a single static-frequency drift. Colour-only
+    // -- deliberately no normal/geometry perturbation, see class doc ("thick, settled pool that
+    // never moves"); see .agents/notes/oil-shader-roadmap.md Phase 3.
+    vec2 waveUvA = v_worldPos.xz * 4.0 + time * vec2(0.02, 0.015);
+    vec2 waveUvB = v_worldPos.xz * 5.5 - time * vec2(0.015, 0.025);
+    float swirl = noise(waveUvA) * 0.5 + noise(waveUvB) * 0.5;
     float thickness = 0.5 + swirl * 0.5;
     vec3 iridescence = thinFilm(NdotV, thickness, iridescenceStrength);
     float fresnel = pow(1.0 - NdotV, 4.0);
@@ -122,7 +158,16 @@ void main() {
     float glow = highlightIntensity * exp(-(glowDist * glowDist) / (highlightRadius * highlightRadius));
 
     vec3 tint = sRGBToLinear(u_specColor.rgb);
-    vec3 litOilColor = colorWithSheen * finalLight + specular * tint + tint * glow;
+
+    // Analytic environment reflection: no real cubemap probe in this scene, so the "reflected
+    // surroundings" are approximated as a constant, dim ambient tone weighted by Schlick Fresnel.
+    // F0 = 0.0204 is the Khronos KHR_materials_ior value for IOR=1.333 (oil/water), see
+    // .agents/notes/oil-shader-roadmap.md Phase 2.
+    const float envF0 = 0.0204;
+    float envFresnel = envF0 + (1.0 - envF0) * pow(1.0 - NdotV, 5.0);
+    vec3 envReflection = sRGBToLinear(vec3(u_pad1, u_pad2, u_pad3)) * envFresnel * u_reflectivity;
+
+    vec3 litOilColor = colorWithSheen * finalLight + specular * tint + tint * glow + envReflection;
 
     // Grounded rim overlay: blend in the real floor colour AFTER lighting, not before -- the
     // captured u_opaqueMap sample is already fully shaded by the main opaque pass (it's the floor's

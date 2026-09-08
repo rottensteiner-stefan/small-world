@@ -67,33 +67,40 @@ Die Pfütze ist ein eigenständiges `Plane`-Mesh ohne jeden Zugriff auf Boden-Te
 
 ---
 
-## 2. Phase 2 — Env-Reflections über bestehende Cubemap (Priorität 2)
+## 2. Phase 2 — Env-Reflections über bestehende Cubemap (Priorität 2) — ERLEDIGT 2026-09-08
 
-**Warum:** Ebenfalls Copy-Pattern, kein Neubau. Kein echtes SSR, aber für ein stilisiertes Diorama vermutlich ausreichend.
+**Kurskorrektur während der Umsetzung:** Die Diorama-Szene besitzt keine Cubemap/Skybox (verifiziert per `grep` über `character-diorama/showcase.ts` — kein `Skybox`/`CubeTexture`). Der ursprüngliche Plan (`StandardMaterial.envMap`-Cubemap-Pattern kopieren) hätte zuerst ein Asset-Beschaffungsproblem gelöst, analog zu Phase 3. Stattdessen umgesetzt: eine **analytische Fresnel-Reflexion** ohne Cubemap-Textur — eine konstante, gedämpfte Umgebungsfarbe (kühles, feuchtes Kellerlicht statt Himmel), gewichtet mit Schlick-Fresnel und dem Khronos-F0-Wert (siehe Abschnitt 6.1). Erfüllt das Akzeptanzkriterium ohne neues Asset und ohne Änderungen am `StandardWebGPULayout`.
 
-**Vorgehen:**
-1. `StandardMaterial.envMap`-Pattern (Zeilen 215-315) lesen: `u_skybox`/`USE_ENV_MAP`-Flag, wie die Cubemap gesetzt/gebunden wird.
-2. Gleiches Flag + Uniform in `OilSlickMaterial` ergänzen, Fresnel-artige Mischung (Reflexion stärker bei flachem Blickwinkel) im Fragment-Shader ergänzen — da bereits `[LIGHT_CALC]` in OilSlick.frag.glsl:84 existiert, dort andocken.
-3. Prüfen, ob die Diorama-Szene bereits eine passende Cubemap/Skybox besitzt, die für eine Kanalisationsszene sinnvoll aussieht (eher gedämpfte, dunkle Reflexion statt Himmel).
+**Umgesetzt:**
+- Neue Parameter `envColor` (Default: gedämpftes kühles Blaugrau `(0.05, 0.06, 0.08)`) und `envReflectivity` (Default 0.4) auf `OilSlickMaterial`.
+- Wiederverwendung der bereits reservierten `StandardWebGPULayout`-Füllslots `u_pad1`/`u_pad2`/`u_pad3` (envColor r/g/b) und des bereits korrekt benannten `u_reflectivity`-Slots (Stärke) — keine Änderung an `StandardWebGPULayout.ts`/`structs.wgsl` nötig, gleiche "freier Slot"-Konvention wie `u_isTerrain`→`floorVisibility`.
+- Fresnel-Term `F0 + (1-F0) * (1-NdotV)^5` mit `F0 = 0.0204` (Khronos `KHR_materials_ior`, IOR=1.333) in allen 3 Shader-Varianten (GLSL300/GLSL100/WGSL) ergänzt, additiv in `litOilColor` eingemischt (gleiche Position wie Specular/Glow).
 
-**Akzeptanzkriterium:** Pfütze zeigt bei flachem Kamerawinkel eine erkennbare, gedämpfte Umgebungsreflexion statt rein lokaler Beleuchtung.
+**Live-Verifikation (alle 3 Renderer via `?rendererType=`):** Pixel-Diff zwischen `envReflectivity=0.4` und `=0`, isoliert auf einen Crop um die Pfütze (um Rauschen durch Fackel-Flicker/Charakter-Idle-Animation/UI außerhalb der Pfütze auszuschließen) und gegen einen Rausch-Pegel-Kontrollwert (gleicher Zustand, nur Zeit vergangen) normiert:
+- WebGL1: Signal 0.864 vs. Rauschen 0.490 (≈1.8×)
+- WebGL2: Signal 1.043 vs. Rauschen 0.409 (≈2.5×)
+- WebGPU: Signal 2.852 vs. Rauschen 1.541 (≈1.9×)
 
-**Geschätzter Aufwand:** klein bis mittel.
+Auf allen 3 Renderern liegt das Signal klar über dem Rausch-Pegel, keine Konsolenfehler. Effekt ist bewusst subtil ("restrained addition, not a mirror finish") — visuell am ehesten als leichte kühle Aufhellung am Pfützenrand bei flachem Blickwinkel erkennbar, nicht als offensichtliche Spiegelung.
+
+**Debug-Vorgehen (für künftige ähnliche Prüfungen):** temporäre `window.__app`-Exposition am Dateiende von `showcase.ts` (nach dem Test wieder entfernt), um per Puppeteer `scene.getObjectByName("OilSlick").material` zu greifen und `envReflectivity` zur Laufzeit umzuschalten, plus Kamera auf einen flachen Blickwinkel direkt über die Pfütze gesetzt (`camera.position`/`camera.target`).
 
 ---
 
-## 3. Phase 3 — Zweite Wellen-Normal-Map-Schicht (Priorität 3, bedingt)
+## 3. Phase 3 — Zweite Wellen-Normal-Map-Schicht (Priorität 3, bedingt) — ERLEDIGT 2026-09-08 (angepasst)
 
-**Warum bedingt:** Shader-seitig trivial (Textur-Sampler-Pattern existiert bereits: `u_normalMap`+Flag, StandardMaterial.ts:31,209), aber es fehlt eine passende Asset-Textur — nur Holz-/Pflaster-Normalmaps sind im Projekt vorhanden, keine Wellen-/Noise-Normalmap.
+**Kurskorrektur während der Umsetzung:** Der ursprüngliche Plan (echte Normal-Perturbation, zwei gegenläufig scrollende Normal-Maps) widerspricht dem expliziten Klassenkommentar von `OilSlickMaterial`: "Deliberately has NO vertex displacement or spreading/rippling animation [...] this is a thick, settled pool that never moves; only its thin-film shimmer drifts slowly." Eine echte Normalen-Verformung hätte die Specular-Highlight-Position über die ganze Pfütze zum Wackeln gebracht — genau das bewusst vermiedene "rippling", nicht nur ein Asset-Beschaffungsproblem.
 
-**Vorgehen:**
-1. Normal-Map-Textur beschaffen: entweder generieren (Gemini-Image-Helper, siehe [[reference_gemini_image_generation]]) oder eine kachelbare Noise-Normalmap aus einer bestehenden Quelle ableiten.
-2. Zwei Textur-Samples mit gegenläufigem Scrolling (UV-Offset über `time`-Uniform, der laut OilSlickMaterial.ts:91 bereits existiert) im Fragment-Shader addieren und normalisieren — analog zum Godot-Referenzcode in `oil.md` Abschnitt 3.
-3. Ergebnis nur als leichte Störung der bestehenden analytischen Noise-Shimmer-Logik einmischen, nicht ersetzen (sonst geht der stilisierte Look verloren).
+**Umgesetzt (angepasste Technik, gleiches Akzeptanzkriterium):** die "zwei gegenläufig scrollende Schichten"-Idee aus `oil.md`s Godot-Referenz auf die bereits vorhandene Thin-Film-Shimmer-**Farbberechnung** angewendet statt auf die Normale. Die einzelne Noise-Abtastung (`noise(v_worldPos.xz * 4.0 + time * 0.02)`), die die Filmdicke für den Farbschimmer antreibt, wurde durch zwei unabhängig gegenläufig wandernde Noise-Schichten (unterschiedliche Frequenz 4.0/5.5, gegenläufige Richtung/Geschwindigkeit) ersetzt — rein farblich, keine Geometrie-/Normalenänderung. Kein neues Textur-Asset, kein neuer Uniform-Slot nötig (nutzt die bestehende `iridescenceStrength`), in allen 3 Shader-Varianten (GLSL300/GLSL100/WGSL) identisch umgesetzt.
 
-**Akzeptanzkriterium:** Sichtbare, langsam wandernde Wellenstruktur statt statischem Shimmer, ohne dass der "Graphic Noir"-Comic-Look verloren geht.
+**Live-Verifikation (alle 3 Renderer via `?rendererType=`):** Zwei Screenshots im 3-Sekunden-Abstand, Pixel-Diff isoliert auf den Pfützen-Crop:
+- WebGL1: meanDiff 0.264, maxDiff 3.0
+- WebGL2: meanDiff 2.119, maxDiff 17.7
+- WebGPU: meanDiff 1.716, maxDiff 32.7
 
-**Geschätzter Aufwand:** mittel (Asset-Beschaffung ist der unsichere Teil).
+Auf allen 3 Renderern messbare, sichtbare Bewegung im Farbschimmer über Zeit, keine Konsolenfehler, keine sichtbaren Render-Fehler.
+
+**Formel-Upgrade nachgezogen (2026-09-08):** siehe Abschnitt 6.3a — die `thinFilm()`-Funktion nutzt jetzt eine echte, physikalisch hergeleitete Zwei-Strahl-Interferenzformel statt willkürlich phasenverschobener Sinus-Kurven.
 
 ---
 
@@ -115,3 +122,47 @@ Die Pfütze ist ein eigenständiges `Plane`-Mesh ohne jeden Zugriff auf Boden-Te
 3. Phase 3 (Wellen-Normal-Map) — 1-2 Sitzungen, abhängig von Asset-Beschaffung
 
 Nach jeder Phase: Live-Verifikation in allen 3 Renderern per Browser-Screenshot-Vergleich, kein Abschluss allein durch Build/Test-Grün (siehe [[feedback_collaborate_verification_discipline]]).
+
+---
+
+## 6. Offizielle Referenzformeln (Khronos glTF Material Extensions)
+
+Ergänzung vom 2026-09-08: `oil.md` fasst externe Engine-Recherche (UE5/Unity/Godot) zusammen; die Khronos-glTF-Spezifikation liefert für dieselben Effekte den formalen, physikalisch hergeleiteten Referenzwert. Kein 1:1-Implementierungsplan, sondern Zielformeln, gegen die sich bestehende Ad-hoc-Werte in `OilSlickMaterial` prüfen/kalibrieren lassen.
+
+### 6.1 `KHR_materials_ior` — Fresnel-Basiswert (F0)
+
+**F0 = ((IOR − 1) / (IOR + 1))²**
+
+Default-IOR 1.5 → F0 = 0.04 (entspricht "Specular = 0.5" in Unreal-Konvention, da `F0 = 0.08 × Specular`). Für Wasser-IOR 1.333: F0 ≈ 0.0204 → Specular-Slider ≈ 0.25 — deckt sich exakt mit dem in `oil.md` Abschnitt 1 notierten Wert. Bestätigt, dass die dortige Recherchezahl korrekt kalibriert war; für Phase 2 (Env-Reflections) direkt als Fresnel-Basiswert übernehmen statt neu zu schätzen.
+
+### 6.2 `KHR_materials_volume` — Trübung/Tiefenverlauf (Beer-Lambert)
+
+**T(x) = c^(x/d)**, äquivalent zum Extinktionskoeffizienten **σₜ = −ln(c) / d**
+
+- `attenuationColor` (c): Farbe, in die weißes Licht nach Durchqueren der `attenuationDistance` verfärbt wird.
+- `attenuationDistance` (d): mittlere Weglänge bis zur nächsten Streuung.
+- `thicknessFactor`: Volumendicke unter der Oberfläche.
+
+Das ist die formal korrekte Fassung dessen, was Phase 1 mit dem `floorVisibility`-Screen-Space-Blend approximiert hat (siehe Kurskorrektur in Abschnitt 1 — für ein flaches Mesh ohne echte Tiefeninformation war der pragmatische Ansatz richtig). Relevant als Zielformel, falls die Pfütze je um echte volumetrische Tiefe erweitert wird (z. B. ein Krater/eine Senke statt eines flachen Planes).
+
+### 6.3 `KHR_materials_iridescence` — Dünnschicht-Interferenz ("offizieller Ölfilm-Effekt")
+
+Basiert auf Belcour & Barla, *"A Practical Extension to Microfacet Theory for the Modeling of Varying Iridescence"* (2017). Modelliert Fresnel-Reflexion an zwei Grenzflächen (Luft→Film, Film→Basis); die Farbverschiebung ergibt sich aus der optischen Weglängendifferenz zwischen den beiden reflektierten Strahlen (destruktive Interferenz bei Vielfachen von λ/2), spektral integriert und nach RGB über den XYZ-Farbraum konvertiert.
+
+Parameter:
+- `iridescenceFactor` (0–1): Effektstärke.
+- `iridescenceIor` (Default 1.3): Brechungsindex des Dünnfilms.
+- `iridescenceThicknessMinimum`/`Maximum` (Default 100–400 nm): Filmdicke, steuert den Farbton der Interferenz.
+
+Das ist die physikalisch korrekte Zielformel für den in Phase 3 erwähnten Farb-Shimmer — ein möglicher Ersatz (oder eine Fundierung) für die aktuelle analytische `noise()`-Farbverschiebung in `OilSlick.frag.glsl:96-98`, falls der klassische Regenbogen-Ölfilm-Look gewünscht ist statt reinem stilisiertem Shimmer.
+
+#### 6.3a Umgesetzt (2026-09-08): vereinfachte Zwei-Strahl-Näherung statt vollem Spektral-/Airy-Sum-Modell
+
+Die volle Belcour-&-Barla-Formel (spektrale Integration über XYZ-Sensitivitätsfunktionen, Airy-Summe für Mehrfachreflexionen) wäre für den stilisierten Look deutlich zu aufwändig. Stattdessen umgesetzt: die klassische **Zwei-Strahl-Interferenzformel** `I(λ) = R1 + R2 + 2·√(R1·R2)·cos(phase(λ))`, mit echten Schlick-Fresnel-Termen an beiden Grenzflächen (R1 = Luft→Film mit `iridescenceIor=1.3`, R2 = Film→Basis mit dem Phase-2-`envF0`-Wert 0.0204) und einer Phasenberechnung aus der optischen Weglänge (`2 · iridescenceIor · thicknessNm · cosTheta2`) für drei Referenzwellenlängen (650/550/450 nm für R/G/B). Ersetzt die alte `thinFilm()`-Funktion 1:1 (gleiche Signatur `thinFilm(cosTheta, thicknessNorm, strength)`), keine Änderung an den Aufrufstellen nötig, in allen 3 Shader-Varianten identisch.
+
+**Live-Verifikation:** Bei extrem flachem Testwinkel lief die Pfütze zunächst komplett weiß/ausgewaschen — kein Formel-Bug, sondern physikalisch korrektes Verhalten: bei echtem Streiflicht geht `R1` (Schlick) gegen 1.0 für alle Wellenlängen gleichermaßen, der achromatische Anteil überdeckt dann die farbige Interferenz-Modulation (reale Dünnschichten "weißen" bei extremem Streiflicht ebenfalls aus). Mit einem moderateren Testwinkel zeigte sich auf allen 3 Renderern (WebGL1/WebGL2/WebGPU) ein echter, physikalisch plausibler Farbverlauf (warmes Orange nahe Normaleneinfall → kühlerer Farbton zum Rand) bei `iridescenceStrength=1.0` (testweise hochgesetzt, Default bleibt 0.3), keine Konsolenfehler. Mit Default-Kamera/-Parametern sieht die Szene weiterhin unverändert normal aus.
+
+**Quellen:**
+- [KHR_materials_ior](https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_ior)
+- [KHR_materials_volume](https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_volume)
+- [KHR_materials_iridescence](https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_iridescence)
