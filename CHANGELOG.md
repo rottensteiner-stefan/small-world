@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.77.23] - 2026-09-08
+
+### "The sun does not realize how wonderful it is until after a room is made." - Louis Kahn
+
+- **Features:**
+  - **Showcase 29 ("Sponza Atrium: Global Illumination & Volumetric Light Shafts"):** completely restored and migrated to the full Khronos Sponza Atrium glTF model with 69 optimized WebP PBR textures, raking directional sunlight cascades, flickering cloister lanterns, and atmospheric god rays streaming through clerestory arches.
+  - Added Mediterranean sky panorama skydome sphere enclosing the exterior vistas.
+  - Added new `FlyController` for 6-DOF free spectator flight with true 3D pitch/yaw navigation, Sprint (Shift) and Crawl (Alt/Ctrl) modifiers.
+- **Architecture & Bugfixes:**
+  - `Cylinder` geometry now supports `openEnded: true` to skip generating top and bottom cap faces (ideal for volumetric light shafts, exhaust plumes, and hollow tubes).
+  - Fixed an issue where unpopulated `staticOctree` culling in scenes with un-transformed glTF nodes caused all meshes to be wrongly tagged as outside the frustum (`inFrustum = false`).
+  - Added `FlyController` unit tests and comprehensive glTF loading tests for multi-primitive models.
+
 ## [0.77.22] - 2026-09-08
 
 ### "Simplicity is prerequisite for reliability." - Edsger W. Dijkstra

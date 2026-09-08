@@ -19,6 +19,8 @@ export interface CylinderOptions {
   thetaStart?: number;
   /** The central angle of the sector in radians. Defaults to 2 * PI (full cylinder). */
   thetaLength?: number;
+  /** Whether the cylinder ends are open (no top and bottom caps). Defaults to false. */
+  openEnded?: boolean;
 }
 
 /**
@@ -41,6 +43,8 @@ export class Cylinder extends AbstractGeometry {
   public thetaStart: number;
   /** The central angle in radians. */
   public thetaLength: number;
+  /** Whether the cylinder ends are open (no caps). */
+  public openEnded: boolean;
 
   /**
    * Creates a new Cylinder geometry.
@@ -56,6 +60,7 @@ export class Cylinder extends AbstractGeometry {
       heightSegments = 1,
       thetaStart = 0,
       thetaLength = MathUtils.TWO_PI,
+      openEnded = false,
     } = options;
 
     this.radiusTop = Math.max(0, radiusTop);
@@ -65,6 +70,7 @@ export class Cylinder extends AbstractGeometry {
     this.heightSegments = Math.max(1, Math.floor(heightSegments));
     this.thetaStart = thetaStart;
     this.thetaLength = thetaLength;
+    this.openEnded = openEnded;
 
     this.generateGeometryData();
   }
@@ -114,7 +120,7 @@ export class Cylinder extends AbstractGeometry {
     }
 
     // --- Top cap ---
-    if (0 < this.radiusTop) {
+    if (!this.openEnded && 0 < this.radiusTop) {
       const topOffset: number = v.length / 3;
       v.push(0, hh, 0); // Center point
       uv.push(0.5, 0.5);
@@ -133,7 +139,7 @@ export class Cylinder extends AbstractGeometry {
     }
 
     // --- Bottom cap ---
-    if (0 < this.radiusBottom) {
+    if (!this.openEnded && 0 < this.radiusBottom) {
       const bottomOffset: number = v.length / 3;
       v.push(0, -hh, 0); // Center point
       uv.push(0.5, 0.5);
