@@ -1,5 +1,37 @@
 # Changelog
 
+## [0.77.24] - 2026-09-09
+
+### "A river cuts through rock not because of its power, but its persistence."
+
+- **Features:**
+  - Showcase 29 ("Sponza Atrium"): reworked Mediterranean lighting into a Crytek-style
+    chiaroscuro pass with ACES Filmic tonemapping, bloom, HBAO, and vignette; added simulated
+    diffuse GI bounce (arch-soffit and courtyard bounce lights) and a live tuning HUD with
+    presets, keyboard shortcuts, and per-parameter sliders. Volumetric god rays are now off by
+    default (toggle with `[V]` or the HUD checkbox).
+- **Architecture & Bugfixes:**
+  - WebGPU `GPUTextureResourceCache.acquireTextures()` no longer wholesale-replaces a texture's
+    tracked-key snapshot on every call; a narrower-keyed manifest (e.g. the depth pre-pass's)
+    could spuriously release+recreate a texture another pass still had bound, churning every GPU
+    texture in the scene every frame.
+  - `DepthPrePassGPU` now groups alpha-cutout objects by their real diffuse texture instead of
+    sharing one never-updated `DepthMaterial`, fixing both the texture churn above and a latent
+    bug where alpha-tested geometry got early-Z'd as fully opaque.
+  - WebGL2 clustered light culling: the packed cluster grid/index textures no longer alias
+    `WebGL2Renderer`'s PCSS raw-depth read (both wanted texture unit 14); `WebGLClusterCullPass`
+    now guards its fixed-unit binds against the device's real `MAX_TEXTURE_IMAGE_UNITS` and
+    degrades gracefully instead of silently corrupting on 16-unit-minimum hardware.
+  - HBAO's WGSL NaN guards (added alongside the existing GLSL ones) were incomplete -- `isnan`/
+    `isinf` have no reliable WGSL builtin, so two of the three guards were dropped during
+    porting. Completed via the portable `x != x` NaN check in both `AO.frag.wgsl` and
+    `PostProcess.frag.wgsl`.
+- **Housekeeping & Docs:**
+  - Removed the two completed review-cleanup note directories (`full-review-2026-09-03/`,
+    `continous-review-2026-09-04/`) now that their findings are addressed.
+  - Introduced `.agents/notes/backlog.md`, a living, project-wide journal of ideas, open items,
+    and their decisions/status, replacing ad-hoc session-scoped TODO notes.
+
 ## [0.77.23] - 2026-09-08
 
 ### "The sun does not realize how wonderful it is until after a room is made." - Louis Kahn
