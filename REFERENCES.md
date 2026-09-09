@@ -287,6 +287,22 @@ This document serves to record external sources, algorithms, mathematical deriva
 
 ## Assets & Fonts
 
+### Damaged Helmet (glTF PBR Sample Model)
+
+- **File:** `showcases/13/assets/DamagedHelmet.glb`, `showcases/13/assets/LICENSE.md`, `showcases/13/assets/README.md`, `showcases/13/assets/metadata.json`
+- **Authors/Gurus:** theblueturtle_ (original model), ctxwing (rebuild & conversion to glTF)
+- **Source:** [Khronos glTF-Sample-Assets: "DamagedHelmet"](https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/DamagedHelmet) (glTF-Binary variant)
+- **License:** © 2016 theblueturtle_, [CC-BY-NC-4.0](https://creativecommons.org/licenses/by-nc/4.0/legalcode) (earlier version of the model); © 2018 ctxwing, [CC-BY-4.0](https://creativecommons.org/licenses/by/4.0/legalcode) (rebuild/conversion). Both licenses apply combined — non-commercial use with attribution.
+- **Usage:** The de-facto industry-standard glTF 2.0 PBR reference model (full metallic-roughness workflow with albedo, normal, ORM, and emissive maps) used in Showcase 13 to validate `GltfLoader` and PBR shading against a known-good asset across all three renderers.
+
+### Glass Broken Window (glTF Transmission Sample Model)
+
+- **File:** `showcases/36/assets/GlassBrokenWindow.glb`, `showcases/36/assets/LICENSE.md`, `showcases/36/assets/README.md`, `showcases/36/assets/metadata.json`
+- **Authors/Gurus:** Wayfair / Eric Chadwick
+- **Source:** [Khronos glTF-Sample-Assets: "GlassBrokenWindow"](https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/GlassBrokenWindow) (glTF-Binary variant)
+- **License:** © 2023 Wayfair, [CC-BY-4.0](https://creativecommons.org/licenses/by/4.0/legalcode).
+- **Usage:** The official Khronos reference asset for combining `KHR_materials_transmission` (real glass refraction) with `alphaMode:"MASK"` (jagged cutout holes for the missing shards). Used in Showcase 36 to validate `GltfLoader`'s alpha-tested transparent material path against a known-good glTF sample across all three renderers.
+
 ### Dungeon Font (Yet Another Dungeon HUD)
 
 - **File:** `showcases/yad/assets/fonts/Dungeon.ttf`
