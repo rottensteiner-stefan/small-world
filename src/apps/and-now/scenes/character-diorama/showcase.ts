@@ -1450,7 +1450,7 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
           this._lanternPointLight.distance = 4.5;
           this._lanternPointLight.position.set(0, -0.16, 0);
           this._lanternGroup.add(this._lanternPointLight);
-          this._dioramaRoot!.add(this._lanternGroup);
+          this.scene.add(this._lanternGroup);
         }
         this._lanternGroup.isVisible = this._lanternOn;
         if (this._lanternPointLight) {
@@ -1523,12 +1523,34 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
    * far from the hand -- confirmed live via `bone.getAccumulatedWorldScale()` returning ~94.44 on
    * `mixamorig:LeftHandMiddle1` for `player-male`. Dividing the local offset by that scale before
    * transforming cancels it back out (matrix = T * R * S, so feeding `offset / S` yields
-   * `T + R * offset`, the correctly-rotated but unscaled result); the tripo-rigged Yoshi skeleton
-   * has unit bone scale, so this is a no-op there. */
+   * `T + R * offset`, the correctly-rotated but unscaled result).
+   *
+   * Yoshi (an Easter-egg asset, log #77, auto-rigged by Mixamo rather than hand-authored) uses
+   * this exact same bone-tracking path too, resolving to `mixamorig:LeftHandIndex1` same as the
+   * humans -- an earlier session wrongly concluded his auto-placed hand bone was nowhere near his
+   * visible paw and gave him a separate fixed-offset hack instead. That reading was a measurement
+   * artifact (captured before the idle_torch pose had actually blended in, catching him mid
+   * bind-pose); dumping his full bone-world-position list once posed showed his whole left-arm
+   * chain -- Shoulder/Arm/ForeArm/Hand/Thumb1/Index1 -- clustered tightly at his chest as expected,
+   * and re-verified stable (~1cm lantern-to-bone distance) across a simulated 180-frame
+   * `walk_torch` loop. His bone scale is already ~1 (no FBX cm-to-m artifact), so the `/ boneScale`
+   * division below is simply a no-op for him, not a special case.
+   *
+   * `_lanternGroup` MUST be parented to `this.scene` (the true top-level root), never to
+   * `_dioramaRoot` -- this method always computes and assigns a WORLD-space position, which is
+   * only correct if the lantern's parent has an identity transform. `_dioramaRoot` is exactly the
+   * object the turntable feature rotates (see `update()`'s `_turntableActive` block), so the one
+   * time it had been parented there instead, the lantern silently drifted away from the hand by
+   * however far the turntable had spun -- invisible at rest (rotation 0) or from a fixed camera
+   * angle, but visible from any other viewing angle or once the turntable moves it. Live-diagnosed
+   * 2026-09-09 by reproducing a user-reported "lantern floats away from the hand" report that
+   * didn't show up in an earlier same-day check (which never rotated `_dioramaRoot`). */
   private _syncLanternTransform(): void {
-    const bone = this._lanternHandBone;
     const lantern = this._lanternGroup;
-    if (!bone || !lantern) return;
+    if (!lantern || !this._player) return;
+
+    const bone = this._lanternHandBone;
+    if (!bone) return;
 
     // Finger bones (Middle1/Index1) have their origin at the finger base inside the palm already;
     // wrist bones (LeftHand) need a forward offset along +Y to reach the palm.

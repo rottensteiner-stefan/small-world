@@ -943,6 +943,79 @@ befüllen.
   - [`coding-guide/SKILL.md`](file:///Users/srottensteiner/PhpstormProjects/small-world/.agents/skills/coding-guide/SKILL.md): Neue Richtlinien für Template-Tokens (Makro-Schutz in Kommentaren) und WGSL Entry-Point Scope-Isolation.
 - **Status:** Kollaborations-Session sauber mit `/collaborate --stop` beendet (`oil.pid` archiviert), Skills aktualisiert.
 
+---
+
+## 101. Laternen-Bug bei Yoshi gefunden & pragmatisch gelöst (2026-09-09)
+- **Live-Diagnose (Character Diorama, alle drei Figuren geprüft):** Männlich und Weiblich hängen
+  die Laterne in jeder Pose korrekt in der linken Hand. Bei **Yoshi** schwebte sie komplett
+  losgelöst auf Hüft-/Schwanzhöhe bzw. am Boden.
+- **Root Cause (kein Formel-Bug):** Live-Logging der aufgelösten Hand-Bone-Weltposition zeigte,
+  dass `mixamorig:LeftHandIndex1` bei Yoshi nirgendwo in der Nähe seiner sichtbaren Stummelärmchen
+  liegt (die z.B. im `idle_torch`-Pose am Maul hochgezogen sind, während der Bone auf
+  Bauchnabelhöhe sitzt). Ursache: Yoshi ist laut Eintrag 77 ein Easter-Egg mit rein automatischem
+  Mixamo-Auto-Rigging auf einem Sketchfab/Nintendo-Mesh — Skin-Bindung und Skelett-Semantik passen
+  dort nicht zusammen. Bone-Tracking ist damit grundsätzlich das falsche Werkzeug, kein
+  Koeffizient hätte das repariert.
+- **Fix:** `_syncLanternTransform()` in [`character-diorama/showcase.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/scenes/character-diorama/showcase.ts)
+  und [`flakturm-tunnel/showcase.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/scenes/flakturm-tunnel/showcase.ts)
+  (identisches Pattern in beiden Szenen) bekommt für `characterType === "yoshi"` einen eigenen,
+  von Hand kalibrierten Fest-Offset relativ zur Charakter-Wurzel statt Bone-Tracking — bewusste,
+  mit dem User abgestimmte Pragma-Lösung, da Yoshi kein kanonischer Story-Charakter ist. Live in
+  beiden Szenen (Diorama: alle Idle/Walk-Posen; Flakturm-Tunnel: `?char=yoshi`) verifiziert,
+  Männlich/Weiblich als Regressionscheck erneut bestätigt.
+- **Status:** `npx tsc --noEmit` grün, keine Scope-Erweiterung über den Lantern-Fix hinaus.
+
+---
+
+## 102. Zweiter, unabhängiger Laternen-Bug: falsches Parent-Objekt (2026-09-09)
+- **User-Report widersprach der obigen "erledigt"-Verifikation:** Ein vom User geteilter
+  Screenshot (Männlich, `idle_torch`) zeigte die Laterne deutlich losgelöst von der Hand — obwohl
+  Eintrag 101 genau diese Kombination als korrekt bestätigt hatte. Hartes Neuladen beim User
+  änderte nichts.
+- **Repro-Schlüssel:** Reine Charakter- oder Kamera-Rotation zeigte den Bug NICHT (beides weiterhin
+  korrekt). Erst das Rotieren des **gesamten Dioramas** (`_dioramaRoot.rotation.y`, genau das, was
+  die eingebaute Turntable-Funktion tut) reproduzierte ihn zuverlässig bei jedem Winkel außer 0.
+- **Root Cause:** `_lanternGroup` wurde in [`character-diorama/showcase.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/scenes/character-diorama/showcase.ts)
+  fälschlich an `_dioramaRoot` gehängt statt an `this.scene` (den echten Welt-Root) — anders als im
+  Schwester-File `flakturm-tunnel/showcase.ts`, das dem im Docstring dokumentierten Muster korrekt
+  folgt. `_syncLanternTransform()` berechnet und setzt aber immer eine **Welt**-Position; das ist
+  nur korrekt, wenn der Parent eine Identitäts-Transformation hat. `_dioramaRoot` ist exakt das
+  Objekt, das die Turntable-Funktion dreht — sobald das passiert (auch nur kurz, z.B. durch
+  Ausprobieren der Turntable-Taste), driftet die Laterne unsichtbar in Weltkoordinaten weg,
+  bleibt aber bei Rotation 0 unauffällig. Erklärt, warum die vorherige Verifikation (Eintrag 101,
+  nie mit rotiertem Turntable getestet) den Bug nicht fand.
+- **Fix:** Eine Zeile — `this._dioramaRoot!.add(this._lanternGroup)` → `this.scene.add(this._lanternGroup)`.
+  Numerisch über einen vollen 360°-Sweep von `_dioramaRoot.rotation.y` verifiziert: Laterne-zu-Hand-
+  Abstand konstant ~1cm bei jedem getesteten Winkel (vorher: bis zu mehreren zehn cm).
+- **Lektion:** Ein Fix ist nicht "verifiziert", nur weil er am Standard-Blickwinkel funktioniert —
+  Objekte, die an einen rotierbaren Parent gehängt sind, brauchen einen Test, der genau diese
+  Rotation durchspielt.
+- **Status:** `npx tsc --noEmit` grün, Debug-Instrumentierung vollständig entfernt.
+
+---
+
+## 103. Yoshi-Sonderfall aus Eintrag 101 zurückgenommen: war Messfehler, nicht Bone-Defekt (2026-09-10)
+- **Anlass:** User fragte, ob Yoshis Fest-Offset-Notlösung (Eintrag 101) mit den frischen
+  Erkenntnissen aus Eintrag 102 jetzt sauberer gelöst werden kann.
+- **Neue Analyse:** Vollständiger Bone-Positions-Dump von Yoshis vollem Skelett (34 Bones) im
+  bereits eingeblendeten `idle_torch`-Pose zeigt: seine gesamte linke Arm-Kette
+  (Shoulder/Arm/ForeArm/Hand/Thumb1/Index1, inkl. dem in Eintrag 101 verdächtigten
+  `mixamorig:LeftHandIndex1`) clustert sauber und plausibel an seiner Brust — nicht bei Hüfte/
+  Schwanz wie ursprünglich gemessen. Die alte Messung (Eintrag 101) war vermutlich ein
+  Bind-Pose-Snapshot vor dem Einblenden der Animation, kein echter Rig-Defekt.
+- **Fix:** Yoshi-Sonderfall (Fest-Offset relativ zur Charakter-Wurzel) in
+  [`character-diorama/showcase.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/scenes/character-diorama/showcase.ts)
+  und [`flakturm-tunnel/showcase.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/scenes/flakturm-tunnel/showcase.ts)
+  entfernt — er nutzt jetzt denselben generischen Bone-Tracking-Pfad wie Männlich/Weiblich. Über
+  einen simulierten 180-Frame-`walk_torch`-Loop verifiziert: Laterne-zu-Bone-Abstand konstant
+  ~1cm (identisch zum menschlichen Fall). Live in `idle_torch`, `idle_1` und `walk_torch`
+  bestätigt; Männlich als Regressionscheck erneut geprüft.
+- **Lektion:** Ein Live-gemessener "Fakt" (Bone X ist weit von der Mesh entfernt) kann trotzdem
+  falsch sein, wenn die Messung zum falschen Zeitpunkt im Animations-Lifecycle stattfand — vor
+  einer teuren Sonderlösung lohnt sich ein zweiter, sauber getimter Messdurchlauf.
+- **Status:** `npx tsc --noEmit` grün, Debug-Instrumentierung (Bone-Marker-Helper, `__app`-Hook)
+  vollständig entfernt.
+
 
 
 

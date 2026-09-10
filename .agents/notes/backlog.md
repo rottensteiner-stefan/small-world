@@ -1,7 +1,7 @@
-# Project Log
+# Project Backlog
 
-> Lebendes, projektweites Gedächtnis für Ideen, offene Punkte und die Entscheidungen dazu — kein
-> Ersatz für ein Ticket-/Backlog-Tool, sondern ein chronologisches Journal. Einträge werden nie
+> Lebendes, projektweites Gedächtnis für Ideen, offene Punkte und die Entscheidungen dazu — als
+> chronologisches Journal geführt statt als klassisches Ticket-Board. Einträge werden nie
 > gelöscht oder umgeschrieben, nur mit neuem Status fortgeschrieben (siehe Legende). Neueste
 > Einträge stehen oben, wie bei `CHANGELOG.md`. Bei Sessionstart lohnt ein Blick auf die
 > offenen (💡/📋/🔜) Punkte der letzten Einträge, bevor man neu anfängt zu suchen.
@@ -17,6 +17,31 @@
 Ein Eintrag darf über mehrere Log-Daten hinweg seinen Status ändern (z. B. 💡 → 📋 → ✅) — dann
 am ursprünglichen Eintrag ein `→ Update YYYY-MM-DD: …` anhängen statt einen Duplikat-Eintrag zu
 erzeugen.
+
+---
+
+## 2026-09-09/10 — And Now?: Laternen-Griff-Bug (Diorama & Flakturm-Tunnel)
+
+Nutzer-gemeldeter Bug: Laterne hängt bei manchen Figuren/Ansichten nicht in der Hand. Drei
+unabhängige Ursachen gefunden und gefixt, vollständige Herleitung in
+[`src/apps/and-now/docs/log.md`](../../src/apps/and-now/docs/log.md) Einträge 101–103.
+
+- ✅ **Yoshi (Easter-Egg-Charakter) hielt die Laterne nicht.** Ursprünglich fälschlich als
+  kaputtes Auto-Rig diagnostiziert (Messung im Bind-Pose-Frame vor Animations-Blend); echter
+  Bone-Dump nach korrektem Posieren zeigte, dass sein Hand-Bone sauber funktioniert. Nutzt jetzt
+  denselben generischen Bone-Tracking-Pfad wie Männlich/Weiblich, kein Sonderfall mehr nötig.
+- ✅ **`character-diorama`: Laterne am falschen Parent-Objekt.** `_lanternGroup` hing an
+  `_dioramaRoot` statt am echten `scene`-Root; da der Sync-Code immer eine Welt-Position setzt,
+  driftete die Laterne, sobald `_dioramaRoot` rotiert wurde (z. B. durch die Turntable-Funktion)
+  — unsichtbar in der Standardansicht, daher zunächst übersehen. Eine Zeile Fix, über
+  360°-Rotations-Sweep verifiziert.
+  💡 **Lektion für künftige Sessions:** ein "gefixt"-Befund, der nur am Standard-Kamerawinkel
+  geprüft wurde, ist kein vollständiger Beweis, wenn das betroffene Objekt an einem rotierbaren
+  Parent hängt — explizit die Rotation durchspielen.
+- ✅ **`character-diorama`/`flakturm-tunnel`: männliche/weibliche Figur bereits korrekt**, keine
+  Änderung nötig.
+
+Status: `npx tsc --noEmit` grün, live in beiden Szenen für alle drei Figuren nutzerbestätigt.
 
 ---
 
@@ -80,3 +105,17 @@ Entstanden während der Jagd nach grün/blauen Block-Artefakten auf den Sponza-V
 - ✅ **Showcase 29 — Docstring korrigiert** (God Rays sind jetzt standardmäßig aus, war nicht
   dokumentiert) und **God-Ray-Flicker-Loop übersprungen, wenn Gruppe unsichtbar** (unnötige
   Arbeit pro Frame). Beides Teil von Commit `eef5804e`.
+
+- ✅ **AO/PostProcess HBAO — WGSL-NaN-Guards nachgezogen.** Die zu Sessionbeginn bereits im
+  Working Tree liegenden GLSL-NaN-Guards (`AO.frag.glsl`, `PostProcess.frag.glsl`) waren
+  korrekt und vollständig; hart geprüft zeigte sich aber, dass die WGSL-Portierung
+  (`AO.frag.wgsl`, `PostProcess.frag.wgsl`) unvollständig war — `isnan()`/`isinf()` existieren
+  praktisch nicht mehr als WGSL-Builtins (aus der Spec entfernt, deshalb sonst nirgends im
+  Projekt verwendet), daher wurden zwei der drei Guards beim Portieren schlicht weggelassen.
+  `max()`/`clamp()` haben in WGSL bei NaN-Eingabe laut Spec undefiniertes Verhalten — der exakt
+  selbe Bug, den GLSL verhindert, konnte auf WebGPU also weiterhin unbehandelt auftreten.
+  Fix: portabler NaN-Check via Selbstungleichheit (`x != x`) an den fehlenden Stellen ergänzt;
+  `Inf` brauchte keinen Extra-Check, da IEEE754-Ordnung dafür wohldefiniert ist und das
+  bestehende `clamp()` es schon korrekt abfängt. Live auf WebGPU und WebGL2 verifiziert (HBAO
+  aktiv, keine Artefakte, Konsole sauber). Commit `705fe005` «The same law applies everywhere,
+  whether or not anyone is watching to enforce it.»

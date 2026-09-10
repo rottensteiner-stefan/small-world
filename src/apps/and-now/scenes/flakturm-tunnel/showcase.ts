@@ -699,11 +699,23 @@ class AndNowScene2 extends AbstractShowcase {
    *    all sidesteps this entirely, rather than compensating for it every frame.
    * This mirrors `GadgetInspector`'s `_objectAxes` gizmo: added to `this._scene` (not the selected
    * object), then synced from the tracked object's world transform every frame instead of being a
-   * scene-graph child of it -- here we copy only position, never rotation or scale. */
+   * scene-graph child of it -- here we copy only position, never rotation or scale.
+   *
+   * Yoshi (an Easter-egg asset, not hand-authored -- Mixamo's automatic auto-rigger) uses this
+   * exact same path too. An earlier pass here special-cased him with a fixed by-eye offset,
+   * reasoning his auto-placed `LeftHandIndex1` sat nowhere near his visible paw -- that reading
+   * turned out to be a measurement artifact in the sibling `character-diorama` scene (captured
+   * before the torch pose had actually blended in). Re-checked there with a full bone-position
+   * dump once posed and a 180-frame simulated `walk_torch` sweep: his whole left-arm chain
+   * clusters correctly at his chest, stable to ~1cm. His bone scale is already ~1 (no FBX cm-to-m
+   * artifact baked in), so the `/ boneScale` division below is simply a no-op for him. See
+   * `character-diorama/showcase.ts`'s `_syncLanternTransform()` for the fuller writeup. */
   private _syncLanternTransform(): void {
-    const bone = this._lanternHandBone;
     const lantern = this._lanternGroup;
-    if (!bone || !lantern) return;
+    if (!lantern || !this._player) return;
+
+    const bone = this._lanternHandBone;
+    if (!bone) return;
 
     // Finger bones (Middle1/Index1) have their origin at the finger base inside the palm already;
     // wrist bones (LeftHand) need a forward offset along +Y to reach the palm.

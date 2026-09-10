@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.77.25] - 2026-09-10
+
+### "What we observe is not nature itself, but nature exposed to our method of questioning." - Werner Heisenberg
+
+- **Architecture & Bugfixes:**
+  - "And Now?" character diorama & Flakturm-Tunnel: fixed the hand-held lantern for all three
+    playable figures (male, female, Yoshi). Three independent causes, found one at a time as each
+    "fixed" state turned out to still be wrong from an untested angle: Yoshi's hand bone was
+    misdiagnosed as broken from a bind-pose snapshot taken before his animation had blended in
+    (it wasn't — he now tracks it exactly like the humans); the diorama's lantern was parented to
+    the rotatable `_dioramaRoot` instead of the true scene root, so its always-world-space
+    position silently drifted the moment the diorama's turntable rotated it, invisible at the
+    default camera angle; both scenes' lantern-hand-bone resolution otherwise confirmed correct
+    for the human rigs.
+
 ## [0.77.24] - 2026-09-09
 
 ### "A river cuts through rock not because of its power, but its persistence."
