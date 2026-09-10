@@ -49,6 +49,15 @@ export interface StageMovementBehaviorOptions {
    * needed) for a rig that IS authored facing -Z. */
   facingOffset?: number;
   startFacing?: "left" | "right" | "front" | "back";
+  /**
+   * Extra radians added only to the INITIAL facing angle (on top of `startFacing`/`facingOffset`),
+   * never to angles computed from movement. Purely cosmetic: a `startFacing` that lands the
+   * character's stance exactly in line with a fixed, non-orbitable camera (e.g. dead-on from
+   * behind) can make one leg fully self-occlude the other in the idle pose -- correct geometry,
+   * but a jarring first impression since a fixed camera never lets the player see past it. A few
+   * degrees of nudge breaks that exact alignment without otherwise changing the intended starting
+   * orientation. Defaults to 0 (no nudge). */
+  startFacingNudge?: number;
 }
 
 /**
@@ -75,6 +84,7 @@ export class StageMovementBehavior extends Behavior {
   private _u: number;
   private _v: number;
   private _startFacing: "left" | "right" | "front" | "back";
+  private _startFacingNudge: number;
   private _state: "IDLE" | "WALK" | "RUN" = "IDLE";
   private _targetAngle: number = 0;
   private _initialized: boolean = false;
@@ -91,6 +101,7 @@ export class StageMovementBehavior extends Behavior {
     this._u = options.startUV?.u ?? 0.5;
     this._v = options.startUV?.v ?? 0.5;
     this._startFacing = options.startFacing ?? "front";
+    this._startFacingNudge = options.startFacingNudge ?? 0;
     this.onStateChange = options.onStateChange;
     this.onZoneChange = options.onZoneChange;
   }
@@ -124,6 +135,7 @@ export class StageMovementBehavior extends Behavior {
       } else {
         this._targetAngle = Math.PI + this.facingOffset;
       }
+      this._targetAngle += this._startFacingNudge;
       obj.rotation.y = this._targetAngle;
       if (this.activeZone) this.onZoneChange?.(this.activeZone);
     }

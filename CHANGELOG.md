@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.77.26] - 2026-09-10
+
+### "Everything we hear is an opinion, not a fact. Everything we see is a perspective, not the truth." - Marcus Aurelius
+
+- **Features:**
+  - "And Now?" Flakturm-Tunnel: the previously fixed stage camera can now be zoomed with the mouse
+    wheel (a straight dolly along its own axis, clamped so it never crosses the background plane
+    or pulls back past the original framing) and the character can be spun in place with
+    `[Shift]+[Left]`/`[Shift]+[Right]` without triggering normal movement.
+- **Architecture & Bugfixes:**
+  - Flakturm-Tunnel: the character's default starting orientation faced directly away from the
+    (permanently fixed) camera, landing its stance exactly on the one viewing axis where a leg
+    self-occludes behind the other -- correct perspective, but guaranteed to happen at every
+    single session start rather than being a rare angle. `StageMovementBehavior` gained a small
+    `startFacingNudge` option (a few degrees added only to the initial facing) to break that exact
+    alignment without changing the intended starting direction.
+  - Flakturm-Tunnel: walk/run speed roughly halved (`StageMovementBehavior`'s `speed`) after the
+    original pace crossed the entire stage, and a full staircase, in about a second -- too fast to
+    read as walking, and part of why the animation looked more like twitching than a real gait.
+- **Housekeeping & Docs:**
+  - `.agents/notes/backlog.md`: the full, occasionally back-and-forth investigation into "a leg
+    disappears at some viewing angles" is written up in one place -- what turned out to be a
+    lighting misread, what turned out to be real (camera-angle self-occlusion, confirmed with
+    culling explicitly ruled out), and why the same geometry matters in one scene and not another.
+
 ## [0.77.25] - 2026-09-10
 
 ### "What we observe is not nature itself, but nature exposed to our method of questioning." - Werner Heisenberg

@@ -29,6 +29,13 @@ const BACKGROUND_HEIGHT = 9;
 const BACKGROUND_CENTER_Y = 4.5;
 const BACKGROUND_Z = 0;
 
+/** Scroll-wheel zoom range for the otherwise-fixed camera -- a straight dolly along its own Z
+ * axis (see `setupScene()`'s camera comment), clamped so it can never cross the background plane
+ * (`BACKGROUND_Z = 0`) or pull back further than the original framing the art was composed for. */
+const CAMERA_DEFAULT_Z = 10.864;
+const CAMERA_MIN_Z = 3.5;
+const CAMERA_MAX_Z = CAMERA_DEFAULT_Z;
+
 /** Single source of truth for each zone's default 4 corner points, in image-space (u, v) --
  * traced directly on the background art via the editor (key `E`). Used both to build the zones
  * in `setupScene()` and to restore them in `_resetToDefaultZones()`, so a coordinate only ever
@@ -79,6 +86,14 @@ const ANIMATION_CLIP_URLS: Record<string, string> = {
 };
 
 const ANIMATION_FADE_SECONDS = 0.25;
+
+/** [SHIFT]+[Left]/[Right] manually spins the character in place (radians/second), same idea as
+ * character-diorama's arrow-key rotation -- lets the player (or a dev checking the self-occlusion
+ * angle documented in `.agents/notes/backlog.md`) look at the figure from any angle. Plain
+ * (un-shifted) arrows already strafe-move the character via `StageMovementBehavior`, so this only
+ * ever engages while Shift is held, and disables that behavior for the duration to avoid the two
+ * controls fighting over `rotation.y`. */
+const MANUAL_ROTATE_SPEED = 1.5;
 
 /** Prioritized candidate bones for left-hand lantern attachment across different rigs */
 const LANTERN_HAND_BONE_CANDIDATES = [
@@ -161,9 +176,12 @@ class AndNowScene2 extends AbstractShowcase {
     this._editorHandlesGroup = document.getElementById("editorHandles") as unknown as SVGGElement;
     this._pointsListEl = document.getElementById("pointsList");
 
-    // A level, centered camera: it only ever renders the scene, it is never involved in zone
-    // authoring or movement logic (see StageZone / StageMovementBehavior / _uvToWorld below).
-    this.camera.position.set(0, BACKGROUND_CENTER_Y, 10.864);
+    // A level, centered camera: it never rotates or pans, and is never involved in zone
+    // authoring or movement logic (see StageZone / StageMovementBehavior / _uvToWorld below) --
+    // scroll-wheel zoom (dolly straight along this same Z axis, see the "wheel" listener below)
+    // is the only camera movement allowed, so the background plane and the 3D character always
+    // stay in the same relative framing the art was painted for, just closer or farther.
+    this.camera.position.set(0, BACKGROUND_CENTER_Y, CAMERA_DEFAULT_Z);
     this.camera.target.set(0, BACKGROUND_CENTER_Y, 0);
     this.camera.updateViewMatrix();
 
@@ -343,13 +361,19 @@ class AndNowScene2 extends AbstractShowcase {
       // 2.5D Bühnen-Bewegung an Spieler ankoppeln
       this._movementBehavior = new StageMovementBehavior({
         input: this.input,
-        speed: 0.15,
+        speed: 0.09,
         runMultiplier: 2.2,
         rotationSpeed: 12.0,
         // convention -- confirmed live: rotation.y = 270° faces screen-left, 90° faces screen-right,
         // 180° faces into the tunnel (depth), and 0° faces the camera.
         facingOffset: Math.PI,
         startFacing: "back",
+        // The camera here is fixed and never orbits (unlike character-diorama's free OrbitController),
+        // so "facing back" landing the stance dead-on in line with the camera would self-occlude one
+        // leg behind the other on every single session start, not just as a rare edge case -- see
+        // .agents/notes/backlog.md's 2026-09-10 entry. A small nudge off that exact axis avoids it
+        // without changing the intended starting orientation.
+        startFacingNudge: 0.14, // ~8 degrees
         zones: this._stageZones,
         uvToWorld: (u: number, v: number): { x: number; y: number; z: number } =>
           this._uvToWorld(u, v),
@@ -536,6 +560,21 @@ class AndNowScene2 extends AbstractShowcase {
       this._draggingHandleIdx = null;
       document.querySelectorAll(".handle-circle").forEach((c) => c.classList.remove("active"));
     });
+
+    // Mouse-wheel zoom: a straight dolly along the camera's own (never-rotated) Z axis -- see
+    // `CAMERA_MIN_Z`/`CAMERA_MAX_Z` and the camera setup comment in `setupScene()`. Deliberately
+    // NOT routed through the editor's drag handling above; zoom works whether the stage editor is
+    // open or not.
+    this.canvas.addEventListener(
+      "wheel",
+      (e) => {
+        e.preventDefault();
+        const z = this.camera.position.z + e.deltaY * 0.01;
+        this.camera.position.z = Math.min(CAMERA_MAX_Z, Math.max(CAMERA_MIN_Z, z));
+        this.camera.updateViewMatrix();
+      },
+      { passive: false },
+    );
   }
 
   private _updateEditorUI(): void {
@@ -893,6 +932,21 @@ class AndNowScene2 extends AbstractShowcase {
       if (this._editorActive) this._updateEditorUI();
     }
     this._lastEState = isEPressed;
+
+    // [SHIFT]+[Left]/[Right]: manual in-place rotation (see MANUAL_ROTATE_SPEED doc comment).
+    // Takes priority over normal movement while held -- StageMovementBehavior gets disabled for
+    // the duration and re-enabled the moment neither is held anymore, unless the stage editor
+    // already has it disabled for its own reasons.
+    const isShiftHeld = this.input.isPressed("ShiftLeft") || this.input.isPressed("ShiftRight");
+    const rotateLeftHeld = isShiftHeld && this.input.isPressed("ArrowLeft");
+    const rotateRightHeld = isShiftHeld && this.input.isPressed("ArrowRight");
+    if (this._playerRig && (rotateLeftHeld || rotateRightHeld)) {
+      if (this._movementBehavior) this._movementBehavior.enabled = false;
+      if (rotateLeftHeld) this._playerRig.rotation.y -= deltaTime * MANUAL_ROTATE_SPEED;
+      if (rotateRightHeld) this._playerRig.rotation.y += deltaTime * MANUAL_ROTATE_SPEED;
+    } else if (this._movementBehavior && !this._editorActive) {
+      this._movementBehavior.enabled = true;
+    }
 
     // Toggle Laterne mit Taste 'L' -- Mesh und Punktlicht hängen beide an der Hand-Bone, also
     // reicht ein gemeinsames isVisible statt separater An/Aus-Logik pro Teil.

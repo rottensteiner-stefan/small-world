@@ -83,6 +83,11 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
   private _lanternOn: boolean = true;
   private _turntableActive: boolean = false;
   private _oilSlickMaterial: OilSlickMaterial | undefined;
+  /** Held state for the arrow-key character-rotation controls (continuous, not a per-press
+   * toggle) -- see `_initHUD()`'s keydown/keyup listeners and the `update()` rotation step. */
+  private _rotateLeftHeld: boolean = false;
+  private _rotateRightHeld: boolean = false;
+  private static readonly _ROTATE_SPEED = 1.5; // radians per second
 
   private _mixer: AnimationMixer | undefined;
   private _clips: Map<string, AnimationClip> = new Map();
@@ -1657,6 +1662,23 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
       else if (k === "8") this._playAnimation("run_torch");
       else if (k === "9") this._playAnimation("stairs_up");
       else if (k === "0") this._playAnimation("stairs_down");
+      else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        this._rotateLeftHeld = true;
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        this._rotateRightHeld = true;
+      }
+    });
+    window.addEventListener("keyup", (e) => {
+      if (e.key === "ArrowLeft") this._rotateLeftHeld = false;
+      else if (e.key === "ArrowRight") this._rotateRightHeld = false;
+    });
+    // A held arrow key stops being tracked as "held" if the keyup never reaches this page (e.g.
+    // released while another window had focus) -- clear both on blur so rotation can't get stuck.
+    window.addEventListener("blur", () => {
+      this._rotateLeftHeld = false;
+      this._rotateRightHeld = false;
     });
   }
 
@@ -1730,6 +1752,13 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
 
     if (this._turntableActive && this._dioramaRoot) {
       this._dioramaRoot.rotation.y += deltaTime * 0.35;
+    }
+
+    if (this._playerRig) {
+      if (this._rotateLeftHeld)
+        this._playerRig.rotation.y -= deltaTime * CharacterDioramaShowcase._ROTATE_SPEED;
+      if (this._rotateRightHeld)
+        this._playerRig.rotation.y += deltaTime * CharacterDioramaShowcase._ROTATE_SPEED;
     }
 
     if (this._oilSlickMaterial) {
