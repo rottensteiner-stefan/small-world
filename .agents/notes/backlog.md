@@ -20,6 +20,33 @@ erzeugen.
 
 ---
 
+## 2026-09-11 — And Now?: Flakturm-Tunnel — Figur unlit, Treppe-Runter-Clip weiterhin kurz
+
+- ✅ **„Figur könnte etwas mehr Licht vertragen" — echter Root Cause gefunden, kein reiner
+  Geschmacks-Tweak.** `_loadCharacter()`s `applyMaterialToHierarchy()` ersetzte JEDES Material der
+  Figur durch `BasicMaterial` — ein komplett **unlit** Material (`fragColor = u_color * texColor`,
+  keine einzige Lichtberechnung im Shader). Damit hatten `AmbientLight`, `DirectionalLight` und
+  sogar die eigene Laternen-`PointLight` der Figur **null Wirkung** auf die Figur, egal wie man an
+  den Licht-Intensitäten dreht — sie zeigte immer nur ihre rohe Textur-Farbe. Der gemalte
+  Hintergrund ist bewusst genauso `BasicMaterial` (richtig so, 2D-Kunst braucht keine 3D-Beleuchtung),
+  aber die Figur hätte ein lit Material gebraucht.
+  - **Fix:** `BasicMaterial` → `StandardMaterial` für die Figur (genau wie im Character Diorama
+    beim selben Modell), `roughness: 0.92`, `metallic: 0.02` für einen matten Stoff-/Haut-Look ohne
+    unerwünschten Glanz. Live geprüft: sichtbar mehr Licht/Textur auf dem Mantel, Stimmung bleibt
+    dunkel-atmosphärisch, keine Glanz-Artefakte, Bein-Sichtbarkeits-Fix weiterhin unberührt.
+  - `tsc` grün.
+- 📋 **„Treppe runter wirkt kurz/zuckend" — Speed-Fix behebt das NICHT, weiterhin offen.**
+  Wichtige Klarstellung: Bewegungsgeschwindigkeit und Animations-Abspielgeschwindigkeit sind im
+  Code komplett getrennt (`_mixer.update(deltaTime)` läuft immer in Echtzeit). Der `stairs_down`-
+  Clip ist weiterhin nur **0.375s** lang (siehe 2026-09-10-Eintrag) und zyklisiert entsprechend oft,
+  unabhängig vom `speed`-Wert der Bewegung. Braucht einen eigenen Blick auf den Animations-Clip
+  selbst (verlängern/neu einspielen), nicht an der Bewegungslogik.
+
+Status: Material-Fix umgesetzt, `tsc` grün, noch **nicht committed**. `stairs_down`-Clip-Länge
+weiterhin offen.
+
+---
+
 ## 2026-09-10 — And Now?: Szene-2-Review (Flakturm-Tunnel Bewegung & Animation)
 
 User-Kritik am Flakturm-Tunnel (5 vage Punkte), gegengecheckt per Live-Simulation im Browser

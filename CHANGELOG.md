@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.77.27] - 2026-09-11
+
+### "Light thinks it travels faster than anything but it is wrong. No matter how fast light travels, it finds the darkness has always got there first." - Terry Pratchett
+
+- **Architecture & Bugfixes:**
+  - "And Now?" Flakturm-Tunnel: the playable character was rendered with `BasicMaterial` -- a
+    fully unlit material (`fragColor = u_color * texColor`, no lighting term at all in the
+    shader) -- so the scene's ambient light, directional light, and even the character's own
+    hand-held lantern had zero effect on it no matter how their intensities were tuned; it only
+    ever showed its raw diffuse texture color. Switched to `StandardMaterial` (matching
+    character-diorama's already-lit approach for the same shared model), tuned matte
+    (`roughness: 0.92`, `metallic: 0.02`) to avoid unwanted shine. The painted background plane
+    stays unlit on purpose -- it's 2D art, not a 3D-lit surface -- only the character needed this.
+- **Housekeeping & Docs:**
+  - `.agents/notes/backlog.md`: noted that the movement-speed fix does not (and structurally
+    cannot) address the still-open, separately-tracked short `stairs_down` animation clip --
+    movement speed and animation playback speed are unrelated in this engine.
+
 ## [0.77.26] - 2026-09-10
 
 ### "Everything we hear is an opinion, not a fact. Everything we see is a perspective, not the truth." - Marcus Aurelius

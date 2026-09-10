@@ -6,6 +6,7 @@ import {
   Object3D,
   PointLight,
   BasicMaterial,
+  StandardMaterial,
   Texture,
   RendererType,
   AnimationMixer,
@@ -314,13 +315,22 @@ class AndNowScene2 extends AbstractShowcase {
           console.warn(`[AndNowScene2] Konnte Animation "${name}" nicht laden:`, animErr);
         }
       }
+      // Was a flat, unlit BasicMaterial until 2026-09-11: it rendered the diffuse texture as-is
+      // but ignored every scene light entirely (AmbientLight/DirectionalLight/the lantern's own
+      // PointLight all had zero effect on the character), leaving it a dark silhouette against
+      // the painted, already-bright background art no matter how the lights were tuned. Switched
+      // to StandardMaterial (matching character-diorama's approach for the same shared model) so
+      // the character actually responds to the scene's lighting; roughness/metallic tuned the
+      // same way diorama does for a matte, non-shiny cloth-and-skin look.
       const applyMaterialToHierarchy = (obj: Object3D): void => {
         if (obj.material) {
-          const bMat = new BasicMaterial({ color: new Color(1, 1, 1) });
+          const sMat = new StandardMaterial({ color: new Color(1, 1, 1) });
           if ("diffuseMap" in obj.material && obj.material.diffuseMap instanceof Texture) {
-            bMat.diffuseMap = obj.material.diffuseMap;
+            sMat.diffuseMap = obj.material.diffuseMap;
           }
-          obj.material = bMat;
+          sMat.roughness = 0.92;
+          sMat.metallic = 0.02;
+          obj.material = sMat;
         }
         for (const child of obj.children) {
           applyMaterialToHierarchy(child);
