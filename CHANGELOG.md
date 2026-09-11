@@ -1,5 +1,39 @@
 # Changelog
 
+## [0.77.28] - 2026-09-12
+
+### "The limits of my language mean the limits of my world." - Ludwig Wittgenstein
+
+- **Features:**
+  - "And Now?" Character Diorama: the character can now actually walk across the stage
+    (`StageMovementBehavior`/`StageZone`, real 3D depth via the free-orbiting camera, `scale: 1.0`
+    throughout since no forced perspective is needed here) instead of only rotating in place;
+    existing `[Left]`/`[Right]` rotation moved behind `[Shift]` so the two controls never fight
+    over `rotation.y`, and stage position now survives a character switch (`[C]`).
+  - "And Now?" Flakturm-Tunnel: the character's status HUD now shows live `(u, v)` stage position
+    and current forced-perspective scale -- the same values that previously had to be read out of
+    the browser console during zone verification.
+- **Architecture & Bugfixes:**
+  - "And Now?" Flakturm-Tunnel: the status HUD followed the character across the stage
+    (world-to-screen projection of head position), obscuring it especially high up the stairs,
+    where it is already small on screen. Now fixed to the top of the screen regardless of stage
+    position.
+  - Flakturm-Tunnel Zone C (the staircase)'s far-left corner was traced past the actual painted
+    stair edge into the shadow beside it -- measured directly against the background art and
+    corrected (`u: 0.278` to `u: 0.305`).
+  - Two Architecture Decision Records referenced app code that had since been fully deleted
+    (`neon-labyrinth`, `disc-wars`) or contained a leaked internal-memory-file reference with no
+    meaning in public docs (`[[...]]` syntax); both classes of staleness found and fixed across
+    the affected ADRs and research docs.
+- **Housekeeping & Docs:**
+  - New ADR 0016: 2.5D stage zones as a glTF extension (`SW_stage_zone`) instead of a second save
+    format, extending the existing Maker/glTF pipeline -- includes generalizing `StageZone` from a
+    fixed 4-point quad to an arbitrary walkable polygon.
+  - New guide: `docs/guides/2-5d-scenes.md` -- perspective/vanishing-point matching, movement-zone
+    authoring, camera-strategy trade-offs, and the real bugs found building "And Now?"'s 2.5D
+    scenes.
+  - All of `docs/` (guides, ADRs, research) translated to German, including the site navigation.
+
 ## [0.77.27] - 2026-09-11
 
 ### "Light thinks it travels faster than anything but it is wrong. No matter how fast light travels, it finds the darkness has always got there first." - Terry Pratchett

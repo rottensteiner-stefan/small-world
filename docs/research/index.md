@@ -1,12 +1,12 @@
-# Engine Research & Technical Investigations
+# Engine-Recherche & Technische Untersuchungen
 
-In-depth technical investigations, rendering studies, architectural post-mortems, and technology benchmarks conducted during the evolution of Small World Engine.
+Tiefgehende technische Untersuchungen, Rendering-Studien, architektonische Nachbetrachtungen und Technologie-Benchmarks, die im Laufe der Entwicklung der Small World Engine entstanden sind.
 
-## Research Papers & Studies
+## Recherche-Papiere & Studien
 
-- **[AAA Engine Rendering Techniques](./aaa-engine-techniques.md)** — Comparative survey of modern rendering techniques (HBAO/GTAO, TAA, Clustered Forward+, Bloom, Shadows, HZB) across Unreal, Unity, and Godot, evaluated for lightweight web deployment.
-- **[Diorama 3D Environment Architecture](./diorama-environment-architecture.md)** — Analysis of Graphic-Noir sewer environment art: geometry vs. PBR shader boundaries, continuous arch UV mapping, and dynamic halogen lighting.
-- **[Oil & Puddle Shader Techniques](./oil-puddle-shader-technique.md)** — Physical modeling of liquid surfaces, screen-space opaque floor sampling, Schlick Fresnel baselines ($F_0$), Beer-Lambert absorption, and Khronos `KHR_materials_iridescence` two-beam thin-film interference.
-- **[XDP Game Networking Architecture](./xdp-game-networking.md)** — Exploration of ultra-low-latency web networking concepts, WebTransport, and packet architectures.
-- **[Showcase Feature Audit](./showcase-feature-audit.md)** — Engine feature matrix and coverage audit across the 35 interactive showcases.
-- **[Codebase Architecture Review (2026-08-22)](./codebase-review-2026-08-22.md)** — Architectural review and technical debt remediation milestone.
+- **[AAA-Rendering-Techniken](./aaa-engine-techniques.md)** — Vergleichende Untersuchung moderner Rendering-Techniken (HBAO/GTAO, TAA, Clustered Forward+, Bloom, Schatten, HZB) über Unreal, Unity und Godot hinweg, bewertet für leichtgewichtiges Web-Deployment.
+- **[Diorama-3D-Umgebungsarchitektur](./diorama-environment-architecture.md)** — Analyse der Graphic-Noir-Kanalisations-Umgebungskunst: Grenzen zwischen Geometrie und PBR-Shadern, durchgehendes Bogen-UV-Mapping und dynamische Halogen-Beleuchtung.
+- **[Öl- & Pfützen-Shader-Techniken](./oil-puddle-shader-technique.md)** — Physikalische Modellierung von Flüssigkeitsoberflächen, Screen-Space-Sampling des undurchsichtigen Bodens, Schlick-Fresnel-Basiswerte ($F_0$), Beer-Lambert-Absorption und Khronos' `KHR_materials_iridescence` Zwei-Strahl-Dünnschicht-Interferenz.
+- **[XDP-Spiele-Netzwerkarchitektur](./xdp-game-networking.md)** — Untersuchung von Konzepten für Web-Netzwerktechnik mit ultra-niedriger Latenz, WebTransport und Paketarchitekturen.
+- **[Showcase-Feature-Audit](./showcase-feature-audit.md)** — Feature-Matrix der Engine und Abdeckungs-Audit über die 35 interaktiven Showcases.
+- **[Codebasis-Architektur-Review (2026-08-22)](./codebase-review-2026-08-22.md)** — Architektur-Review und Meilenstein zur Behebung technischer Schulden.

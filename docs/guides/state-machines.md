@@ -1,35 +1,35 @@
-# Finite State Machines (FSM)
+# Zustandsautomaten (FSM)
 
-Small World features a built-in, type-safe, and zero-allocation **Finite State Machine (FSM)** utility. This framework decouples actor logic, physics update ticks, and phase transitions into clean, isolated classes.
+Small World bietet ein eingebautes, typsicheres, allokationsfreies **Finite-State-Machine(FSM)**-Werkzeug. Dieses Framework entkoppelt Akteur-Logik, Physik-Update-Ticks und Phasenübergänge in saubere, isolierte Klassen.
 
-Each FSM callback (`onEnter`/`onUpdate`/`onExit`) receives a **State Data** object — the user-defined payload shared across all of that machine's states. Not to be confused with `Context Object` (the engine's constructor-injected dependency container) or `State` itself (the FSM's current mode, e.g. `"idle"`/`"patrolling"`) — State Data is a third, distinct concept: it's just the data a specific machine's states read and mutate.
+Jeder FSM-Callback (`onEnter`/`onUpdate`/`onExit`) erhält ein **State-Data**-Objekt — die selbst definierte Payload, die sich alle Zustände dieses Automaten teilen. Nicht zu verwechseln mit dem `Context Object` (dem per Konstruktor injizierten Abhängigkeits-Container der Engine) oder dem `State` selbst (dem aktuellen Modus des FSM, z.B. `"idle"`/`"patrolling"`) — State Data ist ein drittes, eigenständiges Konzept: einfach die Daten, die die Zustände eines bestimmten Automaten lesen und verändern.
 
-## Features
+## Merkmale
 
-- **Generic & Type-safe:** Restricts transitions and callbacks to predefined states `TState` and events `TEvent` via TypeScript generics.
-- **Zero-Allocation Hot Path:** FSM transitions and state updates do not instantiate new objects or callbacks during run-time, minimizing Garbage Collection stutters during massive simulation ticks.
-- **Behavior Integration:** Using the `StateMachineBehavior` adapter, state machines tick automatically when attached to any `Object3D`.
+- **Generisch & typsicher:** Beschränkt Übergänge und Callbacks über TypeScript-Generics auf vordefinierte Zustände `TState` und Ereignisse `TEvent`.
+- **Allokationsfreier Hot Path:** FSM-Übergänge und Zustands-Updates instanziieren zur Laufzeit keine neuen Objekte oder Callbacks, was Garbage-Collection-Stotterer bei massiven Simulations-Ticks minimiert.
+- **Behavior-Integration:** Über den `StateMachineBehavior`-Adapter ticken Zustandsautomaten automatisch, sobald sie an ein beliebiges `Object3D` gehängt werden.
 
-## State Machine Configuration
+## Zustandsautomaten-Konfiguration
 
-Below is an example of declaring states, configuring enter/update triggers, and mapping auto-transitions.
+Unten ein Beispiel, wie man Zustände deklariert, Enter-/Update-Trigger konfiguriert und Auto-Übergänge zuordnet.
 
 ```typescript
 import { StateMachine, StateMachineBehavior, Object3D } from "small-world";
 
-// 1. Declare the FSM's State Data type
+// 1. Den State-Data-Typ des FSM deklarieren
 interface ActorStateData {
   object: Object3D;
   health: number;
 }
 
-// 2. Configure states and callbacks
+// 2. Zustände und Callbacks konfigurieren
 const actor = new Object3D("Actor");
 const stateData: ActorStateData = { object: actor, health: 100 };
 
 const fsm = new StateMachine<"idle" | "patrolling" | "alert", ActorStateData, "SEE_PLAYER">(stateData);
 
-// State: Idle (Transition to patrolling after 5 seconds)
+// Zustand: Idle (Übergang zu patrolling nach 5 Sekunden)
 fsm.addState("idle", {
   onEnter: (data, previousState) => {
     console.log(`Entered Idle from: ${previousState}`);
@@ -43,10 +43,10 @@ fsm.addState("idle", {
   },
 });
 
-// State: Patrolling
+// Zustand: Patrolling
 fsm.addState("patrolling", {
   onUpdate: (data, deltaTime, stateDuration) => {
-    // Zero-allocation update logic
+    // Allokationsfreie Update-Logik
     data.object.position.x += 1.0 * deltaTime;
   },
   transitions: {
@@ -54,26 +54,26 @@ fsm.addState("patrolling", {
   },
 });
 
-// State: Alert
+// Zustand: Alert
 fsm.addState("alert", {
   onEnter: (data) => {
     console.warn("Player spotted!");
   },
 });
 
-// 3. Attach StateMachineBehavior to object
+// 3. StateMachineBehavior an das Objekt hängen
 const fsmBehavior = new StateMachineBehavior(fsm);
 actor.addBehavior(fsmBehavior);
 
-// Start the machine
+// Den Automaten starten
 fsm.transitionTo("idle");
 ```
 
-## Lifecycle Execution Flow
+## Lebenszyklus-Ablauf
 
-The FSM lifecycle callbacks are invoked as follows:
+Die FSM-Lebenszyklus-Callbacks werden wie folgt aufgerufen:
 
-1. **`onEnter(stateData, previousState)`**: Executed immediately after a transition occurs.
-2. **`onUpdate(stateData, deltaTime, stateDuration)`**: Called every frame inside the behavior's tick.
-3. **`onExit(stateData, nextState)`**: Called right before the state transitions to a new one.
-4. **`autoTransition`**: Automatically initiates a transition to `nextState` once `stateDuration >= duration`.
+1. **`onEnter(stateData, previousState)`**: Wird unmittelbar nach einem Übergang ausgeführt.
+2. **`onUpdate(stateData, deltaTime, stateDuration)`**: Wird jeden Frame innerhalb des Behavior-Ticks aufgerufen.
+3. **`onExit(stateData, nextState)`**: Wird direkt vor dem Übergang des Zustands zu einem neuen aufgerufen.
+4. **`autoTransition`**: Löst automatisch einen Übergang zu `nextState` aus, sobald `stateDuration >= duration`.

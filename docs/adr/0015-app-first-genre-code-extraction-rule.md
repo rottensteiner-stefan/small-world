@@ -1,58 +1,62 @@
-# App-First: Genre-Specific Gameplay Code Stays Out of Core Until a Second Project Needs It
+# App-First: Genre-spezifischer Gameplay-Code bleibt außerhalb des Kerns, bis ein zweites Projekt ihn braucht
 
-## Context
+## Kontext
 
-Small World is a general-purpose 3D engine. Every new project idea (a Doom-like shooter, a
-light-cycle arena, a post-apocalyptic exploration game, and now a hypothetical Yoshi-style
-platformer) tempts a natural shortcut: build the genre's specific mechanics — a flutter-jump
-character controller, an egg-throw projectile, a side-scroll follow-camera, a light-trail
-collision grid — directly into `src/core`, since "the engine should support this." Left
-unchecked, this turns the engine into a pile of one-off, mutually irrelevant gameplay systems,
-each carrying its own API-stability and backward-compatibility burden forever, for a feature only
-one project ever used.
+Small World ist eine universelle 3D-Engine. Jede neue Projektidee (ein Doom-artiger Shooter, eine
+Lichtzyklus-Arena, ein postapokalyptisches Erkundungsspiel, und jetzt ein hypothetischer
+Yoshi-artiger Plattformer) verleitet zu einer naheliegenden Abkürzung: die genre-spezifische
+Mechanik — ein Flatter-Sprung-Charakter-Controller, ein Ei-Wurf-Projektil, eine Seitenscroll-
+Verfolgungskamera, ein Lichtspur-Kollisionsraster — direkt in `src/core` zu bauen, weil "die
+Engine das doch unterstützen sollte." Unkontrolliert verwandelt das die Engine in einen Haufen
+einmaliger, gegenseitig irrelevanter Gameplay-Systeme, von denen jedes für immer seine eigene
+Last an API-Stabilität und Abwärtskompatibilität trägt — für ein Feature, das je nur ein einziges
+Projekt genutzt hat.
 
-We already have four apps under `src/apps/` (`yad`, `light-cycle-arena`, `and-now`,
-`neon-labyrinth`), each with its own genre-specific gameplay code living entirely in its own app
-folder, not in `src/core`. And earlier in this session we made the same call at a smaller scale:
-`Optics.refract()`/`Optics.cauchyIndex()`/`Ray2D.intersectSegment()` were extracted from
-`showcases/28`'s prism-dispersion code into `src/math/` only once we deliberately wanted them
-reusable — the extraction didn't happen speculatively while writing the showcase, and the showcase
-itself still owns `outwardFaceNormal()` and the whole `computeSpectralRays()` orchestration, which
-stayed local because nothing else needs it (yet).
+Wir haben bereits mehrere Apps unter `src/apps/` (`yad`, `light-cycle-arena`, `and-now`), jede mit
+ihrem eigenen genre-spezifischen Gameplay-Code vollständig im eigenen App-Ordner, nicht in
+`src/core`. Und früher in dieser Session haben wir dieselbe Entscheidung in
+kleinerem Maßstab getroffen: `Optics.refract()`/`Optics.cauchyIndex()`/`Ray2D.intersectSegment()`
+wurden erst dann aus `showcases/28`s Prisma-Dispersions-Code nach `src/math/` extrahiert, als wir
+sie bewusst wiederverwendbar haben wollten — die Extraktion geschah nicht spekulativ beim
+Schreiben des Showcases, und der Showcase selbst besitzt weiterhin `outwardFaceNormal()` und die
+gesamte `computeSpectralRays()`-Orchestrierung, die lokal blieb, weil nichts anderes sie (bisher)
+braucht.
 
-## Decision
+## Entscheidung
 
-**New genre-specific gameplay code for a new project starts in `src/apps/<project>/`, never in
-`src/core`.** This applies to things like: character controllers with genre-specific movement feel
-(flutter jump, coyote time, jump buffering), weapon/projectile mechanics, genre-specific camera
-follow behavior, and any other system that only makes sense in the context of one game's design.
+**Neuer genre-spezifischer Gameplay-Code für ein neues Projekt beginnt in `src/apps/<project>/`,
+niemals in `src/core`.** Das gilt für Dinge wie: Charakter-Controller mit genre-spezifischem
+Bewegungsgefühl (Flatter-Sprung, Coyote-Time, Jump-Buffering), Waffen-/Projektil-Mechanik,
+genre-spezifisches Kamera-Folgeverhalten und jedes andere System, das nur im Kontext des Designs
+eines einzigen Spiels Sinn ergibt.
 
-The engine's job is to provide the *primitives* these are built from, not the genre mechanics
-themselves — e.g. for a side-scrolling platformer: the `Behavior` system for the character
-controller itself, `BillboardInstancer`/`Sprite` for 2D-in-3D rendering, `GridLevelBuilder`
-(`tools/procgen`) for tile-based level data, and the `CameraStrategy` architecture as the seam a
-new side-scroll-follow strategy plugs into (a new strategy class, following the existing pattern,
-not a new core concept).
+Die Aufgabe der Engine ist es, die *Primitive* bereitzustellen, aus denen diese gebaut werden,
+nicht die Genre-Mechanik selbst — z. B. für einen Seitenscroll-Plattformer: das `Behavior`-System
+für den Charakter-Controller selbst, `BillboardInstancer`/`Sprite` für 2D-in-3D-Rendering,
+`GridLevelBuilder` (`tools/procgen`) für kachelbasierte Level-Daten, und die
+`CameraStrategy`-Architektur als die Nahtstelle, an der eine neue Seitenscroll-Folge-Strategie
+andockt (eine neue Strategie-Klasse, die dem bestehenden Muster folgt, kein neues Kernkonzept).
 
-**Extraction into a shared, reusable place (a `src/math`/`src/core` utility, or eventually a
-standalone plugin package) happens only when a *second* real project needs the same thing** — not
-speculatively while building the first one. Until then, apparent duplication between two apps'
-genre-specific systems is not a problem to pre-solve; it's just two apps that haven't yet proven
-they need the same abstraction.
+**Die Extraktion an einen gemeinsamen, wiederverwendbaren Ort (ein `src/math`/`src/core`-Utility,
+oder irgendwann ein eigenständiges Plugin-Paket) geschieht nur, wenn ein *zweites* echtes Projekt
+dasselbe braucht** — nicht spekulativ beim Bau des ersten. Bis dahin ist scheinbare Duplikation
+zwischen den genre-spezifischen Systemen zweier Apps kein Problem, das man vorab lösen muss; es
+sind einfach zwei Apps, die noch nicht bewiesen haben, dass sie dieselbe Abstraktion brauchen.
 
-## Consequences
+## Konsequenzen
 
-- The engine stays usable as a *general* 3D engine — a consumer who only wants materials/renderers/
-  physics never inherits an egg-throw projectile system or a light-cycle collision grid in their
-  bundle.
-- Each app is free to make locally-optimal, opinionated design choices for its genre without
-  negotiating them as permanent public engine API.
-- The cost is paid at the second project: some deliberate, retrospective extraction work when a
-  real second use case appears, instead of a speculative abstraction designed for a hypothetical
-  one. This is the trade we want — see [[project_public_api_surface]] and the `Optics`/`Ray2D`
-  precedent above for what that extraction looks like in practice.
+- Die Engine bleibt als *universelle* 3D-Engine nutzbar — ein Konsument, der nur Materialien/
+  Renderer/Physik will, erbt niemals ein Ei-Wurf-Projektilsystem oder ein Lichtzyklus-
+  Kollisionsraster in seinem Bundle.
+- Jede App kann lokal-optimale, meinungsstarke Design-Entscheidungen für ihr Genre treffen, ohne
+  sie als dauerhafte öffentliche Engine-API aushandeln zu müssen.
+- Der Preis wird beim zweiten Projekt bezahlt: etwas bewusste, rückblickende Extraktionsarbeit,
+  wenn ein echter zweiter Anwendungsfall auftaucht, statt einer spekulativen, für einen
+  hypothetischen Fall entworfenen Abstraktion. Das ist der Tausch, den wir wollen — siehe den
+  `Optics`/`Ray2D`-Präzedenzfall oben dafür, wie diese Extraktion in der Praxis aussieht.
 
-**Reconsider this if:** a single genre-specific project turns out to need the *exact same*
-mechanic in two of its own scenes/showcases internally (not across separate projects) — that's
-already the "second need" signal and justifies extracting within that project's own boundary
-immediately, same as `Optics`/`Ray2D` did within this repo.
+**Das hier überdenken, falls:** ein einzelnes genre-spezifisches Projekt sich herausstellt, *genau
+dieselbe* Mechanik in zwei seiner eigenen Szenen/Showcases intern zu brauchen (nicht über
+getrennte Projekte hinweg) — das ist bereits das "zweiter Bedarf"-Signal und rechtfertigt die
+sofortige Extraktion innerhalb der Grenzen dieses Projekts, genau wie `Optics`/`Ray2D` es
+innerhalb dieses Repositorys getan haben.

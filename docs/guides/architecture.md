@@ -1,32 +1,32 @@
-# Architecture & Code Showcases
+# Architektur & Code-Showcases
 
-The Small World Engine has a modular design and uses composition over deep inheritance. Below is an overview of the most important classes, interfaces, and parameters that you will work with on a daily basis, as well as concrete code examples to get you started.
+Die Small World Engine hat ein modulares Design und setzt auf Komposition statt tiefer Vererbung. Unten folgt ein Überblick über die wichtigsten Klassen, Schnittstellen und Parameter, mit denen du tagtäglich arbeiten wirst, sowie konkrete Code-Beispiele zum Einstieg.
 
-::: tip API Reference
-For a complete list of _all_ classes, methods, and type declarations (incl. constructor parameters), please open the automatically generated **[API Reference](/api/index.html)**.
+::: tip API-Referenz
+Für eine vollständige Liste _aller_ Klassen, Methoden und Typdeklarationen (inkl. Konstruktor-Parameter) öffne bitte die automatisch generierte **[API-Referenz](/api/index.html)**.
 :::
 
 ---
 
-## 1. Scene Graph (`Object3D`)
+## 1. Szenengraph (`Object3D`)
 
-The heart of the engine is the `Object3D` class. Everything that exists in the world (meshes, cameras, virtual anchors) is or inherits from `Object3D`. It manages the local and global transformation matrices, geometry, and material.
+Das Herz der Engine ist die Klasse `Object3D`. Alles, was in der Welt existiert (Meshes, Kameras, virtuelle Anker), ist `Object3D` oder erbt davon. Sie verwaltet die lokalen und globalen Transformationsmatrizen, Geometrie und Material.
 
-### Showcase: Creating and placing an object
+### Showcase: Ein Objekt erzeugen und platzieren
 
 ```typescript
 import { Object3D, Cube, StandardMaterial, Color } from "small-world";
 
 const player = new Object3D("Player");
 
-// Position (X=Right, Y=Up, Z=Backward)
+// Position (X=Rechts, Y=Oben, Z=Rückwärts)
 player.position.set(0, 1, 0);
 
-// Scale and Rotation
+// Skalierung und Rotation
 player.scale.set(2, 2, 2);
-player.rotation.y = Math.PI / 4; // 45 degrees
+player.rotation.y = Math.PI / 4; // 45 Grad
 
-// Assign geometry and material
+// Geometrie und Material zuweisen
 player.geometry = new Cube({ size: 1 }).getGeometryData();
 player.material = new StandardMaterial({
   color: Color.RED,
@@ -34,30 +34,30 @@ player.material = new StandardMaterial({
   roughness: 0.8,
 });
 
-// Attach child objects (Hierarchy)
+// Kind-Objekte anhängen (Hierarchie)
 const weapon = new Object3D("Weapon");
-weapon.position.set(1, 0, 0); // Relative to the player!
+weapon.position.set(1, 0, 0); // Relativ zum Spieler!
 player.add(weapon);
 
-// Add to the scene
+// Zur Szene hinzufügen
 this.scene.add(player);
 ```
 
 ---
 
-## 2. Cameras & Behaviors
+## 2. Kameras & Behaviors
 
-The engine uses a unified camera architecture. The base `Camera` is parameterized by a projection (`PerspectiveProjection` or `OrthographicProjection`) and controlled dynamically via the **Behavior system**.
+Die Engine nutzt eine einheitliche Kamera-Architektur. Die Basis-`Camera` wird durch eine Projektion parametrisiert (`PerspectiveProjection` oder `OrthographicProjection`) und dynamisch über das **Behavior-System** gesteuert.
 
-### Showcase: Camera with Controller and Shake Behavior
+### Showcase: Kamera mit Controller und Shake-Behavior
 
 ```typescript
 import { Camera, PerspectiveProjection, FirstPersonController, ShakeBehavior } from "small-world";
 
-// Create camera with perspective projection
+// Kamera mit perspektivischer Projektion erstellen
 const camera = new Camera(new PerspectiveProjection({ fov: 60, near: 0.1, far: 1000 }));
 
-// Attach controllers and procedural effects directly as Behaviors
+// Controller und prozedurale Effekte direkt als Behaviors anhängen
 camera.addBehavior(
   new FirstPersonController({
     moveSpeed: 10.0,
@@ -65,30 +65,30 @@ camera.addBehavior(
   })
 );
 
-// Add procedural trauma/shake behavior for impacts
+// Prozedurales Trauma-/Shake-Behavior für Einschläge hinzufügen
 const shake = new ShakeBehavior();
 camera.addBehavior(shake);
 ```
 
 ---
 
-## 3. Materials & Shaders (PBR & Shipped Presets)
+## 3. Materialien & Shader (PBR & mitgelieferte Presets)
 
-Small World uses a hybrid rendering pipeline (WebGPU, WebGL2, WebGL1) based on the Cook-Torrance BRDF model with linear color space and sRGB gamma correction.
+Small World nutzt eine hybride Rendering-Pipeline (WebGPU, WebGL2, WebGL1) auf Basis des Cook-Torrance-BRDF-Modells mit linearem Farbraum und sRGB-Gamma-Korrektur.
 
-### Key Material Families
+### Wichtige Material-Familien
 
-- `StandardMaterial`: Core PBR material with `albedo`, `metallic`, `roughness`, and diffuse/normal/roughness map slots.
-- `GlassMaterial`: Real-time Screen-Space Refraction (SSR) with configurable `ior` and volumetric absorption.
-- `SpriteMaterial`: 2D/2.5D camera-facing billboard material.
-- **Wave Family (ADR 0013):**
-  - `OpenWaterMaterial`: Realistic ocean water with Gerstner waves and opaque depth-fade (soft shores).
-  - `StylizedWaterMaterial`: Stylized/toon water with customizable edge foam and cel tinting.
-- **Flow Family (ADR 0013):**
-  - `LavaMaterial`: Opaque, glowing molten rock with customizable emissive intensity and noise-driven viscosity.
-  - `SlimeMaterial`: Translucent, oozing liquid preset with subtle luminous edge glow.
+- `StandardMaterial`: Kern-PBR-Material mit `albedo`, `metallic`, `roughness` sowie Diffuse-/Normal-/Roughness-Map-Slots.
+- `GlassMaterial`: Echtzeit-Screen-Space-Refraktion (SSR) mit konfigurierbarem `ior` und volumetrischer Absorption.
+- `SpriteMaterial`: kameraausgerichtetes 2D/2.5D-Billboard-Material.
+- **Wave-Familie (ADR 0013):**
+  - `OpenWaterMaterial`: realistisches Ozeanwasser mit Gerstner-Wellen und undurchsichtigem Tiefen-Fade (weiche Uferlinien).
+  - `StylizedWaterMaterial`: stilisiertes/Toon-Wasser mit anpassbarem Rand-Schaum und Cel-Tönung.
+- **Flow-Familie (ADR 0013):**
+  - `LavaMaterial`: undurchsichtiges, glühendes geschmolzenes Gestein mit anpassbarer Emissions-Intensität und rauschgesteuerter Viskosität.
+  - `SlimeMaterial`: durchscheinendes, zähflüssiges Preset mit dezentem, leuchtendem Rand-Glühen.
 
-### Showcase: Lava Material with Emissive Glow
+### Showcase: Lava-Material mit Emissions-Glühen
 
 ```typescript
 import { LavaMaterial, Color, Object3D, Plane } from "small-world";
@@ -107,11 +107,11 @@ this.scene.add(lava);
 
 ---
 
-## 4. Behaviors & Finite State Machines (FSM)
+## 4. Behaviors & Zustandsautomaten (FSM)
 
-You shouldn't write complex logic into a giant `update()` loop. Instead, use the **Behavior system** to attach isolated logic blocks (components) to an `Object3D`.
+Komplexe Logik sollte nicht in eine riesige `update()`-Schleife geschrieben werden. Nutze stattdessen das **Behavior-System**, um isolierte Logikblöcke (Komponenten) an ein `Object3D` anzuhängen.
 
-### Showcase: A Pulse Behavior
+### Showcase: Ein Pulse-Behavior
 
 ```typescript
 import { Behavior, Object3D } from "small-world";
@@ -127,47 +127,47 @@ export class PulseBehavior extends Behavior {
     this._baseScale = 1.0;
   }
 
-  // Called when the behavior is attached to the object via obj.addBehavior()
+  // Wird aufgerufen, wenn das Behavior via obj.addBehavior() am Objekt angehängt wird
   public override onAttach(target: Object3D): void {
     this._baseScale = target.scale.x;
   }
 
-  // Called automatically every frame by the Scene, only receives deltaTime
+  // Wird automatisch jeden Frame von der Scene aufgerufen, erhält nur deltaTime
   public override update(deltaTime: number): void {
     if (!this.target) return;
     this._elapsed += deltaTime;
 
-    // Calculate sine pulse
+    // Sinus-Puls berechnen
     const scale = this._baseScale + Math.sin(this._elapsed * this._speed) * 0.2;
     this.target.scale.set(scale, scale, scale);
   }
 }
 
-// Usage:
+// Verwendung:
 const heart = new Object3D("Heart");
 heart.addBehavior(new PulseBehavior(5.0));
 ```
 
-If states become more complex (e.g., `IDLE` -> `WALK` -> `ATTACK`), use the built-in `StateMachine` module, which integrates seamlessly with Behaviors via `StateMachineBehavior`.
+Werden Zustände komplexer (z. B. `IDLE` -> `WALK` -> `ATTACK`), nutze das eingebaute `StateMachine`-Modul, das sich über `StateMachineBehavior` nahtlos in Behaviors integriert.
 
 ---
 
-## 5. Resource Management & Garbage Collection
+## 5. Ressourcenverwaltung & Garbage Collection
 
-Unlike older graphics engines where you must manually call `dispose()` on geometries, textures, and materials to prevent GPU memory leaks, **Small World uses automated internal Reference Counting**.
+Anders als bei älteren Grafik-Engines, bei denen `dispose()` manuell auf Geometrien, Texturen und Materialien aufgerufen werden muss, um GPU-Speicherlecks zu vermeiden, nutzt **Small World automatisiertes internes Reference Counting**.
 
-### How it works
-Every geometry buffer, shader program, and texture is tracked by the active renderer (WebGL1, WebGL2, or WebGPU).
-When you remove an `Object3D` from the `Scene`, the engine decrements the reference counts for the object's resources. If a resource's reference count drops to zero, the engine automatically queues it for deletion and safely destroys the underlying GPU object.
+### Wie es funktioniert
+Jeder Geometrie-Puffer, jedes Shader-Programm und jede Textur wird vom aktiven Renderer (WebGL1, WebGL2 oder WebGPU) nachverfolgt.
+Wird ein `Object3D` aus der `Scene` entfernt, dekrementiert die Engine die Referenzzähler für die Ressourcen des Objekts. Fällt der Referenzzähler einer Ressource auf null, reiht die Engine sie automatisch zur Löschung ein und zerstört das zugrunde liegende GPU-Objekt sicher.
 
 ```typescript
-// Adding an object increments reference counts for its geometry and material textures
+// Ein Objekt hinzuzufügen erhöht die Referenzzähler für seine Geometrie- und Material-Texturen
 this.scene.add(myObject);
 
-// ... Later ...
+// ... Später ...
 
-// Removing the object decrements the reference counts.
-// If no other objects use the same geometry/textures, they are automatically purged from VRAM!
+// Das Objekt zu entfernen verringert die Referenzzähler.
+// Nutzt kein anderes Objekt dieselbe Geometrie/Texturen, werden sie automatisch aus dem VRAM entfernt!
 this.scene.remove(myObject);
 ```
-*(Note: `RenderTarget` textures are excluded from this automated cleanup, as their lifecycles are explicitly managed by the render pipeline rather than individual objects.)*
+*(Hinweis: `RenderTarget`-Texturen sind von dieser automatisierten Bereinigung ausgenommen, da ihr Lebenszyklus explizit von der Render-Pipeline verwaltet wird, nicht von einzelnen Objekten.)*

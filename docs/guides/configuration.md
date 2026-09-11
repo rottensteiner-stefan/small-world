@@ -1,20 +1,20 @@
-# Configuration (EngineOptions)
+# Konfiguration (EngineOptions)
 
-Small World is designed to be highly configurable. By passing an `EngineOptions` object to the `SmallWorld` constructor, you can fine-tune rendering capabilities, post-processing pipelines, quality limits, and physics.
+Small World ist auf umfangreiche Konfigurierbarkeit ausgelegt. Durch Übergabe eines `EngineOptions`-Objekts an den `SmallWorld`-Konstruktor lassen sich Rendering-Fähigkeiten, Post-Processing-Pipelines, Qualitätsgrenzen und Physik feinabstimmen.
 
-> **Note:** The engine previously attempted to fetch `small-world.json` at runtime via an internal HTTP request. This has been removed in favor of **Inversion of Control (IoC)**. You must now explicitly pass your configuration.
+> **Hinweis:** Die Engine versuchte früher, `small-world.json` zur Laufzeit über einen internen HTTP-Request zu laden. Das wurde zugunsten von **Inversion of Control (IoC)** entfernt. Die Konfiguration muss jetzt explizit übergeben werden.
 
-## Basic Setup
+## Grundlegende Einrichtung
 
-In modern build tools like Vite or Webpack, you can simply import your JSON file and pass it to the engine.
+In modernen Build-Tools wie Vite oder Webpack kann die JSON-Datei einfach importiert und an die Engine übergeben werden.
 
 ```typescript
-import config from "./config/small-world.json"; // Bundler handles this automatically
+import config from "./config/small-world.json"; // Der Bundler übernimmt das automatisch
 import { SmallWorld } from "small-world";
 
 class MyGame extends SmallWorld {
   constructor() {
-    super(config); // Inject configuration
+    super(config); // Konfiguration injizieren
   }
 
   protected async setupScene() {
@@ -23,24 +23,21 @@ class MyGame extends SmallWorld {
 }
 ```
 
-## The EngineOptions Structure
+## Die EngineOptions-Struktur
 
-The `EngineOptions` object defines the entire state of the core engine. Below are the primary sections of the configuration object.
+Das `EngineOptions`-Objekt definiert den gesamten Zustand der Kern-Engine. Unten stehen die wichtigsten Abschnitte des Konfigurationsobjekts.
 
-### Root Options
+### Wurzel-Optionen
 
-- `canvasId` (string): The ID of the HTML canvas element to render into.
-- `rendererType` (string): The preferred renderer (e.g. `BEST`, `WEB_GPU`, `WEB_GL2`).
-- `projectionType` (string): Either `PERSPECTIVE` or `ORTHOGRAPHIC`.
-- `fullscreen` (boolean): Whether the canvas should automatically scale to fit the window.
-- `gravity` (number[]): A 3-element array defining the physics gravity vector (e.g. `[0, -9.81, 0]`).
+- `canvasId` (string): Die ID des HTML-Canvas-Elements, in das gerendert wird.
+- `rendererType` (string): Der bevorzugte Renderer (z. B. `BEST`, `WEB_GPU`, `WEB_GL2`).
+- `projectionType` (string): Entweder `PERSPECTIVE` oder `ORTHOGRAPHIC`.
+- `fullscreen` (boolean): Ob das Canvas automatisch auf die Fenstergröße skalieren soll.
+- `gravity` (number[]): Ein 3-elementiges Array, das den Physik-Schwerkraftvektor definiert (z. B. `[0, -9.81, 0]`).
 
-### Renderer Backend Attributes (`renderer`)
+### Renderer-Backend-Attribute (`renderer`)
 
-Per-backend context attributes (passed to `getContext()`), keyed by backend name — **not** a
-fallback-order list. The actual fallback chain (WebGPU → WebGL2 → WebGL1 when a backend isn't
-supported) is fixed inside the engine and doesn't depend on this object at all, so there's no
-`type`-tagged array here the way there might otherwise seem to need to be.
+Kontext-Attribute pro Backend (an `getContext()` übergeben), nach Backend-Namen indiziert — **keine** Fallback-Reihenfolge-Liste. Die tatsächliche Fallback-Kette (WebGPU → WebGL2 → WebGL1, wenn ein Backend nicht unterstützt wird) ist fest in der Engine verdrahtet und hängt überhaupt nicht von diesem Objekt ab — es gibt hier also kein `type`-getaggtes Array, wie es sonst vielleicht nötig erscheinen könnte.
 
 ```json
 "renderer": {
@@ -50,27 +47,22 @@ supported) is fixed inside the engine and doesn't depend on this object at all, 
 }
 ```
 
-### Quality Options (`quality`)
+### Qualitäts-Optionen (`quality`)
 
-These control the graphical fidelity of the engine.
+Diese steuern die grafische Wiedergabetreue der Engine.
 
-- `autoDowngrade` (boolean, default: true): If `true`, the engine will automatically override heavy settings (like MSAA or HDR) when it detects a low-performance device (e.g., mobile phones).
-- `maxPixelRatio` (number, default: 2): Clamps the `window.devicePixelRatio`. Extremely high-DPI displays (like modern smartphones with 3.0 or 4.0 DPR) can cause massive GPU bottlenecks. Limiting this to `2` or `1.5` ensures smooth framerates without visual degradation.
-- `msaa` (number): Multisample anti-aliasing level (0, 2, 4, 8).
-- `maxAnisotropy` (number): Anisotropic filtering level (1, 4, 8, 16) for sharper textures at glancing angles.
-- `hdr` (boolean): Enables High Dynamic Range (Float16) rendering pipelines.
-- `toneMapping` (string): The tone mapping algorithm to use (e.g., `aces`, `reinhard`, `none`).
-- `maxShadowResolution` (number): Maximum texture size for shadow maps.
-- `disableTextures` (boolean): If `true`, bypasses all textures, rendering fallback colors (useful for debugging).
+- `autoDowngrade` (boolean, Standard: true): Bei `true` überschreibt die Engine automatisch aufwendige Einstellungen (wie MSAA oder HDR), sobald sie ein leistungsschwaches Gerät erkennt (z. B. Smartphones).
+- `maxPixelRatio` (number, Standard: 2): Begrenzt `window.devicePixelRatio`. Extrem hochauflösende Displays (wie moderne Smartphones mit 3.0 oder 4.0 DPR) können massive GPU-Engpässe verursachen. Dies auf `2` oder `1.5` zu begrenzen sorgt für flüssige Framerates ohne sichtbaren Qualitätsverlust.
+- `msaa` (number): Multisample-Anti-Aliasing-Stufe (0, 2, 4, 8).
+- `maxAnisotropy` (number): Anisotrope-Filterung-Stufe (1, 4, 8, 16) für schärfere Texturen bei flachen Blickwinkeln.
+- `hdr` (boolean): Aktiviert High-Dynamic-Range-(Float16-)Rendering-Pipelines.
+- `toneMapping` (string): Der zu verwendende Tone-Mapping-Algorithmus (z. B. `aces`, `reinhard`, `none`).
+- `maxShadowResolution` (number): Maximale Texturgröße für Shadow Maps.
+- `disableTextures` (boolean): Bei `true` werden alle Texturen umgangen und Fallback-Farben gerendert (nützlich zum Debuggen).
 
 ### Post-Processing (`postProcessing`)
 
-Configures the post-processing pipeline. General pipeline settings (`enabled`, `filterMode`)
-sit at the top level; every individual effect's own tunables are nested one level deeper, under
-`effects` — a flat object with one optional key per effect, not a `type`-tagged array (the
-pipeline's effect order is fixed internally, not driven by config order). Each individual effect
-also has its own `enabled` flag, so you can register settings for an effect without turning it
-on yet.
+Konfiguriert die Post-Processing-Pipeline. Allgemeine Pipeline-Einstellungen (`enabled`, `filterMode`) sitzen auf oberster Ebene; die eigenen einstellbaren Werte jedes einzelnen Effekts sind eine Ebene tiefer verschachtelt, unter `effects` — ein flaches Objekt mit einem optionalen Schlüssel pro Effekt, kein `type`-getaggtes Array (die Effekt-Reihenfolge der Pipeline ist intern fest verdrahtet, nicht von der Config-Reihenfolge abhängig). Jeder einzelne Effekt hat außerdem sein eigenes `enabled`-Flag, sodass Einstellungen für einen Effekt hinterlegt werden können, ohne ihn schon einzuschalten.
 
 ```json
 "postProcessing": {
@@ -88,27 +80,20 @@ on yet.
 }
 ```
 
-Every field is optional and only overrides that specific value on top of the effect's own
-default — you don't need to specify fields you're not changing.
+Jedes Feld ist optional und überschreibt nur diesen bestimmten Wert oberhalb des eigenen Standards des Effekts — Felder, die nicht geändert werden sollen, müssen nicht angegeben werden.
 
-- **`bloom`** — soft glow around bright areas via a dual Kawase-filter blur (see
-  `REFERENCES.md`). `color` can also be set as `{ "r", "g", "b" }` or a 3-element array.
-- **`vignette`** / **`grain`** / **`quantize`** — classic screen darkening at the edges,
-  film-grain noise, and color-banding/posterization respectively.
-- **`hbao`** — screen-space ambient occlusion (a simplified HBAO, not GTAO — see
-  `docs/research/aaa-engine-techniques.md` for the exact scope). WebGL/WebGPU only.
-- **`taa`** — simplified temporal anti-aliasing: sub-pixel camera jitter + an exponential
-  history blend, no motion-vector reprojection. Smooths edges in static/slow scenes; visibly
-  ghosts under fast movement. WebGL/WebGPU only.
-- **`motionTrail`** — a *deliberate* ghost/afterimage effect (not anti-aliasing), reusing the
-  same history-blend mechanism as `taa` at a much higher feedback value. WebGL/WebGPU only.
+- **`bloom`** — weiches Glühen um helle Bereiche via Dual-Kawase-Filter-Weichzeichnung (siehe `REFERENCES.md`). `color` kann auch als `{ "r", "g", "b" }` oder ein 3-elementiges Array gesetzt werden.
+- **`vignette`** / **`grain`** / **`quantize`** — klassische Randabdunkelung, Filmkorn-Rauschen bzw. Farbbänderung/Posterisierung.
+- **`hbao`** — Screen-Space Ambient Occlusion (ein vereinfachtes HBAO, kein GTAO — siehe `docs/research/aaa-engine-techniques.md` für den genauen Umfang). Nur WebGL/WebGPU.
+- **`taa`** — vereinfachtes temporales Anti-Aliasing: Subpixel-Kamera-Jitter + eine exponentielle History-Überblendung, keine Bewegungsvektor-Reprojektion. Glättet Kanten in statischen/langsamen Szenen; sichtbares Geistern bei schneller Bewegung. Nur WebGL/WebGPU.
+- **`motionTrail`** — ein *bewusster* Geister-/Nachbild-Effekt (kein Anti-Aliasing), der denselben History-Überblendungs-Mechanismus wie `taa` mit deutlich höherem Feedback-Wert wiederverwendet. Nur WebGL/WebGPU.
 
-### Projections & Audio
+### Projektionen & Audio
 
-- `projection`: Camera options, like `fov`, `near`, `far`, etc.
-- `audio`: Sound configurations (e.g., global volume, distance model).
+- `projection`: Kamera-Optionen wie `fov`, `near`, `far` usw.
+- `audio`: Sound-Konfigurationen (z. B. globale Lautstärke, Distanzmodell).
 
-## Full Configuration Example
+## Vollständiges Konfigurationsbeispiel
 
 ```json
 {

@@ -1,30 +1,30 @@
-# Modular Ecosystem & Domain Layering
+# Modulares Ökosystem & Domänen-Schichtung
 
-Per **ADR 0014**, Small World follows a strict 4-tier domain layering architecture rather than generic catch-all folders.
+Gemäß **ADR 0014** folgt Small World einer strikten 4-Schichten-Domänenarchitektur statt generischer Sammel-Ordner.
 
-## Domain Structure
+## Domänenstruktur
 
-1. **Tier 1 — Core Engine (`src/core/`, `src/renderers/`, `src/geometry/`, `src/math/`):**
-   Math, scene graph, cameras, renderers, passes, shaders, and core primitives (including `BillboardInstancer` and `ImposterBaker`).
-2. **Tier 2 — Environment & Atmosphere (`src/environment/`):**
-   Weather, atmospheric particle systems (`WeatherEmitter`), sky systems, and fluid surfaces.
-3. **Tier 3 — Behaviors & Simulation (`src/core/behaviors/`):**
-   Controllers, sensors, animation loops, and ambient creature life (`RatGroomingBehavior`, `GroomingRat`).
-4. **Tier 4 — Tools & ProcGen (`src/tools/`, `src/tools/procgen/`):**
-   Authoring tools (`MakerApp`, `MapGenerator`, `Pixler`, `Xtractor`, `Forge`) and procedural level generators (`GridLevelBuilder`).
+1. **Ebene 1 — Kern-Engine (`src/core/`, `src/renderers/`, `src/geometry/`, `src/math/`):**
+   Mathematik, Szenengraph, Kameras, Renderer, Passes, Shader und Kern-Primitive (inklusive `BillboardInstancer` und `ImposterBaker`).
+2. **Ebene 2 — Umgebung & Atmosphäre (`src/environment/`):**
+   Wetter, atmosphärische Partikelsysteme (`WeatherEmitter`), Himmelssysteme und Flüssigkeitsoberflächen.
+3. **Ebene 3 — Behaviors & Simulation (`src/core/behaviors/`):**
+   Controller, Sensoren, Animationsschleifen und ambientes Kreaturenleben (`RatGroomingBehavior`, `GroomingRat`).
+4. **Ebene 4 — Werkzeuge & ProcGen (`src/tools/`, `src/tools/procgen/`):**
+   Autoring-Werkzeuge (`MakerApp`, `MapGenerator`, `Pixler`, `Xtractor`, `Forge`) und prozedurale Level-Generatoren (`GridLevelBuilder`).
 
-## Example: Procedural Grid Generation (`GridLevelBuilder`)
+## Beispiel: Prozedurale Raster-Generierung (`GridLevelBuilder`)
 
-`GridLevelBuilder` lives in `src/tools/procgen/` (exported via `small-world` tooling surface) and allows defining 3D levels from ASCII grids.
+`GridLevelBuilder` liegt in `src/tools/procgen/` (exportiert über die `small-world`-Tooling-Oberfläche) und erlaubt es, 3D-Level aus ASCII-Rastern zu definieren.
 
-### Usage
+### Verwendung
 
 ```typescript
 import { GridLevelBuilder, GridLevelConfig, Object3D } from "small-world";
 
 const builder = new GridLevelBuilder();
 
-// Define your legend mapping ASCII characters to meshes or logic
+// Die Legende definieren, die ASCII-Zeichen auf Meshes oder Logik abbildet
 const config: GridLevelConfig = {
   gridSize: 2.0,
   legend: {
@@ -32,24 +32,24 @@ const config: GridLevelConfig = {
       type: "custom",
       onBuild: (x, y, worldX, worldZ) => {
         const wall = new Object3D(`Wall_${x}_${y}`);
-        // Add geometry, materials...
+        // Geometrie, Materialien hinzufügen...
         wall.position.set(worldX, 1.0, worldZ);
-        return wall; // Returned object is added to the scene automatically
+        return wall; // Zurückgegebenes Objekt wird automatisch zur Szene hinzugefügt
       },
     },
     "P": {
       type: "custom",
       onBuild: (x, y, worldX, worldZ) => {
         this.camera.position.set(worldX, 1.0, worldZ);
-        return undefined; // We don't add an object, we just move the camera
+        return undefined; // Wir fügen kein Objekt hinzu, wir bewegen nur die Kamera
       },
     },
   },
 };
 
-// Define your map as a single newline-separated string
+// Die Karte als einzelnen, zeilenumbruch-getrennten String definieren
 const myMap = ["#######", "#P    #", "#######"].join("\n");
 
-// Build the map (async — resolves to the world position of the first "P" spawn, or the map center)
+// Die Karte bauen (async — löst zur Weltposition des ersten "P"-Spawns auf, oder zur Kartenmitte)
 await builder.build(this.scene, myMap, config);
 ```

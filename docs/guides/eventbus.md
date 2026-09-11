@@ -1,24 +1,24 @@
-# EventBus & Gameloop
+# EventBus & Game-Loop
 
-In modern 3D applications, coupling your UI directly to your 3D engine or gameloop creates spaghetti code and performance bottlenecks. The **Small World Engine** provides a built-in, type-safe, and zero-allocation **EventBus** (`EventDispatcherImpl`) to cleanly decouple your systems.
+In modernen 3D-Anwendungen erzeugt eine UI, die direkt an die 3D-Engine oder den Game-Loop gekoppelt ist, Spaghetticode und Performance-Engpässe. Die **Small World Engine** stellt einen eingebauten, typsicheren und zuweisungsfreien **EventBus** (`EventDispatcherImpl`) bereit, um Systeme sauber zu entkoppeln.
 
-## The Application EventBus
+## Der Anwendungs-EventBus
 
-Because Small World enforces strict multi-instancing support (no global singletons), the EventBus is attached to your `SmallWorld` application instance.
+Da Small World strikte Mehrfach-Instanziierung erzwingt (keine globalen Singletons), ist der EventBus an die eigene `SmallWorld`-Anwendungsinstanz angehängt.
 
-You can access it via `app.events` (or pass it via constructor injection):
+Zugriff darauf über `app.events` (oder Übergabe via Konstruktor-Injektion):
 
 ```typescript
-// Assuming `app` is your SmallWorld instance
+// Angenommen, `app` ist die eigene SmallWorld-Instanz
 app.events.dispatchEvent("MyEvent", { data: 123 });
 ```
 
-## Defining Strongly-Typed Events
+## Stark typisierte Events definieren
 
-To avoid brittle "magic strings" and typos across your codebase, you should always define your events as structured constants (`as const`) or `enums`. This provides maximum autocomplete and type safety.
+Um brüchige "magische Strings" und Tippfehler im gesamten Code zu vermeiden, sollten Events immer als strukturierte Konstanten (`as const`) oder `enums` definiert werden. Das liefert maximale Autovervollständigung und Typsicherheit.
 
 ```typescript
-// Event definitions (your own game-specific registry)
+// Event-Definitionen (eigene, spielspezifische Registry)
 export const MyGameEvents = {
   PLAYER: {
     DAMAGE: "MyGameEvents:PLAYER:DAMAGE",
@@ -30,26 +30,26 @@ export const MyGameEvents = {
 } as const;
 ```
 
-::: tip Built-in AppEvents
-The engine itself ships a reference event registry, `AppEvents`, used by the YAD showcase (e.g. `AppEvents.Yad.DAMAGE`, `AppEvents.Yad.SHOOT`). Define your own registry (as above) for your game's events instead of extending the built-in one.
+::: tip Eingebaute AppEvents
+Die Engine selbst liefert eine Referenz-Event-Registry, `AppEvents`, genutzt vom YAD-Showcase (z. B. `AppEvents.Yad.DAMAGE`, `AppEvents.Yad.SHOOT`). Für die Events des eigenen Spiels eine eigene Registry definieren (wie oben), statt die eingebaute zu erweitern.
 :::
 
-## Emitting Events
+## Events auslösen
 
-Instead of using the DOM's `window.dispatchEvent` (which incurs heavy garbage collection overhead and is not strictly typed), you should use the engine's built-in `events` property to broadcast game events using your typed constants.
+Statt das DOM-eigene `window.dispatchEvent` zu nutzen (das erheblichen Garbage-Collection-Overhead verursacht und nicht strikt typisiert ist), sollte die eingebaute `events`-Property der Engine genutzt werden, um Spiel-Events mit den eigenen typisierten Konstanten zu übertragen.
 
 ```typescript
 takeDamage(amount: number) {
   this.health -= amount;
 
-  // Dispatch via an injected EventDispatcherImpl (e.g. this.events)
+  // Auslösen über einen injizierten EventDispatcherImpl (z. B. this.events)
   this.events.dispatchEvent(MyGameEvents.PLAYER.DAMAGE, { amount: 15, source: "lava" });
 }
 ```
 
-## Listening to Events
+## Auf Events lauschen
 
-Your UI components (e.g., a HUD) or other decoupled systems can simply accept the `Events` interface and listen for specific events from your registry.
+UI-Komponenten (z. B. ein HUD) oder andere entkoppelte Systeme können einfach das `Events`-Interface entgegennehmen und auf bestimmte Events aus der eigenen Registry lauschen.
 
 ```typescript
 import { MyGameEvents } from "./events.js";
@@ -57,15 +57,15 @@ import { MyGameEvents } from "./events.js";
 export function buildHUD(app: SmallWorld) {
   const healthLabel = document.createElement("div");
 
-  // The UI listens to the Application-level events
+  // Die UI lauscht auf die Events auf Anwendungsebene
   app.events.addEventListener(MyGameEvents.PLAYER.DAMAGE, (e: Record<string, unknown>) => {
       const damage = e['amount'] as number;
       console.log(`Player took ${damage} damage!`);
-      // Update your UI here...
+      // Hier die UI aktualisieren...
     });
   }
 ```
 
-## Why Not Native DOM Events?
+## Warum keine nativen DOM-Events?
 
-Native `CustomEvent` objects in the browser are deeply tied to the DOM tree and allocate memory that the garbage collector must eventually clean up. By using a pure TypeScript generic `EventDispatcher`, the **Small World Engine** ensures your core logic remains decoupled from the browser environment, allowing for predictable performance and the potential to run your logic in Web Workers.
+Native `CustomEvent`-Objekte im Browser sind tief an den DOM-Baum gebunden und belegen Speicher, den der Garbage Collector irgendwann bereinigen muss. Durch die Nutzung eines reinen, generischen TypeScript-`EventDispatcher` stellt die **Small World Engine** sicher, dass die Kernlogik von der Browser-Umgebung entkoppelt bleibt — das ermöglicht vorhersehbare Performance und potenziell die Ausführung der eigenen Logik in Web Workern.

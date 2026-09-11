@@ -1,33 +1,37 @@
-# PCSS (soft shadows): directional lights everywhere, spot lights on WebGPU only
+# PCSS (weiche Schatten): Directional Lights überall, Spot Lights nur auf WebGPU
 
-The blocker-search + variable-radius PCF pass runs for the directional light's primary cascade
-on all backends, and (as of this update) for spot lights on WebGPU. The directional light's
-secondary cascade-blend sample keeps the older fixed-radius 3x3 PCF everywhere, to avoid doubling
-the blocker-search cost in the cascade-blend zone specifically.
+Der Blocker-Search + Variable-Radius-PCF-Pass läuft für die primäre Kaskade des Directional Light
+auf allen Backends, und (Stand dieses Updates) für Spot Lights auf WebGPU. Der
+Cascade-Blend-Sample der sekundären Kaskade des Directional Light behält überall das ältere,
+feste 3x3-PCF mit festem Radius, um die Blocker-Search-Kosten speziell in der
+Cascade-Blend-Zone nicht zu verdoppeln.
 
-**WebGPU spot lights use PCSS** (`getShadowPCSS` in `lighting.wgsl`/`lighting_pbr.wgsl`): the
-function is fully generic (`(map: texture_depth_2d_array, samp: sampler_comparison, shadowPos,
-layer, bias) -> f32`, no directional-specific uniform access in its body), and
-`textureLoad`+`textureSampleCompareLevel` already coexist on the same `texture_depth_2d_array`
-binding without a second sampler -- unlike WebGL2 (see below). Swapping the spot-light call from
-`getShadowPCF` to `getShadowPCSS` needed no new bindings, no struct changes, nothing beyond the
-function name at the two call sites.
+**WebGPU-Spot-Lights nutzen PCSS** (`getShadowPCSS` in `lighting.wgsl`/`lighting_pbr.wgsl`): die
+Funktion ist vollständig generisch (`(map: texture_depth_2d_array, samp: sampler_comparison,
+shadowPos, layer, bias) -> f32`, kein directional-spezifischer Uniform-Zugriff im Funktionskörper),
+und `textureLoad`+`textureSampleCompareLevel` koexistieren bereits auf demselben
+`texture_depth_2d_array`-Binding ohne zweiten Sampler — anders als WebGL2 (siehe unten). Den
+Spot-Light-Aufruf von `getShadowPCF` auf `getShadowPCSS` umzustellen brauchte keine neuen
+Bindings, keine Struct-Änderungen, nichts über den Funktionsnamen an den zwei Aufrufstellen
+hinaus.
 
-**WebGL2 spot lights stay on fixed-radius PCF.** Not a technical blocker: the same
-comparison/non-comparison dual-sampler trick already used for the directional light
-(`u_dirShadowMap` + `u_dirShadowMapRaw`, a `_rawDepthSampler` WebGLSampler object bound to a
-second texture unit with `TEXTURE_COMPARE_MODE = NONE`) would work identically for the 4 spot
-shadow maps -- it's pure repetition, not a new mechanism. The actual cost is texture-unit
-*budget*: WebGL2 only guarantees 16 image units, and this project already reserves units 8-18
-(4x spot compare, 1x directional compare, 1x dummy fallback, 1x directional raw-depth, 4x cluster
-grid/index) -- on spec-minimum hardware the cluster system already hits its existing
-warn/fallback path before any PCSS work is added. Four more non-comparison spot units would make
-that worse, not introduce a new risk.
+**WebGL2-Spot-Lights bleiben bei festem PCF mit festem Radius.** Kein technisches Hindernis: derselbe
+Comparison-/Non-Comparison-Dual-Sampler-Trick, der schon beim Directional Light verwendet wird
+(`u_dirShadowMap` + `u_dirShadowMapRaw`, ein `_rawDepthSampler`-WebGLSampler-Objekt, gebunden an
+eine zweite Textureinheit mit `TEXTURE_COMPARE_MODE = NONE`) würde identisch für die 4
+Spot-Shadow-Maps funktionieren — reine Wiederholung, kein neuer Mechanismus. Die eigentlichen
+Kosten sind das Textureinheiten-*Budget*: WebGL2 garantiert nur 16 Bildeinheiten, und dieses
+Projekt reserviert bereits die Einheiten 8-18 (4x Spot-Compare, 1x Directional-Compare, 1x
+Dummy-Fallback, 1x Directional-Raw-Depth, 4x Cluster-Grid/-Index) — auf Spec-Minimum-Hardware
+erreicht das Cluster-System schon jetzt seinen bestehenden Warn-/Fallback-Pfad, bevor überhaupt
+PCSS-Arbeit hinzukommt. Vier weitere Non-Comparison-Spot-Einheiten würden das verschlimmern, kein
+neues Risiko einführen.
 
-**WebGL1 has no shadow mapping at all** (no depth textures, no shadow pass, `WEBGL_depth_texture`
-unused) -- PCSS there would be a ground-up feature, not an extension of anything.
+**WebGL1 hat überhaupt kein Shadow Mapping** (keine Depth-Texturen, kein Shadow-Pass,
+`WEBGL_depth_texture` ungenutzt) — PCSS dort wäre ein Feature von Grund auf, keine Erweiterung von
+irgendetwas.
 
-**Reconsider WebGL2 spot-light PCSS if:** a showcase leans on spot-light shadows as a primary
-visual (e.g. a flashlight-driven horror scene) on hardware known to exceed the 16-unit minimum,
-where the fixed-PCF edge becomes noticeably worse than the directional/WebGPU-spot PCSS edge next
-to it.
+**WebGL2-Spot-Light-PCSS überdenken, wenn:** ein Showcase Spot-Light-Schatten stark als primäres
+visuelles Element nutzt (z. B. eine taschenlampengetriebene Horror-Szene) auf Hardware, die
+bekanntermaßen über das 16-Einheiten-Minimum hinausgeht, wo die feste PCF-Kante spürbar schlechter
+wird als die PCSS-Kante von Directional/WebGPU-Spot direkt daneben.

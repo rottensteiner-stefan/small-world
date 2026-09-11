@@ -1,29 +1,29 @@
-# ADR 0014: Modular Ecosystem and Domain Layering — Dissolution of `extensions/`
+# ADR 0014: Modulares Ökosystem und Domänen-Schichtung — Auflösung von `extensions/`
 
-## Context & Problem
+## Kontext & Problem
 
-The `src/extensions/` directory was originally introduced as a catch-all folder for "modular logic that builds upon the core engine but isn't required for basic 3D rendering". Over time, this created a classic **"Grab-Bag" / Rumpelkammer anti-pattern**:
-1. **Unclear Domain Boundaries:** Fundamentally different architectural layers were thrown into the same folder:
-   - Rendering primitives and LOD helpers (`BillboardInstancer`, `ImposterBaker`)
-   - Gameplay AI and procedural animation (`RatGroomingBehavior`, `GroomingRat`)
-   - Environment / atmospheric VFX (`WeatherEmitter`)
-   - Procedural level generation utilities (`GridLevelBuilder`)
-2. **Root Namespace Bloat:** `src/index.ts` exported `export * from "./extensions/index.js"`, forcing all consumers and engine bundles to include level generators, creature AI, and weather emitters in the global engine namespace, harming tree-shaking and architectural clarity.
-3. **Lack of Extension Protocol:** There was no formal definition of what qualifies as an Engine Core subsystem, a Behavior, an Environment component, or a Tool/ProcGen utility.
+Das Verzeichnis `src/extensions/` wurde ursprünglich als Auffangordner für "modulare Logik, die auf dem Kern der Engine aufbaut, aber für grundlegendes 3D-Rendering nicht erforderlich ist" eingeführt. Mit der Zeit entstand daraus ein klassisches **"Grab-Bag"-/Rumpelkammer-Anti-Pattern**:
+1. **Unklare Domänen-Grenzen:** Grundlegend verschiedene Architekturschichten wurden in denselben Ordner geworfen:
+   - Rendering-Primitive und LOD-Helfer (`BillboardInstancer`, `ImposterBaker`)
+   - Gameplay-KI und prozedurale Animation (`RatGroomingBehavior`, `GroomingRat`)
+   - Umgebungs-/atmosphärische VFX (`WeatherEmitter`)
+   - Prozedurale Level-Generierungs-Werkzeuge (`GridLevelBuilder`)
+2. **Aufblähung des Wurzel-Namensraums:** `src/index.ts` exportierte `export * from "./extensions/index.js"` und zwang so alle Konsumenten und Engine-Bundles dazu, Level-Generatoren, Kreaturen-KI und Wetter-Emitter im globalen Engine-Namensraum mitzuführen, was Tree-Shaking und architektonischer Klarheit schadete.
+3. **Fehlendes Erweiterungs-Protokoll:** Es gab keine formale Definition dessen, was als Engine-Kern-Subsystem, als Behavior, als Umgebungs-Komponente oder als Tool-/ProcGen-Werkzeug gilt.
 
-### Industry Benchmark Analysis
+### Branchen-Vergleichsanalyse
 
-We benchmarked how industry-leading 3D engines structure core vs. optional/ecosystem modules:
-- **Three.js (`three/addons/*`):** Keeps `three` core strictly focused on math, scene graph, cameras, and basic render passes. Specialized loaders (`GLTFLoader`), camera controls (`OrbitControls`), post-processing passes, and procedural helpers live under `three/addons/*` with explicit subpath imports, preventing core namespace pollution.
-- **Babylon.js (Monorepo & SceneComponent Plugins):** Strictly separates core (`@babylonjs/core`) from specialized domains (`@babylonjs/materials`, `@babylonjs/gui`, `@babylonjs/loaders`, `@babylonjs/procedural-textures`).
-- **Godot Engine:** Maintains a lean C++ core. Scene graph logic is extended via custom nodes/scripts, and high-level tools or game utilities live in explicit domain folders or project `addons/` without polluting engine primitives.
-- **Unity:** Segregates specialized systems (VFX Graph, Splines, AI Navigation, Input System) into dedicated UPM packages layered on top of core runtime assemblies.
+Wir haben verglichen, wie branchenführende 3D-Engines Kern- vs. optionale/Ökosystem-Module strukturieren:
+- **Three.js (`three/addons/*`):** Hält den `three`-Kern strikt fokussiert auf Mathematik, Szenengraph, Kameras und grundlegende Render-Passes. Spezialisierte Loader (`GLTFLoader`), Kamerasteuerungen (`OrbitControls`), Post-Processing-Passes und prozedurale Helfer leben unter `three/addons/*` mit expliziten Subpath-Importen, was Verschmutzung des Kern-Namensraums verhindert.
+- **Babylon.js (Monorepo & SceneComponent-Plugins):** Trennt den Kern (`@babylonjs/core`) strikt von spezialisierten Domänen (`@babylonjs/materials`, `@babylonjs/gui`, `@babylonjs/loaders`, `@babylonjs/procedural-textures`).
+- **Godot Engine:** Hält einen schlanken C++-Kern. Szenengraph-Logik wird über eigene Nodes/Skripte erweitert, und High-Level-Werkzeuge oder Spiel-Utilities leben in expliziten Domänen-Ordnern oder Projekt-`addons/`, ohne die Engine-Primitive zu verschmutzen.
+- **Unity:** Trennt spezialisierte Systeme (VFX Graph, Splines, AI Navigation, Input System) in dedizierte UPM-Pakete, die über den Kern-Laufzeit-Assemblies liegen.
 
 ---
 
-## Decision
+## Entscheidung
 
-We **dissolve `src/extensions/` completely** and establish a strict 4-tier domain layering model for Small World:
+Wir **lösen `src/extensions/` vollständig auf** und etablieren ein striktes 4-Stufen-Domänen-Schichtungsmodell für Small World:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -41,31 +41,31 @@ We **dissolve `src/extensions/` completely** and establish a strict 4-tier domai
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### 1. Concrete Migration Targets
+### 1. Konkrete Migrationsziele
 
-| Current Location | New Architectural Domain | Rationale |
+| Aktueller Ort | Neue architektonische Domäne | Begründung |
 | :--- | :--- | :--- |
-| `src/extensions/billboard/BillboardInstancer.ts` | `src/core/objects/BillboardInstancer.ts` (or `src/core/entities/`) | Core scene-graph primitive that directly wraps `InstancedMesh` for camera-facing quads. |
-| `src/extensions/imposter/ImposterBaker.ts` | `src/renderers/imposter/ImposterBaker.ts` | Specialized renderer utility / LOD generation mechanism. |
-| `src/extensions/weather/WeatherEmitter.ts` | `src/environment/weather/WeatherEmitter.ts` | Atmospheric environment system (rain, snow, ambient particles). |
-| `src/extensions/creatures/RatGroomingBehavior.ts` | `src/behaviors/creatures/RatGroomingBehavior.ts` | Standard Small World `Behavior` attached to entities for ambient life. |
-| `src/extensions/creatures/GroomingRat.ts` | `src/behaviors/creatures/GroomingRat.ts` (or sample creature entity) | Entity composition bundling a mesh with its grooming behavior. |
-| `src/extensions/grid-builder/GridLevelBuilder.ts` | `src/tools/procgen/GridLevelBuilder.ts` | High-level level builder / map generation tool for grid-based scenes. |
+| `src/extensions/billboard/BillboardInstancer.ts` | `src/core/objects/BillboardInstancer.ts` (oder `src/core/entities/`) | Kern-Szenengraph-Primitiv, das `InstancedMesh` für kamerazugewandte Quads direkt umhüllt. |
+| `src/extensions/imposter/ImposterBaker.ts` | `src/renderers/imposter/ImposterBaker.ts` | Spezialisiertes Renderer-Werkzeug / LOD-Generierungsmechanismus. |
+| `src/extensions/weather/WeatherEmitter.ts` | `src/environment/weather/WeatherEmitter.ts` | Atmosphärisches Umgebungssystem (Regen, Schnee, Umgebungspartikel). |
+| `src/extensions/creatures/RatGroomingBehavior.ts` | `src/behaviors/creatures/RatGroomingBehavior.ts` | Standard-Small-World-`Behavior`, an Entitäten für Umgebungsleben angehängt. |
+| `src/extensions/creatures/GroomingRat.ts` | `src/behaviors/creatures/GroomingRat.ts` (oder Beispiel-Kreatur-Entität) | Entitäts-Komposition, die ein Mesh mit seinem Pflege-Behavior bündelt. |
+| `src/extensions/grid-builder/GridLevelBuilder.ts` | `src/tools/procgen/GridLevelBuilder.ts` | High-Level-Level-Builder / Kartengenerierungs-Werkzeug für rasterbasierte Szenen. |
 
-### 2. Export & Namespace Rules
+### 2. Export- & Namensraum-Regeln
 
-1. **Core Package Surface (`src/index.ts`):**
-   - Core primitives (`BillboardInstancer`), Environment systems (`WeatherEmitter`), and standard Behaviors are exported from their respective domain namespaces (`./core/index.js`, `./environment/index.js`, `./behaviors/index.js`).
+1. **Kern-Paket-Oberfläche (`src/index.ts`):**
+   - Kern-Primitive (`BillboardInstancer`), Umgebungssysteme (`WeatherEmitter`) und Standard-Behaviors werden aus ihren jeweiligen Domänen-Namensräumen exportiert (`./core/index.js`, `./environment/index.js`, `./behaviors/index.js`).
 2. **Tooling & ProcGen:**
-   - ProcGen and authoring tools (`GridLevelBuilder`, `MakerApp`) are exported under `./tools/index.js` or dedicated tool entrypoints, clearly separating runtime engine primitives from build-time/design-time generators.
-3. **No Catch-All Folders:**
-   - No new generic `extensions/`, `helpers/`, or `misc/` root directories may be created. Every new feature must be classified into its distinct domain (Core, Environment, Behavior, Tool, Renderer, Math, Loader).
+   - ProcGen- und Erstellungswerkzeuge (`GridLevelBuilder`, `MakerApp`) werden unter `./tools/index.js` oder dedizierten Tool-Einstiegspunkten exportiert, was Laufzeit-Engine-Primitive klar von Build-Zeit-/Design-Zeit-Generatoren trennt.
+3. **Keine Auffangordner:**
+   - Es dürfen keine neuen generischen Wurzelverzeichnisse `extensions/`, `helpers/` oder `misc/` angelegt werden. Jedes neue Feature muss einer eindeutigen Domäne zugeordnet werden (Core, Environment, Behavior, Tool, Renderer, Math, Loader).
 
 ---
 
-## Consequences
+## Konsequenzen
 
-- **Clarity & Predictability:** Developers immediately know where to look: scene nodes in `core/objects`, controllers and AI in `behaviors`, atmospheric VFX in `environment`, and generators in `tools/procgen`.
-- **Clean Tree-Shaking:** High-level level generation tools are decoupled from basic rendering primitives.
-- **Architectural Scalability:** Future additions (e.g. boids, foliage systems, terrain generators) have a clear, pre-defined architectural home.
-- **Migration Cost:** Requires updating imports across existing showcases (`showcase 32`, `showcase 34`), tests (`tests/extensions/`), and tools (`MakerApp`, `AsciiMapLegend`).
+- **Klarheit & Vorhersagbarkeit:** Entwickler wissen sofort, wo sie nachsehen müssen: Szenen-Nodes in `core/objects`, Controller und KI in `behaviors`, atmosphärische VFX in `environment`, und Generatoren in `tools/procgen`.
+- **Sauberes Tree-Shaking:** High-Level-Level-Generierungswerkzeuge sind von grundlegenden Rendering-Primitiven entkoppelt.
+- **Architektonische Skalierbarkeit:** Künftige Ergänzungen (z. B. Boids, Bewuchssysteme, Terrain-Generatoren) haben ein klares, vordefiniertes architektonisches Zuhause.
+- **Migrationskosten:** Erfordert die Aktualisierung von Importen über bestehende Showcases (`showcase 32`, `showcase 34`), Tests (`tests/extensions/`) und Werkzeuge (`MakerApp`, `AsciiMapLegend`) hinweg.

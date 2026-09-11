@@ -1,4 +1,4 @@
-# Commercial Indie Game Roadmap & Publisher Strategy
+# Kommerzielle Indie-Spiele-Roadmap & Publisher-Strategie
 
 > **Small World Engine Guide:** Vom atmosphärischen Prototyp zum kommerziellen Release auf Steam, PlayStation & Xbox — speziell ausgelegt für Solo-Entwickler und kleine Indie-Teams.
 

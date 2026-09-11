@@ -1,22 +1,22 @@
-# Getting Started
+# Erste Schritte
 
-Small World is a lightweight, high-performance, modular 3D game engine for the web built with TypeScript.
+Small World ist eine leichtgewichtige, hochperformante, modulare 3D-Game-Engine für das Web, gebaut mit TypeScript.
 
 ## Installation
 
-Install the package via NPM:
+Das Paket via NPM installieren:
 
 ```bash
 npm install small-world
 ```
 
-## Basic Setup
+## Grundlegende Einrichtung
 
-The engine uses a strategy-based lifecycle. You subclass `SmallWorld` (or `AbstractShowcase`, which adds a few demo/debug conveniences on top of `SmallWorld`) and override the `setupScene` and `update` lifecycle methods.
+Die Engine nutzt einen strategiebasierten Lebenszyklus. Man leitet von `SmallWorld` ab (oder von `AbstractShowcase`, das ein paar Demo-/Debug-Annehmlichkeiten oben auf `SmallWorld` hinzufügt) und überschreibt die Lebenszyklus-Methoden `setupScene` und `update`.
 
-### 1. Basic Showcase Implementation
+### 1. Grundlegende Showcase-Implementierung
 
-Create a file named `app.ts` to boot the engine:
+Eine Datei namens `app.ts` erstellen, um die Engine zu starten:
 
 ```typescript
 import {
@@ -30,7 +30,7 @@ import {
 
 class MyFirstWorld extends AbstractShowcase {
   protected override async setupScene(): Promise<void> {
-    // 1. Create a green PBR cube
+    // 1. Einen grünen PBR-Würfel erstellen
     const cubeObj = new Object3D("RotatingCube");
     cubeObj.geometry = new Cube({ size: 1.5 }).getGeometryData();
     cubeObj.material = new StandardMaterial({
@@ -40,10 +40,10 @@ class MyFirstWorld extends AbstractShowcase {
     });
     cubeObj.position.set(0, 1.0, 0);
 
-    // 2. Add to scene
+    // 2. Zur Szene hinzufügen
     this.scene.add(cubeObj);
 
-    // 3. Move the camera back to view the scene
+    // 3. Die Kamera zurückbewegen, um die Szene zu sehen
     this.camera.position.set(0, 3.0, 6.0);
     this.camera.target.set(0, 1.0, 0);
   }
@@ -51,7 +51,7 @@ class MyFirstWorld extends AbstractShowcase {
   protected override update(deltaTime: number): void {
     super.update(deltaTime);
 
-    // Rotate the cube object
+    // Das Würfel-Objekt rotieren
     const cube = this.scene.getObjectByName("RotatingCube");
     if (cube) {
       cube.rotation.y += 1.0 * deltaTime;
@@ -59,7 +59,7 @@ class MyFirstWorld extends AbstractShowcase {
   }
 }
 
-// Instantiate and start
+// Instanziieren und starten
 const app = new MyFirstWorld({
   rendererType: RendererType.BEST,
 });
@@ -69,11 +69,11 @@ app.start().then(() => {
 });
 ```
 
-### 2. SPA & Framework Integration (React / Vue / Angular)
+### 2. SPA- & Framework-Integration (React / Vue / Angular)
 
-When embedding Small World inside a Single Page Application (SPA), the browser does not automatically refresh when you change routes. To prevent memory leaks or multiple render loops running simultaneously in the background, you must cleanly destroy the engine when your component unmounts.
+Wird Small World in eine Single-Page-Application (SPA) eingebettet, aktualisiert der Browser sich bei Routenwechseln nicht automatisch. Um Speicherlecks oder mehrere gleichzeitig im Hintergrund laufende Render-Schleifen zu verhindern, muss die Engine beim Unmount der eigenen Komponente sauber zerstört werden.
 
-Simply call the `destroy()` method. This will instantly halt the `requestAnimationFrame` loop, detach all global window event listeners, and flush the WebGPU/WebGL memory.
+Einfach die Methode `destroy()` aufrufen. Das stoppt sofort die `requestAnimationFrame`-Schleife, entfernt alle globalen Window-Event-Listener und leert den WebGPU-/WebGL-Speicher.
 
 ```tsx
 import { useEffect, useRef } from "react";
@@ -93,7 +93,7 @@ export function GameComponent() {
     }
 
     return () => {
-      // Clean up the engine completely when the React component unmounts!
+      // Die Engine beim Unmount der React-Komponente vollständig aufräumen!
       if (app) {
         app.destroy();
       }
@@ -104,5 +104,4 @@ export function GameComponent() {
 }
 ```
 
-*Note: The engine features an automatic safety net out of the box. If it detects that its canvas element has been forcefully removed from the DOM by a framework without `destroy()` being explicitly called, it will catch this and auto-destroy itself safely!*
-
+*Hinweis: Die Engine verfügt bereits von Haus aus über ein automatisches Sicherheitsnetz. Erkennt sie, dass ihr Canvas-Element von einem Framework gewaltsam aus dem DOM entfernt wurde, ohne dass `destroy()` explizit aufgerufen wurde, fängt sie das ab und zerstört sich selbst sicher!*

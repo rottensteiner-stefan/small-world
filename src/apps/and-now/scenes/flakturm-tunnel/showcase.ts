@@ -62,7 +62,10 @@ const DEFAULT_ZONE_POINTS: Record<
     { u: 0.463, v: 0.894, scale: 1.0 },
     { u: 0.51, v: 0.823, scale: 1.0 },
     { u: 0.357, v: 0.594, scale: 0.5 },
-    { u: 0.278, v: 0.613, scale: 0.5 },
+    // P3 (far-left corner) was traced past the painted stairs' actual left edge, into the
+    // shadow beside them -- measured directly against the art on 2026-09-11 (see
+    // .agents/notes/backlog.md), the real left edge sits at u≈0.305 at this depth, not 0.278.
+    { u: 0.305, v: 0.613, scale: 0.5 },
   ],
 };
 
@@ -1014,18 +1017,11 @@ class AndNowScene2 extends AbstractShowcase {
     this.scene.update(deltaTime);
     this._syncLanternTransform();
 
-    // Overhead Debug Tag über dem Kopf der Spielfigur
+    // Status-Anzeige der Spielfigur -- fix am oberen Bildschirmrand (CSS in index.html), folgt
+    // der Figur bewusst NICHT mehr über die Bühne (verdeckte sie sonst z.B. weit oben auf der
+    // Treppe, wo die Figur ohnehin schon klein ist).
     if (this._playerRig && this._charTagEl && this._tagTitleEl && this._tagDetailsEl) {
-      const charHeadHeight = this._characterType === "yoshi" ? 1.3 : 1.9;
-      const headPos = {
-        x: this._playerRig.position.x,
-        y: this._playerRig.position.y + charHeadHeight * this._playerRig.scale.y,
-        z: this._playerRig.position.z,
-      };
-      const screenPos = this._worldToScreen(headPos.x, headPos.y, headPos.z);
       this._charTagEl.style.display = "block";
-      this._charTagEl.style.left = `${screenPos.x}px`;
-      this._charTagEl.style.top = `${screenPos.y - 12}px`;
 
       const clip = this._activeAnimation ? this._clips.get(this._activeAnimation) : undefined;
       const action = clip && this._mixer ? this._mixer.clipAction(clip) : undefined;
@@ -1045,10 +1041,20 @@ class AndNowScene2 extends AbstractShowcase {
       else if (deg >= 247.5 && deg < 292.5) dirName = "⬅️ LINKS";
       else dirName = "↖️ HINTEN-LINKS";
 
+      // (u,v) und Skalierung: dieselben Werte, die bisher nur per Konsole (StageMovementBehavior.uv /
+      // StageZone.getScaleAt) auslesbar waren -- live sichtbar spart genau die manuelle
+      // Nachmess-Arbeit aus der Zonen-Verifikation (siehe .agents/notes/backlog.md, Treppen-Fix).
+      const uv = this._movementBehavior?.uv;
+      const activeZone = this._movementBehavior?.activeZone;
+      const scaleAtUv = uv && activeZone ? activeZone.getScaleAt(uv.u, uv.v) : undefined;
+      const uvStr = uv ? `u:${uv.u.toFixed(3)} v:${uv.v.toFixed(3)}` : "--";
+      const scaleStr = scaleAtUv !== undefined ? scaleAtUv.toFixed(3) : "--";
+
       this._tagTitleEl.textContent = `[${this._characterType.toUpperCase()}] ▶ ${this._activeAnimation ?? "none"} (t=${timeStr}s)`;
       this._tagDetailsEl.innerHTML = `
         Blickrichtung: <b style="color:#38bdf8;">${dirName} (${deg.toFixed(0)}°)</b><br>
-        State: <b style="color:#fff;">${this._movementBehavior?.state ?? "IDLE"}</b> | Zone: <b style="color:#fff;">${this._movementBehavior?.activeZone?.id ?? "none"}</b><br>
+        State: <b style="color:#fff;">${this._movementBehavior?.state ?? "IDLE"}</b> | Zone: <b style="color:#fff;">${activeZone?.id ?? "none"}</b><br>
+        Position: <b style="color:#7dd3fc;">${uvStr}</b> | Skalierung: <b style="color:#7dd3fc;">${scaleStr}</b><br>
         Laterne: <b style="color:#ffb84d;">${this._lanternOn ? "AN" : "AUS"}</b> (Anatomisch: Links)<br>
         Renderer: <b style="color: #38bdf8;">${this.renderer.type}</b>
       `;

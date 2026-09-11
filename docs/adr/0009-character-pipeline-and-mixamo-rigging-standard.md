@@ -1,40 +1,76 @@
-# Character Pipeline Architecture & Mixamo Rigging Standard
+# Charakter-Pipeline-Architektur & Mixamo-Rigging-Standard
 
-## Context & Problem
+## Kontext & Problem
 
-Generating playable 3D characters from 2D concepts for the Small World Engine requires a reliable, multi-stage pipeline covering 2D turnarounds, 3D mesh generation, skeletal rigging, motion clips, and engine ingestion.
+Aus 2D-Konzepten spielbare 3D-Charaktere für die Small World Engine zu erzeugen, braucht eine
+verlässliche, mehrstufige Pipeline über 2D-Turnarounds, 3D-Mesh-Erzeugung, Skelett-Rigging,
+Bewegungsclips und Engine-Einbindung hinweg.
 
-In early iterations, automated end-to-end rigging via Tripo3D (`tripo anim rig`) proved fundamentally flawed for production use:
-1. **Bone Explosion (>64 Bones):** Tripo native rigs generated 66–113 joints (due to uncontrolled dynamic spring bones for coat/hair folds). Small World's WebGL2 skinning shader allocates `u_boneMatrices[64]`. Joints with index $\ge 64$ failed to deform in the shader, causing frozen or severely distorted limbs.
-2. **Inconsistent Hierarchies & Naming:** Even with `--spec mixamo`, Tripo produced non-standard joint names (`tripo::*`, `bone_N`) and disconnected bone hierarchies (e.g. limbs parented directly to root), breaking shared mocap clips.
-3. **Twist Bone Disconnections:** Unanimated twist bones tore vertex loops during locomotion.
+In frühen Iterationen erwies sich automatisiertes End-to-End-Rigging über Tripo3D
+(`tripo anim rig`) als grundlegend ungeeignet für den Produktiveinsatz:
+1. **Bone-Explosion (>64 Bones):** Native Tripo-Rigs erzeugten 66–113 Gelenke (durch
+   unkontrollierte dynamische Spring-Bones für Mantel-/Haarfalten). Small Worlds
+   WebGL2-Skinning-Shader alloziert `u_boneMatrices[64]`. Gelenke mit Index $\ge 64$ deformierten
+   im Shader nicht, was eingefrorene oder stark verzerrte Gliedmaßen verursachte.
+2. **Inkonsistente Hierarchien & Benennung:** Selbst mit `--spec mixamo` erzeugte Tripo
+   nicht-standardisierte Gelenknamen (`tripo::*`, `bone_N`) und getrennte Bone-Hierarchien
+   (z. B. Gliedmaßen direkt an der Root geparentet), was geteilte Mocap-Clips brach.
+3. **Getrennte Twist-Bones:** Unanimierte Twist-Bones rissen Vertex-Loops während der
+   Fortbewegung auf.
 
-## Decision
+## Entscheidung
 
-We establish a strict division of responsibilities, tool boundaries, and file routing contracts for all humanoid characters:
+Wir etablieren eine strikte Aufteilung von Zuständigkeiten, Werkzeuggrenzen und
+Datei-Routing-Verträgen für alle humanoiden Charaktere:
 
-1. **Tripo3D Scope (Geometry Only):** Tripo3D is strictly limited to 3D mesh and texture atlas generation (`tripo make front.jpg --for game-mobile --param face_limit=15000`). It is fed exclusively with an isolated, text-free frontal view (`front.jpg`) on pure white `#FFFFFF` background to avoid multi-character hallucinations. It is **never** used for skeletal rigging.
-2. **Adobe Mixamo Standard (Exclusive Rigging & Auto-Packaging):** Adobe Mixamo is the **exclusive canonical rigging standard** for all playable humanoid figures.
-   - *Automated Packaging:* To prevent Mixamo's *"unable to map your existing skeleton"* error (caused by FBX exporter root node metadata), the pipeline automatically converts `base_model.glb` into a clean static Wavefront OBJ (`model.obj` + `model.mtl` + `texture.jpg`) bundled in `<character>_mixamo.zip`.
-   - *Rig Ingestion:* Uploading `<character>_mixamo.zip` guarantees clean mesh import and reliably triggers Mixamo's 5-point Auto-Rigger.
-   - *Joint Limits:* Clean 52-joint (No Fingers) or 65-joint (Standard) biped hierarchy (`mixamorig:*`) fitting within GPU shader limits ($\le 64$ joints for 52-joint rigs).
-3. **Strict File Routing & Handover Contract:**
-   - **2D Concepts:** `src/apps/<app>/docs/assets/<character>/` & `raw/.../model_sheet.jpg` (Turnaround) + `raw/.../front.jpg` (Albedo Frontal Input).
-   - **DCC/Raw Staging:** `src/apps/<app>/raw/mannequin/<character>/base_model.glb`, `<char>_mixamo.zip`, and `character_rigged.fbx`.
-   - **Runtime Models:** `public/assets/<app>/mannequin/<character>/character.glb` (self-contained binary glTF with 2K texture atlas).
-   - **Shared Mocap Pool:** `public/assets/<app>/mannequin/shared/anim/*.glb` (all clips in-place).
-4. **Engine Ingestion Patterns:**
-   - **Rig Wrapper:** The character root is scaled to standard human height (1.80m via `.scale.set(1.8, 1.8, 1.8)`) and wrapped in a parent `_characterRig` (`Object3D`). Movement behaviors (`StageMovementBehavior`) attach to `_characterRig` so perspective scaling does not overwrite local model height.
-   - **Semantic Hand Sockets:** Standardized attachment to `mixamorig:LeftHand` (Lantern: local offset `(0.01, 0.06, 0.02)` and rotation `0`).
-5. **Canonical Character Gear & Two-Belt Architecture:**
-   - **Left-Hand Lantern:** The lantern is exclusively carried in the left hand (`mixamorig:LeftHand`), leaving the right hand unencumbered.
-   - **Two-Belt System:**
-     - *Belt 1 (Pants & Utility Belt):* Holds trousers, utility pouches, and the gas mask.
-     - *Belt 2 (Holster Belt):* Carries a small-caliber pistol holster positioned **front-left** (cross-draw access).
-   - **Dual-Filter Gas Mask:** Full-face protective respirator with twin cheek filters. Carried **front-right** on Belt 1 in exploration mode (State 1: BASE) or equipped covering the face (State 2: HAZARD).
+1. **Tripo3D-Umfang (nur Geometrie):** Tripo3D ist strikt auf 3D-Mesh- und
+   Texturatlas-Erzeugung beschränkt (`tripo make front.jpg --for game-mobile
+   --param face_limit=15000`). Es bekommt ausschließlich eine isolierte, textfreie Frontalansicht
+   (`front.jpg`) auf reinem weißem `#FFFFFF`-Hintergrund, um Mehrfach-Charakter-Halluzinationen
+   zu vermeiden. Es wird **nie** für Skelett-Rigging verwendet.
+2. **Adobe-Mixamo-Standard (exklusives Rigging & Auto-Packaging):** Adobe Mixamo ist der
+   **exklusive kanonische Rigging-Standard** für alle spielbaren humanoiden Figuren.
+   - *Automatisiertes Packaging:* Um Mixamos *"unable to map your existing skeleton"*-Fehler zu
+     vermeiden (verursacht durch FBX-Exporter-Root-Node-Metadaten), konvertiert die Pipeline
+     `base_model.glb` automatisch in ein sauberes, statisches Wavefront-OBJ (`model.obj` +
+     `model.mtl` + `texture.jpg`), gebündelt in `<character>_mixamo.zip`.
+   - *Rig-Einlesen:* Das Hochladen von `<character>_mixamo.zip` garantiert sauberen
+     Mesh-Import und löst Mixamos 5-Punkt-Auto-Rigger zuverlässig aus.
+   - *Gelenk-Limits:* Saubere 52-Gelenk- (ohne Finger) oder 65-Gelenk- (Standard)
+     Biped-Hierarchie (`mixamorig:*`), passend innerhalb der GPU-Shader-Limits ($\le 64$ Gelenke
+     für 52-Gelenk-Rigs).
+3. **Striktes Datei-Routing & Übergabevertrag:**
+   - **2D-Konzepte:** `src/apps/<app>/docs/assets/<character>/` & `raw/.../model_sheet.jpg`
+     (Turnaround) + `raw/.../front.jpg` (Albedo-Frontal-Input).
+   - **DCC-/Raw-Staging:** `src/apps/<app>/raw/mannequin/<character>/base_model.glb`,
+     `<char>_mixamo.zip`, und `character_rigged.fbx`.
+   - **Laufzeit-Modelle:** `public/assets/<app>/mannequin/<character>/character.glb`
+     (eigenständiges binäres glTF mit 2K-Texturatlas).
+   - **Geteilter Mocap-Pool:** `public/assets/<app>/mannequin/shared/anim/*.glb` (alle Clips vor
+     Ort).
+4. **Engine-Einbindungsmuster:**
+   - **Rig-Wrapper:** Die Charakter-Root wird auf Standard-Menschgröße skaliert (1,80 m über
+     `.scale.set(1.8, 1.8, 1.8)`) und in ein übergeordnetes `_characterRig` (`Object3D`)
+     gewrappt. Bewegungs-Behaviors (`StageMovementBehavior`) hängen an `_characterRig` an,
+     damit Perspektiv-Skalierung nicht die lokale Modellhöhe überschreibt.
+   - **Semantische Hand-Sockets:** Standardisierte Anbindung an `mixamorig:LeftHand`
+     (Laterne: lokaler Versatz `(0.01, 0.06, 0.02)` und Rotation `0`).
+5. **Kanonische Charakter-Ausrüstung & Zwei-Gürtel-Architektur:**
+   - **Laterne in der linken Hand:** Die Laterne wird ausschließlich in der linken Hand getragen
+     (`mixamorig:LeftHand`), sodass die rechte Hand frei bleibt.
+   - **Zwei-Gürtel-System:**
+     - *Gürtel 1 (Hose & Nütz­gürtel):* Trägt Hose, Nutztaschen und die Gasmaske.
+     - *Gürtel 2 (Holster-Gürtel):* Trägt ein kleinkalibriges Pistolenholster, positioniert
+       **vorne links** (Cross-Draw-Zugriff).
+   - **Doppelfilter-Gasmaske:** Vollgesichts-Atemschutzmaske mit zwei Wangenfiltern. Wird im
+     Erkundungsmodus (Zustand 1: BASE) **vorne rechts** an Gürtel 1 getragen, oder gesichtsbedeckend
+     ausgerüstet (Zustand 2: HAZARD).
 
-## Consequences
+## Konsequenzen
 
-- **Manual Step:** Rigging requires a one-time manual upload/marker-placement step in Adobe Mixamo Web UI by the developer.
-- **Reliability:** Eliminates vertex tearing, mesh freezes, shader uniform overflows, and custom GLB binary patching.
-- **Interchangeability:** All characters share the same animation pool and prop sockets without individual re-targeting or code branching.
+- **Manueller Schritt:** Rigging erfordert einen einmaligen manuellen
+  Upload-/Marker-Platzierungs-Schritt in der Adobe-Mixamo-Web-UI durch den Entwickler.
+- **Zuverlässigkeit:** Eliminiert Vertex-Risse, eingefrorene Meshes, Shader-Uniform-Overflows und
+  individuelles GLB-Binär-Patching.
+- **Austauschbarkeit:** Alle Charaktere teilen sich denselben Animations-Pool und dieselben
+  Requisiten-Sockets, ohne individuelles Re-Targeting oder Code-Verzweigungen.

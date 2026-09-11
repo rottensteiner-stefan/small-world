@@ -1,38 +1,38 @@
-# The Forge (In-Game Tooling)
+# The Forge (Werkzeuge im Spiel)
 
-Building assets (textures, sprite sheets, level maps) often forces developers to constantly switch context between the game engine and external software like Photoshop or Tiled.
+Der Bau von Assets (Texturen, Sprite-Sheets, Level-Karten) zwingt Entwickler oft dazu, ständig zwischen der Game-Engine und externer Software wie Photoshop oder Tiled zu wechseln.
 
-**The Forge** solves this by providing an extensible, in-game window manager and tooling framework. With the Forge, you can run mini-applications directly over your game canvas.
+**The Forge** löst das, indem sie einen erweiterbaren Fenstermanager und ein Werkzeug-Framework direkt im Spiel bereitstellt. Mit der Forge lassen sich Mini-Anwendungen direkt über dem Spiel-Canvas ausführen.
 
-## What is the Forge?
+## Was ist die Forge?
 
-The `Forge` class is an overlay that hosts draggable, resizable windows containing `ForgeTool` instances. It can be toggled via a hotkey (e.g., `F12` or `~`) without leaving the browser.
+Die Klasse `Forge` ist ein Overlay, das ziehbare, größenveränderbare Fenster mit `ForgeTool`-Instanzen beherbergt. Sie lässt sich über eine Tastenkombination (z. B. `F12` oder `~`) ein-/ausblenden, ohne den Browser zu verlassen.
 
-## Built-In Tools
+## Eingebaute Werkzeuge
 
-Small World Engine provides several built-in Forge tools to accelerate your workflow:
+Die Small World Engine liefert mehrere eingebaute Forge-Werkzeuge, um den Workflow zu beschleunigen:
 
-1. **[Pixler](/guides/pixler):** A retro 2D pixel-art editor to draw sprites directly in-game. Features a full UI toolbar with Pencil, Bucket Fill, Color Picker, and Line drawing tools. Supports Symmetry Mode (X/Y axis), auto-trimming borders, canvas panning, flipping, and full Undo/Redo history.
-2. **[Xtractor](/guides/xtractor):** An image cropping/slicing tool that can hand crops straight to Pixler. Includes a mock AI assistant UI as a starting point for integrating a real vision model backend.
-3. **[Map Generator](/guides/map-generator):** A visual grid editor to paint generic maps/levels and export them as `GridLevelBuilder` compatible ASCII strings.
-4. **[Maker](/guides/maker):** A standalone 3D world & scene editor featuring glTF 2.0 + `SW_*` persistence, transform gizmos, snapping, prefabs, and full undo/redo.
-5. **[Material Studio](/guides/material-studio):** A PBR texture-map generator that derives normal/roughness/AO/etc. maps from a single diffuse image and previews them on a sample mesh.
+1. **[Pixler](/guides/pixler):** Ein Retro-2D-Pixel-Art-Editor, um Sprites direkt im Spiel zu zeichnen. Bietet eine vollständige UI-Toolbar mit Stift, Bucket-Fill, Farbpipette und Linien-Werkzeug. Unterstützt Symmetrie-Modus (X-/Y-Achse), automatisches Rand-Trimmen, Canvas-Verschieben, Spiegeln und volle Undo-/Redo-Historie.
+2. **[Xtractor](/guides/xtractor):** Ein Bildausschnitt-/Zerteil-Werkzeug, das Ausschnitte direkt an Pixler übergeben kann. Enthält eine Mock-KI-Assistenten-UI als Ausgangspunkt zur Integration eines echten Vision-Modell-Backends.
+3. **[Map Generator](/guides/map-generator):** Ein visueller Raster-Editor, um generische Karten/Level zu malen und als `GridLevelBuilder`-kompatible ASCII-Strings zu exportieren.
+4. **[Maker](/guides/maker):** Ein eigenständiger 3D-Welten- und Szeneneditor mit glTF-2.0-+-`SW_*`-Persistenz, Transform-Gizmos, Snapping, Prefabs und vollem Undo/Redo.
+5. **[Material Studio](/guides/material-studio):** Ein PBR-Textur-Map-Generator, der Normal-/Roughness-/AO-/etc.-Maps aus einem einzelnen Diffuse-Bild ableitet und sie auf einem Beispiel-Mesh vorschaut.
 
-::: tip Standalone Tool Pages
-Maker, Pixler, Xtractor, and Map Generator are also available as **standalone web pages** (`/tools/maker.html`, `/tools/pixler.html`, `/tools/map-gen.html`, `/tools/xtractor.html`) that run independently without requiring a game canvas or Forge overlay — the recommended approach for a dedicated asset-editing workflow. Material Studio is available docked inside a running engine's Forge overlay or as a generator tool.
+::: tip Eigenständige Werkzeug-Seiten
+Maker, Pixler, Xtractor und Map Generator sind auch als **eigenständige Webseiten** verfügbar (`/tools/maker.html`, `/tools/pixler.html`, `/tools/map-gen.html`, `/tools/xtractor.html`), die unabhängig laufen, ohne ein Spiel-Canvas oder Forge-Overlay zu benötigen — der empfohlene Weg für einen dedizierten Asset-Bearbeitungs-Workflow. Material Studio ist angedockt im Forge-Overlay einer laufenden Engine oder als Generator-Werkzeug verfügbar.
 :::
 
-::: warning Tools are not part of the published package yet
-`Forge`, `ForgeTool`, and every built-in tool live in `src/tools/` but are not re-exported from the engine's root entry point, and `small-world/tools` is not (yet) a resolvable package subpath (no `exports` map is configured). The code below reflects the intended API and works if you're building against the engine's own source tree; until a dedicated `tools` build/export exists, `enableInspector: true` or the [standalone tool pages](#built-in-tools) (for Maker/Pixler/Xtractor/Map Generator) are the supported paths for a real project.
+::: warning Werkzeuge sind noch nicht Teil des veröffentlichten Pakets
+`Forge`, `ForgeTool` und jedes eingebaute Werkzeug liegen in `src/tools/`, werden aber nicht vom Root-Einstiegspunkt der Engine reexportiert, und `small-world/tools` ist (noch) kein auflösbarer Paket-Subpfad (keine `exports`-Map konfiguriert). Der Code unten spiegelt die beabsichtigte API wider und funktioniert, wenn gegen den eigenen Source-Tree der Engine gebaut wird; bis ein dedizierter `tools`-Build/-Export existiert, sind `enableInspector: true` oder die [eigenständigen Werkzeug-Seiten](#eingebaute-werkzeuge) (für Maker/Pixler/Xtractor/Map Generator) die unterstützten Wege für ein echtes Projekt.
 :::
 
-## Integrating the Forge into your App
+## Die Forge in die eigene App integrieren
 
-::: tip The quick path: `enableInspector`
-You don't need to wire any of this up by hand. Setting `enableInspector: true` in your `SmallWorld` config auto-creates a Forge hub with all five built-in tools already docked — Gadget Inspector, Map Generator, Pixler, Xtractor, and Material Studio — bound to **Ctrl+Alt+G** (Cmd+Alt+G on macOS) to toggle. See each tool's own guide for what it does. The manual setup below is for building your **own** custom tools, or if you want a different subset of windows than `enableInspector` gives you.
+::: tip Der schnelle Weg: `enableInspector`
+Nichts davon muss von Hand verdrahtet werden. `enableInspector: true` in der eigenen `SmallWorld`-Konfiguration erzeugt automatisch einen Forge-Hub mit allen fünf eingebauten Werkzeugen bereits angedockt — Gadget Inspector, Map Generator, Pixler, Xtractor und Material Studio — gebunden an **Strg+Alt+G** (Cmd+Alt+G auf macOS) zum Ein-/Ausblenden. Siehe die jeweilige Anleitung jedes Werkzeugs für dessen Funktion. Die manuelle Einrichtung unten ist für den Bau **eigener** Werkzeuge gedacht, oder falls eine andere Fenster-Teilmenge als die von `enableInspector` gewünscht ist.
 :::
 
-To dock your own `ForgeTool`s (or a hand-picked subset of the built-in ones), initialize a `Forge` yourself and open windows on it directly. Note that `Xtractor` *requires* an `EventDispatcherImpl` as its first constructor argument (used for its Pixler hand-off), and `Pixler` accepts one optionally (to receive that hand-off) — pass your `SmallWorld` instance's own `events` bus to both so they can talk to each other:
+Um eigene `ForgeTool`s (oder eine handverlesene Teilmenge der eingebauten) anzudocken, selbst eine `Forge` initialisieren und Fenster direkt darauf öffnen. Zu beachten: `Xtractor` *benötigt* einen `EventDispatcherImpl` als ersten Konstruktor-Parameter (genutzt für die Übergabe an Pixler), und `Pixler` akzeptiert optional einen (um diese Übergabe zu empfangen) — den eigenen `events`-Bus der `SmallWorld`-Instanz an beide übergeben, damit sie miteinander sprechen können:
 
 ```typescript
 import { SmallWorld } from "small-world";
@@ -42,10 +42,10 @@ class MyGame extends SmallWorld {
   constructor() {
     super();
 
-    // 1. Initialize the Forge overlay and bind it to the '~' key
+    // 1. Das Forge-Overlay initialisieren und an die Taste '~' binden
     this.forge = new Forge({ toggleKey: "~" });
 
-    // 2. Open tools in floating windows, sharing `this.events` so Xtractor can hand crops to Pixler
+    // 2. Werkzeuge in schwebenden Fenstern öffnen, `this.events` gemeinsam nutzen, damit Xtractor Ausschnitte an Pixler übergeben kann
     this.forge.openWindow("Pixler Editor", new Pixler(this.events), 50, 50);
     this.forge.openWindow("Map Generator", new MapGenerator(), 400, 50);
     this.forge.openWindow("Asset Extractor", new Xtractor(this.events), 50, 400);
@@ -53,11 +53,11 @@ class MyGame extends SmallWorld {
 }
 ```
 
-When you start your game and press `~`, a semi-transparent overlay appears with your docked tools. You can draw sprites in Pixler, copy them to the clipboard, and immediately paste them into your game's asset configurations.
+Wird das Spiel gestartet und `~` gedrückt, erscheint ein halbtransparentes Overlay mit den angedockten Werkzeugen. Sprites lassen sich in Pixler zeichnen, in die Zwischenablage kopieren und sofort in die Asset-Konfigurationen des Spiels einfügen.
 
-## Creating Custom Tools
+## Eigene Werkzeuge erstellen
 
-You can build your own `ForgeTool` to edit specific parts of your game logic (e.g., a dialogue editor, a quest tracker).
+Es lässt sich ein eigenes `ForgeTool` bauen, um bestimmte Teile der eigenen Spiellogik zu bearbeiten (z. B. ein Dialog-Editor, ein Quest-Tracker).
 
 ```typescript
 import { ForgeTool, ForgeToolOptions } from "small-world/tools";
@@ -66,7 +66,7 @@ export class MyCustomTool extends ForgeTool {
   constructor(options: ForgeToolOptions = {}) {
     super(options);
     
-    // Build your tool's HTML interface inside this._container
+    // Die HTML-Oberfläche des Werkzeugs innerhalb von this._container bauen
     this._container.innerHTML = `
       <div style="padding: 10px; color: white;">
         <h3>My Tool</h3>
@@ -81,7 +81,7 @@ export class MyCustomTool extends ForgeTool {
 }
 ```
 
-Then simply inject it:
+Dann einfach injizieren:
 ```typescript
 this.forge.openWindow("My Tool", new MyCustomTool(), 100, 100);
 ```

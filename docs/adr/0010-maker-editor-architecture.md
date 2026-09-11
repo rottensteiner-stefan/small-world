@@ -1,60 +1,60 @@
-# Maker: World Format & Editor Architecture
+# Maker: Weltformat & Editor-Architektur
 
-## Context & Problem
+## Kontext & Problem
 
-Small World has grown a rich runtime object model (19 geometry primitives, 16 materials, 5 light types, ~20 behaviors) but no way to *compose* or *persist* a scene other than writing TypeScript by hand. `GadgetInspector` (`src/tools/GadgetInspector.ts`) is the closest existing tool — a Tweakpane-based overlay that raycast-picks a live object and edits its transform/material/light/behavior properties — but its own documentation (`docs/guides/gadget-inspector.md`) lists exactly the gaps that block it from becoming a real editor:
+Small World hat sich ein reichhaltiges Laufzeit-Objektmodell erarbeitet (19 Geometrie-Primitive, 16 Materialien, 5 Lichttypen, ~20 Behaviors), aber es gibt keine Möglichkeit, eine Szene zu *komponieren* oder zu *persistieren*, außer TypeScript von Hand zu schreiben. `GadgetInspector` (`src/tools/GadgetInspector.ts`) ist das bislang nächstliegende Werkzeug — ein Tweakpane-basiertes Overlay, das per Raycast ein Live-Objekt auswählt und dessen Transform-/Material-/Licht-/Behavior-Eigenschaften bearbeitet —, aber seine eigene Dokumentation (`docs/guides/gadget-inspector.md`) listet genau die Lücken auf, die ihn daran hindern, ein echter Editor zu werden:
 
-- **No persistence** — `getState()`/`setState()` are explicit no-op stubs; edits vanish on reload.
-- **No export** — no way to dump a scene back out as data.
-- **No undo/redo.**
-- **No object creation/placement** — it only ever edits pre-existing objects.
-- **No picking index** — raycasts against every object in the scene graph on every click.
-- **No camera controls** — the camera it's given is only used to seed the raycaster.
+- **Keine Persistenz** — `getState()`/`setState()` sind explizite No-Op-Stubs; Bearbeitungen verschwinden beim Neuladen.
+- **Kein Export** — keine Möglichkeit, eine Szene wieder als Daten auszugeben.
+- **Kein Undo/Redo.**
+- **Keine Objekterzeugung/-platzierung** — es bearbeitet ausschließlich bereits vorhandene Objekte.
+- **Kein Picking-Index** — Raycasts gegen jedes Objekt im Szenengraph bei jedem Klick.
+- **Keine Kamerasteuerung** — die übergebene Kamera dient nur dazu, den Raycaster zu speisen.
 
-It also has a scalability problem in how it recognizes properties: `Behavior` has a real, working reflection pattern (`static readonly inspector?: Record<string, InspectorField>`), which `GadgetInspector` reads generically. Materials and lights get no such treatment — they're exposed via hand-written `if ("roughness" in mat) matFolder.addBinding(...)` duck-typing chains, and `Object3D`'s own transform/visibility fields are hardcoded directly in `_buildGUI()`. Three different mechanisms for the same job; a new material property today requires a new line in `GadgetInspector.ts`, not automatic recognition.
+Es hat außerdem ein Skalierungsproblem darin, wie es Eigenschaften erkennt: `Behavior` besitzt ein echtes, funktionierendes Reflection-Muster (`static readonly inspector?: Record<string, InspectorField>`), das `GadgetInspector` generisch ausliest. Materialien und Lichter erhalten keine solche Behandlung — sie werden über handgeschriebene `if ("roughness" in mat) matFolder.addBinding(...)`-Duck-Typing-Ketten offengelegt, und die eigenen Transform-/Sichtbarkeits-Felder von `Object3D` sind direkt in `_buildGUI()` hartkodiert. Drei verschiedene Mechanismen für dieselbe Aufgabe; eine neue Materialeigenschaft erfordert heute eine neue Zeile in `GadgetInspector.ts`, statt automatisch erkannt zu werden.
 
-Separately, there is no serialization layer anywhere in the engine core — the only `serialize`-adjacent hit in the codebase is unrelated (`ThreadPool`). Building an in-game/in-editor content pipeline (**Maker**) requires solving both problems: a scene needs a real file format, and the property system needs to actually be dynamic rather than hand-maintained.
+Getrennt davon existiert nirgends im Engine-Kern eine Serialisierungsschicht — der einzige zu `serialize` benachbarte Treffer in der Codebasis ist unzusammenhängend (`ThreadPool`). Der Aufbau einer In-Game-/In-Editor-Content-Pipeline (**Maker**) erfordert die Lösung beider Probleme: eine Szene braucht ein echtes Dateiformat, und das Eigenschaftensystem muss tatsächlich dynamisch sein statt von Hand gepflegt zu werden.
 
-## Decision
+## Entscheidung
 
-### 1. Generalize the reflection layer, don't keep it Behavior-only
+### 1. Die Reflection-Schicht verallgemeinern, nicht auf Behavior beschränkt lassen
 
-The `InspectorField`/`static inspector` pattern already proven on `Behavior` becomes the shared contract for every editable class: `AbstractMaterial`, `AbstractLight`, geometries, and `Object3D` itself (whose transform/visibility/shadow fields move from hardcoded UI calls to a base-level declarative schema). One generic panel renderer replaces the current three-way split of hardcoded / duck-typed / declarative property exposure. This is additive and backward compatible — existing `Behavior.inspector` declarations keep working unchanged.
+Das bei `Behavior` bereits bewährte `InspectorField`/`static inspector`-Muster wird zum gemeinsamen Vertrag für jede editierbare Klasse: `AbstractMaterial`, `AbstractLight`, Geometrien und `Object3D` selbst (dessen Transform-/Sichtbarkeits-/Schatten-Felder von hartkodierten UI-Aufrufen zu einem deklarativen Basis-Schema wechseln). Ein generischer Panel-Renderer ersetzt die heutige Dreiteilung aus hartkodierter/duck-typed/deklarativer Eigenschaften-Offenlegung. Das ist additiv und abwärtskompatibel — bestehende `Behavior.inspector`-Deklarationen funktionieren unverändert weiter.
 
-### 2. World Format = glTF 2.0 + a `SW_*` extension namespace, not a new format from scratch
+### 2. Weltformat = glTF 2.0 + ein `SW_*`-Erweiterungs-Namensraum, kein neues Format von Grund auf
 
-Scenes are persisted as glTF 2.0 JSON (node hierarchy, transforms, PBR materials, `KHR_lights_punctual` lights, cameras), reusing `src/loaders/GltfLoader.ts` as the read-side foundation — it already parses the `extensions` object (currently only `KHR_materials_emissive_strength`). Small-World-specific data that has no glTF equivalent (Behaviors and their parameters, physics config, non-PBR material fields) is carried in vendor extension objects under a `SW_*` prefix, exactly the mechanism Khronos designed for this case. A companion `WorldWriter` is added alongside `GltfLoader` to serialize the live `Scene`/`Object3D` graph back into this shape.
+Szenen werden als glTF-2.0-JSON persistiert (Node-Hierarchie, Transforms, PBR-Materialien, `KHR_lights_punctual`-Lichter, Kameras), wobei `src/loaders/GltfLoader.ts` als Lese-seitiges Fundament wiederverwendet wird — es parst bereits das `extensions`-Objekt (aktuell nur `KHR_materials_emissive_strength`). Small-World-spezifische Daten ohne glTF-Äquivalent (Behaviors und ihre Parameter, Physik-Konfiguration, Nicht-PBR-Materialfelder) werden in Vendor-Extension-Objekten unter einem `SW_*`-Präfix transportiert — genau der Mechanismus, den Khronos für diesen Fall vorgesehen hat. Ein begleitender `WorldWriter` wird neben `GltfLoader` ergänzt, um den lebenden `Scene`/`Object3D`-Graph zurück in diese Form zu serialisieren.
 
-Rejected alternatives:
-- **A bespoke custom JSON schema**: more control, but reinvents a scene-graph format the industry has already standardized, forfeits interop with Blender/DCC tools, and requires a parser/writer built from zero instead of extending `GltfLoader`.
-- **YAML**: rejected on concrete precedent, not taste — Unity's `.unity`/`.prefab` files are YAML and it is a well-known source of merge-conflict pain (Unity ships a dedicated "Smart Merge" tool specifically to cope), plus YAML's scalar-inference ambiguities (the "Norway problem": `no`/`off`/`on` parsed as booleans depending on parser/version).
-- **TOML**: fine for flat config, unreadable for deeply nested scene-graph trees (array-of-tables syntax).
-- **USD**: the "biggest" industry answer (Pixar/Apple/NVIDIA-backed), but a C++-scale composition system that contradicts `VISION.md`'s "Lightweight over Exhaustive" philosophy — out of scope for an engine this size.
+Verworfene Alternativen:
+- **Ein eigens entworfenes, individuelles JSON-Schema**: mehr Kontrolle, erfindet aber ein Szenengraph-Format neu, das die Branche längst standardisiert hat, verzichtet auf Interop mit Blender/DCC-Tools und verlangt einen von Grund auf gebauten Parser/Writer statt der Erweiterung von `GltfLoader`.
+- **YAML**: verworfen aufgrund konkreter Präzedenzfälle, nicht aus Geschmack — Unitys `.unity`/`.prefab`-Dateien sind YAML, und das ist eine bekannte Quelle für Merge-Konflikt-Schmerzen (Unity liefert extra ein "Smart Merge"-Tool, um damit klarzukommen), dazu YAMLs Skalar-Inferenz-Mehrdeutigkeiten (das "Norwegen-Problem": `no`/`off`/`on` werden je nach Parser/Version als Booleans interpretiert).
+- **TOML**: für flache Konfiguration in Ordnung, aber unlesbar für tief verschachtelte Szenengraph-Bäume (Array-of-Tables-Syntax).
+- **USD**: die "größte" Antwort der Branche (unterstützt von Pixar/Apple/NVIDIA), aber ein Kompositionssystem in C++-Größenordnung, das der "Leichtgewicht statt Umfassend"-Philosophie von `VISION.md` widerspricht — außerhalb des Rahmens für eine Engine dieser Größe.
 
-### 3. Maker ships as a standalone page, not a docked Forge tool
+### 3. Maker erscheint als eigenständige Seite, nicht als angedocktes Forge-Werkzeug
 
-Following the existing precedent of `public/tools/pixler.html`, `map-gen.html`, and `xtractor.html` (dedicated asset-editing workflows that don't require a running game canvas), Maker gets `public/tools/maker.html`. This matches its actual scope — composing whole environments, not just live-tweaking one already-running scene — and doesn't require a `SmallWorld` instance to exist first.
+Dem bestehenden Vorbild von `public/tools/pixler.html`, `map-gen.html` und `xtractor.html` folgend (eigenständige Asset-Bearbeitungs-Workflows, die keine laufende Spiel-Canvas benötigen), erhält Maker `public/tools/maker.html`. Das entspricht seinem tatsächlichen Umfang — das Komponieren ganzer Umgebungen, nicht nur das Live-Anpassen einer bereits laufenden Szene — und erfordert nicht, dass zuerst eine `SmallWorld`-Instanz existiert.
 
-### 4. No explicit Save button — autosave, undo-first UX
+### 4. Kein expliziter Speichern-Button — Autosave, Undo-first-UX
 
-Every property edit: (a) applies live to the in-memory scene immediately, (b) pushes onto an undo/redo command stack (reusing the pattern already proven in `Pixler`'s "full Undo/Redo history"), (c) triggers a debounced (~500ms) write-through to the bound project folder via the File System Access API (`showDirectoryPicker`/`FileSystemFileHandle`). No modal "Save" dialog for ordinary edits; an "unsaved changes" indicator plays the role a title-bar dot plays on macOS. Cmd+S remains available as an explicit fallback/export path for browsers without File System Access API support.
+Jede Eigenschaftsbearbeitung: (a) wird sofort live auf die Szene im Speicher angewendet, (b) wird auf einen Undo/Redo-Befehlsstapel gelegt (Wiederverwendung des bereits in `Pixler`s "vollständiger Undo/Redo-Historie" bewährten Musters), (c) löst ein entprelltes (~500 ms) Durchschreiben in den gebundenen Projektordner über die File System Access API aus (`showDirectoryPicker`/`FileSystemFileHandle`). Kein modaler "Speichern"-Dialog für gewöhnliche Bearbeitungen; ein "Ungespeicherte Änderungen"-Indikator übernimmt die Rolle, die ein Titelleisten-Punkt unter macOS spielt. Cmd+S bleibt als expliziter Fallback-/Export-Pfad für Browser ohne Unterstützung der File System Access API verfügbar.
 
-### 5. GadgetInspector is retired only after feature parity, not on day one
+### 5. GadgetInspector wird erst nach Funktionsparität abgeschaltet, nicht am ersten Tag
 
-`GadgetInspector`'s pick → property-panel interaction model is correct and stays conceptually; its implementation is superseded incrementally as Maker's generalized panel, picking index, and undo system come online. `GadgetInspector.ts` is deleted and `enableInspector`/the Forge hub repointed at Maker only once Maker covers its documented feature list (persistence, export, undo/redo, creation, picking index, camera controls) — an explicit acceptance gate, not an assumption.
+Das Auswahl-→-Eigenschaftspanel-Interaktionsmodell von `GadgetInspector` ist korrekt und bleibt konzeptionell bestehen; seine Implementierung wird schrittweise abgelöst, sobald Makers verallgemeinertes Panel, Picking-Index und Undo-System einsatzbereit sind. `GadgetInspector.ts` wird gelöscht und `enableInspector`/der Forge-Hub erst dann auf Maker umgebogen, wenn Maker seine dokumentierte Feature-Liste abdeckt (Persistenz, Export, Undo/Redo, Erzeugung, Picking-Index, Kamerasteuerung) — ein expliziter Abnahme-Gate, keine Annahme.
 
-### Phased delivery
+### Stufenweise Umsetzung
 
-0. **Foundation** — generalized reflection metadata across materials/lights/geometry/`Object3D`; minimal glTF+`SW_*` round-trip (transform tree + one material + one light) with tests.
-1. **Maker MVP** — standalone page, edit-mode camera, hierarchy panel with real reparenting, generic property panel, object-creation palette (existing geometry/material/light/behavior catalog, nothing new to build), File System Access autosave, undo/redo.
-2. **Environment scale** — viewport transform gizmos (translate/rotate/scale handles, not just numeric fields), nested/instanced sub-scenes (prefab-equivalent, e.g. a reusable Flakturm zone or the diorama prop set), a bridge to `MapGenerator`'s existing ASCII/`GridLevelBuilder` pipeline.
+0. **Fundament** — verallgemeinerte Reflection-Metadaten über Materialien/Lichter/Geometrie/`Object3D`; minimaler glTF+`SW_*`-Roundtrip (Transform-Baum + ein Material + ein Licht) mit Tests.
+1. **Maker MVP** — eigenständige Seite, Edit-Mode-Kamera, Hierarchie-Panel mit echtem Reparenting, generisches Eigenschaftspanel, Objekterzeugungs-Palette (bestehender Geometrie-/Material-/Licht-/Behavior-Katalog, nichts Neues zu bauen), File-System-Access-Autosave, Undo/Redo.
+2. **Umgebungs-Maßstab** — Viewport-Transform-Gizmos (Translate-/Rotate-/Scale-Handles, nicht nur numerische Felder), verschachtelte/instanzierte Unterszenen (Prefab-Äquivalent, z. B. eine wiederverwendbare Flakturm-Zone oder das Diorama-Requisiten-Set), eine Brücke zu `MapGenerator`s bestehender ASCII-/`GridLevelBuilder`-Pipeline.
 
-3. **Consolidation (Delivered)** — Parity check against §5's gate passed (full persistence, export, undo/redo, creation, picking, bookmarks, transform gizmos, snapping, marquee selection). Maker integrated into `public/index.html` (T-08), `vite.config.ts`, Forge tool listings, and documentation. `GadgetInspector.ts` and its helper modules are retired and deleted from the source tree.
+3. **Konsolidierung (Ausgeliefert)** — Paritätsprüfung gegen das Gate aus §5 bestanden (vollständige Persistenz, Export, Undo/Redo, Erzeugung, Picking, Lesezeichen, Transform-Gizmos, Snapping, Rahmen-Auswahl). Maker ist integriert in `public/index.html` (T-08), `vite.config.ts`, die Forge-Werkzeuglisten und die Dokumentation. `GadgetInspector.ts` und seine Hilfsmodule sind abgeschaltet und aus dem Quellbaum gelöscht.
 
-## Consequences
+## Konsequenzen
 
-- **Chromium-only autosave.** File System Access API has no Firefox/Safari support today. Accepted as a deliberate scope trade-off for a dev tool, not a blocker — Maker still functions via manual export where the API is absent.
-- **glTF verbosity.** glTF's schema is optimized for asset interchange, not for "editor writes a minimal diff every 500ms" — it's more rigid/verbose than a bespoke schema would be. Accepted in exchange for reusing `GltfLoader` and gaining free interop with Blender and other DCC tools.
-- **Extension-namespace discipline required.** `SW_*` extension keys must be kept additive and namespaced carefully, or a future glTF spec revision could collide with vendor data — standard glTF extension hygiene, not a new risk class.
-- **Migration cost for existing hand-authored scenes.** Showcases/apps built directly in TypeScript are unaffected (Maker is additive tooling); only content authored *through* Maker uses the new format.
-- **`GadgetInspector` retired.** Replaced entirely by Maker. Scene inspection and authoring now share a single unified reflection layer (`Inspectable`) and workflow.
+- **Autosave nur unter Chromium.** Die File System Access API hat heute keine Firefox-/Safari-Unterstützung. Akzeptiert als bewusster Umfangs-Trade-off für ein Entwickler-Werkzeug, kein Blocker — Maker funktioniert dort weiterhin über manuellen Export, wo die API fehlt.
+- **glTF-Ausführlichkeit.** glTFs Schema ist auf Asset-Austausch optimiert, nicht darauf, dass "der Editor alle 500 ms ein minimales Diff schreibt" — es ist starrer/ausführlicher, als es ein eigens entworfenes Schema wäre. Akzeptiert im Austausch für die Wiederverwendung von `GltfLoader` und kostenlose Interop mit Blender und anderen DCC-Tools.
+- **Erweiterungs-Namensraum-Disziplin erforderlich.** `SW_*`-Erweiterungsschlüssel müssen additiv und sorgfältig namensraum-getrennt gehalten werden, sonst könnte eine künftige glTF-Spec-Revision mit Vendor-Daten kollidieren — Standard-glTF-Erweiterungshygiene, keine neue Risikoklasse.
+- **Migrationskosten für bestehende, von Hand verfasste Szenen.** Showcases/Apps, die direkt in TypeScript gebaut sind, sind nicht betroffen (Maker ist additives Tooling); nur Inhalte, die *durch* Maker verfasst werden, nutzen das neue Format.
+- **`GadgetInspector` abgeschaltet.** Vollständig durch Maker ersetzt. Szeneninspektion und -erstellung teilen sich jetzt eine einzige, vereinheitlichte Reflection-Schicht (`Inspectable`) und einen gemeinsamen Workflow.

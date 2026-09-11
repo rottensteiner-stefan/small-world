@@ -1,44 +1,44 @@
-# ADR 0012: Atmospheric Indie Game Design & Rendering Philosophy ("The Stray Principle")
+# ADR 0012: Atmosphärisches Indie-Game-Design & Rendering-Philosophie ("Das Streuner-Prinzip")
 
 ## Status
-Accepted
+Akzeptiert
 
-## Context & Problem
+## Kontext & Problem
 
-Modern 3D engine development frequently falls into an unsustainable trap: the brute-force "spec race." Mainstream industry trends chase 8K uncompressed textures, multi-bounce hardware raytracing, and massive multi-gigabyte engine runtimes that demand $2,000 graphics cards just to hit 30 FPS.
+Moderne 3D-Engine-Entwicklung tappt häufig in eine nicht durchhaltbare Falle: das Brute-Force-"Spec-Rennen". Mainstream-Branchentrends jagen 8K-unkomprimierten Texturen, Mehrfach-Bounce-Hardware-Raytracing und riesigen Multi-Gigabyte-Engine-Laufzeiten hinterher, die 2.000-Dollar-Grafikkarten verlangen, nur um 30 FPS zu erreichen.
 
-This mindset produces severe drawbacks:
-1. **Hardware Exclusion & Energy Waste:** Games and web apps become unplayable for the overwhelming majority of users on standard laptops, MacBooks, integrated GPUs, and mobile devices.
-2. **Loss of Artistic Focus:** Raw polygon counts and photorealistic texture resolutions frequently substitute for coherent art direction, mood, and tactile game feel.
-3. **The "Toy Engine" Fallacy:** Conversely, many lightweight web 3D libraries reduce themselves to minimal rendering utilities (spinning cubes, tech demos, banner ads), omitting the core architecture (FSMs, physics, audio, scene editing) required to build real, substantive games.
+Diese Denkweise erzeugt gravierende Nachteile:
+1. **Hardware-Ausschluss & Energieverschwendung:** Spiele und Web-Apps werden für die überwältigende Mehrheit der Nutzer auf Standard-Laptops, MacBooks, integrierten GPUs und Mobilgeräten unspielbar.
+2. **Verlust des künstlerischen Fokus:** Rohe Polygonzahlen und fotorealistische Texturauflösungen ersetzen häufig kohärente Kunstrichtung, Stimmung und ein spürbares Spielgefühl.
+3. **Der "Spielzeug-Engine"-Trugschluss:** Umgekehrt reduzieren sich viele leichtgewichtige Web-3D-Bibliotheken auf minimale Rendering-Hilfsmittel (rotierende Würfel, Technikdemos, Werbebanner) und lassen die Kernarchitektur (FSMs, Physik, Audio, Szenen-Editing) aus, die zum Bau echter, substanzieller Spiele nötig ist.
 
-Masterpiece indie games such as *Stray*, *Inside*, *Journey*, and *Firewatch* prove conclusively that **art direction, lighting mood, color harmony, atmosphere, responsive controls, and coherent worldbuilding** evoke far deeper emotional resonance and commercial success than unoptimized brute-force graphics ever could.
+Meisterwerke des Indie-Genres wie *Stray*, *Inside*, *Journey* und *Firewatch* belegen schlüssig, dass **Kunstrichtung, Lichtstimmung, Farbharmonie, Atmosphäre, reaktionsschnelle Steuerung und kohärentes Worldbuilding** eine weit tiefere emotionale Resonanz und kommerziellen Erfolg hervorrufen, als es unoptimierte Brute-Force-Grafik je könnte.
 
-## Decision
+## Entscheidung
 
-We establish **The Stray Principle** as Small World's foundational design and rendering philosophy:
+Wir etablieren **das Streuner-Prinzip** als Small Worlds grundlegende Design- und Rendering-Philosophie:
 
-### 1. Atmosphere & Art Direction > Brute-Force Pixel Counting
-- Visual fidelity in Small World is driven by **lighting mood, evocative volumetric fog, cinematic post-processing (bloom, tone mapping, color grading), striking silhouettes, and stylized PBR materials** rather than 8K texture bloat or hardware-melting path tracing.
-- We deliberately design rendering techniques that deliver rich, high-end visual aesthetics on standard WebGL 2 and WebGPU hardware without excessive computational overhead.
+### 1. Atmosphäre & Kunstrichtung > Brute-Force-Pixelzählerei
+- Visuelle Wirkung in Small World wird angetrieben von **Lichtstimmung, stimmungsvollem volumetrischem Nebel, filmischem Post-Processing (Bloom, Tone-Mapping, Color-Grading), markanten Silhouetten und stilisierten PBR-Materialien**, statt von 8K-Textur-Aufblähung oder hardware-schmelzendem Path-Tracing.
+- Wir entwerfen Rendering-Techniken bewusst so, dass sie auf Standard-WebGL-2- und WebGPU-Hardware reichhaltige, hochwertige visuelle Ästhetik liefern, ohne übermäßigen Rechenaufwand.
 
-### 2. Full-Fledged Indie Game Engine Architecture
-Small World is engineered to support **real, substantive, narrative, and interactive games and rich 3D applications**, not merely isolated rendering snippets. The engine provides a complete, unified runtime stack:
-- Component-based **Behavior System** and type-safe, zero-allocation **Finite State Machines (FSM)**.
-- Built-in **Impulse Physics** (SAT collision detection, buoyancy, continuous collision detection).
-- 3D **Spatial Audio** (HRTF positioning, procedural synthesizers, audio mixing).
-- $O(\log n)$ **Octree Interaction Manager** and screen-space picking.
+### 2. Vollwertige Indie-Game-Engine-Architektur
+Small World ist darauf ausgelegt, **echte, substanzielle, narrative und interaktive Spiele sowie reichhaltige 3D-Anwendungen** zu unterstützen, nicht bloß isolierte Rendering-Schnipsel. Die Engine stellt einen vollständigen, einheitlichen Laufzeit-Stack bereit:
+- Komponentenbasiertes **Behavior-System** und typsichere, allokationsfreie **Zustandsautomaten (FSM)**.
+- Eingebaute **Impuls-Physik** (SAT-Kollisionserkennung, Auftrieb, Continuous Collision Detection).
+- 3D-**räumliches Audio** (HRTF-Positionierung, prozedurale Synthesizer, Audio-Mischung).
+- $O(\log n)$-**Octree-Interaction-Manager** und Bildschirmraum-Picking.
 
-### 3. Universal 60 FPS Target on Everyday Hardware
-- Every system and shader must achieve a rock-solid 60 FPS on mainstream consumer hardware (Apple Silicon, integrated Intel/AMD GPUs, mobile browsers).
-- Strict zero-allocation hot paths and object pooling (`MathPool`) eliminate Garbage Collection stutter.
+### 3. Universelles 60-FPS-Ziel auf Alltagshardware
+- Jedes System und jeder Shader muss auf gängiger Consumer-Hardware (Apple Silicon, integrierte Intel/AMD-GPUs, mobile Browser) felsenfeste 60 FPS erreichen.
+- Strikt allokationsfreie Hot-Paths und Objekt-Pooling (`MathPool`) eliminieren Garbage-Collection-Ruckler.
 
-### 4. Zero-Friction Visual Authoring (Maker)
-- World composition, level design, and prefab assembling happen in **Maker** (`public/tools/maker.html`) directly inside the browser.
-- Uses the native File System Access API and open glTF 2.0 standards (`SW_*` metadata extensions) without requiring heavyweight desktop installs or cloud subscriptions.
+### 4. Reibungsloses visuelles Erstellen (Maker)
+- Weltkomposition, Level-Design und das Zusammensetzen von Prefabs geschehen in **Maker** (`public/tools/maker.html`) direkt im Browser.
+- Nutzt die native File System Access API und offene glTF-2.0-Standards (`SW_*`-Metadaten-Erweiterungen), ohne schwergewichtige Desktop-Installationen oder Cloud-Abonnements zu verlangen.
 
-## Consequences
+## Konsequenzen
 
-- **Creative Empowerment:** Indie developers and digital artists can craft atmospheric, visually stunning games with immediate web distribution.
-- **Universal Player Accessibility:** Games load in seconds, run cool and quiet on everyday consumer laptops and mobile devices, and require no expensive GPU upgrades.
-- **Clear Architectural Guidance:** Engine features and shaders are prioritized based on artistic expression and atmospheric impact (e.g., fog, lighting, post-fx, game feel) rather than unmaintainable, hardware-punishing brute force.
+- **Kreative Selbstermächtigung:** Indie-Entwickler und Digitalkünstler können atmosphärische, visuell beeindruckende Spiele mit sofortiger Web-Distribution erschaffen.
+- **Universelle Zugänglichkeit für Spieler:** Spiele laden in Sekunden, laufen kühl und leise auf alltäglichen Consumer-Laptops und Mobilgeräten und erfordern keine teuren GPU-Upgrades.
+- **Klare architektonische Leitlinie:** Engine-Features und Shader werden nach künstlerischem Ausdruck und atmosphärischer Wirkung priorisiert (z. B. Nebel, Licht, Post-FX, Spielgefühl), nicht nach unwartbarer, hardware-strafender Brute Force.

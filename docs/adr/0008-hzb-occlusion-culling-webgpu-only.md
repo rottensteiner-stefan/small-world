@@ -1,72 +1,81 @@
-# Hierarchical-Z occlusion culling: WebGPU-only, sphere bounds, one-frame-stale
+# Hierarchical-Z-Occlusion-Culling: nur WebGPU, Kugel-Bounds, um einen Frame veraltet
 
-Hierarchical-Z (HZB) occlusion culling ships for WebGPU only, opt-in via
-`EngineOptions.enableOcclusionCulling` (default off). Unlike Clustered Lighting
-([0007](0007-clustered-lighting-webgl2-webgpu-only.md)), there is no WebGL2 fallback path at
-all -- clustering had a CPU-side analogue (iterate lights, test coverage ranges in JS) that
-WebGL2 could run without compute shaders; HZB has no equivalent CPU shortcut. Building the
-depth-mip pyramid needs a max-reduction compute pass, and testing object bounds against it needs
-per-object compute dispatch with a results buffer read back to the CPU -- both fundamentally
-require compute, which WebGL1/WebGL2 don't have. `Object3D.occlusionCulled` is never written on
-those backends, so `Scene._collectVisible()`'s occlusion check is a permanent no-op there; no
-config gate is needed on that check itself, the field's own default (`false`) is the source of
-truth.
+Hierarchical-Z (HZB) Occlusion Culling gibt es nur für WebGPU, opt-in über
+`EngineOptions.enableOcclusionCulling` (Standard: aus). Anders als Clustered Lighting
+([0007](0007-clustered-lighting-webgl2-webgpu-only.md)) gibt es hier überhaupt keinen
+WebGL2-Fallback-Pfad — Clustering hatte ein CPU-seitiges Analogon (Lichter durchlaufen,
+Abdeckungsbereiche in JS testen), das WebGL2 ohne Compute-Shader ausführen konnte; HZB hat keine
+äquivalente CPU-Abkürzung. Der Aufbau der Depth-Mip-Pyramide braucht einen
+Max-Reduction-Compute-Pass, und das Testen von Objekt-Bounds dagegen braucht Pro-Objekt-Compute-
+Dispatch mit einem Ergebnispuffer, der zur CPU zurückgelesen wird — beides erfordert grundlegend
+Compute, das WebGL1/WebGL2 nicht haben. `Object3D.occlusionCulled` wird auf diesen Backends nie
+geschrieben, sodass `Scene._collectVisible()`s Occlusion-Check dort ein dauerhaftes No-Op ist;
+für diesen Check selbst braucht es kein Config-Gate, der eigene Default des Felds (`false`) ist
+die Quelle der Wahrheit.
 
-The visibility test always lags the depth it's tested against by exactly one frame, and this is
-structural, not a shortcut taken for convenience: WebGPU's `GPUBuffer.mapAsync()` for a
-GPU-written buffer is *always* asynchronous, so a test dispatched against frame N's own
-just-finished depth can, at the very earliest, have its result read back and applied starting
-frame N+1. This is the same latency Frostbite and Unreal accept for their own
-temporally-reprojected HZB systems -- not a corner this implementation cut. In steady state
-(camera moving smoothly, not teleporting) the assumption holds: an object occluded last frame is
-overwhelmingly likely to still be occluded this frame.
+Der Sichtbarkeitstest hinkt der Tiefe, gegen die er getestet wird, immer um genau einen Frame
+hinterher, und das ist strukturell, keine Abkürzung aus Bequemlichkeit: WebGPUs
+`GPUBuffer.mapAsync()` für einen GPU-geschriebenen Puffer ist *immer* asynchron, sodass ein Test,
+der gegen die gerade fertiggestellte Tiefe von Frame N dispatcht wird, frühestens ab Frame N+1
+zurückgelesen und angewendet werden kann. Das ist dieselbe Latenz, die Frostbite und Unreal für
+ihre eigenen temporal-reprojizierten HZB-Systeme akzeptieren — keine Ecke, die diese
+Implementierung abgeschnitten hat. Im eingeschwungenen Zustand (Kamera bewegt sich sanft, teleportiert
+nicht) hält die Annahme: ein Objekt, das im letzten Frame verdeckt war, ist mit überwältigender
+Wahrscheinlichkeit auch in diesem Frame noch verdeckt.
 
-`applyPendingOcclusionResults()` reads readiness by polling `GPUBuffer.mapState === "mapped"` on
-each pending staging slot directly, every frame -- not by reacting to `mapAsync()`'s own promise
-resolving. An earlier version did the latter (set a `resultsReady` flag from the promise's
-`.then()`), and it deadlocked: `_hzbStagingSlot` only ever advances on a *new* successful
-dispatch, and dispatch refuses to touch a slot still marked pending, so if that promise callback
-is ever slow or never fires, the slot -- and with it the whole two-slot ping-pong -- wedges
-permanently, without a WebGPU validation error or anything else surfacing the deadlock. Reading
-`mapState` (the GPU's own ground truth for the buffer's mappedness, spec-guaranteed to update
-whether or not anything is listening for it) has no such failure mode: whichever slot's mapping
-has genuinely completed gets consumed on the very next call, regardless of what happened to its
-promise.
+`applyPendingOcclusionResults()` liest die Bereitschaft, indem es direkt jeden Frame
+`GPUBuffer.mapState === "mapped"` auf jedem ausstehenden Staging-Slot abfragt — nicht, indem es auf
+das Auflösen des eigenen Promise von `mapAsync()` reagiert. Eine frühere Version tat Letzteres
+(setzte ein `resultsReady`-Flag aus dem `.then()` des Promise), und das führte zu einem Deadlock:
+`_hzbStagingSlot` rückt nur bei einem *neuen* erfolgreichen Dispatch vor, und Dispatch weigert
+sich, einen noch als ausstehend markierten Slot anzufassen — falls dieser Promise-Callback also
+jemals langsam ist oder nie feuert, verklemmt sich der Slot — und mit ihm das ganze
+Zwei-Slot-Ping-Pong — dauerhaft, ohne einen WebGPU-Validierungsfehler oder sonst irgendetwas, das
+den Deadlock sichtbar macht. Das Lesen von `mapState` (die eigene, spec-garantierte Ground Truth der
+GPU für den Mapped-Status des Puffers, die sich aktualisiert, egal ob jemand zuhört) hat keinen
+solchen Fehlermodus: welcher Slot auch immer sein Mapping tatsächlich abgeschlossen hat, wird beim
+allernächsten Aufruf konsumiert, unabhängig davon, was mit seinem Promise passiert ist.
 
-The test uses each object's bounding **sphere**, not a tight AABB. `BoundingVolume` (the
-interface `Object3D.bounds` is typed as) only generically exposes `center`/`getBroadRadius()`
-across its three concrete shapes (Box/Sphere/OBB) -- getting a tight axis-aligned box would need
-downcasting per bounds type. A sphere is a conservative approximation: it can only ever
-*under*-cull (test an object as visible when a tighter box would have found it occluded), never
-wrongly hide something the camera can actually see.
+Der Test verwendet die **Kugel**-Bounding-Volume jedes Objekts, keine enge AABB. `BoundingVolume`
+(das Interface, als das `Object3D.bounds` typisiert ist) legt über seine drei konkreten Formen
+(Box/Sphere/OBB) hinweg generisch nur `center`/`getBroadRadius()` offen — eine enge
+achsenausgerichtete Box zu bekommen bräuchte ein Downcasting pro Bounds-Typ. Eine Kugel ist eine
+konservative Näherung: sie kann nur *unter*-culen (ein Objekt als sichtbar testen, wenn eine
+engere Box es als verdeckt erkannt hätte), niemals fälschlich etwas verstecken, das die Kamera
+tatsächlich sehen kann.
 
-The AABB and results buffers (`_hzbAabbBuffer`/`_hzbResultsBuffer`, and the ping-pong
-`_hzbStagingBuffers` pair) are fixed-capacity, sized for `MAX_HZB_TESTED_OBJECTS` (8192) --
-no dynamic regrowth, no atomics, the same fixed-capacity-no-atomics reasoning 0007 already uses
-for the cluster light buffers. Objects beyond the cap (among those that already passed frustum
-culling) are simply never occlusion-tested; they always draw, the same safe default
-`occlusionCulled`'s own initial value already is.
+Die AABB- und Ergebnispuffer (`_hzbAabbBuffer`/`_hzbResultsBuffer`, und das Ping-Pong-Paar
+`_hzbStagingBuffers`) haben feste Kapazität, dimensioniert für `MAX_HZB_TESTED_OBJECTS` (8192) —
+kein dynamisches Nachwachsen, keine Atomics, dieselbe Feste-Kapazität-ohne-Atomics-Begründung, die
+0007 schon für die Cluster-Licht-Puffer verwendet. Objekte jenseits der Obergrenze (unter denen,
+die Frustum-Culling schon bestanden haben) werden einfach nie occlusion-getestet; sie werden immer
+gezeichnet, derselbe sichere Standardwert, der der eigene Anfangswert von `occlusionCulled` schon
+ist.
 
-`_dispatchHzbTest()` derives its candidate list by walking the `Scene` it's given directly
-(`isVisible && inFrustum && bounds`), rather than reading `FrustumCuller.lastVisibleObjects` --
-even though that field exists as exactly this kind of byproduct list. `FrustumCuller`'s fields
-are `static`, shared across every `SmallWorld` instance on the page; GadgetInspector's
-`MaterialStudioApp` material-preview panel is itself a `SmallWorld` running its own `_loop()`
-(and therefore its own `FrustumCuller.cull()`) on its own tiny preview scene, and since
-`enableInspector: true` is the default for showcases, it's running alongside almost every scene
-this renderer ever tests. Reading the static field meant testing whichever scene's `cull()` ran
-last -- almost never the one actually being rendered. The scene-scoped walk costs one extra
-recursive traversal per frame; the static field stays as a debug/introspection utility only.
+`_dispatchHzbTest()` leitet seine Kandidatenliste ab, indem es die ihm übergebene `Scene` direkt
+durchläuft (`isVisible && inFrustum && bounds`), statt `FrustumCuller.lastVisibleObjects` zu lesen
+— obwohl dieses Feld genau als eine solche Nebenprodukt-Liste existiert. `FrustumCuller`s Felder
+sind `static`, geteilt über jede `SmallWorld`-Instanz auf der Seite; GadgetInspectors
+`MaterialStudioApp`-Materialvorschau-Panel ist selbst eine `SmallWorld`, die ihre eigene `_loop()`
+(und damit ihr eigenes `FrustumCuller.cull()`) auf ihrer eigenen winzigen Vorschau-Szene laufen
+lässt, und da `enableInspector: true` der Standard für Showcases ist, läuft es neben fast jeder
+Szene, die dieser Renderer je testet, mit. Das statische Feld zu lesen hieß, zu testen, welcher
+Szene `cull()` zuletzt lief — fast nie die tatsächlich gerenderte. Der szenengebundene Durchlauf
+kostet eine zusätzliche rekursive Traversierung pro Frame; das statische Feld bleibt nur als
+Debug-/Introspektions-Werkzeug erhalten.
 
-Occlusion culling only runs for the main canvas pass. `WebGPURenderer._buildHzbPyramid()`/
-`_dispatchHzbTest()` both no-op whenever `_activeRenderTarget` is set (reflection probes,
-`bakeImposter()`, any other offscreen `RenderTarget`/`RenderTargetCube` render) -- a second HZB
-pyramid per render target, rebuilt every time that target renders, would be real additional
-scope this iteration deliberately doesn't take on.
+Occlusion Culling läuft nur für den Haupt-Canvas-Pass. `WebGPURenderer._buildHzbPyramid()`/
+`_dispatchHzbTest()` sind beide No-Ops, wann immer `_activeRenderTarget` gesetzt ist
+(Reflection Probes, `bakeImposter()`, jedes andere Offscreen-`RenderTarget`/
+`RenderTargetCube`-Rendering) — eine zweite HZB-Pyramide pro Render-Target, bei jedem Rendern
+dieses Targets neu aufgebaut, wäre echter zusätzlicher Umfang, den diese Iteration bewusst nicht
+übernimmt.
 
-**Reconsider this if:** a showcase needs occlusion culling on a heavily-overdrawn offscreen
-render target (e.g. a reflection probe scene dense enough that skipping occluded draws there
-would matter) -- that needs a per-render-target HZB pyramid, not just reusing the main one. Or if
-the one-frame staleness causes visible pop-in on fast camera cuts/teleports -- that needs
-explicit HZB invalidation (e.g. clearing `occlusionCulled` scene-wide) on detected large camera
-jumps, which isn't part of this ADR's steady-state-only reasoning.
+**Das hier überdenken, wenn:** ein Showcase Occlusion Culling auf einem stark überzeichneten
+Offscreen-Render-Target braucht (z. B. eine Reflection-Probe-Szene, die dicht genug ist, dass das
+Überspringen verdeckter Zeichnungen dort etwas ausmachen würde) — das braucht eine
+Pro-Render-Target-HZB-Pyramide, nicht nur die Wiederverwendung der Haupt-Pyramide. Oder falls die
+Ein-Frame-Veraltung sichtbares Pop-in bei schnellen Kameraschnitten/Teleports verursacht — das
+braucht explizite HZB-Invalidierung (z. B. szenenweites Zurücksetzen von `occlusionCulled`) bei
+erkannten großen Kamerasprüngen, was nicht Teil der Nur-eingeschwungener-Zustand-Begründung dieses
+ADRs ist.

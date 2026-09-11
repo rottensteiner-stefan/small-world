@@ -1,22 +1,22 @@
-# Gamification & Interactions
+# Gamification & Interaktionen
 
-The Small World Engine provides a built-in interaction layer via the `InteractionManager`. This system allows you to easily react to mouse and touch events directly on 3D objects in the scene, using a performance-optimized Octree-based Raycasting pipeline.
+Die Small World Engine bietet eine eingebaute Interaktionsschicht über den `InteractionManager`. Dieses System lässt euch einfach auf Maus- und Touch-Ereignisse direkt an 3D-Objekten in der Szene reagieren, über eine performance-optimierte, Octree-basierte Raycasting-Pipeline.
 
-## 1. Setup
+## 1. Einrichtung
 
-The `InteractionManager` is automatically instantiated during the `SmallWorld` lifecycle and is available as `this.interactionManager`. 
+Der `InteractionManager` wird automatisch während des `SmallWorld`-Lebenszyklus instanziiert und ist als `this.interactionManager` verfügbar.
 
-To make an object react to pointer events, you simply need to flag it as pickable and assign your event callbacks:
+Damit ein Objekt auf Pointer-Ereignisse reagiert, müsst ihr es nur als pickbar markieren und eure Event-Callbacks zuweisen:
 
 ```typescript
 const mesh = new Object3D("InteractiveCube");
 mesh.geometry = new Cube({ size: 1.0 }).getGeometryData();
 mesh.material = new StandardMaterial({ color: Color.RED });
 
-// 1. Enable picking
+// 1. Picking aktivieren
 mesh.isPickable = true;
 
-// 2. Define events
+// 2. Ereignisse definieren
 mesh.onPointerEnter = () => {
     mesh.scale.set(1.5, 1.5, 1.5);
 };
@@ -32,65 +32,65 @@ mesh.onPointerClick = () => {
 this.scene.add(mesh);
 ```
 
-## 2. Octree Acceleration (Performance)
+## 2. Octree-Beschleunigung (Performance)
 
-A naive raycaster iterates over all $O(n)$ objects in the scene every frame, which ruins framerates for large scenes. Small World accelerates interactions using a spatial-partitioning **Octree**, which prunes the vast majority of objects with cheap bounds checks instead of a full linear scan.
+Ein naiver Raycaster durchläuft jeden Frame alle $O(n)$ Objekte der Szene, was bei großen Szenen die Bildrate ruiniert. Small World beschleunigt Interaktionen über einen räumlich partitionierenden **Octree**, der den Großteil der Objekte durch günstige Bounds-Checks aussortiert, statt eines vollständigen linearen Durchlaufs.
 
-To take advantage of Octree acceleration, initialize the scene's octrees and declare your static objects:
+Um die Octree-Beschleunigung zu nutzen, initialisiert die Octrees der Szene und deklariert eure statischen Objekte:
 
 ```typescript
-// Define the dimensions of your interactable world
+// Abmessungen eurer interaktiven Welt definieren
 const bounds = new BoundingBox(new Vector3D(-50, -50, -50), new Vector3D(50, 50, 50));
 this.scene.initOctrees(bounds);
 
 const mesh = new Object3D("Tree");
-mesh.isStatic = true; // Flag the object as static so it enters the Static Octree
+mesh.isStatic = true; // Markiert das Objekt als statisch, damit es in den statischen Octree aufgenommen wird
 mesh.isPickable = true;
 this.scene.add(mesh);
 
-// Once you've added your static objects, build the octree:
+// Sobald eure statischen Objekte hinzugefügt sind, den Octree aufbauen:
 this.scene.updateStaticOctree();
 ```
 
-When an Octree is present, the `InteractionManager` automatically utilizes `Octree.queryRay()` to instantly discard thousands of objects without performing a single heavy intersection check.
+Ist ein Octree vorhanden, nutzt der `InteractionManager` automatisch `Octree.queryRay()`, um tausende Objekte sofort zu verwerfen, ohne eine einzige aufwendige Schnittprüfung durchzuführen.
 
-## 3. Ready-To-Use Behaviors
+## 3. Fertige Verhalten (Behaviors)
 
-Small World includes built-in Behaviors you can directly attach to objects for rapid prototyping.
+Small World enthält eingebaute Behaviors, die ihr für schnelles Prototyping direkt an Objekte hängen könnt.
 
 ### HoverBehavior
 
-Automatically smoothly scales up an object and emits a neon glow when hovered.
+Skaliert ein Objekt beim Hovern automatisch sanft hoch und lässt es in Neon-Farbe leuchten.
 
 ```typescript
 import { HoverBehavior } from "small-world";
 
-// Scales to 1.5x on hover
+// Skaliert beim Hovern auf das 1,5-fache
 const hover = new HoverBehavior(1.5);
 mesh.addBehavior(hover);
 ```
 
 ### DraggableBehavior
 
-Allows users to freely drag and drop objects in 3D space. The object moves along a plane perfectly aligned with the camera.
+Erlaubt es, Objekte frei im 3D-Raum zu ziehen und abzulegen. Das Objekt bewegt sich dabei entlang einer Ebene, die perfekt zur Kamera ausgerichtet ist.
 
 ```typescript
 import { DraggableBehavior } from "small-world";
 
-// Requires the active camera to project the dragging plane
+// Benötigt die aktive Kamera, um die Zieh-Ebene zu berechnen
 const draggable = new DraggableBehavior(this.camera);
 mesh.addBehavior(draggable);
 ```
 
-> **Note:** These behaviors automatically set `isPickable = true` when attached to an object.
+> **Hinweis:** Diese Behaviors setzen `isPickable = true` automatisch, sobald sie an ein Objekt gehängt werden.
 
-## 4. Pixel-Perfect Picking (Möller-Trumbore)
+## 4. Pixelgenaues Picking (Möller-Trumbore)
 
-For high-precision applications like CAD tools or Shooters, the Raycaster uses a hybrid approach:
-1. It first queries the **Octree** (or AABB BoundingBox) to quickly reject objects the ray misses.
-2. If the object has `geometry`, it dynamically iterates over the actual triangle vertices of the mesh, transforming them into world-space.
-3. It performs a **Möller-Trumbore Intersection** to find the exact intersection distance `t`.
+Für hochpräzise Anwendungen wie CAD-Werkzeuge oder Shooter nutzt der Raycaster einen hybriden Ansatz:
+1. Zunächst wird der **Octree** (bzw. die AABB-BoundingBox) abgefragt, um Objekte, die der Strahl klar verfehlt, schnell auszuschließen.
+2. Besitzt das Objekt eine `geometry`, iteriert er dynamisch über die tatsächlichen Dreiecks-Vertices des Meshes und transformiert sie in den Weltraum.
+3. Er führt eine **Möller-Trumbore-Schnittberechnung** durch, um die exakte Schnittdistanz `t` zu ermitteln.
 
-> **Architecture Note (Broadphase vs. Narrowphase):** The core `Raycaster` class itself is strictly designed as a linear *Narrowphase* evaluator. It deliberately does not contain internal spatial acceleration (like BVH or internal Octrees). Instead, spatial filtering (the *Broadphase*) is handled one layer up by systems like the `InteractionManager` (via `scene.staticOctree.queryRay`), which then feed only the heavily reduced list of candidate objects into the `Raycaster`. This clear separation of concerns keeps the Raycaster simple and prevents redundant acceleration structures.
+> **Architektur-Hinweis (Broadphase vs. Narrowphase):** Die `Raycaster`-Kernklasse selbst ist strikt als linearer *Narrowphase*-Evaluator konzipiert. Sie enthält bewusst keine eigene räumliche Beschleunigung (wie BVH oder interne Octrees). Stattdessen wird die räumliche Filterung (die *Broadphase*) eine Ebene darüber von Systemen wie dem `InteractionManager` übernommen (über `scene.staticOctree.queryRay`), der dem `Raycaster` dann nur die stark reduzierte Liste an Kandidaten-Objekten übergibt. Diese klare Trennung der Zuständigkeiten hält den Raycaster einfach und verhindert redundante Beschleunigungsstrukturen.
 
-This guarantees that transparent gaps or irregular meshes can be clicked with pixel-perfect accuracy!
+Das garantiert, dass auch transparente Lücken oder unregelmäßige Meshes pixelgenau anklickbar sind!

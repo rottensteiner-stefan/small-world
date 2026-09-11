@@ -259,7 +259,7 @@ würde bei hunderten verdeckten Objekten lohnen, was für unsere Showcases untyp
 ein geteilter Vertex-/Index-Buffer plus Pro-Instanz-Buffer (4×4-Matrix, ggf. Farbe), ein
 Draw-Call für N Kopien.
 
-✅ **Audit abgeschlossen (2026-08-20):** Sowohl `src/apps/disc-wars/core/LevelBuilder.ts` als
+✅ **Audit abgeschlossen (2026-08-20, `disc-wars`/`neon-labyrinth` seither vollständig entfernt — siehe CHANGELOG.md):** Sowohl `src/apps/disc-wars/core/LevelBuilder.ts` als
 auch `src/apps/neon-labyrinth/core/LevelBuilder.ts` batchen Wände/Böden/Decken/Nähte bereits
 korrekt über `InstancedMesh` (ein `addInstanced(...)`-Helper sammelt Matrizen pro Zellschleife
 und erzeugt am Ende einen Draw-Call pro Geometrie-/Material-Kombination). Die einzige
@@ -458,7 +458,8 @@ bräuchte.
   Anhängen, `trigger(intensity)` staucht sofort entlang Y und streckt X/Z (volumen-erhaltend
   angenähert), ein gedämpfter Feder-Oszillator (`stiffness`/`damping`) schwingt danach zurück
   zur Basis-Skalierung — inklusive leichtem Überschwingen, nicht nur einem linearen Zurückgleiten.
-- *Verdrahtet in:* Neon Labyrinth (`src/apps/neon-labyrinth/App.ts`) an beiden bestehenden
+- *Verdrahtet in:* Neon Labyrinth (`src/apps/neon-labyrinth/App.ts`, App seither vollständig
+  entfernt — siehe CHANGELOG.md) an beiden bestehenden
   Impact-Momenten (Wisp-Treffer, Sturz-Reset) zusätzlich zum vorhandenen Kamera-Shake/Flash;
   die gespawnten Impact-Shards (`_spawnImpactTrace`) bekommen beim Erscheinen einen
   Squash-and-Stretch-Pop. Light Cycle Arena wurde bewusst **nicht** angefasst — dort existiert

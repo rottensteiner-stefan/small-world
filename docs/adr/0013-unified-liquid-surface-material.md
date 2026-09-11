@@ -1,97 +1,105 @@
-# Unified Liquid Surface Material: One Core Mechanism, Presets for Look
+# Vereinheitlichtes Flüssigkeits-Material: Ein Kernmechanismus, Presets fürs Aussehen
 
-## Context & Problem
+## Kontext & Problem
 
-`OpenWaterMaterial` (realistic PBR water) and `StylizedWaterMaterial` (toon water) are two
-independent classes with two independent shader stacks, but their vertex shaders implement the
-same Gerstner-wave displacement loop nearly verbatim (`OpenWater.vert.wgsl` vs.
-`StylizedWater.vert.wgsl` differ only in wave count — 5 vs. 3 — and a zero-wavelength guard), and
-their fragment shaders implement the same Worley-noise edge/intersection foam
-(`foamCutoff`/`foamNoiseScale`/`foamNoiseSpeed`/`foamDistance`/`foamColor`) with near-identical
-code. `FluidSurfaceMaterial` already claims a broader mandate — its own doc comment says "for
-water, lava, or slime" — but nothing in the codebase actually uses it for lava or slime, so that
-generalization is unvalidated. A fourth shader set, `Liquid.*.wgsl`/`Liquid.*.glsl`, exists on
-disk but is imported by zero TypeScript material — dead weight from an earlier, abandoned attempt
-at the same generalization.
+`OpenWaterMaterial` (realistisches PBR-Wasser) und `StylizedWaterMaterial` (Toon-Wasser) sind zwei
+unabhängige Klassen mit zwei unabhängigen Shader-Stacks, aber ihre Vertex-Shader implementieren
+nahezu wortgleich dieselbe Gerstner-Wellen-Verschiebungsschleife (`OpenWater.vert.wgsl` vs.
+`StylizedWater.vert.wgsl` unterscheiden sich nur in der Wellenzahl — 5 vs. 3 — und einer
+Null-Wellenlängen-Absicherung), und ihre Fragment-Shader implementieren mit nahezu identischem
+Code denselben Worley-Noise-Kanten-/Überschneidungs-Schaum
+(`foamCutoff`/`foamNoiseScale`/`foamNoiseSpeed`/`foamDistance`/`foamColor`). `FluidSurfaceMaterial`
+beansprucht bereits ein breiteres Mandat — sein eigener Doc-Kommentar sagt "für Wasser, Lava oder
+Schleim" —, aber nichts in der Codebasis nutzt es tatsächlich für Lava oder Schleim, sodass diese
+Verallgemeinerung unbestätigt ist. Ein vierter Shader-Satz, `Liquid.*.wgsl`/`Liquid.*.glsl`,
+existiert auf der Festplatte, wird aber von null TypeScript-Materialien importiert — totes Gewicht
+aus einem früheren, abgebrochenen Versuch derselben Verallgemeinerung.
 
-We want to add Lava and Slime as shipped materials without a fourth (and fifth) copy of the same
-wave/foam math, and we need a documented rule for what future liquid-like materials should look
-like.
+Wir wollen Lava und Schleim als ausgelieferte Materialien hinzufügen, ohne eine vierte (und
+fünfte) Kopie derselben Wellen-/Schaum-Mathematik, und wir brauchen eine dokumentierte Regel dafür,
+wie künftige flüssigkeitsartige Materialien aussehen sollten.
 
-We looked at how Godot and Unity split this:
-- **Godot** ships no water/lava material at all — only generic shading infrastructure
-  (`ShaderMaterial`, `SubViewport` for reflection/refraction). Every liquid, realistic or
-  stylized, is a community shader built from those primitives.
-- **Unity** (HDRP, since 2022.2/2023.1) ships exactly one first-class liquid system — a
-  physically-based ocean/river/lake water system with buoyancy hooks — as core engine
-  functionality, because the simulation is complex enough to be worth building once and the
-  gameplay hook (buoyancy) is generic. Stylized water, lava, swamp, and toxic-waste variants are
-  Shader-Graph-based presets/asset-store content layered on the same node graph, not separate
-  engine subsystems.
+Wir haben uns angesehen, wie Godot und Unity das aufteilen:
+- **Godot** liefert überhaupt kein Wasser-/Lava-Material aus — nur generische Shading-
+  Infrastruktur (`ShaderMaterial`, `SubViewport` für Reflexion/Refraktion). Jede Flüssigkeit,
+  realistisch oder stilisiert, ist ein Community-Shader, gebaut aus diesen Primitiven.
+- **Unity** (HDRP, seit 2022.2/2023.1) liefert genau ein erstklassiges Flüssigkeitssystem aus —
+  ein physikbasiertes Ozean-/Fluss-/See-Wassersystem mit Auftriebs-Hooks — als Kern-Engine-
+  Funktionalität, weil die Simulation komplex genug ist, um es lohnenswert einmal zu bauen, und
+  der Gameplay-Hook (Auftrieb) generisch ist. Stilisiertes Wasser, Lava, Sumpf- und Giftmüll-
+  Varianten sind Shader-Graph-basierte Presets/Asset-Store-Inhalte, die über demselben Node-Graph
+  liegen, keine eigenen Engine-Subsysteme.
 
-## Decision
+## Entscheidung
 
-We follow the Unity split: **one core mechanism, shipped presets for look**, rather than the
-Godot split (no core mechanism at all) or our previous state (N full copies of the mechanism).
+Wir folgen der Unity-Aufteilung: **ein Kernmechanismus, ausgelieferte Presets fürs Aussehen**,
+statt der Godot-Aufteilung (überhaupt kein Kernmechanismus) oder unseres früheren Zustands (N
+vollständige Kopien des Mechanismus).
 
-**Implementation correction found during rollout:** `OpenWaterMaterial`/`StylizedWaterMaterial`
-had already consumed every spare float slot in the fixed `StandardWebGPULayout`/`structs.wgsl`
-uniform layout for foam parameters — there was no room left for a new field (e.g. lava's emissive
-strength) without changing that struct in lockstep across `DepthPrePassGPU`,
-`CascadedShadowPassGPU`, `SpotShadowPassGPU`, `MainRenderPass`, and `WebGLMainPass`, which is a
-disproportionate blast radius for this goal. `FluidSurfaceMaterial`, by contrast, only used 3 of
-its available uniform slots and had real headroom. So "one core mechanism" is implemented as
-**two sibling mechanisms sharing shader text, not one shared uniform layout**:
+**Während der Umsetzung gefundene Implementierungskorrektur:** `OpenWaterMaterial`/
+`StylizedWaterMaterial` hatten bereits jeden freien Float-Slot im festen
+`StandardWebGPULayout`/`structs.wgsl`-Uniform-Layout für Schaum-Parameter verbraucht — es war kein
+Platz mehr für ein neues Feld (z. B. Lavas Emissionsstärke), ohne diese Struct im Gleichschritt über
+`DepthPrePassGPU`, `CascadedShadowPassGPU`, `SpotShadowPassGPU`, `MainRenderPass` und
+`WebGLMainPass` hinweg zu ändern — ein für dieses Ziel unverhältnismäßig großer Wirkungsradius.
+`FluidSurfaceMaterial` dagegen nutzte nur 3 seiner verfügbaren Uniform-Slots und hatte echten
+Spielraum. "Ein Kernmechanismus" wird daher implementiert als **zwei Geschwister-Mechanismen, die
+sich Shader-Text teilen, nicht ein gemeinsames Uniform-Layout**:
 
-1. **Wave family** (transparent, refractive): `OpenWaterMaterial` and `StylizedWaterMaterial` now
-   both extend `LiquidWaveMaterial`, a shared abstract base holding the common option surface
-   (wave1-3, speed, refraction, absorption, foam params) and the identical `getRenderManifest()`
-   packing logic that used to be duplicated between the two classes byte-for-byte. Their Gerstner
-   wave-displacement and Worley-noise shader code is deduplicated at the **shader-chunk level**
-   (the engine's existing `ShaderRegistry.registerChunk()`/`[TOKEN]` mechanism, already used for
-   `FOG_CALC`/`PBR_MATH`) via two new chunks: `liquid_gerstner_wave.{wgsl,glsl}` and
-   `liquid_worley_noise.{wgsl,glsl}`. Each subclass still supplies its own 6 shader-source files
-   (this codebase has no dynamic per-material shader-source composition, only static per-class
-   imports), but the actual duplicated *code* inside those files is gone.
+1. **Wellen-Familie** (transparent, refraktiv): `OpenWaterMaterial` und `StylizedWaterMaterial`
+   erweitern jetzt beide `LiquidWaveMaterial`, eine gemeinsame abstrakte Basis, die die gemeinsame
+   Options-Oberfläche (wave1-3, speed, refraction, absorption, foam-Parameter) und die identische
+   `getRenderManifest()`-Packing-Logik hält, die früher byteidentisch zwischen den beiden Klassen
+   dupliziert war. Ihr Gerstner-Wellen-Verschiebungs- und Worley-Noise-Shader-Code wird auf
+   **Shader-Chunk-Ebene** dedupliziert (der bestehende `ShaderRegistry.registerChunk()`/
+   `[TOKEN]`-Mechanismus der Engine, bereits genutzt für `FOG_CALC`/`PBR_MATH`) über zwei neue
+   Chunks: `liquid_gerstner_wave.{wgsl,glsl}` und `liquid_worley_noise.{wgsl,glsl}`. Jede
+   Unterklasse liefert weiterhin ihre eigenen 6 Shader-Quelldateien (diese Codebasis hat keine
+   dynamische, pro-Material zusammengesetzte Shader-Quelle, nur statische Pro-Klasse-Imports),
+   aber der tatsächlich duplizierte *Code* in diesen Dateien ist verschwunden.
 
-2. **Flow family** (opaque/emissive-capable, noise-driven): `FluidSurfaceMaterial` — already
-   generalized for "water, lava, or slime" per its own doc comment but previously unused for
-   either — is the shared base. `LavaMaterial` and `SlimeMaterial` are thin preset subclasses
-   (own `MaterialType`, own default colors/viscosity/flow, reuse `FluidSurfaceMaterial`'s existing
-   shader files unmodified except for a new optional emissive-glow term packed into previously
-   free uniform slots). Lava sets `transparent = false`/`depthWrite = true` for an opaque molten
-   look; Slime keeps the base's transparent/no-depth-write defaults.
+2. **Fluss-Familie** (opak/emissionsfähig, noise-getrieben): `FluidSurfaceMaterial` — laut eigenem
+   Doc-Kommentar bereits für "Wasser, Lava oder Schleim" verallgemeinert, zuvor aber für keines von
+   beiden genutzt — ist die gemeinsame Basis. `LavaMaterial` und `SlimeMaterial` sind dünne
+   Preset-Unterklassen (eigener `MaterialType`, eigene Standardfarben/Viskosität/Fluss,
+   Wiederverwendung von `FluidSurfaceMaterial`s bestehenden Shader-Dateien unverändert, bis auf
+   einen neuen optionalen Emissions-Glüh-Term, der in zuvor freie Uniform-Slots gepackt wird).
+   Lava setzt `transparent = false`/`depthWrite = true` für einen opaken, geschmolzenen Look;
+   Schleim behält die transparenten/kein-Depth-Write-Standardwerte der Basis.
 
-3. **Public API stays stable.** `new OpenWaterMaterial(options)` and
-   `new StylizedWaterMaterial(options)` keep working unchanged for existing scenes/showcases —
-   the consolidation is an internal refactor of what backs those constructors, not a breaking
-   rename (see [[project_public_api_surface]]).
+3. **Die öffentliche API bleibt stabil.** `new OpenWaterMaterial(options)` und
+   `new StylizedWaterMaterial(options)` funktionieren für bestehende Szenen/Showcases unverändert
+   weiter — die Konsolidierung ist ein interner Umbau dessen, was hinter diesen Konstruktoren
+   steckt, keine bahnbrechende Umbenennung.
 
-4. **Cleanup:** the orphaned `Liquid.*.wgsl`/`Liquid.*.glsl` files (confirmed zero imports
-   anywhere in `src/` or `showcases/`) were deleted rather than promoted — they predated and did
-   not overlap with the new chunk-based mechanism.
+4. **Aufräumen:** Die verwaisten Dateien `Liquid.*.wgsl`/`Liquid.*.glsl` (bestätigt: null Importe
+   irgendwo in `src/` oder `showcases/`) wurden gelöscht statt befördert — sie stammten von vor dem
+   neuen Chunk-basierten Mechanismus und überschnitten sich nicht mit ihm.
 
-**Note on the enum name:** `MaterialType` is a plain opaque shader-ID string with no
-renderer-side dispatch keyed on individual material types (confirmed: `SKYBOX`/`DEPTH` are the
-only two special-cased anywhere, purely for cache-lookup purposes) — so despite this ADR's title,
-there is no single `LiquidSurfaceMaterial` enum value or class; `LAVA`/`SLIME` were added as
-independent enum entries, each material's own type, with no renderer changes required.
+**Hinweis zum Enum-Namen:** `MaterialType` ist ein reiner, opaker Shader-ID-String ohne
+Renderer-seitiges Dispatch, das nach einzelnen Material-Typen verzweigt (bestätigt: `SKYBOX`/
+`DEPTH` sind die einzigen beiden irgendwo sonderbehandelten, rein für Cache-Lookup-Zwecke) — trotz
+des Titels dieses ADRs gibt es also keinen einzelnen `LiquidSurfaceMaterial`-Enum-Wert oder
+-Klasse; `LAVA`/`SLIME` wurden als unabhängige Enum-Einträge hinzugefügt, jeweils der eigene Typ
+des Materials, ohne dass Renderer-Änderungen nötig waren.
 
-## Consequences
+## Konsequenzen
 
-- Adding a new liquid look (e.g. a future "toxic sludge") is a preset (colors + a few numeric
-  knobs), not a new shader stack — the actual ask that motivated this ADR.
-- A wave-math or foam bug fixed once in `LiquidSurfaceMaterial` fixes it for every liquid look,
-  instead of needing to be re-applied across N copies (the failure mode that produced the
-  drifted 5-wave-vs-3-wave, guarded-vs-unguarded divergence this ADR was written to end).
-- `FluidSurfaceMaterial`'s generic ambition is finally exercised by a second real look (lava),
-  which either validates its design or forces changes to it — either way it stops being
-  unvalidated.
-- Cost: one non-trivial refactor touching `OpenWaterMaterial`, `StylizedWaterMaterial`,
-  `FluidSurfaceMaterial`, and their shader files across all three renderer backends
-  (WebGPU/GLSL/GLSL100), plus resolving whichever fate `Liquid.*` gets.
+- Einen neuen Flüssigkeits-Look hinzuzufügen (z. B. künftig "toxischer Schlamm") ist ein Preset
+  (Farben + ein paar numerische Regler), kein neuer Shader-Stack — genau das Anliegen, das
+  diesen ADR motiviert hat.
+- Ein einmal in `LiquidSurfaceMaterial` behobener Wellen-Mathe- oder Schaum-Bug behebt ihn für
+  jeden Flüssigkeits-Look, statt über N Kopien hinweg erneut angewendet werden zu müssen (genau
+  das Fehlerbild aus der auseinandergedrifteten 5-Wellen- vs. 3-Wellen-, abgesicherten vs.
+  unabgesicherten Divergenz, zu dessen Beendigung dieser ADR geschrieben wurde).
+- Der generische Anspruch von `FluidSurfaceMaterial` wird endlich durch einen zweiten echten Look
+  (Lava) auf die Probe gestellt, was entweder sein Design bestätigt oder Änderungen daran
+  erzwingt — so oder so hört es auf, unbestätigt zu sein.
+- Kosten: ein nicht-trivialer Umbau, der `OpenWaterMaterial`, `StylizedWaterMaterial`,
+  `FluidSurfaceMaterial` und ihre Shader-Dateien über alle drei Renderer-Backends hinweg
+  (WebGPU/GLSL/GLSL100) berührt, plus die Klärung, welches Schicksal `Liquid.*` ereilt.
 
-**Reconsider this if:** a future liquid look needs a genuinely different vertex/fragment
-algorithm (not just different colors/coefficients/refractive-vs-emissive) — e.g. a
-particle-based or SPH-simulated liquid. That's new work justifying its own material, not a
-preset on `LiquidSurfaceMaterial`.
+**Das hier überdenken, falls:** ein künftiger Flüssigkeits-Look einen grundlegend anderen
+Vertex-/Fragment-Algorithmus braucht (nicht nur andere Farben/Koeffizienten/refraktiv-vs-emissiv)
+— z. B. eine partikelbasierte oder SPH-simulierte Flüssigkeit. Das ist neue Arbeit, die ihr
+eigenes Material rechtfertigt, kein Preset auf `LiquidSurfaceMaterial`.

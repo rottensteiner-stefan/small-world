@@ -1,15 +1,17 @@
-# Hit-stop scales gameplay time globally, not per entity
+# Hit-Stop skaliert die Gameplay-Zeit global, nicht pro Entität
 
-`SmallWorld.triggerHitStop()` scales the single `gameplayDeltaTime` passed to the app's own
-`update()`, `physics.step()`, and `scene.update()` — every entity in the scene slows down
-together, not just the one that got hit. This wasn't the ideal design, it's what the engine
-actually supports: `RigidBody` has no per-body time-scale field, and `PhysicsSystem.step()`
-takes one global `dt` for the whole scene, so true selective hit-stop (freeze only the struck
-entity, keep everything else at full speed) isn't something the current physics/update
-architecture can express. The camera is deliberately excluded from the scaling (it keeps
-running at real `deltaTime`) so its shake/flash effects still play during the freeze — that's
-what actually sells the impact, and doesn't require per-entity support.
+`SmallWorld.triggerHitStop()` skaliert die einzelne `gameplayDeltaTime`, die an das `update()`,
+`physics.step()` und `scene.update()` der App übergeben wird — jede Entität in der Szene wird
+gemeinsam verlangsamt, nicht nur die getroffene. Das war nicht das ideale Design, sondern das, was
+die Engine tatsächlich hergibt: `RigidBody` hat kein eigenes Zeitskalierungs-Feld pro Körper, und
+`PhysicsSystem.step()` nimmt ein einziges globales `dt` für die ganze Szene entgegen — echter
+selektiver Hit-Stop (nur die getroffene Entität einfrieren, alles andere mit voller Geschwindigkeit
+weiterlaufen lassen) lässt sich mit der aktuellen Physik-/Update-Architektur nicht ausdrücken. Die
+Kamera ist bewusst von der Skalierung ausgenommen (sie läuft weiter mit echtem `deltaTime`), damit
+ihre Shake-/Flash-Effekte während des Einfrierens weiterspielen — das ist es, was den Einschlag
+tatsächlich verkauft, und braucht keine Unterstützung pro Entität.
 
-**Reconsider this if:** a showcase needs genuinely selective hit-stop (freeze the world, keep
-one character animating). That would need a per-`RigidBody` (and per-`Behavior`?) time-scale
-field threaded through `PhysicsSystem.step()`, not a fix to `triggerHitStop()` itself.
+**Das hier überdenken, wenn:** ein Showcase echten selektiven Hit-Stop braucht (Welt einfrieren,
+eine Figur weiter animieren lassen). Das bräuchte ein Zeitskalierungs-Feld pro `RigidBody` (und
+pro `Behavior`?), durchgeschleust durch `PhysicsSystem.step()` — keine Korrektur an
+`triggerHitStop()` selbst.

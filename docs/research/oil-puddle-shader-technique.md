@@ -61,7 +61,7 @@ Die Pfütze ist ein eigenständiges `Plane`-Mesh ohne jeden Zugriff auf Boden-Te
 4. WebGL1: gracefully-degradierenden Fallback aus `OpenWaterMaterial` übernehmen (kein echtes Depth-Capture, aber Material bricht nicht) — Beleg WebGL1Renderer.ts:539.
 5. Trübungsfarbe/-stärke an den bestehenden "Graphic Noir"-Look der Pfütze anpassen (dunkler, öliger Farbton statt Wasser-Türkis).
 
-**Akzeptanzkriterium:** Am Fassrand sichtbarer Tiefenverlauf der Pfütze (Randbereich heller/durchscheinender als Zentrum), verifiziert per Live-Screenshot-Vergleich in allen 3 Renderern (siehe `sweep-renderer.mjs`, [[feedback_visual_verification]]).
+**Akzeptanzkriterium:** Am Fassrand sichtbarer Tiefenverlauf der Pfütze (Randbereich heller/durchscheinender als Zentrum), verifiziert per Live-Screenshot-Vergleich in allen 3 Renderern (siehe `sweep-renderer.mjs`).
 
 **Geschätzter Aufwand:** klein (eine Sitzung).
 
@@ -121,7 +121,7 @@ Auf allen 3 Renderern messbare, sichtbare Bewegung im Farbschimmer über Zeit, k
 2. Phase 2 (Env-Reflection) — 1 Sitzung
 3. Phase 3 (Wellen-Normal-Map) — 1-2 Sitzungen, abhängig von Asset-Beschaffung
 
-Nach jeder Phase: Live-Verifikation in allen 3 Renderern per Browser-Screenshot-Vergleich, kein Abschluss allein durch Build/Test-Grün (siehe [[feedback_collaborate_verification_discipline]]).
+Nach jeder Phase: Live-Verifikation in allen 3 Renderern per Browser-Screenshot-Vergleich, kein Abschluss allein durch Build/Test-Grün.
 
 ---
 

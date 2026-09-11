@@ -1,13 +1,15 @@
-# Continuous Collision Detection (CCD) covers sphere bodies only
+# Continuous Collision Detection (CCD) deckt nur Kugel-Körper ab
 
-`PhysicsSystem.ccdMotionThreshold` automatically sweeps a body for tunneling only when it's a
-sphere moving farther than `radius * ccdMotionThreshold` in one substep. Box/OBB bodies stay
-purely discrete — no sweep, no CCD — even though they can tunnel through thin geometry at high
-speed too. Real swept-OBB CCD needs GJK/Conservative Advancement-style continuous math; sphere
-sweeps reduce to closed-form ray/slab tests we already had (`Ray.intersectsBox`,
-radius-expanded). Spheres also cover the overwhelming majority of real tunneling cases in
-practice (fast balls/projectiles) at a fraction of the implementation cost.
+`PhysicsSystem.ccdMotionThreshold` fegt einen Körper automatisch auf Tunneling ab nur dann, wenn
+es sich um eine Kugel handelt, die sich in einem Substep weiter als `radius * ccdMotionThreshold`
+bewegt. Box-/OBB-Körper bleiben rein diskret — kein Sweep, kein CCD — obwohl auch sie bei hoher
+Geschwindigkeit durch dünne Geometrie tunneln können. Echtes Swept-OBB-CCD bräuchte
+GJK-/Conservative-Advancement-artige kontinuierliche Mathematik; Kugel-Sweeps reduzieren sich auf
+geschlossene Ray-/Slab-Tests, die wir schon hatten (`Ray.intersectsBox`, radiusexpandiert). Kugeln
+decken in der Praxis außerdem die überwältigende Mehrheit der echten Tunneling-Fälle ab (schnelle
+Bälle/Projektile), zu einem Bruchteil des Implementierungsaufwands.
 
-**Reconsider this if:** a showcase needs fast-moving box/OBB bodies that tunnel through thin
-walls/floors. That's new work (real convex-sweep math), not a bug fix to the existing CCD path
-— don't expect `ccdMotionThreshold` to help box bodies as-is.
+**Das hier überdenken, wenn:** ein Showcase schnell bewegte Box-/OBB-Körper braucht, die durch
+dünne Wände/Böden tunneln. Das ist neue Arbeit (echte Convex-Sweep-Mathematik), kein Bugfix am
+bestehenden CCD-Pfad — von `ccdMotionThreshold` ist so, wie es ist, keine Hilfe für Box-Körper zu
+erwarten.

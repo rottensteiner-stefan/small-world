@@ -14,6 +14,8 @@ import {
   Plane,
   PointLight,
   Sphere,
+  StageMovementBehavior,
+  StageZone,
   StandardMaterial,
   Texture,
   TextureWrap,
@@ -50,6 +52,15 @@ const LANTERN_HAND_BONE_CANDIDATES = [
   "tripo::0_Left_Limb_3",
 ];
 
+/** Half-extent (world units) of the walkable square on the diorama floor. The real floor plate
+ * (`topFloor`, see `_buildFoundationPlatform`) spans ±2.1 with the left/back walls sitting right
+ * at that edge (see `_buildVaultedWalls`) -- ±1.9 leaves a small margin so the character can't
+ * walk into a wall, while still covering effectively the whole open floor. Unlike the 2.5D stage
+ * scenes (flakturm-tunnel), this is a REAL 3D floor viewed by a free-orbiting camera
+ * (`OrbitController`), so every `StageZone` point uses `scale: 1.0` -- no forced-perspective
+ * illusion needed or wanted here, see docs/guides/2-5d-scenes.md §3 ("doesn't apply" case). */
+const FLOOR_HALF_SIZE = 1.9;
+
 const ANIMATION_CLIPS: Record<string, string> = {
   idle_1: "/assets/and-now/mannequin/shared/anim/idle_1.glb",
   idle_2: "/assets/and-now/mannequin/shared/anim/idle_2.glb",
@@ -83,11 +94,15 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
   private _lanternOn: boolean = true;
   private _turntableActive: boolean = false;
   private _oilSlickMaterial: OilSlickMaterial | undefined;
-  /** Held state for the arrow-key character-rotation controls (continuous, not a per-press
-   * toggle) -- see `_initHUD()`'s keydown/keyup listeners and the `update()` rotation step. */
+  /** Held state for the SHIFT+arrow-key character-rotation controls (continuous, not a per-press
+   * toggle) -- see `_initHUD()`'s keydown/keyup listeners and the `update()` rotation step. Only
+   * active while SHIFT is held; plain arrows/WASD walk instead (see `_movementBehavior`), same
+   * split as flakturm-tunnel's `MANUAL_ROTATE_SPEED` convention. */
   private _rotateLeftHeld: boolean = false;
   private _rotateRightHeld: boolean = false;
   private static readonly _ROTATE_SPEED = 1.5; // radians per second
+  private _movementBehavior: StageMovementBehavior | undefined;
+  private _stageZone: StageZone | undefined;
 
   private _mixer: AnimationMixer | undefined;
   private _clips: Map<string, AnimationClip> = new Map();
@@ -268,7 +283,20 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
     await this._buildStreetProps();
     this._buildCornerRats();
 
-    // 4. Load Initial Character
+    // 4. Walkable floor as one StageZone covering the open square (see FLOOR_HALF_SIZE) --
+    // scale 1.0 throughout, real 3D depth via the free-orbiting camera, no forced perspective.
+    this._stageZone = new StageZone({
+      id: "diorama_floor",
+      name: "DIORAMA-BODEN",
+      points: [
+        { u: 0, v: 0, scale: 1.0 },
+        { u: 1, v: 0, scale: 1.0 },
+        { u: 1, v: 1, scale: 1.0 },
+        { u: 0, v: 1, scale: 1.0 },
+      ],
+    });
+
+    // 5. Load Initial Character
     this._initHUD();
     await this._loadCharacter("male");
   }
@@ -1410,8 +1438,34 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
 
       this._playerRig.add(this._player);
 
-      this._playerRig.position.set(0.1, 0, 0.1);
-      this._playerRig.rotation.y = -0.5;
+      // Preserve the current stage position across a character switch (mirrors
+      // flakturm-tunnel's `_loadCharacter`) instead of resetting to the original showcase spot.
+      const isFirstLoad = !this._movementBehavior;
+      const currentUv = this._movementBehavior?.uv ?? { u: 0.526, v: 0.526 }; // ~(0.1, 0.1) world
+
+      this._movementBehavior = new StageMovementBehavior({
+        input: this.input,
+        speed: 0.28,
+        runMultiplier: 2.0,
+        rotationSpeed: 12.0,
+        facingOffset: Math.PI, // same rig convention as flakturm-tunnel's identical mannequin assets
+        startFacing: "back",
+        zones: this._stageZone ? [this._stageZone] : [],
+        uvToWorld: (u: number, v: number): { x: number; y: number; z: number } => ({
+          x: (u - 0.5) * 2 * FLOOR_HALF_SIZE,
+          y: 0,
+          z: (v - 0.5) * 2 * FLOOR_HALF_SIZE,
+        }),
+        startUV: currentUv,
+      });
+      this._playerRig.addBehavior(this._movementBehavior);
+
+      // Original showcase pose is a deliberate aesthetic default (angled toward the camera at
+      // rest) -- applied once, after the behavior's own init, since the behavior only touches
+      // rotation.y while actually moving afterward.
+      if (isFirstLoad) {
+        this._playerRig.rotation.y = -0.5;
+      }
 
       this._clips.clear();
       for (const [name, url] of Object.entries(ANIMATION_CLIPS)) {
@@ -1754,11 +1808,19 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
       this._dioramaRoot.rotation.y += deltaTime * 0.35;
     }
 
-    if (this._playerRig) {
+    // SHIFT+[←]/[→]: manual in-place rotation, same convention as flakturm-tunnel's
+    // MANUAL_ROTATE_SPEED. Takes priority over walking while held -- StageMovementBehavior gets
+    // disabled for the duration so the two controls don't fight over rotation.y, since it also
+    // reads plain arrow keys for movement.
+    const isShiftHeld = this.input.isPressed("ShiftLeft") || this.input.isPressed("ShiftRight");
+    if (this._playerRig && isShiftHeld && (this._rotateLeftHeld || this._rotateRightHeld)) {
+      if (this._movementBehavior) this._movementBehavior.enabled = false;
       if (this._rotateLeftHeld)
         this._playerRig.rotation.y -= deltaTime * CharacterDioramaShowcase._ROTATE_SPEED;
       if (this._rotateRightHeld)
         this._playerRig.rotation.y += deltaTime * CharacterDioramaShowcase._ROTATE_SPEED;
+    } else if (this._movementBehavior) {
+      this._movementBehavior.enabled = true;
     }
 
     if (this._oilSlickMaterial) {

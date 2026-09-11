@@ -265,3 +265,54 @@ Entstanden während der Jagd nach grün/blauen Block-Artefakten auf den Sponza-V
   bestehende `clamp()` es schon korrekt abfängt. Live auf WebGPU und WebGL2 verifiziert (HBAO
   aktiv, keine Artefakte, Konsole sauber). Commit `705fe005` «The same law applies everywhere,
   whether or not anyone is watching to enforce it.»
+
+- ✅ **Flakturm-Tunnel — Zone C (Treppe) linke Kante lag neben statt auf der gemalten Treppe.**
+  Ausgangspunkt: User-Hypothese, dass ein sauber gezogener Wegbereich unter dieser (rollwinkel-
+  freien) Kamera entweder aus 2 waagerechten + 2 Fluchtlinien-Kanten bestehen sollte (flacher
+  Boden, z. B. Zone A/B) oder — bei einem im Raum gedrehten Rechteck wie einer schräg
+  wegführenden Treppe — aus zwei eigenen Fluchtlinien-Paaren, die auf zwei unterschiedliche
+  Fluchtpunkte zulaufen. Beides an den echten Zonen-Daten nachgerechnet: Zone A/B passen zum
+  ersten Fall, Zone C (Treppe) korrekt zum zweiten. Die rechte Kante (Handlauf-Seite, P1→P2)
+  stimmte fast exakt mit der echten Bild-Kante überein; die linke Kante (P0→P3) aber nicht —
+  nachgemessen direkt im Hintergrundbild (`public/assets/and-now/flakturm_bg.webp`, Punkte A-D
+  annotiert), lag P3 bei `u=0.278` sichtbar links neben der gemalten Stufenkante, im
+  Schattenbereich daneben statt darauf. Fix: `P3` in `DEFAULT_ZONE_POINTS.zone_c` auf
+  `u=0.305` korrigiert (v unverändert, P0/P1/P2 unverändert, da bereits korrekt). Vorher/Nachher
+  visuell gegen die echte Kante verifiziert (annotiertes Bild) — Zone folgt jetzt durchgehend
+  der Stufenkante statt sie zu schneiden.
+  → Diese Erkenntnis (Fluchtlinien-Check pro Zonen-Kante) gehört eigentlich auch als Ergänzung
+  ins neue Docs-Kapitel `docs/guides/2-5d-scenes.md` §4/§5 — noch nicht nachgezogen.
+  → Update 2026-09-12: nachgezogen (§4 allgemeine Regel, §5 Schritt 7 + beide Bilder).
+
+- ✅ **Flakturm-Tunnel — Status-HUD folgte der Figur über die Bühne** (per `worldToScreen` auf
+  Kopfposition), was sie z.B. weit oben auf der Treppe teils verdeckte, wo sie ohnehin schon
+  klein ist. Jetzt fix am oberen Bildschirmrand (CSS `position: fixed`), unabhängig von der
+  Figurenposition. HUD zusätzlich um Live-`(u,v)`-Position und aktuelle `Skalierung` erweitert
+  (dieselben Werte, die bisher nur per Konsole während der Zonen-Verifikation auslesbar waren).
+
+- ✅ **Character-Diorama — Figur konnte sich nicht wirklich bewegen**, nur auf der Stelle drehen
+  (Pfeiltasten) und Animationen abspielen (Zahlen-Tasten/Buttons), ohne dass die Position je
+  aktualisiert wurde (`_playerRig.position` wurde nur einmal beim Laden gesetzt). Jetzt echte
+  `StageMovementBehavior`+`StageZone`-Bewegung über den ganzen begehbaren Boden (±1.9 Welteinheiten,
+  Marge zu den Wänden bei ±2.1), `scale: 1.0` durchgehend (echte 3D-Tiefe über die frei orbitende
+  Kamera, keine erzwungene Perspektive nötig — siehe `docs/guides/2-5d-scenes.md` §3 "Doesn't
+  apply"-Fall). Bestehende Pfeiltasten-Drehung blieb erhalten, aber jetzt hinter SHIFT verschoben
+  (`SHIFT`+Pfeil = drehen, sonst WASD/Pfeil = laufen), sonst hätten sich beide Systeme jeden Frame
+  um `rotation.y` gestritten — dieselbe Konvention wie im Flakturm-Tunnel
+  (`MANUAL_ROTATE_SPEED`). Position bleibt beim Charakterwechsel (Taste `C`) erhalten statt auf
+  die Ursprungspose zurückzuspringen. Live verifiziert (manuelles Frame-Pumping): Laufen, exaktes
+  Klemmen am Zonenrand (v=1.0 → z=1.9), und SHIFT-Drehung ohne Bewegungs-Konflikt.
+
+- 📋 **Großes Vorhaben angestoßen (User-Wunsch 2026-09-12):** Maker-Editor um einen 2.5D-
+  Bühnen-Authoring-Modus erweitern — Hintergrundbild importieren, Fluchtpunkte interaktiv
+  bestimmen/vorberechnen (reine Schnittpunkt-Geometrie aus 2 Referenzlinien), optionales Snapping
+  auf Fluchtlinien/gleiche Tiefe/waagerecht, ein szenen-bewusstes KI-Chat-Panel, neues Speicher-
+  format. **ADR 0016 geschrieben** (`docs/adr/0016-2-5d-stage-zones-as-a-gltf-extension.md`):
+  `SW_stage_zone`/`SW_stage_vanishing_point`-glTF-Extensions statt Parallel-Format. Auf User-
+  Wunsch dabei gleich verallgemeinert: `StageZone.points` von fixem 4-Tupel auf beliebiges
+  Vieleck (`StagePoint2D[]`) erweitert — Punkt-in-Polygon/Randklemmung funktionierten dafür
+  schon, `getScaleAt` verallgemeinert sich zu einem Fächer aus n-2 Dreiecken (Spezialfall n=4 =
+  exakt heutiges Verhalten, keine Migration nötig), `getLocalAxes()`s feste Vorwärts-Achse pro
+  Zone wird durch den lokalen Gradienten des Skalierungsfelds ersetzt (funktioniert auch bei
+  unregelmäßigen/konkaven Formen, keine "welche Ecke ist gegenüber"-Konvention nötig). Reiner
+  Entwurf, noch keine Code-Umsetzung — nächster Schritt wäre Phase 0 (Engine-Vorarbeit) laut ADR.

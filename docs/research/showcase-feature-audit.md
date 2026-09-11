@@ -8,6 +8,11 @@ implementierten Features werden nirgends gezeigt.
 
 Stand: 2026-08-20.
 
+> **Hinweis (2026-09-12):** `disc-wars` und `neon-labyrinth` wurden seither vollständig aus dem
+> Repository entfernt (siehe `CHANGELOG.md`). Die Zeilen unten bleiben als historischer Schnappschuss
+> dieses Audits stehen, entsprechen aber nicht mehr dem aktuellen `src/apps/`-Stand (nur noch
+> `and-now`, `light-cycle-arena`, `yad`).
+
 ## Feature-Matrix
 
 | # | Fokus | Materialien | Lichter | Post-FX | Physik | Behaviors/Controller | Kamera | Besonderheit |

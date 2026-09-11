@@ -1,19 +1,19 @@
-# Config sub-structures use named keys, not `{ type, ... }` arrays
+# Config-Unterstrukturen verwenden benannte Schlüssel, keine `{ type, ... }`-Arrays
 
-When a config object groups several "kinds" of settings (post-processing effects, renderer
-backends), we key them by name (`effects: { bloom: {...}, vignette: {...} }`,
-`renderer: { WEB_GPU: {...}, WEB_GL2: {...} }`) instead of a `type`-tagged array
-(`effects: [{ type: "bloom", ... }]`). We hit this twice in one session
-(`PostProcessingConfig.effects`, `EngineOptions.renderer`) and both times the array shape was
-actively misleading: it implied an order the code didn't actually use — post-processing's
-effect chain is fixed inside the shader (Bloom → HBAO → Tonemapping → Vignette → Grain →
-Quantize) regardless of config order, and the renderer fallback chain
-(WebGPU → WebGL2 → WebGL1) is hardcoded in `RendererFactory`, with the array only ever queried
-via `.find(x => x.type === ...)` — a keyed lookup wearing an ordered-list costume. Named keys
-also give per-kind type safety without a discriminated union, and structurally rule out
-duplicate/conflicting entries for the same kind.
+Wenn ein Config-Objekt mehrere "Arten" von Einstellungen gruppiert (Post-Processing-Effekte,
+Renderer-Backends), schlüsseln wir sie nach Namen (`effects: { bloom: {...}, vignette: {...} }`,
+`renderer: { WEB_GPU: {...}, WEB_GL2: {...} }`) statt über ein `type`-getaggtes Array
+(`effects: [{ type: "bloom", ... }]`). Das kam in einer Session zweimal vor
+(`PostProcessingConfig.effects`, `EngineOptions.renderer`), und beide Male war die Array-Form
+aktiv irreführend: sie suggerierte eine Reihenfolge, die der Code gar nicht nutzte — die
+Post-Processing-Effektkette ist fest im Shader verdrahtet (Bloom → HBAO → Tonemapping → Vignette
+→ Grain → Quantize), unabhängig von der Config-Reihenfolge, und die Renderer-Fallback-Kette
+(WebGPU → WebGL2 → WebGL1) ist in `RendererFactory` hartkodiert, wobei das Array nur je über
+`.find(x => x.type === ...)` abgefragt wurde — ein Keyed-Lookup im Kostüm einer geordneten Liste.
+Benannte Schlüssel geben zusätzlich Typsicherheit pro Art, ganz ohne diskriminierte Union, und
+schließen strukturell doppelte/widersprüchliche Einträge für dieselbe Art aus.
 
-**When this doesn't apply:** if order is genuinely semantically meaningful (e.g. a real
-priority-fallback list the code iterates in sequence), an array is the right and honest choice
-— don't force everything into named keys reflexively. Check first whether the code actually
-reads the array's order before assuming it does.
+**Wann das nicht gilt:** Wenn die Reihenfolge tatsächlich semantisch bedeutsam ist (z. B. eine
+echte, sequenziell durchlaufene Prioritäts-Fallback-Liste), ist ein Array die richtige, ehrliche
+Wahl — nicht reflexhaft alles in benannte Schlüssel zwingen. Erst prüfen, ob der Code die
+Reihenfolge des Arrays tatsächlich liest, bevor man es annimmt.

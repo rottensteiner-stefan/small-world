@@ -1,13 +1,13 @@
-# Shadows
+# Schatten
 
-Small World renders real-time shadows via shadow mapping: Cascaded Shadow Maps (CSM) for
-`DirectionalLight`, and single shadow maps for `SpotLight`. Both are fully implemented on
-**WebGL2 and WebGPU only** — WebGL1 has no shadow-mapping path at all today, so shadow-related
-properties are simply ignored there.
+Small World rendert Echtzeit-Schatten über Shadow Mapping: Cascaded Shadow Maps (CSM) für
+`DirectionalLight`, und einzelne Shadow Maps für `SpotLight`. Beide sind vollständig nur auf
+**WebGL2 und WebGPU** implementiert — WebGL1 hat heute überhaupt keinen Shadow-Mapping-Pfad, dort werden
+schattenbezogene Eigenschaften schlicht ignoriert.
 
-## Overview
+## Überblick
 
-Any light can cast shadows, and any object can receive and/or cast them:
+Jedes Licht kann Schatten werfen, und jedes Objekt kann sie empfangen und/oder werfen:
 
 ```typescript
 import { DirectionalLight, Object3D, Color } from "small-world";
@@ -23,80 +23,85 @@ cube.receiveShadow = true;
 scene.add(cube);
 ```
 
-- `light.castShadow` (boolean, default `false`) — whether this light renders a shadow map at all.
-- `object.castShadow` / `object.receiveShadow` (boolean, default `false` each) — whether this
-  object is rendered into shadow maps, and whether its own shading samples them.
+- `light.castShadow` (boolean, Standard `false`) — ob dieses Licht überhaupt eine Shadow Map rendert.
+- `object.castShadow` / `object.receiveShadow` (boolean, jeweils Standard `false`) — ob dieses
+  Objekt in Shadow Maps gerendert wird, und ob sein eigenes Shading sie sampelt.
 
-## Shared Light Properties (`AbstractLight`)
+## Gemeinsame Licht-Eigenschaften (`AbstractLight`)
 
-Every shadow-casting light shares these tunables:
+Jedes schattenwerfende Licht teilt diese Stellschrauben:
 
-- `shadowResolution` (number, default `512`) — texture size of the shadow map. Directional
-  lights pack all of their cascades into one atlas of this size (see below); spot lights get
-  one map at this size per light.
-- `shadowBias` (number) — depth bias to avoid shadow acne. Too small causes acne (self-shadowing
-  stripes); too large causes peter-panning (the shadow visibly detaches from its caster).
-- `shadowNormalBias` (number) — normal-offset bias: instead of only biasing the compared depth
-  value, the shadow-map *sample position* is offset along the surface normal (scaled by NdotL,
-  see `REFERENCES.md`'s Catlike Coding credit). Reduces both acne and peter-panning at once, so
-  in practice you need much less `shadowBias` once this is tuned.
+- `shadowResolution` (Zahl, Standard `512`) — Texturgröße der Shadow Map. Directional Lights
+  packen alle ihre Kaskaden in ein Atlas dieser Größe (siehe unten); Spot Lights bekommen
+  eine Map dieser Größe pro Licht.
+- `shadowBias` (Zahl) — Tiefen-Bias, um Shadow Acne zu vermeiden. Zu klein verursacht Acne
+  (Selbstschattierungs-Streifen); zu groß verursacht Peter-Panning (der Schatten löst sich sichtbar
+  von seinem Werfer).
+- `shadowNormalBias` (Zahl) — Normal-Offset-Bias: statt nur den verglichenen Tiefenwert zu
+  verschieben, wird die *Sample-Position* der Shadow Map entlang der Oberflächennormale verschoben
+  (skaliert mit NdotL, siehe `REFERENCES.md`s Catlike-Coding-Quellenangabe). Reduziert Acne und
+  Peter-Panning gleichzeitig, sodass ihr in der Praxis viel weniger `shadowBias` braucht, sobald das
+  eingestellt ist.
 
 ## Cascaded Shadow Maps (Directional Light)
 
-`DirectionalLight` splits the camera frustum into multiple cascades — near cascades get more of
-the shadow-map's texel budget (sharper shadows close to the camera), far cascades cover more
-world-space area at lower texel density.
+`DirectionalLight` teilt das Kamerafrustum in mehrere Kaskaden auf — nahe Kaskaden bekommen mehr
+vom Texel-Budget der Shadow Map (schärfere Schatten nahe der Kamera), ferne Kaskaden decken mehr
+Weltraum-Fläche bei geringerer Texeldichte ab.
 
 ```typescript
 const sun = new DirectionalLight({
-  numCascades: 4, // default; 1-4 supported
-  cascadeSplitLambda: 0.5, // 0 = uniform splits, 1 = logarithmic splits
+  numCascades: 4, // Standard; 1-4 unterstützt
+  cascadeSplitLambda: 0.5, // 0 = gleichmäßige Splits, 1 = logarithmische Splits
 });
 ```
 
-On WebGL2, all cascades share a single shadow-map **texture atlas** (packed into a
-`ceil(sqrt(numCascades))`-column grid), so `shadowResolution` is the *atlas* size, not each
-cascade's own resolution. On WebGPU, each cascade is a full-resolution layer of a
-`texture_depth_2d_array` — no atlas packing needed there.
+Auf WebGL2 teilen sich alle Kaskaden ein einziges Shadow-Map-**Textur-Atlas** (gepackt in ein
+`ceil(sqrt(numCascades))`-Spalten-Raster), sodass `shadowResolution` die Größe des *Atlas* ist,
+nicht die Auflösung jeder einzelnen Kaskade. Auf WebGPU ist jede Kaskade eine Voll-Auflösungs-Ebene
+eines `texture_depth_2d_array` — dort ist kein Atlas-Packing nötig.
 
-Two polish passes run automatically, with no configuration needed:
+Zwei Politur-Durchgänge laufen automatisch, ohne Konfiguration nötig:
 
-- **Texel snapping** — each cascade's light-space center is rounded to that cascade's own texel
-  grid before the ortho projection is built, so it doesn't drift by sub-texel amounts as the
-  camera moves smoothly. Without this, CSM shadows visibly "shimmer"/crawl frame to frame.
-- **Cascade blending** — near the far edge of a cascade, the shader fades towards the next
-  cascade's shadow sample instead of a hard cut, so the resolution seam between cascades doesn't
-  visibly pop as the camera moves through the scene.
+- **Texel-Snapping** — das lichtraumbezogene Zentrum jeder Kaskade wird auf das eigene Texel-Raster
+  dieser Kaskade gerundet, bevor die Ortho-Projektion gebaut wird, damit es nicht um Sub-Texel-Beträge
+  driftet, während sich die Kamera glatt bewegt. Ohne das "flimmern"/"kriechen" CSM-Schatten sichtbar
+  von Frame zu Frame.
+- **Kaskaden-Blending** — nahe der fernen Kante einer Kaskade blendet der Shader zum Schatten-Sample
+  der nächsten Kaskade über, statt hart abzuschneiden, sodass die Auflösungsnaht zwischen Kaskaden
+  nicht sichtbar aufploppt, während die Kamera durch die Szene bewegt wird.
 
-## Spot Light Shadows
+## Spot-Light-Schatten
 
-`SpotLight` renders a single perspective shadow map from the light's position, shaped by its own
-`angle`/`penumbra`/`distance`. No cascades, no texel snapping (a single perspective frustum
-doesn't shimmer the same way CSM's tiled ortho frustums do).
+`SpotLight` rendert eine einzelne perspektivische Shadow Map von der Position des Lichts aus,
+geformt durch seine eigenen `angle`/`penumbra`/`distance`-Werte. Keine Kaskaden, kein Texel-Snapping
+(ein einzelnes perspektivisches Frustum flimmert nicht auf dieselbe Weise wie CSMs gekachelte
+Ortho-Frustums).
 
-## Filtering: PCF and PCSS
+## Filterung: PCF und PCSS
 
-Both light types use **Percentage-Closer Filtering** (PCF) — a 3×3 tap average around the
-shadow-map sample, softening the hard binary in-shadow/out-of-shadow edge (see `REFERENCES.md`
-for the original 1987 Reeves/Salesin/Cook paper).
+Beide Lichttypen nutzen **Percentage-Closer Filtering** (PCF) — ein 3×3-Tap-Mittelwert um das
+Shadow-Map-Sample herum, der die harte binäre Im-Schatten/Außerhalb-des-Schattens-Kante weichzeichnet
+(siehe `REFERENCES.md` für das ursprüngliche Reeves/Salesin/Cook-Paper von 1987).
 
-Directional-light shadows go one step further with **PCSS** (Percentage-Closer Soft Shadows,
-Fernando 2005): a *blocker search* reads the raw (non-comparison) shadow-map depth around the
-sample to estimate how far away the nearest occluder is, then scales the PCF radius based on
-that distance — shadows read as sharp right at the point of contact and progressively softer
-further from their caster, instead of a uniform soft edge everywhere. This only applies to the
-**primary** cascade a fragment falls into; the secondary cascade-blend sample (see above) still
-uses fixed-radius PCF, to avoid doubling the cost in the blend zone. **Spot-light shadows use
-fixed-radius PCF only** — no PCSS — since they're typically smaller/less prominent in scenes
-today; see `docs/research/aaa-engine-techniques.md` for the exact scope and trade-off reasoning.
+Directional-Light-Schatten gehen mit **PCSS** (Percentage-Closer Soft Shadows, Fernando 2005) noch
+einen Schritt weiter: eine *Blocker-Suche* liest die rohe (nicht-vergleichende) Shadow-Map-Tiefe um
+das Sample herum, um abzuschätzen, wie weit der nächste Verdecker entfernt ist, und skaliert dann den
+PCF-Radius basierend auf dieser Distanz — Schatten lesen sich direkt am Kontaktpunkt scharf und
+werden progressiv weicher, je weiter sie von ihrem Werfer entfernt sind, statt überall gleichmäßig
+weich zu sein. Das gilt nur für die **primäre** Kaskade, in die ein Fragment fällt; das sekundäre
+Kaskaden-Blend-Sample (siehe oben) nutzt weiterhin PCF mit festem Radius, um die Kosten in der
+Blend-Zone nicht zu verdoppeln. **Spot-Light-Schatten nutzen nur PCF mit festem Radius** — kein
+PCSS — da sie in heutigen Szenen typischerweise kleiner/weniger prominent sind; siehe
+`docs/research/aaa-engine-techniques.md` für den genauen Umfang und die Abwägungsgründe.
 
-## Tuning Tips
+## Tuning-Tipps
 
-- Start with `shadowNormalBias` around `0.02–0.05` and `shadowBias` around `0.001–0.005`; raise
-  `shadowNormalBias` first if you see acne, since it fixes acne without introducing
-  peter-panning the way raising `shadowBias` does.
-- Raising `numCascades` sharpens near shadows but costs more atlas space per cascade on WebGL2
-  (each cascade gets a smaller slice of the same `shadowResolution` atlas) — raise
-  `shadowResolution` alongside it if cascades start looking blocky.
-- Shadows are relatively expensive; the engine's `DeviceCaps` auto-downgrade path lowers
-  `maxShadowResolution` on low-performance-tier devices (see `docs/guides/configuration.md`).
+- Startet mit `shadowNormalBias` um `0,02–0,05` und `shadowBias` um `0,001–0,005`; erhöht zuerst
+  `shadowNormalBias`, wenn ihr Acne seht, da das Acne behebt, ohne — wie ein Erhöhen von `shadowBias` —
+  Peter-Panning einzuführen.
+- Ein Erhöhen von `numCascades` schärft nahe Schatten, kostet aber mehr Atlas-Platz pro Kaskade auf
+  WebGL2 (jede Kaskade bekommt eine kleinere Scheibe desselben `shadowResolution`-Atlas) — erhöht
+  `shadowResolution` mit, wenn Kaskaden anfangen, blockig auszusehen.
+- Schatten sind relativ teuer; der Auto-Downgrade-Pfad der Engine (`DeviceCaps`) senkt
+  `maxShadowResolution` auf Geräten niedriger Performance-Stufe (siehe `docs/guides/configuration.md`).

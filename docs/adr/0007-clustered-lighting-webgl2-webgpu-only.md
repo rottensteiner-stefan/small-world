@@ -1,47 +1,50 @@
-# Clustered/tiled forward+ lighting: fixed-capacity grid, WebGPU-only capacity increase
+# Clustered/Tiled Forward+ Lighting: feste Kapazitäts-Grid, Kapazitätserhöhung nur auf WebGPU
 
-Clustered light culling ships for WebGPU (compute-based) and WebGL2 (CPU-culling + integer
-texture lookup) only; WebGL1 keeps the old flat 16-light loop unchanged, with no clustering path
-at all -- it has neither compute shaders nor `texelFetch`/integer textures, and Godot's own
-Forward+ volumetric fog (a closely related feature) draws the same line on its Mobile/
-Compatibility renderers for the same reason.
+Clustered Light Culling gibt es nur für WebGPU (compute-basiert) und WebGL2
+(CPU-Culling + Integer-Textur-Lookup); WebGL1 behält die alte flache 16-Licht-Schleife unverändert
+bei, ganz ohne Clustering-Pfad — es hat weder Compute-Shader noch `texelFetch`/Integer-Texturen,
+und Godots eigenes Forward+-Volumetric-Fog (ein eng verwandtes Feature) zieht auf seinen
+Mobile-/Compatibility-Renderern aus demselben Grund dieselbe Grenze.
 
-WebGL2's CPU culling doesn't test every cluster cell against every light (that's ~190k cells x
-16 lights per frame in JS at the default grid size) -- for each light it first computes a
-screen-space + radial-distance coverage range (`lightClusterCoverage()` in
-`src/math/ClusterGrid.ts`, the same formula `cluster_cull.wgsl`'s `lightCoverage()` uses on
-WebGPU) and only visits the cells within that range. Both backends therefore share one light-vs-
-cluster test, just run on different sides of the GPU/CPU boundary and in a different loop order
-(WebGPU: one thread per cell, loop over lights; WebGL2: one JS iteration per light, loop over its
-own cell range).
+WebGL2s CPU-Culling testet nicht jede Cluster-Zelle gegen jedes Licht (das wären bei der
+Standard-Grid-Größe ~190k Zellen x 16 Lichter pro Frame in JS) — für jedes Licht wird zuerst ein
+Screen-Space- + Radialdistanz-Abdeckungsbereich berechnet (`lightClusterCoverage()` in
+`src/math/ClusterGrid.ts`, dieselbe Formel, die `cluster_cull.wgsl`s `lightCoverage()` auf WebGPU
+verwendet), und nur die Zellen innerhalb dieses Bereichs werden besucht. Beide Backends teilen sich
+also einen Licht-gegen-Cluster-Test, nur auf verschiedenen Seiten der GPU-/CPU-Grenze und in
+unterschiedlicher Schleifenreihenfolge ausgeführt (WebGPU: ein Thread pro Zelle, Schleife über
+Lichter; WebGL2: eine JS-Iteration pro Licht, Schleife über dessen eigenen Zellbereich).
 
-Each cluster cell gets a **fixed-size slot** (`maxLightsPerCluster`, default 32) for light
-indices plus a count -- no atomics, no dynamic per-cluster growth. Atomics don't exist on
-WebGL2's shader model at all, so an atomics-based design would force WebGPU and WebGL2 onto
-architecturally different cluster representations, defeating the point of sharing one
-fragment-shader lookup formula across both backends. At the chosen grid defaults (16x16px
-tiles, 24 log-spaced Z-slices), a 1080p frame has on the order of 190k cluster cells; at 32
-u32 slots each, the point- and spot-light index buffers run to roughly 25 MB apiece on WebGPU.
-That's within default WebGPU storage-buffer limits but is a real memory cost, not a
-rounding error -- tune `quality.clusteredLighting.tileSize`/`maxLightsPerCluster` down for
-memory-constrained targets.
+Jede Cluster-Zelle bekommt einen **Slot fester Größe** (`maxLightsPerCluster`, Standard 32) für
+Licht-Indizes plus einen Zähler — keine Atomics, kein dynamisches Wachstum pro Cluster. Atomics
+existieren in WebGL2s Shader-Modell überhaupt nicht, ein atomics-basiertes Design würde WebGPU und
+WebGL2 also auf architektonisch unterschiedliche Cluster-Repräsentationen zwingen und damit den
+Sinn zunichtemachen, eine Fragment-Shader-Lookup-Formel über beide Backends hinweg zu teilen. Bei
+den gewählten Grid-Standardwerten (16x16px Kacheln, 24 logarithmisch gestaffelte Z-Scheiben) hat
+ein 1080p-Frame in der Größenordnung von 190k Cluster-Zellen; bei je 32 u32-Slots kommen die
+Punkt- und Spot-Licht-Indexpuffer auf WebGPU auf jeweils etwa 25 MB. Das liegt innerhalb der
+WebGPU-Standard-Storage-Buffer-Limits, ist aber ein echter Speicherkosten-Posten, kein
+Rundungsfehler — `quality.clusteredLighting.tileSize`/`maxLightsPerCluster` für
+speicherbeschränkte Zielplattformen nach unten anpassen.
 
-The scene-wide point/spot light cap (`MAX_CLUSTERED_LIGHTS_PER_TYPE`, see
-[0004](0004-point-spot-light-global-cap.md)) went from 16 to 64 -- but only WebGPU actually
-consumes lights beyond 16. WebGL2's raw per-light UBO array (position/color/etc.) deliberately
-stays at its existing 16-slot std140 layout in this iteration: growing that byte-accurate,
-hand-computed layout *and* introducing clustering at the same time would have bundled two
-independently risky changes into one. Clustering on WebGL2 therefore only ever reduces the
-number of lights each fragment iterates over (fewer than 16, picked by proximity); it doesn't
-raise WebGL2's ceiling above 16. WebGL1 also stays at 16, unaffected by the higher scene-wide
-cap (it clamps its own consumption explicitly).
+Die szenenweite Punkt-/Spot-Licht-Obergrenze (`MAX_CLUSTERED_LIGHTS_PER_TYPE`, siehe
+[0004](0004-point-spot-light-global-cap.md)) ging von 16 auf 64 — aber nur WebGPU verarbeitet
+tatsächlich Lichter jenseits von 16. WebGL2s rohes Pro-Licht-UBO-Array (Position/Farbe/etc.) bleibt
+in dieser Iteration bewusst bei seinem bestehenden 16-Slot-std140-Layout: dieses byte-genaue,
+handberechnete Layout zu vergrößern *und* gleichzeitig Clustering einzuführen hätte zwei
+unabhängig riskante Änderungen in eine gebündelt. Clustering auf WebGL2 reduziert daher nur die
+Anzahl der Lichter, über die jedes Fragment iteriert (weniger als 16, nach Nähe ausgewählt); es
+hebt WebGL2s Obergrenze nicht über 16 an. WebGL1 bleibt ebenfalls bei 16, unberührt von der
+höheren szenenweiten Obergrenze (es begrenzt seinen eigenen Verbrauch explizit).
 
-Disabling clustering (`quality.clusteredLighting.enabled = false`) doesn't need a separate
-shader code path: it just collapses the grid to a single 1x1x1 cell covering the whole frustum
-with `maxLightsPerCluster` raised to the full light cap, which is mathematically identical to
-the old "iterate every light" behavior, computed through the exact same cluster-lookup code.
+Clustering zu deaktivieren (`quality.clusteredLighting.enabled = false`) braucht keinen separaten
+Shader-Codepfad: es lässt das Grid einfach zu einer einzigen 1x1x1-Zelle kollabieren, die das
+gesamte Frustum abdeckt, mit `maxLightsPerCluster` auf die volle Lichter-Obergrenze angehoben —
+mathematisch identisch zum alten "jedes Licht durchlaufen"-Verhalten, berechnet über exakt
+denselben Cluster-Lookup-Code.
 
-**Reconsider this if:** a scene needs more than 16 simultaneous lights of one type on WebGL2 --
-that requires growing the UBO layout (a new, separately-risky change), not just enabling
-clustering. Or if the ~25 MB/light-type buffer cost becomes a real constraint on a target
-device -- lower `maxLightsPerCluster` or coarsen `tileSize` first before anything more invasive.
+**Das hier überdenken, wenn:** eine Szene mehr als 16 gleichzeitige Lichter einer Art auf WebGL2
+braucht — das erfordert eine Vergrößerung des UBO-Layouts (eine neue, eigenständig riskante
+Änderung), nicht nur das Aktivieren von Clustering. Oder falls die ~25-MB-Puffer-Kosten pro
+Lichttyp auf einem Zielgerät zu einer echten Einschränkung werden — zuerst `maxLightsPerCluster`
+senken oder `tileSize` vergröbern, bevor irgendetwas Invasiveres angegangen wird.
