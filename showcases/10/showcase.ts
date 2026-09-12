@@ -28,7 +28,7 @@ import {
   Texture,
   WorldMaterial,
   ZoomController,
-} from "../../src/index.js";
+} from "../../packages/engine/src/index.js";
 
 const WALL_THICKNESS = 0.3;
 const POOL_SIZE = 5;

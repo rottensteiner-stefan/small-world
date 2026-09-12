@@ -23,7 +23,7 @@ Maker, Pixler, Xtractor und Map Generator sind auch als **eigenständige Webseit
 :::
 
 ::: warning Werkzeuge sind noch nicht Teil des veröffentlichten Pakets
-`Forge`, `ForgeTool` und jedes eingebaute Werkzeug liegen in `src/tools/`, werden aber nicht vom Root-Einstiegspunkt der Engine reexportiert, und `small-world/tools` ist (noch) kein auflösbarer Paket-Subpfad (keine `exports`-Map konfiguriert). Der Code unten spiegelt die beabsichtigte API wider und funktioniert, wenn gegen den eigenen Source-Tree der Engine gebaut wird; bis ein dedizierter `tools`-Build/-Export existiert, sind `enableInspector: true` oder die [eigenständigen Werkzeug-Seiten](#eingebaute-werkzeuge) (für Maker/Pixler/Xtractor/Map Generator) die unterstützten Wege für ein echtes Projekt.
+`Forge`, `ForgeTool` und jedes eingebaute Werkzeug liegen in `packages/engine/src/tools/`, werden aber nicht vom Root-Einstiegspunkt der Engine reexportiert, und `small-world/tools` ist (noch) kein auflösbarer Paket-Subpfad (keine `exports`-Map konfiguriert). Der Code unten spiegelt die beabsichtigte API wider und funktioniert, wenn gegen den eigenen Source-Tree der Engine gebaut wird; bis ein dedizierter `tools`-Build/-Export existiert, sind `enableInspector: true` oder die [eigenständigen Werkzeug-Seiten](#eingebaute-werkzeuge) (für Maker/Pixler/Xtractor/Map Generator) die unterstützten Wege für ein echtes Projekt.
 :::
 
 ## Die Forge in die eigene App integrieren

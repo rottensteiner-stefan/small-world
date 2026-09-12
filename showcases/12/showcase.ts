@@ -34,9 +34,13 @@ import {
   Scene,
   VignetteElement,
   GrainElement,
-} from "../../src/index.js";
-import { FogMode, PostProcessingEffectType, RendererType } from "../../src/enums/index.js";
-import { AbstractShowcase } from "../../src/core/index.js";
+} from "../../packages/engine/src/index.js";
+import {
+  FogMode,
+  PostProcessingEffectType,
+  RendererType,
+} from "../../packages/engine/src/enums/index.js";
+import { AbstractShowcase } from "../../packages/engine/src/core/index.js";
 import { WorkbenchTable } from "./assets/objects/WorkbenchTable.js";
 import { ErlenmeyerFlask } from "./assets/objects/ErlenmeyerFlask.js";
 import { ApothecaryBottle } from "./assets/objects/ApothecaryBottle.js";

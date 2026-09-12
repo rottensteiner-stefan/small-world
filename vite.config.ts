@@ -32,11 +32,15 @@ export default defineConfig({
     globals: true,
     environment: "node",
     setupFiles: ["tests/setup.ts"],
-    include: ["tests/**/*.test.ts"],
+    include: ["tests/**/*.test.ts", "packages/*/tests/**/*.test.ts", "apps/*/tests/**/*.test.ts"],
     coverage: {
       provider: "v8",
-      include: ["src/**/*.ts"],
-      exclude: ["src/**/*.d.ts", "src/enums/**", "src/interfaces/**"],
+      include: ["packages/*/src/**/*.ts", "apps/**/*.ts"],
+      exclude: [
+        "packages/*/src/**/*.d.ts",
+        "packages/engine/src/enums/**",
+        "packages/engine/src/interfaces/**",
+      ],
       reporter: ["text", "html"],
     },
   },
@@ -220,18 +224,18 @@ export default defineConfig({
         showcase34: resolve(import.meta.dirname, "showcases/34/index.html"),
         showcase35: resolve(import.meta.dirname, "showcases/35/index.html"),
         showcase36: resolve(import.meta.dirname, "showcases/36/index.html"),
-        andNowHub: resolve(import.meta.dirname, "src/apps/and-now/index.html"),
-        andNowPrologue: resolve(import.meta.dirname, "src/apps/and-now/scenes/prologue/index.html"),
+        andNowHub: resolve(import.meta.dirname, "apps/and-now/index.html"),
+        andNowPrologue: resolve(import.meta.dirname, "apps/and-now/scenes/prologue/index.html"),
         andNowScene2: resolve(
           import.meta.dirname,
-          "src/apps/and-now/scenes/flakturm-tunnel/index.html",
+          "apps/and-now/scenes/flakturm-tunnel/index.html",
         ),
         andNowCharacterDiorama: resolve(
           import.meta.dirname,
-          "src/apps/and-now/scenes/character-diorama/index.html",
+          "apps/and-now/scenes/character-diorama/index.html",
         ),
-        yad: resolve(import.meta.dirname, "showcases/yad/index.html"),
-        lightCycleArena: resolve(import.meta.dirname, "showcases/light-cycle-arena/index.html"),
+        yad: resolve(import.meta.dirname, "apps/yad/index.html"),
+        lightCycleArena: resolve(import.meta.dirname, "apps/light-cycle-arena/index.html"),
         pbrgen: resolve(import.meta.dirname, "public/tools/pbr-gen.html"),
         iblgen: resolve(import.meta.dirname, "public/tools/ibl-gen.html"),
         pixler: resolve(import.meta.dirname, "public/tools/pixler.html"),
@@ -262,13 +266,19 @@ export default defineConfig({
             return `js/[name].js`;
           }
           if (chunk.name === "andNowPrologue") {
-            return "src/apps/and-now/scenes/prologue/prologue.js";
+            return "apps/and-now/scenes/prologue/prologue.js";
           }
           if (chunk.name === "andNowScene2") {
-            return "src/apps/and-now/scenes/flakturm-tunnel/showcase.js";
+            return "apps/and-now/scenes/flakturm-tunnel/showcase.js";
           }
           if (chunk.name === "andNowCharacterDiorama") {
-            return "src/apps/and-now/scenes/character-diorama/showcase.js";
+            return "apps/and-now/scenes/character-diorama/showcase.js";
+          }
+          if (chunk.name === "yad") {
+            return "apps/yad/App.js";
+          }
+          if (chunk.name === "lightCycleArena") {
+            return "apps/light-cycle-arena/App.js";
           }
           return `showcases/[name]/showcase.js`;
         },

@@ -13,8 +13,8 @@ import {
   WireframeMaterial,
   AmbientLight,
   MathUtils,
-} from "../../src/index.js";
-import { AbstractShowcase } from "../../src/core/index.js";
+} from "../../packages/engine/src/index.js";
+import { AbstractShowcase } from "../../packages/engine/src/core/index.js";
 
 /**
  * Showcase 2: Interactive camera (FPS-style) and keyboard input.

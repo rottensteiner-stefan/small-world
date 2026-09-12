@@ -1,14 +1,18 @@
 {
   "name": "small-world",
   "private": true,
-  "version": "0.77.29",
+  "version": "0.78.00",
   "description": "A lightweight 3D engine for hybrid WebGL/WebGPU rendering pipelines.",
   "type": "module",
   "license": "MIT",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
   "scripts": {
     "build": "npm-run-all build:showcases build:lib",
     "build:showcases": "vite build && cp -a dist/public/. dist/ && rm -rf dist/public",
-    "build:lib": "vite build --config vite.lib.config.ts",
+    "build:lib": "npm run build --workspace=packages/engine",
     "changelog": "node scripts/generate-changelog.js",
     "dev": "NODE_OPTIONS='--max-old-space-size=4096' vite --host",
     "format": "prettier --write . && eslint . --fix",
@@ -27,7 +31,7 @@
     "sync-tools": "node scripts/sync-tools.js",
     "start": "npm run build && npx serve dist",
     "prepare": "husky",
-    "docs:dev": "vitepress dev docs",
+    "docs:dev": "vitepress dev docs --port 5174",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs",
     "docs:api": "typedoc",
@@ -72,10 +76,7 @@
     }
   },
   "dependencies": {
-    "@kitschpatrol/tweakpane-plugin-camerakit": "^0.3.1-beta.3",
-    "joy-con-webhid": "^0.11.0",
-    "pngjs": "^7.0.0",
-    "tweakpane": "^4.0.5"
+    "pngjs": "^7.0.0"
   },
   "lint-staged": {
     "*.ts": [

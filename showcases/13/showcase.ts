@@ -14,12 +14,12 @@ import {
   StandardMaterial,
   SpotLight,
   Vector3D,
-} from "../../src/index.js";
-import { AbstractShowcase } from "../../src/core/index.js";
-import { Cube } from "../../src/geometry/Cube.js";
-import { Cylinder } from "../../src/geometry/Cylinder.js";
-import { SkyboxMaterial } from "../../src/core/materials/SkyboxMaterial.js";
-import { GltfLoader } from "../../src/loaders/GltfLoader.js";
+} from "../../packages/engine/src/index.js";
+import { AbstractShowcase } from "../../packages/engine/src/core/index.js";
+import { Cube } from "../../packages/engine/src/geometry/Cube.js";
+import { Cylinder } from "../../packages/engine/src/geometry/Cylinder.js";
+import { SkyboxMaterial } from "../../packages/engine/src/core/materials/SkyboxMaterial.js";
+import { GltfLoader } from "../../packages/engine/src/loaders/GltfLoader.js";
 
 class Showcase13 extends AbstractShowcase {
   private _helmet?: Object3D;

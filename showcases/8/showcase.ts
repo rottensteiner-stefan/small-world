@@ -12,8 +12,8 @@ import {
   PhongMaterial,
   Skydome,
   Texture,
-} from "../../src/index.js";
-import { AbstractShowcase } from "../../src/core/index.js";
+} from "../../packages/engine/src/index.js";
+import { AbstractShowcase } from "../../packages/engine/src/core/index.js";
 
 /**
  * Showcase 8: Clean rebuild with Skydome, Reference Cubes, WASD/QE movement.

@@ -1,0 +1,20 @@
+{
+  "name": "@small-world/engine",
+  "private": true,
+  "version": "0.78.00",
+  "description": "A lightweight 3D engine for hybrid WebGL/WebGPU rendering pipelines.",
+  "type": "module",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*"
+  },
+  "scripts": {
+    "build": "vite build --config vite.lib.config.ts"
+  },
+  "dependencies": {
+    "@kitschpatrol/tweakpane-plugin-camerakit": "^0.3.1-beta.3",
+    "joy-con-webhid": "^0.11.0",
+    "tweakpane": "^4.0.5"
+  }
+}

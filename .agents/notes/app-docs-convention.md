@@ -4,10 +4,10 @@
 
 ## Structure
 
-Every app under `src/apps/<app-name>/` has a `docs/` subfolder:
+Every app under `apps/<app-name>/` has a `docs/` subfolder:
 
 ```
-src/apps/<app-name>/
+apps/<app-name>/
 └── docs/
     ├── concept-dossier.html   ← Visual concept dossier (HTML, richly formatted)
     └── log.md                 ← Running development log (Markdown)
@@ -25,6 +25,8 @@ src/apps/<app-name>/
 
 | App | Log |
 |---|---|
-| And Now? | `src/apps/and-now/docs/log.md` |
-| Light Cycle Arena | `src/apps/light-cycle-arena/docs/log.md` |
-| YAD | `src/apps/yad/docs/log.md` |
+| And Now? | `apps/and-now/docs/log.md` |
+| Light Cycle Arena | `apps/light-cycle-arena/docs/log.md` |
+| YAD | `apps/yad/docs/log.md` |
+
+**Update (2026-09-12):** Mit der npm-Workspaces-Restrukturierung (`packages/engine` + `apps/*`) sind die Pfade von `src/apps/<app>/` auf `apps/<app>/` umgezogen. Diese Datei spiegelt bereits die neue Struktur.

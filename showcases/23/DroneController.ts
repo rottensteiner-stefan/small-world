@@ -1,6 +1,13 @@
-import { Behavior, Object3D, Vector3D, Scene, Sphere, StandardMaterial } from "../../src/index.js";
-import { TrailRendererBehavior } from "../../src/core/behaviors/TrailRendererBehavior.js";
-import { GridMovementBehavior } from "../../src/core/behaviors/GridMovementBehavior.js";
+import {
+  Behavior,
+  Object3D,
+  Vector3D,
+  Scene,
+  Sphere,
+  StandardMaterial,
+} from "../../packages/engine/src/index.js";
+import { TrailRendererBehavior } from "../../packages/engine/src/core/behaviors/TrailRendererBehavior.js";
+import { GridMovementBehavior } from "../../packages/engine/src/core/behaviors/GridMovementBehavior.js";
 
 // Static round-robin counter to ensure all 4 corners spawn drones equally
 let cornerSpawnIndex = 0;

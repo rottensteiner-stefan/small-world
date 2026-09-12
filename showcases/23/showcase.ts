@@ -21,11 +21,11 @@ import {
   CustomShaderMaterial,
   StandardWebGPULayout,
   EngineOptions,
-} from "../../src/index.js";
+} from "../../packages/engine/src/index.js";
 
-import fragWGSL from "../../src/core/materials/shaders/Standard.frag.wgsl?raw";
-import fragGLSL from "../../src/core/materials/shaders/Standard.frag.glsl?raw";
-import fragGLSL100 from "../../src/core/materials/shaders/Standard.frag.glsl100?raw";
+import fragWGSL from "../../packages/engine/src/core/materials/shaders/Standard.frag.wgsl?raw";
+import fragGLSL from "../../packages/engine/src/core/materials/shaders/Standard.frag.glsl?raw";
+import fragGLSL100 from "../../packages/engine/src/core/materials/shaders/Standard.frag.glsl100?raw";
 import { MarbleController } from "./MarbleController.js";
 import { DroneController } from "./DroneController.js";
 

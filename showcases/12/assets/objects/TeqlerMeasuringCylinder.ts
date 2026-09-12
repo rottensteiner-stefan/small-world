@@ -1,6 +1,6 @@
-import { Object3D } from "../../../../src/core/index.js";
-import { Cylinder } from "../../../../src/geometry/index.js";
-import { AbstractMaterial } from "../../../../src/core/materials/AbstractMaterial.js";
+import { Object3D } from "../../../../packages/engine/src/core/index.js";
+import { Cylinder } from "../../../../packages/engine/src/geometry/index.js";
+import { AbstractMaterial } from "../../../../packages/engine/src/core/materials/AbstractMaterial.js";
 
 export interface TeqlerMeasuringCylinderOptions {
   /** Radius of the glass tube in meters. Default: 0.08 */

@@ -20,6 +20,89 @@ erzeugen.
 
 ---
 
+## 2026-09-12 — Nachlauf zur Workspaces-Migration: Hub-Seite, Docs-Port, absolute Pfade, v0.78.00
+
+- ✅ **`public/index.html` neu gegliedert** in 4 klar getrennte Abschnitte (User-Vorgabe: Einstieg,
+  Showcases, Tools, Apps) statt Apps und Showcases in einem gemeinsamen Grid zu vermischen. Der
+  seit langem sinnlos gewordene Untertitel "System Initialization // Engine Diagnostics" ersetzt
+  durch "Showcase & Development Hub". Live im Browser geprüft (alle 4 Abschnitte sichtbar, keine
+  Konsolenfehler).
+- ✅ **Portkonflikt `docs:dev` vs. Haupt-Dev-Server behoben.** VitePress bindet standardmäßig auch
+  auf 5173 und hatte beim Start den Haupt-Engine-Server (HTTPS-Multiplexer) stillschweigend
+  verdrängt — derselbe Fehlerklasse-Vorfall wie schon einmal früher in dieser Session, diesmal aber
+  dauerhaft behoben statt nur einmalig durch Kill+Neustart: `docs:dev`-Script fest auf
+  `--port 5174` gesetzt. Beide Server danach parallel verifiziert (5173 HTTPS grün, 5174 HTTP grün).
+- ✅ **Alle hartkodierten `file:///Users/...`-Pfade entfernt** (User-Korrektur: "dürfen niemals
+  vorkommen") — 131 in `apps/and-now/docs/log.md` (inkl. eines eigenen frisch geschriebenen
+  Log-Eintrags), 8 in `CHANGELOG.md`, 2 in `.agents/skills/character-pipeline/SKILL.md`. Nur das
+  absolute Maschinen-Präfix entfernt, historischer Pfadinhalt in alten Einträgen bewusst
+  unangetastet gelassen (Unterscheidung: Pfad-*Leck* immer fixen, historischen Pfad-*Inhalt* nicht
+  rückwirkend umschreiben). Als Feedback-Memory gespeichert, damit das künftig nicht wieder passiert.
+- ✅ **Version-Bump auf 0.78.00**, Changelog-Eintrag (Quote: Robert Frost, "Good fences make good
+  neighbors" — passend zur Engine/Apps-Grenzregel), Tag `v0.78.00`, Commit + Push.
+
+## 2026-09-12 — npm-Workspaces-Monorepo: `packages/engine` + `apps/*` eingeführt
+
+- ✅ **Strukturelle Weichenstellung umgesetzt** (User: "wichtige Weichen für die Zukunft legen und
+  nicht in einem Monat alles umbauen"), ausgelöst durch die Frage, wie die Flakturm-Tunnel-Szene im
+  Maker editierbar werden soll (braucht ADR-0016-Code, siehe unten). Entscheidung per
+  AskUserQuestion: npm-Workspaces statt neues Repository oder reine Lint-Regel; erst Struktur, dann
+  Maker-Arbeit.
+  - `src/` aufgelöst: Engine-Code (core, environment, behaviors, geometry, math, physix, renderers,
+    audio, enums, interfaces, loaders, utils, tools, global.d.ts, presentation.ts) →
+    `packages/engine/src/`, eigenes Package `@small-world/engine` mit
+    `exports: {".": "./src/index.ts", "./*": "./src/*"}` (Apps importieren nur noch per
+    Package-Name, nie mehr über relative Pfade, die den Package-Root verlassen).
+  - Die drei Apps (`and-now`, `yad`, `light-cycle-arena`) → `apps/*`, je eigenes Package
+    (`@small-world/and-now` usw.), `dependencies: {"@small-world/engine": "*"}`.
+  - Bonus (User-Idee mid-flight): `showcases/yad/` und `showcases/light-cycle-arena/` (HTML +
+    Assets) ebenfalls nach `apps/yad/` bzw. `apps/light-cycle-arena/` verschoben, damit sie wie
+    `and-now` konsistent bei ihrem eigenen App-Package liegen statt in den generischen
+    Engine-Showcases.
+  - Neue ESLint-Grenzregel (`no-restricted-imports` in einem eigenen Config-Block nur für
+    `packages/engine/**`, NICHT `import/no-restricted-paths`): verbietet jeden Import aus `apps/`
+    in die Engine. **Wichtiger Lernpunkt:** `import/no-restricted-paths` hätte einen TS-Resolver
+    gebraucht, um unsere `.js`-Importspezifizierer (mappen via `moduleResolution: "Bundler"` auf
+    `.ts`-Dateien) aufzulösen — probeweise mit `eslint-import-resolver-typescript` installiert,
+    dabei sofort 2018 neue `import/extensions`-Fehler repo-weit ausgelöst (ein Resolver macht diese
+    Regel strenger: erwartet dann die tatsächliche `.ts`-Endung statt der geschriebenen `.js`).
+    Wieder deinstalliert, stattdessen die Core-ESLint-Regel `no-restricted-imports` mit reiner
+    String-Muster-Prüfung auf dem geschriebenen Importpfad verwendet — braucht keine Auflösung,
+    funktioniert zuverlässig (mit echtem Verstoß getestet, schlägt korrekt fehl).
+  - 42 `showcases/*.ts`-Dateien hatten ebenfalls relative Importe auf das alte `src/` (nicht nur die
+    3 Apps) — per Skript korrigiert (`../` -Tiefe unverändert, nur `packages/engine/` vor `src/`
+    eingefügt). `vite.config.ts`, `vite.lib.config.ts` (jetzt bei `packages/engine/`, `outDir`
+    korrigiert), `tsconfig.json`/neues `tsconfig.base.json`, `typedoc.json`,
+    `scripts/update-version.js`, `.husky/pre-commit`, `scripts/check-showcases.js` (yad-URL jetzt
+    `apps/yad/...`), `public/index.html`-Links, mehrere `public/tools/*.html`-Inline-Importe — alle
+    nachgezogen.
+  - ADR 0014/0015 und `.agents/notes/app-docs-convention.md`/`AGENTS.md` bekamen "Update"-Notizen
+    zur neuen Struktur, ohne die historische Begründung zu überschreiben.
+  - Verifiziert: `npx tsc --noEmit` grün, `npx eslint .` grün (inkl. Grenzregel-Test), `npx vitest
+    run` 744/744 grün (4 Testdateien mit hartkodierten `src/`-Pfaden gefixt), `npm run build`
+    (Showcases + Lib) grün, `git status` bestätigt saubere Renames (781 R, keine verlorenen
+    Dateien). Live im Browser geprüft: Flakturm-Tunnel, YAD, Light Cycle Arena, Maker-Editor,
+    Showcase 1 — alle ohne Konsolenfehler.
+  - **Noch offen (nächster Schritt, separat):** ADR-0016-Code (StagePoint2D-Verallgemeinerung,
+    `SW_stage_zone`-glTF-Extension, Maker-UI), damit die Flakturm-Szene tatsächlich im Maker
+    geöffnet/bearbeitet/gespeichert werden kann — das war das ursprüngliche Ziel, das zu dieser
+    Strukturfrage geführt hat.
+  - Noch NICHT umgesetzt (User hat nur diese Struktur besprochen, nicht zusätzlich beauftragt):
+    "Showcases (1-36) ebenfalls auslagern" — als eigene Idee mid-flight genannt, bewusst auf einen
+    späteren, separaten Schritt verschoben.
+  - → **Update selbes Datum:** User wies zu Recht darauf hin, dass `docs/` dadurch punktuell
+    veraltet ist (v. a. Pfad-Beispiele). Sweep über alle `docs/**/*.md` durchgeführt: aktive
+    Referenzdokumente (ADR 0007/0009/0010/0014/0015, Guides adding-materials/custom-game/
+    extensions/forge/map-generator/xtractor, research/oil-puddle-shader-technique) auf
+    `packages/engine/src/...`/`apps/...` aktualisiert. Datierte Audit-Snapshots
+    (`research/codebase-review-2026-08-22.md`, `research/showcase-feature-audit.md`,
+    Teile von `research/aaa-engine-techniques.md` zu bereits gelöschten Apps) bewusst NICHT
+    umgeschrieben — bekamen stattdessen eine kurze Hinweis-Notiz, konsistent mit der bereits
+    etablierten Praxis dieser Session (Status-Notiz statt Verlust der historischen Genauigkeit).
+    `docs/public/api/` (272 committete TypeDoc-generierte HTML-Dateien) nicht von Hand editiert,
+    sondern per `npm run docs:api` neu generiert — Quell-Links zeigen jetzt korrekt auf
+    `packages/engine/src/...`.
+
 ## 2026-09-11 — And Now?: Flakturm-Tunnel — Figur unlit, Treppe-Runter-Clip weiterhin kurz
 
 - ✅ **„Figur könnte etwas mehr Licht vertragen" — echter Root Cause gefunden, kein reiner

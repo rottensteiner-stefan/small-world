@@ -4,18 +4,18 @@ Gemäß **ADR 0014** folgt Small World einer strikten 4-Schichten-Domänenarchit
 
 ## Domänenstruktur
 
-1. **Ebene 1 — Kern-Engine (`src/core/`, `src/renderers/`, `src/geometry/`, `src/math/`):**
+1. **Ebene 1 — Kern-Engine (`packages/engine/src/core/`, `packages/engine/src/renderers/`, `packages/engine/src/geometry/`, `packages/engine/src/math/`):**
    Mathematik, Szenengraph, Kameras, Renderer, Passes, Shader und Kern-Primitive (inklusive `BillboardInstancer` und `ImposterBaker`).
-2. **Ebene 2 — Umgebung & Atmosphäre (`src/environment/`):**
+2. **Ebene 2 — Umgebung & Atmosphäre (`packages/engine/src/environment/`):**
    Wetter, atmosphärische Partikelsysteme (`WeatherEmitter`), Himmelssysteme und Flüssigkeitsoberflächen.
-3. **Ebene 3 — Behaviors & Simulation (`src/core/behaviors/`):**
+3. **Ebene 3 — Behaviors & Simulation (`packages/engine/src/core/behaviors/`, `packages/engine/src/behaviors/`):**
    Controller, Sensoren, Animationsschleifen und ambientes Kreaturenleben (`RatGroomingBehavior`, `GroomingRat`).
-4. **Ebene 4 — Werkzeuge & ProcGen (`src/tools/`, `src/tools/procgen/`):**
+4. **Ebene 4 — Werkzeuge & ProcGen (`packages/engine/src/tools/`, `packages/engine/src/tools/procgen/`):**
    Autoring-Werkzeuge (`MakerApp`, `MapGenerator`, `Pixler`, `Xtractor`, `Forge`) und prozedurale Level-Generatoren (`GridLevelBuilder`).
 
 ## Beispiel: Prozedurale Raster-Generierung (`GridLevelBuilder`)
 
-`GridLevelBuilder` liegt in `src/tools/procgen/` (exportiert über die `small-world`-Tooling-Oberfläche) und erlaubt es, 3D-Level aus ASCII-Rastern zu definieren.
+`GridLevelBuilder` liegt in `packages/engine/src/tools/procgen/` (exportiert über die `small-world`-Tooling-Oberfläche) und erlaubt es, 3D-Level aus ASCII-Rastern zu definieren.
 
 ### Verwendung
 

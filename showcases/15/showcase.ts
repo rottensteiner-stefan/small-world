@@ -24,7 +24,7 @@ import {
   Vector3D,
   PlanarReflectionNode,
   DynamicReflectionProbe,
-} from "../../src/index.js";
+} from "../../packages/engine/src/index.js";
 
 interface Ball {
   position: { x: number; y: number; z: number };

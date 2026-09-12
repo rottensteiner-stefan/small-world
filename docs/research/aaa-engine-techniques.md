@@ -48,7 +48,7 @@ Bevor irgendetwas empfohlen wird, wurde der aktuelle Code gegengeprüft (nicht g
 
 - **Licht:** Hartes Limit von **4 Punktlichtern + 4 Spotlichtern**, global (nicht pro Objekt),
   über fest dimensionierte Array-Uniforms `u_pointLights[4]` / `u_spotLights[4]`
-  (`src/core/renderers/shaders/source/web_gl2/chunks/lights.frag.glsl`, gespiegelt in
+  (`packages/engine/src/core/renderers/shaders/source/web_gl2/chunks/lights.frag.glsl`, gespiegelt in
   `structs.wgsl` für WebGPU). Die Schleife bricht bei `u_numPointLights` ab (kein
   Unconditional-Loop), aber es gibt **keinerlei Tiling/Clustering** — das Limit ist in
   Shader-Quelle und Uniform-Buffer-Layout eingebacken. `AreaLight` existiert als Klasse, ist
@@ -124,7 +124,7 @@ ohne Atomics, 16×16px-Tiles × 24 log-gestaffelte Z-Slices als Default,
 `quality.clusteredLighting`-Config), globaler Cap 16→64 (`MAX_CLUSTERED_LIGHTS_PER_TYPE`). Jedes
 Fragment iteriert jetzt nur noch über die Lichter seiner eigenen Zelle statt über alle
 Szenenlichter. **WebGL2 bekommt das CPU-Culling+Datentextur-Gegenstück ebenfalls**
-(`WebGLClusterCullPass`, `lightClusterCoverage()` in `src/math/ClusterGrid.ts` als geteilte
+(`WebGLClusterCullPass`, `lightClusterCoverage()` in `packages/engine/src/math/ClusterGrid.ts` als geteilte
 Formel mit der WebGPU-Seite, RG32UI/R32UI-Texturen als 2D-Ersatz für fehlende 1D-Texturen) —
 bringt dort aber nur Performance, keine höhere Lichtzahl, siehe
 `docs/adr/0007-clustered-lighting-webgl2-webgpu-only.md` für die vollständige Begründung (u. a.
@@ -255,7 +255,7 @@ Quasi-Indirect-Draw). **Einschätzung für uns:** niedrige Priorität — unsere
 (Maze/Dungeon) profitieren bereits stark von Frustum+Octree-Culling, echte Occlusion Culling
 würde bei hunderten verdeckten Objekten lohnen, was für unsere Showcases untypisch ist.
 
-**GPU-Instancing:** **Existiert bereits** als `InstancedMesh` (`src/core/InstancedMesh.ts`) —
+**GPU-Instancing:** **Existiert bereits** als `InstancedMesh` (`packages/engine/src/core/InstancedMesh.ts`) —
 ein geteilter Vertex-/Index-Buffer plus Pro-Instanz-Buffer (4×4-Matrix, ggf. Farbe), ein
 Draw-Call für N Kopien.
 
@@ -453,7 +453,7 @@ bräuchte.
   (`RigidBody` kennt kein `timeScale`), ist das architektonisch bewusst ein **globaler** Effekt,
   keine Pro-Entity-Selektion — für einen kurzen Trefferimpuls (50–120 ms) ist das der
   pragmatische, in der Praxis kaum wahrnehmbare Kompromiss.
-- *Squash-and-Stretch:* Neues `SquashStretchBehavior` (`src/core/behaviors/`), im Stil der
+- *Squash-and-Stretch:* Neues `SquashStretchBehavior` (`packages/engine/src/core/behaviors/`), im Stil der
   bestehenden `SpringLerpBehavior`/`OscillatorBehavior`. Speichert die Basis-Skalierung beim
   Anhängen, `trigger(intensity)` staucht sofort entlang Y und streckt X/Z (volumen-erhaltend
   angenähert), ein gedämpfter Feder-Oszillator (`stiffness`/`damping`) schwingt danach zurück
@@ -488,9 +488,9 @@ Heroes 2 Rendering-Tech-Slides) für den Blizzard-Praxisvergleich.
 
 ### 6.0 Bestandsaufnahme: Was haben wir wirklich schon?
 
-Geprüft in `src/core/Fog.ts`, `src/enums/FogMode.ts`,
-`src/core/materials/shaders/chunks/fog_calc.glsl` und
-`src/core/renderers/shaders/source/web_gpu/chunks/fog_calc.wgsl`: klassischer **analytischer
+Geprüft in `packages/engine/src/core/Fog.ts`, `packages/engine/src/enums/FogMode.ts`,
+`packages/engine/src/core/materials/shaders/chunks/fog_calc.glsl` und
+`packages/engine/src/core/renderers/shaders/source/web_gpu/chunks/fog_calc.wgsl`: klassischer **analytischer
 Distanz-/Höhen-Nebel** — LINEAR/EXP/EXP2-Modus plus optionaler exponentieller Höhen-Falloff.
 Die komplette Berechnung pro Fragment:
 

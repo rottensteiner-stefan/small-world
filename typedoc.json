@@ -1,6 +1,6 @@
 {
   "$schema": "https://typedoc.org/schema.json",
-  "entryPoints": ["src/index.ts"],
+  "entryPoints": ["packages/engine/src/index.ts"],
   "out": "docs/public/api",
   "name": "Small World Engine API Reference",
   "includeVersion": true,

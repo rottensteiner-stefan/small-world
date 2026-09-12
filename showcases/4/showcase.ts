@@ -14,8 +14,8 @@ import {
   TextureGenerator,
   Vector3D,
   WASDController,
-} from "../../src/index.js";
-import { AbstractShowcase } from "../../src/core/index.js";
+} from "../../packages/engine/src/index.js";
+import { AbstractShowcase } from "../../packages/engine/src/core/index.js";
 
 const CAR_SPEED: number = 10.0; // The car's speed
 

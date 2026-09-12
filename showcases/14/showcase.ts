@@ -24,8 +24,8 @@ import {
   Texture,
   GlassMaterial,
   FrostglassMaterial,
-} from "../../src/index.js";
-import { AbstractShowcase } from "../../src/core/index.js";
+} from "../../packages/engine/src/index.js";
+import { AbstractShowcase } from "../../packages/engine/src/core/index.js";
 
 // ============================================================================
 // 1. Shared Simulation State
@@ -891,7 +891,7 @@ class Showcase14 extends AbstractShowcase {
         }
         {
           const quantize = this.renderer.postProcessing.get<
-            import("../../src/renderers/post/index.js").QuantizeElement
+            import("../../packages/engine/src/renderers/post/index.js").QuantizeElement
           >(PostProcessingEffectType.QUANTIZE);
           if (quantize) {
             quantize.enabled = true;

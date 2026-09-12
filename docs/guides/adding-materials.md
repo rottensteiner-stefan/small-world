@@ -12,7 +12,7 @@ Der Rest dieser Anleitung behandelt den zweiten Weg — er ist auch das, was `Cu
 
 ## Die zwei Methoden, die jedes Material implementiert
 
-`AbstractMaterial` (`src/core/materials/AbstractMaterial.ts`) verlangt genau zwei Methoden:
+`AbstractMaterial` (`packages/engine/src/core/materials/AbstractMaterial.ts`) verlangt genau zwei Methoden:
 
 ```typescript
 public abstract getRenderManifest(): RenderManifest;

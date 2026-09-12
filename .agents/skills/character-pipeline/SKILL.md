@@ -145,7 +145,7 @@ tripo make src/apps/<app>/raw/mannequin/<char>/front.jpg --for game-mobile --par
 > **Architektur-Entscheidung:** Für alle spielbaren Charaktere in Small World ist **Adobe Mixamo der einzige verbindliche Rigging-Standard**. Tripo Auto-Rigging wird nicht verwendet, da es zu Knochen-Explosionen (>64 Bones), nicht-standardisierten Benennungen und zerreißenden Gliedmaßen führt.
 
 ### 1. Manueller User-Schritt (Mixamo Web-UI)
-1. Die generierte Zip-Datei [`src/apps/<app>/raw/mannequin/<char>/<char>_mixamo.zip`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/raw/mannequin/) in [Adobe Mixamo](https://www.mixamo.com/) hochladen (Drag & Drop).
+1. Die generierte Zip-Datei [`src/apps/<app>/raw/mannequin/<char>/<char>_mixamo.zip`](src/apps/and-now/raw/mannequin/) in [Adobe Mixamo](https://www.mixamo.com/) hochladen (Drag & Drop).
 2. **Auto-Rigger Marker platzieren:**
    - `Chin` (Kinn)
    - `Wrists` (Handgelenke)
@@ -179,7 +179,7 @@ fbx2gltf -b -i src/apps/<app>/raw/mannequin/<char>/character_rigged.fbx -o publi
    * Verwende für Figuren mit Ausrüstung dedizierte Studio-Mocap-Clips mit fixiertem Tragearm (z. B. `idle_torch.glb`, `walk_torch.glb`, `ascending_stairs.glb`).
    * Generische AI-Walk-Zyklen schwingen oft wild mit den Armen, was zu taumelnden Props führt.
 3. **Knochen-Präfix Aliasing:**
-   * [`AnimationMixer.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/core/animation/AnimationMixer.ts) normalisiert automatisch Präfixe (`mixamorig:`, `mixamorig1:`), sodass Clips universell binden.
+   * [`AnimationMixer.ts`](src/core/animation/AnimationMixer.ts) normalisiert automatisch Präfixe (`mixamorig:`, `mixamorig1:`), sodass Clips universell binden.
 
 ---
 

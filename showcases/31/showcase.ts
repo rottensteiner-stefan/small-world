@@ -28,7 +28,7 @@ import {
   Torus,
   Vector3D,
   VignetteElement,
-} from "../../src/index.js";
+} from "../../packages/engine/src/index.js";
 
 const PLATFORM_HALF_WIDTH = 3.2;
 const PLATFORM_LENGTH = 34;

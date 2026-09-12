@@ -18,8 +18,8 @@ import {
   PhysicsSystem,
   ColorUtils,
   GeometryDataInterface,
-} from "../../src/index.js";
-import { AmbientLight } from "../../src/core/lights/index.js";
+} from "../../packages/engine/src/index.js";
+import { AmbientLight } from "../../packages/engine/src/core/lights/index.js";
 
 /**
  * A pentatonic scale for musical physical collisions.

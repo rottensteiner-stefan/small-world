@@ -23,7 +23,7 @@ import {
   BloomElement,
   HbaoElement,
   VignetteElement,
-} from "../../src/index.js";
+} from "../../packages/engine/src/index.js";
 
 /**
  * Showcase 30: "The Rain-Drenched Cyberpunk Albedo: Screen-Space Reflections & Neon Wetness"

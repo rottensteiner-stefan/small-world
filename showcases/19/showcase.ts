@@ -13,7 +13,7 @@ import {
   Object3D,
   Vector3D,
   BoundingBox,
-} from "../../src/index.js";
+} from "../../packages/engine/src/index.js";
 
 class Showcase19 extends AbstractShowcase {
   constructor(options: EngineOptions = {}) {

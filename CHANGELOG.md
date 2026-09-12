@@ -1,5 +1,41 @@
 # Changelog
 
+## [0.78.00] - 2026-09-12
+
+### "Good fences make good neighbors." - Robert Frost
+
+- **Features:**
+  - Landing page (`public/index.html`) reorganized into four clearly separated sections --
+    Intro, Interactive Showcases, Development Tools, Apps -- instead of mixing showcases and
+    apps into one grid. The stale "System Initialization // Engine Diagnostics" subtitle
+    (left over from a much earlier iteration of the page) replaced with "Showcase &
+    Development Hub".
+- **Architecture & Bugfixes:**
+  - Repository restructured into an npm-workspaces monorepo: `src/` became `packages/engine/`
+    (its own `@small-world/engine` package, `exports` mapping both the root barrel and every
+    subpath), and the three apps (`and-now`, `yad`, `light-cycle-arena`) moved from
+    `src/apps/<app>/` to top-level `apps/<app>/`, each its own package depending on
+    `@small-world/engine`. `yad` and `light-cycle-arena`'s HTML entry points and assets moved
+    from `showcases/yad`/`showcases/light-cycle-arena` into their own app folders, matching
+    `and-now`'s existing layout.
+  - New ESLint rule enforces the boundary the engine/apps split exists for: nothing under
+    `packages/engine/` may import from `apps/`. Verified with a real violation before landing.
+    (A working TypeScript resolver would have been the more "correct" way to enforce this via
+    `import/no-restricted-paths`, but it turned the existing `import/extensions` rule far
+    stricter and produced 2000+ new errors repo-wide -- reverted in favor of a resolver-free
+    `no-restricted-imports` pattern match instead.)
+  - `docs:dev` (VitePress) now runs on a fixed port (5174) instead of colliding with the main
+    engine dev server's port 5173, which it was silently taking over.
+- **Housekeeping & Docs:**
+  - `docs/` swept for stale path references left over from the restructuring: active guides and
+    ADRs (0007, 0009, 0010, 0014, 0015) updated to the new paths; dated audit snapshots (e.g.
+    `codebase-review-2026-08-22.md`) intentionally left with their original, now-historical
+    paths plus a short caveat note, not rewritten. The committed TypeDoc API reference
+    (`docs/public/api/`) regenerated rather than hand-edited.
+  - Removed every hardcoded absolute local file path (`file:///Users/...`) found across
+    `CHANGELOG.md`, `apps/and-now/docs/log.md`, and a skill doc -- these leak a specific
+    machine's directory layout and must never be written into a repository file.
+
 ## [0.77.29] - 2026-09-12
 
 ### "Not everything that is faced can be changed, but nothing can be changed until it is faced." - James Baldwin
@@ -1567,22 +1603,22 @@
 ### "The most disastrous thing that you can ever learn is your first programming language." - Alan Kay
 
 - **Features:**
-  - Implemented `InstancedMesh` class in [InstancedMesh.ts](file:///Users/srottensteiner/PhpstormProjects/small-world/src/core/InstancedMesh.ts) to manage instance counts and dynamic transform matrices.
-  - Added support in [WebGL2Renderer.ts](file:///Users/srottensteiner/PhpstormProjects/small-world/src/renderers/WebGL2Renderer.ts) for dynamically compiling instanced shader variants using `#define USE_INSTANCING 1` and rendering via `gl.drawElementsInstanced`/`gl.drawArraysInstanced` with vertex divisor attributes.
-  - Added support in [WebGPURenderer.ts](file:///Users/srottensteiner/PhpstormProjects/small-world/src/renderers/WebGPURenderer.ts) for dynamically rewriting WGSL vertex shader sources to include instanced layouts and rendering via `rp.drawIndexed`/`rp.draw` with an instance count parameter.
-  - Added full unit test coverage in [InstancedMesh.test.ts](file:///Users/srottensteiner/PhpstormProjects/small-world/tests/core/InstancedMesh.test.ts) to verify matrix initialization, indexing, and dirty flagging.
+  - Implemented `InstancedMesh` class in [InstancedMesh.ts](src/core/InstancedMesh.ts) to manage instance counts and dynamic transform matrices.
+  - Added support in [WebGL2Renderer.ts](src/renderers/WebGL2Renderer.ts) for dynamically compiling instanced shader variants using `#define USE_INSTANCING 1` and rendering via `gl.drawElementsInstanced`/`gl.drawArraysInstanced` with vertex divisor attributes.
+  - Added support in [WebGPURenderer.ts](src/renderers/WebGPURenderer.ts) for dynamically rewriting WGSL vertex shader sources to include instanced layouts and rendering via `rp.drawIndexed`/`rp.draw` with an instance count parameter.
+  - Added full unit test coverage in [InstancedMesh.test.ts](tests/core/InstancedMesh.test.ts) to verify matrix initialization, indexing, and dirty flagging.
 
 ## [0.38.0] - 2026-06-24
 
 ### "It’s not a bug – it’s an undocumented feature." - Anonymous
 
 - **Features:**
-  - Implemented a fully generic, type-safe, and zero-allocation `StateMachine` class in [StateMachine.ts](file:///Users/srottensteiner/PhpstormProjects/small-world/src/core/fsm/StateMachine.ts).
+  - Implemented a fully generic, type-safe, and zero-allocation `StateMachine` class in [StateMachine.ts](src/core/fsm/StateMachine.ts).
   - Added support for state configs defining custom `onEnter`, `onUpdate`, and `onExit` lifecycle callbacks, auto-transitions based on elapsed state duration, and event-based transitions mapped to events.
-  - Implemented the `StateMachineBehavior` component in [StateMachineBehavior.ts](file:///Users/srottensteiner/PhpstormProjects/small-world/src/core/behaviors/StateMachineBehavior.ts) to seamlessly integrate state machines into the engine's standard update tick loop (`Scene.update()`).
-  - Added full test coverage for the FSM framework in [StateMachine.test.ts](file:///Users/srottensteiner/PhpstormProjects/small-world/tests/core/fsm/StateMachine.test.ts) verifying event transitions, update ticks, auto-transitions, and `StateMachineBehavior` operation.
+  - Implemented the `StateMachineBehavior` component in [StateMachineBehavior.ts](src/core/behaviors/StateMachineBehavior.ts) to seamlessly integrate state machines into the engine's standard update tick loop (`Scene.update()`).
+  - Added full test coverage for the FSM framework in [StateMachine.test.ts](tests/core/fsm/StateMachine.test.ts) verifying event transitions, update ticks, auto-transitions, and `StateMachineBehavior` operation.
 - **Architecture & Bugfixes:**
-  - Refactored [showcase15.ts](file:///Users/srottensteiner/PhpstormProjects/small-world/src/showcases/showcase15.ts) to decouple physics, collision detection, and lifecycle states from the monolithic example update loop.
+  - Refactored [showcase15.ts](src/showcases/showcase15.ts) to decouple physics, collision detection, and lifecycle states from the monolithic example update loop.
   - Attached a `StateMachineBehavior` to each bouncing ball, managing `"active" | "falling" | "exploding"` states and updating them natively within the engine's recursive behavior tick.
   - Moved initial ball positioning, restitution velocity resets, and dissolution scales into corresponding state enter/update lifecycle callbacks, leaving the example's update loop clean and modular.
 

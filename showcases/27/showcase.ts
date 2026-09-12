@@ -22,7 +22,7 @@ import {
   SkyboxMaterial,
   BloomElement,
   HbaoElement,
-} from "../../src/index.js";
+} from "../../packages/engine/src/index.js";
 
 class Showcase27 extends AbstractShowcase {
   private _ringGroup!: Object3D;

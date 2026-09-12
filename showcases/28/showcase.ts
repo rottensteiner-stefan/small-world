@@ -28,7 +28,7 @@ import {
   HbaoElement,
   Vector2D,
   Keys,
-} from "../../src/index.js";
+} from "../../packages/engine/src/index.js";
 
 // ----------------------------------------------------------------------------
 // Real prism optics: Snell's law at both surfaces of the equilateral-triangle prism, with a

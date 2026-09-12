@@ -11,8 +11,8 @@ import {
   AmbientLight,
   Ground,
   OrbitController,
-} from "../../src/index.js";
-import { AbstractShowcase } from "../../src/core/index.js";
+} from "../../packages/engine/src/index.js";
+import { AbstractShowcase } from "../../packages/engine/src/core/index.js";
 
 class Showcase1 extends AbstractShowcase {
   private _myCube!: Object3D;

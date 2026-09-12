@@ -9,7 +9,7 @@ Mobile-/Compatibility-Renderern aus demselben Grund dieselbe Grenze.
 WebGL2s CPU-Culling testet nicht jede Cluster-Zelle gegen jedes Licht (das wären bei der
 Standard-Grid-Größe ~190k Zellen x 16 Lichter pro Frame in JS) — für jedes Licht wird zuerst ein
 Screen-Space- + Radialdistanz-Abdeckungsbereich berechnet (`lightClusterCoverage()` in
-`src/math/ClusterGrid.ts`, dieselbe Formel, die `cluster_cull.wgsl`s `lightCoverage()` auf WebGPU
+`packages/engine/src/math/ClusterGrid.ts`, dieselbe Formel, die `cluster_cull.wgsl`s `lightCoverage()` auf WebGPU
 verwendet), und nur die Zellen innerhalb dieses Bereichs werden besucht. Beide Backends teilen sich
 also einen Licht-gegen-Cluster-Test, nur auf verschiedenen Seiten der GPU-/CPU-Grenze und in
 unterschiedlicher Schleifenreihenfolge ausgeführt (WebGPU: ein Thread pro Zelle, Schleife über

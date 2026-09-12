@@ -23,7 +23,7 @@ Xtractor ist außerdem unter `/tools/xtractor.html` als in sich geschlossene Sei
 :::
 
 ::: warning Noch nicht Teil des veröffentlichten Pakets
-`Xtractor` lebt in `src/tools/` und wird noch nicht vom Root-Einstiegspunkt der Engine re-exportiert. `enableInspector: true` ist heute der unterstützte Weg, es zu nutzen.
+`Xtractor` lebt in `packages/engine/src/tools/` und wird noch nicht vom Root-Einstiegspunkt der Engine re-exportiert. `enableInspector: true` ist heute der unterstützte Weg, es zu nutzen.
 :::
 
 ## Ein Bild laden

@@ -18,7 +18,7 @@ import {
   Sphere,
   StandardMaterial,
   Vector3D,
-} from "../../src/index.js";
+} from "../../packages/engine/src/index.js";
 
 /** A simple procedural tree: a tapered trunk plus three overlapping foliage spheres. Built
  * fresh for every instance -- shared, mutable geometry/material would be wrong here since bake

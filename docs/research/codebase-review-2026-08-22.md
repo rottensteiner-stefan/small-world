@@ -8,6 +8,11 @@ Kein hier gelistetes Finding wurde bei der Verifikation widerlegt.
 
 Stand: 2026-08-22.
 
+> **Hinweis (2026-09-12):** Alle `src/...`-Pfade unten spiegeln den Stand zum Zeitpunkt dieses
+> Reviews. Seit der npm-Workspaces-Restrukturierung (selbes Datum) liegt der Engine-Code unter
+> `packages/engine/src/...` statt `src/...`. Die Datei bleibt als historischer Schnappschuss
+> unverändert stehen.
+
 ## Kritisch — Crash / Datenkorruption
 
 > **Status 2026-08-22:** Findings #1–#9 sind gefixt (siehe Commit-Historie). #10 ist noch offen.

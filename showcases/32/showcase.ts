@@ -28,7 +28,7 @@ import {
   Vector3D,
   VignetteElement,
   WeatherEmitter,
-} from "../../src/index.js";
+} from "../../packages/engine/src/index.js";
 
 const STREET_HALF_WIDTH = 6;
 const STREET_LENGTH = 60;

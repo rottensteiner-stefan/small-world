@@ -40,9 +40,9 @@ Datei-Routing-Verträgen für alle humanoiden Charaktere:
      Biped-Hierarchie (`mixamorig:*`), passend innerhalb der GPU-Shader-Limits ($\le 64$ Gelenke
      für 52-Gelenk-Rigs).
 3. **Striktes Datei-Routing & Übergabevertrag:**
-   - **2D-Konzepte:** `src/apps/<app>/docs/assets/<character>/` & `raw/.../model_sheet.jpg`
+   - **2D-Konzepte:** `apps/<app>/docs/assets/<character>/` & `raw/.../model_sheet.jpg`
      (Turnaround) + `raw/.../front.jpg` (Albedo-Frontal-Input).
-   - **DCC-/Raw-Staging:** `src/apps/<app>/raw/mannequin/<character>/base_model.glb`,
+   - **DCC-/Raw-Staging:** `apps/<app>/raw/mannequin/<character>/base_model.glb`,
      `<char>_mixamo.zip`, und `character_rigged.fbx`.
    - **Laufzeit-Modelle:** `public/assets/<app>/mannequin/<character>/character.glb`
      (eigenständiges binäres glTF mit 2K-Texturatlas).

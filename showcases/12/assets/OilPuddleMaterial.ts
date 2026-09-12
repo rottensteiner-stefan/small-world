@@ -3,7 +3,7 @@ import {
   RenderManifest,
   ShaderDefinition,
   StandardWebGPULayout,
-} from "../../../src/index.js";
+} from "../../../packages/engine/src/index.js";
 
 const vertWGSL = `
 [WGSL_STRUCTS]

@@ -27,7 +27,7 @@ import {
   CameraStrategyType,
   PostProcessingEffectType,
   BloomElement,
-} from "../../src/index.js";
+} from "../../packages/engine/src/index.js";
 
 class Showcase20 extends AbstractShowcase {
   protected async setupScene(): Promise<void> {

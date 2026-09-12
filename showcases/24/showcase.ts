@@ -37,7 +37,7 @@ import {
   Vector2D,
   Vector3D,
   WireframeMaterial,
-} from "../../src/index.js";
+} from "../../packages/engine/src/index.js";
 
 class BobbingBehavior extends Behavior {
   private _timeOffset: number = Math.random() * Math.PI * 2;
@@ -367,8 +367,7 @@ class Showcase24 extends AbstractShowcase {
 
     if (screen) {
       const behavior = screen.behaviors.find((b) => b instanceof ScreenCurvatureBehavior) as
-        | ScreenCurvatureBehavior
-        | undefined;
+        ScreenCurvatureBehavior | undefined;
       if (behavior) behavior.targetCurvature = 0.0;
     }
   }

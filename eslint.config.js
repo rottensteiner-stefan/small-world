@@ -12,9 +12,9 @@ export default [
   // 2. Prettier-Konflikte deaktivieren
   prettier,
 
-  // 3. Konfiguration für deinen Engine-Code (Browser-Umgebung)
+  // 3. Konfiguration für Engine-Package, Apps und Showcases (Browser-Umgebung)
   {
-    files: ["src/**/*.ts", "showcases/**/*.ts", "tests/**/*.ts"],
+    files: ["packages/**/*.ts", "apps/**/*.ts", "showcases/**/*.ts", "tests/**/*.ts"],
     plugins: {
       import: importPlugin,
     },
@@ -77,6 +77,29 @@ export default [
             "MethodDefinition[kind='constructor'] > FunctionExpression > Identifier[optional=true]:nth-child(3), MethodDefinition[kind='constructor'] > FunctionExpression > Identifier[optional=true]:nth-child(4), MethodDefinition[kind='constructor'] > FunctionExpression > Identifier[optional=true]:nth-child(5)",
           message:
             "Regel aus @AGENTS.md: Ein Konstruktor darf maximal 2 optionale Parameter haben. Nutze ab dem 3. Parameter ein 'Options Object'.",
+        },
+      ],
+    },
+  },
+
+  // 3b. Domänen-Grenze: die Engine darf niemals aus einer App importieren (Apps -> Engine ist
+  // erlaubt, die Rückrichtung nicht -- siehe ADR 0014/0015). Bewusst als reine Muster-Prüfung auf
+  // dem geschriebenen Importpfad (ESLint-Core-Regel, keine eslint-plugin-import-Modulauflösung
+  // nötig) -- ein Resolver würde `import/extensions` dazu bringen, jede ".js"-Endung als "falsch"
+  // zu melden (moduleResolution "Bundler" mappt .js-Spezifizierer bewusst auf .ts-Dateien).
+  {
+    files: ["packages/engine/**/*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["**/apps/**", "@small-world/and-now", "@small-world/yad", "@small-world/light-cycle-arena"],
+              message:
+                "Die Engine (packages/engine) darf nichts aus apps/ importieren. Siehe ADR 0014/0015.",
+            },
+          ],
         },
       ],
     },

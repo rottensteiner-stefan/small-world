@@ -15,9 +15,9 @@ import {
   PhysicsSystem,
   Skydome,
   Texture,
-} from "../../src/index.js";
-import { AmbientLight } from "../../src/core/lights/index.js";
-import { DeviceCaps, PerformanceTier } from "../../src/core/DeviceCaps.js";
+} from "../../packages/engine/src/index.js";
+import { AmbientLight } from "../../packages/engine/src/core/lights/index.js";
+import { DeviceCaps, PerformanceTier } from "../../packages/engine/src/core/DeviceCaps.js";
 
 class Showcase22 extends AbstractShowcase {
   private _spheres: Object3D[] = [];

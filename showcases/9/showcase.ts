@@ -16,8 +16,8 @@ import {
   Texture,
   TextureFilter,
   Vector3D,
-} from "../../src/index.js";
-import { AbstractShowcase } from "../../src/core/index.js";
+} from "../../packages/engine/src/index.js";
+import { AbstractShowcase } from "../../packages/engine/src/core/index.js";
 
 /**
  * Showcase 9: A classic 2.5D Jump & Run with pure code physics and collision!

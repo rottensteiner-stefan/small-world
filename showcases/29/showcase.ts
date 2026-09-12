@@ -26,7 +26,7 @@ import {
   ToneMappingMode,
   VignetteElement,
   Vector3D,
-} from "../../src/index.js";
+} from "../../packages/engine/src/index.js";
 
 /**
  * Showcase 29: "Sponza Atrium: Global Illumination & Volumetric Light Shafts"

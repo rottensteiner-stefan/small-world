@@ -50,7 +50,7 @@ Es gibt keine Tastaturkürzel — Malen erfolgt komplett per Maus — und kein U
 Auf **▶ In YAD spielen** klicken, um die aktuelle Karte in `localStorage` zu speichern (Schlüssel `yad_custom_map`) und die [YAD](/guides/custom-game)-Showcase in einem neuen Tab zu öffnen, die diesen Schlüssel beim Start liest und statt ihres gebündelten Standard-Levels verwendet. Das ist der einzige Code-Pfad, der diesen Schlüssel schreibt; Map Generator und YAD lesen ihn nur zurück.
 
 ::: warning Map Generators Palette und YADs Legende stimmen nicht vollständig überein
-YADs tatsächliche Level-Legende nutzt `1`/`2`/`3` für Leben-/Rüstungs-/Waffen-Items — sie liest `I` nie. Und obwohl YAD `lavaFloorChars: ["T"]` konfiguriert, hat seine Legende keinen `T`-Eintrag, sodass eine hier gemalte `T`-Kachel in YAD aktuell auf normalen Boden zurückfällt, statt als Lava zu rendern. Baut ihr Level speziell für YAD, behandelt die Palette des Editors als Ausgangspunkt, nicht als garantiertes 1:1-Mapping — schaut in YADs Legende in `src/apps/yad/App.ts`s `setupScene()` nach, was tatsächlich gerendert wird.
+YADs tatsächliche Level-Legende nutzt `1`/`2`/`3` für Leben-/Rüstungs-/Waffen-Items — sie liest `I` nie. Und obwohl YAD `lavaFloorChars: ["T"]` konfiguriert, hat seine Legende keinen `T`-Eintrag, sodass eine hier gemalte `T`-Kachel in YAD aktuell auf normalen Boden zurückfällt, statt als Lava zu rendern. Baut ihr Level speziell für YAD, behandelt die Palette des Editors als Ausgangspunkt, nicht als garantiertes 1:1-Mapping — schaut in YADs Legende in `apps/yad/App.ts`s `setupScene()` nach, was tatsächlich gerendert wird.
 :::
 
 ## Den exportierten String selbst nutzen

@@ -6,17 +6,17 @@ Small World ist eine universelle 3D-Engine. Jede neue Projektidee (ein Doom-arti
 Lichtzyklus-Arena, ein postapokalyptisches Erkundungsspiel, und jetzt ein hypothetischer
 Yoshi-artiger Plattformer) verleitet zu einer naheliegenden Abkürzung: die genre-spezifische
 Mechanik — ein Flatter-Sprung-Charakter-Controller, ein Ei-Wurf-Projektil, eine Seitenscroll-
-Verfolgungskamera, ein Lichtspur-Kollisionsraster — direkt in `src/core` zu bauen, weil "die
+Verfolgungskamera, ein Lichtspur-Kollisionsraster — direkt in `packages/engine/src/core` zu bauen, weil "die
 Engine das doch unterstützen sollte." Unkontrolliert verwandelt das die Engine in einen Haufen
 einmaliger, gegenseitig irrelevanter Gameplay-Systeme, von denen jedes für immer seine eigene
 Last an API-Stabilität und Abwärtskompatibilität trägt — für ein Feature, das je nur ein einziges
 Projekt genutzt hat.
 
-Wir haben bereits mehrere Apps unter `src/apps/` (`yad`, `light-cycle-arena`, `and-now`), jede mit
+Wir haben bereits mehrere Apps unter `apps/` (`yad`, `light-cycle-arena`, `and-now`), jede mit
 ihrem eigenen genre-spezifischen Gameplay-Code vollständig im eigenen App-Ordner, nicht in
-`src/core`. Und früher in dieser Session haben wir dieselbe Entscheidung in
+`packages/engine/src/core`. Und früher in dieser Session haben wir dieselbe Entscheidung in
 kleinerem Maßstab getroffen: `Optics.refract()`/`Optics.cauchyIndex()`/`Ray2D.intersectSegment()`
-wurden erst dann aus `showcases/28`s Prisma-Dispersions-Code nach `src/math/` extrahiert, als wir
+wurden erst dann aus `showcases/28`s Prisma-Dispersions-Code nach `packages/engine/src/math/` extrahiert, als wir
 sie bewusst wiederverwendbar haben wollten — die Extraktion geschah nicht spekulativ beim
 Schreiben des Showcases, und der Showcase selbst besitzt weiterhin `outwardFaceNormal()` und die
 gesamte `computeSpectralRays()`-Orchestrierung, die lokal blieb, weil nichts anderes sie (bisher)
@@ -24,8 +24,8 @@ braucht.
 
 ## Entscheidung
 
-**Neuer genre-spezifischer Gameplay-Code für ein neues Projekt beginnt in `src/apps/<project>/`,
-niemals in `src/core`.** Das gilt für Dinge wie: Charakter-Controller mit genre-spezifischem
+**Neuer genre-spezifischer Gameplay-Code für ein neues Projekt beginnt in `apps/<project>/`,
+niemals in `packages/engine/src/core`.** Das gilt für Dinge wie: Charakter-Controller mit genre-spezifischem
 Bewegungsgefühl (Flatter-Sprung, Coyote-Time, Jump-Buffering), Waffen-/Projektil-Mechanik,
 genre-spezifisches Kamera-Folgeverhalten und jedes andere System, das nur im Kontext des Designs
 eines einzigen Spiels Sinn ergibt.
@@ -37,7 +37,7 @@ für den Charakter-Controller selbst, `BillboardInstancer`/`Sprite` für 2D-in-3
 `CameraStrategy`-Architektur als die Nahtstelle, an der eine neue Seitenscroll-Folge-Strategie
 andockt (eine neue Strategie-Klasse, die dem bestehenden Muster folgt, kein neues Kernkonzept).
 
-**Die Extraktion an einen gemeinsamen, wiederverwendbaren Ort (ein `src/math`/`src/core`-Utility,
+**Die Extraktion an einen gemeinsamen, wiederverwendbaren Ort (ein `packages/engine/src/math`/`packages/engine/src/core`-Utility,
 oder irgendwann ein eigenständiges Plugin-Paket) geschieht nur, wenn ein *zweites* echtes Projekt
 dasselbe braucht** — nicht spekulativ beim Bau des ersten. Bis dahin ist scheinbare Duplikation
 zwischen den genre-spezifischen Systemen zweier Apps kein Problem, das man vorab lösen muss; es
@@ -60,3 +60,11 @@ dieselbe* Mechanik in zwei seiner eigenen Szenen/Showcases intern zu brauchen (n
 getrennte Projekte hinweg) — das ist bereits das "zweiter Bedarf"-Signal und rechtfertigt die
 sofortige Extraktion innerhalb der Grenzen dieses Projekts, genau wie `Optics`/`Ray2D` es
 innerhalb dieses Repositorys getan haben.
+
+**Update (2026-09-12):** Die hypothetische dritte Extraktionsstufe ("oder irgendwann ein
+eigenständiges Plugin-Paket") ist jetzt technisch real: Mit der npm-Workspaces-Restrukturierung
+ist jede App (`apps/and-now`, `apps/yad`, `apps/light-cycle-arena`) ihr eigenes Package, das die
+Engine als `@small-world/engine`-Package-Abhängigkeit konsumiert. Die Kernregel bleibt unverändert
+— neuer genre-spezifischer Code beginnt weiterhin in der jeweiligen App, Extraktion nach
+`packages/engine/src/math`/`src/core` (statt `src/math`/`src/core`) erfolgt weiterhin erst beim
+echten zweiten Bedarf.

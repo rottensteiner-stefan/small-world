@@ -26,19 +26,19 @@ Wir haben verglichen, wie branchenführende 3D-Engines Kern- vs. optionale/Ökos
 Wir **lösen `src/extensions/` vollständig auf** und etablieren ein striktes 4-Stufen-Domänen-Schichtungsmodell für Small World:
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  Tier 4: Tools & ProcGen (`src/tools/`, `src/procgen/`)      │
-│  (GridLevelBuilder, MakerApp, Bakers, Asset Importers)      │
-├─────────────────────────────────────────────────────────────┤
-│  Tier 3: Behaviors & Simulation (`src/behaviors/`)          │
-│  (OrbitController, RatGroomingBehavior, AI, Controllers)    │
-├─────────────────────────────────────────────────────────────┤
-│  Tier 2: Environment & VFX (`src/environment/`)             │
-│  (WeatherEmitter, LiquidSurface, Skybox, Atmosphere)        │
-├─────────────────────────────────────────────────────────────┤
-│  Tier 1: Engine Core (`src/core/`, `src/math/`, `src/renderers/`, `src/geometry/`) │
-│  (Scene Graph, BillboardInstancer, ImposterBaker, PBR, Passes) │
-└─────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────────────────┐
+│  Tier 4: Tools & ProcGen (`packages/engine/src/tools/`, `.../procgen/`)   │
+│  (GridLevelBuilder, MakerApp, Bakers, Asset Importers)                   │
+├───────────────────────────────────────────────────────────────────────────┤
+│  Tier 3: Behaviors & Simulation (`packages/engine/src/behaviors/`)       │
+│  (OrbitController, RatGroomingBehavior, AI, Controllers)                 │
+├───────────────────────────────────────────────────────────────────────────┤
+│  Tier 2: Environment & VFX (`packages/engine/src/environment/`)          │
+│  (WeatherEmitter, LiquidSurface, Skybox, Atmosphere)                     │
+├───────────────────────────────────────────────────────────────────────────┤
+│  Tier 1: Engine Core (`packages/engine/src/{core,math,renderers,geometry}/`) │
+│  (Scene Graph, BillboardInstancer, ImposterBaker, PBR, Passes)           │
+└───────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### 1. Konkrete Migrationsziele
@@ -61,7 +61,7 @@ Tests) aktualisiert, volle Testsuite (744 Tests) grün.
 
 ### 2. Export- & Namensraum-Regeln
 
-1. **Kern-Paket-Oberfläche (`src/index.ts`):**
+1. **Kern-Paket-Oberfläche (`packages/engine/src/index.ts`):**
    - Kern-Primitive (`BillboardInstancer`), Umgebungssysteme (`WeatherEmitter`) und Standard-Behaviors werden aus ihren jeweiligen Domänen-Namensräumen exportiert (`./core/index.js`, `./environment/index.js`, `./behaviors/index.js`).
 2. **Tooling & ProcGen:**
    - ProcGen- und Erstellungswerkzeuge (`GridLevelBuilder`, `MakerApp`) werden unter `./tools/index.js` oder dedizierten Tool-Einstiegspunkten exportiert, was Laufzeit-Engine-Primitive klar von Build-Zeit-/Design-Zeit-Generatoren trennt.
@@ -76,3 +76,5 @@ Tests) aktualisiert, volle Testsuite (744 Tests) grün.
 - **Sauberes Tree-Shaking:** High-Level-Level-Generierungswerkzeuge sind von grundlegenden Rendering-Primitiven entkoppelt.
 - **Architektonische Skalierbarkeit:** Künftige Ergänzungen (z. B. Boids, Bewuchssysteme, Terrain-Generatoren) haben ein klares, vordefiniertes architektonisches Zuhause.
 - **Migrationskosten:** Erfordert die Aktualisierung von Importen über bestehende Showcases (`showcase 32`, `showcase 34`), Tests (`tests/extensions/`) und Werkzeuge (`MakerApp`, `AsciiMapLegend`) hinweg.
+
+**Update (2026-09-12):** Diese ADR beschreibt die Domänen-Schichtung *innerhalb* eines einzigen Pakets. Seit der npm-Workspaces-Restrukturierung (`packages/engine` + `apps/*`) gilt dieses Tier-Modell konkret für `packages/engine/src/`; die drei Apps (`and-now`, `yad`, `light-cycle-arena`) sind jetzt eigene Workspace-Packages unter `apps/`, die die Engine nur noch über den Package-Namen `@small-world/engine` importieren, nie mehr über relative Pfade. Die Namensraum-Regeln oben (Export-Oberfläche, keine Auffangordner) gelten unverändert für `packages/engine`.

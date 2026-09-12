@@ -5,7 +5,7 @@ import {
   CameraInterfaceData,
   InputInterface,
   Object3D,
-} from "../../src/index.js";
+} from "../../packages/engine/src/index.js";
 
 /**
  * Controller to move a physics-based marble using WASD.

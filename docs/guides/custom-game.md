@@ -89,4 +89,4 @@ YAD demonstriert:
 4. **Eigene Controller:** `YadController` erbt von `FirstPersonController` und fügt Schrittgeräusche hinzu (über eine injizierte `AudioSystem`-Instanz), Waffen-Schwenk-Animation (gerendert von `YadHud`) und raygecastete Angriffe.
 5. **Entkoppelte UI (`YadHud`):** Ein striktes HTML-Overlay, das auf `AppEvents` lauscht, um Lebensbalken zu aktualisieren und Chat-Nachrichten zu protokollieren.
 
-Beim Start eines neuen Projekts wird dringend empfohlen, `src/apps/yad` durchzulesen, um zu verstehen, wie die Architektur skaliert!
+Beim Start eines neuen Projekts wird dringend empfohlen, `apps/yad` durchzulesen, um zu verstehen, wie die Architektur skaliert!

@@ -13,7 +13,7 @@ import {
   RendererType,
   Sphere,
   StandardMaterial,
-} from "../../src/index.js";
+} from "../../packages/engine/src/index.js";
 
 const WALL_HALF_WIDTH = 5;
 const FIELD_Z = -10;

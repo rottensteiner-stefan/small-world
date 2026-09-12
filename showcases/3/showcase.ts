@@ -12,8 +12,8 @@ import {
   PhongMaterial,
   ProjectionType,
   WireframeMaterial,
-} from "../../src/index.js";
-import { AbstractShowcase } from "../../src/core/index.js";
+} from "../../packages/engine/src/index.js";
+import { AbstractShowcase } from "../../packages/engine/src/core/index.js";
 
 class Showcase3 extends AbstractShowcase {
   private _carModel: Object3D | undefined;
