@@ -1,9 +1,9 @@
 import fs from 'fs';
 import path from 'path';
 
-const showcasesDir = path.join(process.cwd(), 'showcases');
+const showcasesDir = path.join(process.cwd(), 'apps/showcases');
 
-// Read all subdirectories in showcases/
+// Read all subdirectories in apps/showcases/
 const dirs = fs.readdirSync(showcasesDir, { withFileTypes: true })
   .filter(dirent => dirent.isDirectory())
   .map(dirent => dirent.name);

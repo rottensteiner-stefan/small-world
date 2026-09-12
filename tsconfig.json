@@ -8,7 +8,6 @@
     "packages/*/src/**/*",
     "packages/*/tests/**/*",
     "apps/**/*",
-    "showcases/**/*",
     "tests/**/*"
   ]
 }

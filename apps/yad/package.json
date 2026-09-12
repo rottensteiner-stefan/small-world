@@ -1,9 +1,0 @@
-{
-  "name": "@small-world/yad",
-  "private": true,
-  "version": "0.78.00",
-  "type": "module",
-  "dependencies": {
-    "@small-world/engine": "*"
-  }
-}

@@ -13,8 +13,14 @@ function traverse(obj: Object3D, fn: (child: Object3D) => void): void {
 
 describe("Sponza glTF Loading Benchmark", () => {
   it("successfully parses Sponza.gltf, its binary buffer and 103 mesh primitives", async () => {
-    const gltfPath = path.resolve(__dirname, "../../../../showcases/29/assets/sponza/Sponza.gltf");
-    const binPath = path.resolve(__dirname, "../../../../showcases/29/assets/sponza/Sponza.bin");
+    const gltfPath = path.resolve(
+      __dirname,
+      "../../../../apps/showcases/29/assets/sponza/Sponza.gltf",
+    );
+    const binPath = path.resolve(
+      __dirname,
+      "../../../../apps/showcases/29/assets/sponza/Sponza.bin",
+    );
     expect(fs.existsSync(gltfPath)).toBe(true);
     expect(fs.existsSync(binPath)).toBe(true);
 

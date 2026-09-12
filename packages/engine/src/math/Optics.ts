@@ -26,7 +26,7 @@ export const CauchyMaterials = {
  * Physically-based optics helpers: vector Snell's law refraction and Cauchy dispersion, for any
  * effect that needs a *real* refracted ray direction (a prism, a lens preview, chromatic
  * aberration) instead of a hand-placed decorative angle. 2D-only for now (extracted from
- * `showcases/28`'s prism dispersion, its one proven use case) -- add a `Vector3D` overload only
+ * `apps/showcases/28`'s prism dispersion, its one proven use case) -- add a `Vector3D` overload only
  * once a second, real 3D use case needs it.
  */
 export class Optics {

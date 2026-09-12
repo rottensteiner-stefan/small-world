@@ -902,7 +902,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
    * Looks up (or lazily creates) the GPU mesh for an object's geometry, and tracks
    * per-object geometry references so `releaseObjectGeometry` can correctly free
    * buffers once nothing references them anymore -- even when geometry is shared
-   * across many objects (see showcases/19) or swapped on a live object at runtime.
+   * across many objects (see apps/showcases/19) or swapped on a live object at runtime.
    */
   private _getOrCreateMesh(obj: Object3D, geo: GeometryDataInterface): Mesh {
     let mesh = this._cache.get(geo);

@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.79.01] - 2026-09-12
+
+### "A place for everything, and everything in its place." - Benjamin Franklin
+
+- **Architecture & Bugfixes:**
+  - `and-now`, `yad`, and `light-cycle-arena` folded from three separate workspace packages into one `@small-world/sample-apps` package (`apps/sample-apps/<app>/`); all 34 numbered showcases folded into a new `@small-world/showcases` package (`apps/showcases/<n>/`).
+  - Fixed `AbstractShowcase`'s PREV/NEXT navigation, which silently assumed a contiguous `1..35` range: it now walks an explicit list of the showcase IDs that actually exist, correctly skipping the intentional gap at 25 (absorbed into Showcase 10 earlier) instead of navigating to a dead URL -- and Showcase 36 (previously unreachable, since the old bound was one short) is reachable again too.
+  - Fixed the `showcase-layout` Vite plugin's header/subtitle injection, which silently failed for any showcase using multi-line HTML attribute formatting (Showcases 29-31 rendered with no header at all).
+  - Fixed vitest's `apps/*/tests/**/*.test.ts` include glob, which stopped matching anything once app tests moved one directory level deeper into `apps/sample-apps/<app>/tests/` -- silently dropped 2 test files (10 tests) from every run with no error.
+  - Housekeeping: swept up several path references left stale from the previous npm-workspaces migration and this move (a dead `showcases/yad` link in `MapGenerator`, a scan root in `MaterialUsage.test.ts`, comment references across `Optics`/`Ray2D`/three renderer files, `REFERENCES.md`).
+
 ## [0.79.00] - 2026-09-12
 
 ### "The nice thing about standards is that there are so many to choose from." - Andrew S. Tanenbaum

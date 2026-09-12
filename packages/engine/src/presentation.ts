@@ -95,7 +95,7 @@ class PresentationDemoApp extends AbstractShowcase {
     // Load Environment Map
     const envTexture = new CubeTexture();
     try {
-      await envTexture.loadFrom("/showcases/13/assets/skybox.webp");
+      await envTexture.loadFrom("/apps/showcases/13/assets/skybox.webp");
 
       const skybox = new Object3D("Skybox");
       skybox.geometry = new Cube({ size: 1000 }).getGeometryData();
@@ -108,7 +108,7 @@ class PresentationDemoApp extends AbstractShowcase {
 
     // Load GLTF Model (Damaged Helmet)
     try {
-      const gltfLoader = new GltfLoader({ basePath: "/showcases/13/assets/" });
+      const gltfLoader = new GltfLoader({ basePath: "/apps/showcases/13/assets/" });
       const helmet = await gltfLoader.load("DamagedHelmet.glb");
       helmet.position.set(0, 0, 0);
 

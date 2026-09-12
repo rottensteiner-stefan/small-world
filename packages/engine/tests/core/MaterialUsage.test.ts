@@ -4,7 +4,7 @@ import * as path from "path";
 import { MaterialType } from "../../src/enums/MaterialType.js";
 
 const REPO_ROOT = path.resolve(__dirname, "../../../..");
-const SCAN_ROOTS = ["packages/engine/src", "apps", "showcases"];
+const SCAN_ROOTS = ["packages/engine/src", "apps"];
 const EXCLUDED_DIRS = new Set(["node_modules", "dist", ".git"]);
 
 /**

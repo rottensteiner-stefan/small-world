@@ -3,7 +3,7 @@ import { Vector2D } from "./Vector2D.js";
 /**
  * A 2D ray, for planar/cross-section geometry (top-down gameplay logic, sightlines, or a
  * horizontal/vertical slice through a 3D scene -- e.g. tracing a light ray through a prism's
- * triangular cross-section, as `showcases/28` does). For raycasting against full 3D scene
+ * triangular cross-section, as `apps/showcases/28` does). For raycasting against full 3D scene
  * geometry, see `src/physix/Ray.ts` instead.
  */
 export class Ray2D {

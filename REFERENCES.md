@@ -46,7 +46,7 @@ This document serves to record external sources, algorithms, mathematical deriva
 
 ### Gravitational Lensing (Black Hole Shadow & Einstein Ring)
 
-- **File:** `src/core/materials/shaders/PostProcess.frag.glsl`, `showcases/21/showcase.ts`
+- **File:** `src/core/materials/shaders/PostProcess.frag.glsl`, `apps/showcases/21/showcase.ts`
 - **Inspiration:** Dr. Katie Bouman, Dr. Sara Issaoun, and the Event Horizon Telescope (EHT) Collaboration (2019, 2022)
 - **Source:** First imaging of M87* and Sagittarius A* (Sgr A*).
 - **Usage:** The visual representation of the Super Massive Black Hole in Showcase 21 is profoundly inspired by the groundbreaking imaging work of the EHT team. The custom post-processing shader approximates the gravitational lensing, deflecting light rays near the simulated event horizon to recreate the iconic asymmetric glowing ring and the absolute black shadow at its core.
@@ -147,7 +147,7 @@ This document serves to record external sources, algorithms, mathematical deriva
 
 ### Metallic-Roughness Sphere Grid (PBR Reference Test)
 
-- **File:** `showcases/35/showcase.ts`
+- **File:** `apps/showcases/35/showcase.ts`
 - **Authors/Gurus:** Khronos Group (glTF Sample Viewer / glTF-Sample-Assets contributors)
 - **Source:** [Khronos glTF-Sample-Assets: "MetalRoughSpheres"](https://github.com/KhronosGroup/glTF-Sample-Assets)
 - **Usage:** The de-facto industry reference scene for validating a metallic-roughness PBR implementation: a grid of identical spheres with metallic varying along one axis and roughness along the other, under a fixed base color. Showcase 35 reproduces this layout with `StandardMaterial` to visually cross-check PBR shading consistency across the WebGL1/WebGL2/WebGPU renderers via `?rendererType=`.
@@ -289,7 +289,7 @@ This document serves to record external sources, algorithms, mathematical deriva
 
 ### Damaged Helmet (glTF PBR Sample Model)
 
-- **File:** `showcases/13/assets/DamagedHelmet.glb`, `showcases/13/assets/LICENSE.md`, `showcases/13/assets/README.md`, `showcases/13/assets/metadata.json`
+- **File:** `apps/showcases/13/assets/DamagedHelmet.glb`, `apps/showcases/13/assets/LICENSE.md`, `apps/showcases/13/assets/README.md`, `apps/showcases/13/assets/metadata.json`
 - **Authors/Gurus:** theblueturtle_ (original model), ctxwing (rebuild & conversion to glTF)
 - **Source:** [Khronos glTF-Sample-Assets: "DamagedHelmet"](https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/DamagedHelmet) (glTF-Binary variant)
 - **License:** © 2016 theblueturtle_, [CC-BY-NC-4.0](https://creativecommons.org/licenses/by-nc/4.0/legalcode) (earlier version of the model); © 2018 ctxwing, [CC-BY-4.0](https://creativecommons.org/licenses/by/4.0/legalcode) (rebuild/conversion). Both licenses apply combined — non-commercial use with attribution.
@@ -297,7 +297,7 @@ This document serves to record external sources, algorithms, mathematical deriva
 
 ### Glass Broken Window (glTF Transmission Sample Model)
 
-- **File:** `showcases/36/assets/GlassBrokenWindow.glb`, `showcases/36/assets/LICENSE.md`, `showcases/36/assets/README.md`, `showcases/36/assets/metadata.json`
+- **File:** `apps/showcases/36/assets/GlassBrokenWindow.glb`, `apps/showcases/36/assets/LICENSE.md`, `apps/showcases/36/assets/README.md`, `apps/showcases/36/assets/metadata.json`
 - **Authors/Gurus:** Wayfair / Eric Chadwick
 - **Source:** [Khronos glTF-Sample-Assets: "GlassBrokenWindow"](https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/GlassBrokenWindow) (glTF-Binary variant)
 - **License:** © 2023 Wayfair, [CC-BY-4.0](https://creativecommons.org/licenses/by/4.0/legalcode).
@@ -305,14 +305,14 @@ This document serves to record external sources, algorithms, mathematical deriva
 
 ### Dungeon Font (Yet Another Dungeon HUD)
 
-- **File:** `showcases/yad/assets/fonts/Dungeon.ttf`
+- **File:** `apps/sample-apps/yad/assets/fonts/Dungeon.ttf`
 - **Source:** [DooM Font auf DaFont](https://www.dafont.com/doom.font)
 - **Usage:** Used to render the iconic red numbers and UI text in the YAD (Yet Another Dungeon) showcase. A huge thanks to the unknown author who originally created and shared this authentic TTF replica!
   *Note: While the project uses the name "Yet Another Dungeon" (YAD), its aesthetic and assets are deeply inspired by the legendary DOOM (1993).*
 
 ### Retro Dungeon Texture & Sprite Pack
 
-- **File:** `showcases/yad/assets/dungeon_pack/`
+- **File:** `apps/sample-apps/yad/assets/dungeon_pack/`
 - **Source:** Original assets by **id Software** (DOOM, 1993). 
 - **Usage:** Used in the YAD showcase for authentic wall textures, flats, and weapon/enemy sprites. Thank you to the DOOM community and id Software for making these legendary assets available for educational and nostalgic projects!
 
@@ -350,34 +350,34 @@ This document serves to record external sources, algorithms, mathematical deriva
 
 ### Star Nest (Volumetric Cosmic Raymarching)
 
-- **File:** `showcases/23/showcase.ts` (SHADERTOY_STAR_NEST)
+- **File:** `apps/showcases/23/showcase.ts` (SHADERTOY_STAR_NEST)
 - **Authors/Gurus:** Kali
 - **Source:** [Star Nest on Shadertoy](https://www.shadertoy.com/view/XlfGRj)
 - **Usage:** This iconic Shadertoy creates a stunning, volumetric deep-space effect using iterative distance folding. It beautifully demonstrates how WebGL2 handles heavy loops and spatial transformations on our dynamic billboards.
 
 ### Neon Fractal (Kishimisu)
 
-- **File:** `showcases/23/showcase.ts` (COMPUTETOYS_KISHIMISU and SHADERTOY_FRACTAL)
+- **File:** `apps/showcases/23/showcase.ts` (COMPUTETOYS_KISHIMISU and SHADERTOY_FRACTAL)
 - **Authors/Gurus:** Kishimisu
 - **Source:** [An introduction to Shader Art Coding](https://www.youtube.com/watch?v=f4s1h2YETNY)
 - **Usage:** This hypnotic, colorful fractal shader is a direct adaptation of Kishimisu's legendary shader art tutorial. It uses space folding, sine-wave color palettes, and iterative distance field manipulation to create an infinitely zooming neon landscape. A masterpiece of procedural math, featured in both the WebGL2 and WebGPU galleries!
 
 ### Plasma (GLSLSandbox)
 
-- **File:** `showcases/23/showcase.ts` (GLSLSANDBOX_PLASMA)
+- **File:** `apps/showcases/23/showcase.ts` (GLSLSANDBOX_PLASMA)
 - **Source:** Generic / Public Domain (GLSLSandbox)
 - **Usage:** A classic, foundational plasma effect built using overlaid sine/cosine waves and time offsets. It serves as a minimalist, high-performance reference implementation for WebGL2 custom materials.
 
 ### Raymarching & SDFs
 
-- **File:** `src/core/renderers/shaders/source/web_gl2/chunks/sdf_math.glsl`, `src/core/renderers/shaders/source/web_gpu/chunks/sdf_math.wgsl`, `showcases/24/showcase.ts`
+- **File:** `src/core/renderers/shaders/source/web_gl2/chunks/sdf_math.glsl`, `src/core/renderers/shaders/source/web_gpu/chunks/sdf_math.wgsl`, `apps/showcases/24/showcase.ts`
 - **Authors/Gurus:** Inigo Quilez
 - **Source:** [Inigo Quilez - Computer Graphics, Mathematics, Shaders](https://iquilezles.org/)
 - **Usage:** Provides core Signed Distance Field (SDF) mathematical primitives (sphere, box, torus, cylinder, capsule, plane), polynomial smooth CSG operators (smooth union, subtraction, intersection), and domain modifiers (twist, repetition, rotation). Standardizes raymarching and procedural distance evaluations across WebGL2 and WebGPU shaders.
 
 ### Retro Synthwave Grid
 
-- **File:** `showcases/23/showcase.ts` (COMPUTETOYS_SYNTHWAVE)
+- **File:** `apps/showcases/23/showcase.ts` (COMPUTETOYS_SYNTHWAVE)
 - **Usage:** A classic 80s outrun-style shader featuring an endless glowing grid and a sunset. It demonstrates the use of simple coordinate manipulations and smoothstep functions to recreate nostalgic procedural aesthetics.
 
 ### Stylized 3D Water Shader (Vertex Waves, Depth Fade, Foam)

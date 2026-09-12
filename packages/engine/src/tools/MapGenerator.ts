@@ -295,7 +295,7 @@ export class MapGenerator extends ForgeTool {
     this._container.querySelector("#mapgen-btn-play")?.addEventListener("click", () => {
       const mapStr = this.getMapString();
       localStorage.setItem("yad_custom_map", mapStr);
-      window.open("../showcases/yad/index.html", "_blank");
+      window.open("/apps/sample-apps/yad/index.html", "_blank");
     });
   }
 

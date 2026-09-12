@@ -175,9 +175,10 @@ async function checkShowcase(browser, { showcase, rendererType }) {
   let passed = true;
   try {
     const query = rendererType ? `?rendererType=${rendererType}` : "";
-    // `yad` moved from showcases/yad/ to apps/yad/ as its own workspace package (npm-workspaces
-    // restructuring, ADR 0014/0015) -- everything else is still a plain numbered showcase.
-    const basePath = showcase === "yad" ? `apps/${showcase}` : `showcases/${showcase}`;
+    // `yad` lives under apps/sample-apps/yad/, the numbered showcases under apps/showcases/N/ --
+    // both are workspace packages now, neither is at the old top-level showcases/ path.
+    const basePath =
+      showcase === "yad" ? `apps/sample-apps/${showcase}` : `apps/showcases/${showcase}`;
     const url = `https://localhost:4173/${basePath}/index.html${query}`;
 
     await page.goto(url, { waitUntil: "networkidle0", timeout: 15000 });

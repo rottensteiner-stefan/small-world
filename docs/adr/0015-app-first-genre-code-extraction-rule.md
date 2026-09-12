@@ -63,8 +63,10 @@ innerhalb dieses Repositorys getan haben.
 
 **Update (2026-09-12):** Die hypothetische dritte Extraktionsstufe ("oder irgendwann ein
 eigenständiges Plugin-Paket") ist jetzt technisch real: Mit der npm-Workspaces-Restrukturierung
-ist jede App (`apps/and-now`, `apps/yad`, `apps/light-cycle-arena`) ihr eigenes Package, das die
-Engine als `@small-world/engine`-Package-Abhängigkeit konsumiert. Die Kernregel bleibt unverändert
-— neuer genre-spezifischer Code beginnt weiterhin in der jeweiligen App, Extraktion nach
+sind die Apps (`and-now`, `yad`, `light-cycle-arena`) zu Unterordnern des gemeinsamen
+Workspace-Package `@small-world/sample-apps` (`apps/sample-apps/and-now`,
+`apps/sample-apps/yad`, `apps/sample-apps/light-cycle-arena`) zusammengefasst, das die Engine
+als `@small-world/engine`-Package-Abhängigkeit konsumiert. Die Kernregel bleibt unverändert —
+neuer genre-spezifischer Code beginnt weiterhin in der jeweiligen App, Extraktion nach
 `packages/engine/src/math`/`src/core` (statt `src/math`/`src/core`) erfolgt weiterhin erst beim
 echten zweiten Bedarf.

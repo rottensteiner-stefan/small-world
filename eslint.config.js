@@ -14,7 +14,7 @@ export default [
 
   // 3. Konfiguration für Engine-Package, Apps und Showcases (Browser-Umgebung)
   {
-    files: ["packages/**/*.ts", "apps/**/*.ts", "showcases/**/*.ts", "tests/**/*.ts"],
+    files: ["packages/**/*.ts", "apps/**/*.ts", "tests/**/*.ts"],
     plugins: {
       import: importPlugin,
     },
@@ -95,7 +95,7 @@ export default [
         {
           patterns: [
             {
-              group: ["**/apps/**", "@small-world/and-now", "@small-world/yad", "@small-world/light-cycle-arena"],
+              group: ["**/apps/**", "@small-world/sample-apps"],
               message:
                 "Die Engine (packages/engine) darf nichts aus apps/ importieren. Siehe ADR 0014/0015.",
             },

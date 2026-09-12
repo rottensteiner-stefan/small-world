@@ -103,7 +103,7 @@ export class GPUGeometryCache {
   /**
    * Tracks per-object geometry references so `releaseGeometryFor` can correctly
    * free buffers once nothing references them anymore -- even when geometry is shared
-   * across many objects (see showcases/19) or swapped on a live object at runtime.
+   * across many objects (see apps/showcases/19) or swapped on a live object at runtime.
    */
   private _acquireGeoCache(
     obj: Object3D,

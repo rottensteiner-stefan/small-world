@@ -25,8 +25,8 @@ apps/<app-name>/
 
 | App | Log |
 |---|---|
-| And Now? | `apps/and-now/docs/log.md` |
-| Light Cycle Arena | `apps/light-cycle-arena/docs/log.md` |
-| YAD | `apps/yad/docs/log.md` |
+| And Now? | `apps/sample-apps/and-now/docs/log.md` |
+| Light Cycle Arena | `apps/sample-apps/light-cycle-arena/docs/log.md` |
+| YAD | `apps/sample-apps/yad/docs/log.md` |
 
 **Update (2026-09-12):** Mit der npm-Workspaces-Restrukturierung (`packages/engine` + `apps/*`) sind die Pfade von `src/apps/<app>/` auf `apps/<app>/` umgezogen. Diese Datei spiegelt bereits die neue Struktur.

@@ -17,6 +17,18 @@ function getRendererTypeFromQuery(): RendererType | undefined {
     : undefined;
 }
 
+/**
+ * IDs of the actually-existing numbered showcases (`apps/showcases/<id>/`), in navigation order.
+ * Not a contiguous 1..N range -- 25 was retired (absorbed into Showcase 10's Waterworld rebuild)
+ * and the gap was intentionally kept instead of renumbering everything after it. Kept as an
+ * explicit list (mirrors the showcase registries already hand-maintained in vite.config.ts and
+ * scripts/check-showcases.js) so PREV/NEXT skips the gap instead of computing a dead ID.
+ */
+const VALID_SHOWCASE_IDS = [
+  1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 26, 27, 28,
+  29, 30, 31, 32, 33, 34, 35, 36,
+];
+
 export abstract class AbstractShowcase extends SmallWorld {
   private _showcaseKeyDownHandler = (event: KeyboardEvent): void => this.onKeyDown(event);
   private _navButtons: HTMLButtonElement[] = [];
@@ -48,13 +60,14 @@ export abstract class AbstractShowcase extends SmallWorld {
    * Initializes the NEXT/PREV pointers for numeric showcases.
    */
   private _initShowcaseNavigation(): void {
-    const match = window.location.pathname.match(/\/showcases\/(\d+)\/?/);
+    const match = window.location.pathname.match(/\/apps\/showcases\/(\d+)\/?/);
     if (!match) return;
 
     const currentId = parseInt(match[1]!, 10);
     if (isNaN(currentId)) return;
 
-    const totalShowcases = 35;
+    const currentIndex = VALID_SHOWCASE_IDS.indexOf(currentId);
+    if (currentIndex === -1) return;
 
     const createButton = (
       text: string,
@@ -113,21 +126,21 @@ export abstract class AbstractShowcase extends SmallWorld {
     };
 
     createButton("◀", "left", () => {
-      let nextId = currentId - 1;
-      if (nextId < 1) nextId = totalShowcases;
+      const prevIndex = (currentIndex - 1 + VALID_SHOWCASE_IDS.length) % VALID_SHOWCASE_IDS.length;
+      const nextId = VALID_SHOWCASE_IDS[prevIndex];
       const newPath = window.location.pathname.replace(
-        /\/showcases\/\d+\/?(.*)/,
-        `/showcases/${nextId}/$1`,
+        /\/apps\/showcases\/\d+\/?(.*)/,
+        `/apps/showcases/${nextId}/$1`,
       );
       window.location.href = newPath;
     });
 
     createButton("▶", "right", () => {
-      let nextId = currentId + 1;
-      if (nextId > totalShowcases) nextId = 1;
+      const nextIndex = (currentIndex + 1) % VALID_SHOWCASE_IDS.length;
+      const nextId = VALID_SHOWCASE_IDS[nextIndex];
       const newPath = window.location.pathname.replace(
-        /\/showcases\/\d+\/?(.*)/,
-        `/showcases/${nextId}/$1`,
+        /\/apps\/showcases\/\d+\/?(.*)/,
+        `/apps/showcases/${nextId}/$1`,
       );
       window.location.href = newPath;
     });

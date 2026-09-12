@@ -32,7 +32,7 @@ export default defineConfig({
     globals: true,
     environment: "node",
     setupFiles: ["tests/setup.ts"],
-    include: ["tests/**/*.test.ts", "packages/*/tests/**/*.test.ts", "apps/*/tests/**/*.test.ts"],
+    include: ["tests/**/*.test.ts", "packages/*/tests/**/*.test.ts", "apps/**/tests/**/*.test.ts"],
     coverage: {
       provider: "v8",
       include: ["packages/*/src/**/*.ts", "apps/**/*.ts"],
@@ -49,7 +49,7 @@ export default defineConfig({
       name: "showcase-layout",
       transformIndexHtml(html) {
         const layoutRegex =
-          /<showcase-layout\s+title="([^"]*)"\s+subtitle-b64="([^"]*)"\s+prev="([^"]*)"\s+next="([^"]*)"><\/showcase-layout>/;
+          /<showcase-layout\s+title="([^"]*)"\s+subtitle-b64="([^"]*)"\s+prev="([^"]*)"\s+next="([^"]*)"\s*><\/showcase-layout>/;
         const match = html.match(layoutRegex);
         if (match) {
           const [full, title, subtitleB64] = match;
@@ -166,7 +166,7 @@ export default defineConfig({
             }
           }
         };
-        copyRecursiveSync("showcases", "dist/showcases");
+        copyRecursiveSync("apps/showcases", "dist/apps/showcases");
       },
     },
     ...(process.env.VITEST ? [] : [mkcert()]),
@@ -189,53 +189,59 @@ export default defineConfig({
     },
     rollupOptions: {
       input: {
-        showcase1: resolve(import.meta.dirname, "showcases/1/index.html"),
-        showcase2: resolve(import.meta.dirname, "showcases/2/index.html"),
-        showcase3: resolve(import.meta.dirname, "showcases/3/index.html"),
-        showcase4: resolve(import.meta.dirname, "showcases/4/index.html"),
-        showcase5: resolve(import.meta.dirname, "showcases/5/index.html"),
-        showcase6: resolve(import.meta.dirname, "showcases/6/index.html"),
-        showcase7: resolve(import.meta.dirname, "showcases/7/index.html"),
-        showcase8: resolve(import.meta.dirname, "showcases/8/index.html"),
-        showcase9: resolve(import.meta.dirname, "showcases/9/index.html"),
-        showcase10: resolve(import.meta.dirname, "showcases/10/index.html"),
-        showcase11: resolve(import.meta.dirname, "showcases/11/index.html"),
-        showcase12: resolve(import.meta.dirname, "showcases/12/index.html"),
-        showcase13: resolve(import.meta.dirname, "showcases/13/index.html"),
-        showcase14: resolve(import.meta.dirname, "showcases/14/index.html"),
-        showcase15: resolve(import.meta.dirname, "showcases/15/index.html"),
-        showcase16: resolve(import.meta.dirname, "showcases/16/index.html"),
-        showcase17: resolve(import.meta.dirname, "showcases/17/index.html"),
-        showcase18: resolve(import.meta.dirname, "showcases/18/index.html"),
-        showcase19: resolve(import.meta.dirname, "showcases/19/index.html"),
-        showcase20: resolve(import.meta.dirname, "showcases/20/index.html"),
-        showcase21: resolve(import.meta.dirname, "showcases/21/index.html"),
-        showcase22: resolve(import.meta.dirname, "showcases/22/index.html"),
-        showcase23: resolve(import.meta.dirname, "showcases/23/index.html"),
-        showcase24: resolve(import.meta.dirname, "showcases/24/index.html"),
-        showcase26: resolve(import.meta.dirname, "showcases/26/index.html"),
-        showcase27: resolve(import.meta.dirname, "showcases/27/index.html"),
-        showcase28: resolve(import.meta.dirname, "showcases/28/index.html"),
-        showcase29: resolve(import.meta.dirname, "showcases/29/index.html"),
-        showcase30: resolve(import.meta.dirname, "showcases/30/index.html"),
-        showcase31: resolve(import.meta.dirname, "showcases/31/index.html"),
-        showcase32: resolve(import.meta.dirname, "showcases/32/index.html"),
-        showcase33: resolve(import.meta.dirname, "showcases/33/index.html"),
-        showcase34: resolve(import.meta.dirname, "showcases/34/index.html"),
-        showcase35: resolve(import.meta.dirname, "showcases/35/index.html"),
-        showcase36: resolve(import.meta.dirname, "showcases/36/index.html"),
-        andNowHub: resolve(import.meta.dirname, "apps/and-now/index.html"),
-        andNowPrologue: resolve(import.meta.dirname, "apps/and-now/scenes/prologue/index.html"),
+        showcase1: resolve(import.meta.dirname, "apps/showcases/1/index.html"),
+        showcase2: resolve(import.meta.dirname, "apps/showcases/2/index.html"),
+        showcase3: resolve(import.meta.dirname, "apps/showcases/3/index.html"),
+        showcase4: resolve(import.meta.dirname, "apps/showcases/4/index.html"),
+        showcase5: resolve(import.meta.dirname, "apps/showcases/5/index.html"),
+        showcase6: resolve(import.meta.dirname, "apps/showcases/6/index.html"),
+        showcase7: resolve(import.meta.dirname, "apps/showcases/7/index.html"),
+        showcase8: resolve(import.meta.dirname, "apps/showcases/8/index.html"),
+        showcase9: resolve(import.meta.dirname, "apps/showcases/9/index.html"),
+        showcase10: resolve(import.meta.dirname, "apps/showcases/10/index.html"),
+        showcase11: resolve(import.meta.dirname, "apps/showcases/11/index.html"),
+        showcase12: resolve(import.meta.dirname, "apps/showcases/12/index.html"),
+        showcase13: resolve(import.meta.dirname, "apps/showcases/13/index.html"),
+        showcase14: resolve(import.meta.dirname, "apps/showcases/14/index.html"),
+        showcase15: resolve(import.meta.dirname, "apps/showcases/15/index.html"),
+        showcase16: resolve(import.meta.dirname, "apps/showcases/16/index.html"),
+        showcase17: resolve(import.meta.dirname, "apps/showcases/17/index.html"),
+        showcase18: resolve(import.meta.dirname, "apps/showcases/18/index.html"),
+        showcase19: resolve(import.meta.dirname, "apps/showcases/19/index.html"),
+        showcase20: resolve(import.meta.dirname, "apps/showcases/20/index.html"),
+        showcase21: resolve(import.meta.dirname, "apps/showcases/21/index.html"),
+        showcase22: resolve(import.meta.dirname, "apps/showcases/22/index.html"),
+        showcase23: resolve(import.meta.dirname, "apps/showcases/23/index.html"),
+        showcase24: resolve(import.meta.dirname, "apps/showcases/24/index.html"),
+        showcase26: resolve(import.meta.dirname, "apps/showcases/26/index.html"),
+        showcase27: resolve(import.meta.dirname, "apps/showcases/27/index.html"),
+        showcase28: resolve(import.meta.dirname, "apps/showcases/28/index.html"),
+        showcase29: resolve(import.meta.dirname, "apps/showcases/29/index.html"),
+        showcase30: resolve(import.meta.dirname, "apps/showcases/30/index.html"),
+        showcase31: resolve(import.meta.dirname, "apps/showcases/31/index.html"),
+        showcase32: resolve(import.meta.dirname, "apps/showcases/32/index.html"),
+        showcase33: resolve(import.meta.dirname, "apps/showcases/33/index.html"),
+        showcase34: resolve(import.meta.dirname, "apps/showcases/34/index.html"),
+        showcase35: resolve(import.meta.dirname, "apps/showcases/35/index.html"),
+        showcase36: resolve(import.meta.dirname, "apps/showcases/36/index.html"),
+        andNowHub: resolve(import.meta.dirname, "apps/sample-apps/and-now/index.html"),
+        andNowPrologue: resolve(
+          import.meta.dirname,
+          "apps/sample-apps/and-now/scenes/prologue/index.html",
+        ),
         andNowScene2: resolve(
           import.meta.dirname,
-          "apps/and-now/scenes/flakturm-tunnel/index.html",
+          "apps/sample-apps/and-now/scenes/flakturm-tunnel/index.html",
         ),
         andNowCharacterDiorama: resolve(
           import.meta.dirname,
-          "apps/and-now/scenes/character-diorama/index.html",
+          "apps/sample-apps/and-now/scenes/character-diorama/index.html",
         ),
-        yad: resolve(import.meta.dirname, "apps/yad/index.html"),
-        lightCycleArena: resolve(import.meta.dirname, "apps/light-cycle-arena/index.html"),
+        yad: resolve(import.meta.dirname, "apps/sample-apps/yad/index.html"),
+        lightCycleArena: resolve(
+          import.meta.dirname,
+          "apps/sample-apps/light-cycle-arena/index.html",
+        ),
         pbrgen: resolve(import.meta.dirname, "public/tools/pbr-gen.html"),
         iblgen: resolve(import.meta.dirname, "public/tools/ibl-gen.html"),
         pixler: resolve(import.meta.dirname, "public/tools/pixler.html"),
@@ -266,21 +272,21 @@ export default defineConfig({
             return `js/[name].js`;
           }
           if (chunk.name === "andNowPrologue") {
-            return "apps/and-now/scenes/prologue/prologue.js";
+            return "apps/sample-apps/and-now/scenes/prologue/prologue.js";
           }
           if (chunk.name === "andNowScene2") {
-            return "apps/and-now/scenes/flakturm-tunnel/showcase.js";
+            return "apps/sample-apps/and-now/scenes/flakturm-tunnel/showcase.js";
           }
           if (chunk.name === "andNowCharacterDiorama") {
-            return "apps/and-now/scenes/character-diorama/showcase.js";
+            return "apps/sample-apps/and-now/scenes/character-diorama/showcase.js";
           }
           if (chunk.name === "yad") {
-            return "apps/yad/App.js";
+            return "apps/sample-apps/yad/App.js";
           }
           if (chunk.name === "lightCycleArena") {
-            return "apps/light-cycle-arena/App.js";
+            return "apps/sample-apps/light-cycle-arena/App.js";
           }
-          return `showcases/[name]/showcase.js`;
+          return `apps/showcases/[name]/showcase.js`;
         },
         assetFileNames: "assets/[name].[ext]",
         chunkFileNames: "js/[name].js",
