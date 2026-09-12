@@ -17,7 +17,11 @@ const _scratchStandard: Object3D[] = [];
 export class SpotShadowPassGPU implements RenderPass {
   public name = "SpotShadowPassGPU";
 
-  private _dummyTargetView?: GPUTextureView;
+  /** Keyed by format -- see `CascadedShadowPassGPU._dummyTargetViews`'s doc comment for why a
+   * single cached view (fixed at whichever format happened to be current the first time this
+   * pass ever ran) silently mismatched the depth material's pipeline in whichever context
+   * (main scene pass vs. a `PlanarReflectionNode` sub-render) didn't match that first one. */
+  private _dummyTargetViews = new Map<GPUTextureFormat, GPUTextureView>();
   private _bindGroupNeedsShadowRebuild = true;
   private _depthMaterial?: DepthMaterial;
   private _shadowCasterBindGroup?: GPUBindGroup;
@@ -45,13 +49,16 @@ export class SpotShadowPassGPU implements RenderPass {
 
     const shadowRes = casters[0]?.shadowResolution || 1024;
 
-    if (!this._dummyTargetView) {
+    const dummyFormat = renderer.currentColorTargetFormat;
+    let dummyTargetView = this._dummyTargetViews.get(dummyFormat);
+    if (!dummyTargetView) {
       const tex = renderer.gpuDevice!.createTexture({
         size: [shadowRes, shadowRes],
-        format: renderer.postProcessing.enabled ? "rgba16float" : renderer.gpuFormat,
+        format: dummyFormat,
         usage: GPUTextureUsage.RENDER_ATTACHMENT,
       });
-      this._dummyTargetView = tex.createView();
+      dummyTargetView = tex.createView();
+      this._dummyTargetViews.set(dummyFormat, dummyTargetView);
     }
 
     if (!this._fbo) {
@@ -107,7 +114,7 @@ export class SpotShadowPassGPU implements RenderPass {
       const rp = ce.beginRenderPass({
         colorAttachments: [
           {
-            view: this._dummyTargetView,
+            view: dummyTargetView,
             loadOp: "clear",
             storeOp: "store",
           },

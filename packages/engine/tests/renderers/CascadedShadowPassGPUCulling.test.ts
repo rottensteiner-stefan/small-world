@@ -49,6 +49,7 @@ function makeMockRenderer(objects: Object3D[]): Internals {
     gpuDevice: device,
     postProcessing: { enabled: false },
     gpuFormat: "rgba8unorm",
+    currentColorTargetFormat: "rgba8unorm",
     shadowMaps: new Map(),
     defaultDirShadowTextureView: {},
     dummyDirShadowTextureView: {},

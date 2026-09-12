@@ -14,7 +14,17 @@ const _scratchStandard: Object3D[] = [];
 export class CascadedShadowPassGPU implements RenderPass {
   public name = "CascadedShadowPassGPU";
 
-  private _dummyTargetView?: GPUTextureView;
+  /**
+   * Keyed by format rather than a single cached view: this pass renders both during the main
+   * scene pass (format = `renderer.currentColorTargetFormat` while no custom RenderTarget is
+   * active) and again during e.g. a `PlanarReflectionNode`'s reflection sub-render (a custom
+   * RenderTarget IS active there), and those two contexts can legitimately need different dummy
+   * formats within the same frame. A single cached view -- fixed at whichever format happened to
+   * be current the first time this pass ever ran -- silently mismatched the depth material's
+   * pipeline (built fresh per call from the SAME `currentColorTargetFormat`) in whichever context
+   * didn't match that first one, which WebGPU rejects as an attachment-state mismatch.
+   */
+  private _dummyTargetViews = new Map<GPUTextureFormat, GPUTextureView>();
   private _dirShadowTexView?: GPUTextureView;
   private _bindGroupNeedsShadowRebuild = true;
   private _depthMaterial?: DepthMaterial;
@@ -43,13 +53,16 @@ export class CascadedShadowPassGPU implements RenderPass {
 
     this._depthMaterial ??= new DepthMaterial();
 
-    if (!this._dummyTargetView) {
+    const dummyFormat = renderer.currentColorTargetFormat;
+    let dummyTargetView = this._dummyTargetViews.get(dummyFormat);
+    if (!dummyTargetView) {
       const tex = renderer.gpuDevice!.createTexture({
         size: [dLight.shadowResolution, dLight.shadowResolution],
-        format: renderer.postProcessing.enabled ? "rgba16float" : renderer.gpuFormat,
+        format: dummyFormat,
         usage: GPUTextureUsage.RENDER_ATTACHMENT,
       });
-      this._dummyTargetView = tex.createView();
+      dummyTargetView = tex.createView();
+      this._dummyTargetViews.set(dummyFormat, dummyTargetView);
     }
 
     let fbo = renderer.shadowMaps.get(dLight) as GPUTexture | undefined;
@@ -101,7 +114,7 @@ export class CascadedShadowPassGPU implements RenderPass {
       const rp = ce.beginRenderPass({
         colorAttachments: [
           {
-            view: this._dummyTargetView,
+            view: dummyTargetView,
             loadOp: "clear",
             storeOp: "store",
           },

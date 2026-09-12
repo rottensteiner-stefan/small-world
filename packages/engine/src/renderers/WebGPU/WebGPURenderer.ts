@@ -106,6 +106,28 @@ export class WebGPURenderer extends AbstractRenderer {
     return this._format;
   }
 
+  /**
+   * The color-target format any RenderPipeline drawing into the CURRENTLY bound target must be
+   * built for -- i.e. whatever `render()`'s own view resolution (see the `isOffscreen` block
+   * around `_activeRenderTarget`) will actually bind this frame. A custom offscreen RenderTarget
+   * (e.g. `PlanarReflectionNode.renderTarget`) is always backed by a `this._format` texture,
+   * regardless of `postProcessing.enabled` -- only the *main* scene pass (no active render
+   * target) targets the "rgba16float" HDR intermediate buffer when post-processing is on.
+   * Single source of truth for this decision: anything that needs to match the pipeline format
+   * `_renderSubgroup()` will request in the current context (e.g. a shadow pass's own throwaway
+   * dummy color attachment) must read this getter too, rather than re-deriving the same decision
+   * from `postProcessing.enabled` alone and silently drifting out of sync with it whenever
+   * something renders into a custom RenderTarget (see `CascadedShadowPassGPU`/`SpotShadowPassGPU`,
+   * which used to do exactly that).
+   */
+  public get currentColorTargetFormat(): GPUTextureFormat {
+    return this._activeRenderTarget
+      ? this._format
+      : this.postProcessing.enabled
+        ? "rgba16float"
+        : this._format;
+  }
+
   /** Per-object dynamic-offset uniform ring buffer -- see `GPUObjectRingBuffer`'s own doc
    * comment. */
   private _objectRing!: GPUObjectRingBuffer;
@@ -1248,7 +1270,10 @@ export class WebGPURenderer extends AbstractRenderer {
             depth = this._device!.createTexture({
               size: [this._activeRenderTarget.width, this._activeRenderTarget.height],
               format: "depth32float",
-              usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+              usage:
+                GPUTextureUsage.RENDER_ATTACHMENT |
+                GPUTextureUsage.TEXTURE_BINDING |
+                GPUTextureUsage.COPY_SRC,
             });
             depthView = depth.createView();
           }
@@ -1286,7 +1311,10 @@ export class WebGPURenderer extends AbstractRenderer {
             depth = this._device.createTexture({
               size: [this._activeRenderTarget.width, this._activeRenderTarget.height],
               format: "depth32float",
-              usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+              usage:
+                GPUTextureUsage.RENDER_ATTACHMENT |
+                GPUTextureUsage.TEXTURE_BINDING |
+                GPUTextureUsage.COPY_SRC,
             });
             depthView = depth.createView();
           }
@@ -1550,7 +1578,7 @@ export class WebGPURenderer extends AbstractRenderer {
     topology: GPUPrimitiveTopology = Topology.DEFAULT,
     wireframeMode?: "structural" | "triangles",
   ): void {
-    const targetFormat = this.postProcessing.enabled ? "rgba16float" : this._format;
+    const targetFormat = this.currentColorTargetFormat;
     const cache = this._pipelineCache.getPipeline(manifest, topology, isInstanced, targetFormat);
     const pipelineKey = this._pipelineCache.pipelineCacheKey(
       manifest,

@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.79.02] - 2026-09-13
+
+### "The nice thing about standards is that there are so many to choose from." - Andrew S. Tanenbaum
+
+- **Architecture & Bugfixes:**
+  - Fixed a WebGPU pipeline/render-target format bug that silently broke rendering into any custom `RenderTarget` (e.g. `PlanarReflectionNode`) whenever post-processing was enabled: `_renderSubgroup`'s pipeline format only checked `postProcessing.enabled`, ignoring whether an offscreen target was actually active, so WebGPU rejected the resulting command buffer as an attachment-state mismatch (dropped silently, no visible error to the showcase). Replaced with a single `currentColorTargetFormat` getter that both `_renderSubgroup` and the shadow passes now share.
+  - Fixed a related bug this exposed in `CascadedShadowPassGPU`/`SpotShadowPassGPU`: their dummy color attachment was created once and cached forever at whichever format was current on first use, which broke as soon as the same pass ran in both the main scene pass and an offscreen sub-render within one frame. Now cached per format.
+  - Fixed a custom `RenderTarget`'s depth texture missing `GPUTextureUsage.COPY_SRC` (present on the main canvas depth texture, but not on a `RenderTarget`'s own), which broke `captureOpaqueDepth()` for any transparent object rendered into one.
+  - Showcase 16 ("Reflection Moons") now renders its floor reflections correctly under the default (WebGPU) renderer -- previously broken by the same bug, silently falling back to a flat, unreflective floor.
+- **Housekeeping & Docs:**
+  - New regression tests (`WebGPUOffscreenTargetFormat.test.ts`) covering all three fixes, each verified to fail against the pre-fix code.
+
 ## [0.79.01] - 2026-09-12
 
 ### "A place for everything, and everything in its place." - Benjamin Franklin
