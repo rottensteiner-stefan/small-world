@@ -3,8 +3,6 @@ import { EventType } from "../enums/index.js";
 import { Object3D } from "../core/index.js";
 import { Bone, Skeleton, SkinnedMesh, AnimationClip } from "../core/animation/index.js";
 import { StandardMaterial } from "../core/materials/index.js";
-import { PointLight, PointLightOptions } from "../core/lights/index.js";
-import { Color } from "../core/colors/index.js";
 import { GltfLoaderOptions } from "../interfaces/index.js";
 import { Matrix4, Vector3D, Quaternion } from "../math/index.js";
 
@@ -17,6 +15,11 @@ import {
   GltfGeometryParser,
   GltfSkinParser,
 } from "./gltf/index.js";
+import { getGltfExtensions } from "./gltf/GltfExtensionRegistry.js";
+import { GltfReadContext } from "./gltf/GltfExtensionPlugin.js";
+// Side-effect import: registers the built-in extension plugins (KHR_lights_punctual,
+// SW_prefab_instance, SW_stage_zone) -- see ADR 0017.
+import "./gltf/extensions/index.js";
 
 /**
  * Loader for glTF 2.0 assets (.gltf and .glb).
@@ -158,24 +161,14 @@ export class GltfLoader extends AbstractLoader<Object3D> {
       }
     }
 
-    // 2.5 Identify KHR_lights_punctual point-light nodes
-    const pointLightDefs = new Map<
-      number,
-      { color?: number[]; intensity?: number; range?: number }
-    >();
-    const punctualLights = json.extensions?.KHR_lights_punctual?.lights;
-    if (punctualLights && json.nodes) {
-      for (let i = 0; i < json.nodes.length; i++) {
-        const lightIdx = json.nodes[i]?.extensions?.KHR_lights_punctual?.light;
-        if (lightIdx === undefined) continue;
-        const def = punctualLights[lightIdx];
-        if (def && "point" === def.type) {
-          pointLightDefs.set(i, def);
-        }
-      }
-    }
+    // 2.5 Let every registered extension plugin pre-pass the document (e.g. indexing
+    // KHR_lights_punctual.lights[] by node) -- see ADR 0017.
+    const readCtx: GltfReadContext = { json, state: new Map() };
+    for (const plugin of getGltfExtensions()) plugin.prepareRead?.(readCtx);
 
-    // 3. Create node objects (Bone if joint, PointLight if a punctual point light, otherwise Object3D)
+    // 3. Create node objects (Bone if joint, otherwise whatever the first matching extension
+    // plugin decides -- e.g. PointLight for KHR_lights_punctual, StageZoneMarker for
+    // SW_stage_zone -- falling back to a plain Object3D)
     const nodeObjects: Object3D[] = [];
     if (json.nodes) {
       for (let i = 0; i < json.nodes.length; i++) {
@@ -189,28 +182,18 @@ export class GltfLoader extends AbstractLoader<Object3D> {
         if (this._gltfOptions.nodeNameTransform) {
           name = this._gltfOptions.nodeNameTransform(name);
         }
-        const lightDef = pointLightDefs.get(i);
-        let obj: Object3D;
+        let obj: Object3D | undefined;
         if (jointNodeIndices.has(i)) {
           obj = new Bone(name);
-        } else if (lightDef) {
-          const lightOptions: PointLightOptions = { name };
-          if (lightDef.color) {
-            lightOptions.color = new Color(
-              lightDef.color[0]!,
-              lightDef.color[1]!,
-              lightDef.color[2]!,
-            );
-          }
-          if (undefined !== lightDef.intensity) lightOptions.intensity = lightDef.intensity;
-          if (undefined !== lightDef.range) lightOptions.distance = lightDef.range;
-          obj = new PointLight(lightOptions);
         } else {
-          obj = new Object3D(name);
+          for (const plugin of getGltfExtensions()) {
+            obj = plugin.readNode?.(i, nodeDef, name, readCtx);
+            if (obj) break;
+          }
         }
+        obj ??= new Object3D(name);
         this._applyNodeTransforms(obj, nodeDef);
-        const prefabSource = nodeDef.extensions?.SW_prefab_instance?.source;
-        if (prefabSource) obj.prefabSource = prefabSource;
+        for (const plugin of getGltfExtensions()) plugin.applyNode?.(obj, nodeDef, readCtx);
         this._gltfOptions.onNodeParsed?.(obj, nodeDef as unknown as Record<string, unknown>);
         nodeObjects[i] = obj;
       }

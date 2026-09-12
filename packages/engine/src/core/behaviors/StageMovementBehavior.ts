@@ -1,15 +1,29 @@
 import { Behavior } from "./Behavior.js";
+import { InspectorField } from "../Inspectable.js";
 import { Object3D } from "../Object3D.js";
 import { InputInterface } from "../Input.js";
 import { StageZone } from "../stage/StageZone.js";
 import { Keys } from "../../enums/index.js";
 
-/** A world-space position for a given (u, v) stage coordinate -- see `uvToWorld`. */
+/** A world-space position for a given (u, v) stage coordinate -- see `StageProjection`. */
 export interface StageWorldPlacement {
   x: number;
   y: number;
   z: number;
 }
+
+/**
+ * Declarative description of how a zone's normalized (u, v) stage-space maps to a 3D world
+ * position -- see ADR 0016. `"flat-plane"` is a fixed linear formula (the only shape every scene
+ * shipped so far actually needs) and, unlike an arbitrary function, is real data: it round-trips
+ * through `SW_stage_zone`'s sibling data on `StageMovementBehavior` via glTF/Maker. `"custom"` is
+ * the deliberate escape hatch for a projection that can't be described this way -- see
+ * `StageMovementBehaviorOptions.customUvToWorld`; a `"custom"` scene stays loadable but can't be
+ * saved back out with its original projection intact (ADR 0016 Konsequenzen).
+ */
+export type StageProjection =
+  | { mode: "flat-plane"; width: number; height: number; z: number; centerY: number }
+  | { mode: "custom" };
 
 /**
  * Configuration options for StageMovementBehavior.
@@ -26,12 +40,19 @@ export interface StageMovementBehaviorOptions {
   /** Walkable stage zones defining the navigation mesh, in normalized (u, v) space. */
   zones?: StageZone[];
   /**
-   * Converts a normalized stage-space (u, v) position into a world placement for rendering.
-   * Deliberately NOT a camera unprojection -- a simple, fixed, artist-tunable formula (e.g.
-   * linear), so dragging zone points on screen never risks the numerical blowup a real
-   * perspective inverse has near the camera's horizon.
+   * Declarative stage-space-to-world mapping -- see `StageProjection`. Deliberately NOT a camera
+   * unprojection -- a simple, fixed, artist-tunable formula (e.g. linear), so dragging zone
+   * points on screen never risks the numerical blowup a real perspective inverse has near the
+   * camera's horizon.
    */
-  uvToWorld: (u: number, v: number) => StageWorldPlacement;
+  projection: StageProjection;
+  /**
+   * Only consulted when `projection.mode === "custom"` -- required in that case (the constructor
+   * throws otherwise), ignored for `"flat-plane"`. Not serialized by `WorldWriter`: a closure
+   * can't round-trip through glTF, so a `"custom"` scene is loadable but not re-saveable with its
+   * original projection intact (see `StageProjection`'s own doc comment).
+   */
+  customUvToWorld?: (u: number, v: number) => StageWorldPlacement;
   /** Starting stage-space position (default: `{ u: 0.5, v: 0.5 }`). */
   startUV?: { u: number; v: number };
   /** Callback fired when character transitions between locomotion states. */
@@ -68,6 +89,59 @@ export interface StageMovementBehaviorOptions {
  * anywhere in this class.
  */
 export class StageMovementBehavior extends Behavior {
+  /** Inspector schema (ADR 0016 Phase 0 -- the first `Behavior` subclass to populate this). The
+   * four `projection.*` fields are always rendered, even in `"custom"` mode (where they're
+   * harmlessly unused) -- the same already-established pattern as `OscillatorBehavior`'s
+   * `amplitude`/`frequency` staying visible regardless of its chosen `type`. Conditional
+   * visibility based on `projection.mode` is a Maker `PropertyPanel` concern (ADR 0016 Phase 2),
+   * not something this schema itself needs to express. */
+  public static override readonly inspector: Record<string, InspectorField> = {
+    speed: { type: "number", label: "Speed", min: 0, max: 2, step: 0.01 },
+    runMultiplier: { type: "number", label: "Run Multiplier", min: 1, max: 5, step: 0.1 },
+    rotationSpeed: { type: "number", label: "Rotation Speed", min: 0, max: 30, step: 0.1 },
+    facingOffset: { type: "number", label: "Facing Offset", min: -3.2, max: 3.2, step: 0.01 },
+    "projection.mode": {
+      type: "choice",
+      label: "Projection",
+      options: { "Flat Plane": "flat-plane", Custom: "custom" },
+      path: "projection.mode",
+    },
+    "projection.width": {
+      type: "number",
+      label: "Width",
+      min: 0,
+      max: 100,
+      step: 0.1,
+      path: "projection.width",
+      row: "planeSize",
+    },
+    "projection.height": {
+      type: "number",
+      label: "Height",
+      min: 0,
+      max: 100,
+      step: 0.1,
+      path: "projection.height",
+      row: "planeSize",
+    },
+    "projection.z": {
+      type: "number",
+      label: "Z",
+      min: -50,
+      max: 50,
+      step: 0.1,
+      path: "projection.z",
+    },
+    "projection.centerY": {
+      type: "number",
+      label: "Center Y",
+      min: -50,
+      max: 50,
+      step: 0.1,
+      path: "projection.centerY",
+    },
+  };
+
   public enabled: boolean = true;
   public speed: number;
   public runMultiplier: number;
@@ -78,9 +152,10 @@ export class StageMovementBehavior extends Behavior {
   public onZoneChange: ((zone: StageZone) => void) | undefined;
   public moveForward: number = 0;
   public facingOffset: number;
+  public projection: StageProjection;
+  public customUvToWorld: ((u: number, v: number) => StageWorldPlacement) | undefined;
 
   private _input: InputInterface;
-  private _uvToWorld: (u: number, v: number) => StageWorldPlacement;
   private _u: number;
   private _v: number;
   private _startFacing: "left" | "right" | "front" | "back";
@@ -97,7 +172,13 @@ export class StageMovementBehavior extends Behavior {
     this.rotationSpeed = options.rotationSpeed ?? 10.0;
     this.zones = options.zones ?? [];
     this.facingOffset = options.facingOffset ?? 0;
-    this._uvToWorld = options.uvToWorld;
+    if ("custom" === options.projection.mode && !options.customUvToWorld) {
+      throw new Error(
+        'StageMovementBehavior: projection.mode is "custom" but no customUvToWorld was provided.',
+      );
+    }
+    this.projection = options.projection;
+    this.customUvToWorld = options.customUvToWorld;
     this._u = options.startUV?.u ?? 0.5;
     this._v = options.startUV?.v ?? 0.5;
     this._startFacing = options.startFacing ?? "front";
@@ -171,7 +252,7 @@ export class StageMovementBehavior extends Behavior {
       const localRight = moveRight * invLen;
       const localForward = moveForward * invLen;
 
-      const axes = (this.activeZone ?? this.zones[0])?.getLocalAxes() ?? {
+      const axes = (this.activeZone ?? this.zones[0])?.getLocalAxes(this._u, this._v) ?? {
         forward: { u: 0, v: -1 },
         right: { u: 1, v: 0 },
       };
@@ -242,6 +323,15 @@ export class StageMovementBehavior extends Behavior {
         this.onZoneChange?.(this.activeZone);
       }
     }
+  }
+
+  /** Resolves `this.projection` (see `StageProjection`) into an actual world placement. */
+  private _uvToWorld(u: number, v: number): StageWorldPlacement {
+    if ("flat-plane" === this.projection.mode) {
+      const { width, height, z, centerY } = this.projection;
+      return { x: (u - 0.5) * width, y: centerY + (0.5 - v) * height, z };
+    }
+    return this.customUvToWorld!(u, v);
   }
 
   /** Writes the current (u, v) position and forced-perspective scale onto the target object. */

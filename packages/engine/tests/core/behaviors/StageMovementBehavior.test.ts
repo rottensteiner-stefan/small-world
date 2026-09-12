@@ -61,7 +61,8 @@ describe("StageMovementBehavior facing rotation", () => {
     const behavior = new StageMovementBehavior({
       input,
       zones: [makeZone()],
-      uvToWorld,
+      projection: { mode: "custom" },
+      customUvToWorld: uvToWorld,
       startUV: { u: 0.5, v: 0.5 },
     });
     const obj = new Object3D("Player");
@@ -77,7 +78,8 @@ describe("StageMovementBehavior facing rotation", () => {
     const behavior = new StageMovementBehavior({
       input,
       zones: [makeZone()],
-      uvToWorld,
+      projection: { mode: "custom" },
+      customUvToWorld: uvToWorld,
       startUV: { u: 0.5, v: 0.5 },
       facingOffset: Math.PI / 2,
     });
@@ -95,7 +97,8 @@ describe("StageMovementBehavior facing rotation", () => {
       input,
       rotationSpeed: 1000, // effectively instant, so one update() call fully turns
       zones: [makeZone()],
-      uvToWorld,
+      projection: { mode: "custom" },
+      customUvToWorld: uvToWorld,
       startUV: { u: 0.5, v: 0.1 }, // near edge, so moving toward v=1 stays inside the zone
     });
     const obj = new Object3D("Player");
@@ -120,7 +123,8 @@ describe("StageMovementBehavior facing rotation", () => {
       input,
       rotationSpeed: 1000,
       zones: [makeZone()],
-      uvToWorld,
+      projection: { mode: "custom" },
+      customUvToWorld: uvToWorld,
       startUV: { u: 0.5, v: 0.9 }, // far edge, so moving toward v=0 stays inside the zone
     });
     const obj = new Object3D("Player");

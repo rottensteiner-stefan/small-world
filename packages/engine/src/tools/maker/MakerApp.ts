@@ -18,14 +18,17 @@ import {
   AbstractLight,
   AbstractMaterial,
   WireframeMaterial,
+  BasicMaterial,
   StandardMaterial,
   Color,
 } from "../../core/index.js";
-import { Grid, Cube } from "../../geometry/index.js";
+import { Grid, Cube, Octahedron, Polyline } from "../../geometry/index.js";
 import { Raycaster, BoundingBox, BoundingSphere } from "../../physix/index.js";
 import { BoundingType, CameraStrategyType } from "../../enums/index.js";
 import { EngineOptions, BoundingVolume } from "../../interfaces/index.js";
-import { Vector2D, Vector3D, MathPool } from "../../math/index.js";
+import { Vector2D, Vector3D, MathPool, MathUtils } from "../../math/index.js";
+import { StageZone } from "../../core/stage/StageZone.js";
+import { StageZoneMarker } from "../../core/stage/StageZoneMarker.js";
 
 import { OrbitCameraController, OrbitCameraView } from "./OrbitCameraController.js";
 import { UndoStack } from "./UndoStack.js";
@@ -36,6 +39,11 @@ import { PrefabPalette } from "./PrefabPalette.js";
 import { ProjectBinding } from "./ProjectBinding.js";
 import { TransformGizmo, GizmoMode, GizmoAxis } from "./TransformGizmo.js";
 import { LightGizmoManager } from "./LightGizmoManager.js";
+import { StageZoneGizmoManager } from "./StageZoneGizmoManager.js";
+import { resolveStageProjection, projectRayToUv } from "./StageProjectionResolver.js";
+import { BackgroundPlane } from "./BackgroundPlane.js";
+import { BackgroundImportPanel } from "./BackgroundImportPanel.js";
+import { Texture } from "../../core/textures/index.js";
 import { MapImportPanel } from "./MapImportPanel.js";
 import { defaultAsciiMapLegend } from "./AsciiMapLegend.js";
 import { GridLevelBuilder } from "../procgen/index.js";
@@ -71,6 +79,24 @@ interface MarqueeState {
   isShift: boolean;
 }
 
+/** In-progress click-to-draw state for a new `StageZoneMarker` (ADR 0016 Phase 2). `previewRoot`
+ * holds ephemeral handle/line markers rebuilt after every placed point -- never added to
+ * `_undo`, since nothing here is a real scene object yet; only `_finishZoneDraw()`'s single
+ * `StageZoneMarker` creation is undoable. */
+interface ZoneDrawState {
+  points: { u: number; v: number; scale: number }[];
+  previewRoot: Object3D;
+}
+
+/** Viewport drag of a single existing zone point (handle grabbed in `StageZoneGizmoManager`) --
+ * mirrors `GizmoDragState`'s "collect state during the drag, push exactly one undo command at
+ * `pointerup`" pattern, applied to a `(u, v)` pair instead of a transform. */
+interface ZonePointDragState {
+  marker: StageZoneMarker;
+  index: number;
+  before: { u: number; v: number };
+}
+
 /**
  * Maker's orchestrating application class -- see docs/adr/0010-maker-editor-architecture.md.
  * Owns the viewport (a plain `SmallWorld` instance with a manual orbit camera), selection +
@@ -90,6 +116,13 @@ export class MakerApp extends SmallWorld {
   private readonly _trashBin = new Object3D("MakerTrash");
   private readonly _gizmo = new TransformGizmo();
   private readonly _lightGizmos = new LightGizmoManager();
+  private readonly _stageZoneGizmos = new StageZoneGizmoManager();
+  /** Re-resolved only when the hierarchy actually changes -- mirrors `LightGizmoManager`'s own
+   * `hierarchyChanged`-gated re-scan, since a full scene walk every frame is unnecessary. */
+  private _stageProjection: ReturnType<typeof resolveStageProjection> = undefined;
+  private _zoneDrawState: ZoneDrawState | undefined;
+  private _zonePointDrag: ZonePointDragState | undefined;
+  private _zoneDrawButton: HTMLButtonElement | undefined;
 
   /** Insertion-ordered so "the last thing clicked/toggled" (via `Array.from(...).at(-1)`) is
    * well-defined -- `_primary` always mirrors that. */
@@ -168,6 +201,7 @@ export class MakerApp extends SmallWorld {
 
     this.scene.add(this._gizmo.root);
     this.scene.add(this._lightGizmos.root);
+    this.scene.add(this._stageZoneGizmos.root);
 
     this.camera.setStrategy(CameraStrategyType.MANUAL);
     this.camera.position.set(8, 6, 8);
@@ -206,7 +240,8 @@ export class MakerApp extends SmallWorld {
       (obj) =>
         this._highlightMeshes.includes(obj) ||
         obj === this._gizmo.root ||
-        this._lightGizmos.isHelperMesh(obj),
+        this._lightGizmos.isHelperMesh(obj) ||
+        this._stageZoneGizmos.isHelperMesh(obj),
     );
     new ObjectPalette(this._makerOptions.paletteContainer, {
       createObject: (factory): void => this.addObject(factory()),
@@ -218,6 +253,9 @@ export class MakerApp extends SmallWorld {
     });
     new MapImportPanel(this._makerOptions.paletteContainer, (mapData): void => {
       void this._importAsciiMap(mapData);
+    });
+    new BackgroundImportPanel(this._makerOptions.paletteContainer, this.canvas, (file): void => {
+      void this._importBackgroundImage(file);
     });
 
     this._project.onDirtyChange((dirty) => {
@@ -408,9 +446,11 @@ export class MakerApp extends SmallWorld {
   private _captureIsolatedThumbnail(obj: Object3D): Promise<string | undefined> {
     const wasGizmoVisible = this._gizmo.root.isVisible;
     const wasLightGizmosVisible = this._lightGizmos.root.isVisible;
+    const wasStageZoneGizmosVisible = this._stageZoneGizmos.root.isVisible;
     const wasHighlightVisible = this._highlightMeshes.map((mesh) => mesh.isVisible);
     this._gizmo.root.isVisible = false;
     this._lightGizmos.root.isVisible = false;
+    this._stageZoneGizmos.root.isVisible = false;
     for (const mesh of this._highlightMeshes) mesh.isVisible = false;
 
     const topAncestor = this._topLevelAncestor(obj);
@@ -423,7 +463,9 @@ export class MakerApp extends SmallWorld {
         !this._highlightMeshes.includes(child) &&
         child !== this._gizmo.root &&
         child !== this._lightGizmos.root &&
+        child !== this._stageZoneGizmos.root &&
         !this._lightGizmos.isHelperMesh(child) &&
+        !this._stageZoneGizmos.isHelperMesh(child) &&
         !(child instanceof AbstractLight),
     );
     const wasSiblingVisible = hiddenSiblings.map((child) => child.isVisible);
@@ -442,6 +484,7 @@ export class MakerApp extends SmallWorld {
       this.camera.target.copyFrom(savedCameraTarget);
       this._gizmo.root.isVisible = wasGizmoVisible;
       this._lightGizmos.root.isVisible = wasLightGizmosVisible;
+      this._stageZoneGizmos.root.isVisible = wasStageZoneGizmosVisible;
       this._highlightMeshes.forEach((mesh, i) => {
         mesh.isVisible = wasHighlightVisible[i]!;
       });
@@ -509,6 +552,124 @@ export class MakerApp extends SmallWorld {
         for (const obj of added) this._disposeTrashedObject(obj);
       },
     });
+  }
+
+  /** Decodes the dropped/picked file and places it as a `BackgroundPlane` sized to preserve its
+   * aspect ratio exactly (height is always derived from width, never entered independently, so
+   * the reference image can never end up stretched -- see ADR 0016 Phase 2). Re-importing while
+   * a `BackgroundPlane` already exists keeps its current width (so re-tracing zones on a
+   * replacement image doesn't silently change scale) and simply swaps the old plane out --
+   * intentionally not folded into the new plane's own undo step, since replacing a reference
+   * image is a "just do it" action, not something worth a multi-part undo/redo round trip. */
+  private async _importBackgroundImage(file: File): Promise<void> {
+    // Matches `AssetManager.loadImage(url, undefined, flipY=true)`'s own decode options exactly
+    // (see `flakturm-tunnel/showcase.ts`'s `Texture.fromUrl(..., { flipY: true })`) -- a plain
+    // `createImageBitmap(file)` decodes top-down, but this engine's texture-sampling convention
+    // expects bottom-up, so the image renders upside down without this.
+    const bitmap = await createImageBitmap(file, {
+      colorSpaceConversion: "none",
+      imageOrientation: "flipY",
+    });
+    const aspect = bitmap.width / bitmap.height;
+    const existing = this._findBackgroundPlane();
+    const width = existing?.width ?? 10;
+    const height = width / aspect;
+
+    if (existing) {
+      this.scene.remove(existing);
+      this._hierarchyDirty = true;
+    }
+
+    const plane = new BackgroundPlane({ texture: Texture.fromImage(bitmap), width, height });
+    plane.position.set(0, height / 2, 0);
+    this.addObject(plane);
+  }
+
+  private _findBackgroundPlane(): BackgroundPlane | undefined {
+    for (const child of this.scene.root.children) {
+      if (child instanceof BackgroundPlane) return child;
+    }
+    return undefined;
+  }
+
+  /** Enters/exits click-to-draw mode for a new `StageZoneMarker` (ADR 0016 Phase 2). Silently
+   * does nothing if there's no resolved projection yet (see `StageProjectionResolver`) -- there
+   * would be nowhere to actually place a point. */
+  public toggleZoneDrawMode(): void {
+    if (this._zoneDrawState) {
+      this._cancelZoneDraw();
+      return;
+    }
+    if (!this._stageProjection) return;
+
+    this._zoneDrawState = { points: [], previewRoot: new Object3D("ZoneDrawPreview") };
+    this.scene.add(this._zoneDrawState.previewRoot);
+    this._zoneDrawButton?.classList.add("active");
+  }
+
+  private _cancelZoneDraw(): void {
+    if (!this._zoneDrawState) return;
+    this.scene.remove(this._zoneDrawState.previewRoot);
+    this._zoneDrawState = undefined;
+    this._zoneDrawButton?.classList.remove("active");
+  }
+
+  private _addZoneDrawPoint(u: number, v: number): void {
+    if (!this._zoneDrawState) return;
+    this._zoneDrawState.points.push({ u, v, scale: 1.0 });
+    this._refreshZoneDrawPreview();
+  }
+
+  /** Rebuilds the ephemeral preview (placed-point handles + an open connecting polyline) from
+   * scratch after every click -- simplest correct approach given how few points a zone actually
+   * has; no live segment follows the mouse between clicks, only committed points are shown. */
+  private _refreshZoneDrawPreview(): void {
+    const state = this._zoneDrawState;
+    const projection = this._stageProjection;
+    if (!state || !projection) return;
+
+    for (const child of state.previewRoot.children.slice()) state.previewRoot.remove(child);
+
+    const worldPoints = state.points.map((p) => {
+      const w = projection.toWorld(p.u, p.v);
+      return new Vector3D(w.x, w.y, w.z);
+    });
+
+    const previewColor = new Color(1.0, 0.6, 0.1);
+    for (const wp of worldPoints) {
+      const handle = new Object3D("ZoneDrawHandle");
+      handle.geometry = new Octahedron({ radius: 0.08 }).getGeometryData();
+      handle.material = new BasicMaterial({ color: previewColor });
+      handle.position.copyFrom(wp);
+      state.previewRoot.add(handle);
+    }
+
+    if (2 <= worldPoints.length) {
+      const line = new Object3D("ZoneDrawLine");
+      line.geometry = new Polyline({ points: worldPoints, closed: false }).getGeometryData();
+      line.material = new WireframeMaterial(previewColor);
+      state.previewRoot.add(line);
+    }
+  }
+
+  /** Closes the zone being drawn (min. 3 points) into a real `StageZoneMarker`, added through
+   * the normal `addObject()` undo path -- exactly one undo command for the whole multi-click
+   * interaction, the same "collect state locally, commit once at the end" pattern as
+   * `_finishGizmoDrag()`. No-op below 3 points (can't form a polygon). */
+  private _finishZoneDraw(): void {
+    const state = this._zoneDrawState;
+    if (!state || 3 > state.points.length) return;
+
+    this.scene.remove(state.previewRoot);
+    this._zoneDrawState = undefined;
+    this._zoneDrawButton?.classList.remove("active");
+
+    const zone = new StageZone({
+      id: `zone_${MathUtils.generateUUID()}`,
+      name: "New Zone",
+      points: state.points,
+    });
+    this.addObject(new StageZoneMarker(zone));
   }
 
   /** Duplicate/Group buttons -- mirrors the `Ctrl/Cmd+D`/`Ctrl/Cmd+G` shortcuts handled in
@@ -627,6 +788,15 @@ export class MakerApp extends SmallWorld {
     });
     row.appendChild(incGrid);
 
+    const drawZoneBtn = document.createElement("button");
+    drawZoneBtn.className = "maker-palette-btn";
+    drawZoneBtn.textContent = "✏️ Draw Zone (Z)";
+    drawZoneBtn.title =
+      "Click to place points (min. 3), Enter to close the zone, Escape to cancel.";
+    drawZoneBtn.addEventListener("click", (): void => this.toggleZoneDrawMode());
+    row.appendChild(drawZoneBtn);
+    this._zoneDrawButton = drawZoneBtn;
+
     this._makerOptions.paletteContainer.prepend(row);
     this._setGizmoMode("translate");
   }
@@ -671,6 +841,13 @@ export class MakerApp extends SmallWorld {
     }
     this.scene.update(deltaTime);
     this._lightGizmos.update(this.scene.root, this._selection, hierarchyChanged, this.camera);
+    if (hierarchyChanged) this._stageProjection = resolveStageProjection(this.scene.root);
+    this._stageZoneGizmos.update(
+      this.scene.root,
+      this._selection,
+      hierarchyChanged,
+      this._stageProjection,
+    );
     this._updateGizmo();
   }
 
@@ -1245,6 +1422,35 @@ export class MakerApp extends SmallWorld {
       -((event.clientY - rect.top) / rect.height) * 2 + 1,
     );
 
+    if (this._zoneDrawState) {
+      if (this._stageProjection) {
+        this._raycaster.setFromCamera(ndc, this.camera);
+        const uv = projectRayToUv(this._raycaster.ray, this._stageProjection);
+        if (uv) this._addZoneDrawPoint(uv.u, uv.v);
+      }
+      return; // Drawing consumes every click -- no gizmo/selection while active.
+    }
+
+    if (this._stageProjection) {
+      this._raycaster.setFromCamera(ndc, this.camera);
+      const handles: Object3D[] = [];
+      this._stageZoneGizmos.collectHandlePickables(handles);
+      const handleHits = this._raycaster.intersectObjects(handles, true);
+      const hitPoint =
+        0 < handleHits.length
+          ? this._stageZoneGizmos.getPointForObject(handleHits[0]!.object)
+          : undefined;
+      if (hitPoint) {
+        const p = hitPoint.marker.zone.points[hitPoint.index]!;
+        this._zonePointDrag = {
+          marker: hitPoint.marker,
+          index: hitPoint.index,
+          before: { u: p.u, v: p.v },
+        };
+        return; // Point-handle grabbed -- don't also run normal object picking below.
+      }
+    }
+
     const gizmoAxis = this._gizmo.pickAxis(ndc, this.camera);
     if (gizmoAxis && this._primary) {
       const mode = this._gizmo.mode;
@@ -1274,11 +1480,15 @@ export class MakerApp extends SmallWorld {
     const pickable: Object3D[] = [];
     this._collectPickable(this.scene.root, pickable);
     this._lightGizmos.collectPickables(pickable);
+    this._stageZoneGizmos.collectPickables(pickable);
     const hits = this._raycaster.intersectObjects(pickable, true);
     const hitObj = 0 < hits.length ? hits[0]!.object : undefined;
 
     if (hitObj) {
-      const targetObj = this._lightGizmos.getLightForObject(hitObj) ?? hitObj;
+      const targetObj =
+        this._lightGizmos.getLightForObject(hitObj) ??
+        this._stageZoneGizmos.getZoneForObject(hitObj) ??
+        hitObj;
       if (event.shiftKey || event.metaKey) {
         this.toggleSelect(targetObj);
       } else {
@@ -1301,6 +1511,23 @@ export class MakerApp extends SmallWorld {
       this._cameraDrag.lastX = event.clientX;
       this._cameraDrag.lastY = event.clientY;
       this._orbit.rotate(dx, dy);
+      return;
+    }
+
+    if (this._zonePointDrag) {
+      if (!this._stageProjection) return;
+      const rect = this.canvas.getBoundingClientRect();
+      const ndc = new Vector2D(
+        ((event.clientX - rect.left) / rect.width) * 2 - 1,
+        -((event.clientY - rect.top) / rect.height) * 2 + 1,
+      );
+      this._raycaster.setFromCamera(ndc, this.camera);
+      const uv = projectRayToUv(this._raycaster.ray, this._stageProjection);
+      if (uv) {
+        const point = this._zonePointDrag.marker.zone.points[this._zonePointDrag.index]!;
+        point.u = uv.u;
+        point.v = uv.v;
+      }
       return;
     }
 
@@ -1330,6 +1557,31 @@ export class MakerApp extends SmallWorld {
       } catch {
         // Pointer capture already released or unattached
       }
+      return;
+    }
+
+    if (this._zonePointDrag) {
+      const { marker, index, before } = this._zonePointDrag;
+      this._zonePointDrag = undefined;
+      const point = marker.zone.points[index]!;
+      const after = { u: point.u, v: point.v };
+      if (after.u === before.u && after.v === before.v) return; // Click without an actual drag.
+
+      // One undo command for the whole drag, exactly like `_finishGizmoDrag()` -- nothing was
+      // pushed per pointermove above, only the live (u, v) mutation itself.
+      this._undo.execute({
+        label: "Move Zone Point",
+        redo: () => {
+          point.u = after.u;
+          point.v = after.v;
+          this._project.scheduleAutosave(() => this.scene.root);
+        },
+        undo: () => {
+          point.u = before.u;
+          point.v = before.v;
+          this._project.scheduleAutosave(() => this.scene.root);
+        },
+      });
       return;
     }
 
@@ -1439,7 +1691,8 @@ export class MakerApp extends SmallWorld {
     if (
       this._highlightMeshes.includes(parent) ||
       parent === this._gizmo.root ||
-      this._lightGizmos.isHelperMesh(parent)
+      this._lightGizmos.isHelperMesh(parent) ||
+      this._stageZoneGizmos.isHelperMesh(parent)
     ) {
       return;
     }
@@ -1509,6 +1762,17 @@ export class MakerApp extends SmallWorld {
     }
   }
 
+  /** Whether the currently focused element is a text/dropdown input -- guards every single-key
+   * editor shortcut below from hijacking a key while the user is actually typing/selecting into
+   * a form field (a panel's name field, a dropdown, ...). Was previously re-checked inline at
+   * every call site (`"INPUT" === active.tagName || "TEXTAREA" === active.tagName`, one of them
+   * also including `"SELECT"`) -- unified here, and tightened everywhere to also guard SELECT,
+   * not just the one case that happened to already check it. */
+  private _isEditingField(): boolean {
+    const tag = document.activeElement?.tagName;
+    return "INPUT" === tag || "TEXTAREA" === tag || "SELECT" === tag;
+  }
+
   private _onMakerKeyDown(event: KeyboardEvent): void {
     if ((event.ctrlKey || event.metaKey) && "z" === event.key.toLowerCase()) {
       event.preventDefault();
@@ -1518,10 +1782,29 @@ export class MakerApp extends SmallWorld {
       this._hierarchyDirty = true;
       return;
     }
+    if (this._zoneDrawState) {
+      if ("Escape" === event.key) {
+        event.preventDefault();
+        this._cancelZoneDraw();
+        return;
+      }
+      if ("Enter" === event.key) {
+        event.preventDefault();
+        this._finishZoneDraw();
+        return;
+      }
+    }
+
+    if ("z" === event.key.toLowerCase() && !event.ctrlKey && !event.metaKey && !event.altKey) {
+      if (this._isEditingField()) return;
+      event.preventDefault();
+      this.toggleZoneDrawMode();
+      return;
+    }
+
     if ("Delete" === event.key || "Backspace" === event.key) {
-      const active = document.activeElement;
       // Don't hijack Backspace while the user is typing into a text field.
-      if (active && ("INPUT" === active.tagName || "TEXTAREA" === active.tagName)) return;
+      if (this._isEditingField()) return;
       if (0 < this._selection.size) {
         event.preventDefault();
         this.deleteSelection();
@@ -1530,8 +1813,7 @@ export class MakerApp extends SmallWorld {
     }
 
     if ("F2" === event.key) {
-      const active = document.activeElement;
-      if (active && ("INPUT" === active.tagName || "TEXTAREA" === active.tagName)) return;
+      if (this._isEditingField()) return;
       if (this._primary) {
         event.preventDefault();
         this._hierarchyPanel.startRenaming(this._primary);
@@ -1541,16 +1823,14 @@ export class MakerApp extends SmallWorld {
 
     const key = event.key.toLowerCase();
     if ((event.ctrlKey || event.metaKey) && "f" === key) {
-      const active = document.activeElement;
-      if (active && ("INPUT" === active.tagName || "TEXTAREA" === active.tagName)) return;
+      if (this._isEditingField()) return;
       event.preventDefault();
       this._hierarchyPanel.focusSearch();
       return;
     }
 
     if ((event.ctrlKey || event.metaKey) && ("d" === key || "g" === key)) {
-      const active = document.activeElement;
-      if (active && ("INPUT" === active.tagName || "TEXTAREA" === active.tagName)) return;
+      if (this._isEditingField()) return;
       if (0 === this._selection.size) return;
       event.preventDefault();
       if ("d" === key) this.duplicateSelection();
@@ -1559,8 +1839,7 @@ export class MakerApp extends SmallWorld {
     }
 
     if ("x" === key) {
-      const active = document.activeElement;
-      if (active && ("INPUT" === active.tagName || "TEXTAREA" === active.tagName)) return;
+      if (this._isEditingField()) return;
       if (event.ctrlKey || event.metaKey || event.altKey) return;
       this.toggleSnap();
       return;
@@ -1568,8 +1847,7 @@ export class MakerApp extends SmallWorld {
 
     const slot = Number(event.key);
     if (Number.isInteger(slot) && slot >= 1 && slot <= 9) {
-      const active = document.activeElement;
-      if (active && ("INPUT" === active.tagName || "TEXTAREA" === active.tagName)) return;
+      if (this._isEditingField()) return;
       if (event.altKey) return;
       event.preventDefault();
       if (event.ctrlKey || event.metaKey) this.saveCameraBookmark(slot);
@@ -1578,16 +1856,14 @@ export class MakerApp extends SmallWorld {
     }
 
     if ("w" === key || "e" === key || "r" === key) {
-      const active = document.activeElement;
-      if (active && ("INPUT" === active.tagName || "TEXTAREA" === active.tagName)) return;
+      if (this._isEditingField()) return;
       if (event.ctrlKey || event.metaKey || event.altKey) return;
       this._setGizmoMode("w" === key ? "translate" : "e" === key ? "rotate" : "scale");
       return;
     }
 
     if ("[" === event.key || "]" === event.key) {
-      const active = document.activeElement;
-      if (active && ("INPUT" === active.tagName || "TEXTAREA" === active.tagName)) return;
+      if (this._isEditingField()) return;
       if (event.ctrlKey || event.metaKey || event.altKey) return;
       event.preventDefault();
       this.stepGrid("[" === event.key ? -1 : 1);
@@ -1595,8 +1871,7 @@ export class MakerApp extends SmallWorld {
     }
 
     if ("End" === event.key) {
-      const active = document.activeElement;
-      if (active && ("INPUT" === active.tagName || "TEXTAREA" === active.tagName)) return;
+      if (this._isEditingField()) return;
       if (0 === this._selection.size) return;
       event.preventDefault();
       this.snapSelectionToGround();
@@ -1611,13 +1886,7 @@ export class MakerApp extends SmallWorld {
       "PageUp" === event.key ||
       "PageDown" === event.key
     ) {
-      const active = document.activeElement;
-      if (
-        active &&
-        ("INPUT" === active.tagName || "TEXTAREA" === active.tagName || "SELECT" === active.tagName)
-      ) {
-        return;
-      }
+      if (this._isEditingField()) return;
       if (0 === this._selection.size) return;
       event.preventDefault();
       this.nudgeSelection(event.key, event.shiftKey, event.altKey);

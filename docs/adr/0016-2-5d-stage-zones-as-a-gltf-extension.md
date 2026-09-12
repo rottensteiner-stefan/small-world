@@ -89,3 +89,28 @@ Das interaktive Fluchtpunkt-Werkzeug (zwei Referenzlinien zeichnen, ihren Schnit
 - **Ein neuer, nicht renderbarer Node-Typ in Makers Hierarchie.** Zonen- und Fluchtpunkt-Marker brauchen ihr eigenes Icon und eine eigene Picking-Behandlung (sie haben kein Mesh) — eine kleine, eingegrenzte Ergänzung zu Makers bestehender Node-Typ-Behandlung, kein neues Subsystem.
 - **Erweiterungs-Namensraum-Disziplin, genau wie ADR 0010 §5.** `SW_stage_zone`/`SW_stage_vanishing_point` folgen derselben additiven, sorgfältig namensraum-getrennten Vendor-Erweiterungs-Hygiene, die bereits etabliert ist; keine neue Risikoklasse eingeführt.
 - **Kein Regressionsrisiko durch die Polygon-/Gradienten-Verallgemeinerung.** Jede Algorithmus-Änderung (§2, §3) ist eine strikte Verallgemeinerung, die sich bei `n = 4` auf das exakte heutige Verhalten reduziert; beide bestehenden Szenen sind dieser Fall, daher wird das mit einem Roundtrip-/Ausgabe-Gleichheitstest gegen sie ausgeliefert, statt sich allein auf Durchsicht zu verlassen.
+
+**Status (2026-09-12):** Phase 0 und Phase 1 umgesetzt und verifiziert (`tsc`/`eslint`/`vitest`
+752/752, `npm run build` grün). Abweichung von der ursprünglichen Annahme in §4/Konsequenzen:
+"beide heute existierenden Szenen passen exakt in `flat-plane`" stimmte bei genauerer Prüfung
+NICHT für `character-diorama` — dessen Formel mappt `v` auf Welt-Z bei fixem Y (ein
+Boden-Mapping), während `"flat-plane"` `v` auf Welt-Y bei fixem Z mappt (ein
+Hintergrundwand-Mapping). `character-diorama` läuft daher weiterhin über `projection: {mode:
+"custom"}` mit seiner bestehenden Closure als `customUvToWorld` — funktional unverändert, aber
+(noch) nicht Maker-roundtrip-fähig, genau die in den Konsequenzen benannte Einschränkung für
+`"custom"`-Szenen. Nur `flakturm-tunnel` läuft über `"flat-plane"`.
+Zusätzlich (User-Wunsch während der Umsetzung, nicht ursprünglich Teil dieser ADR): `SW_stage_zone`
+wurde nicht als dritter hartkodierter if/else-Zweig in `GltfLoader`/`WorldWriter` ergänzt, sondern
+über einen neuen generischen Extension-Plugin-Mechanismus, der auch `KHR_lights_punctual` und
+`SW_prefab_instance` migriert hat — siehe ADR 0017.
+**Update (2026-09-12, später am selben Tag):** Phase 2 (Maker-UI) ebenfalls umgesetzt und
+live verifiziert — `StageZoneGizmoManager` (Anzeige/Auswahl, direktes Vorbild
+`LightGizmoManager`), ein Punktlisten-Editor im PropertyPanel, `BackgroundPlane`/
+`BackgroundImportPanel` (Referenzbild-Import mit erzwungenem Seitenverhältnis) und
+Klick-zum-Zeichnen (`Z`/`Enter`/`Escape`) + Viewport-Punkt-Ziehen, beide über
+`StageProjectionResolver`s Ray/Ebenen-Schnitt. Damit ist **ADR 0016 vollständig umgesetzt**
+(Phase 0/1/2); Phase 3 (Fluchtpunkt-Werkzeug/Snapping) und Phase 4 (KI-Chat-Panel) bleiben wie
+oben beschrieben bewusst außerhalb des Umfangs. Ein echter, vorbestehender Rendering-Bug wurde
+dabei gefunden und behoben: `BasicMaterial` synct `transparent` nie in `state.blending`, wodurch
+halbtransparente `BasicMaterial`-Flächen unter keinem Renderer sichtbar transparent wurden (siehe
+Commit-Historie/Backlog für Details) — betraf die geplante halbtransparente Zonen-Füllfläche.

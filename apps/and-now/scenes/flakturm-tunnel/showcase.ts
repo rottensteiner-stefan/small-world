@@ -24,7 +24,8 @@ import { GltfLoader } from "@small-world/engine/loaders/GltfLoader.js";
 import { Bone } from "@small-world/engine/core/animation/index.js";
 
 /** The background plane's world extent -- the only place a (u, v) stage coordinate is ever
- * turned into a 3D position. See `AndNowScene2._uvToWorld`. */
+ * turned into a 3D position. Fed directly into `StageMovementBehavior`'s `"flat-plane"`
+ * `projection` (see `StageProjection`). */
 const BACKGROUND_WIDTH = 16;
 const BACKGROUND_HEIGHT = 9;
 const BACKGROUND_CENTER_Y = 4.5;
@@ -181,7 +182,8 @@ class AndNowScene2 extends AbstractShowcase {
     this._pointsListEl = document.getElementById("pointsList");
 
     // A level, centered camera: it never rotates or pans, and is never involved in zone
-    // authoring or movement logic (see StageZone / StageMovementBehavior / _uvToWorld below) --
+    // authoring or movement logic (see StageZone / StageMovementBehavior's "flat-plane"
+    // projection below) --
     // scroll-wheel zoom (dolly straight along this same Z axis, see the "wheel" listener below)
     // is the only camera movement allowed, so the background plane and the 3D character always
     // stay in the same relative framing the art was painted for, just closer or farther.
@@ -388,8 +390,13 @@ class AndNowScene2 extends AbstractShowcase {
         // without changing the intended starting orientation.
         startFacingNudge: 0.14, // ~8 degrees
         zones: this._stageZones,
-        uvToWorld: (u: number, v: number): { x: number; y: number; z: number } =>
-          this._uvToWorld(u, v),
+        projection: {
+          mode: "flat-plane",
+          width: BACKGROUND_WIDTH,
+          height: BACKGROUND_HEIGHT,
+          z: BACKGROUND_Z,
+          centerY: BACKGROUND_CENTER_Y,
+        },
         startUV: currentUv,
         onZoneChange: (zone: StageZone): void => {
           this._updateHUD(zone);
@@ -414,20 +421,6 @@ class AndNowScene2 extends AbstractShowcase {
     } catch (e) {
       console.error("[AndNowScene2] Fehler beim Laden des Charakters:", e);
     }
-  }
-
-  /**
-   * The only place a normalized stage-space (u, v) coordinate becomes a 3D world position.
-   * `u`/`v` map linearly onto the background plane's known world rectangle, and the character
-   * is placed exactly on that plane's Z -- since the plane is fronto-parallel to a level camera,
-   * this reproduces the on-screen pixel position exactly, with no camera math involved at all.
-   */
-  private _uvToWorld(u: number, v: number): { x: number; y: number; z: number } {
-    return {
-      x: (u - 0.5) * BACKGROUND_WIDTH,
-      y: BACKGROUND_CENTER_Y + (0.5 - v) * BACKGROUND_HEIGHT,
-      z: BACKGROUND_Z,
-    };
   }
 
   /** Screen-space rectangle the background image currently occupies, recomputed each time the

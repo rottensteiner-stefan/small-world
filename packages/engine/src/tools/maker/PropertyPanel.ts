@@ -11,6 +11,7 @@ import {
 } from "../../core/materials/index.js";
 import { Color } from "../../core/colors/index.js";
 import { InspectorField, collectInspectorSchema } from "../../core/Inspectable.js";
+import { StageZoneMarker } from "../../core/stage/StageZoneMarker.js";
 import { UndoStack } from "./UndoStack.js";
 
 /** Minimal shape shared by Tweakpane binding/blade APIs this panel actually calls -- mirrors
@@ -119,6 +120,10 @@ export class PropertyPanel {
       addBtn.on("click", (): void => {
         this._callbacks?.onSetMaterial?.(obj, new StandardMaterial());
       });
+    }
+
+    if (obj instanceof StageZoneMarker) {
+      this._renderStageZonePoints(obj);
     }
 
     if (obj.behaviors.length > 0) {
@@ -473,6 +478,133 @@ export class PropertyPanel {
     });
     this._blades.push(binding);
     return binding;
+  }
+
+  /**
+   * Renders a dedicated points editor for a `StageZoneMarker` -- a hand-written special case
+   * (like the Material/Behaviors folders above), since a variable-length list of points has no
+   * equivalent in `Inspectable`'s generic, statically-shaped `static inspector` schema (see ADR
+   * 0016 Phase 2). Every field/add/remove is its own undo step, same granularity as any other
+   * field in this panel -- deliberately NOT the single "one command per whole drag" granularity
+   * `TransformGizmo`'s viewport point-drag uses, since that's a different interaction (a
+   * continuous drag vs. a single typed/committed edit).
+   */
+  private _renderStageZonePoints(marker: StageZoneMarker): void {
+    const zone = marker.zone;
+    const folder = this._titleFolder.addFolder({
+      title: `Zone Points (${zone.points.length})`,
+      expanded: true,
+    });
+    this._blades.push(folder);
+
+    zone.points.forEach((point, index) => {
+      const rowFolder = folder.addFolder({ title: `Point ${index + 1}`, expanded: false });
+      this._blades.push(rowFolder);
+
+      this._bindZonePointField(rowFolder, point, "u", "U", 0, 1, 0.001);
+      this._bindZonePointField(rowFolder, point, "v", "V", 0, 1, 0.001);
+      this._bindZonePointField(rowFolder, point, "scale", "Scale", 0, 5, 0.01);
+
+      if (3 < zone.points.length) {
+        const removeBtn = rowFolder.addButton({ title: "🗑 Remove Point" });
+        removeBtn.on("click", (): void => this._removeZonePoint(marker, index));
+      }
+    });
+
+    const addBtn = folder.addButton({ title: "➕ Add Point" });
+    addBtn.on("click", (): void => this._addZonePoint(marker));
+  }
+
+  private _bindZonePointField(
+    folder: FolderApi,
+    point: { u: number; v: number; scale: number },
+    key: "u" | "v" | "scale",
+    label: string,
+    min: number,
+    max: number,
+    step: number,
+  ): void {
+    let before = point[key];
+    const binding = folder.addBinding(point, key, {
+      label,
+      min,
+      max,
+      step,
+    }) as unknown as RefreshableBinding &
+      DisposableBlade & { on: (event: "change", cb: (ev: ChangeEvent<number>) => void) => void };
+    binding.on("change", (ev: ChangeEvent<number>) => {
+      if (false === ev.last) return;
+      const from = before;
+      const to = ev.value;
+      this._undo.execute({
+        label: `Edit Zone Point ${label}`,
+        redo: () => {
+          point[key] = to;
+          binding.refresh();
+          this._notifyZoneChanged();
+        },
+        undo: () => {
+          point[key] = from;
+          binding.refresh();
+          this._notifyZoneChanged();
+        },
+      });
+      before = to;
+    });
+    this._blades.push(binding);
+  }
+
+  private _addZonePoint(marker: StageZoneMarker): void {
+    const points = marker.zone.points;
+    const last = points[points.length - 1]!;
+    const secondLast = points[points.length - 2] ?? last;
+    const newPoint = {
+      u: (last.u + secondLast.u) / 2,
+      v: (last.v + secondLast.v) / 2,
+      scale: last.scale,
+    };
+    this._undo.execute({
+      label: "Add Zone Point",
+      redo: () => {
+        points.push(newPoint);
+        this._notifyZoneChanged();
+        this.setSelection(this._currentObj, this._extraCount);
+      },
+      undo: () => {
+        points.pop();
+        this._notifyZoneChanged();
+        this.setSelection(this._currentObj, this._extraCount);
+      },
+    });
+  }
+
+  private _removeZonePoint(marker: StageZoneMarker, index: number): void {
+    const points = marker.zone.points;
+    if (3 >= points.length) return;
+    const removed = points[index]!;
+    this._undo.execute({
+      label: "Remove Zone Point",
+      redo: () => {
+        points.splice(index, 1);
+        this._notifyZoneChanged();
+        this.setSelection(this._currentObj, this._extraCount);
+      },
+      undo: () => {
+        points.splice(index, 0, removed);
+        this._notifyZoneChanged();
+        this.setSelection(this._currentObj, this._extraCount);
+      },
+    });
+  }
+
+  /** Zone point edits mutate `zone.points` directly (not a property on the `StageZoneMarker`
+   * itself), so the generic `_createFieldBinding` identity check (`host === this._currentObj`)
+   * that normally gates `onPropertyChanged` never fires for them -- without this, editing a
+   * zone's points would silently never trigger Maker's autosave. */
+  private _notifyZoneChanged(): void {
+    if (this._currentObj) {
+      this._callbacks?.onPropertyChanged?.(this._currentObj, "zone.points", undefined);
+    }
   }
 
   private _bindColorField(

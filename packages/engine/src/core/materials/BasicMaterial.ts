@@ -2,7 +2,7 @@ import fragGLSL from "./shaders/Basic.frag.glsl?raw";
 import fragGLSL100 from "./shaders/Basic.frag.glsl100?raw";
 import fragWGSL from "./shaders/Basic.frag.wgsl?raw";
 import { AbstractMaterial } from "./AbstractMaterial.js";
-import { MaterialType, ShaderPropertyType } from "../../enums/index.js";
+import { MaterialType, ShaderPropertyType, BlendingMode } from "../../enums/index.js";
 import { Color } from "../colors/index.js";
 import { Texture } from "../textures/index.js";
 import {
@@ -45,6 +45,17 @@ export class BasicMaterial extends AbstractMaterial {
     this._syncTexOffsetRepeat(this.diffuseMap);
 
     this._renderManifest.textures["u_diffuseMap"] = this.diffuseMap;
+
+    // `_syncBaseManifestState()` only syncs `state.transparent` -- the pipelines themselves key
+    // actual blend state off `state.blending` (see e.g. `GPUPipelineCache`), so without this a
+    // `BasicMaterial` with `transparent = true` renders fully opaque regardless of `color.a`.
+    // Mirrors `StandardMaterial`/`PhongMaterial`'s own pattern.
+    if (this._renderManifest.state) {
+      this._renderManifest.state.blending = this.transparent
+        ? BlendingMode.ALPHA
+        : BlendingMode.OPAQUE;
+      this._renderManifest.state.depthWrite = !this.transparent;
+    }
 
     return this._renderManifest;
   }

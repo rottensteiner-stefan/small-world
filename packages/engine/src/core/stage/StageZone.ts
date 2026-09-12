@@ -16,8 +16,8 @@ export interface StagePoint2D {
 export interface StageZoneOptions {
   id: string;
   name: string;
-  /** 4 corner points in order, tracing the polygon's perimeter (either winding direction). */
-  points: [StagePoint2D, StagePoint2D, StagePoint2D, StagePoint2D];
+  /** Points in order, tracing the polygon's perimeter (either winding direction). Minimum 3. */
+  points: StagePoint2D[];
 }
 
 /**
@@ -32,27 +32,22 @@ export interface StageZoneOptions {
 export class StageZone {
   public readonly id: string;
   public readonly name: string;
-  public readonly points: [
-    { u: number; v: number; scale: number },
-    { u: number; v: number; scale: number },
-    { u: number; v: number; scale: number },
-    { u: number; v: number; scale: number },
-  ];
+  public readonly points: { u: number; v: number; scale: number }[];
 
   constructor(options: StageZoneOptions) {
+    if (options.points.length < 3) {
+      throw new Error(
+        `StageZone "${options.id}" needs at least 3 points to form a polygon (got ${options.points.length}).`,
+      );
+    }
     this.id = options.id;
     this.name = options.name;
-    this.points = options.points.map((p) => ({ u: p.u, v: p.v, scale: p.scale ?? 1.0 })) as [
-      { u: number; v: number; scale: number },
-      { u: number; v: number; scale: number },
-      { u: number; v: number; scale: number },
-      { u: number; v: number; scale: number },
-    ];
+    this.points = options.points.map((p) => ({ u: p.u, v: p.v, scale: p.scale ?? 1.0 }));
   }
 
   /**
    * Point-in-polygon test using Ray-Casting (Even-Odd rule) with optional edge tolerance.
-   * Works for both convex and concave quadrilaterals.
+   * Works for both convex and concave polygons of any vertex count.
    * @param u Normalized image-space X (0..1).
    * @param v Normalized image-space Y (0..1).
    * @param tolerance Optional distance buffer (in the same 0..1 units) for seamless transitions
@@ -139,42 +134,76 @@ export class StageZone {
 
   /**
    * Interpolates the character scale factor at given (u, v) coordinates using barycentric
-   * interpolation across the quad's two triangles (p0-p1-p2 and p0-p2-p3).
+   * interpolation across a fan of triangles radiating from the first point (points[0], points[i],
+   * points[i+1] for i = 1..length-2) -- a quad's classic two-triangle split generalized to any
+   * polygon vertex count. Byte-identical to the pre-generalization two-triangle version for
+   * quads, since that was already exactly this fan with n=4.
    */
   public getScaleAt(u: number, v: number): number {
-    const [p0, p1, p2, p3] = this.points;
+    const pts = this.points;
+    const p0 = pts[0]!;
+    for (let i = 1; i < pts.length - 1; i++) {
+      const scale = this._barycentricScale(p0, pts[i]!, pts[i + 1]!, u, v);
+      if (scale !== null) return scale;
+    }
 
-    const t1 = this._barycentricScale(p0, p1, p2, u, v);
-    if (t1 !== null) return t1;
-
-    const t2 = this._barycentricScale(p0, p2, p3, u, v);
-    if (t2 !== null) return t2;
-
-    // Fallback: average across all 4 corners (point technically outside the quad, e.g. a
+    // Fallback: average across every corner (point technically outside the polygon, e.g. a
     // slightly-off drag or a concave shape's notch).
-    return (p0.scale + p1.scale + p2.scale + p3.scale) * 0.25;
+    let sum = 0;
+    for (const p of pts) sum += p.scale;
+    return sum / pts.length;
   }
 
   /**
-   * Derives this zone's local movement basis from its corner points: `forward` points from the
-   * near edge (P0-P1) toward the far edge (P3-P2), and `right` points from the left edge (P0-P3)
-   * toward the right edge (P1-P2). A zone traced onto a perspective background is rarely
-   * axis-aligned, so character input (WASD) must be mapped through this basis instead of fixed
-   * screen axes -- otherwise "forward" stops meaning "deeper into the painted corridor" the
-   * moment the zone's shape is angled to fit the art.
+   * Derives this zone's local movement basis at a given (u, v) position: `forward` is the
+   * direction in which the interpolated `scale` (see `getScaleAt`) decreases fastest -- i.e.
+   * "deeper into the painted background" -- and `right` is a 90-degree rotation of it. A zone
+   * traced onto a perspective background is rarely axis-aligned, so character input (WASD) must
+   * be mapped through this basis instead of fixed screen axes.
+   *
+   * Every zone shipped today has exactly 4 points, so this keeps the original corner-pair basis
+   * (forward from edge P0-P1 toward P3-P2, right from edge P0-P3 toward P1-P2) byte-identical for
+   * that case -- it predates and is independent of `scale`, so switching quads to a
+   * gradient-based basis would silently change the movement feel of every existing scene. Polygons
+   * with a different vertex count use the new scale-gradient basis, computed from the same fan
+   * triangulation `getScaleAt` uses; a degenerate or near-zero gradient (e.g. a uniformly-scaled
+   * zone) falls back to a fixed basis -- no current content exercises this path since only 4-point
+   * zones exist in production today.
    */
-  public getLocalAxes(): { forward: { u: number; v: number }; right: { u: number; v: number } } {
-    const [p0, p1, p2, p3] = this.points;
+  public getLocalAxes(
+    u: number,
+    v: number,
+  ): { forward: { u: number; v: number }; right: { u: number; v: number } } {
+    const pts = this.points;
 
-    const forwardU = (p3.u - p0.u + (p2.u - p1.u)) * 0.5;
-    const forwardV = (p3.v - p0.v + (p2.v - p1.v)) * 0.5;
-    const rightU = (p1.u - p0.u + (p2.u - p3.u)) * 0.5;
-    const rightV = (p1.v - p0.v + (p2.v - p3.v)) * 0.5;
+    if (pts.length === 4) {
+      const [p0, p1, p2, p3] = pts as [
+        { u: number; v: number; scale: number },
+        { u: number; v: number; scale: number },
+        { u: number; v: number; scale: number },
+        { u: number; v: number; scale: number },
+      ];
+      const forwardU = (p3.u - p0.u + (p2.u - p1.u)) * 0.5;
+      const forwardV = (p3.v - p0.v + (p2.v - p1.v)) * 0.5;
+      const rightU = (p1.u - p0.u + (p2.u - p3.u)) * 0.5;
+      const rightV = (p1.v - p0.v + (p2.v - p3.v)) * 0.5;
 
-    return {
-      forward: StageZone._normalize2D(forwardU, forwardV, 0, -1),
-      right: StageZone._normalize2D(rightU, rightV, 1, 0),
-    };
+      return {
+        forward: StageZone._normalize2D(forwardU, forwardV, 0, -1),
+        right: StageZone._normalize2D(rightU, rightV, 1, 0),
+      };
+    }
+
+    const p0 = pts[0]!;
+    for (let i = 1; i < pts.length - 1; i++) {
+      const gradient = this._gradientForTriangle(p0, pts[i]!, pts[i + 1]!, u, v);
+      if (gradient) {
+        const forward = StageZone._normalize2D(-gradient.gu, -gradient.gv, 0, -1);
+        return { forward, right: { u: forward.v, v: -forward.u } };
+      }
+    }
+
+    return { forward: { u: 0, v: -1 }, right: { u: 1, v: 0 } };
   }
 
   private static _normalize2D(
@@ -188,13 +217,18 @@ export class StageZone {
     return { u: u / len, v: v / len };
   }
 
-  private _barycentricScale(
-    a: { u: number; v: number; scale: number },
-    b: { u: number; v: number; scale: number },
-    c: { u: number; v: number; scale: number },
+  /**
+   * Barycentric weights of (pu, pv) with respect to triangle (a, b, c), or `null` if the
+   * triangle is degenerate or the point falls outside it (with a small tolerance for points
+   * right on an edge).
+   */
+  private _baryWeights(
+    a: { u: number; v: number },
+    b: { u: number; v: number },
+    c: { u: number; v: number },
     pu: number,
     pv: number,
-  ): number | null {
+  ): { w1: number; w2: number; w3: number } | null {
     const det = (b.v - c.v) * (a.u - c.u) + (c.u - b.u) * (a.v - c.v);
     if (Math.abs(det) < 0.00001) return null;
 
@@ -202,10 +236,50 @@ export class StageZone {
     const w2 = ((c.v - a.v) * (pu - c.u) + (a.u - c.u) * (pv - c.v)) / det;
     const w3 = 1.0 - w1 - w2;
 
-    if (w1 >= -0.01 && w2 >= -0.01 && w3 >= -0.01) {
-      return w1 * a.scale + w2 * b.scale + w3 * c.scale;
-    }
-
+    if (w1 >= -0.01 && w2 >= -0.01 && w3 >= -0.01) return { w1, w2, w3 };
     return null;
+  }
+
+  private _barycentricScale(
+    a: { u: number; v: number; scale: number },
+    b: { u: number; v: number; scale: number },
+    c: { u: number; v: number; scale: number },
+    pu: number,
+    pv: number,
+  ): number | null {
+    const w = this._baryWeights(a, b, c, pu, pv);
+    if (!w) return null;
+    return w.w1 * a.scale + w.w2 * b.scale + w.w3 * c.scale;
+  }
+
+  /**
+   * Gradient of the linear `scale` field across triangle (a, b, c), evaluated only when (pu, pv)
+   * actually falls inside that triangle -- `null` otherwise, or when the gradient is degenerate
+   * (zero-area triangle, or a near-zero gradient such as a uniformly-scaled zone).
+   */
+  private _gradientForTriangle(
+    a: { u: number; v: number; scale: number },
+    b: { u: number; v: number; scale: number },
+    c: { u: number; v: number; scale: number },
+    pu: number,
+    pv: number,
+  ): { gu: number; gv: number } | null {
+    if (!this._baryWeights(a, b, c, pu, pv)) return null;
+
+    const e1u = b.u - a.u;
+    const e1v = b.v - a.v;
+    const e2u = c.u - a.u;
+    const e2v = c.v - a.v;
+    const d1 = b.scale - a.scale;
+    const d2 = c.scale - a.scale;
+
+    const det = e1u * e2v - e1v * e2u;
+    if (Math.abs(det) < 0.00001) return null;
+
+    const gu = (d1 * e2v - d2 * e1v) / det;
+    const gv = (e1u * d2 - e2u * d1) / det;
+    if (Math.sqrt(gu * gu + gv * gv) < 0.00001) return null;
+
+    return { gu, gv };
   }
 }

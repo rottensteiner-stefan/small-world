@@ -20,6 +20,140 @@ erzeugen.
 
 ---
 
+## 2026-09-12 — ADR 0016 Phase 2.3+2.4: Hintergrundbild-Import + Klick-zum-Zeichnen — ADR 0016 KOMPLETT
+
+- ✅ **Dritter + vierter Maker-UI-Teilschritt, damit ist ADR 0016 vollständig umgesetzt.**
+  - **2.3:** `BackgroundPlane` (neuer `Object3D`-Marker-Subtyp, `instanceof`-erkennbar) +
+    `BackgroundImportPanel` (Datei-Picker + Drag&Drop aufs Viewport). Höhe wird immer aus Breite
+    + Bild-Seitenverhältnis abgeleitet, nie frei eingebbar — Bild kann nie gestreckt werden.
+    `StageProjectionResolver` erweitert: fällt auf eine `BackgroundPlane` zurück, wenn kein
+    `StageMovementBehavior` mit `"flat-plane"` existiert (z.B. eine brandneue Szene) — und bekam
+    dabei `fromWorld`/`planeOrigin`/`planeNormal` ergänzt (nicht nur `toWorld`), damit ein
+    Maus-Ray überhaupt gegen die Projektionsebene geschnitten werden kann.
+  - **2.4:** Klick-zum-Zeichnen (`Z` togglet einen exklusiven Modus, Linksklick platziert Punkte
+    per Ray/Ebenen-Schnitt gegen die aufgelöste Projektion, `Enter` schließt ab min. 3 Punkten zu
+    einem echten `StageZoneMarker` — genau EIN Undo-Command über `addObject()`, `Escape` bricht
+    verwerfend ab) + Viewport-Punkt-Ziehen (Handle greifen, Ray/Ebenen-Schnitt pro
+    Pointer-Move, genau ein Undo-Command bei Loslassen — exakt das `_finishGizmoDrag`-Muster).
+  - **Kleine Zusatz-Aufräumarbeit unterwegs (User-Hinweis):** ~11-fach wiederholter
+    `"INPUT"/"TEXTAREA"[/"SELECT"] === active.tagName`-Block in `_onMakerKeyDown` zu einem
+    `_isEditingField()`-Helper vereinheitlicht (dabei sogar strenger gemacht: jetzt überall
+    inklusive SELECT-Guard, vorher nur an einer Stelle). Bewusst NICHT das `Keys`-Enum für
+    `"Enter"`/`"Escape"` verwendet — das Enum ist explizit für `event.code` (Spiel-Input-Polling),
+    diese Funktion vergleicht durchgängig gegen `event.key`; nur 2 von ~20 Vergleichen umzustellen
+    wäre inkonsistenter als der Ist-Zustand gewesen.
+  - Live in Maker Ende-zu-Ende verifiziert: echtes Flakturm-Hintergrundbild importiert (Aspect
+    exakt 1376/768 = 1.7917 reproduziert), 4 Punkte per synthetischem Klick gesetzt, Enter erzeugt
+    echten `StageZoneMarker` im Szenengraph, Punkt-Ziehen aktualisiert u/v live und committet
+    genau einen Undo-Schritt, Undo stellt den Originalwert exakt wieder her. Keine Konsolenfehler.
+  - **Vom User live in der Browser-Tab-Gruppe entdeckter Bug (nicht durch eigene Verifikation
+    gefunden):** importiertes Hintergrundbild stand auf dem Kopf. Ursache: `createImageBitmap(file)`
+    dekodiert top-down, aber `Texture.fromUrl(..., {flipY:true})` (das `flakturm-tunnel` selbst
+    für exakt dasselbe Bild nutzt) geht über `AssetManager.loadImage()`, das mit
+    `createImageBitmap(blob, {imageOrientation:"flipY"})` dekodiert — `TextureOptions.flipY`
+    wird vom `Texture`-Konstruktor selbst nie ausgewertet, nur von `fromUrl`s Vorverarbeitung.
+    `_importBackgroundImage` nutzte `Texture.fromImage(bitmap)` mit einem plain
+    `createImageBitmap(file)` ohne diese Option — gefixt durch denselben
+    `{colorSpaceConversion:"none", imageOrientation:"flipY"}`-Aufruf. Live mit demselben
+    Flakturm-Bild nachverifiziert: steht jetzt korrekt.
+  - **Bewusste Scope-Grenze:** kein echter Datei-Speichern/Laden-Roundtrip live getestet (braucht
+    einen realen, vom User gewählten Projektordner über die File-System-Access-API — im
+    Sandbox-Browser nicht automatisierbar). Die eigentliche Serialisierung (`SW_stage_zone`) ist
+    bereits in Phase 1 über echte Roundtrip-Unit-Tests (4- und 6-Punkte-Fixtures) abgedeckt.
+  - Verifiziert: `tsc`/`eslint`/`vitest` (752/752) grün, `npm run build` grün.
+  - **ADR 0016 ist damit vollständig umgesetzt** (Phase 0/1/2). Phase 3 (Fluchtpunkt-Werkzeug,
+    Snapping) und Phase 4 (KI-Chat-Panel) bleiben wie im ADR selbst festgehalten explizit
+    außerhalb des Umfangs — spätere, separate Schritte.
+
+## 2026-09-12 — ADR 0016 Phase 2.2: PropertyPanel-Punktlisten-Editor für Zonen
+
+- ✅ **Zweiter Maker-UI-Teilschritt.** Neuer hartkodierter Sonderfallblock in `PropertyPanel.ts`
+  (strukturell parallel zum Material-/Behaviors-Folder-Muster, da variable-Länge-Listen im
+  generischen `Inspectable`-Schema kein Vorbild haben): "Zone Points (N)"-Folder mit einem
+  aufklappbaren Unter-Folder pro Punkt (U/V/Scale-Felder + "🗑 Remove Point", ausgeblendet bei
+  `points.length <= 3`), "+ Add Point"-Button am Ende. Undo-Granularität: jede einzelne
+  Feldänderung/Add/Delete ist ihr eigener `UndoCommand` — konsistent mit jedem anderen Zahlenfeld
+  in diesem Panel (nicht mit dem Gizmo-Drag-"ein Command pro Drag"-Muster).
+  - Kleiner, aber notwendiger Zusatzfund: Punkt-Edits mutieren `zone.points` direkt, nicht ein
+    Feld auf dem `StageZoneMarker` selbst — die generische `onPropertyChanged`-Identitätsprüfung
+    in `_createFieldBinding` (`host === this._currentObj`) hätte für Punkt-Edits nie gefeuert,
+    was Autosave stillschweigend übersprungen hätte. Eigene `_notifyZoneChanged()`-Methode löst
+    das gezielt.
+  - Live in Maker verifiziert: Punkte-Folder korrekt gerendert, U/V/Scale-Werte korrekt, "Add
+    Point" fügt den erwarteten Mittelpunkt der letzten beiden Punkte hinzu, Undo (Ctrl+Z) stellt
+    den vorherigen Zustand korrekt wieder her, keine Konsolenfehler.
+  - Verifiziert: `tsc`/`eslint`/`vitest` (752/752) grün, `npm run build` grün.
+  - **Nächster Schritt:** 2.3 (Hintergrundbild-Import), 2.4 (Klick-zum-Zeichnen).
+
+## 2026-09-12 — ADR 0016 Phase 2.1: StageZoneGizmoManager (Anzeige + Auswahl in Maker)
+
+- ✅ **Erster Maker-UI-Teilschritt.** Neuer `StageZoneGizmoManager` (direktes Vorbild
+  `LightGizmoManager`) zeigt jede `StageZoneMarker`-Zone als Outline (`Polyline`-Geometrie, neu) +
+  halbtransparente Füllfläche (`PolygonFan`-Geometrie, neu — dieselbe Fächer-Triangulation wie
+  `StageZone.getScaleAt`) + Punkt-Handles (Octahedron). Neuer `StageProjectionResolver` findet
+  eine `"flat-plane"`-Projektion aus einem `StageMovementBehavior` in der Szene, damit Zonen
+  überhaupt irgendwo in 3D platziert werden können (Ergebnis wird wie bei `_liveLights`/
+  `_liveMarkers` nur bei Hierarchie-Änderung neu aufgelöst, nicht pro Frame). Vollständig in
+  `MakerApp` verdrahtet: Picking, Hierarchy-Panel-Sichtbarkeit, Thumbnail-Capture-Ausblendung.
+  - **Echter, vorbestehender Engine-Bug gefunden + gefixt beim Live-Verifizieren:**
+    `BasicMaterial.getRenderManifest()` synct nie `state.blending` aus `this.transparent` (anders
+    als `StandardMaterial`/`PhongMaterial`/`SpriteMaterial`, die das explizit selbst tun) —
+    `transparent = true` hatte auf `BasicMaterial` schlicht keine Wirkung, unabhängig vom
+    Renderer (WebGL1/2 UND WebGPU keyen ihr Blend-State auf `state.blending`, nicht
+    `state.transparent`). Kein bestehender Code verließ sich auf das kaputte Verhalten (geprüft).
+    Gefixt nach demselben Muster wie `StandardMaterial`.
+  - Live in Maker verifiziert (Test-Zone per Konsole injiziert, da das Zeichenwerkzeug erst in
+    2.4 kommt): Outline/Füllfläche/Handles rendern korrekt, Klick auf Füllfläche selektiert die
+    `StageZoneMarker` (nicht die rohe Mesh), Property-Panel zeigt automatisch generiertes Schema
+    inkl. "Display Name" (`zone.name`), Transform-Gizmo hängt sich korrekt an.
+  - Verifiziert: `tsc`/`eslint`/`vitest` (752/752) grün.
+  - **Nächster Schritt:** 2.2 (PropertyPanel-Punktlisten-Editor), 2.3 (Hintergrundbild-Import),
+    2.4 (Klick-zum-Zeichnen).
+
+## 2026-09-12 — ADR 0016 Phase 1 + neue ADR 0017: glTF-Extension-Registry, SW_stage_zone
+
+- ✅ **Zweite Umsetzungsphase von ADR 0016.** Statt `SW_stage_zone` als dritten hartkodierten
+  if/else-Zweig neben `KHR_lights_punctual`/`SW_prefab_instance` in `GltfLoader`/`WorldWriter`
+  einzubauen (User-Wunsch, während der Recherche aufgekommen — proprietäre glTF-Extensions
+  können sich als De-facto-Standard durchsetzen, ohne je `KHR_`/offiziell zu werden, z.B.
+  `EXT_mesh_gpu_instancing`): neuer genereller `GltfExtensionPlugin`-Mechanismus
+  (`registerGltfExtension()`), die zwei bestehenden Extensions dorthin migriert (verhaltens-
+  identisch, alle 29 vorherigen Loader-Tests unverändert grün), `SW_stage_zone` als dritter,
+  sauberer Registry-Eintrag. Neue ADR 0017 dokumentiert die Entscheidung inkl. der verworfenen
+  Alternative "eigenes `@small-world/gltf-extensions`-Package für diese drei" (Zirkelabhängigkeit
+  — sie sind Default-Verhalten und brauchen zwingend Engine-Typen; ein externes Package bleibt
+  aber der richtige Ort für spätere, echt optionale Community-Extensions).
+  - `StageZoneMarker` (aus Phase 0) ist jetzt über `SW_stage_zone` roundtrip-fähig — 4-Punkte- UND
+    6-Punkte-Fixture getestet, `extensionsUsed` wird jetzt korrekt befüllt (Nebenfund: fehlte
+    bisher komplett, auch für die zwei alten Extensions).
+  - Beim Umsetzen fiel eine Abweichung von ADR 0016s eigener Behauptung auf ("beide Szenen passen
+    exakt in flat-plane") — `character-diorama` mappt tatsächlich v→Weltraum-Z (Boden), nicht
+    v→Y (Wand), passt nicht in `"flat-plane"`. Läuft daher über `projection:{mode:"custom"}`
+    weiter mit seiner bestehenden Closure — funktional unverändert, aber (noch) nicht
+    Maker-roundtrip-fähig. ADR 0016 mit Status-Notiz korrigiert, nicht stillschweigend übergangen.
+  - Verifiziert: `tsc`/`eslint`/`vitest` (752/752) grün, `npm run build` grün.
+  - **Nächster Schritt:** Phase 2 (Maker-UI: Zonen zeichnen/bearbeiten, Hintergrundbild-Import).
+
+## 2026-09-12 — ADR 0016 Phase 0: StageZone/StageMovementBehavior verallgemeinert
+
+- ✅ **Erste Umsetzungsphase von ADR 0016** (Flakturm-Tunnel im Maker editierbar machen).
+  `StageZone.points` von starrem 4-Tupel auf `StagePoint2D[]` (min. 3) verallgemeinert;
+  `getScaleAt` läuft jetzt über einen Fächer aus `n-2` Dreiecken (bei n=4 byte-identisch zum
+  alten Zwei-Dreiecks-Code); `getLocalAxes(u,v)` bekam einen Positions-Parameter (von der
+  Recherche als notwendig erkannt, nicht explizit im ADR — der Gradient ist nur pro
+  Fächer-Dreieck konstant, ab n>3 ohne Abfragepunkt nicht wohldefiniert) und nutzt für n=4
+  weiterhin exakt die alte Eckenpaar-Formel (keine Verhaltensänderung für zone_a/b/c), für n≠4
+  einen neuen Skalierungs-Gradienten (hergeleitet, mit Entartungsfall-Fallback).
+  `StageZoneMarker extends Object3D` (neue Datei) gibt Zonen erstmals eine Szenengraph-Präsenz
+  (Komposition, nicht `StageZone extends Object3D` — Details/Begründung im Plan). `uvToWorld`
+  von `StageMovementBehaviorOptions` zu `StageProjection`-Tagged-Union (`"flat-plane"` |
+  `"custom"`) gemacht; `flakturm-tunnel` läuft jetzt über `"flat-plane"`, `character-diorama`
+  bleibt `"custom"` (seine Formel mappt v→Weltraum-Z statt v→Y, passt nicht ins
+  flat-plane-Schema). `static inspector` für `StageMovementBehavior` ergänzt.
+  - Verifiziert: `tsc`/`eslint`/`vitest` (750/750, 6 neue Tests) grün, `npm run build` grün,
+    Flakturm-Tunnel live im Browser geprüft (Position/Skalierung unverändert korrekt).
+  - **Nächster Schritt:** Phase 1 (glTF-Format: Extension-Registry + `SW_stage_zone`).
+
 ## 2026-09-12 — Nachlauf zur Workspaces-Migration: Hub-Seite, Docs-Port, absolute Pfade, v0.78.00
 
 - ✅ **`public/index.html` neu gegliedert** in 4 klar getrennte Abschnitte (User-Vorgabe: Einstieg,

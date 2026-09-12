@@ -1451,7 +1451,10 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
         facingOffset: Math.PI, // same rig convention as flakturm-tunnel's identical mannequin assets
         startFacing: "back",
         zones: this._stageZone ? [this._stageZone] : [],
-        uvToWorld: (u: number, v: number): { x: number; y: number; z: number } => ({
+        // A floor-plane mapping (v -> world Z, fixed Y), not a backdrop-wall mapping (v -> world
+        // Y, fixed Z) -- doesn't fit StageProjection's "flat-plane" shape, so this stays "custom".
+        projection: { mode: "custom" },
+        customUvToWorld: (u: number, v: number): { x: number; y: number; z: number } => ({
           x: (u - 0.5) * 2 * FLOOR_HALF_SIZE,
           y: 0,
           z: (v - 0.5) * 2 * FLOOR_HALF_SIZE,

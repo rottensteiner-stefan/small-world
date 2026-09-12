@@ -51,6 +51,7 @@ export interface GltfJson {
     extensions?: {
       KHR_lights_punctual?: { light: number };
       SW_prefab_instance?: { source: string };
+      SW_stage_zone?: { displayName?: string; points: { u: number; v: number; scale?: number }[] };
       [key: string]: unknown;
     };
   }[];

@@ -76,6 +76,7 @@ export default defineConfig({
             { text: "0014: Modulare Domänen-Schichtung", link: "/adr/0014-modular-ecosystem-and-domain-layering" },
             { text: "0015: App-First-Regel für Genre-Code", link: "/adr/0015-app-first-genre-code-extraction-rule" },
             { text: "0016: 2.5D-Bühnen-Zonen als glTF-Erweiterung", link: "/adr/0016-2-5d-stage-zones-as-a-gltf-extension" },
+            { text: "0017: glTF-Extension-Plugin-Registry", link: "/adr/0017-gltf-extension-plugin-registry" },
           ],
         },
       ],

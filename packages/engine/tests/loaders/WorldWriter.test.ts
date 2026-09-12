@@ -7,6 +7,8 @@ import { StandardMaterial } from "../../src/core/materials/StandardMaterial.js";
 import { Color } from "../../src/core/colors/Color.js";
 import { Matrix4, Vector3D, Quaternion } from "../../src/math/index.js";
 import { GeometryDataInterface } from "../../src/interfaces/index.js";
+import { StageZone } from "../../src/core/stage/StageZone.js";
+import { StageZoneMarker } from "../../src/core/stage/StageZoneMarker.js";
 
 /** Mirrors `GltfLoader`'s own private `_decodeBase64` -- decoding here is test setup, not
  * something the writer/loader pair needs to expose publicly. */
@@ -181,5 +183,56 @@ describe("WorldWriter <-> GltfLoader round trip", () => {
     const parsedRoot = await parseDocument(doc);
 
     expect(parsedRoot.children[0]!.prefabSource).toBe("OilBarrel");
+  });
+
+  it("round-trips a 4-point StageZoneMarker via the SW_stage_zone extension", async () => {
+    const marker = new StageZoneMarker(
+      new StageZone({
+        id: "zone_a",
+        name: "ZONE A: TEST",
+        points: [
+          { u: 0.1, v: 0.1, scale: 1.0 },
+          { u: 0.9, v: 0.1, scale: 1.0 },
+          { u: 0.9, v: 0.9, scale: 0.4 },
+          { u: 0.1, v: 0.9, scale: 0.4 },
+        ],
+      }),
+    );
+
+    const doc = new WorldWriter().writeSingle(marker);
+    expect(doc.extensionsUsed).toContain("SW_stage_zone");
+
+    const parsedRoot = await parseDocument(doc);
+    const parsed = parsedRoot.children[0]!;
+    expect(parsed).toBeInstanceOf(StageZoneMarker);
+    const parsedMarker = parsed as StageZoneMarker;
+    expect(parsedMarker.zone.id).toBe("zone_a");
+    expect(parsedMarker.zone.name).toBe("ZONE A: TEST");
+    expect(parsedMarker.zone.points).toEqual(marker.zone.points);
+  });
+
+  it("round-trips a 6-point (non-quad) StageZoneMarker via SW_stage_zone", async () => {
+    const marker = new StageZoneMarker(
+      new StageZone({
+        id: "zone_hex",
+        name: "Hex Zone",
+        points: [
+          { u: 0.2, v: 0 },
+          { u: 0.8, v: 0 },
+          { u: 1, v: 0.5 },
+          { u: 0.8, v: 1 },
+          { u: 0.2, v: 1 },
+          { u: 0, v: 0.5 },
+        ],
+      }),
+    );
+
+    const doc = new WorldWriter().writeSingle(marker);
+    const parsedRoot = await parseDocument(doc);
+    const parsedMarker = parsedRoot.children[0]! as StageZoneMarker;
+
+    expect(parsedMarker.zone.id).toBe("zone_hex");
+    expect(parsedMarker.zone.points).toHaveLength(6);
+    expect(parsedMarker.zone.points).toEqual(marker.zone.points);
   });
 });

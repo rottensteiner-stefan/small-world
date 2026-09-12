@@ -10,6 +10,8 @@ export * from "./CylinderSector.js";
 export * from "./Disk.js";
 export * from "./Grid.js";
 export * from "./Line.js";
+export * from "./Polyline.js";
+export * from "./PolygonFan.js";
 export * from "./ModelGeometry.js";
 export * from "./Octahedron.js";
 export * from "./Plane.js";

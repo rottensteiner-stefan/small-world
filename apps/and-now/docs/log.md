@@ -1129,6 +1129,36 @@ befüllen.
   Konsolenfehler). Nächster Schritt (separat): ADR-0016-Code, damit Flakturm tatsächlich im Maker
   läuft.
 
+---
+
+## 109. ADR 0016 vollständig umgesetzt: Flakturm-Tunnel ist jetzt Maker-fähig (2026-09-12)
+- **Anlass:** Der oben angekündigte "nächste Schritt" — die Flakturm-Tunnel-Szene im Maker
+  öffnen/bearbeiten/speichern können. Umgesetzt in drei Phasen (siehe `docs/adr/0016-...md` und
+  die neue `docs/adr/0017-gltf-extension-plugin-registry.md` für Details).
+- **Was sich für and-now konkret ändert:** `flakturm-tunnel/showcase.ts`s `uvToWorld`-Closure
+  wurde zu `projection: {mode:"flat-plane", width:16, height:9, z:0, centerY:4.5}` (reine Daten
+  statt Funktion) — Verhalten unverändert, aber jetzt Maker-roundtrip-fähig. Die drei Zonen
+  (`zone_a`/`b`/`c`) sind weiterhin identisch definiert, ihre Mathematik (`getScaleAt`,
+  `getLocalAxes`) wurde intern auf beliebige Punktzahl verallgemeinert, bleibt aber für diese
+  bestehenden 4-Punkte-Zonen byte-identisch zum bisherigen Verhalten (regressionsgetestet).
+  `character-diorama` bleibt bewusst bei `projection:{mode:"custom"}` (sein Boden-Mapping v→Z
+  passt nicht ins `flat-plane`-Schema, das v→Y annimmt) — funktional unverändert, aber (noch)
+  nicht Maker-roundtrip-fähig.
+- **Neu:** Maker kann jetzt eine 2.5D-Bühnen-Szene komplett von Grund auf bauen — Hintergrundbild
+  importieren (Seitenverhältnis-sicher), Zonen durch Klicken zeichnen, Punkte per Drag oder im
+  Property-Panel verfeinern, alles über `SW_stage_zone` speicherbar/ladbar. Bisher nur an einer
+  synthetischen Testzone live verifiziert (siehe Backlog), noch nicht am echten
+  Flakturm-Hintergrundbild end-to-end durchgespielt (Nachziehen: eine Zone am echten Bild
+  nachzeichnen und mit den bestehenden `DEFAULT_ZONE_POINTS`-Werten vergleichen, um Maker als
+  Autoring-Werkzeug für diese konkrete Szene zu validieren).
+- **Dateien:** [`flakturm-tunnel/showcase.ts`](apps/and-now/scenes/flakturm-tunnel/showcase.ts),
+  [`character-diorama/showcase.ts`](apps/and-now/scenes/character-diorama/showcase.ts)
+- **Status:** Engine-Teil (Phase 0/1) und Maker-UI-Teil (Phase 2) live verifiziert (`tsc`/`eslint`/
+  `vitest` 752/752, `npm run build` grün, mehrere Live-Browser-Checks in Maker inkl. echtem
+  Flakturm-Hintergrundbild-Import). Ein echter, vom User live entdeckter Rendering-Bug
+  (importiertes Hintergrundbild stand auf dem Kopf) gefunden und gefixt. Nächster Schritt (falls
+  gewünscht, separat): die drei echten Flakturm-Zonen tatsächlich in Maker nachzeichnen/abgleichen.
+
 
 
 

@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.79.00] - 2026-09-12
+
+### "The nice thing about standards is that there are so many to choose from." - Andrew S. Tanenbaum
+
+- **Features:**
+  - Maker can now author 2.5D stage zones directly in the editor: click-to-draw zone placement (`Z` to toggle), draggable point handles on existing zones, a PropertyPanel point-list editor (add/remove/edit U/V/Scale per point, each change its own undo step), and aspect-ratio-safe background image import via drag & drop, so a whole stage scene can be built from a reference picture without touching code.
+- **Architecture & Bugfixes:**
+  - `StageZone` generalized from a rigid 4-point quad to an arbitrary n-point polygon (fan triangulation for `getScaleAt`, byte-identical to the old two-triangle math for existing 4-point zones); new `StageZoneMarker` (`Object3D`) gives zones a real scene-graph presence for the first time.
+  - `StageMovementBehavior`'s ad-hoc `uvToWorld` closure replaced by a serializable `StageProjection` (`"flat-plane"` | `"custom"`); `flakturm-tunnel` now runs on `"flat-plane"`, `character-diorama` stays `"custom"` (its floor mapping doesn't fit the flat-plane shape).
+  - New generic glTF extension plugin registry (`GltfExtensionPlugin`, `registerGltfExtension`) replaces the two hardcoded `KHR_lights_punctual`/`SW_prefab_instance` if/else branches in `GltfLoader`/`WorldWriter`; `SW_stage_zone` is the third, clean registry entry, making stage zones round-trip through glTF saves and loads. Documented in new ADR 0017.
+  - Fixed a real, pre-existing `BasicMaterial` bug found while wiring up the zone gizmos: `transparent = true` silently had no effect because `getRenderManifest()` never synced `state.blending` from it, unlike `StandardMaterial`/`PhongMaterial`.
+- **Housekeeping & Docs:**
+  - New unit tests for the n-point `StageZone` math, `StageZoneMarker`, and `SW_stage_zone` glTF round-tripping (4- and 6-point fixtures).
+
 ## [0.78.00] - 2026-09-12
 
 ### "Good fences make good neighbors." - Robert Frost

@@ -1,91 +1,37 @@
 import { Object3D } from "../core/Object3D.js";
 import { AbstractMaterial } from "../core/materials/AbstractMaterial.js";
 import { StandardMaterial } from "../core/materials/StandardMaterial.js";
-import { AbstractLight, PointLight } from "../core/lights/index.js";
 import { Matrix4, Vector3D, Quaternion } from "../math/index.js";
 import { GeometryDataInterface } from "../interfaces/index.js";
+import { getGltfExtensions } from "./gltf/GltfExtensionRegistry.js";
+import { GltfWriteContext, GltfWriteState } from "./gltf/GltfExtensionPlugin.js";
+import {
+  GltfDocument,
+  GltfNodeJson,
+  GltfMeshJson,
+  GltfMaterialJson,
+  GltfAccessorJson,
+  GltfBufferViewJson,
+} from "./gltf/writerTypes.js";
+// Side-effect import: registers the built-in extension plugins (KHR_lights_punctual,
+// SW_prefab_instance, SW_stage_zone) -- see ADR 0017.
+import "./gltf/extensions/index.js";
 
-/**
- * Minimal glTF 2.0 JSON document shape this writer produces -- deliberately not the full spec,
- * only the subset exercised by the World Format's Phase 0 round-trip (node hierarchy, one
- * mesh's material, one `KHR_lights_punctual` point light). See
- * docs/adr/0010-maker-editor-architecture.md.
- */
-export interface GltfDocument {
-  asset: { version: "2.0"; generator: string };
-  scene: number;
-  scenes: { nodes: number[] }[];
-  nodes: GltfNodeJson[];
-  meshes?: GltfMeshJson[];
-  materials?: GltfMaterialJson[];
-  accessors?: GltfAccessorJson[];
-  bufferViews?: GltfBufferViewJson[];
-  buffers?: { uri: string; byteLength: number }[];
-  extensions?: { KHR_lights_punctual?: { lights: GltfLightJson[] } };
-}
-
-export interface GltfNodeJson {
-  name: string;
-  translation: number[];
-  rotation: number[];
-  scale: number[];
-  children?: number[];
-  mesh?: number;
-  extensions?: {
-    KHR_lights_punctual?: { light: number };
-    SW_prefab_instance?: { source: string };
-  };
-}
-
-interface GltfMeshJson {
-  primitives: { attributes: { POSITION: number }; material?: number }[];
-}
-
-interface GltfMaterialJson {
-  pbrMetallicRoughness?: {
-    baseColorFactor?: number[];
-    metallicFactor?: number;
-    roughnessFactor?: number;
-  };
-  emissiveFactor?: number[];
-  alphaMode?: "OPAQUE" | "BLEND";
-}
-
-interface GltfAccessorJson {
-  bufferView: number;
-  componentType: number;
-  count: number;
-  type: string;
-  min: number[];
-  max: number[];
-}
-
-interface GltfBufferViewJson {
-  buffer: number;
-  byteOffset: number;
-  byteLength: number;
-}
-
-interface GltfLightJson {
-  type: "point";
-  color?: number[];
-  intensity?: number;
-  range?: number;
-}
+export type { GltfDocument, GltfNodeJson } from "./gltf/writerTypes.js";
 
 const COMPONENT_TYPE_FLOAT = 5126;
 
 /**
  * Serializes a live `Object3D` tree into a minimal glTF 2.0 JSON document -- the write-side
  * counterpart to `GltfLoader`. See docs/adr/0010-maker-editor-architecture.md for why glTF +
- * a future `SW_*` extension namespace, rather than a bespoke format.
+ * an `SW_*` extension namespace, rather than a bespoke format, and ADR 0017 for how individual
+ * extensions (light, prefab, stage zone, ...) plug into this writer via a registry instead of
+ * being hardcoded here.
  *
  * Phase 0 scope only:
  * - Node hierarchy and transforms (Euler or quaternion, whichever the object actually has set).
  * - One mesh's material, via native `pbrMetallicRoughness` -- no `SW_*` extension needed yet
  *   since `StandardMaterial`'s fields map onto it directly.
- * - `KHR_lights_punctual` point lights only, matching `GltfLoader`'s import-side scope (see its
- *   own comment on why directional/spot are deliberately not handled yet).
  * - Geometry export covers `POSITION` only (no normals/uvs/indices) -- enough to prove the
  *   round-trip mechanism end to end; richer attribute export is a later phase once Maker
  *   actually needs textured/lit preview meshes.
@@ -97,7 +43,7 @@ export class WorldWriter {
   private _accessors: GltfAccessorJson[] = [];
   private _bufferViews: GltfBufferViewJson[] = [];
   private _bufferChunks: Uint8Array[] = [];
-  private _lights: GltfLightJson[] = [];
+  private _extensionState: Map<string, unknown> = new Map();
 
   /**
    * Serializes every child of `root` (not `root` itself -- it plays the same role as
@@ -125,7 +71,7 @@ export class WorldWriter {
     this._accessors = [];
     this._bufferViews = [];
     this._bufferChunks = [];
-    this._lights = [];
+    this._extensionState = new Map();
   }
 
   private _finalize(rootIndices: number[]): GltfDocument {
@@ -142,10 +88,30 @@ export class WorldWriter {
     if (0 < this._bufferChunks.length) {
       doc.buffers = [this._writeCombinedBuffer()];
     }
-    if (0 < this._lights.length) {
-      doc.extensions = { KHR_lights_punctual: { lights: this._lights } };
-    }
+
+    const writeCtx: GltfWriteContext = { doc, state: this._extensionState };
+    for (const plugin of getGltfExtensions()) plugin.finalizeWrite?.(writeCtx);
+
+    const extensionsUsed = WorldWriter._collectExtensionsUsed(doc);
+    if (0 < extensionsUsed.length) doc.extensionsUsed = extensionsUsed;
+
     return doc;
+  }
+
+  /** Every extension name actually present in the finished document (root or any node), so
+   * `extensionsUsed` accurately reflects what's really there instead of being omitted entirely
+   * (as it always was before ADR 0017). */
+  private static _collectExtensionsUsed(doc: GltfDocument): string[] {
+    const used = new Set<string>();
+    for (const node of doc.nodes) {
+      if (node.extensions) {
+        for (const key of Object.keys(node.extensions)) used.add(key);
+      }
+    }
+    if (doc.extensions) {
+      for (const key of Object.keys(doc.extensions)) used.add(key);
+    }
+    return Array.from(used).sort();
   }
 
   private _writeNode(obj: Object3D): number {
@@ -161,15 +127,8 @@ export class WorldWriter {
     };
     this._nodes.push(node);
 
-    if (obj instanceof PointLight) {
-      node.extensions = { KHR_lights_punctual: { light: this._writeLight(obj) } };
-    } else if (obj instanceof AbstractLight) {
-      // Other light types intentionally not exported yet -- see the class doc comment.
-    }
-
-    if (obj.prefabSource) {
-      node.extensions = { ...node.extensions, SW_prefab_instance: { source: obj.prefabSource } };
-    }
+    const writeState: GltfWriteState = { state: this._extensionState };
+    for (const plugin of getGltfExtensions()) plugin.writeNode?.(obj, node, writeState);
 
     if (obj.geometry && obj.material) {
       node.mesh = this._writeMesh(obj.geometry, obj.material);
@@ -179,17 +138,6 @@ export class WorldWriter {
       node.children = obj.children.map((child) => this._writeNode(child));
     }
 
-    return index;
-  }
-
-  private _writeLight(light: PointLight): number {
-    const index = this._lights.length;
-    this._lights.push({
-      type: "point",
-      color: [light.color.r, light.color.g, light.color.b],
-      intensity: light.intensity,
-      range: light.distance,
-    });
     return index;
   }
 
