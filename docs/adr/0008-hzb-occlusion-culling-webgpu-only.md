@@ -53,16 +53,23 @@ gezeichnet, derselbe sichere Standardwert, der der eigene Anfangswert von `occlu
 ist.
 
 `_dispatchHzbTest()` leitet seine Kandidatenliste ab, indem es die ihm übergebene `Scene` direkt
-durchläuft (`isVisible && inFrustum && bounds`), statt `FrustumCuller.lastVisibleObjects` zu lesen
-— obwohl dieses Feld genau als eine solche Nebenprodukt-Liste existiert. `FrustumCuller`s Felder
-sind `static`, geteilt über jede `SmallWorld`-Instanz auf der Seite; GadgetInspectors
-`MaterialStudioApp`-Materialvorschau-Panel ist selbst eine `SmallWorld`, die ihre eigene `_loop()`
-(und damit ihr eigenes `FrustumCuller.cull()`) auf ihrer eigenen winzigen Vorschau-Szene laufen
-lässt, und da `enableInspector: true` der Standard für Showcases ist, läuft es neben fast jeder
-Szene, die dieser Renderer je testet, mit. Das statische Feld zu lesen hieß, zu testen, welcher
-Szene `cull()` zuletzt lief — fast nie die tatsächlich gerenderte. Der szenengebundene Durchlauf
-kostet eine zusätzliche rekursive Traversierung pro Frame; das statische Feld bleibt nur als
-Debug-/Introspektions-Werkzeug erhalten.
+durchläuft (`isVisible && inFrustum && bounds`), statt ein `static`-Feld auf `FrustumCuller` zu
+lesen — zum Zeitpunkt dieser Entscheidung führte `FrustumCuller` genau ein solches Nebenprodukt-Feld
+(`lastVisibleObjects`). `FrustumCuller`s Felder sind `static`, geteilt über jede `SmallWorld`-Instanz
+auf der Seite; damals lief `GadgetInspector`s `MaterialStudioApp`-Materialvorschau-Panel selbst als
+eigene `SmallWorld`-Instanz mit eigener `_loop()` (und damit eigenem `FrustumCuller.cull()`) auf
+einer winzigen Vorschau-Szene nebenher, wann immer der Showcase-Modus, der es hostete, aktiv war
+(`enableInspector: true`, nie Engine-Standard, aber von etlichen Showcases explizit gesetzt) — ein
+statisches Feld zu lesen hieß in diesem Fall, zu testen, welcher Szene `cull()` zuletzt lief, fast
+nie die tatsächlich gerenderte. Der szenengebundene Durchlauf kostet eine zusätzliche rekursive
+Traversierung pro Frame, vermeidet aber genau diese Klasse Bug von vornherein.
+
+**Update:** `GadgetInspector` selbst ist inzwischen vollständig durch Maker ersetzt (ADR 0010), und
+`lastVisibleObjects` wurde als totes, nie korrekt konsumiertes Feld entfernt (`lastVisibleCount`/
+`lastIntersectedNodes` blieben als tatsächlich genutzte Introspektions-Felder). Die Kern-Entscheidung
+oben — szenengebundene Traversierung statt eines geteilten `static`-Felds — bleibt exakt der Grund,
+warum das alte Feld sich als nie sicher lesbar erwies und richtigerweise entfernt statt weiter
+gepflegt wurde.
 
 Occlusion Culling läuft nur für den Haupt-Canvas-Pass. `WebGPURenderer._buildHzbPyramid()`/
 `_dispatchHzbTest()` sind beide No-Ops, wann immer `_activeRenderTarget` gesetzt ist

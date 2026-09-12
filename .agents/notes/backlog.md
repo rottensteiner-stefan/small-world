@@ -316,3 +316,28 @@ Entstanden während der Jagd nach grün/blauen Block-Artefakten auf den Sponza-V
   Zone wird durch den lokalen Gradienten des Skalierungsfelds ersetzt (funktioniert auch bei
   unregelmäßigen/konkaven Formen, keine "welche Ecke ist gegenüber"-Konvention nötig). Reiner
   Entwurf, noch keine Code-Umsetzung — nächster Schritt wäre Phase 0 (Engine-Vorarbeit) laut ADR.
+
+- ✅ **Alle 16 ADRs auf Aktualität geprüft** (3 parallele Audit-Agenten, je gegen den echten Code
+  verifiziert, nicht nur gegen den ADR-Text). Ergebnis:
+  - 12/16 weiterhin exakt akkurat (0001-0007, 0010, 0012, 0013, 0015, 0016).
+  - **0008** (HZB Occlusion Culling): zitierte ein inzwischen entferntes Feld
+    (`FrustumCuller.lastVisibleObjects`, tot/nie korrekt genutzt) und behauptete fälschlich,
+    `enableInspector: true` sei Showcase-Standard (ist `false`). Update-Vermerk ergänzt, ohne die
+    historische Begründung zu löschen.
+  - **0009** (Charakter-Pipeline & Mixamo): Laternen-Anbindung war komplett überholt (beschrieb
+    Scene-Graph-Kind mit festem Versatz; tatsächlich seit dieser Session reines
+    Weltraum-Positions-Tracking). Update-Vermerk ergänzt.
+  - **0011** (Modulare Asset-Kits): Phase 2 (Out-of-Tree-Repo/LFS/CDN) und Phase 3
+    (Katalog-Loader/CLI) nie umgesetzt — Assets liegen weiterhin direkt im Haupt-Repo, exakt das
+    Anti-Pattern, das Phase 2 verhindern sollte. Status-Vermerke pro Phase ergänzt, `kit.json`/
+    `preview.jpg`-Abweichung notiert, `GadgetInspector`-Zitat auf `Maker` korrigiert.
+  - **0014** (Domänen-Schichtung): `BillboardInstancer` lag noch flach unter `src/core/`,
+    `RatGroomingBehavior`/`GroomingRat` noch unter `src/core/behaviors/creatures/` statt am
+    eigenen Top-Level `src/behaviors/creatures/`. **Auf User-Entscheidung hin tatsächlich
+    verschoben** (Code an ADR angepasst, nicht umgekehrt): `src/core/BillboardInstancer.ts` →
+    `src/core/objects/BillboardInstancer.ts`; `src/core/behaviors/creatures/*` → neues
+    Top-Level-`src/behaviors/creatures/*` (neuer `src/behaviors/index.ts`-Barrel, in `src/index.ts`
+    verdrahtet). Alle Imports (Barrel-Exporte, direkte Importe, 2 Test-Dateien mitverschoben)
+    nachgezogen. Verifiziert: `tsc --noEmit` sauber, `eslint` sauber, volle Testsuite 744/744 grün.
+  - Keine echten Konsolidierungs-Kandidaten gefunden (0004/0007 schon sauber verlinkt, 0013/0016
+    geprüft und als oberflächliche statt echte Überschneidung verworfen).

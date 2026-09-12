@@ -54,7 +54,17 @@ Datei-Routing-Verträgen für alle humanoiden Charaktere:
      gewrappt. Bewegungs-Behaviors (`StageMovementBehavior`) hängen an `_characterRig` an,
      damit Perspektiv-Skalierung nicht die lokale Modellhöhe überschreibt.
    - **Semantische Hand-Sockets:** Standardisierte Anbindung an `mixamorig:LeftHand`
-     (Laterne: lokaler Versatz `(0.01, 0.06, 0.02)` und Rotation `0`).
+     (Laterne: lokaler Versatz `(0.01, 0.06, 0.02)` und Rotation `0`). **Update:** dieser konkrete
+     Anbindungs-Mechanismus (direktes Scene-Graph-Kind der Hand-Bone) wurde seither durch reines
+     Weltraum-Positions-Tracking ersetzt (`_syncLanternTransform()` in `flakturm-tunnel`s und
+     `character-diorama`s `showcase.ts`) -- kein Scene-Graph-Kind mehr, Rotation wird nie
+     übernommen (die Laterne hängt dadurch immer gerade herab statt mit der Handbewegung
+     mitzutaumeln), und der lokale Versatz ist jetzt dynamisch je nach Bone-Typ
+     (Finger- vs. Handgelenk-Bone) und durch die akkumulierte Bone-Weltskalierung geteilt (behebt
+     einen ~100x-cm-zu-m-Skalierungsartefakt, das Mixamo-Rigs oft in ihre Bones backen). Das
+     semantische Hand-Socket selbst (`mixamorig:LeftHand`, mit Fallback-Kandidaten für
+     Finger-Bones und Nicht-Mixamo-Rigs) ist weiterhin der Referenzpunkt -- nur *wie* die Laterne
+     daran hängt, hat sich geändert.
 5. **Kanonische Charakter-Ausrüstung & Zwei-Gürtel-Architektur:**
    - **Laterne in der linken Hand:** Die Laterne wird ausschließlich in der linken Hand getragen
      (`mixamorig:LeftHand`), sodass die rechte Hand frei bleibt.

@@ -1016,6 +1016,97 @@ befüllen.
 - **Status:** `npx tsc --noEmit` grün, Debug-Instrumentierung (Bone-Marker-Helper, `__app`-Hook)
   vollständig entfernt.
 
+---
+
+## 104. Flakturm-Tunnel-Review: Geschwindigkeit, Selbstverdeckung, Zoom/Drehung, Beleuchtung (2026-09-10/11)
+- **Anlass:** User-Review von Szene 2 mit fünf vagen Kritikpunkten (zu schnell, kaum sichtbare
+  Animationen, Bewegungsgrenzen nicht eingehalten, keine Treppenanimation, Figur oben zu klein).
+- **Geschwindigkeit:** `speed` in `StageMovementBehavior` von `0.15` über testweise `0.06` auf
+  final `0.09` gesetzt.
+- **"Fehlt immer ein Bein"-Befund:** Nach anfänglicher Fehleinschätzung (eigene Screenshots waren
+  schlicht zu dunkel, vom User mit helleren Screenshots widerlegt) echtes, reproduzierbares
+  Phänomen bestätigt: reine Projektionsgeometrie, kein Rig-/Mesh-Fehler. Bei einer permanent
+  fixen Kamera fällt die gedachte Linie zwischen den beiden Füßen bei bestimmten Blickwinkeln
+  exakt mit der Kamera-Sichtlinie zusammen — derselbe Effekt wie zwei Zaunpfähle, die sich von
+  einem Ende der Reihe aus gesehen gegenseitig verdecken. Frustum- und Occlusion-Culling live
+  ausgeschlossen (beide Male keine Änderung bei Deaktivierung). Fix: neue `startFacingNudge`-Option
+  auf `StageMovementBehavior` (~8° Versatz der Start-Blickrichtung), verhindert, dass die Szene
+  exakt auf der kritischen Linie startet — kein Fix "am Bein", das Skelett war immer korrekt.
+- **Zoom & manuelle Drehung ergänzt:** Mausrad zoomt die sonst fixe Kamera entlang ihrer eigenen
+  Z-Achse (geklemmt zwischen `CAMERA_MIN_Z`/`CAMERA_MAX_Z`); `[SHIFT]+[←]/[→]` dreht die Figur
+  manuell auf der Stelle, ohne mit normaler Bewegung zu kollidieren (`StageMovementBehavior`
+  währenddessen deaktiviert).
+- **Beleuchtungs-Bug:** Die Spielfigur nutzte `BasicMaterial` — vollständig unlit, ignorierte
+  Umgebungslicht, Richtungslicht und sogar die eigene Handlaterne komplett. Fix: `StandardMaterial`
+  (matt, `roughness: 0.92`), analog zu `character-diorama`. Der gemalte Hintergrund bleibt bewusst
+  unlit (2D-Kunst, keine 3D-Oberfläche).
+- **Datei:** [`flakturm-tunnel/showcase.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/scenes/flakturm-tunnel/showcase.ts)
+- **Lektion:** Ein Live-Screenshot-Eindruck ("beide Beine sichtbar") kann selbst unrepräsentativ
+  sein, wenn er nur einen Frame aus einer ganzen Animationsschleife zeigt — vor einer Verifikation
+  lohnt sich ein Sample über den vollen Loop, nicht nur ein Blick.
+- **Status:** `npx tsc --noEmit` grün, live über mehrere Sitzungen verifiziert.
+
+---
+
+## 105. Docs-Kapitel "2.5D-Grundlagen" erstellt, mehrfach erweitert (2026-09-11)
+- **Anlass:** User wollte 2.5D-Grundlagen systematisch lernen (Perspektive, Fluchtpunkt,
+  Bewegungsbereiche, Kameras), direkt am eigenen Projekt statt abstrakt.
+- **Ergebnis:** Neues Engine-Docs-Kapitel [`docs/guides/2-5d-scenes.md`](file:///Users/srottensteiner/PhpstormProjects/small-world/docs/guides/2-5d-scenes.md)
+  (zunächst als interaktive HTML-Seiten unter `.agents/notes/reference/` erprobt, dann als
+  reguläres Docs-Kapitel formalisiert) — Perspektive/Fluchtpunkt-Abgleich, mehrere Fluchtpunkte
+  bei verzweigten Hintergründen (Treppe vs. Tunnel als Beispiel aus genau dieser App), alle 7
+  Kamera-Strategien, Zonen-Autorenschaft, Selbstverdeckung (Eintrag 104), ein Minimalbeispiel und
+  die Lektionen aus diesem Projekt. Enthält ein echtes annotiertes Vermessungsbild des
+  Flakturm-Hintergrunds (tatsächliche Bildmitte vs. gemalter Fluchtpunkt).
+- **Nicht and-now-spezifisch, aber hier vermerkt:** dieses Kapitel lebt im allgemeinen Engine-Docs-
+  Baum (`docs/guides/`), nicht in diesem App-Ordner, da es als Referenz für jedes künftige 2.5D-
+  Projekt gedacht ist — der Anstoß und alle Beispiele kommen aber vollständig aus dieser App.
+- **Status:** mehrfach erweitert (Fluchtlinien-Regel, Treppen-Fund aus Eintrag 106), ins Deutsche
+  übersetzt (2026-09-12, siehe allgemeines Backlog).
+
+---
+
+## 106. Zone C (Treppe): Fluchtlinien-Kante lag im Schatten statt auf der Stufe (2026-09-11)
+- **Anlass:** User-Hypothese: ein sauber gezogener Wegbereich unter einer rollwinkelfreien Kamera
+  sollte entweder aus 2 waagerechten + 2 Fluchtlinien-Kanten bestehen (flacher Boden, z.B. Tunnel)
+  oder — bei einem im Raum gedrehten Vieleck wie einer schräg wegführenden Treppe — aus zwei
+  eigenen Fluchtlinien-Paaren mit je einem eigenen Fluchtpunkt.
+- **Verifikation:** Beide Fälle an den echten Zonen-Daten nachgerechnet (Zone A/B passen zum
+  ersten Fall, Zone C korrekt zum zweiten), dann direkt gegen die echte Kunst gemessen
+  (`public/assets/and-now/flakturm_bg.webp`, Punkte annotiert). Ergebnis: Zone Cs rechte Kante
+  (Handlauf-Seite) stimmte fast exakt; die linke Kante war falsch — ihr oberer Punkt (`P3`) lag bei
+  `u=0.278` sichtbar neben der gemalten Stufenkante, im Schattenbereich daneben statt darauf.
+- **Fix:** `DEFAULT_ZONE_POINTS.zone_c`s `P3` in [`flakturm-tunnel/showcase.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/scenes/flakturm-tunnel/showcase.ts)
+  von `u: 0.278` auf `u: 0.305` korrigiert (v, P0/P1/P2 unverändert). Vorher/Nachher gegen die
+  echte Kante annotiert und verglichen (`docs/public/guides/2-5d-scenes/treppe_*`).
+- **Lektion:** Die vom User vorgeschlagene Fluchtlinien-Konvergenz-Prüfung fand einen echten,
+  sichtbaren Trace-Fehler, den reines Hinschauen auf die Zonen-Form allein nicht aufgedeckt hätte
+  — jetzt auch als allgemeine Technik in `docs/guides/2-5d-scenes.md` §4/§5 dokumentiert.
+- **Status:** live verifiziert, Build sauber.
+
+---
+
+## 107. Character-Diorama: echte Laufbewegung ergänzt, HUD-Fixes (2026-09-12)
+- **Anlass:** Figur im Diorama konnte sich bisher nur auf der Stelle drehen (Pfeiltasten) und
+  Animationen abspielen, ohne dass sich die Position je änderte (`_playerRig.position` wurde nur
+  einmal beim Laden gesetzt).
+- **Fix:** Echte `StageMovementBehavior`+`StageZone`-Bewegung über den ganzen begehbaren Boden
+  (±1,9 Welteinheiten Halbausdehnung, Marge zu den Wänden bei ±2,1), `scale: 1.0` durchgehend —
+  echte 3D-Tiefe über die frei orbitende Kamera, keine erzwungene Perspektive nötig (Diorama ist
+  genau der "Doesn't apply"-Fall aus `docs/guides/2-5d-scenes.md` §3). Bestehende Pfeiltasten-
+  Drehung bleibt erhalten, jetzt aber hinter `[SHIFT]` (sonst hätten sich beide Systeme jeden
+  Frame um `rotation.y` gestritten — dieselbe Konvention wie im Flakturm-Tunnel). Position bleibt
+  beim Charakterwechsel (Taste `C`) erhalten statt auf die Ursprungspose zurückzuspringen.
+- **Flakturm-Tunnel-HUD:** die Status-Box folgte der Figur über die Bühne (`worldToScreen` auf
+  Kopfposition), was sie z.B. weit oben auf der Treppe verdeckte, wo sie ohnehin schon klein ist.
+  Jetzt fix am oberen Bildschirmrand. Zusätzlich um Live-`(u,v)`-Position und aktuelle Skalierung
+  erweitert — dieselben Werte, die bisher nur per Konsole während Zonen-Verifikationen auslesbar
+  waren.
+- **Dateien:** [`character-diorama/showcase.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/scenes/character-diorama/showcase.ts),
+  [`flakturm-tunnel/showcase.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/src/apps/and-now/scenes/flakturm-tunnel/showcase.ts)
+- **Status:** live verifiziert (manuelles Frame-Pumping: Laufen, exaktes Randklemmen, SHIFT-Drehung
+  ohne Bewegungskonflikt), Teil von Commit `b179870c` (v0.77.28).
+
 
 
 

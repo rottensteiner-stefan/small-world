@@ -1,9 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { GroomingRat } from "../../../src/core/behaviors/creatures/GroomingRat.js";
+import { GroomingRat } from "../../../src/behaviors/creatures/GroomingRat.js";
 import {
   RatGroomingBehavior,
   RatGroomingState,
-} from "../../../src/core/behaviors/creatures/RatGroomingBehavior.js";
+} from "../../../src/behaviors/creatures/RatGroomingBehavior.js";
 import { Color } from "../../../src/core/colors/Color.js";
 import { Object3D } from "../../../src/core/Object3D.js";
 

@@ -1,11 +1,11 @@
-import { Camera } from "./Camera.js";
-import { InstancedMesh } from "./InstancedMesh.js";
-import { Object3D } from "./Object3D.js";
-import { AbstractMaterial, StandardMaterial } from "./materials/index.js";
-import { Color } from "./colors/index.js";
-import { Plane } from "../geometry/index.js";
-import { Matrix4, Vector3D } from "../math/index.js";
-import { GeometryDataInterface } from "../interfaces/index.js";
+import { Camera } from "../Camera.js";
+import { InstancedMesh } from "../InstancedMesh.js";
+import { Object3D } from "../Object3D.js";
+import { AbstractMaterial, StandardMaterial } from "../materials/index.js";
+import { Color } from "../colors/index.js";
+import { Plane } from "../../geometry/index.js";
+import { Matrix4, Vector3D } from "../../math/index.js";
+import { GeometryDataInterface } from "../../interfaces/index.js";
 
 export interface BillboardScatterArea {
   width: number;

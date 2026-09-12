@@ -52,6 +52,13 @@ Wir **lösen `src/extensions/` vollständig auf** und etablieren ein striktes 4-
 | `src/extensions/creatures/GroomingRat.ts` | `src/behaviors/creatures/GroomingRat.ts` (oder Beispiel-Kreatur-Entität) | Entitäts-Komposition, die ein Mesh mit seinem Pflege-Behavior bündelt. |
 | `src/extensions/grid-builder/GridLevelBuilder.ts` | `src/tools/procgen/GridLevelBuilder.ts` | High-Level-Level-Builder / Kartengenerierungs-Werkzeug für rasterbasierte Szenen. |
 
+**Status (2026-09-12):** Alle 6 Migrationsziele umgesetzt und verifiziert. `BillboardInstancer`
+lag bis dahin noch flach unter `src/core/BillboardInstancer.ts` statt unter `src/core/objects/`;
+`RatGroomingBehavior`/`GroomingRat` lagen noch unter `src/core/behaviors/creatures/` statt am
+eigenen Top-Level `src/behaviors/creatures/` (Geschwister von `src/core/`, wie im Tier-Diagramm
+oben gezeichnet) — beide jetzt nachgezogen, alle Imports (inkl. `src/index.ts`, `src/core/index.ts`,
+Tests) aktualisiert, volle Testsuite (744 Tests) grün.
+
 ### 2. Export- & Namensraum-Regeln
 
 1. **Kern-Paket-Oberfläche (`src/index.ts`):**

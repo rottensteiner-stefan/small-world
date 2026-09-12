@@ -14,7 +14,7 @@ export * from "./UniversalGamepadController.js";
 export * from "./PlanarReflectionNode.js";
 export * from "./DynamicReflectionProbe.js";
 export * from "./InstancedMesh.js";
-export * from "./BillboardInstancer.js";
+export * from "./objects/BillboardInstancer.js";
 
 export { Scene } from "./Scene.js";
 export * from "./Skybox.js";

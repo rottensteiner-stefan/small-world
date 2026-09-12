@@ -5,7 +5,7 @@ import {
   Matrix4,
   PerspectiveProjection,
   Vector3D,
-} from "../../src/index.js";
+} from "../../../src/index.js";
 
 function readRotationY(instancer: BillboardInstancer, i: number): number {
   const matrix = new Matrix4();

@@ -22,9 +22,17 @@ Alle wiederverwendbaren Assets folgen einer standardisierten Kit-Hierarchie:
   - `meta.json`: Semantische Deskriptoren, Bounding-Box-Ausmaße, Material-Slots, Dreieckszahlen und Lizenz-/Attributionsangaben.
 - **Metrischer Einheiten-Standard:** Alle Kits halten sich strikt an $1{,}0\text{ Einheit} = 1{,}0\text{ Meter}$.
 
+**Status:** umgesetzt, mit kleinen Abweichungen -- das reale `industrial/`-Kit unter
+`public/assets/kits/` nutzt `preview.jpg` statt `.webp`, und führt zusätzlich eine `kit.json` pro
+Kit, die dieser Standard nicht vorsieht.
+
 ### 2. Phase 2: Out-of-Tree-Repository & CDN-Distribution
 - **Dediziertes Asset-Repository (`small-world-assets`):** Binäre Produktions-Assets, rohe DCC-Dateien und Kit-Bündel werden in einem dedizierten Repository oder Git-LFS-Speicher untergebracht.
 - **CDN-Distribution:** Assets werden auf ein schnelles CDN veröffentlicht (über GitHub Releases, jsDelivr oder Cloudflare), sodass Szenen Standard-Assets über Remote-URIs referenzieren können, ohne den lokalen Datenträger aufzublähen.
+
+**Status:** nicht umgesetzt. Kit-Binärdateien (z. B. `model.glb` mit 1,2 MB) liegen aktuell direkt
+im Haupt-Repository, ohne Git-LFS-Filter und ohne dediziertes `small-world-assets`-Repo -- exakt
+das Anti-Pattern aus dem Kontext-Abschnitt oben, das diese Phase verhindern sollte.
 
 ### 3. Phase 3: Laufzeit-Katalog-Ingest & CLI-Tooling
 - **`GltfLoader`-Katalog-Auflösung:** `GltfLoader` um Katalog-Alias-Auflösung erweitern:
@@ -38,8 +46,13 @@ Alle wiederverwendbaren Assets folgen einer standardisierten Kit-Hierarchie:
   npx small-world add prop industrial/wall_lamp
   ```
 
+**Status:** nicht umgesetzt. Weder `GltfLoader.loadFromCatalog()` noch die `small-world`-CLI
+existieren im Code -- setzt ohnehin Phase 2 (ein echtes Remote-Katalog-Ziel) voraus.
+
 ## Konsequenzen
 
 - **Leichtgewichtiger Kern-Engine:** Das Kern-Repository von `small-world` bleibt schlank, schnell zu klonen und frei von schwerem binärem Ballast.
 - **Modularität:** Ersteller können in sich geschlossene, thematische Asset-Pakete veröffentlichen und konsumieren (z. B. *Graphic Noir Sewer Kit*, *Industrial Bunker Kit*, *Character Starter Kit*).
-- **Tooling-Kompatibilität:** `GadgetInspector`, `MaterialStudio` und künftige In-Game-Szeneneditoren können Asset-Auswahl-Paletten dynamisch direkt aus Kit-Manifesten befüllen.
+- **Tooling-Kompatibilität:** `Maker` (Nachfolger von `GadgetInspector`, siehe ADR 0010),
+  `MaterialStudio` und künftige In-Game-Szeneneditoren können Asset-Auswahl-Paletten dynamisch
+  direkt aus Kit-Manifesten befüllen.

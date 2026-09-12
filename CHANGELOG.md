@@ -1,5 +1,35 @@
 # Changelog
 
+## [0.77.29] - 2026-09-12
+
+### "Not everything that is faced can be changed, but nothing can be changed until it is faced." - James Baldwin
+
+- **Architecture & Bugfixes:**
+  - All 16 Architecture Decision Records audited against the actual current codebase, not just
+    re-read: ADR 0008 cited a `FrustumCuller` field (`lastVisibleObjects`) that no longer exists
+    and overstated `enableInspector`'s default; ADR 0009 described a lantern-attachment mechanism
+    (direct scene-graph child of the hand bone) that this session's own earlier work had already
+    replaced with world-space tracking; ADR 0011 documented two delivery phases (out-of-tree asset
+    repo, catalog CLI) that were never actually implemented. Each corrected with an "Update"/
+    "Status" note rather than silently rewriting the historical decision.
+  - ADR 0014 (Modular Ecosystem & Domain Layering): `BillboardInstancer` and the
+    `RatGroomingBehavior`/`GroomingRat` creature behaviors were still living at their pre-ADR
+    locations (`src/core/BillboardInstancer.ts`, `src/core/behaviors/creatures/`) instead of the
+    domain paths the ADR itself specifies. Actually moved to match
+    (`src/core/objects/BillboardInstancer.ts`, a new top-level `src/behaviors/creatures/`), every
+    import updated (barrels, direct imports, 2 relocated test files), full test suite (744 tests)
+    and `tsc --noEmit` verified green afterward.
+- **Housekeeping & Docs:**
+  - Git LFS set up for the engine's binary asset types (`*.glb`, `*.gltf`, `*.fbx`, `*.jpg`,
+    `*.jpeg`, `*.png`, `*.webp`, `*.wav`, `*.mp3`, `*.zip`, `*.hdr`, `*.exr`) per ADR 0011 --
+    stops the repository's binary footprint from growing further (existing history untouched,
+    a separate, more invasive decision). Husky hooks added (`pre-push`, `post-checkout`,
+    `post-commit`, `post-merge`) so LFS stays correctly wired through the project's existing hook
+    manager instead of a raw `.git/hooks` file.
+  - "And Now?"'s own `docs/log.md` brought up to date with four missing entries (104-107)
+    covering the Flakturm-Tunnel review, the 2.5D-scenes guide's origin, the Zone C vanishing-line
+    fix, and the Diorama movement/HUD work -- all of which had happened without a log entry.
+
 ## [0.77.28] - 2026-09-12
 
 ### "The limits of my language mean the limits of my world." - Ludwig Wittgenstein
