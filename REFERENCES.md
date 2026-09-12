@@ -303,6 +303,20 @@ This document serves to record external sources, algorithms, mathematical deriva
 - **License:** © 2023 Wayfair, [CC-BY-4.0](https://creativecommons.org/licenses/by/4.0/legalcode).
 - **Usage:** The official Khronos reference asset for combining `KHR_materials_transmission` (real glass refraction) with `alphaMode:"MASK"` (jagged cutout holes for the missing shards). Used in Showcase 36 to validate `GltfLoader`'s alpha-tested transparent material path against a known-good glTF sample across all three renderers.
 
+### Race Future (Hover Car Model, Showcase 30)
+
+- **File:** `apps/showcases/30/assets/car/race-future.glb`, `apps/showcases/30/assets/car/Textures/colormap.png`, `apps/showcases/30/assets/car/License.txt`
+- **Authors/Gurus:** Kenney (www.kenney.nl)
+- **Source:** [Kenney: "Car Kit"](https://kenney.nl/assets/car-kit) (GLB format)
+- **License:** [CC0 (Creative Commons Zero)](https://creativecommons.org/publicdomain/zero/1.0/) — public domain, no attribution required (credited here anyway).
+- **Usage:** Replaces Showcase 30's original hand-built box-primitive "hover car" placeholder with a real low-poly vehicle mesh, re-skinned with the showcase's own neon-emissive materials.
+
+### Wet Asphalt & Cyberpunk Night Sky (Showcase 30 Textures)
+
+- **File:** `apps/showcases/30/assets/wet_asphalt_diffuse.webp`, `apps/showcases/30/assets/wet_asphalt_normal.webp`, `apps/showcases/30/assets/wet_asphalt_roughness.webp`, `apps/showcases/30/assets/skybox.webp`
+- **Source:** AI-generated (Gemini `gemini-3.1-flash-image`) diffuse photo + skybox faces, roughness/normal maps derived locally via ImageMagick.
+- **Usage:** Replaces two assets that were originally reused from unrelated showcases and didn't fit the scene: the street previously used a brass/gear "steampunk" PBR set instead of asphalt, and the skybox was a bright space-nebula texture that blew out through the building gap. The new skybox is a 6-panel horizontal-cross cubemap, each face generated independently and composited (not a single generated cross image, which generative models can't lay out reliably).
+
 ### Dungeon Font (Yet Another Dungeon HUD)
 
 - **File:** `apps/sample-apps/yad/assets/fonts/Dungeon.ttf`

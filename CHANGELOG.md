@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.79.03] - 2026-09-13
+
+### "You never really understand a person until you consider things from his point of view... until you climb into his skin and walk around in it." - Harper Lee
+
+- **Features:**
+  - Showcase 30's puddles now show a real planar reflection (`PlanarReflectionNode`) of the car, neon signs, and rain rig, instead of only the static skybox envMap.
+  - Replaced the hand-built box-primitive "hover car" with a real low-poly vehicle mesh (Kenney "Car Kit", CC0), re-skinned with the showcase's own neon materials, plus a proper front/rear headlight-taillight split and a visible (not just implied) underglow strip.
+- **Architecture & Bugfixes:**
+  - Replaced two assets that had been silently reused from unrelated showcases and didn't fit the scene at all: the street's "asphalt" material was actually a brass/gear "steampunk" PBR set, and the skybox was a bright space-nebula texture that blew out through the building gap. Both replaced with new AI-generated textures (a proper wet-asphalt PBR set, and a dark cyberpunk night-sky cubemap).
+  - Reframed the default camera to a genuine low, near-puddle-level "wet street photography" angle: the puddle's reflection strength is Fresnel-driven exactly like real water, so it reads strongly at a grazing angle and close to the surface, and reads as nearly nothing from a taller, more overhead framing -- confirmed by comparing camera height/elevation directly against what the reflection actually showed at each.
+  - Removed the puddle "ripple ring" decorations (flat torus rings), which read as illegible thin arcs from any oblique camera angle instead of the circular ripples they were meant to suggest.
+- **Housekeeping & Docs:**
+  - New `REFERENCES.md` entries crediting the Kenney car model and documenting the AI-generated textures and why they replaced the originals.
+
 ## [0.79.02] - 2026-09-13
 
 ### "The nice thing about standards is that there are so many to choose from." - Andrew S. Tanenbaum

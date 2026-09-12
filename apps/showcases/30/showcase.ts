@@ -10,13 +10,13 @@ import {
   Object3D,
   OrbitController,
   PerspectiveProjection,
+  PlanarReflectionNode,
   PostProcessingEffectType,
   PointLight,
   ProjectionType,
   RendererType,
   SpotLight,
   StandardMaterial,
-  Torus,
   Texture,
   CubeTexture,
   SkyboxMaterial,
@@ -24,6 +24,7 @@ import {
   HbaoElement,
   VignetteElement,
 } from "../../../packages/engine/src/index.js";
+import { GltfLoader } from "../../../packages/engine/src/loaders/GltfLoader.js";
 
 /**
  * Showcase 30: "The Rain-Drenched Cyberpunk Albedo: Screen-Space Reflections & Neon Wetness"
@@ -37,6 +38,7 @@ class Showcase30 extends AbstractShowcase {
   private _spotTeal!: SpotLight;
   private _spotPink!: SpotLight;
   private _puddlePlates: Object3D[] = [];
+  private _reflectionNode!: PlanarReflectionNode;
   private _hoverCar!: Object3D;
   private _time = 0;
 
@@ -88,8 +90,15 @@ class Showcase30 extends AbstractShowcase {
       this.camera.updateProjectionMatrix();
     }
     this.camera.setStrategy(CameraStrategyType.HYBRID_SYNC);
-    this.camera.position.set(0, 1.8, 8.5);
-    this.camera.target.set(0, 1.5, 0);
+    // Genuine "wet street photography" framing: near-puddle-level height and a near-horizontal
+    // view. The puddle's reflection strength is Fresnel-driven (like real water/wet asphalt) --
+    // it's strong at grazing angles and fades fast the higher/steeper the camera looks down, so
+    // camera HEIGHT above the puddle plane matters as much as the aim angle. Confirmed visually:
+    // at (x, 0.16-0.2, z) with a ~1 degree elevation angle, the car's own lights mirror clearly;
+    // the earlier (0, 0.5, 5.5)/(0, 0.3, -1) framing looked shallow-angled too but sat too high
+    // above the plane (0.485 vs 0.16) for the reflection to read.
+    this.camera.position.set(0, 0.18, 5.5);
+    this.camera.target.set(0, 0.3, -1.0);
     this.camera.addBehavior(new OrbitController({ input: this.input, audio: this.audio }));
 
     // 1. Dark Rainy Night Ambient
@@ -162,17 +171,17 @@ class Showcase30 extends AbstractShowcase {
     let brassRoughness: Texture | undefined;
 
     try {
-      asphaltDiffuse = await Texture.fromUrl("./assets/steampunk_diffuse.webp");
+      asphaltDiffuse = await Texture.fromUrl("./assets/wet_asphalt_diffuse.webp");
       if (asphaltDiffuse) {
         asphaltDiffuse.repeat.x = 4;
         asphaltDiffuse.repeat.y = 7;
       }
-      asphaltNormal = await Texture.fromUrl("./assets/steampunk_normal.webp");
+      asphaltNormal = await Texture.fromUrl("./assets/wet_asphalt_normal.webp");
       if (asphaltNormal) {
         asphaltNormal.repeat.x = 4;
         asphaltNormal.repeat.y = 7;
       }
-      asphaltRoughness = await Texture.fromUrl("./assets/steampunk_roughness.webp");
+      asphaltRoughness = await Texture.fromUrl("./assets/wet_asphalt_roughness.webp");
       if (asphaltRoughness) {
         asphaltRoughness.repeat.x = 4;
         asphaltRoughness.repeat.y = 7;
@@ -212,11 +221,21 @@ class Showcase30 extends AbstractShowcase {
       envMap: envTexture,
     });
 
+    // Real planar reflection for the puddles (mirrors the actual scene -- car, neon signs, rain
+    // rig -- each frame) instead of only the static skybox envMap, which alone can never show any
+    // local light source in the puddles. All 4 puddles share one node/render target since they're
+    // coplanar (same puddle height).
+    this._reflectionNode = new PlanarReflectionNode("PuddleReflection", 1024, 1024);
+    this._reflectionNode.position.set(0, 0.015, 0);
+    this.scene.add(this._reflectionNode);
+
     const wetPuddleMat = new StandardMaterial({
       color: new Color(0.04, 0.05, 0.07),
       roughness: 0.02,
       metallic: 0.95,
       envMap: envTexture,
+      reflectionMap: this._reflectionNode.renderTarget,
+      reflectivity: 1.0,
     });
 
     const buildingMat = new StandardMaterial({
@@ -292,20 +311,11 @@ class Showcase30 extends AbstractShowcase {
       puddle.receiveShadow = true;
       this.scene.add(puddle);
       this._puddlePlates.push(puddle);
-
-      // Puddle Ripple Rings
-      const ripple = new Object3D(`Ripple_${p}`);
-      ripple.geometry = new Torus({
-        radius: 0.8,
-        tube: 0.015,
-        radialSegments: 16,
-        tubularSegments: 32,
-      }).getGeometryData();
-      ripple.material = chromeMat;
-      ripple.rotation.x = Math.PI / 2;
-      ripple.position.set(cfg.x, 0.025, cfg.z);
-      this.scene.add(ripple);
     }
+
+    // The puddles sample `_reflectionNode.renderTarget` in their own material, so they must not
+    // be rendered while that same texture is bound as the render target of its own sub-render.
+    this._reflectionNode.excludedObjects.push(...this._puddlePlates);
 
     // 6. Cyberpunk Street Architecture (Alley Skyscrapers & Overhangs)
     for (const side of [-1, 1]) {
@@ -377,35 +387,70 @@ class Showcase30 extends AbstractShowcase {
     this.scene.add(overheadSign);
 
     // 8. Futuristic Hover Vehicle in Center
+    // Real low-poly mesh (Kenney "Car Kit", CC0 -- see REFERENCES.md) instead of the old
+    // hand-stacked chassis/cockpit box primitives.
     this._hoverCar = new Object3D("HoverCar");
     this._hoverCar.position.set(0, 0.8, -1.0);
     this.scene.add(this._hoverCar);
 
-    const carChassis = new Object3D("CarChassis");
-    carChassis.geometry = new Cube({ size: 1 }).getGeometryData();
-    carChassis.scale.set(1.8, 0.6, 3.6);
-    carChassis.material = buildingMat;
-    carChassis.castShadow = true;
-    this._hoverCar.add(carChassis);
+    try {
+      const carLoader = new GltfLoader({ basePath: "./assets/car/" });
+      const carModel = await carLoader.load("race-future.glb");
+      carModel.scale.set(1.35, 1.35, 1.35);
+      carModel.castShadow = true;
+      this._hoverCar.add(carModel);
+    } catch (e) {
+      console.warn("Could not load hover car model:", e);
+    }
 
-    const carCockpit = new Object3D("CarCockpit");
-    carCockpit.geometry = new Cube({ size: 1 }).getGeometryData();
-    carCockpit.scale.set(1.4, 0.45, 1.8);
-    carCockpit.material = chromeMat;
-    carCockpit.position.set(0, 0.45, -0.2);
-    this._hoverCar.add(carCockpit);
+    // Underglow strip (an actual emissive mesh under the belly, not just a light -- a PointLight
+    // alone illuminates the puddle below but isn't itself visible as a "glow") + a real PointLight
+    // alongside it so the glow actually lights the asphalt/puddle underneath. Sells the
+    // "hovering, not driving" read.
+    const underglowBar = new Object3D("UnderglowBar");
+    underglowBar.geometry = new Cube({ size: 1 }).getGeometryData();
+    underglowBar.scale.set(0.35, 0.03, 2.2);
+    underglowBar.material = new StandardMaterial({
+      color: new Color(0.05, 0.95, 1.0),
+      emissiveColor: new Color(0.1, 1.1, 1.3),
+      emissiveIntensity: 1.2,
+      roughness: 0.1,
+    });
+    underglowBar.position.set(0, 0.04, 0);
+    this._hoverCar.add(underglowBar);
 
-    // Tail Lights (Red Neon)
+    const underglowLight = new PointLight({
+      color: new Color(0.05, 0.95, 1.0),
+      intensity: 0.8,
+      distance: 2.5,
+    });
+    underglowLight.position.set(0, 0.04, 0);
+    this._hoverCar.add(underglowLight);
+
+    // The model's local +Z is its front (confirmed visually), so headlights/taillights go on
+    // opposite ends of that axis.
+    const headlights = new Object3D("Headlights");
+    headlights.geometry = new Cube({ size: 1 }).getGeometryData();
+    headlights.scale.set(1.4, 0.12, 0.1);
+    headlights.material = new StandardMaterial({
+      color: new Color(0.9, 0.95, 1.0),
+      emissiveColor: new Color(2.5, 2.7, 3.2),
+      emissiveIntensity: 3.5,
+      roughness: 0.1,
+    });
+    headlights.position.set(0, 0.3, 1.75);
+    this._hoverCar.add(headlights);
+
     const tailLights = new Object3D("TailLights");
     tailLights.geometry = new Cube({ size: 1 }).getGeometryData();
-    tailLights.scale.set(1.6, 0.12, 0.1);
+    tailLights.scale.set(1.4, 0.12, 0.1);
     tailLights.material = new StandardMaterial({
       color: new Color(1.0, 0.0, 0.05),
       emissiveColor: new Color(3.0, 0.0, 0.1),
       emissiveIntensity: 4.0,
       roughness: 0.1,
     });
-    tailLights.position.set(0, 0.1, 1.8);
+    tailLights.position.set(0, 0.3, -1.75);
     this._hoverCar.add(tailLights);
   }
 
@@ -444,6 +489,12 @@ class Showcase30 extends AbstractShowcase {
         -1.2,
         0.3 + Math.sin(this._time * 0.9) * 0.3,
       );
+    }
+
+    // Re-render the puddle reflections every frame so they track the hover car and swaying
+    // neon spotlights, not just the static skybox.
+    if (this._reflectionNode && this.camera) {
+      this._reflectionNode.updateReflection(this.scene, this.camera, this.renderer);
     }
   }
 }
