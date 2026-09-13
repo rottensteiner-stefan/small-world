@@ -1,9 +1,23 @@
 import { Object3D } from "../../core/Object3D.js";
 import { GltfJson } from "./types.js";
 import { GltfDocument, GltfNodeJson } from "./writerTypes.js";
+import { GeometryDataInterface } from "../../interfaces/index.js";
+import { Texture } from "../../core/textures/Texture.js";
+import { AssetManager } from "../AssetManager.js";
 
 /** The raw JSON shape of a single glTF node, as it appears in `GltfJson.nodes[]`. */
 export type GltfNodeDef = NonNullable<GltfJson["nodes"]>[number];
+
+/** The raw JSON shape of a single glTF primitive, as it appears in `GltfJson.meshes[].primitives[]`. */
+export type GltfPrimitiveDef = NonNullable<
+  NonNullable<GltfJson["meshes"]>[number]["primitives"]
+>[number];
+
+/** The raw JSON shape of a single glTF texture, as it appears in `GltfJson.textures[]`. */
+export type GltfTextureDef = NonNullable<GltfJson["textures"]>[number];
+
+/** The raw JSON shape of a single glTF image, as it appears in `GltfJson.images[]`. */
+export type GltfImageDef = NonNullable<GltfJson["images"]>[number];
 
 /** Shared, per-parse state for the read side. `state` lets a plugin carry data from its
  * `prepareRead` pre-pass to its later `readNode`/`applyNode` calls without keeping it on the
@@ -63,4 +77,27 @@ export interface GltfExtensionPlugin {
    * `KHR_lights_punctual`'s `lights[]` array) into `ctx.doc.extensions` once, after the whole
    * tree has been written. */
   finalizeWrite?(ctx: GltfWriteContext): void;
+
+  /**
+   * Optional hook to decode geometry for a mesh primitive (e.g. `KHR_draco_mesh_compression`).
+   * Return decoded `GeometryDataInterface` or `undefined` / `null` to defer to the next plugin
+   * or the default accessor parser.
+   */
+  decodeGeometry?(
+    primitive: GltfPrimitiveDef,
+    ctx: GltfReadContext,
+    buffers: ArrayBuffer[],
+  ): Promise<GeometryDataInterface | null | undefined> | GeometryDataInterface | null | undefined;
+
+  /**
+   * Optional hook to resolve a texture definition into a Small World `Texture` (e.g. `KHR_texture_basisu`).
+   * Return resolved `Texture` or `undefined` / `null` to defer to standard texture resolution.
+   */
+  resolveTexture?(
+    textureDef: GltfTextureDef,
+    ctx: GltfReadContext,
+    folderPath: string,
+    buffers: ArrayBuffer[],
+    assetManager: AssetManager,
+  ): Promise<Texture | null | undefined> | Texture | null | undefined;
 }

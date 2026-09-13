@@ -147,7 +147,7 @@ class Showcase30 extends AbstractShowcase {
     // Load Environment Map & PBR Texture Maps
     const envTexture = new CubeTexture();
     try {
-      await envTexture.loadFrom("./assets/skybox.webp");
+      await envTexture.loadFrom("./assets/ibl/env.webp", CubeLayout.CROSS_HORIZONTAL);
       const skybox = new Object3D("Skybox");
       skybox.geometry = new Cube({ size: 1000 }).getGeometryData();
       skybox.material = new SkyboxMaterial({ cubeMap: envTexture });

@@ -5,6 +5,8 @@ import { Texture } from "../../core/textures/index.js";
 import { AssetManager } from "../AssetManager.js";
 import { CullMode } from "../../enums/index.js";
 import { GltfLoaderOptions } from "../../interfaces/index.js";
+import { getGltfExtensions } from "./GltfExtensionRegistry.js";
+import { GltfReadContext } from "./GltfExtensionPlugin.js";
 
 /**
  * Parser for glTF PBR materials and textures.
@@ -29,9 +31,11 @@ export class GltfMaterialParser {
     buffers: ArrayBuffer[],
     assetManager: AssetManager,
     options: GltfLoaderOptions = {},
+    ctx?: GltfReadContext,
   ): Promise<StandardMaterial> {
     const mat = new StandardMaterial();
     const pbr = m.pbrMetallicRoughness || {};
+    const readCtx: GltfReadContext = ctx ?? { json, state: new Map() };
 
     if (pbr.baseColorFactor) {
       mat.color = new Color(
@@ -49,6 +53,7 @@ export class GltfMaterialParser {
         folderPath,
         buffers,
         assetManager,
+        readCtx,
       );
       if (tex) mat.diffuseMap = tex;
     }
@@ -60,6 +65,7 @@ export class GltfMaterialParser {
         folderPath,
         buffers,
         assetManager,
+        readCtx,
       );
       if (tex) {
         mat.metallicMap = tex;
@@ -74,6 +80,7 @@ export class GltfMaterialParser {
         folderPath,
         buffers,
         assetManager,
+        readCtx,
       );
       if (tex) mat.normalMap = tex;
     }
@@ -85,6 +92,7 @@ export class GltfMaterialParser {
         folderPath,
         buffers,
         assetManager,
+        readCtx,
       );
       if (tex) {
         mat.aoMap = tex;
@@ -101,6 +109,7 @@ export class GltfMaterialParser {
         folderPath,
         buffers,
         assetManager,
+        readCtx,
       );
       if (tex) mat.emissiveMap = tex;
     }
@@ -116,6 +125,126 @@ export class GltfMaterialParser {
 
     if (m.extensions?.KHR_materials_emissive_strength?.emissiveStrength !== undefined) {
       mat.emissiveIntensity = m.extensions.KHR_materials_emissive_strength.emissiveStrength;
+    }
+
+    if (m.extensions?.KHR_materials_clearcoat) {
+      const cc = m.extensions.KHR_materials_clearcoat;
+      if (cc.clearcoatFactor !== undefined) mat.clearcoat = cc.clearcoatFactor;
+      if (cc.clearcoatRoughnessFactor !== undefined)
+        mat.clearcoatRoughness = cc.clearcoatRoughnessFactor;
+      if (cc.clearcoatTexture) {
+        const tex = await this.resolveTexture(
+          cc.clearcoatTexture.index,
+          json,
+          folderPath,
+          buffers,
+          assetManager,
+          readCtx,
+        );
+        if (tex) mat.clearcoatMap = tex;
+      }
+      if (cc.clearcoatRoughnessTexture) {
+        const tex = await this.resolveTexture(
+          cc.clearcoatRoughnessTexture.index,
+          json,
+          folderPath,
+          buffers,
+          assetManager,
+          readCtx,
+        );
+        if (tex) mat.clearcoatRoughnessMap = tex;
+      }
+      if (cc.clearcoatNormalTexture) {
+        const tex = await this.resolveTexture(
+          cc.clearcoatNormalTexture.index,
+          json,
+          folderPath,
+          buffers,
+          assetManager,
+          readCtx,
+        );
+        if (tex) mat.clearcoatNormalMap = tex;
+      }
+    }
+
+    if (m.extensions?.KHR_materials_sheen) {
+      const sheen = m.extensions.KHR_materials_sheen;
+      if (sheen.sheenColorFactor) {
+        mat.sheenColor = new Color(
+          sheen.sheenColorFactor[0]!,
+          sheen.sheenColorFactor[1]!,
+          sheen.sheenColorFactor[2]!,
+          1.0,
+        );
+      }
+      if (sheen.sheenRoughnessFactor !== undefined) mat.sheenRoughness = sheen.sheenRoughnessFactor;
+      if (sheen.sheenColorTexture) {
+        const tex = await this.resolveTexture(
+          sheen.sheenColorTexture.index,
+          json,
+          folderPath,
+          buffers,
+          assetManager,
+          readCtx,
+        );
+        if (tex) mat.sheenColorMap = tex;
+      }
+      if (sheen.sheenRoughnessTexture) {
+        const tex = await this.resolveTexture(
+          sheen.sheenRoughnessTexture.index,
+          json,
+          folderPath,
+          buffers,
+          assetManager,
+          readCtx,
+        );
+        if (tex) mat.sheenRoughnessMap = tex;
+      }
+    }
+
+    if (m.extensions?.KHR_materials_transmission) {
+      const trans = m.extensions.KHR_materials_transmission;
+      if (trans.transmissionFactor !== undefined) mat.transmission = trans.transmissionFactor;
+      if (trans.transmissionTexture) {
+        const tex = await this.resolveTexture(
+          trans.transmissionTexture.index,
+          json,
+          folderPath,
+          buffers,
+          assetManager,
+          readCtx,
+        );
+        if (tex) mat.transmissionMap = tex;
+      }
+    }
+
+    if (m.extensions?.KHR_materials_volume) {
+      const vol = m.extensions.KHR_materials_volume;
+      if (vol.thicknessFactor !== undefined) mat.thickness = vol.thicknessFactor;
+      if (vol.thicknessTexture) {
+        const tex = await this.resolveTexture(
+          vol.thicknessTexture.index,
+          json,
+          folderPath,
+          buffers,
+          assetManager,
+          readCtx,
+        );
+        if (tex) mat.thicknessMap = tex;
+      }
+      if (vol.attenuationDistance !== undefined) mat.attenuationDistance = vol.attenuationDistance;
+      if (vol.attenuationColor) {
+        mat.attenuationColor = new Color(
+          vol.attenuationColor[0]!,
+          vol.attenuationColor[1]!,
+          vol.attenuationColor[2]!,
+          1.0,
+        );
+      }
+    }
+
+    if (m.extensions?.KHR_materials_ior?.ior !== undefined) {
+      mat.ior = m.extensions.KHR_materials_ior.ior;
     }
 
     const defaultMetallic = options.defaultMetallic !== undefined ? options.defaultMetallic : 1.0;
@@ -156,10 +285,30 @@ export class GltfMaterialParser {
     folderPath: string,
     buffers: ArrayBuffer[],
     assetManager: AssetManager,
+    ctx?: GltfReadContext,
   ): Promise<Texture | null> {
-    if (!json.textures || !json.images) return null;
+    if (!json.textures) return null;
     const textureDef = json.textures[texIdx];
-    if (!textureDef || textureDef.source === undefined) return null;
+    if (!textureDef) return null;
+
+    const readCtx: GltfReadContext = ctx ?? { json, state: new Map() };
+
+    // 1. Check if any registered extension resolves this texture (e.g. KHR_texture_basisu)
+    for (const plugin of getGltfExtensions()) {
+      if (plugin.resolveTexture) {
+        const tex = await plugin.resolveTexture(
+          textureDef,
+          readCtx,
+          folderPath,
+          buffers,
+          assetManager,
+        );
+        if (tex) return tex;
+      }
+    }
+
+    // 2. Standard image resolution fallback
+    if (textureDef.source === undefined || !json.images) return null;
 
     const imageDef = json.images[textureDef.source];
     if (!imageDef) return null;

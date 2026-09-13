@@ -38,6 +38,8 @@ export class Object3D implements Collidable {
    * of where this subtree came from. Round-tripped via the `SW_prefab_instance` glTF extension
    * (`WorldWriter`/`GltfLoader`). */
   public prefabSource?: string;
+  /** Custom user-defined data storage dictionary. */
+  public userData: Record<string, unknown> = {};
 
   public rigidBody?: RigidBody;
 
@@ -172,6 +174,16 @@ export class Object3D implements Collidable {
       if (found) return found;
     }
     return undefined;
+  }
+
+  /**
+   * Traverses the object and all its descendants in depth-first order, executing the callback for each.
+   */
+  public traverse(callback: (object: Object3D) => void): void {
+    callback(this);
+    for (let i = 0; i < this.children.length; i++) {
+      this.children[i]!.traverse(callback);
+    }
   }
 
   public addBehavior(behavior: Behavior): this {
@@ -337,6 +349,7 @@ export class Object3D implements Collidable {
     copy.localMatrix = new Matrix4();
     copy.worldMatrix = new Matrix4();
     copy.material = this.material?.clone();
+    copy.userData = { ...this.userData };
 
     copy.children = this.children.map((child) => {
       const childCopy = child.clone();

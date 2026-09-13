@@ -187,10 +187,14 @@ export class CubeTexture {
   public async loadMipmapsFrom(urls: string[], layout?: CubeLayout): Promise<void> {
     try {
       this.mipmaps = [];
-      for (const url of urls) {
-        // Create a temporary CubeTexture to parse the layout, sharing this instance's AssetManager
-        const tempCube = new CubeTexture(undefined, this._assetManager);
-        await tempCube.loadFrom(url, layout);
+      const cubes = await Promise.all(
+        urls.map(async (url: string) => {
+          const tempCube = new CubeTexture(undefined, this._assetManager);
+          await tempCube.loadFrom(url, layout);
+          return tempCube;
+        }),
+      );
+      for (const tempCube of cubes) {
         if (tempCube.images.length === 6) {
           this.mipmaps.push(tempCube.images);
         }

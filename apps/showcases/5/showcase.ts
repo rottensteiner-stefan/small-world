@@ -19,6 +19,8 @@ import { AbstractShowcase } from "../../../packages/engine/src/core/index.js";
  * Showcase 5: Grid-based Movement with Enemies.
  */
 export class Showcase5 extends AbstractShowcase {
+  protected override defaultCameraController = "none" as const;
+
   private _player!: Object3D;
   private _clickMarker!: Object3D;
   private _enemies: Object3D[] = [];

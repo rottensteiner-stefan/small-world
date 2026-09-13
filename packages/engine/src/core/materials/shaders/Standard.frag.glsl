@@ -5,6 +5,8 @@
 
 uniform float u_metallic;
 uniform float u_roughness;
+uniform vec4 u_liquidParams;
+uniform vec4 u_thresholds;
 
 #ifdef USE_METALLIC_MAP
 uniform sampler2D u_metallicMap;
@@ -26,6 +28,30 @@ uniform samplerCube u_envMap;
 #endif
 #ifdef USE_REFLECTION_MAP
 uniform sampler2D u_reflectionMap;
+#endif
+#ifdef USE_CLEARCOAT_MAP
+uniform sampler2D u_clearcoatMap;
+#endif
+#ifdef USE_CLEARCOAT_ROUGHNESS_MAP
+uniform sampler2D u_clearcoatRoughnessMap;
+#endif
+#ifdef USE_CLEARCOAT_NORMAL_MAP
+uniform sampler2D u_clearcoatNormalMap;
+#endif
+#ifdef USE_SHEEN_COLOR_MAP
+uniform sampler2D u_sheenColorMap;
+#endif
+#ifdef USE_SHEEN_ROUGHNESS_MAP
+uniform sampler2D u_sheenRoughnessMap;
+#endif
+#ifdef USE_TRANSMISSION_MAP
+uniform sampler2D u_transmissionMap;
+#endif
+#ifdef USE_THICKNESS_MAP
+uniform sampler2D u_thicknessMap;
+#endif
+#ifdef USE_TRANSMISSION
+uniform sampler2D u_opaqueMap;
 #endif
 
 uniform vec2 u_texOffset;

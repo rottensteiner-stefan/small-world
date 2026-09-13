@@ -65,6 +65,38 @@ export interface StandardMaterialOptions {
   transparent?: boolean;
   /** Alpha cutoff threshold. Fragments with alpha below this value are discarded. Defaults to 0.0. */
   alphaTest?: number;
+  /** Clearcoat layer intensity (0 to 1). Defaults to 0.0. */
+  clearcoat?: number;
+  /** Clearcoat layer roughness (0 to 1). Defaults to 0.0. */
+  clearcoatRoughness?: number;
+  /** Clearcoat factor texture map. */
+  clearcoatMap?: Texture | undefined;
+  /** Clearcoat roughness texture map. */
+  clearcoatRoughnessMap?: Texture | undefined;
+  /** Clearcoat normal map texture. */
+  clearcoatNormalMap?: Texture | undefined;
+  /** Sheen color for microfiber grazing highlights. Defaults to black (disabled). */
+  sheenColor?: Color;
+  /** Sheen roughness (0 to 1). Defaults to 0.0. */
+  sheenRoughness?: number;
+  /** Sheen color texture map. */
+  sheenColorMap?: Texture | undefined;
+  /** Sheen roughness texture map. */
+  sheenRoughnessMap?: Texture | undefined;
+  /** Transmission factor for specular light transmission (0 to 1). Defaults to 0.0. */
+  transmission?: number;
+  /** Transmission factor texture map. */
+  transmissionMap?: Texture | undefined;
+  /** Index of refraction. Defaults to 1.5. */
+  ior?: number;
+  /** Volume thickness factor. Defaults to 0.0. */
+  thickness?: number;
+  /** Volume thickness texture map. */
+  thicknessMap?: Texture | undefined;
+  /** Volumetric attenuation distance. Defaults to 1000.0 (no attenuation). */
+  attenuationDistance?: number;
+  /** Volumetric attenuation color. Defaults to white. */
+  attenuationColor?: Color;
   /** Time parameter for shader animations. Defaults to 0.0. */
   time?: number;
 }
@@ -78,6 +110,25 @@ export class StandardMaterial extends AbstractMaterial {
     metallic: { type: "number", label: "Metallic", min: 0, max: 1, step: 0.01, row: "surface" },
     roughness: { type: "number", label: "Roughness", min: 0, max: 1, step: 0.01, row: "surface" },
     ao: { type: "number", label: "AO", min: 0, max: 1, step: 0.01 },
+    clearcoat: { type: "number", label: "Clearcoat", min: 0, max: 1, step: 0.01, row: "coat" },
+    clearcoatRoughness: {
+      type: "number",
+      label: "Coat Rough",
+      min: 0,
+      max: 1,
+      step: 0.01,
+      row: "coat",
+    },
+    transmission: {
+      type: "number",
+      label: "Transmission",
+      min: 0,
+      max: 1,
+      step: 0.01,
+      row: "trans",
+    },
+    ior: { type: "number", label: "IOR", min: 1.0, max: 3.0, step: 0.01, row: "trans" },
+    thickness: { type: "number", label: "Thickness", min: 0, max: 10.0, step: 0.05 },
     emissiveColor: { type: "color", label: "Emissive" },
     emissiveIntensity: { type: "number", label: "Emissive Int.", min: 0, max: 10, step: 0.1 },
     alphaTest: { type: "number", label: "Alpha Test", min: 0, max: 1, step: 0.01 },
@@ -89,6 +140,41 @@ export class StandardMaterial extends AbstractMaterial {
   public roughness: number;
   /** Ambient occlusion factor (0 to 1). */
   public ao: number;
+
+  /** Clearcoat layer factor (0 to 1). */
+  public clearcoat: number;
+  /** Clearcoat layer roughness (0 to 1). */
+  public clearcoatRoughness: number;
+  /** Clearcoat factor texture map. */
+  public clearcoatMap: Texture | undefined;
+  /** Clearcoat roughness texture map. */
+  public clearcoatRoughnessMap: Texture | undefined;
+  /** Clearcoat normal map texture. */
+  public clearcoatNormalMap: Texture | undefined;
+
+  /** Sheen color for cloth/velvet microfibers. */
+  public sheenColor: Color;
+  /** Sheen roughness factor (0 to 1). */
+  public sheenRoughness: number;
+  /** Sheen color texture map. */
+  public sheenColorMap: Texture | undefined;
+  /** Sheen roughness texture map. */
+  public sheenRoughnessMap: Texture | undefined;
+
+  /** Specular transmission factor (0 to 1). */
+  public transmission: number;
+  /** Transmission factor texture map. */
+  public transmissionMap: Texture | undefined;
+  /** Index of refraction. */
+  public ior: number;
+  /** Volumetric thickness. */
+  public thickness: number;
+  /** Thickness texture map. */
+  public thicknessMap: Texture | undefined;
+  /** Volumetric attenuation distance. */
+  public attenuationDistance: number;
+  /** Volumetric attenuation color. */
+  public attenuationColor: Color;
 
   /** The diffuse texture map. */
   public diffuseMap: Texture | undefined;
@@ -165,6 +251,22 @@ export class StandardMaterial extends AbstractMaterial {
       emissiveIntensity = 1.0,
       transparent = false,
       alphaTest = 0.0,
+      clearcoat = 0.0,
+      clearcoatRoughness = 0.0,
+      clearcoatMap = undefined,
+      clearcoatRoughnessMap = undefined,
+      clearcoatNormalMap = undefined,
+      sheenColor = new Color(0, 0, 0),
+      sheenRoughness = 0.0,
+      sheenColorMap = undefined,
+      sheenRoughnessMap = undefined,
+      transmission = 0.0,
+      transmissionMap = undefined,
+      ior = 1.5,
+      thickness = 0.0,
+      thicknessMap = undefined,
+      attenuationDistance = 1000.0,
+      attenuationColor = new Color(1, 1, 1),
       time = 0.0,
     } = options;
     this.color = Object.isFrozen(color) ? color.clone() : color;
@@ -187,6 +289,24 @@ export class StandardMaterial extends AbstractMaterial {
     this.emissiveIntensity = emissiveIntensity;
     this.transparent = transparent;
     this.alphaTest = alphaTest;
+    this.clearcoat = clearcoat;
+    this.clearcoatRoughness = clearcoatRoughness;
+    this.clearcoatMap = clearcoatMap;
+    this.clearcoatRoughnessMap = clearcoatRoughnessMap;
+    this.clearcoatNormalMap = clearcoatNormalMap;
+    this.sheenColor = Object.isFrozen(sheenColor) ? sheenColor.clone() : sheenColor;
+    this.sheenRoughness = sheenRoughness;
+    this.sheenColorMap = sheenColorMap;
+    this.sheenRoughnessMap = sheenRoughnessMap;
+    this.transmission = transmission;
+    this.transmissionMap = transmissionMap;
+    this.ior = ior;
+    this.thickness = thickness;
+    this.thicknessMap = thicknessMap;
+    this.attenuationDistance = attenuationDistance;
+    this.attenuationColor = Object.isFrozen(attenuationColor)
+      ? attenuationColor.clone()
+      : attenuationColor;
     this.time = time;
   }
 
@@ -203,7 +323,10 @@ export class StandardMaterial extends AbstractMaterial {
         this.metallicMap ||
         this.roughnessMap ||
         this.aoMap ||
-        this.alphaMap,
+        this.alphaMap ||
+        this.clearcoatMap ||
+        this.sheenColorMap ||
+        this.transmissionMap,
     );
 
     const props = this._renderManifest.properties;
@@ -220,6 +343,16 @@ export class StandardMaterial extends AbstractMaterial {
     (props["u_extraParams"] as number[])[2] = this.normalScale.x;
     (props["u_extraParams"] as number[])[3] = this.normalScale.y;
 
+    (props["u_liquidParams"] as number[])[0] = this.ior;
+    (props["u_liquidParams"] as number[])[1] = this.thickness;
+    (props["u_liquidParams"] as number[])[2] = this.transmission;
+    (props["u_liquidParams"] as number[])[3] = this.clearcoat;
+
+    (props["u_thresholds"] as number[])[0] = this.clearcoatRoughness;
+    (props["u_thresholds"] as number[])[1] = this.sheenRoughness;
+    (props["u_thresholds"] as number[])[2] = this.attenuationDistance;
+    (props["u_thresholds"] as number[])[3] = 0.0;
+
     texs["u_diffuseMap"] = this.diffuseMap;
     texs["u_normalMap"] = this.normalMap;
     texs["u_metallicMap"] = this.metallicMap;
@@ -230,13 +363,17 @@ export class StandardMaterial extends AbstractMaterial {
     texs["u_envMap"] = this.envMap;
     texs["u_reflectionMap"] = this.reflectionMap;
 
+    texs["u_clearcoatMap"] = this.clearcoatMap;
+    texs["u_clearcoatRoughnessMap"] = this.clearcoatRoughnessMap;
+    texs["u_clearcoatNormalMap"] = this.clearcoatNormalMap;
+    texs["u_sheenColorMap"] = this.sheenColorMap;
+    texs["u_sheenRoughnessMap"] = this.sheenRoughnessMap;
+    texs["u_transmissionMap"] = this.transmissionMap;
+    texs["u_thicknessMap"] = this.thicknessMap;
+
     props["u_useEnvMap"] = this.envMap ? 1.0 : 0.0;
     props["u_useReflectionMap"] = this.reflectionMap ? 1.0 : 0.0;
     props["u_reflectivity"] = this.reflectivity;
-    // u_pad1 is skeletal-animation-only elsewhere in the shared layout (unused by this
-    // non-skinned-specific material otherwise) -- repurposed here to carry reflectionFresnelBlend
-    // straight through to the shader, mirroring how OpenWater/StylizedWater repurpose the same
-    // slot for their own waterAbsorption.b.
     props["u_pad1"] = this.reflectionFresnelBlend;
     props["u_time"] = this.time;
 
@@ -256,6 +393,25 @@ export class StandardMaterial extends AbstractMaterial {
     if (this.envMap) flags.push("USE_ENV_MAP");
     if (this.normalMap) flags.push("USE_NORMAL_MAP");
     if (this.reflectionMap) flags.push("USE_REFLECTION_MAP");
+
+    if (this.clearcoat > 0 || this.clearcoatMap) flags.push("USE_CLEARCOAT");
+    if (this.clearcoatMap) flags.push("USE_CLEARCOAT_MAP");
+    if (this.clearcoatRoughnessMap) flags.push("USE_CLEARCOAT_ROUGHNESS_MAP");
+    if (this.clearcoatNormalMap) flags.push("USE_CLEARCOAT_NORMAL_MAP");
+    if (
+      this.sheenColor.r > 0 ||
+      this.sheenColor.g > 0 ||
+      this.sheenColor.b > 0 ||
+      this.sheenColorMap
+    ) {
+      flags.push("USE_SHEEN");
+    }
+    if (this.sheenColorMap) flags.push("USE_SHEEN_COLOR_MAP");
+    if (this.sheenRoughnessMap) flags.push("USE_SHEEN_ROUGHNESS_MAP");
+    if (this.transmission > 0 || this.transmissionMap) flags.push("USE_TRANSMISSION");
+    if (this.transmissionMap) flags.push("USE_TRANSMISSION_MAP");
+    if (this.thicknessMap) flags.push("USE_THICKNESS_MAP");
+
     this._renderManifest.flags = flags;
 
     if (this._renderManifest.state) {
@@ -300,6 +456,32 @@ export class StandardMaterial extends AbstractMaterial {
       emissiveIntensity: this.emissiveIntensity,
       transparent: this.transparent,
       alphaTest: this.alphaTest,
+      clearcoat: this.clearcoat,
+      clearcoatRoughness: this.clearcoatRoughness,
+      clearcoatMap: this.clearcoatMap,
+      clearcoatRoughnessMap: this.clearcoatRoughnessMap,
+      clearcoatNormalMap: this.clearcoatNormalMap,
+      sheenColor: new Color(
+        this.sheenColor.r,
+        this.sheenColor.g,
+        this.sheenColor.b,
+        this.sheenColor.a,
+      ),
+      sheenRoughness: this.sheenRoughness,
+      sheenColorMap: this.sheenColorMap,
+      sheenRoughnessMap: this.sheenRoughnessMap,
+      transmission: this.transmission,
+      transmissionMap: this.transmissionMap,
+      ior: this.ior,
+      thickness: this.thickness,
+      thicknessMap: this.thicknessMap,
+      attenuationDistance: this.attenuationDistance,
+      attenuationColor: new Color(
+        this.attenuationColor.r,
+        this.attenuationColor.g,
+        this.attenuationColor.b,
+        this.attenuationColor.a,
+      ),
       time: this.time,
     });
     copy.cullMode = this.cullMode;
@@ -335,6 +517,14 @@ export class StandardMaterial extends AbstractMaterial {
           u_alphaMap: { type: ShaderPropertyType.TEXTURE },
           u_envMap: { type: ShaderPropertyType.TEXTURE },
           u_reflectionMap: { type: ShaderPropertyType.TEXTURE },
+          u_clearcoatMap: { type: ShaderPropertyType.TEXTURE },
+          u_clearcoatRoughnessMap: { type: ShaderPropertyType.TEXTURE },
+          u_clearcoatNormalMap: { type: ShaderPropertyType.TEXTURE },
+          u_sheenColorMap: { type: ShaderPropertyType.TEXTURE },
+          u_sheenRoughnessMap: { type: ShaderPropertyType.TEXTURE },
+          u_transmissionMap: { type: ShaderPropertyType.TEXTURE },
+          u_thicknessMap: { type: ShaderPropertyType.TEXTURE },
+          u_opaqueMap: { type: ShaderPropertyType.TEXTURE },
         },
       },
     };

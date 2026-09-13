@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { GltfGeometryParser } from "../../../src/loaders/gltf/GltfGeometryParser.js";
 
 describe("GltfGeometryParser", () => {
-  it("parses primitive attributes into GeometryDataInterface", () => {
+  it("parses primitive attributes into GeometryDataInterface", async () => {
     const pos = new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0]);
     const norm = new Float32Array([0, 0, 1, 0, 0, 1, 0, 0, 1]);
     const buffers = [pos.buffer, norm.buffer];
@@ -25,7 +25,7 @@ describe("GltfGeometryParser", () => {
       },
     };
 
-    const geo = GltfGeometryParser.parseGeometry(primitive, json, buffers);
+    const geo = await GltfGeometryParser.parseGeometry(primitive, json, buffers);
     expect(geo).toBeDefined();
     expect(geo!.vertices).toHaveLength(9);
     expect(geo!.normals).toHaveLength(9);

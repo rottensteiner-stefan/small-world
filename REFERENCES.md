@@ -145,6 +145,65 @@ This document serves to record external sources, algorithms, mathematical deriva
   - Phase difference: $\Delta\phi(\lambda) = \frac{4\pi \cdot \eta_{\text{film}} \cdot d \cdot \cos\theta_2}{\lambda}$ evaluated at reference wavelengths $\lambda \in \{650, 550, 450\}\,\text{nm}$ (RGB).
 - **Usage:** Renders physical rainbow-like color interference across the oil slick surface based on view angle and wandering film thickness, replacing ad-hoc hue rotations with wave-optics interference.
 
+#### 4. `KHR_materials_clearcoat` — Second-Layer Dielectric Specular Lobe
+- **File:** `packages/engine/src/core/materials/StandardMaterial.ts`, `packages/engine/src/core/materials/shaders/Standard.frag.glsl`, `packages/engine/src/loaders/gltf/GltfMaterialParser.ts`
+- **Authors/Gurus:** Brent Burley (Disney Principled BRDF 2012), Sébastien Lagarde (Frostbite), Khronos 3D Formats Working Group
+- **Source:**
+  - [Khronos glTF Extension: `KHR_materials_clearcoat`](https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_clearcoat)
+  - [Burley: "Physically-Based Shading at Disney" (SIGGRAPH 2012)](https://disneyanimation.com/publications/physically-based-shading-at-disney/)
+- **Formulas:**
+  - Clearcoat Fresnel: $F_{cc} = F_{\text{Schlick}}(N_{cc} \cdot V, F_0 = 0.04) \cdot \text{clearcoatFactor}$
+  - Kelemen / Schlick-GGX visibility and GGX distribution: $D_{cc} = D_{\text{GGX}}(N_{cc} \cdot H, \alpha_{cc})$
+  - Base layer attenuation: $(1 - F_{cc})$ energy conservation.
+- **Usage:** Simulates a transparent, smooth dielectric coating over a rough or colored substrate (e.g. car paint, carbon fiber, lacquered furniture, wet stones).
+
+#### 5. `KHR_materials_sheen` — Charlie Microfiber Grazing-Angle Specular BRDF
+- **File:** `packages/engine/src/core/materials/StandardMaterial.ts`, `packages/engine/src/core/materials/shaders/Standard.frag.glsl`, `packages/engine/src/loaders/gltf/GltfMaterialParser.ts`
+- **Authors/Gurus:** Stephen Estevez & Toshiya Hachisuka (Sony Pictures Imageworks 2017), Aleksandr Neubelt & Matt Pettineo (Ready at Dawn 2013), Khronos 3D Formats Working Group
+- **Source:**
+  - [Khronos glTF Extension: `KHR_materials_sheen`](https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_sheen)
+  - [Estevez & Kulla: "Production Friendly Microfacet Sheen BRDF" (2017)](https://blog.selfshadow.com/publications/s2017-shading-course/imageworks/s2017_pbs_imageworks_sheen.pdf)
+- **Formulas:**
+  - Charlie distribution: $D_{\text{Charlie}}(\theta_h) = \frac{2 + \frac{1}{\alpha}}{2\pi} (1 - \cos^2 \theta_h)^{\frac{1}{2\alpha}}$
+  - Neubelt shadowing/masking: $V_{\text{Neubelt}} = \frac{1}{4(N \cdot L + N \cdot V - N \cdot L \cdot N \cdot V)}$
+- **Usage:** Renders soft, fuzzy grazing-angle highlights on cloth, velvet, silk, and woven textiles without unnatural metallic specular flares.
+
+#### 6. `KHR_materials_transmission` — Specular Light Transmission & Screen-Space Refraction
+- **File:** `packages/engine/src/core/materials/GlassMaterial.ts`, `packages/engine/src/core/materials/StandardMaterial.ts`, `packages/engine/src/loaders/gltf/GltfMaterialParser.ts`
+- **Authors/Gurus:** Bruce Walter, Stephen R. Marschner, Hongsong Li, Kenneth E. Torrance (2007), Khronos 3D Formats Working Group
+- **Source:**
+  - [Khronos glTF Extension: `KHR_materials_transmission`](https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_transmission)
+  - [Walter et al.: "Microfacet Models for Refraction through Rough Surfaces" (EGSR 2007)](https://www.cs.cornell.edu/~srm/publications/EGSR07-btdf.pdf)
+- **Formulas:**
+  - Transmission ratio: $T = 1.0 - F$
+  - Refraction direction: $\vec{R} = \text{refract}(-\vec{V}, \vec{N}, \frac{1}{\eta})$
+- **Usage:** Allows thin and thick glass-like dielectric surfaces to transmit background light while preserving PBR specular highlights and roughness.
+
+#### 7. `KHR_materials_variants` — Configurable Material Variants
+- **File:** `packages/engine/src/loaders/GltfLoader.ts`, `packages/engine/src/loaders/gltf/GltfVariants.ts`, `packages/engine/src/loaders/gltf/types.ts`
+- **Authors/Gurus:** Gary Hsu (Microsoft), Don McCurdy (Google), Khronos 3D Formats Working Group
+- **Source:** [Khronos glTF Extension: `KHR_materials_variants`](https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_variants)
+- **Usage:** Defines multiple alternate material choices per mesh primitive (e.g. product color/material configurators in 3D e-commerce and gaming) and switches them dynamically at runtime via `GltfVariants.selectVariant()` or loader options.
+
+### glTF 2.0 Loader & Data Compression Extensions
+
+#### 1. `KHR_draco_mesh_compression` — Google Draco Geometry Compression
+- **File:** `packages/gltf-extensions/src/draco/KhrDracoMeshCompression.ts`, `packages/gltf-extensions/src/draco/DracoDecoder.ts`
+- **Authors/Gurus:** Frank Galligan, Ondrej Stava, Jamieson Brettle et al. (Google Chrome / VR Draco Team), Khronos 3D Formats Working Group
+- **Source:**
+  - [Google Draco 3D Data Compression Library](https://github.com/google/draco)
+  - [Khronos glTF Extension: `KHR_draco_mesh_compression`](https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_draco_mesh_compression)
+- **Usage:** Decompresses lossy/lossless Draco bitstreams containing quantized vertex positions, normals, UV coordinates, and triangle connectivity. Reduces raw 3D asset transfer sizes over the network by up to 80-90%.
+
+#### 2. `KHR_texture_basisu` — Basis Universal / KTX2 GPU Texture Compression
+- **File:** `packages/gltf-extensions/src/basisu/KhrTextureBasisu.ts`, `packages/gltf-extensions/src/basisu/BasisTranscoder.ts`
+- **Authors/Gurus:** Rich Geldreich & Stephanie Hurlburt (Binomial LLC), Khronos 3D Formats Working Group
+- **Source:**
+  - [Basis Universal Supercompressed GPU Texture Codec](https://github.com/BinomialLLC/basis_universal)
+  - [Khronos glTF Extension: `KHR_texture_basisu`](https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_texture_basisu)
+- **Usage:** Transcodes KTX2 / Basis Universal compressed textures directly into GPU-native block compression formats (BC7, ASTC, ETC2, DXT) or RGBA8 fallback, dramatically cutting runtime VRAM memory consumption and GPU texture bandwidth.
+
+
 ### Metallic-Roughness Sphere Grid (PBR Reference Test)
 
 - **File:** `apps/showcases/35/showcase.ts`

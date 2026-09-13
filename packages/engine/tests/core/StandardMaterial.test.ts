@@ -94,4 +94,54 @@ describe("StandardMaterial", () => {
     expect(opaqueManifest.state?.blending).toBe(BlendingMode.OPAQUE);
     expect(opaqueManifest.state?.depthWrite).toBe(true);
   });
+
+  it("should support Clearcoat, Sheen, Transmission, Volume, and IOR parameters and clone them correctly", () => {
+    const mat = new StandardMaterial({
+      clearcoat: 0.75,
+      clearcoatRoughness: 0.1,
+      sheenColor: new Color(0.9, 0.8, 0.7),
+      sheenRoughness: 0.3,
+      transmission: 0.95,
+      ior: 1.45,
+      thickness: 1.2,
+      attenuationDistance: 5.0,
+      attenuationColor: new Color(0.2, 0.5, 0.8),
+    });
+
+    expect(mat.clearcoat).toBe(0.75);
+    expect(mat.clearcoatRoughness).toBe(0.1);
+    expect(mat.sheenColor.r).toBeCloseTo(0.9);
+    expect(mat.sheenRoughness).toBe(0.3);
+    expect(mat.transmission).toBe(0.95);
+    expect(mat.ior).toBe(1.45);
+    expect(mat.thickness).toBe(1.2);
+    expect(mat.attenuationDistance).toBe(5.0);
+    expect(mat.attenuationColor.g).toBeCloseTo(0.5);
+
+    const manifest = mat.getRenderManifest();
+    expect(manifest.flags).toContain("USE_CLEARCOAT");
+    expect(manifest.flags).toContain("USE_SHEEN");
+    expect(manifest.flags).toContain("USE_TRANSMISSION");
+
+    const liquidParams = manifest.properties["u_liquidParams"] as number[];
+    expect(liquidParams[0]).toBe(1.45); // ior
+    expect(liquidParams[1]).toBe(1.2); // thickness
+    expect(liquidParams[2]).toBe(0.95); // transmission
+    expect(liquidParams[3]).toBe(0.75); // clearcoat
+
+    const thresholds = manifest.properties["u_thresholds"] as number[];
+    expect(thresholds[0]).toBe(0.1); // clearcoatRoughness
+    expect(thresholds[1]).toBe(0.3); // sheenRoughness
+    expect(thresholds[2]).toBe(5.0); // attenuationDistance
+
+    const copy = mat.clone();
+    expect(copy.clearcoat).toBe(0.75);
+    expect(copy.clearcoatRoughness).toBe(0.1);
+    expect(copy.sheenRoughness).toBe(0.3);
+    expect(copy.transmission).toBe(0.95);
+    expect(copy.ior).toBe(1.45);
+    expect(copy.thickness).toBe(1.2);
+    expect(copy.attenuationDistance).toBe(5.0);
+    expect(copy.attenuationColor.b).toBeCloseTo(0.8);
+  });
 });

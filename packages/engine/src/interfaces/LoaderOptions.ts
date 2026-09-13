@@ -46,4 +46,6 @@ export interface GltfLoaderOptions extends LoaderOptions {
   defaultMetallic?: number;
   /** Default roughness factor used when a material does not explicitly define one. */
   defaultRoughness?: number;
+  /** Initial material variant name or index to activate upon loading (KHR_materials_variants). */
+  variant?: string | number;
 }

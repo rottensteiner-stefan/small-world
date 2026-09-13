@@ -1,7 +1,9 @@
 import { SmallWorld } from "../index.js";
 import { EngineOptions } from "../../interfaces/index.js";
-import { Keys, RendererType } from "../../enums/index.js";
+import { CameraStrategyType, Keys, RendererType } from "../../enums/index.js";
 import { AssetManager } from "../../loaders/index.js";
+import { Vector3D } from "../../math/index.js";
+import { FlyController, OrbitController } from "../controllers/index.js";
 
 /**
  * Reads a `?rendererType=` override from the page URL (e.g. `?rendererType=WEB_GL2`),
@@ -26,12 +28,32 @@ function getRendererTypeFromQuery(): RendererType | undefined {
  */
 const VALID_SHOWCASE_IDS = [
   1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 26, 27, 28,
-  29, 30, 31, 32, 33, 34, 35, 36,
+  29, 30, 31, 32, 33, 34, 35, 36, 37, 38,
 ];
 
 export abstract class AbstractShowcase extends SmallWorld {
   private _showcaseKeyDownHandler = (event: KeyboardEvent): void => this.onKeyDown(event);
   private _navButtons: HTMLButtonElement[] = [];
+
+  private _initialCamPos: Vector3D = new Vector3D();
+  private _initialCamTarget: Vector3D = new Vector3D();
+  private _initialCamTheta: number = 0;
+  private _initialCamPhi: number = 0;
+  private _hasExplicitInitialCamera: boolean = false;
+
+  /**
+   * The default camera controller attached if none is manually registered in setupScene().
+   * 'fly' (default): 6-DOF spectator FlyCam (WASD + QE/Space/C + mouse look + Shift boost + Alt slow).
+   * 'orbit': Turntable OrbitController around target.
+   * 'none': No camera controller automatically attached.
+   */
+  protected defaultCameraController: "fly" | "orbit" | "none" = "fly";
+
+  /** Base flight speed when using the default FlyController. Defaults to 7.0 units/sec. */
+  protected defaultMoveSpeed: number = 7.0;
+
+  /** Whether collisions with scene geometry are enabled for the default FlyController. Defaults to false (noclip). */
+  protected defaultFlyCollision: boolean = false;
 
   /**
    * The constructor is passed to Application.
@@ -42,6 +64,86 @@ export abstract class AbstractShowcase extends SmallWorld {
     super(rendererTypeOverride ? { ...config, rendererType: rendererTypeOverride } : config);
     window.addEventListener("keydown", this._showcaseKeyDownHandler);
     this._initShowcaseNavigation();
+  }
+
+  /**
+   * Sets the initial/reference camera position and target for this showcase.
+   * Immediately synchronizes position, target, spherical theta/phi angles and view matrix.
+   * Calling this ensures pressing 'R' returns exactly to this perspective.
+   */
+  public setInitialCamera(position: Vector3D, target: Vector3D): void {
+    this._hasExplicitInitialCamera = true;
+    this._initialCamPos.copyFrom(position);
+    this._initialCamTarget.copyFrom(target);
+    this.camera.position.copyFrom(position);
+    this.camera.target.copyFrom(target);
+    const dir = target.clone().sub(position).normalize();
+    this.camera.phi = Math.asin(dir.y);
+    this.camera.theta = Math.atan2(dir.x, -dir.z);
+    this._initialCamTheta = this.camera.theta;
+    this._initialCamPhi = this.camera.phi;
+    this.camera.updateViewMatrix();
+  }
+
+  /**
+   * Resets the camera to its initial/reference position and orientation.
+   * Can be invoked manually or triggered via the 'R' key.
+   */
+  public resetCamera(): void {
+    this.camera.position.copyFrom(this._initialCamPos);
+    this.camera.target.copyFrom(this._initialCamTarget);
+    this.camera.theta = this._initialCamTheta;
+    this.camera.phi = this._initialCamPhi;
+
+    const relX = this.camera.position.x - this.camera.target.x;
+    const relY = this.camera.position.y - this.camera.target.y;
+    const relZ = this.camera.position.z - this.camera.target.z;
+    const radius = Math.sqrt(relX * relX + relY * relY + relZ * relZ);
+
+    if (this.camera.strategy && "radius" in this.camera.strategy) {
+      (this.camera.strategy as { radius: number }).radius = radius;
+    }
+
+    this.camera.updateViewMatrix();
+  }
+
+  public override async start(): Promise<void> {
+    await super.start();
+    if (!this._hasExplicitInitialCamera) {
+      this._initialCamPos.copyFrom(this.camera.position);
+      this._initialCamTarget.copyFrom(this.camera.target);
+      const dir = this.camera.target.clone().sub(this.camera.position);
+      const len = dir.length();
+      if (len > 0.00001) {
+        dir.scale(1.0 / len);
+        this.camera.phi = Math.asin(Math.max(-0.9999, Math.min(0.9999, dir.y)));
+        this.camera.theta = Math.atan2(dir.x, -dir.z);
+      }
+      this._initialCamTheta = this.camera.theta;
+      this._initialCamPhi = this.camera.phi;
+    }
+
+    if (this.camera.behaviors.length === 0) {
+      if (this.defaultCameraController === "fly") {
+        this.camera.setStrategy(CameraStrategyType.FPS);
+        this.camera.addBehavior(
+          new FlyController({
+            input: this.input,
+            audio: this.audio,
+            moveSpeed: this.defaultMoveSpeed,
+            ...(this.defaultFlyCollision ? { scene: this.scene } : {}),
+          }),
+        );
+      } else if (this.defaultCameraController === "orbit") {
+        this.camera.setStrategy(CameraStrategyType.DEFAULT);
+        this.camera.addBehavior(
+          new OrbitController({
+            input: this.input,
+            audio: this.audio,
+          }),
+        );
+      }
+    }
   }
 
   /**
@@ -163,6 +265,9 @@ export abstract class AbstractShowcase extends SmallWorld {
   protected onKeyDown(event: KeyboardEvent): void {
     if (Keys.B === event.code) {
       this.debug = !this.debug;
+    }
+    if (event.key === "r" || event.key === "R") {
+      this.resetCamera();
     }
   }
 

@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.79.05] - 2026-09-13
+
+### "A rose-red city half as old as time." - John William Burgon
+
+- **Features:**
+  - Added Showcase 38 ("Al-Khazneh — The Treasury of Petra"): a museum-grade 40m rock-hewn facade reconstruction, towering Siq canyon approach gorge, and walkable 3-chamber rock-cut inner sanctum.
+  - Authentic classical architectural masonry detailing: stepped monumental portal surround with multi-fascia jambs and over-door console cornice, equestrian Dioscuri bas-relief panels, 6 Corinthian portico columns with engaged back-wall pilasters, 3-tier architrave, floral frieze, dentil & modillion cornice, pediment tympanum medallion with apex floral acroterion, upper broken-pediment wings with sculptured Amazon niches, circular Tholos pavilion with Tyche/Isis-Fortuna statue, and colossal funerary urn crowning the dome.
+  - Seamless, high-resolution PBR sandstone textures derived from natural rock photography with flat-field illumination normalization.
+  - Web Audio canyon wind ambiance and 11 dynamic, de-correlated organic flame torches and central atrium fire brazier.
+- **Architecture & Bugfixes:**
+  - Fixed `FlickerBehavior` de-correlation: instances previously sampled identical noise coordinates at $y=0$ starting from $t=0$, causing all lights across a scene to pulse synchronously. Added per-instance `noiseOffset`, `frequency`, and staggered phase timers.
+  - Enhanced glTF extension pipeline with `KHR_materials_variants` support and ADR 0018 ecosystem decoupling.
+- **Housekeeping & Docs:**
+  - New unit tests for `FlickerBehavior` de-correlation (`FlickerBehavior.test.ts`), `GltfVariants.test.ts`, and updated showcase registry.
+
 ## [0.79.04] - 2026-09-13
 
 ### "The first principle is that you must not fool yourself -- and you are the easiest person to fool." - Richard Feynman

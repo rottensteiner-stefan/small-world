@@ -130,74 +130,71 @@ class Showcase27 extends AbstractShowcase {
 
     // Load Environment Map & PBR Textures
     const envTexture = new CubeTexture();
-    try {
-      await envTexture.loadFrom("./assets/skybox.webp");
-      const skybox = new Object3D("Skybox");
-      skybox.geometry = new Cube({ size: 1000 }).getGeometryData();
-      skybox.material = new SkyboxMaterial({ cubeMap: envTexture });
-      skybox.frustumCulled = false;
-      this.scene.add(skybox);
-    } catch (e) {
-      console.warn("Could not load envmap:", e);
-    }
-
-    // Real IBL (irradiance/prefilter/BRDF LUT), baked via tools/ibl-gen.html from a
-    // freshly-generated panorama matching this scene's own skybox -- replaces the previous
-    // (physically wrong) reuse of the raw, unconvolved skybox as both diffuse and specular map.
-    try {
-      const brdfTexture = await Texture.fromUrl("./assets/ibl/brdf_lut.webp");
-      const irradianceTexture = new CubeTexture();
-      await irradianceTexture.loadFrom("./assets/ibl/irradiance.webp", CubeLayout.CROSS_HORIZONTAL);
-      const prefilterTexture = new CubeTexture();
-      await prefilterTexture.loadMipmapsFrom(
-        [
-          "./assets/ibl/prefilter/mip0.webp",
-          "./assets/ibl/prefilter/mip1.webp",
-          "./assets/ibl/prefilter/mip2.webp",
-          "./assets/ibl/prefilter/mip3.webp",
-          "./assets/ibl/prefilter/mip4.webp",
-        ],
-        CubeLayout.CROSS_HORIZONTAL,
-      );
-
-      this.scene.brdfLUT = brdfTexture;
-      this.scene.irradianceMap = irradianceTexture;
-      this.scene.prefilterMap = prefilterTexture;
-      this.scene.environmentIntensity = 1.5;
-    } catch (e) {
-      console.warn("IBL maps not loaded:", e);
-    }
+    const irradianceTexture = new CubeTexture();
+    const prefilterTexture = new CubeTexture();
 
     let marbleDiffuse: Texture | undefined;
     let marbleNormal: Texture | undefined;
     let marbleRoughness: Texture | undefined;
-
     let bronzeDiffuse: Texture | undefined;
     let bronzeNormal: Texture | undefined;
     let bronzeRoughness: Texture | undefined;
 
     try {
-      marbleDiffuse = await Texture.fromUrl("./assets/artdeco_diffuse.webp");
+      const [brdfTexture, mDiff, mNorm, mRough, bDiff, bNorm, bRough] = await Promise.all([
+        Texture.fromUrl("./assets/ibl/brdf_lut.webp"),
+        Texture.fromUrl("./assets/artdeco_diffuse.webp"),
+        Texture.fromUrl("./assets/artdeco_normal.webp"),
+        Texture.fromUrl("./assets/artdeco_roughness.webp"),
+        Texture.fromUrl("./assets/rusty_brass_diffuse.webp"),
+        Texture.fromUrl("./assets/rusty_brass_normal.webp"),
+        Texture.fromUrl("./assets/rusty_brass_roughness.webp"),
+        envTexture.loadFrom("./assets/ibl/env.webp", CubeLayout.CROSS_HORIZONTAL),
+        irradianceTexture.loadFrom("./assets/ibl/irradiance.webp", CubeLayout.CROSS_HORIZONTAL),
+        prefilterTexture.loadMipmapsFrom(
+          [
+            "./assets/ibl/prefilter/mip0.webp",
+            "./assets/ibl/prefilter/mip1.webp",
+            "./assets/ibl/prefilter/mip2.webp",
+            "./assets/ibl/prefilter/mip3.webp",
+            "./assets/ibl/prefilter/mip4.webp",
+          ],
+          CubeLayout.CROSS_HORIZONTAL,
+        ),
+      ]);
+
+      const skybox = new Object3D("Skybox");
+      skybox.geometry = new Cube({ size: 1000 }).getGeometryData();
+      skybox.material = new SkyboxMaterial({ cubeMap: envTexture });
+      skybox.frustumCulled = false;
+      this.scene.add(skybox);
+
+      this.scene.brdfLUT = brdfTexture;
+      this.scene.irradianceMap = irradianceTexture;
+      this.scene.prefilterMap = prefilterTexture;
+      this.scene.environmentIntensity = 1.5;
+
+      marbleDiffuse = mDiff;
       if (marbleDiffuse) {
         marbleDiffuse.repeat.x = 3;
         marbleDiffuse.repeat.y = 3;
       }
-      marbleNormal = await Texture.fromUrl("./assets/artdeco_normal.webp");
+      marbleNormal = mNorm;
       if (marbleNormal) {
         marbleNormal.repeat.x = 3;
         marbleNormal.repeat.y = 3;
       }
-      marbleRoughness = await Texture.fromUrl("./assets/artdeco_roughness.webp");
+      marbleRoughness = mRough;
       if (marbleRoughness) {
         marbleRoughness.repeat.x = 3;
         marbleRoughness.repeat.y = 3;
       }
 
-      bronzeDiffuse = await Texture.fromUrl("./assets/rusty_brass_diffuse.webp");
-      bronzeNormal = await Texture.fromUrl("./assets/rusty_brass_normal.webp");
-      bronzeRoughness = await Texture.fromUrl("./assets/rusty_brass_roughness.webp");
+      bronzeDiffuse = bDiff;
+      bronzeNormal = bNorm;
+      bronzeRoughness = bRough;
     } catch (e) {
-      console.warn("Could not load PBR textures:", e);
+      console.warn("Could not load IBL / PBR textures:", e);
     }
 
     // Materials

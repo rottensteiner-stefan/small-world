@@ -1,9 +1,7 @@
 import {
   AmbientLight,
-  CameraStrategyType,
   Color,
   DirectionalLight,
-  FPSController,
   Object3D,
   PerspectiveProjection,
   ProjectionType,
@@ -52,17 +50,8 @@ class Showcase13 extends AbstractShowcase {
       this.camera.updateProjectionMatrix();
     }
 
-    this.camera.setStrategy(CameraStrategyType.FPS);
-    this.camera.position.set(0, 0.3, 3);
-
-    const fpsController = new FPSController({
-      input: this.input,
-      audio: this.audio,
-      moveSpeed: 5.0,
-      enableCollision: false,
-      scene: this.scene,
-    });
-    this.camera.addBehavior(fpsController);
+    this.defaultMoveSpeed = 5.0;
+    this.setInitialCamera(new Vector3D(0, 0.3, 3), new Vector3D(0, 0.3, 0));
 
     // Setup Lights to showcase PBR and dramatic shadows
     const ambientLight = new AmbientLight({
@@ -108,7 +97,7 @@ class Showcase13 extends AbstractShowcase {
     // Load an environment map for reflections
     const envTexture = new CubeTexture();
     try {
-      await envTexture.loadFrom("./assets/skybox.webp");
+      await envTexture.loadFrom("./assets/ibl/env.webp", CubeLayout.CROSS_HORIZONTAL);
 
       // Add skybox to the background
       const skybox = new Object3D("Skybox");

@@ -19,9 +19,41 @@ N = normalize(N);
 #endif
 float dotNV = max(dot(N, V), 0.0001);
 
-// Base Reflectivity for non-metals
-vec3 F0 = vec3(0.04); 
+// Base Reflectivity for non-metals from IOR (KHR_materials_ior)
+float ior = u_liquidParams.x > 0.0 ? u_liquidParams.x : 1.5;
+float f0_dielectric = pow((ior - 1.0) / (ior + 1.0), 2.0);
+vec3 F0 = vec3(f0_dielectric); 
 F0 = mix(F0, albedo, metallic);
+
+#ifdef USE_CLEARCOAT
+float clearcoat = u_liquidParams.w;
+#ifdef USE_CLEARCOAT_MAP
+clearcoat *= texture(u_clearcoatMap, v_uv).r;
+#endif
+float clearcoatRoughness = clamp(u_thresholds.x, 0.05, 1.0);
+#ifdef USE_CLEARCOAT_ROUGHNESS_MAP
+clearcoatRoughness = clamp(clearcoatRoughness * texture(u_clearcoatRoughnessMap, v_uv).g, 0.05, 1.0);
+#endif
+#ifdef USE_CLEARCOAT_NORMAL_MAP
+vec3 rawCcNormal = texture(u_clearcoatNormalMap, v_uv).rgb * 2.0 - 1.0;
+rawCcNormal.xy *= u_extraParams.zw;
+vec3 N_cc = normalize(v_tbn * rawCcNormal);
+#else
+vec3 N_cc = N;
+#endif
+float dotNV_cc = max(dot(N_cc, V), 0.0001);
+#endif
+
+#ifdef USE_SHEEN
+vec3 sheenColor = vec3(1.0);
+#ifdef USE_SHEEN_COLOR_MAP
+sheenColor = sRGBToLinear(texture(u_sheenColorMap, v_uv).rgb);
+#endif
+float sheenRoughness = clamp(u_thresholds.y, 0.05, 1.0);
+#ifdef USE_SHEEN_ROUGHNESS_MAP
+sheenRoughness = clamp(sheenRoughness * texture(u_sheenRoughnessMap, v_uv).a, 0.05, 1.0);
+#endif
+#endif
 
 vec3 Lo = vec3(0.0);
 
@@ -160,7 +192,30 @@ vec3 Lo = vec3(0.0);
     float denominator = 4.0 * dotNV * dotNL + 0.0001;
     vec3 specular = numerator / denominator;
 
-    Lo += (kD * albedo / 3.14159265359 + specular) * radiance * dotNL;
+    vec3 directLight = (kD * albedo / 3.14159265359 + specular) * radiance * dotNL;
+
+#ifdef USE_CLEARCOAT
+    if (clearcoat > 0.0) {
+        float dotNL_cc = max(dot(N_cc, L), 0.0);
+        float dotNH_cc = max(dot(N_cc, H), 0.0);
+        float dotVH_cc = max(dot(V, H), 0.0);
+        float D_cc = D_GGX(dotNH_cc, clearcoatRoughness);
+        float G_cc = G_Kelemen(dotVH_cc);
+        vec3 F_cc = F_Schlick(dotVH_cc, vec3(0.04));
+        vec3 clearcoatSpecular = (D_cc * G_cc * F_cc) * clearcoat;
+        directLight = directLight * (1.0 - clearcoat * F_cc.r) + clearcoatSpecular * radiance * dotNL_cc;
+    }
+#endif
+
+#ifdef USE_SHEEN
+    float dotNH_s = max(dot(N, H), 0.0);
+    float D_s = D_Charlie(dotNH_s, sheenRoughness);
+    float V_s = V_Neubelt(dotNL, dotNV);
+    vec3 sheenSpecular = sheenColor * (D_s * V_s);
+    directLight += sheenSpecular * radiance * dotNL;
+#endif
+
+    Lo += directLight;
 }
 
 // Clustered light lookup -- see docs/adr/0007-clustered-lighting-webgl2-webgpu-only.md.
@@ -205,7 +260,30 @@ for(int k = 0; k < CLUSTER_MAX_LIGHTS; k++) {
     vec3 kD = (vec3(1.0) - kS) * (1.0 - metallic);
 
     vec3 specular = (D * G * F) / (4.0 * dotNV * dotNL + 0.0001);
-    Lo += (kD * albedo / 3.14159265359 + specular) * radiance * dotNL;
+    vec3 directLight = (kD * albedo / 3.14159265359 + specular) * radiance * dotNL;
+
+#ifdef USE_CLEARCOAT
+    if (clearcoat > 0.0) {
+        float dotNL_cc = max(dot(N_cc, L), 0.0);
+        float dotNH_cc = max(dot(N_cc, H), 0.0);
+        float dotVH_cc = max(dot(V, H), 0.0);
+        float D_cc = D_GGX(dotNH_cc, clearcoatRoughness);
+        float G_cc = G_Kelemen(dotVH_cc);
+        vec3 F_cc = F_Schlick(dotVH_cc, vec3(0.04));
+        vec3 clearcoatSpecular = (D_cc * G_cc * F_cc) * clearcoat;
+        directLight = directLight * (1.0 - clearcoat * F_cc.r) + clearcoatSpecular * radiance * dotNL_cc;
+    }
+#endif
+
+#ifdef USE_SHEEN
+    float dotNH_s = max(dot(N, H), 0.0);
+    float D_s = D_Charlie(dotNH_s, sheenRoughness);
+    float V_s = V_Neubelt(dotNL, dotNV);
+    vec3 sheenSpecular = sheenColor * (D_s * V_s);
+    directLight += sheenSpecular * radiance * dotNL;
+#endif
+
+    Lo += directLight;
 }
 
 // -- Spot Lights --
@@ -276,7 +354,30 @@ for(int k = 0; k < CLUSTER_MAX_LIGHTS; k++) {
         vec3 kD = (vec3(1.0) - kS) * (1.0 - metallic);
 
         vec3 specular = (D * G * F) / (4.0 * dotNV * dotNL + 0.0001);
-        Lo += (kD * albedo / 3.14159265359 + specular) * radiance * dotNL;
+        vec3 directLight = (kD * albedo / 3.14159265359 + specular) * radiance * dotNL;
+
+#ifdef USE_CLEARCOAT
+        if (clearcoat > 0.0) {
+            float dotNL_cc = max(dot(N_cc, L), 0.0);
+            float dotNH_cc = max(dot(N_cc, H), 0.0);
+            float dotVH_cc = max(dot(V, H), 0.0);
+            float D_cc = D_GGX(dotNH_cc, clearcoatRoughness);
+            float G_cc = G_Kelemen(dotVH_cc);
+            vec3 F_cc = F_Schlick(dotVH_cc, vec3(0.04));
+            vec3 clearcoatSpecular = (D_cc * G_cc * F_cc) * clearcoat;
+            directLight = directLight * (1.0 - clearcoat * F_cc.r) + clearcoatSpecular * radiance * dotNL_cc;
+        }
+#endif
+
+#ifdef USE_SHEEN
+        float dotNH_s = max(dot(N, H), 0.0);
+        float D_s = D_Charlie(dotNH_s, sheenRoughness);
+        float V_s = V_Neubelt(dotNL, dotNV);
+        vec3 sheenSpecular = sheenColor * (D_s * V_s);
+        directLight += sheenSpecular * radiance * dotNL;
+#endif
+
+        Lo += directLight;
     }
 }
 
@@ -318,7 +419,30 @@ for(int i = 0; i < 4; i++) {
     vec3 kD = (vec3(1.0) - kS) * (1.0 - metallic);
 
     vec3 specular = (D * G * F) / (4.0 * dotNV * dotNL + 0.0001);
-    Lo += (kD * albedo / 3.14159265359 + specular) * radiance * dotNL;
+    vec3 directLight = (kD * albedo / 3.14159265359 + specular) * radiance * dotNL;
+
+#ifdef USE_CLEARCOAT
+    if (clearcoat > 0.0) {
+        float dotNL_cc = max(dot(N_cc, L), 0.0);
+        float dotNH_cc = max(dot(N_cc, H), 0.0);
+        float dotVH_cc = max(dot(V, H), 0.0);
+        float D_cc = D_GGX(dotNH_cc, clearcoatRoughness);
+        float G_cc = G_Kelemen(dotVH_cc);
+        vec3 F_cc = F_Schlick(dotVH_cc, vec3(0.04));
+        vec3 clearcoatSpecular = (D_cc * G_cc * F_cc) * clearcoat;
+        directLight = directLight * (1.0 - clearcoat * F_cc.r) + clearcoatSpecular * radiance * dotNL_cc;
+    }
+#endif
+
+#ifdef USE_SHEEN
+    float dotNH_s = max(dot(N, H), 0.0);
+    float D_s = D_Charlie(dotNH_s, sheenRoughness);
+    float V_s = V_Neubelt(dotNL, dotNV);
+    vec3 sheenSpecular = sheenColor * (D_s * V_s);
+    directLight += sheenSpecular * radiance * dotNL;
+#endif
+
+    Lo += directLight;
 }
 
 // -- Ambient Lighting --
@@ -355,6 +479,17 @@ vec2 envBRDF  = texture(u_brdfLUT, vec2(max(dotNV, 0.0), roughness)).rg;
 vec3 specularAmbient = prefilteredColor * (kS_ambient * envBRDF.x + envBRDF.y);
 
 vec3 ambient = (kD_ambient * diffuseAmbient + specularAmbient) * ao;
+
+#ifdef USE_CLEARCOAT
+if (clearcoat > 0.0) {
+    vec3 R_cc = reflect(-V, N_cc);
+    vec3 ccPrefilter = textureLod(u_prefilterMap, R_cc, clearcoatRoughness * MAX_REFLECTION_LOD).rgb * u_envIntensity;
+    vec2 ccEnvBRDF = texture(u_brdfLUT, vec2(max(dotNV_cc, 0.0), clearcoatRoughness)).rg;
+    vec3 ccSpecular = ccPrefilter * (vec3(0.04) * ccEnvBRDF.x + ccEnvBRDF.y) * clearcoat;
+    ambient = ambient * (1.0 - clearcoat * F_Schlick(dotNV_cc, vec3(0.04)).r) + ccSpecular;
+}
+#endif
+
 #else
 vec3 R = reflect(-V, N);
 vec3 f_fallback = F_Schlick(dotNV, F0);
@@ -369,6 +504,34 @@ if (u_useEnvMap > 0.5) {
     ambient += (envColor * f_fallback) * ao;
 }
 #endif
+#endif
+
+#ifdef USE_TRANSMISSION
+float transmission = u_liquidParams.z;
+#ifdef USE_TRANSMISSION_MAP
+transmission *= texture(u_transmissionMap, v_uv).r;
+#endif
+
+if (transmission > 0.0) {
+    float thickness = u_liquidParams.y;
+    #ifdef USE_THICKNESS_MAP
+    thickness *= texture(u_thicknessMap, v_uv).g;
+    #endif
+    float attenuationDist = u_thresholds.z;
+
+    ivec2 texSize = textureSize(u_opaqueMap, 0);
+    vec2 screenUv = gl_FragCoord.xy / vec2(texSize);
+    vec3 refrDir = refract(-V, N, 1.0 / ior);
+    screenUv = clamp(screenUv + refrDir.xy * thickness * 0.05, vec2(0.001), vec2(0.999));
+
+    vec3 transmittedLight = sRGBToLinear(texture(u_opaqueMap, screenUv).rgb);
+    vec3 volumeTransmittance = VolumeAbsorption(albedo, attenuationDist, thickness);
+    vec3 finalTransmission = transmittedLight * volumeTransmittance * albedo;
+
+    vec3 f_refr = F_Schlick(dotNV, F0);
+    vec3 kD_refr = (vec3(1.0) - f_refr) * (1.0 - metallic);
+    ambient = mix(ambient, ambient + finalTransmission * kD_refr, transmission);
+}
 #endif
 
 vec3 color = ambient + Lo;

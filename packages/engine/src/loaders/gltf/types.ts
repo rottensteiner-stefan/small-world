@@ -1,6 +1,7 @@
 export type TypedArray = Uint8Array | Uint16Array | Uint32Array | Float32Array;
 
 export interface GltfJson {
+  asset?: { version?: string; generator?: string; [key: string]: unknown };
   buffers?: { uri?: string }[];
   bufferViews?: { buffer: number; byteOffset?: number; byteLength: number }[];
   accessors?: {
@@ -16,6 +17,19 @@ export interface GltfJson {
       attributes: { [key: string]: number };
       indices?: number;
       material?: number;
+      extensions?: {
+        KHR_draco_mesh_compression?: {
+          bufferView: number;
+          attributes: { [name: string]: number };
+        };
+        KHR_materials_variants?: {
+          mappings?: {
+            material: number;
+            variants: number[];
+          }[];
+        };
+        [key: string]: unknown;
+      };
     }[];
   }[];
   skins?: {
@@ -57,8 +71,9 @@ export interface GltfJson {
   }[];
   scenes?: { nodes?: number[] }[];
   scene?: number;
-  /** Root-level `extensions` -- currently only `KHR_lights_punctual`'s light definitions
-   * array, referenced by index from individual nodes' own `extensions`. */
+  extensionsRequired?: string[];
+  extensionsUsed?: string[];
+  /** Root-level `extensions` */
   extensions?: {
     KHR_lights_punctual?: {
       lights: {
@@ -69,6 +84,12 @@ export interface GltfJson {
         name?: string;
       }[];
     };
+    KHR_materials_variants?: {
+      variants?: {
+        name: string;
+      }[];
+    };
+    [key: string]: unknown;
   };
   materials?: {
     pbrMetallicRoughness?: {
@@ -89,11 +110,51 @@ export interface GltfJson {
       KHR_materials_emissive_strength?: {
         emissiveStrength?: number;
       };
+      KHR_materials_clearcoat?: {
+        clearcoatFactor?: number;
+        clearcoatTexture?: { index: number };
+        clearcoatRoughnessFactor?: number;
+        clearcoatRoughnessTexture?: { index: number };
+        clearcoatNormalTexture?: { index: number; scale?: number };
+      };
+      KHR_materials_sheen?: {
+        sheenColorFactor?: number[];
+        sheenColorTexture?: { index: number };
+        sheenRoughnessFactor?: number;
+        sheenRoughnessTexture?: { index: number };
+      };
+      KHR_materials_transmission?: {
+        transmissionFactor?: number;
+        transmissionTexture?: { index: number };
+      };
+      KHR_materials_volume?: {
+        thicknessFactor?: number;
+        thicknessTexture?: { index: number };
+        attenuationDistance?: number;
+        attenuationColor?: number[];
+      };
+      KHR_materials_ior?: {
+        ior?: number;
+      };
       [key: string]: unknown;
     };
   }[];
-  textures?: { source?: number; sampler?: number }[];
-  images?: { uri?: string; bufferView?: number; mimeType?: string }[];
+  textures?: {
+    source?: number;
+    sampler?: number;
+    extensions?: {
+      KHR_texture_basisu?: {
+        source: number;
+      };
+      [key: string]: unknown;
+    };
+  }[];
+  images?: {
+    uri?: string;
+    bufferView?: number;
+    mimeType?: string;
+    extensions?: { [key: string]: unknown };
+  }[];
 }
 
 export interface GltfData {

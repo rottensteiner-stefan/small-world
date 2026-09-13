@@ -1,40 +1,28 @@
 import {
   AmbientLight,
-  CameraStrategyType,
   Color,
   Cube,
+  CubeLayout,
   CubeTexture,
   DirectionalLight,
-  FPSController,
-  ZoomController,
   MathUtils,
   Object3D,
   PerspectiveProjection,
   PhongMaterial,
   SkyboxMaterial,
+  Vector3D,
 } from "../../../packages/engine/src/index.js";
 import { AbstractShowcase } from "../../../packages/engine/src/core/index.js";
 
 /**
  * Showcase 7: Skybox & FPS Controls.
- * This example showcasesnstrates a pure skybox environment without a physical floor.
+ * This example showcases a pure skybox environment without a physical floor.
  */
 export class Showcase7 extends AbstractShowcase {
   private _moveSpeed: number = 15.0;
   private _eyeHeight: number = 2.0;
 
-  protected override onCanvasRecreated(): void {
-    super.onCanvasRecreated();
-    this.canvas.addEventListener("click", (): void => {
-      if (!this.input.isPointerLocked) {
-        this.input.requestPointerLock(this.canvas);
-      }
-    });
-  }
-
   protected override async setupScene(): Promise<void> {
-    this.onCanvasRecreated();
-
     // 1. Camera
     const aspect: number = window.innerWidth / window.innerHeight;
     this.camera.projection = new PerspectiveProjection({
@@ -44,17 +32,12 @@ export class Showcase7 extends AbstractShowcase {
       far: 2000,
     });
     this.camera.updateProjectionMatrix();
-    this.camera.setStrategy(CameraStrategyType.FPS);
-    this.camera.position.set(0, this._eyeHeight, 0);
 
-    this.camera.addBehavior(
-      new FPSController({
-        input: this.input,
-        audio: this.audio,
-        moveSpeed: this._moveSpeed,
-      }),
+    this.defaultMoveSpeed = this._moveSpeed;
+    this.setInitialCamera(
+      new Vector3D(0, this._eyeHeight, 0),
+      new Vector3D(0, this._eyeHeight, -10),
     );
-    this.camera.addBehavior(new ZoomController({ input: this.input, audio: this.audio }));
 
     // 2. Lighting
     this.scene.add(new AmbientLight({ color: Color.WHITE, intensity: 0.5 }));
@@ -64,7 +47,7 @@ export class Showcase7 extends AbstractShowcase {
 
     // 3. Skybox (Contains the floor texture in the bottom part of the cube map)
     const skyTexture = new CubeTexture();
-    await skyTexture.loadFrom("./assets/skybox.webp");
+    await skyTexture.loadFrom("./assets/skybox.webp", CubeLayout.CROSS_HORIZONTAL);
 
     const skybox = new Object3D("Skybox");
     skybox.geometry = new Cube({ size: 1000 }).getGeometryData();

@@ -1,13 +1,11 @@
 import {
   AbstractShowcase,
   AmbientLight,
-  CameraStrategyType,
   Color,
   Cube,
   CubeLayout,
   CubeTexture,
   DirectionalLight,
-  FPSController,
   Object3D,
   PerspectiveProjection,
   Ground,
@@ -83,19 +81,8 @@ export class Showcase16 extends AbstractShowcase {
       this.camera.updateProjectionMatrix();
     }
 
-    this.camera.setStrategy(CameraStrategyType.FPS);
-    this.camera.position.set(0, 5, 15);
-    this.camera.theta = 0;
-    this.camera.phi = 0;
-
-    const fpsController = new FPSController({
-      input: this.input,
-      audio: this.audio,
-      moveSpeed: 8.0,
-      enableCollision: false,
-      scene: this.scene,
-    });
-    this.camera.addBehavior(fpsController);
+    this.defaultMoveSpeed = 8.0;
+    this.setInitialCamera(new Vector3D(0, 5, 15), new Vector3D(0, 2, 0));
 
     // 1. Lights
     this.scene.add(new AmbientLight({ color: Color.WHITE, intensity: 0.15 }));

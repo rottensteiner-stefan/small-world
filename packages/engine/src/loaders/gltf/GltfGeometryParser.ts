@@ -2,6 +2,8 @@ import { GltfJson } from "./types.js";
 import { GltfBinaryParser } from "./GltfBinaryParser.js";
 import { GeometryDataInterface } from "../../interfaces/index.js";
 import { ModelGeometry } from "../../geometry/index.js";
+import { getGltfExtensions } from "./GltfExtensionRegistry.js";
+import { GltfPrimitiveDef, GltfReadContext } from "./GltfExtensionPlugin.js";
 
 /**
  * Parser for glTF primitive vertex attributes and index buffers into ModelGeometry.
@@ -10,11 +12,23 @@ export class GltfGeometryParser {
   /**
    * Converts a glTF mesh primitive into GeometryDataInterface.
    */
-  public static parseGeometry(
-    primitive: NonNullable<NonNullable<GltfJson["meshes"]>[number]["primitives"]>[number],
+  public static async parseGeometry(
+    primitive: GltfPrimitiveDef,
     json: GltfJson,
     buffers: ArrayBuffer[],
-  ): GeometryDataInterface | null {
+    ctx?: GltfReadContext,
+  ): Promise<GeometryDataInterface | null> {
+    const readCtx: GltfReadContext = ctx ?? { json, state: new Map() };
+
+    // 1. Check if any registered extension decodes this geometry (e.g. KHR_draco_mesh_compression)
+    for (const plugin of getGltfExtensions()) {
+      if (plugin.decodeGeometry) {
+        const decoded = await plugin.decodeGeometry(primitive, readCtx, buffers);
+        if (decoded) return decoded;
+      }
+    }
+
+    // 2. Standard uncompressed buffer accessor path
     const attributes = primitive.attributes;
     if (!attributes || attributes["POSITION"] === undefined || !json.accessors) return null;
 

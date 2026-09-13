@@ -29,6 +29,31 @@ fn sRGBToLinear(color: vec3f) -> vec3f {
     return pow(color, vec3f(global.gamma));
 }
 
+fn D_Charlie(dotNH: f32, roughness: f32) -> f32 {
+    let alpha = max(roughness * roughness, 0.000001);
+    let invAlpha = 1.0 / alpha;
+    let cos2h = dotNH * dotNH;
+    let sin2h = max(1.0 - cos2h, 0.0078125);
+    return (2.0 + invAlpha) * pow(sin2h, invAlpha * 0.5) / (2.0 * 3.14159265359);
+}
+
+fn V_Neubelt(dotNL: f32, dotNV: f32) -> f32 {
+    return 1.0 / (4.0 * (dotNL + dotNV - dotNL * dotNV) + 0.0001);
+}
+
+fn G_Kelemen(dotVH: f32) -> f32 {
+    return 0.25 / (dotVH * dotVH + 0.0001);
+}
+
+fn VolumeAbsorption(attenuationColor: vec3f, attenuationDistance: f32, thickness: f32) -> vec3f {
+    if (attenuationDistance <= 0.0 || attenuationDistance >= 999.0) {
+        return vec3f(1.0);
+    }
+    let sigma_a = -log(clamp(attenuationColor, vec3f(0.001), vec3f(1.0))) / attenuationDistance;
+    return exp(-sigma_a * thickness);
+}
+
+
 fn getShadowPCF(map: texture_depth_2d_array, samp: sampler_comparison, shadowPos: vec4f, layer: u32, bias: f32) -> f32 {
     let ndc = shadowPos.xyz / shadowPos.w;
     let uv = vec2f(ndc.x * 0.5 + 0.5, 0.5 - ndc.y * 0.5);

@@ -14,6 +14,7 @@ import {
   GltfAnimationParser,
   GltfGeometryParser,
   GltfSkinParser,
+  GltfVariants,
 } from "./gltf/index.js";
 import { getGltfExtensions } from "./gltf/GltfExtensionRegistry.js";
 import { GltfReadContext } from "./gltf/GltfExtensionPlugin.js";
@@ -137,6 +138,11 @@ export class GltfLoader extends AbstractLoader<Object3D> {
     const { json, buffers } = gltf;
     const folderPath = GltfLoader.getFolderPath(baseUrl);
 
+    // 0. Initialize read context and let registered extension plugins pre-pass the document
+    // (e.g. indexing KHR_lights_punctual.lights[] by node) -- see ADR 0017.
+    const readCtx: GltfReadContext = { json, state: new Map() };
+    for (const plugin of getGltfExtensions()) plugin.prepareRead?.(readCtx);
+
     // 1. Parse Materials
     const materials = await Promise.all(
       (json.materials || []).map((m) =>
@@ -147,6 +153,7 @@ export class GltfLoader extends AbstractLoader<Object3D> {
           buffers,
           this._assetManager,
           this._gltfOptions,
+          readCtx,
         ),
       ),
     );
@@ -160,11 +167,6 @@ export class GltfLoader extends AbstractLoader<Object3D> {
         }
       }
     }
-
-    // 2.5 Let every registered extension plugin pre-pass the document (e.g. indexing
-    // KHR_lights_punctual.lights[] by node) -- see ADR 0017.
-    const readCtx: GltfReadContext = { json, state: new Map() };
-    for (const plugin of getGltfExtensions()) plugin.prepareRead?.(readCtx);
 
     // 3. Create node objects (Bone if joint, otherwise whatever the first matching extension
     // plugin decides -- e.g. PointLight for KHR_lights_punctual, StageZoneMarker for
@@ -224,7 +226,7 @@ export class GltfLoader extends AbstractLoader<Object3D> {
           const meshDef = json.meshes[nodeDef.mesh];
           if (meshDef) {
             for (const primitive of meshDef.primitives) {
-              const geo = GltfGeometryParser.parseGeometry(primitive, json, buffers);
+              const geo = await GltfGeometryParser.parseGeometry(primitive, json, buffers, readCtx);
               if (geo) {
                 const isSkinned =
                   nodeDef.skin !== undefined && skeletons[nodeDef.skin] !== undefined;
@@ -237,6 +239,21 @@ export class GltfLoader extends AbstractLoader<Object3D> {
                   primitive.material !== undefined && materials[primitive.material]
                     ? materials[primitive.material]!
                     : new StandardMaterial();
+
+                const varExt = primitive.extensions?.KHR_materials_variants;
+                if (varExt && varExt.mappings) {
+                  const variantMap: Record<number, typeof meshObj.material> = {};
+                  for (const mapping of varExt.mappings) {
+                    const vMat = materials[mapping.material];
+                    if (vMat) {
+                      for (const vIdx of mapping.variants) {
+                        variantMap[vIdx] = vMat;
+                      }
+                    }
+                  }
+                  meshObj.userData["gltfMaterialVariants"] = variantMap;
+                  meshObj.userData["gltfDefaultMaterial"] = meshObj.material;
+                }
 
                 if (isSkinned) {
                   (meshObj as SkinnedMesh).bind(skeletons[nodeDef.skin!]!);
@@ -251,6 +268,11 @@ export class GltfLoader extends AbstractLoader<Object3D> {
 
     // 6. Create Scene Root
     const root = new Object3D("glTF_Root");
+    const variantsDef = json.extensions?.KHR_materials_variants?.variants;
+    if (variantsDef && variantsDef.length > 0) {
+      root.userData["gltfVariants"] = variantsDef.map((v) => v.name);
+    }
+
     const sceneIdx = json.scene ?? 0;
     const scene = json.scenes ? json.scenes[sceneIdx] : null;
 
@@ -272,6 +294,10 @@ export class GltfLoader extends AbstractLoader<Object3D> {
     // 7. Parse Animations
     if (json.animations && json.accessors) {
       root.animations = GltfAnimationParser.parseAnimations(json, buffers, nodeObjects);
+    }
+
+    if (this._gltfOptions.variant !== undefined) {
+      GltfVariants.selectVariant(root, this._gltfOptions.variant);
     }
 
     this._gltfOptions.onParsed?.(root);

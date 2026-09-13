@@ -33,6 +33,26 @@
         let f = obj.reflectivity * mix(1.0, F_refl, obj.pad1);
         color = mix(color, reflectionColor, f);
     }
+
+    if (obj.liquidParams.z > 0.0) {
+        let transmission = obj.liquidParams.z;
+        let ior_trans = select(1.5, obj.liquidParams.x, obj.liquidParams.x > 0.0);
+        let thickness = obj.liquidParams.y;
+        let attenuationDist = obj.thresholds.z;
+
+        let clipPos = global.vp * vec4f(i.wp, 1.0);
+        let ndc = clipPos.xy / clipPos.w;
+        var screenUV = vec2f(ndc.x * 0.5 + 0.5, ndc.y * -0.5 + 0.5);
+        let V_dir = normalize(global.viewPos.xyz - i.wp);
+        let refrDir = refract(-V_dir, normalize(i.n), 1.0 / ior_trans);
+        screenUV = clamp(screenUV + refrDir.xy * thickness * 0.05, vec2f(0.001), vec2f(0.999));
+        let transmittedColor = sRGBToLinear(textureSample(u_opaqueMap, s, screenUV).rgb);
+        let volumeTransmittance = VolumeAbsorption(albedo, attenuationDist, thickness);
+        let finalTransmission = transmittedColor * volumeTransmittance * albedo;
+        let f_refr = F_Schlick(max(dot(normalize(i.n), V_dir), 0.0), F0).x;
+        let kD_refr = (1.0 - f_refr) * (1.0 - metallic);
+        color = mix(color, color + finalTransmission * kD_refr, transmission);
+    }
     
     [WGSL_FOG_CALC]
     return vec4f(color, finalAlpha);

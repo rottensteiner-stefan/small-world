@@ -4,8 +4,14 @@ rawNormal.xy *= u_extraParams.zw;
 vec3 N = normalize(v_tbn * rawNormal);
 float dotNV = max(dot(N, V), 0.0001);
 
-vec3 F0 = vec3(0.04); 
+float ior = u_liquidParams.x > 0.0 ? u_liquidParams.x : 1.5;
+float f0_dielectric = pow((ior - 1.0) / (ior + 1.0), 2.0);
+vec3 F0 = vec3(f0_dielectric); 
 F0 = mix(F0, albedo, metallic);
+
+float clearcoat = u_liquidParams.w;
+float clearcoatRoughness = clamp(u_thresholds.x, 0.05, 1.0);
+float sheenRoughness = clamp(u_thresholds.y, 0.05, 1.0);
 
 vec3 Lo = vec3(0.0);
 
@@ -27,7 +33,24 @@ vec3 Lo = vec3(0.0);
     vec3 kD = (vec3(1.0) - kS) * (1.0 - metallic);
 
     vec3 specular = (D * G * F) / (4.0 * dotNV * dotNL + 0.0001);
-    Lo += (kD * albedo / 3.14159265359 + specular) * radiance * dotNL;
+    vec3 directLight = (kD * albedo / 3.14159265359 + specular) * radiance * dotNL;
+
+    if (clearcoat > 0.0) {
+        float D_cc = D_GGX(dotNH, clearcoatRoughness);
+        float G_cc = G_Kelemen(dotVH);
+        vec3 F_cc = F_Schlick(dotVH, vec3(0.04));
+        vec3 clearcoatSpecular = (D_cc * G_cc * F_cc) * clearcoat;
+        directLight = directLight * (1.0 - clearcoat * F_cc.r) + clearcoatSpecular * radiance * dotNL;
+    }
+
+    if (sheenRoughness > 0.0 && (u_specColor.r > 0.0 || u_specColor.g > 0.0 || u_specColor.b > 0.0)) {
+        float D_s = D_Charlie(dotNH, sheenRoughness);
+        float V_s = V_Neubelt(dotNL, dotNV);
+        vec3 sheenSpecular = u_specColor.rgb * (D_s * V_s);
+        directLight += sheenSpecular * radiance * dotNL;
+    }
+
+    Lo += directLight;
 }
 
 // -- Point Lights --
@@ -67,7 +90,24 @@ for(int i = 0; i < 16; i++) {
     vec3 kD = (vec3(1.0) - kS) * (1.0 - metallic);
 
     vec3 specular = (D * G * F) / (4.0 * dotNV * dotNL + 0.0001);
-    Lo += (kD * albedo / 3.14159265359 + specular) * radiance * dotNL;
+    vec3 directLight = (kD * albedo / 3.14159265359 + specular) * radiance * dotNL;
+
+    if (clearcoat > 0.0) {
+        float D_cc = D_GGX(dotNH, clearcoatRoughness);
+        float G_cc = G_Kelemen(dotVH);
+        vec3 F_cc = F_Schlick(dotVH, vec3(0.04));
+        vec3 clearcoatSpecular = (D_cc * G_cc * F_cc) * clearcoat;
+        directLight = directLight * (1.0 - clearcoat * F_cc.r) + clearcoatSpecular * radiance * dotNL;
+    }
+
+    if (sheenRoughness > 0.0 && (u_specColor.r > 0.0 || u_specColor.g > 0.0 || u_specColor.b > 0.0)) {
+        float D_s = D_Charlie(dotNH, sheenRoughness);
+        float V_s = V_Neubelt(dotNL, dotNV);
+        vec3 sheenSpecular = u_specColor.rgb * (D_s * V_s);
+        directLight += sheenSpecular * radiance * dotNL;
+    }
+
+    Lo += directLight;
 }
 
 // -- Area Lights --
@@ -108,7 +148,24 @@ for(int i = 0; i < 4; i++) {
     vec3 kD = (vec3(1.0) - kS) * (1.0 - metallic);
 
     vec3 specular = (D * G * F) / (4.0 * dotNV * dotNL + 0.0001);
-    Lo += (kD * albedo / 3.14159265359 + specular) * radiance * dotNL;
+    vec3 directLight = (kD * albedo / 3.14159265359 + specular) * radiance * dotNL;
+
+    if (clearcoat > 0.0) {
+        float D_cc = D_GGX(dotNH, clearcoatRoughness);
+        float G_cc = G_Kelemen(dotVH);
+        vec3 F_cc = F_Schlick(dotVH, vec3(0.04));
+        vec3 clearcoatSpecular = (D_cc * G_cc * F_cc) * clearcoat;
+        directLight = directLight * (1.0 - clearcoat * F_cc.r) + clearcoatSpecular * radiance * dotNL;
+    }
+
+    if (sheenRoughness > 0.0 && (u_specColor.r > 0.0 || u_specColor.g > 0.0 || u_specColor.b > 0.0)) {
+        float D_s = D_Charlie(dotNH, sheenRoughness);
+        float V_s = V_Neubelt(dotNL, dotNV);
+        vec3 sheenSpecular = u_specColor.rgb * (D_s * V_s);
+        directLight += sheenSpecular * radiance * dotNL;
+    }
+
+    Lo += directLight;
 }
 
 vec3 irradiance = u_ambientColor;

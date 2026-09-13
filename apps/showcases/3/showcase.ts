@@ -1,16 +1,15 @@
 import {
   AmbientLight,
-  CameraStrategyType,
   Color,
   DirectionalLight,
   Grid,
   Keys,
   Object3D,
   ObjLoader,
-  OrbitController,
   PerspectiveProjection,
   PhongMaterial,
   ProjectionType,
+  Vector3D,
   WireframeMaterial,
 } from "../../../packages/engine/src/index.js";
 import { AbstractShowcase } from "../../../packages/engine/src/core/index.js";
@@ -19,12 +18,6 @@ class Showcase3 extends AbstractShowcase {
   private _carModel: Object3D | undefined;
 
   protected override async setupScene(): Promise<void> {
-    this.canvas.addEventListener("click", (): void => {
-      if (!this.input.isPointerLocked) {
-        this.input.requestPointerLock(this.canvas);
-      }
-    });
-
     if (ProjectionType.PERSPECTIVE === this.camera.projection.type) {
       const aspect: number = window.innerWidth / window.innerHeight;
       this.camera.projection = new PerspectiveProjection({
@@ -36,10 +29,8 @@ class Showcase3 extends AbstractShowcase {
       this.camera.updateProjectionMatrix();
     }
 
-    this.camera.setStrategy(CameraStrategyType.SMOOTH);
-    this.camera.position.set(0, 5, 15);
-
-    this.camera.addBehavior(new OrbitController({ input: this.input, audio: this.audio }));
+    this.defaultMoveSpeed = 8.0;
+    this.setInitialCamera(new Vector3D(0, 5, 15), new Vector3D(0, 0, 0));
 
     const ambientLight: AmbientLight = new AmbientLight({ color: Color.WHITE, intensity: 0.3 });
     this.scene.add(ambientLight);

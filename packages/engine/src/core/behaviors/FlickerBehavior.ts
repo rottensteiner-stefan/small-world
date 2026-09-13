@@ -22,6 +22,14 @@ export interface FlickerBehaviorOptions {
    * 1 = smooth sine-like organic transitions. Defaults to 0.0.
    */
   smoothness?: number;
+  /**
+   * Speed/frequency factor of the continuous noise flicker. Defaults to 15.0.
+   */
+  frequency?: number;
+  /**
+   * Spatial/noise seed offset ensuring multiple flicker behaviors don't pulse synchronously.
+   */
+  noiseOffset?: number;
   /** The callback that applies the flicker multiplier (0.0 to 1.0). */
   onUpdate: (multiplier: number, targetObj: Object3D) => void;
 }
@@ -80,6 +88,14 @@ export class FlickerBehavior extends Behavior {
       label: "Smoothness",
       path: "options.smoothness",
     },
+    frequency: {
+      type: "number",
+      min: 1.0,
+      max: 60.0,
+      step: 1.0,
+      label: "Frequency",
+      path: "options.frequency",
+    },
   };
 
   public options: Required<FlickerBehaviorOptions>;
@@ -104,8 +120,14 @@ export class FlickerBehavior extends Behavior {
       maxFlickerTime: options.maxFlickerTime ?? 1.5,
       minMultiplier: options.minMultiplier ?? 0.0,
       smoothness: MathUtils.clamp(options.smoothness ?? 0.0, 0, 1),
+      frequency: options.frequency ?? 15.0,
+      noiseOffset: options.noiseOffset ?? Math.random() * 10000.0,
       onUpdate: options.onUpdate,
     };
+
+    this._timeAcc = Math.random() * 1000.0;
+    this._flickerTimer = Math.random() * (this.options.minStableTime + this.options.minFlickerTime);
+    this._isFlickering = Math.random() > 0.5;
   }
 
   public override update(deltaTime: number): void {
@@ -131,7 +153,7 @@ export class FlickerBehavior extends Behavior {
     // 2. Determine target multiplier based on the current phase
     if (this._isFlickering) {
       if (this.options.smoothness > 0.0) {
-        const n = Noise.simplex2(this._timeAcc * 15.0, 0);
+        const n = Noise.simplex2(this._timeAcc * this.options.frequency, this.options.noiseOffset);
         const normalized = (n + 1) / 2;
         this._targetMultiplier =
           this.options.minMultiplier + normalized * (1.0 - this.options.minMultiplier);

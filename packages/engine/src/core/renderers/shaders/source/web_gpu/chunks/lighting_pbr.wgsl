@@ -8,8 +8,13 @@ rawNormal.y *= obj.extraParams.w;
 let N = normalize(TBN * rawNormal);
 let dotNV = max(dot(N, V), 0.0001);
 
-var F0 = vec3f(0.04);
-F0 = mix(F0, albedo, metallic);
+let ior = select(1.5, obj.liquidParams.x, obj.liquidParams.x > 0.0);
+let f0_dielectric = pow((ior - 1.0) / (ior + 1.0), 2.0);
+var F0 = mix(vec3f(f0_dielectric), albedo, metallic);
+
+let clearcoat = obj.liquidParams.w;
+let clearcoatRoughness = clamp(obj.thresholds.x, 0.05, 1.0);
+let sheenRoughness = clamp(obj.thresholds.y, 0.05, 1.0);
 
 var Lo = vec3f(0.0);
 
@@ -65,7 +70,24 @@ var Lo = vec3f(0.0);
     let kS = F;
     let kD = (vec3f(1.0) - kS) * (1.0 - metallic);
     let specular = (D * G * F) / (4.0 * dotNV * dotNL + 0.0001);
-    Lo += (kD * albedo / 3.14159265359 + specular) * radiance * dotNL;
+    var directLight = (kD * albedo / 3.14159265359 + specular) * radiance * dotNL;
+
+    if (clearcoat > 0.0) {
+        let D_cc = D_GGX(dotNH, clearcoatRoughness);
+        let G_cc = G_Kelemen(dotVH);
+        let F_cc = F_Schlick(dotVH, vec3f(0.04));
+        let clearcoatSpecular = (D_cc * G_cc * F_cc) * clearcoat;
+        directLight = directLight * (1.0 - clearcoat * F_cc.x) + clearcoatSpecular * radiance * dotNL;
+    }
+
+    if (sheenRoughness > 0.0 && (obj.specColor.r > 0.0 || obj.specColor.g > 0.0 || obj.specColor.b > 0.0)) {
+        let D_s = D_Charlie(dotNH, sheenRoughness);
+        let V_s = V_Neubelt(dotNL, dotNV);
+        let sheenSpecular = obj.specColor.rgb * (D_s * V_s);
+        directLight += sheenSpecular * radiance * dotNL;
+    }
+
+    Lo += directLight;
 }
 
 // Clustered light lookup -- see docs/adr/0007-clustered-lighting-webgl2-webgpu-only.md and
@@ -116,7 +138,24 @@ for(var k=0u; k<pointCluster.y; k++) {
         let kS = F;
         let kD = (vec3f(1.0) - kS) * (1.0 - metallic);
         let specular = (D * G * F) / (4.0 * dotNV * dotNL + 0.0001);
-        Lo += (kD * albedo / 3.14159265359 + specular) * radiance * dotNL;
+        var directLight = (kD * albedo / 3.14159265359 + specular) * radiance * dotNL;
+
+        if (clearcoat > 0.0) {
+            let D_cc = D_GGX(dotNH, clearcoatRoughness);
+            let G_cc = G_Kelemen(dotVH);
+            let F_cc = F_Schlick(dotVH, vec3f(0.04));
+            let clearcoatSpecular = (D_cc * G_cc * F_cc) * clearcoat;
+            directLight = directLight * (1.0 - clearcoat * F_cc.x) + clearcoatSpecular * radiance * dotNL;
+        }
+
+        if (sheenRoughness > 0.0 && (obj.specColor.r > 0.0 || obj.specColor.g > 0.0 || obj.specColor.b > 0.0)) {
+            let D_s = D_Charlie(dotNH, sheenRoughness);
+            let V_s = V_Neubelt(dotNL, dotNV);
+            let sheenSpecular = obj.specColor.rgb * (D_s * V_s);
+            directLight += sheenSpecular * radiance * dotNL;
+        }
+
+        Lo += directLight;
     }
 }
 
@@ -163,7 +202,24 @@ for(var k=0u; k<spotCluster.y; k++) {
         let kS = F;
         let kD = (vec3f(1.0) - kS) * (1.0 - metallic);
         let specular = (D * G * F) / (4.0 * dotNV * dotNL + 0.0001);
-        Lo += (kD * albedo / 3.14159265359 + specular) * radiance * dotNL;
+        var directLight = (kD * albedo / 3.14159265359 + specular) * radiance * dotNL;
+
+        if (clearcoat > 0.0) {
+            let D_cc = D_GGX(dotNH, clearcoatRoughness);
+            let G_cc = G_Kelemen(dotVH);
+            let F_cc = F_Schlick(dotVH, vec3f(0.04));
+            let clearcoatSpecular = (D_cc * G_cc * F_cc) * clearcoat;
+            directLight = directLight * (1.0 - clearcoat * F_cc.x) + clearcoatSpecular * radiance * dotNL;
+        }
+
+        if (sheenRoughness > 0.0 && (obj.specColor.r > 0.0 || obj.specColor.g > 0.0 || obj.specColor.b > 0.0)) {
+            let D_s = D_Charlie(dotNH, sheenRoughness);
+            let V_s = V_Neubelt(dotNL, dotNV);
+            let sheenSpecular = obj.specColor.rgb * (D_s * V_s);
+            directLight += sheenSpecular * radiance * dotNL;
+        }
+
+        Lo += directLight;
     }
 }
 
@@ -201,7 +257,24 @@ for(var j=0u; j<u32(global.numAreaLights); j++) {
     let kS = F;
     let kD = (vec3f(1.0) - kS) * (1.0 - metallic);
     let specular = (D * G * F) / (4.0 * dotNV * dotNL + 0.0001);
-    Lo += (kD * albedo / 3.14159265359 + specular) * radiance * dotNL;
+    var directLight = (kD * albedo / 3.14159265359 + specular) * radiance * dotNL;
+
+    if (clearcoat > 0.0) {
+        let D_cc = D_GGX(dotNH, clearcoatRoughness);
+        let G_cc = G_Kelemen(dotVH);
+        let F_cc = F_Schlick(dotVH, vec3f(0.04));
+        let clearcoatSpecular = (D_cc * G_cc * F_cc) * clearcoat;
+        directLight = directLight * (1.0 - clearcoat * F_cc.x) + clearcoatSpecular * radiance * dotNL;
+    }
+
+    if (sheenRoughness > 0.0 && (obj.specColor.r > 0.0 || obj.specColor.g > 0.0 || obj.specColor.b > 0.0)) {
+        let D_s = D_Charlie(dotNH, sheenRoughness);
+        let V_s = V_Neubelt(dotNL, dotNV);
+        let sheenSpecular = obj.specColor.rgb * (D_s * V_s);
+        directLight += sheenSpecular * radiance * dotNL;
+    }
+
+    Lo += directLight;
 }
 
 // -- Ambient IBL --
@@ -232,6 +305,13 @@ if (obj.useEnvMap > 0.5) {
 }
 
 var ambient = (kD_ambient * diffuseAmbient + specularAmbient) * ao;
+
+if (clearcoat > 0.0) {
+    let ccPrefilter = textureSampleLevel(u_prefilterMap, globalSampler, R, clearcoatRoughness * MAX_REFLECTION_LOD).rgb * global.envIntensity;
+    let ccEnvBRDF = textureSampleLevel(u_brdfLUT, globalSampler, vec2f(max(dotNV, 0.0), clearcoatRoughness), 0.0).rg;
+    let ccSpecular = ccPrefilter * (vec3f(0.04) * ccEnvBRDF.x + ccEnvBRDF.y) * clearcoat;
+    ambient = ambient * (1.0 - clearcoat * F_Schlick(dotNV, vec3f(0.04)).x) + ccSpecular;
+}
 
 if (length(irradiance) < 0.001) {
     let f_fallback = F_Schlick(dotNV, F0);

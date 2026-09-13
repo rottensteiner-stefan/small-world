@@ -5,6 +5,8 @@
 
 uniform float u_metallic;
 uniform float u_roughness;
+uniform vec4 u_liquidParams;
+uniform vec4 u_thresholds;
 
 uniform sampler2D u_metallicMap;
 uniform sampler2D u_roughnessMap;

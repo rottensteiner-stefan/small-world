@@ -1,17 +1,15 @@
 import {
   AmbientLight,
-  CameraStrategyType,
   Color,
   Cube,
   DirectionalLight,
-  FPSController,
-  ZoomController,
   MathUtils,
   Object3D,
   PerspectiveProjection,
   PhongMaterial,
   Skydome,
   Texture,
+  Vector3D,
 } from "../../../packages/engine/src/index.js";
 import { AbstractShowcase } from "../../../packages/engine/src/core/index.js";
 
@@ -26,8 +24,6 @@ export class Showcase8 extends AbstractShowcase {
   private _time: number = 0;
 
   protected override async setupScene(): Promise<void> {
-    this.onCanvasRecreated();
-
     // 1. Camera
     const aspect: number = window.innerWidth / window.innerHeight;
     this.camera.projection = new PerspectiveProjection({
@@ -37,17 +33,12 @@ export class Showcase8 extends AbstractShowcase {
       far: 2000, // Make sure far plane is large enough for the skydome
     });
     this.camera.updateProjectionMatrix();
-    this.camera.setStrategy(CameraStrategyType.FPS);
-    this.camera.position.set(0, this._eyeHeight, 0);
 
-    this.camera.addBehavior(
-      new FPSController({
-        input: this.input,
-        audio: this.audio,
-        moveSpeed: this._moveSpeed,
-      }),
+    this.defaultMoveSpeed = this._moveSpeed;
+    this.setInitialCamera(
+      new Vector3D(0, this._eyeHeight, 0),
+      new Vector3D(0, this._eyeHeight, -10),
     );
-    this.camera.addBehavior(new ZoomController({ input: this.input, audio: this.audio }));
 
     // 2. Lighting
     this.scene.add(new AmbientLight({ color: Color.WHITE, intensity: 0.5 }));

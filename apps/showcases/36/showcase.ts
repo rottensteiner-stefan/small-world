@@ -1,9 +1,7 @@
 import {
   AmbientLight,
-  CameraStrategyType,
   Color,
   DirectionalLight,
-  FPSController,
   Object3D,
   PerspectiveProjection,
   ProjectionType,
@@ -20,6 +18,7 @@ import { AbstractShowcase } from "../../../packages/engine/src/core/index.js";
 import { Cube } from "../../../packages/engine/src/geometry/Cube.js";
 import { SkyboxMaterial } from "../../../packages/engine/src/core/materials/SkyboxMaterial.js";
 import { GltfLoader } from "../../../packages/engine/src/loaders/GltfLoader.js";
+import { Vector3D } from "../../../packages/engine/src/math/index.js";
 
 class Showcase36 extends AbstractShowcase {
   protected override async setupScene(): Promise<void> {
@@ -46,17 +45,8 @@ class Showcase36 extends AbstractShowcase {
     }
 
     // The window pane is ~0.5m tall, centered around y=0.25 -- frame the camera accordingly
-    this.camera.setStrategy(CameraStrategyType.FPS);
-    this.camera.position.set(0, 0.25, 1.1);
-
-    const fpsController = new FPSController({
-      input: this.input,
-      audio: this.audio,
-      moveSpeed: 2.0,
-      enableCollision: false,
-      scene: this.scene,
-    });
-    this.camera.addBehavior(fpsController);
+    this.defaultMoveSpeed = 2.0;
+    this.setInitialCamera(new Vector3D(0, 0.25, 1.1), new Vector3D(0, 0.25, 0));
 
     // Lighting: a soft backlight sells the shattered glass silhouette and cracks
     const ambientLight = new AmbientLight({
@@ -95,7 +85,7 @@ class Showcase36 extends AbstractShowcase {
     // Environment map for reflections
     const envTexture = new CubeTexture();
     try {
-      await envTexture.loadFrom("./assets/skybox.webp");
+      await envTexture.loadFrom("./assets/ibl/env.webp", CubeLayout.CROSS_HORIZONTAL);
 
       const skybox = new Object3D("Skybox");
       skybox.geometry = new Cube({ size: 1000 }).getGeometryData();

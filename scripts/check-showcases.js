@@ -25,7 +25,7 @@ const BLANK_CANVAS_STDDEV_THRESHOLD = 2.0;
  * @returns {{ blank: boolean, stddev: number }} Whether the canvas looks empty, and the measured stddev.
  */
 function detectBlankCanvas(pngBuffer) {
-  const png = PNG.sync.read(pngBuffer);
+  const png = PNG.sync.read(Buffer.from(pngBuffer));
   const { data, width, height } = png;
   const sampleStep = 4; // sample every 4th pixel for speed; still thousands of samples per showcase
   const xStart = Math.round(width * 0.25);
@@ -96,6 +96,8 @@ const numberedShowcases = [
   "34",
   "35",
   "36",
+  "37",
+  "38",
 ];
 
 // Every numbered showcase supports a `?rendererType=` override via AbstractShowcase, so each one
@@ -106,12 +108,13 @@ const numberedShowcases = [
 // all). `yad` has no `showcase.ts`/AbstractShowcase, so it has no override to test and is only
 // checked once, at its default renderer.
 const RENDERER_TYPES = ["WEB_GL1", "WEB_GL2", "WEB_GPU"];
+const targetArg = process.argv[2] || process.env.SHOWCASE_TARGET;
 const testCases = [
   ...numberedShowcases.flatMap((n) =>
     RENDERER_TYPES.map((rendererType) => ({ showcase: n, rendererType })),
   ),
   { showcase: "yad", rendererType: null },
-];
+].filter((tc) => !targetArg || tc.showcase === targetArg);
 
 async function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
@@ -181,7 +184,7 @@ async function checkShowcase(browser, { showcase, rendererType }) {
       showcase === "yad" ? `apps/sample-apps/${showcase}` : `apps/showcases/${showcase}`;
     const url = `https://localhost:4173/${basePath}/index.html${query}`;
 
-    await page.goto(url, { waitUntil: "networkidle0", timeout: 15000 });
+    await page.goto(url, { waitUntil: ["domcontentloaded", "networkidle2"], timeout: 25000 });
 
     // Give it 1 second of actual running time to catch runtime loops/render errors
     await sleep(1000);
@@ -276,6 +279,7 @@ async function run() {
     headless: true,
     userDataDir: tmpDir,
     acceptInsecureCerts: true,
+    protocolTimeout: 60000,
     args: [
       "--no-sandbox",
       "--disable-setuid-sandbox",
