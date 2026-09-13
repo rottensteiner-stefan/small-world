@@ -5,6 +5,7 @@ import {
   CameraStrategyType,
   Color,
   Cube,
+  ColorGradingElement,
   Cylinder,
   DirectionalLight,
   EngineOptions,
@@ -86,6 +87,19 @@ class Showcase32 extends AbstractShowcase {
     if (grain) {
       grain.enabled = true;
       grain.intensity = 0.06;
+    }
+    const colorGrading = this.renderer.postProcessing.get<ColorGradingElement>(
+      PostProcessingEffectType.COLOR_GRADING,
+    );
+    if (colorGrading) {
+      // Sickly, desaturated fallout-zone grade: cool/green cast, crushed shadows, no hot highlights.
+      colorGrading.enabled = true;
+      colorGrading.contrast = 1.15;
+      colorGrading.saturation = 0.75;
+      colorGrading.temperature = -0.3;
+      colorGrading.tint = -0.2;
+      colorGrading.lift.set(0.0, 0.02, 0.0);
+      colorGrading.gain.set(0.95, 1.0, 0.9);
     }
 
     if (ProjectionType.PERSPECTIVE === this.camera.projection.type) {

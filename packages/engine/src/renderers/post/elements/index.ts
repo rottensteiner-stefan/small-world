@@ -2,6 +2,7 @@ export * from "./ToneMappingElement.js";
 export * from "./VignetteElement.js";
 export * from "./GrainElement.js";
 export * from "./BloomElement.js";
+export * from "./ColorGradingElement.js";
 export * from "./QuantizeElement.js";
 export * from "./HbaoElement.js";
 export * from "./TaaElement.js";

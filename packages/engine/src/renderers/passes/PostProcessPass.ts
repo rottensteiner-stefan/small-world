@@ -24,9 +24,9 @@ export class PostProcessPass implements RenderPass {
   private _bindGroup?: GPUBindGroup;
   private _uniformBuffer?: GPUBuffer;
   private _sampler?: GPUSampler;
-  /** 20 floats (80 bytes): DynUniforms in PostProcess.frag.wgsl -- time + the 12 continuous
-   * tuning parameters, packed as 5x vec4f (with padding for the two vec3 colors). */
-  private _uniformData: Float32Array = new Float32Array(20);
+  /** 32 floats (128 bytes): DynUniforms in PostProcess.frag.wgsl -- time + the continuous tuning
+   * parameters (incl. color grading), packed as 8x vec4f (with padding for the vec3 colors). */
+  private _uniformData: Float32Array = new Float32Array(32);
   private _builtTextureView?: GPUTextureView;
   private _builtBloomTextureView?: GPUTextureView;
   private _builtHbaoTextureView?: GPUTextureView;
@@ -45,6 +45,9 @@ export class PostProcessPass implements RenderPass {
     const bloom = group.get<import("../post/index.js").BloomElement>(
       PostProcessingEffectType.BLOOM,
     );
+    const grade = group.get<import("../post/index.js").ColorGradingElement>(
+      PostProcessingEffectType.COLOR_GRADING,
+    );
     const quant = group.get<import("../post/index.js").QuantizeElement>(
       PostProcessingEffectType.QUANTIZE,
     );
@@ -55,9 +58,10 @@ export class PostProcessPass implements RenderPass {
 
     // Only structural flags/modes -- these gate real WGSL code paths (branch taken, sample
     // count) and require a shader rebuild. Continuous tuning values (exposure, vignette
-    // offset/darkness/roundness, grain intensity, bloom intensity/color, quantize steps,
-    // outline thickness/sensitivity/color) live in the per-frame DynUniforms buffer instead
-    // (see execute()) and deliberately do NOT appear here -- tuning them must never rebuild.
+    // offset/darkness/roundness, grain intensity, bloom intensity/color, grading
+    // contrast/saturation/temperature/tint/lift/gamma/gain, quantize steps, outline
+    // thickness/sensitivity/color) live in the per-frame DynUniforms buffer instead (see
+    // execute()) and deliberately do NOT appear here -- tuning them must never rebuild.
     return [
       group.filterMode,
       tm && tm.enabled ? 1 : 0,
@@ -65,6 +69,7 @@ export class PostProcessPass implements RenderPass {
       vig && vig.enabled ? 1 : 0,
       grain && grain.enabled ? 1 : 0,
       bloom && bloom.enabled ? 1 : 0,
+      grade && grade.enabled ? 1 : 0,
       quant && quant.enabled ? 1 : 0,
       hbao && hbao.enabled ? 1 : 0,
       outline && outline.enabled ? 1 : 0,
@@ -92,7 +97,7 @@ export class PostProcessPass implements RenderPass {
 
     if (!this._uniformBuffer) {
       this._uniformBuffer = device.createBuffer({
-        size: 80, // DynUniforms: 5 x vec4f
+        size: 128, // DynUniforms: 8 x vec4f
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
       });
     }
@@ -124,6 +129,9 @@ export class PostProcessPass implements RenderPass {
     const bloom = group.get<import("../post/index.js").BloomElement>(
       PostProcessingEffectType.BLOOM,
     );
+    const grade = group.get<import("../post/index.js").ColorGradingElement>(
+      PostProcessingEffectType.COLOR_GRADING,
+    );
     const quant = group.get<import("../post/index.js").QuantizeElement>(
       PostProcessingEffectType.QUANTIZE,
     );
@@ -136,6 +144,7 @@ export class PostProcessPass implements RenderPass {
     const vigEnabled = vig && vig.enabled;
     const grainEnabled = grain && grain.enabled;
     const bloomEnabled = bloom && bloom.enabled;
+    const gradeEnabled = grade && grade.enabled;
     const quantEnabled = quant && quant.enabled;
     const hbaoEnabled = hbao && hbao.enabled;
     const outlineEnabled = outline && outline.enabled;
@@ -155,6 +164,10 @@ export class PostProcessPass implements RenderPass {
     assembledFrag = assembledFrag.replace(
       "const u_grainEnabled: u32 = 0u;",
       `const u_grainEnabled: u32 = ${grainEnabled ? 1 : 0}u;`,
+    );
+    assembledFrag = assembledFrag.replace(
+      "const u_colorGradingEnabled: u32 = 0u;",
+      `const u_colorGradingEnabled: u32 = ${gradeEnabled ? 1 : 0}u;`,
     );
     assembledFrag = assembledFrag.replace(
       "const u_bloomEnabled: u32 = 0u;",
@@ -262,6 +275,9 @@ export class PostProcessPass implements RenderPass {
     const grain = group.get<import("../post/index.js").GrainElement>(
       PostProcessingEffectType.GRAIN,
     );
+    const grade = group.get<import("../post/index.js").ColorGradingElement>(
+      PostProcessingEffectType.COLOR_GRADING,
+    );
     const quant = group.get<import("../post/index.js").QuantizeElement>(
       PostProcessingEffectType.QUANTIZE,
     );
@@ -281,7 +297,7 @@ export class PostProcessPass implements RenderPass {
     d[8] = quant ? quant.steps : 8.0; // c.x: quantizeSteps
     d[9] = outline ? outline.thickness : 1.0; // c.y: outlineThickness
     d[10] = outline ? outline.sensitivity : 1.0; // c.z: outlineSensitivity
-    d[11] = 0; // c.w: pad
+    d[11] = grade ? grade.gain.b : 1.0; // c.w: gainB
     d[12] = bloom ? bloom.color.r : 1.0; // bloomColor.rgb
     d[13] = bloom ? bloom.color.g : 1.0;
     d[14] = bloom ? bloom.color.b : 1.0;
@@ -290,6 +306,18 @@ export class PostProcessPass implements RenderPass {
     d[17] = outline ? outline.color.g : 0.0;
     d[18] = outline ? outline.color.b : 0.0;
     d[19] = 0; // pad
+    d[20] = grade ? grade.contrast : 1.0; // grading0.x: contrast
+    d[21] = grade ? grade.saturation : 1.0; // grading0.y: saturation
+    d[22] = grade ? grade.temperature : 0.0; // grading0.z: temperature
+    d[23] = grade ? grade.tint : 0.0; // grading0.w: tint
+    d[24] = grade ? grade.lift.r : 0.0; // grading1.x: liftR
+    d[25] = grade ? grade.lift.g : 0.0; // grading1.y: liftG
+    d[26] = grade ? grade.lift.b : 0.0; // grading1.z: liftB
+    d[27] = grade ? grade.gamma.r : 1.0; // grading1.w: gammaR
+    d[28] = grade ? grade.gamma.g : 1.0; // grading2.x: gammaG
+    d[29] = grade ? grade.gamma.b : 1.0; // grading2.y: gammaB
+    d[30] = grade ? grade.gain.r : 1.0; // grading2.z: gainR
+    d[31] = grade ? grade.gain.g : 1.0; // grading2.w: gainG
 
     renderer.gpuDevice!.queue.writeBuffer(this._uniformBuffer!, 0, d);
 

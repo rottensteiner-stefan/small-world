@@ -6,6 +6,7 @@ export enum PostProcessingEffectType {
   VIGNETTE = "Vignette",
   GRAIN = "Grain",
   BLOOM = "Bloom",
+  COLOR_GRADING = "ColorGrading",
   QUANTIZE = "Quantize",
   HBAO = "Hbao",
   TAA = "Taa",

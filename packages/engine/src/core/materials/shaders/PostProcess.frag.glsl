@@ -14,6 +14,14 @@ uniform vec3 u_bloomColor;
 uniform float u_exposure;
 uniform float u_gamma;
 uniform int u_toneMappingMode;
+uniform int u_colorGradingEnabled;
+uniform float u_contrast;
+uniform float u_saturation;
+uniform float u_temperature;
+uniform float u_tint;
+uniform vec3 u_liftColor;
+uniform vec3 u_gammaColor;
+uniform vec3 u_gainColor;
 uniform int u_vignetteEnabled;
 uniform float u_vignetteOffset;
 uniform float u_vignetteDarkness;
@@ -192,6 +200,25 @@ void main() {
 
     // Gamma correction
     vec3 srgb = linearToSRGB(tonemapped, u_gamma);
+
+    // Color Grading (Kontrast/Sättigung/Temperatur-Tint/Lift-Gamma-Gain) -- eigenständiger, immer
+    // verfügbarer Grading-Layer, NICHT zu verwechseln mit den FILTER_COLOR_GRADING-Kamera-Look-
+    // Presets weiter unten (filterMode-Umschalter).
+    if (u_colorGradingEnabled == 1) {
+        srgb = (srgb - 0.5) * u_contrast + 0.5;
+
+        float luma = dot(srgb, vec3(0.2126, 0.7152, 0.0722));
+        srgb = mix(vec3(luma), srgb, u_saturation);
+
+        // Leichte multiplikative Näherung des Weißabgleichs, kein physikalisches CCT/LMS-Modell.
+        srgb *= vec3(1.0 + u_temperature * 0.4 - u_tint * 0.4,
+                     1.0 + u_tint * 0.2,
+                     1.0 - u_temperature * 0.4 - u_tint * 0.4);
+
+        // Lift/Gamma/Gain (ASC-CDL-Stil)
+        srgb = srgb * u_gainColor + u_liftColor * (1.0 - srgb);
+        srgb = pow(clamp(srgb, 0.0, 1.0), 1.0 / max(u_gammaColor, vec3(0.01)));
+    }
 
     // Apply Vignette
     if (u_vignetteEnabled == 1) {

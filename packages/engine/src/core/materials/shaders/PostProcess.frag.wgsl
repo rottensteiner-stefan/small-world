@@ -7,6 +7,7 @@
 // taken / sample count), unlike the continuous tuning values below, which live in `dyn` instead
 // so tuning them doesn't recompile the shader.
 const u_toneMappingMode: u32 = 0u;
+const u_colorGradingEnabled: u32 = 0u;
 const u_vignetteEnabled: u32 = 0u;
 const u_grainEnabled: u32 = 0u;
 const u_bloomEnabled: u32 = 0u;
@@ -20,9 +21,14 @@ const u_filterMode: u32 = 0u;
 struct DynUniforms {
     a: vec4f, // [time, exposure, inverseGamma, vignetteOffset]
     b: vec4f, // [vignetteDarkness, vignetteRoundness, grainIntensity, bloomIntensity]
-    c: vec4f, // [quantizeSteps, outlineThickness, outlineSensitivity, pad]
+    c: vec4f, // [quantizeSteps, outlineThickness, outlineSensitivity, gainB]
     bloomColor: vec4f,
     outlineColor: vec4f,
+    // Parametric color grading -- see ColorGradingElement.ts. Distinct from the filterMode
+    // camera-look presets (FILTER_COLOR_GRADING below).
+    grading0: vec4f, // [contrast, saturation, temperature, tint]
+    grading1: vec4f, // [liftR, liftG, liftB, gammaR]
+    grading2: vec4f, // [gammaG, gammaB, gainR, gainG]
 }
 @group(0) @binding(2) var<uniform> dyn: DynUniforms;
 
@@ -75,6 +81,13 @@ fn fs_main(@location(0) uv: vec2f, @builtin(position) coord: vec4f) -> @location
     let u_outlineSensitivity = dyn.c.z;
     let u_bloomColor = dyn.bloomColor.rgb;
     let u_outlineColor = dyn.outlineColor.rgb;
+    let u_contrast = dyn.grading0.x;
+    let u_saturation = dyn.grading0.y;
+    let u_temperature = dyn.grading0.z;
+    let u_tint = dyn.grading0.w;
+    let u_liftColor = dyn.grading1.xyz;
+    let u_gammaColor = vec3f(dyn.grading1.w, dyn.grading2.x, dyn.grading2.y);
+    let u_gainColor = vec3f(dyn.grading2.z, dyn.grading2.w, dyn.c.w);
 
     let dims = vec2f(textureDimensions(hdrTexture, 0));
 
@@ -214,6 +227,25 @@ fn fs_main(@location(0) uv: vec2f, @builtin(position) coord: vec4f) -> @location
     }
 
     var srgb = linearToSRGB(tonemapped, u_inverseGamma);
+
+    // Color Grading (Kontrast/Sättigung/Temperatur-Tint/Lift-Gamma-Gain) -- eigenständiger, immer
+    // verfügbarer Grading-Layer, NICHT zu verwechseln mit den FILTER_COLOR_GRADING-Kamera-Look-
+    // Presets weiter unten (filterMode-Umschalter).
+    if (1u == u_colorGradingEnabled) {
+        srgb = (srgb - 0.5) * u_contrast + 0.5;
+
+        let luma = dot(srgb, vec3f(0.2126, 0.7152, 0.0722));
+        srgb = mix(vec3f(luma), srgb, u_saturation);
+
+        // Leichte multiplikative Näherung des Weißabgleichs, kein physikalisches CCT/LMS-Modell.
+        srgb *= vec3f(1.0 + u_temperature * 0.4 - u_tint * 0.4,
+                      1.0 + u_tint * 0.2,
+                      1.0 - u_temperature * 0.4 - u_tint * 0.4);
+
+        // Lift/Gamma/Gain (ASC-CDL-Stil)
+        srgb = srgb * u_gainColor + u_liftColor * (1.0 - srgb);
+        srgb = pow(clamp(srgb, vec3f(0.0), vec3f(1.0)), 1.0 / max(u_gammaColor, vec3f(0.01)));
+    }
 
     // Apply Vignette if enabled
     if (1u == u_vignetteEnabled) {

@@ -4,6 +4,7 @@ import {
   VignetteElement,
   GrainElement,
   BloomElement,
+  ColorGradingElement,
   QuantizeElement,
   HbaoElement,
   TaaElement,
@@ -34,6 +35,7 @@ export class PostProcessingGroup {
     this.add(new VignetteElement());
     this.add(new GrainElement());
     this.add(new BloomElement());
+    this.add(new ColorGradingElement());
     this.add(new QuantizeElement());
     this.add(new HbaoElement());
     this.add(new TaaElement());
@@ -119,6 +121,42 @@ export class PostProcessingGroup {
             bloom.color.set(col[0], col[1], col[2]);
           } else if (typeof col === "object" && col !== null) {
             bloom.color.set(col.r, col.g, col.b);
+          }
+        }
+      }
+    }
+
+    if (effects.colorGrading) {
+      const grade = this.get<ColorGradingElement>(PostProcessingEffectType.COLOR_GRADING);
+      if (grade) {
+        const cg = effects.colorGrading;
+        if (cg.enabled !== undefined) grade.enabled = cg.enabled;
+        if (cg.contrast !== undefined) grade.contrast = cg.contrast;
+        if (cg.saturation !== undefined) grade.saturation = cg.saturation;
+        if (cg.temperature !== undefined) grade.temperature = cg.temperature;
+        if (cg.tint !== undefined) grade.tint = cg.tint;
+        if (cg.lift !== undefined) {
+          const col = cg.lift;
+          if (Array.isArray(col)) {
+            grade.lift.set(col[0], col[1], col[2]);
+          } else if (typeof col === "object" && col !== null) {
+            grade.lift.set(col.r, col.g, col.b);
+          }
+        }
+        if (cg.gamma !== undefined) {
+          const col = cg.gamma;
+          if (Array.isArray(col)) {
+            grade.gamma.set(col[0], col[1], col[2]);
+          } else if (typeof col === "object" && col !== null) {
+            grade.gamma.set(col.r, col.g, col.b);
+          }
+        }
+        if (cg.gain !== undefined) {
+          const col = cg.gain;
+          if (Array.isArray(col)) {
+            grade.gain.set(col[0], col[1], col[2]);
+          } else if (typeof col === "object" && col !== null) {
+            grade.gain.set(col.r, col.g, col.b);
           }
         }
       }

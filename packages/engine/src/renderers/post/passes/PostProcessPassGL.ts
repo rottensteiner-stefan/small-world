@@ -29,6 +29,13 @@ export class PostProcessPassGL {
   private _uVignetteDarkness: WebGLUniformLocation | null = null;
   private _uVignetteRoundness: WebGLUniformLocation | null = null;
   private _uGrainIntensity: WebGLUniformLocation | null = null;
+  private _uContrast: WebGLUniformLocation | null = null;
+  private _uSaturation: WebGLUniformLocation | null = null;
+  private _uTemperature: WebGLUniformLocation | null = null;
+  private _uTint: WebGLUniformLocation | null = null;
+  private _uLiftColor: WebGLUniformLocation | null = null;
+  private _uGammaColor: WebGLUniformLocation | null = null;
+  private _uGainColor: WebGLUniformLocation | null = null;
   private _uQuantizeSteps: WebGLUniformLocation | null = null;
   private _uOutlineThickness: WebGLUniformLocation | null = null;
   private _uOutlineSensitivity: WebGLUniformLocation | null = null;
@@ -49,6 +56,9 @@ export class PostProcessPassGL {
     const vig = group.get<import("../index.js").VignetteElement>(PostProcessingEffectType.VIGNETTE);
     const grain = group.get<import("../index.js").GrainElement>(PostProcessingEffectType.GRAIN);
     const bloom = group.get<import("../index.js").BloomElement>(PostProcessingEffectType.BLOOM);
+    const grade = group.get<import("../index.js").ColorGradingElement>(
+      PostProcessingEffectType.COLOR_GRADING,
+    );
     const quant = group.get<import("../index.js").QuantizeElement>(
       PostProcessingEffectType.QUANTIZE,
     );
@@ -59,7 +69,8 @@ export class PostProcessPassGL {
 
     // Only structural flags/modes trigger a shader rebuild (matching WebGPU).
     // Continuous tuning values (exposure, gamma, vignette darkness/offset, grain intensity,
-    // bloom intensity/color, quantize steps, outline thickness/color) are set via uniforms per frame.
+    // bloom intensity/color, grading contrast/saturation/temperature/tint/lift/gamma/gain,
+    // quantize steps, outline thickness/color) are set via uniforms per frame.
     return [
       group.filterMode,
       tm && tm.enabled ? 1 : 0,
@@ -67,6 +78,7 @@ export class PostProcessPassGL {
       vig && vig.enabled ? 1 : 0,
       grain && grain.enabled ? 1 : 0,
       bloom && bloom.enabled ? 1 : 0,
+      grade && grade.enabled ? 1 : 0,
       quant && quant.enabled ? 1 : 0,
       hbao && hbao.enabled ? 1 : 0,
       outline && outline.enabled ? 1 : 0,
@@ -100,6 +112,9 @@ export class PostProcessPassGL {
     const vig = group.get<import("../index.js").VignetteElement>(PostProcessingEffectType.VIGNETTE);
     const grain = group.get<import("../index.js").GrainElement>(PostProcessingEffectType.GRAIN);
     const bloom = group.get<import("../index.js").BloomElement>(PostProcessingEffectType.BLOOM);
+    const grade = group.get<import("../index.js").ColorGradingElement>(
+      PostProcessingEffectType.COLOR_GRADING,
+    );
     const quant = group.get<import("../index.js").QuantizeElement>(
       PostProcessingEffectType.QUANTIZE,
     );
@@ -112,6 +127,7 @@ export class PostProcessPassGL {
     const vigEnabled = vig && vig.enabled;
     const grainEnabled = grain && grain.enabled;
     const bloomEnabled = bloom && bloom.enabled;
+    const gradeEnabled = grade && grade.enabled;
     const quantEnabled = quant && quant.enabled;
     const hbaoEnabled = hbao && hbao.enabled;
     const outlineEnabled = outline && outline.enabled;
@@ -132,6 +148,10 @@ export class PostProcessPassGL {
     frag = frag.replace(
       "uniform int u_grainEnabled;",
       `#define u_grainEnabled ${grainEnabled ? 1 : 0}`,
+    );
+    frag = frag.replace(
+      "uniform int u_colorGradingEnabled;",
+      `#define u_colorGradingEnabled ${gradeEnabled ? 1 : 0}`,
     );
     frag = frag.replace(
       "uniform int u_quantizeEnabled;",
@@ -183,6 +203,13 @@ export class PostProcessPassGL {
     this._uVignetteDarkness = gl.getUniformLocation(p, "u_vignetteDarkness");
     this._uVignetteRoundness = gl.getUniformLocation(p, "u_vignetteRoundness");
     this._uGrainIntensity = gl.getUniformLocation(p, "u_grainIntensity");
+    this._uContrast = gl.getUniformLocation(p, "u_contrast");
+    this._uSaturation = gl.getUniformLocation(p, "u_saturation");
+    this._uTemperature = gl.getUniformLocation(p, "u_temperature");
+    this._uTint = gl.getUniformLocation(p, "u_tint");
+    this._uLiftColor = gl.getUniformLocation(p, "u_liftColor");
+    this._uGammaColor = gl.getUniformLocation(p, "u_gammaColor");
+    this._uGainColor = gl.getUniformLocation(p, "u_gainColor");
     this._uQuantizeSteps = gl.getUniformLocation(p, "u_quantizeSteps");
     this._uOutlineThickness = gl.getUniformLocation(p, "u_outlineThickness");
     this._uOutlineSensitivity = gl.getUniformLocation(p, "u_outlineSensitivity");
@@ -253,6 +280,9 @@ export class PostProcessPassGL {
     );
     const vig = group.get<import("../index.js").VignetteElement>(PostProcessingEffectType.VIGNETTE);
     const grain = group.get<import("../index.js").GrainElement>(PostProcessingEffectType.GRAIN);
+    const grade = group.get<import("../index.js").ColorGradingElement>(
+      PostProcessingEffectType.COLOR_GRADING,
+    );
     const quant = group.get<import("../index.js").QuantizeElement>(
       PostProcessingEffectType.QUANTIZE,
     );
@@ -274,6 +304,22 @@ export class PostProcessPassGL {
     if (this._uVignetteDarkness) gl.uniform1f(this._uVignetteDarkness, vig ? vig.darkness : 0.5);
     if (this._uVignetteRoundness) gl.uniform1f(this._uVignetteRoundness, vig ? vig.roundness : 2.0);
     if (this._uGrainIntensity) gl.uniform1f(this._uGrainIntensity, grain ? grain.intensity : 0.05);
+    if (this._uContrast) gl.uniform1f(this._uContrast, grade ? grade.contrast : 1.0);
+    if (this._uSaturation) gl.uniform1f(this._uSaturation, grade ? grade.saturation : 1.0);
+    if (this._uTemperature) gl.uniform1f(this._uTemperature, grade ? grade.temperature : 0.0);
+    if (this._uTint) gl.uniform1f(this._uTint, grade ? grade.tint : 0.0);
+    if (this._uLiftColor) {
+      if (grade) gl.uniform3f(this._uLiftColor, grade.lift.r, grade.lift.g, grade.lift.b);
+      else gl.uniform3f(this._uLiftColor, 0.0, 0.0, 0.0);
+    }
+    if (this._uGammaColor) {
+      if (grade) gl.uniform3f(this._uGammaColor, grade.gamma.r, grade.gamma.g, grade.gamma.b);
+      else gl.uniform3f(this._uGammaColor, 1.0, 1.0, 1.0);
+    }
+    if (this._uGainColor) {
+      if (grade) gl.uniform3f(this._uGainColor, grade.gain.r, grade.gain.g, grade.gain.b);
+      else gl.uniform3f(this._uGainColor, 1.0, 1.0, 1.0);
+    }
     if (this._uQuantizeSteps) gl.uniform1f(this._uQuantizeSteps, quant ? quant.steps : 8.0);
     if (this._uOutlineThickness) {
       gl.uniform1f(this._uOutlineThickness, outline ? outline.thickness : 1.0);

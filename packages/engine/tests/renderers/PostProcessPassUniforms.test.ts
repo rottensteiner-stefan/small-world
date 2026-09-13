@@ -1,6 +1,11 @@
 import { describe, expect, it, vi, beforeAll } from "vitest";
 import { PostProcessPass } from "../../src/renderers/passes/PostProcessPass.js";
-import { PostProcessingGroup, ToneMappingElement, VignetteElement } from "../../src/index.js";
+import {
+  PostProcessingGroup,
+  ToneMappingElement,
+  VignetteElement,
+  ColorGradingElement,
+} from "../../src/index.js";
 import { PostProcessingEffectType } from "../../src/enums/index.js";
 import { CoreShaderChunks } from "../../src/core/renderers/shaders/CoreShaderChunks.js";
 
@@ -131,8 +136,12 @@ describe("PostProcessPass: continuous tuning values never rebuild the pipeline",
 
     const tm = group.get<ToneMappingElement>(PostProcessingEffectType.TONE_MAPPING)!;
     const vig = group.get<VignetteElement>(PostProcessingEffectType.VIGNETTE)!;
+    const grade = group.get<ColorGradingElement>(PostProcessingEffectType.COLOR_GRADING)!;
     tm.exposure = 2.5;
     vig.offset = 0.42;
+    grade.enabled = true;
+    grade.contrast = 1.2;
+    grade.gain.set(0.9, 1.0, 1.1);
 
     pass.execute(renderer, {}, ce, {}, new Float32Array(16), { x: 0, y: 0, z: 0 });
 
@@ -141,8 +150,11 @@ describe("PostProcessPass: continuous tuning values never rebuild the pipeline",
     expect(buffer).toBeDefined();
     expect(offset).toBe(0);
     const d = data as Float32Array;
-    expect(d.length).toBe(20);
+    expect(d.length).toBe(32);
     expect(d[1]).toBeCloseTo(2.5); // a.y: exposure
     expect(d[3]).toBeCloseTo(0.42); // a.w: vignetteOffset
+    expect(d[11]).toBeCloseTo(1.1); // c.w: gainB
+    expect(d[20]).toBeCloseTo(1.2); // grading0.x: contrast
+    expect(d[30]).toBeCloseTo(0.9); // grading2.z: gainR
   });
 });
