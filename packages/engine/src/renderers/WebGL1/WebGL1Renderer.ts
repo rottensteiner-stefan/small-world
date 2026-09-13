@@ -4,7 +4,7 @@ import { WebGLPostProcessPass } from "../passes/WebGLPostProcessPass.js";
 import { PostProcessPassGL, BloomPassGL } from "../post/passes/index.js";
 import { CubeTexture, Texture, RenderTarget } from "../../core/textures/index.js";
 import { StandardWebGPULayout } from "../../core/renderers/shaders/index.js";
-import { DeviceCaps, DeviceLimit, Object3D, Scene } from "../../core/index.js";
+import { DeviceCaps, DeviceLimit, InstancedMesh, Object3D, Scene } from "../../core/index.js";
 import {
   EngineOptions,
   GeometryDataInterface,
@@ -106,6 +106,13 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
   /** `${uniformName}:${unit}` keys already warned about in `_isTextureUnitAvailable`. */
   private _warnedTextureUnits: Set<string> = new Set();
 
+  /** `ANGLE_instanced_arrays` -- WebGL1's equivalent of WebGL2's native instancing entry points
+   * (`drawArraysInstanced`/`vertexAttribDivisor`). Universally supported by any device that
+   * exposes WebGL1 at all, but still queried defensively rather than assumed. */
+  private _instancedArraysExt: ANGLE_instanced_arrays | null = null;
+  private _warnedNoInstancedArrays = false;
+  private _instanceMatrixBuffers: WeakMap<InstancedMesh, WebGLBuffer> = new WeakMap();
+
   /** @inheritdoc */
   public async initialize(
     canvas: HTMLCanvasElement,
@@ -125,6 +132,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
     }
 
     this._maxTextureUnits = DeviceCaps.getLimit(DeviceLimit.WEBGL1_MAX_TEXTURE_IMAGE_UNITS);
+    this._instancedArraysExt = this.gl.getExtension("ANGLE_instanced_arrays");
 
     this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, false);
     this.initDefaultTextures();
@@ -153,8 +161,31 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
     return false;
   }
 
-  private _getProgram(shaderId: string): ProgramCache {
-    let cache = this._programs.get(shaderId);
+  /** Cache key for a compiled program variant -- shared by `_getProgram` (which builds it) and
+   * `_acquireProgram`/`_releaseObjectProgram` (which just need it as an opaque refcounting key). */
+  private _programCacheKey(
+    shaderId: string,
+    isInstanced: boolean,
+    flags: readonly string[],
+  ): string {
+    const flagKey = flags.length > 0 ? "_" + flags.join("_") : "";
+    return isInstanced ? `${shaderId}_instanced${flagKey}` : `${shaderId}${flagKey}`;
+  }
+
+  /**
+   * @param flags Material feature flags (e.g. `USE_AO_MAP`, from `RenderManifest.flags`) that
+   * become `#define`s in the compiled shader -- mirrors `WebGL2Renderer`'s equivalent, needed so a
+   * `StandardMaterial` with e.g. a reflection map actually gets `USE_REFLECTION_MAP` compiled in,
+   * instead of every WebGL1 program silently compiling as if no material ever had any optional
+   * texture (metallic/roughness/ao/emissive/alpha/env/normal/reflection map) assigned at all.
+   */
+  private _getProgram(
+    shaderId: string,
+    isInstanced: boolean = false,
+    flags: readonly string[] = [],
+  ): ProgramCache {
+    const cacheKey = this._programCacheKey(shaderId, isInstanced, flags);
+    let cache = this._programs.get(cacheKey);
     if (!cache) {
       const def = this.context.shaderRegistry.get(shaderId);
       if (!def || !def.sources.glsl100) {
@@ -163,8 +194,15 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
         );
       }
 
-      const vs = this.context.shaderRegistry.assemble(def.sources.glsl100.vs, "glsl100");
-      const fs = this.context.shaderRegistry.assemble(def.sources.glsl100.fs, "glsl100");
+      let vs = this.context.shaderRegistry.assemble(def.sources.glsl100.vs, "glsl100");
+      let fs = this.context.shaderRegistry.assemble(def.sources.glsl100.fs, "glsl100");
+      let defines = "";
+      if (isInstanced) defines += "#define USE_INSTANCING 1\n";
+      for (const flag of flags) defines += `#define ${flag} 1\n`;
+      if (defines) {
+        vs = defines + vs;
+        fs = defines + fs;
+      }
       const prog = this.createShaderProgram(vs, fs);
 
       const uniforms = new Map<string, WebGLUniformLocation | undefined>();
@@ -172,7 +210,9 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
       const samplerUnits = new Map<string, number>();
       const samplerTypes = new Map<string, number>();
 
-      ["a_position", "a_normal", "a_uv", "a_tangent"].forEach((name) => {
+      const attribsToQuery = ["a_position", "a_normal", "a_uv", "a_tangent"];
+      if (isInstanced) attribsToQuery.push("a_instanceMatrix");
+      attribsToQuery.forEach((name) => {
         attributes.set(name, this.gl.getAttribLocation(prog, name));
       });
 
@@ -205,14 +245,16 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
       // `layout.uniforms` is near-universally `...StandardWebGPULayout.uniforms` (the fixed set
       // every material spreads in to match WebGPU's shared `ObjectUniforms` struct) -- a lean
       // shader legitimately using only a handful of those 16 names is the norm, not a mistake, so
-      // warning about the rest would just be noise. `layout.textures` is NOT spread from a shared
-      // constant the same way (each material lists only the textures it actually declares), so a
-      // texture name genuinely missing from the compiled shader is still worth flagging.
+      // warning about the rest would just be noise.
+      //
+      // `layout.textures` is deliberately NOT checked here (unlike before per-material `flags`
+      // existed): it lists every texture slot the material COULD ever use (e.g. `u_aoMap`), not
+      // just the ones THIS compiled variant actually declares -- most of them are wrapped in
+      // `#ifdef USE_..._MAP` and only compiled in when the corresponding flag is passed to this
+      // very function, so a variant compiled without that flag legitimately doesn't have the
+      // uniform, and warning about it would misreport a working, intentional feature gate as a bug.
       const genericUniformNames = new Set(Object.keys(StandardWebGPULayout.uniforms));
-      for (const name of [
-        ...Object.keys(def.layout.uniforms),
-        ...Object.keys(def.layout.textures),
-      ]) {
+      for (const name of Object.keys(def.layout.uniforms)) {
         if (!uniforms.has(name) && !genericUniformNames.has(name)) {
           console.warn(
             `[WebGL1Renderer] Uniform '${name}' defined in material layout but not found in shader '${shaderId}'. It might be unused or optimized away.`,
@@ -259,7 +301,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
         areaLightLocs,
         refCount: 0,
       };
-      this._programs.set(shaderId, cache);
+      this._programs.set(cacheKey, cache);
     }
     return cache;
   }
@@ -571,11 +613,66 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
     lights: LightDataInterface,
     scene: Scene,
   ): void {
+    const objects = batch.objects;
+    if (objects.length === 0) return;
+
+    // InstancedMesh (e.g. WeatherEmitter's ash/dust particles) needs its own compiled program
+    // variant (USE_INSTANCING attributes) and its own draw call per object -- split it out from
+    // plain objects the same way WebGL2Renderer.renderBatch does, instead of drawing it as a
+    // single non-instanced mesh at its own (usually default/identity) transform, which is what
+    // silently happened before this split existed.
+    const instancedObjects: Object3D[] = [];
+    const standardObjects: Object3D[] = [];
+    for (const o of objects) {
+      if (o instanceof InstancedMesh) instancedObjects.push(o);
+      else standardObjects.push(o);
+    }
+
+    if (standardObjects.length > 0) {
+      this._renderSubgroup(batch, standardObjects, false, vMat, vp, camPos, lights, scene);
+    }
+
+    if (instancedObjects.length > 0) {
+      if (!this._instancedArraysExt) {
+        if (!this._warnedNoInstancedArrays) {
+          console.warn(
+            "[WebGL1Renderer] ANGLE_instanced_arrays not supported by this device -- instanced " +
+              "objects (e.g. WeatherEmitter particles) will not be drawn.",
+          );
+          this._warnedNoInstancedArrays = true;
+        }
+      } else {
+        this._renderSubgroup(batch, instancedObjects, true, vMat, vp, camPos, lights, scene);
+      }
+    }
+  }
+
+  private _renderSubgroup(
+    batch: import("../../core/Scene.js").RenderBatch,
+    objects: Object3D[],
+    isInstanced: boolean,
+    vMat: Float32Array | undefined,
+    vp: Float32Array,
+    camPos: Vector3D,
+    lights: LightDataInterface,
+    scene: Scene,
+  ): void {
     const shaderId = batch.shaderId;
-    const materialGroups = new Map([[batch.topology as string, batch.objects]]);
     const topology = batch.topology as string;
     const fog = scene.fog;
-    const cache = this._getProgram(shaderId);
+
+    // Every object sharing this batch shares its material's shader variant too (same precondition
+    // WebGL2Renderer's equivalent already relies on) -- read flags off the first object so the
+    // program actually compiles in whichever optional texture features (USE_AO_MAP,
+    // USE_REFLECTION_MAP, etc.) this material has assigned.
+    const firstObj = objects[0]!;
+    const mat = firstObj.material!;
+    const manifest = mat.getRenderManifest();
+    const texs = manifest.textures;
+    const flags = manifest.flags ?? [];
+
+    const programKey = this._programCacheKey(shaderId, isInstanced, flags);
+    const cache = this._getProgram(shaderId, isInstanced, flags);
     this.gl.useProgram(cache.prog);
 
     const u = cache.uniforms;
@@ -634,12 +731,7 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
       if (loc?.decay) this.gl.uniform1f(loc.decay, pl.decay);
     }
 
-    for (const [_, objects] of materialGroups.entries()) {
-      const firstObj = objects[0]!;
-      const mat = firstObj.material!;
-      const manifest = mat.getRenderManifest();
-      const texs = manifest.textures;
-
+    {
       // --- Fog Uniforms ---
       if (fog) {
         const modeLoc = u.get("u_fogMode");
@@ -784,51 +876,115 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
       for (const o of objects) {
         if (!o.geometry) continue;
 
-        this._scratchModelMatrix.set(o.worldMatrix.data);
-        if (state?.isSprite && vMat) {
-          const sx = Math.sqrt(
-            this._scratchModelMatrix[0]! ** 2 +
-              this._scratchModelMatrix[1]! ** 2 +
-              this._scratchModelMatrix[2]! ** 2,
-          );
-          const sy = Math.sqrt(
-            this._scratchModelMatrix[4]! ** 2 +
-              this._scratchModelMatrix[5]! ** 2 +
-              this._scratchModelMatrix[6]! ** 2,
-          );
-          const sz = Math.sqrt(
-            this._scratchModelMatrix[8]! ** 2 +
-              this._scratchModelMatrix[9]! ** 2 +
-              this._scratchModelMatrix[10]! ** 2,
-          );
-          this._scratchModelMatrix[0] = vMat[0]! * sx;
-          this._scratchModelMatrix[1] = vMat[4]! * sx;
-          this._scratchModelMatrix[2] = vMat[8]! * sx;
-          this._scratchModelMatrix[4] = vMat[1]! * sy;
-          this._scratchModelMatrix[5] = vMat[5]! * sy;
-          this._scratchModelMatrix[6] = vMat[9]! * sy;
-          this._scratchModelMatrix[8] = vMat[2]! * sz;
-          this._scratchModelMatrix[9] = vMat[6]! * sz;
-          this._scratchModelMatrix[10] = vMat[10]! * sz;
-        }
-
-        const uModel = u.get("u_model");
-        if (uModel) this.gl.uniformMatrix4fv(uModel, false, this._scratchModelMatrix);
-
-        this._acquireProgram(o, shaderId);
+        this._acquireProgram(o, programKey);
         this._acquireTextures(o, texs);
 
         const mesh = this._getOrCreateMesh(o, o.geometry);
-        mesh.bind(
-          cache.attributes.get("a_position")!,
-          cache.attributes.get("a_normal")!,
-          cache.attributes.get("a_uv")!,
-          cache.attributes.get("a_tangent")!,
-        );
-        mesh.draw(
-          topology === Topology.LINE_LIST ? this.gl.LINES : this.gl.TRIANGLES,
-          batch.wireframeMode,
-        );
+        const drawMode = topology === Topology.LINE_LIST ? this.gl.LINES : this.gl.TRIANGLES;
+
+        if (isInstanced) {
+          const instMesh = o as InstancedMesh;
+          const ext = this._instancedArraysExt!;
+
+          const uModel = u.get("u_model");
+          if (uModel) this.gl.uniformMatrix4fv(uModel, false, instMesh.worldMatrix.data);
+
+          let matrixBuf = this._instanceMatrixBuffers.get(instMesh);
+          if (!matrixBuf) {
+            matrixBuf = this.gl.createBuffer()!;
+            this._instanceMatrixBuffers.set(instMesh, matrixBuf);
+          }
+          this.gl.bindBuffer(this.gl.ARRAY_BUFFER, matrixBuf);
+          if (instMesh.instanceMatrixNeedsUpdate) {
+            this.gl.bufferData(
+              this.gl.ARRAY_BUFFER,
+              instMesh.instanceMatrices,
+              this.gl.DYNAMIC_DRAW,
+            );
+            instMesh.instanceMatrixNeedsUpdate = false;
+          }
+
+          mesh.bind(
+            cache.attributes.get("a_position")!,
+            cache.attributes.get("a_normal")!,
+            cache.attributes.get("a_uv")!,
+            cache.attributes.get("a_tangent")!,
+          );
+
+          // A mat4 attribute occupies 4 consecutive locations (loc..loc+3), one vec4 column each --
+          // universal GL attribute-binding mechanics, not GLSL-version-specific (mirrors
+          // WebGL2Renderer's identical `a_instanceMatrix` binding, ANGLE-suffixed here since WebGL1
+          // needs the extension for both the divisor and the instanced draw call below).
+          const instLoc = cache.attributes.get("a_instanceMatrix");
+          if (instLoc !== undefined && instLoc >= 0) {
+            this.gl.bindBuffer(this.gl.ARRAY_BUFFER, matrixBuf);
+            for (let i = 0; i < 4; i++) {
+              const attribLoc = instLoc + i;
+              this.gl.enableVertexAttribArray(attribLoc);
+              this.gl.vertexAttribPointer(attribLoc, 4, this.gl.FLOAT, false, 64, i * 16);
+              ext.vertexAttribDivisorANGLE(attribLoc, 1);
+            }
+          }
+
+          if (mesh.isIndexed) {
+            this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, mesh.ebo ?? null);
+            ext.drawElementsInstancedANGLE(
+              drawMode,
+              mesh.count,
+              mesh.indexType,
+              0,
+              instMesh.instanceCount,
+            );
+          } else {
+            ext.drawArraysInstancedANGLE(drawMode, 0, mesh.count, instMesh.instanceCount);
+          }
+
+          if (instLoc !== undefined && instLoc >= 0) {
+            for (let i = 0; i < 4; i++) {
+              ext.vertexAttribDivisorANGLE(instLoc + i, 0);
+              this.gl.disableVertexAttribArray(instLoc + i);
+            }
+          }
+        } else {
+          this._scratchModelMatrix.set(o.worldMatrix.data);
+          if (state?.isSprite && vMat) {
+            const sx = Math.sqrt(
+              this._scratchModelMatrix[0]! ** 2 +
+                this._scratchModelMatrix[1]! ** 2 +
+                this._scratchModelMatrix[2]! ** 2,
+            );
+            const sy = Math.sqrt(
+              this._scratchModelMatrix[4]! ** 2 +
+                this._scratchModelMatrix[5]! ** 2 +
+                this._scratchModelMatrix[6]! ** 2,
+            );
+            const sz = Math.sqrt(
+              this._scratchModelMatrix[8]! ** 2 +
+                this._scratchModelMatrix[9]! ** 2 +
+                this._scratchModelMatrix[10]! ** 2,
+            );
+            this._scratchModelMatrix[0] = vMat[0]! * sx;
+            this._scratchModelMatrix[1] = vMat[4]! * sx;
+            this._scratchModelMatrix[2] = vMat[8]! * sx;
+            this._scratchModelMatrix[4] = vMat[1]! * sy;
+            this._scratchModelMatrix[5] = vMat[5]! * sy;
+            this._scratchModelMatrix[6] = vMat[9]! * sy;
+            this._scratchModelMatrix[8] = vMat[2]! * sz;
+            this._scratchModelMatrix[9] = vMat[6]! * sz;
+            this._scratchModelMatrix[10] = vMat[10]! * sz;
+          }
+
+          const uModel = u.get("u_model");
+          if (uModel) this.gl.uniformMatrix4fv(uModel, false, this._scratchModelMatrix);
+
+          mesh.bind(
+            cache.attributes.get("a_position")!,
+            cache.attributes.get("a_normal")!,
+            cache.attributes.get("a_uv")!,
+            cache.attributes.get("a_tangent")!,
+          );
+          mesh.draw(drawMode, batch.wireframeMode);
+        }
       }
     }
   }

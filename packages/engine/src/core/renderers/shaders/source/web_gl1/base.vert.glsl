@@ -3,6 +3,10 @@ attribute vec3 a_normal;
 attribute vec2 a_uv;
 attribute vec3 a_tangent;
 
+#ifdef USE_INSTANCING
+attribute mat4 a_instanceMatrix;
+#endif
+
 uniform mat4 u_vp;
 uniform mat4 u_model;
 uniform vec2 u_texOffset;
@@ -18,9 +22,14 @@ mat3 extractMat3(mat4 m) {
 }
 
 void main() {
-    vec4 wp = u_model * vec4(a_position, 1.0);
+#ifdef USE_INSTANCING
+    mat4 modelMat = u_model * a_instanceMatrix;
+#else
+    mat4 modelMat = u_model;
+#endif
+    vec4 wp = modelMat * vec4(a_position, 1.0);
     v_worldPos = wp.xyz;
-    mat3 m3 = extractMat3(u_model);
+    mat3 m3 = extractMat3(modelMat);
     v_normal = normalize(m3 * a_normal);
     v_uv = (a_uv * u_texRepeat) + u_texOffset;
 
