@@ -240,6 +240,17 @@ export class WebGLTextureManager {
           this._gl.TEXTURE_MIN_FILTER,
           this._gl.LINEAR_MIPMAP_LINEAR,
         );
+        // Prefiltered IBL maps intentionally stop at a handful of levels (e.g. 128px down to
+        // 8px, not all the way to 1x1) -- without an explicit TEXTURE_MAX_LEVEL, WebGL still
+        // expects the full pyramid down to 1x1 before considering the texture mipmap-complete,
+        // and silently samples it as solid black (per spec, not a driver bug) until it is. This
+        // is exactly what made real IBL specular ambient render pitch-black despite every other
+        // part of the pipeline (data, binding, shader flags) checking out.
+        this._gl.texParameteri(
+          this._gl.TEXTURE_CUBE_MAP,
+          this._gl.TEXTURE_MAX_LEVEL,
+          tex.mipmaps.length - 1,
+        );
       } else {
         this._gl.texParameteri(
           this._gl.TEXTURE_CUBE_MAP,
