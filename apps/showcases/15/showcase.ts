@@ -4,6 +4,7 @@ import {
   CameraStrategyType,
   Color,
   Cube,
+  CubeLayout,
   CubeTexture,
   DirectionalLight,
   FPSController,
@@ -134,6 +135,33 @@ export class Showcase15 extends AbstractShowcase {
       this.scene.add(skybox);
     } catch (e) {
       console.warn("Skybox image not loaded:", e);
+    }
+
+    // 2b. Real IBL (irradiance/prefilter/BRDF LUT), baked via tools/ibl-gen.html from a
+    // freshly-generated panorama matching this scene's own skybox -- gives the mirror spheres
+    // and the checkered floor an actual environment to reflect instead of a flat ambient color.
+    try {
+      const brdfTexture = await Texture.fromUrl("./assets/ibl/brdf_lut.webp");
+      const irradianceTexture = new CubeTexture();
+      await irradianceTexture.loadFrom("./assets/ibl/irradiance.webp", CubeLayout.CROSS_HORIZONTAL);
+      const prefilterTexture = new CubeTexture();
+      await prefilterTexture.loadMipmapsFrom(
+        [
+          "./assets/ibl/prefilter/mip0.webp",
+          "./assets/ibl/prefilter/mip1.webp",
+          "./assets/ibl/prefilter/mip2.webp",
+          "./assets/ibl/prefilter/mip3.webp",
+          "./assets/ibl/prefilter/mip4.webp",
+        ],
+        CubeLayout.CROSS_HORIZONTAL,
+      );
+
+      this.scene.brdfLUT = brdfTexture;
+      this.scene.irradianceMap = irradianceTexture;
+      this.scene.prefilterMap = prefilterTexture;
+      this.scene.environmentIntensity = 1.5;
+    } catch (e) {
+      console.warn("IBL maps not loaded:", e);
     }
 
     // 3. Generate Checkered and Roughness maps procedurally via canvas

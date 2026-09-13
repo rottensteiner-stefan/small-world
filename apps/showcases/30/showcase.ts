@@ -17,6 +17,7 @@ import {
   RendererType,
   SpotLight,
   StandardMaterial,
+  CubeLayout,
   Texture,
   CubeTexture,
   SkyboxMaterial,
@@ -152,10 +153,35 @@ class Showcase30 extends AbstractShowcase {
       skybox.material = new SkyboxMaterial({ cubeMap: envTexture });
       skybox.frustumCulled = false;
       this.scene.add(skybox);
-      this.scene.irradianceMap = envTexture;
-      this.scene.prefilterMap = envTexture;
     } catch (e) {
       console.warn("Could not load envmap:", e);
+    }
+
+    // Real IBL (irradiance/prefilter/BRDF LUT), baked via tools/ibl-gen.html from a
+    // freshly-generated panorama matching this scene's own skybox -- replaces the previous
+    // (physically wrong) reuse of the raw, unconvolved skybox as both diffuse and specular map.
+    try {
+      const brdfTexture = await Texture.fromUrl("./assets/ibl/brdf_lut.webp");
+      const irradianceTexture = new CubeTexture();
+      await irradianceTexture.loadFrom("./assets/ibl/irradiance.webp", CubeLayout.CROSS_HORIZONTAL);
+      const prefilterTexture = new CubeTexture();
+      await prefilterTexture.loadMipmapsFrom(
+        [
+          "./assets/ibl/prefilter/mip0.webp",
+          "./assets/ibl/prefilter/mip1.webp",
+          "./assets/ibl/prefilter/mip2.webp",
+          "./assets/ibl/prefilter/mip3.webp",
+          "./assets/ibl/prefilter/mip4.webp",
+        ],
+        CubeLayout.CROSS_HORIZONTAL,
+      );
+
+      this.scene.brdfLUT = brdfTexture;
+      this.scene.irradianceMap = irradianceTexture;
+      this.scene.prefilterMap = prefilterTexture;
+      this.scene.environmentIntensity = 1.5;
+    } catch (e) {
+      console.warn("IBL maps not loaded:", e);
     }
 
     let asphaltDiffuse: Texture | undefined;
