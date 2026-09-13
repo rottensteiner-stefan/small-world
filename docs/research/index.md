@@ -10,3 +10,4 @@ Tiefgehende technische Untersuchungen, Rendering-Studien, architektonische Nachb
 - **[XDP-Spiele-Netzwerkarchitektur](./xdp-game-networking.md)** — Untersuchung von Konzepten für Web-Netzwerktechnik mit ultra-niedriger Latenz, WebTransport und Paketarchitekturen.
 - **[Showcase-Feature-Audit](./showcase-feature-audit.md)** — Feature-Matrix der Engine und Abdeckungs-Audit über die 35 interaktiven Showcases.
 - **[Codebasis-Architektur-Review (2026-08-22)](./codebase-review-2026-08-22.md)** — Architektur-Review und Meilenstein zur Behebung technischer Schulden.
+- **[Projekt Raum](./projekt-raum.md)** — Schritt-für-Schritt-Konsens-Analyse eines Referenzbilds (rustikales Wohnzimmer-Interieur) als Grundlage für gezielte Lighting-/Material-Verbesserungen der Engine.
