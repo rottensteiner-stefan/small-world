@@ -5,7 +5,6 @@
 
 uniform float u_metallic;
 uniform float u_roughness;
-uniform float u_ao;
 
 #ifdef USE_METALLIC_MAP
 uniform sampler2D u_metallicMap;
@@ -74,9 +73,9 @@ void main() {
 #endif
 
 #ifdef USE_AO_MAP
-    float ao = u_ao * texture(u_aoMap, v_uv).r;
+    float ao = u_extraParams.x * texture(u_aoMap, v_uv).r;
 #else
-    float ao = u_ao;
+    float ao = u_extraParams.x;
 #endif
 
     [LIGHT_CALC_PBR]
