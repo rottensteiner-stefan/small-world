@@ -236,6 +236,11 @@ class Showcase30 extends AbstractShowcase {
       envMap: envTexture,
       reflectionMap: this._reflectionNode.renderTarget,
       reflectivity: 1.0,
+      // Low, not the 0.5 default: a puddle should stay clearly reflective across a normal range
+      // of viewing angles, not almost only within the last few degrees before a grazing angle
+      // (pure Fresnel reads as an on/off switch, not a puddle -- see reflectionFresnelBlend's own
+      // doc comment). Still keeps a real angle-dependent boost near grazing, just far less steep.
+      reflectionFresnelBlend: 0.15,
     });
 
     const buildingMat = new StandardMaterial({
@@ -290,7 +295,13 @@ class Showcase30 extends AbstractShowcase {
 
     // 5. Mirrored Rain Water Puddles (High-Gloss Reflective Plates)
     const puddleConfigs = [
-      { x: -1.2, z: 1.5, rx: 3.2, rz: 4.5 },
+      // Centered on the hover car (0, -1) with a large radius: the OrbitController lets the
+      // camera swing through a wide range of heights/angles around its fixed target, and the
+      // ground point that ray actually hits (at the puddle's y, well below the target's own
+      // height) shifts a lot more than the target position alone suggests -- easily past a
+      // smaller puddle's edge. Sized/centered to comfortably stay under the car across that
+      // whole practical camera range, not just the one default angle.
+      { x: 0, z: -1, rx: 4.5, rz: 6.5 },
       { x: 1.8, z: -2.0, rx: 2.8, rz: 3.6 },
       { x: -0.5, z: -4.5, rx: 2.2, rz: 2.5 },
       { x: 2.2, z: 3.5, rx: 2.0, rz: 3.0 },
@@ -503,4 +514,5 @@ class Showcase30 extends AbstractShowcase {
 // Bootstrap the example
 // ----------------------------------------------------------------------------
 const app = new Showcase30();
+(window as unknown as { __app: Showcase30 }).__app = app;
 app.start().catch((err: unknown) => console.error("[Showcase30] Failed to start:", err));

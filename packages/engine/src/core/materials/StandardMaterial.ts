@@ -49,6 +49,16 @@ export interface StandardMaterialOptions {
   reflectionMap?: Texture | undefined;
   /** Planar reflection intensity. Defaults to 1.0. */
   reflectivity?: number;
+  /**
+   * How much of the planar reflection's strength depends on view angle: 0 = constant strength
+   * regardless of angle, 1 = pure Schlick Fresnel (strong only within the last few degrees before
+   * a grazing angle, effectively invisible everywhere else -- physically correct for a smooth
+   * dielectric, but reads as an on/off switch rather than a gradual falloff to a human observer).
+   * Defaults to 0.5, matching the engine's original fixed blend. Lower this for a reflection that
+   * should stay legible across a wider range of viewing angles (e.g. a puddle meant to be seen
+   * from a normal, not-perfectly-grazing camera angle).
+   */
+  reflectionFresnelBlend?: number;
   /** The intensity of the emissive light. Defaults to 1.0. */
   emissiveIntensity?: number;
   /** Whether the material is transparent. Defaults to false. */
@@ -116,6 +126,9 @@ export class StandardMaterial extends AbstractMaterial {
   /** The intensity of the planar reflection. */
   public reflectivity: number;
 
+  /** How much of the planar reflection depends on view angle (0 = constant, 1 = pure Fresnel). */
+  public reflectionFresnelBlend: number;
+
   /** The intensity of the emissive glow. */
   public emissiveIntensity: number;
 
@@ -148,6 +161,7 @@ export class StandardMaterial extends AbstractMaterial {
       envMap = undefined,
       reflectionMap = undefined,
       reflectivity = 1.0,
+      reflectionFresnelBlend = 0.5,
       emissiveIntensity = 1.0,
       transparent = false,
       alphaTest = 0.0,
@@ -169,6 +183,7 @@ export class StandardMaterial extends AbstractMaterial {
     this.envMap = envMap;
     this.reflectionMap = reflectionMap;
     this.reflectivity = reflectivity;
+    this.reflectionFresnelBlend = reflectionFresnelBlend;
     this.emissiveIntensity = emissiveIntensity;
     this.transparent = transparent;
     this.alphaTest = alphaTest;
@@ -212,12 +227,17 @@ export class StandardMaterial extends AbstractMaterial {
     texs["u_aoMap"] = this.aoMap;
     texs["u_emissiveMap"] = this.emissiveMap;
     texs["u_alphaMap"] = this.alphaMap;
-    texs["u_skybox"] = this.envMap;
+    texs["u_envMap"] = this.envMap;
     texs["u_reflectionMap"] = this.reflectionMap;
 
     props["u_useEnvMap"] = this.envMap ? 1.0 : 0.0;
     props["u_useReflectionMap"] = this.reflectionMap ? 1.0 : 0.0;
     props["u_reflectivity"] = this.reflectivity;
+    // u_pad1 is skeletal-animation-only elsewhere in the shared layout (unused by this
+    // non-skinned-specific material otherwise) -- repurposed here to carry reflectionFresnelBlend
+    // straight through to the shader, mirroring how OpenWater/StylizedWater repurpose the same
+    // slot for their own waterAbsorption.b.
+    props["u_pad1"] = this.reflectionFresnelBlend;
     props["u_time"] = this.time;
 
     const flags: string[] = [];
@@ -276,6 +296,7 @@ export class StandardMaterial extends AbstractMaterial {
       envMap: this.envMap,
       reflectionMap: this.reflectionMap,
       reflectivity: this.reflectivity,
+      reflectionFresnelBlend: this.reflectionFresnelBlend,
       emissiveIntensity: this.emissiveIntensity,
       transparent: this.transparent,
       alphaTest: this.alphaTest,
