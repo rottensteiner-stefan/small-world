@@ -2,7 +2,7 @@ import { AbstractWebGLRenderer } from "../AbstractWebGLRenderer.js";
 import { WebGLMainPass } from "../passes/WebGLMainPass.js";
 import { WebGLPostProcessPass } from "../passes/WebGLPostProcessPass.js";
 import { PostProcessPassGL, BloomPassGL } from "../post/passes/index.js";
-import { CubeTexture, Texture, RenderTarget } from "../../core/textures/index.js";
+import { CubeTexture, Texture, RenderTarget, RenderTargetCube } from "../../core/textures/index.js";
 import { StandardWebGPULayout } from "../../core/renderers/shaders/index.js";
 import { DeviceCaps, DeviceLimit, InstancedMesh, Object3D, Scene } from "../../core/index.js";
 import {
@@ -95,9 +95,15 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
   protected _postPassGL: PostProcessPassGL | undefined = undefined;
   protected _bloomPassGL: BloomPassGL | undefined = undefined;
 
-  protected _activeRenderTarget: RenderTarget | null = null;
+  protected _activeRenderTarget: RenderTarget | RenderTargetCube | null = null;
+  private _activeCubeFace: number = 0;
   private _renderTargetFbos: Map<RenderTarget, WebGLFramebuffer> = new Map();
   private _renderTargetDepthBuffers: Map<RenderTarget, WebGLRenderbuffer> = new Map();
+  /** Cube counterpart of `_renderTargetFbos`/`_renderTargetDepthBuffers` -- `DynamicReflectionProbe`
+   * and other `RenderTargetCube` consumers render into these via `bindMainRenderTarget()`, one
+   * face at a time (see `setRenderTarget`'s `activeCubeFace` param). */
+  private _renderTargetCubeFbos: Map<RenderTargetCube, WebGLFramebuffer> = new Map();
+  private _renderTargetCubeDepthBuffers: Map<RenderTargetCube, WebGLRenderbuffer> = new Map();
 
   private _scratchModelMatrix: Float32Array = new Float32Array(16);
 
@@ -408,6 +414,12 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
 
   private _getWebGLCubeTexture(tex: CubeTexture): WebGLTexture {
     if (this._quality?.disableTextures) return this.defaultCubeTexture;
+    // A RenderTargetCube's GL texture is allocated/populated by bindMainRenderTarget() (it has no
+    // CPU-side images to upload here) -- just return whatever it has already produced.
+    if (tex instanceof RenderTargetCube) {
+      const glTex = this._texCubeCache.get(tex);
+      return glTex ?? this.defaultCubeTexture;
+    }
     if (!tex.isLoaded || tex.images.length !== 6) return this.defaultCubeTexture;
     let glTex: WebGLTexture | undefined = this._texCubeCache.get(tex);
     if (!glTex) {
@@ -444,8 +456,12 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
   }
 
   /** @inheritdoc */
-  public override setRenderTarget(target: RenderTarget | null): void {
+  public override setRenderTarget(
+    target: RenderTarget | RenderTargetCube | null,
+    activeCubeFace?: number,
+  ): void {
     this._activeRenderTarget = target;
+    this._activeCubeFace = activeCubeFace ?? 0;
   }
 
   public resetStateCache(): void {
@@ -461,7 +477,91 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
   public bindMainRenderTarget(): boolean {
     let isOffscreen = false;
 
-    if (this._activeRenderTarget) {
+    if (this._activeRenderTarget instanceof RenderTargetCube) {
+      isOffscreen = true;
+      const cubeTarget = this._activeRenderTarget;
+      let fbo = this._renderTargetCubeFbos.get(cubeTarget);
+      if (!fbo || !cubeTarget.isLoaded) {
+        if (fbo) {
+          this.gl.deleteFramebuffer(fbo);
+          const oldTex = this._texCubeCache.get(cubeTarget);
+          if (oldTex) this.gl.deleteTexture(oldTex);
+          const oldDepthRb = this._renderTargetCubeDepthBuffers.get(cubeTarget);
+          if (oldDepthRb) {
+            this.gl.deleteRenderbuffer(oldDepthRb);
+            this._renderTargetCubeDepthBuffers.delete(cubeTarget);
+          }
+        }
+        fbo = this.gl.createFramebuffer()!;
+        this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, fbo);
+
+        const tex = this.gl.createTexture()!;
+        this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, tex);
+        for (let i: number = 0; i < 6; i++) {
+          this.gl.texImage2D(
+            this.gl.TEXTURE_CUBE_MAP_POSITIVE_X + i,
+            0,
+            this.gl.RGBA,
+            cubeTarget.width,
+            cubeTarget.height,
+            0,
+            this.gl.RGBA,
+            this.gl.UNSIGNED_BYTE,
+            null,
+          );
+        }
+        this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
+        this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR);
+        this.gl.texParameteri(
+          this.gl.TEXTURE_CUBE_MAP,
+          this.gl.TEXTURE_WRAP_S,
+          this.gl.CLAMP_TO_EDGE,
+        );
+        this.gl.texParameteri(
+          this.gl.TEXTURE_CUBE_MAP,
+          this.gl.TEXTURE_WRAP_T,
+          this.gl.CLAMP_TO_EDGE,
+        );
+
+        if (cubeTarget.depth) {
+          const depthRb = this.gl.createRenderbuffer()!;
+          this.gl.bindRenderbuffer(this.gl.RENDERBUFFER, depthRb);
+          this.gl.renderbufferStorage(
+            this.gl.RENDERBUFFER,
+            this.gl.DEPTH_COMPONENT16,
+            cubeTarget.width,
+            cubeTarget.height,
+          );
+          this.gl.framebufferRenderbuffer(
+            this.gl.FRAMEBUFFER,
+            this.gl.DEPTH_ATTACHMENT,
+            this.gl.RENDERBUFFER,
+            depthRb,
+          );
+          this._renderTargetCubeDepthBuffers.set(cubeTarget, depthRb);
+        }
+
+        this._renderTargetCubeFbos.set(cubeTarget, fbo);
+        this._texCubeCache.set(cubeTarget, tex);
+        cubeTarget.isLoaded = true;
+      } else {
+        this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, fbo);
+      }
+
+      // The FBO is shared by all 6 faces (one texture, one framebuffer) -- re-point its color
+      // attachment to the face requested for this call every time, since a cached FBO from a
+      // previous face would otherwise still be attached to that stale face.
+      const cubeTex = this._texCubeCache.get(cubeTarget)!;
+      this.gl.framebufferTexture2D(
+        this.gl.FRAMEBUFFER,
+        this.gl.COLOR_ATTACHMENT0,
+        this.gl.TEXTURE_CUBE_MAP_POSITIVE_X + this._activeCubeFace,
+        cubeTex,
+        0,
+      );
+
+      this.gl.viewport(0, 0, cubeTarget.width, cubeTarget.height);
+    } else if (this._activeRenderTarget) {
       isOffscreen = true;
       let fbo = this._renderTargetFbos.get(this._activeRenderTarget);
       if (!fbo || !this._activeRenderTarget.isLoaded) {

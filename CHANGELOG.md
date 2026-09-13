@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.79.04] - 2026-09-13
+
+### "The first principle is that you must not fool yourself -- and you are the easiest person to fool." - Richard Feynman
+
+- **Architecture & Bugfixes:**
+  - Fixed Showcase 15's three "absolute mirror" spheres showing no reflection at all under WebGL1, WebGL2, and WebGPU alike -- two separate, unrelated regressions that happened to land at the same time.
+  - `WebGL1Renderer` had no concept of a `RenderTargetCube` (the GPU render target every `DynamicReflectionProbe` renders into): `setRenderTarget`/`bindMainRenderTarget` only understood flat 2D `RenderTarget`s, so each mirror sphere's env map was silently allocated as a broken, permanently-black `TEXTURE_2D`. Added a real cube-map FBO path mirroring WebGL2's existing implementation.
+  - WebGL2 and WebGPU: enabling scene-level IBL (`Scene.irradianceMap`/`prefilterMap`) made every material's ambient-lighting code unconditionally reflect the scene's static, blurry baked environment for its specular term -- silently hiding any object's own sharper real-time reflection probe (`envMap`) behind it. Fixed by checking the per-object `envMap` first, in both the GLSL2 and WGSL ambient chunks.
+- **Housekeeping & Docs:**
+  - New regression tests (`WebGL1RenderTargetCube.test.ts`, `ReflectionProbeIblPriority.test.ts`) covering both fixes, each verified to fail against the pre-fix code.
+
 ## [0.79.03] - 2026-09-13
 
 ### "You never really understand a person until you consider things from his point of view... until you climb into his skin and walk around in it." - Harper Lee

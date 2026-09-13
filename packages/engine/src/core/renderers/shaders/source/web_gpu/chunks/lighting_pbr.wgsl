@@ -212,24 +212,31 @@ kD_ambient *= 1.0 - metallic;
 let irradiance = textureSampleLevel(u_irradianceMap, globalSampler, N, 0.0).rgb * global.envIntensity;
 let diffuseAmbient = irradiance * albedo;
 
+// A per-object dynamic reflection probe (u_envMap, e.g. DynamicReflectionProbe) is a sharp,
+// real-time capture of this object's actual surroundings, while the scene's prefilter map is a
+// single static, low-res bake shared by everything in the scene. When both are present the probe
+// wins: without this check, adding scene-level IBL to a scene permanently hid real-time mirror
+// reflections behind the blurry static one, even though the probe kept updating correctly
+// underneath (e.g. Showcase 15's mirror spheres going flat/hazy once scene IBL was added).
 let R = reflect(-V, N);
 let MAX_REFLECTION_LOD = 4.0;
-let prefilteredColor = textureSampleLevel(u_prefilterMap, globalSampler, R, roughness * MAX_REFLECTION_LOD).rgb * global.envIntensity;
-let envBRDF = textureSampleLevel(u_brdfLUT, globalSampler, vec2f(max(dotNV, 0.0), roughness), 0.0).rg;
-let specularAmbient = prefilteredColor * (kS_ambient * envBRDF.x + envBRDF.y);
+var specularAmbient: vec3f;
+if (obj.useEnvMap > 0.5) {
+    let lod = roughness * 5.0;
+    let envColor = sRGBToLinear(textureSampleLevel(u_envMap, s, R, lod).rgb);
+    specularAmbient = envColor * F_Schlick(dotNV, F0);
+} else {
+    let prefilteredColor = textureSampleLevel(u_prefilterMap, globalSampler, R, roughness * MAX_REFLECTION_LOD).rgb * global.envIntensity;
+    let envBRDF = textureSampleLevel(u_brdfLUT, globalSampler, vec2f(max(dotNV, 0.0), roughness), 0.0).rg;
+    specularAmbient = prefilteredColor * (kS_ambient * envBRDF.x + envBRDF.y);
+}
 
 var ambient = (kD_ambient * diffuseAmbient + specularAmbient) * ao;
 
 if (length(irradiance) < 0.001) {
     let f_fallback = F_Schlick(dotNV, F0);
     let kD_fallback = (vec3f(1.0) - f_fallback) * (1.0 - metallic);
-    ambient = (kD_fallback * global.ambientColor.rgb * albedo) * ao;
-    
-    if (obj.useEnvMap > 0.5) {
-        let lod = roughness * 5.0;
-        let envColor = sRGBToLinear(textureSampleLevel(u_envMap, s, R, lod).rgb);
-        ambient += (envColor * f_fallback) * ao;
-    }
+    ambient = (kD_fallback * global.ambientColor.rgb * albedo + specularAmbient) * ao;
 }
 
 var color = ambient + Lo;

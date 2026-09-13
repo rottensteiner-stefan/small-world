@@ -331,10 +331,26 @@ kD_ambient *= 1.0 - metallic;
 vec3 irradiance = texture(u_irradianceMap, N).rgb * u_envIntensity;
 vec3 diffuseAmbient = irradiance * albedo;
 
-// Specular
+// Specular -- a per-object dynamic reflection probe (u_envMap, e.g. DynamicReflectionProbe) is
+// a sharp, real-time capture of this object's actual surroundings, while the scene's prefilter
+// map is a single static, low-res bake shared by everything in the scene. When both are present
+// the probe wins: without this check, every material picked up USE_IBL as soon as the SCENE had
+// any baked environment at all, permanently hiding real-time mirror reflections behind the
+// blurry static one (e.g. Showcase 15's mirror spheres going flat/hazy once scene-level IBL was
+// added, even though their own DynamicReflectionProbe kept updating correctly underneath).
 vec3 R = reflect(-V, N);
 const float MAX_REFLECTION_LOD = 4.0;
-vec3 prefilteredColor = textureLod(u_prefilterMap, R, roughness * MAX_REFLECTION_LOD).rgb * u_envIntensity;
+vec3 prefilteredColor;
+#ifdef USE_ENV_MAP
+if (u_useEnvMap > 0.5) {
+    float lod = roughness * 5.0;
+    prefilteredColor = sRGBToLinear(textureLod(u_envMap, R, lod).rgb) * u_envIntensity;
+} else {
+    prefilteredColor = textureLod(u_prefilterMap, R, roughness * MAX_REFLECTION_LOD).rgb * u_envIntensity;
+}
+#else
+prefilteredColor = textureLod(u_prefilterMap, R, roughness * MAX_REFLECTION_LOD).rgb * u_envIntensity;
+#endif
 vec2 envBRDF  = texture(u_brdfLUT, vec2(max(dotNV, 0.0), roughness)).rg;
 vec3 specularAmbient = prefilteredColor * (kS_ambient * envBRDF.x + envBRDF.y);
 
