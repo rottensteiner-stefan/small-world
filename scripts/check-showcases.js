@@ -184,7 +184,7 @@ async function checkShowcase(browser, { showcase, rendererType }) {
       showcase === "yad" ? `apps/sample-apps/${showcase}` : `apps/showcases/${showcase}`;
     const url = `https://localhost:4173/${basePath}/index.html${query}`;
 
-    await page.goto(url, { waitUntil: ["domcontentloaded", "networkidle2"], timeout: 25000 });
+    await page.goto(url, { waitUntil: "load", timeout: 20000 });
 
     // Give it 1 second of actual running time to catch runtime loops/render errors
     await sleep(1000);

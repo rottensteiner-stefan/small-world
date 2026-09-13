@@ -31,6 +31,8 @@ export class WebGLClusterCullPass implements WebGLRenderPass {
   private _spotCounts = new Uint8Array(1);
   private _grid = new Uint32Array(4);
   private _indices = new Uint32Array(CLUSTER_TEX_WIDTH * 2);
+  private _warnedGridUnit: boolean = false;
+  private _warnedIndexUnit: boolean = false;
 
   public execute(
     renderer: AbstractWebGLRenderer,
@@ -253,9 +255,12 @@ export class WebGLClusterCullPass implements WebGLRenderPass {
     const maxUnits = DeviceCaps.getLimit(DeviceLimit.WEBGL2_MAX_TEXTURE_IMAGE_UNITS);
 
     if (CLUSTER_GRID_UNIT >= maxUnits) {
-      console.warn(
-        `[WebGLClusterCullPass] Exceeded MAX_TEXTURE_IMAGE_UNITS (${maxUnits}). Cannot bind cluster grid texture to texture unit ${CLUSTER_GRID_UNIT}.`,
-      );
+      if (!this._warnedGridUnit) {
+        this._warnedGridUnit = true;
+        console.warn(
+          `[WebGLClusterCullPass] Exceeded MAX_TEXTURE_IMAGE_UNITS (${maxUnits}). Cannot bind cluster grid texture to texture unit ${CLUSTER_GRID_UNIT}.`,
+        );
+      }
     } else {
       gl.activeTexture(gl.TEXTURE0 + CLUSTER_GRID_UNIT);
       gl.bindTexture(gl.TEXTURE_2D, renderer.clusterGridTex);
@@ -273,9 +278,12 @@ export class WebGLClusterCullPass implements WebGLRenderPass {
     }
 
     if (CLUSTER_INDEX_UNIT >= maxUnits) {
-      console.warn(
-        `[WebGLClusterCullPass] Exceeded MAX_TEXTURE_IMAGE_UNITS (${maxUnits}). Cannot bind cluster index texture to texture unit ${CLUSTER_INDEX_UNIT}.`,
-      );
+      if (!this._warnedIndexUnit) {
+        this._warnedIndexUnit = true;
+        console.warn(
+          `[WebGLClusterCullPass] Exceeded MAX_TEXTURE_IMAGE_UNITS (${maxUnits}). Cannot bind cluster index texture to texture unit ${CLUSTER_INDEX_UNIT}.`,
+        );
+      }
     } else {
       gl.activeTexture(gl.TEXTURE0 + CLUSTER_INDEX_UNIT);
       gl.bindTexture(gl.TEXTURE_2D, renderer.clusterIndexTex);
