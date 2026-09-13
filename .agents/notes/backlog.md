@@ -20,6 +20,48 @@ erzeugen.
 
 ---
 
+## 2026-09-13 — Echtes IBL für 6 Showcases + gefundener AO-Uniform-Bug (WebGL1+WebGL2)
+
+- ✅ **Auslöser:** Showcase 15s Spiegelkugeln (`metallic:1.0, roughness:0.02`) wirkten "kaputt
+  dunkel". Untersuchung ergab zunächst: keine echte IBL (Irradiance/Prefilter/BRDF-LUT), nur
+  flaches `u_ambientColor`. Vorhandene Bake-Pipeline (`public/tools/ibl-gen.html` +
+  `packages/engine/src/tools/ibl-gen.ts`, `IBLBaker`) wird bislang nur von Showcase 16 korrekt
+  genutzt — 13/27/28/30/36 setzen `irradianceMap`/`prefilterMap` fälschlich auf die rohe,
+  unkonvolvierte Skybox (kein `brdfLUT`).
+- ✅ **Zwei neue Equirect-Panoramen per Gemini generiert** (`.agents/scratches/`, git-ignored):
+  ein "Nebula"-Motiv (für die 5 Showcases mit gemeinsamer Skybox, 13/15/27/28/36) und ein
+  "Vienna Ruins Sky"-Motiv (nur Showcase 30, eigene Skybox). Erster Versuch für Vienna zeigte
+  sichtbare Kachel-Wiederholung der Referenz — mit präziserem Prompt ("kein Tiling, erfinde
+  durchgehende Skyline") im zweiten Anlauf sauber gelöst.
+  → Lektion: [[feedback_multipanel_image_gen]]-artig — ein Referenzbild kann das Modell zum
+  wörtlichen Kacheln verleiten, wenn der Prompt "seamless 360°" nicht explizit "keine Wiederholung,
+  erfinde Neues" dazuschreibt.
+- ✅ **Baking über die bestehende `ibl-gen.html`-UI automatisiert** statt neu gebaut: Datei-Upload
+  + Klick über `claude-in-chrome`-Automatisierung, echter Browser-Download (`ibl_maps.zip`, nach
+  expliziter Nutzerfreigabe) statt direktem JS-Datenkanal (der blockt Base64-Bild-Rückgaben als
+  Sicherheitsmaßnahme). PNG→WebP-Konvertierung lokal via `cwebp -lossless`. Alle 6
+  `apps/showcases/{13,15,27,28,30,36}/assets/ibl/` befüllt, alle 6 `showcase.ts` auf das
+  Showcase-16-Muster verdrahtet (Skybox bleibt unverändert sichtbar, nur die unsichtbaren
+  IBL-Maps sind neu).
+- ✅ **Echter Bug gefunden und gefixt, nicht nur IBL-Lücke:** `StandardMaterial.getRenderManifest()`
+  schreibt AO nur in `u_extraParams.x` (das WGSL/WebGPU korrekt liest). Die GLSL-Shader
+  (`Standard.frag.glsl` für WebGL2, `Standard.frag.glsl100` für WebGL1) lasen AO aber aus einem
+  eigenen, nie befüllten `uniform float u_ao` — Default 0.0, multipliziert die GESAMTE
+  Ambient-Formel (`ambient = (...) * ao`) auf beiden GLSL-Renderern permanent auf Null.
+  Vermutlich ein alter Refactor-Rest (AO wurde mal in `u_extraParams` gebündelt, WGSL wurde
+  angepasst, die beiden GLSL-Dateien nicht). Betraf **jede** WebGL1/WebGL2-Szene mit spürbarem
+  Ambient-Anteil, nicht nur IBL — nur durch dieses konkrete, ambient-lastige Szenario extrem
+  auffällig geworden. Fix: `u_ao`-Uniform entfernt, beide Shader lesen jetzt `u_extraParams.x`.
+  Live in allen 3 Renderern verifiziert (dramatische, korrekte Verbesserung: Spiegelkugeln zeigen
+  jetzt eine echte Umgebungsreflexion statt Schwarz).
+- 📋 **Nicht in diesem Schritt:** kein IBL für WebGL1 (bleibt architektonisch ohne echten
+  IBL-Pfad, nur der jetzt reparierte flache/`u_envMap`-Fallback-Pfad profitiert mit). Der
+  unabhängige `USE_IBL`-Flag-Bug (`WebGL2Renderer.ts` prüft nur `irradianceMap||prefilterMap`,
+  ignoriert `brdfLUT`) betraf unseren Fall nicht (wir setzen immer alle drei) und wurde nicht
+  angefasst. Kein ADR geschrieben (nicht verlangt, nur angeboten).
+
+---
+
 ## 2026-09-12 — ADR 0016 Phase 2.3+2.4: Hintergrundbild-Import + Klick-zum-Zeichnen — ADR 0016 KOMPLETT
 
 - ✅ **Dritter + vierter Maker-UI-Teilschritt, damit ist ADR 0016 vollständig umgesetzt.**
