@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.79.12] - 2026-09-14
+
+### "A bridge is a promise between two shores." - Mehmet Murat Ildan
+
+- **Housekeeping & Docs:**
+  - Prefixed direct showcase, tool, and concept-dossier links with `/small-world/showcases/...` across documentation files ([`docs/apps/and-now.md`](docs/apps/and-now.md), [`docs/apps/maker.md`](docs/apps/maker.md), [`docs/apps/yad.md`](docs/apps/yad.md), [`docs/apps/light-cycle-arena.md`](docs/apps/light-cycle-arena.md)), ensuring correct path resolution on GitHub Pages when opening links in new browser tabs.
+  - Added entry 122 to *And Now?* dev log ([`apps/sample-apps/and-now/docs/log.md`](apps/sample-apps/and-now/docs/log.md)).
+
 ## [0.79.11] - 2026-09-14
 
 ### "An obstacle is often a stepping stone." - William Prescott

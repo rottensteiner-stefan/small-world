@@ -9,8 +9,8 @@
 
 | Modul | Typ | Link |
 | :--- | :--- | :--- |
-| **🏗️ Maker Studio starten** | Editor | [Maker im Browser starten](/showcases/tools/maker.html){target="_blank"} |
-| **📖 Maker Konzept-Dossier** | Web-Dossier | [Dossier öffnen](/showcases/packages/engine/src/tools/maker/docs/concept-dossier.html){target="_blank"} |
+| **🏗️ Maker Studio starten** | Editor | [Maker im Browser starten](/small-world/showcases/tools/maker.html){target="_blank"} |
+| **📖 Maker Konzept-Dossier** | Web-Dossier | [Dossier öffnen](/small-world/showcases/packages/engine/src/tools/maker/docs/concept-dossier.html){target="_blank"} |
 
 ---
 

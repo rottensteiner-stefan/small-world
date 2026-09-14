@@ -10,8 +10,8 @@
 
 | Modul | Typ | Link |
 | :--- | :--- | :--- |
-| **🎮 Light Cycle Arena starten** | Playable App | [Arena im Vollbild starten](/showcases/apps/sample-apps/light-cycle-arena/index.html){target="_blank"} |
-| **📖 Konzept-Dossier** | Web-Dossier | [Dossier öffnen](/showcases/apps/sample-apps/light-cycle-arena/docs/concept-dossier.html){target="_blank"} |
+| **🎮 Light Cycle Arena starten** | Playable App | [Arena im Vollbild starten](/small-world/showcases/apps/sample-apps/light-cycle-arena/index.html){target="_blank"} |
+| **📖 Konzept-Dossier** | Web-Dossier | [Dossier öffnen](/small-world/showcases/apps/sample-apps/light-cycle-arena/docs/concept-dossier.html){target="_blank"} |
 
 ---
 

@@ -10,11 +10,11 @@
 
 | Modul / Szene | Typ | Beschreibung | Link |
 | :--- | :--- | :--- | :--- |
-| **🎨 Visuelles Concept-Dossier** | Web-Dossier | Komplette Galerie, Fraktions-Archetypen & Sin-City Colorkey-Dramaturgie | [Dossier öffnen](/showcases/apps/sample-apps/and-now/docs/concept-dossier.html){target="_blank"} |
-| **🗺️ Großvaters Faltplan (Stadtkarte)** | 2.5D UI | Interaktiver Stadtplan 2100 mit Františeks Notizen & Schnellreise-Transit | [Faltplan starten](/showcases/apps/sample-apps/and-now/scenes/map/index.html){target="_blank"} |
-| **🎭 Character Diorama Studio** | 3D-Bühne | 3D-Figuren-Präsentation im Urban-Diorama mit Glitch-Rändern & Hotkey `[N]` | [Studio starten](/showcases/apps/sample-apps/and-now/scenes/character-diorama/index.html){target="_blank"} |
-| **🚇 Flakturm Tunnelgang (Szene 2)** | 2.5D Szene | Atmosphärische Bühnenerkundung: Vorplatz, Tunnel in die Tiefe & Schleusentor | [Szene 2 starten](/showcases/apps/sample-apps/and-now/scenes/flakturm-tunnel/index.html){target="_blank"} |
-| **🕯️ Großvaters Tod (Prolog Szene 1)** | 2.5D Szene | Koje 42, Kaffeedosen-Urne und Konfrontation mit Blockwart Hawelka | [Prolog starten](/showcases/apps/sample-apps/and-now/scenes/prologue/index.html){target="_blank"} |
+| **🎨 Visuelles Concept-Dossier** | Web-Dossier | Komplette Galerie, Fraktions-Archetypen & Sin-City Colorkey-Dramaturgie | [Dossier öffnen](/small-world/showcases/apps/sample-apps/and-now/docs/concept-dossier.html){target="_blank"} |
+| **🗺️ Großvaters Faltplan (Stadtkarte)** | 2.5D UI | Interaktiver Stadtplan 2100 mit Františeks Notizen & Schnellreise-Transit | [Faltplan starten](/small-world/showcases/apps/sample-apps/and-now/scenes/map/index.html){target="_blank"} |
+| **🎭 Character Diorama Studio** | 3D-Bühne | 3D-Figuren-Präsentation im Urban-Diorama mit Glitch-Rändern & Hotkey `[N]` | [Studio starten](/small-world/showcases/apps/sample-apps/and-now/scenes/character-diorama/index.html){target="_blank"} |
+| **🚇 Flakturm Tunnelgang (Szene 2)** | 2.5D Szene | Atmosphärische Bühnenerkundung: Vorplatz, Tunnel in die Tiefe & Schleusentor | [Szene 2 starten](/small-world/showcases/apps/sample-apps/and-now/scenes/flakturm-tunnel/index.html){target="_blank"} |
+| **🕯️ Großvaters Tod (Prolog Szene 1)** | 2.5D Szene | Koje 42, Kaffeedosen-Urne und Konfrontation mit Blockwart Hawelka | [Prolog starten](/small-world/showcases/apps/sample-apps/and-now/scenes/prologue/index.html){target="_blank"} |
 
 ---
 

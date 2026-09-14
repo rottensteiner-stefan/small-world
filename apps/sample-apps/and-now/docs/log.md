@@ -1336,6 +1336,18 @@ befüllen.
   - Neue Vitest-Suite [`AssetManagerResolveUrl.test.ts`](packages/engine/tests/loaders/AssetManagerResolveUrl.test.ts) hinzugefügt.
   - Alle 142 Testsuiten (782 Tests), `npm run typecheck`, `npm run lint:fix`, `npm run build:lib` und Vite-Build mit `--base=/small-world/showcases/` **100% grün**.
 
+---
+
+## 122. VitePress Documentation Base Path Link Alignment (2026-09-14)
+- **Problem & Ursachenanalyse:**
+  - In der VitePress-Dokumentation (`docs/apps/*.md`) verlinkten Markdown-Tabellen für interaktive Szenen und Konzept-Dossiers direkt auf `/showcases/...` mit `{target="_blank"}`.
+  - Da VitePress bei externen Links mit benutzerdefinierten Attributen den konfigurierten `base: "/small-world/"` nicht automatisch voranstellt, löste der Browser den Link gegen die GitHub-Pages-Wurzel (`https://rottensteiner-stefan.github.io/showcases/...`) auf und lieferte einen 404-Fehler.
+- **Lösung:**
+  - Alle direkten Showcase- und Dossier-Links in [`docs/apps/and-now.md`](docs/apps/and-now.md), [`docs/apps/maker.md`](docs/apps/maker.md), [`docs/apps/yad.md`](docs/apps/yad.md) und [`docs/apps/light-cycle-arena.md`](docs/apps/light-cycle-arena.md) auf den vollen GitHub-Pages-Subpfad `/small-world/showcases/...` aktualisiert.
+- **Verifikation:**
+  - `npm run docs:build` ausgeführt und die generierten HTML-Dateien in `docs/.vitepress/dist/apps/` erfolgreich auf korrekte Pfadauflösung geprüft.
+
+
 
 
 
