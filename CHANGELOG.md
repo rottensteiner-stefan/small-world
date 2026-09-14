@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.79.09] - 2026-09-14
+
+### "Truth is much too complicated to allow anything but approximations." - John von Neumann
+
+- **Architecture & Bugfixes:**
+  - Enabled `lfs: true` in GitHub Actions workflows (`.github/workflows/deploy-docs.yml` and `.github/workflows/ci.yml`), resolving an issue where Git LFS binary assets (.glb 3D models, .webp textures, HDR skyboxes, audio) were checked out as raw 130-byte LFS text pointer files, causing `InvalidStateError` and `Not a valid .glb file` decoding errors on GitHub Pages.
+
 ## [0.79.08] - 2026-09-14
 
 ### "There are no shortcuts to any place worth going." - Beverly Sills
