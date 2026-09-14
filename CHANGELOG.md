@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.79.13] - 2026-09-14
+
+### "The creation of a thousand forests is in one acorn." - Ralph Waldo Emerson
+
+- **Architecture & Bugfixes:**
+  - Fixed Vite `copy-assets` plugin in [`vite.config.ts`](vite.config.ts) to prevent `copyRecursiveSync` from overwriting Vite-bundled `index.html` entry points in `apps/sample-apps/` with raw unbundled source HTML files containing TypeScript `<script>` tags, resolving 404 errors for `showcase.ts` on GitHub Pages and production static servers.
+
 ## [0.79.12] - 2026-09-14
 
 ### "A bridge is a promise between two shores." - Mehmet Murat Ildan

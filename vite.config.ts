@@ -152,16 +152,20 @@ export default defineConfig({
     {
       name: "copy-assets",
       closeBundle() {
-        const copyRecursiveSync = (src: string, dest: string, copyHtml = false) => {
+        const copyRecursiveSync = (src: string, dest: string, copyDocsHtml = false) => {
           if (!fs.existsSync(src)) return;
           const stats = fs.statSync(src);
           if (stats.isDirectory()) {
             fs.mkdirSync(dest, { recursive: true });
             fs.readdirSync(src).forEach((child) => {
-              copyRecursiveSync(path.join(src, child), path.join(dest, child), copyHtml);
+              copyRecursiveSync(path.join(src, child), path.join(dest, child), copyDocsHtml);
             });
           } else {
-            if (!src.endsWith(".ts") && (copyHtml || !src.endsWith(".html"))) {
+            // Never copy raw .ts source files or overwrite Vite-bundled index.html entry points.
+            // Copy all binary/static assets and standalone doc HTML files (e.g. concept-dossier.html).
+            const isEntryHtml = src.endsWith("index.html");
+            const isDocHtml = copyDocsHtml && src.endsWith(".html") && !isEntryHtml;
+            if (!src.endsWith(".ts") && (!src.endsWith(".html") || isDocHtml)) {
               fs.copyFileSync(src, dest);
             }
           }
