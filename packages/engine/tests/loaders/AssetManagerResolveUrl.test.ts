@@ -13,6 +13,12 @@ describe("AssetManager.resolveUrl", () => {
     expect(manager.resolveUrl("//cdn.example.com/texture.jpg")).toBe(
       "//cdn.example.com/texture.jpg",
     );
+    expect(manager.resolveUrl("blob:https://example.com/1234-5678")).toBe(
+      "blob:https://example.com/1234-5678",
+    );
+    expect(manager.resolveUrl("data:image/png;base64,iVBORw0KGgo=")).toBe(
+      "data:image/png;base64,iVBORw0KGgo=",
+    );
   });
 
   it("preserves relative ./ and ../ paths", () => {

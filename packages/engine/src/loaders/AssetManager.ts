@@ -93,7 +93,11 @@ export class AssetManager {
    */
   public resolveUrl(url: string): string {
     const isAbsolute =
-      url.startsWith("http://") || url.startsWith("https://") || url.startsWith("//");
+      url.startsWith("http://") ||
+      url.startsWith("https://") ||
+      url.startsWith("//") ||
+      url.startsWith("blob:") ||
+      url.startsWith("data:");
     if (isAbsolute) return url;
 
     const base =

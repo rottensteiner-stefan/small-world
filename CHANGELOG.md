@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.79.11] - 2026-09-14
+
+### "An obstacle is often a stepping stone." - William Prescott
+
+- **Architecture & Bugfixes:**
+  - Added support for `blob:` and `data:` schemes in [`AssetManager.resolveUrl`](packages/engine/src/loaders/AssetManager.ts) and [`resolveAssetUrl`](apps/sample-apps/and-now/ui/ViennaMapModal.ts), preventing embedded glTF buffer textures (such as in Showcase 13 *DamagedHelmet*) from being erroneously prefixed with base URLs.
+
 ## [0.79.10] - 2026-09-14
 
 ### "Patience is the companion of wisdom." - Saint Augustine

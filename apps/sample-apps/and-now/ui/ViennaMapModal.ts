@@ -3,7 +3,11 @@ export type MapLocationStatus = "available" | "current" | "locked" | "in_develop
 export function resolveAssetUrl(path?: string): string {
   if (!path) return "";
   const isAbsolute =
-    path.startsWith("http://") || path.startsWith("https://") || path.startsWith("//");
+    path.startsWith("http://") ||
+    path.startsWith("https://") ||
+    path.startsWith("//") ||
+    path.startsWith("blob:") ||
+    path.startsWith("data:");
   if (isAbsolute) return path;
 
   const base =
