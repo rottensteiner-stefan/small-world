@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.79.08] - 2026-09-14
+
+### "There are no shortcuts to any place worth going." - Beverly Sills
+
+- **Architecture & Bugfixes:**
+  - Added centralized base-URL resolution to [`AssetManager`](packages/engine/src/loaders/AssetManager.ts) via `resolveUrl(url: string): string`, automatically prepending the Vite base path (`import.meta.env.BASE_URL`) or custom `_baseUrl` to root-relative asset requests (`/assets/...`) across all loaders (`Texture.fromUrl`, `GltfLoader`, `ObjLoader`, `TextLoader`, `streamBinary`).
+  - Resolved GitHub Pages subpath deployment (`/small-world/showcases/`) HTTP 404 errors for textures and 3D models across all showcases, tools, and sample apps while preserving explicit relative paths (`./`, `../`) and absolute URLs.
+  - Added `resolveAssetUrl` helper in [`ViennaMapModal.ts`](apps/sample-apps/and-now/ui/ViennaMapModal.ts) for dynamically constructed DOM `<img>` elements.
+- **Housekeeping & Docs:**
+  - Added comprehensive unit test suite [`AssetManagerResolveUrl.test.ts`](packages/engine/tests/loaders/AssetManagerResolveUrl.test.ts) covering absolute, relative, and base-path URL transformations.
+  - Documented deployment fix in *And Now?* dev log entry 121 (`apps/sample-apps/and-now/docs/log.md`).
+
 ## [0.79.07] - 2026-09-14
 
 ### "The doors of wisdom are never shut." - Benjamin Franklin

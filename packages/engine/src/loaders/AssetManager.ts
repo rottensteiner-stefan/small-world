@@ -88,6 +88,30 @@ export class AssetManager {
   }
 
   /**
+   * Resolves a relative or root-relative URL against the configured base URL or Vite base path.
+   * @param url The asset URL to resolve.
+   */
+  public resolveUrl(url: string): string {
+    const isAbsolute =
+      url.startsWith("http://") || url.startsWith("https://") || url.startsWith("//");
+    if (isAbsolute) return url;
+
+    const base =
+      this._baseUrl ||
+      (typeof import.meta !== "undefined" &&
+        (import.meta as unknown as { env?: { BASE_URL?: string } }).env?.BASE_URL) ||
+      "";
+    if (base && base !== "./") {
+      if (url.startsWith("/")) {
+        return base.endsWith("/") ? base + url.substring(1) : base + "/" + url.substring(1);
+      } else if (!url.startsWith("./") && !url.startsWith("../")) {
+        return base.endsWith("/") ? base + url : base + "/" + url;
+      }
+    }
+    return url;
+  }
+
+  /**
    * @param trackingKey Key under which this request's progress is tracked in `_activeLoaders`.
    *   Callers that cache by something other than the raw `url` (e.g. `loadImage`'s
    *   `${url}_${flipY}`) must pass that same key here -- otherwise two concurrent, distinctly
@@ -101,13 +125,7 @@ export class AssetManager {
     trackingKey: string,
     onProgress?: ProgressCallback,
   ): Promise<Blob> {
-    const isAbsolute =
-      url.startsWith("http://") || url.startsWith("https://") || url.startsWith("//");
-    let finalUrl = url;
-
-    if (!isAbsolute && this._baseUrl) {
-      finalUrl = this._baseUrl + (url.startsWith("/") ? url.substring(1) : url);
-    }
+    const finalUrl = this.resolveUrl(url);
 
     const response: Response = await fetch(finalUrl, {
       headers: this._headers,
@@ -200,7 +218,7 @@ export class AssetManager {
         return new Promise<HTMLImageElement>((resolve, reject) => {
           const img: HTMLImageElement = new Image();
           img.crossOrigin = "anonymous";
-          img.src = url;
+          img.src = this.resolveUrl(url);
           img.onload = (): void => resolve(img);
           img.onerror = (): void => reject(`[AssetManager] Fallback failed: ${url}`);
         });
@@ -264,13 +282,7 @@ export class AssetManager {
   ): Promise<ArrayBuffer> {
     if (this._binaryCache.has(url)) return this._binaryCache.get(url)!;
 
-    const isAbsolute =
-      url.startsWith("http://") || url.startsWith("https://") || url.startsWith("//");
-    let finalUrl = url;
-
-    if (!isAbsolute && this._baseUrl) {
-      finalUrl = this._baseUrl + (url.startsWith("/") ? url.substring(1) : url);
-    }
+    const finalUrl = this.resolveUrl(url);
 
     const response = await fetch(finalUrl, { headers: this._headers });
     if (!response.ok) {

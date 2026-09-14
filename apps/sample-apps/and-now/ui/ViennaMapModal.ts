@@ -1,5 +1,25 @@
 export type MapLocationStatus = "available" | "current" | "locked" | "in_development" | "target";
 
+export function resolveAssetUrl(path?: string): string {
+  if (!path) return "";
+  const isAbsolute =
+    path.startsWith("http://") || path.startsWith("https://") || path.startsWith("//");
+  if (isAbsolute) return path;
+
+  const base =
+    (typeof import.meta !== "undefined" &&
+      (import.meta as unknown as { env?: { BASE_URL?: string } }).env?.BASE_URL) ||
+    "";
+  if (base && base !== "./") {
+    if (path.startsWith("/")) {
+      return base.endsWith("/") ? base + path.substring(1) : base + "/" + path.substring(1);
+    } else if (!path.startsWith("./") && !path.startsWith("../")) {
+      return base.endsWith("/") ? base + path : base + "/" + path;
+    }
+  }
+  return path;
+}
+
 export interface MapLocation {
   id: string;
   title: string;
@@ -396,7 +416,7 @@ export class ViennaMapModal {
               align-items: center;
               justify-content: center;
             ">
-              <img id="viennaMapImg" src="/assets/and-now/map/vienna_map.jpg" alt="Wien 2100 Stadtplan" style="
+              <img id="viennaMapImg" src="${resolveAssetUrl("/assets/and-now/map/vienna_map.jpg")}" alt="Wien 2100 Stadtplan" style="
                 max-width: 100%;
                 max-height: 100%;
                 object-fit: contain;
@@ -455,7 +475,7 @@ export class ViennaMapModal {
             box-shadow: 0 20px 50px rgba(0,0,0,0.9);
             margin-bottom: 24px;
           ">
-            <img src="/assets/and-now/map/transit_tunnel.jpg" alt="Transit Vignette" style="width: 100%; height: auto; display: block;" />
+            <img src="${resolveAssetUrl("/assets/and-now/map/transit_tunnel.jpg")}" alt="Transit Vignette" style="width: 100%; height: auto; display: block;" />
           </div>
           <div id="transitLocationTitle" style="font-size: 1.4rem; font-weight: bold; color: #ffb84d; letter-spacing: 1px; margin-bottom: 8px;">
             SCHNELLREISE...
@@ -810,7 +830,7 @@ export class ViennaMapModal {
         margin-bottom: 12px;
         box-shadow: 0 4px 15px rgba(0,0,0,0.6);
       ">
-        <img src="${loc.conceptImage}" alt="${loc.title}" style="
+        <img src="${resolveAssetUrl(loc.conceptImage)}" alt="${loc.title}" style="
           width: 100%;
           height: 100%;
           object-fit: cover;
@@ -868,7 +888,7 @@ export class ViennaMapModal {
         padding: 8px 10px;
         margin-bottom: 12px;
       ">
-        <img src="${loc.archetypeImage}" alt="${loc.archetypeRole ?? "Fraktions-Figur"}" style="
+        <img src="${resolveAssetUrl(loc.archetypeImage)}" alt="${loc.archetypeRole ?? "Fraktions-Figur"}" style="
           width: 44px;
           height: 44px;
           border-radius: 4px;

@@ -1320,29 +1320,21 @@ befüllen.
     2. *Ebene 2 (Dramaturgische Intervention / 10–15% der Spielzeit):* Radikales Sin-City Chiaroscuro (Tusche-Schatten + 1 isolierter Colorkey) als gezielte Regie-Zäsur für Schockmomente (K-42 Mord-Indiz Blausäure-Smaragd), Trauma-Echos (Großvater-Laterne Bernstein), Stufe-3-Nahkampf (Karminrot) und Tribunale.
 - **Dokumentation:** Vollständig synchronisiert in [`story.md`](apps/sample-apps/and-now/docs/story.md) und [`concept-dossier.html`](apps/sample-apps/and-now/docs/concept-dossier.html).
 
+---
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+## 121. GitHub Pages Deployment & AssetManager Base-URL Resolution (2026-09-14)
+- **Problem & Ursachenanalyse:**
+  - Beim Deployment der Dokumentation und Showcases auf GitHub Pages unter dem Subpfad `/small-world/showcases/` schlugen Asset-Requests für Texturen (`wall_tiles.jpg`), 3D-Modelle (`wall_lamp.glb`, `character.glb`) und UI-Kartenbilder mit einem HTTP 404 fehl.
+  - Root-relative Pfade (`/assets/...`) wurden vom Browser relativ zur Domain-Root (`rottensteiner-stefan.github.io/assets/...`) statt zum Vite-Base-Pfad aufgelöst.
+- **Zentrale Architektur-Lösung:**
+  - [`AssetManager`](packages/engine/src/loaders/AssetManager.ts) um die Kern-Methode `resolveUrl(url: string): string` erweitert:
+    - Löst root-relative Pfade (`/assets/...`) und bare relative Pfade automatisch gegen `import.meta.env.BASE_URL` (Vite-Build-Pfad) bzw. eine konfigurierte `_baseUrl` auf.
+    - Absolute URLs (`http://`, `https://`, `//`) sowie explizit relative Pfade (`./`, `../`) bleiben unberührt.
+    - Zentral verknüpft in `_fetchWithProgress`, `loadImage` (inkl. Fallback), `streamBinary` und allen Lade-Pipelines (`Texture.fromUrl`, `GltfLoader`).
+  - [`ViennaMapModal.ts`](apps/sample-apps/and-now/ui/ViennaMapModal.ts): UI-Karten, Vignetten und Archetyp-Vorschaubilder mit `resolveAssetUrl` angebunden.
+- **Verifikation:**
+  - Neue Vitest-Suite [`AssetManagerResolveUrl.test.ts`](packages/engine/tests/loaders/AssetManagerResolveUrl.test.ts) hinzugefügt.
+  - Alle 142 Testsuiten (782 Tests), `npm run typecheck`, `npm run lint:fix`, `npm run build:lib` und Vite-Build mit `--base=/small-world/showcases/` **100% grün**.
 
 
 
