@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.79.14] - 2026-09-14
+
+### "It is not the answer that enlightens, but the question." - Eugène Ionesco
+
+- **Architecture & Bugfixes:**
+  - Added texture format matching validation to [`captureOpaqueTexture`](packages/engine/src/renderers/WebGPU/WebGPURenderer.ts) and [`captureOpaqueDepth`](packages/engine/src/renderers/WebGPU/WebGPURenderer.ts) in `WebGPURenderer`. Fixed an issue where switching between HDR float buffers (`rgba16float`) and SDR canvas targets (`bgra8unorm`) retained an old cached texture with a mismatched format, causing WebGPU `copyTextureToTexture` validation failures and invalid command buffer aborts.
+  - Added unit test coverage in [`packages/engine/tests/renderers/WebGPUOffscreenTargetFormat.test.ts`](packages/engine/tests/renderers/WebGPUOffscreenTargetFormat.test.ts) covering dynamic format transitions in opaque captures.
+
 ## [0.79.13] - 2026-09-14
 
 ### "The creation of a thousand forests is in one acorn." - Ralph Waldo Emerson

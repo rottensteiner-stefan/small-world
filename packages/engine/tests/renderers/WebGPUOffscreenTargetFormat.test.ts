@@ -344,3 +344,85 @@ describe("WebGPURenderer.render(): custom RenderTarget's own depth texture usage
     expect(usage & COPY_SRC).toBe(COPY_SRC);
   });
 });
+
+describe("WebGPURenderer.captureOpaqueTexture() and captureOpaqueDepth() format validation", () => {
+  it("recreates cached opaque texture when source format changes (e.g. bgra8unorm to rgba16float HDR)", () => {
+    const { renderer, device } = makeRenderer();
+    const ce = {
+      copyTextureToTexture: vi.fn(),
+    } as unknown as GPUCommandEncoder;
+
+    const bgraTex = {
+      width: 100,
+      height: 100,
+      format: "bgra8unorm" as GPUTextureFormat,
+      createView: vi.fn(() => ({})),
+      destroy: vi.fn(),
+    } as unknown as GPUTexture;
+
+    // Capture first with bgra8unorm
+    renderer.captureOpaqueTexture(ce, bgraTex);
+    expect(device.createTexture).toHaveBeenCalledWith(
+      expect.objectContaining({
+        size: [100, 100, 1],
+        format: "bgra8unorm",
+      }),
+    );
+
+    const hdrTex = {
+      width: 100,
+      height: 100,
+      format: "rgba16float" as GPUTextureFormat,
+      createView: vi.fn(() => ({})),
+      destroy: vi.fn(),
+    } as unknown as GPUTexture;
+
+    // Capture next with rgba16float (same dimensions)
+    renderer.captureOpaqueTexture(ce, hdrTex);
+    expect(device.createTexture).toHaveBeenCalledWith(
+      expect.objectContaining({
+        size: [100, 100, 1],
+        format: "rgba16float",
+      }),
+    );
+  });
+
+  it("recreates cached opaque depth texture when depth format changes", () => {
+    const { renderer, device } = makeRenderer();
+    const ce = {
+      copyTextureToTexture: vi.fn(),
+    } as unknown as GPUCommandEncoder;
+
+    renderer._depthTexture = {
+      width: 100,
+      height: 100,
+      format: "depth24plus" as GPUTextureFormat,
+      createView: vi.fn(() => ({})),
+      destroy: vi.fn(),
+    } as unknown as GPUTexture;
+
+    renderer.captureOpaqueDepth(ce);
+    expect(device.createTexture).toHaveBeenCalledWith(
+      expect.objectContaining({
+        size: [100, 100, 1],
+        format: "depth24plus",
+      }),
+    );
+
+    renderer._depthTexture = {
+      width: 100,
+      height: 100,
+      format: "depth32float" as GPUTextureFormat,
+      createView: vi.fn(() => ({})),
+      destroy: vi.fn(),
+    } as unknown as GPUTexture;
+
+    renderer.captureOpaqueDepth(ce);
+    expect(device.createTexture).toHaveBeenCalledWith(
+      expect.objectContaining({
+        size: [100, 100, 1],
+        format: "depth32float",
+      }),
+    );
+  });
+});

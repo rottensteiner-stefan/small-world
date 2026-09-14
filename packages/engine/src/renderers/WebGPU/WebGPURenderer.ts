@@ -263,12 +263,14 @@ export class WebGPURenderer extends AbstractRenderer {
     object,
     { tex: GPUTexture; view: GPUTextureView; width: number; height: number }
   >();
-  protected _screenOpaqueTexture?: {
-    tex: GPUTexture;
-    view: GPUTextureView;
-    width: number;
-    height: number;
-  };
+  protected _screenOpaqueTexture?:
+    | {
+        tex: GPUTexture;
+        view: GPUTextureView;
+        width: number;
+        height: number;
+      }
+    | undefined;
   private _opaqueTextureView?: GPUTextureView;
 
   private _shadowMaps = new Map<
@@ -1444,7 +1446,12 @@ export class WebGPURenderer extends AbstractRenderer {
       ? this._opaqueTextures.get(this._activeRenderTarget)
       : this._screenOpaqueTexture;
 
-    if (!cacheObj || cacheObj.width !== targetTex.width || cacheObj.height !== targetTex.height) {
+    if (
+      !cacheObj ||
+      cacheObj.width !== targetTex.width ||
+      cacheObj.height !== targetTex.height ||
+      cacheObj.tex.format !== targetTex.format
+    ) {
       if (cacheObj) cacheObj.tex.destroy();
 
       const tex = this._device!.createTexture({
@@ -1483,16 +1490,18 @@ export class WebGPURenderer extends AbstractRenderer {
     if (
       !this._opaqueDepthTexture ||
       this._opaqueDepthTexture.width !== srcTex.width ||
-      this._opaqueDepthTexture.height !== srcTex.height
+      this._opaqueDepthTexture.height !== srcTex.height ||
+      this._opaqueDepthTexture.format !== srcTex.format
     ) {
       if (this._opaqueDepthTexture) this._opaqueDepthTexture.destroy();
 
-      this._opaqueDepthTexture = this._device!.createTexture({
+      const tex = this._device!.createTexture({
         size: [srcTex.width, srcTex.height, 1],
         format: srcTex.format,
         usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
       });
-      this._opaqueDepthTextureView = this._opaqueDepthTexture.createView();
+      this._opaqueDepthTexture = tex;
+      this._opaqueDepthTextureView = tex.createView();
     }
 
     ce.copyTextureToTexture({ texture: srcTex }, { texture: this._opaqueDepthTexture }, [
@@ -2166,6 +2175,10 @@ export class WebGPURenderer extends AbstractRenderer {
     this._hbaoPassGPU?.destroy();
     this._taaPassGPU?.destroy();
     this._motionTrailPassGPU?.destroy();
+
+    this._screenOpaqueTexture?.tex.destroy();
+    this._screenOpaqueTexture = undefined;
+    this._opaqueTextures = new WeakMap();
 
     this._materialBindGroups.clear();
     this._shadowMaps.clear();
