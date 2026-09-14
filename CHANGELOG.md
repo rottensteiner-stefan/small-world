@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.79.07] - 2026-09-14
+
+### "The doors of wisdom are never shut." - Benjamin Franklin
+
+- **Features:**
+  - Upgraded central launcher into an All-in-One Small World Portal (`public/index.html`) featuring real-time search, category filtering, spotlight game cards, and direct links to tools, show-scenes, and concept dossiers.
+  - Added dedicated "Spiele & Welten" navigation to VitePress documentation portal with complete narrative profiles for *And Now? (Wien 2100)*, *YAD*, *Light Cycle Arena*, and *Maker*.
+  - Configured full asset and documentation pipeline in `vite.config.ts` to package and serve all concept dossiers, maps, and markdown docs across production bundles and GitHub Pages.
+- **Architecture & Bugfixes:**
+  - Integrated ADR 0018 (*glTF Data-Level Extensions*) into the official architecture registry and VitePress navigation.
+- **Housekeeping & Docs:**
+  - Automated deployment workflow (`deploy-docs.yml`) configured to deploy the unified portal, guides, and 3D showcases to GitHub Pages.
+
 ## [0.79.06] - 2026-09-14
 
 ### "Color is the keyboard, the eyes are the hammers, the soul is the piano with many strings." - Wassily Kandinsky

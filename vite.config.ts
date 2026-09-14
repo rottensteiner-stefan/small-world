@@ -152,21 +152,27 @@ export default defineConfig({
     {
       name: "copy-assets",
       closeBundle() {
-        const copyRecursiveSync = (src: string, dest: string) => {
+        const copyRecursiveSync = (src: string, dest: string, copyHtml = false) => {
           if (!fs.existsSync(src)) return;
           const stats = fs.statSync(src);
           if (stats.isDirectory()) {
             fs.mkdirSync(dest, { recursive: true });
             fs.readdirSync(src).forEach((child) => {
-              copyRecursiveSync(path.join(src, child), path.join(dest, child));
+              copyRecursiveSync(path.join(src, child), path.join(dest, child), copyHtml);
             });
           } else {
-            if (!src.endsWith(".ts") && !src.endsWith(".html")) {
+            if (!src.endsWith(".ts") && (copyHtml || !src.endsWith(".html"))) {
               fs.copyFileSync(src, dest);
             }
           }
         };
         copyRecursiveSync("apps/showcases", "dist/apps/showcases");
+        copyRecursiveSync("apps/sample-apps", "dist/apps/sample-apps", true);
+        copyRecursiveSync(
+          "packages/engine/src/tools/maker/docs",
+          "dist/packages/engine/src/tools/maker/docs",
+          true,
+        );
       },
     },
     ...(process.env.VITEST ? [] : [mkcert()]),
@@ -239,6 +245,7 @@ export default defineConfig({
           import.meta.dirname,
           "apps/sample-apps/and-now/scenes/character-diorama/index.html",
         ),
+        andNowMap: resolve(import.meta.dirname, "apps/sample-apps/and-now/scenes/map/index.html"),
         yad: resolve(import.meta.dirname, "apps/sample-apps/yad/index.html"),
         lightCycleArena: resolve(
           import.meta.dirname,
@@ -281,6 +288,9 @@ export default defineConfig({
           }
           if (chunk.name === "andNowCharacterDiorama") {
             return "apps/sample-apps/and-now/scenes/character-diorama/showcase.js";
+          }
+          if (chunk.name === "andNowMap") {
+            return "apps/sample-apps/and-now/scenes/map/map.js";
           }
           if (chunk.name === "yad") {
             return "apps/sample-apps/yad/App.js";

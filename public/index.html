@@ -1,305 +1,782 @@
 <!doctype html>
-<html lang="en">
+<html lang="de">
   <head>
     <link rel="icon" type="image/webp" href="/favicon.webp" />
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Small World Engine</title>
+    <title>Small World Engine — Portal & Launcher</title>
     <link
-      href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=JetBrains+Mono:wght@400;600&display=swap"
       rel="stylesheet"
     />
     <style>
+      :root {
+        --bg-main: #05070a;
+        --bg-card: rgba(8, 14, 22, 0.75);
+        --bg-card-hover: rgba(0, 229, 255, 0.08);
+        --accent-cyan: #00e5ff;
+        --accent-amber: #ffb84d;
+        --accent-red: #ff4757;
+        --accent-green: #2ecc71;
+        --accent-purple: #a855f7;
+        --border-cyan: rgba(0, 229, 255, 0.25);
+        --border-cyan-bright: #00e5ff;
+        --text-primary: #d1fdff;
+        --text-muted: #7e9bb0;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
       body {
         margin: 0;
-        background: #050505;
+        background: var(--bg-main);
         background-image:
-          linear-gradient(rgba(0, 229, 255, 0.05) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(0, 229, 255, 0.05) 1px, transparent 1px);
-        background-size: 30px 30px;
-        color: #d1fdff;
+          linear-gradient(rgba(0, 229, 255, 0.04) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(0, 229, 255, 0.04) 1px, transparent 1px);
+        background-size: 32px 32px;
+        color: var(--text-primary);
         font-family: "Rajdhani", sans-serif;
-        padding: 3rem;
+        padding: 2.5rem 1.5rem 4rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-height: 100vh;
+      }
+
+      .portal-container {
+        width: 100%;
+        max-width: 1120px;
         display: flex;
         flex-direction: column;
         align-items: center;
       }
 
+      /* --- Header --- */
+      header.hero {
+        text-align: center;
+        margin-bottom: 2.5rem;
+        width: 100%;
+      }
+
+      .badge-version {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(0, 229, 255, 0.1);
+        border: 1px solid var(--border-cyan);
+        color: var(--accent-cyan);
+        padding: 4px 12px;
+        border-radius: 999px;
+        font-size: 0.85rem;
+        font-family: "JetBrains Mono", monospace;
+        letter-spacing: 1px;
+        margin-bottom: 1rem;
+      }
+
       h1 {
-        font-size: 3rem;
-        letter-spacing: 5px;
+        font-size: 3.2rem;
+        letter-spacing: 6px;
         text-transform: uppercase;
         color: #d1fdff;
         text-shadow:
-          0 0 5px #00e5ff,
-          0 0 10px #00e5ff,
-          0 0 20px #00e5ff,
-          0 0 40px #00b3cc;
-        margin-bottom: 0.5rem;
+          0 0 8px #00e5ff,
+          0 0 20px rgba(0, 229, 255, 0.6);
+        margin: 0 0 0.5rem 0;
       }
 
       p.subtitle {
-        color: #88d4e0;
-        font-size: 1.2rem;
+        color: var(--text-muted);
+        font-size: 1.25rem;
         letter-spacing: 2px;
-        margin-bottom: 3rem;
-        text-shadow: 0 0 5px rgba(0, 229, 255, 0.5);
+        margin: 0 0 2rem 0;
       }
 
-      .presentation-banner {
-        background: rgba(0, 15, 25, 0.8);
-        border: 1px solid #ff6600;
-        padding: 1rem 2rem;
-        border-radius: 4px;
-        margin-bottom: 3rem;
-        transition: all 0.3s ease;
-        box-shadow: 0 0 15px rgba(255, 102, 0, 0.2);
-        backdrop-filter: blur(5px);
-      }
-
-      .presentation-banner:hover {
-        background: #ff6600;
-        box-shadow: 0 0 30px rgba(255, 102, 0, 0.6);
-      }
-
-      .presentation-banner a {
-        color: #ff6600;
-        font-size: 1.4rem;
-        font-weight: bold;
-        text-transform: uppercase;
-        letter-spacing: 2px;
-        text-decoration: none;
+      /* --- Top Quick-Nav Bar --- */
+      .quick-nav {
         display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        justify-content: center;
+        margin-bottom: 2.5rem;
+      }
+
+      .nav-btn {
+        background: rgba(0, 15, 25, 0.85);
+        border: 1px solid var(--border-cyan);
+        color: var(--text-primary);
+        padding: 10px 18px;
+        border-radius: 4px;
+        text-decoration: none;
+        font-size: 1.05rem;
+        font-weight: 700;
+        letter-spacing: 1px;
+        display: inline-flex;
         align-items: center;
-        gap: 10px;
+        gap: 8px;
+        transition: all 0.25s ease;
+        backdrop-filter: blur(6px);
       }
 
-      .presentation-banner:hover a {
+      .nav-btn:hover {
+        background: rgba(0, 229, 255, 0.2);
+        border-color: var(--accent-cyan);
+        color: #fff;
+        box-shadow: 0 0 15px rgba(0, 229, 255, 0.35);
+        transform: translateY(-2px);
+      }
+
+      .nav-btn.primary {
+        border-color: var(--accent-amber);
+        color: var(--accent-amber);
+      }
+
+      .nav-btn.primary:hover {
+        background: var(--accent-amber);
         color: #000;
+        box-shadow: 0 0 20px rgba(255, 184, 77, 0.6);
       }
 
-      h2 {
-        font-size: 2rem;
-        letter-spacing: 3px;
-        color: #00e5ff;
-        border-bottom: 1px solid #00e5ff;
-        padding-bottom: 10px;
+      /* --- Search & Filter Controls --- */
+      .controls-bar {
         width: 100%;
-        max-width: 900px;
-        text-transform: uppercase;
-        margin-top: 2rem;
-        text-shadow: 0 0 10px rgba(0, 229, 255, 0.5);
-        box-shadow: 0 10px 10px -10px rgba(0, 229, 255, 0.3);
+        margin-bottom: 2.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
       }
 
-      .grid-container {
+      .search-box {
+        width: 100%;
+        position: relative;
+      }
+
+      .search-input {
+        width: 100%;
+        background: rgba(0, 15, 25, 0.8);
+        border: 1px solid var(--border-cyan);
+        padding: 14px 20px 14px 44px;
+        border-radius: 6px;
+        color: #fff;
+        font-family: "Rajdhani", sans-serif;
+        font-size: 1.15rem;
+        letter-spacing: 1px;
+        outline: none;
+        transition: all 0.25s ease;
+      }
+
+      .search-input:focus {
+        border-color: var(--accent-cyan);
+        box-shadow: 0 0 15px rgba(0, 229, 255, 0.4);
+      }
+
+      .search-icon {
+        position: absolute;
+        left: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted);
+        font-size: 1.2rem;
+      }
+
+      .filter-tabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .tab-btn {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: var(--text-muted);
+        padding: 8px 16px;
+        border-radius: 4px;
+        font-family: "Rajdhani", sans-serif;
+        font-size: 1rem;
+        font-weight: 600;
+        letter-spacing: 1px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      .tab-btn:hover {
+        border-color: var(--border-cyan);
+        color: var(--text-primary);
+      }
+
+      .tab-btn.active {
+        background: rgba(0, 229, 255, 0.15);
+        border-color: var(--accent-cyan);
+        color: #fff;
+        box-shadow: 0 0 10px rgba(0, 229, 255, 0.25);
+      }
+
+      /* --- Section Headers --- */
+      .section-title {
+        font-size: 1.8rem;
+        letter-spacing: 3px;
+        color: var(--accent-cyan);
+        border-bottom: 1px solid var(--border-cyan);
+        padding-bottom: 8px;
+        width: 100%;
+        text-transform: uppercase;
+        margin: 2.5rem 0 1.2rem 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        text-shadow: 0 0 8px rgba(0, 229, 255, 0.4);
+      }
+
+      .section-count {
+        font-size: 0.95rem;
+        color: var(--text-muted);
+        font-family: "JetBrains Mono", monospace;
+        letter-spacing: 0;
+      }
+
+      /* --- App Spotlight Cards (Large) --- */
+      .apps-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
         gap: 20px;
         width: 100%;
-        max-width: 900px;
-        margin-top: 20px;
+      }
+
+      .app-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-cyan);
+        border-radius: 6px;
+        padding: 24px;
+        backdrop-filter: blur(8px);
+        transition: all 0.3s ease;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .app-card:hover {
+        border-color: var(--border-cyan-bright);
+        box-shadow: 0 0 25px rgba(0, 229, 255, 0.25);
+        transform: translateY(-3px);
+      }
+
+      .app-card.featured {
+        border-color: rgba(255, 184, 77, 0.4);
+        background: linear-gradient(145deg, rgba(255, 184, 77, 0.05) 0%, rgba(8, 14, 22, 0.85) 100%);
+      }
+
+      .app-card.featured:hover {
+        border-color: var(--accent-amber);
+        box-shadow: 0 0 25px rgba(255, 184, 77, 0.3);
+      }
+
+      .app-badge {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        padding: 3px 8px;
+        border-radius: 3px;
+        width: fit-content;
+        margin-bottom: 0.8rem;
+      }
+
+      .badge-noir {
+        background: rgba(255, 71, 87, 0.15);
+        border: 1px solid rgba(255, 71, 87, 0.4);
+        color: var(--accent-red);
+      }
+
+      .badge-game {
+        background: rgba(0, 229, 255, 0.15);
+        border: 1px solid var(--border-cyan);
+        color: var(--accent-cyan);
+      }
+
+      .app-title {
+        font-size: 1.6rem;
+        color: #fff;
+        margin: 0 0 0.4rem 0;
+        letter-spacing: 1px;
+      }
+
+      .app-desc {
+        color: var(--text-muted);
+        font-size: 1rem;
+        line-height: 1.5;
+        margin: 0 0 1.5rem 0;
+      }
+
+      .app-links {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .app-link-btn {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        color: var(--text-primary);
+        padding: 9px 14px;
+        border-radius: 4px;
+        text-decoration: none;
+        font-size: 0.95rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        transition: all 0.2s ease;
+      }
+
+      .app-link-btn:hover {
+        background: rgba(0, 229, 255, 0.15);
+        border-color: var(--accent-cyan);
+        color: #fff;
+        padding-left: 18px;
+      }
+
+      .app-link-btn.highlight {
+        background: rgba(255, 184, 77, 0.12);
+        border-color: rgba(255, 184, 77, 0.35);
+        color: var(--accent-amber);
+      }
+
+      .app-link-btn.highlight:hover {
+        background: var(--accent-amber);
+        color: #000;
+        border-color: var(--accent-amber);
+      }
+
+      /* --- Grid Items (Showcases, Tools, Docs) --- */
+      .grid-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+        gap: 16px;
+        width: 100%;
       }
 
       .grid-item {
-        background: rgba(0, 15, 25, 0.6);
-        border: 1px solid #00e5ff;
-        padding: 15px 20px;
-        border-radius: 2px;
-        transition: all 0.3s ease;
+        background: var(--bg-card);
+        border: 1px solid var(--border-cyan);
+        padding: 14px 18px;
+        border-radius: 4px;
+        transition: all 0.25s ease;
         backdrop-filter: blur(5px);
-        box-shadow: inset 0 0 10px rgba(0, 229, 255, 0.05);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
       }
 
       .grid-item:hover {
-        background: rgba(0, 229, 255, 0.1);
-        border-color: #00e5ff;
-        box-shadow:
-          0 0 15px rgba(0, 229, 255, 0.4),
-          inset 0 0 15px rgba(0, 229, 255, 0.2);
+        background: var(--bg-card-hover);
+        border-color: var(--border-cyan-bright);
+        box-shadow: 0 0 16px rgba(0, 229, 255, 0.3);
         transform: translateY(-2px);
       }
 
       .grid-item a {
-        color: #00e5ff;
+        color: var(--text-primary);
         text-decoration: none;
         font-size: 1.1rem;
-        font-weight: bold;
+        font-weight: 600;
         letter-spacing: 1px;
-        display: block;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
         width: 100%;
-        height: 100%;
       }
 
       .grid-item:hover a {
         color: #ffffff;
-        text-shadow: 0 0 10px #00e5ff;
+        text-shadow: 0 0 8px #00e5ff;
       }
 
-      /* --- Mobile Responsive Navigation --- */
+      .item-num {
+        font-family: "JetBrains Mono", monospace;
+        color: var(--accent-cyan);
+        font-size: 0.95rem;
+        margin-right: 10px;
+      }
+
+      .item-tag {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        background: rgba(255, 255, 255, 0.05);
+        padding: 2px 6px;
+        border-radius: 3px;
+        margin-left: 8px;
+      }
+
+      /* --- Footer --- */
+      footer.portal-footer {
+        margin-top: 4rem;
+        padding-top: 2rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        width: 100%;
+        text-align: center;
+        color: var(--text-muted);
+        font-size: 0.95rem;
+      }
+
       @media (max-width: 768px) {
         body {
           padding: 1.5rem 1rem;
         }
         h1 {
-          font-size: 2rem;
-          letter-spacing: 2px;
+          font-size: 2.2rem;
+          letter-spacing: 3px;
         }
-        p.subtitle {
-          font-size: 1rem;
-          margin-bottom: 2rem;
-        }
-        .presentation-banner {
-          padding: 1rem;
-          margin-bottom: 2rem;
-        }
-        .presentation-banner a {
-          font-size: 1.1rem;
-          text-align: center;
-        }
-        h2 {
-          font-size: 1.5rem;
-          letter-spacing: 1px;
-        }
-        .grid-container {
+        .grid-container, .apps-grid {
           grid-template-columns: 1fr;
-          gap: 15px;
         }
-        .grid-item {
-          padding: 12px 15px;
+        .quick-nav {
+          flex-direction: column;
+          width: 100%;
         }
-        .grid-item a {
-          font-size: 1rem;
+        .nav-btn {
+          width: 100%;
+          justify-content: center;
         }
       }
     </style>
   </head>
   <body>
-    <h1>Small World</h1>
-    <p class="subtitle">Showcase & Development Hub</p>
+    <div class="portal-container">
+      
+      <!-- Header -->
+      <header class="hero">
+        <div class="badge-version">⚡ SMALL WORLD ENGINE v0.79.06</div>
+        <h1>Small World</h1>
+        <p class="subtitle">Zentrales Portal: Spiele, Showcases, Tools & Dokumentation</p>
+        
+        <!-- Quick Nav -->
+        <nav class="quick-nav">
+          <a href="/small-world/" class="nav-btn primary">
+            <span>📚</span> VitePress Online-Doku
+          </a>
+          <a href="./presentation.html" class="nav-btn">
+            <span>◬</span> Projekt-Präsentation (Slides)
+          </a>
+          <a href="https://github.com/rottensteiner-stefan/small-world" target="_blank" class="nav-btn">
+            <span>🐙</span> GitHub Repository
+          </a>
+        </nav>
+      </header>
 
-    <div class="presentation-banner">
-      <a href="./presentation.html"> <span>◬</span> Project Presentation (Slides) </a>
+      <!-- Search & Filters -->
+      <div class="controls-bar">
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input
+            type="text"
+            id="searchInput"
+            class="search-input"
+            placeholder="Echtzeit-Suche über Showcases, Apps, Tools & Doku..."
+            autocomplete="off"
+          />
+        </div>
+        <div class="filter-tabs">
+          <button class="tab-btn active" data-filter="all">🌟 Alle Bereiche</button>
+          <button class="tab-btn" data-filter="apps">🎮 Spiele & Welten</button>
+          <button class="tab-btn" data-filter="tools">🛠️ Werkzeuge & Editoren</button>
+          <button class="tab-btn" data-filter="docs">📚 Doku & ADRs</button>
+          <button class="tab-btn" data-filter="showcases">🎨 3D Showcases (1–38)</button>
+        </div>
+      </div>
+
+      <!-- SECTION: APPS & WORLDS -->
+      <section class="portal-section" data-category="apps" style="width: 100%;">
+        <h2 class="section-title">
+          <span>🎮 Spiele & Narrative Welten</span>
+          <span class="section-count">3 Projekte</span>
+        </h2>
+        <div class="apps-grid">
+          
+          <!-- And Now? -->
+          <article class="app-card featured searchable" data-keywords="and now wien 2100 graphic noir rpg novotny faltplan tunnel diorama dossier story">
+            <div>
+              <span class="app-badge badge-noir">Graphic-Noir RPG</span>
+              <h3 class="app-title">And Now? — Wien 2100</h3>
+              <p class="app-desc">
+                Postapokalyptisches Kammerspiel zwischen morbider Wiener Eleganz, bürokratischem Galgenhumor und 2-Ebenen-Chiaroscuro-Dramaturgie.
+              </p>
+            </div>
+            <div class="app-links">
+              <a href="./apps/sample-apps/and-now/docs/concept-dossier.html" class="app-link-btn highlight">
+                <span>🎨 Visuelles Concept-Dossier (Art & Lore)</span>
+                <span>➔</span>
+              </a>
+              <a href="./apps/sample-apps/and-now/scenes/map/index.html" class="app-link-btn">
+                <span>🗺️ Großvaters Faltplan (Stadtkarte 2100)</span>
+                <span>➔</span>
+              </a>
+              <a href="./apps/sample-apps/and-now/scenes/character-diorama/index.html" class="app-link-btn">
+                <span>🎭 3D Character Diorama Studio</span>
+                <span>➔</span>
+              </a>
+              <a href="./apps/sample-apps/and-now/scenes/flakturm-tunnel/index.html" class="app-link-btn">
+                <span>🚇 Szene 2: Flakturm Tunnelgang</span>
+                <span>➔</span>
+              </a>
+              <a href="./apps/sample-apps/and-now/scenes/prologue/index.html" class="app-link-btn">
+                <span>🕯️ Szene 1: Großvaters Tod (Prolog)</span>
+                <span>➔</span>
+              </a>
+              <a href="./apps/sample-apps/and-now/index.html" class="app-link-btn">
+                <span>🌐 And Now? Development Hub</span>
+                <span>➔</span>
+              </a>
+            </div>
+          </article>
+
+          <!-- YAD -->
+          <article class="app-card searchable" data-keywords="yad yet another dungeon crawler isometric rogue lite">
+            <div>
+              <span class="app-badge badge-game">Dungeon Crawler</span>
+              <h3 class="app-title">YAD (Yet Another Dungeon)</h3>
+              <p class="app-desc">
+                2.5D Isometrischer Dungeon-Crawler mit Raycast-Physik, Feind-KI, Fackelbeleuchtung und prozeduralem Raumaufbau.
+              </p>
+            </div>
+            <div class="app-links">
+              <a href="./apps/sample-apps/yad/index.html" class="app-link-btn highlight">
+                <span>🎮 YAD Spiel starten</span>
+                <span>➔</span>
+              </a>
+              <a href="./apps/sample-apps/yad/docs/concept-dossier.html" class="app-link-btn">
+                <span>📖 YAD Konzept-Dossier</span>
+                <span>➔</span>
+              </a>
+            </div>
+          </article>
+
+          <!-- Light Cycle Arena -->
+          <article class="app-card searchable" data-keywords="light cycle arena tron 3d neon arcade grid">
+            <div>
+              <span class="app-badge badge-game">Retro Arcade</span>
+              <h3 class="app-title">Light Cycle Arena</h3>
+              <p class="app-desc">
+                High-Speed 3D Tron-Grid Battle mit Neon-Post-Processing, Lichtwand-Spuren und dynamischer Sound-Synthese.
+              </p>
+            </div>
+            <div class="app-links">
+              <a href="./apps/sample-apps/light-cycle-arena/index.html" class="app-link-btn highlight">
+                <span>🎮 Arena starten</span>
+                <span>➔</span>
+              </a>
+              <a href="./apps/sample-apps/light-cycle-arena/docs/concept-dossier.html" class="app-link-btn">
+                <span>📖 Arena Konzept-Dossier</span>
+                <span>➔</span>
+              </a>
+            </div>
+          </article>
+
+        </div>
+      </section>
+
+      <!-- SECTION: TOOLS & EDITORS -->
+      <section class="portal-section" data-category="tools" style="width: 100%;">
+        <h2 class="section-title">
+          <span>🛠️ Werkzeuge & Generatoren</span>
+          <span class="section-count">8 Tools</span>
+        </h2>
+        <div class="grid-container">
+          <div class="grid-item searchable" data-keywords="maker world scene editor 3d level gizmo adr 0010">
+            <a href="./tools/maker.html">
+              <span><span class="item-num">T-08</span>Maker (3D-Welteneditor)</span>
+              <span class="item-tag">Editor</span>
+            </a>
+          </div>
+          <div class="grid-item searchable" data-keywords="pbr texture map generator roughness normal albedo">
+            <a href="./tools/pbr-gen.html">
+              <span><span class="item-num">T-02</span>PBR Texture Map Generator</span>
+              <span class="item-tag">Material</span>
+            </a>
+          </div>
+          <div class="grid-item searchable" data-keywords="ibl image based lighting generator cubemap hdr">
+            <a href="./tools/ibl-gen.html">
+              <span><span class="item-num">T-04</span>IBL Environment Generator</span>
+              <span class="item-tag">Lighting</span>
+            </a>
+          </div>
+          <div class="grid-item searchable" data-keywords="pixler retro pixel sprite editor art">
+            <a href="./tools/pixler.html">
+              <span><span class="item-num">T-06</span>Pixler (Sprite-Editor)</span>
+              <span class="item-tag">Pixel-Art</span>
+            </a>
+          </div>
+          <div class="grid-item searchable" data-keywords="map generator level architect ascii grid procgen">
+            <a href="./tools/map-gen.html">
+              <span><span class="item-num">T-07</span>Map Generator (Level Architect)</span>
+              <span class="item-tag">Level-Gen</span>
+            </a>
+          </div>
+          <div class="grid-item searchable" data-keywords="xtractor ai image workbench sprite slice">
+            <a href="./tools/xtractor.html">
+              <span><span class="item-num">T-05</span>Xtractor (AI Image Workbench)</span>
+              <span class="item-tag">Sprites</span>
+            </a>
+          </div>
+          <div class="grid-item searchable" data-keywords="splatter procedural decal generator fx">
+            <a href="./tools/splatter-gen.html">
+              <span><span class="item-num">T-01</span>Splatter Generator (Decals)</span>
+              <span class="item-tag">FX</span>
+            </a>
+          </div>
+          <div class="grid-item searchable" data-keywords="gamepad test diagnostic controller webhid joycon">
+            <a href="./tools/gamepad-test.html">
+              <span><span class="item-num">T-03</span>Gamepad Diagnostic Tool</span>
+              <span class="item-tag">Hardware</span>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION: DOCUMENTATION & ADRS -->
+      <section class="portal-section" data-category="docs" style="width: 100%;">
+        <h2 class="section-title">
+          <span>📚 Dokumentation & Architektur</span>
+          <span class="section-count">Portal-Docs</span>
+        </h2>
+        <div class="grid-container">
+          <div class="grid-item searchable" data-keywords="vitepress documentation wiki guides api getting started">
+            <a href="/small-world/">
+              <span><span class="item-num">DOC</span>VitePress Dokumentationsportal & Guides</span>
+              <span class="item-tag">Wiki</span>
+            </a>
+          </div>
+          <div class="grid-item searchable" data-keywords="adr architecture decision records 0001 0018 standards">
+            <a href="/small-world/adr/">
+              <span><span class="item-num">ADR</span>18 Architekturentscheidungen (ADR Index)</span>
+              <span class="item-tag">Architecture</span>
+            </a>
+          </div>
+          <div class="grid-item searchable" data-keywords="research aaa diorama oil puddle xdp studies">
+            <a href="/small-world/research/">
+              <span><span class="item-num">RES</span>Technische Studien & Rechercheberichte</span>
+              <span class="item-tag">Research</span>
+            </a>
+          </div>
+          <div class="grid-item searchable" data-keywords="presentation slides slide deck engine pitch">
+            <a href="./presentation.html">
+              <span><span class="item-num">PPT</span>Projekt-Präsentationsfolien (Slide Deck)</span>
+              <span class="item-tag">Slides</span>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION: 3D SHOWCASES -->
+      <section class="portal-section" data-category="showcases" style="width: 100%;">
+        <h2 class="section-title">
+          <span>🎨 Interaktive 3D Showcases</span>
+          <span class="section-count">38 Demos</span>
+        </h2>
+        <div class="grid-container">
+          <div class="grid-item searchable" data-keywords="01 basic engine setup cube light render"><a href="./apps/showcases/1/index.html"><span class="item-num">01</span>Basic Engine Setup</a></div>
+          <div class="grid-item searchable" data-keywords="02 interactive camera orbit controls"><a href="./apps/showcases/2/index.html"><span class="item-num">02</span>Interactive Camera</a></div>
+          <div class="grid-item searchable" data-keywords="03 obj mtl loader mesh material"><a href="./apps/showcases/3/index.html"><span class="item-num">03</span>OBJ & MTL Loader</a></div>
+          <div class="grid-item searchable" data-keywords="04 terrain car vehicle driving"><a href="./apps/showcases/4/index.html"><span class="item-num">04</span>Terrain & Car</a></div>
+          <div class="grid-item searchable" data-keywords="05 isometric camera 2d 3d orthographic"><a href="./apps/showcases/5/index.html"><span class="item-num">05</span>Isometric Camera & 2D/3D</a></div>
+          <div class="grid-item searchable" data-keywords="06 geometry showcase primitives sphere box"><a href="./apps/showcases/6/index.html"><span class="item-num">06</span>Geometry Showcase</a></div>
+          <div class="grid-item searchable" data-keywords="07 skybox fps controls cubemap first person"><a href="./apps/showcases/7/index.html"><span class="item-num">07</span>Skybox & FPS Controls</a></div>
+          <div class="grid-item searchable" data-keywords="08 skydome fps controls hemisphere"><a href="./apps/showcases/8/index.html"><span class="item-num">08</span>Skydome & FPS Controls</a></div>
+          <div class="grid-item searchable" data-keywords="09 2.5d jump and run platformer stage"><a href="./apps/showcases/9/index.html"><span class="item-num">09</span>2.5D Jump & Run</a></div>
+          <div class="grid-item searchable" data-keywords="10 waterworld liquid ocean shader waves"><a href="./apps/showcases/10/index.html"><span class="item-num">10</span>Waterworld</a></div>
+          <div class="grid-item searchable" data-keywords="11 orientation transform gizmo"><a href="./apps/showcases/11/index.html"><span class="item-num">11</span>Orientation</a></div>
+          <div class="grid-item searchable" data-keywords="12 underwater hideout caustics fog"><a href="./apps/showcases/12/index.html"><span class="item-num">12</span>Underwater Hideout</a></div>
+          <div class="grid-item searchable" data-keywords="13 damaged helmet gltf pbr rough metal"><a href="./apps/showcases/13/index.html"><span class="item-num">13</span>Damaged Helmet (glTF PBR)</a></div>
+          <div class="grid-item searchable" data-keywords="14 surveillance video wall crt monitor cctv"><a href="./apps/showcases/14/index.html"><span class="item-num">14</span>Surveillance Video Wall</a></div>
+          <div class="grid-item searchable" data-keywords="15 reflections 1000 bouncing balls mirror physics"><a href="./apps/showcases/15/index.html"><span class="item-num">15</span>Reflections & 1000 Balls</a></div>
+          <div class="grid-item searchable" data-keywords="16 reflection moons orbital mirrors"><a href="./apps/showcases/16/index.html"><span class="item-num">16</span>Reflection Moons</a></div>
+          <div class="grid-item searchable" data-keywords="17 threadpool web workers multithreading"><a href="./apps/showcases/17/index.html"><span class="item-num">17</span>ThreadPool (Web Workers)</a></div>
+          <div class="grid-item searchable" data-keywords="18 procedural terrain multithreaded noise"><a href="./apps/showcases/18/index.html"><span class="item-num">18</span>Procedural Terrain</a></div>
+          <div class="grid-item searchable" data-keywords="19 gamification picking raycast octree"><a href="./apps/showcases/19/index.html"><span class="item-num">19</span>Gamification & Picking</a></div>
+          <div class="grid-item searchable" data-keywords="20 built-in behaviors fsm rotator bobbing"><a href="./apps/showcases/20/index.html"><span class="item-num">20</span>Built-in Behaviors</a></div>
+          <div class="grid-item searchable" data-keywords="21 generative audio kinetic sculpture sound"><a href="./apps/showcases/21/index.html"><span class="item-num">21</span>Audio-Kinetic Sculpture</a></div>
+          <div class="grid-item searchable" data-keywords="22 super massive black hole gravitational lensing"><a href="./apps/showcases/22/index.html"><span class="item-num">22</span>Super Massive Black Hole</a></div>
+          <div class="grid-item searchable" data-keywords="23 neon marble run physics track glow"><a href="./apps/showcases/23/index.html"><span class="item-num">23</span>Neon Marble Run</a></div>
+          <div class="grid-item searchable" data-keywords="24 shader gallery cook torrance post process"><a href="./apps/showcases/24/index.html"><span class="item-num">24</span>The Shader Gallery</a></div>
+          <div class="grid-item searchable" data-keywords="26 monitor screen text dynamic canvas"><a href="./apps/showcases/26/index.html"><span class="item-num">26</span>Monitor Screen Text</a></div>
+          <div class="grid-item searchable" data-keywords="27 shadow sanctuary pcss soft shadows lab"><a href="./apps/showcases/27/index.html"><span class="item-num">27</span>Shadow Sanctuary (PCSS)</a></div>
+          <div class="grid-item searchable" data-keywords="28 quantum refraction lab optical prism dispersion"><a href="./apps/showcases/28/index.html"><span class="item-num">28</span>Quantum Refraction Lab</a></div>
+          <div class="grid-item searchable" data-keywords="29 sponza atrium light shafts arches pbr"><a href="./apps/showcases/29/index.html"><span class="item-num">29</span>Sponza Atrium</a></div>
+          <div class="grid-item searchable" data-keywords="30 rain drenched cyberpunk albedo ssr puddles planar"><a href="./apps/showcases/30/index.html"><span class="item-num">30</span>Rain Cyberpunk SSR</a></div>
+          <div class="grid-item searchable" data-keywords="31 overgrown subway karlsplatz junction ruin vienna"><a href="./apps/showcases/31/index.html"><span class="item-num">31</span>Overgrown Subway (Karlsplatz)</a></div>
+          <div class="grid-item searchable" data-keywords="32 radioactive ashfall fallout zone vienna particles"><a href="./apps/showcases/32/index.html"><span class="item-num">32</span>Radioactive Ashfall</a></div>
+          <div class="grid-item searchable" data-keywords="33 hidden city hzb occlusion culling webgpu"><a href="./apps/showcases/33/index.html"><span class="item-num">33</span>Hidden City (HZB Culling)</a></div>
+          <div class="grid-item searchable" data-keywords="34 billboard grove impostor trees instancing"><a href="./apps/showcases/34/index.html"><span class="item-num">34</span>Billboard Grove</a></div>
+          <div class="grid-item searchable" data-keywords="35 pbr sphere grid metallic roughness reference"><a href="./apps/showcases/35/index.html"><span class="item-num">35</span>PBR Sphere Grid</a></div>
+          <div class="grid-item searchable" data-keywords="36 glass broken window parallax refraction"><a href="./apps/showcases/36/index.html"><span class="item-num">36</span>Glass Broken Window</a></div>
+          <div class="grid-item searchable" data-keywords="37 projekt raum rustic interior warm lighting"><a href="./apps/showcases/37/index.html"><span class="item-num">37</span>Projekt Raum (Interior)</a></div>
+          <div class="grid-item searchable" data-keywords="38 al-khazneh petra treasury rock canyon siq facade pbr"><a href="./apps/showcases/38/index.html"><span class="item-num">38</span>Al-Khazneh (The Treasury)</a></div>
+        </div>
+      </section>
+
+      <!-- Footer -->
+      <footer class="portal-footer">
+        Small World 3D Engine // Hybrid WebGL2 & WebGPU // Copyright © 2026 Stefan Rottensteiner
+      </footer>
+
     </div>
 
-    <h2>Interactive Showcases</h2>
-    <div class="grid-container">
-      <div class="grid-item"><a href="./apps/showcases/1/index.html">01: Basic Engine Setup</a></div>
-      <div class="grid-item"><a href="./apps/showcases/2/index.html">02: Interactive Camera</a></div>
-      <div class="grid-item"><a href="./apps/showcases/3/index.html">03: OBJ & MTL Loader</a></div>
-      <div class="grid-item"><a href="./apps/showcases/4/index.html">04: Terrain & Car</a></div>
-      <div class="grid-item">
-        <a href="./apps/showcases/5/index.html">05: Isometric Camera & 2D/3D</a>
-      </div>
-      <div class="grid-item"><a href="./apps/showcases/6/index.html">06: Geometry Showcase</a></div>
-      <div class="grid-item"><a href="./apps/showcases/7/index.html">07: Skybox & FPS Controls</a></div>
-      <div class="grid-item"><a href="./apps/showcases/8/index.html">08: Skydome & FPS Controls</a></div>
-      <div class="grid-item"><a href="./apps/showcases/9/index.html">09: 2.5D Jump & Run</a></div>
-      <div class="grid-item"><a href="./apps/showcases/10/index.html">10: Waterworld</a></div>
-      <div class="grid-item"><a href="./apps/showcases/11/index.html">11: Orientation</a></div>
-      <div class="grid-item"><a href="./apps/showcases/12/index.html">12: Underwater Hideout</a></div>
-      <div class="grid-item"><a href="./apps/showcases/13/index.html">13: Damaged Helmet</a></div>
-      <div class="grid-item">
-        <a href="./apps/showcases/14/index.html">14: Surveillance Video Wall</a>
-      </div>
-      <div class="grid-item">
-        <a href="./apps/showcases/15/index.html">15: Reflections & 1000 Bouncing Balls</a>
-      </div>
-      <div class="grid-item"><a href="./apps/showcases/16/index.html">16: Reflection Moons</a></div>
-      <div class="grid-item">
-        <a href="./apps/showcases/17/index.html">17: ThreadPool (Web Workers)</a>
-      </div>
-      <div class="grid-item">
-        <a href="./apps/showcases/18/index.html">18: Procedural Terrain (Multithreaded)</a>
-      </div>
-      <div class="grid-item">
-        <a href="./apps/showcases/19/index.html">19: Gamification & Picking</a>
-      </div>
-      <div class="grid-item"><a href="./apps/showcases/20/index.html">20: Built-in Behaviors</a></div>
-      <div class="grid-item">
-        <a href="./apps/showcases/21/index.html">21: The Generative Audio-Kinetic Sculpture</a>
-      </div>
-      <div class="grid-item">
-        <a href="./apps/showcases/22/index.html">22: Super Massive Black Hole</a>
-      </div>
-      <div class="grid-item"><a href="./apps/showcases/23/index.html">23: Neon Marble Run</a></div>
-      <div class="grid-item"><a href="./apps/showcases/24/index.html">24: The Shader Gallery</a></div>
-      <div class="grid-item"><a href="./apps/showcases/26/index.html">26: Monitor Screen Text</a></div>
-      <div class="grid-item">
-        <a href="./apps/showcases/27/index.html">27: Shadow Sanctuary (High-Precision Lab)</a>
-      </div>
-      <div class="grid-item">
-        <a href="./apps/showcases/28/index.html">28: Quantum Refraction Lab (Optical Prism)</a>
-      </div>
-      <div class="grid-item">
-        <a href="./apps/showcases/29/index.html">29: Sponza Atrium (Light Shafts & Arches)</a>
-      </div>
-      <div class="grid-item">
-        <a href="./apps/showcases/30/index.html">30: Rain-Drenched Cyberpunk Albedo (SSR)</a>
-      </div>
-      <div class="grid-item">
-        <a href="./apps/showcases/31/index.html">31: Overgrown Subway (Karlsplatz Junction Ruin)</a>
-      </div>
-      <div class="grid-item">
-        <a href="./apps/showcases/32/index.html">32: Radioactive Ashfall (Fallout Zone Vienna)</a>
-      </div>
-      <div class="grid-item">
-        <a href="./apps/showcases/33/index.html">33: Hidden City (HZB Occlusion Culling)</a>
-      </div>
-      <div class="grid-item">
-        <a href="./apps/showcases/34/index.html">34: Billboard Grove (Impostor Trees)</a>
-      </div>
-      <div class="grid-item">
-        <a href="./apps/showcases/35/index.html">35: PBR Sphere Grid (Metallic-Roughness Reference)</a>
-      </div>
-      <div class="grid-item">
-        <a href="./apps/showcases/36/index.html">36: Glass Broken Window</a>
-      </div>
-      <div class="grid-item">
-        <a href="./apps/showcases/37/index.html">37: Projekt Raum (Rustic Interior)</a>
-      </div>
-      <div class="grid-item">
-        <a href="./apps/showcases/38/index.html">38: Al-Khazneh (The Treasury)</a>
-      </div>
-    </div>
+    <!-- Client-Side Filter & Search Script -->
+    <script>
+      (function() {
+        const searchInput = document.getElementById('searchInput');
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        const sections = document.querySelectorAll('.portal-section');
+        const items = document.querySelectorAll('.searchable');
 
-    <h2>Development Tools</h2>
-    <div class="grid-container">
-      <div class="grid-item">
-        <a href="./tools/splatter-gen.html">T-01: Procedural Splatter Generator</a>
-      </div>
-      <div class="grid-item">
-        <a href="./tools/pbr-gen.html">T-02: PBR Texture Map Generator</a>
-      </div>
-      <div class="grid-item">
-        <a href="./tools/gamepad-test.html">T-03: Gamepad Diagnostic Tool</a>
-      </div>
-      <div class="grid-item">
-        <a href="./tools/ibl-gen.html">T-04: IBL (Image Based Lighting) Generator</a>
-      </div>
-      <div class="grid-item">
-        <a href="./tools/xtractor.html">T-05: Xtractor (AI Image Workbench)</a>
-      </div>
-      <div class="grid-item">
-        <a href="./tools/pixler.html">T-06: Pixler (Retro Sprite Editor)</a>
-      </div>
-      <div class="grid-item">
-        <a href="./tools/map-gen.html">T-07: Map Generator (Level Architect)</a>
-      </div>
-      <div class="grid-item">
-        <a href="./tools/maker.html">T-08: Maker (World & Scene Editor)</a>
-      </div>
-    </div>
+        let currentCategory = 'all';
+        let searchQuery = '';
 
-    <h2>Apps</h2>
-    <div class="grid-container">
-      <div class="grid-item"><a href="./apps/sample-apps/and-now/index.html">And Now? (Hub)</a></div>
-      <div class="grid-item">
-        <a href="./apps/sample-apps/yad/index.html">YAD (Yet Another Dungeon)</a>
-      </div>
-      <div class="grid-item">
-        <a href="./apps/sample-apps/light-cycle-arena/index.html">Light Cycle Arena</a>
-      </div>
-    </div>
+        function applyFilter() {
+          sections.forEach(section => {
+            const cat = section.getAttribute('data-category');
+            const matchesCategory = (currentCategory === 'all' || currentCategory === cat);
+            
+            let visibleItemsCount = 0;
+            const sectionItems = section.querySelectorAll('.searchable');
+            
+            sectionItems.forEach(item => {
+              const text = (item.textContent + ' ' + (item.getAttribute('data-keywords') || '')).toLowerCase();
+              const matchesSearch = !searchQuery || text.includes(searchQuery);
+              
+              if (matchesCategory && matchesSearch) {
+                item.style.display = '';
+                visibleItemsCount++;
+              } else {
+                item.style.display = 'none';
+              }
+            });
+
+            if (matchesCategory && visibleItemsCount > 0) {
+              section.style.display = '';
+            } else {
+              section.style.display = 'none';
+            }
+          });
+        }
+
+        searchInput.addEventListener('input', function(e) {
+          searchQuery = e.target.value.trim().toLowerCase();
+          applyFilter();
+        });
+
+        tabBtns.forEach(btn => {
+          btn.addEventListener('click', function() {
+            tabBtns.forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            currentCategory = this.getAttribute('data-filter');
+            applyFilter();
+          });
+        });
+      })();
+    </script>
   </body>
 </html>
+

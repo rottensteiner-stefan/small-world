@@ -7,13 +7,25 @@ export default defineConfig({
     "Eine leichtgewichtige, hochperformante, modulare 3D-Game-Engine für das Web, gebaut mit TypeScript.",
   themeConfig: {
     nav: [
+      { text: "Spiele & Apps", link: "/apps/and-now" },
       { text: "Anleitungen", link: "/guides/getting-started" },
       { text: "Architekturentscheidungen (ADRs)", link: "/adr/" },
       { text: "Recherche", link: "/research/" },
       { text: "API-Referenz", link: "/api/index.html", target: "_blank" },
-      { text: "Showcases", link: "/showcases/index.html", target: "_blank" },
+      { text: "Showcases & Hub", link: "/showcases/index.html", target: "_blank" },
     ],
     sidebar: {
+      "/apps/": [
+        {
+          text: "Spiele & Welten",
+          items: [
+            { text: "And Now? (Wien 2100)", link: "/apps/and-now" },
+            { text: "YAD (Dungeon Crawler)", link: "/apps/yad" },
+            { text: "Light Cycle Arena", link: "/apps/light-cycle-arena" },
+            { text: "Maker (Welteneditor)", link: "/apps/maker" },
+          ],
+        },
+      ],
       "/guides/": [
         {
           text: "Erste Schritte",
@@ -77,6 +89,7 @@ export default defineConfig({
             { text: "0015: App-First-Regel für Genre-Code", link: "/adr/0015-app-first-genre-code-extraction-rule" },
             { text: "0016: 2.5D-Bühnen-Zonen als glTF-Erweiterung", link: "/adr/0016-2-5d-stage-zones-as-a-gltf-extension" },
             { text: "0017: glTF-Extension-Plugin-Registry", link: "/adr/0017-gltf-extension-plugin-registry" },
+            { text: "0018: glTF Data-Level Extensions", link: "/adr/0018-gltf-data-level-extensions-and-ecosystem-package" },
           ],
         },
       ],
