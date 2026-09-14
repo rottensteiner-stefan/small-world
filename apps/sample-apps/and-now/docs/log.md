@@ -1159,8 +1159,166 @@ befüllen.
   (importiertes Hintergrundbild stand auf dem Kopf) gefunden und gefixt. Nächster Schritt (falls
   gewünscht, separat): die drei echten Flakturm-Zonen tatsächlich in Maker nachzeichnen/abgleichen.
 
+---
 
+## 110. Wien 2100: Großvaters Faltplan (Stadtkarte & Schnellreise-System) (2026-09-14)
+- **Diegetische Entscheidung (Story-First & Graphic-Noir-Doktrin):**
+  - Kein steriler Sci-Fi-PDA / Pip-Boy, sondern Františeks zerfledderter, vergilbter Vorkriegs-Stadtplan (Wien 2026 / Falk-Plan) mit 50 Jahren handgezeichneten Rötelstift-Notizen, Kaffeerändern, Tesafilm-Streifen und Gefahrenmarkierungen.
+  - Generiertes Graphic-Noir-Karten-Asset ([`public/assets/and-now/map/vienna_map.jpg`](public/assets/and-now/map/vienna_map.jpg)) mit Donau, Donaukanal, Stephansdom, Ringstraße, Arenbergpark, Prater/Riesenrad, Rossauer Kaserne und Simmering/Zentralfriedhof.
+- **Interaktive Map-Modal-Komponente ([`ViennaMapModal.ts`](apps/sample-apps/and-now/ui/ViennaMapModal.ts)):**
+  - Universell einbindbares 2D-Overlay mit Hotkey `[M]` und `[ESC]`.
+  - Interaktive Pins mit Chiaroscuro-Halo-Pulsieren, Fraktions-Farben und kanonischen Standorten:
+    1. *Flakturm Arenbergpark (3. Bezirk):* Szene 2 / Versorgungstunnel & Treppenaufgang.
+    2. *Koje 42 (3. Bezirk):* Szene 1 / Prolog & Großvaters Vermächtnis.
+    3. *Das Bermudadreieck (1. Bezirk):* Alchimisten-Keller / Giftmischer (Pharma-Netzwerk).
+    4. *Wurstelprater & Riesenrad (2. Bezirk):* Ringelspiel-Syndikat / Kasperl-Bande.
+    5. *Rossauer Kaserne (9. Bezirk):* Das Super-Amt / AZS-Bürokratie (Hofrat Brandstätter).
+    6. *Wiener Zentralfriedhof (11. Bezirk):* Tor 2 / Die Pompfinebrer (Hauptziel der Urnenreise).
+    7. *Safehouse Schelleingasse (4. Bezirk):* Creator Echo (S.R. Manuskripte).
+    8. *Character Diorama Studio:* 3D-Bühne & Ratten-FSM.
+  - Františeks handschriftliche Notiz-Karten im Vintage-Typografie-Look für jeden Schauplatz.
+- **Diegetische Schnellreise (Fast Travel Transit):**
+  - Atmosphärische Graphic-Noir-Transit-Vignette ([`public/assets/and-now/map/transit_tunnel.jpg`](public/assets/and-now/map/transit_tunnel.jpg)) mit einsamem Wanderer im gefluteten U-Bahn-Schacht Karlsplatz, Chiaroscuro-Laternenlicht und dynamischen Stimmungs-Einzeilern.
+- **Szenen-Integration & Test-Coverage:**
+  - Standalone-Kartenseite ([`scenes/map/`](apps/sample-apps/and-now/scenes/map/)) und Scene-Hub-Card ([`index.html`](apps/sample-apps/and-now/index.html)).
+  - Hotkey `[M]` und HUD-Buttons in [`flakturm-tunnel`](apps/sample-apps/and-now/scenes/flakturm-tunnel/showcase.ts) und [`character-diorama`](apps/sample-apps/and-now/scenes/character-diorama/showcase.ts).
+  - 4 neue Unit-Tests in [`apps/sample-apps/and-now/tests/ViennaMap.test.ts`](apps/sample-apps/and-now/tests/ViennaMap.test.ts).
+- **Status:** 141 Testsuiten, 779 Tests, Build/Lint 100% grün.
 
+---
+
+## 111. Visuelle Kompromisslosigkeit: Sin-City Graphic Noir Shader & Selektive Farbisolation (2026-09-14)
+- **Shader-Upgrade (`filter_noir.glsl` & `filter_noir.wgsl` in `packages/engine/src/core/materials/shaders/chunks/`):**
+  - **Tusche-Chiaroscuro:** Hard Comic S-Curve (`smoothstep(0.06, 0.88, luma)` + `pow(ink, 1.35)`) mit tiefen, gecrushten Tuscheschatten und strahlenden Highlights auf subtilem, warmem Pergament-Grauwert.
+  - **Selektive Farbisolation (Color is Meaning):**
+    1. *🟡 Bernstein/Gold:* Großvaters Handlaterne, Halogen- & Kerzenlicht (`isAmber`).
+    2. *🔴 Karminrot:* AZS-Sperrstempel, Blut, tödliche Gefahr (`isRed`).
+    3. *🟢 Smaragdgrün:* Alchemie, Penicillin & Gifte im Bermudadreieck (`isEmerald`).
+  - Volle WebGL2- und WebGPU/WGSL-Parität ohne Rebuild-Overhead.
+- **Szenen-Steuerung & Hotkeys:**
+  - Taste **<kbd>[N]</kbd>** (oder HUD-Button *„🎬 Noir“*) schaltet in [`flakturm-tunnel`](apps/sample-apps/and-now/scenes/flakturm-tunnel/showcase.ts) und [`character-diorama`](apps/sample-apps/and-now/scenes/character-diorama/showcase.ts) in Echtzeit zwischen Normal-Rendering und dem radikalen Sin-City Graphic-Noir-Look um.
+- **Status:** 141 Testsuiten, 779 Tests, `tsc`, `lint:fix` und `build:lib` 100% grün.
+
+---
+
+## 112. Die Sin-City Colorkey-Dramaturgie („Farbe ist Drama, keine Dekoration“) (2026-09-14)
+- **Dramaturgisches Kernprinzip (Dramatik in Perfektion):**
+  - Bestimmte Schlüsselszenen werden aus Regiegründen radikal auf reines Schwarz/Weiß (gecrushte Chiaroscuro-Tusche) reduziert und besitzen **genau eine einzige, isolierte Schlüsselfarbe (Colorkey)**:
+    1. *Koje 42 / Prolog:* Reines Schwarz/Weiß mit isoliertem 🟡 **Bernsteingold** (Großvaters Kerosin-Laterne & flackernde Röhre des Amts-Terminals) als letzter Funke menschlicher Wärme.
+    2. *Kältekammer K-42:* Reines Schwarz/Weiß mit dem winzigen, eisigen 🟢 **Blausäure-Smaragdtupfer** am Hals des Großvaters zur Entlarvung des Mordes.
+    3. *Bermudadreieck (Alchemie-Gewölbe):* Reines Schwarz/Weiß mit 🟢 **Smaragdgrün** (brodelnde Reagenzien, Narkotika und toxische Injektoren).
+    4. *Zentralfriedhof (Beisetzung):* Reines Schwarz/Weiß mit 🔴 **Karminrot / Purpurgold** auf der Schärpe des Ober-Kondukteurs im Weihrauchnebel.
+    5. *Tribunal Rossauer Kaserne (Akt IV Finale):* Reines Schwarz/Weiß mit dem stechenden 🔴 **Karminrot** des AZS-Sperrstempels zur finalen Abrechnung.
+- **Dokumentation:** Vollständig in [`story.md`](apps/sample-apps/and-now/docs/story.md) und [`concept-dossier.html`](apps/sample-apps/and-now/docs/concept-dossier.html) als feste Kernsäule verankert.
+- **Status:** 141 Testsuiten, 779 Tests 100% grün.
+
+---
+
+## 113. Fraktions-Kasten & Klassen-Archetypen (Sin-City Concept-Art) (2026-09-14)
+- **Erweiterung der Figuren-Hierarchien:**
+  - Jede Fraktion besitzt eine 4-stufige Kasten-Hierarchie (*Anführung &rarr; Innerer Kreis &rarr; Handlanger &rarr; Enforcer/Schläger*).
+  - Neu generierte & integrierte Klassen-Archetypen im radikalen Sin-City Comic-Stil:
+    1. *Die Pompfinebrer (Enforcer):* **Der Schaufler** ([`proto_pompfinebrer_schaufler.jpg`](public/assets/and-now/concepts/proto_pompfinebrer_schaufler.jpg)) — massiver Friedhofswächter im Kutscherrock mit geschliffener Eisenschaufel als Streitaxt, abgesägter Doppelflinte und Bernstein-Grablaterne.
+    2. *Das AZS (Ordnungsdienst):* **Die Schleusenwache** ([`proto_azs_schleusenwache.jpg`](public/assets/and-now/concepts/proto_azs_schleusenwache.jpg)) — schwer gepanzerte Bunkerwache mit Visierhelm/Gasmaske, Lichtbogen-Taser-Stab, StG-77 und leuchtendem Karminrot-AZS-Armband.
+- **Dossier- & Asset-Integration:**
+  - Vollständig in [`vienna_2100_art_dossier.md`](file:///Users/srottensteiner/.gemini/antigravity-cli/brain/d044e884-918e-4a48-b2ae-7e98ae599157/vienna_2100_art_dossier.md) und [`concept-dossier.html`](apps/sample-apps/and-now/docs/concept-dossier.html) eingebunden.
+- **Status:** 141 Testsuiten, 779 Tests 100% grün.
+
+---
+
+## 114. Kanonische Bewaffnung: Steyr AUG A3 M2 (2026-09-14)
+- **Authentischer Militär-Standard für Wien 2100:**
+  - Die Ordonnanzwaffe der AZS-Wachen und Rossauer-Kaserne-Garnisonen wurde kanonisch auf das **Steyr AUG A3 M2** (modernisiertes Bullpup-Sturmgewehr mit Picatinny-Schienen, NATO-Magazinschacht, moderner Optik und 5,56mm-Munition) festgelegt.
+  - Vorkriegs-Lore (~2050): Perfekt passend zur österreichischen Bundesheer-Modernisierungslinie vor dem Kollaps.
+  - Dokumentiert in [`story.md`](apps/sample-apps/and-now/docs/story.md), [`concept-dossier.html`](apps/sample-apps/and-now/docs/concept-dossier.html) und im Art-Dossier; als Pflicht-Spezifikation für zukünftige AZS-Bild-Prompts hinterlegt.
+- **Status:** 141 Testsuiten, 779 Tests 100% grün.
+
+---
+
+## 115. Protagonisten-Starterwaffe: Glock 17 (Pistole 80) des Großvaters (2026-09-14)
+- **Kanonische Seitenwaffe für Novotny:**
+  - Als Starter-Schusswaffe führt Novotny Františeks originale Dienstpistole: die **Glock 17 (Pistole 80, 9×19mm Parabellum)** aus Deutsch-Wagram.
+  - *Narrativer Fundort:* Novotny birgt die Waffe zusammen mit dem Medaillon und der Kapuzinergruft-Fahrkarte im Prolog-Heist aus der AZS-Asservatenkammer im Flakturm Arenberg.
+  - *Charakter & Patina:* Glattpoliertes Polymergriffstück, verblasstes Vorkriegs-Wappen, 100% verlässlich im Schlamm und Schachtstaub.
+  - *Werkbank-Modding:*
+    1. *Schalldämpfer („Kanal-Flüsterer“)*: Aus altem Kfz-Ölfilter für leise Schleichpassagen.
+    2. *TU-Laserzielhilfe*: Modifiziertes Rotpunkt-Modul aus einem TU-Vermessungsgerät.
+    3. *33-Schuss-Magazin („Wiener Stange“)*: Verlängertes AZS-Magazin.
+- **Dokumentation:** In [`story.md`](apps/sample-apps/and-now/docs/story.md) und [`concept-dossier.html`](apps/sample-apps/and-now/docs/concept-dossier.html) festgeschrieben.
+- **Status:** 141 Testsuiten, 779 Tests 100% grün.
+
+---
+
+## 116. Das 3-Stufen-Nahkampfsystem: Psychologische Wucht, Brutalität & Non-Lethal (2026-09-14)
+- **Nahkampf als physischer & emotionaler Horror:**
+  - Novotny ist ein schmaler 22-jähriger Schacht-Inspektor. Nahkampf ist im Graphic-Noir-Stil niemals saubere Akrobatik, sondern ein verzweifeltes Ringen im Dreck, Schweiß und Atem des Gegners.
+  - **Die 3 mechanischen und narrativen Stufen:**
+    1. *Stufe 1 (Non-Lethal / Stealth):* **Elektroschocker / AZS-Viehtreiber** — Lautloses Subdue im bläulich-weißen Lichtbogen ohne Blutvergießen.
+    2. *Stufe 2 (Brutale Abwehr / Werkzeug):* **Wiener Totschläger & „Wiener Hebel“** — Dumpfe Knochenschläge auf Schlüsselbeine und Gelenke; Rüstungsbrecher gegen Helme und Schilde der Schleusenwache.
+    3. *Stufe 3 (Die letzte Verzweiflung / Tödliche Intimität):* **Glock Feldmesser 78 (FM 78)** — Todbringender Nahkontakt auf zehn Zentimeter. Man spürt das Reißen von Stoff und den Widerstand an Rippenknochen. Im Sin-City-Stil reine Chiaroscuro-Tusche mit isoliertem **Karminrot-Colorkey** an Novotnys zitternden Händen. Hinterlässt Novotny traumatisiert und nach Luft ringend.
+- **Dokumentation:** In [`story.md`](apps/sample-apps/and-now/docs/story.md) und [`concept-dossier.html`](apps/sample-apps/and-now/docs/concept-dossier.html) verankert.
+- **Status:** 141 Testsuiten, 779 Tests 100% grün.
+
+---
+
+## 117. Erzähl-Architektur: Kinetischer Graphic-Noir statt Psycho-Simulation (2026-09-14)
+- **Klare, respektvolle Design-Abgrenzung:**
+  - *Disco Elysium* ist ein textgewaltiger literarischer Meilenstein, setzt aber auf 24 debattierende Skill-Stimmen, Würfel-Checks und ein abstraktes Gedanken-Kabinett-Menü, was für eine actionreichere, atmosphärische Graphic-Noir-Erfahrung zu statisch und überfrachtet wäre.
+  - **Die „Sin-City Caption Box“-Doktrin für „And Now?“:**
+    1. *Eine einzige lakonische Off-Stimme:* Novotnys eigene, trockene Gedanken im knappen Chiaroscuro-Kasten (1–2 messerscharfe Zeilen).
+    2. *Wiener Bauchgefühl & Schmäh:* Intuitive Multiple-Choice-Dialoge mit situativem Timing und Wiener Fatalismus statt Skill-Tree-Overhead.
+    3. *Kinetischer Spielfluss:* Die Atmosphäre entsteht aus Licht, Schatten, Soundkulisse und schnellem Dialogtempo.
+- **Dokumentation:** In [`story.md`](apps/sample-apps/and-now/docs/story.md) eingepflegt.
+- **Status:** 141 Testsuiten, 779 Tests 100% grün.
+
+---
+
+## 118. Session-Abschluss & Bereitstellung für den nächsten Einstieg (2026-09-14)
+- **Gesamtergebnis der Nacht-Session:**
+  1. *🗺️ Großvaters Faltplan (Wien 2026 ➔ 2100):* Interaktive Map-Modal-Komponente ([`ViennaMapModal.ts`](apps/sample-apps/and-now/ui/ViennaMapModal.ts)) mit Chiaroscuro-Pins, diegetischem Schnellreise-Transit, Františeks Notizen und Live-Vorschau der Schauplatz-Artworks & Fraktions-Archetypen.
+  2. *🎬 Sin-City Graphic Noir Shader & Colorkey-Dramaturgie:* Echter Comic-Tusche-Look mit selektiver Farbisolation (🟡 Bernstein, 🔴 Karminrot, 🟢 Smaragd) in GLSL/WGSL und Hotkey `[N]`.
+  3. *👥 Kasten- & Figuren-Archetypen:* 6 Protagonisten/Enforcer generiert und eingebunden (Kondukteur, Schaufler, Brandstätter, Schleusenwache, Dekanin, Hutschmeister).
+  4. *🔫 Waffen-Standard:* **Steyr AUG A3 M2** als AZS-Ordonnanz und **Františeks Glock 17 (Pistole 80)** als Starter-Waffe aus dem Prolog-Heist.
+  5. *⚔️ 3-Stufen-Nahkampf:* Elektroschocker (Stealth), Wiener Totschläger / Hebel (Rüstungsbrecher), Glock FM 78 Feldmesser (tödliche Intimität / Colorkey Rot).
+  6. *🧠 Erzähl-Doktrin:* Kinetischer Graphic-Noir mit lakonischer 1-Stimme-Off-Box („Sin City Caption Box“) statt überfrachtetem Psycho-Skilltree.
+- **Startpunkt für die nächste Session:**
+  - 1. *Sin City Caption Box:* In-Game-Overlay für Novotnys innere Monologe bauen (`NoirCaptionOverlay`).
+  - 2. *Prolog Koje 42:* Kaffeedosen-Urnen-Interaktion und Heist-Vorbereitung.
+  - 3. *Neuer Schauplatz als 2.5D-Bühne:* Bermudadreieck oder Zentralfriedhof Tor 2.
+- **Verifikations-Status:** 141 Testsuiten, 779 Tests, `tsc`, `lint:fix`, `build:lib` **100% grün**.
+
+---
+
+## 119. Die Fraktions-Klassenmatrix, Kasten-Tiefen & Graphic-Noir Prototypen (2026-09-14)
+- **Erweiterung des visuellen und mechanischen Fraktions-Rosters:**
+  - Codierung von 3–4 distinkten Klassen/Rollen für alle 6 Wiener Fraktionen mit klaren Silhouettenwerten, Chiaroscuro-Lichtspiel und Sin-City Colorkeys:
+    1. *Das AZS:* Sektionschef (Hofrat), Schleusenwache (Schild/Taser), Kanzlei-Grenadier (**Steyr AUG A3 M2**), Dekont-Spürer (ABC/Säure-Schaum).
+    2. *Die Pompfinebrer:* Ober-Kondukteur (Zeremonienmeister/Buffs), Schaufler (Schwere Schaufel-Streitaxt/Doppelflinte), Gruftspäher (Infiltrator/Fallen), Einbalsamierer (Support/Formaldehyd).
+    3. *Das Konsulat:* Doyen (Aristokratischer Botschafter mit Degenstock & Zigarre), Attachée (Schattenagentin mit Schalldämpfer & Chiffrierwalze), Palais-Gardist (Kevlar-Galauniform/Bajonett).
+    4. *Die Aschenbrenner (Spittelau):* Schornsteinfeger-Gildengroßmeister (Ruß-Zylinder/Druckschleusen), Oberheizer (Schlackekoloss mit Glüh-Schürhaken & Flammenlanze), Schlotkraxler (Rußfänger/Vertikal-Akrobat).
+    5. *Das Ringelspiel-Syndikat:* Hutschmeister (Pate mit Kasperl-Klinge), Kasperl-Schläger (Terror-Enforcer mit rissiger Holzmaske & Nagelpritsche), Rekommandeuse (Kirmes-Scharfschützin/Feuerwerk).
+    6. *Die Giftmischer:* Dekanin (Chef-Toxikologin mit Neurotoxinen), Sanitäter (Adrenalin-Berserker/Knochensäge), Probensammler (Kanal-Pipettierer).
+- **Generierte & eingebundene Assets:**
+  - `proto_weapon_steyr_aug_a3_m2.jpg`: Steyr AUG A3 M2 mit Picatinny-Schienen, Reflexvisier und `AZS-ORD-77`-Stempelung.
+  - `proto_konsulat_doyen.jpg`: Der Doyen im Palais Metternich (Monokel, Orden, Adler-Degenstock, Colorkey Bernstein).
+  - `proto_konsulat_attachee.jpg`: Die Attachée in der Regengasse (Leder-Trench, Schalldämpfer, Chiffrierwalze, Colorkey Rubinrot).
+  - `proto_aschenbrenner_heizer.jpg`: Der Oberheizer in Spittelau (Schweißbrille, glühende Schlackenharke, Dampfrohre, Colorkey Glut-Orange).
+  - `proto_ringelspiel_kasperl.jpg`: Der Kasperl-Schläger im Wurstelprater (Kasperlmaske, Nagel-Pritsche, Riesenrad, Colorkey Blutrot).
+  - `proto_protagonist_novotny.jpg`: Novotny im Schacht-Trenchcoat mit Glock 17 & Kaffeedosen-Urne im Chiaroscuro.
+- **Aktualisierte Komponenten:**
+  - [`ViennaMapModal.ts`](apps/sample-apps/and-now/ui/ViennaMapModal.ts): Eingepflegte Standorte für Palais Metternich & Spittelau mit Live-Archetyp-Vorschauen & Zitaten.
+  - [`concept-dossier.html`](apps/sample-apps/and-now/docs/concept-dossier.html): Galerie der Archetypen und Waffen erweitert.
+  - [`story.md`](apps/sample-apps/and-now/docs/story.md) & [`vienna_2100_art_dossier.md`](vienna_2100_art_dossier.md): Vollständige Kastenmatrix dokumentiert.
+
+---
+
+## 120. Die 2-Ebenen-Dramaturgie: Welt-Atmosphäre vs. Sin-City Regie-Eingriff (2026-09-14)
+- **Klarstellung der visuellen Doktrin:**
+  - Das Spiel läuft **nicht dauerhaft in reinem Schwarz-Weiß mit Colorkey**, um visueller Ermüdung vorzubeugen und die morbide Wiener Haptik (Patina-Grün, Donaukanal-Petrol, Gaslaternen-Bernstein, verblichenes Schönbrunner Gelb, nasser Kopfstein) zu erhalten.
+  - **Die 2 Ebenen:**
+    1. *Ebene 1 (Baseline / 85–90% der Spielzeit):* Malerischer, atmosphärisch gedämpfter Graphic-Noir (*Dishonored × Disco Elysium*) mit vollem, nuanciertem Farbraum und volumetrischem Licht.
+    2. *Ebene 2 (Dramaturgische Intervention / 10–15% der Spielzeit):* Radikales Sin-City Chiaroscuro (Tusche-Schatten + 1 isolierter Colorkey) als gezielte Regie-Zäsur für Schockmomente (K-42 Mord-Indiz Blausäure-Smaragd), Trauma-Echos (Großvater-Laterne Bernstein), Stufe-3-Nahkampf (Karminrot) und Tribunale.
+- **Dokumentation:** Vollständig synchronisiert in [`story.md`](apps/sample-apps/and-now/docs/story.md) und [`concept-dossier.html`](apps/sample-apps/and-now/docs/concept-dossier.html).
 
 
 

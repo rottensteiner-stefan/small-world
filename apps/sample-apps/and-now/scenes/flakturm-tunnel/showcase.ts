@@ -22,6 +22,7 @@ import {
 import { AbstractShowcase } from "@small-world/engine/core/index.js";
 import { GltfLoader } from "@small-world/engine/loaders/GltfLoader.js";
 import { Bone } from "@small-world/engine/core/animation/index.js";
+import { ViennaMapModal } from "../../ui/ViennaMapModal.js";
 
 /** The background plane's world extent -- the only place a (u, v) stage coordinate is ever
  * turned into a 3D position. Fed directly into `StageMovementBehavior`'s `"flat-plane"`
@@ -152,6 +153,7 @@ class AndNowScene2 extends AbstractShowcase {
   private _lastCState: boolean = false;
   private _lastEState: boolean = false;
   private _lastLState: boolean = false;
+  private _lastNState: boolean = false;
 
   // Editor State
   private _editorActive: boolean = false;
@@ -169,8 +171,14 @@ class AndNowScene2 extends AbstractShowcase {
   private _charTagEl!: HTMLElement | null;
   private _tagTitleEl!: HTMLElement | null;
   private _tagDetailsEl!: HTMLElement | null;
+  private _mapModal!: ViennaMapModal;
+
+  public get mapModal(): ViennaMapModal {
+    return this._mapModal;
+  }
 
   protected override async setupScene(): Promise<void> {
+    this._mapModal = new ViennaMapModal("flakturm_arenberg");
     this._zoneBadgeEl = document.getElementById("zoneBadge");
     this._charDescEl = document.getElementById("charDesc");
     this._editorSvg = document.getElementById("editorSvgOverlay") as unknown as SVGElement;
@@ -964,6 +972,19 @@ class AndNowScene2 extends AbstractShowcase {
       this._syncActiveAnimation();
     }
     this._lastLState = isLPressed;
+
+    // Toggle Graphic Noir / Sin-City Chiaroscuro Modus mit Taste 'N'
+    const isNPressed = this.input.isPressed("KeyN");
+    if (isNPressed && !this._lastNState) {
+      if (this.renderer.postProcessing.enabled && this.renderer.postProcessing.filterMode === 2) {
+        this.renderer.postProcessing.enabled = false;
+        this.renderer.postProcessing.filterMode = 0;
+      } else {
+        this.renderer.postProcessing.enabled = true;
+        this.renderer.postProcessing.filterMode = 2;
+      }
+    }
+    this._lastNState = isNPressed;
 
     // Idle-Variations-Timer (Wechsel zwischen idle_1 und idle_2 bei inaktiver Laterne)
     if (this._movementBehavior?.state === "IDLE" && !this._lanternOn) {

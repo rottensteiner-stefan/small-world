@@ -39,13 +39,25 @@
     *   *Die Gegenwart der Spielwelt (~2100)*: 50 Jahre nach der Katastrophe. Die erste Generation, die gänzlich im Untergrund aufgewachsen ist, tritt hervor.
     *   *Technische Relikte*: Fragmente von künstlichen Intelligenzen (z.B. defekte automatische Konsulats-Attachés, AZS-Verwaltungs-KIs mit zynischen Glitches, automatisierte IAEA-Sicherheitssysteme).
 
-*   **Der visuelle Art-Style („Morbid-Malerischer Graphic-Noir“)**
-    *   *Die Synthese*: Eine atmosphärische Verschmelzung aus **Dishonored** (viktorianisch/k.u.k.-Architektur, stilisierte Pinselstrich-Texturen, überzeichnete Charakter-Silhouetten), **Disco Elysium** (ölmalerei-artige Farbpalette, melancholischer Verfall, literarische Dichte) und **Little Nightmares** (groteskes Chiaroscuro-Lichtspiel, beklemmende Maßstäbe, wachsartig-morbide Texturen und Theaterkulissen-Vibe).
-    *   *Atmosphärischer Nutzen*: Kein steriler Fotorealismus, sondern ein zeitloser, ausdrucksstarker Look, der den Wiener Schmäh, die morbide Eleganz und den bizarren Prater-Grusel perfekt einfängt und in der WebGPU/WebGL-Engine performant gerendert werden kann.
+*   **Der visuelle Art-Style (Die 2-Ebenen-Dramaturgie)**
+    *   **Ebene 1: Die Baseline-Welt (85–90% des Spiels — Morbid-Malerischer Graphic-Noir)**:
+        *   *Die Synthese*: Eine atmosphärische Verschmelzung aus **Dishonored** (viktorianisch/k.u.k.-Architektur, stilisierte Pinselstrich-Texturen, überzeichnete Charakter-Silhouetten), **Disco Elysium** (ölmalerei-artige Farbpalette, melancholischer Verfall, literarische Dichte) und **Little Nightmares** (groteskes Chiaroscuro-Lichtspiel, beklemmende Maßstäbe, wachsartig-morbide Texturen und Theaterkulissen-Vibe).
+        *   *Atmosphärische Farbpalette*: Kein steriles Schwarz-Weiß als Dauerzustand, sondern reichhaltige, desaturierte Wiener Nuancen — veroneser Patinagrün kupferner Kuppeldächer, tiefes Petrol des nächtlichen Donaukanals, bernsteinfarbenes Gaslaternen- & Röhrenlicht, schmutziges Kaisergelb und feuchter Kopfsteinpflaster-Schimmer.
+    *   **Ebene 2: Der Dramaturgische Eingriff (10–15% Schlüsselmomente — Sin-City Colorkey)**:
+        *   *Grundsatz: „Farbe ist Drama, keine Dekoration“*: Der radikale Sin-City Look (reinschwarze Tuscheschatten, weiße Kanten und **genau eine isolierte Schlüsselfarbe**) wird als **gezielte Regie-Zäsur** für Schockmomente, Indizien, Traumata und tödliche Konfrontationen eingesetzt:
+            1. **Koje 42 / Prolog (Trauma-Echo):** Reines Schwarz/Weiß — isoliertes 🟡 **Bernsteingold** (Großvaters Kerosin-Laterne & die zuckende Röhre des Amts-Terminals) als letzter Schein menschlicher Wärme.
+            2. **Kältekammer K-42 (Der Mord-Beweis):** Reines Schwarz/Weiß — der winzige, eisige 🟢 **Blausäure-Smaragdtupfer** am Hals des Großvaters zur Entlarvung des Giftmordes.
+            3. **Stufe-3-Nahkampf (Glock FM 78 Messer):** Reines Schwarz/Weiß — das blendende 🔴 **Karminrot** an Klinge und Händen bei tödlicher Intimität.
+            4. **Das Bermudadreieck (Alchemie-Gewölbe):** Reines Schwarz/Weiß — das leuchtende 🟢 **Smaragdgrün** brodelnder Narkotika und Gift-Injektoren im Rauschzustand.
+            5. **Das Tribunal Rossauer Kaserne (Akt IV Finale):** Reines Schwarz/Weiß — das stechende 🔴 **Karminrot** des AZS-Sperrstempels und Brandstätters Dienstsiegel.
     *   *Das „Wiener Guckkasten-Prinzip“ (Duale Kameraperspektive & Nahtloser Übergang)*:
         *   **Oberwelt & Außenbezirke (Isometrisch / Top-Down wie *Disco Elysium*)**: Weitsicht, Orientierung, Navigation zwischen Schuttbergen, Platzübersichten, Dialoge und Straßenkämpfe aus erhabener, malerischer Diorama-Perspektive.
         *   **Innenräume, Bunker & Unterwelt (2.5D Schnittmodell / Theaterbühne wie *Little Nightmares*)**: Beklemmende Chiaroscuro-Enge, Klettern, Verstecken unter Mobiliar, Schleichpassagen und intime Raum-Rätsel in seitlich aufgeschnittenen Guckkasten-Kulissen.
         *   **Der nahtlose Kameraschwenk (Seamless Transition)**: Beim Betreten eines Gebäudes oder Bunkers (z.B. Druckschleuse Flakturm Arenberg) erfolgt kein harter Lade-Schnitt. Die 3D-Kamera schwenkt und senkt sich butterweich von der schrägen Isometrie auf Augenhöhe nach vorne-unten, während Außenwände wie Theaterkulissen transparent werden und den Blick in das mehrstöckige, atmosphärisch ausgeleuchtete Schnittmodell freigeben.
+
+*   **Das diegetische Reisesystem & Die Weltkarte (Großvaters Faltplan 2026 ➔ 2100)**
+    *   *Diegetische Entscheidung*: Absage an sterile Cyberpunk-PDAs oder Pip-Boys. Novotny trägt einen mehrfach gefalteten, abgegriffenen Vorkriegs-Stadtplan (Falk-Plan Wien 2026) mit sich, den Großvater František 50 Jahre lang mit Rötelstift-Notizen, Kaffeerändern, Warnungen (*„Hawelka schläft nie“*, *„Schaufler-Patrouille“*) und Schleichrouten annotiert hat.
+    *   *Diegetischer Schnellreise-Transit*: Das Reisen zwischen Schauplätzen (Flakturm Arenberg, Bermudadreieck, Prater, Rossauer Kaserne, Zentralfriedhof) erfolgt über atmosphärische Chiaroscuro-Transit-Vignetten (z.B. der geflutete U-Bahn-Schacht am Karlsplatz) mit literarisch verdichteten Einzeilern.
 
 *   **Die Spionage-Vergangenheit**
     *   Nutzt Wiens reale Historie als Drehscheibe des Kalten Krieges.
@@ -107,7 +119,7 @@
 *   **Der persönliche Antagonist**: **Hofrat Brandstätter**, ein hochrangiger Beamter aus der Rossauer Kaserne (nicht die lokale Bunkerleitung Arenberg selbst – der greift von oben, aus dem Hintergrund, in Novotnys Fall ein). Er hat den Mord an František in Auftrag gegeben und die Vertuschung als "natürlicher Tod" persönlich abgesegnet. Als er erfährt, dass Novotny das Medaillon aus der Asservatenkammer gestohlen hat, wird die Verfolgung für ihn persönlich – er taucht als kalter, stets einen Schritt hinter dem Spieler herjagender Widersacher durch mehrere Kapitel der Geschichte wieder auf, statt nur eine anonyme Fraktionsgefahr zu sein.
 *   **Waffen-Arsenal & Kampfstil**:
     *   *Nahkampf*: Elektroschlagstöcke (Taser-Stäbe), schwere Panzerglas-Schilde.
-    *   *Fernkampf*: Repetier-Dienstpistolen (Steyr), Bundesheer-Sturmgewehre (StG 77 / Steyr AUG) – gepflegt, aber mit streng rationierter Munition.
+    *   *Fernkampf*: Repetier-Dienstpistolen (Steyr M9), modernisierte Bundesheer-Sturmgewehre (**Steyr AUG A3 M2** / StG 77 A3 M2 mit Picatinny-Schienen, NATO-Magazinschacht und integrierter Optik) – penibel gepflegt, aber mit streng rationierter 5,56mm-Munition.
     *   *Präparate & Spezial*: **Tränengas- & CS-Granaten**, Flashbangs, Dekontaminations-Schaumwerfer und standardisierte AZS-Militär-Medipacks.
 
 ### E. Das Ringelspiel-Syndikat (Die Prater-Dynastien & Kasperl-Bande)
@@ -123,7 +135,20 @@
     *   *Fernkampf*: Aufgebohrte Kirmes-Luftgewehre (für Schrot/Bolzen), abgesägte Schrotflinten („Luparas“) und Nagelpistolen.
     *   *Gifte & Pyrotechnik*: **Cluster-Böller, Phosphor-Feuerwerk**, mit Altmetall gefüllte Rohrbomben sowie billige, gepanschte Methanol-Brandsätze („Schnaps-Molotows“).
 
-### F. Das Fraktions-Geflecht (Wechselseitige Abhängigkeiten & Konflikte)
+### F. Die Aschenbrenner (Die Fernwärme & Müllverbrennung Spittelau – Hundertwasser-Gilde)
+*   **Hauptquartier**: **Das Fernwärmewerk Spittelau (9. Bezirk / Donaukanal)**. Die bunte Müllverbrennungsanlage mit der ikonischen goldenen Kugel ragt wie eine surreale Festung aus dem Ruinenmeer des Alsergrunds.
+*   **Hintergrund & Natur**: Eine verschworene Gilde aus Schornsteinfegern, Hochofen-Schmelzern und Kesseltechnikern. Sie kontrollieren den lebensnotwendigen Dampfdruck, die Warmwasserleitungen und den Schmelzstrom der Stadt. Wegen ihrer aus bunten Kacheln und Schrott zusammengeflickten Schutzkleidung werden sie im Wiener Volksmund spöttisch *„Hundertwasser-Gilde“* genannt.
+*   **Hierarchie & Kasten**:
+    *   *Anführung*: **Der Schornsteinfeger-Gildengroßmeister** (Ruß-Zylinder mit Messingventilen, Gehrock mit Emaille-Kacheln, kommandiert Druckschleusen).
+    *   *Innerer Kreis*: **Die Kesselmeister & Heizer-Patriarchen** (Regeln Temperaturzonen, Turbinen und den Schmelzfluss).
+    *   *Handlanger*: **Die Schlotkraxler / Rußfänger** (Wendige Kletterer in den Schloten; patrouillieren auf Fernwärmerohren mit Greifhaken und Aschefiltern).
+    *   *Schläger / Brutalos*: **Die „Oberheizer“ / Schlackebrecher** (Gigantische Schmelzer in ledrigen Asbest-Schürzen; schlagen mit glühenden Schlackenharken und Feuerspeier-Lanzen zu).
+*   **Waffen-Arsenal & Kampfstil**:
+    *   *Nahkampf*: Glühende Eisenschürhaken, Schlackenharken, Kaminbesen-Hellebarden und schwere Rußzangen.
+    *   *Fernkampf*: Industrielle Schlackenschleudern, Druckdampf-Lanzen und Flammenwerfer aus umgebauten Ölbrennern.
+    *   *Pyrotechnik & Brandmittel*: **Kochende Pech- und Schlackekugeln, Thermit-Granaten**, giftige Schwefel-Rauchbomben und Kohlenstaub-Explosionsladungen.
+
+### G. Das Fraktions-Geflecht (Wechselseitige Abhängigkeiten & Konflikte)
 *Die Fraktionen existieren nicht im luftleeren Raum, sondern bilden ein fragiles, verstricktes Ökosystem aus Notwendigkeiten, Hehlerei, Erpressung und historischen Fehden. Aus diesen Reibungspunkten entspringen organische Side-Quests:*
 1. **Die Pompfinebrer ⮀ Die Giftmischer (Bermudadreieck)**:
    * *Abhängigkeit*: Die Pompfinebrer benötigen das chemische Konservierungs- und Einbalsamierungsbalsam der Alchimisten für ihre Riten.
@@ -202,7 +227,7 @@
     *   *Die leeren Hände*: Wie von der Bürokratie erwartet, hat die Leiche nichts mehr bei sich. Die gesamte Habe von František wurde penibel katalogisiert und in der Asservatenkammer der AZS-Kanzlei weggesperrt.
 *   **Der Einbruch in die Asservatenkammer (Der erste Heist)**:
     *   Um zu verstehen, warum der Großvater sterben musste, muss der Spieler in die streng bewachte Registratur / Asservatenkammer des Bunkers einbrechen.
-    *   *Die Ausbeute*: Zwischen den konfiszierten Sachen findet Novotny das alte Medaillon von František und ein Relikt: eine alte "Straßenbahn-Fahrkarte der Linie D" mit handschriftlichen Koordinaten der Kapuzinergruft. Ein versteckter Hinweis.
+    *   *Die Ausbeute*: Zwischen den konfiszierten Sachen findet Novotny das alte Medaillon von František, ein Relikt (die alte „Straßenbahn-Fahrkarte der Linie D“ zur Kapuzinergruft) sowie **Františeks alte Glock 17 (Pistole 80, 9×19mm)** samt einem letzten vollen Magazin.
     *   *Kein bloßer Schmuck*: Beim genaueren Untersuchen des Medaillons löst sich ein winziges, verborgenes Scharnier – im Inneren offenbart sich ein technisches Innenleben, das eindeutig nicht aus der Vorkriegs-Schmuckwerkstatt stammt. Wofür es gedacht ist, erschließt sich Novotny (noch) nicht. Aber es erklärt, warum ein hoher AZS-Beamter bereit war, dafür über eine Leiche zu gehen: Das hier war offenbar wichtig genug für einen Mord.
 *   **Die heimliche Einäscherung & Die Kaffeedosen-Urne (Das Wiener Relikt)**:
     *   *Gegen das Massengrab*: Um zu verhindern, dass die sterblichen Überreste in den Säure-Bottichen des AZS-Komposters aufgelöst werden, manipuliert der Spieler den thermischen Bunker-Verbrennungsofen.
@@ -243,7 +268,11 @@
     *   *Dynamischer Rad-Level*: Verstrahlte Zonen (z.B. Donauauen, Bombentrichter am Gürtel, IAEA-Trümmer) vergiften den Körper kontinuierlich.
     *   *Auswirkungen auf die Gesundheit*: Strahlung senkt nicht nur die maximalen Lebenspunkte (HP-Cap), sondern verursacht Halluzinationen, Zittern beim Zielen und verlangsamte Ausdauerregeneration.
     *   *Behandlung & Gegenmittel*: *Jod-Präparate*, Bleiwesten, spezielle *Schutzkaffee-Konzentrate* der Alchimisten und AZS-Dekontaminations-Duschen.
-*   **Das Dialog-System & Soziale Dynamiken (Wiener Schmäh & Verhandlung)**:
+*   **Das Dialog-System & Die Hard-Boiled Monolog-Doktrin (Kinetischer Graphic Noir statt Psycho-Simulation)**:
+    *   *Die bewusste gestalterische Abgrenzung*: Wo literarische Meisterwerke wie *Disco Elysium* auf 24 psycho-analytische Stimmen, Textberge und komplexe Skill-Kabinette setzen, schlägt *„And Now?“* den Weg des **kinetischen, ungeschminkten Graphic Noir** ein:
+        *   **Eine einzige, lakonische Off-Stimme („Sin City Caption Box“)**: Novotny denkt nicht in 24 facettierten Persönlichkeitsdebatten, sondern in trockenen, messerscharfen 1- bis 2-Zeilern (z.B. *„Hawelka schwitzt. Entweder lügt er, oder die Schleusenwache steht schon im Gang.“*).
+        *   **Wiener Bauchgefühl & Schmäh statt Würfel-Checks**: Dialoge leben von Timing, Deeskalation, Verhandlung und trockenem Galgenhumor.
+        *   **Flüssiges Tempo**: Keine statischen Lesepausen – die Atmosphäre entsteht im Chiaroscuro-Lichtspiel, in der Mimik, im Sounddesign und in den pointierten Gedanken.
     *   *Verzweigte Multiple-Choice-Dialoge*: Dienen der Informationsgewinnung, der diplomatischen Deeskalation, dem Feilschen oder dem Überreden von Wachen und Fraktionsführern.
     *   *Wiener Tonalität*: Von schneidender k.u.k.-Bürokratie über giftigen Zynismus bis zu gemütlichem, aber doppelbödigem Kaffeehaus-Schmäh.
     *   *Einfluss von Ruf & Identität*: Hoher Fraktionsruf oder mitgeführte Passierscheine/Medaillons schalten neue, gewaltfreie Dialogoptionen und Abkürzungen frei.
@@ -275,10 +304,15 @@
 *   **Das haptische Werkzeug- & Waffen-Arsenal (Klasse statt Masse & Modding)**:
     *   *Die Anti-Loot-Spam-Philosophie*: Keine 20 belanglosen Schwerter und keine 20 austauschbaren Pistolen mit +2% Schadenswerten. Waffen und Werkzeuge sind seltene, bedeutungsvolle Begleiter mit echtem Charakter und physischer Wucht.
     *   *Die 4 ikonischen Grund-Waffen & Werkzeuge*:
-        1. **Die Dienstpistole des Großvaters (Alte k.u.k. / AZS-Ordonnanz 2050)*: Verlässlich, präzise. Modbar mit Schalldämpfer (Ölfilter), Laserpointer aus alter TU-Optik oder Hochdruck-Magazin.
-        2. **Die Schaufler-Querflinte (Abgesägte Doppelflinte der Pompfinebrer)*: Rohe Gewalt auf kurze Distanz. Modbar mit Choke für Granitsplitt-Streuung, Branntkalk-Ladungen oder Bajonett-Klinge.
+        1. **Die Glock 17 des Großvaters (Pistole 80, Kaliber 9×19mm Parabellum)**: Františeks treue Vorkriegs-Dienstwaffe aus Deutsch-Wagram. Polymerrahmen von Jahrzehnten im Bunker glattpoliert, Schlitten mit Kantenabnutzung und verblasstem Bundesadler/Zivilschutz-Wappen. Unverwüstlich im Schlamm und Bunkerdreck. Modbar an Werkbänken: Schalldämpfer aus Ölfilter („Kanal-Flüsterer“), TU-Vermessungslaser und 33-Schuss-AZS-Magazin („Wiener Stange“).
+        2. **Die Schaufler-Querflinte (Abgesägte Doppelflinte der Pompfinebrer)**: Rohe Gewalt auf kurze Distanz. Modbar mit Choke für Granitsplitt-Streuung, Branntkalk-Ladungen oder Bajonett-Klinge.
         3. **Das modifizierte Kirmes-Luftgewehr (Prater-Spezial)*: Lautlos. Verschießt Narkosepfeile, Gift-Ampullen der Alchimisten oder panzerbrechende Wolfram-Bolzen.
         4. **Das multifunktionale Bergungswerkzeug („Der Wiener Hebel“)*: Brecheisen, Isolierzange und Nahkampfwaffe in einem. Unverzichtbar zum Aufhebeln von Lüftungsschächten, Durchtrennen von Starkstromkabeln oder leisen Ausschalten von Wachen.
+    *   **Das 3-Stufen-Nahkampfsystem (Psychologische Wucht, Brutalität & Non-Lethal)**:
+        *   *Die Grundhaltung: Nahkampf als emotionaler und physischer Horror*: Novotny ist kein abgebrühter Elitesoldat, sondern ein schmaler 22-jähriger Schacht-Inspektor. Nahkampf ist im Graphic-Noir-Stil niemals saubere Akrobatik, sondern ein verzweifeltes Ringen im Dreck, Schweiß und Atem des Gegners.
+        *   *Stufe 1 (Non-Lethal / Stealth) — Der Elektroschocker / AZS-Viehtreiber*: Lautlose, nicht-tödliche Betäubung aus dem Schatten. Kalt, technisch, bürokratisch. Ein kurzes zuckendes Muskelkrampfen im bläulich-weißen Chiaroscuro-Lichtbogen – der Gegner geht lautlos zu Boden, ohne dass Blut fließt oder Alarm ausgelöst wird.
+        *   *Stufe 2 (Brutale Abwehr / Werkzeug) — Der Totschläger & Der „Wiener Hebel“*: Stumpfe Knochengewalt und Rüstungsbrecher. Der klassische Wiener Totschläger (biegsamer Federstahl mit lederummanteltem Bleikopf) bricht mit dumpfem Knochenschlag Schlüsselbeine und Handgelenke; der spitz geschliffene „Wiener Hebel“ hebelt Schachtgitter auf und bricht die Haltung gepanzerter Schleusenwachen.
+        *   *Stufe 3 (Die letzte Verzweiflung / Tödliche Intimität) — Das Glock Feldmesser 78 (FM 78)*: Letzte, irreversible Konsequenz im Ringen auf zehn Zentimeter Abstand. Das Messer erfordert grausamen Nahkontakt: Man riecht den Atem, spürt das Reißen von Stoff und den Widerstand an Rippenknochen. Im Sin-City-Stil bleibt die Szene rein schwarz-weiß – bis auf das aufspritzende, isolierte **Karminrot** an Novotnys zitternden Händen. Nach jedem Messerkampf ist Novotny psychisch erschüttert und ringt nach Luft.
     *   *Tiefes, mechanisches Modding an Werkbänken*: Statt Waffen wegzuwerfen, rüstet man seine wenigen Stücke situativ um (z.B. Gift-Injektoren der Giftmischer, Blei-Ummantelungen gegen Strahlungsstörungen oder Infrarot-Optiken für U-Bahn-Schächte).
     *   *Gadgets, Gifte & Köpfchen (Non-Lethal & Taktik)*:
         *   *Betäubungs- & Schlafgase*: Lüftungsschächte mit Alchimisten-Rauch fluten.

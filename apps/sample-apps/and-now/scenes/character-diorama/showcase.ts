@@ -30,6 +30,7 @@ import {
   AnimationMixer,
   Bone,
 } from "@small-world/engine/core/animation/index.js";
+import { ViennaMapModal } from "../../ui/ViennaMapModal.js";
 
 type CharacterType = "male" | "female" | "yoshi";
 
@@ -131,6 +132,8 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
   private _lblChar!: HTMLElement;
   private _lblTorch!: HTMLElement;
   private _lblTurntable!: HTMLElement;
+  private _lblNoir!: HTMLElement;
+  private _mapModal!: ViennaMapModal;
   private _animButtons: HTMLButtonElement[] = [];
 
   // Articulated Grooming & Diorama Rats
@@ -1678,16 +1681,38 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
     }
   }
 
+  private _toggleNoir(): void {
+    const active =
+      this.renderer.postProcessing.enabled && this.renderer.postProcessing.filterMode === 2;
+    if (active) {
+      this.renderer.postProcessing.enabled = false;
+      this.renderer.postProcessing.filterMode = 0;
+      if (this._lblNoir) this._lblNoir.textContent = "AUS";
+      const btn = document.getElementById("btn-noir");
+      if (btn) btn.classList.remove("active");
+    } else {
+      this.renderer.postProcessing.enabled = true;
+      this.renderer.postProcessing.filterMode = 2;
+      if (this._lblNoir) this._lblNoir.textContent = "AN";
+      const btn = document.getElementById("btn-noir");
+      if (btn) btn.classList.add("active");
+    }
+  }
+
   private _initHUD(): void {
+    this._mapModal = new ViennaMapModal("character_diorama");
     this._lblChar = document.getElementById("lbl-char")!;
     this._lblTorch = document.getElementById("lbl-torch")!;
     this._lblTurntable = document.getElementById("lbl-turntable")!;
+    this._lblNoir = document.getElementById("lbl-noir")!;
 
     document.getElementById("btn-char")?.addEventListener("click", () => this._cycleCharacter());
     document.getElementById("btn-torch")?.addEventListener("click", () => this._toggleTorch());
     document
       .getElementById("btn-turntable")
       ?.addEventListener("click", () => this._toggleTurntable());
+    document.getElementById("btn-noir")?.addEventListener("click", () => this._toggleNoir());
+    document.getElementById("btn-map")?.addEventListener("click", () => this._mapModal.toggle());
 
     const animContainer = document.getElementById("anim-buttons");
     if (animContainer) {
@@ -1706,6 +1731,7 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
       const k = e.key.toUpperCase();
       if (k === "C") this._cycleCharacter();
       else if (k === "L") this._toggleTorch();
+      else if (k === "N") this._toggleNoir();
       else if (k === " ") {
         e.preventDefault();
         this._toggleTurntable();

@@ -43,6 +43,10 @@ describe("FlickerBehavior", () => {
     const target2 = new Object3D("t2");
 
     const b1 = new FlickerBehavior({
+      minStableTime: 0.0,
+      maxStableTime: 0.0,
+      minFlickerTime: 0.1,
+      maxFlickerTime: 0.1,
       smoothness: 0.5,
       frequency: 15.0,
       noiseOffset: 0.0,
@@ -51,6 +55,10 @@ describe("FlickerBehavior", () => {
       },
     });
     const b2 = new FlickerBehavior({
+      minStableTime: 0.0,
+      maxStableTime: 0.0,
+      minFlickerTime: 0.1,
+      maxFlickerTime: 0.1,
       smoothness: 0.5,
       frequency: 15.0,
       noiseOffset: 1234.5,
@@ -63,7 +71,7 @@ describe("FlickerBehavior", () => {
     b2.onAttach(target2);
 
     let differencesFound = 0;
-    for (let i = 0; i < 60; i++) {
+    for (let i = 0; i < 120; i++) {
       b1.update(1 / 60);
       b2.update(1 / 60);
       if (Math.abs(m1 - m2) > 0.01) {

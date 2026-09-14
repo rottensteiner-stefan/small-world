@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.79.06] - 2026-09-14
+
+### "Color is the keyboard, the eyes are the hammers, the soul is the piano with many strings." - Wassily Kandinsky
+
+- **Features:**
+  - Added diegetic Vienna Map Modal (`ViennaMapModal.ts`) and interactive exploration map for *And Now? (Wien 2100)* with district transit, archetype previews, and František's field notes.
+  - Graphic Noir shader post-processing pipeline (`filter_noir.glsl`, `filter_noir.wgsl`) supporting selective colorkey isolation for cinematic high-contrast moments.
+  - Complete faction archetype roster and visual character concept library for the 6 factions of post-apocalyptic Vienna 2100.
+- **Architecture & Bugfixes:**
+  - Formalized the 2-Tier Visual Architecture for *And Now?*: rich, desaturated atmospheric Graphic-Noir baseline world with targeted, high-contrast Sin-City Chiaroscuro colorkey punctuation for key narrative beats.
+- **Housekeeping & Docs:**
+  - Synchronized game narrative doctrine in `story.md`, updated `concept-dossier.html` visual architecture banner, and added comprehensive dev log entry 120.
+  - New test suite for Vienna map exploration (`ViennaMap.test.ts`).
+
 ## [0.79.05] - 2026-09-13
 
 ### "A rose-red city half as old as time." - John William Burgon
