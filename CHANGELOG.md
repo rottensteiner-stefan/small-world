@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.79.10] - 2026-09-14
+
+### "Patience is the companion of wisdom." - Saint Augustine
+
+- **Architecture & Bugfixes:**
+  - Fixed npm workspace dependency format in [`packages/gltf-extensions/package.json`](packages/gltf-extensions/package.json) from `workspace:*` to `*` to resolve `EUNSUPPORTEDPROTOCOL` error during `npm ci` in GitHub Actions.
+
 ## [0.79.09] - 2026-09-14
 
 ### "Truth is much too complicated to allow anything but approximations." - John von Neumann

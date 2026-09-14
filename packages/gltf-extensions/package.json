@@ -12,6 +12,6 @@
     "./*": "./src/*"
   },
   "dependencies": {
-    "@small-world/engine": "workspace:*"
+    "@small-world/engine": "*"
   }
 }
