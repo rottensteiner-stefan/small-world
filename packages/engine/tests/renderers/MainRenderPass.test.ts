@@ -44,4 +44,39 @@ describe("MainRenderPass", () => {
     const call = (ce.beginRenderPass as ReturnType<typeof vi.fn>).mock.calls[0]![0];
     expect(call.depthStencilAttachment.depthLoadOp).not.toBe("clear");
   });
+
+  it("captures activeColorTexture and activeDepth when transparent objects are present", () => {
+    const mockColorTex = { mock: "activeColorTex" };
+    const renderer = {
+      ...makeMockRenderer(),
+      activeColorTexture: mockColorTex,
+      captureOpaqueTexture: vi.fn(),
+      captureOpaqueDepth: vi.fn(),
+    };
+    const mockMesh = {
+      material: {
+        uuid: "mat-1",
+        getRenderManifest: vi.fn(() => ({
+          shaderId: "test-shader",
+          state: { topology: 3 },
+        })),
+      },
+      geometry: { topology: 3 },
+    };
+    const scene = {
+      getVisibleObjectsSorted: vi.fn(() => ({
+        opaqueBatches: [],
+        transparent: [mockMesh],
+      })),
+    };
+    const rp = { end: vi.fn(), setBindGroup: vi.fn() };
+    const ce = { beginRenderPass: vi.fn(() => rp) };
+    const targetView = { mock: "targetView" };
+
+    const pass = new MainRenderPass() as Internals;
+    pass.execute(renderer, scene, ce, targetView, new Float32Array(16), new Vector3D(0, 0, 0));
+
+    expect(renderer.captureOpaqueTexture).toHaveBeenCalledWith(ce, mockColorTex);
+    expect(renderer.captureOpaqueDepth).toHaveBeenCalledWith(ce);
+  });
 });

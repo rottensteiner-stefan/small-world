@@ -425,4 +425,39 @@ describe("WebGPURenderer.captureOpaqueTexture() and captureOpaqueDepth() format 
       }),
     );
   });
+
+  it("resolves activeColorTexture and activeDepthTexture correctly for offscreen RenderTargets", () => {
+    const { renderer } = makeRenderer();
+    const rt = RenderTarget.create({ width: 256, height: 256 });
+    const mockRtTex = { mock: "rtTex" } as unknown as GPUTexture;
+    const mockRtDepth = { mock: "rtDepth" } as unknown as GPUTexture;
+    const mockRtView = { mock: "rtView" } as unknown as GPUTextureView;
+
+    renderer._renderTargetTextures.set(rt, {
+      tex: mockRtTex,
+      view: mockRtView,
+      depth: mockRtDepth,
+      depthView: { mock: "rtDepthView" } as unknown as GPUTextureView,
+    });
+
+    renderer.setRenderTarget(rt);
+    expect(renderer.activeColorTexture).toBe(mockRtTex);
+    expect(renderer.activeDepthTexture).toBe(mockRtDepth);
+
+    // When no render target is set, falls back to HDR texture or context
+    renderer.setRenderTarget(null);
+    renderer.postProcessing.enabled = true;
+    const mockHdrTex = { mock: "hdrTex" } as unknown as GPUTexture;
+    renderer._hdrTexture = mockHdrTex;
+    expect(renderer.activeColorTexture).toBe(mockHdrTex);
+
+    renderer.postProcessing.enabled = false;
+    renderer._hdrTexture = undefined;
+    const mockCanvasTex = { mock: "canvasTex" } as unknown as GPUTexture;
+    renderer._context = {
+      getCurrentTexture: vi.fn(() => mockCanvasTex),
+    };
+    expect(renderer.activeColorTexture).toBe(mockCanvasTex);
+    expect(renderer._context.getCurrentTexture).toHaveBeenCalledTimes(1);
+  });
 });

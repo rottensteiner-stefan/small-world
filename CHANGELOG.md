@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.79.15] - 2026-09-14
+
+### "Order is not pressure which is imposed on reality from without, but the true shape of things from within." - José Ortega y Gasset
+
+- **Architecture & Bugfixes:**
+  - Resolved WebGPU `Destroyed texture used in a submit` validation errors occurring during resize and offscreen rendering passes in scenes with transparent / reflective materials (such as *Character Diorama Studio*).
+  - Added `activeColorTexture` and `activeDepthTexture` getters to [`WebGPURenderer`](packages/engine/src/renderers/WebGPU/WebGPURenderer.ts) so that offscreen passes (such as planar reflection cameras or probe captures) correctly isolate and capture their own `RenderTarget` textures instead of accessing the canvas swapchain texture.
+  - Refactored [`MainRenderPass`](packages/engine/src/renderers/passes/MainRenderPass.ts) to utilize `renderer.activeColorTexture` during opaque texture capture.
+  - Guarded swapchain texture acquisition (`getCurrentTexture().createView()`) in [`WebGPURenderer.render()`](packages/engine/src/renderers/WebGPU/WebGPURenderer.ts) to execute lazily only when drawing directly to the canvas framebuffer.
+  - Expanded unit test coverage in [`packages/engine/tests/renderers/WebGPUOffscreenTargetFormat.test.ts`](packages/engine/tests/renderers/WebGPUOffscreenTargetFormat.test.ts) and [`packages/engine/tests/renderers/MainRenderPass.test.ts`](packages/engine/tests/renderers/MainRenderPass.test.ts).
+  - Added entry 123 to *And Now?* dev log ([`apps/sample-apps/and-now/docs/log.md`](apps/sample-apps/and-now/docs/log.md)).
+
 ## [0.79.14] - 2026-09-14
 
 ### "It is not the answer that enlightens, but the question." - Eugène Ionesco

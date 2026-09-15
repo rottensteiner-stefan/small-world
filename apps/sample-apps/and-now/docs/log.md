@@ -1347,7 +1347,19 @@ befüllen.
 - **Verifikation:**
   - `npm run docs:build` ausgeführt und die generierten HTML-Dateien in `docs/.vitepress/dist/apps/` erfolgreich auf korrekte Pfadauflösung geprüft.
 
+---
 
-
-
+## 123. WebGPU Swapchain Texture Lifecycle & Offscreen Target Fix (2026-09-14)
+- **Problem & Ursachenanalyse:**
+  - Im *Character Diorama Studio* trat beim Rendern / Ändern der Fenstergröße unter WebGPU folgender Laufzeitfehler auf:
+    `Destroyed texture [Texture (unlabeled 1620x3128 px, TextureFormat::BGRA8Unorm)] used in a submit.`
+  - **Root Cause 1:** In [`MainRenderPass.ts`](packages/engine/src/renderers/passes/MainRenderPass.ts) griff der Opaque-Texture-Capture für transparente Materialien (wie Wasserpfützen / Glas) über eine bedingte Abfrage fälschlich auf `renderer.gpuCanvasContext.getCurrentTexture()` zu, wenn kein HDR-Postprocessing aktiv war. Bei Offscreen-Renderdurchläufen (z.B. der Planar-Reflection-Kamera für die Pfützenreflexion in ein eigenes `RenderTarget`) wurde so die Swapchain-Textur des Canvas anstelle der Zieltextur des Offscreen-RenderTargets erfasst.
+  - **Root Cause 2:** In [`WebGPURenderer.render()`](packages/engine/src/renderers/WebGPU/WebGPURenderer.ts) wurde `this._context.getCurrentTexture().createView()` bei JEDEM `render()`-Aufruf (auch bei Offscreen-Sub-Passes und HDR-Passes) vorschnell angefordert und anschließend verworfen. Kam es zwischen Sub-Passes zu Größenanpassungen, war die aufgenommene Swapchain-Textur bereits zerstört, bevor der CommandBuffer übergeben wurde.
+- **Architektur-Lösung:**
+  - `WebGPURenderer` um die Getter `public get activeColorTexture(): GPUTexture` und `public get activeDepthTexture(): GPUTexture` erweitert, die zuverlässig die Textur des aktiven RenderTargets bzw. `_hdrTexture` / Canvas-Swapchains liefern.
+  - [`MainRenderPass.ts`](packages/engine/src/renderers/passes/MainRenderPass.ts) nutzt nun `renderer.activeColorTexture` für `captureOpaqueTexture`.
+  - [`WebGPURenderer.render()`](packages/engine/src/renderers/WebGPU/WebGPURenderer.ts) ruft `getCurrentTexture().createView()` nur noch dann auf, wenn tatsächlich direkt auf den Swapchain-Framebuffer gezeichnet wird (`!isOffscreen && !postProcessing.enabled`).
+- **Verifikation:**
+  - Vitest-Suiten [`WebGPUOffscreenTargetFormat.test.ts`](packages/engine/tests/renderers/WebGPUOffscreenTargetFormat.test.ts) und [`MainRenderPass.test.ts`](packages/engine/tests/renderers/MainRenderPass.test.ts) erweitert.
+  - Alle 142 Testsuiten (786 Tests), `typecheck`, `lint:fix`, `build:lib` und `docs:build` **100% grün**.
 

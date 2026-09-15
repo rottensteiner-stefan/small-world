@@ -386,6 +386,34 @@ export class WebGPURenderer extends AbstractRenderer {
     return this._depthTexture.createView();
   }
 
+  public get activeDepthTexture(): GPUTexture {
+    if (this._activeRenderTarget) {
+      if (this._activeRenderTarget instanceof RenderTargetCube) {
+        const data = this._renderTargetCubeTextures.get(this._activeRenderTarget);
+        if (data && data.depth) return data.depth;
+      } else {
+        const data = this._renderTargetTextures.get(this._activeRenderTarget);
+        if (data && data.depth) return data.depth;
+      }
+    }
+    return this._depthTexture;
+  }
+
+  public get activeColorTexture(): GPUTexture {
+    if (this._activeRenderTarget) {
+      if (this._activeRenderTarget instanceof RenderTargetCube) {
+        const data = this._renderTargetCubeTextures.get(this._activeRenderTarget);
+        if (data) return data.tex;
+      } else {
+        const data = this._renderTargetTextures.get(this._activeRenderTarget);
+        if (data) return data.tex;
+      }
+    }
+    return this.postProcessing.enabled && this._hdrTexture
+      ? this._hdrTexture
+      : this._context.getCurrentTexture();
+  }
+
   /** @inheritdoc */
   public async initialize(
     canvas: HTMLCanvasElement,
@@ -1228,9 +1256,7 @@ export class WebGPURenderer extends AbstractRenderer {
       this._hdrTextureView = undefined;
     }
 
-    const screenView = this._context.getCurrentTexture().createView();
-    let renderTargetView =
-      this.postProcessing.enabled && this._hdrTextureView ? this._hdrTextureView : screenView;
+    let renderTargetView: GPUTextureView;
     let isOffscreen = false;
 
     if (this._activeRenderTarget) {
@@ -1330,6 +1356,11 @@ export class WebGPURenderer extends AbstractRenderer {
         }
         renderTargetView = data.view;
       }
+    } else {
+      renderTargetView =
+        this.postProcessing.enabled && this._hdrTextureView
+          ? this._hdrTextureView
+          : this._context.getCurrentTexture().createView();
     }
 
     const bloomNode = this.postProcessing.get<import("../post/index.js").BloomElement>(
@@ -1481,11 +1512,7 @@ export class WebGPURenderer extends AbstractRenderer {
   private _opaqueDepthTextureView?: GPUTextureView;
 
   public captureOpaqueDepth(ce: GPUCommandEncoder): void {
-    const srcTex = this._activeRenderTarget
-      ? (this._activeRenderTarget instanceof RenderTargetCube
-          ? this._renderTargetCubeTextures.get(this._activeRenderTarget)?.depth
-          : this._renderTargetTextures.get(this._activeRenderTarget)?.depth) || this._depthTexture
-      : this._depthTexture;
+    const srcTex = this.activeDepthTexture;
 
     if (
       !this._opaqueDepthTexture ||
