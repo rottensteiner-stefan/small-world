@@ -1363,3 +1363,66 @@ befüllen.
   - Vitest-Suiten [`WebGPUOffscreenTargetFormat.test.ts`](packages/engine/tests/renderers/WebGPUOffscreenTargetFormat.test.ts) und [`MainRenderPass.test.ts`](packages/engine/tests/renderers/MainRenderPass.test.ts) erweitert.
   - Alle 142 Testsuiten (786 Tests), `typecheck`, `lint:fix`, `build:lib` und `docs:build` **100% grün**.
 
+---
+
+## 124. Etablierung des 4-Akte Golden Paths, Storyline-Präfix & Lore-Präzisierung (2026-09-15)
+- **Kanonische Story-Architektur & Golden Path:**
+  - Fixierung der linearen, kuratierten 4-Akte-Dramaturgie (*The Last of Us* trifft *Stray* im postapokalyptischen Wien) in [`story.md`](apps/sample-apps/and-now/docs/story.md) (Abschnitt 10):
+    1. *Akt I (Flakturm Arenberg):* Abschied & Ausbruch (Koje 42 ➔ Kältekammer K-42 ➔ Asservatenkammer & Kaffeedose ➔ Druckschleuse).
+    2. *Akt II (Zentrum & Kanäle):* Trümmer-Reise (Bermudadreieck ➔ Verzweigung Karlsplatz/Wienfluss ➔ Kapuzinergruft).
+    3. *Akt III (Simmering & Zentralfriedhof):* Das heilige Gelübde („A schene Leich“ & Emotionaler Höhepunkt 1).
+    4. *Akt IV (Rossauer Kaserne):* Die Abrechnung mit Hofrat Brandstätter & dem AZS-System (Höhepunkt 2).
+- **Lore-Präzisierung & Widerspruchsfreiheit:**
+  - *Welt vs. Protagonist:* Die Außenwelt existiert und kämpft bereits seit Jahrzehnten ums Überleben (etablierte Fraktionen, Schmuggelrouten, Hehler). **Novotny persönlich** war ihr/sein ganzes Leben lang in den tiefen Schächten des Bunkers Arenberg isoliert und hat noch nie den echten Himmel gesehen.
+  - *Identität:* Der Nachname **Novotny** wird konsequent geschlechtsneutral geführt, um dem Spieler die freie Wahl der Identität zu ermöglichen.
+- **Sparring-Konvention:**
+  - Etablierung des `Storyline:`-Präfixes für spontane kreative Impulse und Regie-Anmerkungen.
+- **Dokumentation & Schauplatz-Kanon:**
+  - Vollständige Mermaid-Diagramme für Makro-Ablauf und Akt-I-Stage-Flow in [`story.md`](apps/sample-apps/and-now/docs/story.md) verankert.
+  - Erweiterung des Schauplatz-Rosters auf **23 kanonische Schlüssel-Locations** (Hinzunahme von #21 *Rossauer Kaserne / AZS-HQ*, #22 *Café Hawelka & Dorotheergasse* und #23 *Prunksaal der Nationalbibliothek / Hofburg*).
+
+---
+
+## 125. Festlegung der „Wide-Linear“ Hub-and-Spoke Architektur (2026-09-15)
+- **Design-Entscheidung & Scope-Kontrolle:**
+  - Verwerfen sowohl von linearen Schläuchen (*The Last of Us* ohne Erkundung) als auch von aufblähenden 200-Stunden-Open-World-Sandkästen.
+  - Etablierung des **Wide-Linear Hub-and-Spoke-Prinzips** (*Dishonored / Deus Ex / Metro Exodus*):
+    - 1 eindeutiger, geführter **Golden Path** pro Akt / Bezirk (z.B. *Katakomben ➔ Bermudadreieck*).
+    - 2–3 kompakte, optionale **Mikro-Erkundungs-Räume** (z.B. *Café Hawelka*, verlassener Würstelstand, U-Bahn-Notausstieg) auf 2–3 Straßenzügen.
+    - Belohnung der Erkundung durch **„Smart Solutions“** (Abkürzungen, Schmiergeld-Relikte, Türcodes, Lüftungsschächte), die alternative, gewaltfreie Lösungswege eröffnen, ohne neuen Modellierungs-Overhead zu erzeugen.
+- **Dokumentation:**
+  - Vollständig in [`story.md`](apps/sample-apps/and-now/docs/story.md) (Abschnitt 10.A) integriert.
+
+## 126. Story-Review & 2C-Festlegung: Die Treasure des Medaillons (2026-09-15)
+- **Review etabliert:** Autoren-Kritik („Authoren-Hütchen") als lebendes Dokument [`story-review.md`](apps/sample-apps/and-now/docs/story-review.md) angelegt — Gesamturteil, Chronologie-Checks, drei Entscheidungspunkte, sortierte offene Fragen + sechs neue proaktive Fragen, Scope-Empfehlung, interaktiver Arbeitsplan.
+- **Entscheidungspunkt 2C festgelegt (Treasure des Medaillons):**
+  - **Brandstätter** ist ein Relikt und Architekt der alten Welt: planen/ausführte den finalen Schlag gemeinsam mit korrupten IAEA-Beamten, Diplomaten und Wirtschaftskapitänen (selbst ohne Nuklearzugang; orchestrierte die, die sie hatten; stieg im Vakuum auf). „Ost-West" = Wien als Spionage-/Diplomatie-Drehscheibe (CIA/KGB-Folklore als kulturelles Fundament). In der Rossauer Kaserne gibt es Archive, die selbst er nicht kennt/betreten kann (Ebene über ihm).
+  - **Die Achse „Eine Welt, zwei Visionen":** Brandstätter beschloss, die alte Welt zu beenden und neu zu stempeln; František beschloss, ihre Wahrheit zu bewahren.
+  - **František** war der „Eingeweihte wider Willen" — „Mädchen für alles" bei Brandstätter, installierte Kameras/Aufnahmegeräte, sammelte unbemerkt Schattenkopien, war zu klein zum Aufhalten, aber fähig, Beweise zu sichern.
+  - **Das Medaillon** ist Františeks eigene heimliche Schattenkopie (die „technischen Eingeweide" = seine Arbeit) — das Erbstück der Bewahrung, Zwillingsstück zur Kaffeedosen-Urne.
+  - **Dreigenerationen-Widerstandslinie:** Übergabe von Codes/Daten an den Sohn Fritz (AZS-Kanalspäher); František → Fritz → Novotny, willentlich oder nicht; Fritz' Verschwinden wird zum Widerstands-Opfer.
+
+---
+
+## 127. Vollständige Auflösung der Review-Entscheidungspunkte & Technik-Kanon (2026-09-15)
+- **2A (Die D-Linie vs. Linie 71):**
+  - Präzisierung auf Wiener Fakten: **Linie 71** ist die legendäre Friedhofs-Linie nach Simmering (*„den 71er nehmen“*). Novotny folgt den 71er-Gleisen in Akt III zur Beisetzung.
+  - **Linie D** fuhr über den Ring / Oper (nahe Kapuzinergruft). Die gefundene Linie-D-Fahrkarte in Akt I führt exakt zur Kapuzinergruft.
+- **2B (Rossauer Kaserne vs. UNO-City):**
+  - **Rossau (Akt IV Finale):** Liefert Františeks persönliche Rache & Brandstätters Entmachtung durch das dechiffrierte Medaillon.
+  - **UNO-City / IAEA:** Bleibt das globale Weltgeheimnis jenseits der Donau (Sequel / Epilog).
+  - **Brandstätter-Motiv-Präzisierung (§2D, „vernichten" → „an der Weitergabe hindern"):** Brandstätter wollte das belastende Medaillon daran hindern, die Wahrheit ans Schatten-Netzwerk weiterzugeben. Als hübsches Schmuckstück ohne Tauschwert im hungrigen Wien fiel es in der Inventarliste nicht auf – er erkannte nicht, was der alte Laufbursche darin versteckt hatte. Erst als Novotny es aus der Asservatenkammer stiehlt, verbindet er die Punkte; erst dann wird die Verfolgung zur existenziellen Besessenheit.
+- **2C-Split & Kapuzinergruft:**
+  - Kapuzinergruft als toter Briefkasten der Familie Novotny und eines geheimen Schatten-Netzwerks. Enthält das Dechiffrier-Gegenstück und Hinweise auf Widerstandszellen im Umland (DLC-Seeds für Wienerwald & Semmering).
+- **Drei-Generationen-Kanon:**
+  - **Fritz Novotny (geb. ~2045):** War beim Schlag ~5 Jahre alt. Seine Erinnerung an echtes Sonnenlicht trieb ihn als Kanalspäher in die Unterwelt.
+  - **Ober-Inspektor Pollak:** Brandstätters Ausführer im Flakturm Arenberg; setzte den Blausäure-Stich in K-42.
+- **Geräte- & Technik-Realismus (Kein Cyberpunk, kein CRT-Anachronismus):**
+  - **Amts-Terminal 2100:** Robustes Industrie-Handheld (gepanzertes Metall, flacher LC-Bildschirm mit Pixelfehlern, mechanische Klick-Tasten und Drehschalter, **kein Touchscreen**).
+  - **Wiener Energie-Realismus:** Strom aus Donau-Wasserkraft (Freudenau/Nußdorf) und Windkraftanlagen; Biogas aus Gärung für Gaslaternen.
+  - **Wiener Parks:** Dienen als atmosphärische, ressourcenschonende Atempause-Oasen zwischen Missionen.
+  - **Starke Fraktions-Verdichtung:** Keine überfrachteten Fallout-Quest-Gilden, sondern kuratierte Barrieren entlang des Golden Path.
+
+
+
+

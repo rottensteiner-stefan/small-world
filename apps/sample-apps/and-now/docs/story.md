@@ -32,11 +32,11 @@
 *   **Reale Wiener Anker**
     *   Einbettung der Fiktion in reale Schauplätze der Stadt: Die Flaktürme (z.B. Arenbergpark) als Bunkerfestungen.
     *   Der Zentralfriedhof als spirituelles und physisches Zentrum des Todes und des Respekts.
-    *   Die **UNO-City (IAEA)** als unerreichter "Gral" für das große technologische oder politische Rätsel der Spielwelt.
+    *   Die **UNO-City (IAEA)** als stiller, jenseits der Donau liegender Horizont – nicht das Ziel der Reise, sondern Heimstatt großer Vorkriegs-Technologie und des ungelösten Rätsels, wer einst den Knopf gedrückt hat.
 
 *   **Die Zeitleiste (2050 ➔ 2100) & Retro-Futurismus**
     *   *Der Tag des Schlags (~2050)*: Eine Welt mit fortgeschrittener Technologie – autonome KI-Protokolle, Robotik, Kybernetik und experimentelle Energieforschung.
-    *   *Die Gegenwart der Spielwelt (~2100)*: 50 Jahre nach der Katastrophe. Die erste Generation, die gänzlich im Untergrund aufgewachsen ist, tritt hervor.
+    *   *Die Gegenwart der Spielwelt (~2100)*: 50 Jahre nach der Katastrophe. Während an der Oberfläche bereits seit Jahrzehnten ein hartes, etabliertes Fraktions- und Schmuggel-Ökosystem (Pompfinebrer, Giftmischer, Prater-Syndikat) existiert, war **Novotny persönlich** ihr/sein ganzes Leben lang in den tiefen Schächten des Bunkers Arenberg isoliert und hat noch nie den echten Himmel gesehen oder die Oberwelt betreten.
     *   *Technische Relikte*: Fragmente von künstlichen Intelligenzen (z.B. defekte automatische Konsulats-Attachés, AZS-Verwaltungs-KIs mit zynischen Glitches, automatisierte IAEA-Sicherheitssysteme).
 
 *   **Der visuelle Art-Style (Die 2-Ebenen-Dramaturgie)**
@@ -115,8 +115,8 @@
     *   *Anführung*: **Der Bunker-Kommandant / Amtsleiter**.
     *   *Innerer Kreis*: **Die Sektionschefs** (Verwalten Quoten, Rationen und Kompostierungslisten).
     *   *Handlanger*: **Die Sachbearbeiter & Versorgungstechniker**.
-    *   *Schläger / Brutalos*: **Der Ordnungsdienst / Die Schleusenwache** (Gereizte, autoritäre Schikanierer).
-*   **Der persönliche Antagonist**: **Hofrat Brandstätter**, ein hochrangiger Beamter aus der Rossauer Kaserne (nicht die lokale Bunkerleitung Arenberg selbst – der greift von oben, aus dem Hintergrund, in Novotnys Fall ein). Er hat den Mord an František in Auftrag gegeben und die Vertuschung als "natürlicher Tod" persönlich abgesegnet. Als er erfährt, dass Novotny das Medaillon aus der Asservatenkammer gestohlen hat, wird die Verfolgung für ihn persönlich – er taucht als kalter, stets einen Schritt hinter dem Spieler herjagender Widersacher durch mehrere Kapitel der Geschichte wieder auf, statt nur eine anonyme Fraktionsgefahr zu sein.
+    *   *Schläger / Brutalos*: **Der Ordnungsdienst / Die Schleusenwache** (Im Flakturm Arenberg angeführt von **Ober-Inspektor Pollak** – autoritärer Kanzlei-Vollstrecker und Brandstätters Schläger vor Ort, der František in Sektor 0 die Blausäure injiziert hat).
+*   **Der persönliche Antagonist**: **Hofrat Brandstätter**, ein hochrangiger Beamter aus der Rossauer-Kaserne-Zentrale. Er ist ein skrupelloses Relikt der alten Welt und einer der geheimen Architekten der Katastrophe von ~2050: Er orchestrierte den Schlag gemeinsam mit korrupten IAEA-Beamten und Diplomaten aus schierer Machtgier, um im Trümmer-Vakuum aufzusteigen. František war damals sein technischer Gehilfe und sammelte 50 Jahre lang unbemerkt Schattenkopien dieser Verschwörung. Als František mit 95 Jahren im Sterben lag, gab Brandstätter den Mord in Auftrag, um das belastende Medaillon daran zu hindern, diese Wahrheit je an das Schatten-Netzwerk weiterzugeben. Doch als hübsches Schmuckstück ohne Tauschwert im hungrigen Wien fiel es in der Inventarliste nicht auf – Brandstätter erkannte nicht, was der alte Laufbursche darin versteckt hatte. Erst als Novotny es aus der Asservatenkammer stiehlt, verbindet er die Punkte; die Verfolgung von Novotny wird für ihn zur existenziellen Besessenheit.
 *   **Waffen-Arsenal & Kampfstil**:
     *   *Nahkampf*: Elektroschlagstöcke (Taser-Stäbe), schwere Panzerglas-Schilde.
     *   *Fernkampf*: Repetier-Dienstpistolen (Steyr M9), modernisierte Bundesheer-Sturmgewehre (**Steyr AUG A3 M2** / StG 77 A3 M2 mit Picatinny-Schienen, NATO-Magazinschacht und integrierter Optik) – penibel gepflegt, aber mit streng rationierter 5,56mm-Munition.
@@ -184,7 +184,7 @@
     *   *Der Name*: **Familie Novotny** (der Großvater **František Novotny**, der Vater **Fritz Novotny**, die Mutter **Elena Novotny** und die Spielfigur *[Vorname frei wählbar] Novotny*).
     *   *Kultureller & Historischer Bogen*:
         *   Der Großvater (**František**, geb. ~2005, also Mitte 40 beim Atomschlag) trug noch den traditionellen tschechischen Vornamen der böhmischen Vorfahren. Als bereits etablierter Erwachsener mit eigener Vorkriegs-Karriere ist er 2100, mit knapp 95 Jahren, der letzte lebende Zeuge der echten alten Welt – ihr Verlust wiegt entsprechend schwer.
-        *   Der Sohn/Vater (**Fritz**, die Zwischengeneration im Bunker) wuchs bereits als vollintegrierter Wiener Junge mit typischem Wiener Spitznamen auf.
+        *   Der Sohn/Vater (**Fritz**, geb. ~2045, die tragische Zwischengeneration): War beim Schlag ~2050 ein etwa fünfjähriges Kind. Er besaß noch blasse, prägende Kindheitserinnerungen an echtes Sonnenlicht, Sommerregen und den Wiener Stadtpark. Dieser nie gestillte Phantomschmerz trieb ihn zeitlebens an, als AZS-Kanalspäher die Tunnel und Schächte zu kartieren und Františeks geheimes Schatten-Netzwerk zu unterstützen.
     *   *Statur, Physis & Ausstrahlung*:
         *   *Körperbau*: Tendenziell schlank, drahtig, fast etwas hager – geprägt von 20 Jahren Mangelernährung, künstlicher UV-Beleuchtung und dem kargen Leben in den engen Wartungsschächten des Flakturms. Keine heroischen Muskelberge.
         *   *Ausstrahlung*: Macht einen eher melancholischen, traurigen und suchenden Eindruck als furchteinflößend („a armer Hund im Bunker“). 
@@ -223,12 +223,12 @@
         *   *Freigabe*: Die Nahansicht öffnet sich nahtlos zurück in die 2.5D-Bühnensteuerung – der Spieler hat volle Bewegungsfreiheit in der Koje und fasst den Entschluss zur Infiltration von Sektor 0.
 *   **Die Infiltration von Sektor 0 (Kältekammer Fach K-42)**:
     *   Die Spielfigur schleicht in die tiefgefrorenen Katakomben des Bunkers, um heimlich Abschied zu nehmen.
-    *   *Der Schock*: Offiziell heißt es, der Großvater sei eines natürlichen Todes gestorben. Doch am Hals der nackten, eiskalten Leiche findet sich ein winziger Einstichpunkt mit einem schwachen Blausäure-/Bittermandelgeruch. Es war Mord – und die Vertuschung als „natürlicher Tod" geht auf direkte Weisung von **Hofrat Brandstätter** zurück, einem hochrangigen Beamten der Rossauer-Kaserne-Zentrale (siehe Fraktion D, „Der persönliche Antagonist"). Novotny weiß davon zu diesem Zeitpunkt noch nichts – nur, dass hier etwas gewaltig nicht stimmt.
+    *   *Der Schock*: Offiziell heißt es, der Großvater sei eines natürlichen Todes gestorben. Doch am Hals der nackten, eiskalten Leiche findet sich ein winziger Einstichpunkt mit einem schwachen Blausäure-/Bittermandelgeruch. Es war Mord – vollstreckt von **Ober-Inspektor Pollak** auf direkte Weisung von **Hofrat Brandstätter** aus der Rossauer-Kaserne-Zentrale. Novotny weiß zu diesem Zeitpunkt nur, dass hier etwas gewaltig vertuscht wird.
     *   *Die leeren Hände*: Wie von der Bürokratie erwartet, hat die Leiche nichts mehr bei sich. Die gesamte Habe von František wurde penibel katalogisiert und in der Asservatenkammer der AZS-Kanzlei weggesperrt.
 *   **Der Einbruch in die Asservatenkammer (Der erste Heist)**:
     *   Um zu verstehen, warum der Großvater sterben musste, muss der Spieler in die streng bewachte Registratur / Asservatenkammer des Bunkers einbrechen.
     *   *Die Ausbeute*: Zwischen den konfiszierten Sachen findet Novotny das alte Medaillon von František, ein Relikt (die alte „Straßenbahn-Fahrkarte der Linie D“ zur Kapuzinergruft) sowie **Františeks alte Glock 17 (Pistole 80, 9×19mm)** samt einem letzten vollen Magazin.
-    *   *Kein bloßer Schmuck*: Beim genaueren Untersuchen des Medaillons löst sich ein winziges, verborgenes Scharnier – im Inneren offenbart sich ein technisches Innenleben, das eindeutig nicht aus der Vorkriegs-Schmuckwerkstatt stammt. Wofür es gedacht ist, erschließt sich Novotny (noch) nicht. Aber es erklärt, warum ein hoher AZS-Beamter bereit war, dafür über eine Leiche zu gehen: Das hier war offenbar wichtig genug für einen Mord.
+    *   *Kein bloßer Schmuck*: Beim genaueren Untersuchen des Medaillons löst sich ein winziges, verborgenes Scharnier – im Inneren offenbart sich ein hochkomplexes technisches Innenleben: **Františeks geheime Schattenkopie der Verschwörung von ~2050**. Es ist sein stilles Vermächtnis: Er wusste, dass er Brandstätter aufhalten musste, war aber zu klein dafür – also bewahrte er die Wahrheit. Wofür es gedacht ist und wie man es entschlüsselt, erfährt Novotny erst in der Kapuzinergruft. Aber es erklärt, warum Brandstätter und Pollak bereit waren, dafür über Františeks Leiche zu gehen.
 *   **Die heimliche Einäscherung & Die Kaffeedosen-Urne (Das Wiener Relikt)**:
     *   *Gegen das Massengrab*: Um zu verhindern, dass die sterblichen Überreste in den Säure-Bottichen des AZS-Komposters aufgelöst werden, manipuliert der Spieler den thermischen Bunker-Verbrennungsofen.
     *   *Die Urne*: Die Asche wird in eine schwere, geprägte alte **Messing-Kaffeedose** gefüllt – eine zutiefst wienerische, intime Urne, die fortan im Rucksack der Spielfigur mitreist.
@@ -246,7 +246,7 @@
 *   **Das Quest- & Progressions-Gefüge (Gegen die „Bringe X nach Y“-Tretmühle)**:
     *   *Die Design-Philosophie*: Keine austauschbaren Botengänge („Hol mir 5 Dosen Bohnen“) und kein stupider Dauer-Shooter. Jede Quest ist ein dramatisches, psychologisches oder mechanisches Dilemma mit Tiefgang.
     *   *Kognitive & Haptische Agency*: Fortschritt entsteht nicht durch das Abgrasen von Questmarkern, sondern durch das Kombinieren von Hinweisen in der Welt, das Dechiffrieren alter Akten, das Lösen von handgefertigten Maschinen- und Chemierätseln und das Aushandeln moralischer Deals mit den Fraktionen.
-    *   *Hauptquest-Strang*: Die lineare, emotionale Reise von Bunker Arenberg über das Bermudadreieck und den Zentralfriedhof bis zur UNO-City („A schene Leich fürn Großvater“).
+    *   *Hauptquest-Strang*: Die lineare, emotionale Reise von Bunker Arenberg über das Bermudadreieck und den Zentralfriedhof bis zur Abrechnung in der Rossauer Kaserne („A schene Leich fürn Großvater“).
     *   *Modulare Nebenquests (Side-Quests)*: Dienen der freien Erkundung, dem Aufdecken intimer Schicksale, dem Freischalten von Geheimgängen und dem gezielten Looten seltener Ressourcen (seltene Schusswaffen, Munition, Rationen, Chemikalien, Handwerks-Materialien). Side-Quests öffnen alternative Lösungswege (z.B. ein Schloss knacken vs. einen Wachmann mit gefälschten Konsulats-Papieren täuschen vs. die Stromzufuhr lahmlegen).
 *   **Das dynamische Ruf- & Gunst-System (Fraktions-Reputation)**:
     *   *Entscheidungen mit Konsequenzen*: Jede Entscheidung in Haupt- und Nebenquests beeinflusst direkt die Gunst bei den beteiligten Fraktionen (z.B. *Pompfinebrer*, *Giftmischer*, *Konsulat*, *AZS*, *Ringelspiel-Syndikat*).
@@ -277,9 +277,10 @@
     *   *Wiener Tonalität*: Von schneidender k.u.k.-Bürokratie über giftigen Zynismus bis zu gemütlichem, aber doppelbödigem Kaffeehaus-Schmäh.
     *   *Einfluss von Ruf & Identität*: Hoher Fraktionsruf oder mitgeführte Passierscheine/Medaillons schalten neue, gewaltfreie Dialogoptionen und Abkürzungen frei.
 *   **Das AZS-Handgerät („Amts-Terminal 2100“) & Das Intelligente Amts-Logbuch**:
-    *   *Klobiges Bernstein-Terminal*: Ein robustes, tragbares Vorkriegs-Gerät mit monochromem bernsteinfarbenem Röhren-Screen.
-    *   *Dient als*: Inventar, Geigerzähler/Dosimeter, Akten-Scanner, Kartenleser und Relais-Funke.
-    *   *Die KI „Amtsrat 4.1“*: Kommentiert Ereignisse mit zynischem, staubtrockenem Amtsdeutsch.
+    *   *Taktisches Non-Touch-Handheld*: Ein robustes, industrielles Vorkriegs-Gerät (gepanzertes Metallgehäuse, wie ein schwerer taktischer Feldcomputer). **Absolut kein Touchscreen** (unbrauchbar im Bunkerschlamm), sondern **harte, klickende Tasten, gummierte Dichtungen, Rändelräder und mechanische Drehschalter**.
+    *   *Flachbildschirm mit Pixelfehlern*: Ein monochromes, stromsparendes LC-Display mit authentischen Pixelfehlern, Scanlines und Glitches.
+    *   *Dient als*: Taktisches Inventar, Dosimeter/Geigerzähler, Akten-Scanner, Relais-Funke und Statusanzeige. (Die **handgezeichnete Papierkarte des Großvaters** bleibt das emotionale Haupt-Medium zur Orientierung).
+    *   *Die Sub-KI „Amtsrat 4.1“*: Trockene bürokratische KI, die Daten verwaltet und bei Františeks Akte gelegentlich zynische oder unterdrückte System-Glitches zeigt.
     *   *Das Intelligente Amts-Logbuch (Kein Notizblock-Zwang)*:
         *   **Automatisches Mitschreiben (Auto-Journal)**: Alle im Spiel gehörten Passwörter, Tresorkombinationen, Funkfrequenzen, Notizen und wichtigen Gesprächsfetzen werden **automatisch und kontextbezogen im Logbuch abgelegt**.
         *   **Kontext-Transfer am Schloss**: Steht der Spieler vor einem Zahlenschloss oder Terminal und hat den passenden Code zuvor irgendwo gehört oder gelesen, blendet das Handgerät den vermerkten Code automatisch ein oder erlaubt das direkte Einfügen per Knopfdruck.
@@ -336,8 +337,9 @@
 *   **Vibe**: Verschachteltes System aus mittelalterlichen Weinkellern, ehemaligen Clubs und illegalen Laboren. Feucht, von chemischen Dämpfen und Schwarzlicht erleuchtet.
 
 ### 4. Die Kapuzinergruft
-*   **Rolle**: Sakrale kaiserliche Nekropole – und das Ziel der handschriftlichen Koordinaten auf Františeks Fahrkarte aus der Asservatenkammer. Ob er hier jemanden treffen, etwas hinterlegen oder etwas abholen wollte, bevor Brandstätters Leute ihn erwischten, ist Novotnys erste konkrete Spur im Medaillon-Mysterium.
-*   **Vibe**: Schwere Metallsarkophage der Habsburger. Zankapfel zwischen den *Pompfinebrern* und ein paar versprengten, morbiden Kaisertreuen / Grabkultisten – keine eigene Fraktion, eher lebende Kulisse und kleines Hindernis vor Ort.
+*   **Rolle**: Sakrale kaiserliche Nekropole und **der geheime tote Briefkasten der Widerstandslinie Novotny** (handschriftliche Notiz auf der Linie-D-Fahrkarte).
+*   **Narrative Relevanz**: Hinter einem der kaiserlichen Metallsarkophage barg František das Dechiffrier-Gegenstück / den Code-Schlüssel für das Medaillon sowie verschlüsselte Notizen zu einem **aufkeimenden, geheimen Schatten-Netzwerk** von Dissentern gegen Brandstätters Machthunger (der perfekte spekulative Keim für spätere DLC-Expeditionen in den Wienerwald oder an den Semmering).
+*   **Vibe**: Schwere, verzierte Metallsarkophage der Habsburger im flackernden Kerzenschein; feuchter Weihrauchgeruch und morbide Ruhe. Zankapfel zwischen den *Pompfinebrern* und versprengten Kaisertreuen.
 
 ### 5. Karlskirche & TU Wien (Campus des Wissens)
 *   **Rolle**: Zuflucht der Ingenieure, Techniker und Physiker.
@@ -395,8 +397,8 @@
 *   **Vibe**: Barocke Pavillons, deren eingestürztes Palmenhaus von wucherndem Gestrüpp überwuchert ist. Der Neptunbrunnen als trübe Tränke. Heimat des „Menagerie-Kults“ (ehemalige Tierpfleger), die mit Raubkatzen, Schlangengiften und Häuten handeln.
 
 ### 17. UNO-City / IAEA (Donauplatte)
-*   **Rolle**: Das verbotene Endgame-Mysterium.
-*   **Vibe**: Jenseits der Donau gelegen. Autonome Verteidigung, versiegelte Konferenzsäle und das nukleare IAEA-Archiv – die einzige Quelle für die Wahrheit über den Tag des Schlags.
+*   **Rolle**: Der stille Horizont der Spielwelt – kein Ziel der Reise, sondern das bewusst ungelöste Rätsel der katastrophe fühlbar hinter den Trümmern.
+*   **Vibe**: Jenseits der Donau gelegen und nie betreten. Autonome Verteidigung, versiegelte Konferenzsäle und das nukleare IAEA-Archiv. Hier, so sagt man, ruht die letzte große Frage der alten Welt: **wer einst den Knopf gedrückt hat.** Die korrupten IAEA-Beamten, mit denen Brandstätter konspirierte, sind Teil seiner persönlichen Vergangenheit – ihr volles Wirken bleibt jedoch ein offenes Weltgeheimnis.
 
 ### 18. Die Gürtelbögen (Die Rotlicht- & Vergnügungs-Schneise)
 *   **Rolle**: Der verruchte Schmelztiegel für Kleinkriminalität, Nachtleben, Prostitution, illegale Kneipen und Straßenmusik.
@@ -429,6 +431,27 @@
 *   **Gameplay & Loot**:
     *   Hochgradig gefährlicher vertikaler Dungeon (11 Stockwerke feuchter Treppenschächte, glitschige Stege und Notleitern).
     *   *Belohnungen*: Seltene medizinische Algenextrakte (für die Giftmischer), UV-Leuchtmittel, Biosphären-Filtersysteme und der spektakuläre Rundumblick über ganz Wien von den alten Flak-Geschützständen.
+
+### 21. Die Rossauer Kaserne (Das „Super-Amt“ des AZS & Finale)
+*   **Rolle**: Das uneinnehmbare Backstein-Hauptquartier des AZS am Donaukanal (9. Bezirk); persönlicher Sitz von **Hofrat Brandstätter** und Ort des Akt-IV-Finales.
+*   **Architektur & Atmosphäre**: Gewaltige, neugotische Festungsanlage aus rotem Backstein mit Zinnen, Ecktürmen und kilometerlangen, staubigen Kanzleigängen. Tausende Aktenregale, ratternde Röhren-Terminals, Stempelstellen und schwere Panzerschotts prägen das kafkaeske Machtzentrum der Stadt.
+*   **Gameplay & Finale**:
+    *   *Infiltration & Verhandlung*: Schleichen durch die Aktenarchive, Umgehen von Wachpatrouillen der Schleusenwache oder Deeskalation über gestohlene Passierscheine.
+    *   *Das Tribunal*: Der finale Showdown mit Hofrat Brandstätter im holzgetäfelten Kommandanten-Saal – Konfrontation mit Františeks dechiffriertem Medaillon und Enthüllung der wahren Hintergründe des Schlags von ~2050.
+
+### 22. Café Hawelka & Dorotheergasse (Das versiegelte Kaffeehaus-Mausoleum)
+*   **Rolle**: Eine unberührte, staubige Zeitkapsel der Wiener Kaffeehaus-Kultur (1. Bezirk); Ort für geheime Verhandlungen und kostbare Relikte.
+*   **Architektur & Atmosphäre**: Dunkle Holzvertäfelung, verstaubte Thonet-Stühle, schwere Samtvorhänge, vergilbte Vorkriegszeitungen in Holzhaltern und der schwache, geisterhafte Duft von geröstetem Kaffee, der sich über Jahrzehnte im Holz festgesetzt hat.
+*   **Gameplay & Relevanz**:
+    *   *Kammerspiel-Momente*: Schutzraum für geheime Unterredungen abseits der Augen der AZS-Spitzel und Schaufler.
+    *   *Der Mythos des echten Kaffees*: Auffinden einer letzten, originalverpackten Vorkriegs-Dose ganzer Kaffeebohnen – ein unbezahlbarer Schatz, der bei den Pompfinebrern oder dem Konsulat als mächtiges Bestechungsmittel für Sondergenehmigungen dient.
+
+### 23. Der Prunksaal der Nationalbibliothek (Hofburg – Das Archiv des Vergessens)
+*   **Rolle**: Monumentaler Wissensspeicher der alten Welt (1. Bezirk / Hofburg); Zuflucht historischer Dokumente, Chiffrier-Kataloge und Vorkriegs-Karten.
+*   **Architektur & Atmosphäre**: Überwältigender barocker Kuppelsaal mit verblassten Deckenfresken, goldenen Stuckaturen, riesigen Nussbaum-Bücherwänden und Marmorstatuen kaiserlicher Herrscher, die stumm auf die Trümmer herabblicken. Sonnenstrahlen brechen durch rissige Kuppelfenster in den staubigen Raum.
+*   **Gameplay & Puzzles**:
+    *   *2.5D-Plattform & Kletterei*: Rollende Bibliotheksleitern, Balancieren über brüchige Holzgalerien und Geheimgänge hinter Bücherwänden.
+    *   *Archiv- & Dechiffrier-Rätsel*: Auffinden historischer Lochkarten und Chiffrier-Schlüssel, um Františeks verschlüsselte Medaillon-Daten und alte Wiener Stadtbahn-Netzpläne freizuschalten.
 
 ---
 
@@ -539,5 +562,130 @@
 *   **Die Bergwelt (Semmering, Rax, Schneeberg)**:
     *   *Alpines Endzeit-Setting*: Verlassene Jugendstil-Luxushotels am Semmering (Südbahnhotel, Panhans) als verbarrikadierte Bergfestungen, verschneite Hochebenen, Seilbahn-Ruinen und eisige Kalksteingrate.
     *   *Fraktionen*: Verrohte Berg-Hirten, Holzfäller-Sippen und Einsiedler, die die Bergquellen mit schwerem Bergbau-Gerät und Lawinen-Fallen verteidigen.
+
+---
+
+## 🎬 10. Die Master-Dramaturgie & Der Golden Path (Die 4 Akte)
+
+> **„The Last of Us trifft Stray im postapokalyptischen Wien.“**
+> 
+> Keine unbezahlbare, verwässerte Open-World, sondern eine fokussierte, hochemotionale und handgefertigte Erzähl-Odyssee. Jeder Akt besitzt klare, kuratierte Schauplätze, handgefertigte Denk- und Umwelt-Rätsel sowie eine geschliffene Balance aus Schleichpassagen, Deeskalation und Noir-Dialogen.
+
+### A. Das „Wide-Linear“ Hub-and-Spoke-Prinzip (Kuratierte Führung mit Mikro-Erkundung)
+
+Um die perfekte Balance zwischen emotionaler Regieführung (*The Last of Us / Stray*) und spielerischer Entdeckerfreude zu schaffen, folgt *And Now?* dem bewährten **Wide-Linear-Prinzip** (*Dishonored / Deus Ex / Metro Exodus*):
+
+```mermaid
+flowchart TD
+    H1["Haupt-Akt Start<br/><i>(z.B. 1. Bezirk / Stephansplatz)</i>"]
+    
+    H1 --> Main["🔴 GOLDEN PATH (Hauptquest)<br/><i>Katakomben ➔ Bermudadreieck</i>"]
+    
+    H1 -.-> Opt1["🟡 Optionale Gasse A:<br/><i>Café Hawelka (Geheime Vorkriegs-Dose)</i>"]
+    H1 -.-> Opt2["🟡 Optionale Gasse B:<br/><i>Würstelstand (Lockpick & Notiz)</i>"]
+    H1 -.-> Opt3["🟡 Optionaler Keller:<br/><i>U-Bahn-Notausstieg (Schleich-Bypass)</i>"]
+    
+    Opt1 -.->|Belohnung: Bestechungs-Item / Lore| Main
+    Opt2 -.->|Belohnung: Code für Hintertür| Main
+    Opt3 -.->|Belohnung: Umgeht Wache lautlos| Main
+    
+    Main --> H2["Nächster Schauplatz-Knoten<br/><i>(z.B. Karlsplatz)</i>"]
+```
+
+1. **Glasklare Führung (Kein Verlaufen / Kein Grind):**
+   - Das übergeordnete Ziel ist stets eindeutig im *Amts-Terminal 2100* hinterlegt (z.B. *„Infiltriere das Alchemie-Gewölbe der Giftmischer im Bermudadreieck“*).
+2. **Kompakte, dichte Mikro-Hubs (2–3 Straßenzüge):**
+   - Schuttberge, Barrikaden und Strahlensenken begrenzen das Areal natürlich auf intime, hochgradig detaillierte Schauplätze.
+3. **Erkundung belohnt mit „Smart Solutions“:**
+   - *Direkter Durchmarsch:* Frontale Schleichpassage oder Deeskalations-Verhandlung.
+   - *Mikro-Erkundung (3–5 Min.):* Finden von alternativen Lüftungsschächten, Türcodes in verlassenen Kiosken (*Café Hawelka*) oder Schmiergeld-Objekten, die Hindernisse gewaltfrei lösen.
+
+---
+
+### B. Das 4-Akte-Übersichtsdiagramm
+
+```mermaid
+flowchart TD
+    subgraph AKT_I ["AKT I: Der Abschied & Der Ausbruch (Flakturm Arenberg)"]
+        A1["Prolog: Koje 42<br/><i>(Hawelka, Amts-Terminal, Schock)</i>"] --> A2["Infiltration: Kältekammer K-42<br/><i>(Blausäure-Mordbefund, Schleichpassage)</i>"]
+        A2 --> A3["Heist: Asservatenkammer<br/><i>(Medaillon, Glock 17, Fahrkarte)</i>"]
+        A3 --> A4["Verbrennungsofen: Die Kaffeedose<br/><i>(Heimliche Einäscherung)</i>"]
+        A4 --> A5["Schacht-Ausbruch & Druckschleuse<br/><i>(Erster Schritt an die Oberfläche)</i>"]
+    end
+
+    subgraph AKT_II ["AKT II: Die Reise durch die Trümmer (Zentrum & Kanäle)"]
+        B1["Das Bermudadreieck<br/><i>(Giftmischer: Toxin-Analyse & Asche-Siegel)</i>"] --> B2{"Wahl des Weges<br/><i>(U-Bahn vs. Wienfluss-Kanal)</i>"}
+        B2 -->|Untergrund-Gleise| B3a["Knoten Karlsplatz / U-Bahn-Stadt<br/><i>(Kellerkinder-Stealth, Passierscheine)</i>"]
+        B2 -->|Wasserweg| B3b["Wienfluss-Portal & Stadtpark<br/><i>(Fiaker-Begegnung, Schrott-Brücke)</i>"]
+        B3a --> B4["Die Kapuzinergruft<br/><i>(Františeks geheimes Versteck & Medaillon-Dechiffrierung)</i>"]
+        B3b --> B4
+    end
+
+    subgraph AKT_III ["AKT III: Das heilige Gelübde (Simmering & Zentralfriedhof)"]
+        C1["Die 71er-Gleise: 'Die letzte Fahrt'<br/><i>(Simmeringer Trümmer, Nebel & Schaufler-Vorposten)</i>"] --> C2["Zentralfriedhof Tor 2<br/><i>(Audienz beim Ober-Kondukteur)</i>"]
+        C2 --> C3["Die Beisetzung: 'A schene Leich'<br/><i>(EMOTIONALER HÖHEPUNKT 1: Frieden für František)</i>"]
+        C3 --> C4["Der Wendepunkt: Ohne Furcht<br/><i>(Die Kaffeedose ist begraben — jetzt gilt die Vergeltung)</i>"]
+    end
+
+    subgraph AKT_IV ["AKT IV: Die Abrechnung (Donaukanal & Rossauer Kaserne)"]
+        D1["Infiltration der Rossauer Kaserne<br/><i>(Backstein-Festung, AZS-Sicherheitsapparat)</i>"] --> D2["Das Amts-Archiv & Hofrat Brandstätter<br/><i>(Konfrontation & Wahrheit über den Schlag ~2050)</i>"]
+        D2 --> D3["FINALE: Die letzte Unterschrift / Brandstätters Fall<br/><i>(DRAMATURGISCHER HÖHEPUNKT 2)</i>"]
+    end
+
+    AKT_I --> AKT_II
+    AKT_II --> AKT_III
+    AKT_III --> AKT_IV
+```
+
+---
+
+### B. Akt I Deep-Dive: Flakturm Arenberg (Prolog & Ausbruch)
+
+```mermaid
+flowchart LR
+    subgraph STAGE_1 ["1. Koje 42 (Kammerspiel)"]
+        K1["Tür-Hämmern: Hawelka"] --> K2["Übergabe: Amts-Terminal"]
+        K2 --> K3["Todesmeldung František:<br/>Fach K-42 archiviert"]
+    end
+
+    subgraph STAGE_2 ["2. Kältekammer K-42"]
+        L1["Lüftungsschacht-Kriechen<br/><i>(Tutorial: Ducken & Klettern)</i>"] --> L2["Schleichpassage:<br/>Schleusenwache umgehen"]
+        L2 --> L3["Leichenschau K-42:<br/>🟢 Blausäure-Einstich!"]
+    end
+
+    subgraph STAGE_3 ["3. Asservatenkammer & Krematorium"]
+        M1["Bürokratie-Rätsel / Ablenkung:<br/>Code aus Hawelkas Übergabe"] --> M2["Loot: Medaillon, Glock 17, Fahrkarte"]
+        M2 --> M3["Krematoriums-Manipulation:<br/>Einäscherung & Messing-Kaffeedose"]
+    end
+
+    subgraph STAGE_4 ["4. Der Ausstieg (Druckschleuse)"]
+        E1["Hauptventil-Ausgleich<br/><i>(Dampf- & Druck-Rätsel)</i>"] --> E2["Schnittmodell schwenkt butterweich auf Iso:<br/>Novotny blickt erstmals auf das zerstörte Wien"]
+    end
+
+    STAGE_1 --> STAGE_2 --> STAGE_3 --> STAGE_4
+```
+
+#### Die detaillierten Stationen von Akt I:
+
+1. **Station 1: Das Kammerspiel in Koje 42 (Atmosphärischer Auftakt)**
+   - *Szene*: Gedämpftes Licht, feuchter Beton, das monotone Summen der defekten Umluft. Novotny starrt auf das vergilbte Vorkriegsfoto des Großvaters.
+   - *Ereignis*: Das plötzliche, panische Klopfen von Blockwart Hawelka. Übergabe des verbotenen *Amts-Terminals 2100*.
+   - *Mechanik*: Dialog-System mit Wiener Tonalität; Einführung der Bernstein-Röhrenanzeige und des Auto-Journals.
+   - *Emotionaler Impuls*: Schock über den bürokratisch kalten Eintrag: *„Bürger František Novotny aus Register gelöscht. Zuführung zur Verwertung in 48 Stunden.“*
+
+2. **Station 2: Infiltration von Sektor 0 & Kältekammer K-42 (Stealth & Enthüllung)**
+   - *Szene*: 2.5D-Guckkasten-Schnittmodell. Eiszapfen an Ammoniakrohren, Atemwolken im Chiaroscuro-Licht.
+   - *Gameplay*: Erstes Schleichen im Schatten, Geräusch-Vermeidung (keine Schritte auf klappernden Blechen).
+   - *Der Schockmoment (Colorkey 🟢)*: Das Licht schaltet dramaturgisch auf reines Schwarz/Weiß mit isoliertem Smaragdgrün: Novotny entdeckt den Einstichpunkt mit Blausäure-Geruch am Hals des Großvaters. Der Tod war kein Altersschwäche-Fall, sondern gezielter Mord.
+
+3. **Station 3: Der Heist in der Asservatenkammer & Die Kaffeedose (Rätsel & Relikt)**
+   - *Gameplay*: Haptisches Kombinations-Rätsel an der Kanzleitür (Code-Abgleich über das Amts-Terminal).
+   - *Der Fund*: Novotny sichert Františeks geheimes Medaillon, die alte Kapuzinergruft-Fahrkarte der Linie D und die historische Glock 17.
+   - *Das Krematorium*: Manipulation des Verbrennungsofens, um die Überreste vor dem Säure-Komposter zu retten. Die Asche wird in die schwere Messing-Kaffeedose gefüllt.
+
+4. **Station 4: Das Schleusen-Rätsel & Der Schritt ans Licht (Klimax Akt I)**
+   - *Gameplay*: Mechanisches 2.5D-Druckschleusen-Rätsel (Ventile ausbalancieren, um das schwere Außentor ohne Sirenenalarm zu entriegeln).
+   - *Der visuelle Übergang*: Die Schleuse öffnet sich mit zischendem Druckabfall. Die 2.5D-Kamera schwenkt nahtlos nach oben-außen in die malerische Isometrie. Vor Novotny erstreckt sich die stumme, nebelverhangene Silhouette der Wiener Ruinen im schwachen Morgenlicht.
+
 
 
