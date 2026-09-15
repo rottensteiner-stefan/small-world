@@ -76,12 +76,20 @@ export class ForgeWindow {
     this._windowEl.addEventListener("pointerdown", (e) => {
       e.stopPropagation();
     });
-    this._windowEl.addEventListener("touchstart", (e) => {
-      e.stopPropagation();
-    });
-    this._windowEl.addEventListener("wheel", (e) => {
-      e.stopPropagation();
-    });
+    this._windowEl.addEventListener(
+      "touchstart",
+      (e) => {
+        e.stopPropagation();
+      },
+      { passive: true },
+    );
+    this._windowEl.addEventListener(
+      "wheel",
+      (e) => {
+        e.stopPropagation();
+      },
+      { passive: true },
+    );
     // Prevent context menu (right click) from leaking
     this._windowEl.addEventListener("contextmenu", (e) => {
       e.stopPropagation();

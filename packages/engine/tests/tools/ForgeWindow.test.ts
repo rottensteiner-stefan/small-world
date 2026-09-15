@@ -163,5 +163,25 @@ describe("ForgeWindow", () => {
 
       expect(el.style.left).toBe("10px");
     });
+
+    it("registers touchstart and wheel event listeners on the window element with passive: true", () => {
+      const addSpy = vi.spyOn(HTMLDivElement.prototype, "addEventListener");
+      const win = new ForgeWindow("My Tool", parent);
+      const el = win.getElement();
+
+      const touchStartCall = addSpy.mock.calls.find(
+        (call) => call[0] === "touchstart" && addSpy.mock.instances.includes(el),
+      );
+      expect(touchStartCall).toBeDefined();
+      expect(touchStartCall?.[2]).toEqual({ passive: true });
+
+      const wheelCall = addSpy.mock.calls.find(
+        (call) => call[0] === "wheel" && addSpy.mock.instances.includes(el),
+      );
+      expect(wheelCall).toBeDefined();
+      expect(wheelCall?.[2]).toEqual({ passive: true });
+
+      addSpy.mockRestore();
+    });
   });
 });

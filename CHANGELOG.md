@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.79.16] - 2026-09-14
+
+### "Simplicity is about subtracting the obvious and adding the meaningful." - John Maeda
+
+- **Architecture & Performance:**
+  - Marked `touchstart` and `wheel` event listeners on [`ForgeWindow`](packages/engine/src/tools/forge/ForgeWindow.ts) with `{ passive: true }`, eliminating browser scroll-blocking violation warnings (`[Violation] Added non-passive event listener to a scroll-blocking event`) when opening tools and inspector windows in showcases.
+  - Added unit test in [`packages/engine/tests/tools/ForgeWindow.test.ts`](packages/engine/tests/tools/ForgeWindow.test.ts) asserting that touch and wheel listeners are registered passively.
+
 ## [0.79.15] - 2026-09-14
 
 ### "Order is not pressure which is imposed on reality from without, but the true shape of things from within." - José Ortega y Gasset
