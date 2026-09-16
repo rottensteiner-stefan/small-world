@@ -1,0 +1,126 @@
+{
+  "$schema": "../../../schemas/kit.schema.json",
+  "id": "flakturm",
+  "name": "Vienna Flakturm Architectural & Bunker Kit",
+  "version": "1.0.0",
+  "description": "Authentic architectural PBR materials, stencils, decals, and brutalist props derived from Viennese WWII Flaktowers (Arenbergpark, Augarten) for The Whisper.",
+  "items": [
+    {
+      "id": "flakturm/bunker_blast_door",
+      "name": "Flakturm Heavy Double Blast Door",
+      "category": "doors",
+      "path": "props/bunker_blast_door/model.glb",
+      "preview": "props/bunker_blast_door/preview.jpg",
+      "meta": "props/bunker_blast_door/meta.json"
+    },
+    {
+      "id": "flakturm/debris_rubble_pile",
+      "name": "Concrete Rubble & Rebar Debris Pile",
+      "category": "debris",
+      "path": "props/debris_rubble_pile/model.glb",
+      "preview": "props/debris_rubble_pile/preview.jpg",
+      "meta": "props/debris_rubble_pile/meta.json"
+    },
+    {
+      "id": "flakturm/bunker_vent_hatch",
+      "name": "Flakturm Ventilation & Escape Mesh Hatch",
+      "category": "doors",
+      "path": "props/bunker_vent_hatch/model.glb",
+      "preview": "props/bunker_vent_hatch/preview.jpg",
+      "meta": "props/bunker_vent_hatch/meta.json"
+    }
+  ],
+  "textures": [
+    {
+      "id": "flakturm/concrete_board",
+      "name": "Brettschalungs-Beton (Interior Walls & Ceilings)",
+      "category": "walls",
+      "maps": [
+        "albedo.png",
+        "normal.png",
+        "roughness.png",
+        "ao.png"
+      ]
+    },
+    {
+      "id": "flakturm/brick_aged",
+      "name": "Altwiener Ziegelmauerwerk (Partition Walls)",
+      "category": "walls",
+      "maps": [
+        "albedo.png",
+        "normal.png",
+        "roughness.png",
+        "ao.png"
+      ]
+    },
+    {
+      "id": "flakturm/concrete_weathered",
+      "name": "Monumentaler Außenbeton (Facade & Wash Streaks)",
+      "category": "walls",
+      "maps": [
+        "albedo.png",
+        "normal.png",
+        "roughness.png",
+        "ao.png"
+      ]
+    },
+    {
+      "id": "flakturm/steel_corroded",
+      "name": "Rostiger Panzerstahl (Blast Doors & Girders)",
+      "category": "metals",
+      "maps": [
+        "albedo.png",
+        "normal.png",
+        "roughness.png",
+        "metalness.png",
+        "ao.png"
+      ]
+    },
+    {
+      "id": "flakturm/steel_painted",
+      "name": "Lackierter olivgrauer Bunker-Stahl (Fittings & Frames)",
+      "category": "metals",
+      "maps": [
+        "albedo.png",
+        "normal.png",
+        "roughness.png",
+        "metalness.png",
+        "ao.png"
+      ]
+    }
+  ],
+  "decals": [
+    {
+      "id": "flakturm/sign_hausangehoerige",
+      "name": "Stencil: Nur für Hausangehörige!",
+      "file": "sign_hausangehoerige.png"
+    },
+    {
+      "id": "flakturm/sign_sektor0",
+      "name": "AZS Badge: Sektor 0 — Kältekammer",
+      "file": "sign_sektor0.png"
+    },
+    {
+      "id": "flakturm/sign_koje42",
+      "name": "Stencil: Koje 42 Arenberg",
+      "file": "sign_koje42.png"
+    },
+    {
+      "id": "flakturm/hazard_stripes",
+      "name": "45° Safety Hazard Warning Stripes",
+      "file": "hazard_stripes.png"
+    },
+    {
+      "id": "flakturm/guide_stripe_glow",
+      "name": "Luminescent Blackout Guidance Stripe",
+      "file": "guide_stripe_glow.png"
+    },
+    {
+      "id": "flakturm/rebar_damage",
+      "name": "Concrete Spalling & Exposed Rebar Claws",
+      "file": "rebar_damage.png"
+    }
+  ],
+  "author": "Small World Studio",
+  "license": "CC0-1.0"
+}

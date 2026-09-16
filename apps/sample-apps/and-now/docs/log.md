@@ -1423,6 +1423,344 @@ befüllen.
   - **Wiener Parks:** Dienen als atmosphärische, ressourcenschonende Atempause-Oasen zwischen Missionen.
   - **Starke Fraktions-Verdichtung:** Keine überfrachteten Fallout-Quest-Gilden, sondern kuratierte Barrieren entlang des Golden Path.
 
+---
 
+## 128. Festlegung des Titels: „The Whisper — A Viennese Requiem“ (2026-09-15)
+- **Titel-Entscheidung & Philosophie:**
+  - Der bisherige Arbeitstitel *„And Now?“* wird durch den vielschichtigen, stimmungsvollen Titel **„The Whisper — A Viennese Requiem“** (Dt.: *„Das Flüstern — Ein Wiener Requiem“*) abgelöst.
+  - **Dramaturgischer Kernleitsatz:**
+    > *„Drei Generationen hat es gebraucht, Brandstätter das Handwerk zu legen. Widerstand für das Gute — selbst wenn es das Leben kostet. Aber das ist okay, der Tod fühlt sich in Wien zu Hause.“*
+  - **Doppelte Bedeutung von „The Whisper“:**
+    1. Das leise, konspirative Flüstern des Drei-Generationen-Widerstands und der toten Briefkästen über 50 Jahre hinweg.
+    2. Das Flüstern des Windes durch die zerstörten Kuppeln, die verrosteten 71er-Gleise und die Gruften der Stadt.
+  - **Wirkung:** Hebt das Spiel über vordergründige Plot-Gimmicks hinaus auf das Niveau eines epischen, melancholischen Kammerspiels (*The Last of Us / Stray / Disco Elysium*) und spiegelt die sakrale, musikalische und würdevolle Natur von Novotnys Reise wider.
+- **Dokumentation:**
+  - Titel und Leitsatz als Fundament in [`story.md`](apps/sample-apps/and-now/docs/story.md) eingepflegt.
+
+## 130. Storyline-Ausbau: Saubere Fischzucht & Algenanbau im Haus des Meeres (2026-09-15)
+- **Erweiterung der Lebensader (`Storyline:`-Ausbau):**
+  - Das saubere Wasser der Hochquellenleitung ermöglicht es, **saubere Fische in der Stadt zu züchten** – ein Luxus, den sich nur wenige leisten können. Alle anderen hoffen, beim Fischen keinen **verstrahlten Teufel aus der Donau** zu fangen.
+  - **Das Haus des Meeres (Flakturm Esterházypark, Schauplatz #20)** ist der Betriebsort: Ein Teil des unverstrahlten Wassers speist die intakten Becken – hier findet **saubere Fischzucht und Algenanbau zu Nahrungszwecken** statt, als stiller Gegenpol zu den verstrahlten Donau-Fängen.
+- **Dokumentation:** Fisch-Algen-Ökonomie als Unterpunkt der Kernsäule *„Die Lebensader"* sowie als *„Wirtschaftliche Rolle"* in [`story.md`](apps/sample-apps/and-now/docs/story.md) (§1 & Schauplatz #20) verankert.
+
+## 131. Umbau: Haus des Meeres – Zweiteilung Oben/Unten & entschlackte Fauna (2026-09-15)
+- **Lektor-Fix (Konsistenz mit der Fischzucht):** Die ursprünglich als *viridis* rein "Mutanten-Dungeon" beschriebene Zone lag quer zur sauberen Fischzucht. Aufgelöst durch klare Zweiteilung:
+  - **Oben (das lebende Haus):** Intakte Ober- & Mittelstockwerke mit sauberer Fischzucht und Algenanbau, gehütet von der Kaste der **Beckenwärter**.
+  - **Unten (der tote Sitz):** Geborstene Riesenbecken, brackiger Stalaktiten-Sumpf als gefährliche Durchgangszone nach oben.
+  - **Kern (entschlackt):** Nur noch **eine Handvoll** skurriler, scheuer amphibischer Höhlenjäger in den tiefsten abgedichteten Becken – kein 11-stöckiges Monsterstockwerk.
+- **Dokumentation:** Schauplatz #20 in [`story.md`](apps/sample-apps/and-now/docs/story.md) entsprechend umgebaut (Rolle, Zweiteilung Oben/Unten, Gameplay & Loot inkl. Zuchtfische).
+
+
+
+## 129. Storyline-Impuls: Die 1. Wiener Hochquellenwasserleitung als Lebensader (2026-09-15)
+- **Kanonischer Welt-Pfeiler (`Storyline:`-Impuls):**
+  - Was 1873 zur Wiener Weltausstellung begann, entscheidet bis 2100, dass Wien noch immer Leben hervorbringt: Die **1. Wiener Hochquellenwasserleitung** bringt **frisches Wasser aus über 100 km entfernten Bergen** (Rax, Schneeberg) – trotz Fallout und Strahlung.
+  - Dieses Wasser ist **mehr wert als alles Gold der Erde** – die Grundlage, um Nahrung anzubauen und Tiere zu tränken. Wer die Leitung kontrolliert, kontrolliert das Überleben der Stadt (stilles Machtzentrum, das alle Fraktionen umschmeicheln und heimlich umkämpfen).
+  - Die Quelle in den Bergen ist der narrative Keim des DLC *„Der Weiße Quell"* – die Reise zum reinsten, letzten unverstrahlten Brunnen der alten Welt.
+  - **Vertiefung (Hygiene & Würde):** Das Wasser gibt den Menschen außerdem etwas zum **Trinken, Waschen und zur Hygiene** – die stillen Selbstverständlichkeiten halten Krankheit und Verzweiflung fern und sind ein Ausdruck von Würde (Gegenbild zur Bunkergrippe aus verunreinigter Umluft).
+- **Dokumentation:** Als neue Kernsäule *„Die Lebensader"* in [`story.md`](apps/sample-apps/and-now/docs/story.md) (§1) verankert, ohne Bruch zu bestehendem Kanon (Bunkerfilter, Aschenbrenner, DLC „Weißer Quell").
+
+
+
+### 132. Milestone 1 Vertical Slice: Spielbarer Prolog (Koje 42 ➔ Kältekammer K-42) (2026-09-16)
+- **Umsetzung & Gameplay-Features:**
+  - **Interaktive Erkundung & 2.5D-Bühnen-Steuerung:**
+    - Nach Ablauf des 60-Sekunden-Intros (oder sofortigem Überspringen via `[LEERTASTE]` / HUD-Button) wechselt die Szene in den freien Erkundungsmodus.
+    - Novotny lässt sich mit `WASD` / Pfeiltasten innerhalb der Raumgrenzen von Koje 42 steuern, inklusive geschmeidiger Blickrichtungs-Interpolation und dynamischem Laternenlicht-Flickern.
+  - **Hotspot- & Monolog-System ([`HotspotManager.ts`](apps/sample-apps/and-now/ui/HotspotManager.ts)):**
+    - Automatischer Proximity-Check für interaktive Schlüsselobjekte (`[E]` Prompt Overlay).
+    - *Koje 42 Hotspots:* Großvater Františeks Kaffeemühle (Nussbaum/Messing mit Zündholz-Versteck), Stockbett, versiegeltes Amts-Terminal 2100, verriegelte Flur-Panzertür und das gelöste Lüftungsgitter.
+    - *Sin-City Noir Caption Box:* Mehrseitige, stimmungsvolle innere Monologe im düsteren Graphic-Novel-Look mit bernsteinfarbenen Akzenten.
+  - **Sektor 0 / Kältekammer K-42 & Colorkey-Moment:**
+    - Durchklettern des Lüftungsgitters initiiert den nahtlosen Übergang in den gefrierenden Leichenkeller (Sektor 0).
+    - 3D-Leichenschubladen (K-40 bis K-44), Ammoniak-Kühlrohre mit Frostpartikeln und die herausgezogene Wanne **Fach K-42** mit Františeks Leichnam.
+    - **Sin-City Colorkey Shock (🟢 Smaragdgrüner Blausäure-Einstich):** Bei Untersuchung von Fach K-42 fokussiert ein smaragdgrüner Spotlight den Hals und entlarvt den Mord durch Ober-Inspektor Pollak / Hofrat Brandstätter.
+    - Dynamische Aktualisierung des Auftrags-Banners: *„Asservatenkammer infiltrieren & Františeks Medaillon vor der Kompostierung bergen!“*
+  - **Vollständige Taktik-HUD & Modal-Verdrahtung:**
+    - `[T]` / Button öffnet das Amts-Terminal 2100 (`TerminalModal`) mit Sterbefall-Akte GZ 2100-AZS/0815, Auto-Journal und Dosimetrie.
+    - `[M]` / Button öffnet Großvaters handgezeichneten Faltplan (`ViennaMapModal`).
+    - Titel & Hub-Einträge konsistent auf **„The Whisper — A Viennese Requiem“** harmonisiert.
+- **QA & Test-Coverage:**
+  - Neue Testsuite [`HotspotManager.test.ts`](apps/sample-apps/and-now/tests/HotspotManager.test.ts) hinzugefügt.
+  - 144 Testsuiten (793 Tests) 100% grün, `npm run typecheck`, `npm run lint` und `npm run build:lib` fehlerfrei.
+
+---
+
+## 133. Asset-Sourcing- & Textur-Doktrin: Open Sources, Handvoll-Regel & Hybrider Ansatz (2026-09-16)
+- **Modell- & Prop-Sourcing:**
+  - *Grundsatz:* Freie Online-Quellen (Poly Haven, ambientCG, Kenney, Sketchfab CC0) werden aktiv genutzt, statt Standard-Requisiten zeitaufwändig manuell neu zu bauen.
+  - *Handvoll-Regel:* Stets **3 bis 5 Kandidaten** gegeneinander testen, bevor eine finale Auswahl getroffen oder etwas selbst konstruiert wird.
+  - *Tripo3D API:* Bleibt primäre Schnittstelle für maßgeschneiderte Low-Poly-Geometrie aus 2D-Konzeptzeichnungen.
+- **Textur-Strategie (Hybrid-Benchmark):**
+  - *Große Basispakete (CC0):* ambientCG und Poly Haven liefern physikalisch saubere Grund-PBR-Maps (Normal, Roughness, AO) für Beton, Asphalt, Backstein, Rost und Holz.
+  - *Noir-Stilisierung:* Der Engine-eigene Post-Processing-Pipeline (`OutlinePass`, ACES Filmic, Chiaroscuro) überzieht alle Texturen mit dem einheitlichen Graphic-Novel-Look.
+  - *Signature Props:* Narrative Schlüssel-Assets (Kaffeedose, Amts-Terminal, Blausäure-Decals, Wiener Straßenschilder) werden gezielt hochauflösend und maßgeschneidert selbst erstellt.
+- **Dokumentation:** Festgehalten in [`.agents/notes/asset-sourcing-guideline.md`](.agents/notes/asset-sourcing-guideline.md).
+
+---
+
+## 134. Option B: Bunker Kit PBR Expansion (Stockbett & Kältekammer K-42) (2026-09-16)
+- **Asset-Veredelung gemäß „Handvoll-Regel“:**
+  - **Stockbett (Koje 42):**
+    - 3 Konzept-Kandidaten generiert (*Military Angle-Iron*, *Industrial Bolted Frame*, *Flakturm Standard Tier Bunk*).
+    - Sieger-Modell: *Flakturm Standard Tier Bunk* mit geschweißtem Stahlrahmen, dünnen Matratzen, Militär-Wolldecken und Ausrüstungsregal.
+    - Generiert via Tripo3D API und konvertiert via `fbx2gltf` nach [`public/assets/kits/bunker/bunk_bed/model.glb`](file:///Users/srottensteiner/PhpstormProjects/small-world/public/assets/kits/bunker/bunk_bed/model.glb) (1.57 MB).
+  - **Kältekammer Leichenschublade K-42 (Sektor 0):**
+    - 3 Konzept-Kandidaten generiert (*Cold Storage Drawer K-42*, *Autopsy Wheeled Gurney*, *Brutalist Shrouded Tray*).
+    - Sieger-Modell: *Cold Storage Drawer K-42* mit gebürstetem Edelstahl, gefrorener Kondensation, Leichen-Silhouette und forensischem Zehen-Anhänger `K-42`.
+    - Generiert via Tripo3D API und konvertiert via `fbx2gltf` nach [`public/assets/kits/bunker/morgue_tray/model.glb`](file:///Users/srottensteiner/PhpstormProjects/small-world/public/assets/kits/bunker/morgue_tray/model.glb) (1.14 MB).
+- **Runtime-Ingestion in Prologue-Szene ([`prologue.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/apps/sample-apps/and-now/scenes/prologue/prologue.ts)):**
+  - Automatischer Austausch der prozeduralen Whitebox-Primitive durch die neuen glTF-Kits in `_loadPropKits()`.
+  - PBR-Shader-Tuning (`roughness`, `metallic`) abgestimmt auf Graphic-Noir Outline- & Chiaroscuro-PostProcessing.
+  - Manifest [`public/assets/kits/bunker/kit.json`](file:///Users/srottensteiner/PhpstormProjects/small-world/public/assets/kits/bunker/kit.json) und Metadaten aktualisiert.
+- **QA:** 144 Testsuiten (793 Tests) 100% grün, `npm run typecheck`, `npm run lint` und `npm run build:lib` fehlerfrei.
+
+---
+
+## 135. Vienna Flakturm PBR Kit: Texturen, Stencils, Decals & Modulare Requisiten (2026-09-16)
+- **Vollständige PBR-Textur-Sets ([`public/assets/kits/flakturm/textures/`](file:///Users/srottensteiner/PhpstormProjects/small-world/public/assets/kits/flakturm/textures/)):**
+  - `concrete_board`: Brettschalungs-Beton mit horizontalen Holzmaserungen, Schalungsfugen und Poren (Albedo, Normal, Roughness, AO).
+  - `brick_aged`: Altwiener Ziegelmauerwerk mit Mörtelfugen und Kalkausblühungen (Albedo, Normal, Roughness, AO).
+  - `concrete_weathered`: Monumentaler Außenbeton mit vertikalen Wassernasen & Rußstreifen (Albedo, Normal, Roughness, AO).
+  - `steel_corroded`: Korrodierter Walz- und Panzerstahl mit Rostflecken (Albedo, Normal, Roughness, Metalness, AO).
+  - `steel_painted`: Lackierter olivgrauer Bunker-Stahl mit Kratzern & Nieten (Albedo, Normal, Roughness, Metalness, AO).
+- **Decals & Stencils ([`public/assets/kits/flakturm/decals/`](file:///Users/srottensteiner/PhpstormProjects/small-world/public/assets/kits/flakturm/decals/)):**
+  - `sign_hausangehoerige.png`: Typografischer Stencil *"NUR FÜR HAUSANGEHÖRIGE!"* (authentische historische Vorlage).
+  - `sign_sektor0.png`: AZS-Dienstplakette *"SEKTOR 0 — KÄLTEKAMMER / ZUTRITT STRENGSTENS UNTERSAGT"*.
+  - `sign_koje42.png`: Zonen-Kennzeichnung *"KOJE 42 / FLAKTURM ARENBERG"*.
+  - `hazard_stripes.png`: 45°-Gelb/Schwarz-Sicherheits-Warnstreifen mit Kantenabplatzungen.
+  - `guide_stripe_glow.png`: Phosphoreszierender Leitstreifen für Orientierung bei Bunkerausfall.
+  - `rebar_damage.png`: Wanddurchbruch mit herausragenden Bewehrungsschlaufen (Moniereisen).
+- **3D-Modelle & Modulare Generatoren ([`FlakturmKit.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/apps/sample-apps/and-now/builder/FlakturmKit.ts)):**
+  - [`bunker_blast_door/model.glb`](file:///Users/srottensteiner/PhpstormProjects/small-world/public/assets/kits/flakturm/props/bunker_blast_door/model.glb) (1.03 MB): Zweiflügelige schwere Panzer-Stahltür mit Querverriegelung und Sehschlitzen.
+  - [`debris_rubble_pile/model.glb`](file:///Users/srottensteiner/PhpstormProjects/small-world/public/assets/kits/flakturm/props/debris_rubble_pile/model.glb) (1.57 MB): Haufen aus zerbrochenem Beton, Ziegelbrocken und Moniereisen.
+  - `FlakturmKit.createFluorescentLamp`: Modulare Industrie-Leuchtstoffleuchten (Käfig-Wannenleuchte & nackte Röhre) mit integriertem Licht und Flackern.
+  - `FlakturmKit.createConduitRun`: Modulare Aufputzkabel mit Bakelit-Verteilerdosen und Wandschellen.
+- **QA:** 145 Testsuiten (797 Tests) 100% grün, Testsuite [`FlakturmKit.test.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/apps/sample-apps/and-now/tests/FlakturmKit.test.ts) hinzugefügt.
+
+---
+
+## 136. Flakturm Gitter-Schachttür (Ventilation & Escape Mesh Hatch) (2026-09-16)
+- **Analyse & Asset-Herkunft ([`flakturm_ref_18.jpg`](file:///Users/srottensteiner/PhpstormProjects/small-world/.agents/scratches/Flaktum/flakturm_ref_18.jpg)):**
+  - Entdeckung der charakteristischen, in Brusthöhe in die Ziegelwand eingelassenen quadratischen Stahl-Gitterklappe mit Drahtgeflecht, die in einen dunklen Schleich-/Versorgungsschacht führt.
+- **Asset-Umsetzung:**
+  - **3D glTF Modell:** [`bunker_vent_hatch/model.glb`](file:///Users/srottensteiner/PhpstormProjects/small-world/public/assets/kits/flakturm/props/bunker_vent_hatch/model.glb) (995 KB) via Tripo3D & `fbx2gltf` erstellt.
+  - **Prozeduraler Generator:** `FlakturmKit.createVentHatch({ width, height, openAngle })` in [`FlakturmKit.ts`](file:///Users/srottensteiner/PhpstormProjects/small-world/apps/sample-apps/and-now/builder/FlakturmKit.ts) mit animierbarem Scharnier (`DoorHinge`), Wandzarge, Riegel und Drahtgitter-Geflecht implementiert.
+  - Manifest [`public/assets/kits/flakturm/kit.json`](file:///Users/srottensteiner/PhpstormProjects/small-world/public/assets/kits/flakturm/kit.json) und Tests aktualisiert.
+- **QA:** 145 Testsuiten (798 Tests) 100% grün.
+
+---
+
+## 137. Bunker-Kit QS-Pass: Morgue-Tray-Geometrie & Decal-Qualität (2026-09-16)
+- **Anlass:** Review der Bunker-Kit-Ergebnisse gegen die echten Flakturm-Referenzfotos
+  (`.agents/scratches/Flaktum/`). Texturen & `terminal_2100` wurden als gelungen bestätigt;
+  zwei konkrete Qualitätsmängel gefunden und behoben.
+- **Bug 1 — Morgue-Tray-Geometrie (Tripo3D-Modell):** `morgue_tray/model.glb` hatte Griff +
+  ID-Plakette an allen vier Seiten der Schublade — unsinnig, da real nur das Kopfende (das aus
+  der Wand herausragt) einen Griff trägt; die Längsseiten sind offen/zugänglich, die Rückseite
+  (Fußende der Leiche) steckt im Wandschrank und ist nie zu sehen. Da Tripo3D nur einen einzigen
+  gemergten Mesh-Node ohne Teile-Trennung liefert, war eine chirurgische Korrektur unmöglich.
+  - **Fix:** Neuer prozeduraler Builder `BunkerKit.createMorgueTray()`
+    (`apps/sample-apps/and-now/builder/BunkerKit.ts`, analog zu `FlakturmKit.ts`) —
+    Griff + ID-Plakette (Decal-Textur) sitzen konstruktiv nur am Kopfende (+Z), die
+    Längsseiten (`SideRim_0/1`) und das Fußende (`FootEndCap`) bleiben blank. Zwei benannte
+    Sockets (`NeckSpotlightTarget`, `ToeTag`) für szenenspezifisches Dressing (Leichentuch,
+    Zyanid-Decal) exportiert.
+  - `prologue.ts`: `_buildKaeltekammer()` nutzt jetzt `BunkerKit.createMorgueTray()` statt der
+    alten flachen Slab-Platzhalter-Box; `_loadPropKits()` lädt nur noch die ID-Plakette
+    (`sign_koje42.png`) als Textur nach, statt das fehlerhafte GLB zu laden.
+  - Fehlerhaftes Asset entfernt: `public/assets/kits/bunker/morgue_tray/` (Modell + Tripo-Rohdaten)
+    gelöscht, Eintrag aus `bunker/kit.json` entfernt (Prop ist jetzt reiner Code wie
+    `FlakturmKit`s prozedurale Requisiten).
+  - Neue Testsuite `tests/BunkerKit.test.ts`: verifiziert, dass Griff/Plakette ausschließlich am
+    Kopfende sitzen und die Sockets korrekt exponiert werden.
+  - **Visuell verifiziert** im laufenden Dev-Server (Debug-Kamera-Teleport via `_loop()`,
+    `CameraStrategyType.MANUAL`): Plakette „KOJE 42 / FLAKTURM ARENBERG" + Griff nur am
+    Kopfende sichtbar, Seiten und Fußende bestätigt blank.
+- **Bug 2 — Decal-Qualität ("MS Paint"-Bitmap-Font):** `sign_hausangehoerige.png`,
+  `sign_sektor0.png` und `sign_koje42.png` waren in einer winzigen, blockig-pixeligen
+  Bitmap-Schrift gerendert (kein Antialiasing); `sign_sektor0.png` schnitt den Warntext
+  zusätzlich am Rand ab. `guide_stripe_glow.png` war nur ein flacher, kontrastloser
+  Rausch-Fleck ohne erkennbares Leitstreifen-Muster.
+  - **Fix:** Alle vier Decals mit echten TrueType-Fonts (Rockwell Bold, Arial Black/Bold) bei
+    4x Zielauflösung neu gerendert und mit LANCZOS herunterskaliert (saubere Kanten statt
+    Pixel-Treppen), inkl. Verwitterung (Rost-Bleeding an Schraubenlöchern, Schmutz-Drips,
+    gebürstetes Metall) und korrektem Textumbruch. `guide_stripe_glow.png` zeigt jetzt ein
+    gerichtetes Chevron-Muster mit Glow-Bloom und Abnutzungsflecken.
+  - Generator-Skript nicht im Repo (lag im git-ignorten Scratchpad) — bei Bedarf erneut
+    schreiben (Pillow + Rockwell.ttc/Arial Black, 4x Supersampling).
+- **Weitere Textur-Durchsicht (Wände/Türen, auf Wunsch):** `concrete_board`, `concrete_weathered`
+  und `brick_aged` halten gegen die Referenzfotos gut stand. `steel_corroded` (Rost wirkt als
+  großflächige Cluster-Noise-Blobs, wenig fotografisch) und `steel_painted` (rein flache Farbe
+  mit Kratzern, keine Nieten trotz Beschreibung) sind spürbar schwächer — bewusst nicht
+  angefasst, um keine Inkonsistenz zwischen neuer Albedo und bestehender Normal-Map
+  einzuführen; als Kandidat für einen eigenen, dedizierten Nachschärf-Pass vorgemerkt.
+- **QA:** 146 Testsuiten (801 Tests) 100% grün, `npx tsc --noEmit`, `npm run lint` und
+  `npm run build:lib` fehlerfrei.
+
+---
+
+## 138. Flakturm-Textur-Set: Voller Nachschärf-Pass (alle 5 Materialien) (2026-09-16)
+- **Anlass:** Nachfolge zu #137 — auf Wunsch auch `steel_corroded`/`steel_painted` sowie
+  Beton/Ziegel überarbeitet, statt nur die zuvor als schwach identifizierten Sets stehen zu
+  lassen. Ziegel sollten außerdem sichtbar beschädigt/abgesplittert wirken (Nachkriegsruine).
+- **Diagnose (warum ein reiner Albedo-Fix nicht reicht):** Bei `steel_corroded` lagen Rost-Flecken
+  in der Albedo, Rauheit und Metallness auf drei **nicht korrelierten** Rausch-Mustern —
+  Rauheit/Metallness waren zudem identisch statt invers zueinander. Ein isolierter Albedo-Fix
+  hätte diese Inkonsistenz nur verschoben, nicht behoben.
+- **Lösung — kohärente Neugenerierung aller Kanäle aus einer gemeinsamen Maske je Material**
+  (Pillow + NumPy, nicht im Repo — git-ignorter Scratchpad, bei Bedarf neu schreiben):
+  - **Rauschen:** Erste Fassung nutzte eine Summe zufälliger Sinuswellen für exakt kachelbares
+    Rauschen — zu wenige Wellen pro Oktave erzeugten aber ein sichtbares diagonales Moiré/Gewebe.
+    Ersetzt durch spektral geformtes FFT-Rauschen (gefiltertes weißes Rauschen im Frequenzraum),
+    isotrop und exakt periodisch ohne Nachbearbeitung.
+  - **Präzise Flächenkontrolle:** Schadens-/Rostflächen werden per Perzentil-Schwellwert
+    (`np.quantile`) auf eine exakte Ziel-Flächendeckung kalibriert, statt auf einen festen
+    Schwellwert zu raten, der je nach Rauschverteilung stark schwankt.
+  - **Höhen→Normal-Konvertierung:** Ein gemeinsames Height-Field pro Material wird per
+    zentraler Differenz (wrap-safe via `np.roll`) in die Normal-Map umgerechnet, sodass Bump,
+    Rauheit, Metallness und AO immer zur selben zugrunde liegenden Struktur gehören.
+  - **`steel_corroded`:** Rost jetzt als spärliche Flecken (~5 % Saat) mit dünnen, vertikal
+    abtropfenden Rostschlieren (Schwerkraft-Streaking) statt großflächiger Cluster-Blobs;
+    Rauheit/Metallness invers und deckungsgleich zur Rost-Maske.
+  - **`steel_painted`:** Echtes Nietenraster (kachelbar, radialer Dome-Normal-Bump), echte
+    lineare Kratzer (gezeichnete Liniensegmente statt Rausch-Höhenlinien, die wie Kontur-Wirbel
+    aussahen), sparsame Lackabplatzer mit dünnem Rost-Saum an der Bruchkante.
+  - **`concrete_weathered`:** Der alte Riss-Ansatz (Kontur-Band um ein Blob-Level) erzeugte
+    geschlossene Comic-Umrandungen um die Flecken; ersetzt durch echte dünne, dichte
+    Haarriss-Sprenkel; Ruß-/Wasserschlieren beibehalten und verfeinert.
+  - **`brick_aged`:** Vollständig neu mit echtem Läufer-Verband (versetzte Fugen), 5 %
+    komplett fehlende Steine (Kavität mit Schutt-Textur statt Vollschwarz), ~28 % der Steine mit
+    abgeplatzten Ecken/Kanten, feine verzweigte Haarrisse (Ridge-Noise statt Kontur-Band-Bug),
+    Ausblühungs-Flecken (helle Mineralablagerung) und Ruß-Streaking — deckt explizit den
+    Wunsch „Ziegel sollen auch kaputt/abgesplittert wirken" ab.
+  - **`concrete_board`:** Bereits solide, nur Ruß-/Wasserschlieren verfeinert.
+  - **Türen:** Werden laut [`kit.json`](public/assets/kits/flakturm/kit.json) über
+    `steel_corroded`/`steel_painted` texturiert — damit über den Steel-Pass mit abgedeckt.
+- **Verifikation:** Alle 5×4–5 Kanäle (Albedo/Normal/Roughness/[Metalness]/AO) einzeln visuell
+  geprüft (Kohärenz zwischen Kanälen, keine Moiré-Artefakte, 512×512 RGB Format erhalten).
+  Nicht live im Renderer verifiziert — keines der 5 Materialien ist bisher in einer Szene
+  verdrahtet (reine Kit-Assets wie die Flakturm-Props, siehe #135/#136).
+- **QA:** 146 Testsuiten (801 Tests) weiterhin grün (reine Asset-Änderung, kein Code).
+
+---
+
+## 139. Analyse `scripts/pbr.sh`: defekt, Engine hat den korrekten Ersatz schon (2026-09-16)
+- **Anlass:** Hinweis, `scripts/pbr.sh` (ImageMagick-CLI, Photo→PBR-Ableitung) für die
+  Textur-Arbeit aus #138 zu prüfen und zu testen.
+- **Befund — Tool ist defekt in dieser Umgebung:** Der „Normal"-Schritt
+  (`-bias 50% -convolve '0,-1,0,-1,0,1,0,1,0' -solarize 50% -level 50%,0%`) kollabiert auf ein
+  fast-flaches, fast-schwarzes **Einzelkanal**-Ergebnis — unabhängig von Input oder
+  `NORM_STRENGTH` (getestet bis 500 %). Verifiziert an drei Inputs: meiner Rost-Albedo, meiner
+  Ziegel-Albedo, und zur Kontrolle an einem trivialen sauberen Schwarz-Weiß-Verlauf (härtester,
+  einfachster Testfall) — auch dort bricht es. Kein Tuning-Problem, sondern strukturell falsch:
+  es gibt keine getrennte X/Y-zu-R/G-Kanal-Kodierung, also wäre es selbst korrigiert keine
+  standardkonforme Tangent-Space-Normal-Map. Roughness/Specular/AO kollabieren ebenso auf
+  fast-flache Werte. Vermutete Ursache: Skript für `magick` (ImageMagick 7) geschrieben, hier ist
+  aber nur `convert` (IM 6.9.13 Q16) installiert — andere Prozent-/Quantum-Semantik.
+- **Besserer, bereits vorhandener Ersatz gefunden:** [`TextureFilters.ts`](packages/engine/src/tools/common/dsp/TextureFilters.ts)
+  — die reinen Funktionen hinter dem MaterialStudio-Tool (`generateHeightMap`,
+  `generateNormalMap`, `generateSpecularMap`, `generateRoughnessMap`, `generateAOMap`,
+  `generateEdgeMap`). Per `tsx` + `pngjs` headless (ohne Browser) direkt getestet: echter
+  Sobel-Normal-Encoder, korrekt um Mittelgrau/Blau zentriert mit echtem Signal — kein Kollaps.
+  Roughness/Specular brauchen pro Material einen passenden `threshold` (sehr dunkle Albedo
+  braucht viel niedrigeren `specThresh` als der Default) — normales Parameter-Tuning, kein Bug.
+- **Entscheidung:** `pbr.sh` NICHT verwendet. Die in #138 bereits deployten, aus einer
+  gemeinsamen Maske pro Material kohärent abgeleiteten Texturen bleiben unverändert — sie
+  garantieren durch Konstruktion korrekte physikalische Korrelation zwischen den Kanälen.
+  `TextureFilters.ts` wäre der richtige Kandidat für zukünftige Arbeit an einer echten
+  Foto-Albedo (dort passt „hell = erhöht" tatsächlich), nicht für meine synthetischen Albedos
+  (Risiko invertierter Bumps, z. B. helle aber physisch vertiefte Mörtelfugen).
+- **Dokumentation:** Projekt-Memory `project_pbr_sh_broken` angelegt.
+
+---
+
+## 140. Korrektur zu #139: `pbr.sh` ist unabhängig von der ImageMagick-Version defekt (2026-09-16)
+- **Anlass:** Nutzer hat echtes ImageMagick 7 (`magick`) via MacPorts installiert
+  (`/opt/local/lib/ImageMagick7/bin/magick`, IM 7.1.2-30) — Re-Test der #139-Vermutung
+  ("vermutlich IM6-vs-7-Kompatibilität").
+- **Ergebnis: Vermutung war falsch.** Mit dem echten `magick`-Binary reproduziert sich exakt
+  derselbe Kollaps (Normal-Map weiterhin nahezu schwarz/einkanalig, AO weiterhin ~0/255).
+  Schrittweise durch die Operator-Kette auf dem Verlaufs-Testbild verfolgt: `-solarize 50%`
+  invertiert jeden Wert über der 50 %-Mitte (ein Höhenfeld-Gradient kann aber legitim auf beiden
+  Seiten der Mitte landen — das faltet eine Vorzeichen-Hälfte des Signals auf die andere), und
+  `-level 50%,0%` hat Schwarz-/Weißpunkt vertauscht, was das ohnehin schon nach unten gefaltete
+  Ergebnis zusätzlich in ein enges dunkles Band presst. Das ist ein Logikfehler in der
+  Operator-Kette selbst, unabhängig von IM6 oder IM7. Roughness/Specular (einfache
+  Sigmoidal-Contrast-/Gamma-Transforms ohne `solarize`) zeigten unter echtem IM7 an einem
+  kontrastreicheren Testbild spürbar mehr Varianz — die sind nicht strukturell kaputt.
+- **Entscheidung bleibt:** `pbr.sh` weiterhin nicht verwendet; `TextureFilters.ts` bleibt der
+  richtige Kandidat für einen künftigen Foto-Albedo-Workflow.
+- **Dokumentation:** `project_pbr_sh_broken`-Memory korrigiert (Abschnitt „Why" ersetzt statt
+  nur ergänzt, damit die veraltete IM6-vs-7-Vermutung nicht als Tatsache stehen bleibt).
+
+---
+
+## 141. Echte Nietengeometrie fürs Terminal-2100-Modell (2026-09-16)
+- **Anlass:** Die Case-/Bezel-Schrauben aus dem Concept-Art
+  (`public/assets/kits/bunker/terminal_2100/preview.jpg`) hat Tripo3D nur in die Normal-Map
+  gebacken (Fake-Bump per Licht, keine echte Silhouette) — auf Wunsch als echte 3D-Geometrie
+  ergänzt, analog zum Morgue-Tray-Fix (#134/#137): Tripo liefert nur einen einzigen gemergten
+  Mesh-Node, also keine chirurgische Bearbeitung möglich, stattdessen Ergänzung per Code.
+- **Neue Bausteine in [`BunkerKit.ts`](apps/sample-apps/and-now/builder/BunkerKit.ts):**
+  `createRivet()` (Schlitzschrauben-Kopf), `createBoltArray()` (Set an (x,y,z)-Positionen),
+  `createTerminalBoltSet()` (8 Nieten: 4 Case-Ecken + 4 Bildschirm-Bezel-Ecken).
+- **Stolperstein — Tripo-Modell ist eine verzerrte „Pille", keine flache Platte:** Die
+  `meta.json`-Maße (0,38 × 0,52 × 0,15) stimmen nicht mit der echten Mesh-Geometrie überein;
+  die Tripo-Rekonstruktion aus einem Einzelbild hat die Tiefe massiv aufgebläht (echte
+  Halb-Extents ≈ 0,235 × 0,396 × 0,499 — Tiefe ist die GRÖSSTE statt der kleinsten Dimension).
+  Mit den dokumentierten Maßen wären die Nieten ~6× zu tief im Modell vergraben gewesen.
+  **Fix:** Neue Helper-Methode `_measureLocalHalfExtents()` in `prologue.ts` misst die
+  tatsächliche Bounding-Box am geladenen Mesh (inkl. des intern verschachtelten
+  Tripo/FBX-Korrekturfaktors ×100) statt der Doku zu vertrauen. Nieten werden zusätzlich per
+  Ellipsoid-Projektion (`z = halfDepth·√(1−x²/halfWidth²−y²/halfHeight²)`) auf die tatsächliche
+  gerundete Oberfläche gesetzt statt auf eine flache Ebene.
+- **Visuell verifiziert** im laufenden Dev-Server (gleiche Debug-Kamera-Teleport-Technik wie
+  bei #137): Nieten sitzen sichtbar als echte, Licht-reagierende 3D-Beulen mit Schlitz-Detail
+  auf der realen Oberfläche — nicht vergraben, nicht schwebend.
+- **QA:** 146 Testsuiten (804 Tests) grün, `tsc --noEmit`, `lint` und `build:lib` fehlerfrei.
+  Drei neue Tests in `BunkerKit.test.ts` (Rivet-Struktur, Bolt-Array-Positionierung,
+  Terminal-Bolt-Set innerhalb der realen Halb-Extents).
+
+---
+
+## 142. Kit-Texturen & FlakturmKit-Requisiten erstmals in der Szene verdrahtet (2026-09-16)
+- **Anlass:** Bisher war der gesamte Textur-/Requisiten-Katalog aus #135/#138 reines
+  unverdrahtetes Kit-Material (siehe Bestandsaufnahme oben). Jetzt erstmals in `prologue.ts`
+  in Betrieb genommen.
+- **Neue Methode `_applyKitTextures()`** (aufgerufen nach `_loadPropKits()`, nicht parallel dazu
+  — dazu gleich mehr): lädt alle 5 Flakturm-Texturs-Sets und mutiert die bereits vorhandenen,
+  von mehreren Whitebox-Meshes geteilten `StandardMaterial`-Instanzen direkt (ein Fund reicht,
+  da z. B. `concreteWallMat` schon von BackWall/Ceiling/RightWall/LeftWallTop geteilt wird).
+  Jede Fläche bekommt eine eigene `Texture.fromImage()`-Kopie mit individuellem `repeat`, damit
+  unterschiedlich große Wände nicht dieselbe UV-Kachel-Dichte erzwungen bekommen.
+  - **Zwei kleine Material-Splits nötig:** `LeftWallBack`/`LeftWallFront` (Türlaibung) und
+    `BedPost_0..3` teilten sich vorher `concreteWallMat` bzw. `rustSteelMat` mit Wänden bzw.
+    der Panzertür — aufgeteilt in eigene `brickWallMat`/`paintedSteelMat`-Instanzen, damit sie
+    unabhängig `brick_aged` bzw. `steel_painted` statt `concrete_board`/`steel_corroded`
+    bekommen können.
+  - **Zuordnung:** `concrete_board` → Koje-42-Wände/Decke/Boden; `brick_aged` → Türlaibung;
+    `concrete_weathered` → Kältekammer-Boden/Rückwand; `steel_corroded` → Panzertür +
+    Lüftungsgitter; `steel_painted` → Bettpfosten (Fallback), Schubladen-Rack, Morgue-Tray.
+- **Bug gefunden & gefixt — Race Condition:** `_loadPropKits()` und `_applyKitTextures()` liefen
+  zuerst parallel (`void`/`void`). `_loadPropKits()` ersetzt aber `this._bunkBedMesh` durch das
+  geladene `bunk_bed.glb` (entfernt den prozeduralen Platzhalter mit `BedPost_0..3` aus der
+  Szene) — je nach Timing lief die Textur-Anwendung auf dem bereits entfernten Platzhalter ins
+  Leere. Gefixt durch Sequenzierung (`await _loadPropKits()` vor `await _applyKitTextures()`);
+  jetzt ist das Verhalten deterministisch (kein Fehler, korrekt wirkungslos im Erfolgsfall, da
+  das echte GLB eigene Materialien mitbringt — greift aber korrekt, falls das GLB-Laden
+  fehlschlägt und der Platzhalter sichtbar bleibt).
+- **Neue Requisiten aus `FlakturmKit.ts` erstmals platziert** (vorher nur in
+  `FlakturmKit.test.ts` verifiziert, nie in einer Szene benutzt):
+  - `createFluorescentLamp()` ersetzt die nackten `PointLight`-Deckenlampen in Koje 42 und
+    Kältekammer durch echte Käfig-Leuchtstoffröhren-Fixtures (Licht + Geometrie im selben
+    Objekt).
+  - `createConduitRun()` — Aufputzkabel mit Verteilerdosen an der Koje-42-Rückwand.
+  - `createDebrisCluster()` — Schutthaufen in der Kältekammer-Ecke.
+- **Visuell verifiziert** im laufenden Dev-Server: Ziegel-Türlaibung, Rost-Streifen auf der
+  Panzertür, Beton-Schalungsstruktur an der Decke, Käfigleuchte, Schutthaufen und
+  Beton-Sprenkelung im Kältekammer-Boden alle sichtbar bestätigt; alle 8 texturierten
+  Zielobjekte per Skript auf `diffuseMap`-Vorhandensein gegengeprüft.
+- **QA:** 146 Testsuiten (804 Tests) grün, `tsc --noEmit`, `lint` und `build:lib` fehlerfrei.
 
 

@@ -1,0 +1,40 @@
+{
+  "$schema": "../../../../schemas/prop-meta.schema.json",
+  "id": "bunker/terminal_2100",
+  "name": "Amts-Terminal 2100 (Unit-X1)",
+  "category": "electronics",
+  "kit": "bunker",
+  "version": "1.0.0",
+  "description": "Tactical ruggedized armored military field computer terminal with monochrome amber LC-display, mechanical push-buttons, rotary switches, and carrying handle.",
+  "triangles": 12840,
+  "materials": 1,
+  "textures": [
+    "diffuse",
+    "normal",
+    "roughness_metallic"
+  ],
+  "dimensions": {
+    "width": 0.38,
+    "height": 0.52,
+    "depth": 0.15
+  },
+  "recommendedScale": 0.42,
+  "sockets": [
+    {
+      "name": "ScreenDisplay",
+      "position": [
+        0,
+        0.12,
+        0.06
+      ],
+      "recommendedLight": {
+        "type": "PointLight",
+        "color": "#ffb84d",
+        "intensity": 2.0,
+        "distance": 4.0
+      }
+    }
+  ],
+  "author": "Small World Studio",
+  "license": "CC0-1.0"
+}

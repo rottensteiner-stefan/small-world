@@ -1,0 +1,42 @@
+{
+  "$schema": "../../../../schemas/prop-meta.schema.json",
+  "id": "bunker/bunk_bed",
+  "name": "Bunker Tier Bunk Bed",
+  "category": "furniture",
+  "kit": "bunker",
+  "version": "1.0.0",
+  "description": "Double-tier military flakturm bunk bed constructed from weathered welded steel angles, worn mattresses, and wool blankets with personal gear shelf.",
+  "triangles": 12500,
+  "materials": 1,
+  "textures": [
+    "diffuse",
+    "normal",
+    "roughness_metallic"
+  ],
+  "dimensions": {
+    "width": 1.1,
+    "height": 1.8,
+    "depth": 2.1
+  },
+  "recommendedScale": 1.0,
+  "sockets": [
+    {
+      "name": "TopBunk",
+      "position": [
+        0,
+        1.25,
+        0
+      ]
+    },
+    {
+      "name": "BottomBunk",
+      "position": [
+        0,
+        0.35,
+        0
+      ]
+    }
+  ],
+  "author": "Small World Studio",
+  "license": "CC0-1.0"
+}

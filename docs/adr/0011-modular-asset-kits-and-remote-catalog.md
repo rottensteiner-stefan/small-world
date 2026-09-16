@@ -14,17 +14,94 @@ Große Binär-Assets (`.glb`-Modelle, 2K/4K-PBR-Texturkarten, Skelett-Bewegungsc
 Wir etablieren einen 3-phasigen Architekturstandard für modulare Asset-Kits und Out-of-Tree-Asset-Distribution:
 
 ### 1. Phase 1: Semantische Kit-Struktur & Metadaten-Standard
-Alle wiederverwendbaren Assets folgen einer standardisierten Kit-Hierarchie:
-- **Ort:** `public/assets/kits/<kit-name>/` (z. B. `industrial/`, `characters/`, `materials/`, `urban/`).
-- **Standard-Asset-Bündel:**
-  - `model.glb`: Optimiertes, in sich geschlossenes binäres glTF mit eingebetteten PBR-Texturen ($\le 25.000$ Dreiecke, $\le 2\text{K}$-Texturen).
-  - `preview.webp`: Quadratisches 512×512-Thumbnail für UI-Inspektoren und Kataloge.
-  - `meta.json`: Semantische Deskriptoren, Bounding-Box-Ausmaße, Material-Slots, Dreieckszahlen und Lizenz-/Attributionsangaben.
-- **Metrischer Einheiten-Standard:** Alle Kits halten sich strikt an $1{,}0\text{ Einheit} = 1{,}0\text{ Meter}$.
 
-**Status:** umgesetzt, mit kleinen Abweichungen -- das reale `industrial/`-Kit unter
-`public/assets/kits/` nutzt `preview.jpg` statt `.webp`, und führt zusätzlich eine `kit.json` pro
-Kit, die dieser Standard nicht vorsieht.
+**Namensfrage geklärt (2026-09-17):** Der Dateiname für das Kit-Manifest ist `kit.json` --
+verbindlich, keine Abweichung mehr zulässig. Erwogen und verworfen:
+- `package.json` -- kollidiert mit npm; selbst wenn der aktuelle Workspace-Glob
+  (`packages/*`, `apps/*`) `public/assets/kits/*` nicht erfasst, durchsuchen IDEs und andere
+  Tools den Baum nach *jeder* Datei mit diesem Namen, nicht nur nach Workspace-Mitgliedern.
+- `manifest.json` -- keine harte Kollision (kein PWA-Manifest, kein Vite-Build-Manifest im
+  Projekt referenziert), aber der Name ist im Web-Kontext stark mit PWA-/Browser-Extension-
+  Manifesten assoziiert -- unnötige Verwechslungsgefahr ohne echten Zugewinn.
+- `sw.json` -- kollidiert real mit dem projekteigenen glTF-Vendor-Namensraum `SW_*`
+  (`SW_prefab_instance`, `SW_stage_zone`, siehe ADR 0016/0017); neben einer `model.glb` läge ein
+  `sw.json` nahe, es für einen Export der `SW_*`-Extension-Daten dieses Modells zu halten.
+
+**Verbindliches Schema (validiert durch
+[`AssetKitValidation.test.ts`](../../packages/engine/tests/loaders/AssetKitValidation.test.ts),
+das seit 2026-09-17 jedes Verzeichnis unter `public/assets/kits/` mit einer `kit.json` findet und
+prüft -- nicht mehr nur `industrial/` wie zuvor):
+
+- **Ort:** `public/assets/kits/<kit-id>/` (z. B. `industrial/`, `bunker/`, `flakturm/`).
+- **`kit.json`** (ein pro Kit, Feldreihenfolge wie unten):
+  ```jsonc
+  {
+    "id": "flakturm",              // == Verzeichnisname, keine Ausnahme
+    "name": "Vienna Flakturm Architectural & Bunker Kit",  // Anzeigename, kein separates displayName
+    "version": "1.0.0",            // SemVer
+    "description": "...",
+    "items": [                     // 3D-Requisiten mit model.glb; leeres Array zulässig
+      {
+        "id": "flakturm/bunker_blast_door",   // IMMER "<kit-id>/<slug>", auch in meta.json gespiegelt
+        "name": "Flakturm Heavy Double Blast Door",
+        "category": "doors",
+        "path": "props/bunker_blast_door/model.glb",     // relativ zum Kit-Root, nicht zum Item
+        "preview": "props/bunker_blast_door/preview.jpg", // .jpg ratifiziert, nicht .webp
+        "meta": "props/bunker_blast_door/meta.json"       // Pflichtfeld -- jedes Item verweist auf sein meta.json
+      }
+    ],
+    "textures": [                  // optional: reine PBR-Materialien ohne eigenes meta.json
+      { "id": "flakturm/concrete_board", "name": "...", "category": "walls",
+        "maps": ["albedo.png", "normal.png", "roughness.png", "ao.png"] }
+    ],
+    "decals": [                    // optional: einzelne PNG-Sticker ohne eigenes meta.json
+      { "id": "flakturm/sign_koje42", "name": "...", "file": "sign_koje42.png" }
+    ],
+    "author": "Small World Studio",
+    "license": "CC0-1.0"
+  }
+  ```
+- **`meta.json`** (eines pro `items`-Eintrag, neben dessen `model.glb`): `id` (== das `items[].id`
+  aus der `kit.json`), `name`, `category`, `kit` (== die `kit.json`-`id`), `version`,
+  `description`, `triangles` (> 0, $\le 25.000$), `materials`, `textures` (Namen der verwendeten
+  Maps), `dimensions` (`{width, height, depth}` oder `{radius, height}`), `recommendedScale`,
+  optional `sockets` (Anbaupunkte mit `name`, `position`, optional `recommendedLight`), optional
+  `hazardClass` (ADR/GHS-Gefahrgutklasse), `author`, `license`.
+- **Metrischer Einheiten-Standard:** Alle Kits halten sich strikt an $1{,}0\text{ Einheit} =
+  1{,}0\text{ Meter}$.
+- **`textures`/`decals`-Einträge** brauchen kein eigenes `meta.json` -- sie haben keine
+  Dreieckszahl, keine Bounding-Box, keine Sockets; ihre `id` folgt trotzdem derselben
+  `<kit-id>/<slug>`-Konvention.
+
+**Status:** umgesetzt und seit 2026-09-17 für alle drei existierenden Kits (`bunker`, `flakturm`,
+`industrial`) einheitlich; zuvor nutzten `bunker`/`flakturm` noch ein abweichendes,
+unvalidiertes Schema (`props` statt `items`, `model` statt `path`, kein `meta`-Verweis, kein
+Top-Level-`id`) -- eine stille Drift, die der damals nur auf `industrial` hartverdrahtete
+Validierungstest nicht erkennen konnte.
+
+**Formales JSON Schema (seit 2026-09-17):** Das obige Schema ist zusätzlich als echtes
+[JSON Schema](https://json-schema.org/) (Draft 2020-12) niedergeschrieben --
+[`public/schemas/kit.schema.json`](../../public/schemas/kit.schema.json) für `kit.json`,
+[`public/schemas/prop-meta.schema.json`](../../public/schemas/prop-meta.schema.json) für
+`meta.json` -- unter `public/schemas/`, nicht neben den Kits selbst, weil beide Schemas eine
+`"$id"` von der Form `https://small-world.dev/schemas/<name>.schema.json` tragen; sobald
+`public/` unter dieser Domain ausgeliefert wird, referenziert die `$id` exakt den Pfad, unter dem
+die Datei tatsächlich liegt, statt eine URL zu behaupten, die nirgendwo real bedient wird. Jede
+echte `kit.json`/`meta.json` trägt ein `"$schema"`-Feld (relativer Pfad zu `public/schemas/`), das
+auf die passende Datei zeigt -- IDEs mit JSON-Schema-Unterstützung (VSCode, WebStorm/PhpStorm)
+validieren und autovervollständigen damit schon beim Tippen, nicht erst beim Testlauf.
+[`AssetKitValidation.test.ts`](../../packages/engine/tests/loaders/AssetKitValidation.test.ts)
+kompiliert beide Schemas per [Ajv](https://ajv.js.org/) und validiert jede reale Datei dagegen.
+Ein JSON Schema prüft nur die *Form* eines einzelnen Dokuments (Pflichtfelder, Typen, Patterns);
+es sieht nicht über Dateigrenzen hinweg. Cross-File-Prüfungen -- `id` gleich Verzeichnisname,
+`item.meta` verweist auf eine wirklich existierende Datei, `meta.kit` gleich der eigenen
+`kit.json`-`id` -- bleiben deshalb als eigene Assertions im selben Test bestehen, nicht als
+Schema-Keywords erzwungen.
+
+**Bewusst nicht eingeführt:** ein eigenes `meta.json` für `textures`/`decals`-Einträge. Deren
+gesamte Metadaten (`id`, `name`, `category`/`maps`/`file`) stehen schon vollständig inline in
+`kit.json` -- ein Sidecar-File hätte nur `id`/`name` dupliziert, ohne echten Informationsgewinn
+(keine Dreiecke, keine Bounding-Box, keine Sockets, die ein solches File rechtfertigen würden).
 
 ### 2. Phase 2: Out-of-Tree-Repository & CDN-Distribution
 - **Dediziertes Asset-Repository (`small-world-assets`):** Binäre Produktions-Assets, rohe DCC-Dateien und Kit-Bündel werden in einem dedizierten Repository oder Git-LFS-Speicher untergebracht.

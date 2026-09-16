@@ -1,7 +1,7 @@
 {
   "name": "small-world",
   "private": true,
-  "version": "0.79.16",
+  "version": "0.80.0",
   "description": "A lightweight 3D engine for hybrid WebGL/WebGPU rendering pipelines.",
   "type": "module",
   "license": "MIT",
@@ -44,6 +44,7 @@
     "@vitest/coverage-v8": "^4.1.10",
     "@vitest/ui": "^4.1.10",
     "@webgpu/types": "^0.1.71",
+    "ajv": "^8.20.0",
     "eslint": "^10.8.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-import": "^2.32.0",

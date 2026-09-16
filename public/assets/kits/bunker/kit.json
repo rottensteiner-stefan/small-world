@@ -1,0 +1,35 @@
+{
+  "$schema": "../../../schemas/kit.schema.json",
+  "id": "bunker",
+  "name": "Bunker & Interior Kit",
+  "version": "1.0.0",
+  "description": "Post-apocalyptic underground bunker, tactical electronics, and heirloom interior props for The Whisper.",
+  "items": [
+    {
+      "id": "bunker/coffee_grinder",
+      "name": "František's Heirloom Coffee Grinder",
+      "category": "props",
+      "path": "coffee_grinder/model.glb",
+      "preview": "coffee_grinder/preview.jpg",
+      "meta": "coffee_grinder/meta.json"
+    },
+    {
+      "id": "bunker/terminal_2100",
+      "name": "Amts-Terminal 2100 (Unit-X1)",
+      "category": "electronics",
+      "path": "terminal_2100/model.glb",
+      "preview": "terminal_2100/preview.jpg",
+      "meta": "terminal_2100/meta.json"
+    },
+    {
+      "id": "bunker/bunk_bed",
+      "name": "Bunker Tier Bunk Bed",
+      "category": "furniture",
+      "path": "bunk_bed/model.glb",
+      "preview": "bunk_bed/preview.jpg",
+      "meta": "bunk_bed/meta.json"
+    }
+  ],
+  "author": "Small World Studio",
+  "license": "CC0-1.0"
+}

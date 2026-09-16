@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.80.0] - 2026-09-17
+
+### "If you cannot measure it, you cannot improve it." - William Thomson, Lord Kelvin
+
+- **Features:**
+  - *And Now? / "The Whisper — A Viennese Requiem"*: new interactive hotspot proximity system ([`HotspotManager`](apps/sample-apps/and-now/ui/HotspotManager.ts)) and the Amts-Terminal 2100 modal UI ([`TerminalModal`](apps/sample-apps/and-now/ui/TerminalModal.ts)), wired into the prologue's free-exploration mode.
+  - New procedural [`BunkerKit`](apps/sample-apps/and-now/builder/BunkerKit.ts) builder: a corrected morgue cold-storage tray (handle + ID plate on the head end only, matching a real mortuary drawer — the Tripo3D-sourced model had them on all four sides) and real 3D rivet/bolt geometry for the Terminal 2100 casing, measured from the actual mesh and projected onto its true rounded surface (the documented `meta.json` dimensions didn't match the real geometry).
+  - [`FlakturmKit`](apps/sample-apps/and-now/builder/FlakturmKit.ts)'s procedural fixtures (caged fluorescent ceiling lamps, wall conduit runs, rubble debris clusters) placed into the prologue scene for the first time, replacing bare point lights.
+  - The full Flakturm PBR texture set (`concrete_board`, `concrete_weathered`, `brick_aged`, `steel_corroded`, `steel_painted`) applied to the Koje-42/Kältekammer architecture for the first time — walls, ceiling, blast door, bed frame, morgue rack.
+  - Regenerated all Flakturm decal textures (warning signage, glow guide stripe) with real anti-aliased typography and weathering instead of low-resolution pixel-font placeholders.
+  - Story renamed to *"The Whisper — A Viennese Requiem"*, plus the new *Lebensader* (1. Wiener Hochquellenwasserleitung) worldbuilding pillar tying into the Haus des Meeres location.
+- **Architecture & Bugfixes:**
+  - Unified the `kit.json`/`meta.json` asset-kit schema across `bunker`, `flakturm`, and `industrial` (ADR 0011) — `bunker`/`flakturm` had silently drifted onto an unvalidated shape (`props`/`model`, no `meta` link, no top-level `id`) that [`AssetKitValidation.test.ts`](packages/engine/tests/loaders/AssetKitValidation.test.ts) never checked, since it only ever validated `industrial`. The test now discovers and validates every kit under `public/assets/kits/`.
+  - Added formal JSON Schema (draft 2020-12) for both files — [`public/schemas/kit.schema.json`](public/schemas/kit.schema.json), [`public/schemas/prop-meta.schema.json`](public/schemas/prop-meta.schema.json) — with Ajv-based validation in the test and a `"$schema"` pointer in every real `kit.json`/`meta.json` for editor-time validation.
+  - Fixed a race condition where prop-kit PBR texture application could run against a procedural placeholder mesh (e.g. the bunk bed) that the async glTF swap had already removed from the scene.
+- **Housekeeping & Docs:**
+  - ADR 0011 updated with the ratified, verbatim `kit.json`/`meta.json` schema and the naming decision between `kit.json`, `manifest.json`, `package.json`, and `sw.json`.
+  - Fixed `scripts/pbr.sh`'s Normal/Roughness/AO generation, which previously produced degenerate near-black/collapsed output regardless of ImageMagick version — rewritten to match the engine's own [`TextureFilters.ts`](packages/engine/src/tools/common/dsp/TextureFilters.ts) semantics and re-verified producing correct, non-degenerate maps.
+
 ## [0.79.16] - 2026-09-14
 
 ### "Simplicity is about subtracting the obvious and adding the meaningful." - John Maeda

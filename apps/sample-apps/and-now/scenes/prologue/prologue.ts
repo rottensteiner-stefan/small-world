@@ -2,9 +2,12 @@ import {
   AbstractShowcase,
   AmbientLight,
   BloomElement,
+  BoundingBox,
+  BoundingType,
   Color,
   Cube,
   Cylinder,
+  DirectionalLight,
   EngineOptions,
   MathUtils,
   Object3D,
@@ -18,18 +21,57 @@ import {
   Vector3D,
   VignetteElement,
   RendererType,
+  GltfLoader,
+  Texture,
 } from "@small-world/engine";
+import { BunkerKit } from "../../builder/BunkerKit.js";
+import { FlakturmKit } from "../../builder/FlakturmKit.js";
+import { TerminalModal } from "../../ui/TerminalModal.js";
+import { ViennaMapModal } from "../../ui/ViennaMapModal.js";
+import { HotspotManager, HotspotAction } from "../../ui/HotspotManager.js";
+
+type StageArea = "koje_42" | "vent_crawl" | "kaeltekammer";
 
 export class PrologueScene extends AbstractShowcase {
+  // 3D Objects & Lights (Koje 42)
   private _bunkerDoor: Object3D | null = null;
   private _doorSpot: SpotLight | null = null;
   private _screenMaterial: StandardMaterial | null = null;
   private _dustParticles: Object3D[] = [];
+  private _ventGrate: Object3D | null = null;
+  private _coffeeGrinderMesh: Object3D | null = null;
+  private _terminalMesh: Object3D | null = null;
+  private _bunkBedMesh: Object3D | null = null;
+  private _morgueTrayMesh: Object3D | null = null;
+
+  // 3D Objects & Lights (Kältekammer K-42)
+  private _morgueGroup: Object3D | null = null;
+  private _cyanideSpotLight: SpotLight | null = null;
+  private _cyanideDecal: Object3D | null = null;
+  private _frostParticles: Object3D[] = [];
+
+  public get morgueGroup(): Object3D | null {
+    return this._morgueGroup;
+  }
+
+  // Player Mannequin
+  private _playerObject: Object3D | null = null;
+  private _playerPos: Vector3D = new Vector3D(0, 0, 0.2);
+  private _playerFacingAngle: number = 0;
+  private _isMoving: boolean = false;
+  private _playerLanternLight: PointLight | null = null;
+
+  // Modals & Systems
+  private _terminalModal: TerminalModal | null = null;
+  private _mapModal: ViennaMapModal | null = null;
+  private _hotspotManager: HotspotManager | null = null;
 
   // Timeline & State
+  private _currentArea: StageArea = "koje_42";
   private _currentTime: number = 0;
   private _isPlaying: boolean = false;
   private _isPausedForChoice: boolean = false;
+  private _isExplorationMode: boolean = false;
   private _currentPhase: number = 0;
   private _targetCameraPos: Vector3D = new Vector3D(0, 1.6, 4.2);
   private _targetCameraLook: Vector3D = new Vector3D(0, 1.2, 0);
@@ -38,17 +80,20 @@ export class PrologueScene extends AbstractShowcase {
   private _doorOpenAngle: number = 0;
   private _targetDoorAngle: number = 0;
 
+  // Key tracking
+  private _keysDown: Set<string> = new Set();
+
   constructor(options: EngineOptions = {}) {
     super(options);
   }
 
   protected override async setupScene(): Promise<void> {
-    // 1. Camera (Use default projection, just position it)
+    // 1. Camera setup
     this.camera.position.set(0, 1.6, 4.2);
     this.camera.target.set(0, 1.2, 0);
     this.camera.updateViewMatrix();
 
-    // 2. Setup Post Processing
+    // 2. Setup Post Processing (Graphic Noir Chiaroscuro)
     if (this.renderer?.postProcessing) {
       this.renderer.postProcessing.enabled = true;
 
@@ -88,18 +133,25 @@ export class PrologueScene extends AbstractShowcase {
       }
     }
 
-    // 3. Lighting (Dark Noir style)
+    // 3. Lighting (Atmospheric Noir)
     const ambient = new AmbientLight({
       color: new Color(0.12, 0.15, 0.22),
       intensity: 0.35,
     });
     this.scene.add(ambient);
 
+    const dirLight = new DirectionalLight({
+      direction: new Vector3D(0.3, -0.9, -0.4),
+      color: new Color(0.8, 0.85, 0.95),
+      intensity: 0.4,
+    });
+    this.scene.add(dirLight);
+
     // Flur-Lichtstrahl durch die Tür
     this._doorSpot = new SpotLight({
       name: "HallwayDoorBeam",
-      color: new Color(1.0, 0.82, 0.45), // Warm yellow hallway light
-      intensity: 18.0, // The bloom threshold needs this punch
+      color: new Color(1.0, 0.82, 0.45),
+      intensity: 18.0,
       distance: 14.0,
       angle: Math.PI / 4.5,
       penumbra: 0.6,
@@ -109,24 +161,290 @@ export class PrologueScene extends AbstractShowcase {
     this._doorSpot.lookAt(new Vector3D(0.5, 0.8, 0.5));
     this.scene.add(this._doorSpot);
 
-    // Schwaches Deckenlicht (Flackern)
-    const ceilingLight = new PointLight({
-      name: "BunkerCeilingBulb",
-      color: new Color(0.85, 0.9, 1.0),
+    // Deckenleuchte Koje 42 — caged industrial fluorescent fixture (FlakturmKit)
+    const ceilingLamp = FlakturmKit.createFluorescentLamp({
+      name: "BunkerCeilingLamp",
+      length: 1.5,
+      caged: true,
       intensity: 1.5,
-      distance: 8.0,
+      lightDistance: 8.0,
+      color: new Color(0.85, 0.9, 1.0),
     });
-    ceilingLight.position.set(0, 2.6, 0);
-    this.scene.add(ceilingLight);
+    ceilingLamp.position.set(0, 3.05, 0);
+    ceilingLamp.rotation.y = Math.PI / 2;
+    this.scene.add(ceilingLamp);
 
-    // 4. Build 3D Bunker Koje
+    // 4. Build 3D Geometries
     this._buildBunkerRoom();
-
-    // 5. Build Dust Particles
+    this._buildKaeltekammer();
+    this._buildPlayerCharacter();
     this._buildDustParticles();
 
-    // 6. UI Handlers
+    // 5. Load High-Fidelity glTF Prop Kits (Bunker Kit: Kaffeemühle & Terminal 2100), then apply
+    // the PBR wall/door/fitting textures — in that order, since `_loadPropKits` swaps some
+    // procedural placeholders (e.g. the bunk bed) out for their glTF replacement, and texturing
+    // a placeholder that's about to be removed would be a silent no-op racing the swap.
+    void (async (): Promise<void> => {
+      await this._loadPropKits();
+      await this._applyKitTextures();
+    })();
+
+    // 6. Initialize Modals & Systems
+    this._terminalModal = new TerminalModal();
+    this._mapModal = new ViennaMapModal("flakturm_arenberg");
+    this._hotspotManager = new HotspotManager();
+
+    // 7. Register Koje 42 Hotspots
+    this._setupKojeHotspots();
+
+    // 8. UI & Keyboard Handlers
     this._initUiListeners();
+    this._initKeyboardListeners();
+  }
+
+  /**
+   * Measures a loaded glTF's actual mesh half-extents in the space of `root`'s direct
+   * children (i.e. the space a sibling attached via `root.add(...)` lives in) — by walking
+   * down to the first geometry-bearing node and multiplying every ancestor's own scale along
+   * that path onto its local bounding box. Needed because a Tripo3D single-mesh import often
+   * nests an large corrective scale (e.g. FBX-unit-to-meter conversion) inside the hierarchy,
+   * so the documented `meta.json` dimensions can't be trusted for placing attached geometry.
+   */
+  private _measureLocalHalfExtents(root: Object3D): [number, number, number] {
+    let found: Object3D | null = null;
+    root.traverse((child) => {
+      if (!found && child.geometry) found = child;
+    });
+    if (!found) return [0.5, 0.5, 0.5];
+    const meshNode: Object3D = found;
+
+    let sx = 1;
+    let sy = 1;
+    let sz = 1;
+    const accumulate = (node: Object3D, target: Object3D): boolean => {
+      if (node === target) {
+        sx *= node.scale.x;
+        sy *= node.scale.y;
+        sz *= node.scale.z;
+        return true;
+      }
+      for (const child of node.children) {
+        if (accumulate(child, target)) {
+          sx *= node.scale.x;
+          sy *= node.scale.y;
+          sz *= node.scale.z;
+          return true;
+        }
+      }
+      return false;
+    };
+    for (const child of root.children) {
+      if (accumulate(child, meshNode)) break;
+    }
+
+    const bv = meshNode.geometry?.getBoundingVolume();
+    if (!bv || bv.type !== BoundingType.BOX) return [0.5, 0.5, 0.5];
+    const box = bv as BoundingBox;
+    return [
+      (box.max.x - box.min.x) * 0.5 * sx,
+      (box.max.y - box.min.y) * 0.5 * sy,
+      (box.max.z - box.min.z) * 0.5 * sz,
+    ];
+  }
+
+  private async _loadPropKits(): Promise<void> {
+    const gltfLoader = new GltfLoader();
+
+    // 1. Františeks Kaffeemühle (Bunker Kit)
+    try {
+      const grinderGltf = await gltfLoader.load("/assets/kits/bunker/coffee_grinder/model.glb");
+      grinderGltf.name = "CoffeeGrinder_GLTF";
+      grinderGltf.scale.set(0.35, 0.35, 0.35);
+      grinderGltf.position.set(-0.5, 1.53, -1.3);
+
+      grinderGltf.traverse((child) => {
+        if (child.material instanceof StandardMaterial) {
+          child.material.roughness = 0.82;
+          child.material.metallic = 0.25;
+        }
+      });
+
+      if (this._coffeeGrinderMesh) {
+        this.scene.remove(this._coffeeGrinderMesh);
+      }
+      this._coffeeGrinderMesh = grinderGltf;
+      this.scene.add(grinderGltf);
+    } catch (e) {
+      console.warn("[Prologue] Fallback to procedural coffee grinder:", e);
+    }
+
+    // 2. Amts-Terminal 2100 (Bunker Kit)
+    try {
+      const terminalGltf = await gltfLoader.load("/assets/kits/bunker/terminal_2100/model.glb");
+      terminalGltf.name = "HandheldTerminal_GLTF";
+      terminalGltf.scale.set(0.42, 0.42, 0.42);
+      terminalGltf.position.set(0, 0.95, 0.8);
+      terminalGltf.rotation.x = -Math.PI / 6;
+
+      terminalGltf.traverse((child) => {
+        if (child.material instanceof StandardMaterial) {
+          child.material.roughness = 0.78;
+          child.material.metallic = 0.3;
+        }
+      });
+
+      // Tripo3D only baked the case/bezel screws into the normal map (fake bump, no real
+      // silhouette) — add them as real geometry so the OutlineElement toon pass can outline
+      // them. Measured from the actual mesh, not guessed from meta.json: the Tripo
+      // reconstruction bulges into a rounded "pill" rather than a flat slab, so a documented
+      // width/height/depth guess would bury the bolts inside the volume or float them past it.
+      const [halfWidth, halfHeight, halfDepth] = this._measureLocalHalfExtents(terminalGltf);
+      terminalGltf.add(BunkerKit.createTerminalBoltSet({ halfWidth, halfHeight, halfDepth }));
+
+      if (this._terminalMesh) {
+        this.scene.remove(this._terminalMesh);
+      }
+      this._terminalMesh = terminalGltf;
+      this.scene.add(terminalGltf);
+    } catch (e) {
+      console.warn("[Prologue] Fallback to procedural terminal:", e);
+    }
+
+    // 3. Stockbett (Bunker Kit)
+    try {
+      const bunkGltf = await gltfLoader.load("/assets/kits/bunker/bunk_bed/model.glb");
+      bunkGltf.name = "BunkBed_GLTF";
+      bunkGltf.scale.set(1.15, 1.15, 1.15);
+      bunkGltf.position.set(1.5, 0, -0.6);
+
+      bunkGltf.traverse((child) => {
+        if (child.material instanceof StandardMaterial) {
+          child.material.roughness = 0.85;
+          child.material.metallic = 0.35;
+        }
+      });
+
+      if (this._bunkBedMesh) {
+        this.scene.remove(this._bunkBedMesh);
+      }
+      this._bunkBedMesh = bunkGltf;
+      this.scene.add(bunkGltf);
+    } catch (e) {
+      console.warn("[Prologue] Fallback to procedural bunk bed:", e);
+    }
+
+    // 4. Kältekammer Leichenschublade K-42 (Bunker Kit — procedural, see BunkerKit.createMorgueTray)
+    // Geometry is correct-by-construction (handle + ID plate only on the head end), so we only
+    // need to upgrade the ID plate from its flat placeholder color to the real decal texture.
+    try {
+      const idPlateTexture = await Texture.fromUrl("/assets/kits/flakturm/decals/sign_koje42.png");
+      const idPlate = this._morgueTrayMesh?.getObjectByName("IdPlate");
+      if (idPlate && idPlate.material instanceof StandardMaterial) {
+        idPlate.material.diffuseMap = idPlateTexture;
+        idPlate.material.alphaMap = idPlateTexture;
+        idPlate.material.transparent = true;
+      }
+    } catch (e) {
+      console.warn("[Prologue] Morgue tray ID plate decal failed to load:", e);
+    }
+  }
+
+  /**
+   * Loads the Flakturm Kit PBR texture sets and applies them to the procedural whitebox
+   * architecture built in `_buildBunkerRoom`/`_buildKaeltekammer`. Those methods share one
+   * `StandardMaterial` instance across every mesh using the same surface (e.g. all four
+   * poured-concrete walls + the ceiling), so mutating the material found on any one of them
+   * re-textures every mesh that shares it.
+   */
+  private async _applyKitTextures(): Promise<void> {
+    const base = "/assets/kits/flakturm/textures";
+    interface PbrTextureSet {
+      albedo: Texture;
+      normal: Texture;
+      roughness: Texture;
+      ao: Texture;
+      metalness: Texture | undefined;
+    }
+
+    const loadSet = async (name: string, withMetalness: boolean): Promise<PbrTextureSet> => {
+      const [albedo, normal, roughness, ao, metalness] = await Promise.all([
+        Texture.fromUrl(`${base}/${name}/albedo.png`),
+        Texture.fromUrl(`${base}/${name}/normal.png`),
+        Texture.fromUrl(`${base}/${name}/roughness.png`),
+        Texture.fromUrl(`${base}/${name}/ao.png`),
+        withMetalness
+          ? Texture.fromUrl(`${base}/${name}/metalness.png`)
+          : Promise.resolve(undefined),
+      ]);
+      return { albedo, normal, roughness, ao, metalness };
+    };
+
+    try {
+      const [concreteBoard, brickAged, concreteWeathered, steelCorroded, steelPainted] =
+        await Promise.all([
+          loadSet("concrete_board", false),
+          loadSet("brick_aged", false),
+          loadSet("concrete_weathered", false),
+          loadSet("steel_corroded", true),
+          loadSet("steel_painted", true),
+        ]);
+
+      // Each surface gets its own cloned Texture instances (same decoded image, independent
+      // `repeat`) so a small wall and a large wall using the same kit material can each tile
+      // at a sensible density instead of sharing one fixed UV scale.
+      const withRepeat = (tex: Texture, x: number, y: number): Texture => {
+        // These textures are always loaded via `Texture.fromUrl`, never canvas-backed.
+        const image = tex.image as HTMLImageElement | ImageBitmap;
+        const clone = Texture.fromImage(image);
+        clone.repeat.x = x;
+        clone.repeat.y = y;
+        return clone;
+      };
+
+      const applyPbr = (
+        material: unknown,
+        set: PbrTextureSet,
+        repeatX: number,
+        repeatY: number,
+      ): void => {
+        if (!(material instanceof StandardMaterial)) return;
+        material.diffuseMap = withRepeat(set.albedo, repeatX, repeatY);
+        material.normalMap = withRepeat(set.normal, repeatX, repeatY);
+        material.roughnessMap = withRepeat(set.roughness, repeatX, repeatY);
+        material.aoMap = withRepeat(set.ao, repeatX, repeatY);
+        material.roughness = 1.0;
+        if (set.metalness) {
+          material.metallicMap = withRepeat(set.metalness, repeatX, repeatY);
+          material.metallic = 1.0;
+        }
+      };
+
+      const matOf = (name: string, root?: Object3D | null): unknown =>
+        (root ?? this.scene).getObjectByName(name)?.material;
+
+      // Koje 42: poured-concrete walls/ceiling + floor.
+      applyPbr(matOf("BackWall"), concreteBoard, 5, 3);
+      applyPbr(matOf("Floor"), concreteBoard, 5, 3.5);
+      // Brick infill around the blast-door frame.
+      applyPbr(matOf("LeftWallBack"), brickAged, 1.5, 2.2);
+      applyPbr(matOf("LeftWallFront"), brickAged, 1.5, 0.8);
+      // Blast door + ventilation hatch — shared `rustSteelMat` instance.
+      applyPbr(matOf("DoorLeaf", this._bunkerDoor), steelCorroded, 1, 2);
+      // Painted bed frame.
+      applyPbr(matOf("BedPost_0", this._bunkBedMesh), steelPainted, 1, 1.7);
+
+      // Kältekammer: weathered concrete floor/back wall (shared `frostTileMat` instance).
+      applyPbr(matOf("MorgueFloor", this._morgueGroup), concreteWeathered, 7, 4);
+      // Closed drawer rack — painted steel cabinetry (shared `coldSteelMat` instance).
+      applyPbr(matOf("Drawer_K40", this._morgueGroup), steelPainted, 1, 1);
+      // Pulled-out tray — light and dark steel parts (both internal to BunkerKit, not shared
+      // with anything else), plus the head-end cap gets a corroded look matching the tray's
+      // long service life.
+      applyPbr(matOf("TrayFloor", this._morgueTrayMesh), steelPainted, 0.5, 1);
+      applyPbr(matOf("HeadEndCap", this._morgueTrayMesh), steelCorroded, 0.5, 0.3);
+    } catch (e) {
+      console.warn("[Prologue] Kit PBR texture application failed:", e);
+    }
   }
 
   private _buildBunkerRoom(): void {
@@ -138,11 +456,20 @@ export class PrologueScene extends AbstractShowcase {
       radialSegments: 16,
     }).getGeometryData();
 
-    // Materials (Dark and gritty)
+    // Materials
     const concreteWallMat = new StandardMaterial({
       color: new Color(0.18, 0.2, 0.24),
       roughness: 0.92,
       metallic: 0.1,
+    });
+
+    // Door-surround partition wall — brick infill around the reinforced concrete frame
+    // (matches the real Flakturm reference photos), kept as its own material instance so it
+    // can take the `brick_aged` kit texture independently of the poured-concrete walls.
+    const brickWallMat = new StandardMaterial({
+      color: new Color(0.35, 0.22, 0.16),
+      roughness: 0.88,
+      metallic: 0.05,
     });
 
     const floorMat = new StandardMaterial({
@@ -155,6 +482,14 @@ export class PrologueScene extends AbstractShowcase {
       color: new Color(0.25, 0.15, 0.1),
       roughness: 0.75,
       metallic: 0.6,
+    });
+
+    // Bed frame — painted institutional steel, distinct material instance from the rusted
+    // blast door/vent so each can take a different kit texture (`steel_painted` vs. `steel_corroded`).
+    const paintedSteelMat = new StandardMaterial({
+      color: new Color(0.22, 0.24, 0.22),
+      roughness: 0.6,
+      metallic: 0.4,
     });
 
     const woodMat = new StandardMaterial({
@@ -211,19 +546,19 @@ export class PrologueScene extends AbstractShowcase {
 
     const leftWallBack = new Object3D("LeftWallBack");
     leftWallBack.geometry = cubeGeo;
-    leftWallBack.material = concreteWallMat;
+    leftWallBack.material = brickWallMat;
     leftWallBack.scale.set(0.3, 2.2, 1.5);
     leftWallBack.position.set(-2.5, 1.1, -0.8);
     this.scene.add(leftWallBack);
 
     const leftWallFront = new Object3D("LeftWallFront");
     leftWallFront.geometry = cubeGeo;
-    leftWallFront.material = concreteWallMat;
+    leftWallFront.material = brickWallMat;
     leftWallFront.scale.set(0.3, 2.2, 0.8);
     leftWallFront.position.set(-2.5, 1.1, 1.5);
     this.scene.add(leftWallFront);
 
-    // 🚪 Heavy Blast Door (Rotatable Hinge at x=-2.4, z=0.0)
+    // 🚪 Heavy Blast Door
     const doorHinge = new Object3D("DoorHinge");
     doorHinge.position.set(-2.4, 0, -0.05);
 
@@ -234,7 +569,6 @@ export class PrologueScene extends AbstractShowcase {
     doorMesh.position.set(0, 1.05, 0.575);
     doorHinge.add(doorMesh);
 
-    // Door Rivets
     for (let r = 0; r < 4; r++) {
       const rib = new Object3D(`DoorRib_${r}`);
       rib.geometry = cubeGeo;
@@ -243,11 +577,10 @@ export class PrologueScene extends AbstractShowcase {
       rib.position.set(0, 0.35 + r * 0.5, 0.575);
       doorHinge.add(rib);
     }
-
     this.scene.add(doorHinge);
     this._bunkerDoor = doorHinge;
 
-    // 🛏️ Bunk Bed (Stockbett)
+    // 🛏️ Bunk Bed
     const bedGroup = new Object3D("BunkBed");
     bedGroup.position.set(1.5, 0, -0.6);
 
@@ -260,7 +593,7 @@ export class PrologueScene extends AbstractShowcase {
     postOffsets.forEach(([px, py, pz], idx) => {
       const post = new Object3D(`BedPost_${idx}`);
       post.geometry = cubeGeo;
-      post.material = rustSteelMat;
+      post.material = paintedSteelMat;
       post.scale.set(0.06, 1.7, 0.06);
       post.position.set(px, py, pz);
       bedGroup.add(post);
@@ -282,8 +615,8 @@ export class PrologueScene extends AbstractShowcase {
     topBed.scale.set(1.0, 0.15, 1.25);
     topBed.position.set(0, 1.25, 0);
     bedGroup.add(topBed);
-
     this.scene.add(bedGroup);
+    this._bunkBedMesh = bedGroup;
 
     // ☕ Wooden Shelf & Coffee Grinder
     const shelf = new Object3D("Shelf");
@@ -315,8 +648,8 @@ export class PrologueScene extends AbstractShowcase {
     grinderCrank.scale.set(0.16, 0.02, 0.03);
     grinderCrank.position.set(0.06, 0.2, 0);
     grinder.add(grinderCrank);
-
     this.scene.add(grinder);
+    this._coffeeGrinderMesh = grinder;
 
     // 📟 The AZS Handheld Terminal
     const terminal = new Object3D("HandheldTerminal");
@@ -345,7 +678,6 @@ export class PrologueScene extends AbstractShowcase {
     terminalScreen.position.set(0, 0.08, 0.05);
     terminal.add(terminalScreen);
 
-    // Amber screen light
     const screenGlow = new PointLight({
       name: "ScreenGlow",
       color: new Color(1.0, 0.65, 0.15),
@@ -354,8 +686,300 @@ export class PrologueScene extends AbstractShowcase {
     });
     screenGlow.position.set(0, 0.08, 0.15);
     terminal.add(screenGlow);
-
     this.scene.add(terminal);
+    this._terminalMesh = terminal;
+
+    // 🕳️ Ventilation Grate on Back Wall (leads to Sektor 0 / Kältekammer)
+    const ventGroup = new Object3D("VentilationGrate");
+    ventGroup.position.set(0.8, 0.5, -1.35);
+
+    const ventFrame = new Object3D("VentFrame");
+    ventFrame.geometry = cubeGeo;
+    ventFrame.material = rustSteelMat;
+    ventFrame.scale.set(0.7, 0.7, 0.05);
+    ventGroup.add(ventFrame);
+
+    for (let s = 0; s < 5; s++) {
+      const slat = new Object3D(`VentSlat_${s}`);
+      slat.geometry = cubeGeo;
+      slat.material = rustSteelMat;
+      slat.scale.set(0.58, 0.04, 0.02);
+      slat.position.set(0, -0.2 + s * 0.1, 0.03);
+      ventGroup.add(slat);
+    }
+    this.scene.add(ventGroup);
+    this._ventGrate = ventGroup;
+
+    // Surface-mounted electrical conduit along the back wall (FlakturmKit)
+    const conduitRun = FlakturmKit.createConduitRun([
+      {
+        start: new Vector3D(-2.0, 2.5, -1.4),
+        end: new Vector3D(1.6, 2.5, -1.4),
+        junctionAtStart: true,
+        junctionAtEnd: true,
+      },
+      {
+        start: new Vector3D(1.6, 2.5, -1.4),
+        end: new Vector3D(1.6, 1.3, -1.4),
+        junctionAtEnd: true,
+      },
+    ]);
+    this.scene.add(conduitRun);
+  }
+
+  private _buildKaeltekammer(): void {
+    const cubeGeo = new Cube({ size: 1.0 }).getGeometryData();
+    const cylGeo = new Cylinder({
+      radiusTop: 0.5,
+      radiusBottom: 0.5,
+      height: 1.0,
+      radialSegments: 16,
+    }).getGeometryData();
+
+    const morgueGroup = new Object3D("Kaeltekammer_Sektor0");
+    morgueGroup.position.set(0, 0, -9.0);
+
+    const coldSteelMat = new StandardMaterial({
+      color: new Color(0.12, 0.16, 0.2),
+      roughness: 0.4,
+      metallic: 0.7,
+    });
+
+    const frostTileMat = new StandardMaterial({
+      color: new Color(0.25, 0.32, 0.38),
+      roughness: 0.65,
+      metallic: 0.2,
+    });
+
+    const pipeCopperMat = new StandardMaterial({
+      color: new Color(0.2, 0.4, 0.38),
+      roughness: 0.45,
+      metallic: 0.8,
+    });
+
+    // Floor & Walls
+    const mFloor = new Object3D("MorgueFloor");
+    mFloor.geometry = cubeGeo;
+    mFloor.material = frostTileMat;
+    mFloor.scale.set(7.0, 0.3, 5.0);
+    mFloor.position.set(0, -0.15, 0);
+    morgueGroup.add(mFloor);
+
+    const mBackWall = new Object3D("MorgueBackWall");
+    mBackWall.geometry = cubeGeo;
+    mBackWall.material = frostTileMat;
+    mBackWall.scale.set(7.0, 3.5, 0.3);
+    mBackWall.position.set(0, 1.75, -2.5);
+    morgueGroup.add(mBackWall);
+
+    // Freezing Ammonia Pipes
+    const ammoniaPipe = new Object3D("AmmoniaPipe");
+    ammoniaPipe.geometry = cylGeo;
+    ammoniaPipe.material = pipeCopperMat;
+    ammoniaPipe.scale.set(0.16, 6.8, 0.16);
+    ammoniaPipe.rotation.z = Math.PI / 2;
+    ammoniaPipe.position.set(0, 3.1, -2.3);
+    morgueGroup.add(ammoniaPipe);
+
+    // Morgue Drawer Wall (Fächer K-40 bis K-44)
+    const rackWall = new Object3D("MorgueDrawerRack");
+    rackWall.position.set(-1.8, 0, -2.1);
+
+    for (let row = 0; row < 3; row++) {
+      for (let col = 0; col < 3; col++) {
+        const slotIdx = 40 + row * 3 + col;
+        const drawer = new Object3D(`Drawer_K${slotIdx}`);
+        drawer.geometry = cubeGeo;
+        drawer.material = coldSteelMat;
+        drawer.scale.set(0.85, 0.6, 0.2);
+        drawer.position.set(col * 0.95 - 0.95, 0.5 + row * 0.8, 0);
+
+        // Handle
+        const handle = new Object3D(`Handle_K${slotIdx}`);
+        handle.geometry = cubeGeo;
+        handle.material = coldSteelMat;
+        handle.scale.set(0.3, 0.06, 0.08);
+        handle.position.set(col * 0.95 - 0.95, 0.5 + row * 0.8, 0.12);
+
+        rackWall.add(drawer);
+        rackWall.add(handle);
+      }
+    }
+    morgueGroup.add(rackWall);
+
+    // Pulled-out Drawer K-42 (František) — +Z is the head end, protruding toward the room;
+    // -Z is the foot end, still recessed toward the wall/rackWall behind it.
+    const trayK42 = BunkerKit.createMorgueTray({ name: "DrawerTray_K42" });
+    trayK42.position.set(-1.8, 0.9, -1.3);
+
+    // František's Sheet-covered Body Representation
+    const corpseMesh = new Object3D("CorpseCover");
+    corpseMesh.geometry = cubeGeo;
+    corpseMesh.material = new StandardMaterial({
+      color: new Color(0.4, 0.45, 0.5),
+      roughness: 0.95,
+      metallic: 0.05,
+    });
+    corpseMesh.scale.set(0.65, 0.28, 1.6);
+    corpseMesh.position.set(0, 0.17, 0);
+    trayK42.add(corpseMesh);
+
+    // 🟢 Colorkey Cyanide Injection Decal (Emerald Glow) — mounted on the head-end socket
+    const cyanideGlow = new Object3D("CyanideNeckMark");
+    cyanideGlow.geometry = cylGeo;
+    cyanideGlow.material = new StandardMaterial({
+      color: new Color(0.05, 1.0, 0.35),
+      roughness: 0.1,
+      metallic: 0.9,
+    });
+    cyanideGlow.scale.set(0.12, 0.02, 0.12);
+    cyanideGlow.position.set(-0.15, 0.03, 0);
+    const neckSocket = trayK42.getObjectByName("NeckSpotlightTarget");
+    (neckSocket ?? trayK42).add(cyanideGlow);
+    this._cyanideDecal = cyanideGlow;
+
+    morgueGroup.add(trayK42);
+    this._morgueTrayMesh = trayK42;
+
+    // Cold Blue Morgue Ceiling Lamp — caged industrial fluorescent fixture (FlakturmKit)
+    const coldLamp = FlakturmKit.createFluorescentLamp({
+      name: "MorgueColdLamp",
+      length: 1.8,
+      caged: true,
+      intensity: 3.0,
+      lightDistance: 12.0,
+      color: new Color(0.4, 0.75, 1.0),
+      emissiveColor: new Color(0.55, 0.85, 1.0),
+    });
+    coldLamp.position.set(0, 2.95, 0);
+    morgueGroup.add(coldLamp);
+
+    // 🟢 Colorkey Emerald Spotlight (Focused on Neck Mark)
+    this._cyanideSpotLight = new SpotLight({
+      name: "CyanideColorkeySpot",
+      color: new Color(0.1, 1.0, 0.4),
+      intensity: 0.0, // Activated upon inspection
+      distance: 6.0,
+      angle: Math.PI / 6.0,
+      penumbra: 0.4,
+    });
+    this._cyanideSpotLight.position.set(-1.8, 2.5, -1.3);
+    this._cyanideSpotLight.lookAt(new Vector3D(-1.8, 0.9, -1.3));
+    morgueGroup.add(this._cyanideSpotLight);
+
+    for (let i = 0; i < 25; i++) {
+      const p = new Object3D(`FrostParticle_${i}`);
+      p.geometry = cubeGeo;
+      p.material = new StandardMaterial({
+        color: new Color(0.7, 0.9, 1.0),
+        roughness: 0.1,
+        metallic: 0.1,
+      });
+      p.position.set(
+        (Math.random() - 0.5) * 5.0,
+        0.3 + Math.random() * 2.5,
+        (Math.random() - 0.5) * 4.0,
+      );
+      morgueGroup.add(p);
+      this._frostParticles.push(p);
+    }
+
+    // Collapsed rubble in the far corner — ruined-bunker set dressing (FlakturmKit)
+    const debris = FlakturmKit.createDebrisCluster(7, 0.6);
+    debris.position.set(2.7, 0, -2.0);
+    morgueGroup.add(debris);
+
+    this.scene.add(morgueGroup);
+    this._morgueGroup = morgueGroup;
+  }
+
+  private _buildPlayerCharacter(): void {
+    const cubeGeo = new Cube({ size: 1.0 }).getGeometryData();
+    const cylGeo = new Cylinder({
+      radiusTop: 0.5,
+      radiusBottom: 0.5,
+      height: 1.0,
+      radialSegments: 16,
+    }).getGeometryData();
+
+    // Stylized Graphic Noir Mannequin Avatar
+    const playerGroup = new Object3D("PlayerNovotny");
+    playerGroup.position.set(this._playerPos.x, this._playerPos.y, this._playerPos.z);
+
+    const coatMat = new StandardMaterial({
+      color: new Color(0.15, 0.16, 0.18),
+      roughness: 0.9,
+      metallic: 0.05,
+    });
+    const scarfMat = new StandardMaterial({
+      color: new Color(0.7, 0.5, 0.25),
+      roughness: 0.85,
+    });
+
+    // Body
+    const body = new Object3D("CoatTorso");
+    body.geometry = cubeGeo;
+    body.material = coatMat;
+    body.scale.set(0.45, 0.7, 0.3);
+    body.position.set(0, 0.85, 0);
+    playerGroup.add(body);
+
+    // Head / Hood
+    const head = new Object3D("HoodHead");
+    head.geometry = cubeGeo;
+    head.material = coatMat;
+    head.scale.set(0.32, 0.35, 0.32);
+    head.position.set(0, 1.35, 0);
+    playerGroup.add(head);
+
+    // Scarf
+    const scarf = new Object3D("Scarf");
+    scarf.geometry = cubeGeo;
+    scarf.material = scarfMat;
+    scarf.scale.set(0.36, 0.12, 0.36);
+    scarf.position.set(0, 1.15, 0);
+    playerGroup.add(scarf);
+
+    // Legs
+    const legL = new Object3D("LegL");
+    legL.geometry = cubeGeo;
+    legL.material = coatMat;
+    legL.scale.set(0.16, 0.6, 0.18);
+    legL.position.set(-0.12, 0.3, 0);
+    playerGroup.add(legL);
+
+    const legR = new Object3D("LegR");
+    legR.geometry = cubeGeo;
+    legR.material = coatMat;
+    legR.scale.set(0.16, 0.6, 0.18);
+    legR.position.set(0.12, 0.3, 0);
+    playerGroup.add(legR);
+
+    // 🏮 Lantern in Left Hand
+    const lantern = new Object3D("PlayerLantern");
+    lantern.position.set(-0.32, 0.65, 0.2);
+
+    const lanternCage = new Object3D("LanternCage");
+    lanternCage.geometry = cylGeo;
+    lanternCage.material = new StandardMaterial({
+      color: new Color(0.95, 0.65, 0.2),
+      roughness: 0.2,
+      metallic: 0.8,
+    });
+    lanternCage.scale.set(0.12, 0.2, 0.12);
+    lantern.add(lanternCage);
+
+    this._playerLanternLight = new PointLight({
+      name: "NovotnyLanternLight",
+      color: new Color(1.0, 0.72, 0.35),
+      intensity: 3.5,
+      distance: 6.0,
+    });
+    lantern.add(this._playerLanternLight);
+    playerGroup.add(lantern);
+
+    this.scene.add(playerGroup);
+    this._playerObject = playerGroup;
   }
 
   private _buildDustParticles(): void {
@@ -380,27 +1004,230 @@ export class PrologueScene extends AbstractShowcase {
     }
   }
 
+  private _setupKojeHotspots(): void {
+    if (!this._hotspotManager) return;
+    this._hotspotManager.clearHotspots();
+
+    const spots: HotspotAction[] = [
+      {
+        id: "grinder",
+        name: "Kaffeemühle",
+        position: new Vector3D(-0.5, 0, -1.0),
+        interactionRadius: 1.2,
+        promptText: "Kaffeemühle untersuchen",
+        monologueTitle: "Františeks Kaffeemühle",
+        monologueText: [
+          "Aus massivem Nussbaumholz und Messing. Großvater František hat sie vor 50 Jahren aus der alten Welt gerettet.",
+          "Er hat mir beigebracht, getrocknete Gerste und geröstete Eicheln zu mahlen... 'Ein Wiener ohne seinen Kaffee ist kein Mensch, Novotny.'",
+          "Im doppelten Mahlwerk-Boden: Eine Packung trockene Zündhölzer. Ich stecke sie ein.",
+        ],
+      },
+      {
+        id: "bed",
+        name: "Stockbett",
+        position: new Vector3D(1.5, 0, -0.6),
+        interactionRadius: 1.4,
+        promptText: "Františeks Lager untersuchen",
+        monologueTitle: "Das leere Lager",
+        monologueText: [
+          "Die raue Wolldecke ist noch zerknittert. Gestern Abend saß er hier und summte ein altes Lied über den Wienerwald.",
+          "Er wusste, dass sie ihn holen würden. Er hat seine Stiefel extra nicht ausgezogen.",
+        ],
+      },
+      {
+        id: "terminal",
+        name: "Amts-Terminal 2100",
+        position: new Vector3D(0, 0, 0.8),
+        interactionRadius: 1.3,
+        promptText: "Amts-Terminal 2100 öffnen",
+        monologueTitle: "Amtsrat 4.1 Feldcomputer",
+        monologueText: [
+          "Das gepanzerte Amts-Terminal, das Hawelka mir zugeworfen hat. Der Bildschirm flackert bernsteinfarben.",
+          "Akte GZ 2100-AZS/STERBEFALL-0815 ist versiegelt. Todesursache offiziell: Herz-Kreislauf-Versagen... Angeordnet von Hofrat Brandstätter.",
+        ],
+        onInteract: (): void => {
+          setTimeout(() => this._terminalModal?.open("case"), 200);
+        },
+      },
+      {
+        id: "door",
+        name: "Gepanzerte Panzertür",
+        position: new Vector3D(-2.2, 0, 0.5),
+        interactionRadius: 1.3,
+        promptText: "Schleusentür prüfen",
+        monologueTitle: "Verriegelter Flur",
+        monologueText: [
+          "Schwere Stahlriegel halten die Tür von außen zu. Hawelka hat sie nach dem Alarm zugeworfen.",
+          "Auf dem Gang patrouillieren Pollaks Schleusenwachen. Ein Ausbruch durch die Haupttür wäre Selbstmord.",
+        ],
+      },
+      {
+        id: "vent",
+        name: "Lüftungsgitter",
+        position: new Vector3D(0.8, 0, -1.2),
+        interactionRadius: 1.3,
+        promptText: "Lüftungsgitter öffnen & in Schacht klettern",
+        monologueTitle: "Der alte Wartungsschacht",
+        monologueText: [
+          "Die Befestigungsschrauben sind mit Rostlöser gelöst. František hat diesen Fluchtweg vor Jahren vorbereitet.",
+          "Dahinter pfeift eisige Ammoniakluft herauf: Der Schacht führt direkt in die Kältekammer K-42...",
+        ],
+        onInteract: (): void => {
+          this.transitionToKaeltekammer();
+        },
+      },
+    ];
+
+    spots.forEach((s) => this._hotspotManager?.registerHotspot(s));
+  }
+
+  private _setupKaeltekammerHotspots(): void {
+    if (!this._hotspotManager) return;
+    this._hotspotManager.clearHotspots();
+
+    const spots: HotspotAction[] = [
+      {
+        id: "drawer_k42",
+        name: "Fach K-42 (František)",
+        position: new Vector3D(-1.8, 0, -9.8),
+        interactionRadius: 1.6,
+        promptText: "Fach K-42 untersuchen",
+        monologueTitle: "Kältekammer Fach K-42",
+        monologueText: [
+          "Mit klammen Fingern ziehe ich die schwere Edelstahlwanne aus der Wand... Eisdampf schlägt mir entgegen.",
+          "František. Sein Gesicht ist friedlich, fast blass wie Kalkstein. Doch als ich den Kragen seines Mantels beiseite schiebe...",
+          "🟢 [COLORKEY SMARAGDGRÜN] Am linken Halsansatz: Ein kreisrunder, grün verfärbter Einstichpunkt. Keine Altersschwäche. Hochkonzentrierte Blausäure.",
+          "Ober-Inspektor Pollak hat ihn ermordet! Aber warum?! Františeks Dienstausweis und das Medaillon fehlen... Sie müssen in der Asservatenkammer der Kanzlei liegen!",
+        ],
+        onInteract: (): void => {
+          if (this._cyanideSpotLight) {
+            this._cyanideSpotLight.intensity = 8.0;
+          }
+          const objText = document.getElementById("objectiveText");
+          if (objText) {
+            objText.innerText =
+              "Asservatenkammer infiltrieren & Františeks Medaillon vor der Kompostierung bergen!";
+          }
+        },
+      },
+      {
+        id: "ammonia_pipes",
+        name: "Kühlrohre",
+        position: new Vector3D(0, 0, -10.5),
+        interactionRadius: 1.8,
+        promptText: "Ammoniak-Kühlsystem prüfen",
+        monologueTitle: "Nußdorf-Kühlstrang",
+        monologueText: [
+          "Das laute Zischen der Kühlmittelrohre übertönt meine Schritte.",
+          "Wenn hier ein Rohr bricht, füllt sich der Raum in dreißig Sekunden mit tödlichem Ammoniakgas.",
+        ],
+      },
+      {
+        id: "morgue_exit",
+        name: "Aufgang zur Kanzlei",
+        position: new Vector3D(2.2, 0, -8.5),
+        interactionRadius: 1.6,
+        promptText: "Wartungsleiter zur Asservatenkammer hinaufsteigen",
+        monologueTitle: "Aufgang zur Kanzlei",
+        monologueText: [
+          "Eine rostige Steigleiter führt durch die Decke direkt in den Vorraum der Asservatenkammer.",
+          "Dort werden alle Besitztümer der Toten registriert, bevor die Kompostierung beginnt.",
+        ],
+      },
+    ];
+
+    spots.forEach((s) => this._hotspotManager?.registerHotspot(s));
+  }
+
+  public transitionToKaeltekammer(): void {
+    this._currentArea = "kaeltekammer";
+    this._playerPos.set(0, 0, -8.2);
+    if (this._playerObject) {
+      this._playerObject.position.set(this._playerPos.x, this._playerPos.y, this._playerPos.z);
+    }
+    this._targetCameraPos.set(0, 1.8, -5.2);
+    this._targetCameraLook.set(0, 1.0, -9.0);
+
+    const objText = document.getElementById("objectiveText");
+    if (objText) {
+      objText.innerText = "Sektor 0 / Kältekammer Fach K-42 untersuchen";
+    }
+
+    this._setupKaeltekammerHotspots();
+  }
+
+  public startExplorationMode(): void {
+    this._isExplorationMode = true;
+    this._isPlaying = false;
+    this._isPausedForChoice = false;
+
+    const dialBox = document.getElementById("dialogueContainer");
+    if (dialBox) dialBox.style.display = "none";
+    const choiceBox = document.getElementById("dialogChoice");
+    if (choiceBox) choiceBox.style.display = "none";
+    const timelineBar = document.getElementById("timelineBar");
+    if (timelineBar) timelineBar.style.display = "none";
+
+    if (this._currentArea === "koje_42") {
+      this._targetCameraPos.set(0, 1.6, 3.8);
+      this._targetCameraLook.set(0, 1.1, 0);
+    }
+  }
+
   private _initUiListeners(): void {
     const btnPlay = document.getElementById("btnPlay");
     if (btnPlay) {
-      const newBtn = btnPlay.cloneNode(true);
-      btnPlay.parentNode?.replaceChild(newBtn, btnPlay);
-      newBtn.addEventListener("click", () => this.togglePlayback());
+      btnPlay.addEventListener("click", () => this.togglePlayback());
+    }
+
+    const btnTerminal = document.getElementById("btnTerminal");
+    if (btnTerminal) {
+      btnTerminal.addEventListener("click", () => this._terminalModal?.toggle());
+    }
+
+    const btnMap = document.getElementById("btnMap");
+    if (btnMap) {
+      btnMap.addEventListener("click", () => this._mapModal?.toggle());
+    }
+
+    const btnExplore = document.getElementById("btnExplore");
+    if (btnExplore) {
+      btnExplore.addEventListener("click", () => this.startExplorationMode());
     }
 
     const btnQ1 = document.getElementById("btnQuestion1");
     const btnQ2 = document.getElementById("btnQuestion2");
+    if (btnQ1) btnQ1.addEventListener("click", () => this.selectQuestion(1));
+    if (btnQ2) btnQ2.addEventListener("click", () => this.selectQuestion(2));
 
-    if (btnQ1) {
-      const newBtn = btnQ1.cloneNode(true);
-      btnQ1.parentNode?.replaceChild(newBtn, btnQ1);
-      newBtn.addEventListener("click", () => this.selectQuestion(1));
+    const promptEl = document.getElementById("interactionPrompt");
+    if (promptEl) {
+      promptEl.addEventListener("click", () => this._hotspotManager?.interact());
     }
-    if (btnQ2) {
-      const newBtn = btnQ2.cloneNode(true);
-      btnQ2.parentNode?.replaceChild(newBtn, btnQ2);
-      newBtn.addEventListener("click", () => this.selectQuestion(2));
+
+    const monologueFooter = document.getElementById("monologueFooter");
+    if (monologueFooter) {
+      monologueFooter.addEventListener("click", () => this._hotspotManager?.advanceMonologue());
     }
+  }
+
+  private _initKeyboardListeners(): void {
+    window.addEventListener("keydown", (e) => {
+      this._keysDown.add(e.key.toLowerCase());
+      if (e.key === "m" || e.key === "M") {
+        this._mapModal?.toggle();
+      } else if (
+        e.key === " " &&
+        !this._isExplorationMode &&
+        !this._hotspotManager?.isMonologueOpen
+      ) {
+        this.startExplorationMode();
+      }
+    });
+
+    window.addEventListener("keyup", (e) => {
+      this._keysDown.delete(e.key.toLowerCase());
+    });
   }
 
   public togglePlayback(): void {
@@ -438,17 +1265,28 @@ export class PrologueScene extends AbstractShowcase {
   protected override update(deltaTime: number): void {
     super.update(deltaTime);
 
-    if (this._isPlaying && !this._isPausedForChoice) {
+    // 1. Cinematic Timeline
+    if (this._isPlaying && !this._isPausedForChoice && !this._isExplorationMode) {
       this._currentTime += deltaTime;
       this._updateTimeline(this._currentTime);
     }
 
-    // 1. Smooth Camera Kinematics
+    // 2. Interactive Exploration Movement (WASD / Arrows)
+    if (this._isExplorationMode && !this._hotspotManager?.isMonologueOpen) {
+      this._handlePlayerMovement(deltaTime);
+    }
+
+    // 3. Hotspot Proximity Detection
+    if (this._hotspotManager) {
+      this._hotspotManager.update(this._playerPos);
+    }
+
+    // 4. Smooth Camera Lerp
     this.camera.position.lerp(this._targetCameraPos, Math.min(1.0, deltaTime * 2.5));
     this.camera.target.lerp(this._targetCameraLook, Math.min(1.0, deltaTime * 2.5));
     this.camera.updateViewMatrix();
 
-    // 2. Door Animation
+    // 5. Door Animation
     this._doorOpenAngle = MathUtils.lerp(
       this._doorOpenAngle,
       this._targetDoorAngle,
@@ -458,7 +1296,7 @@ export class PrologueScene extends AbstractShowcase {
       this._bunkerDoor.rotation.y = this._doorOpenAngle;
     }
 
-    // 3. Floating Dust Particles
+    // 6. Dust & Frost Particles
     for (let i = 0; i < this._dustParticles.length; i++) {
       const p = this._dustParticles[i];
       if (p) {
@@ -466,15 +1304,35 @@ export class PrologueScene extends AbstractShowcase {
         p.position.x += Math.cos(this._currentTime * 0.8 + i) * 0.001;
       }
     }
+    for (let i = 0; i < this._frostParticles.length; i++) {
+      const fp = this._frostParticles[i];
+      if (fp) {
+        fp.position.y += Math.sin(this._currentTime * 2.0 + i) * 0.0015;
+        fp.position.x += Math.cos(this._currentTime * 1.2 + i) * 0.001;
+      }
+    }
 
-    // 4. Subtle CRT Screen Flicker
+    // 7. Dynamic Lantern & Colorkey Effects
+    if (this._playerLanternLight) {
+      const bob = this._isMoving ? Math.sin(this._currentTime * 12.0) * 0.4 : 0;
+      this._playerLanternLight.intensity = 3.5 + bob + (Math.random() - 0.5) * 0.15;
+    }
+    if (this._cyanideDecal && this._cyanideSpotLight && this._cyanideSpotLight.intensity > 0) {
+      const pulse = 1.0 + Math.sin(this._currentTime * 6.0) * 0.15;
+      this._cyanideDecal.scale.set(0.12 * pulse, 0.02, 0.12 * pulse);
+    }
+    if (this._ventGrate) {
+      this._ventGrate.position.y = 0.5 + Math.sin(this._currentTime * 20.0) * 0.001;
+    }
+
+    // 8. Subtle Screen Flicker
     if (this._screenMaterial) {
       const flicker =
         0.95 + Math.sin(this._currentTime * 45.0) * 0.05 + (Math.random() - 0.5) * 0.04;
       this._screenMaterial.color.set(0.9 * flicker, 0.55 * flicker, 0.1 * flicker);
     }
 
-    // 5. Update UI Progress
+    // 9. Timeline Progress Bar
     const progressEl = document.getElementById("timelineProgress");
     if (progressEl) {
       const pct = Math.min(100, (this._currentTime / 60.0) * 100);
@@ -491,11 +1349,52 @@ export class PrologueScene extends AbstractShowcase {
     this.scene.update(deltaTime);
   }
 
+  private _handlePlayerMovement(deltaTime: number): void {
+    let moveX = 0;
+    let moveZ = 0;
+
+    if (this._keysDown.has("a") || this._keysDown.has("arrowleft")) moveX -= 1;
+    if (this._keysDown.has("d") || this._keysDown.has("arrowright")) moveX += 1;
+    if (this._keysDown.has("w") || this._keysDown.has("arrowup")) moveZ -= 1;
+    if (this._keysDown.has("s") || this._keysDown.has("arrowdown")) moveZ += 1;
+
+    this._isMoving = moveX !== 0 || moveZ !== 0;
+
+    if (this._isMoving) {
+      const speed = 2.4 * deltaTime;
+      const len = Math.sqrt(moveX * moveX + moveZ * moveZ);
+      const nx = (moveX / len) * speed;
+      const nz = (moveZ / len) * speed;
+
+      this._playerPos.x += nx;
+      this._playerPos.z += nz;
+
+      // Area Boundaries
+      if (this._currentArea === "koje_42") {
+        this._playerPos.x = MathUtils.clamp(this._playerPos.x, -2.1, 2.1);
+        this._playerPos.z = MathUtils.clamp(this._playerPos.z, -1.1, 1.2);
+      } else if (this._currentArea === "kaeltekammer") {
+        this._playerPos.x = MathUtils.clamp(this._playerPos.x, -2.8, 2.8);
+        this._playerPos.z = MathUtils.clamp(this._playerPos.z, -10.5, -7.5);
+      }
+
+      this._playerFacingAngle = Math.atan2(moveX, moveZ);
+    }
+
+    if (this._playerObject) {
+      this._playerObject.position.set(this._playerPos.x, this._playerPos.y, this._playerPos.z);
+      this._playerObject.rotation.y = MathUtils.lerp(
+        this._playerObject.rotation.y,
+        this._playerFacingAngle,
+        Math.min(1.0, deltaTime * 12.0),
+      );
+    }
+  }
+
   private _updateTimeline(time: number): void {
     const speaker = document.getElementById("subSpeaker");
     const sub = document.getElementById("subText");
 
-    // Timeline Events
     if (time >= 0 && time < 4.0 && this._currentPhase === 0) {
       this._currentPhase = 1;
       if (speaker) speaker.innerText = "Geräuschkulisse";
@@ -528,7 +1427,7 @@ export class PrologueScene extends AbstractShowcase {
       if (sub) sub.innerText = "*Schweres Stiefeldröhnen der AZS-Wachen nähert sich im Flur!*";
     } else if (time >= 38.0 && time < 44.0 && this._currentPhase === 5) {
       this._currentPhase = 6;
-      this._targetDoorAngle = 0; // Door slams shut!
+      this._targetDoorAngle = 0;
       if (speaker) speaker.innerText = "Herr Hawelka";
       if (sub)
         sub.innerText =
@@ -543,12 +1442,15 @@ export class PrologueScene extends AbstractShowcase {
       if (sub)
         sub.innerText =
           "„GZ 2100-AZS/STERBEFALL-0815 // BÜRGER FRANTIŠEK NOVOTNY: GELÖSCHT // FACH K-42 // KOMPOSTIERUNG IN 48:00.“";
-    } else if (time >= 52.0 && this._currentPhase === 7) {
+    } else if (time >= 52.0 && time < 60.0 && this._currentPhase === 7) {
       this._currentPhase = 8;
       if (speaker) speaker.innerText = "Amts-Logbuch (Auto-Journal)";
       if (sub)
         sub.innerText =
           "[Eintrag archiviert: Sektor 0 / Kältekammer Fach K-42] — Der Entschluss steht fest: Hinabsteigen.";
+    } else if (time >= 60.0 && this._currentPhase === 8) {
+      this._currentPhase = 9;
+      this.startExplorationMode();
     }
   }
 }

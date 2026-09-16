@@ -1,21 +1,20 @@
-# Story-Grundgerüst: Postapokalyptisches Wien-Projekt („And Now?“)
+# Story-Grundgerüst: The Whisper — A Viennese Requiem (Wien 2100)
 
 ---
 
 ## 🌟 0. Die absolute Grundfeste: Das Stray-Prinzip & Die Story-First-Doktrin
 
-> **„Die Story ist alles. Das Technische kommt danach.“**
+> **„Drei Generationen hat es gebraucht, Brandstätter das Handwerk zu legen. Widerstand für das Gute — selbst wenn es das Leben kostet. Aber das ist okay, der Tod fühlt sich in Wien zu Hause.“**
 >
-> *Stray* hat bewiesen, wie ein zutiefst atmosphärisches, emotionales und visuell stimmiges Spiel die Herzen von Millionen Menschen erobern kann — ohne 500-Mann-Armeen, ohne 8K-Texturen-Schlachten und ohne Grafikkarten-Wettrüsten.
+> *Stray* und *The Last of Us* haben bewiesen, wie ein zutiefst atmosphärisches, emotionales und visuell stimmiges Spiel die Herzen von Millionen Menschen erobern kann — ohne 500-Mann-Armeen, ohne 8K-Texturen-Schlachten und ohne Grafikkarten-Wettrüsten.
 > 
-> Genau diese emotionale Kraft soll **Novotnys Odyssee** entfalten.
+> Genau diese literarische, melancholische Kraft entfaltet **„The Whisper — A Viennese Requiem“**:
 > 
-> Weder wir noch die Spieler brauchen hunderte unbezahlbare 8K-Texturen oder seelenlosen Fotorealismus. Was dieses Spiel unvergesslich macht, sind:
-> 1. **Die emotionale Wucht der Reise:** Die Asche des Großvaters in einer alten Kaffeedose durch das zerfallene Wien zu tragen, um ihm bei den Pompfinebrern am Zentralfriedhof „a schene Leich“ zu schenken.
-> 2. **Der 2-Phasen-Höhepunkt (*Stray* trifft *The Last of Us*):**
->    - **Das vorletzte Ziel (Emotionale Katharsis):** Das würdevolle Begräbnis am Zentralfriedhof. Novotny erfüllt sein Versprechen und lässt die Trauer im Weihrauchnebel los.
+> 1. **Die emotionale Wucht der drei Generationen:** František (Beweise bewahrt) ➔ Fritz (im Schacht geopfert) ➔ Novotny (die Asche zur Ruhe gebettet und am Tribunal abgerechnet).
+> 2. **Der 2-Phasen-Höhepunkt:**
+>    - **Das vorletzte Ziel (Emotionale Katharsis):** Das würdevolle Begräbnis am Zentralfriedhof („A schene Leich“). Novotny erfüllt das Versprechen und lässt die Trauer im Weihrauchnebel los.
 >    - **Das letzte Ziel (Die Abrechnung):** Ohne die hemmende Angst um die Urne im Rucksack hat Novotny plötzlich *nichts mehr zu verlieren*. Die Reise gipfelt in der harten, persönlichen Abrechnung mit Hofrat Brandstätter und dem mörderischen AZS-System in der Rossauer Kaserne.
-> 3. **Lichtstimmung, Schatten und Melancholie:** Malerisches Chiaroscuro, warmer Funkenflug, dichter Nebel und intime Guckkasten-Momente.
+> 3. **Lichtstimmung, Schatten und Melancholie:** Malerisches Chiaroscuro, dichter Nebel auf den 71er-Gleisen und intime 2.5D-Guckkasten-Momente.
 > 4. **Der unverwechselbare Wiener Schmäh & Ton:** Morbider Galgenhumor, Kaffeehaus-Sehnsucht und kafkaeske Bunker-Bürokratie als Kontrast zur rauen Endzeit.
 > 5. **Eiserne Prioritätensetzung:** Bevor neue technische Systeme gebaut werden, werden alle narrativen Knotenpunkte, Begegnungen, moralischen Dilemmata und emotionalen Höhepunkte von Novotnys Odyssee unerschütterlich geklärt.
 
@@ -33,6 +32,12 @@
     *   Einbettung der Fiktion in reale Schauplätze der Stadt: Die Flaktürme (z.B. Arenbergpark) als Bunkerfestungen.
     *   Der Zentralfriedhof als spirituelles und physisches Zentrum des Todes und des Respekts.
     *   Die **UNO-City (IAEA)** als stiller, jenseits der Donau liegender Horizont – nicht das Ziel der Reise, sondern Heimstatt großer Vorkriegs-Technologie und des ungelösten Rätsels, wer einst den Knopf gedrückt hat.
+
+*   **Die Lebensader (Die 1. Wiener Hochquellenwasserleitung)**
+    *   Wien besitzt einen Schatz, eine Lebensader, die die meisten Städte dieser Welt nicht haben: Was **1873 zur Wiener Weltausstellung** begann, entscheidet bis in die Gegenwart, dass die Stadt noch immer Leben hervorbringt. Die 1. Wiener Hochquellenwasserleitung bringt **frisches Wasser aus über 100 km entfernten Bergen** (Rax, Schneeberg) – trotz Fallout und Strahlung.
+    *   Dieses Wasser ist **mehr wert als alles Gold der Erde**: Es ist die Grundlage, um Nahrung anzubauen und Tiere zu tränken – und es gibt den Menschen etwas zu trinken, sich zu waschen und, unglaublich wichtig, **Hygiene**. Diese stillen Selbstverständlichkeiten halten Krankheit und Verzweiflung fern und sind ein leiser Ausdruck von Würde (ein unmittelbares Gegenbild zur jahrzehntelangen Bunkergrippe aus verunreinigter Umluft). Wer die Leitung kontrolliert, kontrolliert das Überleben der ganzen Stadt – ein stilles Machtzentrum, das alle Fraktionen umschmeicheln und heimlich umkämpfen.
+    *   Das saubere Wasser ermöglicht es, **saubere Fische in der Stadt zu züchten** – ein Luxus, den sich nur wenige leisten können. Alle anderen müssen hoffen, beim Fischen keinen **verstrahlten Teufel aus der Donau** zu fangen.
+    *   Die Quelle in den Bergen ist der narrative Keim des DLC *„Der Weiße Quell"* – die Reise zum reinsten, letzten unverstrahlten Brunnen der alten Welt.
 
 *   **Die Zeitleiste (2050 ➔ 2100) & Retro-Futurismus**
     *   *Der Tag des Schlags (~2050)*: Eine Welt mit fortgeschrittener Technologie – autonome KI-Protokolle, Robotik, Kybernetik und experimentelle Energieforschung.
@@ -421,16 +426,18 @@
         *   *Umweltgefahr*: Schusswechsel mit Projektilen bergen die ständige Gefahr verheerender Kettenexplosionen.
 
 ### 20. Das Haus des Meeres (Flakturm Esterházypark / Der vertikale Ozean)
-*   **Rolle**: Schauriges Tropen- und Tiefsee-Mausoleum im Betonmonolithen; Refugium für seltene Algen, Gifte und unheimliche Mutationen.
+*   **Rolle**: Tropen- und Tiefsee-Mausoleum im Betonmonolithen – und zugleich eine stille Lebensader für saubere Nahrung.
+*   **Wirtschaftliche Rolle (Die Lebensader des sauberen Wassers)**: Ein Teil des unverstrahlten Wassers speist die intakten oberen Becken. Hier betreibt die Stadt ihre **saubere Fischzucht und den Algenanbau zu Nahrungszwecken** – ein Luxus, den sich nur wenige leisten können; ein stiller Gegenpol zu den verstrahlten Teufeln aus der Donau.
 *   **Architektur & Geschichte**:
     *   Der zweite große Wiener Flakturm (Leitturm im Esterházypark, 6. Bezirk), vor dem Krieg in einen 11-stöckigen Zoo und Schauaquarium umgewandelt.
-*   **Was nach 50 Jahren überdauerte (Biologische Isolation)**:
-    *   *Geborstene Riesenbecken & Stalaktiten*: Viele der gewaltigen 300.000-Liter-Haibecken sind bei Erschütterungen geborsten – das Erdgeschoss ist ein brackiger, von Kalk-Stalaktiten überwucherter Sumpf voller Glasscherben und Algen.
-    *   *Die Schlamm- & Kiemen-Mutationen*: In isolierten, abgedichteten Tiefenbecken und den verwinkelten Tropenhäusern haben sich überlebende Reptilien, Panzerechsen, Giftfrösche und blinde Höhlenfische unter dem Einfluss von Notstrom-Lecks und Biosphären-Düngern zu bizarren, amphibischen Höhlenjägern weiterentwickelt.
+*   **Die Zweiteilung (Oben & Unten)**:
+    *   *Oben (das lebende Haus – intakte Ober- & Mittelstockwerke)*: Lichtdurchflutete Wasserbecken und feuchte Gewächshäuser, in denen die **saubere Fischzucht und der Algenanbau** betrieben werden – gehütet von einer kleinen, wehrhaften Kaste von **Beckenwärtern**.
+    *   *Unten (der tote Sitz – Erdgeschoss & Fuge)*: Geborstene 300.000-Liter-Haibecken, ein brackiger, von Kalk-Stalaktiten überwucherter Sumpf voller Glasscherben und wildem Algenwuchs. Die gefährliche tote Zone, durch die man sich kämpft, um nach oben zu gelangen.
+    *   *Der Kern (entschlackte, seltene Fauna)*: Nur **eine Handvoll** skurriler, scheuer Bewohner in den tiefsten abgedichteten Becken und verrankten Tropenhäusern – amphibische Höhlenjäger aus überlebenden Reptilien und blinden Höhlenfischen. Kein 11-stöckiges Monsterstockwerk, nur seltene Begegnungen im Kern.
     *   *Die Dachplattform & Das Hängebrücken-Nest*: Auf dem Dach (Café-Terrasse) nisten mutierte Riesen-Fledermäuse und Geier-Schwärme, die Jagd auf Wanderer auf der Mariahilfer Straße machen.
 *   **Gameplay & Loot**:
-    *   Hochgradig gefährlicher vertikaler Dungeon (11 Stockwerke feuchter Treppenschächte, glitschige Stege und Notleitern).
-    *   *Belohnungen*: Seltene medizinische Algenextrakte (für die Giftmischer), UV-Leuchtmittel, Biosphären-Filtersysteme und der spektakuläre Rundumblick über ganz Wien von den alten Flak-Geschützständen.
+    *   Erkletschende Durchquerung der toten unteren Sumpfzone (feuchte Treppenschächte, glitschige Stege, Notleitern), um zur schutzbedürftigen, wertvollen Fisch- und Algenzucht oben zu gelangen.
+    *   *Belohnungen*: Saubere Zuchtfische und seltene medizinische Algenextrakte (für die Giftmischer), UV-Leuchtmittel, Biosphären-Filtersysteme und der spektakuläre Rundumblick über ganz Wien von den alten Flak-Geschützständen.
 
 ### 21. Die Rossauer Kaserne (Das „Super-Amt“ des AZS & Finale)
 *   **Rolle**: Das uneinnehmbare Backstein-Hauptquartier des AZS am Donaukanal (9. Bezirk); persönlicher Sitz von **Hofrat Brandstätter** und Ort des Akt-IV-Finales.

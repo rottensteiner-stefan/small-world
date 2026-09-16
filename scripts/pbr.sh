@@ -51,8 +51,8 @@ process_file() {
     # Entferne _diffuse falls vorhanden
     NAME="${NAME%_diffuse}"
 
-    # Bestimme das Ausgabeformat (Standard: png)
-    EXT="${OUT_FORMAT:-png}"
+    # Bestimme das Ausgabeformat (Standard: webp, ausser der User gibt was anderes an)
+    EXT="${OUT_FORMAT:-webp}"
     EXT="${EXT#.}" # Entferne evtl. führenden Punkt
     EXT=$(echo "$EXT" | tr '[:upper:]' '[:lower:]') # Immer klein
 
@@ -69,6 +69,7 @@ process_file() {
         # Vernünftige Defaults, falls keine --quality übergeben wurde
         case "$EXT" in
             png) IM_QUALITY_OPTS="-quality 90" ;;
+            webp) IM_QUALITY_OPTS="-define webp:lossless=true" ;; # Lossless (Normal-/Height-Maps verlustfrei); --quality override bleibt lossy
             tiff|tif) IM_QUALITY_OPTS="-compress LZW" ;;
         esac
     fi
@@ -126,12 +127,19 @@ process_file() {
     local NORM_FILE="${OUT_BASE}_normal.$EXT"
     if [ "$FORCE_OVERWRITE" = true ] || ! has_existing "$OUT_BASE" "$EXT" "_normal"; then
         echo "$LOG_PREFIX -> Normal"
-        $MAGICK_EXE "$HEIGHT_FILE" \
-            -define convolve:scale="$NORM_STRENGTH" \
-            -bias 50% -convolve '0,-1,0,-1,0,1,0,1,0' \
-            -solarize 50% -level 50%,0% \
-            $IM_QUALITY_OPTS \
-            "$NORM_FILE"
+        # Tangent-Space-RGB-Normal-Map: Sobel X -> R, Sobel Y -> G, "up" -> B (flach = 100% Blau).
+        # -bias 50% zentriert den Gradienten auf Mittelgrau; NORM_STRENGTH (convolve:scale) stellt die Stärke.
+        # Die alte -solarize/-level-Kette kollabierte auf fast-schwarz und erzeugte nur einen Kanal - entfernt.
+        # Keine manuelle Normalisierung noetig: der PBR-Shader renormalisiert die abgetastete Normale zur Laufzeit.
+        local DX_TMP="${OUT_DIR}/${NAME}_dx.tmp"
+        local DY_TMP="${OUT_DIR}/${NAME}_dy.tmp"
+        $MAGICK_EXE "$HEIGHT_FILE" -define convolve:scale="$NORM_STRENGTH" -bias 50% \
+            -convolve '-1,0,1,-2,0,2,-1,0,1' "$DX_TMP"
+        $MAGICK_EXE "$HEIGHT_FILE" -define convolve:scale="$NORM_STRENGTH" -bias 50% \
+            -convolve '-1,-2,-1,0,0,0,1,2,1' "$DY_TMP"
+        $MAGICK_EXE "$DX_TMP" "$DY_TMP" \( "$DX_TMP" -evaluate set 100% \) \
+            -combine $IM_QUALITY_OPTS "$NORM_FILE"
+        rm -f "$DX_TMP" "$DY_TMP"
     else
         echo "$LOG_PREFIX -> Überspringe Normal (existiert bereits)"
     fi
@@ -157,7 +165,10 @@ process_file() {
         fi
         
         if [ -n "$ACTUAL_SPEC" ]; then
-            $MAGICK_EXE "$ACTUAL_SPEC" -negate -gamma "$ROUGH_GAMMA" $IM_QUALITY_OPTS "$ROUGH_FILE"
+            # Engine-semantik (generateRoughnessMap): rough = (1 - spec)^(1/gamma)
+            local ROUGH_EXP
+            ROUGH_EXP=$(awk -v g="$ROUGH_GAMMA" 'BEGIN{printf "%.4f", 1.0/g}')
+            $MAGICK_EXE "$ACTUAL_SPEC" -negate -gamma "$ROUGH_EXP" $IM_QUALITY_OPTS "$ROUGH_FILE"
         else
             echo "$LOG_PREFIX Warnung: Konnte Specular-Map für Roughness nicht finden!"
         fi
@@ -169,9 +180,19 @@ process_file() {
     local AO_FILE="${OUT_BASE}_ambient.$EXT"
     if [ "$FORCE_OVERWRITE" = true ] || ! has_existing "$OUT_BASE" "$EXT" "_ambient" "_ao"; then
         echo "$LOG_PREFIX -> Ambient Occlusion"
-        $MAGICK_EXE "$HEIGHT_FILE" -negate -convolve '0,-1,0,-1,4,-1,0,-1,0' -threshold 10% -blur "$AO_FINE_BLUR" "${OUT_BASE}_ao_f.tmp"
-        $MAGICK_EXE "$HEIGHT_FILE" -negate -blur "$AO_SOFT_BLUR" -level $AO_LEVEL "${OUT_BASE}_ao_s.tmp"
-        $MAGICK_EXE "${OUT_BASE}_ao_s.tmp" "${OUT_BASE}_ao_f.tmp" -compose multiply -composite $IM_QUALITY_OPTS "$AO_FILE"
+        # AO = weicher Basis-Schatten (geblurte Hoehe) mit AO_LEVEL-Basisshift, abgedunkelt durch
+        # feine Vertiefungs-Detektion (Tal-Signal aus der Hoehe, skaliert mit AO_FINE).
+        # Kein -negate/-threshold mehr (das kollabierte auf fast-schwarz); entspricht generateAOMap()
+        # in TextureFilters.ts. Niedriges AO_LEVEL = dunkler/staerker, hohes = heller/flacher.
+        local AO_BASE="${OUT_DIR}/${NAME}_ao_base.tmp"
+        local AO_VALLEY="${OUT_DIR}/${NAME}_ao_valley.tmp"
+        $MAGICK_EXE "$HEIGHT_FILE" -blur "$AO_SOFT_BLUR" -evaluate add "$AO_LEVEL" "$AO_BASE"
+        $MAGICK_EXE "$HEIGHT_FILE" \
+            -convolve '0,0.25,0,0.25,-1,0.25,0,0.25,0' -evaluate multiply "$AO_FINE" \
+            -negate "$AO_VALLEY"
+        $MAGICK_EXE "$AO_BASE" "$AO_VALLEY" -compose multiply -composite \
+            -clamp $IM_QUALITY_OPTS "$AO_FILE"
+        rm -f "$AO_BASE" "$AO_VALLEY"
     else
         echo "$LOG_PREFIX -> Überspringe Ambient Occlusion (existiert bereits)"
     fi

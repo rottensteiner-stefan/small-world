@@ -1,0 +1,24 @@
+{
+  "$schema": "../../../../../schemas/prop-meta.schema.json",
+  "id": "flakturm/bunker_vent_hatch",
+  "name": "Flakturm Ventilation & Escape Mesh Hatch",
+  "category": "doors",
+  "kit": "flakturm",
+  "version": "1.0.0",
+  "description": "Corridor wall-mounted square steel hatch with woven wire mesh security grid and side latch, leading into utility and ventilation crawlways.",
+  "triangles": 9800,
+  "materials": 1,
+  "textures": [
+    "diffuse",
+    "normal",
+    "roughness_metallic"
+  ],
+  "dimensions": {
+    "width": 0.85,
+    "height": 0.95,
+    "depth": 0.2
+  },
+  "recommendedScale": 1.0,
+  "author": "Small World Studio",
+  "license": "CC0-1.0"
+}

@@ -1,4 +1,5 @@
 {
+  "$schema": "../../../schemas/kit.schema.json",
   "id": "industrial",
   "name": "Underground & Industrial Kit",
   "version": "1.0.0",

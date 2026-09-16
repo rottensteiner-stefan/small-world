@@ -1,0 +1,24 @@
+{
+  "$schema": "../../../../../schemas/prop-meta.schema.json",
+  "id": "flakturm/bunker_blast_door",
+  "name": "Flakturm Heavy Double Blast Door",
+  "category": "doors",
+  "kit": "flakturm",
+  "version": "1.0.0",
+  "description": "Reinforced double-leaf steel armored bunker blast door with observation slits, heavy locking crossbar, and industrial hinges based on Arenbergpark Flakturm.",
+  "triangles": 12800,
+  "materials": 1,
+  "textures": [
+    "diffuse",
+    "normal",
+    "roughness_metallic"
+  ],
+  "dimensions": {
+    "width": 1.8,
+    "height": 2.2,
+    "depth": 0.25
+  },
+  "recommendedScale": 1.0,
+  "author": "Small World Studio",
+  "license": "CC0-1.0"
+}

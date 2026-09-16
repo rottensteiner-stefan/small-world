@@ -1,0 +1,34 @@
+{
+  "$schema": "../../../../schemas/prop-meta.schema.json",
+  "id": "bunker/coffee_grinder",
+  "name": "František's Heirloom Coffee Grinder",
+  "category": "props",
+  "kit": "bunker",
+  "version": "1.0.0",
+  "description": "Antique Viennese walnut wood manual coffee grinder with polished brass dome hopper and mechanical crank. Features a secret pull-out drawer.",
+  "triangles": 9480,
+  "materials": 1,
+  "textures": [
+    "diffuse",
+    "normal",
+    "roughness_metallic"
+  ],
+  "dimensions": {
+    "width": 0.22,
+    "height": 0.32,
+    "depth": 0.22
+  },
+  "recommendedScale": 0.35,
+  "sockets": [
+    {
+      "name": "SecretDrawer",
+      "position": [
+        0,
+        0.05,
+        0.08
+      ]
+    }
+  ],
+  "author": "Small World Studio",
+  "license": "CC0-1.0"
+}
