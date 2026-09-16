@@ -274,7 +274,7 @@
     *   *Auswirkungen auf die Gesundheit*: Strahlung senkt nicht nur die maximalen Lebenspunkte (HP-Cap), sondern verursacht Halluzinationen, Zittern beim Zielen und verlangsamte Ausdauerregeneration.
     *   *Behandlung & Gegenmittel*: *Jod-Präparate*, Bleiwesten, spezielle *Schutzkaffee-Konzentrate* der Alchimisten und AZS-Dekontaminations-Duschen.
 *   **Das Dialog-System & Die Hard-Boiled Monolog-Doktrin (Kinetischer Graphic Noir statt Psycho-Simulation)**:
-    *   *Die bewusste gestalterische Abgrenzung*: Wo literarische Meisterwerke wie *Disco Elysium* auf 24 psycho-analytische Stimmen, Textberge und komplexe Skill-Kabinette setzen, schlägt *„And Now?“* den Weg des **kinetischen, ungeschminkten Graphic Noir** ein:
+    *   *Die bewusste gestalterische Abgrenzung*: Wo literarische Meisterwerke wie *Disco Elysium* auf 24 psycho-analytische Stimmen, Textberge und komplexe Skill-Kabinette setzen, schlägt *„The Whisper“* den Weg des **kinetischen, ungeschminkten Graphic Noir** ein:
         *   **Eine einzige, lakonische Off-Stimme („Sin City Caption Box“)**: Novotny denkt nicht in 24 facettierten Persönlichkeitsdebatten, sondern in trockenen, messerscharfen 1- bis 2-Zeilern (z.B. *„Hawelka schwitzt. Entweder lügt er, oder die Schleusenwache steht schon im Gang.“*).
         *   **Wiener Bauchgefühl & Schmäh statt Würfel-Checks**: Dialoge leben von Timing, Deeskalation, Verhandlung und trockenem Galgenhumor.
         *   **Flüssiges Tempo**: Keine statischen Lesepausen – die Atmosphäre entsteht im Chiaroscuro-Lichtspiel, in der Mimik, im Sounddesign und in den pointierten Gedanken.
@@ -580,7 +580,7 @@
 
 ### A. Das „Wide-Linear“ Hub-and-Spoke-Prinzip (Kuratierte Führung mit Mikro-Erkundung)
 
-Um die perfekte Balance zwischen emotionaler Regieführung (*The Last of Us / Stray*) und spielerischer Entdeckerfreude zu schaffen, folgt *And Now?* dem bewährten **Wide-Linear-Prinzip** (*Dishonored / Deus Ex / Metro Exodus*):
+Um die perfekte Balance zwischen emotionaler Regieführung (*The Last of Us / Stray*) und spielerischer Entdeckerfreude zu schaffen, folgt *The Whisper* dem bewährten **Wide-Linear-Prinzip** (*Dishonored / Deus Ex / Metro Exodus*):
 
 ```mermaid
 flowchart TD

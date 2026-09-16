@@ -127,19 +127,25 @@ process_file() {
     local NORM_FILE="${OUT_BASE}_normal.$EXT"
     if [ "$FORCE_OVERWRITE" = true ] || ! has_existing "$OUT_BASE" "$EXT" "_normal"; then
         echo "$LOG_PREFIX -> Normal"
-        # Tangent-Space-RGB-Normal-Map: Sobel X -> R, Sobel Y -> G, "up" -> B (flach = 100% Blau).
-        # -bias 50% zentriert den Gradienten auf Mittelgrau; NORM_STRENGTH (convolve:scale) stellt die Stärke.
-        # Die alte -solarize/-level-Kette kollabierte auf fast-schwarz und erzeugte nur einen Kanal - entfernt.
-        # Keine manuelle Normalisierung noetig: der PBR-Shader renormalisiert die abgetastete Normale zur Laufzeit.
-        local DX_TMP="${OUT_DIR}/${NAME}_dx.tmp"
-        local DY_TMP="${OUT_DIR}/${NAME}_dy.tmp"
+        # Normalisierte Tangent-Space-Normal-Map (OpenGL-Konvention, unit length, portabel):
+        # Sobel X/Y -> R/G, Z=up -> B, danach exakte per-Pixel-Normalisierung via -fx.
+        # Kein Verlass auf Shader-Renormalisierung. Vorzeichen wie generateNormalMap (invertR=false):
+        # nx=(0.5-a), ny=(0.5-b), nz=1, v=(nx,ny,nz)/|(nx,ny,nz)| -> Kanal 0.5+0.5*v.
+        local A_TMP="${OUT_DIR}/${NAME}_ngx.tmp"
+        local B_TMP="${OUT_DIR}/${NAME}_ngy.tmp"
+        local RN_TMP="${OUT_DIR}/${NAME}_ngr.tmp"
+        local GN_TMP="${OUT_DIR}/${NAME}_ngg.tmp"
+        local BN_TMP="${OUT_DIR}/${NAME}_ngb.tmp"
+        local FX_LEN="sqrt((0.5-u[0])*(0.5-u[0])+(0.5-u[1])*(0.5-u[1])+1)"
         $MAGICK_EXE "$HEIGHT_FILE" -define convolve:scale="$NORM_STRENGTH" -bias 50% \
-            -convolve '-1,0,1,-2,0,2,-1,0,1' "$DX_TMP"
+            -convolve '-1,0,1,-2,0,2,-1,0,1' "$A_TMP"
         $MAGICK_EXE "$HEIGHT_FILE" -define convolve:scale="$NORM_STRENGTH" -bias 50% \
-            -convolve '-1,-2,-1,0,0,0,1,2,1' "$DY_TMP"
-        $MAGICK_EXE "$DX_TMP" "$DY_TMP" \( "$DX_TMP" -evaluate set 100% \) \
-            -combine $IM_QUALITY_OPTS "$NORM_FILE"
-        rm -f "$DX_TMP" "$DY_TMP"
+            -convolve '-1,-2,-1,0,0,0,1,2,1' "$B_TMP"
+        $MAGICK_EXE "$A_TMP" "$B_TMP" -fx "0.5+0.5*(0.5-u[0])/$FX_LEN" "$RN_TMP"
+        $MAGICK_EXE "$A_TMP" "$B_TMP" -fx "0.5+0.5*(0.5-u[1])/$FX_LEN" "$GN_TMP"
+        $MAGICK_EXE "$A_TMP" "$B_TMP" -fx "0.5+0.5/$FX_LEN" "$BN_TMP"
+        $MAGICK_EXE "$RN_TMP" "$GN_TMP" "$BN_TMP" -combine $IM_QUALITY_OPTS "$NORM_FILE"
+        rm -f "$A_TMP" "$B_TMP" "$RN_TMP" "$GN_TMP" "$BN_TMP"
     else
         echo "$LOG_PREFIX -> Überspringe Normal (existiert bereits)"
     fi

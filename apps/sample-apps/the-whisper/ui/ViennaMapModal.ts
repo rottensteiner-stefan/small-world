@@ -63,8 +63,8 @@ export const VIENNA_LOCATIONS: MapLocation[] = [
     transitText:
       "Zwei Stunden durch den abgesoffenen U3-Versorgungsschacht. Nur das stete Tropfen von der Decke und das ferne Summen der Schleusenlüftung begleiten Novotnys Schritte.",
     threatLevel: "Mittel",
-    conceptImage: "/assets/and-now/concepts/proto_azs_schleusenwache.jpg",
-    archetypeImage: "/assets/and-now/concepts/proto_azs_schleusenwache.jpg",
+    conceptImage: "/assets/the-whisper/concepts/proto_azs_schleusenwache.jpg",
+    archetypeImage: "/assets/the-whisper/concepts/proto_azs_schleusenwache.jpg",
     archetypeRole: "Die Schleusenwache (Ordnungsdienst)",
     archetypeQuote: "„Passierschein 7b vorweisen oder sofort auf den Boden!“",
   },
@@ -85,7 +85,7 @@ export const VIENNA_LOCATIONS: MapLocation[] = [
     transitText:
       "Novotny steigt die engen Wendeltreppen in den feuchten Wohnsektor 4 hinab. Der Gestank von Karbid und muffigem Linoleum erfüllt die Luft.",
     threatLevel: "Sicher",
-    conceptImage: "/assets/and-now/concepts/proto_pompfinebrer_kondukteur.jpg",
+    conceptImage: "/assets/the-whisper/concepts/proto_pompfinebrer_kondukteur.jpg",
   },
   {
     id: "bermudadreieck",
@@ -103,8 +103,8 @@ export const VIENNA_LOCATIONS: MapLocation[] = [
     transitText:
       "Über die eingestürzten Kellergewölbe der Rotenturmstraße ins feuchte, nach Schwefel riechende Labyrinth des Bermudadreiecks.",
     threatLevel: "Mittel",
-    conceptImage: "/assets/and-now/concepts/concept_bermudadreieck.jpg",
-    archetypeImage: "/assets/and-now/concepts/proto_giftmischer_dekanin.jpg",
+    conceptImage: "/assets/the-whisper/concepts/concept_bermudadreieck.jpg",
+    archetypeImage: "/assets/the-whisper/concepts/proto_giftmischer_dekanin.jpg",
     archetypeRole: "Die Dekanin (Meister-Toxikologin)",
     archetypeQuote:
       "„Penicillin gegen sauberes Grundwasser. Wer nicht zahlen kann, kriegt den Schmerzblocker erst, wenn das Bein schon ab ist.“",
@@ -125,8 +125,8 @@ export const VIENNA_LOCATIONS: MapLocation[] = [
     transitText:
       "Entlang der verrosteten Praterstern-Überführung. Das ferne, klagende Quietschen des Riesenrads schneidet durch den Nebel.",
     threatLevel: "Tödlich",
-    conceptImage: "/assets/and-now/concepts/concept_prater.jpg",
-    archetypeImage: "/assets/and-now/concepts/proto_ringelspiel_baron.jpg",
+    conceptImage: "/assets/the-whisper/concepts/concept_prater.jpg",
+    archetypeImage: "/assets/the-whisper/concepts/proto_ringelspiel_baron.jpg",
     archetypeRole: "Der Hutschmeister (Syndikat-Pate)",
     archetypeQuote: "„Am Prater gewinnt immer die Bank, Bursche.“",
   },
@@ -146,8 +146,8 @@ export const VIENNA_LOCATIONS: MapLocation[] = [
     transitText:
       "Vorbei an den Maschinengewehr-Nestern des Donaukanals. Scheinwerfer tasten die dunklen Ziegelfassaden der Kaserne ab.",
     threatLevel: "Sperrzone",
-    conceptImage: "/assets/and-now/concepts/concept_rossauer_kaserne.jpg",
-    archetypeImage: "/assets/and-now/concepts/proto_azs_brandstaetter.jpg",
+    conceptImage: "/assets/the-whisper/concepts/concept_rossauer_kaserne.jpg",
+    archetypeImage: "/assets/the-whisper/concepts/proto_azs_brandstaetter.jpg",
     archetypeRole: "Hofrat Brandstätter (Sektionschef)",
     archetypeQuote: "„Biomasse gehört in den Ofen. Widerspruch zwecklos.“",
   },
@@ -167,8 +167,8 @@ export const VIENNA_LOCATIONS: MapLocation[] = [
     transitText:
       "Fünf endlose Kilometer über die staubigen Gleistrassen von Simmering gen Süden, dem Weihrauchnebel der Bestatter entgegen.",
     threatLevel: "Neutral",
-    conceptImage: "/assets/and-now/concepts/concept_zentralfriedhof.jpg",
-    archetypeImage: "/assets/and-now/concepts/proto_pompfinebrer_schaufler.jpg",
+    conceptImage: "/assets/the-whisper/concepts/concept_zentralfriedhof.jpg",
+    archetypeImage: "/assets/the-whisper/concepts/proto_pompfinebrer_schaufler.jpg",
     archetypeRole: "Der Schaufler (Friedhofswächter)",
     archetypeQuote: "„Für AZS-Spione graben wir sechs Fuß tief.“",
   },
@@ -205,8 +205,8 @@ export const VIENNA_LOCATIONS: MapLocation[] = [
     transitText:
       "Durch die von Stacheldraht und Marmortrümmern gesäumten Alleen des Botschaftsviertels zum eisernen Tor des Palais Metternich.",
     threatLevel: "Mittel",
-    conceptImage: "/assets/and-now/concepts/proto_konsulat_attachee.jpg",
-    archetypeImage: "/assets/and-now/concepts/proto_konsulat_doyen.jpg",
+    conceptImage: "/assets/the-whisper/concepts/proto_konsulat_attachee.jpg",
+    archetypeImage: "/assets/the-whisper/concepts/proto_konsulat_doyen.jpg",
     archetypeRole: "Der Doyen (Palais Metternich)",
     archetypeQuote:
       "„Ein Abkommen ist wie feinstes Meißner Porzellan: Zerbrechlich, aber unbezahlbar.“",
@@ -227,8 +227,8 @@ export const VIENNA_LOCATIONS: MapLocation[] = [
     transitText:
       "Entlang der dampfenden Fernwärmerohre am Donaukanal gen Norden. Schwefelgeruch und heißer Schlackeregen kündigen die Hochöfen an.",
     threatLevel: "Tödlich",
-    conceptImage: "/assets/and-now/concepts/proto_aschenbrenner_heizer.jpg",
-    archetypeImage: "/assets/and-now/concepts/proto_aschenbrenner_heizer.jpg",
+    conceptImage: "/assets/the-whisper/concepts/proto_aschenbrenner_heizer.jpg",
+    archetypeImage: "/assets/the-whisper/concepts/proto_aschenbrenner_heizer.jpg",
     archetypeRole: "Der Oberheizer (Hochofen-Meister)",
     archetypeQuote: "„Solang das Feuer brennt, friert Wien nicht. Bring Kohle oder brenn selbst.“",
   },
@@ -248,7 +248,7 @@ export const VIENNA_LOCATIONS: MapLocation[] = [
       "„Die Werkbank der Schöpfer. Hier werden Lichtbrechungen, irisierende Öllacken und das Putzverhalten der Wiener Kanalratten geprüft.“",
     transitText: "Wechsle in den dreidimensionalen Inspektionsraum des Character-Dioramas.",
     threatLevel: "Sicher",
-    conceptImage: "/assets/and-now/concepts/diorama-concept.jpg",
+    conceptImage: "/assets/the-whisper/concepts/diorama-concept.jpg",
   },
 ];
 
@@ -420,7 +420,7 @@ export class ViennaMapModal {
               align-items: center;
               justify-content: center;
             ">
-              <img id="viennaMapImg" src="${resolveAssetUrl("/assets/and-now/map/vienna_map.jpg")}" alt="Wien 2100 Stadtplan" style="
+              <img id="viennaMapImg" src="${resolveAssetUrl("/assets/the-whisper/map/vienna_map.jpg")}" alt="Wien 2100 Stadtplan" style="
                 max-width: 100%;
                 max-height: 100%;
                 object-fit: contain;
@@ -479,7 +479,7 @@ export class ViennaMapModal {
             box-shadow: 0 20px 50px rgba(0,0,0,0.9);
             margin-bottom: 24px;
           ">
-            <img src="${resolveAssetUrl("/assets/and-now/map/transit_tunnel.jpg")}" alt="Transit Vignette" style="width: 100%; height: auto; display: block;" />
+            <img src="${resolveAssetUrl("/assets/the-whisper/map/transit_tunnel.jpg")}" alt="Transit Vignette" style="width: 100%; height: auto; display: block;" />
           </div>
           <div id="transitLocationTitle" style="font-size: 1.4rem; font-weight: bold; color: #ffb84d; letter-spacing: 1px; margin-bottom: 8px;">
             SCHNELLREISE...

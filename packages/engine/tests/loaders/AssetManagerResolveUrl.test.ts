@@ -31,11 +31,11 @@ describe("AssetManager.resolveUrl", () => {
     const manager = new AssetManager();
     manager.setBaseUrl("https://cdn.example.com/root");
 
-    expect(manager.resolveUrl("/assets/and-now/diorama/wall.jpg")).toBe(
-      "https://cdn.example.com/root/assets/and-now/diorama/wall.jpg",
+    expect(manager.resolveUrl("/assets/the-whisper/diorama/wall.jpg")).toBe(
+      "https://cdn.example.com/root/assets/the-whisper/diorama/wall.jpg",
     );
-    expect(manager.resolveUrl("assets/and-now/diorama/wall.jpg")).toBe(
-      "https://cdn.example.com/root/assets/and-now/diorama/wall.jpg",
+    expect(manager.resolveUrl("assets/the-whisper/diorama/wall.jpg")).toBe(
+      "https://cdn.example.com/root/assets/the-whisper/diorama/wall.jpg",
     );
   });
 });

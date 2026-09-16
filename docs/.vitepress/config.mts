@@ -7,7 +7,7 @@ export default defineConfig({
     "Eine leichtgewichtige, hochperformante, modulare 3D-Game-Engine für das Web, gebaut mit TypeScript.",
   themeConfig: {
     nav: [
-      { text: "Spiele & Apps", link: "/apps/and-now" },
+      { text: "Spiele & Apps", link: "/apps/the-whisper" },
       { text: "Anleitungen", link: "/guides/getting-started" },
       { text: "Architekturentscheidungen (ADRs)", link: "/adr/" },
       { text: "Recherche", link: "/research/" },
@@ -19,7 +19,7 @@ export default defineConfig({
         {
           text: "Spiele & Welten",
           items: [
-            { text: "And Now? (Wien 2100)", link: "/apps/and-now" },
+            { text: "The Whisper — A Viennese Requiem", link: "/apps/the-whisper" },
             { text: "YAD (Dungeon Crawler)", link: "/apps/yad" },
             { text: "Light Cycle Arena", link: "/apps/light-cycle-arena" },
             { text: "Maker (Welteneditor)", link: "/apps/maker" },

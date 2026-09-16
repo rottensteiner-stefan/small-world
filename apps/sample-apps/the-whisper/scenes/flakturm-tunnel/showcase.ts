@@ -72,23 +72,23 @@ const DEFAULT_ZONE_POINTS: Record<
 };
 
 /** Named animation clips shared by every Player skin. Add an entry here (and load the matching
- * FBX2glTF-converted `.glb` under `public/assets/and-now/mannequin/shared/anim/`) to make a new
+ * FBX2glTF-converted `.glb` under `public/assets/the-whisper/mannequin/shared/anim/`) to make a new
  * animation available via `_playAnimation`. */
 const ANIMATION_CLIP_URLS: Record<string, string> = {
   // Idle variations
-  idle_1: "/assets/and-now/mannequin/shared/anim/idle_1.glb",
-  idle_2: "/assets/and-now/mannequin/shared/anim/idle_2.glb",
-  idle_torch: "/assets/and-now/mannequin/shared/anim/idle_torch.glb",
+  idle_1: "/assets/the-whisper/mannequin/shared/anim/idle_1.glb",
+  idle_2: "/assets/the-whisper/mannequin/shared/anim/idle_2.glb",
+  idle_torch: "/assets/the-whisper/mannequin/shared/anim/idle_torch.glb",
   // Walk & Run (neutral)
-  walk: "/assets/and-now/mannequin/shared/anim/walking.glb",
-  run_1: "/assets/and-now/mannequin/shared/anim/running_1.glb",
-  run_2: "/assets/and-now/mannequin/shared/anim/running_2.glb",
+  walk: "/assets/the-whisper/mannequin/shared/anim/walking.glb",
+  run_1: "/assets/the-whisper/mannequin/shared/anim/running_1.glb",
+  run_2: "/assets/the-whisper/mannequin/shared/anim/running_2.glb",
   // Walk & Run (with lantern / torch)
-  walk_torch: "/assets/and-now/mannequin/shared/anim/walking_torch.glb",
-  run_torch: "/assets/and-now/mannequin/shared/anim/running_torch.glb",
+  walk_torch: "/assets/the-whisper/mannequin/shared/anim/walking_torch.glb",
+  run_torch: "/assets/the-whisper/mannequin/shared/anim/running_torch.glb",
   // Stairs
-  stairs_up: "/assets/and-now/mannequin/shared/anim/ascending_stairs.glb",
-  stairs_down: "/assets/and-now/mannequin/shared/anim/descending_stairs.glb",
+  stairs_up: "/assets/the-whisper/mannequin/shared/anim/ascending_stairs.glb",
+  stairs_down: "/assets/the-whisper/mannequin/shared/anim/descending_stairs.glb",
 };
 
 const ANIMATION_FADE_SECONDS = 0.25;
@@ -221,7 +221,7 @@ class AndNowScene2 extends AbstractShowcase {
 
     let bgTex: Texture | undefined;
     try {
-      bgTex = await Texture.fromUrl("/assets/and-now/flakturm_bg.webp", { flipY: true });
+      bgTex = await Texture.fromUrl("/assets/the-whisper/flakturm_bg.webp", { flipY: true });
     } catch (e) {
       console.warn("[AndNowScene2] Konnte Hintergrund nicht laden:", e);
     }
@@ -298,16 +298,16 @@ class AndNowScene2 extends AbstractShowcase {
 
     try {
       const gltfLoader = new GltfLoader();
-      let charModelUrl = "/assets/and-now/mannequin/player-male/character.glb";
+      let charModelUrl = "/assets/the-whisper/mannequin/player-male/character.glb";
       let charScale = 1.8;
       let descText = "Spieler (Männlich) auf der 2.5D-Bühne";
 
       if (charType === "female") {
-        charModelUrl = "/assets/and-now/mannequin/player-female/character.glb";
+        charModelUrl = "/assets/the-whisper/mannequin/player-female/character.glb";
         charScale = 1.8;
         descText = "Spielerin (Weiblich) auf der 2.5D-Bühne";
       } else if (charType === "yoshi") {
-        charModelUrl = "/assets/and-now/mannequin/yoshi/character.glb";
+        charModelUrl = "/assets/the-whisper/mannequin/yoshi/character.glb";
         charScale = 1.35;
         descText = "🦖 Yoshi (Secret Easter Egg) auf der 2.5D-Bühne";
       }

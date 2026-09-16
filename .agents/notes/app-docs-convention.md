@@ -25,7 +25,7 @@ apps/<app-name>/
 
 | App | Log |
 |---|---|
-| And Now? | `apps/sample-apps/and-now/docs/log.md` |
+| The Whisper — A Viennese Requiem | `apps/sample-apps/the-whisper/docs/log.md` |
 | Light Cycle Arena | `apps/sample-apps/light-cycle-arena/docs/log.md` |
 | YAD | `apps/sample-apps/yad/docs/log.md` |
 

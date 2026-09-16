@@ -63,16 +63,16 @@ const LANTERN_HAND_BONE_CANDIDATES = [
 const FLOOR_HALF_SIZE = 1.9;
 
 const ANIMATION_CLIPS: Record<string, string> = {
-  idle_1: "/assets/and-now/mannequin/shared/anim/idle_1.glb",
-  idle_2: "/assets/and-now/mannequin/shared/anim/idle_2.glb",
-  idle_torch: "/assets/and-now/mannequin/shared/anim/idle_torch.glb",
-  walk: "/assets/and-now/mannequin/shared/anim/walking.glb",
-  walk_torch: "/assets/and-now/mannequin/shared/anim/walk_torch.glb",
-  run_1: "/assets/and-now/mannequin/shared/anim/running_1.glb",
-  run_2: "/assets/and-now/mannequin/shared/anim/running_2.glb",
-  run_torch: "/assets/and-now/mannequin/shared/anim/running_torch.glb",
-  stairs_up: "/assets/and-now/mannequin/shared/anim/ascending_stairs.glb",
-  stairs_down: "/assets/and-now/mannequin/shared/anim/descending_stairs.glb",
+  idle_1: "/assets/the-whisper/mannequin/shared/anim/idle_1.glb",
+  idle_2: "/assets/the-whisper/mannequin/shared/anim/idle_2.glb",
+  idle_torch: "/assets/the-whisper/mannequin/shared/anim/idle_torch.glb",
+  walk: "/assets/the-whisper/mannequin/shared/anim/walking.glb",
+  walk_torch: "/assets/the-whisper/mannequin/shared/anim/walk_torch.glb",
+  run_1: "/assets/the-whisper/mannequin/shared/anim/running_1.glb",
+  run_2: "/assets/the-whisper/mannequin/shared/anim/running_2.glb",
+  run_torch: "/assets/the-whisper/mannequin/shared/anim/running_torch.glb",
+  stairs_up: "/assets/the-whisper/mannequin/shared/anim/ascending_stairs.glb",
+  stairs_down: "/assets/the-whisper/mannequin/shared/anim/descending_stairs.glb",
 };
 
 function findNodeByName(root: Object3D, name: string): Object3D | undefined {
@@ -180,39 +180,39 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
 
     // 2. Load Textures
     try {
-      this._wallTexture = await Texture.fromUrl("/assets/and-now/diorama/wall_tiles.jpg", {
+      this._wallTexture = await Texture.fromUrl("/assets/the-whisper/diorama/wall_tiles.jpg", {
         addressModeU: TextureWrap.REPEAT,
         addressModeV: TextureWrap.REPEAT,
       });
-      this._floorTexture = await Texture.fromUrl("/assets/and-now/diorama/floor_pavement.jpg", {
+      this._floorTexture = await Texture.fromUrl("/assets/the-whisper/diorama/floor_pavement.jpg", {
         addressModeU: TextureWrap.REPEAT,
         addressModeV: TextureWrap.REPEAT,
       });
       this._floorNormalTexture = await Texture.fromUrl(
-        "/assets/and-now/diorama/floor_pavement_normal.jpg",
+        "/assets/the-whisper/diorama/floor_pavement_normal.jpg",
         {
           addressModeU: TextureWrap.REPEAT,
           addressModeV: TextureWrap.REPEAT,
         },
       );
       this._floorRoughnessTexture = await Texture.fromUrl(
-        "/assets/and-now/diorama/floor_pavement_roughness.jpg",
+        "/assets/the-whisper/diorama/floor_pavement_roughness.jpg",
         {
           addressModeU: TextureWrap.REPEAT,
           addressModeV: TextureWrap.REPEAT,
         },
       );
-      this._brickTexture = await Texture.fromUrl("/assets/and-now/diorama/brick_masonry.jpg", {
+      this._brickTexture = await Texture.fromUrl("/assets/the-whisper/diorama/brick_masonry.jpg", {
         addressModeU: TextureWrap.REPEAT,
         addressModeV: TextureWrap.REPEAT,
       });
-      this._barrelTexture = await Texture.fromUrl("/assets/and-now/diorama/barrel_rust.jpg", {
+      this._barrelTexture = await Texture.fromUrl("/assets/the-whisper/diorama/barrel_rust.jpg", {
         addressModeU: TextureWrap.REPEAT,
         addressModeV: TextureWrap.REPEAT,
         flipY: true,
       });
       this._barrelNormalTexture = await Texture.fromUrl(
-        "/assets/and-now/diorama/barrel_rust_normal.jpg",
+        "/assets/the-whisper/diorama/barrel_rust_normal.jpg",
         {
           addressModeU: TextureWrap.REPEAT,
           addressModeV: TextureWrap.REPEAT,
@@ -220,20 +220,20 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
         },
       );
       this._barrelRoughnessTexture = await Texture.fromUrl(
-        "/assets/and-now/diorama/barrel_rust_roughness.jpg",
+        "/assets/the-whisper/diorama/barrel_rust_roughness.jpg",
         {
           addressModeU: TextureWrap.REPEAT,
           addressModeV: TextureWrap.REPEAT,
           flipY: true,
         },
       );
-      this._crateTexture = await Texture.fromUrl("/assets/and-now/diorama/crate_wood.jpg", {
+      this._crateTexture = await Texture.fromUrl("/assets/the-whisper/diorama/crate_wood.jpg", {
         addressModeU: TextureWrap.REPEAT,
         addressModeV: TextureWrap.REPEAT,
         flipY: true,
       });
       this._crateNormalTexture = await Texture.fromUrl(
-        "/assets/and-now/diorama/crate_wood_normal.jpg",
+        "/assets/the-whisper/diorama/crate_wood_normal.jpg",
         {
           addressModeU: TextureWrap.REPEAT,
           addressModeV: TextureWrap.REPEAT,
@@ -241,20 +241,20 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
         },
       );
       this._crateRoughnessTexture = await Texture.fromUrl(
-        "/assets/and-now/diorama/crate_wood_roughness.jpg",
+        "/assets/the-whisper/diorama/crate_wood_roughness.jpg",
         {
           addressModeU: TextureWrap.REPEAT,
           addressModeV: TextureWrap.REPEAT,
           flipY: true,
         },
       );
-      this._debrisTexture = await Texture.fromUrl("/assets/and-now/diorama/debris_pile.jpg", {
+      this._debrisTexture = await Texture.fromUrl("/assets/the-whisper/diorama/debris_pile.jpg", {
         addressModeU: TextureWrap.REPEAT,
         addressModeV: TextureWrap.REPEAT,
         flipY: true,
       });
       this._debrisNormalTexture = await Texture.fromUrl(
-        "/assets/and-now/diorama/debris_pile_normal.jpg",
+        "/assets/the-whisper/diorama/debris_pile_normal.jpg",
         {
           addressModeU: TextureWrap.REPEAT,
           addressModeV: TextureWrap.REPEAT,
@@ -262,7 +262,7 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
         },
       );
       this._debrisRoughnessTexture = await Texture.fromUrl(
-        "/assets/and-now/diorama/debris_pile_roughness.jpg",
+        "/assets/the-whisper/diorama/debris_pile_roughness.jpg",
         {
           addressModeU: TextureWrap.REPEAT,
           addressModeV: TextureWrap.REPEAT,
@@ -1017,8 +1017,8 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
     let lampMesh2: Object3D | undefined;
 
     try {
-      lampMesh1 = await gltfLoader.load("/assets/and-now/diorama/wall_lamp.glb");
-      lampMesh2 = await gltfLoader.load("/assets/and-now/diorama/wall_lamp.glb");
+      lampMesh1 = await gltfLoader.load("/assets/the-whisper/diorama/wall_lamp.glb");
+      lampMesh2 = await gltfLoader.load("/assets/the-whisper/diorama/wall_lamp.glb");
     } catch (e) {
       console.warn("[CharacterDiorama] Could not load wall_lamp.glb:", e);
     }
@@ -1200,7 +1200,7 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
     let barrelModel: Object3D | undefined;
     try {
       const gltfLoader = new GltfLoader();
-      barrelModel = await gltfLoader.load("/assets/and-now/diorama/barrel_oil_black.glb");
+      barrelModel = await gltfLoader.load("/assets/the-whisper/diorama/barrel_oil_black.glb");
     } catch {
       // Fallback zu prozeduralem Zylinder
     }
@@ -1412,14 +1412,14 @@ export class CharacterDioramaShowcase extends AbstractShowcase {
 
     try {
       const gltfLoader = new GltfLoader();
-      let charUrl = "/assets/and-now/mannequin/player-male/character.glb";
+      let charUrl = "/assets/the-whisper/mannequin/player-male/character.glb";
       let charScale = 1.7;
 
       if (charType === "female") {
-        charUrl = "/assets/and-now/mannequin/player-female/character.glb";
+        charUrl = "/assets/the-whisper/mannequin/player-female/character.glb";
         charScale = 1.7;
       } else if (charType === "yoshi") {
-        charUrl = "/assets/and-now/mannequin/yoshi/character.glb";
+        charUrl = "/assets/the-whisper/mannequin/yoshi/character.glb";
         charScale = 1.35;
       }
 

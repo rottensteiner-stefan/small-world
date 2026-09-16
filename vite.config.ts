@@ -236,20 +236,23 @@ export default defineConfig({
         showcase36: resolve(import.meta.dirname, "apps/showcases/36/index.html"),
         showcase37: resolve(import.meta.dirname, "apps/showcases/37/index.html"),
         showcase38: resolve(import.meta.dirname, "apps/showcases/38/index.html"),
-        andNowHub: resolve(import.meta.dirname, "apps/sample-apps/and-now/index.html"),
-        andNowPrologue: resolve(
+        theWhisperHub: resolve(import.meta.dirname, "apps/sample-apps/the-whisper/index.html"),
+        theWhisperPrologue: resolve(
           import.meta.dirname,
-          "apps/sample-apps/and-now/scenes/prologue/index.html",
+          "apps/sample-apps/the-whisper/scenes/prologue/index.html",
         ),
-        andNowScene2: resolve(
+        theWhisperScene2: resolve(
           import.meta.dirname,
-          "apps/sample-apps/and-now/scenes/flakturm-tunnel/index.html",
+          "apps/sample-apps/the-whisper/scenes/flakturm-tunnel/index.html",
         ),
-        andNowCharacterDiorama: resolve(
+        theWhisperCharacterDiorama: resolve(
           import.meta.dirname,
-          "apps/sample-apps/and-now/scenes/character-diorama/index.html",
+          "apps/sample-apps/the-whisper/scenes/character-diorama/index.html",
         ),
-        andNowMap: resolve(import.meta.dirname, "apps/sample-apps/and-now/scenes/map/index.html"),
+        theWhisperMap: resolve(
+          import.meta.dirname,
+          "apps/sample-apps/the-whisper/scenes/map/index.html",
+        ),
         yad: resolve(import.meta.dirname, "apps/sample-apps/yad/index.html"),
         lightCycleArena: resolve(
           import.meta.dirname,
@@ -284,17 +287,17 @@ export default defineConfig({
           if (chunk.name === "main" || chunk.name === "presentation") {
             return `js/[name].js`;
           }
-          if (chunk.name === "andNowPrologue") {
-            return "apps/sample-apps/and-now/scenes/prologue/prologue.js";
+          if (chunk.name === "theWhisperPrologue") {
+            return "apps/sample-apps/the-whisper/scenes/prologue/prologue.js";
           }
-          if (chunk.name === "andNowScene2") {
-            return "apps/sample-apps/and-now/scenes/flakturm-tunnel/showcase.js";
+          if (chunk.name === "theWhisperScene2") {
+            return "apps/sample-apps/the-whisper/scenes/flakturm-tunnel/showcase.js";
           }
-          if (chunk.name === "andNowCharacterDiorama") {
-            return "apps/sample-apps/and-now/scenes/character-diorama/showcase.js";
+          if (chunk.name === "theWhisperCharacterDiorama") {
+            return "apps/sample-apps/the-whisper/scenes/character-diorama/showcase.js";
           }
-          if (chunk.name === "andNowMap") {
-            return "apps/sample-apps/and-now/scenes/map/map.js";
+          if (chunk.name === "theWhisperMap") {
+            return "apps/sample-apps/the-whisper/scenes/map/map.js";
           }
           if (chunk.name === "yad") {
             return "apps/sample-apps/yad/App.js";

@@ -1,6 +1,6 @@
 # 2.5D-Szenen & Hintergründe
 
-2.5D ist kein besonderer Rendering-Modus — es ist eine Familie alter, gut erprobter Tricks, um Tiefe billig vorzutäuschen. Diese Anleitung führt end-to-end durch den Bau einer 2.5D-Szene mit Small World: ein Hintergrundbild auf eine Kamera abstimmen, festlegen, wo eine Figur laufen darf, die richtige Kamerastrategie wählen, Szenen mit mehr als einem Fluchtpunkt, und eine Handvoll echter Bugs, auf die das eigene Referenzspiel dieser Engine ("And Now?") dabei gestoßen ist.
+2.5D ist kein besonderer Rendering-Modus — es ist eine Familie alter, gut erprobter Tricks, um Tiefe billig vorzutäuschen. Diese Anleitung führt end-to-end durch den Bau einer 2.5D-Szene mit Small World: ein Hintergrundbild auf eine Kamera abstimmen, festlegen, wo eine Figur laufen darf, die richtige Kamerastrategie wählen, Szenen mit mehr als einem Fluchtpunkt, und eine Handvoll echter Bugs, auf die das eigene Referenzspiel dieser Engine ("The Whisper") dabei gestoßen ist.
 
 > **Verwandt:** Die grundlegende Mechanik von Hintergrund-Ebenen — UVs, `flipY`, Seitenverhältnis — wird in [2.5D-Hintergründe & Textur-Ausrichtung](/guides/coordinate-system#_2-5d-backgrounds-texture-orientation) in der Koordinatensystem-Anleitung behandelt. Diese Anleitung baut darauf auf mit Perspektiv-Abgleich, Bewegungszonen und Kamerastrategie-Abwägungen. Für jede unten erwähnte Klasse und Option siehe die **[API-Referenz](/api/index.html)**.
 
@@ -8,7 +8,7 @@
 
 Reines 2D: alles ist ein flaches Sprite, die Kamera ist irrelevant, es gibt keine Tiefe. Reines 3D: alles ist echte Geometrie, und die Kamera kann (fast) überallhin. **2.5D sitzt dazwischen** — echte 3D-Objekte (meist nur die Spielfigur) existieren, während die Welt drumherum, die Kamera oder beides bewusst eingeschränkt sind, sodass das Ergebnis *sich liest* wie ein flaches, komponiertes Bild statt wie ein freier 3D-Raum.
 
-"And Now?"s eigenes Design-Dokument benennt das schon, ohne es "2.5D" zu nennen: das **"Wiener Guckkasten-Prinzip"** — die Außenwelt in isometrischer Draufsicht gezeigt, Innenräume als seitlich aufgeschnittenes Theaterset. Das ist genau diese Familie von Tricks, nur mit einem Wiener Namen dafür.
+"The Whisper"s eigenes Design-Dokument benennt das schon, ohne es "2.5D" zu nennen: das **"Wiener Guckkasten-Prinzip"** — die Außenwelt in isometrischer Draufsicht gezeigt, Innenräume als seitlich aufgeschnittenes Theaterset. Das ist genau diese Familie von Tricks, nur mit einem Wiener Namen dafür.
 
 ## 2. Drei Wege, Tiefe vorzutäuschen
 
@@ -228,7 +228,7 @@ character.material = new StandardMaterial({ diffuseMap: charTexture, roughness: 
 
 Das ist im Wesentlichen schon alles — alles Weitere (Animation, Requisiten wie eine handgetragene Laterne, der Zonen-Editor in der Szene) baut darauf auf. Diese fünf Zeilengruppen zu verstehen bedeutet, das gesamte Bewegungssystem von `flakturm-tunnel` zu verstehen.
 
-## 9. Lektionen aus dem Bau von "And Now?"
+## 9. Lektionen aus dem Bau von "The Whisper"
 
 Keine Theorie — was beim Bau dieser Szene tatsächlich schiefging, jetzt als Faustregeln festgehalten:
 

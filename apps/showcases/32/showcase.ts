@@ -38,7 +38,7 @@ const HOT_ZONE_Z = -16;
 /**
  * Showcase 32: "Radioactive Ashfall: Fallout Zone Vienna"
  *
- * A ruined street in the "And Now?" world's Donauauen fallout belt -- collapsed apartment
+ * A ruined street in the "The Whisper" world's Donauauen fallout belt -- collapsed apartment
  * blocks, a leaking radioactive hot zone at the street's end, and a constant fall of irradiated
  * ash drifting through the haze. Demonstrates the new `WeatherEmitter`
  * (`src/environment/weather/WeatherEmitter.ts`): a high-altitude ashfall field plus a dense,

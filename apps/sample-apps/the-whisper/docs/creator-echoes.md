@@ -1,6 +1,6 @@
 # Creator Echoes (Stefan's Lore & Easter Eggs)
 
-*„Tolkien hatte Tom Bombadil. 'And Now?' hat Echos aus den Hausbergen und dem Saarland.“*
+*„Tolkien hatte Tom Bombadil. 'The Whisper' hat Echos aus den Hausbergen und dem Saarland.“*
 
 Dieses Log führt persönliche Erinnerungen, Anekdoten und Referenzen des Creators (Stefan) auf. Ziel ist es, diese Details als organische, nostalgische Easter Eggs (Echos aus der Alten Welt vor dem Schlag 2050) in das Wien von 2100 einzuweben, ohne die 4. Wand plump zu brechen.
 

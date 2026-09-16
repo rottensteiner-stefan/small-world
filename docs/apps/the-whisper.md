@@ -1,4 +1,4 @@
-# And Now? — Wien 2100
+# The Whisper — A Viennese Requiem
 
 > **Genre:** Postapokalyptisches Graphic-Noir Kammerspiel / 2.5D Narrative RPG  
 > **Schauplatz:** Wien im Jahr 2100 (50 Jahre nach dem großen Atomschlag von 2050)  
@@ -10,11 +10,11 @@
 
 | Modul / Szene | Typ | Beschreibung | Link |
 | :--- | :--- | :--- | :--- |
-| **🎨 Visuelles Concept-Dossier** | Web-Dossier | Komplette Galerie, Fraktions-Archetypen & Sin-City Colorkey-Dramaturgie | [Dossier öffnen](/small-world/showcases/apps/sample-apps/and-now/docs/concept-dossier.html){target="_blank"} |
-| **🗺️ Großvaters Faltplan (Stadtkarte)** | 2.5D UI | Interaktiver Stadtplan 2100 mit Františeks Notizen & Schnellreise-Transit | [Faltplan starten](/small-world/showcases/apps/sample-apps/and-now/scenes/map/index.html){target="_blank"} |
-| **🎭 Character Diorama Studio** | 3D-Bühne | 3D-Figuren-Präsentation im Urban-Diorama mit Glitch-Rändern & Hotkey `[N]` | [Studio starten](/small-world/showcases/apps/sample-apps/and-now/scenes/character-diorama/index.html){target="_blank"} |
-| **🚇 Flakturm Tunnelgang (Szene 2)** | 2.5D Szene | Atmosphärische Bühnenerkundung: Vorplatz, Tunnel in die Tiefe & Schleusentor | [Szene 2 starten](/small-world/showcases/apps/sample-apps/and-now/scenes/flakturm-tunnel/index.html){target="_blank"} |
-| **🕯️ Großvaters Tod (Prolog Szene 1)** | 2.5D Szene | Koje 42, Kaffeedosen-Urne und Konfrontation mit Blockwart Hawelka | [Prolog starten](/small-world/showcases/apps/sample-apps/and-now/scenes/prologue/index.html){target="_blank"} |
+| **🎨 Visuelles Concept-Dossier** | Web-Dossier | Komplette Galerie, Fraktions-Archetypen & Sin-City Colorkey-Dramaturgie | [Dossier öffnen](/small-world/showcases/apps/sample-apps/the-whisper/docs/concept-dossier.html){target="_blank"} |
+| **🗺️ Großvaters Faltplan (Stadtkarte)** | 2.5D UI | Interaktiver Stadtplan 2100 mit Františeks Notizen & Schnellreise-Transit | [Faltplan starten](/small-world/showcases/apps/sample-apps/the-whisper/scenes/map/index.html){target="_blank"} |
+| **🎭 Character Diorama Studio** | 3D-Bühne | 3D-Figuren-Präsentation im Urban-Diorama mit Glitch-Rändern & Hotkey `[N]` | [Studio starten](/small-world/showcases/apps/sample-apps/the-whisper/scenes/character-diorama/index.html){target="_blank"} |
+| **🚇 Flakturm Tunnelgang (Szene 2)** | 2.5D Szene | Atmosphärische Bühnenerkundung: Vorplatz, Tunnel in die Tiefe & Schleusentor | [Szene 2 starten](/small-world/showcases/apps/sample-apps/the-whisper/scenes/flakturm-tunnel/index.html){target="_blank"} |
+| **🕯️ Großvaters Tod (Prolog Szene 1)** | 2.5D Szene | Koje 42, Kaffeedosen-Urne und Konfrontation mit Blockwart Hawelka | [Prolog starten](/small-world/showcases/apps/sample-apps/the-whisper/scenes/prologue/index.html){target="_blank"} |
 
 ---
 
@@ -65,5 +65,5 @@ Das Spiel setzt auf eine klare Trennung zwischen alltäglicher Welt-Erkundung un
 
 ## 📖 Detaillierte Dokumente
 
-* [Story-Bibel & Dialoge (`story.md`)](https://github.com/rottensteiner-stefan/small-world/blob/main/apps/sample-apps/and-now/docs/story.md){target="_blank"}
-* [Entwicklungs-Logbuch (`log.md`)](https://github.com/rottensteiner-stefan/small-world/blob/main/apps/sample-apps/and-now/docs/log.md){target="_blank"}
+* [Story-Bibel & Dialoge (`story.md`)](https://github.com/rottensteiner-stefan/small-world/blob/main/apps/sample-apps/the-whisper/docs/story.md){target="_blank"}
+* [Entwicklungs-Logbuch (`log.md`)](https://github.com/rottensteiner-stefan/small-world/blob/main/apps/sample-apps/the-whisper/docs/log.md){target="_blank"}

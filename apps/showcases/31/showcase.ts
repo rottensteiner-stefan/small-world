@@ -42,7 +42,7 @@ const PILLAR_SPACING = 4;
 /**
  * Showcase 31: "Overgrown Subway: Karlsplatz Junction Ruin"
  *
- * The "And Now?" world's U-Bahn-Knoten Karlsplatz, decades after the collapse: a Jugendstil
+ * The "The Whisper" world's U-Bahn-Knoten Karlsplatz, decades after the collapse: a Jugendstil
  * island-platform hall with a jagged ceiling breach pouring cascaded sunlight and roots down
  * onto a flooded, wrecked platform. Exercises CSM against a mostly-enclosed vault, HBAO in the
  * tiled crevices, bloom on the light shaft/emissive moss/emergency lamps, `OpenWaterMaterial`
