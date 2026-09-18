@@ -314,7 +314,7 @@ for(int k = 0; k < CLUSTER_MAX_LIGHTS; k++) {
         // Pre-existing constraint, unrelated to clustering: only the first 4 spot lights (by
         // scene traversal order) ever get a real shadow slot -- see light_calc.frag.glsl.
         float shadow = 1.0;
-        if (u_spotShadowInfo[i].z > 0.5) {
+        if (i < 4 && u_spotShadowInfo[i].z > 0.5) {
             vec3 projCoords = v_spotLightSpacePos[i].xyz / v_spotLightSpacePos[i].w;
             projCoords = projCoords * 0.5 + 0.5;
             if (projCoords.x >= 0.0 && projCoords.x <= 1.0 && projCoords.y >= 0.0 && projCoords.y <= 1.0 && projCoords.z <= 1.0) {

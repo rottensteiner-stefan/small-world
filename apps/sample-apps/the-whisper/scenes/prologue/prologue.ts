@@ -21,8 +21,9 @@ import {
   Vector3D,
   VignetteElement,
   RendererType,
-  GltfLoader,
   Texture,
+  KitRegistry,
+  LevelHotspotDef,
 } from "@small-world/engine";
 import { BunkerKit } from "../../builder/BunkerKit.js";
 import { FlakturmKit } from "../../builder/FlakturmKit.js";
@@ -33,6 +34,8 @@ import { HotspotManager, HotspotAction } from "../../ui/HotspotManager.js";
 type StageArea = "koje_42" | "vent_crawl" | "kaeltekammer";
 
 export class PrologueScene extends AbstractShowcase {
+  private _kitRegistry = new KitRegistry();
+
   // 3D Objects & Lights (Koje 42)
   private _bunkerDoor: Object3D | null = null;
   private _doorSpot: SpotLight | null = null;
@@ -44,15 +47,8 @@ export class PrologueScene extends AbstractShowcase {
   private _bunkBedMesh: Object3D | null = null;
   private _morgueTrayMesh: Object3D | null = null;
   private _metalDeskMesh: Object3D | null = null;
-  private _metalStoolMesh: Object3D | null = null;
-  private _keroseneLanternMesh: Object3D | null = null;
-  private _lanternFlameLight: PointLight | null = null;
-  private _combatBootsMesh: Object3D | null = null;
   private _wallShelfMesh: Object3D | null = null;
-  private _messTinMesh: Object3D | null = null;
-  private _hangingTowelsMesh: Object3D | null = null;
-  private _wornRugMesh: Object3D | null = null;
-  private _ceilingLampMesh: Object3D | null = null;
+  private _lanternFlameLight: PointLight | null = null;
 
   // 3D Objects & Lights (Kältekammer K-42)
   private _morgueGroup: Object3D | null = null;
@@ -75,6 +71,7 @@ export class PrologueScene extends AbstractShowcase {
   private _terminalModal: TerminalModal | null = null;
   private _mapModal: ViennaMapModal | null = null;
   private _hotspotManager: HotspotManager | null = null;
+  private _levelHotspots: LevelHotspotDef[] = [];
 
   // Timeline & State
   private _currentArea: StageArea = "koje_42";
@@ -190,24 +187,18 @@ export class PrologueScene extends AbstractShowcase {
     this._buildPlayerCharacter();
     this._buildDustParticles();
 
-    // 5. Load High-Fidelity glTF Prop Kits (Bunker Kit: Kaffeemühle & Terminal 2100), then apply
-    // the PBR wall/door/fitting textures — in that order, since `_loadPropKits` swaps some
-    // procedural placeholders (e.g. the bunk bed) out for their glTF replacement, and texturing
-    // a placeholder that's about to be removed would be a silent no-op racing the swap.
-    void (async (): Promise<void> => {
-      await this._loadPropKits();
-      await this._applyKitTextures();
-    })();
-
-    // 6. Initialize Modals & Systems
+    // 5. Initialize Modals & Systems
     this._terminalModal = new TerminalModal();
     this._mapModal = new ViennaMapModal("flakturm_arenberg");
     this._hotspotManager = new HotspotManager();
 
-    // 7. Register Koje 42 Hotspots
-    this._setupKojeHotspots();
+    // 6. Load High-Fidelity glTF Prop Kits via Level Descriptor, then apply PBR textures
+    void (async (): Promise<void> => {
+      await this._loadLevelProps();
+      await this._applyKitTextures();
+    })();
 
-    // 8. UI & Keyboard Handlers
+    // 7. UI & Keyboard Handlers
     this._initUiListeners();
     this._initKeyboardListeners();
   }
@@ -262,338 +253,73 @@ export class PrologueScene extends AbstractShowcase {
     ];
   }
 
-  private async _loadPropKits(): Promise<void> {
-    const gltfLoader = new GltfLoader();
-
-    // 1. Františeks Kaffeemühle (Bunker Kit)
+  private async _loadLevelProps(): Promise<void> {
     try {
-      const grinderGltf = await gltfLoader.load("/assets/kits/bunker/coffee_grinder/model.glb");
-      grinderGltf.name = "CoffeeGrinder_GLTF";
-      grinderGltf.scale.set(0.35, 0.35, 0.35);
-      grinderGltf.position.set(-0.35, 0.78, -1.0);
-
-      grinderGltf.traverse((child) => {
-        if (child.material instanceof StandardMaterial) {
-          child.material.roughness = 0.82;
-          child.material.metallic = 0.25;
-        }
-      });
-
-      if (this._coffeeGrinderMesh) {
-        this.scene.remove(this._coffeeGrinderMesh);
-      }
-      this._coffeeGrinderMesh = grinderGltf;
-      this.scene.add(grinderGltf);
-    } catch (e) {
-      console.warn("[Prologue] Fallback to procedural coffee grinder:", e);
-    }
-
-    // 2. Amts-Terminal 2100 (Bunker Kit)
-    try {
-      const terminalGltf = await gltfLoader.load("/assets/kits/bunker/terminal_2100/model.glb");
-      terminalGltf.name = "HandheldTerminal_GLTF";
-      terminalGltf.scale.set(0.42, 0.42, 0.42);
-      terminalGltf.position.set(0, 0.95, 0.8);
-      terminalGltf.rotation.x = -Math.PI / 6;
-
-      terminalGltf.traverse((child) => {
-        if (child.material instanceof StandardMaterial) {
-          child.material.roughness = 0.78;
-          child.material.metallic = 0.3;
-        }
-      });
-
-      const [halfWidth, halfHeight, halfDepth] = this._measureLocalHalfExtents(terminalGltf);
-      terminalGltf.add(BunkerKit.createTerminalBoltSet({ halfWidth, halfHeight, halfDepth }));
-
-      if (this._terminalMesh) {
-        this.scene.remove(this._terminalMesh);
-      }
-      this._terminalMesh = terminalGltf;
-      this.scene.add(terminalGltf);
-    } catch (e) {
-      console.warn("[Prologue] Fallback to procedural terminal:", e);
-    }
-
-    // 3. Stockbett (Bunker Kit)
-    try {
-      const bunkGltf = await gltfLoader.load("/assets/kits/bunker/bunk_bed/model.glb");
-      bunkGltf.name = "BunkBed_GLTF";
-      bunkGltf.scale.set(1.15, 1.15, 1.15);
-      bunkGltf.position.set(1.5, 0, -0.6);
-
-      bunkGltf.traverse((child) => {
-        if (child.material instanceof StandardMaterial) {
-          child.material.roughness = 0.85;
-          child.material.metallic = 0.35;
-        }
-      });
-
-      if (this._bunkBedMesh) {
-        this.scene.remove(this._bunkBedMesh);
-      }
-      this._bunkBedMesh = bunkGltf;
-      this.scene.add(bunkGltf);
-    } catch (e) {
-      console.warn("[Prologue] Fallback to procedural bunk bed:", e);
-    }
-
-    // 4. Heavy Bunker Metal Desk (Bunker Kit)
-    try {
-      const deskGltf = await gltfLoader.load("/assets/kits/bunker/metal_desk/model.glb");
-      deskGltf.name = "MetalDesk_GLTF";
-      deskGltf.scale.set(0.75, 0.75, 0.75);
-      deskGltf.position.set(-0.6, 0, -1.0);
-
-      deskGltf.traverse((child) => {
-        if (child.material instanceof StandardMaterial) {
-          child.material.roughness = 0.75;
-          child.material.metallic = 0.45;
-        }
-      });
-
-      if (this._metalDeskMesh) {
-        this.scene.remove(this._metalDeskMesh);
-      }
-      this._metalDeskMesh = deskGltf;
-      this.scene.add(deskGltf);
-    } catch (e) {
-      console.warn("[Prologue] Failed to load metal desk prop:", e);
-    }
-
-    // 5. Industrial Metal Stool (Bunker Kit)
-    try {
-      const stoolGltf = await gltfLoader.load("/assets/kits/bunker/metal_stool/model.glb");
-      stoolGltf.name = "MetalStool_GLTF";
-      stoolGltf.scale.set(0.5, 0.5, 0.5);
-      stoolGltf.position.set(-0.6, 0, -0.4);
-      stoolGltf.rotation.y = 0.25;
-
-      stoolGltf.traverse((child) => {
-        if (child.material instanceof StandardMaterial) {
-          child.material.roughness = 0.7;
-          child.material.metallic = 0.55;
-        }
-      });
-
-      if (this._metalStoolMesh) {
-        this.scene.remove(this._metalStoolMesh);
-      }
-      this._metalStoolMesh = stoolGltf;
-      this.scene.add(stoolGltf);
-    } catch (e) {
-      console.warn("[Prologue] Failed to load metal stool prop:", e);
-    }
-
-    // 6. Grandfather's Brass Kerosene Lantern with Flame Glow Socket (Bunker Kit)
-    try {
-      const lanternGltf = await gltfLoader.load("/assets/kits/bunker/kerosene_lantern/model.glb");
-      lanternGltf.name = "KeroseneLantern_GLTF";
-      lanternGltf.scale.set(0.35, 0.35, 0.35);
-      lanternGltf.position.set(-0.9, 0.78, -1.0);
-
-      lanternGltf.traverse((child) => {
-        if (child.material instanceof StandardMaterial) {
-          child.material.roughness = 0.38;
-          child.material.metallic = 0.8;
-        }
-      });
-
-      // Socket FlameGlow point light
-      const flameLight = new PointLight({
-        name: "FlameGlow",
-        color: new Color(0.83, 0.6, 0.24), // #d49a3d amber-gold
-        intensity: 2.5,
-        distance: 6.0,
-      });
-      flameLight.position.set(0, 0.16, 0);
-      lanternGltf.add(flameLight);
-      this._lanternFlameLight = flameLight;
-
-      if (this._keroseneLanternMesh) {
-        this.scene.remove(this._keroseneLanternMesh);
-      }
-      this._keroseneLanternMesh = lanternGltf;
-      this.scene.add(lanternGltf);
-    } catch (e) {
-      console.warn("[Prologue] Failed to load kerosene lantern prop:", e);
-    }
-
-    // 7. Novotny's Laced Leather Combat Boots (Bunker Kit)
-    try {
-      const bootsGltf = await gltfLoader.load("/assets/kits/bunker/combat_boots/model.glb");
-      bootsGltf.name = "CombatBoots_GLTF";
-      bootsGltf.scale.set(0.35, 0.35, 0.35);
-      bootsGltf.position.set(0.85, 0, -0.6);
-      bootsGltf.rotation.y = 0.35;
-
-      bootsGltf.traverse((child) => {
-        if (child.material instanceof StandardMaterial) {
-          child.material.roughness = 0.85;
-          child.material.metallic = 0.1;
-        }
-      });
-
-      if (this._combatBootsMesh) {
-        this.scene.remove(this._combatBootsMesh);
-      }
-      this._combatBootsMesh = bootsGltf;
-      this.scene.add(bootsGltf);
-    } catch (e) {
-      console.warn("[Prologue] Failed to load combat boots prop:", e);
-    }
-
-    // 8. Wall Shelf with Folded Clothes & Supplies (Bunker Kit)
-    try {
-      const shelfGltf = await gltfLoader.load("/assets/kits/bunker/wall_shelf_supplies/model.glb");
-      shelfGltf.name = "WallShelfSupplies_GLTF";
-      shelfGltf.scale.set(0.45, 0.45, 0.45);
-      shelfGltf.position.set(-0.6, 1.45, -1.38);
-
-      shelfGltf.traverse((child) => {
-        if (child.material instanceof StandardMaterial) {
-          child.material.roughness = 0.88;
-          child.material.metallic = 0.1;
-        }
-      });
-
-      if (this._wallShelfMesh) {
-        this.scene.remove(this._wallShelfMesh);
-      }
-      this._wallShelfMesh = shelfGltf;
-      this.scene.add(shelfGltf);
-    } catch (e) {
-      console.warn("[Prologue] Failed to load wall shelf prop:", e);
-    }
-
-    // 9. Camp Tableware Mess Set (Bunker Kit)
-    try {
-      const messGltf = await gltfLoader.load("/assets/kits/bunker/mess_tin_set/model.glb");
-      messGltf.name = "MessTinSet_GLTF";
-      messGltf.scale.set(0.3, 0.3, 0.3);
-      messGltf.position.set(-0.6, 0.78, -0.92);
-
-      messGltf.traverse((child) => {
-        if (child.material instanceof StandardMaterial) {
-          child.material.roughness = 0.55;
-          child.material.metallic = 0.65;
-        }
-      });
-
-      if (this._messTinMesh) {
-        this.scene.remove(this._messTinMesh);
-      }
-      this._messTinMesh = messGltf;
-      this.scene.add(messGltf);
-    } catch (e) {
-      console.warn("[Prologue] Failed to load mess tin set prop:", e);
-    }
-
-    // 10. Stained Utility Towels on Wall Pegs (Bunker Kit)
-    try {
-      const towelsGltf = await gltfLoader.load("/assets/kits/bunker/hanging_towels/model.glb");
-      towelsGltf.name = "HangingTowels_GLTF";
-      towelsGltf.scale.set(0.4, 0.4, 0.4);
-      towelsGltf.position.set(-1.6, 1.5, -1.38);
-
-      towelsGltf.traverse((child) => {
-        if (child.material instanceof StandardMaterial) {
-          child.material.roughness = 0.95;
-          child.material.metallic = 0.05;
-        }
-      });
-
-      if (this._hangingTowelsMesh) {
-        this.scene.remove(this._hangingTowelsMesh);
-      }
-      this._hangingTowelsMesh = towelsGltf;
-      this.scene.add(towelsGltf);
-    } catch (e) {
-      console.warn("[Prologue] Failed to load hanging towels prop:", e);
-    }
-
-    // 11. Frayed Vintage Oriental Bunker Rug (Bunker Kit)
-    try {
-      const rugGltf = await gltfLoader.load("/assets/kits/bunker/worn_rug/model.glb");
-      rugGltf.name = "WornRug_GLTF";
-      rugGltf.scale.set(1.0, 1.0, 1.0);
-      rugGltf.position.set(0, 0.01, 0.0);
-
-      rugGltf.traverse((child) => {
-        if (child.material instanceof StandardMaterial) {
-          child.material.roughness = 0.95;
-          child.material.metallic = 0.0;
-        }
-      });
-
-      if (this._wornRugMesh) {
-        this.scene.remove(this._wornRugMesh);
-      }
-      this._wornRugMesh = rugGltf;
-      this.scene.add(rugGltf);
-    } catch (e) {
-      console.warn("[Prologue] Failed to load worn rug prop:", e);
-    }
-
-    // 12. Caged Heavy Industrial Bulkhead Ceiling Lamp with Bulb Light Socket (Flakturm Kit)
-    try {
-      const lampGltf = await gltfLoader.load("/assets/kits/flakturm/props/ceiling_lamp/model.glb");
-      lampGltf.name = "CeilingLamp_GLTF";
-      lampGltf.scale.set(0.35, 0.35, 0.35);
-      lampGltf.position.set(0, 3.08, 0);
-
-      lampGltf.traverse((child) => {
-        if (child.material instanceof StandardMaterial) {
-          child.material.roughness = 0.45;
-          child.material.metallic = 0.8;
-        }
-      });
-
-      const bulbLight = new PointLight({
-        name: "BulbLight",
-        color: new Color(0.86, 0.91, 0.96), // #dbe8f5 cool white
-        intensity: 2.0,
-        distance: 7.5,
-      });
-      bulbLight.position.set(0, -0.05, 0);
-      lampGltf.add(bulbLight);
-
-      if (this._ceilingLampMesh) {
-        this.scene.remove(this._ceilingLampMesh);
-      }
-      this._ceilingLampMesh = lampGltf;
-      this.scene.add(lampGltf);
-    } catch (e) {
-      console.warn("[Prologue] Failed to load ceiling lamp prop:", e);
-    }
-
-    // 13. Flakturm Ventilation Escape Shaft & Grille (Flakturm Kit — East Wall opposite door)
-    try {
-      const ventGltf = await gltfLoader.load(
-        "/assets/kits/flakturm/props/vent_wall_breach/model.glb",
+      const level = await this._kitRegistry.loadLevel(
+        "/scenes/prologue/koje42.level.json",
+        this.scene,
       );
-      ventGltf.name = "VentWallBreach_GLTF";
-      ventGltf.scale.set(0.6, 0.6, 0.6);
-      ventGltf.position.set(2.38, 0.35, 0.8);
-      ventGltf.rotation.y = -Math.PI / 2;
 
-      ventGltf.traverse((child) => {
-        if (child.material instanceof StandardMaterial) {
-          child.material.roughness = 0.7;
-          child.material.metallic = 0.55;
-        }
-      });
-
-      if (this._ventGrate) {
-        this.scene.remove(this._ventGrate);
+      const deskInst = level.props.get("MetalDesk");
+      if (deskInst) {
+        if (this._metalDeskMesh) this.scene.remove(this._metalDeskMesh);
+        this._metalDeskMesh = deskInst.root;
       }
-      this._ventGrate = ventGltf;
-      this.scene.add(ventGltf);
+
+      const lanternInst = level.props.get("KeroseneLantern");
+      if (lanternInst) {
+        this._lanternFlameLight = lanternInst.lights.get("FlameGlow") as PointLight;
+      }
+
+      const grinderInst = level.props.get("CoffeeGrinder");
+      if (grinderInst) {
+        if (this._coffeeGrinderMesh) this.scene.remove(this._coffeeGrinderMesh);
+        this._coffeeGrinderMesh = grinderInst.root;
+      }
+
+      const shelfInst = level.props.get("WallShelfSupplies");
+      if (shelfInst) {
+        if (this._wallShelfMesh) this.scene.remove(this._wallShelfMesh);
+      }
+
+      const bunkInst = level.props.get("BunkBed");
+      if (bunkInst) {
+        if (this._bunkBedMesh) this.scene.remove(this._bunkBedMesh);
+        this._bunkBedMesh = bunkInst.root;
+      }
+
+      const ventInst = level.props.get("VentWallBreach");
+      if (ventInst) {
+        if (this._ventGrate) this.scene.remove(this._ventGrate);
+        this._ventGrate = ventInst.root;
+      }
+
+      const doorBeam = level.lights.get("DoorHallwayBeam") as SpotLight;
+      if (doorBeam) {
+        this._doorSpot = doorBeam;
+      }
+
+      // Amts-Terminal 2100 with procedural bolt set
+      const termInst = await this._kitRegistry.loadProp("bunker/terminal_2100", {
+        position: [0, 0.95, 0.8],
+        rotation: [-Math.PI / 6, 0, 0],
+        scale: 0.42,
+        materialOverrides: { roughness: 0.78, metallic: 0.3 },
+      });
+      const [halfWidth, halfHeight, halfDepth] = this._measureLocalHalfExtents(termInst.root);
+      termInst.root.add(BunkerKit.createTerminalBoltSet({ halfWidth, halfHeight, halfDepth }));
+      if (this._terminalMesh) this.scene.remove(this._terminalMesh);
+      this._terminalMesh = termInst.root;
+      this.scene.add(termInst.root);
+
+      // Register Hotspots directly from declarative level descriptor
+      this._levelHotspots = level.hotspots;
+      this._setupLevelHotspots(this._levelHotspots);
     } catch (e) {
-      console.warn("[Prologue] Fallback to procedural vent grate:", e);
+      console.warn("[Prologue] Level load error:", e);
     }
 
-    // 14. Kältekammer Leichenschublade K-42 ID plate decal
+    // Kältekammer Leichenschublade K-42 ID plate decal
     try {
       const idPlateTexture = await Texture.fromUrl("/assets/kits/flakturm/decals/sign_koje42.png");
       const idPlate = this._morgueTrayMesh?.getObjectByName("IdPlate");
@@ -1292,94 +1018,35 @@ export class PrologueScene extends AbstractShowcase {
     }
   }
 
-  private _setupKojeHotspots(): void {
+  private _setupLevelHotspots(hotspotDefs: LevelHotspotDef[]): void {
     if (!this._hotspotManager) return;
     this._hotspotManager.clearHotspots();
 
-    const spots: HotspotAction[] = [
-      {
-        id: "grinder",
-        name: "Františeks Kaffeemühle",
-        position: new Vector3D(-0.35, 0, -0.8),
-        interactionRadius: 1.2,
-        promptText: "Kaffeemühle untersuchen",
-        monologueTitle: "Františeks Kaffeemühle",
-        monologueText: [
-          "Aus massivem Nussbaumholz und Messing. Großvater František hat sie vor 50 Jahren aus der alten Welt gerettet.",
-          "Er hat mir beigebracht, getrocknete Gerste und geröstete Eicheln zu mahlen... 'Ein Wiener ohne seinen Kaffee ist kein Mensch, Novotny.'",
-          "Im doppelten Mahlwerk-Boden: Eine Packung trockene Zündhölzer. Ich stecke sie ein.",
-        ],
-      },
-      {
-        id: "desk_supplies",
-        name: "Schreibtisch & Vorräte",
-        position: new Vector3D(-0.7, 0, -0.6),
-        interactionRadius: 1.3,
-        promptText: "Arbeitsplatz & Vorräte durchsuchen",
-        monologueTitle: "Františeks Arbeitsplatz",
-        monologueText: [
-          "Ein abgewetzter Stahltisch mit Emaillegeschirr, gefalteten Wollpullovern und der Messing-Petroleumlampe.",
-          "Auf einem Zettel unter der Lampe stehen Notizen über ungewöhnliche Stromschwankungen in Sektor 0.",
-          "František wusste, dass in der Kältekammer etwas nicht stimmte.",
-        ],
-      },
-      {
-        id: "bed",
-        name: "Stockbett & Stiefel",
-        position: new Vector3D(1.2, 0, -0.6),
-        interactionRadius: 1.4,
-        promptText: "Františeks Lager & Stiefel untersuchen",
-        monologueTitle: "Das leere Lager",
-        monologueText: [
-          "Die raue Wolldecke ist noch zerknittert. Gestern Abend saß er hier und summte ein altes Lied über den Wienerwald.",
-          "Seine schweren Lederstiefel stehen noch unterm Bett. Er hat sie extra stehen lassen, um im Schacht keine lauten Schritte zu machen.",
-        ],
-      },
-      {
-        id: "terminal",
-        name: "Amts-Terminal 2100",
-        position: new Vector3D(0, 0, 0.8),
-        interactionRadius: 1.3,
-        promptText: "Amts-Terminal 2100 öffnen",
-        monologueTitle: "Amtsrat 4.1 Feldcomputer",
-        monologueText: [
-          "Das gepanzerte Amts-Terminal, das Hawelka mir zugeworfen hat. Der Bildschirm flackert bernsteinfarben.",
-          "Akte GZ 2100-AZS/STERBEFALL-0815 ist versiegelt. Todesursache offiziell: Herz-Kreislauf-Versagen... Angeordnet von Hofrat Brandstätter.",
-        ],
-        onInteract: (): void => {
+    for (const def of hotspotDefs) {
+      let onInteract: (() => void) | undefined;
+      if (def.action === "open_terminal") {
+        onInteract = (): void => {
           setTimeout(() => this._terminalModal?.open("case"), 200);
-        },
-      },
-      {
-        id: "door",
-        name: "Gepanzerte Panzertür",
-        position: new Vector3D(-2.2, 0, 0.5),
-        interactionRadius: 1.3,
-        promptText: "Schleusentür prüfen",
-        monologueTitle: "Verriegelter Flur",
-        monologueText: [
-          "Schwere Stahlriegel halten die Tür von außen zu. Hawelka hat sie nach dem Alarm zugeworfen.",
-          "Auf dem Gang patrouillieren Pollaks Schleusenwachen. Ein Ausbruch durch die Haupttür wäre Selbstmord.",
-        ],
-      },
-      {
-        id: "vent",
-        name: "Lüftungsschacht / Fluchtweg",
-        position: new Vector3D(2.0, 0, 0.8),
-        interactionRadius: 1.3,
-        promptText: "Lüftungsgitter öffnen & in Schacht klettern",
-        monologueTitle: "Der geheime Fluchtweg",
-        monologueText: [
-          "An der Ostwand, dicht über dem feuchten Boden: Das schwere Eisengitter ist bereits aufgeschraubt.",
-          "Dahinter pfeift eisige Ammoniakluft herauf: Der Schacht führt direkt in die Kältekammer K-42...",
-        ],
-        onInteract: (): void => {
+        };
+      } else if (def.action === "transition_kaeltekammer") {
+        onInteract = (): void => {
           this.transitionToKaeltekammer();
-        },
-      },
-    ];
+        };
+      }
 
-    spots.forEach((s) => this._hotspotManager?.registerHotspot(s));
+      const hotspot: HotspotAction = {
+        id: def.id,
+        name: def.name,
+        position: new Vector3D(def.position[0], def.position[1], def.position[2]),
+        interactionRadius: def.interactionRadius ?? 1.3,
+        promptText: def.promptText,
+        monologueTitle: def.monologueTitle,
+        monologueText: def.monologueText,
+        onInteract,
+      };
+
+      this._hotspotManager.registerHotspot(hotspot);
+    }
   }
 
   private _setupKaeltekammerHotspots(): void {

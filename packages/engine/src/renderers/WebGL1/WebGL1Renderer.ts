@@ -1298,6 +1298,8 @@ export class WebGL1Renderer extends AbstractWebGLRenderer {
     this._cache.clear();
     this._texCache.clear();
     this._texCubeCache.clear();
+    this._texRefCounts.clear();
+    this._texCubeRefCounts.clear();
     this._renderTargetFbos.clear();
     this._renderTargetDepthBuffers.clear();
     this._scratchTransparentMap.clear();

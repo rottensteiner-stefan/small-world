@@ -520,5 +520,6 @@ export class GPUPipelineCache {
     this._pipelines.clear();
     this._shaderModules.clear();
     this._materialBGLCache.clear();
+    this._warnedMaterialTextureBudget.clear();
   }
 }

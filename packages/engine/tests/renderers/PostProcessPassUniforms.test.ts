@@ -157,4 +157,28 @@ describe("PostProcessPass: continuous tuning values never rebuild the pipeline",
     expect(d[20]).toBeCloseTo(1.2); // grading0.x: contrast
     expect(d[30]).toBeCloseTo(0.9); // grading2.z: gainR
   });
+
+  it("rebuilds bind groups but NEVER rebuilds pipeline when only texture views change (BLK-R3)", () => {
+    const { device } = makeMockDevice();
+    const group = makeGroup();
+    const renderer = makeMockRenderer(device, group);
+    const pass = new PostProcessPass() as PassInternals;
+    const ce = (device as PassInternals).__commandEncoder;
+
+    // Frame 1
+    pass.execute(renderer, {}, ce, {}, new Float32Array(16), { x: 0, y: 0, z: 0 });
+    expect(device.createRenderPipeline).toHaveBeenCalledTimes(1);
+    expect(device.createBindGroup).toHaveBeenCalledTimes(1);
+
+    // Frame 2 with different texture views (e.g. dynamic bloom/hdr views)
+    renderer.hdrTextureView = {};
+    renderer.bloomTextureView = {};
+    pass.execute(renderer, {}, ce, {}, new Float32Array(16), { x: 0, y: 0, z: 0 });
+
+    // Pipeline must NOT be recompiled or recreated
+    expect(device.createRenderPipeline).toHaveBeenCalledTimes(1);
+    expect(device.createShaderModule).toHaveBeenCalledTimes(2); // Still only initial 2 modules
+    // Bind group must be recreated with the new views
+    expect(device.createBindGroup).toHaveBeenCalledTimes(2);
+  });
 });

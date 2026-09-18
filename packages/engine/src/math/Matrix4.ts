@@ -574,21 +574,56 @@ export class Matrix4 {
     target.data[13] = y;
     target.data[14] = z;
   }
-  public static scale(x: number, y: number | Matrix4, z?: number, target?: Matrix4): void {
-    if (y instanceof Matrix4) {
-      const m = y;
-      const s = x;
-      m.identity();
-      m.data[0] = s;
-      m.data[5] = s;
-      m.data[10] = s;
-      return;
+  /**
+   * Sets the target matrix to a uniform scale matrix (or creates a new Matrix4).
+   * @param s The uniform scale factor.
+   * @param target Optional target matrix to write into.
+   */
+  public static scale(s: number, target?: Matrix4): Matrix4;
+  /**
+   * Sets the target matrix to a non-uniform scale matrix (or creates a new Matrix4).
+   * @param x Scale along X axis.
+   * @param y Scale along Y axis.
+   * @param z Scale along Z axis.
+   * @param target Optional target matrix to write into.
+   */
+  public static scale(x: number, y: number, z: number, target?: Matrix4): Matrix4;
+  /**
+   * Implementation for uniform or non-uniform scale matrix creation/mutation.
+   */
+  public static scale(
+    x: number,
+    yOrTarget?: number | Matrix4,
+    z?: number,
+    target?: Matrix4,
+  ): Matrix4 {
+    let out: Matrix4;
+    let sx: number;
+    let sy: number;
+    let sz: number;
+
+    if (yOrTarget instanceof Matrix4) {
+      out = yOrTarget;
+      sx = x;
+      sy = x;
+      sz = x;
+    } else if (typeof yOrTarget === "number") {
+      sx = x;
+      sy = yOrTarget;
+      sz = typeof z === "number" ? z : 1;
+      out = target ?? new Matrix4();
+    } else {
+      out = new Matrix4();
+      sx = x;
+      sy = x;
+      sz = x;
     }
-    const m = target!;
-    m.identity();
-    m.data[0] = x;
-    m.data[5] = y as number;
-    m.data[10] = z!;
+
+    out.identity();
+    out.data[0] = sx;
+    out.data[5] = sy;
+    out.data[10] = sz;
+    return out;
   }
 
   public static readonly ZO_CORRECTION: Matrix4 = ((): Matrix4 => {

@@ -33,5 +33,22 @@ describe("WebGPU spot-light shadows use PCSS", () => {
         "getShadowPCF(u_dirShadowMap, shadowSampler, shadowPosB, nextCascade, global.dirShadowInfo.x)",
       );
     });
+
+    it(`${file}: spot-light shadow array access is guarded against out-of-bounds index (BLK-R2)`, () => {
+      const source = readWgsl(file);
+      expect(source).toContain("if (j < 4u && global.spotShadowInfo[j].z > 0.5)");
+    });
+  }
+
+  const glslFiles = [
+    "packages/engine/src/core/renderers/shaders/source/web_gl2/chunks/light_calc.frag.glsl",
+    "packages/engine/src/core/renderers/shaders/source/web_gl2/chunks/light_calc_pbr.frag.glsl",
+  ];
+
+  for (const file of glslFiles) {
+    it(`${file}: spot-light shadow array access is guarded against out-of-bounds index (BLK-R2)`, () => {
+      const source = readWgsl(file);
+      expect(source).toContain("if (i < 4 && u_spotShadowInfo[i].z > 0.5)");
+    });
   }
 });

@@ -1796,3 +1796,40 @@ befüllen.
 - **QA & Build-Status:**
   - 146 Testsuiten (835 Tests) zu 100% grün.
   - `npm run lint` und `npm run build:lib` fehlerfrei.
+
+### 137. Deklarative Level-Deskriptoren (`koje42.level.json`), Engine `KitRegistry` & Schema-Validierung (2026-09-18)
+- **Architektur-Meilenstein (ADR 0020 & Masterplan 0):**
+  - Vollständiger Übergang von imperativen, hartkodierten TypeScript-Szenen zu deklarativen Level-Deskriptoren (`*.level.json`) und automatischer Kit-Metadaten-Verarbeitung.
+- **Engine-Erweiterung (`KitRegistry`):**
+  - Neue Schnittstelle `KitRegistry` in `packages/engine/src/loaders/kit/KitRegistry.ts` (Dependency Injection, instanzbasiert, strikt kein globaler Singleton).
+  - Automatisches Auslesen von `meta.json` (`recommendedScale`, Sockets wie `FlameGlow`, `BulbLight` mit automatischer `PointLight`/`SpotLight`-Erzeugung).
+  - Zweistufige Hierarchie: Prefab-Defaults aus `meta.json` vs. Instanz-Overrides aus `.level.json` (`lightOverrides`, `materialOverrides`).
+  - Unit-Tests: `packages/engine/tests/loaders/KitRegistry.test.ts` (5/5 Tests grün).
+- **Level-Schema & Validierung:**
+  - `public/schemas/level.schema.json` (JSON Schema Draft 2020-12) definiert formale Spezifikation für Level (`props`, `lights`, `hotspots`, `stageZone`, `environment`).
+  - Unit-Tests: `packages/engine/tests/loaders/LevelValidation.test.ts` validiert Schemakonformität via Ajv (4/4 Tests grün).
+- **Deklarative Koje 42 (`koje42.level.json`):**
+  - Vollständige Extraktion aller 12 Props, Wandlichter, Scheinwerfer und 6 interaktiven Story-Hotspots aus `prologue.ts` in `koje42.level.json`.
+- **Refactoring `prologue.ts`:**
+  - Trennung von Dressing (JSON) und Story-Controller (TypeScript).
+  - Laden des Raums über `await this._kitRegistry.loadLevel("/scenes/prologue/koje42.level.json", this.scene)`.
+  - Dynamische Bindung von Level-Hotspots (`open_terminal`, `transition_kaeltekammer`).
+- **QA & Build:**
+  - 148 Testsuiten (844 Tests) zu 100% grün.
+  - `npm run lint` (0 Fehler, 0 Warnungen) und `npm run build:lib` fehlerfrei.
+### 138. Thermo-Nuclear Code Quality Review: Blocker-Sanierung & Release v0.82.0 (2026-09-18)
+- **Repository-Weite Blocker-Bereinigung (P0):**
+  - **[BLK-R1]**: Puffer-Reallokation in `WebGLClusterCullPass` entkoppelt und Zuweisungs-Desyncs bei Clustered Lighting behoben.
+  - **[BLK-R2]**: Out-of-Bounds Spot Shadow Array-Zugriffe in WGSL (`lighting.wgsl`, `lighting_pbr.wgsl`) und GLSL (`light_calc.frag.glsl`, `light_calc_pbr.frag.glsl`) abgesichert.
+  - **[BLK-R3]**: 60-FPS WebGPU Pipeline-Rebuild Churn im Post-Processing (`BloomPassGPU`, `PostProcessPass`) durch Texture-View Caching eliminiert.
+  - **[BLK-R4]**: Stale Directional-Light-Referenzen in `AbstractRenderer.extractLights()` beim Ausblenden von Sonnenlichtern bereinigt.
+  - **[BLK-R5]**: Fallback-Kaskade (`WebGPU` $\to$ `WebGL2` $\to$ `WebGL1`) in `RendererFactory` gegen Driver-Blocklists und Kontextfehler gehärtet.
+  - **[BLK-C1]**: 2D GPU-Textur- und Ref-Count-Lecks bei `WebGLTextureManager.dispose()` behoben.
+  - **[BLK-C2]**: Physics Broadphase Octree Bounds Aktualisierung (`PhysicsBroadphase.update()`) für dynamisch wandernde Collider korrigiert.
+  - **[BLK-C3]**: `Matrix4.scale()` Overload-Signaturen und Fallback-Validierung für aufrufende Codes ohne `target` repariert.
+- **QA & Build-Status:**
+  - 150 Testsuiten (865 Tests) zu 100% grün.
+  - `npm run typecheck`, `npm run lint` und `npm run build:lib` fehlerfrei.
+  - Version Bump auf `0.82.0`.
+
+

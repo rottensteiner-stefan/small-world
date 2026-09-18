@@ -369,5 +369,10 @@ export class WebGLTextureManager {
   public dispose(): void {
     for (const tex of this._texCubeCache.values()) this._gl.deleteTexture(tex);
     this._texCubeCache.clear();
+    this._texCubeRefCounts.clear();
+
+    for (const tex of this._texCache.values()) this._gl.deleteTexture(tex);
+    this._texCache.clear();
+    this._texRefCounts.clear();
   }
 }

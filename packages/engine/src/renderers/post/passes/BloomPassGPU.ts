@@ -24,6 +24,9 @@ export class BloomPassGPU {
   private _mipCount = 1;
   private _builtSourceView?: GPUTextureView;
 
+  private _downUniformData = new Float32Array(8);
+  private _upUniformData = new Float32Array(4);
+
   constructor(device: GPUDevice) {
     this._device = device;
     this._buildPipelines();
@@ -200,16 +203,15 @@ export class BloomPassGPU {
       const destW = Math.max(1, Math.floor(this._width / Math.pow(2, i)));
       const destH = Math.max(1, Math.floor(this._height / Math.pow(2, i)));
 
-      const data = new Float32Array([
-        threshold,
-        threshold - knee,
-        2.0 * knee,
-        0.25 / knee,
-        1.0 / currentW,
-        1.0 / currentH,
-        i === 0 ? 1.0 : 0.0, // isFirstPass
-        0.0, // padding
-      ]);
+      const data = this._downUniformData;
+      data[0] = threshold;
+      data[1] = threshold - knee;
+      data[2] = 2.0 * knee;
+      data[3] = 0.25 / knee;
+      data[4] = 1.0 / currentW;
+      data[5] = 1.0 / currentH;
+      data[6] = i === 0 ? 1.0 : 0.0; // isFirstPass
+      data[7] = 0.0; // padding
       this._device.queue.writeBuffer(this._uniformBuffers[i]!, 0, data);
 
       const rp = ce.beginRenderPass({
@@ -238,12 +240,11 @@ export class BloomPassGPU {
       const srcH = Math.max(1, Math.floor(this._height / Math.pow(2, i + 1)));
 
       const bufIdx = this._mipCount + i;
-      const data = new Float32Array([
-        1.0 / srcW,
-        1.0 / srcH,
-        bloomConfig.radius,
-        0.0, // padding
-      ]);
+      const data = this._upUniformData;
+      data[0] = 1.0 / srcW;
+      data[1] = 1.0 / srcH;
+      data[2] = bloomConfig.radius;
+      data[3] = 0.0; // padding
       this._device.queue.writeBuffer(this._uniformBuffers[bufIdx]!, 0, data);
 
       const rp = ce.beginRenderPass({
@@ -264,7 +265,7 @@ export class BloomPassGPU {
     }
 
     // Return the largest mip view (index 0) containing the final combined bloom blur
-    return this._bloomTexture.createView({ baseMipLevel: 0, mipLevelCount: 1 });
+    return this._mipViews[0] ?? null;
   }
 
   public destroy(): void {

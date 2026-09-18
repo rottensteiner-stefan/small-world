@@ -66,8 +66,10 @@ export class PhysicsBroadphase {
     this._worldMax.z += BROADPHASE_EPSILON;
 
     if (!this._tree) {
-      this._tree = new Octree(new BoundingBox(this._worldMin, this._worldMax));
+      this._tree = new Octree(new BoundingBox(this._worldMin.clone(), this._worldMax.clone()));
     } else {
+      this._tree.root.bounds.min.copyFrom(this._worldMin);
+      this._tree.root.bounds.max.copyFrom(this._worldMax);
       this._tree.root.bounds.center.copyFrom(this._worldMin).add(this._worldMax).scale(0.5);
       this._tree.clear();
     }

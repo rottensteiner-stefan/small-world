@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.82.0] - 2026-09-18
+
+### "The purpose of computing is insight, not numbers." - Richard Hamming
+
+- **Features:**
+  - *Declarative Level & Kit Pipeline*: Implemented [`KitRegistry`](packages/engine/src/loaders/kit/KitRegistry.ts) and JSON Schema draft 2020-12 validation ([`level.schema.json`](public/schemas/level.schema.json)) for declarative scene descriptors, socket light mounting, and procedural kit fallback (ADR 0020).
+  - *The Whisper*: Koje-42 prologue scene migrated to declarative descriptor [`koje42.level.json`](apps/sample-apps/the-whisper/scenes/prologue/koje42.level.json).
+- **Architecture & Bugfixes:**
+  - Resolved 8 critical repository-wide P0 blocker findings from the Thermo-Nuclear Code Quality Review:
+    - **[BLK-R1]**: Fixed WebGL2 clustered lighting cell buffer starvation and allocation desync in [`WebGLClusterCullPass`](packages/engine/src/renderers/passes/WebGLClusterCullPass.ts).
+    - **[BLK-R2]**: Added bounds checks to WGSL and GLSL clustered lighting shaders (`lighting.wgsl`, `lighting_pbr.wgsl`, `light_calc.frag.glsl`, `light_calc_pbr.frag.glsl`) to prevent out-of-bounds spot shadow uniform reads.
+    - **[BLK-R3]**: Eliminated 60-FPS WebGPU render pipeline re-compilation churn in [`BloomPassGPU`](packages/engine/src/renderers/post/passes/BloomPassGPU.ts) and [`PostProcessPass`](packages/engine/src/renderers/passes/PostProcessPass.ts) by caching mip texture views and decoupling bind groups.
+    - **[BLK-R4]**: Fixed stale directional light reference leaks in [`AbstractRenderer.extractLights()`](packages/engine/src/renderers/AbstractRenderer.ts).
+    - **[BLK-R5]**: Hardened [`RendererFactory`](packages/engine/src/renderers/RendererFactory.ts) candidate cascade (WebGPU $\to$ WebGL2 $\to$ WebGL1) against driver blocklists and context creation failures.
+    - **[BLK-C1]**: Resolved 2D GPU texture and ref-count leaks on engine teardown in [`WebGLTextureManager.dispose()`](packages/engine/src/renderers/WebGL2/managers/WebGLTextureManager.ts).
+    - **[BLK-C2]**: Fixed broadphase Octree bounding extents freezing bug on moving colliders in [`PhysicsBroadphase`](packages/engine/src/physix/broadphase/PhysicsBroadphase.ts).
+    - **[BLK-C3]**: Fixed `TypeError` crash on 3-parameter calls without target in [`Matrix4.scale()`](packages/engine/src/math/Matrix4.ts) with strict overload signatures and fallback instantiation.
+- **Housekeeping & Docs:**
+  - Added **ADR 0020**: [Declarative Level Descriptors & Kit Runtime](docs/adr/0020-declarative-level-descriptors-and-kit-runtime.md).
+  - Conducted repository-wide Thermo-Nuclear Code Quality Review ([`.agents/notes/thermo-nuclear-codebase-review.md`](.agents/notes/thermo-nuclear-codebase-review.md)).
+  - Expanded unit test suite coverage across all fixed blocker paths to 865 passing tests across 150 test suites.
+
 ## [0.81.0] - 2026-09-18
 
 ### "A pile of rocks ceases to be a rock pile the moment a single man contemplates it, carrying within him the image of a cathedral." - Antoine de Saint-Exupéry

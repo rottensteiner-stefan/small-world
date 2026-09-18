@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { AbstractWebGLRenderer } from "../../src/renderers/AbstractWebGLRenderer.js";
 import { type WebGLRenderPass } from "../../src/renderers/WebGLRenderPass.js";
 import { Scene } from "../../src/core/Scene.js";
+import { DirectionalLight } from "../../src/core/lights/DirectionalLight.js";
 import { RendererType } from "../../src/enums/index.js";
 
 // Dummy implementation of the abstract base class
@@ -72,5 +73,35 @@ describe("AbstractWebGLRenderer Pass System", () => {
     const order1 = (pass1.execute as import("vitest").Mock).mock.invocationCallOrder[0]!;
     const order2 = (pass2.execute as import("vitest").Mock).mock.invocationCallOrder[0]!;
     expect(order1).toBeLessThan(order2);
+  });
+
+  it("clears stale dLight reference when directional light is removed or hidden (BLK-R4)", () => {
+    const mockGL = {
+      canvas: {},
+    } as unknown as WebGL2RenderingContext;
+    const renderer = new TestWebGLRenderer(mockGL);
+    const scene = new Scene();
+
+    const dLight = new DirectionalLight();
+    scene.add(dLight);
+
+    // Frame 1: dLight is active
+    let extracted = renderer.extractLights(scene);
+    expect(extracted.dLight).toBe(dLight);
+
+    // Frame 2: dLight is hidden
+    dLight.isVisible = false;
+    extracted = renderer.extractLights(scene);
+    expect(extracted.dLight).toBeUndefined();
+
+    // Frame 3: dLight is made visible again
+    dLight.isVisible = true;
+    extracted = renderer.extractLights(scene);
+    expect(extracted.dLight).toBe(dLight);
+
+    // Frame 4: dLight is removed from scene
+    scene.remove(dLight);
+    extracted = renderer.extractLights(scene);
+    expect(extracted.dLight).toBeUndefined();
   });
 });

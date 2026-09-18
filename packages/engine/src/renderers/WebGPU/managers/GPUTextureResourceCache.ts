@@ -412,8 +412,10 @@ export class GPUTextureResourceCache {
   public dispose(): void {
     for (const entry of this._textureViewCache.values()) entry.texture.destroy();
     this._textureViewCache.clear();
+    this._texRefCounts.clear();
     this._samplerCache.clear();
     for (const entry of this._cubeTextureViewCache.values()) entry.texture.destroy();
     this._cubeTextureViewCache.clear();
+    this._texCubeRefCounts.clear();
   }
 }

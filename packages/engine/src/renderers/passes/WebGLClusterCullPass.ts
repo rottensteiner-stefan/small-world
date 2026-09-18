@@ -61,6 +61,8 @@ export class WebGLClusterCullPass implements WebGLRenderPass {
 
     if (this._grid.length < gridHeight * CLUSTER_TEX_WIDTH * 4) {
       this._grid = new Uint32Array(gridHeight * CLUSTER_TEX_WIDTH * 4);
+    }
+    if (this._pointCounts.length < numClusters) {
       this._pointCounts = new Uint8Array(numClusters);
       this._spotCounts = new Uint8Array(numClusters);
     }

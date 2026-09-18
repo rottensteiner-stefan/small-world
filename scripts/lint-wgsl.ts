@@ -2,9 +2,9 @@ import fs from "fs/promises";
 import path from "path";
 import { WgslReflect } from "wgsl_reflect/wgsl_reflect.module.js";
 
-const chunksDir = path.resolve("src/core/renderers/shaders/source/web_gpu/chunks");
-const localChunksDir = path.resolve("src/core/materials/shaders/chunks");
-const materialsDir = path.resolve("src/core/materials/shaders");
+const chunksDir = path.resolve("packages/engine/src/core/renderers/shaders/source/web_gpu/chunks");
+const localChunksDir = path.resolve("packages/engine/src/core/materials/shaders/chunks");
+const materialsDir = path.resolve("packages/engine/src/core/materials/shaders");
 
 async function loadChunksFromDir(dir: string, chunks: Map<string, string>) {
   try {

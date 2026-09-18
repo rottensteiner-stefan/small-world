@@ -6,10 +6,10 @@ export interface HotspotAction {
   position: Vector3D;
   interactionRadius: number;
   promptText: string;
-  monologueTitle: string;
-  monologueText: string[];
-  itemReward?: string;
-  onInteract?: () => void;
+  monologueTitle?: string | undefined;
+  monologueText?: string[] | undefined;
+  itemReward?: string | undefined;
+  onInteract?: (() => void) | undefined;
 }
 
 export class HotspotManager {
@@ -81,7 +81,9 @@ export class HotspotManager {
     if (!this._activeHotspot) return false;
 
     const spot = this._activeHotspot;
-    this.showMonologue(spot.monologueTitle, spot.monologueText);
+    if (spot.monologueText && spot.monologueText.length > 0) {
+      this.showMonologue(spot.monologueTitle ?? spot.name, spot.monologueText);
+    }
     if (spot.onInteract) {
       spot.onInteract();
     }

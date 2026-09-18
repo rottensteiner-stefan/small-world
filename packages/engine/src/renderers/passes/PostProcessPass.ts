@@ -76,18 +76,10 @@ export class PostProcessPass implements RenderPass {
     ].join("|");
   }
 
-  /**
-   * Lazily initialises or rebuilds the pipeline when the HDR texture changes.
-   */
-  private _build(
-    renderer: WebGPURenderer,
-    colorView: GPUTextureView,
-    bloomActiveView: GPUTextureView,
-    hbaoActiveView: GPUTextureView,
-    group: import("../post/index.js").PostProcessingGroup,
-  ): void {
-    const device = renderer.gpuDevice!;
+  private _bgl?: GPUBindGroupLayout;
+  private _pipelineLayout?: GPUPipelineLayout;
 
+  private _ensureResources(device: GPUDevice): void {
     this._sampler ??= device.createSampler({
       minFilter: TextureFilter.LINEAR,
       magFilter: TextureFilter.LINEAR,
@@ -95,14 +87,12 @@ export class PostProcessPass implements RenderPass {
       addressModeV: TextureWrap.CLAMP_TO_EDGE,
     });
 
-    if (!this._uniformBuffer) {
-      this._uniformBuffer = device.createBuffer({
-        size: 128, // DynUniforms: 8 x vec4f
-        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-      });
-    }
+    this._uniformBuffer ??= device.createBuffer({
+      size: 128, // DynUniforms: 8 x vec4f
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    });
 
-    const bgl = device.createBindGroupLayout({
+    this._bgl ??= device.createBindGroupLayout({
       entries: [
         { binding: 0, visibility: GPUShaderStage.FRAGMENT, sampler: {} },
         { binding: 1, visibility: GPUShaderStage.FRAGMENT, texture: { sampleType: "float" } },
@@ -112,7 +102,18 @@ export class PostProcessPass implements RenderPass {
       ],
     });
 
-    const layout = device.createPipelineLayout({ bindGroupLayouts: [bgl] });
+    this._pipelineLayout ??= device.createPipelineLayout({ bindGroupLayouts: [this._bgl] });
+  }
+
+  /**
+   * Lazily compiles or rebuilds the render pipeline when structural shader settings change.
+   */
+  private _buildPipeline(
+    renderer: WebGPURenderer,
+    group: import("../post/index.js").PostProcessingGroup,
+  ): void {
+    const device = renderer.gpuDevice!;
+    this._ensureResources(device);
 
     const vertModule = device.createShaderModule({ code: FULLSCREEN_VERT_WGSL });
     let assembledFrag = ShaderRegistry.instance.assemble(POST_PROCESS_FRAG_WGSL, "wgsl");
@@ -193,7 +194,7 @@ export class PostProcessPass implements RenderPass {
     const fragModule = device.createShaderModule({ code: assembledFrag });
 
     this._pipeline = device.createRenderPipeline({
-      layout,
+      layout: this._pipelineLayout!,
       vertex: { module: vertModule, entryPoint: "vs_main" },
       fragment: {
         module: fragModule,
@@ -202,13 +203,26 @@ export class PostProcessPass implements RenderPass {
       },
       primitive: { topology: Topology.TRIANGLE_LIST },
     });
+  }
+
+  /**
+   * Lazily re-creates the bind group when any of the bound texture views change.
+   */
+  private _buildBindGroup(
+    renderer: WebGPURenderer,
+    colorView: GPUTextureView,
+    bloomActiveView: GPUTextureView,
+    hbaoActiveView: GPUTextureView,
+  ): void {
+    const device = renderer.gpuDevice!;
+    this._ensureResources(device);
 
     this._bindGroup = device.createBindGroup({
-      layout: bgl,
+      layout: this._bgl!,
       entries: [
-        { binding: 0, resource: this._sampler },
+        { binding: 0, resource: this._sampler! },
         { binding: 1, resource: colorView },
-        { binding: 2, resource: { buffer: this._uniformBuffer } },
+        { binding: 2, resource: { buffer: this._uniformBuffer! } },
         { binding: 3, resource: bloomActiveView },
         { binding: 4, resource: hbaoActiveView },
       ],
@@ -248,16 +262,20 @@ export class PostProcessPass implements RenderPass {
 
     const sig = this._getSignature(group);
 
-    // Rebuild if we haven't built yet, if the signature changed, or if the texture views changed
+    // Rebuild pipeline ONLY if the structural shader signature changed
+    if (!this._pipeline || sig !== this._compiledSignature) {
+      this._buildPipeline(renderer, group);
+      this._compiledSignature = sig;
+    }
+
+    // Rebuild bind group ONLY if the bound texture views changed
     if (
-      !this._pipeline ||
-      sig !== this._compiledSignature ||
+      !this._bindGroup ||
       this._builtTextureView !== colorView ||
       this._builtBloomTextureView !== bloomActiveView ||
       this._builtHbaoTextureView !== hbaoActiveView
     ) {
-      this._build(renderer, colorView, bloomActiveView, hbaoActiveView, group);
-      this._compiledSignature = sig;
+      this._buildBindGroup(renderer, colorView, bloomActiveView, hbaoActiveView);
       this._builtTextureView = colorView;
       this._builtBloomTextureView = bloomActiveView;
       this._builtHbaoTextureView = hbaoActiveView;
@@ -339,5 +357,9 @@ export class PostProcessPass implements RenderPass {
     // No vertex buffer needed: vertex position is generated from vertex_index
     rp.draw(3);
     rp.end();
+  }
+
+  public destroy(): void {
+    this._uniformBuffer?.destroy();
   }
 }

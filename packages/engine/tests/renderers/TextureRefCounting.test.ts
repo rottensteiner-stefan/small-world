@@ -70,4 +70,21 @@ describe("WebGLTextureManager reference counting", () => {
     expect(gl.deleteTexture).not.toHaveBeenCalled();
     expect(texCache.has(rt)).toBe(true);
   });
+
+  it("deletes all 2D textures and clears cache on dispose (BLK-C1)", () => {
+    const { cache, gl, texCache } = makeCache();
+
+    const tex1 = Texture.empty();
+    const tex2 = Texture.empty();
+    const glTex1 = {};
+    const glTex2 = {};
+    texCache.set(tex1, glTex1);
+    texCache.set(tex2, glTex2);
+
+    cache.dispose();
+
+    expect(gl.deleteTexture).toHaveBeenCalledWith(glTex1);
+    expect(gl.deleteTexture).toHaveBeenCalledWith(glTex2);
+    expect(texCache.size).toBe(0);
+  });
 });

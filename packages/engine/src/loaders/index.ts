@@ -9,3 +9,4 @@ export * from "./GltfLoader.js";
 export * from "./gltf/index.js";
 export * from "./WorldWriter.js";
 export * from "./BinaryStreamLoader.js";
+export * from "./kit/index.js";

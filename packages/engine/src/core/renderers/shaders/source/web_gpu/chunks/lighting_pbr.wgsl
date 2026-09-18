@@ -184,7 +184,7 @@ for(var k=0u; k<spotCluster.y; k++) {
         let attenuation = distanceAttenuation * intensity;
         
         var shadow: f32 = 1.0;
-        if (global.spotShadowInfo[j].z > 0.5) {
+        if (j < 4u && global.spotShadowInfo[j].z > 0.5) {
             let shadowPos = global.spotShadowMatrices[j] * vec4f(i.wp + N * global.spotShadowInfo[j].y * (1.0 - max(dot(N, L), 0.0)), 1.0);
             shadow = getShadowPCSS(u_spotShadowMap, shadowSampler, shadowPos, j, global.spotShadowInfo[j].x);
         }

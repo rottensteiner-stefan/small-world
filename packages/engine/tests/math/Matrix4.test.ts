@@ -106,4 +106,44 @@ describe("Matrix4", () => {
     expect(up.y).toBeCloseTo(0);
     expect(up.z).toBeCloseTo(1);
   });
+
+  describe("scale static method [BLK-C3]", () => {
+    it("should handle uniform scale with target", () => {
+      const target = new Matrix4();
+      const res = Matrix4.scale(3, target);
+      expect(res).toBe(target);
+      expect(target.data[0]).toBe(3);
+      expect(target.data[5]).toBe(3);
+      expect(target.data[10]).toBe(3);
+      expect(target.data[15]).toBe(1);
+    });
+
+    it("should handle uniform scale without target", () => {
+      const res = Matrix4.scale(4);
+      expect(res).toBeInstanceOf(Matrix4);
+      expect(res.data[0]).toBe(4);
+      expect(res.data[5]).toBe(4);
+      expect(res.data[10]).toBe(4);
+      expect(res.data[15]).toBe(1);
+    });
+
+    it("should handle 3-number non-uniform scale without target [BLK-C3]", () => {
+      const res = Matrix4.scale(2, 3, 4);
+      expect(res).toBeInstanceOf(Matrix4);
+      expect(res.data[0]).toBe(2);
+      expect(res.data[5]).toBe(3);
+      expect(res.data[10]).toBe(4);
+      expect(res.data[15]).toBe(1);
+    });
+
+    it("should handle 3-number non-uniform scale with target", () => {
+      const target = new Matrix4();
+      const res = Matrix4.scale(5, 6, 7, target);
+      expect(res).toBe(target);
+      expect(target.data[0]).toBe(5);
+      expect(target.data[5]).toBe(6);
+      expect(target.data[10]).toBe(7);
+      expect(target.data[15]).toBe(1);
+    });
+  });
 });
