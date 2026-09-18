@@ -1,3 +1,11 @@
+import { NormalMapFormat } from "../../../enums/index.js";
+
+/**
+ * WHY: the 4-neighbour Laplacian returns roughly trowel-scale values; this fixed gain lifts
+ * crevice detail into a visible occlusion range instead of a flat ~0 response.
+ */
+const FINE_CREVICE_GAIN = 2.0;
+
 /** In-place two-pass (horizontal + vertical) sliding-window box blur on RGBA pixel data, edge-clamped. */
 export function fastBoxBlur(src: Uint8ClampedArray, w: number, h: number, r: number): void {
   if (r <= 0) return;
@@ -156,7 +164,7 @@ export function generateHeightMap(
 
 export interface NormalMapParams {
   strength: number;
-  format: string;
+  format: NormalMapFormat;
   invertR: boolean;
 }
 
@@ -191,7 +199,7 @@ export function generateNormalMap(
 
       // Inverts
       if (invertR) dx = -dx;
-      if (format === "directx") dy = -dy; // DirectX expects -Y (inverted green)
+      if (format === NormalMapFormat.DIRECTX) dy = -dy; // DirectX expects -Y (inverted green)
 
       // Scaling normal vectors
       const nx = -dx * strength;
@@ -311,7 +319,7 @@ export function generateAOMap(
 
       // Positive value means center is a valley (dark crevice)
       const laplacian = (top + bottom + left + right) / 4.0 - center;
-      const fineCrevice = Math.max(0, laplacian * 2.0); // Amplify slightly
+      const fineCrevice = Math.max(0, laplacian * FINE_CREVICE_GAIN);
 
       // Soft macro shadow (darker inside deeper valleys of soft height map)
       const softDepth = (softHeightPixels[idx]! || 0) / 255.0;

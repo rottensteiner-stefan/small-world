@@ -1,0 +1,24 @@
+{
+  "$schema": "../../../../schemas/prop-meta.schema.json",
+  "id": "bunker/combat_boots",
+  "name": "Novotny's Laced Leather Combat Boots",
+  "category": "props",
+  "kit": "bunker",
+  "version": "1.0.0",
+  "description": "Pair of rugged, scuffed post-apocalyptic lace-up leather work boots with heavy tread lug soles.",
+  "triangles": 12000,
+  "materials": 1,
+  "textures": [
+    "diffuse",
+    "normal",
+    "roughness_metallic"
+  ],
+  "dimensions": {
+    "width": 0.32,
+    "height": 0.28,
+    "depth": 0.34
+  },
+  "recommendedScale": 0.35,
+  "author": "Small World Studio",
+  "license": "CC0-1.0"
+}

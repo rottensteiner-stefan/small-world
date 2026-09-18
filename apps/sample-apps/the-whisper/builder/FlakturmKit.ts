@@ -26,6 +26,34 @@ export interface ConduitSegment {
   junctionAtEnd?: boolean;
 }
 
+export interface PillarOptions {
+  name?: string;
+  width?: number;
+  depth?: number;
+  height?: number;
+  hasCapital?: boolean;
+  hasBase?: boolean;
+  color?: Color;
+}
+
+export interface BeamOptions {
+  name?: string;
+  width?: number;
+  height?: number;
+  length?: number;
+  color?: Color;
+}
+
+export interface SegmentedWallOptions {
+  name?: string;
+  totalWidth?: number;
+  height?: number;
+  thickness?: number;
+  segmentWidth?: number;
+  baseboardHeight?: number;
+  hasPillars?: boolean;
+}
+
 /**
  * Flakturm Kit Modular Prop and Material Generator.
  * Provides procedurally styled brutalist props (fluorescent fixtures, electrical conduits, signs, debris)
@@ -391,6 +419,157 @@ export class FlakturmKit {
 
     doorHinge.add(doorLeaf);
     group.add(doorHinge);
+
+    return group;
+  }
+
+  /**
+   * Creates a reinforced concrete wall pillar / pilaster (ADR 0019) to break up long wall spans.
+   */
+  public static createPillar(options: PillarOptions = {}): Object3D {
+    const name = options.name ?? "ConcretePillar";
+    const width = options.width ?? 0.5;
+    const depth = options.depth ?? 0.5;
+    const height = options.height ?? 3.2;
+    const hasCapital = options.hasCapital ?? true;
+    const hasBase = options.hasBase ?? true;
+
+    const group = new Object3D(name);
+    const cubeGeo = new Cube({ size: 1.0 }).getGeometryData();
+    const concreteMat = new StandardMaterial({
+      color: options.color ?? new Color(0.2, 0.22, 0.25),
+      roughness: 0.9,
+      metallic: 0.1,
+    });
+
+    // Main Column Shaft
+    const shaft = new Object3D("PillarShaft");
+    shaft.geometry = cubeGeo;
+    shaft.material = concreteMat;
+    shaft.scale.set(width, height, depth);
+    shaft.position.set(0, height * 0.5, 0);
+    group.add(shaft);
+
+    // Stepped Base (Sockel)
+    if (hasBase) {
+      const base = new Object3D("PillarBase");
+      base.geometry = cubeGeo;
+      base.material = concreteMat;
+      base.scale.set(width * 1.15, 0.25, depth * 1.15);
+      base.position.set(0, 0.125, 0);
+      group.add(base);
+    }
+
+    // Capital / Head (Kämpferplatte unter Deckenbalken)
+    if (hasCapital) {
+      const cap = new Object3D("PillarCapital");
+      cap.geometry = cubeGeo;
+      cap.material = concreteMat;
+      cap.scale.set(width * 1.2, 0.2, depth * 1.2);
+      cap.position.set(0, height - 0.1, 0);
+      group.add(cap);
+    }
+
+    return group;
+  }
+
+  /**
+   * Creates a heavy reinforced concrete ceiling beam / girder (ADR 0019).
+   */
+  public static createBeam(options: BeamOptions = {}): Object3D {
+    const name = options.name ?? "ConcreteBeam";
+    const width = options.width ?? 0.4;
+    const height = options.height ?? 0.5;
+    const length = options.length ?? 6.0;
+
+    const group = new Object3D(name);
+    const cubeGeo = new Cube({ size: 1.0 }).getGeometryData();
+    const concreteMat = new StandardMaterial({
+      color: options.color ?? new Color(0.18, 0.2, 0.23),
+      roughness: 0.9,
+      metallic: 0.1,
+    });
+
+    const beamMesh = new Object3D("BeamMesh");
+    beamMesh.geometry = cubeGeo;
+    beamMesh.material = concreteMat;
+    beamMesh.scale.set(width, height, length);
+    beamMesh.position.set(0, -height * 0.5, 0);
+    group.add(beamMesh);
+
+    return group;
+  }
+
+  /**
+   * Creates a modular segmented wall according to the 4-pillar scale doctrine (ADR 0019).
+   * Partitions a wide wall into rhythmic panels, damp baseboard, and separating pilasters.
+   */
+  public static createSegmentedWall(options: SegmentedWallOptions = {}): Object3D {
+    const name = options.name ?? "SegmentedWall";
+    const totalWidth = options.totalWidth ?? 10.0;
+    const height = options.height ?? 3.2;
+    const thickness = options.thickness ?? 0.3;
+    const targetSegmentWidth = options.segmentWidth ?? 3.5;
+    const baseboardHeight = options.baseboardHeight ?? 0.8;
+    const hasPillars = options.hasPillars ?? true;
+
+    const group = new Object3D(name);
+    const cubeGeo = new Cube({ size: 1.0 }).getGeometryData();
+
+    const wallMat = new StandardMaterial({
+      color: new Color(0.2, 0.22, 0.25),
+      roughness: 0.9,
+      metallic: 0.1,
+    });
+
+    const dampBaseMat = new StandardMaterial({
+      color: new Color(0.12, 0.14, 0.16),
+      roughness: 0.95,
+      metallic: 0.05,
+    });
+
+    const numSegments = Math.max(1, Math.round(totalWidth / targetSegmentWidth));
+    const segmentWidth = totalWidth / numSegments;
+    const upperHeight = height - baseboardHeight;
+
+    for (let s = 0; s < numSegments; s++) {
+      const centerX = (s + 0.5) * segmentWidth - totalWidth * 0.5;
+
+      // 1. Damp Baseboard Panel
+      const basePanel = new Object3D(`BasePanel_${s}`);
+      basePanel.geometry = cubeGeo;
+      basePanel.material = dampBaseMat;
+      basePanel.scale.set(segmentWidth, baseboardHeight, thickness);
+      basePanel.position.set(centerX, baseboardHeight * 0.5, 0);
+      group.add(basePanel);
+
+      // 2. Upper Wall Panel (takes main concrete/panel texture)
+      const upperPanel = new Object3D(`UpperPanel_${s}`);
+      upperPanel.geometry = cubeGeo;
+      upperPanel.material = wallMat;
+      upperPanel.scale.set(segmentWidth, upperHeight, thickness);
+      upperPanel.position.set(centerX, baseboardHeight + upperHeight * 0.5, 0);
+      group.add(upperPanel);
+    }
+
+    // 3. Separating Pilasters between panels and at ends
+    if (hasPillars) {
+      const pillarWidth = 0.45;
+      const pillarDepth = thickness + 0.15;
+      for (let p = 0; p <= numSegments; p++) {
+        const px = p * segmentWidth - totalWidth * 0.5;
+        const pillar = this.createPillar({
+          name: `Pilaster_${p}`,
+          width: pillarWidth,
+          depth: pillarDepth,
+          height: height,
+          hasCapital: true,
+          hasBase: true,
+        });
+        pillar.position.set(px, 0, 0);
+        group.add(pillar);
+      }
+    }
 
     return group;
   }

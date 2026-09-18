@@ -82,4 +82,57 @@ describe("FlakturmKit Prop & Material Builder", () => {
     expect(hinge).toBeDefined();
     expect(hinge?.rotation.y).toBeCloseTo(Math.PI / 3);
   });
+
+  it("creates a reinforced concrete pillar with base and capital (ADR 0019)", () => {
+    const pillar = FlakturmKit.createPillar({
+      name: "HallPillar_1",
+      width: 0.6,
+      depth: 0.6,
+      height: 3.5,
+    });
+
+    expect(pillar.name).toBe("HallPillar_1");
+    expect(pillar.children.length).toBe(3); // shaft + base + capital
+    const shaft = pillar.children.find((c) => c.name === "PillarShaft");
+    const base = pillar.children.find((c) => c.name === "PillarBase");
+    const cap = pillar.children.find((c) => c.name === "PillarCapital");
+    expect(shaft).toBeDefined();
+    expect(base).toBeDefined();
+    expect(cap).toBeDefined();
+    expect(shaft?.scale.y).toBe(3.5);
+  });
+
+  it("creates a ceiling beam girder (ADR 0019)", () => {
+    const beam = FlakturmKit.createBeam({
+      name: "CeilingGirder_1",
+      length: 8.0,
+      width: 0.5,
+      height: 0.6,
+    });
+
+    expect(beam.name).toBe("CeilingGirder_1");
+    const mesh = beam.children.find((c) => c.name === "BeamMesh");
+    expect(mesh).toBeDefined();
+    expect(mesh?.scale.z).toBe(8.0);
+  });
+
+  it("creates a modular segmented wall with damp baseboard and pilasters (ADR 0019)", () => {
+    const wall = FlakturmKit.createSegmentedWall({
+      name: "NorthHallWall",
+      totalWidth: 10.0,
+      height: 3.2,
+      segmentWidth: 3.5,
+      hasPillars: true,
+    });
+
+    expect(wall.name).toBe("NorthHallWall");
+    // 10m / ~3.5m = 3 segments => 3 base panels + 3 upper panels + 4 pilasters
+    const basePanels = wall.children.filter((c) => c.name.startsWith("BasePanel_"));
+    const upperPanels = wall.children.filter((c) => c.name.startsWith("UpperPanel_"));
+    const pilasters = wall.children.filter((c) => c.name.startsWith("Pilaster_"));
+
+    expect(basePanels.length).toBe(3);
+    expect(upperPanels.length).toBe(3);
+    expect(pilasters.length).toBe(4);
+  });
 });

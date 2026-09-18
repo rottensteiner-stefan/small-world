@@ -1763,4 +1763,36 @@ befüllen.
   Zielobjekte per Skript auf `diffuseMap`-Vorhandensein gegengeprüft.
 - **QA:** 146 Testsuiten (804 Tests) grün, `tsc --noEmit`, `lint` und `build:lib` fehlerfrei.
 
+### 135. Koje 42 3D-Prop-Library & Kit-Erweiterung via Tripo3D (2026-09-18)
+- **Konzept-zu-3D Pipeline für Koje 42 abgeschlossen:**
+  - Aus den 4 Graphic-Noir Raumansichten wurden 10 isolierte 3D-Modellierungsreferenzen generiert und in `.agents/scratches/tripo_refs/` archiviert.
+  - Alle 10 Requisiten wurden per Tripo3D in game-ready Low-Poly `.glb`-Meshes mit vollständigen PBR-Texturen konvertiert und katalogisiert:
+    1. `bunker/metal_stool`: Desolater Industrie-Metallhocker mit abgenutztem Sitz.
+    2. `bunker/kerosene_lantern`: Františeks Messing-Kerosinlaterne mit `FlameGlow` Light-Socket.
+    3. `bunker/combat_boots`: Novotnys abgetretene Schnürstiefel mit Profilsohle.
+    4. `bunker/metal_desk`: Schwerer olivgrüner Schreibtisch mit Schublade.
+    5. `bunker/wall_shelf_supplies`: Rustikales Holz-Wandregal mit gefalteten Wollpullovern.
+    6. `bunker/mess_tin_set`: Bunker-Blechgeschirr (Emaille-Tasse, 2 Teller, Besteck).
+    7. `bunker/hanging_towels`: Wandleiste mit Schmiedehaken & fleckigen Leinentüchern.
+    8. `bunker/worn_rug`: Verschlissener Orient-Teppich für die Südwand.
+    9. `flakturm/ceiling_lamp`: Gusseiserne Bunker-Wannenleuchte mit Schutzgitter & `BulbLight`-Socket.
+    10. `flakturm/vent_wall_breach`: Flakturm-Lüftungsschacht-Kasten mit aufklappbarem Lamellengitter (Fluchtweg).
+- **Kit-Standards & ADR 0011 eingehalten:**
+  - Alle Props besitzen valide `meta.json`-Dateien und Vorschau-Bilder (`preview.jpg`).
+  - `public/assets/kits/bunker/kit.json` und `public/assets/kits/flakturm/kit.json` vollständig aktualisiert.
+  - `AssetKitValidation.test.ts` verifiziert alle 33 Tests zu 100% grün.
+- **QA:** `build:lib`, `lint` und alle 146 Testsuiten (832 Tests) fehlerfrei bestanden.
 
+### 136. Koje 42 Szenen-Integration: 10 Modular Props & Fluchtschacht (2026-09-18)
+- **Vollständige 3D-Szenenbestückung in `prologue.ts`:**
+  - `_loadPropKits()` lädt alle 10 neuen modularen glTF-Assets (`metal_desk`, `metal_stool`, `kerosene_lantern`, `combat_boots`, `wall_shelf_supplies`, `mess_tin_set`, `hanging_towels`, `worn_rug`, `ceiling_lamp`, `vent_wall_breach`) parallel zu den bestehenden Props (`coffee_grinder`, `terminal_2100`, `bunk_bed`).
+  - **Beleuchtungs-Sockets & Dynamik:**
+    - `kerosene_lantern` erhält warmen `FlameGlow`-PointLight (`#d49a3d`, 2.5 Intensity) mit feinem Flackern im Render-Loop.
+    - `ceiling_lamp` erhält kühlen Industrie-`BulbLight`-PointLight (`#dbe8f5`, 2.0 Intensity).
+  - **Lüftungsschacht-Platzierung (Fluchtweg):**
+    - `vent_wall_breach` an der Ostwand (gegenüber der Panzertür) bodennah bei `(2.38, 0.35, 0.8)` platziert (`rotation.y = -Math.PI / 2`).
+  - **Interaktive Hotspots & Story-Dressing:**
+    - Hotspot-Array um Františeks Arbeitsplatz (`desk_supplies`), Lager & Stiefel (`bed`), Kaffeemühle (`grinder`), Amts-Terminal (`terminal`), Panzertür (`door`) und Geheimen Fluchtschacht (`vent`) präzisiert.
+- **QA & Build-Status:**
+  - 146 Testsuiten (835 Tests) zu 100% grün.
+  - `npm run lint` und `npm run build:lib` fehlerfrei.

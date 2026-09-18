@@ -1,0 +1,24 @@
+{
+  "$schema": "../../../../schemas/prop-meta.schema.json",
+  "id": "bunker/metal_desk",
+  "name": "Heavy Industrial Bunker Metal Desk",
+  "category": "furniture",
+  "kit": "bunker",
+  "version": "1.0.0",
+  "description": "Utilitarian welded steel work table with olive-green finish and single storage drawer.",
+  "triangles": 12000,
+  "materials": 1,
+  "textures": [
+    "diffuse",
+    "normal",
+    "roughness_metallic"
+  ],
+  "dimensions": {
+    "width": 1.2,
+    "height": 0.78,
+    "depth": 0.7
+  },
+  "recommendedScale": 0.75,
+  "author": "Small World Studio",
+  "license": "CC0-1.0"
+}

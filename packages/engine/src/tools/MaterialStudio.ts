@@ -6,7 +6,7 @@ import { Texture } from "../core/textures/index.js";
 import { Color } from "../core/colors/index.js";
 import { DirectionalLight, AmbientLight } from "../core/lights/index.js";
 import { PerspectiveProjection } from "../math/projections/index.js";
-import { CameraStrategyType } from "../enums/index.js";
+import { CameraStrategyType, NormalMapFormat } from "../enums/index.js";
 import { Vector2D } from "../math/index.js";
 import { GeometryDataInterface } from "../interfaces/index.js";
 import {
@@ -1476,7 +1476,7 @@ export class MaterialStudio extends ForgeTool {
           heightContrast: 1.0,
           heightInvert: false,
           normalStrength: 100,
-          normalFormat: "opengl",
+          normalFormat: NormalMapFormat.OPENGL,
           normalInvertR: false,
           specContrast: 10,
           specThresh: 50,
@@ -1495,7 +1495,7 @@ export class MaterialStudio extends ForgeTool {
           heightContrast: 1.2,
           heightInvert: false,
           normalStrength: 180,
-          normalFormat: "opengl",
+          normalFormat: NormalMapFormat.OPENGL,
           normalInvertR: false,
           specContrast: 5,
           specThresh: 40,
@@ -1514,7 +1514,7 @@ export class MaterialStudio extends ForgeTool {
           heightContrast: 0.8,
           heightInvert: false,
           normalStrength: 50,
-          normalFormat: "opengl",
+          normalFormat: NormalMapFormat.OPENGL,
           normalInvertR: false,
           specContrast: 25,
           specThresh: 60,
@@ -1533,7 +1533,7 @@ export class MaterialStudio extends ForgeTool {
           heightContrast: 1.1,
           heightInvert: false,
           normalStrength: 200,
-          normalFormat: "opengl",
+          normalFormat: NormalMapFormat.OPENGL,
           normalInvertR: false,
           specContrast: 0,
           specThresh: 40,
@@ -2016,7 +2016,8 @@ export class MaterialStudio extends ForgeTool {
           parseFloat(
             (document.getElementById("normal-strength-slider") as HTMLInputElement).value,
           ) / 100.0;
-        const normalFormat = (document.getElementById("normal-format") as HTMLInputElement).value;
+        const normalFormat = (document.getElementById("normal-format") as HTMLInputElement)
+          .value as NormalMapFormat;
         const normalInvertR = (document.getElementById("normal-invert-r") as HTMLInputElement)
           .checked;
 

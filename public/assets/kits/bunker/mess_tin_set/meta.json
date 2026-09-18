@@ -1,0 +1,24 @@
+{
+  "$schema": "../../../../schemas/prop-meta.schema.json",
+  "id": "bunker/mess_tin_set",
+  "name": "Bunker Camp Tableware Mess Set",
+  "category": "props",
+  "kit": "bunker",
+  "version": "1.0.0",
+  "description": "Utilitarian metal tableware set with an enamel tin mug, two stacked plates, and cutlery on a wooden board.",
+  "triangles": 12000,
+  "materials": 1,
+  "textures": [
+    "diffuse",
+    "normal",
+    "roughness_metallic"
+  ],
+  "dimensions": {
+    "width": 0.55,
+    "height": 0.18,
+    "depth": 0.28
+  },
+  "recommendedScale": 0.3,
+  "author": "Small World Studio",
+  "license": "CC0-1.0"
+}

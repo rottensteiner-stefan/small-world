@@ -1,0 +1,40 @@
+{
+  "$schema": "../../../../schemas/prop-meta.schema.json",
+  "id": "bunker/kerosene_lantern",
+  "name": "Grandfather's Brass Kerosene Lantern",
+  "category": "lighting",
+  "kit": "bunker",
+  "version": "1.0.0",
+  "description": "Heirloom hurricane kerosene lantern with aged brass body, glass globe, and protective wire cage.",
+  "triangles": 12000,
+  "materials": 1,
+  "textures": [
+    "diffuse",
+    "normal",
+    "roughness_metallic"
+  ],
+  "dimensions": {
+    "width": 0.18,
+    "height": 0.36,
+    "depth": 0.18
+  },
+  "recommendedScale": 0.35,
+  "sockets": [
+    {
+      "name": "FlameGlow",
+      "position": [
+        0,
+        0.16,
+        0
+      ],
+      "recommendedLight": {
+        "type": "point",
+        "color": "#d49a3d",
+        "intensity": 3.5,
+        "distance": 8
+      }
+    }
+  ],
+  "author": "Small World Studio",
+  "license": "CC0-1.0"
+}

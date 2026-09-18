@@ -1,0 +1,24 @@
+{
+  "$schema": "../../../../schemas/prop-meta.schema.json",
+  "id": "bunker/metal_stool",
+  "name": "Desolate Industrial Metal Stool",
+  "category": "furniture",
+  "kit": "bunker",
+  "version": "1.0.0",
+  "description": "Rugged tubular steel bunker stool with worn circular seat and chipped olive-drab paint.",
+  "triangles": 12000,
+  "materials": 1,
+  "textures": [
+    "diffuse",
+    "normal",
+    "roughness_metallic"
+  ],
+  "dimensions": {
+    "width": 0.42,
+    "height": 0.52,
+    "depth": 0.42
+  },
+  "recommendedScale": 0.5,
+  "author": "Small World Studio",
+  "license": "CC0-1.0"
+}

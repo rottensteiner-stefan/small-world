@@ -1,0 +1,24 @@
+{
+  "$schema": "../../../../schemas/prop-meta.schema.json",
+  "id": "bunker/wall_shelf_supplies",
+  "name": "Weathered Wall Shelf with Folded Clothes",
+  "category": "furniture",
+  "kit": "bunker",
+  "version": "1.0.0",
+  "description": "Rustic timber wall shelf with forged iron brackets holding neatly stacked sweaters and clothing.",
+  "triangles": 12000,
+  "materials": 1,
+  "textures": [
+    "diffuse",
+    "normal",
+    "roughness_metallic"
+  ],
+  "dimensions": {
+    "width": 0.9,
+    "height": 0.45,
+    "depth": 0.3
+  },
+  "recommendedScale": 0.45,
+  "author": "Small World Studio",
+  "license": "CC0-1.0"
+}

@@ -8,6 +8,7 @@ export * from "./InputMode.js";
 export * from "./Keys.js";
 export * from "./LightType.js";
 export * from "./MaterialType.js";
+export * from "./NormalMapFormat.js";
 export * from "./ProjectionType.js";
 export * from "./RendererType.js";
 export * from "./TextureFilter.js";

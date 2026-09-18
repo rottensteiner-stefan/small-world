@@ -1,0 +1,24 @@
+{
+  "$schema": "../../../../schemas/prop-meta.schema.json",
+  "id": "bunker/worn_rug",
+  "name": "Frayed Vintage Oriental Bunker Rug",
+  "category": "props",
+  "kit": "bunker",
+  "version": "1.0.0",
+  "description": "Threadbare patterned oriental area rug with frayed edges and faded ochre-burgundy medallion motif.",
+  "triangles": 12000,
+  "materials": 1,
+  "textures": [
+    "diffuse",
+    "normal",
+    "roughness_metallic"
+  ],
+  "dimensions": {
+    "width": 1.4,
+    "height": 0.02,
+    "depth": 2
+  },
+  "recommendedScale": 1,
+  "author": "Small World Studio",
+  "license": "CC0-1.0"
+}

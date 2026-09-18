@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.81.0] - 2026-09-18
+
+### "A pile of rocks ceases to be a rock pile the moment a single man contemplates it, carrying within him the image of a cathedral." - Antoine de Saint-Exupéry
+
+- **Features:**
+  - *The Whisper*: 10 new game-ready Koje-42 props sourced via the 2D-concept-to-Tripo3D pipeline and wired into the prologue scene — `bunker/metal_stool`, `bunker/kerosene_lantern` (with a flickering `FlameGlow` point light socket), `bunker/combat_boots`, `bunker/metal_desk`, `bunker/wall_shelf_supplies`, `bunker/mess_tin_set`, `bunker/hanging_towels`, `bunker/worn_rug`, `flakturm/ceiling_lamp` (with a `BulbLight` point light socket), and `flakturm/vent_wall_breach` (the escape-shaft hotspot on the east wall).
+  - New [`FlakturmKit`](apps/sample-apps/the-whisper/builder/FlakturmKit.ts) procedural builders — `createPillar`, `createBeam`, `createSegmentedWall` — implementing ADR 0019's modular scale doctrine (3m/5m structural rhythm, damp baseboard zoning, separating pilasters) for breaking up long wall spans without visible texture tiling.
+  - Two new Flakturm PBR texture sets: `concrete_damp_efflorescence` (moisture/salt-bloom baseboard) and `concrete_panel_smooth`.
+  - New **ADR 0019**: [Modular Environment Texturing & 4-Pillar Scale Doctrine](docs/adr/0019-modular-environment-texturing-and-scale-doctrine.md) — multizonal PBR palettes, the bunker modular grid, a dual macro/micro decal hierarchy, and deterministic UV-jitter against tiling artifacts.
+- **Architecture & Bugfixes:**
+  - Added a `NormalMapFormat` enum (`packages/engine/src/enums/NormalMapFormat.ts`), replacing untyped `"opengl"`/`"directx"` string literals in [`MaterialStudio`](packages/engine/src/tools/MaterialStudio.ts) and [`TextureFilters`](packages/engine/src/tools/common/dsp/TextureFilters.ts).
+  - Fixed a real bug caught by pre-commit type-checking: the worn-rug prop's reload-guard referenced a nonexistent `_rugMesh` field instead of the declared `_wornRugMesh`, which would have thrown at runtime on every hot-reload of the prop. Also removed a dead `_ceilingBulbLight` field that was written but never read.
+- **Housekeeping & Docs:**
+  - Documented the ADR 0019 doctrine in [`asset-sourcing-guideline.md`](.agents/notes/asset-sourcing-guideline.md) and indexed the ADR in `docs/adr/index.md`.
+  - Added [`.agents/notes/plan-0-from-phase-1.md`](.agents/notes/plan-0-from-phase-1.md), the approved masterplan for migrating *The Whisper*'s imperative prologue scene to a declarative `KitRegistry` + level-descriptor pipeline.
+
 ## [0.80.0] - 2026-09-17
 
 ### "If you cannot measure it, you cannot improve it." - William Thomson, Lord Kelvin

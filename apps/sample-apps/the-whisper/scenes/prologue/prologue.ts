@@ -43,6 +43,16 @@ export class PrologueScene extends AbstractShowcase {
   private _terminalMesh: Object3D | null = null;
   private _bunkBedMesh: Object3D | null = null;
   private _morgueTrayMesh: Object3D | null = null;
+  private _metalDeskMesh: Object3D | null = null;
+  private _metalStoolMesh: Object3D | null = null;
+  private _keroseneLanternMesh: Object3D | null = null;
+  private _lanternFlameLight: PointLight | null = null;
+  private _combatBootsMesh: Object3D | null = null;
+  private _wallShelfMesh: Object3D | null = null;
+  private _messTinMesh: Object3D | null = null;
+  private _hangingTowelsMesh: Object3D | null = null;
+  private _wornRugMesh: Object3D | null = null;
+  private _ceilingLampMesh: Object3D | null = null;
 
   // 3D Objects & Lights (Kältekammer K-42)
   private _morgueGroup: Object3D | null = null;
@@ -260,7 +270,7 @@ export class PrologueScene extends AbstractShowcase {
       const grinderGltf = await gltfLoader.load("/assets/kits/bunker/coffee_grinder/model.glb");
       grinderGltf.name = "CoffeeGrinder_GLTF";
       grinderGltf.scale.set(0.35, 0.35, 0.35);
-      grinderGltf.position.set(-0.5, 1.53, -1.3);
+      grinderGltf.position.set(-0.35, 0.78, -1.0);
 
       grinderGltf.traverse((child) => {
         if (child.material instanceof StandardMaterial) {
@@ -293,11 +303,6 @@ export class PrologueScene extends AbstractShowcase {
         }
       });
 
-      // Tripo3D only baked the case/bezel screws into the normal map (fake bump, no real
-      // silhouette) — add them as real geometry so the OutlineElement toon pass can outline
-      // them. Measured from the actual mesh, not guessed from meta.json: the Tripo
-      // reconstruction bulges into a rounded "pill" rather than a flat slab, so a documented
-      // width/height/depth guess would bury the bolts inside the volume or float them past it.
       const [halfWidth, halfHeight, halfDepth] = this._measureLocalHalfExtents(terminalGltf);
       terminalGltf.add(BunkerKit.createTerminalBoltSet({ halfWidth, halfHeight, halfDepth }));
 
@@ -333,9 +338,262 @@ export class PrologueScene extends AbstractShowcase {
       console.warn("[Prologue] Fallback to procedural bunk bed:", e);
     }
 
-    // 4. Kältekammer Leichenschublade K-42 (Bunker Kit — procedural, see BunkerKit.createMorgueTray)
-    // Geometry is correct-by-construction (handle + ID plate only on the head end), so we only
-    // need to upgrade the ID plate from its flat placeholder color to the real decal texture.
+    // 4. Heavy Bunker Metal Desk (Bunker Kit)
+    try {
+      const deskGltf = await gltfLoader.load("/assets/kits/bunker/metal_desk/model.glb");
+      deskGltf.name = "MetalDesk_GLTF";
+      deskGltf.scale.set(0.75, 0.75, 0.75);
+      deskGltf.position.set(-0.6, 0, -1.0);
+
+      deskGltf.traverse((child) => {
+        if (child.material instanceof StandardMaterial) {
+          child.material.roughness = 0.75;
+          child.material.metallic = 0.45;
+        }
+      });
+
+      if (this._metalDeskMesh) {
+        this.scene.remove(this._metalDeskMesh);
+      }
+      this._metalDeskMesh = deskGltf;
+      this.scene.add(deskGltf);
+    } catch (e) {
+      console.warn("[Prologue] Failed to load metal desk prop:", e);
+    }
+
+    // 5. Industrial Metal Stool (Bunker Kit)
+    try {
+      const stoolGltf = await gltfLoader.load("/assets/kits/bunker/metal_stool/model.glb");
+      stoolGltf.name = "MetalStool_GLTF";
+      stoolGltf.scale.set(0.5, 0.5, 0.5);
+      stoolGltf.position.set(-0.6, 0, -0.4);
+      stoolGltf.rotation.y = 0.25;
+
+      stoolGltf.traverse((child) => {
+        if (child.material instanceof StandardMaterial) {
+          child.material.roughness = 0.7;
+          child.material.metallic = 0.55;
+        }
+      });
+
+      if (this._metalStoolMesh) {
+        this.scene.remove(this._metalStoolMesh);
+      }
+      this._metalStoolMesh = stoolGltf;
+      this.scene.add(stoolGltf);
+    } catch (e) {
+      console.warn("[Prologue] Failed to load metal stool prop:", e);
+    }
+
+    // 6. Grandfather's Brass Kerosene Lantern with Flame Glow Socket (Bunker Kit)
+    try {
+      const lanternGltf = await gltfLoader.load("/assets/kits/bunker/kerosene_lantern/model.glb");
+      lanternGltf.name = "KeroseneLantern_GLTF";
+      lanternGltf.scale.set(0.35, 0.35, 0.35);
+      lanternGltf.position.set(-0.9, 0.78, -1.0);
+
+      lanternGltf.traverse((child) => {
+        if (child.material instanceof StandardMaterial) {
+          child.material.roughness = 0.38;
+          child.material.metallic = 0.8;
+        }
+      });
+
+      // Socket FlameGlow point light
+      const flameLight = new PointLight({
+        name: "FlameGlow",
+        color: new Color(0.83, 0.6, 0.24), // #d49a3d amber-gold
+        intensity: 2.5,
+        distance: 6.0,
+      });
+      flameLight.position.set(0, 0.16, 0);
+      lanternGltf.add(flameLight);
+      this._lanternFlameLight = flameLight;
+
+      if (this._keroseneLanternMesh) {
+        this.scene.remove(this._keroseneLanternMesh);
+      }
+      this._keroseneLanternMesh = lanternGltf;
+      this.scene.add(lanternGltf);
+    } catch (e) {
+      console.warn("[Prologue] Failed to load kerosene lantern prop:", e);
+    }
+
+    // 7. Novotny's Laced Leather Combat Boots (Bunker Kit)
+    try {
+      const bootsGltf = await gltfLoader.load("/assets/kits/bunker/combat_boots/model.glb");
+      bootsGltf.name = "CombatBoots_GLTF";
+      bootsGltf.scale.set(0.35, 0.35, 0.35);
+      bootsGltf.position.set(0.85, 0, -0.6);
+      bootsGltf.rotation.y = 0.35;
+
+      bootsGltf.traverse((child) => {
+        if (child.material instanceof StandardMaterial) {
+          child.material.roughness = 0.85;
+          child.material.metallic = 0.1;
+        }
+      });
+
+      if (this._combatBootsMesh) {
+        this.scene.remove(this._combatBootsMesh);
+      }
+      this._combatBootsMesh = bootsGltf;
+      this.scene.add(bootsGltf);
+    } catch (e) {
+      console.warn("[Prologue] Failed to load combat boots prop:", e);
+    }
+
+    // 8. Wall Shelf with Folded Clothes & Supplies (Bunker Kit)
+    try {
+      const shelfGltf = await gltfLoader.load("/assets/kits/bunker/wall_shelf_supplies/model.glb");
+      shelfGltf.name = "WallShelfSupplies_GLTF";
+      shelfGltf.scale.set(0.45, 0.45, 0.45);
+      shelfGltf.position.set(-0.6, 1.45, -1.38);
+
+      shelfGltf.traverse((child) => {
+        if (child.material instanceof StandardMaterial) {
+          child.material.roughness = 0.88;
+          child.material.metallic = 0.1;
+        }
+      });
+
+      if (this._wallShelfMesh) {
+        this.scene.remove(this._wallShelfMesh);
+      }
+      this._wallShelfMesh = shelfGltf;
+      this.scene.add(shelfGltf);
+    } catch (e) {
+      console.warn("[Prologue] Failed to load wall shelf prop:", e);
+    }
+
+    // 9. Camp Tableware Mess Set (Bunker Kit)
+    try {
+      const messGltf = await gltfLoader.load("/assets/kits/bunker/mess_tin_set/model.glb");
+      messGltf.name = "MessTinSet_GLTF";
+      messGltf.scale.set(0.3, 0.3, 0.3);
+      messGltf.position.set(-0.6, 0.78, -0.92);
+
+      messGltf.traverse((child) => {
+        if (child.material instanceof StandardMaterial) {
+          child.material.roughness = 0.55;
+          child.material.metallic = 0.65;
+        }
+      });
+
+      if (this._messTinMesh) {
+        this.scene.remove(this._messTinMesh);
+      }
+      this._messTinMesh = messGltf;
+      this.scene.add(messGltf);
+    } catch (e) {
+      console.warn("[Prologue] Failed to load mess tin set prop:", e);
+    }
+
+    // 10. Stained Utility Towels on Wall Pegs (Bunker Kit)
+    try {
+      const towelsGltf = await gltfLoader.load("/assets/kits/bunker/hanging_towels/model.glb");
+      towelsGltf.name = "HangingTowels_GLTF";
+      towelsGltf.scale.set(0.4, 0.4, 0.4);
+      towelsGltf.position.set(-1.6, 1.5, -1.38);
+
+      towelsGltf.traverse((child) => {
+        if (child.material instanceof StandardMaterial) {
+          child.material.roughness = 0.95;
+          child.material.metallic = 0.05;
+        }
+      });
+
+      if (this._hangingTowelsMesh) {
+        this.scene.remove(this._hangingTowelsMesh);
+      }
+      this._hangingTowelsMesh = towelsGltf;
+      this.scene.add(towelsGltf);
+    } catch (e) {
+      console.warn("[Prologue] Failed to load hanging towels prop:", e);
+    }
+
+    // 11. Frayed Vintage Oriental Bunker Rug (Bunker Kit)
+    try {
+      const rugGltf = await gltfLoader.load("/assets/kits/bunker/worn_rug/model.glb");
+      rugGltf.name = "WornRug_GLTF";
+      rugGltf.scale.set(1.0, 1.0, 1.0);
+      rugGltf.position.set(0, 0.01, 0.0);
+
+      rugGltf.traverse((child) => {
+        if (child.material instanceof StandardMaterial) {
+          child.material.roughness = 0.95;
+          child.material.metallic = 0.0;
+        }
+      });
+
+      if (this._wornRugMesh) {
+        this.scene.remove(this._wornRugMesh);
+      }
+      this._wornRugMesh = rugGltf;
+      this.scene.add(rugGltf);
+    } catch (e) {
+      console.warn("[Prologue] Failed to load worn rug prop:", e);
+    }
+
+    // 12. Caged Heavy Industrial Bulkhead Ceiling Lamp with Bulb Light Socket (Flakturm Kit)
+    try {
+      const lampGltf = await gltfLoader.load("/assets/kits/flakturm/props/ceiling_lamp/model.glb");
+      lampGltf.name = "CeilingLamp_GLTF";
+      lampGltf.scale.set(0.35, 0.35, 0.35);
+      lampGltf.position.set(0, 3.08, 0);
+
+      lampGltf.traverse((child) => {
+        if (child.material instanceof StandardMaterial) {
+          child.material.roughness = 0.45;
+          child.material.metallic = 0.8;
+        }
+      });
+
+      const bulbLight = new PointLight({
+        name: "BulbLight",
+        color: new Color(0.86, 0.91, 0.96), // #dbe8f5 cool white
+        intensity: 2.0,
+        distance: 7.5,
+      });
+      bulbLight.position.set(0, -0.05, 0);
+      lampGltf.add(bulbLight);
+
+      if (this._ceilingLampMesh) {
+        this.scene.remove(this._ceilingLampMesh);
+      }
+      this._ceilingLampMesh = lampGltf;
+      this.scene.add(lampGltf);
+    } catch (e) {
+      console.warn("[Prologue] Failed to load ceiling lamp prop:", e);
+    }
+
+    // 13. Flakturm Ventilation Escape Shaft & Grille (Flakturm Kit — East Wall opposite door)
+    try {
+      const ventGltf = await gltfLoader.load(
+        "/assets/kits/flakturm/props/vent_wall_breach/model.glb",
+      );
+      ventGltf.name = "VentWallBreach_GLTF";
+      ventGltf.scale.set(0.6, 0.6, 0.6);
+      ventGltf.position.set(2.38, 0.35, 0.8);
+      ventGltf.rotation.y = -Math.PI / 2;
+
+      ventGltf.traverse((child) => {
+        if (child.material instanceof StandardMaterial) {
+          child.material.roughness = 0.7;
+          child.material.metallic = 0.55;
+        }
+      });
+
+      if (this._ventGrate) {
+        this.scene.remove(this._ventGrate);
+      }
+      this._ventGrate = ventGltf;
+      this.scene.add(ventGltf);
+    } catch (e) {
+      console.warn("[Prologue] Fallback to procedural vent grate:", e);
+    }
+
+    // 14. Kältekammer Leichenschublade K-42 ID plate decal
     try {
       const idPlateTexture = await Texture.fromUrl("/assets/kits/flakturm/decals/sign_koje42.png");
       const idPlate = this._morgueTrayMesh?.getObjectByName("IdPlate");
@@ -618,16 +876,45 @@ export class PrologueScene extends AbstractShowcase {
     this.scene.add(bedGroup);
     this._bunkBedMesh = bedGroup;
 
+    // 🪑 Procedural Metal Desk Fallback
+    const desk = new Object3D("MetalDesk");
+    desk.position.set(-0.6, 0, -1.0);
+
+    const deskTop = new Object3D("DeskTop");
+    deskTop.geometry = cubeGeo;
+    deskTop.material = rustSteelMat;
+    deskTop.scale.set(1.2, 0.05, 0.7);
+    deskTop.position.set(0, 0.75, 0);
+    desk.add(deskTop);
+
+    const legOffsets: [number, number][] = [
+      [-0.55, -0.3],
+      [0.55, -0.3],
+      [-0.55, 0.3],
+      [0.55, 0.3],
+    ];
+    legOffsets.forEach(([lx, lz], idx) => {
+      const leg = new Object3D(`DeskLeg_${idx}`);
+      leg.geometry = cubeGeo;
+      leg.material = rustSteelMat;
+      leg.scale.set(0.05, 0.75, 0.05);
+      leg.position.set(lx, 0.375, lz);
+      desk.add(leg);
+    });
+    this.scene.add(desk);
+    this._metalDeskMesh = desk;
+
     // ☕ Wooden Shelf & Coffee Grinder
     const shelf = new Object3D("Shelf");
     shelf.geometry = cubeGeo;
     shelf.material = woodMat;
     shelf.scale.set(1.2, 0.06, 0.4);
-    shelf.position.set(-0.5, 1.5, -1.3);
+    shelf.position.set(-0.6, 1.45, -1.35);
     this.scene.add(shelf);
+    this._wallShelfMesh = shelf;
 
     const grinder = new Object3D("CoffeeGrinder");
-    grinder.position.set(-0.5, 1.62, -1.3);
+    grinder.position.set(-0.35, 0.78, -1.0);
 
     const grinderBox = new Object3D("GrinderBox");
     grinderBox.geometry = cubeGeo;
@@ -689,9 +976,10 @@ export class PrologueScene extends AbstractShowcase {
     this.scene.add(terminal);
     this._terminalMesh = terminal;
 
-    // 🕳️ Ventilation Grate on Back Wall (leads to Sektor 0 / Kältekammer)
+    // 🕳️ Ventilation Grate on East Wall opposite door (leads to Sektor 0 / Kältekammer)
     const ventGroup = new Object3D("VentilationGrate");
-    ventGroup.position.set(0.8, 0.5, -1.35);
+    ventGroup.position.set(2.38, 0.35, 0.8);
+    ventGroup.rotation.y = -Math.PI / 2;
 
     const ventFrame = new Object3D("VentFrame");
     ventFrame.geometry = cubeGeo;
@@ -1011,8 +1299,8 @@ export class PrologueScene extends AbstractShowcase {
     const spots: HotspotAction[] = [
       {
         id: "grinder",
-        name: "Kaffeemühle",
-        position: new Vector3D(-0.5, 0, -1.0),
+        name: "Františeks Kaffeemühle",
+        position: new Vector3D(-0.35, 0, -0.8),
         interactionRadius: 1.2,
         promptText: "Kaffeemühle untersuchen",
         monologueTitle: "Františeks Kaffeemühle",
@@ -1023,15 +1311,28 @@ export class PrologueScene extends AbstractShowcase {
         ],
       },
       {
+        id: "desk_supplies",
+        name: "Schreibtisch & Vorräte",
+        position: new Vector3D(-0.7, 0, -0.6),
+        interactionRadius: 1.3,
+        promptText: "Arbeitsplatz & Vorräte durchsuchen",
+        monologueTitle: "Františeks Arbeitsplatz",
+        monologueText: [
+          "Ein abgewetzter Stahltisch mit Emaillegeschirr, gefalteten Wollpullovern und der Messing-Petroleumlampe.",
+          "Auf einem Zettel unter der Lampe stehen Notizen über ungewöhnliche Stromschwankungen in Sektor 0.",
+          "František wusste, dass in der Kältekammer etwas nicht stimmte.",
+        ],
+      },
+      {
         id: "bed",
-        name: "Stockbett",
-        position: new Vector3D(1.5, 0, -0.6),
+        name: "Stockbett & Stiefel",
+        position: new Vector3D(1.2, 0, -0.6),
         interactionRadius: 1.4,
-        promptText: "Františeks Lager untersuchen",
+        promptText: "Františeks Lager & Stiefel untersuchen",
         monologueTitle: "Das leere Lager",
         monologueText: [
           "Die raue Wolldecke ist noch zerknittert. Gestern Abend saß er hier und summte ein altes Lied über den Wienerwald.",
-          "Er wusste, dass sie ihn holen würden. Er hat seine Stiefel extra nicht ausgezogen.",
+          "Seine schweren Lederstiefel stehen noch unterm Bett. Er hat sie extra stehen lassen, um im Schacht keine lauten Schritte zu machen.",
         ],
       },
       {
@@ -1063,13 +1364,13 @@ export class PrologueScene extends AbstractShowcase {
       },
       {
         id: "vent",
-        name: "Lüftungsgitter",
-        position: new Vector3D(0.8, 0, -1.2),
+        name: "Lüftungsschacht / Fluchtweg",
+        position: new Vector3D(2.0, 0, 0.8),
         interactionRadius: 1.3,
         promptText: "Lüftungsgitter öffnen & in Schacht klettern",
-        monologueTitle: "Der alte Wartungsschacht",
+        monologueTitle: "Der geheime Fluchtweg",
         monologueText: [
-          "Die Befestigungsschrauben sind mit Rostlöser gelöst. František hat diesen Fluchtweg vor Jahren vorbereitet.",
+          "An der Ostwand, dicht über dem feuchten Boden: Das schwere Eisengitter ist bereits aufgeschraubt.",
           "Dahinter pfeift eisige Ammoniakluft herauf: Der Schacht führt direkt in die Kältekammer K-42...",
         ],
         onInteract: (): void => {
@@ -1317,12 +1618,17 @@ export class PrologueScene extends AbstractShowcase {
       const bob = this._isMoving ? Math.sin(this._currentTime * 12.0) * 0.4 : 0;
       this._playerLanternLight.intensity = 3.5 + bob + (Math.random() - 0.5) * 0.15;
     }
+    if (this._lanternFlameLight) {
+      const flicker =
+        0.95 + Math.sin(this._currentTime * 18.0) * 0.05 + (Math.random() - 0.5) * 0.08;
+      this._lanternFlameLight.intensity = 2.5 * flicker;
+    }
     if (this._cyanideDecal && this._cyanideSpotLight && this._cyanideSpotLight.intensity > 0) {
       const pulse = 1.0 + Math.sin(this._currentTime * 6.0) * 0.15;
       this._cyanideDecal.scale.set(0.12 * pulse, 0.02, 0.12 * pulse);
     }
     if (this._ventGrate) {
-      this._ventGrate.position.y = 0.5 + Math.sin(this._currentTime * 20.0) * 0.001;
+      this._ventGrate.position.y = 0.35 + Math.sin(this._currentTime * 20.0) * 0.001;
     }
 
     // 8. Subtle Screen Flicker

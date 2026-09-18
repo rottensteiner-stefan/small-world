@@ -28,6 +28,22 @@
       "path": "props/bunker_vent_hatch/model.glb",
       "preview": "props/bunker_vent_hatch/preview.jpg",
       "meta": "props/bunker_vent_hatch/meta.json"
+    },
+    {
+      "id": "flakturm/ceiling_lamp",
+      "name": "Caged Heavy Industrial Bulkhead Ceiling Lamp",
+      "category": "lighting",
+      "path": "props/ceiling_lamp/model.glb",
+      "preview": "props/ceiling_lamp/preview.jpg",
+      "meta": "props/ceiling_lamp/meta.json"
+    },
+    {
+      "id": "flakturm/vent_wall_breach",
+      "name": "Flakturm Ventilation Escape Shaft & Grille",
+      "category": "doors",
+      "path": "props/vent_wall_breach/model.glb",
+      "preview": "props/vent_wall_breach/preview.jpg",
+      "meta": "props/vent_wall_breach/meta.json"
     }
   ],
   "textures": [
@@ -56,6 +72,28 @@
     {
       "id": "flakturm/concrete_weathered",
       "name": "Monumentaler Außenbeton (Facade & Wash Streaks)",
+      "category": "walls",
+      "maps": [
+        "albedo.png",
+        "normal.png",
+        "roughness.png",
+        "ao.png"
+      ]
+    },
+    {
+      "id": "flakturm/concrete_panel_smooth",
+      "name": "Glattbeton-Kassetten (Large Halls & Corridors)",
+      "category": "walls",
+      "maps": [
+        "albedo.png",
+        "normal.png",
+        "roughness.png",
+        "ao.png"
+      ]
+    },
+    {
+      "id": "flakturm/concrete_damp_efflorescence",
+      "name": "Feuchtbeton mit Salpeter (Shafts & Morgue Vaults)",
       "category": "walls",
       "maps": [
         "albedo.png",

@@ -24,3 +24,16 @@
 2. **Poly Haven:** Höchste Material-Qualität mit 100% sauber kalibrierten Normal- und Roughness-Maps.
 3. **Kenney Assets:** Exzellent für UI-Symbole, kleine Requisiten und modulare Prototyping-Elemente.
 4. **Tripo3D CLI / API:** Für schnelle 3D-Geometrie-Generierung aus isolierten 2D-Artwork-Referenzen.
+
+---
+
+## 4. Die 4-Säulen-Skalierungs-Doktrin für modulare Räume (ADR 0019)
+
+Um bei unterschiedlich großen Räumen (von der 7×7m Koje 42 bis zur 50m Halle) Tiling-Muster zu verhindern und maximale visuelle Vielfalt zu garantieren:
+
+1. **Multizonale PBR-Paletten:** Mindestens 4 PBR-Grundvarianten pro Architektur-Kit (Holzschalungs-Beton, Glattbeton-Kassetten, Feucht-/Salpeterbeton, schwerer Festungsbeton).
+2. **Bunker Modular Grid (3m / 5m):** Gliederung langer Wände durch Wandpfeiler (*Pilasters*), Deckenunterzüge (*Beams*) und eine dunklere Sockelzone (*Damp Baseboard*).
+3. **Duales Decal-System:**
+   - *Makro-Decals:* Großflächige Sickerwasser-Läufe, Salpeterkrusten, Brandschäden und Mauerausbrüche (`rebar_damage`).
+   - *Mikro-Decals:* Lokale Ziffern, Sektor-Stencils, Gefahrenstreifen (`hazard_stripes`) und Leuchtmarkierungen (`guide_stripe_glow`).
+4. **Deterministischer UV-Jitter:** Automatischer instanzbasierter UV-Offset (`texture.offset.set((x * 0.37) % 1.0, (z * 0.37) % 1.0)`), damit benachbarte Wandelemente desselben Materials niemals dieselben Texturmerkmale an gleicher Stelle teilen.
