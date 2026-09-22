@@ -61,7 +61,7 @@
     </style>
   </head>
   <body>
-    <showcase-layout title="The Shader Gallery" subtitle-b64="" prev="../22/index.html" next="../26/index.html"></showcase-layout>
+    <showcase-layout title="The Shader Gallery" subtitle-b64="PHA+V2ViR0wyIChHTFNMKSB2cyBXZWJHUFUgKFdHU0wpIHNoYWRlciBnYWxsZXJ5LjwvcD4=" prev="../22/index.html" next="../26/index.html"></showcase-layout>
 
     <div id="ui-bar">
     <label class="switch-label">
@@ -76,7 +76,8 @@
 
 <script>
     const params = new URLSearchParams(window.location.search);
-    let api = params.get('api');
+    let rawParam = params.get('rendererType') || params.get('api');
+    let api = rawParam ? (rawParam.toLowerCase().includes('gpu') || rawParam.toLowerCase() === 'wgsl' ? 'webgpu' : 'webgl2') : null;
 
     // Detects the best available Graphics API so the gallery starts right away,
     // without requiring the visitor to pick one manually.
@@ -104,7 +105,8 @@
         document.body.style.opacity = '0';
 
         setTimeout(() => {
-            window.location.search = '?api=' + newApi;
+            const targetRenderer = newApi === 'webgpu' ? 'WEB_GPU' : 'WEB_GL2';
+            window.location.search = '?rendererType=' + targetRenderer + '&api=' + newApi;
         }, 600);
     }
 </script>

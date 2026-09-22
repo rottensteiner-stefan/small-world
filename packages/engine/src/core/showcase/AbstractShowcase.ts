@@ -6,14 +6,19 @@ import { Vector3D } from "../../math/index.js";
 import { FlyController, OrbitController } from "../controllers/index.js";
 
 /**
- * Reads a `?rendererType=` override from the page URL (e.g. `?rendererType=WEB_GL2`),
- * matched case-insensitively against `RendererType`'s members. Lets any showcase's
- * renderer be swapped from the address bar without touching its source.
+ * Reads a `?rendererType=` or `?api=` override from the page URL (e.g. `?rendererType=WEB_GL2` or `?api=webgl2`),
+ * matched case-insensitively against `RendererType`'s members and common aliases. Lets any showcase's
+ * renderer be swapped from the address bar or UI switcher without touching its source.
  */
 function getRendererTypeFromQuery(): RendererType | undefined {
-  const raw = new URLSearchParams(window.location.search).get("rendererType");
+  if (typeof window === "undefined" || !window.location) return undefined;
+  const params = new URLSearchParams(window.location.search);
+  const raw = params.get("rendererType") || params.get("api");
   if (!raw) return undefined;
-  const upper = raw.toUpperCase();
+  const upper = raw.toUpperCase().replace(/-/g, "_");
+  if (upper === "WEBGL2" || upper === "GLSL" || upper === "WEB_GL2") return RendererType.WEB_GL2;
+  if (upper === "WEBGPU" || upper === "WGSL" || upper === "WEB_GPU") return RendererType.WEB_GPU;
+  if (upper === "WEBGL1" || upper === "WEB_GL1") return RendererType.WEB_GL1;
   return (Object.values(RendererType) as string[]).includes(upper)
     ? (upper as RendererType)
     : undefined;

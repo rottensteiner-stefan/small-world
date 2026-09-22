@@ -1,11 +1,13 @@
 import {
   AmbientLight,
+  CameraStrategyType,
   Color,
   DirectionalLight,
   Grid,
   Keys,
   Object3D,
   ObjLoader,
+  OrbitController,
   PerspectiveProjection,
   PhongMaterial,
   ProjectionType,
@@ -29,8 +31,13 @@ class Showcase3 extends AbstractShowcase {
       this.camera.updateProjectionMatrix();
     }
 
-    this.defaultMoveSpeed = 8.0;
     this.setInitialCamera(new Vector3D(0, 5, 15), new Vector3D(0, 0, 0));
+
+    // Turntable orbit around the grid center (target = (0,0,0)) so drag-to-rotate pivots
+    // at the middle of the grid, matching the pre-migration behavior.
+    this.camera.setStrategy(CameraStrategyType.HYBRID_SYNC);
+    this.camera.target.set(0, 0, 0);
+    this.camera.addBehavior(new OrbitController({ input: this.input, audio: this.audio }));
 
     const ambientLight: AmbientLight = new AmbientLight({ color: Color.WHITE, intensity: 0.3 });
     this.scene.add(ambientLight);

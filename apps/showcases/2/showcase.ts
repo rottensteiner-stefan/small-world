@@ -49,7 +49,7 @@ export class Showcase2 extends AbstractShowcase {
     }
     // We switch to the First-Person strategy
     this.camera.setStrategy(CameraStrategyType.FPS);
-    this.camera.position.set(0, 2, 0); // Start position
+    this.camera.position.set(0, 2, 0); // Start position at center of grid so mouse-look pivots around the grid middle
 
     this.camera.addBehavior(
       new FPSController({

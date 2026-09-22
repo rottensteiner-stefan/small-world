@@ -246,6 +246,7 @@ class Showcase24 extends AbstractShowcase {
     this.scene.add(wireSphere);
 
     // Build the Gallery Billboards based on API
+    this.api = this.renderer.type === RendererType.WEB_GPU ? "webgpu" : "webgl2";
     if (this.api === "webgl2") {
       this._buildWebGL2Gallery();
     } else {
